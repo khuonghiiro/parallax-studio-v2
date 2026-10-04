@@ -188,18 +188,31 @@ function registerIpc(): void {
   ipcMain.on('window:title', (_e, title: string) => mainWindow?.setTitle(title))
 }
 
-app.whenReady().then(() => {
-  registerIpc()
-  mcp = new McpBridge(() => mainWindow)
-  mcp.start()
-  createWindow()
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
-})
+const gotTheLock = app.requestSingleInstanceLock()
 
-app.on('window-all-closed', () => {
-  encoder?.cancel()
-  mcp?.stop()
-  if (process.platform !== 'darwin') app.quit()
-})
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    }
+  })
+
+  app.whenReady().then(() => {
+    registerIpc()
+    mcp = new McpBridge(() => mainWindow)
+    mcp.start()
+    createWindow()
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
+  })
+
+  app.on('window-all-closed', () => {
+    encoder?.cancel()
+    mcp?.stop()
+    if (process.platform !== 'darwin') app.quit()
+  })
+}
