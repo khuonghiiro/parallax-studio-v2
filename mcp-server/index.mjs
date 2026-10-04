@@ -226,7 +226,19 @@ tool('set_composition', 'Change composition settings. Changing duration extends/
 tool('save_project', 'Save the project as a .pxs file (images and audio embedded).', {
   path: z.string().optional().describe('Absolute path ending in .pxs. Omit to overwrite the current file.')
 })
-tool('open_project', 'Open a .pxs project file.', { file_path: z.string() })
+tool('open_project', 'Open a .pxs or .json project file.', { file_path: z.string() })
+tool('import_project_json', 'Import a project from a JSON string or file. Supports both full Project JSON and human-friendly declarative scene JSON.', {
+  json: z.string().optional().describe('JSON string or object containing project or scene definition.'),
+  file_path: z.string().optional().describe('Path to a .json file on disk.')
+})
+tool('export_project_json', 'Export the entire current project to a self-contained JSON string (with embedded assets).', {})
+tool('import_shot_json', 'Import a shot and its layers from JSON into the current project.', {
+  json: z.string().optional().describe('JSON string of the shot definition.'),
+  file_path: z.string().optional().describe('Path to a .json file on disk.')
+})
+tool('export_shot_json', 'Export a single shot and its layers to JSON.', {
+  shot: z.string().describe('Shot name or shot id.')
+})
 tool('undo', 'Undo the last edit.', {})
 tool('redo', 'Redo.', {})
 

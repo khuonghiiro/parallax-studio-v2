@@ -8,7 +8,9 @@ import {
   loadDemo,
   newProject,
   openProject,
-  saveProject
+  openProjectJson,
+  saveProject,
+  saveProjectJson
 } from '../actions'
 import type { McpStatus } from '@shared/ipc'
 import { useEditor } from '../store/editor'
@@ -131,9 +133,16 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
         <button className="menu-item" onClick={() => saveProject(true)}>
           <IconSave width={15} /> Lưu thành… <span className="hint">Ctrl+Shift+S</span>
         </button>
+        <div className="menu-label">JSON (Dễ chỉnh sửa)</div>
+        <button id="import-json" className="menu-item" onClick={openProjectJson}>
+          <IconFolder width={15} /> Nhập từ JSON…
+        </button>
+        <button id="export-json" className="menu-item" onClick={saveProjectJson}>
+          <IconSave width={15} /> Xuất ra JSON…
+        </button>
         <div className="menu-label">Mẫu</div>
         <button className="menu-item" onClick={() => loadDemo()}>
-          <IconWand width={15} /> Mở cảnh mẫu “Parallax Journey” (3 cảnh)
+          <IconWand width={15} /> Mở cảnh mẫu “Parallax Journey” (4 cảnh)
         </button>
       </Menu>
 

@@ -88,7 +88,11 @@ function registerIpc(): void {
       const res = await dialog.showSaveDialog(mainWindow!, {
         title: 'Save project',
         defaultPath: 'untitled.pxs',
-        filters: [{ name: 'Parallax Studio Project', extensions: ['pxs'] }]
+        filters: [
+          { name: 'Parallax Studio Project (*.pxs, *.json)', extensions: ['pxs', 'json'] },
+          { name: 'Parallax Archive (*.pxs)', extensions: ['pxs'] },
+          { name: 'JSON Project (*.json)', extensions: ['json'] }
+        ]
       })
       if (res.canceled || !res.filePath) return null
       target = res.filePath
@@ -101,11 +105,38 @@ function registerIpc(): void {
     const res = await dialog.showOpenDialog(mainWindow!, {
       title: 'Open project',
       properties: ['openFile'],
-      filters: [{ name: 'Parallax Studio Project', extensions: ['pxs'] }]
+      filters: [
+        { name: 'Parallax Studio Project (*.pxs, *.json)', extensions: ['pxs', 'json'] },
+        { name: 'Parallax Archive (*.pxs)', extensions: ['pxs'] },
+        { name: 'JSON Project (*.json)', extensions: ['json'] }
+      ]
     })
     if (res.canceled || res.filePaths.length === 0) return null
     const p = res.filePaths[0]
     return { path: p, data: new Uint8Array(await readFile(p)) }
+  })
+
+  ipcMain.handle('project:saveJson', async (_e, content: string, defaultName = 'project.json') => {
+    const res = await dialog.showSaveDialog(mainWindow!, {
+      title: 'Save project as JSON',
+      defaultPath: defaultName,
+      filters: [{ name: 'JSON Project / Scene (*.json)', extensions: ['json'] }]
+    })
+    if (res.canceled || !res.filePath) return null
+    await writeFile(res.filePath, content, 'utf-8')
+    return res.filePath
+  })
+
+  ipcMain.handle('project:openJson', async () => {
+    const res = await dialog.showOpenDialog(mainWindow!, {
+      title: 'Open JSON Project or Scene',
+      properties: ['openFile'],
+      filters: [{ name: 'JSON Project / Scene (*.json)', extensions: ['json'] }]
+    })
+    if (res.canceled || res.filePaths.length === 0) return null
+    const p = res.filePaths[0]
+    const content = await readFile(p, 'utf-8')
+    return { path: p, content }
   })
 
   ipcMain.handle('export:choosePath', async (_e, defaultName: string) => {

@@ -27,6 +27,8 @@ export interface ParallaxApi {
   openFiles(kind: 'image' | 'audio'): Promise<PickedFile[]>
   saveProject(data: Uint8Array, suggestedPath?: string): Promise<string | null>
   openProject(): Promise<{ path: string; data: Uint8Array } | null>
+  saveJson(content: string, defaultName?: string): Promise<string | null>
+  openJson(): Promise<{ path: string; content: string } | null>
   chooseExportPath(defaultName: string): Promise<string | null>
   exportStart(opts: ExportStartOptions): Promise<{ ok: boolean; error?: string }>
   exportFrame(frame: Uint8Array): Promise<void>

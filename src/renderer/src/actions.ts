@@ -15,6 +15,7 @@ import {
   shotSpacing
 } from './project/factory'
 import { deserializeProject, serializeProject } from './project/serialize'
+import { exportProjectToJson, importProjectFromJson } from './project/jsonFormat'
 import { getDraftAnimatable, useEditor } from './store/editor'
 
 // ------------------------------------------------------------------ toast
@@ -61,11 +62,45 @@ export async function openProject(): Promise<void> {
   const res = await window.api.openProject()
   if (!res) return
   try {
-    const p = await deserializeProject(res.data)
+    let p: Project
+    if (res.path.endsWith('.json')) {
+      const text = new TextDecoder('utf-8').decode(res.data)
+      p = await importProjectFromJson(text)
+    } else {
+      p = await deserializeProject(res.data)
+    }
     editor().loadProject(p, res.path)
     toast('Đã mở dự án')
   } catch (err) {
     window.alert(`Không mở được dự án:\n${String(err)}`)
+  }
+}
+
+export async function openProjectJson(): Promise<void> {
+  if (!confirmDiscard()) return
+  try {
+    const res = await window.api.openJson()
+    if (!res) return
+    const p = await importProjectFromJson(res.content)
+    editor().loadProject(p, res.path)
+    toast('Đã mở dự án từ JSON')
+  } catch (err) {
+    window.alert(`Không mở được file JSON:\n${String(err)}`)
+  }
+}
+
+export async function saveProjectJson(): Promise<void> {
+  const { project, filePath } = editor()
+  try {
+    const jsonStr = await exportProjectToJson(project)
+    const baseName = (filePath ? filePath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, '') : project.comp.name || 'project') + '.json'
+    const path = await window.api.saveJson(jsonStr, baseName)
+    if (path) {
+      editor().markSaved(path)
+      toast('Đã xuất dự án ra JSON')
+    }
+  } catch (err) {
+    window.alert(`Không xuất được JSON:\n${String(err)}`)
   }
 }
 
@@ -167,6 +202,13 @@ export async function importDroppedFiles(list: FileList): Promise<void> {
       if (!confirmDiscard()) return
       const p = await deserializeProject(data)
       editor().loadProject(p, null)
+      return
+    } else if (file.name.endsWith('.json')) {
+      if (!confirmDiscard()) return
+      const text = new TextDecoder('utf-8').decode(data)
+      const p = await importProjectFromJson(text)
+      editor().loadProject(p, file.name)
+      toast('Đã nạp dự án từ JSON')
       return
     }
   }

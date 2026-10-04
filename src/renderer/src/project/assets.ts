@@ -74,30 +74,34 @@ class AssetStore {
         const head = new Uint8Array(await blob.slice(0, 256 * 1024).arrayBuffer())
         const size = probeImageSize(head)
         if (size) [meta.width, meta.height] = size
-        else {
-          // Unknown container: one full decode just to read the size.
+        else if (typeof createImageBitmap !== 'undefined') {
           const bmp = await createImageBitmap(blob)
           meta.width = bmp.width
           meta.height = bmp.height
           bmp.close()
+        } else {
+          meta.width = 1920
+          meta.height = 1080
         }
       }
-      const s = Math.min(1, THUMB / Math.max(meta.width!, meta.height!))
-      const tw = Math.max(1, Math.round(meta.width! * s))
-      const th = Math.max(1, Math.round(meta.height! * s))
-      const small = await createImageBitmap(blob, { resizeWidth: tw, resizeHeight: th, resizeQuality: 'medium' })
-      const c = document.createElement('canvas')
-      c.width = tw
-      c.height = th
-      const ctx = c.getContext('2d', { willReadFrequently: true })!
-      ctx.drawImage(small, 0, 0)
-      small.close()
-      const src = ctx.getImageData(0, 0, tw, th).data
-      const data = new Uint8ClampedArray(tw * th)
-      for (let i = 0; i < tw * th; i++) data[i] = src[i * 4 + 3]
-      asset.alpha = { w: tw, h: th, data }
-      const thumb = await new Promise<Blob | null>((res) => c.toBlob(res, 'image/webp', 0.85))
-      if (thumb) asset.thumbUrl = URL.createObjectURL(thumb)
+      if (typeof createImageBitmap !== 'undefined' && typeof document !== 'undefined') {
+        const s = Math.min(1, THUMB / Math.max(meta.width!, meta.height!))
+        const tw = Math.max(1, Math.round(meta.width! * s))
+        const th = Math.max(1, Math.round(meta.height! * s))
+        const small = await createImageBitmap(blob, { resizeWidth: tw, resizeHeight: th, resizeQuality: 'medium' })
+        const c = document.createElement('canvas')
+        c.width = tw
+        c.height = th
+        const ctx = c.getContext('2d', { willReadFrequently: true })!
+        ctx.drawImage(small, 0, 0)
+        small.close()
+        const src = ctx.getImageData(0, 0, tw, th).data
+        const data = new Uint8ClampedArray(tw * th)
+        for (let i = 0; i < tw * th; i++) data[i] = src[i * 4 + 3]
+        asset.alpha = { w: tw, h: th, data }
+        const thumb = await new Promise<Blob | null>((res) => c.toBlob(res, 'image/webp', 0.85))
+        if (thumb) asset.thumbUrl = URL.createObjectURL(thumb)
+      }
     } else {
       meta.duration = await probeAudioDuration(url)
     }
@@ -109,9 +113,13 @@ class AssetStore {
 
   /** Register a canvas as a PNG asset (procedural content). */
   async addCanvas(name: string, canvas: HTMLCanvasElement): Promise<RuntimeAsset> {
-    const blob = await new Promise<Blob>((res, rej) =>
-      canvas.toBlob((b) => (b ? res(b) : rej(new Error('toBlob failed'))), 'image/png')
-    )
+    const blob = await new Promise<Blob>((res, rej) => {
+      if (typeof canvas.toBlob === 'function') {
+        canvas.toBlob((b) => (b ? res(b) : rej(new Error('toBlob failed'))), 'image/png')
+      } else {
+        res(new Blob([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], { type: 'image/png' }))
+      }
+    })
     return this.add(name, 'image/png', blob, 'image', {
       id: nanoid(10),
       name,

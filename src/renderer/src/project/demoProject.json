@@ -1,0 +1,157 @@
+{
+  "name": "Parallax Journey",
+  "comp": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "duration": 19.2
+  },
+  "look": {
+    "fogEnabled": false,
+    "vignette": 0.28,
+    "grain": 0.02,
+    "contrast": 1.05,
+    "saturation": 1.08
+  },
+  "camera": {
+    "shakeAmount": 3.0,
+    "shakeSpeed": 0.35,
+    "dofEnabled": false,
+    "tour": [
+      { "shot": "Emerald Riverbank", "hold": 3.5, "type": "arc", "transition": 2.5 },
+      { "shot": "Island Pond", "hold": 3.0, "type": "arc", "transition": 2.5 },
+      { "shot": "Highland Lagoon", "hold": 3.0, "type": "fade", "transition": 1.2 },
+      { "shot": "Twilight Valley", "hold": 3.5, "type": "cut", "transition": 0 }
+    ]
+  },
+  "shots": [
+    {
+      "name": "Emerald Riverbank",
+      "arrive": 0.6,
+      "title": {
+        "text": "EMERALD RIVERBANK",
+        "subtitle": "where the wild earth awakes",
+        "fontFamily": "Montserrat",
+        "fontSize": 88,
+        "fontWeight": 800,
+        "letterSpacing": 10,
+        "color": "#ffffff",
+        "subtitleColor": "#ffe57f"
+      },
+      "particles": {
+        "name": "Sun Dust",
+        "seed": 108,
+        "count": 280,
+        "size": 6,
+        "color": "#fff9c4",
+        "velocity": [16, 10, 0],
+        "sway": 36,
+        "position": [0, -150, 500]
+      },
+      "layers": [
+        { "name": "Sunny Sky", "z": 3200, "generator": "sunny_sky" },
+        { "name": "Distant Mountains", "z": 2200, "generator": "distant_mountains" },
+        { "name": "Rolling Green Hills", "z": 1400, "generator": "rolling_green_hills" },
+        { "name": "River & Meadow Floor", "z": 800, "generator": "river_and_meadow_floor" },
+        { "name": "Midground Trees", "z": 400, "generator": "midground_trees" },
+        { "name": "Foreground Framing", "z": -240, "generator": "foreground_riverbank_framing" }
+      ]
+    },
+    {
+      "name": "Island Pond",
+      "arrive": 5.8,
+      "title": {
+        "text": "ISLAND POND",
+        "subtitle": "sanctuary of ancient trees",
+        "fontFamily": "Montserrat",
+        "fontSize": 88,
+        "fontWeight": 800,
+        "letterSpacing": 10,
+        "color": "#ffffff",
+        "subtitleColor": "#bbf7d0"
+      },
+      "particles": {
+        "name": "Pollen",
+        "seed": 909,
+        "count": 240,
+        "size": 5,
+        "color": "#dcedc8",
+        "velocity": [28, 8, 0],
+        "sway": 26,
+        "position": [0, -150, 500]
+      },
+      "layers": [
+        { "name": "Pastel Sky", "z": 3200, "generator": "pastel_sky" },
+        { "name": "Purple Mountain Peaks", "z": 2200, "generator": "purple_mountain_peaks" },
+        { "name": "Rolling Hills & Hedges", "z": 1400, "generator": "rolling_hills_and_hedges" },
+        { "name": "Center Island Pond", "z": 800, "generator": "center_island_pond" },
+        { "name": "Midground Trees", "z": 400, "generator": "island_pond_trees" },
+        { "name": "Foreground Broadleaf Framing", "z": -240, "generator": "foreground_broadleaf_framing" }
+      ]
+    },
+    {
+      "name": "Highland Lagoon",
+      "arrive": 11.0,
+      "title": {
+        "text": "HIGHLAND LAGOON",
+        "subtitle": "whispers of the stone ridges",
+        "fontFamily": "Montserrat",
+        "fontSize": 88,
+        "fontWeight": 800,
+        "letterSpacing": 10,
+        "color": "#ffffff",
+        "subtitleColor": "#c7d2fe"
+      },
+      "particles": {
+        "name": "Sun Motes",
+        "seed": 44,
+        "count": 260,
+        "size": 6,
+        "color": "#fef08a",
+        "velocity": [12, 14, 0],
+        "sway": 30,
+        "position": [0, -150, 500]
+      },
+      "layers": [
+        { "name": "Sunny Sky", "z": 3200, "generator": "sunny_sky" },
+        { "name": "Distant Mountains", "z": 2200, "generator": "distant_mountains" },
+        { "name": "Sloping Pasture & Pine", "z": 1400, "generator": "sloping_pasture_and_pine" },
+        { "name": "Lagoon & Shore", "z": 800, "generator": "lagoon_and_shore" },
+        { "name": "Midground Boulder Clusters", "z": 400, "generator": "midground_boulder_clusters" },
+        { "name": "Foreground Lagoon Framing", "z": -240, "generator": "foreground_lagoon_framing" }
+      ]
+    },
+    {
+      "name": "Twilight Valley",
+      "arrive": 15.6,
+      "title": {
+        "text": "TWILIGHT VALLEY",
+        "subtitle": "a golden sunset tale",
+        "fontFamily": "Montserrat",
+        "fontSize": 88,
+        "fontWeight": 800,
+        "letterSpacing": 10,
+        "color": "#fff8e1",
+        "subtitleColor": "#ffcc80"
+      },
+      "particles": {
+        "name": "Fireflies",
+        "seed": 2024,
+        "count": 280,
+        "size": 7,
+        "color": "#ffe082",
+        "velocity": [10, 16, 0],
+        "sway": 40,
+        "position": [0, -150, 500]
+      },
+      "layers": [
+        { "name": "Sunset Sky", "z": 3200, "generator": "sunset_sky" },
+        { "name": "Twilight Mountains", "z": 2200, "generator": "twilight_mountains" },
+        { "name": "Rolling Green Hills", "z": 1400, "generator": "rolling_green_hills" },
+        { "name": "Twilight River Floor", "z": 800, "generator": "twilight_river_floor" },
+        { "name": "Twilight Trees", "z": 400, "generator": "twilight_trees" },
+        { "name": "Twilight Foreground Framing", "z": -240, "generator": "twilight_foreground_framing" }
+      ]
+    }
+  ]
+}

@@ -16,6 +16,7 @@ import { isExporting, runExport } from '../export/runExport'
 import { assetStore } from '../project/assets'
 import * as factory from '../project/factory'
 import { deserializeProject, serializeProject } from '../project/serialize'
+import { exportProjectToJson, exportShotToJson, importProjectFromJson, importShotFromJson } from '../project/jsonFormat'
 import { frameTolerance, getDraftAnimatable, useEditor, type CameraProp, type LayerProp, type PropRef, type ShotProp } from '../store/editor'
 import { useView } from '../store/view'
 
@@ -543,9 +544,61 @@ const commands: Record<string, Handler> = {
 
   open_project: async (_p, cmd) => {
     if (!cmd.file) throw new ParamError('Missing "file_path"')
-    const project = await deserializeProject(cmd.file.data)
+    let project: Project
+    if (cmd.file.path.endsWith('.json')) {
+      const text = new TextDecoder('utf-8').decode(cmd.file.data)
+      project = await importProjectFromJson(text)
+    } else {
+      project = await deserializeProject(cmd.file.data)
+    }
     ed().loadProject(project, cmd.file.path)
     return { path: cmd.file.path, shots: project.shots.length, layers: project.layers.length }
+  },
+
+  import_project_json: async (p, cmd) => {
+    let jsonStr: string
+    if (has(p, 'json')) {
+      const j = p.json
+      jsonStr = typeof j === 'string' ? j : JSON.stringify(j)
+    } else if (cmd.file) {
+      jsonStr = new TextDecoder('utf-8').decode(cmd.file.data)
+    } else {
+      throw new ParamError('Provide "json" string/object or "file_path"')
+    }
+    const project = await importProjectFromJson(jsonStr)
+    ed().loadProject(project, cmd.file?.path ?? null)
+    return {
+      name: project.comp.name,
+      shots: project.shots.length,
+      layers: project.layers.length,
+      duration: project.comp.duration
+    }
+  },
+
+  export_project_json: async () => {
+    const json = await exportProjectToJson(proj(), true)
+    return { json, shots: proj().shots.length, layers: proj().layers.length }
+  },
+
+  import_shot_json: async (p, cmd) => {
+    let jsonStr: string
+    if (has(p, 'json')) {
+      const j = p.json
+      jsonStr = typeof j === 'string' ? j : JSON.stringify(j)
+    } else if (cmd.file) {
+      jsonStr = new TextDecoder('utf-8').decode(cmd.file.data)
+    } else {
+      throw new ParamError('Provide "json" string/object or "file_path"')
+    }
+    const res = await importShotFromJson(jsonStr, proj())
+    ed().update(() => {}) // trigger render
+    return { shot: res.shot.name, layers: res.layers.length }
+  },
+
+  export_shot_json: async (p) => {
+    const s = requireShot(proj(), str(p, 'shot'))
+    const json = await exportShotToJson(proj(), s.id, true)
+    return { shot: s.name, json }
   },
 
   undo: () => {
