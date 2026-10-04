@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import type { BlendMode, EaseName, Layer, ParticleProps, Shot, SolidProps, TextProps, Vec3 } from '@shared/types'
+import type { BlendMode, EaseName, Layer, LayerMotion, LayerMotionType, ParticleProps, Shot, SolidProps, TextProps, Vec3 } from '@shared/types'
 import { EASE_LABELS } from '../animation/easing'
 import { addKeyframe, evaluate, setValueAt } from '../animation/keyframes'
 import { referenceDistance } from '../animation/math'
 import { shotAtTime } from '../animation/cameraPath'
-import { CAMERA_PRESETS, applyCameraPreset } from '../animation/presets'
+import { CAMERA_PRESETS, PARTICLE_PRESETS, applyCameraPreset } from '../animation/presets'
 import { deleteShot, flyToShot, importAudio, setLayerShot, updateShot } from '../actions'
 import { evaluateScene, shotFramingPose, shotLocalToWorld } from '../engine/evaluateScene'
 import { assetStore } from '../project/assets'
@@ -294,6 +294,8 @@ function LayerInspector({ layer }: { layer: Layer }) {
         </p>
       </div>
 
+      <MotionSection layer={layer} set={set} />
+
       <KeyEaseSection match={(r) => r.kind === 'layer' && r.layerId === id} />
 
       {layer.type === 'image' && <ImageSection layer={layer} set={set} />}
@@ -466,6 +468,124 @@ function SolidSection({ props, set }: { props: SolidProps; set: Setter }) {
   )
 }
 
+function MotionSection({ layer, set }: { layer: Layer; set: Setter }) {
+  const motion = layer.motion ?? { type: 'none' }
+  const setMotion = (patch: Partial<LayerMotion>): void => {
+    set((l) => {
+      l.motion = { ...(l.motion ?? { type: 'none' }), ...patch }
+    }, 'motion')
+  }
+
+  const setAmp = (axisIdx: number, val: number, mergeKey: string): void => {
+    set((l) => {
+      const cur = [...(l.motion?.amplitude ?? [20, 0, 0])] as Vec3
+      cur[axisIdx] = val
+      l.motion = { ...(l.motion ?? { type: 'drift' }), amplitude: cur }
+    }, mergeKey)
+  }
+
+  return (
+    <div className="section">
+      <div className="section-title">Chuyển động (Motion &amp; Loop)</div>
+      <Row label="Loại" title="Tự động di chuyển lặp lại hoặc đung đưa trong không gian 3D">
+        <select
+          id="motion-type"
+          className="select"
+          value={motion.type ?? 'none'}
+          onChange={(e) => {
+            const t = e.target.value as LayerMotionType
+            if (t === 'none') {
+              setMotion({ type: 'none' })
+            } else if (t === 'drift') {
+              setMotion({
+                type: 'drift',
+                speed: motion.speed ?? 40,
+                loopWidth: motion.loopWidth ?? 3000,
+                amplitude: motion.amplitude ?? [1500, 12, 0]
+              })
+            } else if (t === 'wind' || t === 'sway') {
+              setMotion({
+                type: t,
+                speed: motion.speed ?? 0.6,
+                amplitude: motion.amplitude ?? [8, 2, 1.2]
+              })
+            } else if (t === 'float') {
+              setMotion({
+                type: 'float',
+                speed: motion.speed ?? 0.4,
+                amplitude: motion.amplitude ?? [4, 15, 0]
+              })
+            } else if (t === 'pulse') {
+              setMotion({
+                type: 'pulse',
+                speed: motion.speed ?? 0.5,
+                amplitude: motion.amplitude ?? [0.05, 0.05, 0]
+              })
+            }
+          }}
+        >
+          <option value="none">Không có (Đứng yên)</option>
+          <option value="drift">Trôi ngang loop (Sương mù / Mây)</option>
+          <option value="wind">Gió lay động (Cây cối / Lá / Cành)</option>
+          <option value="sway">Lắc lư nhẹ (Nhịp điệu)</option>
+          <option value="float">Nổi bồng bềnh (Nước / Đảo bay)</option>
+          <option value="pulse">Nhịp thở nhẹ (Co giãn)</option>
+        </select>
+      </Row>
+
+      {motion.type && motion.type !== 'none' && (
+        <>
+          <Row label="Tốc độ" title="Tốc độ trôi (px/s) hoặc chu kỳ nhịp (Hz)">
+            <NumberInput
+              axis="spd"
+              value={motion.speed ?? (motion.type === 'drift' ? 40 : 0.6)}
+              step={motion.type === 'drift' ? 2 : 0.05}
+              precision={motion.type === 'drift' ? 0 : 2}
+              onChange={(v, k) => setMotion({ speed: v })}
+            />
+          </Row>
+
+          <Row label="Biên độ" title="Độ dịch chuyển (X, Y) và góc nghiêng (Z)">
+            {[0, 1, 2].map((i) => (
+              <NumberInput
+                key={i}
+                axis={'xyz'[i]}
+                value={motion.amplitude?.[i] ?? 0}
+                step={motion.type === 'pulse' ? 0.01 : 1}
+                precision={motion.type === 'pulse' ? 2 : 1}
+                onChange={(v, k) => setAmp(i, v, k)}
+              />
+            ))}
+          </Row>
+
+          {motion.type === 'drift' && (
+            <Row label="Độ rộng loop" title="Khoảng cách trôi qua trước khi lặp lại đầu cảnh (px)">
+              <NumberInput
+                axis="px"
+                value={motion.loopWidth ?? 3000}
+                min={200}
+                step={100}
+                precision={0}
+                onChange={(v, k) => setMotion({ loopWidth: v })}
+              />
+            </Row>
+          )}
+
+          <Row label="Lệch pha" title="Lệch pha giúp các layer không chuyển động đồng thời">
+            <NumberInput
+              axis="φ"
+              value={motion.phase ?? 0}
+              step={0.5}
+              precision={1}
+              onChange={(v, k) => setMotion({ phase: v })}
+            />
+          </Row>
+        </>
+      )}
+    </div>
+  )
+}
+
 function ParticleSection({ props, set }: { props: ParticleProps; set: Setter }) {
   const p = (fn: (pp: ParticleProps) => void, key?: string): void =>
     set((l) => {
@@ -485,6 +605,21 @@ function ParticleSection({ props, set }: { props: ParticleProps; set: Setter }) 
           <IconWand /> Seed
         </button>
       </div>
+      <Row label="Mẫu hạt" title="Chọn nhanh các hiệu ứng hạt và thời tiết">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, width: '100%' }}>
+          {Object.entries(PARTICLE_PRESETS).map(([key, item]) => (
+            <button
+              key={key}
+              className="btn sm ghost"
+              style={{ padding: '3px 4px', fontSize: '10px' }}
+              onClick={() => p((pp) => Object.assign(pp, item.props))}
+              title={item.hint}
+            >
+              {item.label.split(' / ')[0]}
+            </button>
+          ))}
+        </div>
+      </Row>
       <Row label="Số lượng">
         <NumberInput axis="#" value={props.count} min={1} max={20000} step={5} precision={0} onChange={(v, k) => p((pp) => void (pp.count = Math.round(v)), k)} />
       </Row>

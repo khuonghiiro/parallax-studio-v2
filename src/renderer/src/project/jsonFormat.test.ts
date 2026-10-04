@@ -45,4 +45,19 @@ describe('JSON Project Format & Declarative Scene Spec', () => {
       expect(titleLayer.props.color).toBe('#ff9800')
     }
   })
+
+  it('loads animated drifting mist and wind sway layers from declarative JSON', async () => {
+    const project = await buildDemoProject()
+    const mistLayer = project.layers.find((l) => l.name === 'Drifting River Mist')
+    expect(mistLayer).toBeDefined()
+    expect(mistLayer?.motion?.type).toBe('drift')
+    expect(mistLayer?.motion?.speed).toBe(48)
+    expect(mistLayer?.motion?.loopWidth).toBe(3200)
+
+    const framingLayer = project.layers.find((l) => l.name === 'Foreground Framing')
+    expect(framingLayer).toBeDefined()
+    expect(framingLayer?.motion?.type).toBe('wind')
+    expect(framingLayer?.motion?.speed).toBe(0.55)
+  })
 })
+

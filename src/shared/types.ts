@@ -85,6 +85,20 @@ export interface ParticleProps {
   glow: boolean
 }
 
+export type LayerMotionType = 'none' | 'drift' | 'wind' | 'sway' | 'float' | 'pulse'
+
+export interface LayerMotion {
+  type: LayerMotionType
+  /** Speed multiplier (units/sec for drift, cycles/sec for periodic waves). */
+  speed?: number
+  /** Displacement amplitude [x, y, z] or angle for sway. */
+  amplitude?: Vec3
+  /** Initial phase offset in radians or time units. */
+  phase?: number
+  /** Loop span in world units along X for seamless wrapping. */
+  loopWidth?: number
+}
+
 interface LayerBase<T extends LayerType, P> {
   id: string
   name: string
@@ -100,6 +114,8 @@ interface LayerBase<T extends LayerType, P> {
   /** Owning shot, or null for a global layer (shared sky, subtitles…). */
   shotId: string | null
   transform: Transform
+  /** Procedural or looping motion (drift/sway/wind/float/pulse). */
+  motion?: LayerMotion
   props: P
 }
 

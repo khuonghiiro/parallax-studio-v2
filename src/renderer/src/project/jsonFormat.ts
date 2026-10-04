@@ -1,7 +1,8 @@
-import type { AssetMeta, Composition, Layer, LookSettings, Project, Shot, Vec3, EaseName } from '@shared/types'
+import type { AssetMeta, Composition, Layer, LayerMotion, LookSettings, Project, Shot, Vec3, EaseName } from '@shared/types'
 import { addKeyframe } from '../animation/keyframes'
 import { referenceDistance } from '../animation/math'
 import { buildCameraPath, type PathStep, type TransitionType } from '../animation/cameraPath'
+import { PARTICLE_PRESETS, type ParticlePreset } from '../animation/presets'
 import { assetStore } from './assets'
 import {
   createImageLayer,
@@ -100,6 +101,9 @@ export interface DeclarativeLayerSpec {
     area?: Vec3
   }
 
+  // Procedural / Looping motion (drift, wind sway, float, pulse)
+  motion?: LayerMotion
+
   // Keyframes
   keyframes?: {
     opacity?: DeclarativeKeyframe<number>[]
@@ -124,6 +128,7 @@ export interface DeclarativeTitleSpec {
 }
 
 export interface DeclarativeParticleSpec {
+  preset?: ParticlePreset
   name?: string
   seed?: number
   count?: number
@@ -132,6 +137,8 @@ export interface DeclarativeParticleSpec {
   velocity?: Vec3
   sway?: number
   position?: Vec3
+  twinkle?: boolean
+  glow?: boolean
 }
 
 export interface DeclarativeShotSpec {
@@ -458,18 +465,22 @@ async function buildLayersForShot(
   // 3. Process optional particles
   if (sSpec.particles) {
     const pt = sSpec.particles
+    const presetProps = pt.preset && PARTICLE_PRESETS[pt.preset] ? PARTICLE_PRESETS[pt.preset].props : {}
     const particles = createParticleLayer(comp)
-    particles.name = pt.name ?? 'Particles'
+    particles.name = pt.name ?? (pt.preset && PARTICLE_PRESETS[pt.preset] ? PARTICLE_PRESETS[pt.preset].label : 'Particles')
     particles.shotId = shot.id
     particles.props = {
       ...particles.props,
-      seed: pt.seed ?? 101,
-      count: pt.count ?? 250,
-      size: pt.size ?? 6,
-      color: pt.color ?? '#fff9c4',
+      ...presetProps,
+      seed: pt.seed ?? particles.props.seed,
+      count: pt.count ?? presetProps.count ?? 250,
+      size: pt.size ?? presetProps.size ?? 6,
+      color: pt.color ?? presetProps.color ?? '#fff9c4',
       area: [comp.width * 2.4, comp.height * 1.6, d * 1.8],
-      velocity: pt.velocity ?? [16, 10, 0],
-      sway: pt.sway ?? 36
+      velocity: pt.velocity ?? presetProps.velocity ?? [16, 10, 0],
+      sway: pt.sway ?? presetProps.sway ?? 36,
+      twinkle: pt.twinkle ?? presetProps.twinkle ?? particles.props.twinkle,
+      glow: pt.glow ?? presetProps.glow ?? particles.props.glow
     }
     particles.transform.position.value = pt.position ?? [0, -150, 500]
     shotLayers.unshift(particles)
@@ -612,6 +623,10 @@ function applyCommonLayerProps(layer: Layer, spec: DeclarativeLayerSpec, comp: C
   if (spec.autoScale !== undefined) layer.autoScale = spec.autoScale
   if (spec.inPoint !== undefined) layer.inPoint = spec.inPoint
   if (spec.outPoint !== undefined) layer.outPoint = spec.outPoint
+
+  if (spec.motion) {
+    layer.motion = { ...spec.motion }
+  }
 
   // Apply keyframes if provided
   if (spec.keyframes) {

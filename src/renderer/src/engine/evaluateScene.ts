@@ -114,9 +114,40 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
   const local = new THREE.Matrix4()
   const layers = project.layers.map((layer, index): EvaluatedLayer => {
     const tr = layer.transform
-    const pos = evaluate(tr.position, t)
-    const rot = evaluate(tr.rotation, t)
-    const sc = evaluate(tr.scale, t)
+    const pos = [...evaluate(tr.position, t)] as Vec3
+    const rot = [...evaluate(tr.rotation, t)] as Vec3
+    const sc = [...evaluate(tr.scale, t)] as Vec3
+
+    if (layer.motion && layer.motion.type && layer.motion.type !== 'none') {
+      const m = layer.motion
+      const sp = m.speed ?? (m.type === 'drift' ? 40 : 0.6)
+      const ph = m.phase ?? 0
+      const amp = m.amplitude ?? (m.type === 'drift' ? [1500, 10, 0] : m.type === 'float' ? [4, 15, 0] : [8, 2, 1.2])
+      if (m.type === 'drift') {
+        const loopW = m.loopWidth ?? (amp[0] ? Math.abs(amp[0]) * 2 : 3000)
+        if (loopW > 0) {
+          const shift = (((t * sp + ph) % loopW) + loopW) % loopW - loopW / 2
+          pos[0] += shift
+        } else {
+          pos[0] += t * sp
+        }
+        if (amp[1]) pos[1] += Math.sin(t * 0.8 + ph) * amp[1]
+      } else if (m.type === 'wind' || m.type === 'sway') {
+        const angle = t * sp * Math.PI * 2 + ph
+        pos[0] += Math.sin(angle) * amp[0]
+        pos[1] += Math.cos(angle * 0.7) * amp[1]
+        rot[2] += Math.sin(angle) * (amp[2] || 0)
+      } else if (m.type === 'float') {
+        const angle = t * sp * Math.PI * 2 + ph
+        pos[0] += Math.cos(angle * 0.5) * amp[0]
+        pos[1] += Math.sin(angle) * amp[1]
+      } else if (m.type === 'pulse') {
+        const p = Math.sin(t * sp * Math.PI * 2 + ph)
+        sc[0] *= 1 + p * (amp[0] || 0.05)
+        sc[1] *= 1 + p * (amp[1] || 0.05)
+      }
+    }
+
     const k = layer.autoScale ? autoScaleFactor(pos[2], comp) : 1
     const scale: Vec3 = [sc[0] * k, sc[1] * k, sc[2]]
     const shot = layer.shotId ? (shotById.get(layer.shotId) ?? null) : null

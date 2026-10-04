@@ -1,4 +1,4 @@
-import type { CameraSettings, Composition, Vec3 } from '@shared/types'
+import type { CameraSettings, Composition, ParticleProps, Vec3 } from '@shared/types'
 import { ease } from './easing'
 import { addKeyframe } from './keyframes'
 import { referenceDistance } from './math'
@@ -128,5 +128,91 @@ export function applyCameraPreset(
     }
     case 'reset':
       break
+  }
+}
+
+export type ParticlePreset = 'dust' | 'fireflies' | 'rain' | 'snow' | 'fog' | 'leaves'
+
+export const PARTICLE_PRESETS: Record<
+  ParticlePreset,
+  { label: string; hint: string; props: Partial<ParticleProps> }
+> = {
+  dust: {
+    label: 'Bụi sáng / Ánh nắng',
+    hint: 'Bụi vàng li ti trôi lơ lửng dưới tia nắng',
+    props: {
+      count: 320,
+      size: 5,
+      color: '#fff4cc',
+      velocity: [6, 10, 0],
+      sway: 25,
+      twinkle: true,
+      glow: true
+    }
+  },
+  fireflies: {
+    label: 'Đom đóm hoàng hôn',
+    hint: 'Đom đóm ánh vàng xanh nhấp nháy buổi tối',
+    props: {
+      count: 280,
+      size: 7,
+      color: '#ffe082',
+      velocity: [10, 16, 0],
+      sway: 40,
+      twinkle: true,
+      glow: true
+    }
+  },
+  rain: {
+    label: 'Mưa rào gió lốc',
+    hint: 'Mưa rơi hạt dài nhanh theo chiều gió',
+    props: {
+      count: 2200,
+      size: 9,
+      color: '#c2e3fc',
+      velocity: [-160, -1800, -80],
+      sway: 8,
+      twinkle: false,
+      glow: false
+    }
+  },
+  snow: {
+    label: 'Tuyết rơi mùa đông',
+    hint: 'Tuyết trắng rơi nhẹ nhàng bồng bềnh',
+    props: {
+      count: 650,
+      size: 7,
+      color: '#ffffff',
+      velocity: [-25, -220, 0],
+      sway: 45,
+      twinkle: false,
+      glow: false
+    }
+  },
+  fog: {
+    label: 'Sương mù lơ lửng',
+    hint: 'Các đám mây sương hạt to mềm trôi chậm',
+    props: {
+      count: 140,
+      size: 150,
+      color: '#e2e8f0',
+      velocity: [45, 3, 0],
+      sway: 65,
+      twinkle: false,
+      glow: true
+    }
+  },
+  leaves: {
+    label: 'Lá vàng / Cánh hoa',
+    hint: 'Lá cây hoặc cánh hoa cuốn bay theo gió',
+    props: {
+      count: 320,
+      size: 12,
+      color: '#f6ad55',
+      velocity: [-120, -140, 20],
+      sway: 55,
+      twinkle: false,
+      glow: false
+    }
   }
 }

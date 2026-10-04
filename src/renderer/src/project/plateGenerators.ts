@@ -1311,6 +1311,111 @@ export function drawTwilightForegroundFraming(): HTMLCanvasElement {
   return c
 }
 
+export function drawDriftingMistPlate(): HTMLCanvasElement {
+  const [c, ctx] = createPlateCanvas()
+
+  // 1. Base rolling haze band across the bottom/mid height
+  const grad1 = ctx.createLinearGradient(0, H * 0.45, 0, H * 0.85)
+  grad1.addColorStop(0, 'rgba(235, 245, 255, 0)')
+  grad1.addColorStop(0.35, 'rgba(235, 248, 255, 0.42)')
+  grad1.addColorStop(0.65, 'rgba(225, 240, 255, 0.35)')
+  grad1.addColorStop(1, 'rgba(215, 235, 250, 0)')
+
+  ctx.fillStyle = grad1
+  ctx.beginPath()
+  ctx.moveTo(0, H * 0.6)
+  ctx.bezierCurveTo(W * 0.25, H * 0.48, W * 0.45, H * 0.68, W * 0.7, H * 0.52)
+  ctx.bezierCurveTo(W * 0.85, H * 0.42, W * 0.95, H * 0.6, W, H * 0.55)
+  ctx.lineTo(W, H * 0.82)
+  ctx.bezierCurveTo(W * 0.8, H * 0.88, W * 0.5, H * 0.75, W * 0.3, H * 0.85)
+  ctx.lineTo(0, H * 0.8)
+  ctx.closePath()
+  ctx.fill()
+
+  // 2. Soft billowy mist puffs along the valley
+  const puffs = [
+    { x: W * 0.15, y: H * 0.58, rx: 320, ry: 90, a: 0.38 },
+    { x: W * 0.35, y: H * 0.52, rx: 420, ry: 110, a: 0.45 },
+    { x: W * 0.55, y: H * 0.62, rx: 380, ry: 100, a: 0.4 },
+    { x: W * 0.75, y: H * 0.48, rx: 440, ry: 120, a: 0.48 },
+    { x: W * 0.92, y: H * 0.56, rx: 340, ry: 95, a: 0.36 }
+  ]
+  for (const p of puffs) {
+    const rad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.rx)
+    rad.addColorStop(0, `rgba(245, 250, 255, ${p.a})`)
+    rad.addColorStop(0.5, `rgba(235, 245, 255, ${p.a * 0.6})`)
+    rad.addColorStop(1, 'rgba(230, 240, 255, 0)')
+    ctx.fillStyle = rad
+    ctx.beginPath()
+    ctx.ellipse(p.x, p.y, p.rx, p.ry, 0, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  // 3. Lower riverbed wisps
+  const grad2 = ctx.createLinearGradient(0, H * 0.65, 0, H * 0.95)
+  grad2.addColorStop(0, 'rgba(240, 248, 255, 0)')
+  grad2.addColorStop(0.4, 'rgba(230, 245, 255, 0.32)')
+  grad2.addColorStop(1, 'rgba(220, 238, 252, 0)')
+  ctx.fillStyle = grad2
+  ctx.beginPath()
+  ctx.moveTo(0, H * 0.72)
+  ctx.bezierCurveTo(W * 0.3, H * 0.82, W * 0.6, H * 0.68, W, H * 0.76)
+  ctx.lineTo(W, H * 0.92)
+  ctx.bezierCurveTo(W * 0.7, H * 0.98, W * 0.3, H * 0.88, 0, H * 0.95)
+  ctx.closePath()
+  ctx.fill()
+
+  return c
+}
+
+export function drawDriftingMountainClouds(): HTMLCanvasElement {
+  const [c, ctx] = createPlateCanvas()
+
+  // Mid-altitude cloud blanket drifting through mountain ridges
+  const puffs = [
+    { x: W * 0.1, y: H * 0.32, rx: 480, ry: 120, a: 0.42 },
+    { x: W * 0.38, y: H * 0.38, rx: 550, ry: 140, a: 0.5 },
+    { x: W * 0.65, y: H * 0.28, rx: 600, ry: 130, a: 0.45 },
+    { x: W * 0.88, y: H * 0.36, rx: 450, ry: 110, a: 0.4 }
+  ]
+  for (const p of puffs) {
+    const rad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.rx)
+    rad.addColorStop(0, `rgba(255, 255, 255, ${p.a})`)
+    rad.addColorStop(0.6, `rgba(240, 245, 252, ${p.a * 0.5})`)
+    rad.addColorStop(1, 'rgba(235, 242, 250, 0)')
+    ctx.fillStyle = rad
+    ctx.beginPath()
+    ctx.ellipse(p.x, p.y, p.rx, p.ry, -0.04, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  return c
+}
+
+export function drawDriftingTwilightMist(): HTMLCanvasElement {
+  const [c, ctx] = createPlateCanvas()
+
+  // Warm sunset tinted valley mist
+  const puffs = [
+    { x: W * 0.2, y: H * 0.55, rx: 420, ry: 110, a: 0.4 },
+    { x: W * 0.45, y: H * 0.5, rx: 520, ry: 130, a: 0.48 },
+    { x: W * 0.72, y: H * 0.58, rx: 480, ry: 120, a: 0.44 },
+    { x: W * 0.95, y: H * 0.52, rx: 380, ry: 100, a: 0.38 }
+  ]
+  for (const p of puffs) {
+    const rad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.rx)
+    rad.addColorStop(0, `rgba(255, 224, 185, ${p.a})`)
+    rad.addColorStop(0.5, `rgba(240, 190, 160, ${p.a * 0.55})`)
+    rad.addColorStop(1, 'rgba(210, 150, 140, 0)')
+    ctx.fillStyle = rad
+    ctx.beginPath()
+    ctx.ellipse(p.x, p.y, p.rx, p.ry, 0.02, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  return c
+}
+
 /** Registry of all available procedural vector background generators. */
 export const PLATE_GENERATORS: Record<string, () => HTMLCanvasElement> = {
   sunny_sky: drawSunnySky,
@@ -1333,5 +1438,9 @@ export const PLATE_GENERATORS: Record<string, () => HTMLCanvasElement> = {
   twilight_mountains: drawTwilightMountains,
   twilight_river_floor: drawTwilightRiverFloor,
   twilight_trees: drawTwilightTrees,
-  twilight_foreground_framing: drawTwilightForegroundFraming
+  twilight_foreground_framing: drawTwilightForegroundFraming,
+  drifting_low_mist: drawDriftingMistPlate,
+  drifting_mountain_clouds: drawDriftingMountainClouds,
+  drifting_twilight_mist: drawDriftingTwilightMist
 }
+

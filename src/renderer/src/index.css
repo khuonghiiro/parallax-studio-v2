@@ -163,12 +163,15 @@ textarea {
 /* ------------------------------------------------------------------ toolbar */
 
 .toolbar {
+  grid-area: top;
+  position: relative;
+  z-index: 100;
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 0 12px;
   border-bottom: 1px solid var(--line-soft);
-  background: rgba(13, 15, 21, 0.85);
+  background: rgba(13, 15, 21, 0.92);
   backdrop-filter: blur(12px);
 }
 .brand {
@@ -311,18 +314,22 @@ textarea {
 .menu-wrap {
   position: relative;
 }
+.menu-wrap.open,
+.menu-wrap:focus-within {
+  z-index: 120;
+}
 .menu {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  z-index: 50;
-  min-width: 220px;
+  z-index: 200;
+  min-width: 230px;
   padding: 6px;
   border-radius: var(--radius);
-  background: rgba(22, 25, 35, 0.96);
+  background: rgba(20, 23, 32, 0.98);
   border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(16px);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
   animation: pop 0.14s ease-out;
 }
 .menu.right {
@@ -1201,7 +1208,7 @@ textarea {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 1000;
   background: rgba(3, 4, 8, 0.65);
   backdrop-filter: blur(6px);
   display: grid;
@@ -1291,7 +1298,7 @@ textarea {
   bottom: calc(var(--timeline-h) + 30px);
   left: 50%;
   transform: translateX(-50%);
-  z-index: 120;
+  z-index: 1100;
   padding: 10px 16px;
   border-radius: 10px;
   background: rgba(22, 25, 35, 0.95);
@@ -1306,7 +1313,7 @@ textarea {
   display: grid;
   place-items: center;
   background: var(--bg-0);
-  z-index: 200;
+  z-index: 2000;
   color: var(--text-dim);
 }
 .loading-screen .brand-logo {

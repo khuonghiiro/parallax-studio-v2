@@ -40,6 +40,7 @@
       },
       "particles": {
         "name": "Sun Dust",
+        "preset": "dust",
         "seed": 108,
         "count": 280,
         "size": 6,
@@ -53,8 +54,39 @@
         { "name": "Distant Mountains", "z": 2200, "generator": "distant_mountains" },
         { "name": "Rolling Green Hills", "z": 1400, "generator": "rolling_green_hills" },
         { "name": "River & Meadow Floor", "z": 800, "generator": "river_and_meadow_floor" },
-        { "name": "Midground Trees", "z": 400, "generator": "midground_trees" },
-        { "name": "Foreground Framing", "z": -240, "generator": "foreground_riverbank_framing" }
+        {
+          "name": "Drifting River Mist",
+          "z": 620,
+          "generator": "drifting_low_mist",
+          "blendMode": "screen",
+          "opacity": 0.48,
+          "motion": {
+            "type": "drift",
+            "speed": 48,
+            "loopWidth": 3200,
+            "amplitude": [1600, 12, 0]
+          }
+        },
+        {
+          "name": "Midground Trees",
+          "z": 400,
+          "generator": "midground_trees",
+          "motion": {
+            "type": "wind",
+            "speed": 0.4,
+            "amplitude": [6, 1.5, 0.6]
+          }
+        },
+        {
+          "name": "Foreground Framing",
+          "z": -240,
+          "generator": "foreground_riverbank_framing",
+          "motion": {
+            "type": "wind",
+            "speed": 0.55,
+            "amplitude": [10, 3, 1.2]
+          }
+        }
       ]
     },
     {
@@ -72,6 +104,7 @@
       },
       "particles": {
         "name": "Pollen",
+        "preset": "dust",
         "seed": 909,
         "count": 240,
         "size": 5,
@@ -85,8 +118,39 @@
         { "name": "Purple Mountain Peaks", "z": 2200, "generator": "purple_mountain_peaks" },
         { "name": "Rolling Hills & Hedges", "z": 1400, "generator": "rolling_hills_and_hedges" },
         { "name": "Center Island Pond", "z": 800, "generator": "center_island_pond" },
-        { "name": "Midground Trees", "z": 400, "generator": "island_pond_trees" },
-        { "name": "Foreground Broadleaf Framing", "z": -240, "generator": "foreground_broadleaf_framing" }
+        {
+          "name": "Water Surface Mist",
+          "z": 620,
+          "generator": "drifting_low_mist",
+          "blendMode": "screen",
+          "opacity": 0.42,
+          "motion": {
+            "type": "drift",
+            "speed": 36,
+            "loopWidth": 3000,
+            "amplitude": [1500, 10, 0]
+          }
+        },
+        {
+          "name": "Midground Trees",
+          "z": 400,
+          "generator": "island_pond_trees",
+          "motion": {
+            "type": "wind",
+            "speed": 0.38,
+            "amplitude": [5, 1.2, 0.5]
+          }
+        },
+        {
+          "name": "Foreground Broadleaf Framing",
+          "z": -240,
+          "generator": "foreground_broadleaf_framing",
+          "motion": {
+            "type": "wind",
+            "speed": 0.5,
+            "amplitude": [9, 2.5, 1.1]
+          }
+        }
       ]
     },
     {
@@ -104,6 +168,7 @@
       },
       "particles": {
         "name": "Sun Motes",
+        "preset": "dust",
         "seed": 44,
         "count": 260,
         "size": 6,
@@ -115,10 +180,45 @@
       "layers": [
         { "name": "Sunny Sky", "z": 3200, "generator": "sunny_sky" },
         { "name": "Distant Mountains", "z": 2200, "generator": "distant_mountains" },
+        {
+          "name": "Mountain Fog Ridge",
+          "z": 1800,
+          "generator": "drifting_mountain_clouds",
+          "blendMode": "screen",
+          "opacity": 0.45,
+          "motion": {
+            "type": "drift",
+            "speed": 28,
+            "loopWidth": 3400,
+            "amplitude": [1700, 12, 0]
+          }
+        },
         { "name": "Sloping Pasture & Pine", "z": 1400, "generator": "sloping_pasture_and_pine" },
         { "name": "Lagoon & Shore", "z": 800, "generator": "lagoon_and_shore" },
+        {
+          "name": "Shoreline Mist",
+          "z": 600,
+          "generator": "drifting_low_mist",
+          "blendMode": "screen",
+          "opacity": 0.38,
+          "motion": {
+            "type": "drift",
+            "speed": 38,
+            "loopWidth": 3000,
+            "amplitude": [1500, 8, 0]
+          }
+        },
         { "name": "Midground Boulder Clusters", "z": 400, "generator": "midground_boulder_clusters" },
-        { "name": "Foreground Lagoon Framing", "z": -240, "generator": "foreground_lagoon_framing" }
+        {
+          "name": "Foreground Lagoon Framing",
+          "z": -240,
+          "generator": "foreground_lagoon_framing",
+          "motion": {
+            "type": "wind",
+            "speed": 0.58,
+            "amplitude": [11, 3.5, 1.3]
+          }
+        }
       ]
     },
     {
@@ -136,6 +236,7 @@
       },
       "particles": {
         "name": "Fireflies",
+        "preset": "fireflies",
         "seed": 2024,
         "count": 280,
         "size": 7,
@@ -149,8 +250,39 @@
         { "name": "Twilight Mountains", "z": 2200, "generator": "twilight_mountains" },
         { "name": "Rolling Green Hills", "z": 1400, "generator": "rolling_green_hills" },
         { "name": "Twilight River Floor", "z": 800, "generator": "twilight_river_floor" },
-        { "name": "Twilight Trees", "z": 400, "generator": "twilight_trees" },
-        { "name": "Twilight Foreground Framing", "z": -240, "generator": "twilight_foreground_framing" }
+        {
+          "name": "Twilight Valley Mist",
+          "z": 620,
+          "generator": "drifting_twilight_mist",
+          "blendMode": "screen",
+          "opacity": 0.46,
+          "motion": {
+            "type": "drift",
+            "speed": 42,
+            "loopWidth": 3200,
+            "amplitude": [1600, 10, 0]
+          }
+        },
+        {
+          "name": "Twilight Trees",
+          "z": 400,
+          "generator": "twilight_trees",
+          "motion": {
+            "type": "wind",
+            "speed": 0.4,
+            "amplitude": [6, 1.8, 0.7]
+          }
+        },
+        {
+          "name": "Twilight Foreground Framing",
+          "z": -240,
+          "generator": "twilight_foreground_framing",
+          "motion": {
+            "type": "wind",
+            "speed": 0.52,
+            "amplitude": [10, 3, 1.2]
+          }
+        }
       ]
     }
   ]

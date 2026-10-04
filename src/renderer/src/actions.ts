@@ -16,6 +16,8 @@ import {
 } from './project/factory'
 import { deserializeProject, serializeProject } from './project/serialize'
 import { exportProjectToJson, importProjectFromJson } from './project/jsonFormat'
+import { drawDriftingMistPlate } from './project/plateGenerators'
+import { PARTICLE_PRESETS } from './animation/presets'
 import { getDraftAnimatable, useEditor } from './store/editor'
 
 // ------------------------------------------------------------------ toast
@@ -271,6 +273,46 @@ export function addParticleLayer(): void {
     insertLayerTop(d as Project, layer)
   })
   editor().selectLayer(layer.id)
+}
+
+export async function addMistLayer(): Promise<void> {
+  const canvas = drawDriftingMistPlate()
+  const asset = await assetStore.addCanvas('Sương mù trôi.png', canvas)
+  const comp = editor().project.comp
+  const layer = createImageLayer(asset.meta, comp, 600)
+  layer.name = 'Sương mù trôi (Drifting Mist)'
+  layer.blendMode = 'screen'
+  layer.transform.opacity.value = 0.55
+  layer.motion = {
+    type: 'drift',
+    speed: 45,
+    loopWidth: 3200,
+    amplitude: [1600, 14, 0]
+  }
+  layer.shotId = activeShotId()
+  editor().update((d) => {
+    d.assets.push(asset.meta)
+    insertLayerTop(d as Project, layer)
+  })
+  editor().selectLayer(layer.id)
+  toast('Đã thêm layer Sương mù trôi lặp lại')
+}
+
+export function addRainLayer(): void {
+  const comp = editor().project.comp
+  const layer = createParticleLayer(comp)
+  layer.name = 'Mưa rào gió lốc (Rain)'
+  layer.shotId = activeShotId()
+  const p = PARTICLE_PRESETS.rain.props
+  layer.props = {
+    ...layer.props,
+    ...p
+  }
+  editor().update((d) => {
+    insertLayerTop(d as Project, layer)
+  })
+  editor().selectLayer(layer.id)
+  toast('Đã thêm hiệu ứng Mưa rơi')
 }
 
 export function deleteSelectedLayer(): void {
