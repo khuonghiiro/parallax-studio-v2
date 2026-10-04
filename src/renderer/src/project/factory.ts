@@ -170,6 +170,27 @@ export function createSolidLayer(comp: Composition): SolidLayer {
   }
 }
 
+export function createGroundLayer(comp: Composition, name = 'Mặt đất 3D'): SolidLayer {
+  const d = referenceDistance(comp)
+  const l = base(comp, name, Math.round(d * 0.9))
+  l.autoScale = false
+  l.transform.position.value = [0, -Math.round(comp.height * 0.42), Math.round(d * 0.9)]
+  l.transform.rotation.value = [-90, 0, 0]
+  return {
+    ...l,
+    type: 'solid',
+    props: {
+      color: '#141824',
+      color2: '#28344e',
+      gradient: true,
+      pattern: 'grid',
+      gridSize: 45,
+      width: Math.round(comp.width * 2.5),
+      height: Math.round(d * 3.5)
+    }
+  }
+}
+
 export function createParticleLayer(comp: Composition): ParticleLayer {
   const d = referenceDistance(comp)
   return {

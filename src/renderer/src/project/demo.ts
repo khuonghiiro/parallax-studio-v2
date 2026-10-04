@@ -209,7 +209,50 @@ function drawRidge(o: RidgeOpts): HTMLCanvasElement {
   return c
 }
 
-type Plate = { name: string; z: number; draw: () => HTMLCanvasElement }
+interface GroundOpts {
+  nearColor: string
+  farColor: string
+  gridColor?: string
+  mistColor?: string
+}
+
+function drawGround(o: GroundOpts): HTMLCanvasElement {
+  const [c, ctx] = canvas()
+  const g = ctx.createLinearGradient(0, H, 0, 0)
+  g.addColorStop(0, o.nearColor)
+  g.addColorStop(0.65, o.farColor)
+  g.addColorStop(1, o.mistColor ?? o.farColor)
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, W, H)
+
+  ctx.strokeStyle = o.gridColor ?? 'rgba(255, 255, 255, 0.08)'
+  ctx.lineWidth = 2
+  for (let x = -W * 0.5; x <= W * 1.5; x += 180) {
+    ctx.beginPath()
+    ctx.moveTo(x, H)
+    ctx.lineTo(W / 2 + (x - W / 2) * 0.15, 0)
+    ctx.stroke()
+  }
+  for (let i = 0; i < 28; i++) {
+    const t = Math.pow(i / 27, 2.2)
+    const y = H - t * H
+    ctx.beginPath()
+    ctx.moveTo(0, y)
+    ctx.lineTo(W, y)
+    ctx.stroke()
+  }
+  return c
+}
+
+type Plate = {
+  name: string
+  z: number
+  draw: () => HTMLCanvasElement
+  position?: Vec3
+  rotation?: Vec3
+  scale?: Vec3
+  autoScale?: boolean
+}
 
 interface ShotSpec {
   name: string
@@ -282,6 +325,21 @@ export async function buildDemoProject(): Promise<Project> {
             })
         },
         {
+          name: 'Valley Floor',
+          z: 850,
+          position: [0, -450, 850],
+          rotation: [-90, 0, 0],
+          scale: [1.8, 2.8, 1],
+          autoScale: false,
+          draw: () =>
+            drawGround({
+              nearColor: '#0a0812',
+              farColor: '#241a38',
+              gridColor: 'rgba(255, 200, 160, 0.07)',
+              mistColor: 'rgba(200, 130, 150, 0.35)'
+            })
+        },
+        {
           name: 'Foreground',
           z: -260,
           draw: () =>
@@ -316,6 +374,21 @@ export async function buildDemoProject(): Promise<Project> {
           name: 'Glacier Ridge',
           z: 1200,
           draw: () => drawRidge({ seed: 73, base: 0.76, amp: 150, freq: 4, top: '#86a3bf', bottom: '#1d3048', mist: 'rgba(8,24,40,0.55)' })
+        },
+        {
+          name: 'Frozen Lake',
+          z: 850,
+          position: [0, -450, 850],
+          rotation: [-90, 0, 0],
+          scale: [1.8, 2.8, 1],
+          autoScale: false,
+          draw: () =>
+            drawGround({
+              nearColor: '#030a10',
+              farColor: '#102838',
+              gridColor: 'rgba(100, 240, 220, 0.09)',
+              mistColor: 'rgba(120, 255, 230, 0.3)'
+            })
         },
         {
           name: 'Snow Forest',
@@ -384,6 +457,21 @@ export async function buildDemoProject(): Promise<Project> {
           draw: () => drawRidge({ seed: 113, base: 0.69, amp: 100, freq: 1.8, octaves: 2, top: '#a8583e', bottom: '#d28c5e', mist: 'rgba(255,170,120,0.35)' })
         },
         {
+          name: 'Desert Floor',
+          z: 850,
+          position: [0, -450, 850],
+          rotation: [-85, 0, 0],
+          scale: [1.8, 2.8, 1],
+          autoScale: false,
+          draw: () =>
+            drawGround({
+              nearColor: '#150806',
+              farColor: '#3d1c16',
+              gridColor: 'rgba(255, 180, 120, 0.08)',
+              mistColor: 'rgba(240, 140, 80, 0.35)'
+            })
+        },
+        {
           name: 'Near Dunes',
           z: 450,
           draw: () => drawRidge({ seed: 127, base: 0.77, amp: 90, freq: 1.4, octaves: 2, top: '#6d3328', bottom: '#94513a' })
@@ -408,8 +496,15 @@ export async function buildDemoProject(): Promise<Project> {
       project.assets.push(asset.meta)
       const layer = createImageLayer(asset.meta, comp, p.z)
       layer.name = p.name
-      // Plates are 1.4× the comp; render 1:1 so there is margin for camera moves.
-      layer.transform.scale.value = [comp.width / 1920, comp.width / 1920, 1]
+      if (p.rotation) layer.transform.rotation.value = p.rotation
+      if (p.position) layer.transform.position.value = p.position
+      if (p.autoScale !== undefined) layer.autoScale = p.autoScale
+      if (p.scale) {
+        layer.transform.scale.value = p.scale
+      } else {
+        // Plates are 1.4× the comp; render 1:1 so there is margin for camera moves.
+        layer.transform.scale.value = [comp.width / 1920, comp.width / 1920, 1]
+      }
       shotLayers.unshift(layer)
     }
 

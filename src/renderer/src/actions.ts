@@ -4,6 +4,7 @@ import { buildCameraPath, flyCameraToShot, type PathOptions, type PathStep } fro
 import { assetStore } from './project/assets'
 import { buildDemoProject } from './project/demo'
 import {
+  createGroundLayer,
   createImageLayer,
   createParticleLayer,
   createProject,
@@ -205,6 +206,15 @@ export function addTextLayer(): void {
 
 export function addSolidLayer(): void {
   const layer = createSolidLayer(editor().project.comp)
+  layer.shotId = activeShotId()
+  editor().update((d) => {
+    insertLayerBottom(d as Project, layer)
+  })
+  editor().selectLayer(layer.id)
+}
+
+export function addGroundLayer(): void {
+  const layer = createGroundLayer(editor().project.comp)
   layer.shotId = activeShotId()
   editor().update((d) => {
     insertLayerBottom(d as Project, layer)

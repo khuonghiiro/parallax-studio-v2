@@ -44,10 +44,13 @@ export function renderTextCanvas(p: TextProps): CanvasResult {
 }
 
 export function renderSolidCanvas(p: SolidProps): CanvasResult {
+  const hasPattern = p.pattern && p.pattern !== 'none'
   const canvas = document.createElement('canvas')
-  canvas.width = 4
-  canvas.height = p.gradient ? 512 : 4
+  const sz = hasPattern ? 512 : (p.gradient ? 512 : 4)
+  canvas.width = hasPattern ? 512 : 4
+  canvas.height = sz
   const ctx = canvas.getContext('2d')!
+
   if (p.gradient) {
     const g = ctx.createLinearGradient(0, 0, 0, canvas.height)
     g.addColorStop(0, p.color)
@@ -57,5 +60,57 @@ export function renderSolidCanvas(p: SolidProps): CanvasResult {
     ctx.fillStyle = p.color
   }
   ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+  if (hasPattern) {
+    const grid = Math.max(16, p.gridSize ?? 40)
+    ctx.save()
+    if (p.pattern === 'grid') {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      for (let x = 0; x <= canvas.width; x += grid) {
+        ctx.moveTo(x, 0)
+        ctx.lineTo(x, canvas.height)
+      }
+      for (let y = 0; y <= canvas.height; y += grid) {
+        ctx.moveTo(0, y)
+        ctx.lineTo(canvas.width, y)
+      }
+      ctx.stroke()
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)'
+      ctx.lineWidth = 3
+      ctx.beginPath()
+      for (let x = 0; x <= canvas.width; x += grid * 4) {
+        ctx.moveTo(x, 0)
+        ctx.lineTo(x, canvas.height)
+      }
+      for (let y = 0; y <= canvas.height; y += grid * 4) {
+        ctx.moveTo(0, y)
+        ctx.lineTo(canvas.width, y)
+      }
+      ctx.stroke()
+    } else if (p.pattern === 'stripes') {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)'
+      ctx.lineWidth = 3
+      ctx.beginPath()
+      for (let x = 0; x <= canvas.width; x += grid) {
+        ctx.moveTo(x, 0)
+        ctx.lineTo(x, canvas.height)
+      }
+      ctx.stroke()
+    } else if (p.pattern === 'dots') {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'
+      for (let x = grid / 2; x < canvas.width; x += grid) {
+        for (let y = grid / 2; y < canvas.height; y += grid) {
+          ctx.beginPath()
+          ctx.arc(x, y, 2.5, 0, Math.PI * 2)
+          ctx.fill()
+        }
+      }
+    }
+    ctx.restore()
+  }
+
   return { canvas, width: p.width, height: p.height }
 }

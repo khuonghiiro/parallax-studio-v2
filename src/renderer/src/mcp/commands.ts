@@ -236,6 +236,19 @@ function applyNewLayerOptions(layer: Layer, p: Params): void {
   if (z !== undefined) layer.transform.position.value = [layer.transform.position.value[0], layer.transform.position.value[1], z]
   const rot = vec3(p, 'rotation')
   if (rot) layer.transform.rotation.value = rot
+  const ori = str(p, 'orientation')
+  if (ori === 'ground') {
+    layer.transform.rotation.value = [-90, 0, 0]
+    layer.autoScale = false
+  } else if (ori === 'tilted') {
+    layer.transform.rotation.value = [-75, 0, 0]
+    layer.autoScale = false
+  } else if (ori === 'ceiling') {
+    layer.transform.rotation.value = [90, 0, 0]
+    layer.autoScale = false
+  } else if (ori === 'vertical') {
+    layer.transform.rotation.value = [0, 0, 0]
+  }
   const sc = scale3(p, 'scale')
   if (sc) layer.transform.scale.value = sc
   const op = num(p, 'opacity')
@@ -267,7 +280,15 @@ const TEXT_MAP = {
   letter_spacing: 'letterSpacing',
   shadow: 'shadow'
 }
-const SOLID_MAP = { color: 'color', color2: 'color2', gradient: 'gradient', width: 'width', height: 'height' }
+const SOLID_MAP = {
+  color: 'color',
+  color2: 'color2',
+  gradient: 'gradient',
+  width: 'width',
+  height: 'height',
+  pattern: 'pattern',
+  grid_size: 'gridSize'
+}
 const PARTICLE_MAP = {
   count: 'count',
   seed: 'seed',
@@ -608,6 +629,9 @@ const commands: Record<string, Handler> = {
       if (Number.isNaN(s)) throw new ParamError('"fit" must be cover, contain or native')
       layer.transform.scale.value = [round(s, 4), round(s, 4), 1]
     }
+    if (Array.isArray(p.repeat) && p.repeat.length === 2) {
+      layer.props.repeat = [Number(p.repeat[0]) || 1, Number(p.repeat[1]) || 1]
+    }
     ed().update((d) => void d.assets.push(asset.meta))
     return { ...addLayer(layer, p), asset: asset.meta }
   },
@@ -621,6 +645,12 @@ const commands: Record<string, Handler> = {
 
   add_solid_layer: (p) => {
     const layer = factory.createSolidLayer(proj().comp)
+    mergeProps(layer, p, SOLID_MAP)
+    return addLayer(layer, p, true)
+  },
+
+  add_ground_layer: (p) => {
+    const layer = factory.createGroundLayer(proj().comp)
     mergeProps(layer, p, SOLID_MAP)
     return addLayer(layer, p, true)
   },
@@ -648,6 +678,9 @@ const commands: Record<string, Handler> = {
       if (blend) l.blendMode = blend
       const map = l.type === 'text' ? TEXT_MAP : l.type === 'solid' ? SOLID_MAP : l.type === 'particles' ? PARTICLE_MAP : {}
       mergeProps(l as Layer, p, map)
+      if (Array.isArray(p.repeat) && p.repeat.length === 2 && l.type === 'image') {
+        l.props.repeat = [Number(p.repeat[0]) || 1, Number(p.repeat[1]) || 1]
+      }
       const pos = vec3(p, 'position')
       if (pos) setAnim(l.transform.position, pos, p, project)
       const z = num(p, 'z')

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { BlendMode, EaseName, Layer, ParticleProps, Shot, SolidProps, TextProps, Vec3 } from '@shared/types'
 import { EASE_LABELS } from '../animation/easing'
-import { addKeyframe, setValueAt } from '../animation/keyframes'
+import { addKeyframe, evaluate, setValueAt } from '../animation/keyframes'
 import { referenceDistance } from '../animation/math'
 import { shotAtTime } from '../animation/cameraPath'
 import { CAMERA_PRESETS, applyCameraPreset } from '../animation/presets'
@@ -175,8 +175,36 @@ function KeyEaseSection({ match }: { match: (ref: PropRef) => boolean }) {
 function LayerInspector({ layer }: { layer: Layer }) {
   const set = useLayerUpdater(layer.id)
   const duration = useEditor((s) => s.project.comp.duration)
+  const comp = useEditor((s) => s.project.comp)
+  const time = useEditor((s) => s.time)
+  const tol = useEditor((s) => frameTolerance(s.project))
   const shots = useEditor((s) => s.project.shots)
   const id = layer.id
+
+  const currentRot = evaluate(layer.transform.rotation, time)
+
+  const setOrientation = (type: 'vertical' | 'ground' | 'tilted' | 'ceiling') => {
+    set((l) => {
+      let rotVal: Vec3 = [0, 0, 0]
+      if (type === 'ground') rotVal = [-90, 0, 0]
+      else if (type === 'tilted') rotVal = [-75, 0, 0]
+      else if (type === 'ceiling') rotVal = [90, 0, 0]
+      setValueAt(l.transform.rotation, time, rotVal, tol)
+      if (type === 'ground' || type === 'tilted') {
+        l.autoScale = false
+        const currentPos = evaluate(l.transform.position, time)
+        if (Math.abs(currentPos[1]) < 80) {
+          setValueAt(l.transform.position, time, [currentPos[0], -Math.round(comp.height * 0.42), Math.max(currentPos[2], 800)], tol)
+        }
+      } else if (type === 'ceiling') {
+        l.autoScale = false
+        const currentPos = evaluate(l.transform.position, time)
+        if (Math.abs(currentPos[1]) < 80) {
+          setValueAt(l.transform.position, time, [currentPos[0], Math.round(comp.height * 0.42), Math.max(currentPos[2], 800)], tol)
+        }
+      }
+    }, 'orientation')
+  }
 
   return (
     <>
@@ -223,6 +251,42 @@ function LayerInspector({ layer }: { layer: Layer }) {
         <div className="section-title">Transform</div>
         <AnimRow label="Vị trí" refp={{ kind: 'layer', layerId: id, prop: 'position' }} kind="vec3" step={1} precision={0} />
         <AnimRow label="Xoay (°)" refp={{ kind: 'layer', layerId: id, prop: 'rotation' }} kind="vec3" step={0.25} precision={1} />
+        <Row label="Dáng 3D" title="Đặt nhanh dáng layer: Đứng thẳng (2.5D), Mặt đất/Sàn ngang (-90°), Nghiêng dốc (-75°), hoặc Trần nhà (90°)">
+          <div style={{ display: 'flex', gap: 4, width: '100%' }}>
+            <button
+              className={`btn sm ${Math.abs(currentRot[0]) < 1 && Math.abs(currentRot[1]) < 1 && Math.abs(currentRot[2]) < 1 ? 'primary' : 'ghost'}`}
+              style={{ flex: 1, padding: '3px 4px', fontSize: '11px' }}
+              onClick={() => setOrientation('vertical')}
+              title="Đứng thẳng đối diện camera (mặc định 2.5D)"
+            >
+              Đứng
+            </button>
+            <button
+              className={`btn sm ${Math.abs(currentRot[0] - -90) < 1 ? 'primary' : 'ghost'}`}
+              style={{ flex: 1, padding: '3px 4px', fontSize: '11px' }}
+              onClick={() => setOrientation('ground')}
+              title="Nằm ngang làm mặt đất / sàn (xoay X -90°)"
+            >
+              Mặt đất
+            </button>
+            <button
+              className={`btn sm ${Math.abs(currentRot[0] - -75) < 1 ? 'primary' : 'ghost'}`}
+              style={{ flex: 1, padding: '3px 4px', fontSize: '11px' }}
+              onClick={() => setOrientation('tilted')}
+              title="Nghiêng 75° tạo độ dốc xa dần vào chiều sâu"
+            >
+              Nghiêng
+            </button>
+            <button
+              className={`btn sm ${Math.abs(currentRot[0] - 90) < 1 ? 'primary' : 'ghost'}`}
+              style={{ flex: 1, padding: '3px 4px', fontSize: '11px' }}
+              onClick={() => setOrientation('ceiling')}
+              title="Nằm ngang trên cao làm trần nhà (xoay X 90°)"
+            >
+              Trần
+            </button>
+          </div>
+        </Row>
         <AnimRow label="Scale %" refp={{ kind: 'layer', layerId: id, prop: 'scale' }} kind="vec2" step={0.5} precision={1} displayScale={100} linkable />
         <AnimRow label="Opacity %" refp={{ kind: 'layer', layerId: id, prop: 'opacity' }} kind="number" step={0.5} precision={0} displayScale={100} min={0} max={100} />
         <p className="hint-text" style={{ margin: '8px 0 0' }}>
@@ -267,6 +331,42 @@ function ImageSection({ layer, set }: { layer: Layer & { type: 'image' }; set: S
         <button className="btn sm" onClick={() => setScale(1)}>
           100%
         </button>
+      </Row>
+      <Row label="Lặp texture" title="Lặp lại ảnh theo chiều rộng (X) và chiều sâu (Y) khi làm mặt đất/sàn">
+        <NumberInput
+          axis="x"
+          value={layer.props.repeat?.[0] ?? 1}
+          min={1}
+          max={64}
+          step={1}
+          precision={0}
+          onChange={(v) =>
+            set((l) => {
+              if (l.type === 'image') {
+                const rep = l.props.repeat ? [...l.props.repeat] : [1, 1]
+                rep[0] = v
+                l.props.repeat = rep as [number, number]
+              }
+            })
+          }
+        />
+        <NumberInput
+          axis="y"
+          value={layer.props.repeat?.[1] ?? 1}
+          min={1}
+          max={64}
+          step={1}
+          precision={0}
+          onChange={(v) =>
+            set((l) => {
+              if (l.type === 'image') {
+                const rep = l.props.repeat ? [...l.props.repeat] : [1, 1]
+                rep[1] = v
+                l.props.repeat = rep as [number, number]
+              }
+            })
+          }
+        />
       </Row>
     </div>
   )
@@ -331,6 +431,31 @@ function SolidSection({ props, set }: { props: SolidProps; set: Setter }) {
       {props.gradient && (
         <Row label="Màu dưới">
           <ColorInput value={props.color2} onChange={(v, k) => p((s) => void (s.color2 = v), k)} />
+        </Row>
+      )}
+      <Row label="Hoạ tiết / Lưới" title="Thêm lưới toạ độ hoặc sọc để nhìn rõ phối cảnh chiều sâu mặt đất">
+        <select
+          className="select"
+          value={props.pattern ?? 'none'}
+          onChange={(e) => p((s) => void (s.pattern = e.target.value as any))}
+        >
+          <option value="none">Trơn / Gradient</option>
+          <option value="grid">Lưới phối cảnh 3D (Grid)</option>
+          <option value="stripes">Sọc chiều sâu</option>
+          <option value="dots">Chấm toạ độ</option>
+        </select>
+      </Row>
+      {props.pattern && props.pattern !== 'none' && (
+        <Row label="Cỡ lưới">
+          <NumberInput
+            axis="px"
+            value={props.gridSize ?? 40}
+            min={16}
+            max={200}
+            step={5}
+            precision={0}
+            onChange={(v, k) => p((s) => void (s.gridSize = v), k)}
+          />
         </Row>
       )}
       <Row label="Rộng / Cao">

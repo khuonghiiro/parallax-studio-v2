@@ -5,7 +5,7 @@ import type { Vec3 } from '@shared/types'
 import { evaluate, setValueAt } from '../animation/keyframes'
 import { shotAtTime } from '../animation/cameraPath'
 import { evaluateScene } from '../engine/evaluateScene'
-import { depthToThree, threeToDepth } from '../engine/spatial'
+import { composeDepthMatrix, depthToThree, threeToDepth } from '../engine/spatial'
 import { frameTolerance, useEditor } from '../store/editor'
 
 export const TYPE_COLORS: Record<string, string> = {
@@ -13,6 +13,20 @@ export const TYPE_COLORS: Record<string, string> = {
   text: '#3dd6f5',
   solid: '#f59e6b',
   particles: '#ffc24b'
+}
+
+function getTopViewCorners(pos: Vec3, rot: Vec3, scale: Vec3, size: [number, number]): { p0: Vec3; p1: Vec3; p2: Vec3; p3: Vec3; isTilted: boolean } {
+  const [w, h] = size
+  const halfW = w / 2
+  const halfH = h / 2
+  const m = composeDepthMatrix(pos, rot, scale)
+  const v = new THREE.Vector3()
+  const p0 = threeToDepth(v.set(-halfW, -halfH, 0).applyMatrix4(m))
+  const p1 = threeToDepth(v.set(halfW, -halfH, 0).applyMatrix4(m))
+  const p2 = threeToDepth(v.set(halfW, halfH, 0).applyMatrix4(m))
+  const p3 = threeToDepth(v.set(-halfW, halfH, 0).applyMatrix4(m))
+  const isTilted = Math.abs(p0[2] - p3[2]) > 10
+  return { p0, p1, p2, p3, isTilted }
 }
 
 /** Which shot the depth diagram shows: the selected shot, else the one the camera looks at. */
@@ -142,24 +156,42 @@ export function TopView({ shotId }: { shotId: string | null }) {
           strokeOpacity={0.35}
         />
         {layers.map((l) => {
+          const { p0, p1, p2, p3, isTilted } = getTopViewCorners(l.position, l.rotation, l.scale, l.size)
           const half = (l.size[0] * l.scale[0]) / 2
           const y = sz(l.position[2])
           const isSel = l.layer.id === selected
           const color = TYPE_COLORS[l.layer.type]
           return (
             <g key={l.layer.id} className="tv-layer" onPointerDown={(e) => startDrag(e, l.layer.id)}>
-              <line x1={sx(l.position[0] - half)} x2={sx(l.position[0] + half)} y1={y} y2={y} stroke="transparent" strokeWidth={12} />
-              <line
-                x1={sx(l.position[0] - half)}
-                x2={sx(l.position[0] + half)}
-                y1={y}
-                y2={y}
-                stroke={color}
-                strokeWidth={isSel ? 3 : 2}
-                strokeOpacity={l.active ? 1 : 0.35}
-                strokeDasharray={l.layer.type === 'particles' ? '2 3' : undefined}
-                style={{ filter: isSel ? `drop-shadow(0 0 4px ${color})` : undefined }}
-              />
+              {isTilted ? (
+                <>
+                  <polygon
+                    points={`${sx(p0[0])},${sz(p0[2])} ${sx(p1[0])},${sz(p1[2])} ${sx(p2[0])},${sz(p2[2])} ${sx(p3[0])},${sz(p3[2])}`}
+                    fill={color}
+                    fillOpacity={isSel ? 0.35 : 0.15}
+                    stroke={color}
+                    strokeWidth={isSel ? 2.5 : 1.5}
+                    strokeDasharray="4 3"
+                    style={{ filter: isSel ? `drop-shadow(0 0 6px ${color})` : undefined }}
+                  />
+                  <line x1={sx(l.position[0] - half)} x2={sx(l.position[0] + half)} y1={y} y2={y} stroke="transparent" strokeWidth={16} />
+                </>
+              ) : (
+                <>
+                  <line x1={sx(l.position[0] - half)} x2={sx(l.position[0] + half)} y1={y} y2={y} stroke="transparent" strokeWidth={12} />
+                  <line
+                    x1={sx(l.position[0] - half)}
+                    x2={sx(l.position[0] + half)}
+                    y1={y}
+                    y2={y}
+                    stroke={color}
+                    strokeWidth={isSel ? 3 : 2}
+                    strokeOpacity={l.active ? 1 : 0.35}
+                    strokeDasharray={l.layer.type === 'particles' ? '2 3' : undefined}
+                    style={{ filter: isSel ? `drop-shadow(0 0 4px ${color})` : undefined }}
+                  />
+                </>
+              )}
               <text className="tv-label" x={labelPos.get(l.layer.id)?.x ?? 0} y={labelPos.get(l.layer.id)?.y ?? y - 3}>
                 {l.layer.name.slice(0, 14)}
               </text>

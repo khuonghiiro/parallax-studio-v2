@@ -27,6 +27,8 @@ npm test                 # unit test (vitest)
 | Đơn vị | 1 đơn vị = 1 pixel của composition. x → phải, y → lên, **z → chiều sâu** (dương = xa camera) |
 | Shot (cảnh) | Một nhóm layer đặt ở một vị trí trong world. Toạ độ của layer là **local** trong shot |
 | Layer chung | Layer có `shotId = null`, nhìn thấy được từ mọi cảnh |
+| Mặt đất 3D & Dáng layer | Layer có thể đặt đứng (0°), **nằm ngang làm mặt đất/sàn** (-90°), **nghiêng dốc** (-75°) hoặc **làm trần** (+90°). Giúp tạo sàn di chuyển, mặt hồ, sa mạc với chiều sâu 3D thực thụ khi camera lia qua |
+| Lưới & Lặp texture | Layer Solid hỗ trợ hoạ tiết lưới phối cảnh 3D (grid, stripes, dots). Layer Image hỗ trợ lặp texture (Repeat X/Y) trải dài vô tận |
 | Camera framing | Mỗi shot có camera chuẩn đặt ở local `(0, 0, -referenceDistance)` nhìn về gốc toạ độ, nên layer ở z = 0, scale 1 hiển thị đúng kích thước pixel gốc |
 | Camera path | Camera dừng ở từng cảnh rồi chuyển sang cảnh tiếp theo bằng một trong các kiểu: bay thẳng, bay vòng cung, cắt cảnh, fade đen |
 | 3D view | Chế độ xoay quanh (orbit) để xem các layer xếp chồng, khung camera và đường bay, giống Custom View của AE. Có chế độ chia đôi màn hình Camera \| 3D |
@@ -94,14 +96,14 @@ Thêm vào `mcp_config.json` của Antigravity (Settings → MCP), sửa đườ
 
 Claude Desktop, Cursor và các client MCP khác dùng cùng cấu hình `command` / `args` như trên. **Hãy mở app trước**, rồi mới để AI gọi tool.
 
-### Các tool (37)
+### Các tool (38)
 
 | Nhóm | Tool |
 | --- | --- |
 | Xem | `get_project_info`, `get_shot_info`, `get_layer_info`, `get_camera_info`, `get_memory_stats`, `get_viewport_screenshot` (view `camera` hoặc `3d`) |
 | Dự án | `new_project`, `set_composition`, `save_project`, `open_project`, `undo`, `redo` |
 | Cảnh | `add_shot`, `update_shot`, `delete_shot` |
-| Layer | `add_image_layer` (file_path / base64), `add_text_layer`, `add_solid_layer`, `add_particles`, `update_layer`, `delete_layer`, `move_layer` |
+| Layer | `add_image_layer` (file_path / base64 / repeat), `add_text_layer`, `add_solid_layer`, `add_ground_layer` (sàn 3D), `add_particles`, `update_layer`, `delete_layer`, `move_layer` |
 | Keyframe | `set_keyframe`, `remove_keyframe`, `clear_keyframes` |
 | Camera | `set_camera`, `apply_camera_preset`, `camera_fly_to_shot`, `build_camera_path` |
 | Khác | `set_look`, `set_audio`, `set_time`, `set_playing`, `select`, `set_view`, `export_video`, `execute_script` |

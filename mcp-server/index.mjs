@@ -130,6 +130,7 @@ const layerCommon = {
   position: vec3.optional().describe('LOCAL position inside the shot [x, y, z]; z = depth, positive = farther.'),
   z: z.number().optional().describe('Shortcut to set only the depth.'),
   rotation: vec3.optional().describe('Degrees [x, y, z].'),
+  orientation: z.enum(['vertical', 'ground', 'tilted', 'ceiling']).optional().describe('Preset: "ground" (horizontal [-90,0,0]), "tilted" (slope [-75,0,0]), "ceiling" ([90,0,0]), "vertical" ([0,0,0]).'),
   scale: z.union([z.number(), vec3]).optional().describe('Number (uniform) or [x, y, z]. 1 = 100%.'),
   opacity: z.number().min(0).max(1).optional(),
   blend_mode: blend.optional(),
@@ -262,6 +263,7 @@ tool(
     image_base64: z.string().optional().describe('Raw base64 or data: URL.'),
     file_name: z.string().optional(),
     fit: z.enum(['cover', 'contain', 'native']).optional().describe('Initial scale vs the composition. Default: cover for large images, native otherwise.'),
+    repeat: z.array(z.number()).length(2).optional().describe('Texture repeat [repeatX, repeatY] for tiling ground/surface textures.'),
     ...layerCommon
   }
 )
@@ -279,6 +281,18 @@ tool('add_solid_layer', 'Add a solid color or vertical gradient plane (backgroun
   color: z.string().optional(),
   color2: z.string().optional(),
   gradient: z.boolean().optional(),
+  pattern: z.enum(['none', 'grid', 'stripes', 'dots']).optional(),
+  grid_size: z.number().optional(),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  ...layerCommon
+})
+tool('add_ground_layer', 'Add a horizontal 3D ground plane / floor (rotated -90deg on X, placed below the camera). Creates deep authentic perspective for dolly and pan shots.', {
+  color: z.string().optional().describe('Top color / gradient start.'),
+  color2: z.string().optional().describe('Bottom color / gradient end.'),
+  gradient: z.boolean().optional(),
+  pattern: z.enum(['none', 'grid', 'stripes', 'dots']).optional().describe('Pattern to show perspective (grid, stripes, dots).'),
+  grid_size: z.number().optional().describe('Size of grid squares in pixels (default 45).'),
   width: z.number().optional(),
   height: z.number().optional(),
   ...layerCommon

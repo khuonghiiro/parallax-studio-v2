@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
+  addGroundLayer,
   addParticleLayer,
   addSolidLayer,
   addTextLayer,
@@ -16,6 +17,7 @@ import {
   IconExport,
   IconFile,
   IconFolder,
+  IconGround,
   IconImage,
   IconPlus,
   IconRedo,
@@ -144,6 +146,9 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
         </button>
         <button id="add-solid" className="menu-item" onClick={addSolidLayer}>
           <IconSquare width={15} /> Solid / Gradient nền
+        </button>
+        <button id="add-ground" className="menu-item" onClick={addGroundLayer}>
+          <IconGround width={15} /> Mặt đất 3D / Sàn (Ground Plane)
         </button>
         <button id="add-particles" className="menu-item" onClick={addParticleLayer}>
           <IconSparkles width={15} /> Particles (bụi, đom đóm, tuyết)

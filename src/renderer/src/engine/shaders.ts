@@ -1,10 +1,11 @@
 /** GLSL shaders. All compositing happens in display (sRGB) space, like After Effects' default. */
 
 export const LAYER_VERT = /* glsl */ `
+uniform vec2 uvRepeat;
 varying vec2 vUv;
 varying float vDepth;
 void main() {
-  vUv = uv;
+  vUv = uv * uvRepeat;
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   vDepth = -mv.z;
   gl_Position = projectionMatrix * mv;

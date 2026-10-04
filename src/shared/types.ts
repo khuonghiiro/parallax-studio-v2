@@ -47,6 +47,7 @@ export interface ImageProps {
   assetId: string
   width: number
   height: number
+  repeat?: [number, number]
 }
 
 export interface TextProps {
@@ -65,6 +66,8 @@ export interface SolidProps {
   gradient: boolean
   width: number
   height: number
+  pattern?: 'none' | 'grid' | 'stripes' | 'dots'
+  gridSize?: number
 }
 
 export interface ParticleProps {

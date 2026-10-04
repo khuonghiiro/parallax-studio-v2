@@ -22,6 +22,11 @@ export const IconPause = (p: P) => (
     <rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor" />
   </svg>
 )
+export const IconGround = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M2 17l10 5 10-5M2 12l10 5 10-5M12 2L2 7l10 5 10-5-10-5z" />
+  </svg>
+)
 export const IconSkipStart = (p: P) => (
   <svg {...base(p)}>
     <path d="M6 5v14M18 5 9 12l9 7z" />

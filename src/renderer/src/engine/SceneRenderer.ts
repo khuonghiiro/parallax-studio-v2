@@ -103,6 +103,7 @@ function sharedUniforms() {
 
 function applyBlend(mat: THREE.ShaderMaterial, mode: BlendMode): void {
   mat.blending = THREE.NormalBlending
+  mat.depthWrite = mode === 'normal' || mode === 'multiply'
   switch (mode) {
     case 'add':
       mat.blending = THREE.AdditiveBlending
@@ -304,10 +305,11 @@ export class SceneRenderer {
       transparent: true,
       depthWrite: true,
       depthTest: true,
-      depthFunc: THREE.AlwaysDepth,
+      depthFunc: THREE.LessEqualDepth,
       side: THREE.DoubleSide,
       uniforms: {
         map: { value: null },
+        uvRepeat: { value: new THREE.Vector2(1, 1) },
         texSize: { value: new THREE.Vector2(1, 1) },
         planeSize: { value: new THREE.Vector2(1, 1) },
         opacity: { value: 1 },
@@ -322,7 +324,7 @@ export class SceneRenderer {
     tex.generateMipmaps = true
     tex.minFilter = THREE.LinearMipmapLinearFilter
     tex.magFilter = THREE.LinearFilter
-    tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping
     tex.anisotropy = this.renderer.capabilities.getMaxAnisotropy()
     tex.needsUpdate = true
     return tex
@@ -672,6 +674,11 @@ export class SceneRenderer {
         u.map.value = entry.texture
         u.texSize.value.set(entry.w, entry.h)
         u.planeSize.value.set(node.planeW, node.planeH)
+        if (el.layer.type === 'image' && el.layer.props.repeat) {
+          u.uvRepeat.value.set(el.layer.props.repeat[0], el.layer.props.repeat[1])
+        } else {
+          u.uvRepeat.value.set(1, 1)
+        }
         applyBlend(mat, el.layer.blendMode)
         u.multiplyOut.value = el.layer.blendMode === 'multiply' ? 1 : 0
       } else {
