@@ -122,4 +122,42 @@ describe('directional drift & angles', () => {
     expect(parseDirectionAngle(420)).toBe(60)
     expect(parseDirectionAngle(-90)).toBe(270)
   })
+
+  it('computes seamless toroidal UV wrap for drift without jumping layer coordinates', async () => {
+    const { createProject, createSolidLayer } = await import('../project/factory')
+    const { evaluateScene } = await import('../engine/evaluateScene')
+
+    const proj = createProject()
+    const layer = createSolidLayer(proj.comp)
+    layer.name = 'Drifting Portal'
+    layer.motion = {
+      type: 'drift',
+      speed: 100,
+      direction: 'right',
+      loopMode: 'uv',
+      amplitude: [0, 0, 0]
+    }
+    proj.layers.push(layer)
+
+    const frame0 = evaluateScene(proj, 0)
+    const frame1 = evaluateScene(proj, 1)
+    const frame2 = evaluateScene(proj, 2)
+
+    const el0 = frame0.layers[0]
+    const el1 = frame1.layers[0]
+    const el2 = frame2.layers[0]
+
+    // Plane position in 3D space does NOT teleport or jump
+    expect(el0.position).toEqual([0, 0, 1000])
+    expect(el1.position).toEqual(el0.position)
+    expect(el2.position).toEqual(el0.position)
+
+    // UV offsets progress monotonically along the drift vector (Offset effect)
+    expect(el0.uvOffset).toBeDefined()
+    expect(el1.uvOffset).toBeDefined()
+    expect(el2.uvOffset).toBeDefined()
+
+    expect(el1.uvOffset![0]).toBeLessThan(el0.uvOffset![0])
+    expect(el2.uvOffset![0]).toBeLessThan(el1.uvOffset![0])
+  })
 })

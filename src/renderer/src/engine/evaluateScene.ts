@@ -165,16 +165,24 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
         const rad = (dirDeg * Math.PI) / 180
         const dx = Math.cos(rad)
         const dy = Math.sin(rad)
-        const mode = m.loopMode ?? 'wrap'
+        const mode = m.loopMode ?? 'uv'
         const loopW = m.loopWidth ?? (amp[0] ? Math.abs(amp[0]) * 2 : 3000)
 
-        if (mode === 'uv') {
-          // Seamless texture scroll inside the layer plane - 100% smooth infinite looping
+        if (mode === 'uv' || mode === 'wrap') {
+          // Seamless toroidal pixel wrap (cửa ra nối cửa vào / After Effects Offset effect)
+          // Pixels drift towards one edge and seamlessly re-enter from the opposite edge,
+          // creating an infinite running loop without moving or jumping the layer plane.
           const size = layerNominalSize(layer)
           const w = size[0] || comp.width
           const h = size[1] || comp.height
           const dist = t * sp + ph
           uvOffset = [(-dist * dx) / w, (-dist * dy) / h]
+          if (amp[1]) {
+            // Optional gentle undulating wave perpendicular to drift
+            const sway = Math.sin(t * 0.8 + ph) * amp[1]
+            pos[0] += sway * -dy
+            pos[1] += sway * dx
+          }
         } else if (mode === 'ping-pong') {
           // Smooth back-and-forth oscillation along the directional vector
           const halfSpan = loopW > 0 ? loopW / 2 : 1500
@@ -187,16 +195,11 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
             pos[0] += sway * -dy
             pos[1] += sway * dx
           }
-        } else if (mode === 'continuous' || loopW <= 0) {
+        } else {
           // Continuous monotonic drift along vector without reset
           const dist = t * sp + ph
           pos[0] += dist * dx
           pos[1] += dist * dy
-        } else {
-          // Directional wrap: travels along (dx, dy) over loopW span
-          const shift = (((t * sp + ph) % loopW) + loopW) % loopW - loopW / 2
-          pos[0] += shift * dx
-          pos[1] += shift * dy
           if (amp[1]) {
             const sway = Math.sin(t * 0.8 + ph) * amp[1]
             pos[0] += sway * -dy

@@ -104,8 +104,9 @@
           "opacity": 0.55,
           "motion": {
             "type": "drift",
+            "direction": "right",
+            "loopMode": "uv",
             "speed": 36,
-            "loopWidth": 3000,
             "amplitude": [1500, 8, 0]
           }
         },
@@ -155,8 +156,9 @@
           "opacity": 0.45,
           "motion": {
             "type": "drift",
+            "direction": "left",
+            "loopMode": "uv",
             "speed": 28,
-            "loopWidth": 3400,
             "amplitude": [1700, 10, 0]
           }
         },
@@ -170,8 +172,9 @@
           "opacity": 0.5,
           "motion": {
             "type": "drift",
+            "direction": "right",
+            "loopMode": "uv",
             "speed": 38,
-            "loopWidth": 3000,
             "amplitude": [1500, 8, 0]
           }
         },

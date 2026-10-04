@@ -673,17 +673,16 @@ function MotionSection({ layer, set }: { layer: Layer; set: Setter }) {
                 />
               </Row>
 
-              <Row label="Kiểu lặp" title="Phương thức lặp: Cuộn UV liền mạch (mượt 100%), Ping-pong, hoặc Wrap">
+              <Row label="Kiểu lặp" title="Phương thức lặp: Cuộn pixel vô hạn (cửa ra nối cửa vào như After Effects Offset), Ping-pong hoặc Trôi liên tục">
                 <select
                   id="motion-loop-mode"
                   className="select"
-                  value={motion.loopMode ?? 'uv'}
+                  value={motion.loopMode === 'ping-pong' ? 'ping-pong' : motion.loopMode === 'continuous' ? 'continuous' : 'uv'}
                   onChange={(e) => setMotion({ loopMode: e.target.value as DriftLoopMode })}
                 >
-                  <option value="uv">✨ Cuộn UV liền mạch (Mượt tuyệt đối 100%)</option>
+                  <option value="uv">🌀 Cuộn vô hạn cửa ra - vào (Pixel Wrap / AE Offset)</option>
                   <option value="ping-pong">🌊 Lượn qua lại êm ái (Ping-Pong)</option>
-                  <option value="wrap">🔄 Trôi 1 chiều Wrap (Directional Wrap)</option>
-                  <option value="continuous">➡️ Trôi liên tục không lặp (Continuous)</option>
+                  <option value="continuous">➡️ Trôi liên tục một chiều (Continuous)</option>
                 </select>
               </Row>
             </>
@@ -712,8 +711,8 @@ function MotionSection({ layer, set }: { layer: Layer; set: Setter }) {
             ))}
           </Row>
 
-          {motion.type === 'drift' && motion.loopMode !== 'uv' && (
-            <Row label="Độ rộng loop" title="Khoảng cách trôi qua trước khi lặp lại đầu cảnh (px)">
+          {motion.type === 'drift' && motion.loopMode === 'ping-pong' && (
+            <Row label="Độ rộng loop" title="Khoảng cách trôi qua trước khi đảo chiều (px)">
               <NumberInput
                 axis="px"
                 value={motion.loopWidth ?? 3000}
