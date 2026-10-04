@@ -2,7 +2,13 @@
 
 App desktop (Electron + Three.js) dùng để dựng video **parallax 2.5D** giống After Effects. Bạn xếp các layer ảnh theo chiều sâu, chia thành nhiều **cảnh (shot)** đặt trong không gian 3D, cho camera bay qua từng cảnh rồi xuất MP4. App có **MCP server** để AI (Antigravity, Claude, Cursor…) điều khiển trực tiếp, giống blender-mcp.
 
-## Chạy
+## Chạy nhanh (Windows 1-click)
+
+- **`start.bat`**: Bấm đúp để mở ứng dụng ngay. Nếu máy chưa cài thư viện, file sẽ tự động tải và cài đặt toàn bộ trước khi mở.
+- **`setup.bat`**: Chỉ cài đặt/cập nhật toàn bộ thư viện (cả app chính lẫn MCP server).
+- **`build.bat`**: Đóng gói phiên bản production vào thư mục `out/`.
+
+## Hoặc chạy bằng lệnh terminal
 
 ```powershell
 npm install
@@ -12,7 +18,7 @@ npm run build            # build production vào out/
 npm test                 # unit test (vitest)
 ```
 
-> Trên Windows, nếu PowerShell chặn `npm`, hãy dùng `npm.cmd`.
+> Trên Windows, nếu PowerShell chặn `npm`, hãy dùng `npm.cmd` hoặc bấm đúp vào `start.bat`.
 
 ## Khái niệm chính
 
@@ -58,6 +64,29 @@ Thêm vào `mcp_config.json` của Antigravity (Settings → MCP), sửa đườ
     "parallax-studio": {
       "command": "node",
       "args": ["D:/Codes/parallax-studio/mcp-server/index.mjs"]
+    }
+  }
+}
+```
+
+## Cách 1: Sửa file bằng tay
+1. Mở file [mcp_config.json](file:///C:/Users/Admin/.gemini/config/mcp_config.json) (đường dẫn `C:\Users\Admin\.gemini\config\mcp_config.json`).
+2. Thêm `parallax-studio` vào cạnh `blender`. Nhớ đặt dấu phẩy sau dấu `}` của blender. File sau khi sửa sẽ như sau:
+
+```json
+{
+  "mcpServers": {
+    "blender": {
+      "command": "uvx",
+      "args": [
+        "blender-mcp"
+      ]
+    },
+    "parallax-studio": {
+      "command": "node",
+      "args": [
+        "D:/Codes/parallax-studio/mcp-server/index.mjs"
+      ]
     }
   }
 }
