@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ParallaxApi } from '@shared/ipc'
+import type { McpCommand, McpStatus, ParallaxApi } from '@shared/ipc'
 
 const api: ParallaxApi = {
   openFiles: (kind) => ipcRenderer.invoke('files:open', kind),
@@ -11,7 +11,22 @@ const api: ParallaxApi = {
   exportFinish: () => ipcRenderer.invoke('export:finish'),
   exportCancel: () => ipcRenderer.invoke('export:cancel'),
   revealFile: (p) => ipcRenderer.invoke('shell:reveal', p),
-  setTitle: (title) => ipcRenderer.send('window:title', title)
+  setTitle: (title) => ipcRenderer.send('window:title', title),
+  mcp: {
+    onCommand: (cb) => {
+      const h = (_e: Electron.IpcRendererEvent, cmd: McpCommand): void => cb(cmd)
+      ipcRenderer.on('mcp:command', h)
+      ipcRenderer.send('mcp:ready')
+      return () => ipcRenderer.removeListener('mcp:command', h)
+    },
+    respond: (res) => ipcRenderer.send('mcp:response', res),
+    status: () => ipcRenderer.invoke('mcp:status'),
+    onStatus: (cb) => {
+      const h = (_e: Electron.IpcRendererEvent, s: McpStatus): void => cb(s)
+      ipcRenderer.on('mcp:status', h)
+      return () => ipcRenderer.removeListener('mcp:status', h)
+    }
+  }
 }
 
 contextBridge.exposeInMainWorld('api', api)

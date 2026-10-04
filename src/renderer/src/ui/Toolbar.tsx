@@ -9,6 +9,7 @@ import {
   openProject,
   saveProject
 } from '../actions'
+import type { McpStatus } from '@shared/ipc'
 import { useEditor } from '../store/editor'
 import {
   IconChevronDown,
@@ -23,7 +24,8 @@ import {
   IconSquare,
   IconText,
   IconUndo,
-  IconWand
+  IconWand,
+  IconPlug
 } from './icons'
 
 function Menu({ label, icon, children, id }: { label: string; icon?: React.ReactNode; children: React.ReactNode; id: string }) {
@@ -49,6 +51,48 @@ function Menu({ label, icon, children, id }: { label: string; icon?: React.React
           {children}
         </div>
       )}
+    </div>
+  )
+}
+
+/** Shows whether the local MCP bridge is listening and flashes on every AI command. */
+function McpChip() {
+  const [status, setStatus] = useState<McpStatus | null>(null)
+  const [flash, setFlash] = useState(false)
+  useEffect(() => {
+    if (!window.api?.mcp) return
+    let timer: number | undefined
+    let lastCount = -1
+    const apply = (s: McpStatus): void => {
+      setStatus({ ...s })
+      if (lastCount >= 0 && s.commands !== lastCount) {
+        setFlash(true)
+        window.clearTimeout(timer)
+        timer = window.setTimeout(() => setFlash(false), 700)
+      }
+      lastCount = s.commands
+    }
+    window.api.mcp.status().then(apply).catch(() => undefined)
+    const off = window.api.mcp.onStatus(apply)
+    return () => {
+      off()
+      window.clearTimeout(timer)
+    }
+  }, [])
+  if (!status) return null
+  const state = status.error ? 'error' : status.clients > 0 ? 'connected' : status.listening ? 'listening' : 'off'
+  const label = state === 'connected' ? `AI đã kết nối` : state === 'listening' ? 'MCP sẵn sàng' : state === 'error' ? 'MCP lỗi' : 'MCP tắt'
+  const title = [
+    status.error ?? `Cổng 127.0.0.1:${status.port} · ${status.clients} client`,
+    `Lệnh đã nhận: ${status.commands}${status.lastMethod ? ` · gần nhất: ${status.lastMethod}` : ''}`,
+    `Token: ${status.configPath}`
+  ].join('\n')
+  return (
+    <div id="mcp-chip" className={`mcp-chip ${state}${flash ? ' flash' : ''}`} title={title}>
+      <IconPlug width={13} height={13} />
+      <span className="dot" />
+      {label}
+      {status.lastMethod && state === 'connected' && <small>{status.lastMethod}</small>}
     </div>
   )
 }
@@ -87,7 +131,7 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
         </button>
         <div className="menu-label">Mẫu</div>
         <button className="menu-item" onClick={() => loadDemo()}>
-          <IconWand width={15} /> Mở cảnh mẫu “Twilight Valley”
+          <IconWand width={15} /> Mở cảnh mẫu “Parallax Journey” (3 cảnh)
         </button>
       </Menu>
 
@@ -103,10 +147,6 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
         </button>
         <button id="add-particles" className="menu-item" onClick={addParticleLayer}>
           <IconSparkles width={15} /> Particles (bụi, đom đóm, tuyết)
-        </button>
-        <div className="menu-label">Sắp có</div>
-        <button className="menu-item" disabled style={{ opacity: 0.45, cursor: 'default' }}>
-          <IconWand width={15} /> AI tách layer từ 1 ảnh <span className="hint">Phase 4</span>
         </button>
       </Menu>
 
@@ -125,6 +165,7 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
       </div>
       <span className="tb-spacer" />
 
+      <McpChip />
       <button id="save" className="btn ghost" onClick={() => saveProject(false)} title="Lưu (Ctrl+S)">
         <IconSave /> Lưu
       </button>

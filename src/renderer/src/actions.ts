@@ -1,17 +1,20 @@
-import type { Project } from '@shared/types'
+import type { Project, Shot, Vec3 } from '@shared/types'
 import { create } from 'zustand'
+import { buildCameraPath, flyCameraToShot, type PathOptions, type PathStep } from './animation/cameraPath'
 import { assetStore } from './project/assets'
 import { buildDemoProject } from './project/demo'
 import {
   createImageLayer,
   createParticleLayer,
   createProject,
+  createShot,
   createSolidLayer,
   createTextLayer,
-  duplicateLayer
+  duplicateLayer,
+  shotSpacing
 } from './project/factory'
 import { deserializeProject, serializeProject } from './project/serialize'
-import { useEditor } from './store/editor'
+import { getDraftAnimatable, useEditor } from './store/editor'
 
 // ------------------------------------------------------------------ toast
 
@@ -77,30 +80,57 @@ export async function saveProject(saveAs = false): Promise<void> {
 
 // ------------------------------------------------------------------ assets & layers
 
-function nextDepthForNewLayer(project: Project): number {
-  // Place new images slightly in front of the front-most image layer.
-  const zs = project.layers.filter((l) => l.type === 'image').map((l) => l.transform.position.value[2])
+function nextDepthForNewLayer(project: Project, shotId: string | null = activeShotId()): number {
+  // Place new images slightly in front of the front-most image layer of the same shot.
+  const zs = project.layers
+    .filter((l) => l.type === 'image' && l.shotId === shotId)
+    .map((l) => l.transform.position.value[2])
   return zs.length ? Math.min(...zs) - 200 : 0
 }
 
+/** Shot that receives newly created layers (null = global). */
+function activeShotId(): string | null {
+  const { selectedShotId, project } = editor()
+  return selectedShotId && project.shots.some((s) => s.id === selectedShotId) ? selectedShotId : null
+}
+
+/** Insert a layer at the top of its shot's group (keeps layers of a shot contiguous in the stack). */
+function insertLayerTop(d: Project, layer: Project['layers'][number]): void {
+  const i = d.layers.findIndex((l) => l.shotId === layer.shotId)
+  if (i < 0) d.layers.unshift(layer)
+  else d.layers.splice(i, 0, layer)
+}
+
+function insertLayerBottom(d: Project, layer: Project['layers'][number]): void {
+  let last = -1
+  d.layers.forEach((l, i) => {
+    if (l.shotId === layer.shotId) last = i
+  })
+  if (last < 0) d.layers.push(layer)
+  else d.layers.splice(last + 1, 0, layer)
+}
+
 async function registerImages(files: { name: string; mime: string; data: Uint8Array }[], addLayers: boolean): Promise<void> {
+  const shotId = activeShotId()
+  let lastId: string | null = null
   for (const f of files) {
     try {
       const asset = await assetStore.add(f.name, f.mime, f.data, 'image')
       editor().update((d) => {
         d.assets.push(asset.meta)
         if (addLayers) {
-          const layer = createImageLayer(asset.meta, d.comp as Project['comp'], nextDepthForNewLayer(d as Project))
-          d.layers.unshift(layer)
+          const layer = createImageLayer(asset.meta, d.comp as Project['comp'], nextDepthForNewLayer(d as Project, shotId))
+          layer.shotId = shotId
+          insertLayerTop(d as Project, layer)
+          lastId = layer.id
         }
       })
     } catch (err) {
       toast(`Lỗi đọc ảnh ${f.name}: ${String(err)}`)
     }
   }
-  if (addLayers && files.length) {
-    const first = editor().project.layers[0]
-    if (first) editor().selectLayer(first.id)
+  if (addLayers && lastId) {
+    editor().selectLayer(lastId)
     toast(`Đã thêm ${files.length} layer ảnh`)
   }
 }
@@ -146,8 +176,9 @@ export function addLayerFromAsset(assetId: string): void {
   const meta = editor().project.assets.find((a) => a.id === assetId)
   if (!meta || meta.kind !== 'image') return
   const layer = createImageLayer(meta, editor().project.comp, nextDepthForNewLayer(editor().project))
+  layer.shotId = activeShotId()
   editor().update((d) => {
-    d.layers.unshift(layer)
+    insertLayerTop(d as Project, layer)
   })
   editor().selectLayer(layer.id)
 }
@@ -165,24 +196,27 @@ export function removeAsset(assetId: string): void {
 
 export function addTextLayer(): void {
   const layer = createTextLayer(editor().project.comp)
+  layer.shotId = activeShotId()
   editor().update((d) => {
-    d.layers.unshift(layer)
+    insertLayerTop(d as Project, layer)
   })
   editor().selectLayer(layer.id)
 }
 
 export function addSolidLayer(): void {
   const layer = createSolidLayer(editor().project.comp)
+  layer.shotId = activeShotId()
   editor().update((d) => {
-    d.layers.push(layer)
+    insertLayerBottom(d as Project, layer)
   })
   editor().selectLayer(layer.id)
 }
 
 export function addParticleLayer(): void {
   const layer = createParticleLayer(editor().project.comp)
+  layer.shotId = activeShotId()
   editor().update((d) => {
-    d.layers.unshift(layer)
+    insertLayerTop(d as Project, layer)
   })
   editor().selectLayer(layer.id)
 }
@@ -207,25 +241,37 @@ export function duplicateSelectedLayer(): void {
   editor().selectLayer(copy.id)
 }
 
+/** Move a layer up/down in the stack, staying within its shot's group. */
 export function moveLayer(id: string, dir: -1 | 1): void {
   editor().update((d) => {
     const i = d.layers.findIndex((l) => l.id === id)
-    const j = i + dir
-    if (i < 0 || j < 0 || j >= d.layers.length) return
+    if (i < 0) return
+    const shotId = d.layers[i].shotId
+    let j = i + dir
+    while (j >= 0 && j < d.layers.length && d.layers[j].shotId !== shotId) j += dir
+    if (j < 0 || j >= d.layers.length) return
     const [l] = d.layers.splice(i, 1)
     d.layers.splice(j, 0, l)
   })
+}
+
+/** Move a layer into another shot (or global), keeping its local transform. */
+export function setLayerShot(layerId: string, shotId: string | null): void {
+  editor().update((d) => {
+    const i = d.layers.findIndex((l) => l.id === layerId)
+    if (i < 0 || d.layers[i].shotId === shotId) return
+    const [l] = d.layers.splice(i, 1)
+    l.shotId = shotId
+    insertLayerTop(d as Project, l)
+  })
+  editor().selectLayer(layerId)
 }
 
 export function deleteSelectedKeyframe(): boolean {
   const { selectedKey } = editor()
   if (!selectedKey) return false
   editor().update((d) => {
-    const ref = selectedKey.ref
-    const a =
-      ref.kind === 'camera'
-        ? d.camera[ref.prop]
-        : d.layers.find((l) => l.id === ref.layerId)?.transform[ref.prop]
+    const a = getDraftAnimatable(d, selectedKey.ref)
     if (!a) return
     const i = a.keyframes.findIndex((k) => k.id === selectedKey.keyId)
     if (i >= 0) {
@@ -235,4 +281,88 @@ export function deleteSelectedKeyframe(): boolean {
   })
   editor().selectKey(null)
   return true
+}
+
+// ------------------------------------------------------------------ shots
+
+export type ShotDirection = 'right' | 'down' | 'depth'
+
+export const SHOT_DIRECTIONS: { id: ShotDirection; label: string }[] = [
+  { id: 'right', label: 'Bên phải (ngang)' },
+  { id: 'down', label: 'Bên dưới (dọc)' },
+  { id: 'depth', label: 'Phía sau (chiều sâu)' }
+]
+
+/** Where a new shot goes: next free slot along `dir`, aligned with the last shot on the other axes. */
+export function nextShotPosition(project: Project, dir: ShotDirection): Vec3 {
+  if (project.shots.length === 0) return [0, 0, 0]
+  const { comp } = project
+  const last = project.shots[project.shots.length - 1].position.value
+  const pos: Vec3 = [...last] as Vec3
+  const vals = project.shots.map((s) => s.position.value)
+  if (dir === 'right') pos[0] = Math.max(...vals.map((v) => v[0])) + shotSpacing(comp)
+  else if (dir === 'down') pos[1] = Math.min(...vals.map((v) => v[1])) - Math.round(comp.height * 5.5)
+  else pos[2] = Math.max(...vals.map((v) => v[2])) + Math.round(comp.width * 4)
+  return pos
+}
+
+export function addShot(dir: ShotDirection = 'right', name?: string): Shot {
+  const { project } = editor()
+  const shot = createShot(name ?? `Cảnh ${project.shots.length + 1}`, nextShotPosition(project, dir), project.shots.length)
+  const adoptGlobals = project.shots.length === 0 && project.layers.some((l) => l.shotId === null)
+  editor().update((d) => {
+    d.shots.push(shot)
+    // The first shot adopts existing (v1-style) layers so the old scene becomes "Cảnh 1".
+    if (adoptGlobals) for (const l of d.layers) if (l.shotId === null && l.type !== 'particles') l.shotId = shot.id
+  })
+  editor().selectShot(shot.id)
+  toast(adoptGlobals ? `Đã tạo ${shot.name} (gom các layer hiện có vào cảnh này)` : `Đã tạo ${shot.name}`)
+  return shot
+}
+
+export function deleteShot(shotId: string): void {
+  const { project } = editor()
+  const shot = project.shots.find((s) => s.id === shotId)
+  if (!shot) return
+  const count = project.layers.filter((l) => l.shotId === shotId).length
+  if (count && !window.confirm(`Xoá "${shot.name}" cùng ${count} layer của nó?`)) return
+  editor().update((d) => {
+    d.shots = d.shots.filter((s) => s.id !== shotId)
+    d.layers = d.layers.filter((l) => l.shotId !== shotId)
+  })
+  editor().selectShot(null)
+}
+
+export function updateShot(shotId: string, patch: Partial<Pick<Shot, 'name' | 'color' | 'visible'>>, mergeKey?: string): void {
+  editor().update((d) => {
+    const s = d.shots.find((x) => x.id === shotId)
+    if (s) Object.assign(s, patch)
+  }, mergeKey)
+}
+
+/** Key the camera to frame the shot at the current time (AE-style "fly here"). */
+export function flyToShot(shotId: string, duration = 0): void {
+  const { time } = editor()
+  editor().update((d) => flyCameraToShot(d as Project, shotId, time, duration))
+  const s = editor().project.shots.find((x) => x.id === shotId)
+  if (s) toast(`Camera bay tới ${s.name} tại ${time.toFixed(2)}s`)
+}
+
+/** Change the comp duration; layers that ran to the old end are extended/trimmed to the new end. */
+export function setCompDuration(d: Project, duration: number): void {
+  const old = d.comp.duration
+  const nd = Math.max(0.5, Math.round(duration * d.comp.fps) / d.comp.fps)
+  for (const l of d.layers) if (l.outPoint >= old - 1e-3 || l.outPoint > nd) l.outPoint = nd
+  d.comp.duration = nd
+}
+
+/** Replace the camera move with a tour through shots. Returns the tour end time. */
+export function applyCameraPath(steps: PathStep[], opts: PathOptions & { fitDuration?: boolean } = {}): number {
+  let end = 0
+  editor().update((d) => {
+    end = buildCameraPath(d as Project, steps, opts)
+    if (opts.fitDuration) setCompDuration(d as Project, end)
+  })
+  editor().setTime(opts.startAt ?? 0)
+  return end
 }

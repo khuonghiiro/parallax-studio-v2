@@ -1,14 +1,16 @@
 import { create } from 'zustand'
 import { produce, type Draft } from 'immer'
-import type { Animatable, AnimValue, CameraSettings, Layer, Project, Transform } from '@shared/types'
+import type { Animatable, AnimValue, CameraSettings, Layer, Project, Shot, Transform } from '@shared/types'
 import { createProject } from '../project/factory'
 
 export type LayerProp = keyof Transform
-export type CameraProp = 'position' | 'target' | 'fov' | 'focusDistance' | 'aperture'
+export type CameraProp = 'position' | 'target' | 'fov' | 'focusDistance' | 'aperture' | 'fade'
+export type ShotProp = 'position' | 'rotation'
 
 export type PropRef =
   | { kind: 'layer'; layerId: string; prop: LayerProp }
   | { kind: 'camera'; prop: CameraProp }
+  | { kind: 'shot'; shotId: string; prop: ShotProp }
 
 export interface KeySelection {
   ref: PropRef
@@ -17,6 +19,7 @@ export interface KeySelection {
 
 export function getAnimatable(project: Project, ref: PropRef): Animatable<AnimValue> | undefined {
   if (ref.kind === 'camera') return project.camera[ref.prop] as Animatable<AnimValue>
+  if (ref.kind === 'shot') return project.shots.find((s) => s.id === ref.shotId)?.[ref.prop] as Animatable<AnimValue> | undefined
   const layer = project.layers.find((l) => l.id === ref.layerId)
   return layer?.transform[ref.prop] as Animatable<AnimValue> | undefined
 }
@@ -26,6 +29,13 @@ export function getDraftAnimatable(
   ref: PropRef
 ): Draft<Animatable<AnimValue>> | undefined {
   return getAnimatable(project as Project, ref) as Draft<Animatable<AnimValue>> | undefined
+}
+
+/** Stable string id for a PropRef (merge keys, React keys). */
+export function propRefKey(ref: PropRef): string {
+  if (ref.kind === 'camera') return `cam-${ref.prop}`
+  if (ref.kind === 'shot') return `shot-${ref.shotId}-${ref.prop}`
+  return `${ref.layerId}-${ref.prop}`
 }
 
 const HISTORY_LIMIT = 200
@@ -39,11 +49,14 @@ interface EditorState {
   playing: boolean
   loop: boolean
   selectedLayerId: string | null
+  selectedShotId: string | null
   selectedKey: KeySelection | null
   inspectorTab: 'layer' | 'camera' | 'scene'
   past: Project[]
   future: Project[]
   lastMerge: { key: string; at: number } | null
+  /** Increments whenever a different project is loaded (views re-frame). */
+  epoch: number
 
   /** Apply an undoable change. Changes sharing `mergeKey` within a short window collapse into one undo step. */
   update(fn: (draft: Draft<Project>) => void, mergeKey?: string): void
@@ -53,6 +66,7 @@ interface EditorState {
   setPlaying(p: boolean): void
   setLoop(l: boolean): void
   selectLayer(id: string | null): void
+  selectShot(id: string | null): void
   selectKey(k: KeySelection | null): void
   setInspectorTab(tab: EditorState['inspectorTab']): void
   loadProject(p: Project, filePath: string | null): void
@@ -67,11 +81,13 @@ export const useEditor = create<EditorState>((set, get) => ({
   playing: false,
   loop: true,
   selectedLayerId: null,
+  selectedShotId: null,
   selectedKey: null,
   inspectorTab: 'scene',
   past: [],
   future: [],
   lastMerge: null,
+  epoch: 0,
 
   update(fn, mergeKey) {
     const { project, past, lastMerge } = get()
@@ -94,6 +110,7 @@ export const useEditor = create<EditorState>((set, get) => ({
     const prev = past[past.length - 1]
     set({ project: prev, past: past.slice(0, -1), future: [project, ...future], dirty: true, lastMerge: null })
     get().selectLayer(prev.layers.some((l) => l.id === get().selectedLayerId) ? get().selectedLayerId : null)
+    if (!prev.shots.some((s) => s.id === get().selectedShotId)) set({ selectedShotId: null })
   },
 
   redo() {
@@ -114,10 +131,23 @@ export const useEditor = create<EditorState>((set, get) => ({
     set({ loop: l })
   },
   selectLayer(id) {
+    set((s) => {
+      const layer = id ? s.project.layers.find((l) => l.id === id) : undefined
+      return {
+        selectedLayerId: id,
+        // Selecting a layer makes its shot the active shot (new layers go there).
+        selectedShotId: layer ? layer.shotId : s.selectedShotId,
+        selectedKey: null,
+        inspectorTab: id ? 'layer' : s.inspectorTab === 'layer' && !s.selectedShotId ? 'scene' : s.inspectorTab
+      }
+    })
+  },
+  selectShot(id) {
     set((s) => ({
-      selectedLayerId: id,
+      selectedShotId: id,
+      selectedLayerId: null,
       selectedKey: null,
-      inspectorTab: id ? 'layer' : s.inspectorTab === 'layer' ? 'scene' : s.inspectorTab
+      inspectorTab: id ? 'layer' : s.inspectorTab
     }))
   },
   selectKey(k) {
@@ -134,11 +164,13 @@ export const useEditor = create<EditorState>((set, get) => ({
       time: 0,
       playing: false,
       selectedLayerId: null,
+      selectedShotId: null,
       selectedKey: null,
       past: [],
       future: [],
       lastMerge: null,
-      inspectorTab: 'scene'
+      inspectorTab: 'scene',
+      epoch: get().epoch + 1
     })
   },
   markSaved(path) {
@@ -153,6 +185,10 @@ export function frameTolerance(project: Project): number {
 
 export function findLayer(project: Project, id: string | null): Layer | undefined {
   return id ? project.layers.find((l) => l.id === id) : undefined
+}
+
+export function findShot(project: Project, id: string | null): Shot | undefined {
+  return id ? project.shots.find((s) => s.id === id) : undefined
 }
 
 export type { CameraSettings }

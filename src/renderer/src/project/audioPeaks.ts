@@ -12,7 +12,7 @@ export function getAudioPeaks(assetId: string, buckets = 2000): Promise<Float32A
       if (!asset) return new Float32Array(0)
       const ctx = new AudioContext()
       try {
-        const buf = await ctx.decodeAudioData(asset.bytes.slice().buffer)
+        const buf = await ctx.decodeAudioData(await asset.blob.arrayBuffer())
         const ch = buf.getChannelData(0)
         const peaks = new Float32Array(buckets)
         const step = Math.max(1, Math.floor(ch.length / buckets))

@@ -12,7 +12,9 @@
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "mcp": "node mcp-server/index.mjs",
+    "mcp:install": "npm --prefix mcp-server install"
   },
   "dependencies": {
     "@fontsource/bebas-neue": "^5.3.0",

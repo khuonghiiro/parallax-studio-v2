@@ -1,6 +1,7 @@
 import JSZip from 'jszip'
 import type { Project } from '@shared/types'
 import { assetStore } from './assets'
+import { migrateProject } from './factory'
 
 const EXT: Record<string, string> = {
   'image/png': 'png',
@@ -37,7 +38,7 @@ export async function serializeProject(project: Project): Promise<Uint8Array> {
   for (const id of usedAssetIds(project)) {
     const a = assetStore.get(id)
     if (!a) continue
-    folder.file(`${id}.${extForMime(a.meta.mime)}`, a.bytes)
+    folder.file(`${id}.${extForMime(a.meta.mime)}`, a.blob)
   }
   return zip.generateAsync({ type: 'uint8array', compression: 'STORE' })
 }
@@ -47,16 +48,15 @@ export async function deserializeProject(data: Uint8Array): Promise<Project> {
   const zip = await JSZip.loadAsync(data)
   const json = await zip.file('project.json')?.async('string')
   if (!json) throw new Error('project.json missing — not a Parallax Studio project')
-  const project = JSON.parse(json) as Project
-  if (project.version !== 1) throw new Error(`Unsupported project version ${project.version}`)
+  const project = migrateProject(JSON.parse(json))
 
   assetStore.clear()
   await Promise.all(
     project.assets.map(async (meta) => {
       const file = zip.file(`assets/${meta.id}.${extForMime(meta.mime)}`)
       if (!file) return
-      const bytes = await file.async('uint8array')
-      await assetStore.add(meta.name, meta.mime, bytes, meta.kind, { ...meta })
+      const blob = await file.async('blob')
+      await assetStore.add(meta.name, meta.mime, new Blob([blob], { type: meta.mime }), meta.kind, { ...meta })
     })
   )
   return project

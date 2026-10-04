@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { nanoid } from 'nanoid'
+import * as THREE from 'three'
 import type { Vec3 } from '@shared/types'
 import { evaluate, setValueAt } from '../animation/keyframes'
+import { shotAtTime } from '../animation/cameraPath'
 import { evaluateScene } from '../engine/evaluateScene'
+import { depthToThree, threeToDepth } from '../engine/spatial'
 import { frameTolerance, useEditor } from '../store/editor'
 
 export const TYPE_COLORS: Record<string, string> = {
@@ -12,18 +15,22 @@ export const TYPE_COLORS: Record<string, string> = {
   particles: '#ffc24b'
 }
 
-type EvLayer = ReturnType<typeof evaluateScene>['layers'][number]
-
-/** Nominal (unscaled) world width of a layer, for the schematic. */
-function layerWidth(l: EvLayer): number {
-  const L = l.layer
-  if (L.type === 'image' || L.type === 'solid') return L.props.width
-  if (L.type === 'particles') return L.props.area[0]
-  return 600
+/** Which shot the depth diagram shows: the selected shot, else the one the camera looks at. */
+export function useFocusShotId(): string | null {
+  const project = useEditor((s) => s.project)
+  const time = useEditor((s) => s.time)
+  const selectedShotId = useEditor((s) => s.selectedShotId)
+  return useMemo(() => {
+    if (selectedShotId && project.shots.some((s) => s.id === selectedShotId)) return selectedShotId
+    return shotAtTime(project, time) ?? project.shots[0]?.id ?? null
+  }, [project, time, selectedShotId])
 }
 
-/** Top-down schematic of layer depths and the camera frustum. Drag layers to change depth. */
-export function TopView() {
+/**
+ * Top-down schematic of one shot's layer depths (shot-local space) and the camera frustum.
+ * Drag layers to change depth.
+ */
+export function TopView({ shotId }: { shotId: string | null }) {
   const project = useEditor((s) => s.project)
   const time = useEditor((s) => s.time)
   const selected = useEditor((s) => s.selectedLayerId)
@@ -40,8 +47,16 @@ export function TopView() {
 
   const ev = useMemo(() => evaluateScene(project, time), [project, time])
   const { comp } = project
+  const shot = shotId ? ev.shots.find((s) => s.shot.id === shotId) : undefined
 
-  const zs = [ev.camera.position[2], ...ev.layers.filter((l) => l.layer.visible).map((l) => l.position[2])]
+  // Camera in the shot's local frame.
+  const inv = useMemo(() => (shot ? shot.matrix.clone().invert() : new THREE.Matrix4()), [shot])
+  const toLocal = (p: Vec3): Vec3 => threeToDepth(depthToThree(p).applyMatrix4(inv))
+  const camPos = toLocal(ev.camera.position)
+  const camTarget = toLocal(ev.camera.target)
+  const layers = ev.layers.filter((l) => l.layer.visible && (l.layer.shotId ?? null) === (shot ? shot.shot.id : null))
+
+  const zs = [camPos[2], ...layers.map((l) => l.position[2])]
   const zMin = Math.min(...zs) - 300
   const zMax = Math.max(...zs, 0) + 400
   const xHalf = comp.width * 1.3
@@ -50,14 +65,13 @@ export function TopView() {
   const sz = (z: number): number => pad + (1 - (z - zMin) / (zMax - zMin)) * (size.h - pad * 2)
   const unz = (py: number): number => zMin + (1 - (py - pad) / (size.h - pad * 2)) * (zMax - zMin)
 
-  const cam = ev.camera
   const aspect = comp.width / comp.height
-  const hfov = 2 * Math.atan(Math.tan(((cam.fov / 2) * Math.PI) / 180) * aspect)
-  const dir = Math.atan2(cam.target[0] - cam.position[0], cam.target[2] - cam.position[2])
+  const hfov = 2 * Math.atan(Math.tan(((ev.camera.fov / 2) * Math.PI) / 180) * aspect)
+  const dir = Math.atan2(camTarget[0] - camPos[0], camTarget[2] - camPos[2])
   const reach = zMax - zMin
   const fx = (sign: number): [number, number] => {
     const a = dir + (sign * hfov) / 2
-    return [cam.position[0] + Math.sin(a) * reach * 1.5, cam.position[2] + Math.cos(a) * reach * 1.5]
+    return [camPos[0] + Math.sin(a) * reach * 1.5, camPos[2] + Math.cos(a) * reach * 1.5]
   }
   const [lx, lz] = fx(-1)
   const [rx, rz] = fx(1)
@@ -66,10 +80,9 @@ export function TopView() {
   const labelPos = new Map<string, { x: number; y: number }>()
   {
     const placed: { x: number; y: number }[] = []
-    const items = ev.layers
-      .filter((l) => l.layer.visible)
+    const items = layers
       .map((l) => {
-        const half = (layerWidth(l) * l.scale[0]) / 2
+        const half = (l.size[0] * l.scale[0]) / 2
         return { id: l.layer.id, x: Math.min(sx(l.position[0] + half) + 4, size.w - 64), y: sz(l.position[2]) - 3 }
       })
       .sort((a, b) => b.y - a.y)
@@ -123,39 +136,37 @@ export function TopView() {
         })}
         <line x1={0} x2={size.w} y1={sz(0)} y2={sz(0)} stroke="#2c3245" strokeDasharray="3 4" />
         <polygon
-          points={`${sx(cam.position[0])},${sz(cam.position[2])} ${sx(lx)},${sz(lz)} ${sx(rx)},${sz(rz)}`}
+          points={`${sx(camPos[0])},${sz(camPos[2])} ${sx(lx)},${sz(lz)} ${sx(rx)},${sz(rz)}`}
           fill="url(#frustum)"
           stroke="#3dd6f5"
           strokeOpacity={0.35}
         />
-        {ev.layers
-          .filter((l) => l.layer.visible)
-          .map((l) => {
-            const half = (layerWidth(l) * l.scale[0]) / 2
-            const y = sz(l.position[2])
-            const isSel = l.layer.id === selected
-            const color = TYPE_COLORS[l.layer.type]
-            return (
-              <g key={l.layer.id} className="tv-layer" onPointerDown={(e) => startDrag(e, l.layer.id)}>
-                <line x1={sx(l.position[0] - half)} x2={sx(l.position[0] + half)} y1={y} y2={y} stroke="transparent" strokeWidth={12} />
-                <line
-                  x1={sx(l.position[0] - half)}
-                  x2={sx(l.position[0] + half)}
-                  y1={y}
-                  y2={y}
-                  stroke={color}
-                  strokeWidth={isSel ? 3 : 2}
-                  strokeOpacity={l.active ? 1 : 0.35}
-                  strokeDasharray={l.layer.type === 'particles' ? '2 3' : undefined}
-                  style={{ filter: isSel ? `drop-shadow(0 0 4px ${color})` : undefined }}
-                />
-                <text className="tv-label" x={labelPos.get(l.layer.id)?.x ?? 0} y={labelPos.get(l.layer.id)?.y ?? y - 3}>
-                  {l.layer.name.slice(0, 14)}
-                </text>
-              </g>
-            )
-          })}
-        <g transform={`translate(${sx(cam.position[0])},${sz(cam.position[2])})`}>
+        {layers.map((l) => {
+          const half = (l.size[0] * l.scale[0]) / 2
+          const y = sz(l.position[2])
+          const isSel = l.layer.id === selected
+          const color = TYPE_COLORS[l.layer.type]
+          return (
+            <g key={l.layer.id} className="tv-layer" onPointerDown={(e) => startDrag(e, l.layer.id)}>
+              <line x1={sx(l.position[0] - half)} x2={sx(l.position[0] + half)} y1={y} y2={y} stroke="transparent" strokeWidth={12} />
+              <line
+                x1={sx(l.position[0] - half)}
+                x2={sx(l.position[0] + half)}
+                y1={y}
+                y2={y}
+                stroke={color}
+                strokeWidth={isSel ? 3 : 2}
+                strokeOpacity={l.active ? 1 : 0.35}
+                strokeDasharray={l.layer.type === 'particles' ? '2 3' : undefined}
+                style={{ filter: isSel ? `drop-shadow(0 0 4px ${color})` : undefined }}
+              />
+              <text className="tv-label" x={labelPos.get(l.layer.id)?.x ?? 0} y={labelPos.get(l.layer.id)?.y ?? y - 3}>
+                {l.layer.name.slice(0, 14)}
+              </text>
+            </g>
+          )
+        })}
+        <g transform={`translate(${sx(camPos[0])},${sz(camPos[2])})`}>
           <circle r={5} fill="#3dd6f5" />
           <circle r={9} fill="none" stroke="#3dd6f5" strokeOpacity={0.4} />
         </g>

@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ExportStartOptions } from '@shared/ipc'
-import { SceneRenderer } from '../engine/SceneRenderer'
-import { assetStore } from '../project/assets'
-import { extForMime } from '../project/serialize'
+import { exportSize, runExport } from '../export/runExport'
 import { useEditor } from '../store/editor'
 import { IconExport, IconFolder } from './icons'
 import { Row, Switch } from './controls'
@@ -24,8 +22,6 @@ const QUALITY: { label: string; crf: number }[] = [
   { label: 'Nhẹ (CRF 27)', crf: 27 }
 ]
 
-const even = (n: number): number => Math.max(2, Math.round(n / 2) * 2)
-
 export function ExportDialog({ onClose }: { onClose: () => void }) {
   const project = useEditor((s) => s.project)
   const { comp } = project
@@ -41,8 +37,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   const cancelRef = useRef(false)
   const previewRef = useRef<HTMLCanvasElement>(null)
 
-  const outH = even(heightSel === 'comp' ? comp.height : heightSel)
-  const outW = even((outH * comp.width) / comp.height)
+  const { width: outW, height: outH } = exportSize(project, heightSel === 'comp' ? undefined : heightSel)
   const totalFrames = Math.max(1, Math.round(comp.duration * fps))
 
   useEffect(() => {
@@ -63,72 +58,17 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     setPhase('rendering')
 
     const snapshot = useEditor.getState().project
-    const canvas = document.createElement('canvas')
-    canvas.width = outW
-    canvas.height = outH
-    const r = new SceneRenderer(canvas, { preserveDrawingBuffer: true })
-    r.setSize(outW, outH)
-
-    let audio: ExportStartOptions['audio']
-    if (withAudio && snapshot.audio) {
-      const a = assetStore.get(snapshot.audio.assetId)
-      if (a)
-        audio = {
-          data: a.bytes,
-          ext: extForMime(a.meta.mime),
-          offset: snapshot.audio.offset,
-          volume: snapshot.audio.volume,
-          duration: totalFrames / fps
-        }
-    }
-
-    try {
-      // Warm-up render so fonts/textures are uploaded before the first real frame.
-      await r.waitForContext()
-      r.render(snapshot, 0, { frame: 0 })
-      await document.fonts.ready
-      await r.waitForContext()
-      r.render(snapshot, 0, { frame: 0 })
-
-      const start = await window.api.exportStart({ width: outW, height: outH, fps, crf, preset: speed, outPath: path, audio })
-      if (!start.ok) throw new Error(start.error)
-
-      const t0 = performance.now()
-      const pctx = previewRef.current?.getContext('2d')
-      for (let i = 0; i < totalFrames; i++) {
-        if (cancelRef.current) {
-          await window.api.exportCancel()
-          r.dispose()
-          setPhase('setup')
-          return
-        }
-        // If the GPU context drops mid-export, wait for it to come back and redo this frame.
-        let px: Uint8Array
-        let attempts = 0
-        for (;;) {
-          await r.waitForContext()
-          r.render(snapshot, i / fps, { frame: i })
-          px = r.readPixels()
-          if (!r.isContextLost()) break
-          if (++attempts >= 3) throw new Error('GPU liên tục mất context khi xuất video')
-        }
-        if (pctx && i % 4 === 0) {
-          const pc = previewRef.current!
-          pctx.drawImage(canvas, 0, 0, pc.width, pc.height)
-        }
-        await window.api.exportFrame(px)
-        const elapsed = (performance.now() - t0) / 1000
-        const rate = (i + 1) / elapsed
-        setProgress({ frame: i + 1, total: totalFrames, fps: rate, eta: (totalFrames - i - 1) / rate })
-      }
-      const res = await window.api.exportFinish()
-      r.dispose()
-      if (!res.ok) throw new Error(res.error)
-      setPhase('done')
-    } catch (err) {
-      r.dispose()
-      await window.api.exportCancel()
-      setError(String(err instanceof Error ? err.message : err))
+    const res = await runExport(
+      snapshot,
+      { outPath: path, height: outH, fps, crf, preset: speed, withAudio },
+      setProgress,
+      () => cancelRef.current,
+      previewRef.current
+    )
+    if (res.cancelled) setPhase('setup')
+    else if (res.ok) setPhase('done')
+    else {
+      setError(res.error ?? 'Lỗi không xác định')
       setPhase('error')
     }
   }

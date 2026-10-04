@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { importDroppedFiles, loadDemo, addLayerFromAsset, useToast } from './actions'
 import { usePlayback } from './hooks/usePlayback'
 import { useShortcuts } from './hooks/useShortcuts'
+import { initMcp } from './mcp/commands'
 import { useEditor } from './store/editor'
+import { useView } from './store/view'
+import { CameraPathDialog } from './ui/CameraPathDialog'
 import { ExportDialog } from './ui/ExportDialog'
 import { Inspector } from './ui/Inspector'
 import { LeftPanel } from './ui/LeftPanel'
@@ -16,6 +19,7 @@ export default function App() {
   const [dragOver, setDragOver] = useState(false)
   const [timelineH, setTimelineH] = useState(300)
   const toast = useToast((s) => s.message)
+  const dialog = useView((s) => s.dialog)
   const openExport = useCallback(() => {
     useEditor.getState().setPlaying(false)
     setExporting(true)
@@ -24,11 +28,21 @@ export default function App() {
   usePlayback()
   useShortcuts(openExport)
 
-  // Open the demo scene on first launch.
+  // Open the demo scene on first launch, then accept AI commands over MCP.
   useEffect(() => {
+    let off: (() => void) | undefined
+    let disposed = false
     loadDemo(true)
       .catch((err) => console.error(err))
-      .finally(() => setReady(true))
+      .finally(() => {
+        setReady(true)
+        // StrictMode mounts twice in dev: never subscribe from a disposed effect.
+        if (!disposed) off = initMcp()
+      })
+    return () => {
+      disposed = true
+      off?.()
+    }
   }, [])
 
   // Window title reflects document state.
@@ -83,6 +97,7 @@ export default function App() {
       <Timeline />
 
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}
+      {dialog === 'path' && <CameraPathDialog />}
       {toast && <div className="toast">{toast}</div>}
       {!ready && (
         <div className="loading-screen">

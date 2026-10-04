@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { nanoid } from 'nanoid'
 import type { AnimValue, Vec3 } from '@shared/types'
 import { evaluate, keyAt, removeKeyframe, addKeyframe, setValueAt, toggleAnimated } from '../animation/keyframes'
-import { frameTolerance, getAnimatable, getDraftAnimatable, useEditor, type PropRef } from '../store/editor'
+import { frameTolerance, getAnimatable, getDraftAnimatable, propRefKey, useEditor, type PropRef } from '../store/editor'
 import { IconStopwatch } from './icons'
 
 // ------------------------------------------------------------------ number
@@ -142,7 +142,7 @@ export function AnimRow({
   const animated = a.keyframes.length > 0
   const val = evaluate(a, time)
   const atKey = animated ? keyAt(a, time, tol) : undefined
-  const refKey = refp.kind === 'camera' ? `cam-${refp.prop}` : `${refp.layerId}-${refp.prop}`
+  const refKey = propRefKey(refp)
 
   const write = (v: AnimValue, mergeKey: string): void => {
     update((d) => {

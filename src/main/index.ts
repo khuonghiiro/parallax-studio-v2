@@ -3,6 +3,7 @@ import { join, extname, basename } from 'path'
 import { readFile, writeFile, unlink } from 'fs/promises'
 import { tmpdir } from 'os'
 import { FfmpegEncoder } from './ffmpeg'
+import { McpBridge } from './mcpBridge'
 import type { ExportStartOptions, PickedFile } from '@shared/ipc'
 
 // ANGLE's default D3D11 backend crashes the GPU process right at startup on some
@@ -15,6 +16,7 @@ if (process.platform === 'win32' && !app.commandLine.hasSwitch('use-angle')) {
 
 let mainWindow: BrowserWindow | null = null
 let encoder: FfmpegEncoder | null = null
+let mcp: McpBridge | null = null
 
 const IMAGE_EXT = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp']
 const AUDIO_EXT = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac']
@@ -53,6 +55,7 @@ function createWindow(): void {
   })
 
   mainWindow.once('ready-to-show', () => mainWindow?.show())
+  mainWindow.webContents.on('did-start-loading', () => mcp?.onWindowLoading())
 
   if (process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
@@ -156,6 +159,8 @@ function registerIpc(): void {
 
 app.whenReady().then(() => {
   registerIpc()
+  mcp = new McpBridge(() => mainWindow)
+  mcp.start()
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -164,5 +169,6 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   encoder?.cancel()
+  mcp?.stop()
   if (process.platform !== 'darwin') app.quit()
 })

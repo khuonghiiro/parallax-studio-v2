@@ -34,4 +34,42 @@ export interface ParallaxApi {
   exportCancel(): Promise<void>
   revealFile(path: string): Promise<void>
   setTitle(title: string): void
+  mcp: McpApi
 }
+
+// ------------------------------------------------------------------ MCP bridge
+
+/** A command from an external MCP client, forwarded by the main process. */
+export interface McpCommand {
+  reqId: string
+  method: string
+  params: Record<string, unknown>
+  /** Files referenced by `file_path` params, read by the main process. */
+  file?: PickedFile
+}
+
+export interface McpResponse {
+  reqId: string
+  ok: boolean
+  result?: unknown
+  error?: string
+}
+
+export interface McpStatus {
+  listening: boolean
+  port: number
+  clients: number
+  commands: number
+  lastMethod: string | null
+  lastAt: number | null
+  configPath: string
+  error?: string
+}
+
+export interface McpApi {
+  onCommand(cb: (cmd: McpCommand) => void): () => void
+  respond(res: McpResponse): void
+  status(): Promise<McpStatus>
+  onStatus(cb: (s: McpStatus) => void): () => void
+}
+

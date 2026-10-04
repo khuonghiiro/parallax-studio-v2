@@ -1,14 +1,17 @@
 import { useState } from 'react'
-import type { BlendMode, EaseName, Layer, ParticleProps, SolidProps, TextProps, Vec3 } from '@shared/types'
+import type { BlendMode, EaseName, Layer, ParticleProps, Shot, SolidProps, TextProps, Vec3 } from '@shared/types'
 import { EASE_LABELS } from '../animation/easing'
-import { addKeyframe, evaluate, setValueAt } from '../animation/keyframes'
+import { addKeyframe, setValueAt } from '../animation/keyframes'
 import { referenceDistance } from '../animation/math'
+import { shotAtTime } from '../animation/cameraPath'
 import { CAMERA_PRESETS, applyCameraPreset } from '../animation/presets'
-import { importAudio } from '../actions'
+import { deleteShot, flyToShot, importAudio, setLayerShot, updateShot } from '../actions'
+import { evaluateScene, shotFramingPose, shotLocalToWorld } from '../engine/evaluateScene'
 import { assetStore } from '../project/assets'
-import { findLayer, frameTolerance, getAnimatable, getDraftAnimatable, useEditor, type PropRef } from '../store/editor'
+import { findLayer, findShot, frameTolerance, getAnimatable, getDraftAnimatable, useEditor, type PropRef } from '../store/editor'
+import { useView } from '../store/view'
 import { AnimRow, ColorInput, NumberInput, Row, Slider, Switch, TextInput } from './controls'
-import { IconCamera, IconLayers, IconMusic, IconTrash, IconWand } from './icons'
+import { IconCamera, IconFilm, IconFocus, IconLayers, IconMusic, IconPlane, IconTrash, IconWand } from './icons'
 
 const FONTS = ['Montserrat', 'Inter', 'Playfair Display', 'Bebas Neue', 'JetBrains Mono']
 
@@ -16,30 +19,33 @@ export function Inspector() {
   const tab = useEditor((s) => s.inspectorTab)
   const setTab = useEditor((s) => s.setInspectorTab)
   const layer = useEditor((s) => findLayer(s.project, s.selectedLayerId))
+  const shot = useEditor((s) => findShot(s.project, s.selectedShotId))
 
   return (
     <aside className="right">
       <section className="panel" style={{ flex: 1 }}>
         <div className="tabs">
           <button id="tab-layer" className={`tab${tab === 'layer' ? ' active' : ''}`} onClick={() => setTab('layer')}>
-            Layer
+            {!layer && shot ? 'Cảnh này' : 'Layer'}
           </button>
           <button id="tab-camera" className={`tab${tab === 'camera' ? ' active' : ''}`} onClick={() => setTab('camera')}>
             Camera
           </button>
           <button id="tab-scene" className={`tab${tab === 'scene' ? ' active' : ''}`} onClick={() => setTab('scene')}>
-            Cảnh
+            Dự án
           </button>
         </div>
         <div className="panel-body">
           {tab === 'layer' &&
             (layer ? (
               <LayerInspector layer={layer} />
+            ) : shot ? (
+              <ShotInspector shot={shot} />
             ) : (
               <div className="empty">
                 <IconLayers width={28} height={28} style={{ opacity: 0.5 }} />
                 <br />
-                Chọn một layer trong viewer hoặc timeline.
+                Chọn một layer hoặc cảnh trong viewer, timeline hay danh sách cảnh.
               </div>
             ))}
           {tab === 'camera' && <CameraInspector />}
@@ -47,6 +53,55 @@ export function Inspector() {
         </div>
       </section>
     </aside>
+  )
+}
+
+// ------------------------------------------------------------------ shot
+
+function ShotInspector({ shot }: { shot: Shot }) {
+  const layerCount = useEditor((s) => s.project.layers.filter((l) => l.shotId === shot.id).length)
+  const id = shot.id
+  return (
+    <>
+      <div className="section">
+        <div className="section-title">
+          <IconFilm width={13} height={13} /> Cảnh
+          <span className="spacer" />
+          <span className="shot-chip" style={{ ['--c' as string]: shot.color }}>
+            {layerCount} layer
+          </span>
+        </div>
+        <Row label="Tên">
+          <TextInput id="shot-name" value={shot.name} onCommit={(v) => updateShot(id, { name: v }, `shot-name-${id}`)} />
+        </Row>
+        <Row label="Màu">
+          <ColorInput value={shot.color} onChange={(v, k) => updateShot(id, { color: v }, k)} />
+        </Row>
+        <Row label="Hiển thị">
+          <Switch on={shot.visible} onChange={(v) => updateShot(id, { visible: v })} />
+        </Row>
+        <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+          <button id="shot-fly" className="btn sm primary" onClick={() => flyToShot(id)} title="Tạo keyframe camera nhìn cảnh này tại thời điểm hiện tại">
+            <IconPlane /> Camera bay tới
+          </button>
+          <button className="btn sm" onClick={() => useView.getState().requestFocus('shot', id)}>
+            <IconFocus /> Xem trong 3D
+          </button>
+          <button className="btn sm danger" onClick={() => deleteShot(id)}>
+            <IconTrash /> Xoá
+          </button>
+        </div>
+      </div>
+      <div className="section">
+        <div className="section-title">Vị trí trong không gian</div>
+        <AnimRow label="Vị trí" refp={{ kind: 'shot', shotId: id, prop: 'position' }} kind="vec3" step={5} precision={0} />
+        <AnimRow label="Xoay (°)" refp={{ kind: 'shot', shotId: id, prop: 'rotation' }} kind="vec3" step={0.25} precision={1} />
+        <p className="hint-text" style={{ margin: '8px 0 0' }}>
+          Di chuyển/xoay cả cụm layer. Trong view 3D có thể kéo nhãn tên cảnh để dời cảnh.
+        </p>
+      </div>
+      <KeyEaseSection match={(r) => r.kind === 'shot' && r.shotId === id} />
+    </>
   )
 }
 
@@ -120,6 +175,7 @@ function KeyEaseSection({ match }: { match: (ref: PropRef) => boolean }) {
 function LayerInspector({ layer }: { layer: Layer }) {
   const set = useLayerUpdater(layer.id)
   const duration = useEditor((s) => s.project.comp.duration)
+  const shots = useEditor((s) => s.project.shots)
   const id = layer.id
 
   return (
@@ -129,6 +185,18 @@ function LayerInspector({ layer }: { layer: Layer }) {
         <Row label="Tên">
           <TextInput id="layer-name" value={layer.name} onCommit={(v) => set((l) => void (l.name = v), 'name')} />
         </Row>
+        {shots.length > 0 && (
+          <Row label="Thuộc cảnh" title="Vị trí layer tính tương đối với cảnh chứa nó">
+            <select id="layer-shot" className="select" value={layer.shotId ?? ''} onChange={(e) => setLayerShot(id, e.target.value || null)}>
+              <option value="">— Layer chung (toạ độ thế giới)</option>
+              {shots.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </Row>
+        )}
         <Row label="Blend mode">
           <select
             id="layer-blend"
@@ -158,7 +226,7 @@ function LayerInspector({ layer }: { layer: Layer }) {
         <AnimRow label="Scale %" refp={{ kind: 'layer', layerId: id, prop: 'scale' }} kind="vec2" step={0.5} precision={1} displayScale={100} linkable />
         <AnimRow label="Opacity %" refp={{ kind: 'layer', layerId: id, prop: 'opacity' }} kind="number" step={0.5} precision={0} displayScale={100} min={0} max={100} />
         <p className="hint-text" style={{ margin: '8px 0 0' }}>
-          Z dương = xa camera. Kéo nhãn X/Y/Z để scrub (Shift ×10, Alt ×0.1).
+          Z dương = xa camera{layer.shotId ? ' (toạ độ tương đối với cảnh)' : ''}. Kéo nhãn X/Y/Z để scrub (Shift ×10, Alt ×0.1).
         </p>
       </div>
 
@@ -331,14 +399,19 @@ function CameraInspector() {
   const update = useEditor((s) => s.update)
   const time = useEditor((s) => s.time)
   const selectedLayer = useEditor((s) => findLayer(s.project, s.selectedLayerId))
+  const selectedShotId = useEditor((s) => s.selectedShotId)
   const [intensity, setIntensity] = useState(1)
   const cam = project.camera
   const tol = frameTolerance(project)
+  // Presets & reset act on the selected shot, else on the shot the camera currently looks at.
+  const targetShot = findShot(project, selectedShotId) ?? findShot(project, shotAtTime(project, time))
 
   const focusOnSelected = (): void => {
     if (!selectedLayer) return
-    const lp = evaluate(selectedLayer.transform.position, time)
-    const cp = evaluate(cam.position, time)
+    const ev = evaluateScene(project, time)
+    const lp = ev.layers.find((l) => l.layer.id === selectedLayer.id)?.worldPosition
+    if (!lp) return
+    const cp = ev.camera.position
     const dist = Math.round(Math.hypot(lp[0] - cp[0], lp[1] - cp[1], lp[2] - cp[2]))
     update((d) => {
       d.camera.dofEnabled = true
@@ -352,6 +425,14 @@ function CameraInspector() {
       <div className="section">
         <div className="section-title">
           <IconCamera width={13} height={13} /> Chuyển động camera (preset)
+          {targetShot && (
+            <>
+              <span className="spacer" />
+              <span className="shot-chip" style={{ ['--c' as string]: targetShot.color }} title="Preset sẽ áp dụng quanh cảnh này">
+                {targetShot.name}
+              </span>
+            </>
+          )}
         </div>
         <div className="preset-grid">
           {CAMERA_PRESETS.map((p) => (
@@ -360,7 +441,9 @@ function CameraInspector() {
               id={`preset-${p.id}`}
               className="preset"
               onClick={() =>
-                update((d) => applyCameraPreset(d.camera, p.id, d.comp, 0, d.comp.duration, intensity))
+                update((d) =>
+                  applyCameraPreset(d.camera, p.id, d.comp, 0, d.comp.duration, intensity, shotLocalToWorld(targetShot, 0))
+                )
               }
             >
               <b>{p.label}</b>
@@ -374,6 +457,7 @@ function CameraInspector() {
         </Row>
         <p className="hint-text" style={{ margin: '6px 0 0' }}>
           Preset thay thế keyframe camera hiện có và trải dài toàn bộ thời lượng.
+          {project.shots.length > 1 && ' Để bay qua nhiều cảnh, dùng “Lộ trình camera” trong tab Cảnh.'}
         </p>
       </div>
 
@@ -382,6 +466,7 @@ function CameraInspector() {
         <AnimRow label="Vị trí" refp={{ kind: 'camera', prop: 'position' }} kind="vec3" step={1} precision={0} />
         <AnimRow label="Điểm nhìn" refp={{ kind: 'camera', prop: 'target' }} kind="vec3" step={1} precision={0} />
         <AnimRow label="FOV (°)" refp={{ kind: 'camera', prop: 'fov' }} kind="number" step={0.1} precision={1} min={5} max={120} />
+        <AnimRow label="Fade đen %" refp={{ kind: 'camera', prop: 'fade' }} kind="number" step={0.5} precision={0} displayScale={100} min={0} max={100} />
       </div>
 
       <KeyEaseSection match={(r) => r.kind === 'camera'} />
@@ -415,12 +500,13 @@ function CameraInspector() {
           onClick={() =>
             update((d) => {
               const dd = referenceDistance(d.comp)
-              setValueAt(d.camera.position, time, [0, 0, -dd], tol)
-              setValueAt(d.camera.target, time, [0, 0, 0], tol)
+              const pose = targetShot ? shotFramingPose(d as typeof project, targetShot, time) : { position: [0, 0, -dd] as Vec3, target: [0, 0, 0] as Vec3 }
+              setValueAt(d.camera.position, time, pose.position, tol)
+              setValueAt(d.camera.target, time, pose.target, tol)
             })
           }
         >
-          Đưa camera về vị trí mặc định
+          {targetShot ? `Đưa camera về khung mặc định của “${targetShot.name}”` : 'Đưa camera về vị trí mặc định'}
         </button>
       </div>
     </>

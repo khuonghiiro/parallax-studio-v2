@@ -5,6 +5,10 @@
  *   x → right, y → up, z → DEPTH (positive = farther from the viewer, like After Effects).
  * The default camera sits at z = -defaultCameraDistance(comp) looking toward +z, so a
  * layer at z = 0 with scale 1 renders at its native pixel size.
+ *
+ * Shots (v2): a shot is a group of layers placed somewhere in the world. Layer transforms
+ * are LOCAL to their shot; a shot's "framing" camera sits at local (0, 0, -referenceDistance)
+ * looking at its local origin, so authoring inside a shot works exactly like a v1 scene.
  */
 
 export type Vec3 = [number, number, number]
@@ -90,6 +94,8 @@ interface LayerBase<T extends LayerType, P> {
   blendMode: BlendMode
   /** Keep apparent size constant (from the default camera) when pushed in depth. */
   autoScale: boolean
+  /** Owning shot, or null for a global layer (shared sky, subtitles…). */
+  shotId: string | null
   transform: Transform
   props: P
 }
@@ -109,6 +115,19 @@ export interface CameraSettings {
   aperture: Animatable<number> // blur strength
   shakeAmount: number // units
   shakeSpeed: number // Hz-ish
+  /** 0 = clear, 1 = fully faded to black. Used for fade transitions between shots. */
+  fade: Animatable<number>
+}
+
+export interface Shot {
+  id: string
+  name: string
+  color: string
+  visible: boolean
+  /** World placement (depth space). */
+  position: Animatable<Vec3>
+  /** Degrees; Y = yaw is the most useful one. */
+  rotation: Animatable<Vec3>
 }
 
 export interface LookSettings {
@@ -151,10 +170,11 @@ export interface AssetMeta {
 }
 
 export interface Project {
-  version: 1
+  version: 2
   comp: Composition
   camera: CameraSettings
   look: LookSettings
+  shots: Shot[]
   /** Index 0 = top of the stack (drawn last when depths are equal). */
   layers: Layer[]
   assets: AssetMeta[]

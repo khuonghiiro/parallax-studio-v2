@@ -8,6 +8,7 @@ import type {
   LookSettings,
   ParticleLayer,
   Project,
+  Shot,
   SolidLayer,
   TextLayer,
   Transform,
@@ -35,7 +36,8 @@ export function defaultCamera(comp: Composition): CameraSettings {
     focusDistance: anim(Math.round(d)),
     aperture: anim(0.6),
     shakeAmount: 0,
-    shakeSpeed: 0.6
+    shakeSpeed: 0.6,
+    fade: anim(0)
   }
 }
 
@@ -56,14 +58,49 @@ export function defaultLook(): LookSettings {
 export function createProject(comp: Partial<Composition> = {}): Project {
   const c = { ...DEFAULT_COMP, ...comp }
   return {
-    version: 1,
+    version: 2,
     comp: c,
     camera: defaultCamera(c),
     look: defaultLook(),
+    shots: [],
     layers: [],
     assets: [],
     audio: null
   }
+}
+
+export const SHOT_COLORS = ['#8b7bff', '#3dd6f5', '#f59e6b', '#4ade80', '#f472b6', '#ffc24b', '#60a5fa', '#c084fc']
+
+export function createShot(name: string, position: Vec3 = [0, 0, 0], index = 0): Shot {
+  return {
+    id: nanoid(10),
+    name,
+    color: SHOT_COLORS[index % SHOT_COLORS.length],
+    visible: true,
+    position: anim<Vec3>(position),
+    rotation: anim<Vec3>([0, 0, 0])
+  }
+}
+
+/** Horizontal spacing between auto-placed shots: wide enough that far plates of neighbours never overlap. */
+export function shotSpacing(comp: Composition): number {
+  return Math.round(comp.width * 5.5)
+}
+
+/** Upgrade any older project JSON to the current schema (mutates and returns it). */
+export function migrateProject(raw: unknown): Project {
+  const p = raw as Project & { version: number }
+  if (typeof p !== 'object' || !p || !Array.isArray(p.layers)) throw new Error('Not a Parallax Studio project')
+  if (p.version > 2) throw new Error(`Project version ${p.version} is newer than this app supports`)
+  if (p.version < 2) {
+    p.shots = []
+    for (const l of p.layers) (l as Layer).shotId = null
+    p.version = 2
+  }
+  p.shots ??= []
+  if (!p.camera.fade) p.camera.fade = anim(0)
+  for (const l of p.layers) if ((l as Layer).shotId === undefined) (l as Layer).shotId = null
+  return p as Project
 }
 
 function transform(z = 0, scale = 1): Transform {
@@ -85,6 +122,7 @@ function base(comp: Composition, name: string, z: number, scale = 1) {
     outPoint: comp.duration,
     blendMode: 'normal' as const,
     autoScale: true,
+    shotId: null as string | null,
     transform: transform(z, scale)
   }
 }

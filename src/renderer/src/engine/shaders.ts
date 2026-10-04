@@ -141,6 +141,7 @@ uniform float saturation;
 uniform float vignette;
 uniform float grain;
 uniform float seed;
+uniform float fade;
 uniform vec2 resolution;
 varying vec2 vUv;
 
@@ -161,6 +162,15 @@ void main() {
   float v = 1.0 - smoothstep(0.25, 0.95, length(q));
   c *= mix(1.0, v, vignette);
   c += (hash(vUv * resolution) - 0.5) * grain;
+  c *= 1.0 - fade;
   gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
+}
+`
+
+export const COPY_FRAG = /* glsl */ `
+uniform sampler2D tScene;
+varying vec2 vUv;
+void main() {
+  gl_FragColor = vec4(texture2D(tScene, vUv).rgb, 1.0);
 }
 `

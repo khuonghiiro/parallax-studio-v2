@@ -34,7 +34,9 @@ const add = (a: Vec3, b: Vec3): Vec3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
 
 /**
  * Replace the camera animation with a preset move between t0 and t1.
- * `intensity` scales the move (1 = default). Mutates (use inside an immer producer).
+ * `intensity` scales the move (1 = default). `toWorld` maps the preset's local frame
+ * (a v1-style scene around the origin) into world space, e.g. a shot's transform.
+ * Mutates (use inside an immer producer).
  */
 export function applyCameraPreset(
   cam: CameraSettings,
@@ -42,25 +44,27 @@ export function applyCameraPreset(
   comp: Composition,
   t0: number,
   t1: number,
-  intensity = 1
+  intensity = 1,
+  toWorld: (p: Vec3) => Vec3 = (p) => p
 ): void {
   const d = referenceDistance(comp)
   const p0: Vec3 = [0, 0, -d]
   const tg0: Vec3 = [0, 0, 0]
+  const W = toWorld
 
   cam.position.keyframes = []
   cam.target.keyframes = []
   cam.fov.keyframes = []
-  cam.position.value = p0
-  cam.target.value = tg0
+  cam.position.value = W(p0)
+  cam.target.value = W(tg0)
   cam.fov.value = 40
 
   const move = (delta: Vec3, moveTarget = true): void => {
-    addKeyframe(cam.position, t0, p0, 'easeInOut')
-    addKeyframe(cam.position, t1, add(p0, delta), 'easeInOut')
+    addKeyframe(cam.position, t0, W(p0), 'easeInOut')
+    addKeyframe(cam.position, t1, W(add(p0, delta)), 'easeInOut')
     if (moveTarget) {
-      addKeyframe(cam.target, t0, tg0, 'easeInOut')
-      addKeyframe(cam.target, t1, add(tg0, delta), 'easeInOut')
+      addKeyframe(cam.target, t0, W(tg0), 'easeInOut')
+      addKeyframe(cam.target, t1, W(add(tg0, delta)), 'easeInOut')
     }
   }
 
@@ -70,10 +74,10 @@ export function applyCameraPreset(
       move([0, 0, d * 0.4 * k])
       break
     case 'dollyOut':
-      addKeyframe(cam.position, t0, add(p0, [0, 0, d * 0.4 * k]), 'easeInOut')
-      addKeyframe(cam.position, t1, p0, 'easeInOut')
-      addKeyframe(cam.target, t0, add(tg0, [0, 0, d * 0.4 * k]), 'easeInOut')
-      addKeyframe(cam.target, t1, tg0, 'easeInOut')
+      addKeyframe(cam.position, t0, W(add(p0, [0, 0, d * 0.4 * k])), 'easeInOut')
+      addKeyframe(cam.position, t1, W(p0), 'easeInOut')
+      addKeyframe(cam.target, t0, W(add(tg0, [0, 0, d * 0.4 * k])), 'easeInOut')
+      addKeyframe(cam.target, t1, W(tg0), 'easeInOut')
       break
     case 'truckLeft':
       move([-comp.width * 0.12 * k, 0, 0])
@@ -94,13 +98,13 @@ export function applyCameraPreset(
       const range = ((12 * k) * Math.PI) / 180
       const pivot: Vec3 = [0, 0, d * 0.6]
       const radius = d * 1.6
-      cam.target.value = pivot
+      cam.target.value = W(pivot)
       const steps = 10
       for (let i = 0; i <= steps; i++) {
         const u = ease('easeInOut', i / steps)
         const a = dir * (u - 0.5) * range * 2
         const pos: Vec3 = [pivot[0] + Math.sin(a) * radius, 0, pivot[2] - Math.cos(a) * radius]
-        addKeyframe(cam.position, t0 + ((t1 - t0) * i) / steps, pos, 'linear')
+        addKeyframe(cam.position, t0 + ((t1 - t0) * i) / steps, W(pos), 'linear')
       }
       break
     }
@@ -117,7 +121,7 @@ export function applyCameraPreset(
         const dist = d * (1 - 0.45 * k * u)
         const fov = (2 * Math.atan(c / dist) * 180) / Math.PI
         const t = t0 + ((t1 - t0) * i) / steps
-        addKeyframe(cam.position, t, [0, 0, -dist], 'linear')
+        addKeyframe(cam.position, t, W([0, 0, -dist]), 'linear')
         addKeyframe(cam.fov, t, fov, 'linear')
       }
       break

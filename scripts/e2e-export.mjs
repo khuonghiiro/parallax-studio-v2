@@ -30,16 +30,36 @@ try {
   logs.push('--- phase: demo loaded')
   await page.screenshot({ path: join(shotDir, 'e2e_t0.png') })
 
-  // Jump to 5s (150 frames at 30fps) using Shift+→ (10 frames each).
-  for (let i = 0; i < 15; i++) await page.keyboard.press('Shift+ArrowRight')
+  // Jump to ~2.7s (80 frames at 30fps) using Shift+→ (10 frames each): shot 1 title fully in.
+  for (let i = 0; i < 8; i++) await page.keyboard.press('Shift+ArrowRight')
   await page.waitForTimeout(400)
   await page.screenshot({ path: join(shotDir, 'e2e_t5.png') })
 
-  // Click the title area in the viewer and read the selected layer name.
-  const box = await page.locator('#viewer-canvas').boundingBox()
+  // Click the title area inside the camera frame and read the selected layer name.
+  const box = await page.locator('#camera-frame').boundingBox()
   await page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.335)
   await page.waitForTimeout(300)
   const selected = await page.locator('#layer-name').inputValue().catch(() => '(none)')
+
+  // 3D orbit view (all shots + camera path) and split view.
+  await page.click('#view-3d')
+  await page.waitForTimeout(1500)
+  await page.screenshot({ path: join(shotDir, 'e2e_3d.png') })
+  await page.click('#view-split')
+  await page.waitForTimeout(1500)
+  await page.screenshot({ path: join(shotDir, 'e2e_split.png') })
+  await page.click('#view-split')
+  await page.click('#view-camera')
+  await page.waitForTimeout(300)
+  // Later in the tour: shot 2 (aurora) and shot 3 (dunes).
+  for (const [name, t] of [['e2e_shot2', 8], ['e2e_shot3', 12.5]]) {
+    await page.evaluate(() => undefined)
+    await page.keyboard.press('Home')
+    for (let i = 0; i < Math.round((t * 30) / 10); i++) await page.keyboard.press('Shift+ArrowRight')
+    await page.waitForTimeout(900)
+    await page.screenshot({ path: join(shotDir, `${name}.png`) })
+  }
+  const memory = await page.locator('#memory-chip').innerText().catch(() => '')
 
   // Stub native dialogs in the main process (path chosen by requested extension).
   const projPath = join(tmpdir(), `pxs-e2e-${Date.now()}.pxs`)
@@ -81,6 +101,7 @@ try {
   const probe = spawnSync(ffmpegPath, ['-hide_banner', '-i', outPath], { encoding: 'utf8' }).stderr
   const result = {
     selectedByClick: selected,
+    memory,
     roundTrip: { rowsBefore, rowsAfter, projKB },
     outPath,
     exists: existsSync(outPath),

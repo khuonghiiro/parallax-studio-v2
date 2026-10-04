@@ -457,10 +457,86 @@ textarea {
   min-height: 0;
 }
 .viewer canvas {
+  position: absolute;
+  inset: 0;
   display: block;
+  touch-action: none;
+}
+.camera-frame {
+  position: absolute;
+  pointer-events: none;
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.06),
-    0 20px 60px rgba(0, 0, 0, 0.6);
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 20px 60px rgba(0, 0, 0, 0.55);
+  border-radius: 2px;
+}
+.pane-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(transparent, rgba(139, 123, 255, 0.45), transparent);
+  pointer-events: none;
+}
+.pane-tag {
+  position: absolute;
+  pointer-events: none;
+  gap: 6px;
+  color: var(--text);
+}
+.pane-tag svg {
+  width: 12px;
+  height: 12px;
+  color: var(--accent-2);
+}
+.pane-hint {
+  color: var(--text-faint);
+  margin-left: 6px;
+  font-family: var(--font);
+}
+.view-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.v-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  margin: -26px 0 0 0;
+  translate: -50% 0;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #fff;
+  background: color-mix(in srgb, var(--c) 30%, rgba(10, 12, 18, 0.85));
+  border: 1px solid color-mix(in srgb, var(--c) 70%, transparent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  will-change: transform;
+}
+.v-label.shot {
+  pointer-events: auto;
+  cursor: move;
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
+}
+.v-label.shot:hover,
+.v-label.shot.selected {
+  background: color-mix(in srgb, var(--c) 65%, rgba(10, 12, 18, 0.85));
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--c) 30%, transparent),
+    0 6px 20px rgba(0, 0, 0, 0.45);
+}
+.v-label.cam {
+  margin-top: -30px;
+  font-size: 10px;
+  color: var(--accent-2);
+  background: rgba(10, 12, 18, 0.8);
 }
 .viewer-hud {
   position: absolute;
@@ -490,16 +566,53 @@ textarea {
   border-radius: 50%;
   background: var(--ok);
 }
+.chip.mem {
+  pointer-events: auto;
+  cursor: help;
+  color: var(--accent-2);
+}
+.chip.mem.warn {
+  color: var(--key);
+  border-color: rgba(255, 194, 75, 0.35);
+}
 .viewer-tools {
   position: absolute;
   top: 10px;
   right: 12px;
   display: flex;
+  align-items: center;
   gap: 4px;
 }
-.viewer-tools .btn {
+.viewer-tools .btn,
+.viewer-tools .select {
   background: rgba(10, 12, 18, 0.72);
   backdrop-filter: blur(6px);
+}
+.viewer-tools .btn.active {
+  background: rgba(139, 123, 255, 0.28);
+}
+.viewer-tools .btn svg {
+  width: 13px;
+  height: 13px;
+}
+.select.sm {
+  width: auto;
+  height: 24px;
+  font-size: 11px;
+  padding: 0 6px;
+  border-color: var(--line);
+}
+.seg {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  border-radius: 8px;
+  background: rgba(10, 12, 18, 0.72);
+  border: 1px solid var(--line);
+}
+.seg .btn {
+  border-color: transparent;
+  background: transparent;
 }
 
 /* ------------------------------------------------------------------ top view */
@@ -1213,5 +1326,377 @@ textarea {
   50% {
     transform: scale(1.08);
     filter: brightness(1.2);
+  }
+}
+
+/* ------------------------------------------------------------------ shots (v2) */
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.tab-count {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--bg-4);
+  color: var(--text-dim);
+  font-size: 10px;
+  line-height: 16px;
+}
+.shots {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.shots-actions {
+  display: flex;
+  gap: 6px;
+}
+.shots .empty {
+  padding: 14px 6px;
+}
+.shot-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.shot-row {
+  --c: var(--accent);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 6px 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.shot-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--c);
+  opacity: 0.8;
+}
+.shot-row:hover {
+  border-color: #2e3446;
+  background: var(--bg-3);
+}
+.shot-row.selected {
+  border-color: color-mix(in srgb, var(--c) 70%, transparent);
+  background: color-mix(in srgb, var(--c) 12%, var(--bg-2));
+}
+.shot-row.hidden .shot-name {
+  opacity: 0.45;
+}
+.shot-row.global {
+  --c: var(--text-faint);
+  height: 28px;
+  background: transparent;
+  border-style: dashed;
+}
+.shot-dot {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--c);
+  flex: none;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--c) 60%, transparent);
+  cursor: pointer;
+  overflow: hidden;
+}
+.shot-dot input {
+  position: absolute;
+  inset: -6px;
+  opacity: 0;
+  cursor: pointer;
+}
+.shot-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+.shot-rename {
+  flex: 1;
+  height: 24px;
+}
+.shot-live {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 16px;
+  border-radius: 4px;
+  background: rgba(61, 214, 245, 0.16);
+  color: var(--accent-2);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+.shot-live svg {
+  width: 11px;
+  height: 11px;
+}
+.shot-count {
+  min-width: 20px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+.shot-btns {
+  display: flex;
+  gap: 1px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.shot-row:hover .shot-btns,
+.shot-row.selected .shot-btns {
+  opacity: 1;
+}
+.mini {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 5px;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.mini:hover {
+  background: var(--bg-4);
+  color: var(--text);
+}
+.mini.off {
+  color: var(--text-faint);
+  opacity: 0.6;
+}
+.mini.danger:hover {
+  color: var(--danger);
+}
+.mini svg {
+  width: 13px;
+  height: 13px;
+}
+.shot-chip {
+  --c: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 18px;
+  padding: 0 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: #fff;
+  background: color-mix(in srgb, var(--c) 30%, var(--bg-2));
+  border: 1px solid color-mix(in srgb, var(--c) 60%, transparent);
+}
+
+/* camera path builder */
+.modal.wide {
+  width: 680px;
+}
+.path-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-height: 46vh;
+  overflow: auto;
+  padding-right: 4px;
+}
+.path-step {
+  --c: var(--accent);
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 92px 22px 22px 22px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+}
+.path-step .num-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #fff;
+  background: color-mix(in srgb, var(--c) 55%, var(--bg-3));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--c) 45%, transparent);
+}
+.path-trans {
+  display: grid;
+  grid-template-columns: 22px 1fr 92px;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  color: var(--text-faint);
+}
+.path-trans .line {
+  width: 2px;
+  height: 26px;
+  margin: 0 auto;
+  background: linear-gradient(var(--accent), var(--accent-2));
+  opacity: 0.5;
+  border-radius: 2px;
+}
+.path-trans .fields {
+  align-items: center;
+}
+.labeled {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+.labeled .num {
+  width: 72px;
+  flex: none;
+}
+.path-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(139, 123, 255, 0.08);
+  border: 1px solid rgba(139, 123, 255, 0.25);
+  color: var(--text-dim);
+}
+.path-summary b {
+  color: var(--text);
+  font-family: var(--mono);
+}
+
+/* timeline shot rows */
+.tl-shot-strip {
+  position: absolute;
+  inset: 5px 0;
+}
+.tl-shot-seg {
+  --c: var(--accent);
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--c) 32%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 65%, transparent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 0 6px;
+  line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.tl-shot-seg.dark {
+  --c: #000;
+  border-style: dashed;
+  border-color: var(--line);
+  color: var(--text-faint);
+}
+.tl-group {
+  --c: var(--accent);
+}
+.tl-name.group {
+  font-weight: 600;
+  background: color-mix(in srgb, var(--c) 8%, transparent);
+  box-shadow: inset 3px 0 0 var(--c);
+}
+.tl-row.group {
+  background: color-mix(in srgb, var(--c) 5%, transparent);
+}
+
+/* MCP status chip */
+.mcp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  margin-right: 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  transition: background 0.25s, border-color 0.25s, box-shadow 0.25s;
+  user-select: none;
+}
+.mcp-chip small {
+  font-family: var(--mono);
+  font-weight: 500;
+  color: var(--text-faint);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mcp-chip .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #64748b;
+}
+.mcp-chip.listening .dot {
+  background: #ffc24b;
+}
+.mcp-chip.connected {
+  color: #c9fbe0;
+  border-color: rgba(74, 222, 128, 0.45);
+  background: rgba(74, 222, 128, 0.08);
+}
+.mcp-chip.connected .dot {
+  background: #4ade80;
+  box-shadow: 0 0 8px #4ade80;
+  animation: mcp-pulse 1.8s ease-in-out infinite;
+}
+.mcp-chip.error {
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.5);
+}
+.mcp-chip.error .dot {
+  background: #f87171;
+}
+.mcp-chip.flash {
+  box-shadow: 0 0 0 3px rgba(139, 123, 255, 0.35), 0 0 18px rgba(139, 123, 255, 0.5);
+  border-color: var(--accent);
+}
+@keyframes mcp-pulse {
+  50% {
+    opacity: 0.45;
   }
 }

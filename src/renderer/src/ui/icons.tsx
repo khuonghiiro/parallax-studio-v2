@@ -187,3 +187,56 @@ export const IconChevronDown = (p: P) => (
   </svg>
 )
 export const IconFolderOpen = IconFolder
+export const IconCube = (p: P) => (
+  <svg {...base(p)}>
+    <path d="m12 2 9 5v10l-9 5-9-5V7z" />
+    <path d="m3 7 9 5 9-5M12 12v10" />
+  </svg>
+)
+export const IconSplit = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="M12 5v14" />
+  </svg>
+)
+export const IconSingle = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+  </svg>
+)
+export const IconPlane = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M22 2 11 13" />
+    <path d="M22 2 15 22l-4-9-9-4z" />
+  </svg>
+)
+export const IconFocus = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+)
+export const IconFilm = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <path d="M7 3v18M17 3v18M3 8h4M3 16h4M17 8h4M17 16h4" />
+  </svg>
+)
+export const IconRoute = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="6" cy="19" r="2" />
+    <circle cx="18" cy="5" r="2" />
+    <path d="M8 19h8.5a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7H16" />
+  </svg>
+)
+export const IconPlug = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4" />
+  </svg>
+)
+export const IconMemory = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3" y="7" width="18" height="10" rx="1.5" />
+    <path d="M7 7v10M11 7v10M15 7v10M6 17v3M18 17v3M6 4v3M18 4v3" />
+  </svg>
+)

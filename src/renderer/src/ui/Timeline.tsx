@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { nanoid } from 'nanoid'
-import type { Animatable, AnimValue, Layer } from '@shared/types'
+import type { Animatable, AnimValue, Layer, Shot } from '@shared/types'
 import { formatTimecode, snapToFrame } from '../animation/math'
 import { evaluate } from '../animation/keyframes'
+import { shotAtTime } from '../animation/cameraPath'
 import { deleteSelectedLayer, duplicateSelectedLayer, moveLayer } from '../actions'
 import { getAudioPeaks } from '../project/audioPeaks'
 import { assetStore } from '../project/assets'
-import { getAnimatable, getDraftAnimatable, useEditor, type CameraProp, type LayerProp, type PropRef } from '../store/editor'
+import { getAnimatable, getDraftAnimatable, useEditor, type CameraProp, type LayerProp, type PropRef, type ShotProp } from '../store/editor'
 import {
   IconCamera,
   IconCaret,
   IconCopy,
   IconDown,
   IconEye,
+  IconFilm,
   IconLock,
   IconLoop,
   IconMusic,
@@ -41,9 +43,29 @@ const CAMERA_PROPS: { prop: CameraProp; label: string }[] = [
   { prop: 'target', label: 'Điểm nhìn' },
   { prop: 'fov', label: 'FOV' },
   { prop: 'focusDistance', label: 'Khoảng focus' },
-  { prop: 'aperture', label: 'Khẩu độ' }
+  { prop: 'aperture', label: 'Khẩu độ' },
+  { prop: 'fade', label: 'Fade đen' }
+]
+const SHOT_PROPS: { prop: ShotProp; label: string }[] = [
+  { prop: 'position', label: 'Vị trí cảnh' },
+  { prop: 'rotation', label: 'Xoay cảnh' }
 ]
 const TYPE_LETTER: Record<Layer['type'], string> = { image: 'IMG', text: 'T', solid: 'S', particles: '✦' }
+
+/** Contiguous time ranges during which the camera looks at the same shot. */
+function shotSegments(project: Parameters<typeof shotAtTime>[0]): { id: string | null; t0: number; t1: number }[] {
+  const { duration, fps } = project.comp
+  const n = Math.max(2, Math.min(900, Math.round(duration * fps)))
+  const segs: { id: string | null; t0: number; t1: number }[] = []
+  for (let i = 0; i <= n; i++) {
+    const t = (duration * i) / n
+    const id = shotAtTime(project, t)
+    const last = segs[segs.length - 1]
+    if (last && last.id === id) last.t1 = t
+    else segs.push({ id, t0: last ? last.t1 : 0, t1: t })
+  }
+  return segs
+}
 
 export function Timeline() {
   const project = useEditor((s) => s.project)
@@ -51,10 +73,12 @@ export function Timeline() {
   const playing = useEditor((s) => s.playing)
   const loop = useEditor((s) => s.loop)
   const selectedLayerId = useEditor((s) => s.selectedLayerId)
-  const { setTime, setPlaying, setLoop, selectLayer } = useEditor.getState()
+  const selectedShotId = useEditor((s) => s.selectedShotId)
+  const { setTime, setPlaying, setLoop, selectLayer, selectShot } = useEditor.getState()
   const { comp } = project
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [renaming, setRenaming] = useState<string | null>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const [trackW, setTrackW] = useState(800)
@@ -115,6 +139,7 @@ export function Timeline() {
     const st = useEditor.getState()
     st.selectKey({ ref, keyId })
     if (ref.kind === 'layer') st.selectLayer(ref.layerId)
+    if (ref.kind === 'shot') st.selectShot(ref.shotId)
     st.selectKey({ ref, keyId })
     st.setInspectorTab(ref.kind === 'camera' ? 'camera' : 'layer')
     const a = getAnimatable(st.project, ref)
@@ -210,6 +235,25 @@ export function Timeline() {
 
   const cameraAnims = CAMERA_PROPS.map((p) => project.camera[p.prop] as Animatable<AnimValue>)
   const camOpen = expanded.has('camera')
+  const segments = useMemo(() => (project.shots.length ? shotSegments(project) : []), [project])
+  const shotById = useMemo(() => new Map(project.shots.map((s) => [s.id, s])), [project.shots])
+
+  // Group layers: global first, then each shot in order (stack order kept inside a group).
+  const groups = useMemo(() => {
+    const out: { shot: Shot | null; layers: Layer[] }[] = []
+    const globals = project.layers.filter((l) => !l.shotId || !shotById.has(l.shotId))
+    if (globals.length || project.shots.length === 0) out.push({ shot: null, layers: globals })
+    for (const s of project.shots) out.push({ shot: s, layers: project.layers.filter((l) => l.shotId === s.id) })
+    return out
+  }, [project.layers, project.shots, shotById])
+
+  const toggleGroup = (id: string): void =>
+    setCollapsed((s) => {
+      const n = new Set(s)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
 
   return (
     <section className="panel timeline">
@@ -293,9 +337,95 @@ export function Timeline() {
               />
             ))}
 
+          {segments.length > 0 && (
+            <Row
+              name={
+                <div className="tl-name">
+                  <span style={{ width: 20 }} />
+                  <span className="ico" style={{ background: '#a78bfa' }}>
+                    <IconFilm width={11} height={11} />
+                  </span>
+                  <span className="label">Camera đang quay</span>
+                </div>
+              }
+              track={
+                <div className="tl-shot-strip">
+                  {segments.map((seg, i) => {
+                    const s = seg.id ? shotById.get(seg.id) : undefined
+                    return (
+                      <div
+                        key={i}
+                        className={`tl-shot-seg${s ? '' : ' dark'}`}
+                        style={{ left: x(seg.t0), width: Math.max(2, x(seg.t1) - x(seg.t0)), ...(s ? { ['--c' as string]: s.color } : {}) }}
+                        title={`${s ? s.name : 'Không cảnh nào'} · ${seg.t0.toFixed(2)}s → ${seg.t1.toFixed(2)}s`}
+                        onPointerDown={(e) => {
+                          e.stopPropagation()
+                          setTime(snapToFrame(seg.t0, comp.fps))
+                          if (s) selectShot(s.id)
+                        }}
+                      >
+                        {s ? s.name : '—'}
+                      </div>
+                    )
+                  })}
+                </div>
+              }
+            />
+          )}
+
           {project.audio && <AudioRow x={x} trackW={trackW} />}
 
-          {project.layers.map((layer) => {
+          {groups.map((g) => {
+            const shot = g.shot
+            const gid = shot?.id ?? '__global'
+            const isCollapsed = collapsed.has(gid)
+            const shotOpen = shot ? expanded.has('shotkeys:' + shot.id) : false
+            const shotAnims = shot ? SHOT_PROPS.map((p) => shot[p.prop] as Animatable<AnimValue>) : []
+            return (
+              <div key={gid} className="tl-group" style={shot ? ({ ['--c' as string]: shot.color } as React.CSSProperties) : undefined}>
+                {project.shots.length > 0 && (
+                  <Row
+                    className="group"
+                    selected={!!shot && shot.id === selectedShotId}
+                    onClick={() => selectShot(shot ? shot.id : null)}
+                    name={
+                      <div className="tl-name group" id={`tl-group-${gid}`}>
+                        <button className="mini" onClick={(e) => (e.stopPropagation(), toggleGroup(gid))}>
+                          <IconCaret className={`caret${isCollapsed ? '' : ' open'}`} />
+                        </button>
+                        <span className="ico" style={{ background: shot?.color ?? '#64748b' }}>
+                          <IconFilm width={11} height={11} />
+                        </span>
+                        <span className="label">{shot ? shot.name : 'Layer chung'}</span>
+                        {shot && (
+                          <button
+                            className={`mini${shotOpen ? ' active' : ''}`}
+                            title="Keyframe vị trí / xoay của cảnh"
+                            onClick={(e) => (e.stopPropagation(), toggle('shotkeys:' + shot.id))}
+                          >
+                            ◆
+                          </button>
+                        )}
+                        <span className="depth" title="Số layer">
+                          {g.layers.length}
+                        </span>
+                      </div>
+                    }
+                    track={shot ? summaryKeys(shotAnims) : null}
+                  />
+                )}
+                {shot &&
+                  shotOpen &&
+                  SHOT_PROPS.map((p) => (
+                    <Row
+                      key={p.prop}
+                      sub
+                      name={<div className="tl-name sub">{p.label}</div>}
+                      track={renderKeys(shot[p.prop] as Animatable<AnimValue>, { kind: 'shot', shotId: shot.id, prop: p.prop })}
+                    />
+                  ))}
+                {!isCollapsed &&
+                  g.layers.map((layer) => {
             const open = expanded.has(layer.id)
             const sel = layer.id === selectedLayerId
             const anims = LAYER_PROPS.map((p) => layer.transform[p.prop] as Animatable<AnimValue>)
@@ -429,6 +559,9 @@ export function Timeline() {
               </div>
             )
           })}
+              </div>
+            )
+          })}
           {project.layers.length === 0 && (
             <div className="empty">Chưa có layer. Thêm ảnh, text, solid hoặc particles từ thanh công cụ.</div>
           )}
@@ -448,16 +581,18 @@ function Row({
   track,
   sub,
   selected,
-  onClick
+  onClick,
+  className
 }: {
   name: React.ReactNode
   track: React.ReactNode
   sub?: boolean
   selected?: boolean
   onClick?: () => void
+  className?: string
 }) {
   return (
-    <div className={`tl-row${sub ? ' sub' : ''}${selected ? ' selected' : ''}`} onPointerDown={onClick}>
+    <div className={`tl-row${sub ? ' sub' : ''}${selected ? ' selected' : ''}${className ? ' ' + className : ''}`} onPointerDown={onClick}>
       <div style={{ width: NAME_W, flex: 'none', height: '100%', display: 'flex', alignItems: 'center', borderRight: '1px solid var(--line-soft)' }}>
         {name}
       </div>
