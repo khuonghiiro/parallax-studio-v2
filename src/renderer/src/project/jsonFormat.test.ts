@@ -50,9 +50,10 @@ describe('JSON Project Format & Declarative Scene Spec', () => {
     const project = await buildDemoProject()
     const mistLayer = project.layers.find((l) => l.name === 'Drifting River Mist')
     expect(mistLayer).toBeDefined()
-    expect(mistLayer?.motion?.type).toBe('drift')
-    expect(mistLayer?.motion?.speed).toBe(48)
-    expect(mistLayer?.motion?.loopWidth).toBe(3200)
+    expect(mistLayer?.type).toBe('image')
+    expect(mistLayer?.blendMode).toBe('screen')
+    expect(mistLayer?.motion?.type).toBe('sway')
+    expect(mistLayer?.motion?.speed).toBe(0.22)
 
     const framingLayer = project.layers.find((l) => l.name === 'Foreground Framing')
     expect(framingLayer).toBeDefined()

@@ -162,10 +162,10 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
           <IconGround width={15} /> Mặt đất 3D / Sàn (Ground Plane)
         </button>
         <button id="add-mist" className="menu-item" onClick={addMistLayer}>
-          <IconSparkles width={15} /> Sương mù trôi lặp lại (Looping Mist)
+          <IconSparkles width={15} /> Sương mù thực (Ảnh PNG/WebP)
         </button>
         <button id="add-rain" className="menu-item" onClick={addRainLayer}>
-          <IconSparkles width={15} /> Mưa rào gió lốc (Rain)
+          <IconSparkles width={15} /> Mưa rào thực (Ảnh PNG/WebP)
         </button>
         <button id="add-particles" className="menu-item" onClick={addParticleLayer}>
           <IconSparkles width={15} /> Particles (bụi, đom đóm, tuyết)

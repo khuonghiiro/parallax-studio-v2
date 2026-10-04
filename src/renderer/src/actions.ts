@@ -14,9 +14,8 @@ import {
   duplicateLayer,
   shotSpacing
 } from './project/factory'
-import { deserializeProject, serializeProject } from './project/serialize'
-import { exportProjectToJson, importProjectFromJson } from './project/jsonFormat'
-import { drawDriftingMistPlate } from './project/plateGenerators'
+import { exportProjectToJson, importProjectFromJson, parseDataUrl } from './project/jsonFormat'
+import { EFFECT_ASSETS } from './project/effectAssets'
 import { PARTICLE_PRESETS } from './animation/presets'
 import { getDraftAnimatable, useEditor } from './store/editor'
 
@@ -276,18 +275,18 @@ export function addParticleLayer(): void {
 }
 
 export async function addMistLayer(): Promise<void> {
-  const canvas = drawDriftingMistPlate()
-  const asset = await assetStore.addCanvas('Sương mù trôi.png', canvas)
+  const { mime, data } = parseDataUrl(EFFECT_ASSETS.mist)
+  const asset = await assetStore.add('Sương mù thực (Mist).webp', mime, data, 'image')
   const comp = editor().project.comp
   const layer = createImageLayer(asset.meta, comp, 600)
-  layer.name = 'Sương mù trôi (Drifting Mist)'
+  layer.name = 'Sương mù thực (Realistic Mist)'
   layer.blendMode = 'screen'
-  layer.transform.opacity.value = 0.55
+  layer.transform.opacity.value = 0.65
+  layer.transform.scale.value = [2.2, 1.35, 1]
   layer.motion = {
-    type: 'drift',
-    speed: 45,
-    loopWidth: 3200,
-    amplitude: [1600, 14, 0]
+    type: 'sway',
+    speed: 0.22,
+    amplitude: [160, 14, 0.3]
   }
   layer.shotId = activeShotId()
   editor().update((d) => {
@@ -295,24 +294,30 @@ export async function addMistLayer(): Promise<void> {
     insertLayerTop(d as Project, layer)
   })
   editor().selectLayer(layer.id)
-  toast('Đã thêm layer Sương mù trôi lặp lại')
+  toast('Đã thêm layer Ảnh Sương mù thực (PNG/WebP)')
 }
 
-export function addRainLayer(): void {
+export async function addRainLayer(): Promise<void> {
+  const { mime, data } = parseDataUrl(EFFECT_ASSETS.rain)
+  const asset = await assetStore.add('Mưa rào thực (Rain).webp', mime, data, 'image')
   const comp = editor().project.comp
-  const layer = createParticleLayer(comp)
-  layer.name = 'Mưa rào gió lốc (Rain)'
-  layer.shotId = activeShotId()
-  const p = PARTICLE_PRESETS.rain.props
-  layer.props = {
-    ...layer.props,
-    ...p
+  const layer = createImageLayer(asset.meta, comp, 100)
+  layer.name = 'Mưa rào thực (Realistic Rain Sheet)'
+  layer.blendMode = 'screen'
+  layer.transform.opacity.value = 0.75
+  layer.transform.scale.value = [2.0, 1.3, 1]
+  layer.motion = {
+    type: 'wind',
+    speed: 1.2,
+    amplitude: [8, 12, 0.5]
   }
+  layer.shotId = activeShotId()
   editor().update((d) => {
+    d.assets.push(asset.meta)
     insertLayerTop(d as Project, layer)
   })
   editor().selectLayer(layer.id)
-  toast('Đã thêm hiệu ứng Mưa rơi')
+  toast('Đã thêm layer Ảnh Mưa rơi thực (PNG/WebP)')
 }
 
 export function deleteSelectedLayer(): void {

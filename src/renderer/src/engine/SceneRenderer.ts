@@ -111,7 +111,7 @@ function applyBlend(mat: THREE.ShaderMaterial, mode: BlendMode): void {
     case 'screen':
       mat.blending = THREE.CustomBlending
       mat.blendEquation = THREE.AddEquation
-      mat.blendSrc = THREE.SrcAlphaFactor
+      mat.blendSrc = THREE.OneFactor
       mat.blendDst = THREE.OneMinusSrcColorFactor
       break
     case 'multiply':
@@ -123,10 +123,10 @@ function applyBlend(mat: THREE.ShaderMaterial, mode: BlendMode): void {
   }
 }
 
-const MULTIPLY_FRAG = LAYER_FRAG.replace(
+const LAYER_COMPOSE_FRAG = LAYER_FRAG.replace(
   'gl_FragColor = vec4(rgb, c.a * opacity);',
-  'float aa = c.a * opacity; gl_FragColor = multiplyOut > 0.5 ? vec4(mix(vec3(1.0), rgb, aa), 1.0) : vec4(rgb, aa);'
-).replace('uniform float opacity;', 'uniform float opacity;\nuniform float multiplyOut;')
+  'float aa = c.a * opacity; gl_FragColor = multiplyOut > 0.5 ? vec4(mix(vec3(1.0), rgb, aa), 1.0) : screenOut > 0.5 ? vec4(rgb * aa, aa) : vec4(rgb, aa);'
+).replace('uniform float opacity;', 'uniform float opacity;\nuniform float multiplyOut;\nuniform float screenOut;')
 
 const TYPE_COLORS: Record<Layer['type'], string> = {
   image: '#8b7bff',
@@ -301,7 +301,7 @@ export class SceneRenderer {
   private makeLayerMaterial(): THREE.ShaderMaterial {
     return new THREE.ShaderMaterial({
       vertexShader: LAYER_VERT,
-      fragmentShader: MULTIPLY_FRAG,
+      fragmentShader: LAYER_COMPOSE_FRAG,
       transparent: true,
       depthWrite: true,
       depthTest: true,
@@ -314,6 +314,7 @@ export class SceneRenderer {
         planeSize: { value: new THREE.Vector2(1, 1) },
         opacity: { value: 1 },
         multiplyOut: { value: 0 },
+        screenOut: { value: 0 },
         ...sharedUniforms()
       }
     })
@@ -681,6 +682,7 @@ export class SceneRenderer {
         }
         applyBlend(mat, el.layer.blendMode)
         u.multiplyOut.value = el.layer.blendMode === 'multiply' ? 1 : 0
+        u.screenOut.value = el.layer.blendMode === 'screen' ? 1 : 0
       } else {
         u.time.value = ev.t
         u.pxScale.value = pxScale

@@ -15,6 +15,7 @@ import {
   shotSpacing
 } from './factory'
 import { PLATE_GENERATORS } from './plateGenerators'
+import { EFFECT_ASSETS } from './effectAssets'
 
 // ============================================================================
 // BASE64 UTILITIES
@@ -62,8 +63,9 @@ export interface DeclarativeKeyframe<T = unknown> {
 export interface DeclarativeLayerSpec {
   name: string
   type?: 'image' | 'text' | 'solid' | 'ground' | 'particles' | 'generator'
+  effect?: 'mist' | 'fog' | 'rain' | 'twilight_mist' | 'twilightMist'
   generator?: string
-  src?: string // data:image/... or url
+  src?: string // data:image/... or url or effect:mist
   assetName?: string
   z?: number
   position?: Vec3
@@ -495,6 +497,33 @@ async function buildSingleLayer(
   project: Project
 ): Promise<Layer> {
   const z = lSpec.z ?? (lSpec.position ? lSpec.position[2] : 0)
+
+  // 0. Realistic effect image layer (mist, rain, twilight mist)
+  const effectKey = lSpec.effect ?? (lSpec.src?.startsWith('effect:') ? lSpec.src.slice(7) : undefined)
+  if (effectKey) {
+    const assetUrl =
+      effectKey === 'mist' || effectKey === 'fog'
+        ? EFFECT_ASSETS.mist
+        : effectKey === 'rain'
+          ? EFFECT_ASSETS.rain
+          : effectKey === 'twilight_mist' || effectKey === 'twilightMist'
+            ? EFFECT_ASSETS.twilightMist
+            : undefined
+
+    if (assetUrl) {
+      const { mime, data } = parseDataUrl(assetUrl)
+      const asset = await assetStore.add(`${lSpec.name}.webp`, mime, data, 'image')
+      project.assets.push(asset.meta)
+      const layer = createImageLayer(asset.meta, comp, z)
+      layer.blendMode = lSpec.blendMode ?? 'screen'
+      if (lSpec.opacity === undefined) layer.transform.opacity.value = effectKey === 'rain' ? 0.75 : 0.6
+      if (!lSpec.scale) {
+        layer.transform.scale.value = effectKey === 'rain' ? [2.0, 1.3, 1] : [2.2, 1.35, 1]
+      }
+      applyCommonLayerProps(layer, lSpec, comp)
+      return layer
+    }
+  }
 
   // 1. Procedural generator plate (or image with generator)
   if (lSpec.generator || lSpec.type === 'generator') {

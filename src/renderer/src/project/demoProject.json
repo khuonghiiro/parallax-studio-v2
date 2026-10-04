@@ -38,17 +38,6 @@
         "color": "#ffffff",
         "subtitleColor": "#ffe57f"
       },
-      "particles": {
-        "name": "Sun Dust",
-        "preset": "dust",
-        "seed": 108,
-        "count": 280,
-        "size": 6,
-        "color": "#fff9c4",
-        "velocity": [16, 10, 0],
-        "sway": 36,
-        "position": [0, -150, 500]
-      },
       "layers": [
         { "name": "Sunny Sky", "z": 3200, "generator": "sunny_sky" },
         { "name": "Distant Mountains", "z": 2200, "generator": "distant_mountains" },
@@ -56,15 +45,15 @@
         { "name": "River & Meadow Floor", "z": 800, "generator": "river_and_meadow_floor" },
         {
           "name": "Drifting River Mist",
+          "effect": "mist",
           "z": 620,
-          "generator": "drifting_low_mist",
           "blendMode": "screen",
-          "opacity": 0.48,
+          "opacity": 0.65,
+          "scale": [2.2, 1.35, 1],
           "motion": {
-            "type": "drift",
-            "speed": 48,
-            "loopWidth": 3200,
-            "amplitude": [1600, 12, 0]
+            "type": "sway",
+            "speed": 0.22,
+            "amplitude": [160, 14, 0.3]
           }
         },
         {
@@ -102,17 +91,6 @@
         "color": "#ffffff",
         "subtitleColor": "#bbf7d0"
       },
-      "particles": {
-        "name": "Pollen",
-        "preset": "dust",
-        "seed": 909,
-        "count": 240,
-        "size": 5,
-        "color": "#dcedc8",
-        "velocity": [28, 8, 0],
-        "sway": 26,
-        "position": [0, -150, 500]
-      },
       "layers": [
         { "name": "Pastel Sky", "z": 3200, "generator": "pastel_sky" },
         { "name": "Purple Mountain Peaks", "z": 2200, "generator": "purple_mountain_peaks" },
@@ -120,15 +98,15 @@
         { "name": "Center Island Pond", "z": 800, "generator": "center_island_pond" },
         {
           "name": "Water Surface Mist",
+          "effect": "mist",
           "z": 620,
-          "generator": "drifting_low_mist",
           "blendMode": "screen",
-          "opacity": 0.42,
+          "opacity": 0.55,
           "motion": {
             "type": "drift",
             "speed": 36,
             "loopWidth": 3000,
-            "amplitude": [1500, 10, 0]
+            "amplitude": [1500, 8, 0]
           }
         },
         {
@@ -166,41 +144,30 @@
         "color": "#ffffff",
         "subtitleColor": "#c7d2fe"
       },
-      "particles": {
-        "name": "Sun Motes",
-        "preset": "dust",
-        "seed": 44,
-        "count": 260,
-        "size": 6,
-        "color": "#fef08a",
-        "velocity": [12, 14, 0],
-        "sway": 30,
-        "position": [0, -150, 500]
-      },
       "layers": [
         { "name": "Sunny Sky", "z": 3200, "generator": "sunny_sky" },
         { "name": "Distant Mountains", "z": 2200, "generator": "distant_mountains" },
         {
-          "name": "Mountain Fog Ridge",
+          "name": "Mountain Mist Ridge",
+          "effect": "mist",
           "z": 1800,
-          "generator": "drifting_mountain_clouds",
           "blendMode": "screen",
           "opacity": 0.45,
           "motion": {
             "type": "drift",
             "speed": 28,
             "loopWidth": 3400,
-            "amplitude": [1700, 12, 0]
+            "amplitude": [1700, 10, 0]
           }
         },
         { "name": "Sloping Pasture & Pine", "z": 1400, "generator": "sloping_pasture_and_pine" },
         { "name": "Lagoon & Shore", "z": 800, "generator": "lagoon_and_shore" },
         {
           "name": "Shoreline Mist",
+          "effect": "mist",
           "z": 600,
-          "generator": "drifting_low_mist",
           "blendMode": "screen",
-          "opacity": 0.38,
+          "opacity": 0.5,
           "motion": {
             "type": "drift",
             "speed": 38,
@@ -234,17 +201,6 @@
         "color": "#fff8e1",
         "subtitleColor": "#ffcc80"
       },
-      "particles": {
-        "name": "Fireflies",
-        "preset": "fireflies",
-        "seed": 2024,
-        "count": 280,
-        "size": 7,
-        "color": "#ffe082",
-        "velocity": [10, 16, 0],
-        "sway": 40,
-        "position": [0, -150, 500]
-      },
       "layers": [
         { "name": "Sunset Sky", "z": 3200, "generator": "sunset_sky" },
         { "name": "Twilight Mountains", "z": 2200, "generator": "twilight_mountains" },
@@ -252,15 +208,15 @@
         { "name": "Twilight River Floor", "z": 800, "generator": "twilight_river_floor" },
         {
           "name": "Twilight Valley Mist",
+          "effect": "twilight_mist",
           "z": 620,
-          "generator": "drifting_twilight_mist",
           "blendMode": "screen",
-          "opacity": 0.46,
+          "opacity": 0.6,
+          "scale": [2.2, 1.35, 1],
           "motion": {
-            "type": "drift",
-            "speed": 42,
-            "loopWidth": 3200,
-            "amplitude": [1600, 10, 0]
+            "type": "sway",
+            "speed": 0.2,
+            "amplitude": [140, 12, 0.3]
           }
         },
         {
