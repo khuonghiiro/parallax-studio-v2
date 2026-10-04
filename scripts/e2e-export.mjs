@@ -51,8 +51,8 @@ try {
   await page.click('#view-split')
   await page.click('#view-camera')
   await page.waitForTimeout(300)
-  // Later in the tour: shot 2 (aurora) and shot 3 (dunes).
-  for (const [name, t] of [['e2e_shot2', 8], ['e2e_shot3', 12.5]]) {
+  // Later in the tour: shot 2 (Twilight Valley), shot 3 (Northern Lights), shot 4 (Golden Dunes).
+  for (const [name, t] of [['e2e_shot2', 8], ['e2e_shot3', 13], ['e2e_shot4', 17.5]]) {
     await page.evaluate(() => undefined)
     await page.keyboard.press('Home')
     for (let i = 0; i < Math.round((t * 30) / 10); i++) await page.keyboard.press('Shift+ArrowRight')
