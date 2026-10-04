@@ -41,6 +41,8 @@ export interface Transform {
   rotation: Animatable<Vec3> // degrees
   scale: Animatable<Vec3> // 1 = 100%
   opacity: Animatable<number> // 0..1
+  /** Anchor point (pivot) relative to center [-0.5..0.5]. e.g. [0, -0.5, 0] = base of tree/character. */
+  anchor?: Animatable<Vec3>
 }
 
 export interface ImageProps {
@@ -85,7 +87,7 @@ export interface ParticleProps {
   glow: boolean
 }
 
-export type LayerMotionType = 'none' | 'drift' | 'wind' | 'sway' | 'float' | 'pulse'
+export type LayerMotionType = 'none' | 'drift' | 'wind' | 'sway' | 'float' | 'pulse' | 'wiggle'
 
 export type DriftDirection =
   | 'right'
@@ -115,6 +117,8 @@ export interface LayerMotion {
   loopMode?: DriftLoopMode
 }
 
+export type AutoOrientMode = 'none' | 'camera' | 'camera-y'
+
 interface LayerBase<T extends LayerType, P> {
   id: string
   name: string
@@ -124,13 +128,21 @@ interface LayerBase<T extends LayerType, P> {
   /** Time in seconds the layer becomes visible / disappears. */
   inPoint: number
   outPoint: number
+  /** Fade in transition duration in seconds. */
+  fadeIn?: number
+  /** Fade out transition duration in seconds. */
+  fadeOut?: number
   blendMode: BlendMode
   /** Keep apparent size constant (from the default camera) when pushed in depth. */
   autoScale: boolean
+  /** Auto-orient toward camera (After Effects billboard). 'camera' = full 3D, 'camera-y' = upright tree/character. */
+  autoOrient?: AutoOrientMode
+  /** Parent layer ID (After Effects Parent & Link): transforms relative to parent layer. */
+  parentId?: string | null
   /** Owning shot, or null for a global layer (shared sky, subtitles…). */
   shotId: string | null
   transform: Transform
-  /** Procedural or looping motion (drift/sway/wind/float/pulse). */
+  /** Procedural or looping motion (drift/sway/wind/float/pulse/wiggle). */
   motion?: LayerMotion
   props: P
 }

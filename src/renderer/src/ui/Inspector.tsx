@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import type { BlendMode, DriftDirection, DriftLoopMode, EaseName, Layer, LayerMotion, LayerMotionType, ParticleProps, Shot, SolidProps, TextProps, Vec3 } from '@shared/types'
+import type { AutoOrientMode, BlendMode, DriftDirection, DriftLoopMode, EaseName, Layer, LayerMotion, LayerMotionType, ParticleProps, Shot, SolidProps, TextProps, Vec3 } from '@shared/types'
 import { EASE_LABELS } from '../animation/easing'
-import { addKeyframe, evaluate, setValueAt } from '../animation/keyframes'
+import { addKeyframe, anim, evaluate, setValueAt } from '../animation/keyframes'
 import { referenceDistance } from '../animation/math'
 import { shotAtTime } from '../animation/cameraPath'
 import { CAMERA_PRESETS, PARTICLE_PRESETS, applyCameraPreset } from '../animation/presets'
@@ -179,6 +179,7 @@ function LayerInspector({ layer }: { layer: Layer }) {
   const time = useEditor((s) => s.time)
   const tol = useEditor((s) => frameTolerance(s.project))
   const shots = useEditor((s) => s.project.shots)
+  const allLayers = useEditor((s) => s.project.layers)
   const id = layer.id
 
   const currentRot = evaluate(layer.transform.rotation, time)
@@ -238,6 +239,35 @@ function LayerInspector({ layer }: { layer: Layer }) {
             <option value="multiply">Multiply</option>
           </select>
         </Row>
+        <Row label="Layer cha (Parent)" title="Kế thừa vị trí/xoay/scale theo layer cha (After Effects Parent & Link)">
+          <select
+            id="layer-parent"
+            className="select"
+            value={layer.parentId ?? ''}
+            onChange={(e) => set((l) => void (l.parentId = e.target.value || null))}
+          >
+            <option value="">— Không có (Độc lập)</option>
+            {allLayers
+              .filter((ol) => ol.id !== id && ol.parentId !== id)
+              .map((ol) => (
+                <option key={ol.id} value={ol.id}>
+                  {ol.name}
+                </option>
+              ))}
+          </select>
+        </Row>
+        <Row label="Hướng Camera" title="Tự động xoay mặt về phía camera khi camera 3D di chuyển (After Effects Auto-Orient)">
+          <select
+            id="layer-auto-orient"
+            className="select"
+            value={layer.autoOrient ?? 'none'}
+            onChange={(e) => set((l) => void (l.autoOrient = e.target.value as AutoOrientMode))}
+          >
+            <option value="none">Tắt (Cố định góc 3D)</option>
+            <option value="camera-y">🌲 Trục đứng Y (Cây cối / Nhân vật 2.5D)</option>
+            <option value="camera">🔄 Toàn phần 3D (Khói / Hạt / Đốm sáng)</option>
+          </select>
+        </Row>
         <Row label="Giữ kích thước" title="Tự scale theo độ sâu để kích thước hiển thị không đổi (từ camera mặc định)">
           <Switch id="layer-autoscale" on={layer.autoScale} onChange={(v) => set((l) => void (l.autoScale = v))} />
         </Row>
@@ -245,11 +275,76 @@ function LayerInspector({ layer }: { layer: Layer }) {
           <NumberInput value={layer.inPoint} step={0.05} precision={2} min={0} max={duration} onChange={(v, k) => set((l) => void (l.inPoint = Math.min(v, l.outPoint)), k)} />
           <NumberInput value={layer.outPoint} step={0.05} precision={2} min={0} max={duration} onChange={(v, k) => set((l) => void (l.outPoint = Math.max(v, l.inPoint)), k)} />
         </Row>
+        <Row label="Fade In / Out (s)" title="Thời gian mờ dần khi xuất hiện và biến mất (giây)">
+          <NumberInput
+            axis="in"
+            value={layer.fadeIn ?? 0}
+            step={0.1}
+            precision={2}
+            min={0}
+            max={5}
+            onChange={(v, k) => set((l) => void (l.fadeIn = v), k)}
+          />
+          <NumberInput
+            axis="out"
+            value={layer.fadeOut ?? 0}
+            step={0.1}
+            precision={2}
+            min={0}
+            max={5}
+            onChange={(v, k) => set((l) => void (l.fadeOut = v), k)}
+          />
+        </Row>
       </div>
 
       <div className="section">
         <div className="section-title">Transform</div>
         <AnimRow label="Vị trí" refp={{ kind: 'layer', layerId: id, prop: 'position' }} kind="vec3" step={1} precision={0} />
+        <AnimRow label="Điểm neo" refp={{ kind: 'layer', layerId: id, prop: 'anchor' }} kind="vec3" step={0.05} precision={2} />
+        <Row label="Tâm neo" title="Đặt nhanh điểm neo xoay & co giãn (After Effects Anchor Point)">
+          <div style={{ display: 'flex', gap: 4, width: '100%' }}>
+            <button
+              className="btn sm ghost"
+              style={{ flex: 1, padding: '3px 4px', fontSize: '11px' }}
+              onClick={() => set((l) => { l.transform.anchor = anim<Vec3>([0, 0, 0]) })}
+              title="Tâm ở chính giữa [0, 0]"
+            >
+              Tâm
+            </button>
+            <button
+              className="btn sm ghost"
+              style={{ flex: 1, padding: '3px 4px', fontSize: '11px' }}
+              onClick={() => set((l) => { l.transform.anchor = anim<Vec3>([0, -0.5, 0]) })}
+              title="Tâm ở chân cây / nhân vật để gió đung đưa từ gốc"
+            >
+              Chân (Đáy)
+            </button>
+            <button
+              className="btn sm ghost"
+              style={{ flex: 1, padding: '3px 4px', fontSize: '11px' }}
+              onClick={() => set((l) => { l.transform.anchor = anim<Vec3>([0, 0.5, 0]) })}
+              title="Tâm ở đỉnh trên"
+            >
+              Đỉnh
+            </button>
+            <button
+              className="btn sm ghost"
+              style={{ flex: 1, padding: '3px 4px', fontSize: '11px' }}
+              onClick={() => set((l) => { l.transform.anchor = anim<Vec3>([-0.5, 0, 0]) })}
+              title="Tâm ở mép trái"
+            >
+              Trái
+            </button>
+            <button
+              className="btn sm ghost"
+              style={{ flex: 1, padding: '3px 4px', fontSize: '11px' }}
+              onClick={() => set((l) => { l.transform.anchor = anim<Vec3>([0.5, 0, 0]) })}
+              title="Tâm ở mép phải"
+            >
+              Phải
+            </button>
+          </div>
+        </Row>
         <AnimRow label="Xoay (°)" refp={{ kind: 'layer', layerId: id, prop: 'rotation' }} kind="vec3" step={0.25} precision={1} />
         <Row label="Dáng 3D" title="Đặt nhanh dáng layer: Đứng thẳng (2.5D), Mặt đất/Sàn ngang (-90°), Nghiêng dốc (-75°), hoặc Trần nhà (90°)">
           <div style={{ display: 'flex', gap: 4, width: '100%' }}>
@@ -515,6 +610,12 @@ function MotionSection({ layer, set }: { layer: Layer; set: Setter }) {
                 speed: motion.speed ?? 0.4,
                 amplitude: motion.amplitude ?? [4, 15, 0]
               })
+            } else if (t === 'wiggle') {
+              setMotion({
+                type: 'wiggle',
+                speed: motion.speed ?? 1.5,
+                amplitude: motion.amplitude ?? [15, 15, 0]
+              })
             } else if (t === 'pulse') {
               setMotion({
                 type: 'pulse',
@@ -529,6 +630,7 @@ function MotionSection({ layer, set }: { layer: Layer; set: Setter }) {
           <option value="wind">Gió lay động (Cây cối / Lá / Cành)</option>
           <option value="sway">Lắc lư nhẹ (Nhịp điệu)</option>
           <option value="float">Nổi bồng bềnh (Nước / Đảo bay)</option>
+          <option value="wiggle">Rung rinh hữu cơ (After Effects Wiggle)</option>
           <option value="pulse">Nhịp thở nhẹ (Co giãn)</option>
         </select>
       </Row>

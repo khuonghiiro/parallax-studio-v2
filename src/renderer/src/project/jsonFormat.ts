@@ -1,5 +1,5 @@
-import type { AssetMeta, Composition, Layer, LayerMotion, LookSettings, Project, Shot, Vec3, EaseName } from '@shared/types'
-import { addKeyframe } from '../animation/keyframes'
+import type { AssetMeta, AutoOrientMode, Composition, Layer, LayerMotion, LookSettings, Project, Shot, Vec3, EaseName } from '@shared/types'
+import { addKeyframe, anim } from '../animation/keyframes'
 import { referenceDistance } from '../animation/math'
 import { buildCameraPath, type PathStep, type TransitionType } from '../animation/cameraPath'
 import { PARTICLE_PRESETS, type ParticlePreset } from '../animation/presets'
@@ -72,6 +72,12 @@ export interface DeclarativeLayerSpec {
   rotation?: Vec3
   scale?: Vec3
   opacity?: number
+  anchor?: Vec3
+  autoOrient?: AutoOrientMode
+  parentId?: string | null
+  parentName?: string
+  fadeIn?: number
+  fadeOut?: number
   visible?: boolean
   locked?: boolean
   blendMode?: Layer['blendMode']
@@ -103,7 +109,7 @@ export interface DeclarativeLayerSpec {
     area?: Vec3
   }
 
-  // Procedural / Looping motion (drift, wind sway, float, pulse)
+  // Procedural / Looping motion (drift, wind sway, float, pulse, wiggle)
   motion?: LayerMotion
 
   // Keyframes
@@ -112,6 +118,7 @@ export interface DeclarativeLayerSpec {
     position?: DeclarativeKeyframe<Vec3>[]
     rotation?: DeclarativeKeyframe<Vec3>[]
     scale?: DeclarativeKeyframe<Vec3>[]
+    anchor?: DeclarativeKeyframe<Vec3>[]
   }
 }
 
@@ -418,6 +425,17 @@ async function buildLayersForShot(
       layer.shotId = shot.id
       shotLayers.unshift(layer)
     }
+
+    // Resolve parentName references within shot or project
+    for (const lSpec of sSpec.layers) {
+      if (lSpec.parentName) {
+        const child = shotLayers.find((l) => l.name === lSpec.name)
+        const parent = shotLayers.find((l) => l.name === lSpec.parentName) || project.layers.find((l) => l.name === lSpec.parentName)
+        if (child && parent) {
+          child.parentId = parent.id
+        }
+      }
+    }
   }
 
   // 2. Process optional shot title
@@ -645,6 +663,12 @@ function applyCommonLayerProps(layer: Layer, spec: DeclarativeLayerSpec, comp: C
   if (spec.scale) layer.transform.scale.value = spec.scale
   else if (layer.type === 'image') layer.transform.scale.value = [comp.width / 1920, comp.width / 1920, 1]
 
+  if (spec.anchor) layer.transform.anchor = anim<Vec3>(spec.anchor)
+  if (spec.autoOrient) layer.autoOrient = spec.autoOrient
+  if (spec.parentId !== undefined) layer.parentId = spec.parentId
+  if (spec.fadeIn !== undefined) layer.fadeIn = spec.fadeIn
+  if (spec.fadeOut !== undefined) layer.fadeOut = spec.fadeOut
+
   if (spec.opacity !== undefined) layer.transform.opacity.value = spec.opacity
   if (spec.visible !== undefined) layer.visible = spec.visible
   if (spec.locked !== undefined) layer.locked = spec.locked
@@ -677,6 +701,11 @@ function applyCommonLayerProps(layer: Layer, spec: DeclarativeLayerSpec, comp: C
     if (spec.keyframes.scale) {
       for (const kf of spec.keyframes.scale) {
         addKeyframe(layer.transform.scale, kf.t, kf.value, kf.ease ?? 'easeOut')
+      }
+    }
+    if (spec.keyframes.anchor) {
+      for (const kf of spec.keyframes.anchor) {
+        addKeyframe(layer.transform.anchor, kf.t, kf.value, kf.ease ?? 'easeOut')
       }
     }
   }

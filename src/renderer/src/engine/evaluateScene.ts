@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import type { Layer, Project, Shot, Vec3 } from '@shared/types'
 import { evaluate } from '../animation/keyframes'
 import { autoScaleFactor, referenceDistance, smoothNoise } from '../animation/math'
-import { composeDepthMatrix, layerNominalSize, threeToDepth, transformedBox } from './spatial'
+import { composeDepthMatrix, depthToThree, layerNominalSize, threeToDepth, transformedBox } from './spatial'
 
 export interface EvaluatedCamera {
   position: Vec3
@@ -139,6 +139,14 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
   const shotById = new Map(shots.map((s) => [s.shot.id, s]))
 
   const local = new THREE.Matrix4()
+  const camPos = depthToThree(camera.position)
+  const worldById = new Map<string, THREE.Matrix4>()
+  const _tempPos = new THREE.Vector3()
+  const _tempQuat = new THREE.Quaternion()
+  const _tempScale = new THREE.Vector3()
+  const _tempRot = new THREE.Matrix4()
+  const _upY = new THREE.Vector3(0, 1, 0)
+
   const layers = project.layers.map((layer, index): EvaluatedLayer => {
     const tr = layer.transform
     const pos = [...evaluate(tr.position, t)] as Vec3
@@ -204,6 +212,15 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
         const angle = t * sp * Math.PI * 2 + ph
         pos[0] += Math.cos(angle * 0.5) * amp[0]
         pos[1] += Math.sin(angle) * amp[1]
+      } else if (m.type === 'wiggle') {
+        const freq = sp || 1
+        const amp0 = amp[0] ?? 20
+        const amp1 = amp[1] ?? 20
+        const amp2 = amp[2] ?? 0
+        const s = t * freq * Math.PI * 2 + ph
+        pos[0] += smoothNoise(s, 2.1) * amp0
+        pos[1] += smoothNoise(s, 5.7) * amp1
+        if (amp2) rot[2] += smoothNoise(s, 8.3) * amp2
       } else if (m.type === 'pulse') {
         const p = Math.sin(t * sp * Math.PI * 2 + ph)
         sc[0] *= 1 + p * (amp[0] || 0.05)
@@ -214,15 +231,43 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
     const k = layer.autoScale ? autoScaleFactor(pos[2], comp) : 1
     const scale: Vec3 = [sc[0] * k, sc[1] * k, sc[2]]
     const shot = layer.shotId ? (shotById.get(layer.shotId) ?? null) : null
-
-    composeDepthMatrix(pos, rot, scale, local)
-    const world = shot ? new THREE.Matrix4().multiplyMatrices(shot.matrix, local) : local.clone()
     const size = layerNominalSize(layer)
+    const anchor = tr.anchor ? evaluate(tr.anchor, t) : [0, 0, 0]
+
+    composeDepthMatrix(pos, rot, scale, local, anchor, size)
+
+    let world: THREE.Matrix4
+    if (layer.parentId && worldById.has(layer.parentId)) {
+      world = new THREE.Matrix4().multiplyMatrices(worldById.get(layer.parentId)!, local)
+    } else {
+      world = shot ? new THREE.Matrix4().multiplyMatrices(shot.matrix, local) : local.clone()
+    }
+
+    if (layer.autoOrient && layer.autoOrient !== 'none') {
+      const layerPos = _tempPos.setFromMatrixPosition(world)
+      const lookTarget = layer.autoOrient === 'camera-y'
+        ? new THREE.Vector3(camPos.x, layerPos.y, camPos.z)
+        : camPos
+      _tempRot.lookAt(layerPos, lookTarget, _upY)
+      world.decompose(_tempPos, _tempQuat, _tempScale)
+      _tempQuat.setFromRotationMatrix(_tempRot)
+      world.compose(_tempPos, _tempQuat, _tempScale)
+    }
+    worldById.set(layer.id, world)
+
     const depth = layer.type === 'particles' ? layer.props.area[2] : 1
     const bounds = transformedBox(size[0], size[1], depth, world)
     if (shot) {
       shot.bounds.union(bounds)
       shot.layerCount++
+    }
+
+    let opacity = Math.max(0, Math.min(1, evaluate(tr.opacity, t)))
+    if (layer.fadeIn && layer.fadeIn > 0 && t >= layer.inPoint && t < layer.inPoint + layer.fadeIn) {
+      opacity *= (t - layer.inPoint) / layer.fadeIn
+    }
+    if (layer.fadeOut && layer.fadeOut > 0 && t > layer.outPoint - layer.fadeOut && t <= layer.outPoint) {
+      opacity *= Math.max(0, (layer.outPoint - t) / layer.fadeOut)
     }
 
     return {
@@ -232,7 +277,7 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
       position: pos,
       rotation: rot,
       scale,
-      opacity: Math.max(0, Math.min(1, evaluate(tr.opacity, t))),
+      opacity,
       shot,
       world,
       worldPosition: threeToDepth(new THREE.Vector3().setFromMatrixPosition(world)),

@@ -25,10 +25,26 @@ const _q = new THREE.Quaternion()
 const _e = new THREE.Euler()
 const _p = new THREE.Vector3()
 const _s = new THREE.Vector3()
+const _mPivot = new THREE.Matrix4()
 
-export function composeDepthMatrix(position: Vec3, rotation: Vec3, scale: Vec3 = [1, 1, 1], out = new THREE.Matrix4()): THREE.Matrix4 {
+export function composeDepthMatrix(
+  position: Vec3,
+  rotation: Vec3,
+  scale: Vec3 = [1, 1, 1],
+  out = new THREE.Matrix4(),
+  anchor: Vec3 = [0, 0, 0],
+  size: [number, number] = [0, 0]
+): THREE.Matrix4 {
   _q.setFromEuler(depthEuler(rotation, _e))
-  return out.compose(depthToThree(position, _p), _q, _s.set(scale[0] || 1e-4, scale[1] || 1e-4, scale[2] || 1))
+  out.compose(depthToThree(position, _p), _q, _s.set(scale[0] || 1e-4, scale[1] || 1e-4, scale[2] || 1))
+  if (anchor[0] || anchor[1] || anchor[2]) {
+    const ax = anchor[0] * (size[0] || 1)
+    const ay = anchor[1] * (size[1] || 1)
+    const az = anchor[2]
+    _mPivot.makeTranslation(-ax, -ay, az)
+    out.multiply(_mPivot)
+  }
+  return out
 }
 
 /** Nominal (unscaled) plane size of a layer in world units, used for bounds/culling/gizmos. */

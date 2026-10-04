@@ -60,5 +60,46 @@ describe('JSON Project Format & Declarative Scene Spec', () => {
     expect(framingLayer?.motion?.type).toBe('wind')
     expect(framingLayer?.motion?.speed).toBe(0.55)
   })
+
+  it('supports AE 2.5D features: anchor point, autoOrient, parentName, fadeIn/Out, and wiggle motion', async () => {
+    const spec = {
+      name: 'AE 2.5D Test',
+      shots: [
+        {
+          name: 'Shot 1',
+          layers: [
+            {
+              name: 'Parent Body',
+              type: 'solid',
+              position: [0, 0, 100] as [number, number, number],
+              motion: { type: 'wiggle', speed: 1.5, amplitude: [30, 15, 5] }
+            },
+            {
+              name: 'Child Head',
+              type: 'solid',
+              parentName: 'Parent Body',
+              anchor: [0, -0.5, 0] as [number, number, number],
+              autoOrient: 'camera-y',
+              fadeIn: 1.0,
+              fadeOut: 0.5
+            }
+          ]
+        }
+      ]
+    }
+
+    const project = await importProjectFromJson(JSON.stringify(spec))
+    const parent = project.layers.find((l) => l.name === 'Parent Body')
+    const child = project.layers.find((l) => l.name === 'Child Head')
+
+    expect(parent).toBeDefined()
+    expect(child).toBeDefined()
+    expect(parent?.motion?.type).toBe('wiggle')
+    expect(child?.parentId).toBe(parent?.id)
+    expect(child?.transform.anchor.value).toEqual([0, -0.5, 0])
+    expect(child?.autoOrient).toBe('camera-y')
+    expect(child?.fadeIn).toBe(1.0)
+    expect(child?.fadeOut).toBe(0.5)
+  })
 })
 

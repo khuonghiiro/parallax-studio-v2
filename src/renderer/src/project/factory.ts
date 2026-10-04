@@ -108,7 +108,8 @@ function transform(z = 0, scale = 1): Transform {
     position: anim<Vec3>([0, 0, z]),
     rotation: anim<Vec3>([0, 0, 0]),
     scale: anim<Vec3>([scale, scale, 1]),
-    opacity: anim(1)
+    opacity: anim(1),
+    anchor: anim<Vec3>([0, 0, 0])
   }
 }
 
@@ -120,8 +121,12 @@ function base(comp: Composition, name: string, z: number, scale = 1) {
     locked: false,
     inPoint: 0,
     outPoint: comp.duration,
+    fadeIn: 0,
+    fadeOut: 0,
     blendMode: 'normal' as const,
     autoScale: true,
+    autoOrient: 'none' as const,
+    parentId: null as string | null,
     shotId: null as string | null,
     transform: transform(z, scale)
   }
