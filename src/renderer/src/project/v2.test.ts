@@ -136,3 +136,14 @@ describe('probeImageSize', () => {
     expect(probeImageSize(new Uint8Array([1, 2, 3, 4]))).toBeNull()
   })
 })
+
+describe('buildDemoProject', () => {
+  it('builds a valid demo project directly from demoProject.json', async () => {
+    const { buildDemoProject } = await import('./demo')
+    const proj = await buildDemoProject()
+    expect(proj.shots.length).toBe(4)
+    expect(proj.layers.length).toBeGreaterThan(15)
+    expect(proj.camera.position.keyframes.length).toBeGreaterThan(0)
+  })
+})
+

@@ -96,7 +96,7 @@ describe('JSON Project Format & Declarative Scene Spec', () => {
     expect(child).toBeDefined()
     expect(parent?.motion?.type).toBe('wiggle')
     expect(child?.parentId).toBe(parent?.id)
-    expect(child?.transform.anchor.value).toEqual([0, -0.5, 0])
+    expect(child?.transform.anchor?.value).toEqual([0, -0.5, 0])
     expect(child?.autoOrient).toBe('camera-y')
     expect(child?.fadeIn).toBe(1.0)
     expect(child?.fadeOut).toBe(0.5)

@@ -704,6 +704,9 @@ function applyCommonLayerProps(layer: Layer, spec: DeclarativeLayerSpec, comp: C
       }
     }
     if (spec.keyframes.anchor) {
+      if (!layer.transform.anchor) {
+        layer.transform.anchor = { value: [0, 0, 0], keyframes: [] }
+      }
       for (const kf of spec.keyframes.anchor) {
         addKeyframe(layer.transform.anchor, kf.t, kf.value, kf.ease ?? 'easeOut')
       }

@@ -348,7 +348,7 @@ export function Viewer() {
     const hit0 = r.rayAt(...ndcIn(rect, x0, y0), cam).intersectPlane(plane, new THREE.Vector3())
     if (!hit0) return
     const key = `drag-${nanoid(6)}`
-    const depthPerPx = planeMode === 'depth' ? 4 : Math.max(1, edCam.distance * 0.0015)
+    const depthPerPx = planeMode === 'depth' ? 6 : Math.max(2, edCam.distance * 0.003)
     capture(e, (pev, _dx, dy) => {
       let next: Vec3
       if (pev.altKey) {
@@ -431,20 +431,23 @@ export function Viewer() {
     const ed = L.ed
     const aspect = ed.w / ed.h
     const cam = edCam.get(aspect)
-    const pan = e.button === 1 || e.button === 2 || (e.button === 0 && e.shiftKey)
-    const orbit = e.button === 0 && e.altKey
 
-    if (!pan && !orbit && e.button === 0) {
-      if (st.playing) st.setPlaying(false)
+    // Check if clicking on any layer with left mouse button (e.button === 0)
+    // Allows holding Alt (depth drag) or Shift (axis lock) directly on layers
+    if (e.button === 0) {
       const [nx, ny] = ndcIn(ed, x, y)
       r.layoutForPick(st.project, st.time, toDevice(ed, L.dpr).h, cam)
       const id = r.pick(nx, ny, st.project, cam, false)
       if (id) {
+        if (st.playing) st.setPlaying(false)
         st.selectLayer(id)
         startLayerDrag(e, id, cam, ed, 'facing')
         return
       }
     }
+
+    const pan = e.button === 1 || e.button === 2 || (e.button === 0 && e.shiftKey)
+    const orbit = e.button === 0 && e.altKey
 
     // Empty space: orbit (perspective) or pan (orthographic views); click selects a shot.
     const doPan = pan || (!orbit && edCam.isOrtho)

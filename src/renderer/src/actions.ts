@@ -15,6 +15,7 @@ import {
   shotSpacing
 } from './project/factory'
 import { exportProjectToJson, importProjectFromJson, parseDataUrl } from './project/jsonFormat'
+import { deserializeProject, serializeProject } from './project/serialize'
 import { EFFECT_ASSETS } from './project/effectAssets'
 import { PARTICLE_PRESETS } from './animation/presets'
 import { getDraftAnimatable, useEditor } from './store/editor'
@@ -385,12 +386,17 @@ export function deleteSelectedKeyframe(): boolean {
 
 // ------------------------------------------------------------------ shots
 
-export type ShotDirection = 'right' | 'down' | 'depth'
+export type ShotDirection = 'right' | 'left' | 'up' | 'down' | 'depth' | 'front' | 'up-right' | 'down-depth'
 
 export const SHOT_DIRECTIONS: { id: ShotDirection; label: string }[] = [
-  { id: 'right', label: 'Bên phải (ngang)' },
-  { id: 'down', label: 'Bên dưới (dọc)' },
-  { id: 'depth', label: 'Phía sau (chiều sâu)' }
+  { id: 'right', label: '➡️ Bên phải (ngang +X)' },
+  { id: 'left', label: '⬅️ Bên trái (ngang -X)' },
+  { id: 'up', label: '⬆️ Bên trên (lên cao +Y)' },
+  { id: 'down', label: '⬇️ Bên dưới (hạ thấp -Y)' },
+  { id: 'depth', label: '⏹️ Phía sau (chiều sâu +Z)' },
+  { id: 'front', label: '⏺️ Phía trước (lại gần -Z)' },
+  { id: 'up-right', label: '↗️ Chéo lên trên - phải' },
+  { id: 'down-depth', label: '↘️ Xuống dưới - lùi sâu' }
 ]
 
 /** Where a new shot goes: next free slot along `dir`, aligned with the last shot on the other axes. */
@@ -400,9 +406,23 @@ export function nextShotPosition(project: Project, dir: ShotDirection): Vec3 {
   const last = project.shots[project.shots.length - 1].position.value
   const pos: Vec3 = [...last] as Vec3
   const vals = project.shots.map((s) => s.position.value)
-  if (dir === 'right') pos[0] = Math.max(...vals.map((v) => v[0])) + shotSpacing(comp)
-  else if (dir === 'down') pos[1] = Math.min(...vals.map((v) => v[1])) - Math.round(comp.height * 5.5)
-  else pos[2] = Math.max(...vals.map((v) => v[2])) + Math.round(comp.width * 4)
+  const spacingX = shotSpacing(comp)
+  const spacingY = Math.round(comp.height * 5.5)
+  const spacingZ = Math.round(comp.width * 4)
+
+  if (dir === 'right') pos[0] = Math.max(...vals.map((v) => v[0])) + spacingX
+  else if (dir === 'left') pos[0] = Math.min(...vals.map((v) => v[0])) - spacingX
+  else if (dir === 'up') pos[1] = Math.max(...vals.map((v) => v[1])) + spacingY
+  else if (dir === 'down') pos[1] = Math.min(...vals.map((v) => v[1])) - spacingY
+  else if (dir === 'depth') pos[2] = Math.max(...vals.map((v) => v[2])) + spacingZ
+  else if (dir === 'front') pos[2] = Math.min(...vals.map((v) => v[2])) - spacingZ
+  else if (dir === 'up-right') {
+    pos[0] = Math.max(...vals.map((v) => v[0])) + spacingX
+    pos[1] = Math.max(...vals.map((v) => v[1])) + spacingY
+  } else if (dir === 'down-depth') {
+    pos[1] = Math.min(...vals.map((v) => v[1])) - spacingY
+    pos[2] = Math.max(...vals.map((v) => v[2])) + spacingZ
+  }
   return pos
 }
 
@@ -464,5 +484,24 @@ export function applyCameraPath(steps: PathStep[], opts: PathOptions & { fitDura
     if (opts.fitDuration) setCompDuration(d as Project, end)
   })
   editor().setTime(opts.startAt ?? 0)
+  return end
+}
+
+/** Quick 1-click cinematic auto tour through all visible shots. */
+export function autoBuildCameraTour(): number {
+  const { project } = editor()
+  const visibleShots = project.shots.filter((s) => s.visible)
+  if (visibleShots.length === 0) {
+    toast('Chưa có cảnh nào để tạo lộ trình')
+    return 0
+  }
+  const steps: PathStep[] = visibleShots.map((s, i, arr) => ({
+    shotId: s.id,
+    hold: 2.8,
+    type: i % 2 === 0 ? 'arc' : 'fly',
+    transition: i < arr.length - 1 ? 2.2 : 0
+  }))
+  const end = applyCameraPath(steps, { pushIn: 0.1, fitDuration: true })
+  toast(`⚡ Đã tự động tạo lộ trình camera ${end.toFixed(1)}s qua ${steps.length} cảnh! Bấm Space để xem`)
   return end
 }

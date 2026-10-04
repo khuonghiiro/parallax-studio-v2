@@ -13,6 +13,11 @@ import '@fontsource/playfair-display/700.css'
 import '@fontsource/bebas-neue/400.css'
 import './index.css'
 import App from './App'
+import { ErrorBoundary } from './ui/ErrorBoundary'
 
 // No StrictMode: double-mounted effects would create two WebGL renderers on one canvas context.
-ReactDOM.createRoot(document.getElementById('root')!).render(<App />)
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+)

@@ -235,7 +235,8 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
     const scale: Vec3 = [sc[0] * k, sc[1] * k, sc[2]]
     const shot = layer.shotId ? (shotById.get(layer.shotId) ?? null) : null
     const size = layerNominalSize(layer)
-    const anchor = tr.anchor ? evaluate(tr.anchor, t) : [0, 0, 0]
+    const anchorVal = tr.anchor ? evaluate(tr.anchor, t) : [0, 0, 0]
+    const anchor: Vec3 = [anchorVal[0] ?? 0, anchorVal[1] ?? 0, anchorVal[2] ?? 0]
 
     composeDepthMatrix(pos, rot, scale, local, anchor, size)
 
@@ -251,10 +252,12 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
       const lookTarget = layer.autoOrient === 'camera-y'
         ? new THREE.Vector3(camPos.x, layerPos.y, camPos.z)
         : camPos
-      _tempRot.lookAt(layerPos, lookTarget, _upY)
-      world.decompose(_tempPos, _tempQuat, _tempScale)
-      _tempQuat.setFromRotationMatrix(_tempRot)
-      world.compose(_tempPos, _tempQuat, _tempScale)
+      if (layerPos.distanceToSquared(lookTarget) > 1e-4) {
+        _tempRot.lookAt(layerPos, lookTarget, _upY)
+        world.decompose(_tempPos, _tempQuat, _tempScale)
+        _tempQuat.setFromRotationMatrix(_tempRot)
+        world.compose(_tempPos, _tempQuat, _tempScale)
+      }
     }
     worldById.set(layer.id, world)
 

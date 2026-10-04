@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { addShot, deleteShot, flyToShot, SHOT_DIRECTIONS, updateShot, type ShotDirection } from '../actions'
+import { addShot, autoBuildCameraTour, deleteShot, flyToShot, SHOT_DIRECTIONS, updateShot, type ShotDirection } from '../actions'
 import { shotAtTime } from '../animation/cameraPath'
 import { useEditor } from '../store/editor'
 import { useView } from '../store/view'
@@ -43,7 +43,7 @@ export function ShotsPanel() {
     <div className="shots">
       <div className="shots-actions">
         <div className="menu-wrap" ref={menuRef}>
-          <button id="add-shot" className="btn sm primary" onClick={() => setMenu((m) => !m)} title="Thêm cảnh mới trong không gian 3D">
+          <button id="add-shot" className="btn sm primary" onClick={() => setMenu((m: boolean) => !m)} title="Thêm cảnh mới trong không gian 3D">
             <IconPlus /> Cảnh
           </button>
           {menu && (
@@ -58,13 +58,22 @@ export function ShotsPanel() {
           )}
         </div>
         <button
-          id="open-path-builder"
+          id="auto-tour-btn"
           className="btn sm"
           disabled={shots.length === 0}
-          onClick={() => useView.getState().openDialog('path')}
-          title="Tạo đường bay camera qua các cảnh (bay thẳng / vòng cung / cắt / fade)"
+          onClick={autoBuildCameraTour}
+          title="Tự động 1-click tạo toàn bộ đường bay camera điện ảnh qua các cảnh (vòng cung 3D + đẩy Ken Burns)"
         >
-          <IconRoute /> Lộ trình camera
+          ⚡ Tự động bay
+        </button>
+        <button
+          id="open-path-builder"
+          className="btn sm icon"
+          disabled={shots.length === 0}
+          onClick={() => useView.getState().openDialog('path')}
+          title="Tùy chỉnh chi tiết đường bay camera qua các cảnh (bay thẳng / vòng cung / cắt / fade)"
+        >
+          <IconRoute />
         </button>
       </div>
 
