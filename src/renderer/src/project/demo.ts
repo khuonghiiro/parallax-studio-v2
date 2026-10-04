@@ -6,40 +6,21 @@ import { assetStore } from './assets'
 import { createImageLayer, createParticleLayer, createProject, createShot, createTextLayer, shotSpacing } from './factory'
 
 /**
- * Builds a procedural twilight landscape (transparent PNG plates drawn on canvas)
- * so the app opens with a fully animated parallax scene.
+ * Builds a 4-shot 2.5D animation landscape journey inspired directly by
+ * authentic vector animation backgrounds (e.g. Disney / Pixar / Studio Ghibli style):
  *
- * v2: three shots laid out side by side in 3D space (Twilight Valley → Northern
- * Lights → Golden Dunes) with a camera tour flying between them.
+ * 1. Emerald Riverbank (Ref Image 1: Dirt cliff strata, hanging roots, blue river with lily pads,
+ *    curving bottom earth bank with boulder, giant flared-root oak tree & broadleaf plants)
+ * 2. Highland Island Pond (Ref Image 2: Center island knoll with earthen base, rolling green hills,
+ *    curved & upright trees, huge tropical broadleaf plants with veins & faceted boulders framing corners)
+ * 3. Highland Lagoon & Boulder Ridge (Ref Image 3: Naturally contoured pond, sharp faceted boulder clusters,
+ *    sloping hillside with pine tree & deciduous trees, tiered lush bush mounds)
+ * 4. Twilight Valley (Lush sunset valley with glowing evening river, violet mountains & amber rim lights)
  */
 
-const W = 2700
-const H = 1520
-
-function valueNoise1D(seed: number): (x: number) => number {
-  const rand = mulberry32(seed)
-  const lattice = Array.from({ length: 512 }, () => rand())
-  return (x: number) => {
-    const i = Math.floor(x)
-    const f = x - i
-    const a = lattice[((i % 512) + 512) % 512]
-    const b = lattice[(((i + 1) % 512) + 512) % 512]
-    const u = (1 - Math.cos(f * Math.PI)) / 2
-    return a * (1 - u) + b * u
-  }
-}
-
-function fbm(noise: (x: number) => number, x: number, octaves = 5): number {
-  let v = 0
-  let amp = 0.5
-  let freq = 1
-  for (let i = 0; i < octaves; i++) {
-    v += noise(x * freq) * amp
-    freq *= 2.1
-    amp *= 0.5
-  }
-  return v
-}
+// 16:9 canvas calibrated so screen (1920x1080) sits dead-center with 240px X and 135px Y parallax bleed.
+const W = 2400
+const H = 1350
 
 function canvas(): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const c = document.createElement('canvas')
@@ -48,938 +29,1430 @@ function canvas(): [HTMLCanvasElement, CanvasRenderingContext2D] {
   return [c, c.getContext('2d')!]
 }
 
-interface SkyOpts {
-  stops: [number, string][]
-  stars: number
-  starSeed: number
-  /** Sun position as fractions of the plate, or null for no sun. */
-  sun: { x: number; y: number; r: number; core: string; glow: string } | null
-}
+// ============================================================================
+// VECTOR ART DRAWING PRIMITIVES (Faithful to Reference Images)
+// ============================================================================
 
-function drawSky(o: SkyOpts): HTMLCanvasElement {
-  const [c, ctx] = canvas()
-  const g = ctx.createLinearGradient(0, 0, 0, H)
-  for (const [at, col] of o.stops) g.addColorStop(at, col)
-  ctx.fillStyle = g
-  ctx.fillRect(0, 0, W, H)
+/** Fluffy cartoon cumulus cloud with white puffs and soft blue-grey undershadow. */
+function drawCartoonCloud(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, alpha = 1): void {
+  ctx.save()
+  ctx.globalAlpha = alpha
 
-  const rand = mulberry32(o.starSeed)
-  for (let i = 0; i < o.stars; i++) {
-    const x = rand() * W
-    const y = Math.pow(rand(), 1.6) * H * 0.55
-    const r = rand() * 1.6 + 0.3
-    ctx.globalAlpha = 0.25 + rand() * 0.75 * (1 - y / (H * 0.55))
-    ctx.fillStyle = '#ffffff'
-    ctx.beginPath()
-    ctx.arc(x, y, r, 0, Math.PI * 2)
-    ctx.fill()
-  }
-  ctx.globalAlpha = 1
+  // Base shadow
+  ctx.fillStyle = 'rgba(190, 215, 235, 0.7)'
+  ctx.beginPath()
+  ctx.ellipse(x, y + h * 0.22, w * 0.48, h * 0.32, 0, 0, Math.PI * 2)
+  ctx.fill()
 
-  if (o.sun) {
-    // Setting sun with soft glow.
-    const sx = W * o.sun.x
-    const sy = H * o.sun.y
-    const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, H * 0.6)
-    glow.addColorStop(0, `rgba(${o.sun.glow},0.95)`)
-    glow.addColorStop(0.08, `rgba(${o.sun.glow},0.7)`)
-    glow.addColorStop(0.3, `rgba(${o.sun.glow},0.22)`)
-    glow.addColorStop(1, `rgba(${o.sun.glow},0)`)
-    ctx.fillStyle = glow
-    ctx.fillRect(0, 0, W, H)
-    ctx.fillStyle = o.sun.core
-    ctx.beginPath()
-    ctx.arc(sx, sy, o.sun.r, 0, Math.PI * 2)
-    ctx.fill()
-  }
-  return c
-}
-
-/** Polar night sky with layered aurora curtains. */
-function drawAuroraSky(): HTMLCanvasElement {
-  const c = drawSky({
-    stops: [
-      [0, '#01040d'],
-      [0.45, '#06182a'],
-      [0.75, '#0c3442'],
-      [1, '#1b5a5e']
-    ],
-    stars: 1300,
-    starSeed: 13,
-    sun: null
-  })
-  const ctx = c.getContext('2d')!
-  ctx.globalCompositeOperation = 'lighter'
-  const bands = [
-    { y: 0.36, amp: 120, rgb: '90,255,180', seed: 3, freq: 2.2, h: 300, a: 0.16 },
-    { y: 0.3, amp: 90, rgb: '80,210,255', seed: 9, freq: 3.1, h: 240, a: 0.12 },
-    { y: 0.22, amp: 70, rgb: '190,120,255', seed: 17, freq: 1.7, h: 200, a: 0.09 }
+  // White puffs
+  ctx.fillStyle = '#ffffff'
+  const puffs = [
+    { dx: -w * 0.34, dy: h * 0.1, r: h * 0.38 },
+    { dx: -w * 0.16, dy: -h * 0.14, r: h * 0.52 },
+    { dx: w * 0.08, dy: -h * 0.22, r: h * 0.62 },
+    { dx: w * 0.28, dy: -h * 0.06, r: h * 0.48 },
+    { dx: w * 0.38, dy: h * 0.12, r: h * 0.34 },
+    { dx: -w * 0.04, dy: h * 0.12, r: h * 0.42 }
   ]
-  for (const b of bands) {
-    const curve = valueNoise1D(b.seed)
-    const height = valueNoise1D(b.seed * 7 + 1)
-    for (let x = 0; x < W; x += 3) {
-      const u = x / W
-      const yb = H * b.y + (fbm(curve, u * b.freq, 4) - 0.5) * 2 * b.amp
-      const hh = b.h * (0.45 + height(u * 14) * 0.9)
-      const g = ctx.createLinearGradient(0, yb - hh, 0, yb + 12)
-      g.addColorStop(0, `rgba(${b.rgb},0)`)
-      g.addColorStop(0.82, `rgba(${b.rgb},${b.a})`)
-      g.addColorStop(1, `rgba(${b.rgb},0)`)
-      ctx.fillStyle = g
-      ctx.fillRect(x, yb - hh, 3, hh + 12)
+  for (const p of puffs) {
+    ctx.beginPath()
+    ctx.arc(x + p.dx, y + p.dy, p.r, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.restore()
+}
+
+/** Faceted boulder with sharp highlight, mid-tone, and shadow facets (as in all 3 reference images). */
+function drawFacetedBoulder(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  rx: number,
+  ry: number,
+  seed: number,
+  colors?: { top: string; mid: string; shadow: string }
+): void {
+  const rand = mulberry32(seed)
+  const topC = colors?.top ?? '#edf3f8'
+  const midC = colors?.mid ?? '#a2b5c6'
+  const shdC = colors?.shadow ?? '#546677'
+
+  // Soft ground shadow under boulder
+  ctx.fillStyle = 'rgba(15, 35, 20, 0.35)'
+  ctx.beginPath()
+  ctx.ellipse(cx, cy + ry * 0.88, rx * 1.05, ry * 0.32, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // 7 polygon vertices
+  const pts: [number, number][] = []
+  const count = 7
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2 - Math.PI * 0.5
+    const dist = 0.85 + rand() * 0.3
+    pts.push([cx + Math.cos(angle) * rx * dist, cy + Math.sin(angle) * ry * dist])
+  }
+
+  const crestX = cx - rx * 0.12
+  const crestY = cy - ry * 0.15
+
+  // Top sunlit facet
+  ctx.fillStyle = topC
+  ctx.beginPath()
+  ctx.moveTo(pts[5][0], pts[5][1])
+  ctx.lineTo(pts[6][0], pts[6][1])
+  ctx.lineTo(pts[0][0], pts[0][1])
+  ctx.lineTo(pts[1][0], pts[1][1])
+  ctx.lineTo(crestX, crestY)
+  ctx.closePath()
+  ctx.fill()
+
+  // Mid facet
+  ctx.fillStyle = midC
+  ctx.beginPath()
+  ctx.moveTo(pts[1][0], pts[1][1])
+  ctx.lineTo(pts[2][0], pts[2][1])
+  ctx.lineTo(pts[3][0], pts[3][1])
+  ctx.lineTo(crestX, crestY)
+  ctx.closePath()
+  ctx.fill()
+
+  // Shadow facet
+  ctx.fillStyle = shdC
+  ctx.beginPath()
+  ctx.moveTo(pts[3][0], pts[3][1])
+  ctx.lineTo(pts[4][0], pts[4][1])
+  ctx.lineTo(pts[5][0], pts[5][1])
+  ctx.lineTo(crestX, crestY)
+  ctx.closePath()
+  ctx.fill()
+
+  // Facet crease lines
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)'
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.moveTo(pts[0][0], pts[0][1])
+  ctx.lineTo(crestX, crestY)
+  ctx.stroke()
+
+  ctx.strokeStyle = 'rgba(30, 45, 60, 0.35)'
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.moveTo(pts[3][0], pts[3][1])
+  ctx.lineTo(crestX, crestY)
+  ctx.lineTo(pts[5][0], pts[5][1])
+  ctx.stroke()
+}
+
+/** Scalloped cloud-like leaf canopy cluster (as seen in all 3 reference images). */
+function drawFoliageCloud(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  rx: number,
+  ry: number,
+  seed: number,
+  colors?: { shadow: string; mid: string; light: string; rim?: string }
+): void {
+  const rand = mulberry32(seed)
+  const shdC = colors?.shadow ?? '#1b5e20'
+  const midC = colors?.mid ?? '#388e3c'
+  const lgtC = colors?.light ?? '#7cb342'
+
+  const lobes: { x: number; y: number; r: number }[] = []
+  const count = 12
+  for (let i = 0; i < count; i++) {
+    const ang = (i / count) * Math.PI * 2
+    const d = 0.55 + rand() * 0.4
+    lobes.push({
+      x: cx + Math.cos(ang) * rx * d,
+      y: cy + Math.sin(ang) * ry * d,
+      r: (rx + ry) * 0.23 * (0.8 + rand() * 0.4)
+    })
+  }
+  lobes.push({ x: cx, y: cy, r: (rx + ry) * 0.3 })
+
+  // 1. Shadow base
+  ctx.fillStyle = shdC
+  for (const lb of lobes) {
+    ctx.beginPath()
+    ctx.arc(lb.x, lb.y + ry * 0.12, lb.r * 1.05, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  // 2. Mid-tone green body
+  ctx.fillStyle = midC
+  for (const lb of lobes) {
+    ctx.beginPath()
+    ctx.arc(lb.x, lb.y, lb.r, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  // 3. Sunlit highlights on top lobes
+  ctx.fillStyle = lgtC
+  for (const lb of lobes) {
+    if (lb.y <= cy + ry * 0.05) {
+      ctx.beginPath()
+      ctx.arc(lb.x - rx * 0.06, lb.y - ry * 0.1, lb.r * 0.65, 0, Math.PI * 2)
+      ctx.fill()
     }
   }
-  // Faint teal horizon glow.
-  const hz = ctx.createLinearGradient(0, H * 0.55, 0, H)
-  hz.addColorStop(0, 'rgba(60,200,180,0)')
-  hz.addColorStop(1, 'rgba(60,200,180,0.18)')
-  ctx.fillStyle = hz
-  ctx.fillRect(0, 0, W, H)
-  ctx.globalCompositeOperation = 'source-over'
-  return c
+
+  // 4. Sunlight rim highlight
+  if (colors?.rim) {
+    ctx.fillStyle = colors.rim
+    for (const lb of lobes) {
+      if (lb.y <= cy - ry * 0.15) {
+        ctx.beginPath()
+        ctx.arc(lb.x - rx * 0.08, lb.y - ry * 0.15, lb.r * 0.38, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+  }
 }
 
-interface RidgeOpts {
-  seed: number
-  base: number // 0..1 of height
-  amp: number // px
-  freq: number
-  top: string
-  bottom: string
-  /** fbm octaves: fewer = smoother silhouettes (dunes), more = jagged (rocks). */
-  octaves?: number
-  trees?: { density: number; minH: number; maxH: number; color: string; sides?: boolean }
-  mist?: string
+/** Pine / evergreen tree with tiered conical boughs (as in Ref Image 3). */
+function drawPineTree(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  baseY: number,
+  h: number,
+  w: number,
+  colors?: { shadow: string; mid: string; light: string }
+): void {
+  const shd = colors?.shadow ?? '#10391d'
+  const mid = colors?.mid ?? '#1e5f32'
+  const lgt = colors?.light ?? '#388e3c'
+
+  // Trunk
+  ctx.fillStyle = '#5c3a21'
+  ctx.fillRect(cx - w * 0.06, baseY - h * 0.35, w * 0.12, h * 0.35)
+
+  // 4 tiers of pine foliage from bottom to top
+  const tiers = [
+    { y: baseY - h * 0.25, tw: w, th: h * 0.32 },
+    { y: baseY - h * 0.48, tw: w * 0.8, th: h * 0.3 },
+    { y: baseY - h * 0.7, tw: w * 0.6, th: h * 0.28 },
+    { y: baseY - h * 0.9, tw: w * 0.38, th: h * 0.25 }
+  ]
+
+  for (const t of tiers) {
+    // Shadow tier
+    ctx.fillStyle = shd
+    ctx.beginPath()
+    ctx.moveTo(cx - t.tw * 0.5, t.y)
+    ctx.quadraticCurveTo(cx, t.y + 12, cx + t.tw * 0.5, t.y)
+    ctx.lineTo(cx, t.y - t.th)
+    ctx.closePath()
+    ctx.fill()
+
+    // Mid tier
+    ctx.fillStyle = mid
+    ctx.beginPath()
+    ctx.moveTo(cx - t.tw * 0.45, t.y - 4)
+    ctx.quadraticCurveTo(cx, t.y + 6, cx + t.tw * 0.45, t.y - 4)
+    ctx.lineTo(cx, t.y - t.th)
+    ctx.closePath()
+    ctx.fill()
+
+    // Sunlit left face
+    ctx.fillStyle = lgt
+    ctx.beginPath()
+    ctx.moveTo(cx - t.tw * 0.45, t.y - 4)
+    ctx.quadraticCurveTo(cx - t.tw * 0.1, t.y, cx, t.y - 4)
+    ctx.lineTo(cx, t.y - t.th)
+    ctx.closePath()
+    ctx.fill()
+  }
 }
 
-function drawRidge(o: RidgeOpts): HTMLCanvasElement {
-  const [c, ctx] = canvas()
-  const noise = valueNoise1D(o.seed)
-  const ridgeY = (x: number): number => H * o.base - (fbm(noise, (x / W) * o.freq, o.octaves) - 0.5) * 2 * o.amp
+/** Stylized deciduous / oak tree with curved woody trunk, flared buttress roots, and cloud canopy clusters. */
+function drawStylizedTree(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  baseY: number,
+  h: number,
+  w: number,
+  opts: {
+    seed: number
+    curveDir?: 1 | -1
+    trunkColor?: string
+    foliage?: { shadow: string; mid: string; light: string; rim?: string }
+  }
+): void {
+  const rand = mulberry32(opts.seed)
+  const dir = opts.curveDir ?? 1
+  const trunkBaseW = w * 0.18
+  const trunkCol = opts.trunkColor ?? '#8d5b34'
+
+  // Root shadow
+  ctx.fillStyle = 'rgba(15, 35, 20, 0.38)'
+  ctx.beginPath()
+  ctx.ellipse(cx, baseY + 6, trunkBaseW * 1.6, 22, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // 1. Woody trunk with flaring roots and curving branches
+  ctx.fillStyle = trunkCol
+  ctx.beginPath()
+  // Left flared root
+  ctx.moveTo(cx - trunkBaseW * 1.35, baseY)
+  ctx.quadraticCurveTo(cx - trunkBaseW * 0.4, baseY - h * 0.2, cx - trunkBaseW * 0.3 + dir * 30, baseY - h * 0.55)
+  // Left branch limb
+  ctx.quadraticCurveTo(cx - w * 0.3, baseY - h * 0.7, cx - w * 0.42, baseY - h * 0.8)
+  ctx.lineTo(cx - w * 0.34, baseY - h * 0.84)
+  ctx.quadraticCurveTo(cx - w * 0.18, baseY - h * 0.72, cx + dir * 15, baseY - h * 0.65)
+  // Right branch limb
+  ctx.quadraticCurveTo(cx + w * 0.25, baseY - h * 0.75, cx + w * 0.4, baseY - h * 0.82)
+  ctx.lineTo(cx + w * 0.46, baseY - h * 0.78)
+  ctx.quadraticCurveTo(cx + trunkBaseW * 0.35, baseY - h * 0.6, cx + trunkBaseW * 0.4 + dir * 30, baseY - h * 0.4)
+  // Right flared root
+  ctx.quadraticCurveTo(cx + trunkBaseW * 0.5, baseY - h * 0.15, cx + trunkBaseW * 1.35, baseY)
+  ctx.closePath()
+  ctx.fill()
+
+  // Bark grain curves
+  ctx.strokeStyle = '#5a351b'
+  ctx.lineWidth = Math.max(2, trunkBaseW * 0.08)
+  ctx.beginPath()
+  ctx.moveTo(cx - trunkBaseW * 0.75, baseY)
+  ctx.quadraticCurveTo(cx - trunkBaseW * 0.15, baseY - h * 0.3, cx + dir * 10, baseY - h * 0.6)
+  ctx.stroke()
+
+  ctx.strokeStyle = '#af7648'
+  ctx.lineWidth = Math.max(1.5, trunkBaseW * 0.06)
+  ctx.beginPath()
+  ctx.moveTo(cx + trunkBaseW * 0.25, baseY)
+  ctx.quadraticCurveTo(cx + trunkBaseW * 0.4, baseY - h * 0.25, cx + w * 0.2, baseY - h * 0.7)
+  ctx.stroke()
+
+  // 2. Leafy canopy clouds positioned on branch limbs
+  const canopies = [
+    { x: cx - w * 0.38, y: baseY - h * 0.85, rx: w * 0.34, ry: h * 0.22, seed: opts.seed + 1 },
+    { x: cx + w * 0.38, y: baseY - h * 0.85, rx: w * 0.34, ry: h * 0.22, seed: opts.seed + 2 },
+    { x: cx - w * 0.12, y: baseY - h * 0.98, rx: w * 0.38, ry: h * 0.24, seed: opts.seed + 3 },
+    { x: cx + w * 0.15, y: baseY - h * 1.02, rx: w * 0.36, ry: h * 0.23, seed: opts.seed + 4 },
+    { x: cx + dir * 10, y: baseY - h * 0.82, rx: w * 0.3, ry: h * 0.2, seed: opts.seed + 5 }
+  ]
+
+  for (const c of canopies) {
+    drawFoliageCloud(ctx, c.x, c.y, c.rx, c.ry, c.seed, opts.foliage)
+  }
+}
+
+/** Upright tiered deciduous tree (as in Ref Image 2 right side). */
+function drawUprightTieredTree(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  baseY: number,
+  h: number,
+  w: number,
+  opts: { seed: number; trunkColor?: string; foliage?: { shadow: string; mid: string; light: string; rim?: string } }
+): void {
+  const trunkW = w * 0.14
+  const trunkCol = opts.trunkColor ?? '#8d5b34'
+
+  // Trunk
+  ctx.fillStyle = trunkCol
+  ctx.beginPath()
+  ctx.moveTo(cx - trunkW * 1.2, baseY)
+  ctx.quadraticCurveTo(cx - trunkW * 0.5, baseY - h * 0.2, cx - trunkW * 0.35, baseY - h * 0.9)
+  ctx.lineTo(cx + trunkW * 0.35, baseY - h * 0.9)
+  ctx.quadraticCurveTo(cx + trunkW * 0.5, baseY - h * 0.2, cx + trunkW * 1.2, baseY)
+  ctx.closePath()
+  ctx.fill()
+
+  // Bark lines
+  ctx.strokeStyle = '#5a351b'
+  ctx.lineWidth = 2.5
+  ctx.beginPath()
+  ctx.moveTo(cx - trunkW * 0.2, baseY)
+  ctx.lineTo(cx - trunkW * 0.1, baseY - h * 0.8)
+  ctx.moveTo(cx + trunkW * 0.3, baseY)
+  ctx.lineTo(cx + trunkW * 0.15, baseY - h * 0.75)
+  ctx.stroke()
+
+  // 3 Tiers of cloud foliage
+  const tiers = [
+    { y: baseY - h * 0.52, rx: w * 0.44, ry: h * 0.18, seed: opts.seed + 10 },
+    { y: baseY - h * 0.76, rx: w * 0.38, ry: h * 0.17, seed: opts.seed + 20 },
+    { y: baseY - h * 0.96, rx: w * 0.3, ry: h * 0.15, seed: opts.seed + 30 }
+  ]
+  for (const t of tiers) {
+    drawFoliageCloud(ctx, cx, t.y, t.rx, t.ry, t.seed, opts.foliage)
+  }
+}
+
+/** Floating lily pad with leaf notch and yellow water-lily blossom (Ref Image 1). */
+function drawLilyPad(ctx: CanvasRenderingContext2D, cx: number, cy: number, rx: number, ry: number, hasFlower = false): void {
+  // Water shadow
+  ctx.fillStyle = 'rgba(8, 35, 60, 0.45)'
+  ctx.beginPath()
+  ctx.ellipse(cx, cy + 4, rx * 1.04, ry * 1.04, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Pad body
+  ctx.fillStyle = '#43a047'
+  ctx.beginPath()
+  ctx.ellipse(cx, cy, rx, ry, 0, 0.3, Math.PI * 2 - 0.3)
+  ctx.lineTo(cx, cy)
+  ctx.closePath()
+  ctx.fill()
+
+  // Pad bright rim
+  ctx.strokeStyle = '#81c784'
+  ctx.lineWidth = 1.8
+  ctx.beginPath()
+  ctx.ellipse(cx, cy, rx, ry, 0, 0.3, Math.PI * 2 - 0.3)
+  ctx.stroke()
+
+  // Center radial ribs
+  ctx.strokeStyle = '#2e7d32'
+  ctx.lineWidth = 1.2
+  ctx.beginPath()
+  for (let a = 0.5; a < Math.PI * 2 - 0.5; a += 0.8) {
+    ctx.moveTo(cx, cy)
+    ctx.lineTo(cx + Math.cos(a) * rx * 0.75, cy + Math.sin(a) * ry * 0.75)
+  }
+  ctx.stroke()
+
+  if (hasFlower) {
+    ctx.fillStyle = '#ffeb3b'
+    ctx.beginPath()
+    ctx.arc(cx + rx * 0.1, cy - ry * 0.2, ry * 0.45, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = '#ff9800'
+    ctx.beginPath()
+    ctx.arc(cx + rx * 0.1, cy - ry * 0.2, ry * 0.2, 0, Math.PI * 2)
+    ctx.fill()
+  }
+}
+
+/** Large tropical broadleaf plant with central & side veins (as in Ref Image 2 bottom-corners). */
+function drawBroadleafPlant(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  scale: number,
+  dir: 1 | -1,
+  colors?: { base: string; half: string; vein: string }
+): void {
+  const baseC = colors?.base ?? '#144617'
+  const halfC = colors?.half ?? '#246b28'
+  const veinC = colors?.vein ?? '#76c43b'
+
+  const leaves = [
+    { ang: -0.9 * dir, len: 140 * scale, w: 60 * scale },
+    { ang: -0.5 * dir, len: 175 * scale, w: 72 * scale },
+    { ang: -0.15 * dir, len: 155 * scale, w: 66 * scale },
+    { ang: 0.25 * dir, len: 120 * scale, w: 55 * scale }
+  ]
+
+  for (const lf of leaves) {
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.rotate(lf.ang)
+
+    // Leaf blade outline
+    ctx.fillStyle = baseC
+    ctx.beginPath()
+    ctx.moveTo(0, 0)
+    ctx.quadraticCurveTo(lf.w * 0.8, -lf.len * 0.5, 0, -lf.len)
+    ctx.quadraticCurveTo(-lf.w * 0.8, -lf.len * 0.5, 0, 0)
+    ctx.closePath()
+    ctx.fill()
+
+    // Half leaf lighter green
+    ctx.fillStyle = halfC
+    ctx.beginPath()
+    ctx.moveTo(0, 0)
+    ctx.quadraticCurveTo(lf.w * 0.8, -lf.len * 0.5, 0, -lf.len)
+    ctx.lineTo(0, 0)
+    ctx.closePath()
+    ctx.fill()
+
+    // Central vein
+    ctx.strokeStyle = veinC
+    ctx.lineWidth = 3 * scale
+    ctx.beginPath()
+    ctx.moveTo(0, 0)
+    ctx.quadraticCurveTo(lf.w * 0.08, -lf.len * 0.5, 0, -lf.len)
+    ctx.stroke()
+
+    // Side veins
+    ctx.strokeStyle = 'rgba(140, 215, 100, 0.65)'
+    ctx.lineWidth = 1.6 * scale
+    for (let u = 0.2; u <= 0.82; u += 0.15) {
+      const vy = -lf.len * u
+      ctx.beginPath()
+      ctx.moveTo(0, vy)
+      ctx.lineTo(lf.w * 0.52 * (1 - u * 0.35), vy - 16 * scale)
+      ctx.moveTo(0, vy)
+      ctx.lineTo(-lf.w * 0.52 * (1 - u * 0.35), vy - 16 * scale)
+      ctx.stroke()
+    }
+
+    ctx.restore()
+  }
+}
+
+/**
+ * Organic Dirt Cliff Cross-section (Iconic from Ref Image 1):
+ * Wavy upper edge with overhanging grass fringe, rich warm brown soil strata,
+ * vertical erosion crevices, and hanging tree roots.
+ */
+function drawOrganicDirtCliff(
+  ctx: CanvasRenderingContext2D,
+  topY: number,
+  cliffH: number,
+  seed: number,
+  colors?: { soilTop: string; soilBottom: string; grass: string; grassShadow: string }
+): void {
+  const rand = mulberry32(seed)
+  const soilTop = colors?.soilTop ?? '#734623'
+  const soilBottom = colors?.soilBottom ?? '#422411'
+  const grassCol = colors?.grass ?? '#6db831'
+  const grassShd = colors?.grassShadow ?? '#487c1f'
+
+  // 1. Cliff soil body
+  const soilG = ctx.createLinearGradient(0, topY, 0, topY + cliffH)
+  soilG.addColorStop(0, soilTop)
+  soilG.addColorStop(1, soilBottom)
+  ctx.fillStyle = soilG
+  ctx.beginPath()
+  ctx.moveTo(0, topY)
+  // Wavy cliff top line
+  for (let x = 0; x <= W; x += 120) {
+    const dy = Math.sin((x / W) * Math.PI * 4 + rand() * 2) * 8
+    ctx.lineTo(x, topY + dy)
+  }
+  ctx.lineTo(W, topY + cliffH)
+  ctx.lineTo(0, topY + cliffH)
+  ctx.closePath()
+  ctx.fill()
+
+  // 2. Vertical shaded soil crevices and strata bands
+  ctx.fillStyle = 'rgba(25, 12, 5, 0.32)'
+  for (let x = 30; x < W; x += 75) {
+    const cw = 18 + rand() * 20
+    const cx = x + rand() * 20
+    ctx.beginPath()
+    ctx.moveTo(cx, topY)
+    ctx.quadraticCurveTo(cx - 6, topY + cliffH * 0.5, cx + 4, topY + cliffH)
+    ctx.lineTo(cx + cw, topY + cliffH)
+    ctx.quadraticCurveTo(cx + cw + 4, topY + cliffH * 0.5, cx + cw - 4, topY)
+    ctx.closePath()
+    ctx.fill()
+  }
+
+  // Horizontal subtle strata lines
+  ctx.strokeStyle = 'rgba(150, 95, 55, 0.35)'
+  ctx.lineWidth = 2.5
+  for (let dy = 16; dy < cliffH - 10; dy += 24) {
+    ctx.beginPath()
+    ctx.moveTo(0, topY + dy)
+    for (let x = 0; x <= W; x += 150) {
+      ctx.lineTo(x, topY + dy + Math.sin(x * 0.02) * 5)
+    }
+    ctx.stroke()
+  }
+
+  // 3. Tangled roots dangling down from the cliff
+  ctx.strokeStyle = '#c48958'
+  ctx.lineWidth = 2
+  for (let x = 80; x < W - 80; x += 140) {
+    const rx = x + rand() * 50
+    const rootLen = 25 + rand() * 35
+    ctx.beginPath()
+    ctx.moveTo(rx, topY + 10)
+    ctx.bezierCurveTo(rx - 8, topY + 22, rx + 12, topY + rootLen * 0.6, rx + 2, topY + rootLen)
+    ctx.stroke()
+  }
+
+  // 4. Overhanging grass fringe with soft cast shadow underneath
+  ctx.fillStyle = grassShd
+  ctx.beginPath()
+  for (let x = 0; x <= W; x += 36) {
+    ctx.arc(x, topY + 4, 22, 0, Math.PI)
+  }
+  ctx.fill()
+
+  ctx.fillStyle = grassCol
+  ctx.beginPath()
+  for (let x = 0; x <= W; x += 36) {
+    ctx.arc(x, topY, 20, 0, Math.PI)
+  }
+  ctx.fill()
+}
+
+/**
+ * Lower Riverbank Cutaway (From Ref Image 1 bottom):
+ * Organic curved bank at the bottom of the screen with warm brown soil and roots.
+ */
+function drawEarthyRiverbank(
+  ctx: CanvasRenderingContext2D,
+  topY: number,
+  seed: number,
+  colors?: { soilTop: string; soilBottom: string }
+): void {
+  const soilTop = colors?.soilTop ?? '#6d3f1c'
+  const soilBottom = colors?.soilBottom ?? '#3d200c'
+
+  const g = ctx.createLinearGradient(0, topY, 0, H)
+  g.addColorStop(0, soilTop)
+  g.addColorStop(1, soilBottom)
+  ctx.fillStyle = g
 
   ctx.beginPath()
   ctx.moveTo(0, H)
-  for (let x = 0; x <= W; x += 4) ctx.lineTo(x, ridgeY(x))
+  ctx.lineTo(0, topY + 60)
+  ctx.quadraticCurveTo(W * 0.28, topY - 20, W * 0.58, topY + 45)
+  ctx.quadraticCurveTo(W * 0.82, topY + 10, W, topY + 30)
   ctx.lineTo(W, H)
   ctx.closePath()
-  const g = ctx.createLinearGradient(0, H * o.base - o.amp, 0, H)
-  g.addColorStop(0, o.top)
-  g.addColorStop(1, o.bottom)
-  ctx.fillStyle = g
   ctx.fill()
 
-  if (o.trees) {
-    const rand = mulberry32(o.seed * 31 + 5)
-    const t = o.trees
-    ctx.fillStyle = t.color
-    for (let x = -20; x < W + 20; x += 6 + rand() * 40 / t.density) {
-      if (t.sides) {
-        // Frame the shot: big trees only near the left/right edges.
-        const edge = Math.min(x, W - x) / W
-        if (edge > 0.2) continue
-      }
-      const h = t.minH + rand() * (t.maxH - t.minH)
-      const baseY = ridgeY(Math.max(0, Math.min(W, x))) + h * 0.05
-      const wdt = h * (0.28 + rand() * 0.1)
-      const tiers = 4
-      for (let k = 0; k < tiers; k++) {
-        const ty = baseY - (h * k) / tiers
-        const tw = wdt * (1 - k / (tiers + 0.6))
-        ctx.beginPath()
-        ctx.moveTo(x - tw, ty)
-        ctx.lineTo(x, ty - h / tiers - h * 0.25)
-        ctx.lineTo(x + tw, ty)
-        ctx.closePath()
-        ctx.fill()
-      }
-      ctx.fillRect(x - wdt * 0.06, baseY - h * 0.05, wdt * 0.12, h * 0.15)
+  // Soft upper rim highlight along bank curve
+  ctx.strokeStyle = '#9c5e31'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(0, topY + 60)
+  ctx.quadraticCurveTo(W * 0.28, topY - 20, W * 0.58, topY + 45)
+  ctx.quadraticCurveTo(W * 0.82, topY + 10, W, topY + 30)
+  ctx.stroke()
+
+  // Root lines along bank
+  ctx.strokeStyle = 'rgba(70, 35, 15, 0.45)'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(W * 0.12, topY + 60)
+  ctx.quadraticCurveTo(W * 0.35, topY + 35, W * 0.55, topY + 85)
+  ctx.stroke()
+}
+
+/**
+ * Center Island Knoll (Iconic from Ref Image 2):
+ * Elevated grass knoll with earthy cliff base sitting in the middle of a pond.
+ */
+function drawCenterIsland(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  rx: number,
+  ry: number,
+  islandH = 75
+): void {
+  // 1. Water shadow under island
+  ctx.fillStyle = 'rgba(10, 40, 70, 0.45)'
+  ctx.beginPath()
+  ctx.ellipse(cx, cy + islandH * 0.65, rx * 1.08, ry * 0.55, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // 2. Earthy cliff base of the island
+  const cliffG = ctx.createLinearGradient(cx, cy, cx, cy + islandH)
+  cliffG.addColorStop(0, '#8d552c')
+  cliffG.addColorStop(1, '#532c12')
+  ctx.fillStyle = cliffG
+  ctx.beginPath()
+  ctx.ellipse(cx, cy + islandH * 0.4, rx, ry * 0.45, 0, 0, Math.PI)
+  ctx.ellipse(cx, cy, rx, ry * 0.45, 0, Math.PI, 0, true)
+  ctx.closePath()
+  ctx.fill()
+
+  // Vertical soil texture on the island cliff
+  ctx.fillStyle = '#42210b'
+  for (let dx = -rx * 0.85; dx <= rx * 0.85; dx += 28) {
+    ctx.fillRect(cx + dx, cy, 10, islandH * 0.42)
+  }
+
+  // 3. Lush domed green grass cap
+  const grassG = ctx.createRadialGradient(cx, cy - ry * 0.25, 0, cx, cy, rx)
+  grassG.addColorStop(0, '#8fd843')
+  grassG.addColorStop(0.65, '#68b329')
+  grassG.addColorStop(1.0, '#4a8e1b')
+  ctx.fillStyle = grassG
+  ctx.beginPath()
+  ctx.ellipse(cx, cy - 8, rx, ry * 0.62, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Water ripple ring around island
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.ellipse(cx, cy + islandH * 0.55, rx * 1.15, ry * 0.6, 0, 0, Math.PI * 2)
+  ctx.stroke()
+}
+
+/** Naturally contoured pond / lagoon (as in Ref Image 3). */
+function drawNaturalPond(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  rx: number,
+  ry: number,
+  seed: number
+): void {
+  const rand = mulberry32(seed)
+
+  // 1. Earth/clay shore rim
+  ctx.fillStyle = '#8d5d34'
+  ctx.beginPath()
+  const rimCount = 28
+  for (let i = 0; i <= rimCount; i++) {
+    const a = (i / rimCount) * Math.PI * 2
+    const d = 1.08 + Math.sin(a * 4 + rand()) * 0.08
+    const px = cx + Math.cos(a) * rx * d
+    const py = cy + Math.sin(a) * ry * d
+    if (i === 0) ctx.moveTo(px, py)
+    else ctx.lineTo(px, py)
+  }
+  ctx.closePath()
+  ctx.fill()
+
+  // 2. Clear azure water
+  const waterG = ctx.createLinearGradient(cx, cy - ry, cx, cy + ry)
+  waterG.addColorStop(0, '#38bdf8')
+  waterG.addColorStop(0.6, '#0284c7')
+  waterG.addColorStop(1.0, '#0369a1')
+  ctx.fillStyle = waterG
+  ctx.beginPath()
+  for (let i = 0; i <= rimCount; i++) {
+    const a = (i / rimCount) * Math.PI * 2
+    const d = 0.98 + Math.sin(a * 4 + rand()) * 0.07
+    const px = cx + Math.cos(a) * rx * d
+    const py = cy + Math.sin(a) * ry * d
+    if (i === 0) ctx.moveTo(px, py)
+    else ctx.lineTo(px, py)
+  }
+  ctx.closePath()
+  ctx.fill()
+
+  // Water ripple highlights
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.ellipse(cx - rx * 0.2, cy - ry * 0.2, rx * 0.35, ry * 0.25, 0, 0.2, Math.PI * 0.9)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.ellipse(cx + rx * 0.25, cy + ry * 0.15, rx * 0.4, ry * 0.28, 0, Math.PI * 0.8, Math.PI * 1.7)
+  ctx.stroke()
+}
+
+// ============================================================================
+// SHOT 1: EMERALD RIVERBANK (Authentic Ref Image 1 Style)
+// ============================================================================
+
+function drawSunnySky(): HTMLCanvasElement {
+  const [c, ctx] = canvas()
+  const g = ctx.createLinearGradient(0, 0, 0, H)
+  g.addColorStop(0, '#1e88e5')
+  g.addColorStop(0.35, '#42a5f5')
+  g.addColorStop(0.7, '#90caf9')
+  g.addColorStop(1.0, '#e3f2fd')
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, W, H)
+
+  // Fluffy cartoon clouds
+  drawCartoonCloud(ctx, 360, 240, 480, 150, 0.95)
+  drawCartoonCloud(ctx, 1100, 180, 640, 190, 0.9)
+  drawCartoonCloud(ctx, 1880, 230, 520, 160, 0.95)
+  drawCartoonCloud(ctx, 2380, 190, 400, 140, 0.85)
+  return c
+}
+
+function drawDistantMountains(): HTMLCanvasElement {
+  const [c, ctx] = canvas()
+  // Ridge 1: Far blue mountains
+  ctx.fillStyle = '#79a8cb'
+  ctx.beginPath()
+  ctx.moveTo(0, H)
+  ctx.lineTo(0, 560)
+  ctx.quadraticCurveTo(W * 0.18, 410, W * 0.35, 520)
+  ctx.quadraticCurveTo(W * 0.52, 380, W * 0.72, 530)
+  ctx.quadraticCurveTo(W * 0.88, 420, W, 500)
+  ctx.lineTo(W, H)
+  ctx.closePath()
+  ctx.fill()
+
+  // Ridge 2: Mid teal-blue mountains
+  ctx.fillStyle = '#548ea8'
+  ctx.beginPath()
+  ctx.moveTo(0, H)
+  ctx.lineTo(0, 610)
+  ctx.quadraticCurveTo(W * 0.16, 500, W * 0.32, 590)
+  ctx.quadraticCurveTo(W * 0.48, 480, W * 0.66, 610)
+  ctx.quadraticCurveTo(W * 0.84, 510, W, 580)
+  ctx.lineTo(W, H)
+  ctx.closePath()
+  ctx.fill()
+
+  // Atmospheric haze at base
+  const haze = ctx.createLinearGradient(0, 580, 0, H)
+  haze.addColorStop(0, 'rgba(227, 242, 253, 0)')
+  haze.addColorStop(1, 'rgba(227, 242, 253, 0.75)')
+  ctx.fillStyle = haze
+  ctx.fillRect(0, 580, W, H - 580)
+  return c
+}
+
+function drawRollingGreenHills(): HTMLCanvasElement {
+  const [c, ctx] = canvas()
+  // Hill 1: Far meadow hill
+  ctx.fillStyle = '#55a038'
+  ctx.beginPath()
+  ctx.moveTo(0, H)
+  ctx.lineTo(0, 690)
+  ctx.quadraticCurveTo(W * 0.28, 570, W * 0.6, 670)
+  ctx.quadraticCurveTo(W * 0.82, 590, W, 650)
+  ctx.lineTo(W, H)
+  ctx.closePath()
+  ctx.fill()
+
+  // Bush clumps along the crest
+  drawFoliageCloud(ctx, 420, 630, 130, 55, 111)
+  drawFoliageCloud(ctx, 1180, 610, 150, 60, 222)
+  drawFoliageCloud(ctx, 1980, 640, 140, 56, 333)
+
+  // Hill 2: Mid vibrant green hill
+  ctx.fillStyle = '#6bbd3a'
+  ctx.beginPath()
+  ctx.moveTo(0, H)
+  ctx.lineTo(0, 750)
+  ctx.quadraticCurveTo(W * 0.35, 650, W * 0.72, 770)
+  ctx.quadraticCurveTo(W * 0.9, 710, W, 750)
+  ctx.lineTo(W, H)
+  ctx.closePath()
+  ctx.fill()
+  return c
+}
+
+/** River, floating lily pads, and cutaway earthy riverbank (Exact Ref Image 1). */
+function drawRiverAndMeadowFloor(): HTMLCanvasElement {
+  const [c, ctx] = canvas()
+  const meadowTopY = 670
+  const cliffTopY = 740
+  const cliffH = 65
+  const riverTopY = cliffTopY + cliffH
+
+  // 1. Lush green meadow on top
+  const grassG = ctx.createLinearGradient(0, meadowTopY, 0, cliffTopY)
+  grassG.addColorStop(0, '#7ac83d')
+  grassG.addColorStop(1, '#5ca72c')
+  ctx.fillStyle = grassG
+  ctx.fillRect(0, meadowTopY, W, cliffTopY - meadowTopY)
+
+  // Grass blade tufts on meadow
+  ctx.strokeStyle = '#43a047'
+  ctx.lineWidth = 2.5
+  const randTuft = mulberry32(1010)
+  for (let x = 60; x < W - 60; x += 85) {
+    const ty = meadowTopY + 12 + randTuft() * 35
+    ctx.beginPath()
+    ctx.moveTo(x - 8, ty + 12)
+    ctx.quadraticCurveTo(x - 12, ty, x - 16, ty - 12)
+    ctx.moveTo(x, ty + 12)
+    ctx.quadraticCurveTo(x, ty - 2, x - 2, ty - 16)
+    ctx.moveTo(x + 8, ty + 12)
+    ctx.quadraticCurveTo(x + 12, ty, x + 16, ty - 12)
+    ctx.stroke()
+  }
+
+  // Faceted boulders resting on the upper meadow (Ref Image 1)
+  drawFacetedBoulder(ctx, 760, cliffTopY - 26, 68, 46, 101)
+  drawFacetedBoulder(ctx, 1340, cliffTopY - 22, 54, 38, 202)
+  drawFacetedBoulder(ctx, 1860, cliffTopY - 28, 62, 44, 303)
+
+  // 2. Organic dirt cliff with hanging roots & strata (Ref Image 1)
+  drawOrganicDirtCliff(ctx, cliffTopY, cliffH, 555)
+
+  // 3. Clear sparkling blue river flowing across
+  const riverG = ctx.createLinearGradient(0, riverTopY, 0, H)
+  riverG.addColorStop(0, '#38bdf8')
+  riverG.addColorStop(0.45, '#0ea5e9')
+  riverG.addColorStop(1.0, '#0284c7')
+  ctx.fillStyle = riverG
+  ctx.fillRect(0, riverTopY, W, H - riverTopY)
+
+  // Water wave reflections
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)'
+  ctx.lineWidth = 2.5
+  for (let y = riverTopY + 25; y < H - 20; y += 38) {
+    for (let x = 40; x < W; x += 300) {
+      ctx.beginPath()
+      ctx.moveTo(x, y)
+      ctx.quadraticCurveTo(x + 80, y - 6, x + 160, y)
+      ctx.stroke()
     }
   }
 
-  if (o.mist) {
-    ctx.globalCompositeOperation = 'source-atop'
-    const m = ctx.createLinearGradient(0, H * o.base, 0, H)
-    m.addColorStop(0, 'rgba(0,0,0,0)')
-    m.addColorStop(1, o.mist)
-    ctx.fillStyle = m
-    ctx.fillRect(0, 0, W, H)
-    ctx.globalCompositeOperation = 'source-over'
-  }
+  // Floating green lily pads with yellow water-lily flowers (Ref Image 1)
+  drawLilyPad(ctx, 450, riverTopY + 45, 68, 25, false)
+  drawLilyPad(ctx, 1120, riverTopY + 95, 88, 30, true)
+  drawLilyPad(ctx, 1880, riverTopY + 55, 78, 28, true)
+  drawLilyPad(ctx, 1520, riverTopY + 110, 70, 24, false)
   return c
 }
 
-interface GroundOpts {
-  nearColor: string
-  farColor: string
-  gridColor?: string
-  mistColor?: string
-}
-
-function drawGround(o: GroundOpts): HTMLCanvasElement {
+function drawMidgroundTrees(): HTMLCanvasElement {
   const [c, ctx] = canvas()
-  // In a plane rotated -90deg on X:
-  // y = 0 is near camera (foreground), y = H is far horizon (background).
-  const g = ctx.createLinearGradient(0, 0, 0, H)
-  g.addColorStop(0, o.nearColor)
-  g.addColorStop(0.65, o.farColor)
-  g.addColorStop(1, o.mistColor ?? o.farColor)
-  ctx.fillStyle = g
-  ctx.fillRect(0, 0, W, H)
+  const groundY = 740
 
-  // Orthogonal grid lines: in 3D perspective, the camera naturally converges them to the vanishing point!
-  ctx.strokeStyle = o.gridColor ?? 'rgba(255, 255, 255, 0.08)'
-  ctx.lineWidth = 1.5
-  for (let x = 0; x <= W; x += 120) {
-    ctx.beginPath()
-    ctx.moveTo(x, 0)
-    ctx.lineTo(x, H)
-    ctx.stroke()
-  }
-  for (let y = 0; y <= H; y += 100) {
-    ctx.beginPath()
-    ctx.moveTo(0, y)
-    ctx.lineTo(W, y)
-    ctx.stroke()
-  }
+  // Left knoll tree
+  drawStylizedTree(ctx, 460, groundY - 20, 680, 440, {
+    seed: 512,
+    curveDir: 1,
+    foliage: { shadow: '#1b5e20', mid: '#388e3c', light: '#7cb342', rim: '#aed581' }
+  })
+
+  // Right knoll tree
+  drawStylizedTree(ctx, 2180, groundY - 15, 720, 460, {
+    seed: 714,
+    curveDir: -1,
+    foliage: { shadow: '#1b5e20', mid: '#388e3c', light: '#7cb342', rim: '#aed581' }
+  })
+
+  // Flanking bushes
+  drawFoliageCloud(ctx, 280, groundY - 30, 95, 52, 881)
+  drawFoliageCloud(ctx, 620, groundY - 25, 115, 58, 882)
+  drawFoliageCloud(ctx, 2020, groundY - 25, 105, 55, 883)
+  drawFoliageCloud(ctx, 2380, groundY - 30, 120, 60, 884)
+
+  drawFacetedBoulder(ctx, 330, groundY - 10, 52, 38, 404)
+  drawFacetedBoulder(ctx, 2320, groundY - 10, 58, 42, 505)
   return c
 }
 
-// ------------------------------------------------------------------ Verdant Valley (3D Ground, Orchard & Flora)
+/**
+ * Foreground Framing (Ref Image 1):
+ * - Giant oak tree trunk on the left with prominent buttress roots grasping the lower riverbank.
+ * - Arching leafy canopy branch from top-right.
+ * - Bottom earthy riverbank cutaway curving across the bottom with roots and boulder.
+ * - Tropical broadleaf plants in bottom corners.
+ */
+function drawForegroundFraming(): HTMLCanvasElement {
+  const [c, ctx] = canvas()
 
-function drawMorningSky(): HTMLCanvasElement {
+  // 1. Giant tree trunk on left edge (Ref Image 1)
+  ctx.fillStyle = '#7a4e2a'
+  ctx.beginPath()
+  ctx.moveTo(10, H + 40)
+  ctx.quadraticCurveTo(180, 850, 220, 480)
+  ctx.quadraticCurveTo(240, 180, 40, -40)
+  ctx.lineTo(-40, -40)
+  ctx.lineTo(-40, H + 40)
+  ctx.closePath()
+  ctx.fill()
+
+  // Flared buttress roots reaching across the bottom bank
+  ctx.beginPath()
+  ctx.moveTo(220, 820)
+  ctx.quadraticCurveTo(340, 980, 480, 1180)
+  ctx.lineTo(200, 1240)
+  ctx.lineTo(100, 1080)
+  ctx.closePath()
+  ctx.fill()
+
+  // Bark grain on giant trunk
+  ctx.strokeStyle = '#4e2f17'
+  ctx.lineWidth = 5
+  ctx.beginPath()
+  ctx.moveTo(80, 1150)
+  ctx.quadraticCurveTo(190, 850, 210, 480)
+  ctx.stroke()
+
+  ctx.strokeStyle = '#9c683d'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(120, 1150)
+  ctx.quadraticCurveTo(220, 850, 235, 480)
+  ctx.stroke()
+
+  // Left canopy foliage clumps
+  drawFoliageCloud(ctx, 320, 180, 320, 170, 901)
+  drawFoliageCloud(ctx, 620, 220, 340, 180, 902)
+
+  // 2. Large woody branch arching from top-right across the top frame (Ref Image 1)
+  ctx.fillStyle = '#7a4e2a'
+  ctx.beginPath()
+  ctx.moveTo(W + 40, 40)
+  ctx.quadraticCurveTo(W - 220, 140, W - 620, 220)
+  ctx.lineTo(W - 600, 270)
+  ctx.quadraticCurveTo(W - 180, 210, W + 40, 120)
+  ctx.closePath()
+  ctx.fill()
+
+  drawFoliageCloud(ctx, W - 240, 180, 360, 180, 904)
+  drawFoliageCloud(ctx, W - 620, 240, 340, 170, 905)
+
+  // 3. Lower earthy riverbank cutaway across the bottom of the screen (Ref Image 1)
+  drawEarthyRiverbank(ctx, 1040, 777)
+
+  // 4. Smooth faceted boulder resting on the bottom riverbank (Ref Image 1)
+  drawFacetedBoulder(ctx, 1840, 1110, 140, 90, 778, { top: '#e0c8b0', mid: '#b08b68', shadow: '#6a4a2e' })
+
+  // 5. Tropical broadleaf plants framing bottom corners (Ref Image 2 style)
+  drawBroadleafPlant(ctx, 320, 1220, 2.3, 1)
+  drawBroadleafPlant(ctx, W - 260, 1220, 2.3, -1)
+
+  return c
+}
+
+// ============================================================================
+// SHOT 2: HIGHLAND ISLAND POND (Authentic Ref Image 2 Style)
+// ============================================================================
+
+function drawPastelSky(): HTMLCanvasElement {
   const [c, ctx] = canvas()
   const g = ctx.createLinearGradient(0, 0, 0, H)
-  g.addColorStop(0, '#0f2744')
-  g.addColorStop(0.28, '#1e4b75')
-  g.addColorStop(0.52, '#3f749a')
-  g.addColorStop(0.72, '#f49466')
-  g.addColorStop(0.86, '#fcae55')
-  g.addColorStop(1.0, '#ffeec7')
+  g.addColorStop(0, '#90caf9')
+  g.addColorStop(0.45, '#bbdefb')
+  g.addColorStop(0.85, '#e3f2fd')
+  g.addColorStop(1.0, '#f0f9ff')
   ctx.fillStyle = g
   ctx.fillRect(0, 0, W, H)
 
-  // Rising morning sun with radiant corona and god rays
-  const sx = W * 0.68
-  const sy = H * 0.54
-  const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, H * 0.75)
-  glow.addColorStop(0, 'rgba(255, 248, 220, 0.95)')
-  glow.addColorStop(0.12, 'rgba(255, 215, 140, 0.65)')
-  glow.addColorStop(0.35, 'rgba(255, 175, 95, 0.22)')
-  glow.addColorStop(1, 'rgba(255, 160, 80, 0)')
+  // Soft cumulus clouds
+  drawCartoonCloud(ctx, 420, 220, 520, 160, 0.9)
+  drawCartoonCloud(ctx, 1240, 170, 660, 190, 0.85)
+  drawCartoonCloud(ctx, 2020, 240, 480, 150, 0.9)
+  return c
+}
+
+function drawPurpleMountainPeaks(): HTMLCanvasElement {
+  const [c, ctx] = canvas()
+  // Distant purple/blue mountain peaks
+  ctx.fillStyle = '#8f9db5'
+  ctx.beginPath()
+  ctx.moveTo(0, H)
+  ctx.lineTo(0, 560)
+  ctx.quadraticCurveTo(W * 0.22, 360, W * 0.42, 510)
+  ctx.quadraticCurveTo(W * 0.6, 340, W * 0.78, 520)
+  ctx.quadraticCurveTo(W * 0.9, 430, W, 500)
+  ctx.lineTo(W, H)
+  ctx.closePath()
+  ctx.fill()
+
+  // Atmospheric haze
+  const haze = ctx.createLinearGradient(0, 520, 0, H)
+  haze.addColorStop(0, 'rgba(240, 249, 255, 0)')
+  haze.addColorStop(1, 'rgba(240, 249, 255, 0.8)')
+  ctx.fillStyle = haze
+  ctx.fillRect(0, 520, W, H - 520)
+  return c
+}
+
+function drawRollingHillsAndHedges(): HTMLCanvasElement {
+  const [c, ctx] = canvas()
+  // Rolling meadow
+  ctx.fillStyle = '#61aa34'
+  ctx.beginPath()
+  ctx.moveTo(0, H)
+  ctx.lineTo(0, 680)
+  ctx.quadraticCurveTo(W * 0.3, 580, W * 0.65, 680)
+  ctx.quadraticCurveTo(W * 0.85, 610, W, 670)
+  ctx.lineTo(W, H)
+  ctx.closePath()
+  ctx.fill()
+
+  // Tiered lush green hedges (Ref Image 2)
+  drawFoliageCloud(ctx, 360, 640, 180, 75, 411)
+  drawFoliageCloud(ctx, 740, 660, 200, 80, 412)
+  drawFoliageCloud(ctx, 1680, 670, 210, 85, 413)
+  drawFoliageCloud(ctx, 2080, 650, 190, 78, 414)
+  return c
+}
+
+/** Pond with the Iconic Center Island Knoll (Ref Image 2). */
+function drawCenterIslandPond(): HTMLCanvasElement {
+  const [c, ctx] = canvas()
+  const meadowTopY = 670
+  const pondTopY = 740
+
+  // Surrounding green lawn
+  const grassG = ctx.createLinearGradient(0, meadowTopY, 0, pondTopY)
+  grassG.addColorStop(0, '#7ac83d')
+  grassG.addColorStop(1, '#5ca72c')
+  ctx.fillStyle = grassG
+  ctx.fillRect(0, meadowTopY, W, pondTopY - meadowTopY)
+
+  // Clear blue pond
+  const pondG = ctx.createLinearGradient(0, pondTopY, 0, H)
+  pondG.addColorStop(0, '#38bdf8')
+  pondG.addColorStop(0.5, '#0ea5e9')
+  pondG.addColorStop(1.0, '#0284c7')
+  ctx.fillStyle = pondG
+  ctx.fillRect(0, pondTopY, W, H - pondTopY)
+
+  // Water ripple highlights
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)'
+  ctx.lineWidth = 2.5
+  for (let y = pondTopY + 25; y < H - 20; y += 42) {
+    for (let x = 60; x < W; x += 320) {
+      ctx.beginPath()
+      ctx.moveTo(x, y)
+      ctx.quadraticCurveTo(x + 70, y - 6, x + 140, y)
+      ctx.stroke()
+    }
+  }
+
+  // THE CENTER ISLAND KNOLI (Ref Image 2): Elevated grass mound with earthen cliff base
+  drawCenterIsland(ctx, 1200, 870, 260, 110, 80)
+  return c
+}
+
+function drawIslandPondTrees(): HTMLCanvasElement {
+  const [c, ctx] = canvas()
+  const groundY = 740
+
+  // Left curved tree (Ref Image 2)
+  drawStylizedTree(ctx, 420, groundY - 15, 710, 460, {
+    seed: 611,
+    curveDir: 1,
+    foliage: { shadow: '#1b5e20', mid: '#388e3c', light: '#7cb342', rim: '#c8e6c9' }
+  })
+
+  // Right upright tiered tree (Ref Image 2)
+  drawUprightTieredTree(ctx, 2140, groundY - 10, 760, 440, {
+    seed: 622,
+    foliage: { shadow: '#1b5e20', mid: '#388e3c', light: '#7cb342', rim: '#c8e6c9' }
+  })
+
+  // Faceted boulders by the water
+  drawFacetedBoulder(ctx, 580, groundY + 10, 95, 65, 801)
+  drawFacetedBoulder(ctx, 720, groundY + 25, 75, 52, 802)
+  return c
+}
+
+/**
+ * Foreground Broadleaf Framing (Ref Image 2):
+ * Huge broadleaf plants in bottom-left and bottom-right corners with luminous veins,
+ * accompanied by large faceted boulders.
+ */
+function drawForegroundBroadleafFraming(): HTMLCanvasElement {
+  const [c, ctx] = canvas()
+
+  // Arching top-left branch
+  drawFoliageCloud(ctx, 240, 160, 320, 160, 911)
+  drawFoliageCloud(ctx, 600, 200, 340, 170, 912)
+
+  // Arching top-right branch
+  drawFoliageCloud(ctx, W - 240, 170, 340, 170, 913)
+  drawFoliageCloud(ctx, W - 580, 210, 320, 160, 914)
+
+  // Bottom green ground strip framing
+  ctx.fillStyle = '#4a8e1b'
+  ctx.beginPath()
+  ctx.moveTo(0, H)
+  ctx.lineTo(0, 1140)
+  ctx.quadraticCurveTo(W * 0.3, 1080, W * 0.5, 1120)
+  ctx.quadraticCurveTo(W * 0.8, 1080, W, 1140)
+  ctx.lineTo(W, H)
+  ctx.closePath()
+  ctx.fill()
+
+  // Large faceted boulders in bottom corners (Ref Image 2)
+  drawFacetedBoulder(ctx, 260, 1120, 150, 105, 931)
+  drawFacetedBoulder(ctx, 420, 1150, 120, 85, 932)
+  drawFacetedBoulder(ctx, W - 260, 1120, 150, 105, 933)
+  drawFacetedBoulder(ctx, W - 420, 1150, 120, 85, 934)
+
+  // GIANT TROPICAL BROADLEAF PLANTS (Ref Image 2): Luminous veins framing bottom corners
+  drawBroadleafPlant(ctx, 160, 1230, 2.6, 1)
+  drawBroadleafPlant(ctx, 320, 1250, 2.1, 1)
+  drawBroadleafPlant(ctx, W - 160, 1230, 2.6, -1)
+  drawBroadleafPlant(ctx, W - 320, 1250, 2.1, -1)
+
+  return c
+}
+
+// ============================================================================
+// SHOT 3: HIGHLAND LAGOON & BOULDER RIDGE (Authentic Ref Image 3 Style)
+// ============================================================================
+
+function drawSlopingPastureAndPine(): HTMLCanvasElement {
+  const [c, ctx] = canvas()
+  // Sloping pasture hill rising from left to right (Ref Image 3)
+  ctx.fillStyle = '#5ba532'
+  ctx.beginPath()
+  ctx.moveTo(0, H)
+  ctx.lineTo(0, 720)
+  ctx.quadraticCurveTo(W * 0.35, 680, W * 0.7, 600)
+  ctx.lineTo(W, 520)
+  ctx.lineTo(W, H)
+  ctx.closePath()
+  ctx.fill()
+
+  // Pine tree on the crest (Ref Image 3 left)
+  drawPineTree(ctx, 360, 680, 260, 130)
+
+  // Slender curved tree on the hill (Ref Image 3 center)
+  drawStylizedTree(ctx, 1420, 630, 360, 240, {
+    seed: 331,
+    curveDir: -1,
+    foliage: { shadow: '#1b5e20', mid: '#388e3c', light: '#7cb342' }
+  })
+  return c
+}
+
+/** Naturally Contoured Pond surrounded by Green Turf (Ref Image 3). */
+function drawLagoonAndShore(): HTMLCanvasElement {
+  const [c, ctx] = canvas()
+  const meadowTopY = 670
+
+  // Lush green turf
+  const grassG = ctx.createLinearGradient(0, meadowTopY, 0, H)
+  grassG.addColorStop(0, '#78c73b')
+  grassG.addColorStop(0.5, '#5aa32a')
+  grassG.addColorStop(1.0, '#3e7c1a')
+  ctx.fillStyle = grassG
+  ctx.fillRect(0, meadowTopY, W, H - meadowTopY)
+
+  // NATURALLY CONTOURED POND (Ref Image 3): Curved natural lagoon
+  drawNaturalPond(ctx, 1200, 880, 520, 180, 999)
+  return c
+}
+
+function drawMidgroundBoulderClusters(): HTMLCanvasElement {
+  const [c, ctx] = canvas()
+
+  // Clusters of faceted boulders on right bank of the pond (Ref Image 3)
+  drawFacetedBoulder(ctx, 1720, 820, 80, 55, 711)
+  drawFacetedBoulder(ctx, 1860, 800, 110, 80, 712)
+  drawFacetedBoulder(ctx, 2040, 830, 130, 90, 713)
+
+  // Cluster on left bank (Ref Image 3)
+  drawFacetedBoulder(ctx, 620, 810, 95, 68, 714)
+  drawFacetedBoulder(ctx, 480, 830, 120, 85, 715)
+
+  // Tiered lush bush mounds flanking the pond
+  drawFoliageCloud(ctx, 840, 820, 140, 65, 831)
+  drawFoliageCloud(ctx, 1540, 810, 150, 70, 832)
+  return c
+}
+
+function drawForegroundLagoonFraming(): HTMLCanvasElement {
+  const [c, ctx] = canvas()
+
+  // Top overhead canopy branches from left and right
+  ctx.fillStyle = '#7a4e2a'
+  ctx.beginPath()
+  ctx.moveTo(-40, 40)
+  ctx.quadraticCurveTo(240, 120, 580, 200)
+  ctx.lineTo(560, 250)
+  ctx.quadraticCurveTo(200, 190, -40, 120)
+  ctx.closePath()
+  ctx.fill()
+  drawFoliageCloud(ctx, 320, 180, 340, 170, 941)
+  drawFoliageCloud(ctx, 640, 220, 320, 160, 942)
+
+  ctx.fillStyle = '#7a4e2a'
+  ctx.beginPath()
+  ctx.moveTo(W + 40, 40)
+  ctx.quadraticCurveTo(W - 240, 120, W - 580, 200)
+  ctx.lineTo(W - 560, 250)
+  ctx.quadraticCurveTo(W - 200, 190, W + 40, 120)
+  ctx.closePath()
+  ctx.fill()
+  drawFoliageCloud(ctx, W - 320, 180, 340, 170, 943)
+  drawFoliageCloud(ctx, W - 640, 220, 320, 160, 944)
+
+  // FOREGROUND FACETED BOULDER FORMATIONS (Ref Image 3 bottom corners)
+  drawFacetedBoulder(ctx, 280, 1100, 160, 115, 951)
+  drawFacetedBoulder(ctx, 450, 1150, 130, 90, 952)
+  drawFacetedBoulder(ctx, W - 280, 1100, 160, 115, 953)
+  drawFacetedBoulder(ctx, W - 450, 1150, 130, 90, 954)
+
+  // Lush bottom bush clusters framing the pond (Ref Image 3)
+  drawFoliageCloud(ctx, 1200, 1180, 260, 90, 961)
+  drawFoliageCloud(ctx, 880, 1190, 200, 80, 962)
+  drawFoliageCloud(ctx, 1520, 1190, 200, 80, 963)
+  return c
+}
+
+// ============================================================================
+// SHOT 4: TWILIGHT VALLEY (Magical Sunset Golden Hour)
+// ============================================================================
+
+function drawSunsetSky(): HTMLCanvasElement {
+  const [c, ctx] = canvas()
+  const g = ctx.createLinearGradient(0, 0, 0, H)
+  g.addColorStop(0, '#1a103c')
+  g.addColorStop(0.32, '#511b5e')
+  g.addColorStop(0.62, '#b7385a')
+  g.addColorStop(0.82, '#f46c43')
+  g.addColorStop(1.0, '#fed174')
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, W, H)
+
+  // Setting sun
+  const sx = W * 0.65
+  const sy = 680
+  const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, 550)
+  glow.addColorStop(0, 'rgba(255, 252, 230, 0.98)')
+  glow.addColorStop(0.15, 'rgba(255, 195, 105, 0.72)')
+  glow.addColorStop(0.4, 'rgba(240, 100, 70, 0.22)')
+  glow.addColorStop(1, 'rgba(180, 50, 80, 0)')
   ctx.fillStyle = glow
   ctx.fillRect(0, 0, W, H)
 
-  // Sun disc
-  ctx.fillStyle = '#fffdf6'
+  ctx.fillStyle = '#fff7e6'
   ctx.beginPath()
-  ctx.arc(sx, sy, 82, 0, Math.PI * 2)
+  ctx.arc(sx, sy, 72, 0, Math.PI * 2)
   ctx.fill()
 
-  // God rays (translucent morning sunbeams streaming down)
-  ctx.globalCompositeOperation = 'lighter'
-  const beamAngles = [0.85, 1.05, 1.25, 1.45, 1.7, 1.95, 2.15]
-  for (const ang of beamAngles) {
-    const spread = 0.08
-    const dist = H * 1.5
-    ctx.beginPath()
-    ctx.moveTo(sx, sy)
-    ctx.lineTo(sx + Math.cos(ang - spread) * dist, sy + Math.sin(ang - spread) * dist)
-    ctx.lineTo(sx + Math.cos(ang + spread) * dist, sy + Math.sin(ang + spread) * dist)
-    ctx.closePath()
-    const rg = ctx.createRadialGradient(sx, sy, 50, sx, sy, dist)
-    rg.addColorStop(0, 'rgba(255, 240, 190, 0.16)')
-    rg.addColorStop(0.6, 'rgba(255, 210, 140, 0.07)')
-    rg.addColorStop(1, 'rgba(255, 180, 100, 0)')
-    ctx.fillStyle = rg
-    ctx.fill()
-  }
-  ctx.globalCompositeOperation = 'source-over'
-
-  // Soft morning clouds
-  const clouds = [
-    { x: 0.18, y: 0.38, w: 520, h: 55, a: 0.35 },
-    { x: 0.42, y: 0.28, w: 680, h: 65, a: 0.28 },
-    { x: 0.78, y: 0.42, w: 480, h: 48, a: 0.4 }
-  ]
-  for (const cl of clouds) {
-    const cx = W * cl.x
-    const cy = H * cl.y
-    const cg = ctx.createRadialGradient(cx, cy, 10, cx, cy, cl.w * 0.5)
-    cg.addColorStop(0, `rgba(255, 235, 220, ${cl.a})`)
-    cg.addColorStop(0.6, `rgba(255, 205, 180, ${cl.a * 0.5})`)
-    cg.addColorStop(1, 'rgba(255, 200, 180, 0)')
-    ctx.fillStyle = cg
-    ctx.beginPath()
-    ctx.ellipse(cx, cy, cl.w * 0.5, cl.h * 0.5, 0, 0, Math.PI * 2)
-    ctx.fill()
-  }
-
-  // Flock of swallows in the distance
-  const birds = [
-    [0.72, 0.25, 14], [0.75, 0.23, 11], [0.73, 0.21, 9], [0.77, 0.27, 12],
-    [0.79, 0.24, 10], [0.81, 0.22, 8], [0.84, 0.25, 10], [0.71, 0.28, 7]
-  ]
-  ctx.fillStyle = 'rgba(25, 45, 65, 0.75)'
-  for (const [bx, by, sz] of birds) {
-    const px = W * bx
-    const py = H * by
-    ctx.beginPath()
-    ctx.moveTo(px - sz, py)
-    ctx.quadraticCurveTo(px - sz * 0.4, py - sz * 0.6, px, py - sz * 0.2)
-    ctx.quadraticCurveTo(px + sz * 0.4, py - sz * 0.6, px + sz, py)
-    ctx.quadraticCurveTo(px + sz * 0.3, py - sz * 0.2, px, py)
-    ctx.quadraticCurveTo(px - sz * 0.3, py - sz * 0.2, px - sz, py)
-    ctx.fill()
-  }
-
+  // Sunset clouds
+  drawCartoonCloud(ctx, 420, 260, 540, 160, 0.75)
+  drawCartoonCloud(ctx, 1280, 210, 640, 180, 0.7)
+  drawCartoonCloud(ctx, 2140, 250, 480, 150, 0.75)
   return c
 }
 
-function drawVerdantMountains(): HTMLCanvasElement {
+function drawTwilightMountains(): HTMLCanvasElement {
   const [c, ctx] = canvas()
-  // Far mountain silhouette
-  const n1 = valueNoise1D(101)
+  ctx.fillStyle = '#5c2d68'
   ctx.beginPath()
   ctx.moveTo(0, H)
-  for (let x = 0; x <= W; x += 4) {
-    const y = H * 0.62 - (fbm(n1, (x / W) * 2.8, 5) - 0.5) * 320
-    ctx.lineTo(x, y)
-  }
+  ctx.lineTo(0, 560)
+  ctx.quadraticCurveTo(W * 0.2, 410, W * 0.4, 520)
+  ctx.quadraticCurveTo(W * 0.58, 390, W * 0.75, 540)
+  ctx.quadraticCurveTo(W * 0.9, 450, W, 520)
   ctx.lineTo(W, H)
   ctx.closePath()
-  const g1 = ctx.createLinearGradient(0, H * 0.45, 0, H)
-  g1.addColorStop(0, '#466785')
-  g1.addColorStop(0.7, '#6f92ae')
-  g1.addColorStop(1, '#a6c3d8')
-  ctx.fillStyle = g1
   ctx.fill()
 
-  // Mid-far mountain ridge with sunlight on right-facing slopes
-  const n2 = valueNoise1D(202)
+  // Amber sunset rim on mountain ridges
+  ctx.strokeStyle = 'rgba(255, 190, 120, 0.75)'
+  ctx.lineWidth = 3.5
   ctx.beginPath()
-  ctx.moveTo(0, H)
-  for (let x = 0; x <= W; x += 4) {
-    const y = H * 0.7 - (fbm(n2, (x / W) * 3.4, 4) - 0.5) * 240
-    ctx.lineTo(x, y)
-  }
-  ctx.lineTo(W, H)
-  ctx.closePath()
-  const g2 = ctx.createLinearGradient(0, H * 0.55, 0, H)
-  g2.addColorStop(0, '#2e4e6c')
-  g2.addColorStop(0.8, '#4f7596')
-  g2.addColorStop(1, '#94b7ce')
-  ctx.fillStyle = g2
-  ctx.fill()
-
-  // Morning valley fog
-  const fog = ctx.createLinearGradient(0, H * 0.68, 0, H)
-  fog.addColorStop(0, 'rgba(235, 245, 235, 0)')
-  fog.addColorStop(1, 'rgba(235, 245, 235, 0.6)')
-  ctx.fillStyle = fog
-  ctx.fillRect(0, H * 0.68, W, H * 0.32)
-
+  ctx.moveTo(0, 560)
+  ctx.quadraticCurveTo(W * 0.2, 410, W * 0.4, 520)
+  ctx.quadraticCurveTo(W * 0.58, 390, W * 0.75, 540)
+  ctx.quadraticCurveTo(W * 0.9, 450, W, 520)
+  ctx.stroke()
   return c
 }
 
-function drawVerdantFoothillsAndWindmill(): HTMLCanvasElement {
+function drawTwilightRiverFloor(): HTMLCanvasElement {
   const [c, ctx] = canvas()
-  const n = valueNoise1D(303)
-  const hillY = (x: number): number => H * 0.77 - (fbm(n, (x / W) * 2.2, 3) - 0.5) * 160
+  const meadowTopY = 670
+  const cliffTopY = 740
+  const cliffH = 65
+  const riverTopY = cliffTopY + cliffH
 
-  // Rolling green foothills
-  ctx.beginPath()
-  ctx.moveTo(0, H)
-  for (let x = 0; x <= W; x += 4) ctx.lineTo(x, hillY(x))
-  ctx.lineTo(W, H)
-  ctx.closePath()
-  const g = ctx.createLinearGradient(0, H * 0.65, 0, H)
-  g.addColorStop(0, '#386c40')
-  g.addColorStop(0.4, '#4f8a58')
-  g.addColorStop(1, '#2c5634')
-  ctx.fillStyle = g
-  ctx.fill()
+  // Warm amber-olive grass
+  const grassG = ctx.createLinearGradient(0, meadowTopY, 0, cliffTopY)
+  grassG.addColorStop(0, '#5a6d2b')
+  grassG.addColorStop(1, '#3d4d1d')
+  ctx.fillStyle = grassG
+  ctx.fillRect(0, meadowTopY, W, cliffTopY - meadowTopY)
 
-  // Distant cypress trees on hill crests
-  const rand = mulberry32(777)
-  ctx.fillStyle = '#1c3e22'
-  for (let x = 80; x < W - 80; x += 35 + rand() * 80) {
-    if (x > 750 && x < 1050) continue // leave clearing for windmill
-    const by = hillY(x)
-    const th = 45 + rand() * 55
-    const tw = th * 0.18
-    ctx.beginPath()
-    ctx.moveTo(x - tw, by)
-    ctx.lineTo(x, by - th)
-    ctx.lineTo(x + tw, by)
-    ctx.closePath()
-    ctx.fill()
-  }
+  // Dirt cliff with warm evening tones
+  drawOrganicDirtCliff(ctx, cliffTopY, cliffH, 771, {
+    soilTop: '#5c321d',
+    soilBottom: '#32190d',
+    grass: '#4d6824',
+    grassShadow: '#283812'
+  })
 
-  // Dutch Windmill at x ≈ 900
-  const wx = 900
-  const wy = hillY(wx) + 10
-  const bh = 170 // body height
-  const bwTop = 32
-  const bwBase = 48
+  // Sunset river reflecting glowing orange & magenta sky
+  const riverG = ctx.createLinearGradient(0, riverTopY, 0, H)
+  riverG.addColorStop(0, '#e65100')
+  riverG.addColorStop(0.4, '#ad1457')
+  riverG.addColorStop(1.0, '#4a148c')
+  ctx.fillStyle = riverG
+  ctx.fillRect(0, riverTopY, W, H - riverTopY)
 
-  // Stone base & timber body
-  ctx.fillStyle = '#4a3d31'
-  ctx.beginPath()
-  ctx.moveTo(wx - bwBase, wy)
-  ctx.lineTo(wx - bwTop, wy - bh)
-  ctx.lineTo(wx + bwTop, wy - bh)
-  ctx.lineTo(wx + bwBase, wy)
-  ctx.closePath()
-  ctx.fill()
-
-  // Conical roof cap
-  ctx.fillStyle = '#261b14'
-  ctx.beginPath()
-  ctx.moveTo(wx - bwTop * 1.15, wy - bh)
-  ctx.lineTo(wx, wy - bh - 42)
-  ctx.lineTo(wx + bwTop * 1.15, wy - bh)
-  ctx.closePath()
-  ctx.fill()
-
-  // Windows with morning light
-  ctx.fillStyle = '#ffeaa7'
-  ctx.fillRect(wx - 8, wy - bh * 0.65, 16, 20)
-  ctx.fillRect(wx - 7, wy - bh * 0.35, 14, 18)
-
-  // 4 Windmill Sails (Lattice blades)
-  const ax = wx
-  const ay = wy - bh - 10 // axle center
-  const sailLen = 145
-  const sailW = 26
-  const rot = 0.55 // angle in radians (~32deg)
-
-  for (let k = 0; k < 4; k++) {
-    const a = rot + (k * Math.PI) / 2
-    const cos = Math.cos(a)
-    const sin = Math.sin(a)
-    const perpX = -sin * sailW
-    const perpY = cos * sailW
-
-    // Spar
-    ctx.strokeStyle = '#2b1e15'
-    ctx.lineWidth = 4
-    ctx.beginPath()
-    ctx.moveTo(ax, ay)
-    ctx.lineTo(ax + cos * sailLen, ay + sin * sailLen)
-    ctx.stroke()
-
-    // Sail canvas & lattice grid
-    ctx.fillStyle = 'rgba(255, 250, 240, 0.85)'
-    ctx.beginPath()
-    ctx.moveTo(ax + cos * 25, ay + sin * 25)
-    ctx.lineTo(ax + cos * sailLen, ay + sin * sailLen)
-    ctx.lineTo(ax + cos * sailLen + perpX, ay + sin * sailLen + perpY)
-    ctx.lineTo(ax + cos * 25 + perpX, ay + sin * 25 + perpY)
-    ctx.closePath()
-    ctx.fill()
-
-    ctx.strokeStyle = '#3d2b1f'
-    ctx.lineWidth = 1.2
-    ctx.stroke()
-  }
-
-  // Axle cap
-  ctx.fillStyle = '#1b120c'
-  ctx.beginPath()
-  ctx.arc(ax, ay, 9, 0, Math.PI * 2)
-  ctx.fill()
-
-  // Soft low valley haze
-  const m = ctx.createLinearGradient(0, H * 0.78, 0, H)
-  m.addColorStop(0, 'rgba(240, 250, 240, 0)')
-  m.addColorStop(1, 'rgba(240, 250, 240, 0.4)')
-  ctx.fillStyle = m
-  ctx.fillRect(0, H * 0.78, W, H * 0.22)
-
-  return c
-}
-
-function drawVerdantGround(): HTMLCanvasElement {
-  const [c, ctx] = canvas()
-  // Ground plane rotated -90deg on X:
-  // y = 0 is closest to camera (foreground).
-  // y = H is farthest from camera (distant horizon).
-  const g = ctx.createLinearGradient(0, 0, 0, H)
-  g.addColorStop(0, '#1c3d19') // rich deep loam & grass at feet
-  g.addColorStop(0.3, '#2a5a24') // vibrant meadow
-  g.addColorStop(0.65, '#417a35') // sunlit pasture
-  g.addColorStop(0.88, '#699e56') // distant warm green
-  g.addColorStop(1.0, '#a5cca0') // blends smoothly into horizon fog
-  ctx.fillStyle = g
-  ctx.fillRect(0, 0, W, H)
-
-  // Surface texture / grass stippling
-  const rand = mulberry32(888)
-  for (let i = 0; i < 4000; i++) {
-    const rx = rand() * W
-    const ry = rand() * H
-    const bright = (rand() - 0.5) * 40
-    ctx.fillStyle = bright > 0 ? `rgba(180, 235, 140, 0.15)` : `rgba(10, 30, 10, 0.18)`
-    ctx.fillRect(rx, ry, 2 + rand() * 4, 3 + rand() * 5)
-  }
-
-  // Winding country dirt trail from y = 0 to y = H
-  const pathX = (y: number): number =>
-    W * 0.48 + Math.sin((y / H) * Math.PI * 1.5) * 160 + Math.cos((y / H) * Math.PI * 3.2) * 55
-
-  const trailW = 320 // uniform width in texture space (3D camera handles foreshortening!)
-  for (let y = 0; y < H; y += 4) {
-    const cx = pathX(y)
-    const tg = ctx.createLinearGradient(cx - trailW * 0.5, 0, cx + trailW * 0.5, 0)
-    tg.addColorStop(0, 'rgba(40, 70, 30, 0)') // blends into grass
-    tg.addColorStop(0.12, '#665037') // dirt edge
-    tg.addColorStop(0.28, '#4a3723') // left wheel rut
-    tg.addColorStop(0.5, '#8c7253') // center path ridge
-    tg.addColorStop(0.72, '#4a3723') // right wheel rut
-    tg.addColorStop(0.88, '#665037') // dirt edge
-    tg.addColorStop(1.0, 'rgba(40, 70, 30, 0)')
-    ctx.fillStyle = tg
-    ctx.fillRect(cx - trailW * 0.5, y, trailW, 4)
-  }
-
-  // Scattered pebbles along the trail
-  for (let i = 0; i < 500; i++) {
-    const py = rand() * H
-    const px = pathX(py) + (rand() - 0.5) * trailW * 0.8
-    ctx.fillStyle = rand() > 0.4 ? 'rgba(210, 195, 170, 0.7)' : 'rgba(80, 65, 50, 0.8)'
-    ctx.beginPath()
-    ctx.arc(px, py, 1.5 + rand() * 3, 0, Math.PI * 2)
-    ctx.fill()
-  }
-
-  // Cultivated Lavender / Crop rows on the left side
-  const cropRows = [0.12, 0.19, 0.26, 0.33, 0.40]
-  for (const fx of cropRows) {
-    const baseX = W * fx
-    for (let y = 20; y < H - 20; y += 12) {
-      const cy = y
-      const cx = baseX + Math.sin((y / H) * Math.PI * 0.5) * 40
-      // Dark soil bed
-      ctx.fillStyle = 'rgba(35, 25, 16, 0.65)'
-      ctx.fillRect(cx - 18, cy - 5, 36, 10)
-      // Lavender blooms
-      const col = rand() > 0.4 ? '#8a64ad' : '#6b4791'
-      ctx.fillStyle = col
+  // Water reflections
+  ctx.strokeStyle = 'rgba(255, 215, 150, 0.5)'
+  ctx.lineWidth = 2.5
+  for (let y = riverTopY + 25; y < H - 20; y += 42) {
+    for (let x = 40; x < W; x += 300) {
       ctx.beginPath()
-      ctx.arc(cx, cy, 5 + rand() * 3, 0, Math.PI * 2)
-      ctx.fill()
-    }
-  }
-
-  // Pasture wildflower patches on the right side
-  for (let i = 0; i < 750; i++) {
-    const fx = 0.58 + rand() * 0.38
-    const fy = rand() * (H - 50)
-    const px = W * fx
-    const py = fy
-    const kind = rand()
-    if (kind < 0.4) {
-      // Golden buttercups
-      ctx.fillStyle = '#ffca3a'
-      ctx.fillRect(px, py, 4, 4)
-    } else if (kind < 0.75) {
-      // White daisies
-      ctx.fillStyle = '#ffffff'
-      ctx.beginPath()
-      ctx.arc(px, py, 2.5, 0, Math.PI * 2)
-      ctx.fill()
-    } else {
-      // Red field poppies
-      ctx.fillStyle = '#e63946'
-      ctx.beginPath()
-      ctx.arc(px, py, 3.2, 0, Math.PI * 2)
-      ctx.fill()
-    }
-  }
-
-  // Soft diagonal sunlight shadow bands (sun in upper right casting shadows down-left)
-  ctx.save()
-  ctx.rotate(-0.35)
-  ctx.fillStyle = 'rgba(15, 35, 18, 0.08)'
-  for (let sx = -W; sx < W * 2; sx += 220) {
-    ctx.fillRect(sx, -H, 80, H * 3)
-  }
-  ctx.restore()
-
-  return c
-}
-
-function drawOrchardGrove(): HTMLCanvasElement {
-  const [c, ctx] = canvas()
-  // Ground contact is at y = 1190.
-  const groundY = 1190
-
-  // 6 Fruit trees spaced naturally across the grove
-  const trees = [
-    { x: 320, h: 560, w: 260, seed: 11 },
-    { x: 740, h: 620, w: 290, seed: 22 },
-    { x: 1180, h: 540, w: 250, seed: 33 },
-    { x: 1680, h: 590, w: 270, seed: 44 },
-    { x: 2120, h: 630, w: 300, seed: 55 },
-    { x: 2520, h: 530, w: 240, seed: 66 }
-  ]
-
-  for (const t of trees) {
-    const rand = mulberry32(t.seed)
-    const bx = t.x
-    const by = groundY
-    const ty = by - t.h
-
-    // Tree shadow oval on ground
-    ctx.fillStyle = 'rgba(15, 35, 18, 0.45)'
-    ctx.beginPath()
-    ctx.ellipse(bx - 35, by, t.w * 0.45, 22, -0.2, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Trunk & Branches
-    ctx.fillStyle = '#422e1e'
-    ctx.beginPath()
-    ctx.moveTo(bx - 28, by)
-    ctx.quadraticCurveTo(bx - 18, by - t.h * 0.35, bx - 14, by - t.h * 0.6)
-    ctx.lineTo(bx + 14, by - t.h * 0.6)
-    ctx.quadraticCurveTo(bx + 18, by - t.h * 0.35, bx + 28, by)
-    ctx.closePath()
-    ctx.fill()
-
-    // Bark lines & sunlit rim on right
-    ctx.strokeStyle = '#6b4f35'
-    ctx.lineWidth = 3
-    ctx.beginPath()
-    ctx.moveTo(bx + 20, by)
-    ctx.quadraticCurveTo(bx + 12, by - t.h * 0.35, bx + 10, by - t.h * 0.6)
-    ctx.stroke()
-
-    // Primary branches spreading out
-    const branches = [
-      [bx - 12, by - t.h * 0.55, bx - t.w * 0.35, by - t.h * 0.78],
-      [bx + 12, by - t.h * 0.55, bx + t.w * 0.38, by - t.h * 0.82],
-      [bx, by - t.h * 0.6, bx, by - t.h * 0.88]
-    ]
-    ctx.strokeStyle = '#422e1e'
-    ctx.lineWidth = 14
-    for (const [x1, y1, x2, y2] of branches) {
-      ctx.beginPath()
-      ctx.moveTo(x1, y1)
-      ctx.lineTo(x2, y2)
+      ctx.moveTo(x, y)
+      ctx.quadraticCurveTo(x + 80, y - 6, x + 160, y)
       ctx.stroke()
     }
-
-    // Billowing foliage canopy (clusters of shaded leafy lobes)
-    const lobes = [
-      { dx: 0, dy: -t.h * 0.88, r: t.w * 0.38 },
-      { dx: -t.w * 0.28, dy: -t.h * 0.8, r: t.w * 0.34 },
-      { dx: t.w * 0.28, dy: -t.h * 0.82, r: t.w * 0.35 },
-      { dx: -t.w * 0.38, dy: -t.h * 0.68, r: t.w * 0.3 },
-      { dx: t.w * 0.38, dy: -t.h * 0.69, r: t.w * 0.31 },
-      { dx: 0, dy: -t.h * 0.72, r: t.w * 0.42 }
-    ]
-
-    for (const lb of lobes) {
-      const lx = bx + lb.dx
-      const ly = by + lb.dy
-      // Spherical 3D shading: shadow on bottom-left, bright sunlit on top-right
-      const fg = ctx.createRadialGradient(lx + lb.r * 0.3, ly - lb.r * 0.35, 5, lx, ly, lb.r)
-      fg.addColorStop(0, '#98d975') // sunlit bright yellow-green
-      fg.addColorStop(0.35, '#529948') // rich apple green
-      fg.addColorStop(0.75, '#2f6e2b') // leaf shadow
-      fg.addColorStop(1, '#1b4519') // deep core shade
-      ctx.fillStyle = fg
-      ctx.beginPath()
-      ctx.arc(lx, ly, lb.r, 0, Math.PI * 2)
-      ctx.fill()
-    }
-
-    // Bright ripe apples hanging from the branches
-    for (let a = 0; a < 30; a++) {
-      const ax = bx + (rand() - 0.5) * t.w * 0.75
-      const ay = by - t.h * 0.6 - rand() * t.h * 0.35
-      ctx.fillStyle = rand() > 0.3 ? '#e63946' : '#f4a261'
-      ctx.beginPath()
-      ctx.arc(ax, ay, 5.5 + rand() * 3, 0, Math.PI * 2)
-      ctx.fill()
-      // tiny sun highlight
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(ax - 2, ay - 2, 1.5, 1.5)
-    }
-
-    // Grass tufts at tree base
-    ctx.fillStyle = '#3c7a36'
-    for (let g = 0; g < 8; g++) {
-      const gx = bx + (rand() - 0.5) * 55
-      ctx.fillRect(gx, by - 12 - rand() * 10, 3, 14)
-    }
   }
 
-  // Low vineyard / garden crop rows running between trees
-  for (let x = 150; x < W - 150; x += 180) {
-    if (trees.some((t) => Math.abs(t.x - x) < 140)) continue
-    // Timber stake
-    ctx.fillStyle = '#4a3828'
-    ctx.fillRect(x - 3, groundY - 140, 6, 140)
-    // Bush foliage
-    const bg = ctx.createRadialGradient(x, groundY - 80, 10, x, groundY - 70, 65)
-    bg.addColorStop(0, '#74b860')
-    bg.addColorStop(0.8, '#326c28')
-    bg.addColorStop(1, '#1e4817')
-    ctx.fillStyle = bg
-    ctx.beginPath()
-    ctx.ellipse(x, groundY - 70, 75, 55, 0, 0, Math.PI * 2)
-    ctx.fill()
-  }
-
+  drawLilyPad(ctx, 480, riverTopY + 50, 68, 25, false)
+  drawLilyPad(ctx, 1180, riverTopY + 105, 88, 30, true)
+  drawLilyPad(ctx, 1840, riverTopY + 65, 78, 28, true)
   return c
 }
 
-function drawNearMeadowAndFence(): HTMLCanvasElement {
+function drawTwilightTrees(): HTMLCanvasElement {
   const [c, ctx] = canvas()
-  const groundY = 1190
+  const groundY = 740
 
-  // Rustic wooden fence on the left side (x = -40 to 1180)
-  const posts = [-10, 240, 500, 760, 1020]
-  const postH = 290
-  const postW = 24
+  // Left tree catching sunset peach rim light
+  drawStylizedTree(ctx, 460, groundY - 20, 680, 440, {
+    seed: 881,
+    curveDir: 1,
+    trunkColor: '#5c321d',
+    foliage: { shadow: '#1a2e12', mid: '#2d541e', light: '#4d8028', rim: '#ffab40' }
+  })
 
-  // Fence posts
-  for (const px of posts) {
-    // Post shadow
-    ctx.fillStyle = 'rgba(15, 30, 15, 0.4)'
-    ctx.beginPath()
-    ctx.ellipse(px - 20, groundY, 35, 12, -0.25, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Post body
-    ctx.fillStyle = '#4f3c2a'
-    ctx.fillRect(px - postW * 0.5, groundY - postH, postW, postH)
-    // Sunlit edge on right
-    ctx.fillStyle = '#7a624a'
-    ctx.fillRect(px + postW * 0.25, groundY - postH, postW * 0.25, postH)
-    // Pointed post top
-    ctx.fillStyle = '#3d2c1c'
-    ctx.beginPath()
-    ctx.moveTo(px - postW * 0.5, groundY - postH)
-    ctx.lineTo(px, groundY - postH - 18)
-    ctx.lineTo(px + postW * 0.5, groundY - postH)
-    ctx.closePath()
-    ctx.fill()
-  }
-
-  // 2 Horizontal split rails
-  const railsY = [groundY - postH * 0.72, groundY - postH * 0.35]
-  ctx.fillStyle = '#594430'
-  for (const ry of railsY) {
-    ctx.fillRect(-30, ry, 1100, 18)
-    // Rail highlight
-    ctx.fillStyle = '#856a50'
-    ctx.fillRect(-30, ry, 1100, 4)
-    ctx.fillStyle = '#594430'
-  }
-
-  // Morning glory vines climbing the fence
-  const vineRand = mulberry32(444)
-  for (let x = 20; x < 1050; x += 15) {
-    const vy = groundY - postH * 0.5 + Math.sin(x * 0.05) * 45
-    ctx.fillStyle = '#3a7832'
-    ctx.fillRect(x, vy, 4, 4)
-    if (vineRand() > 0.65) {
-      ctx.fillStyle = vineRand() > 0.5 ? '#7209b7' : '#4361ee'
-      ctx.beginPath()
-      ctx.arc(x, vy, 6, 0, Math.PI * 2)
-      ctx.fill()
-    }
-  }
-
-  // Sunflowers on the right side (x = 1520 to 1980)
-  const sunflowers = [
-    { x: 1560, h: 420 },
-    { x: 1680, h: 480 },
-    { x: 1810, h: 390 },
-    { x: 1940, h: 450 }
-  ]
-
-  for (const sf of sunflowers) {
-    const sx = sf.x
-    const sy = groundY - sf.h
-
-    // Stem
-    ctx.strokeStyle = '#2d6a26'
-    ctx.lineWidth = 10
-    ctx.beginPath()
-    ctx.moveTo(sx, groundY)
-    ctx.quadraticCurveTo(sx + 15, groundY - sf.h * 0.5, sx, sy)
-    ctx.stroke()
-
-    // Leaves
-    ctx.fillStyle = '#3d8334'
-    ctx.beginPath()
-    ctx.ellipse(sx - 35, groundY - sf.h * 0.4, 42, 22, -0.4, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.beginPath()
-    ctx.ellipse(sx + 35, groundY - sf.h * 0.6, 45, 24, 0.4, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Golden petals radiating outwards
-    const petCount = 20
-    const discR = 36
-    const petLen = 42
-    ctx.fillStyle = '#ffb703'
-    for (let p = 0; p < petCount; p++) {
-      const a = (p / petCount) * Math.PI * 2
-      const px = sx + Math.cos(a) * (discR + petLen * 0.5)
-      const py = sy + Math.sin(a) * (discR + petLen * 0.5)
-      ctx.beginPath()
-      ctx.ellipse(px, py, petLen * 0.5, 11, a, 0, Math.PI * 2)
-      ctx.fill()
-    }
-
-    // Seed center disc
-    const dg = ctx.createRadialGradient(sx, sy, 5, sx, sy, discR)
-    dg.addColorStop(0, '#2b1708')
-    dg.addColorStop(0.7, '#44260f')
-    dg.addColorStop(1, '#663914')
-    ctx.fillStyle = dg
-    ctx.beginPath()
-    ctx.arc(sx, sy, discR, 0, Math.PI * 2)
-    ctx.fill()
-  }
-
-  // Flowering lavender and wild daisy bushes along the base
-  for (let x = 60; x < W - 60; x += 32) {
-    if (x > 1050 && x < 1500) continue // leave path open
-    const bh = 70 + vineRand() * 50
-    ctx.fillStyle = vineRand() > 0.4 ? '#8352b0' : '#ffffff'
-    ctx.beginPath()
-    ctx.arc(x, groundY - bh, 6 + vineRand() * 5, 0, Math.PI * 2)
-    ctx.fill()
-    // Stem to ground
-    ctx.strokeStyle = '#2d6028'
-    ctx.lineWidth = 2.5
-    ctx.beginPath()
-    ctx.moveTo(x, groundY)
-    ctx.lineTo(x, groundY - bh)
-    ctx.stroke()
-  }
-
+  // Right tree
+  drawStylizedTree(ctx, 2180, groundY - 15, 720, 460, {
+    seed: 882,
+    curveDir: -1,
+    trunkColor: '#5c321d',
+    foliage: { shadow: '#1a2e12', mid: '#2d541e', light: '#4d8028', rim: '#ffab40' }
+  })
   return c
 }
 
-function drawForegroundCanopy(): HTMLCanvasElement {
+function drawTwilightForegroundFraming(): HTMLCanvasElement {
   const [c, ctx] = canvas()
 
-  // Top-left massive ancient oak branch reaching across the frame
-  ctx.fillStyle = '#261b11'
+  // Giant tree trunk with amber sunset rim
+  ctx.fillStyle = '#4e2f17'
   ctx.beginPath()
-  ctx.moveTo(-50, -50)
-  ctx.quadraticCurveTo(350, 60, 780, 260)
-  ctx.lineTo(760, 310)
-  ctx.quadraticCurveTo(320, 130, -50, 40)
+  ctx.moveTo(10, H + 40)
+  ctx.quadraticCurveTo(180, 850, 220, 480)
+  ctx.quadraticCurveTo(240, 180, 40, -40)
+  ctx.lineTo(-40, -40)
+  ctx.lineTo(-40, H + 40)
   ctx.closePath()
   ctx.fill()
 
-  // Top-right oak branch
+  // Amber rim on trunk
+  ctx.strokeStyle = 'rgba(255, 171, 64, 0.65)'
+  ctx.lineWidth = 3
   ctx.beginPath()
-  ctx.moveTo(W + 50, -30)
-  ctx.quadraticCurveTo(W - 320, 80, W - 680, 240)
-  ctx.lineTo(W - 660, 290)
-  ctx.quadraticCurveTo(W - 280, 140, W + 50, 60)
+  ctx.moveTo(180, 850)
+  ctx.quadraticCurveTo(240, 480, 255, 180)
+  ctx.stroke()
+
+  drawFoliageCloud(ctx, 320, 180, 320, 170, 971, { shadow: '#14220e', mid: '#223d16', light: '#385c22', rim: '#ffab40' })
+  drawFoliageCloud(ctx, 620, 220, 340, 180, 972, { shadow: '#14220e', mid: '#223d16', light: '#385c22', rim: '#ffab40' })
+
+  // Arching right branch
+  ctx.fillStyle = '#4e2f17'
+  ctx.beginPath()
+  ctx.moveTo(W + 40, 40)
+  ctx.quadraticCurveTo(W - 220, 140, W - 620, 220)
+  ctx.lineTo(W - 600, 270)
+  ctx.quadraticCurveTo(W - 180, 210, W + 40, 120)
   ctx.closePath()
   ctx.fill()
 
-  // Leaf clusters hanging from the top branches (framing the view)
-  const rand = mulberry32(999)
-  const leafClusters = [
-    { x: 180, y: 120, r: 160 }, { x: 420, y: 180, r: 180 }, { x: 680, y: 280, r: 150 },
-    { x: 80, y: 220, r: 140 }, { x: W - 220, y: 140, r: 170 }, { x: W - 520, y: 220, r: 160 },
-    { x: W - 720, y: 280, r: 130 }
-  ]
-  for (const lc of leafClusters) {
-    for (let i = 0; i < 28; i++) {
-      const lx = lc.x + (rand() - 0.5) * lc.r * 1.5
-      const ly = lc.y + (rand() - 0.5) * lc.r * 1.2
-      const lg = ctx.createRadialGradient(lx, ly, 4, lx, ly, 38)
-      lg.addColorStop(0, '#88d958') // sunlit translucent green
-      lg.addColorStop(0.5, '#40822e')
-      lg.addColorStop(1, '#173612') // deep silhouette
-      ctx.fillStyle = lg
-      ctx.beginPath()
-      ctx.ellipse(lx, ly, 35, 20, rand() * Math.PI, 0, Math.PI * 2)
-      ctx.fill()
-    }
-  }
+  drawFoliageCloud(ctx, W - 240, 180, 360, 180, 973, { shadow: '#14220e', mid: '#223d16', light: '#385c22', rim: '#ffab40' })
+  drawFoliageCloud(ctx, W - 620, 240, 340, 170, 974, { shadow: '#14220e', mid: '#223d16', light: '#385c22', rim: '#ffab40' })
 
-  // Giant wild ferns in the bottom-left and bottom-right corners
-  const drawFern = (baseX: number, baseY: number, dir: 1 | -1) => {
-    for (let f = 0; f < 8; f++) {
-      const frondLen = 420 + rand() * 180
-      const angle = (-0.35 + (f / 8) * 0.7) * dir
-      ctx.save()
-      ctx.translate(baseX, baseY)
-      ctx.rotate(angle)
-      // Frond stem
-      ctx.strokeStyle = '#1a3e16'
-      ctx.lineWidth = 5
-      ctx.beginPath()
-      ctx.moveTo(0, 0)
-      ctx.quadraticCurveTo(dir * 120, -frondLen * 0.6, dir * 180, -frondLen)
-      ctx.stroke()
-      // Pinnae (leaflets)
-      for (let p = 40; p < frondLen; p += 22) {
-        const pw = (1 - p / frondLen) * 75
-        const px = (p / frondLen) * dir * 160
-        const py = -p
-        ctx.fillStyle = p > frondLen * 0.5 ? '#55a342' : '#22501b'
-        ctx.beginPath()
-        ctx.ellipse(px - pw * 0.5 * dir, py, pw * 0.5, 9, 0.3 * dir, 0, Math.PI * 2)
-        ctx.fill()
-        ctx.beginPath()
-        ctx.ellipse(px + pw * 0.5 * dir, py, pw * 0.5, 9, -0.3 * dir, 0, Math.PI * 2)
-        ctx.fill()
-      }
-      ctx.restore()
-    }
-  }
+  // Bottom riverbank
+  drawEarthyRiverbank(ctx, 1040, 888, { soilTop: '#4a2512', soilBottom: '#281308' })
 
-  drawFern(80, H + 40, 1)
-  drawFern(W - 80, H + 40, -1)
-
-  // Scarlet wild poppies in the foreground corners
-  const poppies = [
-    [160, H - 180], [280, H - 240], [360, H - 160],
-    [W - 220, H - 210], [W - 340, H - 190]
-  ]
-  for (const [px, py] of poppies) {
-    // Stem
-    ctx.strokeStyle = '#275820'
-    ctx.lineWidth = 4
-    ctx.beginPath()
-    ctx.moveTo(px, H)
-    ctx.quadraticCurveTo(px + 10, py + 80, px, py)
-    ctx.stroke()
-    // Red petals
-    ctx.fillStyle = '#d90429'
-    ctx.beginPath()
-    ctx.arc(px, py, 26, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.fillStyle = '#ef233c'
-    ctx.beginPath()
-    ctx.arc(px - 4, py - 4, 18, 0, Math.PI * 2)
-    ctx.fill()
-    // Black center
-    ctx.fillStyle = '#111111'
-    ctx.beginPath()
-    ctx.arc(px, py, 8, 0, Math.PI * 2)
-    ctx.fill()
-  }
+  // Broadleaf plants with subtle amber highlights
+  drawBroadleafPlant(ctx, 320, 1220, 2.3, 1, { base: '#0f2911', half: '#19421c', vein: '#e69138' })
+  drawBroadleafPlant(ctx, W - 260, 1220, 2.3, -1, { base: '#0f2911', half: '#19421c', vein: '#e69138' })
 
   return c
 }
 
-type Plate = {
+// ============================================================================
+// DEMO PROJECT BUILDER
+// ============================================================================
+
+interface Plate {
   name: string
   z: number
   draw: () => HTMLCanvasElement
@@ -996,14 +1469,12 @@ interface ShotSpec {
   subtitle: string
   titleColor?: string
   subtitleColor: string
-  /** When the camera arrives: titles animate in relative to this. */
   arrive: number
   particles: { name: string; seed: number; count: number; size: number; color: string; velocity: Vec3; sway: number }
 }
 
 export async function buildDemoProject(): Promise<Project> {
   assetStore.clear()
-  // Tour timing (see `steps` below): Verdant Valley (0-6s) → Twilight Valley (6-11.5s) → Northern Lights (11.5-15.7s) → Golden Dunes (15.7-19.2s).
   const project = createProject({ name: 'Parallax Journey', duration: 19.2 })
   const comp = project.comp
   const d = referenceDistance(comp)
@@ -1011,261 +1482,71 @@ export async function buildDemoProject(): Promise<Project> {
 
   const specs: ShotSpec[] = [
     {
-      name: 'Verdant Valley',
+      name: 'Emerald Riverbank',
       arrive: 0.6,
-      title: 'VERDANT VALLEY',
-      subtitle: 'where the earth breathes life',
-      titleColor: '#fffdf5',
-      subtitleColor: '#ffe29c',
-      particles: { name: 'Morning Pollen', seed: 108, count: 420, size: 6, color: '#fff0a6', velocity: [16, 10, 0], sway: 36 },
+      title: 'EMERALD RIVERBANK',
+      subtitle: 'where the wild earth awakes',
+      titleColor: '#ffffff',
+      subtitleColor: '#ffe57f',
+      particles: { name: 'Sun Dust', seed: 108, count: 280, size: 6, color: '#fff9c4', velocity: [16, 10, 0], sway: 36 },
       plates: [
-        {
-          name: 'Morning Sky',
-          z: 3400,
-          draw: drawMorningSky
-        },
-        {
-          name: 'Azure Mountains',
-          z: 2400,
-          draw: drawVerdantMountains
-        },
-        {
-          name: 'Green Foothills',
-          z: 1500,
-          draw: drawVerdantFoothillsAndWindmill
-        },
-        {
-          name: 'Lush Meadow Ground',
-          z: 900,
-          position: [0, -430, 900],
-          rotation: [-90, 0, 0],
-          scale: [2.2, 3.8, 1],
-          autoScale: false,
-          draw: drawVerdantGround
-        },
-        {
-          name: 'Fruit Orchard',
-          z: 800,
-          draw: drawOrchardGrove
-        },
-        {
-          name: 'Rustic Fence & Flora',
-          z: 280,
-          draw: drawNearMeadowAndFence
-        },
-        {
-          name: 'Foreground Oak & Ferns',
-          z: -220,
-          draw: drawForegroundCanopy
-        }
+        { name: 'Sunny Sky', z: 3200, draw: drawSunnySky },
+        { name: 'Distant Mountains', z: 2200, draw: drawDistantMountains },
+        { name: 'Rolling Green Hills', z: 1400, draw: drawRollingGreenHills },
+        { name: 'River & Meadow Floor', z: 800, draw: drawRiverAndMeadowFloor },
+        { name: 'Midground Trees', z: 400, draw: drawMidgroundTrees },
+        { name: 'Foreground Framing', z: -240, draw: drawForegroundFraming }
+      ]
+    },
+    {
+      name: 'Island Pond',
+      arrive: 5.8,
+      title: 'ISLAND POND',
+      subtitle: 'sanctuary of ancient trees',
+      titleColor: '#ffffff',
+      subtitleColor: '#bbf7d0',
+      particles: { name: 'Pollen', seed: 909, count: 240, size: 5, color: '#dcedc8', velocity: [28, 8, 0], sway: 26 },
+      plates: [
+        { name: 'Pastel Sky', z: 3200, draw: drawPastelSky },
+        { name: 'Purple Mountain Peaks', z: 2200, draw: drawPurpleMountainPeaks },
+        { name: 'Rolling Hills & Hedges', z: 1400, draw: drawRollingHillsAndHedges },
+        { name: 'Center Island Pond', z: 800, draw: drawCenterIslandPond },
+        { name: 'Midground Trees', z: 400, draw: drawIslandPondTrees },
+        { name: 'Foreground Broadleaf Framing', z: -240, draw: drawForegroundBroadleafFraming }
+      ]
+    },
+    {
+      name: 'Highland Lagoon',
+      arrive: 11.0,
+      title: 'HIGHLAND LAGOON',
+      subtitle: 'whispers of the stone ridges',
+      titleColor: '#ffffff',
+      subtitleColor: '#c7d2fe',
+      particles: { name: 'Sun Motes', seed: 44, count: 260, size: 6, color: '#fef08a', velocity: [12, 14, 0], sway: 30 },
+      plates: [
+        { name: 'Sunny Sky', z: 3200, draw: drawSunnySky },
+        { name: 'Distant Mountains', z: 2200, draw: drawDistantMountains },
+        { name: 'Sloping Pasture & Pine', z: 1400, draw: drawSlopingPastureAndPine },
+        { name: 'Lagoon & Shore', z: 800, draw: drawLagoonAndShore },
+        { name: 'Midground Boulder Clusters', z: 400, draw: drawMidgroundBoulderClusters },
+        { name: 'Foreground Lagoon Framing', z: -240, draw: drawForegroundLagoonFraming }
       ]
     },
     {
       name: 'Twilight Valley',
-      arrive: 6.0,
+      arrive: 15.6,
       title: 'TWILIGHT VALLEY',
-      subtitle: 'a parallax story',
-      subtitleColor: '#ffe4cf',
-      particles: { name: 'Fireflies', seed: 2024, count: 360, size: 7, color: '#ffd59a', velocity: [10, 16, 0], sway: 40 },
+      subtitle: 'a golden sunset tale',
+      titleColor: '#fff8e1',
+      subtitleColor: '#ffcc80',
+      particles: { name: 'Fireflies', seed: 2024, count: 280, size: 7, color: '#ffe082', velocity: [10, 16, 0], sway: 40 },
       plates: [
-        {
-          name: 'Sky',
-          z: 3200,
-          draw: () =>
-            drawSky({
-              stops: [
-                [0, '#070a24'],
-                [0.35, '#251a52'],
-                [0.6, '#7a3f78'],
-                [0.78, '#e2786a'],
-                [1, '#ffc48a']
-              ],
-              stars: 900,
-              starSeed: 7,
-              sun: { x: 0.62, y: 0.66, r: 70, core: '#fff1d6', glow: '255,200,150' }
-            })
-        },
-        {
-          name: 'Far Mountains',
-          z: 2100,
-          draw: () => drawRidge({ seed: 11, base: 0.64, amp: 210, freq: 3, top: '#6b4f8f', bottom: '#b07a9a', mist: 'rgba(240,160,150,0.55)' })
-        },
-        {
-          name: 'Mid Mountains',
-          z: 1200,
-          draw: () => drawRidge({ seed: 23, base: 0.72, amp: 170, freq: 4, top: '#3a2a62', bottom: '#6a4a7c', mist: 'rgba(200,120,140,0.45)' })
-        },
-        {
-          name: 'Pine Hills',
-          z: 450,
-          draw: () =>
-            drawRidge({
-              seed: 37,
-              base: 0.82,
-              amp: 90,
-              freq: 3,
-              top: '#1d1838',
-              bottom: '#2a1f44',
-              trees: { density: 1.4, minH: 60, maxH: 140, color: '#1d1838' }
-            })
-        },
-        {
-          name: 'Valley Floor',
-          z: 850,
-          position: [0, -450, 850],
-          rotation: [-90, 0, 0],
-          scale: [1.8, 2.8, 1],
-          autoScale: false,
-          draw: () =>
-            drawGround({
-              nearColor: '#0a0812',
-              farColor: '#241a38',
-              gridColor: 'rgba(255, 200, 160, 0.07)',
-              mistColor: 'rgba(200, 130, 150, 0.35)'
-            })
-        },
-        {
-          name: 'Foreground',
-          z: -260,
-          draw: () =>
-            drawRidge({
-              seed: 51,
-              base: 0.95,
-              amp: 50,
-              freq: 2,
-              top: '#0a0912',
-              bottom: '#050409',
-              trees: { density: 1, minH: 380, maxH: 760, color: '#08070f', sides: true }
-            })
-        }
-      ]
-    },
-    {
-      name: 'Northern Lights',
-      arrive: 11.5,
-      title: 'NORTHERN LIGHTS',
-      subtitle: 'where the sky dances',
-      titleColor: '#eafff8',
-      subtitleColor: '#a8f5dc',
-      particles: { name: 'Snow', seed: 77, count: 520, size: 5, color: '#ffffff', velocity: [-8, -38, 0], sway: 28 },
-      plates: [
-        { name: 'Aurora Sky', z: 3200, draw: drawAuroraSky },
-        {
-          name: 'Snow Peaks',
-          z: 2100,
-          draw: () => drawRidge({ seed: 61, base: 0.66, amp: 260, freq: 3.5, octaves: 6, top: '#d4e4f2', bottom: '#3d5a78', mist: 'rgba(12,44,64,0.6)' })
-        },
-        {
-          name: 'Glacier Ridge',
-          z: 1200,
-          draw: () => drawRidge({ seed: 73, base: 0.76, amp: 150, freq: 4, top: '#86a3bf', bottom: '#1d3048', mist: 'rgba(8,24,40,0.55)' })
-        },
-        {
-          name: 'Frozen Lake',
-          z: 850,
-          position: [0, -450, 850],
-          rotation: [-90, 0, 0],
-          scale: [1.8, 2.8, 1],
-          autoScale: false,
-          draw: () =>
-            drawGround({
-              nearColor: '#030a10',
-              farColor: '#102838',
-              gridColor: 'rgba(100, 240, 220, 0.09)',
-              mistColor: 'rgba(120, 255, 230, 0.3)'
-            })
-        },
-        {
-          name: 'Snow Forest',
-          z: 450,
-          draw: () =>
-            drawRidge({
-              seed: 83,
-              base: 0.86,
-              amp: 70,
-              freq: 3,
-              top: '#0b1a26',
-              bottom: '#06121b',
-              trees: { density: 1.6, minH: 70, maxH: 170, color: '#081521' }
-            })
-        },
-        {
-          name: 'Snowbank',
-          z: -260,
-          draw: () =>
-            drawRidge({
-              seed: 97,
-              base: 0.96,
-              amp: 40,
-              freq: 2,
-              top: '#9fb6cf',
-              bottom: '#4f6985',
-              trees: { density: 1, minH: 380, maxH: 720, color: '#040b12', sides: true }
-            })
-        }
-      ]
-    },
-    {
-      name: 'Golden Dunes',
-      arrive: 15.7,
-      title: 'GOLDEN DUNES',
-      subtitle: 'the long road home',
-      titleColor: '#fff3df',
-      subtitleColor: '#ffd9a8',
-      particles: { name: 'Dust', seed: 909, count: 260, size: 4, color: '#ffd8a8', velocity: [42, 6, 0], sway: 18 },
-      plates: [
-        {
-          name: 'Desert Sky',
-          z: 3200,
-          draw: () =>
-            drawSky({
-              stops: [
-                [0, '#14204a'],
-                [0.3, '#4f3f83'],
-                [0.6, '#df8668'],
-                [0.82, '#ffbf78'],
-                [1, '#ffe2aa']
-              ],
-              stars: 220,
-              starSeed: 31,
-              sun: { x: 0.36, y: 0.6, r: 92, core: '#fff6e0', glow: '255,214,150' }
-            })
-        },
-        {
-          name: 'Far Dunes',
-          z: 2100,
-          draw: () => drawRidge({ seed: 101, base: 0.62, amp: 110, freq: 1.6, octaves: 2, top: '#c9805e', bottom: '#e8aa7c', mist: 'rgba(255,205,155,0.5)' })
-        },
-        {
-          name: 'Mid Dunes',
-          z: 1200,
-          draw: () => drawRidge({ seed: 113, base: 0.69, amp: 100, freq: 1.8, octaves: 2, top: '#a8583e', bottom: '#d28c5e', mist: 'rgba(255,170,120,0.35)' })
-        },
-        {
-          name: 'Desert Floor',
-          z: 850,
-          position: [0, -450, 850],
-          rotation: [-85, 0, 0],
-          scale: [1.8, 2.8, 1],
-          autoScale: false,
-          draw: () =>
-            drawGround({
-              nearColor: '#150806',
-              farColor: '#3d1c16',
-              gridColor: 'rgba(255, 180, 120, 0.08)',
-              mistColor: 'rgba(240, 140, 80, 0.35)'
-            })
-        },
-        {
-          name: 'Near Dunes',
-          z: 450,
-          draw: () => drawRidge({ seed: 127, base: 0.77, amp: 90, freq: 1.4, octaves: 2, top: '#6d3328', bottom: '#94513a' })
-        },
-        {
-          name: 'Dune Edge',
-          z: -260,
-          draw: () => drawRidge({ seed: 131, base: 0.86, amp: 60, freq: 1.5, octaves: 3, top: '#2a1310', bottom: '#120706' })
-        }
+        { name: 'Sunset Sky', z: 3200, draw: drawSunsetSky },
+        { name: 'Twilight Mountains', z: 2200, draw: drawTwilightMountains },
+        { name: 'Rolling Green Hills', z: 1400, draw: drawRollingGreenHills },
+        { name: 'Twilight River Floor', z: 800, draw: drawTwilightRiverFloor },
+        { name: 'Twilight Trees', z: 400, draw: drawTwilightTrees },
+        { name: 'Twilight Foreground Framing', z: -240, draw: drawTwilightForegroundFraming }
       ]
     }
   ]
@@ -1277,7 +1558,7 @@ export async function buildDemoProject(): Promise<Project> {
     const shotLayers: Layer[] = []
 
     for (const p of spec.plates) {
-      const asset = await assetStore.addCanvas(`${p.name}.png`, p.draw())
+      const asset = await assetStore.addCanvas(`${spec.name}-${p.name}.png`, p.draw())
       project.assets.push(asset.meta)
       const layer = createImageLayer(asset.meta, comp, p.z)
       layer.name = p.name
@@ -1287,7 +1568,6 @@ export async function buildDemoProject(): Promise<Project> {
       if (p.scale) {
         layer.transform.scale.value = p.scale
       } else {
-        // Plates are 1.4× the comp; render 1:1 so there is margin for camera moves.
         layer.transform.scale.value = [comp.width / 1920, comp.width / 1920, 1]
       }
       shotLayers.unshift(layer)
@@ -1296,17 +1576,31 @@ export async function buildDemoProject(): Promise<Project> {
     const a = spec.arrive
     const title = createTextLayer(comp, spec.title)
     title.name = `${spec.name} · Title`
-    title.props = { ...title.props, fontFamily: 'Montserrat', fontWeight: 800, fontSize: 92, letterSpacing: 12, ...(spec.titleColor ? { color: spec.titleColor } : {}) }
-    title.transform.position.value = [0, 230, 700]
+    title.props = {
+      ...title.props,
+      fontFamily: 'Montserrat',
+      fontWeight: 800,
+      fontSize: 88,
+      letterSpacing: 10,
+      ...(spec.titleColor ? { color: spec.titleColor } : {})
+    }
+    title.transform.position.value = [0, 210, 700]
     addKeyframe(title.transform.opacity, a, 0, 'easeOut')
     addKeyframe(title.transform.opacity, a + 1.8, 1, 'easeOut')
-    addKeyframe(title.transform.position, a, [0, 170, 700] as Vec3, 'easeOut')
-    addKeyframe(title.transform.position, a + 2.4, [0, 230, 700] as Vec3, 'easeOut')
+    addKeyframe(title.transform.position, a, [0, 160, 700] as Vec3, 'easeOut')
+    addKeyframe(title.transform.position, a + 2.4, [0, 210, 700] as Vec3, 'easeOut')
 
     const subtitle = createTextLayer(comp, spec.subtitle)
     subtitle.name = `${spec.name} · Subtitle`
-    subtitle.props = { ...subtitle.props, fontFamily: 'Playfair Display', fontWeight: 400, fontSize: 44, letterSpacing: 5, color: spec.subtitleColor }
-    subtitle.transform.position.value = [0, 135, 700]
+    subtitle.props = {
+      ...subtitle.props,
+      fontFamily: 'Playfair Display',
+      fontWeight: 400,
+      fontSize: 42,
+      letterSpacing: 5,
+      color: spec.subtitleColor
+    }
+    subtitle.transform.position.value = [0, 125, 700]
     addKeyframe(subtitle.transform.opacity, a + 1.2, 0, 'easeOut')
     addKeyframe(subtitle.transform.opacity, a + 2.8, 0.9, 'easeOut')
 
@@ -1330,7 +1624,7 @@ export async function buildDemoProject(): Promise<Project> {
     project.layers.push(...shotLayers)
   }
 
-  // Camera tour: Verdant Valley (3D ground/orchard) → Twilight Valley → Northern Lights → Golden Dunes.
+  // Camera tour across 4 shots
   const [s1, s2, s3, s4] = project.shots
   const end = buildCameraPath(
     project,
@@ -1345,25 +1639,19 @@ export async function buildDemoProject(): Promise<Project> {
   project.comp.duration = Math.round(end * comp.fps) / comp.fps
   for (const l of project.layers) l.outPoint = project.comp.duration
 
-  project.camera.shakeAmount = 4
+  project.camera.shakeAmount = 3.0
   project.camera.shakeSpeed = 0.35
-  project.camera.dofEnabled = true
-  project.camera.aperture.value = 0.35
-  // The path focuses on each shot's origin; titles sit at z≈700, so pull focus onto them.
+  project.camera.dofEnabled = false
   for (const k of project.camera.focusDistance.keyframes) k.value += 700
 
   project.look = {
     ...project.look,
-    fogEnabled: true,
-    fogColor: '#2c2848',
-    fogNear: 2400,
-    fogFar: 9000,
-    vignette: 0.45,
-    grain: 0.05,
+    fogEnabled: false,
+    vignette: 0.28,
+    grain: 0.02,
     contrast: 1.05,
-    saturation: 1.05
+    saturation: 1.08
   }
 
-  // Freeze-safe deep copy (immer will take ownership).
   return structuredClone(project)
 }
