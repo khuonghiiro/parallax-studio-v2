@@ -1,0 +1,128 @@
+import type { CameraSettings, Composition, Vec3 } from '@shared/types'
+import { ease } from './easing'
+import { addKeyframe } from './keyframes'
+import { referenceDistance } from './math'
+
+export type CameraPreset =
+  | 'dollyIn'
+  | 'dollyOut'
+  | 'truckLeft'
+  | 'truckRight'
+  | 'craneUp'
+  | 'craneDown'
+  | 'orbitLeft'
+  | 'orbitRight'
+  | 'zoomIn'
+  | 'dollyZoom'
+  | 'reset'
+
+export const CAMERA_PRESETS: { id: CameraPreset; label: string; hint: string }[] = [
+  { id: 'dollyIn', label: 'Dolly In', hint: 'Camera tiến vào cảnh' },
+  { id: 'dollyOut', label: 'Dolly Out', hint: 'Camera lùi ra xa' },
+  { id: 'truckLeft', label: 'Truck Left', hint: 'Trượt ngang sang trái' },
+  { id: 'truckRight', label: 'Truck Right', hint: 'Trượt ngang sang phải' },
+  { id: 'craneUp', label: 'Crane Up', hint: 'Nâng camera lên' },
+  { id: 'craneDown', label: 'Crane Down', hint: 'Hạ camera xuống' },
+  { id: 'orbitLeft', label: 'Orbit Left', hint: 'Xoay quanh tâm cảnh' },
+  { id: 'orbitRight', label: 'Orbit Right', hint: 'Xoay quanh tâm cảnh' },
+  { id: 'zoomIn', label: 'Zoom In (FOV)', hint: 'Phóng to bằng ống kính' },
+  { id: 'dollyZoom', label: 'Dolly Zoom', hint: 'Hiệu ứng Vertigo' },
+  { id: 'reset', label: 'Reset camera', hint: 'Xoá keyframe camera' }
+]
+
+const add = (a: Vec3, b: Vec3): Vec3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
+
+/**
+ * Replace the camera animation with a preset move between t0 and t1.
+ * `intensity` scales the move (1 = default). Mutates (use inside an immer producer).
+ */
+export function applyCameraPreset(
+  cam: CameraSettings,
+  preset: CameraPreset,
+  comp: Composition,
+  t0: number,
+  t1: number,
+  intensity = 1
+): void {
+  const d = referenceDistance(comp)
+  const p0: Vec3 = [0, 0, -d]
+  const tg0: Vec3 = [0, 0, 0]
+
+  cam.position.keyframes = []
+  cam.target.keyframes = []
+  cam.fov.keyframes = []
+  cam.position.value = p0
+  cam.target.value = tg0
+  cam.fov.value = 40
+
+  const move = (delta: Vec3, moveTarget = true): void => {
+    addKeyframe(cam.position, t0, p0, 'easeInOut')
+    addKeyframe(cam.position, t1, add(p0, delta), 'easeInOut')
+    if (moveTarget) {
+      addKeyframe(cam.target, t0, tg0, 'easeInOut')
+      addKeyframe(cam.target, t1, add(tg0, delta), 'easeInOut')
+    }
+  }
+
+  const k = intensity
+  switch (preset) {
+    case 'dollyIn':
+      move([0, 0, d * 0.4 * k])
+      break
+    case 'dollyOut':
+      addKeyframe(cam.position, t0, add(p0, [0, 0, d * 0.4 * k]), 'easeInOut')
+      addKeyframe(cam.position, t1, p0, 'easeInOut')
+      addKeyframe(cam.target, t0, add(tg0, [0, 0, d * 0.4 * k]), 'easeInOut')
+      addKeyframe(cam.target, t1, tg0, 'easeInOut')
+      break
+    case 'truckLeft':
+      move([-comp.width * 0.12 * k, 0, 0])
+      break
+    case 'truckRight':
+      move([comp.width * 0.12 * k, 0, 0])
+      break
+    case 'craneUp':
+      move([0, comp.height * 0.12 * k, 0])
+      break
+    case 'craneDown':
+      move([0, -comp.height * 0.12 * k, 0])
+      break
+    case 'orbitLeft':
+    case 'orbitRight': {
+      // Sample an arc; spacing follows the ease so the overall move eases in/out.
+      const dir = preset === 'orbitLeft' ? -1 : 1
+      const range = ((12 * k) * Math.PI) / 180
+      const pivot: Vec3 = [0, 0, d * 0.6]
+      const radius = d * 1.6
+      cam.target.value = pivot
+      const steps = 10
+      for (let i = 0; i <= steps; i++) {
+        const u = ease('easeInOut', i / steps)
+        const a = dir * (u - 0.5) * range * 2
+        const pos: Vec3 = [pivot[0] + Math.sin(a) * radius, 0, pivot[2] - Math.cos(a) * radius]
+        addKeyframe(cam.position, t0 + ((t1 - t0) * i) / steps, pos, 'linear')
+      }
+      break
+    }
+    case 'zoomIn':
+      addKeyframe(cam.fov, t0, 40, 'easeInOut')
+      addKeyframe(cam.fov, t1, 40 - 10 * k, 'easeInOut')
+      break
+    case 'dollyZoom': {
+      // Keep the z=0 plane the same size while moving the camera: tan(fov/2) * dist = const.
+      const steps = 8
+      const c = Math.tan((20 * Math.PI) / 180) * d
+      for (let i = 0; i <= steps; i++) {
+        const u = ease('easeInOut', i / steps)
+        const dist = d * (1 - 0.45 * k * u)
+        const fov = (2 * Math.atan(c / dist) * 180) / Math.PI
+        const t = t0 + ((t1 - t0) * i) / steps
+        addKeyframe(cam.position, t, [0, 0, -dist], 'linear')
+        addKeyframe(cam.fov, t, fov, 'linear')
+      }
+      break
+    }
+    case 'reset':
+      break
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "name": "parallax-studio",
+  "version": "0.1.0",
+  "description": "2.5D parallax animation studio — layer images in depth, animate a 3D camera, export MP4.",
+  "main": "./out/main/index.js",
+  "author": "Parallax Studio",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@fontsource/bebas-neue": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/montserrat": "^5.3.0",
+    "@fontsource/playfair-display": "^5.3.0",
+    "ffmpeg-static": "^5.3.0",
+    "immer": "^11.1.21",
+    "jszip": "^3.10.2",
+    "nanoid": "^6.0.1",
+    "three": "^0.186.1",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.186.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^44.5.1",
+    "electron-vite": "^5.0.0",
+    "playwright-core": "^1.63.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^7.3.6",
+    "vitest": "^3.2.7"
+  }
+}
