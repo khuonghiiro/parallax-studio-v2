@@ -3,6 +3,7 @@ import type { Animatable, Vec3 } from '@shared/types'
 import { cubicBezier, ease } from './easing'
 import { addKeyframe, anim, evaluate, moveKeyframe, removeKeyframe, setValueAt, toggleAnimated } from './keyframes'
 import { autoScaleFactor, formatTimecode, mulberry32, referenceDistance } from './math'
+import { parseDirectionAngle } from '../engine/evaluateScene'
 
 describe('easing', () => {
   it('linear bezier is identity', () => {
@@ -104,5 +105,21 @@ describe('math', () => {
   })
   it('formats timecode', () => {
     expect(formatTimecode(61.5, 30)).toBe('01:01:15')
+  })
+})
+
+describe('directional drift & angles', () => {
+  it('parses directional angles and presets correctly', () => {
+    expect(parseDirectionAngle('right')).toBe(0)
+    expect(parseDirectionAngle('up-right')).toBe(45)
+    expect(parseDirectionAngle('up')).toBe(90)
+    expect(parseDirectionAngle('up-left')).toBe(135)
+    expect(parseDirectionAngle('left')).toBe(180)
+    expect(parseDirectionAngle('down-left')).toBe(225)
+    expect(parseDirectionAngle('down')).toBe(270)
+    expect(parseDirectionAngle('down-right')).toBe(315)
+    expect(parseDirectionAngle(60)).toBe(60)
+    expect(parseDirectionAngle(420)).toBe(60)
+    expect(parseDirectionAngle(-90)).toBe(270)
   })
 })

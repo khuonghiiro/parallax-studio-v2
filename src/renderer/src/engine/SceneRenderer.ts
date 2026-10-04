@@ -310,6 +310,7 @@ export class SceneRenderer {
       uniforms: {
         map: { value: null },
         uvRepeat: { value: new THREE.Vector2(1, 1) },
+        uvOffset: { value: new THREE.Vector2(0, 0) },
         texSize: { value: new THREE.Vector2(1, 1) },
         planeSize: { value: new THREE.Vector2(1, 1) },
         opacity: { value: 1 },
@@ -679,6 +680,11 @@ export class SceneRenderer {
           u.uvRepeat.value.set(el.layer.props.repeat[0], el.layer.props.repeat[1])
         } else {
           u.uvRepeat.value.set(1, 1)
+        }
+        if (el.uvOffset) {
+          u.uvOffset.value.set(el.uvOffset[0], el.uvOffset[1])
+        } else {
+          u.uvOffset.value.set(0, 0)
         }
         applyBlend(mat, el.layer.blendMode)
         u.multiplyOut.value = el.layer.blendMode === 'multiply' ? 1 : 0

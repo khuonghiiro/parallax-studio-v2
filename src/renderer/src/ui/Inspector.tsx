@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import type { BlendMode, EaseName, Layer, LayerMotion, LayerMotionType, ParticleProps, Shot, SolidProps, TextProps, Vec3 } from '@shared/types'
+import type { BlendMode, DriftDirection, DriftLoopMode, EaseName, Layer, LayerMotion, LayerMotionType, ParticleProps, Shot, SolidProps, TextProps, Vec3 } from '@shared/types'
 import { EASE_LABELS } from '../animation/easing'
 import { addKeyframe, evaluate, setValueAt } from '../animation/keyframes'
 import { referenceDistance } from '../animation/math'
 import { shotAtTime } from '../animation/cameraPath'
 import { CAMERA_PRESETS, PARTICLE_PRESETS, applyCameraPreset } from '../animation/presets'
 import { deleteShot, flyToShot, importAudio, setLayerShot, updateShot } from '../actions'
-import { evaluateScene, shotFramingPose, shotLocalToWorld } from '../engine/evaluateScene'
+import { evaluateScene, parseDirectionAngle, shotFramingPose, shotLocalToWorld } from '../engine/evaluateScene'
 import { assetStore } from '../project/assets'
 import { findLayer, findShot, frameTolerance, getAnimatable, getDraftAnimatable, useEditor, type PropRef } from '../store/editor'
 import { useView } from '../store/view'
@@ -525,7 +525,7 @@ function MotionSection({ layer, set }: { layer: Layer; set: Setter }) {
           }}
         >
           <option value="none">Không có (Đứng yên)</option>
-          <option value="drift">Trôi ngang loop (Sương mù / Mây)</option>
+          <option value="drift">Trôi theo hướng &amp; lặp mượt (Sương mù / Mưa / Mây)</option>
           <option value="wind">Gió lay động (Cây cối / Lá / Cành)</option>
           <option value="sway">Lắc lư nhẹ (Nhịp điệu)</option>
           <option value="float">Nổi bồng bềnh (Nước / Đảo bay)</option>
@@ -535,6 +535,58 @@ function MotionSection({ layer, set }: { layer: Layer; set: Setter }) {
 
       {motion.type && motion.type !== 'none' && (
         <>
+          {motion.type === 'drift' && (
+            <>
+              <Row label="Hướng trôi" title="Chọn hướng di chuyển (trái, phải, lên, xuống, chéo)">
+                <select
+                  id="motion-direction"
+                  className="select"
+                  value={typeof motion.direction === 'string' ? motion.direction : Math.round(parseDirectionAngle(motion.direction))}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    const num = Number(val)
+                    setMotion({ direction: isNaN(num) ? (val as DriftDirection) : num })
+                  }}
+                >
+                  <option value="right">➡️ Sang phải (0°)</option>
+                  <option value="up-right">↗️ Chéo lên - phải (45°)</option>
+                  <option value="up">⬆️ Lên trên (90°)</option>
+                  <option value="up-left">↖️ Chéo lên - trái (135°)</option>
+                  <option value="left">⬅️ Sang trái (180°)</option>
+                  <option value="down-left">↙️ Chéo xuống - trái (225° - Mưa xiên)</option>
+                  <option value="down">⬇️ Xuống dưới (270° - Mưa rơi)</option>
+                  <option value="down-right">↘️ Chéo xuống - phải (315°)</option>
+                </select>
+              </Row>
+
+              <Row label="Góc chéo (°)" title="Góc hướng trôi tùy ý theo độ (0° - 360°)">
+                <NumberInput
+                  axis="deg"
+                  value={Math.round(parseDirectionAngle(motion.direction))}
+                  min={0}
+                  max={360}
+                  step={5}
+                  precision={0}
+                  onChange={(v) => setMotion({ direction: v })}
+                />
+              </Row>
+
+              <Row label="Kiểu lặp" title="Phương thức lặp: Cuộn UV liền mạch (mượt 100%), Ping-pong, hoặc Wrap">
+                <select
+                  id="motion-loop-mode"
+                  className="select"
+                  value={motion.loopMode ?? 'uv'}
+                  onChange={(e) => setMotion({ loopMode: e.target.value as DriftLoopMode })}
+                >
+                  <option value="uv">✨ Cuộn UV liền mạch (Mượt tuyệt đối 100%)</option>
+                  <option value="ping-pong">🌊 Lượn qua lại êm ái (Ping-Pong)</option>
+                  <option value="wrap">🔄 Trôi 1 chiều Wrap (Directional Wrap)</option>
+                  <option value="continuous">➡️ Trôi liên tục không lặp (Continuous)</option>
+                </select>
+              </Row>
+            </>
+          )}
+
           <Row label="Tốc độ" title="Tốc độ trôi (px/s) hoặc chu kỳ nhịp (Hz)">
             <NumberInput
               axis="spd"
@@ -558,7 +610,7 @@ function MotionSection({ layer, set }: { layer: Layer; set: Setter }) {
             ))}
           </Row>
 
-          {motion.type === 'drift' && (
+          {motion.type === 'drift' && motion.loopMode !== 'uv' && (
             <Row label="Độ rộng loop" title="Khoảng cách trôi qua trước khi lặp lại đầu cảnh (px)">
               <NumberInput
                 axis="px"

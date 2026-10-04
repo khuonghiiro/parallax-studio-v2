@@ -307,9 +307,10 @@ export async function addRainLayer(): Promise<void> {
   layer.transform.opacity.value = 0.75
   layer.transform.scale.value = [2.0, 1.3, 1]
   layer.motion = {
-    type: 'wind',
-    speed: 1.2,
-    amplitude: [8, 12, 0.5]
+    type: 'drift',
+    speed: 360,
+    direction: 225,
+    loopMode: 'uv'
   }
   layer.shotId = activeShotId()
   editor().update((d) => {

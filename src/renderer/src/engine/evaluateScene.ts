@@ -47,6 +47,33 @@ export interface EvaluatedLayer {
   size: [number, number]
   /** World AABB (three.js space). */
   bounds: THREE.Box3
+  /** Optional texture UV offset for seamless looping drift. */
+  uvOffset?: [number, number]
+}
+
+/** Parses named direction presets or degrees (0-360) into degrees. 0 = right, 90 = up. */
+export function parseDirectionAngle(dir?: number | string): number {
+  if (typeof dir === 'number' && !Number.isNaN(dir)) return ((dir % 360) + 360) % 360
+  switch (dir) {
+    case 'right':
+      return 0
+    case 'up-right':
+      return 45
+    case 'up':
+      return 90
+    case 'up-left':
+      return 135
+    case 'left':
+      return 180
+    case 'down-left':
+      return 225
+    case 'down':
+      return 270
+    case 'down-right':
+      return 315
+    default:
+      return 0
+  }
 }
 
 export interface EvaluatedScene {
@@ -118,20 +145,56 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
     const rot = [...evaluate(tr.rotation, t)] as Vec3
     const sc = [...evaluate(tr.scale, t)] as Vec3
 
+    let uvOffset: [number, number] | undefined = undefined
+
     if (layer.motion && layer.motion.type && layer.motion.type !== 'none') {
       const m = layer.motion
       const sp = m.speed ?? (m.type === 'drift' ? 40 : 0.6)
       const ph = m.phase ?? 0
       const amp = m.amplitude ?? (m.type === 'drift' ? [1500, 10, 0] : m.type === 'float' ? [4, 15, 0] : [8, 2, 1.2])
       if (m.type === 'drift') {
+        const dirDeg = parseDirectionAngle(m.direction)
+        const rad = (dirDeg * Math.PI) / 180
+        const dx = Math.cos(rad)
+        const dy = Math.sin(rad)
+        const mode = m.loopMode ?? 'wrap'
         const loopW = m.loopWidth ?? (amp[0] ? Math.abs(amp[0]) * 2 : 3000)
-        if (loopW > 0) {
-          const shift = (((t * sp + ph) % loopW) + loopW) % loopW - loopW / 2
-          pos[0] += shift
+
+        if (mode === 'uv') {
+          // Seamless texture scroll inside the layer plane - 100% smooth infinite looping
+          const size = layerNominalSize(layer)
+          const w = size[0] || comp.width
+          const h = size[1] || comp.height
+          const dist = t * sp + ph
+          uvOffset = [(-dist * dx) / w, (-dist * dy) / h]
+        } else if (mode === 'ping-pong') {
+          // Smooth back-and-forth oscillation along the directional vector
+          const halfSpan = loopW > 0 ? loopW / 2 : 1500
+          const angle = (t * sp * Math.PI) / halfSpan + ph
+          const d = Math.sin(angle) * halfSpan
+          pos[0] += d * dx
+          pos[1] += d * dy
+          if (amp[1]) {
+            const sway = Math.cos(angle * 0.7) * amp[1]
+            pos[0] += sway * -dy
+            pos[1] += sway * dx
+          }
+        } else if (mode === 'continuous' || loopW <= 0) {
+          // Continuous monotonic drift along vector without reset
+          const dist = t * sp + ph
+          pos[0] += dist * dx
+          pos[1] += dist * dy
         } else {
-          pos[0] += t * sp
+          // Directional wrap: travels along (dx, dy) over loopW span
+          const shift = (((t * sp + ph) % loopW) + loopW) % loopW - loopW / 2
+          pos[0] += shift * dx
+          pos[1] += shift * dy
+          if (amp[1]) {
+            const sway = Math.sin(t * 0.8 + ph) * amp[1]
+            pos[0] += sway * -dy
+            pos[1] += sway * dx
+          }
         }
-        if (amp[1]) pos[1] += Math.sin(t * 0.8 + ph) * amp[1]
       } else if (m.type === 'wind' || m.type === 'sway') {
         const angle = t * sp * Math.PI * 2 + ph
         pos[0] += Math.sin(angle) * amp[0]
@@ -174,7 +237,8 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
       world,
       worldPosition: threeToDepth(new THREE.Vector3().setFromMatrixPosition(world)),
       size,
-      bounds
+      bounds,
+      uvOffset
     }
   })
 

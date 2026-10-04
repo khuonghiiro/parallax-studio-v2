@@ -87,6 +87,18 @@ export interface ParticleProps {
 
 export type LayerMotionType = 'none' | 'drift' | 'wind' | 'sway' | 'float' | 'pulse'
 
+export type DriftDirection =
+  | 'right'
+  | 'up-right'
+  | 'up'
+  | 'up-left'
+  | 'left'
+  | 'down-left'
+  | 'down'
+  | 'down-right'
+
+export type DriftLoopMode = 'wrap' | 'uv' | 'ping-pong' | 'continuous'
+
 export interface LayerMotion {
   type: LayerMotionType
   /** Speed multiplier (units/sec for drift, cycles/sec for periodic waves). */
@@ -95,8 +107,12 @@ export interface LayerMotion {
   amplitude?: Vec3
   /** Initial phase offset in radians or time units. */
   phase?: number
-  /** Loop span in world units along X for seamless wrapping. */
+  /** Loop span in world units along drift direction for wrapping. */
   loopWidth?: number
+  /** Drift direction: angle in degrees (0-360) or named preset ('left', 'right', 'up', 'down', 'down-left'...). */
+  direction?: number | DriftDirection
+  /** Loop mode: 'wrap' (directional wrap), 'uv' (seamless texture scroll), 'ping-pong' (smooth wave), 'continuous'. */
+  loopMode?: DriftLoopMode
 }
 
 interface LayerBase<T extends LayerType, P> {
