@@ -6,6 +6,7 @@ import { initMcp } from './mcp/commands'
 import { useEditor } from './store/editor'
 import { useView } from './store/view'
 import { CameraPathDialog } from './ui/CameraPathDialog'
+import { CameraSketchDialog } from './ui/CameraSketchDialog'
 import { ExportDialog } from './ui/ExportDialog'
 import { Inspector } from './ui/Inspector'
 import { LeftPanel } from './ui/LeftPanel'
@@ -101,6 +102,7 @@ export default function App() {
 
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}
       {dialog === 'path' && <CameraPathDialog />}
+      {dialog === 'sketch' && <CameraSketchDialog />}
       {toast && <div className="toast">{toast}</div>}
       {!ready && (
         <div className="loading-screen">

@@ -1,6 +1,7 @@
 import type { Project, Shot, Vec3 } from '@shared/types'
 import { create } from 'zustand'
 import { buildCameraPath, flyCameraToShot, type PathOptions, type PathStep } from './animation/cameraPath'
+import { applyDrawnCameraPath } from './animation/cameraSketch'
 import { assetStore } from './project/assets'
 import { buildDemoProject } from './project/demo'
 import {
@@ -505,3 +506,21 @@ export function autoBuildCameraTour(): number {
   toast(`⚡ Đã tự động tạo lộ trình camera ${end.toFixed(1)}s qua ${steps.length} cảnh! Bấm Space để xem`)
   return end
 }
+
+/** Apply a 2D drawn path as a 3D camera trajectory with keyframes */
+export function applyDrawnCameraTour(
+  rawPoints: import('./animation/cameraSketch').Point2D[],
+  opts?: import('./animation/cameraSketch').CameraSketchOptions
+): number {
+  let count = 0
+  let dur = 0
+  editor().update((d) => {
+    const res = applyDrawnCameraPath(d as Project, rawPoints, opts)
+    count = res.keyframeCount
+    dur = res.duration
+  })
+  editor().setTime(0)
+  toast(`✏️ Đã tạo ${count} keyframe camera theo nét vẽ (${dur.toFixed(1)}s)! Bấm Space để xem`)
+  return dur
+}
+

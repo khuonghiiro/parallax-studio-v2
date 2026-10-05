@@ -3,7 +3,7 @@ import { addShot, autoBuildCameraTour, deleteShot, flyToShot, SHOT_DIRECTIONS, u
 import { shotAtTime } from '../animation/cameraPath'
 import { useEditor } from '../store/editor'
 import { useView } from '../store/view'
-import { IconCamera, IconEye, IconFocus, IconPlane, IconPlus, IconRoute, IconTrash } from './icons'
+import { IconCamera, IconEye, IconFocus, IconPen, IconPlane, IconPlus, IconRoute, IconTrash } from './icons'
 
 /** List of shots (scenes placed in 3D space) — AE-style "comp regions" the camera flies between. */
 export function ShotsPanel() {
@@ -74,6 +74,14 @@ export function ShotsPanel() {
           title="Tùy chỉnh chi tiết đường bay camera qua các cảnh (bay thẳng / vòng cung / cắt / fade)"
         >
           <IconRoute />
+        </button>
+        <button
+          id="open-path-sketch"
+          className="btn sm icon"
+          onClick={() => useView.getState().openDialog('sketch')}
+          title="✏️ Vẽ tự do đường bay camera trên mặt phẳng 2D (Top-down Floor Pen)"
+        >
+          <IconPen />
         </button>
       </div>
 

@@ -54,6 +54,11 @@ export const IconLoop = (p: P) => (
     <path d="M21 13v1a4 4 0 0 1-4 4H3" />
   </svg>
 )
+export const IconPen = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+  </svg>
+)
 export const IconUndo = (p: P) => (
   <svg {...base(p)}>
     <path d="M9 14 4 9l5-5" />
