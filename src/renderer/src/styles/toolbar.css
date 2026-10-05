@@ -1,0 +1,154 @@
+/* ==========================================================================
+   AE Toolbar: Top Application Workspace Bar, Brand Badge & Menu Bar
+   ========================================================================== */
+
+.toolbar {
+  grid-area: top;
+  position: relative;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--line);
+  background: #191919;
+}
+
+/* Brand & AE Logo Badge */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 10px;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+
+.brand-logo {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background: #121212;
+  border: 1.5px solid var(--accent);
+  position: relative;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 10px rgba(38, 128, 235, 0.35);
+}
+
+.brand-logo::before {
+  content: 'Ps';
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  letter-spacing: -0.05em;
+}
+
+.brand small {
+  display: block;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-faint);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Separators */
+.tb-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--line);
+  margin: 0 4px;
+}
+
+.tb-spacer {
+  flex: 1;
+}
+
+/* Composition Title & Status Badge */
+.doc-title {
+  color: var(--text-dim);
+  font-size: 11.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.doc-title .dirty {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--key);
+  box-shadow: 0 0 6px var(--key-glow);
+}
+
+/* MCP AI Status Chip */
+.mcp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 9px;
+  margin-right: 6px;
+  border-radius: var(--radius-pill);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  user-select: none;
+}
+.mcp-chip small {
+  font-family: var(--mono);
+  font-weight: 500;
+  color: var(--text-faint);
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mcp-chip .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #666666;
+}
+.mcp-chip.listening .dot {
+  background: var(--key);
+  box-shadow: 0 0 6px var(--key-glow);
+}
+.mcp-chip.connected {
+  color: #c9fbe0;
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.08);
+}
+.mcp-chip.connected .dot {
+  background: var(--ok);
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.7);
+  animation: mcp-pulse 1.8s ease-in-out infinite;
+}
+.mcp-chip.error {
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+.mcp-chip.error .dot {
+  background: var(--danger);
+}
+.mcp-chip.flash {
+  box-shadow: 0 0 0 2px rgba(38, 128, 235, 0.4), 0 0 14px rgba(38, 128, 235, 0.6);
+  border-color: var(--accent);
+}
+
+@keyframes mcp-pulse {
+  50% {
+    opacity: 0.4;
+  }
+}

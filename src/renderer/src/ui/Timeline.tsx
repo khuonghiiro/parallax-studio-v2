@@ -297,8 +297,13 @@ export function Timeline() {
       <div className="tl-body" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
         {/* header */}
         <div style={{ display: 'flex', flex: 'none' }}>
-          <div className="tl-names-head" style={{ width: NAME_W, borderRight: '1px solid var(--line-soft)' }}>
-            Layer · Z
+          <div className="tl-names-head" style={{ width: NAME_W, borderRight: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px' }}>
+            <span>Layer</span>
+            <span style={{ display: 'inline-flex', gap: 7, color: 'var(--text-faint)', fontSize: 9.5, fontWeight: 700 }}>
+              <span title="Độ sâu 3D (Z depth)">Z</span>
+              <span title="Ẩn / Hiện (Visibility)">👁</span>
+              <span title="Khóa layer (Lock)">🔒</span>
+            </span>
           </div>
           <div className="tl-ruler" ref={trackRef} style={{ flex: 1 }} onPointerDown={scrub}>
             {ticks.map((tk, i) => (

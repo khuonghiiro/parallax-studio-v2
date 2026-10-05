@@ -1,0 +1,334 @@
+/* ==========================================================================
+   AE Timeline: Transport Bar, Timecode Display, Ruler, Tracks & Diamond Keys
+   ========================================================================== */
+
+.timeline {
+  margin: 0 4px 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ------------------------------------------------------------------ Transport Bar */
+
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 8px;
+  height: 38px;
+  flex: none;
+  background: #1a1a1a;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Signature AE Recessed Cyan Timecode */
+.timecode {
+  display: inline-flex;
+  align-items: baseline;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: #111111;
+  border: 1px solid #282828;
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-cyan);
+  letter-spacing: 0.04em;
+  margin: 0 6px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+.timecode small {
+  color: var(--text-faint);
+  font-size: 9.5px;
+  margin-left: 6px;
+  font-weight: 500;
+}
+
+/* ------------------------------------------------------------------ Timeline Grid & Ruler */
+
+.tl-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  background: #181818;
+}
+
+.tl-names-head {
+  height: 24px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-faint);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: #1f1f1f;
+  border-right: 1px solid var(--line);
+}
+
+.tl-ruler {
+  height: 24px;
+  border-bottom: 1px solid var(--line);
+  position: relative;
+  cursor: col-resize;
+  background: #1c1c1c;
+}
+.tl-ruler .tick {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  background: #333333;
+}
+.tl-ruler .tick-label {
+  position: absolute;
+  top: 3px;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+  transform: translateX(3px);
+}
+
+.tl-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #181818;
+}
+
+/* ------------------------------------------------------------------ Track Rows */
+
+.tl-row {
+  height: 26px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #222222;
+  position: relative;
+  transition: background 0.08s;
+}
+.tl-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+.tl-row.sub {
+  height: 22px;
+  background: #151515;
+}
+.tl-row.selected {
+  background: rgba(38, 128, 235, 0.12);
+}
+
+.tl-name {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 0 6px;
+  cursor: pointer;
+  min-width: 0;
+  font-size: 11px;
+}
+.tl-name .label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+.tl-name .label input {
+  width: 100%;
+  background: #111;
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  outline: none;
+  padding: 1px 3px;
+  font-size: 11px;
+}
+.tl-name.sub {
+  padding-left: 28px;
+  color: var(--text-dim);
+}
+.tl-name .ico {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  font-size: 8.5px;
+  font-weight: 800;
+  color: #111;
+}
+.tl-name .depth {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--text-faint);
+  min-width: 24px;
+  text-align: right;
+}
+
+.tl-name .mini {
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--text-faint);
+  cursor: pointer;
+  border-radius: 2px;
+  display: grid;
+  place-items: center;
+}
+.tl-name .mini:hover {
+  color: var(--text);
+  background: var(--bg-3);
+}
+.tl-name .mini.off {
+  opacity: 0.3;
+}
+.tl-name .mini svg {
+  width: 12px;
+  height: 12px;
+}
+.tl-name .caret {
+  transition: transform 0.12s;
+}
+.tl-name .caret.open {
+  transform: rotate(90deg);
+}
+.tl-name .row-actions {
+  display: none;
+  gap: 1px;
+}
+.tl-row:hover .row-actions {
+  display: flex;
+}
+
+/* ------------------------------------------------------------------ Track Bars & Diamonds */
+
+.tl-bar {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 2px;
+  opacity: 0.9;
+  cursor: grab;
+}
+.tl-bar .handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: ew-resize;
+}
+.tl-bar .handle.l {
+  left: 0;
+}
+.tl-bar .handle.r {
+  right: 0;
+}
+
+/* Classic Golden Diamond Keyframe (◆) */
+.tl-key {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  transform: rotate(45deg);
+  background: var(--key);
+  border: 1px solid rgba(0, 0, 0, 0.7);
+  border-radius: 1px;
+  cursor: grab;
+  transition: box-shadow 0.1s, transform 0.1s;
+  z-index: 2;
+}
+.tl-key:hover {
+  box-shadow: 0 0 0 2px var(--key-glow);
+  transform: rotate(45deg) scale(1.15);
+}
+.tl-key.selected {
+  background: #ffffff;
+  border-color: #000;
+  box-shadow: 0 0 0 2px rgba(38, 128, 235, 0.7);
+}
+.tl-key.summary {
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  background: rgba(245, 158, 11, 0.6);
+  cursor: default;
+}
+.tl-key.hold {
+  border-radius: 0;
+  transform: none;
+}
+
+/* Current Time Indicator (CTI) */
+.playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--accent-cyan);
+  pointer-events: none;
+  z-index: 20;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.7);
+}
+.playhead::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -5px;
+  border: 5px solid transparent;
+  border-top: 7px solid #ef4444; /* Signature AE Red Playhead Cap */
+}
+
+/* Audio waveform */
+.audio-wave {
+  position: absolute;
+  inset: 2px 0;
+  opacity: 0.9;
+}
+
+/* Shot Segment Markers in Timeline */
+.tl-shot-strip {
+  position: absolute;
+  inset: 4px 0;
+}
+.tl-shot-seg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--c, var(--accent)) 30%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c, var(--accent)) 65%, transparent);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 0 5px;
+  line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.tl-shot-seg.dark {
+  border-style: dashed;
+  border-color: var(--line);
+  color: var(--text-faint);
+}
+
+.tl-name.group {
+  font-weight: 600;
+  background: color-mix(in srgb, var(--c, var(--accent)) 10%, transparent);
+  box-shadow: inset 2px 0 0 var(--c, var(--accent));
+}
+.tl-row.group {
+  background: color-mix(in srgb, var(--c, var(--accent)) 6%, transparent);
+}

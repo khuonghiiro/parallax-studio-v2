@@ -20,7 +20,7 @@ interface NumberInputProps {
   id?: string
 }
 
-/** Numeric field with AE-style drag-to-scrub on its axis label. */
+/** Numeric field with AE-style drag-to-scrub on axis and value, plus instant click-to-type. */
 export function NumberInput({
   value,
   onChange,
@@ -34,26 +34,58 @@ export function NumberInput({
   id
 }: NumberInputProps) {
   const [text, setText] = useState<string | null>(null)
+  const [scrubbing, setScrubbing] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
   const clamp = (v: number): number => Math.min(max, Math.max(min, v))
   const shown = text ?? `${Number(value.toFixed(precision))}${suffix ?? ''}`
 
   const startScrub = (e: React.PointerEvent): void => {
+    // If input is currently focused for text editing, don't hijack typing/text selection
+    if (document.activeElement === inputRef.current && e.target === inputRef.current) {
+      return
+    }
+    if (e.button !== 0) return // Left click only
     e.preventDefault()
+
     const startX = e.clientX
     const start = value
     const key = `scrub-${nanoid(6)}`
     const target = e.currentTarget as HTMLElement
+    let hasDragged = false
     target.setPointerCapture(e.pointerId)
+
     const move = (ev: PointerEvent): void => {
-      const mult = ev.shiftKey ? 10 : ev.altKey ? 0.1 : 1
-      onChange(clamp(start + (ev.clientX - startX) * step * mult), key)
+      const dx = ev.clientX - startX
+      if (!hasDragged && Math.abs(dx) > 2) {
+        hasDragged = true
+        setScrubbing(true)
+        document.body.style.cursor = 'ew-resize'
+      }
+      if (hasDragged) {
+        const mult = ev.shiftKey ? 10 : ev.altKey ? 0.1 : 1
+        onChange(clamp(start + dx * step * mult), key)
+      }
     }
+
     const up = (): void => {
       target.removeEventListener('pointermove', move)
       target.removeEventListener('pointerup', up)
+      target.removeEventListener('pointercancel', up)
+      document.body.style.cursor = ''
+      setScrubbing(false)
+      if (!hasDragged) {
+        // Single click: focus and select all for fast numeric typing
+        if (inputRef.current) {
+          setText(String(Number(value.toFixed(precision))))
+          inputRef.current.focus()
+          requestAnimationFrame(() => inputRef.current?.select())
+        }
+      }
     }
+
     target.addEventListener('pointermove', move)
     target.addEventListener('pointerup', up)
+    target.addEventListener('pointercancel', up)
   }
 
   const commit = (): void => {
@@ -64,13 +96,18 @@ export function NumberInput({
   }
 
   return (
-    <label className={`num${animated ? ' animated' : ''}`}>
+    <label
+      className={`num${animated ? ' animated' : ''}${scrubbing ? ' scrubbing' : ''}`}
+      onPointerDown={startScrub}
+      title="Kéo ngang để đổi giá trị (Shift: x10, Alt: x0.1) · Click để nhập số"
+    >
       {axis && (
-        <span className={`axis ${axis}`} onPointerDown={startScrub}>
+        <span className={`axis ${axis}`}>
           {axis.toUpperCase()}
         </span>
       )}
       <input
+        ref={inputRef}
         id={id}
         value={shown}
         onFocus={(e) => {
@@ -89,7 +126,7 @@ export function NumberInput({
             e.preventDefault()
             const dir = e.key === 'ArrowUp' ? 1 : -1
             const mult = e.shiftKey ? 10 : 1
-            const v = clamp(value + dir * step * 10 * mult)
+            const v = clamp(value + dir * step * mult)
             onChange(v, 'arrow')
             setText(String(Number(v.toFixed(precision))))
           }

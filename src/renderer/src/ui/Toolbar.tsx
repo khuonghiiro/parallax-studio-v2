@@ -108,7 +108,8 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
   const canRedo = useEditor((s) => s.future.length > 0)
   const dirty = useEditor((s) => s.dirty)
   const filePath = useEditor((s) => s.filePath)
-  const compName = useEditor((s) => s.project.comp.name)
+  const comp = useEditor((s) => s.project.comp)
+  const compName = comp.name
   const { undo, redo } = useEditor.getState()
   const fileName = filePath ? filePath.split(/[\\/]/).pop() : 'Chưa lưu'
 
@@ -181,9 +182,14 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
       </button>
 
       <span className="tb-spacer" />
-      <div className="doc-title">
+      <div className="doc-title" title={`Composition: ${compName} (${comp.width}×${comp.height} @ ${comp.fps}fps)`}>
         {dirty && <span className="dirty" title="Có thay đổi chưa lưu" />}
-        <b style={{ color: 'var(--text)' }}>{compName}</b> · {fileName}
+        <b style={{ color: 'var(--text)' }}>{compName}</b>
+        <span style={{ color: 'var(--accent-cyan)', opacity: 0.85, fontSize: '10.5px', fontFamily: 'var(--mono)' }}>
+          {comp.width}×{comp.height} @ {comp.fps}fps
+        </span>
+        <span style={{ opacity: 0.4 }}>•</span>
+        <span style={{ color: 'var(--text-dim)' }}>{fileName}</span>
       </div>
       <span className="tb-spacer" />
 
