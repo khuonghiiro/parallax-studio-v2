@@ -8,8 +8,8 @@
   },
   "look": {
     "fogEnabled": false,
-    "vignette": 0.28,
-    "grain": 0.02,
+    "vignette": 0,
+    "grain": 0,
     "contrast": 1.05,
     "saturation": 1.08
   },

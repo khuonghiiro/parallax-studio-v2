@@ -47,8 +47,8 @@ export function defaultLook(): LookSettings {
     fogColor: '#2a2140',
     fogNear: 1500,
     fogFar: 6000,
-    vignette: 0.35,
-    grain: 0.04,
+    vignette: 0,
+    grain: 0,
     exposure: 0,
     contrast: 1,
     saturation: 1

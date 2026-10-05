@@ -159,11 +159,15 @@ void main() {
   c = (c - 0.5) * contrast + 0.5;
   float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
   c = mix(vec3(l), c, saturation);
-  vec2 q = vUv - 0.5;
-  q.x *= resolution.x / resolution.y;
-  float v = 1.0 - smoothstep(0.25, 0.95, length(q));
-  c *= mix(1.0, v, vignette);
-  c += (hash(vUv * resolution) - 0.5) * grain;
+  if (vignette > 0.001) {
+    vec2 q = (vUv - 0.5) * 1.414;
+    float dist = length(q);
+    float v = clamp(1.0 - smoothstep(0.5, 1.25, dist), 0.0, 1.0);
+    c *= mix(1.0, v, vignette);
+  }
+  if (grain > 0.001) {
+    c += (hash(vUv * resolution) - 0.5) * grain;
+  }
   c *= 1.0 - fade;
   gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
 }

@@ -1,5 +1,6 @@
 import type { Layer, Vec3 } from '@shared/types'
 import { setValueAt } from '../../../animation/keyframes'
+import { referenceDistance } from '../../../animation/math'
 import { assetStore } from '../../../project/assets'
 import { frameTolerance, useEditor } from '../../../store/editor'
 import { NumberInput, Row, Slider, Switch } from '../../controls'
@@ -12,6 +13,16 @@ export function ImageSection({ layer, set }: { layer: Layer & { type: 'image' };
   const asset = assetStore.get(layer.props.assetId)
   const setScale = (k: number): void =>
     set((l) => setValueAt(l.transform.scale, time, [k, k, 1] as Vec3, tol))
+  const matchComp = (): void => {
+    useEditor.getState().update((d) => {
+      d.comp.width = layer.props.width
+      d.comp.height = layer.props.height
+      const refD = referenceDistance(d.comp)
+      d.camera.position.value = [0, 0, -refD]
+      d.camera.target.value = [0, 0, 0]
+      d.camera.focusDistance.value = Math.round(refD)
+    })
+  }
   return (
     <div className="section">
       <div className="section-title">Ảnh</div>
@@ -21,14 +32,17 @@ export function ImageSection({ layer, set }: { layer: Layer & { type: 'image' };
         </span>
       </Row>
       <Row label="Kích thước">
-        <button className="btn sm" onClick={() => setScale(Math.max(comp.width / layer.props.width, comp.height / layer.props.height))}>
+        <button className="btn sm" title="Phủ kín khung hình" onClick={() => setScale(Math.max(comp.width / layer.props.width, comp.height / layer.props.height))}>
           Phủ khung
         </button>
-        <button className="btn sm" onClick={() => setScale(Math.min(comp.width / layer.props.width, comp.height / layer.props.height))}>
+        <button className="btn sm" title="Thu vừa lọt vào khung hình" onClick={() => setScale(Math.min(comp.width / layer.props.width, comp.height / layer.props.height))}>
           Vừa khung
         </button>
-        <button className="btn sm" onClick={() => setScale(1)}>
+        <button className="btn sm" title="Giữ nguyên 100% kích thước pixel gốc" onClick={() => setScale(1)}>
           100%
+        </button>
+        <button className="btn sm" title="Đổi kích thước khung hình (Composition) bằng đúng kích thước ảnh này" onClick={matchComp}>
+          Khớp khung
         </button>
       </Row>
       <Row label="Lặp texture" title="Lặp lại ảnh theo chiều rộng (X) và chiều sâu (Y) khi làm mặt đất/sàn">
