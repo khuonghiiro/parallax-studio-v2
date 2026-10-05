@@ -1,11 +1,27 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'child_process'
+import { existsSync } from 'fs'
+import { join } from 'path'
 import ffmpegStatic from 'ffmpeg-static'
 import type { ExportResult, ExportStartOptions } from '@shared/ipc'
 
-/** Resolve the bundled ffmpeg binary, accounting for asar unpacking in packaged builds. */
-function ffmpegPath(): string {
-  const p = (ffmpegStatic as unknown as string) ?? 'ffmpeg'
-  return p.replace('app.asar', 'app.asar.unpacked')
+/** Resolve the ffmpeg binary from env, local project bin, ffmpeg-static, or system PATH. */
+export function ffmpegPath(): string {
+  if (process.env.FFMPEG_BIN && existsSync(process.env.FFMPEG_BIN)) {
+    return process.env.FFMPEG_BIN
+  }
+  const binName = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
+  const localBin = join(process.cwd(), 'bin', binName)
+  if (existsSync(localBin)) {
+    return localBin
+  }
+  const staticPath = (ffmpegStatic as unknown as string)
+  if (staticPath) {
+    const unpacked = staticPath.replace('app.asar', 'app.asar.unpacked')
+    if (existsSync(unpacked)) {
+      return unpacked
+    }
+  }
+  return 'ffmpeg'
 }
 
 /**
