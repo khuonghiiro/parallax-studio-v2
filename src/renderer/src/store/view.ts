@@ -22,7 +22,7 @@ export interface FocusRequest {
   n: number
 }
 
-interface ViewState extends ViewPrefs {
+export interface ViewState extends ViewPrefs {
   focus: FocusRequest | null
   dialog: 'path' | null
   set(p: Partial<ViewPrefs>): void
