@@ -8,7 +8,9 @@ import { evaluateScene } from '../engine/evaluateScene'
 import { getAnimatedGifFrameIndex } from './gifHelper'
 
 describe('Animated GIF in Scene Integration Test', () => {
-  const gifPath = path.resolve(process.cwd(), 'sample_animation.gif')
+  const gifPath = fs.existsSync(path.resolve(process.cwd(), 'assets', 'demos', 'sample_animation.gif'))
+    ? path.resolve(process.cwd(), 'assets', 'demos', 'sample_animation.gif')
+    : path.resolve(process.cwd(), 'sample_animation.gif')
   const gifBuffer = fs.readFileSync(gifPath)
   const uint8Array = new Uint8Array(gifBuffer)
 
