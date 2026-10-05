@@ -14,6 +14,34 @@ describe('JSON Project Format & Declarative Scene Spec', () => {
       'Twilight Valley',
       'Celestial Portal (GIF)'
     ])
+    const s0 = project.shots[0]
+    const s0Layers = project.layers.filter((l) => l.shotId === s0.id)
+    const { evaluateScene } = await import('../engine/evaluateScene')
+    const ev = evaluateScene(project, 0)
+    console.log('Camera pos:', ev.camera.position, 'target:', ev.camera.target, 'fov:', ev.camera.fov)
+    const THREE = await import('three')
+    const shot0Layers = ev.layers.filter((l) => l.shot?.shot.id === s0.id)
+    const cam = new THREE.PerspectiveCamera(40, 1920 / 1080, 1, 400000)
+    cam.position.set(ev.camera.position[0], ev.camera.position[1], -ev.camera.position[2])
+    cam.lookAt(ev.camera.target[0], ev.camera.target[1], -ev.camera.target[2])
+    cam.updateMatrixWorld()
+    const frustum = new THREE.Frustum()
+    frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse))
+
+    for (const l of shot0Layers) {
+      const inFrustum = frustum.intersectsBox(l.bounds)
+      console.log(l.layer.name, {
+        inFrustum,
+        type: l.layer.type,
+        active: l.active,
+        opacity: l.opacity,
+        pos: l.worldPosition,
+        scale: l.scale,
+        size: l.size,
+        min: [Math.round(l.bounds.min.x), Math.round(l.bounds.min.y), Math.round(l.bounds.min.z)],
+        max: [Math.round(l.bounds.max.x), Math.round(l.bounds.max.y), Math.round(l.bounds.max.z)]
+      })
+    }
     expect(project.layers.length).toBeGreaterThan(20)
     expect(project.comp.duration).toBeGreaterThan(15)
   })
