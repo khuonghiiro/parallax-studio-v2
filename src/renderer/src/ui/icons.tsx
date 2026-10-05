@@ -264,3 +264,9 @@ export const IconMoon = (p: P) => (
   </svg>
 )
 
+export const IconCheck = (p: P) => (
+  <svg {...base(p)}>
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+)
+

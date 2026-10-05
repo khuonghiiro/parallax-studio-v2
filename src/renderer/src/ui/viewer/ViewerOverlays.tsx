@@ -56,9 +56,11 @@ export function ViewerOverlays({
           <span
             id="memory-chip"
             className={`chip mem${stats.textureMB > stats.budgetMB * 0.85 ? ' warn' : ''}`}
-            title={`Texture GPU đang giữ: ${stats.textures} (${stats.pending} đang giải mã)\nNgân sách VRAM: ${stats.budgetMB} MB · LOD bias ${stats.lodBias}\nLayer đang vẽ trong camera: ${stats.visibleLayers}/${stats.totalLayers}\nChỉ cảnh nằm trong khung camera mới được nạp & render.`}
+            onClick={() => useView.getState().openDialog('performance')}
+            style={{ cursor: 'pointer' }}
+            title={`⚡ Texture GPU đang giữ: ${stats.textures} (${stats.pending} đang giải mã)\nNgân sách VRAM: ${stats.budgetMB} MB · LOD bias ${stats.lodBias}\nLayer đang vẽ trong camera: ${stats.visibleLayers}/${stats.totalLayers}\n\n👉 Bấm vào đây để mở Cấu hình Hiệu năng, RAM & VRAM GPU.`}
           >
-            VRAM {stats.textureMB.toFixed(0)}/{stats.budgetMB} MB · {stats.textures} tex
+            ⚡ VRAM {stats.textureMB.toFixed(0)}/{stats.budgetMB} MB · {stats.textures} tex
             {stats.totalShots > 0 && ` · cảnh ${stats.visibleShots}/${stats.totalShots}`}
           </span>
         )}

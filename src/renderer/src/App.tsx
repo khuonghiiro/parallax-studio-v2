@@ -8,11 +8,13 @@ import { useView } from './store/view'
 import { CameraPathDialog } from './ui/CameraPathDialog'
 import { CameraSketchDialog } from './ui/CameraSketchDialog'
 import { ExportDialog } from './ui/ExportDialog'
+import { PerformanceDialog } from './ui/PerformanceDialog'
 import { Inspector } from './ui/Inspector'
 import { LeftPanel } from './ui/LeftPanel'
 import { Timeline } from './ui/Timeline'
 import { Toolbar } from './ui/Toolbar'
 import { Viewer } from './ui/Viewer'
+import { usePerformance } from './store/performance'
 
 export default function App() {
   const [ready, setReady] = useState(false)
@@ -37,6 +39,7 @@ export default function App() {
       .catch((err) => console.error(err))
       .finally(() => {
         setReady(true)
+        usePerformance.getState().init().catch(() => undefined)
         // StrictMode mounts twice in dev: never subscribe from a disposed effect.
         if (!disposed) off = initMcp()
       })
@@ -103,6 +106,7 @@ export default function App() {
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}
       {dialog === 'path' && <CameraPathDialog />}
       {dialog === 'sketch' && <CameraSketchDialog />}
+      {dialog === 'performance' && <PerformanceDialog />}
       {toast && <div className="toast">{toast}</div>}
       {!ready && (
         <div className="loading-screen">

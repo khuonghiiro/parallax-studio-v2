@@ -32,6 +32,26 @@ export class TexturePool {
     this.maxAnisotropy = maxAnisotropy
   }
 
+  get maxTextureSize(): number {
+    return this.maxTex
+  }
+  set maxTextureSize(val: number) {
+    this.maxTex = Math.min(16384, Math.max(1024, val))
+  }
+
+  get maxAnisotropyLevel(): number {
+    return this.maxAnisotropy
+  }
+  set maxAnisotropyLevel(val: number) {
+    this.maxAnisotropy = Math.max(1, val)
+    for (const e of this.pool.values()) {
+      if (e.texture.anisotropy !== this.maxAnisotropy) {
+        e.texture.anisotropy = this.maxAnisotropy
+        e.texture.needsUpdate = true
+      }
+    }
+  }
+
   advanceTick(): void {
     this.tick++
   }

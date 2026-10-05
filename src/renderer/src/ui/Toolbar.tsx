@@ -200,6 +200,14 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
 
       <McpChip />
       <button
+        id="perf-settings-btn"
+        className="btn ghost icon"
+        onClick={() => useView.getState().openDialog('performance')}
+        title="Cấu hình Hiệu năng, RAM & VRAM GPU"
+      >
+        <span style={{ fontSize: '13px' }}>⚡</span>
+      </button>
+      <button
         id="theme-toggle"
         className="btn ghost icon"
         onClick={() => useView.getState().toggleTheme()}

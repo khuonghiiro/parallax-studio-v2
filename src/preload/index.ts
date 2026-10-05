@@ -14,6 +14,7 @@ const api: ParallaxApi = {
   exportCancel: () => ipcRenderer.invoke('export:cancel'),
   revealFile: (p) => ipcRenderer.invoke('shell:reveal', p),
   setTitle: (title) => ipcRenderer.send('window:title', title),
+  getSystemInfo: () => ipcRenderer.invoke('system:getInfo'),
   mcp: {
     onCommand: (cb) => {
       const h = (_e: Electron.IpcRendererEvent, cmd: McpCommand): void => cb(cmd)

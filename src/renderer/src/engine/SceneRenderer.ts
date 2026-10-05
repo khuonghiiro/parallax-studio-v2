@@ -80,6 +80,29 @@ export class SceneRenderer {
     this.pool.budgetMB = val
   }
 
+  get maxAnisotropy(): number {
+    return this.pool.maxAnisotropyLevel
+  }
+
+  set maxAnisotropy(val: number) {
+    this.pool.maxAnisotropyLevel = val
+  }
+
+  get maxTextureSize(): number {
+    return this.pool.maxTextureSize
+  }
+
+  set maxTextureSize(val: number) {
+    this.pool.maxTextureSize = val
+  }
+
+  get webglCapabilities(): { maxAnisotropy: number; maxTextureSize: number } {
+    return {
+      maxAnisotropy: this.renderer.capabilities.getMaxAnisotropy(),
+      maxTextureSize: this.renderer.capabilities.maxTextureSize
+    }
+  }
+
   get onInvalidate(): () => void {
     return this.pool.onInvalidate
   }

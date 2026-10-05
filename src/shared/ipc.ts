@@ -23,6 +23,15 @@ export interface ExportResult {
   outPath?: string
 }
 
+export interface SystemHardwareInfo {
+  totalRamMB: number
+  freeRamMB: number
+  cpuModel: string
+  gpuName?: string
+  gpuVramMB?: number
+  platform: string
+}
+
 export interface ParallaxApi {
   openFiles(kind: 'image' | 'audio'): Promise<PickedFile[]>
   saveProject(data: Uint8Array, suggestedPath?: string): Promise<string | null>
@@ -36,6 +45,7 @@ export interface ParallaxApi {
   exportCancel(): Promise<void>
   revealFile(path: string): Promise<void>
   setTitle(title: string): void
+  getSystemInfo(): Promise<SystemHardwareInfo>
   mcp: McpApi
 }
 

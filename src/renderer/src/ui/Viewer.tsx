@@ -9,6 +9,7 @@ import { setLiveRenderer } from '../engine/liveRenderer'
 import { assetStore } from '../project/assets'
 import { useEditor } from '../store/editor'
 import { useView } from '../store/view'
+import { usePerformance } from '../store/performance'
 import {
   CLEAR,
   EDITOR_KINDS,
@@ -114,7 +115,10 @@ export function Viewer() {
   // ---------------------------------------------------------------- lifecycle
 
   useEffect(() => {
-    const r = new SceneRenderer(canvasRef.current!)
+    const perf = usePerformance.getState()
+    const r = new SceneRenderer(canvasRef.current!, { budgetMB: perf.budgetMB })
+    r.maxAnisotropy = perf.maxAnisotropy
+    r.maxTextureSize = perf.maxTextureSize
     rendererRef.current = r
     setLiveRenderer(r)
     r.onInvalidate = () => requestRender()
@@ -134,11 +138,24 @@ export function Viewer() {
       requestRender()
     })
     const unsubAssets = assetStore.subscribe(() => requestRender())
+    const unsubPerf = usePerformance.subscribe((p, prev) => {
+      if (
+        p.budgetMB !== prev.budgetMB ||
+        p.maxAnisotropy !== prev.maxAnisotropy ||
+        p.maxTextureSize !== prev.maxTextureSize
+      ) {
+        r.budgetMB = p.budgetMB
+        r.maxAnisotropy = p.maxAnisotropy
+        r.maxTextureSize = p.maxTextureSize
+        requestRender()
+      }
+    })
     requestRender()
     return () => {
       unsubStore()
       unsubView()
       unsubAssets()
+      unsubPerf()
       cancelAnimationFrame(rafRef.current)
       r.dispose()
       setLiveRenderer(null)
