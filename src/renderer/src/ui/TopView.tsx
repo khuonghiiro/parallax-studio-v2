@@ -7,6 +7,14 @@ import { shotAtTime } from '../animation/cameraPath'
 import { evaluateScene } from '../engine/evaluateScene'
 import { composeDepthMatrix, depthToThree, threeToDepth } from '../engine/spatial'
 import { frameTolerance, useEditor } from '../store/editor'
+import {
+  computeRotatedTarget,
+  computeTranslatedCamera,
+  localToScreenX,
+  localToScreenZ,
+  screenToLocalX,
+  screenToLocalZ
+} from './topViewCameraMath'
 
 export const TYPE_COLORS: Record<string, string> = {
   image: '#8b7bff',
@@ -42,7 +50,7 @@ export function useFocusShotId(): string | null {
 
 /**
  * Top-down schematic of one shot's layer depths (shot-local space) and the camera frustum.
- * Drag layers to change depth.
+ * Allows interactive dragging of layers, camera position dot, and viewing angle.
  */
 export function TopView({ shotId }: { shotId: string | null }) {
   const project = useEditor((s) => s.project)
@@ -51,6 +59,7 @@ export function TopView({ shotId }: { shotId: string | null }) {
   const selectLayer = useEditor((s) => s.selectLayer)
   const wrapRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ w: 260, h: 220 })
+  const [camDragMode, setCamDragMode] = useState<'none' | 'pos' | 'aim' | 'target'>('none')
 
   useEffect(() => {
     const el = wrapRef.current!
@@ -75,9 +84,11 @@ export function TopView({ shotId }: { shotId: string | null }) {
   const zMax = Math.max(...zs, 0) + 400
   const xHalf = comp.width * 1.3
   const pad = 14
-  const sx = (x: number): number => pad + ((x + xHalf) / (2 * xHalf)) * (size.w - pad * 2)
-  const sz = (z: number): number => pad + (1 - (z - zMin) / (zMax - zMin)) * (size.h - pad * 2)
-  const unz = (py: number): number => zMin + (1 - (py - pad) / (size.h - pad * 2)) * (zMax - zMin)
+
+  const sx = (x: number): number => localToScreenX(x, size.w, pad, xHalf)
+  const sz = (z: number): number => localToScreenZ(z, size.h, pad, zMin, zMax)
+  const unx = (px: number): number => screenToLocalX(px, size.w, pad, xHalf)
+  const unz = (py: number): number => screenToLocalZ(py, size.h, pad, zMin, zMax)
 
   const aspect = comp.width / comp.height
   const hfov = 2 * Math.atan(Math.tan(((ev.camera.fov / 2) * Math.PI) / 180) * aspect)
@@ -89,6 +100,16 @@ export function TopView({ shotId }: { shotId: string | null }) {
   }
   const [lx, lz] = fx(-1)
   const [rx, rz] = fx(1)
+
+  // Aim direction handle position along view vector
+  const aimDist = Math.max(80, Math.min(reach * 0.22, 160))
+  const aimLocalX = camPos[0] + Math.sin(dir) * aimDist
+  const aimLocalZ = camPos[2] + Math.cos(dir) * aimDist
+  const aimScreenX = sx(aimLocalX)
+  const aimScreenZ = sz(aimLocalZ)
+
+  const targetScreenX = sx(camTarget[0])
+  const targetScreenZ = sz(camTarget[2])
 
   // Greedy label placement: nudge names upward when they would collide.
   const labelPos = new Map<string, { x: number; y: number }>()
@@ -134,8 +155,186 @@ export function TopView({ shotId }: { shotId: string | null }) {
     window.addEventListener('pointerup', up)
   }
 
+  const startCamPosDrag = (e: React.PointerEvent): void => {
+    e.stopPropagation()
+    const st = useEditor.getState()
+    const rect = (e.currentTarget as SVGElement).ownerSVGElement!.getBoundingClientRect()
+    const key = `topcampos-${nanoid(6)}`
+
+    const curEv = evaluateScene(st.project, st.time)
+    const curShot = shotId ? curEv.shots.find((s) => s.shot.id === shotId) : undefined
+    const curInv = curShot ? curShot.matrix.clone().invert() : new THREE.Matrix4()
+    const curMat = curShot ? curShot.matrix : new THREE.Matrix4()
+    const localP = (p: Vec3): Vec3 => threeToDepth(depthToThree(p).applyMatrix4(curInv))
+    const worldP = (p: Vec3): Vec3 => threeToDepth(depthToThree(p).applyMatrix4(curMat))
+
+    const initLocalCam = localP(curEv.camera.position)
+    const initLocalTarget = localP(curEv.camera.target)
+    const startMouseLocalX = unx(e.clientX - rect.left)
+    const startMouseLocalZ = unz(e.clientY - rect.top)
+
+    setCamDragMode(e.altKey ? 'aim' : 'pos')
+
+    const move = (pev: PointerEvent): void => {
+      const s = useEditor.getState()
+      const tol = frameTolerance(s.project)
+      const curLocalX = unx(pev.clientX - rect.left)
+      const curLocalZ = unz(pev.clientY - rect.top)
+
+      if (pev.altKey) {
+        const newLocalTarget = computeRotatedTarget(initLocalCam, initLocalTarget, [curLocalX, curLocalZ])
+        const newWorldTarget = worldP(newLocalTarget)
+        s.update((d) => {
+          setValueAt(d.camera.target, s.time, newWorldTarget, tol)
+          const curWorldCam = evaluate(d.camera.position, s.time)
+          const dist = Math.hypot(
+            curWorldCam[0] - newWorldTarget[0],
+            curWorldCam[1] - newWorldTarget[1],
+            curWorldCam[2] - newWorldTarget[2]
+          )
+          setValueAt(d.camera.focusDistance, s.time, Math.round(dist), tol)
+        }, key)
+      } else {
+        const deltaX = curLocalX - startMouseLocalX
+        const deltaZ = curLocalZ - startMouseLocalZ
+        const { camPos: nextCam, target: nextTarget } = computeTranslatedCamera(
+          initLocalCam,
+          initLocalTarget,
+          deltaX,
+          deltaZ,
+          pev.shiftKey
+        )
+        const newWorldCam = worldP(nextCam)
+        const newWorldTarget = worldP(nextTarget)
+        s.update((d) => {
+          setValueAt(d.camera.position, s.time, newWorldCam, tol)
+          setValueAt(d.camera.target, s.time, newWorldTarget, tol)
+          const dist = Math.hypot(
+            newWorldCam[0] - newWorldTarget[0],
+            newWorldCam[1] - newWorldTarget[1],
+            newWorldCam[2] - newWorldTarget[2]
+          )
+          setValueAt(d.camera.focusDistance, s.time, Math.round(dist), tol)
+        }, key)
+      }
+    }
+
+    const up = (): void => {
+      setCamDragMode('none')
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
+  const startCamAngleDrag = (e: React.PointerEvent): void => {
+    e.stopPropagation()
+    const st = useEditor.getState()
+    const rect = (e.currentTarget as SVGElement).ownerSVGElement!.getBoundingClientRect()
+    const key = `topcamangle-${nanoid(6)}`
+
+    const curEv = evaluateScene(st.project, st.time)
+    const curShot = shotId ? curEv.shots.find((s) => s.shot.id === shotId) : undefined
+    const curInv = curShot ? curShot.matrix.clone().invert() : new THREE.Matrix4()
+    const curMat = curShot ? curShot.matrix : new THREE.Matrix4()
+    const localP = (p: Vec3): Vec3 => threeToDepth(depthToThree(p).applyMatrix4(curInv))
+    const worldP = (p: Vec3): Vec3 => threeToDepth(depthToThree(p).applyMatrix4(curMat))
+
+    const initLocalCam = localP(curEv.camera.position)
+    const initLocalTarget = localP(curEv.camera.target)
+
+    setCamDragMode('aim')
+
+    const move = (pev: PointerEvent): void => {
+      const s = useEditor.getState()
+      const tol = frameTolerance(s.project)
+      const curLocalX = unx(pev.clientX - rect.left)
+      const curLocalZ = unz(pev.clientY - rect.top)
+
+      const newLocalTarget = computeRotatedTarget(initLocalCam, initLocalTarget, [curLocalX, curLocalZ])
+      const newWorldTarget = worldP(newLocalTarget)
+
+      s.update((d) => {
+        setValueAt(d.camera.target, s.time, newWorldTarget, tol)
+        const curWorldCam = evaluate(d.camera.position, s.time)
+        const dist = Math.hypot(
+          curWorldCam[0] - newWorldTarget[0],
+          curWorldCam[1] - newWorldTarget[1],
+          curWorldCam[2] - newWorldTarget[2]
+        )
+        setValueAt(d.camera.focusDistance, s.time, Math.round(dist), tol)
+      }, key)
+    }
+
+    const up = (): void => {
+      setCamDragMode('none')
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
+  const startCamTargetDrag = (e: React.PointerEvent): void => {
+    e.stopPropagation()
+    const st = useEditor.getState()
+    const rect = (e.currentTarget as SVGElement).ownerSVGElement!.getBoundingClientRect()
+    const key = `topcamtarget-${nanoid(6)}`
+
+    const curEv = evaluateScene(st.project, st.time)
+    const curShot = shotId ? curEv.shots.find((s) => s.shot.id === shotId) : undefined
+    const curInv = curShot ? curShot.matrix.clone().invert() : new THREE.Matrix4()
+    const curMat = curShot ? curShot.matrix : new THREE.Matrix4()
+    const localP = (p: Vec3): Vec3 => threeToDepth(depthToThree(p).applyMatrix4(curInv))
+    const worldP = (p: Vec3): Vec3 => threeToDepth(depthToThree(p).applyMatrix4(curMat))
+
+    const initLocalTarget = localP(curEv.camera.target)
+
+    setCamDragMode('target')
+
+    const move = (pev: PointerEvent): void => {
+      const s = useEditor.getState()
+      const tol = frameTolerance(s.project)
+      const curLocalX = unx(pev.clientX - rect.left)
+      const curLocalZ = unz(pev.clientY - rect.top)
+
+      const newLocalTarget: Vec3 = [Math.round(curLocalX), initLocalTarget[1], Math.round(curLocalZ)]
+      const newWorldTarget = worldP(newLocalTarget)
+
+      s.update((d) => {
+        setValueAt(d.camera.target, s.time, newWorldTarget, tol)
+        const curWorldCam = evaluate(d.camera.position, s.time)
+        const dist = Math.hypot(
+          curWorldCam[0] - newWorldTarget[0],
+          curWorldCam[1] - newWorldTarget[1],
+          curWorldCam[2] - newWorldTarget[2]
+        )
+        setValueAt(d.camera.focusDistance, s.time, Math.round(dist), tol)
+      }, key)
+    }
+
+    const up = (): void => {
+      setCamDragMode('none')
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
+  const isTargetVisible =
+    targetScreenZ >= 0 && targetScreenZ <= size.h && targetScreenX >= 0 && targetScreenX <= size.w
+
   return (
     <div className="topview" ref={wrapRef} style={{ position: 'absolute', inset: 0 }} onPointerDown={() => selectLayer(null)}>
+      {camDragMode !== 'none' && (
+        <div className="tv-hud-badge">
+          {camDragMode === 'pos'
+            ? `Pos: [${Math.round(camPos[0])}, ${Math.round(camPos[2])}]`
+            : `Yaw: ${Math.round((dir * 180) / Math.PI)}°`}
+        </div>
+      )}
       <svg width={size.w} height={size.h}>
         <defs>
           <linearGradient id="frustum" x1="0" y1="1" x2="0" y2="0">
@@ -155,6 +354,56 @@ export function TopView({ shotId }: { shotId: string | null }) {
           stroke="var(--accent-cyan)"
           strokeOpacity={0.35}
         />
+
+        {/* Center line of sight */}
+        <line
+          x1={sx(camPos[0])}
+          y1={sz(camPos[2])}
+          x2={aimScreenX}
+          y2={aimScreenZ}
+          stroke="var(--accent-cyan)"
+          strokeWidth={2}
+          strokeOpacity={0.8}
+        />
+        <line
+          x1={aimScreenX}
+          y1={aimScreenZ}
+          x2={targetScreenX}
+          y2={targetScreenZ}
+          stroke="var(--accent-cyan)"
+          strokeWidth={1.2}
+          strokeDasharray="3 3"
+          strokeOpacity={0.5}
+        />
+
+        {/* Target handle */}
+        {isTargetVisible && (
+          <g
+            className="tv-cam-target"
+            transform={`translate(${targetScreenX},${targetScreenZ})`}
+            onPointerDown={startCamTargetDrag}
+          >
+            <title>Điểm ngắm nhìn (Target): Kéo để định hướng camera</title>
+            <circle r={10} fill="transparent" />
+            <circle r={5} fill="none" stroke="var(--accent-cyan)" strokeWidth={1.5} strokeOpacity={0.7} />
+            <circle r={2} fill="var(--accent-cyan)" />
+            <line x1={-7} x2={7} y1={0} y2={0} stroke="var(--accent-cyan)" strokeWidth={1} strokeOpacity={0.6} />
+            <line x1={0} x2={0} y1={-7} y2={7} stroke="var(--accent-cyan)" strokeWidth={1} strokeOpacity={0.6} />
+          </g>
+        )}
+
+        {/* Aim / Angle rotation handle */}
+        <g
+          className="tv-cam-aim"
+          transform={`translate(${aimScreenX},${aimScreenZ})`}
+          onPointerDown={startCamAngleDrag}
+        >
+          <title>Góc nhìn Camera: Kéo để xoay hướng nhìn</title>
+          <circle r={12} fill="transparent" />
+          <circle r={5} fill="var(--accent-cyan)" fillOpacity={0.25} stroke="var(--accent-cyan)" strokeWidth={1.5} />
+          <circle r={2} fill="var(--accent-cyan)" />
+        </g>
+
         {layers.map((l) => {
           const { p0, p1, p2, p3, isTilted } = getTopViewCorners(l.position, l.rotation, l.scale, l.size)
           const half = (l.size[0] * l.scale[0]) / 2
@@ -198,9 +447,17 @@ export function TopView({ shotId }: { shotId: string | null }) {
             </g>
           )
         })}
-        <g transform={`translate(${sx(camPos[0])},${sz(camPos[2])})`}>
-          <circle r={5} fill="var(--accent-cyan)" />
-          <circle r={9} fill="none" stroke="var(--accent-cyan)" strokeOpacity={0.4} />
+
+        {/* Camera Position Handle (Chấm tròn camera) */}
+        <g
+          className="tv-cam-group"
+          transform={`translate(${sx(camPos[0])},${sz(camPos[2])})`}
+          onPointerDown={startCamPosDrag}
+        >
+          <title>Vị trí Camera: Kéo để di chuyển (X, Z) · Alt+Kéo để xoay góc nhìn · Shift để khóa trục</title>
+          <circle r={16} fill="transparent" />
+          <circle className="tv-cam-pulse" r={10} fill="none" stroke="var(--accent-cyan)" strokeOpacity={0.5} strokeWidth={1.5} />
+          <circle r={5.5} fill="var(--accent-cyan)" />
         </g>
       </svg>
     </div>
