@@ -143,11 +143,16 @@
 .tl-name .label input {
   width: 100%;
   background: var(--bg-2);
+  color: var(--text);
   border: 1px solid var(--accent);
   border-radius: 2px;
   outline: none;
   padding: 1px 3px;
   font-size: 11px;
+}
+.tl-name .label input:focus {
+  color: var(--text);
+  background: var(--bg-2);
 }
 .tl-name.sub {
   padding-left: 28px;

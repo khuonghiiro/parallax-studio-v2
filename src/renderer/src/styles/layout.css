@@ -28,6 +28,16 @@ textarea {
   color: inherit;
 }
 
+input:focus,
+textarea:focus {
+  color: var(--text);
+}
+
+::selection {
+  background: var(--accent);
+  color: #ffffff;
+}
+
 /* AE Pro Scrollbars */
 ::-webkit-scrollbar {
   width: 8px;

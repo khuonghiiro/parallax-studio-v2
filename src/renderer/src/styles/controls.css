@@ -23,6 +23,12 @@
     border-color 0.12s,
     color 0.12s;
 }
+.btn .btn-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .btn:hover {
   background: var(--bg-3);
   border-color: var(--line);
@@ -95,7 +101,11 @@
   width: 100%;
 }
 .row.plain {
-  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-columns: 82px minmax(0, 1fr);
+  align-items: start;
+}
+.row.plain .row-label {
+  line-height: 22px;
 }
 .row-label {
   color: var(--text-dim);
@@ -113,10 +123,16 @@
 }
 .fields {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 3px;
   min-width: 0;
   width: 100%;
-  overflow: hidden;
+}
+.row.plain .fields .btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
 }
 
 /* Numeric input container styled in authentic AE fashion */
@@ -186,10 +202,13 @@
 }
 .num:focus-within input {
   cursor: text;
-  color: #ffffff;
+  color: var(--text);
 }
 .num.animated input {
   color: var(--key);
+}
+.num.animated:focus-within input {
+  color: var(--text);
 }
 
 /* ------------------------------------------------------------------ Stopwatch & Keyframe Nav */
@@ -283,6 +302,8 @@
 .textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
+  color: var(--text);
+  background: var(--bg-2);
 }
 .select option {
   background: var(--bg-2);

@@ -201,12 +201,14 @@ export function Viewer() {
       const aspect = comp.width / comp.height
       let cam: Layout['cam'] = null
       let ed: Layout['ed'] = null
+      // Reserve space for top HUD chips & controls overlay so camera preview is visually centered
+      const topHudH = 38
       if (view.split) {
         const half = Math.floor(W / 2)
-        cam = fitRect({ x: 0, y: 0, w: half - 1, h: H }, aspect, 18)
+        cam = fitRect({ x: 0, y: topHudH, w: half - 1, h: Math.max(10, H - topHudH) }, aspect, 16)
         ed = { x: half + 1, y: 0, w: W - half - 1, h: H }
       } else if (view.primary === 'camera') {
-        cam = fitRect({ x: 0, y: 0, w: W, h: H }, aspect, 28)
+        cam = fitRect({ x: 0, y: topHudH, w: W, h: Math.max(10, H - topHudH) }, aspect, 20)
       } else {
         ed = { x: 0, y: 0, w: W, h: H }
       }

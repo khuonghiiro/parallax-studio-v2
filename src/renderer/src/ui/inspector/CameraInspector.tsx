@@ -98,8 +98,8 @@ export function CameraInspector() {
         <AnimRow label="Khoảng focus" refp={{ kind: 'camera', prop: 'focusDistance' }} kind="number" step={2} precision={0} min={1} />
         <AnimRow label="Khẩu độ" refp={{ kind: 'camera', prop: 'aperture' }} kind="number" step={0.01} precision={2} min={0} max={10} />
         <div style={{ height: 6 }} />
-        <button className="btn sm" disabled={!selectedLayer} onClick={focusOnSelected} title="Đặt focus vào layer đang chọn">
-          Focus vào layer đang chọn
+        <button className="btn sm" style={{ width: '100%', minWidth: 0 }} disabled={!selectedLayer} onClick={focusOnSelected} title="Đặt focus vào layer đang chọn">
+          <span className="btn-label">Focus vào layer đang chọn</span>
         </button>
       </div>
 
@@ -116,6 +116,8 @@ export function CameraInspector() {
       <div className="section">
         <button
           className="btn sm"
+          style={{ width: '100%', minWidth: 0, justifyContent: 'center' }}
+          title={targetShot ? `Đưa camera về khung mặc định của “${targetShot.name}”` : 'Đưa camera về vị trí mặc định'}
           onClick={() =>
             update((d) => {
               const dd = referenceDistance(d.comp)
@@ -125,7 +127,9 @@ export function CameraInspector() {
             })
           }
         >
-          {targetShot ? `Đưa camera về khung mặc định của “${targetShot.name}”` : 'Đưa camera về vị trí mặc định'}
+          <span className="btn-label">
+            {targetShot ? `Đưa camera về khung mặc định của “${targetShot.name}”` : 'Đưa camera về vị trí mặc định'}
+          </span>
         </button>
       </div>
     </>

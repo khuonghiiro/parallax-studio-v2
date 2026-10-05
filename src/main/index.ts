@@ -4,6 +4,7 @@ import { readFile, writeFile, unlink } from 'fs/promises'
 import { tmpdir } from 'os'
 import { FfmpegEncoder } from './ffmpeg'
 import { McpBridge } from './mcpBridge'
+import { recentPaths } from './recentPaths'
 import type { ExportStartOptions, PickedFile } from '@shared/ipc'
 
 // ANGLE's default D3D11 backend crashes the GPU process right at startup on some
@@ -69,10 +70,12 @@ function registerIpc(): void {
     const exts = kind === 'image' ? IMAGE_EXT : AUDIO_EXT
     const res = await dialog.showOpenDialog(mainWindow!, {
       title: kind === 'image' ? 'Import images' : 'Import audio',
+      defaultPath: recentPaths.getRecentDir(kind),
       properties: kind === 'image' ? ['openFile', 'multiSelections'] : ['openFile'],
       filters: [{ name: kind === 'image' ? 'Images' : 'Audio', extensions: exts }]
     })
-    if (res.canceled) return []
+    if (res.canceled || res.filePaths.length === 0) return []
+    recentPaths.setRecentFromFile(kind, res.filePaths[0])
     return Promise.all(
       res.filePaths.map(async (p) => {
         const ext = extname(p).slice(1).toLowerCase()
@@ -87,7 +90,7 @@ function registerIpc(): void {
     if (!target) {
       const res = await dialog.showSaveDialog(mainWindow!, {
         title: 'Save project',
-        defaultPath: 'untitled.pxs',
+        defaultPath: recentPaths.resolveDefaultPath('project', 'untitled.pxs'),
         filters: [
           { name: 'Parallax Studio Project (*.pxs, *.json)', extensions: ['pxs', 'json'] },
           { name: 'Parallax Archive (*.pxs)', extensions: ['pxs'] },
@@ -97,6 +100,7 @@ function registerIpc(): void {
       if (res.canceled || !res.filePath) return null
       target = res.filePath
     }
+    recentPaths.setRecentFromFile('project', target)
     await writeFile(target, Buffer.from(data))
     return target
   })
@@ -104,6 +108,7 @@ function registerIpc(): void {
   ipcMain.handle('project:open', async () => {
     const res = await dialog.showOpenDialog(mainWindow!, {
       title: 'Open project',
+      defaultPath: recentPaths.getRecentDir('project'),
       properties: ['openFile'],
       filters: [
         { name: 'Parallax Studio Project (*.pxs, *.json)', extensions: ['pxs', 'json'] },
@@ -113,16 +118,18 @@ function registerIpc(): void {
     })
     if (res.canceled || res.filePaths.length === 0) return null
     const p = res.filePaths[0]
+    recentPaths.setRecentFromFile('project', p)
     return { path: p, data: new Uint8Array(await readFile(p)) }
   })
 
   ipcMain.handle('project:saveJson', async (_e, content: string, defaultName = 'project.json') => {
     const res = await dialog.showSaveDialog(mainWindow!, {
       title: 'Save project as JSON',
-      defaultPath: defaultName,
+      defaultPath: recentPaths.resolveDefaultPath('project', defaultName),
       filters: [{ name: 'JSON Project / Scene (*.json)', extensions: ['json'] }]
     })
     if (res.canceled || !res.filePath) return null
+    recentPaths.setRecentFromFile('project', res.filePath)
     await writeFile(res.filePath, content, 'utf-8')
     return res.filePath
   })
@@ -130,11 +137,13 @@ function registerIpc(): void {
   ipcMain.handle('project:openJson', async () => {
     const res = await dialog.showOpenDialog(mainWindow!, {
       title: 'Open JSON Project or Scene',
+      defaultPath: recentPaths.getRecentDir('project'),
       properties: ['openFile'],
       filters: [{ name: 'JSON Project / Scene (*.json)', extensions: ['json'] }]
     })
     if (res.canceled || res.filePaths.length === 0) return null
     const p = res.filePaths[0]
+    recentPaths.setRecentFromFile('project', p)
     const content = await readFile(p, 'utf-8')
     return { path: p, content }
   })
@@ -142,10 +151,12 @@ function registerIpc(): void {
   ipcMain.handle('export:choosePath', async (_e, defaultName: string) => {
     const res = await dialog.showSaveDialog(mainWindow!, {
       title: 'Export video',
-      defaultPath: defaultName,
+      defaultPath: recentPaths.resolveDefaultPath('export', defaultName),
       filters: [{ name: 'MP4 Video (H.264)', extensions: ['mp4'] }]
     })
-    return res.canceled || !res.filePath ? null : res.filePath
+    if (res.canceled || !res.filePath) return null
+    recentPaths.setRecentFromFile('export', res.filePath)
+    return res.filePath
   })
 
   ipcMain.handle('export:start', async (_e, opts: ExportStartOptions) => {

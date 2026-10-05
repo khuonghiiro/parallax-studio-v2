@@ -354,7 +354,8 @@ export function CameraControls() {
               onClick={() => aimAtShot(currentShot.id)}
               title={`Căn góc nhìn thẳng vào cảnh “${currentShot.name}”`}
             >
-              <IconPlane /> Nhắm vào “{currentShot.name}”
+              <IconPlane />
+              <span className="btn-label">Nhắm vào “{currentShot.name}”</span>
             </button>
           )}
 
@@ -364,7 +365,8 @@ export function CameraControls() {
               onClick={() => aimAtLayer(selectedLayer.id)}
               title={`Nhắm camera vào layer “${selectedLayer.name}”`}
             >
-              <IconFocus /> Nhắm vào Layer “{selectedLayer.name}”
+              <IconFocus />
+              <span className="btn-label">Nhắm vào Layer “{selectedLayer.name}”</span>
             </button>
           )}
 
@@ -373,7 +375,8 @@ export function CameraControls() {
             onClick={fitFramingDistance}
             title="Đặt khoảng cách vừa vặn khung hình tiêu chuẩn"
           >
-            📐 Vừa vặn khung hình
+            <span className="btn-icon">📐</span>
+            <span className="btn-label">Vừa vặn khung hình</span>
           </button>
         </div>
       </div>

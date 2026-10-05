@@ -24,12 +24,12 @@ export function ParticleSection({ props, set }: { props: ParticleProps; set: Set
         </button>
       </div>
       <Row label="Mẫu hạt" title="Chọn nhanh các hiệu ứng hạt và thời tiết">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 3, width: '100%', minWidth: 0 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, width: '100%', minWidth: 0 }}>
           {Object.entries(PARTICLE_PRESETS).map(([key, item]) => (
             <button
               key={key}
               className="btn sm ghost"
-              style={{ padding: '2px 2px', fontSize: '9.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              style={{ flex: '1 1 50px', padding: '2px 4px', fontSize: '9.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
               onClick={() => p((pp) => Object.assign(pp, item.props))}
               title={item.hint}
             >

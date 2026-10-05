@@ -141,10 +141,10 @@ export function LayerInspector({ layer }: { layer: Layer }) {
         <AnimRow label="Vị trí" refp={{ kind: 'layer', layerId: id, prop: 'position' }} kind="vec3" step={1} precision={0} />
         <AnimRow label="Điểm neo" refp={{ kind: 'layer', layerId: id, prop: 'anchor' }} kind="vec3" step={0.05} precision={2} />
         <Row label="Tâm neo" title="Đặt nhanh điểm neo xoay & co giãn (After Effects Anchor Point)">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 3, width: '100%', minWidth: 0 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, width: '100%', minWidth: 0 }}>
             <button
               className="btn sm ghost"
-              style={{ padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
+              style={{ flex: '1 1 36px', padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
               onClick={() => set((l) => { l.transform.anchor = anim<Vec3>([0, 0, 0]) })}
               title="Tâm ở chính giữa [0, 0]"
             >
@@ -152,7 +152,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
             </button>
             <button
               className="btn sm ghost"
-              style={{ padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
+              style={{ flex: '1 1 36px', padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
               onClick={() => set((l) => { l.transform.anchor = anim<Vec3>([0, -0.5, 0]) })}
               title="Tâm ở chân cây / nhân vật (Đáy) để gió đung đưa từ gốc"
             >
@@ -160,7 +160,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
             </button>
             <button
               className="btn sm ghost"
-              style={{ padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
+              style={{ flex: '1 1 36px', padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
               onClick={() => set((l) => { l.transform.anchor = anim<Vec3>([0, 0.5, 0]) })}
               title="Tâm ở đỉnh trên"
             >
@@ -168,7 +168,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
             </button>
             <button
               className="btn sm ghost"
-              style={{ padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
+              style={{ flex: '1 1 36px', padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
               onClick={() => set((l) => { l.transform.anchor = anim<Vec3>([-0.5, 0, 0]) })}
               title="Tâm ở mép trái"
             >
@@ -176,7 +176,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
             </button>
             <button
               className="btn sm ghost"
-              style={{ padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
+              style={{ flex: '1 1 36px', padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
               onClick={() => set((l) => { l.transform.anchor = anim<Vec3>([0.5, 0, 0]) })}
               title="Tâm ở mép phải"
             >
@@ -186,10 +186,10 @@ export function LayerInspector({ layer }: { layer: Layer }) {
         </Row>
         <AnimRow label="Xoay (°)" refp={{ kind: 'layer', layerId: id, prop: 'rotation' }} kind="vec3" step={0.25} precision={1} />
         <Row label="Dáng 3D" title="Đặt nhanh dáng layer: Đứng thẳng (2.5D), Mặt đất/Sàn ngang (-90°), Nghiêng dốc (-75°), hoặc Trần nhà (90°)">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 3, width: '100%', minWidth: 0 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, width: '100%', minWidth: 0 }}>
             <button
               className={`btn sm ${Math.abs(currentRot[0]) < 1 && Math.abs(currentRot[1]) < 1 && Math.abs(currentRot[2]) < 1 ? 'primary' : 'ghost'}`}
-              style={{ padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
+              style={{ flex: '1 1 42px', padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
               onClick={() => setOrientation('vertical')}
               title="Đứng thẳng đối diện camera (mặc định 2.5D)"
             >
@@ -197,7 +197,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
             </button>
             <button
               className={`btn sm ${Math.abs(currentRot[0] - -90) < 1 ? 'primary' : 'ghost'}`}
-              style={{ padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
+              style={{ flex: '1 1 48px', padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
               onClick={() => setOrientation('ground')}
               title="Nằm ngang làm mặt đất / sàn (xoay X -90°)"
             >
@@ -205,7 +205,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
             </button>
             <button
               className={`btn sm ${Math.abs(currentRot[0] - -75) < 1 ? 'primary' : 'ghost'}`}
-              style={{ padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
+              style={{ flex: '1 1 48px', padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
               onClick={() => setOrientation('tilted')}
               title="Nghiêng 75° tạo độ dốc xa dần vào chiều sâu"
             >
@@ -213,7 +213,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
             </button>
             <button
               className={`btn sm ${Math.abs(currentRot[0] - 90) < 1 ? 'primary' : 'ghost'}`}
-              style={{ padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
+              style={{ flex: '1 1 42px', padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
               onClick={() => setOrientation('ceiling')}
               title="Nằm ngang trên cao làm trần nhà (xoay X 90°)"
             >
