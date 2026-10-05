@@ -4,14 +4,15 @@ import { exportProjectToJson, importProjectFromJson } from './jsonFormat'
 import demoJson from './demoProject.json'
 
 describe('JSON Project Format & Declarative Scene Spec', () => {
-  it('loads demoProject.json cleanly into a 4-shot project', async () => {
+  it('loads demoProject.json cleanly into a 5-shot project including animated GIF scene', async () => {
     const project = await buildDemoProject()
-    expect(project.shots).toHaveLength(4)
+    expect(project.shots).toHaveLength(5)
     expect(project.shots.map((s) => s.name)).toEqual([
       'Emerald Riverbank',
       'Island Pond',
       'Highland Lagoon',
-      'Twilight Valley'
+      'Twilight Valley',
+      'Celestial Portal (GIF)'
     ])
     expect(project.layers.length).toBeGreaterThan(20)
     expect(project.comp.duration).toBeGreaterThan(15)

@@ -112,6 +112,12 @@ export interface DeclarativeLayerSpec {
   // Procedural / Looping motion (drift, wind sway, float, pulse, wiggle)
   motion?: LayerMotion
 
+  // GIF / Animated Image props
+  speed?: number
+  loopMode?: 'loop' | 'ping-pong' | 'once'
+  timeOffset?: number
+  autoPlayPaused?: boolean
+
   // Keyframes
   keyframes?: {
     opacity?: DeclarativeKeyframe<number>[]
@@ -526,16 +532,22 @@ async function buildSingleLayer(
           ? EFFECT_ASSETS.rain
           : effectKey === 'twilight_mist' || effectKey === 'twilightMist'
             ? EFFECT_ASSETS.twilightMist
-            : undefined
+            : effectKey === 'magic_portal' || effectKey === 'magicPortal' || effectKey === 'portal'
+              ? (EFFECT_ASSETS as any).magicPortal
+              : undefined
 
     if (assetUrl) {
       const { mime, data } = parseDataUrl(assetUrl)
-      const asset = await assetStore.add(`${lSpec.name}.webp`, mime, data, 'image')
+      const ext = mime === 'image/gif' ? 'gif' : 'webp'
+      const asset = await assetStore.add(`${lSpec.name}.${ext}`, mime, data, 'image')
       project.assets.push(asset.meta)
       const layer = createImageLayer(asset.meta, comp, z)
-      layer.blendMode = lSpec.blendMode ?? 'screen'
-      if (lSpec.opacity === undefined) layer.transform.opacity.value = effectKey === 'rain' ? 0.75 : 0.6
-      if (!lSpec.scale) {
+      layer.blendMode = lSpec.blendMode ?? (ext === 'gif' ? 'normal' : 'screen')
+      if (lSpec.opacity !== undefined) layer.transform.opacity.value = lSpec.opacity
+      else if (ext !== 'gif') layer.transform.opacity.value = effectKey === 'rain' ? 0.75 : 0.6
+      if (lSpec.scale) {
+        layer.transform.scale.value = lSpec.scale
+      } else if (ext !== 'gif') {
         layer.transform.scale.value = effectKey === 'rain' ? [2.0, 1.3, 1] : [2.2, 1.35, 1]
       }
       applyCommonLayerProps(layer, lSpec, comp)
@@ -679,6 +691,13 @@ function applyCommonLayerProps(layer: Layer, spec: DeclarativeLayerSpec, comp: C
 
   if (spec.motion) {
     layer.motion = { ...spec.motion }
+  }
+
+  if (layer.type === 'image') {
+    if (spec.speed !== undefined) layer.props.speed = spec.speed
+    if (spec.loopMode !== undefined) layer.props.loopMode = spec.loopMode
+    if (spec.timeOffset !== undefined) layer.props.timeOffset = spec.timeOffset
+    if (spec.autoPlayPaused !== undefined) layer.props.autoPlayPaused = spec.autoPlayPaused
   }
 
   // Apply keyframes if provided

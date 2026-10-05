@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import type { BlendMode, Layer, LookSettings, ParticleProps, Project } from '@shared/types'
 import { assetStore } from '../project/assets'
+import { getAnimatedGifFrameIndex } from '../project/gifHelper'
 import { mulberry32 } from '../animation/math'
 import { evaluateScene, type EvaluatedCamera, type EvaluatedLayer, type EvaluatedScene } from './evaluateScene'
 import { EditorHelpers, type HelperLayerInfo, type ScreenLabel } from './editorHelpers'
@@ -59,6 +60,8 @@ export interface RenderOptions {
   viewport?: Rect
   /** Request textures that will be needed in the next ~1.5 s of the camera path. */
   prefetch?: boolean
+  /** Whether the timeline is actively playing. */
+  playing?: boolean
 }
 
 export interface EditorRenderOptions {
@@ -68,6 +71,8 @@ export interface EditorRenderOptions {
   showPath?: boolean
   /** Only show content the active camera would load (residency preview); others are outlines. */
   cameraOnly?: boolean
+  /** Whether the timeline is actively playing. */
+  playing?: boolean
 }
 
 export interface ResidencyStats {
@@ -187,6 +192,8 @@ export class SceneRenderer {
   private lastBiasChange = 0
   private maxTex: number
   budgetMB: number
+  private isExport = false
+  private isPlaying = false
   private lastStats = { visibleLayers: 0, totalLayers: 0, visibleShots: 0, totalShots: 0 }
 
   /** Called when async resources (fonts, decoded textures) arrive and a redraw is needed. */
@@ -493,13 +500,63 @@ export class SceneRenderer {
   }
 
   /** Returns the best resident texture for a node (requesting a better one if needed). */
-  private acquireTexture(el: EvaluatedLayer, node: LayerNode, level: number): TexEntry | null {
+  private acquireTexture(el: EvaluatedLayer, node: LayerNode, level: number, t = 0): TexEntry | null {
     const layer = el.layer
     if (!node.texKey) return null
-    let e = this.pool.get(node.texKey)
+
     if (layer.type === 'image') {
+      const asset = assetStore.get(layer.props.assetId)
+      if (asset?.gif && asset.gif.frames.length > 1) {
+        // When in live viewport and paused, use continuous real-world time so the GIF animates smoothly
+        const isLivePaused = !this.isExport && !this.isPlaying && (layer.props.autoPlayPaused !== false)
+        const liveT = typeof performance !== 'undefined' ? performance.now() / 1000 : 0
+        const animT = isLivePaused ? liveT : t
+        const frameIdx = getAnimatedGifFrameIndex(asset.gif, animT, layer.props)
+        const frameKey = `gif:${layer.props.assetId}:f${frameIdx}`
+        let ge = this.pool.get(frameKey)
+        if (!ge) {
+          const frame = asset.gif.frames[frameIdx]
+          if (frame?.bitmap) {
+            const tex = this.configureTexture(new THREE.Texture(frame.bitmap as unknown as HTMLImageElement))
+            tex.flipY = false
+            tex.needsUpdate = true
+            ge = {
+              key: frameKey,
+              texture: tex,
+              level: 0,
+              w: frame.bitmap.width,
+              h: frame.bitmap.height,
+              bytes: Math.round(frame.bitmap.width * frame.bitmap.height * 4 * 1.34),
+              lastUsed: this.tick
+            }
+            this.pool.set(frameKey, ge)
+          }
+        }
+        if (ge) {
+          ge.lastUsed = this.tick
+          return ge
+        }
+      } else if (
+        asset &&
+        !asset.gif &&
+        (asset.meta.mime === 'image/gif' ||
+          asset.meta.name.toLowerCase().endsWith('.gif') ||
+          asset.meta.mime === 'image/webp' ||
+          asset.meta.name.toLowerCase().endsWith('.webp'))
+      ) {
+        void assetStore.getAnimatedGif(layer.props.assetId).then((g) => {
+          if (g) this.onInvalidate()
+        })
+      }
+
+      let e = this.pool.get(node.texKey)
       if (!e || e.level > level) void this.requestDecode(layer.props.assetId, level)
-    } else if (!e && (layer.type === 'text' || layer.type === 'solid')) {
+      if (e) e.lastUsed = this.tick
+      return e ?? null
+    }
+
+    let e = this.pool.get(node.texKey)
+    if (!e && (layer.type === 'text' || layer.type === 'solid')) {
       e = this.buildCanvasTexture(layer, node)
     }
     if (e) e.lastUsed = this.tick
@@ -545,7 +602,9 @@ export class SceneRenderer {
     const e = this.pool.get(key)
     if (!e) return
     const src = e.texture.image as ImageBitmap | undefined
-    if (src && typeof (src as ImageBitmap).close === 'function') src.close()
+    if (!key.startsWith('gif:') && src && typeof (src as ImageBitmap).close === 'function') {
+      src.close()
+    }
     e.texture.dispose()
     this.pool.delete(key)
     for (const n of this.nodes.values()) {
@@ -664,7 +723,7 @@ export class SceneRenderer {
       const u = mat.uniforms
       if (node.type !== 'particles') {
         const level = this.desiredLevel(el, node, cam, viewportH, mode.editor ? EDITOR_MIN_LEVEL : 0)
-        const entry = this.acquireTexture(el, node, level)
+        const entry = this.acquireTexture(el, node, level, ev.t)
         node.resident = !!entry
         if (!entry) {
           obj.visible = false
@@ -766,6 +825,8 @@ export class SceneRenderer {
 
   /** Render the active-camera view (with post look). */
   render(project: Project, t: number, opts: RenderOptions = {}): EvaluatedScene {
+    this.isExport = opts.frame !== undefined
+    this.isPlaying = !!opts.playing
     if (!opts.viewport) this.beginFrame()
     const vp = opts.viewport ?? { x: 0, y: 0, w: this.width, h: this.height }
     this.syncNodes(project)
@@ -802,6 +863,8 @@ export class SceneRenderer {
 
   /** Render the free 3D editor view (no post, no DOF/fog) with gizmos. Returns label anchors. */
   renderEditor(project: Project, t: number, cam: THREE.PerspectiveCamera | THREE.OrthographicCamera, opts: EditorRenderOptions): ScreenLabel[] {
+    this.isExport = false
+    this.isPlaying = !!opts.playing
     const vp = opts.viewport
     this.syncNodes(project)
     const ev = evaluateScene(project, t)

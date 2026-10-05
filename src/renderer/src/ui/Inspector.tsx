@@ -466,6 +466,71 @@ function ImageSection({ layer, set }: { layer: Layer & { type: 'image' }; set: S
           }
         />
       </Row>
+      {(asset?.meta.isAnimated || asset?.gif) && (
+        <>
+          <div style={{ height: 6 }} />
+          <div className="section-title" style={{ marginTop: 8 }}>
+            🎞 Hoạt họa GIF / WebP động
+            <span className="spacer" />
+            <span className="badge-count">
+              {asset?.meta.frameCount ?? asset?.gif?.frames.length ?? 0} frames
+            </span>
+          </div>
+          <Row label="Tốc độ phát">
+            <Slider
+              value={layer.props.speed ?? 1}
+              min={0.1}
+              max={4}
+              step={0.05}
+              format={(v) => `${v.toFixed(2)}×`}
+              onChange={(v) =>
+                set((l) => {
+                  if (l.type === 'image') l.props.speed = v
+                })
+              }
+            />
+          </Row>
+          <Row label="Kiểu lặp">
+            <select
+              className="select sm"
+              value={layer.props.loopMode ?? 'loop'}
+              onChange={(e) =>
+                set((l) => {
+                  if (l.type === 'image') l.props.loopMode = e.target.value as 'loop' | 'ping-pong' | 'once'
+                })
+              }
+            >
+              <option value="loop">Lặp vô tận (Loop)</option>
+              <option value="ping-pong">Lặp đảo chiều (Ping-Pong)</option>
+              <option value="once">Chạy 1 lần (Play Once)</option>
+            </select>
+          </Row>
+          <Row label="Lệch thời gian">
+            <Slider
+              value={layer.props.timeOffset ?? 0}
+              min={0}
+              max={Math.max(1, asset?.meta.duration ?? asset?.gif?.totalDuration ?? 3)}
+              step={0.05}
+              format={(v) => `${v.toFixed(2)}s`}
+              onChange={(v) =>
+                set((l) => {
+                  if (l.type === 'image') l.props.timeOffset = v
+                })
+              }
+            />
+          </Row>
+          <Row label="Chạy khi dừng" title="Tự động lặp hoạt họa GIF trong khung nhìn 3D ngay cả khi timeline đang tạm dừng">
+            <Switch
+              on={layer.props.autoPlayPaused !== false}
+              onChange={(v) =>
+                set((l) => {
+                  if (l.type === 'image') l.props.autoPlayPaused = v
+                })
+              }
+            />
+          </Row>
+        </>
+      )}
     </div>
   )
 }

@@ -50,6 +50,14 @@ export interface ImageProps {
   width: number
   height: number
   repeat?: [number, number]
+  /** Animated GIF playback speed multiplier (default 1). */
+  speed?: number
+  /** Animated GIF loop mode (default 'loop'). */
+  loopMode?: 'loop' | 'ping-pong' | 'once'
+  /** Time offset in seconds to start animation. */
+  timeOffset?: number
+  /** Whether to continuously animate live in the editor viewport even when timeline playback is paused (default true). */
+  autoPlayPaused?: boolean
 }
 
 export interface TextProps {
@@ -214,6 +222,10 @@ export interface AssetMeta {
   width?: number
   height?: number
   duration?: number
+  /** Whether the asset is an animated GIF or animated WebP */
+  isAnimated?: boolean
+  /** Total number of frames in the animation */
+  frameCount?: number
 }
 
 export interface Project {

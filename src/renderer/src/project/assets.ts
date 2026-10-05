@@ -1,6 +1,23 @@
 import { nanoid } from 'nanoid'
 import type { AssetKind, AssetMeta } from '@shared/types'
 
+export interface GifFrame {
+  index: number
+  /** Duration of this frame in seconds */
+  duration: number
+  /** Start time of this frame in the loop (in seconds) */
+  startTime: number
+  /** Decoded bitmap for this frame, ready for WebGL upload */
+  bitmap: ImageBitmap
+}
+
+export interface AnimatedGifData {
+  frames: GifFrame[]
+  totalDuration: number
+  width: number
+  height: number
+}
+
 export interface RuntimeAsset {
   meta: AssetMeta
   /** Compressed file data. Blobs live outside the JS heap (Chromium can page large ones to disk). */
@@ -11,6 +28,8 @@ export interface RuntimeAsset {
   thumbUrl?: string
   /** Low-res alpha mask used for pixel-accurate picking in the viewer. */
   alpha?: { w: number; h: number; data: Uint8ClampedArray }
+  /** Decoded frames if this asset is an animated GIF or animated WebP */
+  gif?: AnimatedGifData
 }
 
 type Listener = () => void
@@ -57,9 +76,83 @@ class AssetStore {
     this.assets.forEach((a) => {
       URL.revokeObjectURL(a.url)
       if (a.thumbUrl) URL.revokeObjectURL(a.thumbUrl)
+      if (a.gif) {
+        a.gif.frames.forEach((f) => {
+          try {
+            f.bitmap.close()
+          } catch {
+            /* ignore */
+          }
+        })
+      }
     })
     this.assets.clear()
     this.emit()
+  }
+
+  /**
+   * If the asset is an animated GIF/WebP, returns its decoded frames and loop duration.
+   * Decodes on demand and caches on the RuntimeAsset.
+   */
+  async getAnimatedGif(id: string): Promise<AnimatedGifData | null> {
+    const asset = this.assets.get(id)
+    if (!asset) return null
+    if (asset.gif) return asset.gif
+
+    const isGif = asset.meta.mime === 'image/gif' || asset.meta.name.toLowerCase().endsWith('.gif')
+    const isWebp = asset.meta.mime === 'image/webp' || asset.meta.name.toLowerCase().endsWith('.webp')
+    if (!isGif && !isWebp) return null
+
+    if (typeof ImageDecoder === 'undefined') return null
+
+    try {
+      const mime = isGif ? 'image/gif' : 'image/webp'
+      const buf = await asset.blob.arrayBuffer()
+      const decoder = new ImageDecoder({ data: buf, type: mime })
+      await decoder.tracks.ready
+      const track = decoder.tracks.selectedTrack
+      if (!track || track.frameCount <= 1) {
+        decoder.close()
+        return null
+      }
+
+      const frames: GifFrame[] = []
+      let totalDuration = 0
+      for (let i = 0; i < track.frameCount; i++) {
+        const result = await decoder.decode({ frameIndex: i })
+        const durMicro = result.image.duration && result.image.duration > 0 ? result.image.duration : 100000
+        const durSec = Math.max(0.015, durMicro / 1000000)
+        const bmp = await createImageBitmap(result.image, {
+          imageOrientation: 'flipY',
+          premultiplyAlpha: 'none'
+        })
+        result.image.close()
+        frames.push({
+          index: i,
+          duration: durSec,
+          startTime: totalDuration,
+          bitmap: bmp
+        })
+        totalDuration += durSec
+      }
+      decoder.close()
+
+      const gifData: AnimatedGifData = {
+        frames,
+        totalDuration: Math.max(0.04, totalDuration),
+        width: frames[0]?.bitmap.width ?? (asset.meta.width ?? 0),
+        height: frames[0]?.bitmap.height ?? (asset.meta.height ?? 0)
+      }
+
+      asset.gif = gifData
+      asset.meta.isAnimated = true
+      asset.meta.frameCount = frames.length
+      asset.meta.duration = gifData.totalDuration
+      return gifData
+    } catch (e) {
+      console.warn('[AssetStore] ImageDecoder error:', e)
+      return null
+    }
   }
 
   /** Register bytes as an asset; resolves once probed (size, thumbnail, alpha mask). */
@@ -102,11 +195,19 @@ class AssetStore {
         const thumb = await new Promise<Blob | null>((res) => c.toBlob(res, 'image/webp', 0.85))
         if (thumb) asset.thumbUrl = URL.createObjectURL(thumb)
       }
+      this.assets.set(meta.id, asset)
+      if (mime === 'image/gif' || name.toLowerCase().endsWith('.gif') || mime === 'image/webp' || name.toLowerCase().endsWith('.webp')) {
+        try {
+          await this.getAnimatedGif(meta.id)
+        } catch {
+          /* ignore */
+        }
+      }
     } else {
       meta.duration = await probeAudioDuration(url)
+      this.assets.set(meta.id, asset)
     }
 
-    this.assets.set(meta.id, asset)
     this.emit()
     return asset
   }
@@ -207,6 +308,44 @@ export function probeImageSize(b: Uint8Array): [number, number] | null {
     }
   }
   return null
+}
+
+/** Check if a GIF image buffer contains multiple frames (animated GIF). */
+export function probeIsAnimatedGif(b: Uint8Array): boolean {
+  if (b.length < 16 || b[0] !== 0x47 || b[1] !== 0x49 || b[2] !== 0x46) return false
+  let p = 13
+  if (b[10] & 0x80) p += 3 * (1 << ((b[10] & 0x07) + 1))
+  let images = 0
+  while (p < b.length) {
+    const block = b[p++]
+    if (block === 0x3b) break // Trailer
+    if (block === 0x21) {
+      // Extension block
+      p++ // skip label
+      while (p < b.length) {
+        const subLen = b[p++]
+        if (subLen === 0) break
+        p += subLen
+      }
+    } else if (block === 0x2c) {
+      // Image descriptor
+      images++
+      if (images > 1) return true
+      if (p + 8 >= b.length) break
+      const flags = b[p + 8]
+      p += 9
+      if (flags & 0x80) p += 3 * (1 << ((flags & 0x07) + 1))
+      p++ // LZW min code size
+      while (p < b.length) {
+        const subLen = b[p++]
+        if (subLen === 0) break
+        p += subLen
+      }
+    } else {
+      break
+    }
+  }
+  return images > 1
 }
 
 function probeAudioDuration(url: string): Promise<number> {

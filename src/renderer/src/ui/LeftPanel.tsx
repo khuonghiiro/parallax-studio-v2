@@ -76,6 +76,25 @@ export function LeftPanel() {
                     ) : (
                       rt?.thumbUrl && <img src={rt.thumbUrl} alt={a.name} draggable={false} />
                     )}
+                    {(a.isAnimated || rt?.gif) && (
+                      <span
+                        className="badge-count"
+                        style={{
+                          position: 'absolute',
+                          top: 4,
+                          left: 4,
+                          background: 'rgba(139, 123, 255, 0.9)',
+                          color: '#fff',
+                          fontWeight: 700,
+                          fontSize: '9px',
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.5)'
+                        }}
+                      >
+                        GIF
+                      </span>
+                    )}
                     <span className="asset-name">{a.name}</span>
                     {hover === a.id && (
                       <div className="add-hint" style={{ display: 'flex', gap: 3 }}>

@@ -107,7 +107,8 @@ export function Viewer() {
       r.render(s.project, s.time, {
         selectedId: s.playing ? null : s.selectedLayerId,
         viewport: toDevice(L.cam, L.dpr),
-        prefetch: s.playing
+        prefetch: s.playing,
+        playing: s.playing
       })
     }
     if (L.ed) {
@@ -125,7 +126,8 @@ export function Viewer() {
         selectedId: s.playing ? null : s.selectedLayerId,
         selectedShotId: s.selectedShotId,
         showPath: v.showPath,
-        cameraOnly: v.cameraOnly
+        cameraOnly: v.cameraOnly,
+        playing: s.playing
       })
       updateLabels(labels, L.ed, L.dpr, s.selectedShotId)
     } else {
@@ -227,6 +229,37 @@ export function Viewer() {
       if (r) setStats(r.stats())
     }, 500)
     return () => window.clearInterval(id)
+  }, [])
+
+  // Live viewport animation loop for animated GIFs & continuous preview when paused
+  useEffect(() => {
+    let animId = 0
+    let lastRender = 0
+
+    const checkAndLoop = (now: number): void => {
+      animId = requestAnimationFrame(checkAndLoop)
+
+      const s = useEditor.getState()
+      if (s.playing) return
+
+      // Check if project has any animated GIF layers with autoPlay enabled
+      const hasAnimatedGif = s.project.layers.some((l) => {
+        if (l.type !== 'image' || l.props.autoPlayPaused === false) return false
+        const a = assetStore.get(l.props.assetId)
+        return (a?.meta.isAnimated || a?.gif) && (a?.gif?.frames?.length ?? 0) > 1
+      })
+
+      if (!hasAnimatedGif) return
+
+      // Smooth ~30-40 fps rendering
+      if (now - lastRender >= 24) {
+        lastRender = now
+        requestRender()
+      }
+    }
+
+    animId = requestAnimationFrame(checkAndLoop)
+    return () => cancelAnimationFrame(animId)
   }, [])
 
   // Size the canvas to the viewer and compute the view rectangles.
