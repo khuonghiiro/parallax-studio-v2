@@ -1,0 +1,137 @@
+import type { Layer, Vec3 } from '@shared/types'
+import { setValueAt } from '../../../animation/keyframes'
+import { assetStore } from '../../../project/assets'
+import { frameTolerance, useEditor } from '../../../store/editor'
+import { NumberInput, Row, Slider, Switch } from '../../controls'
+import type { Setter } from '../types'
+
+export function ImageSection({ layer, set }: { layer: Layer & { type: 'image' }; set: Setter }) {
+  const comp = useEditor((s) => s.project.comp)
+  const time = useEditor((s) => s.time)
+  const tol = useEditor((s) => frameTolerance(s.project))
+  const asset = assetStore.get(layer.props.assetId)
+  const setScale = (k: number): void =>
+    set((l) => setValueAt(l.transform.scale, time, [k, k, 1] as Vec3, tol))
+  return (
+    <div className="section">
+      <div className="section-title">Ảnh</div>
+      <Row label="Nguồn">
+        <span className="hint-text" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {asset?.meta.name ?? '—'} · {layer.props.width}×{layer.props.height}
+        </span>
+      </Row>
+      <Row label="Kích thước">
+        <button className="btn sm" onClick={() => setScale(Math.max(comp.width / layer.props.width, comp.height / layer.props.height))}>
+          Phủ khung
+        </button>
+        <button className="btn sm" onClick={() => setScale(Math.min(comp.width / layer.props.width, comp.height / layer.props.height))}>
+          Vừa khung
+        </button>
+        <button className="btn sm" onClick={() => setScale(1)}>
+          100%
+        </button>
+      </Row>
+      <Row label="Lặp texture" title="Lặp lại ảnh theo chiều rộng (X) và chiều sâu (Y) khi làm mặt đất/sàn">
+        <NumberInput
+          axis="x"
+          value={layer.props.repeat?.[0] ?? 1}
+          min={1}
+          max={64}
+          step={1}
+          precision={0}
+          onChange={(v) =>
+            set((l) => {
+              if (l.type === 'image') {
+                const rep = l.props.repeat ? [...l.props.repeat] : [1, 1]
+                rep[0] = v
+                l.props.repeat = rep as [number, number]
+              }
+            })
+          }
+        />
+        <NumberInput
+          axis="y"
+          value={layer.props.repeat?.[1] ?? 1}
+          min={1}
+          max={64}
+          step={1}
+          precision={0}
+          onChange={(v) =>
+            set((l) => {
+              if (l.type === 'image') {
+                const rep = l.props.repeat ? [...l.props.repeat] : [1, 1]
+                rep[1] = v
+                l.props.repeat = rep as [number, number]
+              }
+            })
+          }
+        />
+      </Row>
+      {(asset?.meta.isAnimated || asset?.gif) && (
+        <>
+          <div style={{ height: 6 }} />
+          <div className="section-title" style={{ marginTop: 8 }}>
+            🎞 Hoạt họa GIF / WebP động
+            <span className="spacer" />
+            <span className="badge-count">
+              {asset?.meta.frameCount ?? asset?.gif?.frames.length ?? 0} frames
+            </span>
+          </div>
+          <Row label="Tốc độ phát">
+            <Slider
+              value={layer.props.speed ?? 1}
+              min={0.1}
+              max={4}
+              step={0.05}
+              format={(v) => `${v.toFixed(2)}×`}
+              onChange={(v) =>
+                set((l) => {
+                  if (l.type === 'image') l.props.speed = v
+                })
+              }
+            />
+          </Row>
+          <Row label="Kiểu lặp">
+            <select
+              className="select sm"
+              value={layer.props.loopMode ?? 'loop'}
+              onChange={(e) =>
+                set((l) => {
+                  if (l.type === 'image') l.props.loopMode = e.target.value as 'loop' | 'ping-pong' | 'once'
+                })
+              }
+            >
+              <option value="loop">Lặp vô tận (Loop)</option>
+              <option value="ping-pong">Lặp đảo chiều (Ping-Pong)</option>
+              <option value="once">Chạy 1 lần (Play Once)</option>
+            </select>
+          </Row>
+          <Row label="Lệch thời gian">
+            <Slider
+              value={layer.props.timeOffset ?? 0}
+              min={0}
+              max={Math.max(1, asset?.meta.duration ?? asset?.gif?.totalDuration ?? 3)}
+              step={0.05}
+              format={(v) => `${v.toFixed(2)}s`}
+              onChange={(v) =>
+                set((l) => {
+                  if (l.type === 'image') l.props.timeOffset = v
+                })
+              }
+            />
+          </Row>
+          <Row label="Chạy khi dừng" title="Tự động lặp hoạt họa GIF trong khung nhìn 3D ngay cả khi timeline đang tạm dừng">
+            <Switch
+              on={layer.props.autoPlayPaused !== false}
+              onChange={(v) =>
+                set((l) => {
+                  if (l.type === 'image') l.props.autoPlayPaused = v
+                })
+              }
+            />
+          </Row>
+        </>
+      )}
+    </div>
+  )
+}
