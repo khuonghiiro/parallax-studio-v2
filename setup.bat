@@ -3,6 +3,7 @@ chcp 65001 >nul
 title Parallax Studio - Cai dat thu vien
 cd /d "%~dp0"
 set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
+set "PATH=%USERPROFILE%\.local\bin;%APPDATA%\npm;%ProgramFiles%\nodejs;%PATH%"
 
 echo ============================================================
 echo      Parallax Studio - Cai dat moi truong va thu vien
@@ -32,6 +33,11 @@ set PKG_MGR=npm
 where pnpm >nul 2>nul
 if %errorlevel% equ 0 (
     set PKG_MGR=pnpm
+) else if exist "%USERPROFILE%\.local\bin\pnpm.exe" (
+    set PKG_MGR=pnpm
+)
+
+if "%PKG_MGR%"=="pnpm" (
     echo [OK] Da tim thay pnpm - uu tien pnpm de tiet kiem dung luong o dia.
 ) else (
     echo [THONG BAO] Khong tim thay pnpm, su dung npm mac dinh.

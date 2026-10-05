@@ -4,6 +4,9 @@ title Parallax Studio
 cd /d "%~dp0"
 set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
 
+REM Bo sung cac duong dan chua binary vao PATH (dam bao chay tot ca khi mo tu Windows Explorer)
+set "PATH=%USERPROFILE%\.local\bin;%APPDATA%\npm;%ProgramFiles%\nodejs;%PATH%"
+
 echo ============================================================
 echo      Parallax Studio - Khoi dong ung dung
 echo ============================================================
@@ -19,12 +22,19 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-REM Phat hien goi quan ly thu vien (pnpm hoac npm)
+REM 2. Phat hien goi quan ly thu vien (pnpm hoac npm)
 set PKG_MGR=npm
 where pnpm >nul 2>nul
-if %errorlevel% equ 0 set PKG_MGR=pnpm
+if %errorlevel% equ 0 (
+    set PKG_MGR=pnpm
+) else if exist "%USERPROFILE%\.local\bin\pnpm.exe" (
+    set PKG_MGR=pnpm
+)
 
-REM 2. Tu dong kiem tra va cai dat neu chua co node_modules
+echo [Goi quan ly]: %PKG_MGR%
+echo.
+
+REM 3. Tu dong kiem tra va cai dat neu chua co node_modules
 if not exist "%~dp0node_modules\" (
     echo [THONG BAO] Phat hien chua cai dat thu vien ung dung.
     echo Dang tu dong tien hanh cai dat lan dau...
@@ -32,7 +42,8 @@ if not exist "%~dp0node_modules\" (
     call "%~dp0setup.bat" --no-pause
     if %errorlevel% neq 0 (
         echo [LOI] Cai dat tu dong that bai!
-        pause
+        echo Nhan phim bat ky de thoat...
+        pause >nul
         exit /b 1
     )
     echo.
@@ -48,14 +59,30 @@ if not exist "%~dp0mcp-server\node_modules\" (
     echo.
 )
 
-REM 3. Khoi chay ung dung
+REM 4. Kiem tra va don dep tien trinh cu chay ngam neu co (tranh loi single-instance lock)
+tasklist /fi "imagename eq electron.exe" 2>nul | find /i "electron.exe" >nul
+if %errorlevel% equ 0 (
+    echo [THONG BAO] Phat hien tien trinh Electron cu dang chay ngam.
+    echo Dang lam sach de mo cua so ung dung moi...
+    taskkill /f /im electron.exe >nul 2>nul
+    timeout /t 1 /nobreak >nul
+)
+
+REM 5. Khoi chay ung dung
 echo Dang khoi dong Parallax Studio (%PKG_MGR%)...
 echo [Nhan Ctrl+C trong cua so nay neu muon dung ung dung]
 echo.
 
 call %PKG_MGR% run dev
-if %errorlevel% neq 0 (
-    echo.
-    echo [LOI] Ung dung da dung voi ma loi %errorlevel%.
-    pause
+set DEV_EXIT_CODE=%errorlevel%
+
+echo.
+echo ============================================================
+if %DEV_EXIT_CODE% neq 0 (
+    echo [LOI] Ung dung da dung voi ma loi %DEV_EXIT_CODE%.
+) else (
+    echo [THONG BAO] Ung dung da dong.
 )
+echo ============================================================
+echo Nhan phim bat ky de thoat...
+pause >nul

@@ -1,9 +1,61 @@
-node_modules
-out
-dist
-release
+# Dependencies & Package Managers
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+
+# Lockfile redundancy (project strictly uses pnpm-lock.yaml)
+package-lock.json
+*/package-lock.json
+
+# Build & Bundler outputs
+out/
+dist/
+release/
+build/
+*.tsbuildinfo
+
+# Vite & Vitest caches
+.vite/
+.vitest/
+coverage/
+
+# Log files
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+
+# OS & File System artifacts
 .DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Editor & IDE configurations
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.sublime-project
+*.sublime-workspace
+
+# Large media outputs & user test export files
+*.mp4
+*.webm
+*.mov
+*.avi
+*.tmp
+*.temp
+
+# Binaries
 bin/*.exe
-.claude
-.agents
+
+# AI Agent runtime artifacts
+.claude/
+.agents/

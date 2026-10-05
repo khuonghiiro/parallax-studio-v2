@@ -3,6 +3,8 @@ chcp 65001 >nul
 title Parallax Studio - Build Production
 cd /d "%~dp0"
 
+set "PATH=%USERPROFILE%\.local\bin;%APPDATA%\npm;%ProgramFiles%\nodejs;%PATH%"
+
 echo ============================================================
 echo      Parallax Studio - Build Production Bundle
 echo ============================================================
@@ -17,7 +19,11 @@ if %errorlevel% neq 0 (
 
 set PKG_MGR=npm
 where pnpm >nul 2>nul
-if %errorlevel% equ 0 set PKG_MGR=pnpm
+if %errorlevel% equ 0 (
+    set PKG_MGR=pnpm
+) else if exist "%USERPROFILE%\.local\bin\pnpm.exe" (
+    set PKG_MGR=pnpm
+)
 
 if not exist "%~dp0node_modules\" (
     echo [THONG BAO] Dang cai dat thu vien truoc khi build...

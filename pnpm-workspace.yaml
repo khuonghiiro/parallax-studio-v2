@@ -1,0 +1,8 @@
+packages:
+  - '.'
+  - 'mcp-server'
+
+allowBuilds:
+  esbuild: true
+  ffmpeg-static: true
+
