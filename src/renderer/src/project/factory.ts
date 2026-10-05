@@ -135,11 +135,9 @@ function base(comp: Composition, name: string, z: number, scale = 1) {
 export function createImageLayer(asset: AssetMeta, comp: Composition, z = 0): ImageLayer {
   const w = asset.width ?? comp.width
   const h = asset.height ?? comp.height
-  // Fit-cover the composition by default so full-frame plates fill the frame.
-  const cover = Math.max(comp.width / w, comp.height / h)
-  const scale = w >= comp.width * 0.9 || h >= comp.height * 0.9 ? cover : 1
   return {
-    ...base(comp, asset.name.replace(/\.[^.]+$/, ''), z, Number(scale.toFixed(4))),
+    ...base(comp, asset.name.replace(/\.[^.]+$/, ''), z, 1),
+    autoScale: true,
     type: 'image',
     props: { assetId: asset.id, width: w, height: h }
   }

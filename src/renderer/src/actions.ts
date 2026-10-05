@@ -19,6 +19,7 @@ import { exportProjectToJson, importProjectFromJson, parseDataUrl } from './proj
 import { deserializeProject, serializeProject } from './project/serialize'
 import { EFFECT_ASSETS } from './project/effectAssets'
 import { PARTICLE_PRESETS } from './animation/presets'
+import { referenceDistance } from './animation/math'
 import { getDraftAnimatable, useEditor } from './store/editor'
 
 // ------------------------------------------------------------------ toast
@@ -120,11 +121,14 @@ export async function saveProject(saveAs = false): Promise<void> {
 // ------------------------------------------------------------------ assets & layers
 
 function nextDepthForNewLayer(project: Project, shotId: string | null = activeShotId()): number {
-  // Place new images slightly in front of the front-most image layer of the same shot.
+  // Place new images with depth spacing so the scene has 3D depth, clamped safely in front of camera
   const zs = project.layers
     .filter((l) => l.type === 'image' && l.shotId === shotId)
     .map((l) => l.transform.position.value[2])
-  return zs.length ? Math.min(...zs) - 200 : 0
+  if (!zs.length) return 0
+  const d = referenceDistance(project.comp)
+  const minAllowed = -Math.round(d * 0.7)
+  return Math.max(minAllowed, Math.min(...zs) - 200)
 }
 
 /** Shot that receives newly created layers (null = global). */
@@ -156,9 +160,19 @@ async function registerImages(files: { name: string; mime: string; data: Uint8Ar
     try {
       const asset = await assetStore.add(f.name, f.mime, f.data, 'image')
       editor().update((d) => {
+        // If importing into a completely clean project, adapt comp dimensions to match the source image
+        if (d.layers.length === 0 && d.assets.length === 0 && asset.meta.width && asset.meta.height) {
+          d.comp.width = asset.meta.width
+          d.comp.height = asset.meta.height
+          const refD = referenceDistance(d.comp)
+          d.camera.position.value = [0, 0, -refD]
+          d.camera.target.value = [0, 0, 0]
+          d.camera.focusDistance.value = Math.round(refD)
+        }
         d.assets.push(asset.meta)
         if (addLayers) {
-          const layer = createImageLayer(asset.meta, d.comp as Project['comp'], nextDepthForNewLayer(d as Project, shotId))
+          const depth = nextDepthForNewLayer(d as Project, shotId)
+          const layer = createImageLayer(asset.meta, d.comp as Project['comp'], depth)
           layer.shotId = shotId
           insertLayerTop(d as Project, layer)
           lastId = layer.id
@@ -221,7 +235,8 @@ export async function importDroppedFiles(list: FileList): Promise<void> {
 export function addLayerFromAsset(assetId: string): void {
   const meta = editor().project.assets.find((a) => a.id === assetId)
   if (!meta || meta.kind !== 'image') return
-  const layer = createImageLayer(meta, editor().project.comp, nextDepthForNewLayer(editor().project))
+  const depth = nextDepthForNewLayer(editor().project, activeShotId())
+  const layer = createImageLayer(meta, editor().project.comp, depth)
   layer.shotId = activeShotId()
   editor().update((d) => {
     insertLayerTop(d as Project, layer)
