@@ -301,11 +301,78 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
   return { t, camera, shots, layers }
 }
 
-/** The camera pose that frames a shot like the default v1 camera frames the world. */
-export function shotFramingPose(project: Project, shot: Shot, t: number, push = 0): { position: Vec3; target: Vec3 } {
+export type CameraAnglePreset =
+  | 'front'
+  | 'left30'
+  | 'right30'
+  | 'left45'
+  | 'right45'
+  | 'high'
+  | 'low'
+  | 'top'
+
+/** The camera pose with specified angle preset and offsets relative to a shot. */
+export function shotAngledPose(
+  project: Project,
+  shot: Shot,
+  t: number,
+  anglePreset: CameraAnglePreset = 'front',
+  push = 0,
+  yawOffset = 0,
+  pitchOffset = 0,
+  targetOffset?: Vec3
+): { position: Vec3; target: Vec3 } {
+  let baseYaw = 0
+  let basePitch = 0
+  switch (anglePreset) {
+    case 'left30':
+      baseYaw = -30
+      break
+    case 'right30':
+      baseYaw = 30
+      break
+    case 'left45':
+      baseYaw = -45
+      break
+    case 'right45':
+      baseYaw = 45
+      break
+    case 'high':
+      basePitch = 22
+      break
+    case 'low':
+      basePitch = -15
+      break
+    case 'top':
+      basePitch = 75
+      break
+    default:
+      break
+  }
+
+  const yaw = (baseYaw + yawOffset) * (Math.PI / 180)
+  const pitch = Math.max(-85, Math.min(85, basePitch + pitchOffset)) * (Math.PI / 180)
+
   const m = shotMatrix(shot, t)
   const d = referenceDistance(project.comp) * (1 - push)
-  const p = new THREE.Vector3(0, 0, d).applyMatrix4(m) // local depth -d == three +d
-  const tg = new THREE.Vector3(0, 0, 0).applyMatrix4(m)
+
+  // Local camera position in Three.js space orbiting around local origin (or targetOffset)
+  const toX = targetOffset ? targetOffset[0] : 0
+  const toY = targetOffset ? targetOffset[1] : 0
+  const toZ = targetOffset ? -targetOffset[2] : 0
+
+  const lx = toX + d * Math.cos(pitch) * Math.sin(yaw)
+  const ly = toY + d * Math.sin(pitch)
+  const lz = toZ + d * Math.cos(pitch) * Math.cos(yaw)
+
+  const p = new THREE.Vector3(lx, ly, lz).applyMatrix4(m)
+  const tg = new THREE.Vector3(toX, toY, toZ).applyMatrix4(m)
+
   return { position: threeToDepth(p), target: threeToDepth(tg) }
 }
+
+/** The camera pose that frames a shot like the default v1 camera frames the world. */
+export function shotFramingPose(project: Project, shot: Shot, t: number, push = 0): { position: Vec3; target: Vec3 } {
+  return shotAngledPose(project, shot, t, 'front', push)
+}
+

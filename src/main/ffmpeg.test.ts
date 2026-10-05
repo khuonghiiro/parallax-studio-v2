@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import ffmpegStatic from 'ffmpeg-static'
-import { FfmpegEncoder } from './ffmpeg'
+import { FfmpegEncoder, ffmpegPath } from './ffmpeg'
 
 const W = 64
 const H = 36
@@ -26,8 +26,8 @@ function frame(i: number): Uint8Array {
 
 /** Read stream info via `ffmpeg -i` (ffmpeg-static ships without ffprobe). */
 function probe(path: string): string {
-  const r = spawnSync(ffmpegStatic as unknown as string, ['-hide_banner', '-i', path], { encoding: 'utf8' })
-  return r.stderr
+  const r = spawnSync(ffmpegPath(), ['-hide_banner', '-i', path], { encoding: 'utf8' })
+  return r.stderr || r.stdout || ''
 }
 
 /** Make a short silent WAV so we can test audio muxing. */

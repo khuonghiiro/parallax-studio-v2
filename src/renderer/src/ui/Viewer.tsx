@@ -154,10 +154,18 @@ export function Viewer() {
         let el = labelEls.get(key)
         if (!el) {
           el = document.createElement('div')
-          el.className = l.kind === 'shot' ? 'v-label shot' : 'v-label cam'
           if (l.kind === 'shot') {
+            el.className = 'v-label shot'
             el.dataset.shot = l.id
             el.title = 'Kéo để di chuyển cảnh trong không gian 3D (Shift: khóa trục, Alt: kéo chiều sâu Z)'
+          } else if (l.kind === 'camera') {
+            el.className = 'v-label cam'
+            el.dataset.cam = 'pos'
+            el.title = 'Kéo để dời Camera trong 3D · Click để cấu hình góc quay (Alt: kéo chiều sâu Z, Shift: khóa trục)'
+          } else if (l.kind === 'cam-target') {
+            el.className = 'v-label cam-target'
+            el.dataset.cam = 'target'
+            el.title = 'Kéo để dời điểm nhìn của Camera trong 3D (Alt: kéo chiều sâu Z, Shift: khóa trục)'
           }
           host.appendChild(el)
           labelEls.set(key, el)
@@ -438,6 +446,60 @@ export function Viewer() {
     )
   }
 
+  /** Drag camera position or target in a plane facing the editor camera. */
+  function startCameraDrag(e: React.PointerEvent, mode: 'pos' | 'target'): void {
+    const r = rendererRef.current
+    const ed = layoutRef.current.ed
+    if (!r || !ed) return
+    const s = useEditor.getState()
+    const isPos = mode === 'pos'
+    const prop = isPos ? s.project.camera.position : s.project.camera.target
+    const start = [...evaluate(prop, s.time)] as Vec3
+    const cam = edCam.get(ed.w / ed.h)
+    const p0 = new THREE.Vector3(start[0], start[1], -start[2])
+    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(cam.getWorldDirection(new THREE.Vector3()), p0)
+    const [x0, y0] = localXY(e)
+    let hit0 = r.rayAt(...ndcIn(ed, x0, y0), cam).intersectPlane(plane, new THREE.Vector3())
+    if (!hit0) hit0 = p0.clone()
+    const key = `camdrag-${nanoid(6)}`
+    capture(
+      e,
+      (pev) => {
+        const [x, y] = localXY(pev)
+        const hit = r.rayAt(...ndcIn(ed, x, y), cam).intersectPlane(plane, new THREE.Vector3())
+        if (!hit) return
+        const d = hit.sub(hit0!)
+        let next: Vec3
+        if (pev.altKey) {
+          const depthPerPx = Math.max(2, edCam.distance * 0.003)
+          next = [start[0], start[1], Math.round(start[2] - (pev.clientY - e.clientY) * depthPerPx)]
+        } else {
+          next = [Math.round(start[0] + d.x), Math.round(start[1] + d.y), Math.round(start[2] - d.z)]
+          if (pev.shiftKey) {
+            const deltas = [0, 1, 2].map((i) => Math.abs(next[i] - start[i]))
+            const keep = deltas.indexOf(Math.max(...deltas))
+            for (let i = 0; i < 3; i++) if (i !== keep) next[i] = start[i]
+          }
+        }
+        const st = useEditor.getState()
+        st.update((dr) => {
+          if (isPos) {
+            setValueAt(dr.camera.position, st.time, next, frameTolerance(st.project))
+            const tg = evaluate(dr.camera.target, st.time)
+            const dist = Math.hypot(next[0] - tg[0], next[1] - tg[1], next[2] - tg[2])
+            setValueAt(dr.camera.focusDistance, st.time, Math.round(dist), frameTolerance(st.project))
+          } else {
+            setValueAt(dr.camera.target, st.time, next, frameTolerance(st.project))
+            const cp = evaluate(dr.camera.position, st.time)
+            const dist = Math.hypot(cp[0] - next[0], cp[1] - next[1], cp[2] - next[2])
+            setValueAt(dr.camera.focusDistance, st.time, Math.round(dist), frameTolerance(st.project))
+          }
+        }, key)
+      },
+      () => undefined
+    )
+  }
+
   // ---------------------------------------------------------------- pointer handlers
 
   const onPointerDown = (e: React.PointerEvent): void => {
@@ -564,15 +626,28 @@ export function Viewer() {
   }
 
   const onLabelPointerDown = (e: React.PointerEvent): void => {
-    const el = (e.target as HTMLElement).closest<HTMLElement>('[data-shot]')
-    if (!el || e.button !== 0) return
-    e.stopPropagation()
-    e.preventDefault()
-    const id = el.dataset.shot!
-    const st = useEditor.getState()
-    st.selectLayer(null)
-    st.selectShot(id)
-    startShotDrag(e, id)
+    if (e.button !== 0) return
+    const shotEl = (e.target as HTMLElement).closest<HTMLElement>('[data-shot]')
+    if (shotEl?.dataset.shot) {
+      e.stopPropagation()
+      e.preventDefault()
+      const id = shotEl.dataset.shot
+      const st = useEditor.getState()
+      st.selectLayer(null)
+      st.selectShot(id)
+      startShotDrag(e, id)
+      return
+    }
+    const camEl = (e.target as HTMLElement).closest<HTMLElement>('[data-cam]')
+    if (camEl?.dataset.cam) {
+      e.stopPropagation()
+      e.preventDefault()
+      const mode = camEl.dataset.cam as 'pos' | 'target'
+      const st = useEditor.getState()
+      st.setInspectorTab('camera')
+      startCameraDrag(e, mode)
+      return
+    }
   }
 
   const onLabelDoubleClick = (e: React.MouseEvent): void => {

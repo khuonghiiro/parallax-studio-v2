@@ -2,7 +2,7 @@ import type { Animatable, EaseName, Project, Vec3 } from '@shared/types'
 import { ease } from './easing'
 import { addKeyframe, evaluate } from './keyframes'
 import { referenceDistance } from './math'
-import { evaluateCamera, shotFramingPose, shotMatrix } from '../engine/evaluateScene'
+import { evaluateCamera, shotAngledPose, shotFramingPose, shotMatrix, type CameraAnglePreset } from '../engine/evaluateScene'
 import * as THREE from 'three'
 
 export type TransitionType = 'fly' | 'arc' | 'cut' | 'fade'
@@ -14,6 +14,30 @@ export const TRANSITIONS: { id: TransitionType; label: string }[] = [
   { id: 'fade', label: 'Fade đen' }
 ]
 
+export type StepAngle = CameraAnglePreset
+export type StepMotion = 'push' | 'pull' | 'orbit-left' | 'orbit-right' | 'pan-left' | 'pan-right' | 'static'
+
+export const STEP_ANGLES: { id: StepAngle; label: string }[] = [
+  { id: 'front', label: 'Chính diện (0°)' },
+  { id: 'left30', label: 'Chéo trái 30°' },
+  { id: 'right30', label: 'Chéo phải 30°' },
+  { id: 'left45', label: 'Chéo trái 45°' },
+  { id: 'right45', label: 'Chéo phải 45°' },
+  { id: 'high', label: 'Góc cao (22°)' },
+  { id: 'low', label: 'Góc thấp (-15°)' },
+  { id: 'top', label: 'Đỉnh đầu (75°)' }
+]
+
+export const STEP_MOTIONS: { id: StepMotion; label: string }[] = [
+  { id: 'push', label: 'Đẩy vào (Zoom In)' },
+  { id: 'pull', label: 'Kéo ra (Zoom Out)' },
+  { id: 'orbit-left', label: 'Lượn xoay sang trái' },
+  { id: 'orbit-right', label: 'Lượn xoay sang phải' },
+  { id: 'pan-left', label: 'Lia ngang sang trái' },
+  { id: 'pan-right', label: 'Lia ngang sang phải' },
+  { id: 'static', label: 'Giữ cố định (Static)' }
+]
+
 export interface PathStep {
   shotId: string
   /** Seconds the camera stays on this shot. */
@@ -22,6 +46,10 @@ export interface PathStep {
   type: TransitionType
   /** Transition duration in seconds (cut ignores it). */
   transition: number
+  /** Camera angle framing this shot. Defaults to 'front'. */
+  angle?: StepAngle
+  /** Camera motion during the hold. Defaults to 'push'. */
+  motion?: StepMotion
 }
 
 export interface PathOptions {
@@ -74,8 +102,43 @@ export function buildCameraPath(project: Project, steps: PathStep[], opts: PathO
     const step = steps[i]
     const shot = shotOf(step.shotId)
     const holdEnd = t + Math.max(0, step.hold)
-    const A = shotFramingPose(project, shot, startKeyTime, 0)
-    const B = shotFramingPose(project, shot, holdEnd, push)
+    const ang = step.angle ?? 'front'
+    const mot = step.motion ?? 'push'
+    const panW = project.comp.width * 0.15
+
+    let A: Pose
+    let B: Pose
+    switch (mot) {
+      case 'pull':
+        A = shotAngledPose(project, shot, startKeyTime, ang, push)
+        B = shotAngledPose(project, shot, holdEnd, ang, 0)
+        break
+      case 'orbit-left':
+        A = shotAngledPose(project, shot, startKeyTime, ang, push * 0.5, 12, 0)
+        B = shotAngledPose(project, shot, holdEnd, ang, push * 0.5, -12, 0)
+        break
+      case 'orbit-right':
+        A = shotAngledPose(project, shot, startKeyTime, ang, push * 0.5, -12, 0)
+        B = shotAngledPose(project, shot, holdEnd, ang, push * 0.5, 12, 0)
+        break
+      case 'pan-left':
+        A = shotAngledPose(project, shot, startKeyTime, ang, 0, 0, 0, [panW, 0, 0])
+        B = shotAngledPose(project, shot, holdEnd, ang, 0, 0, 0, [-panW, 0, 0])
+        break
+      case 'pan-right':
+        A = shotAngledPose(project, shot, startKeyTime, ang, 0, 0, 0, [-panW, 0, 0])
+        B = shotAngledPose(project, shot, holdEnd, ang, 0, 0, 0, [panW, 0, 0])
+        break
+      case 'static':
+        A = shotAngledPose(project, shot, startKeyTime, ang, 0)
+        B = shotAngledPose(project, shot, holdEnd, ang, 0)
+        break
+      case 'push':
+      default:
+        A = shotAngledPose(project, shot, startKeyTime, ang, 0)
+        B = shotAngledPose(project, shot, holdEnd, ang, push)
+        break
+    }
     key(startKeyTime, A, 'easeInOut')
     const next = steps[i + 1]
     if (!next) {
@@ -91,7 +154,8 @@ export function buildCameraPath(project: Project, steps: PathStep[], opts: PathO
         startKeyTime = t
         break
       case 'arc': {
-        const arrive = shotFramingPose(project, shotOf(next.shotId), holdEnd + T, 0)
+        const nextAng = next.angle ?? 'front'
+        const arrive = shotAngledPose(project, shotOf(next.shotId), holdEnd + T, nextAng, 0)
         const back = sub(B.position, B.target)
         const bl = len(back) || 1
         const dist = len(sub(arrive.position, B.position))
@@ -142,11 +206,11 @@ export function buildCameraPath(project: Project, steps: PathStep[], opts: PathO
  * After-Effects-style "fly the camera here": key the shot's framing pose at time `t`.
  * With `duration`, also key the current pose at `t - duration` so the move takes that long.
  */
-export function flyCameraToShot(project: Project, shotId: string, t: number, duration = 0, easeName: EaseName = 'easeInOut'): void {
+export function flyCameraToShot(project: Project, shotId: string, t: number, duration = 0, easeName: EaseName = 'easeInOut', anglePreset: CameraAnglePreset = 'front'): void {
   const shot = project.shots.find((s) => s.id === shotId)
   if (!shot) throw new Error(`Shot ${shotId} không tồn tại`)
   const cam = project.camera
-  const pose = shotFramingPose(project, shot, t)
+  const pose = shotAngledPose(project, shot, t, anglePreset)
   const focus = Math.round(len(sub(pose.target, pose.position)))
   const animated = cam.position.keyframes.length > 0 || cam.target.keyframes.length > 0
   if (!animated && t <= EPS) {

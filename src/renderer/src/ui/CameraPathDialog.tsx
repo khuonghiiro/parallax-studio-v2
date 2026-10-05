@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { applyCameraPath, useToast } from '../actions'
-import { TRANSITIONS, type PathStep, type TransitionType } from '../animation/cameraPath'
+import { STEP_ANGLES, STEP_MOTIONS, TRANSITIONS, type PathStep, type StepAngle, type StepMotion, type TransitionType } from '../animation/cameraPath'
 import { useEditor } from '../store/editor'
 import { useView } from '../store/view'
 import { NumberInput, Row, Slider, Switch } from './controls'
@@ -17,7 +17,14 @@ export function CameraPathDialog() {
   const [steps, setSteps] = useState<PathStep[]>(() =>
     shots
       .filter((s) => s.visible)
-      .map((s, i, arr) => ({ shotId: s.id, hold: DEFAULT_HOLD, type: i % 2 === 0 ? 'arc' : 'fly', transition: i < arr.length - 1 ? DEFAULT_TRANSITION : 0 }))
+      .map((s, i, arr) => ({
+        shotId: s.id,
+        hold: DEFAULT_HOLD,
+        type: i % 2 === 0 ? 'arc' : 'fly',
+        transition: i < arr.length - 1 ? DEFAULT_TRANSITION : 0,
+        angle: 'front' as StepAngle,
+        motion: 'push' as StepMotion
+      }))
   )
   const [pushIn, setPushIn] = useState(0.08)
   const [fit, setFit] = useState(true)
@@ -65,8 +72,8 @@ export function CameraPathDialog() {
     <div className="modal-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>
       <div className="modal wide" role="dialog" aria-labelledby="path-title">
         <div className="modal-head">
-          <h2 id="path-title">Lộ trình camera</h2>
-          <p>Camera dừng ở từng cảnh rồi chuyển sang cảnh kế tiếp. Keyframe camera hiện có sẽ được thay thế (có thể Ctrl+Z).</p>
+          <h2 id="path-title">Lộ trình camera qua các cảnh</h2>
+          <p>Camera tự động di chuyển và dừng ở từng cảnh với góc quay & chuyển động mong muốn. Keyframe cũ sẽ được thay thế.</p>
         </div>
         <div className="modal-body">
           <div className="path-steps">
@@ -81,6 +88,30 @@ export function CameraPathDialog() {
                       {shots.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.name}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      className="select sm"
+                      value={step.angle ?? 'front'}
+                      onChange={(e) => patch(i, { angle: e.target.value as StepAngle })}
+                      title="Góc quay của camera vào cảnh này"
+                    >
+                      {STEP_ANGLES.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.label}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      className="select sm"
+                      value={step.motion ?? 'push'}
+                      onChange={(e) => patch(i, { motion: e.target.value as StepMotion })}
+                      title="Cử động của camera trong lúc dừng ở cảnh"
+                    >
+                      {STEP_MOTIONS.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.label}
                         </option>
                       ))}
                     </select>
@@ -131,7 +162,7 @@ export function CameraPathDialog() {
                 const idx = shots.findIndex((s) => s.id === prev?.shotId)
                 const nextShot = shots[(idx + 1) % shots.length]
                 const fixed = a.map((s, j) => (j === a.length - 1 && s.transition === 0 ? { ...s, transition: DEFAULT_TRANSITION } : s))
-                return [...fixed, { shotId: nextShot.id, hold: DEFAULT_HOLD, type: 'fly', transition: 0 }]
+                return [...fixed, { shotId: nextShot.id, hold: DEFAULT_HOLD, type: 'fly', transition: 0, angle: 'front', motion: 'push' }]
               })
             }
           >

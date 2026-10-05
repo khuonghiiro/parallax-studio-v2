@@ -6,7 +6,7 @@ import { evaluateCamera, type EvaluatedScene } from './evaluateScene'
 import { DEG, depthToThree } from './spatial'
 
 export interface ScreenLabel {
-  kind: 'shot' | 'camera'
+  kind: 'shot' | 'camera' | 'cam-target'
   id: string
   text: string
   color: string
@@ -223,7 +223,9 @@ export class EditorHelpers {
       if (s2) out.push({ kind: 'shot', id: s.shot.id, text: s.shot.name, color: s.shot.color, x: s2[0], y: s2[1] })
     }
     const c = toScreen(activeCam.position)
-    if (c) out.push({ kind: 'camera', id: 'camera', text: 'Camera', color: '#3dd6f5', x: c[0], y: c[1] })
+    if (c) out.push({ kind: 'camera', id: 'camera', text: '📷 Camera', color: '#3dd6f5', x: c[0], y: c[1] })
+    const tg = toScreen(depthToThree(ev.camera.target, new THREE.Vector3()))
+    if (tg) out.push({ kind: 'cam-target', id: 'cam-target', text: '🎯 Điểm nhìn', color: '#f5a623', x: tg[0], y: tg[1] })
     return out
   }
 

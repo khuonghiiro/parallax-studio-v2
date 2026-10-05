@@ -11,6 +11,7 @@ import { assetStore } from '../project/assets'
 import { findLayer, findShot, frameTolerance, getAnimatable, getDraftAnimatable, useEditor, type PropRef } from '../store/editor'
 import { useView } from '../store/view'
 import { AnimRow, ColorInput, NumberInput, Row, Slider, Switch, TextInput } from './controls'
+import { CameraControls } from './CameraControls'
 import { IconCamera, IconFilm, IconFocus, IconLayers, IconMusic, IconPlane, IconTrash, IconWand } from './icons'
 
 const FONTS = ['Montserrat', 'Inter', 'Playfair Display', 'Bebas Neue', 'JetBrains Mono']
@@ -835,9 +836,11 @@ function CameraInspector() {
 
   return (
     <>
+      <CameraControls />
+
       <div className="section">
         <div className="section-title">
-          <IconCamera width={13} height={13} /> Chuyển động camera (preset)
+          <IconCamera width={13} height={13} /> Chuyển động camera mẫu (preset)
           {targetShot && (
             <>
               <span className="spacer" />
