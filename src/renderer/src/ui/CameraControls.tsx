@@ -291,58 +291,58 @@ export function CameraControls() {
           <button
             className="cam-angle-btn"
             onClick={() => applySpherical(0, 0, spherical.dist)}
-            title="Góc nhìn thẳng trực diện cảnh"
+            title="Góc nhìn thẳng trực diện cảnh (0°)"
           >
-            Chính diện (0°)
+            0° Thẳng
           </button>
           <button
             className="cam-angle-btn"
             onClick={() => applySpherical(-30, 0, spherical.dist)}
             title="Góc nhìn chéo từ bên trái 30°"
           >
-            Chéo trái 30°
+            -30° Trái
           </button>
           <button
             className="cam-angle-btn"
             onClick={() => applySpherical(30, 0, spherical.dist)}
             title="Góc nhìn chéo từ bên phải 30°"
           >
-            Chéo phải 30°
+            +30° Phải
           </button>
           <button
             className="cam-angle-btn"
             onClick={() => applySpherical(-45, 0, spherical.dist)}
             title="Góc nhìn chéo từ bên trái 45°"
           >
-            Chéo trái 45°
+            -45° Trái
           </button>
           <button
             className="cam-angle-btn"
             onClick={() => applySpherical(45, 0, spherical.dist)}
             title="Góc nhìn chéo từ bên phải 45°"
           >
-            Chéo phải 45°
+            +45° Phải
           </button>
           <button
             className="cam-angle-btn"
             onClick={() => applySpherical(0, 22, spherical.dist)}
             title="Góc nhìn từ trên cao xuống 22°"
           >
-            Góc cao (22°)
+            +22° Cao
           </button>
           <button
             className="cam-angle-btn"
             onClick={() => applySpherical(0, -15, spherical.dist)}
             title="Góc nhìn từ dưới thấp lên -15°"
           >
-            Góc thấp (-15°)
+            -15° Thấp
           </button>
           <button
             className="cam-angle-btn"
             onClick={() => applySpherical(0, 75, spherical.dist)}
-            title="Góc nhìn thẳng từ trên đỉnh đầu xuống (Top-down 75°)"
+            title="Góc nhìn thẳng từ trên đỉnh đầu xuống (75°)"
           >
-            Đỉnh đầu (75°)
+            75° Đỉnh
           </button>
         </div>
 

@@ -86,14 +86,16 @@
 
 .row {
   display: grid;
-  grid-template-columns: 20px 90px minmax(0, 1fr);
+  grid-template-columns: 18px 84px minmax(0, 1fr);
   align-items: center;
-  gap: 6px;
-  min-height: 26px;
+  gap: 5px;
+  min-height: 25px;
   padding: 1px 0;
+  min-width: 0;
+  width: 100%;
 }
 .row.plain {
-  grid-template-columns: 110px minmax(0, 1fr);
+  grid-template-columns: 96px minmax(0, 1fr);
 }
 .row-label {
   color: var(--text-dim);
@@ -101,6 +103,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 .row-label.scrub {
   cursor: ew-resize;
@@ -110,8 +113,10 @@
 }
 .fields {
   display: flex;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
+  width: 100%;
+  overflow: hidden;
 }
 
 /* Numeric input container styled in authentic AE fashion */
@@ -120,12 +125,13 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  height: 23px;
+  height: 22px;
   border-radius: var(--radius-sm);
   background: #181818;
   border: 1px solid #2d2d2d;
   cursor: ew-resize;
   position: relative;
+  overflow: hidden;
   transition: border-color 0.12s, background 0.12s;
 }
 .num:hover {
@@ -144,12 +150,13 @@
 
 /* AE Axis Badges */
 .num .axis {
-  padding: 0 2px 0 6px;
-  font-size: 9.5px;
+  padding: 0 1px 0 4px;
+  font-size: 9px;
   font-weight: 700;
   color: var(--text-faint);
   user-select: none;
   cursor: ew-resize;
+  flex: none;
 }
 .num .axis.x {
   color: var(--axis-x);
@@ -166,12 +173,12 @@
   width: 100%;
   min-width: 0;
   height: 100%;
-  padding: 0 5px;
+  padding: 0 3px;
   border: none;
   outline: none;
   background: transparent;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 10.5px;
   font-variant-numeric: tabular-nums;
   color: var(--accent-cyan);
   cursor: ew-resize;

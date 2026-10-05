@@ -54,6 +54,9 @@
 .section {
   border-bottom: 1px solid var(--line);
   padding: 8px 10px 10px;
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .section-title {
@@ -88,12 +91,16 @@
   border-radius: var(--radius-sm);
   padding: 8px;
   margin-bottom: 8px;
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .cam-point-info {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-width: 0;
 }
 
 .active-key-pill {
@@ -128,10 +135,17 @@
   display: flex;
   gap: 4px;
   align-items: center;
+  min-width: 0;
 }
 .cam-nav-btns .btn {
   flex: 1;
   justify-content: center;
+  min-width: 0;
+  font-size: 10.5px;
+  padding: 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .cam-nav-btns .btn.icon {
   flex: none;
@@ -147,6 +161,7 @@
   background: #161616;
   border-radius: var(--radius-sm);
   overflow-x: auto;
+  min-width: 0;
 }
 
 .cam-point-dot {
@@ -163,6 +178,7 @@
   display: grid;
   place-items: center;
   transition: all 0.12s;
+  flex: none;
 }
 .cam-point-dot:hover {
   border-color: var(--accent);
@@ -184,6 +200,7 @@
   cursor: pointer;
   padding: 1px 4px;
   border-radius: 2px;
+  flex: none;
 }
 .cam-clear-all:hover {
   color: var(--danger);
@@ -191,21 +208,26 @@
 
 .cam-angle-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 3px;
   margin: 8px 0;
+  min-width: 0;
+  width: 100%;
 }
 .cam-angle-btn {
-  padding: 5px 3px;
+  padding: 4px 2px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: #222222;
   color: var(--text-dim);
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 500;
   cursor: pointer;
   text-align: center;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
   transition: all 0.12s;
 }
 .cam-angle-btn:hover {

@@ -51,7 +51,7 @@ textarea {
 .app {
   display: grid;
   grid-template-rows: 46px minmax(0, 1fr) 5px var(--timeline-h);
-  grid-template-columns: 280px minmax(0, 1fr) 340px;
+  grid-template-columns: 280px minmax(0, 1fr) 350px;
   grid-template-areas:
     'top top top'
     'left view right'
@@ -60,6 +60,7 @@ textarea {
   height: 100vh;
   background: var(--bg-0);
   gap: 0;
+  overflow: hidden;
 }
 
 .toolbar {
@@ -113,6 +114,7 @@ textarea {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
@@ -139,7 +141,9 @@ textarea {
 .panel-body {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden; /* Prevent horizontal scrollbar on panels */
 }
 
 /* Side Columns Padding */
@@ -150,6 +154,8 @@ textarea {
   gap: 4px;
   padding: 4px 0 0 4px;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 .right {
   padding: 4px 4px 0 0;
