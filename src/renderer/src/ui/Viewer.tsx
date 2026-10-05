@@ -155,7 +155,10 @@ export function Viewer() {
         if (!el) {
           el = document.createElement('div')
           el.className = l.kind === 'shot' ? 'v-label shot' : 'v-label cam'
-          if (l.kind === 'shot') el.dataset.shot = l.id
+          if (l.kind === 'shot') {
+            el.dataset.shot = l.id
+            el.title = 'Kéo để di chuyển cảnh trong không gian 3D (Shift: khóa trục, Alt: kéo chiều sâu Z)'
+          }
           host.appendChild(el)
           labelEls.set(key, el)
         }
@@ -298,28 +301,43 @@ export function Viewer() {
   }
   const ndcIn = (r: Rect, x: number, y: number): [number, number] => [((x - r.x) / r.w) * 2 - 1, -((y - r.y) / r.h) * 2 + 1]
 
-  /** Generic capture-based drag. `move` gets the pointer delta since start (CSS px). */
-  function capture(e: React.PointerEvent, move: (ev: PointerEvent, dx: number, dy: number) => void, up?: (moved: boolean, ev: PointerEvent) => void): void {
-    const target = e.currentTarget as HTMLElement
-    target.setPointerCapture(e.pointerId)
+  /** Generic drag using window listeners so mouse movement & release are never lost. */
+  function capture(
+    e: React.PointerEvent,
+    move: (ev: PointerEvent, dx: number, dy: number) => void,
+    up?: (moved: boolean, ev: PointerEvent) => void
+  ): void {
+    const target = (e.target as HTMLElement) ?? (e.currentTarget as HTMLElement)
+    try {
+      if (target?.setPointerCapture) target.setPointerCapture(e.pointerId)
+    } catch {
+      /* ignore if pointer capture fails */
+    }
     const sx = e.clientX
     const sy = e.clientY
     let moved = false
     const onMove = (ev: PointerEvent): void => {
       const dx = ev.clientX - sx
       const dy = ev.clientY - sy
-      if (!moved && Math.hypot(dx, dy) > 3) moved = true
+      if (!moved && Math.hypot(dx, dy) > 2) moved = true
       if (moved) move(ev, dx, dy)
     }
     const onUp = (ev: PointerEvent): void => {
-      target.removeEventListener('pointermove', onMove)
-      target.removeEventListener('pointerup', onUp)
-      target.removeEventListener('pointercancel', onUp)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
+      try {
+        if (target?.hasPointerCapture?.(e.pointerId)) {
+          target.releasePointerCapture(e.pointerId)
+        }
+      } catch {
+        /* ignore */
+      }
       up?.(moved, ev)
     }
-    target.addEventListener('pointermove', onMove)
-    target.addEventListener('pointerup', onUp)
-    target.addEventListener('pointercancel', onUp)
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
   }
 
   /** Drag a layer in a plane; converts the world delta into the layer's local (shot) space. */
@@ -386,8 +404,8 @@ export function Viewer() {
     const p0 = new THREE.Vector3(start[0], start[1], -start[2])
     const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(cam.getWorldDirection(new THREE.Vector3()), p0)
     const [x0, y0] = localXY(e)
-    const hit0 = r.rayAt(...ndcIn(ed, x0, y0), cam).intersectPlane(plane, new THREE.Vector3())
-    if (!hit0) return
+    let hit0 = r.rayAt(...ndcIn(ed, x0, y0), cam).intersectPlane(plane, new THREE.Vector3())
+    if (!hit0) hit0 = p0.clone()
     const key = `shotdrag-${nanoid(6)}`
     capture(
       e,
@@ -395,8 +413,21 @@ export function Viewer() {
         const [x, y] = localXY(pev)
         const hit = r.rayAt(...ndcIn(ed, x, y), cam).intersectPlane(plane, new THREE.Vector3())
         if (!hit) return
-        const d = hit.sub(hit0)
-        const next: Vec3 = [Math.round(start[0] + d.x), Math.round(start[1] + d.y), Math.round(start[2] - d.z)]
+        const d = hit.sub(hit0!)
+        let next: Vec3
+        if (pev.altKey) {
+          // Alt: drag in depth (Z axis)
+          const depthPerPx = Math.max(2, edCam.distance * 0.003)
+          next = [start[0], start[1], Math.round(start[2] - (pev.clientY - e.clientY) * depthPerPx)]
+        } else {
+          next = [Math.round(start[0] + d.x), Math.round(start[1] + d.y), Math.round(start[2] - d.z)]
+          if (pev.shiftKey) {
+            // Shift: lock to predominant axis (X, Y, or Z)
+            const deltas = [0, 1, 2].map((i) => Math.abs(next[i] - start[i]))
+            const keep = deltas.indexOf(Math.max(...deltas))
+            for (let i = 0; i < 3; i++) if (i !== keep) next[i] = start[i]
+          }
+        }
         const st = useEditor.getState()
         st.update((dr) => {
           const sh = dr.shots.find((x) => x.id === shotId)
@@ -432,9 +463,39 @@ export function Viewer() {
     const aspect = ed.w / ed.h
     const cam = edCam.get(aspect)
 
-    // Check if clicking on any layer with left mouse button (e.button === 0)
-    // Allows holding Alt (depth drag) or Shift (axis lock) directly on layers
+    // Left mouse button interactions
     if (e.button === 0) {
+      // 1. Check if clicking on or near any shot label/header first!
+      // This prevents accidentally selecting a background layer when trying to move a shot.
+      const labelEl = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>('[data-shot]')
+      if (labelEl?.dataset.shot) {
+        const shotId = labelEl.dataset.shot
+        st.selectLayer(null)
+        st.selectShot(shotId)
+        startShotDrag(e, shotId)
+        return
+      }
+
+      // Proximity check: if clicking within 36px of the shot's top header anchor, prioritize shot dragging
+      const ev = evaluateScene(st.project, st.time)
+      const tmpV = new THREE.Vector3()
+      for (const s of ev.shots) {
+        if (!s.shot.visible || s.bounds.isEmpty()) continue
+        const b = s.bounds
+        tmpV.set((b.min.x + b.max.x) / 2, b.max.y, (b.min.z + b.max.z) / 2).project(cam)
+        if (tmpV.z >= -1 && tmpV.z <= 1) {
+          const sx = ed.x + ((tmpV.x + 1) / 2) * ed.w
+          const sy = ed.y + ((1 - tmpV.y) / 2) * ed.h - 14
+          if (Math.hypot(x - sx, y - sy) <= 36) {
+            st.selectLayer(null)
+            st.selectShot(s.shot.id)
+            startShotDrag(e, s.shot.id)
+            return
+          }
+        }
+      }
+
+      // 2. Check if clicking on any layer with left mouse button
       const [nx, ny] = ndcIn(ed, x, y)
       r.layoutForPick(st.project, st.time, toDevice(ed, L.dpr).h, cam)
       const id = r.pick(nx, ny, st.project, cam, false)
@@ -506,8 +567,11 @@ export function Viewer() {
     const el = (e.target as HTMLElement).closest<HTMLElement>('[data-shot]')
     if (!el || e.button !== 0) return
     e.stopPropagation()
+    e.preventDefault()
     const id = el.dataset.shot!
-    useEditor.getState().selectShot(id)
+    const st = useEditor.getState()
+    st.selectLayer(null)
+    st.selectShot(id)
     startShotDrag(e, id)
   }
 

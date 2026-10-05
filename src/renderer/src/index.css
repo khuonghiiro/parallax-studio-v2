@@ -527,17 +527,30 @@ textarea {
 }
 .v-label.shot {
   pointer-events: auto;
-  cursor: move;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
   transition:
     background 0.15s,
     box-shadow 0.15s;
+}
+.v-label.shot:active {
+  cursor: grabbing;
+}
+.v-label.shot::before {
+  content: '';
+  position: absolute;
+  inset: -8px -14px;
+  border-radius: 24px;
 }
 .v-label.shot:hover,
 .v-label.shot.selected {
   background: color-mix(in srgb, var(--c) 65%, rgba(10, 12, 18, 0.85));
   box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--c) 30%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--c) 35%, transparent),
     0 6px 20px rgba(0, 0, 0, 0.45);
+  z-index: 10;
 }
 .v-label.cam {
   margin-top: -30px;
