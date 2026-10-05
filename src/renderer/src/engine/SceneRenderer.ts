@@ -73,6 +73,8 @@ export interface EditorRenderOptions {
   cameraOnly?: boolean
   /** Whether the timeline is actively playing. */
   playing?: boolean
+  /** Active UI color theme. */
+  theme?: 'dark' | 'light'
 }
 
 export interface ResidencyStats {
@@ -888,7 +890,8 @@ export class SceneRenderer {
     r.setScissorTest(false)
     r.setRenderTarget(this.editorRt)
     r.setViewport(0, 0, vp.w, vp.h)
-    r.setClearColor(new THREE.Color('#0c0e14'), 1)
+    const editorBg = opts.theme === 'light' ? '#e2e5eb' : '#0c0e14'
+    r.setClearColor(new THREE.Color(editorBg), 1)
     r.clear(true, true, true)
     r.render(this.scene, cam)
     r.render(this.helpers.scene, cam)

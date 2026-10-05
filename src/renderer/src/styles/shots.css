@@ -56,7 +56,7 @@
   opacity: 0.9;
 }
 .shot-row:hover {
-  border-color: #3d3d3d;
+  border-color: var(--line);
   background: var(--bg-3);
 }
 .shot-row.selected {
@@ -179,8 +179,9 @@
   padding: 0 6px;
   border-radius: 8px;
   font-size: 9.5px;
-  color: #fff;
-  background: color-mix(in srgb, var(--c) 30%, var(--bg-2));
+  font-weight: 600;
+  color: var(--text);
+  background: color-mix(in srgb, var(--c) 25%, var(--bg-2));
   border: 1px solid color-mix(in srgb, var(--c) 60%, transparent);
 }
 
@@ -196,7 +197,7 @@
   position: relative;
   border-radius: var(--radius-sm);
   overflow: hidden;
-  background: repeating-conic-gradient(#1e1e1e 0% 25%, #181818 0% 50%) 50% / 12px 12px;
+  background: repeating-conic-gradient(var(--bg-3) 0% 25%, var(--bg-1) 0% 50%) 50% / 12px 12px;
   border: 1px solid var(--line);
   aspect-ratio: 16 / 10;
   cursor: grab;

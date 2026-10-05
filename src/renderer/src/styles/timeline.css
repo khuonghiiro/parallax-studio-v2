@@ -17,7 +17,7 @@
   padding: 0 8px;
   height: 38px;
   flex: none;
-  background: #1a1a1a;
+  background: var(--bg-1);
   border-bottom: 1px solid var(--line);
 }
 
@@ -27,8 +27,8 @@
   align-items: baseline;
   padding: 3px 8px;
   border-radius: var(--radius-sm);
-  background: #111111;
-  border: 1px solid #282828;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
   font-family: var(--mono);
   font-size: 14px;
   font-weight: 700;
@@ -36,7 +36,7 @@
   color: var(--accent-cyan);
   letter-spacing: 0.04em;
   margin: 0 6px;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 .timecode small {
   color: var(--text-faint);
@@ -54,7 +54,7 @@
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  background: #181818;
+  background: var(--bg-0);
 }
 
 .tl-names-head {
@@ -68,7 +68,7 @@
   color: var(--text-faint);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  background: #1f1f1f;
+  background: var(--bg-1);
   border-right: 1px solid var(--line);
 }
 
@@ -77,13 +77,13 @@
   border-bottom: 1px solid var(--line);
   position: relative;
   cursor: col-resize;
-  background: #1c1c1c;
+  background: var(--bg-2);
 }
 .tl-ruler .tick {
   position: absolute;
   bottom: 0;
   width: 1px;
-  background: #333333;
+  background: var(--line);
 }
 .tl-ruler .tick-label {
   position: absolute;
@@ -98,7 +98,7 @@
 .tl-scroll {
   overflow-y: auto;
   overflow-x: hidden;
-  background: #181818;
+  background: var(--bg-0);
 }
 
 /* ------------------------------------------------------------------ Track Rows */
@@ -107,16 +107,16 @@
   height: 26px;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid #222222;
+  border-bottom: 1px solid var(--line-soft);
   position: relative;
   transition: background 0.08s;
 }
 .tl-row:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.04);
 }
 .tl-row.sub {
   height: 22px;
-  background: #151515;
+  background: var(--bg-1);
 }
 .tl-row.selected {
   background: rgba(38, 128, 235, 0.12);
@@ -142,7 +142,7 @@
 }
 .tl-name .label input {
   width: 100%;
-  background: #111;
+  background: var(--bg-2);
   border: 1px solid var(--accent);
   border-radius: 2px;
   outline: none;
@@ -308,7 +308,7 @@
   border-radius: 2px;
   background: color-mix(in srgb, var(--c, var(--accent)) 30%, transparent);
   border: 1px solid color-mix(in srgb, var(--c, var(--accent)) 65%, transparent);
-  color: #fff;
+  color: var(--text);
   font-size: 9.5px;
   font-weight: 600;
   padding: 0 5px;

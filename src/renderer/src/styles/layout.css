@@ -28,19 +28,19 @@ textarea {
   color: inherit;
 }
 
-/* AE Sleek Dark Scrollbars */
+/* AE Pro Scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #333333;
+  background: var(--scroll-thumb);
   border-radius: 4px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4a4a4a;
+  background: var(--scroll-thumb-hover);
   background-clip: content-box;
 }
 ::-webkit-scrollbar-track {
@@ -97,7 +97,7 @@ textarea {
   height: 2px;
   border-radius: 1px;
   transform: translateX(-50%);
-  background: #3a3a3a;
+  background: var(--line);
   transition: background 0.15s, width 0.15s;
 }
 .splitter:hover::after,
@@ -126,7 +126,7 @@ textarea {
   padding: 0 10px;
   height: 32px;
   flex: none;
-  background: #1c1c1c;
+  background: var(--bg-1);
   border-bottom: 1px solid var(--line);
   font-size: 11px;
   font-weight: 600;

@@ -102,7 +102,8 @@ export function Viewer() {
     const s = useEditor.getState()
     const v = useView.getState()
     const L = layoutRef.current
-    r.beginFrame(CLEAR)
+    const clearCol = v.theme === 'light' ? '#e2e5eb' : CLEAR
+    r.beginFrame(clearCol)
     if (L.cam) {
       r.render(s.project, s.time, {
         selectedId: s.playing ? null : s.selectedLayerId,
@@ -127,7 +128,8 @@ export function Viewer() {
         selectedShotId: s.selectedShotId,
         showPath: v.showPath,
         cameraOnly: v.cameraOnly,
-        playing: s.playing
+        playing: s.playing,
+        theme: v.theme
       })
       updateLabels(labels, L.ed, L.dpr, s.selectedShotId)
     } else {

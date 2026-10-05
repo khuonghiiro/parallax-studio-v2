@@ -1,9 +1,11 @@
 /* ==========================================================================
-   Adobe After Effects Pro Dark Design Tokens
+   Parallax Studio Design Tokens (Dark Theme & Light Theme)
    ========================================================================== */
 
-:root {
-  /* Slate & Charcoal Surfaces (Authentic AE Dark Theme) */
+/* ------------------------------------------------------------------ Dark Theme (Default) */
+:root,
+[data-theme='dark'] {
+  /* Slate & Charcoal Surfaces */
   --bg-0: #141414;        /* Deep workspace surround */
   --bg-1: #1e1e1e;        /* Standard docked panel */
   --bg-2: #252525;        /* Card / input background */
@@ -45,10 +47,78 @@
   --shadow: 0 12px 36px rgba(0, 0, 0, 0.65);
   --shadow-popup: 0 16px 48px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08);
 
+  /* Viewer & HUD overlays */
+  --viewer-surround: #141414;
+  --hud-bg: rgba(20, 22, 28, 0.88);
+  --hud-border: rgba(255, 255, 255, 0.12);
+  --vlabel-bg: rgba(24, 24, 24, 0.92);
+  --vlabel-color: #ffffff;
+  --vlabel-border: rgba(255, 255, 255, 0.12);
+
+  /* Scrollbars */
+  --scroll-thumb: #383838;
+  --scroll-thumb-hover: #4e4e4e;
+
   /* Fonts */
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --mono: 'JetBrains Mono', 'Fira Code', ui-monospace, Menlo, Monaco, Consolas, monospace;
 
   /* Dimensions */
   --timeline-h: 300px;
+}
+
+/* ------------------------------------------------------------------ Light Theme (AE Pro Light Mode) */
+:root[data-theme='light'],
+[data-theme='light'],
+.app.light {
+  /* Clean Light Surfaces */
+  --bg-0: #e2e4e8;        /* Soft neutral workspace surround */
+  --bg-1: #f1f2f5;        /* Light docked panel */
+  --bg-2: #ffffff;        /* Crisp white inputs / cards / rows */
+  --bg-3: #e6e8ec;        /* Hover surface */
+  --bg-4: #d8dbe2;        /* Active / pressed surface */
+
+  /* Crisp Light Borders */
+  --line: #cbd0d8;
+  --line-soft: #dce0e6;
+  --line-focus: #1473e6;
+
+  /* Typography Colors */
+  --text: #16181d;        /* Deep crisp charcoal text */
+  --text-dim: #4b5262;    /* High-contrast readable secondary */
+  --text-faint: #798294;  /* Muted text */
+
+  /* Signature Accent Colors for Light Mode */
+  --accent: #1473e6;       /* AE Light Royal Blue */
+  --accent-hover: #0c62c7;
+  --accent-cyan: #0284c7;  /* High-contrast cyan/sky blue for scrub numbers */
+  --accent-2: #0284c7;
+  --accent-grad: linear-gradient(135deg, #0c62c7 0%, #1473e6 60%, #0284c7 100%);
+
+  /* Animation & State Colors */
+  --key: #d97706;          /* Rich amber/gold for keyframes */
+  --key-glow: rgba(217, 119, 6, 0.25);
+  --danger: #dc2626;       /* Vivid Red */
+  --ok: #16a34a;           /* Forest Green */
+
+  /* 3D Axis Colors */
+  --axis-x: #e11d48;
+  --axis-y: #16a34a;
+  --axis-z: #2563eb;
+
+  /* Geometry & Shadows */
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --shadow-popup: 0 10px 30px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.08);
+
+  /* Viewer & HUD overlays */
+  --viewer-surround: #dbe0e7;
+  --hud-bg: rgba(255, 255, 255, 0.92);
+  --hud-border: rgba(0, 0, 0, 0.14);
+  --vlabel-bg: rgba(255, 255, 255, 0.95);
+  --vlabel-color: #16181d;
+  --vlabel-border: rgba(0, 0, 0, 0.16);
+
+  /* Scrollbars */
+  --scroll-thumb: #cbd0d8;
+  --scroll-thumb-hover: #9ca3af;
 }

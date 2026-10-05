@@ -14,7 +14,7 @@
   flex: 1;
   position: relative;
   border-radius: var(--radius);
-  background: #141414;
+  background: var(--viewer-surround);
   border: 1px solid var(--line);
   display: flex;
   align-items: center;
@@ -57,9 +57,12 @@
   color: var(--text);
   font-size: 11px;
   font-weight: 600;
-  background: rgba(20, 20, 20, 0.75);
-  padding: 2px 6px;
-  border-radius: 2px;
+  background: var(--hud-bg);
+  border: 1px solid var(--hud-border);
+  box-shadow: var(--shadow);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  backdrop-filter: blur(8px);
 }
 .pane-tag svg {
   width: 12px;
@@ -92,11 +95,11 @@
   font-size: 10.5px;
   font-weight: 600;
   white-space: nowrap;
-  color: #fff;
-  background: rgba(24, 24, 24, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  color: var(--vlabel-color);
+  background: var(--vlabel-bg);
+  border: 1px solid var(--vlabel-border);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
   will-change: transform;
 }
 
@@ -113,10 +116,10 @@
 }
 .v-label.shot:hover,
 .v-label.shot.selected {
-  background: color-mix(in srgb, var(--c, var(--accent)) 70%, #181818);
+  background: color-mix(in srgb, var(--c, var(--accent)) 70%, var(--bg-1));
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--c, var(--accent)) 60%, transparent),
-    0 4px 16px rgba(0, 0, 0, 0.6);
+    0 4px 16px rgba(0, 0, 0, 0.4);
   z-index: 10;
 }
 
@@ -131,12 +134,12 @@
   font-size: 10px;
   font-weight: 600;
   color: var(--accent-cyan);
-  background: rgba(18, 18, 18, 0.95);
-  border: 1px solid rgba(56, 189, 248, 0.5);
+  background: var(--vlabel-bg);
+  border: 1px solid var(--accent-cyan);
 }
 .v-label.cam-target {
   color: var(--key);
-  border-color: rgba(245, 158, 11, 0.6);
+  border-color: var(--key);
 }
 .v-label.cam:active,
 .v-label.cam-target:active {
@@ -144,8 +147,8 @@
 }
 .v-label.cam:hover,
 .v-label.cam.selected {
-  background: #1c2738;
-  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.4), 0 4px 14px rgba(0, 0, 0, 0.6);
+  background: color-mix(in srgb, var(--accent) 30%, var(--bg-2));
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.4), 0 4px 14px rgba(0, 0, 0, 0.3);
   z-index: 12;
 }
 
@@ -167,12 +170,13 @@
   height: 20px;
   padding: 0 7px;
   border-radius: var(--radius-sm);
-  background: rgba(18, 18, 18, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--hud-bg);
+  border: 1px solid var(--hud-border);
   color: var(--text-dim);
   font-size: 10px;
   font-family: var(--mono);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 .chip .dot {
   width: 5px;
@@ -202,12 +206,15 @@
 }
 .viewer-tools .btn,
 .viewer-tools .select {
-  background: rgba(24, 24, 24, 0.85);
-  backdrop-filter: blur(4px);
+  background: var(--hud-bg);
+  border: 1px solid var(--hud-border);
+  color: var(--text);
+  backdrop-filter: blur(8px);
 }
 .viewer-tools .btn.active {
-  background: rgba(38, 128, 235, 0.35);
+  background: color-mix(in srgb, var(--accent) 25%, var(--hud-bg));
   border-color: var(--accent);
+  color: var(--text);
 }
 .select.sm {
   width: auto;
@@ -221,10 +228,16 @@
   padding: 1px;
   gap: 1px;
   border-radius: var(--radius-sm);
-  background: rgba(18, 18, 18, 0.85);
-  border: 1px solid var(--line);
+  background: var(--hud-bg);
+  border: 1px solid var(--hud-border);
 }
 .seg .btn {
   border-color: transparent;
   background: transparent;
+  color: var(--text-dim);
+}
+.seg .btn.active {
+  background: var(--bg-2);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }

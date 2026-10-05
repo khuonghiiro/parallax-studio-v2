@@ -9,7 +9,7 @@
   gap: 1px;
   padding: 3px 6px;
   border-bottom: 1px solid var(--line);
-  background: #1a1a1a;
+  background: var(--bg-1);
 }
 
 .tab {
@@ -31,11 +31,11 @@
 }
 .tab:hover {
   color: var(--text);
-  background: #252525;
+  background: var(--bg-3);
 }
 .tab.active {
-  background: #272727;
-  color: #fff;
+  background: var(--bg-2);
+  color: var(--text);
   box-shadow: inset 0 -2px 0 var(--accent);
 }
 .tab-count {
@@ -43,7 +43,7 @@
   height: 15px;
   padding: 0 4px;
   border-radius: 8px;
-  background: #333333;
+  background: var(--bg-4);
   color: var(--text-dim);
   font-size: 9.5px;
   line-height: 15px;
@@ -86,7 +86,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  background: #1c1c1c;
+  background: var(--bg-2);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   padding: 8px;
@@ -111,8 +111,8 @@
   border-radius: 10px;
   font-size: 10.5px;
   font-weight: 600;
-  color: #fff;
-  background: color-mix(in srgb, var(--accent) 35%, #222);
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 25%, var(--bg-2));
   border: 1px solid color-mix(in srgb, var(--accent) 65%, transparent);
 }
 
@@ -127,7 +127,7 @@
   font-weight: 600;
   padding: 1px 6px;
   border-radius: 8px;
-  background: #2e2e2e;
+  background: var(--bg-3);
   color: var(--text-dim);
 }
 
@@ -158,7 +158,7 @@
   align-items: center;
   gap: 4px;
   padding: 4px 6px;
-  background: #161616;
+  background: var(--bg-1);
   border-radius: var(--radius-sm);
   overflow-x: auto;
   min-width: 0;
@@ -170,7 +170,7 @@
   padding: 0 3px;
   border-radius: 2px;
   border: 1px solid var(--line);
-  background: #252525;
+  background: var(--bg-2);
   color: var(--text-dim);
   font-size: 10px;
   font-weight: 600;
@@ -182,7 +182,7 @@
 }
 .cam-point-dot:hover {
   border-color: var(--accent);
-  color: #fff;
+  color: var(--accent-cyan);
 }
 .cam-point-dot.active {
   background: var(--accent);
@@ -218,7 +218,7 @@
   padding: 4px 2px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
-  background: #222222;
+  background: var(--bg-2);
   color: var(--text-dim);
   font-size: 9.5px;
   font-weight: 500;
@@ -231,9 +231,9 @@
   transition: all 0.12s;
 }
 .cam-angle-btn:hover {
-  background: #2d2d2d;
+  background: var(--bg-3);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--text);
 }
 
 .cam-aim-actions {
@@ -259,14 +259,14 @@
   padding: 7px 9px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
-  background: #222222;
+  background: var(--bg-2);
   text-align: left;
   cursor: pointer;
   transition: border-color 0.12s, background 0.12s;
 }
 .preset:hover {
   border-color: var(--accent);
-  background: #2a2a2a;
+  background: var(--bg-3);
 }
 .preset b {
   display: block;

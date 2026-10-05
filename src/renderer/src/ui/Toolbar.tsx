@@ -16,6 +16,7 @@ import {
 } from '../actions'
 import type { McpStatus } from '@shared/ipc'
 import { useEditor } from '../store/editor'
+import { useView } from '../store/view'
 import {
   IconChevronDown,
   IconExport,
@@ -31,7 +32,9 @@ import {
   IconText,
   IconUndo,
   IconWand,
-  IconPlug
+  IconPlug,
+  IconSun,
+  IconMoon
 } from './icons'
 
 function Menu({ label, icon, children, id }: { label: string; icon?: React.ReactNode; children: React.ReactNode; id: string }) {
@@ -112,6 +115,8 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
   const compName = comp.name
   const { undo, redo } = useEditor.getState()
   const fileName = filePath ? filePath.split(/[\\/]/).pop() : 'Chưa lưu'
+
+  const theme = useView((s) => s.theme)
 
   return (
     <header className="toolbar">
@@ -194,6 +199,14 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
       <span className="tb-spacer" />
 
       <McpChip />
+      <button
+        id="theme-toggle"
+        className="btn ghost icon"
+        onClick={() => useView.getState().toggleTheme()}
+        title={theme === 'dark' ? 'Chuyển sang giao diện Sáng (Light Mode)' : 'Chuyển sang giao diện Tối (Dark Mode)'}
+      >
+        {theme === 'dark' ? <IconSun /> : <IconMoon />}
+      </button>
       <button id="save" className="btn ghost" onClick={() => saveProject(false)} title="Lưu (Ctrl+S)">
         <IconSave /> Lưu
       </button>

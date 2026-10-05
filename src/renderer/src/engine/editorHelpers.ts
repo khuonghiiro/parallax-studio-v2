@@ -27,6 +27,7 @@ export interface HelperOptions {
   selectedId?: string | null
   selectedShotId?: string | null
   showPath?: boolean
+  theme?: 'dark' | 'light'
 }
 
 const BOX_EDGES = [
@@ -186,7 +187,8 @@ export class EditorHelpers {
       const extent = Math.ceil((Math.max(size.x, size.z) * 1.3) / (step * 2)) * step * 2
       const center = world.getCenter(new THREE.Vector3())
       const y = world.min.y - 40
-      const key = `${extent}`
+      const isLight = opts.theme === 'light'
+      const key = `${extent}:${isLight ? 'light' : 'dark'}`
       if (key !== this.gridKey) {
         if (this.grid) {
           this.scene.remove(this.grid)
@@ -194,10 +196,12 @@ export class EditorHelpers {
           ;(this.grid.material as THREE.Material).dispose()
         }
         const div = Math.min(240, Math.round(extent / step))
-        this.grid = new THREE.GridHelper(extent, div, 0x2c3350, 0x161a26)
+        const centerColor = isLight ? 0x94a3b8 : 0x2c3350
+        const gridColor = isLight ? 0xcbd5e1 : 0x161a26
+        this.grid = new THREE.GridHelper(extent, div, centerColor, gridColor)
         const m = this.grid.material as THREE.Material
         m.transparent = true
-        m.opacity = 0.9
+        m.opacity = isLight ? 0.75 : 0.9
         m.depthWrite = false
         this.grid.renderOrder = -1
         this.scene.add(this.grid)

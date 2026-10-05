@@ -139,20 +139,20 @@ export function TopView({ shotId }: { shotId: string | null }) {
       <svg width={size.w} height={size.h}>
         <defs>
           <linearGradient id="frustum" x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0" stopColor="#3dd6f5" stopOpacity="0.22" />
-            <stop offset="1" stopColor="#3dd6f5" stopOpacity="0.02" />
+            <stop offset="0" stopColor="var(--accent-cyan)" stopOpacity="0.22" />
+            <stop offset="1" stopColor="var(--accent-cyan)" stopOpacity="0.02" />
           </linearGradient>
         </defs>
         {/* depth grid */}
         {Array.from({ length: 9 }, (_, i) => {
           const y = pad + (i / 8) * (size.h - pad * 2)
-          return <line key={i} x1={0} x2={size.w} y1={y} y2={y} stroke="#1a1e29" strokeWidth={1} />
+          return <line key={i} x1={0} x2={size.w} y1={y} y2={y} stroke="var(--line-soft)" strokeWidth={1} />
         })}
-        <line x1={0} x2={size.w} y1={sz(0)} y2={sz(0)} stroke="#2c3245" strokeDasharray="3 4" />
+        <line x1={0} x2={size.w} y1={sz(0)} y2={sz(0)} stroke="var(--line)" strokeDasharray="3 4" />
         <polygon
           points={`${sx(camPos[0])},${sz(camPos[2])} ${sx(lx)},${sz(lz)} ${sx(rx)},${sz(rz)}`}
           fill="url(#frustum)"
-          stroke="#3dd6f5"
+          stroke="var(--accent-cyan)"
           strokeOpacity={0.35}
         />
         {layers.map((l) => {
@@ -199,8 +199,8 @@ export function TopView({ shotId }: { shotId: string | null }) {
           )
         })}
         <g transform={`translate(${sx(camPos[0])},${sz(camPos[2])})`}>
-          <circle r={5} fill="#3dd6f5" />
-          <circle r={9} fill="none" stroke="#3dd6f5" strokeOpacity={0.4} />
+          <circle r={5} fill="var(--accent-cyan)" />
+          <circle r={9} fill="none" stroke="var(--accent-cyan)" strokeOpacity={0.4} />
         </g>
       </svg>
     </div>

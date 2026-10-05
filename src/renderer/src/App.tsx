@@ -68,9 +68,12 @@ export default function App() {
     el.addEventListener('pointerup', up)
   }
 
+  const theme = useView((s) => s.theme)
+
   return (
     <div
-      className={`app${dragOver ? ' dropzone-active' : ''}`}
+      className={`app ${theme}${dragOver ? ' dropzone-active' : ''}`}
+      data-theme={theme}
       style={{ ['--timeline-h' as string]: `${timelineH}px` }}
       onDragOver={(e) => {
         e.preventDefault()
