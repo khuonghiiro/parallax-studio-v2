@@ -16,6 +16,7 @@ import { TYPE_COLORS } from '../TopView'
 import { LAYER_PROPS, TYPE_LETTER } from './timelineTypes'
 import { TimelineRow } from './TimelineRow'
 import { TimelineGlowKeys } from './TimelineGlowKeys'
+import { getFxColor, renderFxIcon } from './fxIcons'
 
 export interface TimelineLayerRowProps {
   layer: Layer
@@ -29,6 +30,7 @@ export interface TimelineLayerRowProps {
   onSelect: () => void
   setRenaming: (id: string | null) => void
   startBarDrag: (e: React.PointerEvent, layer: Layer, mode: 'move' | 'in' | 'out') => void
+  startKeyDrag?: (e: React.PointerEvent, ref: PropRef, keyId: string) => void
   renderKeys: (a: Animatable<AnimValue>, ref: PropRef) => React.ReactNode
   summaryKeys: (anims: Animatable<AnimValue>[]) => React.ReactNode
   onTrackPointerDown?: (e: React.PointerEvent) => void
@@ -47,6 +49,7 @@ export function TimelineLayerRow({
   onSelect,
   setRenaming,
   startBarDrag,
+  startKeyDrag,
   renderKeys,
   summaryKeys,
   onTrackPointerDown,
@@ -54,6 +57,119 @@ export function TimelineLayerRow({
 }: TimelineLayerRowProps) {
   const anims = LAYER_PROPS.map((p) => layer.transform[p.prop] as Animatable<AnimValue>)
   const color = TYPE_COLORS[layer.type]
+  const selectedKey = useEditor((s) => s.selectedKey)
+  const setTime = useEditor((s) => s.setTime)
+
+  // Specialized keyframe renderer for layer properties: identifies effect keyframes and shows dedicated icons
+  const renderLayerTrackKeys = (a: Animatable<AnimValue>, p: (typeof LAYER_PROPS)[number]) => {
+    const ref: PropRef = { kind: 'layer', layerId: layer.id, prop: p.prop }
+
+    return a.keyframes.map((k) => {
+      // Find if this keyframe is part of an applied layer effect
+      const fx = layer.appliedEffects?.find((e) => e.keyframeIds?.includes(k.id))
+      const isSelectedKey = selectedKey?.keyId === k.id
+
+      if (fx) {
+        const isOff = !fx.enabled
+        const fxColor = getFxColor(fx.presetId)
+        return (
+          <div
+            key={k.id}
+            className={`tl-key tl-key-fx${isOff ? ' disabled' : ''}${isSelectedKey ? ' selected' : ''}${k.ease === 'hold' ? ' hold' : ''}`}
+            style={{
+              left: x(k.t),
+              ['--fx-color' as string]: isOff ? 'var(--text-faint)' : fxColor
+            }}
+            title={`${fx.name} Keyframe @ ${k.t.toFixed(2)}s ${isOff ? '[ĐÃ TẮT]' : ''} · Kéo để dời mốc, double-click để nhảy tới`}
+            onPointerDown={(e) => (startKeyDrag ? startKeyDrag(e, ref, k.id) : undefined)}
+            onDoubleClick={() => setTime(k.t)}
+          >
+            <span className="tl-key-fx-icon">
+              {renderFxIcon(fx.presetId, 12, isOff ? 'var(--text-faint)' : fxColor)}
+            </span>
+          </div>
+        )
+      }
+
+      // Default classic diamond keyframe for user manual keys
+      return (
+        <div
+          key={k.id}
+          className={`tl-key${k.ease === 'hold' ? ' hold' : ''}${isSelectedKey ? ' selected' : ''}`}
+          style={{ left: x(k.t) }}
+          title={`${p.label}: ${k.t.toFixed(2)}s`}
+          onPointerDown={(e) => (startKeyDrag ? startKeyDrag(e, ref, k.id) : undefined)}
+          onDoubleClick={() => setTime(k.t)}
+        />
+      )
+    })
+  }
+
+  // Specialized summary keyframe renderer on main layer bar: combines nested effects into distinct visual icons
+  const renderLayerSummary = () => {
+    const keyMap = new Map<number, { keyIds: string[]; fxList: NonNullable<typeof layer.appliedEffects> }>()
+
+    for (const a of anims) {
+      for (const k of a.keyframes) {
+        const roundedT = Math.round(k.t * 1000) / 1000
+        let item = keyMap.get(roundedT)
+        if (!item) {
+          item = { keyIds: [], fxList: [] }
+          keyMap.set(roundedT, item)
+        }
+        item.keyIds.push(k.id)
+        if (layer.appliedEffects) {
+          for (const fx of layer.appliedEffects) {
+            if (fx.keyframeIds?.includes(k.id) && !item.fxList.some((f) => f.id === fx.id)) {
+              item.fxList.push(fx)
+            }
+          }
+        }
+      }
+    }
+
+    return Array.from(keyMap.entries()).map(([t, { fxList }]) => {
+      if (fxList && fxList.length > 0) {
+        const primaryFx = fxList[0]
+        const isOff = !primaryFx.enabled
+        const fxColor = getFxColor(primaryFx.presetId)
+        const allNames = fxList.map((f) => f.name).join(' + ')
+
+        return (
+          <div
+            key={`summary-fx-${t}`}
+            className={`tl-key summary tl-key-fx${isOff ? ' disabled' : ''}`}
+            style={{
+              left: x(t),
+              ['--fx-color' as string]: isOff ? 'var(--text-faint)' : fxColor
+            }}
+            title={`Hiệu ứng: [${allNames}] @ ${t.toFixed(2)}s ${isOff ? '[ĐÃ TẮT]' : ''} · Click để nhảy tới`}
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              setTime(t)
+            }}
+          >
+            <span className="tl-key-fx-icon">
+              {renderFxIcon(primaryFx.presetId, 11, isOff ? 'var(--text-faint)' : fxColor)}
+            </span>
+          </div>
+        )
+      }
+
+      return (
+        <div
+          key={`summary-${t}`}
+          className="tl-key summary"
+          style={{ left: x(t) }}
+          title={`${layer.name} @ ${t.toFixed(2)}s`}
+          onPointerDown={(e) => {
+            e.stopPropagation()
+            setTime(t)
+          }}
+        />
+      )
+    })
+  }
 
   return (
     <div>
@@ -204,13 +320,41 @@ export function TimelineLayerRow({
                 <span className="gripper" />
               </div>
             </div>
-            {summaryKeys(anims)}
+            {renderLayerSummary()}
             <TimelineGlowKeys
               layer={layer}
               x={x}
               trackWidth={trackWidth}
               isSubRow={false}
             />
+
+            {/* Visual Effect Badges on Layer Bar */}
+            {layer.appliedEffects?.filter((fx) => fx.category !== 'glow').map((fx) => {
+              const isOff = !fx.enabled
+              const fxColor = getFxColor(fx.presetId)
+              return (
+                <div
+                  key={fx.id}
+                  className={`tl-fx-badge-marker${isOff ? ' disabled' : ''}`}
+                  style={{ left: x(fx.startTime) }}
+                  title={`${fx.name} @ ${fx.startTime.toFixed(2)}s (${fx.duration ? `${fx.duration.toFixed(1)}s` : ''}) ${isOff ? '[ĐÃ TẮT]' : ''} - Click để nhảy tới`}
+                  onPointerDown={(e) => {
+                    e.stopPropagation()
+                    useEditor.getState().setTime(fx.startTime)
+                  }}
+                >
+                  <span
+                    className={`tl-fx-badge-bubble${isOff ? ' disabled' : ''}`}
+                    style={{
+                      ['--fx-color' as string]: isOff ? 'var(--text-faint)' : fxColor,
+                      borderColor: isOff ? undefined : fxColor
+                    }}
+                  >
+                    {renderFxIcon(fx.presetId, 13, isOff ? 'var(--text-faint)' : fxColor)}
+                  </span>
+                </div>
+              )
+            })}
           </>
         }
       />
@@ -223,61 +367,61 @@ export function TimelineLayerRow({
             trackWidth={trackWidth}
             onTrackPointerDown={onTrackPointerDown}
             name={<div className="tl-name sub">{p.label}</div>}
-            track={renderKeys(layer.transform[p.prop] as Animatable<AnimValue>, {
-              kind: 'layer',
-              layerId: layer.id,
-              prop: p.prop
-            })}
+            track={renderLayerTrackKeys(layer.transform[p.prop] as Animatable<AnimValue>, p)}
           />
         ))}
-      {isOpen && layer.glow?.enabled && (
-        <TimelineRow
-          sub
-          selected={isSelected}
-          trackWidth={trackWidth}
-          onTrackPointerDown={onTrackPointerDown}
-          name={
-            <div
-              className="tl-name sub"
-              style={{
-                color: layer.glow.color || 'var(--accent-cyan)',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                cursor: 'pointer'
-              }}
-              title={`Hiệu ứng viền Neon (${layer.glow.animated || 'tĩnh'}) - Click để chỉnh`}
-              onClick={() => {
-                useEditor.getState().setInspectorTab('layer')
-              }}
-            >
-              <span
+      {isOpen && layer.glow && (() => {
+        const isOff = !layer.glow.enabled
+        return (
+          <TimelineRow
+            sub
+            selected={isSelected}
+            trackWidth={trackWidth}
+            onTrackPointerDown={onTrackPointerDown}
+            name={
+              <div
+                className="tl-name sub"
                 style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: '50%',
-                  background: layer.glow.color || 'var(--accent-cyan)',
-                  boxShadow: `0 0 6px ${layer.glow.color || 'var(--accent-cyan)'}`,
-                  flexShrink: 0
+                  color: isOff ? 'var(--text-faint)' : (layer.glow.color || 'var(--accent-cyan)'),
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  cursor: 'pointer',
+                  opacity: isOff ? 0.6 : 1
                 }}
+                title={`Hiệu ứng viền Neon (${layer.glow.animated || 'tĩnh'}) ${isOff ? '[ĐÃ TẮT]' : ''} - Click để chỉnh`}
+                onClick={() => {
+                  useEditor.getState().setInspectorTab('layer')
+                }}
+              >
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: isOff ? 'var(--text-faint)' : (layer.glow.color || 'var(--accent-cyan)'),
+                    boxShadow: isOff ? 'none' : `0 0 6px ${layer.glow.color || 'var(--accent-cyan)'}`,
+                    flexShrink: 0
+                  }}
+                />
+                <span style={{ textDecoration: isOff ? 'line-through' : 'none' }}>Viền Neon</span>
+                <span style={{ fontSize: 9, opacity: 0.8, fontWeight: 'normal' }}>
+                  ({isOff ? 'Đã tắt' : (layer.glow.animated === 'breathe' ? 'Thở' : layer.glow.animated === 'blink' ? 'Chớp' : layer.glow.animated === 'flicker' ? 'Flicker' : 'Tĩnh')})
+                </span>
+              </div>
+            }
+            track={
+              <TimelineGlowKeys
+                layer={layer}
+                x={x}
+                trackWidth={trackWidth}
+                isSubRow={true}
               />
-              <span>Viền Neon</span>
-              <span style={{ fontSize: 9, opacity: 0.8, fontWeight: 'normal' }}>
-                ({layer.glow.animated === 'breathe' ? 'Thở' : layer.glow.animated === 'blink' ? 'Chớp' : layer.glow.animated === 'flicker' ? 'Flicker' : 'Tĩnh'})
-              </span>
-            </div>
-          }
-          track={
-            <TimelineGlowKeys
-              layer={layer}
-              x={x}
-              trackWidth={trackWidth}
-              isSubRow={true}
-            />
-          }
-        />
-      )}
+            }
+          />
+        )
+      })()}
     </div>
   )
 }

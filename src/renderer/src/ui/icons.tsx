@@ -111,9 +111,9 @@ export const IconSquare = (p: P) => (
   </svg>
 )
 export const IconSparkles = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M12 3l1.8 4.6L18 9.5l-4.2 1.9L12 16l-1.8-4.6L6 9.5l4.2-1.9z" />
-    <path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" />
+  <svg {...base({ strokeWidth: 1.5, ...p })}>
+    <path d="M12 3l1.8 4.6L18 9.5l-4.2 1.9L12 16l-1.8-4.6L6 9.5l4.2-1.9z" fill="currentColor" stroke="currentColor" strokeLinejoin="round" />
+    <path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" fill="currentColor" stroke="currentColor" strokeLinejoin="round" />
   </svg>
 )
 export const IconMusic = (p: P) => (
@@ -372,6 +372,70 @@ export const IconZoomOut = (p: P) => (
 export const IconFitWidth = (p: P) => (
   <svg {...base(p)}>
     <path d="M4 6v12M20 6v12M8 12h8M11 9l-3 3 3 3M13 9l3 3-3 3" />
+  </svg>
+)
+
+/* ================================================================
+   Specialized Animation & FX Icons
+   ================================================================ */
+
+/** Chớp tắt (Blink / Strobe) - Tia chớp đặc ruột sáng bừng */
+export const IconFxBlink = (p: P) => (
+  <svg {...base({ strokeWidth: 2, ...p })}>
+    <path d="M13 2L3 14h8l-1 8 11-12h-8l1-8z" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+  </svg>
+)
+
+/** Mờ dần (Fade Out) - nét liền chuyển sang nét đứt giảm dần */
+export const IconFxFadeOut = (p: P) => (
+  <svg {...base({ strokeWidth: 2.2, ...p })}>
+    <path d="M4 12a8 8 0 0 1 8-8" />
+    <path d="M4 12a8 8 0 0 0 8 8" />
+    <path d="M12 4a8 8 0 0 1 8 8" strokeDasharray="2 2.5" />
+    <path d="M12 20a8 8 0 0 0 8-8" strokeDasharray="2 2.5" />
+    <path d="M10 12h6M13 9l3 3-3 3" />
+  </svg>
+)
+
+/** Hiện dần (Fade In) - mờ chuyển sang rõ nét */
+export const IconFxFadeIn = (p: P) => (
+  <svg {...base({ strokeWidth: 2.2, ...p })}>
+    <path d="M4 12a8 8 0 0 1 8-8" strokeDasharray="2 2.5" />
+    <path d="M4 12a8 8 0 0 0 8 8" strokeDasharray="2 2.5" />
+    <path d="M12 4a8 8 0 0 1 8 8" />
+    <path d="M12 20a8 8 0 0 0 8-8" />
+    <path d="M8 12h6M11 9l3 3-3 3" />
+  </svg>
+)
+
+/** Nhịp thở huyền ảo (Breathe) - sóng sin điều hòa mượt nét đậm */
+export const IconFxBreathe = (p: P) => (
+  <svg {...base({ strokeWidth: 2.6, ...p })}>
+    <path d="M2 12c3-6 5-6 8 0s5 6 8 0 3-3 4-3" />
+  </svg>
+)
+
+/** Rung chấn (Shake) - rung giật đối xứng có sóng chấn động */
+export const IconFxShake = (p: P) => (
+  <svg {...base({ strokeWidth: 2.2, ...p })}>
+    <rect x="7" y="5" width="10" height="14" rx="2" fill="currentColor" fillOpacity="0.25" />
+    <path d="M3 8v8M21 8v8M1 10v4M23 10v4" strokeWidth="2.4" />
+  </svg>
+)
+
+/** Nảy xuất hiện đàn hồi (Pop In) - bung nở từ tâm */
+export const IconFxPopIn = (p: P) => (
+  <svg {...base({ strokeWidth: 2.2, ...p })}>
+    <circle cx="12" cy="12" r="3.5" fill="currentColor" />
+    <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6.34 6.34l2.5 2.5M15.16 15.16l2.5 2.5M6.34 17.66l2.5-2.5M15.16 8.84l2.5-2.5" />
+  </svg>
+)
+
+/** Nhịp đập co giãn (Pulse Scale) - co giãn theo tỷ lệ */
+export const IconFxPulse = (p: P) => (
+  <svg {...base({ strokeWidth: 2.2, ...p })}>
+    <path d="M15 3h6v6M9 21H3v-6M21 3l-6 6M3 21l6-6" />
+    <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="currentColor" />
   </svg>
 )
 

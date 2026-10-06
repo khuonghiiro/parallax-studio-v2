@@ -150,6 +150,19 @@ export interface LayerGlow {
   duration?: number
 }
 
+export interface AppliedLayerEffect {
+  id: string
+  presetId: string
+  name: string
+  badge: string
+  category: 'opacity' | 'transform' | 'glow'
+  startTime: number
+  duration: number
+  enabled: boolean
+  targetProp?: 'opacity' | 'position' | 'scale' | 'rotation'
+  keyframeIds?: string[]
+}
+
 interface LayerBase<T extends LayerType, P> {
   id: string
   name: string
@@ -177,6 +190,8 @@ interface LayerBase<T extends LayerType, P> {
   motion?: LayerMotion
   /** Edge glow / neon outline effect following alpha silhouette. */
   glow?: LayerGlow
+  /** List of individual fx presets applied to this layer with distinct icons and parameters. */
+  appliedEffects?: AppliedLayerEffect[]
   props: P
 }
 

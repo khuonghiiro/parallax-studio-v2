@@ -526,6 +526,7 @@ export function Timeline() {
                         onSelect={() => selectLayer(layer.id)}
                         setRenaming={setRenaming}
                         startBarDrag={startBarDrag}
+                        startKeyDrag={startKeyDrag}
                         renderKeys={renderKeys}
                         summaryKeys={summaryKeys}
                       />

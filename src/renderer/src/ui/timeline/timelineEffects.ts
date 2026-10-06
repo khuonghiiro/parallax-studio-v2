@@ -1,4 +1,5 @@
-import type { Animatable, EaseName, GlowSide, Vec3 } from '@shared/types'
+import { nanoid } from 'nanoid'
+import type { Animatable, AppliedLayerEffect, EaseName, GlowSide, Keyframe, Vec3 } from '@shared/types'
 import { addKeyframe, evaluate } from '../../animation/keyframes'
 import { frameTolerance, useEditor } from '../../store/editor'
 import { useToast } from '../../actions'
@@ -141,17 +142,19 @@ function generateBlinkKeys(
   blinks = 4,
   minVal = 0.05,
   tol = 1e-4
-): void {
+): Keyframe<number>[] {
+  const keys: Keyframe<number>[] = []
   const currentVal = Math.max(0.1, evaluate(target, start))
   const step = duration / blinks
-  addKeyframe(target, round3(start), currentVal, 'easeInOut', tol)
+  keys.push(addKeyframe(target, round3(start), currentVal, 'easeInOut', tol))
 
   for (let i = 0; i < blinks; i++) {
     const tMid = round3(start + i * step + step * 0.5)
     const tEnd = round3(start + (i + 1) * step)
-    addKeyframe(target, tMid, minVal, 'easeInOut', tol)
-    addKeyframe(target, tEnd, currentVal, 'easeInOut', tol)
+    keys.push(addKeyframe(target, tMid, minVal, 'easeInOut', tol))
+    keys.push(addKeyframe(target, tEnd, currentVal, 'easeInOut', tol))
   }
+  return keys
 }
 
 function generateBreatheKeys(
@@ -160,11 +163,13 @@ function generateBreatheKeys(
   duration: number,
   minVal = 0.2,
   tol = 1e-4
-): void {
+): Keyframe<number>[] {
+  const keys: Keyframe<number>[] = []
   const currentVal = Math.max(0.2, evaluate(target, start))
-  addKeyframe(target, round3(start), currentVal, 'easeInOut', tol)
-  addKeyframe(target, round3(start + duration * 0.5), minVal, 'easeInOut', tol)
-  addKeyframe(target, round3(start + duration), currentVal, 'easeInOut', tol)
+  keys.push(addKeyframe(target, round3(start), currentVal, 'easeInOut', tol))
+  keys.push(addKeyframe(target, round3(start + duration * 0.5), minVal, 'easeInOut', tol))
+  keys.push(addKeyframe(target, round3(start + duration), currentVal, 'easeInOut', tol))
+  return keys
 }
 
 function generateFadeKeys(
@@ -173,15 +178,17 @@ function generateFadeKeys(
   duration: number,
   mode: 'in' | 'out',
   tol = 1e-4
-): void {
+): Keyframe<number>[] {
+  const keys: Keyframe<number>[] = []
   if (mode === 'out') {
     const currentVal = Math.max(0.1, evaluate(target, start))
-    addKeyframe(target, round3(start), currentVal, 'easeInOut', tol)
-    addKeyframe(target, round3(start + duration), 0, 'easeInOut', tol)
+    keys.push(addKeyframe(target, round3(start), currentVal, 'easeInOut', tol))
+    keys.push(addKeyframe(target, round3(start + duration), 0, 'easeInOut', tol))
   } else {
-    addKeyframe(target, round3(start), 0, 'easeInOut', tol)
-    addKeyframe(target, round3(start + duration), 1, 'easeInOut', tol)
+    keys.push(addKeyframe(target, round3(start), 0, 'easeInOut', tol))
+    keys.push(addKeyframe(target, round3(start + duration), 1, 'easeInOut', tol))
   }
+  return keys
 }
 
 function generateShakeKeys(
@@ -191,9 +198,10 @@ function generateShakeKeys(
   intensity = 18,
   shakes = 5,
   tol = 1e-4
-): void {
+): Keyframe<Vec3>[] {
+  const keys: Keyframe<Vec3>[] = []
   const orig = evaluate(target, start)
-  addKeyframe(target, round3(start), [...orig] as Vec3, 'easeInOut', tol)
+  keys.push(addKeyframe(target, round3(start), [...orig] as Vec3, 'easeInOut', tol))
 
   const step = duration / (shakes + 1)
   const offsets: [number, number][] = [
@@ -208,10 +216,11 @@ function generateShakeKeys(
     const t = round3(start + (i + 1) * step)
     const off = offsets[i % offsets.length]
     const p: Vec3 = [orig[0] + off[0], orig[1] + off[1], orig[2]]
-    addKeyframe(target, t, p, 'easeInOut', tol)
+    keys.push(addKeyframe(target, t, p, 'easeInOut', tol))
   }
 
-  addKeyframe(target, round3(start + duration), [...orig] as Vec3, 'easeInOut', tol)
+  keys.push(addKeyframe(target, round3(start + duration), [...orig] as Vec3, 'easeInOut', tol))
+  return keys
 }
 
 function generatePopInKeys(
@@ -219,26 +228,32 @@ function generatePopInKeys(
   start: number,
   duration: number,
   tol = 1e-4
-): void {
+): Keyframe<Vec3>[] {
+  const keys: Keyframe<Vec3>[] = []
   const orig = evaluate(target, start)
   const baseScale: Vec3 = [orig[0] || 1, orig[1] || 1, orig[2] || 1]
 
-  addKeyframe(target, round3(start), [0.001, 0.001, 1], 'easeOut', tol)
-  addKeyframe(
-    target,
-    round3(start + duration * 0.65),
-    [baseScale[0] * 1.18, baseScale[1] * 1.18, 1],
-    'easeInOut',
-    tol
+  keys.push(addKeyframe(target, round3(start), [0.001, 0.001, 1], 'easeOut', tol))
+  keys.push(
+    addKeyframe(
+      target,
+      round3(start + duration * 0.65),
+      [baseScale[0] * 1.18, baseScale[1] * 1.18, 1],
+      'easeInOut',
+      tol
+    )
   )
-  addKeyframe(
-    target,
-    round3(start + duration * 0.85),
-    [baseScale[0] * 0.95, baseScale[1] * 0.95, 1],
-    'easeInOut',
-    tol
+  keys.push(
+    addKeyframe(
+      target,
+      round3(start + duration * 0.85),
+      [baseScale[0] * 0.95, baseScale[1] * 0.95, 1],
+      'easeInOut',
+      tol
+    )
   )
-  addKeyframe(target, round3(start + duration), baseScale, 'easeOut', tol)
+  keys.push(addKeyframe(target, round3(start + duration), baseScale, 'easeOut', tol))
+  return keys
 }
 
 function generatePulseKeys(
@@ -247,19 +262,23 @@ function generatePulseKeys(
   duration: number,
   factor = 1.25,
   tol = 1e-4
-): void {
+): Keyframe<Vec3>[] {
+  const keys: Keyframe<Vec3>[] = []
   const orig = evaluate(target, start)
   const baseScale: Vec3 = [orig[0] || 1, orig[1] || 1, orig[2] || 1]
 
-  addKeyframe(target, round3(start), baseScale, 'easeInOut', tol)
-  addKeyframe(
-    target,
-    round3(start + duration * 0.45),
-    [baseScale[0] * factor, baseScale[1] * factor, 1],
-    'easeInOut',
-    tol
+  keys.push(addKeyframe(target, round3(start), baseScale, 'easeInOut', tol))
+  keys.push(
+    addKeyframe(
+      target,
+      round3(start + duration * 0.45),
+      [baseScale[0] * factor, baseScale[1] * factor, 1],
+      'easeInOut',
+      tol
+    )
   )
-  addKeyframe(target, round3(start + duration), baseScale, 'easeInOut', tol)
+  keys.push(addKeyframe(target, round3(start + duration), baseScale, 'easeInOut', tol))
+  return keys
 }
 
 /**
@@ -291,27 +310,37 @@ export function applyFxPresetToSelectedLayer(presetId: FxPresetId, options?: App
     const l = d.layers.find((x) => x.id === selectedLayerId)
     if (!l) return
 
+    let createdKeyIds: string[] = []
+    let targetProp: 'opacity' | 'position' | 'scale' | undefined = undefined
+
     switch (presetId) {
       case 'blink':
-        generateBlinkKeys(l.transform.opacity, start, duration, options?.blinks ?? 4, 0.05, tol)
+        targetProp = 'opacity'
+        createdKeyIds = generateBlinkKeys(l.transform.opacity, start, duration, options?.blinks ?? 4, 0.05, tol).map((k) => k.id)
         break
       case 'fadeOut':
-        generateFadeKeys(l.transform.opacity, start, duration, 'out', tol)
+        targetProp = 'opacity'
+        createdKeyIds = generateFadeKeys(l.transform.opacity, start, duration, 'out', tol).map((k) => k.id)
         break
       case 'fadeIn':
-        generateFadeKeys(l.transform.opacity, start, duration, 'in', tol)
+        targetProp = 'opacity'
+        createdKeyIds = generateFadeKeys(l.transform.opacity, start, duration, 'in', tol).map((k) => k.id)
         break
       case 'breathe':
-        generateBreatheKeys(l.transform.opacity, start, duration, 0.2, tol)
+        targetProp = 'opacity'
+        createdKeyIds = generateBreatheKeys(l.transform.opacity, start, duration, 0.2, tol).map((k) => k.id)
         break
       case 'shake':
-        generateShakeKeys(l.transform.position, start, duration, options?.intensity ?? 18, 5, tol)
+        targetProp = 'position'
+        createdKeyIds = generateShakeKeys(l.transform.position, start, duration, options?.intensity ?? 18, 5, tol).map((k) => k.id)
         break
       case 'popIn':
-        generatePopInKeys(l.transform.scale, start, duration, tol)
+        targetProp = 'scale'
+        createdKeyIds = generatePopInKeys(l.transform.scale, start, duration, tol).map((k) => k.id)
         break
       case 'pulse':
-        generatePulseKeys(l.transform.scale, start, duration, 1.25, tol)
+        targetProp = 'scale'
+        createdKeyIds = generatePulseKeys(l.transform.scale, start, duration, 1.25, tol).map((k) => k.id)
         break
       case 'neonBreathe':
         l.glow = {
@@ -368,6 +397,21 @@ export function applyFxPresetToSelectedLayer(presetId: FxPresetId, options?: App
         }
         break
     }
+
+    // Record applied effect instance for distinct icon & stack management
+    if (!l.appliedEffects) l.appliedEffects = []
+    l.appliedEffects.push({
+      id: `fx-${nanoid(6)}`,
+      presetId,
+      name: preset.name,
+      badge: preset.badge,
+      category: preset.category,
+      startTime: start,
+      duration: options?.duration !== undefined ? options.duration : duration,
+      enabled: true,
+      targetProp,
+      keyframeIds: createdKeyIds
+    })
   })
 
   const durText = (options?.duration === 0) ? 'suốt layer' : `${duration.toFixed(1)}s`

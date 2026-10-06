@@ -8,6 +8,7 @@ import {
   type FxPresetInfo
 } from './timelineEffects'
 import { IconSparkles } from '../icons'
+import { renderFxIcon } from './fxIcons'
 
 export interface OpenFxMenuOptions {
   x: number
@@ -236,7 +237,9 @@ export function FxPresetMenu({ time, hasSelectedLayer }: FxPresetMenuProps) {
                       className={`tl-fx-item ${selectedId === p.id ? 'active' : ''}`}
                       onClick={() => handleSelectPreset(p)}
                     >
-                      <span className="tl-fx-item-badge">{p.badge}</span>
+                      <span className="tl-fx-item-badge" style={{ display: 'grid', placeItems: 'center' }}>
+                        {renderFxIcon(p.id, 14)}
+                      </span>
                       <div className="tl-fx-item-text">
                         <span className="tl-fx-item-name">{p.name}</span>
                       </div>
@@ -253,7 +256,9 @@ export function FxPresetMenu({ time, hasSelectedLayer }: FxPresetMenuProps) {
                       className={`tl-fx-item ${selectedId === p.id ? 'active' : ''}`}
                       onClick={() => handleSelectPreset(p)}
                     >
-                      <span className="tl-fx-item-badge">{p.badge}</span>
+                      <span className="tl-fx-item-badge" style={{ display: 'grid', placeItems: 'center' }}>
+                        {renderFxIcon(p.id, 14)}
+                      </span>
                       <div className="tl-fx-item-text">
                         <span className="tl-fx-item-name">{p.name}</span>
                       </div>
@@ -270,7 +275,9 @@ export function FxPresetMenu({ time, hasSelectedLayer }: FxPresetMenuProps) {
                       className={`tl-fx-item ${selectedId === p.id ? 'active' : ''}`}
                       onClick={() => handleSelectPreset(p)}
                     >
-                      <span className="tl-fx-item-badge">{p.badge}</span>
+                      <span className="tl-fx-item-badge" style={{ display: 'grid', placeItems: 'center' }}>
+                        {renderFxIcon(p.id, 14)}
+                      </span>
                       <div className="tl-fx-item-text">
                         <span className="tl-fx-item-name">{p.name}</span>
                       </div>
@@ -283,7 +290,9 @@ export function FxPresetMenu({ time, hasSelectedLayer }: FxPresetMenuProps) {
                   <div className="tl-fx-config-scroll">
                     <div className="tl-fx-desc-card">
                     <div className="tl-fx-desc-header">
-                      <span style={{ fontSize: 16 }}>{activePreset.badge}</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                        {renderFxIcon(activePreset.id, 16)}
+                      </span>
                       <strong>{activePreset.name}</strong>
                     </div>
                     <p className="tl-fx-desc-p">{activePreset.description}</p>
