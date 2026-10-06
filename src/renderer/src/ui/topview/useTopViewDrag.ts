@@ -8,21 +8,35 @@ import { depthToThree, threeToDepth } from '../../engine/spatial'
 import { frameTolerance, useEditor } from '../../store/editor'
 import {
   computeRotatedTarget,
+  computeRotatedTargetSide,
   computeTranslatedCamera,
-  computeTranslatedLayer
+  computeTranslatedCameraSide,
+  computeTranslatedLayer,
+  computeTranslatedLayerSide
 } from '../topViewCameraMath'
 
 export type CamDragMode = 'none' | 'pos' | 'aim' | 'target' | 'layer'
 
 interface UseTopViewDragOptions {
   shotId: string | null
+  viewMode?: 'top' | 'side'
   unx: (px: number) => number
   unz: (py: number) => number
+  unSideZ?: (px: number) => number
+  unSideY?: (py: number) => number
 }
 
-export function useTopViewDrag({ shotId, unx, unz }: UseTopViewDragOptions) {
+export function useTopViewDrag({
+  shotId,
+  viewMode = 'top',
+  unx,
+  unz,
+  unSideZ,
+  unSideY
+}: UseTopViewDragOptions) {
   const [dragMode, setDragMode] = useState<CamDragMode>('none')
   const [hudText, setHudText] = useState<string | null>(null)
+  const isSide = viewMode === 'side' && Boolean(unSideZ && unSideY)
 
   const startLayerDrag = (e: React.PointerEvent, id: string) => {
     e.stopPropagation()
@@ -33,26 +47,39 @@ export function useTopViewDrag({ shotId, unx, unz }: UseTopViewDragOptions) {
 
     const startPos = evaluate(layer.transform.position, st.time) as Vec3
     const rect = (e.currentTarget as SVGElement).ownerSVGElement!.getBoundingClientRect()
-    const key = `topdrag-${nanoid(6)}`
-    const startMouseX = unx(e.clientX - rect.left)
-    const startMouseZ = unz(e.clientY - rect.top)
+    const key = `layerdrag-${nanoid(6)}`
+    const startX = e.clientX - rect.left
+    const startY = e.clientY - rect.top
+
+    const startMouse1 = isSide ? unSideZ!(startX) : unx(startX)
+    const startMouse2 = isSide ? unSideY!(startY) : unz(startY)
 
     setDragMode('layer')
 
     const move = (ev2: PointerEvent) => {
       const s = useEditor.getState()
-      const curMouseX = unx(ev2.clientX - rect.left)
-      const curMouseZ = unz(ev2.clientY - rect.top)
-      const deltaX = curMouseX - startMouseX
-      const deltaZ = curMouseZ - startMouseZ
+      const curX = ev2.clientX - rect.left
+      const curY = ev2.clientY - rect.top
+      const curMouse1 = isSide ? unSideZ!(curX) : unx(curX)
+      const curMouse2 = isSide ? unSideY!(curY) : unz(curY)
+      const delta1 = curMouse1 - startMouse1
+      const delta2 = curMouse2 - startMouse2
 
-      const newPos = computeTranslatedLayer(startPos, deltaX, deltaZ, ev2.shiftKey, ev2.altKey ? 50 : 0)
-      setHudText(`X: ${Math.round(newPos[0])} · Z: ${Math.round(newPos[2])}`)
-
-      s.update((d) => {
-        const l = d.layers.find((x) => x.id === id)
-        if (l) setValueAt(l.transform.position, s.time, [newPos[0], startPos[1], newPos[2]], frameTolerance(s.project))
-      }, key)
+      if (isSide) {
+        const newPos = computeTranslatedLayerSide(startPos, delta1, delta2, ev2.shiftKey, ev2.altKey ? 50 : 0)
+        setHudText(`Y: ${Math.round(newPos[1])} · Z: ${Math.round(newPos[2])}`)
+        s.update((d) => {
+          const l = d.layers.find((x) => x.id === id)
+          if (l) setValueAt(l.transform.position, s.time, [startPos[0], newPos[1], newPos[2]], frameTolerance(s.project))
+        }, key)
+      } else {
+        const newPos = computeTranslatedLayer(startPos, delta1, delta2, ev2.shiftKey, ev2.altKey ? 50 : 0)
+        setHudText(`X: ${Math.round(newPos[0])} · Z: ${Math.round(newPos[2])}`)
+        s.update((d) => {
+          const l = d.layers.find((x) => x.id === id)
+          if (l) setValueAt(l.transform.position, s.time, [newPos[0], startPos[1], newPos[2]], frameTolerance(s.project))
+        }, key)
+      }
     }
 
     const up = () => {
@@ -70,7 +97,7 @@ export function useTopViewDrag({ shotId, unx, unz }: UseTopViewDragOptions) {
     e.stopPropagation()
     const st = useEditor.getState()
     const rect = (e.currentTarget as SVGElement).ownerSVGElement!.getBoundingClientRect()
-    const key = `topcampos-${nanoid(6)}`
+    const key = `campos-${nanoid(6)}`
 
     const curEv = evaluateScene(st.project, st.time)
     const curShot = shotId ? curEv.shots.find((s) => s.shot.id === shotId) : undefined
@@ -81,38 +108,55 @@ export function useTopViewDrag({ shotId, unx, unz }: UseTopViewDragOptions) {
 
     const initLocalCam = localP(curEv.camera.position)
     const initLocalTarget = localP(curEv.camera.target)
-    const startMouseLocalX = unx(e.clientX - rect.left)
-    const startMouseLocalZ = unz(e.clientY - rect.top)
+    const startMouse1 = isSide ? unSideZ!(e.clientX - rect.left) : unx(e.clientX - rect.left)
+    const startMouse2 = isSide ? unSideY!(e.clientY - rect.top) : unz(e.clientY - rect.top)
 
     setDragMode(e.altKey ? 'aim' : 'pos')
 
     const move = (pev: PointerEvent) => {
       const s = useEditor.getState()
       const tol = frameTolerance(s.project)
-      const curLocalX = unx(pev.clientX - rect.left)
-      const curLocalZ = unz(pev.clientY - rect.top)
+      const curMouse1 = isSide ? unSideZ!(pev.clientX - rect.left) : unx(pev.clientX - rect.left)
+      const curMouse2 = isSide ? unSideY!(pev.clientY - rect.top) : unz(pev.clientY - rect.top)
 
       if (pev.altKey) {
-        const newLocalTarget = computeRotatedTarget(initLocalCam, initLocalTarget, [curLocalX, curLocalZ])
+        const newLocalTarget = isSide
+          ? computeRotatedTargetSide(initLocalCam, initLocalTarget, [curMouse1, curMouse2])
+          : computeRotatedTarget(initLocalCam, initLocalTarget, [curMouse1, curMouse2])
         const newWorldTarget = worldP(newLocalTarget)
         s.update((d) => {
           setValueAt(d.camera.target, s.time, newWorldTarget, tol)
         }, key)
       } else {
-        const deltaX = curLocalX - startMouseLocalX
-        const deltaZ = curLocalZ - startMouseLocalZ
-        const { camPos: nextCam, target: nextTarget } = computeTranslatedCamera(
-          initLocalCam,
-          initLocalTarget,
-          deltaX,
-          deltaZ,
-          pev.shiftKey
-        )
-        setHudText(`Cam: [${Math.round(nextCam[0])}, ${Math.round(nextCam[2])}]`)
-        s.update((d) => {
-          setValueAt(d.camera.position, s.time, worldP(nextCam), tol)
-          setValueAt(d.camera.target, s.time, worldP(nextTarget), tol)
-        }, key)
+        const delta1 = curMouse1 - startMouse1
+        const delta2 = curMouse2 - startMouse2
+        if (isSide) {
+          const { camPos: nextCam, target: nextTarget } = computeTranslatedCameraSide(
+            initLocalCam,
+            initLocalTarget,
+            delta1,
+            delta2,
+            pev.shiftKey
+          )
+          setHudText(`Cam: [Y: ${Math.round(nextCam[1])}, Z: ${Math.round(nextCam[2])}]`)
+          s.update((d) => {
+            setValueAt(d.camera.position, s.time, worldP(nextCam), tol)
+            setValueAt(d.camera.target, s.time, worldP(nextTarget), tol)
+          }, key)
+        } else {
+          const { camPos: nextCam, target: nextTarget } = computeTranslatedCamera(
+            initLocalCam,
+            initLocalTarget,
+            delta1,
+            delta2,
+            pev.shiftKey
+          )
+          setHudText(`Cam: [${Math.round(nextCam[0])}, ${Math.round(nextCam[2])}]`)
+          s.update((d) => {
+            setValueAt(d.camera.position, s.time, worldP(nextCam), tol)
+            setValueAt(d.camera.target, s.time, worldP(nextTarget), tol)
+          }, key)
+        }
       }
     }
 
@@ -131,7 +175,7 @@ export function useTopViewDrag({ shotId, unx, unz }: UseTopViewDragOptions) {
     e.stopPropagation()
     const st = useEditor.getState()
     const rect = (e.currentTarget as SVGElement).ownerSVGElement!.getBoundingClientRect()
-    const key = `topcamangle-${nanoid(6)}`
+    const key = `camangle-${nanoid(6)}`
 
     const curEv = evaluateScene(st.project, st.time)
     const curShot = shotId ? curEv.shots.find((s) => s.shot.id === shotId) : undefined
@@ -148,10 +192,12 @@ export function useTopViewDrag({ shotId, unx, unz }: UseTopViewDragOptions) {
     const move = (pev: PointerEvent) => {
       const s = useEditor.getState()
       const tol = frameTolerance(s.project)
-      const curLocalX = unx(pev.clientX - rect.left)
-      const curLocalZ = unz(pev.clientY - rect.top)
+      const curMouse1 = isSide ? unSideZ!(pev.clientX - rect.left) : unx(pev.clientX - rect.left)
+      const curMouse2 = isSide ? unSideY!(pev.clientY - rect.top) : unz(pev.clientY - rect.top)
 
-      const newLocalTarget = computeRotatedTarget(initLocalCam, initLocalTarget, [curLocalX, curLocalZ])
+      const newLocalTarget = isSide
+        ? computeRotatedTargetSide(initLocalCam, initLocalTarget, [curMouse1, curMouse2])
+        : computeRotatedTarget(initLocalCam, initLocalTarget, [curMouse1, curMouse2])
       s.update((d) => {
         setValueAt(d.camera.target, s.time, worldP(newLocalTarget), tol)
       }, key)
@@ -172,7 +218,7 @@ export function useTopViewDrag({ shotId, unx, unz }: UseTopViewDragOptions) {
     e.stopPropagation()
     const st = useEditor.getState()
     const rect = (e.currentTarget as SVGElement).ownerSVGElement!.getBoundingClientRect()
-    const key = `topcamtarget-${nanoid(6)}`
+    const key = `camtarget-${nanoid(6)}`
 
     const curEv = evaluateScene(st.project, st.time)
     const curShot = shotId ? curEv.shots.find((s) => s.shot.id === shotId) : undefined
@@ -187,10 +233,12 @@ export function useTopViewDrag({ shotId, unx, unz }: UseTopViewDragOptions) {
     const move = (pev: PointerEvent) => {
       const s = useEditor.getState()
       const tol = frameTolerance(s.project)
-      const curLocalX = unx(pev.clientX - rect.left)
-      const curLocalZ = unz(pev.clientY - rect.top)
+      const curMouse1 = isSide ? unSideZ!(pev.clientX - rect.left) : unx(pev.clientX - rect.left)
+      const curMouse2 = isSide ? unSideY!(pev.clientY - rect.top) : unz(pev.clientY - rect.top)
 
-      const newLocalTarget: Vec3 = [Math.round(curLocalX), initLocalTarget[1], Math.round(curLocalZ)]
+      const newLocalTarget: Vec3 = isSide
+        ? [initLocalTarget[0], Math.round(curMouse2), Math.round(curMouse1)]
+        : [Math.round(curMouse1), initLocalTarget[1], Math.round(curMouse2)]
       s.update((d) => {
         setValueAt(d.camera.target, s.time, worldP(newLocalTarget), tol)
       }, key)
@@ -216,3 +264,4 @@ export function useTopViewDrag({ shotId, unx, unz }: UseTopViewDragOptions) {
     startCamTargetDrag
   }
 }
+

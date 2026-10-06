@@ -14,6 +14,7 @@ export function LeftPanel() {
   const shots = useEditor((s) => s.project.shots)
   const [, force] = useReducer((x: number) => x + 1, 0)
   const [tab, setTab] = useState<LeftTab>(() => (localStorage.getItem('pxs.leftTab') as LeftTab) || 'shots')
+  const topViewMode = useView((s) => s.topViewMode)
   const focusShotId = useFocusShotId()
   const focusShot = shots.find((s) => s.id === focusShotId)
 
@@ -70,14 +71,27 @@ export function LeftPanel() {
         {tab === 'topview' && (
           <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 0%', minHeight: 0, height: '100%', position: 'relative', overflow: 'hidden' }}>
             <div className="topview-toolbar">
-              <span style={{ fontWeight: 600, color: 'var(--text)', fontSize: '11px' }}>
-                Sơ đồ độ sâu · Top View
+              <span style={{ fontWeight: 600, color: 'var(--text)', fontSize: '11px', whiteSpace: 'nowrap' }}>
+                Sơ đồ 2.5D
               </span>
-              {focusShot && (
-                <span className="shot-chip" style={{ ['--c' as string]: focusShot.color, marginLeft: 6 }}>
-                  {focusShot.name}
-                </span>
-              )}
+              <div className="topview-header-switcher">
+                <button
+                  type="button"
+                  className={`btn xs${topViewMode === 'top' ? ' active' : ''}`}
+                  onClick={() => useView.getState().set({ topViewMode: 'top' })}
+                  title="Nhìn từ trên đỉnh (Top View X-Z): Căn vị trí trái - phải và độ sâu xa - gần"
+                >
+                  ⬇️ Top (X-Z)
+                </button>
+                <button
+                  type="button"
+                  className={`btn xs${topViewMode === 'side' ? ' active' : ''}`}
+                  onClick={() => useView.getState().set({ topViewMode: 'side' })}
+                  title="Nhìn từ cạnh hông (Side View Z-Y): Căn độ cao nâng - hạ và độ dốc sàn đất"
+                >
+                  ➡️ Side (Z-Y)
+                </button>
+              </div>
               <span className="spacer" />
               <button
                 type="button"
@@ -86,7 +100,7 @@ export function LeftPanel() {
                 title="Mở rộng sơ đồ độ sâu ra khung hình Viewport chính giữa màn hình"
                 style={{ fontSize: '10.5px' }}
               >
-                Mở rộng ra Viewport ↗
+                Mở rộng ↗
               </button>
             </div>
             <div style={{ flex: '1 1 0%', position: 'relative', minHeight: 0, height: '100%', overflow: 'hidden' }}>

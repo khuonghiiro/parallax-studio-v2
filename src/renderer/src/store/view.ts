@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { EditorViewKind } from '../engine/EditorCamera'
 
 export type PrimaryView = 'camera' | 'editor' | 'topview'
+export type TopViewMode = 'top' | 'side'
 export type Theme = 'dark' | 'light'
 
 interface ViewPrefs {
@@ -14,6 +15,8 @@ interface ViewPrefs {
   /** 3D view previews streaming: only content the active camera loads is drawn. */
   cameraOnly: boolean
   theme: Theme
+  /** 2.5D Depth Diagram projection mode: Top-down (X-Z) or Side-elevation (Z-Y). */
+  topViewMode: TopViewMode
 }
 
 export interface FocusRequest {
@@ -48,7 +51,15 @@ function applyTheme(theme: Theme): void {
 }
 
 function load(): ViewPrefs {
-  const d: ViewPrefs = { split: false, primary: 'camera', editorKind: 'custom', showPath: true, cameraOnly: false, theme: 'dark' }
+  const d: ViewPrefs = {
+    split: false,
+    primary: 'camera',
+    editorKind: 'custom',
+    showPath: true,
+    cameraOnly: false,
+    theme: 'dark',
+    topViewMode: 'top'
+  }
   try {
     const raw = localStorage.getItem(KEY)
     if (raw) {
@@ -78,8 +89,8 @@ export const useView = create<ViewState>((set, get) => ({
   set(p) {
     if (p.theme) applyTheme(p.theme)
     set(p)
-    const { split, primary, editorKind, showPath, cameraOnly, theme } = get()
-    localStorage.setItem(KEY, JSON.stringify({ split, primary, editorKind, showPath, cameraOnly, theme }))
+    const { split, primary, editorKind, showPath, cameraOnly, theme, topViewMode } = get()
+    localStorage.setItem(KEY, JSON.stringify({ split, primary, editorKind, showPath, cameraOnly, theme, topViewMode }))
   },
   requestFocus(kind, id) {
     const s = get()
