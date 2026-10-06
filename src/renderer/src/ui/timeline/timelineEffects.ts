@@ -418,3 +418,80 @@ export function applyFxPresetToSelectedLayer(presetId: FxPresetId, options?: App
   toast(`${preset.badge} Đã tạo hiệu ứng "${preset.name}" (${durText}) tại ${start.toFixed(2)}s`)
   return true
 }
+
+/**
+ * Toggle an applied effect on/off by fxId.
+ * When disabled: stashes keyframes into fx.savedKeyframes and removes them from the track.
+ * When enabled: restores keyframes back to the track.
+ */
+export function toggleLayerEffect(layer: Layer, fxId: string, enabled: boolean): boolean {
+  if (!layer.appliedEffects) return false
+  const targetFx = layer.appliedEffects.find((x) => x.id === fxId)
+  if (!targetFx) return false
+
+  let savedKeyframes = (targetFx as any).savedKeyframes
+
+  // Glow category
+  if (targetFx.category === 'glow' && layer.glow) {
+    layer.glow = { ...layer.glow, enabled }
+    layer.appliedEffects = layer.appliedEffects.map((x) => (x.id === fxId ? { ...x, enabled } : x))
+    return true
+  }
+
+  // Keyframe category (opacity, position, scale)
+  if (targetFx.targetProp) {
+    const targetAnim = layer.transform[targetFx.targetProp]
+    if (targetAnim) {
+      if (!enabled) {
+        const idSet = new Set(targetFx.keyframeIds ?? [])
+        const toSave = targetAnim.keyframes.filter((k: any) => idSet.has(k.id))
+        if (toSave.length > 0) {
+          savedKeyframes = toSave
+          targetAnim.keyframes = targetAnim.keyframes.filter((k: any) => !idSet.has(k.id))
+          if (targetAnim.keyframes.length === 0) {
+            if (targetFx.targetProp === 'opacity') targetAnim.value = 1
+            else if (targetFx.targetProp === 'scale') targetAnim.value = [1, 1, 1]
+          }
+        }
+      } else {
+        if (savedKeyframes && savedKeyframes.length > 0) {
+          targetAnim.keyframes = [...targetAnim.keyframes, ...savedKeyframes].sort((a: any, b: any) => a.t - b.t)
+          savedKeyframes = undefined
+        }
+      }
+    }
+  }
+
+  layer.appliedEffects = layer.appliedEffects.map((x) =>
+    x.id === fxId ? { ...x, enabled, savedKeyframes } : x
+  )
+  return true
+}
+
+/**
+ * Permanently delete an applied effect from a layer and clean up its keyframes / glow.
+ */
+export function deleteLayerEffect(layer: Layer, fxId: string): boolean {
+  const fx = (layer.appliedEffects as any)?.find((x: any) => x.id === fxId)
+  if (!fx) return false
+
+  if (fx.targetProp) {
+    const targetAnim = layer.transform[fx.targetProp]
+    if (targetAnim && targetAnim.keyframes) {
+      const idSet = new Set(fx.keyframeIds ?? [])
+      targetAnim.keyframes = targetAnim.keyframes.filter((k: any) => !idSet.has(k.id))
+      if (targetAnim.keyframes.length === 0) {
+        if (fx.targetProp === 'opacity') targetAnim.value = 1
+        else if (fx.targetProp === 'scale') targetAnim.value = [1, 1, 1]
+      }
+    }
+  }
+
+  if (fx.category === 'glow') {
+    delete layer.glow
+  }
+
+  layer.appliedEffects = layer.appliedEffects?.filter((x: any) => x.id !== fxId)
+  return true
+}
+

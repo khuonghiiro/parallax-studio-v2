@@ -3,6 +3,7 @@ import { useEditor } from '../../../store/editor'
 import { Switch } from '../../controls'
 import { IconPlay, IconSparkles, IconTrash } from '../../icons'
 import { openFxPresetMenu } from '../../timeline/FxPresetMenu'
+import { deleteLayerEffect, toggleLayerEffect } from '../../timeline/timelineEffects'
 import { renderFxIcon } from '../../timeline/fxIcons'
 import type { Setter } from '../types'
 
@@ -48,70 +49,13 @@ export function LayerEffectsSection({ layer, set }: LayerEffectsSectionProps) {
   // Actions for AppliedLayerEffect items
   const toggleAppliedEffect = (fxId: string, on: boolean) => {
     set((l) => {
-      const fx = (l.appliedEffects as any)?.find((x: any) => x.id === fxId)
-      if (!fx) return
-      fx.enabled = on
-
-      // Glow category
-      if (fx.category === 'glow' && l.glow) {
-        l.glow.enabled = on
-        return
-      }
-
-      // Keyframe category (opacity, position, scale)
-      if (fx.targetProp) {
-        const targetAnim = l.transform[fx.targetProp]
-        if (!targetAnim) return
-
-        if (!on) {
-          // Stash keyframes into fx.savedKeyframes and remove from track
-          const idSet = new Set(fx.keyframeIds ?? [])
-          const toSave = targetAnim.keyframes.filter((k: any) => idSet.has(k.id))
-          if (toSave.length > 0) {
-            fx.savedKeyframes = toSave
-            targetAnim.keyframes = targetAnim.keyframes.filter((k: any) => !idSet.has(k.id))
-            if (targetAnim.keyframes.length === 0) {
-              if (fx.targetProp === 'opacity') targetAnim.value = 1
-              else if (fx.targetProp === 'scale') targetAnim.value = [1, 1, 1]
-            }
-          }
-        } else {
-          // Restore keyframes from fx.savedKeyframes back into track
-          if (fx.savedKeyframes && fx.savedKeyframes.length > 0) {
-            targetAnim.keyframes.push(...fx.savedKeyframes)
-            targetAnim.keyframes.sort((a: any, b: any) => a.t - b.t)
-            delete fx.savedKeyframes
-          }
-        }
-      }
+      toggleLayerEffect(l as Layer, fxId, on)
     })
   }
 
   const deleteAppliedEffect = (fxId: string) => {
     set((l) => {
-      const fx = (l.appliedEffects as any)?.find((x: any) => x.id === fxId)
-      if (!fx) return
-
-      // Remove keyframes from track
-      if (fx.targetProp) {
-        const targetAnim = l.transform[fx.targetProp]
-        if (targetAnim && targetAnim.keyframes) {
-          const idSet = new Set(fx.keyframeIds ?? [])
-          targetAnim.keyframes = targetAnim.keyframes.filter((k: any) => !idSet.has(k.id))
-          if (targetAnim.keyframes.length === 0) {
-            if (fx.targetProp === 'opacity') targetAnim.value = 1
-            else if (fx.targetProp === 'scale') targetAnim.value = [1, 1, 1]
-          }
-        }
-      }
-
-      // If glow effect, delete glow
-      if (fx.category === 'glow') {
-        delete l.glow
-      }
-
-      // Remove from appliedEffects
-      l.appliedEffects = l.appliedEffects?.filter((x: any) => x.id !== fxId)
+      deleteLayerEffect(l as Layer, fxId)
     })
   }
 

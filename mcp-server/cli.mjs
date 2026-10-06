@@ -235,6 +235,18 @@ const TOOLS_CATALOG = {
     params: '{ "layer_id": string, "preset": "neonBreathe"|"neonBlink"|"neonFlicker"|"neonSolid"|"blink"|"fadeIn"|"fadeOut"|"breathe"|"shake"|"popIn"|"pulse", "time"?: number, "duration"?: number, "blinks"?: number, "intensity"?: number }',
     example: 'node mcp-server/cli.mjs call apply_layer_fx \'{"layer_id": "layer-1", "preset": "neonBreathe", "time": 2.5, "duration": 1.5}\''
   },
+  toggle_layer_fx: {
+    category: '4. Keyframes & Hoạt ảnh',
+    desc: 'Bật hoặc tắt công tắc một hiệu ứng cụ thể trên layer theo fx_id.',
+    params: '{ "layer_id": string, "fx_id": string, "enabled": boolean }',
+    example: 'node mcp-server/cli.mjs call toggle_layer_fx \'{"layer_id": "layer-1", "fx_id": "fx-abc123", "enabled": false}\''
+  },
+  remove_layer_fx: {
+    category: '4. Keyframes & Hoạt ảnh',
+    desc: 'Xóa vĩnh viễn một hiệu ứng đã áp dụng trên layer và dọn dẹp keyframes/viền neon tương ứng.',
+    params: '{ "layer_id": string, "fx_id": string }',
+    example: 'node mcp-server/cli.mjs call remove_layer_fx \'{"layer_id": "layer-1", "fx_id": "fx-abc123"}\''
+  },
   set_keyframe: {
     category: '4. Keyframes & Hoạt ảnh',
     desc: 'Đặt keyframe cho thuộc tính tại thời điểm time (giây).',

@@ -3,7 +3,7 @@ import type { Draft } from 'immer'
 import { evaluate } from '../../animation/keyframes'
 import { moveLayer } from '../../actions'
 import { splitSelectedLayer } from '../../ui/timeline/timelineActions'
-import { applyFxPresetToSelectedLayer, type FxPresetId } from '../../ui/timeline/timelineEffects'
+import { applyFxPresetToSelectedLayer, deleteLayerEffect, toggleLayerEffect, type FxPresetId } from '../../ui/timeline/timelineEffects'
 import { assetStore } from '../../project/assets'
 import * as factory from '../../project/factory'
 import { ParamError, ed, proj, type Handler, type Params } from '../types'
@@ -322,6 +322,35 @@ export const layerCommands: Record<string, Handler> = {
         minIntensity: num(p, 'min_intensity') ?? cur.minIntensity ?? 0.15
       }
     })
+    return layerSummary(requireLayer(proj(), id), ed().time)
+  },
+
+  toggle_layer_fx: (p) => {
+    const project = proj()
+    const id = requireLayer(project, str(p, 'layer_id', true)).id
+    const fxId = str(p, 'fx_id', true)
+    const enabled = bool(p, 'enabled') ?? true
+    let ok = false
+    ed().update((d) => {
+      const l = d.layers.find((x) => x.id === id)
+      if (!l) return
+      ok = toggleLayerEffect(l as Layer, fxId, enabled)
+    })
+    if (!ok) throw new ParamError(`Effect "${fxId}" not found on layer "${id}"`)
+    return layerSummary(requireLayer(proj(), id), ed().time)
+  },
+
+  remove_layer_fx: (p) => {
+    const project = proj()
+    const id = requireLayer(project, str(p, 'layer_id', true)).id
+    const fxId = str(p, 'fx_id', true)
+    let ok = false
+    ed().update((d) => {
+      const l = d.layers.find((x) => x.id === id)
+      if (!l) return
+      ok = deleteLayerEffect(l as Layer, fxId)
+    })
+    if (!ok) throw new ParamError(`Effect "${fxId}" not found on layer "${id}"`)
     return layerSummary(requireLayer(proj(), id), ed().time)
   }
 }

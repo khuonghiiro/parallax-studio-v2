@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { anim } from '../../animation/keyframes'
 import { useEditor } from '../../store/editor'
-import { applyFxPresetToSelectedLayer, FX_PRESETS } from './timelineEffects'
+import { applyFxPresetToSelectedLayer, deleteLayerEffect, FX_PRESETS, toggleLayerEffect } from './timelineEffects'
 import type { ImageLayerProps, Layer } from '@shared/types'
 
 describe('timelineEffects (Animation FX Presets)', () => {
@@ -162,5 +162,39 @@ describe('timelineEffects (Animation FX Presets)', () => {
     layer = useEditor.getState().project.layers[0]
     expect(layer.glow?.animated).toBe('none')
     expect(layer.glow?.color).toBe('#3dd6f5')
+  })
+
+  it('can toggle and delete applied effects on a layer', () => {
+    applyFxPresetToSelectedLayer('breathe', { duration: 1.0 })
+    let layer = useEditor.getState().project.layers[0]
+    expect(layer.appliedEffects?.length).toBeGreaterThan(0)
+    const fxId = layer.appliedEffects![0].id
+
+    // Test toggle off
+    useEditor.getState().update((d) => {
+      const l = d.layers.find((x) => x.id === layer.id)!
+      toggleLayerEffect(l as Layer, fxId, false)
+    })
+    layer = useEditor.getState().project.layers[0]
+    expect(layer.appliedEffects![0].enabled).toBe(false)
+    expect(layer.transform.opacity.keyframes.length).toBe(0) // stashed safely
+
+    // Test toggle on
+    useEditor.getState().update((d) => {
+      const l = d.layers.find((x) => x.id === layer.id)!
+      toggleLayerEffect(l as Layer, fxId, true)
+    })
+    layer = useEditor.getState().project.layers[0]
+    expect(layer.appliedEffects![0].enabled).toBe(true)
+    expect(layer.transform.opacity.keyframes.length).toBeGreaterThan(0) // restored
+
+    // Test delete
+    useEditor.getState().update((d) => {
+      const l = d.layers.find((x) => x.id === layer.id)!
+      deleteLayerEffect(l as Layer, fxId)
+    })
+    layer = useEditor.getState().project.layers[0]
+    expect(layer.appliedEffects?.find((x) => x.id === fxId)).toBeUndefined()
+    expect(layer.transform.opacity.keyframes.length).toBe(0)
   })
 })

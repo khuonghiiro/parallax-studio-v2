@@ -371,6 +371,15 @@ tool('split_layer', 'Split a layer into two contiguous segments at a given time 
   layer_id: z.string(),
   time: z.number().optional().describe('Cut time in seconds (default: current playhead time).')
 })
+tool('toggle_layer_fx', 'Toggle an applied effect on/off by fx_id.', {
+  layer_id: z.string(),
+  fx_id: z.string().describe('ID of the applied effect (e.g. "fx-abc123").'),
+  enabled: z.boolean().describe('true to enable, false to disable.')
+})
+tool('remove_layer_fx', 'Delete an applied effect permanently from a layer and clean up its keyframes or glow.', {
+  layer_id: z.string(),
+  fx_id: z.string().describe('ID of the applied effect (e.g. "fx-abc123").')
+})
 tool(
   'set_layer_glow',
   'Configure neon edge glow (outline glow) following the alpha silhouette of a layer. Supports outer, inner, or both sides with optional breathing, blinking, or flickering animation.',
