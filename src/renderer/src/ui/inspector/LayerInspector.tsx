@@ -10,6 +10,7 @@ import { TextSection } from './sections/TextSection'
 import { SolidSection } from './sections/SolidSection'
 import { MotionSection } from './sections/MotionSection'
 import { GlowSection } from './sections/GlowSection'
+import { LayerEffectsSection } from './sections/LayerEffectsSection'
 import { ParticleSection } from './sections/ParticleSection'
 
 export function LayerInspector({ layer }: { layer: Layer }) {
@@ -228,6 +229,8 @@ export function LayerInspector({ layer }: { layer: Layer }) {
           Z dương = xa camera{layer.shotId ? ' (toạ độ tương đối với cảnh)' : ''}. Kéo nhãn X/Y/Z để scrub (Shift ×10, Alt ×0.1).
         </p>
       </div>
+
+      <LayerEffectsSection layer={layer} set={set} />
 
       <MotionSection layer={layer} set={set} />
       {layer.type !== 'particles' && <GlowSection layer={layer} set={set} />}
