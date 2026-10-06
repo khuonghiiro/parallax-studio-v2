@@ -302,8 +302,19 @@ export function Row({ label, children, title }: { label: string; children: React
   )
 }
 
-export function Switch({ on, onChange, id }: { on: boolean; onChange: (v: boolean) => void; id?: string }) {
-  return <button id={id} className={`switch${on ? ' on' : ''}`} onClick={() => onChange(!on)} aria-pressed={on} />
+export function Switch({
+  on,
+  checked,
+  onChange,
+  id
+}: {
+  on?: boolean
+  checked?: boolean
+  onChange: (v: boolean) => void
+  id?: string
+}) {
+  const active = on ?? checked ?? false
+  return <button id={id} className={`switch${active ? ' on' : ''}`} onClick={() => onChange(!active)} aria-pressed={active} />
 }
 
 export function Slider({

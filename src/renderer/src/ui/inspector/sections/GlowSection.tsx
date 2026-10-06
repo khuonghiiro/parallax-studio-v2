@@ -47,7 +47,7 @@ export function GlowSection({ layer, set }: { layer: Layer; set: Setter }) {
         <span>Phát sáng viền (Neon Edge Glow)</span>
         <Switch
           id="glow-enabled"
-          checked={!!glow.enabled}
+          on={!!glow.enabled}
           onChange={toggleEnabled}
         />
       </div>
