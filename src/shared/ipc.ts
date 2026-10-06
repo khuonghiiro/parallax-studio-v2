@@ -115,6 +115,7 @@ export interface McpStatus {
   lastMethod: string | null
   lastAt: number | null
   configPath: string
+  serverScriptPath?: string
   error?: string
 }
 

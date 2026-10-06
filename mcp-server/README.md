@@ -183,3 +183,59 @@ const preview = await get_viewport_screenshot({ view: "camera", time: 4 });
 
 - **Ngắt kết nối client:** Khi AI Agent đã hoàn tất việc dựng cảnh, client nên đóng socket hoặc người dùng có thể bấm nút **"Ngắt kết nối"** ngay trên giao diện để giải phóng RAM/CPU.
 - **Tạm dừng server:** Người dùng có thể bật/tắt lắng nghe MCP bằng cách bấm vào chip **MCP** ở góc phải thanh công cụ.
+
+---
+
+## 7. CLI Controller Cho AI & Terminal (`pnpm pxs`)
+
+Bên cạnh giao thức MCP stdio tiêu chuẩn, Parallax Studio V2 cung cấp bộ điều khiển dòng lệnh **CLI Controller** cực kỳ tiện lợi tại `mcp-server/cli.mjs` hoặc qua lệnh rút gọn `pnpm pxs`:
+
+### 7.1. Lệnh Trợ Giúp & Tra Cứu Toàn Diện (`--help` / `help`)
+```bash
+# Xem toàn bộ hướng dẫn quy ước tọa độ 2.5D, danh mục 42 công cụ và workflow mẫu:
+pnpm pxs --help
+
+# Tra cứu nhanh tham số và ví dụ gọi của 1 công cụ cụ thể:
+pnpm pxs help add_image_layer
+pnpm pxs help set_keyframe
+pnpm pxs help export_video
+```
+
+### 7.2. Kiểm Tra Trạng Thái Ứng Dụng Realtime (`status`)
+```bash
+pnpm pxs status
+```
+*In ra: Trạng thái kết nối, tên composition, tỷ lệ khung hình, FPS, số shot, số layer, và GPU VRAM.*
+
+### 7.3. Trích Xuất Dữ Liệu Dự Án Hiện Tại (`inspect`)
+```bash
+pnpm pxs inspect
+```
+*In ra toàn bộ JSON của project đang mở (shots, layers, cameras, keyframes) để AI nắm bắt ngữ cảnh hiện tại.*
+
+### 7.4. AI Xem Review Cảnh Trực Quan Mắt Thấy Tai Nghe (`review`)
+```bash
+# Chụp ảnh góc nhìn Camera tại thời điểm hiện tại:
+pnpm pxs review --view camera --out artifacts/preview.png
+
+# Chụp ảnh góc nhìn không gian 3D tại giây thứ 3.5:
+pnpm pxs review --view 3d --time 3.5 --out artifacts/preview_3d.png
+```
+*Sau khi chạy, AI Agent có thể gọi ngay công cụ `view_file` trên file ảnh `artifacts/preview.png` để phân tích bố cục hình ảnh trực tiếp.*
+
+### 7.5. Thực Thi Lệnh Tạo / Sửa Cảnh Realtime (`call`)
+AI Agent hoặc lập trình viên có thể bắn trực tiếp các thao tác tạo/sửa layer, shot, keyframe theo thời gian thực như người dùng thao tác trên giao diện:
+```bash
+# Thêm layer ảnh vào hậu cảnh Z = 1500
+pnpm pxs call add_image_layer '{"file_path": "assets/city/sky.png", "z": 1500, "name": "Sky"}'
+
+# Di chuyển layer sang tọa độ mới
+pnpm pxs call move_layer '{"layer_id": "layer-1", "x": 100, "y": 50, "z": 800}'
+
+# Bật hiệu ứng hạt mưa
+pnpm pxs call add_particles '{"preset": "rain", "density": 100}'
+
+# Chạy timeline xem thử
+pnpm pxs call set_playing '{"playing": true}'
+```
+

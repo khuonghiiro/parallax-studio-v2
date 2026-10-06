@@ -65,6 +65,14 @@ export class McpBridge {
   private status: McpStatus
 
   constructor(private getWindow: () => BrowserWindow | null) {
+    const candidates = [
+      join(app.getAppPath(), 'mcp-server', 'index.mjs'),
+      join(process.resourcesPath, 'mcp-server', 'index.mjs'),
+      join(app.getAppPath(), '..', 'mcp-server', 'index.mjs'),
+      join(process.cwd(), 'mcp-server', 'index.mjs')
+    ]
+    const serverScript = candidates.find((p) => existsSync(p)) || candidates[0]
+
     this.status = {
       listening: false,
       port: Number(process.env.PARALLAX_MCP_PORT) || DEFAULT_PORT,
@@ -72,7 +80,8 @@ export class McpBridge {
       commands: 0,
       lastMethod: null,
       lastAt: null,
-      configPath: join(app.getPath('userData'), 'mcp.json')
+      configPath: join(app.getPath('userData'), 'mcp.json'),
+      serverScriptPath: serverScript.replace(/\\/g, '/')
     }
 
     ipcMain.on('mcp:ready', () => {
