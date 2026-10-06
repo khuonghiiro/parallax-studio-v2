@@ -329,3 +329,49 @@ export const IconSettings = (p: P) => (
   </svg>
 )
 
+export const IconScissors = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="6" cy="6" r="3" />
+    <circle cx="6" cy="18" r="3" />
+    <path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12" />
+  </svg>
+)
+
+export const IconKeyframe = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 2L2 12l10 10 10-10L12 2z" />
+  </svg>
+)
+
+export const IconTrimLeft = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4 4v16M8 12h12M14 6l-6 6 6 6" />
+  </svg>
+)
+
+export const IconTrimRight = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M20 4v16M16 12H4M10 6l6 6-6 6" />
+  </svg>
+)
+
+export const IconZoomIn = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="m21 21-4.35-4.35M11 8v6M8 11h6" />
+  </svg>
+)
+
+export const IconZoomOut = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="m21 21-4.35-4.35M8 11h6" />
+  </svg>
+)
+
+export const IconFitWidth = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4 6v12M20 6v12M8 12h8M11 9l-3 3 3 3M13 9l3 3-3 3" />
+  </svg>
+)
+

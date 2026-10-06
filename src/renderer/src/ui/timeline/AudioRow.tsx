@@ -64,6 +64,7 @@ export function AudioRow({ x, trackW }: AudioRowProps) {
 
   return (
     <TimelineRow
+      trackWidth={trackW}
       name={
         <div className="tl-name">
           <span style={{ width: 20 }} />

@@ -8,6 +8,8 @@ export interface TimelineRowProps {
   selected?: boolean
   onClick?: () => void
   className?: string
+  trackWidth?: number
+  onTrackPointerDown?: (e: React.PointerEvent) => void
 }
 
 export function TimelineRow({
@@ -16,7 +18,9 @@ export function TimelineRow({
   sub,
   selected,
   onClick,
-  className
+  className,
+  trackWidth,
+  onTrackPointerDown
 }: TimelineRowProps) {
   return (
     <div
@@ -24,18 +28,35 @@ export function TimelineRow({
       onPointerDown={onClick}
     >
       <div
+        className="tl-row-name-col"
         style={{
           width: NAME_W,
           flex: 'none',
           height: '100%',
           display: 'flex',
           alignItems: 'center',
-          borderRight: '1px solid var(--line-soft)'
+          borderRight: '1px solid var(--line-soft)',
+          position: 'sticky',
+          left: 0,
+          background: 'inherit',
+          zIndex: 5
         }}
       >
         {name}
       </div>
-      <div style={{ flex: 1, position: 'relative', height: '100%' }}>{track}</div>
+      <div
+        className="tl-row-track-col"
+        style={{
+          width: trackWidth,
+          minWidth: trackWidth,
+          flex: trackWidth ? 'none' : 1,
+          position: 'relative',
+          height: '100%'
+        }}
+        onPointerDown={onTrackPointerDown}
+      >
+        {track}
+      </div>
     </div>
   )
 }

@@ -29,13 +29,13 @@ interface ToastState {
   message: string | null
   show(msg: string, ms?: number): void
 }
-let toastTimer: number | undefined
+let toastTimer: any
 export const useToast = create<ToastState>((set) => ({
   message: null,
   show(message, ms = 2400) {
     set({ message })
-    window.clearTimeout(toastTimer)
-    toastTimer = window.setTimeout(() => set({ message: null }), ms)
+    clearTimeout(toastTimer)
+    toastTimer = setTimeout(() => set({ message: null }), ms)
   }
 }))
 const toast = (m: string): void => useToast.getState().show(m)

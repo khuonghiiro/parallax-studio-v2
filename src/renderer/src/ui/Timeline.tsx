@@ -7,8 +7,14 @@ import { IconCamera, IconCaret, IconFilm } from './icons'
 import { CAMERA_PROPS, PAD, SHOT_PROPS, NAME_W, shotSegments } from './timeline/timelineTypes'
 import { TimelineRow } from './timeline/TimelineRow'
 import { AudioRow } from './timeline/AudioRow'
-import { TimelineTransport } from './timeline/TimelineTransport'
+import { TimelineToolbar } from './timeline/TimelineToolbar'
 import { TimelineLayerRow } from './timeline/TimelineLayerRow'
+import {
+  addKeyframeForSelectedLayer,
+  setSelectedLayerInPoint,
+  setSelectedLayerOutPoint,
+  splitSelectedLayer
+} from './timeline/timelineActions'
 
 export function Timeline() {
   const project = useEditor((s) => s.project)
@@ -23,18 +29,25 @@ export function Timeline() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [renaming, setRenaming] = useState<string | null>(null)
+  const [zoom, setZoom] = useState<number>(1)
+
   const trackRef = useRef<HTMLDivElement>(null)
+  const rulerScrollRef = useRef<HTMLDivElement>(null)
+  const rowsScrollRef = useRef<HTMLDivElement>(null)
   const [trackW, setTrackW] = useState(800)
 
   useEffect(() => {
-    const el = trackRef.current!
+    const el = rulerScrollRef.current
+    if (!el) return
     const ro = new ResizeObserver(() => setTrackW(el.clientWidth))
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
 
-  const x = (t: number): number => PAD + (t / comp.duration) * (trackW - PAD * 2)
-  const tAt = (px: number): number => ((px - PAD) / (trackW - PAD * 2)) * comp.duration
+  const contentW = Math.max(trackW, Math.round((trackW - PAD * 2) * zoom + PAD * 2))
+  const x = (t: number): number => PAD + (t / comp.duration) * (contentW - PAD * 2)
+  const tAt = (px: number): number => ((px - PAD) / (contentW - PAD * 2)) * comp.duration
+
   const toggle = (id: string): void =>
     setExpanded((s) => {
       const n = new Set(s)
@@ -42,6 +55,66 @@ export function Timeline() {
       else n.add(id)
       return n
     })
+
+  // Synchronize horizontal scrolling between Ruler and Rows Track Viewport
+  const onRowsScroll = (e: React.UIEvent<HTMLDivElement>): void => {
+    if (rulerScrollRef.current) {
+      rulerScrollRef.current.scrollLeft = e.currentTarget.scrollLeft
+    }
+  }
+
+  // Alt + MouseWheel zoom on timeline
+  const handleTimelineWheel = (e: React.WheelEvent): void => {
+    if (e.altKey) {
+      e.preventDefault()
+      const delta = e.deltaY > 0 ? -0.25 : 0.25
+      setZoom((z) => Math.max(1, Math.min(6, Math.round((z + delta) * 100) / 100)))
+    }
+  }
+
+  // Global Timeline Keyboard Shortcuts: [ (In), ] (Out), Ctrl+Shift+D or S (Split), K (Keyframe), +/- (Zoom)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return
+      }
+
+      if (e.key === '[') {
+        e.preventDefault()
+        setSelectedLayerInPoint()
+      } else if (e.key === ']') {
+        e.preventDefault()
+        setSelectedLayerOutPoint()
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault()
+        splitSelectedLayer()
+      } else if (e.key === 's' || e.key === 'S') {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault()
+          splitSelectedLayer()
+        }
+      } else if (e.key === 'k' || e.key === 'K') {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault()
+          addKeyframeForSelectedLayer()
+        }
+      } else if (e.key === '=' || e.key === '+') {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault()
+          setZoom((z) => Math.min(6, Math.round((z + 0.25) * 100) / 100))
+        }
+      } else if (e.key === '-' || e.key === '_') {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault()
+          setZoom((z) => Math.max(1, Math.round((z - 0.25) * 100) / 100))
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // ---------------------------------------------------------------- scrubbing
 
@@ -61,19 +134,27 @@ export function Timeline() {
     el.addEventListener('pointerup', up)
   }
 
+  // Click on any track empty background to jump playhead
+  const handleTrackPointerDown = (e: React.PointerEvent): void => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const clickX = e.clientX - rect.left
+    const clickedTime = Math.max(0, Math.min(comp.duration, snapToFrame(tAt(clickX), comp.fps)))
+    setTime(clickedTime)
+  }
+
   // ---------------------------------------------------------------- ticks
 
   const ticks = useMemo(() => {
-    const pxPerSec = (trackW - PAD * 2) / comp.duration
-    const steps = [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60]
+    const pxPerSec = (contentW - PAD * 2) / comp.duration
+    const steps = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60]
     const major = steps.find((s) => s * pxPerSec >= 70) ?? 60
     const out: { t: number; major: boolean }[] = []
-    const minor = major / 5
+    const minor = major >= 0.5 ? major / 5 : major / 2
     for (let t = 0; t <= comp.duration + 1e-6; t += minor) {
       out.push({ t, major: Math.abs(t / major - Math.round(t / major)) < 1e-4 })
     }
     return out
-  }, [trackW, comp.duration])
+  }, [contentW, comp.duration])
 
   // ---------------------------------------------------------------- keyframe drag
 
@@ -94,7 +175,7 @@ export function Timeline() {
     const el = e.currentTarget as HTMLElement
     el.setPointerCapture(e.pointerId)
     const move = (ev: PointerEvent): void => {
-      const dt = ((ev.clientX - startX) / (trackW - PAD * 2)) * comp.duration
+      const dt = ((ev.clientX - startX) / (contentW - PAD * 2)) * comp.duration
       const nt = Math.max(0, Math.min(comp.duration, snapToFrame(startT + dt, comp.fps)))
       useEditor.getState().update((d) => {
         const da = getDraftAnimatable(d, ref)
@@ -113,7 +194,7 @@ export function Timeline() {
     el.addEventListener('pointerup', up)
   }
 
-  // ---------------------------------------------------------------- layer bar drag
+  // ---------------------------------------------------------------- layer bar drag with click-to-playhead
 
   const startBarDrag = (e: React.PointerEvent, layer: Layer, mode: 'move' | 'in' | 'out'): void => {
     e.stopPropagation()
@@ -124,8 +205,13 @@ export function Timeline() {
     const key = `bar-${nanoid(6)}`
     const el = e.currentTarget as HTMLElement
     el.setPointerCapture(e.pointerId)
+    let moved = false
     const move = (ev: PointerEvent): void => {
-      const dt = snapToFrame(((ev.clientX - startX) / (trackW - PAD * 2)) * comp.duration, comp.fps)
+      if (Math.abs(ev.clientX - startX) > 3) {
+        moved = true
+      }
+      if (!moved) return
+      const dt = snapToFrame(((ev.clientX - startX) / (contentW - PAD * 2)) * comp.duration, comp.fps)
       useEditor.getState().update((d) => {
         const l = d.layers.find((q) => q.id === layer.id)
         if (!l) return
@@ -138,15 +224,24 @@ export function Timeline() {
         }
       }, key)
     }
-    const up = (): void => {
+    const up = (ev: PointerEvent): void => {
       el.removeEventListener('pointermove', move)
       el.removeEventListener('pointerup', up)
+      if (!moved && mode === 'move') {
+        const rulerEl = trackRef.current
+        if (rulerEl) {
+          const rect = rulerEl.getBoundingClientRect()
+          const clickedTime = Math.max(0, Math.min(comp.duration, snapToFrame(tAt(ev.clientX - rect.left), comp.fps)))
+          setTime(clickedTime)
+        }
+      }
     }
     el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', up)
   }
 
   // ---------------------------------------------------------------- render helpers
+
 
   const selectedKey = useEditor((s) => s.selectedKey)
   const renderKeys = (a: Animatable<AnimValue>, ref: PropRef) =>
@@ -200,197 +295,227 @@ export function Timeline() {
 
   return (
     <section className="panel timeline">
-      <TimelineTransport
+      <TimelineToolbar
         time={time}
         fps={comp.fps}
         duration={comp.duration}
         playing={playing}
         loop={loop}
+        zoom={zoom}
+        hasSelectedLayer={!!selectedLayerId}
         setTime={setTime}
         setPlaying={setPlaying}
         setLoop={setLoop}
+        setZoom={setZoom}
       />
 
       <div className="tl-body" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
-        {/* header */}
-        <div style={{ display: 'flex', flex: 'none' }}>
+        {/* Header: Layer names column & Time Ruler Viewport */}
+        <div className="tl-header-row">
           <div
             className="tl-names-head"
-            style={{
-              width: NAME_W,
-              borderRight: '1px solid var(--line)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0 8px'
-            }}
+            style={{ width: NAME_W }}
           >
             <span>Layer</span>
             <span style={{ display: 'inline-flex', gap: 7, color: 'var(--text-faint)', fontSize: 9.5, fontWeight: 700 }}>
-              <span title="Độ sâu 3D (Z depth)">Z</span>
+              <span title="Độ sâu 3D (Z depth)">Z-Depth</span>
               <span title="Ẩn / Hiện (Visibility)">👁</span>
               <span title="Khóa layer (Lock)">🔒</span>
             </span>
           </div>
-          <div className="tl-ruler" ref={trackRef} style={{ flex: 1 }} onPointerDown={scrub}>
-            {ticks.map((tk, i) => (
-              <div key={i} className="tick" style={{ left: x(tk.t), height: tk.major ? 10 : 5 }}>
-                {tk.major && <span className="tick-label">{tk.t % 1 === 0 ? `${tk.t}s` : `${tk.t.toFixed(1)}s`}</span>}
-              </div>
-            ))}
+
+          <div
+            className="tl-ruler-viewport"
+            ref={rulerScrollRef}
+            onWheel={handleTimelineWheel}
+          >
+            <div
+              className="tl-ruler"
+              ref={trackRef}
+              style={{ width: contentW }}
+              onPointerDown={scrub}
+            >
+              {ticks.map((tk, i) => (
+                <div key={i} className={`tick ${tk.major ? 'major' : ''}`} style={{ left: x(tk.t), height: tk.major ? 9 : 5 }}>
+                  {tk.major && <span className="tick-label">{tk.t % 1 === 0 ? `${tk.t}s` : `${tk.t.toFixed(1)}s`}</span>}
+                </div>
+              ))}
+              <div className="tl-ruler-playhead" style={{ left: x(time) }} />
+            </div>
           </div>
         </div>
 
-        {/* rows */}
-        <div className="tl-scroll" style={{ flex: 1 }}>
-          {/* camera */}
-          <TimelineRow
-            selected={false}
-            name={
-              <div className="tl-name" onClick={() => useEditor.getState().setInspectorTab('camera')}>
-                <button className="mini" onClick={(e) => (e.stopPropagation(), toggle('camera'))}>
-                  <IconCaret className={`caret${camOpen ? ' open' : ''}`} />
-                </button>
-                <span className="ico" style={{ background: '#3dd6f5' }}>
-                  <IconCamera width={11} height={11} />
-                </span>
-                <span className="label">Camera</span>
-              </div>
-            }
-            track={summaryKeys(cameraAnims)}
-          />
-          {camOpen &&
-            CAMERA_PROPS.map((p) => (
-              <TimelineRow
-                key={p.prop}
-                sub
-                name={<div className="tl-name sub">{p.label}</div>}
-                track={renderKeys(project.camera[p.prop] as Animatable<AnimValue>, { kind: 'camera', prop: p.prop })}
-              />
-            ))}
-
-          {segments.length > 0 && (
+        {/* Rows Scroll Area */}
+        <div
+          className="tl-scroll"
+          ref={rowsScrollRef}
+          onScroll={onRowsScroll}
+          onWheel={handleTimelineWheel}
+          style={{ flex: 1, overflowX: 'auto', overflowY: 'auto', position: 'relative' }}
+        >
+          <div style={{ width: NAME_W + contentW, minWidth: '100%', position: 'relative' }}>
+            {/* camera */}
             <TimelineRow
+              selected={false}
+              trackWidth={contentW}
+              onTrackPointerDown={handleTrackPointerDown}
               name={
-                <div className="tl-name">
-                  <span style={{ width: 20 }} />
-                  <span className="ico" style={{ background: '#a78bfa' }}>
-                    <IconFilm width={11} height={11} />
+                <div className="tl-name" onClick={() => useEditor.getState().setInspectorTab('camera')}>
+                  <button className="mini" onClick={(e) => (e.stopPropagation(), toggle('camera'))}>
+                    <IconCaret className={`caret${camOpen ? ' open' : ''}`} />
+                  </button>
+                  <span className="ico" style={{ background: '#3dd6f5' }}>
+                    <IconCamera width={11} height={11} />
                   </span>
-                  <span className="label">Camera đang quay</span>
+                  <span className="label">Camera</span>
                 </div>
               }
-              track={
-                <div className="tl-shot-strip">
-                  {segments.map((seg, i) => {
-                    const s = seg.id ? shotById.get(seg.id) : undefined
-                    return (
-                      <div
-                        key={i}
-                        className={`tl-shot-seg${s ? '' : ' dark'}`}
-                        style={{
-                          left: x(seg.t0),
-                          width: Math.max(2, x(seg.t1) - x(seg.t0)),
-                          ...(s ? { ['--c' as string]: s.color } : {})
-                        }}
-                        title={`${s ? s.name : 'Không cảnh nào'} · ${seg.t0.toFixed(2)}s → ${seg.t1.toFixed(2)}s`}
-                        onPointerDown={(e) => {
-                          e.stopPropagation()
-                          setTime(snapToFrame(seg.t0, comp.fps))
-                          if (s) selectShot(s.id)
-                        }}
-                      >
-                        {s ? s.name : '—'}
-                      </div>
-                    )
-                  })}
-                </div>
-              }
+              track={summaryKeys(cameraAnims)}
             />
-          )}
+            {camOpen &&
+              CAMERA_PROPS.map((p) => (
+                <TimelineRow
+                  key={p.prop}
+                  sub
+                  trackWidth={contentW}
+                  onTrackPointerDown={handleTrackPointerDown}
+                  name={<div className="tl-name sub">{p.label}</div>}
+                  track={renderKeys(project.camera[p.prop] as Animatable<AnimValue>, { kind: 'camera', prop: p.prop })}
+                />
+              ))}
 
-          {project.audio && <AudioRow x={x} trackW={trackW} />}
+            {segments.length > 0 && (
+              <TimelineRow
+                trackWidth={contentW}
+                onTrackPointerDown={handleTrackPointerDown}
+                name={
+                  <div className="tl-name">
+                    <span style={{ width: 20 }} />
+                    <span className="ico" style={{ background: '#a78bfa' }}>
+                      <IconFilm width={11} height={11} />
+                    </span>
+                    <span className="label">Camera đang quay</span>
+                  </div>
+                }
+                track={
+                  <div className="tl-shot-strip">
+                    {segments.map((seg, i) => {
+                      const s = seg.id ? shotById.get(seg.id) : undefined
+                      return (
+                        <div
+                          key={i}
+                          className={`tl-shot-seg${s ? '' : ' dark'}`}
+                          style={{
+                            left: x(seg.t0),
+                            width: Math.max(2, x(seg.t1) - x(seg.t0)),
+                            ...(s ? { ['--c' as string]: s.color } : {})
+                          }}
+                          title={`${s ? s.name : 'Không cảnh nào'} · ${seg.t0.toFixed(2)}s → ${seg.t1.toFixed(2)}s`}
+                          onPointerDown={(e) => {
+                            e.stopPropagation()
+                            setTime(snapToFrame(seg.t0, comp.fps))
+                            if (s) selectShot(s.id)
+                          }}
+                        >
+                          {s ? s.name : '—'}
+                        </div>
+                      )
+                    })}
+                  </div>
+                }
+              />
+            )}
 
-          {groups.map((g) => {
-            const shot = g.shot
-            const gid = shot?.id ?? '__global'
-            const isCollapsed = collapsed.has(gid)
-            const shotOpen = shot ? expanded.has('shotkeys:' + shot.id) : false
-            const shotAnims = shot ? SHOT_PROPS.map((p) => shot[p.prop] as Animatable<AnimValue>) : []
-            return (
-              <div key={gid} className="tl-group" style={shot ? ({ ['--c' as string]: shot.color } as React.CSSProperties) : undefined}>
-                {project.shots.length > 0 && (
-                  <TimelineRow
-                    className="group"
-                    selected={!!shot && shot.id === selectedShotId}
-                    onClick={() => selectShot(shot ? shot.id : null)}
-                    name={
-                      <div className="tl-name group" id={`tl-group-${gid}`}>
-                        <button className="mini" onClick={(e) => (e.stopPropagation(), toggleGroup(gid))}>
-                          <IconCaret className={`caret${isCollapsed ? '' : ' open'}`} />
-                        </button>
-                        <span className="ico" style={{ background: shot?.color ?? '#64748b' }}>
-                          <IconFilm width={11} height={11} />
-                        </span>
-                        <span className="label">{shot ? shot.name : 'Layer chung'}</span>
-                        {shot && (
-                          <button
-                            className={`mini${shotOpen ? ' active' : ''}`}
-                            title="Keyframe vị trí / xoay của cảnh"
-                            onClick={(e) => (e.stopPropagation(), toggle('shotkeys:' + shot.id))}
-                          >
-                            ◆
-                          </button>
-                        )}
-                        <span className="depth" title="Số layer">
-                          {g.layers.length}
-                        </span>
-                      </div>
-                    }
-                    track={shot ? summaryKeys(shotAnims) : null}
-                  />
-                )}
-                {shot &&
-                  shotOpen &&
-                  SHOT_PROPS.map((p) => (
+            {project.audio && <AudioRow x={x} trackW={contentW} />}
+
+            {groups.map((g) => {
+              const shot = g.shot
+              const gid = shot?.id ?? '__global'
+              const isCollapsed = collapsed.has(gid)
+              const shotOpen = shot ? expanded.has('shotkeys:' + shot.id) : false
+              const shotAnims = shot ? SHOT_PROPS.map((p) => shot[p.prop] as Animatable<AnimValue>) : []
+              return (
+                <div key={gid} className="tl-group" style={shot ? ({ ['--c' as string]: shot.color } as React.CSSProperties) : undefined}>
+                  {project.shots.length > 0 && (
                     <TimelineRow
-                      key={p.prop}
-                      sub
-                      name={<div className="tl-name sub">{p.label}</div>}
-                      track={renderKeys(shot[p.prop] as Animatable<AnimValue>, { kind: 'shot', shotId: shot.id, prop: p.prop })}
+                      className="group"
+                      trackWidth={contentW}
+                      onTrackPointerDown={handleTrackPointerDown}
+                      selected={!!shot && shot.id === selectedShotId}
+                      onClick={() => selectShot(shot ? shot.id : null)}
+                      name={
+                        <div className="tl-name group" id={`tl-group-${gid}`}>
+                          <button className="mini" onClick={(e) => (e.stopPropagation(), toggleGroup(gid))}>
+                            <IconCaret className={`caret${isCollapsed ? '' : ' open'}`} />
+                          </button>
+                          <span className="ico" style={{ background: shot?.color ?? '#64748b' }}>
+                            <IconFilm width={11} height={11} />
+                          </span>
+                          <span className="label">{shot ? shot.name : 'Layer chung'}</span>
+                          {shot && (
+                            <button
+                              className={`mini${shotOpen ? ' active' : ''}`}
+                              title="Keyframe vị trí / xoay của cảnh"
+                              onClick={(e) => (e.stopPropagation(), toggle('shotkeys:' + shot.id))}
+                            >
+                              ◆
+                            </button>
+                          )}
+                          <span className="depth" title="Số layer">
+                            {g.layers.length}
+                          </span>
+                        </div>
+                      }
+                      track={shot ? summaryKeys(shotAnims) : null}
                     />
-                  ))}
-                {!isCollapsed &&
-                  g.layers.map((layer) => (
-                    <TimelineLayerRow
-                      key={layer.id}
-                      layer={layer}
-                      isOpen={expanded.has(layer.id)}
-                      isSelected={layer.id === selectedLayerId}
-                      isRenaming={renaming === layer.id}
-                      time={time}
-                      x={x}
-                      onToggleOpen={() => toggle(layer.id)}
-                      onSelect={() => selectLayer(layer.id)}
-                      setRenaming={setRenaming}
-                      startBarDrag={startBarDrag}
-                      renderKeys={renderKeys}
-                      summaryKeys={summaryKeys}
-                    />
-                  ))}
-              </div>
-            )
-          })}
-          {project.layers.length === 0 && (
-            <div className="empty">Chưa có layer. Thêm ảnh, text, solid hoặc particles từ thanh công cụ.</div>
-          )}
-        </div>
+                  )}
+                  {shot &&
+                    shotOpen &&
+                    SHOT_PROPS.map((p) => (
+                      <TimelineRow
+                        key={p.prop}
+                        sub
+                        trackWidth={contentW}
+                        onTrackPointerDown={handleTrackPointerDown}
+                        name={<div className="tl-name sub">{p.label}</div>}
+                        track={renderKeys(shot[p.prop] as Animatable<AnimValue>, { kind: 'shot', shotId: shot.id, prop: p.prop })}
+                      />
+                    ))}
+                  {!isCollapsed &&
+                    g.layers.map((layer) => (
+                      <TimelineLayerRow
+                        key={layer.id}
+                        layer={layer}
+                        isOpen={expanded.has(layer.id)}
+                        isSelected={layer.id === selectedLayerId}
+                        isRenaming={renaming === layer.id}
+                        time={time}
+                        x={x}
+                        trackWidth={contentW}
+                        onTrackPointerDown={handleTrackPointerDown}
+                        onToggleOpen={() => toggle(layer.id)}
+                        onSelect={() => selectLayer(layer.id)}
+                        setRenaming={setRenaming}
+                        startBarDrag={startBarDrag}
+                        renderKeys={renderKeys}
+                        summaryKeys={summaryKeys}
+                      />
+                    ))}
+                </div>
+              )
+            })}
+            {project.layers.length === 0 && (
+              <div className="empty">Chưa có layer. Thêm ảnh, text, solid hoặc particles từ thanh công cụ.</div>
+            )}
 
-        {/* playhead */}
-        <div style={{ position: 'absolute', top: 0, bottom: 0, left: NAME_W, right: 0, pointerEvents: 'none' }}>
-          <div className="playhead" style={{ left: x(time) }} />
+            {/* Playhead vertical line passing through all tracks */}
+            <div style={{ position: 'absolute', top: 0, bottom: 0, left: NAME_W, width: contentW, pointerEvents: 'none' }}>
+              <div className="playhead" style={{ left: x(time) }} />
+            </div>
+          </div>
         </div>
       </div>
     </section>
   )
 }
+

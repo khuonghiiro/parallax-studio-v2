@@ -23,12 +23,14 @@ export interface TimelineLayerRowProps {
   isRenaming: boolean
   time: number
   x: (t: number) => number
+  trackWidth?: number
   onToggleOpen: () => void
   onSelect: () => void
   setRenaming: (id: string | null) => void
   startBarDrag: (e: React.PointerEvent, layer: Layer, mode: 'move' | 'in' | 'out') => void
   renderKeys: (a: Animatable<AnimValue>, ref: PropRef) => React.ReactNode
   summaryKeys: (anims: Animatable<AnimValue>[]) => React.ReactNode
+  onTrackPointerDown?: (e: React.PointerEvent) => void
 }
 
 export function TimelineLayerRow({
@@ -38,12 +40,14 @@ export function TimelineLayerRow({
   isRenaming,
   time,
   x,
+  trackWidth,
   onToggleOpen,
   onSelect,
   setRenaming,
   startBarDrag,
   renderKeys,
-  summaryKeys
+  summaryKeys,
+  onTrackPointerDown
 }: TimelineLayerRowProps) {
   const anims = LAYER_PROPS.map((p) => layer.transform[p.prop] as Animatable<AnimValue>)
   const color = TYPE_COLORS[layer.type]
@@ -53,6 +57,8 @@ export function TimelineLayerRow({
       <TimelineRow
         selected={isSelected}
         onClick={onSelect}
+        trackWidth={trackWidth}
+        onTrackPointerDown={onTrackPointerDown}
         name={
           <div className="tl-name">
             <button className="mini" onClick={(e) => (e.stopPropagation(), onToggleOpen())}>
@@ -124,12 +130,12 @@ export function TimelineLayerRow({
                 <IconTrash />
               </button>
             </span>
-            <span className="depth">
+            <span className="depth" title={`Độ sâu trục Z: ${Math.round(evaluate(layer.transform.position, time)[2])}px`}>
               {Math.round(evaluate(layer.transform.position, time)[2])}
             </span>
             <button
               className={`mini${layer.visible ? '' : ' off'}`}
-              title="Ẩn / hiện"
+              title={layer.visible ? 'Đang hiện (Click để ẩn)' : 'Đang ẩn (Click để hiện)'}
               onClick={(e) => {
                 e.stopPropagation()
                 useEditor.getState().update((d) => {
@@ -142,7 +148,7 @@ export function TimelineLayerRow({
             </button>
             <button
               className={`mini${layer.locked ? '' : ' off'}`}
-              title="Khoá"
+              title={layer.locked ? 'Đang khóa (Click để mở)' : 'Đang mở (Click để khóa)'}
               onClick={(e) => {
                 e.stopPropagation()
                 useEditor.getState().update((d) => {
@@ -158,18 +164,35 @@ export function TimelineLayerRow({
         track={
           <>
             <div
-              className="tl-bar"
+              className={`tl-bar${isSelected ? ' is-selected' : ''}`}
               style={{
                 left: x(layer.inPoint),
-                width: Math.max(4, x(layer.outPoint) - x(layer.inPoint)),
-                background: `linear-gradient(180deg, ${color}55, ${color}30)`,
-                border: `1px solid ${color}${isSelected ? 'ff' : '66'}`,
+                width: Math.max(16, x(layer.outPoint) - x(layer.inPoint)),
+                background: `linear-gradient(180deg, ${color}48, ${color}22)`,
+                borderColor: `${color}${isSelected ? 'ff' : '88'}`,
                 opacity: layer.visible ? 0.95 : 0.35
               }}
+              title={`${layer.name} · ${layer.inPoint.toFixed(2)}s → ${layer.outPoint.toFixed(2)}s (${(layer.outPoint - layer.inPoint).toFixed(2)}s)`}
               onPointerDown={(e) => startBarDrag(e, layer, 'move')}
             >
-              <div className="handle l" onPointerDown={(e) => startBarDrag(e, layer, 'in')} />
-              <div className="handle r" onPointerDown={(e) => startBarDrag(e, layer, 'out')} />
+              <div
+                className="handle l"
+                title={`Kéo đổi điểm bắt đầu [In] (Hiện tại: ${layer.inPoint.toFixed(2)}s)`}
+                onPointerDown={(e) => startBarDrag(e, layer, 'in')}
+              >
+                <span className="gripper" />
+              </div>
+              <span className="tl-bar-label">
+                <span className="bar-title">{layer.name}</span>
+                <span className="bar-span">{(layer.outPoint - layer.inPoint).toFixed(1)}s</span>
+              </span>
+              <div
+                className="handle r"
+                title={`Kéo đổi điểm kết thúc [Out] (Hiện tại: ${layer.outPoint.toFixed(2)}s)`}
+                onPointerDown={(e) => startBarDrag(e, layer, 'out')}
+              >
+                <span className="gripper" />
+              </div>
             </div>
             {summaryKeys(anims)}
           </>
@@ -181,6 +204,8 @@ export function TimelineLayerRow({
             key={p.prop}
             sub
             selected={isSelected}
+            trackWidth={trackWidth}
+            onTrackPointerDown={onTrackPointerDown}
             name={<div className="tl-name sub">{p.label}</div>}
             track={renderKeys(layer.transform[p.prop] as Animatable<AnimValue>, {
               kind: 'layer',
