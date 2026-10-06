@@ -59,6 +59,9 @@ function createWindow(): void {
 
   mainWindow.once('ready-to-show', () => mainWindow?.show())
   mainWindow.webContents.on('did-start-loading', () => mcp?.onWindowLoading())
+  mainWindow.on('closed', () => {
+    mainWindow = null
+  })
 
   if (process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])

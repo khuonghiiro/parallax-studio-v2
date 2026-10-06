@@ -199,7 +199,15 @@ export class McpBridge {
 
   private broadcast(): void {
     this.status.clients = this.sockets.size
-    this.getWindow()?.webContents.send('mcp:status', this.status)
+    const win = this.getWindow()
+    if (!win || win.isDestroyed()) return
+    try {
+      if (!win.webContents.isDestroyed()) {
+        win.webContents.send('mcp:status', this.status)
+      }
+    } catch {
+      /* ignore if window or webContents is being destroyed */
+    }
   }
 
   // ---------------------------------------------------------------- protocol

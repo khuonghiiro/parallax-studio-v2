@@ -38,6 +38,7 @@ export interface BuiltInAssetCategory {
   title: string
   icon: string
   description?: string
+  order?: number
 }
 
 export interface BuiltInAssetItem {

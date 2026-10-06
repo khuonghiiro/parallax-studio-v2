@@ -19,7 +19,8 @@ function matchAsset(item: BuiltInAssetItem, query: string): boolean {
   return (
     item.name.toLowerCase().includes(q) ||
     item.fileName.toLowerCase().includes(q) ||
-    item.folder.toLowerCase().includes(q)
+    item.folder.toLowerCase().includes(q) ||
+    item.relativePath.toLowerCase().includes(q)
   )
 }
 

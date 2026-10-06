@@ -7,6 +7,7 @@ import { AssetCatalogModal } from './AssetCatalogModal'
 import { BuiltInAssetBar } from './BuiltInAssetBar'
 import { BuiltInAssetGrid } from './BuiltInAssetGrid'
 import { ProjectAssetList } from './ProjectAssetList'
+import { sortAssetCategories } from './types'
 
 type AssetSubTab = 'builtin' | 'project'
 
@@ -35,9 +36,10 @@ export function AssetPanel() {
   }, [loadCatalog])
 
   const categories = useMemo<BuiltInAssetCategory[]>(() => {
-    return catalog?.categories ?? [
-      { id: 'all', folder: '', title: 'Tất cả tài nguyên', icon: 'all' }
+    const list = catalog?.categories ?? [
+      { id: 'all', folder: '', title: 'Tất cả tài nguyên', icon: 'all', order: 0 }
     ]
+    return sortAssetCategories(list)
   }, [catalog])
 
   const items = useMemo<BuiltInAssetItem[]>(() => {

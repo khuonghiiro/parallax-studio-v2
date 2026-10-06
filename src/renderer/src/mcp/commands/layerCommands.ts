@@ -139,6 +139,20 @@ export const layerCommands: Record<string, Handler> = {
     }
     if (!file.mime.startsWith('image/')) throw new ParamError(`Not an image: ${file.name}`)
     const asset = await assetStore.add(file.name, file.mime, file.data, 'image')
+    const origPath = typeof p.file_path === 'string' ? p.file_path : file.path
+    if (origPath) {
+      const norm = origPath.replace(/\\/g, '/')
+      const idx = norm.toLowerCase().lastIndexOf('/assets/')
+      if (idx >= 0) {
+        const rel = norm.slice(idx + '/assets/'.length)
+        asset.meta.assetPath = rel
+        asset.meta.path = `assets/${rel}`
+      } else if (norm.toLowerCase().startsWith('assets/')) {
+        const rel = norm.slice('assets/'.length)
+        asset.meta.assetPath = rel
+        asset.meta.path = `assets/${rel}`
+      }
+    }
     const comp = proj().comp
     const layer = factory.createImageLayer(asset.meta, comp, 0)
     const w = asset.meta.width ?? comp.width

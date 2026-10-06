@@ -1,327 +1,112 @@
 {
-  "name": "Parallax Journey",
+  "name": "Thung Lũng Huyền Ảo",
   "comp": {
     "width": 1920,
     "height": 1080,
     "fps": 30,
-    "duration": 26.2
+    "duration": 8.0,
+    "background": "#05060a"
   },
   "look": {
     "fogEnabled": false,
-    "vignette": 0,
-    "grain": 0,
     "contrast": 1.05,
-    "saturation": 1.08
+    "saturation": 1.08,
+    "vignette": 0.15
   },
   "camera": {
-    "shakeAmount": 3.0,
-    "shakeSpeed": 0.35,
+    "shakeAmount": 1.2,
+    "shakeSpeed": 0.25,
     "dofEnabled": false,
     "tour": [
-      { "shot": "Emerald Riverbank", "hold": 3.5, "type": "arc", "transition": 2.5 },
-      { "shot": "Island Pond", "hold": 3.0, "type": "arc", "transition": 2.5 },
-      { "shot": "Highland Lagoon", "hold": 3.0, "type": "fade", "transition": 1.2 },
-      { "shot": "Twilight Valley", "hold": 3.5, "type": "arc", "transition": 2.5 },
-      { "shot": "Celestial Portal (GIF)", "hold": 4.5, "type": "cut", "transition": 0 }
+      {
+        "shot": "Thung Lũng Huyền Ảo",
+        "hold": 8.0,
+        "type": "arc",
+        "transition": 2.0
+      }
     ]
   },
   "shots": [
     {
-      "name": "Emerald Riverbank",
-      "arrive": 0.6,
-      "title": {
-        "text": "EMERALD RIVERBANK",
-        "subtitle": "where the wild earth awakes",
-        "fontFamily": "Montserrat",
-        "fontSize": 88,
-        "fontWeight": 800,
-        "letterSpacing": 10,
-        "color": "#ffffff",
-        "subtitleColor": "#ffe57f"
-      },
+      "name": "Thung Lũng Huyền Ảo",
+      "arrive": 0.5,
       "layers": [
-        { "name": "Sunny Sky", "z": 3200, "generator": "sunny_sky" },
-        { "name": "Distant Mountains", "z": 2200, "generator": "distant_mountains" },
-        { "name": "Rolling Green Hills", "z": 1400, "generator": "rolling_green_hills" },
-        { "name": "River & Meadow Floor", "z": 800, "generator": "river_and_meadow_floor" },
         {
-          "name": "Mystic Energy Portal (GIF)",
-          "effect": "magic_portal",
-          "z": 500,
-          "position": [380, -40, 500],
-          "scale": [1.15, 1.15, 1],
-          "speed": 1.0,
-          "loopMode": "loop",
-          "motion": {
-            "type": "float",
-            "speed": 0.45,
-            "amplitude": [0, 16, 0]
-          }
+          "name": "Bầu trời hoàng hôn",
+          "type": "image",
+          "z": 3200,
+          "src": "assets/demo_transparent/layer1_sky.png"
         },
         {
-          "name": "Drifting River Mist",
-          "effect": "mist",
-          "z": 620,
-          "blendMode": "screen",
-          "opacity": 0.65,
-          "scale": [2.2, 1.35, 1],
-          "motion": {
-            "type": "sway",
-            "speed": 0.22,
-            "amplitude": [160, 14, 0.3]
-          }
-        },
-        {
-          "name": "Midground Trees",
-          "z": 400,
-          "generator": "midground_trees",
-          "motion": {
-            "type": "wind",
-            "speed": 0.4,
-            "amplitude": [6, 1.5, 0.6]
-          }
-        },
-        {
-          "name": "Foreground Framing",
-          "z": -240,
-          "generator": "foreground_riverbank_framing",
-          "motion": {
-            "type": "wind",
-            "speed": 0.55,
-            "amplitude": [10, 3, 1.2]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Island Pond",
-      "arrive": 5.8,
-      "title": {
-        "text": "ISLAND POND",
-        "subtitle": "sanctuary of ancient trees",
-        "fontFamily": "Montserrat",
-        "fontSize": 88,
-        "fontWeight": 800,
-        "letterSpacing": 10,
-        "color": "#ffffff",
-        "subtitleColor": "#bbf7d0"
-      },
-      "layers": [
-        { "name": "Pastel Sky", "z": 3200, "generator": "pastel_sky" },
-        { "name": "Purple Mountain Peaks", "z": 2200, "generator": "purple_mountain_peaks" },
-        { "name": "Rolling Hills & Hedges", "z": 1400, "generator": "rolling_hills_and_hedges" },
-        { "name": "Center Island Pond", "z": 800, "generator": "center_island_pond" },
-        {
-          "name": "Water Surface Mist",
-          "effect": "mist",
-          "z": 620,
-          "blendMode": "screen",
-          "opacity": 0.55,
-          "motion": {
-            "type": "drift",
-            "direction": "right",
-            "loopMode": "uv",
-            "speed": 36,
-            "amplitude": [1500, 8, 0]
-          }
-        },
-        {
-          "name": "Midground Trees",
-          "z": 400,
-          "generator": "island_pond_trees",
-          "motion": {
-            "type": "wind",
-            "speed": 0.38,
-            "amplitude": [5, 1.2, 0.5]
-          }
-        },
-        {
-          "name": "Foreground Broadleaf Framing",
-          "z": -240,
-          "generator": "foreground_broadleaf_framing",
-          "motion": {
-            "type": "wind",
-            "speed": 0.5,
-            "amplitude": [9, 2.5, 1.1]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Highland Lagoon",
-      "arrive": 11.0,
-      "title": {
-        "text": "HIGHLAND LAGOON",
-        "subtitle": "whispers of the stone ridges",
-        "fontFamily": "Montserrat",
-        "fontSize": 88,
-        "fontWeight": 800,
-        "letterSpacing": 10,
-        "color": "#ffffff",
-        "subtitleColor": "#c7d2fe"
-      },
-      "layers": [
-        { "name": "Sunny Sky", "z": 3200, "generator": "sunny_sky" },
-        { "name": "Distant Mountains", "z": 2200, "generator": "distant_mountains" },
-        {
-          "name": "Mountain Mist Ridge",
-          "effect": "mist",
+          "name": "Dãy núi xa",
+          "type": "image",
           "z": 1800,
-          "blendMode": "screen",
-          "opacity": 0.45,
-          "motion": {
-            "type": "drift",
-            "direction": "left",
-            "loopMode": "uv",
-            "speed": 28,
-            "amplitude": [1700, 10, 0]
-          }
+          "src": "assets/demo_transparent/layer2_distant_mountains.png"
         },
-        { "name": "Sloping Pasture & Pine", "z": 1400, "generator": "sloping_pasture_and_pine" },
-        { "name": "Lagoon & Shore", "z": 800, "generator": "lagoon_and_shore" },
         {
-          "name": "Shoreline Mist",
-          "effect": "mist",
+          "name": "Đảo đá bay kỳ ảo",
+          "type": "image",
+          "z": 950,
+          "position": [
+            -60,
+            20,
+            950
+          ],
+          "src": "assets/demo_transparent/layer3_floating_island.png"
+        },
+        {
+          "name": "PARALLAX 2.5D",
+          "type": "text",
+          "text": "PARALLAX 2.5D",
           "z": 600,
-          "blendMode": "screen",
-          "opacity": 0.5,
-          "motion": {
-            "type": "drift",
-            "direction": "right",
-            "loopMode": "uv",
-            "speed": 38,
-            "amplitude": [1500, 8, 0]
-          }
-        },
-        { "name": "Midground Boulder Clusters", "z": 400, "generator": "midground_boulder_clusters" },
-        {
-          "name": "Foreground Lagoon Framing",
-          "z": -240,
-          "generator": "foreground_lagoon_framing",
-          "motion": {
-            "type": "wind",
-            "speed": 0.58,
-            "amplitude": [11, 3.5, 1.3]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Twilight Valley",
-      "arrive": 15.6,
-      "title": {
-        "text": "TWILIGHT VALLEY",
-        "subtitle": "a golden sunset tale",
-        "fontFamily": "Montserrat",
-        "fontSize": 88,
-        "fontWeight": 800,
-        "letterSpacing": 10,
-        "color": "#fff8e1",
-        "subtitleColor": "#ffcc80"
-      },
-      "layers": [
-        { "name": "Sunset Sky", "z": 3200, "generator": "sunset_sky" },
-        { "name": "Twilight Mountains", "z": 2200, "generator": "twilight_mountains" },
-        { "name": "Rolling Green Hills", "z": 1400, "generator": "rolling_green_hills" },
-        { "name": "Twilight River Floor", "z": 800, "generator": "twilight_river_floor" },
-        {
-          "name": "Twilight Valley Mist",
-          "effect": "twilight_mist",
-          "z": 620,
-          "blendMode": "screen",
-          "opacity": 0.6,
-          "scale": [2.2, 1.35, 1],
-          "motion": {
-            "type": "sway",
-            "speed": 0.2,
-            "amplitude": [140, 12, 0.3]
-          }
+          "fontSize": 72,
+          "fontWeight": 800,
+          "letterSpacing": 4,
+          "color": "#ffe599",
+          "position": [
+            0,
+            160,
+            600
+          ],
+          "shadow": true
         },
         {
-          "name": "Twilight Trees",
-          "z": 400,
-          "generator": "twilight_trees",
-          "motion": {
-            "type": "wind",
-            "speed": 0.4,
-            "amplitude": [6, 1.8, 0.7]
-          }
-        },
-        {
-          "name": "Twilight Foreground Framing",
-          "z": -240,
-          "generator": "twilight_foreground_framing",
-          "motion": {
-            "type": "wind",
-            "speed": 0.52,
-            "amplitude": [10, 3, 1.2]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Celestial Portal (GIF)",
-      "arrive": 21.7,
-      "title": {
-        "text": "CELESTIAL PORTAL",
-        "subtitle": "Cảnh Trải Nghiệm Hoạt Họa GIF Động 2.5D",
-        "fontFamily": "Montserrat",
-        "fontSize": 88,
-        "fontWeight": 800,
-        "letterSpacing": 10,
-        "color": "#e0f7fa",
-        "subtitleColor": "#80deea"
-      },
-      "layers": [
-        { "name": "Cosmic Sunset Sky", "z": 3200, "generator": "sunset_sky" },
-        { "name": "Celestial Mountains", "z": 2200, "generator": "twilight_mountains" },
-        { "name": "Crystal Valley Floor", "z": 800, "generator": "twilight_river_floor" },
-        {
-          "name": "Celestial Magic Portal (GIF)",
-          "effect": "magic_portal",
+          "name": "Cổng di tích cổ",
+          "type": "image",
           "z": 450,
-          "position": [0, 10, 450],
-          "scale": [1.6, 1.6, 1],
-          "speed": 1.0,
-          "loopMode": "loop",
-          "motion": {
-            "type": "float",
-            "speed": 0.5,
-            "amplitude": [0, 20, 0]
+          "position": [
+            140,
+            -20,
+            450
+          ],
+          "src": "assets/demo_transparent/layer4_ancient_ruins.png"
+        },
+        {
+          "name": "Đom đóm ánh sáng",
+          "type": "particles",
+          "z": 300,
+          "particles": {
+            "count": 70,
+            "size": 4,
+            "color": "#ffe066",
+            "velocity": [
+              0,
+              -10,
+              0
+            ],
+            "sway": 25
           }
         },
         {
-          "name": "Drifting Stardust Mist",
-          "effect": "twilight_mist",
-          "z": 320,
-          "blendMode": "screen",
-          "opacity": 0.55,
-          "scale": [2.2, 1.35, 1],
-          "motion": {
-            "type": "sway",
-            "speed": 0.25,
-            "amplitude": [120, 14, 0.35]
-          }
-        },
-        {
-          "name": "Celestial Trees",
-          "z": 200,
-          "generator": "twilight_trees",
-          "motion": {
-            "type": "wind",
-            "speed": 0.4,
-            "amplitude": [6, 1.5, 0.6]
-          }
-        },
-        {
-          "name": "Celestial Foreground Framing",
-          "z": -240,
-          "generator": "twilight_foreground_framing",
-          "motion": {
-            "type": "wind",
-            "speed": 0.5,
-            "amplitude": [10, 3, 1.2]
-          }
+          "name": "Dây leo tiền cảnh",
+          "type": "image",
+          "z": -120,
+          "position": [
+            0,
+            0,
+            -120
+          ],
+          "src": "assets/demo_transparent/layer5_foreground_vines.png"
         }
       ]
     }

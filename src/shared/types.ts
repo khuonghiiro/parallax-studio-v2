@@ -226,6 +226,12 @@ export interface AssetMeta {
   isAnimated?: boolean
   /** Total number of frames in the animation */
   frameCount?: number
+  /** File path if asset is stored on disk or relative to assets/ */
+  path?: string
+  /** Normalized relative path within assets/ (e.g. "demo_transparent/layer1_sky.png") */
+  assetPath?: string
+  /** Base64 dataUrl if embedded */
+  dataUrl?: string
 }
 
 export interface Project {

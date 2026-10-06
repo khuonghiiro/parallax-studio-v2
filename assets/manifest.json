@@ -5,28 +5,87 @@
       "folder": "",
       "title": "Tất cả tài nguyên",
       "icon": "all",
-      "description": "Toàn bộ tài nguyên có sẵn trong thư mục assets"
+      "description": "Toàn bộ tài nguyên có sẵn trong thư mục assets",
+      "order": 0
+    },
+    {
+      "id": "demo_transparent",
+      "folder": "demo_transparent",
+      "title": "Cảnh mẫu trong suốt (2.5D)",
+      "icon": "image",
+      "description": "Bộ ảnh phân tầng nền trong suốt kiểm thử Parallax 2.5D",
+      "order": 1
     },
     {
       "id": "city",
       "folder": "city",
       "title": "Thành phố & Đô thị",
       "icon": "city",
-      "description": "Ảnh phong cảnh thành phố, đường phố mưa đêm, ban công và nhà chọc trời"
+      "description": "Ảnh phong cảnh thành phố, đường phố mưa đêm, ban công và nhà chọc trời",
+      "order": 2
     },
     {
       "id": "demos",
       "folder": "demos",
       "title": "Hiệu ứng & Hoạt ảnh (VFX)",
       "icon": "sparkles",
-      "description": "Hoạt ảnh GIF ngọn lửa trại, quả cầu hologram, cổng năng lượng và đom đóm"
+      "description": "Hoạt ảnh GIF ngọn lửa trại, quả cầu hologram, cổng năng lượng và đom đóm",
+      "order": 3
     },
     {
       "id": "audio",
       "folder": "audio",
       "title": "Âm thanh & Nhạc nền",
       "icon": "music",
-      "description": "Nhạc nền, tiếng chuông ambient và hiệu ứng âm thanh cho phân cảnh"
+      "description": "Nhạc nền, tiếng chuông ambient và hiệu ứng âm thanh cho phân cảnh",
+      "order": 4
     }
-  ]
+  ],
+  "assets": {
+    "demo_transparent/layer1_sky.png": {
+      "name": "Bầu trời hoàng hôn"
+    },
+    "demo_transparent/layer2_distant_mountains.png": {
+      "name": "Dãy núi xa xăm"
+    },
+    "demo_transparent/layer3_floating_island.png": {
+      "name": "Đảo đá bay kỳ ảo"
+    },
+    "demo_transparent/layer4_ancient_ruins.png": {
+      "name": "Cổng tàn tích cổ"
+    },
+    "demo_transparent/layer5_foreground_vines.png": {
+      "name": "Dây leo tiền cảnh"
+    },
+    "city/city_balcony.jpg": {
+      "name": "Ban công ngắm thành phố"
+    },
+    "city/city_rain_street.jpg": {
+      "name": "Phố đêm mưa rơi"
+    },
+    "city/city_sky.jpg": {
+      "name": "Bầu trời đô thị hoàng hôn"
+    },
+    "city/city_skyscrapers.jpg": {
+      "name": "Tòa nhà chọc trời"
+    },
+    "demos/campfire_flame.gif": {
+      "name": "Ngọn lửa trại bập bùng"
+    },
+    "demos/hologram_sphere.gif": {
+      "name": "Quả cầu năng lượng hologram"
+    },
+    "demos/magic_portal.gif": {
+      "name": "Cổng không gian huyền bí"
+    },
+    "demos/sparkle_fireflies.gif": {
+      "name": "Đom đóm lấp lánh"
+    },
+    "demos/sample_animation.gif": {
+      "name": "Hoạt ảnh mẫu"
+    },
+    "audio/ambient_chime.wav": {
+      "name": "Chuông gió ngân vang ambient"
+    }
+  }
 }

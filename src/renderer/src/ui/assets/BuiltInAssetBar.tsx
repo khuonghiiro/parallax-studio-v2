@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { BuiltInAssetCategory } from '@shared/ipc'
 import { IconCode, IconFolder } from '../icons'
 import { renderCategoryIcon } from './categoryIcons'
+import { sortAssetCategories } from './types'
 
 interface BuiltInAssetBarProps {
   categories: BuiltInAssetCategory[]
@@ -30,6 +31,10 @@ export function BuiltInAssetBar({
 }: BuiltInAssetBarProps) {
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null)
 
+  const sortedCategories = useMemo(() => {
+    return sortAssetCategories(categories)
+  }, [categories])
+
   const showCatTooltip = (e: React.MouseEvent<HTMLElement>, cat: BuiltInAssetCategory) => {
     const rect = e.currentTarget.getBoundingClientRect()
     setTooltip({
@@ -56,7 +61,7 @@ export function BuiltInAssetBar({
     <aside className="asset-vertical-strip" aria-label="Danh mục tài nguyên">
       {/* Scrollable Library Category Tabs */}
       <div className="asset-strip-scroll" onScroll={hideTooltip}>
-        {categories.map((cat) => {
+        {sortedCategories.map((cat) => {
           const isActive = selectedCategory === cat.id
 
           return (
@@ -71,7 +76,6 @@ export function BuiltInAssetBar({
                 className={`vertical-tab-btn${isActive ? ' active' : ''}`}
                 onClick={() => onSelectCategory(cat.id)}
                 aria-label={cat.title}
-                title={cat.title}
               >
                 {renderCategoryIcon(cat.icon || cat.id, 16, 16)}
               </button>
@@ -93,7 +97,6 @@ export function BuiltInAssetBar({
             type="button"
             className="vertical-tab-btn vertical-action-btn action-folder"
             onClick={onOpenFolder}
-            title="Mở thư mục assets (Hệ thống)"
             aria-label="Mở thư mục assets"
           >
             <IconFolder width={16} height={16} />
@@ -109,7 +112,6 @@ export function BuiltInAssetBar({
             type="button"
             className="vertical-tab-btn vertical-action-btn action-json"
             onClick={onOpenJsonModal}
-            title="Chỉnh sửa JSON mapping (Cấu hình hệ thống)"
             aria-label="Chỉnh sửa JSON mapping"
           >
             <IconCode width={16} height={16} />

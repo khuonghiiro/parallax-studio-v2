@@ -4,13 +4,14 @@ import { referenceDistance } from '../../animation/math'
 import { assetStore } from '../assets'
 import { createProject, createShot, migrateProject, shotSpacing } from '../factory'
 import { parseDataUrl } from './base64'
+import { loadAssetBytesFromDiskOrBuiltIn } from './assetLoader'
 import type { DeclarativeProjectSpec, DeclarativeShotSpec } from './schema'
 import { buildLayersForShot } from './layerBuilder'
 
 /**
  * Universal JSON Importer:
  * Can parse BOTH:
- * 1. Full Parallax Studio Project JSON (with embedded base64 dataUrl assets).
+ * 1. Full Parallax Studio Project JSON (with embedded base64 dataUrl or local asset paths).
  * 2. High-level Declarative Scene Specification JSON (human-readable, easy to edit).
  */
 export async function importProjectFromJson(jsonString: string): Promise<Project> {
@@ -35,6 +36,14 @@ export async function importProjectFromJson(jsonString: string): Promise<Project
         if (a.dataUrl) {
           const { mime, data } = parseDataUrl(a.dataUrl)
           await assetStore.add(a.name, mime, data, a.kind, a)
+        } else if (a.path || (a as any).assetPath) {
+          const p = ((a as any).assetPath || a.path || '').replace(/^assets\//, '')
+          const file = await loadAssetBytesFromDiskOrBuiltIn(p)
+          if (file) {
+            const asset = await assetStore.add(a.name, file.mime || a.mime, file.data, a.kind, a)
+            asset.meta.assetPath = p
+            asset.meta.path = `assets/${p}`
+          }
         }
       }
     }
@@ -68,6 +77,17 @@ export async function importShotFromJson(
           await assetStore.add(a.name, mime, data, a.kind, a)
           if (!targetProject.assets.some((ex) => ex.id === a.id)) {
             targetProject.assets.push(a)
+          }
+        } else if (a.path || (a as any).assetPath) {
+          const p = ((a as any).assetPath || a.path || '').replace(/^assets\//, '')
+          const file = await loadAssetBytesFromDiskOrBuiltIn(p)
+          if (file) {
+            const asset = await assetStore.add(a.name, file.mime || a.mime, file.data, a.kind, a)
+            asset.meta.assetPath = p
+            asset.meta.path = `assets/${p}`
+            if (!targetProject.assets.some((ex) => ex.id === asset.meta.id)) {
+              targetProject.assets.push(asset.meta)
+            }
           }
         }
       }
@@ -118,13 +138,22 @@ export async function buildProjectFromDeclarativeSpec(spec: DeclarativeProjectSp
     if (spec.camera.dofEnabled !== undefined) project.camera.dofEnabled = spec.camera.dofEnabled
   }
 
-  // Pre-load any explicitly provided dataUrl assets
+  // Pre-load any explicitly provided dataUrl or path assets
   if (Array.isArray(spec.assets)) {
     for (const a of spec.assets) {
       if (a.dataUrl) {
         const { mime, data } = parseDataUrl(a.dataUrl)
         await assetStore.add(a.name, mime, data, a.kind, a)
         project.assets.push(a)
+      } else if (a.path || (a as any).assetPath) {
+        const p = ((a as any).assetPath || a.path || '').replace(/^assets\//, '')
+        const file = await loadAssetBytesFromDiskOrBuiltIn(p)
+        if (file) {
+          const asset = await assetStore.add(a.name, file.mime || a.mime, file.data, a.kind, a)
+          asset.meta.assetPath = p
+          asset.meta.path = `assets/${p}`
+          project.assets.push(asset.meta)
+        }
       }
     }
   }

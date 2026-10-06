@@ -4,53 +4,45 @@ import { exportProjectToJson, importProjectFromJson } from './jsonFormat'
 import demoJson from './demoProject.json'
 
 describe('JSON Project Format & Declarative Scene Spec', () => {
-  it('loads demoProject.json cleanly into a 5-shot project including animated GIF scene', async () => {
+  it('loads demoProject.json cleanly into a transparent 2.5D demo scene', async () => {
     const project = await buildDemoProject()
-    expect(project.shots).toHaveLength(5)
-    expect(project.shots.map((s) => s.name)).toEqual([
-      'Emerald Riverbank',
-      'Island Pond',
-      'Highland Lagoon',
-      'Twilight Valley',
-      'Celestial Portal (GIF)'
-    ])
+    expect(project.shots).toHaveLength(1)
+    expect(project.shots[0].name).toBe('Thung Lũng Huyền Ảo')
+
     const s0 = project.shots[0]
     const s0Layers = project.layers.filter((l) => l.shotId === s0.id)
+    expect(s0Layers).toHaveLength(7)
+
+    const sky = s0Layers.find((l) => l.name === 'Bầu trời hoàng hôn')
+    expect(sky).toBeDefined()
+    expect(sky?.type).toBe('image')
+
+    const mountains = s0Layers.find((l) => l.name === 'Dãy núi xa')
+    expect(mountains).toBeDefined()
+    expect(mountains?.type).toBe('image')
+
+    const text3D = s0Layers.find((l) => l.name === 'PARALLAX 2.5D')
+    expect(text3D).toBeDefined()
+    expect(text3D?.type).toBe('text')
+
+    const particles = s0Layers.find((l) => l.name === 'Đom đóm ánh sáng')
+    expect(particles).toBeDefined()
+    expect(particles?.type).toBe('particles')
+
     const { evaluateScene } = await import('../engine/evaluateScene')
     const ev = evaluateScene(project, 0)
-    console.log('Camera pos:', ev.camera.position, 'target:', ev.camera.target, 'fov:', ev.camera.fov)
-    const THREE = await import('three')
-    const shot0Layers = ev.layers.filter((l) => l.shot?.shot.id === s0.id)
-    const cam = new THREE.PerspectiveCamera(40, 1920 / 1080, 1, 400000)
-    cam.position.set(ev.camera.position[0], ev.camera.position[1], -ev.camera.position[2])
-    cam.lookAt(ev.camera.target[0], ev.camera.target[1], -ev.camera.target[2])
-    cam.updateMatrixWorld()
-    const frustum = new THREE.Frustum()
-    frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse))
-
-    for (const l of shot0Layers) {
-      const inFrustum = frustum.intersectsBox(l.bounds)
-      console.log(l.layer.name, {
-        inFrustum,
-        type: l.layer.type,
-        active: l.active,
-        opacity: l.opacity,
-        pos: l.worldPosition,
-        scale: l.scale,
-        size: l.size,
-        min: [Math.round(l.bounds.min.x), Math.round(l.bounds.min.y), Math.round(l.bounds.min.z)],
-        max: [Math.round(l.bounds.max.x), Math.round(l.bounds.max.y), Math.round(l.bounds.max.z)]
-      })
-    }
-    expect(project.layers.length).toBeGreaterThan(20)
-    expect(project.comp.duration).toBeGreaterThan(15)
+    expect(ev.camera.position).toBeDefined()
+    expect(project.comp.duration).toBe(8)
   })
 
   it('exports and re-imports project via JSON with 100% roundtrip fidelity', async () => {
     const original = await buildDemoProject()
     const jsonStr = await exportProjectToJson(original, false)
     expect(typeof jsonStr).toBe('string')
-    expect(jsonStr).toContain('Emerald Riverbank')
+    expect(jsonStr).toContain('Thung Lũng Huyền Ảo')
+    // Verify assets from assets directory use lightweight paths and avoid heavy base64:
+    expect(jsonStr).toContain('assets/demo_transparent')
+    expect(jsonStr).not.toContain('data:image/png;base64')
 
     const imported = await importProjectFromJson(jsonStr)
     expect(imported.shots).toHaveLength(original.shots.length)
@@ -58,36 +50,29 @@ describe('JSON Project Format & Declarative Scene Spec', () => {
     expect(imported.comp.duration).toBeCloseTo(original.comp.duration, 2)
   })
 
-  it('allows editing a scene title and duration directly in declarative JSON', async () => {
+  it('allows editing a scene and duration directly in declarative JSON', async () => {
     const modifiedSpec = JSON.parse(JSON.stringify(demoJson))
     modifiedSpec.name = 'Custom 2.5D Movie'
-    modifiedSpec.shots[0].title.text = 'MY CUSTOM SCENE'
-    modifiedSpec.shots[0].title.color = '#ff9800'
+    modifiedSpec.shots[0].name = 'MY CUSTOM SCENE'
 
     const project = await importProjectFromJson(JSON.stringify(modifiedSpec))
     expect(project.comp.name).toBe('Custom 2.5D Movie')
-
-    const titleLayer = project.layers.find((l) => l.name === 'Emerald Riverbank · Title')
-    expect(titleLayer).toBeDefined()
-    if (titleLayer && titleLayer.type === 'text') {
-      expect(titleLayer.props.text).toBe('MY CUSTOM SCENE')
-      expect(titleLayer.props.color).toBe('#ff9800')
-    }
+    expect(project.shots[0].name).toBe('MY CUSTOM SCENE')
   })
 
-  it('loads animated drifting mist and wind sway layers from declarative JSON', async () => {
+  it('loads transparent image layers and particle layers from declarative JSON', async () => {
     const project = await buildDemoProject()
-    const mistLayer = project.layers.find((l) => l.name === 'Drifting River Mist')
-    expect(mistLayer).toBeDefined()
-    expect(mistLayer?.type).toBe('image')
-    expect(mistLayer?.blendMode).toBe('screen')
-    expect(mistLayer?.motion?.type).toBe('sway')
-    expect(mistLayer?.motion?.speed).toBe(0.22)
+    const islandLayer = project.layers.find((l) => l.name === 'Đảo đá bay kỳ ảo')
+    expect(islandLayer).toBeDefined()
+    expect(islandLayer?.type).toBe('image')
 
-    const framingLayer = project.layers.find((l) => l.name === 'Foreground Framing')
-    expect(framingLayer).toBeDefined()
-    expect(framingLayer?.motion?.type).toBe('wind')
-    expect(framingLayer?.motion?.speed).toBe(0.55)
+    const vinesLayer = project.layers.find((l) => l.name === 'Dây leo tiền cảnh')
+    expect(vinesLayer).toBeDefined()
+    expect(vinesLayer?.type).toBe('image')
+
+    const particleLayer = project.layers.find((l) => l.name === 'Đom đóm ánh sáng')
+    expect(particleLayer).toBeDefined()
+    expect(particleLayer?.type).toBe('particles')
   })
 
   it('supports AE 2.5D features: anchor point, autoOrient, parentName, fadeIn/Out, and wiggle motion', async () => {

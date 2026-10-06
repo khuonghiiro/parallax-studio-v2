@@ -141,8 +141,8 @@ describe('buildDemoProject', () => {
   it('builds a valid demo project directly from demoProject.json', async () => {
     const { buildDemoProject } = await import('./demo')
     const proj = await buildDemoProject()
-    expect(proj.shots.length).toBe(5)
-    expect(proj.layers.length).toBeGreaterThan(15)
+    expect(proj.shots.length).toBe(1)
+    expect(proj.layers.length).toBe(7)
     expect(proj.camera.position.keyframes.length).toBeGreaterThan(0)
   })
 })

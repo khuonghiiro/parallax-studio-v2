@@ -27,34 +27,55 @@ const MIME_MAP: Record<string, string> = {
   flac: 'audio/flac'
 }
 
+export function sortCategories(categories: BuiltInAssetCategory[]): BuiltInAssetCategory[] {
+  return [...categories].sort((a, b) => {
+    const orderA = typeof a.order === 'number' ? a.order : 9999
+    const orderB = typeof b.order === 'number' ? b.order : 9999
+    if (orderA !== orderB) return orderA - orderB
+    return (a.title || a.id).localeCompare(b.title || b.id, 'vi')
+  })
+}
+
 const DEFAULT_CATEGORIES: BuiltInAssetCategory[] = [
   {
     id: 'all',
     folder: '',
     title: 'Tất cả tài nguyên',
     icon: 'all',
-    description: 'Toàn bộ tài nguyên có sẵn trong thư mục assets'
+    description: 'Toàn bộ tài nguyên có sẵn trong thư mục assets',
+    order: 0
+  },
+  {
+    id: 'demo_transparent',
+    folder: 'demo_transparent',
+    title: 'Cảnh mẫu trong suốt (2.5D)',
+    icon: 'image',
+    description: 'Bộ ảnh phân tầng nền trong suốt kiểm thử Parallax 2.5D',
+    order: 1
   },
   {
     id: 'city',
     folder: 'city',
     title: 'Thành phố & Đô thị',
     icon: 'city',
-    description: 'Ảnh phong cảnh thành phố, đường phố mưa đêm, ban công và nhà chọc trời'
+    description: 'Ảnh phong cảnh thành phố, đường phố mưa đêm, ban công và nhà chọc trời',
+    order: 2
   },
   {
     id: 'demos',
     folder: 'demos',
     title: 'Hiệu ứng & Hoạt ảnh (VFX)',
     icon: 'sparkles',
-    description: 'Hoạt ảnh GIF ngọn lửa trại, quả cầu hologram, cổng năng lượng và đom đóm'
+    description: 'Hoạt ảnh GIF ngọn lửa trại, quả cầu hologram, cổng năng lượng và đom đóm',
+    order: 3
   },
   {
     id: 'audio',
     folder: 'audio',
     title: 'Âm thanh & Nhạc nền',
     icon: 'music',
-    description: 'Nhạc nền, tiếng chuông ambient và hiệu ứng âm thanh cho phân cảnh'
+    description: 'Nhạc nền, tiếng chuông ambient và hiệu ứng âm thanh cho phân cảnh',
+    order: 4
   }
 ]
 
@@ -68,7 +89,14 @@ export function getAssetsRoot(): string {
   return devPath
 }
 
-async function readManifestJson(root: string): Promise<{ categories: BuiltInAssetCategory[]; rawJson: string; manifestPath: string }> {
+interface ManifestConfig {
+  categories: BuiltInAssetCategory[]
+  assetsConfig: Record<string, string | { name?: string; description?: string }>
+  rawJson: string
+  manifestPath: string
+}
+
+async function readManifestJson(root: string): Promise<ManifestConfig> {
   const manifestPath = join(root, 'manifest.json')
   if (!existsSync(manifestPath)) {
     const raw = JSON.stringify({ categories: DEFAULT_CATEGORIES }, null, 2)
@@ -77,15 +105,37 @@ async function readManifestJson(root: string): Promise<{ categories: BuiltInAsse
     } catch {
       /* ignore write failure */
     }
-    return { categories: DEFAULT_CATEGORIES, rawJson: raw, manifestPath }
+    return { categories: DEFAULT_CATEGORIES, assetsConfig: {}, rawJson: raw, manifestPath }
   }
 
   try {
     const rawJson = await readFile(manifestPath, 'utf-8')
     const parsed = JSON.parse(rawJson)
     const list: BuiltInAssetCategory[] = Array.isArray(parsed?.categories) ? parsed.categories : []
+    const normalizedList = list.map((c) => ({
+      ...c,
+      order: typeof c.order === 'number' ? c.order : typeof (c as { index?: number }).index === 'number' ? (c as { index?: number }).index : undefined
+    }))
+    const categories = sortCategories(normalizedList.length > 0 ? normalizedList : DEFAULT_CATEGORIES)
+    const assetsConfig: Record<string, string | { name?: string; description?: string }> = {}
+
+    // Support "assets": { "rel/path.png": "Tên" } or { "rel/path.png": { "name": "Tên" } }
+    if (parsed?.assets && typeof parsed.assets === 'object' && !Array.isArray(parsed.assets)) {
+      Object.assign(assetsConfig, parsed.assets)
+    }
+    // Also support "items": [ { "path": "...", "name": "..." } ]
+    if (Array.isArray(parsed?.items)) {
+      for (const it of parsed.items) {
+        if (it && typeof it === 'object') {
+          const key = it.path || it.relativePath || it.fileName
+          if (key) assetsConfig[key] = it
+        }
+      }
+    }
+
     return {
-      categories: list.length > 0 ? list : DEFAULT_CATEGORIES,
+      categories,
+      assetsConfig,
       rawJson,
       manifestPath
     }
@@ -93,6 +143,7 @@ async function readManifestJson(root: string): Promise<{ categories: BuiltInAsse
     console.warn('[BuiltInAssets] Failed to parse manifest.json, using fallback:', err)
     return {
       categories: DEFAULT_CATEGORIES,
+      assetsConfig: {},
       rawJson: JSON.stringify({ categories: DEFAULT_CATEGORIES }, null, 2),
       manifestPath
     }
@@ -116,7 +167,11 @@ async function collectFilesRecursively(dir: string, baseDir: string): Promise<st
   return results
 }
 
-async function buildAssetItem(fullPath: string, rootDir: string): Promise<BuiltInAssetItem | null> {
+async function buildAssetItem(
+  fullPath: string,
+  rootDir: string,
+  assetsConfig: Record<string, string | { name?: string; description?: string }> = {}
+): Promise<BuiltInAssetItem | null> {
   const ext = extname(fullPath).slice(1).toLowerCase()
   const isImage = IMAGE_EXTS.has(ext)
   const isAudio = AUDIO_EXTS.has(ext)
@@ -128,6 +183,17 @@ async function buildAssetItem(fullPath: string, rootDir: string): Promise<BuiltI
   const mime = MIME_MAP[ext] || (isImage ? 'image/png' : 'audio/mpeg')
   const fileName = basename(fullPath)
   const cleanName = fileName.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ')
+
+  // Kiểm tra tên tùy chỉnh trong manifest.json (hỗ trợ relative path, filename hoặc assets/path)
+  const cfg = assetsConfig[rel] ?? assetsConfig[fileName] ?? assetsConfig[`assets/${rel}`]
+  let customName: string | undefined
+  if (typeof cfg === 'string' && cfg.trim()) {
+    customName = cfg.trim()
+  } else if (cfg && typeof cfg === 'object' && typeof cfg.name === 'string' && cfg.name.trim()) {
+    customName = cfg.name.trim()
+  }
+
+  const displayName = customName || cleanName
 
   let previewUrl: string | undefined
   if (isImage && fileStat.size <= 4 * 1024 * 1024) {
@@ -141,7 +207,7 @@ async function buildAssetItem(fullPath: string, rootDir: string): Promise<BuiltI
 
   return {
     id: `builtin:${rel}`,
-    name: cleanName,
+    name: displayName,
     fileName,
     relativePath: rel,
     folder,
@@ -163,7 +229,7 @@ export async function scanBuiltInCatalog(forceRefresh = false): Promise<BuiltInC
   }
 
   const root = getAssetsRoot()
-  const { categories, rawJson, manifestPath } = await readManifestJson(root)
+  const { categories, assetsConfig, rawJson, manifestPath } = await readManifestJson(root)
   const allFiles = await collectFilesRecursively(root, root)
 
   const eligibleFiles = allFiles.filter((filePath) => {
@@ -171,7 +237,7 @@ export async function scanBuiltInCatalog(forceRefresh = false): Promise<BuiltInC
     return name !== 'manifest.json' && name !== 'readme.md'
   })
 
-  const itemResults = await Promise.all(eligibleFiles.map((filePath) => buildAssetItem(filePath, root)))
+  const itemResults = await Promise.all(eligibleFiles.map((filePath) => buildAssetItem(filePath, root, assetsConfig)))
   const items: BuiltInAssetItem[] = itemResults.filter((it): it is BuiltInAssetItem => it !== null)
 
   cachedCatalog = { categories, items, manifestPath, rawJson }

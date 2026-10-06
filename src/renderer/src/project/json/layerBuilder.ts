@@ -12,6 +12,7 @@ import {
 import { PLATE_GENERATORS } from '../plateGenerators'
 import { EFFECT_ASSETS } from '../effectAssets'
 import { parseDataUrl } from './base64'
+import { loadAssetBytesFromDiskOrBuiltIn } from './assetLoader'
 import type { DeclarativeLayerSpec, DeclarativeShotSpec } from './schema'
 
 export async function buildLayersForShot(
@@ -169,7 +170,7 @@ export async function buildSingleLayer(
     return layer
   }
 
-  // 2. Image layer from src (dataUrl or existing asset)
+  // 2. Image layer from src (dataUrl or local path or existing asset)
   if (lSpec.type === 'image' || lSpec.src) {
     let assetMeta: AssetMeta | undefined
     if (lSpec.src?.startsWith('data:')) {
@@ -179,6 +180,19 @@ export async function buildSingleLayer(
       project.assets.push(assetMeta)
     } else if (lSpec.assetName) {
       assetMeta = project.assets.find((a) => a.name === lSpec.assetName)
+    } else if (lSpec.src || lSpec.path) {
+      const p = (lSpec.src || lSpec.path || '').replace(/^assets\//, '')
+      assetMeta = project.assets.find((a) => a.name === lSpec.name || a.assetPath === p || a.path === `assets/${p}`)
+      if (!assetMeta) {
+        const file = await loadAssetBytesFromDiskOrBuiltIn(p)
+        if (file) {
+          const asset = await assetStore.add(lSpec.name || file.name, file.mime, file.data, 'image')
+          asset.meta.assetPath = p
+          asset.meta.path = `assets/${p}`
+          assetMeta = asset.meta
+          project.assets.push(assetMeta)
+        }
+      }
     }
 
     if (!assetMeta) {

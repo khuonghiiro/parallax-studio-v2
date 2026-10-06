@@ -160,6 +160,20 @@ async function registerImages(files: { name: string; mime: string; data: Uint8Ar
   for (const f of files) {
     try {
       const asset = await assetStore.add(f.name, f.mime, f.data, 'image')
+      const p = (f as { path?: string }).path
+      if (typeof p === 'string') {
+        const norm = p.replace(/\\/g, '/')
+        const idx = norm.toLowerCase().lastIndexOf('/assets/')
+        if (idx >= 0) {
+          const rel = norm.slice(idx + '/assets/'.length)
+          asset.meta.assetPath = rel
+          asset.meta.path = `assets/${rel}`
+        } else if (norm.toLowerCase().startsWith('assets/')) {
+          const rel = norm.slice('assets/'.length)
+          asset.meta.assetPath = rel
+          asset.meta.path = `assets/${rel}`
+        }
+      }
       editor().update((d) => {
         // If importing into a completely clean project, adapt comp dimensions to match the source image
         if (d.layers.length === 0 && d.assets.length === 0 && asset.meta.width && asset.meta.height) {
@@ -242,13 +256,24 @@ export async function importBuiltInAsset(
     toast(`Không tải được tệp: ${item.name}`)
     return null
   }
+  const displayName = item.name || file.name
   if (item.kind === 'audio') {
-    await setAudioFromBytes(file.name, file.mime, file.data)
+    await setAudioFromBytes(displayName, file.mime, file.data)
+    const audioTrack = editor().project.audio
+    if (audioTrack) {
+      const audioAsset = editor().project.assets.find((a) => a.id === audioTrack.assetId)
+      if (audioAsset) {
+        audioAsset.assetPath = item.relativePath
+        audioAsset.path = `assets/${item.relativePath}`
+      }
+    }
     return null
   }
   const shotId = activeShotId()
   try {
-    const asset = await assetStore.add(file.name, file.mime, file.data, 'image')
+    const asset = await assetStore.add(displayName, file.mime, file.data, 'image')
+    asset.meta.assetPath = item.relativePath
+    asset.meta.path = `assets/${item.relativePath}`
     let layerId: string | null = null
     editor().update((d) => {
       if (d.layers.length === 0 && d.assets.length === 0 && asset.meta.width && asset.meta.height) {
