@@ -12,6 +12,7 @@ out/
 dist/
 release/
 build/
+artifacts/
 *.tsbuildinfo
 
 # Vite & Vitest caches

@@ -353,14 +353,19 @@ async function cmdStatus() {
   try {
     const res = await sendCommand('get_project_info')
     const mem = await sendCommand('get_memory_stats').catch(() => null)
+    const comp = res.composition || res.project?.comp || {}
+    const shots = res.shots || res.project?.shots || []
+    const layers = res.layers || res.project?.layers || []
+    const camPos = res.camera?.position || res.evaluated?.camera?.position || []
+
     console.log(`\n✓ [PXS CLI] Kết nối thành công tới Parallax Studio V2!`)
     console.log(`──────────────────────────────────────────────────────`)
-    console.log(`Dự án:        ${res.project?.comp?.name || 'Untitled'}`)
-    console.log(`Kích thước:   ${res.project?.comp?.width}x${res.project?.comp?.height} @ ${res.project?.comp?.fps} fps`)
-    console.log(`Thời lượng:   ${res.project?.comp?.duration} giây`)
-    console.log(`Phân cảnh:    ${res.project?.shots?.length || 0} shots`)
-    console.log(`Số Layer:     ${res.project?.layers?.length || 0} layers`)
-    console.log(`Camera Pos:   [${res.evaluated?.camera?.position?.map((v) => Math.round(v)).join(', ')}]`)
+    console.log(`Dự án:        ${res.name || comp.name || 'Untitled'}`)
+    console.log(`Kích thước:   ${comp.width || 1920}x${comp.height || 1080} @ ${comp.fps || 30} fps`)
+    console.log(`Thời lượng:   ${comp.duration || 0} giây`)
+    console.log(`Phân cảnh:    ${shots.length} shots`)
+    console.log(`Số Layer:     ${layers.length} layers`)
+    console.log(`Camera Pos:   [${camPos.map((v) => Math.round(v)).join(', ')}]`)
     if (mem?.gpu) {
       console.log(`VRAM GPU:     ${mem.gpu.texturesMB?.toFixed(0) || 0} / ${mem.gpu.budgetMB || 512} MB (${mem.gpu.loadedTextures || 0} textures)`)
     }
