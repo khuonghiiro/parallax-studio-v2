@@ -76,3 +76,34 @@ export function computeRotatedTarget(
     Math.round(camPos[2] + Math.cos(angle) * dist)
   ]
 }
+
+/**
+ * Computes new layer position in top-down space (X and Z).
+ * Preserves height Y.
+ * If shiftKey is true, locks movement to either purely horizontal (X) or purely depth (Z).
+ * If snapGrid > 0, rounds X and Z to multiples of snapGrid.
+ */
+export function computeTranslatedLayer(
+  initPos: Vec3,
+  deltaX: number,
+  deltaZ: number,
+  shiftKey = false,
+  snapGrid = 0
+): Vec3 {
+  let dx = deltaX
+  let dz = deltaZ
+  if (shiftKey) {
+    if (Math.abs(dx) > Math.abs(dz)) {
+      dz = 0
+    } else {
+      dx = 0
+    }
+  }
+  let targetX = initPos[0] + dx
+  let targetZ = initPos[2] + dz
+  if (snapGrid > 0) {
+    targetX = Math.round(targetX / snapGrid) * snapGrid
+    targetZ = Math.round(targetZ / snapGrid) * snapGrid
+  }
+  return [Math.round(targetX), initPos[1], Math.round(targetZ)]
+}

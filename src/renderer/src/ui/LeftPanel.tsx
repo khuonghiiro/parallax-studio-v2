@@ -1,12 +1,13 @@
 import { useEffect, useReducer, useState } from 'react'
 import { assetStore } from '../project/assets'
 import { useEditor } from '../store/editor'
+import { useView } from '../store/view'
 import { AssetPanel } from './assets/AssetPanel'
-import { IconFilm, IconImage } from './icons'
+import { IconFilm, IconFolder, IconRoute } from './icons'
 import { ShotsPanel } from './ShotsPanel'
 import { TopView, useFocusShotId } from './TopView'
 
-type LeftTab = 'shots' | 'assets'
+type LeftTab = 'shots' | 'assets' | 'topview'
 
 export function LeftPanel() {
   const assets = useEditor((s) => s.project.assets)
@@ -19,40 +20,80 @@ export function LeftPanel() {
   useEffect(() => assetStore.subscribe(force), [])
   useEffect(() => localStorage.setItem('pxs.leftTab', tab), [tab])
 
+  const handleExpandToViewer = () => {
+    useView.getState().set({ primary: 'topview' })
+  }
+
   return (
     <aside className="left">
-      <section className="panel" style={{ flex: '1 1 55%' }}>
+      <section className="panel" style={{ flex: '1 1 100%', height: '100%' }}>
         <div className="tabs">
-          <button id="tab-shots" className={`tab${tab === 'shots' ? ' active' : ''}`} onClick={() => setTab('shots')}>
+          <button
+            id="tab-shots"
+            type="button"
+            className={`tab${tab === 'shots' ? ' active' : ''}`}
+            onClick={() => setTab('shots')}
+            title="Quản lý danh sách các cảnh (Shots)"
+          >
             <IconFilm width={12} height={12} /> Cảnh {shots.length > 0 && <span className="tab-count">{shots.length}</span>}
           </button>
-          <button id="tab-assets" className={`tab${tab === 'assets' ? ' active' : ''}`} onClick={() => setTab('assets')}>
-            <IconImage width={12} height={12} /> Assets {assets.length > 0 && <span className="tab-count">{assets.length}</span>}
+          <button
+            id="tab-assets"
+            type="button"
+            className={`tab${tab === 'assets' ? ' active' : ''}`}
+            onClick={() => setTab('assets')}
+            title="Thư viện tài nguyên ảnh & âm thanh"
+          >
+            <IconFolder width={12} height={12} /> Tài nguyên {assets.length > 0 && <span className="tab-count">{assets.length}</span>}
+          </button>
+          <button
+            id="tab-topview"
+            type="button"
+            className={`tab${tab === 'topview' ? ' active' : ''}`}
+            onClick={() => setTab('topview')}
+            title="Sơ đồ độ sâu không gian 2.5D (Top-down view)"
+          >
+            <IconRoute width={12} height={12} /> Sơ đồ 3D
           </button>
         </div>
-        {tab === 'shots' ? (
+
+        {tab === 'shots' && (
           <div className="panel-body">
             <ShotsPanel />
           </div>
-        ) : (
+        )}
+
+        {tab === 'assets' && (
           <AssetPanel />
         )}
-      </section>
-      <section className="panel" style={{ flex: '1 1 45%' }}>
-        <div className="panel-header">
-          Sơ đồ độ sâu · nhìn từ trên
-          {focusShot && (
-            <>
-              <span className="spacer" />
-              <span className="shot-chip" style={{ ['--c' as string]: focusShot.color }}>
-                {focusShot.name}
+
+        {tab === 'topview' && (
+          <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 0%', minHeight: 0, height: '100%', position: 'relative', overflow: 'hidden' }}>
+            <div className="topview-toolbar">
+              <span style={{ fontWeight: 600, color: 'var(--text)', fontSize: '11px' }}>
+                Sơ đồ độ sâu · Top View
               </span>
-            </>
-          )}
-        </div>
-        <div className="panel-body" style={{ position: 'relative', overflow: 'hidden' }}>
-          <TopView shotId={focusShotId} />
-        </div>
+              {focusShot && (
+                <span className="shot-chip" style={{ ['--c' as string]: focusShot.color, marginLeft: 6 }}>
+                  {focusShot.name}
+                </span>
+              )}
+              <span className="spacer" />
+              <button
+                type="button"
+                className="btn sm"
+                onClick={handleExpandToViewer}
+                title="Mở rộng sơ đồ độ sâu ra khung hình Viewport chính giữa màn hình"
+                style={{ fontSize: '10.5px' }}
+              >
+                Mở rộng ra Viewport ↗
+              </button>
+            </div>
+            <div style={{ flex: '1 1 0%', position: 'relative', minHeight: 0, height: '100%', overflow: 'hidden' }}>
+              <TopView shotId={focusShotId} />
+            </div>
+          </div>
+        )}
       </section>
     </aside>
   )

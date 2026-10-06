@@ -97,6 +97,14 @@ export function ViewerOverlays({
             >
               <IconCube /> 3D
             </button>
+            <button
+              id="view-topview"
+              className={`btn sm${view.primary === 'topview' ? ' active' : ''}`}
+              title="Sơ đồ độ sâu 2.5D: nhìn từ trên xuống để dàn dựng bố cục cảnh nhanh chóng"
+              onClick={() => view.set({ primary: 'topview' })}
+            >
+              <IconRoute /> Sơ đồ 2.5D
+            </button>
           </div>
         )}
         {showEd && (

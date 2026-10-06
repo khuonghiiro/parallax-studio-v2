@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { EditorViewKind } from '../engine/EditorCamera'
 
-export type PrimaryView = 'camera' | 'editor'
+export type PrimaryView = 'camera' | 'editor' | 'topview'
 export type Theme = 'dark' | 'light'
 
 interface ViewPrefs {

@@ -155,20 +155,27 @@ async function buildAssetItem(fullPath: string, rootDir: string): Promise<BuiltI
   }
 }
 
-export async function scanBuiltInCatalog(): Promise<BuiltInCatalogResult> {
+let cachedCatalog: BuiltInCatalogResult | null = null
+
+export async function scanBuiltInCatalog(forceRefresh = false): Promise<BuiltInCatalogResult> {
+  if (cachedCatalog && !forceRefresh) {
+    return cachedCatalog
+  }
+
   const root = getAssetsRoot()
   const { categories, rawJson, manifestPath } = await readManifestJson(root)
   const allFiles = await collectFilesRecursively(root, root)
 
-  const items: BuiltInAssetItem[] = []
-  for (const filePath of allFiles) {
-    if (basename(filePath).toLowerCase() === 'manifest.json') continue
-    if (basename(filePath).toLowerCase() === 'readme.md') continue
-    const item = await buildAssetItem(filePath, root)
-    if (item) items.push(item)
-  }
+  const eligibleFiles = allFiles.filter((filePath) => {
+    const name = basename(filePath).toLowerCase()
+    return name !== 'manifest.json' && name !== 'readme.md'
+  })
 
-  return { categories, items, manifestPath, rawJson }
+  const itemResults = await Promise.all(eligibleFiles.map((filePath) => buildAssetItem(filePath, root)))
+  const items: BuiltInAssetItem[] = itemResults.filter((it): it is BuiltInAssetItem => it !== null)
+
+  cachedCatalog = { categories, items, manifestPath, rawJson }
+  return cachedCatalog
 }
 
 export async function saveManifestJson(rawJson: string): Promise<BuiltInSaveManifestResult> {
@@ -181,7 +188,7 @@ export async function saveManifestJson(rawJson: string): Promise<BuiltInSaveMani
     const manifestPath = join(root, 'manifest.json')
     const formatted = JSON.stringify(parsed, null, 2)
     await writeFile(manifestPath, formatted, 'utf-8')
-    const catalog = await scanBuiltInCatalog()
+    const catalog = await scanBuiltInCatalog(true)
     return { ok: true, catalog }
   } catch (err) {
     return { ok: false, error: `Lỗi cú pháp JSON: ${String(err)}` }
@@ -218,5 +225,10 @@ export function registerBuiltInAssetsIpc(): void {
     } else {
       await shell.openPath(root)
     }
+  })
+
+  // Pre-warm catalog cache immediately in the background upon registration
+  scanBuiltInCatalog(false).catch((err) => {
+    console.warn('[BuiltInAssets] Background catalog prewarm error:', err)
   })
 }

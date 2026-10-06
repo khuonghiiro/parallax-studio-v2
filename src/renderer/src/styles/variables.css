@@ -5,6 +5,7 @@
 /* ------------------------------------------------------------------ Dark Theme (Default) */
 :root,
 [data-theme='dark'] {
+  color-scheme: dark;
   /* Slate & Charcoal Surfaces */
   --bg-0: #141414;        /* Deep workspace surround */
   --bg-1: #1e1e1e;        /* Standard docked panel */
@@ -71,6 +72,7 @@
 :root[data-theme='light'],
 [data-theme='light'],
 .app.light {
+  color-scheme: light;
   /* Clean Light Surfaces */
   --bg-0: #e2e4e8;        /* Soft neutral workspace surround */
   --bg-1: #f1f2f5;        /* Light docked panel */

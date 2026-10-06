@@ -20,7 +20,8 @@ import { deserializeProject, serializeProject } from './project/serialize'
 import { EFFECT_ASSETS } from './project/effectAssets'
 import { PARTICLE_PRESETS } from './animation/presets'
 import { referenceDistance } from './animation/math'
-import { getDraftAnimatable, useEditor } from './store/editor'
+import { evaluate, setValueAt } from './animation/keyframes'
+import { frameTolerance, getDraftAnimatable, useEditor } from './store/editor'
 
 // ------------------------------------------------------------------ toast
 
@@ -418,6 +419,77 @@ export function moveLayer(id: string, dir: -1 | 1): void {
     const [l] = d.layers.splice(i, 1)
     d.layers.splice(j, 0, l)
   })
+}
+
+/** Move a layer to the top of its shot's stack. */
+export function moveLayerToTop(id: string): void {
+  editor().update((d) => {
+    const i = d.layers.findIndex((l) => l.id === id)
+    if (i < 0) return
+    const [l] = d.layers.splice(i, 1)
+    insertLayerTop(d as Project, l)
+  })
+}
+
+/** Move a layer to the bottom of its shot's stack. */
+export function moveLayerToBottom(id: string): void {
+  editor().update((d) => {
+    const i = d.layers.findIndex((l) => l.id === id)
+    if (i < 0) return
+    const [l] = d.layers.splice(i, 1)
+    insertLayerBottom(d as Project, l)
+  })
+}
+
+/** Nudge a layer's 3D position [dx, dy, dz]. */
+export function nudgeLayerPosition(id: string, dx: number, dy: number, dz: number): void {
+  const st = editor()
+  const layer = st.project.layers.find((l) => l.id === id)
+  if (!layer || layer.locked) return
+  const cur = evaluate(layer.transform.position, st.time) as Vec3
+  const next: Vec3 = [Math.round(cur[0] + dx), Math.round(cur[1] + dy), Math.round(cur[2] + dz)]
+  st.update((d) => {
+    const l = d.layers.find((x) => x.id === id)
+    if (l) setValueAt(l.transform.position, st.time, next, frameTolerance(st.project))
+  })
+}
+
+/** Add an asset layer at a specific 3D position. */
+export async function addLayerAtPosition(
+  assetData: { id?: string; relativePath?: string; name: string; kind: 'image' | 'audio'; mime?: string },
+  pos: Vec3,
+  shotId?: string | null
+): Promise<string | null> {
+  const targetShotId = shotId !== undefined ? shotId : activeShotId()
+  let meta = assetData.id ? editor().project.assets.find((a) => a.id === assetData.id) : undefined
+
+  if (!meta && assetData.relativePath) {
+    const file = await window.api.loadBuiltInAssetBytes(assetData.relativePath)
+    if (!file) return null
+    if (assetData.kind === 'audio') {
+      await setAudioFromBytes(file.name, file.mime, file.data)
+      return null
+    }
+    const asset = await assetStore.add(file.name, file.mime, file.data, 'image')
+    meta = asset.meta
+    editor().update((d) => {
+      d.assets.push(asset.meta)
+    })
+  }
+
+  if (!meta || meta.kind !== 'image') return null
+
+  const comp = editor().project.comp
+  const layer = createImageLayer(meta, comp, pos[2])
+  layer.shotId = targetShotId
+  layer.transform.position.value = [pos[0], pos[1], pos[2]]
+
+  editor().update((d) => {
+    insertLayerTop(d as Project, layer)
+  })
+  editor().selectLayer(layer.id)
+  toast(`Đã thêm layer ${meta.name} tại [${Math.round(pos[0])}, ${Math.round(pos[2])}]`)
+  return layer.id
 }
 
 /** Move a layer into another shot (or global), keeping its local transform. */

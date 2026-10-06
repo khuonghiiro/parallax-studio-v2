@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   computeRotatedTarget,
   computeTranslatedCamera,
+  computeTranslatedLayer,
   localToScreenX,
   localToScreenZ,
   screenToLocalX,
@@ -78,5 +79,28 @@ describe('topViewCameraMath', () => {
     const forward = computeRotatedTarget(camPos, initTarget, [0, 800])
     expect(forward[0]).toBe(0)
     expect(forward[2]).toBe(1000)
+  })
+
+  it('translates layer X and Z position while preserving height Y', () => {
+    const initPos: [number, number, number] = [100, 50, 400]
+    const translated = computeTranslatedLayer(initPos, -30, 80, false, 0)
+    expect(translated).toEqual([70, 50, 480])
+  })
+
+  it('locks layer translation to single axis when shift is held', () => {
+    const initPos: [number, number, number] = [0, 20, 500]
+    // Dominant X
+    const resX = computeTranslatedLayer(initPos, 200, 40, true, 0)
+    expect(resX).toEqual([200, 20, 500])
+
+    // Dominant Z
+    const resZ = computeTranslatedLayer(initPos, 30, 180, true, 0)
+    expect(resZ).toEqual([0, 20, 680])
+  })
+
+  it('snaps layer translation to grid when snapGrid > 0', () => {
+    const initPos: [number, number, number] = [0, 0, 0]
+    const snapped = computeTranslatedLayer(initPos, 137, 264, false, 50)
+    expect(snapped).toEqual([150, 0, 250])
   })
 })

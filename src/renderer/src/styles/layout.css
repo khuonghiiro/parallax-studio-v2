@@ -14,6 +14,7 @@ body,
   overflow: hidden;
   background: var(--bg-0);
   color: var(--text);
+  color-scheme: dark;
   font-family: var(--font);
   font-size: 12px;
   -webkit-font-smoothing: antialiased;
@@ -61,7 +62,7 @@ textarea:focus {
 .app {
   display: grid;
   grid-template-rows: 46px minmax(0, 1fr) 5px var(--timeline-h);
-  grid-template-columns: 280px minmax(0, 1fr) 350px;
+  grid-template-columns: 340px minmax(0, 1fr) 350px;
   grid-template-areas:
     'top top top'
     'left view right'
@@ -78,6 +79,7 @@ textarea:focus {
 }
 .left {
   grid-area: left;
+  min-width: 320px;
 }
 .viewer-wrap {
   grid-area: view;

@@ -23,6 +23,7 @@ import {
 import { useViewerLabels } from './viewer/useViewerLabels'
 import { useViewerDrag } from './viewer/useViewerDrag'
 import { ViewerOverlays } from './viewer/ViewerOverlays'
+import { TopView, useFocusShotId } from './TopView'
 
 export { EDITOR_KINDS }
 
@@ -48,6 +49,8 @@ export function Viewer() {
   const view = useView()
 
   edCam.setKind(view.editorKind)
+  const focusShotId = useFocusShotId()
+  const isTopView = view.primary === 'topview' && !view.split
 
   const { updateLabels } = useViewerLabels(labelsRef)
   const { localXY, ndcIn, capture, startLayerDrag, startShotDrag, startCameraDrag } = useViewerDrag({
@@ -69,7 +72,7 @@ export function Viewer() {
 
   function draw(): void {
     const r = rendererRef.current
-    if (!r) return
+    if (!r || (useView.getState().primary === 'topview' && !useView.getState().split)) return
     const s = useEditor.getState()
     const v = useView.getState()
     const L = layoutRef.current
@@ -444,8 +447,17 @@ export function Viewer() {
         onWheel={onWheel}
         onDoubleClick={onDoubleClick}
         onContextMenu={(e) => e.preventDefault()}
+        style={{ display: isTopView ? 'none' : 'block' }}
       />
-      <div className="view-labels" ref={labelsRef} onPointerDown={onLabelPointerDown} onDoubleClick={onLabelDoubleClick} />
+      {!isTopView && (
+        <div className="view-labels" ref={labelsRef} onPointerDown={onLabelPointerDown} onDoubleClick={onLabelDoubleClick} />
+      )}
+
+      {isTopView && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 5, background: 'var(--bg-1)' }}>
+          <TopView shotId={focusShotId} isExpanded={true} />
+        </div>
+      )}
 
       <ViewerOverlays
         view={view}

@@ -489,14 +489,15 @@
 .manifest-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(4px);
+  background: rgba(10, 10, 10, 0.78);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10000;
   padding: 20px;
-  animation: modalFadeIn 0.15s ease-out;
+  animation: fade 0.12s ease-out;
+  transform: translateZ(0);
+  will-change: opacity;
 }
 
 .manifest-modal-box {
@@ -510,6 +511,8 @@
   border-radius: var(--radius);
   box-shadow: var(--shadow-popup);
   overflow: hidden;
+  animation: pop 0.14s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: center center;
 }
 
 .manifest-modal-header {
@@ -579,15 +582,4 @@
 
 .manifest-status-msg.ok {
   color: var(--ok);
-}
-
-@keyframes modalFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
 }
