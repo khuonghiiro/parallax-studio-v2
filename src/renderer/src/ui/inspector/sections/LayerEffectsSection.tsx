@@ -216,6 +216,18 @@ export function LayerEffectsSection({ layer, set }: LayerEffectsSectionProps) {
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--text-faint)', fontFamily: 'var(--mono)' }}>
                       @ {fx.startTime.toFixed(2)}s · {fx.duration ? `${fx.duration.toFixed(1)}s` : 'Suốt layer'}
+                      {fx.count ? (
+                        <span>
+                          {' · '}
+                          {fx.presetId === 'shake'
+                            ? `${fx.count} lần rung`
+                            : fx.presetId === 'popIn'
+                            ? `${fx.count} lần nảy`
+                            : fx.presetId === 'pulse'
+                            ? `${fx.count} nhịp đập`
+                            : `${fx.count} lần`}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 </div>

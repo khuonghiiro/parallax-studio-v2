@@ -109,30 +109,54 @@ describe('timelineEffects (Animation FX Presets)', () => {
     expect(keys[2].value).toBe(1)
   })
 
-  it('generates shake keyframes for position returning to original coords', () => {
-    const success = applyFxPresetToSelectedLayer('shake', { duration: 0.5, intensity: 20 })
+  it('generates shake keyframes for position returning to original coords and respects custom shakes count', () => {
+    const success = applyFxPresetToSelectedLayer('shake', { duration: 0.5, intensity: 20, shakes: 7 })
     expect(success).toBe(true)
 
     const layer = useEditor.getState().project.layers[0]
     const keys = layer.transform.position.keyframes
-    expect(keys.length).toBeGreaterThanOrEqual(6)
+    // 1 start key + 7 shake keys + 1 end key = 9 keys
+    expect(keys.length).toBe(9)
     expect(keys[0].t).toBe(2.5)
     expect(keys[0].value).toEqual([100, 200, 500])
     expect(keys[keys.length - 1].t).toBe(3.0)
     expect(keys[keys.length - 1].value).toEqual([100, 200, 500])
+
+    const applied = layer.appliedEffects?.find((x) => x.presetId === 'shake')
+    expect(applied?.count).toBe(7)
   })
 
-  it('generates popIn keyframes for scale with bounce', () => {
-    const success = applyFxPresetToSelectedLayer('popIn', { duration: 0.6 })
+  it('generates popIn keyframes for scale with customizable bounces count', () => {
+    const success = applyFxPresetToSelectedLayer('popIn', { duration: 0.6, bounces: 3 })
     expect(success).toBe(true)
 
     const layer = useEditor.getState().project.layers[0]
     const keys = layer.transform.scale.keyframes
-    expect(keys.length).toBe(4)
+    expect(keys.length).toBeGreaterThanOrEqual(5)
     expect(keys[0].t).toBe(2.5)
     expect(keys[0].value).toEqual([0.001, 0.001, 1])
-    expect(keys[3].t).toBe(3.1)
-    expect(keys[3].value).toEqual([1, 1, 1])
+    expect(keys[keys.length - 1].t).toBe(3.1)
+    expect(keys[keys.length - 1].value).toEqual([1, 1, 1])
+
+    const applied = layer.appliedEffects?.find((x) => x.presetId === 'popIn')
+    expect(applied?.count).toBe(3)
+  })
+
+  it('generates pulse keyframes with customizable pulses count', () => {
+    const success = applyFxPresetToSelectedLayer('pulse', { duration: 0.6, pulses: 3, intensity: 1.3 })
+    expect(success).toBe(true)
+
+    const layer = useEditor.getState().project.layers[0]
+    const keys = layer.transform.scale.keyframes
+    // 1 start + (1 peak + 1 end) * 3 = 7 keys
+    expect(keys.length).toBe(7)
+    expect(keys[0].t).toBe(2.5)
+    expect(keys[0].value).toEqual([1, 1, 1])
+    expect(keys[keys.length - 1].t).toBe(3.1)
+    expect(keys[keys.length - 1].value).toEqual([1, 1, 1])
+
+    const applied = layer.appliedEffects?.find((x) => x.presetId === 'pulse')
+    expect(applied?.count).toBe(3)
   })
 
   it('applies neonBreathe preset to layer glow configuration', () => {
@@ -196,5 +220,69 @@ describe('timelineEffects (Animation FX Presets)', () => {
     layer = useEditor.getState().project.layers[0]
     expect(layer.appliedEffects?.find((x) => x.id === fxId)).toBeUndefined()
     expect(layer.transform.opacity.keyframes.length).toBe(0)
+  })
+
+  it('supports configuring multiple neon effects on a single layer with different time intervals', () => {
+    // Reset layer effects
+    useEditor.getState().update((d) => {
+      d.layers[0].appliedEffects = []
+      delete d.layers[0].glow
+    })
+
+    // Apply Neon 1: Cyan breathe from 0s to 2s
+    applyFxPresetToSelectedLayer('neonBreathe', {
+      targetTime: 0,
+      duration: 2.0,
+      color: '#3dd6f5',
+      intensity: 1.5
+    })
+
+    // Apply Neon 2: Amber blink from 2.5s to 5s
+    applyFxPresetToSelectedLayer('neonBlink', {
+      targetTime: 2.5,
+      duration: 2.5,
+      color: '#f59e0b',
+      intensity: 1.8,
+      blinks: 5
+    })
+
+    let layer = useEditor.getState().project.layers[0]
+    const neonEffects = layer.appliedEffects?.filter((fx) => fx.category === 'glow')
+    expect(neonEffects?.length).toBe(2)
+
+    // Verify Neon 1
+    const n1 = neonEffects![0]
+    expect(n1.glow?.color).toBe('#3dd6f5')
+    expect(n1.glow?.animated).toBe('breathe')
+    expect(n1.glow?.startTime).toBe(0)
+    expect(n1.glow?.duration).toBe(2.0)
+
+    // Verify Neon 2
+    const n2 = neonEffects![1]
+    expect(n2.glow?.color).toBe('#f59e0b')
+    expect(n2.glow?.animated).toBe('blink')
+    expect(n2.glow?.startTime).toBe(2.5)
+    expect(n2.glow?.duration).toBe(2.5)
+
+    // Toggle Neon 1 off, verify Neon 2 is unaffected
+    useEditor.getState().update((d) => {
+      toggleLayerEffect(d.layers[0], n1.id, false)
+    })
+    layer = useEditor.getState().project.layers[0]
+    const updatedN1 = layer.appliedEffects?.find((fx) => fx.id === n1.id)
+    const updatedN2 = layer.appliedEffects?.find((fx) => fx.id === n2.id)
+    expect(updatedN1?.enabled).toBe(false)
+    expect(updatedN1?.glow?.enabled).toBe(false)
+    expect(updatedN2?.enabled).toBe(true)
+    expect(updatedN2?.glow?.enabled).toBe(true)
+
+    // Delete Neon 1, verify Neon 2 remains
+    useEditor.getState().update((d) => {
+      deleteLayerEffect(d.layers[0], n1.id)
+    })
+    layer = useEditor.getState().project.layers[0]
+    expect(layer.appliedEffects?.find((fx) => fx.id === n1.id)).toBeUndefined()
+    expect(layer.appliedEffects?.find((fx) => fx.id === n2.id)).toBeDefined()
+    expect(layer.glow?.color).toBe('#f59e0b')
   })
 })

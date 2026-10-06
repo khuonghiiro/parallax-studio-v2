@@ -1,44 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { LayerGlow } from '@shared/types'
-
-function computeGlowIntensity(glow: LayerGlow, t: number): number {
-  if (!glow.enabled) return 0
-  const glowStart = glow.startTime ?? 0
-  const glowDur = glow.duration ?? 0
-
-  if (t < glowStart) return 0
-  let timeFactor = 1.0
-  if (glowDur > 0) {
-    const elapsed = t - glowStart
-    if (elapsed > glowDur) return 0
-    const fadeIn = Math.min(0.12, glowDur * 0.25)
-    const fadeOut = Math.min(0.15, glowDur * 0.25)
-    if (elapsed < fadeIn && fadeIn > 0.001) {
-      timeFactor = elapsed / fadeIn
-    } else if (elapsed > glowDur - fadeOut && fadeOut > 0.001) {
-      timeFactor = (glowDur - elapsed) / fadeOut
-    }
-  }
-
-  const baseIntensity = glow.intensity ?? 1.2
-  const minI = (glow.minIntensity ?? 0.15) * baseIntensity
-  const spd = glow.speed ?? 2.0
-  const localT = Math.max(0, t - glowStart)
-
-  let computedI = baseIntensity
-  if (glow.animated === 'breathe') {
-    const wave = 0.5 + 0.5 * Math.sin(localT * spd * Math.PI * 2)
-    computedI = minI + (baseIntensity - minI) * wave
-  } else if (glow.animated === 'blink') {
-    const cycle = (localT * spd) % 1
-    computedI = cycle < 0.5 ? baseIntensity : minI
-  } else if (glow.animated === 'flicker') {
-    const f = 0.5 + 0.3 * Math.sin(localT * spd * 17.3) + 0.15 * Math.sin(localT * spd * 31.7) + 0.05 * Math.sin(localT * spd * 7.1)
-    const drop = ((localT * spd * 3) % 1) > 0.88 ? 0.3 : 1.0
-    computedI = minI + (baseIntensity - minI) * Math.max(0, Math.min(1, f * drop))
-  }
-  return computedI * timeFactor
-}
+import type { Layer, LayerGlow } from '@shared/types'
+import { computeGlowIntensity, evaluateLayerGlow } from './layerGlow'
 
 describe('Layer Neon Edge Glow (Outline Glow)', () => {
   it('returns 0 intensity when glow is disabled', () => {
@@ -155,5 +117,132 @@ describe('Layer Neon Edge Glow (Outline Glow)', () => {
     expect(computeGlowIntensity(glow, 2.5)).toBe(0)
     expect(computeGlowIntensity(glow, 3.5)).toBeCloseTo(1.5, 2)
     expect(computeGlowIntensity(glow, 10.0)).toBeCloseTo(1.5, 2)
+  })
+
+  it('supports multiple neon effects on 1 layer with different time intervals', () => {
+    const layer = {
+      id: 'layer-1',
+      name: 'Card with Multiple Neons',
+      type: 'image',
+      inPoint: 0,
+      outPoint: 10,
+      appliedEffects: [
+        {
+          id: 'fx-neon-1',
+          presetId: 'neonBreathe',
+          name: 'Cyan Breathe',
+          badge: '✨',
+          category: 'glow',
+          startTime: 1.0,
+          duration: 2.0,
+          enabled: true,
+          glow: {
+            enabled: true,
+            startTime: 1.0,
+            duration: 2.0,
+            color: '#3dd6f5',
+            thickness: 10,
+            intensity: 1.5,
+            animated: 'breathe'
+          }
+        },
+        {
+          id: 'fx-neon-2',
+          presetId: 'neonBlink',
+          name: 'Amber Blink',
+          badge: '✨',
+          category: 'glow',
+          startTime: 4.0,
+          duration: 2.0,
+          enabled: true,
+          glow: {
+            enabled: true,
+            startTime: 4.0,
+            duration: 2.0,
+            color: '#f59e0b',
+            thickness: 8,
+            intensity: 1.8,
+            animated: 'none' // static for clear value test
+          }
+        }
+      ]
+    } as unknown as Layer
+
+    // t = 0.5s: before Neon 1 -> no glow
+    expect(evaluateLayerGlow(layer, 0.5)).toBeNull()
+
+    // t = 2.0s: inside Neon 1 (Cyan Breathe)
+    const g1 = evaluateLayerGlow(layer, 2.0)
+    expect(g1).not.toBeNull()
+    expect(g1?.color).toBe('#3dd6f5')
+    expect(g1?.thickness).toBe(10)
+    expect(g1!.intensity).toBeGreaterThan(0)
+
+    // t = 3.5s: between Neon 1 and Neon 2 -> no glow
+    expect(evaluateLayerGlow(layer, 3.5)).toBeNull()
+
+    // t = 5.0s: inside Neon 2 (Amber Blink)
+    const g2 = evaluateLayerGlow(layer, 5.0)
+    expect(g2).not.toBeNull()
+    expect(g2?.color).toBe('#f59e0b')
+    expect(g2?.thickness).toBe(8)
+    expect(g2!.intensity).toBeCloseTo(1.8, 1)
+
+    // t = 7.0s: after Neon 2 -> no glow
+    expect(evaluateLayerGlow(layer, 7.0)).toBeNull()
+  })
+
+  it('respects individual enabled toggle when multiple neon effects exist', () => {
+    const layer = {
+      id: 'layer-1',
+      name: 'Card with Toggled Neon',
+      type: 'image',
+      inPoint: 0,
+      outPoint: 10,
+      appliedEffects: [
+        {
+          id: 'fx-neon-1',
+          presetId: 'neonSolid',
+          name: 'Cyan Solid',
+          badge: '✨',
+          category: 'glow',
+          startTime: 1.0,
+          duration: 2.0,
+          enabled: false, // Disabled!
+          glow: {
+            enabled: false,
+            startTime: 1.0,
+            duration: 2.0,
+            color: '#3dd6f5',
+            intensity: 1.5
+          }
+        },
+        {
+          id: 'fx-neon-2',
+          presetId: 'neonSolid',
+          name: 'Pink Solid',
+          badge: '✨',
+          category: 'glow',
+          startTime: 4.0,
+          duration: 2.0,
+          enabled: true, // Enabled
+          glow: {
+            enabled: true,
+            startTime: 4.0,
+            duration: 2.0,
+            color: '#ec4899',
+            intensity: 1.6
+          }
+        }
+      ]
+    } as unknown as Layer
+
+    // At t = 2.0s, fx-neon-1 is disabled -> should be null
+    expect(evaluateLayerGlow(layer, 2.0)).toBeNull()
+
+    // At t = 5.0s, fx-neon-2 is enabled -> should return Pink Solid
+    const g = evaluateLayerGlow(layer, 5.0)
+    expect(g).not.toBeNull()
+    expect(g?.color).toBe('#ec4899')
   })
 })

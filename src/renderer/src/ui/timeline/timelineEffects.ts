@@ -124,6 +124,10 @@ export interface ApplyFxOptions {
   targetTime?: number
   intensity?: number
   blinks?: number
+  shakes?: number
+  bounces?: number
+  pulses?: number
+  count?: number
   color?: string
   thickness?: number
   side?: GlowSide
@@ -203,19 +207,23 @@ function generateShakeKeys(
   const orig = evaluate(target, start)
   keys.push(addKeyframe(target, round3(start), [...orig] as Vec3, 'easeInOut', tol))
 
-  const step = duration / (shakes + 1)
-  const offsets: [number, number][] = [
-    [intensity, -intensity * 0.4],
-    [-intensity * 0.85, intensity * 0.6],
-    [intensity * 0.6, -intensity * 0.7],
-    [-intensity * 0.4, intensity * 0.3],
-    [intensity * 0.2, -intensity * 0.15]
+  const count = Math.max(1, shakes)
+  const step = duration / (count + 1)
+  const basePatterns: [number, number][] = [
+    [1.0, -0.4],
+    [-0.85, 0.6],
+    [0.6, -0.7],
+    [-0.4, 0.3],
+    [0.2, -0.15]
   ]
 
-  for (let i = 0; i < shakes; i++) {
+  for (let i = 0; i < count; i++) {
     const t = round3(start + (i + 1) * step)
-    const off = offsets[i % offsets.length]
-    const p: Vec3 = [orig[0] + off[0], orig[1] + off[1], orig[2]]
+    const decay = 1.0 - (i / count) * 0.65
+    const pattern = basePatterns[i % basePatterns.length]
+    const offX = Math.round(pattern[0] * intensity * decay * 10) / 10
+    const offY = Math.round(pattern[1] * intensity * decay * 10) / 10
+    const p: Vec3 = [orig[0] + offX, orig[1] + offY, orig[2]]
     keys.push(addKeyframe(target, t, p, 'easeInOut', tol))
   }
 
@@ -227,6 +235,8 @@ function generatePopInKeys(
   target: Animatable<Vec3>,
   start: number,
   duration: number,
+  bounces = 2,
+  bounceScale = 1.2,
   tol = 1e-4
 ): Keyframe<Vec3>[] {
   const keys: Keyframe<Vec3>[] = []
@@ -234,24 +244,45 @@ function generatePopInKeys(
   const baseScale: Vec3 = [orig[0] || 1, orig[1] || 1, orig[2] || 1]
 
   keys.push(addKeyframe(target, round3(start), [0.001, 0.001, 1], 'easeOut', tol))
-  keys.push(
-    addKeyframe(
-      target,
-      round3(start + duration * 0.65),
-      [baseScale[0] * 1.18, baseScale[1] * 1.18, 1],
-      'easeInOut',
-      tol
+
+  const numBounces = Math.max(1, bounces)
+  const riseRatio = Math.min(0.5, 0.3 + 0.15 / numBounces)
+  const riseTime = duration * riseRatio
+  const bounceWindow = duration - riseTime
+  const stepTime = bounceWindow / (numBounces * 2)
+
+  let peakExcess = Math.max(0.06, bounceScale - 1.0)
+
+  for (let i = 0; i < numBounces; i++) {
+    const tPeak = round3(start + riseTime + i * 2 * stepTime)
+    const peakFactor = round3(1.0 + peakExcess)
+    keys.push(
+      addKeyframe(
+        target,
+        tPeak,
+        [round3(baseScale[0] * peakFactor), round3(baseScale[1] * peakFactor), 1],
+        'easeInOut',
+        tol
+      )
     )
-  )
-  keys.push(
-    addKeyframe(
-      target,
-      round3(start + duration * 0.85),
-      [baseScale[0] * 0.95, baseScale[1] * 0.95, 1],
-      'easeInOut',
-      tol
-    )
-  )
+
+    if (i < numBounces - 1) {
+      const tValley = round3(start + riseTime + (i * 2 + 1) * stepTime)
+      const valleyFactor = round3(1.0 - peakExcess * 0.4)
+      keys.push(
+        addKeyframe(
+          target,
+          tValley,
+          [round3(baseScale[0] * valleyFactor), round3(baseScale[1] * valleyFactor), 1],
+          'easeInOut',
+          tol
+        )
+      )
+    }
+
+    peakExcess *= 0.35
+  }
+
   keys.push(addKeyframe(target, round3(start + duration), baseScale, 'easeOut', tol))
   return keys
 }
@@ -260,6 +291,7 @@ function generatePulseKeys(
   target: Animatable<Vec3>,
   start: number,
   duration: number,
+  pulses = 1,
   factor = 1.25,
   tol = 1e-4
 ): Keyframe<Vec3>[] {
@@ -267,17 +299,27 @@ function generatePulseKeys(
   const orig = evaluate(target, start)
   const baseScale: Vec3 = [orig[0] || 1, orig[1] || 1, orig[2] || 1]
 
+  const count = Math.max(1, pulses)
+  const cycleDur = duration / count
+
   keys.push(addKeyframe(target, round3(start), baseScale, 'easeInOut', tol))
-  keys.push(
-    addKeyframe(
-      target,
-      round3(start + duration * 0.45),
-      [baseScale[0] * factor, baseScale[1] * factor, 1],
-      'easeInOut',
-      tol
+
+  for (let i = 0; i < count; i++) {
+    const cycleStart = start + i * cycleDur
+    const midT = round3(cycleStart + cycleDur * 0.45)
+    const endT = round3(cycleStart + cycleDur)
+
+    keys.push(
+      addKeyframe(
+        target,
+        midT,
+        [round3(baseScale[0] * factor), round3(baseScale[1] * factor), 1],
+        'easeInOut',
+        tol
+      )
     )
-  )
-  keys.push(addKeyframe(target, round3(start + duration), baseScale, 'easeInOut', tol))
+    keys.push(addKeyframe(target, endT, baseScale, 'easeInOut', tol))
+  }
   return keys
 }
 
@@ -330,20 +372,50 @@ export function applyFxPresetToSelectedLayer(presetId: FxPresetId, options?: App
         targetProp = 'opacity'
         createdKeyIds = generateBreatheKeys(l.transform.opacity, start, duration, 0.2, tol).map((k) => k.id)
         break
-      case 'shake':
+      case 'shake': {
         targetProp = 'position'
-        createdKeyIds = generateShakeKeys(l.transform.position, start, duration, options?.intensity ?? 18, 5, tol).map((k) => k.id)
+        const count = options?.shakes ?? options?.count ?? 5
+        const intensity = options?.intensity ?? 18
+        createdKeyIds = generateShakeKeys(
+          l.transform.position,
+          start,
+          duration,
+          intensity,
+          count,
+          tol
+        ).map((k) => k.id)
         break
-      case 'popIn':
+      }
+      case 'popIn': {
         targetProp = 'scale'
-        createdKeyIds = generatePopInKeys(l.transform.scale, start, duration, tol).map((k) => k.id)
+        const count = options?.bounces ?? options?.count ?? 2
+        const intensity = options?.intensity ?? 1.2
+        createdKeyIds = generatePopInKeys(
+          l.transform.scale,
+          start,
+          duration,
+          count,
+          intensity,
+          tol
+        ).map((k) => k.id)
         break
-      case 'pulse':
+      }
+      case 'pulse': {
         targetProp = 'scale'
-        createdKeyIds = generatePulseKeys(l.transform.scale, start, duration, 1.25, tol).map((k) => k.id)
+        const count = options?.pulses ?? options?.count ?? 2
+        const intensity = options?.intensity ?? 1.25
+        createdKeyIds = generatePulseKeys(
+          l.transform.scale,
+          start,
+          duration,
+          count,
+          intensity,
+          tol
+        ).map((k) => k.id)
         break
-      case 'neonBreathe':
-        l.glow = {
+      }
+      case 'neonBreathe': {
+        const glowConfig: LayerGlow = {
           enabled: true,
           startTime: start,
           duration: options?.duration !== undefined ? options.duration : duration,
@@ -355,9 +427,11 @@ export function applyFxPresetToSelectedLayer(presetId: FxPresetId, options?: App
           speed: options?.speed ?? (duration > 0 ? 1 / duration : 1.5),
           minIntensity: options?.minIntensity ?? 0.15
         }
+        l.glow = glowConfig
         break
-      case 'neonBlink':
-        l.glow = {
+      }
+      case 'neonBlink': {
+        const glowConfig: LayerGlow = {
           enabled: true,
           startTime: start,
           duration: options?.duration !== undefined ? options.duration : duration,
@@ -369,9 +443,11 @@ export function applyFxPresetToSelectedLayer(presetId: FxPresetId, options?: App
           speed: options?.speed ?? (options?.blinks && duration > 0 ? options.blinks / duration : 2.0),
           minIntensity: options?.minIntensity ?? 0.1
         }
+        l.glow = glowConfig
         break
-      case 'neonFlicker':
-        l.glow = {
+      }
+      case 'neonFlicker': {
+        const glowConfig: LayerGlow = {
           enabled: true,
           startTime: start,
           duration: options?.duration !== undefined ? options.duration : duration,
@@ -383,9 +459,11 @@ export function applyFxPresetToSelectedLayer(presetId: FxPresetId, options?: App
           speed: options?.speed ?? 2.5,
           minIntensity: options?.minIntensity ?? 0.15
         }
+        l.glow = glowConfig
         break
-      case 'neonSolid':
-        l.glow = {
+      }
+      case 'neonSolid': {
+        const glowConfig: LayerGlow = {
           enabled: true,
           startTime: start,
           duration: options?.duration !== undefined ? options.duration : duration,
@@ -395,8 +473,16 @@ export function applyFxPresetToSelectedLayer(presetId: FxPresetId, options?: App
           intensity: options?.intensity ?? 1.3,
           animated: 'none'
         }
+        l.glow = glowConfig
         break
+      }
     }
+
+    let count: number | undefined = undefined
+    if (presetId === 'blink' || presetId === 'neonBlink') count = options?.blinks ?? 4
+    else if (presetId === 'shake') count = options?.shakes ?? options?.count ?? 5
+    else if (presetId === 'popIn') count = options?.bounces ?? options?.count ?? 2
+    else if (presetId === 'pulse') count = options?.pulses ?? options?.count ?? 2
 
     // Record applied effect instance for distinct icon & stack management
     if (!l.appliedEffects) l.appliedEffects = []
@@ -410,12 +496,25 @@ export function applyFxPresetToSelectedLayer(presetId: FxPresetId, options?: App
       duration: options?.duration !== undefined ? options.duration : duration,
       enabled: true,
       targetProp,
-      keyframeIds: createdKeyIds
+      keyframeIds: createdKeyIds,
+      glow: preset.category === 'glow' && l.glow ? { ...l.glow } : undefined,
+      count,
+      intensity: options?.intensity
     })
   })
 
-  const durText = (options?.duration === 0) ? 'suốt layer' : `${duration.toFixed(1)}s`
-  toast(`${preset.badge} Đã tạo hiệu ứng "${preset.name}" (${durText}) tại ${start.toFixed(2)}s`)
+  const countLabel =
+    presetId === 'shake'
+      ? ` · ${options?.shakes ?? options?.count ?? 5} lần rung`
+      : presetId === 'popIn'
+      ? ` · ${options?.bounces ?? options?.count ?? 2} lần nảy`
+      : presetId === 'pulse'
+      ? ` · ${options?.pulses ?? options?.count ?? 2} nhịp đập`
+      : presetId === 'blink' || presetId === 'neonBlink'
+      ? ` · ${options?.blinks ?? 4} chớp`
+      : ''
+  const durText = options?.duration === 0 ? 'suốt layer' : `${duration.toFixed(1)}s`
+  toast(`${preset.badge} Đã tạo hiệu ứng "${preset.name}" (${durText}${countLabel}) tại ${start.toFixed(2)}s`)
   return true
 }
 
@@ -432,9 +531,23 @@ export function toggleLayerEffect(layer: Layer, fxId: string, enabled: boolean):
   let savedKeyframes = (targetFx as any).savedKeyframes
 
   // Glow category
-  if (targetFx.category === 'glow' && layer.glow) {
-    layer.glow = { ...layer.glow, enabled }
-    layer.appliedEffects = layer.appliedEffects.map((x) => (x.id === fxId ? { ...x, enabled } : x))
+  if (targetFx.category === 'glow') {
+    if (targetFx.glow) {
+      targetFx.glow.enabled = enabled
+    }
+    targetFx.enabled = enabled
+
+    layer.appliedEffects = layer.appliedEffects.map((x) =>
+      x.id === fxId ? { ...x, enabled, glow: x.glow ? { ...x.glow, enabled } : undefined } : x
+    )
+
+    // Sync layer.glow with the remaining active glow, or turn off if all disabled
+    const activeGlows = layer.appliedEffects.filter((x) => x.category === 'glow' && x.enabled && x.glow)
+    if (activeGlows.length > 0) {
+      layer.glow = { ...activeGlows[activeGlows.length - 1].glow!, enabled: true }
+    } else if (layer.glow) {
+      layer.glow.enabled = false
+    }
     return true
   }
 
@@ -487,11 +600,17 @@ export function deleteLayerEffect(layer: Layer, fxId: string): boolean {
     }
   }
 
-  if (fx.category === 'glow') {
-    delete layer.glow
-  }
-
   layer.appliedEffects = layer.appliedEffects?.filter((x: any) => x.id !== fxId)
+
+  if (fx.category === 'glow') {
+    // If other glow effects remain on the layer, keep layer.glow synced to one of them
+    const remainingGlow = layer.appliedEffects?.find((x) => x.category === 'glow' && x.glow)?.glow
+    if (remainingGlow) {
+      layer.glow = { ...remainingGlow }
+    } else {
+      delete layer.glow
+    }
+  }
   return true
 }
 

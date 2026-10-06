@@ -1,7 +1,9 @@
+import React, { useState } from 'react'
 import type { GlowAnimation, GlowSide, Layer, LayerGlow } from '@shared/types'
 import { useEditor } from '../../../store/editor'
 import { NumberInput, Row, Switch } from '../../controls'
 import type { Setter } from '../types'
+import { getAllGlowConfigs } from '../../../engine/layerGlow'
 
 const NEON_PRESETS = [
   { name: 'Cyan Neon', color: '#3dd6f5' },
@@ -15,7 +17,20 @@ const NEON_PRESETS = [
 
 export function GlowSection({ layer, set }: { layer: Layer; set: Setter }) {
   const currentTime = useEditor((s) => s.time)
-  const glow: LayerGlow = layer.glow ?? {
+  const glowConfigs = getAllGlowConfigs(layer)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  const activeCandidate =
+    glowConfigs.find((c) => c.id === selectedId) ??
+    glowConfigs.find((c) => {
+      const s = c.glow.startTime ?? 0
+      const d = c.glow.duration ?? 0
+      return currentTime >= s && (d === 0 || currentTime <= s + d)
+    }) ??
+    glowConfigs[glowConfigs.length - 1]
+
+  const activeId = activeCandidate?.id ?? 'standalone'
+  const glow: LayerGlow = activeCandidate?.glow ?? layer.glow ?? {
     enabled: false,
     startTime: 0,
     duration: 0,
@@ -30,6 +45,15 @@ export function GlowSection({ layer, set }: { layer: Layer; set: Setter }) {
 
   const setGlow = (patch: Partial<LayerGlow>, mergeKey = 'glow'): void => {
     set((l) => {
+      if (activeId !== 'standalone' && l.appliedEffects) {
+        const fx = l.appliedEffects.find((x) => x.id === activeId)
+        if (fx && fx.glow) {
+          fx.glow = { ...fx.glow, ...patch }
+          if (patch.startTime !== undefined) fx.startTime = patch.startTime
+          if (patch.duration !== undefined) fx.duration = patch.duration
+          if (patch.enabled !== undefined) fx.enabled = patch.enabled
+        }
+      }
       l.glow = { ...(l.glow ?? glow), ...patch }
     }, mergeKey)
   }
@@ -44,13 +68,61 @@ export function GlowSection({ layer, set }: { layer: Layer; set: Setter }) {
         className="section-title"
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}
       >
-        <span>Phát sáng viền (Neon Edge Glow)</span>
+        <span>
+          Phát sáng viền {glowConfigs.length > 1 ? `(${glowConfigs.length})` : '(Neon)'}
+        </span>
         <Switch
           id="glow-enabled"
           on={!!glow.enabled}
           onChange={toggleEnabled}
         />
       </div>
+
+      {glowConfigs.length > 1 && (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+          {glowConfigs.map((cfg) => {
+            const isSel = cfg.id === activeId
+            const color = cfg.glow.color || '#3dd6f5'
+            const isOff = !cfg.glow.enabled
+            return (
+              <button
+                key={cfg.id}
+                type="button"
+                className={`btn sm ${isSel ? 'primary' : 'ghost'}`}
+                style={{
+                  fontSize: 11,
+                  padding: '3px 8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  borderColor: isSel ? color : undefined,
+                  background: isSel ? color : undefined,
+                  color: isSel ? '#000' : isOff ? 'var(--text-faint)' : undefined,
+                  opacity: isOff ? 0.6 : 1
+                }}
+                onClick={() => setSelectedId(cfg.id)}
+                title={`Chỉnh hiệu ứng: ${cfg.name || 'Neon'} (${(cfg.glow.startTime ?? 0).toFixed(1)}s)`}
+              >
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: isOff ? 'var(--text-faint)' : color,
+                    flexShrink: 0
+                  }}
+                />
+                <span style={{ textDecoration: isOff ? 'line-through' : 'none' }}>
+                  {cfg.name || 'Neon'}
+                </span>
+                <span style={{ fontSize: 9.5, opacity: 0.85 }}>
+                  ({(cfg.glow.startTime ?? 0).toFixed(1)}s - {cfg.glow.duration ? `${cfg.glow.duration.toFixed(1)}s` : 'Hết'})
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {glow.enabled && (
         <>

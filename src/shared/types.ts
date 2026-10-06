@@ -161,6 +161,9 @@ export interface AppliedLayerEffect {
   enabled: boolean
   targetProp?: 'opacity' | 'position' | 'scale' | 'rotation'
   keyframeIds?: string[]
+  glow?: LayerGlow
+  count?: number
+  intensity?: number
 }
 
 interface LayerBase<T extends LayerType, P> {

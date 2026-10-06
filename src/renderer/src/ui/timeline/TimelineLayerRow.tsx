@@ -18,6 +18,7 @@ import { LAYER_PROPS, TYPE_LETTER } from './timelineTypes'
 import { TimelineRow } from './TimelineRow'
 import { TimelineGlowKeys } from './TimelineGlowKeys'
 import { getFxColor, renderFxIcon } from './fxIcons'
+import { getAllGlowConfigs } from '../../engine/layerGlow'
 
 export interface TimelineLayerRowProps {
   layer: Layer
@@ -457,8 +458,14 @@ export function TimelineLayerRow({
             track={renderLayerTrackKeys(layer.transform[p.prop] as Animatable<AnimValue>, p)}
           />
         ))}
-      {isOpen && layer.glow && (() => {
-        const isOff = !layer.glow.enabled
+      {isOpen && (() => {
+        const glowConfigs = getAllGlowConfigs(layer)
+        if (glowConfigs.length === 0) return null
+        const isMultiple = glowConfigs.length > 1
+        const activeCount = glowConfigs.filter((g) => g.glow.enabled).length
+        const isAllOff = activeCount === 0
+        const primaryGlow = glowConfigs[glowConfigs.length - 1].glow
+        const glowColor = isAllOff ? 'var(--text-faint)' : (primaryGlow.color || 'var(--accent-cyan)')
         return (
           <TimelineRow
             sub
@@ -469,15 +476,19 @@ export function TimelineLayerRow({
               <div
                 className="tl-name sub"
                 style={{
-                  color: isOff ? 'var(--text-faint)' : (layer.glow.color || 'var(--accent-cyan)'),
+                  color: glowColor,
                   fontWeight: 600,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 5,
                   cursor: 'pointer',
-                  opacity: isOff ? 0.6 : 1
+                  opacity: isAllOff ? 0.6 : 1
                 }}
-                title={`Hiệu ứng viền Neon (${layer.glow.animated || 'tĩnh'}) ${isOff ? '[ĐÃ TẮT]' : ''} - Click để chỉnh`}
+                title={
+                  isMultiple
+                    ? `${glowConfigs.length} hiệu ứng viền Neon (${activeCount} đang bật) - Click để chỉnh`
+                    : `Hiệu ứng viền Neon (${primaryGlow.animated || 'tĩnh'}) ${isAllOff ? '[ĐÃ TẮT]' : ''} - Click để chỉnh`
+                }
                 onClick={() => {
                   useEditor.getState().setInspectorTab('layer')
                 }}
@@ -487,14 +498,26 @@ export function TimelineLayerRow({
                     width: 7,
                     height: 7,
                     borderRadius: '50%',
-                    background: isOff ? 'var(--text-faint)' : (layer.glow.color || 'var(--accent-cyan)'),
-                    boxShadow: isOff ? 'none' : `0 0 6px ${layer.glow.color || 'var(--accent-cyan)'}`,
+                    background: glowColor,
+                    boxShadow: isAllOff ? 'none' : `0 0 6px ${glowColor}`,
                     flexShrink: 0
                   }}
                 />
-                <span style={{ textDecoration: isOff ? 'line-through' : 'none' }}>Viền Neon</span>
+                <span style={{ textDecoration: isAllOff ? 'line-through' : 'none' }}>
+                  {isMultiple ? `Viền Neon (${glowConfigs.length})` : 'Viền Neon'}
+                </span>
                 <span style={{ fontSize: 9, opacity: 0.8, fontWeight: 'normal' }}>
-                  ({isOff ? 'Đã tắt' : (layer.glow.animated === 'breathe' ? 'Thở' : layer.glow.animated === 'blink' ? 'Chớp' : layer.glow.animated === 'flicker' ? 'Flicker' : 'Tĩnh')})
+                  ({isAllOff
+                    ? 'Đã tắt'
+                    : isMultiple
+                    ? `${activeCount} bật`
+                    : primaryGlow.animated === 'breathe'
+                    ? 'Thở'
+                    : primaryGlow.animated === 'blink'
+                    ? 'Chớp'
+                    : primaryGlow.animated === 'flicker'
+                    ? 'Flicker'
+                    : 'Tĩnh'})
                 </span>
               </div>
             }

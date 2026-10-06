@@ -34,21 +34,19 @@ interface FxPresetMenuProps {
 const POPOVER_W = 560
 const POPOVER_H = 460
 
-const NEON_PRESETS = [
-  { name: 'Cyan Neon', color: '#3dd6f5' },
-  { name: 'Vàng Kim', color: '#f59e0b' },
-  { name: 'Hồng Neon', color: '#f43f5e' },
-  { name: 'Xanh Ngọc', color: '#10b981' },
-  { name: 'Tím Điện', color: '#a855f7' },
-  { name: 'Đỏ Rực', color: '#ef4444' },
-  { name: 'Trắng Băng', color: '#ffffff' }
-]
+import { NEON_PRESETS, FxTransformConfigFields } from './FxConfigPanels'
 
 export function FxPresetMenu({ time, hasSelectedLayer }: FxPresetMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<FxPresetId>('neonBreathe')
   const [duration, setDuration] = useState<number>(1.5)
   const [blinks, setBlinks] = useState<number>(4)
+  const [shakes, setShakes] = useState<number>(5)
+  const [shakeIntensity, setShakeIntensity] = useState<number>(18)
+  const [bounces, setBounces] = useState<number>(2)
+  const [bounceScale, setBounceScale] = useState<number>(1.2)
+  const [pulses, setPulses] = useState<number>(2)
+  const [pulseFactor, setPulseFactor] = useState<number>(1.25)
   const [glowColor, setGlowColor] = useState<string>('#3dd6f5')
   const [glowSide, setGlowSide] = useState<GlowSide>('outer')
   const [glowThickness, setGlowThickness] = useState<number>(10)
@@ -75,6 +73,16 @@ export function FxPresetMenu({ time, hasSelectedLayer }: FxPresetMenuProps) {
   const handleSelectPreset = (p: FxPresetInfo) => {
     setSelectedId(p.id)
     setDuration(p.defaultDuration)
+    if (p.id === 'shake') {
+      setShakes(5)
+      setShakeIntensity(18)
+    } else if (p.id === 'popIn') {
+      setBounces(2)
+      setBounceScale(1.2)
+    } else if (p.id === 'pulse') {
+      setPulses(2)
+      setPulseFactor(1.25)
+    }
   }
 
   // Close on Escape
@@ -95,10 +103,19 @@ export function FxPresetMenu({ time, hasSelectedLayer }: FxPresetMenuProps) {
 
   const handleApply = () => {
     const isGlow = activePreset.category === 'glow'
+    let intensity: number | undefined = undefined
+    if (selectedId === 'shake') intensity = shakeIntensity
+    else if (selectedId === 'popIn') intensity = bounceScale
+    else if (selectedId === 'pulse') intensity = pulseFactor
+
     const success = applyFxPresetToSelectedLayer(selectedId, {
       duration,
       targetTime: currentTime,
       blinks: selectedId === 'blink' || selectedId === 'neonBlink' ? blinks : undefined,
+      shakes: selectedId === 'shake' ? shakes : undefined,
+      bounces: selectedId === 'popIn' ? bounces : undefined,
+      pulses: selectedId === 'pulse' ? pulses : undefined,
+      intensity,
       color: isGlow ? glowColor : undefined,
       side: isGlow ? glowSide : undefined,
       thickness: isGlow ? glowThickness : undefined
@@ -532,6 +549,23 @@ export function FxPresetMenu({ time, hasSelectedLayer }: FxPresetMenuProps) {
                           </div>
                         </div>
                       )}
+
+                      {/* Transform preset specific options: shake, popIn, pulse */}
+                      <FxTransformConfigFields
+                        selectedId={selectedId}
+                        shakes={shakes}
+                        setShakes={setShakes}
+                        shakeIntensity={shakeIntensity}
+                        setShakeIntensity={setShakeIntensity}
+                        bounces={bounces}
+                        setBounces={setBounces}
+                        bounceScale={bounceScale}
+                        setBounceScale={setBounceScale}
+                        pulses={pulses}
+                        setPulses={setPulses}
+                        pulseFactor={pulseFactor}
+                        setPulseFactor={setPulseFactor}
+                      />
                     </>
                   )}
 
@@ -547,6 +581,12 @@ export function FxPresetMenu({ time, hasSelectedLayer }: FxPresetMenuProps) {
                       <span>
                         {activePreset.category === 'glow'
                           ? `✨ Bật viền phát sáng (${duration === 0 ? 'Suốt layer' : `${duration.toFixed(1)}s`}) tại ${currentTime.toFixed(2)}s`
+                          : selectedId === 'shake'
+                          ? `Áp dụng rung chấn (${shakes} lần · ±${shakeIntensity}px) tại ${currentTime.toFixed(2)}s`
+                          : selectedId === 'popIn'
+                          ? `Áp dụng nảy xuất hiện (${bounces} lần nảy) tại ${currentTime.toFixed(2)}s`
+                          : selectedId === 'pulse'
+                          ? `Áp dụng nhịp đập (${pulses} nhịp) tại ${currentTime.toFixed(2)}s`
                           : `Áp dụng tại ${currentTime.toFixed(2)}s`}
                       </span>
                     </button>
