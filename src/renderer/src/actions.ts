@@ -17,6 +17,14 @@ import {
 } from './project/factory'
 import { exportProjectToJson, importProjectFromJson, parseDataUrl } from './project/jsonFormat'
 import { deserializeProject, serializeProject } from './project/serialize'
+import {
+  addAudioTrackToProject,
+  duplicateAudioTrackInProject,
+  mergeAudioTracksInProject,
+  removeAudioTrackFromProject,
+  splitAudioTrackInProject,
+  syncProjectAudio
+} from './project/audioTracks'
 import { EFFECT_ASSETS } from './project/effectAssets'
 import { PARTICLE_PRESETS } from './animation/presets'
 import { referenceDistance } from './animation/math'
@@ -38,7 +46,7 @@ export const useToast = create<ToastState>((set) => ({
     toastTimer = setTimeout(() => set({ message: null }), ms)
   }
 }))
-const toast = (m: string): void => useToast.getState().show(m)
+export const toast = (m: string): void => useToast.getState().show(m)
 
 const editor = () => useEditor.getState()
 
@@ -208,19 +216,119 @@ export async function importImages(addLayers = true): Promise<void> {
   await registerImages(files, addLayers)
 }
 
-export async function importAudio(): Promise<void> {
+export async function importAudio(targetTime?: number | unknown): Promise<void> {
   const [f] = await window.api.openFiles('audio')
   if (!f) return
-  await setAudioFromBytes(f.name, f.mime, f.data)
+  const time = typeof targetTime === 'number' && !isNaN(targetTime) ? targetTime : editor().time
+  await setAudioFromBytes(f.name, f.mime, f.data, time)
 }
 
-async function setAudioFromBytes(name: string, mime: string, data: Uint8Array): Promise<void> {
+export async function setAudioFromBytes(
+  name: string,
+  mime: string,
+  data: Uint8Array,
+  targetTime?: number | unknown
+): Promise<void> {
   const asset = await assetStore.add(name, mime, data, 'audio')
+  const time = typeof targetTime === 'number' && !isNaN(targetTime) ? targetTime : editor().time
   editor().update((d) => {
-    d.assets.push(asset.meta)
-    d.audio = { assetId: asset.meta.id, offset: 0, volume: 1 }
+    if (!d.assets.some((a) => a.id === asset.meta.id)) {
+      d.assets.push(asset.meta)
+    }
+    addAudioTrackToProject(d as Project, asset.meta.id, name, time)
   })
-  toast(`Đã thêm nhạc nền: ${name}`)
+  toast(`Đã thêm âm thanh tại ${time.toFixed(1)}s: ${name}`)
+}
+
+/** Thêm đoạn âm thanh từ tài nguyên dự án vào mốc thời gian hiện tại */
+export function addAudioTrackFromAsset(assetId: string, targetTime?: number | unknown): void {
+  const asset = editor().project.assets.find((a) => a.id === assetId)
+  if (!asset || asset.kind !== 'audio') return
+  const time = typeof targetTime === 'number' && !isNaN(targetTime) ? targetTime : editor().time
+  editor().update((d) => {
+    addAudioTrackToProject(d as Project, assetId, asset.name, time)
+  })
+  toast(`Đã thêm âm thanh tại ${time.toFixed(1)}s: ${asset.name}`)
+}
+
+/** Nhân bản (tạo trùng) đoạn âm thanh - nếu kim phát ở vị trí khác thì chèn tại kim phát, hoặc lùi +0.5s */
+export function duplicateAudioTrack(trackId: string, offsetDeltaOrTime?: number | unknown): void {
+  const curTime = editor().time
+  editor().update((d) => {
+    const tracks = getProjectAudioTracks(d as Project)
+    const orig = tracks.find((t) => t.id === trackId)
+    if (!orig) return
+    let delta = 0.5
+    if (typeof offsetDeltaOrTime === 'number' && !isNaN(offsetDeltaOrTime)) {
+      delta = offsetDeltaOrTime
+    } else if (Math.abs(curTime - orig.offset) > 0.05) {
+      delta = curTime - orig.offset
+    }
+    duplicateAudioTrackInProject(d as Project, trackId, delta)
+  })
+  toast(`Đã nhân bản đoạn âm thanh`)
+}
+
+/** Xoá một đoạn âm thanh khỏi timeline */
+export function removeAudioTrack(trackId: string): void {
+  editor().update((d) => {
+    removeAudioTrackFromProject(d as Project, trackId)
+  })
+  if (editor().selectedAudioTrackId === trackId) {
+    editor().selectAudioTrack(null)
+  }
+  toast(`Đã xoá đoạn âm thanh`)
+}
+
+/** Xoá đoạn âm thanh đang được chọn/focus trên timeline */
+export function deleteSelectedAudioTrack(): boolean {
+  const { selectedAudioTrackId } = editor()
+  if (!selectedAudioTrackId) return false
+  removeAudioTrack(selectedAudioTrackId)
+  return true
+}
+
+/** Cắt đôi một đoạn âm thanh tại thời điểm kim phát (hoặc splitTime chỉ định) */
+export function splitAudioTrack(trackId: string, splitTime?: number | unknown): void {
+  const targetTime = typeof splitTime === 'number' && !isNaN(splitTime) ? splitTime : editor().time
+  let res: { part1: any; part2: any } | null = null
+  editor().update((d) => {
+    res = splitAudioTrackInProject(d as Project, trackId, targetTime)
+  })
+  if (res) {
+    toast(`Đã cắt đôi đoạn âm thanh tại ${targetTime.toFixed(2)}s`)
+  } else {
+    toast(`Không thể cắt: kim phát (${targetTime.toFixed(2)}s) phải nằm giữa đoạn âm thanh`)
+  }
+}
+
+/** Gộp 2 hoặc nhiều đoạn âm thanh đã chọn (hoặc tất cả các tracks) thành 1 track tổng hợp */
+export async function mergeAudioTracks(trackIds?: string[]): Promise<void> {
+  const st = editor()
+  toast(`Đang hòa âm và gộp các luồng âm thanh…`)
+  const merged = await mergeAudioTracksInProject(st.project, trackIds)
+  if (merged) {
+    st.update((d) => {
+      syncProjectAudio(d as Project)
+    })
+    toast(`✓ Đã gộp thành công thành: ${merged.name}`)
+  } else {
+    toast(`Cần ít nhất 2 đoạn âm thanh để thực hiện gộp âm`)
+  }
+}
+
+/** Cập nhật thông số của một đoạn âm thanh (volume, pitch/playbackRate, offset, trim, tone...) */
+export function updateAudioTrack(trackId: string, patch: Partial<AudioTrackItem>): void {
+  editor().update((d) => {
+    const t = d.audioTracks?.find((x) => x.id === trackId)
+    if (t) {
+      Object.assign(t, patch)
+    } else if (d.audio && (d.audio.id === trackId || trackId === 'main')) {
+      if (patch.volume !== undefined) d.audio.volume = patch.volume
+      if (patch.offset !== undefined) d.audio.offset = patch.offset
+    }
+    syncProjectAudio(d as Project)
+  })
 }
 
 /** Handle files dropped onto the window. */
@@ -229,7 +337,7 @@ export async function importDroppedFiles(list: FileList): Promise<void> {
   for (const file of Array.from(list)) {
     const data = new Uint8Array(await file.arrayBuffer())
     if (file.type.startsWith('image/')) images.push({ name: file.name, mime: file.type, data })
-    else if (file.type.startsWith('audio/')) await setAudioFromBytes(file.name, file.type, data)
+    else if (file.type.startsWith('audio/')) await setAudioFromBytes(file.name, file.type, data, editor().time)
     else if (file.name.endsWith('.pxs')) {
       if (!confirmDiscard()) return
       const p = await deserializeProject(data)
@@ -249,7 +357,8 @@ export async function importDroppedFiles(list: FileList): Promise<void> {
 
 export async function importBuiltInAsset(
   item: { relativePath: string; name: string; kind: 'image' | 'audio'; mime?: string },
-  addLayer = true
+  addLayer = true,
+  targetTime?: number | unknown
 ): Promise<string | null> {
   const file = await window.api.loadBuiltInAssetBytes(item.relativePath)
   if (!file) {
@@ -258,7 +367,19 @@ export async function importBuiltInAsset(
   }
   const displayName = item.name || file.name
   if (item.kind === 'audio') {
-    await setAudioFromBytes(displayName, file.mime, file.data)
+    const time = typeof targetTime === 'number' && !isNaN(targetTime) ? targetTime : editor().time
+    const existing = editor().project.assets.find(
+      (a) => a.kind === 'audio' && (a.assetPath === item.relativePath || a.name === displayName)
+    )
+    if (existing) {
+      editor().update((d) => {
+        addAudioTrackToProject(d as Project, existing.id, displayName, time)
+      })
+      toast(`Đã thêm âm thanh tại ${time.toFixed(1)}s: ${displayName}`)
+      return null
+    }
+
+    await setAudioFromBytes(displayName, file.mime, file.data, time)
     const audioTrack = editor().project.audio
     if (audioTrack) {
       const audioAsset = editor().project.assets.find((a) => a.id === audioTrack.assetId)
@@ -326,6 +447,10 @@ export function removeAsset(assetId: string): void {
     d.layers = d.layers.filter((l) => !(l.type === 'image' && l.props.assetId === assetId))
     d.assets = d.assets.filter((a) => a.id !== assetId)
     if (d.audio?.assetId === assetId) d.audio = null
+    if (d.audioTracks) {
+      d.audioTracks = d.audioTracks.filter((t) => t.assetId !== assetId)
+      syncProjectAudio(d as Project)
+    }
   })
 }
 

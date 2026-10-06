@@ -58,7 +58,8 @@ export function AssetPanel() {
   }, [categories, items])
 
   const handleImportItem = async (item: BuiltInAssetItem, addLayer: boolean) => {
-    await importBuiltInAsset(item, addLayer)
+    const curTime = useEditor.getState().time
+    await importBuiltInAsset(item, addLayer, curTime)
   }
 
   const handleSaveManifest = async (jsonContent: string): Promise<boolean> => {
@@ -103,8 +104,8 @@ export function AssetPanel() {
           type="button"
           id="import-audio"
           className="btn sm icon"
-          onClick={importAudio}
-          title="Nhập nhạc nền từ máy tính"
+          onClick={() => importAudio(useEditor.getState().time)}
+          title="Nhập nhạc nền từ máy tính vào mốc thời gian hiện tại"
         >
           <IconMusic />
         </button>

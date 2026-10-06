@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { BuiltInAssetCategory, BuiltInAssetItem } from '@shared/ipc'
-import { IconCode, IconMusic, IconPlus, IconRefresh, IconSearch, IconX } from '../icons'
+import { IconCode, IconMusic, IconPause, IconPlay, IconPlus, IconRefresh, IconSearch, IconX } from '../icons'
+import { useAudioPreview } from './audioPreviewManager'
 
 interface BuiltInAssetGridProps {
   categories: BuiltInAssetCategory[]
@@ -44,6 +45,7 @@ export function BuiltInAssetGrid({
 }: BuiltInAssetGridProps) {
   const [search, setSearch] = useState('')
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const { playingId, toggleBuiltInAsset } = useAudioPreview()
 
   const activeCategory = categories.find((c) => c.id === selectedCategory) || categories[0]
 
@@ -178,7 +180,22 @@ export function BuiltInAssetGrid({
                   }}
                 >
                   {isAudio ? (
-                    <IconMusic width={28} height={28} style={{ color: 'var(--accent-2)' }} />
+                    <div className="audio-card-inner">
+                      <span className="audio-badge" title="Tệp âm thanh">
+                        <IconMusic width={10} height={10} strokeWidth={2.4} />
+                      </span>
+                      <button
+                        type="button"
+                        className={`btn sm icon audio-preview-btn${playingId === item.id ? ' active' : ''}`}
+                        title={playingId === item.id ? 'Dừng nghe thử' : 'Nghe thử âm thanh này'}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleBuiltInAsset(item)
+                        }}
+                      >
+                        {playingId === item.id ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
+                      </button>
+                    </div>
                   ) : item.previewUrl ? (
                     <img src={item.previewUrl} alt={item.name} draggable={false} loading="lazy" />
                   ) : (
@@ -199,7 +216,7 @@ export function BuiltInAssetGrid({
                           (onSelectItem
                             ? 'Chọn đổi sang ảnh này'
                             : isAudio
-                              ? 'Dùng làm nhạc nền'
+                              ? 'Thêm âm thanh vào mốc thời gian hiện tại'
                               : 'Thêm thành layer vào cảnh')
                         }
                         onClick={(e) => {

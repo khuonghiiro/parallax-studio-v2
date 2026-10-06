@@ -9,22 +9,42 @@ import {
   IconCopy,
   IconDown,
   IconEye,
+  IconImage,
   IconLock,
+  IconSparkles,
+  IconSquare,
+  IconText,
   IconTrash,
   IconUp
 } from '../icons'
 import { TYPE_COLORS } from '../TopView'
-import { LAYER_PROPS, TYPE_LETTER } from './timelineTypes'
+import { LAYER_PROPS } from './timelineTypes'
 import { TimelineRow } from './TimelineRow'
 import { TimelineGlowKeys } from './TimelineGlowKeys'
 import { getFxColor, renderFxIcon } from './fxIcons'
 import { getAllGlowConfigs } from '../../engine/layerGlow'
+
+function renderLayerTypeIcon(type: Layer['type']) {
+  switch (type) {
+    case 'image':
+      return <IconImage width={11} height={11} strokeWidth={2.2} />
+    case 'particles':
+      return <IconSparkles width={11} height={11} strokeWidth={1.8} />
+    case 'text':
+      return <IconText width={11} height={11} strokeWidth={2.4} />
+    case 'solid':
+      return <IconSquare width={11} height={11} strokeWidth={2.2} />
+    default:
+      return <IconImage width={11} height={11} strokeWidth={2.2} />
+  }
+}
 
 export interface TimelineLayerRowProps {
   layer: Layer
   isOpen: boolean
   isSelected: boolean
   isRenaming: boolean
+  nested?: boolean
   time: number
   x: (t: number) => number
   trackWidth?: number
@@ -44,6 +64,7 @@ export function TimelineLayerRow({
   isOpen,
   isSelected,
   isRenaming,
+  nested,
   time,
   x,
   trackWidth,
@@ -197,12 +218,12 @@ export function TimelineLayerRow({
         onTrackPointerDown={onTrackPointerDown}
         onTrackContextMenu={(e) => onBarContextMenu?.(e, layer)}
         name={
-          <div className="tl-name">
+          <div className={`tl-name${nested ? ' nested' : ''}`}>
             <button className="mini" onClick={(e) => (e.stopPropagation(), onToggleOpen())}>
               <IconCaret className={`caret${isOpen ? ' open' : ''}`} />
             </button>
-            <span className="ico" style={{ background: color }}>
-              {TYPE_LETTER[layer.type]}
+            <span className="ico" style={{ background: color }} title={`Layer ${layer.type.toUpperCase()}: ${layer.name}`}>
+              {renderLayerTypeIcon(layer.type)}
             </span>
             <span className="label" onDoubleClick={() => setRenaming(layer.id)}>
               {isRenaming ? (
@@ -454,7 +475,7 @@ export function TimelineLayerRow({
             selected={isSelected}
             trackWidth={trackWidth}
             onTrackPointerDown={onTrackPointerDown}
-            name={<div className="tl-name sub">{p.label}</div>}
+            name={<div className={`tl-name sub${nested ? ' nested' : ''}`}>{p.label}</div>}
             track={renderLayerTrackKeys(layer.transform[p.prop] as Animatable<AnimValue>, p)}
           />
         ))}
@@ -474,7 +495,7 @@ export function TimelineLayerRow({
             onTrackPointerDown={onTrackPointerDown}
             name={
               <div
-                className="tl-name sub"
+                className={`tl-name sub${nested ? ' nested' : ''}`}
                 style={{
                   color: glowColor,
                   fontWeight: 600,
@@ -510,14 +531,14 @@ export function TimelineLayerRow({
                   ({isAllOff
                     ? 'Đã tắt'
                     : isMultiple
-                    ? `${activeCount} bật`
-                    : primaryGlow.animated === 'breathe'
-                    ? 'Thở'
-                    : primaryGlow.animated === 'blink'
-                    ? 'Chớp'
-                    : primaryGlow.animated === 'flicker'
-                    ? 'Flicker'
-                    : 'Tĩnh'})
+                      ? `${activeCount} bật`
+                      : primaryGlow.animated === 'breathe'
+                        ? 'Thở'
+                        : primaryGlow.animated === 'blink'
+                          ? 'Chớp'
+                          : primaryGlow.animated === 'flicker'
+                            ? 'Flicker'
+                            : 'Tĩnh'})
                 </span>
               </div>
             }

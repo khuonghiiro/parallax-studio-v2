@@ -65,7 +65,8 @@ export function createProject(comp: Partial<Composition> = {}): Project {
     shots: [],
     layers: [],
     assets: [],
-    audio: null
+    audio: null,
+    audioTracks: []
   }
 }
 
@@ -100,6 +101,19 @@ export function migrateProject(raw: unknown): Project {
   p.shots ??= []
   if (!p.camera.fade) p.camera.fade = anim(0)
   for (const l of p.layers) if ((l as Layer).shotId === undefined) (l as Layer).shotId = null
+  if (p.audio && (!p.audioTracks || p.audioTracks.length === 0)) {
+    p.audioTracks = [
+      {
+        id: p.audio.id || 'main',
+        assetId: p.audio.assetId,
+        name: p.audio.name,
+        offset: p.audio.offset,
+        volume: p.audio.volume
+      }
+    ]
+  } else if (!p.audioTracks) {
+    p.audioTracks = []
+  }
   return p as Project
 }
 

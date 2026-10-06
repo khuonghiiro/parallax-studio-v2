@@ -4,7 +4,7 @@ import { composeDepthMatrix, depthToThree, threeToDepth } from '../../engine/spa
 
 export const TYPE_COLORS: Record<string, string> = {
   image: '#8b7bff',
-  text: '#3dd6f5',
+  text: '#0284c7',
   solid: '#f59e6b',
   particles: '#ffc24b'
 }

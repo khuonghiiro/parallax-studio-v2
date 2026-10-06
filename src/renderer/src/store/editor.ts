@@ -50,6 +50,7 @@ interface EditorState {
   loop: boolean
   selectedLayerId: string | null
   selectedShotId: string | null
+  selectedAudioTrackId: string | null
   selectedKey: KeySelection | null
   inspectorTab: 'layer' | 'camera' | 'scene'
   past: Project[]
@@ -67,6 +68,7 @@ interface EditorState {
   setLoop(l: boolean): void
   selectLayer(id: string | null): void
   selectShot(id: string | null): void
+  selectAudioTrack(id: string | null): void
   selectKey(k: KeySelection | null): void
   setInspectorTab(tab: EditorState['inspectorTab']): void
   loadProject(p: Project, filePath: string | null): void
@@ -82,6 +84,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   loop: true,
   selectedLayerId: null,
   selectedShotId: null,
+  selectedAudioTrackId: null,
   selectedKey: null,
   inspectorTab: 'scene',
   past: [],
@@ -135,6 +138,7 @@ export const useEditor = create<EditorState>((set, get) => ({
       const layer = id ? s.project.layers.find((l) => l.id === id) : undefined
       return {
         selectedLayerId: id,
+        selectedAudioTrackId: null,
         // Selecting a layer makes its shot the active shot (new layers go there).
         selectedShotId: layer ? layer.shotId : s.selectedShotId,
         selectedKey: null,
@@ -146,9 +150,19 @@ export const useEditor = create<EditorState>((set, get) => ({
     set((s) => ({
       selectedShotId: id,
       selectedLayerId: null,
+      selectedAudioTrackId: null,
       selectedKey: null,
       inspectorTab: id ? 'layer' : s.inspectorTab
     }))
+  },
+  selectAudioTrack(id) {
+    set({
+      selectedAudioTrackId: id,
+      selectedLayerId: null,
+      selectedShotId: null,
+      selectedKey: null,
+      inspectorTab: 'scene'
+    })
   },
   selectKey(k) {
     set({ selectedKey: k })
@@ -165,6 +179,7 @@ export const useEditor = create<EditorState>((set, get) => ({
       playing: false,
       selectedLayerId: null,
       selectedShotId: null,
+      selectedAudioTrackId: null,
       selectedKey: null,
       past: [],
       future: [],

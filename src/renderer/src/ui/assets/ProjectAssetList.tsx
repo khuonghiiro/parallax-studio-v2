@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { addLayerFromAsset, removeAsset } from '../../actions'
+import { addAudioTrackFromAsset, addLayerFromAsset, removeAsset } from '../../actions'
 import { assetStore } from '../../project/assets'
 import { useEditor } from '../../store/editor'
-import { IconMusic, IconPlus, IconTrash } from '../icons'
+import { IconMusic, IconPause, IconPlay, IconPlus, IconTrash } from '../icons'
+import { useAudioPreview } from './audioPreviewManager'
 
 export function ProjectAssetList() {
   const assets = useEditor((s) => s.project.assets)
   const audio = useEditor((s) => s.project.audio)
   const [hover, setHover] = useState<string | null>(null)
+  const { playingId, toggleProjectAsset } = useAudioPreview()
 
   if (assets.length === 0) {
     return (
@@ -24,30 +26,43 @@ export function ProjectAssetList() {
       {assets.map((a) => {
         const rt = assetStore.get(a.id)
         const isAudio = a.kind === 'audio'
+        const isPlaying = playingId === a.id
         return (
           <div
             key={a.id}
-            className={`asset${isAudio ? ' audio' : ''}`}
+            className={`asset${isAudio ? ' audio' : ''}${isPlaying ? ' playing-audio' : ''}`}
             title={
               isAudio
-                ? `${a.name} — ${a.duration?.toFixed(1)}s`
+                ? `${a.name} — ${a.duration?.toFixed(1)}s\nClick nút Play để nghe thử · Double-click hoặc bấm + để thêm vào timeline`
                 : `${a.name} — ${a.width}×${a.height}\nDouble-click để thêm layer`
             }
-            onDoubleClick={() => !isAudio && addLayerFromAsset(a.id)}
+            onDoubleClick={() => {
+              if (isAudio) addAudioTrackFromAsset(a.id, useEditor.getState().time)
+              else addLayerFromAsset(a.id)
+            }}
             onMouseEnter={() => setHover(a.id)}
             onMouseLeave={() => setHover(null)}
-            draggable={!isAudio}
+            draggable
             onDragStart={(e) => e.dataTransfer.setData('application/x-pxs-asset', a.id)}
             onDragEnd={() => setHover(null)}
           >
             {isAudio ? (
-              <IconMusic
-                width={26}
-                height={26}
-                style={{
-                  color: audio?.assetId === a.id ? 'var(--accent-2)' : 'var(--text-faint)'
-                }}
-              />
+              <div className="audio-card-inner">
+                <span className="audio-badge" title="Tệp âm thanh">
+                  <IconMusic width={10} height={10} strokeWidth={2.4} />
+                </span>
+                <button
+                  type="button"
+                  className={`btn sm icon audio-preview-btn${isPlaying ? ' active' : ''}`}
+                  title={isPlaying ? 'Dừng nghe thử' : 'Nghe thử âm thanh này'}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggleProjectAsset(a.id)
+                  }}
+                >
+                  {isPlaying ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
+                </button>
+              </div>
             ) : (
               rt?.thumbUrl && <img src={rt.thumbUrl} alt={a.name} draggable={false} />
             )}
@@ -73,7 +88,16 @@ export function ProjectAssetList() {
             <span className="asset-name">{a.name}</span>
             {hover === a.id && (
               <div className="add-hint" style={{ display: 'flex', gap: 3 }}>
-                {!isAudio && (
+                {isAudio ? (
+                  <button
+                    type="button"
+                    className="btn sm icon"
+                    title="Thêm vào mốc thời gian hiện tại (tại vị trí kim phát)"
+                    onClick={() => addAudioTrackFromAsset(a.id, useEditor.getState().time)}
+                  >
+                    <IconPlus />
+                  </button>
+                ) : (
                   <button
                     type="button"
                     className="btn sm icon"

@@ -1,15 +1,16 @@
-import { importAudio } from '../../actions'
+import { duplicateAudioTrack, importAudio, removeAudioTrack } from '../../actions'
 import { assetStore } from '../../project/assets'
+import { getProjectAudioTracks, syncProjectAudio } from '../../project/audioTracks'
 import { useEditor } from '../../store/editor'
 import { ColorInput, NumberInput, Row, Slider, Switch, TextInput } from '../controls'
-import { IconMusic, IconTrash } from '../icons'
+import { IconCopy, IconMusic, IconPlus, IconTrash } from '../icons'
 import { SIZE_PRESETS } from './types'
 
 export function SceneInspector() {
   const project = useEditor((s) => s.project)
   const update = useEditor((s) => s.update)
-  const { comp, look, audio } = project
-  const audioAsset = audio ? assetStore.get(audio.assetId) : undefined
+  const { comp, look } = project
+  const tracks = getProjectAudioTracks(project)
   const sizeKey = `${comp.width}x${comp.height}`
 
   return (
@@ -113,30 +114,93 @@ export function SceneInspector() {
       </div>
 
       <div className="section">
-        <div className="section-title">
-          <IconMusic width={13} height={13} /> Nhạc nền
-        </div>
-        {audio ? (
-          <>
-            <Row label="File">
-              <span className="hint-text" style={{ overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
-                {audioAsset?.meta.name} · {audioAsset?.meta.duration?.toFixed(1)}s
-              </span>
-              <button className="btn sm icon danger" title="Bỏ nhạc nền" onClick={() => update((d) => void (d.audio = null))}>
-                <IconTrash />
-              </button>
-            </Row>
-            <Row label="Bắt đầu lúc (s)">
-              <NumberInput axis="t" value={audio.offset} step={0.01} precision={2} onChange={(v, k) => update((d) => void (d.audio && (d.audio.offset = v)), k)} />
-            </Row>
-            <Row label="Âm lượng">
-              <Slider value={audio.volume} min={0} max={1} onChange={(v, k) => update((d) => void (d.audio && (d.audio.volume = v)), k)} format={(v) => `${Math.round(v * 100)}%`} />
-            </Row>
-          </>
-        ) : (
-          <button className="btn sm" onClick={importAudio}>
-            <IconMusic /> Thêm nhạc nền…
+        <div className="section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <IconMusic width={13} height={13} /> Nhạc nền & Âm thanh
+          </span>
+          <button
+            className="btn sm"
+            style={{ padding: '2px 8px', fontSize: '11px', height: '22px' }}
+            onClick={() => importAudio(useEditor.getState().time)}
+            title="Nhập thêm file âm thanh từ máy tính tại vị trí kim phát"
+          >
+            <IconPlus width={11} height={11} /> Thêm nhạc
           </button>
+        </div>
+        {tracks.length > 0 ? (
+          tracks.map((track, idx) => {
+            const trackAsset = assetStore.get(track.assetId)
+            return (
+              <div
+                key={track.id}
+                style={{
+                  border: '1px solid var(--line-soft)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '6px 8px',
+                  marginBottom: 8,
+                  background: 'var(--bg-1)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, gap: 4 }}>
+                  <span className="hint-text" style={{ overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, fontWeight: 600 }}>
+                    {idx + 1}. {track.name || trackAsset?.meta.name}
+                  </span>
+                  <div style={{ display: 'inline-flex', gap: 2 }}>
+                    <button
+                      className="btn sm icon"
+                      title="Nhân bản đoạn âm thanh này tại kim phát"
+                      onClick={() => duplicateAudioTrack(track.id)}
+                    >
+                      <IconCopy width={11} height={11} />
+                    </button>
+                    <button
+                      className="btn sm icon danger"
+                      title="Xoá đoạn âm thanh này"
+                      onClick={() => removeAudioTrack(track.id)}
+                    >
+                      <IconTrash width={11} height={11} />
+                    </button>
+                  </div>
+                </div>
+                <Row label="Bắt đầu (s)">
+                  <NumberInput
+                    axis="t"
+                    value={track.offset}
+                    step={0.01}
+                    precision={2}
+                    onChange={(v, k) =>
+                      update((d) => {
+                        const target = d.audioTracks?.find((t) => t.id === track.id)
+                        if (target) target.offset = v
+                        else if (d.audio && d.audio.id === track.id) d.audio.offset = v
+                        syncProjectAudio(d as any)
+                      }, k)
+                    }
+                  />
+                </Row>
+                <Row label="Âm lượng">
+                  <Slider
+                    value={track.volume}
+                    min={0}
+                    max={1}
+                    onChange={(v, k) =>
+                      update((d) => {
+                        const target = d.audioTracks?.find((t) => t.id === track.id)
+                        if (target) target.volume = v
+                        else if (d.audio && d.audio.id === track.id) d.audio.volume = v
+                        syncProjectAudio(d as any)
+                      }, k)
+                    }
+                    format={(v) => `${Math.round(v * 100)}%`}
+                  />
+                </Row>
+              </div>
+            )
+          })
+        ) : (
+          <div style={{ padding: '8px 0', textAlign: 'center', color: 'var(--text-faint)', fontSize: '11px' }}>
+            Chưa có đoạn âm thanh nào. Bấm <b>Thêm nhạc</b> để tải từ máy tính vào mốc thời gian hiện tại.
+          </div>
         )}
       </div>
     </>

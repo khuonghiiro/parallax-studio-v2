@@ -27,10 +27,12 @@ export interface FocusRequest {
 
 export interface ViewState extends ViewPrefs {
   focus: FocusRequest | null
-  dialog: 'path' | 'sketch' | 'performance' | 'mcp' | null
+  dialog: 'path' | 'sketch' | 'performance' | 'mcp' | 'audio' | null
+  audioDialogMode: 'levels' | 'waveform'
   set(p: Partial<ViewPrefs>): void
   toggleTheme(): void
   openDialog(d: ViewState['dialog']): void
+  openAudioDialog(mode?: 'levels' | 'waveform'): void
   /** Frame something in the 3D view (switches to it if hidden). */
   requestFocus(kind: FocusRequest['kind'], id?: string): void
 }
@@ -79,8 +81,12 @@ export const useView = create<ViewState>((set, get) => ({
   ...load(),
   focus: null,
   dialog: null,
+  audioDialogMode: 'waveform',
   openDialog(dialog) {
     set({ dialog })
+  },
+  openAudioDialog(mode = 'waveform') {
+    set({ dialog: 'audio', audioDialogMode: mode })
   },
   toggleTheme() {
     const next: Theme = get().theme === 'light' ? 'dark' : 'light'

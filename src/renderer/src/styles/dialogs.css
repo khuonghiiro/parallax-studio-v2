@@ -489,3 +489,6 @@
 .perf-meter-fill.warn {
   background: linear-gradient(90deg, #e67e22, #e74c3c);
 }
+
+
+/* Note: Audio Studio styles modularized to ./audioStudio.css */

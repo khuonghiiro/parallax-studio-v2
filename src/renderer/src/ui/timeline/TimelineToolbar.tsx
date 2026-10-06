@@ -25,7 +25,8 @@ import {
   splitSelectedLayer
 } from './timelineActions'
 import { FxPresetMenu } from './FxPresetMenu'
-import { deleteSelectedLayer, duplicateSelectedLayer } from '../../actions'
+import { deleteSelectedAudioTrack, deleteSelectedLayer, duplicateSelectedLayer } from '../../actions'
+import { useEditor } from '../../store/editor'
 
 export interface TimelineToolbarProps {
   time: number
@@ -54,6 +55,9 @@ export function TimelineToolbar({
   setLoop,
   setZoom
 }: TimelineToolbarProps) {
+  const selectedAudioTrackId = useEditor((s) => s.selectedAudioTrackId)
+  const canDelete = hasSelectedLayer || !!selectedAudioTrackId
+
   return (
     <div className="timeline-toolbar">
       {/* 1. Playback Transport Group */}
@@ -188,9 +192,12 @@ export function TimelineToolbar({
         <button
           type="button"
           className="btn ghost icon sm danger"
-          title="Xoá layer (Del)"
-          disabled={!hasSelectedLayer}
-          onClick={() => deleteSelectedLayer()}
+          title={selectedAudioTrackId ? 'Xoá đoạn âm thanh đã chọn (Del)' : 'Xoá layer đã chọn (Del)'}
+          disabled={!canDelete}
+          onClick={() => {
+            if (selectedAudioTrackId) deleteSelectedAudioTrack()
+            else deleteSelectedLayer()
+          }}
         >
           <IconTrash width={13} height={13} />
         </button>

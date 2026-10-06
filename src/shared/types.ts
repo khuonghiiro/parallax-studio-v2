@@ -250,9 +250,26 @@ export interface Composition {
 }
 
 export interface AudioTrack {
+  id?: string
+  name?: string
   assetId: string
   offset: number // seconds; positive delays the audio
   volume: number // 0..1
+}
+
+export interface AudioTrackItem {
+  id: string
+  assetId: string
+  name?: string
+  offset: number // seconds; start time on timeline
+  volume: number // 0..2 (supports decibel gain boost)
+  playbackRate?: number // 0.25..4, default 1 (speed & pitch)
+  trimIn?: number // seconds from start of original asset, default 0
+  duration?: number // seconds to play, default undefined (plays to end)
+  fadeIn?: number // seconds, default 0
+  fadeOut?: number // seconds, default 0
+  tone?: 'normal' | 'bass' | 'treble' | 'vocal' | 'warm' // EQ tone filter preset
+  muted?: boolean // true if track is muted
 }
 
 export type AssetKind = 'image' | 'audio'
@@ -287,4 +304,5 @@ export interface Project {
   layers: Layer[]
   assets: AssetMeta[]
   audio: AudioTrack | null
+  audioTracks?: AudioTrackItem[]
 }

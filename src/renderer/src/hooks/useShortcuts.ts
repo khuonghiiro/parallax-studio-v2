@@ -1,16 +1,19 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { snapToFrame } from '../animation/math'
 import {
   addTextLayer,
+  deleteSelectedAudioTrack,
   deleteSelectedKeyframe,
   deleteSelectedLayer,
   duplicateSelectedLayer,
   importImages,
   newProject,
   openProject,
-  saveProject
+  saveProject,
+  toast
 } from '../actions'
 import { useEditor } from '../store/editor'
+import { useView } from '../store/view'
 
 function isTyping(e: KeyboardEvent): boolean {
   const el = e.target as HTMLElement | null
@@ -20,9 +23,11 @@ function isTyping(e: KeyboardEvent): boolean {
 }
 
 export function useShortcuts(onExport: () => void): void {
+  const lastLPressRef = useRef<number>(0)
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      if (isTyping(e)) return
+      if (e.defaultPrevented || isTyping(e)) return
       const st = useEditor.getState()
       const ctrl = e.ctrlKey || e.metaKey
       const fps = st.project.comp.fps
@@ -62,11 +67,34 @@ export function useShortcuts(onExport: () => void): void {
           break
         case 'Delete':
         case 'Backspace':
-          if (!deleteSelectedKeyframe()) deleteSelectedLayer()
+          if (!deleteSelectedKeyframe()) {
+            if (!deleteSelectedAudioTrack()) {
+              deleteSelectedLayer()
+            }
+          }
           break
         case 'Escape':
+          if (useView.getState().dialog) {
+            useView.getState().openDialog(null)
+            break
+          }
           st.selectLayer(null)
+          st.selectAudioTrack(null)
           break
+        case 'l':
+        case 'L': {
+          const now = performance.now()
+          const isDoubleL = now - lastLPressRef.current < 450
+          lastLPressRef.current = now
+          useEditor.getState().setInspectorTab('scene')
+          useView.getState().openAudioDialog(isDoubleL ? 'waveform' : 'levels')
+          if (isDoubleL) {
+            toast('Phím tắt LL (After Effects): Đã mở bảng sóng âm Waveform & Audio Levels')
+          } else {
+            toast('Phím tắt L (After Effects): Đã mở bảng cấu hình Audio Levels (âm lượng)')
+          }
+          break
+        }
         default:
           return
       }

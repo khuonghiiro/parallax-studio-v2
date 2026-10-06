@@ -7,9 +7,20 @@ import { IconCamera, IconCaret, IconFilm } from './icons'
 import { CAMERA_PROPS, PAD, SHOT_PROPS, NAME_W, shotSegments } from './timeline/timelineTypes'
 import { TimelineRow } from './timeline/TimelineRow'
 import { AudioRow } from './timeline/AudioRow'
+import { getProjectAudioTracks } from '../project/audioTracks'
 import { TimelineToolbar } from './timeline/TimelineToolbar'
 import { TimelineLayerRow } from './timeline/TimelineLayerRow'
 import { openFxPresetMenu } from './timeline/FxPresetMenu'
+import {
+  addAudioTrackFromAsset,
+  addLayerFromAsset,
+  duplicateAudioTrack,
+  duplicateSelectedLayer,
+  importBuiltInAsset,
+  setAudioFromBytes,
+  toast
+} from '../actions'
+import { useView } from '../store/view'
 import {
   addKeyframeForSelectedLayer,
   setSelectedLayerInPoint,
@@ -35,12 +46,24 @@ export function Timeline() {
   const trackRef = useRef<HTMLDivElement>(null)
   const rulerScrollRef = useRef<HTMLDivElement>(null)
   const rowsScrollRef = useRef<HTMLDivElement>(null)
+  const lastLPressRef = useRef<number>(0)
+  const isSyncingScrollRef = useRef(false)
   const [trackW, setTrackW] = useState(800)
+  const [scrollbarW, setScrollbarW] = useState(0)
 
+  // Measure visible track area from rows container to account for vertical scrollbar
   useEffect(() => {
-    const el = rulerScrollRef.current
+    const el = rowsScrollRef.current
     if (!el) return
-    const ro = new ResizeObserver(() => setTrackW(el.clientWidth))
+    const update = () => {
+      const sw = el.offsetWidth - el.clientWidth
+      setScrollbarW(sw)
+      // Track width available in rows scroll area
+      const available = Math.max(100, el.clientWidth - NAME_W)
+      setTrackW(available)
+    }
+    update()
+    const ro = new ResizeObserver(update)
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
@@ -59,8 +82,20 @@ export function Timeline() {
 
   // Synchronize horizontal scrolling between Ruler and Rows Track Viewport
   const onRowsScroll = (e: React.UIEvent<HTMLDivElement>): void => {
+    if (isSyncingScrollRef.current) return
     if (rulerScrollRef.current) {
+      isSyncingScrollRef.current = true
       rulerScrollRef.current.scrollLeft = e.currentTarget.scrollLeft
+      isSyncingScrollRef.current = false
+    }
+  }
+
+  const onRulerScroll = (e: React.UIEvent<HTMLDivElement>): void => {
+    if (isSyncingScrollRef.current) return
+    if (rowsScrollRef.current) {
+      isSyncingScrollRef.current = true
+      rowsScrollRef.current.scrollLeft = e.currentTarget.scrollLeft
+      isSyncingScrollRef.current = false
     }
   }
 
@@ -110,6 +145,37 @@ export function Timeline() {
           e.preventDefault()
           setZoom((z) => Math.max(1, Math.round((z - 0.25) * 100) / 100))
         }
+      } else if ((e.key === 'd' || e.key === 'D') && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        const st = useEditor.getState()
+        if (st.selectedLayerId) {
+          duplicateSelectedLayer()
+        } else {
+          const tracks = getProjectAudioTracks(st.project)
+          if (tracks.length > 0) {
+            duplicateAudioTrack(tracks[tracks.length - 1].id)
+          }
+        }
+      } else if (e.key === 'l' || e.key === 'L') {
+        const target = e.target as HTMLElement | null
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+          return
+        }
+        if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault()
+          const now = performance.now()
+          const isDoubleL = now - lastLPressRef.current < 450
+          lastLPressRef.current = now
+
+          const st = useEditor.getState()
+          st.setInspectorTab('scene')
+          useView.getState().openAudioDialog(isDoubleL ? 'waveform' : 'levels')
+          if (isDoubleL) {
+            toast('Phím tắt LL (After Effects): Đã mở bảng sóng âm Waveform & Audio Levels')
+          } else {
+            toast('Phím tắt L (After Effects): Đã mở bảng cấu hình Audio Levels (âm lượng)')
+          }
+        }
       }
     }
 
@@ -133,6 +199,62 @@ export function Timeline() {
     }
     el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', up)
+  }
+
+  const handleTimelineDragOver = (e: React.DragEvent): void => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+  }
+
+  const handleTimelineDrop = async (e: React.DragEvent): Promise<void> => {
+    e.preventDefault()
+    const rulerEl = trackRef.current
+    let dropTime = time
+    if (rulerEl) {
+      const rect = rulerEl.getBoundingClientRect()
+      dropTime = Math.max(0, Math.min(comp.duration, snapToFrame(tAt(e.clientX - rect.left), comp.fps)))
+    }
+
+    // 1. Built-in asset
+    const builtInRaw = e.dataTransfer.getData('application/x-pxs-builtin-asset')
+    if (builtInRaw) {
+      try {
+        const item = JSON.parse(builtInRaw)
+        if (item.kind === 'audio') {
+          await importBuiltInAsset(item, true, dropTime)
+          setTime(dropTime)
+        } else if (item.kind === 'image') {
+          await importBuiltInAsset(item, true, dropTime)
+        }
+      } catch (err) {
+        console.error('Error dropping built-in asset on timeline:', err)
+      }
+      return
+    }
+
+    // 2. Project asset
+    const assetId = e.dataTransfer.getData('application/x-pxs-asset')
+    if (assetId) {
+      const a = project.assets.find((ast) => ast.id === assetId)
+      if (a?.kind === 'audio') {
+        addAudioTrackFromAsset(assetId, dropTime)
+        setTime(dropTime)
+      } else {
+        addLayerFromAsset(assetId)
+      }
+      return
+    }
+
+    // 3. Dropped OS files
+    if (e.dataTransfer.files.length) {
+      for (const file of Array.from(e.dataTransfer.files)) {
+        if (file.type.startsWith('audio/')) {
+          const data = new Uint8Array(await file.arrayBuffer())
+          await setAudioFromBytes(file.name, file.type, data, dropTime)
+          setTime(dropTime)
+        }
+      }
+    }
   }
 
   // Click on any track empty background to jump playhead
@@ -355,6 +477,7 @@ export function Timeline() {
           <div
             className="tl-ruler-viewport"
             ref={rulerScrollRef}
+            onScroll={onRulerScroll}
             onWheel={handleTimelineWheel}
           >
             <div
@@ -362,6 +485,8 @@ export function Timeline() {
               ref={trackRef}
               style={{ width: contentW }}
               onPointerDown={scrub}
+              onDragOver={handleTimelineDragOver}
+              onDrop={handleTimelineDrop}
             >
               {ticks.map((tk, i) => (
                 <div key={i} className={`tick ${tk.major ? 'major' : ''}`} style={{ left: x(tk.t), height: tk.major ? 9 : 5 }}>
@@ -371,6 +496,17 @@ export function Timeline() {
               <div className="tl-ruler-playhead" style={{ left: x(time) }} />
             </div>
           </div>
+
+          {scrollbarW > 0 && (
+            <div
+              style={{
+                width: scrollbarW,
+                flex: 'none',
+                background: 'var(--bg-1)',
+                borderLeft: '1px solid var(--line-soft)'
+              }}
+            />
+          )}
         </div>
 
         {/* Rows Scroll Area */}
@@ -379,6 +515,8 @@ export function Timeline() {
           ref={rowsScrollRef}
           onScroll={onRowsScroll}
           onWheel={handleTimelineWheel}
+          onDragOver={handleTimelineDragOver}
+          onDrop={handleTimelineDrop}
           style={{ flex: 1, overflowX: 'auto', overflowY: 'auto', position: 'relative' }}
         >
           <div style={{ width: NAME_W + contentW, minWidth: '100%', position: 'relative' }}>
@@ -392,8 +530,8 @@ export function Timeline() {
                   <button className="mini" onClick={(e) => (e.stopPropagation(), toggle('camera'))}>
                     <IconCaret className={`caret${camOpen ? ' open' : ''}`} />
                   </button>
-                  <span className="ico" style={{ background: '#3dd6f5' }}>
-                    <IconCamera width={11} height={11} />
+                  <span className="ico" style={{ background: '#2563eb' }} title="Camera 3D">
+                    <IconCamera width={11} height={11} strokeWidth={2.2} />
                   </span>
                   <span className="label">Camera</span>
                 </div>
@@ -454,7 +592,16 @@ export function Timeline() {
               />
             )}
 
-            {project.audio && <AudioRow x={x} trackW={contentW} />}
+            {getProjectAudioTracks(project).map((track, idx, all) => (
+              <AudioRow
+                key={track.id}
+                track={track}
+                trackIndex={idx}
+                totalTracks={all.length}
+                x={x}
+                trackW={contentW}
+              />
+            ))}
 
             {groups.map((g) => {
               const shot = g.shot
@@ -514,6 +661,7 @@ export function Timeline() {
                       <TimelineLayerRow
                         key={layer.id}
                         layer={layer}
+                        nested={project.shots.length > 0 && !!shot}
                         isOpen={expanded.has(layer.id)}
                         isSelected={layer.id === selectedLayerId}
                         isRenaming={renaming === layer.id}

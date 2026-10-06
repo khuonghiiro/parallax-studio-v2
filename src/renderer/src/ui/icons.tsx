@@ -101,8 +101,8 @@ export const IconImage = (p: P) => (
   </svg>
 )
 export const IconText = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M5 6V4h14v2M12 4v16M9 20h6" />
+  <svg {...base({ strokeWidth: 2.2, ...p })}>
+    <path d="M4 6V4h16v2M12 4v16" />
   </svg>
 )
 export const IconSquare = (p: P) => (
@@ -438,5 +438,30 @@ export const IconFxPulse = (p: P) => (
     <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="currentColor" />
   </svg>
 )
+
+export const IconSliders = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" />
+  </svg>
+)
+
+export const IconVolume = (p: P) => (
+  <svg {...base(p)}>
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+  </svg>
+)
+
+export const IconMerge = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M8 6h10a2 2 0 0 1 2 2v2" />
+    <path d="M8 18h10a2 2 0 0 0 2-2v-2" />
+    <line x1="4" y1="6" x2="8" y2="6" />
+    <line x1="4" y1="18" x2="8" y2="18" />
+    <path d="M16 12h5M18 9l3 3-3 3" />
+  </svg>
+)
+
+
 
 

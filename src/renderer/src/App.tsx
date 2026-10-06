@@ -10,6 +10,7 @@ import { CameraSketchDialog } from './ui/CameraSketchDialog'
 import { ExportDialog } from './ui/ExportDialog'
 import { PerformanceDialog } from './ui/PerformanceDialog'
 import { McpDialog } from './ui/McpDialog'
+import { AudioStudioDialog } from './ui/AudioStudioDialog'
 import { Inspector } from './ui/Inspector'
 import { LeftPanel } from './ui/LeftPanel'
 import { Timeline } from './ui/Timeline'
@@ -120,6 +121,7 @@ export default function App() {
       {dialog === 'sketch' && <CameraSketchDialog />}
       {dialog === 'performance' && <PerformanceDialog />}
       {dialog === 'mcp' && <McpDialog />}
+      {dialog === 'audio' && <AudioStudioDialog />}
       {toast && <div className="toast">{toast}</div>}
       {!ready && (
         <div className="loading-screen">

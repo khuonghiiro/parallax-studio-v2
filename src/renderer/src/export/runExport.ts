@@ -2,6 +2,7 @@ import type { ExportStartOptions } from '@shared/ipc'
 import type { Project } from '@shared/types'
 import { SceneRenderer } from '../engine/SceneRenderer'
 import { assetStore } from '../project/assets'
+import { getProjectAudioTracks, mixAudioTracksToWav } from '../project/audioTracks'
 import { extForMime } from '../project/serialize'
 
 export interface ExportOptions {
@@ -72,17 +73,33 @@ export async function runExport(
 
   try {
     let audio: ExportStartOptions['audio']
-    if ((opts.withAudio ?? true) && project.audio) {
-      const a = assetStore.get(project.audio.assetId)
-      const data = await assetStore.getBytes(project.audio.assetId)
-      if (a && data)
-        audio = {
-          data,
-          ext: extForMime(a.meta.mime),
-          offset: project.audio.offset - start,
-          volume: project.audio.volume,
-          duration: total / fps
+    if (opts.withAudio ?? true) {
+      const tracks = getProjectAudioTracks(project)
+      if (tracks.length > 1) {
+        const wavData = await mixAudioTracksToWav(tracks, total / fps, start)
+        if (wavData) {
+          audio = {
+            data: wavData,
+            ext: 'wav',
+            offset: 0,
+            volume: 1,
+            duration: total / fps
+          }
         }
+      } else if (tracks.length === 1) {
+        const tr = tracks[0]
+        const a = assetStore.get(tr.assetId)
+        const data = await assetStore.getBytes(tr.assetId)
+        if (a && data) {
+          audio = {
+            data,
+            ext: extForMime(a.meta.mime),
+            offset: tr.offset - start,
+            volume: tr.volume,
+            duration: total / fps
+          }
+        }
+      }
     }
 
     // Warm-up so fonts and first-frame textures are ready.

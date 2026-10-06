@@ -7,11 +7,16 @@
 [data-theme='dark'] {
   color-scheme: dark;
   /* Slate & Charcoal Surfaces */
-  --bg-0: #141414;        /* Deep workspace surround */
-  --bg-1: #1e1e1e;        /* Standard docked panel */
-  --bg-2: #252525;        /* Card / input background */
-  --bg-3: #2d2d2d;        /* Hover surface */
-  --bg-4: #383838;        /* Active / pressed surface */
+  --bg-0: #141414;
+  /* Deep workspace surround */
+  --bg-1: #1e1e1e;
+  /* Standard docked panel */
+  --bg-2: #252525;
+  /* Card / input background */
+  --bg-3: #2d2d2d;
+  /* Hover surface */
+  --bg-4: #383838;
+  /* Active / pressed surface */
 
   /* Crisp Pro 1px Borders */
   --line: #303030;
@@ -24,17 +29,22 @@
   --text-faint: #666666;
 
   /* Signature Adobe Accent Colors */
-  --accent: #2680eb;       /* AE Royal Blue (Selection, Primary Actions) */
+  --accent: #2680eb;
+  /* AE Royal Blue (Selection, Primary Actions) */
   --accent-hover: #3d8ff5;
-  --accent-cyan: #38bdf8;  /* AE Electric Cyan (Scrub numbers, CTI laser line, Timecode) */
+  --accent-cyan: #38bdf8;
+  /* AE Electric Cyan (Scrub numbers, CTI laser line, Timecode) */
   --accent-2: #38bdf8;
   --accent-grad: linear-gradient(135deg, #1473e6 0%, #2680eb 60%, #38bdf8 100%);
 
   /* Animation & State Colors */
-  --key: #f59e0b;          /* AE Diamond Keyframe Gold */
+  --key: #f59e0b;
+  /* AE Diamond Keyframe Gold */
   --key-glow: rgba(245, 158, 11, 0.4);
-  --danger: #ef4444;       /* AE Red */
-  --ok: #22c55e;           /* Online / OK Green */
+  --danger: #ef4444;
+  /* AE Red */
+  --ok: #22c55e;
+  /* Online / OK Green */
 
   /* 3D Axis Colors (AE Standard) */
   --axis-x: #ff4757;
@@ -42,7 +52,8 @@
   --axis-z: #3742fa;
 
   /* Geometry & Shadows */
-  --radius: 4px;           /* Sharp, pro rectangular aesthetic */
+  --radius: 4px;
+  /* Sharp, pro rectangular aesthetic */
   --radius-sm: 3px;
   --radius-pill: 9999px;
   --shadow: 0 12px 36px rgba(0, 0, 0, 0.65);
@@ -74,11 +85,16 @@
 .app.light {
   color-scheme: light;
   /* Clean Light Surfaces */
-  --bg-0: #e2e4e8;        /* Soft neutral workspace surround */
-  --bg-1: #f1f2f5;        /* Light docked panel */
-  --bg-2: #ffffff;        /* Crisp white inputs / cards / rows */
-  --bg-3: #e6e8ec;        /* Hover surface */
-  --bg-4: #d8dbe2;        /* Active / pressed surface */
+  --bg-0: #e2e4e8;
+  /* Soft neutral workspace surround */
+  --bg-1: #f1f2f5;
+  /* Light docked panel */
+  --bg-2: #ffffff;
+  /* Crisp white inputs / cards / rows */
+  --bg-3: #e6e8ec;
+  /* Hover surface */
+  --bg-4: #d8dbe2;
+  /* Active / pressed surface */
 
   /* Crisp Light Borders */
   --line: #cbd0d8;
@@ -86,22 +102,30 @@
   --line-focus: #1473e6;
 
   /* Typography Colors */
-  --text: #16181d;        /* Deep crisp charcoal text */
-  --text-dim: #4b5262;    /* High-contrast readable secondary */
-  --text-faint: #798294;  /* Muted text */
+  --text: #16181d;
+  /* Deep crisp charcoal text */
+  --text-dim: #4b5262;
+  /* High-contrast readable secondary */
+  --text-faint: #798294;
+  /* Muted text */
 
   /* Signature Accent Colors for Light Mode */
-  --accent: #1473e6;       /* AE Light Royal Blue */
+  --accent: #1473e6;
+  /* AE Light Royal Blue */
   --accent-hover: #0c62c7;
-  --accent-cyan: #0284c7;  /* High-contrast cyan/sky blue for scrub numbers */
+  --accent-cyan: #0284c7;
+  /* High-contrast cyan/sky blue for scrub numbers */
   --accent-2: #0284c7;
   --accent-grad: linear-gradient(135deg, #0c62c7 0%, #1473e6 60%, #0284c7 100%);
 
   /* Animation & State Colors */
-  --key: #d97706;          /* Rich amber/gold for keyframes */
+  --key: #d97706;
+  /* Rich amber/gold for keyframes */
   --key-glow: rgba(217, 119, 6, 0.25);
-  --danger: #dc2626;       /* Vivid Red */
-  --ok: #16a34a;           /* Forest Green */
+  --danger: #dc2626;
+  /* Vivid Red */
+  --ok: #16a34a;
+  /* Forest Green */
 
   /* 3D Axis Colors */
   --axis-x: #e11d48;
