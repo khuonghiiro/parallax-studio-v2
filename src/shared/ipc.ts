@@ -123,5 +123,7 @@ export interface McpApi {
   respond(res: McpResponse): void
   status(): Promise<McpStatus>
   onStatus(cb: (s: McpStatus) => void): () => void
+  disconnectAll(): Promise<void>
+  toggleListening(enable?: boolean): Promise<McpStatus>
 }
 

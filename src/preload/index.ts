@@ -32,7 +32,9 @@ const api: ParallaxApi = {
       const h = (_e: Electron.IpcRendererEvent, s: McpStatus): void => cb(s)
       ipcRenderer.on('mcp:status', h)
       return () => ipcRenderer.removeListener('mcp:status', h)
-    }
+    },
+    disconnectAll: () => ipcRenderer.invoke('mcp:disconnectAll'),
+    toggleListening: (enable?: boolean) => ipcRenderer.invoke('mcp:toggleListening', enable)
   }
 }
 

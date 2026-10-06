@@ -89,6 +89,13 @@ export class McpBridge {
       p.resolve(res)
     })
     ipcMain.handle('mcp:status', () => this.status)
+    ipcMain.handle('mcp:disconnectAll', () => {
+      this.disconnectAll()
+      return true
+    })
+    ipcMain.handle('mcp:toggleListening', (_e, enable?: boolean) => {
+      return this.toggleListening(enable)
+    })
   }
 
   /** Call when the window (re)loads — commands queue until the renderer subscribes again. */
@@ -106,9 +113,35 @@ export class McpBridge {
   }
 
   stop(): void {
-    for (const s of this.sockets) s.destroy()
+    this.disconnectAll()
     this.server?.close()
     this.server = null
+    this.status.listening = false
+    this.broadcast()
+  }
+
+  /** Close all active client connections to immediately release network and CPU/RAM resources. */
+  disconnectAll(): void {
+    for (const s of this.sockets) {
+      try {
+        s.destroy()
+      } catch {
+        /* ignore */
+      }
+    }
+    this.sockets.clear()
+    this.broadcast()
+  }
+
+  /** Pause or resume the TCP server listener. */
+  toggleListening(enable?: boolean): McpStatus {
+    const target = enable !== undefined ? enable : !this.status.listening
+    if (!target) {
+      this.stop()
+    } else if (!this.status.listening) {
+      this.start()
+    }
+    return this.status
   }
 
   // ---------------------------------------------------------------- setup

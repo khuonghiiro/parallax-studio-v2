@@ -24,7 +24,7 @@ export interface FocusRequest {
 
 export interface ViewState extends ViewPrefs {
   focus: FocusRequest | null
-  dialog: 'path' | 'sketch' | 'performance' | null
+  dialog: 'path' | 'sketch' | 'performance' | 'mcp' | null
   set(p: Partial<ViewPrefs>): void
   toggleTheme(): void
   openDialog(d: ViewState['dialog']): void

@@ -34,7 +34,8 @@ import {
   IconWand,
   IconPlug,
   IconSun,
-  IconMoon
+  IconMoon,
+  IconSettings
 } from './icons'
 
 function Menu({ label, icon, children, id }: { label: string; icon?: React.ReactNode; children: React.ReactNode; id: string }) {
@@ -97,7 +98,12 @@ function McpChip() {
     `Token: ${status.configPath}`
   ].join('\n')
   return (
-    <div id="mcp-chip" className={`mcp-chip ${state}${flash ? ' flash' : ''}`} title={title}>
+    <div
+      id="mcp-chip"
+      className={`mcp-chip ${state}${flash ? ' flash' : ''}`}
+      title={`${title}\n\n👉 Bấm vào đây để mở Cấu hình & Trợ giúp kết nối MCP`}
+      onClick={() => useView.getState().openDialog('mcp')}
+    >
       <IconPlug width={13} height={13} />
       <span className="dot" />
       {label}
@@ -200,26 +206,26 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
 
       <McpChip />
       <button
-        id="perf-settings-btn"
-        className="btn ghost icon"
-        onClick={() => useView.getState().openDialog('performance')}
-        title="Cấu hình Hiệu năng, RAM & VRAM GPU"
-      >
-        <span style={{ fontSize: '13px' }}>⚡</span>
-      </button>
-      <button
         id="theme-toggle"
-        className="btn ghost icon"
+        className="tb-btn-icon"
         onClick={() => useView.getState().toggleTheme()}
         title={theme === 'dark' ? 'Chuyển sang giao diện Sáng (Light Mode)' : 'Chuyển sang giao diện Tối (Dark Mode)'}
       >
-        {theme === 'dark' ? <IconSun /> : <IconMoon />}
+        {theme === 'dark' ? <IconSun width={14} height={14} /> : <IconMoon width={14} height={14} />}
       </button>
-      <button id="save" className="btn ghost" onClick={() => saveProject(false)} title="Lưu (Ctrl+S)">
-        <IconSave /> Lưu
+      <button
+        id="perf-settings-btn"
+        className="tb-btn-icon"
+        onClick={() => useView.getState().openDialog('performance')}
+        title="Cấu hình Hiệu năng, RAM & VRAM GPU"
+      >
+        <IconSettings width={14} height={14} />
+      </button>
+      <button id="save" className="tb-btn-save" onClick={() => saveProject(false)} title="Lưu dự án (Ctrl+S)">
+        <IconSave width={14} height={14} /> Lưu
       </button>
       <button id="export" className="btn primary" onClick={onExport} title="Xuất MP4 (Ctrl+M)">
-        <IconExport /> Xuất MP4
+        <IconExport width={14} height={14} /> Xuất MP4
       </button>
     </header>
   )

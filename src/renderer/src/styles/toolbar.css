@@ -147,8 +147,95 @@
   border-color: var(--accent);
 }
 
+.mcp-chip:hover {
+  cursor: pointer;
+  background: var(--bg-3);
+  border-color: var(--accent);
+}
+
 @keyframes mcp-pulse {
   50% {
     opacity: 0.4;
   }
+}
+
+/* ------------------------------------------------------------------ Toolbar Right Actions */
+.tb-btn-save {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 11.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  user-select: none;
+}
+
+.tb-btn-save:hover {
+  background: var(--bg-3);
+  border-color: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(38, 128, 235, 0.25);
+}
+
+.tb-btn-save:active {
+  background: var(--bg-4);
+  transform: translateY(1px);
+}
+
+.tb-btn-icon {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  user-select: none;
+}
+
+.tb-btn-icon:hover {
+  background: var(--bg-3);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.tb-btn-icon:active {
+  background: var(--bg-4);
+  transform: translateY(1px);
+}
+
+[data-theme='light'] .tb-btn-save {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+[data-theme='light'] .tb-btn-save:hover {
+  background: #f1f5f9;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+[data-theme='light'] .tb-btn-icon {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+[data-theme='light'] .tb-btn-icon:hover {
+  background: #f1f5f9;
+  border-color: var(--accent);
+  color: #0f172a;
 }

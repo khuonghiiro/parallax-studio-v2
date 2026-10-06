@@ -42,6 +42,19 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
   - Sử dụng chuẩn Conventional Commits (`feat:`, `fix:`, `refactor:`, `perf:`, `chore:`).
   - Không gắn watermark hoặc nhắc tên AI trong commit message.
 
+### 2.3. Quy Chuẩn Đa Giao Diện (Dual-Theme Standard: Dark & Light)
+- **Hỗ trợ 2 Theme song song:** Ứng dụng luôn vận hành trên 2 chế độ: Dark Theme (`[data-theme='dark']`) và Light Theme (`[data-theme='light']`).
+- **Bắt buộc dùng Design Tokens:** Mọi thành phần UI khi viết mới hoặc sửa đổi CSS **BẮT BUỘC** sử dụng các biến CSS được định nghĩa tại `variables.css`:
+  - Mặt phẳng & Nền: `var(--bg-0)`, `var(--bg-1)`, `var(--bg-2)`, `var(--bg-3)`, `var(--bg-4)`.
+  - Văn bản: `var(--text)` (chính), `var(--text-dim)` (phụ), `var(--text-faint)` (mờ).
+  - Đường viền: `var(--line)`, `var(--line-soft)`, `var(--line-focus)`.
+  - Màu nhấn đặc trưng: `var(--accent)` (Royal Blue), `var(--accent-cyan)` (Electric Cyan), `var(--key)` (Gold).
+- **Quy tắc tương phản:** Tuyệt đối không hardcode mã màu cố định như `#ffffff`, `#000000`, `#141414` vào thuộc tính `color`, `background` hay `fill` của SVG mà không có selector phân định theme. Khi bổ sung UI mới, phải kiểm tra độ tương phản rõ nét trên cả hai theme.
+
+### 2.4. Giao Thức Điều Khiển AI Qua MCP (Model Context Protocol) & Tài Nguyên
+- **Máy chủ MCP nội bộ:** Ứng dụng cung cấp MCP Server tại `mcp-server/index.mjs` kết nối qua TCP `127.0.0.1:9877` với 42 công cụ chuyên biệt để AI thao tác trực tiếp (xem chi tiết tại `mcp-server/README.md`).
+- **Bảo toàn tài nguyên:** Khi hoàn tất tác vụ tự động hóa, AI client hoặc người dùng cần ngắt kết nối (`disconnectAll`) hoặc tạm dừng server để tránh duy trì socket chạy ngầm gây hao tốn CPU/RAM máy tính.
+
 ---
 
 ## 3. Cấu Trúc Workspace & Thư Mục Tri Thức (.agents/)
