@@ -9,6 +9,7 @@ import { ImageSection } from './sections/ImageSection'
 import { TextSection } from './sections/TextSection'
 import { SolidSection } from './sections/SolidSection'
 import { MotionSection } from './sections/MotionSection'
+import { GlowSection } from './sections/GlowSection'
 import { ParticleSection } from './sections/ParticleSection'
 
 export function LayerInspector({ layer }: { layer: Layer }) {
@@ -229,6 +230,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
       </div>
 
       <MotionSection layer={layer} set={set} />
+      {layer.type !== 'particles' && <GlowSection layer={layer} set={set} />}
 
       <KeyEaseSection match={(r) => r.kind === 'layer' && r.layerId === id} />
 

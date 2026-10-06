@@ -21,6 +21,7 @@ export function layerSummary(l: Layer, t: number) {
     scale: r3(evaluate(tr.scale, t)),
     opacity: round(evaluate(tr.opacity, t), 3),
     animated: keyedProps(tr, ['position', 'rotation', 'scale', 'opacity']),
+    ...(l.glow?.enabled ? { glow: l.glow } : {}),
     ...(l.type === 'text' ? { text: l.props.text } : {}),
     ...(l.type === 'image' ? { asset_id: l.props.assetId, size: [l.props.width, l.props.height] } : {})
   }

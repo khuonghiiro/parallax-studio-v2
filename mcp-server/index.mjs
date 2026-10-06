@@ -343,20 +343,51 @@ tool('move_layer', 'Move a layer up/down in its shot stack (affects draw order a
 })
 tool(
   'apply_layer_fx',
-  'Apply an animation FX preset (keyframe generator) at a specific time: "blink" (neon / warning flicker), "fadeIn" (fade in to 100%), "fadeOut" (fade out to 0%), "breathe" (soft opacity dip & return), "shake" (position shake/impact), "popIn" (elastic bounce scale), "pulse" (quick scale punch).',
+  'Apply an animation or neon glow FX preset at a specific time: "neonBreathe" (soft breathing neon edge glow), "neonBlink" (blinking neon outline), "neonFlicker" (flickering neon sign), "neonSolid" (constant neon outline), "blink" (opacity blink), "fadeIn", "fadeOut", "breathe", "shake", "popIn", "pulse".',
   {
     layer_id: z.string(),
-    preset: z.enum(['blink', 'fadeIn', 'fadeOut', 'breathe', 'shake', 'popIn', 'pulse']).describe('Animation FX preset name.'),
+    preset: z
+      .enum([
+        'neonBreathe',
+        'neonBlink',
+        'neonFlicker',
+        'neonSolid',
+        'blink',
+        'fadeIn',
+        'fadeOut',
+        'breathe',
+        'shake',
+        'popIn',
+        'pulse'
+      ])
+      .describe('Animation / Glow FX preset name.'),
     time: z.number().optional().describe('Start time in seconds (default: current playhead time).'),
     duration: z.number().optional().describe('Effect duration in seconds (default depends on preset, e.g. 1.0s).'),
-    blinks: z.number().int().optional().describe('For "blink" only: number of flash cycles (default: 4).'),
-    intensity: z.number().optional().describe('For "shake" only: shake pixel intensity (default: 18).')
+    blinks: z.number().int().optional().describe('For "blink" / "neonBlink": number of flash cycles (default: 4).'),
+    intensity: z.number().optional().describe('For "shake" or neon intensity multiplier.')
   }
 )
 tool('split_layer', 'Split a layer into two contiguous segments at a given time (default: current playhead time).', {
   layer_id: z.string(),
   time: z.number().optional().describe('Cut time in seconds (default: current playhead time).')
 })
+tool(
+  'set_layer_glow',
+  'Configure neon edge glow (outline glow) following the alpha silhouette of a layer. Supports outer, inner, or both sides with optional breathing, blinking, or flickering animation.',
+  {
+    layer_id: z.string(),
+    enabled: z.boolean().optional().describe('Enable or disable edge glow (default true).'),
+    start_time: z.number().optional().describe('Start time in seconds for glow (default: current playhead time or 0).'),
+    duration: z.number().optional().describe('Duration in seconds (0 = active until end of layer).'),
+    side: z.enum(['outer', 'inner', 'both']).optional().describe('Glow placement relative to alpha silhouette (default: outer).'),
+    color: z.string().optional().describe('Hex color for the neon edge glow (default: "#3dd6f5").'),
+    thickness: z.number().optional().describe('Edge glow thickness/radius in pixels (1-40, default: 8).'),
+    intensity: z.number().optional().describe('Neon brightness/intensity multiplier (0.1-3.0, default: 1.2).'),
+    animated: z.enum(['none', 'blink', 'breathe', 'flicker']).optional().describe('Dynamic animation mode (default: none).'),
+    speed: z.number().optional().describe('Animation frequency/speed in Hz (default: 2.0).'),
+    min_intensity: z.number().optional().describe('Minimum brightness during blink/breathe (0.0-1.0, default: 0.15).')
+  }
+)
 
 // ---- keyframes
 const keyTarget = {

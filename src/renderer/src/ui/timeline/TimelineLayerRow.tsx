@@ -15,6 +15,7 @@ import {
 import { TYPE_COLORS } from '../TopView'
 import { LAYER_PROPS, TYPE_LETTER } from './timelineTypes'
 import { TimelineRow } from './TimelineRow'
+import { TimelineGlowKeys } from './TimelineGlowKeys'
 
 export interface TimelineLayerRowProps {
   layer: Layer
@@ -204,6 +205,12 @@ export function TimelineLayerRow({
               </div>
             </div>
             {summaryKeys(anims)}
+            <TimelineGlowKeys
+              layer={layer}
+              x={x}
+              trackWidth={trackWidth}
+              isSubRow={false}
+            />
           </>
         }
       />
@@ -223,6 +230,54 @@ export function TimelineLayerRow({
             })}
           />
         ))}
+      {isOpen && layer.glow?.enabled && (
+        <TimelineRow
+          sub
+          selected={isSelected}
+          trackWidth={trackWidth}
+          onTrackPointerDown={onTrackPointerDown}
+          name={
+            <div
+              className="tl-name sub"
+              style={{
+                color: layer.glow.color || 'var(--accent-cyan)',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                cursor: 'pointer'
+              }}
+              title={`Hiệu ứng viền Neon (${layer.glow.animated || 'tĩnh'}) - Click để chỉnh`}
+              onClick={() => {
+                useEditor.getState().setInspectorTab('layer')
+              }}
+            >
+              <span
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: '50%',
+                  background: layer.glow.color || 'var(--accent-cyan)',
+                  boxShadow: `0 0 6px ${layer.glow.color || 'var(--accent-cyan)'}`,
+                  flexShrink: 0
+                }}
+              />
+              <span>Viền Neon</span>
+              <span style={{ fontSize: 9, opacity: 0.8, fontWeight: 'normal' }}>
+                ({layer.glow.animated === 'breathe' ? 'Thở' : layer.glow.animated === 'blink' ? 'Chớp' : layer.glow.animated === 'flicker' ? 'Flicker' : 'Tĩnh'})
+              </span>
+            </div>
+          }
+          track={
+            <TimelineGlowKeys
+              layer={layer}
+              x={x}
+              trackWidth={trackWidth}
+              isSubRow={true}
+            />
+          }
+        />
+      )}
     </div>
   )
 }

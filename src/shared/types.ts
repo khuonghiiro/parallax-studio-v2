@@ -125,7 +125,30 @@ export interface LayerMotion {
   loopMode?: DriftLoopMode
 }
 
-export type AutoOrientMode = 'none' | 'camera' | 'camera-y'
+export type GlowSide = 'outer' | 'inner' | 'both'
+export type GlowAnimation = 'none' | 'blink' | 'breathe' | 'flicker'
+
+export interface LayerGlow {
+  enabled: boolean
+  /** Glow placement relative to alpha silhouette: 'outer' (default), 'inner', or 'both'. */
+  side?: GlowSide
+  /** Hex color for the neon edge glow (default: '#3dd6f5'). */
+  color?: string
+  /** Outline glow radius in texels / pixels (1-40, default: 8). */
+  thickness?: number
+  /** Glow brightness / intensity multiplier (0.1-3.0, default: 1.2). */
+  intensity?: number
+  /** Animated glow modulation: 'none', 'blink', 'breathe', 'flicker'. */
+  animated?: GlowAnimation
+  /** Speed / frequency of blink or breathe in Hz (default: 2.0). */
+  speed?: number
+  /** Minimum intensity when blinking / breathing (0-1, default: 0.1). */
+  minIntensity?: number
+  /** Start time in seconds for the glow effect (default: 0). */
+  startTime?: number
+  /** Duration in seconds for the glow effect (0 or undefined = active until layer end). */
+  duration?: number
+}
 
 interface LayerBase<T extends LayerType, P> {
   id: string
@@ -152,6 +175,8 @@ interface LayerBase<T extends LayerType, P> {
   transform: Transform
   /** Procedural or looping motion (drift/sway/wind/float/pulse/wiggle). */
   motion?: LayerMotion
+  /** Edge glow / neon outline effect following alpha silhouette. */
+  glow?: LayerGlow
   props: P
 }
 

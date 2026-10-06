@@ -25,6 +25,11 @@ uniform float fogOn;
 uniform vec3 fogColor;
 uniform float fogNear;
 uniform float fogFar;
+uniform float glowOn;
+uniform int glowSide;
+uniform vec3 glowColor;
+uniform float glowRadius;
+uniform float glowIntensity;
 varying vec2 vUv;
 varying float vDepth;
 
@@ -55,8 +60,51 @@ void main() {
     }
     c /= 24.0;
   }
+
+  if (glowOn > 0.5 && glowIntensity > 0.001 && glowRadius > 0.1) {
+    vec2 glowStep = vec2(glowRadius) / texSize;
+    float totalWeight = 0.0;
+    float sumOuter = 0.0;
+    float sumInner = 0.0;
+    for (int i = 0; i < 16; i++) {
+      float fi = float(i);
+      float r = sqrt((fi + 0.5) / 16.0);
+      float a = fi * 2.39996323;
+      vec2 offset = vec2(cos(a), sin(a)) * r * glowStep;
+      float sa = texture2D(map, vUv + offset).a;
+      float w = 1.0 - r * 0.65;
+      totalWeight += w;
+      sumOuter += sa * w;
+      sumInner += (1.0 - sa) * w;
+    }
+    float avgOuter = sumOuter / totalWeight;
+    float avgInner = sumInner / totalWeight;
+    float curA = clamp(c.a, 0.0, 1.0);
+    float outerVal = pow(clamp(avgOuter, 0.0, 1.0), 0.75) * (1.0 - curA);
+    float innerVal = pow(clamp(avgInner, 0.0, 1.0), 0.85) * curA;
+
+    float glowVal = 0.0;
+    if (glowSide == 0) {
+      glowVal = outerVal;
+    } else if (glowSide == 1) {
+      glowVal = innerVal;
+    } else {
+      glowVal = max(outerVal, innerVal);
+    }
+    glowVal *= glowIntensity;
+
+    if (glowVal > 0.001) {
+      vec3 glowRgb = glowColor * glowVal;
+      c.rgb += glowRgb;
+      if (glowSide == 0 || glowSide == 2) {
+        float glowAlpha = clamp(outerVal * min(1.0, glowIntensity), 0.0, 1.0);
+        c.a = max(c.a, glowAlpha);
+      }
+    }
+  }
+
   if (c.a < 0.004) discard;
-  vec3 rgb = c.rgb / c.a;
+  vec3 rgb = c.rgb / max(0.0001, c.a);
   if (fogOn > 0.5) {
     float f = smoothstep(fogNear, fogFar, vDepth);
     rgb = mix(rgb, fogColor, f);

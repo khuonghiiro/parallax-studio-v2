@@ -1,4 +1,4 @@
-import type { Animatable, Layer, Project, Vec3 } from '@shared/types'
+import type { Animatable, GlowAnimation, GlowSide, Layer, LayerGlow, Project, Vec3 } from '@shared/types'
 import type { Draft } from 'immer'
 import { evaluate } from '../../animation/keyframes'
 import { moveLayer } from '../../actions'
@@ -230,6 +230,24 @@ export const layerCommands: Record<string, Handler> = {
       if (sc) setAnim(l.transform.scale, sc, p, project)
       const op = num(p, 'opacity')
       if (op !== undefined) setAnim(l.transform.opacity, Math.max(0, Math.min(1, op)), p, project)
+      if (has(p, 'glow') && typeof p.glow === 'object' && p.glow !== null) {
+        l.glow = { ...(l.glow ?? { enabled: true }), ...(p.glow as LayerGlow) }
+      }
+      if (has(p, 'glow_enabled') || has(p, 'glow_side') || has(p, 'glow_color') || has(p, 'glow_thickness') || has(p, 'glow_intensity') || has(p, 'glow_animated') || has(p, 'glow_speed') || has(p, 'glow_min_intensity') || has(p, 'glow_start_time') || has(p, 'glow_duration')) {
+        const cur = l.glow ?? { enabled: true }
+        l.glow = {
+          enabled: bool(p, 'glow_enabled') ?? cur.enabled ?? true,
+          startTime: num(p, 'glow_start_time') ?? cur.startTime ?? 0,
+          duration: num(p, 'glow_duration') ?? cur.duration ?? 0,
+          side: (str(p, 'glow_side') as GlowSide) ?? cur.side ?? 'outer',
+          color: str(p, 'glow_color') ?? cur.color ?? '#3dd6f5',
+          thickness: num(p, 'glow_thickness') ?? cur.thickness ?? 8,
+          intensity: num(p, 'glow_intensity') ?? cur.intensity ?? 1.2,
+          animated: (str(p, 'glow_animated') as GlowAnimation) ?? cur.animated ?? 'none',
+          speed: num(p, 'glow_speed') ?? cur.speed ?? 2.0,
+          minIntensity: num(p, 'glow_min_intensity') ?? cur.minIntensity ?? 0.15
+        }
+      }
       if (newShot !== undefined && newShot !== l.shotId) {
         d.layers.splice(i, 1)
         l.shotId = newShot
@@ -282,5 +300,28 @@ export const layerCommands: Record<string, Handler> = {
     const ok = splitSelectedLayer(time)
     if (!ok) throw new ParamError(`Cannot split layer "${layer.name}" at ${time}s`)
     return { layer_id: layer.id, split_at: time }
+  },
+
+  set_layer_glow: (p) => {
+    const project = proj()
+    const id = requireLayer(project, str(p, 'layer_id', true)).id
+    ed().update((d) => {
+      const l = d.layers.find((x) => x.id === id)
+      if (!l) return
+      const cur = l.glow ?? { enabled: true }
+      l.glow = {
+        enabled: bool(p, 'enabled') ?? cur.enabled ?? true,
+        startTime: num(p, 'start_time') ?? cur.startTime ?? ed().time,
+        duration: num(p, 'duration') ?? cur.duration ?? 0,
+        side: (str(p, 'side') as GlowSide) ?? cur.side ?? 'outer',
+        color: str(p, 'color') ?? cur.color ?? '#3dd6f5',
+        thickness: num(p, 'thickness') ?? cur.thickness ?? 8,
+        intensity: num(p, 'intensity') ?? cur.intensity ?? 1.2,
+        animated: (str(p, 'animated') as GlowAnimation) ?? cur.animated ?? 'none',
+        speed: num(p, 'speed') ?? cur.speed ?? 2.0,
+        minIntensity: num(p, 'min_intensity') ?? cur.minIntensity ?? 0.15
+      }
+    })
+    return layerSummary(requireLayer(proj(), id), ed().time)
   }
 }

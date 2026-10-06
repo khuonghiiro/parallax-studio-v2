@@ -1,11 +1,22 @@
-import type { Animatable, EaseName, Vec3 } from '@shared/types'
+import type { Animatable, EaseName, GlowSide, Vec3 } from '@shared/types'
 import { addKeyframe, evaluate } from '../../animation/keyframes'
 import { frameTolerance, useEditor } from '../../store/editor'
 import { useToast } from '../../actions'
 
 const toast = (m: string): void => useToast.getState().show(m)
 
-export type FxPresetId = 'blink' | 'fadeIn' | 'fadeOut' | 'breathe' | 'shake' | 'popIn' | 'pulse'
+export type FxPresetId =
+  | 'blink'
+  | 'fadeIn'
+  | 'fadeOut'
+  | 'breathe'
+  | 'shake'
+  | 'popIn'
+  | 'pulse'
+  | 'neonBreathe'
+  | 'neonBlink'
+  | 'neonFlicker'
+  | 'neonSolid'
 
 export interface FxPresetInfo {
   id: FxPresetId
@@ -13,10 +24,42 @@ export interface FxPresetInfo {
   badge: string
   description: string
   defaultDuration: number
-  category: 'opacity' | 'transform'
+  category: 'opacity' | 'transform' | 'glow'
 }
 
 export const FX_PRESETS: FxPresetInfo[] = [
+  {
+    id: 'neonBreathe',
+    name: 'Viền Neon Thở (Breathe)',
+    badge: '✨',
+    description: 'Viền phát sáng neon bám nét ảnh, mờ dần rồi tỏ sáng tuần hoàn huyền ảo',
+    defaultDuration: 1.5,
+    category: 'glow'
+  },
+  {
+    id: 'neonBlink',
+    name: 'Viền Neon Nhấp nháy (Blink)',
+    badge: '🚨',
+    description: 'Viền phát sáng neon chớp tắt dứt khoát như đèn tín hiệu / biển hiệu',
+    defaultDuration: 1.0,
+    category: 'glow'
+  },
+  {
+    id: 'neonFlicker',
+    name: 'Viền Neon Chập chờn (Flicker)',
+    badge: '💡',
+    description: 'Viền phát sáng neon chập chờn tự nhiên như bóng đèn huỳnh quang',
+    defaultDuration: 1.2,
+    category: 'glow'
+  },
+  {
+    id: 'neonSolid',
+    name: 'Viền Neon Tĩnh (Solid Glow)',
+    badge: '🔮',
+    description: 'Viền phát sáng neon rực rỡ bám sát nét vẽ (sáng liên tục)',
+    defaultDuration: 1.0,
+    category: 'glow'
+  },
   {
     id: 'blink',
     name: 'Nhấp nháy (Blink)',
@@ -80,6 +123,11 @@ export interface ApplyFxOptions {
   targetTime?: number
   intensity?: number
   blinks?: number
+  color?: string
+  thickness?: number
+  side?: GlowSide
+  speed?: number
+  minIntensity?: number
 }
 
 function round3(n: number): number {
@@ -265,9 +313,64 @@ export function applyFxPresetToSelectedLayer(presetId: FxPresetId, options?: App
       case 'pulse':
         generatePulseKeys(l.transform.scale, start, duration, 1.25, tol)
         break
+      case 'neonBreathe':
+        l.glow = {
+          enabled: true,
+          startTime: start,
+          duration: options?.duration !== undefined ? options.duration : duration,
+          side: options?.side ?? 'outer',
+          color: options?.color ?? '#3dd6f5',
+          thickness: options?.thickness ?? 10,
+          intensity: options?.intensity ?? 1.5,
+          animated: 'breathe',
+          speed: options?.speed ?? (duration > 0 ? 1 / duration : 1.5),
+          minIntensity: options?.minIntensity ?? 0.15
+        }
+        break
+      case 'neonBlink':
+        l.glow = {
+          enabled: true,
+          startTime: start,
+          duration: options?.duration !== undefined ? options.duration : duration,
+          side: options?.side ?? 'outer',
+          color: options?.color ?? '#f59e0b',
+          thickness: options?.thickness ?? 10,
+          intensity: options?.intensity ?? 1.6,
+          animated: 'blink',
+          speed: options?.speed ?? (options?.blinks && duration > 0 ? options.blinks / duration : 2.0),
+          minIntensity: options?.minIntensity ?? 0.1
+        }
+        break
+      case 'neonFlicker':
+        l.glow = {
+          enabled: true,
+          startTime: start,
+          duration: options?.duration !== undefined ? options.duration : duration,
+          side: options?.side ?? 'outer',
+          color: options?.color ?? '#ec4899',
+          thickness: options?.thickness ?? 12,
+          intensity: options?.intensity ?? 1.8,
+          animated: 'flicker',
+          speed: options?.speed ?? 2.5,
+          minIntensity: options?.minIntensity ?? 0.15
+        }
+        break
+      case 'neonSolid':
+        l.glow = {
+          enabled: true,
+          startTime: start,
+          duration: options?.duration !== undefined ? options.duration : duration,
+          side: options?.side ?? 'outer',
+          color: options?.color ?? '#3dd6f5',
+          thickness: options?.thickness ?? 8,
+          intensity: options?.intensity ?? 1.3,
+          animated: 'none'
+        }
+        break
     }
   })
 
-  toast(`${preset.badge} Đã tạo hiệu ứng "${preset.name}" (${duration.toFixed(1)}s) tại ${start.toFixed(2)}s`)
+  const durText = (options?.duration === 0) ? 'suốt layer' : `${duration.toFixed(1)}s`
+  toast(`${preset.badge} Đã tạo hiệu ứng "${preset.name}" (${durText}) tại ${start.toFixed(2)}s`)
   return true
 }

@@ -221,13 +221,19 @@ const TOOLS_CATALOG = {
     params: '{ "layer_id": string, "time"?: number }',
     example: 'node mcp-server/cli.mjs call split_layer \'{"layer_id": "layer-1", "time": 2.5}\''
   },
+  set_layer_glow: {
+    category: '3. Layer & Độ sâu 2.5D',
+    desc: 'Bật/tắt và tinh chỉnh viền phát sáng Neon bám sát đường nét alpha thực tế (thời điểm bắt đầu, thời lượng, outer/inner/both, màu sắc, độ dày, độ rực, nhịp thở/nhấp nháy).',
+    params: '{ "layer_id": string, "enabled"?: boolean, "start_time"?: number, "duration"?: number, "side"?: "outer"|"inner"|"both", "color"?: string, "thickness"?: number, "intensity"?: number, "animated"?: "none"|"blink"|"breathe"|"flicker", "speed"?: number, "min_intensity"?: number }',
+    example: 'node mcp-server/cli.mjs call set_layer_glow \'{"layer_id": "layer-1", "enabled": true, "start_time": 2.5, "duration": 1.5, "side": "outer", "color": "#3dd6f5", "thickness": 10, "intensity": 1.5, "animated": "breathe"}\''
+  },
 
   // Nhóm Keyframe & Animation
   apply_layer_fx: {
     category: '4. Keyframes & Hoạt ảnh',
-    desc: 'Áp dụng hiệu ứng hoạt ảnh tự động sinh keyframe: blink (chớp tắt), fadeIn, fadeOut, breathe, shake (rung chấn), popIn (nảy), pulse (đập).',
-    params: '{ "layer_id": string, "preset": "blink"|"fadeIn"|"fadeOut"|"breathe"|"shake"|"popIn"|"pulse", "time"?: number, "duration"?: number, "blinks"?: number, "intensity"?: number }',
-    example: 'node mcp-server/cli.mjs call apply_layer_fx \'{"layer_id": "layer-1", "preset": "blink", "time": 2.5, "duration": 1.0}\''
+    desc: 'Áp dụng hiệu ứng hoạt ảnh hoặc viền phát sáng Neon: neonBreathe (thở mờ ảo), neonBlink (chớp tắt viền), neonFlicker (chập chờn neon), neonSolid (viền sáng tĩnh), blink, fadeIn, fadeOut, breathe, shake, popIn, pulse.',
+    params: '{ "layer_id": string, "preset": "neonBreathe"|"neonBlink"|"neonFlicker"|"neonSolid"|"blink"|"fadeIn"|"fadeOut"|"breathe"|"shake"|"popIn"|"pulse", "time"?: number, "duration"?: number, "blinks"?: number, "intensity"?: number }',
+    example: 'node mcp-server/cli.mjs call apply_layer_fx \'{"layer_id": "layer-1", "preset": "neonBreathe", "time": 2.5, "duration": 1.5}\''
   },
   set_keyframe: {
     category: '4. Keyframes & Hoạt ảnh',

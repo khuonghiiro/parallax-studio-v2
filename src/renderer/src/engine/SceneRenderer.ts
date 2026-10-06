@@ -350,6 +350,61 @@ export class SceneRenderer {
         applyBlend(mat, el.layer.blendMode)
         u.multiplyOut.value = el.layer.blendMode === 'multiply' ? 1 : 0
         u.screenOut.value = el.layer.blendMode === 'screen' ? 1 : 0
+
+        const glow = el.layer.glow
+        const glowStart = glow?.startTime ?? 0
+        const glowDur = glow?.duration ?? 0
+        let inTimeWindow = !!(glow && glow.enabled)
+        let timeFactor = 1.0
+
+        if (inTimeWindow) {
+          if (ev.t < glowStart) {
+            inTimeWindow = false
+          } else if (glowDur > 0) {
+            const elapsed = ev.t - glowStart
+            if (elapsed > glowDur) {
+              inTimeWindow = false
+            } else {
+              // Smooth fade-in (0.12s) and fade-out (0.15s) at time boundaries
+              const fadeIn = Math.min(0.12, glowDur * 0.25)
+              const fadeOut = Math.min(0.15, glowDur * 0.25)
+              if (elapsed < fadeIn && fadeIn > 0.001) {
+                timeFactor = elapsed / fadeIn
+              } else if (elapsed > glowDur - fadeOut && fadeOut > 0.001) {
+                timeFactor = (glowDur - elapsed) / fadeOut
+              }
+            }
+          }
+        }
+
+        if (inTimeWindow && timeFactor > 0.001) {
+          u.glowOn.value = 1
+          const side = glow!.side === 'inner' ? 1 : glow!.side === 'both' ? 2 : 0
+          u.glowSide.value = side
+          u.glowColor.value.set(glow!.color || '#3dd6f5')
+          u.glowRadius.value = Math.max(1, Math.min(60, glow!.thickness ?? 8))
+
+          const baseIntensity = glow!.intensity ?? 1.2
+          const minI = (glow!.minIntensity ?? 0.15) * baseIntensity
+          const spd = glow!.speed ?? 2.0
+          const localT = Math.max(0, ev.t - glowStart)
+          let computedI = baseIntensity
+          if (glow!.animated === 'breathe') {
+            const wave = 0.5 + 0.5 * Math.sin(localT * spd * Math.PI * 2)
+            computedI = minI + (baseIntensity - minI) * wave
+          } else if (glow!.animated === 'blink') {
+            const cycle = (localT * spd) % 1
+            computedI = cycle < 0.5 ? baseIntensity : minI
+          } else if (glow!.animated === 'flicker') {
+            const f = 0.5 + 0.3 * Math.sin(localT * spd * 17.3) + 0.15 * Math.sin(localT * spd * 31.7) + 0.05 * Math.sin(localT * spd * 7.1)
+            const drop = ((localT * spd * 3) % 1) > 0.88 ? 0.3 : 1.0
+            computedI = minI + (baseIntensity - minI) * Math.max(0, Math.min(1, f * drop))
+          }
+          u.glowIntensity.value = computedI * timeFactor
+        } else {
+          u.glowOn.value = 0
+          u.glowIntensity.value = 0
+        }
       } else {
         u.time.value = ev.t
         u.pxScale.value = pxScale

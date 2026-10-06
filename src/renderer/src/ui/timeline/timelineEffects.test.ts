@@ -134,4 +134,33 @@ describe('timelineEffects (Animation FX Presets)', () => {
     expect(keys[3].t).toBe(3.1)
     expect(keys[3].value).toEqual([1, 1, 1])
   })
+
+  it('applies neonBreathe preset to layer glow configuration', () => {
+    const success = applyFxPresetToSelectedLayer('neonBreathe', {
+      color: '#ec4899',
+      thickness: 14,
+      side: 'both'
+    })
+    expect(success).toBe(true)
+
+    const layer = useEditor.getState().project.layers[0]
+    expect(layer.glow).toBeDefined()
+    expect(layer.glow?.enabled).toBe(true)
+    expect(layer.glow?.animated).toBe('breathe')
+    expect(layer.glow?.color).toBe('#ec4899')
+    expect(layer.glow?.thickness).toBe(14)
+    expect(layer.glow?.side).toBe('both')
+  })
+
+  it('applies neonBlink and neonSolid presets', () => {
+    applyFxPresetToSelectedLayer('neonBlink', { color: '#f59e0b', blinks: 6 })
+    let layer = useEditor.getState().project.layers[0]
+    expect(layer.glow?.animated).toBe('blink')
+    expect(layer.glow?.color).toBe('#f59e0b')
+
+    applyFxPresetToSelectedLayer('neonSolid', { color: '#3dd6f5', thickness: 8 })
+    layer = useEditor.getState().project.layers[0]
+    expect(layer.glow?.animated).toBe('none')
+    expect(layer.glow?.color).toBe('#3dd6f5')
+  })
 })

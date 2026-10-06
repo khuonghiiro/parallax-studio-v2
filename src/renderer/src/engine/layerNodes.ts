@@ -36,6 +36,11 @@ export function makeLayerMaterial(): THREE.ShaderMaterial {
       opacity: { value: 1 },
       multiplyOut: { value: 0 },
       screenOut: { value: 0 },
+      glowOn: { value: 0 },
+      glowSide: { value: 0 },
+      glowColor: { value: new THREE.Color('#3dd6f5') },
+      glowRadius: { value: 8 },
+      glowIntensity: { value: 1.2 },
       ...sharedUniforms()
     }
   })
