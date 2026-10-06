@@ -83,14 +83,14 @@ export function BuiltInAssetGrid({
             <IconRefresh width={14} height={14} />
           </button>
 
-          <button
+          {/* <button
             type="button"
             className="btn sm icon"
             onClick={onOpenJsonModal}
             title="Sửa cấu hình JSON (manifest.json)"
           >
             <IconCode width={14} height={14} />
-          </button>
+          </button> */}
         </div>
 
         {/* Search input with live filter */}

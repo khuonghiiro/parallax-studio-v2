@@ -72,16 +72,19 @@ export function BuiltInAssetBar({
       >
         <button
           type="button"
-          className="vertical-tab-btn"
+          className="vertical-tab-btn vertical-action-btn action-folder"
           onClick={onOpenFolder}
-          title="Mở thư mục assets"
+          title="Mở thư mục assets (Hệ thống)"
           aria-label="Mở thư mục assets"
         >
           <IconFolder width={16} height={16} />
         </button>
         {hoveredAction === 'folder' && (
           <div className="vertical-tab-tooltip" role="tooltip">
-            <div className="tooltip-title">Thư mục Assets</div>
+            <div className="tooltip-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+              <span>Thư mục Assets</span>
+              <span className="tooltip-tag-system tag-amber">Hệ thống</span>
+            </div>
             <div className="tooltip-desc">Mở thư mục chứa ảnh & âm thanh trên máy tính</div>
           </div>
         )}
@@ -94,16 +97,19 @@ export function BuiltInAssetBar({
       >
         <button
           type="button"
-          className="vertical-tab-btn"
+          className="vertical-tab-btn vertical-action-btn action-json"
           onClick={onOpenJsonModal}
-          title="Chỉnh sửa JSON mapping (manifest.json)"
+          title="Chỉnh sửa JSON mapping (Cấu hình hệ thống)"
           aria-label="Chỉnh sửa JSON mapping"
         >
           <IconCode width={16} height={16} />
         </button>
         {hoveredAction === 'json' && (
           <div className="vertical-tab-tooltip" role="tooltip">
-            <div className="tooltip-title">Cấu hình JSON</div>
+            <div className="tooltip-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+              <span>Cấu hình JSON</span>
+              <span className="tooltip-tag-system tag-cyan">Cài đặt</span>
+            </div>
             <div className="tooltip-desc">Chỉnh sửa mapping tên tiếng Việt, folder và icon trong manifest.json</div>
           </div>
         )}

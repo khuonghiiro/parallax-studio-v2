@@ -160,8 +160,115 @@
   width: 24px;
   height: 1px;
   background: var(--line);
-  margin: 4px 0;
+  margin: 6px 0;
   flex: none;
+}
+
+/* ------------------------------------------------------------------ System Utility Action Buttons */
+.vertical-action-btn {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  margin-top: 2px;
+}
+
+.vertical-action-btn:hover {
+  transform: translateY(-1px);
+}
+
+.vertical-action-btn:active {
+  transform: translateY(1px) scale(0.95);
+}
+
+/* Specific styling for Open Folder (warm amber / gold) */
+.vertical-action-btn.action-folder {
+  color: var(--key);
+  background: color-mix(in srgb, var(--key) 10%, var(--bg-1));
+  border-color: color-mix(in srgb, var(--key) 30%, var(--line));
+}
+
+.vertical-action-btn.action-folder:hover {
+  background: color-mix(in srgb, var(--key) 20%, var(--bg-2));
+  border-color: var(--key);
+  color: #fbbf24;
+  box-shadow: 0 2px 8px var(--key-glow);
+}
+
+[data-theme='light'] .vertical-action-btn.action-folder {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+[data-theme='light'] .vertical-action-btn.action-folder:hover {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: #d97706;
+  color: #92400e;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.25);
+}
+
+/* Specific styling for JSON Config (electric cyan / tech blue) */
+.vertical-action-btn.action-json {
+  color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 10%, var(--bg-1));
+  border-color: color-mix(in srgb, var(--accent-cyan) 30%, var(--line));
+}
+
+.vertical-action-btn.action-json:hover {
+  background: color-mix(in srgb, var(--accent-cyan) 20%, var(--bg-2));
+  border-color: var(--accent-cyan);
+  color: #7dd3fc;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.35);
+}
+
+[data-theme='light'] .vertical-action-btn.action-json {
+  color: #0369a1;
+  background: rgba(2, 132, 199, 0.12);
+  border-color: rgba(2, 132, 199, 0.35);
+}
+
+[data-theme='light'] .vertical-action-btn.action-json:hover {
+  background: rgba(2, 132, 199, 0.22);
+  border-color: #0284c7;
+  color: #075985;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+}
+
+/* Tooltip tag for system actions */
+.tooltip-tag-system {
+  display: inline-block;
+  font-size: 8.5px;
+  font-family: var(--mono);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 5px;
+  border-radius: var(--radius-pill);
+  line-height: 1.2;
+}
+
+.tooltip-tag-system.tag-amber {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--key);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.tooltip-tag-system.tag-cyan {
+  background: rgba(56, 189, 248, 0.2);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+[data-theme='light'] .tooltip-tag-system.tag-amber {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+  border-color: rgba(217, 119, 6, 0.35);
+}
+
+[data-theme='light'] .tooltip-tag-system.tag-cyan {
+  background: rgba(2, 132, 199, 0.15);
+  color: #0369a1;
+  border-color: rgba(2, 132, 199, 0.35);
 }
 
 /* ------------------------------------------------------------------ Tooltip */
