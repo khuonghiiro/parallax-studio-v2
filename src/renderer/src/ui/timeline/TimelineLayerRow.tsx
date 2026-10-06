@@ -31,6 +31,7 @@ export interface TimelineLayerRowProps {
   renderKeys: (a: Animatable<AnimValue>, ref: PropRef) => React.ReactNode
   summaryKeys: (anims: Animatable<AnimValue>[]) => React.ReactNode
   onTrackPointerDown?: (e: React.PointerEvent) => void
+  onBarContextMenu?: (e: React.MouseEvent, layer: Layer) => void
 }
 
 export function TimelineLayerRow({
@@ -47,7 +48,8 @@ export function TimelineLayerRow({
   startBarDrag,
   renderKeys,
   summaryKeys,
-  onTrackPointerDown
+  onTrackPointerDown,
+  onBarContextMenu
 }: TimelineLayerRowProps) {
   const anims = LAYER_PROPS.map((p) => layer.transform[p.prop] as Animatable<AnimValue>)
   const color = TYPE_COLORS[layer.type]
@@ -59,6 +61,7 @@ export function TimelineLayerRow({
         onClick={onSelect}
         trackWidth={trackWidth}
         onTrackPointerDown={onTrackPointerDown}
+        onTrackContextMenu={(e) => onBarContextMenu?.(e, layer)}
         name={
           <div className="tl-name">
             <button className="mini" onClick={(e) => (e.stopPropagation(), onToggleOpen())}>
@@ -174,6 +177,12 @@ export function TimelineLayerRow({
               }}
               title={`${layer.name} · ${layer.inPoint.toFixed(2)}s → ${layer.outPoint.toFixed(2)}s (${(layer.outPoint - layer.inPoint).toFixed(2)}s)`}
               onPointerDown={(e) => startBarDrag(e, layer, 'move')}
+              onContextMenu={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onSelect()
+                onBarContextMenu?.(e, layer)
+              }}
             >
               <div
                 className="handle l"

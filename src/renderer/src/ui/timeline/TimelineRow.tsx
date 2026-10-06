@@ -10,6 +10,7 @@ export interface TimelineRowProps {
   className?: string
   trackWidth?: number
   onTrackPointerDown?: (e: React.PointerEvent) => void
+  onTrackContextMenu?: (e: React.MouseEvent) => void
 }
 
 export function TimelineRow({
@@ -20,7 +21,8 @@ export function TimelineRow({
   onClick,
   className,
   trackWidth,
-  onTrackPointerDown
+  onTrackPointerDown,
+  onTrackContextMenu
 }: TimelineRowProps) {
   return (
     <div
@@ -54,6 +56,7 @@ export function TimelineRow({
           height: '100%'
         }}
         onPointerDown={onTrackPointerDown}
+        onContextMenu={onTrackContextMenu}
       >
         {track}
       </div>

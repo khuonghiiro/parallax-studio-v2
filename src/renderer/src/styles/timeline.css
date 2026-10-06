@@ -86,6 +86,228 @@
   border-color: rgba(245, 158, 11, 0.3);
 }
 
+.tl-action-btn.tl-btn-fx {
+  color: var(--accent-cyan);
+}
+.tl-action-btn.tl-btn-fx:hover:not(:disabled),
+.tl-action-btn.tl-btn-fx.active {
+  color: var(--accent-cyan);
+  background: rgba(61, 214, 245, 0.12);
+  border-color: rgba(61, 214, 245, 0.3);
+}
+
+/* Animation FX Presets Popover */
+.tl-fx-popover {
+  position: fixed;
+  width: 440px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-focus);
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(12px);
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: tl-popover-appear 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes tl-popover-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.tl-fx-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.tl-fx-popover-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.tl-fx-time-badge {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  background: var(--bg-3);
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--line-soft);
+}
+
+.tl-fx-popover-body {
+  display: flex;
+  height: 255px;
+}
+
+.tl-fx-list {
+  width: 175px;
+  background: var(--bg-1);
+  border-right: 1px solid var(--line);
+  padding: 6px 4px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tl-fx-group-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  letter-spacing: 0.05em;
+  padding: 4px 6px 2px;
+}
+
+.tl-fx-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.1s;
+}
+
+.tl-fx-item:hover {
+  background: var(--bg-2);
+  color: var(--text);
+}
+
+.tl-fx-item.active {
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-2));
+  border-color: var(--accent);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.tl-fx-item-badge {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.tl-fx-item-name {
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tl-fx-config {
+  flex: 1;
+  background: var(--bg-0);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tl-fx-desc-card {
+  padding: 8px 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.tl-fx-desc-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.tl-fx-desc-p {
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  line-height: 1.35;
+}
+
+.tl-fx-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tl-fx-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.tl-fx-duration-pills {
+  display: flex;
+  gap: 4px;
+}
+
+.tl-fx-pill {
+  flex: 1;
+  padding: 3px 0;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.tl-fx-pill:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+
+.tl-fx-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.tl-fx-apply-btn {
+  margin-top: auto;
+  width: 100%;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 6px 0;
+}
+.tl-fx-apply-btn:hover {
+  background: color-mix(in srgb, var(--accent) 85%, #fff);
+}
+
+
 /* Zoom Slider & Fit Control */
 .tl-zoom-group {
   display: flex;

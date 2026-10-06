@@ -9,6 +9,7 @@ import { TimelineRow } from './timeline/TimelineRow'
 import { AudioRow } from './timeline/AudioRow'
 import { TimelineToolbar } from './timeline/TimelineToolbar'
 import { TimelineLayerRow } from './timeline/TimelineLayerRow'
+import { openFxPresetMenu } from './timeline/FxPresetMenu'
 import {
   addKeyframeForSelectedLayer,
   setSelectedLayerInPoint,
@@ -140,6 +141,33 @@ export function Timeline() {
     const clickX = e.clientX - rect.left
     const clickedTime = Math.max(0, Math.min(comp.duration, snapToFrame(tAt(clickX), comp.fps)))
     setTime(clickedTime)
+  }
+
+  // Right-click on layer bar or track to open FX preset popup at that exact time
+  const handleLayerContextMenu = (e: React.MouseEvent, layer: Layer): void => {
+    e.preventDefault()
+    e.stopPropagation()
+    selectLayer(layer.id)
+
+    const trackCol = (e.currentTarget as HTMLElement).closest('.tl-row-track-col')
+    let clickedTime = time
+    if (trackCol) {
+      const rect = trackCol.getBoundingClientRect()
+      const clickX = e.clientX - rect.left
+      clickedTime = Math.max(0, Math.min(comp.duration, snapToFrame(tAt(clickX), comp.fps)))
+    } else {
+      clickedTime = Math.max(layer.inPoint, Math.min(layer.outPoint, time))
+    }
+
+    setTime(clickedTime)
+
+    openFxPresetMenu({
+      x: e.clientX,
+      y: e.clientY,
+      targetTime: clickedTime,
+      from: 'context',
+      layerName: layer.name
+    })
   }
 
   // ---------------------------------------------------------------- ticks
@@ -493,6 +521,7 @@ export function Timeline() {
                         x={x}
                         trackWidth={contentW}
                         onTrackPointerDown={handleTrackPointerDown}
+                        onBarContextMenu={handleLayerContextMenu}
                         onToggleOpen={() => toggle(layer.id)}
                         onSelect={() => selectLayer(layer.id)}
                         setRenaming={setRenaming}

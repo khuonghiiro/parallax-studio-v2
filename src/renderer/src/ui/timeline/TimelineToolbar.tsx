@@ -24,6 +24,7 @@ import {
   setSelectedLayerOutPoint,
   splitSelectedLayer
 } from './timelineActions'
+import { FxPresetMenu } from './FxPresetMenu'
 import { deleteSelectedLayer, duplicateSelectedLayer } from '../../actions'
 
 export interface TimelineToolbarProps {
@@ -171,6 +172,8 @@ export function TimelineToolbar({
           <IconKeyframe width={12} height={12} />
           <span>Thêm Key</span>
         </button>
+
+        <FxPresetMenu time={time} hasSelectedLayer={hasSelectedLayer} />
 
         <button
           type="button"
