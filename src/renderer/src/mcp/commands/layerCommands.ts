@@ -2,6 +2,8 @@ import type { Animatable, Layer, Project, Vec3 } from '@shared/types'
 import type { Draft } from 'immer'
 import { evaluate } from '../../animation/keyframes'
 import { moveLayer } from '../../actions'
+import { splitSelectedLayer } from '../../ui/timeline/timelineActions'
+import { applyFxPresetToSelectedLayer, type FxPresetId } from '../../ui/timeline/timelineEffects'
 import { assetStore } from '../../project/assets'
 import * as factory from '../../project/factory'
 import { ParamError, ed, proj, type Handler, type Params } from '../types'
@@ -252,5 +254,33 @@ export const layerCommands: Record<string, Handler> = {
     if (dir !== 'up' && dir !== 'down') throw new ParamError('"direction" must be up or down')
     moveLayer(id, dir === 'up' ? -1 : 1)
     return { index: proj().layers.findIndex((l) => l.id === id) }
+  },
+
+  apply_layer_fx: (p) => {
+    const layer = requireLayer(proj(), str(p, 'layer_id', true))
+    const preset = str(p, 'preset', true) as FxPresetId
+    const time = num(p, 'time') ?? ed().time
+    const duration = num(p, 'duration')
+    const blinks = num(p, 'blinks')
+    const intensity = num(p, 'intensity')
+
+    ed().selectLayer(layer.id)
+    const ok = applyFxPresetToSelectedLayer(preset, {
+      targetTime: time,
+      duration,
+      blinks,
+      intensity
+    })
+    if (!ok) throw new ParamError(`Failed to apply FX preset "${preset}" to layer "${layer.name}"`)
+    return layerSummary(requireLayer(proj(), layer.id), time)
+  },
+
+  split_layer: (p) => {
+    const layer = requireLayer(proj(), str(p, 'layer_id', true))
+    const time = num(p, 'time') ?? ed().time
+    ed().selectLayer(layer.id)
+    const ok = splitSelectedLayer(time)
+    if (!ok) throw new ParamError(`Cannot split layer "${layer.name}" at ${time}s`)
+    return { layer_id: layer.id, split_at: time }
   }
 }

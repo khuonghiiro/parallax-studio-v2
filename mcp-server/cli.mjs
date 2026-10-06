@@ -215,8 +215,20 @@ const TOOLS_CATALOG = {
     desc: 'Di chuyển thứ tự hiển thị z-index xếp chồng của layer trong cảnh.',
     params: '{ "layer_id": string, "delta": number }'
   },
+  split_layer: {
+    category: '3. Layer & Độ sâu 2.5D',
+    desc: 'Tách / cắt layer thành 2 đoạn liền mạch tại thời điểm time (giây).',
+    params: '{ "layer_id": string, "time"?: number }',
+    example: 'node mcp-server/cli.mjs call split_layer \'{"layer_id": "layer-1", "time": 2.5}\''
+  },
 
   // Nhóm Keyframe & Animation
+  apply_layer_fx: {
+    category: '4. Keyframes & Hoạt ảnh',
+    desc: 'Áp dụng hiệu ứng hoạt ảnh tự động sinh keyframe: blink (chớp tắt), fadeIn, fadeOut, breathe, shake (rung chấn), popIn (nảy), pulse (đập).',
+    params: '{ "layer_id": string, "preset": "blink"|"fadeIn"|"fadeOut"|"breathe"|"shake"|"popIn"|"pulse", "time"?: number, "duration"?: number, "blinks"?: number, "intensity"?: number }',
+    example: 'node mcp-server/cli.mjs call apply_layer_fx \'{"layer_id": "layer-1", "preset": "blink", "time": 2.5, "duration": 1.0}\''
+  },
   set_keyframe: {
     category: '4. Keyframes & Hoạt ảnh',
     desc: 'Đặt keyframe cho thuộc tính tại thời điểm time (giây).',

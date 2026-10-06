@@ -341,6 +341,22 @@ tool('move_layer', 'Move a layer up/down in its shot stack (affects draw order a
   layer_id: z.string(),
   direction: z.enum(['up', 'down'])
 })
+tool(
+  'apply_layer_fx',
+  'Apply an animation FX preset (keyframe generator) at a specific time: "blink" (neon / warning flicker), "fadeIn" (fade in to 100%), "fadeOut" (fade out to 0%), "breathe" (soft opacity dip & return), "shake" (position shake/impact), "popIn" (elastic bounce scale), "pulse" (quick scale punch).',
+  {
+    layer_id: z.string(),
+    preset: z.enum(['blink', 'fadeIn', 'fadeOut', 'breathe', 'shake', 'popIn', 'pulse']).describe('Animation FX preset name.'),
+    time: z.number().optional().describe('Start time in seconds (default: current playhead time).'),
+    duration: z.number().optional().describe('Effect duration in seconds (default depends on preset, e.g. 1.0s).'),
+    blinks: z.number().int().optional().describe('For "blink" only: number of flash cycles (default: 4).'),
+    intensity: z.number().optional().describe('For "shake" only: shake pixel intensity (default: 18).')
+  }
+)
+tool('split_layer', 'Split a layer into two contiguous segments at a given time (default: current playhead time).', {
+  layer_id: z.string(),
+  time: z.number().optional().describe('Cut time in seconds (default: current playhead time).')
+})
 
 // ---- keyframes
 const keyTarget = {

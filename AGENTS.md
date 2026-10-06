@@ -52,9 +52,9 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
 - **Quy tắc tương phản:** Tuyệt đối không hardcode mã màu cố định như `#ffffff`, `#000000`, `#141414` vào thuộc tính `color`, `background` hay `fill` của SVG mà không có selector phân định theme. Khi bổ sung UI mới, phải kiểm tra độ tương phản rõ nét trên cả hai theme.
 
 ### 2.4. Giao Thức Điều Khiển AI Qua MCP & CLI Controller (`pnpm pxs`)
-- **Máy chủ MCP nội bộ:** Ứng dụng cung cấp MCP Server tại `mcp-server/index.mjs` kết nối qua TCP `127.0.0.1:9877` với 42 công cụ chuyên biệt để AI thao tác trực tiếp (xem chi tiết tại `mcp-server/README.md`).
+- **Máy chủ MCP nội bộ:** Ứng dụng cung cấp MCP Server tại `mcp-server/index.mjs` kết nối qua TCP `127.0.0.1:9877` với 44 công cụ chuyên biệt để AI thao tác trực tiếp (xem chi tiết tại `mcp-server/README.md`).
 - **Bộ điều khiển CLI (`pnpm pxs`):** AI Agent có thể tra cứu toàn diện và điều khiển trực tiếp qua terminal:
-  - `pnpm pxs --help` / `pnpm pxs help <tool>`: Đọc toàn bộ catalog 42 tools và quy ước tọa độ 2.5D.
+  - `pnpm pxs --help` / `pnpm pxs help <tool>`: Đọc toàn bộ catalog 44 tools và quy ước tọa độ 2.5D.
   - `pnpm pxs status` / `pnpm pxs inspect`: Kiểm tra trạng thái và xuất JSON toàn bộ dự án hiện tại.
   - `pnpm pxs review --view camera --out <path>`: Chụp ảnh viewport thực tế để AI dùng `view_file` xem và đánh giá bố cục cảnh bằng mắt.
   - `pnpm pxs call <tool> '<json>'`: Thực thi thêm/sửa layer, shot, keyframe theo thời gian thực (realtime) như người dùng thao tác.
