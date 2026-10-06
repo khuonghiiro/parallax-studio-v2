@@ -232,6 +232,54 @@ export async function importDroppedFiles(list: FileList): Promise<void> {
   if (images.length) await registerImages(images, true)
 }
 
+export async function importBuiltInAsset(
+  item: { relativePath: string; name: string; kind: 'image' | 'audio'; mime?: string },
+  addLayer = true
+): Promise<string | null> {
+  const file = await window.api.loadBuiltInAssetBytes(item.relativePath)
+  if (!file) {
+    toast(`Không tải được tệp: ${item.name}`)
+    return null
+  }
+  if (item.kind === 'audio') {
+    await setAudioFromBytes(file.name, file.mime, file.data)
+    return null
+  }
+  const shotId = activeShotId()
+  try {
+    const asset = await assetStore.add(file.name, file.mime, file.data, 'image')
+    let layerId: string | null = null
+    editor().update((d) => {
+      if (d.layers.length === 0 && d.assets.length === 0 && asset.meta.width && asset.meta.height) {
+        d.comp.width = asset.meta.width
+        d.comp.height = asset.meta.height
+        const refD = referenceDistance(d.comp)
+        d.camera.position.value = [0, 0, -refD]
+        d.camera.target.value = [0, 0, 0]
+        d.camera.focusDistance.value = Math.round(refD)
+      }
+      d.assets.push(asset.meta)
+      if (addLayer) {
+        const depth = nextDepthForNewLayer(d as Project, shotId)
+        const layer = createImageLayer(asset.meta, d.comp as Project['comp'], depth)
+        layer.shotId = shotId
+        insertLayerTop(d as Project, layer)
+        layerId = layer.id
+      }
+    })
+    if (layerId) {
+      editor().selectLayer(layerId)
+      toast(`Đã thêm layer: ${file.name}`)
+    } else {
+      toast(`Đã nạp ${file.name} vào tài nguyên`)
+    }
+    return asset.meta.id
+  } catch (err) {
+    toast(`Lỗi khi nạp ảnh ${file.name}: ${String(err)}`)
+    return null
+  }
+}
+
 export function addLayerFromAsset(assetId: string): void {
   const meta = editor().project.assets.find((a) => a.id === assetId)
   if (!meta || meta.kind !== 'image') return

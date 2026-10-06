@@ -1,0 +1,32 @@
+{
+  "categories": [
+    {
+      "id": "all",
+      "folder": "",
+      "title": "Tất cả tài nguyên",
+      "icon": "all",
+      "description": "Toàn bộ tài nguyên có sẵn trong thư mục assets"
+    },
+    {
+      "id": "city",
+      "folder": "city",
+      "title": "Thành phố & Đô thị",
+      "icon": "city",
+      "description": "Ảnh phong cảnh thành phố, đường phố mưa đêm, ban công và nhà chọc trời"
+    },
+    {
+      "id": "demos",
+      "folder": "demos",
+      "title": "Hiệu ứng & Hoạt ảnh (VFX)",
+      "icon": "sparkles",
+      "description": "Hoạt ảnh GIF ngọn lửa trại, quả cầu hologram, cổng năng lượng và đom đóm"
+    },
+    {
+      "id": "audio",
+      "folder": "audio",
+      "title": "Âm thanh & Nhạc nền",
+      "icon": "music",
+      "description": "Nhạc nền, tiếng chuông ambient và hiệu ứng âm thanh cho phân cảnh"
+    }
+  ]
+}

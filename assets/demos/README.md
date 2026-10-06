@@ -1,4 +1,4 @@
-# Thư viện Asset & GIF Demo Mẫu (Parallax Studio v2)
+# Tài nguyên & GIF Demo Mẫu (Parallax Studio v2)
 
 Thư mục này dùng để phân loại và chứa các tài nguyên ảnh / GIF mẫu phục vụ thiết kế các cảnh demo đa dạng trong không gian 2.5D.
 

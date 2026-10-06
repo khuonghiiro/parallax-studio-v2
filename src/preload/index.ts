@@ -15,6 +15,10 @@ const api: ParallaxApi = {
   revealFile: (p) => ipcRenderer.invoke('shell:reveal', p),
   setTitle: (title) => ipcRenderer.send('window:title', title),
   getSystemInfo: () => ipcRenderer.invoke('system:getInfo'),
+  getBuiltInCatalog: () => ipcRenderer.invoke('builtinAssets:getCatalog'),
+  saveBuiltInManifest: (jsonContent) => ipcRenderer.invoke('builtinAssets:saveManifest', jsonContent),
+  loadBuiltInAssetBytes: (relPath) => ipcRenderer.invoke('builtinAssets:loadAssetBytes', relPath),
+  openBuiltInFolder: (subFolder) => ipcRenderer.invoke('builtinAssets:openFolder', subFolder),
   mcp: {
     onCommand: (cb) => {
       const h = (_e: Electron.IpcRendererEvent, cmd: McpCommand): void => cb(cmd)

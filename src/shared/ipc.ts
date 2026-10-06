@@ -32,6 +32,42 @@ export interface SystemHardwareInfo {
   platform: string
 }
 
+export interface BuiltInAssetCategory {
+  id: string
+  folder: string
+  title: string
+  icon: string
+  description?: string
+}
+
+export interface BuiltInAssetItem {
+  id: string
+  name: string
+  fileName: string
+  relativePath: string
+  folder: string
+  ext: string
+  mime: string
+  kind: 'image' | 'audio'
+  size: number
+  path: string
+  isAnimated?: boolean
+  previewUrl?: string
+}
+
+export interface BuiltInCatalogResult {
+  categories: BuiltInAssetCategory[]
+  items: BuiltInAssetItem[]
+  manifestPath: string
+  rawJson: string
+}
+
+export interface BuiltInSaveManifestResult {
+  ok: boolean
+  error?: string
+  catalog?: BuiltInCatalogResult
+}
+
 export interface ParallaxApi {
   openFiles(kind: 'image' | 'audio'): Promise<PickedFile[]>
   saveProject(data: Uint8Array, suggestedPath?: string): Promise<string | null>
@@ -46,6 +82,10 @@ export interface ParallaxApi {
   revealFile(path: string): Promise<void>
   setTitle(title: string): void
   getSystemInfo(): Promise<SystemHardwareInfo>
+  getBuiltInCatalog(): Promise<BuiltInCatalogResult>
+  saveBuiltInManifest(jsonContent: string): Promise<BuiltInSaveManifestResult>
+  loadBuiltInAssetBytes(relativePath: string): Promise<{ name: string; mime: string; data: Uint8Array } | null>
+  openBuiltInFolder(subFolder?: string): Promise<void>
   mcp: McpApi
 }
 
