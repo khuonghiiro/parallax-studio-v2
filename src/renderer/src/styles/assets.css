@@ -526,8 +526,47 @@
 
 .builtin-asset-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
   gap: 6px;
+}
+
+/* Multi-column grid for Dialogs & Modals (e.g. AssetReplaceModal) */
+.modal .builtin-asset-grid,
+.modal.wide .builtin-asset-grid,
+.builtin-asset-grid.modal-grid,
+.asset-replace-builtin .builtin-asset-grid {
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  padding: 8px 6px 20px;
+}
+
+.modal .builtin-asset-card,
+.modal.wide .builtin-asset-card,
+.builtin-asset-grid.modal-grid .builtin-asset-card,
+.asset-replace-builtin .builtin-asset-card {
+  border-radius: var(--radius);
+  aspect-ratio: 16 / 11;
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  transition: border-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+}
+
+.modal .builtin-asset-card:hover,
+.modal.wide .builtin-asset-card:hover,
+.builtin-asset-grid.modal-grid .builtin-asset-card:hover,
+.asset-replace-builtin .builtin-asset-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--accent);
+  transform: translateY(-2px);
+}
+
+.modal .builtin-asset-name,
+.modal.wide .builtin-asset-name,
+.builtin-asset-grid.modal-grid .builtin-asset-name,
+.asset-replace-builtin .builtin-asset-name {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 16px 8px 6px;
 }
 
 .builtin-asset-card {

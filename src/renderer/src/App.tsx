@@ -73,6 +73,17 @@ export default function App() {
     el.addEventListener('pointerup', up)
   }
 
+  useEffect(() => {
+    if (!dragOver) return
+    const handleDragEnd = () => setDragOver(false)
+    window.addEventListener('dragend', handleDragEnd)
+    window.addEventListener('drop', handleDragEnd)
+    return () => {
+      window.removeEventListener('dragend', handleDragEnd)
+      window.removeEventListener('drop', handleDragEnd)
+    }
+  }, [dragOver])
+
   const theme = useView((s) => s.theme)
 
   return (
@@ -85,7 +96,7 @@ export default function App() {
         setDragOver(true)
       }}
       onDragLeave={(e) => {
-        if (e.currentTarget === e.target) setDragOver(false)
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false)
       }}
       onDrop={(e) => {
         e.preventDefault()

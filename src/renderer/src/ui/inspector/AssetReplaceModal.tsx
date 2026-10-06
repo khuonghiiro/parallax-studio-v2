@@ -242,7 +242,7 @@ export function AssetReplaceModal({
         {/* Main Body */}
         <div style={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
           {tab === 'builtin' ? (
-            <div className="asset-main-layout" style={{ width: '100%', height: '100%' }}>
+            <div className="asset-main-layout asset-replace-builtin" style={{ width: '100%', height: '100%' }}>
               <BuiltInAssetBar
                 categories={categories}
                 selectedCategory={selectedCategory}
@@ -260,6 +260,7 @@ export function AssetReplaceModal({
                 loading={loading}
                 actionIcon={<IconCheck width={14} height={14} />}
                 actionTitle="Chọn đổi sang ảnh này"
+                className="modal-grid"
               />
             </div>
           ) : (

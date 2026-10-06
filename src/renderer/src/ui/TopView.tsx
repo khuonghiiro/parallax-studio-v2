@@ -56,6 +56,17 @@ export function TopView({
   const [isDragOver, setIsDragOver] = useState(false)
 
   useEffect(() => {
+    if (!isDragOver) return
+    const handleDragEnd = () => setIsDragOver(false)
+    window.addEventListener('dragend', handleDragEnd)
+    window.addEventListener('drop', handleDragEnd)
+    return () => {
+      window.removeEventListener('dragend', handleDragEnd)
+      window.removeEventListener('drop', handleDragEnd)
+    }
+  }, [isDragOver])
+
+  useEffect(() => {
     const el = wrapRef.current
     if (!el) return
     const ro = new ResizeObserver((entries) => {
@@ -277,7 +288,9 @@ export function TopView({
         e.preventDefault()
         setIsDragOver(true)
       }}
-      onDragLeave={() => setIsDragOver(false)}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragOver(false)
+      }}
       onDrop={handleDrop}
     >
       {/* Expanded View Switcher (When in full Viewport) */}

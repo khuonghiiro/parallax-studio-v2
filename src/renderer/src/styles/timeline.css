@@ -560,28 +560,55 @@
   align-items: center;
   border-bottom: 1px solid var(--line-soft);
   position: relative;
-  transition: background 0.08s;
+  transition: background 0.1s ease, box-shadow 0.1s ease;
 }
 .tl-row:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--accent) 9%, var(--bg-1));
 }
 .tl-row.sub {
   height: 24px;
   background: var(--bg-1);
 }
 .tl-row.selected {
-  background: rgba(38, 128, 235, 0.12);
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-1));
+  box-shadow: inset 3px 0 0 var(--accent-cyan);
 }
 
 .tl-row-name-col {
   background: var(--bg-0);
-  transition: background 0.08s;
+  transition: background 0.1s ease;
 }
 .tl-row:hover .tl-row-name-col {
-  background: var(--bg-1);
+  background: color-mix(in srgb, var(--accent) 13%, var(--bg-1));
 }
 .tl-row.selected .tl-row-name-col {
-  background: color-mix(in srgb, var(--accent) 15%, var(--bg-1));
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-1));
+  font-weight: 600;
+}
+.tl-row:focus-within {
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-1));
+}
+
+[data-theme='light'] .tl-row:hover,
+.app.light .tl-row:hover,
+:root[data-theme='light'] .tl-row:hover {
+  background: rgba(20, 115, 230, 0.08);
+}
+[data-theme='light'] .tl-row:hover .tl-row-name-col,
+.app.light .tl-row:hover .tl-row-name-col,
+:root[data-theme='light'] .tl-row:hover .tl-row-name-col {
+  background: rgba(20, 115, 230, 0.11);
+}
+[data-theme='light'] .tl-row.selected,
+.app.light .tl-row.selected,
+:root[data-theme='light'] .tl-row.selected {
+  background: rgba(20, 115, 230, 0.15);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+[data-theme='light'] .tl-row.selected .tl-row-name-col,
+.app.light .tl-row.selected .tl-row-name-col,
+:root[data-theme='light'] .tl-row.selected .tl-row-name-col {
+  background: rgba(20, 115, 230, 0.18);
 }
 
 .tl-name {
@@ -695,21 +722,70 @@
   display: flex;
   align-items: center;
   overflow: hidden;
-  transition: border-color 0.12s, box-shadow 0.12s;
+  transition: border-color 0.12s, box-shadow 0.12s, filter 0.12s;
   user-select: none;
   border: 1px solid;
 }
 .tl-bar:active {
   cursor: grabbing;
 }
-.tl-bar.is-selected {
-  box-shadow: 0 0 0 1.5px var(--accent-cyan), 0 2px 8px rgba(0, 0, 0, 0.4);
+
+/* High-visibility Hover effect */
+.tl-bar:hover {
+  filter: brightness(1.28) contrast(1.05);
+  border-color: rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4), 0 2px 10px rgba(0, 0, 0, 0.45);
+  z-index: 6;
 }
+[data-theme='light'] .tl-bar:hover,
+.app.light .tl-bar:hover,
+:root[data-theme='light'] .tl-bar:hover {
+  filter: brightness(0.92) contrast(1.1);
+  border-color: rgba(0, 0, 0, 0.6) !important;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.18);
+  z-index: 6;
+}
+
+/* High-visibility Selected & Focus state */
+.tl-bar.is-selected,
+.tl-bar:focus-visible {
+  outline: none;
+  filter: brightness(1.22);
+  box-shadow: 0 0 0 2px var(--accent-cyan), 0 0 12px color-mix(in srgb, var(--accent-cyan) 60%, transparent), 0 2px 10px rgba(0, 0, 0, 0.55);
+  border-color: #ffffff !important;
+  z-index: 8;
+}
+.tl-bar.is-selected:hover,
+.tl-bar:focus-visible:hover {
+  filter: brightness(1.35);
+  box-shadow: 0 0 0 2px var(--accent-cyan), 0 0 16px var(--accent-cyan), 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme='light'] .tl-bar.is-selected,
+.app.light .tl-bar.is-selected,
+:root[data-theme='light'] .tl-bar.is-selected,
+[data-theme='light'] .tl-bar:focus-visible,
+.app.light .tl-bar:focus-visible,
+:root[data-theme='light'] .tl-bar:focus-visible {
+  filter: brightness(0.95);
+  box-shadow: 0 0 0 2px var(--accent), 0 0 12px rgba(20, 115, 230, 0.5), 0 2px 8px rgba(0, 0, 0, 0.25);
+  border-color: #111827 !important;
+  z-index: 8;
+}
+[data-theme='light'] .tl-bar.is-selected:hover,
+.app.light .tl-bar.is-selected:hover,
+[data-theme='light'] .tl-bar:focus-visible:hover,
+.app.light .tl-bar:focus-visible:hover {
+  filter: brightness(0.9);
+  box-shadow: 0 0 0 2.5px var(--accent), 0 0 16px rgba(20, 115, 230, 0.7), 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
 .tl-bar.drag-over-replace {
   outline: 2px dashed var(--accent-cyan) !important;
   outline-offset: -1px;
   background: rgba(56, 189, 248, 0.28) !important;
   box-shadow: 0 0 14px var(--accent-cyan), inset 0 0 8px rgba(56, 189, 248, 0.35) !important;
+  z-index: 10;
 }
 .tl-bar-drop-badge {
   position: absolute;
@@ -737,8 +813,8 @@
 .app.light .tl-bar.drag-over-replace,
 :root[data-theme='light'] .tl-bar.drag-over-replace {
   outline: 2px dashed var(--accent) !important;
-  background: rgba(38, 128, 235, 0.2) !important;
-  box-shadow: 0 0 10px rgba(38, 128, 235, 0.4) !important;
+  background: rgba(20, 115, 230, 0.2) !important;
+  box-shadow: 0 0 10px rgba(20, 115, 230, 0.4) !important;
 }
 
 .tl-bar-label {

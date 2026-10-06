@@ -38,6 +38,7 @@ export function ProjectAssetList() {
             onMouseLeave={() => setHover(null)}
             draggable={!isAudio}
             onDragStart={(e) => e.dataTransfer.setData('application/x-pxs-asset', a.id)}
+            onDragEnd={() => setHover(null)}
           >
             {isAudio ? (
               <IconMusic

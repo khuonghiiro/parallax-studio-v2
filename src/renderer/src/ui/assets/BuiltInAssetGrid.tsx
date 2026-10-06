@@ -14,6 +14,7 @@ interface BuiltInAssetGridProps {
   loading?: boolean
   actionIcon?: React.ReactNode
   actionTitle?: string
+  className?: string
 }
 
 function matchAsset(item: BuiltInAssetItem, query: string): boolean {
@@ -38,7 +39,8 @@ export function BuiltInAssetGrid({
   onOpenJsonModal,
   loading = false,
   actionIcon,
-  actionTitle
+  actionTitle,
+  className
 }: BuiltInAssetGridProps) {
   const [search, setSearch] = useState('')
   const [hoveredId, setHoveredId] = useState<string | null>(null)
@@ -145,7 +147,7 @@ export function BuiltInAssetGrid({
             </div>
           </div>
         ) : (
-          <div className="builtin-asset-grid">
+          <div className={`builtin-asset-grid${className ? ' ' + className : ''}`}>
             {filteredItems.map((item) => {
               const isAudio = item.kind === 'audio'
               const isHover = hoveredId === item.id
@@ -170,6 +172,9 @@ export function BuiltInAssetGrid({
                   draggable
                   onDragStart={(e) => {
                     e.dataTransfer.setData('application/x-pxs-builtin-asset', JSON.stringify(item))
+                  }}
+                  onDragEnd={() => {
+                    setHoveredId(null)
                   }}
                 >
                   {isAudio ? (

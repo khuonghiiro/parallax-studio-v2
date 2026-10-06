@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import type { Animatable, AnimValue, Layer } from '@shared/types'
 import { evaluate } from '../../animation/keyframes'
 import { deleteSelectedLayer, duplicateSelectedLayer, importBuiltInAsset, moveLayer, replaceLayerAsset } from '../../actions'
@@ -61,6 +61,20 @@ export function TimelineLayerRow({
   const selectedKey = useEditor((s) => s.selectedKey)
   const setTime = useEditor((s) => s.setTime)
   const [isDragOver, setIsDragOver] = useState(false)
+
+  // Clear dashed drop indicator whenever drag ends, drops anywhere or mouse is released
+  useEffect(() => {
+    if (!isDragOver) return
+    const handleDragEnd = () => setIsDragOver(false)
+    window.addEventListener('dragend', handleDragEnd)
+    window.addEventListener('drop', handleDragEnd)
+    window.addEventListener('pointerup', handleDragEnd)
+    return () => {
+      window.removeEventListener('dragend', handleDragEnd)
+      window.removeEventListener('drop', handleDragEnd)
+      window.removeEventListener('pointerup', handleDragEnd)
+    }
+  }, [isDragOver])
 
   // Specialized keyframe renderer for layer properties: identifies effect keyframes and shows dedicated icons
   const renderLayerTrackKeys = (a: Animatable<AnimValue>, p: (typeof LAYER_PROPS)[number]) => {
@@ -287,10 +301,14 @@ export function TimelineLayerRow({
           <>
             <div
               className={`tl-bar${isSelected ? ' is-selected' : ''}${isDragOver ? ' drag-over-replace' : ''}`}
+              tabIndex={0}
+              onFocus={onSelect}
               style={{
                 left: x(layer.inPoint),
                 width: Math.max(16, x(layer.outPoint) - x(layer.inPoint)),
-                background: `linear-gradient(180deg, ${color}48, ${color}22)`,
+                background: isSelected
+                  ? `linear-gradient(180deg, ${color}66, ${color}36)`
+                  : `linear-gradient(180deg, ${color}48, ${color}22)`,
                 borderColor: `${color}${isSelected ? 'ff' : '88'}`,
                 opacity: layer.visible ? 0.95 : 0.35
               }}
@@ -314,21 +332,25 @@ export function TimelineLayerRow({
                   if (isAsset || isBuiltIn || isFile) {
                     e.preventDefault()
                     e.dataTransfer.dropEffect = 'copy'
-                    setIsDragOver(true)
+                    if (!isDragOver) setIsDragOver(true)
                   }
                 }
               }}
-              onDragLeave={() => setIsDragOver(false)}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setIsDragOver(false)
+                }
+              }}
               onDrop={async (e) => {
-                if (layer.type !== 'image' || layer.locked) return
+                e.preventDefault()
+                e.stopPropagation()
                 setIsDragOver(false)
+                if (layer.type !== 'image' || layer.locked) return
 
                 // 1. From Built-in library catalog
                 const builtInRaw = e.dataTransfer.getData('application/x-pxs-builtin-asset')
                 if (builtInRaw) {
                   try {
-                    e.preventDefault()
-                    e.stopPropagation()
                     const item = JSON.parse(builtInRaw)
                     if (item && item.kind === 'image') {
                       const newAssetId = await importBuiltInAsset(item, false)
@@ -343,8 +365,6 @@ export function TimelineLayerRow({
                 // 2. From project assets list
                 const assetId = e.dataTransfer.getData('application/x-pxs-asset')
                 if (assetId) {
-                  e.preventDefault()
-                  e.stopPropagation()
                   replaceLayerAsset(layer.id, assetId)
                   return
                 }
@@ -353,8 +373,6 @@ export function TimelineLayerRow({
                 if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
                   const file = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith('image/'))
                   if (file) {
-                    e.preventDefault()
-                    e.stopPropagation()
                     const data = new Uint8Array(await file.arrayBuffer())
                     const added = await assetStore.add(file.name, file.type, data, 'image')
                     useEditor.getState().update((d) => {
