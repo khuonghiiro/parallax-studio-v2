@@ -705,6 +705,41 @@
 .tl-bar.is-selected {
   box-shadow: 0 0 0 1.5px var(--accent-cyan), 0 2px 8px rgba(0, 0, 0, 0.4);
 }
+.tl-bar.drag-over-replace {
+  outline: 2px dashed var(--accent-cyan) !important;
+  outline-offset: -1px;
+  background: rgba(56, 189, 248, 0.28) !important;
+  box-shadow: 0 0 14px var(--accent-cyan), inset 0 0 8px rgba(56, 189, 248, 0.35) !important;
+}
+.tl-bar-drop-badge {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  z-index: 10;
+  pointer-events: none;
+  border-radius: 3px;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.4);
+  animation: pulse-badge 1s infinite alternate ease-in-out;
+}
+@keyframes pulse-badge {
+  from { opacity: 0.92; transform: scale(0.99); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+[data-theme='light'] .tl-bar.drag-over-replace,
+.app.light .tl-bar.drag-over-replace,
+:root[data-theme='light'] .tl-bar.drag-over-replace {
+  outline: 2px dashed var(--accent) !important;
+  background: rgba(38, 128, 235, 0.2) !important;
+  box-shadow: 0 0 10px rgba(38, 128, 235, 0.4) !important;
+}
 
 .tl-bar-label {
   position: absolute;

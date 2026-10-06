@@ -7,10 +7,13 @@ interface BuiltInAssetGridProps {
   items: BuiltInAssetItem[]
   selectedCategory: string
   onSelectCategory: (id: string) => void
-  onImportItem: (item: BuiltInAssetItem, addLayer: boolean) => void
+  onImportItem?: (item: BuiltInAssetItem, addLayer: boolean) => void
+  onSelectItem?: (item: BuiltInAssetItem) => void
   onReload: () => void
-  onOpenJsonModal: () => void
+  onOpenJsonModal?: () => void
   loading?: boolean
+  actionIcon?: React.ReactNode
+  actionTitle?: string
 }
 
 function matchAsset(item: BuiltInAssetItem, query: string): boolean {
@@ -30,9 +33,12 @@ export function BuiltInAssetGrid({
   selectedCategory,
   onSelectCategory,
   onImportItem,
+  onSelectItem,
   onReload,
   onOpenJsonModal,
-  loading = false
+  loading = false,
+  actionIcon,
+  actionTitle
 }: BuiltInAssetGridProps) {
   const [search, setSearch] = useState('')
   const [hoveredId, setHoveredId] = useState<string | null>(null)
@@ -148,8 +154,17 @@ export function BuiltInAssetGrid({
                 <div
                   key={item.id}
                   className={`builtin-asset-card${isAudio ? ' audio' : ''}`}
-                  title={`${item.name} (${item.fileName})\nDouble-click để ${isAudio ? 'đặt làm nhạc nền' : 'thêm layer vào cảnh'}`}
-                  onDoubleClick={() => onImportItem(item, true)}
+                  style={{ cursor: onSelectItem ? 'pointer' : undefined }}
+                  title={
+                    onSelectItem
+                      ? `${item.name} (${item.fileName})\nBấm để chọn đổi sang ảnh này`
+                      : `${item.name} (${item.fileName})\nDouble-click để ${isAudio ? 'đặt làm nhạc nền' : 'thêm layer vào cảnh'}`
+                  }
+                  onClick={() => onSelectItem?.(item)}
+                  onDoubleClick={() => {
+                    if (onSelectItem) onSelectItem(item)
+                    else onImportItem?.(item, true)
+                  }}
                   onMouseEnter={() => setHoveredId(item.id)}
                   onMouseLeave={() => setHoveredId(null)}
                   draggable
@@ -174,13 +189,21 @@ export function BuiltInAssetGrid({
                       <button
                         type="button"
                         className="btn sm icon primary"
-                        title={isAudio ? 'Dùng làm nhạc nền' : 'Thêm thành layer vào cảnh'}
+                        title={
+                          actionTitle ||
+                          (onSelectItem
+                            ? 'Chọn đổi sang ảnh này'
+                            : isAudio
+                              ? 'Dùng làm nhạc nền'
+                              : 'Thêm thành layer vào cảnh')
+                        }
                         onClick={(e) => {
                           e.stopPropagation()
-                          onImportItem(item, true)
+                          if (onSelectItem) onSelectItem(item)
+                          else onImportItem?.(item, true)
                         }}
                       >
-                        <IconPlus />
+                        {actionIcon || <IconPlus />}
                       </button>
                     </div>
                   )}

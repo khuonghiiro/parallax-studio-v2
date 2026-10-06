@@ -1,7 +1,7 @@
 import type { Animatable, GlowAnimation, GlowSide, Layer, LayerGlow, Project, Vec3 } from '@shared/types'
 import type { Draft } from 'immer'
 import { evaluate } from '../../animation/keyframes'
-import { moveLayer } from '../../actions'
+import { moveLayer, replaceLayerAsset } from '../../actions'
 import { splitSelectedLayer } from '../../ui/timeline/timelineActions'
 import { applyFxPresetToSelectedLayer, deleteLayerEffect, toggleLayerEffect, type FxPresetId } from '../../ui/timeline/timelineEffects'
 import { assetStore } from '../../project/assets'
@@ -352,5 +352,23 @@ export const layerCommands: Record<string, Handler> = {
     })
     if (!ok) throw new ParamError(`Effect "${fxId}" not found on layer "${id}"`)
     return layerSummary(requireLayer(proj(), id), ed().time)
+  },
+
+  replace_layer_asset: (p) => {
+    const project = proj()
+    const layer = requireLayer(project, str(p, 'layer_id', true))
+    if (layer.type !== 'image') {
+      throw new ParamError(`Layer "${layer.name}" is of type "${layer.type}", not "image"`)
+    }
+    const assetIdOrName = str(p, 'asset_id', true)
+    const asset = project.assets.find((a) => a.id === assetIdOrName || a.name === assetIdOrName)
+    if (!asset) {
+      throw new ParamError(`Asset "${assetIdOrName}" not found in project assets`)
+    }
+    const ok = replaceLayerAsset(layer.id, asset.id)
+    if (!ok) {
+      throw new ParamError(`Failed to replace asset for layer "${layer.name}"`)
+    }
+    return layerSummary(requireLayer(proj(), layer.id), ed().time)
   }
 }

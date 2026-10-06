@@ -371,6 +371,14 @@ tool('split_layer', 'Split a layer into two contiguous segments at a given time 
   layer_id: z.string(),
   time: z.number().optional().describe('Cut time in seconds (default: current playhead time).')
 })
+tool(
+  'replace_layer_asset',
+  'Replace the source image asset of an image layer while preserving all 3D transforms, Z-depth, keyframes, in/out points, and effects.',
+  {
+    layer_id: z.string().describe('Layer ID to update.'),
+    asset_id: z.string().describe('New asset ID or asset name in project assets.')
+  }
+)
 tool('toggle_layer_fx', 'Toggle an applied effect on/off by fx_id.', {
   layer_id: z.string(),
   fx_id: z.string().describe('ID of the applied effect (e.g. "fx-abc123").'),

@@ -1,12 +1,16 @@
+import { useCallback, useState } from 'react'
 import type { Layer, Vec3 } from '@shared/types'
 import { setValueAt } from '../../../animation/keyframes'
 import { referenceDistance } from '../../../animation/math'
 import { assetStore } from '../../../project/assets'
 import { frameTolerance, useEditor } from '../../../store/editor'
 import { NumberInput, Row, Slider, Switch } from '../../controls'
+import { AssetReplaceModal } from '../AssetReplaceModal'
 import type { Setter } from '../types'
 
 export function ImageSection({ layer, set }: { layer: Layer & { type: 'image' }; set: Setter }) {
+  const [showReplaceModal, setShowReplaceModal] = useState(false)
+  const handleCloseModal = useCallback(() => setShowReplaceModal(false), [])
   const comp = useEditor((s) => s.project.comp)
   const time = useEditor((s) => s.time)
   const tol = useEditor((s) => frameTolerance(s.project))
@@ -27,9 +31,24 @@ export function ImageSection({ layer, set }: { layer: Layer & { type: 'image' };
     <div className="section">
       <div className="section-title">Ảnh</div>
       <Row label="Nguồn">
-        <span className="hint-text" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {asset?.meta.name ?? '—'} · {layer.props.width}×{layer.props.height}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', minWidth: 0 }}>
+          <span
+            className="hint-text"
+            style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            title={`${asset?.meta.name ?? '—'} · ${layer.props.width}×${layer.props.height}`}
+          >
+            {asset?.meta.name ?? '—'} · {layer.props.width}×{layer.props.height}
+          </span>
+          <button
+            type="button"
+            className="btn sm accent"
+            style={{ flexShrink: 0, padding: '2px 8px', fontSize: 11 }}
+            title="Đổi nguồn ảnh khác cho layer này (giữ nguyên vị trí 3D, keyframes, độ sâu Z)"
+            onClick={() => setShowReplaceModal(true)}
+          >
+            Đổi ảnh...
+          </button>
+        </div>
       </Row>
       <Row label="Kích thước">
         <button className="btn sm" title="Phủ kín khung hình" onClick={() => setScale(Math.max(comp.width / layer.props.width, comp.height / layer.props.height))}>
@@ -145,6 +164,14 @@ export function ImageSection({ layer, set }: { layer: Layer & { type: 'image' };
             />
           </Row>
         </>
+      )}
+      {showReplaceModal && (
+        <AssetReplaceModal
+          layerId={layer.id}
+          currentAssetId={layer.props.assetId}
+          layerName={layer.name}
+          onClose={handleCloseModal}
+        />
       )}
     </div>
   )

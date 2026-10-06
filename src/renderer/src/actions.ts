@@ -684,3 +684,36 @@ export function applyDrawnCameraTour(
   return dur
 }
 
+/** Replace the source image asset of an existing image layer, preserving all 3D transforms, keyframes, in/out points, and effects. */
+export function replaceLayerAsset(layerId: string, newAssetId: string): boolean {
+  const asset = assetStore.get(newAssetId) ?? editor().project.assets.find((a) => a.id === newAssetId)
+  if (!asset) {
+    toast('Không tìm thấy tài nguyên ảnh mới')
+    return false
+  }
+
+  const meta = 'meta' in asset ? asset.meta : asset
+  let success = false
+
+  editor().update((d) => {
+    const l = d.layers.find((x) => x.id === layerId)
+    if (!l || l.type !== 'image') return
+
+    const oldName = l.name
+    l.props.assetId = newAssetId
+    l.props.width = meta.width ?? l.props.width
+    l.props.height = meta.height ?? l.props.height
+
+    // Update name if layer still uses original asset name or split part suffix
+    if (oldName.includes('(phần') || oldName === 'Ảnh mới' || oldName.startsWith('Layer')) {
+      l.name = meta.name
+    }
+    success = true
+  })
+
+  if (success) {
+    toast(`🖼 Đã đổi ảnh sang "${meta.name}"`)
+  }
+  return success
+}
+

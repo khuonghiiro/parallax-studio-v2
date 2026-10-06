@@ -221,6 +221,12 @@ const TOOLS_CATALOG = {
     params: '{ "layer_id": string, "time"?: number }',
     example: 'node mcp-server/cli.mjs call split_layer \'{"layer_id": "layer-1", "time": 2.5}\''
   },
+  replace_layer_asset: {
+    category: '3. Layer & Độ sâu 2.5D',
+    desc: 'Thay thế tài nguyên ảnh cho layer ảnh, giữ nguyên 100% tọa độ 3D, Z-depth, keyframes và hiệu ứng.',
+    params: '{ "layer_id": string, "asset_id": string }',
+    example: 'node mcp-server/cli.mjs call replace_layer_asset \'{"layer_id": "layer-1", "asset_id": "asset-2"}\''
+  },
   set_layer_glow: {
     category: '3. Layer & Độ sâu 2.5D',
     desc: 'Bật/tắt và tinh chỉnh viền phát sáng Neon bám sát đường nét alpha thực tế (thời điểm bắt đầu, thời lượng, outer/inner/both, màu sắc, độ dày, độ rực, nhịp thở/nhấp nháy).',

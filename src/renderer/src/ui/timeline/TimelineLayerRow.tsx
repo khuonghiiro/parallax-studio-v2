@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useState } from 'react'
 import type { Animatable, AnimValue, Layer } from '@shared/types'
 import { evaluate } from '../../animation/keyframes'
-import { deleteSelectedLayer, duplicateSelectedLayer, moveLayer } from '../../actions'
+import { deleteSelectedLayer, duplicateSelectedLayer, importBuiltInAsset, moveLayer, replaceLayerAsset } from '../../actions'
+import { assetStore } from '../../project/assets'
 import { useEditor, type PropRef } from '../../store/editor'
 import {
   IconCaret,
@@ -59,6 +60,7 @@ export function TimelineLayerRow({
   const color = TYPE_COLORS[layer.type]
   const selectedKey = useEditor((s) => s.selectedKey)
   const setTime = useEditor((s) => s.setTime)
+  const [isDragOver, setIsDragOver] = useState(false)
 
   // Specialized keyframe renderer for layer properties: identifies effect keyframes and shows dedicated icons
   const renderLayerTrackKeys = (a: Animatable<AnimValue>, p: (typeof LAYER_PROPS)[number]) => {
@@ -284,7 +286,7 @@ export function TimelineLayerRow({
         track={
           <>
             <div
-              className={`tl-bar${isSelected ? ' is-selected' : ''}`}
+              className={`tl-bar${isSelected ? ' is-selected' : ''}${isDragOver ? ' drag-over-replace' : ''}`}
               style={{
                 left: x(layer.inPoint),
                 width: Math.max(16, x(layer.outPoint) - x(layer.inPoint)),
@@ -292,7 +294,11 @@ export function TimelineLayerRow({
                 borderColor: `${color}${isSelected ? 'ff' : '88'}`,
                 opacity: layer.visible ? 0.95 : 0.35
               }}
-              title={`${layer.name} · ${layer.inPoint.toFixed(2)}s → ${layer.outPoint.toFixed(2)}s (${(layer.outPoint - layer.inPoint).toFixed(2)}s)`}
+              title={
+                layer.type === 'image'
+                  ? `${layer.name} · ${layer.inPoint.toFixed(2)}s → ${layer.outPoint.toFixed(2)}s (${(layer.outPoint - layer.inPoint).toFixed(2)}s)\n💡 Kéo thả ảnh từ thư viện hoặc máy tính vào đây để đổi ảnh`
+                  : `${layer.name} · ${layer.inPoint.toFixed(2)}s → ${layer.outPoint.toFixed(2)}s (${(layer.outPoint - layer.inPoint).toFixed(2)}s)`
+              }
               onPointerDown={(e) => startBarDrag(e, layer, 'move')}
               onContextMenu={(e) => {
                 e.preventDefault()
@@ -300,7 +306,70 @@ export function TimelineLayerRow({
                 onSelect()
                 onBarContextMenu?.(e, layer)
               }}
+              onDragOver={(e) => {
+                if (layer.type === 'image' && !layer.locked) {
+                  const isAsset = e.dataTransfer.types.includes('application/x-pxs-asset')
+                  const isBuiltIn = e.dataTransfer.types.includes('application/x-pxs-builtin-asset')
+                  const isFile = e.dataTransfer.types.includes('Files') || e.dataTransfer.types.includes('files')
+                  if (isAsset || isBuiltIn || isFile) {
+                    e.preventDefault()
+                    e.dataTransfer.dropEffect = 'copy'
+                    setIsDragOver(true)
+                  }
+                }
+              }}
+              onDragLeave={() => setIsDragOver(false)}
+              onDrop={async (e) => {
+                if (layer.type !== 'image' || layer.locked) return
+                setIsDragOver(false)
+
+                // 1. From Built-in library catalog
+                const builtInRaw = e.dataTransfer.getData('application/x-pxs-builtin-asset')
+                if (builtInRaw) {
+                  try {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    const item = JSON.parse(builtInRaw)
+                    if (item && item.kind === 'image') {
+                      const newAssetId = await importBuiltInAsset(item, false)
+                      if (newAssetId) replaceLayerAsset(layer.id, newAssetId)
+                    }
+                  } catch (err) {
+                    console.error('Error dropping built-in asset:', err)
+                  }
+                  return
+                }
+
+                // 2. From project assets list
+                const assetId = e.dataTransfer.getData('application/x-pxs-asset')
+                if (assetId) {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  replaceLayerAsset(layer.id, assetId)
+                  return
+                }
+
+                // 3. From OS / disk image files
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                  const file = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith('image/'))
+                  if (file) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    const data = new Uint8Array(await file.arrayBuffer())
+                    const added = await assetStore.add(file.name, file.type, data, 'image')
+                    useEditor.getState().update((d) => {
+                      d.assets.push(added.meta)
+                    })
+                    replaceLayerAsset(layer.id, added.meta.id)
+                  }
+                }
+              }}
             >
+              {isDragOver && (
+                <div className="tl-bar-drop-badge">
+                  <span>🖼 Thả để đổi ảnh</span>
+                </div>
+              )}
               <div
                 className="handle l"
                 title={`Kéo đổi điểm bắt đầu [In] (Hiện tại: ${layer.inPoint.toFixed(2)}s)`}

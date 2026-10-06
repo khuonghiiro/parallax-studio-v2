@@ -9,7 +9,7 @@ interface BuiltInAssetBarProps {
   selectedCategory: string
   onSelectCategory: (catId: string) => void
   itemCounts: Record<string, number>
-  onOpenJsonModal: () => void
+  onOpenJsonModal?: () => void
   onOpenFolder: () => void
 }
 
@@ -103,20 +103,22 @@ export function BuiltInAssetBar({
           </button>
         </div>
 
-        <div
-          className="vertical-tab-wrap"
-          onMouseEnter={(e) => showActionTooltip(e, 'json')}
-          onMouseLeave={hideTooltip}
-        >
-          <button
-            type="button"
-            className="vertical-tab-btn vertical-action-btn action-json"
-            onClick={onOpenJsonModal}
-            aria-label="Chỉnh sửa JSON mapping"
+        {onOpenJsonModal && (
+          <div
+            className="vertical-tab-wrap"
+            onMouseEnter={(e) => showActionTooltip(e, 'json')}
+            onMouseLeave={hideTooltip}
           >
-            <IconCode width={16} height={16} />
-          </button>
-        </div>
+            <button
+              type="button"
+              className="vertical-tab-btn vertical-action-btn action-json"
+              onClick={onOpenJsonModal}
+              aria-label="Chỉnh sửa JSON mapping"
+            >
+              <IconCode width={16} height={16} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Floating Tooltip outside scroll container */}
