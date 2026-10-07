@@ -255,6 +255,7 @@ export const layerCommands: Record<string, Handler> = {
         insertTop(d, l as Layer)
       }
     })
+    ed().selectLayer(id)
     return layerSummary(requireLayer(proj(), id), ed().time)
   },
 
@@ -323,6 +324,7 @@ export const layerCommands: Record<string, Handler> = {
         minIntensity: num(p, 'min_intensity') ?? cur.minIntensity ?? 0.15
       }
     })
+    ed().selectLayer(id)
     return layerSummary(requireLayer(proj(), id), ed().time)
   },
 
@@ -338,6 +340,7 @@ export const layerCommands: Record<string, Handler> = {
       ok = toggleLayerEffect(l as Layer, fxId, enabled)
     })
     if (!ok) throw new ParamError(`Effect "${fxId}" not found on layer "${id}"`)
+    ed().selectLayer(id)
     return layerSummary(requireLayer(proj(), id), ed().time)
   },
 
@@ -352,6 +355,7 @@ export const layerCommands: Record<string, Handler> = {
       ok = deleteLayerEffect(l as Layer, fxId)
     })
     if (!ok) throw new ParamError(`Effect "${fxId}" not found on layer "${id}"`)
+    ed().selectLayer(id)
     return layerSummary(requireLayer(proj(), id), ed().time)
   },
 
@@ -370,6 +374,7 @@ export const layerCommands: Record<string, Handler> = {
     if (!ok) {
       throw new ParamError(`Failed to replace asset for layer "${layer.name}"`)
     }
+    ed().selectLayer(layer.id)
     return layerSummary(requireLayer(proj(), layer.id), ed().time)
   }
 }

@@ -1,0 +1,138 @@
+{
+  "id": "model-cottage-qt8hb",
+  "name": "Ngôi Nhà Tudor 3D Mới",
+  "description": "Ngôi nhà châu Âu lắp ráp từ ảnh phẳng 2.5D",
+  "category": "architecture",
+  "scale": 0.6,
+  "faces": [
+    {
+      "id": "face-front",
+      "name": "1. Mặt Tiền (Gable Front)",
+      "assetPath": "assembly_3d/house/origami_front.png",
+      "width": 980,
+      "height": 966,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "face-left",
+      "name": "2. Tường Hông Trái (Left Wall)",
+      "assetPath": "assembly_3d/house/origami_side_left.png",
+      "width": 840,
+      "height": 393,
+      "position": [
+        -420,
+        -286,
+        419
+      ],
+      "rotation": [
+        0,
+        90,
+        0
+      ]
+    },
+    {
+      "id": "face-roof-right",
+      "name": "5. Mái Nghiêng Phải (Right Roof)",
+      "assetPath": "assembly_3d/house/origami_roof_right.png",
+      "width": 840,
+      "height": 644,
+      "position": [
+        219,
+        113,
+        416
+      ],
+      "rotation": [
+        -43.69,
+        -90,
+        0
+      ]
+    },
+    {
+      "id": "face-right",
+      "name": "3. Tường Hông Phải (Right Wall)",
+      "assetPath": "assembly_3d/house/origami_side_right.png",
+      "width": 840,
+      "height": 393,
+      "position": [
+        420,
+        -286.5,
+        420
+      ],
+      "rotation": [
+        0,
+        -90,
+        0
+      ]
+    },
+    {
+      "id": "face-roof-left",
+      "name": "4. Mái Nghiêng Trái (Left Roof)",
+      "assetPath": "assembly_3d/house/origami_roof_left.png",
+      "width": 840,
+      "height": 651,
+      "position": [
+        -218,
+        107,
+        416
+      ],
+      "rotation": [
+        -43.69,
+        90,
+        0
+      ]
+    },
+    {
+      "id": "face-chimney-left",
+      "name": "6. Ống Khói Hông Trái (Chimney Left)",
+      "assetPath": "assembly_3d/house/origami_chimney_side.png",
+      "width": 113,
+      "height": 140,
+      "position": [
+        -48,
+        413,
+        49.5
+      ],
+      "rotation": [
+        0,
+        90,
+        0
+      ]
+    },
+    {
+      "id": "face-chimney-right",
+      "name": "7. Ống Khói Hông Phải (Chimney Right)",
+      "assetPath": "assembly_3d/house/origami_chimney_side.png",
+      "width": 113,
+      "height": 140,
+      "position": [
+        48,
+        413,
+        50.5
+      ],
+      "rotation": [
+        0,
+        -90,
+        0
+      ]
+    }
+  ],
+  "createdAt": 1791392810707,
+  "updatedAt": 1791393223111,
+  "lighting": {
+    "sun": true,
+    "shadows": true,
+    "azimuth": -50,
+    "elevation": 57,
+    "intensity": 0.65,
+    "preset": "auto"
+  }
+}

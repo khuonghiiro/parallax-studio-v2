@@ -120,7 +120,7 @@ export function AssetPanel() {
           onClick={() => setSubTab('builtin')}
         >
           <IconFolder width={13} height={13} />
-          <span>Thư viện</span>
+          <span>Tất cả</span>
           <span className="asset-subtab-badge">{items.length}</span>
         </button>
         <button
@@ -129,7 +129,7 @@ export function AssetPanel() {
           onClick={() => setSubTab('project')}
         >
           <IconImage width={13} height={13} />
-          <span>Trong dự án</span>
+          <span>Dự án</span>
           <span className="asset-subtab-badge">{projectAssets.length}</span>
         </button>
         <button

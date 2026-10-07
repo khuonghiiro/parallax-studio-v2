@@ -44,6 +44,7 @@ export const shotCommands: Record<string, Handler> = {
       const rot = vec3(p, 'rotation')
       if (rot) setAnim(s.rotation, rot, p, project)
     })
+    ed().selectShot(id)
     return shotSummary(requireShot(proj(), id), proj(), ed().time)
   },
 
