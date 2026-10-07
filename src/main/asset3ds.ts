@@ -90,14 +90,46 @@ export async function scanAsset3DsModels(): Promise<any[]> {
         let thumb = parsed.thumbnail
         if (thumb) {
           const cleanRel = thumb.replace(/^asset-3ds[\\/]/, '')
-          const thumbPath = join(root, cleanRel)
+          let thumbPath = join(root, cleanRel)
+          if (!existsSync(thumbPath)) {
+            for (const cat of ['architecture', 'props', 'street', 'room', 'custom']) {
+              const cand = join(root, cat, cleanRel)
+              if (existsSync(cand)) {
+                thumbPath = cand
+                break
+              }
+            }
+          }
+          if (!existsSync(thumbPath)) {
+            const assetsDir = join(process.cwd(), 'assets')
+            const cleanAssetsRel = thumb.replace(/^assets[\\/]/, '')
+            const cand = join(assetsDir, cleanAssetsRel)
+            if (existsSync(cand)) {
+              thumbPath = cand
+            }
+          }
           if (existsSync(thumbPath)) {
             const buf = await readFile(thumbPath)
             const ext = extname(thumbPath).slice(1).toLowerCase()
             const mime = MIME_MAP[ext] || 'image/png'
             parsed.thumbnailDataUrl = `data:${mime};base64,${buf.toString('base64')}`
           }
-        } else {
+        }
+        
+        // If still no thumbnail, fallback to first face asset
+        if (!parsed.thumbnailDataUrl && Array.isArray(parsed.faces) && parsed.faces.length > 0) {
+          const firstFacePath = parsed.faces[0]?.assetPath
+          if (firstFacePath) {
+            const cleanFace = firstFacePath.replace(/^assets[\\/]/, '')
+            const cand = join(process.cwd(), 'assets', cleanFace)
+            if (existsSync(cand)) {
+              const buf = await readFile(cand)
+              const ext = extname(cand).slice(1).toLowerCase()
+              const mime = MIME_MAP[ext] || 'image/png'
+              parsed.thumbnailDataUrl = `data:${mime};base64,${buf.toString('base64')}`
+            }
+          }
+        } else if (!thumb) {
           // Check if there is review_cottage.png, thumb.webp or thumbnail.png in same folder
           const dir = join(file, '..')
           for (const cand of ['thumb.webp', 'review_cottage.png', 'thumbnail.png', 'preview.png']) {
@@ -165,6 +197,13 @@ export async function loadAsset3DBytes(relPath: string): Promise<{ name: string;
         fullPath = cand
         break
       }
+    }
+  }
+  if (!existsSync(fullPath)) {
+    const assetsDir = join(process.cwd(), 'assets')
+    const cand = join(assetsDir, relPath.replace(/^assets[\\/]/, ''))
+    if (existsSync(cand)) {
+      fullPath = cand
     }
   }
   if (!existsSync(fullPath)) return null

@@ -1,5 +1,6 @@
 import type { Face3D, Model3D, PresetType } from './types'
 import { generatePresetFaces } from './models3dStorage'
+import { MeshCurvatureEditor } from './MeshCurvatureEditor'
 import { IconPlus, IconTrash, IconPlay } from '../../icons'
 
 interface FaceInspectorProps {
@@ -392,6 +393,77 @@ export function FaceInspector({
                 }
               >
                 Nằm ngang
+              </button>
+            </div>
+          </div>
+
+          {/* Uốn lượn, Bẻ cong Mesh & Gọt tỉa 1 phần (Curvature & Sub-Mesh Editing) */}
+          <MeshCurvatureEditor face={selectedFace} onUpdateFace={handleUpdateFace} />
+
+          {/* Khớp cạnh & Căn chỉnh tự động (Smart Edge Snap) */}
+          <div className="inspector-field-group">
+            <label className="group-label">Khớp cạnh & Căn chỉnh nhanh</label>
+            <div className="quick-snaps">
+              <button
+                type="button"
+                className="snap-btn"
+                onClick={() =>
+                  handleUpdateFace({
+                    position: [-Math.round(selectedFace.width / 2), selectedFace.position[1], selectedFace.position[2]]
+                  })
+                }
+                title="Khớp vị trí mép trái (-W/2)"
+              >
+                Mép trái
+              </button>
+              <button
+                type="button"
+                className="snap-btn"
+                onClick={() =>
+                  handleUpdateFace({
+                    position: [Math.round(selectedFace.width / 2), selectedFace.position[1], selectedFace.position[2]]
+                  })
+                }
+                title="Khớp vị trí mép phải (+W/2)"
+              >
+                Mép phải
+              </button>
+              <button
+                type="button"
+                className="snap-btn"
+                onClick={() =>
+                  handleUpdateFace({
+                    position: [0, selectedFace.position[1], selectedFace.position[2]]
+                  })
+                }
+                title="Căn giữa trục X = 0"
+              >
+                Giữa (X=0)
+              </button>
+              <button
+                type="button"
+                className="snap-btn"
+                onClick={() =>
+                  handleUpdateFace({
+                    position: [selectedFace.position[0], 0, selectedFace.position[2]]
+                  })
+                }
+                title="Đặt chân tiếp đất sàn (Y = 0)"
+              >
+                Chân sàn
+              </button>
+              <button
+                type="button"
+                className="snap-btn"
+                onClick={() =>
+                  handleUpdateFace({
+                    position: [-selectedFace.position[0], selectedFace.position[1], selectedFace.position[2]],
+                    rotation: [selectedFace.rotation[0], -selectedFace.rotation[1], -selectedFace.rotation[2]]
+                  })
+                }
+                title="Lật đối xứng sang bên đối diện (đối xứng trục X và góc xoay Y)"
+              >
+                Lật đối xứng
               </button>
             </div>
           </div>

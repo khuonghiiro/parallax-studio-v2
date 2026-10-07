@@ -1,0 +1,563 @@
+/* ==========================================================================
+   Assembly 3D Studio - Left Asset Catalog Sidebar Styles
+   Dual-Theme Compliant adhering to code-modularization standard
+   ========================================================================== */
+
+/* Left Assembly Assets Sidebar (Dual-Column Library Style) */
+.assembly-asset-sidebar {
+  background: var(--bg-1);
+  border-right: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  height: 100%;
+}
+
+/* 1. Mini Vertical Category Strip */
+.sidebar-category-strip {
+  width: 48px;
+  background: var(--bg-2);
+  border-right: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0;
+  flex-shrink: 0;
+}
+
+.sidebar-strip-icons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  align-items: center;
+}
+
+.sidebar-cat-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sidebar-cat-btn:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line-soft);
+}
+
+.sidebar-cat-btn.active {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+}
+
+/* 2. Main Catalog: Header & Grid */
+.sidebar-catalog-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-1);
+}
+
+.sidebar-catalog-header {
+  padding: 10px 12px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.header-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.header-title-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cat-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cat-count-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: var(--bg-3);
+  padding: 1px 7px;
+  border-radius: 12px;
+  border: 1px solid var(--line-soft);
+}
+
+.header-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.action-btn-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.replace-active {
+  border-color: var(--accent-cyan) !important;
+  color: var(--accent-cyan) !important;
+}
+
+.replace-active:hover {
+  background: rgba(6, 182, 212, 0.15) !important;
+}
+
+/* Search Box */
+.sidebar-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-search-box .search-icon {
+  position: absolute;
+  left: 9px;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.sidebar-search-box .search-input {
+  width: 100%;
+  height: 28px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  padding: 0 28px 0 28px;
+  font-size: 11px;
+  color: var(--text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sidebar-search-box .search-input:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+
+.sidebar-search-box .search-clear-btn {
+  position: absolute;
+  right: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Selected Face Hint Bar */
+.selected-face-bar {
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 11px;
+}
+
+.face-bar-active {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.face-bar-label {
+  color: var(--text-dim);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.face-bar-name {
+  color: var(--accent-cyan);
+  font-weight: 600;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.face-bar-empty {
+  color: var(--text-faint);
+  font-size: 10.5px;
+  text-align: center;
+}
+
+/* 3. Horizontal Orientation Tab Strip (8 diện: Tất cả, Trước, Sau, Trái, Phải, Trên, Dưới, Khác) */
+.sidebar-orientation-tabs {
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line-soft);
+  padding: 8px 10px;
+  flex-shrink: 0;
+}
+
+.orient-tabs-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+
+.orient-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.orient-pill:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.orient-pill.active {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+}
+
+.orient-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.orient-pill.active .orient-pill-dot {
+  background-color: #ffffff !important;
+}
+
+.orient-pill-text {
+  font-size: 10.5px;
+  line-height: 1;
+}
+
+.orient-pill-badge {
+  font-size: 9px;
+  opacity: 0.85;
+  background: rgba(0, 0, 0, 0.22);
+  padding: 0 4px;
+  border-radius: 8px;
+  line-height: 1.3;
+}
+
+.orient-pill.active .orient-pill-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.orient-pill.dimmed {
+  opacity: 0.45;
+}
+
+/* 4. Catalog Scroll Content */
+.sidebar-catalog-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  min-height: 0;
+}
+
+/* Orientation Sections in "Tất cả" View */
+.catalog-orientation-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.orient-section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.orient-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  border-bottom: 1px solid var(--line-soft);
+  padding-bottom: 4px;
+}
+
+.orient-section-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.orient-section-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.2px;
+}
+
+.orient-section-count {
+  font-size: 10px;
+  color: var(--text-dim);
+  background: var(--bg-3);
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: auto;
+}
+
+.orient-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+/* Flat Grid (for Sub-Tabs & Search) */
+.sidebar-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  align-content: start;
+}
+
+/* 5. Clean Visual Asset Card (2-Part Structure) */
+.assembly-asset-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.assembly-asset-card:hover {
+  border-color: var(--accent-cyan);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.assembly-asset-card.active {
+  border: 1.5px solid var(--accent);
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.45);
+}
+
+/* Image Stage: Clean Transparency Checkerboard */
+.card-thumb-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: repeating-conic-gradient(var(--bg-3) 0% 25%, var(--bg-1) 0% 50%) 50% / 12px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.card-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 6px;
+  display: block;
+  transition: transform 0.18s ease;
+}
+
+.assembly-asset-card:hover .card-thumb-img {
+  transform: scale(1.05);
+}
+
+.card-thumb-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: var(--text-faint);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Micro badge in top-left: neat, non-intrusive */
+.card-micro-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 1px 5px;
+  border-radius: 4px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.micro-badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.micro-badge-text {
+  font-size: 9px;
+  font-weight: 600;
+  color: #f1f5f9;
+  line-height: 1.2;
+}
+
+/* Top-Right: Status & Actions */
+.card-top-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  z-index: 3;
+}
+
+.card-using-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.card-quick-swap-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(15, 23, 42, 0.85);
+  color: var(--text-dim);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  backdrop-filter: blur(4px);
+  padding: 0;
+}
+
+.assembly-asset-card:hover .card-quick-swap-btn {
+  display: flex;
+}
+
+.card-quick-swap-btn:hover {
+  background: var(--accent-cyan);
+  color: #000;
+  border-color: var(--accent-cyan);
+}
+
+/* Metadata Bar BELOW Image: Crisp, high-contrast, no image interference */
+.card-meta-bar {
+  padding: 5px 7px 6px;
+  background: var(--bg-2);
+  border-top: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.card-meta-title {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.card-meta-faces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.card-face-chip {
+  font-size: 9px;
+  color: var(--accent-cyan);
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  padding: 0 4px;
+  border-radius: 3px;
+  line-height: 1.2;
+  transition: all 0.12s ease;
+}
+
+.card-face-chip.active {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+}
+
+.empty-catalog-box {
+  grid-column: 1 / -1;
+  padding: 36px 16px;
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 11.5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}

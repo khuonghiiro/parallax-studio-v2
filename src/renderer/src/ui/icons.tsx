@@ -1,13 +1,16 @@
 import type { SVGProps } from 'react'
 
-type P = SVGProps<SVGSVGElement>
-const base = (props: P): P => ({
+export type IconProps = SVGProps<SVGSVGElement> & { size?: number | string }
+type P = IconProps
+const base = ({ size, width, height, ...props }: P): SVGProps<SVGSVGElement> => ({
   viewBox: '0 0 24 24',
   fill: 'none',
   stroke: 'currentColor',
   strokeWidth: 1.8,
   strokeLinecap: 'round',
   strokeLinejoin: 'round',
+  width: size ?? width ?? 16,
+  height: size ?? height ?? 16,
   ...props
 })
 
@@ -469,6 +472,79 @@ export const IconHome = (p: P) => (
   </svg>
 )
 
+export const IconReplace = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4 17l6-6M4 17h8M4 17v-8M20 7l-6 6M20 7h-8M20 7v8" />
+  </svg>
+)
 
+export const IconMarquee = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4 7V4h3M17 4h3v3M4 17v3h3M17 20h3v-3" />
+    <path d="M9 4h2M13 4h2M9 20h2M13 20h2M4 9v2M4 13v2M20 9v2M20 13v2" strokeDasharray="2 2" />
+  </svg>
+)
+
+export const IconPin = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 17v5M5 5l14 14M9 3l6 6M15 9l4 4-2 2-7-7 2-2M9 15l-3 3" />
+  </svg>
+)
+
+
+
+export const IconHand = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M18 11V6a2 2 0 0 0-4 0v4M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8a6 6 0 0 0 6 6h2a6 6 0 0 0 6-6v-3a2 2 0 0 0-4 0v2" />
+  </svg>
+)
+
+export const IconLightning = (p: P) => (
+  <svg {...base(p)}>
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" fillOpacity="0.2" />
+  </svg>
+)
+
+export const IconMeshGrid = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+  </svg>
+)
+
+export const IconSplitView = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <path d="M12 3v18" />
+  </svg>
+)
+
+export const IconAxisMove = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20" />
+  </svg>
+)
+
+export const IconAxisRotate = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-1.19" />
+  </svg>
+)
+
+export const IconWireframe = (p: P) => (
+  <svg {...base(p)}>
+    <polygon points="12 2 2 8.5 12 15 22 8.5 12 2" />
+    <polygon points="12 15 2 8.5 2 15.5 12 22 22 15.5 22 8.5 12 15" />
+    <line x1="12" y1="2" x2="12" y2="22" strokeDasharray="2 2" />
+  </svg>
+)
+
+
+
+export const IconFit = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+  </svg>
+)
 
 

@@ -3,6 +3,7 @@ import * as THREE from 'three'
 export interface ResolvedTexture {
   texture: THREE.Texture
   image?: HTMLImageElement
+  url?: string
   width: number
   height: number
 }
@@ -27,7 +28,7 @@ export function resolveFaceTexture(assetPath: string): Promise<ResolvedTexture |
             const tex = new THREE.Texture(img)
             tex.colorSpace = THREE.SRGBColorSpace
             tex.needsUpdate = true
-            resolve({ texture: tex, image: img, width: img.naturalWidth, height: img.naturalHeight })
+            resolve({ texture: tex, image: img, url: cleanKey, width: img.naturalWidth, height: img.naturalHeight })
           }
           img.onerror = () => resolve(null)
           img.src = cleanKey
@@ -73,7 +74,7 @@ export function resolveFaceTexture(assetPath: string): Promise<ResolvedTexture |
             const tex = new THREE.Texture(img)
             tex.colorSpace = THREE.SRGBColorSpace
             tex.needsUpdate = true
-            resolve({ texture: tex, image: img, width: img.naturalWidth, height: img.naturalHeight })
+            resolve({ texture: tex, image: img, url: blobUrl, width: img.naturalWidth, height: img.naturalHeight })
           }
           img.onerror = () => resolve(null)
           img.src = blobUrl

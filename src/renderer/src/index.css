@@ -19,4 +19,8 @@
 @import './styles/assetGrid.css';
 @import './styles/assetCatalogModal.css';
 @import './styles/topview.css';
+@import './styles/model3dLibrary.css';
+@import './styles/assembly3dSidebar.css';
 @import './styles/assembly3d.css';
+@import './styles/assemblyInspector.css';
+@import './styles/mesh2dEditor.css';

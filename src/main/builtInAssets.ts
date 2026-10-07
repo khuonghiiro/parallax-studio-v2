@@ -254,13 +254,81 @@ export async function scanAssembly3DAssets(): Promise<BuiltInAssetItem[]> {
   const assemblyFiles = allFiles.filter((filePath) => {
     const name = basename(filePath).toLowerCase()
     if (name === 'manifest.json' || name === 'readme.md') return false
+    if (name.includes('review') || name.includes('_raw') || name.includes('thumb') || name.includes('raw_crop')) return false
     const rel = relative(root, filePath).replace(/\\/g, '/')
     return rel.startsWith('assembly_3d/') || rel.startsWith('house/')
   })
 
   const { assetsConfig } = await readManifestJson(root)
-  const itemResults = await Promise.all(assemblyFiles.map((filePath) => buildAssetItem(filePath, root, assetsConfig)))
-  return itemResults.filter((it): it is BuiltInAssetItem => it !== null)
+  const itemResults = await Promise.all(
+    assemblyFiles.map(async (filePath) => {
+      const item = await buildAssetItem(filePath, root, assetsConfig)
+      if (item && item.relativePath.includes('house')) {
+        item.folder = 'architecture'
+      }
+      return item
+    })
+  )
+  const itemsMap = new Map<string, BuiltInAssetItem>()
+  for (const it of itemResults) {
+    if (it) itemsMap.set(it.fileName, it)
+  }
+
+  // Also collect textures from asset-3ds categorized folders
+  try {
+    const asset3dsRoot = join(process.cwd(), 'asset-3ds')
+    if (existsSync(asset3dsRoot)) {
+      const asset3dsFiles = await collectFilesRecursively(asset3dsRoot, asset3dsRoot)
+      const textureFiles = asset3dsFiles.filter((p) => {
+        const name = basename(p).toLowerCase()
+        const ext = extname(p).slice(1).toLowerCase()
+        return (
+          IMAGE_EXTS.has(ext) &&
+          name !== 'manifest.json' &&
+          !name.includes('thumb') &&
+          !name.includes('review') &&
+          !name.includes('_raw') &&
+          !name.includes('raw_crop')
+        )
+      })
+      await Promise.all(
+        textureFiles.map(async (filePath) => {
+          const fileName = basename(filePath)
+          // If already mapped from assembly_3d with clean title, keep it, else add
+          if (itemsMap.has(fileName)) return
+
+          const rel = relative(asset3dsRoot, filePath).replace(/\\/g, '/')
+          const parts = rel.split('/')
+          const cat = parts.length > 1 ? parts[0] : 'custom'
+          const statData = await stat(filePath)
+          const ext = extname(filePath).slice(1).toLowerCase()
+          const mime = MIME_MAP[ext] || 'image/png'
+          let previewUrl: string | undefined
+          if (statData.size <= 4 * 1024 * 1024) {
+            const buf = await readFile(filePath)
+            previewUrl = `data:${mime};base64,${buf.toString('base64')}`
+          }
+          itemsMap.set(fileName, {
+            id: `asset3ds:${rel}`,
+            name: basename(filePath, extname(filePath)).replace(/[_-]/g, ' '),
+            fileName,
+            relativePath: `asset-3ds/${rel}`,
+            folder: cat,
+            ext,
+            mime,
+            kind: 'image' as const,
+            size: statData.size,
+            path: filePath,
+            previewUrl
+          })
+        })
+      )
+    }
+  } catch (err) {
+    console.warn('[BuiltInAssets] Error scanning asset-3ds textures:', err)
+  }
+
+  return Array.from(itemsMap.values())
 }
 
 export async function saveManifestJson(rawJson: string): Promise<BuiltInSaveManifestResult> {

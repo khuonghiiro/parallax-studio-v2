@@ -1,0 +1,493 @@
+/* ==========================================================================
+   Assembly 3D Studio - Right Inspector Panel & Custom Mesh Controls
+   Dual-Theme Compliant adhering to code-modularization standard
+   ========================================================================== */
+
+/* 1. Inspector Panel Container */
+.assembly-inspector-panel {
+  background: var(--bg-2);
+  border-left: 1px solid var(--line-soft);
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.face-inspector-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  min-width: 0;
+}
+
+.inspector-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line-soft);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.inspector-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 2. Form Inputs & Grids */
+.inspector-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.inspector-row label {
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.input-text {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 11px;
+  padding: 5px 8px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.input-text:focus {
+  border-color: var(--line-focus);
+  box-shadow: 0 0 0 1px var(--line-focus);
+}
+
+.input-text::placeholder {
+  color: var(--text-faint);
+}
+
+.global-scale-row .range-with-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.global-scale-row input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+}
+
+.scale-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  min-width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.preset-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.preset-buttons-grid .btn {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 4px 6px;
+  font-size: 10px;
+}
+
+/* 3. Faces List Chips */
+.faces-chip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg-3);
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid var(--line-soft);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.face-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: var(--bg-2);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.face-chip:hover {
+  background: var(--bg-4);
+}
+
+.face-chip.active {
+  background: var(--bg-1);
+  border-color: var(--accent);
+}
+
+.chip-idx {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-faint);
+  min-width: 14px;
+  flex-shrink: 0;
+}
+
+.chip-name {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.chip-del {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.chip-del:hover {
+  color: #ef4444;
+}
+
+/* 4. Inspector Form Grids */
+.inspector-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.inspector-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.inspector-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.inspector-field label {
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.axis-tag {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  text-align: center;
+}
+
+.tag-x { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+.tag-y { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+.tag-z { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+
+.inspector-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.group-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rot-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.rot-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  width: 72px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rot-slider-row input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  height: 4px;
+  accent-color: var(--accent-cyan);
+}
+
+.deg-value {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text);
+  width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.quick-snaps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.snap-btn {
+  background: var(--bg-3);
+  border: 1px solid var(--line-soft);
+  color: var(--text-dim);
+  font-size: 10px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  flex: 1 1 auto;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.snap-btn:hover {
+  background: var(--bg-4);
+  color: var(--text);
+  border-color: var(--line-focus);
+}
+
+.snap-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* 5. Mesh Curvature & Partial Sub-Mesh Controls */
+.mesh-curvature-editor {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-soft);
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.field-sub-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.region-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.region-pill-btn {
+  background: var(--bg-3);
+  border: 1px solid var(--line-soft);
+  color: var(--text-dim);
+  font-size: 10px;
+  padding: 3px 6px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex: 1 1 auto;
+  text-align: center;
+}
+
+.region-pill-btn:hover {
+  background: var(--bg-4);
+  color: var(--text);
+  border-color: var(--line-focus);
+}
+
+.region-pill-btn.active {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+/* Custom Mesh Frame (Cols x Rows & Rotation Angle) */
+.custom-mesh-frame-box {
+  background: var(--bg-3);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.grid-res-buttons {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.res-btn {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  color: var(--text-dim);
+  font-size: 10px;
+  padding: 4px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.res-btn:hover {
+  background: var(--bg-4);
+  color: var(--text);
+}
+
+.res-btn.active {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.trim-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.hidden-cells-count {
+  font-size: 10px;
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.trim-actions-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.reset-mesh-btn {
+  width: 100%;
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.reset-mesh-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.trim-hint-text {
+  font-size: 10px;
+  color: var(--text-faint);
+  line-height: 1.4;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.trim-hint-text strong {
+  color: var(--text-dim);
+}

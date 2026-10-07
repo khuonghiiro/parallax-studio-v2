@@ -1,0 +1,432 @@
+/* ==========================================================================
+   mesh2dEditor.css — Dual-theme 2D Texture & Mesh Plane Editor (Photoshop style)
+   ========================================================================== */
+
+.mesh2d-editor-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  background-color: var(--bg-0);
+  overflow: hidden;
+  user-select: none;
+}
+
+/* 1. Horizontal Context Bar (Tab Ngang) */
+.mesh2d-horizontal-bar {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-2);
+  border-bottom: 1px solid var(--line-soft);
+  flex-shrink: 0;
+  z-index: 10;
+  width: 100%;
+}
+
+.mesh2d-tab-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background-color: var(--bg-1);
+  border-bottom: 1px solid var(--line-soft);
+  overflow-x: hidden;
+  flex-wrap: wrap;
+}
+
+.mesh2d-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.mesh2d-nav-btn:hover {
+  background-color: var(--bg-3);
+  color: var(--text);
+}
+
+.mesh2d-nav-btn.active {
+  background-color: var(--bg-3);
+  color: var(--accent);
+  border-color: var(--line-soft);
+  font-weight: 600;
+}
+
+.tab-counter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 5px;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 8px;
+  background-color: var(--key);
+  color: #000000;
+  margin-left: 2px;
+}
+
+.mesh2d-tab-sub-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 10px;
+  min-height: 32px;
+  background-color: var(--bg-2);
+  flex-wrap: wrap;
+}
+
+.sub-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.sub-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 2px;
+}
+
+.sub-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  background-color: var(--bg-3);
+  color: var(--text-dim);
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.sub-pill-btn:hover {
+  background-color: var(--bg-4);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.sub-pill-btn.active {
+  background-color: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+}
+
+.sub-pill-btn.gold {
+  background-color: rgba(234, 179, 8, 0.15);
+  color: var(--key);
+  border-color: rgba(234, 179, 8, 0.4);
+}
+
+.sub-pill-btn.gold:hover {
+  background-color: var(--key);
+  color: #000000;
+}
+
+.sub-val {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 32px;
+  text-align: right;
+}
+
+.sub-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* 2. Workspace Body (Vertical Palette + Canvas) */
+.mesh2d-workspace-body {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Tab Dọc: Vertical Tool Strip */
+.mesh2d-vertical-palette {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 4px;
+  width: 44px;
+  flex-shrink: 0;
+  background-color: var(--bg-2);
+  border-right: 1px solid var(--line-soft);
+  z-index: 15;
+}
+
+.mesh2d-v-tool-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.mesh2d-v-tool-btn:hover {
+  background-color: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line-soft);
+}
+
+.mesh2d-v-tool-btn.active {
+  background-color: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+}
+
+.mesh2d-v-tool-btn.gold.active {
+  background-color: var(--key);
+  color: #000000;
+  border-color: var(--key);
+  box-shadow: 0 2px 6px rgba(234, 179, 8, 0.35);
+}
+
+.mesh2d-v-tool-btn.danger.active {
+  background-color: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);
+}
+
+.mesh2d-palette-divider {
+  width: 22px;
+  height: 1px;
+  background-color: var(--line-soft);
+  margin: 3px 0;
+  flex-shrink: 0;
+}
+
+/* Canvas Area with Photoshop Checkerboard Pattern */
+.mesh2d-canvas-wrapper {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #1a1a24;
+  background-image: 
+    linear-gradient(45deg, #14141e 25%, transparent 25%),
+    linear-gradient(-45deg, #14141e 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #14141e 75%),
+    linear-gradient(-45deg, transparent 75%, #14141e 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  cursor: default;
+}
+
+.mesh2d-canvas-wrapper.tool-pan {
+  cursor: grab;
+}
+
+.mesh2d-canvas-wrapper.tool-pan:active {
+  cursor: grabbing;
+}
+
+.mesh2d-canvas-wrapper.tool-bbox-select,
+.mesh2d-canvas-wrapper.tool-select,
+.mesh2d-canvas-wrapper.tool-pin {
+  cursor: pointer;
+}
+
+.mesh2d-canvas-wrapper.tool-erase,
+.mesh2d-canvas-wrapper.tool-restore {
+  cursor: crosshair;
+}
+
+.mesh2d-svg-overlay polygon {
+  cursor: pointer;
+}
+
+.mesh2d-svg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: all;
+}
+
+/* HUD Overlay on bottom left/right of 2D canvas */
+.mesh2d-hud-bottom {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.mesh2d-hud-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--line-soft);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.mesh2d-hud-info strong {
+  color: var(--text);
+}
+
+.mesh2d-hud-controls {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 4px;
+  border-radius: 6px;
+  border: 1px solid var(--line-soft);
+}
+
+.mesh2d-zoom-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.mesh2d-zoom-btn:hover {
+  background-color: var(--bg-3);
+  color: var(--text);
+}
+
+/* Split Screen Layout (2D on left, 3D on right) */
+.assembly-split-container {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.assembly-split-pane {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.assembly-split-pane.left-pane {
+  border-right: 1px solid var(--line);
+}
+
+.pane-header-tab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background-color: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.pane-header-tab span.pane-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+}
+
+/* View Mode Selector Tabs */
+.view-mode-tabs {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--bg-1);
+  padding: 2px 4px;
+  border-radius: 6px;
+  border: 1px solid var(--line-soft);
+  gap: 2px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.view-mode-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.view-mode-tab-btn:hover {
+  color: var(--text);
+  background-color: var(--bg-2);
+}
+
+.view-mode-tab-btn.active {
+  color: #ffffff;
+  background-color: var(--accent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
