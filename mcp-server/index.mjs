@@ -623,6 +623,7 @@ tool('apply_assembly_template', 'Apply a pre-folded geometric assembly template 
   model_id: z.string().optional(),
   mode: z.enum(['replace', 'append']).optional().describe('Replace folds or append beside model (default "replace").')
 })
+tool('get_assembly_screenshot', 'Capture a screenshot of the currently active 3D Assembly workshop viewport as a PNG base64 string.', {})
 
 // ---- export & scripting
 tool('export_video', 'Render the composition to an H.264 MP4 (blocks until finished).', {

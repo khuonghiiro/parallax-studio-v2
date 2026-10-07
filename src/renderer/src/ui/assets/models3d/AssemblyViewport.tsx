@@ -35,6 +35,8 @@ interface AssemblyViewportProps {
   onToggleSelectCell?: (faceId: string, cellKey: string) => void
   /** Start / end of a continuous gesture (gizmo or face drag) → one undo step. */
   onGestureChange?: (active: boolean) => void
+  /** Register callback to capture viewport screenshot as base64 png */
+  onRegisterCapture?: (fn: () => string | null) => void
 }
 
 type DragMode = 'none' | 'orbit' | 'panSpace' | 'dragFace'
@@ -55,9 +57,11 @@ export function AssemblyViewport({
   onDropAsset,
   onToggleMeshCell,
   onToggleSelectCell,
-  onGestureChange
+  onGestureChange,
+  onRegisterCapture
 }: AssemblyViewportProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const meshGroupRef = useRef<THREE.Group | null>(null)
@@ -76,6 +80,18 @@ export function AssemblyViewport({
   const orbitRef = useRef<OrbitState>({ azimuth: -0.6, elevation: 0.4, radius: 1400, target: new THREE.Vector3(0, 100, 200) })
   const dragRef = useRef({ mode: 'none' as DragMode, prevX: 0, prevY: 0, startX: 0, startY: 0, faceId: null as string | null, initFacePos: [0, 0, 0] as [number, number, number] })
   const scale = model.scale || 1.0
+
+  useEffect(() => {
+    if (!onRegisterCapture) return
+    onRegisterCapture(() => {
+      const r = rendererRef.current
+      if (!r) return null
+      return r.domElement.toDataURL('image/png')
+    })
+    return () => {
+      onRegisterCapture(() => null)
+    }
+  }, [onRegisterCapture])
 
   // Load face textures asynchronously
   useEffect(() => {
@@ -110,7 +126,7 @@ export function AssemblyViewport({
     if (bg instanceof THREE.Color) bg.set(sceneTheme.background)
   }, [sceneTheme])
 
-  useThreeScene({ containerRef, sceneRef, cameraRef, meshGroupRef, helpersGroupRef, lightRigRef, orbitRef, bumpGizmo, setGizmoRect })
+  useThreeScene({ containerRef, rendererRef, sceneRef, cameraRef, meshGroupRef, helpersGroupRef, lightRigRef, orbitRef, bumpGizmo, setGizmoRect })
 
   // Dynamic light rig & shadow catcher
   useEffect(() => {
@@ -379,6 +395,7 @@ export function AssemblyViewport({
 
 interface SceneRefs {
   containerRef: React.MutableRefObject<HTMLDivElement | null>
+  rendererRef?: React.MutableRefObject<THREE.WebGLRenderer | null>
   sceneRef: React.MutableRefObject<THREE.Scene | null>
   cameraRef: React.MutableRefObject<THREE.PerspectiveCamera | null>
   meshGroupRef: React.MutableRefObject<THREE.Group | null>
@@ -391,7 +408,7 @@ interface SceneRefs {
 
 /** Creates the renderer / scene / camera, runs the render loop and handles resizes. */
 function useThreeScene(refs: SceneRefs): void {
-  const { containerRef, sceneRef, cameraRef, meshGroupRef, helpersGroupRef, lightRigRef, orbitRef, bumpGizmo, setGizmoRect } = refs
+  const { containerRef, rendererRef, sceneRef, cameraRef, meshGroupRef, helpersGroupRef, lightRigRef, orbitRef, bumpGizmo, setGizmoRect } = refs
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -405,7 +422,8 @@ function useThreeScene(refs: SceneRefs): void {
     const camera = new THREE.PerspectiveCamera(40, width / height, 10, 10000)
     cameraRef.current = camera
     // antialias → MSAA (alphaToCoverage), localClipping for intersection cuts, shadows for sun.
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true })
+    if (rendererRef) rendererRef.current = renderer
     renderer.setSize(width, height)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.localClippingEnabled = true

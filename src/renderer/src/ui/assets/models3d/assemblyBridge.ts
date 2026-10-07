@@ -8,6 +8,7 @@ export interface ActiveAssemblySession {
   save: () => void
   insert: () => Promise<string[]>
   close: () => void
+  captureScreenshot?: () => string | null
 }
 
 let activeSession: ActiveAssemblySession | null = null

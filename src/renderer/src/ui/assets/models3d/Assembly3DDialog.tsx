@@ -119,6 +119,8 @@ export function Assembly3DDialog({ isOpen, initialModel, onClose, onSaved }: Ass
     }
   }, [handleClose, onSaved])
 
+  const captureFnRef = useRef<(() => string | null) | null>(null)
+
   useEffect(() => {
     if (!isOpen) return
     return registerAssemblySession({
@@ -128,7 +130,8 @@ export function Assembly3DDialog({ isOpen, initialModel, onClose, onSaved }: Ass
       setSelectedFaceId: (id) => setSelectedFaceId(id),
       save: handleSave,
       insert: handleInsert,
-      close: handleClose
+      close: handleClose,
+      captureScreenshot: () => (captureFnRef.current ? captureFnRef.current() : null)
     })
   }, [isOpen, handleSave, handleInsert, handleClose, setModel])
 
@@ -175,6 +178,9 @@ export function Assembly3DDialog({ isOpen, initialModel, onClose, onSaved }: Ass
       onToggleMeshCell={(faceId, key) => setFaces((faces) => toggleCell(faces, faceId, key, 'hiddenCells'), DISCRETE)}
       onToggleSelectCell={(faceId, key) => setFaces((faces) => toggleCell(faces, faceId, key, 'selectedCells'), DISCRETE)}
       onGestureChange={setGestureActive}
+      onRegisterCapture={(fn) => {
+        captureFnRef.current = fn
+      }}
     />
   )
   const editor2D = (

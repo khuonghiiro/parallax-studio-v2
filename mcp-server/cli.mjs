@@ -442,6 +442,12 @@ const TOOLS_CATALOG = {
     desc: 'Áp dụng khuôn mẫu hình học 3D dựng sẵn (nhà mái chữ A, hộp, lều, tháp bát giác, kim tự tháp, bậc thang...) mà vẫn giữ nguyên ảnh texture của người dùng.',
     params: '{ "template_id": string, "mode"?: "replace"|"append", "model_id"?: string }',
     example: 'node mcp-server/cli.mjs call apply_assembly_template \'{"template_id": "gable-house", "mode": "replace"}\''
+  },
+  get_assembly_screenshot: {
+    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
+    desc: 'Chụp ảnh màn hình khung nhìn 3D hiện tại của Xưởng Lắp Ráp dưới dạng chuỗi base64 PNG.',
+    params: '{}',
+    example: 'node mcp-server/cli.mjs call get_assembly_screenshot'
   }
 }
 

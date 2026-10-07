@@ -254,5 +254,18 @@ export const assemblyCommands: Record<string, Handler> = {
       getActiveAssemblySession()?.setSelectedFaceId(faces[0]?.id || null)
     }
     return { ok: true, templateId, mode, modelId: model.id, faceCount: faces.length }
+  },
+
+  get_assembly_screenshot: async () => {
+    const session = getActiveAssemblySession()
+    if (!session) {
+      throw new ParamError('3D Assembly workshop modal is not currently open')
+    }
+    const dataUrl = session.captureScreenshot ? session.captureScreenshot() : null
+    if (!dataUrl) {
+      throw new ParamError('Failed to capture workshop canvas or canvas not ready')
+    }
+    const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '')
+    return { mime: 'image/png', data: base64, modelId: session.getModel().id }
   }
 }

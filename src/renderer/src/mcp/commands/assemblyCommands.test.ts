@@ -90,7 +90,8 @@ describe('MCP assemblyCommands', () => {
       },
       save: () => {},
       insert: async () => ['mock-layer-1'],
-      close: () => {}
+      close: () => {},
+      captureScreenshot: () => 'data:image/png;base64,mock-base64-png'
     })
 
     try {
@@ -157,6 +158,11 @@ describe('MCP assemblyCommands', () => {
       })) as any
       expect(delRes.ok).toBe(true)
       expect(mockModel.faces.length).toBe(5)
+
+      // 9. Screenshot active workshop
+      const snapRes = (await runCommand('get_assembly_screenshot')) as any
+      expect(snapRes.mime).toBe('image/png')
+      expect(snapRes.data).toBe('mock-base64-png')
     } finally {
       unregister()
     }
