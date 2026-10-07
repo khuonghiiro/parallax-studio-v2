@@ -11,8 +11,7 @@ describe('MCP audioCommands', () => {
       id: 'asset-sound-1',
       name: 'soundtrack.mp3',
       kind: 'audio',
-      mime: 'audio/mp3',
-      byteLength: 1024
+      mime: 'audio/mp3'
     })
     useEditor.getState().loadProject(proj, null)
   })

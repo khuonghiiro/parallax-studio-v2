@@ -34,6 +34,8 @@ export type AnimValue = number | Vec3
 
 export type BlendMode = 'normal' | 'add' | 'screen' | 'multiply'
 
+export type AutoOrientMode = 'none' | 'camera' | 'camera-y'
+
 export type LayerType = 'image' | 'text' | 'solid' | 'particles'
 
 export interface Transform {
@@ -166,6 +168,18 @@ export interface AppliedLayerEffect {
   intensity?: number
 }
 
+export interface LayerModel3DRef {
+  instanceId: string // Unique ID for this assembled 3D object in the shot
+  modelId: string // e.g. 'model-tudor-cottage'
+  modelName: string // e.g. 'Ngôi Nhà Tudor 3D'
+  faceId: string // e.g. 'face-front'
+  initialScale: number // base scale of the model (e.g. 0.6)
+  globalScale: number // current overall scale factor
+  basePosition: Vec3 // unscaled face offset from model origin [x, y, z]
+  centerPosition?: Vec3 // position of the 3D model center in the shot
+  baseSize?: [number, number]
+}
+
 interface LayerBase<T extends LayerType, P> {
   id: string
   name: string
@@ -188,6 +202,8 @@ interface LayerBase<T extends LayerType, P> {
   parentId?: string | null
   /** Owning shot, or null for a global layer (shared sky, subtitles…). */
   shotId: string | null
+  /** 3D model assembly reference if this layer is part of an assembled 3D model. */
+  model3d?: LayerModel3DRef
   transform: Transform
   /** Procedural or looping motion (drift/sway/wind/float/pulse/wiggle). */
   motion?: LayerMotion
@@ -270,6 +286,8 @@ export interface AudioTrackItem {
   fadeOut?: number // seconds, default 0
   tone?: 'normal' | 'bass' | 'treble' | 'vocal' | 'warm' // EQ tone filter preset
   muted?: boolean // true if track is muted
+  loop?: boolean // true if track loops
+  gainDb?: number // gain in decibels
 }
 
 export type AssetKind = 'image' | 'audio'

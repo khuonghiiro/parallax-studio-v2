@@ -69,6 +69,19 @@ export interface BuiltInSaveManifestResult {
   catalog?: BuiltInCatalogResult
 }
 
+export interface Asset3DsCategory {
+  id: string
+  title: string
+  icon: string
+  description?: string
+  order?: number
+}
+
+export interface Asset3DsCatalogResult {
+  categories: Asset3DsCategory[]
+  models: any[]
+}
+
 export interface ParallaxApi {
   openFiles(kind: 'image' | 'audio'): Promise<PickedFile[]>
   saveProject(data: Uint8Array, suggestedPath?: string): Promise<string | null>
@@ -84,9 +97,19 @@ export interface ParallaxApi {
   setTitle(title: string): void
   getSystemInfo(): Promise<SystemHardwareInfo>
   getBuiltInCatalog(): Promise<BuiltInCatalogResult>
+  getAssemblyAssets(): Promise<BuiltInAssetItem[]>
   saveBuiltInManifest(jsonContent: string): Promise<BuiltInSaveManifestResult>
   loadBuiltInAssetBytes(relativePath: string): Promise<{ name: string; mime: string; data: Uint8Array } | null>
   openBuiltInFolder(subFolder?: string): Promise<void>
+  asset3ds?: {
+    getCatalog(): Promise<Asset3DsCatalogResult>
+    list(): Promise<any[]>
+    save(model: any): Promise<{ ok: boolean; path?: string; error?: string }>
+    delete(id: string): Promise<{ ok: boolean }>
+    loadBytes(relPath: string): Promise<{ name: string; mime: string; data: Uint8Array } | null>
+    openFolder(): Promise<void>
+    saveManifest(jsonContent: string): Promise<{ ok: boolean; error?: string }>
+  }
   mcp: McpApi
 }
 

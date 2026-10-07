@@ -1,0 +1,113 @@
+{
+  "id": "model-cubic-box",
+  "name": "Khối Hộp Diêm 3D (Cubic Box)",
+  "description": "Khối hộp chữ nhật 6 mặt đa giác vuông khép kín, thích hợp làm thùng hàng, biển quảng cáo 3D, bục trưng bày.",
+  "category": "props",
+  "scale": 0.5,
+  "faces": [
+    {
+      "id": "cube-front",
+      "name": "Mặt Trước (Front)",
+      "color": "#6366f1",
+      "width": 500,
+      "height": 500,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "cube-left",
+      "name": "Mặt Trái (Left)",
+      "color": "#38bdf8",
+      "width": 500,
+      "height": 500,
+      "position": [
+        -250,
+        0,
+        250
+      ],
+      "rotation": [
+        0,
+        90,
+        0
+      ]
+    },
+    {
+      "id": "cube-right",
+      "name": "Mặt Phải (Right)",
+      "color": "#38bdf8",
+      "width": 500,
+      "height": 500,
+      "position": [
+        250,
+        0,
+        250
+      ],
+      "rotation": [
+        0,
+        -90,
+        0
+      ]
+    },
+    {
+      "id": "cube-back",
+      "name": "Mặt Sau (Back)",
+      "color": "#6366f1",
+      "width": 500,
+      "height": 500,
+      "position": [
+        0,
+        0,
+        500
+      ],
+      "rotation": [
+        0,
+        180,
+        0
+      ]
+    },
+    {
+      "id": "cube-top",
+      "name": "Nắp Trên (Top)",
+      "color": "#f59e6b",
+      "width": 500,
+      "height": 500,
+      "position": [
+        0,
+        250,
+        250
+      ],
+      "rotation": [
+        -90,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "cube-bottom",
+      "name": "Đáy Dưới (Bottom)",
+      "color": "#64748b",
+      "width": 500,
+      "height": 500,
+      "position": [
+        0,
+        -250,
+        250
+      ],
+      "rotation": [
+        90,
+        0,
+        0
+      ]
+    }
+  ],
+  "createdAt": 1740000010000,
+  "updatedAt": 1740000010000
+}

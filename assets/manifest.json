@@ -86,6 +86,24 @@
     },
     "audio/ambient_chime.wav": {
       "name": "Chuông gió ngân vang ambient"
+    },
+    "assembly_3d/house/origami_front.png": {
+      "name": "Mặt tiền nhà gỗ Origami (Front)"
+    },
+    "assembly_3d/house/origami_side_left.png": {
+      "name": "Tường hông trái Origami (Left Wall)"
+    },
+    "assembly_3d/house/origami_side_right.png": {
+      "name": "Tường hông phải Origami (Right Wall)"
+    },
+    "assembly_3d/house/origami_roof_left.png": {
+      "name": "Mái nghiêng trái Origami (Left Roof)"
+    },
+    "assembly_3d/house/origami_roof_right.png": {
+      "name": "Mái nghiêng phải Origami (Right Roof)"
+    },
+    "assembly_3d/house/origami_chimney_side.png": {
+      "name": "Mặt hông ống khói Origami (Chimney Side)"
     }
   }
 }

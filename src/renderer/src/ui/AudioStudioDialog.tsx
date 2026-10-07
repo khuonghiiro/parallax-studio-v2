@@ -90,7 +90,7 @@ export function AudioStudioDialog() {
 
       const data = await assetStore.getBytes(curTrack.assetId)
       if (!data) return
-      const audioBuffer = await actx.decodeAudioData(data.buffer.slice(0))
+      const audioBuffer = await actx.decodeAudioData(data.buffer.slice(0) as ArrayBuffer)
 
       const src = actx.createBufferSource()
       src.buffer = audioBuffer

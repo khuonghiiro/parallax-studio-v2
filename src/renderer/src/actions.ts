@@ -1,4 +1,4 @@
-import type { Project, Shot, Vec3 } from '@shared/types'
+import type { AudioTrackItem, Project, Shot, Vec3 } from '@shared/types'
 import { create } from 'zustand'
 import { buildCameraPath, flyCameraToShot, type PathOptions, type PathStep } from './animation/cameraPath'
 import { applyDrawnCameraPath } from './animation/cameraSketch'
@@ -20,6 +20,7 @@ import { deserializeProject, serializeProject } from './project/serialize'
 import {
   addAudioTrackToProject,
   duplicateAudioTrackInProject,
+  getProjectAudioTracks,
   mergeAudioTracksInProject,
   removeAudioTrackFromProject,
   splitAudioTrackInProject,

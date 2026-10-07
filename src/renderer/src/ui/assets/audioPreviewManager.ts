@@ -96,7 +96,7 @@ class AudioPreviewManager {
     // Load bytes via main IPC
     const file = await window.api.loadBuiltInAssetBytes(item.relativePath)
     if (!file) return
-    const blob = new Blob([file.data], { type: file.mime || 'audio/mpeg' })
+    const blob = new Blob([file.data as any], { type: file.mime || 'audio/mpeg' })
     await this.playBlob(item.id, blob)
   }
 }

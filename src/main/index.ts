@@ -7,6 +7,7 @@ import { McpBridge } from './mcpBridge'
 import { recentPaths } from './recentPaths'
 import { getSystemHardwareInfo } from './systemInfo'
 import { registerBuiltInAssetsIpc } from './builtInAssets'
+import { registerAsset3DsIpc } from './asset3ds'
 import type { ExportStartOptions, PickedFile } from '@shared/ipc'
 
 // ANGLE's default D3D11 backend crashes the GPU process right at startup on some
@@ -206,6 +207,7 @@ function registerIpc(): void {
   ipcMain.on('window:title', (_e, title: string) => mainWindow?.setTitle(title))
 
   registerBuiltInAssetsIpc()
+  registerAsset3DsIpc()
 }
 
 const gotTheLock = app.requestSingleInstanceLock()

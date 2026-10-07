@@ -16,9 +16,19 @@ const api: ParallaxApi = {
   setTitle: (title) => ipcRenderer.send('window:title', title),
   getSystemInfo: () => ipcRenderer.invoke('system:getInfo'),
   getBuiltInCatalog: () => ipcRenderer.invoke('builtinAssets:getCatalog'),
+  getAssemblyAssets: () => ipcRenderer.invoke('builtinAssets:getAssemblyAssets'),
   saveBuiltInManifest: (jsonContent) => ipcRenderer.invoke('builtinAssets:saveManifest', jsonContent),
   loadBuiltInAssetBytes: (relPath) => ipcRenderer.invoke('builtinAssets:loadAssetBytes', relPath),
   openBuiltInFolder: (subFolder) => ipcRenderer.invoke('builtinAssets:openFolder', subFolder),
+  asset3ds: {
+    getCatalog: () => ipcRenderer.invoke('asset3ds:getCatalog'),
+    list: () => ipcRenderer.invoke('asset3ds:list'),
+    save: (model) => ipcRenderer.invoke('asset3ds:save', model),
+    delete: (id) => ipcRenderer.invoke('asset3ds:delete', id),
+    loadBytes: (relPath) => ipcRenderer.invoke('asset3ds:loadBytes', relPath),
+    openFolder: () => ipcRenderer.invoke('asset3ds:openFolder'),
+    saveManifest: (content) => ipcRenderer.invoke('asset3ds:saveManifest', content)
+  },
   mcp: {
     onCommand: (cb) => {
       const h = (_e: Electron.IpcRendererEvent, cmd: McpCommand): void => cb(cmd)

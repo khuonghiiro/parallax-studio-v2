@@ -5,6 +5,7 @@ import {
   IconFilm,
   IconFolder,
   IconGrid,
+  IconHome,
   IconImage,
   IconMusic,
   IconSparkles
@@ -12,6 +13,11 @@ import {
 
 export function renderCategoryIcon(iconKey: string, width = 16, height = 16): ReactNode {
   switch (iconKey?.toLowerCase()) {
+    case 'home':
+    case 'house':
+    case 'architecture':
+    case 'room':
+      return <IconHome width={width} height={height} />
     case 'city':
     case 'building':
     case 'urban':

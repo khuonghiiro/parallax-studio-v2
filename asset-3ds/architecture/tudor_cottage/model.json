@@ -1,0 +1,131 @@
+{
+  "id": "model-tudor-cottage",
+  "name": "Ngôi Nhà Tudor 3D (Origami Cottage)",
+  "description": "Ngôi nhà châu Âu cổ điển lắp ráp từ 7 diện phẳng 2.5D: Mặt tiền đầu hồi, 2 tường hông, 2 cánh mái dốc và 2 mặt hông ống khói.",
+  "category": "architecture",
+  "thumbnail": "asset-3ds/tudor_cottage/review_cottage.png",
+  "scale": 0.6,
+  "faces": [
+    {
+      "id": "face-front",
+      "name": "1. Mặt Tiền (Gable Front)",
+      "assetPath": "asset-3ds/tudor_cottage/origami_front.png",
+      "width": 980,
+      "height": 966,
+      "position": [
+        0,
+        140,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "face-left",
+      "name": "2. Tường Hông Trái (Left Wall)",
+      "assetPath": "asset-3ds/tudor_cottage/origami_side_left.png",
+      "width": 840,
+      "height": 400,
+      "position": [
+        -420,
+        -32,
+        420
+      ],
+      "rotation": [
+        0,
+        90,
+        0
+      ]
+    },
+    {
+      "id": "face-right",
+      "name": "3. Tường Hông Phải (Right Wall)",
+      "assetPath": "asset-3ds/tudor_cottage/origami_side_right.png",
+      "width": 840,
+      "height": 400,
+      "position": [
+        420,
+        -32,
+        420
+      ],
+      "rotation": [
+        0,
+        -90,
+        0
+      ]
+    },
+    {
+      "id": "face-roof-left",
+      "name": "4. Mái Nghiêng Trái (Left Roof)",
+      "assetPath": "asset-3ds/tudor_cottage/origami_roof_left.png",
+      "width": 840,
+      "height": 608,
+      "position": [
+        -210,
+        212,
+        420
+      ],
+      "rotation": [
+        46.33,
+        -90,
+        0
+      ]
+    },
+    {
+      "id": "face-roof-right",
+      "name": "5. Mái Nghiêng Phải (Right Roof)",
+      "assetPath": "asset-3ds/tudor_cottage/origami_roof_right.png",
+      "width": 840,
+      "height": 608,
+      "position": [
+        210,
+        212,
+        420
+      ],
+      "rotation": [
+        46.33,
+        90,
+        0
+      ]
+    },
+    {
+      "id": "face-chimney-left",
+      "name": "6. Ống Khói Hông Trái (Chimney Left)",
+      "assetPath": "asset-3ds/tudor_cottage/origami_chimney_side.png",
+      "width": 113,
+      "height": 140,
+      "position": [
+        -34,
+        386,
+        34
+      ],
+      "rotation": [
+        0,
+        90,
+        0
+      ]
+    },
+    {
+      "id": "face-chimney-right",
+      "name": "7. Ống Khói Hông Phải (Chimney Right)",
+      "assetPath": "asset-3ds/tudor_cottage/origami_chimney_side.png",
+      "width": 113,
+      "height": 140,
+      "position": [
+        34,
+        386,
+        34
+      ],
+      "rotation": [
+        0,
+        -90,
+        0
+      ]
+    }
+  ],
+  "createdAt": 1740000000000,
+  "updatedAt": 1740000000000
+}

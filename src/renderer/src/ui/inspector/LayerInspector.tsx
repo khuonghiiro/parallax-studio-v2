@@ -12,6 +12,7 @@ import { MotionSection } from './sections/MotionSection'
 import { GlowSection } from './sections/GlowSection'
 import { LayerEffectsSection } from './sections/LayerEffectsSection'
 import { ParticleSection } from './sections/ParticleSection'
+import { Model3DSection } from './sections/Model3DSection'
 
 export function LayerInspector({ layer }: { layer: Layer }) {
   const set = useLayerUpdater(layer.id)
@@ -137,6 +138,8 @@ export function LayerInspector({ layer }: { layer: Layer }) {
           />
         </Row>
       </div>
+
+      <Model3DSection layer={layer} />
 
       <div className="section">
         <div className="section-title">Transform</div>

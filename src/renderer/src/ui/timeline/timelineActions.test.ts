@@ -30,6 +30,9 @@ describe('Timeline Actions: Split, In/Out Points, and Keyframe Creation', () => 
       locked: false,
       inPoint: 1.0,
       outPoint: 7.0,
+      blendMode: 'normal',
+      autoScale: false,
+      shotId: null,
       transform: {
         position: { value: [0, 0, 500], keyframes: [] },
         rotation: { value: [0, 0, 0], keyframes: [] },

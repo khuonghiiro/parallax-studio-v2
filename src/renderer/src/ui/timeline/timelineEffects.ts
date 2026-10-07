@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid'
-import type { Animatable, AppliedLayerEffect, EaseName, GlowSide, Keyframe, Vec3 } from '@shared/types'
+import type { Animatable, AppliedLayerEffect, EaseName, GlowSide, Keyframe, Layer, LayerGlow, Vec3 } from '@shared/types'
 import { addKeyframe, evaluate } from '../../animation/keyframes'
 import { frameTolerance, useEditor } from '../../store/editor'
 import { useToast } from '../../actions'
@@ -560,7 +560,7 @@ export function toggleLayerEffect(layer: Layer, fxId: string, enabled: boolean):
         const toSave = targetAnim.keyframes.filter((k: any) => idSet.has(k.id))
         if (toSave.length > 0) {
           savedKeyframes = toSave
-          targetAnim.keyframes = targetAnim.keyframes.filter((k: any) => !idSet.has(k.id))
+          targetAnim.keyframes = (targetAnim.keyframes as any).filter((k: any) => !idSet.has(k.id))
           if (targetAnim.keyframes.length === 0) {
             if (targetFx.targetProp === 'opacity') targetAnim.value = 1
             else if (targetFx.targetProp === 'scale') targetAnim.value = [1, 1, 1]
@@ -568,7 +568,7 @@ export function toggleLayerEffect(layer: Layer, fxId: string, enabled: boolean):
         }
       } else {
         if (savedKeyframes && savedKeyframes.length > 0) {
-          targetAnim.keyframes = [...targetAnim.keyframes, ...savedKeyframes].sort((a: any, b: any) => a.t - b.t)
+          targetAnim.keyframes = ([...targetAnim.keyframes, ...savedKeyframes] as any).sort((a: any, b: any) => a.t - b.t)
           savedKeyframes = undefined
         }
       }
@@ -589,7 +589,7 @@ export function deleteLayerEffect(layer: Layer, fxId: string): boolean {
   if (!fx) return false
 
   if (fx.targetProp) {
-    const targetAnim = layer.transform[fx.targetProp]
+    const targetAnim = (layer.transform as any)[fx.targetProp]
     if (targetAnim && targetAnim.keyframes) {
       const idSet = new Set(fx.keyframeIds ?? [])
       targetAnim.keyframes = targetAnim.keyframes.filter((k: any) => !idSet.has(k.id))

@@ -234,7 +234,11 @@ export async function scanBuiltInCatalog(forceRefresh = false): Promise<BuiltInC
 
   const eligibleFiles = allFiles.filter((filePath) => {
     const name = basename(filePath).toLowerCase()
-    return name !== 'manifest.json' && name !== 'readme.md'
+    if (name === 'manifest.json' || name === 'readme.md') return false
+    const rel = relative(root, filePath).replace(/\\/g, '/')
+    // 3D Assembly textures belong to assembly dialog, exclude from regular 2D library
+    if (rel.startsWith('assembly_3d/') || rel.startsWith('house/')) return false
+    return true
   })
 
   const itemResults = await Promise.all(eligibleFiles.map((filePath) => buildAssetItem(filePath, root, assetsConfig)))
@@ -242,6 +246,21 @@ export async function scanBuiltInCatalog(forceRefresh = false): Promise<BuiltInC
 
   cachedCatalog = { categories, items, manifestPath, rawJson }
   return cachedCatalog
+}
+
+export async function scanAssembly3DAssets(): Promise<BuiltInAssetItem[]> {
+  const root = getAssetsRoot()
+  const allFiles = await collectFilesRecursively(root, root)
+  const assemblyFiles = allFiles.filter((filePath) => {
+    const name = basename(filePath).toLowerCase()
+    if (name === 'manifest.json' || name === 'readme.md') return false
+    const rel = relative(root, filePath).replace(/\\/g, '/')
+    return rel.startsWith('assembly_3d/') || rel.startsWith('house/')
+  })
+
+  const { assetsConfig } = await readManifestJson(root)
+  const itemResults = await Promise.all(assemblyFiles.map((filePath) => buildAssetItem(filePath, root, assetsConfig)))
+  return itemResults.filter((it): it is BuiltInAssetItem => it !== null)
 }
 
 export async function saveManifestJson(rawJson: string): Promise<BuiltInSaveManifestResult> {
@@ -278,6 +297,7 @@ export async function loadAssetBytes(relPath: string): Promise<{ name: string; m
 
 export function registerBuiltInAssetsIpc(): void {
   ipcMain.handle('builtinAssets:getCatalog', async () => scanBuiltInCatalog())
+  ipcMain.handle('builtinAssets:getAssemblyAssets', async () => scanAssembly3DAssets())
 
   ipcMain.handle('builtinAssets:saveManifest', async (_e, rawJson: string) => saveManifestJson(rawJson))
 

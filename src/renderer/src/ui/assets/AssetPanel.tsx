@@ -2,14 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { BuiltInAssetCategory, BuiltInAssetItem, BuiltInCatalogResult } from '@shared/ipc'
 import { importAudio, importBuiltInAsset, importImages } from '../../actions'
 import { useEditor } from '../../store/editor'
-import { IconFolder, IconImage, IconMusic, IconPlus } from '../icons'
+import { IconCube, IconFolder, IconImage, IconMusic, IconPlus } from '../icons'
 import { AssetCatalogModal } from './AssetCatalogModal'
 import { BuiltInAssetBar } from './BuiltInAssetBar'
 import { BuiltInAssetGrid } from './BuiltInAssetGrid'
 import { ProjectAssetList } from './ProjectAssetList'
+import { Model3DList } from './Model3DList'
 import { sortAssetCategories } from './types'
 
-type AssetSubTab = 'builtin' | 'project'
+type AssetSubTab = 'builtin' | 'project' | '3d'
 
 export function AssetPanel() {
   const projectAssets = useEditor((s) => s.project.assets)
@@ -111,7 +112,7 @@ export function AssetPanel() {
         </button>
       </div>
 
-      {/* Subtabs: Built-in Library vs Project Assets */}
+      {/* Subtabs: Built-in Library vs Project Assets vs 3D Assembled Models */}
       <div className="asset-subtabs">
         <button
           type="button"
@@ -130,6 +131,15 @@ export function AssetPanel() {
           <IconImage width={13} height={13} />
           <span>Trong dự án</span>
           <span className="asset-subtab-badge">{projectAssets.length}</span>
+        </button>
+        <button
+          type="button"
+          className={`asset-subtab-btn${subTab === '3d' ? ' active' : ''}`}
+          onClick={() => setSubTab('3d')}
+          title="Mô hình 3D lắp ráp từ các diện ảnh phẳng 2.5D"
+        >
+          <IconCube width={13} height={13} />
+          <span>3D</span>
         </button>
       </div>
 
@@ -155,10 +165,12 @@ export function AssetPanel() {
             loading={loading}
           />
         </div>
-      ) : (
+      ) : subTab === 'project' ? (
         <div className="panel-body">
           <ProjectAssetList />
         </div>
+      ) : (
+        <Model3DList />
       )}
 
       {/* JSON Manifest Editor Modal */}

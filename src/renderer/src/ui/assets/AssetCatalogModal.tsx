@@ -7,6 +7,10 @@ interface AssetCatalogModalProps {
   initialJson: string
   onSave: (jsonContent: string) => Promise<boolean>
   onOpenFolder: () => void
+  title?: string
+  description?: string
+  folderLabel?: string
+  sampleTemplate?: string
 }
 
 const SAMPLE_TEMPLATE = `{
@@ -47,7 +51,11 @@ export function AssetCatalogModal({
   onClose,
   initialJson,
   onSave,
-  onOpenFolder
+  onOpenFolder,
+  title = 'Cấu hình Danh mục Tài nguyên (assets/manifest.json)',
+  description = 'Định nghĩa mapping giữa folder (thư mục tiếng Anh/không dấu) và title (tên tiếng Việt hiển thị), icon và description (mô tả tooltip).',
+  folderLabel = 'Mở thư mục assets',
+  sampleTemplate = SAMPLE_TEMPLATE
 }: AssetCatalogModalProps) {
   const [text, setText] = useState(initialJson)
   const [syntaxError, setSyntaxError] = useState<string | null>(null)
@@ -105,7 +113,7 @@ export function AssetCatalogModal({
       <div className="manifest-modal-box" onClick={(e) => e.stopPropagation()}>
         <div className="manifest-modal-header">
           <IconCode width={16} height={16} />
-          <span>Cấu hình Danh mục Tài nguyên (assets/manifest.json)</span>
+          <span>{title}</span>
           <span className="spacer" />
           <button type="button" className="btn sm icon ghost" onClick={onClose} title="Đóng">
             <IconX />
@@ -114,8 +122,7 @@ export function AssetCatalogModal({
 
         <div className="manifest-modal-body">
           <div style={{ color: 'var(--text-dim)', fontSize: '11px', lineHeight: 1.4 }}>
-            Định nghĩa mapping giữa <code>folder</code> (thư mục tiếng Anh/không dấu) và <code>title</code> (tên tiếng Việt hiển thị),
-            <code>icon</code> (grid, city, sparkles, music, cube, film, image) và <code>description</code> (mô tả tooltip).
+            {description}
           </div>
 
           <textarea
@@ -137,13 +144,13 @@ export function AssetCatalogModal({
         </div>
 
         <div className="manifest-modal-footer">
-          <button type="button" className="btn sm" onClick={onOpenFolder} title="Mở thư mục assets trên ổ đĩa">
-            <IconFolder width={14} height={14} /> Mở thư mục assets
+          <button type="button" className="btn sm" onClick={onOpenFolder} title={folderLabel}>
+            <IconFolder width={14} height={14} /> {folderLabel}
           </button>
           <button type="button" className="btn sm" onClick={handleFormat} title="Format làm đẹp JSON">
             <IconRefresh width={14} height={14} /> Định dạng
           </button>
-          <button type="button" className="btn sm ghost" onClick={() => handleChange(SAMPLE_TEMPLATE)} title="Dùng mẫu chuẩn">
+          <button type="button" className="btn sm ghost" onClick={() => handleChange(sampleTemplate)} title="Dùng mẫu chuẩn">
             Mẫu chuẩn
           </button>
           <span className="spacer" />

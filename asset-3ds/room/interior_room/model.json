@@ -1,0 +1,79 @@
+{
+  "id": "model-room-interior",
+  "name": "Căn Phòng Mở 3D (Room Interior)",
+  "description": "Phối cảnh nội thất phòng có sàn nhà, tường chính diện phía sau và 2 vách tường hông tạo không gian bao bọc.",
+  "category": "room",
+  "scale": 0.5,
+  "faces": [
+    {
+      "id": "room-floor",
+      "name": "Sàn Phòng (Floor)",
+      "color": "#475569",
+      "width": 800,
+      "height": 800,
+      "position": [
+        0,
+        -250,
+        400
+      ],
+      "rotation": [
+        -90,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "room-back",
+      "name": "Tường Sau (Back Wall)",
+      "color": "#1e293b",
+      "width": 800,
+      "height": 500,
+      "position": [
+        0,
+        0,
+        800
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "room-left",
+      "name": "Tường Trái (Left Wall)",
+      "color": "#334155",
+      "width": 800,
+      "height": 500,
+      "position": [
+        -400,
+        0,
+        400
+      ],
+      "rotation": [
+        0,
+        90,
+        0
+      ]
+    },
+    {
+      "id": "room-right",
+      "name": "Tường Phải (Right Wall)",
+      "color": "#334155",
+      "width": 800,
+      "height": 500,
+      "position": [
+        400,
+        0,
+        400
+      ],
+      "rotation": [
+        0,
+        -90,
+        0
+      ]
+    }
+  ],
+  "createdAt": 1740000030000,
+  "updatedAt": 1740000030000
+}

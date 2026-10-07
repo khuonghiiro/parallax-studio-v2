@@ -1,0 +1,62 @@
+{
+  "id": "model-l-corner",
+  "name": "Góc Phố Cổ Điển 3D (L-Corner Facade)",
+  "description": "Hai mặt tiền nhà phố bẻ vuông góc 90° kết hợp vỉa hè, tạo phối cảnh đường phố có chiều sâu thị sai ấn tượng.",
+  "category": "street",
+  "scale": 0.6,
+  "faces": [
+    {
+      "id": "corner-front",
+      "name": "Mặt Dựng Chính (Main Facade)",
+      "color": "#3b82f6",
+      "width": 600,
+      "height": 600,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "corner-side",
+      "name": "Mặt Hông Bẻ Góc 90° (Side Alley)",
+      "color": "#0284c7",
+      "width": 600,
+      "height": 600,
+      "position": [
+        -300,
+        0,
+        300
+      ],
+      "rotation": [
+        0,
+        90,
+        0
+      ]
+    },
+    {
+      "id": "corner-ground",
+      "name": "Mặt Sàn / Vỉa Hè (Ground)",
+      "color": "#334155",
+      "width": 900,
+      "height": 900,
+      "position": [
+        0,
+        -300,
+        300
+      ],
+      "rotation": [
+        -90,
+        0,
+        0
+      ]
+    }
+  ],
+  "createdAt": 1740000020000,
+  "updatedAt": 1740000020000
+}

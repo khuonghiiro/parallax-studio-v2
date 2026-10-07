@@ -157,7 +157,8 @@ export const projectCommands: Record<string, Handler> = {
         addAudioTrackToProject(d as Project, asset.meta.id, asset.meta.name, num(p, 'offset') ?? 0)
       })
     }
-    if (!proj().audio && (!proj().audioTracks || proj().audioTracks.length === 0)) {
+    const curProj = proj()
+    if (!curProj.audio && (!curProj.audioTracks || curProj.audioTracks.length === 0)) {
       throw new ParamError('No audio track: provide "file_path"')
     }
     ed().update((d) => {

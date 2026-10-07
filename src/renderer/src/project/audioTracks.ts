@@ -246,7 +246,7 @@ export async function mixAudioTracksToWav(
       if (!data || data.byteLength === 0) continue
 
       try {
-        const audioBuffer = await baseAudioCtx.decodeAudioData(data.buffer.slice(0))
+        const audioBuffer = await baseAudioCtx.decodeAudioData(data.buffer.slice(0) as ArrayBuffer)
         const source = actx.createBufferSource()
         source.buffer = audioBuffer
         const rate = track.playbackRate || 1

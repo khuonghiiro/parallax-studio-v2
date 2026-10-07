@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { anim } from '../../animation/keyframes'
 import { useEditor } from '../../store/editor'
 import { applyFxPresetToSelectedLayer, deleteLayerEffect, FX_PRESETS, toggleLayerEffect } from './timelineEffects'
-import type { ImageLayerProps, Layer } from '@shared/types'
+import type { ImageLayer, Layer } from '@shared/types'
 
 describe('timelineEffects (Animation FX Presets)', () => {
   beforeEach(() => {
-    const mockLayer: Layer<ImageLayerProps> = {
+    const mockLayer: ImageLayer = {
       id: 'layer-test-fx',
       name: 'Layer Test FX',
       type: 'image',
@@ -16,6 +16,7 @@ describe('timelineEffects (Animation FX Presets)', () => {
       outPoint: 10,
       blendMode: 'normal',
       autoScale: false,
+      shotId: null,
       transform: {
         position: anim([100, 200, 500]),
         rotation: anim([0, 0, 0]),
@@ -23,7 +24,9 @@ describe('timelineEffects (Animation FX Presets)', () => {
         opacity: anim(1)
       },
       props: {
-        assetId: 'test-asset'
+        assetId: 'test-asset',
+        width: 1920,
+        height: 1080
       }
     }
 
@@ -32,13 +35,13 @@ describe('timelineEffects (Animation FX Presets)', () => {
       time: 2.5,
       project: {
         version: 2,
-        comp: { width: 1920, height: 1080, fps: 30, duration: 10 },
+        comp: { name: 'Main Comp', background: '#000000', width: 1920, height: 1080, fps: 30, duration: 10 },
         camera: {} as any,
         shots: [],
         layers: [mockLayer],
         assets: []
       }
-    })
+    } as any)
   })
 
   it('fails safely if no layer is selected', () => {

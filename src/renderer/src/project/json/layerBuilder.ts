@@ -180,8 +180,8 @@ export async function buildSingleLayer(
       project.assets.push(assetMeta)
     } else if (lSpec.assetName) {
       assetMeta = project.assets.find((a) => a.name === lSpec.assetName)
-    } else if (lSpec.src || lSpec.path) {
-      const p = (lSpec.src || lSpec.path || '').replace(/^assets\//, '')
+    } else if (lSpec.src || (lSpec as any).path) {
+      const p = (lSpec.src || (lSpec as any).path || '').replace(/^assets\//, '')
       assetMeta = project.assets.find((a) => a.name === lSpec.name || a.assetPath === p || a.path === `assets/${p}`)
       if (!assetMeta) {
         const file = await loadAssetBytesFromDiskOrBuiltIn(p)
