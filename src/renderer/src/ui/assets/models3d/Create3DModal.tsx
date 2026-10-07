@@ -128,7 +128,7 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
           background: 'var(--bg-2)',
           border: '1px solid var(--line)',
           borderRadius: '12px',
-          boxShadow: '0 12px 36px rgba(0,0,0,0.5)',
+          boxShadow: 'var(--shadow-popup)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column'
@@ -152,7 +152,7 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
                 height: '32px',
                 borderRadius: '8px',
                 background: 'var(--accent)',
-                color: '#fff',
+                color: 'var(--on-accent)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -227,7 +227,7 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
                     fontSize: '10px',
                     fontWeight: 700,
                     background: 'var(--accent-cyan)',
-                    color: '#000',
+                    color: 'var(--on-cyan)',
                     padding: '2px 6px',
                     borderRadius: '4px'
                   }}
@@ -240,8 +240,9 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
                     bottom: '8px',
                     right: '8px',
                     fontSize: '10.5px',
-                    background: 'rgba(0,0,0,0.7)',
-                    color: '#fff',
+                    background: 'var(--hud-bg)',
+                    color: 'var(--text)',
+                    border: '1px solid var(--hud-border)',
                     padding: '2px 6px',
                     borderRadius: '4px',
                     backdropFilter: 'blur(4px)'

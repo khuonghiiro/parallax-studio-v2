@@ -53,9 +53,27 @@ export interface Face3D {
   motionAnchor?: 'bottom' | 'top' | 'left' | 'center' | 'all'
   /** Danh sách các ô mesh bị ghim cố định (Starch Pin / Puppet Pin) không bị chuyển động */
   pinnedCells?: string[]
+  /** Ẩn mặt trong Xưởng lắp ráp và khi chèn vào cảnh */
+  hidden?: boolean
+  /** Khóa mặt: không thể chọn kéo / gizmo trong viewport 3D */
+  locked?: boolean
 }
 
 export type PresetType = 'cottage' | 'cube' | 'corner' | 'room'
+
+/** Default mesh grid resolution when a face has no explicit grid. */
+export const DEFAULT_GRID_RES = 32
+
+/** Mesh grid size of a face — shared by the 3D mesh, the 2D editor and viewport picking. */
+export function faceGridSize(face: Pick<Face3D, 'gridCols' | 'gridRows' | 'gridRes'> | undefined | null): {
+  cols: number
+  rows: number
+} {
+  return {
+    cols: face?.gridCols || face?.gridRes || DEFAULT_GRID_RES,
+    rows: face?.gridRows || face?.gridRes || DEFAULT_GRID_RES
+  }
+}
 
 export interface Model3D {
   id: string
@@ -82,6 +100,8 @@ export function formatFaceLabel(name?: string): string {
   if (lower.includes('phải') && (lower.includes('mái') || lower.includes('roof'))) return 'Mái phải'
   if (lower.includes('trái') && (lower.includes('khói') || lower.includes('chimney'))) return 'Khói trái'
   if (lower.includes('phải') && (lower.includes('khói') || lower.includes('chimney'))) return 'Khói phải'
+  if (lower.includes('trái') && lower.includes('dốc')) return 'Dốc trái'
+  if (lower.includes('phải') && lower.includes('dốc')) return 'Dốc phải'
   if (lower.includes('trái') || lower.includes('left')) return 'Trái'
   if (lower.includes('phải') || lower.includes('right')) return 'Phải'
   if (lower.includes('trên') || lower.includes('top') || lower.includes('nắp')) return 'Trên'

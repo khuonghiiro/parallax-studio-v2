@@ -1,472 +1,122 @@
-import type { Face3D, Model3D, PresetType } from './types'
-import { generatePresetFaces } from './models3dStorage'
+import type { Face3D, Model3D } from './types'
+import type { FaceEdge } from './assemblyGeometry'
+import type { SetModelOptions } from './useAssemblyHistory'
 import { MeshCurvatureEditor } from './MeshCurvatureEditor'
-import { IconPlus, IconTrash, IconPlay } from '../../icons'
+import { FaceTransformFields } from './FaceTransformFields'
+import { FaceShapeTools } from './FaceShapeTools'
+import { FaceList } from './FaceList'
+import { TemplateGallery } from './TemplateGallery'
+import { addFoldedFace, centerFaces, newFaceId, patchFace } from './assemblyFaceOps'
 
 interface FaceInspectorProps {
   model: Model3D
   selectedFaceId: string | null
-  onChangeModel: (updated: Model3D) => void
+  /** Natural size of the selected face image (for "fit aspect"). */
+  imageSize: { width: number; height: number } | null
+  onChangeModel: (updated: Model3D, opts?: SetModelOptions) => void
   onSelectFace: (faceId: string | null) => void
 }
 
-export function FaceInspector({
-  model,
-  selectedFaceId,
-  onChangeModel,
-  onSelectFace
-}: FaceInspectorProps) {
+const DISCRETE: SetModelOptions = { discrete: true }
+
+export function FaceInspector({ model, selectedFaceId, imageSize, onChangeModel, onSelectFace }: FaceInspectorProps) {
   const selectedFace = model.faces.find((f) => f.id === selectedFaceId) || model.faces[0]
 
-  const handleApplyPreset = (type: PresetType) => {
-    const newFaces = generatePresetFaces(type)
-    onChangeModel({
-      ...model,
-      faces: newFaces
-    })
-    if (newFaces.length > 0) onSelectFace(newFaces[0].id)
-  }
+  const setFaces = (faces: Face3D[], opts?: SetModelOptions) => onChangeModel({ ...model, faces }, opts)
 
   const handleUpdateFace = (patch: Partial<Face3D>) => {
-    if (!selectedFace) return
-    const updatedFaces = model.faces.map((f) => {
-      if (f.id === selectedFace.id) return { ...f, ...patch }
-      return f
-    })
-    onChangeModel({
-      ...model,
-      faces: updatedFaces
-    })
+    if (selectedFace) setFaces(patchFace(model.faces, selectedFace.id, patch))
   }
 
   const handleAddFace = () => {
-    const newId = 'face-' + Math.random().toString(36).slice(2, 7)
-    const newFace: Face3D = {
-      id: newId,
-      name: `Mặt phẳng ${model.faces.length + 1}`,
+    const id = newFaceId()
+    const face: Face3D = {
+      id,
+      name: `Mặt ${model.faces.length + 1}`,
       color: '#38bdf8',
       width: 500,
       height: 500,
       position: [0, 0, 0],
       rotation: [0, 0, 0]
     }
-    onChangeModel({
-      ...model,
-      faces: [...model.faces, newFace]
-    })
-    onSelectFace(newId)
+    setFaces([...model.faces, face], DISCRETE)
+    onSelectFace(id)
   }
 
-  const handleDeleteFace = (id: string) => {
-    if (model.faces.length <= 1) return
-    const remaining = model.faces.filter((f) => f.id !== id)
-    onChangeModel({
-      ...model,
-      faces: remaining
-    })
-    if (selectedFaceId === id) {
-      onSelectFace(remaining[0]?.id || null)
-    }
+  const handleFold = (edge: FaceEdge) => {
+    if (!selectedFace) return
+    const res = addFoldedFace(model.faces, selectedFace.id, edge)
+    setFaces(res.faces, DISCRETE)
+    if (res.newId) onSelectFace(res.newId)
   }
 
   return (
     <div className="face-inspector-container">
-      {/* Model Name and Global Scale */}
+      {/* Model name & global scale */}
       <div className="inspector-section">
         <div className="inspector-row">
-          <label>Tên mô hình</label>
-          <input
-            type="text"
-            className="input-text"
-            value={model.name}
-            onChange={(e) => onChangeModel({ ...model, name: e.target.value })}
-          />
+          <label htmlFor="assembly-model-name">Tên mô hình</label>
+          <input id="assembly-model-name" type="text" className="input-text" value={model.name}
+            onChange={(e) => onChangeModel({ ...model, name: e.target.value })} />
         </div>
-
-        {/* Global Scaling Mechanism */}
         <div className="inspector-row global-scale-row">
-          <label title="Hệ số phóng to / thu nhỏ toàn bộ các mặt phẳng của mô hình 3D đồng bộ">
-            Tỉ lệ tổng thể (Scale)
-          </label>
+          <label title="Phóng to / thu nhỏ đồng bộ toàn bộ các mặt của mô hình">Tỉ lệ tổng thể</label>
           <div className="range-with-value">
-            <input
-              type="range"
-              min="0.1"
-              max="2.5"
-              step="0.05"
-              value={model.scale}
-              onChange={(e) => onChangeModel({ ...model, scale: Number(e.target.value) })}
-            />
+            <input type="range" min="0.1" max="2.5" step="0.05" value={model.scale}
+              onChange={(e) => onChangeModel({ ...model, scale: Number(e.target.value) })} />
             <span className="scale-badge">{(model.scale * 100).toFixed(0)}%</span>
           </div>
         </div>
       </div>
 
-      {/* Auto-Mesh Generator / Presets */}
-      <div className="inspector-section">
-        <div className="section-title">
-          <span>Tự động tạo Mesh (Presets)</span>
-        </div>
-        <div className="preset-buttons-grid">
-          <button
-            type="button"
-            className="btn xs secondary"
-            onClick={() => handleApplyPreset('cottage')}
-            title="Tự động tính góc bẻ mái dốc và tường hông 5 mặt khép kín"
-          >
-            Ngôi nhà mái dốc
-          </button>
-          <button
-            type="button"
-            className="btn xs secondary"
-            onClick={() => handleApplyPreset('cube')}
-            title="Khối hộp 6 mặt vuông khép kín"
-          >
-            Khối hộp 6 mặt
-          </button>
-          <button
-            type="button"
-            className="btn xs secondary"
-            onClick={() => handleApplyPreset('corner')}
-            title="Mặt dựng gập góc 90 độ"
-          >
-            Góc phố chữ L
-          </button>
-          <button
-            type="button"
-            className="btn xs secondary"
-            onClick={() => handleApplyPreset('room')}
-            title="Không gian nội thất phòng mở"
-          >
-            Phòng trưng bày
-          </button>
-        </div>
-      </div>
+      {/* Geometry-only templates (keep user images) */}
+      <details className="inspector-section fi-collapsible" open>
+        <summary className="section-title">
+          <span>Khuôn mẫu lắp ghép</span>
+        </summary>
+        <TemplateGallery
+          faces={model.faces}
+          onApply={(faces, selectId) => {
+            setFaces(faces, DISCRETE)
+            if (selectId) onSelectFace(selectId)
+          }}
+        />
+      </details>
 
-      {/* Faces List Tabs */}
-      <div className="inspector-section faces-list-section">
-        <div className="section-title">
-          <span>Danh sách mặt ({model.faces.length})</span>
-          <button
-            type="button"
-            className="btn xs icon"
-            onClick={handleAddFace}
-            title="Thêm mặt phẳng mới"
-          >
-            <IconPlus width={12} height={12} /> Thêm mặt
-          </button>
-        </div>
+      <FaceList
+        faces={model.faces}
+        selectedId={selectedFace?.id ?? null}
+        onSelect={onSelectFace}
+        onChange={(faces) => setFaces(faces, DISCRETE)}
+        onAdd={handleAddFace}
+      />
 
-        <div className="faces-chip-list">
-          {model.faces.map((f, idx) => {
-            const isSelected = f.id === selectedFace?.id
-            return (
-              <div
-                key={f.id}
-                className={`face-chip${isSelected ? ' active' : ''}`}
-                onClick={() => onSelectFace(f.id)}
-              >
-                <span className="chip-idx">{idx + 1}</span>
-                <span className="chip-name">{f.name}</span>
-                {model.faces.length > 1 && (
-                  <button
-                    type="button"
-                    className="chip-del"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeleteFace(f.id)
-                    }}
-                    title="Xóa mặt phẳng này"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Selected Face Property Editor */}
+      {/* Selected face editor */}
       {selectedFace && (
         <div className="inspector-section active-face-editor">
           <div className="section-title">
-            <span>Chi tiết: {selectedFace.name}</span>
+            <span className="fi-ellipsis">Chi tiết: {selectedFace.name}</span>
+            {selectedFace.locked && <span className="fi-badge">Đã khóa</span>}
           </div>
-
           <div className="inspector-row">
-            <label>Tên mặt</label>
-            <input
-              type="text"
-              className="input-text"
-              value={selectedFace.name}
-              onChange={(e) => handleUpdateFace({ name: e.target.value })}
-            />
+            <label htmlFor="assembly-face-name">Tên mặt</label>
+            <input id="assembly-face-name" type="text" className="input-text" value={selectedFace.name}
+              onChange={(e) => handleUpdateFace({ name: e.target.value })} />
           </div>
-
           <div className="inspector-row">
-            <label>Tệp Texture (Assets)</label>
-            <input
-              type="text"
-              className="input-text"
-              placeholder="house/origami_front.png"
-              value={selectedFace.assetPath || ''}
-              onChange={(e) => handleUpdateFace({ assetPath: e.target.value })}
-            />
+            <label htmlFor="assembly-face-texture">Ảnh texture</label>
+            <input id="assembly-face-texture" type="text" className="input-text" placeholder="thư-mục/ảnh.png"
+              value={selectedFace.assetPath || ''} onChange={(e) => handleUpdateFace({ assetPath: e.target.value })} />
           </div>
-
-          {/* Width & Height */}
-          <div className="inspector-grid-2">
-            <div className="inspector-field">
-              <label>Rộng (W)</label>
-              <input
-                type="number"
-                className="input-text"
-                value={selectedFace.width}
-                onChange={(e) => handleUpdateFace({ width: Number(e.target.value) })}
-              />
-            </div>
-            <div className="inspector-field">
-              <label>Cao (H)</label>
-              <input
-                type="number"
-                className="input-text"
-                value={selectedFace.height}
-                onChange={(e) => handleUpdateFace({ height: Number(e.target.value) })}
-              />
-            </div>
-          </div>
-
-          {/* Position X, Y, Z */}
-          <div className="inspector-field-group">
-            <label className="group-label">Vị trí (Position X, Y, Z)</label>
-            <div className="inspector-grid-3">
-              <div className="inspector-field">
-                <span className="axis-tag tag-x">X</span>
-                <input
-                  type="number"
-                  className="input-text"
-                  value={selectedFace.position[0]}
-                  onChange={(e) =>
-                    handleUpdateFace({
-                      position: [Number(e.target.value), selectedFace.position[1], selectedFace.position[2]]
-                    })
-                  }
-                />
-              </div>
-              <div className="inspector-field">
-                <span className="axis-tag tag-y">Y</span>
-                <input
-                  type="number"
-                  className="input-text"
-                  value={selectedFace.position[1]}
-                  onChange={(e) =>
-                    handleUpdateFace({
-                      position: [selectedFace.position[0], Number(e.target.value), selectedFace.position[2]]
-                    })
-                  }
-                />
-              </div>
-              <div className="inspector-field">
-                <span className="axis-tag tag-z">Z</span>
-                <input
-                  type="number"
-                  className="input-text"
-                  value={selectedFace.position[2]}
-                  onChange={(e) =>
-                    handleUpdateFace({
-                      position: [selectedFace.position[0], selectedFace.position[1], Number(e.target.value)]
-                    })
-                  }
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Rotation: Bẻ hướng & Tạo độ nghiêng */}
-          <div className="inspector-field-group">
-            <label className="group-label">Xoay: Bẻ hướng & Độ nghiêng (°)</label>
-            
-            {/* Pitch (X) - Độ nghiêng dốc */}
-            <div className="rot-slider-row">
-              <span className="rot-label" title="Độ nghiêng mái dốc (Pitch)">
-                Độ nghiêng (X)
-              </span>
-              <input
-                type="range"
-                min="-180"
-                max="180"
-                step="1"
-                value={selectedFace.rotation[0]}
-                onChange={(e) =>
-                  handleUpdateFace({
-                    rotation: [Number(e.target.value), selectedFace.rotation[1], selectedFace.rotation[2]]
-                  })
-                }
-              />
-              <span className="deg-value">{selectedFace.rotation[0]}°</span>
-            </div>
-
-            {/* Yaw (Y) - Bẻ hướng tường */}
-            <div className="rot-slider-row">
-              <span className="rot-label" title="Góc bẻ hướng tường hông (Yaw)">
-                Bẻ hướng (Y)
-              </span>
-              <input
-                type="range"
-                min="-180"
-                max="180"
-                step="1"
-                value={selectedFace.rotation[1]}
-                onChange={(e) =>
-                  handleUpdateFace({
-                    rotation: [selectedFace.rotation[0], Number(e.target.value), selectedFace.rotation[2]]
-                  })
-                }
-              />
-              <span className="deg-value">{selectedFace.rotation[1]}°</span>
-            </div>
-
-            {/* Roll (Z) */}
-            <div className="rot-slider-row">
-              <span className="rot-label" title="Xoay nghiêng mặt phẳng (Roll)">
-                Xoay lật (Z)
-              </span>
-              <input
-                type="range"
-                min="-180"
-                max="180"
-                step="1"
-                value={selectedFace.rotation[2]}
-                onChange={(e) =>
-                  handleUpdateFace({
-                    rotation: [selectedFace.rotation[0], selectedFace.rotation[1], Number(e.target.value)]
-                  })
-                }
-              />
-              <span className="deg-value">{selectedFace.rotation[2]}°</span>
-            </div>
-
-            {/* Quick angle snap presets */}
-            <div className="quick-snaps">
-              <button
-                type="button"
-                className="snap-btn"
-                onClick={() =>
-                  handleUpdateFace({ rotation: [selectedFace.rotation[0], 90, selectedFace.rotation[2]] })
-                }
-              >
-                Gập 90°
-              </button>
-              <button
-                type="button"
-                className="snap-btn"
-                onClick={() =>
-                  handleUpdateFace({ rotation: [selectedFace.rotation[0], -90, selectedFace.rotation[2]] })
-                }
-              >
-                Gập -90°
-              </button>
-              <button
-                type="button"
-                className="snap-btn"
-                onClick={() =>
-                  handleUpdateFace({ rotation: [46, selectedFace.rotation[1], selectedFace.rotation[2]] })
-                }
-              >
-                Dốc 46°
-              </button>
-              <button
-                type="button"
-                className="snap-btn"
-                onClick={() =>
-                  handleUpdateFace({ rotation: [-46, selectedFace.rotation[1], selectedFace.rotation[2]] })
-                }
-              >
-                Dốc -46°
-              </button>
-              <button
-                type="button"
-                className="snap-btn"
-                onClick={() =>
-                  handleUpdateFace({ rotation: [-90, 0, 0] })
-                }
-              >
-                Nằm ngang
-              </button>
-            </div>
-          </div>
-
-          {/* Uốn lượn, Bẻ cong Mesh & Gọt tỉa 1 phần (Curvature & Sub-Mesh Editing) */}
+          <FaceTransformFields face={selectedFace} onUpdate={handleUpdateFace} />
+          <FaceShapeTools
+            face={selectedFace}
+            imageSize={imageSize}
+            onUpdate={handleUpdateFace}
+            onFold={handleFold}
+            onCenterModel={() => setFaces(centerFaces(model.faces), DISCRETE)}
+          />
           <MeshCurvatureEditor face={selectedFace} onUpdateFace={handleUpdateFace} />
-
-          {/* Khớp cạnh & Căn chỉnh tự động (Smart Edge Snap) */}
-          <div className="inspector-field-group">
-            <label className="group-label">Khớp cạnh & Căn chỉnh nhanh</label>
-            <div className="quick-snaps">
-              <button
-                type="button"
-                className="snap-btn"
-                onClick={() =>
-                  handleUpdateFace({
-                    position: [-Math.round(selectedFace.width / 2), selectedFace.position[1], selectedFace.position[2]]
-                  })
-                }
-                title="Khớp vị trí mép trái (-W/2)"
-              >
-                Mép trái
-              </button>
-              <button
-                type="button"
-                className="snap-btn"
-                onClick={() =>
-                  handleUpdateFace({
-                    position: [Math.round(selectedFace.width / 2), selectedFace.position[1], selectedFace.position[2]]
-                  })
-                }
-                title="Khớp vị trí mép phải (+W/2)"
-              >
-                Mép phải
-              </button>
-              <button
-                type="button"
-                className="snap-btn"
-                onClick={() =>
-                  handleUpdateFace({
-                    position: [0, selectedFace.position[1], selectedFace.position[2]]
-                  })
-                }
-                title="Căn giữa trục X = 0"
-              >
-                Giữa (X=0)
-              </button>
-              <button
-                type="button"
-                className="snap-btn"
-                onClick={() =>
-                  handleUpdateFace({
-                    position: [selectedFace.position[0], 0, selectedFace.position[2]]
-                  })
-                }
-                title="Đặt chân tiếp đất sàn (Y = 0)"
-              >
-                Chân sàn
-              </button>
-              <button
-                type="button"
-                className="snap-btn"
-                onClick={() =>
-                  handleUpdateFace({
-                    position: [-selectedFace.position[0], selectedFace.position[1], selectedFace.position[2]],
-                    rotation: [selectedFace.rotation[0], -selectedFace.rotation[1], -selectedFace.rotation[2]]
-                  })
-                }
-                title="Lật đối xứng sang bên đối diện (đối xứng trục X và góc xoay Y)"
-              >
-                Lật đối xứng
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

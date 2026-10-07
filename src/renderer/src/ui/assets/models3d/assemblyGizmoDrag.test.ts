@@ -28,6 +28,10 @@ describe('assemblyGizmoDrag', () => {
     ;(globalThis as any).window = originalWindow
   })
 
+  function fire(event: { type: string; [key: string]: unknown }): void {
+    for (const fn of [...(listeners[event.type] || [])]) fn(event)
+  }
+
   function createTestContext(faceOverrides: Partial<Face3D> = {}): {
     context: AssemblyDragContext
     onUpdateFace: ReturnType<typeof vi.fn>
@@ -105,7 +109,7 @@ describe('assemblyGizmoDrag', () => {
     expect(onDragStateChange).toHaveBeenCalledWith(true)
 
     // Simulate pointer move 50px right
-    window.dispatchEvent({ type: 'pointermove', clientX: 500, clientY: 300, pointerId: 1, shiftKey: false })
+    fire({ type: 'pointermove', clientX: 500, clientY: 300, pointerId: 1, shiftKey: false })
 
     expect(onUpdateFace).toHaveBeenCalled()
     const lastCall = onUpdateFace.mock.calls[onUpdateFace.mock.calls.length - 1]
@@ -114,7 +118,7 @@ describe('assemblyGizmoDrag', () => {
     expect(lastCall[1].position[0]).toBeGreaterThan(context.face.position[0])
 
     // Pointer up finishes drag
-    window.dispatchEvent({ type: 'pointerup', pointerId: 1 })
+    fire({ type: 'pointerup', pointerId: 1 })
     expect(onDragStateChange).toHaveBeenCalledWith(false)
   })
 
@@ -125,11 +129,11 @@ describe('assemblyGizmoDrag', () => {
     startAssemblyGizmoDrag(startEvent, context, { kind: 'translate', axis: 1, edgeOn: false })
 
     // Move
-    window.dispatchEvent({ type: 'pointermove', clientX: 450, clientY: 250, pointerId: 1, shiftKey: false })
+    fire({ type: 'pointermove', clientX: 450, clientY: 250, pointerId: 1, shiftKey: false })
     expect(onUpdateFace).toHaveBeenCalled()
 
     // Press Escape
-    window.dispatchEvent({ type: 'keydown', key: 'Escape', preventDefault: vi.fn() })
+    fire({ type: 'keydown', key: 'Escape', preventDefault: vi.fn() })
 
     expect(onDragStateChange).toHaveBeenCalledWith(false)
     const finalCall = onUpdateFace.mock.calls[onUpdateFace.mock.calls.length - 1]
@@ -148,13 +152,13 @@ describe('assemblyGizmoDrag', () => {
     startAssemblyGizmoDrag(startEvent, context, { kind: 'scale', handle: [1, 1] })
 
     // Move outward diagonally
-    window.dispatchEvent({ type: 'pointermove', clientX: 550, clientY: 200, pointerId: 1, shiftKey: false })
+    fire({ type: 'pointermove', clientX: 550, clientY: 200, pointerId: 1, shiftKey: false })
     expect(onUpdateFace).toHaveBeenCalled()
     const lastCall = onUpdateFace.mock.calls[onUpdateFace.mock.calls.length - 1]
     expect(lastCall[1].width).toBeDefined()
     expect(lastCall[1].height).toBeDefined()
 
-    window.dispatchEvent({ type: 'pointerup', pointerId: 1 })
+    fire({ type: 'pointerup', pointerId: 1 })
   })
 
   it('rotates face when dragging rotation ring', () => {
@@ -164,11 +168,11 @@ describe('assemblyGizmoDrag', () => {
     startAssemblyGizmoDrag(startEvent, context, { kind: 'rotate', axis: 1 })
 
     // Move horizontally
-    window.dispatchEvent({ type: 'pointermove', clientX: 480, clientY: 300, pointerId: 1, shiftKey: false })
+    fire({ type: 'pointermove', clientX: 480, clientY: 300, pointerId: 1, shiftKey: false })
     expect(onUpdateFace).toHaveBeenCalled()
     const lastCall = onUpdateFace.mock.calls[onUpdateFace.mock.calls.length - 1]
     expect(lastCall[1].rotation).toBeDefined()
 
-    window.dispatchEvent({ type: 'pointerup', pointerId: 1 })
+    fire({ type: 'pointerup', pointerId: 1 })
   })
 })

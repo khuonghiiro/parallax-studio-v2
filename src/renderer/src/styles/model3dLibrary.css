@@ -34,7 +34,7 @@
   top: 6px;
   left: 6px;
   background: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -133,7 +133,7 @@
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--hud-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -147,7 +147,7 @@
 }
 
 .icon-action-btn.edit-btn {
-  background: rgba(24, 28, 38, 0.85);
+  background: var(--hud-bg);
   color: var(--text);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
@@ -160,8 +160,8 @@
 
 .icon-action-btn.add-btn {
   background: var(--accent);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.25);
+  color: var(--on-accent);
+  border-color: var(--hud-border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 

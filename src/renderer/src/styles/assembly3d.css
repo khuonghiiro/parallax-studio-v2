@@ -7,7 +7,7 @@
 .assembly-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.82);
+  background: var(--backdrop);
   backdrop-filter: blur(6px);
   z-index: 10000;
   display: flex;
@@ -92,9 +92,9 @@
 }
 
 .toggle-chip.active-erase {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: #ef4444;
-  color: #ef4444;
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  border-color: var(--danger);
+  color: var(--danger);
   font-weight: 600;
 }
 
@@ -126,7 +126,7 @@
 
 .cam-preset-group .preset-btn.active {
   background: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
   font-weight: 600;
 }
 
@@ -159,7 +159,7 @@
 
 .gizmo-tool-btn.active {
   background: var(--accent-cyan);
-  color: #0f1319;
+  color: var(--on-cyan);
   font-weight: 700;
 }
 
@@ -191,7 +191,7 @@
 /* 4. Center 3D Viewport Panel */
 .assembly-viewport-panel {
   position: relative;
-  background: #0f1319;
+  background: var(--viewer-surround);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -213,7 +213,7 @@
 }
 
 .assembly-viewport-canvas-container.drag-over-active {
-  box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 30px rgba(56, 189, 248, 0.2);
+  box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 30px color-mix(in srgb, var(--accent-cyan) 20%, transparent);
 }
 
 .viewport-hint {
@@ -221,9 +221,9 @@
   bottom: 8px;
   left: 12px;
   right: 12px;
-  background: rgba(15, 19, 25, 0.85);
+  background: var(--hud-bg);
   backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--hud-border);
   border-radius: 4px;
   padding: 4px 10px;
   font-size: 11px;

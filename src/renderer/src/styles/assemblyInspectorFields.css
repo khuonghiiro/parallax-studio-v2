@@ -1,0 +1,157 @@
+/* ==========================================================================
+   Assembly 3D Studio – Face inspector fields (layouts, transform, chips)
+   Dual-theme: uses design tokens only (variables.css)
+   ========================================================================== */
+
+.fi-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.fi-hint {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--text-faint);
+}
+
+/* Compact "add face" button in section title */
+.fi-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 11px;
+  border: 1px solid var(--line);
+  background: var(--bg-3);
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.fi-add-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-0);
+}
+
+/* Field groups */
+.fi-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.fi-group-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.fi-grid-2,
+.fi-grid-3 {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.fi-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fi-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* Rotation rows: axis dot · label · slider · numeric field */
+.fi-rot-row {
+  display: grid;
+  grid-template-columns: 16px 44px minmax(0, 1fr) 54px;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fi-axis-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--bg-0);
+}
+
+.fi-axis-dot.axis-x { background: var(--axis-x); }
+.fi-axis-dot.axis-y { background: var(--axis-y); }
+.fi-axis-dot.axis-z { background: var(--axis-z); }
+
+.fi-rot-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fi-range {
+  width: 100%;
+  min-width: 0;
+  height: 4px;
+  margin: 0;
+}
+
+.fi-range.axis-x { accent-color: var(--axis-x); }
+.fi-range.axis-y { accent-color: var(--axis-y); }
+.fi-range.axis-z { accent-color: var(--axis-z); }
+
+.fi-rot-num {
+  display: flex;
+  min-width: 0;
+}
+
+/* Uniform chip grid for quick angles / alignment */
+.fi-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.fi-chip {
+  min-width: 0;
+  height: 24px;
+  padding: 0 4px;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.fi-chip:hover {
+  background: var(--bg-4);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.fi-chip:active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-0);
+}

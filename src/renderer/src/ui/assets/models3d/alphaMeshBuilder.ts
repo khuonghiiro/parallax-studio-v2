@@ -5,6 +5,13 @@ import {
   type DepthProfileType,
   type LuminanceSampler
 } from './meshEffectsAE'
+import {
+  computeContourCells,
+  fieldFromBoolGrid,
+  getImageAlphaField,
+  makeUVTransform,
+  type AlphaField
+} from './contourMesh'
 
 export type AlphaSampler = (u: number, v: number) => number
 
@@ -111,19 +118,15 @@ export function computeBendZ(
   return z
 }
 
-interface VertexData {
-  u: number
-  v: number
-  x: number
-  y: number
-  z: number
-  alpha: number
-}
+type BendRegion = 'all' | 'bottom' | 'top' | 'left' | 'right'
 
 /**
- * Builds a custom Three.js Plane BufferGeometry with TRIANGLE-LEVEL ALPHA TRIMMING.
- * Along diagonal boundaries (like roof slopes), it eliminates empty 90-degree right-angle
- * corners by discarding triangles that fall in the transparent area, following the diagonal contour.
+ * Builds a custom Three.js plane geometry that hugs the visible pixels of the image.
+ *
+ * Boundary cells are clipped with marching squares on a dilated alpha field (see
+ * `contourMesh.ts`), so the outline follows slopes and curves smoothly (no stair steps),
+ * never cuts away opaque pixels, and stays watertight. The exact silhouette comes from
+ * the material's alpha cutout.
  */
 export function buildAlphaTrimmedGeometry(
   width: number,
@@ -133,7 +136,7 @@ export function buildAlphaTrimmedGeometry(
   rows = 32,
   bendX = 0,
   bendY = 0,
-  region: 'all' | 'bottom' | 'top' | 'left' | 'right' = 'all',
+  region: BendRegion = 'all',
   hiddenCells?: string[],
   gridRotation = 0,
   selectedCells?: string[],
@@ -145,223 +148,58 @@ export function buildAlphaTrimmedGeometry(
 ): THREE.BufferGeometry {
   const hiddenSet = new Set(hiddenCells || [])
   const selectedSet = new Set(selectedCells || [])
+  const transformUV = makeUVTransform(gridRotation)
+  const image = Array.isArray(alphaGridOrImage) ? undefined : alphaGridOrImage
 
-  // Grid angle rotation helper: rotates the sampling frame to match diagonal angles
-  const angleRad = (gridRotation * Math.PI) / 180
-  const cosA = Math.cos(angleRad)
-  const sinA = Math.sin(angleRad)
-
-  const transformUV = (u: number, v: number): [number, number] => {
-    if (gridRotation === 0) return [u, v]
-    const du = u - 0.5
-    const dv = v - 0.5
-    return [
-      Math.max(0, Math.min(1, 0.5 + (du * cosA - dv * sinA))),
-      Math.max(0, Math.min(1, 0.5 + (du * sinA + dv * cosA)))
-    ]
+  let field: AlphaField | null = null
+  if (autoTrimAlpha) {
+    field = image ? getImageAlphaField(image, cols, rows) : fieldFromBoolGrid(alphaGridOrImage as boolean[][], cols, rows)
   }
-
-  // Create high-res alpha sampler
-  let sampler: AlphaSampler
-  let lumSampler: LuminanceSampler | undefined
-
-  if (Array.isArray(alphaGridOrImage)) {
-    // Fallback if pre-computed grid passed
-    const grid = alphaGridOrImage
-    sampler = (u, v) => {
-      const c = Math.floor(u * (cols - 1))
-      const r = Math.floor((1 - v) * (rows - 1))
-      return grid[r]?.[c] ? 255 : 0
-    }
-  } else {
-    sampler = createAlphaSampler(alphaGridOrImage, Math.max(64, cols * 2), Math.max(64, rows * 2))
-    if (depthProfile === 'luminance') {
-      lumSampler = createLuminanceSampler(alphaGridOrImage, Math.max(64, cols * 2), Math.max(64, rows * 2))
-    }
-  }
+  const lumSampler: LuminanceSampler | undefined =
+    image && depthProfile === 'luminance'
+      ? createLuminanceSampler(image, Math.max(64, cols * 2), Math.max(64, rows * 2))
+      : undefined
 
   const positions: number[] = []
   const uvs: number[] = []
   const indices: number[] = []
-  let vertCount = 0
+  // Shared edges produce bit-identical grid points, so vertices can be welded for smooth normals.
+  const vertexIds = new Map<string, number>()
+  const vertexIndex = (gx: number, gy: number, extraZ: number): number => {
+    const id = `${gx}|${gy}|${extraZ}`
+    const existing = vertexIds.get(id)
+    if (existing !== undefined) return existing
+    const u = gx
+    const v = 1 - gy
+    const z =
+      computeBendZ(u, v, width, height, bendX, bendY, region) +
+      computeDepthProfileZ({
+        u, v, width, height, profile: depthProfile, intensity: depthIntensity, invert: depthInvert, luminanceSampler: lumSampler
+      }) +
+      extraZ
+    const [tu, tv] = transformUV(u, v)
+    positions.push(-width / 2 + gx * width, height / 2 - gy * height, z)
+    uvs.push(tu, tv)
+    const index = positions.length / 3 - 1
+    vertexIds.set(id, index)
+    return index
+  }
 
-  const alphaThreshold = 12
-
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const cellKey = `${r}_${c}`
-      if (hiddenSet.has(cellKey)) continue
-
-      // Normalized coordinates (0..1)
-      const u0 = c / cols
-      const u1 = (c + 1) / cols
-      const v0 = 1 - (r + 1) / rows
-      const v1 = 1 - r / rows
-
-      // Rotated UV coordinates
-      const uvTL = transformUV(u0, v1)
-      const uvTR = transformUV(u1, v1)
-      const uvBR = transformUV(u1, v0)
-      const uvBL = transformUV(u0, v0)
-
-      // 3D coordinates
-      const x0 = -width / 2 + u0 * width
-      const x1 = -width / 2 + u1 * width
-      const y0 = height / 2 - ((r + 1) / rows) * height
-      const y1 = height / 2 - (r / rows) * height
-
-      // Localized cell bend displacement
-      const isSelectedCell = selectedSet.has(cellKey)
-      let extraZ = 0
-      if (isSelectedCell && cellBendAngle !== 0) {
-        extraZ = (cellBendAngle / 90) * (height * 0.25)
-      }
-
-      // After Effects Depth Extrusion (Displacement Map / Relief)
-      const depthZ_TL = computeDepthProfileZ({
-        u: u0, v: v1, width, height, profile: depthProfile, intensity: depthIntensity, invert: depthInvert, luminanceSampler: lumSampler
-      })
-      const depthZ_TR = computeDepthProfileZ({
-        u: u1, v: v1, width, height, profile: depthProfile, intensity: depthIntensity, invert: depthInvert, luminanceSampler: lumSampler
-      })
-      const depthZ_BR = computeDepthProfileZ({
-        u: u1, v: v0, width, height, profile: depthProfile, intensity: depthIntensity, invert: depthInvert, luminanceSampler: lumSampler
-      })
-      const depthZ_BL = computeDepthProfileZ({
-        u: u0, v: v0, width, height, profile: depthProfile, intensity: depthIntensity, invert: depthInvert, luminanceSampler: lumSampler
-      })
-
-      // 4 Corners: 0=TL, 1=TR, 2=BR, 3=BL
-      const vTL: VertexData = {
-        u: uvTL[0], v: uvTL[1], x: x0, y: y1,
-        z: computeBendZ(u0, v1, width, height, bendX, bendY, region) + extraZ + depthZ_TL,
-        alpha: sampler(uvTL[0], uvTL[1])
-      }
-      const vTR: VertexData = {
-        u: uvTR[0], v: uvTR[1], x: x1, y: y1,
-        z: computeBendZ(u1, v1, width, height, bendX, bendY, region) + extraZ + depthZ_TR,
-        alpha: sampler(uvTR[0], uvTR[1])
-      }
-      const vBR: VertexData = {
-        u: uvBR[0], v: uvBR[1], x: x1, y: y0,
-        z: computeBendZ(u1, v0, width, height, bendX, bendY, region) + extraZ + depthZ_BR,
-        alpha: sampler(uvBR[0], uvBR[1])
-      }
-      const vBL: VertexData = {
-        u: uvBL[0], v: uvBL[1], x: x0, y: y0,
-        z: computeBendZ(u0, v0, width, height, bendX, bendY, region) + extraZ + depthZ_BL,
-        alpha: sampler(uvBL[0], uvBL[1])
-      }
-
-      // Check center alpha
-      const uvCen = transformUV((u0 + u1) / 2, (v0 + v1) / 2)
-      const aCenter = sampler(uvCen[0], uvCen[1])
-
-      // In autoTrimAlpha mode, discard completely transparent cells
-      if (
-        autoTrimAlpha &&
-        vTL.alpha <= alphaThreshold &&
-        vTR.alpha <= alphaThreshold &&
-        vBR.alpha <= alphaThreshold &&
-        vBL.alpha <= alphaThreshold &&
-        aCenter <= alphaThreshold
-      ) {
-        continue
-      }
-
-      // Adaptive diagonal selection:
-      // Connect opposite corners that have the SMALLEST alpha difference (aligning with the contour/isoline)
-      const diffSlash = Math.abs(vBL.alpha - vTR.alpha)
-      const diffBackslash = Math.abs(vTL.alpha - vBR.alpha)
-
-      let tri1: [VertexData, VertexData, VertexData]
-      let tri2: [VertexData, VertexData, VertexData]
-
-      if (diffSlash <= diffBackslash) {
-        // Slash diagonal (/) connecting BL to TR
-        // tri1 is top-left (outer side if roof rises), tri2 is bottom-right (inner roof)
-        tri1 = [vTL, vBL, vTR]
-        tri2 = [vTR, vBL, vBR]
-      } else {
-        // Backslash diagonal (\) connecting TL to BR
-        // tri1 is bottom-left (inner roof if roof falls), tri2 is top-right (outer side)
-        tri1 = [vTL, vBL, vBR]
-        tri2 = [vTL, vBR, vTR]
-      }
-
-      // Helper to test if a triangle has visible pixels:
-      // Eliminates empty 90-degree right-angle corner triangles that jut out into transparent space
-      const isTriangleActive = (t: [VertexData, VertexData, VertexData], tIdx: number) => {
-        if (hiddenSet.has(`${cellKey}_t${tIdx}`)) return false
-        if (!autoTrimAlpha) return true
-
-        // Sample triangle centroid
-        const uCen = (t[0].u + t[1].u + t[2].u) / 3
-        const vCen = (t[0].v + t[1].v + t[2].v) / 3
-        const aCen = sampler(uCen, vCen)
-        if (aCen > alphaThreshold) return true
-
-        // If centroid is transparent, only keep if ALL 3 vertices are opaque
-        const opCount =
-          (t[0].alpha > alphaThreshold ? 1 : 0) +
-          (t[1].alpha > alphaThreshold ? 1 : 0) +
-          (t[2].alpha > alphaThreshold ? 1 : 0)
-
-        // If opCount < 3 and centroid is transparent, it's an empty corner triangle -> discard!
-        return opCount === 3
-      }
-
-      const active1 = isTriangleActive(tri1, 0)
-      const active2 = isTriangleActive(tri2, 1)
-
-      // Emit Triangle 1 if active
-      if (active1) {
-        positions.push(
-          tri1[0].x, tri1[0].y, tri1[0].z,
-          tri1[1].x, tri1[1].y, tri1[1].z,
-          tri1[2].x, tri1[2].y, tri1[2].z
-        )
-        uvs.push(
-          tri1[0].u, tri1[0].v,
-          tri1[1].u, tri1[1].v,
-          tri1[2].u, tri1[2].v
-        )
-        indices.push(vertCount, vertCount + 1, vertCount + 2)
-        vertCount += 3
-      }
-
-      // Emit Triangle 2 if active
-      if (active2) {
-        positions.push(
-          tri2[0].x, tri2[0].y, tri2[0].z,
-          tri2[1].x, tri2[1].y, tri2[1].z,
-          tri2[2].x, tri2[2].y, tri2[2].z
-        )
-        uvs.push(
-          tri2[0].u, tri2[0].v,
-          tri2[1].u, tri2[1].v,
-          tri2[2].u, tri2[2].v
-        )
-        indices.push(vertCount, vertCount + 1, vertCount + 2)
-        vertCount += 3
-      }
-    }
+  for (const cell of computeContourCells(cols, rows, field, gridRotation, autoTrimAlpha)) {
+    if (hiddenSet.has(cell.key)) continue
+    const extraZ = selectedSet.has(cell.key) && cellBendAngle !== 0 ? (cellBendAngle / 90) * (height * 0.25) : 0
+    // Triangle-level erase keys only map onto full quads; a clipped cell is dropped entirely.
+    if (!cell.full && (hiddenSet.has(`${cell.key}_t0`) || hiddenSet.has(`${cell.key}_t1`))) continue
+    cell.triangles.forEach((tri, tIdx) => {
+      if (cell.full && hiddenSet.has(`${cell.key}_t${tIdx}`)) return
+      for (const idx of tri) indices.push(vertexIndex(cell.polygon[idx][0], cell.polygon[idx][1], extraZ))
+    })
   }
 
   // Fallback if no visible vertices found
-  if (positions.length === 0) {
+  if (indices.length === 0) {
     return buildCurvedPlaneGeometry(
-      width,
-      height,
-      cols,
-      rows,
-      bendX,
-      bendY,
-      region,
-      depthProfile,
-      depthIntensity,
-      depthInvert,
-      !Array.isArray(alphaGridOrImage) ? alphaGridOrImage : undefined
+      width, height, cols, rows, bendX, bendY, region, depthProfile, depthIntensity, depthInvert, image
     )
   }
 
@@ -389,7 +227,7 @@ export function buildCurvedPlaneGeometry(
   rows = 32,
   bendX = 0,
   bendY = 0,
-  region: 'all' | 'bottom' | 'top' | 'left' | 'right' = 'all',
+  region: BendRegion = 'all',
   depthProfile: DepthProfileType = 'none',
   depthIntensity = 0,
   depthInvert = false,

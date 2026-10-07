@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
+import type { BufferGeometry } from 'three'
 import { buildAlphaTrimmedGeometry } from './alphaMeshBuilder'
+
+/** Geometry is indexed (welded vertices) — count rendered triangles. */
+const triCount = (geo: BufferGeometry): number => {
+  const index = geo.getIndex()
+  return index ? index.count / 3 : geo.getAttribute('position').count / 3
+}
 
 describe('alphaMeshBuilder - Custom Mesh Frame & Rotatable Grid', () => {
   it('builds geometry with custom cols and rows without alpha mask', () => {
@@ -20,8 +27,9 @@ describe('alphaMeshBuilder - Custom Mesh Frame & Rotatable Grid', () => {
     expect(geo).toBeDefined()
     const posAttr = geo.getAttribute('position')
     expect(posAttr).toBeDefined()
-    // 4 cols * 2 rows = 8 quads = 16 triangles = 48 vertices (non-indexed)
-    expect(posAttr.count).toBe(4 * 2 * 6)
+    // 4 cols * 2 rows = 8 quads = 16 triangles, sharing (5 * 3) welded vertices
+    expect(triCount(geo)).toBe(4 * 2 * 2)
+    expect(posAttr.count).toBe(5 * 3)
   })
 
   it('applies hiddenCells to trim specific sub-mesh cells', () => {
@@ -42,9 +50,8 @@ describe('alphaMeshBuilder - Custom Mesh Frame & Rotatable Grid', () => {
       ['0_0', '0_1'] // 2 hidden cells
     )
 
-    const posAttr = geo.getAttribute('position')
-    // 8 quads - 2 hidden quads = 6 quads = 36 vertices
-    expect(posAttr.count).toBe(6 * 6)
+    // 8 quads - 2 hidden quads = 6 quads = 12 triangles
+    expect(triCount(geo)).toBe(6 * 2)
   })
 
   it('applies cellBendAngle displacement to selected cells', () => {
@@ -172,30 +179,28 @@ describe('alphaMeshBuilder - Custom Mesh Frame & Rotatable Grid', () => {
   })
 
   it('preserves all cells in manual mesh mode (autoTrimAlpha = false)', () => {
-    // 4x4 grid where bottom half is completely transparent
-    const halfAlpha = [
-      [true, true, true, true],
-      [true, true, true, true],
-      [false, false, false, false],
-      [false, false, false, false]
-    ]
+    // 8x8 grid where the bottom half is completely transparent. Auto mode keeps a
+    // one-cell safety margin around opaque pixels, then trims the rest.
+    const halfAlpha = Array.from({ length: 8 }, (_, r) => Array.from({ length: 8 }, () => r < 4))
 
     // With autoTrimAlpha = true (auto mesh)
     const geoAuto = buildAlphaTrimmedGeometry(
-      200, 200, halfAlpha, 4, 4, 0, 0, 'all', [], 0, [], 0, true
+      200, 200, halfAlpha, 8, 8, 0, 0, 'all', [], 0, [], 0, true
     )
 
     // With autoTrimAlpha = false (manual mesh)
     const geoManual = buildAlphaTrimmedGeometry(
-      200, 200, halfAlpha, 4, 4, 0, 0, 'all', [], 0, [], 0, false
+      200, 200, halfAlpha, 8, 8, 0, 0, 'all', [], 0, [], 0, false
     )
 
-    const countAuto = geoAuto.getAttribute('position').count
-    const countManual = geoManual.getAttribute('position').count
+    const countAuto = triCount(geoAuto)
+    const countManual = triCount(geoManual)
 
-    // Manual mode preserves all 16 quads (16 * 6 = 96 vertices)
-    expect(countManual).toBe(96)
-    // Auto mode trims transparent cells in the bottom half, so fewer vertices
+    // Manual mode preserves all 64 quads (128 triangles)
+    expect(countManual).toBe(128)
+    // Auto mode trims transparent cells in the bottom half, so fewer triangles
     expect(countAuto).toBeLessThan(countManual)
+    // ...but never cuts into the opaque top half (4 rows × 8 cols × 2 triangles)
+    expect(countAuto).toBeGreaterThanOrEqual(64)
   })
 })

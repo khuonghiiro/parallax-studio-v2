@@ -1,0 +1,606 @@
+/* ==========================================================================
+   Assembly 3D Studio – Pro tools: header bar, template gallery, face list,
+   construction tools. Dual-theme: design tokens only (variables.css).
+   ========================================================================== */
+
+/* ---------- Header bar ---------- */
+.assembly-modal-header .header-view-controls {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: flex-end;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.assembly-modal-header .header-view-controls::-webkit-scrollbar {
+  display: none;
+}
+
+.ah-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.ah-history {
+  padding-left: 10px;
+  margin-left: 2px;
+  border-left: 1px solid var(--line-soft);
+}
+
+.ah-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.ah-icon-btn:hover:not(:disabled),
+.ah-icon-btn.active {
+  background: var(--bg-3);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.ah-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.ah-close {
+  flex-shrink: 0;
+}
+
+.ah-close:hover:not(:disabled) {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+
+.ah-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 2px;
+  flex-shrink: 0;
+  border-radius: 7px;
+  background: var(--bg-3);
+  border: 1px solid var(--line-soft);
+}
+
+.ah-seg-btn,
+.ah-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.ah-seg-btn:hover,
+.ah-toggle:hover {
+  color: var(--text);
+  background: var(--bg-4);
+}
+
+.ah-seg-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.ah-seg-btn.danger.active {
+  background: var(--danger);
+  color: var(--on-accent);
+}
+
+.ah-toggle {
+  border-color: var(--line-soft);
+  background: var(--bg-2);
+}
+
+.ah-toggle.active {
+  color: var(--accent-cyan);
+  border-color: color-mix(in srgb, var(--accent-cyan) 45%, transparent);
+  background: color-mix(in srgb, var(--accent-cyan) 12%, transparent);
+}
+
+.ah-help {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ah-help-pop {
+  position: fixed;
+  top: 64px;
+  right: 28px;
+  z-index: 10050;
+  width: 320px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-popup);
+  color: var(--text);
+  animation: ah-pop-in 0.12s ease;
+}
+
+@keyframes ah-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ah-help-title {
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+}
+
+.ah-help-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.ah-help-row kbd {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  background: var(--bg-1);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.pane-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ---------- Collapsible inspector section ---------- */
+.fi-collapsible > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.fi-collapsible > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fi-collapsible > summary::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  margin-right: 3px;
+  border-right: 1.5px solid var(--text-dim);
+  border-bottom: 1.5px solid var(--text-dim);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+.fi-collapsible[open] > summary::after {
+  transform: rotate(45deg);
+}
+
+.fi-badge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 9.5px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--key);
+  background: color-mix(in srgb, var(--key) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--key) 35%, transparent);
+}
+
+/* ---------- Template gallery ---------- */
+.tg-root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tg-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tg-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tg-chip {
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 11px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.tg-chip:hover {
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.tg-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.tg-search {
+  height: 26px;
+}
+
+.tg-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  max-height: 268px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.tg-card {
+  position: relative;
+  min-width: 0;
+}
+
+.tg-card-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  padding: 6px 4px 5px;
+  border-radius: 7px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease, transform 0.12s ease, background 0.12s ease;
+}
+
+.tg-card-main:hover {
+  border-color: var(--accent);
+  color: var(--accent-cyan);
+  background: var(--bg-3);
+  transform: translateY(-1px);
+}
+
+.tg-preview {
+  width: 100%;
+  max-width: 64px;
+  aspect-ratio: 1;
+}
+
+.tg-card-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.tg-card-meta {
+  font-size: 9px;
+  color: var(--text-faint);
+}
+
+.tg-card-add {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+.tg-card:hover .tg-card-add,
+.tg-card-add:focus-visible {
+  opacity: 1;
+}
+
+.tg-card-add:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.tg-empty {
+  grid-column: 1 / -1;
+  padding: 16px 8px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+/* ---------- Face list (layer style) ---------- */
+.fl-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px;
+  border-radius: 6px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+}
+
+.fl-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 32px;
+  padding: 0 4px 0 6px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.1s ease, border-color 0.1s ease;
+}
+
+.fl-row:hover {
+  background: var(--bg-3);
+}
+
+.fl-row.active {
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.fl-row.is-hidden .fl-thumb,
+.fl-row.is-hidden .fl-name {
+  opacity: 0.45;
+}
+
+.fl-row.is-locked .fl-name {
+  font-style: italic;
+}
+
+.fl-idx {
+  min-width: 14px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-faint);
+  text-align: right;
+}
+
+.fl-thumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 22px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  background: repeating-conic-gradient(var(--checker-a) 0% 25%, var(--checker-b) 0% 50%) 50% / 8px 8px;
+}
+
+.fl-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.fl-thumb-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.fl-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--text);
+}
+
+.fl-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.fl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+.fl-btn:hover:not(:disabled) {
+  background: var(--bg-4);
+  color: var(--text);
+}
+
+.fl-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.fl-btn.on {
+  color: var(--key);
+}
+
+.fl-btn.fl-danger:hover:not(:disabled) {
+  color: var(--danger);
+}
+
+.fl-hover {
+  display: none;
+}
+
+.fl-row:hover .fl-hover,
+.fl-row.active .fl-hover {
+  display: inline-flex;
+}
+
+/* ---------- Construction tools ---------- */
+.fst-root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+}
+
+.fst-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.fst-fold-pad {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr 1fr;
+  grid-template-rows: auto auto auto;
+  grid-template-areas:
+    '. top .'
+    'left face right'
+    '. bottom .';
+  gap: 4px;
+  align-items: center;
+}
+
+.fst-fold-btn {
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 5px;
+  border: 1px dashed var(--line);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 10px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+
+.fst-fold-btn:hover {
+  border-style: solid;
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 10%, var(--bg-2));
+}
+
+.fst-top { grid-area: top; }
+.fst-left { grid-area: left; }
+.fst-right { grid-area: right; }
+.fst-bottom { grid-area: bottom; }
+
+.fst-fold-face {
+  grid-area: face;
+  height: 30px;
+  border-radius: 4px;
+  border: 1.5px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.fst-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.fst-btn {
+  padding: 4px 6px;
+  font-size: 10.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fst-opacity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.fst-opacity input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+}
+
+.fst-value {
+  min-width: 34px;
+  text-align: right;
+  font-weight: 600;
+  color: var(--accent-cyan);
+}

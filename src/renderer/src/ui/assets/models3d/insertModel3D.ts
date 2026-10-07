@@ -39,6 +39,7 @@ export async function insertModel3DToScene({
 
   for (let i = 0; i < model.faces.length; i++) {
     const face = model.faces[i]
+    if (face.hidden) continue
     const layerName = `[${model.name.split('(')[0].trim()}] ${face.name}`
 
     // Compute scaled placement relative to positionOffset

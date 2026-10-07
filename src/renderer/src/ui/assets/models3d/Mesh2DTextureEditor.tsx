@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
-import { formatFaceLabel, type Face3D } from './types'
+import { faceGridSize, formatFaceLabel, type Face3D } from './types'
 import type { ResolvedTexture } from './textureResolver'
-import { createAlphaSampler, type AlphaSampler } from './alphaMeshBuilder'
+import { getImageAlphaField } from './contourMesh'
+import { buildEditorCells, type EditorCell } from './mesh2dCells'
 import { Mesh2DHorizontalBar, type ContextTab } from './Mesh2DHorizontalBar'
 import { Mesh2DVerticalPalette, type EditorTool } from './Mesh2DVerticalPalette'
 import { IconEye, IconEyeOff } from '../../icons'
-import type { DepthProfileType, MotionType } from './meshEffectsAE'
 
 interface Mesh2DTextureEditorProps {
   face: Face3D | null
@@ -15,19 +15,7 @@ interface Mesh2DTextureEditorProps {
   onToggleMesh?: () => void
 }
 
-interface CellGeometry {
-  key: string
-  r: number
-  c: number
-  // Quad vertices in image pixel coords: [TL, TR, BR, BL]
-  corners: [number, number][]
-  // 2 triangles: each is array of 3 points [x, y]
-  triangles: [number, number][][]
-  isOpaque: boolean
-  isHidden: boolean
-  isSelected: boolean
-  isPinned: boolean
-}
+const EMPTY: string[] = []
 
 export function Mesh2DTextureEditor({
   face,
@@ -79,146 +67,30 @@ export function Mesh2DTextureEditor({
     setPan({ x: 0, y: 0 })
   }, [face?.id, imgW, imgH])
 
-  if (!face) {
-    return (
-      <div className="mesh2d-editor-container">
-        <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-faint)' }}>
-          Chọn một mặt phẳng để chỉnh sửa mesh 2D
-        </div>
-      </div>
-    )
-  }
-
-  const isManual = face.meshMode === 'manual'
-  const cols = face.gridCols || face.gridRes || 16
-  const rows = face.gridRows || face.gridRes || 16
-  const rotation = face.gridRotation || 0
-  const hiddenCells = useMemo(() => new Set(face.hiddenCells || []), [face.hiddenCells])
-  const selectedCells = useMemo(() => new Set(face.selectedCells || []), [face.selectedCells])
-  const pinnedCells = useMemo(() => new Set(face.pinnedCells || []), [face.pinnedCells])
+  const isManual = face?.meshMode === 'manual'
+  const { cols, rows } = faceGridSize(face)
+  const rotation = face?.gridRotation || 0
+  const hiddenCells = useMemo(() => new Set(face?.hiddenCells || EMPTY), [face?.hiddenCells])
+  const selectedCells = useMemo(() => new Set(face?.selectedCells || EMPTY), [face?.selectedCells])
+  const pinnedCells = useMemo(() => new Set(face?.pinnedCells || EMPTY), [face?.pinnedCells])
 
   // Get image source URL reliably from resolvedTexture
   const imageUrl = resolvedTexture?.url || resolvedTexture?.image?.src || ''
 
-  // Alpha sampler matching 3D alphaMeshBuilder
-  const alphaSampler = useMemo<AlphaSampler | null>(() => {
-    if (!resolvedTexture?.image) return null
-    return createAlphaSampler(
-      resolvedTexture.image,
-      Math.max(64, cols * 2),
-      Math.max(64, rows * 2)
-    )
-  }, [resolvedTexture?.image, cols, rows])
+  // Same dilated alpha field + marching-squares contour as the 3D mesh builder
+  const alphaField = useMemo(
+    () => (resolvedTexture?.image ? getImageAlphaField(resolvedTexture.image, cols, rows) : null),
+    [resolvedTexture?.image, cols, rows]
+  )
 
-  // Compute exact mesh cells matching 3D viewport
-  const cells = useMemo<CellGeometry[]>(() => {
-    const list: CellGeometry[] = []
-    const angleRad = (rotation * Math.PI) / 180
-    const cosA = Math.cos(angleRad)
-    const sinA = Math.sin(angleRad)
-
-    const transformUV = (u: number, v: number): [number, number] => {
-      if (rotation === 0) return [u, v]
-      const du = u - 0.5
-      const dv = v - 0.5
-      return [
-        Math.max(0, Math.min(1, 0.5 + (du * cosA - dv * sinA))),
-        Math.max(0, Math.min(1, 0.5 + (du * sinA + dv * cosA)))
-      ]
-    }
-
-    const cellW = imgW / cols
-    const cellH = imgH / rows
-    const alphaThreshold = 12
-
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const key = `${r}_${c}`
-        const u0 = c / cols
-        const u1 = (c + 1) / cols
-        const v0 = 1 - (r + 1) / rows
-        const v1 = 1 - r / rows
-
-        const x0 = c * cellW
-        const x1 = (c + 1) * cellW
-        const y0 = r * cellH
-        const y1 = (r + 1) * cellH
-
-        // 4 corners [TL, TR, BR, BL]
-        const corners: [number, number][] = [
-          [x0, y0],
-          [x1, y0],
-          [x1, y1],
-          [x0, y1]
-        ]
-
-        let isOpaque = true
-        let tris: [number, number][][] = [
-          [[x0, y0], [x1, y0], [x1, y1]],
-          [[x0, y0], [x1, y1], [x0, y1]]
-        ]
-
-        if (!isManual && alphaSampler) {
-          // Auto mode: calculate exact alpha and diagonal cut
-          const uvTL = transformUV(u0, v1)
-          const uvTR = transformUV(u1, v1)
-          const uvBR = transformUV(u1, v0)
-          const uvBL = transformUV(u0, v0)
-
-          const aTL = alphaSampler(uvTL[0], uvTL[1])
-          const aTR = alphaSampler(uvTR[0], uvTR[1])
-          const aBR = alphaSampler(uvBR[0], uvBR[1])
-          const aBL = alphaSampler(uvBL[0], uvBL[1])
-          const aCen = alphaSampler((uvTL[0] + uvBR[0]) / 2, (uvTL[1] + uvBR[1]) / 2)
-
-          // If completely transparent, discard cell
-          if (
-            aTL <= alphaThreshold &&
-            aTR <= alphaThreshold &&
-            aBR <= alphaThreshold &&
-            aBL <= alphaThreshold &&
-            aCen <= alphaThreshold
-          ) {
-            isOpaque = false
-            tris = []
-          } else {
-            // Adaptive diagonal
-            const diffSlash = Math.abs(aBL - aTR)
-            const diffBackslash = Math.abs(aTL - aBR)
-            tris = []
-            if (diffSlash <= diffBackslash) {
-              if (aTL > alphaThreshold || aBL > alphaThreshold || aTR > alphaThreshold) {
-                tris.push([[x0, y0], [x0, y1], [x1, y0]])
-              }
-              if (aTR > alphaThreshold || aBL > alphaThreshold || aBR > alphaThreshold) {
-                tris.push([[x1, y0], [x0, y1], [x1, y1]])
-              }
-            } else {
-              if (aTL > alphaThreshold || aBL > alphaThreshold || aBR > alphaThreshold) {
-                tris.push([[x0, y0], [x0, y1], [x1, y1]])
-              }
-              if (aTL > alphaThreshold || aBR > alphaThreshold || aTR > alphaThreshold) {
-                tris.push([[x0, y0], [x1, y1], [x1, y0]])
-              }
-            }
-          }
-        }
-
-        list.push({
-          key,
-          r,
-          c,
-          corners,
-          triangles: tris,
-          isOpaque,
-          isHidden: hiddenCells.has(key),
-          isSelected: selectedCells.has(key),
-          isPinned: pinnedCells.has(key)
-        })
-      }
-    }
-    return list
-  }, [cols, rows, rotation, isManual, alphaSampler, hiddenCells, selectedCells, pinnedCells, imgW, imgH])
+  const cells = useMemo<EditorCell[]>(
+    () =>
+      buildEditorCells({
+        cols, rows, imgW, imgH, field: alphaField, rotation, autoTrim: !isManual,
+        hidden: hiddenCells, selected: selectedCells, pinned: pinnedCells
+      }),
+    [cols, rows, rotation, isManual, alphaField, hiddenCells, selectedCells, pinnedCells, imgW, imgH]
+  )
 
   // Convert client cursor coords to Image (0..imgW, 0..imgH) coordinates with 100% precision
   const clientToImageCoords = useCallback(
@@ -247,6 +119,14 @@ export function Mesh2DTextureEditor({
     },
     [imgW, imgH, pan.x, pan.y, zoom]
   )
+
+  if (!face) {
+    return (
+      <div className="mesh2d-editor-container">
+        <div className="mesh2d-empty">Chọn một mặt phẳng để chỉnh sửa mesh 2D</div>
+      </div>
+    )
+  }
 
   // Pointer Down: Marquee drag or Pan
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -490,21 +370,7 @@ export function Mesh2DTextureEditor({
                 draggable={false}
               />
             ) : (
-              <div
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                  border: '2px dashed var(--accent)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--text-dim)',
-                  fontSize: 14
-                }}
-              >
-                Đang tải texture...
-              </div>
+              <div className="m2d-loading">Đang tải texture...</div>
             )}
 
             {/* Interactive SVG Mesh Grid Matching 3D Exactly */}
@@ -519,50 +385,32 @@ export function Mesh2DTextureEditor({
             >
               {showMesh && (
                 <>
-                  {/* Render Triangles/Quads */}
+                  {/* Render contour-clipped mesh triangles (identical to the 3D mesh) */}
                   {cells.map((cell) => {
                     if (!cell.isOpaque) return null
-
-                    let fill = 'rgba(56, 189, 248, 0.06)'
-                    let stroke = 'rgba(56, 189, 248, 0.45)'
-                    let strokeWidth = 1
-
-                    if (cell.isHidden) {
-                      fill = 'rgba(239, 68, 68, 0.35)'
-                      stroke = 'rgba(239, 68, 68, 0.8)'
-                    } else if (cell.isSelected) {
-                      fill = 'rgba(234, 179, 8, 0.45)'
-                      stroke = 'rgba(250, 204, 21, 0.95)'
-                      strokeWidth = 2
-                    }
-
-                    // Draw triangles if triangulated, or quad rect
+                    const cls = `m2d-cell${cell.isHidden ? ' is-hidden' : cell.isSelected ? ' is-selected' : ''}`
                     if (cell.triangles.length > 0) {
                       return (
-                        <g key={cell.key}>
+                        <g key={cell.key} className={cls}>
                           {cell.triangles.map((tri, triIdx) => (
                             <polygon
                               key={triIdx}
                               points={tri.map((p) => `${p[0]},${p[1]}`).join(' ')}
-                              fill={fill}
-                              stroke={stroke}
-                              strokeWidth={strokeWidth}
+                              vectorEffect="non-scaling-stroke"
                             />
                           ))}
                         </g>
                       )
                     }
-
                     return (
                       <rect
                         key={cell.key}
+                        className={cls}
                         x={cell.corners[0][0]}
                         y={cell.corners[0][1]}
                         width={cell.corners[1][0] - cell.corners[0][0]}
                         height={cell.corners[2][1] - cell.corners[0][1]}
-                        fill={fill}
-                        stroke={stroke}
-                        strokeWidth={strokeWidth}
+                        vectorEffect="non-scaling-stroke"
                       />
                     )
                   })}
@@ -574,29 +422,21 @@ export function Mesh2DTextureEditor({
                     const cy = (cell.corners[0][1] + cell.corners[2][1]) / 2
                     const r = Math.min(8, Math.max(3, (imgW / cols) * 0.3))
                     return (
-                      <g key={`pin_${cell.key}`}>
-                        <circle
-                          cx={cx}
-                          cy={cy}
-                          r={r}
-                          fill="#f59e0b"
-                          stroke="#ffffff"
-                          strokeWidth={1.5}
-                        />
-                        <circle cx={cx} cy={cy} r={r * 0.35} fill="#ffffff" />
+                      <g key={`pin_${cell.key}`} className="m2d-pin">
+                        <circle cx={cx} cy={cy} r={r} strokeWidth={1.5} />
+                        <circle className="m2d-pin-dot" cx={cx} cy={cy} r={r * 0.35} />
                       </g>
                     )
                   })}
 
                   {/* Bounding Frame Outline */}
                   <rect
+                    className="m2d-frame"
                     x={0}
                     y={0}
                     width={imgW}
                     height={imgH}
-                    fill="none"
-                    stroke="var(--accent-cyan)"
-                    strokeWidth={1.5}
+                    vectorEffect="non-scaling-stroke"
                     strokeDasharray={rotation !== 0 ? '6 4' : 'none'}
                   />
                 </>
@@ -605,13 +445,12 @@ export function Mesh2DTextureEditor({
               {/* Marquee Bounding Box Selection Drag Overlay */}
               {marquee.active && mqW > 0 && mqH > 0 && (
                 <rect
+                  className="m2d-marquee"
                   x={mqX}
                   y={mqY}
                   width={mqW}
                   height={mqH}
-                  fill="rgba(234, 179, 8, 0.25)"
-                  stroke="var(--key)"
-                  strokeWidth={1.5}
+                  vectorEffect="non-scaling-stroke"
                   strokeDasharray="4 3"
                 />
               )}

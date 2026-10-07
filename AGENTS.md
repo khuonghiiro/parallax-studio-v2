@@ -123,3 +123,11 @@ Khi thực hiện các nhiệm vụ chuyên biệt, AI cần tham chiếu các s
 - Đồng bộ chuẩn After Effects: Trục tọa độ 3D XYZ (Move), Vòng xoay góc 3D XYZ (Rotate) và 8 điểm mút square trên Bounding Box (Scale/Stretch).
 - Tự động cập nhật realtime theo góc xoay camera / OrbitControls; phím Shift giữ tỉ lệ / bước góc 15°; phím Escape hủy thao tác; unit tests tại `assemblyGizmoDrag.test.ts`.
 
+### Xưởng Lắp Ráp 3D – kiến trúc (models3d/)
+- **Mesh ảnh:** `contourMesh.ts` (alpha field nở 1 ô + blur → marching squares, cạnh chung watertight) → `alphaMeshBuilder.ts` (indexed, hàn đỉnh). Editor 2D dùng cùng nguồn qua `mesh2dCells.ts`. Tests: `contourMesh.test.ts`, `alphaMeshBuilder.test.ts` (đếm tam giác, không đếm đỉnh).
+- **Trong suốt:** vật liệu mặt dùng alpha cutout (`FACE_ALPHA_CUTOFF` 0.5 + alphaToCoverage), chỉ bật blending khi `opacity < 1`. Texture được "alpha bleed" và upload dạng `DataTexture` straight-alpha (`textureResolver.ts`) – không đi qua `putImageData` (premultiply làm mất màu viền).
+- **Khuôn mẫu:** `assemblyTemplateData.ts` (chỉ hình học, tên vị trí, không texture) + `assemblyTemplates.ts` (replace giữ ảnh/id/mesh, append đặt cạnh mô hình). Thao tác mặt thuần: `assemblyFaceOps.ts`, hình học: `assemblyGeometry.ts`. Tests: `assemblyTools.test.ts`.
+- **Lịch sử & phím tắt:** `useAssemblyHistory.ts` (gộp 450 ms, 1 bước/gesture, `{discrete}` cho thao tác cấu trúc), `useAssemblyShortcuts.ts` (capture-phase, chặn shortcut app chính khi modal mở).
+- **Theme:** scene 3D đọc token CSS qua `assemblyTheme.ts`; CSS xưởng chỉ dùng token (`--on-accent`, `--on-key`, `--on-cyan`, `--backdrop`, `--checker-a/b` bổ sung trong `variables.css`).
+- Xưởng là state cục bộ của modal → không cần MCP parity; khi chèn vào cảnh mới đi qua `insertModel3D.ts` (bỏ qua mặt `hidden`).
+

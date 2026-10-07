@@ -74,7 +74,7 @@
   font-weight: 700;
   border-radius: 8px;
   background-color: var(--key);
-  color: #000000;
+  color: var(--on-key);
   margin-left: 2px;
 }
 
@@ -128,20 +128,20 @@
 
 .sub-pill-btn.active {
   background-color: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
   border-color: var(--accent);
-  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .sub-pill-btn.gold {
-  background-color: rgba(234, 179, 8, 0.15);
+  background-color: color-mix(in srgb, var(--key) 15%, transparent);
   color: var(--key);
-  border-color: rgba(234, 179, 8, 0.4);
+  border-color: color-mix(in srgb, var(--key) 40%, transparent);
 }
 
 .sub-pill-btn.gold:hover {
   background-color: var(--key);
-  color: #000000;
+  color: var(--on-key);
 }
 
 .sub-val {
@@ -207,23 +207,23 @@
 
 .mesh2d-v-tool-btn.active {
   background-color: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
   border-color: var(--accent);
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .mesh2d-v-tool-btn.gold.active {
   background-color: var(--key);
-  color: #000000;
+  color: var(--on-key);
   border-color: var(--key);
-  box-shadow: 0 2px 6px rgba(234, 179, 8, 0.35);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--key) 35%, transparent);
 }
 
 .mesh2d-v-tool-btn.danger.active {
-  background-color: #ef4444;
-  color: #ffffff;
-  border-color: #ef4444;
-  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);
+  background-color: var(--danger);
+  color: var(--on-accent);
+  border-color: var(--danger);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--danger) 35%, transparent);
 }
 
 .mesh2d-palette-divider {
@@ -241,12 +241,12 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: #1a1a24;
+  background-color: var(--checker-a);
   background-image: 
-    linear-gradient(45deg, #14141e 25%, transparent 25%),
-    linear-gradient(-45deg, #14141e 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #14141e 75%),
-    linear-gradient(-45deg, transparent 75%, #14141e 75%);
+    linear-gradient(45deg, var(--checker-b) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--checker-b) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--checker-b) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--checker-b) 75%);
   background-size: 20px 20px;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
   cursor: default;
@@ -284,14 +284,6 @@
   pointer-events: all;
 }
 
-[data-theme='light'] .mesh2d-canvas-wrapper {
-  background-color: #f1f5f9;
-  background-image: 
-    linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
-    linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
-    linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
-}
 
 /* HUD Overlay on bottom left/right of 2D canvas */
 .mesh2d-hud-bottom {
@@ -312,7 +304,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background-color: rgba(15, 23, 42, 0.88);
+  background-color: var(--hud-bg);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   padding: 4px 10px;
@@ -334,11 +326,6 @@
   display: none;
 }
 
-[data-theme='light'] .mesh2d-hud-info {
-  background-color: rgba(255, 255, 255, 0.94);
-  border-color: var(--line);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
 
 .mesh2d-hud-face {
   display: inline-flex;
@@ -397,59 +384,39 @@
 }
 
 .mesh2d-hud-badge.tag-cyan {
-  background: rgba(56, 189, 248, 0.15);
+  background: color-mix(in srgb, var(--accent-cyan) 15%, transparent);
   color: var(--accent-cyan);
-  border: 1px solid rgba(56, 189, 248, 0.35);
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 35%, transparent);
 }
 
 .mesh2d-hud-badge.tag-green {
-  background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: color-mix(in srgb, var(--ok) 15%, transparent);
+  color: var(--ok);
+  border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent);
 }
 
 .mesh2d-hud-badge.tag-amber {
-  background: rgba(245, 158, 11, 0.15);
+  background: color-mix(in srgb, var(--key) 15%, transparent);
   color: var(--key);
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  border: 1px solid color-mix(in srgb, var(--key) 35%, transparent);
 }
 
 .mesh2d-hud-badge.tag-red {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: var(--danger);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
 }
 
-[data-theme='light'] .mesh2d-hud-badge.tag-cyan {
-  background: rgba(2, 132, 199, 0.12);
-  color: #0369a1;
-  border-color: rgba(2, 132, 199, 0.3);
-}
 
-[data-theme='light'] .mesh2d-hud-badge.tag-green {
-  background: rgba(16, 185, 129, 0.12);
-  color: #059669;
-  border-color: rgba(16, 185, 129, 0.3);
-}
 
-[data-theme='light'] .mesh2d-hud-badge.tag-amber {
-  background: rgba(245, 158, 11, 0.12);
-  color: #b45309;
-  border-color: rgba(217, 119, 6, 0.3);
-}
 
-[data-theme='light'] .mesh2d-hud-badge.tag-red {
-  background: rgba(239, 68, 68, 0.12);
-  color: #dc2626;
-  border-color: rgba(239, 68, 68, 0.3);
-}
 
 .mesh2d-hud-controls {
   pointer-events: auto;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background-color: rgba(15, 23, 42, 0.88);
+  background-color: var(--hud-bg);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   padding: 3px 5px;
@@ -462,11 +429,6 @@
   flex-shrink: 0;
 }
 
-[data-theme='light'] .mesh2d-hud-controls {
-  background-color: rgba(255, 255, 255, 0.94);
-  border-color: var(--line);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
 
 .mesh2d-tool-btn {
   display: inline-flex;
@@ -498,27 +460,22 @@
 }
 
 .mesh2d-tool-btn.active {
-  background-color: rgba(99, 102, 241, 0.18);
+  background-color: color-mix(in srgb, var(--accent) 18%, transparent);
   color: var(--accent);
-  border-color: rgba(99, 102, 241, 0.45);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   font-weight: 600;
 }
 
-[data-theme='light'] .mesh2d-tool-btn.active {
-  background-color: rgba(79, 70, 229, 0.12);
-  color: #4338ca;
-  border-color: rgba(79, 70, 229, 0.4);
-}
 
 .mesh2d-tool-btn.btn-restore {
-  background-color: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.35);
+  background-color: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
 }
 
 .mesh2d-tool-btn.btn-restore:hover {
-  background-color: rgba(239, 68, 68, 0.22);
-  color: #ef4444;
+  background-color: color-mix(in srgb, var(--danger) 22%, transparent);
+  color: var(--danger);
 }
 
 .mesh2d-zoom-group {
@@ -649,7 +606,7 @@
 }
 
 .view-mode-tab-btn.active {
-  color: #ffffff;
+  color: var(--on-accent);
   background-color: var(--accent);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }

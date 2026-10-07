@@ -20,7 +20,8 @@ export interface AssemblyGizmoProps {
   modelScale: number
   camera: THREE.PerspectiveCamera | null
   rect: GizmoRect | null
-  mesh: THREE.Mesh | null
+  /** Bumped by the viewport whenever the camera moves, forcing a re-projection. */
+  tick?: number
   onUpdateFace: (faceId: string, updates: Partial<Face3D>) => void
   onDragStateChange?: (isDragging: boolean) => void
 }
@@ -30,7 +31,6 @@ export function AssemblyGizmo({
   modelScale,
   camera,
   rect,
-  mesh,
   onUpdateFace,
   onDragStateChange
 }: AssemblyGizmoProps) {
@@ -44,16 +44,10 @@ export function AssemblyGizmo({
 
   if (!face || !camera || !rect || rect.w <= 0 || rect.h <= 0) return null
 
-  const worldMatrix = mesh
-    ? mesh.matrixWorld.clone()
-    : composeDepthMatrix(
-        [face.position[0] * modelScale, face.position[1] * modelScale, face.position[2] * modelScale],
-        face.rotation,
-        [1, 1, 1],
-        undefined,
-        [0, 0, 0],
-        [face.width * modelScale, face.height * modelScale]
-      )
+  const worldMatrix = composeDepthMatrix(
+    [face.position[0] * modelScale, face.position[1] * modelScale, face.position[2] * modelScale],
+    face.rotation
+  )
 
   const pivot = new THREE.Vector3().setFromMatrixPosition(worldMatrix)
   const depth = pivot.clone().project(camera).z
@@ -100,7 +94,7 @@ export function AssemblyGizmo({
   })
 
   function begin(e: React.PointerEvent, handle: AssemblyGizmoHandle): void {
-    if (e.button !== 0 || !face) return
+    if (e.button !== 0 || !face || !camera || !rect) return
     e.preventDefault()
     e.stopPropagation()
     cleanupRef.current?.()

@@ -139,79 +139,6 @@
   font-size: 10px;
 }
 
-/* 3. Faces List Chips */
-.faces-chip-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  max-height: 120px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  background: var(--bg-3);
-  padding: 6px;
-  border-radius: 6px;
-  border: 1px solid var(--line-soft);
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.face-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  border-radius: 4px;
-  background: var(--bg-2);
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  width: 100%;
-  box-sizing: border-box;
-  min-width: 0;
-}
-
-.face-chip:hover {
-  background: var(--bg-4);
-}
-
-.face-chip.active {
-  background: var(--bg-1);
-  border-color: var(--accent);
-}
-
-.chip-idx {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-faint);
-  min-width: 14px;
-  flex-shrink: 0;
-}
-
-.chip-name {
-  flex: 1;
-  font-size: 11px;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-}
-
-.chip-del {
-  background: transparent;
-  border: none;
-  color: var(--text-dim);
-  font-size: 14px;
-  line-height: 1;
-  padding: 0 4px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.chip-del:hover {
-  color: #ef4444;
-}
-
 /* 4. Inspector Form Grids */
 .inspector-grid-2 {
   display: grid;
@@ -254,9 +181,9 @@
   text-align: center;
 }
 
-.tag-x { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
-.tag-y { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
-.tag-z { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+.tag-x { background: color-mix(in srgb, var(--axis-x) 18%, transparent); color: var(--axis-x); }
+.tag-y { background: color-mix(in srgb, var(--axis-y) 18%, transparent); color: var(--axis-y); }
+.tag-z { background: color-mix(in srgb, var(--axis-z) 18%, transparent); color: var(--axis-z); }
 
 .inspector-field-group {
   display: flex;
@@ -341,7 +268,7 @@
 
 .snap-btn.active {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border-color: var(--accent);
 }
 
@@ -393,7 +320,7 @@
 
 .region-pill-btn.active {
   background: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
   border-color: var(--accent);
   font-weight: 600;
 }
@@ -442,7 +369,7 @@
 
 .res-btn.active {
   background: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
   border-color: var(--accent);
   font-weight: 600;
 }
@@ -458,7 +385,7 @@
 
 .hidden-cells-count {
   font-size: 10px;
-  color: #ef4444;
+  color: var(--danger);
   font-weight: 600;
 }
 
@@ -472,12 +399,12 @@
 
 .reset-mesh-btn {
   width: 100%;
-  color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.4);
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
 }
 
 .reset-mesh-btn:hover {
-  background: rgba(239, 68, 68, 0.15);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
 }
 
 .trim-hint-text {
