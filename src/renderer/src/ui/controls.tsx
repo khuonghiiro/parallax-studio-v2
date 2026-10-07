@@ -39,6 +39,38 @@ export function NumberInput({
   const clamp = (v: number): number => Math.min(max, Math.max(min, v))
   const shown = text ?? `${Number(value.toFixed(precision))}${suffix ?? ''}`
 
+  // Arrow-key stepping: the field repaints on every key repeat, while the (potentially
+  // expensive) store commit is coalesced to at most one per animation frame.
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
+  const pendingRef = useRef<number | null>(null)
+  const rafRef = useRef(0)
+  const arrowKeyRef = useRef(`arrow-${nanoid(6)}`)
+  const arrowTextRef = useRef<string | null>(null)
+  useEffect(() => () => cancelAnimationFrame(rafRef.current), [])
+
+  const flushArrow = (): void => {
+    cancelAnimationFrame(rafRef.current)
+    rafRef.current = 0
+    if (pendingRef.current !== null) onChangeRef.current(pendingRef.current, arrowKeyRef.current)
+  }
+
+  const endArrowHold = (): void => {
+    if (pendingRef.current === null) return
+    flushArrow()
+    pendingRef.current = null
+    arrowKeyRef.current = `arrow-${nanoid(6)}`
+  }
+
+  const stepArrow = (dir: 1 | -1, mult: number): void => {
+    const base = pendingRef.current ?? value
+    const v = clamp(Number((base + dir * step * mult).toFixed(10)))
+    pendingRef.current = v
+    arrowTextRef.current = String(Number(v.toFixed(precision)))
+    setText(arrowTextRef.current)
+    if (!rafRef.current) rafRef.current = requestAnimationFrame(flushArrow)
+  }
+
   const startScrub = (e: React.PointerEvent): void => {
     // If input is currently focused for text editing, don't hijack typing/text selection
     if (document.activeElement === inputRef.current && e.target === inputRef.current) {
@@ -89,7 +121,13 @@ export function NumberInput({
   }
 
   const commit = (): void => {
-    if (text === null) return
+    endArrowHold()
+    const fromArrows = text !== null && text === arrowTextRef.current
+    arrowTextRef.current = null
+    if (text === null || fromArrows) {
+      setText(null)
+      return
+    }
     const v = parseFloat(text.replace(',', '.'))
     if (!Number.isNaN(v)) onChange(clamp(v), `edit-${nanoid(6)}`)
     setText(null)
@@ -114,23 +152,26 @@ export function NumberInput({
           setText(String(Number(value.toFixed(precision))))
           requestAnimationFrame(() => e.target.select())
         }}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => {
+          arrowTextRef.current = null
+          setText(e.target.value)
+        }}
         onBlur={commit}
         onKeyDown={(e) => {
           if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
           if (e.key === 'Escape') {
+            endArrowHold()
             setText(null)
             ;(e.target as HTMLInputElement).blur()
           }
           if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
             e.preventDefault()
-            const dir = e.key === 'ArrowUp' ? 1 : -1
-            const mult = e.shiftKey ? 10 : 1
-            const v = clamp(value + dir * step * mult)
-            onChange(v, 'arrow')
-            setText(String(Number(v.toFixed(precision))))
+            stepArrow(e.key === 'ArrowUp' ? 1 : -1, e.shiftKey ? 10 : e.altKey ? 0.1 : 1)
           }
           e.stopPropagation()
+        }}
+        onKeyUp={(e) => {
+          if (e.key === 'ArrowUp' || e.key === 'ArrowDown') endArrowHold()
         }}
       />
     </label>
