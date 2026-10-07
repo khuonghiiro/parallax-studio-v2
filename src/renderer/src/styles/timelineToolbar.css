@@ -76,9 +76,9 @@
   color: var(--key);
 }
 .tl-action-btn.tl-btn-key:hover:not(:disabled) {
-  color: #fbbf24;
-  background: rgba(245, 158, 11, 0.15);
-  border-color: rgba(245, 158, 11, 0.3);
+  color: var(--key);
+  background: color-mix(in srgb, var(--key) 15%, transparent);
+  border-color: color-mix(in srgb, var(--key) 35%, transparent);
 }
 
 .tl-action-btn.tl-btn-fx {

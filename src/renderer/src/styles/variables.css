@@ -67,6 +67,14 @@
   --vlabel-color: #ffffff;
   --vlabel-border: rgba(255, 255, 255, 0.12);
 
+  /* Contrast-on-colour, modal backdrop & transparency checkerboard */
+  --on-accent: #ffffff;
+  --on-key: #1a1204;
+  --on-cyan: #04121c;
+  --backdrop: rgba(0, 0, 0, 0.78);
+  --checker-a: #1c1c22;
+  --checker-b: #141418;
+
   /* Scrollbars */
   --scroll-thumb: #383838;
   --scroll-thumb-hover: #4e4e4e;
@@ -143,6 +151,14 @@
   --vlabel-bg: rgba(255, 255, 255, 0.95);
   --vlabel-color: #16181d;
   --vlabel-border: rgba(0, 0, 0, 0.16);
+
+  /* Contrast-on-colour, modal backdrop & transparency checkerboard */
+  --on-accent: #ffffff;
+  --on-key: #ffffff;
+  --on-cyan: #ffffff;
+  --backdrop: rgba(30, 36, 48, 0.45);
+  --checker-a: #f3f5f8;
+  --checker-b: #e2e6ec;
 
   /* Scrollbars */
   --scroll-thumb: #cbd0d8;
