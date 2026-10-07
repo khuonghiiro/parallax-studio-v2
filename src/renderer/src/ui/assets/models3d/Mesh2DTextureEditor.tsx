@@ -260,7 +260,7 @@ export function Mesh2DTextureEditor({
         startPanX: pan.x,
         startPanY: pan.y
       }
-      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+        ; (e.target as HTMLElement).setPointerCapture(e.pointerId)
       return
     }
 
@@ -275,7 +275,7 @@ export function Mesh2DTextureEditor({
           currX: imgPos.x,
           currY: imgPos.y
         })
-        ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+          ; (e.target as HTMLElement).setPointerCapture(e.pointerId)
       }
     }
   }
@@ -309,8 +309,8 @@ export function Mesh2DTextureEditor({
     if (isPanning) {
       setIsPanning(false)
       try {
-        ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
-      } catch {}
+        ; (e.target as HTMLElement).releasePointerCapture(e.pointerId)
+      } catch { }
       return
     }
 
@@ -331,7 +331,7 @@ export function Mesh2DTextureEditor({
 
         const inBox = isDrag
           ? Math.max(xMin, cellX0) < Math.min(xMax, cellX1) &&
-            Math.max(yMin, cellY0) < Math.min(yMax, cellY1)
+          Math.max(yMin, cellY0) < Math.min(yMax, cellY1)
           : xMin >= cellX0 && xMin <= cellX1 && yMin >= cellY0 && yMin <= cellY1
 
         if (inBox && cell.isOpaque && !cell.isHidden) {
@@ -374,8 +374,8 @@ export function Mesh2DTextureEditor({
 
       setMarquee({ active: false, startX: 0, startY: 0, currX: 0, currY: 0 })
       try {
-        ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
-      } catch {}
+        ; (e.target as HTMLElement).releasePointerCapture(e.pointerId)
+      } catch { }
     }
   }
 
@@ -461,306 +461,306 @@ export function Mesh2DTextureEditor({
           onWheel={handleWheel}
           onContextMenu={(e) => e.preventDefault()}
         >
-        <div
-          ref={imagePlaneRef}
-          style={{
-            position: 'absolute',
-            left: '50%',
-            top: '50%',
-            width: imgW,
-            height: imgH,
-            transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-            transformOrigin: 'center center',
-            transition: 'none'
-          }}
-        >
-          {/* Base Texture Image */}
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={face.name}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'contain',
-                display: 'block',
-                pointerEvents: 'none',
-                userSelect: 'none'
-              }}
-              draggable={false}
-            />
-          ) : (
-            <div
-              style={{
-                width: '100%',
-                height: '100%',
-                backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                border: '2px dashed var(--accent)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-dim)',
-                fontSize: 14
-              }}
-            >
-              Đang tải texture...
-            </div>
-          )}
-
-          {/* Interactive SVG Mesh Grid Matching 3D Exactly */}
-          <svg
-            className="mesh2d-svg-overlay"
-            viewBox={`0 0 ${imgW} ${imgH}`}
+          <div
+            ref={imagePlaneRef}
             style={{
-              transform: `rotate(${rotation}deg)`,
-              transformOrigin: '50% 50%',
-              pointerEvents: showMesh ? 'all' : 'none'
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              width: imgW,
+              height: imgH,
+              transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+              transformOrigin: 'center center',
+              transition: 'none'
             }}
           >
-            {showMesh && (
-              <>
-                {/* Render Triangles/Quads */}
-                {cells.map((cell) => {
-                  if (!cell.isOpaque) return null
+            {/* Base Texture Image */}
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={face.name}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  display: 'block',
+                  pointerEvents: 'none',
+                  userSelect: 'none'
+                }}
+                draggable={false}
+              />
+            ) : (
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                  border: '2px dashed var(--accent)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-dim)',
+                  fontSize: 14
+                }}
+              >
+                Đang tải texture...
+              </div>
+            )}
 
-                  let fill = 'rgba(56, 189, 248, 0.06)'
-                  let stroke = 'rgba(56, 189, 248, 0.45)'
-                  let strokeWidth = 1
+            {/* Interactive SVG Mesh Grid Matching 3D Exactly */}
+            <svg
+              className="mesh2d-svg-overlay"
+              viewBox={`0 0 ${imgW} ${imgH}`}
+              style={{
+                transform: `rotate(${rotation}deg)`,
+                transformOrigin: '50% 50%',
+                pointerEvents: showMesh ? 'all' : 'none'
+              }}
+            >
+              {showMesh && (
+                <>
+                  {/* Render Triangles/Quads */}
+                  {cells.map((cell) => {
+                    if (!cell.isOpaque) return null
 
-                  if (cell.isHidden) {
-                    fill = 'rgba(239, 68, 68, 0.35)'
-                    stroke = 'rgba(239, 68, 68, 0.8)'
-                  } else if (cell.isSelected) {
-                    fill = 'rgba(234, 179, 8, 0.45)'
-                    stroke = 'rgba(250, 204, 21, 0.95)'
-                    strokeWidth = 2
-                  }
+                    let fill = 'rgba(56, 189, 248, 0.06)'
+                    let stroke = 'rgba(56, 189, 248, 0.45)'
+                    let strokeWidth = 1
 
-                  // Draw triangles if triangulated, or quad rect
-                  if (cell.triangles.length > 0) {
+                    if (cell.isHidden) {
+                      fill = 'rgba(239, 68, 68, 0.35)'
+                      stroke = 'rgba(239, 68, 68, 0.8)'
+                    } else if (cell.isSelected) {
+                      fill = 'rgba(234, 179, 8, 0.45)'
+                      stroke = 'rgba(250, 204, 21, 0.95)'
+                      strokeWidth = 2
+                    }
+
+                    // Draw triangles if triangulated, or quad rect
+                    if (cell.triangles.length > 0) {
+                      return (
+                        <g key={cell.key}>
+                          {cell.triangles.map((tri, triIdx) => (
+                            <polygon
+                              key={triIdx}
+                              points={tri.map((p) => `${p[0]},${p[1]}`).join(' ')}
+                              fill={fill}
+                              stroke={stroke}
+                              strokeWidth={strokeWidth}
+                            />
+                          ))}
+                        </g>
+                      )
+                    }
+
                     return (
-                      <g key={cell.key}>
-                        {cell.triangles.map((tri, triIdx) => (
-                          <polygon
-                            key={triIdx}
-                            points={tri.map((p) => `${p[0]},${p[1]}`).join(' ')}
-                            fill={fill}
-                            stroke={stroke}
-                            strokeWidth={strokeWidth}
-                          />
-                        ))}
+                      <rect
+                        key={cell.key}
+                        x={cell.corners[0][0]}
+                        y={cell.corners[0][1]}
+                        width={cell.corners[1][0] - cell.corners[0][0]}
+                        height={cell.corners[2][1] - cell.corners[0][1]}
+                        fill={fill}
+                        stroke={stroke}
+                        strokeWidth={strokeWidth}
+                      />
+                    )
+                  })}
+
+                  {/* Pinned Starch Pin Indicators (After Effects Puppet Pin) */}
+                  {cells.map((cell) => {
+                    if (!cell.isPinned || !cell.isOpaque || cell.isHidden) return null
+                    const cx = (cell.corners[0][0] + cell.corners[2][0]) / 2
+                    const cy = (cell.corners[0][1] + cell.corners[2][1]) / 2
+                    const r = Math.min(8, Math.max(3, (imgW / cols) * 0.3))
+                    return (
+                      <g key={`pin_${cell.key}`}>
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r={r}
+                          fill="#f59e0b"
+                          stroke="#ffffff"
+                          strokeWidth={1.5}
+                        />
+                        <circle cx={cx} cy={cy} r={r * 0.35} fill="#ffffff" />
                       </g>
                     )
-                  }
+                  })}
 
-                  return (
-                    <rect
-                      key={cell.key}
-                      x={cell.corners[0][0]}
-                      y={cell.corners[0][1]}
-                      width={cell.corners[1][0] - cell.corners[0][0]}
-                      height={cell.corners[2][1] - cell.corners[0][1]}
-                      fill={fill}
-                      stroke={stroke}
-                      strokeWidth={strokeWidth}
-                    />
-                  )
-                })}
+                  {/* Bounding Frame Outline */}
+                  <rect
+                    x={0}
+                    y={0}
+                    width={imgW}
+                    height={imgH}
+                    fill="none"
+                    stroke="var(--accent-cyan)"
+                    strokeWidth={1.5}
+                    strokeDasharray={rotation !== 0 ? '6 4' : 'none'}
+                  />
+                </>
+              )}
 
-                {/* Pinned Starch Pin Indicators (After Effects Puppet Pin) */}
-                {cells.map((cell) => {
-                  if (!cell.isPinned || !cell.isOpaque || cell.isHidden) return null
-                  const cx = (cell.corners[0][0] + cell.corners[2][0]) / 2
-                  const cy = (cell.corners[0][1] + cell.corners[2][1]) / 2
-                  const r = Math.min(8, Math.max(3, (imgW / cols) * 0.3))
-                  return (
-                    <g key={`pin_${cell.key}`}>
-                      <circle
-                        cx={cx}
-                        cy={cy}
-                        r={r}
-                        fill="#f59e0b"
-                        stroke="#ffffff"
-                        strokeWidth={1.5}
-                      />
-                      <circle cx={cx} cy={cy} r={r * 0.35} fill="#ffffff" />
-                    </g>
-                  )
-                })}
-
-                {/* Bounding Frame Outline */}
+              {/* Marquee Bounding Box Selection Drag Overlay */}
+              {marquee.active && mqW > 0 && mqH > 0 && (
                 <rect
-                  x={0}
-                  y={0}
-                  width={imgW}
-                  height={imgH}
-                  fill="none"
-                  stroke="var(--accent-cyan)"
+                  x={mqX}
+                  y={mqY}
+                  width={mqW}
+                  height={mqH}
+                  fill="rgba(234, 179, 8, 0.25)"
+                  stroke="var(--key)"
                   strokeWidth={1.5}
-                  strokeDasharray={rotation !== 0 ? '6 4' : 'none'}
+                  strokeDasharray="4 3"
                 />
-              </>
-            )}
-
-            {/* Marquee Bounding Box Selection Drag Overlay */}
-            {marquee.active && mqW > 0 && mqH > 0 && (
-              <rect
-                x={mqX}
-                y={mqY}
-                width={mqW}
-                height={mqH}
-                fill="rgba(234, 179, 8, 0.25)"
-                stroke="var(--key)"
-                strokeWidth={1.5}
-                strokeDasharray="4 3"
-              />
-            )}
-          </svg>
-        </div>
-
-        {/* Bottom HUD Bar */}
-        <div className="mesh2d-hud-bottom">
-          <div className="mesh2d-hud-info">
-            <span className="mesh2d-hud-face" title={`Mặt phẳng: ${face.name}`}>
-              <span className="mesh2d-hud-face-title">Mặt:</span>
-              <strong className="mesh2d-hud-face-name">{formatFaceLabel(face.name)}</strong>
-            </span>
-            <span className="mesh2d-hud-sep" />
-            <span className="mesh2d-hud-item">
-              {imgW}×{imgH} px
-            </span>
-            <span className="mesh2d-hud-sep" />
-            <span className="mesh2d-hud-item">
-              Lưới: <strong>{cols}×{rows}</strong>
-            </span>
-            <span className="mesh2d-hud-sep" />
-            <span className="mesh2d-hud-item">
-              Xoay: <strong>{rotation}°</strong>
-            </span>
-            {face.depthProfile && face.depthProfile !== 'none' && (
-              <>
-                <span className="mesh2d-hud-sep" />
-                <span className="mesh2d-hud-badge tag-cyan">
-                  Độ sâu: <strong>{face.depthProfile} ({face.depthIntensity || 0}%)</strong>
-                </span>
-              </>
-            )}
-            {face.motionType && face.motionType !== 'none' && (
-              <>
-                <span className="mesh2d-hud-sep" />
-                <span className="mesh2d-hud-badge tag-green">
-                  Chuyển động: <strong>{face.motionType}</strong>
-                </span>
-              </>
-            )}
-            {selectedCells.size > 0 && (
-              <>
-                <span className="mesh2d-hud-sep" />
-                <span className="mesh2d-hud-badge tag-amber">
-                  Đang chọn: <strong>{selectedCells.size} ô</strong>
-                </span>
-              </>
-            )}
-            {pinnedCells.size > 0 && (
-              <>
-                <span className="mesh2d-hud-sep" />
-                <span className="mesh2d-hud-badge tag-amber">
-                  Ghim: <strong>{pinnedCells.size} ô</strong>
-                </span>
-              </>
-            )}
-            {hiddenCells.size > 0 && (
-              <>
-                <span className="mesh2d-hud-sep" />
-                <span className="mesh2d-hud-badge tag-red">
-                  Đã gọt: <strong>{hiddenCells.size} ô</strong>
-                </span>
-              </>
-            )}
+              )}
+            </svg>
           </div>
 
-          <div className="mesh2d-hud-controls">
-            <button
-              type="button"
-              className={`mesh2d-tool-btn${showMesh ? ' active' : ''}`}
-              onClick={handleToggleMesh}
-              title={showMesh ? 'Bấm để ẩn đường lưới Mesh 2D' : 'Bấm để hiện đường lưới Mesh 2D'}
-            >
-              {showMesh ? <IconEye size={12} /> : <IconEyeOff size={12} />}
-              <span>{showMesh ? 'Lưới' : 'Ẩn'}</span>
-            </button>
+          {/* Bottom HUD Bar */}
+          <div className="mesh2d-hud-bottom">
+            <div className="mesh2d-hud-info">
+              <span className="mesh2d-hud-face" title={`Mặt phẳng: ${face.name}`}>
+                <span className="mesh2d-hud-face-title">Mặt:</span>
+                <strong className="mesh2d-hud-face-name">{formatFaceLabel(face.name)}</strong>
+              </span>
+              <span className="mesh2d-hud-sep" />
+              <span className="mesh2d-hud-item">
+                {imgW}×{imgH} px
+              </span>
+              <span className="mesh2d-hud-sep" />
+              <span className="mesh2d-hud-item">
+                Lưới: <strong>{cols}×{rows}</strong>
+              </span>
+              <span className="mesh2d-hud-sep" />
+              <span className="mesh2d-hud-item">
+                Xoay: <strong>{rotation}°</strong>
+              </span>
+              {face.depthProfile && face.depthProfile !== 'none' && (
+                <>
+                  <span className="mesh2d-hud-sep" />
+                  <span className="mesh2d-hud-badge tag-cyan">
+                    Độ sâu: <strong>{face.depthProfile} ({face.depthIntensity || 0}%)</strong>
+                  </span>
+                </>
+              )}
+              {face.motionType && face.motionType !== 'none' && (
+                <>
+                  <span className="mesh2d-hud-sep" />
+                  <span className="mesh2d-hud-badge tag-green">
+                    Chuyển động: <strong>{face.motionType}</strong>
+                  </span>
+                </>
+              )}
+              {selectedCells.size > 0 && (
+                <>
+                  <span className="mesh2d-hud-sep" />
+                  <span className="mesh2d-hud-badge tag-amber">
+                    <strong>{selectedCells.size} ô</strong>
+                  </span>
+                </>
+              )}
+              {pinnedCells.size > 0 && (
+                <>
+                  <span className="mesh2d-hud-sep" />
+                  <span className="mesh2d-hud-badge tag-amber">
+                    Ghim: <strong>{pinnedCells.size} ô</strong>
+                  </span>
+                </>
+              )}
+              {hiddenCells.size > 0 && (
+                <>
+                  <span className="mesh2d-hud-sep" />
+                  <span className="mesh2d-hud-badge tag-red">
+                    Đã gọt: <strong>{hiddenCells.size} ô</strong>
+                  </span>
+                </>
+              )}
+            </div>
 
-            {selectedCells.size > 0 ? (
+            <div className="mesh2d-hud-controls">
               <button
                 type="button"
-                className="mesh2d-tool-btn"
-                onClick={() => onUpdateFace(face.id, { selectedCells: [] })}
-                title="Bỏ chọn toàn bộ ô (Esc)"
+                className={`mesh2d-tool-btn${showMesh ? ' active' : ''}`}
+                onClick={handleToggleMesh}
+                title={showMesh ? 'Bấm để ẩn đường lưới Mesh 2D' : 'Bấm để hiện đường lưới Mesh 2D'}
               >
-                Bỏ chọn ({selectedCells.size})
+                {showMesh ? <IconEye size={12} /> : <IconEyeOff size={12} />}
+                <span>{showMesh ? 'Lưới' : 'Ẩn'}</span>
               </button>
-            ) : (
+
+              {selectedCells.size > 0 ? (
+                <button
+                  type="button"
+                  className="mesh2d-tool-btn"
+                  onClick={() => onUpdateFace(face.id, { selectedCells: [] })}
+                  title="Bỏ chọn toàn bộ ô (Esc)"
+                >
+                  Bỏ chọn ({selectedCells.size})
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="mesh2d-tool-btn"
+                  onClick={() => {
+                    const all = cells.filter((c) => c.isOpaque && !c.isHidden).map((c) => c.key)
+                    onUpdateFace(face.id, { selectedCells: all })
+                  }}
+                  title="Chọn tất cả các ô hiện hữu"
+                >
+                  Chọn tất cả
+                </button>
+              )}
+
+              {hiddenCells.size > 0 && (
+                <button
+                  type="button"
+                  className="mesh2d-tool-btn btn-restore"
+                  onClick={() => onUpdateFace(face.id, { hiddenCells: [] })}
+                  title="Khôi phục lại toàn bộ ô đã gọt"
+                >
+                  Khôi phục ({hiddenCells.size})
+                </button>
+              )}
+
+              <div className="mesh2d-zoom-group">
+                <button
+                  type="button"
+                  className="mesh2d-zoom-btn"
+                  onClick={() => setZoom((prev) => Math.max(0.2, prev * 0.85))}
+                  title="Thu nhỏ (-)"
+                >
+                  −
+                </button>
+                <span className="mesh2d-zoom-val">
+                  {(zoom * 100).toFixed(0)}%
+                </span>
+                <button
+                  type="button"
+                  className="mesh2d-zoom-btn"
+                  onClick={() => setZoom((prev) => Math.min(5.0, prev * 1.15))}
+                  title="Phóng to (+)"
+                >
+                  +
+                </button>
+              </div>
+
               <button
                 type="button"
                 className="mesh2d-tool-btn"
                 onClick={() => {
-                  const all = cells.filter((c) => c.isOpaque && !c.isHidden).map((c) => c.key)
-                  onUpdateFace(face.id, { selectedCells: all })
+                  setZoom(1.0)
+                  setPan({ x: 0, y: 0 })
                 }}
-                title="Chọn tất cả các ô hiện hữu"
+                title="Đặt lại khung nhìn 100%"
               >
-                Chọn tất cả
-              </button>
-            )}
-
-            {hiddenCells.size > 0 && (
-              <button
-                type="button"
-                className="mesh2d-tool-btn btn-restore"
-                onClick={() => onUpdateFace(face.id, { hiddenCells: [] })}
-                title="Khôi phục lại toàn bộ ô đã gọt"
-              >
-                Khôi phục ({hiddenCells.size})
-              </button>
-            )}
-
-            <div className="mesh2d-zoom-group">
-              <button
-                type="button"
-                className="mesh2d-zoom-btn"
-                onClick={() => setZoom((prev) => Math.max(0.2, prev * 0.85))}
-                title="Thu nhỏ (-)"
-              >
-                −
-              </button>
-              <span className="mesh2d-zoom-val">
-                {(zoom * 100).toFixed(0)}%
-              </span>
-              <button
-                type="button"
-                className="mesh2d-zoom-btn"
-                onClick={() => setZoom((prev) => Math.min(5.0, prev * 1.15))}
-                title="Phóng to (+)"
-              >
-                +
+                100%
               </button>
             </div>
-
-            <button
-              type="button"
-              className="mesh2d-tool-btn"
-              onClick={() => {
-                setZoom(1.0)
-                setPan({ x: 0, y: 0 })
-              }}
-              title="Đặt lại khung nhìn 100%"
-            >
-              100%
-            </button>
           </div>
         </div>
       </div>
     </div>
-  </div>
   )
 }

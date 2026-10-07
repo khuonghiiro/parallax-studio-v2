@@ -203,7 +203,8 @@ const TOOLS_CATALOG = {
   update_layer: {
     category: '3. Layer & Độ sâu 2.5D',
     desc: 'Cập nhật vị trí, xoay, tỷ lệ, độ trong suốt hoặc hòa trộn của layer.',
-    params: '{ "layer_id": string, "position"?: [x, y, z], "rotation"?: [x, y, z], "scale"?: number, "opacity"?: number }'
+    params: '{ "layer_id": string, "position"?: [x, y, z], "rotation"?: [x, y, z] (degrees), "scale"?: number | [x, y, z], "opacity"?: number, "at_time"?: number }',
+    example: 'node mcp-server/cli.mjs call update_layer \'{"layer_id":"layer-1","rotation":[0,0,30],"scale":[1.5,0.8,1]}\''
   },
   delete_layer: {
     category: '3. Layer & Độ sâu 2.5D',

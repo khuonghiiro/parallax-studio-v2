@@ -323,7 +323,7 @@ tool('add_particles', 'Add a particle field (fireflies, snow, dust, embers). Det
 })
 tool(
   'update_layer',
-  'Change a layer. Transform values follow After Effects rules: animated properties get a keyframe at the current time (or at_time); static ones change value. props = raw prop overrides (text, color, fontSize…).',
+  'Change a layer, matching viewport XYZ translation, rotation rings (degrees), and bounding-box scale handles (scalar or [x,y,z] multipliers). Transform values follow After Effects rules: animated properties get a keyframe at the current time (or at_time); static ones change value. props = raw prop overrides (text, color, fontSize…).',
   {
     layer_id: z.string(),
     ...layerCommon,

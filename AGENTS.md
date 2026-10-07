@@ -111,3 +111,9 @@ Khi thực hiện các nhiệm vụ chuyên biệt, AI cần tham chiếu các s
 - **Testing & Debugging:** `ak:debug`, `ak:test`, `ak:code-review`
 - **Video & Media Processing:** `ak:media-processing`, `ak:remotion`
 - **Refactoring & Code Quality:** `code-modularization`
+
+### Layer gizmo implementation (Camera / 3D)
+- Geometry/projection helpers: `engine/layerGizmo.ts`; UI: `ui/viewer/LayerGizmo.tsx`; gestures: `ui/viewer/gizmoDrag.ts`.
+- Use evaluated world matrices for bounds and anchor projection; author position in shot/parent coordinates and scale before depth compensation.
+- Keep one history entry per gesture, preserve current-time keyframe behavior, cancel safely on Escape, and exclude overlays from export.
+- MCP parity uses existing `update_layer` position/rotation/scale parameters; regression tests: `mcp/commands/layerCommands.test.ts`.

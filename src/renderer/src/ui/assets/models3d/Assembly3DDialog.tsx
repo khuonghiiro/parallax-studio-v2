@@ -230,7 +230,7 @@ export function Assembly3DDialog({
             </div>
 
             {/* 3D Axis Manipulator Gizmo Modes */}
-            <div className="cam-preset-group" title="Trục thao tác 3D (Manipulator Gizmo)">
+            {/* <div className="cam-preset-group" title="Trục thao tác 3D (Manipulator Gizmo)">
               <button
                 type="button"
                 className={`preset-btn${gizmoMode === 'translate' ? ' active' : ''}`}
@@ -257,7 +257,7 @@ export function Assembly3DDialog({
               >
                 Tắt
               </button>
-            </div>
+            </div> */}
 
             <label className="toggle-chip" title="Bật/tắt hiển thị lưới dây đa giác Wireframe">
               <input

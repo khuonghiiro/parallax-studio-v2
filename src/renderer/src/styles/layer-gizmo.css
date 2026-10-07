@@ -1,0 +1,15 @@
+.layer-gizmo { position: absolute; z-index: 6; overflow: hidden; pointer-events: none; touch-action: none; }
+.gizmo-box { fill: none; stroke: var(--accent-cyan); stroke-width: 1; }
+.gizmo-scale { fill: var(--bg-1); stroke: var(--accent-cyan); stroke-width: 2; pointer-events: all; cursor: nwse-resize; }
+.gizmo-scale:hover { fill: var(--accent-cyan); }
+.gizmo-axis-0 { color: var(--axis-x); }
+.gizmo-axis-1 { color: var(--axis-y); }
+.gizmo-axis-2 { color: var(--axis-z); }
+.gizmo-ring { fill: none; stroke: currentColor; stroke-width: 2; pointer-events: stroke; cursor: crosshair; }
+.gizmo-ring:hover { stroke-width: 5; }
+.gizmo-translate { pointer-events: all; cursor: move; }
+.gizmo-translate path { fill: none; stroke: currentColor; stroke-width: 4; }
+.gizmo-translate .gizmo-arrow { fill: currentColor; stroke: var(--bg-0); stroke-width: 1; }
+.gizmo-translate text { fill: currentColor; stroke: var(--bg-0); stroke-width: 3; paint-order: stroke; font: bold 12px var(--font-mono, monospace); }
+.gizmo-pivot { fill: var(--bg-1); stroke: var(--key); stroke-width: 2; }
+.gizmo-readout { fill: var(--text); stroke: var(--bg-0); stroke-width: 4; paint-order: stroke; font: 11px var(--font-mono, monospace); }

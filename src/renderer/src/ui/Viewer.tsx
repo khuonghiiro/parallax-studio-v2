@@ -23,6 +23,7 @@ import {
 import { useViewerLabels } from './viewer/useViewerLabels'
 import { useViewerDrag } from './viewer/useViewerDrag'
 import { ViewerOverlays } from './viewer/ViewerOverlays'
+import { LayerGizmo, type GizmoController, type GizmoFrame } from './viewer/LayerGizmo'
 import { TopView, useFocusShotId } from './TopView'
 
 export { EDITOR_KINDS }
@@ -31,6 +32,7 @@ export function Viewer() {
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const labelsRef = useRef<HTMLDivElement>(null)
+  const gizmoRef = useRef<GizmoController | null>(null)
   const rendererRef = useRef<SceneRenderer | null>(null)
   const edCam = useRef(new EditorCamera()).current
   const needsFrame = useRef(true)
@@ -76,6 +78,7 @@ export function Viewer() {
     const s = useEditor.getState()
     const v = useView.getState()
     const L = layoutRef.current
+    const gizmoFrames: GizmoFrame[] = []
     const clearCol = v.theme === 'light' ? '#e2e5eb' : CLEAR
     r.beginFrame(clearCol)
     if (L.cam) {
@@ -85,6 +88,7 @@ export function Viewer() {
         prefetch: s.playing,
         playing: s.playing
       })
+      gizmoFrames.push({ key: 'camera', camera: r.camera.clone(), rect: L.cam })
     }
     if (L.ed) {
       const aspect = L.ed.w / L.ed.h
@@ -106,10 +110,12 @@ export function Viewer() {
         theme: v.theme
       })
       updateLabels(labels, L.ed, L.dpr, s.selectedShotId)
+      gizmoFrames.push({ key: 'editor', camera: edCam.get(aspect).clone(), rect: L.ed })
     } else {
       updateLabels([], null, 1, null)
     }
     const now = performance.now()
+    gizmoRef.current?.update(gizmoFrames)
     const ft = frameTimes.current
     ft.push(now)
     while (ft.length && now - ft[0] > 1000) ft.shift()
@@ -449,6 +455,9 @@ export function Viewer() {
         onContextMenu={(e) => e.preventDefault()}
         style={{ display: isTopView ? 'none' : 'block' }}
       />
+      {!isTopView && (
+        <LayerGizmo controller={gizmoRef} />
+      )}
       {!isTopView && (
         <div className="view-labels" ref={labelsRef} onPointerDown={onLabelPointerDown} onDoubleClick={onLabelDoubleClick} />
       )}

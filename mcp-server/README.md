@@ -249,3 +249,9 @@ pnpm pxs call add_particles '{"preset": "rain", "density": 100}'
 pnpm pxs call set_playing '{"playing": true}'
 ```
 
+
+### Layer transform gizmos
+
+Camera/3D/split view now exposes XYZ position axes, anchor-centered bbox scaling and XYZ rotation rings. These author existing transform properties, available through `update_layer`: `position: [x,y,z]`, `rotation: [rx,ry,rz]` in degrees, `scale: number | [sx,sy,sz]` as multipliers. Static properties update directly; animated properties key at the playhead; `at_time` explicitly inserts a key. Changes support undo/redo.
+
+Example: `pnpm pxs call update_layer '{"layer_id":"layer-1","position":[120,80,400],"rotation":[15,30,45],"scale":[1.5,0.8,1]}'`.

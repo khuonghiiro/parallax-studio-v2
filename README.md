@@ -129,3 +129,9 @@ node mcp-server/stress-test.mjs out/stress  # RAM: 30 cảnh × 6 ảnh 4K
 
   Ngoài ra, codec H.264 có thể phải trả phí bản quyền bằng sáng chế (MPEG LA / Via LA) tuỳ thị trường.
 - Font Inter, Montserrat, Playfair Display, Bebas Neue và JetBrains Mono đều dùng giấy phép SIL OFL, nên nhúng vào sản phẩm thương mại được.
+
+### Viewport layer transform controls
+
+Selecting an unlocked, visible layer in Camera (2D preview), 3D, orthographic or split view shows XYZ translation axes, eight bounding-box scale handles and XYZ rotation rings. Drag an axis to move in shot/parent coordinates; when an axis points into the screen, drag vertically. Drag a square to resize about the layer anchor; Shift preserves aspect ratio. Drag a rotation ring to rotate about the anchor; Shift snaps to 15 degrees (translation: 10 units). Edge-on rings use horizontal dragging. Coordinates and rotation angles are shown beside the pivot. Escape or pointer cancellation restores the pre-drag state. A completed gesture is one Undo/Redo step and follows the current playhead's animation rules. Controls are hidden during playback and do not appear in exports.
+
+AI parity: `update_layer` edits the same `position`, `rotation` (degrees), and `scale` (scalar or `[x,y,z]` multipliers); `at_time` creates a keyframe explicitly. Example: `pnpm pxs call update_layer '{"layer_id":"layer-1","rotation":[0,0,30],"scale":[1.5,0.8,1]}'`.

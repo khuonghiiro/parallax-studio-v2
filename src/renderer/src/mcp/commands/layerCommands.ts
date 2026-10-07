@@ -217,6 +217,7 @@ export const layerCommands: Record<string, Handler> = {
       if (Array.isArray(p.repeat) && p.repeat.length === 2 && l.type === 'image') {
         l.props.repeat = [Number(p.repeat[0]) || 1, Number(p.repeat[1]) || 1]
       }
+      // Same authored properties as viewport XYZ axes, rotation rings and bbox handles.
       const pos = vec3(p, 'position')
       if (pos) setAnim(l.transform.position, pos, p, project)
       const z = num(p, 'z')
