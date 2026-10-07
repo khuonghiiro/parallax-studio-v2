@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { formatFaceLabel, type Face3D, type Model3D } from './types'
 import { AssemblyViewport } from './AssemblyViewport'
 import { FaceInspector } from './FaceInspector'
@@ -11,6 +11,7 @@ import { clearTextureCache, resolveFaceTexture, type ResolvedTexture } from './t
 import { useAssemblyHistory } from './useAssemblyHistory'
 import { useAssemblyShortcuts } from './useAssemblyShortcuts'
 import { deleteFace, duplicateFace, newFaceId, nudgeFace, patchFace, toggleFaceFlag } from './assemblyFaceOps'
+import { registerAssemblySession } from './assemblyBridge'
 import { IconCube, IconImage } from '../../icons'
 
 interface Assembly3DDialogProps {
@@ -87,31 +88,51 @@ export function Assembly3DDialog({ isOpen, initialModel, onClose, onSaved }: Ass
     toggleLocked: () => selectedFaceId && setFaces((faces) => toggleFaceFlag(faces, selectedFaceId, 'locked'), DISCRETE)
   })
 
-  if (!isOpen) return null
+  const modelRef = useRef(model)
+  modelRef.current = model
+  const selectedFaceIdRef = useRef(selectedFaceId)
+  selectedFaceIdRef.current = selectedFaceId
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     clearTextureCache()
     onClose()
-  }
+  }, [onClose])
 
-  const handleSave = () => {
-    saveModel3D(model)
-    onSaved?.(model)
+  const handleSave = useCallback(() => {
+    saveModel3D(modelRef.current)
+    onSaved?.(modelRef.current)
     handleClose()
-  }
+  }, [handleClose, onSaved])
 
-  const handleInsert = async () => {
+  const handleInsert = useCallback(async (): Promise<string[]> => {
     setInserting(true)
     try {
-      await insertModel3DToScene({ model })
-      onSaved?.(model)
+      const ids = await insertModel3DToScene({ model: modelRef.current })
+      onSaved?.(modelRef.current)
       handleClose()
+      return ids
     } catch (err) {
       console.error('[Assembly3DDialog] Error inserting model to scene:', err)
+      return []
     } finally {
       setInserting(false)
     }
-  }
+  }, [handleClose, onSaved])
+
+  useEffect(() => {
+    if (!isOpen) return
+    return registerAssemblySession({
+      getModel: () => modelRef.current,
+      setModel: (next) => setModel(next, DISCRETE),
+      getSelectedFaceId: () => selectedFaceIdRef.current,
+      setSelectedFaceId: (id) => setSelectedFaceId(id),
+      save: handleSave,
+      insert: handleInsert,
+      close: handleClose
+    })
+  }, [isOpen, handleSave, handleInsert, handleClose, setModel])
+
+  if (!isOpen) return null
 
   const handleAssignAssetToFace = (assetPath: string, width?: number, height?: number) => {
     const targetId = selectedFaceId || model.faces[0]?.id

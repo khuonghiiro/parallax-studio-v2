@@ -543,6 +543,87 @@ tool('set_view', "Change the app's viewer for the user: camera view, 3D view or 
   show_path: z.boolean().optional()
 })
 
+// ---- 3D assembly workshop & models
+tool('list_models3d', 'List all available 3D origami/assembly models from disk and local presets.', {})
+tool('get_model3d', 'Get full geometry, faces and lighting of a 3D assembly model by ID or active session.', {
+  id: z.string().optional().describe('Model ID (e.g. "model-tudor-cottage"). If omitted, returns active session model.'),
+  model_id: z.string().optional().describe('Alias for id.')
+})
+tool('get_assembly_state', 'Inspect current state of the 3D Assembly workshop modal (open status, model, selected face).', {})
+tool('save_assembly_model', 'Save or create a 3D assembly model in local storage and disk catalog.', {
+  id: z.string().optional().describe('Model ID.'),
+  name: z.string().optional().describe('Human-friendly model name.'),
+  category: z.enum(['architecture', 'props', 'street', 'room', 'custom']).optional(),
+  scale: z.number().optional(),
+  description: z.string().optional(),
+  thumbnail: z.string().optional(),
+  faces: z.array(z.any()).optional().describe('List of 3D faces.'),
+  lighting: z.any().optional().describe('Lighting parameters.')
+})
+tool('insert_assembly_model', 'Insert a 3D assembly model as layered 2.5D planes into the active scene/shot.', {
+  model_id: z.string().optional().describe('Model ID to insert (defaults to active session model).'),
+  global_scale: z.number().optional().describe('Overall scale multiplier (default 1.0).'),
+  position_offset: vec3.optional().describe('Offset in world space [x, y, z].'),
+  target_shot_id: z.string().optional().describe('Shot ID to insert into (defaults to active shot).')
+})
+tool('add_assembly_face', 'Add a new face plane to the active 3D assembly model.', {
+  model_id: z.string().optional(),
+  name: z.string().optional(),
+  asset_path: z.string().optional().describe('Image asset path for texture.'),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  position: vec3.optional(),
+  rotation: vec3.optional(),
+  color: z.string().optional()
+})
+tool('update_assembly_face', 'Update properties of a face plane in the 3D assembly model (transform, texture, visibility, clip rules).', {
+  face_id: z.string().describe('ID of face to update.'),
+  model_id: z.string().optional(),
+  name: z.string().optional(),
+  asset_path: z.string().optional(),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  position: vec3.optional(),
+  rotation: vec3.optional(),
+  color: z.string().optional(),
+  hidden: z.boolean().optional(),
+  locked: z.boolean().optional(),
+  clip_by: z.array(z.string()).optional().describe('IDs of cutting planes.'),
+  join_points: z.array(z.tuple([z.number(), z.number()])).optional()
+})
+tool('delete_assembly_face', 'Delete a face plane from the 3D assembly model.', {
+  face_id: z.string().describe('Face ID to remove.'),
+  model_id: z.string().optional()
+})
+tool('join_assembly_faces', 'Seamlessly align and join two faces edge-to-edge (auto-scales shorter edge to longest to eliminate gaps).', {
+  target_id: z.string().describe('ID of reference face that remains stationary.'),
+  source_id: z.string().describe('ID of face being aligned and moved to the edge.'),
+  target_edge: z.enum(['top', 'bottom', 'left', 'right']).describe('Edge of target face.'),
+  source_edge: z.enum(['top', 'bottom', 'left', 'right']).describe('Edge of source face.'),
+  angle: z.number().optional().describe('Hinge angle between faces in degrees (default 90).'),
+  scale_mode: z.enum(['longest', 'source', 'target', 'none']).optional().describe('Edge matching mode (default "longest").'),
+  flip: z.boolean().optional().describe('Invert hinge direction.'),
+  model_id: z.string().optional()
+})
+tool('auto_assembly_clip', 'Detect intersecting faces (e.g. wall poking through sloped roof) and automatically apply clipping planes to hide overlapping pixels.', {
+  model_id: z.string().optional()
+})
+tool('set_assembly_lighting', 'Configure directional sunlight, soft shadow casting, and time-of-day color tinting for the 3D model.', {
+  model_id: z.string().optional(),
+  sun: z.boolean().optional().describe('Enable directional sunlight.'),
+  shadows: z.boolean().optional().describe('Cast soft shadow onto floor and faces.'),
+  preset: z.enum(['auto', 'morning', 'noon', 'sunset', 'overcast', 'night']).optional(),
+  azimuth: z.number().optional().describe('Sun compass direction 0-360 degrees.'),
+  elevation: z.number().optional().describe('Sun altitude 0-90 degrees.'),
+  intensity: z.number().optional(),
+  shadow_darkness: z.number().optional()
+})
+tool('apply_assembly_template', 'Apply a pre-folded geometric assembly template (gable house, box, tent, pyramid, tower, etc.) preserving user textures.', {
+  template_id: z.string().describe('Template ID (e.g. "gable-house", "box", "tent", "tower-8", "pyramid", "stairs", "chest-open", "popup-card").'),
+  model_id: z.string().optional(),
+  mode: z.enum(['replace', 'append']).optional().describe('Replace folds or append beside model (default "replace").')
+})
+
 // ---- export & scripting
 tool('export_video', 'Render the composition to an H.264 MP4 (blocks until finished).', {
   out_path: z.string().describe('Absolute path ending in .mp4'),

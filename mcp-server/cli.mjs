@@ -368,6 +368,80 @@ const TOOLS_CATALOG = {
     category: '7. Timeline & Xuất Video',
     desc: 'Render và xuất video MP4 qua FFmpeg.',
     params: '{ "out_path"?: string, "fps"?: number, "quality"?: "draft"|"high"|"ultra" }'
+  },
+
+  // Nhóm Xưởng Lắp Ráp 3D & Mô Hình Origami
+  list_models3d: {
+    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
+    desc: 'Liệt kê danh sách tất cả các mô hình 3D origami có trong thư viện và lưu trữ.',
+    params: '{}',
+    example: 'node mcp-server/cli.mjs call list_models3d'
+  },
+  get_model3d: {
+    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
+    desc: 'Lấy dữ liệu chi tiết hình học, các mặt phẳng và ánh sáng của một mô hình 3D theo ID hoặc từ phiên xưởng đang mở.',
+    params: '{ "id"?: string, "model_id"?: string }',
+    example: 'node mcp-server/cli.mjs call get_model3d \'{"id": "model-tudor-cottage"}\''
+  },
+  get_assembly_state: {
+    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
+    desc: 'Kiểm tra trạng thái xưởng lắp ráp 3D đang mở trên giao diện (mô hình đang sửa, mặt đang chọn).',
+    params: '{}',
+    example: 'node mcp-server/cli.mjs call get_assembly_state'
+  },
+  save_assembly_model: {
+    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
+    desc: 'Lưu hoặc cập nhật mô hình 3D vào bộ nhớ lưu trữ cục bộ và tệp catalog.',
+    params: '{ "id": string, "name"?: string, "category"?: string, "scale"?: number, "faces"?: Face3D[], "lighting"?: AssemblyLighting }',
+    example: 'node mcp-server/cli.mjs call save_assembly_model \'{"id": "my-house", "name": "Nhà Mới"}\''
+  },
+  insert_assembly_model: {
+    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
+    desc: 'Chèn mô hình 3D thành các layer 2.5D vào phân cảnh đang chọn trong dự án.',
+    params: '{ "model_id"?: string, "global_scale"?: number, "position_offset"?: [x, y, z], "target_shot_id"?: string }',
+    example: 'node mcp-server/cli.mjs call insert_assembly_model \'{"model_id": "model-tudor-cottage", "global_scale": 1.0}\''
+  },
+  add_assembly_face: {
+    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
+    desc: 'Thêm một mặt phẳng 3D mới vào mô hình trong phiên xưởng (hoặc mô hình chỉ định).',
+    params: '{ "name"?: string, "asset_path"?: string, "width"?: number, "height"?: number, "position"?: [x, y, z], "rotation"?: [x, y, z] }',
+    example: 'node mcp-server/cli.mjs call add_assembly_face \'{"name": "Mái Hiên", "width": 400, "height": 200}\''
+  },
+  update_assembly_face: {
+    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
+    desc: 'Cập nhật toạ độ, xoay góc, kích thước, ảnh texture hoặc quy tắc cắt của một mặt phẳng.',
+    params: '{ "face_id": string, "name"?: string, "asset_path"?: string, "width"?: number, "height"?: number, "position"?: [x, y, z], "rotation"?: [x, y, z], "clip_by"?: string[] }',
+    example: 'node mcp-server/cli.mjs call update_assembly_face \'{"face_id": "face-front", "name": "Mặt Trước Mới"}\''
+  },
+  delete_assembly_face: {
+    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
+    desc: 'Xoá một mặt phẳng khỏi mô hình 3D theo ID mặt.',
+    params: '{ "face_id": string, "model_id"?: string }',
+    example: 'node mcp-server/cli.mjs call delete_assembly_face \'{"face_id": "face-extra"}\''
+  },
+  join_assembly_faces: {
+    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
+    desc: 'Ghép hít 2 mặt phẳng tại cạnh (tự động giãn cạnh ngắn khớp với cạnh dài nhất để triệt tiêu khe hở).',
+    params: '{ "target_id": string, "source_id": string, "target_edge": "top"|"bottom"|"left"|"right", "source_edge": "top"|"bottom"|"left"|"right", "angle"?: number, "scale_mode"?: "longest"|"source"|"target"|"none" }',
+    example: 'node mcp-server/cli.mjs call join_assembly_faces \'{"target_id": "face-front", "source_id": "face-left", "target_edge": "left", "source_edge": "right", "angle": 90}\''
+  },
+  auto_assembly_clip: {
+    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
+    desc: 'Tự động tính toán mặt phẳng cắt giao nhau (loại bỏ phần tường/mái vượt quá nhau, ẩn pixel thừa).',
+    params: '{ "model_id"?: string }',
+    example: 'node mcp-server/cli.mjs call auto_assembly_clip'
+  },
+  set_assembly_lighting: {
+    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
+    desc: 'Thiết lập hướng nắng mặt trời, đổ bóng râm dịu và tông màu theo thời gian trong ngày cho mô hình 3D.',
+    params: '{ "sun"?: boolean, "shadows"?: boolean, "preset"?: "auto"|"morning"|"noon"|"sunset"|"overcast"|"night", "azimuth"?: number, "elevation"?: number }',
+    example: 'node mcp-server/cli.mjs call set_assembly_lighting \'{"preset": "sunset", "shadows": true}\''
+  },
+  apply_assembly_template: {
+    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
+    desc: 'Áp dụng khuôn mẫu hình học 3D dựng sẵn (nhà mái chữ A, hộp, lều, tháp bát giác, kim tự tháp, bậc thang...) mà vẫn giữ nguyên ảnh texture của người dùng.',
+    params: '{ "template_id": string, "mode"?: "replace"|"append", "model_id"?: string }',
+    example: 'node mcp-server/cli.mjs call apply_assembly_template \'{"template_id": "gable-house", "mode": "replace"}\''
   }
 }
 

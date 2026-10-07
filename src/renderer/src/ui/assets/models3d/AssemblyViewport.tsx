@@ -7,7 +7,9 @@ import { syncFaceMeshes, clearFaceMeshes, type FaceMeshCache } from './assemblyM
 import { applyProceduralMotion } from './assemblyMotion'
 import { pickFace, cellKeyAt, droppedAssetPath, type PickContext } from './assemblyPicking'
 import { DEFAULT_SCENE_THEME, readAssemblySceneTheme, type AssemblySceneTheme } from './assemblyTheme'
-import { faceCornersThree } from './assemblyGeometry'
+import { faceCornersThree, modelBounds, toThree } from './assemblyGeometry'
+import { resolveLightRig } from './assemblyLighting'
+import { createLightRig, applyLightRig, disposeLightRig, type SceneLightRig } from './assemblySceneLighting'
 import { AssemblyGizmo } from './AssemblyGizmo'
 import type { GizmoRect } from '../../../engine/layerGizmo'
 import { useView } from '../../../store/view'
@@ -60,6 +62,7 @@ export function AssemblyViewport({
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const meshGroupRef = useRef<THREE.Group | null>(null)
   const helpersGroupRef = useRef<THREE.Group | null>(null)
+  const lightRigRef = useRef<SceneLightRig | null>(null)
   const meshCacheRef = useRef<FaceMeshCache>(new Map())
   const isGizmoDraggingRef = useRef(false)
   const [gizmoRect, setGizmoRect] = useState<GizmoRect | null>(null)
@@ -107,7 +110,22 @@ export function AssemblyViewport({
     if (bg instanceof THREE.Color) bg.set(sceneTheme.background)
   }, [sceneTheme])
 
-  useThreeScene({ containerRef, sceneRef, cameraRef, meshGroupRef, helpersGroupRef, orbitRef, bumpGizmo, setGizmoRect })
+  useThreeScene({ containerRef, sceneRef, cameraRef, meshGroupRef, helpersGroupRef, lightRigRef, orbitRef, bumpGizmo, setGizmoRect })
+
+  // Dynamic light rig & shadow catcher
+  useEffect(() => {
+    if (!lightRigRef.current) return
+    const spec = resolveLightRig(model.lighting)
+    const bounds = modelBounds(model.faces)
+    const rigBounds = bounds
+      ? {
+          center: toThree(bounds.center).multiplyScalar(scale),
+          radius: Math.max(100, (Math.hypot(bounds.size[0], bounds.size[1], bounds.size[2]) * scale) / 2),
+          minY: bounds.min[1] * scale
+        }
+      : { center: new THREE.Vector3(0, 0, 0), radius: 600, minY: -150 }
+    applyLightRig(lightRigRef.current, spec, rigBounds)
+  }, [model.lighting, model.faces, scale])
 
   useEffect(() => {
     if (helpersGroupRef.current) updateHelpersGroup(helpersGroupRef.current, showGrid, showAxes, sceneTheme)
@@ -365,6 +383,7 @@ interface SceneRefs {
   cameraRef: React.MutableRefObject<THREE.PerspectiveCamera | null>
   meshGroupRef: React.MutableRefObject<THREE.Group | null>
   helpersGroupRef: React.MutableRefObject<THREE.Group | null>
+  lightRigRef: React.MutableRefObject<SceneLightRig | null>
   orbitRef: React.MutableRefObject<OrbitState>
   bumpGizmo: () => void
   setGizmoRect: (r: GizmoRect) => void
@@ -372,7 +391,7 @@ interface SceneRefs {
 
 /** Creates the renderer / scene / camera, runs the render loop and handles resizes. */
 function useThreeScene(refs: SceneRefs): void {
-  const { containerRef, sceneRef, cameraRef, meshGroupRef, helpersGroupRef, orbitRef, bumpGizmo, setGizmoRect } = refs
+  const { containerRef, sceneRef, cameraRef, meshGroupRef, helpersGroupRef, lightRigRef, orbitRef, bumpGizmo, setGizmoRect } = refs
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -385,17 +404,17 @@ function useThreeScene(refs: SceneRefs): void {
     sceneRef.current = scene
     const camera = new THREE.PerspectiveCamera(40, width / height, 10, 10000)
     cameraRef.current = camera
-    // antialias → MSAA, required for alphaToCoverage smooth cut-out edges.
+    // antialias → MSAA (alphaToCoverage), localClipping for intersection cuts, shadows for sun.
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.setSize(width, height)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    renderer.localClippingEnabled = true
+    renderer.shadowMap.enabled = true
+    renderer.shadowMap.type = THREE.PCFShadowMap
     container.appendChild(renderer.domElement)
 
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f99, 0.75))
-    scene.add(new THREE.AmbientLight(0xffffff, 0.45))
-    const dir = new THREE.DirectionalLight(0xffffff, 0.6)
-    dir.position.set(500, 1000, 800)
-    scene.add(dir)
+    const lightRig = createLightRig(scene)
+    lightRigRef.current = lightRig
 
     const helpers = new THREE.Group()
     scene.add(helpers)
@@ -443,6 +462,7 @@ function useThreeScene(refs: SceneRefs): void {
     return () => {
       cancelAnimationFrame(animId)
       ro.disconnect()
+      disposeLightRig(lightRig)
       renderer.dispose()
       renderer.domElement.parentElement?.removeChild(renderer.domElement)
     }

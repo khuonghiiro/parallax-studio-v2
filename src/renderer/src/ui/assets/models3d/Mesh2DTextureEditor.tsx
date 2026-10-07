@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { faceGridSize, formatFaceLabel, type Face3D } from './types'
 import type { ResolvedTexture } from './textureResolver'
-import { getImageAlphaField } from './contourMesh'
+import { getImageSilhouette } from './silhouette'
 import { buildEditorCells, type EditorCell } from './mesh2dCells'
 import { Mesh2DHorizontalBar, type ContextTab } from './Mesh2DHorizontalBar'
 import { Mesh2DVerticalPalette, type EditorTool } from './Mesh2DVerticalPalette'
@@ -77,19 +77,19 @@ export function Mesh2DTextureEditor({
   // Get image source URL reliably from resolvedTexture
   const imageUrl = resolvedTexture?.url || resolvedTexture?.image?.src || ''
 
-  // Same dilated alpha field + marching-squares contour as the 3D mesh builder
-  const alphaField = useMemo(
-    () => (resolvedTexture?.image ? getImageAlphaField(resolvedTexture.image, cols, rows) : null),
-    [resolvedTexture?.image, cols, rows]
+  // Same pixel silhouette + per-cell clipping as the 3D mesh builder
+  const silhouette = useMemo(
+    () => (resolvedTexture?.image ? getImageSilhouette(resolvedTexture.image) : null),
+    [resolvedTexture?.image]
   )
 
   const cells = useMemo<EditorCell[]>(
     () =>
       buildEditorCells({
-        cols, rows, imgW, imgH, field: alphaField, rotation, autoTrim: !isManual,
+        cols, rows, imgW, imgH, silhouette, rotation, autoTrim: !isManual,
         hidden: hiddenCells, selected: selectedCells, pinned: pinnedCells
       }),
-    [cols, rows, rotation, isManual, alphaField, hiddenCells, selectedCells, pinnedCells, imgW, imgH]
+    [cols, rows, rotation, isManual, silhouette, hiddenCells, selectedCells, pinnedCells, imgW, imgH]
   )
 
   // Convert client cursor coords to Image (0..imgW, 0..imgH) coordinates with 100% precision

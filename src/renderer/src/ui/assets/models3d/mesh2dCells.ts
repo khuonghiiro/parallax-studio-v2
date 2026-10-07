@@ -1,4 +1,5 @@
-import { computeContourCells, type AlphaField } from './contourMesh'
+import { computeContourCells } from './contourMesh'
+import type { Silhouette } from './silhouette'
 
 export interface EditorCell {
   key: string
@@ -20,7 +21,7 @@ export interface EditorCellOptions {
   rows: number
   imgW: number
   imgH: number
-  field: AlphaField | null
+  silhouette: Silhouette | null
   rotation: number
   autoTrim: boolean
   hidden: Set<string>
@@ -35,7 +36,7 @@ export interface EditorCellOptions {
 export function buildEditorCells(o: EditorCellOptions): EditorCell[] {
   const cellW = o.imgW / o.cols
   const cellH = o.imgH / o.rows
-  const contour = new Map(computeContourCells(o.cols, o.rows, o.field, o.rotation, o.autoTrim).map((c) => [c.key, c]))
+  const contour = new Map(computeContourCells(o.cols, o.rows, o.silhouette, o.rotation, o.autoTrim).map((c) => [c.key, c]))
   const list: EditorCell[] = []
   for (let r = 0; r < o.rows; r++) {
     for (let c = 0; c < o.cols; c++) {

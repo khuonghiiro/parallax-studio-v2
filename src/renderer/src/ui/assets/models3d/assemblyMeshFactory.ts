@@ -95,31 +95,32 @@ export function applyFaceTransform(mesh: THREE.Object3D, face: Face3D, scale: nu
  * excluded so transform-only edits can reuse the existing mesh instead of rebuilding it.
  */
 export function faceGeometrySignature(face: Face3D): string {
-  const { position: _p, rotation: _r, name: _n, hidden: _h, locked: _l, ...rest } = face
+  const { position: _p, rotation: _r, name: _n, hidden: _h, locked: _l, clipBy: _cb, joinPoints: _jp, ...rest } = face
   return JSON.stringify(rest)
 }
 
 /**
- * Material for a face. Textured faces use an alpha *cutout* (alphaTest) instead of blending:
- * transparent texels are discarded and never write depth, so they can no longer hide the
- * faces behind them when the camera orbits. alphaToCoverage (MSAA) keeps cut edges smooth.
- * Only faces with opacity < 1 fall back to real blending (without depth writes).
+ * Material for a face. Uses MeshLambertMaterial (diffuse-only reflection) so the sun tints
+ * and shades the image colours without any unnatural specular glare on angled faces.
+ * Textured faces use an alpha cutout (alphaTest) instead of blending: transparent texels
+ * are discarded and never write depth, so they can no longer hide faces behind them.
+ * alphaToCoverage keeps cut edges smooth with MSAA.
  */
 export function createFaceMaterial(face: Face3D, texture: THREE.Texture | null, fallbackColor: string): THREE.Material {
   const opacity = Math.max(0, Math.min(1, face.opacity ?? 1))
   const translucent = opacity < 0.999
-  return new THREE.MeshStandardMaterial({
+  const mat = new THREE.MeshLambertMaterial({
     map: texture,
     color: texture ? 0xffffff : face.color || fallbackColor,
     side: THREE.DoubleSide,
-    roughness: 0.5,
-    metalness: texture ? 0.05 : 0,
     alphaTest: texture ? FACE_ALPHA_CUTOFF : 0,
     alphaToCoverage: Boolean(texture) && !translucent,
     transparent: translucent,
     opacity,
     depthWrite: !translucent
   })
+  mat.shadowSide = THREE.DoubleSide
+  return mat
 }
 
 /**
@@ -202,6 +203,8 @@ export function createFaceMesh(
   }
 
   const mesh = new THREE.Mesh(geo, mat)
+  mesh.castShadow = true
+  mesh.receiveShadow = true
   applyFaceTransform(mesh, face, scale)
   mesh.userData = {
     faceId: face.id,

@@ -5,13 +5,8 @@ import {
   type DepthProfileType,
   type LuminanceSampler
 } from './meshEffectsAE'
-import {
-  computeContourCells,
-  fieldFromBoolGrid,
-  getImageAlphaField,
-  makeUVTransform,
-  type AlphaField
-} from './contourMesh'
+import { computeContourCells, makeUVTransform } from './contourMesh'
+import { getImageSilhouette, silhouetteFromBoolGrid, type Silhouette } from './silhouette'
 
 export type AlphaSampler = (u: number, v: number) => number
 
@@ -123,10 +118,10 @@ type BendRegion = 'all' | 'bottom' | 'top' | 'left' | 'right'
 /**
  * Builds a custom Three.js plane geometry that hugs the visible pixels of the image.
  *
- * Boundary cells are clipped with marching squares on a dilated alpha field (see
- * `contourMesh.ts`), so the outline follows slopes and curves smoothly (no stair steps),
- * never cuts away opaque pixels, and stays watertight. The exact silhouette comes from
- * the material's alpha cutout.
+ * Boundary cells are clipped against the exact outline polygons of the opaque pixels (see
+ * `silhouette.ts` / `contourMesh.ts`), so the outline hugs the pixels within ~1 px, never
+ * cuts away opaque pixels and stays watertight. Remaining sub-pixel detail comes from the
+ * material's alpha cutout.
  */
 export function buildAlphaTrimmedGeometry(
   width: number,
@@ -151,9 +146,9 @@ export function buildAlphaTrimmedGeometry(
   const transformUV = makeUVTransform(gridRotation)
   const image = Array.isArray(alphaGridOrImage) ? undefined : alphaGridOrImage
 
-  let field: AlphaField | null = null
+  let silhouette: Silhouette | null = null
   if (autoTrimAlpha) {
-    field = image ? getImageAlphaField(image, cols, rows) : fieldFromBoolGrid(alphaGridOrImage as boolean[][], cols, rows)
+    silhouette = image ? getImageSilhouette(image) : silhouetteFromBoolGrid(alphaGridOrImage as boolean[][], cols, rows)
   }
   const lumSampler: LuminanceSampler | undefined =
     image && depthProfile === 'luminance'
@@ -185,7 +180,7 @@ export function buildAlphaTrimmedGeometry(
     return index
   }
 
-  for (const cell of computeContourCells(cols, rows, field, gridRotation, autoTrimAlpha)) {
+  for (const cell of computeContourCells(cols, rows, silhouette, gridRotation, autoTrimAlpha)) {
     if (hiddenSet.has(cell.key)) continue
     const extraZ = selectedSet.has(cell.key) && cellBendAngle !== 0 ? (cellBendAngle / 90) * (height * 0.25) : 0
     // Triangle-level erase keys only map onto full quads; a clipped cell is dropped entirely.

@@ -1,7 +1,12 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import * as THREE from 'three'
 import type { Face3D } from './types'
-import { startAssemblyGizmoDrag, type AssemblyDragContext } from './assemblyGizmoDrag'
+import {
+  anchoredResizePosition,
+  isAnchoredResize,
+  startAssemblyGizmoDrag,
+  type AssemblyDragContext
+} from './assemblyGizmoDrag'
 
 describe('assemblyGizmoDrag', () => {
   let listeners: Record<string, ((ev: any) => void)[]> = {}
@@ -174,5 +179,43 @@ describe('assemblyGizmoDrag', () => {
     expect(lastCall[1].rotation).toBeDefined()
 
     fire({ type: 'pointerup', pointerId: 1 })
+  })
+
+  it('mid-edge handle moves only its own edge (opposite edge stays fixed)', () => {
+    const { context, onUpdateFace } = createTestContext({ position: [0, 0, 0] })
+    context.worldMatrix = new THREE.Matrix4()
+    // Right-edge handle sits at local x = 200 → screen ≈ (450 + 200·k, 300).
+    startAssemblyGizmoDrag(mockPointerEvent(600, 300), context, { kind: 'scale', handle: [1, 0] })
+    fire({ type: 'pointermove', clientX: 700, clientY: 300, pointerId: 1, shiftKey: false, altKey: false })
+    const { width, height, position } = onUpdateFace.mock.calls.at(-1)![1]
+    expect(width).toBeGreaterThan(400)
+    expect(height).toBe(300)
+    // Left edge (centre − width/2) unchanged at −200.
+    expect(position[0] - width / 2).toBeCloseTo(-200, 0)
+    expect(position[1]).toBe(0)
+    fire({ type: 'pointerup', pointerId: 1 })
+  })
+
+  it('Alt + mid-edge handle scales symmetrically about the centre', () => {
+    const { context, onUpdateFace } = createTestContext({ position: [0, 0, 0] })
+    context.worldMatrix = new THREE.Matrix4()
+    startAssemblyGizmoDrag(mockPointerEvent(600, 300), context, { kind: 'scale', handle: [1, 0] })
+    fire({ type: 'pointermove', clientX: 700, clientY: 300, pointerId: 1, shiftKey: false, altKey: true })
+    const { width, position } = onUpdateFace.mock.calls.at(-1)![1]
+    expect(width).toBeGreaterThan(400)
+    expect(position).toEqual([0, 0, 0])
+    fire({ type: 'pointerup', pointerId: 1 })
+  })
+
+  it('anchoredResizePosition shifts along the rotated face axis', () => {
+    expect(isAnchoredResize([1, 0], false)).toBe(true)
+    expect(isAnchoredResize([1, 1], false)).toBe(false)
+    expect(isAnchoredResize([1, 1], true)).toBe(true)
+    // Face turned 90° around Y: its local +X points along depth (z).
+    const pos = anchoredResizePosition([0, 90, 0], [0, 0, 0], 400, 300, 500, 300, [1, 0])
+    expect(Math.abs(pos[0])).toBeLessThan(1e-6)
+    expect(Math.abs(pos[2])).toBeCloseTo(50, 5)
+    const top = anchoredResizePosition([0, 0, 0], [10, 20, 30], 400, 300, 400, 360, [0, 1])
+    expect(top).toEqual([10, 50, 30])
   })
 })

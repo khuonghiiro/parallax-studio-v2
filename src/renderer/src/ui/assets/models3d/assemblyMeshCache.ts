@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import type { Face3D } from './types'
 import type { ResolvedTexture } from './textureResolver'
 import { applyFaceTransform, createFaceMesh, faceGeometrySignature } from './assemblyMeshFactory'
+import { faceClipPlanes } from './assemblyClip'
 import type { AssemblySceneTheme } from './assemblyTheme'
 
 interface CachedFace {
@@ -58,6 +59,12 @@ export function syncFaceMeshes(group: THREE.Group, cache: FaceMeshCache, faces: 
       group.add(mesh)
     } else {
       applyFaceTransform(entry.mesh, face, opts.scale)
+    }
+    const planes = faceClipPlanes(face, faces, opts.scale)
+    const mat = entry.mesh.material
+    if (mat && !Array.isArray(mat)) {
+      mat.clippingPlanes = planes.length > 0 ? planes : null
+      mat.clipShadows = true
     }
   })
   for (const [id, entry] of cache) {

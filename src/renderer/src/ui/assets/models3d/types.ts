@@ -57,6 +57,34 @@ export interface Face3D {
   hidden?: boolean
   /** Khóa mặt: không thể chọn kéo / gizmo trong viewport 3D */
   locked?: boolean
+  /**
+   * Cặp điểm ghép Start/End trên ảnh (UV 0..1, v hướng lên) dùng cho "Ghép hít": hai mặt được
+   * căn sao cho cặp điểm trùng nhau. Không đặt → dùng 2 góc của vùng pixel đặc theo cạnh chọn.
+   */
+  joinPoints?: [[number, number], [number, number]]
+  /**
+   * Quy tắc giao nhau: id các mặt "cắt" mặt này. Phần nhỏ hơn của mặt nằm vượt qua mặt phẳng
+   * của mặt cắt (VD tường nhô lên khỏi mái chéo) bị ẩn đi.
+   */
+  clipBy?: string[]
+}
+
+export type SunPreset = 'auto' | 'morning' | 'noon' | 'sunset' | 'overcast' | 'night'
+
+/** Ánh sáng của Xưởng lắp ráp: mặt trời có hướng, đổ bóng râm, tông màu theo thời điểm. */
+export interface AssemblyLighting {
+  /** Bật mặt trời (tắt = ánh sáng studio trung tính, không bóng loá). */
+  sun: boolean
+  /** Đổ bóng râm xuống sàn và lên các mặt khác. */
+  shadows: boolean
+  /** Hướng nắng (độ): 0 = từ phía trước, 90 = từ bên phải, 180 = từ phía sau. */
+  azimuth: number
+  /** Độ cao mặt trời (độ): 0 = sát chân trời (hoàng hôn), 90 = đỉnh đầu. */
+  elevation: number
+  /** Cường độ nắng (0..2). */
+  intensity: number
+  /** Tông màu: 'auto' tự đổi màu theo độ cao mặt trời. */
+  preset: SunPreset
 }
 
 export type PresetType = 'cottage' | 'cube' | 'corner' | 'room'
@@ -84,6 +112,8 @@ export interface Model3D {
   thumbnailDataUrl?: string
   scale: number // overall scaling factor (default 1.0)
   faces: Face3D[]
+  /** Ánh sáng / bóng đổ khi xem trong Xưởng lắp ráp. */
+  lighting?: AssemblyLighting
   createdAt: number
   updatedAt: number
 }

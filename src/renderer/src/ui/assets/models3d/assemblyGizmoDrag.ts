@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import type { Face3D } from './types'
+import { faceQuaternion, type Vec3 } from './assemblyGeometry'
 import {
   localPlaneHit,
   projectPoint,
@@ -23,6 +24,34 @@ export interface AssemblyDragContext {
   worldMatrix: THREE.Matrix4
   onUpdateFace: (faceId: string, updates: Partial<Face3D>) => void
   onDragStateChange?: (isDragging: boolean) => void
+}
+
+/**
+ * Scale handle behaviour: mid-edge handles move only their own edge (the opposite edge stays
+ * put), corner handles scale about the centre. Holding Alt swaps the two behaviours.
+ */
+export function isAnchoredResize(handle: Point, altKey: boolean): boolean {
+  const isEdge = handle[0] === 0 || handle[1] === 0
+  return isEdge !== altKey
+}
+
+/**
+ * New face centre after resizing from (startW, startH) to (nextW, nextH) while the edge /
+ * corner opposite `handle` stays fixed. Offsets are applied along the face's own axes.
+ */
+export function anchoredResizePosition(
+  rotation: Vec3,
+  startPos: Vec3,
+  startW: number,
+  startH: number,
+  nextW: number,
+  nextH: number,
+  handle: Point
+): Vec3 {
+  const local = new THREE.Vector3(((nextW - startW) / 2) * handle[0], ((nextH - startH) / 2) * handle[1], 0)
+  const v = local.applyQuaternion(faceQuaternion(rotation))
+  const r = (n: number): number => Math.round(n * 100) / 100
+  return [r(startPos[0] + v.x), r(startPos[1] + v.y), r(startPos[2] - v.z)]
 }
 
 /**
@@ -86,31 +115,38 @@ export function startAssemblyGizmoDrag(
     }
   }
 
+  /** Scale gesture: ratio from the local plane hit (or screen delta when edge-on). */
+  function scaleTo(currPt: Point, ev: PointerEvent, hs: Point): void {
+    const anchored = isAnchoredResize(hs, ev.altKey)
+    const ms = modelScale || 1
+    const to = localPlaneHit(currPt, camera, rect, worldMatrix)
+    let ratioX = 1
+    let ratioY = 1
+    if (from && to) {
+      const anchor = anchored
+        ? new THREE.Vector3((-hs[0] * startW * ms) / 2, (-hs[1] * startH * ms) / 2, 0)
+        : new THREE.Vector3(0, 0, 0)
+      ;[ratioX, ratioY] = resizedScale([1, 1, 1], from, to, anchor, hs, ev.shiftKey)
+    } else {
+      const k = anchored ? 100 : 200
+      ratioX = hs[0] !== 0 ? 1 + ((currPt[0] - startPt[0]) * hs[0]) / k : 1
+      ratioY = hs[1] !== 0 ? 1 - ((currPt[1] - startPt[1]) * hs[1]) / k : 1
+      if (ev.shiftKey && hs[0] && hs[1]) ratioX = ratioY = Math.max(ratioX, ratioY)
+    }
+    const nextW = Math.max(10, Math.round(startW * Math.abs(ratioX)))
+    const nextH = Math.max(10, Math.round(startH * Math.abs(ratioY)))
+    const position = anchored
+      ? anchoredResizePosition(startRot, startPos, startW, startH, nextW, nextH, hs)
+      : startPos
+    onUpdateFace(face.id, { width: nextW, height: nextH, position })
+  }
+
   function move(ev: PointerEvent): void {
     if (ev.pointerId !== pointerId) return
     const currPt = point(ev)
 
     if (handle.kind === 'scale') {
-      const to = localPlaneHit(currPt, camera, rect, worldMatrix)
-      if (from && to) {
-        const anchor = new THREE.Vector3(0, 0, 0)
-        const nextScale = resizedScale([1, 1, 1], from, to, anchor, handle.handle, ev.shiftKey)
-        const nextW = Math.max(10, Math.round(startW * nextScale[0]))
-        const nextH = Math.max(10, Math.round(startH * nextScale[1]))
-        onUpdateFace(face.id, { width: nextW, height: nextH })
-      } else {
-        const dx = currPt[0] - startPt[0]
-        const dy = currPt[1] - startPt[1]
-        let ratioX = handle.handle[0] !== 0 ? 1 + (dx * handle.handle[0]) / 200 : 1
-        let ratioY = handle.handle[1] !== 0 ? 1 - (dy * handle.handle[1]) / 200 : 1
-        if (ev.shiftKey && handle.handle[0] && handle.handle[1]) {
-          const r = Math.max(ratioX, ratioY)
-          ratioX = ratioY = r
-        }
-        const nextW = Math.max(10, Math.round(startW * ratioX))
-        const nextH = Math.max(10, Math.round(startH * ratioY))
-        onUpdateFace(face.id, { width: nextW, height: nextH })
-      }
+      scaleTo(currPt, ev, handle.handle)
       return
     }
 

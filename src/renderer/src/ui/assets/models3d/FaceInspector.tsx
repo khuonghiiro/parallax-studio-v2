@@ -6,6 +6,9 @@ import { FaceTransformFields } from './FaceTransformFields'
 import { FaceShapeTools } from './FaceShapeTools'
 import { FaceList } from './FaceList'
 import { TemplateGallery } from './TemplateGallery'
+import { AssemblyLightingSection } from './AssemblyLightingSection'
+import { FaceJoinSection } from './FaceJoinSection'
+import { FaceClipSection } from './FaceClipSection'
 import { addFoldedFace, centerFaces, newFaceId, patchFace } from './assemblyFaceOps'
 
 interface FaceInspectorProps {
@@ -69,6 +72,11 @@ export function FaceInspector({ model, selectedFaceId, imageSize, onChangeModel,
         </div>
       </div>
 
+      <AssemblyLightingSection
+        lighting={model.lighting}
+        onChange={(lighting) => onChangeModel({ ...model, lighting })}
+      />
+
       {/* Geometry-only templates (keep user images) */}
       <details className="inspector-section fi-collapsible" open>
         <summary className="section-title">
@@ -115,6 +123,17 @@ export function FaceInspector({ model, selectedFaceId, imageSize, onChangeModel,
             onUpdate={handleUpdateFace}
             onFold={handleFold}
             onCenterModel={() => setFaces(centerFaces(model.faces), DISCRETE)}
+          />
+          <FaceJoinSection
+            currentFace={selectedFace}
+            allFaces={model.faces}
+            onApplyJoin={(faces) => setFaces(faces, DISCRETE)}
+          />
+          <FaceClipSection
+            currentFace={selectedFace}
+            allFaces={model.faces}
+            onUpdateFace={handleUpdateFace}
+            onUpdateAllFaces={(faces) => setFaces(faces, DISCRETE)}
           />
           <MeshCurvatureEditor face={selectedFace} onUpdateFace={handleUpdateFace} />
         </div>

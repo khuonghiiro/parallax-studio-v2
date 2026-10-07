@@ -85,7 +85,7 @@ Khi sắp xếp layer hoặc camera trong Parallax Studio, AI cần nắm rõ qu
 
 ---
 
-## 4. Danh Sách 42 Công Cụ MCP (Core Tool Reference)
+## 4. Danh Sách 54+ Công Cụ MCP (Core Tool Reference)
 
 ### 4.1. Nhóm Truy Vấn & Thống Kê (Inspection)
 - `get_project_info`: Lấy thông tin tổng thể dự án (composition, danh sách shots, layer, camera, look, asset).
@@ -134,7 +134,21 @@ Khi sắp xếp layer hoặc camera trong Parallax Studio, AI cần nắm rõ qu
 - `split_audio_track`: Cắt đôi một đoạn âm thanh tại mốc thời gian `split_time` (mặc định tại con trỏ playhead).
 - `merge_audio_tracks`: Hòa âm và gộp nhiều tracks (hoặc tất cả các tracks) thành 1 file WAV tổng hợp trong dự án.
 
-### 4.7. Nhóm Điều Khiển Timeline & Xuất Video (Playback & Export)
+### 4.7. Nhóm Xưởng Lắp Ráp 3D & Mô Hình Origami (3D Assembly Workshop)
+- `list_models3d`: Liệt kê tất cả các mô hình 3D origami có trong thư viện và đĩa lưu trữ.
+- `get_model3d`: Lấy chi tiết toàn bộ các mặt phẳng, toạ độ, hình học và ánh sáng của một mô hình 3D.
+- `get_assembly_state`: Đọc trạng thái thời gian thực của cửa sổ Xưởng Lắp Ráp 3D (mô hình đang sửa, mặt đang chọn).
+- `save_assembly_model`: Lưu hoặc cập nhật mô hình 3D vào bộ nhớ lưu trữ và tệp catalog.
+- `insert_assembly_model`: Chèn mô hình 3D vào cảnh hiện tại thành các layer 2.5D trong không gian.
+- `add_assembly_face`: Thêm một mặt phẳng 3D mới vào mô hình đang mở.
+- `update_assembly_face`: Cập nhật thuộc tính của một mặt phẳng (vị trí, xoay, kích thước, ảnh texture, mặt cắt clip_by).
+- `delete_assembly_face`: Xoá một mặt phẳng khỏi mô hình 3D.
+- `join_assembly_faces`: Ghép hít 2 mặt phẳng tại cạnh (tự động giãn cạnh ngắn khớp với cạnh dài nhất để triệt tiêu khe hở).
+- `auto_assembly_clip`: Tự động tính toán các mặt phẳng cắt giao nhau (ẩn phần tường/mái vượt qua nhau).
+- `set_assembly_lighting`: Thiết lập hướng nắng mặt trời, đổ bóng râm dịu và tông màu ánh sáng theo giờ.
+- `apply_assembly_template`: Áp dụng khuôn mẫu hình học 3D dựng sẵn (nhà mái chữ A, hộp, lều, tháp bát giác, kim tự tháp, bậc thang...) mà vẫn bảo toàn ảnh texture của người dùng.
+
+### 4.8. Nhóm Điều Khiển Timeline & Xuất Video (Playback & Export)
 - `set_time`: Di chuyển con trỏ thời gian (playhead) tới giây `time`.
 - `set_playing`: Phát hoặc tạm dừng phát hoạt ảnh.
 - `export_video`: Xuất toàn bộ hoặc 1 shot ra file video MP4 hoàn chỉnh bằng FFmpeg.
