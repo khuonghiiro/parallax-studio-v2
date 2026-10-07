@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import * as THREE from 'three'
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
 import type { Face3D, Model3D } from './types'
 import { resolveFaceTexture, type ResolvedTexture } from './textureResolver'
 import {
@@ -10,6 +9,8 @@ import {
   type OrbitState
 } from './assemblyMeshFactory'
 import { computeProceduralMotionOffset } from './meshEffectsAE'
+import { AssemblyGizmo } from './AssemblyGizmo'
+import type { GizmoRect } from '../../../engine/layerGizmo'
 
 export type GizmoMode = 'translate' | 'rotate' | 'off'
 
@@ -52,8 +53,11 @@ export function AssemblyViewport({
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const meshGroupRef = useRef<THREE.Group | null>(null)
   const helpersGroupRef = useRef<THREE.Group | null>(null)
-  const transformControlsRef = useRef<TransformControls | null>(null)
   const isGizmoDraggingRef = useRef(false)
+  const [gizmoRect, setGizmoRect] = useState<GizmoRect | null>(null)
+  const [gizmoTick, setGizmoTick] = useState(0)
+  const bumpGizmo = useCallback(() => setGizmoTick((t) => (t + 1) | 0), [])
+  const prevOrbitRef = useRef({ azimuth: 0, elevation: 0, radius: 0, targetX: 0, targetY: 0, targetZ: 0 })
   const onUpdateFaceRef = useRef(onUpdateFace)
   onUpdateFaceRef.current = onUpdateFace
   const modelScaleRef = useRef(model.scale || 1.0)
@@ -122,7 +126,8 @@ export function AssemblyViewport({
   // Set camera by preset
   useEffect(() => {
     applyCameraPreset(orbitRef.current, cameraPreset)
-  }, [cameraPreset])
+    bumpGizmo()
+  }, [cameraPreset, bumpGizmo])
 
   // Initialize Three.js scene
   useEffect(() => {
@@ -131,6 +136,7 @@ export function AssemblyViewport({
 
     const width = container.clientWidth || 500
     const height = container.clientHeight || 400
+    setGizmoRect({ x: 0, y: 0, w: width, h: height })
 
     const scene = new THREE.Scene()
     scene.background = new THREE.Color('#0f1319')
@@ -162,35 +168,6 @@ export function AssemblyViewport({
     const meshGroup = new THREE.Group()
     scene.add(meshGroup)
     meshGroupRef.current = meshGroup
-
-    // 3D Axis Manipulator Gizmo (Translate / Rotate)
-    const tc = new TransformControls(camera, renderer.domElement)
-    tc.size = 0.85
-    tc.space = 'local'
-    scene.add(tc as unknown as THREE.Object3D)
-    transformControlsRef.current = tc
-
-    tc.addEventListener('dragging-changed', (event) => {
-      isGizmoDraggingRef.current = Boolean(event.value)
-    })
-
-    tc.addEventListener('objectChange', () => {
-      const targetObj = tc.object
-      if (!targetObj || !targetObj.userData?.faceId) return
-      const fid = targetObj.userData.faceId
-      const scale = modelScaleRef.current || 1.0
-      if (tc.mode === 'translate') {
-        const px = Math.round(targetObj.position.x / scale)
-        const py = Math.round(targetObj.position.y / scale)
-        const pz = Math.round(-targetObj.position.z / scale)
-        onUpdateFaceRef.current?.(fid, { position: [px, py, pz] })
-      } else if (tc.mode === 'rotate') {
-        const rx = Math.round((targetObj.rotation.x * 180) / Math.PI)
-        const ry = Math.round((targetObj.rotation.y * 180) / Math.PI)
-        const rz = Math.round((targetObj.rotation.z * 180) / Math.PI)
-        onUpdateFaceRef.current?.(fid, { rotation: [rx, ry, rz] })
-      }
-    })
 
     // Animation loop (supports After Effects procedural mesh motion)
     const clock = new THREE.Clock()
@@ -246,6 +223,26 @@ export function AssemblyViewport({
       const z = o.target.z + o.radius * Math.cos(o.elevation) * Math.cos(o.azimuth)
       camera.position.set(x, y, z)
       camera.lookAt(o.target)
+      camera.updateMatrixWorld()
+
+      if (
+        Math.abs(o.azimuth - prevOrbitRef.current.azimuth) > 1e-4 ||
+        Math.abs(o.elevation - prevOrbitRef.current.elevation) > 1e-4 ||
+        Math.abs(o.radius - prevOrbitRef.current.radius) > 1e-1 ||
+        Math.abs(o.target.x - prevOrbitRef.current.targetX) > 1e-1 ||
+        Math.abs(o.target.y - prevOrbitRef.current.targetY) > 1e-1 ||
+        Math.abs(o.target.z - prevOrbitRef.current.targetZ) > 1e-1
+      ) {
+        prevOrbitRef.current = {
+          azimuth: o.azimuth,
+          elevation: o.elevation,
+          radius: o.radius,
+          targetX: o.target.x,
+          targetY: o.target.y,
+          targetZ: o.target.z
+        }
+        bumpGizmo()
+      }
 
       renderer.render(scene, camera)
       animId = requestAnimationFrame(render)
@@ -261,6 +258,8 @@ export function AssemblyViewport({
           camera.aspect = w / h
           camera.updateProjectionMatrix()
           renderer.setSize(w, h)
+          setGizmoRect({ x: 0, y: 0, w, h })
+          bumpGizmo()
         }
       }
     })
@@ -269,15 +268,12 @@ export function AssemblyViewport({
     return () => {
       cancelAnimationFrame(animId)
       ro.disconnect()
-      tc.dispose()
-      const tcObj = tc as unknown as THREE.Object3D
-      if (tcObj.parent) tcObj.parent.remove(tcObj)
       renderer.dispose()
       if (renderer.domElement.parentElement) {
         renderer.domElement.parentElement.removeChild(renderer.domElement)
       }
     }
-  }, [])
+  }, [bumpGizmo])
 
   // Update helpers (Grid & Axes)
   useEffect(() => {
@@ -290,11 +286,6 @@ export function AssemblyViewport({
   useEffect(() => {
     const meshGroup = meshGroupRef.current
     if (!meshGroup) return
-
-    // Detach gizmo before clearing old meshes
-    if (transformControlsRef.current) {
-      transformControlsRef.current.detach()
-    }
 
     // Clear old meshes
     while (meshGroup.children.length > 0) {
@@ -315,33 +306,7 @@ export function AssemblyViewport({
       const mesh = createFaceMesh(face, resolved, meshOnlyPixels, showWireframe, scale, isSelected)
       meshGroup.add(mesh)
     })
-
-    // Reattach gizmo if active
-    const tc = transformControlsRef.current
-    if (tc && gizmoMode !== 'off' && selectedFaceId) {
-      tc.setMode(gizmoMode)
-      const selectedObj = meshGroup.children.find((c) => c.userData?.faceId === selectedFaceId)
-      if (selectedObj) tc.attach(selectedObj)
-    }
-  }, [model, selectedFaceId, showWireframe, meshOnlyPixels, textureMap, gizmoMode])
-
-  // Sync Transform Controls attachment & mode
-  useEffect(() => {
-    const tc = transformControlsRef.current
-    const meshGroup = meshGroupRef.current
-    if (!tc || !meshGroup) return
-
-    if (gizmoMode === 'off' || !selectedFaceId) {
-      tc.detach()
-      return
-    }
-
-    tc.setMode(gizmoMode)
-    const selectedObj = meshGroup.children.find((c) => c.userData?.faceId === selectedFaceId)
-    if (selectedObj && tc.object !== selectedObj) {
-      tc.attach(selectedObj)
-    }
-  }, [selectedFaceId, gizmoMode])
+  }, [model, selectedFaceId, showWireframe, meshOnlyPixels, textureMap])
 
   // Drag-and-drop HUD state
   const [isDragOver, setIsDragOver] = useState(false)
@@ -609,6 +574,7 @@ export function AssemblyViewport({
       if (container) container.style.cursor = 'grabbing'
       o.azimuth -= dx * 0.008
       o.elevation = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, o.elevation + dy * 0.008))
+      bumpGizmo()
       return
     }
 
@@ -621,6 +587,7 @@ export function AssemblyViewport({
       const panSpeed = (o.radius / 1000) * 0.85
       o.target.addScaledVector(right, -dx * panSpeed)
       o.target.addScaledVector(up, dy * panSpeed)
+      bumpGizmo()
       return
     }
 
@@ -669,9 +636,16 @@ export function AssemblyViewport({
     e.preventDefault()
     const o = orbitRef.current
     o.radius = Math.max(200, Math.min(6000, o.radius + e.deltaY * 1.2))
+    bumpGizmo()
   }
 
   const dragOverFace = dragOverFaceId ? model.faces.find((f) => f.id === dragOverFaceId) : null
+  const selectedFace = model.faces.find((f) => f.id === selectedFaceId) || null
+  const selectedMesh =
+    (meshGroupRef.current?.children.find((c) => c.userData?.faceId === selectedFaceId) as
+      | THREE.Mesh
+      | undefined) || null
+  if (selectedMesh) selectedMesh.updateMatrixWorld()
 
   return (
     <div
@@ -690,6 +664,21 @@ export function AssemblyViewport({
       onContextMenu={(e) => e.preventDefault()}
       title="Chuột giữa: Xoay không gian 3D | Chuột trái: Kéo di chuyển Asset / Không gian | Alt+Click: Gọt/tỉa ô lưới | Kéo thả ảnh trực tiếp vào đây"
     >
+      {/* 3D Face Transform Gizmo (After Effects style) */}
+      {selectedFace && cameraRef.current && gizmoRect && meshEditMode === 'none' && gizmoMode !== 'off' && (
+        <AssemblyGizmo
+          key={`${selectedFace.id}-${gizmoTick}`}
+          face={selectedFace}
+          modelScale={model.scale || 1.0}
+          camera={cameraRef.current}
+          rect={gizmoRect}
+          mesh={selectedMesh}
+          onUpdateFace={onUpdateFaceRef.current || onUpdateFace || (() => {})}
+          onDragStateChange={(isDragging) => {
+            isGizmoDraggingRef.current = isDragging
+          }}
+        />
+      )}
       {/* Drag Over HUD Overlay */}
       {isDragOver && (
         <div className="viewport-drag-drop-hud">

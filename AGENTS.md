@@ -117,3 +117,9 @@ Khi thực hiện các nhiệm vụ chuyên biệt, AI cần tham chiếu các s
 - Use evaluated world matrices for bounds and anchor projection; author position in shot/parent coordinates and scale before depth compensation.
 - Keep one history entry per gesture, preserve current-time keyframe behavior, cancel safely on Escape, and exclude overlays from export.
 - MCP parity uses existing `update_layer` position/rotation/scale parameters; regression tests: `mcp/commands/layerCommands.test.ts`.
+
+### 3D Assembly Gizmo implementation (Xưởng Lắp Ráp 3D)
+- UI: `ui/assets/models3d/AssemblyGizmo.tsx`; gestures: `ui/assets/models3d/assemblyGizmoDrag.ts`.
+- Đồng bộ chuẩn After Effects: Trục tọa độ 3D XYZ (Move), Vòng xoay góc 3D XYZ (Rotate) và 8 điểm mút square trên Bounding Box (Scale/Stretch).
+- Tự động cập nhật realtime theo góc xoay camera / OrbitControls; phím Shift giữ tỉ lệ / bước góc 15°; phím Escape hủy thao tác; unit tests tại `assemblyGizmoDrag.test.ts`.
+

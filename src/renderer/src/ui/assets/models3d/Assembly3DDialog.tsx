@@ -229,35 +229,17 @@ export function Assembly3DDialog({
               </button>
             </div>
 
-            {/* 3D Axis Manipulator Gizmo Modes */}
-            {/* <div className="cam-preset-group" title="Trục thao tác 3D (Manipulator Gizmo)">
-              <button
-                type="button"
-                className={`preset-btn${gizmoMode === 'translate' ? ' active' : ''}`}
-                onClick={() => setGizmoMode('translate')}
-                title="Trục dời vị trí 3D (Translate)"
-              >
-                <IconAxisMove style={{ width: 12, height: 12 }} />
-                <span>Dời</span>
-              </button>
-              <button
-                type="button"
-                className={`preset-btn${gizmoMode === 'rotate' ? ' active' : ''}`}
-                onClick={() => setGizmoMode('rotate')}
-                title="Trục xoay góc 3D (Rotate)"
-              >
-                <IconAxisRotate style={{ width: 12, height: 12 }} />
-                <span>Xoay</span>
-              </button>
-              <button
-                type="button"
-                className={`preset-btn${gizmoMode === 'off' ? ' active' : ''}`}
-                onClick={() => setGizmoMode('off')}
-                title="Ẩn trục (kéo tự do)"
-              >
-                Tắt
-              </button>
-            </div> */}
+            {/* Toggle 3D Transform Gizmo (After Effects style) */}
+            <label className="toggle-chip" title="Bật/tắt hiển thị Trục tọa độ XYZ, Vòng xoay và Khung co giãn 3D (After Effects style)">
+              <input
+                type="checkbox"
+                checked={gizmoMode !== 'off'}
+                onChange={(e) => setGizmoMode(e.target.checked ? 'translate' : 'off')}
+              />
+              <IconAxisMove style={{ width: 12, height: 12 }} />
+              <span>Gizmo 3D</span>
+            </label>
+
 
             <label className="toggle-chip" title="Bật/tắt hiển thị lưới dây đa giác Wireframe">
               <input
