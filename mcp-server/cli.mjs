@@ -600,7 +600,11 @@ async function cmdCall(method, paramsArg) {
         const filePath = paramsArg.startsWith('@') ? paramsArg.slice(1) : paramsArg
         params = JSON.parse(readFileSync(filePath, 'utf-8'))
       } else {
-        params = JSON.parse(paramsArg)
+        try {
+          params = JSON.parse(paramsArg)
+        } catch {
+          params = Function(`return (${paramsArg})`)()
+        }
       }
     } catch (e) {
       console.error(`Lỗi định dạng JSON params: ${e.message}`)
