@@ -117,7 +117,7 @@ async function main() {
   await sendCommand('add_ground_layer', {
     shot_id: houseShot.id,
     name: 'Thảm Cỏ Sân Vườn',
-    position: [0, -150, 252],
+    position: [0, -289.8, 252],
     scale: [4, 4, 1],
     color: '#2d4a22'
   })
@@ -125,9 +125,9 @@ async function main() {
   console.log('Adding Layer 1: Front Facade (Mặt Tiền)...')
   const frontLayer = await sendCommand('add_image_layer', {
     shot_id: houseShot.id,
-    file_path: resolve('assets/house/origami_front.png'),
+    file_path: resolve('assets/assembly_3d/house/origami_front.png'),
     name: 'Mặt Tiền Origami (Front)',
-    position: [0, 139.8, 0],
+    position: [0, 0, 0],
     rotation: [0, 0, 0],
     scale: scale,
     auto_scale: false
@@ -136,9 +136,9 @@ async function main() {
   console.log('Adding Layer 2: Left Wall (Tường Hông Trái)...')
   const leftWall = await sendCommand('add_image_layer', {
     shot_id: houseShot.id,
-    file_path: resolve('assets/house/origami_side_left.png'),
+    file_path: resolve('assets/assembly_3d/house/origami_side_left.png'),
     name: 'Tường Hông Trái Origami',
-    position: [-252, -32.1, 252],
+    position: [-252, -171.9, 252],
     rotation: [0, 90, 0],
     scale: scale,
     auto_scale: false
@@ -147,9 +147,9 @@ async function main() {
   console.log('Adding Layer 3: Right Wall (Tường Hông Phải)...')
   const rightWall = await sendCommand('add_image_layer', {
     shot_id: houseShot.id,
-    file_path: resolve('assets/house/origami_side_right.png'),
+    file_path: resolve('assets/assembly_3d/house/origami_side_right.png'),
     name: 'Tường Hông Phải Origami',
-    position: [252, -32.1, 252],
+    position: [252, -171.9, 252],
     rotation: [0, -90, 0],
     scale: scale,
     auto_scale: false
@@ -158,10 +158,10 @@ async function main() {
   console.log('Adding Layer 4: Left Roof (Mái Nghiêng Trái)...')
   const leftRoof = await sendCommand('add_image_layer', {
     shot_id: houseShot.id,
-    file_path: resolve('assets/house/origami_roof_left.png'),
+    file_path: resolve('assets/assembly_3d/house/origami_roof_left.png'),
     name: 'Mái Dốc Trái Origami',
-    position: [-126, 211.6, 252],
-    rotation: [46.33, -90, 0],
+    position: [-126, 77.89, 252],
+    rotation: [-43.69, 90, 0],
     scale: scale,
     auto_scale: false
   })
@@ -169,10 +169,10 @@ async function main() {
   console.log('Adding Layer 5: Right Roof (Mái Nghiêng Phải)...')
   const rightRoof = await sendCommand('add_image_layer', {
     shot_id: houseShot.id,
-    file_path: resolve('assets/house/origami_roof_right.png'),
+    file_path: resolve('assets/assembly_3d/house/origami_roof_right.png'),
     name: 'Mái Dốc Phải Origami',
-    position: [126, 211.6, 252],
-    rotation: [-46.33, -90, 0],
+    position: [126, 77.89, 252],
+    rotation: [-43.69, -90, 0],
     scale: scale,
     auto_scale: false
   })
@@ -180,9 +180,9 @@ async function main() {
   console.log('Adding Layer 6: Chimney Left Side (Hông Ống Khói Trái)...')
   await sendCommand('add_image_layer', {
     shot_id: houseShot.id,
-    file_path: resolve('assets/house/origami_chimney_side.png'),
+    file_path: resolve('assets/assembly_3d/house/origami_chimney_side.png'),
     name: 'Hông Ống Khói Trái',
-    position: [-34, 386, 34],
+    position: [-28.8, 247.8, 33.9],
     rotation: [0, 90, 0],
     scale: scale,
     auto_scale: false
@@ -191,9 +191,9 @@ async function main() {
   console.log('Adding Layer 7: Chimney Right Side (Hông Ống Khói Phải)...')
   await sendCommand('add_image_layer', {
     shot_id: houseShot.id,
-    file_path: resolve('assets/house/origami_chimney_side.png'),
+    file_path: resolve('assets/assembly_3d/house/origami_chimney_side.png'),
     name: 'Hông Ống Khói Phải',
-    position: [34, 386, 34],
+    position: [28.8, 247.8, 33.9],
     rotation: [0, -90, 0],
     scale: scale,
     auto_scale: false

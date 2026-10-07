@@ -11,74 +11,99 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
 
   switch (type) {
     case 'cottage': {
-      // Gable Cottage: Front, Left wall, Right wall, Left roof, Right roof
-      // Roof rise
-      const roofRise = 440
-      const roofSlope = Math.round(Math.sqrt(hw * hw + roofRise * roofRise))
-      const pitchDeg = Number((Math.atan2(roofRise, hw) * (180 / Math.PI)).toFixed(2))
+      // Tudor Cottage 3D: Front facade, Left/Right walls, Left/Right roof slopes, Left/Right chimney sides.
+      // Exact gapless mathematical derivation:
+      // Front: 980 x 966, ground at y = -483, eave overhang at y = -90 (side wall height 393), ridge apex at y = 349.62.
+      // Side walls: 840 x 393, depth 840, normal facing outwards (+/- X).
+      // Roof slopes: 840 x 608, slope rise 439.62, pitch 46.31 deg (Euler rx: -43.69 deg, normal facing up & out).
+      // Chimney sides: 113 x 140, base resting on ridge at y = 343, top matching facade top at y = 483.
+      const frontW = 980
+      const frontH = 966
+      const wallW = w
+      const wallH = 393
+      const wallD = d
+      const hw = wallW / 2
+      const hd = wallD / 2
+
+      const groundY = -frontH / 2
+      const wallCenterY = groundY + wallH / 2
+      const eaveY = groundY + wallH
+
+      const roofSlope = 608
+      const roofRise = Number(Math.sqrt(Math.max(0, roofSlope * roofSlope - hw * hw)).toFixed(2))
+      const roofApexY = eaveY + roofRise
+      const roofCenterY = Number(((eaveY + roofApexY) / 2).toFixed(2))
+      const pitchDeg = (Math.atan2(roofRise, hw) * 180) / Math.PI
+      const pitchEulerX = Number(-(90 - pitchDeg).toFixed(2))
+
+      const chimW = 113
+      const chimH = 140
+      const chimX = 48
+      const chimCenterY = 413
+      const chimCenterZ = Number((chimW / 2).toFixed(2))
 
       return [
         {
           id: 'face-front',
-          name: 'Trước',
+          name: '1. Mặt Tiền (Gable Front)',
           assetPath: 'assembly_3d/house/origami_front.png',
-          width: 980,
-          height: 966,
-          position: [0, 140, 0],
+          width: frontW,
+          height: frontH,
+          position: [0, 0, 0],
           rotation: [0, 0, 0]
         },
         {
           id: 'face-left',
-          name: 'Trái',
+          name: '2. Tường Hông Trái (Left Wall)',
           assetPath: 'assembly_3d/house/origami_side_left.png',
-          width: d,
-          height: h,
-          position: [-hw, -32, hd],
+          width: wallD,
+          height: wallH,
+          position: [-hw, wallCenterY, hd],
           rotation: [0, 90, 0]
         },
         {
           id: 'face-right',
-          name: 'Phải',
+          name: '3. Tường Hông Phải (Right Wall)',
           assetPath: 'assembly_3d/house/origami_side_right.png',
-          width: d,
-          height: h,
-          position: [hw, -32, hd],
+          width: wallD,
+          height: wallH,
+          position: [hw, wallCenterY, hd],
           rotation: [0, -90, 0]
         },
         {
           id: 'face-roof-left',
-          name: 'Mái trái',
+          name: '4. Mái Nghiêng Trái (Left Roof)',
           assetPath: 'assembly_3d/house/origami_roof_left.png',
-          width: d,
+          width: wallD,
           height: roofSlope,
-          position: [-hw / 2, 212, hd],
-          rotation: [pitchDeg, -90, 0]
+          position: [-hw / 2, roofCenterY, hd],
+          rotation: [pitchEulerX, 90, 0]
         },
         {
           id: 'face-roof-right',
-          name: 'Mái phải',
+          name: '5. Mái Nghiêng Phải (Right Roof)',
           assetPath: 'assembly_3d/house/origami_roof_right.png',
-          width: d,
+          width: wallD,
           height: roofSlope,
-          position: [hw / 2, 212, hd],
-          rotation: [-pitchDeg, -90, 0]
+          position: [hw / 2, roofCenterY, hd],
+          rotation: [pitchEulerX, -90, 0]
         },
         {
           id: 'face-chimney-left',
-          name: 'Khói trái',
+          name: '6. Ống Khói Hông Trái (Chimney Left)',
           assetPath: 'assembly_3d/house/origami_chimney_side.png',
-          width: 113,
-          height: 140,
-          position: [-34, 386, 34],
+          width: chimW,
+          height: chimH,
+          position: [-chimX, chimCenterY, chimCenterZ],
           rotation: [0, 90, 0]
         },
         {
           id: 'face-chimney-right',
-          name: 'Khói phải',
+          name: '7. Ống Khói Hông Phải (Chimney Right)',
           assetPath: 'assembly_3d/house/origami_chimney_side.png',
-          width: 113,
-          height: 140,
-          position: [34, 386, 34],
+          width: chimW,
+          height: chimH,
+          position: [chimX, chimCenterY, chimCenterZ],
           rotation: [0, -90, 0]
         }
       ]
@@ -273,7 +298,28 @@ export function getStoredModels3D(): Model3D[] {
       return DEFAULT_MODELS_3D
     }
     const parsed = JSON.parse(raw)
-    if (Array.isArray(parsed) && parsed.length > 0) return parsed
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      // Auto-heal outdated preset geometry for model-tudor-cottage if old misaligned coordinates exist
+      const cottageIdx = parsed.findIndex((m: Model3D) => m.id === 'model-tudor-cottage')
+      if (cottageIdx >= 0) {
+        const c = parsed[cottageIdx]
+        const front = c.faces?.find((f: Face3D) => f.id === 'face-front')
+        const roofLeft = c.faces?.find((f: Face3D) => f.id === 'face-roof-left')
+        if (front?.position?.[1] === 140 || (roofLeft?.rotation?.[0] ?? 0) > 0) {
+          parsed[cottageIdx] = {
+            ...c,
+            faces: generatePresetFaces('cottage'),
+            updatedAt: Date.now()
+          }
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed))
+          } catch {
+            // ignore
+          }
+        }
+      }
+      return parsed
+    }
     return DEFAULT_MODELS_3D
   } catch (err) {
     console.warn('[models3dStorage] Error reading localStorage:', err)

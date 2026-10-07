@@ -14,7 +14,7 @@
       "height": 966,
       "position": [
         0,
-        140,
+        0,
         0
       ],
       "rotation": [
@@ -28,10 +28,10 @@
       "name": "2. Tường Hông Trái (Left Wall)",
       "assetPath": "assembly_3d/house/origami_side_left.png",
       "width": 840,
-      "height": 400,
+      "height": 393,
       "position": [
         -420,
-        -32,
+        -286.5,
         420
       ],
       "rotation": [
@@ -45,10 +45,10 @@
       "name": "3. Tường Hông Phải (Right Wall)",
       "assetPath": "assembly_3d/house/origami_side_right.png",
       "width": 840,
-      "height": 400,
+      "height": 393,
       "position": [
         420,
-        -32,
+        -286.5,
         420
       ],
       "rotation": [
@@ -65,12 +65,12 @@
       "height": 608,
       "position": [
         -210,
-        212,
+        129.81,
         420
       ],
       "rotation": [
-        46.33,
-        -90,
+        -43.69,
+        90,
         0
       ]
     },
@@ -82,12 +82,12 @@
       "height": 608,
       "position": [
         210,
-        212,
+        129.81,
         420
       ],
       "rotation": [
-        46.33,
-        90,
+        -43.69,
+        -90,
         0
       ]
     },
@@ -98,9 +98,9 @@
       "width": 113,
       "height": 140,
       "position": [
-        -34,
-        386,
-        34
+        -48,
+        413,
+        56.5
       ],
       "rotation": [
         0,
@@ -115,9 +115,9 @@
       "width": 113,
       "height": 140,
       "position": [
-        34,
-        386,
-        34
+        48,
+        413,
+        56.5
       ],
       "rotation": [
         0,

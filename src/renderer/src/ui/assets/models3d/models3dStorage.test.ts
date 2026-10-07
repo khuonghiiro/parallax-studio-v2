@@ -36,13 +36,73 @@ describe('3D Models Preset and Storage System', () => {
     const front = faces.find((f) => f.id === 'face-front')
     expect(front).toBeDefined()
     expect(front?.assetPath).toBe('assembly_3d/house/origami_front.png')
+    expect(front?.position).toEqual([0, 0, 0])
 
+    const leftWall = faces.find((f) => f.id === 'face-left')
+    const rightWall = faces.find((f) => f.id === 'face-right')
+    const leftRoof = faces.find((f) => f.id === 'face-roof-left')
+    const rightRoof = faces.find((f) => f.id === 'face-roof-right')
     const leftChimney = faces.find((f) => f.id === 'face-chimney-left')
     const rightChimney = faces.find((f) => f.id === 'face-chimney-right')
+
+    expect(leftWall).toBeDefined()
+    expect(rightWall).toBeDefined()
+    expect(leftRoof).toBeDefined()
+    expect(rightRoof).toBeDefined()
     expect(leftChimney).toBeDefined()
     expect(rightChimney).toBeDefined()
+
+    // Rotations
     expect(leftChimney?.rotation[1]).toBe(90)
     expect(rightChimney?.rotation[1]).toBe(-90)
+    expect(leftRoof?.rotation[0]).toBe(-43.69)
+    expect(rightRoof?.rotation[0]).toBe(-43.69)
+    expect(leftWall?.position[0]).toBe(-420)
+    expect(rightWall?.position[0]).toBe(420)
+
+    // Side walls ground alignment: ground at -483, wall height 393 -> center at -286.5
+    expect(leftWall?.position[1]).toBe(-286.5)
+    expect(rightWall?.position[1]).toBe(-286.5)
+  })
+
+  it('auto-heals outdated cottage coordinates in getStoredModels3D', () => {
+    // Simulate legacy localStorage with buggy cottage coords
+    const legacyCottage: Model3D = {
+      id: 'model-tudor-cottage',
+      name: 'Ngôi Nhà Tudor 3D (Origami Cottage)',
+      category: 'architecture',
+      scale: 0.6,
+      faces: [
+        {
+          id: 'face-front',
+          name: 'Trước',
+          width: 980,
+          height: 966,
+          position: [0, 140, 0], // legacy buggy Y
+          rotation: [0, 0, 0]
+        },
+        {
+          id: 'face-roof-left',
+          name: 'Mái trái',
+          width: 840,
+          height: 608,
+          position: [-210, 212, 420],
+          rotation: [46.33, -90, 0] // legacy buggy rotation
+        }
+      ],
+      createdAt: 1000,
+      updatedAt: 1000
+    }
+    store['parallax_models_3d_v2'] = JSON.stringify([legacyCottage])
+
+    const loaded = getStoredModels3D()
+    const cottage = loaded.find((m) => m.id === 'model-tudor-cottage')
+    expect(cottage).toBeDefined()
+    expect(cottage?.faces.length).toBe(7)
+    const healedFront = cottage?.faces.find((f) => f.id === 'face-front')
+    const healedRoof = cottage?.faces.find((f) => f.id === 'face-roof-left')
+    expect(healedFront?.position[1]).toBe(0)
+    expect(healedRoof?.rotation[0]).toBe(-43.69)
   })
 
   it('generates cube preset with 6 faces forming a closed volume', () => {
