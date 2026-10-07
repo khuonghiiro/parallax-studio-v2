@@ -1,5 +1,5 @@
 import type { Face3D } from './types'
-import { IconLightning, IconMeshGrid, IconPin } from '../../icons'
+import { IconEye, IconEyeOff, IconLightning, IconMeshGrid, IconPin } from '../../icons'
 
 export type ContextTab = 'grid' | 'depth' | 'motion' | 'bend'
 
@@ -13,6 +13,8 @@ interface Mesh2DHorizontalBarProps {
   rotation: number
   pinnedCellsCount: number
   selectedCellsCount: number
+  showMesh?: boolean
+  onToggleMesh?: () => void
   onUpdateFace: (faceId: string, updates: Partial<Face3D>) => void
   handleSetGrid: (c: number, r: number) => void
   handleSetRotation: (deg: number) => void
@@ -29,6 +31,8 @@ export function Mesh2DHorizontalBar({
   rotation,
   pinnedCellsCount,
   selectedCellsCount,
+  showMesh = true,
+  onToggleMesh,
   onUpdateFace,
   handleSetGrid,
   handleSetRotation,
@@ -79,12 +83,38 @@ export function Mesh2DHorizontalBar({
             <span className="tab-counter-badge">{pinnedCellsCount || '!'}</span>
           )}
         </button>
+
+        {/* {onToggleMesh && (
+          <button
+            type="button"
+            className={`sub-pill-btn toggle-mesh-btn${showMesh ? ' active' : ''}`}
+            onClick={onToggleMesh}
+            title={showMesh ? 'Bấm để ẩn đường lưới Mesh trên bề mặt ảnh' : 'Bấm để hiển thị đường lưới Mesh'}
+            style={{ marginLeft: 'auto', cursor: 'pointer', userSelect: 'none' }}
+          >
+            {showMesh ? <IconEye size={12} /> : <IconEyeOff size={12} />}
+            <span>{showMesh ? 'Lưới Mesh: BẬT' : 'Lưới Mesh: TẮT'}</span>
+          </button>
+        )} */}
       </div>
 
       {/* Tab Sub-Row Controls */}
       <div className="mesh2d-tab-sub-row">
         {activeTab === 'grid' && (
           <>
+            <div className="sub-group">
+              <span className="sub-label">Hiển thị:</span>
+              <button
+                type="button"
+                className={`sub-pill-btn${showMesh ? ' active' : ''}`}
+                onClick={onToggleMesh}
+                title="Bật/tắt đường lưới Mesh trên bề mặt ảnh"
+              >
+                {showMesh ? <IconEye size={12} /> : <IconEyeOff size={12} />}
+                <span>{showMesh ? 'Hiện lưới' : 'Ẩn lưới'}</span>
+              </button>
+            </div>
+
             <div className="sub-group">
               <span className="sub-label">Chế độ:</span>
               <button

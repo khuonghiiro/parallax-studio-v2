@@ -20,7 +20,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
       return [
         {
           id: 'face-front',
-          name: '1. Mặt Tiền (Gable Front)',
+          name: 'Trước',
           assetPath: 'assembly_3d/house/origami_front.png',
           width: 980,
           height: 966,
@@ -29,7 +29,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         },
         {
           id: 'face-left',
-          name: '2. Tường Hông Trái (Left Wall)',
+          name: 'Trái',
           assetPath: 'assembly_3d/house/origami_side_left.png',
           width: d,
           height: h,
@@ -38,7 +38,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         },
         {
           id: 'face-right',
-          name: '3. Tường Hông Phải (Right Wall)',
+          name: 'Phải',
           assetPath: 'assembly_3d/house/origami_side_right.png',
           width: d,
           height: h,
@@ -47,7 +47,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         },
         {
           id: 'face-roof-left',
-          name: '4. Mái Nghiêng Trái (Left Roof)',
+          name: 'Mái trái',
           assetPath: 'assembly_3d/house/origami_roof_left.png',
           width: d,
           height: roofSlope,
@@ -56,7 +56,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         },
         {
           id: 'face-roof-right',
-          name: '5. Mái Nghiêng Phải (Right Roof)',
+          name: 'Mái phải',
           assetPath: 'assembly_3d/house/origami_roof_right.png',
           width: d,
           height: roofSlope,
@@ -65,7 +65,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         },
         {
           id: 'face-chimney-left',
-          name: '6. Hông Ống Khói Trái (Chimney Left)',
+          name: 'Khói trái',
           assetPath: 'assembly_3d/house/origami_chimney_side.png',
           width: 113,
           height: 140,
@@ -74,7 +74,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         },
         {
           id: 'face-chimney-right',
-          name: '7. Hông Ống Khói Phải (Chimney Right)',
+          name: 'Khói phải',
           assetPath: 'assembly_3d/house/origami_chimney_side.png',
           width: 113,
           height: 140,
@@ -89,7 +89,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
       return [
         {
           id: 'cube-front',
-          name: 'Mặt Trước (Front)',
+          name: 'Trước',
           color: '#8b7bff',
           width: w,
           height: h,
@@ -98,7 +98,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         },
         {
           id: 'cube-left',
-          name: 'Mặt Trái (Left)',
+          name: 'Trái',
           color: '#0284c7',
           width: d,
           height: h,
@@ -107,7 +107,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         },
         {
           id: 'cube-right',
-          name: 'Mặt Phải (Right)',
+          name: 'Phải',
           color: '#38bdf8',
           width: d,
           height: h,
@@ -116,7 +116,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         },
         {
           id: 'cube-back',
-          name: 'Mặt Sau (Back)',
+          name: 'Sau',
           color: '#6366f1',
           width: w,
           height: h,
@@ -125,7 +125,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         },
         {
           id: 'cube-top',
-          name: 'Nắp Trên (Top)',
+          name: 'Trên',
           color: '#f59e6b',
           width: w,
           height: d,
@@ -134,7 +134,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         },
         {
           id: 'cube-bottom',
-          name: 'Đáy Dưới (Bottom)',
+          name: 'Dưới',
           color: '#64748b',
           width: w,
           height: d,
@@ -149,7 +149,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
       return [
         {
           id: 'corner-front',
-          name: 'Mặt Dựng Chính (Main Facade)',
+          name: 'Trước',
           color: '#3b82f6',
           width: w,
           height: h,
@@ -158,7 +158,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         },
         {
           id: 'corner-side',
-          name: 'Mặt Hông Bẻ Góc 90° (Side Alley)',
+          name: 'Trái',
           color: '#0284c7',
           width: d,
           height: h,
@@ -167,7 +167,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         },
         {
           id: 'corner-ground',
-          name: 'Mặt Sàn / Vỉa Hè (Ground)',
+          name: 'Dưới',
           color: '#334155',
           width: w * 1.5,
           height: d * 1.5,
@@ -182,7 +182,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
       return [
         {
           id: 'room-floor',
-          name: 'Sàn Phòng (Floor)',
+          name: 'Dưới',
           color: '#475569',
           width: w,
           height: d,
@@ -191,7 +191,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         },
         {
           id: 'room-back',
-          name: 'Tường Sau (Back Wall)',
+          name: 'Sau',
           color: '#1e293b',
           width: w,
           height: h,
@@ -200,7 +200,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         },
         {
           id: 'room-left',
-          name: 'Tường Trái (Left Wall)',
+          name: 'Trái',
           color: '#334155',
           width: d,
           height: h,
@@ -209,7 +209,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         },
         {
           id: 'room-right',
-          name: 'Tường Phải (Right Wall)',
+          name: 'Phải',
           color: '#334155',
           width: d,
           height: h,

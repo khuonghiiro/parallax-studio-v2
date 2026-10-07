@@ -284,15 +284,26 @@
   pointer-events: all;
 }
 
+[data-theme='light'] .mesh2d-canvas-wrapper {
+  background-color: #f1f5f9;
+  background-image: 
+    linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
+    linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
+    linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+}
+
 /* HUD Overlay on bottom left/right of 2D canvas */
 .mesh2d-hud-bottom {
   position: absolute;
-  bottom: 12px;
-  left: 12px;
-  right: 12px;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
   pointer-events: none;
   z-index: 10;
 }
@@ -300,50 +311,262 @@
 .mesh2d-hud-info {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  background-color: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(8px);
-  padding: 5px 12px;
+  gap: 6px;
+  background-color: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 4px 10px;
+  height: 28px;
+  box-sizing: border-box;
   border-radius: 6px;
   border: 1px solid var(--line-soft);
   font-size: 11px;
   color: var(--text-dim);
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  pointer-events: auto;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.mesh2d-hud-info strong {
+.mesh2d-hud-info::-webkit-scrollbar {
+  display: none;
+}
+
+[data-theme='light'] .mesh2d-hud-info {
+  background-color: rgba(255, 255, 255, 0.94);
+  border-color: var(--line);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.mesh2d-hud-face {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 90px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.mesh2d-hud-face-title {
+  color: var(--text-faint);
+  font-size: 10.5px;
+}
+
+.mesh2d-hud-face-name {
   color: var(--text);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mesh2d-hud-sep {
+  width: 1px;
+  height: 12px;
+  background-color: var(--line-soft);
+  margin: 0 2px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.mesh2d-hud-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.mesh2d-hud-item strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.mesh2d-hud-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.mesh2d-hud-badge.tag-cyan {
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
+.mesh2d-hud-badge.tag-green {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.mesh2d-hud-badge.tag-amber {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--key);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.mesh2d-hud-badge.tag-red {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+[data-theme='light'] .mesh2d-hud-badge.tag-cyan {
+  background: rgba(2, 132, 199, 0.12);
+  color: #0369a1;
+  border-color: rgba(2, 132, 199, 0.3);
+}
+
+[data-theme='light'] .mesh2d-hud-badge.tag-green {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+[data-theme='light'] .mesh2d-hud-badge.tag-amber {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border-color: rgba(217, 119, 6, 0.3);
+}
+
+[data-theme='light'] .mesh2d-hud-badge.tag-red {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.3);
 }
 
 .mesh2d-hud-controls {
   pointer-events: auto;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  background-color: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(8px);
-  padding: 4px;
+  gap: 5px;
+  background-color: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 3px 5px;
+  height: 28px;
+  box-sizing: border-box;
   border-radius: 6px;
   border: 1px solid var(--line-soft);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+[data-theme='light'] .mesh2d-hud-controls {
+  background-color: rgba(255, 255, 255, 0.94);
+  border-color: var(--line);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.mesh2d-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-dim);
+  background-color: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.mesh2d-tool-btn:hover {
+  background-color: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.mesh2d-tool-btn:active {
+  transform: translateY(1px);
+}
+
+.mesh2d-tool-btn.active {
+  background-color: rgba(99, 102, 241, 0.18);
+  color: var(--accent);
+  border-color: rgba(99, 102, 241, 0.45);
+  font-weight: 600;
+}
+
+[data-theme='light'] .mesh2d-tool-btn.active {
+  background-color: rgba(79, 70, 229, 0.12);
+  color: #4338ca;
+  border-color: rgba(79, 70, 229, 0.4);
+}
+
+.mesh2d-tool-btn.btn-restore {
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.mesh2d-tool-btn.btn-restore:hover {
+  background-color: rgba(239, 68, 68, 0.22);
+  color: #ef4444;
+}
+
+.mesh2d-zoom-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  background-color: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  padding: 1px;
 }
 
 .mesh2d-zoom-btn {
   background: transparent;
   border: none;
   color: var(--text-dim);
-  width: 26px;
-  height: 26px;
-  display: flex;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: 3px;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: bold;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  transition: all 0.15s ease;
+  user-select: none;
 }
 
 .mesh2d-zoom-btn:hover {
-  background-color: var(--bg-3);
+  background-color: var(--bg-2);
   color: var(--text);
+}
+
+.mesh2d-zoom-btn:active {
+  transform: scale(0.92);
+}
+
+.mesh2d-zoom-val {
+  font-family: var(--mono, monospace);
+  font-size: 10.5px;
+  font-weight: 600;
+  min-width: 34px;
+  text-align: center;
+  color: var(--text);
+  user-select: none;
+  padding: 0 2px;
 }
 
 /* Split Screen Layout (2D on left, 3D on right) */

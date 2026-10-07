@@ -121,6 +121,24 @@ export function AssemblyAssetSidebar({
   const [searchTerm, setSearchTerm] = useState('')
   const [customAssets, setCustomAssets] = useState<BuiltInAssetItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [catTooltip, setCatTooltip] = useState<{
+    cat: MiniCategory
+    count: number
+    top: number
+    right: number
+  } | null>(null)
+
+  const showCatTooltip = (e: React.MouseEvent<HTMLElement>, cat: MiniCategory) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    setCatTooltip({
+      cat,
+      count: itemCounts[cat.id] ?? 0,
+      top: rect.top + rect.height / 2,
+      right: rect.right
+    })
+  }
+
+  const hideCatTooltip = () => setCatTooltip(null)
 
   // Load assembly assets from backend
   useEffect(() => {
@@ -384,7 +402,7 @@ export function AssemblyAssetSidebar({
   return (
     <aside className="assembly-asset-sidebar" aria-label="Tài nguyên lắp ráp 3D">
       {/* 1. Left Vertical Mini-Category Strip (giống tab Thư viện) */}
-      <div className="sidebar-category-strip">
+      <div className="sidebar-category-strip" onScroll={hideCatTooltip}>
         <div className="sidebar-strip-icons">
           {SIDEBAR_CATEGORIES.map((cat) => {
             const isActive = selectedCategory === cat.id
@@ -393,14 +411,46 @@ export function AssemblyAssetSidebar({
                 key={cat.id}
                 type="button"
                 className={`sidebar-cat-btn${isActive ? ' active' : ''}`}
-                onClick={() => setSelectedCategory(cat.id)}
-                title={`${cat.title} (${itemCounts[cat.id] ?? 0})`}
+                onClick={() => {
+                  setSelectedCategory(cat.id)
+                  hideCatTooltip()
+                }}
+                onMouseEnter={(e) => showCatTooltip(e, cat)}
+                onMouseLeave={hideCatTooltip}
+                aria-label={cat.title}
               >
                 {renderCategoryIcon(cat.icon, 16, 16)}
               </button>
             )
           })}
         </div>
+
+        {catTooltip && (
+          <div
+            className="vertical-tab-tooltip"
+            role="tooltip"
+            style={{
+              position: 'fixed',
+              left: catTooltip.right + 8,
+              top: catTooltip.top,
+              transform: 'translateY(-50%)',
+              zIndex: 20000
+            }}
+          >
+            <div className="tooltip-title">
+              <span>{catTooltip.cat.title}</span>
+              <span className="tooltip-tag-system tag-cyan">Chủ đề</span>
+            </div>
+            <div className="tooltip-desc">
+              {catTooltip.cat.id === 'all'
+                ? 'Tất cả tài nguyên texture dựng hình trong thư viện'
+                : `Bộ sưu tập texture mặt phẳng danh mục ${catTooltip.cat.title}`}
+            </div>
+            <div className="tooltip-count">
+              <span>🖼️ {catTooltip.count} ảnh chất liệu</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 2. Main Content: Header & Catalog */}

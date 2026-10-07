@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import type { Model3D } from './types'
+import { formatFaceLabel, type Model3D } from './types'
 import { AssemblyViewport, type GizmoMode } from './AssemblyViewport'
 import { FaceInspector } from './FaceInspector'
 import { AssemblyAssetSidebar } from './AssemblyAssetSidebar'
@@ -43,6 +43,7 @@ export function Assembly3DDialog({
   const [gizmoMode, setGizmoMode] = useState<GizmoMode>('translate')
   const [meshEditMode, setMeshEditMode] = useState<'none' | 'erase' | 'select'>('none')
   const [inserting, setInserting] = useState(false)
+  const [showMesh2D, setShowMesh2D] = useState(true)
 
   const selectedFace = useMemo(() => {
     return model.faces.find((f) => f.id === selectedFaceId) || null
@@ -409,6 +410,8 @@ export function Assembly3DDialog({
                 face={selectedFace}
                 resolvedTexture={selectedResolvedTexture}
                 onUpdateFace={handleUpdateFace}
+                showMesh={showMesh2D}
+                onToggleMesh={() => setShowMesh2D((prev) => !prev)}
               />
             )}
 
@@ -417,12 +420,14 @@ export function Assembly3DDialog({
                 <div className="assembly-split-pane left-pane">
                   <div className="pane-header-tab">
                     <span className="pane-title">🎨 Mặt phẳng 2D (Photoshop Grid)</span>
-                    <span>{selectedFace ? selectedFace.name : 'Chưa chọn'}</span>
+                    <span>{selectedFace ? formatFaceLabel(selectedFace.name) : 'Chưa chọn'}</span>
                   </div>
                   <Mesh2DTextureEditor
                     face={selectedFace}
                     resolvedTexture={selectedResolvedTexture}
                     onUpdateFace={handleUpdateFace}
+                    showMesh={showMesh2D}
+                    onToggleMesh={() => setShowMesh2D((prev) => !prev)}
                   />
                 </div>
                 <div className="assembly-split-pane">

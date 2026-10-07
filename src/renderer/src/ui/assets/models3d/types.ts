@@ -69,3 +69,26 @@ export interface Model3D {
   createdAt: number
   updatedAt: number
 }
+
+/**
+ * Rút gọn tên diện phẳng hiển thị trên thanh công cụ / HUD (VD: "Trước", "Sau", "Trái", "Phải", "Trên", "Dưới")
+ */
+export function formatFaceLabel(name?: string): string {
+  if (!name) return 'Chưa chọn'
+  const lower = name.toLowerCase()
+  if (lower.includes('tiền') || lower.includes('chính diện') || lower.includes('front') || lower.includes('trước')) return 'Trước'
+  if (lower.includes('sau') || lower.includes('back')) return 'Sau'
+  if (lower.includes('trái') && (lower.includes('mái') || lower.includes('roof'))) return 'Mái trái'
+  if (lower.includes('phải') && (lower.includes('mái') || lower.includes('roof'))) return 'Mái phải'
+  if (lower.includes('trái') && (lower.includes('khói') || lower.includes('chimney'))) return 'Khói trái'
+  if (lower.includes('phải') && (lower.includes('khói') || lower.includes('chimney'))) return 'Khói phải'
+  if (lower.includes('trái') || lower.includes('left')) return 'Trái'
+  if (lower.includes('phải') || lower.includes('right')) return 'Phải'
+  if (lower.includes('trên') || lower.includes('top') || lower.includes('nắp')) return 'Trên'
+  if (lower.includes('dưới') || lower.includes('bottom') || lower.includes('đáy')) return 'Dưới'
+  if (lower.includes('sàn') || lower.includes('floor') || lower.includes('ground')) return 'Dưới'
+
+  // Xóa số thứ tự và chú thích tiếng Anh thừa: "1. Mặt Tiền (Gable Front)" -> "Mặt Tiền"
+  const clean = name.replace(/^\d+[\.\s\-]+/, '').replace(/\s*\([^)]*\)/g, '').trim()
+  return clean || name
+}
