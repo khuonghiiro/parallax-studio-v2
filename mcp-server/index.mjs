@@ -492,6 +492,47 @@ tool('set_audio', 'Set the soundtrack from an audio file, adjust offset/volume, 
   volume: z.number().min(0).max(1).optional(),
   remove: z.boolean().optional()
 })
+tool('get_audio_info', 'Get overview of all audio tracks in the project timeline, including duration, offset, volume, and playback parameters.', {})
+tool('add_audio_track', 'Add an audio track from a file or existing project asset at a specific timeline offset.', {
+  file_path: z.string().optional().describe('Path to an audio file on disk (mp3, wav, aac, ogg).'),
+  asset_id: z.string().optional().describe('ID of an existing audio asset already in the project.'),
+  name: z.string().optional(),
+  offset: z.number().optional().describe('Timeline start time in seconds (defaults to current playhead).'),
+  volume: z.number().min(0).max(1).optional().describe('Volume (0 to 1, default 1).'),
+  muted: z.boolean().optional(),
+  loop: z.boolean().optional(),
+  fade_in: z.number().optional().describe('Fade-in duration in seconds.'),
+  fade_out: z.number().optional().describe('Fade-out duration in seconds.'),
+  playback_rate: z.number().optional().describe('Speed factor (0.25 to 4.0).')
+})
+tool('update_audio_track', 'Update parameters of an audio track: volume, offset, mute, loop, speed, fade, duration, or gain.', {
+  track_id: z.string().describe('Track ID or "main" for the primary audio track.'),
+  name: z.string().optional(),
+  offset: z.number().optional().describe('Start time on timeline (seconds).'),
+  volume: z.number().min(0).max(1).optional(),
+  muted: z.boolean().optional(),
+  loop: z.boolean().optional(),
+  playback_rate: z.number().optional(),
+  fade_in: z.number().optional(),
+  fade_out: z.number().optional(),
+  trim_in: z.number().optional(),
+  duration: z.number().optional(),
+  gain_db: z.number().optional().describe('dB offset (-24 to +12).')
+})
+tool('delete_audio_track', 'Remove an audio track from the project by its ID.', {
+  track_id: z.string().describe('Track ID to remove (or "main").')
+})
+tool('duplicate_audio_track', 'Duplicate an audio track in the project at an optional timeline delta.', {
+  track_id: z.string().describe('Track ID to duplicate.'),
+  offset_delta: z.number().optional().describe('Seconds to shift the duplicate track (default 0.5s).')
+})
+tool('split_audio_track', 'Split an audio track into two separate tracks at a given timeline time.', {
+  track_id: z.string().describe('Track ID to split.'),
+  split_time: z.number().optional().describe('Time in seconds to split at (default: current playhead).')
+})
+tool('merge_audio_tracks', 'Mix and merge multiple audio tracks (or all tracks) into a single master WAV audio track.', {
+  track_ids: z.array(z.string()).optional().describe('List of track IDs to merge. If omitted, merges all audio tracks.')
+})
 tool('set_time', 'Move the playhead (the user sees it in the app).', { time: z.number() })
 tool('set_playing', 'Start/stop playback in the app.', { playing: z.boolean() })
 tool('select', 'Select a layer or shot in the app UI (omit both to clear).', { layer_id: z.string().optional(), shot_id: z.string().optional() })

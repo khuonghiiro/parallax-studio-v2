@@ -52,13 +52,22 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
 - **Quy tắc tương phản:** Tuyệt đối không hardcode mã màu cố định như `#ffffff`, `#000000`, `#141414` vào thuộc tính `color`, `background` hay `fill` của SVG mà không có selector phân định theme. Khi bổ sung UI mới, phải kiểm tra độ tương phản rõ nét trên cả hai theme.
 
 ### 2.4. Giao Thức Điều Khiển AI Qua MCP & CLI Controller (`pnpm pxs`)
-- **Máy chủ MCP nội bộ:** Ứng dụng cung cấp MCP Server tại `mcp-server/index.mjs` kết nối qua TCP `127.0.0.1:9877` với 45 công cụ chuyên biệt để AI thao tác trực tiếp (xem chi tiết tại `mcp-server/README.md`).
+- **Máy chủ MCP nội bộ:** Ứng dụng cung cấp MCP Server tại `mcp-server/index.mjs` kết nối qua TCP `127.0.0.1:9877` với hơn 50 công cụ chuyên biệt để AI thao tác trực tiếp (xem chi tiết tại `mcp-server/README.md`).
 - **Bộ điều khiển CLI (`pnpm pxs`):** AI Agent có thể tra cứu toàn diện và điều khiển trực tiếp qua terminal:
-  - `pnpm pxs --help` / `pnpm pxs help <tool>`: Đọc toàn bộ catalog 45 tools và quy ước tọa độ 2.5D.
+  - `pnpm pxs --help` / `pnpm pxs help <tool>`: Đọc toàn bộ catalog 50+ tools và quy ước tọa độ 2.5D.
   - `pnpm pxs status` / `pnpm pxs inspect`: Kiểm tra trạng thái và xuất JSON toàn bộ dự án hiện tại.
   - `pnpm pxs review --view camera --out <path>`: Chụp ảnh viewport thực tế để AI dùng `view_file` xem và đánh giá bố cục cảnh bằng mắt.
-  - `pnpm pxs call <tool> '<json>'`: Thực thi thêm/sửa layer, shot, keyframe theo thời gian thực (realtime) như người dùng thao tác.
+  - `pnpm pxs call <tool> '<json>'`: Thực thi thêm/sửa layer, shot, audio, keyframe theo thời gian thực (realtime) như người dùng thao tác.
 - **Bảo toàn tài nguyên:** Khi hoàn tất tác vụ tự động hóa, AI client hoặc người dùng cần ngắt kết nối (`disconnectAll`) hoặc tạm dừng server để tránh duy trì socket chạy ngầm gây hao tốn CPU/RAM máy tính.
+
+### 2.5. Nguyên Tắc Đồng Bộ Tính Năng & AI MCP Controller (Feature & MCP Parity Principle - Bắt Buộc)
+- **Đồng bộ song hành 100%:** Khi bổ sung hoặc sửa đổi bất kỳ logic nghiệp vụ, tính năng xử lý nào trong ứng dụng (ví dụ: quản lý âm thanh đa luồng `audioTracks`, hiệu ứng FX, layer, camera, shot, render...):
+  1. **Renderer Commands (`src/renderer/src/mcp/commands/`):** Bắt buộc tạo/cập nhật handler tương ứng nhận lệnh và mutate state qua `useEditor.update()` để hỗ trợ hoàn tác Undo/Redo (Ctrl+Z) và hiển thị realtime trên UI.
+  2. **MCP Server (`mcp-server/index.mjs`):** Đăng ký tool mới với Zod schema mô tả rõ ràng mục đích và từng tham số.
+  3. **CLI Controller (`mcp-server/cli.mjs`):** Bổ sung vào catalog `pnpm pxs` (kèm danh mục, mô tả tham số và ví dụ lệnh gọi thực tế).
+  4. **Antigravity Tool Schemas (`~/.gemini/antigravity-ide/mcp/parallax-studio/*.json`):** Khởi tạo/cập nhật JSON schema tương ứng để AI Agent có thể gọi tool ngay lập tức.
+  5. **Tài liệu hướng dẫn:** Cập nhật ngay `mcp-server/README.md`, `README.md` và `AGENTS.md`. Tuyệt đối không để xảy ra tình trạng ứng dụng có logic nhưng AI/MCP bị mù hoặc thiếu công cụ thao tác (như tình trạng thiếu logic âm thanh trước đây).
+  6. **Unit Tests:** Luôn viết test kiểm thử cho MCP commands mới trong `src/renderer/src/mcp/commands/*.test.ts`.
 
 ---
 

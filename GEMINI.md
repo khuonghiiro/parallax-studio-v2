@@ -9,4 +9,5 @@ Xem chi tiết quy chuẩn toàn diện tại file [AGENTS.md](./AGENTS.md).
 4. **Skills & Rules:** Hệ thống luật và kỹ năng chi tiết nằm trong `.agents/rules/` và `.agents/skills/`.
 5. **Quy Chuẩn 2 Theme (Sáng & Tối):** Luôn dùng Design Tokens CSS (`variables.css`). Tuyệt đối không hardcode màu tĩnh, kiểm tra độ tương phản rõ ràng trên cả Dark Mode (`[data-theme='dark']`) và Light Mode (`[data-theme='light']`).
 6. **Giao Thức MCP & CLI Controller:** Quản lý kết nối MCP server qua `mcp-server/index.mjs` (TCP:9877) hoặc dùng CLI Controller `pnpm pxs` (`--help`, `review`, `call`, `status`) để AI điều khiển realtime và review cảnh; luôn ngắt kết nối hoặc tắt server khi không dùng để tiết kiệm CPU/RAM.
+7. **Đồng Bộ Tính Năng & MCP (Feature & MCP Parity Principle):** BẮT BUỘC khi thêm hoặc cập nhật bất kỳ logic nghiệp vụ nào trong ứng dụng (audio, fx, layer, shot, camera...), phải cập nhật song hành MCP commands (`src/renderer/src/mcp/commands/`), MCP server tools (`mcp-server/index.mjs`), CLI catalog (`pnpm pxs`), tool schemas (`~/.gemini/antigravity-ide/mcp/parallax-studio/`) và tài liệu hướng dẫn để AI Agent luôn có khả năng hiểu và điều khiển ứng dụng 100%.
 

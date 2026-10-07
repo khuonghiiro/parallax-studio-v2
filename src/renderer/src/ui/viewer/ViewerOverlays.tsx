@@ -67,14 +67,36 @@ export function ViewerOverlays({
       </div>
 
       {view.split && rects.cam && (
-        <span className="chip pane-tag" style={{ left: rects.cam.x + 8, top: rects.cam.y + rects.cam.h - 30 }}>
-          <IconCamera /> Camera
+        <span
+          className="pane-tag"
+          style={{
+            left: rects.cam.x + 8,
+            top: rects.cam.y + rects.cam.h - 34,
+            maxWidth: Math.max(120, rects.cam.w - 16)
+          }}
+          title="Khung nhìn Camera (Góc render video chính thức)"
+        >
+          <span className="pane-tag-badge">
+            <IconCamera /> Camera
+          </span>
         </span>
       )}
       {showEd && (
-        <span className="chip pane-tag" style={{ left: rects.ed!.x + 12, top: rects.ed!.y + rects.ed!.h - 32 }}>
-          <IconCube /> 3D · {kindLabel}
-          <span className="pane-hint">Kéo: xoay · Shift/chuột phải: pan · Lăn: zoom · F: focus · Double-click cảnh: bay tới</span>
+        <span
+          className="pane-tag"
+          style={{
+            left: rects.ed!.x + 12,
+            top: rects.ed!.y + rects.ed!.h - 34,
+            maxWidth: Math.max(160, rects.ed!.w - 24)
+          }}
+          title={`Không gian 3D (${kindLabel})\n• Chuột trái: Xoay tự do (Orbit)\n• Shift + Chuột trái / Chuột phải: Di chuyển mặt phẳng (Pan)\n• Cuộn chuột: Phóng to / Thu nhỏ (Zoom)\n• Phím F: Tiêu điểm (Focus vào layer hoặc cảnh đang chọn)\n• Nhấp đúp chuột vào cảnh: Bay camera tới cảnh đó`}
+        >
+          <span className="pane-tag-badge">
+            <IconCube /> 3D · {kindLabel}
+          </span>
+          <span className="pane-hint">
+            Kéo: xoay · Shift: pan · Lăn: zoom · F: focus · Nhấp đúp cảnh: bay tới
+          </span>
         </span>
       )}
 

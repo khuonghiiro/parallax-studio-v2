@@ -6,6 +6,7 @@ import { assetStore } from '../../project/assets'
 import * as factory from '../../project/factory'
 import { deserializeProject, serializeProject } from '../../project/serialize'
 import { exportProjectToJson, importProjectFromJson } from '../../project/jsonFormat'
+import { addAudioTrackToProject, getProjectAudioTracks, syncProjectAudio } from '../../project/audioTracks'
 import { ParamError, ed, proj, type Handler } from '../types'
 import { bool, has, num, str } from '../params'
 import { cameraSummary, layerSummary, shotSummary } from '../summaries'
@@ -30,6 +31,16 @@ export const projectCommands: Record<string, Handler> = {
       camera: cameraSummary(project, t),
       look: project.look,
       audio: project.audio && { ...project.audio, name: assetStore.get(project.audio.assetId)?.meta.name },
+      audio_tracks: getProjectAudioTracks(project).map((t) => ({
+        id: t.id,
+        name: t.name,
+        assetId: t.assetId,
+        offset: t.offset,
+        volume: t.volume,
+        duration: t.duration ?? assetStore.get(t.assetId)?.meta.duration,
+        muted: !!t.muted,
+        loop: !!t.loop
+      })),
       assets: project.assets.map((a) => ({ id: a.id, name: a.name, kind: a.kind, width: a.width, height: a.height, duration: a.duration }))
     }
   },
@@ -132,24 +143,37 @@ export const projectCommands: Record<string, Handler> = {
     if (bool(p, 'remove')) {
       ed().update((d) => {
         d.audio = null
+        d.audioTracks = []
       })
-      return { audio: null }
+      return { audio: null, tracks: [] }
     }
     if (cmd.file) {
       if (!cmd.file.mime.startsWith('audio/')) throw new ParamError(`Not an audio file: ${cmd.file.name}`)
       const asset = await assetStore.add(cmd.file.name, cmd.file.mime, cmd.file.data, 'audio')
       ed().update((d) => {
-        d.assets.push(asset.meta)
-        d.audio = { assetId: asset.meta.id, offset: 0, volume: 1 }
+        if (!d.assets.some((a) => a.id === asset.meta.id)) {
+          d.assets.push(asset.meta)
+        }
+        addAudioTrackToProject(d as Project, asset.meta.id, asset.meta.name, num(p, 'offset') ?? 0)
       })
     }
-    if (!proj().audio) throw new ParamError('No audio track: provide "file_path"')
+    if (!proj().audio && (!proj().audioTracks || proj().audioTracks.length === 0)) {
+      throw new ParamError('No audio track: provide "file_path"')
+    }
     ed().update((d) => {
-      if (has(p, 'offset')) d.audio!.offset = num(p, 'offset')!
-      if (has(p, 'volume')) d.audio!.volume = Math.max(0, Math.min(1, num(p, 'volume')!))
+      const tracks = getProjectAudioTracks(d as Project)
+      if (tracks.length > 0) {
+        if (has(p, 'offset')) tracks[0].offset = num(p, 'offset')!
+        if (has(p, 'volume')) tracks[0].volume = Math.max(0, Math.min(1, num(p, 'volume')!))
+      }
+      syncProjectAudio(d as Project)
     })
     const a = proj().audio!
-    return { ...a, duration: assetStore.get(a.assetId)?.meta.duration }
+    return {
+      ...a,
+      duration: assetStore.get(a.assetId)?.meta.duration,
+      tracks: getProjectAudioTracks(proj())
+    }
   },
 
   export_video: async (p) => {

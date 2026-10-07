@@ -124,7 +124,17 @@ Khi sắp xếp layer hoặc camera trong Parallax Studio, AI cần nắm rõ qu
 - `camera_fly_to_shot`: Hướng camera bay trực tiếp tới bao quát phân cảnh chỉ định.
 - `build_camera_path`: Tự động sinh đường bay Bezier mượt mà kết nối liên tục tất cả các shot.
 
-### 4.6. Nhóm Điều Khiển Timeline & Xuất Video (Playback & Export)
+### 4.6. Nhóm Xử Lý & Dàn Dựng Âm Thanh Đa Luồng (Audio Tracks)
+- `set_audio`: Đặt hoặc xóa nhạc nền chính (`file_path`, `offset`, `volume`, `remove`).
+- `get_audio_info`: Lấy thông tin chi tiết toàn bộ các tracks âm thanh trên timeline (thời lượng, offset, volume, speed, fade...).
+- `add_audio_track`: Thêm đoạn âm thanh từ file (`file_path`) hoặc asset có sẵn (`asset_id`) tại mốc thời gian `offset`.
+- `update_audio_track`: Cập nhật thuộc tính của track (`volume`, `offset`, `playback_rate`, `fade_in`, `fade_out`, `gain_db`, `muted`...).
+- `delete_audio_track`: Xóa một track âm thanh khỏi timeline theo ID.
+- `duplicate_audio_track`: Nhân bản một đoạn âm thanh lùi sau một khoảng thời gian `offset_delta` (mặc định 0.5s).
+- `split_audio_track`: Cắt đôi một đoạn âm thanh tại mốc thời gian `split_time` (mặc định tại con trỏ playhead).
+- `merge_audio_tracks`: Hòa âm và gộp nhiều tracks (hoặc tất cả các tracks) thành 1 file WAV tổng hợp trong dự án.
+
+### 4.7. Nhóm Điều Khiển Timeline & Xuất Video (Playback & Export)
 - `set_time`: Di chuyển con trỏ thời gian (playhead) tới giây `time`.
 - `set_playing`: Phát hoặc tạm dừng phát hoạt ảnh.
 - `export_video`: Xuất toàn bộ hoặc 1 shot ra file video MP4 hoàn chỉnh bằng FFmpeg.

@@ -5,6 +5,7 @@ import { projectCommands } from './commands/projectCommands'
 import { shotCommands } from './commands/shotCommands'
 import { layerCommands } from './commands/layerCommands'
 import { cameraCommands } from './commands/cameraCommands'
+import { audioCommands } from './commands/audioCommands'
 import { systemCommands } from './commands/systemCommands'
 
 /**
@@ -20,6 +21,7 @@ const commands: Record<string, Handler> = {
   ...shotCommands,
   ...layerCommands,
   ...cameraCommands,
+  ...audioCommands,
   ...systemCommands
 }
 

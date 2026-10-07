@@ -292,29 +292,79 @@ const TOOLS_CATALOG = {
     params: '{ "transition_duration"?: number, "easing"?: string }'
   },
 
+  // Nhóm Xử lý & Dàn dựng Âm Thanh
+  set_audio: {
+    category: '6. Xử lý & Dàn dựng Âm Thanh (Audio)',
+    desc: 'Đặt hoặc gỡ bỏ nhạc nền cho dự án từ file âm thanh.',
+    params: '{ "file_path"?: string, "offset"?: number, "volume"?: number, "remove"?: boolean }',
+    example: 'node mcp-server/cli.mjs call set_audio \'{"file_path": "assets/bgm.mp3", "volume": 0.8}\''
+  },
+  get_audio_info: {
+    category: '6. Xử lý & Dàn dựng Âm Thanh (Audio)',
+    desc: 'Xem danh sách toàn bộ các track âm thanh trên timeline (thời lượng, offset, volume, loop, speed...).',
+    params: '{}',
+    example: 'node mcp-server/cli.mjs call get_audio_info'
+  },
+  add_audio_track: {
+    category: '6. Xử lý & Dàn dựng Âm Thanh (Audio)',
+    desc: 'Thêm track âm thanh mới vào timeline từ file hoặc asset có sẵn tại mốc thời gian offset.',
+    params: '{ "file_path"?: string, "asset_id"?: string, "name"?: string, "offset"?: number, "volume"?: number, "muted"?: boolean, "loop"?: boolean }',
+    example: 'node mcp-server/cli.mjs call add_audio_track \'{"file_path": "assets/sfx.wav", "offset": 1.5, "volume": 0.9}\''
+  },
+  update_audio_track: {
+    category: '6. Xử lý & Dàn dựng Âm Thanh (Audio)',
+    desc: 'Chỉnh sửa thuộc tính của track âm thanh (volume, offset, tốc độ, fade in/out, gain dB...).',
+    params: '{ "track_id": string, "volume"?: number, "offset"?: number, "playback_rate"?: number, "gain_db"?: number }',
+    example: 'node mcp-server/cli.mjs call update_audio_track \'{"track_id": "audio-xyz", "volume": 0.5}\''
+  },
+  delete_audio_track: {
+    category: '6. Xử lý & Dàn dựng Âm Thanh (Audio)',
+    desc: 'Xoá một track âm thanh khỏi timeline theo ID.',
+    params: '{ "track_id": string }',
+    example: 'node mcp-server/cli.mjs call delete_audio_track \'{"track_id": "audio-xyz"}\''
+  },
+  duplicate_audio_track: {
+    category: '6. Xử lý & Dàn dựng Âm Thanh (Audio)',
+    desc: 'Nhân bản đoạn âm thanh lùi thêm một khoảng thời gian offset_delta.',
+    params: '{ "track_id": string, "offset_delta"?: number }',
+    example: 'node mcp-server/cli.mjs call duplicate_audio_track \'{"track_id": "audio-xyz", "offset_delta": 2.0}\''
+  },
+  split_audio_track: {
+    category: '6. Xử lý & Dàn dựng Âm Thanh (Audio)',
+    desc: 'Cắt đôi một track âm thanh thành 2 phần tại thời điểm split_time.',
+    params: '{ "track_id": string, "split_time"?: number }',
+    example: 'node mcp-server/cli.mjs call split_audio_track \'{"track_id": "audio-xyz", "split_time": 3.2}\''
+  },
+  merge_audio_tracks: {
+    category: '6. Xử lý & Dàn dựng Âm Thanh (Audio)',
+    desc: 'Hòa âm và gộp nhiều track âm thanh (hoặc tất cả các tracks) thành 1 track WAV duy nhất.',
+    params: '{ "track_ids"?: string[] }',
+    example: 'node mcp-server/cli.mjs call merge_audio_tracks \'{}\''
+  },
+
   // Nhóm Xuất video & Điều khiển
   set_time: {
-    category: '6. Timeline & Xuất Video',
+    category: '7. Timeline & Xuất Video',
     desc: 'Di chuyển con trỏ thời gian (playhead) tới giây time.',
     params: '{ "time": number }'
   },
   set_playing: {
-    category: '6. Timeline & Xuất Video',
+    category: '7. Timeline & Xuất Video',
     desc: 'Phát hoặc dừng phát hoạt ảnh realtime.',
     params: '{ "playing": boolean }'
   },
   undo: {
-    category: '6. Timeline & Xuất Video',
+    category: '7. Timeline & Xuất Video',
     desc: 'Hoàn tác thao tác vừa thực hiện.',
     params: '{}'
   },
   redo: {
-    category: '6. Timeline & Xuất Video',
+    category: '7. Timeline & Xuất Video',
     desc: 'Làm lại thao tác vừa hoàn tác.',
     params: '{}'
   },
   export_video: {
-    category: '6. Timeline & Xuất Video',
+    category: '7. Timeline & Xuất Video',
     desc: 'Render và xuất video MP4 qua FFmpeg.',
     params: '{ "out_path"?: string, "fps"?: number, "quality"?: "draft"|"high"|"ultra" }'
   }
@@ -361,7 +411,7 @@ async function cmdHelp(toolName) {
   pnpm pxs help <tool_name>             Xem chi tiết 1 công cụ cụ thể
   pnpm pxs disconnect                   Ngắt kết nối để giải phóng CPU/RAM
 
-📋 DANH MỤC 42 CÔNG CỤ MCP KHẢ DỤNG:`)
+📋 DANH MỤC ${Object.keys(TOOLS_CATALOG).length} CÔNG CỤ MCP KHẢ DỤNG:`)
 
   let currentCat = ''
   for (const [name, info] of Object.entries(TOOLS_CATALOG)) {

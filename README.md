@@ -96,17 +96,18 @@ Thêm vào `mcp_config.json` của Antigravity (Settings → MCP), sửa đườ
 
 Claude Desktop, Cursor và các client MCP khác dùng cùng cấu hình `command` / `args` như trên. **Hãy mở app trước**, rồi mới để AI gọi tool.
 
-### Các tool (38)
+### Các tool (50+)
 
 | Nhóm | Tool |
 | --- | --- |
 | Xem | `get_project_info`, `get_shot_info`, `get_layer_info`, `get_camera_info`, `get_memory_stats`, `get_viewport_screenshot` (view `camera` hoặc `3d`) |
 | Dự án | `new_project`, `set_composition`, `save_project`, `open_project`, `undo`, `redo` |
 | Cảnh | `add_shot`, `update_shot`, `delete_shot` |
-| Layer | `add_image_layer` (file_path / base64 / repeat), `add_text_layer`, `add_solid_layer`, `add_ground_layer` (sàn 3D), `add_particles`, `update_layer`, `delete_layer`, `move_layer` |
+| Layer | `add_image_layer` (file_path / base64 / repeat), `add_text_layer`, `add_solid_layer`, `add_ground_layer` (sàn 3D), `add_particles`, `update_layer`, `delete_layer`, `move_layer`, `split_layer`, `apply_layer_fx`, `toggle_layer_fx`, `remove_layer_fx`, `set_layer_glow`, `replace_layer_asset` |
+| Âm thanh | `set_audio`, `get_audio_info`, `add_audio_track`, `update_audio_track`, `delete_audio_track`, `duplicate_audio_track`, `split_audio_track`, `merge_audio_tracks` |
 | Keyframe | `set_keyframe`, `remove_keyframe`, `clear_keyframes` |
 | Camera | `set_camera`, `apply_camera_preset`, `camera_fly_to_shot`, `build_camera_path` |
-| Khác | `set_look`, `set_audio`, `set_time`, `set_playing`, `select`, `set_view`, `export_video`, `execute_script` |
+| Khác | `set_look`, `set_time`, `set_playing`, `select`, `set_view`, `export_video`, `execute_script` |
 
 Ví dụ prompt cho AI: *"Tạo 3 cảnh: rừng đêm, biển lúc bình minh, thành phố neon. Mỗi cảnh có 4–5 layer ở các độ sâu khác nhau và một tiêu đề. Camera bay vòng cung giữa các cảnh, mỗi cảnh dừng 3 giây. Chụp 3D view cho tôi xem, rồi xuất MP4 1080p ra D:/Videos/demo.mp4."*
 
