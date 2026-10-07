@@ -98,6 +98,12 @@ async function sendCommand(method, params = {}) {
 // ------------------------------------------------------------------ Tool Documentation Registry
 const TOOLS_CATALOG = {
   // Nhóm Tra Cứu
+  list_commands: {
+    category: '1. Truy vấn & Thông tin',
+    desc: 'Liệt kê danh sách tất cả các lệnh MCP khả dụng trong Parallax Studio.',
+    params: '{}',
+    example: 'node mcp-server/cli.mjs call list_commands'
+  },
   get_project_info: {
     category: '1. Truy vấn & Thông tin',
     desc: 'Lấy toàn bộ thông tin tổng quan dự án: composition, danh sách shots, layers, camera, look, audio, assets.',
@@ -171,6 +177,26 @@ const TOOLS_CATALOG = {
     category: '2. Dự án & Cảnh (Shots)',
     desc: 'Xóa một phân cảnh khỏi dự án.',
     params: '{ "shot_id": string }'
+  },
+  import_project_json: {
+    category: '2. Dự án & Cảnh (Shots)',
+    desc: 'Nhập toàn bộ cấu trúc dự án từ chuỗi JSON hoặc file JSON.',
+    params: '{ "json"?: object|string, "file_path"?: string }'
+  },
+  export_project_json: {
+    category: '2. Dự án & Cảnh (Shots)',
+    desc: 'Xuất toàn bộ cấu trúc dữ liệu dự án hiện tại thành chuỗi JSON.',
+    params: '{}'
+  },
+  import_shot_json: {
+    category: '2. Dự án & Cảnh (Shots)',
+    desc: 'Nhập dữ liệu một phân cảnh và các layer của nó từ chuỗi JSON hoặc file.',
+    params: '{ "json"?: object|string, "file_path"?: string }'
+  },
+  export_shot_json: {
+    category: '2. Dự án & Cảnh (Shots)',
+    desc: 'Xuất dữ liệu một phân cảnh và các layer tương ứng thành JSON.',
+    params: '{ "shot": string }'
   },
 
   // Nhóm Layers & Không gian 2.5D
@@ -292,6 +318,18 @@ const TOOLS_CATALOG = {
     desc: 'Tự động tính toán đường bay Bezier mượt mà nối tất cả các phân cảnh trong dự án.',
     params: '{ "transition_duration"?: number, "easing"?: string }'
   },
+  set_look: {
+    category: '5. Camera & Đường bay 3D',
+    desc: 'Thiết lập bầu không khí visual: sương mù chiều sâu 3D (fog), tối góc vignette, hạt phim grain, phơi sáng exposure, độ tương phản contrast, độ bão hoà màu saturation.',
+    params: '{ "fog_enabled"?: boolean, "fog_color"?: string, "fog_near"?: number, "fog_far"?: number, "vignette"?: number, "grain"?: number, "exposure"?: number, "contrast"?: number, "saturation"?: number }',
+    example: 'node mcp-server/cli.mjs call set_look \'{"fog_enabled": true, "fog_color": "#24163a", "vignette": 0.25}\''
+  },
+  set_view: {
+    category: '5. Camera & Đường bay 3D',
+    desc: 'Chuyển đổi góc nhìn Viewport ("camera", "3d" hoặc "split"), bật/tắt camera_only, show_path hoặc focus vào shot/layer.',
+    params: '{ "mode"?: "camera"|"3d"|"split", "focus"?: "all"|"selection"|shot_id, "camera_only"?: boolean, "show_path"?: boolean }',
+    example: 'node mcp-server/cli.mjs call set_view \'{"mode": "3d", "focus": "all"}\''
+  },
 
   // Nhóm Xử lý & Dàn dựng Âm Thanh
   set_audio: {
@@ -363,6 +401,17 @@ const TOOLS_CATALOG = {
     category: '7. Timeline & Xuất Video',
     desc: 'Làm lại thao tác vừa hoàn tác.',
     params: '{}'
+  },
+  select: {
+    category: '7. Timeline & Xuất Video',
+    desc: 'Chọn hoặc bỏ chọn một layer hoặc phân cảnh (shot) trên giao diện Timeline và 3D Viewer.',
+    params: '{ "layer_id"?: string, "shot_id"?: string }',
+    example: 'node mcp-server/cli.mjs call select \'{"layer_id": "HDw9Vk03FX"}\''
+  },
+  execute_script: {
+    category: '7. Timeline & Xuất Video',
+    desc: 'Thực thi mã JavaScript tùy biến trực tiếp trong runtime của app (truy cập api.project, api.keyframes, api.THREE, api.update...).',
+    params: '{ "code": string }'
   },
   export_video: {
     category: '7. Timeline & Xuất Video',

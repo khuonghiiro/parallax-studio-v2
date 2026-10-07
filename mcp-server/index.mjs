@@ -177,6 +177,7 @@ function tool(name, description, shape, opts = {}) {
 }
 
 // ---- inspect
+tool('list_commands', 'List all available MCP command names in Parallax Studio.', {})
 tool('get_project_info', 'Overview of the open project: composition, shots (with framing camera), layers (summaries), camera, look, audio, assets, selection.', {})
 tool('get_shot_info', 'Details of one shot and its layers.', { shot_id: z.string(), time: z.number().optional() })
 tool('get_layer_info', 'Full JSON of one layer, including all keyframes and props.', { layer_id: z.string() })
