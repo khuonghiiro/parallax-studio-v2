@@ -22,6 +22,7 @@ import {
   ROOM_THUMBNAIL
 } from './models3d/templateThumbnails'
 import { IconCube, IconPlus, IconPen, IconTrash, IconCopy } from '../icons'
+import '../../styles/model3dLibrary.css'
 
 const DEFAULT_CATEGORIES: Asset3DsCategory[] = [
   { id: 'all', title: 'Tất cả mô hình', icon: 'all', order: 0 },
@@ -207,7 +208,7 @@ export function Model3DList() {
                       onClick={() => handleDuplicate(m.id)}
                       title="Nhân bản (tạo bản sao) mô hình này"
                     >
-                      <IconCopy width={12} height={12} />
+                      <IconCopy width={10} height={10} />
                     </button>
                     <button
                       type="button"
@@ -215,7 +216,7 @@ export function Model3DList() {
                       onClick={() => handleDelete(m.id)}
                       title="Xóa mô hình này"
                     >
-                      <IconTrash width={12} height={12} />
+                      <IconTrash width={10} height={10} />
                     </button>
                     <button
                       type="button"
@@ -223,7 +224,7 @@ export function Model3DList() {
                       onClick={() => setActiveEditingModel(m)}
                       title="Chỉnh sửa mô hình 3D trong Xưởng Lắp Ráp"
                     >
-                      <IconPen width={12} height={12} />
+                      <IconPen width={10} height={10} />
                     </button>
                     <button
                       type="button"
@@ -232,19 +233,21 @@ export function Model3DList() {
                       disabled={insertingId === m.id}
                       title="Thêm mô hình 3D vào phân cảnh (+)"
                     >
-                      <IconPlus width={14} height={14} />
+                      <IconPlus width={12} height={12} />
                     </button>
                   </div>
                 </div>
 
-                {/* Card Meta: Chỉ hiện tên mô hình và category chip gọn gàng */}
+                {/* Card Meta: Tên mô hình và category chip gọn gàng cho lưới 2 cột */}
                 <div className="model-3d-card-body">
-                  <div className="card-title-row">
-                    <span className="card-title" title={m.name}>
-                      {m.name}
-                    </span>
-                    {m.category && <span className="cat-badge">{m.category}</span>}
-                  </div>
+                  <span className="card-title" title={m.name}>
+                    {m.name}
+                  </span>
+                  {m.category && (
+                    <div className="card-meta-row">
+                      <span className="cat-badge">{m.category}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )
