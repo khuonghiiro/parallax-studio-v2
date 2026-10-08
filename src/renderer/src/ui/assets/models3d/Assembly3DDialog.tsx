@@ -211,7 +211,20 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
       : f)), DISCRETE)
   }
 
-  const handleUpdateFace = (faceId: string, updates: Partial<Face3D>) => setFaces((faces) => patchFace(faces, faceId, updates))
+  const handleUpdateFace = (faceId: string, updates: Partial<Face3D>) => {
+    const isMotionUpdate = 'motionType' in updates || 'motionSpeed' in updates || 'motionAmplitude' in updates || 'motionDirection' in updates || 'motionAnchor' in updates
+    if (model.lockedStructure && isMotionUpdate) {
+      const motionFields: Partial<Face3D> = {}
+      if ('motionType' in updates) motionFields.motionType = updates.motionType
+      if ('motionSpeed' in updates) motionFields.motionSpeed = updates.motionSpeed
+      if ('motionAmplitude' in updates) motionFields.motionAmplitude = updates.motionAmplitude
+      if ('motionDirection' in updates) motionFields.motionDirection = updates.motionDirection
+      if ('motionAnchor' in updates) motionFields.motionAnchor = updates.motionAnchor
+      setFaces((faces) => faces.map((f) => (f.id === faceId ? { ...f, ...updates } : { ...f, ...motionFields })))
+      return
+    }
+    setFaces((faces) => patchFace(faces, faceId, updates))
+  }
 
   const handleDropAsset = (assetPath: string, pos3D?: [number, number, number], hitFaceId?: string | null) => {
     if (hitFaceId) {

@@ -12,7 +12,7 @@ import { AssemblyLightingSection } from './AssemblyLightingSection'
 import { FaceJoinSection } from './FaceJoinSection'
 import { FaceClipSection } from './FaceClipSection'
 import { addFoldedFace, centerFaces, newFaceId, patchFace } from './assemblyFaceOps'
-import { IconCube, IconLayers, IconGrid, IconSun, IconPlus } from '../../icons'
+import { IconCube, IconLayers, IconGrid, IconSun, IconPlus, IconLock } from '../../icons'
 
 export type InspectorTab = 'face' | 'layers' | 'templates' | 'lighting'
 
@@ -36,7 +36,42 @@ export function FaceInspector({ model, selectedFaceId, imageSize, onChangeModel,
   const setFaces = (faces: Face3D[], opts?: SetModelOptions) => onChangeModel({ ...model, faces }, opts)
 
   const handleUpdateFace = (patch: Partial<Face3D>) => {
-    if (selectedFace) setFaces(patchFace(model.faces, selectedFace.id, patch))
+    if (!selectedFace) return
+    let nextFaces = patchFace(model.faces, selectedFace.id, patch)
+    // Nếu model đang khóa thể thống nhất: tự động đồng bộ thuộc tính hoạt ảnh AE sang toàn bộ các mặt
+    const isMotionUpdate = 'motionType' in patch || 'motionSpeed' in patch || 'motionAmplitude' in patch || 'motionDirection' in patch || 'motionAnchor' in patch
+    if (model.lockedStructure && isMotionUpdate) {
+      const motionFields: Partial<Face3D> = {}
+      if ('motionType' in patch) motionFields.motionType = patch.motionType
+      if ('motionSpeed' in patch) motionFields.motionSpeed = patch.motionSpeed
+      if ('motionAmplitude' in patch) motionFields.motionAmplitude = patch.motionAmplitude
+      if ('motionDirection' in patch) motionFields.motionDirection = patch.motionDirection
+      if ('motionAnchor' in patch) motionFields.motionAnchor = patch.motionAnchor
+      nextFaces = nextFaces.map((f) => ({ ...f, ...motionFields }))
+    }
+    setFaces(nextFaces)
+  }
+
+  const handleToggleLockedStructure = () => {
+    const nextLocked = !model.lockedStructure
+    let nextFaces = model.faces
+    if (nextLocked) {
+      // Khi bật khóa thể thống nhất: tìm cấu hình hoạt ảnh AE đang có để đồng bộ cho toàn bộ các mặt
+      const activeMotionFace =
+        model.faces.find((f) => f.id === selectedFaceId && f.motionType && f.motionType !== 'none') ||
+        model.faces.find((f) => f.motionType && f.motionType !== 'none')
+      if (activeMotionFace) {
+        nextFaces = model.faces.map((f) => ({
+          ...f,
+          motionType: activeMotionFace.motionType,
+          motionSpeed: activeMotionFace.motionSpeed,
+          motionAmplitude: activeMotionFace.motionAmplitude,
+          motionDirection: activeMotionFace.motionDirection,
+          motionAnchor: activeMotionFace.motionAnchor
+        }))
+      }
+    }
+    onChangeModel({ ...model, lockedStructure: nextLocked, faces: nextFaces }, DISCRETE)
   }
 
   const handleAddFace = () => {
@@ -280,15 +315,40 @@ export function FaceInspector({ model, selectedFaceId, imageSize, onChangeModel,
                   <span className="scale-badge">{(model.scale * 100).toFixed(0)}%</span>
                 </div>
               </div>
-              <button
-                type="button"
-                className="btn secondary fst-btn"
-                style={{ width: '100%', marginTop: '4px' }}
-                onClick={() => setFaces(centerFaces(model.faces), DISCRETE)}
-                title="Dời toàn bộ mô hình để tâm khung bao về gốc tọa độ"
-              >
-                Căn giữa toàn bộ mô hình
-              </button>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  className="btn secondary fst-btn"
+                  onClick={() => setFaces(centerFaces(model.faces), DISCRETE)}
+                  title="Dời toàn bộ mô hình để tâm khung bao về gốc tọa độ"
+                >
+                  Căn giữa mô hình
+                </button>
+                <button
+                  type="button"
+                  id="btn-lock-structure"
+                  className={`btn ${model.lockedStructure ? 'primary active' : 'secondary'} fst-btn assembly-struct-lock-btn`}
+                  onClick={handleToggleLockedStructure}
+                  title={
+                    model.lockedStructure
+                      ? 'Đang khóa thể thống nhất: Vị trí các mặt đã được khóa cố định. Hoạt ảnh AE đồng bộ theo 1 hướng.'
+                      : 'Bấm để khóa cứng vị trí các mặt thành một thể thống nhất và đồng bộ hoạt ảnh AE theo 1 hướng'
+                  }
+                  style={
+                    model.lockedStructure
+                      ? {
+                          borderColor: 'var(--accent-cyan)',
+                          background: 'color-mix(in srgb, var(--accent-cyan) 20%, var(--bg-2))',
+                          color: 'var(--accent-cyan)',
+                          fontWeight: 600
+                        }
+                      : {}
+                  }
+                >
+                  <IconLock width={11} height={11} />
+                  <span>{model.lockedStructure ? 'Đã khóa vị trí' : 'Khóa vị trí'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Face List */}

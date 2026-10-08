@@ -20,6 +20,7 @@ export interface SyncOptions {
   showWireframe: boolean
   scale: number
   theme: AssemblySceneTheme
+  lockedStructure?: boolean
 }
 
 /** Frees GPU buffers of a face mesh and its wireframe / outline children. */
@@ -46,14 +47,14 @@ export function syncFaceMeshes(group: THREE.Group, cache: FaceMeshCache, faces: 
     alive.add(face.id)
     const resolved = face.assetPath ? opts.textureMap.get(face.assetPath) || null : null
     const isSelected = face.id === opts.selectedFaceId
-    const key = [faceGeometrySignature(face), opts.meshOnlyPixels, opts.showWireframe, opts.scale, isSelected, themeKey].join('|')
+    const key = [faceGeometrySignature(face), opts.meshOnlyPixels, opts.showWireframe, opts.scale, isSelected, themeKey, !!opts.lockedStructure].join('|')
     let entry = cache.get(face.id)
     if (!entry || entry.key !== key || entry.resolved !== resolved) {
       if (entry) {
         group.remove(entry.mesh)
         disposeFaceMesh(entry.mesh)
       }
-      const mesh = createFaceMesh(face, resolved, opts.meshOnlyPixels, opts.showWireframe, opts.scale, isSelected, opts.theme)
+      const mesh = createFaceMesh(face, resolved, opts.meshOnlyPixels, opts.showWireframe, opts.scale, isSelected, opts.theme, opts.lockedStructure)
       entry = { mesh, key, resolved }
       cache.set(face.id, entry)
       group.add(mesh)

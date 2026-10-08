@@ -220,3 +220,84 @@ export function rescaleModel3DInstance(
     }
   })
 }
+
+/**
+ * Dịch chuyển toàn bộ các mặt của mô hình 3D trong phân cảnh một đoạn delta [dx, dy, dz].
+ */
+export function translateModel3DInstance(
+  instanceId: string,
+  delta: Vec3
+): void {
+  useEditor.getState().update((p) => {
+    const relatedLayers = p.layers.filter((l) => l.model3d?.instanceId === instanceId)
+    if (relatedLayers.length === 0) return
+
+    for (const l of relatedLayers) {
+      if (!l.model3d) continue
+      const curPos = l.transform.position.value
+      l.transform.position.value = [
+        curPos[0] + delta[0],
+        curPos[1] + delta[1],
+        curPos[2] + delta[2]
+      ]
+      if (l.model3d.centerPosition) {
+        l.model3d.centerPosition = [
+          l.model3d.centerPosition[0] + delta[0],
+          l.model3d.centerPosition[1] + delta[1],
+          l.model3d.centerPosition[2] + delta[2]
+        ]
+      }
+    }
+  })
+}
+
+/**
+ * Xoay toàn bộ các mặt của mô hình 3D quanh tâm mô hình theo trục axis một góc deltaDeg.
+ */
+export function rotateModel3DInstance(
+  instanceId: string,
+  axis: 0 | 1 | 2,
+  deltaDeg: number,
+  center?: Vec3
+): void {
+  useEditor.getState().update((p) => {
+    const relatedLayers = p.layers.filter((l) => l.model3d?.instanceId === instanceId)
+    if (relatedLayers.length === 0) return
+
+    const rad = (deltaDeg * Math.PI) / 180
+    const cosA = Math.cos(rad)
+    const sinA = Math.sin(rad)
+    const c = center ?? relatedLayers[0].model3d?.centerPosition ?? [0, 0, 0]
+
+    for (const l of relatedLayers) {
+      if (!l.model3d) continue
+      const pos = l.transform.position.value
+      // Dời về gốc tọa độ tâm
+      const rx = pos[0] - c[0]
+      const ry = pos[1] - c[1]
+      const rz = pos[2] - c[2]
+
+      let nx = rx
+      let ny = ry
+      let nz = rz
+
+      if (axis === 0) {
+        ny = ry * cosA - rz * sinA
+        nz = ry * sinA + rz * cosA
+      } else if (axis === 1) {
+        nx = rx * cosA + rz * sinA
+        nz = -rx * sinA + rz * cosA
+      } else {
+        nx = rx * cosA - ry * sinA
+        ny = rx * sinA + ry * cosA
+      }
+
+      l.transform.position.value = [c[0] + nx, c[1] + ny, c[2] + nz]
+
+      // Cập nhật rotation của layer
+      const rot = [...l.transform.rotation.value] as Vec3
+      rot[axis] = (rot[axis] + deltaDeg) % 360
+      l.transform.rotation.value = rot
+    }
+  })
+}

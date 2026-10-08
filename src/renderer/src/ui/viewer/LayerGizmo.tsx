@@ -26,42 +26,106 @@ export function LayerGizmo({ controller }: { controller: React.RefObject<GizmoCo
   }, [controller])
   if (!el || !el.active || el.layer.locked || playing) return null
   const parent = parentMatrix(el, scene)
+  const instanceId = el.layer.model3d?.instanceId
+  const modelLayers = instanceId
+    ? scene.layers.filter((l) => l.layer.model3d?.instanceId === instanceId)
+    : [el]
+
   function begin(e: React.PointerEvent, frame: GizmoFrame, handle: GizmoHandle): void {
     if (e.button !== 0 || !el) return
     e.preventDefault()
     e.stopPropagation()
     cleanup.current?.()
-    cleanup.current = startGizmoDrag(e, frame, el, parent, handle)
+    cleanup.current = startGizmoDrag(e, frame, el, parent, handle, modelLayers)
   }
-  return <>{frames.map((frame) => <GizmoPane key={frame.key} frame={frame} el={el} parent={parent} time={time} begin={begin} />)}</>
+  return <>{frames.map((frame) => <GizmoPane key={frame.key} frame={frame} el={el} parent={parent} time={time} begin={begin} modelLayers={modelLayers} />)}</>
 }
 
-function GizmoPane({ frame, el, parent, time, begin }: {
+function GizmoPane({ frame, el, parent, time, begin, modelLayers }: {
   frame: GizmoFrame; el: EvaluatedLayer; parent: THREE.Matrix4; time: number
   begin: (e: React.PointerEvent, frame: GizmoFrame, handle: GizmoHandle) => void
+  modelLayers: EvaluatedLayer[]
 }) {
   const { camera, rect } = frame
-  const anchor = el.layer.transform.anchor ? evaluate(el.layer.transform.anchor, time) : [0, 0, 0] as Vec3
-  const pivot = layerPivot(el, anchor)
+  const isModel3D = !!el.layer.model3d
+
+  let pivot: THREE.Vector3
+  let modelBounds: THREE.Box3 | null = null
+
+  if (isModel3D) {
+    modelBounds = new THREE.Box3()
+    for (const ml of modelLayers) {
+      if (!ml.bounds.isEmpty()) modelBounds.union(ml.bounds)
+    }
+    if (modelBounds.isEmpty()) modelBounds.copy(el.bounds)
+    pivot = modelBounds.getCenter(new THREE.Vector3())
+  } else {
+    const anchor = el.layer.transform.anchor ? evaluate(el.layer.transform.anchor, time) : [0, 0, 0] as Vec3
+    pivot = layerPivot(el, anchor)
+  }
+
   const depth = pivot.clone().project(camera).z
   if (depth < -1 || depth > 1) return null
   const localRect = { ...rect, x: 0, y: 0 }
   const project = (p: THREE.Vector3): Point => projectPoint(p, camera, localRect)
   const center = project(pivot)
-  const handles = BOX_HANDLES.map(([x, y]) => project(new THREE.Vector3(x * el.size[0] / 2, y * el.size[1] / 2, 0).applyMatrix4(el.world)))
+
+  let handles: Point[]
+  let boxPoints: string
+
+  if (isModel3D && modelBounds) {
+    const b = modelBounds
+    const corners3D = [
+      new THREE.Vector3(b.min.x, b.min.y, b.min.z),
+      new THREE.Vector3(b.max.x, b.min.y, b.min.z),
+      new THREE.Vector3(b.max.x, b.max.y, b.min.z),
+      new THREE.Vector3(b.min.x, b.max.y, b.min.z),
+      new THREE.Vector3(b.min.x, b.min.y, b.max.z),
+      new THREE.Vector3(b.max.x, b.min.y, b.max.z),
+      new THREE.Vector3(b.max.x, b.max.y, b.max.z),
+      new THREE.Vector3(b.min.x, b.max.y, b.max.z)
+    ]
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (const c of corners3D) {
+      const pt = project(c)
+      if (pt[0] < minX) minX = pt[0]
+      if (pt[1] < minY) minY = pt[1]
+      if (pt[0] > maxX) maxX = pt[0]
+      if (pt[1] > maxY) maxY = pt[1]
+    }
+    const pad = 6
+    minX -= pad; minY -= pad; maxX += pad; maxY += pad
+    const midX = (minX + maxX) / 2
+    const midY = (minY + maxY) / 2
+    handles = [
+      [minX, minY],
+      [midX, minY],
+      [maxX, minY],
+      [maxX, midY],
+      [maxX, maxY],
+      [midX, maxY],
+      [minX, maxY],
+      [minX, midY]
+    ]
+    boxPoints = `${minX},${minY} ${maxX},${minY} ${maxX},${maxY} ${minX},${maxY}`
+  } else {
+    handles = BOX_HANDLES.map(([x, y]) => project(new THREE.Vector3(x * el.size[0] / 2, y * el.size[1] / 2, 0).applyMatrix4(el.world)))
+    boxPoints = [0, 2, 4, 6].map((i) => handles[i].join(',')).join(' ')
+  }
+
   const unit = pivot.clone().add(camera.getWorldDirection(new THREE.Vector3()).cross(camera.up).normalize())
   const pixel = project(unit)
   const radius = 48 / Math.max(0.001, Math.hypot(pixel[0] - center[0], pixel[1] - center[1]))
   const rotation = evaluate(el.layer.transform.rotation, time)
-  const position = evaluate(el.layer.transform.position, time)
+  const position = isModel3D ? [pivot.x, pivot.y, -pivot.z] as Vec3 : evaluate(el.layer.transform.position, time)
   return <svg className="layer-gizmo" aria-label="Layer transform controls" style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h }}>
-    <polygon className="gizmo-box" points={[0, 2, 4, 6].map((i) => handles[i].join(',')).join(' ')} />
+    <polygon className="gizmo-box" points={boxPoints} />
     {handles.map(([x, y], i) => <rect key={i} className="gizmo-scale" x={x - 4} y={y - 4} width={8} height={8}
       onPointerDown={(e) => begin(e, frame, { kind: 'scale', handle: BOX_HANDLES[i] })}>
-      <title>Kéo giãn ảnh · Shift: giữ tỷ lệ · Esc: hủy</title>
+      <title>{isModel3D ? 'Co giãn Model 3D · Shift: giữ tỷ lệ · Esc: hủy' : 'Kéo giãn ảnh · Shift: giữ tỷ lệ · Esc: hủy'}</title>
     </rect>)}
     {[0, 1, 2].map((axis) => {
-      const basis = rotationBasis(rotation, axis, parent)
+      const basis = isModel3D ? parent : rotationBasis(rotation, axis, parent)
       const points = Array.from({ length: 65 }, (_, i) => project(ringPoint(axis, i / 64 * Math.PI * 2).transformDirection(basis).multiplyScalar(radius).add(pivot)))
       const direction = new THREE.Vector3(axis === 0 ? 1 : 0, axis === 1 ? 1 : 0, axis === 2 ? -1 : 0).transformDirection(parent)
       const end = project(direction.multiplyScalar(radius * 1.6).add(pivot))
@@ -127,7 +191,9 @@ function GizmoPane({ frame, el, parent, time, begin }: {
     })}
     <circle className="gizmo-pivot" cx={center[0]} cy={center[1]} r={5} />
     <text className="gizmo-readout" x={center[0] + 12} y={center[1] + 100}>
-      P {position.map((v) => v.toFixed(0)).join(' / ')} · R {rotation.map((v) => `${v.toFixed(1)}°`).join(' / ')}
+      {isModel3D
+        ? `Model 3D [${el.layer.model3d?.modelName || 'Khối 3D'}] · ${modelLayers.length} mặt`
+        : `P ${position.map((v) => v.toFixed(0)).join(' / ')} · R ${rotation.map((v) => `${v.toFixed(1)}°`).join(' / ')}`}
     </text>
   </svg>
 }

@@ -118,6 +118,8 @@ export interface Model3D {
   faces: Face3D[]
   /** Ánh sáng / bóng đổ khi xem trong Xưởng lắp ráp. */
   lighting?: AssemblyLighting
+  /** Khóa cứng vị trí các mặt thành thể thống nhất (hợp nhất khối, đồng bộ hoạt ảnh AE & gizmo cảnh) */
+  lockedStructure?: boolean
   createdAt: number
   updatedAt: number
 }

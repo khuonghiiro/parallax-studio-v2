@@ -81,7 +81,16 @@ export function useViewerDrag({
     const ev = evaluateScene(s.project, s.time)
     const el = ev.layers.find((l) => l.layer.id === id)
     if (!el || el.layer.locked) return
-    const start = [...el.position] as Vec3
+    const instanceId = el.layer.model3d?.instanceId
+    const related = instanceId
+      ? ev.layers.filter((l) => l.layer.model3d?.instanceId === instanceId)
+      : [el]
+    const initialLayers = related.map((l) => ({
+      id: l.layer.id,
+      start: [...l.position] as Vec3,
+      center: l.layer.model3d?.centerPosition ? [...l.layer.model3d.centerPosition] as Vec3 : undefined
+    }))
+
     const p0 = new THREE.Vector3().setFromMatrixPosition(el.world)
     const shotQ = new THREE.Quaternion()
     if (el.shot) shotQ.setFromRotationMatrix(el.shot.matrix)
@@ -96,25 +105,40 @@ export function useViewerDrag({
     const key = `drag-${nanoid(6)}`
     const depthPerPx = planeMode === 'depth' ? 6 : Math.max(2, edCam.distance * 0.003)
     capture(e, (pev, _dx, dy) => {
-      let next: Vec3
+      let delta: Vec3
       if (pev.altKey) {
-        next = [start[0], start[1], Math.round(start[2] - dy * depthPerPx)]
+        delta = [0, 0, Math.round(-dy * depthPerPx)]
       } else {
         const [x, y] = localXY(pev)
         const hit = r.rayAt(...ndcIn(rect, x, y), cam).intersectPlane(plane, new THREE.Vector3())
         if (!hit) return
         const d = hit.sub(hit0).applyQuaternion(inv)
-        next = [Math.round(start[0] + d.x), Math.round(start[1] + d.y), Math.round(start[2] - d.z)]
+        delta = [Math.round(d.x), Math.round(d.y), Math.round(-d.z)]
         if (pev.shiftKey) {
-          const deltas = [0, 1, 2].map((i) => Math.abs(next[i] - start[i]))
+          const deltas = [0, 1, 2].map((i) => Math.abs(delta[i]))
           const keep = deltas.indexOf(Math.max(...deltas))
-          for (let i = 0; i < 3; i++) if (i !== keep) next[i] = start[i]
+          for (let i = 0; i < 3; i++) if (i !== keep) delta[i] = 0
         }
       }
       const st = useEditor.getState()
       st.update((dr) => {
-        const l = dr.layers.find((x) => x.id === id)
-        if (l) setValueAt(l.transform.position, st.time, next, frameTolerance(st.project))
+        for (const init of initialLayers) {
+          const l = dr.layers.find((x) => x.id === init.id)
+          if (!l || l.locked) continue
+          const next: Vec3 = [
+            init.start[0] + delta[0],
+            init.start[1] + delta[1],
+            init.start[2] + delta[2]
+          ]
+          setValueAt(l.transform.position, st.time, next, frameTolerance(st.project))
+          if (l.model3d && init.center) {
+            l.model3d.centerPosition = [
+              init.center[0] + delta[0],
+              init.center[1] + delta[1],
+              init.center[2] + delta[2]
+            ]
+          }
+        }
       }, key)
     })
   }

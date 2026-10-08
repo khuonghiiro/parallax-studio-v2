@@ -149,7 +149,8 @@ export function createFaceMesh(
   showWireframe: boolean,
   scale: number,
   isSelected: boolean,
-  theme: AssemblySceneTheme = DEFAULT_SCENE_THEME
+  theme: AssemblySceneTheme = DEFAULT_SCENE_THEME,
+  lockedStructure?: boolean
 ): THREE.Mesh {
   const bendX = face.bendX || 0
   const bendY = face.bendY || 0
@@ -225,6 +226,7 @@ export function createFaceMesh(
   mesh.userData = {
     faceId: face.id,
     size: [face.width * scale, face.height * scale],
+    lockedStructure: !!lockedStructure,
     motion:
       face.motionType && face.motionType !== 'none'
         ? {

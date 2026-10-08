@@ -93,10 +93,14 @@ export class EditorHelpers {
     // ---- layer outlines
     const lp: number[] = []
     const lc: number[] = []
+    const selLayer = opts.selectedId ? ev.layers.find((l) => l.layer.id === opts.selectedId) : undefined
+    const selModelInstanceId = selLayer?.layer.model3d?.instanceId
+
     for (const el of ev.layers) {
       const info = layers.get(el.layer.id)
       if (!info || !el.active) continue
-      const sel = el.layer.id === opts.selectedId
+      const isSelModel = !!(selModelInstanceId && el.layer.model3d?.instanceId === selModelInstanceId)
+      const sel = el.layer.id === opts.selectedId || isSelModel
       col.set(sel ? '#ffffff' : info.resident ? info.color : '#4a5168')
       if (!sel) col.multiplyScalar(info.resident ? 0.75 : 1)
       const pts = PLANE_CORNERS.map(([x, y]) => tmp.set(x, y, 0).applyMatrix4(info.matrix).toArray())

@@ -1,5 +1,6 @@
-import type { AudioTrackItem, Project, Shot, Vec3 } from '@shared/types'
+import type { AudioTrackItem, Layer, Project, Shot, Vec3 } from '@shared/types'
 import { create } from 'zustand'
+import { nanoid } from 'nanoid'
 import { buildCameraPath, flyCameraToShot, type PathOptions, type PathStep } from './animation/cameraPath'
 import { applyDrawnCameraPath } from './animation/cameraSketch'
 import { assetStore } from './project/assets'
@@ -539,10 +540,16 @@ export async function addRainLayer(): Promise<void> {
 }
 
 export function deleteSelectedLayer(): void {
-  const { selectedLayerId } = editor()
+  const { selectedLayerId, project } = editor()
   if (!selectedLayerId) return
+  const curLayer = project.layers.find((l) => l.id === selectedLayerId)
+  const instanceId = curLayer?.model3d?.instanceId
   editor().update((d) => {
-    d.layers = d.layers.filter((l) => l.id !== selectedLayerId)
+    if (instanceId) {
+      d.layers = d.layers.filter((l) => l.model3d?.instanceId !== instanceId)
+    } else {
+      d.layers = d.layers.filter((l) => l.id !== selectedLayerId)
+    }
   })
   editor().selectLayer(null)
 }
@@ -551,11 +558,40 @@ export function duplicateSelectedLayer(): void {
   const { selectedLayerId, project } = editor()
   const idx = project.layers.findIndex((l) => l.id === selectedLayerId)
   if (idx < 0) return
-  const copy = duplicateLayer(project.layers[idx])
-  editor().update((d) => {
-    d.layers.splice(idx, 0, copy)
-  })
-  editor().selectLayer(copy.id)
+  const curLayer = project.layers[idx]
+  const instanceId = curLayer.model3d?.instanceId
+  if (instanceId) {
+    const newInstanceId = nanoid(8)
+    const related = project.layers.filter((l) => l.model3d?.instanceId === instanceId)
+    const clones: Layer[] = related.map((l) => {
+      const c = duplicateLayer(l)
+      if (c.model3d) {
+        c.model3d = {
+          ...c.model3d,
+          instanceId: newInstanceId,
+          centerPosition: c.model3d.centerPosition ? [c.model3d.centerPosition[0] + 50, c.model3d.centerPosition[1] + 50, c.model3d.centerPosition[2]] : undefined
+        }
+        if (Array.isArray(c.transform.position.value)) {
+          c.transform.position.value = [
+            c.transform.position.value[0] + 50,
+            c.transform.position.value[1] + 50,
+            c.transform.position.value[2]
+          ]
+        }
+      }
+      return c
+    })
+    editor().update((d) => {
+      d.layers.splice(idx, 0, ...clones)
+    })
+    if (clones.length > 0) editor().selectLayer(clones[0].id)
+  } else {
+    const copy = duplicateLayer(curLayer)
+    editor().update((d) => {
+      d.layers.splice(idx, 0, copy)
+    })
+    editor().selectLayer(copy.id)
+  }
 }
 
 /** Move a layer up/down in the stack, staying within its shot's group. */

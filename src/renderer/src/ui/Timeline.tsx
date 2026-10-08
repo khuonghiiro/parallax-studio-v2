@@ -351,7 +351,12 @@ export function Timeline() {
     selectLayer(layer.id)
     if (layer.locked) return
     const startX = e.clientX
-    const { inPoint, outPoint } = layer
+    const instanceId = layer.model3d?.instanceId
+    const related = instanceId
+      ? useEditor.getState().project.layers.filter((l) => l.model3d?.instanceId === instanceId)
+      : [layer]
+    const initialTimes = related.map((l) => ({ id: l.id, inPoint: l.inPoint, outPoint: l.outPoint }))
+
     const key = `bar-${nanoid(6)}`
     const el = e.currentTarget as HTMLElement
     el.setPointerCapture(e.pointerId)
@@ -363,14 +368,16 @@ export function Timeline() {
       if (!moved) return
       const dt = snapToFrame(((ev.clientX - startX) / (contentW - PAD * 2)) * comp.duration, comp.fps)
       useEditor.getState().update((d) => {
-        const l = d.layers.find((q) => q.id === layer.id)
-        if (!l) return
-        if (mode === 'in') l.inPoint = Math.max(0, Math.min(outPoint - 1 / comp.fps, inPoint + dt))
-        else if (mode === 'out') l.outPoint = Math.min(comp.duration, Math.max(inPoint + 1 / comp.fps, outPoint + dt))
-        else {
-          const shift = Math.max(-inPoint, Math.min(comp.duration - outPoint, dt))
-          l.inPoint = inPoint + shift
-          l.outPoint = outPoint + shift
+        for (const init of initialTimes) {
+          const l = d.layers.find((q) => q.id === init.id)
+          if (!l || l.locked) continue
+          if (mode === 'in') l.inPoint = Math.max(0, Math.min(init.outPoint - 1 / comp.fps, init.inPoint + dt))
+          else if (mode === 'out') l.outPoint = Math.min(comp.duration, Math.max(init.inPoint + 1 / comp.fps, init.outPoint + dt))
+          else {
+            const shift = Math.max(-init.inPoint, Math.min(comp.duration - init.outPoint, dt))
+            l.inPoint = init.inPoint + shift
+            l.outPoint = init.outPoint + shift
+          }
         }
       }, key)
     }

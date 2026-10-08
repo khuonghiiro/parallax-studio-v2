@@ -329,7 +329,7 @@ export function AssemblyViewport({
   useEffect(() => {
     if (!meshGroupRef.current) return
     syncFaceMeshes(meshGroupRef.current, meshCacheRef.current, model.faces, {
-      textureMap, selectedFaceId, meshOnlyPixels, showWireframe, scale, theme: sceneTheme
+      textureMap, selectedFaceId, meshOnlyPixels, showWireframe, scale, theme: sceneTheme, lockedStructure: model.lockedStructure
     })
   }, [model, selectedFaceId, showWireframe, meshOnlyPixels, textureMap, scale, sceneTheme])
 
