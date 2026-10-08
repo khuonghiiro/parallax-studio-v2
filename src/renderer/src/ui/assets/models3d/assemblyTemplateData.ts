@@ -192,14 +192,32 @@ const props: AssemblyTemplate[] = [
 
 const nature: AssemblyTemplate[] = [
   {
-    id: 'tree-cross', label: 'Cây chữ X', category: 'nature', hint: '2 mặt cắt chéo – nhìn góc nào cũng có cây',
-    en: { label: 'X-cross tree', hint: '2 crossed planes – looks full from any angle' },
-    faces: () => [aroundY('Mặt A', 500, 700, 45), aroundY('Mặt B', 500, 700, -45)]
+    id: 'tree-cross', label: 'Cây tán đa hướng thể tích', category: 'nature', hint: '4 mặt đứng xoay góc 45° + thân cây trụ + 2 tầng đĩa vòm tán tròn đầy',
+    en: { label: 'Volumetric multi-angle tree', hint: '4-way standing planes + trunk + 2 dome canopy discs, looking realistic from all angles' },
+    faces: () => [
+      // Thân cây chính tạo gốc vững chãi
+      aroundY('Thân cây trước', 120, 360, 0, [0, -180, 0]),
+      aroundY('Thân cây ngang', 120, 360, 90, [0, -180, 0]),
+      // 4 Mặt tán lá xoay đều 4 hướng (0°, 45°, 90°, 135°)
+      aroundY('Tán chính (0°)', 520, 600, 0, [0, 80, 0]),
+      aroundY('Tán chéo 1 (45°)', 500, 580, 45, [0, 80, 0]),
+      aroundY('Tán ngang (90°)', 520, 600, 90, [0, 80, 0]),
+      aroundY('Tán chéo 2 (135°)', 500, 580, 135, [0, 80, 0]),
+      // 2 Tầng đĩa vòm tán ngang che góc nhìn từ trên xuống
+      face('Tán vòm giữa', 460, 460, [0, 60, 0], UP, AWAY, { bendX: 30, bendY: 30 }),
+      face('Tán vòm ngọn', 360, 360, [0, 240, 0], UP, AWAY, { bendX: 45, bendY: 45 })
+    ]
   },
   {
-    id: 'bush-3', label: 'Bụi cây 3 lá', category: 'nature', hint: '3 mặt xoay 60° quanh trục đứng',
-    en: { label: '3-blade bush', hint: '3 planes rotated 60° around the vertical axis' },
-    faces: () => [aroundY('Lá 1', 450, 350, 0), aroundY('Lá 2', 450, 350, 60), aroundY('Lá 3', 450, 350, -60)]
+    id: 'bush-3', label: 'Bụi cây đa cụm tự nhiên', category: 'nature', hint: '5 cụm lá đan xen: cụm trung tâm, 2 cụm lệch bên, nền sau và vòm che nóc',
+    en: { label: 'Volumetric bush cluster', hint: '5 staggered foliage clumps: center, left/right offset, back ground and top canopy dome' },
+    faces: () => [
+      face('Cụm chính giữa', 460, 380, [0, 0, 0], FRONT, undefined, { bendX: 25 }),
+      aroundY('Cụm lệch trái', 400, 340, -35, [-110, -20, 40]),
+      aroundY('Cụm lệch phải', 400, 340, 35, [110, -20, 40]),
+      face('Cụm nền sau', 500, 400, [0, 30, 90], BACK, undefined, { bendX: -20 }),
+      face('Nóc vòm bụi', 420, 320, [0, 130, 40], UP, AWAY, { bendX: 40, bendY: 20 })
+    ]
   },
   {
     id: 'foliage-layers', label: 'Tán lá nhiều lớp', category: 'nature', hint: '4 lớp so le chiều sâu cho parallax mượt',
@@ -221,9 +239,26 @@ const nature: AssemblyTemplate[] = [
     ]
   },
   {
-    id: 'hedge', label: 'Bờ rào cây bụi', category: 'nature', hint: 'Khối bụi dài: trước, sau, 2 đầu + mặt trên',
-    en: { label: 'Hedge row', hint: 'Long bush block: front, back, 2 ends + top' },
-    faces: () => boxFaces(640, 170, 130)
+    id: 'flower-patch', label: 'Thảm hoa sân vườn', category: 'nature', hint: 'Mặt đất nền + các khóm hoa xòe nhiều hướng phía trước và xung quanh',
+    en: { label: 'Garden flower patch', hint: 'Ground base + multi-directional blooming flower clumps' },
+    faces: () => [
+      face('Mặt đất nền', 700, 500, [0, -100, 200], UP, AWAY),
+      face('Cụm hoa trước', 500, 180, [0, -30, 50], FRONT, undefined, { bendX: 15 }),
+      aroundY('Cụm hoa trái', 360, 200, -30, [-160, -10, 180]),
+      aroundY('Cụm hoa phải', 360, 200, 30, [160, -10, 180]),
+      face('Cụm hoa sau', 620, 240, [0, 40, 320], FRONT)
+    ]
+  },
+  {
+    id: 'hedge', label: 'Bờ rào cây bụi uốn mềm', category: 'nature', hint: 'Hàng rào bụi cây bo cong các góc, mặt trên lượn sóng tự nhiên',
+    en: { label: 'Curved hedge row', hint: 'Smooth rounded bush hedge with curved top and rounded ends' },
+    faces: () => [
+      face('Mặt trước', 680, 220, [0, 0, 0], FRONT, undefined, { bendX: 20 }),
+      face('Mặt sau', 680, 220, [0, 0, 160], BACK, undefined, { bendX: 20 }),
+      face('Đầu trái', 160, 220, [-340, 0, 80], LEFT, undefined, { bendX: 30 }),
+      face('Đầu phải', 160, 220, [340, 0, 80], RIGHT, undefined, { bendX: 30 }),
+      face('Vòm nóc', 680, 160, [0, 110, 80], UP, AWAY, { bendY: 50 })
+    ]
   }
 ]
 
