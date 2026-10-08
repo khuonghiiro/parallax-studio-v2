@@ -284,66 +284,207 @@
   pointer-events: all;
 }
 
-/* HUD Overlay on bottom left/right of 2D canvas */
-.mesh2d-hud-bottom {
+.mesh2d-v-tool-btn.cyan.active {
+  background-color: var(--accent-cyan);
+  color: #000000;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 2px 6px rgba(56, 189, 248, 0.35);
+}
+
+.mesh2d-v-tool-btn.amber.active {
+  background-color: #f59e0b;
+  color: #000000;
+  border-color: #f59e0b;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);
+}
+
+.tab-counter-badge.amber {
+  background-color: #f59e0b;
+  color: #000;
+}
+
+.tab-counter-badge.cyan {
+  background-color: var(--accent-cyan);
+  color: #000;
+}
+
+/* Sleek Floating Status Dock on bottom of 2D canvas */
+.mesh2d-status-hud-dock {
   position: absolute;
-  bottom: 12px;
-  left: 12px;
-  right: 12px;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  pointer-events: none;
-  z-index: 10;
-}
-
-.mesh2d-hud-info {
-  display: inline-flex;
-  align-items: center;
   gap: 8px;
-  background-color: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(8px);
-  padding: 5px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--line-soft);
-  font-size: 11px;
-  color: var(--text-dim);
-}
-
-.mesh2d-hud-info strong {
-  color: var(--text);
-}
-
-.mesh2d-hud-controls {
+  background-color: rgba(15, 20, 30, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
   pointer-events: auto;
+  z-index: 10;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+[data-theme='light'] .mesh2d-status-hud-dock {
+  background-color: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.hud-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.hud-face-chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background-color: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(8px);
-  padding: 4px;
-  border-radius: 6px;
+  background-color: var(--bg-3);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  max-width: 140px;
+  flex-shrink: 0;
+}
+
+.hud-text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hud-meta-pill {
+  font-size: 10px;
+  font-family: var(--mono, monospace);
+  color: var(--text-dim);
+  background-color: var(--bg-2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--line-soft);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.hud-meta-pill.amber {
+  color: #fbbf24;
+  background-color: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.35);
+  font-weight: 600;
+}
+
+.hud-meta-pill.cyan {
+  color: var(--accent-cyan);
+  background-color: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.35);
+  font-weight: 600;
+}
+
+.hud-action-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.hud-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  font-size: 10.5px;
+  font-weight: 500;
+  background-color: var(--bg-3);
+  color: var(--text-dim);
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.hud-action-btn:hover {
+  background-color: var(--bg-4);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.hud-action-btn.gold {
+  background-color: rgba(234, 179, 8, 0.15);
+  color: var(--key);
+  border-color: rgba(234, 179, 8, 0.35);
+}
+
+.hud-action-btn.gold:hover {
+  background-color: var(--key);
+  color: #000;
+}
+
+.hud-action-btn.danger {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.hud-action-btn.fit {
+  font-weight: 700;
+  padding: 3px 6px;
+}
+
+.hud-divider {
+  width: 1px;
+  height: 14px;
+  background-color: var(--line-soft);
+}
+
+.hud-zoom-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background-color: var(--bg-2);
+  padding: 2px 4px;
+  border-radius: 5px;
   border: 1px solid var(--line-soft);
 }
 
-.mesh2d-zoom-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-dim);
-  width: 26px;
-  height: 26px;
+.hud-zoom-btn {
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
   font-weight: bold;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background-color 0.1s ease;
 }
 
-.mesh2d-zoom-btn:hover {
+.hud-zoom-btn:hover {
   background-color: var(--bg-3);
   color: var(--text);
+}
+
+.hud-zoom-text {
+  font-size: 10.5px;
+  font-weight: 600;
+  font-family: var(--mono, monospace);
+  color: var(--text);
+  min-width: 32px;
+  text-align: center;
 }
 
 /* Split Screen Layout (2D on left, 3D on right) */

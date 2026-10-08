@@ -5,6 +5,7 @@ import {
   type DepthProfileType,
   type LuminanceSampler
 } from './meshEffectsAE'
+import type { OrigamiFoldLine, Warp3x3Preset } from './types'
 
 export type AlphaSampler = (u: number, v: number) => number
 
@@ -111,6 +112,123 @@ export function computeBendZ(
   return z
 }
 
+/**
+ * Calculates Origami 3D fold transformation for vertex (x, y, z) along crease line.
+ */
+export function applyOrigamiFold(
+  u: number,
+  v: number,
+  x: number,
+  y: number,
+  z: number,
+  width: number,
+  height: number,
+  foldLine?: OrigamiFoldLine
+): { x: number; y: number; z: number } {
+  if (!foldLine || !foldLine.enabled || foldLine.angle === 0) {
+    return { x, y, z }
+  }
+
+  // Convert p1, p2 from UV space (0..1) to local plane coordinates (x in -w/2..w/2, y in -h/2..h/2)
+  const ax = -width / 2 + foldLine.p1[0] * width
+  const ay = -height / 2 + (1 - foldLine.p1[1]) * height
+  const bx = -width / 2 + foldLine.p2[0] * width
+  const by = -height / 2 + (1 - foldLine.p2[1]) * height
+
+  const dx = bx - ax
+  const dy = by - ay
+  const len = Math.hypot(dx, dy)
+  if (len < 0.001) return { x, y, z }
+
+  // Unit vector along crease
+  const ux = dx / len
+  const uy = dy / len
+
+  // In-plane 2D normal perpendicular to crease
+  const nx = -uy
+  const ny = ux
+
+  // Signed distance of vertex from fold line
+  const sdist = (x - ax) * nx + (y - ay) * ny
+  const isSideA = sdist >= 0
+  const shouldFold = foldLine.foldSide === 'sideA' ? isSideA : !isSideA
+
+  if (!shouldFold) {
+    return { x, y, z }
+  }
+
+  // Rodrigues rotation around axis (ux, uy, 0) through point (ax, ay, 0)
+  const rad = (foldLine.angle * Math.PI) / 180
+  const cosT = Math.cos(rad)
+  const sinT = Math.sin(rad)
+
+  const rx = x - ax
+  const ry = y - ay
+  const rz = z
+
+  const cx = uy * rz
+  const cy = -ux * rz
+  const cz = ux * ry - uy * rx
+
+  const dot = ux * rx + uy * ry
+
+  const rotX = rx * cosT + cx * sinT + ux * dot * (1 - cosT)
+  const rotY = ry * cosT + cy * sinT + uy * dot * (1 - cosT)
+  const rotZ = rz * cosT + cz * sinT
+
+  return {
+    x: ax + rotX,
+    y: ay + rotY,
+    z: rotZ
+  }
+}
+
+/**
+ * Calculates Photoshop 3x3 Warp displacement for staircase steps, arches, or corners.
+ */
+export function computeWarp3x3Displacement(
+  u: number,
+  v: number,
+  width: number,
+  height: number,
+  mode?: Warp3x3Preset,
+  intensity = 30
+): { dx: number; dy: number; dz: number } {
+  if (!mode || mode === 'none' || intensity === 0) {
+    return { dx: 0, dy: 0, dz: 0 }
+  }
+
+  const factor = intensity / 40
+
+  if (mode === 'stairs') {
+    // 3 staircase step bands along height (v in 0..1)
+    const stepIdx = Math.min(2, Math.floor(v * 3))
+    const dz = stepIdx * (height * 0.12) * factor
+    const bandV = v * 3 - stepIdx
+    const riserZ = Math.sin(bandV * Math.PI) * (height * 0.03) * factor
+    return { dx: 0, dy: 0, dz: dz + riserZ }
+  }
+
+  if (mode === 'corner') {
+    if (u > 0.5) {
+      const dist = (u - 0.5) * width
+      return { dx: 0, dy: 0, dz: dist * factor }
+    }
+  }
+
+  if (mode === 'arch') {
+    const dz = Math.sin(u * Math.PI) * (width * 0.25) * factor
+    return { dx: 0, dy: 0, dz }
+  }
+
+  if (mode === 'wave') {
+    const dz = Math.sin(u * Math.PI * 2) * (width * 0.15) * factor
+    return { dx: 0, dy: 0, dz }
+  }
+
+  return { dx: 0, dy: 0, dz: 0 }
+}
+
 interface VertexData {
   u: number
   v: number
@@ -141,7 +259,10 @@ export function buildAlphaTrimmedGeometry(
   autoTrimAlpha = true,
   depthProfile: DepthProfileType = 'none',
   depthIntensity = 0,
-  depthInvert = false
+  depthInvert = false,
+  foldLine?: OrigamiFoldLine,
+  warp3x3Mode?: Warp3x3Preset,
+  warp3x3Intensity = 30
 ): THREE.BufferGeometry {
   const hiddenSet = new Set(hiddenCells || [])
   const selectedSet = new Set(selectedCells || [])
@@ -231,27 +352,37 @@ export function buildAlphaTrimmedGeometry(
         u: u0, v: v0, width, height, profile: depthProfile, intensity: depthIntensity, invert: depthInvert, luminanceSampler: lumSampler
       })
 
-      // 4 Corners: 0=TL, 1=TR, 2=BR, 3=BL
-      const vTL: VertexData = {
-        u: uvTL[0], v: uvTL[1], x: x0, y: y1,
-        z: computeBendZ(u0, v1, width, height, bendX, bendY, region) + extraZ + depthZ_TL,
-        alpha: sampler(uvTL[0], uvTL[1])
+      // Corner builder with 3x3 Warp & Origami Fold
+      const buildCorner = (
+        uVal: number,
+        vVal: number,
+        uvRot: [number, number],
+        baseX: number,
+        baseY: number,
+        depthZ: number
+      ): VertexData => {
+        let x = baseX
+        let y = baseY
+        let z = computeBendZ(uVal, vVal, width, height, bendX, bendY, region) + extraZ + depthZ
+        const warp = computeWarp3x3Displacement(uVal, vVal, width, height, warp3x3Mode, warp3x3Intensity)
+        x += warp.dx
+        y += warp.dy
+        z += warp.dz
+        const folded = applyOrigamiFold(uVal, vVal, x, y, z, width, height, foldLine)
+        return {
+          u: uvRot[0],
+          v: uvRot[1],
+          x: folded.x,
+          y: folded.y,
+          z: folded.z,
+          alpha: sampler(uvRot[0], uvRot[1])
+        }
       }
-      const vTR: VertexData = {
-        u: uvTR[0], v: uvTR[1], x: x1, y: y1,
-        z: computeBendZ(u1, v1, width, height, bendX, bendY, region) + extraZ + depthZ_TR,
-        alpha: sampler(uvTR[0], uvTR[1])
-      }
-      const vBR: VertexData = {
-        u: uvBR[0], v: uvBR[1], x: x1, y: y0,
-        z: computeBendZ(u1, v0, width, height, bendX, bendY, region) + extraZ + depthZ_BR,
-        alpha: sampler(uvBR[0], uvBR[1])
-      }
-      const vBL: VertexData = {
-        u: uvBL[0], v: uvBL[1], x: x0, y: y0,
-        z: computeBendZ(u0, v0, width, height, bendX, bendY, region) + extraZ + depthZ_BL,
-        alpha: sampler(uvBL[0], uvBL[1])
-      }
+
+      const vTL = buildCorner(u0, v1, uvTL, x0, y1, depthZ_TL)
+      const vTR = buildCorner(u1, v1, uvTR, x1, y1, depthZ_TR)
+      const vBR = buildCorner(u1, v0, uvBR, x1, y0, depthZ_BR)
+      const vBL = buildCorner(u0, v0, uvBL, x0, y0, depthZ_BL)
 
       // Check center alpha
       const uvCen = transformUV((u0 + u1) / 2, (v0 + v1) / 2)
@@ -393,7 +524,10 @@ export function buildCurvedPlaneGeometry(
   depthProfile: DepthProfileType = 'none',
   depthIntensity = 0,
   depthInvert = false,
-  image?: HTMLImageElement | HTMLCanvasElement
+  image?: HTMLImageElement | HTMLCanvasElement,
+  foldLine?: OrigamiFoldLine,
+  warp3x3Mode?: Warp3x3Preset,
+  warp3x3Intensity = 30
 ): THREE.BufferGeometry {
   const geo = new THREE.PlaneGeometry(width, height, cols, rows)
   const posAttr = geo.getAttribute('position')
@@ -406,8 +540,10 @@ export function buildCurvedPlaneGeometry(
 
   const hasBend = bendX !== 0 || bendY !== 0
   const hasDepth = depthProfile !== 'none' && depthIntensity !== 0
+  const hasFold = foldLine?.enabled && foldLine.angle !== 0
+  const hasWarp = warp3x3Mode && warp3x3Mode !== 'none'
 
-  if (hasBend || hasDepth) {
+  if (hasBend || hasDepth || hasFold || hasWarp) {
     for (let i = 0; i < posAttr.count; i++) {
       const u = uvAttr.getX(i)
       const v = uvAttr.getY(i)
@@ -422,7 +558,15 @@ export function buildCurvedPlaneGeometry(
         invert: depthInvert,
         luminanceSampler: lumSampler
       })
-      posAttr.setZ(i, bendZ + depthZ)
+      let x = posAttr.getX(i)
+      let y = posAttr.getY(i)
+      let z = bendZ + depthZ
+      const warp = computeWarp3x3Displacement(u, v, width, height, warp3x3Mode, warp3x3Intensity)
+      x += warp.dx
+      y += warp.dy
+      z += warp.dz
+      const folded = applyOrigamiFold(u, v, x, y, z, width, height, foldLine)
+      posAttr.setXYZ(i, folded.x, folded.y, folded.z)
     }
     posAttr.needsUpdate = true
     geo.computeVertexNormals()

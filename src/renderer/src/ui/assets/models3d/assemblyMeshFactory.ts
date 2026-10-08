@@ -127,7 +127,10 @@ export function createFaceMesh(
         face.meshMode !== 'manual',
         depthProfile,
         depthIntensity,
-        depthInvert
+        depthInvert,
+        face.foldLine,
+        face.warp3x3Mode,
+        face.warp3x3Intensity
       )
     } else {
       geo = buildCurvedPlaneGeometry(
@@ -141,7 +144,10 @@ export function createFaceMesh(
         depthProfile,
         depthIntensity,
         depthInvert,
-        resolved.image
+        resolved.image,
+        face.foldLine,
+        face.warp3x3Mode,
+        face.warp3x3Intensity
       )
     }
   } else {
@@ -160,7 +166,11 @@ export function createFaceMesh(
       bendRegion,
       face.depthProfile || 'none',
       face.depthIntensity || 0,
-      face.depthInvert || false
+      face.depthInvert || false,
+      undefined,
+      face.foldLine,
+      face.warp3x3Mode,
+      face.warp3x3Intensity
     )
   }
 

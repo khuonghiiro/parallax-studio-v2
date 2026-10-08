@@ -53,7 +53,27 @@ export interface Face3D {
   motionAnchor?: 'bottom' | 'top' | 'left' | 'center' | 'all'
   /** Danh sách các ô mesh bị ghim cố định (Starch Pin / Puppet Pin) không bị chuyển động */
   pinnedCells?: string[]
+  /** Cấu hình nếp gấp Origami 3D chia đôi ảnh theo đường thẳng/chéo */
+  foldLine?: OrigamiFoldLine
+  /** Chế độ biến dạng khung lưới 3x3 kiểu Photoshop Warp (stairs, arch, corner, wave) */
+  warp3x3Mode?: Warp3x3Preset
+  /** Cường độ biến dạng 3x3 / Độ cao bậc thang (-100 đến 100) */
+  warp3x3Intensity?: number
 }
+
+export interface OrigamiFoldLine {
+  enabled: boolean
+  /** Điểm bắt đầu [u, v] (0..1) */
+  p1: [number, number]
+  /** Điểm kết thúc [u, v] (0..1) */
+  p2: [number, number]
+  /** Bên được gấp: 'sideA' (phần phía trên/trái) | 'sideB' (phần phía dưới/phải) */
+  foldSide: 'sideA' | 'sideB'
+  /** Góc gấp 3D quanh trục đường kẻ (-180° đến 180°) */
+  angle: number
+}
+
+export type Warp3x3Preset = 'none' | 'stairs' | 'arch' | 'corner' | 'wave'
 
 export type PresetType = 'cottage' | 'cube' | 'corner' | 'room'
 

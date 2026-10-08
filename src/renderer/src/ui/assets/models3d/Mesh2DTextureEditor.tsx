@@ -4,6 +4,8 @@ import type { ResolvedTexture } from './textureResolver'
 import { createAlphaSampler, type AlphaSampler } from './alphaMeshBuilder'
 import { Mesh2DHorizontalBar, type ContextTab } from './Mesh2DHorizontalBar'
 import { Mesh2DVerticalPalette, type EditorTool } from './Mesh2DVerticalPalette'
+import { Mesh2DStatusHUD } from './Mesh2DStatusHUD'
+import { Mesh2DFoldWarpOverlay } from './Mesh2DFoldWarpOverlay'
 import type { DepthProfileType, MotionType } from './meshEffectsAE'
 
 interface Mesh2DTextureEditorProps {
@@ -598,136 +600,42 @@ export function Mesh2DTextureEditor({
                 strokeDasharray="4 3"
               />
             )}
+
+            {/* 3x3 Warp Grid & Origami Fold Line Overlays */}
+            <Mesh2DFoldWarpOverlay
+              face={face}
+              imgW={imgW}
+              imgH={imgH}
+              onUpdateFace={onUpdateFace}
+              activeTab={activeTab}
+              tool={tool}
+            />
           </svg>
         </div>
 
-        {/* Bottom HUD Bar */}
-        <div className="mesh2d-hud-bottom">
-          <div className="mesh2d-hud-info">
-            <span>
-              Mặt: <strong>{face.name}</strong>
-            </span>
-            <span>|</span>
-            <span>
-              {imgW} × {imgH} px
-            </span>
-            <span>|</span>
-            <span>
-              Lưới: <strong>{cols} × {rows}</strong>
-            </span>
-            <span>|</span>
-            <span>
-              Xoay: <strong>{rotation}°</strong>
-            </span>
-            {face.depthProfile && face.depthProfile !== 'none' && (
-              <>
-                <span>|</span>
-                <span style={{ color: 'var(--accent-cyan)' }}>
-                  Độ sâu: <strong>{face.depthProfile} ({face.depthIntensity || 0}%)</strong>
-                </span>
-              </>
-            )}
-            {face.motionType && face.motionType !== 'none' && (
-              <>
-                <span>|</span>
-                <span style={{ color: '#10b981' }}>
-                  Chuyển động: <strong>{face.motionType}</strong>
-                </span>
-              </>
-            )}
-            {selectedCells.size > 0 && (
-              <>
-                <span>|</span>
-                <span style={{ color: 'var(--key)' }}>
-                  Đang chọn: <strong>{selectedCells.size} ô</strong>
-                </span>
-              </>
-            )}
-            {pinnedCells.size > 0 && (
-              <>
-                <span>|</span>
-                <span style={{ color: '#f59e0b' }}>
-                  Ghim: <strong>{pinnedCells.size} ô</strong>
-                </span>
-              </>
-            )}
-            {hiddenCells.size > 0 && (
-              <>
-                <span>|</span>
-                <span style={{ color: '#ef4444' }}>
-                  Đã gọt: <strong>{hiddenCells.size} ô</strong>
-                </span>
-              </>
-            )}
-          </div>
-
-          <div className="mesh2d-hud-controls">
-            {selectedCells.size > 0 ? (
-              <button
-                type="button"
-                className="mesh2d-tool-btn"
-                onClick={() => onUpdateFace(face.id, { selectedCells: [] })}
-                title="Bỏ chọn toàn bộ ô"
-              >
-                Bỏ chọn
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="mesh2d-tool-btn"
-                onClick={() => {
-                  const all = cells.filter((c) => c.isOpaque && !c.isHidden).map((c) => c.key)
-                  onUpdateFace(face.id, { selectedCells: all })
-                }}
-                title="Chọn tất cả các ô hiện hữu"
-              >
-                Chọn tất cả
-              </button>
-            )}
-
-            {hiddenCells.size > 0 && (
-              <button
-                type="button"
-                className="mesh2d-tool-btn"
-                onClick={() => onUpdateFace(face.id, { hiddenCells: [] })}
-                title="Khôi phục lại toàn bộ ô đã gọt"
-              >
-                Khôi phục ({hiddenCells.size})
-              </button>
-            )}
-
-            <button
-              type="button"
-              className="mesh2d-zoom-btn"
-              onClick={() => setZoom((prev) => Math.max(0.2, prev * 0.85))}
-              title="Thu nhỏ (-)"
-            >
-              -
-            </button>
-            <span style={{ fontSize: 11, minWidth: 36, textAlign: 'center', color: 'var(--text)' }}>
-              {(zoom * 100).toFixed(0)}%
-            </span>
-            <button
-              type="button"
-              className="mesh2d-zoom-btn"
-              onClick={() => setZoom((prev) => Math.min(5.0, prev * 1.15))}
-              title="Phóng to (+)"
-            >
-              +
-            </button>
-            <button
-              type="button"
-              className="mesh2d-tool-btn"
-              onClick={() => {
-                setZoom(1.0)
-                setPan({ x: 0, y: 0 })
-              }}
-              title="Đặt lại 100%"
-            >
-              100%
-            </button>
-          </div>
-        </div>
+        {/* Sleek Modern Floating Status HUD */}
+        <Mesh2DStatusHUD
+          face={face}
+          imgW={imgW}
+          imgH={imgH}
+          cols={cols}
+          rows={rows}
+          rotation={rotation}
+          zoom={zoom}
+          setZoom={setZoom}
+          onResetView={() => {
+            setZoom(1.0)
+            setPan({ x: 0, y: 0 })
+          }}
+          selectedCellsCount={selectedCells.size}
+          hiddenCellsCount={hiddenCells.size}
+          onSelectAll={() => {
+            const all = cells.filter((c) => c.isOpaque && !c.isHidden).map((c) => c.key)
+            onUpdateFace(face.id, { selectedCells: all })
+          }}
+          onClearSelection={() => onUpdateFace(face.id, { selectedCells: [] })}
+          onRestoreHidden={() => onUpdateFace(face.id, { hiddenCells: [] })}
+        />
       </div>
     </div>
   </div>

@@ -541,6 +541,25 @@ export const IconWireframe = (p: P) => (
 
 
 
+export const IconWarpGrid = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <path d="M3 9c6 1 12-1 18 0M3 15c6 1 12-1 18 0M9 3c1 6-1 12 0 18M15 3c1 6-1 12 0 18" />
+    <circle cx="9" cy="9" r="1.5" fill="currentColor" />
+    <circle cx="15" cy="9" r="1.5" fill="currentColor" />
+    <circle cx="9" cy="15" r="1.5" fill="currentColor" />
+    <circle cx="15" cy="15" r="1.5" fill="currentColor" />
+  </svg>
+)
+
+export const IconOrigamiFold = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M3 20L14 3l7 14-8 4-10-1z" />
+    <path d="M14 3v18" strokeDasharray="3 2" />
+    <path d="M9 13l5-3 5 3" />
+  </svg>
+)
+
 export const IconFit = (p: P) => (
   <svg {...base(p)}>
     <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />

@@ -1,7 +1,7 @@
-import type { Face3D } from './types'
-import { IconLightning, IconMeshGrid, IconPin } from '../../icons'
+import type { Face3D, OrigamiFoldLine, Warp3x3Preset } from './types'
+import { IconLightning, IconMeshGrid, IconPin, IconWarpGrid, IconOrigamiFold } from '../../icons'
 
-export type ContextTab = 'grid' | 'depth' | 'motion' | 'bend'
+export type ContextTab = 'grid' | 'warp3x3' | 'fold' | 'depth' | 'motion' | 'bend'
 
 interface Mesh2DHorizontalBarProps {
   face: Face3D
@@ -34,6 +34,46 @@ export function Mesh2DHorizontalBar({
   handleSetRotation,
   handleTogglePinSelected
 }: Mesh2DHorizontalBarProps) {
+  const fold = face.foldLine
+  const isFoldEnabled = fold?.enabled ?? false
+  const foldAngle = fold?.angle ?? 45
+  const foldSide = fold?.foldSide || 'sideA'
+
+  // Quick fold presets
+  const applyFoldPreset = (preset: 'horizontal' | 'vertical' | 'diag45' | 'roof30') => {
+    let p1: [number, number] = [0.05, 0.5]
+    let p2: [number, number] = [0.95, 0.5]
+    let angle = 90
+
+    if (preset === 'horizontal') {
+      p1 = [0.05, 0.5]
+      p2 = [0.95, 0.5]
+      angle = 90
+    } else if (preset === 'vertical') {
+      p1 = [0.5, 0.05]
+      p2 = [0.5, 0.95]
+      angle = 90
+    } else if (preset === 'diag45') {
+      p1 = [0.05, 0.05]
+      p2 = [0.95, 0.95]
+      angle = 60
+    } else if (preset === 'roof30') {
+      p1 = [0.05, 0.35]
+      p2 = [0.95, 0.35]
+      angle = 45
+    }
+
+    onUpdateFace(face.id, {
+      foldLine: {
+        enabled: true,
+        p1,
+        p2,
+        foldSide: fold?.foldSide || 'sideA',
+        angle: fold?.angle || angle
+      }
+    })
+  }
+
   return (
     <div className="mesh2d-horizontal-bar">
       {/* Navigation Tabs */}
@@ -46,6 +86,31 @@ export function Mesh2DHorizontalBar({
         >
           <span>📐 Lưới Mesh</span>
         </button>
+
+        <button
+          type="button"
+          className={`mesh2d-nav-btn${activeTab === 'warp3x3' ? ' active' : ''}`}
+          onClick={() => setActiveTab('warp3x3')}
+          title="Lưới uốn 3×3 chuẩn Photoshop: Nếp gấp cầu thang, vòm cong, uốn góc"
+        >
+          <IconWarpGrid size={13} />
+          <span>Lưới 3×3 & Bậc</span>
+          {face.warp3x3Mode && face.warp3x3Mode !== 'none' && (
+            <span className="tab-counter-badge cyan">3×3</span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          className={`mesh2d-nav-btn${activeTab === 'fold' ? ' active' : ''}`}
+          onClick={() => setActiveTab('fold')}
+          title="Nếp gấp Origami 3D: Chia ảnh theo đường kẻ và gấp góc 3D như hộp bìa"
+        >
+          <IconOrigamiFold size={13} />
+          <span>Gấp Origami</span>
+          {isFoldEnabled && <span className="tab-counter-badge amber">FOLD</span>}
+        </button>
+
         <button
           type="button"
           className={`mesh2d-nav-btn${activeTab === 'depth' ? ' active' : ''}`}
@@ -57,6 +122,7 @@ export function Mesh2DHorizontalBar({
             <span className="tab-counter-badge">ON</span>
           )}
         </button>
+
         <button
           type="button"
           className={`mesh2d-nav-btn${activeTab === 'motion' ? ' active' : ''}`}
@@ -68,6 +134,7 @@ export function Mesh2DHorizontalBar({
             <span className="tab-counter-badge">ON</span>
           )}
         </button>
+
         <button
           type="button"
           className={`mesh2d-nav-btn${activeTab === 'bend' ? ' active' : ''}`}
@@ -83,6 +150,7 @@ export function Mesh2DHorizontalBar({
 
       {/* Tab Sub-Row Controls */}
       <div className="mesh2d-tab-sub-row">
+        {/* 1. Lưới Mesh */}
         {activeTab === 'grid' && (
           <>
             <div className="sub-group">
@@ -136,6 +204,159 @@ export function Mesh2DHorizontalBar({
           </>
         )}
 
+        {/* 2. Photoshop 3x3 Warp Grid & Stairs */}
+        {activeTab === 'warp3x3' && (
+          <>
+            <div className="sub-group">
+              <span className="sub-label">Kiểu 3×3:</span>
+              {(
+                [
+                  ['none', 'Tắt'],
+                  ['stairs', '🪜 Cầu thang'],
+                  ['arch', 'Vòm cong'],
+                  ['corner', 'Góc chữ L'],
+                  ['wave', 'Sóng uốn']
+                ] as const
+              ).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={`sub-pill-btn${(face.warp3x3Mode || 'none') === mode ? ' active' : ''}`}
+                  onClick={() => onUpdateFace(face.id, { warp3x3Mode: mode as Warp3x3Preset })}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {face.warp3x3Mode && face.warp3x3Mode !== 'none' && (
+              <div className="sub-group">
+                <span className="sub-label">
+                  {face.warp3x3Mode === 'stairs' ? 'Độ cao bậc:' : 'Cường độ:'}
+                </span>
+                <input
+                  type="range"
+                  min="5"
+                  max="100"
+                  step="5"
+                  value={face.warp3x3Intensity ?? 30}
+                  onChange={(e) => onUpdateFace(face.id, { warp3x3Intensity: Number(e.target.value) })}
+                  style={{ width: 80, accentColor: 'var(--accent-cyan)' }}
+                />
+                <span className="sub-val">{face.warp3x3Intensity ?? 30}px</span>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* 3. Origami 3D Fold Line */}
+        {activeTab === 'fold' && (
+          <>
+            <div className="sub-group">
+              <button
+                type="button"
+                className={`sub-pill-btn${isFoldEnabled ? ' active' : ''}`}
+                onClick={() => {
+                  const nextState = !isFoldEnabled
+                  onUpdateFace(face.id, {
+                    foldLine: {
+                      enabled: nextState,
+                      p1: fold?.p1 || [0.05, 0.5],
+                      p2: fold?.p2 || [0.95, 0.5],
+                      foldSide: fold?.foldSide || 'sideA',
+                      angle: fold?.angle || 60
+                    }
+                  })
+                }}
+              >
+                {isFoldEnabled ? '✓ Đang bật nếp gấp' : 'Bật nếp gấp Origami'}
+              </button>
+            </div>
+
+            {isFoldEnabled && (
+              <>
+                <div className="sub-group">
+                  <span className="sub-label">Mẫu nhanh:</span>
+                  <button
+                    type="button"
+                    className="sub-pill-btn"
+                    onClick={() => applyFoldPreset('horizontal')}
+                    title="Gấp ngang giữa ảnh 90°"
+                  >
+                    Ngang 50%
+                  </button>
+                  <button
+                    type="button"
+                    className="sub-pill-btn"
+                    onClick={() => applyFoldPreset('vertical')}
+                    title="Gấp dọc giữa ảnh 90°"
+                  >
+                    Dọc 50%
+                  </button>
+                  <button
+                    type="button"
+                    className="sub-pill-btn"
+                    onClick={() => applyFoldPreset('diag45')}
+                    title="Đường chéo 45°"
+                  >
+                    Chéo 45°
+                  </button>
+                  <button
+                    type="button"
+                    className="sub-pill-btn"
+                    onClick={() => applyFoldPreset('roof30')}
+                    title="Nếp dốc mái 35%"
+                  >
+                    Mái hiên
+                  </button>
+                </div>
+
+                <div className="sub-group">
+                  <span className="sub-label">Góc gập:</span>
+                  <input
+                    type="range"
+                    min="-180"
+                    max="180"
+                    step="5"
+                    value={foldAngle}
+                    onChange={(e) =>
+                      onUpdateFace(face.id, {
+                        foldLine: {
+                          ...fold!,
+                          angle: Number(e.target.value)
+                        }
+                      })
+                    }
+                    style={{ width: 80, accentColor: '#f59e0b' }}
+                  />
+                  <span className="sub-val" style={{ color: '#fbbf24' }}>
+                    {foldAngle > 0 ? `+${foldAngle}°` : `${foldAngle}°`}
+                  </span>
+                </div>
+
+                <div className="sub-group">
+                  <button
+                    type="button"
+                    className="sub-pill-btn gold"
+                    onClick={() =>
+                      onUpdateFace(face.id, {
+                        foldLine: {
+                          ...fold!,
+                          foldSide: foldSide === 'sideA' ? 'sideB' : 'sideA'
+                        }
+                      })
+                    }
+                    title="Đổi bên gập (Bên A hoặc Bên B)"
+                  >
+                    Đổi bên gấp ({foldSide === 'sideA' ? 'Phần A' : 'Phần B'})
+                  </button>
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {/* 4. Chiều Sâu 2.5D */}
         {activeTab === 'depth' && (
           <>
             <div className="sub-group">
@@ -187,6 +408,7 @@ export function Mesh2DHorizontalBar({
           </>
         )}
 
+        {/* 5. Hoạt Ảnh AE */}
         {activeTab === 'motion' && (
           <>
             <div className="sub-group">
@@ -241,6 +463,7 @@ export function Mesh2DHorizontalBar({
           </>
         )}
 
+        {/* 6. Ghim & Bẻ */}
         {activeTab === 'bend' && (
           <>
             <div className="sub-group">

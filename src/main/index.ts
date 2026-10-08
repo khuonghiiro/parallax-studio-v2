@@ -14,8 +14,14 @@ import type { ExportStartOptions, PickedFile } from '@shared/ipc'
 // Windows driver/Electron combos (exit 0xC0000005 before any shader is linked), which
 // loses the WebGL context. D3D11-on-12 is stable and equally fast. Override with
 // PARALLAX_ANGLE=d3d11|gl|vulkan or by passing --use-angle=... on the command line.
-if (process.platform === 'win32' && !app.commandLine.hasSwitch('use-angle')) {
-  app.commandLine.appendSwitch('use-angle', process.env.PARALLAX_ANGLE || 'd3d11on12')
+if (process.platform === 'win32') {
+  if (!app.commandLine.hasSwitch('use-angle')) {
+    app.commandLine.appendSwitch('use-angle', process.env.PARALLAX_ANGLE || 'd3d11on12')
+  }
+  // Run network service in-process on Windows to prevent Chromium utility process crash/restart
+  // ("Network service crashed or was terminated, restarting service") caused by sandbox/antivirus.
+  app.commandLine.appendSwitch('enable-features', 'NetworkServiceInProcess')
+  app.commandLine.appendSwitch('disable-features', 'NetworkServiceSandbox')
 }
 
 let mainWindow: BrowserWindow | null = null
@@ -58,9 +64,38 @@ function createWindow(): void {
     }
   })
 
-  mainWindow.once('ready-to-show', () => mainWindow?.show())
+  let isShown = false
+  const showWindow = (): void => {
+    if (isShown || !mainWindow || mainWindow.isDestroyed()) return
+    isShown = true
+    mainWindow.show()
+  }
+
+  mainWindow.once('ready-to-show', showWindow)
+  // Fallback: If ready-to-show is delayed or missed (e.g. dev server slow start), force show after 2.5s
+  const showFallback = setTimeout(showWindow, 2500)
+
   mainWindow.webContents.on('did-start-loading', () => mcp?.onWindowLoading())
+
+  // Auto-retry if initial dev server load drops or glitched during network restart
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    // -3 is ERR_ABORTED (normal if re-navigated); ignore it
+    if (errorCode === -3) return
+    console.warn(`[Electron] Window load failed (${errorCode}: ${errorDescription}) at ${validatedURL}. Retrying...`)
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        const targetUrl = process.env['ELECTRON_RENDERER_URL'] || join(__dirname, '../renderer/index.html')
+        if (process.env['ELECTRON_RENDERER_URL']) {
+          mainWindow.loadURL(targetUrl)
+        } else {
+          mainWindow.loadFile(targetUrl)
+        }
+      }
+    }, 1000)
+  })
+
   mainWindow.on('closed', () => {
+    clearTimeout(showFallback)
     mainWindow = null
   })
 
@@ -230,6 +265,13 @@ if (!gotTheLock) {
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
+  })
+
+  app.on('child-process-gone', (_event, details) => {
+    // Only warn if the child process exited abnormally
+    if (details.reason !== 'clean-exit') {
+      console.warn(`[Electron] Child process exit (${details.type}): ${details.reason} (code: ${details.exitCode})`)
+    }
   })
 
   app.on('window-all-closed', () => {
