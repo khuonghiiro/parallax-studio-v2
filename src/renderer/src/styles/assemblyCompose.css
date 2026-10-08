@@ -1,39 +1,7 @@
 /* ==========================================================================
-   Assembly 3D — merge saved parts panel (mc-*) & Create-3D card visuals (c3d-*)
+   Assembly 3D — merge saved parts panel (mc-*). Create-3D cards: create3d.css
    Design tokens only (dual-theme).
    ========================================================================== */
-
-/* ---------- Create 3D modal: card visuals ---------- */
-.c3d-thumb-img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.c3d-iso {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle at center, var(--bg-1) 0%, var(--bg-0) 100%);
-}
-
-.c3d-iso-grid {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.c3d-iso-shape {
-  position: relative;
-  width: 120px;
-  height: 120px;
-  filter: drop-shadow(0 6px 14px color-mix(in srgb, currentColor 30%, transparent));
-}
 
 /* ---------- Merge saved parts panel ---------- */
 .mc-root {

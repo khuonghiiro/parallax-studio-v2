@@ -1,0 +1,359 @@
+/* ==========================================================================
+   Create 3D modal (c3d-*) — template picker grid & card visuals.
+   Design tokens only (dual-theme). Layout note: the scroll area is the flex
+   item (min-height: 0) and the grid lives inside it with auto height, so grid
+   rows never get squashed by the modal height.
+   ========================================================================== */
+
+.c3d-modal {
+  width: min(95vw, 1040px);
+  height: min(88vh, 860px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-popup);
+  overflow: hidden;
+}
+
+/* ---------- Header ---------- */
+.c3d-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--bg-3);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.c3d-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.c3d-title-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: var(--on-accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-cyan));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.c3d-title {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.c3d-subtitle {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.c3d-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.c3d-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+/* ---------- Toolbar: tabs + search ---------- */
+.c3d-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.c3d-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  max-width: 100%;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.c3d-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--text-dim);
+  background: var(--bg-3);
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.c3d-tab:hover {
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.c3d-tab.active {
+  font-weight: 600;
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.c3d-tab-count {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: var(--text-faint);
+  background: var(--bg-1);
+}
+
+.c3d-tab.active .c3d-tab-count {
+  color: var(--on-accent);
+  background: color-mix(in srgb, var(--on-accent) 22%, transparent);
+}
+
+.c3d-search {
+  flex: 1 1 200px;
+  min-width: 180px;
+  max-width: 320px;
+  margin-left: auto;
+}
+
+.c3d-search input {
+  width: 100%;
+  font-size: 12px;
+}
+
+/* ---------- Scroll area & grid ---------- */
+.c3d-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 20px 20px;
+}
+
+.c3d-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+/* ---------- Card ---------- */
+.c3d-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.c3d-card:hover,
+.c3d-card:focus-within {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.c3d-card-media {
+  position: relative;
+  flex-shrink: 0;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--bg-0);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.c3d-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  max-width: calc(100% - 16px);
+  padding: 2px 7px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--on-cyan);
+  background: var(--accent-cyan);
+  border-radius: 4px;
+}
+
+.c3d-faces {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 2px 7px;
+  font-size: 10.5px;
+  color: var(--text);
+  background: var(--hud-bg);
+  border: 1px solid var(--hud-border);
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+}
+
+.c3d-card-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  min-height: 0;
+}
+
+.c3d-card-title,
+.c3d-card-hint {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.c3d-card-title {
+  -webkit-line-clamp: 2;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.c3d-card-hint {
+  -webkit-line-clamp: 3;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+
+.c3d-card-foot {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  background: var(--bg-3);
+  border-top: 1px solid var(--line-soft);
+}
+
+.c3d-card-foot .btn {
+  width: 100%;
+  justify-content: center;
+  gap: 5px;
+}
+
+/* ---------- Blank card ---------- */
+.c3d-card.blank {
+  border: 2px dashed var(--accent);
+}
+
+.c3d-blank-media {
+  flex-direction: column;
+  gap: 10px;
+  background: radial-gradient(circle at center, color-mix(in srgb, var(--accent-cyan) 14%, transparent) 0%, transparent 70%),
+    var(--bg-0);
+}
+
+.c3d-blank-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  background: var(--bg-3);
+  border: 1px solid var(--accent);
+  transition: transform 0.2s ease;
+}
+
+.c3d-card.blank:hover .c3d-blank-icon {
+  transform: scale(1.08) rotate(90deg);
+}
+
+.c3d-blank-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+/* ---------- Empty state ---------- */
+.c3d-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+/* ---------- Card visuals ---------- */
+.c3d-thumb-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.c3d-iso {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, var(--bg-1) 0%, var(--bg-0) 100%);
+}
+
+.c3d-iso-grid {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.c3d-iso-shape {
+  position: relative;
+  width: 72%;
+  height: 80%;
+  filter: drop-shadow(0 6px 14px color-mix(in srgb, currentColor 30%, transparent));
+}
+
+.c3d-card:hover .c3d-iso-shape {
+  transform: scale(1.04);
+  transition: transform 0.2s ease;
+}
