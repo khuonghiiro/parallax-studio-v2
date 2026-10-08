@@ -109,12 +109,25 @@ export const assemblyCommands: Record<string, Handler> = {
     if (!id) throw new ParamError('Missing "id" or "model" object with id')
     const models = getStoredModels3D()
     const existing = models.find((m) => m.id === id)
+    const session = getActiveAssemblySession()
+
+    let thumbnailDataUrl = str(p, 'thumbnail_data_url') || raw?.thumbnailDataUrl || existing?.thumbnailDataUrl
+    if (!thumbnailDataUrl && session && session.getModel().id === id) {
+      try {
+        const captured = session.captureScreenshot()
+        if (captured) thumbnailDataUrl = captured
+      } catch (err) {
+        console.warn('[assemblyCommands] Error capturing thumbnail for save:', err)
+      }
+    }
+
     const model: Model3D = {
       id,
       name: str(p, 'name') || raw?.name || existing?.name || 'Mô hình 3D',
       description: str(p, 'description') || raw?.description || existing?.description,
       category: (str(p, 'category') as Model3D['category']) || raw?.category || existing?.category || 'custom',
       thumbnail: str(p, 'thumbnail') || raw?.thumbnail || existing?.thumbnail,
+      thumbnailDataUrl,
       scale: num(p, 'scale') ?? raw?.scale ?? existing?.scale ?? 1.0,
       faces: (p.faces as Face3D[]) || raw?.faces || existing?.faces || [],
       lighting: (p.lighting as Model3D['lighting']) || raw?.lighting || existing?.lighting,
@@ -122,11 +135,10 @@ export const assemblyCommands: Record<string, Handler> = {
       updatedAt: Date.now()
     }
     saveModel3D(model)
-    const session = getActiveAssemblySession()
     if (session && session.getModel().id === model.id) {
       session.setModel(model)
     }
-    return { ok: true, id: model.id, name: model.name, faceCount: model.faces.length }
+    return { ok: true, id: model.id, name: model.name, faceCount: model.faces.length, hasThumbnail: Boolean(thumbnailDataUrl) }
   },
 
   insert_assembly_model: async (p) => {

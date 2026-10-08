@@ -98,17 +98,37 @@ export function Assembly3DDialog({ isOpen, initialModel, onClose, onSaved }: Ass
     onClose()
   }, [onClose])
 
+  const captureFnRef = useRef<(() => string | null) | null>(null)
+
   const handleSave = useCallback(() => {
-    saveModel3D(modelRef.current)
-    onSaved?.(modelRef.current)
+    let toSave = modelRef.current
+    try {
+      const thumb = captureFnRef.current ? captureFnRef.current() : null
+      if (thumb) {
+        toSave = { ...toSave, thumbnailDataUrl: thumb }
+      }
+    } catch (e) {
+      console.warn('[Assembly3DDialog] Failed to capture clean thumbnail on save:', e)
+    }
+    saveModel3D(toSave)
+    onSaved?.(toSave)
     handleClose()
   }, [handleClose, onSaved])
 
   const handleInsert = useCallback(async (): Promise<string[]> => {
     setInserting(true)
     try {
-      const ids = await insertModel3DToScene({ model: modelRef.current })
-      onSaved?.(modelRef.current)
+      let toSave = modelRef.current
+      try {
+        const thumb = captureFnRef.current ? captureFnRef.current() : null
+        if (thumb) {
+          toSave = { ...toSave, thumbnailDataUrl: thumb }
+        }
+      } catch (e) {
+        console.warn('[Assembly3DDialog] Failed to capture clean thumbnail on insert:', e)
+      }
+      const ids = await insertModel3DToScene({ model: toSave })
+      onSaved?.(toSave)
       handleClose()
       return ids
     } catch (err) {
@@ -118,8 +138,6 @@ export function Assembly3DDialog({ isOpen, initialModel, onClose, onSaved }: Ass
       setInserting(false)
     }
   }, [handleClose, onSaved])
-
-  const captureFnRef = useRef<(() => string | null) | null>(null)
 
   useEffect(() => {
     if (!isOpen) return

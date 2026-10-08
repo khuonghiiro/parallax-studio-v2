@@ -85,8 +85,62 @@ export function AssemblyViewport({
     if (!onRegisterCapture) return
     onRegisterCapture(() => {
       const r = rendererRef.current
-      if (!r) return null
-      return r.domElement.toDataURL('image/png')
+      const scene = sceneRef.current
+      const camera = cameraRef.current
+      if (!r || !scene || !camera) return null
+
+      // Lưu trạng thái hiển thị của các thành phần phụ trợ
+      const helpers = helpersGroupRef.current
+      const lightRig = lightRigRef.current
+      const meshGroup = meshGroupRef.current
+
+      const prevHelpersVis = helpers ? helpers.visible : true
+      const prevGroundVis = lightRig?.ground ? lightRig.ground.visible : true
+      const prevMarkerVis = lightRig?.marker ? lightRig.marker.visible : true
+      const prevBg = scene.background
+
+      // Ẩn helpers (grid, axes)
+      if (helpers) helpers.visible = false
+      // Ẩn ground / shadow catcher và sun marker
+      if (lightRig?.ground) lightRig.ground.visible = false
+      if (lightRig?.marker) lightRig.marker.visible = false
+
+      // Tạm thời ẩn các line segments (wireframe, cell borders, selection outlines)
+      const hiddenLines: THREE.Object3D[] = []
+      if (meshGroup) {
+        meshGroup.traverse((obj) => {
+          if (obj instanceof THREE.LineSegments || (obj as any).isLineSegments || (obj as any).isLine) {
+            if (obj.visible) {
+              hiddenLines.push(obj)
+              obj.visible = false
+            }
+          }
+        })
+      }
+
+      // Đặt background thành null để render PNG trong suốt (alpha: true đã bật sẵn)
+      scene.background = null
+
+      let dataUrl: string | null = null
+      try {
+        r.render(scene, camera)
+        dataUrl = r.domElement.toDataURL('image/png')
+      } catch (err) {
+        console.warn('[AssemblyViewport] Capture error:', err)
+      } finally {
+        // Khôi phục lại trạng thái cũ
+        if (helpers) helpers.visible = prevHelpersVis
+        if (lightRig?.ground) lightRig.ground.visible = prevGroundVis
+        if (lightRig?.marker) lightRig.marker.visible = prevMarkerVis
+        for (const line of hiddenLines) {
+          line.visible = true
+        }
+        scene.background = prevBg
+        // Render lại frame bình thường cho viewport người dùng
+        r.render(scene, camera)
+      }
+
+      return dataUrl
     })
     return () => {
       onRegisterCapture(() => null)
