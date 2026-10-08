@@ -29,40 +29,45 @@ describe('3D Models Preset and Storage System', () => {
     globalThis.localStorage = mockLocalStorage
   })
 
-  it('generates cottage preset with 7 faces including chimney sides and roof slopes', () => {
-    const faces = generatePresetFaces('cottage', { w: 840, h: 400, d: 840 })
-    expect(faces.length).toBe(7)
+  it('generates cottage preset with 6 watertight faces forming Tudor House Shell 3D', () => {
+    const faces = generatePresetFaces('cottage', { w: 600, h: 400, d: 600 })
+    expect(faces.length).toBe(6)
 
     const front = faces.find((f) => f.id === 'face-front')
-    expect(front).toBeDefined()
-    expect(front?.assetPath).toBe('assembly_3d/modular/wall_front_tudor.png')
-    expect(front?.position).toEqual([0, 0, 0])
-
+    const back = faces.find((f) => f.id === 'face-back')
     const leftWall = faces.find((f) => f.id === 'face-left')
     const rightWall = faces.find((f) => f.id === 'face-right')
     const leftRoof = faces.find((f) => f.id === 'face-roof-left')
     const rightRoof = faces.find((f) => f.id === 'face-roof-right')
-    const leftChimney = faces.find((f) => f.id === 'face-chimney-left')
-    const rightChimney = faces.find((f) => f.id === 'face-chimney-right')
 
+    expect(front).toBeDefined()
+    expect(back).toBeDefined()
     expect(leftWall).toBeDefined()
     expect(rightWall).toBeDefined()
     expect(leftRoof).toBeDefined()
     expect(rightRoof).toBeDefined()
-    expect(leftChimney).toBeDefined()
-    expect(rightChimney).toBeDefined()
 
-    // Rotations
-    expect(leftChimney?.rotation[1]).toBe(90)
-    expect(rightChimney?.rotation[1]).toBe(-90)
-    expect(leftRoof?.rotation[0]).toBe(-43.69)
-    expect(rightRoof?.rotation[0]).toBe(-43.69)
-    expect(leftWall?.position[0]).toBe(-420)
-    expect(rightWall?.position[0]).toBe(420)
+    expect(front?.assetPath).toBe('assembly_3d/modular/wall_front_tudor.png')
+    expect(front?.position).toEqual([0, 130, 0])
+    expect(front?.width).toBe(600)
+    expect(front?.height).toBe(660)
 
-    // Side walls ground alignment: ground at -483, wall height 393 -> center at -286.5
-    expect(leftWall?.position[1]).toBe(-286.5)
-    expect(rightWall?.position[1]).toBe(-286.5)
+    expect(back?.assetPath).toBe('assembly_3d/modular/wall_front_tudor.png')
+    expect(back?.position).toEqual([0, 130, 600])
+    expect(back?.rotation).toEqual([0, 180, 0])
+
+    expect(leftWall?.position).toEqual([-300, 0, 300])
+    expect(leftWall?.rotation).toEqual([0, 90, 0])
+    expect(rightWall?.position).toEqual([300, 0, 300])
+    expect(rightWall?.rotation).toEqual([0, -90, 0])
+
+    expect(leftRoof?.position).toEqual([-150, 330, 300])
+    expect(leftRoof?.rotation).toEqual([-49.09, 90, 0])
+    expect(leftRoof?.height).toBe(397)
+
+    expect(rightRoof?.position).toEqual([150, 330, 300])
+    expect(rightRoof?.rotation).toEqual([-49.09, -90, 0])
+    expect(rightRoof?.height).toBe(397)
   })
 
   it('auto-heals outdated cottage coordinates in getStoredModels3D', () => {
@@ -98,11 +103,12 @@ describe('3D Models Preset and Storage System', () => {
     const loaded = getStoredModels3D()
     const cottage = loaded.find((m) => m.id === 'model-tudor-cottage')
     expect(cottage).toBeDefined()
-    expect(cottage?.faces.length).toBe(7)
+    expect(cottage?.name).toBe('Khung Nhà Mái Chữ A Tudor (Shell 3D)')
+    expect(cottage?.faces.length).toBe(6)
     const healedFront = cottage?.faces.find((f) => f.id === 'face-front')
     const healedRoof = cottage?.faces.find((f) => f.id === 'face-roof-left')
-    expect(healedFront?.position[1]).toBe(0)
-    expect(healedRoof?.rotation[0]).toBe(-43.69)
+    expect(healedFront?.position).toEqual([0, 130, 0])
+    expect(healedRoof?.rotation[0]).toBe(-49.09)
   })
 
   it('generates cube preset with 6 faces forming a closed volume', () => {
