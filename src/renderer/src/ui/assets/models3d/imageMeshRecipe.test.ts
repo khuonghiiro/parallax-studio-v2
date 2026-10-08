@@ -5,6 +5,39 @@ import { templateFaces } from './assemblyTemplates'
 import { buildAlphaTrimmedGeometry } from './alphaMeshBuilder'
 
 describe('image mesh recipes', () => {
+  it('reports exact image counts, pixel ratios, alpha and reuse contracts for all variants', () => {
+    const counts = [[1, 1], [3, 8], [4, 10], [3, 5], [2, 2], [1, 3]]
+    IMAGE_MESH_TEMPLATES.forEach((template, index) => {
+      for (const variant of template.imageRecipe!.variants) {
+        const guide = imageTemplateGuide(template, variant.id)
+        expect([guide.sourceImageCount, guide.meshFaceCount]).toEqual(counts[index])
+        expect(guide.slots.reduce((sum, s) => sum + s.reuseCount, 0)).toBe(guide.meshFaceCount)
+        for (const slot of guide.slots) {
+          const [w, h] = slot.recommendedPixels
+          expect(w * slot.aspect[1]).toBe(h * slot.aspect[0])
+          expect(Math.max(w, h)).toBeLessThanOrEqual(2048)
+          expect(Math.min(w, h)).toBeGreaterThan(0)
+          expect(slot.imageCount).toBe(1)
+          expect(slot.reuseCount).toBe(slot.faceIndices.length)
+          expect(slot.mirrorImage).toBe(false)
+          expect(slot.renderPrompt).toContain(slot.symmetry.en)
+          expect(slot.renderPrompt).toContain(slot.alpha.en)
+          expect(slot.symmetry.vi).toBeTruthy()
+        }
+      }
+    })
+  })
+
+  it('keeps high-rise walls opaque and aligns twelve floor bands across both elevations', () => {
+    const guide = imageTemplateGuide(IMAGE_MESH_TEMPLATES.find((t) => t.id === 'mesh-highrise')!)
+    expect(guide.slots.map((s) => s.reuseCount)).toEqual([2, 2, 1])
+    for (const slot of guide.slots) {
+      expect(slot.alphaMode).toBe('opaque')
+      expect(slot.renderPrompt).toContain('alpha=255')
+      if (slot.id !== 'roof') expect(slot.renderPrompt).toContain('y=k/12')
+    }
+  })
+
   it('builds a non-flat leaf mesh and removes transparent corner pixels', () => {
     const leaf = templateFaces(IMAGE_MESH_TEMPLATES[0])[0]
     const n = leaf.gridRes!

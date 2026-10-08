@@ -4,6 +4,7 @@ import type { Face3D, Model3D } from './types'
 import { renderCategoryIcon } from '../categoryIcons'
 import { IconPlus, IconCheck, IconCube, IconReplace, IconSearch, IconX } from '../../icons'
 import { AssemblyModelLibraryTab } from './AssemblyModelLibraryTab'
+import { setAssemblyDraggedAsset } from './assemblyDragState'
 
 interface AssemblyAssetSidebarProps {
   model?: Model3D
@@ -321,6 +322,11 @@ export function AssemblyAssetSidebar({
         className={`assembly-asset-card${isCurrentFaceUsing ? ' active' : ''}`}
         draggable={true}
         onDragStart={(e) => {
+          setAssemblyDraggedAsset({
+            assetPath: item.relativePath,
+            name: item.name,
+            previewUrl: item.previewUrl
+          })
           e.dataTransfer.setData(
             'application/json',
             JSON.stringify({
@@ -331,6 +337,9 @@ export function AssemblyAssetSidebar({
           )
           e.dataTransfer.setData('text/plain', item.relativePath)
           e.dataTransfer.effectAllowed = 'copyMove'
+        }}
+        onDragEnd={() => {
+          setAssemblyDraggedAsset(null)
         }}
         onClick={() => onAssignAssetToFace(item.relativePath)}
         title={

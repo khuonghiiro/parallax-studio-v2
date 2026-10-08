@@ -1,7 +1,12 @@
-import { useEffect, useState, type MouseEvent } from 'react'
+import { useEffect, useState, useRef, useCallback, type MouseEvent, type DragEvent } from 'react'
 import type { Face3D } from './types'
 import { resolveFaceTexture } from './textureResolver'
 import { deleteFace, duplicateFace, reorderFace, toggleFaceFlag } from './assemblyFaceOps'
+import {
+  getAssemblyDraggedAsset,
+  setAssemblyDraggedAsset,
+  subscribeAssemblyDraggedAsset
+} from './assemblyDragState'
 import { IconCopy, IconDown, IconEye, IconEyeOff, IconLock, IconPlus, IconTrash, IconUp } from '../../icons'
 
 interface FaceListProps {
@@ -11,6 +16,7 @@ interface FaceListProps {
   /** Structural list change (always its own undo step). */
   onChange: (faces: Face3D[]) => void
   onAdd: () => void
+  onAssignTexture?: (faceId: string, assetPath: string, all?: boolean) => void
 }
 
 /** Resolves a small preview URL for a face image (shares the workshop texture cache). */
@@ -50,21 +56,63 @@ interface RowProps {
   index: number
   count: number
   active: boolean
+  isDragOver: boolean
+  isShiftHeld: boolean
+  isFlashing: boolean
   onSelect: () => void
   onAction: (action: 'hidden' | 'locked' | 'up' | 'down' | 'duplicate' | 'delete') => void
+  onDragEnter: (e: DragEvent) => void
+  onDragOver: (e: DragEvent) => void
+  onDragLeave: () => void
+  onDrop: (e: DragEvent) => void
 }
 
-function FaceRow({ face, index, count, active, onSelect, onAction }: RowProps) {
+function FaceRow({
+  face,
+  index,
+  count,
+  active,
+  isDragOver,
+  isShiftHeld,
+  isFlashing,
+  onSelect,
+  onAction,
+  onDragEnter,
+  onDragOver,
+  onDragLeave,
+  onDrop
+}: RowProps) {
   const stop = (action: Parameters<RowProps['onAction']>[0]) => (e: MouseEvent) => {
     e.stopPropagation()
     onAction(action)
   }
-  const cls = `fl-row${active ? ' active' : ''}${face.hidden ? ' is-hidden' : ''}${face.locked ? ' is-locked' : ''}`
+  const cls = `fl-row${active ? ' active' : ''}${face.hidden ? ' is-hidden' : ''}${face.locked ? ' is-locked' : ''}${
+    isDragOver ? (isShiftHeld ? ' is-drag-over is-shift-all' : ' is-drag-over') : ''
+  }${isFlashing ? ' flash-success' : ''}`
+
   return (
-    <div className={cls} onClick={onSelect} role="option" aria-selected={active}>
+    <div
+      className={cls}
+      onClick={onSelect}
+      role="option"
+      aria-selected={active}
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
       <span className="fl-idx">{index + 1}</span>
       <FaceThumb face={face} />
-      <span className="fl-name" title={face.name}>{face.name}</span>
+      <span className="fl-name" title={face.name}>
+        {face.name}
+      </span>
+
+      {isDragOver && (
+        <span className={`fl-drop-badge ${isShiftHeld ? 'badge-all' : 'badge-single'}`}>
+          {isShiftHeld ? '✦ Gán toàn bộ (Shift)' : '+ Gán mặt này'}
+        </span>
+      )}
+
       <span className="fl-actions">
         <button type="button" className="fl-btn fl-hover" title="Đưa lên" disabled={index === 0} onClick={stop('up')}>
           <IconUp width={11} height={11} />
@@ -89,8 +137,156 @@ function FaceRow({ face, index, count, active, onSelect, onAction }: RowProps) {
   )
 }
 
-/** Layer-style face list: thumbnail, visibility, lock, ordering, duplicate and delete. */
-export function FaceList({ faces, selectedId, onSelect, onChange, onAdd }: FaceListProps) {
+/** Layer-style face list: thumbnail, visibility, lock, ordering, duplicate, delete and Drag-Drop texture assignment. */
+export function FaceList({ faces, selectedId, onSelect, onChange, onAdd, onAssignTexture }: FaceListProps) {
+  const [hoveredFaceId, setHoveredFaceId] = useState<string | null>(null)
+  const [isShiftHeld, setIsShiftHeld] = useState(false)
+  const [isAssetDragging, setIsAssetDragging] = useState(false)
+  const [flashFaceIds, setFlashFaceIds] = useState<Set<string>>(new Set())
+
+  const facesRef = useRef(faces)
+  facesRef.current = faces
+  const hoveredFaceIdRef = useRef<string | null>(null)
+  hoveredFaceIdRef.current = hoveredFaceId
+
+  useEffect(() => {
+    return subscribeAssemblyDraggedAsset((asset) => {
+      setIsAssetDragging(!!asset)
+      if (!asset) setHoveredFaceId(null)
+    })
+  }, [])
+
+  const triggerFlash = useCallback((targetIds: string[]) => {
+    setFlashFaceIds((prev) => {
+      const next = new Set(prev)
+      for (const id of targetIds) next.add(id)
+      return next
+    })
+    setTimeout(() => {
+      setFlashFaceIds((prev) => {
+        const next = new Set(prev)
+        for (const id of targetIds) next.delete(id)
+        return next
+      })
+    }, 600)
+  }, [])
+
+  const handleApply = useCallback(
+    (faceId: string, assetPath: string, all = false) => {
+      if (!assetPath) return
+      if (onAssignTexture) {
+        onAssignTexture(faceId, assetPath, all)
+      } else {
+        const current = facesRef.current
+        const next = all
+          ? current.map((f) => ({ ...f, assetPath }))
+          : current.map((f) => (f.id === faceId ? { ...f, assetPath } : f))
+        onChange(next)
+        if (!all) onSelect(faceId)
+      }
+      triggerFlash(all ? facesRef.current.map((f) => f.id) : [faceId])
+    },
+    [onAssignTexture, onChange, onSelect, triggerFlash]
+  )
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') {
+        setIsShiftHeld(true)
+        const currentHoverId = hoveredFaceIdRef.current
+        const dragged = getAssemblyDraggedAsset()
+        if (currentHoverId && dragged) {
+          const target = facesRef.current.find((f) => f.id === currentHoverId)
+          if (target && target.assetPath !== dragged.assetPath) {
+            handleApply(currentHoverId, dragged.assetPath, false)
+          }
+        }
+      }
+    }
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') {
+        setIsShiftHeld(false)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+    }
+  }, [handleApply])
+
+  const extractAssetPath = (e: DragEvent): string | null => {
+    const dragged = getAssemblyDraggedAsset()
+    if (dragged?.assetPath) return dragged.assetPath
+
+    try {
+      const raw = e.dataTransfer.getData('application/json')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed.assetPath) return parsed.assetPath
+      }
+    } catch {}
+
+    const text = e.dataTransfer.getData('text/plain')
+    if (text) return text
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0]
+      if (file && file.type.startsWith('image/')) {
+        return (file as unknown as { path?: string }).path || URL.createObjectURL(file)
+      }
+    }
+    return null
+  }
+
+  const handleDragEnter = (id: string, e: DragEvent) => {
+    e.preventDefault()
+    setHoveredFaceId(id)
+    if (e.shiftKey) {
+      const dragged = getAssemblyDraggedAsset()
+      if (dragged) {
+        const target = facesRef.current.find((f) => f.id === id)
+        if (target && target.assetPath !== dragged.assetPath) {
+          handleApply(id, dragged.assetPath, false)
+        }
+      }
+    }
+  }
+
+  const handleDragOver = (id: string, e: DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+    if (e.shiftKey) {
+      const dragged = getAssemblyDraggedAsset()
+      if (dragged) {
+        const target = facesRef.current.find((f) => f.id === id)
+        if (target && target.assetPath !== dragged.assetPath) {
+          handleApply(id, dragged.assetPath, false)
+        }
+      }
+    }
+    if (hoveredFaceId !== id) setHoveredFaceId(id)
+    if (e.shiftKey !== isShiftHeld) setIsShiftHeld(e.shiftKey)
+  }
+
+  const handleDragLeave = (id: string) => {
+    if (hoveredFaceIdRef.current === id) {
+      setHoveredFaceId(null)
+    }
+  }
+
+  const handleDrop = (id: string, e: DragEvent) => {
+    e.preventDefault()
+    const assetPath = extractAssetPath(e)
+    const isAll = e.shiftKey
+    if (assetPath) {
+      handleApply(id, assetPath, isAll)
+    }
+    setHoveredFaceId(null)
+    setAssemblyDraggedAsset(null)
+  }
+
   const handleAction = (id: string, action: Parameters<RowProps['onAction']>[0]) => {
     if (action === 'hidden' || action === 'locked') return onChange(toggleFaceFlag(faces, id, action))
     if (action === 'up' || action === 'down') return onChange(reorderFace(faces, id, action === 'up' ? -1 : 1))
@@ -114,6 +310,13 @@ export function FaceList({ faces, selectedId, onSelect, onChange, onAdd }: FaceL
           <span>Thêm</span>
         </button>
       </div>
+
+      {isAssetDragging && (
+        <div className="fl-drag-hint-banner">
+          <span>💡 Kéo vào mặt để gán · Giữ <strong>Shift</strong> để gán toàn bộ</span>
+        </div>
+      )}
+
       <div className="fl-list" role="listbox" aria-label="Danh sách mặt">
         {faces.map((f, i) => (
           <FaceRow
@@ -122,8 +325,15 @@ export function FaceList({ faces, selectedId, onSelect, onChange, onAdd }: FaceL
             index={i}
             count={faces.length}
             active={f.id === selectedId}
+            isDragOver={hoveredFaceId === f.id}
+            isShiftHeld={isShiftHeld}
+            isFlashing={flashFaceIds.has(f.id)}
             onSelect={() => onSelect(f.id)}
             onAction={(a) => handleAction(f.id, a)}
+            onDragEnter={(e) => handleDragEnter(f.id, e)}
+            onDragOver={(e) => handleDragOver(f.id, e)}
+            onDragLeave={() => handleDragLeave(f.id)}
+            onDrop={(e) => handleDrop(f.id, e)}
           />
         ))}
       </div>

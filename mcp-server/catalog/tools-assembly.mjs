@@ -13,8 +13,8 @@ export const MODEL_CATEGORIES = ['architecture', 'decor', 'props', 'nature', 'st
 export const ASSEMBLY_TOOLS = [
   {
     name: 'get_assembly_template', cat: 'assembly',
-    doc: L('Get a template image-mesh recipe: per-slot render prompts, canvas ratios, recommended pixels, repeated face mappings, geometry, mesh settings and variants. Generate separate PNGs or adapt existing images before binding by slot ID.',
-      'Lấy công thức mesh ảnh: prompt từng bộ phận, tỷ lệ canvas, kích thước ảnh, ánh xạ mặt lặp, hình học, thiết lập mesh và biến thể. Tạo PNG riêng hoặc chuẩn bị ảnh có sẵn rồi gắn theo ID bộ phận.'),
+    doc: L('Get a template image-mesh recipe: sourceImageCount versus meshFaceCount, per-slot renderPrompt, exact canvas/pixel ratios, alphaMode, bilingual symmetry, reuseCount, faceIndices, geometry and variants. Generate one PNG per slot, not per face. Reuse rotates geometry without mirroring artwork; use set_assembly_face_image for distinct faces.',
+      'Lấy công thức mesh ảnh: sourceImageCount và meshFaceCount, renderPrompt từng slot, tỷ lệ canvas/pixel chính xác, alphaMode, symmetry song ngữ, reuseCount, faceIndices, hình học và biến thể. Tạo một PNG mỗi slot, không phải mỗi mặt. Tái sử dụng bằng xoay hình học, không lật gương ảnh; dùng set_assembly_face_image để gắn ảnh riêng từng mặt.'),
     shape: (d) => ({
       template_id: z.string().describe(d('Template ID from list_assembly_templates (e.g. mesh-leaf).', 'ID mẫu từ list_assembly_templates (vd mesh-leaf).')),
       variant_id: z.string().optional().describe(d('Optional recipe variant ID.', 'ID biến thể của công thức, tùy chọn.'))

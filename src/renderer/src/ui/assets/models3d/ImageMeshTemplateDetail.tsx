@@ -4,6 +4,7 @@ import type { Model3D } from './types'
 import { modelFromTemplate } from './templateCatalogue'
 import { bindTemplateImages, imageTemplateGuide, resolveImageTemplate } from './imageMeshRecipe'
 import { IMAGE_RENDER_RULES, type ImageMeshSlot } from './imageMeshTypes'
+import { IMAGE_ALPHA_RULES } from './imageMeshSlotRules'
 
 function ImageSlotInput({ slot, image, onImage }: { slot: ImageMeshSlot; image?: string; onImage: (value: string) => void }) {
   const [error, setError] = useState('')
@@ -20,6 +21,8 @@ function ImageSlotInput({ slot, image, onImage }: { slot: ImageMeshSlot; image?:
     {image && <img src={image} alt={slot.label} />}
     <strong>{slot.label} · {slot.aspect.join(':')}</strong>
     <p>{slot.guidance}</p>
+    <p>{slot.symmetry.vi}</p>
+    <p>{IMAGE_ALPHA_RULES[slot.alphaMode].vi}</p>
     <label>Chọn ảnh PNG <input type="file" accept="image/png" onChange={(e) => void readFile(e.target.files?.[0])} /></label>
     {image && <button className="btn xs" onClick={() => onImage('')}>Bỏ ảnh</button>}
     {error && <p role="alert">{error}</p>}

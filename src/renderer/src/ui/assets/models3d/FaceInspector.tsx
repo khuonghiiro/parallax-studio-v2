@@ -308,6 +308,13 @@ export function FaceInspector({ model, selectedFaceId, imageSize, onChangeModel,
               selectedId={selectedFace?.id ?? null}
               onSelect={handleSelectFaceFromList}
               onChange={(faces) => setFaces(faces, DISCRETE)}
+              onAssignTexture={(faceId, assetPath, all) => {
+                const nextFaces = all
+                  ? model.faces.map((f) => ({ ...f, assetPath }))
+                  : model.faces.map((f) => (f.id === faceId ? { ...f, assetPath } : f))
+                setFaces(nextFaces, DISCRETE)
+                if (!all) handleSelectFaceFromList(faceId)
+              }}
               onAdd={handleAddFace}
             />
           </>

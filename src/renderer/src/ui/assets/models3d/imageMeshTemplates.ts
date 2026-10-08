@@ -1,5 +1,6 @@
 import { face, FRONT, UP, AWAY, boxFaces, aroundY, offset, type AssemblyTemplate, type TemplateFaceSpec } from './assemblyTemplateKit'
 import type { ImageMeshSlot, ImageMeshVariant } from './imageMeshTypes'
+import { IMAGE_MESH_SLOT_RULES } from './imageMeshSlotRules'
 
 const variants: ImageMeshVariant[] = [
   { id: 'standard', label: 'Tiêu chuẩn', en: 'Standard', scale: [1, 1, 1], bend: 1 },
@@ -7,8 +8,8 @@ const variants: ImageMeshVariant[] = [
   { id: 'wide', label: 'Lớn / cong rõ', en: 'Large / strongly curved', scale: [1.3, 1.3, 1.3], bend: 1.2 }
 ]
 
-function slot(id: string, label: string, en: string, aspect: [number, number], prompt: string, guidance: string): ImageMeshSlot {
-  return { id, label, en, aspect, prompt, guidance }
+function slot(id: keyof typeof IMAGE_MESH_SLOT_RULES, label: string, en: string, aspect: [number, number], prompt: string, guidance: string): ImageMeshSlot {
+  return { id, label, en, aspect, prompt, guidance, ...IMAGE_MESH_SLOT_RULES[id] }
 }
 
 function mesh(spec: TemplateFaceSpec, imageSlot: string, profile: 'none' | 'ridge' | 'sphere' = 'none', intensity = 0): TemplateFaceSpec {

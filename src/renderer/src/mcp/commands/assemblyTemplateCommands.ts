@@ -58,6 +58,7 @@ export function assemblyTemplateCommands(resolveTargetModel: ResolveModel, persi
           anchor: t.anchor ?? null,
           imageMesh: !!t.imageRecipe,
           imageSlots: t.imageRecipe?.slots.map((s) => s.id) ?? [],
+          sourceImageCount: t.imageRecipe?.slots.length ?? 0,
           faceCount: t.faces().length
         }))
       }

@@ -6,6 +6,10 @@ export interface ImageMeshSlot {
   aspect: [number, number]
   prompt: string
   guidance: string
+  alphaMode: 'cutout' | 'opaque'
+  symmetry: { en: string; vi: string }
+  /** Normalized image coordinates: x right, y down. Outside is transparent. */
+  silhouettePolygon?: number[][]
 }
 
 export interface ImageMeshVariant {
@@ -22,6 +26,6 @@ export interface ImageMeshRecipe {
 }
 
 export const IMAGE_RENDER_RULES = {
-  en: 'Render each slot as a separate orthographic PNG with real alpha, no perspective, no background, no cast shadow, no text or border. Use even diffuse lighting and consistent material/style across slots. Keep the exact canvas aspect ratio and alignment; do not auto-crop. Image top maps to local +Y, right to local +X. Transparent holes are removed by the alpha mesh. A single photo cannot reveal hidden surfaces: supply separate views or generate missing parts.',
-  vi: 'Mỗi bộ phận là một PNG riêng có alpha thật, nhìn vuông góc, không phối cảnh, không nền, bóng đổ, chữ hay khung. Ánh sáng tán xạ đều, vật liệu và phong cách đồng nhất. Giữ đúng tỷ lệ canvas và vị trí, không tự cắt sát ảnh. Đỉnh ảnh là +Y cục bộ, bên phải là +X. Mesh bám alpha sẽ bỏ vùng trong suốt. Một ảnh không thể cung cấp mặt khuất: cần ảnh riêng hoặc tạo thêm bộ phận còn thiếu.'
+  en: 'Render one separate flat orthographic PNG per slot, not a complete 3D object, collage or sprite sheet. No perspective, surrounding scene, cast shadow, baked highlights, text or border. Use even diffuse lighting and consistent material/style across slots. Follow each slot alpha rule: cutout parts have transparent surroundings; solid surfaces fill the canvas. Keep the exact canvas aspect ratio and alignment; do not auto-crop. Image top maps to face local +Y, right to local +X; face up/normal specify assembly orientation. The app adds curvature and relief: do not draw a bent or foreshortened part. Repeated faces use the identical image with geometry rotations, without automatic image mirroring. Different artwork per face requires set_assembly_face_image after applying the template.',
+  vi: 'Mỗi slot là một PNG phẳng nhìn vuông góc riêng, không vẽ cả mô hình 3D, ảnh ghép hoặc sprite sheet. Không phối cảnh, cảnh nền, bóng đổ, bóng sáng vẽ sẵn, chữ hoặc khung. Ánh sáng tán xạ đều, vật liệu/phong cách đồng nhất. Theo alpha từng slot: phần cắt viền có nền trong suốt; bề mặt kín phủ đầy canvas. Giữ tỷ lệ và vị trí, không tự cắt sát ảnh. Đỉnh ảnh là +Y, bên phải là +X cục bộ của mặt; up/normal chỉ hướng trong mô hình. App tự uốn và tạo độ nổi: không vẽ phần đã cong hoặc bị thu ngắn phối cảnh. Các mặt lặp dùng cùng ảnh và xoay hình học, không tự lật gương ảnh. Muốn ảnh riêng từng mặt, dùng set_assembly_face_image sau khi áp mẫu.'
 }

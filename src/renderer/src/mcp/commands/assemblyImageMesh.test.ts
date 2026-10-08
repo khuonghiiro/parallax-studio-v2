@@ -15,6 +15,12 @@ describe('MCP image mesh templates', () => {
     const guide = await runCommand('get_assembly_template', { template_id: 'mesh-flower', variant_id: 'wide' }) as any
     expect(guide.slots.find((s: any) => s.id === 'petal').faceIndices).toHaveLength(6)
     expect(guide.slots[0].renderPrompt).toContain('2:3')
+    expect(guide).toMatchObject({ sourceImageCount: 3, meshFaceCount: 8 })
+    expect(guide.slots[0]).toMatchObject({ imageCount: 1, reuseCount: 6, mirrorImage: false, alphaMode: 'cutout' })
+    expect(guide.slots[0].renderPrompt).toContain('left/right symmetric')
+    expect(guide.slots[0].recommendedPixels).toEqual([1364, 2046])
+    const list = await runCommand('list_assembly_templates', {}) as any
+    expect(list.templates.find((t: any) => t.id === 'mesh-flower')).toMatchObject({ sourceImageCount: 3, faceCount: 8 })
     expect(guide.faces.find((f: any) => f.imageSlot === 'petal').width).toBe(208)
     await expect(runCommand('get_assembly_template', { template_id: 'missing' })).rejects.toThrow()
   })

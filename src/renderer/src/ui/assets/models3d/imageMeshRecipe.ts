@@ -1,6 +1,7 @@
 import type { AssemblyTemplate } from './assemblyTemplateKit'
 import type { Face3D } from './types'
 import { IMAGE_RENDER_RULES } from './imageMeshTypes'
+import { IMAGE_ALPHA_RULES } from './imageMeshSlotRules'
 
 export function resolveImageTemplate(template: AssemblyTemplate, variantId?: string): AssemblyTemplate {
   if (!variantId) return template
@@ -33,16 +34,23 @@ export function imageTemplateGuide(template: AssemblyTemplate, variantId?: strin
   return {
     templateId: template.id, label: template.label, label_en: template.en.label,
     variantId: variantId ?? 'standard', rules: IMAGE_RENDER_RULES,
+    sourceImageCount: template.imageRecipe?.slots.length ?? 0,
+    meshFaceCount: specs.length,
     variants: template.imageRecipe?.variants ?? [],
     slots: template.imageRecipe?.slots.map((s) => ({ ...s,
-      recommendedPixels: s.aspect.map((v) => Math.round(v / Math.max(...s.aspect) * 2048)),
+      recommendedPixels: s.aspect.map((v) => v * Math.max(1, Math.floor(2048 / Math.max(...s.aspect)))),
+      alpha: IMAGE_ALPHA_RULES[s.alphaMode],
+      imageCount: 1,
+      reuseCount: specs.filter((f) => f.imageSlot === s.id).length,
+      mirrorImage: false,
       faceIndices: specs.flatMap((f, i) => f.imageSlot === s.id ? [i] : []),
-      renderPrompt: `${IMAGE_RENDER_RULES.en} Canvas ratio ${s.aspect.join(':')}. ${s.prompt}`
+      renderPrompt: `${IMAGE_RENDER_RULES.en} Canvas ratio ${s.aspect.join(':')}. ${s.prompt} ${s.symmetry.en} ${IMAGE_ALPHA_RULES[s.alphaMode].en}`
     })) ?? [],
     faces: specs.map((f, index) => ({ index, name: f.name, imageSlot: f.imageSlot,
       width: f.w, height: f.h, center: f.c, normal: f.n, up: f.up ?? [0, 1, 0],
       bendX: f.bendX ?? 0, bendY: f.bendY ?? 0, mesh: f.mesh })),
-    workflow: ['open_assembly_workshop(template_id)', 'apply_assembly_template(template_id, variant_id, images)',
+    workflow: ['get_assembly_template(template_id, variant_id) → generate one PNG per slot using renderPrompt',
+      'open_assembly_workshop(template_id)', 'apply_assembly_template(template_id, variant_id, images)',
       'get_assembly_state → inspect face IDs', 'update_assembly_face → refine mesh for existing images',
       'get_assembly_screenshot → review', 'save_assembly_model / close_assembly_workshop(save=true)']
   }
