@@ -409,16 +409,20 @@
 }
 
 /* Drag & Drop texture onto face rows */
+.fl-list.is-dragging-asset .fl-row * {
+  pointer-events: none;
+}
+
 .fl-row.is-drag-over {
   background: color-mix(in srgb, var(--accent-cyan) 18%, var(--bg-2)) !important;
   border-color: var(--accent-cyan) !important;
   box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
 }
 
-.fl-row.is-drag-over.is-shift-all {
-  background: color-mix(in srgb, var(--key) 22%, var(--bg-2)) !important;
-  border-color: var(--key) !important;
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+.fl-row.is-drag-over.is-assigned {
+  background: color-mix(in srgb, #22c55e 16%, var(--bg-2)) !important;
+  border-color: #22c55e !important;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
 }
 
 .fl-drop-badge {
@@ -429,18 +433,19 @@
   margin-left: auto;
   margin-right: 4px;
   white-space: nowrap;
-  animation: fl-pulse 0.7s ease-in-out infinite alternate;
   pointer-events: none;
+  user-select: none;
 }
 
-.fl-drop-badge.badge-single {
+.fl-drop-badge.badge-pending {
   background: var(--accent-cyan);
   color: #04121c;
+  animation: fl-pulse 0.7s ease-in-out infinite alternate;
 }
 
-.fl-drop-badge.badge-all {
-  background: var(--key);
-  color: #1a1204;
+.fl-drop-badge.badge-success {
+  background: #22c55e;
+  color: #041a0b;
 }
 
 @keyframes fl-pulse {

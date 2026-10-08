@@ -57,13 +57,13 @@ interface RowProps {
   count: number
   active: boolean
   isDragOver: boolean
-  isShiftHeld: boolean
+  isAssigned: boolean
   isFlashing: boolean
   onSelect: () => void
   onAction: (action: 'hidden' | 'locked' | 'up' | 'down' | 'duplicate' | 'delete') => void
   onDragEnter: (e: DragEvent) => void
   onDragOver: (e: DragEvent) => void
-  onDragLeave: () => void
+  onDragLeave: (e: DragEvent) => void
   onDrop: (e: DragEvent) => void
 }
 
@@ -73,7 +73,7 @@ function FaceRow({
   count,
   active,
   isDragOver,
-  isShiftHeld,
+  isAssigned,
   isFlashing,
   onSelect,
   onAction,
@@ -87,7 +87,7 @@ function FaceRow({
     onAction(action)
   }
   const cls = `fl-row${active ? ' active' : ''}${face.hidden ? ' is-hidden' : ''}${face.locked ? ' is-locked' : ''}${
-    isDragOver ? (isShiftHeld ? ' is-drag-over is-shift-all' : ' is-drag-over') : ''
+    isDragOver ? (isAssigned ? ' is-drag-over is-assigned' : ' is-drag-over') : ''
   }${isFlashing ? ' flash-success' : ''}`
 
   return (
@@ -108,8 +108,8 @@ function FaceRow({
       </span>
 
       {isDragOver && (
-        <span className={`fl-drop-badge ${isShiftHeld ? 'badge-all' : 'badge-single'}`}>
-          {isShiftHeld ? '✦ Gán toàn bộ (Shift)' : '+ Gán mặt này'}
+        <span className={`fl-drop-badge ${isAssigned ? 'badge-success' : 'badge-pending'}`}>
+          {isAssigned ? '✓ Đã nhận ảnh' : '+ Gán ảnh (Shift)'}
         </span>
       )}
 
@@ -139,24 +139,28 @@ function FaceRow({
 
 /** Layer-style face list: thumbnail, visibility, lock, ordering, duplicate, delete and Drag-Drop texture assignment. */
 export function FaceList({ faces, selectedId, onSelect, onChange, onAdd, onAssignTexture }: FaceListProps) {
+  const [draggedAsset, setDraggedAsset] = useState(() => getAssemblyDraggedAsset())
   const [hoveredFaceId, setHoveredFaceId] = useState<string | null>(null)
-  const [isShiftHeld, setIsShiftHeld] = useState(false)
-  const [isAssetDragging, setIsAssetDragging] = useState(false)
   const [flashFaceIds, setFlashFaceIds] = useState<Set<string>>(new Set())
 
   const facesRef = useRef(faces)
   facesRef.current = faces
   const hoveredFaceIdRef = useRef<string | null>(null)
   hoveredFaceIdRef.current = hoveredFaceId
+  const draggedAssetRef = useRef(draggedAsset)
+  draggedAssetRef.current = draggedAsset
+
+  const isAssetDragging = !!draggedAsset
 
   useEffect(() => {
     return subscribeAssemblyDraggedAsset((asset) => {
-      setIsAssetDragging(!!asset)
+      setDraggedAsset(asset)
       if (!asset) setHoveredFaceId(null)
     })
   }, [])
 
   const triggerFlash = useCallback((targetIds: string[]) => {
+    if (targetIds.length === 0) return
     setFlashFaceIds((prev) => {
       const next = new Set(prev)
       for (const id of targetIds) next.add(id)
@@ -168,7 +172,7 @@ export function FaceList({ faces, selectedId, onSelect, onChange, onAdd, onAssig
         for (const id of targetIds) next.delete(id)
         return next
       })
-    }, 600)
+    }, 500)
   }, [])
 
   const handleApply = useCallback(
@@ -192,9 +196,8 @@ export function FaceList({ faces, selectedId, onSelect, onChange, onAdd, onAssig
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Shift') {
-        setIsShiftHeld(true)
         const currentHoverId = hoveredFaceIdRef.current
-        const dragged = getAssemblyDraggedAsset()
+        const dragged = draggedAssetRef.current || getAssemblyDraggedAsset()
         if (currentHoverId && dragged) {
           const target = facesRef.current.find((f) => f.id === currentHoverId)
           if (target && target.assetPath !== dragged.assetPath) {
@@ -203,21 +206,14 @@ export function FaceList({ faces, selectedId, onSelect, onChange, onAdd, onAssig
         }
       }
     }
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'Shift') {
-        setIsShiftHeld(false)
-      }
-    }
     window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('keyup', onKeyUp)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keyup', onKeyUp)
     }
   }, [handleApply])
 
   const extractAssetPath = (e: DragEvent): string | null => {
-    const dragged = getAssemblyDraggedAsset()
+    const dragged = draggedAssetRef.current || getAssemblyDraggedAsset()
     if (dragged?.assetPath) return dragged.assetPath
 
     try {
@@ -244,7 +240,7 @@ export function FaceList({ faces, selectedId, onSelect, onChange, onAdd, onAssig
     e.preventDefault()
     setHoveredFaceId(id)
     if (e.shiftKey) {
-      const dragged = getAssemblyDraggedAsset()
+      const dragged = draggedAssetRef.current || getAssemblyDraggedAsset()
       if (dragged) {
         const target = facesRef.current.find((f) => f.id === id)
         if (target && target.assetPath !== dragged.assetPath) {
@@ -257,8 +253,11 @@ export function FaceList({ faces, selectedId, onSelect, onChange, onAdd, onAssig
   const handleDragOver = (id: string, e: DragEvent) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'copy'
+    if (hoveredFaceIdRef.current !== id) {
+      setHoveredFaceId(id)
+    }
     if (e.shiftKey) {
-      const dragged = getAssemblyDraggedAsset()
+      const dragged = draggedAssetRef.current || getAssemblyDraggedAsset()
       if (dragged) {
         const target = facesRef.current.find((f) => f.id === id)
         if (target && target.assetPath !== dragged.assetPath) {
@@ -266,11 +265,14 @@ export function FaceList({ faces, selectedId, onSelect, onChange, onAdd, onAssig
         }
       }
     }
-    if (hoveredFaceId !== id) setHoveredFaceId(id)
-    if (e.shiftKey !== isShiftHeld) setIsShiftHeld(e.shiftKey)
   }
 
-  const handleDragLeave = (id: string) => {
+  const handleDragLeave = (id: string, e: DragEvent) => {
+    const currentTarget = e.currentTarget as HTMLElement | null
+    const relatedTarget = e.relatedTarget as Node | null
+    if (currentTarget && relatedTarget && currentTarget.contains(relatedTarget)) {
+      return
+    }
     if (hoveredFaceIdRef.current === id) {
       setHoveredFaceId(null)
     }
@@ -313,29 +315,32 @@ export function FaceList({ faces, selectedId, onSelect, onChange, onAdd, onAssig
 
       {isAssetDragging && (
         <div className="fl-drag-hint-banner">
-          <span>💡 Kéo vào mặt để gán · Giữ <strong>Shift</strong> để gán toàn bộ</span>
+          <span>💡 Kéo thả vào mặt để gán · Rê chuột và bấm <strong>Shift</strong> để gán nhanh</span>
         </div>
       )}
 
-      <div className="fl-list" role="listbox" aria-label="Danh sách mặt">
-        {faces.map((f, i) => (
-          <FaceRow
-            key={f.id}
-            face={f}
-            index={i}
-            count={faces.length}
-            active={f.id === selectedId}
-            isDragOver={hoveredFaceId === f.id}
-            isShiftHeld={isShiftHeld}
-            isFlashing={flashFaceIds.has(f.id)}
-            onSelect={() => onSelect(f.id)}
-            onAction={(a) => handleAction(f.id, a)}
-            onDragEnter={(e) => handleDragEnter(f.id, e)}
-            onDragOver={(e) => handleDragOver(f.id, e)}
-            onDragLeave={() => handleDragLeave(f.id)}
-            onDrop={(e) => handleDrop(f.id, e)}
-          />
-        ))}
+      <div className={`fl-list${isAssetDragging ? ' is-dragging-asset' : ''}`} role="listbox" aria-label="Danh sách mặt">
+        {faces.map((f, i) => {
+          const isAssigned = !!(isAssetDragging && draggedAsset && f.assetPath === draggedAsset.assetPath)
+          return (
+            <FaceRow
+              key={f.id}
+              face={f}
+              index={i}
+              count={faces.length}
+              active={f.id === selectedId}
+              isDragOver={isAssetDragging && hoveredFaceId === f.id}
+              isAssigned={isAssigned}
+              isFlashing={flashFaceIds.has(f.id)}
+              onSelect={() => onSelect(f.id)}
+              onAction={(a) => handleAction(f.id, a)}
+              onDragEnter={(e) => handleDragEnter(f.id, e)}
+              onDragOver={(e) => handleDragOver(f.id, e)}
+              onDragLeave={(e) => handleDragLeave(f.id, e)}
+              onDrop={(e) => handleDrop(f.id, e)}
+            />
+          )
+        })}
       </div>
     </div>
   )
