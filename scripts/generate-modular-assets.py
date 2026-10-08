@@ -41,11 +41,11 @@ def make_front_wall():
     im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     draw = ImageDraw.Draw(im)
 
-    apex = (W // 2, 6)
-    left_eave = (12, 520)
-    right_eave = (W - 12, 520)
-    left_bottom = (12, H)
-    right_bottom = (W - 12, H)
+    apex = (W // 2, 0)
+    left_eave = (0, 520)
+    right_eave = (W, 520)
+    left_bottom = (0, H)
+    right_bottom = (W, H)
 
     wall_poly = [apex, right_eave, right_bottom, left_bottom, left_eave]
 
@@ -57,14 +57,14 @@ def make_front_wall():
     for y in range(plinth_top, H):
         t = (y - plinth_top) / (H - plinth_top)
         c = int(145 - t * 30)
-        draw.rectangle([(12, y), (W - 12, y + 1)], fill=(c, c - 8, c - 16, 255))
+        draw.rectangle([(0, y), (W, y + 1)], fill=(c, c - 8, c - 16, 255))
 
     # Stone ashlar block courses
     course_h = 30
     for r, sy in enumerate(range(plinth_top, H, course_h)):
-        draw.line([(12, sy), (W - 12, sy)], fill=(85, 80, 75, 255), width=3)
+        draw.line([(0, sy), (W, sy)], fill=(85, 80, 75, 255), width=3)
         shift = 45 if (r % 2) else 0
-        for sx in range(12 + shift, W - 12, 90):
+        for sx in range(shift, W, 90):
             draw.line([(sx, sy), (sx, min(H, sy + course_h))], fill=(85, 80, 75, 255), width=2)
 
     # Dark oak timber beams (half-timbered Tudor structure)
@@ -78,39 +78,39 @@ def make_front_wall():
     draw.polygon([apex, (apex[0] - barge_w, apex[1]), (left_eave[0], left_eave[1] + barge_w), left_eave], fill=timber_color)
 
     # Main jetty beam at floor division (Y = 520, height 36px)
-    draw.rectangle([(12, 502), (W - 12, 538)], fill=timber_color)
-    draw.line([(12, 502), (W - 12, 502)], fill=timber_hl, width=3)
-    draw.line([(12, 538), (W - 12, 538)], fill=timber_sh, width=3)
+    draw.rectangle([(0, 502), (W, 538)], fill=timber_color)
+    draw.line([(0, 502), (W, 502)], fill=timber_hl, width=3)
+    draw.line([(0, 538), (W, 538)], fill=timber_sh, width=3)
 
     # Base sill beam above stone plinth (Y = 1200)
-    draw.rectangle([(12, 1182), (W - 12, 1208)], fill=timber_color)
-    draw.line([(12, 1182), (W - 12, 1182)], fill=timber_hl, width=2)
-    draw.line([(12, 1208), (W - 12, 1208)], fill=timber_sh, width=2)
+    draw.rectangle([(0, 1182), (W, 1208)], fill=timber_color)
+    draw.line([(0, 1182), (W, 1182)], fill=timber_hl, width=2)
+    draw.line([(0, 1208), (W, 1208)], fill=timber_sh, width=2)
 
     # Ground floor vertical posts (corner posts & studs framing center doorway)
-    # Door opening spans X = 430 to 770. Posts are placed outside door.
-    posts_x = [30, 220, 390, 810, 980, W - 30]
+    # Corner posts at X = 16 and X = W - 16
+    posts_x = [16, 220, 390, 810, 980, W - 16]
     for px in posts_x:
         draw.rectangle([(px - 16, 538), (px + 16, 1182)], fill=timber_color)
         draw.line([(px - 16, 538), (px - 16, 1182)], fill=timber_hl, width=2)
         draw.line([(px + 16, 538), (px + 16, 1182)], fill=timber_sh, width=2)
 
     # Ground floor diagonal braces
-    draw.line([(30, 1182), (220, 860)], fill=timber_color, width=20)
+    draw.line([(16, 1182), (220, 860)], fill=timber_color, width=20)
     draw.line([(220, 860), (390, 1182)], fill=timber_color, width=20)
-    draw.line([(W - 30, 1182), (980, 860)], fill=timber_color, width=20)
+    draw.line([(W - 16, 1182), (980, 860)], fill=timber_color, width=20)
     draw.line([(980, 860), (810, 1182)], fill=timber_color, width=20)
 
     # Upper floor / attic gable framing (frames center attic window)
     # Window spans X = 450 to 750, Y = 620 to 1000
     # King post in peak
-    draw.rectangle([(W // 2 - 16, 6), (W // 2 + 16, 260)], fill=timber_color)
+    draw.rectangle([(W // 2 - 16, 0), (W // 2 + 16, 260)], fill=timber_color)
 
     # Diagonal gable diamond braces
     draw.line([(260, 502), (W // 2, 260)], fill=timber_color, width=22)
     draw.line([(W - 260, 502), (W // 2, 260)], fill=timber_color, width=22)
-    draw.line([(120, 502), (W // 2 - 160, 360)], fill=timber_color, width=20)
-    draw.line([(W - 120, 502), (W // 2 + 160, 360)], fill=timber_color, width=20)
+    draw.line([(100, 502), (W // 2 - 160, 360)], fill=timber_color, width=20)
+    draw.line([(W - 100, 502), (W // 2 + 160, 360)], fill=timber_color, width=20)
 
     # Upper vertical studs framing window
     draw.rectangle([(390, 502), (416, 760)], fill=timber_color)
@@ -582,5 +582,5 @@ if __name__ == '__main__':
     make_door()
     make_chimney()
     make_flower_box()
-    make_bush()
-    print('All 8 high-fidelity modular 3D textures generated successfully!')
+    # make_bush() - Preserved AI-generated photorealistic botanical textures (nature_bush.png and nature_bush_top.png)
+    print('All high-fidelity modular 3D textures generated successfully!')

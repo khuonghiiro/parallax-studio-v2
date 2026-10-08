@@ -89,6 +89,9 @@
     },
     "assembly_3d/modular/nature_bush.png": {
       "name": "Bụi cây hoa sân vườn thể tích"
+    },
+    "assembly_3d/modular/nature_bush_top.png": {
+      "name": "Tán vòm bụi cây hoa (Nhìn từ trên)"
     }
   }
 }

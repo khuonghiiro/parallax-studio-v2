@@ -1,7 +1,7 @@
 {
   "id": "model-house-shell",
   "name": "Khung Nhà Mái Chữ A Tudor (Shell 3D)",
-  "description": "Khung nhà rỗng phong cách Tudor thuần túy: tường trát vôi trắng nẹp gỗ và mái ngói đất nung, sẵn sàng lắp ráp chi tiết trang trí.",
+  "description": "Khung nhà rỗng phong cách Tudor thuần túy: tường trát vôi trắng nẹp gỗ và mái ngói đất nung kín khít không khe hở.",
   "category": "architecture",
   "thumbnail": "thumbnail.png",
   "scale": 0.6,
@@ -44,12 +44,12 @@
       "id": "face-left",
       "name": "Vách Tường Trái (Left Wall)",
       "assetPath": "assembly_3d/modular/wall_side_tudor.png",
-      "width": 600,
-      "height": 400,
+      "width": 990,
+      "height": 660,
       "position": [
         -300,
-        0,
-        300
+        130,
+        495
       ],
       "rotation": [
         0,
@@ -61,16 +61,16 @@
       "id": "face-right",
       "name": "Vách Tường Phải (Right Wall)",
       "assetPath": "assembly_3d/modular/wall_side_tudor.png",
-      "width": 600,
-      "height": 400,
+      "width": 990,
+      "height": 660,
       "position": [
         300,
-        0,
-        300
+        130,
+        -495
       ],
       "rotation": [
         0,
-        -90,
+        90,
         0
       ]
     },
@@ -78,7 +78,7 @@
       "id": "face-roof-left",
       "name": "Mái Dốc Ngói Trái (Left Roof)",
       "assetPath": "assembly_3d/modular/roof_terracotta.png",
-      "width": 660,
+      "width": 600,
       "height": 397,
       "position": [
         -150,
@@ -86,7 +86,7 @@
         300
       ],
       "rotation": [
-        -40.9,
+        -49.09,
         90,
         0
       ]
@@ -95,7 +95,7 @@
       "id": "face-roof-right",
       "name": "Mái Dốc Ngói Phải (Right Roof)",
       "assetPath": "assembly_3d/modular/roof_terracotta.png",
-      "width": 660,
+      "width": 600,
       "height": 397,
       "position": [
         150,
@@ -103,12 +103,12 @@
         300
       ],
       "rotation": [
-        -40.9,
+        -49.09,
         -90,
         0
       ]
     }
   ],
   "createdAt": 1791432990372,
-  "updatedAt": 1791435836473
+  "updatedAt": 1791438823603
 }

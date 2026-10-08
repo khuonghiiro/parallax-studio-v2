@@ -68,9 +68,9 @@ async function main() {
   for (const id of ids) {
     console.log(`📸 Chụp thumbnail 3D sạch cho ${id}...`)
     await sendCommand('open_assembly_workshop', { model_id: id })
-    await sleep(1800)
+    await sleep(3800)
     await sendCommand('close_assembly_workshop', { save: true })
-    await sleep(300)
+    await sleep(500)
   }
   console.log('✓ Đã sinh đầy đủ thumbnail 3D sạch cho tất cả các mô hình!')
 }

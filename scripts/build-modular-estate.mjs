@@ -347,60 +347,70 @@ async function main() {
   })
   console.log('✓ Đã lưu model-chimney-brick')
 
-  // 5. Bụi Cây Hoa Sân Vườn 3D (Modular Nature)
+  // 5. Bụi Cây Hoa Sân Vườn 3D (Modular Nature - Convex Volumetric Domes)
   console.log('📦 5. Tạo Bụi Cây Sân Vườn (model-garden-bush)...')
   const bushFaces = [
     {
-      id: 'bush-core',
-      name: 'Cụm tán trung tâm',
+      id: 'bush-front',
+      name: 'Vòm cầu lồi trước (Front Dome)',
       assetPath: 'assembly_3d/modular/nature_bush.png',
       width: 320,
       height: 280,
-      position: [0, 0, 0],
-      rotation: [0, 0, 0]
+      position: [0, -10, -14],
+      rotation: [0, 0, 0],
+      bendX: 52,
+      bendY: 38
     },
     {
-      id: 'bush-cross',
-      name: 'Cụm tán đan chéo thể tích',
+      id: 'bush-back',
+      name: 'Vòm cầu lồi sau (Back Dome)',
       assetPath: 'assembly_3d/modular/nature_bush.png',
       width: 320,
       height: 280,
-      position: [0, 0, 0],
-      rotation: [0, 90, 0]
+      position: [0, -10, 14],
+      rotation: [0, 180, 0],
+      bendX: 52,
+      bendY: 38
     },
     {
-      id: 'bush-front-left',
-      name: 'Cụm lá xòe trái trước',
+      id: 'bush-left',
+      name: 'Vòm cầu lồi hông trái (Left Dome)',
       assetPath: 'assembly_3d/modular/nature_bush.png',
-      width: 240,
-      height: 220,
-      position: [-80, -20, -70],
-      rotation: [0, 30, 0]
-    },
-    {
-      id: 'bush-front-right',
-      name: 'Cụm lá xòe phải trước',
-      assetPath: 'assembly_3d/modular/nature_bush.png',
-      width: 240,
-      height: 220,
-      position: [80, -20, -70],
-      rotation: [0, -30, 0]
-    },
-    {
-      id: 'bush-top-dome',
-      name: 'Vòm lá đón sáng trên',
-      assetPath: 'assembly_3d/modular/nature_bush.png',
-      width: 260,
+      width: 280,
       height: 260,
-      position: [0, 80, 0],
-      rotation: [-90, 0, 0]
+      position: [-16, -10, 0],
+      rotation: [0, -90, 0],
+      bendX: 48,
+      bendY: 36
+    },
+    {
+      id: 'bush-right',
+      name: 'Vòm cầu lồi hông phải (Right Dome)',
+      assetPath: 'assembly_3d/modular/nature_bush.png',
+      width: 280,
+      height: 260,
+      position: [16, -10, 0],
+      rotation: [0, 90, 0],
+      bendX: 48,
+      bendY: 36
+    },
+    {
+      id: 'bush-top',
+      name: 'Vòm cầu lồi đón nắng trên (Top Canopy Dome)',
+      assetPath: 'assembly_3d/modular/nature_bush_top.png',
+      width: 280,
+      height: 280,
+      position: [0, 55, 0],
+      rotation: [-90, 0, 0],
+      bendX: 45,
+      bendY: 45
     }
   ]
   await sendCommand('save_assembly_model', {
     id: 'model-garden-bush',
     name: 'Bụi Cây Hoa Sân Vườn 3D',
     category: 'nature',
-    description: 'Bụi cây xanh xum xuê 5 cụm đan chéo đa góc nhìn thể tích, rực rỡ điểm xuyết hoa cỏ.',
+    description: 'Bụi cây xanh xum xuê 5 vòm cầu lồi đan khít tạo thể tích tròn 3D chân thực, rực rỡ điểm xuyết hoa cỏ.',
     scale: 0.6,
     faces: bushFaces
   })
@@ -449,30 +459,54 @@ async function main() {
       id: 'face-roof-left',
       name: 'Mái Dốc Ngói Trái (Left Roof)',
       assetPath: 'assembly_3d/modular/roof_terracotta.png',
-      width: 660,
+      width: 600,
       height: 397,
       position: [-150, 330, 300],
-      rotation: [-40.9, 90, 0]
+      rotation: [-49.09, 90, 0]
     },
     {
       id: 'face-roof-right',
       name: 'Mái Dốc Ngói Phải (Right Roof)',
       assetPath: 'assembly_3d/modular/roof_terracotta.png',
-      width: 660,
+      width: 600,
       height: 397,
       position: [150, 330, 300],
-      rotation: [-40.9, -90, 0]
+      rotation: [-49.09, -90, 0]
     }
   ]
   await sendCommand('save_assembly_model', {
     id: 'model-house-shell',
     name: 'Khung Nhà Mái Chữ A Tudor (Shell 3D)',
     category: 'architecture',
-    description: 'Khung nhà rỗng phong cách Tudor thuần túy: tường trát vôi trắng nẹp gỗ và mái ngói đất nung, sẵn sàng lắp ráp chi tiết trang trí.',
+    description: 'Khung nhà rỗng phong cách Tudor thuần túy: tường trát vôi trắng nẹp gỗ và mái ngói đất nung kín khít không khe hở.',
     scale: 0.6,
     faces: shellFaces
   })
   console.log('✓ Đã lưu model-house-shell')
+
+  // Sử dụng ghép hít cạnh (join_assembly_faces) để khóa kín góc tường
+  console.log('   ↳ Ghép hít cạnh kín góc tường (join_assembly_faces)...')
+  try {
+    await sendCommand('join_assembly_faces', {
+      model_id: 'model-house-shell',
+      target_id: 'face-front',
+      source_id: 'face-left',
+      target_edge: 'left',
+      source_edge: 'right',
+      angle: 90
+    })
+    await sendCommand('join_assembly_faces', {
+      model_id: 'model-house-shell',
+      target_id: 'face-front',
+      source_id: 'face-right',
+      target_edge: 'right',
+      source_edge: 'left',
+      angle: -90
+    })
+    console.log('     [OK] Đã ghép hít kín góc tường trái & phải')
+  } catch (err) {
+    console.log('     [Note] Ghép hít góc:', err.message)
+  }
 
   // 7. LẮP RÁP 3D-on-3D: Tạo Master Composite "Biệt Thự Tudor 3D Hoàn Chỉnh"
   console.log('🏗️ 7. Tiến hành ghép 3D LẮP 3D tạo Biệt Thự Tudor Hoàn Chỉnh...')
@@ -481,7 +515,7 @@ async function main() {
     id: 'model-tudor-estate',
     name: 'Biệt Thự Tudor 3D Lắp Ráp Hoàn Chỉnh',
     category: 'architecture',
-    description: 'Biệt thự Tudor cao cấp ghép nối modular 3D hoàn chỉnh: Cửa vòm đá, cửa sổ chì mở cánh, bồn hoa ban công, ống khói gạch và bụi cây cảnh sân vườn.',
+    description: 'Biệt thự Tudor cao cấp ghép nối modular 3D hoàn chỉnh: Cửa vòm đá, cửa sổ chì mở cánh, bồn hoa ban công, ống khói gạch thẳng đứng và bụi cây cảnh sân vườn thể tích.',
     scale: 0.6,
     faces: shellFaces
   })
@@ -510,13 +544,13 @@ async function main() {
   })
   console.log('     [OK] Total faces:', r.faceCount)
 
-  // 7.3 Gắn Bồn Hoa Ban Công trực tiếp dưới bậu cửa sổ tầng 2 (gapless snug at Y = 141)
+  // 7.3 Gắn Bồn Hoa Ban Công trực tiếp dưới bậu cửa sổ tầng 2 (gapless snug at Y = 148)
   console.log('   ↳ Gắn Bồn Hoa Ban Công dưới cửa sổ tầng 2...')
   r = await sendCommand('append_assembly_model', {
     model_id: 'model-tudor-estate',
     source_model_id: 'model-flower-box',
     face_id: 'face-front',
-    uv: [0.5, 0.5167],
+    uv: [0.5, 0.535],
     scale: 0.70,
     prefix_names: false
   })
@@ -546,13 +580,12 @@ async function main() {
   })
   console.log('     [OK] Total faces:', r.faceCount)
 
-  // 7.6 Ghép Ống Khói cắm vào mái dốc
-  console.log('   ↳ Ghép Ống Khói Gạch cắm vào mái phải...')
+  // 7.6 Ghép Ống Khói thẳng đứng cắm xuyên qua mái dốc
+  console.log('   ↳ Ghép Ống Khói Gạch thẳng đứng cắm qua mái...')
   r = await sendCommand('append_assembly_model', {
     model_id: 'model-tudor-estate',
     source_model_id: 'model-chimney-brick',
-    face_id: 'face-roof-right',
-    uv: [0.45, 0.65],
+    at: [140, 420, 380],
     scale: 0.85,
     prefix_names: false
   })
@@ -563,7 +596,7 @@ async function main() {
   r = await sendCommand('append_assembly_model', {
     model_id: 'model-tudor-estate',
     source_model_id: 'model-garden-bush',
-    at: [340, -88, 70],
+    at: [310, -82, 35],
     scale: 0.85,
     prefix_names: false
   })
@@ -574,38 +607,59 @@ async function main() {
   r = await sendCommand('append_assembly_model', {
     model_id: 'model-tudor-estate',
     source_model_id: 'model-garden-bush',
-    at: [-340, -88, 70],
+    at: [-310, -82, 35],
     scale: 0.85,
     prefix_names: false
   })
   console.log('     [OK] Total faces:', r.faceCount)
 
   // 7.9 Thêm Bụi Cây hoa nhỏ phía trước trái tiền cảnh
-  console.log('   ↳ Bố trí Bụi Cây hoa nhỏ phía trước...')
+  console.log('   ↳ Bố trí Bụi Cây hoa nhỏ phía trước trái...')
   r = await sendCommand('append_assembly_model', {
     model_id: 'model-tudor-estate',
     source_model_id: 'model-garden-bush',
-    at: [-230, -112, 130],
+    at: [-210, -108, 30],
     scale: 0.65,
     prefix_names: false
   })
   console.log('     [OK] Total faces:', r.faceCount)
 
   // 7.10 Thêm Bụi Cây hoa nhỏ phía trước phải tiền cảnh
+  console.log('   ↳ Bố trí Bụi Cây hoa nhỏ phía trước phải...')
   r = await sendCommand('append_assembly_model', {
     model_id: 'model-tudor-estate',
     source_model_id: 'model-garden-bush',
-    at: [230, -112, 130],
+    at: [210, -108, 30],
     scale: 0.65,
     prefix_names: false
   })
   console.log('     [OK] Total faces:', r.faceCount)
 
-  // 7.9 Chạy auto clip để cắt mặt đâm xuyên
-  console.log('   ↳ Cắt mặt đâm xuyên tự động (auto_assembly_clip)...')
-  await sendCommand('auto_assembly_clip', { model_id: 'model-tudor-estate' })
+  // 7.11 Cắt giao chính xác: Chỉ cắt chân ống khói cắm qua mái, giữ nguyên vẹn 100% tường & mái nhà
+  console.log('   ↳ Thiết lập cắt giao chính xác (chân ống khói xuyên mái)...')
+  const estate = await sendCommand('get_model3d', { id: 'model-tudor-estate' })
+  const cleanFaces = estate.model.faces.map((f) => {
+    // Tường nhà và mái luôn nguyên vẹn, không bị cắt
+    if (['face-front', 'face-back', 'face-left', 'face-right', 'face-roof-left', 'face-roof-right'].includes(f.id)) {
+      const copy = { ...f }
+      delete copy.clipBy
+      return copy
+    }
+    // Vách ống khói cắm qua mái dốc phải: cắt bỏ phần đáy chìm trong gác mái
+    if (f.name && f.name.includes('Vách ống khói')) {
+      return { ...f, clipBy: ['face-roof-right'] }
+    }
+    const copy = { ...f }
+    delete copy.clipBy
+    return copy
+  })
+  await sendCommand('save_assembly_model', {
+    ...estate.model,
+    faces: cleanFaces
+  })
+  console.log('     [OK] Đã áp dụng cắt giao cho chân ống khói và bảo toàn tường nhà')
 
-  // 7.10 Bật ánh sáng mặt trời & đổ bóng râm
+  // 7.12 Bật ánh sáng mặt trời & đổ bóng râm
   console.log('   ↳ Cấu hình ánh sáng tự nhiên và đổ bóng (set_assembly_lighting)...')
   await sendCommand('set_assembly_lighting', {
     model_id: 'model-tudor-estate',

@@ -1,97 +1,107 @@
 {
   "id": "model-garden-bush",
   "name": "Bụi Cây Hoa Sân Vườn 3D",
-  "description": "Bụi cây xanh xum xuê 5 cụm đan chéo đa góc nhìn thể tích, rực rỡ điểm xuyết hoa cỏ.",
+  "description": "Bụi cây xanh xum xuê 5 vòm cầu lồi đan khít tạo thể tích tròn 3D chân thực, rực rỡ điểm xuyết hoa cỏ.",
   "category": "nature",
   "thumbnail": "thumbnail.png",
   "scale": 0.6,
   "faces": [
     {
-      "id": "bush-core",
-      "name": "Cụm tán trung tâm",
+      "id": "bush-front",
+      "name": "Vòm cầu lồi trước (Front Dome)",
       "assetPath": "assembly_3d/modular/nature_bush.png",
       "width": 320,
       "height": 280,
       "position": [
         0,
-        0,
-        0
+        -10,
+        -14
       ],
       "rotation": [
         0,
         0,
         0
-      ]
+      ],
+      "bendX": 52,
+      "bendY": 38
     },
     {
-      "id": "bush-cross",
-      "name": "Cụm tán đan chéo thể tích",
+      "id": "bush-back",
+      "name": "Vòm cầu lồi sau (Back Dome)",
       "assetPath": "assembly_3d/modular/nature_bush.png",
       "width": 320,
       "height": 280,
       "position": [
         0,
+        -10,
+        14
+      ],
+      "rotation": [
         0,
+        180,
+        0
+      ],
+      "bendX": 52,
+      "bendY": 38
+    },
+    {
+      "id": "bush-left",
+      "name": "Vòm cầu lồi hông trái (Left Dome)",
+      "assetPath": "assembly_3d/modular/nature_bush.png",
+      "width": 280,
+      "height": 260,
+      "position": [
+        -16,
+        -10,
+        0
+      ],
+      "rotation": [
+        0,
+        -90,
+        0
+      ],
+      "bendX": 48,
+      "bendY": 36
+    },
+    {
+      "id": "bush-right",
+      "name": "Vòm cầu lồi hông phải (Right Dome)",
+      "assetPath": "assembly_3d/modular/nature_bush.png",
+      "width": 280,
+      "height": 260,
+      "position": [
+        16,
+        -10,
         0
       ],
       "rotation": [
         0,
         90,
         0
-      ]
-    },
-    {
-      "id": "bush-front-left",
-      "name": "Cụm lá xòe trái trước",
-      "assetPath": "assembly_3d/modular/nature_bush.png",
-      "width": 240,
-      "height": 220,
-      "position": [
-        -80,
-        -20,
-        -70
       ],
-      "rotation": [
-        0,
-        30,
-        0
-      ]
+      "bendX": 48,
+      "bendY": 36
     },
     {
-      "id": "bush-front-right",
-      "name": "Cụm lá xòe phải trước",
-      "assetPath": "assembly_3d/modular/nature_bush.png",
-      "width": 240,
-      "height": 220,
-      "position": [
-        80,
-        -20,
-        -70
-      ],
-      "rotation": [
-        0,
-        -30,
-        0
-      ]
-    },
-    {
-      "id": "bush-top-dome",
-      "name": "Vòm lá đón sáng trên",
-      "assetPath": "assembly_3d/modular/nature_bush.png",
-      "width": 260,
-      "height": 260,
+      "id": "bush-top",
+      "name": "Vòm cầu lồi đón nắng trên (Top Canopy Dome)",
+      "assetPath": "assembly_3d/modular/nature_bush_top.png",
+      "width": 280,
+      "height": 280,
       "position": [
         0,
-        80,
+        55,
         0
       ],
       "rotation": [
         -90,
         0,
         0
-      ]
+      ],
+      "bendX": 45,
+      "bendY": 45
     }
   ],
   "createdAt": 1791432990364,
-  "updatedAt": 1791435855376
+  "updatedAt": 1791438854066
 }

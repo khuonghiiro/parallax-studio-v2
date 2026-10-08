@@ -144,6 +144,13 @@ export function suggestClipRules(faces: Face3D[]): ClipSuggestion[] {
   for (const f of visible) {
     for (const g of visible) {
       if (f.id === g.id) continue
+      // Curved surfaces cannot act as flat infinite clipping planes
+      if (g.bendX || g.bendY) continue
+      // A small detail or prop cannot slice a large surface (e.g. bush/flower box cannot clip a wall)
+      const areaF = f.width * f.height
+      const areaG = g.width * g.height
+      if (areaG < areaF * 0.35) continue
+
       const ng = faceNormal(g)
       if (Math.abs(faceNormal(f).dot(ng)) > 0.98) continue
       const near = sideStats(f, ng, toThree(g.position), g)
