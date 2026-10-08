@@ -13,7 +13,7 @@ describe('insertModel3D unified operations', () => {
 
   beforeEach(() => {
     const project = createProject()
-    const l1 = createImageLayer({ id: 'asset-1', name: 'front', width: 200, height: 200, dataUrl: '' }, project.comp, 0)
+    const l1 = createImageLayer({ id: 'asset-1', name: 'front', kind: 'image', mime: 'image/png', width: 200, height: 200, dataUrl: '' }, project.comp, 0)
     l1.id = 'layer-front'
     l1.transform.position.value = [0, 0, 0]
     l1.transform.rotation.value = [0, 0, 0]
@@ -82,10 +82,32 @@ describe('insertModel3D unified operations', () => {
     const f2 = p.layers.find((l) => l.id === 'layer-roof')!
 
     expect(f2.transform.position.value).toEqual([0, 200, 100])
-    expect(f2.model3d?.globalScale).toBe(2.0)
+    expect(f2.transform.scale.value).toEqual([2.0, 2.0, 2.0])
     if (f2.type === 'solid') {
-      expect(f2.props.width).toBe(400)
-      expect(f2.props.height).toBe(200)
+      expect(f2.props.width).toBe(200)
+      expect(f2.props.height).toBe(100)
+    }
+  })
+
+  it('supports sequential rescale without reverting to default size', () => {
+    // First rescale to 1.5x
+    rescaleModel3DInstance(instanceId, 1.5, [0, 0, 0])
+    let p = useEditor.getState().project
+    let f2 = p.layers.find((l) => l.id === 'layer-roof')!
+    expect(f2.transform.position.value).toEqual([0, 150, 75])
+    expect(f2.transform.scale.value).toEqual([1.5, 1.5, 1.5])
+    expect(f2.model3d?.globalScale).toBe(1.5)
+
+    // Second rescale to 2.5x - smoothly updates from base without compounding or shrinking
+    rescaleModel3DInstance(instanceId, 2.5, [0, 0, 0])
+    p = useEditor.getState().project
+    f2 = p.layers.find((l) => l.id === 'layer-roof')!
+    expect(f2.transform.position.value).toEqual([0, 250, 125])
+    expect(f2.transform.scale.value).toEqual([2.5, 2.5, 2.5])
+    expect(f2.model3d?.globalScale).toBe(2.5)
+    if (f2.type === 'solid') {
+      expect(f2.props.width).toBe(200)
+      expect(f2.props.height).toBe(100)
     }
   })
 

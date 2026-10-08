@@ -153,11 +153,11 @@ export async function insertModel3DToScene({
       solidLayer.shotId = shotId
       solidLayer.autoScale = false
       solidLayer.props.color = face.color || '#8b7bff'
-      solidLayer.props.width = Math.round(face.width * combinedScale)
-      solidLayer.props.height = Math.round(face.height * combinedScale)
+      solidLayer.props.width = face.width
+      solidLayer.props.height = face.height
       solidLayer.transform.position.value = [posX, posY, posZ]
       solidLayer.transform.rotation.value = face.rotation
-      solidLayer.transform.scale.value = [1, 1, 1]
+      solidLayer.transform.scale.value = [combinedScale, combinedScale, combinedScale]
       solidLayer.model3d = {
         instanceId,
         modelId: model.id,
@@ -214,8 +214,8 @@ export function rescaleModel3DInstance(
       if (newCenter) l.model3d.centerPosition = newCenter
 
       if (l.type === 'solid' && l.model3d.baseSize) {
-        l.props.width = Math.round(l.model3d.baseSize[0] * scale)
-        l.props.height = Math.round(l.model3d.baseSize[1] * scale)
+        l.props.width = l.model3d.baseSize[0]
+        l.props.height = l.model3d.baseSize[1]
       }
     }
   })

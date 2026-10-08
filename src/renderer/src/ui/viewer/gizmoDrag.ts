@@ -69,6 +69,7 @@ export function startGizmoDrag(
   const isModel3D = !!el.layer.model3d && !!modelLayers && modelLayers.length > 0
   let modelPivot = new THREE.Vector3()
   let modelCenter: Point = [0, 0]
+  let startDist = 1
   let initialLayers: Array<{
     id: string
     startPos: Vec3
@@ -82,7 +83,6 @@ export function startGizmoDrag(
   let totalAngle = 0
   let previousAngle: number | null = null
   let edgeOnRotation = false
-  const startDist = Math.hypot(startPt[0] - modelCenter[0], startPt[1] - modelCenter[1])
 
   if (isModel3D) {
     const mb = new THREE.Box3()
@@ -92,6 +92,7 @@ export function startGizmoDrag(
     if (mb.isEmpty()) mb.copy(el.bounds)
     modelPivot = mb.getCenter(new THREE.Vector3())
     modelCenter = projectPoint(modelPivot, frame.camera, frame.rect)
+    startDist = Math.max(15, Math.hypot(startPt[0] - modelCenter[0], startPt[1] - modelCenter[1]))
     initialLayers = modelLayers.map((ml) => {
       const l = ml.layer
       return {
@@ -99,7 +100,7 @@ export function startGizmoDrag(
         startPos: [...evaluate(l.transform.position, time)] as Vec3,
         startRot: [...evaluate(l.transform.rotation, time)] as Vec3,
         startScale: [...evaluate(l.transform.scale, time)] as Vec3,
-        globalScale: l.model3d?.globalScale ?? 1.0,
+        globalScale: l.model3d?.globalScale ?? (evaluate(l.transform.scale, time)[0] || 1.0),
         baseSize: l.model3d?.baseSize,
         centerPosition: (l.model3d?.centerPosition ? [...l.model3d.centerPosition] : [modelPivot.x, modelPivot.y, -modelPivot.z]) as Vec3
       }
@@ -191,24 +192,33 @@ export function startGizmoDrag(
       }, key)
     } else {
       const curDist = Math.hypot(pt[0] - modelCenter[0], pt[1] - modelCenter[1])
-      const rawRatio = curDist / Math.max(1, startDist)
-      const scaleRatio = Math.max(0.05, shift ? Math.round(rawRatio * 20) / 20 : rawRatio)
+      const v0 = [startPt[0] - modelCenter[0], startPt[1] - modelCenter[1]]
+      const v1 = [pt[0] - modelCenter[0], pt[1] - modelCenter[1]]
+      const dot = v0[0] * v1[0] + v0[1] * v1[1]
+      const rawRatio = dot < 0 ? 0.05 : curDist / Math.max(1, startDist)
+      const scaleMultiplier = Math.max(0.05, shift ? Math.round(rawRatio * 20) / 20 : rawRatio)
       st.update((draft) => {
         for (const init of initialLayers) {
           const l = draft.layers.find((x) => x.id === init.id)
           if (!l || l.locked) continue
           const nextPos: Vec3 = [
-            Math.round(modelPivot.x + (init.startPos[0] - modelPivot.x) * scaleRatio),
-            Math.round(modelPivot.y + (init.startPos[1] - modelPivot.y) * scaleRatio),
-            Math.round(-modelPivot.z + (init.startPos[2] - (-modelPivot.z)) * scaleRatio)
+            Math.round(modelPivot.x + (init.startPos[0] - modelPivot.x) * scaleMultiplier),
+            Math.round(modelPivot.y + (init.startPos[1] - modelPivot.y) * scaleMultiplier),
+            Math.round(-modelPivot.z + (init.startPos[2] - (-modelPivot.z)) * scaleMultiplier)
           ]
           setValueAt(l.transform.position, time, nextPos, frameTolerance(draft))
-          const nextScale: Vec3 = [init.startScale[0] * scaleRatio, init.startScale[1] * scaleRatio, init.startScale[2] * scaleRatio]
+          const nextScale: Vec3 = [
+            init.startScale[0] * scaleMultiplier,
+            init.startScale[1] * scaleMultiplier,
+            init.startScale[2] * scaleMultiplier
+          ]
           setValueAt(l.transform.scale, time, nextScale, frameTolerance(draft))
-          if (l.model3d) l.model3d.globalScale = init.globalScale * scaleRatio
+          if (l.model3d) {
+            l.model3d.globalScale = init.globalScale * scaleMultiplier
+          }
           if (l.type === 'solid' && init.baseSize) {
-            l.props.width = Math.round(init.baseSize[0] * init.globalScale * scaleRatio)
-            l.props.height = Math.round(init.baseSize[1] * init.globalScale * scaleRatio)
+            l.props.width = init.baseSize[0]
+            l.props.height = init.baseSize[1]
           }
         }
       }, key)
