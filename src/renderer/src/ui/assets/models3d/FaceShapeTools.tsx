@@ -1,6 +1,7 @@
 import type { Face3D } from './types'
 import type { FaceEdge } from './assemblyGeometry'
 import { EDGE_LABELS, aspectHeight } from './assemblyFaceOps'
+import { FACE_ALPHA_CUTOFF } from './assemblyMeshFactory'
 
 interface FaceShapeToolsProps {
   face: Face3D
@@ -19,6 +20,7 @@ const EDGES: FaceEdge[] = ['top', 'left', 'right', 'bottom']
  */
 export function FaceShapeTools({ face, imageSize, onUpdate, onFold, onCenterModel }: FaceShapeToolsProps) {
   const opacity = face.opacity ?? 1
+  const alphaCutoff = face.alphaCutoff ?? FACE_ALPHA_CUTOFF
   const fitHeight = imageSize ? aspectHeight(face, imageSize.width, imageSize.height) : face.height
   const canFit = Boolean(imageSize) && fitHeight !== face.height
 
@@ -66,6 +68,19 @@ export function FaceShapeTools({ face, imageSize, onUpdate, onFold, onCenterMode
           onChange={(e) => onUpdate({ opacity: Number(e.target.value) })}
         />
         <span className="fst-value">{Math.round(opacity * 100)}%</span>
+      </label>
+
+      <label className="fst-opacity" title="Ngưỡng cắt alpha: hạ thấp (1-8%) để giữ ngọn cỏ, lông, lá cây mảnh; tăng lên nếu muốn viền cắt gọn">
+        <span>Lọc alpha</span>
+        <input
+          type="range"
+          min={0.01}
+          max={0.5}
+          step={0.01}
+          value={alphaCutoff}
+          onChange={(e) => onUpdate({ alphaCutoff: Number(e.target.value) })}
+        />
+        <span className="fst-value">{Math.round(alphaCutoff * 100)}%</span>
       </label>
     </div>
   )

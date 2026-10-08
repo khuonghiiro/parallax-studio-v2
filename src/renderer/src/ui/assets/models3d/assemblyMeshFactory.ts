@@ -4,8 +4,8 @@ import type { ResolvedTexture } from './textureResolver'
 import { buildAlphaTrimmedGeometry, buildCurvedPlaneGeometry } from './alphaMeshBuilder'
 import { DEFAULT_SCENE_THEME, type AssemblySceneTheme } from './assemblyTheme'
 
-/** Alpha below this is cut out (no colour, no depth write) for textured faces. */
-export const FACE_ALPHA_CUTOFF = 0.5
+/** Alpha below this is cut out (no colour, no depth write) for textured faces. Default is 0.05 so fine foliage tips and antialiased edges are preserved. */
+export const FACE_ALPHA_CUTOFF = 0.05
 
 export interface OrbitState {
   azimuth: number
@@ -121,11 +121,12 @@ export function faceGeometrySignature(face: Face3D): string {
 export function createFaceMaterial(face: Face3D, texture: THREE.Texture | null, fallbackColor: string): THREE.Material {
   const opacity = Math.max(0, Math.min(1, face.opacity ?? 1))
   const translucent = opacity < 0.999
+  const cutoff = face.alphaCutoff ?? FACE_ALPHA_CUTOFF
   const mat = new THREE.MeshLambertMaterial({
     map: texture,
     color: texture ? 0xffffff : face.color || fallbackColor,
     side: THREE.DoubleSide,
-    alphaTest: texture ? FACE_ALPHA_CUTOFF : 0,
+    alphaTest: texture ? cutoff : 0,
     alphaToCoverage: Boolean(texture) && !translucent,
     transparent: translucent,
     opacity,

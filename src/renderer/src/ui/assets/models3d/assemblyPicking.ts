@@ -60,7 +60,8 @@ export function pickFace(ctx: PickContext, clientX: number, clientY: number, ign
     if (!face) continue
     if (ignoreTransparent && face.assetPath) {
       const resolved = ctx.textureMap.get(face.assetPath)
-      if (alphaAt(resolved, hit.uv) < FACE_ALPHA_CUTOFF * 255) continue
+      const cutoff = face.alphaCutoff ?? FACE_ALPHA_CUTOFF
+      if (alphaAt(resolved, hit.uv) < cutoff * 255) continue
     }
     const local = owner.worldToLocal(hit.point.clone())
     const [w, h] = (owner.userData.size as [number, number] | undefined) ?? [1, 1]

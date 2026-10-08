@@ -13,6 +13,8 @@ export interface Face3D {
   rotation: [number, number, number] // [rx, ry, rz] in degrees
   scale?: [number, number, number]
   opacity?: number
+  /** Ngưỡng cắt alpha (alpha cutout) từ 0..1, mặc định 0.05 (5%) */
+  alphaCutoff?: number
   /** Độ uốn cong theo chiều ngang (-100 đến 100, tạo vòm cung / hình trụ / uốn cong) */
   bendX?: number
   /** Độ uốn cong / vểnh mép theo chiều dọc (-100 đến 100, tạo mái cong / mép vểnh) */
