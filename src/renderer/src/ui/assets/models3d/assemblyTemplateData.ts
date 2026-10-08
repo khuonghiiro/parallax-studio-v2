@@ -20,6 +20,7 @@ import {
   type AssemblyTemplate
 } from './assemblyTemplateKit'
 import { HOUSE_SHELLS } from './assemblyTemplatesShells'
+import { IMAGE_MESH_TEMPLATES } from './imageMeshTemplates'
 import { DECOR_PARTS, EXTRA_PROPS } from './assemblyTemplatesDecor'
 
 /**
@@ -344,6 +345,7 @@ const stage: AssemblyTemplate[] = [
 ]
 
 export const ASSEMBLY_TEMPLATES: AssemblyTemplate[] = [
+  ...IMAGE_MESH_TEMPLATES,
   ...architecture,
   ...HOUSE_SHELLS,
   ...DECOR_PARTS,

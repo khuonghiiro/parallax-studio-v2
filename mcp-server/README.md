@@ -6,6 +6,12 @@ Tài liệu này cung cấp **đặc tả kỹ thuật toàn diện** và **hư�
 
 ## 1. Kiến Trúc Hoạt Động (Architecture)
 
+### Image mesh recipes / Công thức mesh ảnh
+
+`list_assembly_templates` exposes `imageMesh` and image slot IDs. `get_assembly_template` returns render prompts, canvas ratios, face mappings, geometry, mesh settings and variants. Bind images with `apply_assembly_template {template_id, variant_id, images:{slot_id:asset_path}}`; tune existing images with `update_assembly_face` mesh/grid/bend/depth parameters. Repeated slots share an image; append never changes existing faces. See [workflow and examples](../docs/image-mesh-templates.md).
+
+`list_assembly_templates` trả cờ `imageMesh` và ID bộ phận ảnh. `get_assembly_template` trả prompt render, tỷ lệ canvas, ánh xạ mặt, hình học, thiết lập mesh và biến thể. Gắn ảnh bằng `apply_assembly_template {template_id, variant_id, images:{slot_id:asset_path}}`; tinh chỉnh ảnh có sẵn bằng tham số mesh/grid/bend/depth của `update_assembly_face`. Bộ phận lặp dùng chung ảnh; append giữ nguyên các mặt cũ. Xem [quy trình và ví dụ](../docs/image-mesh-templates.md).
+
 ```
 [ AI Agent / LLM Client ]
           │ (stdio - JSON-RPC 2.0)

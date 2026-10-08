@@ -45,6 +45,8 @@ npm test                 # unit test (vitest)
 
 ## Điều khiển bằng AI qua MCP
 
+**Mẫu mesh ảnh 2D → 3D:** dialog tạo mô hình có mẫu lá, bông hoa, chậu cây, nhà cao tầng, lan can và cỏ. Mỗi mẫu có yêu cầu ảnh từng bộ phận, prompt render, gắn PNG và ba biến thể. AI tra cứu bằng `get_assembly_template`, gắn ảnh theo slot bằng `apply_assembly_template`, tinh chỉnh mesh qua `update_assembly_face`. Xem [hướng dẫn và ví dụ](docs/image-mesh-templates.md).
+
 Kiến trúc:
 
 ```

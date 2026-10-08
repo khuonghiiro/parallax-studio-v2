@@ -1,6 +1,6 @@
 {
   "$comment": "Single source for the AI guide (MCP server instructions, get_ai_guide, CLI help, McpDialog prompt). Every section MUST keep the same number of lines in en and vi - catalog.test.mjs enforces it.",
-  "toolCount": 80,
+  "toolCount": 81,
   "sections": [
     {
       "id": "overview",
@@ -74,7 +74,9 @@
           "4. Decor anchors: wall parts have their back plane at z = 0 and protrude toward the viewer, so mounting on any wall makes them stick outward.",
           "5. auto_assembly_clip after parts sink into roofs (chimney, dormer); set_assembly_lighting for sun and shadows.",
           "6. get_assembly_screenshot to review, save_assembly_model, then insert_assembly_model into a shot.",
-          "7. Realtime vs headless: use open_assembly_workshop / set_assembly_face_image to let user watch edits live; or save/insert models silently in the background."
+          "7. Realtime vs headless: use open_assembly_workshop / set_assembly_face_image to let user watch edits live; or save/insert models silently in the background.",
+          "8. Image mesh: list_assembly_templates → imageMesh=true → get_assembly_template {template_id} for per-slot PNG prompts, aspect ratios, geometry and variants. Render flat orthographic parts, with real alpha and no baked shadows; keep the supplied canvas framing.",
+          "9. Open a mesh-* template; apply_assembly_template {template_id, variant_id, images:{slot_id:asset_path}} binds repeated slots together. For existing images refine each face with update_assembly_face {face_id, mesh_mode, grid_res, bend_x, bend_y, depth_profile, depth_intensity}. Review all views; one image does not reconstruct hidden surfaces. Workshop edits use its local Ctrl+Z draft history; inserting uses project history."
         ],
         "vi": [
           "Dựng công trình theo từng phần: một KHUNG (chỉ tường + mái) cộng các bộ phận TRANG TRÍ rời. Bộ phận rời trông thật hơn và dùng lại được.",
@@ -84,7 +86,9 @@
           "4. Điểm neo decor: bộ phận gắn tường có mặt lưng ở z = 0 và nhô về phía người xem, nên gắn lên tường nào cũng chìa ra ngoài.",
           "5. auto_assembly_clip sau khi bộ phận cắm vào mái (ống khói, cửa mái); set_assembly_lighting để chỉnh nắng và bóng.",
           "6. get_assembly_screenshot để xem lại, save_assembly_model, rồi insert_assembly_model vào một shot.",
-          "7. Chỉnh sửa realtime vs chạy ngầm: dùng open_assembly_workshop / set_assembly_face_image để người dùng xem trực tiếp; hoặc lưu/chèn mô hình ngầm ở chế độ ẩn."
+          "7. Chỉnh sửa realtime vs chạy ngầm: dùng open_assembly_workshop / set_assembly_face_image để người dùng xem trực tiếp; hoặc lưu/chèn mô hình ngầm ở chế độ ẩn.",
+          "8. Mesh ảnh: list_assembly_templates → imageMesh=true → get_assembly_template {template_id} để lấy prompt PNG từng bộ phận, tỷ lệ ảnh, hình học và biến thể. Render từng phần phẳng vuông góc, alpha thật, không bóng đổ; giữ đúng khung canvas đã hướng dẫn.",
+          "9. Mở mẫu mesh-*; apply_assembly_template {template_id, variant_id, images:{slot_id:asset_path}} gắn ảnh cho các bộ phận lặp. Với ảnh có sẵn, tinh chỉnh bằng update_assembly_face {face_id, mesh_mode, grid_res, bend_x, bend_y, depth_profile, depth_intensity}. Xem lại mọi góc; một ảnh không tái dựng được mặt khuất. Xưởng dùng lịch sử Ctrl+Z riêng cho bản nháp; chèn vào cảnh dùng lịch sử dự án."
         ]
       }
     },

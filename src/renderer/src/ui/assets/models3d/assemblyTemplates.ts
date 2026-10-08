@@ -29,6 +29,8 @@ export function templateFaces(template: AssemblyTemplate, idPrefix = template.id
       position: pose.position,
       rotation: pose.rotation
     }
+    Object.assign(f, spec.mesh)
+    if (spec.imageSlot) f.imageSlot = spec.imageSlot
     if (spec.bendX) f.bendX = spec.bendX
     if (spec.bendY) f.bendY = spec.bendY
     return f

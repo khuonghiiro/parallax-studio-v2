@@ -9,6 +9,8 @@ import {
 } from './templateCatalogue'
 import { BlankTemplateCard, TemplateCard } from './TemplateCard'
 import { IconCube, IconPlus } from '../../icons'
+import { ImageMeshTemplateDetail } from './ImageMeshTemplateDetail'
+import type { AssemblyTemplate } from './assemblyTemplateKit'
 
 interface Create3DModalProps {
   isOpen: boolean
@@ -71,11 +73,31 @@ function Create3DToolbar({ category, onCategory, query, onQuery }: ToolbarProps)
   )
 }
 
+function Create3DHeader({ onBlank, onClose }: { onBlank: () => void; onClose: () => void }) {
+  return <div className="c3d-header">
+    <div className="c3d-title-wrap">
+      <div className="c3d-title-icon"><IconCube width={20} height={20} /></div>
+      <div style={{ minWidth: 0 }}>
+        <div className="c3d-title">Tạo Mô Hình 3D Mới</div>
+        <div className="c3d-subtitle">{ALL_CREATE_TEMPLATES.length} mẫu · Mesh ảnh 2D thành 3D, khung nhà và bộ phận trang trí</div>
+      </div>
+    </div>
+    <div className="c3d-actions">
+      <button type="button" className="btn sm primary" onClick={onBlank} title="Khởi tạo mô hình trống">
+        <IconPlus width={14} height={14} /><span>Tự tạo mô hình trống</span>
+      </button>
+      <button type="button" className="btn xs ghost" onClick={onClose} title="Đóng dialog">✕</button>
+    </div>
+  </div>
+}
+
 export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DModalProps) {
   const [selectedCategory, setSelectedCategory] = useState<CreateCategory>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [recipe, setRecipe] = useState<AssemblyTemplate | null>(null)
 
   const handlePick = (tmpl: CreateTemplateItem) => {
+    if (tmpl.assemblyTemplate?.imageRecipe) { setRecipe(tmpl.assemblyTemplate); return }
     onSelectTemplate(tmpl.buildModel())
     onClose()
   }
@@ -100,36 +122,10 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
   return (
     <div className="assembly-modal-overlay" onClick={onClose}>
       <div className="c3d-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Tạo mô hình 3D mới">
-        <div className="c3d-header">
-          <div className="c3d-title-wrap">
-            <div className="c3d-title-icon">
-              <IconCube width={20} height={20} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div className="c3d-title">Tạo Mô Hình 3D Mới</div>
-              <div className="c3d-subtitle">
-                Chọn 1 trong {ALL_CREATE_TEMPLATES.length} khung mẫu (khung nhà + bộ phận trang trí tách rời) hoặc tự
-                tạo mô hình trống
-              </div>
-            </div>
-          </div>
-          <div className="c3d-actions">
-            <button
-              type="button"
-              className="btn sm primary"
-              onClick={handleCreateBlank}
-              title="Khởi tạo ngay mô hình 3D trống từ mặt phẳng cơ bản"
-            >
-              <IconPlus width={14} height={14} />
-              <span>Tự tạo mô hình trống</span>
-            </button>
-            <button type="button" className="btn xs ghost" onClick={onClose} title="Đóng dialog">
-              ✕
-            </button>
-          </div>
-        </div>
+        <Create3DHeader onBlank={handleCreateBlank} onClose={onClose} />
 
-        <Create3DToolbar
+        {recipe ? <ImageMeshTemplateDetail key={recipe.id} template={recipe} onBack={() => setRecipe(null)}
+          onCreate={(model) => { onSelectTemplate(model); setRecipe(null); onClose() }} /> : <><Create3DToolbar
           category={selectedCategory}
           onCategory={setSelectedCategory}
           query={searchQuery}
@@ -153,6 +149,7 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
             )}
           </div>
         </div>
+        </>}
       </div>
     </div>
   )

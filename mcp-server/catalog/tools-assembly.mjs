@@ -12,6 +12,16 @@ export const MODEL_CATEGORIES = ['architecture', 'decor', 'props', 'nature', 'st
 
 export const ASSEMBLY_TOOLS = [
   {
+    name: 'get_assembly_template', cat: 'assembly',
+    doc: L('Get a template image-mesh recipe: per-slot render prompts, canvas ratios, recommended pixels, repeated face mappings, geometry, mesh settings and variants. Generate separate PNGs or adapt existing images before binding by slot ID.',
+      'Lấy công thức mesh ảnh: prompt từng bộ phận, tỷ lệ canvas, kích thước ảnh, ánh xạ mặt lặp, hình học, thiết lập mesh và biến thể. Tạo PNG riêng hoặc chuẩn bị ảnh có sẵn rồi gắn theo ID bộ phận.'),
+    shape: (d) => ({
+      template_id: z.string().describe(d('Template ID from list_assembly_templates (e.g. mesh-leaf).', 'ID mẫu từ list_assembly_templates (vd mesh-leaf).')),
+      variant_id: z.string().optional().describe(d('Optional recipe variant ID.', 'ID biến thể của công thức, tùy chọn.'))
+    }),
+    example: '{"template_id":"mesh-flower"}'
+  },
+  {
     name: 'list_models3d', cat: 'assembly',
     doc: L(
       'List all saved 3D assembly models (disk catalog + local presets) with id, name and category. Decor parts (category "decor") are meant to be merged onto building shells.',
@@ -52,6 +62,8 @@ export const ASSEMBLY_TOOLS = [
     shape: (d) => ({
       template_id: z.string().describe(d('Template ID (e.g. "shell-walls", "shell-two-storey", "window-shuttered", "chimney", "box", "tent", "tower-8").', 'ID khuôn mẫu (vd "shell-walls", "shell-two-storey", "window-shuttered", "chimney", "box", "tent", "tower-8").')),
       model_id: modelId(d),
+      variant_id: z.string().optional().describe(d('Image-mesh variant from get_assembly_template.', 'Biến thể mesh ảnh từ get_assembly_template.')),
+      images: z.record(z.string(), z.string().min(1)).optional().describe(d('Map image slot IDs to asset paths or image data URLs. Repeated slots share one image. Omitted slots preserve existing images.', 'Ánh xạ ID bộ phận ảnh sang đường dẫn asset hoặc data URL. Bộ phận lặp dùng chung ảnh. Bỏ qua bộ phận để giữ ảnh hiện có.')),
       mode: z.enum(['replace', 'append']).optional().describe(d('Replace folds or append beside model (default "replace").', 'Gấp lại theo khuôn hoặc thêm cạnh mô hình (mặc định "replace").'))
     }),
     example: '{"template_id":"shell-two-storey","mode":"replace"}'
@@ -140,11 +152,17 @@ export const ASSEMBLY_TOOLS = [
   {
     name: 'update_assembly_face', cat: 'assembly',
     doc: L(
-      'Update properties of a face plane in the 3D assembly model (transform, texture, visibility, clip rules).',
-      'Cập nhật thuộc tính một mặt trong mô hình 3D (biến đổi, texture, hiển thị, quy tắc cắt).'
+      'Update a face transform, image, alpha mesh grid, bend, depth profile, visibility or clip rules. Use mesh_mode auto for transparent PNG contours.',
+      'Cập nhật biến đổi, ảnh, lưới mesh alpha, uốn, độ nổi, hiển thị hoặc quy tắc cắt. Dùng mesh_mode auto để bám viền PNG trong suốt.'
     ),
     shape: (d) => ({
       face_id: z.string().describe(d('ID of face to update.', 'ID mặt cần cập nhật.')),
+      mesh_mode: z.enum(['auto', 'manual']).optional().describe(d('Alpha contour or manual grid.', 'Bám viền alpha hoặc lưới thủ công.')),
+      grid_res: z.number().int().min(4).max(128).optional().describe(d('Mesh grid resolution.', 'Độ phân giải lưới mesh.')),
+      bend_x: z.number().min(-100).max(100).optional().describe(d('Horizontal bend.', 'Độ uốn ngang.')),
+      bend_y: z.number().min(-100).max(100).optional().describe(d('Vertical bend.', 'Độ uốn dọc.')),
+      depth_profile: z.enum(['none', 'luminance', 'sphere', 'cylinder', 'slope', 'ridge']).optional().describe(d('Depth shape for the image mesh.', 'Dạng độ nổi cho mesh ảnh.')),
+      depth_intensity: z.number().min(-200).max(200).optional().describe(d('Depth intensity percent.', 'Cường độ độ nổi phần trăm.')),
       model_id: z.string().optional(),
       name: z.string().optional(),
       asset_path: z.string().optional(),

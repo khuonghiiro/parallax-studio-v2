@@ -4,6 +4,8 @@ export interface Face3D {
   /** Relative asset path (e.g. 'house/origami_front.png') or project assetId or data URL */
   assetPath?: string
   assetId?: string
+  /** Stable image slot within an image-mesh recipe. */
+  imageSlot?: string
   color?: string
   width: number
   height: number

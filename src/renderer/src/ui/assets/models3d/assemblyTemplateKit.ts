@@ -1,4 +1,6 @@
 import type { Vec3 } from './assemblyGeometry'
+import type { Face3D } from './types'
+import type { ImageMeshRecipe } from './imageMeshTypes'
 
 /**
  * Shared types and geometry helpers for the Assembly template catalogue.
@@ -22,6 +24,8 @@ export interface TemplateFaceSpec {
   up?: Vec3
   bendX?: number
   bendY?: number
+  imageSlot?: string
+  mesh?: Pick<Face3D, 'meshMode' | 'gridRes' | 'depthProfile' | 'depthIntensity'>
 }
 
 export interface AssemblyTemplate {
@@ -38,6 +42,7 @@ export interface AssemblyTemplate {
    * with `append_assembly_model` / "Ghép vào mô hình" (e.g. back plane touching z = 0).
    */
   anchor?: string
+  imageRecipe?: ImageMeshRecipe
   faces: () => TemplateFaceSpec[]
 }
 
@@ -276,4 +281,3 @@ export function squarePillarFaces(
     face(`${prefix} trái`, w, h, [-half, 0, 0], LEFT)
   ]
 }
-

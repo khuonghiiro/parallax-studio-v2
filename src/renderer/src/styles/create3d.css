@@ -18,6 +18,17 @@
 }
 
 /* ---------- Header ---------- */
+.c3d-recipe { padding: 20px; color: var(--text); }
+.c3d-recipe p { color: var(--text-dim); line-height: 1.6; }
+.c3d-recipe-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.c3d-recipe-slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin: 16px 0; }
+.c3d-image-slot { padding: 14px; background: var(--bg-1); border: 1px solid var(--line); border-radius: 8px; }
+.c3d-image-slot strong, .c3d-image-slot label { display: block; }
+.c3d-image-slot input { max-width: 100%; margin-top: 8px; color: var(--text); }
+.c3d-image-slot img { width: 100%; height: 100px; object-fit: contain; background: var(--bg-3); }
+.c3d-recipe pre { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg-1); padding: 12px; }
+.c3d-recipe summary { cursor: pointer; color: var(--accent); }
+
 .c3d-header {
   flex-shrink: 0;
   display: flex;

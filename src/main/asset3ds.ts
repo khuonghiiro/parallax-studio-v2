@@ -1,7 +1,7 @@
 import { app, ipcMain, shell } from 'electron'
 import { existsSync } from 'fs'
-import { readdir, readFile, stat, writeFile, mkdir } from 'fs/promises'
-import { basename, extname, join, relative } from 'path'
+import { readdir, readFile, stat, writeFile, mkdir, rm } from 'fs/promises'
+import { basename, extname, join, relative, dirname } from 'path'
 
 const MIME_MAP: Record<string, string> = {
   png: 'image/png',

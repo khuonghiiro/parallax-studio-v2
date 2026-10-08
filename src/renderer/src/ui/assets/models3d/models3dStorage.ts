@@ -365,7 +365,7 @@ export async function ensureModelThumbnails(models: Model3D[]): Promise<Model3D[
 
       for (const p of candPaths) {
         try {
-          const res = await window.api.asset3ds.loadBytes(p)
+          const res = await window.api.asset3ds?.loadBytes(p)
           if (res && res.data) {
             let binary = ''
             const bytes = res.data

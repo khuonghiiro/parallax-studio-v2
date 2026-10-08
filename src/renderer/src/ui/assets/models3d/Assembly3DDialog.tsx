@@ -62,6 +62,8 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
   const activeInitial = initialModel || modelProp || {
     id: `model-${Math.random().toString(36).slice(2, 7)}`,
     name: 'Mô hình 3D Mới',
+    category: 'custom',
+    scale: 1,
     faces: [],
     createdAt: Date.now(),
     updatedAt: Date.now()

@@ -57,7 +57,7 @@ const LIBRARY_CATEGORY: Record<TemplateCategory, Model3D['category']> = {
   architecture: 'architecture',
   decor: 'decor',
   props: 'props',
-  nature: 'props',
+  nature: 'nature',
   stage: 'room'
 }
 

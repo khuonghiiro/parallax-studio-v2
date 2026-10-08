@@ -5,11 +5,13 @@ import { insertModel3DToScene } from '../../ui/assets/models3d/insertModel3D'
 import { joinFaces, type JoinEdge, type JoinScaleMode } from '../../ui/assets/models3d/assemblyJoin'
 import { applyClipSuggestions, suggestClipRules } from '../../ui/assets/models3d/assemblyClip'
 import { applySunPreset, normalizeLighting } from '../../ui/assets/models3d/assemblyLighting'
-import { ASSEMBLY_TEMPLATES, TEMPLATE_CATEGORIES, appendTemplate, findTemplate, replaceWithTemplate } from '../../ui/assets/models3d/assemblyTemplates'
+import { ASSEMBLY_TEMPLATES } from '../../ui/assets/models3d/assemblyTemplates'
 import { modelFromTemplate } from '../../ui/assets/models3d/templateCatalogue'
 import { appendModel, appendModelOnFace } from '../../ui/assets/models3d/assemblyCompose'
 import { deleteFace, newFaceId, patchFace } from '../../ui/assets/models3d/assemblyFaceOps'
 import { useView } from '../../store/view'
+import { assemblyMeshPatch } from './assemblyMeshParams'
+import { assemblyTemplateCommands } from './assemblyTemplateCommands'
 import { ParamError, type Handler, type Params } from '../types'
 import { bool, has, num, str, toPlain, vec3 } from '../params'
 
@@ -115,7 +117,7 @@ export const assemblyCommands: Record<string, Handler> = {
     let thumbnailDataUrl = str(p, 'thumbnail_data_url') || raw?.thumbnailDataUrl || existing?.thumbnailDataUrl
     if (!thumbnailDataUrl && session && session.getModel().id === id) {
       try {
-        const captured = session.captureScreenshot()
+        const captured = session.captureScreenshot?.()
         if (captured) thumbnailDataUrl = captured
       } catch (err) {
         console.warn('[assemblyCommands] Error capturing thumbnail for save:', err)
@@ -196,7 +198,8 @@ export const assemblyCommands: Record<string, Handler> = {
   update_assembly_face: async (p) => {
     const faceId = str(p, 'face_id', true)
     const { model, isSession } = await resolveTargetModel(p)
-    const patch: Partial<Face3D> = {}
+    if (!model.faces.some((f) => f.id === faceId)) throw new ParamError(`Face "${faceId}" not found`)
+    const patch: Partial<Face3D> = assemblyMeshPatch(p)
     if (has(p, 'name')) patch.name = str(p, 'name')
     if (has(p, 'asset_path')) patch.assetPath = str(p, 'asset_path')
     if (has(p, 'width')) patch.width = num(p, 'width')
@@ -277,43 +280,7 @@ export const assemblyCommands: Record<string, Handler> = {
     return { ok: true, modelId: model.id, lighting }
   },
 
-  apply_assembly_template: async (p) => {
-    const templateId = str(p, 'template_id', true)
-    const mode = (str(p, 'mode') ?? 'replace') as 'replace' | 'append'
-    const tpl = findTemplate(templateId)
-    if (!tpl) throw new ParamError(`Template "${templateId}" not found`)
-
-    const { model, isSession } = await resolveTargetModel(p)
-    const faces = mode === 'append' ? appendTemplate(tpl, model.faces) : replaceWithTemplate(tpl, model.faces)
-    const updated = { ...model, faces }
-    await persistModel(updated, isSession)
-    if (isSession) {
-      getActiveAssemblySession()?.setSelectedFaceId(faces[0]?.id || null)
-    }
-    return { ok: true, templateId, mode, modelId: model.id, faceCount: faces.length }
-  },
-
-  list_assembly_templates: (p) => {
-    const category = str(p, 'category')
-    if (category && !TEMPLATE_CATEGORIES.some((c) => c.id === category)) {
-      throw new ParamError(`Unknown category "${category}" (${TEMPLATE_CATEGORIES.map((c) => c.id).join(', ')})`)
-    }
-    const list = ASSEMBLY_TEMPLATES.filter((t) => !category || t.category === category)
-    return {
-      count: list.length,
-      categories: TEMPLATE_CATEGORIES.map((c) => ({ id: c.id, label: c.label, label_en: c.en })),
-      templates: list.map((t) => ({
-        id: t.id,
-        category: t.category,
-        label: t.label,
-        label_en: t.en.label,
-        hint: t.hint,
-        hint_en: t.en.hint,
-        anchor: t.anchor ?? null,
-        faceCount: t.faces().length
-      }))
-    }
-  },
+  ...assemblyTemplateCommands(resolveTargetModel, persistModel),
 
   append_assembly_model: async (p) => {
     const part = await findSavedModel(str(p, 'source_model_id', true))

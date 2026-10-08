@@ -49,7 +49,7 @@ export function TemplateCard({ item, onPick }: TemplateCardProps) {
           }}
         >
           <IconPlus width={12} height={12} />
-          <span>Chọn mẫu này</span>
+          <span>{item.assemblyTemplate?.imageRecipe ? 'Xem ảnh cần chuẩn bị' : 'Chọn mẫu này'}</span>
         </button>
       </div>
     </div>
