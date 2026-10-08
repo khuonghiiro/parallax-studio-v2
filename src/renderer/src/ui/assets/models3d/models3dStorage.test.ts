@@ -35,7 +35,7 @@ describe('3D Models Preset and Storage System', () => {
 
     const front = faces.find((f) => f.id === 'face-front')
     expect(front).toBeDefined()
-    expect(front?.assetPath).toBe('assembly_3d/house/origami_front.png')
+    expect(front?.assetPath).toBe('assembly_3d/modular/wall_front_tudor.png')
     expect(front?.position).toEqual([0, 0, 0])
 
     const leftWall = faces.find((f) => f.id === 'face-left')

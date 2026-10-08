@@ -1,0 +1,114 @@
+{
+  "id": "model-chimney-brick",
+  "name": "Ống Khói Gạch Cổ Điển 3D",
+  "description": "Ống khói gạch nung nắp chụp gờ cổ điển, cắm xuyên mái dốc công trình.",
+  "category": "decor",
+  "scale": 0.6,
+  "faces": [
+    {
+      "id": "chim-front",
+      "name": "Vách ống khói trước",
+      "assetPath": "assembly_3d/modular/decor_chimney.png",
+      "width": 110,
+      "height": 260,
+      "position": [
+        0,
+        0,
+        -55
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "chim-back",
+      "name": "Vách ống khói sau",
+      "assetPath": "assembly_3d/modular/decor_chimney.png",
+      "width": 110,
+      "height": 260,
+      "position": [
+        0,
+        0,
+        55
+      ],
+      "rotation": [
+        0,
+        180,
+        0
+      ]
+    },
+    {
+      "id": "chim-left",
+      "name": "Vách ống khói trái",
+      "assetPath": "assembly_3d/modular/decor_chimney.png",
+      "width": 110,
+      "height": 260,
+      "position": [
+        -55,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        90,
+        0
+      ]
+    },
+    {
+      "id": "chim-right",
+      "name": "Vách ống khói phải",
+      "assetPath": "assembly_3d/modular/decor_chimney.png",
+      "width": 110,
+      "height": 260,
+      "position": [
+        55,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        -90,
+        0
+      ]
+    },
+    {
+      "id": "chim-cap",
+      "name": "Mũ ống khói trên",
+      "color": "#991b1b",
+      "width": 140,
+      "height": 140,
+      "position": [
+        0,
+        138,
+        0
+      ],
+      "rotation": [
+        -90,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "chim-rim",
+      "name": "Viền gờ mũ ống khói",
+      "color": "#7f1d1d",
+      "width": 140,
+      "height": 16,
+      "position": [
+        0,
+        130,
+        -70
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "createdAt": 1791432990356,
+  "updatedAt": 1791433049655,
+  "thumbnail": "thumbnail.png"
+}

@@ -48,6 +48,13 @@
       "icon": "sparkles",
       "description": "Cửa sổ, cửa ra vào, ống khói, cột, ban công, chậu cây… tạo riêng rồi ghép vào khung nhà",
       "order": 6
+    },
+    {
+      "id": "nature",
+      "title": "Thiên nhiên & Cây cỏ",
+      "icon": "sparkles",
+      "description": "Cây cối thể tích, bụi hoa, thảm cỏ sân vườn tạo cảnh quan",
+      "order": 7
     }
   ]
 }

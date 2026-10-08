@@ -317,6 +317,19 @@ describe('MCP assemblyCommands', () => {
       unregister()
     }
   })
+
+  it('deletes a saved model via delete_model3d', async () => {
+    // Save a temporary model first
+    await runCommand('save_assembly_model', {
+      id: 'model-to-delete-test',
+      name: 'To Delete',
+      faces: []
+    })
+    const res = (await runCommand('delete_model3d', { id: 'model-to-delete-test' })) as any
+    expect(res.ok).toBe(true)
+    expect(res.id).toBe('model-to-delete-test')
+  })
 })
+
 
 

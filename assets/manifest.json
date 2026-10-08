@@ -31,6 +31,14 @@
       "icon": "music",
       "description": "Nhạc nền, tiếng chuông ambient và hiệu ứng âm thanh cho phân cảnh",
       "order": 4
+    },
+    {
+      "id": "assembly_3d",
+      "folder": "assembly_3d/modular",
+      "title": "Vật liệu Xưởng 3D Rời (Modular)",
+      "icon": "cube",
+      "description": "Bộ vật liệu tường, mái ngói, cửa sổ, cửa vòm, bồn hoa và cây cỏ tách rời cho lắp ráp 3D",
+      "order": 5
     }
   ],
   "assets": {
@@ -58,23 +66,29 @@
     "audio/ambient_chime.wav": {
       "name": "Chuông gió ngân vang ambient"
     },
-    "assembly_3d/house/origami_front.png": {
-      "name": "Mặt tiền nhà gỗ Origami (Front)"
+    "assembly_3d/modular/wall_front_tudor.png": {
+      "name": "Tường đầu hồi Tudor mộc (Mặt tiền)"
     },
-    "assembly_3d/house/origami_side_left.png": {
-      "name": "Tường hông trái Origami (Left Wall)"
+    "assembly_3d/modular/wall_side_tudor.png": {
+      "name": "Tường hông Tudor mộc (Trơn)"
     },
-    "assembly_3d/house/origami_side_right.png": {
-      "name": "Tường hông phải Origami (Right Wall)"
+    "assembly_3d/modular/roof_terracotta.png": {
+      "name": "Mái ngói đất nung cổ điển"
     },
-    "assembly_3d/house/origami_roof_left.png": {
-      "name": "Mái nghiêng trái Origami (Left Roof)"
+    "assembly_3d/modular/decor_window.png": {
+      "name": "Cửa sổ Tudor kính quả trám (Có cánh)"
     },
-    "assembly_3d/house/origami_roof_right.png": {
-      "name": "Mái nghiêng phải Origami (Right Roof)"
+    "assembly_3d/modular/decor_door.png": {
+      "name": "Cửa vòm gỗ sồi cổ điển (Bản lề sắt)"
     },
-    "assembly_3d/house/origami_chimney_side.png": {
-      "name": "Mặt hông ống khói Origami (Chimney Side)"
+    "assembly_3d/modular/decor_chimney.png": {
+      "name": "Ống khói gạch đỏ cổ điển"
+    },
+    "assembly_3d/modular/decor_flower_box.png": {
+      "name": "Hộp hoa ban công rực rỡ"
+    },
+    "assembly_3d/modular/nature_bush.png": {
+      "name": "Bụi cây hoa sân vườn thể tích"
     }
   }
 }

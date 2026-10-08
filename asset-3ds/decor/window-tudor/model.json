@@ -1,0 +1,114 @@
+{
+  "id": "model-window-tudor",
+  "name": "Cửa Sổ Tudor Khung Gỗ 3D",
+  "description": "Cửa sổ hoa văn chì cổ điển có bậu cửa gỗ và 2 cánh mở góc 35 độ, gắn lên tường.",
+  "category": "decor",
+  "scale": 0.6,
+  "faces": [
+    {
+      "id": "window-glass",
+      "name": "Mặt kính hoa văn chì",
+      "assetPath": "assembly_3d/modular/decor_window.png",
+      "width": 200,
+      "height": 260,
+      "position": [
+        0,
+        0,
+        -2
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "window-lintel",
+      "name": "Khung trên gỗ sồi",
+      "color": "#451a03",
+      "width": 250,
+      "height": 30,
+      "position": [
+        0,
+        145,
+        -12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "window-sill-top",
+      "name": "Bậu cửa mặt trên",
+      "color": "#3b1c0b",
+      "width": 250,
+      "height": 40,
+      "position": [
+        0,
+        -130,
+        -20
+      ],
+      "rotation": [
+        -90,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "window-sill-front",
+      "name": "Bậu cửa mặt đứng",
+      "color": "#291409",
+      "width": 250,
+      "height": 16,
+      "position": [
+        0,
+        -138,
+        -40
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "window-shutter-left",
+      "name": "Cánh cửa sổ trái mở",
+      "assetPath": "assembly_3d/modular/decor_window.png",
+      "width": 105,
+      "height": 260,
+      "position": [
+        -89.69,
+        0,
+        -32.11
+      ],
+      "rotation": [
+        0,
+        35,
+        0
+      ]
+    },
+    {
+      "id": "window-shutter-right",
+      "name": "Cánh cửa sổ phải mở",
+      "assetPath": "assembly_3d/modular/decor_window.png",
+      "width": 105,
+      "height": 260,
+      "position": [
+        89.69,
+        0,
+        -32.11
+      ],
+      "rotation": [
+        0,
+        -35,
+        0
+      ]
+    }
+  ],
+  "createdAt": 1791432990329,
+  "updatedAt": 1791433045795,
+  "thumbnail": "thumbnail.png"
+}

@@ -1,0 +1,131 @@
+{
+  "id": "model-door-arched",
+  "name": "Cửa Vòm Cổng Đá 3D",
+  "description": "Cửa ra vào vòm cuốn đá khối, cánh gỗ sồi bản lề rèn thép, bậc thềm đá và mái ngói hiên.",
+  "category": "decor",
+  "scale": 0.6,
+  "faces": [
+    {
+      "id": "door-leaf",
+      "name": "Cánh cửa gỗ vòm đá",
+      "assetPath": "assembly_3d/modular/decor_door.png",
+      "width": 220,
+      "height": 400,
+      "position": [
+        0,
+        0,
+        -2
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "door-frame-left",
+      "name": "Cột trụ đá trái",
+      "color": "#64748b",
+      "width": 30,
+      "height": 420,
+      "position": [
+        -125,
+        10,
+        -8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "door-frame-right",
+      "name": "Cột trụ đá phải",
+      "color": "#64748b",
+      "width": 30,
+      "height": 420,
+      "position": [
+        125,
+        10,
+        -8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "door-frame-top",
+      "name": "Vòm đá đỉnh cửa",
+      "color": "#475569",
+      "width": 280,
+      "height": 30,
+      "position": [
+        0,
+        215,
+        -8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "door-step-top",
+      "name": "Mặt bậc thềm đá",
+      "color": "#334155",
+      "width": 320,
+      "height": 80,
+      "position": [
+        0,
+        -200,
+        -40
+      ],
+      "rotation": [
+        -90,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "door-step-front",
+      "name": "Mặt đứng bậc thềm",
+      "color": "#1e293b",
+      "width": 320,
+      "height": 30,
+      "position": [
+        0,
+        -215,
+        -80
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "door-canopy-roof",
+      "name": "Mái che ngói nghiêng",
+      "assetPath": "assembly_3d/modular/roof_terracotta.png",
+      "width": 320,
+      "height": 120,
+      "position": [
+        0,
+        260,
+        -50.7
+      ],
+      "rotation": [
+        -25,
+        0,
+        0
+      ]
+    }
+  ],
+  "createdAt": 1791432990341,
+  "updatedAt": 1791433044169,
+  "thumbnail": "thumbnail.png"
+}

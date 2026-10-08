@@ -68,10 +68,21 @@ export const ASSEMBLY_TOOLS = [
       category: z.enum(MODEL_CATEGORIES).optional(),
       scale: z.number().optional(),
       description: z.string().optional(),
-      thumbnail: z.string().optional(),
       faces: z.array(z.any()).optional().describe(d('List of 3D faces.', 'Danh sách các mặt 3D.')),
       lighting: z.any().optional().describe(d('Lighting parameters.', 'Thông số ánh sáng.'))
     })
+  },
+  {
+    name: 'delete_model3d', cat: 'assembly',
+    doc: L(
+      'Delete a saved 3D assembly model by ID from both disk catalog and local storage.',
+      'Xóa mô hình lắp ráp 3D đã lưu theo ID khỏi cả catalog trên đĩa và bộ nhớ cục bộ.'
+    ),
+    shape: (d) => ({
+      id: z.string().optional().describe(d('Model ID to delete (e.g. "model-tudor-cottage").', 'ID mô hình cần xóa (vd "model-tudor-cottage").')),
+      model_id: z.string().optional().describe(d('Alias for id.', 'Bí danh của id.'))
+    }),
+    example: '{"id":"model-tudor-cottage"}'
   },
   {
     name: 'append_assembly_model', cat: 'assembly',

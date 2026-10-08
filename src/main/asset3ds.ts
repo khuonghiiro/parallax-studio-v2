@@ -238,11 +238,15 @@ export function registerAsset3DsIpc(): void {
     try {
       const models = await scanAsset3DsModels()
       const target = models.find((m) => m.id === id)
-      if (target?._filePath && existsSync(target._filePath)) {
-        await writeFile(target._filePath, '', 'utf-8')
+      if (target?._filePath) {
+        const folder = dirname(target._filePath)
+        if (existsSync(folder)) {
+          await rm(folder, { recursive: true, force: true })
+        }
       }
       return { ok: true }
-    } catch {
+    } catch (err) {
+      console.error('[asset3ds:delete] Failed to delete:', err)
       return { ok: false }
     }
   })

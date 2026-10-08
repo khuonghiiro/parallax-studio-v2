@@ -30,7 +30,8 @@ const DEFAULT_CATEGORIES: Asset3DsCategory[] = [
   { id: 'street', title: 'Đường phố & Góc cảnh', icon: 'city', order: 3 },
   { id: 'room', title: 'Nội thất & Căn phòng', icon: 'image', order: 4 },
   { id: 'custom', title: 'Tùy biến & Tự tạo', icon: 'sparkles', order: 5 },
-  { id: 'decor', title: 'Bộ phận trang trí', icon: 'sparkles', order: 6 }
+  { id: 'decor', title: 'Bộ phận trang trí', icon: 'sparkles', order: 6 },
+  { id: 'nature', title: 'Thiên nhiên & Cây cỏ', icon: 'sparkles', order: 7 }
 ]
 
 export function Model3DList() {
@@ -48,7 +49,7 @@ export function Model3DList() {
       if (catList && catList.length > 0) {
         setCategories(catList)
       }
-      if (diskModels && diskModels.length > 0) {
+      if (Array.isArray(diskModels)) {
         setModels(diskModels)
       }
     })
@@ -56,6 +57,13 @@ export function Model3DList() {
 
   useEffect(() => {
     reload()
+    const handleUpdate = () => reload()
+    window.addEventListener('models3d:changed', handleUpdate)
+    window.addEventListener('storage', handleUpdate)
+    return () => {
+      window.removeEventListener('models3d:changed', handleUpdate)
+      window.removeEventListener('storage', handleUpdate)
+    }
   }, [reload])
 
   // Count items per category
@@ -96,6 +104,7 @@ export function Model3DList() {
   const handleDelete = (id: string) => {
     if (window.confirm('Bạn có chắc muốn xóa mô hình 3D này không?')) {
       deleteModel3D(id)
+      setModels((prev) => prev.filter((m) => m.id !== id))
       reload()
     }
   }
@@ -232,16 +241,14 @@ export function Model3DList() {
                   >
                     Nhân bản
                   </button>
-                  {models.length > 1 && (
-                    <button
-                      type="button"
-                      className="btn xs ghost danger"
-                      onClick={() => handleDelete(m.id)}
-                      title="Xóa mô hình này"
-                    >
-                      <IconTrash width={11} height={11} />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    className="btn xs ghost danger"
+                    onClick={() => handleDelete(m.id)}
+                    title="Xóa mô hình này"
+                  >
+                    <IconTrash width={11} height={11} />
+                  </button>
                   <span style={{ flex: 1 }} />
                   <span className="hint-scale">Chỉnh scale ở cột phải</span>
                 </div>

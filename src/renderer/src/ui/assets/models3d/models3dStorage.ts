@@ -46,7 +46,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         {
           id: 'face-front',
           name: '1. Mặt Tiền (Gable Front)',
-          assetPath: 'assembly_3d/house/origami_front.png',
+          assetPath: 'assembly_3d/modular/wall_front_tudor.png',
           width: frontW,
           height: frontH,
           position: [0, 0, 0],
@@ -55,7 +55,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         {
           id: 'face-left',
           name: '2. Tường Hông Trái (Left Wall)',
-          assetPath: 'assembly_3d/house/origami_side_left.png',
+          assetPath: 'assembly_3d/modular/wall_side_tudor.png',
           width: wallD,
           height: wallH,
           position: [-hw, wallCenterY, hd],
@@ -64,7 +64,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         {
           id: 'face-right',
           name: '3. Tường Hông Phải (Right Wall)',
-          assetPath: 'assembly_3d/house/origami_side_right.png',
+          assetPath: 'assembly_3d/modular/wall_side_tudor.png',
           width: wallD,
           height: wallH,
           position: [hw, wallCenterY, hd],
@@ -73,7 +73,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         {
           id: 'face-roof-left',
           name: '4. Mái Nghiêng Trái (Left Roof)',
-          assetPath: 'assembly_3d/house/origami_roof_left.png',
+          assetPath: 'assembly_3d/modular/roof_terracotta.png',
           width: wallD,
           height: roofSlope,
           position: [-hw / 2, roofCenterY, hd],
@@ -82,7 +82,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         {
           id: 'face-roof-right',
           name: '5. Mái Nghiêng Phải (Right Roof)',
-          assetPath: 'assembly_3d/house/origami_roof_right.png',
+          assetPath: 'assembly_3d/modular/roof_terracotta.png',
           width: wallD,
           height: roofSlope,
           position: [hw / 2, roofCenterY, hd],
@@ -91,7 +91,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         {
           id: 'face-chimney-left',
           name: '6. Ống Khói Hông Trái (Chimney Left)',
-          assetPath: 'assembly_3d/house/origami_chimney_side.png',
+          assetPath: 'assembly_3d/modular/decor_chimney.png',
           width: chimW,
           height: chimH,
           position: [-chimX, chimCenterY, chimCenterZ],
@@ -100,7 +100,7 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
         {
           id: 'face-chimney-right',
           name: '7. Ống Khói Hông Phải (Chimney Right)',
-          assetPath: 'assembly_3d/house/origami_chimney_side.png',
+          assetPath: 'assembly_3d/modular/decor_chimney.png',
           width: chimW,
           height: chimH,
           position: [chimX, chimCenterY, chimCenterZ],
@@ -250,9 +250,8 @@ export const DEFAULT_MODELS_3D: Model3D[] = [
   {
     id: 'model-tudor-cottage',
     name: 'Ngôi Nhà Tudor 3D (Origami Cottage)',
-    description: 'Ngôi nhà châu Âu cổ điển lắp ráp từ 5 diện phẳng 2.5D: Mặt tiền đầu hồi, 2 tường hông và 2 cánh mái nghiêng dốc khớp khít 100%.',
+    description: 'Ngôi nhà châu Âu cổ điển lắp ráp từ 7 diện phẳng 2.5D: Mặt tiền đầu hồi, 2 tường hông, 2 cánh mái dốc và 2 mặt hông ống khói.',
     category: 'architecture',
-    thumbnail: 'asset-3ds/tudor_cottage/review_cottage.png',
     scale: 0.6,
     faces: generatePresetFaces('cottage'),
     createdAt: Date.now() - 100000,
@@ -293,12 +292,12 @@ export const DEFAULT_MODELS_3D: Model3D[] = [
 export function getStoredModels3D(): Model3D[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) {
+    if (raw === null) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_MODELS_3D))
       return DEFAULT_MODELS_3D
     }
     const parsed = JSON.parse(raw)
-    if (Array.isArray(parsed) && parsed.length > 0) {
+    if (Array.isArray(parsed)) {
       // Auto-heal outdated preset geometry for model-tudor-cottage if old misaligned coordinates exist
       const cottageIdx = parsed.findIndex((m: Model3D) => m.id === 'model-tudor-cottage')
       if (cottageIdx >= 0) {
@@ -325,6 +324,25 @@ export function getStoredModels3D(): Model3D[] {
     console.warn('[models3dStorage] Error reading localStorage:', err)
     return DEFAULT_MODELS_3D
   }
+}
+
+function notifyModelsChanged(): void {
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new CustomEvent('models3d:changed'))
+    } catch {
+      // ignore
+    }
+  }
+}
+
+export function clearAllStoredModels3D(): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([]))
+  } catch {
+    // ignore
+  }
+  notifyModelsChanged()
 }
 
 export async function fetchDiskModels3D(): Promise<Model3D[]> {
@@ -370,6 +388,7 @@ export function saveModel3D(model: Model3D): void {
       console.warn('[models3dStorage] Error saving to asset-3ds:', err)
     })
   }
+  notifyModelsChanged()
 }
 
 export function deleteModel3D(id: string): void {
@@ -384,6 +403,7 @@ export function deleteModel3D(id: string): void {
       console.warn('[models3dStorage] Error deleting from asset-3ds:', err)
     })
   }
+  notifyModelsChanged()
 }
 
 export function duplicateModel3D(id: string): Model3D | null {

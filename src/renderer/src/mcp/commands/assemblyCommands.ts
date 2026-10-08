@@ -1,6 +1,6 @@
 import type { Face3D, Model3D, SunPreset } from '../../ui/assets/models3d/types'
 import { getActiveAssemblySession } from '../../ui/assets/models3d/assemblyBridge'
-import { fetchDiskModels3D, getStoredModels3D, saveModel3D } from '../../ui/assets/models3d/models3dStorage'
+import { deleteModel3D, fetchDiskModels3D, getStoredModels3D, saveModel3D } from '../../ui/assets/models3d/models3dStorage'
 import { insertModel3DToScene } from '../../ui/assets/models3d/insertModel3D'
 import { joinFaces, type JoinEdge, type JoinScaleMode } from '../../ui/assets/models3d/assemblyJoin'
 import { applyClipSuggestions, suggestClipRules } from '../../ui/assets/models3d/assemblyClip'
@@ -141,6 +141,13 @@ export const assemblyCommands: Record<string, Handler> = {
       session.setModel(model)
     }
     return { ok: true, id: model.id, name: model.name, faceCount: model.faces.length, hasThumbnail: Boolean(thumbnailDataUrl) }
+  },
+
+  delete_model3d: async (p) => {
+    const id = str(p, 'id') || str(p, 'model_id')
+    if (!id) throw new ParamError('Missing "id" or "model_id"')
+    deleteModel3D(id)
+    return { ok: true, id }
   },
 
   insert_assembly_model: async (p) => {

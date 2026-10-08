@@ -1,0 +1,131 @@
+{
+  "id": "model-flower-box",
+  "name": "Bồn Hoa Dưới Cửa 3D",
+  "description": "Bồn hoa gỗ sồi treo dưới bậu cửa sổ, ngập tràn hoa phong lữ và dây leo trường xuân.",
+  "category": "decor",
+  "scale": 0.6,
+  "faces": [
+    {
+      "id": "planter-front",
+      "name": "Thành bồn trước",
+      "color": "#5c3a21",
+      "width": 260,
+      "height": 70,
+      "position": [
+        0,
+        0,
+        -90
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "planter-left",
+      "name": "Thành bồn trái",
+      "color": "#4a2e18",
+      "width": 60,
+      "height": 70,
+      "position": [
+        -130,
+        0,
+        -60
+      ],
+      "rotation": [
+        0,
+        90,
+        0
+      ]
+    },
+    {
+      "id": "planter-right",
+      "name": "Thành bồn phải",
+      "color": "#4a2e18",
+      "width": 60,
+      "height": 70,
+      "position": [
+        130,
+        0,
+        -60
+      ],
+      "rotation": [
+        0,
+        -90,
+        0
+      ]
+    },
+    {
+      "id": "planter-bottom",
+      "name": "Đáy bồn gỗ",
+      "color": "#3d2512",
+      "width": 260,
+      "height": 60,
+      "position": [
+        0,
+        -35,
+        -60
+      ],
+      "rotation": [
+        90,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "planter-soil",
+      "name": "Đất mùn trồng hoa",
+      "color": "#1c1917",
+      "width": 250,
+      "height": 55,
+      "position": [
+        0,
+        25,
+        -60
+      ],
+      "rotation": [
+        -90,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "flowers-front",
+      "name": "Khóm hoa trước rủ",
+      "assetPath": "assembly_3d/modular/decor_flower_box.png",
+      "width": 280,
+      "height": 110,
+      "position": [
+        0,
+        60,
+        -75
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "flowers-back",
+      "name": "Khóm hoa sau vươn cao",
+      "assetPath": "assembly_3d/modular/decor_flower_box.png",
+      "width": 280,
+      "height": 140,
+      "position": [
+        0,
+        75,
+        -45
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "createdAt": 1791432990350,
+  "updatedAt": 1791433047324,
+  "thumbnail": "thumbnail.png"
+}
