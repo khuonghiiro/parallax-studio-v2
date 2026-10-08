@@ -128,7 +128,7 @@ export default function App() {
       {assemblyModalModel && (
         <Assembly3DDialog
           isOpen={true}
-          model={assemblyModalModel}
+          initialModel={assemblyModalModel}
           onClose={closeAssemblyWorkshop}
         />
       )}

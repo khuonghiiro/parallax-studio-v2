@@ -12,7 +12,20 @@ const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms
 const nextPaint = (): Promise<void> =>
   new Promise((r) => {
     if (typeof requestAnimationFrame !== 'function') return r()
-    requestAnimationFrame(() => requestAnimationFrame(() => r()))
+    let done = false
+    const finish = (): void => {
+      if (!done) {
+        done = true
+        r()
+      }
+    }
+    const timer = setTimeout(finish, 60)
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        clearTimeout(timer)
+        finish()
+      })
+    )
   })
 
 export interface UiCandidate {

@@ -347,6 +347,17 @@ export class McpBridge {
 
     if (method === 'ping') return { app: 'parallax-studio', version: app.getVersion(), port: this.status.port, rendererReady: this.rendererReady }
 
+    if (method === 'get_app_screenshot') {
+      const win = this.getWindow()
+      if (!win || win.isDestroyed()) throw new Error('App window is not open')
+      const width = typeof params.width === 'number' ? params.width : undefined
+      const format = params.format === 'jpeg' ? 'jpeg' : 'png'
+      const delay = Math.max(0, Math.min(5000, Number(params.delay_ms) || 0))
+      if (delay > 0) await new Promise((r) => setTimeout(r, delay))
+      const res = await captureWebContents(win.webContents, { width, format })
+      return { ...res, target: 'app-window' }
+    }
+
     const cmd: McpCommand = { reqId: `${Date.now().toString(36)}-${++this.seq}`, method, params }
     if (typeof params.file_path === 'string' && params.file_path) cmd.file = await readPicked(params.file_path)
 

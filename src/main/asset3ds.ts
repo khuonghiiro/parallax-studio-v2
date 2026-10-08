@@ -175,6 +175,18 @@ export async function saveAsset3DModel(model: any): Promise<{ ok: boolean; path?
       ...model,
       updatedAt: Date.now()
     }
+
+    if (typeof model.thumbnailDataUrl === 'string' && model.thumbnailDataUrl.startsWith('data:image/')) {
+      const match = model.thumbnailDataUrl.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/)
+      if (match) {
+        const ext = match[1] === 'jpeg' ? 'jpg' : match[1]
+        const thumbName = `thumbnail.${ext}`
+        const thumbFile = join(dir, thumbName)
+        await writeFile(thumbFile, Buffer.from(match[2], 'base64'))
+        toSave.thumbnail = thumbName
+      }
+    }
+
     delete toSave.thumbnailDataUrl
     delete toSave._filePath
 

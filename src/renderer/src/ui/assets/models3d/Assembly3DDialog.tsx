@@ -16,7 +16,8 @@ import { IconCube, IconImage } from '../../icons'
 
 interface Assembly3DDialogProps {
   isOpen: boolean
-  initialModel: Model3D
+  initialModel?: Model3D
+  model?: Model3D
   onClose: () => void
   onSaved?: (model: Model3D) => void
 }
@@ -52,9 +53,16 @@ function useSelectedTexture(assetPath?: string): ResolvedTexture | null {
   return resolved
 }
 
-export function Assembly3DDialog({ isOpen, initialModel, onClose, onSaved }: Assembly3DDialogProps) {
-  const { model, setModel, undo, redo, canUndo, canRedo, setGestureActive } = useAssemblyHistory(initialModel)
-  const [selectedFaceId, setSelectedFaceId] = useState<string | null>(initialModel.faces[0]?.id || null)
+export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClose, onSaved }: Assembly3DDialogProps) {
+  const activeInitial = initialModel || modelProp || {
+    id: `model-${Math.random().toString(36).slice(2, 7)}`,
+    name: 'Mô hình 3D Mới',
+    faces: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  }
+  const { model, setModel, undo, redo, canUndo, canRedo, setGestureActive } = useAssemblyHistory(activeInitial)
+  const [selectedFaceId, setSelectedFaceId] = useState<string | null>(activeInitial.faces[0]?.id || null)
   const [view, setView] = useState<AssemblyViewState>(DEFAULT_VIEW_STATE)
   const [frameToken, setFrameToken] = useState(0)
   const [inserting, setInserting] = useState(false)
