@@ -200,8 +200,25 @@ export function Model3DList() {
                     </div>
                   )}
 
-                  {/* Icon Actions ở góc phải: Nhân bản, Xóa, Sửa, Thêm */}
+                  {/* Icon Actions ở góc phải xếp dọc: Thêm, Sửa, Nhân bản, Xóa */}
                   <div className="model-3d-card-actions-top">
+                    <button
+                      type="button"
+                      className="icon-action-btn add-btn"
+                      onClick={() => handleInsert(m)}
+                      disabled={insertingId === m.id}
+                      title="Thêm mô hình 3D vào phân cảnh (+)"
+                    >
+                      <IconPlus width={11} height={11} />
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-action-btn edit-btn"
+                      onClick={() => setActiveEditingModel(m)}
+                      title="Chỉnh sửa mô hình 3D trong Xưởng Lắp Ráp"
+                    >
+                      <IconPen width={10} height={10} />
+                    </button>
                     <button
                       type="button"
                       className="icon-action-btn duplicate-btn"
@@ -217,23 +234,6 @@ export function Model3DList() {
                       title="Xóa mô hình này"
                     >
                       <IconTrash width={10} height={10} />
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-action-btn edit-btn"
-                      onClick={() => setActiveEditingModel(m)}
-                      title="Chỉnh sửa mô hình 3D trong Xưởng Lắp Ráp"
-                    >
-                      <IconPen width={10} height={10} />
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-action-btn add-btn"
-                      onClick={() => handleInsert(m)}
-                      disabled={insertingId === m.id}
-                      title="Thêm mô hình 3D vào phân cảnh (+)"
-                    >
-                      <IconPlus width={12} height={12} />
                     </button>
                   </div>
                 </div>
