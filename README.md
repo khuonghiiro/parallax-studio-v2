@@ -97,11 +97,11 @@ Thêm vào `mcp_config.json` của Antigravity (Settings → MCP), sửa đườ
 
 Claude Desktop, Cursor và các client MCP khác dùng cùng cấu hình `command` / `args` như trên. **Hãy mở app trước**, rồi mới để AI gọi tool.
 
-### Các tool (72)
+### Các tool (75)
 
 | Nhóm | Tool |
 | --- | --- |
-| Xem | `get_project_info`, `get_shot_info`, `get_layer_info`, `get_camera_info`, `get_memory_stats`, `get_viewport_screenshot` (view `camera` hoặc `3d`), `get_ai_guide`, `list_commands` |
+| Xem | `get_project_info`, `get_shot_info`, `get_layer_info`, `get_camera_info`, `get_memory_stats`, `get_viewport_screenshot` (view `camera` hoặc `3d`), `get_app_screenshot` (toàn cửa sổ app), `ui_click`, `ui_type`, `get_ai_guide`, `list_commands` |
 | Dự án | `new_project`, `set_composition`, `save_project`, `open_project`, `import_project_json`, `export_project_json`, `import_shot_json`, `export_shot_json`, `undo`, `redo` |
 | Cảnh | `add_shot`, `update_shot`, `delete_shot` |
 | Layer | `add_image_layer` (file_path / base64 / repeat), `add_text_layer`, `add_solid_layer`, `add_ground_layer` (sàn 3D), `add_particles`, `update_layer`, `delete_layer`, `move_layer`, `split_layer`, `apply_layer_fx`, `toggle_layer_fx`, `remove_layer_fx`, `set_layer_glow`, `replace_layer_asset` |

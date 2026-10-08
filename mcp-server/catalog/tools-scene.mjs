@@ -62,6 +62,42 @@ export const SCENE_TOOLS = [
     }),
     example: '{"view":"camera","time":1.5}'
   },
+  {
+    name: 'get_app_screenshot', cat: 'inspect', format: 'image',
+    doc: L(
+      'Screenshot of the WHOLE app window exactly as the user sees it (menus, dialogs, inspector, 3D assembly workshop). Use it to review UI and dialogs; get_viewport_screenshot only renders the scene.',
+      'Chụp TOÀN BỘ cửa sổ app đúng như người dùng đang thấy (menu, dialog, inspector, xưởng lắp ráp 3D). Dùng để review giao diện và dialog; get_viewport_screenshot chỉ render cảnh.'
+    ),
+    shape: (d) => ({
+      width: z.number().int().min(64).max(3840).optional().describe(d('Downscale to this width (default: native).', 'Thu nhỏ về bề rộng này (mặc định: kích thước gốc).')),
+      format: z.enum(['png', 'jpeg']).optional(),
+      delay_ms: z.number().int().min(0).max(5000).optional().describe(d('Wait before capturing so UI transitions finish (default 150).', 'Chờ trước khi chụp để hiệu ứng UI chạy xong (mặc định 150).'))
+    }),
+    example: '{"width":1280}'
+  },
+  {
+    name: 'ui_click', cat: 'inspect',
+    doc: L(
+      'Click a visible UI element like a user: by its text (buttons, tabs, menu items, cards) or by CSS selector. Combine with get_app_screenshot to open dialogs and check them.',
+      'Bấm một phần tử UI đang hiển thị như người dùng: theo chữ (nút, tab, mục menu, thẻ) hoặc theo CSS selector. Kết hợp get_app_screenshot để mở dialog và kiểm tra.'
+    ),
+    shape: (d) => ({
+      text: z.string().optional().describe(d('Visible text; exact match wins over partial (case-insensitive).', 'Chữ hiển thị; khớp chính xác được ưu tiên hơn khớp một phần (không phân biệt hoa thường).')),
+      selector: z.string().optional().describe(d('CSS selector (alone, or to narrow the text search).', 'CSS selector (dùng riêng, hoặc để thu hẹp phạm vi tìm theo chữ).')),
+      index: z.number().int().min(0).optional().describe(d('Which match to click when several match (default 0).', 'Chọn kết quả thứ mấy khi có nhiều phần tử khớp (mặc định 0).'))
+    }),
+    example: '{"text":"Thiên nhiên"}'
+  },
+  {
+    name: 'ui_type', cat: 'inspect',
+    doc: L('Type a value into an input/textarea found by CSS selector (fires input + change events).', 'Nhập giá trị vào ô input/textarea tìm theo CSS selector (phát sự kiện input + change).'),
+    shape: (d) => ({
+      selector: z.string().describe(d('CSS selector of the input.', 'CSS selector của ô nhập.')),
+      value: z.string(),
+      index: z.number().int().min(0).optional()
+    }),
+    example: '{"selector":".c3d-search input","value":"cây"}'
+  },
 
   // ---- project
   {

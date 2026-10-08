@@ -1,6 +1,6 @@
 {
   "$comment": "Single source for the AI guide (MCP server instructions, get_ai_guide, CLI help, McpDialog prompt). Every section MUST keep the same number of lines in en and vi - catalog.test.mjs enforces it.",
-  "toolCount": 72,
+  "toolCount": 75,
   "sections": [
     {
       "id": "overview",
@@ -94,13 +94,15 @@
           "The camera only loads/renders what it sees, so many shots are cheap.",
           "Use PNG images with transparency for parallax plates and assembly faces.",
           "Relative file paths are resolved against the MCP server's working directory; prefer absolute paths.",
-          "Call get_ai_guide {topic} at any time to re-read a section of this guide."
+          "Call get_ai_guide {topic} at any time to re-read a section of this guide.",
+          "To review the real UI (dialogs, workshop, panels) use get_app_screenshot; drive it with ui_click {text} / ui_type {selector, value}."
         ],
         "vi": [
           "Camera chỉ nạp/render những gì nó thấy, nên có nhiều shot vẫn nhẹ.",
           "Dùng ảnh PNG có nền trong suốt cho các lớp parallax và mặt lắp ráp.",
           "Đường dẫn tương đối được tính theo thư mục làm việc của MCP server; nên dùng đường dẫn tuyệt đối.",
-          "Gọi get_ai_guide {topic} bất cứ lúc nào để đọc lại một phần của hướng dẫn này."
+          "Gọi get_ai_guide {topic} bất cứ lúc nào để đọc lại một phần của hướng dẫn này.",
+          "Để xem giao diện thật (dialog, xưởng lắp ráp, panel) dùng get_app_screenshot; thao tác bằng ui_click {text} / ui_type {selector, value}."
         ]
       }
     }

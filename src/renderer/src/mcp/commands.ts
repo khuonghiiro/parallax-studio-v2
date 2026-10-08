@@ -8,6 +8,7 @@ import { cameraCommands } from './commands/cameraCommands'
 import { audioCommands } from './commands/audioCommands'
 import { assemblyCommands } from './commands/assemblyCommands'
 import { systemCommands } from './commands/systemCommands'
+import { uiCommands } from './commands/uiCommands'
 
 /**
  * Commands an external AI can run through the MCP bridge.
@@ -24,7 +25,8 @@ const commands: Record<string, Handler> = {
   ...cameraCommands,
   ...audioCommands,
   ...assemblyCommands,
-  ...systemCommands
+  ...systemCommands,
+  ...uiCommands
 }
 
 /** Run a command by name (also used by execute_script's `api.run`). */

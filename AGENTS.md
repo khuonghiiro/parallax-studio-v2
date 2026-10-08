@@ -63,6 +63,7 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
   - `pnpm pxs --help` / `pnpm pxs help <tool>`: Đọc toàn bộ catalog 50+ tools và quy ước tọa độ 2.5D.
   - `pnpm pxs status` / `pnpm pxs inspect`: Kiểm tra trạng thái và xuất JSON toàn bộ dự án hiện tại.
   - `pnpm pxs review --view camera --out <path>`: Chụp ảnh viewport thực tế để AI dùng `view_file` xem và đánh giá bố cục cảnh bằng mắt.
+  - `pnpm pxs review --view app --out <path>` (tool `get_app_screenshot`) + `ui_click` / `ui_type`: Chụp toàn bộ cửa sổ app (dialog, panel, xưởng 3D) và thao tác UI thật. **Kiểm tra giao diện bằng cách này, không dùng trình duyệt** (trình duyệt không có preload/IPC nên hiển thị sai). Lưu ảnh ra ổ còn trống (ví dụ `D:\_tmp`) nếu ổ C: đầy.
   - `pnpm pxs call <tool> '<json>'`: Thực thi thêm/sửa layer, shot, audio, keyframe theo thời gian thực (realtime) như người dùng thao tác.
 - **Bảo toàn tài nguyên:** Khi hoàn tất tác vụ tự động hóa, AI client hoặc người dùng cần ngắt kết nối (`disconnectAll`) hoặc tạm dừng server để tránh duy trì socket chạy ngầm gây hao tốn CPU/RAM máy tính.
 

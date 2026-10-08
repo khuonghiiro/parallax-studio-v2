@@ -147,6 +147,18 @@ export interface McpStatus {
   error?: string
 }
 
+export interface McpCaptureOptions {
+  width?: number
+  format?: 'png' | 'jpeg'
+}
+
+export interface McpCaptureResult {
+  mime: string
+  data: string
+  width: number
+  height: number
+}
+
 export interface McpApi {
   onCommand(cb: (cmd: McpCommand) => void): () => void
   respond(res: McpResponse): void
@@ -155,5 +167,7 @@ export interface McpApi {
   disconnectAll(): Promise<void>
   toggleListening(enable?: boolean): Promise<McpStatus>
   setDocsLang(lang: McpDocsLang): Promise<McpStatus>
+  /** Screenshot of the whole app window (UI, dialogs, workshop) – used by the get_app_screenshot tool. */
+  captureWindow(opts?: McpCaptureOptions): Promise<McpCaptureResult>
 }
 

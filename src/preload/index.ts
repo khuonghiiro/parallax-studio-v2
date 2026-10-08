@@ -45,7 +45,8 @@ const api: ParallaxApi = {
     },
     disconnectAll: () => ipcRenderer.invoke('mcp:disconnectAll'),
     toggleListening: (enable?: boolean) => ipcRenderer.invoke('mcp:toggleListening', enable),
-    setDocsLang: (lang) => ipcRenderer.invoke('mcp:setDocsLang', lang)
+    setDocsLang: (lang) => ipcRenderer.invoke('mcp:setDocsLang', lang),
+    captureWindow: (opts) => ipcRenderer.invoke('mcp:captureWindow', opts)
   }
 }
 

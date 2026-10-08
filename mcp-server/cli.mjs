@@ -82,7 +82,7 @@ const t = (key) => MSG[key][lang]
 const CLI_COMMANDS = [
   ['pnpm pxs status', { en: 'Check the connection and app state', vi: 'Kiểm tra kết nối và trạng thái app' }],
   ['pnpm pxs inspect', { en: 'Dump the whole project as JSON', vi: 'Xuất toàn bộ cấu trúc dự án (JSON)' }],
-  ['pnpm pxs review [--view camera|3d]', { en: 'Render the viewport to a PNG file', vi: 'Chụp ảnh review cảnh ra file PNG' }],
+  ['pnpm pxs review [--view camera|3d|app]', { en: 'Render the viewport (or the whole app window with "app") to a PNG file', vi: 'Chụp ảnh review cảnh (hoặc toàn cửa sổ app với "app") ra file PNG' }],
   ["pnpm pxs call <tool> '<json>'", { en: 'Call any MCP tool (params validated first)', vi: 'Gọi bất kỳ công cụ MCP nào (kiểm tra tham số trước)' }],
   ['pnpm pxs help <tool>', { en: 'Details and parameters of one tool', vi: 'Chi tiết và tham số của một công cụ' }],
   [`pnpm pxs guide [${GUIDE_TOPICS.join('|')}]`, { en: 'Read the AI guide', vi: 'Đọc hướng dẫn AI' }],
@@ -216,12 +216,16 @@ async function cmdReview(opts) {
     else if (opts[i] === '--out' && opts[i + 1]) outPath = opts[++i]
   }
   console.log(`⏳ ${t('rendering')} (view: ${view}, time: ${time ?? t('now')})...`)
-  const res = await sendCommand('get_viewport_screenshot', { view, time, width: 960, format: 'png' })
+  const res =
+    view === 'app'
+      ? await sendCommand('get_app_screenshot', { format: 'png' })
+      : await sendCommand('get_viewport_screenshot', { view, time, width: 960, format: 'png' })
   if (!res?.data) throw new Error(t('noImage'))
   const absOut = isAbsolute(outPath) ? outPath : resolve(process.cwd(), outPath)
   mkdirSync(join(absOut, '..'), { recursive: true })
   writeFileSync(absOut, Buffer.from(res.data, 'base64'))
-  console.log(`✓ ${t('saved')}: ${absOut} (${res.width}x${res.height}, t=${res.time?.toFixed(2)}s)\n👉 ${t('viewHint')}`)
+  const when = typeof res.time === 'number' ? `, t=${res.time.toFixed(2)}s` : ''
+  console.log(`✓ ${t('saved')}: ${absOut} (${res.width}x${res.height}${when})\n👉 ${t('viewHint')}`)
 }
 
 function parseParams(arg) {

@@ -4,7 +4,27 @@ import { randomBytes, timingSafeEqual } from 'crypto'
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { readFile, stat } from 'fs/promises'
 import { join, basename, extname, dirname } from 'path'
-import type { McpCommand, McpDocsLang, McpResponse, McpStatus, PickedFile } from '@shared/ipc'
+import type {
+  McpCaptureOptions,
+  McpCaptureResult,
+  McpCommand,
+  McpDocsLang,
+  McpResponse,
+  McpStatus,
+  PickedFile
+} from '@shared/ipc'
+
+/** Capture the whole app window (UI + dialogs) so an AI can review what the user sees. */
+async function captureWebContents(wc: Electron.WebContents, opts: McpCaptureOptions = {}): Promise<McpCaptureResult> {
+  const img = await wc.capturePage()
+  const full = img.getSize()
+  const width = Math.max(64, Math.min(full.width, Math.round(opts.width ?? full.width)))
+  const out = width < full.width ? img.resize({ width, quality: 'good' }) : img
+  const size = out.getSize()
+  const jpeg = opts.format === 'jpeg'
+  const buf = jpeg ? out.toJPEG(85) : out.toPNG()
+  return { mime: jpeg ? 'image/jpeg' : 'image/png', data: buf.toString('base64'), width: size.width, height: size.height }
+}
 
 /**
  * Local control bridge for AI agents (Blender-MCP style).
@@ -108,6 +128,7 @@ export class McpBridge {
       return this.toggleListening(enable)
     })
     ipcMain.handle('mcp:setDocsLang', (_e, lang: unknown) => this.setDocsLang(lang))
+    ipcMain.handle('mcp:captureWindow', (e, opts?: McpCaptureOptions) => captureWebContents(e.sender, opts))
   }
 
   /** Call when the window (re)loads — commands queue until the renderer subscribes again. */

@@ -95,7 +95,7 @@ Khi sắp xếp layer hoặc camera trong Parallax Studio, AI cần nắm rõ qu
 
 ---
 
-## 4. Danh Sách 72 Công Cụ MCP (Core Tool Reference)
+## 4. Danh Sách 75 Công Cụ MCP (Core Tool Reference)
 
 > Danh mục đầy đủ, chính xác từng tham số: `pnpm pxs --help` và `pnpm pxs help <tool>` (sinh từ catalog). Phần dưới đây là tóm tắt.
 
@@ -106,6 +106,8 @@ Khi sắp xếp layer hoặc camera trong Parallax Studio, AI cần nắm rõ qu
 - `get_camera_info`: Đọc trạng thái vị trí, mục tiêu, FOV của camera tại thời điểm `time`.
 - `get_memory_stats`: Kiểm tra dung lượng VRAM GPU, texture pool và RAM tiến trình.
 - `get_viewport_screenshot`: Chụp ảnh preview hiện tại (view: `"camera"` hoặc `"3d"`).
+- `get_app_screenshot`: Chụp toàn bộ cửa sổ app đúng như người dùng thấy (dialog, panel, xưởng lắp ráp) – dùng để AI review giao diện (`pnpm pxs review --view app`).
+- `ui_click` / `ui_type`: Bấm phần tử UI theo chữ hoặc CSS selector, nhập ô input – để AI tự mở dialog, chuyển tab rồi chụp kiểm tra.
 - `get_ai_guide`: Đọc hướng dẫn AI theo ngôn ngữ tài liệu đang chọn (`topic`: overview, coordinates, workflow, assembly, tips). Trả lời tại chỗ, không cần app.
 
 ### 4.2. Nhóm Dự Án & Phân Cảnh (Project & Shots)
@@ -237,7 +239,7 @@ Bên cạnh giao thức MCP stdio tiêu chuẩn, Parallax Studio V2 cung cấp b
 
 ### 7.1. Lệnh Trợ Giúp & Tra Cứu Toàn Diện (`--help` / `help`)
 ```bash
-# Xem quy ước tọa độ 2.5D, danh mục 72 công cụ, quy trình dựng cảnh và lắp ráp 3D:
+# Xem quy ước tọa độ 2.5D, danh mục 75 công cụ, quy trình dựng cảnh và lắp ráp 3D:
 pnpm pxs --help
 pnpm pxs --help --lang vi        # bản tiếng Việt (mặc định theo công tắc trong dialog MCP)
 
