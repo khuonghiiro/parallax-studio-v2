@@ -21,7 +21,7 @@ import {
   CORNER_THUMBNAIL,
   ROOM_THUMBNAIL
 } from './models3d/templateThumbnails'
-import { IconCube, IconPlus, IconPen, IconTrash } from '../icons'
+import { IconCube, IconPlus, IconPen, IconTrash, IconCopy } from '../icons'
 
 const DEFAULT_CATEGORIES: Asset3DsCategory[] = [
   { id: 'all', title: 'Tất cả mô hình', icon: 'all', order: 0 },
@@ -182,29 +182,48 @@ export function Model3DList() {
 
             return (
               <div key={m.id} className="model-3d-card">
-                {/* Review Image Preview with 3D Badge on Top-Left and Action Icons on Top-Right */}
+                {/* Review Image Preview with 3D Badge & Face Count on Top-Left and Actions on Top-Right */}
                 <div className="model-3d-card-thumb">
-                  {/* Badge góc trái có chữ 3D */}
-                  <div className="model-3d-badge">3D</div>
+                  {/* Badge góc trái: badge 3D và badge số lượng mặt ngay bên dưới */}
+                  <div className="model-3d-badge-stack">
+                    <div className="model-3d-badge">3D</div>
+                    <div className="model-3d-faces-badge">{m.faces.length} mặt</div>
+                  </div>
 
                   {thumb ? (
                     <img src={thumb} alt={m.name} className="model-3d-thumb-img" />
                   ) : (
                     <div className="model-3d-thumb-placeholder">
-                      <IconCube width={32} height={32} />
+                      <IconCube width={28} height={28} />
                       <span>3D Mesh</span>
                     </div>
                   )}
 
-                  {/* Icon Edit và Icon Add ở góc phải */}
+                  {/* Icon Actions ở góc phải: Nhân bản, Xóa, Sửa, Thêm */}
                   <div className="model-3d-card-actions-top">
+                    <button
+                      type="button"
+                      className="icon-action-btn duplicate-btn"
+                      onClick={() => handleDuplicate(m.id)}
+                      title="Nhân bản (tạo bản sao) mô hình này"
+                    >
+                      <IconCopy width={12} height={12} />
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-action-btn delete-btn"
+                      onClick={() => handleDelete(m.id)}
+                      title="Xóa mô hình này"
+                    >
+                      <IconTrash width={12} height={12} />
+                    </button>
                     <button
                       type="button"
                       className="icon-action-btn edit-btn"
                       onClick={() => setActiveEditingModel(m)}
                       title="Chỉnh sửa mô hình 3D trong Xưởng Lắp Ráp"
                     >
-                      <IconPen width={13} height={13} />
+                      <IconPen width={12} height={12} />
                     </button>
                     <button
                       type="button"
@@ -213,44 +232,19 @@ export function Model3DList() {
                       disabled={insertingId === m.id}
                       title="Thêm mô hình 3D vào phân cảnh (+)"
                     >
-                      <IconPlus width={15} height={15} />
+                      <IconPlus width={14} height={14} />
                     </button>
                   </div>
                 </div>
 
-                {/* Card Meta Information (Bỏ mô tả để tiết kiệm diện tích) */}
+                {/* Card Meta: Chỉ hiện tên mô hình và category chip gọn gàng */}
                 <div className="model-3d-card-body">
                   <div className="card-title-row">
                     <span className="card-title" title={m.name}>
                       {m.name}
                     </span>
-                  </div>
-                  <div className="card-sub-badges">
-                    <span className="faces-badge">{m.faces.length} mặt phẳng</span>
                     {m.category && <span className="cat-badge">{m.category}</span>}
                   </div>
-                </div>
-
-                {/* Secondary Actions (Duplicate / Delete) */}
-                <div className="card-footer-actions">
-                  <button
-                    type="button"
-                    className="btn xs ghost"
-                    onClick={() => handleDuplicate(m.id)}
-                    title="Tạo bản sao mô hình này"
-                  >
-                    Nhân bản
-                  </button>
-                  <button
-                    type="button"
-                    className="btn xs ghost danger"
-                    onClick={() => handleDelete(m.id)}
-                    title="Xóa mô hình này"
-                  >
-                    <IconTrash width={11} height={11} />
-                  </button>
-                  <span style={{ flex: 1 }} />
-                  <span className="hint-scale">Chỉnh scale ở cột phải</span>
                 </div>
               </div>
             )
