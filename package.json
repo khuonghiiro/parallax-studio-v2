@@ -20,7 +20,8 @@
     "pxs:help": "node mcp-server/cli.mjs --help",
     "pxs:review": "node mcp-server/cli.mjs review",
     "pxs:status": "node mcp-server/cli.mjs status",
-    "assets:prune": "node scripts/prune-assets-manifest.mjs"
+    "assets:prune": "node scripts/prune-assets-manifest.mjs",
+    "prepare": "node scripts/agent-guard.mjs install"
   },
   "dependencies": {
     "@fontsource/bebas-neue": "^5.3.0",

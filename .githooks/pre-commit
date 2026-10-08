@@ -1,0 +1,3 @@
+#!/bin/sh
+# Cưỡng chế file staged theo AGENTS.md (<= 1000 dòng, không secret)
+exec node scripts/agent-guard.mjs pre-commit

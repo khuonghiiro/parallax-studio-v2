@@ -1,0 +1,20 @@
+---
+description: Parallax Studio V2 – quy chuẩn bắt buộc (AGENTS.md + .agents/rules + .agents/skills)
+globs:
+alwaysApply: true
+---
+
+# Bắt buộc tuân thủ quy chuẩn dự án
+
+Trước mọi thay đổi, đọc và tuân thủ 100%:
+
+1. `AGENTS.md` (nguồn quy chuẩn trung tâm) và `GEMINI.md`.
+2. Toàn bộ `.agents/rules/*.md` (đường dẫn `./.claude/...` trong rule = `./.agents/...`).
+3. Skill phù hợp trong `.agents/skills/<skill>/SKILL.md` trước khi làm (three.js, react, fix, test, git, code-review…).
+
+Tóm tắt không được vi phạm:
+- File ≤ 1000 dòng (tách module từ 500–600 dòng), hàm ≤ 80 dòng; tách `engine/` (Three.js) – `ui/` (React) – `styles/` (CSS) – `mcp-server/`.
+- CSS chỉ dùng design token trong `variables.css`; kiểm tra cả Dark và Light theme.
+- MCP parity: mọi logic mới phải có renderer command + test, tool song ngữ trong `mcp-server/catalog/tools-*.mjs`, cập nhật `guide.json`, chạy `pnpm mcp:schemas`, cập nhật README.
+- Kiểm tra `npm run typecheck` + `npx vitest run` trước khi commit.
+- Commit Conventional Commits bằng **tiếng Việt CÓ DẤU**, không nhắc tên AI; commit + push ngay sau mỗi fix/tính năng. Git hooks `.githooks/` sẽ chặn commit sai chuẩn.

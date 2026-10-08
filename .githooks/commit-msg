@@ -1,0 +1,3 @@
+#!/bin/sh
+# Cưỡng chế commit message theo AGENTS.md (tiếng Việt có dấu, Conventional Commits, không nhắc AI)
+exec node scripts/agent-guard.mjs commit-msg "$1"

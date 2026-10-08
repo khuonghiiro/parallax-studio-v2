@@ -43,6 +43,10 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
   - Viết commit message bằng **tiếng Việt CÓ DẤU** đầy đủ, chuẩn xác để phân biệt rành mạch các từ tiếng Anh và tiếng Việt giao thoa (ví dụ: `fix(ui): thay thế combobox và color picker native bằng custom component 60fps, triệt tiêu độ trễ 2s`).
   - Không gắn watermark hoặc nhắc tên AI trong commit message.
   - Ngay khi sửa xong một lỗi hoặc hoàn thành nâng cấp một logic/chức năng, chủ động commit tiếng Việt có dấu và push code lên Git ngay lập tức.
+- **Cưỡng chế cho mọi AI (không chỉ Antigravity):**
+  - Cầu nối tự nạp quy chuẩn: `CLAUDE.md` (Claude Code, `@AGENTS.md`), `.cursor/rules/parallax-studio.mdc` (Cursor, `alwaysApply`), `.github/copilot-instructions.md` (Copilot), `.windsurfrules` (Windsurf), `.clinerules` (Cline). Codex/Gemini CLI đọc trực tiếp `AGENTS.md`/`GEMINI.md`. Khi đổi quy chuẩn, cập nhật đồng bộ các file này.
+  - Git hooks `.githooks/` (bật qua `prepare` khi `pnpm install` hoặc `node scripts/agent-guard.mjs install`): `commit-msg` chặn message không phải Conventional Commits / thiếu dấu tiếng Việt / nhắc tên AI; `pre-commit` chặn file code > 1000 dòng và secret.
+- **Dọn tài nguyên:** Sau khi xoá file trong `assets/`, chạy `assets/prune-manifest.bat` (hoặc `pnpm assets:prune [--dry-run]`) để xoá mục thừa trong `assets/manifest.json`.
 
 ### 2.3. Quy Chuẩn Đa Giao Diện (Dual-Theme Standard: Dark & Light)
 - **Hỗ trợ 2 Theme song song:** Ứng dụng luôn vận hành trên 2 chế độ: Dark Theme (`[data-theme='dark']`) và Light Theme (`[data-theme='light']`).
