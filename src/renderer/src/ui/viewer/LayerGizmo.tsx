@@ -67,19 +67,65 @@ function GizmoPane({ frame, el, parent, time, begin }: {
       const end = project(direction.multiplyScalar(radius * 1.6).add(pivot))
       const edgeOn = Math.hypot(end[0] - center[0], end[1] - center[1]) < 15
       if (edgeOn) { end[0] = center[0] + 28; end[1] = center[1] + 35 }
-      return <g key={axis} className={`gizmo-axis gizmo-axis-${axis}`}>
-        <polyline className="gizmo-ring" points={points.map((p) => p.join(',')).join(' ')} onPointerDown={(e) => begin(e, frame, { kind: 'rotate', axis })}>
-          <title>Xoay {'XYZ'[axis]} · Shift: bước 15° · Esc: hủy</title>
-        </polyline>
-        <g className="gizmo-translate" onPointerDown={(e) => begin(e, frame, { kind: 'translate', axis, edgeOn })}>
-          <path d={`M${center.join(',')} L${end.join(',')}`} />
-          <path className="gizmo-arrow" d="M0,0 L-9,-4 L-9,4 Z" transform={`translate(${end.join(' ')}) rotate(${Math.atan2(end[1] - center[1], end[0] - center[0]) * 180 / Math.PI})`} />
-          <text x={end[0] + 7} y={end[1] - 7}>{'XYZ'[axis]}</text>
-          <title>Di chuyển {'XYZ'[axis]}{edgeOn ? ' · Kéo lên/xuống theo chiều sâu' : ''} · Shift: bước 10</title>
+      const angleDeg = (Math.atan2(end[1] - center[1], end[0] - center[0]) * 180) / Math.PI
+      const angleRad = (angleDeg * Math.PI) / 180
+      const badgeX = end[0] + Math.cos(angleRad) * 16
+      const badgeY = end[1] + Math.sin(angleRad) * 16
+      const pointsStr = points.map((p) => p.join(',')).join(' ')
+
+      return (
+        <g key={axis} className={`gizmo-axis gizmo-axis-${axis}`}>
+          {/* Rotation Ring with Expanded 22px Hit Area */}
+          <g className="gizmo-ring-group">
+            <polyline
+              className="gizmo-ring-hit"
+              points={pointsStr}
+              onPointerDown={(e) => begin(e, frame, { kind: 'rotate', axis })}
+            >
+              <title>Xoay {'XYZ'[axis]} · Shift: bước 15° · Esc: hủy</title>
+            </polyline>
+            <polyline className="gizmo-ring" points={pointsStr} />
+          </g>
+
+          {/* Translation Axis with Hit Shaft, Visual Shaft, Arrowhead & Badge */}
+          <g
+            className="gizmo-translate"
+            onPointerDown={(e) => begin(e, frame, { kind: 'translate', axis, edgeOn })}
+          >
+            <line
+              className="gizmo-translate-hit"
+              x1={center[0]}
+              y1={center[1]}
+              x2={end[0]}
+              y2={end[1]}
+            />
+            <line
+              className="gizmo-translate-shaft"
+              x1={center[0]}
+              y1={center[1]}
+              x2={end[0]}
+              y2={end[1]}
+            />
+            <path
+              className="gizmo-arrow"
+              d="M0,0 L-10,-5 L-7,0 L-10,5 Z"
+              transform={`translate(${end.join(' ')}) rotate(${angleDeg})`}
+            />
+            <g className="gizmo-axis-badge" transform={`translate(${badgeX}, ${badgeY})`}>
+              <circle className="gizmo-badge-bg" r={9} />
+              <text className="gizmo-badge-text" textAnchor="middle" dominantBaseline="central">
+                {'XYZ'[axis]}
+              </text>
+            </g>
+            <title>
+              Di chuyển {'XYZ'[axis]}
+              {edgeOn ? ' · Kéo lên/xuống theo chiều sâu' : ''} · Shift: bước 10
+            </title>
+          </g>
         </g>
-      </g>
+      )
     })}
-    <circle className="gizmo-pivot" cx={center[0]} cy={center[1]} r={4} />
+    <circle className="gizmo-pivot" cx={center[0]} cy={center[1]} r={5} />
     <text className="gizmo-readout" x={center[0] + 12} y={center[1] + 100}>
       P {position.map((v) => v.toFixed(0)).join(' / ')} · R {rotation.map((v) => `${v.toFixed(1)}°`).join(' / ')}
     </text>
