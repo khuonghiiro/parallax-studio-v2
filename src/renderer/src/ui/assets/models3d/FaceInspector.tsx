@@ -28,16 +28,7 @@ interface FaceInspectorProps {
 const DISCRETE: SetModelOptions = { discrete: true }
 
 export function FaceInspector({ model, selectedFaceId, imageSize, onChangeModel, onSelectFace }: FaceInspectorProps) {
-  const [activeTab, setActiveTab] = useState<InspectorTab>('face')
-  const prevSelectedIdRef = useRef<string | null>(selectedFaceId)
-
-  // Auto-switch to 'face' tab when user clicks/selects a face in 3D
-  useEffect(() => {
-    if (selectedFaceId && selectedFaceId !== prevSelectedIdRef.current) {
-      setActiveTab('face')
-    }
-    prevSelectedIdRef.current = selectedFaceId
-  }, [selectedFaceId])
+  const [activeTab, setActiveTab] = useState<InspectorTab>('layers')
 
   const selectedFace = model.faces.find((f) => f.id === selectedFaceId) || model.faces[0]
   const currentIndex = model.faces.findIndex((f) => f.id === selectedFace?.id)
@@ -61,7 +52,6 @@ export function FaceInspector({ model, selectedFaceId, imageSize, onChangeModel,
     }
     setFaces([...model.faces, face], DISCRETE)
     onSelectFace(id)
-    setActiveTab('face')
   }
 
   const handleFold = (edge: FaceEdge) => {
@@ -73,25 +63,12 @@ export function FaceInspector({ model, selectedFaceId, imageSize, onChangeModel,
 
   const handleSelectFaceFromList = (id: string | null) => {
     onSelectFace(id)
-    if (id) setActiveTab('face')
   }
 
   return (
     <div className="face-inspector-root">
-      {/* Top Fixed Tabs Bar */}
+      {/* Top Fixed Tabs Bar: Tab "Các mặt" ở đầu tiên */}
       <div className="inspector-tabs-nav" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'face'}
-          className={`inspector-tab-btn${activeTab === 'face' ? ' active' : ''}`}
-          onClick={() => setActiveTab('face')}
-          title="Chỉnh sửa thuộc tính mặt 3D đang chọn (Kích thước, vị trí, xoay, uốn cong)"
-        >
-          <IconCube width={13} height={13} />
-          <span>Thuộc tính</span>
-        </button>
-
         <button
           type="button"
           role="tab"
@@ -103,6 +80,18 @@ export function FaceInspector({ model, selectedFaceId, imageSize, onChangeModel,
           <IconLayers width={13} height={13} />
           <span>Các mặt</span>
           <span className="inspector-tab-badge">{model.faces.length}</span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'face'}
+          className={`inspector-tab-btn${activeTab === 'face' ? ' active' : ''}`}
+          onClick={() => setActiveTab('face')}
+          title="Chỉnh sửa thuộc tính mặt 3D đang chọn (Kích thước, vị trí, xoay, uốn cong)"
+        >
+          <IconCube width={13} height={13} />
+          <span>Thuộc tính</span>
         </button>
 
         <button
