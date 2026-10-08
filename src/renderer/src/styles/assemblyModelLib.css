@@ -1,0 +1,285 @@
+/* ==========================================================================
+   Assembly 3D Studio - Model Library Tab Styles (Select & Compose 3D Assets)
+   Dual-Theme Compliant with CSS Design Tokens
+   ========================================================================== */
+
+/* Top segmented switch: 2D Texture vs 3D Model */
+.sidebar-tab-switch {
+  display: flex;
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: 2px;
+  margin: 8px 10px 4px 10px;
+  gap: 2px;
+}
+
+.tab-switch-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.tab-switch-btn:hover {
+  color: var(--text);
+  background: var(--bg-2);
+}
+
+.tab-switch-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+/* 3D Model Library Container */
+.assembly-model-lib-tab {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  height: 100%;
+}
+
+.model-lib-search-box {
+  display: flex;
+  align-items: center;
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  padding: 0 8px;
+  margin: 6px 10px;
+  gap: 6px;
+}
+
+.model-lib-search-box:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.model-lib-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 11px;
+  color: var(--text);
+  padding: 6px 0;
+}
+
+.model-lib-search-input::placeholder {
+  color: var(--text-faint);
+}
+
+/* Category filter chips */
+.model-lib-chips {
+  display: flex;
+  gap: 4px;
+  padding: 0 10px 6px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.model-lib-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.model-lib-chip {
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 500;
+  background: var(--bg-2);
+  color: var(--text-dim);
+  border: 1px solid var(--line-soft);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.model-lib-chip:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+
+.model-lib-chip.active {
+  background: color-mix(in srgb, var(--accent-cyan) 18%, transparent);
+  color: var(--accent-cyan);
+  border-color: color-mix(in srgb, var(--accent-cyan) 40%, transparent);
+  font-weight: 600;
+}
+
+/* Mount hint banner */
+.model-lib-mount-banner {
+  background: var(--bg-2);
+  border-top: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
+  padding: 5px 10px;
+  font-size: 10.5px;
+}
+
+.model-lib-mount-banner .banner-text {
+  color: var(--text);
+}
+
+.model-lib-mount-banner .banner-text.dim {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* Scrollable list of models */
+.model-lib-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.model-lib-item {
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.model-lib-item:hover {
+  border-color: var(--line-focus);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.model-lib-thumb-box {
+  width: 54px;
+  height: 54px;
+  border-radius: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.model-lib-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.model-lib-thumb-icon {
+  color: var(--text-faint);
+}
+
+.model-lib-face-tag {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffffff;
+  font-size: 8px;
+  font-weight: 600;
+  padding: 1px 3px;
+  border-radius: 3px;
+  line-height: 1;
+}
+
+.model-lib-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.model-lib-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.model-lib-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.model-lib-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.model-lib-btn.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+.model-lib-btn.primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.model-lib-btn.primary:not(:disabled):hover {
+  filter: brightness(1.1);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.model-lib-btn.secondary {
+  background: var(--bg-2);
+  color: var(--text);
+  border-color: var(--line-soft);
+}
+.model-lib-btn.secondary:hover {
+  background: var(--bg-3);
+  border-color: var(--line);
+}
+
+.model-lib-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 16px;
+  text-align: center;
+  color: var(--text-faint);
+  gap: 6px;
+}
+
+.model-lib-empty p {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.model-lib-empty p.sub {
+  font-size: 10px;
+  color: var(--text-faint);
+}

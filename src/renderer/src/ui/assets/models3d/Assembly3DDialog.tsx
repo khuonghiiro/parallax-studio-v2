@@ -229,10 +229,15 @@ export function Assembly3DDialog({ isOpen, initialModel, onClose, onSaved }: Ass
         {/* Body: assets | viewport | inspector */}
         <div className="assembly-modal-body">
           <AssemblyAssetSidebar
+            model={model}
             selectedFace={selectedFace}
             onAssignAssetToFace={handleAssignAssetToFace}
             modelFaces={model.faces}
             onSelectFace={setSelectedFaceId}
+            onApplyFaces={(faces, selectId) => {
+              setFaces(() => faces, DISCRETE)
+              if (selectId) setSelectedFaceId(selectId)
+            }}
           />
 
           <div className="assembly-viewport-panel">

@@ -1,14 +1,17 @@
 import { useEffect, useState, useMemo } from 'react'
 import type { BuiltInAssetItem, PickedFile } from '@shared/ipc'
-import type { Face3D } from './types'
+import type { Face3D, Model3D } from './types'
 import { renderCategoryIcon } from '../categoryIcons'
 import { IconPlus, IconCheck, IconCube, IconReplace, IconSearch, IconX } from '../../icons'
+import { AssemblyModelLibraryTab } from './AssemblyModelLibraryTab'
 
 interface AssemblyAssetSidebarProps {
+  model?: Model3D
   selectedFace: Face3D | null
   onAssignAssetToFace: (assetPath: string, width?: number, height?: number) => void
   modelFaces: Face3D[]
   onSelectFace: (faceId: string) => void
+  onApplyFaces?: (faces: Face3D[], selectId: string | null) => void
 }
 
 interface MiniCategory {
@@ -110,11 +113,14 @@ export function getAssetOrientation(item: BuiltInAssetItem, modelFaces: Face3D[]
 }
 
 export function AssemblyAssetSidebar({
+  model,
   selectedFace,
   onAssignAssetToFace,
   modelFaces,
-  onSelectFace
+  onSelectFace,
+  onApplyFaces
 }: AssemblyAssetSidebarProps) {
+  const [sidebarTab, setSidebarTab] = useState<'2d' | '3d'>('2d')
   const [assets, setAssets] = useState<BuiltInAssetItem[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [selectedOrientation, setSelectedOrientation] = useState<OrientationDef['id']>('all')
@@ -455,13 +461,40 @@ export function AssemblyAssetSidebar({
 
       {/* 2. Main Content: Header & Catalog */}
       <div className="sidebar-catalog-main">
-        {/* Top Header */}
-        <div className="sidebar-catalog-header">
-          <div className="header-title-row">
-            <div className="header-title-left">
-              <span className="cat-title">{activeCategoryTitle}</span>
-              <span className="cat-count-badge">{filtered.length}</span>
-            </div>
+        {/* Segmented Switch: 2D Texture vs 3D Model */}
+        <div className="sidebar-tab-switch">
+          <button
+            type="button"
+            className={`tab-switch-btn${sidebarTab === '2d' ? ' active' : ''}`}
+            onClick={() => setSidebarTab('2d')}
+          >
+            <span>Ảnh 2D</span>
+          </button>
+          <button
+            type="button"
+            className={`tab-switch-btn${sidebarTab === '3d' ? ' active' : ''}`}
+            onClick={() => setSidebarTab('3d')}
+          >
+            <IconCube width={12} height={12} />
+            <span>Mô hình 3D</span>
+          </button>
+        </div>
+
+        {sidebarTab === '3d' && model ? (
+          <AssemblyModelLibraryTab
+            currentModel={model}
+            selectedFace={selectedFace}
+            onApplyFaces={onApplyFaces || (() => {})}
+          />
+        ) : (
+          <>
+            {/* Top Header */}
+            <div className="sidebar-catalog-header">
+              <div className="header-title-row">
+                <div className="header-title-left">
+                  <span className="cat-title">{activeCategoryTitle}</span>
+                  <span className="cat-count-badge">{filtered.length}</span>
+                </div>
 
             {/* Header Right Action Buttons */}
             <div className="header-actions-right">
@@ -597,7 +630,9 @@ export function AssemblyAssetSidebar({
             </div>
           )}
         </div>
-      </div>
-    </aside>
+      </>
+    )}
+  </div>
+</aside>
   )
 }
