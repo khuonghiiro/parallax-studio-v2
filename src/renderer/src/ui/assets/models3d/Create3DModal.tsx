@@ -1,12 +1,14 @@
-import type { Model3D, PresetType } from './types'
-import { generatePresetFaces } from './models3dStorage'
+import { useState, useMemo } from 'react'
+import type { Model3D } from './types'
 import {
-  COTTAGE_THUMBNAIL,
-  CUBE_THUMBNAIL,
-  CORNER_THUMBNAIL,
-  ROOM_THUMBNAIL
-} from './templateThumbnails'
-import { IconCube, IconPlus } from '../../icons'
+  ALL_CREATE_TEMPLATES,
+  CATEGORY_TABS,
+  buildBlankModel,
+  type CreateCategory,
+  type CreateTemplateItem
+} from './templateCatalogue'
+import { TemplateCardVisual } from './TemplateCardVisual'
+import { IconCube, IconPlus, IconSparkles } from '../../icons'
 
 interface Create3DModalProps {
   isOpen: boolean
@@ -14,108 +16,52 @@ interface Create3DModalProps {
   onSelectTemplate: (model: Model3D) => void
 }
 
-interface TemplateOption {
-  id: string
-  preset: PresetType | 'custom'
-  name: string
-  subtitle: string
-  facesCount: number
-  category: 'architecture' | 'props' | 'room' | 'custom'
-  image: string
-  buildModel: () => Model3D
-}
-
 export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DModalProps) {
-  if (!isOpen) return null
+  const [selectedCategory, setSelectedCategory] = useState<CreateCategory>('all')
+  const [searchQuery, setSearchQuery] = useState('')
 
-  const templates: TemplateOption[] = [
-    {
-      id: 'template-cottage',
-      preset: 'cottage',
-      name: 'Ngôi Nhà Mái Dốc (Cottage)',
-      subtitle: 'Mặt tiền A-frame, 2 vách hông, 2 mái nghiêng gập & 2 mặt ống khói',
-      facesCount: 7,
-      category: 'architecture',
-      image: COTTAGE_THUMBNAIL,
-      buildModel: () => ({
-        id: 'model-cottage-' + Math.random().toString(36).slice(2, 7),
-        name: 'Ngôi Nhà Tudor 3D Mới',
-        description: 'Ngôi nhà châu Âu lắp ráp từ ảnh phẳng 2.5D',
-        category: 'architecture',
-        thumbnailDataUrl: COTTAGE_THUMBNAIL,
-        scale: 0.6,
-        faces: generatePresetFaces('cottage'),
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      })
-    },
-    {
-      id: 'template-cube',
-      preset: 'cube',
-      name: 'Khối Hộp Diêm (Cubic Box)',
-      subtitle: '6 mặt đa giác vuông khép kín, làm thùng hàng, biển hiệu hoặc bục',
-      facesCount: 6,
-      category: 'props',
-      image: CUBE_THUMBNAIL,
-      buildModel: () => ({
-        id: 'model-cube-' + Math.random().toString(36).slice(2, 7),
-        name: 'Khối Hộp 3D Mới',
-        description: 'Khối hộp chữ nhật 6 mặt đa giác vuông',
-        category: 'props',
-        thumbnailDataUrl: CUBE_THUMBNAIL,
-        scale: 0.5,
-        faces: generatePresetFaces('cube', { w: 500, h: 500, d: 500 }),
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      })
-    },
-    {
-      id: 'template-corner',
-      preset: 'corner',
-      name: 'Góc Phố Chữ L (L-Corner)',
-      subtitle: '2 mặt dựng bẻ góc 90° kết hợp mặt sàn vỉa hè có chiều sâu',
-      facesCount: 3,
-      category: 'architecture',
-      image: CORNER_THUMBNAIL,
-      buildModel: () => ({
-        id: 'model-corner-' + Math.random().toString(36).slice(2, 7),
-        name: 'Góc Phố 3D Mới',
-        description: 'Hai mặt tiền nhà phố bẻ vuông góc 90°',
-        category: 'architecture',
-        thumbnailDataUrl: CORNER_THUMBNAIL,
-        scale: 0.6,
-        faces: generatePresetFaces('corner', { w: 600, h: 600, d: 600 }),
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      })
-    },
-    {
-      id: 'template-room',
-      preset: 'room',
-      name: 'Căn Phòng Mở (Room Interior)',
-      subtitle: 'Không gian nội thất 3 mặt tường và sàn phòng bao bọc',
-      facesCount: 4,
-      category: 'room',
-      image: ROOM_THUMBNAIL,
-      buildModel: () => ({
-        id: 'model-room-' + Math.random().toString(36).slice(2, 7),
-        name: 'Căn Phòng 3D Mới',
-        description: 'Không gian phòng nội thất 3 mặt tường và sàn',
-        category: 'room',
-        thumbnailDataUrl: ROOM_THUMBNAIL,
-        scale: 0.7,
-        faces: generatePresetFaces('room', { w: 700, h: 500, d: 700 }),
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      })
-    }
-  ]
-
-  const handlePick = (tmpl: TemplateOption) => {
+  const handlePick = (tmpl: CreateTemplateItem) => {
     const model = tmpl.buildModel()
     onSelectTemplate(model)
     onClose()
   }
+
+  const handleCreateBlank = () => {
+    const blank = buildBlankModel()
+    onSelectTemplate(blank)
+    onClose()
+  }
+
+  // Filter templates by selected category tab and search query
+  const filteredTemplates = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    return ALL_CREATE_TEMPLATES.filter((t) => {
+      const matchCat = selectedCategory === 'all' || t.category === selectedCategory
+      const matchSearch =
+        !q ||
+        t.name.toLowerCase().includes(q) ||
+        t.subtitle.toLowerCase().includes(q) ||
+        t.categoryLabel.toLowerCase().includes(q)
+      return matchCat && matchSearch
+    })
+  }, [selectedCategory, searchQuery])
+
+  // Count items per category tab
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: ALL_CREATE_TEMPLATES.length }
+    CATEGORY_TABS.forEach((tab) => {
+      if (tab.id !== 'all') {
+        counts[tab.id] = ALL_CREATE_TEMPLATES.filter((t) => t.category === tab.id).length
+      }
+    })
+    return counts
+  }, [])
+
+  if (!isOpen) return null
+
+  const showBlankCard =
+    (selectedCategory === 'all' || searchQuery.toLowerCase().includes('tự') || searchQuery.toLowerCase().includes('trống')) &&
+    !searchQuery.trim().match(/nhà|hộp|tháp|cổng|cây|rương|bậc|phòng/i)
 
   return (
     <div className="assembly-modal-overlay" onClick={onClose}>
@@ -124,7 +70,8 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '95%',
-          maxWidth: '780px',
+          maxWidth: '920px',
+          maxHeight: '88vh',
           background: 'var(--bg-2)',
           border: '1px solid var(--line)',
           borderRadius: '12px',
@@ -134,58 +81,271 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
           flexDirection: 'column'
         }}
       >
-        {/* Header */}
+        {/* Header with Title on Left, Custom Blank Button & Close on Right */}
         <div
           style={{
-            padding: '14px 18px',
+            padding: '14px 20px',
             borderBottom: '1px solid var(--line-soft)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: 'var(--bg-3)'
+            background: 'var(--bg-3)',
+            gap: '12px',
+            flexShrink: 0
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Left Title */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div
               style={{
-                width: '32px',
-                height: '32px',
+                width: '34px',
+                height: '34px',
                 borderRadius: '8px',
                 background: 'var(--accent)',
                 color: 'var(--on-accent)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                flexShrink: 0
               }}
             >
-              <IconCube width={18} height={18} />
+              <IconCube width={20} height={20} />
             </div>
             <div>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>
-                Tạo Mô Hình 3D Mới từ Khung Mẫu (Templates)
+              <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)' }}>
+                Tạo Mô Hình 3D Mới
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
-                Chọn cấu trúc mẫu kèm hình ảnh trực quan để bắt đầu lắp ráp trong Xưởng 3D
+              <div style={{ fontSize: '11.5px', color: 'var(--text-dim)' }}>
+                Chọn từ hơn 20 khung mẫu có sẵn hoặc tự tạo mô hình 3D trống tùy biến
               </div>
             </div>
           </div>
-          <button type="button" className="btn xs ghost" onClick={onClose}>
-            ✕
-          </button>
+
+          {/* Right Action: Button "+ Tự tạo mô hình trống" & Close Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              type="button"
+              className="btn sm primary"
+              onClick={handleCreateBlank}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                fontWeight: 600,
+                fontSize: '12px',
+                borderRadius: '6px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
+                whiteSpace: 'nowrap'
+              }}
+              title="Khởi tạo ngay mô hình 3D trống từ mặt phẳng cơ bản"
+            >
+              <IconPlus width={14} height={14} />
+              <span>+ Tự tạo mô hình trống</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn xs ghost"
+              onClick={onClose}
+              title="Đóng dialog"
+              style={{ fontSize: '14px', padding: '4px 8px' }}
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
-        {/* Templates Grid with Visual Pictures */}
+        {/* Toolbar: Category Tabs & Search Bar */}
         <div
           style={{
-            padding: '16px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '14px',
-            maxHeight: '65vh',
-            overflowY: 'auto'
+            padding: '10px 20px',
+            background: 'var(--bg-2)',
+            borderBottom: '1px solid var(--line-soft)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            flexWrap: 'wrap',
+            flexShrink: 0
           }}
         >
-          {templates.map((t) => (
+          {/* Tabs */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              overflowX: 'auto',
+              maxWidth: '100%',
+              paddingBottom: '2px'
+            }}
+          >
+            {CATEGORY_TABS.map((tab) => {
+              const active = selectedCategory === tab.id
+              const count = categoryCounts[tab.id] ?? 0
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setSelectedCategory(tab.id)}
+                  style={{
+                    padding: '5px 11px',
+                    fontSize: '12px',
+                    fontWeight: active ? 600 : 500,
+                    borderRadius: '6px',
+                    border: '1px solid',
+                    borderColor: active ? 'var(--accent)' : 'var(--line-soft)',
+                    background: active ? 'var(--accent)' : 'var(--bg-3)',
+                    color: active ? 'var(--on-accent)' : 'var(--text-dim)',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      padding: '1px 5px',
+                      borderRadius: '10px',
+                      background: active ? 'rgba(255, 255, 255, 0.25)' : 'var(--bg-1)',
+                      color: active ? '#ffffff' : 'var(--text-faint)'
+                    }}
+                  >
+                    {count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Search Box */}
+          <div style={{ minWidth: '220px', flex: '1 1 220px', maxWidth: '320px' }}>
+            <input
+              type="search"
+              className="input-text sm"
+              placeholder="Tìm kiếm khung mẫu 3D…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ width: '100%', fontSize: '12px' }}
+            />
+          </div>
+        </div>
+
+        {/* Scrollable Templates Grid */}
+        <div
+          style={{
+            padding: '16px 20px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(265px, 1fr))',
+            gap: '14px',
+            overflowY: 'auto',
+            flex: 1
+          }}
+        >
+          {/* First Card: Quick "Tự tạo mô hình trống" Blank Canvas Card */}
+          {showBlankCard && (
+            <div
+              className="template-card-blank"
+              onClick={handleCreateBlank}
+              style={{
+                background: 'var(--bg-1)',
+                border: '2px dashed var(--accent)',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                transition: 'all 0.15s ease',
+                position: 'relative'
+              }}
+            >
+              {/* Graphic area */}
+              <div
+                style={{
+                  height: '140px',
+                  background: 'radial-gradient(circle at center, rgba(56, 189, 248, 0.1) 0%, transparent 70%)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  borderBottom: '1px dashed var(--line)'
+                }}
+              >
+                <div
+                  style={{
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '50%',
+                    background: 'var(--bg-3)',
+                    border: '1px solid var(--accent)',
+                    color: 'var(--accent)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <IconPlus width={24} height={24} />
+                </div>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: 'var(--accent)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <IconSparkles width={13} height={13} />
+                  <span>TỰ TẠO MÔ HÌNH MỚI</span>
+                </div>
+              </div>
+
+              {/* Meta */}
+              <div style={{ padding: '12px', flex: 1, display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>
+                  Mô Hình Trống (Custom Blank)
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-dim)', lineHeight: 1.4 }}>
+                  Bắt đầu từ một mặt phẳng cơ bản. Tự do thêm ảnh, uốn cong, xoay và ghép các mặt theo ý muốn trong Xưởng Lắp Ráp.
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <div
+                style={{
+                  padding: '8px 12px',
+                  background: 'var(--bg-3)',
+                  borderTop: '1px solid var(--line-soft)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end'
+                }}
+              >
+                <button
+                  type="button"
+                  className="btn xs primary"
+                  style={{ gap: '4px', width: '100%', justifyContent: 'center' }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleCreateBlank()
+                  }}
+                >
+                  <IconPlus width={12} height={12} />
+                  <span>Bắt đầu tự tạo</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Template Cards */}
+          {filteredTemplates.map((t) => (
             <div
               key={t.id}
               className="template-card"
@@ -214,11 +374,9 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
                   borderBottom: '1px solid var(--line-soft)'
                 }}
               >
-                <img
-                  src={t.image}
-                  alt={t.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                />
+                <TemplateCardVisual item={t} />
+
+                {/* Badge Category */}
                 <span
                   style={{
                     position: 'absolute',
@@ -229,11 +387,14 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
                     background: 'var(--accent-cyan)',
                     color: 'var(--on-cyan)',
                     padding: '2px 6px',
-                    borderRadius: '4px'
+                    borderRadius: '4px',
+                    textTransform: 'uppercase'
                   }}
                 >
-                  3D MESH
+                  {t.categoryLabel}
                 </span>
+
+                {/* Badge Face Count */}
                 <span
                   style={{
                     position: 'absolute',
@@ -288,6 +449,29 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
               </div>
             </div>
           ))}
+
+          {/* Empty search fallback */}
+          {filteredTemplates.length === 0 && !showBlankCard && (
+            <div
+              style={{
+                gridColumn: '1 / -1',
+                padding: '40px 20px',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '12px'
+              }}
+            >
+              <div style={{ fontSize: '14px', color: 'var(--text-dim)' }}>
+                Không tìm thấy khung mẫu nào phù hợp với từ khóa &quot;{searchQuery}&quot;
+              </div>
+              <button type="button" className="btn sm primary" onClick={handleCreateBlank}>
+                <IconPlus width={13} height={13} />
+                <span>+ Tự tạo mô hình trống ngay</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

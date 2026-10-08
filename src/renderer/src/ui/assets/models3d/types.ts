@@ -107,7 +107,7 @@ export interface Model3D {
   id: string
   name: string
   description?: string
-  category: 'architecture' | 'props' | 'room' | 'custom'
+  category: 'architecture' | 'props' | 'room' | 'street' | 'nature' | 'stage' | 'custom' | string
   thumbnail?: string
   thumbnailDataUrl?: string
   scale: number // overall scaling factor (default 1.0)
