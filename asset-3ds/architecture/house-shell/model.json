@@ -44,12 +44,12 @@
       "id": "face-left",
       "name": "Vách Tường Trái (Left Wall)",
       "assetPath": "assembly_3d/modular/wall_side_tudor.png",
-      "width": 990,
-      "height": 660,
+      "width": 600,
+      "height": 400,
       "position": [
         -300,
-        130,
-        495
+        0,
+        300
       ],
       "rotation": [
         0,
@@ -61,16 +61,16 @@
       "id": "face-right",
       "name": "Vách Tường Phải (Right Wall)",
       "assetPath": "assembly_3d/modular/wall_side_tudor.png",
-      "width": 990,
-      "height": 660,
+      "width": 600,
+      "height": 400,
       "position": [
         300,
-        130,
-        -495
+        0,
+        300
       ],
       "rotation": [
         0,
-        90,
+        -90,
         0
       ]
     },
@@ -110,5 +110,5 @@
     }
   ],
   "createdAt": 1791432990372,
-  "updatedAt": 1791439863685
+  "updatedAt": 1791441838131
 }

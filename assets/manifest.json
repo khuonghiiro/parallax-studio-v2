@@ -92,6 +92,33 @@
     },
     "assembly_3d/modular/nature_bush_top.png": {
       "name": "Tán vòm bụi cây hoa (Nhìn từ trên)"
+    },
+    "assembly_3d/modular/nature_bush_tri_1.png": {
+      "name": "Mảnh tam giác cầu lồi bụi cây (Mặt trước)"
+    },
+    "assembly_3d/modular/nature_bush_tri_2.png": {
+      "name": "Mảnh tam giác cầu lồi bụi cây (Mặt hông)"
+    },
+    "assembly_3d/modular/nature_bush_tri_3.png": {
+      "name": "Mảnh tam giác cầu lồi bụi cây (Mặt hoa đón nắng)"
+    },
+    "assembly_3d/modular/decor_window_glass.png": {
+      "name": "Khung kính cửa sổ Tudor"
+    },
+    "assembly_3d/modular/decor_window_shutter.png": {
+      "name": "Cánh cửa sổ gỗ Tudor"
+    },
+    "assembly_3d/modular/decor_window_sill.png": {
+      "name": "Bậu cửa sổ đá Tudor"
+    },
+    "assembly_3d/modular/decor_chimney_brick.png": {
+      "name": "Vách ống khói gạch đỏ liền mạch"
+    },
+    "assembly_3d/modular/decor_chimney_cap.png": {
+      "name": "Gờ đá mũ ống khói"
+    },
+    "assembly_3d/modular/decor_chimney_pot.png": {
+      "name": "Ống gốm đỉnh ống khói"
     }
   }
 }

@@ -1,21 +1,21 @@
 {
   "id": "model-flower-box",
   "name": "Bồn Hoa Dưới Cửa 3D",
-  "description": "Bồn hoa gỗ sồi treo dưới bậu cửa sổ, ngập tràn hoa phong lữ và dây leo trường xuân.",
+  "description": "Bồn hoa gỗ sồi treo dưới bậu cửa sổ, ngập tràn hoa phong lữ và dây leo trường xuân, khít tường không khe hở.",
   "category": "decor",
   "thumbnail": "thumbnail.png",
   "scale": 0.3,
   "faces": [
     {
       "id": "planter-front",
-      "name": "Thành bồn trước",
-      "color": "#5c3a21",
-      "width": 260,
-      "height": 70,
+      "name": "Thành bồn gỗ trước",
+      "color": "#451a03",
+      "width": 240,
+      "height": 50,
       "position": [
         0,
         0,
-        -90
+        -40
       ],
       "rotation": [
         0,
@@ -25,14 +25,14 @@
     },
     {
       "id": "planter-left",
-      "name": "Thành bồn trái",
-      "color": "#4a2e18",
-      "width": 60,
-      "height": 70,
+      "name": "Hông bồn gỗ trái",
+      "color": "#3b1c0b",
+      "width": 40,
+      "height": 50,
       "position": [
-        -130,
+        -120,
         0,
-        -60
+        -20
       ],
       "rotation": [
         0,
@@ -42,14 +42,14 @@
     },
     {
       "id": "planter-right",
-      "name": "Thành bồn phải",
-      "color": "#4a2e18",
-      "width": 60,
-      "height": 70,
+      "name": "Hông bồn gỗ phải",
+      "color": "#3b1c0b",
+      "width": 40,
+      "height": 50,
       "position": [
-        130,
+        120,
         0,
-        -60
+        -20
       ],
       "rotation": [
         0,
@@ -60,13 +60,13 @@
     {
       "id": "planter-bottom",
       "name": "Đáy bồn gỗ",
-      "color": "#3d2512",
-      "width": 260,
-      "height": 60,
+      "color": "#291409",
+      "width": 240,
+      "height": 40,
       "position": [
         0,
-        -35,
-        -60
+        -25,
+        -20
       ],
       "rotation": [
         90,
@@ -78,12 +78,12 @@
       "id": "planter-soil",
       "name": "Đất mùn trồng hoa",
       "color": "#1c1917",
-      "width": 250,
-      "height": 55,
+      "width": 235,
+      "height": 36,
       "position": [
         0,
-        25,
-        -60
+        20,
+        -20
       ],
       "rotation": [
         -90,
@@ -95,12 +95,12 @@
       "id": "flowers-front",
       "name": "Khóm hoa trước rủ",
       "assetPath": "assembly_3d/modular/decor_flower_box.png",
-      "width": 280,
-      "height": 110,
+      "width": 250,
+      "height": 95,
       "position": [
         0,
-        60,
-        -75
+        50,
+        -35
       ],
       "rotation": [
         0,
@@ -112,12 +112,12 @@
       "id": "flowers-back",
       "name": "Khóm hoa sau vươn cao",
       "assetPath": "assembly_3d/modular/decor_flower_box.png",
-      "width": 280,
-      "height": 140,
+      "width": 250,
+      "height": 105,
       "position": [
         0,
-        75,
-        -45
+        58,
+        -15
       ],
       "rotation": [
         0,
@@ -127,5 +127,5 @@
     }
   ],
   "createdAt": 1791432990350,
-  "updatedAt": 1791439858789
+  "updatedAt": 1791441857647
 }

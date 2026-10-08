@@ -1,107 +1,88 @@
 {
   "id": "model-garden-bush",
   "name": "Bụi Cây Hoa Sân Vườn 3D",
-  "description": "Bụi cây xanh xum xuê 5 vòm cầu lồi đan khít tạo thể tích tròn 3D chân thực, rực rỡ điểm xuyết hoa cỏ.",
+  "description": "Bụi cây xanh xum xuê ghép từ 4 tam giác cầu lồi khít cạnh tạo hình quả bóng 3D tròn đầy tự nhiên nhìn được mọi góc độ.",
   "category": "nature",
   "thumbnail": "thumbnail.png",
-  "scale": 0.32,
+  "scale": 0.35,
   "faces": [
     {
-      "id": "bush-front",
-      "name": "Vòm cầu lồi trước (Front Dome)",
-      "assetPath": "assembly_3d/modular/nature_bush.png",
-      "width": 320,
-      "height": 280,
-      "position": [
-        0,
-        -10,
-        -14
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "bendX": 52,
-      "bendY": 38
-    },
-    {
-      "id": "bush-back",
-      "name": "Vòm cầu lồi sau (Back Dome)",
-      "assetPath": "assembly_3d/modular/nature_bush.png",
-      "width": 320,
-      "height": 280,
-      "position": [
-        0,
-        -10,
-        14
-      ],
-      "rotation": [
-        0,
-        180,
-        0
-      ],
-      "bendX": 52,
-      "bendY": 38
-    },
-    {
-      "id": "bush-left",
-      "name": "Vòm cầu lồi hông trái (Left Dome)",
-      "assetPath": "assembly_3d/modular/nature_bush.png",
-      "width": 280,
+      "id": "bush-tri-front",
+      "name": "Tam giác cầu lồi trước (Front Gore)",
+      "assetPath": "assembly_3d/modular/nature_bush_tri_1.png",
+      "width": 340,
       "height": 260,
       "position": [
-        -16,
-        -10,
-        0
+        0,
+        110,
+        80
       ],
       "rotation": [
+        -28,
         0,
-        -90,
         0
       ],
-      "bendX": 48,
-      "bendY": 36
+      "bendX": 68,
+      "bendY": 45
     },
     {
-      "id": "bush-right",
-      "name": "Vòm cầu lồi hông phải (Right Dome)",
-      "assetPath": "assembly_3d/modular/nature_bush.png",
-      "width": 280,
+      "id": "bush-tri-right",
+      "name": "Tam giác cầu lồi phải (Right Gore)",
+      "assetPath": "assembly_3d/modular/nature_bush_tri_2.png",
+      "width": 340,
       "height": 260,
       "position": [
-        16,
-        -10,
+        80,
+        110,
         0
       ],
       "rotation": [
-        0,
+        -28,
         90,
         0
       ],
-      "bendX": 48,
-      "bendY": 36
+      "bendX": 68,
+      "bendY": 45
     },
     {
-      "id": "bush-top",
-      "name": "Vòm cầu lồi đón nắng trên (Top Canopy Dome)",
-      "assetPath": "assembly_3d/modular/nature_bush_top.png",
-      "width": 280,
-      "height": 280,
+      "id": "bush-tri-back",
+      "name": "Tam giác cầu lồi sau (Back Gore)",
+      "assetPath": "assembly_3d/modular/nature_bush_tri_1.png",
+      "width": 340,
+      "height": 260,
       "position": [
         0,
-        55,
+        110,
+        -80
+      ],
+      "rotation": [
+        -28,
+        180,
+        0
+      ],
+      "bendX": 68,
+      "bendY": 45
+    },
+    {
+      "id": "bush-tri-left",
+      "name": "Tam giác cầu lồi trái (Left Gore)",
+      "assetPath": "assembly_3d/modular/nature_bush_tri_3.png",
+      "width": 340,
+      "height": 260,
+      "position": [
+        -80,
+        110,
         0
       ],
       "rotation": [
+        -28,
         -90,
-        0,
         0
       ],
-      "bendX": 45,
+      "bendX": 68,
       "bendY": 45
     }
   ],
   "createdAt": 1791432990364,
-  "updatedAt": 1791439860611
+  "updatedAt": 1791441862642
 }
