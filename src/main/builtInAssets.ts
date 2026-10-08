@@ -54,19 +54,11 @@ const DEFAULT_CATEGORIES: BuiltInAssetCategory[] = [
     order: 1
   },
   {
-    id: 'city',
-    folder: 'city',
-    title: 'Thành phố & Đô thị',
-    icon: 'city',
-    description: 'Ảnh phong cảnh thành phố, đường phố mưa đêm, ban công và nhà chọc trời',
-    order: 2
-  },
-  {
     id: 'demos',
     folder: 'demos',
     title: 'Hiệu ứng & Hoạt ảnh (VFX)',
     icon: 'sparkles',
-    description: 'Hoạt ảnh GIF ngọn lửa trại, quả cầu hologram, cổng năng lượng và đom đóm',
+    description: 'Hoạt ảnh GIF quả cầu hologram và đom đóm lấp lánh',
     order: 3
   },
   {

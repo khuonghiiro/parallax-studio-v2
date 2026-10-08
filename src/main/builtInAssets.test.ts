@@ -11,10 +11,10 @@ describe('Built-in Assets Catalog & Manifest Management', () => {
 
     // Check default categories
     const allCat = catalog.categories.find((c) => c.id === 'all')
-    const cityCat = catalog.categories.find((c) => c.id === 'city')
+    const layeredCat = catalog.categories.find((c) => c.id === 'demo_transparent')
     const demosCat = catalog.categories.find((c) => c.id === 'demos')
     expect(allCat).toBeDefined()
-    expect(cityCat?.title).toContain('Thành phố')
+    expect(layeredCat?.title).toContain('2.5D')
     expect(demosCat?.title).toContain('VFX')
 
     // Check items discovered
@@ -22,12 +22,15 @@ describe('Built-in Assets Catalog & Manifest Management', () => {
     expect(catalog.items.length).toBeGreaterThan(0)
 
     // Look for known files in assets
-    const cityItem = catalog.items.find((it) => it.folder === 'city')
-    expect(cityItem).toBeDefined()
-    expect(cityItem?.kind).toBe('image')
+    const layeredItem = catalog.items.find((it) => it.folder === 'demo_transparent')
+    expect(layeredItem).toBeDefined()
+    expect(layeredItem?.kind).toBe('image')
 
     const demoItem = catalog.items.find((it) => it.folder === 'demos' && it.isAnimated)
     expect(demoItem).toBeDefined()
+
+    // 3D assembly textures are excluded from the regular 2D library
+    expect(catalog.items.some((it) => it.relativePath.startsWith('assembly_3d/'))).toBe(false)
   })
 
   it('loads binary bytes and mime type for an existing asset', async () => {
@@ -60,9 +63,10 @@ describe('Built-in Assets Catalog & Manifest Management', () => {
     expect(skyItem).toBeDefined()
     expect(skyItem?.name).toBe('Bầu trời hoàng hôn')
 
-    const balconyItem = catalog.items.find((it) => it.relativePath === 'city/city_balcony.jpg')
-    expect(balconyItem).toBeDefined()
-    expect(balconyItem?.name).toBe('Ban công ngắm thành phố')
+    // Audio assets are listed with a non-empty display name too
+    const audioItem = catalog.items.find((it) => it.relativePath === 'audio/ambient_chime.wav')
+    expect(audioItem?.kind).toBe('audio')
+    expect(audioItem?.name.length).toBeGreaterThan(0)
   })
 
   it('sorts categories by order ascending and falls back to alphabetical order for matching order', () => {

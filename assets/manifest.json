@@ -17,14 +17,6 @@
       "order": 1
     },
     {
-      "id": "city",
-      "folder": "city",
-      "title": "Thành phố & Đô thị",
-      "icon": "city",
-      "description": "Ảnh phong cảnh thành phố, đường phố mưa đêm, ban công và nhà chọc trời",
-      "order": 2
-    },
-    {
       "id": "demos",
       "folder": "demos",
       "title": "Hiệu ứng & Hoạt ảnh (VFX)",
@@ -57,32 +49,11 @@
     "demo_transparent/layer5_foreground_vines.png": {
       "name": "Dây leo tiền cảnh"
     },
-    "city/city_balcony.jpg": {
-      "name": "Ban công ngắm thành phố"
-    },
-    "city/city_rain_street.jpg": {
-      "name": "Phố đêm mưa rơi"
-    },
-    "city/city_sky.jpg": {
-      "name": "Bầu trời đô thị hoàng hôn"
-    },
-    "city/city_skyscrapers.jpg": {
-      "name": "Tòa nhà chọc trời"
-    },
-    "demos/campfire_flame.gif": {
-      "name": "Ngọn lửa trại bập bùng"
-    },
     "demos/hologram_sphere.gif": {
       "name": "Quả cầu năng lượng hologram"
     },
-    "demos/magic_portal.gif": {
-      "name": "Cổng không gian huyền bí"
-    },
     "demos/sparkle_fireflies.gif": {
       "name": "Đom đóm lấp lánh"
-    },
-    "demos/sample_animation.gif": {
-      "name": "Hoạt ảnh mẫu"
     },
     "audio/ambient_chime.wav": {
       "name": "Chuông gió ngân vang ambient"

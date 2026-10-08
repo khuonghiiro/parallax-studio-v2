@@ -1,20 +1,28 @@
 import { describe, expect, it } from 'vitest'
-import * as fs from 'fs'
-import * as path from 'path'
 import type { AssetMeta } from '@shared/types'
 import { probeImageSize, probeIsAnimatedGif, AnimatedGifData } from './assets'
 import { createProject, createShot, createImageLayer } from './factory'
 import { evaluateScene } from '../engine/evaluateScene'
 import { getAnimatedGifFrameIndex } from './gifHelper'
 
-describe('Animated GIF in Scene Integration Test', () => {
-  const gifPath = fs.existsSync(path.resolve(process.cwd(), 'assets', 'demos', 'sample_animation.gif'))
-    ? path.resolve(process.cwd(), 'assets', 'demos', 'sample_animation.gif')
-    : path.resolve(process.cwd(), 'sample_animation.gif')
-  const gifBuffer = fs.readFileSync(gifPath)
-  const uint8Array = new Uint8Array(gifBuffer)
+/** Dựng GIF89a tối giản trong bộ nhớ (120×120, `frames` khung) để kiểm thử probe mà không cần file mẫu. */
+function buildGif(frames: number): Uint8Array {
+  const bytes: number[] = [0x47, 0x49, 0x46, 0x38, 0x39, 0x61] // "GIF89a"
+  bytes.push(120, 0, 120, 0, 0x80, 0, 0) // Logical screen 120×120 + bảng màu toàn cục 2 màu
+  bytes.push(0, 0, 0, 255, 255, 255)
+  for (let i = 0; i < frames; i++) {
+    bytes.push(0x21, 0xf9, 0x04, 0x00, 0x04, 0x00, 0x00, 0x00) // Graphic Control Extension (delay 40ms)
+    bytes.push(0x2c, 0, 0, 0, 0, 120, 0, 120, 0, 0x00) // Image descriptor
+    bytes.push(0x02, 0x02, 0x4c, 0x01, 0x00) // LZW min code + 1 sub-block + terminator
+  }
+  bytes.push(0x3b)
+  return new Uint8Array(bytes)
+}
 
-  it('correctly probes dimensions and animated status from sample_animation.gif', () => {
+describe('Animated GIF in Scene Integration Test', () => {
+  const uint8Array = buildGif(15)
+
+  it('correctly probes dimensions and animated status from an animated GIF', () => {
     // 1. Probe width & height
     const size = probeImageSize(uint8Array)
     expect(size).toEqual([120, 120])
@@ -22,6 +30,7 @@ describe('Animated GIF in Scene Integration Test', () => {
     // 2. Probe if animated (multiple frames detected from GIF data blocks)
     const isAnimated = probeIsAnimatedGif(uint8Array)
     expect(isAnimated).toBe(true)
+    expect(probeIsAnimatedGif(buildGif(1))).toBe(false)
   })
 
   it('can be added into a scene/shot and evaluated across time', () => {
