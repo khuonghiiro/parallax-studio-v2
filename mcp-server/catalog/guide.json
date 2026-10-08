@@ -1,0 +1,121 @@
+{
+  "$comment": "Single source for the AI guide (MCP server instructions, get_ai_guide, CLI help, McpDialog prompt). Every section MUST keep the same number of lines in en and vi - catalog.test.mjs enforces it.",
+  "toolCount": 72,
+  "sections": [
+    {
+      "id": "overview",
+      "title": { "en": "Overview", "vi": "Tổng quan" },
+      "lines": {
+        "en": [
+          "Parallax Studio is a 2.5D motion tool: image/text/solid/particle layers are placed in 3D depth and filmed by an animated camera, then exported to MP4.",
+          "A project contains SHOTS (scenes) placed far apart in world space (see shot_spacing). Layer transforms are LOCAL to their shot.",
+          "All edits are undoable in the app (undo tool / Ctrl+Z). Times are in seconds.",
+          "The 3D Assembly workshop builds paper-craft 3D models from flat image faces; saved models are inserted into shots as layered 2.5D planes."
+        ],
+        "vi": [
+          "Parallax Studio là công cụ chuyển động 2.5D: các layer ảnh/chữ/màu nền/hạt được xếp theo chiều sâu 3D và quay bằng camera có animation, rồi xuất ra MP4.",
+          "Một dự án gồm nhiều SHOT (phân cảnh) đặt cách xa nhau trong không gian thế giới (xem shot_spacing). Biến đổi của layer là CỤC BỘ theo shot chứa nó.",
+          "Mọi chỉnh sửa đều hoàn tác được trong app (tool undo / Ctrl+Z). Thời gian tính bằng giây.",
+          "Xưởng Lắp Ráp 3D dựng mô hình 3D kiểu gấp giấy từ các mặt ảnh phẳng; mô hình đã lưu được chèn vào shot dưới dạng các mặt phẳng 2.5D xếp lớp."
+        ]
+      }
+    },
+    {
+      "id": "coordinates",
+      "title": { "en": "Coordinates", "vi": "Hệ tọa độ" },
+      "lines": {
+        "en": [
+          "World units = composition pixels. x → right, y → up, z → DEPTH (positive = farther from the viewer, like After Effects).",
+          "Inside a shot, its framing camera sits at local (0, 0, -reference_distance) looking at the origin, so a layer at z = 0 with scale 1 appears at its native pixel size.",
+          "Farther layers (z > 0) move less = parallax. Typical plate depths: sky 3000+, mountains 1000–2500, midground 300–800, focus plane 0, foreground -300–0.",
+          "Rotations are in degrees [x, y, z]. orientation \"ground\" = [-90, 0, 0] (floor), \"ceiling\" = [90, 0, 0], \"tilted\" = [-75, 0, 0].",
+          "Assembly models use the same axes in model space; a face with rotation [0, 0, 0] faces the viewer (normal toward -z)."
+        ],
+        "vi": [
+          "Đơn vị thế giới = pixel composition. x → phải, y → lên, z → ĐỘ SÂU (dương = xa người xem hơn, giống After Effects).",
+          "Trong một shot, camera khung hình đặt tại (0, 0, -reference_distance) cục bộ và nhìn vào gốc, nên layer ở z = 0 với scale 1 hiện đúng kích thước pixel gốc.",
+          "Layer càng xa (z > 0) càng di chuyển ít = parallax. Độ sâu điển hình: bầu trời 3000+, núi 1000–2500, trung cảnh 300–800, mặt phẳng tiêu điểm 0, tiền cảnh -300–0.",
+          "Góc xoay tính bằng độ [x, y, z]. orientation \"ground\" = [-90, 0, 0] (mặt sàn), \"ceiling\" = [90, 0, 0], \"tilted\" = [-75, 0, 0].",
+          "Mô hình lắp ráp dùng cùng hệ trục trong không gian mô hình; mặt có rotation [0, 0, 0] hướng về người xem (pháp tuyến về phía -z)."
+        ]
+      }
+    },
+    {
+      "id": "workflow",
+      "title": { "en": "Scene workflow", "vi": "Quy trình dựng cảnh" },
+      "lines": {
+        "en": [
+          "1. get_project_info → composition size, shots and layers.",
+          "2. add_shot for each scene.",
+          "3. add_image_layer / add_text_layer / add_particles per shot, spread in depth (z).",
+          "4. build_camera_path to fly between shots (or camera_fly_to_shot / set_keyframe for fine control).",
+          "5. get_viewport_screenshot (view \"camera\" or \"3d\") to check the result visually.",
+          "6. export_video to render the MP4."
+        ],
+        "vi": [
+          "1. get_project_info → kích thước composition, các shot và layer.",
+          "2. add_shot cho mỗi phân cảnh.",
+          "3. add_image_layer / add_text_layer / add_particles cho từng shot, trải theo chiều sâu (z).",
+          "4. build_camera_path để bay giữa các shot (hoặc camera_fly_to_shot / set_keyframe để chỉnh chi tiết).",
+          "5. get_viewport_screenshot (view \"camera\" hoặc \"3d\") để kiểm tra bằng hình ảnh.",
+          "6. export_video để render MP4."
+        ]
+      }
+    },
+    {
+      "id": "assembly",
+      "title": { "en": "Modular 3D assembly", "vi": "Lắp ráp 3D dạng mô-đun" },
+      "lines": {
+        "en": [
+          "Build buildings in parts: a SHELL (walls + roof only) plus separate DECOR parts. Separate parts look more realistic and can be reused.",
+          "1. list_assembly_templates {category:\"architecture\"} → pick a shell (shell-walls, shell-two-storey, shell-hip-roof, shell-l-house, shell-townhouse…) and apply_assembly_template.",
+          "2. For each decoration (window, door, chimney, column, balcony, flower box, pot, lamp, sign, awning, fence): apply a decor template to a new model, texture its faces, then save_assembly_model {category:\"decor\"}.",
+          "3. Re-open the shell and append_assembly_model {source_model_id, face_id, uv} to mount each part on a wall or roof face; uv [0.5, 0.5] = face centre, v points up.",
+          "4. Decor anchors: wall parts have their back plane at z = 0 and protrude toward the viewer, so mounting on any wall makes them stick outward.",
+          "5. auto_assembly_clip after parts sink into roofs (chimney, dormer); set_assembly_lighting for sun and shadows.",
+          "6. get_assembly_screenshot to review, save_assembly_model, then insert_assembly_model into a shot."
+        ],
+        "vi": [
+          "Dựng công trình theo từng phần: một KHUNG (chỉ tường + mái) cộng các bộ phận TRANG TRÍ rời. Bộ phận rời trông thật hơn và dùng lại được.",
+          "1. list_assembly_templates {category:\"architecture\"} → chọn khung (shell-walls, shell-two-storey, shell-hip-roof, shell-l-house, shell-townhouse…) rồi apply_assembly_template.",
+          "2. Với từng món trang trí (cửa sổ, cửa ra vào, ống khói, cột, ban công, bồn hoa, chậu cây, đèn, biển, mái hiên, hàng rào): áp khuôn decor vào mô hình mới, gán ảnh cho các mặt, rồi save_assembly_model {category:\"decor\"}.",
+          "3. Mở lại khung và gọi append_assembly_model {source_model_id, face_id, uv} để gắn từng bộ phận lên mặt tường hoặc mái; uv [0.5, 0.5] = tâm mặt, v hướng lên.",
+          "4. Điểm neo decor: bộ phận gắn tường có mặt lưng ở z = 0 và nhô về phía người xem, nên gắn lên tường nào cũng chìa ra ngoài.",
+          "5. auto_assembly_clip sau khi bộ phận cắm vào mái (ống khói, cửa mái); set_assembly_lighting để chỉnh nắng và bóng.",
+          "6. get_assembly_screenshot để xem lại, save_assembly_model, rồi insert_assembly_model vào một shot."
+        ]
+      }
+    },
+    {
+      "id": "tips",
+      "title": { "en": "Tips", "vi": "Mẹo" },
+      "lines": {
+        "en": [
+          "The camera only loads/renders what it sees, so many shots are cheap.",
+          "Use PNG images with transparency for parallax plates and assembly faces.",
+          "Relative file paths are resolved against the MCP server's working directory; prefer absolute paths.",
+          "Call get_ai_guide {topic} at any time to re-read a section of this guide."
+        ],
+        "vi": [
+          "Camera chỉ nạp/render những gì nó thấy, nên có nhiều shot vẫn nhẹ.",
+          "Dùng ảnh PNG có nền trong suốt cho các lớp parallax và mặt lắp ráp.",
+          "Đường dẫn tương đối được tính theo thư mục làm việc của MCP server; nên dùng đường dẫn tuyệt đối.",
+          "Gọi get_ai_guide {topic} bất cứ lúc nào để đọc lại một phần của hướng dẫn này."
+        ]
+      }
+    }
+  ],
+  "categories": {
+    "inspect": { "en": "Inspect", "vi": "Tra cứu" },
+    "project": { "en": "Project", "vi": "Dự án" },
+    "shots": { "en": "Shots", "vi": "Phân cảnh" },
+    "layers": { "en": "Layers", "vi": "Layer" },
+    "fx": { "en": "Effects (FX)", "vi": "Hiệu ứng (FX)" },
+    "keyframes": { "en": "Keyframes", "vi": "Keyframe" },
+    "camera": { "en": "Camera", "vi": "Camera" },
+    "look_audio": { "en": "Look & audio", "vi": "Màu sắc & âm thanh" },
+    "timeline": { "en": "Timeline & view", "vi": "Timeline & khung xem" },
+    "export": { "en": "Export & scripting", "vi": "Xuất & script" },
+    "assembly": { "en": "3D assembly workshop", "vi": "Xưởng lắp ráp 3D" }
+  }
+}

@@ -131,6 +131,9 @@ export interface McpResponse {
   error?: string
 }
 
+/** Language of the docs the MCP server serves to AI agents ('en' = default, most precise). */
+export type McpDocsLang = 'en' | 'vi'
+
 export interface McpStatus {
   listening: boolean
   port: number
@@ -140,6 +143,7 @@ export interface McpStatus {
   lastAt: number | null
   configPath: string
   serverScriptPath?: string
+  docsLang: McpDocsLang
   error?: string
 }
 
@@ -150,5 +154,6 @@ export interface McpApi {
   onStatus(cb: (s: McpStatus) => void): () => void
   disconnectAll(): Promise<void>
   toggleListening(enable?: boolean): Promise<McpStatus>
+  setDocsLang(lang: McpDocsLang): Promise<McpStatus>
 }
 

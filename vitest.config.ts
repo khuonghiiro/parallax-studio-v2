@@ -9,7 +9,7 @@ export default defineConfig({
     }
   },
   test: {
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'mcp-server/catalog/**/*.test.mjs'],
     environment: 'node'
   }
 })

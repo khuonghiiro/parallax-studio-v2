@@ -16,6 +16,7 @@
     "mcp": "node mcp-server/index.mjs",
     "mcp:install": "pnpm --prefix mcp-server install",
     "pxs": "node mcp-server/cli.mjs",
+    "mcp:schemas": "node mcp-server/scripts/sync-tool-schemas.mjs",
     "pxs:help": "node mcp-server/cli.mjs --help",
     "pxs:review": "node mcp-server/cli.mjs review",
     "pxs:status": "node mcp-server/cli.mjs status"

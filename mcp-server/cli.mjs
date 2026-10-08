@@ -1,68 +1,114 @@
 #!/usr/bin/env node
 /**
- * Parallax Studio V2 — Real-time AI & Developer CLI Controller
+ * Parallax Studio V2 — real-time AI & developer CLI controller (`pnpm pxs`).
  *
- * Cho phép AI Agent (Antigravity, Claude, Cursor...) hoặc lập trình viên:
- * 1. Tra cứu toàn bộ 42 công cụ MCP, nguyên lý không gian 2.5D, cách dùng.
- * 2. Xem review cảnh (chụp viewport camera / 3D thành file ảnh tức thì).
- * 3. Thao tác và chỉnh sửa dự án theo thời gian thực (add shot, add layer, build camera, render).
- * 4. Quản lý trạng thái và giải phóng tài nguyên kết nối.
+ * Help, tool catalogue and guide come from the bilingual catalogue (./catalog) — the same
+ * source the MCP server uses — so the CLI can never drift from the real tool parameters.
+ * Language: --lang en|vi  >  env PARALLAX_MCP_LANG  >  MCP dialog toggle (mcp.json)  >  en.
  *
- * Cách chạy:
- *   node mcp-server/cli.mjs --help
- *   node mcp-server/cli.mjs status
- *   node mcp-server/cli.mjs review --view camera --time 2.5 --out preview.png
- *   node mcp-server/cli.mjs call add_shot '{"name": "Cảnh 1", "duration": 6}'
+ *   pnpm pxs --help [--lang vi]
+ *   pnpm pxs help append_assembly_model
+ *   pnpm pxs guide assembly
+ *   pnpm pxs status | inspect
+ *   pnpm pxs review --view camera --time 2.5 --out preview.png
+ *   pnpm pxs call add_shot '{"name":"Shot 1"}'
  */
-
 import { createConnection } from 'node:net'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { join, resolve, isAbsolute } from 'node:path'
+import {
+  GUIDE,
+  GUIDE_TOPICS,
+  TOOLS,
+  buildShape,
+  categoryLabel,
+  configPath,
+  findTool,
+  normalizeLang,
+  paramsSummary,
+  readConfigFile,
+  renderGuide,
+  resolveDocsLang,
+  toolDescription
+} from './catalog/index.mjs'
+import { z } from './catalog/shared.mjs'
 
-// ------------------------------------------------------------------ Config & Connection
-function getMcpConfigPath() {
-  if (process.env.PARALLAX_MCP_CONFIG) return process.env.PARALLAX_MCP_CONFIG
-  const appName = 'parallax-studio'
-  if (process.platform === 'win32') return join(process.env.APPDATA ?? join(homedir(), 'AppData', 'Roaming'), appName, 'mcp.json')
-  if (process.platform === 'darwin') return join(homedir(), 'Library', 'Application Support', appName, 'mcp.json')
-  return join(process.env.XDG_CONFIG_HOME ?? join(homedir(), '.config'), appName, 'mcp.json')
+// ------------------------------------------------------------------ language & messages
+
+const rawArgs = process.argv.slice(2)
+const langIdx = rawArgs.indexOf('--lang')
+const lang = langIdx >= 0 ? normalizeLang(rawArgs[langIdx + 1]) : resolveDocsLang()
+const args = langIdx >= 0 ? rawArgs.filter((_, i) => i !== langIdx && i !== langIdx + 1) : rawArgs
+
+const MSG = {
+  notRunning: { en: 'Parallax Studio is not running (or has never been started): config file not found at', vi: 'Parallax Studio chưa được bật (hoặc chưa từng khởi chạy): không tìm thấy file cấu hình tại' },
+  startApp: { en: 'Open the app or run "npm run dev" first.', vi: 'Hãy mở ứng dụng hoặc chạy "npm run dev" trước.' },
+  timeout: { en: 'Timed out waiting for the app (15s) on', vi: 'Quá thời gian chờ phản hồi từ app (15s) cho lệnh' },
+  connectFail: { en: 'Cannot connect to Parallax Studio at', vi: 'Không thể kết nối tới Parallax Studio tại' },
+  unknownErr: { en: 'Unknown error from Parallax Studio.', vi: 'Lỗi không xác định từ Parallax Studio.' },
+  tool: { en: 'MCP TOOL', vi: 'CÔNG CỤ MCP' },
+  group: { en: 'Group', vi: 'Nhóm' },
+  desc: { en: 'Description', vi: 'Mô tả' },
+  params: { en: 'Parameters', vi: 'Tham số' },
+  none: { en: '(none)', vi: '(không có)' },
+  example: { en: 'Example', vi: 'Ví dụ gọi' },
+  unknownTool: { en: 'Unknown tool', vi: 'Không có công cụ' },
+  subtitle: { en: 'Real-time 2.5D scene & 3D assembly control', vi: 'Điều khiển cảnh 2.5D & lắp ráp 3D thời gian thực' },
+  commands: { en: 'CLI COMMANDS', vi: 'CÁC LỆNH CLI' },
+  catalogue: { en: 'AVAILABLE MCP TOOLS', vi: 'CÔNG CỤ MCP KHẢ DỤNG' },
+  docsLang: { en: 'Docs language: English (switch with --lang vi or the toggle in the app MCP dialog)', vi: 'Ngôn ngữ tài liệu: Tiếng Việt (đổi bằng --lang en hoặc công tắc trong dialog MCP của app)' },
+  connected: { en: 'Connected to Parallax Studio V2!', vi: 'Kết nối thành công tới Parallax Studio V2!' },
+  project: { en: 'Project', vi: 'Dự án' },
+  size: { en: 'Size', vi: 'Kích thước' },
+  duration: { en: 'Duration', vi: 'Thời lượng' },
+  shots: { en: 'Shots', vi: 'Phân cảnh' },
+  layers: { en: 'Layers', vi: 'Số layer' },
+  error: { en: 'Error', vi: 'Lỗi' },
+  rendering: { en: 'Rendering preview', vi: 'Đang render ảnh preview' },
+  now: { en: 'current', vi: 'hiện tại' },
+  noImage: { en: 'No image data received from the engine.', vi: 'Không nhận được dữ liệu ảnh từ engine.' },
+  saved: { en: 'Review image saved', vi: 'Đã xuất ảnh review' },
+  viewHint: { en: 'AI agents can open this file with "view_file" to check the frame visually.', vi: 'AI Agent có thể mở file này bằng "view_file" để kiểm tra trực quan.' },
+  missingMethod: { en: 'Missing tool name. Example: pnpm pxs call get_project_info', vi: 'Thiếu tên công cụ! Ví dụ: pnpm pxs call get_project_info' },
+  badJson: { en: 'Invalid JSON params', vi: 'Lỗi định dạng JSON params' },
+  badParams: { en: 'Parameters do not match the tool schema', vi: 'Tham số không khớp schema của công cụ' },
+  calling: { en: 'Calling', vi: 'Đang gọi' },
+  result: { en: 'Result', vi: 'Kết quả' },
+  invalid: { en: 'Unknown command', vi: 'Lệnh không hợp lệ' },
+  seeHelp: { en: 'Run "pnpm pxs --help" for the command list.', vi: 'Chạy "pnpm pxs --help" để xem danh sách lệnh.' }
 }
+const t = (key) => MSG[key][lang]
+
+const CLI_COMMANDS = [
+  ['pnpm pxs status', { en: 'Check the connection and app state', vi: 'Kiểm tra kết nối và trạng thái app' }],
+  ['pnpm pxs inspect', { en: 'Dump the whole project as JSON', vi: 'Xuất toàn bộ cấu trúc dự án (JSON)' }],
+  ['pnpm pxs review [--view camera|3d]', { en: 'Render the viewport to a PNG file', vi: 'Chụp ảnh review cảnh ra file PNG' }],
+  ["pnpm pxs call <tool> '<json>'", { en: 'Call any MCP tool (params validated first)', vi: 'Gọi bất kỳ công cụ MCP nào (kiểm tra tham số trước)' }],
+  ['pnpm pxs help <tool>', { en: 'Details and parameters of one tool', vi: 'Chi tiết và tham số của một công cụ' }],
+  [`pnpm pxs guide [${GUIDE_TOPICS.join('|')}]`, { en: 'Read the AI guide', vi: 'Đọc hướng dẫn AI' }],
+  ['--lang en|vi', { en: 'Docs language for this run', vi: 'Ngôn ngữ tài liệu cho lần chạy này' }]
+]
+
+// ------------------------------------------------------------------ connection
 
 function readConfig() {
-  const p = getMcpConfigPath()
-  if (!existsSync(p)) {
-    throw new Error(
-      `[PXS CLI] Parallax Studio chưa được bật (hoặc chưa bao giờ khởi chạy): không tìm thấy file cấu hình tại:\n  ${p}\n👉 Hãy mở ứng dụng hoặc chạy "npm run dev" trước.`
-    )
-  }
-  const raw = readFileSync(p, 'utf8')
-  const cfg = JSON.parse(raw)
-  return {
-    host: '127.0.0.1',
-    port: Number(process.env.PARALLAX_MCP_PORT) || cfg.port || 9877,
-    token: process.env.PARALLAX_MCP_TOKEN || cfg.token
-  }
+  const cfg = readConfigFile()
+  if (!cfg) throw new Error(`[PXS CLI] ${t('notRunning')}\n  ${configPath()}\n👉 ${t('startApp')}`)
+  return { host: '127.0.0.1', port: Number(process.env.PARALLAX_MCP_PORT) || cfg.port || 9877, token: process.env.PARALLAX_MCP_TOKEN || cfg.token }
 }
 
-async function sendCommand(method, params = {}) {
+function sendCommand(method, params = {}) {
   const cfg = readConfig()
   return new Promise((resolvePromise, rejectPromise) => {
     const sock = createConnection({ host: cfg.host, port: cfg.port })
     sock.setEncoding('utf8')
     let buffer = ''
     const reqId = Date.now()
-
     const timeout = setTimeout(() => {
       sock.destroy()
-      rejectPromise(new Error(`[PXS CLI] Quá thời gian chờ phản hồi từ app cho lệnh "${method}" (Timeout 15s).`))
+      rejectPromise(new Error(`[PXS CLI] ${t('timeout')} "${method}".`))
     }, 15000)
-
-    sock.once('connect', () => {
-      const msg = JSON.stringify({ id: reqId, token: cfg.token, method, params }) + '\n'
-      sock.write(msg)
-    })
-
+    sock.once('connect', () => sock.write(JSON.stringify({ id: reqId, token: cfg.token, method, params }) + '\n'))
     sock.on('data', (chunk) => {
       buffer += chunk
       let idx
@@ -70,639 +116,165 @@ async function sendCommand(method, params = {}) {
         const line = buffer.slice(0, idx).trim()
         buffer = buffer.slice(idx + 1)
         if (!line) continue
+        let res
         try {
-          const res = JSON.parse(line)
-          if (res.id === reqId || res.id === null) {
-            clearTimeout(timeout)
-            sock.destroy()
-            if (res.ok) {
-              resolvePromise(res.result)
-            } else {
-              rejectPromise(new Error(res.error || 'Lỗi không xác định từ Parallax Studio.'))
-            }
-            return
-          }
+          res = JSON.parse(line)
         } catch {
-          /* ignore incomplete line */
+          continue
         }
+        if (res.id !== reqId && res.id !== null) continue
+        clearTimeout(timeout)
+        sock.destroy()
+        if (res.ok) resolvePromise(res.result)
+        else rejectPromise(new Error(res.error || t('unknownErr')))
+        return
       }
     })
-
     sock.on('error', (err) => {
       clearTimeout(timeout)
-      rejectPromise(new Error(`[PXS CLI] Không thể kết nối tới Parallax Studio tại 127.0.0.1:${cfg.port}: ${err.message}`))
+      rejectPromise(new Error(`[PXS CLI] ${t('connectFail')} 127.0.0.1:${cfg.port}: ${err.message}`))
     })
   })
 }
 
-// ------------------------------------------------------------------ Tool Documentation Registry
-const TOOLS_CATALOG = {
-  // Nhóm Tra Cứu
-  list_commands: {
-    category: '1. Truy vấn & Thông tin',
-    desc: 'Liệt kê danh sách tất cả các lệnh MCP khả dụng trong Parallax Studio.',
-    params: '{}',
-    example: 'node mcp-server/cli.mjs call list_commands'
-  },
-  get_project_info: {
-    category: '1. Truy vấn & Thông tin',
-    desc: 'Lấy toàn bộ thông tin tổng quan dự án: composition, danh sách shots, layers, camera, look, audio, assets.',
-    params: '{}',
-    example: 'node mcp-server/cli.mjs call get_project_info'
-  },
-  get_shot_info: {
-    category: '1. Truy vấn & Thông tin',
-    desc: 'Xem chi tiết 1 cảnh và tất cả layer thuộc cảnh đó.',
-    params: '{ "shot_id": string, "time"?: number }',
-    example: 'node mcp-server/cli.mjs call get_shot_info \'{"shot_id": "shot-1"}\''
-  },
-  get_layer_info: {
-    category: '1. Truy vấn & Thông tin',
-    desc: 'Đọc toàn bộ thuộc tính, keyframes, transforms của 1 layer cụ thể.',
-    params: '{ "layer_id": string }',
-    example: 'node mcp-server/cli.mjs call get_layer_info \'{"layer_id": "layer-1"}\''
-  },
-  get_camera_info: {
-    category: '1. Truy vấn & Thông tin',
-    desc: 'Đọc trạng thái vị trí, mục tiêu, FOV của camera tại thời điểm time.',
-    params: '{ "time"?: number }',
-    example: 'node mcp-server/cli.mjs call get_camera_info \'{"time": 2.0}\''
-  },
-  get_memory_stats: {
-    category: '1. Truy vấn & Thông tin',
-    desc: 'Kiểm tra dung lượng VRAM GPU, texture residency và RAM tiến trình.',
-    params: '{}',
-    example: 'node mcp-server/cli.mjs call get_memory_stats'
-  },
-  get_viewport_screenshot: {
-    category: '1. Truy vấn & Thông tin (Review Visual)',
-    desc: 'Chụp hình ảnh viewport thực tế từ Three.js (dạng ảnh camera hoặc 3D orbit) để AI review bố cục.',
-    params: '{ "view"?: "camera"|"3d", "time"?: number, "width"?: number, "format"?: "png"|"jpeg" }',
-    example: 'node mcp-server/cli.mjs review --view camera --time 1.5 --out preview.png'
-  },
+/** Relative paths are resolved against the CLI's cwd (the app runs elsewhere). */
+function absPaths(params) {
+  const out = { ...params }
+  for (const k of ['file_path', 'out_path', 'path']) if (typeof out[k] === 'string' && out[k] && !isAbsolute(out[k])) out[k] = resolve(out[k])
+  return out
+}
 
-  // Nhóm Dự án & Cảnh
-  new_project: {
-    category: '2. Dự án & Cảnh (Shots)',
-    desc: 'Khởi tạo dự án mới hoàn toàn trống.',
-    params: '{ "width"?: number, "height"?: number, "fps"?: number, "duration"?: number }'
-  },
-  set_composition: {
-    category: '2. Dự án & Cảnh (Shots)',
-    desc: 'Thay đổi độ phân giải, khung hình hoặc thời lượng composition.',
-    params: '{ "name"?: string, "width"?: number, "height"?: number, "fps"?: number, "duration"?: number }'
-  },
-  save_project: {
-    category: '2. Dự án & Cảnh (Shots)',
-    desc: 'Lưu dự án hiện tại ra file .pxs.',
-    params: '{ "file_path"?: string }'
-  },
-  open_project: {
-    category: '2. Dự án & Cảnh (Shots)',
-    desc: 'Mở file dự án .pxs từ ổ đĩa.',
-    params: '{ "file_path": string }'
-  },
-  add_shot: {
-    category: '2. Dự án & Cảnh (Shots)',
-    desc: 'Thêm một phân cảnh 3D mới.',
-    params: '{ "name": string, "duration"?: number, "position"?: [x, y, z], "color"?: string }',
-    example: 'node mcp-server/cli.mjs call add_shot \'{"name": "Đêm Mưa", "duration": 6}\''
-  },
-  update_shot: {
-    category: '2. Dự án & Cảnh (Shots)',
-    desc: 'Cập nhật tên, thời lượng, vị trí phân cảnh.',
-    params: '{ "shot_id": string, "name"?: string, "duration"?: number, "position"?: [x, y, z] }'
-  },
-  delete_shot: {
-    category: '2. Dự án & Cảnh (Shots)',
-    desc: 'Xóa một phân cảnh khỏi dự án.',
-    params: '{ "shot_id": string }'
-  },
-  import_project_json: {
-    category: '2. Dự án & Cảnh (Shots)',
-    desc: 'Nhập toàn bộ cấu trúc dự án từ chuỗi JSON hoặc file JSON.',
-    params: '{ "json"?: object|string, "file_path"?: string }'
-  },
-  export_project_json: {
-    category: '2. Dự án & Cảnh (Shots)',
-    desc: 'Xuất toàn bộ cấu trúc dữ liệu dự án hiện tại thành chuỗi JSON.',
-    params: '{}'
-  },
-  import_shot_json: {
-    category: '2. Dự án & Cảnh (Shots)',
-    desc: 'Nhập dữ liệu một phân cảnh và các layer của nó từ chuỗi JSON hoặc file.',
-    params: '{ "json"?: object|string, "file_path"?: string }'
-  },
-  export_shot_json: {
-    category: '2. Dự án & Cảnh (Shots)',
-    desc: 'Xuất dữ liệu một phân cảnh và các layer tương ứng thành JSON.',
-    params: '{ "shot": string }'
-  },
+const fail = (msg) => {
+  console.error(`✗ ${msg}`)
+  process.exit(1)
+}
 
-  // Nhóm Layers & Không gian 2.5D
-  add_image_layer: {
-    category: '3. Layer & Độ sâu 2.5D',
-    desc: 'Thêm layer ảnh vào không gian 3D tại độ sâu Z chỉ định (Foreground: -300..0, Mid: 300..800, Far: 1000..3000).',
-    params: '{ "file_path": string, "shot_id"?: string, "z"?: number, "position"?: [x, y, z], "scale"?: number|[x,y,z], "opacity"?: number, "name"?: string }',
-    example: 'node mcp-server/cli.mjs call add_image_layer \'{"file_path": "assets/city/sky.png", "z": 3000, "name": "Bầu trời"}\''
-  },
-  add_text_layer: {
-    category: '3. Layer & Độ sâu 2.5D',
-    desc: 'Thêm layer chữ trong không gian 3D (hỗ trợ font Google Fonts, size, color, tracking).',
-    params: '{ "text": string, "shot_id"?: string, "z"?: number, "position"?: [x, y, z], "font_family"?: string, "font_size"?: number, "color"?: string }'
-  },
-  add_solid_layer: {
-    category: '3. Layer & Độ sâu 2.5D',
-    desc: 'Thêm layer màu đặc hoặc dải chuyển sắc gradient nền 3D.',
-    params: '{ "color": string, "shot_id"?: string, "z"?: number }'
-  },
-  add_ground_layer: {
-    category: '3. Layer & Độ sâu 2.5D',
-    desc: 'Tạo mặt sàn / mặt đất 3D nằm ngang (Ground Plane).',
-    params: '{ "color"?: string, "shot_id"?: string, "z"?: number, "size"?: [w, h] }'
-  },
-  add_particles: {
-    category: '3. Layer & Độ sâu 2.5D',
-    desc: 'Thêm hiệu ứng hạt tự động (mưa, bụi lấp lánh, đom đóm, tuyết).',
-    params: '{ "preset": "dust"|"fireflies"|"snow"|"rain", "density"?: number, "shot_id"?: string }'
-  },
-  update_layer: {
-    category: '3. Layer & Độ sâu 2.5D',
-    desc: 'Cập nhật vị trí, xoay, tỷ lệ, độ trong suốt hoặc hòa trộn của layer.',
-    params: '{ "layer_id": string, "position"?: [x, y, z], "rotation"?: [x, y, z] (degrees), "scale"?: number | [x, y, z], "opacity"?: number, "at_time"?: number }',
-    example: 'node mcp-server/cli.mjs call update_layer \'{"layer_id":"layer-1","rotation":[0,0,30],"scale":[1.5,0.8,1]}\''
-  },
-  delete_layer: {
-    category: '3. Layer & Độ sâu 2.5D',
-    desc: 'Xóa layer.',
-    params: '{ "layer_id": string }'
-  },
-  move_layer: {
-    category: '3. Layer & Độ sâu 2.5D',
-    desc: 'Di chuyển thứ tự hiển thị z-index xếp chồng của layer trong cảnh.',
-    params: '{ "layer_id": string, "delta": number }'
-  },
-  split_layer: {
-    category: '3. Layer & Độ sâu 2.5D',
-    desc: 'Tách / cắt layer thành 2 đoạn liền mạch tại thời điểm time (giây).',
-    params: '{ "layer_id": string, "time"?: number }',
-    example: 'node mcp-server/cli.mjs call split_layer \'{"layer_id": "layer-1", "time": 2.5}\''
-  },
-  replace_layer_asset: {
-    category: '3. Layer & Độ sâu 2.5D',
-    desc: 'Thay thế tài nguyên ảnh cho layer ảnh, giữ nguyên 100% tọa độ 3D, Z-depth, keyframes và hiệu ứng.',
-    params: '{ "layer_id": string, "asset_id": string }',
-    example: 'node mcp-server/cli.mjs call replace_layer_asset \'{"layer_id": "layer-1", "asset_id": "asset-2"}\''
-  },
-  set_layer_glow: {
-    category: '3. Layer & Độ sâu 2.5D',
-    desc: 'Bật/tắt và tinh chỉnh viền phát sáng Neon bám sát đường nét alpha thực tế (thời điểm bắt đầu, thời lượng, outer/inner/both, màu sắc, độ dày, độ rực, nhịp thở/nhấp nháy).',
-    params: '{ "layer_id": string, "enabled"?: boolean, "start_time"?: number, "duration"?: number, "side"?: "outer"|"inner"|"both", "color"?: string, "thickness"?: number, "intensity"?: number, "animated"?: "none"|"blink"|"breathe"|"flicker", "speed"?: number, "min_intensity"?: number }',
-    example: 'node mcp-server/cli.mjs call set_layer_glow \'{"layer_id": "layer-1", "enabled": true, "start_time": 2.5, "duration": 1.5, "side": "outer", "color": "#3dd6f5", "thickness": 10, "intensity": 1.5, "animated": "breathe"}\''
-  },
+// ------------------------------------------------------------------ help & guide
 
-  // Nhóm Keyframe & Animation
-  apply_layer_fx: {
-    category: '4. Keyframes & Hoạt ảnh',
-    desc: 'Áp dụng hiệu ứng hoạt ảnh hoặc viền phát sáng Neon: neonBreathe (thở mờ ảo), neonBlink (chớp tắt viền), neonFlicker (chập chờn neon), neonSolid (viền sáng tĩnh), blink, fadeIn, fadeOut, breathe, shake, popIn, pulse.',
-    params: '{ "layer_id": string, "preset": "neonBreathe"|"neonBlink"|"neonFlicker"|"neonSolid"|"blink"|"fadeIn"|"fadeOut"|"breathe"|"shake"|"popIn"|"pulse", "time"?: number, "duration"?: number, "blinks"?: number, "intensity"?: number }',
-    example: 'node mcp-server/cli.mjs call apply_layer_fx \'{"layer_id": "layer-1", "preset": "neonBreathe", "time": 2.5, "duration": 1.5}\''
-  },
-  toggle_layer_fx: {
-    category: '4. Keyframes & Hoạt ảnh',
-    desc: 'Bật hoặc tắt công tắc một hiệu ứng cụ thể trên layer theo fx_id.',
-    params: '{ "layer_id": string, "fx_id": string, "enabled": boolean }',
-    example: 'node mcp-server/cli.mjs call toggle_layer_fx \'{"layer_id": "layer-1", "fx_id": "fx-abc123", "enabled": false}\''
-  },
-  remove_layer_fx: {
-    category: '4. Keyframes & Hoạt ảnh',
-    desc: 'Xóa vĩnh viễn một hiệu ứng đã áp dụng trên layer và dọn dẹp keyframes/viền neon tương ứng.',
-    params: '{ "layer_id": string, "fx_id": string }',
-    example: 'node mcp-server/cli.mjs call remove_layer_fx \'{"layer_id": "layer-1", "fx_id": "fx-abc123"}\''
-  },
-  set_keyframe: {
-    category: '4. Keyframes & Hoạt ảnh',
-    desc: 'Đặt keyframe cho thuộc tính tại thời điểm time (giây).',
-    params: '{ "prop": string, "time": number, "value": any, "easing"?: "linear"|"easeInOut"|"easeIn"|"easeOut"|"hold" }',
-    example: 'node mcp-server/cli.mjs call set_keyframe \'{"prop": "camera.position", "time": 0, "value": [0,0,-1500]}\''
-  },
-  remove_keyframe: {
-    category: '4. Keyframes & Hoạt ảnh',
-    desc: 'Xóa keyframe tại thời điểm time.',
-    params: '{ "prop": string, "time": number }'
-  },
-  clear_keyframes: {
-    category: '4. Keyframes & Hoạt ảnh',
-    desc: 'Xóa toàn bộ keyframe của thuộc tính.',
-    params: '{ "prop": string }'
-  },
+function printToolHelp(tool) {
+  const bar = '='.repeat(64)
+  const params = paramsSummary(tool, lang)
+  console.log(`\n${bar}\n  ${t('tool')}: ${tool.name}\n${bar}`)
+  console.log(`${t('group')}:  ${categoryLabel(tool.cat, lang)}`)
+  console.log(`${t('desc')}:  ${toolDescription(tool, lang)}`)
+  console.log(`${t('params')}:${params.length ? '\n' + params.map((p) => `  • ${p}`).join('\n') : ` ${t('none')}`}`)
+  console.log(`${t('example')}:  pnpm pxs call ${tool.name}${tool.example ? ` '${tool.example}'` : ''}\n${bar}\n`)
+}
 
-  // Nhóm Camera
-  set_camera: {
-    category: '5. Camera & Đường bay 3D',
-    desc: 'Đặt vị trí camera, mục tiêu ngắm hoặc FOV.',
-    params: '{ "position"?: [x, y, z], "target"?: [x, y, z], "fov"?: number, "time"?: number }'
-  },
-  apply_camera_preset: {
-    category: '5. Camera & Đường bay 3D',
-    desc: 'Áp dụng chuyển động camera mẫu (slow_push, pan_left, orbit_subtle, crane_up).',
-    params: '{ "preset": string, "shot_id"?: string }'
-  },
-  camera_fly_to_shot: {
-    category: '5. Camera & Đường bay 3D',
-    desc: 'Bay camera tới khung nhìn bao quát cảnh chỉ định.',
-    params: '{ "shot_id": string, "duration"?: number }'
-  },
-  build_camera_path: {
-    category: '5. Camera & Đường bay 3D',
-    desc: 'Tự động tính toán đường bay Bezier mượt mà nối tất cả các phân cảnh trong dự án.',
-    params: '{ "transition_duration"?: number, "easing"?: string }'
-  },
-  set_look: {
-    category: '5. Camera & Đường bay 3D',
-    desc: 'Thiết lập bầu không khí visual: sương mù chiều sâu 3D (fog), tối góc vignette, hạt phim grain, phơi sáng exposure, độ tương phản contrast, độ bão hoà màu saturation.',
-    params: '{ "fog_enabled"?: boolean, "fog_color"?: string, "fog_near"?: number, "fog_far"?: number, "vignette"?: number, "grain"?: number, "exposure"?: number, "contrast"?: number, "saturation"?: number }',
-    example: 'node mcp-server/cli.mjs call set_look \'{"fog_enabled": true, "fog_color": "#24163a", "vignette": 0.25}\''
-  },
-  set_view: {
-    category: '5. Camera & Đường bay 3D',
-    desc: 'Chuyển đổi góc nhìn Viewport ("camera", "3d" hoặc "split"), bật/tắt camera_only, show_path hoặc focus vào shot/layer.',
-    params: '{ "mode"?: "camera"|"3d"|"split", "focus"?: "all"|"selection"|shot_id, "camera_only"?: boolean, "show_path"?: boolean }',
-    example: 'node mcp-server/cli.mjs call set_view \'{"mode": "3d", "focus": "all"}\''
-  },
+function printOverview() {
+  console.log(`\nPARALLAX STUDIO V2 — AI & DEVELOPER CLI\n${t('subtitle')}\n${t('docsLang')}\n`)
+  console.log(renderGuide(lang, 'coordinates'))
+  console.log(`\n## ${t('commands')}`)
+  for (const [cmd, desc] of CLI_COMMANDS) console.log(`  ${cmd.padEnd(44)} ${desc[lang]}`)
+  console.log(`\n## ${t('catalogue')} (${TOOLS.length})`)
+  for (const cat of Object.keys(GUIDE.categories)) {
+    const list = TOOLS.filter((tool) => tool.cat === cat)
+    if (!list.length) continue
+    console.log(`\n── ${categoryLabel(cat, lang)} ──`)
+    for (const tool of list) console.log(`  • ${tool.name.padEnd(26)} ${toolDescription(tool, lang).split('. ')[0]}`)
+  }
+  console.log(`\n${renderGuide(lang, 'workflow')}\n\n${renderGuide(lang, 'assembly')}\n`)
+}
 
-  // Nhóm Xử lý & Dàn dựng Âm Thanh
-  set_audio: {
-    category: '6. Xử lý & Dàn dựng Âm Thanh (Audio)',
-    desc: 'Đặt hoặc gỡ bỏ nhạc nền cho dự án từ file âm thanh.',
-    params: '{ "file_path"?: string, "offset"?: number, "volume"?: number, "remove"?: boolean }',
-    example: 'node mcp-server/cli.mjs call set_audio \'{"file_path": "assets/bgm.mp3", "volume": 0.8}\''
-  },
-  get_audio_info: {
-    category: '6. Xử lý & Dàn dựng Âm Thanh (Audio)',
-    desc: 'Xem danh sách toàn bộ các track âm thanh trên timeline (thời lượng, offset, volume, loop, speed...).',
-    params: '{}',
-    example: 'node mcp-server/cli.mjs call get_audio_info'
-  },
-  add_audio_track: {
-    category: '6. Xử lý & Dàn dựng Âm Thanh (Audio)',
-    desc: 'Thêm track âm thanh mới vào timeline từ file hoặc asset có sẵn tại mốc thời gian offset.',
-    params: '{ "file_path"?: string, "asset_id"?: string, "name"?: string, "offset"?: number, "volume"?: number, "muted"?: boolean, "loop"?: boolean }',
-    example: 'node mcp-server/cli.mjs call add_audio_track \'{"file_path": "assets/sfx.wav", "offset": 1.5, "volume": 0.9}\''
-  },
-  update_audio_track: {
-    category: '6. Xử lý & Dàn dựng Âm Thanh (Audio)',
-    desc: 'Chỉnh sửa thuộc tính của track âm thanh (volume, offset, tốc độ, fade in/out, gain dB...).',
-    params: '{ "track_id": string, "volume"?: number, "offset"?: number, "playback_rate"?: number, "gain_db"?: number }',
-    example: 'node mcp-server/cli.mjs call update_audio_track \'{"track_id": "audio-xyz", "volume": 0.5}\''
-  },
-  delete_audio_track: {
-    category: '6. Xử lý & Dàn dựng Âm Thanh (Audio)',
-    desc: 'Xoá một track âm thanh khỏi timeline theo ID.',
-    params: '{ "track_id": string }',
-    example: 'node mcp-server/cli.mjs call delete_audio_track \'{"track_id": "audio-xyz"}\''
-  },
-  duplicate_audio_track: {
-    category: '6. Xử lý & Dàn dựng Âm Thanh (Audio)',
-    desc: 'Nhân bản đoạn âm thanh lùi thêm một khoảng thời gian offset_delta.',
-    params: '{ "track_id": string, "offset_delta"?: number }',
-    example: 'node mcp-server/cli.mjs call duplicate_audio_track \'{"track_id": "audio-xyz", "offset_delta": 2.0}\''
-  },
-  split_audio_track: {
-    category: '6. Xử lý & Dàn dựng Âm Thanh (Audio)',
-    desc: 'Cắt đôi một track âm thanh thành 2 phần tại thời điểm split_time.',
-    params: '{ "track_id": string, "split_time"?: number }',
-    example: 'node mcp-server/cli.mjs call split_audio_track \'{"track_id": "audio-xyz", "split_time": 3.2}\''
-  },
-  merge_audio_tracks: {
-    category: '6. Xử lý & Dàn dựng Âm Thanh (Audio)',
-    desc: 'Hòa âm và gộp nhiều track âm thanh (hoặc tất cả các tracks) thành 1 track WAV duy nhất.',
-    params: '{ "track_ids"?: string[] }',
-    example: 'node mcp-server/cli.mjs call merge_audio_tracks \'{}\''
-  },
+function cmdHelp(name) {
+  if (!name) return printOverview()
+  const tool = findTool(name)
+  if (!tool) fail(`${t('unknownTool')} "${name}". ${t('seeHelp')}`)
+  printToolHelp(tool)
+}
 
-  // Nhóm Xuất video & Điều khiển
-  set_time: {
-    category: '7. Timeline & Xuất Video',
-    desc: 'Di chuyển con trỏ thời gian (playhead) tới giây time.',
-    params: '{ "time": number }'
-  },
-  set_playing: {
-    category: '7. Timeline & Xuất Video',
-    desc: 'Phát hoặc dừng phát hoạt ảnh realtime.',
-    params: '{ "playing": boolean }'
-  },
-  undo: {
-    category: '7. Timeline & Xuất Video',
-    desc: 'Hoàn tác thao tác vừa thực hiện.',
-    params: '{}'
-  },
-  redo: {
-    category: '7. Timeline & Xuất Video',
-    desc: 'Làm lại thao tác vừa hoàn tác.',
-    params: '{}'
-  },
-  select: {
-    category: '7. Timeline & Xuất Video',
-    desc: 'Chọn hoặc bỏ chọn một layer hoặc phân cảnh (shot) trên giao diện Timeline và 3D Viewer.',
-    params: '{ "layer_id"?: string, "shot_id"?: string }',
-    example: 'node mcp-server/cli.mjs call select \'{"layer_id": "HDw9Vk03FX"}\''
-  },
-  execute_script: {
-    category: '7. Timeline & Xuất Video',
-    desc: 'Thực thi mã JavaScript tùy biến trực tiếp trong runtime của app (truy cập api.project, api.keyframes, api.THREE, api.update...).',
-    params: '{ "code": string }'
-  },
-  export_video: {
-    category: '7. Timeline & Xuất Video',
-    desc: 'Render và xuất video MP4 qua FFmpeg.',
-    params: '{ "out_path"?: string, "fps"?: number, "quality"?: "draft"|"high"|"ultra" }'
-  },
-
-  // Nhóm Xưởng Lắp Ráp 3D & Mô Hình Origami
-  list_models3d: {
-    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
-    desc: 'Liệt kê danh sách tất cả các mô hình 3D origami có trong thư viện và lưu trữ.',
-    params: '{}',
-    example: 'node mcp-server/cli.mjs call list_models3d'
-  },
-  get_model3d: {
-    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
-    desc: 'Lấy dữ liệu chi tiết hình học, các mặt phẳng và ánh sáng của một mô hình 3D theo ID hoặc từ phiên xưởng đang mở.',
-    params: '{ "id"?: string, "model_id"?: string }',
-    example: 'node mcp-server/cli.mjs call get_model3d \'{"id": "model-tudor-cottage"}\''
-  },
-  get_assembly_state: {
-    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
-    desc: 'Kiểm tra trạng thái xưởng lắp ráp 3D đang mở trên giao diện (mô hình đang sửa, mặt đang chọn).',
-    params: '{}',
-    example: 'node mcp-server/cli.mjs call get_assembly_state'
-  },
-  save_assembly_model: {
-    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
-    desc: 'Lưu hoặc cập nhật mô hình 3D vào bộ nhớ lưu trữ cục bộ và tệp catalog.',
-    params: '{ "id": string, "name"?: string, "category"?: string, "scale"?: number, "faces"?: Face3D[], "lighting"?: AssemblyLighting }',
-    example: 'node mcp-server/cli.mjs call save_assembly_model \'{"id": "my-house", "name": "Nhà Mới"}\''
-  },
-  insert_assembly_model: {
-    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
-    desc: 'Chèn mô hình 3D thành các layer 2.5D vào phân cảnh đang chọn trong dự án.',
-    params: '{ "model_id"?: string, "global_scale"?: number, "position_offset"?: [x, y, z], "target_shot_id"?: string }',
-    example: 'node mcp-server/cli.mjs call insert_assembly_model \'{"model_id": "model-tudor-cottage", "global_scale": 1.0}\''
-  },
-  add_assembly_face: {
-    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
-    desc: 'Thêm một mặt phẳng 3D mới vào mô hình trong phiên xưởng (hoặc mô hình chỉ định).',
-    params: '{ "name"?: string, "asset_path"?: string, "width"?: number, "height"?: number, "position"?: [x, y, z], "rotation"?: [x, y, z] }',
-    example: 'node mcp-server/cli.mjs call add_assembly_face \'{"name": "Mái Hiên", "width": 400, "height": 200}\''
-  },
-  update_assembly_face: {
-    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
-    desc: 'Cập nhật toạ độ, xoay góc, kích thước, ảnh texture hoặc quy tắc cắt của một mặt phẳng.',
-    params: '{ "face_id": string, "name"?: string, "asset_path"?: string, "width"?: number, "height"?: number, "position"?: [x, y, z], "rotation"?: [x, y, z], "clip_by"?: string[] }',
-    example: 'node mcp-server/cli.mjs call update_assembly_face \'{"face_id": "face-front", "name": "Mặt Trước Mới"}\''
-  },
-  delete_assembly_face: {
-    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
-    desc: 'Xoá một mặt phẳng khỏi mô hình 3D theo ID mặt.',
-    params: '{ "face_id": string, "model_id"?: string }',
-    example: 'node mcp-server/cli.mjs call delete_assembly_face \'{"face_id": "face-extra"}\''
-  },
-  join_assembly_faces: {
-    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
-    desc: 'Ghép hít 2 mặt phẳng tại cạnh (tự động giãn cạnh ngắn khớp với cạnh dài nhất để triệt tiêu khe hở).',
-    params: '{ "target_id": string, "source_id": string, "target_edge": "top"|"bottom"|"left"|"right", "source_edge": "top"|"bottom"|"left"|"right", "angle"?: number, "scale_mode"?: "longest"|"source"|"target"|"none" }',
-    example: 'node mcp-server/cli.mjs call join_assembly_faces \'{"target_id": "face-front", "source_id": "face-left", "target_edge": "left", "source_edge": "right", "angle": 90}\''
-  },
-  auto_assembly_clip: {
-    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
-    desc: 'Tự động tính toán mặt phẳng cắt giao nhau (loại bỏ phần tường/mái vượt quá nhau, ẩn pixel thừa).',
-    params: '{ "model_id"?: string }',
-    example: 'node mcp-server/cli.mjs call auto_assembly_clip'
-  },
-  set_assembly_lighting: {
-    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
-    desc: 'Thiết lập hướng nắng mặt trời, đổ bóng râm dịu và tông màu theo thời gian trong ngày cho mô hình 3D.',
-    params: '{ "sun"?: boolean, "shadows"?: boolean, "preset"?: "auto"|"morning"|"noon"|"sunset"|"overcast"|"night", "azimuth"?: number, "elevation"?: number }',
-    example: 'node mcp-server/cli.mjs call set_assembly_lighting \'{"preset": "sunset", "shadows": true}\''
-  },
-  apply_assembly_template: {
-    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
-    desc: 'Áp dụng khuôn mẫu hình học 3D dựng sẵn (nhà mái chữ A, hộp, lều, tháp bát giác, kim tự tháp, bậc thang...) mà vẫn giữ nguyên ảnh texture của người dùng.',
-    params: '{ "template_id": string, "mode"?: "replace"|"append", "model_id"?: string }',
-    example: 'node mcp-server/cli.mjs call apply_assembly_template \'{"template_id": "gable-house", "mode": "replace"}\''
-  },
-  get_assembly_screenshot: {
-    category: '8. Xưởng Lắp Ráp 3D (3D Assembly Workshop)',
-    desc: 'Chụp ảnh màn hình khung nhìn 3D hiện tại của Xưởng Lắp Ráp dưới dạng chuỗi base64 PNG.',
-    params: '{}',
-    example: 'node mcp-server/cli.mjs call get_assembly_screenshot'
+function cmdGuide(topic = 'all') {
+  try {
+    console.log(renderGuide(lang, topic))
+  } catch (err) {
+    fail(err.message)
   }
 }
 
-// ------------------------------------------------------------------ CLI Commands
-async function cmdHelp(toolName) {
-  if (toolName && TOOLS_CATALOG[toolName]) {
-    const t = TOOLS_CATALOG[toolName]
-    console.log(`\n======================================================`)
-    console.log(`  CÔNG CỤ MCP: ${toolName}`)
-    console.log(`======================================================`)
-    console.log(`Nhóm:        ${t.category}`)
-    console.log(`Mô tả:       ${t.desc}`)
-    console.log(`Tham số:     ${t.params}`)
-    if (t.example) {
-      console.log(`Ví dụ gọi:   ${t.example}`)
-    }
-    console.log(`======================================================\n`)
-    return
-  }
-
-  console.log(`
-╔════════════════════════════════════════════════════════════════════════════╗
-║             PARALLAX STUDIO V2 — AI & DEVELOPER CLI CONTROLLER             ║
-║                 Điều khiển và Chỉnh sửa Cảnh 3D Thời Gian Thực             ║
-╚════════════════════════════════════════════════════════════════════════════╝
-
-📌 NGUYÊN LÝ KHÔNG GIAN 2.5D (QUY ƯỚC TỌA ĐỘ):
-  • Trục X: Chiều ngang (sang phải: +X, sang trái: -X)
-  • Trục Y: Chiều đứng  (lên trên: +Y, xuống dưới: -Y)
-  • Trục Z: Độ sâu không gian (càng ra xa camera thì Z càng lớn):
-      - Tiền cảnh (Foreground): Z = -300 đến 0      (trôi nhanh nhất)
-      - Tiêu điểm gốc (Focus):  Z = 0               (chuẩn pixel 1:1)
-      - Trung cảnh (Midground): Z = 300 đến 800     (nhân vật, vật thể chính)
-      - Hậu cảnh (Background):  Z = 1000 đến 2500   (công trình, núi đồi xa)
-      - Bầu trời (Sky Plane):   Z = 3000 trở lên    (gần như cố định)
-
-🚀 CÁC LỆNH CLI ĐIỀU KHIỂN NHANH:
-  pnpm pxs status                       Kiểm tra kết nối và trạng thái app
-  pnpm pxs review [--view camera|3d]    Chụp ảnh review cảnh và lưu file PNG
-  pnpm pxs inspect                      Đọc toàn bộ cấu trúc dự án (JSON)
-  pnpm pxs call <tool> '<json_params>'  Gọi trực tiếp bất kỳ công cụ MCP nào
-  pnpm pxs help <tool_name>             Xem chi tiết 1 công cụ cụ thể
-  pnpm pxs disconnect                   Ngắt kết nối để giải phóng CPU/RAM
-
-📋 DANH MỤC ${Object.keys(TOOLS_CATALOG).length} CÔNG CỤ MCP KHẢ DỤNG:`)
-
-  let currentCat = ''
-  for (const [name, info] of Object.entries(TOOLS_CATALOG)) {
-    if (info.category !== currentCat) {
-      currentCat = info.category
-      console.log(`\n── ${currentCat} ─────────────────────────────`)
-    }
-    console.log(`  • ${name.padEnd(26)} : ${info.desc}`)
-  }
-
-  console.log(`
-💡 QUY TRÌNH MẪU DÀNH CHO AI TỰ ĐỘNG DỰNG CẢNH:
-  1. pnpm pxs call get_project_info
-  2. pnpm pxs call add_shot '{"name": "Cyber City", "duration": 8}'
-  3. pnpm pxs call add_image_layer '{"file_path": "assets/city/sky.png", "z": 3200}'
-  4. pnpm pxs call add_image_layer '{"file_path": "assets/city/buildings.png", "z": 1200}'
-  5. pnpm pxs call add_image_layer '{"file_path": "assets/city/street.png", "z": 400}'
-  6. pnpm pxs call build_camera_path
-  7. pnpm pxs review --view camera --out artifacts/review.png
-  8. Dùng tool "view_file" đọc file "artifacts/review.png" để kiểm tra kết quả visual.
-`)
-}
+// ------------------------------------------------------------------ app commands
 
 async function cmdStatus() {
-  try {
-    const res = await sendCommand('get_project_info')
-    const mem = await sendCommand('get_memory_stats').catch(() => null)
-    const comp = res.composition || res.project?.comp || {}
-    const shots = res.shots || res.project?.shots || []
-    const layers = res.layers || res.project?.layers || []
-    const camPos = res.camera?.position || res.evaluated?.camera?.position || []
-
-    console.log(`\n✓ [PXS CLI] Kết nối thành công tới Parallax Studio V2!`)
-    console.log(`──────────────────────────────────────────────────────`)
-    console.log(`Dự án:        ${res.name || comp.name || 'Untitled'}`)
-    console.log(`Kích thước:   ${comp.width || 1920}x${comp.height || 1080} @ ${comp.fps || 30} fps`)
-    console.log(`Thời lượng:   ${comp.duration || 0} giây`)
-    console.log(`Phân cảnh:    ${shots.length} shots`)
-    console.log(`Số Layer:     ${layers.length} layers`)
-    console.log(`Camera Pos:   [${camPos.map((v) => Math.round(v)).join(', ')}]`)
-    if (mem?.gpu) {
-      console.log(`VRAM GPU:     ${mem.gpu.texturesMB?.toFixed(0) || 0} / ${mem.gpu.budgetMB || 512} MB (${mem.gpu.loadedTextures || 0} textures)`)
-    }
-    console.log(`──────────────────────────────────────────────────────\n`)
-  } catch (err) {
-    console.error(`✗ Lỗi: ${err.message}`)
-    process.exit(1)
-  }
+  const res = await sendCommand('get_project_info')
+  const comp = res.composition || res.project?.comp || {}
+  const shots = res.shots || res.project?.shots || []
+  const layers = res.layers || res.project?.layers || []
+  console.log(`\n✓ [PXS CLI] ${t('connected')}`)
+  console.log(`  ${t('project').padEnd(12)} ${res.name || comp.name || 'Untitled'}`)
+  console.log(`  ${t('size').padEnd(12)} ${comp.width || 1920}x${comp.height || 1080} @ ${comp.fps || 30} fps`)
+  console.log(`  ${t('duration').padEnd(12)} ${comp.duration || 0}s`)
+  console.log(`  ${t('shots').padEnd(12)} ${shots.length}`)
+  console.log(`  ${t('layers').padEnd(12)} ${layers.length}\n`)
 }
 
-async function cmdInspect() {
-  try {
-    const res = await sendCommand('get_project_info')
-    console.log(JSON.stringify(res, null, 2))
-  } catch (err) {
-    console.error(`✗ Lỗi: ${err.message}`)
-    process.exit(1)
+async function cmdReview(opts) {
+  let view = 'camera'
+  let time
+  let outPath = 'artifacts/review_viewport.png'
+  for (let i = 0; i < opts.length; i++) {
+    if (opts[i] === '--view' && opts[i + 1]) view = opts[++i]
+    else if (opts[i] === '--time' && opts[i + 1]) time = parseFloat(opts[++i])
+    else if (opts[i] === '--out' && opts[i + 1]) outPath = opts[++i]
   }
+  console.log(`⏳ ${t('rendering')} (view: ${view}, time: ${time ?? t('now')})...`)
+  const res = await sendCommand('get_viewport_screenshot', { view, time, width: 960, format: 'png' })
+  if (!res?.data) throw new Error(t('noImage'))
+  const absOut = isAbsolute(outPath) ? outPath : resolve(process.cwd(), outPath)
+  mkdirSync(join(absOut, '..'), { recursive: true })
+  writeFileSync(absOut, Buffer.from(res.data, 'base64'))
+  console.log(`✓ ${t('saved')}: ${absOut} (${res.width}x${res.height}, t=${res.time?.toFixed(2)}s)\n👉 ${t('viewHint')}`)
 }
 
-async function cmdReview(args) {
+function parseParams(arg) {
+  if (!arg) return {}
   try {
-    let view = 'camera'
-    let time = undefined
-    let outPath = 'artifacts/review_viewport.png'
-
-    for (let i = 0; i < args.length; i++) {
-      if (args[i] === '--view' && args[i + 1]) view = args[++i]
-      else if (args[i] === '--time' && args[i + 1]) time = parseFloat(args[++i])
-      else if (args[i] === '--out' && args[i + 1]) outPath = args[++i]
+    if (arg.startsWith('@') || (arg.endsWith('.json') && existsSync(arg))) return JSON.parse(readFileSync(arg.replace(/^@/, ''), 'utf-8'))
+    try {
+      return JSON.parse(arg)
+    } catch {
+      return Function(`return (${arg})`)()
     }
-
-    console.log(`\n⏳ Đang render ảnh preview từ Three.js (view: ${view}, time: ${time ?? 'hiện tại'})...`)
-    const res = await sendCommand('get_viewport_screenshot', { view, time, width: 960, format: 'png' })
-
-    if (!res || !res.data) {
-      throw new Error('Không nhận được dữ liệu ảnh render từ engine.')
-    }
-
-    const absOut = isAbsolute(outPath) ? outPath : resolve(process.cwd(), outPath)
-    mkdirSync(join(absOut, '..'), { recursive: true })
-    const buf = Buffer.from(res.data, 'base64')
-    writeFileSync(absOut, buf)
-
-    console.log(`✓ Đã xuất ảnh review thành công!`)
-    console.log(`  File:      ${absOut}`)
-    console.log(`  Kích thước: ${res.width}x${res.height} px`)
-    console.log(`  Thời điểm:  ${res.time?.toFixed(2)}s`)
-    console.log(`👉 AI Agent có thể dùng công cụ "view_file" trên đường dẫn trên để xem trực quan giao diện!\n`)
-  } catch (err) {
-    console.error(`✗ Lỗi khi review: ${err.message}`)
-    process.exit(1)
+  } catch (e) {
+    return fail(`${t('badJson')}: ${e.message}`)
   }
 }
 
 async function cmdCall(method, paramsArg) {
-  if (!method) {
-    console.error('Thiếu tên phương thức! Ví dụ: pnpm pxs call get_project_info')
-    process.exit(1)
+  if (!method) fail(t('missingMethod'))
+  const params = parseParams(paramsArg)
+  const tool = findTool(method)
+  if (tool) {
+    const check = z.object(buildShape(tool, lang)).safeParse(params)
+    if (!check.success) fail(`${t('badParams')} "${method}":\n${check.error.issues.map((i) => `  • ${i.path.join('.') || '(root)'}: ${i.message}`).join('\n')}`)
+    if (tool.local) return cmdGuide(params.topic)
   }
-  let params = {}
-  if (paramsArg) {
-    try {
-      if (paramsArg.startsWith('@') || (paramsArg.endsWith('.json') && existsSync(paramsArg))) {
-        const filePath = paramsArg.startsWith('@') ? paramsArg.slice(1) : paramsArg
-        params = JSON.parse(readFileSync(filePath, 'utf-8'))
-      } else {
-        try {
-          params = JSON.parse(paramsArg)
-        } catch {
-          params = Function(`return (${paramsArg})`)()
-        }
-      }
-    } catch (e) {
-      console.error(`Lỗi định dạng JSON params: ${e.message}`)
-      process.exit(1)
-    }
-  }
-
-  try {
-    console.log(`⏳ Đang gọi "${method}"...`)
-    const res = await sendCommand(method, params)
-    console.log(`✓ Kết quả:`)
-    console.log(JSON.stringify(res, null, 2))
-  } catch (err) {
-    console.error(`✗ Lỗi thực thi "${method}": ${err.message}`)
-    process.exit(1)
-  }
+  console.log(`⏳ ${t('calling')} "${method}"...`)
+  const res = await sendCommand(method, absPaths(params))
+  console.log(`✓ ${t('result')}:\n${JSON.stringify(res, null, 2)}`)
 }
 
-// ------------------------------------------------------------------ Main Entrypoint
-async function main() {
-  const args = process.argv.slice(2)
-  const action = args[0] || '--help'
+// ------------------------------------------------------------------ main
 
+async function main() {
+  const [action = '--help', ...rest] = args
   switch (action) {
     case 'help':
     case '--help':
     case '-h':
-      await cmdHelp(args[1])
-      break
+      return cmdHelp(rest[0])
+    case 'guide':
+      return cmdGuide(rest[0])
     case 'status':
-      await cmdStatus()
-      break
+      return cmdStatus()
     case 'inspect':
-      await cmdInspect()
-      break
+      return console.log(JSON.stringify(await sendCommand('get_project_info'), null, 2))
     case 'review':
     case 'screenshot':
-      await cmdReview(args.slice(1))
-      break
+      return cmdReview(rest)
     case 'call':
-      await cmdCall(args[1], args[2])
-      break
+      return cmdCall(rest[0], rest[1])
     default:
-      console.log(`Lệnh không hợp lệ: "${action}". Chạy "pnpm pxs --help" để xem danh sách lệnh.`)
-      break
+      console.log(`${t('invalid')}: "${action}". ${t('seeHelp')}`)
   }
 }
 
-main().catch((err) => {
-  console.error('Fatal CLI Error:', err)
-  process.exit(1)
-})
+main().catch((err) => fail(`${t('error')}: ${err.message}`))

@@ -9,6 +9,8 @@ import {
   IconRefresh,
   IconX
 } from './icons'
+import { McpAiGuideCard } from './mcp/McpAiGuideCard'
+import { MCP_TOOL_COUNT } from './mcp/aiGuide'
 
 type IdeTarget = 'antigravity' | 'cursor' | 'claude'
 
@@ -89,7 +91,7 @@ export function McpDialog() {
     antigravity: {
       title: 'Google Antigravity',
       file: '.agents/mcp_config.json',
-      note: 'Dự án đã có sẵn file này tại thư mục gốc. Antigravity tự động kết nối và nhận 42 tools ngay khi mở workspace.',
+      note: `Dự án đã có sẵn file này tại thư mục gốc. Antigravity tự động kết nối và nhận ${MCP_TOOL_COUNT} tools ngay khi mở workspace.`,
       json: JSON.stringify(
         {
           mcpServers: {
@@ -139,24 +141,10 @@ export function McpDialog() {
     }
   }
 
-  const aiPromptInstructions = `Bạn đang kết nối với Parallax Studio V2 qua MCP server.
-Nguyên lý không gian 2.5D:
-- Trục X: Ngang (sang phải là dương)
-- Trục Y: Đứng (lên trên là dương)
-- Trục Z: Độ sâu (càng xa camera giá trị Z càng lớn):
-  + Tiền cảnh (Foreground): Z = -300 đến 0
-  + Tiêu điểm (Focus plane): Z = 0
-  + Trung cảnh (Midground): Z = 300 đến 800
-  + Hậu cảnh (Background): Z = 1000 đến 2500
-  + Bầu trời / Vòm xa (Sky): Z = 3000 trở lên
-
-Quy trình dựng video cơ bản:
-1. Gọi get_project_info để xem kích thước composition và các cảnh hiện có.
-2. Gọi add_shot để thêm phân cảnh mới.
-3. Gọi add_image_layer / add_text_layer / add_particles để sắp xếp các layer theo chiều sâu Z.
-4. Gọi build_camera_path để tự động sinh đường bay camera mượt mà nối các cảnh.
-5. Gọi get_viewport_screenshot (view: "camera" hoặc "3d") để kiểm tra hình ảnh trực quan.
-6. Gọi export_video để render ra video MP4 hoàn chỉnh.`
+  const showMessage = (msg: string) => {
+    setActionMsg(msg)
+    setTimeout(() => setActionMsg(null), 4000)
+  }
 
   const isConnected = status && status.clients > 0
   const isListening = status && status.listening
@@ -253,7 +241,7 @@ Quy trình dựng video cơ bản:
                   onClick={handleDisconnectAll}
                   disabled={!status || status.clients === 0}
                   title="Ngắt kết nối tức thì tất cả AI client để giảm tải CPU và bộ nhớ RAM"
-                  style={{ color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.4)' }}
+                  style={{ color: 'var(--danger)', borderColor: 'color-mix(in srgb, var(--danger) 40%, transparent)' }}
                 >
                   Ngắt kết nối ({status?.clients ?? 0})
                 </button>
@@ -262,7 +250,7 @@ Quy trình dựng video cơ bản:
                   className="btn sm"
                   onClick={handleToggleServer}
                   title={isListening ? 'Tắt server MCP để giải phóng socket TCP' : 'Bật lại server MCP'}
-                  style={isListening ? {} : { background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)' }}
+                  style={isListening ? {} : { background: 'var(--accent)', color: 'var(--on-accent)', borderColor: 'var(--accent)' }}
                 >
                   {isListening ? '⏸ Tạm dừng Server' : '▶ Bật Server MCP'}
                 </button>
@@ -328,7 +316,7 @@ Quy trình dựng video cơ bản:
                     padding: '3px 8px',
                     borderRadius: 4,
                     background: ideTab === 'antigravity' ? 'var(--accent)' : 'transparent',
-                    color: ideTab === 'antigravity' ? '#fff' : 'var(--text-dim)',
+                    color: ideTab === 'antigravity' ? 'var(--on-accent)' : 'var(--text-dim)',
                     fontWeight: ideTab === 'antigravity' ? 600 : 400
                   }}
                 >
@@ -343,7 +331,7 @@ Quy trình dựng video cơ bản:
                     padding: '3px 8px',
                     borderRadius: 4,
                     background: ideTab === 'cursor' ? 'var(--accent)' : 'transparent',
-                    color: ideTab === 'cursor' ? '#fff' : 'var(--text-dim)',
+                    color: ideTab === 'cursor' ? 'var(--on-accent)' : 'var(--text-dim)',
                     fontWeight: ideTab === 'cursor' ? 600 : 400
                   }}
                 >
@@ -358,7 +346,7 @@ Quy trình dựng video cơ bản:
                     padding: '3px 8px',
                     borderRadius: 4,
                     background: ideTab === 'claude' ? 'var(--accent)' : 'transparent',
-                    color: ideTab === 'claude' ? '#fff' : 'var(--text-dim)',
+                    color: ideTab === 'claude' ? 'var(--on-accent)' : 'var(--text-dim)',
                     fontWeight: ideTab === 'claude' ? 600 : 400
                   }}
                 >
@@ -441,58 +429,13 @@ Quy trình dựng video cơ bản:
             </div>
           </div>
 
-          {/* AI Agent Cheatsheet & Prompt Guide */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
-              <span style={{ fontWeight: 600, fontSize: '12px', color: 'var(--text)' }}>
-                📖 Hướng dẫn & Quy ước không gian 2.5D cho AI Agent
-              </span>
-              <button
-                type="button"
-                className="btn sm"
-                onClick={() => handleCopy(aiPromptInstructions, 'prompt')}
-                title="Sao chép prompt hướng dẫn AI"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
-              >
-                {copied === 'prompt' ? (
-                  <>
-                    <IconCheck width={13} height={13} style={{ color: 'var(--ok)' }} />
-                    <span style={{ fontSize: '11px', color: 'var(--ok)' }}>Đã sao chép prompt</span>
-                  </>
-                ) : (
-                  <>
-                    <IconCopy width={13} height={13} />
-                    <span style={{ fontSize: '11px' }}>Sao chép Prompt hướng dẫn AI</span>
-                  </>
-                )}
-              </button>
-            </div>
-            <div
-              style={{
-                background: 'var(--bg-0)',
-                border: '1px solid var(--line)',
-                borderRadius: 'var(--radius)',
-                padding: '10px 12px',
-                fontSize: '11px',
-                lineHeight: 1.5,
-                color: 'var(--text-dim)',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                fontFamily: 'var(--mono)',
-                maxHeight: 140,
-                overflowY: 'auto',
-                overflowX: 'hidden',
-                boxSizing: 'border-box'
-              }}
-            >
-              {aiPromptInstructions}
-            </div>
-          </div>
+          {/* AI docs language toggle (EN default) + guide in that language */}
+          <McpAiGuideCard status={status} onStatus={setStatus} onMessage={showMessage} />
         </div>
 
         <div className="modal-foot" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
-            42 MCP Tools khả dụng · Giao thức JSON-RPC qua TCP 127.0.0.1:9877 · Hỗ trợ CLI Controller (<code>pnpm pxs</code>)
+            {MCP_TOOL_COUNT} MCP Tools khả dụng · Giao thức JSON-RPC qua TCP 127.0.0.1:9877 · Hỗ trợ CLI Controller (<code>pnpm pxs</code>)
           </span>
           <button type="button" className="btn" onClick={close}>
             Đóng

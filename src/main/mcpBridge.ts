@@ -4,7 +4,7 @@ import { randomBytes, timingSafeEqual } from 'crypto'
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { readFile, stat } from 'fs/promises'
 import { join, basename, extname, dirname } from 'path'
-import type { McpCommand, McpResponse, McpStatus, PickedFile } from '@shared/ipc'
+import type { McpCommand, McpDocsLang, McpResponse, McpStatus, PickedFile } from '@shared/ipc'
 
 /**
  * Local control bridge for AI agents (Blender-MCP style).
@@ -81,8 +81,10 @@ export class McpBridge {
       lastMethod: null,
       lastAt: null,
       configPath: join(app.getPath('userData'), 'mcp.json'),
-      serverScriptPath: serverScript.replace(/\\/g, '/')
+      serverScriptPath: serverScript.replace(/\\/g, '/'),
+      docsLang: 'en'
     }
+    this.status.docsLang = this.loadDocsLang()
 
     ipcMain.on('mcp:ready', () => {
       this.rendererReady = true
@@ -105,6 +107,7 @@ export class McpBridge {
     ipcMain.handle('mcp:toggleListening', (_e, enable?: boolean) => {
       return this.toggleListening(enable)
     })
+    ipcMain.handle('mcp:setDocsLang', (_e, lang: unknown) => this.setDocsLang(lang))
   }
 
   /** Call when the window (re)loads — commands queue until the renderer subscribes again. */
@@ -153,6 +156,22 @@ export class McpBridge {
     return this.status
   }
 
+  /**
+   * Language of the docs the MCP server gives AI agents (tool descriptions, guide). Written to
+   * mcp.json even while the listener is paused; running MCP servers pick it up live.
+   */
+  setDocsLang(lang: unknown): McpStatus {
+    this.status.docsLang = lang === 'vi' ? 'vi' : 'en'
+    if (!this.token) this.token = this.loadOrCreateToken()
+    try {
+      this.writeConfig()
+    } catch (e) {
+      this.status.error = `Không ghi được ${this.status.configPath}: ${String(e)}`
+    }
+    this.broadcast()
+    return this.status
+  }
+
   // ---------------------------------------------------------------- setup
 
   private loadOrCreateToken(): string {
@@ -167,9 +186,28 @@ export class McpBridge {
     return randomBytes(24).toString('hex')
   }
 
+  private loadDocsLang(): McpDocsLang {
+    try {
+      if (existsSync(this.status.configPath)) {
+        const cfg = JSON.parse(readFileSync(this.status.configPath, 'utf8'))
+        if (cfg.docsLang === 'vi') return 'vi'
+      }
+    } catch {
+      /* default */
+    }
+    return 'en'
+  }
+
   private writeConfig(): void {
     mkdirSync(dirname(this.status.configPath), { recursive: true })
-    const cfg = { host: '127.0.0.1', port: this.status.port, token: this.token, pid: process.pid, updatedAt: new Date().toISOString() }
+    const cfg = {
+      host: '127.0.0.1',
+      port: this.status.port,
+      token: this.token,
+      docsLang: this.status.docsLang,
+      pid: process.pid,
+      updatedAt: new Date().toISOString()
+    }
     writeFileSync(this.status.configPath, JSON.stringify(cfg, null, 2), { encoding: 'utf8', mode: 0o600 })
   }
 

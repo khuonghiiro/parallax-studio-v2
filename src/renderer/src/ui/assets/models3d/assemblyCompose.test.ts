@@ -18,6 +18,8 @@ const model = (faces: Face3D[], extra: Partial<Model3D> = {}): Model3D => ({
   name: 'Cửa sổ',
   category: 'decor',
   scale: 1,
+  createdAt: 0,
+  updatedAt: 0,
   faces,
   ...extra
 })

@@ -85,7 +85,19 @@ Khi sắp xếp layer hoặc camera trong Parallax Studio, AI cần nắm rõ qu
 
 ---
 
-## 4. Danh Sách 54+ Công Cụ MCP (Core Tool Reference)
+## 3b. Tài Liệu AI Song Ngữ Anh / Việt (Bilingual Docs)
+
+- **Nguồn duy nhất:** `mcp-server/catalog/` — mỗi tool khai báo cả hai ngôn ngữ cạnh nhau (`doc: L(en, vi)`, tham số `d(en, vi)`), hướng dẫn AI nằm ở `catalog/guide.json`. MCP server, CLI `pnpm pxs`, schema Antigravity và dialog MCP trong app đều đọc từ đây nên không thể lệch nhau.
+- **Công tắc trong app:** Dialog **Cấu hình MCP** → "Tài liệu AI bằng tiếng Anh (khuyến nghị)". **Mặc định BẬT = tiếng Anh** (AI gọi tool chính xác nhất); TẮT = tiếng Việt. Lựa chọn lưu vào `mcp.json` (`docsLang`).
+- **Áp dụng trực tiếp:** MCP server theo dõi `mcp.json`; khi đổi ngôn ngữ, mô tả tool và tham số được đăng ký lại và client nhận `notifications/tools/list_changed` (client cũ chỉ cần kết nối lại). Tool `get_ai_guide {topic}` luôn trả về hướng dẫn theo ngôn ngữ hiện tại.
+- **Ưu tiên:** biến môi trường `PARALLAX_MCP_LANG=en|vi` > `docsLang` trong `mcp.json` > `en`. CLI có thêm cờ `--lang en|vi`.
+- **Đồng bộ bắt buộc:** `catalog/catalog.test.mjs` kiểm tra hai bản có cùng tool, cùng schema tham số, cùng số dòng hướng dẫn và `toolCount` khớp. Khi thêm/sửa tool: sửa spec trong `catalog/tools-*.mjs` (cả 2 ngôn ngữ), chạy `pnpm test`, rồi `pnpm mcp:schemas` để sinh lại schema Antigravity.
+
+---
+
+## 4. Danh Sách 72 Công Cụ MCP (Core Tool Reference)
+
+> Danh mục đầy đủ, chính xác từng tham số: `pnpm pxs --help` và `pnpm pxs help <tool>` (sinh từ catalog). Phần dưới đây là tóm tắt.
 
 ### 4.1. Nhóm Truy Vấn & Thống Kê (Inspection)
 - `get_project_info`: Lấy thông tin tổng thể dự án (composition, danh sách shots, layer, camera, look, asset).
@@ -94,6 +106,7 @@ Khi sắp xếp layer hoặc camera trong Parallax Studio, AI cần nắm rõ qu
 - `get_camera_info`: Đọc trạng thái vị trí, mục tiêu, FOV của camera tại thời điểm `time`.
 - `get_memory_stats`: Kiểm tra dung lượng VRAM GPU, texture pool và RAM tiến trình.
 - `get_viewport_screenshot`: Chụp ảnh preview hiện tại (view: `"camera"` hoặc `"3d"`).
+- `get_ai_guide`: Đọc hướng dẫn AI theo ngôn ngữ tài liệu đang chọn (`topic`: overview, coordinates, workflow, assembly, tips). Trả lời tại chỗ, không cần app.
 
 ### 4.2. Nhóm Dự Án & Phân Cảnh (Project & Shots)
 - `new_project`: Khởi tạo dự án mới trống.
@@ -112,7 +125,10 @@ Khi sắp xếp layer hoặc camera trong Parallax Studio, AI cần nắm rõ qu
 - `add_particles`: Thêm hiệu ứng hạt tự động (bụi lấp lánh, đom đóm, tuyết rơi).
 - `update_layer`: Cập nhật vị trí, góc xoay, độ trong suốt, chế độ hòa trộn (`blend_mode`).
 - `delete_layer`: Xóa layer.
-- `move_layer`: Thay đổi thứ tự z-index xếp chồng layer.
+- `move_layer`: Đưa layer lên/xuống trong chồng layer của shot (`direction`: `up` | `down`).
+- `split_layer`: Cắt layer thành 2 đoạn tại `time`.
+- `replace_layer_asset`: Thay ảnh nguồn, giữ nguyên transform, keyframe, hiệu ứng.
+- `apply_layer_fx` / `toggle_layer_fx` / `remove_layer_fx` / `set_layer_glow`: Preset hiệu ứng (fadeIn, shake, neon…) và viền neon theo alpha.
 
 ### 4.4. Nhóm Hoạt Ảnh & Keyframes (Animation)
 - `set_keyframe`: Đặt keyframe hoạt ảnh tại giây `time` với curve easing (`linear`, `easeInOut`, `hold`...).
@@ -120,7 +136,7 @@ Khi sắp xếp layer hoặc camera trong Parallax Studio, AI cần nắm rõ qu
 
 ### 4.5. Nhóm Camera & Đường Bay 3D (Camera Path & Flythrough)
 - `set_camera`: Đặt vị trí camera (`position`), điểm ngắm (`target`), góc nhìn (`fov`).
-- `apply_camera_preset`: Áp dụng chuyển động mẫu (`slow_push`, `pan_left`, `orbit_subtle`, `crane_up`).
+- `apply_camera_preset`: Áp dụng chuyển động mẫu (`dollyIn`, `dollyOut`, `truckLeft`, `truckRight`, `craneUp`, `craneDown`, `orbitLeft`, `orbitRight`, `zoomIn`, `dollyZoom`, `reset`).
 - `camera_fly_to_shot`: Hướng camera bay trực tiếp tới bao quát phân cảnh chỉ định.
 - `build_camera_path`: Tự động sinh đường bay Bezier mượt mà kết nối liên tục tất cả các shot.
 
@@ -146,7 +162,12 @@ Khi sắp xếp layer hoặc camera trong Parallax Studio, AI cần nắm rõ qu
 - `join_assembly_faces`: Ghép hít 2 mặt phẳng tại cạnh (tự động giãn cạnh ngắn khớp với cạnh dài nhất để triệt tiêu khe hở).
 - `auto_assembly_clip`: Tự động tính toán các mặt phẳng cắt giao nhau (ẩn phần tường/mái vượt qua nhau).
 - `set_assembly_lighting`: Thiết lập hướng nắng mặt trời, đổ bóng râm dịu và tông màu ánh sáng theo giờ.
-- `apply_assembly_template`: Áp dụng khuôn mẫu hình học 3D dựng sẵn (nhà mái chữ A, hộp, lều, tháp bát giác, kim tự tháp, bậc thang...) mà vẫn bảo toàn ảnh texture của người dùng.
+- `list_assembly_templates`: Liệt kê khuôn mẫu (nhãn Anh/Việt, số mặt, điểm neo của bộ phận trang trí), lọc theo `category`: `architecture` (khung nhà chỉ tường + mái), `decor` (cửa sổ, cửa ra vào, ống khói, cột, ban công, bồn hoa, chậu cây, đèn, biển, mái hiên, hàng rào), `props`, `nature`, `stage`.
+- `apply_assembly_template`: Áp dụng khuôn mẫu hình học dựng sẵn (khung nhà, bộ phận trang trí, hộp, lều, tháp…) mà vẫn bảo toàn ảnh texture của người dùng.
+- `append_assembly_model`: Ghép một mô hình **đã lưu** (thường là bộ phận `decor`) vào mô hình đang lắp: gắn lên mặt `face_id` tại `uv`, đặt tại điểm `at`, hoặc đặt cạnh mô hình. Tự khớp tỉ lệ, sinh id mới, ánh xạ lại `clipBy`.
+- `get_assembly_screenshot`: Chụp ảnh khung nhìn xưởng lắp ráp 3D đang mở.
+
+**Quy trình lắp ráp dạng mô-đun (nhà + bộ phận trang trí):** chọn khung `shell-*` → dựng từng bộ phận từ khuôn `decor` và `save_assembly_model {category:"decor"}` → mở lại khung, `append_assembly_model {source_model_id, face_id, uv}` cho từng bộ phận → `auto_assembly_clip` → `set_assembly_lighting` → `insert_assembly_model`. Bộ phận gắn tường có mặt lưng ở `z = 0` và nhô về phía người xem nên gắn lên tường nào cũng chìa ra ngoài.
 
 ### 4.8. Nhóm Điều Khiển Timeline & Xuất Video (Playback & Export)
 - `set_time`: Di chuyển con trỏ thời gian (playhead) tới giây `time`.
@@ -216,14 +237,22 @@ Bên cạnh giao thức MCP stdio tiêu chuẩn, Parallax Studio V2 cung cấp b
 
 ### 7.1. Lệnh Trợ Giúp & Tra Cứu Toàn Diện (`--help` / `help`)
 ```bash
-# Xem toàn bộ hướng dẫn quy ước tọa độ 2.5D, danh mục 42 công cụ và workflow mẫu:
+# Xem quy ước tọa độ 2.5D, danh mục 72 công cụ, quy trình dựng cảnh và lắp ráp 3D:
 pnpm pxs --help
+pnpm pxs --help --lang vi        # bản tiếng Việt (mặc định theo công tắc trong dialog MCP)
 
-# Tra cứu nhanh tham số và ví dụ gọi của 1 công cụ cụ thể:
+# Tra cứu tham số (kiểu, bắt buộc/tùy chọn, mô tả) và ví dụ gọi của 1 công cụ:
 pnpm pxs help add_image_layer
-pnpm pxs help set_keyframe
-pnpm pxs help export_video
+pnpm pxs help append_assembly_model
+
+# Đọc hướng dẫn AI (all | overview | coordinates | workflow | assembly | tips):
+pnpm pxs guide assembly
+
+# Sinh lại schema tool cho Antigravity (~/.gemini/antigravity-ide/mcp/parallax-studio):
+pnpm mcp:schemas
 ```
+
+`pnpm pxs call` kiểm tra tham số theo schema thật của tool trước khi gửi lệnh tới app.
 
 ### 7.2. Kiểm Tra Trạng Thái Ứng Dụng Realtime (`status`)
 ```bash
@@ -251,17 +280,22 @@ pnpm pxs review --view 3d --time 3.5 --out artifacts/preview_3d.png
 AI Agent hoặc lập trình viên có thể bắn trực tiếp các thao tác tạo/sửa layer, shot, keyframe theo thời gian thực như người dùng thao tác trên giao diện:
 ```bash
 # Thêm layer ảnh vào hậu cảnh Z = 1500
-pnpm pxs call add_image_layer '{"file_path": "assets/city/sky.png", "z": 1500, "name": "Sky"}'
+pnpm pxs call add_image_layer '{"file_path": "D:/images/sky.png", "z": 1500, "name": "Sky"}'
 
 # Di chuyển layer sang tọa độ mới
-pnpm pxs call move_layer '{"layer_id": "layer-1", "x": 100, "y": 50, "z": 800}'
+pnpm pxs call update_layer '{"layer_id": "layer-1", "position": [100, 50, 800]}'
 
-# Bật hiệu ứng hạt mưa
-pnpm pxs call add_particles '{"preset": "rain", "density": 100}'
+# Thêm tuyết rơi
+pnpm pxs call add_particles '{"count": 400, "velocity": [0, -40, 0], "twinkle": true}'
+
+# Gắn cửa sổ đã lưu lên tường trước của khung nhà đang mở trong xưởng
+pnpm pxs call append_assembly_model '{"source_model_id": "model-window-1", "face_id": "face-front", "uv": [0.25, 0.55]}'
 
 # Chạy timeline xem thử
 pnpm pxs call set_playing '{"playing": true}'
 ```
+
+> Trên Windows PowerShell 5, dấu nháy kép trong JSON có thể bị bỏ khi truyền cho chương trình ngoài — dùng file: `pnpm pxs call add_shot @params.json`.
 
 
 ### Layer transform gizmos

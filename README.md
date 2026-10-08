@@ -55,6 +55,7 @@ AI client ──stdio/MCP──> mcp-server/index.mjs ──TCP 127.0.0.1 + toke
 - Mỗi lệnh phải kèm token lưu trong `%APPDATA%\parallax-studio\mcp.json`. Chỉ tài khoản Windows của bạn đọc được file này.
 - Mọi thao tác của AI đều là edit bình thường: hiện ngay trên UI và **Ctrl+Z để hoàn tác**.
 - Chip **MCP** trên toolbar cho biết trạng thái (vàng = sẵn sàng, xanh = AI đã kết nối) và nháy mỗi khi AI gửi lệnh.
+- **Tài liệu AI song ngữ:** trong dialog cấu hình MCP có công tắc "Tài liệu AI bằng tiếng Anh (khuyến nghị)" — mặc định bật (tiếng Anh), tắt để AI đọc bản tiếng Việt. Hai bản sinh từ cùng một catalog (`mcp-server/catalog/`) nên luôn khớp nhau; client đang kết nối được cập nhật trực tiếp. Chi tiết: [mcp-server/README.md](mcp-server/README.md).
 
 ### Cấu hình cho Antigravity
 
@@ -96,21 +97,23 @@ Thêm vào `mcp_config.json` của Antigravity (Settings → MCP), sửa đườ
 
 Claude Desktop, Cursor và các client MCP khác dùng cùng cấu hình `command` / `args` như trên. **Hãy mở app trước**, rồi mới để AI gọi tool.
 
-### Các tool (60+)
+### Các tool (72)
 
 | Nhóm | Tool |
 | --- | --- |
-| Xem | `get_project_info`, `get_shot_info`, `get_layer_info`, `get_camera_info`, `get_memory_stats`, `get_viewport_screenshot` (view `camera` hoặc `3d`) |
-| Dự án | `new_project`, `set_composition`, `save_project`, `open_project`, `undo`, `redo` |
+| Xem | `get_project_info`, `get_shot_info`, `get_layer_info`, `get_camera_info`, `get_memory_stats`, `get_viewport_screenshot` (view `camera` hoặc `3d`), `get_ai_guide`, `list_commands` |
+| Dự án | `new_project`, `set_composition`, `save_project`, `open_project`, `import_project_json`, `export_project_json`, `import_shot_json`, `export_shot_json`, `undo`, `redo` |
 | Cảnh | `add_shot`, `update_shot`, `delete_shot` |
 | Layer | `add_image_layer` (file_path / base64 / repeat), `add_text_layer`, `add_solid_layer`, `add_ground_layer` (sàn 3D), `add_particles`, `update_layer`, `delete_layer`, `move_layer`, `split_layer`, `apply_layer_fx`, `toggle_layer_fx`, `remove_layer_fx`, `set_layer_glow`, `replace_layer_asset` |
 | Âm thanh | `set_audio`, `get_audio_info`, `add_audio_track`, `update_audio_track`, `delete_audio_track`, `duplicate_audio_track`, `split_audio_track`, `merge_audio_tracks` |
-| Xưởng 3D | `list_models3d`, `get_model3d`, `get_assembly_state`, `save_assembly_model`, `insert_assembly_model`, `add_assembly_face`, `update_assembly_face`, `delete_assembly_face`, `join_assembly_faces`, `auto_assembly_clip`, `set_assembly_lighting`, `apply_assembly_template` |
+| Xưởng 3D | `list_models3d`, `get_model3d`, `get_assembly_state`, `list_assembly_templates`, `apply_assembly_template`, `append_assembly_model`, `save_assembly_model`, `insert_assembly_model`, `add_assembly_face`, `update_assembly_face`, `delete_assembly_face`, `join_assembly_faces`, `auto_assembly_clip`, `set_assembly_lighting`, `get_assembly_screenshot` |
 | Keyframe | `set_keyframe`, `remove_keyframe`, `clear_keyframes` |
 | Camera | `set_camera`, `apply_camera_preset`, `camera_fly_to_shot`, `build_camera_path` |
 | Khác | `set_look`, `set_time`, `set_playing`, `select`, `set_view`, `export_video`, `execute_script` |
 
 Ví dụ prompt cho AI: *"Tạo 3 cảnh: rừng đêm, biển lúc bình minh, thành phố neon. Mỗi cảnh có 4–5 layer ở các độ sâu khác nhau và một tiêu đề. Camera bay vòng cung giữa các cảnh, mỗi cảnh dừng 3 giây. Chụp 3D view cho tôi xem, rồi xuất MP4 1080p ra D:/Videos/demo.mp4."*
+
+**Lắp ráp 3D dạng mô-đun:** khung nhà (`shell-*`, chỉ tường + mái) và các bộ phận trang trí (`decor`: cửa sổ, cửa ra vào, ống khói, cột, ban công, bồn hoa, chậu cây, đèn, biển, mái hiên, hàng rào) được dựng riêng, lưu thành asset 3D, rồi ghép lên khung bằng panel "Ghép mô hình đã lưu" trong xưởng hoặc tool `append_assembly_model`.
 
 ### Kiểm thử
 
