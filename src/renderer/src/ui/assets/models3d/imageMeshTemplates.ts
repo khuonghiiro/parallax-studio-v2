@@ -54,45 +54,214 @@ const grassClumpVariants: ImageMeshVariant[] = [
   { id: 'wide', label: 'Bụi rậm / cong rủ', en: 'Dense / wide drooping bush', scale: [1.25, 0.85, 1.25], bend: 1.35 }
 ]
 
+/** Viền mesh cánh hoa loa kèn chuẩn: gốc thon hẹp, phình đều qua họng kèn, đỉnh xòe nhọn */
+const TRUMPET_PETAL_POLYGON: Array<[number, number]> = [
+  [0.44, 0.0],
+  [0.56, 0.0],
+  [0.68, 0.2],
+  [0.82, 0.45],
+  [0.92, 0.72],
+  [0.86, 0.90],
+  [0.68, 0.98],
+  [0.50, 1.0],
+  [0.32, 0.98],
+  [0.14, 0.90],
+  [0.08, 0.72],
+  [0.18, 0.45],
+  [0.32, 0.2]
+]
+
+/** Viền mesh chùm nhụy hoa loa kèn: các cuống mảnh xòe ra các đầu bao phấn nhụy hạt */
+const TRUMPET_STAMEN_POLYGON: Array<[number, number]> = [
+  [0.42, 0.0],
+  [0.58, 0.0],
+  [0.62, 0.45],
+  [0.85, 0.75],
+  [0.88, 0.94],
+  [0.72, 1.0],
+  [0.56, 0.84],
+  [0.50, 1.0],
+  [0.44, 0.84],
+  [0.28, 1.0],
+  [0.12, 0.94],
+  [0.15, 0.75],
+  [0.38, 0.45]
+]
+
+/** Viền mesh cánh hoa thông thường: bầu tròn mềm mại, thon gốc */
+const FLOWER_PETAL_POLYGON: Array<[number, number]> = [
+  [0.44, 0.0],
+  [0.56, 0.0],
+  [0.74, 0.22],
+  [0.90, 0.55],
+  [0.85, 0.85],
+  [0.66, 0.98],
+  [0.50, 1.0],
+  [0.34, 0.98],
+  [0.15, 0.85],
+  [0.10, 0.55],
+  [0.26, 0.22]
+]
+
+/** Viền mesh nhụy hoa tròn: đĩa tròn 16 cạnh đều */
+const FLOWER_CENTER_POLYGON: Array<[number, number]> = Array.from({ length: 16 }, (_, i) => {
+  const rad = (i * 2 * Math.PI) / 16
+  return [
+    Math.round((0.5 + 0.46 * Math.cos(rad)) * 1000) / 1000,
+    Math.round((0.5 + 0.46 * Math.sin(rad)) * 1000) / 1000
+  ]
+})
+
+/** Viền mesh lá cỏ: gốc thẳng, phiến lá vuốt nhọn dần lên đỉnh */
+const GRASS_BLADE_POLYGON: Array<[number, number]> = [
+  [0.42, 0.0],
+  [0.58, 0.0],
+  [0.68, 0.25],
+  [0.64, 0.65],
+  [0.50, 1.0],
+  [0.36, 0.65],
+  [0.32, 0.25]
+]
+
+/** Viền mesh phiến lá: thuôn bầu dục, nhọn đỉnh, thon cuống */
+const LEAF_POLYGON: Array<[number, number]> = [
+  [0.46, 0.0],
+  [0.54, 0.0],
+  [0.76, 0.25],
+  [0.92, 0.55],
+  [0.82, 0.82],
+  [0.50, 1.0],
+  [0.18, 0.82],
+  [0.08, 0.55],
+  [0.24, 0.25]
+]
+
+/** Viền mesh thân cây / cành hoa thẳng */
+const STEM_POLYGON: Array<[number, number]> = [
+  [0.40, 0.0],
+  [0.60, 0.0],
+  [0.60, 1.0],
+  [0.40, 1.0]
+]
+
 function flowerFaces(): TemplateFaceSpec[] {
   const petals = Array.from({ length: 6 }, (_, i) => {
     const a = (i * Math.PI) / 3
     return mesh(face(`Cánh ${i + 1}`, 160, 240,
       [Math.sin(a) * 120, 150 + Math.cos(a) * 120, 0], FRONT,
-      [Math.sin(a), Math.cos(a), 0], { bendY: 24, bendRegion: 'top' }), 'petal', 'ridge', 8)
+      [Math.sin(a), Math.cos(a), 0], {
+        bendY: 24,
+        bendRegion: 'top',
+        silhouettePolygon: FLOWER_PETAL_POLYGON
+      }), 'petal', 'ridge', 8)
   })
-  return [mesh(face('Thân', 40, 400, [0, -50, 12], FRONT), 'stem'), ...petals,
-    mesh(face('Nhụy', 100, 100, [0, 150, -12], FRONT), 'center', 'sphere', 18)]
+  return [
+    mesh(face('Thân', 40, 400, [0, -50, 12], FRONT, undefined, {
+      silhouettePolygon: STEM_POLYGON
+    }), 'stem'),
+    ...petals,
+    mesh(face('Nhụy', 100, 100, [0, 150, -12], FRONT, undefined, {
+      silhouettePolygon: FLOWER_CENTER_POLYGON
+    }), 'center', 'sphere', 18)
+  ]
 }
 
 function trumpetFlowerFaces(): TemplateFaceSpec[] {
+  // Trục phễu hoa loa kèn nghiêng 20° ngước lên và hướng về phía trước (-Z)
+  const tiltDeg = 20
+  const tiltRad = (tiltDeg * Math.PI) / 180
+  const cosT = Math.cos(tiltRad) // ~0.9397
+  const sinT = Math.sin(tiltRad) // ~0.3420
+
+  const axis: [number, number, number] = [0, sinT, -cosT]
+  const yCross: [number, number, number] = [0, cosT, sinT]
+
+  const funnelLength = 260
+  const baseP: [number, number, number] = [0, 45, 80]
+  const midP: [number, number, number] = [
+    baseP[0] + axis[0] * (funnelLength * 0.5),
+    baseP[1] + axis[1] * (funnelLength * 0.5),
+    baseP[2] + axis[2] * (funnelLength * 0.5)
+  ]
+
+  const midRadius = 45
+  const coneAngleRad = Math.atan2(72 - 18, funnelLength) // ~11.7°
+  const cosCone = Math.cos(coneAngleRad) // ~0.979
+  const sinCone = Math.sin(coneAngleRad) // ~0.203
+
   const petals = Array.from({ length: 6 }, (_, i) => {
     const a = (i * Math.PI) / 3
     const deg = i * 60
-    const rMid = 85
-    const sinA = Math.sin(a)
     const cosA = Math.cos(a)
-    const up: [number, number, number] = [sinA * 0.42, 0.72 + cosA * 0.32, -0.55 + cosA * 0.28]
-    const upLen = Math.hypot(up[0], up[1], up[2])
-    const normUp: [number, number, number] = [up[0] / upLen, up[1] / upLen, up[2] / upLen]
-    const n: [number, number, number] = [sinA * 0.85, cosA * 0.65, -0.45]
-    const nLen = Math.hypot(n[0], n[1], n[2])
-    const normN: [number, number, number] = [n[0] / nLen, n[1] / nLen, n[2] / nLen]
-    const c: [number, number, number] = [sinA * rMid, 160 + cosA * (rMid * 0.65), 10 + cosA * (rMid * 0.65)]
-    return mesh(face(`Cánh kèn ${i + 1} (${deg}°)`, 130, 260, c, normN, normUp, {
-      bendX: 42,
-      bendY: -36,
-      bendRegion: 'top'
-    }), 'petal', 'ridge', 12)
+    const sinA = Math.sin(a)
+
+    // Hướng bán kính trong mặt phẳng thiết diện phễu
+    const rad: [number, number, number] = [
+      cosA,
+      sinA * yCross[1],
+      sinA * yCross[2]
+    ]
+
+    // Pháp tuyến n hướng ra ngoài mặt nón
+    const n: [number, number, number] = [
+      rad[0] * cosCone - axis[0] * sinCone,
+      rad[1] * cosCone - axis[1] * sinCone,
+      rad[2] * cosCone - axis[2] * sinCone
+    ]
+
+    // Vector up hướng dọc cánh từ cuống hoa đến miệng phễu
+    const up: [number, number, number] = [
+      axis[0] * cosCone + rad[0] * sinCone,
+      axis[1] * cosCone + rad[1] * sinCone,
+      axis[2] * cosCone + rad[2] * sinCone
+    ]
+
+    // Tâm cánh nằm trên mặt nón tại độ cao trung điểm
+    const c: [number, number, number] = [
+      midP[0] + rad[0] * midRadius,
+      midP[1] + rad[1] * midRadius,
+      midP[2] + rad[2] * midRadius
+    ]
+
+    return mesh(
+      face(`Cánh kèn ${i + 1} (${deg}°)`, 130, funnelLength, c, n, up, {
+        bendX: 42,
+        bendY: -36,
+        bendRegion: 'top',
+        silhouettePolygon: TRUMPET_PETAL_POLYGON
+      }),
+      'petal',
+      'ridge',
+      12
+    )
   })
-  return [
-    mesh(face('Thân cành', 40, 400, [0, -90, 80], FRONT), 'stem'),
-    ...petals,
-    mesh(face('Nhụy hoa kèn', 80, 160, [0, 160, -10], FRONT, [0, 0.85, -0.52], {
-      bendY: 18,
-      bendRegion: 'top'
-    }), 'stamen', 'ridge', 14)
+
+  // Nhị hoa vươn từ sâu trong họng kèn ra miệng hoa
+  const stamenC: [number, number, number] = [
+    baseP[0] + axis[0] * 105,
+    baseP[1] + axis[1] * 105,
+    baseP[2] + axis[2] * 105
   ]
+  const stamen = mesh(
+    face('Nhụy hoa kèn', 100, 200, stamenC, yCross, axis, {
+      bendY: 18,
+      bendRegion: 'top',
+      silhouettePolygon: TRUMPET_STAMEN_POLYGON
+    }),
+    'stamen',
+    'ridge',
+    14
+  )
+
+  // Thân cành nối từ dưới lên khớp với đáy cuống hoa tại baseP
+  const stem = mesh(
+    face('Thân cành', 40, 400, [0, -120, 95], FRONT, [0, 0.98, -0.2], {
+      silhouettePolygon: STEM_POLYGON
+    }),
+    'stem'
+  )
+
+  return [stem, ...petals, stamen]
 }
 
 interface GrassBladeSpec {
@@ -154,7 +323,8 @@ function radialGrassFaces(): TemplateFaceSpec[] {
     return mesh(face(b.name, b.w, b.h, c, n, up, {
       bendX: b.bendX,
       bendY: b.bendY,
-      bendRegion: 'top'
+      bendRegion: 'top',
+      silhouettePolygon: GRASS_BLADE_POLYGON
     }), 'blade', 'ridge', 12)
   })
 }
@@ -170,7 +340,10 @@ export const IMAGE_MESH_TEMPLATES: AssemblyTemplate[] = [
     hint: 'Một ảnh lá → lưới bám viền alpha, gân nổi và mặt lá uốn cong',
     en: { label: 'Image mesh · Leaf', hint: 'One leaf image → alpha contour mesh, raised midrib and curved blade' },
     imageRecipe: { slots: [leafSlot], variants },
-    faces: () => [mesh(face('Phiến lá', 240, 480, [0, 0, 0], FRONT, undefined, { bendY: 22 }), 'leaf', 'ridge', 12)]
+    faces: () => [mesh(face('Phiến lá', 240, 480, [0, 0, 0], FRONT, undefined, {
+      bendY: 22,
+      silhouettePolygon: LEAF_POLYGON
+    }), 'leaf', 'ridge', 12)]
   },
   {
     id: 'mesh-flower', label: 'Mesh ảnh · Bông hoa', category: 'nature',
@@ -198,7 +371,11 @@ export const IMAGE_MESH_TEMPLATES: AssemblyTemplate[] = [
       slot('soil', 'Mặt đất', 'Soil surface', [1, 1], 'Top-down square soil patch filling entire canvas, no pot rim or plant.', 'Đất nhìn từ trên, kín ảnh vuông; không vẽ lại vành chậu hoặc cây.'), leafSlot
     ], variants },
     faces: () => [...potFaces(), mesh(face('Đất', 250, 250, [0, 108, 130], UP, AWAY), 'soil'),
-      ...Array.from({ length: 4 }, (_, i) => mesh({ ...aroundY(`Lá ${i + 1}`, 120, 240, i * 90, [0, 230, 130]), bendY: 28 }, 'leaf', 'ridge', 10))]
+      ...Array.from({ length: 4 }, (_, i) => mesh({
+        ...aroundY(`Lá ${i + 1}`, 120, 240, i * 90, [0, 230, 130]),
+        bendY: 28,
+        silhouettePolygon: LEAF_POLYGON
+      }, 'leaf', 'ridge', 10))]
   },
   {
     id: 'mesh-highrise', label: 'Mesh ảnh · Nhà cao tầng', category: 'architecture',

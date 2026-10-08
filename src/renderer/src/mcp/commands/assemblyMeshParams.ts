@@ -32,5 +32,15 @@ export function assemblyMeshPatch(p: Params): Partial<Face3D> {
     if (!['all', 'bottom', 'top', 'left', 'right', 'curl'].includes(value ?? '')) throw new ParamError('Invalid bend_region')
     patch.bendRegion = value as Face3D['bendRegion']
   }
+  if (has(p, 'silhouette_polygon')) {
+    const raw = p['silhouette_polygon']
+    if (!Array.isArray(raw)) throw new ParamError('silhouette_polygon must be an array of [u, v] points')
+    for (const pt of raw) {
+      if (!Array.isArray(pt) || pt.length < 2 || typeof pt[0] !== 'number' || typeof pt[1] !== 'number') {
+        throw new ParamError('Each point in silhouette_polygon must be [u, v] numbers')
+      }
+    }
+    patch.silhouettePolygon = raw as number[][]
+  }
   return patch
 }

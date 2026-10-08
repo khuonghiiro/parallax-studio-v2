@@ -263,6 +263,33 @@ export function silhouetteFromBoolGrid(grid: boolean[][], cols: number, rows: nu
 }
 
 /**
+ * Tạo Silhouette trực tiếp từ đa giác khép kín (viền mesh cấu hình sẵn).
+ * Tọa độ các điểm có thể ở không gian UV (u sang phải 0..1, v hướng lên 0..1) hoặc image space (x sang phải 0..1, y hướng xuống 0..1).
+ * Loop tự động được chuẩn hóa, giới hạn trong [-EDGE_EPS, 1 + EDGE_EPS] và đảm bảo diện tích dương (clockwise với y hướng xuống).
+ */
+export function silhouetteFromPolygon(polygon: Pt[] | number[][], space: 'uv' | 'image' = 'uv'): Silhouette {
+  if (!polygon || polygon.length < 3) return { loops: [] }
+  const clamp = (v: number): number => Math.max(-EDGE_EPS, Math.min(1 + EDGE_EPS, v))
+  let pts: Pt[] = polygon.map(([x, y]) => {
+    const ix = clamp(x)
+    const iy = clamp(space === 'uv' ? 1 - y : y)
+    return [ix, iy] as Pt
+  })
+  pts = pts.filter((p, i, arr) => {
+    const q = arr[(i + arr.length - 1) % arr.length]
+    return Math.hypot(p[0] - q[0], p[1] - q[1]) > 1e-5
+  })
+  if (pts.length < 3) return { loops: [] }
+  let area = signedArea(pts)
+  if (Math.abs(area) < 1e-6) return { loops: [] }
+  if (area < 0) {
+    pts.reverse()
+    area = -area
+  }
+  return { loops: [{ points: pts, area, parent: -1 }] }
+}
+
+/**
  * Silhouette of an image (cached per image element). Returns null when the pixels cannot
  * be read (image not decoded yet, no 2D canvas, tainted canvas…).
  */

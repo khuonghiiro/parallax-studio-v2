@@ -5,6 +5,7 @@ import {
   silhouetteBounds,
   silhouetteFromBoolGrid,
   silhouetteFromMask,
+  silhouetteFromPolygon,
   simplifyClosed,
   traceMaskLoops,
   type Pt
@@ -67,5 +68,32 @@ describe('silhouette', () => {
     expect(v0).toBeCloseTo(0, 1)
     expect(v1).toBeCloseTo(0.5, 1)
     expect(silhouetteBounds(null)).toEqual([0, 0, 1, 1])
+  })
+
+  it('builds a valid clockwise silhouette from a closed UV polygon', () => {
+    // Petal UV polygon: narrow base, wide center, sharp tip
+    const petalUV: Pt[] = [
+      [0.45, 0.0],
+      [0.55, 0.0],
+      [0.85, 0.5],
+      [0.50, 1.0],
+      [0.15, 0.5]
+    ]
+    const sil = silhouetteFromPolygon(petalUV, 'uv')
+    expect(sil.loops).toHaveLength(1)
+    const loop = sil.loops[0]
+    expect(loop.area).toBeGreaterThan(0) // outer loop has positive signed area
+    expect(loop.parent).toBe(-1)
+    expect(loop.points.length).toBe(5)
+    // In image space, v=1 becomes y=0 (top)
+    const topPt = loop.points.find((p) => Math.abs(p[0] - 0.5) < 1e-4 && Math.abs(p[1] - 0.0) < 1e-4)
+    expect(topPt).toBeDefined()
+  })
+
+  it('returns empty loops for invalid or degenerate polygon inputs', () => {
+    expect(silhouetteFromPolygon([]).loops).toHaveLength(0)
+    expect(silhouetteFromPolygon([[0, 0], [1, 1]]).loops).toHaveLength(0)
+    // Collinear points with zero area
+    expect(silhouetteFromPolygon([[0, 0], [0.5, 0.5], [1, 1]]).loops).toHaveLength(0)
   })
 })

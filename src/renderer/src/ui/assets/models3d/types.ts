@@ -71,6 +71,12 @@ export interface Face3D {
    * của mặt cắt (VD tường nhô lên khỏi mái chéo) bị ẩn đi.
    */
   clipBy?: string[]
+  /**
+   * Đa giác viền mesh định sẵn (silhouette polygon) gồm các điểm [u, v] (0..1, v hướng lên).
+   * Khi cấu hình sẵn trên mẫu template, mesh sẽ được gọt sẵn theo hình dáng cánh hoa/lá/vật thể,
+   * và khi truyền ảnh vào, ảnh sẽ tự động ăn khớp theo viền mesh định sẵn này.
+   */
+  silhouettePolygon?: number[][]
 }
 
 export type SunPreset = 'auto' | 'morning' | 'noon' | 'sunset' | 'overcast' | 'night'

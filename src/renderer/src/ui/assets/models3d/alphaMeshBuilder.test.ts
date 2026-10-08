@@ -224,4 +224,44 @@ describe('alphaMeshBuilder - Custom Mesh Frame & Rotatable Grid', () => {
     expect(typeof zMid).toBe('number')
     expect(typeof zTip).toBe('number')
   })
+
+  it('builds pre-trimmed geometry from presetPolygon even when image is null', () => {
+    // Triangular petal polygon in UV space
+    const petalPolygon = [
+      [0.45, 0.0],
+      [0.55, 0.0],
+      [0.85, 0.5],
+      [0.50, 1.0],
+      [0.15, 0.5]
+    ]
+
+    const geo = buildAlphaTrimmedGeometry(
+      200,
+      400,
+      null, // No image yet
+      16, // cols
+      16, // rows
+      30, // bendX
+      -25, // bendY
+      'top',
+      undefined,
+      0,
+      undefined,
+      0,
+      true,
+      'none',
+      0,
+      false,
+      petalPolygon
+    )
+
+    expect(geo).toBeDefined()
+    const triangles = triCount(geo)
+    // Full grid is 16*16*2 = 512 triangles; clipped petal is significantly fewer triangles
+    expect(triangles).toBeGreaterThan(20)
+    expect(triangles).toBeLessThan(512)
+    const pos = geo.getAttribute('position')
+    expect(pos).toBeDefined()
+    expect(pos.count).toBeGreaterThan(15)
+  })
 })

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { faceGridSize, formatFaceLabel, type Face3D } from './types'
 import type { ResolvedTexture } from './textureResolver'
-import { getImageSilhouette } from './silhouette'
+import { getImageSilhouette, silhouetteFromPolygon } from './silhouette'
 import { buildEditorCells, type EditorCell } from './mesh2dCells'
 import { Mesh2DHorizontalBar, type ContextTab } from './Mesh2DHorizontalBar'
 import { Mesh2DVerticalPalette, type EditorTool } from './Mesh2DVerticalPalette'
@@ -78,10 +78,12 @@ export function Mesh2DTextureEditor({
   const imageUrl = resolvedTexture?.url || resolvedTexture?.image?.src || ''
 
   // Same pixel silhouette + per-cell clipping as the 3D mesh builder
-  const silhouette = useMemo(
-    () => (resolvedTexture?.image ? getImageSilhouette(resolvedTexture.image) : null),
-    [resolvedTexture?.image]
-  )
+  const silhouette = useMemo(() => {
+    if (face?.silhouettePolygon && face.silhouettePolygon.length >= 3) {
+      return silhouetteFromPolygon(face.silhouettePolygon, 'uv')
+    }
+    return resolvedTexture?.image ? getImageSilhouette(resolvedTexture.image) : null
+  }, [face?.silhouettePolygon, resolvedTexture?.image])
 
   const cells = useMemo<EditorCell[]>(
     () =>

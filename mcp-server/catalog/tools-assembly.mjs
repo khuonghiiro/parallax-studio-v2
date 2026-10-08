@@ -164,6 +164,7 @@ export const ASSEMBLY_TOOLS = [
       bend_region: z.enum(['all', 'bottom', 'top', 'left', 'right', 'curl']).optional().describe(d('Partial bend region.', 'Khu vực uốn cong 1 phần (all, bottom, top, left, right, curl).')),
       depth_profile: z.enum(['none', 'luminance', 'sphere', 'cylinder', 'slope', 'ridge']).optional().describe(d('Depth shape for the image mesh.', 'Dạng độ nổi cho mesh ảnh.')),
       depth_intensity: z.number().min(-200).max(200).optional().describe(d('Depth intensity percent.', 'Cường độ độ nổi phần trăm.')),
+      silhouette_polygon: z.array(z.array(z.number())).optional().describe(d('Pre-configured mesh contour polygon points in UV [u, v] (0..1).', 'Đa giác viền mesh định sẵn gồm các điểm [u, v] (0..1).')),
       model_id: z.string().optional(),
       name: z.string().optional(),
       asset_path: z.string().optional(),

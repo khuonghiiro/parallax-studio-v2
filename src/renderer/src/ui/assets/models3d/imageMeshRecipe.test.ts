@@ -43,11 +43,13 @@ describe('image mesh recipes', () => {
     const faces = templateFaces(template)
     const bound = bindTemplateImages(template, faces, { petal: 'lily/petal.png' })
     expect(bound.filter((f) => f.assetPath === 'lily/petal.png')).toHaveLength(6)
-    // Check that flared petals have bendRegion top and bendX/bendY set
+    // Check that flared petals have bendRegion top, bendX/bendY and pre-configured silhouettePolygon set
     const petalFace = faces.find((f) => f.imageSlot === 'petal')!
     expect(petalFace.bendRegion).toBe('top')
     expect(petalFace.bendX).toBe(42)
     expect(petalFace.bendY).toBe(-36)
+    expect(petalFace.silhouettePolygon).toBeDefined()
+    expect(petalFace.silhouettePolygon!.length).toBeGreaterThan(4)
   })
 
   it('360 degree radial grass clump generates 14 multi-tiered blades from 1 single blade slot', () => {

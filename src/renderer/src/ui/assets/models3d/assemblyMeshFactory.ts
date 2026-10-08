@@ -139,6 +139,53 @@ export function createFaceMaterial(face: Face3D, texture: THREE.Texture | null, 
   return mat
 }
 
+function buildFaceGeometry(
+  face: Face3D,
+  resolved: ResolvedTexture | null,
+  meshOnlyPixels: boolean,
+  scale: number,
+  cols: number,
+  rows: number,
+  bendX: number,
+  bendY: number,
+  bendRegion: Face3D['bendRegion'],
+  hiddenCells: string[],
+  gridRotation: number,
+  selectedCells: string[],
+  cellBendAngle: number
+): THREE.BufferGeometry {
+  const w = face.width * scale
+  const h = face.height * scale
+  const depthProfile = face.depthProfile || 'none'
+  const depthIntensity = face.depthIntensity || 0
+  const depthInvert = face.depthInvert || false
+  const presetPolygon = face.silhouettePolygon
+
+  if (presetPolygon && presetPolygon.length >= 3) {
+    return buildAlphaTrimmedGeometry(
+      w, h, resolved?.image ?? null, cols, rows, bendX, bendY, bendRegion,
+      hiddenCells, gridRotation, selectedCells, cellBendAngle, true,
+      depthProfile, depthIntensity, depthInvert, presetPolygon
+    )
+  }
+  if (resolved) {
+    if (meshOnlyPixels && resolved.image) {
+      return buildAlphaTrimmedGeometry(
+        w, h, resolved.image, cols, rows, bendX, bendY, bendRegion,
+        hiddenCells, gridRotation, selectedCells, cellBendAngle, face.meshMode !== 'manual',
+        depthProfile, depthIntensity, depthInvert
+      )
+    }
+    return buildCurvedPlaneGeometry(
+      w, h, cols, rows, bendX, bendY, bendRegion,
+      depthProfile, depthIntensity, depthInvert, resolved.image
+    )
+  }
+  return buildCurvedPlaneGeometry(
+    w, h, cols, rows, bendX, bendY, bendRegion, depthProfile, depthIntensity, depthInvert
+  )
+}
+
 /**
  * Creates a Three.js Mesh for a Face3D with sub-mesh trimming and curvature.
  */
@@ -162,62 +209,10 @@ export function createFaceMesh(
   const hiddenCells = face.hiddenCells || []
 
   const mat = createFaceMaterial(face, resolved?.texture ?? null, theme.fallbackFace)
-  let geo: THREE.BufferGeometry
-
-  if (resolved) {
-    const depthProfile = face.depthProfile || 'none'
-    const depthIntensity = face.depthIntensity || 0
-    const depthInvert = face.depthInvert || false
-
-    // Pixel-aware tight mesh with custom frame and rotation
-    if (meshOnlyPixels && resolved.image) {
-      geo = buildAlphaTrimmedGeometry(
-        face.width * scale,
-        face.height * scale,
-        resolved.image,
-        cols,
-        rows,
-        bendX,
-        bendY,
-        bendRegion,
-        hiddenCells,
-        gridRotation,
-        selectedCells,
-        cellBendAngle,
-        face.meshMode !== 'manual',
-        depthProfile,
-        depthIntensity,
-        depthInvert
-      )
-    } else {
-      geo = buildCurvedPlaneGeometry(
-        face.width * scale,
-        face.height * scale,
-        cols,
-        rows,
-        bendX,
-        bendY,
-        bendRegion,
-        depthProfile,
-        depthIntensity,
-        depthInvert,
-        resolved.image
-      )
-    }
-  } else {
-    geo = buildCurvedPlaneGeometry(
-      face.width * scale,
-      face.height * scale,
-      cols,
-      rows,
-      bendX,
-      bendY,
-      bendRegion,
-      face.depthProfile || 'none',
-      face.depthIntensity || 0,
-      face.depthInvert || false
-    )
-  }
+  const geo = buildFaceGeometry(
+    face, resolved, meshOnlyPixels, scale, cols, rows,
+    bendX, bendY, bendRegion, hiddenCells, gridRotation, selectedCells, cellBendAngle
+  )
 
   const mesh = new THREE.Mesh(geo, mat)
   mesh.castShadow = true

@@ -6,7 +6,7 @@ import {
   type LuminanceSampler
 } from './meshEffectsAE'
 import { computeContourCells, makeUVTransform } from './contourMesh'
-import { getImageSilhouette, silhouetteFromBoolGrid, type Silhouette } from './silhouette'
+import { getImageSilhouette, silhouetteFromBoolGrid, silhouetteFromPolygon, type Silhouette } from './silhouette'
 
 export type AlphaSampler = (u: number, v: number) => number
 
@@ -150,7 +150,7 @@ export function computeBendZ(
 export function buildAlphaTrimmedGeometry(
   width: number,
   height: number,
-  alphaGridOrImage: boolean[][] | HTMLImageElement | HTMLCanvasElement,
+  alphaGridOrImage: boolean[][] | HTMLImageElement | HTMLCanvasElement | null | undefined,
   cols = 32,
   rows = 32,
   bendX = 0,
@@ -163,16 +163,23 @@ export function buildAlphaTrimmedGeometry(
   autoTrimAlpha = true,
   depthProfile: DepthProfileType = 'none',
   depthIntensity = 0,
-  depthInvert = false
+  depthInvert = false,
+  presetPolygon?: number[][]
 ): THREE.BufferGeometry {
   const hiddenSet = new Set(hiddenCells || [])
   const selectedSet = new Set(selectedCells || [])
   const transformUV = makeUVTransform(gridRotation)
-  const image = Array.isArray(alphaGridOrImage) ? undefined : alphaGridOrImage
+  const image = alphaGridOrImage && !Array.isArray(alphaGridOrImage) ? alphaGridOrImage : undefined
 
   let silhouette: Silhouette | null = null
-  if (autoTrimAlpha) {
-    silhouette = image ? getImageSilhouette(image) : silhouetteFromBoolGrid(alphaGridOrImage as boolean[][], cols, rows)
+  if (presetPolygon && presetPolygon.length >= 3) {
+    silhouette = silhouetteFromPolygon(presetPolygon, 'uv')
+  } else if (autoTrimAlpha) {
+    silhouette = image
+      ? getImageSilhouette(image)
+      : alphaGridOrImage && Array.isArray(alphaGridOrImage)
+        ? silhouetteFromBoolGrid(alphaGridOrImage, cols, rows)
+        : null
   }
   const lumSampler: LuminanceSampler | undefined =
     image && depthProfile === 'luminance'
