@@ -33,6 +33,7 @@ export function templateFaces(template: AssemblyTemplate, idPrefix = template.id
     if (spec.imageSlot) f.imageSlot = spec.imageSlot
     if (spec.bendX) f.bendX = spec.bendX
     if (spec.bendY) f.bendY = spec.bendY
+    if (spec.bendRegion) f.bendRegion = spec.bendRegion
     return f
   })
 }

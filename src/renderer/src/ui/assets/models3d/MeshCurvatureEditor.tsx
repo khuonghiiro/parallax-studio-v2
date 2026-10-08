@@ -7,15 +7,16 @@ interface MeshCurvatureEditorProps {
 }
 
 const REGION_OPTIONS: Array<{
-  id: 'all' | 'bottom' | 'top' | 'left' | 'right'
+  id: 'all' | 'bottom' | 'top' | 'left' | 'right' | 'curl'
   label: string
   desc: string
 }> = [
   { id: 'all', label: 'Toàn bộ', desc: 'Uốn cong toàn bộ bề mặt' },
   { id: 'bottom', label: 'Mái hiên / Mép dưới', desc: 'Phần trên phẳng, chỉ uốn lượn mép dưới' },
-  { id: 'top', label: 'Đỉnh mái / Mép trên', desc: 'Phần dưới phẳng, chỉ uốn cong đỉnh trên' },
+  { id: 'top', label: 'Ngọn / Mép trên', desc: 'Gốc phẳng, uốn vểnh ngọn cánh hoa / lá cây / hoa loa kèn' },
   { id: 'left', label: 'Cánh trái', desc: 'Chỉ uốn cong gập mép trái' },
-  { id: 'right', label: 'Cánh phải', desc: 'Chỉ uốn cong gập mép phải' }
+  { id: 'right', label: 'Cánh phải', desc: 'Chỉ uốn cong gập mép phải' },
+  { id: 'curl', label: 'Uốn xoăn / Sóng', desc: 'Uốn lượn sóng chữ S cho cánh hoa xoăn / lá dập dềnh' }
 ]
 
 const GRID_RES_OPTIONS = [

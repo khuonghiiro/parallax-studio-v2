@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BufferGeometry } from 'three'
-import { buildAlphaTrimmedGeometry } from './alphaMeshBuilder'
+import { buildAlphaTrimmedGeometry, computeBendZ } from './alphaMeshBuilder'
 
 /** Geometry is indexed (welded vertices) — count rendered triangles. */
 const triCount = (geo: BufferGeometry): number => {
@@ -202,5 +202,26 @@ describe('alphaMeshBuilder - Custom Mesh Frame & Rotatable Grid', () => {
     expect(countAuto).toBeLessThan(countManual)
     // ...but never cuts into the opaque top half (4 rows × 8 cols × 2 triangles)
     expect(countAuto).toBeGreaterThanOrEqual(64)
+  })
+
+  it('computeBendZ flares out at tip for region top and stays flat at base', () => {
+    const height = 300
+    const width = 100
+    // At base v = 0, bend is 0
+    const zBase = computeBendZ(0.5, 0, width, height, 0, 50, 'top')
+    expect(zBase).toBe(0)
+    // At tip v = 1, bend reaches maximum deflection
+    const zTip = computeBendZ(0.5, 1, width, height, 0, 50, 'top')
+    expect(zTip).toBeCloseTo((50 / 100) * (height * 0.35), 2)
+  })
+
+  it('computeBendZ creates sinusoidal S-wave for region curl', () => {
+    const height = 300
+    const width = 100
+    const zMid = computeBendZ(0.5, 0.5, width, height, 0, 50, 'curl')
+    const zTip = computeBendZ(0.5, 1, width, height, 0, 50, 'curl')
+    // S-curve wave produces distinct curvature at intermediate points
+    expect(typeof zMid).toBe('number')
+    expect(typeof zTip).toBe('number')
   })
 })

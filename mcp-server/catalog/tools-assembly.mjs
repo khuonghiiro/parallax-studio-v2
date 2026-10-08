@@ -161,6 +161,7 @@ export const ASSEMBLY_TOOLS = [
       grid_res: z.number().int().min(4).max(128).optional().describe(d('Mesh grid resolution.', 'Độ phân giải lưới mesh.')),
       bend_x: z.number().min(-100).max(100).optional().describe(d('Horizontal bend.', 'Độ uốn ngang.')),
       bend_y: z.number().min(-100).max(100).optional().describe(d('Vertical bend.', 'Độ uốn dọc.')),
+      bend_region: z.enum(['all', 'bottom', 'top', 'left', 'right', 'curl']).optional().describe(d('Partial bend region.', 'Khu vực uốn cong 1 phần (all, bottom, top, left, right, curl).')),
       depth_profile: z.enum(['none', 'luminance', 'sphere', 'cylinder', 'slope', 'ridge']).optional().describe(d('Depth shape for the image mesh.', 'Dạng độ nổi cho mesh ảnh.')),
       depth_intensity: z.number().min(-200).max(200).optional().describe(d('Depth intensity percent.', 'Cường độ độ nổi phần trăm.')),
       model_id: z.string().optional(),

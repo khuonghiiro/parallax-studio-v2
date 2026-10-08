@@ -27,5 +27,10 @@ export function assemblyMeshPatch(p: Params): Partial<Face3D> {
     if (!['none', 'luminance', 'sphere', 'cylinder', 'slope', 'ridge'].includes(value ?? '')) throw new ParamError('Invalid depth_profile')
     patch.depthProfile = value as Face3D['depthProfile']
   }
+  if (has(p, 'bend_region')) {
+    const value = str(p, 'bend_region')
+    if (!['all', 'bottom', 'top', 'left', 'right', 'curl'].includes(value ?? '')) throw new ParamError('Invalid bend_region')
+    patch.bendRegion = value as Face3D['bendRegion']
+  }
   return patch
 }

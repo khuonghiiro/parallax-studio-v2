@@ -35,7 +35,12 @@ export const IMAGE_MESH_SLOT_RULES = {
     vi: 'Hoa văn ở giữa, trụ cân hai bên, song cách đều. Các thanh phải nối vào tấm song, khe trong suốt, không có họa tiết rời lơ lửng.'
   } },
   rail: { alphaMode: 'opaque', symmetry: rectangular },
-  grass: { alphaMode: 'cutout', symmetry: organic }
+  grass: { alphaMode: 'cutout', symmetry: organic },
+  stamen: { alphaMode: 'cutout', symmetry: {
+    en: 'Slender cluster of stamens centered at x=50%, roughly left/right symmetric; natural curved filaments allowed.',
+    vi: 'Chùm nhụy dài ở giữa qua x=50%, gần đối xứng hai bên; các sợi nhụy có thể uốn lượn tự nhiên.'
+  } },
+  blade: { alphaMode: 'cutout', symmetry: bilateral }
 } as const
 
 export const IMAGE_ALPHA_RULES = {

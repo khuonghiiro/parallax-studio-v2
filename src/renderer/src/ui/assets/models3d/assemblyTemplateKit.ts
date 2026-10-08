@@ -24,6 +24,7 @@ export interface TemplateFaceSpec {
   up?: Vec3
   bendX?: number
   bendY?: number
+  bendRegion?: Face3D['bendRegion']
   imageSlot?: string
   mesh?: Pick<Face3D, 'meshMode' | 'gridRes' | 'depthProfile' | 'depthIntensity'>
 }

@@ -5,11 +5,13 @@ Trong **Tạo Mô Hình 3D Mới**, chọn thẻ **Mesh ảnh** để xem ảnh 
 | ID | Ảnh nguồn | Kết quả |
 |---|---|---|
 | `mesh-leaf` | `leaf` 1:2 | Lá bám viền alpha, gân nổi và uốn dọc |
-| `mesh-flower` | `petal` 2:3, `center` 1:1, `stem` 1:10 | Sáu cánh cong, nhụy nổi, thân |
+| `mesh-flower` | `petal` 2:3, `center` 1:1, `stem` 1:10 | Sáu cánh cong (có biến thể uốn xoăn cánh), nhụy nổi, thân |
+| `mesh-trumpet-flower` | `petal` 1:2, `stamen` 1:2, `stem` 1:10 | Hoa loa kèn 3D hình phễu kèn, cánh loe vểnh 360°, nhụy dài vươn ra |
 | `mesh-planter` | `pot` 13:12, `bottom` 1:1, `soil` 1:1, `leaf` 1:2 | Chậu vuông kín đáy, đất và bốn lá |
 | `mesh-highrise` | `front` 1:3, `side` 1:4, `roof` 4:3 | Bốn mặt đứng và mái bằng |
 | `mesh-railing` | `panel` 3:1, `rail` 15:1 | Song lan can khoét alpha và tay vịn |
 | `mesh-grass` | `grass` 1:1 | Ba tấm cỏ giao nhau |
+| `mesh-grass-radial` | `blade` 1:5 | Bụi cỏ 360° từ 1 ảnh phiến lá: 14 lá uốn cong tỏa tròn ngẫu nhiên nhiều tầng |
 
 ## Chuẩn ảnh
 

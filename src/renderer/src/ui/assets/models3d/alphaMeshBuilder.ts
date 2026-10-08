@@ -71,9 +71,12 @@ export function sampleAlphaGrid(
   return grid
 }
 
+export type BendRegion = 'all' | 'bottom' | 'top' | 'left' | 'right' | 'curl'
+
 /**
- * Calculates Z displacement for curving / bending a plane into an arch or eave wave.
- * Supports partial region bending (e.g. curling bottom eaves while keeping top flat).
+ * Calculates Z displacement for curving / bending a plane into an arch, flared tip, eave or wave.
+ * Supports partial region bending (e.g. flaring petal tips, curling eaves while keeping base flat,
+ * or sinusoidal ruffled curls).
  */
 export function computeBendZ(
   u: number,
@@ -82,38 +85,59 @@ export function computeBendZ(
   height: number,
   bendX = 0,
   bendY = 0,
-  region: 'all' | 'bottom' | 'top' | 'left' | 'right' = 'all'
+  region: BendRegion = 'all'
 ): number {
   let z = 0
 
-  // Region attenuation factors (0..1)
-  let factorX = 1
-  let factorY = 1
+  if (region === 'top') {
+    // Only bend top portion (v in 0.15..1); bottom stays straight/flat (stem/root attachment)
+    // Smooth cubic easing: 0 at v=0.15, 1 at v=1.0. Allows petals/leaves to flare out at tips.
+    const t = Math.max(0, Math.min(1, (v - 0.15) / 0.85))
+    const curveY = t * t * (3 - 2 * t)
+    if (bendY !== 0) {
+      z += (bendY / 100) * curveY * (height * 0.35)
+    }
+  } else if (region === 'bottom') {
+    // Only bend bottom portion (v in 0..0.85); top stays flat (roof ridge)
+    const t = Math.max(0, Math.min(1, (0.85 - v) / 0.85))
+    const curveY = t * t * (3 - 2 * t)
+    if (bendY !== 0) {
+      z += (bendY / 100) * curveY * (height * 0.35)
+    }
+  } else if (region === 'curl') {
+    // Sinusoidal S-curve / wave for ruffled, curly flower petals and leaves
+    const wave = Math.sin(v * Math.PI) * 0.65 - Math.sin(v * 2 * Math.PI) * 0.55
+    if (bendY !== 0) {
+      z += (bendY / 100) * wave * (height * 0.35)
+    }
+  } else {
+    // Classic symmetric parabolic arch across the entire height
+    if (bendY !== 0) {
+      z += (bendY / 100) * Math.sin(v * Math.PI) * (height * 0.35)
+    }
+  }
 
-  if (region === 'bottom') {
-    // Only bend bottom portion (v in 0..0.5); top (v in 0.5..1) stays completely flat
-    factorY = v < 0.5 ? Math.cos((v / 0.5) * (Math.PI / 2)) : 0
-  } else if (region === 'top') {
-    // Only bend top portion (v in 0.5..1); bottom stays flat
-    factorY = v > 0.5 ? Math.sin(((v - 0.5) / 0.5) * (Math.PI / 2)) : 0
-  } else if (region === 'left') {
-    // Only bend left flap (u < 0.5)
-    factorX = u < 0.5 ? Math.cos((u / 0.5) * (Math.PI / 2)) : 0
+  // Horizontal curvature (bendX)
+  if (region === 'left') {
+    const t = Math.max(0, Math.min(1, (0.85 - u) / 0.85))
+    const curveX = t * t * (3 - 2 * t)
+    if (bendX !== 0) {
+      z += (bendX / 100) * curveX * (width * 0.35)
+    }
   } else if (region === 'right') {
-    // Only bend right flap (u > 0.5)
-    factorX = u > 0.5 ? Math.sin(((u - 0.5) / 0.5) * (Math.PI / 2)) : 0
+    const t = Math.max(0, Math.min(1, (u - 0.15) / 0.85))
+    const curveX = t * t * (3 - 2 * t)
+    if (bendX !== 0) {
+      z += (bendX / 100) * curveX * (width * 0.35)
+    }
+  } else {
+    if (bendX !== 0) {
+      z += (bendX / 100) * Math.sin(u * Math.PI) * (width * 0.35)
+    }
   }
 
-  if (bendX !== 0) {
-    z += (bendX / 100) * Math.sin(u * Math.PI) * (width * 0.35) * factorX
-  }
-  if (bendY !== 0) {
-    z += (bendY / 100) * Math.sin(v * Math.PI) * (height * 0.35) * factorY
-  }
   return z
 }
-
-type BendRegion = 'all' | 'bottom' | 'top' | 'left' | 'right'
 
 /**
  * Builds a custom Three.js plane geometry that hugs the visible pixels of the image.

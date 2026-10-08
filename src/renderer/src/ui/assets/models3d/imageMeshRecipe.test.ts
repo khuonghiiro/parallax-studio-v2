@@ -6,7 +6,7 @@ import { buildAlphaTrimmedGeometry } from './alphaMeshBuilder'
 
 describe('image mesh recipes', () => {
   it('reports exact image counts, pixel ratios, alpha and reuse contracts for all variants', () => {
-    const counts = [[1, 1], [3, 8], [4, 10], [3, 5], [2, 2], [1, 3]]
+    const counts = [[1, 1], [3, 8], [3, 8], [4, 10], [3, 5], [2, 2], [1, 3], [1, 14]]
     IMAGE_MESH_TEMPLATES.forEach((template, index) => {
       for (const variant of template.imageRecipe!.variants) {
         const guide = imageTemplateGuide(template, variant.id)
@@ -26,6 +26,51 @@ describe('image mesh recipes', () => {
         }
       }
     })
+  })
+
+  it('trumpet flower template defines 6 flared petals, stamens and stem with top curvature', () => {
+    const template = IMAGE_MESH_TEMPLATES.find((t) => t.id === 'mesh-trumpet-flower')!
+    expect(template).toBeDefined()
+    const guide = imageTemplateGuide(template)
+    expect(guide.sourceImageCount).toBe(3)
+    expect(guide.meshFaceCount).toBe(8)
+    const petalSlot = guide.slots.find((s) => s.id === 'petal')!
+    expect(petalSlot.reuseCount).toBe(6)
+    expect(petalSlot.aspect).toEqual([1, 2])
+    const stamenSlot = guide.slots.find((s) => s.id === 'stamen')!
+    expect(stamenSlot.reuseCount).toBe(1)
+    expect(stamenSlot.aspect).toEqual([1, 2])
+    const faces = templateFaces(template)
+    const bound = bindTemplateImages(template, faces, { petal: 'lily/petal.png' })
+    expect(bound.filter((f) => f.assetPath === 'lily/petal.png')).toHaveLength(6)
+    // Check that flared petals have bendRegion top and bendX/bendY set
+    const petalFace = faces.find((f) => f.imageSlot === 'petal')!
+    expect(petalFace.bendRegion).toBe('top')
+    expect(petalFace.bendX).toBe(42)
+    expect(petalFace.bendY).toBe(-36)
+  })
+
+  it('360 degree radial grass clump generates 14 multi-tiered blades from 1 single blade slot', () => {
+    const template = IMAGE_MESH_TEMPLATES.find((t) => t.id === 'mesh-grass-radial')!
+    expect(template).toBeDefined()
+    const guide = imageTemplateGuide(template)
+    expect(guide.sourceImageCount).toBe(1)
+    expect(guide.meshFaceCount).toBe(14)
+    expect(guide.slots[0].id).toBe('blade')
+    expect(guide.slots[0].reuseCount).toBe(14)
+    expect(guide.slots[0].aspect).toEqual([1, 5])
+    const faces = templateFaces(template)
+    // All 14 blades bound to the single blade image
+    const bound = bindTemplateImages(template, faces, { blade: 'grass/single_blade.png' })
+    expect(bound.filter((f) => f.assetPath === 'grass/single_blade.png')).toHaveLength(14)
+    // Heights vary across blades (350, 300, 250, 200, 175)
+    const heights = new Set(faces.map((f) => f.height))
+    expect(heights.size).toBeGreaterThanOrEqual(4)
+    // Every face has bendRegion top and bendY curvature
+    for (const f of faces) {
+      expect(f.bendRegion).toBe('top')
+      expect(f.bendY).toBeGreaterThanOrEqual(20)
+    }
   })
 
   it('keeps high-rise walls opaque and aligns twelve floor bands across both elevations', () => {
