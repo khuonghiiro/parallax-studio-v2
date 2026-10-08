@@ -38,9 +38,11 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
   - Không che giấu hoặc bỏ qua lỗi build, lint, type error hay unhandled promise rejection.
 - **Bảo vệ Secrets & Quyền riêng tư:**
   - Tuyệt đối không commit file `.env`, tokens, API keys, private keys hay file dữ liệu nhạy cảm.
-- **Git Commit:**
+- **Git Commit & Push:**
   - Sử dụng chuẩn Conventional Commits (`feat:`, `fix:`, `refactor:`, `perf:`, `chore:`).
+  - Viết commit message bằng **tiếng Việt CÓ DẤU** đầy đủ, chuẩn xác để phân biệt rành mạch các từ tiếng Anh và tiếng Việt giao thoa (ví dụ: `fix(ui): thay thế combobox và color picker native bằng custom component 60fps, triệt tiêu độ trễ 2s`).
   - Không gắn watermark hoặc nhắc tên AI trong commit message.
+  - Ngay khi sửa xong một lỗi hoặc hoàn thành nâng cấp một logic/chức năng, chủ động commit tiếng Việt có dấu và push code lên Git ngay lập tức.
 
 ### 2.3. Quy Chuẩn Đa Giao Diện (Dual-Theme Standard: Dark & Light)
 - **Hỗ trợ 2 Theme song song:** Ứng dụng luôn vận hành trên 2 chế độ: Dark Theme (`[data-theme='dark']`) và Light Theme (`[data-theme='light']`).
