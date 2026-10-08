@@ -14,7 +14,7 @@ export interface OrbitState {
   target: THREE.Vector3
 }
 
-export type CameraPreset = 'front' | 'left' | 'right' | 'top' | 'iso'
+export type CameraPreset = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom' | 'iso' | 'custom'
 
 const DEG = Math.PI / 180
 
@@ -25,6 +25,11 @@ export function applyCameraPreset(orbit: OrbitState, preset: CameraPreset): void
   switch (preset) {
     case 'front':
       orbit.azimuth = 0
+      orbit.elevation = 0.05
+      orbit.radius = 1500
+      break
+    case 'back':
+      orbit.azimuth = Math.PI
       orbit.elevation = 0.05
       orbit.radius = 1500
       break
@@ -43,10 +48,17 @@ export function applyCameraPreset(orbit: OrbitState, preset: CameraPreset): void
       orbit.elevation = Math.PI / 2 - 0.05
       orbit.radius = 1500
       break
+    case 'bottom':
+      orbit.azimuth = 0
+      orbit.elevation = -Math.PI / 2 + 0.05
+      orbit.radius = 1500
+      break
     case 'iso':
       orbit.azimuth = -Math.PI / 4
       orbit.elevation = 0.45
       orbit.radius = 1600
+      break
+    case 'custom':
       break
   }
 }

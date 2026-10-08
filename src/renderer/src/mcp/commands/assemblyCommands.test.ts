@@ -78,6 +78,7 @@ describe('MCP assemblyCommands', () => {
     }
     let selectedId: string | null = 'face-a'
 
+    let cameraState = { azimuth: 0, elevation: 0, radius: 1500, target: [0, 0, 0] as [number, number, number] }
     // Register active mock session
     const unregister = registerAssemblySession({
       getModel: () => mockModel,
@@ -91,7 +92,13 @@ describe('MCP assemblyCommands', () => {
       save: () => {},
       insert: async () => ['mock-layer-1'],
       close: () => {},
-      captureScreenshot: () => 'data:image/png;base64,mock-base64-png'
+      captureScreenshot: (opts) => `data:image/png;base64,mock-base64-png-${opts?.cameraPreset || 'default'}`,
+      setCamera: (params) => {
+        if (params.preset === 'iso') cameraState = { azimuth: -45, elevation: 26, radius: 2000, target: [0, 0, 0] }
+        if (params.radius) cameraState.radius = params.radius
+        return cameraState
+      },
+      getCamera: () => cameraState
     })
 
     try {
@@ -160,9 +167,14 @@ describe('MCP assemblyCommands', () => {
       expect(mockModel.faces.length).toBe(5)
 
       // 9. Screenshot active workshop
-      const snapRes = (await runCommand('get_assembly_screenshot')) as any
+      const snapRes = (await runCommand('get_assembly_screenshot', { preset: 'iso' })) as any
       expect(snapRes.mime).toBe('image/png')
-      expect(snapRes.data).toBe('mock-base64-png')
+      expect(snapRes.data).toBe('mock-base64-png-iso')
+
+      // 10. Set camera
+      const camRes = (await runCommand('set_assembly_camera', { preset: 'iso', radius: 1800 })) as any
+      expect(camRes.ok).toBe(true)
+      expect(camRes.camera.radius).toBe(1800)
     } finally {
       unregister()
     }

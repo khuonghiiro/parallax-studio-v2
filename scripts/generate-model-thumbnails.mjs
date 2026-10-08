@@ -56,6 +56,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 async function main() {
   const ids = [
+    'model-tudor-estate',
     'model-house-shell',
     'model-door-arched',
     'model-window-tudor',
@@ -67,9 +68,9 @@ async function main() {
   for (const id of ids) {
     console.log(`📸 Chụp thumbnail 3D sạch cho ${id}...`)
     await sendCommand('open_assembly_workshop', { model_id: id })
-    await sleep(400)
+    await sleep(1800)
     await sendCommand('close_assembly_workshop', { save: true })
-    await sleep(200)
+    await sleep(300)
   }
   console.log('✓ Đã sinh đầy đủ thumbnail 3D sạch cho tất cả các mô hình!')
 }

@@ -33,13 +33,12 @@ async function resolveTargetModel(p: Params): Promise<{ model: Model3D; isSessio
   return { model: found, isSession: false }
 }
 
-function persistModel(model: Model3D, isSession: boolean): void {
+async function persistModel(model: Model3D, isSession: boolean): Promise<void> {
   if (isSession) {
     const session = getActiveAssemblySession()
     if (session) session.setModel(model)
-  } else {
-    saveModel3D(model)
   }
+  await saveModel3D(model)
 }
 
 function uvParam(p: Params): [number, number] | undefined {
@@ -105,11 +104,11 @@ export const assemblyCommands: Record<string, Handler> = {
     }
   },
 
-  save_assembly_model: (p) => {
+  save_assembly_model: async (p) => {
     const raw = p.model as Partial<Model3D> | undefined
     const id = str(p, 'id') || str(p, 'model_id') || raw?.id
     if (!id) throw new ParamError('Missing "id" or "model" object with id')
-    const models = getStoredModels3D()
+    const models = await fetchDiskModels3D()
     const existing = models.find((m) => m.id === id)
     const session = getActiveAssemblySession()
 
@@ -136,7 +135,7 @@ export const assemblyCommands: Record<string, Handler> = {
       createdAt: existing?.createdAt || Date.now(),
       updatedAt: Date.now()
     }
-    saveModel3D(model)
+    await saveModel3D(model)
     if (session && session.getModel().id === model.id) {
       session.setModel(model)
     }
@@ -146,7 +145,7 @@ export const assemblyCommands: Record<string, Handler> = {
   delete_model3d: async (p) => {
     const id = str(p, 'id') || str(p, 'model_id')
     if (!id) throw new ParamError('Missing "id" or "model_id"')
-    deleteModel3D(id)
+    await deleteModel3D(id)
     return { ok: true, id }
   },
 
@@ -187,7 +186,7 @@ export const assemblyCommands: Record<string, Handler> = {
       color: str(p, 'color') || '#38bdf8'
     }
     const updated = { ...model, faces: [...model.faces, face] }
-    persistModel(updated, isSession)
+    await persistModel(updated, isSession)
     if (isSession) {
       getActiveAssemblySession()?.setSelectedFaceId(face.id)
     }
@@ -211,7 +210,7 @@ export const assemblyCommands: Record<string, Handler> = {
     if (has(p, 'join_points')) patch.joinPoints = p.join_points as [[number, number], [number, number]]
 
     const updated = { ...model, faces: patchFace(model.faces, faceId, patch) }
-    persistModel(updated, isSession)
+    await persistModel(updated, isSession)
     return { ok: true, faceId, modelId: model.id }
   },
 
@@ -220,7 +219,7 @@ export const assemblyCommands: Record<string, Handler> = {
     const { model, isSession } = await resolveTargetModel(p)
     const res = deleteFace(model.faces, faceId)
     const updated = { ...model, faces: res.faces }
-    persistModel(updated, isSession)
+    await persistModel(updated, isSession)
     if (isSession) {
       getActiveAssemblySession()?.setSelectedFaceId(res.nextSelected)
     }
@@ -247,7 +246,7 @@ export const assemblyCommands: Record<string, Handler> = {
       flip
     })
     const updated = { ...model, faces: res.faces }
-    persistModel(updated, isSession)
+    await persistModel(updated, isSession)
     return { ok: true, targetId, sourceId, modelId: model.id, scale: res.scale, scaledFaceId: res.scaledFaceId }
   },
 
@@ -256,7 +255,7 @@ export const assemblyCommands: Record<string, Handler> = {
     const suggestions = suggestClipRules(model.faces)
     const updatedFaces = applyClipSuggestions(model.faces, suggestions)
     const updated = { ...model, faces: updatedFaces }
-    persistModel(updated, isSession)
+    await persistModel(updated, isSession)
     return { ok: true, modelId: model.id, rulesApplied: suggestions.length, suggestions }
   },
 
@@ -274,7 +273,7 @@ export const assemblyCommands: Record<string, Handler> = {
     if (has(p, 'intensity')) lighting.intensity = num(p, 'intensity')!
 
     const updated = { ...model, lighting }
-    persistModel(updated, isSession)
+    await persistModel(updated, isSession)
     return { ok: true, modelId: model.id, lighting }
   },
 
@@ -287,7 +286,7 @@ export const assemblyCommands: Record<string, Handler> = {
     const { model, isSession } = await resolveTargetModel(p)
     const faces = mode === 'append' ? appendTemplate(tpl, model.faces) : replaceWithTemplate(tpl, model.faces)
     const updated = { ...model, faces }
-    persistModel(updated, isSession)
+    await persistModel(updated, isSession)
     if (isSession) {
       getActiveAssemblySession()?.setSelectedFaceId(faces[0]?.id || null)
     }
@@ -332,7 +331,7 @@ export const assemblyCommands: Record<string, Handler> = {
       res = appendModel(part, model, { at: vec3(p, 'at'), scale, prefixNames })
     }
     const updated = { ...model, faces: res.faces }
-    persistModel(updated, isSession)
+    await persistModel(updated, isSession)
     if (isSession) getActiveAssemblySession()?.setSelectedFaceId(res.addedIds[0] ?? null)
     return {
       ok: true,
@@ -344,17 +343,64 @@ export const assemblyCommands: Record<string, Handler> = {
     }
   },
 
-  get_assembly_screenshot: async () => {
+  get_assembly_screenshot: async (p) => {
     const session = getActiveAssemblySession()
     if (!session) {
       throw new ParamError('3D Assembly workshop modal is not currently open')
     }
-    const dataUrl = session.captureScreenshot ? session.captureScreenshot() : null
+    const preset = str(p, 'preset') as any
+    const frameFaceId = str(p, 'frame_face_id')
+    const autoFit = p.auto_fit === true
+    const transparent = p.transparent !== false
+    const dataUrl = session.captureScreenshot
+      ? session.captureScreenshot({
+          cameraPreset: preset,
+          frameFaceId,
+          autoFit,
+          transparent
+        })
+      : null
     if (!dataUrl) {
       throw new ParamError('Failed to capture workshop canvas or canvas not ready')
     }
     const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '')
     return { mime: 'image/png', data: base64, modelId: session.getModel().id }
+  },
+
+  set_assembly_camera: async (p) => {
+    const session = getActiveAssemblySession()
+    if (!session) {
+      throw new ParamError('3D Assembly workshop modal is not currently open')
+    }
+    if (!session.setCamera) {
+      throw new ParamError('Camera controller is not available in current viewport')
+    }
+    const preset = str(p, 'preset') as any
+    const azimuth = num(p, 'azimuth')
+    const elevation = num(p, 'elevation')
+    const radius = num(p, 'radius')
+    const frameFaceId = str(p, 'frame_face_id')
+    const frameModel = p.frame_model === true
+    let targetArr: [number, number, number] | undefined
+    if (has(p, 'target') && Array.isArray(p.target) && p.target.length === 3) {
+      targetArr = [Number(p.target[0]), Number(p.target[1]), Number(p.target[2])]
+    }
+
+    const camState = session.setCamera({
+      preset,
+      azimuth,
+      elevation,
+      radius,
+      target: targetArr,
+      frameFaceId,
+      frameModel
+    })
+
+    return {
+      ok: true,
+      camera: camState,
+      modelId: session.getModel().id
+    }
   },
 
   open_assembly_workshop: async (p) => {
@@ -388,14 +434,14 @@ export const assemblyCommands: Record<string, Handler> = {
     return { ok: true, modelId: model.id, modelName: model.name, isOpen: true, faceCount: model.faces.length }
   },
 
-  close_assembly_workshop: (p) => {
+  close_assembly_workshop: async (p) => {
     const save = p.save !== false
     const session = getActiveAssemblySession()
     let saved = false
     let savedId: string | null = null
     if (session) {
       if (save) {
-        session.save()
+        await session.save()
         saved = true
         savedId = session.getModel().id
       } else {
@@ -435,7 +481,7 @@ export const assemblyCommands: Record<string, Handler> = {
     const updatedFaces = model.faces.map((f) => (f.id === fid ? { ...f, ...updates } : f))
     const updatedModel = { ...model, faces: updatedFaces, updatedAt: Date.now() }
 
-    persistModel(updatedModel, isSession)
+    await persistModel(updatedModel, isSession)
     if (isSession && session) {
       session.setSelectedFaceId(fid)
     }

@@ -3,6 +3,7 @@
   "name": "Khung Nhà Mái Chữ A Tudor (Shell 3D)",
   "description": "Khung nhà rỗng phong cách Tudor thuần túy: tường trát vôi trắng nẹp gỗ và mái ngói đất nung, sẵn sàng lắp ráp chi tiết trang trí.",
   "category": "architecture",
+  "thumbnail": "thumbnail.png",
   "scale": 0.6,
   "faces": [
     {
@@ -109,6 +110,5 @@
     }
   ],
   "createdAt": 1791432990372,
-  "updatedAt": 1791433041716,
-  "thumbnail": "thumbnail.png"
+  "updatedAt": 1791435836473
 }

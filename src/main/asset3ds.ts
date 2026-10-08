@@ -89,23 +89,27 @@ export async function scanAsset3DsModels(): Promise<any[]> {
         // Resolve thumbnail as data URL if available
         let thumb = parsed.thumbnail
         if (thumb) {
-          const cleanRel = thumb.replace(/^asset-3ds[\\/]/, '')
-          let thumbPath = join(root, cleanRel)
+          // Check relative to model's own folder first
+          let thumbPath = join(dirname(file), thumb)
           if (!existsSync(thumbPath)) {
-            for (const cat of ['architecture', 'props', 'street', 'room', 'custom']) {
-              const cand = join(root, cat, cleanRel)
-              if (existsSync(cand)) {
-                thumbPath = cand
-                break
+            const cleanRel = thumb.replace(/^asset-3ds[\\/]/, '')
+            thumbPath = join(root, cleanRel)
+            if (!existsSync(thumbPath)) {
+              for (const cat of ['architecture', 'props', 'street', 'room', 'custom', 'decor', 'nature']) {
+                const cand = join(root, cat, cleanRel)
+                if (existsSync(cand)) {
+                  thumbPath = cand
+                  break
+                }
               }
             }
-          }
-          if (!existsSync(thumbPath)) {
-            const assetsDir = join(process.cwd(), 'assets')
-            const cleanAssetsRel = thumb.replace(/^assets[\\/]/, '')
-            const cand = join(assetsDir, cleanAssetsRel)
-            if (existsSync(cand)) {
-              thumbPath = cand
+            if (!existsSync(thumbPath)) {
+              const assetsDir = join(process.cwd(), 'assets')
+              const cleanAssetsRel = thumb.replace(/^assets[\\/]/, '')
+              const cand = join(assetsDir, cleanAssetsRel)
+              if (existsSync(cand)) {
+                thumbPath = cand
+              }
             }
           }
           if (existsSync(thumbPath)) {
@@ -115,8 +119,23 @@ export async function scanAsset3DsModels(): Promise<any[]> {
             parsed.thumbnailDataUrl = `data:${mime};base64,${buf.toString('base64')}`
           }
         }
-        
-        // If still no thumbnail, fallback to first face asset
+
+        // If no thumbnail yet, check standard thumbnail filenames in model folder
+        if (!parsed.thumbnailDataUrl) {
+          const dir = dirname(file)
+          for (const cand of ['thumbnail.png', 'thumb.webp', 'review_cottage.png', 'preview.png']) {
+            const p = join(dir, cand)
+            if (existsSync(p)) {
+              const buf = await readFile(p)
+              const ext = extname(p).slice(1).toLowerCase()
+              const mime = MIME_MAP[ext] || 'image/png'
+              parsed.thumbnailDataUrl = `data:${mime};base64,${buf.toString('base64')}`
+              break
+            }
+          }
+        }
+
+        // Fallback: only if no 3D thumbnail at all, try first face texture
         if (!parsed.thumbnailDataUrl && Array.isArray(parsed.faces) && parsed.faces.length > 0) {
           const firstFacePath = parsed.faces[0]?.assetPath
           if (firstFacePath) {
@@ -127,19 +146,6 @@ export async function scanAsset3DsModels(): Promise<any[]> {
               const ext = extname(cand).slice(1).toLowerCase()
               const mime = MIME_MAP[ext] || 'image/png'
               parsed.thumbnailDataUrl = `data:${mime};base64,${buf.toString('base64')}`
-            }
-          }
-        } else if (!thumb) {
-          // Check if there is review_cottage.png, thumb.webp or thumbnail.png in same folder
-          const dir = join(file, '..')
-          for (const cand of ['thumb.webp', 'review_cottage.png', 'thumbnail.png', 'preview.png']) {
-            const p = join(dir, cand)
-            if (existsSync(p)) {
-              const buf = await readFile(p)
-              const ext = extname(p).slice(1).toLowerCase()
-              const mime = MIME_MAP[ext] || 'image/png'
-              parsed.thumbnailDataUrl = `data:${mime};base64,${buf.toString('base64')}`
-              break
             }
           }
         }
@@ -203,7 +209,7 @@ export async function loadAsset3DBytes(relPath: string): Promise<{ name: string;
   let fullPath = join(root, cleanRel)
   if (!existsSync(fullPath)) {
     // Check in category subfolders
-    for (const cat of ['architecture', 'props', 'street', 'room', 'custom']) {
+    for (const cat of ['architecture', 'props', 'street', 'room', 'custom', 'decor', 'nature']) {
       const cand = join(root, cat, cleanRel)
       if (existsSync(cand)) {
         fullPath = cand

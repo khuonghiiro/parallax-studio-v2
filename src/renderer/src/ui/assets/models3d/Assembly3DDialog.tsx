@@ -11,7 +11,12 @@ import { clearTextureCache, resolveFaceTexture, type ResolvedTexture } from './t
 import { useAssemblyHistory } from './useAssemblyHistory'
 import { useAssemblyShortcuts } from './useAssemblyShortcuts'
 import { deleteFace, duplicateFace, newFaceId, nudgeFace, patchFace, toggleFaceFlag } from './assemblyFaceOps'
-import { registerAssemblySession } from './assemblyBridge'
+import {
+  registerAssemblySession,
+  type AssemblyCaptureOptions,
+  type AssemblyCameraState,
+  type SetAssemblyCameraParams
+} from './assemblyBridge'
 import { IconCube, IconImage } from '../../icons'
 
 interface Assembly3DDialogProps {
@@ -106,19 +111,21 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
     onClose()
   }, [onClose])
 
-  const captureFnRef = useRef<(() => string | null) | null>(null)
+  const captureFnRef = useRef<((opts?: AssemblyCaptureOptions) => string | null) | null>(null)
+  const setCameraFnRef = useRef<((params: SetAssemblyCameraParams) => AssemblyCameraState) | null>(null)
+  const getCameraFnRef = useRef<(() => AssemblyCameraState) | null>(null)
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     let toSave = modelRef.current
     try {
-      const thumb = captureFnRef.current ? captureFnRef.current() : null
+      const thumb = captureFnRef.current ? captureFnRef.current({ autoFit: true, transparent: true }) : null
       if (thumb) {
         toSave = { ...toSave, thumbnailDataUrl: thumb }
       }
     } catch (e) {
       console.warn('[Assembly3DDialog] Failed to capture clean thumbnail on save:', e)
     }
-    saveModel3D(toSave)
+    await saveModel3D(toSave)
     onSaved?.(toSave)
     handleClose()
   }, [handleClose, onSaved])
@@ -128,7 +135,7 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
     try {
       let toSave = modelRef.current
       try {
-        const thumb = captureFnRef.current ? captureFnRef.current() : null
+        const thumb = captureFnRef.current ? captureFnRef.current({ autoFit: true, transparent: true }) : null
         if (thumb) {
           toSave = { ...toSave, thumbnailDataUrl: thumb }
         }
@@ -151,13 +158,24 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
     if (!isOpen) return
     return registerAssemblySession({
       getModel: () => modelRef.current,
-      setModel: (next) => setModel(next, DISCRETE),
+      setModel: (next) => {
+        modelRef.current = next
+        setModel(next, DISCRETE)
+      },
       getSelectedFaceId: () => selectedFaceIdRef.current,
       setSelectedFaceId: (id) => setSelectedFaceId(id),
       save: handleSave,
       insert: handleInsert,
       close: handleClose,
-      captureScreenshot: () => (captureFnRef.current ? captureFnRef.current() : null)
+      captureScreenshot: (opts) => (captureFnRef.current ? captureFnRef.current(opts) : null),
+      setCamera: (params) =>
+        setCameraFnRef.current
+          ? setCameraFnRef.current(params)
+          : { azimuth: 0, elevation: 0, radius: 1500, target: [0, 0, 0] },
+      getCamera: () =>
+        getCameraFnRef.current
+          ? getCameraFnRef.current()
+          : { azimuth: 0, elevation: 0, radius: 1500, target: [0, 0, 0] }
     })
   }, [isOpen, handleSave, handleInsert, handleClose, setModel])
 
@@ -206,6 +224,10 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
       onGestureChange={setGestureActive}
       onRegisterCapture={(fn) => {
         captureFnRef.current = fn
+      }}
+      onRegisterCamera={(setCam, getCam) => {
+        setCameraFnRef.current = setCam
+        getCameraFnRef.current = getCam
       }}
     />
   )

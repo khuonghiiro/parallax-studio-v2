@@ -345,6 +345,50 @@ export function clearAllStoredModels3D(): void {
   notifyModelsChanged()
 }
 
+function modelFolder(id: string): string {
+  return (id || 'model-custom').replace(/^model-/, '').replace(/[^a-zA-Z0-9_-]/g, '_')
+}
+
+export async function ensureModelThumbnails(models: Model3D[]): Promise<Model3D[]> {
+  if (typeof window === 'undefined' || !window.api?.asset3ds?.loadBytes) return models
+  const updated = await Promise.all(
+    models.map(async (m) => {
+      const cat = m.category || 'custom'
+      const folder = modelFolder(m.id)
+      const candPaths = [
+        m.thumbnail ? `${cat}/${folder}/${m.thumbnail}` : null,
+        `${cat}/${folder}/thumbnail.png`,
+        `${cat}/${folder}/thumb.webp`,
+        `${cat}/${folder}/review_cottage.png`,
+        m.thumbnail ? `${m.thumbnail}` : null
+      ].filter(Boolean) as string[]
+
+      for (const p of candPaths) {
+        try {
+          const res = await window.api.asset3ds.loadBytes(p)
+          if (res && res.data) {
+            let binary = ''
+            const bytes = res.data
+            const len = bytes.byteLength
+            for (let i = 0; i < len; i++) {
+              binary += String.fromCharCode(bytes[i])
+            }
+            const b64 = btoa(binary)
+            return {
+              ...m,
+              thumbnailDataUrl: `data:${res.mime || 'image/png'};base64,${b64}`
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+      return m
+    })
+  )
+  return updated
+}
+
 export async function fetchDiskModels3D(): Promise<Model3D[]> {
   try {
     if (typeof window !== 'undefined' && window.api?.asset3ds?.list) {
@@ -353,8 +397,13 @@ export async function fetchDiskModels3D(): Promise<Model3D[]> {
         const stored = getStoredModels3D()
         const map = new Map<string, Model3D>()
         for (const item of stored) map.set(item.id, item)
-        for (const item of diskModels) map.set(item.id, item)
-        const merged = Array.from(map.values())
+        for (const item of diskModels) {
+          const existing = map.get(item.id)
+          if (!existing || (item.updatedAt && item.updatedAt > (existing.updatedAt || 0))) {
+            map.set(item.id, item)
+          }
+        }
+        const merged = await ensureModelThumbnails(Array.from(map.values()))
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
         } catch {
@@ -369,7 +418,7 @@ export async function fetchDiskModels3D(): Promise<Model3D[]> {
   return getStoredModels3D()
 }
 
-export function saveModel3D(model: Model3D): void {
+export async function saveModel3D(model: Model3D): Promise<void> {
   const list = getStoredModels3D()
   const idx = list.findIndex(m => m.id === model.id)
   const updated: Model3D = { ...model, updatedAt: Date.now() }
@@ -384,14 +433,16 @@ export function saveModel3D(model: Model3D): void {
     // ignore
   }
   if (typeof window !== 'undefined' && window.api?.asset3ds?.save) {
-    window.api.asset3ds.save(updated).catch((err) => {
+    try {
+      await window.api.asset3ds.save(updated)
+    } catch (err) {
       console.warn('[models3dStorage] Error saving to asset-3ds:', err)
-    })
+    }
   }
   notifyModelsChanged()
 }
 
-export function deleteModel3D(id: string): void {
+export async function deleteModel3D(id: string): Promise<void> {
   const list = getStoredModels3D().filter(m => m.id !== id)
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
@@ -399,9 +450,11 @@ export function deleteModel3D(id: string): void {
     // ignore
   }
   if (typeof window !== 'undefined' && window.api?.asset3ds?.delete) {
-    window.api.asset3ds.delete(id).catch((err) => {
+    try {
+      await window.api.asset3ds.delete(id)
+    } catch (err) {
       console.warn('[models3dStorage] Error deleting from asset-3ds:', err)
-    })
+    }
   }
   notifyModelsChanged()
 }
@@ -426,9 +479,15 @@ export async function fetchAsset3DsCatalog(): Promise<{ categories: Asset3DsCate
     if (typeof window !== 'undefined' && window.api?.asset3ds?.getCatalog) {
       const res = await window.api.asset3ds.getCatalog()
       if (res && Array.isArray(res.categories) && Array.isArray(res.models)) {
+        const enriched = await ensureModelThumbnails(res.models)
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(enriched))
+        } catch {
+          // ignore
+        }
         return {
           categories: res.categories,
-          models: res.models
+          models: enriched
         }
       }
     }

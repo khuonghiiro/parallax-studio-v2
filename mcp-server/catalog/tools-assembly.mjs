@@ -201,8 +201,34 @@ export const ASSEMBLY_TOOLS = [
   },
   {
     name: 'get_assembly_screenshot', cat: 'assembly', format: 'image',
-    doc: L('Capture a screenshot of the currently active 3D Assembly workshop viewport (PNG).', 'Chụp ảnh khung nhìn xưởng lắp ráp 3D đang mở (PNG).'),
-    shape: () => ({})
+    doc: L(
+      'Capture a screenshot of the currently active 3D Assembly workshop viewport (PNG). Supports presets ("iso", "front", "left", etc.) and auto_fit framing.',
+      'Chụp ảnh khung nhìn xưởng lắp ráp 3D đang mở (PNG). Hỗ trợ các góc nhìn ("iso", "front", "left"...) và tự động căn khung auto_fit.'
+    ),
+    shape: (d) => ({
+      preset: z.enum(['front', 'back', 'left', 'right', 'top', 'bottom', 'iso', 'custom']).optional().describe(d('Camera angle preset.', 'Góc nhìn camera đặt sẵn.')),
+      frame_face_id: z.string().optional().describe(d('Zoom camera to frame a specific face.', 'Căn khung camera cận cảnh một mặt cụ thể.')),
+      auto_fit: z.boolean().optional().describe(d('Auto-fit all active faces into the isometric camera view.', 'Tự động tính góc nhìn 3/4 bao quát toàn bộ mô hình.')),
+      transparent: z.boolean().optional().describe(d('Render with transparent background (default true).', 'Xuất ảnh nền trong suốt (mặc định true).'))
+    }),
+    example: '{"preset":"iso","auto_fit":true}'
+  },
+  {
+    name: 'set_assembly_camera', cat: 'assembly',
+    doc: L(
+      'Adjust the 3D Assembly workshop camera angle, distance, target position, or frame specific parts.',
+      'Điều chỉnh góc xoay, khoảng cách, tâm nhìn của camera trong xưởng lắp ráp 3D hoặc căn khung theo bộ phận.'
+    ),
+    shape: (d) => ({
+      preset: z.enum(['front', 'back', 'left', 'right', 'top', 'bottom', 'iso', 'custom']).optional().describe(d('Camera preset angle.', 'Góc nhìn đặt sẵn.')),
+      azimuth: z.number().optional().describe(d('Horizontal orbit angle in degrees (-180 to 180).', 'Góc xoay ngang theo độ (-180 đến 180).')),
+      elevation: z.number().optional().describe(d('Vertical tilt angle in degrees (-85 to 85).', 'Góc nghiêng dọc theo độ (-85 đến 85).')),
+      radius: z.number().positive().optional().describe(d('Camera distance from target in units.', 'Khoảng cách từ camera đến tâm nhìn.')),
+      target: z.array(z.number()).length(3).optional().describe(d('Target position [x, y, z] to look at.', 'Tọa độ tâm nhìn [x, y, z].')),
+      frame_face_id: z.string().optional().describe(d('Focus and zoom onto a specific face ID.', 'Tập trung và zoom vào một mặt phẳng cụ thể.')),
+      frame_model: z.boolean().optional().describe(d('Frame the entire model nicely in view.', 'Căn khung toàn bộ mô hình trong tầm nhìn.'))
+    }),
+    example: '{"preset":"iso","frame_model":true}'
   },
   {
     name: 'open_assembly_workshop', cat: 'assembly',

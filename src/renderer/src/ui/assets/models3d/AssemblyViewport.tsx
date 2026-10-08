@@ -14,6 +14,9 @@ import { AssemblyGizmo } from './AssemblyGizmo'
 import type { GizmoRect } from '../../../engine/layerGizmo'
 import { useView } from '../../../store/view'
 
+import type { AssemblyCaptureOptions, AssemblyCameraState, SetAssemblyCameraParams } from './assemblyBridge'
+import type { CameraPreset } from './assemblyMeshFactory'
+
 export type GizmoMode = 'translate' | 'rotate' | 'off'
 
 interface AssemblyViewportProps {
@@ -36,7 +39,12 @@ interface AssemblyViewportProps {
   /** Start / end of a continuous gesture (gizmo or face drag) → one undo step. */
   onGestureChange?: (active: boolean) => void
   /** Register callback to capture viewport screenshot as base64 png */
-  onRegisterCapture?: (fn: () => string | null) => void
+  onRegisterCapture?: (fn: (opts?: AssemblyCaptureOptions) => string | null) => void
+  /** Register camera control callbacks */
+  onRegisterCamera?: (
+    setCamera: (params: SetAssemblyCameraParams) => AssemblyCameraState,
+    getCamera: () => AssemblyCameraState
+  ) => void
 }
 
 type DragMode = 'none' | 'orbit' | 'panSpace' | 'dragFace'
@@ -58,7 +66,8 @@ export function AssemblyViewport({
   onToggleMeshCell,
   onToggleSelectCell,
   onGestureChange,
-  onRegisterCapture
+  onRegisterCapture,
+  onRegisterCamera
 }: AssemblyViewportProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
@@ -83,11 +92,15 @@ export function AssemblyViewport({
 
   useEffect(() => {
     if (!onRegisterCapture) return
-    onRegisterCapture(() => {
+    onRegisterCapture((opts?: AssemblyCaptureOptions) => {
       const r = rendererRef.current
       const scene = sceneRef.current
       const camera = cameraRef.current
       if (!r || !scene || !camera) return null
+
+      const o = orbitRef.current
+      const prevOrbit = { az: o.azimuth, el: o.elevation, r: o.radius, t: o.target.clone() }
+      const prevCamPos = camera.position.clone()
 
       // Lưu trạng thái hiển thị của các thành phần phụ trợ
       const helpers = helpersGroupRef.current
@@ -118,8 +131,41 @@ export function AssemblyViewport({
         })
       }
 
-      // Đặt background thành null để render PNG trong suốt (alpha: true đã bật sẵn)
-      scene.background = null
+      // Đặt góc nhìn tối ưu cho chụp ảnh
+      if (opts?.frameFaceId) {
+        const face = model.faces.find((f) => f.id === opts.frameFaceId && !f.hidden)
+        if (face) {
+          const box = new THREE.Box3().setFromPoints(faceCornersThree(face, scale))
+          const sphere = box.getBoundingSphere(new THREE.Sphere())
+          o.target.copy(sphere.center)
+          o.radius = Math.max(150, Math.min(6000, (sphere.radius * 1.5) / Math.tan((camera.fov * Math.PI) / 360)))
+        }
+      } else if (opts?.autoFit || opts?.cameraPreset === 'iso') {
+        const activeFaces = model.faces.filter((f) => !f.hidden)
+        if (activeFaces.length > 0) {
+          const box = new THREE.Box3().setFromPoints(activeFaces.flatMap((f) => faceCornersThree(f, scale)))
+          const sphere = box.getBoundingSphere(new THREE.Sphere())
+          o.target.copy(sphere.center)
+          o.azimuth = -Math.PI / 4
+          o.elevation = 0.45
+          o.radius = Math.max(300, Math.min(8000, (sphere.radius * 1.35) / Math.tan((camera.fov * Math.PI) / 360)))
+        }
+      } else if (opts?.cameraPreset) {
+        applyCameraPreset(o, opts.cameraPreset as CameraPreset)
+      }
+
+      // Cập nhật vị trí camera theo orbit
+      camera.position.set(
+        o.target.x + o.radius * Math.cos(o.elevation) * Math.sin(o.azimuth),
+        o.target.y + o.radius * Math.sin(o.elevation),
+        o.target.z + o.radius * Math.cos(o.elevation) * Math.cos(o.azimuth)
+      )
+      camera.lookAt(o.target)
+      camera.updateMatrixWorld()
+
+      if (opts?.transparent !== false) {
+        scene.background = null
+      }
 
       let dataUrl: string | null = null
       try {
@@ -129,6 +175,14 @@ export function AssemblyViewport({
         console.warn('[AssemblyViewport] Capture error:', err)
       } finally {
         // Khôi phục lại trạng thái cũ
+        o.azimuth = prevOrbit.az
+        o.elevation = prevOrbit.el
+        o.radius = prevOrbit.r
+        o.target.copy(prevOrbit.t)
+        camera.position.copy(prevCamPos)
+        camera.lookAt(o.target)
+        camera.updateMatrixWorld()
+
         if (helpers) helpers.visible = prevHelpersVis
         if (lightRig?.ground) lightRig.ground.visible = prevGroundVis
         if (lightRig?.marker) lightRig.marker.visible = prevMarkerVis
@@ -145,7 +199,66 @@ export function AssemblyViewport({
     return () => {
       onRegisterCapture(() => null)
     }
-  }, [onRegisterCapture])
+  }, [onRegisterCapture, model.faces, scale])
+
+  useEffect(() => {
+    if (!onRegisterCamera) return
+    const setCamera = (params: SetAssemblyCameraParams): AssemblyCameraState => {
+      const o = orbitRef.current
+      const camera = cameraRef.current
+      if (params.preset) {
+        applyCameraPreset(o, params.preset as CameraPreset)
+      }
+      if (typeof params.azimuth === 'number') {
+        o.azimuth = (params.azimuth * Math.PI) / 180
+      }
+      if (typeof params.elevation === 'number') {
+        o.elevation = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, (params.elevation * Math.PI) / 180))
+      }
+      if (typeof params.radius === 'number' && params.radius > 0) {
+        o.radius = params.radius
+      }
+      if (params.target && Array.isArray(params.target) && params.target.length === 3) {
+        o.target.set(params.target[0], params.target[1], -params.target[2])
+      }
+      if (params.frameFaceId) {
+        const face = model.faces.find((f) => f.id === params.frameFaceId && !f.hidden)
+        if (face && camera) {
+          const box = new THREE.Box3().setFromPoints(faceCornersThree(face, scale))
+          const sphere = box.getBoundingSphere(new THREE.Sphere())
+          o.target.copy(sphere.center)
+          o.radius = Math.max(150, Math.min(6000, (sphere.radius * 1.5) / Math.tan((camera.fov * Math.PI) / 360)))
+        }
+      } else if (params.frameModel) {
+        const activeFaces = model.faces.filter((f) => !f.hidden)
+        if (activeFaces.length > 0 && camera) {
+          const box = new THREE.Box3().setFromPoints(activeFaces.flatMap((f) => faceCornersThree(f, scale)))
+          const sphere = box.getBoundingSphere(new THREE.Sphere())
+          o.target.copy(sphere.center)
+          o.radius = Math.max(300, Math.min(8000, (sphere.radius * 1.8) / Math.tan((camera.fov * Math.PI) / 360)))
+        }
+      }
+      bumpGizmo()
+      return {
+        azimuth: Math.round((o.azimuth * 180) / Math.PI),
+        elevation: Math.round((o.elevation * 180) / Math.PI),
+        radius: Math.round(o.radius),
+        target: [Math.round(o.target.x), Math.round(o.target.y), Math.round(-o.target.z)]
+      }
+    }
+
+    const getCamera = (): AssemblyCameraState => {
+      const o = orbitRef.current
+      return {
+        azimuth: Math.round((o.azimuth * 180) / Math.PI),
+        elevation: Math.round((o.elevation * 180) / Math.PI),
+        radius: Math.round(o.radius),
+        target: [Math.round(o.target.x), Math.round(o.target.y), Math.round(-o.target.z)]
+      }
+    }
+
+    onRegisterCamera(setCamera, getCamera)
+  }, [onRegisterCamera, model.faces, scale, bumpGizmo])
 
   // Load face textures asynchronously
   useEffect(() => {

@@ -3,6 +3,7 @@
   "name": "Biệt Thự Tudor 3D Lắp Ráp Hoàn Chỉnh",
   "description": "Biệt thự Tudor cao cấp ghép nối modular 3D hoàn chỉnh: Cửa vòm đá, cửa sổ chì mở cánh, bồn hoa ban công, ống khói gạch và bụi cây cảnh sân vườn.",
   "category": "architecture",
+  "thumbnail": "thumbnail.png",
   "scale": 0.6,
   "faces": [
     {
@@ -24,8 +25,8 @@
       "clipBy": [
         "face-roof-left",
         "face-roof-right",
-        "face-muz0y839-16",
-        "face-muz0y8fv-1b"
+        "face-muz2iy4u-cy",
+        "face-muz2iyxt-d3"
       ]
     },
     {
@@ -66,10 +67,10 @@
         0
       ],
       "clipBy": [
-        "face-muz0y707-m",
-        "face-muz0y8fv-17",
-        "face-muz0y8fv-1a",
-        "face-muz0y8fv-1b"
+        "face-muz2iwie-ce",
+        "face-muz2iyxt-cz",
+        "face-muz2izkf-d6",
+        "face-muz2izkf-d8"
       ]
     },
     {
@@ -89,10 +90,10 @@
         0
       ],
       "clipBy": [
-        "face-muz0y78d-s",
-        "face-muz0y839-12",
-        "face-muz0y839-14",
-        "face-muz0y839-16"
+        "face-muz2ix5m-ck",
+        "face-muz2iy4u-cu",
+        "face-muz2j00c-dc",
+        "face-muz2j00c-dd"
       ]
     },
     {
@@ -129,18 +130,18 @@
         0
       ],
       "clipBy": [
-        "face-muz0y7i2-y"
+        "face-muz2ixo1-cq"
       ]
     },
     {
-      "id": "face-muz0y653-0",
+      "id": "face-muz2iuxd-bs",
       "name": "Cánh cửa gỗ vòm đá",
       "assetPath": "assembly_3d/modular/decor_door.png",
       "width": 187,
       "height": 340,
       "position": [
         0,
-        -54.8,
+        -29.98,
         -1.7
       ],
       "rotation": [
@@ -150,14 +151,14 @@
       ]
     },
     {
-      "id": "face-muz0y653-1",
+      "id": "face-muz2iuxd-bt",
       "name": "Cột trụ đá trái",
       "color": "#64748b",
       "width": 26,
       "height": 357,
       "position": [
         -106.2,
-        -46.3,
+        -21.48,
         -6.8
       ],
       "rotation": [
@@ -167,14 +168,14 @@
       ]
     },
     {
-      "id": "face-muz0y653-2",
+      "id": "face-muz2iuxd-bu",
       "name": "Cột trụ đá phải",
       "color": "#64748b",
       "width": 26,
       "height": 357,
       "position": [
         106.3,
-        -46.3,
+        -21.48,
         -6.8
       ],
       "rotation": [
@@ -184,31 +185,35 @@
       ]
     },
     {
-      "id": "face-muz0y653-3",
+      "id": "face-muz2iuxd-bv",
       "name": "Vòm đá đỉnh cửa",
       "color": "#475569",
       "width": 238,
       "height": 26,
       "position": [
         0,
-        128,
+        152.82,
         -6.8
       ],
       "rotation": [
         0,
         0,
         0
+      ],
+      "clipBy": [
+        "face-muz2ivcd-c3",
+        "face-muz2ivcd-c4"
       ]
     },
     {
-      "id": "face-muz0y653-4",
+      "id": "face-muz2iuxd-bw",
       "name": "Mặt bậc thềm đá",
       "color": "#334155",
       "width": 272,
       "height": 68,
       "position": [
         0,
-        -224.8,
+        -199.98,
         -34
       ],
       "rotation": [
@@ -218,14 +223,14 @@
       ]
     },
     {
-      "id": "face-muz0y653-5",
+      "id": "face-muz2iuxd-bx",
       "name": "Mặt đứng bậc thềm",
       "color": "#1e293b",
       "width": 272,
       "height": 26,
       "position": [
         0,
-        -237.5,
+        -212.68,
         -68
       ],
       "rotation": [
@@ -235,14 +240,14 @@
       ]
     },
     {
-      "id": "face-muz0y653-6",
+      "id": "face-muz2iuxd-by",
       "name": "Mái che ngói nghiêng",
       "assetPath": "assembly_3d/modular/roof_terracotta.png",
       "width": 272,
       "height": 102,
       "position": [
         0,
-        166.2,
+        191.02,
         -43.1
       ],
       "rotation": [
@@ -251,19 +256,18 @@
         0
       ],
       "clipBy": [
-        "face-muz0y6oa-h",
-        "face-muz0y6oa-j"
+        "face-muz2ivrn-c9"
       ]
     },
     {
-      "id": "face-muz0y6fr-7",
+      "id": "face-muz2ivcd-bz",
       "name": "Mặt kính hoa văn chì",
       "assetPath": "assembly_3d/modular/decor_window.png",
       "width": 150,
       "height": 195,
       "position": [
         0,
-        248.8,
+        269.99,
         -1.5
       ],
       "rotation": [
@@ -273,14 +277,14 @@
       ]
     },
     {
-      "id": "face-muz0y6fr-8",
+      "id": "face-muz2ivcd-c0",
       "name": "Khung trên gỗ sồi",
       "color": "#451a03",
       "width": 188,
       "height": 23,
       "position": [
         0,
-        357.6,
+        378.79,
         -9
       ],
       "rotation": [
@@ -290,14 +294,14 @@
       ]
     },
     {
-      "id": "face-muz0y6fr-9",
+      "id": "face-muz2ivcd-c1",
       "name": "Bậu cửa mặt trên",
       "color": "#3b1c0b",
       "width": 188,
       "height": 30,
       "position": [
         0,
-        151.3,
+        172.49,
         -15
       ],
       "rotation": [
@@ -306,19 +310,19 @@
         0
       ],
       "clipBy": [
-        "face-muz0y6fr-b",
-        "face-muz0y6fr-c"
+        "face-muz2ivcd-c3",
+        "face-muz2ivcd-c4"
       ]
     },
     {
-      "id": "face-muz0y6fr-a",
+      "id": "face-muz2ivcd-c2",
       "name": "Bậu cửa mặt đứng",
       "color": "#291409",
       "width": 188,
       "height": 12,
       "position": [
         0,
-        145.3,
+        166.49,
         -30
       ],
       "rotation": [
@@ -327,20 +331,19 @@
         0
       ],
       "clipBy": [
-        "face-muz0y6fr-b",
-        "face-muz0y6fr-c",
-        "face-muz0y6oa-h"
+        "face-muz2ivcd-c3",
+        "face-muz2ivcd-c4"
       ]
     },
     {
-      "id": "face-muz0y6fr-b",
+      "id": "face-muz2ivcd-c3",
       "name": "Cánh cửa sổ trái mở",
       "assetPath": "assembly_3d/modular/decor_window.png",
       "width": 79,
       "height": 195,
       "position": [
         -67.3,
-        248.8,
+        269.99,
         -24.1
       ],
       "rotation": [
@@ -349,18 +352,18 @@
         0
       ],
       "clipBy": [
-        "face-muz0y653-6"
+        "face-muz2iuxd-by"
       ]
     },
     {
-      "id": "face-muz0y6fr-c",
+      "id": "face-muz2ivcd-c4",
       "name": "Cánh cửa sổ phải mở",
       "assetPath": "assembly_3d/modular/decor_window.png",
       "width": 79,
       "height": 195,
       "position": [
         67.3,
-        248.8,
+        269.99,
         -24.1
       ],
       "rotation": [
@@ -369,18 +372,18 @@
         0
       ],
       "clipBy": [
-        "face-muz0y653-6"
+        "face-muz2iuxd-by"
       ]
     },
     {
-      "id": "face-muz0y6oa-d",
+      "id": "face-muz2ivrn-c5",
       "name": "Thành bồn trước",
       "color": "#5c3a21",
       "width": 182,
       "height": 49,
       "position": [
         0,
-        130,
+        141.02,
         -63
       ],
       "rotation": [
@@ -389,19 +392,19 @@
         0
       ],
       "clipBy": [
-        "face-muz0y653-6",
-        "face-muz0y6oa-h"
+        "face-muz2iuxd-by",
+        "face-muz2ivrn-c9"
       ]
     },
     {
-      "id": "face-muz0y6oa-e",
+      "id": "face-muz2ivrn-c6",
       "name": "Thành bồn trái",
       "color": "#4a2e18",
       "width": 42,
       "height": 49,
       "position": [
         -91,
-        130,
+        141.02,
         -42
       ],
       "rotation": [
@@ -410,22 +413,22 @@
         0
       ],
       "clipBy": [
-        "face-muz0y653-6",
-        "face-muz0y6fr-a",
-        "face-muz0y6oa-h",
-        "face-muz0y6oa-i",
-        "face-muz0y6oa-j"
+        "face-muz2iuxd-by",
+        "face-muz2ivcd-c2",
+        "face-muz2ivrn-c9",
+        "face-muz2ivrn-ca",
+        "face-muz2ivrn-cb"
       ]
     },
     {
-      "id": "face-muz0y6oa-f",
+      "id": "face-muz2ivrn-c7",
       "name": "Thành bồn phải",
       "color": "#4a2e18",
       "width": 42,
       "height": 49,
       "position": [
         91,
-        130,
+        141.02,
         -42
       ],
       "rotation": [
@@ -434,22 +437,22 @@
         0
       ],
       "clipBy": [
-        "face-muz0y653-6",
-        "face-muz0y6fr-a",
-        "face-muz0y6oa-h",
-        "face-muz0y6oa-i",
-        "face-muz0y6oa-j"
+        "face-muz2iuxd-by",
+        "face-muz2ivcd-c2",
+        "face-muz2ivrn-c9",
+        "face-muz2ivrn-ca",
+        "face-muz2ivrn-cb"
       ]
     },
     {
-      "id": "face-muz0y6oa-g",
+      "id": "face-muz2ivrn-c8",
       "name": "Đáy bồn gỗ",
       "color": "#3d2512",
       "width": 182,
       "height": 42,
       "position": [
         0,
-        105.5,
+        116.52,
         -42
       ],
       "rotation": [
@@ -459,35 +462,31 @@
       ]
     },
     {
-      "id": "face-muz0y6oa-h",
+      "id": "face-muz2ivrn-c9",
       "name": "Đất mùn trồng hoa",
       "color": "#1c1917",
       "width": 175,
       "height": 39,
       "position": [
         0,
-        147.5,
+        158.52,
         -42
       ],
       "rotation": [
         -90,
         0,
         0
-      ],
-      "clipBy": [
-        "face-muz0y6fr-b",
-        "face-muz0y6fr-c"
       ]
     },
     {
-      "id": "face-muz0y6oa-i",
+      "id": "face-muz2ivrn-ca",
       "name": "Khóm hoa trước rủ",
       "assetPath": "assembly_3d/modular/decor_flower_box.png",
       "width": 196,
       "height": 77,
       "position": [
         0,
-        172,
+        183.02,
         -52.5
       ],
       "rotation": [
@@ -496,19 +495,19 @@
         0
       ],
       "clipBy": [
-        "face-muz0y653-6",
-        "face-muz0y6oa-h"
+        "face-muz2iuxd-by",
+        "face-muz2ivrn-c9"
       ]
     },
     {
-      "id": "face-muz0y6oa-j",
+      "id": "face-muz2ivrn-cb",
       "name": "Khóm hoa sau vươn cao",
       "assetPath": "assembly_3d/modular/decor_flower_box.png",
       "width": 196,
       "height": 98,
       "position": [
         0,
-        182.5,
+        193.52,
         -31.5
       ],
       "rotation": [
@@ -517,21 +516,22 @@
         0
       ],
       "clipBy": [
-        "face-muz0y6fr-9",
-        "face-muz0y6fr-b",
-        "face-muz0y6fr-c",
-        "face-muz0y6oa-h"
+        "face-muz2iuxd-by",
+        "face-muz2ivcd-c1",
+        "face-muz2ivcd-c3",
+        "face-muz2ivcd-c4",
+        "face-muz2ivrn-c9"
       ]
     },
     {
-      "id": "face-muz0y707-k",
+      "id": "face-muz2iwie-cc",
       "name": "Mặt kính hoa văn chì",
       "assetPath": "assembly_3d/modular/decor_window.png",
       "width": 150,
       "height": 195,
       "position": [
         -301.5,
-        -20,
+        20,
         300
       ],
       "rotation": [
@@ -541,14 +541,14 @@
       ]
     },
     {
-      "id": "face-muz0y707-l",
+      "id": "face-muz2iwie-cd",
       "name": "Khung trên gỗ sồi",
       "color": "#451a03",
       "width": 188,
       "height": 23,
       "position": [
         -309,
-        88.8,
+        128.8,
         300
       ],
       "rotation": [
@@ -558,14 +558,14 @@
       ]
     },
     {
-      "id": "face-muz0y707-m",
+      "id": "face-muz2iwie-ce",
       "name": "Bậu cửa mặt trên",
       "color": "#3b1c0b",
       "width": 188,
       "height": 30,
       "position": [
         -315,
-        -117.5,
+        -77.5,
         300
       ],
       "rotation": [
@@ -574,19 +574,19 @@
         0
       ],
       "clipBy": [
-        "face-muz0y707-o",
-        "face-muz0y707-p"
+        "face-muz2iwie-cg",
+        "face-muz2iwie-ch"
       ]
     },
     {
-      "id": "face-muz0y707-n",
+      "id": "face-muz2iwie-cf",
       "name": "Bậu cửa mặt đứng",
       "color": "#291409",
       "width": 188,
       "height": 12,
       "position": [
         -330,
-        -123.5,
+        -83.5,
         300
       ],
       "rotation": [
@@ -595,19 +595,19 @@
         0
       ],
       "clipBy": [
-        "face-muz0y707-o",
-        "face-muz0y707-p"
+        "face-muz2iwie-cg",
+        "face-muz2iwie-ch"
       ]
     },
     {
-      "id": "face-muz0y707-o",
+      "id": "face-muz2iwie-cg",
       "name": "Cánh cửa sổ trái mở",
       "assetPath": "assembly_3d/modular/decor_window.png",
       "width": 79,
       "height": 195,
       "position": [
         -324.1,
-        -20,
+        20,
         367.3
       ],
       "rotation": [
@@ -617,31 +617,34 @@
       ]
     },
     {
-      "id": "face-muz0y707-p",
+      "id": "face-muz2iwie-ch",
       "name": "Cánh cửa sổ phải mở",
       "assetPath": "assembly_3d/modular/decor_window.png",
       "width": 79,
       "height": 195,
       "position": [
         -324.1,
-        -20,
+        20,
         232.7
       ],
       "rotation": [
         0,
         55,
         0
+      ],
+      "clipBy": [
+        "face-muz2izkf-d8"
       ]
     },
     {
-      "id": "face-muz0y78d-q",
+      "id": "face-muz2ix5m-ci",
       "name": "Mặt kính hoa văn chì",
       "assetPath": "assembly_3d/modular/decor_window.png",
       "width": 150,
       "height": 195,
       "position": [
         301.5,
-        -20,
+        20,
         300
       ],
       "rotation": [
@@ -651,14 +654,14 @@
       ]
     },
     {
-      "id": "face-muz0y78d-r",
+      "id": "face-muz2ix5m-cj",
       "name": "Khung trên gỗ sồi",
       "color": "#451a03",
       "width": 188,
       "height": 23,
       "position": [
         309,
-        88.8,
+        128.8,
         300
       ],
       "rotation": [
@@ -668,14 +671,14 @@
       ]
     },
     {
-      "id": "face-muz0y78d-s",
+      "id": "face-muz2ix5m-ck",
       "name": "Bậu cửa mặt trên",
       "color": "#3b1c0b",
       "width": 188,
       "height": 30,
       "position": [
         315,
-        -117.5,
+        -77.5,
         300
       ],
       "rotation": [
@@ -684,19 +687,19 @@
         0
       ],
       "clipBy": [
-        "face-muz0y78d-u",
-        "face-muz0y78d-v"
+        "face-muz2ix5m-cm",
+        "face-muz2ix5m-cn"
       ]
     },
     {
-      "id": "face-muz0y78d-t",
+      "id": "face-muz2ix5m-cl",
       "name": "Bậu cửa mặt đứng",
       "color": "#291409",
       "width": 188,
       "height": 12,
       "position": [
         330,
-        -123.5,
+        -83.5,
         300
       ],
       "rotation": [
@@ -705,36 +708,39 @@
         0
       ],
       "clipBy": [
-        "face-muz0y78d-u",
-        "face-muz0y78d-v"
+        "face-muz2ix5m-cm",
+        "face-muz2ix5m-cn"
       ]
     },
     {
-      "id": "face-muz0y78d-u",
+      "id": "face-muz2ix5m-cm",
       "name": "Cánh cửa sổ trái mở",
       "assetPath": "assembly_3d/modular/decor_window.png",
       "width": 79,
       "height": 195,
       "position": [
         324.1,
-        -20,
+        20,
         232.7
       ],
       "rotation": [
         0,
         -55,
         0
+      ],
+      "clipBy": [
+        "face-muz2j00c-dd"
       ]
     },
     {
-      "id": "face-muz0y78d-v",
+      "id": "face-muz2ix5m-cn",
       "name": "Cánh cửa sổ phải mở",
       "assetPath": "assembly_3d/modular/decor_window.png",
       "width": 79,
       "height": 195,
       "position": [
         324.1,
-        -20,
+        20,
         367.3
       ],
       "rotation": [
@@ -744,7 +750,7 @@
       ]
     },
     {
-      "id": "face-muz0y7i2-w",
+      "id": "face-muz2ixo1-co",
       "name": "Vách ống khói trước",
       "assetPath": "assembly_3d/modular/decor_chimney.png",
       "width": 94,
@@ -761,7 +767,7 @@
       ]
     },
     {
-      "id": "face-muz0y7i2-x",
+      "id": "face-muz2ixo1-cp",
       "name": "Vách ống khói sau",
       "assetPath": "assembly_3d/modular/decor_chimney.png",
       "width": 94,
@@ -778,7 +784,7 @@
       ]
     },
     {
-      "id": "face-muz0y7i2-y",
+      "id": "face-muz2ixo1-cq",
       "name": "Vách ống khói trái",
       "assetPath": "assembly_3d/modular/decor_chimney.png",
       "width": 94,
@@ -795,7 +801,7 @@
       ]
     },
     {
-      "id": "face-muz0y7i2-z",
+      "id": "face-muz2ixo1-cr",
       "name": "Vách ống khói phải",
       "assetPath": "assembly_3d/modular/decor_chimney.png",
       "width": 94,
@@ -812,7 +818,7 @@
       ]
     },
     {
-      "id": "face-muz0y7i2-10",
+      "id": "face-muz2ixo1-cs",
       "name": "Mũ ống khói trên",
       "color": "#991b1b",
       "width": 119,
@@ -828,14 +834,14 @@
         -180
       ],
       "clipBy": [
-        "face-muz0y7i2-w",
-        "face-muz0y7i2-x",
-        "face-muz0y7i2-y",
-        "face-muz0y7i2-z"
+        "face-muz2ixo1-co",
+        "face-muz2ixo1-cp",
+        "face-muz2ixo1-cq",
+        "face-muz2ixo1-cr"
       ]
     },
     {
-      "id": "face-muz0y7i2-11",
+      "id": "face-muz2ixo1-ct",
       "name": "Viền gờ mũ ống khói",
       "color": "#7f1d1d",
       "width": 119,
@@ -852,15 +858,15 @@
       ]
     },
     {
-      "id": "face-muz0y839-12",
+      "id": "face-muz2iy4u-cu",
       "name": "Cụm tán trung tâm",
       "assetPath": "assembly_3d/modular/nature_bush.png",
-      "width": 288,
-      "height": 252,
+      "width": 272,
+      "height": 238,
       "position": [
-        380,
-        -180,
-        100
+        340,
+        -88,
+        70
       ],
       "rotation": [
         0,
@@ -868,19 +874,22 @@
         0
       ],
       "clipBy": [
-        "face-muz0y839-16"
+        "face-muz2iy4u-cy",
+        "face-muz2j00c-da",
+        "face-muz2j00c-dc",
+        "face-muz2j00c-dd"
       ]
     },
     {
-      "id": "face-muz0y839-13",
+      "id": "face-muz2iy4u-cv",
       "name": "Cụm tán đan chéo thể tích",
       "assetPath": "assembly_3d/modular/nature_bush.png",
-      "width": 288,
-      "height": 252,
+      "width": 272,
+      "height": 238,
       "position": [
-        380,
-        -180,
-        100
+        340,
+        -88,
+        70
       ],
       "rotation": [
         0,
@@ -888,21 +897,22 @@
         0
       ],
       "clipBy": [
-        "face-muz0y839-14",
-        "face-muz0y839-15",
-        "face-muz0y839-16"
+        "face-muz2iy4u-cw",
+        "face-muz2iy4u-cx",
+        "face-muz2iy4u-cy",
+        "face-muz2j00c-d9"
       ]
     },
     {
-      "id": "face-muz0y839-14",
+      "id": "face-muz2iy4u-cw",
       "name": "Cụm lá xòe trái trước",
       "assetPath": "assembly_3d/modular/nature_bush.png",
-      "width": 216,
-      "height": 198,
+      "width": 204,
+      "height": 187,
       "position": [
-        308,
-        -198,
-        37
+        272,
+        -105,
+        10.5
       ],
       "rotation": [
         0,
@@ -910,19 +920,22 @@
         0
       ],
       "clipBy": [
-        "face-muz0y839-15"
+        "face-right",
+        "face-muz2iy4u-cx",
+        "face-muz2j00c-da",
+        "face-muz2j00c-dd"
       ]
     },
     {
-      "id": "face-muz0y839-15",
+      "id": "face-muz2iy4u-cx",
       "name": "Cụm lá xòe phải trước",
       "assetPath": "assembly_3d/modular/nature_bush.png",
-      "width": 216,
-      "height": 198,
+      "width": 204,
+      "height": 187,
       "position": [
-        452,
-        -198,
-        37
+        408,
+        -105,
+        10.5
       ],
       "rotation": [
         0,
@@ -931,15 +944,15 @@
       ]
     },
     {
-      "id": "face-muz0y839-16",
+      "id": "face-muz2iy4u-cy",
       "name": "Vòm lá đón sáng trên",
       "assetPath": "assembly_3d/modular/nature_bush.png",
-      "width": 234,
-      "height": 234,
+      "width": 221,
+      "height": 221,
       "position": [
-        380,
-        -108,
-        100
+        340,
+        -20,
+        70
       ],
       "rotation": [
         -90,
@@ -947,21 +960,22 @@
         0
       ],
       "clipBy": [
-        "face-muz0y78d-u",
-        "face-muz0y839-14",
-        "face-muz0y839-15"
+        "face-right",
+        "face-muz2iy4u-cw",
+        "face-muz2iy4u-cx",
+        "face-muz2j00c-d9"
       ]
     },
     {
-      "id": "face-muz0y8fv-17",
+      "id": "face-muz2iyxt-cz",
       "name": "Cụm tán trung tâm",
       "assetPath": "assembly_3d/modular/nature_bush.png",
-      "width": 288,
-      "height": 252,
+      "width": 272,
+      "height": 238,
       "position": [
-        -380,
-        -180,
-        100
+        -340,
+        -88,
+        70
       ],
       "rotation": [
         0,
@@ -969,19 +983,22 @@
         0
       ],
       "clipBy": [
-        "face-muz0y8fv-1b"
+        "face-muz2iyxt-d3",
+        "face-muz2izkf-d5",
+        "face-muz2izkf-d6",
+        "face-muz2izkf-d8"
       ]
     },
     {
-      "id": "face-muz0y8fv-18",
+      "id": "face-muz2iyxt-d0",
       "name": "Cụm tán đan chéo thể tích",
       "assetPath": "assembly_3d/modular/nature_bush.png",
-      "width": 288,
-      "height": 252,
+      "width": 272,
+      "height": 238,
       "position": [
-        -380,
-        -180,
-        100
+        -340,
+        -88,
+        70
       ],
       "rotation": [
         0,
@@ -989,21 +1006,22 @@
         0
       ],
       "clipBy": [
-        "face-muz0y8fv-19",
-        "face-muz0y8fv-1a",
-        "face-muz0y8fv-1b"
+        "face-muz2iyxt-d1",
+        "face-muz2iyxt-d2",
+        "face-muz2iyxt-d3",
+        "face-muz2izkf-d4"
       ]
     },
     {
-      "id": "face-muz0y8fv-19",
+      "id": "face-muz2iyxt-d1",
       "name": "Cụm lá xòe trái trước",
       "assetPath": "assembly_3d/modular/nature_bush.png",
-      "width": 216,
-      "height": 198,
+      "width": 204,
+      "height": 187,
       "position": [
-        -452,
-        -198,
-        37
+        -408,
+        -105,
+        10.5
       ],
       "rotation": [
         0,
@@ -1011,36 +1029,41 @@
         0
       ],
       "clipBy": [
-        "face-muz0y8fv-1a"
+        "face-muz2iyxt-d2"
       ]
     },
     {
-      "id": "face-muz0y8fv-1a",
+      "id": "face-muz2iyxt-d2",
       "name": "Cụm lá xòe phải trước",
       "assetPath": "assembly_3d/modular/nature_bush.png",
-      "width": 216,
-      "height": 198,
+      "width": 204,
+      "height": 187,
       "position": [
-        -308,
-        -198,
-        37
+        -272,
+        -105,
+        10.5
       ],
       "rotation": [
         0,
         -30,
         0
+      ],
+      "clipBy": [
+        "face-left",
+        "face-muz2izkf-d5",
+        "face-muz2izkf-d8"
       ]
     },
     {
-      "id": "face-muz0y8fv-1b",
+      "id": "face-muz2iyxt-d3",
       "name": "Vòm lá đón sáng trên",
       "assetPath": "assembly_3d/modular/nature_bush.png",
-      "width": 234,
-      "height": 234,
+      "width": 221,
+      "height": 221,
       "position": [
-        -380,
-        -108,
-        100
+        -340,
+        -20,
+        70
       ],
       "rotation": [
         -90,
@@ -1048,15 +1071,225 @@
         0
       ],
       "clipBy": [
-        "face-muz0y707-p",
-        "face-muz0y8fv-19",
-        "face-muz0y8fv-1a"
+        "face-left",
+        "face-muz2iyxt-d1",
+        "face-muz2iyxt-d2",
+        "face-muz2izkf-d4"
+      ]
+    },
+    {
+      "id": "face-muz2izkf-d4",
+      "name": "Cụm tán trung tâm",
+      "assetPath": "assembly_3d/modular/nature_bush.png",
+      "width": 208,
+      "height": 182,
+      "position": [
+        -230,
+        -112,
+        130
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "clipBy": [
+        "face-left",
+        "face-muz2izkf-d8"
+      ]
+    },
+    {
+      "id": "face-muz2izkf-d5",
+      "name": "Cụm tán đan chéo thể tích",
+      "assetPath": "assembly_3d/modular/nature_bush.png",
+      "width": 208,
+      "height": 182,
+      "position": [
+        -230,
+        -112,
+        130
+      ],
+      "rotation": [
+        0,
+        90,
+        0
+      ],
+      "clipBy": [
+        "face-muz2izkf-d6",
+        "face-muz2izkf-d7",
+        "face-muz2izkf-d8"
+      ]
+    },
+    {
+      "id": "face-muz2izkf-d6",
+      "name": "Cụm lá xòe trái trước",
+      "assetPath": "assembly_3d/modular/nature_bush.png",
+      "width": 156,
+      "height": 143,
+      "position": [
+        -282,
+        -125,
+        84.5
+      ],
+      "rotation": [
+        0,
+        30,
+        0
+      ],
+      "clipBy": [
+        "face-muz2iyxt-d0",
+        "face-muz2izkf-d7"
+      ]
+    },
+    {
+      "id": "face-muz2izkf-d7",
+      "name": "Cụm lá xòe phải trước",
+      "assetPath": "assembly_3d/modular/nature_bush.png",
+      "width": 156,
+      "height": 143,
+      "position": [
+        -178,
+        -125,
+        84.5
+      ],
+      "rotation": [
+        0,
+        -30,
+        0
+      ],
+      "clipBy": [
+        "face-muz2iyxt-cz"
+      ]
+    },
+    {
+      "id": "face-muz2izkf-d8",
+      "name": "Vòm lá đón sáng trên",
+      "assetPath": "assembly_3d/modular/nature_bush.png",
+      "width": 169,
+      "height": 169,
+      "position": [
+        -230,
+        -60,
+        130
+      ],
+      "rotation": [
+        -90,
+        0,
+        0
+      ],
+      "clipBy": [
+        "face-muz2izkf-d6",
+        "face-muz2izkf-d7"
+      ]
+    },
+    {
+      "id": "face-muz2j00c-d9",
+      "name": "Cụm tán trung tâm",
+      "assetPath": "assembly_3d/modular/nature_bush.png",
+      "width": 208,
+      "height": 182,
+      "position": [
+        230,
+        -112,
+        130
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "clipBy": [
+        "face-right",
+        "face-muz2j00c-dd"
+      ]
+    },
+    {
+      "id": "face-muz2j00c-da",
+      "name": "Cụm tán đan chéo thể tích",
+      "assetPath": "assembly_3d/modular/nature_bush.png",
+      "width": 208,
+      "height": 182,
+      "position": [
+        230,
+        -112,
+        130
+      ],
+      "rotation": [
+        0,
+        90,
+        0
+      ],
+      "clipBy": [
+        "face-muz2j00c-db",
+        "face-muz2j00c-dc",
+        "face-muz2j00c-dd"
+      ]
+    },
+    {
+      "id": "face-muz2j00c-db",
+      "name": "Cụm lá xòe trái trước",
+      "assetPath": "assembly_3d/modular/nature_bush.png",
+      "width": 156,
+      "height": 143,
+      "position": [
+        178,
+        -125,
+        84.5
+      ],
+      "rotation": [
+        0,
+        30,
+        0
+      ],
+      "clipBy": [
+        "face-muz2iy4u-cu",
+        "face-muz2j00c-dc"
+      ]
+    },
+    {
+      "id": "face-muz2j00c-dc",
+      "name": "Cụm lá xòe phải trước",
+      "assetPath": "assembly_3d/modular/nature_bush.png",
+      "width": 156,
+      "height": 143,
+      "position": [
+        282,
+        -125,
+        84.5
+      ],
+      "rotation": [
+        0,
+        -30,
+        0
+      ],
+      "clipBy": [
+        "face-muz2iy4u-cv"
+      ]
+    },
+    {
+      "id": "face-muz2j00c-dd",
+      "name": "Vòm lá đón sáng trên",
+      "assetPath": "assembly_3d/modular/nature_bush.png",
+      "width": 169,
+      "height": 169,
+      "position": [
+        230,
+        -60,
+        130
+      ],
+      "rotation": [
+        -90,
+        0,
+        0
+      ],
+      "clipBy": [
+        "face-muz2j00c-db",
+        "face-muz2j00c-dc"
       ]
     }
   ],
-  "createdAt": 1791432990381,
-  "updatedAt": 1791433024066,
-  "thumbnail": "thumbnail.png",
+  "createdAt": 1791435431492,
+  "updatedAt": 1791436306606,
   "lighting": {
     "sun": true,
     "shadows": true,

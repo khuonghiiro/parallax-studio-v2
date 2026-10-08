@@ -3,6 +3,7 @@
   "name": "Cửa Vòm Cổng Đá 3D",
   "description": "Cửa ra vào vòm cuốn đá khối, cánh gỗ sồi bản lề rèn thép, bậc thềm đá và mái ngói hiên.",
   "category": "decor",
+  "thumbnail": "thumbnail.png",
   "scale": 0.6,
   "faces": [
     {
@@ -126,6 +127,5 @@
     }
   ],
   "createdAt": 1791432990341,
-  "updatedAt": 1791433044169,
-  "thumbnail": "thumbnail.png"
+  "updatedAt": 1791435840666
 }

@@ -177,7 +177,8 @@ Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC**
 - `list_assembly_templates`: Liệt kê khuôn mẫu (nhãn Anh/Việt, số mặt, điểm neo của bộ phận trang trí), lọc theo `category`: `architecture` (khung nhà chỉ tường + mái), `decor` (cửa sổ, cửa ra vào, ống khói, cột, ban công, bồn hoa, chậu cây, đèn, biển, mái hiên, hàng rào), `props`, `nature`, `stage`.
 - `apply_assembly_template`: Áp dụng khuôn mẫu hình học dựng sẵn (khung nhà, bộ phận trang trí, hộp, lều, tháp…) mà vẫn bảo toàn ảnh texture của người dùng.
 - `append_assembly_model`: Ghép một mô hình **đã lưu** (thường là bộ phận `decor`) vào mô hình đang lắp: gắn lên mặt `face_id` tại `uv`, đặt tại điểm `at`, hoặc đặt cạnh mô hình. Tự khớp tỉ lệ, sinh id mới, ánh xạ lại `clipBy`.
-- `get_assembly_screenshot`: Chụp ảnh khung nhìn xưởng lắp ráp 3D đang mở.
+- `get_assembly_screenshot`: Chụp ảnh khung nhìn xưởng lắp ráp 3D đang mở (hỗ trợ các preset góc nhìn `iso`, `front`, `left`, `right`, `top`, `frame_face_id`, `auto_fit`).
+- `set_assembly_camera`: Điều khiển camera xưởng 3D (preset góc nhìn, xoay azimuth/elevation, khoảng cách radius, tâm nhìn target, căn khung theo mặt hoặc toàn bộ mô hình).
 - `open_assembly_workshop`: Mở modal Xưởng Lắp Ráp 3D trên màn hình ứng dụng để chỉnh sửa thời gian thực (realtime) cho người dùng quan sát (`model_id`, `template_id`, `name`).
 - `close_assembly_workshop`: Đóng cửa sổ Xưởng Lắp Ráp 3D (tùy chọn tự chụp ảnh preview sạch và lưu lại nếu `save: true`).
 - `set_assembly_face_image`: Gán ảnh chất liệu texture (`asset_path` tương đối hoặc `image_data_url` base64) cho một mặt phẳng 3D và tùy chọn cập nhật kích thước theo ảnh.

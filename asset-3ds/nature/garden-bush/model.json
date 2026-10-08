@@ -3,6 +3,7 @@
   "name": "Bụi Cây Hoa Sân Vườn 3D",
   "description": "Bụi cây xanh xum xuê 5 cụm đan chéo đa góc nhìn thể tích, rực rỡ điểm xuyết hoa cỏ.",
   "category": "nature",
+  "thumbnail": "thumbnail.png",
   "scale": 0.6,
   "faces": [
     {
@@ -92,6 +93,5 @@
     }
   ],
   "createdAt": 1791432990364,
-  "updatedAt": 1791433051643,
-  "thumbnail": "thumbnail.png"
+  "updatedAt": 1791435855376
 }

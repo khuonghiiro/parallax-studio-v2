@@ -3,6 +3,7 @@
   "name": "Cửa Sổ Tudor Khung Gỗ 3D",
   "description": "Cửa sổ hoa văn chì cổ điển có bậu cửa gỗ và 2 cánh mở góc 35 độ, gắn lên tường.",
   "category": "decor",
+  "thumbnail": "thumbnail.png",
   "scale": 0.6,
   "faces": [
     {
@@ -109,6 +110,5 @@
     }
   ],
   "createdAt": 1791432990329,
-  "updatedAt": 1791433045795,
-  "thumbnail": "thumbnail.png"
+  "updatedAt": 1791435844570
 }

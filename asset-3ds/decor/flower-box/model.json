@@ -3,6 +3,7 @@
   "name": "Bồn Hoa Dưới Cửa 3D",
   "description": "Bồn hoa gỗ sồi treo dưới bậu cửa sổ, ngập tràn hoa phong lữ và dây leo trường xuân.",
   "category": "decor",
+  "thumbnail": "thumbnail.png",
   "scale": 0.6,
   "faces": [
     {
@@ -126,6 +127,5 @@
     }
   ],
   "createdAt": 1791432990350,
-  "updatedAt": 1791433047324,
-  "thumbnail": "thumbnail.png"
+  "updatedAt": 1791435848903
 }

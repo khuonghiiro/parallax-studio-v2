@@ -3,6 +3,7 @@
   "name": "Ống Khói Gạch Cổ Điển 3D",
   "description": "Ống khói gạch nung nắp chụp gờ cổ điển, cắm xuyên mái dốc công trình.",
   "category": "decor",
+  "thumbnail": "thumbnail.png",
   "scale": 0.6,
   "faces": [
     {
@@ -109,6 +110,5 @@
     }
   ],
   "createdAt": 1791432990356,
-  "updatedAt": 1791433049655,
-  "thumbnail": "thumbnail.png"
+  "updatedAt": 1791435852080
 }
