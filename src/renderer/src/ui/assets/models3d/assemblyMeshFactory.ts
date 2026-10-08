@@ -161,12 +161,15 @@ function buildFaceGeometry(
   const depthIntensity = face.depthIntensity || 0
   const depthInvert = face.depthInvert || false
   const presetPolygon = face.silhouettePolygon
+  const arcAngle = face.arcAngle || 0
+  const taperRatio = face.taperRatio ?? 1
 
   if (presetPolygon && presetPolygon.length >= 3) {
     return buildAlphaTrimmedGeometry(
       w, h, resolved?.image ?? null, cols, rows, bendX, bendY, bendRegion,
       hiddenCells, gridRotation, selectedCells, cellBendAngle, true,
-      depthProfile, depthIntensity, depthInvert, presetPolygon, bendLateral
+      depthProfile, depthIntensity, depthInvert, presetPolygon, bendLateral,
+      arcAngle, taperRatio
     )
   }
   if (resolved) {
@@ -174,16 +177,19 @@ function buildFaceGeometry(
       return buildAlphaTrimmedGeometry(
         w, h, resolved.image, cols, rows, bendX, bendY, bendRegion,
         hiddenCells, gridRotation, selectedCells, cellBendAngle, face.meshMode !== 'manual',
-        depthProfile, depthIntensity, depthInvert, undefined, bendLateral
+        depthProfile, depthIntensity, depthInvert, undefined, bendLateral,
+        arcAngle, taperRatio
       )
     }
     return buildCurvedPlaneGeometry(
       w, h, cols, rows, bendX, bendY, bendRegion,
-      depthProfile, depthIntensity, depthInvert, resolved.image, bendLateral
+      depthProfile, depthIntensity, depthInvert, resolved.image, bendLateral,
+      arcAngle, taperRatio
     )
   }
   return buildCurvedPlaneGeometry(
-    w, h, cols, rows, bendX, bendY, bendRegion, depthProfile, depthIntensity, depthInvert, undefined, bendLateral
+    w, h, cols, rows, bendX, bendY, bendRegion, depthProfile, depthIntensity, depthInvert, undefined, bendLateral,
+    arcAngle, taperRatio
   )
 }
 

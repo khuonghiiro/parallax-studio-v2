@@ -179,8 +179,8 @@ const props: AssemblyTemplate[] = [
     id: 'curved-pillar', label: 'Thân trụ cong', category: 'props', hint: '2 mặt uốn cong úp vào nhau thành khối tròn',
     en: { label: 'Curved pillar', hint: '2 bent faces closing into a round body' },
     faces: () => [
-      face('Nửa trước', 400, 600, [0, 0, 0], FRONT, undefined, { bendX: 100 }),
-      face('Nửa sau', 400, 600, [0, 0, 0], BACK, undefined, { bendX: 100 })
+      face('Nửa trước', 400, 600, [0, 0, 0], FRONT, undefined, { arcAngle: 180, bendX: 100, mesh: { gridRes: 32, meshMode: 'auto' } }),
+      face('Nửa sau', 400, 600, [0, 0, 0], BACK, undefined, { arcAngle: 180, bendX: 100, mesh: { gridRes: 32, meshMode: 'auto' } })
     ]
   },
   {

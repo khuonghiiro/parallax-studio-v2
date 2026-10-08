@@ -127,6 +127,7 @@ export default function App() {
       {dialog === 'audio' && <AudioStudioDialog />}
       {assemblyModalModel && (
         <Assembly3DDialog
+          key={assemblyModalModel.id}
           isOpen={true}
           initialModel={assemblyModalModel}
           onClose={closeAssemblyWorkshop}

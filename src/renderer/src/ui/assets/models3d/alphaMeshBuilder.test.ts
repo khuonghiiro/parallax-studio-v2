@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BufferGeometry } from 'three'
-import { buildAlphaTrimmedGeometry, computeBendZ, computeBendLateralX } from './alphaMeshBuilder'
+import { buildAlphaTrimmedGeometry, computeBendZ, computeBendLateralX, computeVertexBend } from './alphaMeshBuilder'
 
 /** Geometry is indexed (welded vertices) — count rendered triangles. */
 const triCount = (geo: BufferGeometry): number => {
@@ -309,5 +309,67 @@ describe('alphaMeshBuilder - Custom Mesh Frame & Rotatable Grid', () => {
       }
     }
     expect(maxTopX).toBeGreaterThan(50)
+  })
+
+  it('computes exact circular cylinder arcs with arcAngle without gaps', () => {
+    // 90° arc for 4-sided cylinder (chord width 200)
+    const chord = 200
+    const arc90 = 90
+    const halfAngle = (45 * Math.PI) / 180
+    const expectedRadius = (chord / 2) / Math.sin(halfAngle)
+    const centerOffset = expectedRadius * Math.cos(halfAngle)
+
+    // Left edge u=0
+    const left = computeVertexBend(0, 0.5, chord, 400, 100, 0, 0, 'all', arc90)
+    expect(left.x).toBeCloseTo(-chord / 2, 2)
+    expect(left.z).toBeCloseTo(0, 2)
+
+    // Right edge u=1
+    const right = computeVertexBend(1, 0.5, chord, 400, 100, 0, 0, 'all', arc90)
+    expect(right.x).toBeCloseTo(chord / 2, 2)
+    expect(right.z).toBeCloseTo(0, 2)
+
+    // Apex u=0.5
+    const apex = computeVertexBend(0.5, 0.5, chord, 400, 100, 0, 0, 'all', arc90)
+    expect(apex.x).toBeCloseTo(0, 2)
+    expect(apex.z).toBeCloseTo(expectedRadius * (1 - Math.cos(halfAngle)), 2)
+
+    // All sample points across the width lie on the circle of radius expectedRadius
+    for (let i = 0; i <= 10; i++) {
+      const u = i / 10
+      const pt = computeVertexBend(u, 0.5, chord, 400, 100, 0, 0, 'all', arc90)
+      const distFromCenter = Math.hypot(pt.x, pt.z + centerOffset)
+      expect(distFromCenter).toBeCloseTo(expectedRadius, 2)
+    }
+  })
+
+  it('computes 180° semi-cylinder arcs for 2-face round pillars', () => {
+    const width = 400
+    const arc180 = 180
+    const expectedRadius = 200
+
+    const left = computeVertexBend(0, 0.5, width, 600, 100, 0, 0, 'all', arc180)
+    expect(left.x).toBeCloseTo(-200, 2)
+    expect(left.z).toBeCloseTo(0, 2)
+
+    const right = computeVertexBend(1, 0.5, width, 600, 100, 0, 0, 'all', arc180)
+    expect(right.x).toBeCloseTo(200, 2)
+    expect(right.z).toBeCloseTo(0, 2)
+
+    const apex = computeVertexBend(0.5, 0.5, width, 600, 100, 0, 0, 'all', arc180)
+    expect(apex.x).toBeCloseTo(0, 2)
+    expect(apex.z).toBeCloseTo(expectedRadius, 2)
+  })
+
+  it('computes tapered cone geometry scaling smoothly from base to apex', () => {
+    const width = 200
+    const taper = 0.4 // 40% width at top
+    // Base v=0: full width
+    const baseLeft = computeVertexBend(0, 0, width, 500, 100, 0, 0, 'all', 90, taper)
+    expect(baseLeft.x).toBeCloseTo(-100, 2)
+
+    // Top v=1: tapered to 40% (width 80)
+    const topLeft = computeVertexBend(0, 1, width, 500, 100, 0, 0, 'all', 90, taper)
+    expect(topLeft.x).toBeCloseTo(-40, 2)
   })
 })

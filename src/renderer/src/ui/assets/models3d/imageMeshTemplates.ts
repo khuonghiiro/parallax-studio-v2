@@ -401,24 +401,24 @@ interface GrassBladeSpec {
 
 const GRASS_BLADES: GrassBladeSpec[] = [
   // 4 ngọn cỏ cao ở tâm: vươn cao, uốn vòm rủ ngọn và uốn lượn hình chữ S
-  { name: 'Cỏ cao rủ 1', deg: 30, w: 76, h: 380, tilt: 8, radius: 10, bendY: 26, bendX: 20, bendLateral: -28, region: 'top', polygon: GRASS_BLADE_DROOP_POLYGON },
-  { name: 'Cỏ cao thẳng 2', deg: 120, w: 70, h: 350, tilt: 10, radius: 12, bendY: 24, bendX: 20, bendLateral: 22, region: 'top', polygon: GRASS_BLADE_UPRIGHT_POLYGON },
-  { name: 'Cỏ cao sóng 3', deg: 210, w: 76, h: 380, tilt: 9, radius: 11, bendY: 25, bendX: 20, bendLateral: -30, region: 'curl', polygon: GRASS_BLADE_S_CURVE_POLYGON },
-  { name: 'Cỏ cao rủ 4', deg: 300, w: 72, h: 360, tilt: 11, radius: 12, bendY: 28, bendX: 22, bendLateral: 32, region: 'top', polygon: GRASS_BLADE_DROOP_POLYGON },
+  { name: 'Cỏ cao rủ 1', deg: 30, w: 76, h: 380, tilt: 8, radius: 4, bendY: 26, bendX: 20, bendLateral: -28, region: 'top', polygon: GRASS_BLADE_DROOP_POLYGON },
+  { name: 'Cỏ cao thẳng 2', deg: 120, w: 70, h: 350, tilt: 10, radius: 5, bendY: 24, bendX: 20, bendLateral: 22, region: 'top', polygon: GRASS_BLADE_UPRIGHT_POLYGON },
+  { name: 'Cỏ cao sóng 3', deg: 210, w: 76, h: 380, tilt: 9, radius: 4, bendY: 25, bendX: 20, bendLateral: -30, region: 'curl', polygon: GRASS_BLADE_S_CURVE_POLYGON },
+  { name: 'Cỏ cao rủ 4', deg: 300, w: 72, h: 360, tilt: 11, radius: 5, bendY: 28, bendX: 22, bendLateral: 32, region: 'top', polygon: GRASS_BLADE_DROOP_POLYGON },
 
   // 5 ngọn cỏ tầm trung: uốn lượn tỏa đều vòng cung sang trái / phải
-  { name: 'Cỏ uốn trái 1', deg: 20, w: 52, h: 260, tilt: 24, radius: 24, bendY: 38, bendX: 22, bendLateral: -38, region: 'all', polygon: GRASS_BLADE_CURVE_LEFT_POLYGON },
-  { name: 'Cỏ uốn phải 2', deg: 90, w: 50, h: 250, tilt: 26, radius: 26, bendY: 40, bendX: 24, bendLateral: 42, region: 'all', polygon: GRASS_BLADE_CURVE_RIGHT_POLYGON },
-  { name: 'Cỏ uốn trái 3', deg: 165, w: 52, h: 260, tilt: 23, radius: 25, bendY: 36, bendX: 22, bendLateral: -36, region: 'all', polygon: GRASS_BLADE_CURVE_LEFT_POLYGON },
-  { name: 'Cỏ uốn phải 4', deg: 235, w: 50, h: 250, tilt: 28, radius: 27, bendY: 42, bendX: 24, bendLateral: 40, region: 'all', polygon: GRASS_BLADE_CURVE_RIGHT_POLYGON },
-  { name: 'Cỏ sóng chữ S 5', deg: 310, w: 54, h: 270, tilt: 22, radius: 23, bendY: 35, bendX: 22, bendLateral: -32, region: 'curl', polygon: GRASS_BLADE_S_CURVE_POLYGON },
+  { name: 'Cỏ uốn trái 1', deg: 20, w: 52, h: 260, tilt: 24, radius: 9, bendY: 38, bendX: 22, bendLateral: -38, region: 'all', polygon: GRASS_BLADE_CURVE_LEFT_POLYGON },
+  { name: 'Cỏ uốn phải 2', deg: 90, w: 50, h: 250, tilt: 26, radius: 10, bendY: 40, bendX: 24, bendLateral: 42, region: 'all', polygon: GRASS_BLADE_CURVE_RIGHT_POLYGON },
+  { name: 'Cỏ uốn trái 3', deg: 165, w: 52, h: 260, tilt: 23, radius: 9, bendY: 36, bendX: 22, bendLateral: -36, region: 'all', polygon: GRASS_BLADE_CURVE_LEFT_POLYGON },
+  { name: 'Cỏ uốn phải 4', deg: 235, w: 50, h: 250, tilt: 28, radius: 11, bendY: 42, bendX: 24, bendLateral: 40, region: 'all', polygon: GRASS_BLADE_CURVE_RIGHT_POLYGON },
+  { name: 'Cỏ sóng chữ S 5', deg: 310, w: 54, h: 270, tilt: 22, radius: 10, bendY: 35, bendX: 22, bendLateral: -32, region: 'curl', polygon: GRASS_BLADE_S_CURVE_POLYGON },
 
-  // 5 ngọn cỏ tầng thấp: già hơn, xòe ngang uốn lượn sát đất sang hai bên (như nét vẽ tay ảnh 1)
-  { name: 'Cỏ xòe ngang trái 1', deg: 55, w: 36, h: 180, tilt: 46, radius: 42, bendY: 52, bendX: 24, bendLateral: -46, region: 'all', polygon: GRASS_BLADE_FAR_LEFT_POLYGON },
-  { name: 'Cỏ xòe ngang phải 2', deg: 135, w: 32, h: 160, tilt: 52, radius: 46, bendY: 56, bendX: 25, bendLateral: 50, region: 'all', polygon: GRASS_BLADE_FAR_RIGHT_POLYGON },
-  { name: 'Cỏ xòe ngang trái 3', deg: 195, w: 38, h: 190, tilt: 44, radius: 40, bendY: 50, bendX: 24, bendLateral: -44, region: 'all', polygon: GRASS_BLADE_FAR_LEFT_POLYGON },
-  { name: 'Cỏ xòe ngang phải 4', deg: 275, w: 32, h: 160, tilt: 54, radius: 48, bendY: 58, bendX: 26, bendLateral: 52, region: 'all', polygon: GRASS_BLADE_FAR_RIGHT_POLYGON },
-  { name: 'Cỏ xòe ngang trái 5', deg: 345, w: 36, h: 180, tilt: 48, radius: 44, bendY: 54, bendX: 25, bendLateral: -48, region: 'all', polygon: GRASS_BLADE_FAR_LEFT_POLYGON }
+  // 5 ngọn cỏ tầng thấp: già hơn, xòe ngang uốn lượn sát đất sang hai bên
+  { name: 'Cỏ xòe ngang trái 1', deg: 55, w: 36, h: 180, tilt: 46, radius: 14, bendY: 52, bendX: 24, bendLateral: -46, region: 'all', polygon: GRASS_BLADE_FAR_LEFT_POLYGON },
+  { name: 'Cỏ xòe ngang phải 2', deg: 135, w: 32, h: 160, tilt: 52, radius: 15, bendY: 56, bendX: 25, bendLateral: 50, region: 'all', polygon: GRASS_BLADE_FAR_RIGHT_POLYGON },
+  { name: 'Cỏ xòe ngang trái 3', deg: 195, w: 38, h: 190, tilt: 44, radius: 13, bendY: 50, bendX: 24, bendLateral: -44, region: 'all', polygon: GRASS_BLADE_FAR_LEFT_POLYGON },
+  { name: 'Cỏ xòe ngang phải 4', deg: 275, w: 32, h: 160, tilt: 54, radius: 16, bendY: 58, bendX: 26, bendLateral: 52, region: 'all', polygon: GRASS_BLADE_FAR_RIGHT_POLYGON },
+  { name: 'Cỏ xòe ngang trái 5', deg: 345, w: 36, h: 180, tilt: 48, radius: 14, bendY: 54, bendX: 25, bendLateral: -48, region: 'all', polygon: GRASS_BLADE_FAR_LEFT_POLYGON }
 ]
 
 function radialGrassFaces(): TemplateFaceSpec[] {
@@ -437,7 +437,7 @@ function radialGrassFaces(): TemplateFaceSpec[] {
       -Math.cos(phi) * Math.cos(tRad)
     ]
     const rootX = b.radius * Math.sin(phi)
-    const rootY = 0
+    const rootY = -140
     const rootZ = -b.radius * Math.cos(phi)
     const c: [number, number, number] = [
       rootX + up[0] * (b.h / 2),
@@ -448,7 +448,7 @@ function radialGrassFaces(): TemplateFaceSpec[] {
       bendX: b.bendX,
       bendY: b.bendY,
       bendLateral: b.bendLateral,
-      bendRegion: 'top',
+      bendRegion: b.region ?? 'all',
       silhouettePolygon: b.polygon
     }), 'blade', 'ridge', 12)
   })

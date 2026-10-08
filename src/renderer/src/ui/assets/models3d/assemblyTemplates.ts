@@ -10,7 +10,7 @@ export type { AssemblyTemplate, TemplateCategory } from './assemblyTemplateData'
 const NEUTRAL_COLORS = ['#7c8cff', '#38bdf8', '#22d3ee', '#a78bfa', '#60a5fa', '#94a3b8']
 
 /** Template-controlled shape fields; reset when a template is applied. */
-const SHAPE_KEYS = ['bendX', 'bendY', 'bendLateral', 'bendRegion', 'silhouettePolygon'] as const
+const SHAPE_KEYS = ['bendX', 'bendY', 'bendLateral', 'bendRegion', 'arcAngle', 'taperRatio', 'silhouettePolygon'] as const
 
 export function findTemplate(id: string): AssemblyTemplate | undefined {
   return ASSEMBLY_TEMPLATES.find((t) => t.id === id)
@@ -35,6 +35,8 @@ export function templateFaces(template: AssemblyTemplate, idPrefix = template.id
     if (spec.bendY) f.bendY = spec.bendY
     if (spec.bendLateral) f.bendLateral = spec.bendLateral
     if (spec.bendRegion) f.bendRegion = spec.bendRegion
+    if (spec.arcAngle) f.arcAngle = spec.arcAngle
+    if (spec.taperRatio !== undefined) f.taperRatio = spec.taperRatio
     if (spec.silhouettePolygon) f.silhouettePolygon = spec.silhouettePolygon
     return f
   })
@@ -65,7 +67,8 @@ export function replaceWithTemplate(template: AssemblyTemplate, current: Face3D[
       color: src.color ?? slot.color
     }
   })
-  return [...folded, ...current.slice(slots.length)]
+  const extra = current.slice(slots.length).filter((f) => f.assetPath || f.assetId)
+  return [...folded, ...extra]
 }
 
 /** Append: adds the template's faces next to (to the right of) the current model. */

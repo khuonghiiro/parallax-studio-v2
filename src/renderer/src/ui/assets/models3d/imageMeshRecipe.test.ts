@@ -68,9 +68,9 @@ describe('image mesh recipes', () => {
     // Heights vary across blades (350, 300, 250, 200, 175)
     const heights = new Set(faces.map((f) => f.height))
     expect(heights.size).toBeGreaterThanOrEqual(4)
-    // Every face has bendRegion top and bendY curvature
+    // Every face has organic bendRegion (top, all, curl) and bendY curvature
     for (const f of faces) {
-      expect(f.bendRegion).toBe('top')
+      expect(['top', 'all', 'curl']).toContain(f.bendRegion)
       expect(f.bendY).toBeGreaterThanOrEqual(20)
     }
   })

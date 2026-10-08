@@ -26,6 +26,8 @@ export interface TemplateFaceSpec {
   bendY?: number
   bendLateral?: number
   bendRegion?: Face3D['bendRegion']
+  arcAngle?: number
+  taperRatio?: number
   silhouettePolygon?: number[][]
   imageSlot?: string
   mesh?: Pick<Face3D, 'meshMode' | 'gridRes' | 'depthProfile' | 'depthIntensity'>
@@ -197,13 +199,11 @@ export function curvedCylinderFaces(
   h: number,
   sides = 4,
   bendAmount?: number,
-  prefix = 'Mặt cong'
+  prefix = 'Mảnh cong trụ'
 ): TemplateFaceSpec[] {
   const halfAngle = Math.PI / sides
-  const autoBend = Math.min(100, Math.max(10, Math.round((100 * Math.tan(halfAngle / 2)) / 0.7)))
-  const actualBend = bendAmount !== undefined ? bendAmount : autoBend
-
-  const w = Math.round(2 * radius * Math.sin(halfAngle) * 1.01)
+  const arcAngle = 360 / sides
+  const w = Math.round(2 * radius * Math.sin(halfAngle))
   const dist = radius * Math.cos(halfAngle)
 
   return Array.from({ length: sides }, (_, i) => {
@@ -217,7 +217,11 @@ export function curvedCylinderFaces(
       [dist * Math.sin(phi), 0, -dist * Math.cos(phi)],
       n,
       undefined,
-      { bendX: actualBend }
+      {
+        arcAngle,
+        bendX: bendAmount ?? 100,
+        mesh: { gridRes: 32, meshMode: 'auto' }
+      }
     )
   })
 }
@@ -234,13 +238,14 @@ export function taperedConeFaces(
   prefix = 'Vách côn'
 ): TemplateFaceSpec[] {
   const halfAngle = Math.PI / sides
-  const midRadius = (bottomRadius + topRadius) / 2
-  const autoBend = Math.min(100, Math.max(10, Math.round((100 * Math.tan(halfAngle / 2)) / 0.7)))
-  const actualBend = bendAmount !== undefined ? bendAmount : autoBend
-
-  const w = Math.round(2 * midRadius * Math.sin(halfAngle) * 1.01)
-  const dist = midRadius * Math.cos(halfAngle)
-  const tiltDeg = (Math.atan2(bottomRadius - topRadius, h) * 180) / Math.PI
+  const arcAngle = 360 / sides
+  const taperRatio = topRadius / bottomRadius
+  const distBottom = bottomRadius * Math.cos(halfAngle)
+  const distTop = topRadius * Math.cos(halfAngle)
+  const distMid = (distBottom + distTop) / 2
+  const slantH = Math.round(Math.hypot(h, distBottom - distTop))
+  const tiltDeg = (Math.atan2(distBottom - distTop, h) * 180) / Math.PI
+  const wBottom = Math.round(2 * bottomRadius * Math.sin(halfAngle))
 
   return Array.from({ length: sides }, (_, i) => {
     const deg = (i * 360) / sides
@@ -258,12 +263,17 @@ export function taperedConeFaces(
     ]
     return face(
       `${prefix} ${i + 1} (${deg}°)`,
-      w,
-      h,
-      [dist * Math.sin(phi), 0, -dist * Math.cos(phi)],
+      wBottom,
+      slantH,
+      [distMid * Math.sin(phi), 0, -distMid * Math.cos(phi)],
       n,
       up,
-      { bendX: actualBend }
+      {
+        arcAngle,
+        taperRatio,
+        bendX: bendAmount ?? 100,
+        mesh: { gridRes: 32, meshMode: 'auto' }
+      }
     )
   })
 }

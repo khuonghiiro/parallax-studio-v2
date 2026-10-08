@@ -219,7 +219,9 @@ async function cmdReview(opts) {
   const res =
     view === 'app'
       ? await sendCommand('get_app_screenshot', { format: 'png' })
-      : await sendCommand('get_viewport_screenshot', { view, time, width: 960, format: 'png' })
+      : view === 'assembly'
+        ? await sendCommand('get_assembly_screenshot', {})
+        : await sendCommand('get_viewport_screenshot', { view, time, width: 960, format: 'png' })
   if (!res?.data) throw new Error(t('noImage'))
   const absOut = isAbsolute(outPath) ? outPath : resolve(process.cwd(), outPath)
   mkdirSync(join(absOut, '..'), { recursive: true })

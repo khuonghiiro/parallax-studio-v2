@@ -164,6 +164,70 @@ export function computeBendLateralX(
   return (bendLateral / 100) * Math.pow(t, 1.4) * (height * 0.25)
 }
 
+export interface VertexBendResult {
+  x: number
+  z: number
+}
+
+/**
+ * Tính toán độ biến dạng (x, z) của đỉnh tại (u, v) trên mặt phẳng (width, height).
+ * Hỗ trợ:
+ * 1. Cung tròn trụ 360° chính xác (arcAngle: 180°, 90°, 60°, 45°):
+ *    Tọa độ đỉnh tuân theo tiết diện tròn chuẩn x(θ) = R(v) * sin(θ), z(θ) = R(v) * (cos(θ) - cos(halfAngle)).
+ *    Các cạnh biên tại u=0 và u=1 khép khít cạnh và tiếp tuyến C1 mượt mà giữa các mảnh trụ.
+ * 2. Ống côn thuôn nhọn / thân cây (taperRatio < 1):
+ *    Bán kính và bề ngang thuôn đều từ đáy lên ngọn: R(v) = R_bottom + v * (R_top - R_bottom).
+ * 3. Uốn cong mặt phẳng thông thường (bendX, bendY, bendLateral, region).
+ */
+export function computeVertexBend(
+  u: number,
+  v: number,
+  width: number,
+  height: number,
+  bendX = 0,
+  bendY = 0,
+  bendLateral = 0,
+  region: BendRegion = 'all',
+  arcAngle = 0,
+  taperRatio = 1
+): VertexBendResult {
+  let x = 0
+  let z = 0
+
+  const sV = taperRatio < 1 ? 1 - (1 - taperRatio) * v : 1
+  const localWidth = width * sV
+
+  if (arcAngle > 0) {
+    const bendFactor = bendX !== 0 ? bendX / 100 : 1.0
+    const alpha = (arcAngle * Math.PI / 180) * bendFactor
+    const halfAngle = alpha / 2
+    if (Math.abs(halfAngle) > 1e-4) {
+      const radius = (localWidth / 2) / Math.sin(halfAngle)
+      const theta = (u - 0.5) * alpha
+      x = radius * Math.sin(theta)
+      z = radius * (Math.cos(theta) - Math.cos(halfAngle))
+    } else {
+      x = (u - 0.5) * localWidth
+      z = 0
+    }
+  } else {
+    x = (u - 0.5) * localWidth
+    z = computeBendZ(u, v, localWidth, height, bendX, 0, region)
+  }
+
+  // Vertical bend (bendY)
+  if (bendY !== 0) {
+    z += computeBendZ(u, v, localWidth, height, 0, bendY, region)
+  }
+
+  // Lateral S-curve / curve bend (bendLateral)
+  if (bendLateral !== 0) {
+    x += computeBendLateralX(u, v, width, height, bendLateral, region)
+  }
+
+  return { x, z }
+}
+
 /**
  * Builds a custom Three.js plane geometry that hugs the visible pixels of the image.
  *
@@ -190,7 +254,9 @@ export function buildAlphaTrimmedGeometry(
   depthIntensity = 0,
   depthInvert = false,
   presetPolygon?: number[][],
-  bendLateral = 0
+  bendLateral = 0,
+  arcAngle = 0,
+  taperRatio = 1
 ): THREE.BufferGeometry {
   const hiddenSet = new Set(hiddenCells || [])
   const selectedSet = new Set(selectedCells || [])
@@ -198,14 +264,14 @@ export function buildAlphaTrimmedGeometry(
   const image = alphaGridOrImage && !Array.isArray(alphaGridOrImage) ? alphaGridOrImage : undefined
 
   let silhouette: Silhouette | null = null
-  if (presetPolygon && presetPolygon.length >= 3) {
+  if (autoTrimAlpha && image) {
+    // Dynamic alpha trimming: when an image is loaded, dynamically hug THAT image's alpha outline!
+    silhouette = getImageSilhouette(image)
+  } else if (presetPolygon && presetPolygon.length >= 3) {
+    // Fallback outline preview when no image is loaded yet
     silhouette = silhouetteFromPolygon(presetPolygon, 'uv')
-  } else if (autoTrimAlpha) {
-    silhouette = image
-      ? getImageSilhouette(image)
-      : alphaGridOrImage && Array.isArray(alphaGridOrImage)
-        ? silhouetteFromBoolGrid(alphaGridOrImage, cols, rows)
-        : null
+  } else if (autoTrimAlpha && alphaGridOrImage && Array.isArray(alphaGridOrImage)) {
+    silhouette = silhouetteFromBoolGrid(alphaGridOrImage, cols, rows)
   }
   const lumSampler: LuminanceSampler | undefined =
     image && depthProfile === 'luminance'
@@ -223,15 +289,15 @@ export function buildAlphaTrimmedGeometry(
     if (existing !== undefined) return existing
     const u = gx
     const v = 1 - gy
+    const bend = computeVertexBend(u, v, width, height, bendX, bendY, bendLateral, region, arcAngle, taperRatio)
     const z =
-      computeBendZ(u, v, width, height, bendX, bendY, region) +
+      bend.z +
       computeDepthProfileZ({
         u, v, width, height, profile: depthProfile, intensity: depthIntensity, invert: depthInvert, luminanceSampler: lumSampler
       }) +
       extraZ
-    const latX = computeBendLateralX(u, v, width, height, bendLateral, region)
     const [tu, tv] = transformUV(u, v)
-    positions.push(-width / 2 + gx * width + latX, height / 2 - gy * height, z)
+    positions.push(bend.x, height / 2 - gy * height, z)
     uvs.push(tu, tv)
     const index = positions.length / 3 - 1
     vertexIds.set(id, index)
@@ -252,7 +318,7 @@ export function buildAlphaTrimmedGeometry(
   // Fallback if no visible vertices found
   if (indices.length === 0) {
     return buildCurvedPlaneGeometry(
-      width, height, cols, rows, bendX, bendY, region, depthProfile, depthIntensity, depthInvert, image, bendLateral
+      width, height, cols, rows, bendX, bendY, region, depthProfile, depthIntensity, depthInvert, image, bendLateral, arcAngle, taperRatio
     )
   }
 
@@ -285,7 +351,9 @@ export function buildCurvedPlaneGeometry(
   depthIntensity = 0,
   depthInvert = false,
   image?: HTMLImageElement | HTMLCanvasElement,
-  bendLateral = 0
+  bendLateral = 0,
+  arcAngle = 0,
+  taperRatio = 1
 ): THREE.BufferGeometry {
   const geo = new THREE.PlaneGeometry(width, height, cols, rows)
   const posAttr = geo.getAttribute('position')
@@ -296,15 +364,14 @@ export function buildCurvedPlaneGeometry(
       ? createLuminanceSampler(image, Math.max(64, cols * 2), Math.max(64, rows * 2))
       : undefined
 
-  const hasBend = bendX !== 0 || bendY !== 0 || bendLateral !== 0
+  const hasBend = bendX !== 0 || bendY !== 0 || bendLateral !== 0 || arcAngle !== 0 || taperRatio < 1
   const hasDepth = depthProfile !== 'none' && depthIntensity !== 0
 
   if (hasBend || hasDepth) {
     for (let i = 0; i < posAttr.count; i++) {
       const u = uvAttr.getX(i)
       const v = uvAttr.getY(i)
-      const bendZ = computeBendZ(u, v, width, height, bendX, bendY, region)
-      const latX = computeBendLateralX(u, v, width, height, bendLateral, region)
+      const bend = computeVertexBend(u, v, width, height, bendX, bendY, bendLateral, region, arcAngle, taperRatio)
       const depthZ = computeDepthProfileZ({
         u,
         v,
@@ -315,10 +382,8 @@ export function buildCurvedPlaneGeometry(
         invert: depthInvert,
         luminanceSampler: lumSampler
       })
-      if (latX !== 0) {
-        posAttr.setX(i, posAttr.getX(i) + latX)
-      }
-      posAttr.setZ(i, bendZ + depthZ)
+      posAttr.setX(i, bend.x)
+      posAttr.setZ(i, bend.z + depthZ)
     }
     posAttr.needsUpdate = true
     geo.computeVertexNormals()

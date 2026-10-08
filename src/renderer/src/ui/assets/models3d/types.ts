@@ -17,6 +17,10 @@ export interface Face3D {
   alphaCutoff?: number
   /** Độ uốn cong theo chiều ngang (-100 đến 100, tạo vòm cung / hình trụ / uốn cong) */
   bendX?: number
+  /** Góc ôm vòng cung theo độ (ví dụ 180° cho 2 nửa trụ, 90° cho trụ 4 mảnh, 60° cho 6 mảnh, 45° cho 8 mảnh). Tạo khối trụ tròn 360° chuẩn xác không nếp gấp */
+  arcAngle?: number
+  /** Tỉ lệ thuôn đỉnh (0..1, cho ống côn / tháp nhọn / thân cây): 1 = đều, < 1 = đỉnh nhỏ hơn đáy */
+  taperRatio?: number
   /** Độ uốn cong / vểnh mép theo chiều dọc (-100 đến 100, tạo mái cong / mép vểnh) */
   bendY?: number
   /** Độ uốn cong lượn nghiêng sang hai bên theo chiều dài (-100 đến 100, tạo dáng cong lượn S / vòng cung sang trái hoặc phải) */
