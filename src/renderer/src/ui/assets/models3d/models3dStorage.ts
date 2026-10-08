@@ -422,7 +422,8 @@ export async function fetchAsset3DsCatalog(): Promise<{ categories: Asset3DsCate
       { id: 'props', title: 'Đạo cụ & Khối hộp', icon: 'cube', order: 2 },
       { id: 'street', title: 'Đường phố & Góc cảnh', icon: 'city', order: 3 },
       { id: 'room', title: 'Nội thất & Căn phòng', icon: 'image', order: 4 },
-      { id: 'custom', title: 'Tùy biến & Tự tạo', icon: 'sparkles', order: 5 }
+      { id: 'custom', title: 'Tùy biến & Tự tạo', icon: 'sparkles', order: 5 },
+      { id: 'decor', title: 'Bộ phận trang trí', icon: 'sparkles', order: 6 }
     ],
     models: getStoredModels3D()
   }

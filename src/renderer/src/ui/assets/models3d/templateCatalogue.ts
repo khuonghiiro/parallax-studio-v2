@@ -2,8 +2,10 @@ import type { Model3D, PresetType } from './types'
 import { generatePresetFaces } from './models3dStorage'
 import {
   ASSEMBLY_TEMPLATES,
+  TEMPLATE_CATEGORIES,
   templateFaces,
-  type AssemblyTemplate
+  type AssemblyTemplate,
+  type TemplateCategory
 } from './assemblyTemplates'
 import {
   COTTAGE_THUMBNAIL,
@@ -12,7 +14,7 @@ import {
   ROOM_THUMBNAIL
 } from './templateThumbnails'
 
-export type CreateCategory = 'all' | 'architecture' | 'props' | 'nature' | 'stage'
+export type CreateCategory = 'all' | TemplateCategory
 
 export interface CreateTemplateItem {
   id: string
@@ -20,7 +22,7 @@ export interface CreateTemplateItem {
   name: string
   subtitle: string
   facesCount: number
-  category: 'architecture' | 'props' | 'nature' | 'stage'
+  category: TemplateCategory
   categoryLabel: string
   image?: string
   assemblyTemplate?: AssemblyTemplate
@@ -50,21 +52,23 @@ export function buildBlankModel(): Model3D {
   }
 }
 
-function modelFromTemplate(tmpl: AssemblyTemplate, scale = 0.6): Model3D {
-  const cat =
-    tmpl.category === 'architecture'
-      ? 'architecture'
-      : tmpl.category === 'props'
-      ? 'props'
-      : tmpl.category === 'nature'
-      ? 'props'
-      : 'room'
+/** Library category (Model3DList) a model built from this template is filed under. */
+const LIBRARY_CATEGORY: Record<TemplateCategory, Model3D['category']> = {
+  architecture: 'architecture',
+  decor: 'decor',
+  props: 'props',
+  nature: 'props',
+  stage: 'room'
+}
 
+const categoryLabel = (c: TemplateCategory): string => TEMPLATE_CATEGORIES.find((x) => x.id === c)?.label ?? c
+
+function modelFromTemplate(tmpl: AssemblyTemplate, scale = 0.6): Model3D {
   return {
     id: `model-${tmpl.id}-${Math.random().toString(36).slice(2, 7)}`,
     name: `${tmpl.label} 3D Mới`,
     description: tmpl.hint,
-    category: cat,
+    category: LIBRARY_CATEGORY[tmpl.category],
     scale,
     faces: templateFaces(tmpl),
     createdAt: Date.now(),
@@ -74,10 +78,7 @@ function modelFromTemplate(tmpl: AssemblyTemplate, scale = 0.6): Model3D {
 
 export const CATEGORY_TABS: Array<{ id: CreateCategory; label: string }> = [
   { id: 'all', label: 'Tất cả mẫu' },
-  { id: 'architecture', label: 'Kiến trúc & Nhà cửa' },
-  { id: 'props', label: 'Đạo cụ & Khối hộp' },
-  { id: 'nature', label: 'Thiên nhiên & Cây cối' },
-  { id: 'stage', label: 'Bối cảnh & Sân khấu' }
+  ...TEMPLATE_CATEGORIES.map((c) => ({ id: c.id, label: c.label }))
 ]
 
 export const ALL_CREATE_TEMPLATES: CreateTemplateItem[] = [
@@ -89,7 +90,7 @@ export const ALL_CREATE_TEMPLATES: CreateTemplateItem[] = [
     subtitle: 'Mặt tiền A-frame, 2 vách hông, 2 mái nghiêng gập & 2 mặt ống khói',
     facesCount: 7,
     category: 'architecture',
-    categoryLabel: 'Kiến trúc',
+    categoryLabel: categoryLabel('architecture'),
     image: COTTAGE_THUMBNAIL,
     buildModel: () => ({
       id: 'model-cottage-' + Math.random().toString(36).slice(2, 7),
@@ -110,7 +111,7 @@ export const ALL_CREATE_TEMPLATES: CreateTemplateItem[] = [
     subtitle: '6 mặt đa giác vuông khép kín, làm thùng hàng, biển hiệu hoặc bục',
     facesCount: 6,
     category: 'props',
-    categoryLabel: 'Đạo cụ',
+    categoryLabel: categoryLabel('props'),
     image: CUBE_THUMBNAIL,
     buildModel: () => ({
       id: 'model-cube-' + Math.random().toString(36).slice(2, 7),
@@ -131,7 +132,7 @@ export const ALL_CREATE_TEMPLATES: CreateTemplateItem[] = [
     subtitle: '2 mặt dựng bẻ góc 90° kết hợp mặt sàn vỉa hè có chiều sâu',
     facesCount: 3,
     category: 'stage',
-    categoryLabel: 'Bối cảnh',
+    categoryLabel: categoryLabel('stage'),
     image: CORNER_THUMBNAIL,
     buildModel: () => ({
       id: 'model-corner-' + Math.random().toString(36).slice(2, 7),
@@ -152,7 +153,7 @@ export const ALL_CREATE_TEMPLATES: CreateTemplateItem[] = [
     subtitle: 'Không gian nội thất 3 mặt tường và sàn phòng bao bọc',
     facesCount: 4,
     category: 'stage',
-    categoryLabel: 'Bối cảnh',
+    categoryLabel: categoryLabel('stage'),
     image: ROOM_THUMBNAIL,
     buildModel: () => ({
       id: 'model-room-' + Math.random().toString(36).slice(2, 7),
@@ -169,27 +170,15 @@ export const ALL_CREATE_TEMPLATES: CreateTemplateItem[] = [
 
   // 2. Mở rộng từ kho Assembly Templates
   ...ASSEMBLY_TEMPLATES.filter((t) => !['room-open', 'street-corner', 'box'].includes(t.id)).map(
-    (t): CreateTemplateItem => {
-      const facesCount = t.faces().length
-      const catLabel =
-        t.category === 'architecture'
-          ? 'Kiến trúc'
-          : t.category === 'props'
-          ? 'Đạo cụ'
-          : t.category === 'nature'
-          ? 'Thiên nhiên'
-          : 'Bối cảnh'
-
-      return {
-        id: `template-${t.id}`,
-        name: t.label,
-        subtitle: t.hint,
-        facesCount,
-        category: t.category,
-        categoryLabel: catLabel,
-        assemblyTemplate: t,
-        buildModel: () => modelFromTemplate(t)
-      }
-    }
+    (t): CreateTemplateItem => ({
+      id: `template-${t.id}`,
+      name: t.label,
+      subtitle: t.hint,
+      facesCount: t.faces().length,
+      category: t.category,
+      categoryLabel: categoryLabel(t.category),
+      assemblyTemplate: t,
+      buildModel: () => modelFromTemplate(t)
+    })
   )
 ]

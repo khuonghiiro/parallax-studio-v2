@@ -1,115 +1,38 @@
 import type { Vec3 } from './assemblyGeometry'
+import {
+  AWAY,
+  BACK,
+  DEG,
+  FRONT,
+  LEFT,
+  RIGHT,
+  UP,
+  aroundY,
+  awning,
+  boxFaces,
+  face,
+  prismFaces,
+  ridgeSlopes,
+  tilted,
+  type AssemblyTemplate
+} from './assemblyTemplateKit'
+import { HOUSE_SHELLS } from './assemblyTemplatesShells'
+import { DECOR_PARTS, EXTRA_PROPS } from './assemblyTemplatesDecor'
 
 /**
- * Geometry-only template catalogue for the Assembly workshop.
- *
- * Every template describes *how planes are folded together* (centre, facing direction and
- * image-up direction in depth space: x → right, y → up, z → away from the viewer). They
- * never carry textures or content-specific names, so a template can be applied to any set
- * of user images.
+ * Geometry-only template catalogue for the Assembly workshop (see assemblyTemplateKit.ts
+ * for the conventions). Building templates are *shells only* (walls + roof); windows,
+ * doors, chimneys, columns, plants… live in the `decor` category so they can be built as
+ * separate 3D assets and merged onto a shell afterwards.
  */
-export type TemplateCategory = 'architecture' | 'props' | 'nature' | 'stage'
-
-export interface TemplateFaceSpec {
-  name: string
-  w: number
-  h: number
-  /** Centre (depth space). */
-  c: Vec3
-  /** Direction the image front faces (depth space). */
-  n: Vec3
-  /** Direction of the image top (depth space). */
-  up?: Vec3
-  bendX?: number
-  bendY?: number
-}
-
-export interface AssemblyTemplate {
-  id: string
-  label: string
-  category: TemplateCategory
-  hint: string
-  faces: () => TemplateFaceSpec[]
-}
-
-export const TEMPLATE_CATEGORIES: Array<{ id: TemplateCategory; label: string }> = [
-  { id: 'architecture', label: 'Kiến trúc' },
-  { id: 'props', label: 'Đồ vật' },
-  { id: 'nature', label: 'Thiên nhiên' },
-  { id: 'stage', label: 'Bối cảnh' }
-]
-
-const FRONT: Vec3 = [0, 0, -1]
-const BACK: Vec3 = [0, 0, 1]
-const LEFT: Vec3 = [-1, 0, 0]
-const RIGHT: Vec3 = [1, 0, 0]
-const UP: Vec3 = [0, 1, 0]
-const AWAY: Vec3 = [0, 0, 1]
-const DEG = Math.PI / 180
-const r1 = (v: number): number => Math.round(v * 10) / 10
-
-const face = (name: string, w: number, h: number, c: Vec3, n: Vec3, up?: Vec3, extra?: Partial<TemplateFaceSpec>): TemplateFaceSpec => ({
-  name, w: Math.round(w), h: Math.round(h), c: c.map(r1) as Vec3, n, up, ...extra
-})
-
-/** Closed or open box walls around a centre; `top`/`back` optional. */
-function boxFaces(w: number, h: number, d: number, opts: { top?: boolean; back?: boolean; bottom?: boolean } = {}): TemplateFaceSpec[] {
-  const list = [
-    face('Trước', w, h, [0, 0, 0], FRONT),
-    face('Trái', d, h, [-w / 2, 0, d / 2], LEFT),
-    face('Phải', d, h, [w / 2, 0, d / 2], RIGHT)
-  ]
-  if (opts.back !== false) list.push(face('Sau', w, h, [0, 0, d], BACK))
-  if (opts.top !== false) list.push(face('Trên', w, d, [0, h / 2, d / 2], UP, AWAY))
-  if (opts.bottom) list.push(face('Dưới', w, d, [0, -h / 2, d / 2], [0, -1, 0], [0, 0, -1]))
-  return list
-}
-
-/** Regular prism with `sides` faces; face 0 looks at the viewer and touches z = 0. */
-function prismFaces(sides: number, apothem: number, h: number, prefix = 'Mặt'): TemplateFaceSpec[] {
-  const w = 2 * apothem * Math.tan(Math.PI / sides)
-  return Array.from({ length: sides }, (_, i) => {
-    const phi = (i * 2 * Math.PI) / sides
-    const n: Vec3 = [Math.sin(phi), 0, -Math.cos(phi)]
-    return face(`${prefix} ${i + 1}`, w, h, [apothem * n[0], 0, apothem + apothem * n[2]], n)
-  })
-}
-
-/** Two slopes meeting at a ridge along depth (roof / tent). */
-function ridgeSlopes(span: number, rise: number, depth: number, baseY: number, overhang = 0): TemplateFaceSpec[] {
-  const hyp = Math.hypot(span / 2, rise)
-  const len = hyp + overhang
-  const mk = (side: -1 | 1, name: string) => {
-    const up: Vec3 = [(-side * span) / 2 / hyp, rise / hyp, 0]
-    const n: Vec3 = [(side * rise) / hyp, span / 2 / hyp, 0]
-    const c: Vec3 = [(side * span) / 4 - up[0] * (overhang / 2), baseY + rise / 2 - up[1] * (overhang / 2), depth / 2]
-    return face(name, depth + overhang * 2, len, c, n, up)
-  }
-  return [mk(-1, 'Dốc trái'), mk(1, 'Dốc phải')]
-}
-
-/** A plane hinged on a horizontal line, tilted `deg` below horizontal towards the viewer. */
-function awning(name: string, w: number, len: number, hingeY: number, hingeZ: number, deg: number): TemplateFaceSpec {
-  const a = deg * DEG
-  const up: Vec3 = [0, Math.sin(a), Math.cos(a)]
-  const n: Vec3 = [0, Math.cos(a), -Math.sin(a)]
-  return face(name, w, len, [0, hingeY - up[1] * (len / 2), hingeZ - up[2] * (len / 2)], n, up)
-}
-
-function tilted(name: string, w: number, h: number, c: Vec3, backDeg: number): TemplateFaceSpec {
-  const a = backDeg * DEG
-  return face(name, w, h, c, [0, Math.sin(a), -Math.cos(a)], [0, Math.cos(a), Math.sin(a)])
-}
-
-function aroundY(name: string, w: number, h: number, deg: number, c: Vec3 = [0, 0, 0]): TemplateFaceSpec {
-  const a = deg * DEG
-  return face(name, w, h, c, [Math.sin(a), 0, -Math.cos(a)])
-}
+export { TEMPLATE_CATEGORIES } from './assemblyTemplateKit'
+export type { AssemblyTemplate, TemplateCategory, TemplateFaceSpec } from './assemblyTemplateKit'
 
 const architecture: AssemblyTemplate[] = [
   {
-    id: 'gable-house', label: 'Nhà mái chữ A', category: 'architecture',
-    hint: 'Mặt trước/sau hình đầu hồi + 2 vách + 2 mái dốc',
+    id: 'gable-house', label: 'Khung nhà mái chữ A', category: 'architecture',
+    hint: 'Chỉ khung: 2 mặt đầu hồi + 2 vách + 2 mái dốc (trang trí ghép riêng)',
+    en: { label: 'Gable house shell', hint: 'Shell only: 2 gable ends + 2 side walls + 2 roof slopes (add decor separately)' },
     faces: () => {
       const W = 600, H = 400, D = 600, R = 260
       return [
@@ -122,21 +45,27 @@ const architecture: AssemblyTemplate[] = [
     }
   },
   {
-    id: 'flat-house', label: 'Nhà mái bằng', category: 'architecture',
-    hint: 'Hộp 4 vách + mái phẳng', faces: () => boxFaces(600, 450, 500)
+    id: 'flat-house', label: 'Khung nhà mái bằng', category: 'architecture',
+    hint: 'Hộp 4 vách + mái phẳng',
+    en: { label: 'Flat-roof house shell', hint: 'Box of 4 walls + flat roof' },
+    faces: () => boxFaces(600, 450, 500)
   },
   {
     id: 'shop-awning', label: 'Cửa hiệu mái hiên', category: 'architecture',
     hint: 'Hộp nhà + mái hiên nghiêng phía trước',
+    en: { label: 'Shop with awning', hint: 'House box + sloped awning at the front' },
     faces: () => [...boxFaces(600, 450, 450, { back: false }), awning('Mái hiên', 640, 170, 175, 0, 28)]
   },
   {
     id: 'tower-8', label: 'Tháp bát giác', category: 'architecture',
-    hint: 'Lăng trụ 8 mặt – xoay quanh trông như khối tròn', faces: () => prismFaces(8, 260, 620)
+    hint: 'Lăng trụ 8 mặt – xoay quanh trông như khối tròn',
+    en: { label: 'Octagonal tower', hint: '8-sided prism – reads as round when orbiting' },
+    faces: () => prismFaces(8, 260, 620)
   },
   {
     id: 'gate', label: 'Cổng chào', category: 'architecture',
     hint: '2 trụ + bảng tên + mái cổng',
+    en: { label: 'Welcome gate', hint: '2 pillars + name board + gate roof' },
     faces: () => [
       face('Trụ trái', 110, 520, [-280, 0, 0], FRONT),
       face('Trụ phải', 110, 520, [280, 0, 0], FRONT),
@@ -147,6 +76,7 @@ const architecture: AssemblyTemplate[] = [
   {
     id: 'stairs', label: 'Bậc thang', category: 'architecture',
     hint: '4 bậc: mặt đứng + mặt bậc',
+    en: { label: 'Stairs', hint: '4 steps: risers + treads' },
     faces: () => {
       const W = 500, h = 90, d = 110, y0 = -180
       return Array.from({ length: 4 }, (_, k) => [
@@ -158,6 +88,7 @@ const architecture: AssemblyTemplate[] = [
   {
     id: 'pyramid', label: 'Kim tự tháp', category: 'architecture',
     hint: '4 mặt nghiêng chụm đỉnh (dùng ảnh tam giác)',
+    en: { label: 'Pyramid', hint: '4 slanted faces meeting at the apex (use triangular images)' },
     faces: () => {
       const B = 500, H = 400
       const apex: Vec3 = [0, H / 2, B / 2]
@@ -177,6 +108,7 @@ const architecture: AssemblyTemplate[] = [
   {
     id: 'tent', label: 'Lều chữ A', category: 'architecture',
     hint: '2 mái chạm đất + cửa lều + vách sau',
+    en: { label: 'A-frame tent', hint: '2 slopes touching the ground + entrance + back wall' },
     faces: () => [
       face('Cửa lều', 500, 360, [0, 0, 0], FRONT),
       face('Vách sau', 500, 360, [0, 0, 600], BACK),
@@ -186,9 +118,14 @@ const architecture: AssemblyTemplate[] = [
 ]
 
 const props: AssemblyTemplate[] = [
-  { id: 'box', label: 'Hộp kín 6 mặt', category: 'props', hint: 'Khối hộp khép kín', faces: () => boxFaces(500, 500, 500, { bottom: true }) },
+  {
+    id: 'box', label: 'Hộp kín 6 mặt', category: 'props', hint: 'Khối hộp khép kín',
+    en: { label: 'Closed 6-sided box', hint: 'Fully closed box' },
+    faces: () => boxFaces(500, 500, 500, { bottom: true })
+  },
   {
     id: 'chest-open', label: 'Rương mở nắp', category: 'props', hint: 'Hộp 4 vách + nắp bản lề mở 105°',
+    en: { label: 'Open chest', hint: '4-wall box + lid hinged open at 105°' },
     faces: () => {
       const W = 500, H = 320, D = 340, a = 105 * DEG
       const dir: Vec3 = [0, Math.sin(a), -Math.cos(a)]
@@ -198,6 +135,7 @@ const props: AssemblyTemplate[] = [
   },
   {
     id: 'popup-card', label: 'Thiệp pop-up', category: 'props', hint: 'Nền + lưng + 2 lớp pop-up xếp chiều sâu',
+    en: { label: 'Pop-up card', hint: 'Base + back + 2 pop-up layers stacked in depth' },
     faces: () => [
       face('Nền', 600, 400, [0, -150, 200], UP, AWAY),
       face('Lưng', 600, 400, [0, 50, 400], FRONT),
@@ -207,6 +145,7 @@ const props: AssemblyTemplate[] = [
   },
   {
     id: 'folding-screen', label: 'Bình phong 3 tấm', category: 'props', hint: '3 tấm gấp khúc hướng về người xem',
+    en: { label: '3-panel folding screen', hint: '3 zig-zag panels facing the viewer' },
     faces: () => {
       const pw = 260, ph = 480, b = 30 * DEG
       const side = (s: -1 | 1, name: string) =>
@@ -216,6 +155,7 @@ const props: AssemblyTemplate[] = [
   },
   {
     id: 'standee', label: 'Standee chân đế', category: 'props', hint: 'Bảng đứng nghiêng + đế + thanh chống',
+    en: { label: 'Standee with base', hint: 'Slightly tilted board + base + back strut' },
     faces: () => {
       const strutLen = Math.hypot(450, 120)
       return [
@@ -225,9 +165,14 @@ const props: AssemblyTemplate[] = [
       ]
     }
   },
-  { id: 'lantern-6', label: 'Đèn lồng lục giác', category: 'props', hint: 'Lăng trụ 6 mặt', faces: () => prismFaces(6, 150, 300) },
+  {
+    id: 'lantern-6', label: 'Đèn lồng lục giác', category: 'props', hint: 'Lăng trụ 6 mặt',
+    en: { label: 'Hexagonal lantern', hint: '6-sided prism' },
+    faces: () => prismFaces(6, 150, 300)
+  },
   {
     id: 'curved-pillar', label: 'Thân trụ cong', category: 'props', hint: '2 mặt uốn cong úp vào nhau thành khối tròn',
+    en: { label: 'Curved pillar', hint: '2 bent faces closing into a round body' },
     faces: () => [
       face('Nửa trước', 400, 600, [0, 0, 0], FRONT, undefined, { bendX: 100 }),
       face('Nửa sau', 400, 600, [0, 0, 0], BACK, undefined, { bendX: 100 })
@@ -235,6 +180,7 @@ const props: AssemblyTemplate[] = [
   },
   {
     id: 'signpost', label: 'Biển hiệu có cột', category: 'props', hint: 'Bảng 2 mặt + cột chữ thập',
+    en: { label: 'Signpost', hint: 'Double-sided board + cross-shaped post' },
     faces: () => [
       face('Bảng trước', 600, 300, [0, 150, 0], FRONT),
       face('Bảng sau', 600, 300, [0, 150, 0], BACK),
@@ -247,14 +193,17 @@ const props: AssemblyTemplate[] = [
 const nature: AssemblyTemplate[] = [
   {
     id: 'tree-cross', label: 'Cây chữ X', category: 'nature', hint: '2 mặt cắt chéo – nhìn góc nào cũng có cây',
+    en: { label: 'X-cross tree', hint: '2 crossed planes – looks full from any angle' },
     faces: () => [aroundY('Mặt A', 500, 700, 45), aroundY('Mặt B', 500, 700, -45)]
   },
   {
     id: 'bush-3', label: 'Bụi cây 3 lá', category: 'nature', hint: '3 mặt xoay 60° quanh trục đứng',
+    en: { label: '3-blade bush', hint: '3 planes rotated 60° around the vertical axis' },
     faces: () => [aroundY('Lá 1', 450, 350, 0), aroundY('Lá 2', 450, 350, 60), aroundY('Lá 3', 450, 350, -60)]
   },
   {
     id: 'foliage-layers', label: 'Tán lá nhiều lớp', category: 'nature', hint: '4 lớp so le chiều sâu cho parallax mượt',
+    en: { label: 'Layered foliage', hint: '4 staggered depth layers for smooth parallax' },
     faces: () => [
       face('Lớp 1 (trước)', 420, 300, [-120, -60, 0], FRONT),
       face('Lớp 2', 460, 360, [140, -20, 80], FRONT),
@@ -264,17 +213,24 @@ const nature: AssemblyTemplate[] = [
   },
   {
     id: 'ground-patch', label: 'Thảm cỏ có viền', category: 'nature', hint: 'Mặt đất + viền cỏ trước + bụi phía sau',
+    en: { label: 'Grass patch with edge', hint: 'Ground + front grass edge + bushes behind' },
     faces: () => [
       face('Mặt đất', 800, 600, [0, -150, 300], UP, AWAY),
       face('Viền trước', 800, 120, [0, -100, 0], FRONT),
       face('Bụi sau', 800, 260, [0, -30, 600], FRONT)
     ]
+  },
+  {
+    id: 'hedge', label: 'Bờ rào cây bụi', category: 'nature', hint: 'Khối bụi dài: trước, sau, 2 đầu + mặt trên',
+    en: { label: 'Hedge row', hint: 'Long bush block: front, back, 2 ends + top' },
+    faces: () => boxFaces(640, 170, 130)
   }
 ]
 
 const stage: AssemblyTemplate[] = [
   {
     id: 'room-open', label: 'Phòng mở 3 vách', category: 'stage', hint: 'Sàn + tường sau + 2 tường bên nhìn vào trong',
+    en: { label: 'Open 3-wall room', hint: 'Floor + back wall + 2 side walls facing inward' },
     faces: () => {
       const W = 700, H = 500, D = 600
       return [
@@ -287,6 +243,7 @@ const stage: AssemblyTemplate[] = [
   },
   {
     id: 'street-corner', label: 'Góc phố chữ L', category: 'stage', hint: '2 vách vuông góc + vỉa hè',
+    en: { label: 'L-shaped street corner', hint: '2 perpendicular facades + sidewalk' },
     faces: () => [
       face('Vách trước', 600, 600, [0, 0, 0], FRONT),
       face('Vách hông', 600, 600, [-300, 0, 300], LEFT),
@@ -295,6 +252,7 @@ const stage: AssemblyTemplate[] = [
   },
   {
     id: 'cyclorama', label: 'Phông nền bo cong', category: 'stage', hint: 'Sàn + góc bo 45° + phông đứng (studio vô cực)',
+    en: { label: 'Cyclorama backdrop', hint: 'Floor + 45° cove + upright backdrop (infinity studio)' },
     faces: () => {
       const c45 = Math.SQRT1_2, cove = 200
       return [
@@ -306,6 +264,7 @@ const stage: AssemblyTemplate[] = [
   },
   {
     id: 'diorama', label: 'Hộp diorama 3 lớp', category: 'stage', hint: 'Tường + sàn + 3 lớp cảnh xa/giữa/tiền cảnh',
+    en: { label: '3-layer diorama box', hint: 'Back wall + floor + far/mid/foreground layers' },
     faces: () => [
       face('Tường sau', 800, 500, [0, 0, 500], FRONT),
       face('Sàn', 800, 500, [0, -250, 250], UP, AWAY),
@@ -316,4 +275,12 @@ const stage: AssemblyTemplate[] = [
   }
 ]
 
-export const ASSEMBLY_TEMPLATES: AssemblyTemplate[] = [...architecture, ...props, ...nature, ...stage]
+export const ASSEMBLY_TEMPLATES: AssemblyTemplate[] = [
+  ...architecture,
+  ...HOUSE_SHELLS,
+  ...DECOR_PARTS,
+  ...props,
+  ...EXTRA_PROPS,
+  ...nature,
+  ...stage
+]

@@ -5,7 +5,8 @@ import { insertModel3DToScene } from '../../ui/assets/models3d/insertModel3D'
 import { joinFaces, type JoinEdge, type JoinScaleMode } from '../../ui/assets/models3d/assemblyJoin'
 import { applyClipSuggestions, suggestClipRules } from '../../ui/assets/models3d/assemblyClip'
 import { applySunPreset, normalizeLighting } from '../../ui/assets/models3d/assemblyLighting'
-import { appendTemplate, findTemplate, replaceWithTemplate } from '../../ui/assets/models3d/assemblyTemplates'
+import { ASSEMBLY_TEMPLATES, TEMPLATE_CATEGORIES, appendTemplate, findTemplate, replaceWithTemplate } from '../../ui/assets/models3d/assemblyTemplates'
+import { appendModel, appendModelOnFace } from '../../ui/assets/models3d/assemblyCompose'
 import { deleteFace, newFaceId, patchFace } from '../../ui/assets/models3d/assemblyFaceOps'
 import { ParamError, type Handler, type Params } from '../types'
 import { bool, has, num, str, toPlain, vec3 } from '../params'
@@ -37,6 +38,22 @@ function persistModel(model: Model3D, isSession: boolean): void {
   } else {
     saveModel3D(model)
   }
+}
+
+function uvParam(p: Params): [number, number] | undefined {
+  const raw = p.uv
+  if (raw === undefined || raw === null) return undefined
+  if (!Array.isArray(raw) || raw.length !== 2 || !raw.every((v) => typeof v === 'number' && Number.isFinite(v))) {
+    throw new ParamError('"uv" must be [u, v] with numbers in 0..1')
+  }
+  return [raw[0], raw[1]]
+}
+
+async function findSavedModel(id: string): Promise<Model3D> {
+  const models = await fetchDiskModels3D()
+  const found = models.find((m) => m.id === id)
+  if (!found) throw new ParamError(`Saved model "${id}" not found (see list_models3d)`)
+  return found
 }
 
 export const assemblyCommands: Record<string, Handler> = {
@@ -254,6 +271,56 @@ export const assemblyCommands: Record<string, Handler> = {
       getActiveAssemblySession()?.setSelectedFaceId(faces[0]?.id || null)
     }
     return { ok: true, templateId, mode, modelId: model.id, faceCount: faces.length }
+  },
+
+  list_assembly_templates: (p) => {
+    const category = str(p, 'category')
+    if (category && !TEMPLATE_CATEGORIES.some((c) => c.id === category)) {
+      throw new ParamError(`Unknown category "${category}" (${TEMPLATE_CATEGORIES.map((c) => c.id).join(', ')})`)
+    }
+    const list = ASSEMBLY_TEMPLATES.filter((t) => !category || t.category === category)
+    return {
+      count: list.length,
+      categories: TEMPLATE_CATEGORIES.map((c) => ({ id: c.id, label: c.label, label_en: c.en })),
+      templates: list.map((t) => ({
+        id: t.id,
+        category: t.category,
+        label: t.label,
+        label_en: t.en.label,
+        hint: t.hint,
+        hint_en: t.en.hint,
+        anchor: t.anchor ?? null,
+        faceCount: t.faces().length
+      }))
+    }
+  },
+
+  append_assembly_model: async (p) => {
+    const part = await findSavedModel(str(p, 'source_model_id', true))
+    const { model, isSession } = await resolveTargetModel(p)
+    if (part.id === model.id) throw new ParamError('Cannot merge a model into itself')
+    const scale = num(p, 'scale')
+    const prefixNames = bool(p, 'prefix_names')
+    const faceId = str(p, 'face_id')
+    let res
+    if (faceId) {
+      const host = model.faces.find((f) => f.id === faceId)
+      if (!host) throw new ParamError(`Face "${faceId}" not found in model "${model.id}"`)
+      res = appendModelOnFace(part, model, host, { uv: uvParam(p), scale, prefixNames })
+    } else {
+      res = appendModel(part, model, { at: vec3(p, 'at'), scale, prefixNames })
+    }
+    const updated = { ...model, faces: res.faces }
+    persistModel(updated, isSession)
+    if (isSession) getActiveAssemblySession()?.setSelectedFaceId(res.addedIds[0] ?? null)
+    return {
+      ok: true,
+      modelId: model.id,
+      sourceModelId: part.id,
+      mode: faceId ? 'on_face' : has(p, 'at') ? 'at' : 'beside',
+      addedFaceIds: res.addedIds,
+      faceCount: updated.faces.length
+    }
   },
 
   get_assembly_screenshot: async () => {

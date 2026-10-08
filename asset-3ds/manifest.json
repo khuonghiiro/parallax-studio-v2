@@ -41,6 +41,13 @@
       "icon": "sparkles",
       "description": "Các mô hình 3D tự thiết kế và lưu trữ",
       "order": 5
+    },
+    {
+      "id": "decor",
+      "title": "Bộ phận trang trí",
+      "icon": "sparkles",
+      "description": "Cửa sổ, cửa ra vào, ống khói, cột, ban công, chậu cây… tạo riêng rồi ghép vào khung nhà",
+      "order": 6
     }
   ]
 }

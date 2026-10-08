@@ -101,7 +101,11 @@ export function MotionSection({ layer, set }: { layer: Layer; set: Setter }) {
               <Row label="Hướng trôi" title="Chọn hướng di chuyển (trái, phải, lên, xuống, chéo)">
                 <Select
                   id="motion-direction"
-                  value={typeof motion.direction === 'string' ? motion.direction : Math.round(parseDirectionAngle(motion.direction))}
+                  value={
+                    typeof motion.direction === 'string'
+                      ? motion.direction
+                      : String(Math.round(parseDirectionAngle(motion.direction)))
+                  }
                   options={directionOptions}
                   onChange={(val) => {
                     const num = Number(val)

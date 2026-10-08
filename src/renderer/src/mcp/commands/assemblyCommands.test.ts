@@ -182,4 +182,74 @@ describe('MCP assemblyCommands', () => {
     expect(layers.length).toBe(res.count)
     expect(layers[0].name).toContain('Khối Hộp Diêm')
   })
+
+  it('lists templates with bilingual labels and filters by category', async () => {
+    const all = (await runCommand('list_assembly_templates')) as any
+    expect(all.count).toBe(all.templates.length)
+    expect(all.categories.map((c: any) => c.id)).toContain('decor')
+    const decor = (await runCommand('list_assembly_templates', { category: 'decor' })) as any
+    expect(decor.count).toBeGreaterThanOrEqual(12)
+    for (const t of decor.templates) {
+      expect(t.category).toBe('decor')
+      expect(t.label_en).toBeTruthy()
+      expect(t.anchor).toBeTruthy()
+      expect(t.faceCount).toBeGreaterThan(0)
+    }
+    await expect(runCommand('list_assembly_templates', { category: 'nope' })).rejects.toThrow(/Unknown category/)
+  })
+
+  it('appends a saved model onto a face of the open session, or at a point', async () => {
+    let mockModel: Model3D = {
+      id: 'shell',
+      name: 'Shell',
+      category: 'architecture',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      scale: 1,
+      faces: [{ id: 'front', name: 'Front', width: 400, height: 300, position: [0, 0, 0], rotation: [0, 0, 0] }]
+    }
+    let selectedId: string | null = null
+    const unregister = registerAssemblySession({
+      getModel: () => mockModel,
+      setModel: (next) => {
+        mockModel = next
+      },
+      getSelectedFaceId: () => selectedId,
+      setSelectedFaceId: (id) => {
+        selectedId = id
+      },
+      save: () => {},
+      insert: async () => [],
+      close: () => {},
+      captureScreenshot: () => null
+    })
+    try {
+      const onFace = (await runCommand('append_assembly_model', {
+        source_model_id: 'model-cubic-box',
+        face_id: 'front',
+        uv: [0.25, 0.5]
+      })) as any
+      expect(onFace.ok).toBe(true)
+      expect(onFace.mode).toBe('on_face')
+      expect(onFace.addedFaceIds.length).toBeGreaterThan(0)
+      expect(mockModel.faces.length).toBe(1 + onFace.addedFaceIds.length)
+      expect(selectedId).toBe(onFace.addedFaceIds[0])
+
+      const atPoint = (await runCommand('append_assembly_model', {
+        source_model_id: 'model-cubic-box',
+        at: [500, 0, 0],
+        prefix_names: false
+      })) as any
+      expect(atPoint.mode).toBe('at')
+      expect(new Set(mockModel.faces.map((f) => f.id)).size).toBe(mockModel.faces.length)
+
+      await expect(
+        runCommand('append_assembly_model', { source_model_id: 'model-cubic-box', face_id: 'missing' })
+      ).rejects.toThrow(/not found/)
+      await expect(runCommand('append_assembly_model', { source_model_id: 'no-such-model' })).rejects.toThrow()
+    } finally {
+      unregister()
+    }
+  })
 })
+

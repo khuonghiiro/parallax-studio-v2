@@ -1,121 +1,62 @@
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 import type { CreateTemplateItem } from './templateCatalogue'
+import type { TemplateCategory } from './assemblyTemplates'
 import { templatePreview } from './assemblyTemplates'
 
 interface TemplateCardVisualProps {
   item: CreateTemplateItem
 }
 
-const CATEGORY_PALETTES = {
-  architecture: {
-    stroke: '#38bdf8',
-    fill: '#0284c7',
-    glow: 'rgba(56, 189, 248, 0.25)',
-    grid: 'rgba(56, 189, 248, 0.08)'
-  },
-  props: {
-    stroke: '#fb923c',
-    fill: '#ea580c',
-    glow: 'rgba(251, 146, 60, 0.25)',
-    grid: 'rgba(251, 146, 60, 0.08)'
-  },
-  nature: {
-    stroke: '#34d399',
-    fill: '#059669',
-    glow: 'rgba(52, 211, 153, 0.25)',
-    grid: 'rgba(52, 211, 153, 0.08)'
-  },
-  stage: {
-    stroke: '#a78bfa',
-    fill: '#6366f1',
-    glow: 'rgba(167, 139, 250, 0.25)',
-    grid: 'rgba(167, 139, 250, 0.08)'
-  }
+/** Theme tokens per category — both themes define these, so contrast follows the theme. */
+const CATEGORY_TOKEN: Record<TemplateCategory, string> = {
+  architecture: 'var(--accent-cyan)',
+  decor: 'var(--key)',
+  props: 'var(--accent)',
+  nature: 'var(--ok)',
+  stage: 'var(--accent)'
+}
+
+const PREVIEW_SIZE = 180
+
+/** Isometric shaded preview of a geometry template (hooks always run, colours from tokens). */
+function IsoPreview({ item }: TemplateCardVisualProps) {
+  const patternId = useId()
+  const polys = useMemo(
+    () => (item.assemblyTemplate ? templatePreview(item.assemblyTemplate, PREVIEW_SIZE) : []),
+    [item.assemblyTemplate]
+  )
+  const tone = CATEGORY_TOKEN[item.category]
+
+  return (
+    <div className="c3d-iso" style={{ color: tone }}>
+      <svg className="c3d-iso-grid" viewBox="0 0 240 140" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <pattern id={patternId} width="40" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 0 10 L 20 0 L 40 10 L 20 20 Z" fill="none" stroke="currentColor" strokeOpacity={0.12} />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill={`url(#${patternId})`} />
+      </svg>
+      <svg className="c3d-iso-shape" viewBox={`0 0 ${PREVIEW_SIZE} ${PREVIEW_SIZE}`} aria-hidden="true">
+        {polys.map((p, idx) => (
+          <polygon
+            key={idx}
+            points={p.points}
+            fill="currentColor"
+            fillOpacity={0.12 + p.shade * 0.5}
+            stroke="currentColor"
+            strokeWidth={1.4}
+            strokeLinejoin="round"
+          />
+        ))}
+      </svg>
+    </div>
+  )
 }
 
 export function TemplateCardVisual({ item }: TemplateCardVisualProps) {
-  const { image, assemblyTemplate, category, name } = item
-
-  // If handcrafted detailed SVG image is present (Cottage, Cube, Corner, Room), use it directly
-  if (image) {
-    return (
-      <img
-        src={image}
-        alt={name}
-        style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'contain',
-          display: 'block'
-        }}
-      />
-    )
-  }
-
-  // Otherwise render vector 3D isometric line-art with depth shading
-  if (assemblyTemplate) {
-    const polys = useMemo(() => templatePreview(assemblyTemplate, 180), [assemblyTemplate])
-    const pal = CATEGORY_PALETTES[category] || CATEGORY_PALETTES.architecture
-
-    return (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'radial-gradient(circle at center, var(--bg-1) 0%, var(--bg-0) 100%)',
-          position: 'relative'
-        }}
-      >
-        {/* Isometric subtle grid backdrop */}
-        <svg
-          width="100%"
-          height="100%"
-          viewBox="0 0 240 140"
-          style={{ position: 'absolute', inset: 0, opacity: 0.7 }}
-          aria-hidden="true"
-        >
-          <defs>
-            <pattern id={`iso-grid-${category}`} width="40" height="20" patternUnits="userSpaceOnUse">
-              <path
-                d="M 0 10 L 20 0 L 40 10 L 20 20 Z"
-                fill="none"
-                stroke={pal.grid}
-                strokeWidth="1"
-              />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill={`url(#iso-grid-${category})`} />
-        </svg>
-
-        {/* 3D Isometric Polygons */}
-        <svg
-          viewBox="0 0 180 180"
-          style={{
-            width: '120px',
-            height: '120px',
-            filter: `drop-shadow(0 6px 14px ${pal.glow})`,
-            zIndex: 1
-          }}
-          aria-hidden="true"
-        >
-          {polys.map((p, idx) => (
-            <polygon
-              key={idx}
-              points={p.points}
-              fill={pal.fill}
-              fillOpacity={0.16 + p.shade * 0.58}
-              stroke={pal.stroke}
-              strokeWidth={1.4}
-              strokeLinejoin="round"
-            />
-          ))}
-        </svg>
-      </div>
-    )
-  }
-
+  // Handcrafted illustrations (Cottage, Cube, Corner, Room) are shown as-is.
+  if (item.image) return <img className="c3d-thumb-img" src={item.image} alt={item.name} />
+  if (item.assemblyTemplate) return <IsoPreview item={item} />
   return null
 }

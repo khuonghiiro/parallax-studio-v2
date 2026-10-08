@@ -6,6 +6,7 @@ import { FaceTransformFields } from './FaceTransformFields'
 import { FaceShapeTools } from './FaceShapeTools'
 import { FaceList } from './FaceList'
 import { TemplateGallery } from './TemplateGallery'
+import { ModelComposePanel } from './ModelComposePanel'
 import { AssemblyLightingSection } from './AssemblyLightingSection'
 import { FaceJoinSection } from './FaceJoinSection'
 import { FaceClipSection } from './FaceClipSection'
@@ -84,6 +85,21 @@ export function FaceInspector({ model, selectedFaceId, imageSize, onChangeModel,
         </summary>
         <TemplateGallery
           faces={model.faces}
+          onApply={(faces, selectId) => {
+            setFaces(faces, DISCRETE)
+            if (selectId) onSelectFace(selectId)
+          }}
+        />
+      </details>
+
+      {/* Merge saved parts (windows, doors, chimneys…) built as separate assets */}
+      <details className="inspector-section fi-collapsible">
+        <summary className="section-title">
+          <span>Ghép mô hình đã lưu (bộ phận)</span>
+        </summary>
+        <ModelComposePanel
+          model={model}
+          selectedFace={selectedFace}
           onApply={(faces, selectId) => {
             setFaces(faces, DISCRETE)
             if (selectId) onSelectFace(selectId)

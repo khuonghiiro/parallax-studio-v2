@@ -1,0 +1,198 @@
+/* ==========================================================================
+   Assembly 3D — merge saved parts panel (mc-*) & Create-3D card visuals (c3d-*)
+   Design tokens only (dual-theme).
+   ========================================================================== */
+
+/* ---------- Create 3D modal: card visuals ---------- */
+.c3d-thumb-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.c3d-iso {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, var(--bg-1) 0%, var(--bg-0) 100%);
+}
+
+.c3d-iso-grid {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.c3d-iso-shape {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  filter: drop-shadow(0 6px 14px color-mix(in srgb, currentColor 30%, transparent));
+}
+
+/* ---------- Merge saved parts panel ---------- */
+.mc-root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mc-mount {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+}
+
+.mc-mount-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 14px);
+  gap: 4px;
+  padding: 5px;
+  border-radius: 4px;
+  border: 1.5px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  flex-shrink: 0;
+}
+
+.mc-mount-dot {
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+}
+
+.mc-mount-dot:hover {
+  border-color: var(--accent-cyan);
+  transform: scale(1.12);
+}
+
+.mc-mount-dot.active {
+  background: var(--key);
+  border-color: var(--key);
+}
+
+.mc-mount-hint {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+
+.mc-mount-hint b {
+  color: var(--text);
+}
+
+.mc-search {
+  height: 26px;
+}
+
+.mc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px;
+  border-radius: 6px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+}
+
+.mc-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 30px;
+  padding: 0 4px 0 6px;
+  border-radius: 5px;
+  transition: background 0.1s ease;
+}
+
+.mc-row:hover {
+  background: var(--bg-3);
+}
+
+.mc-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--text);
+}
+
+.mc-tag {
+  flex-shrink: 0;
+  padding: 1px 5px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--on-key);
+  background: var(--key);
+}
+
+.mc-meta {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  color: var(--text-faint);
+}
+
+.mc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 10px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.mc-btn:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--accent-cyan);
+}
+
+.mc-btn.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.mc-btn.primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+  color: var(--on-accent);
+}
+
+.mc-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.mc-empty {
+  padding: 14px 8px;
+  text-align: center;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--text-faint);
+}

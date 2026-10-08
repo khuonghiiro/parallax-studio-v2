@@ -60,6 +60,6 @@ describe('Create 3D Template Catalogue & Custom Blank Model', () => {
 
   it('CATEGORY_TABS covers all required categories', () => {
     const tabIds = CATEGORY_TABS.map((t) => t.id)
-    expect(tabIds).toEqual(['all', 'architecture', 'props', 'nature', 'stage'])
+    expect(tabIds).toEqual(['all', 'architecture', 'decor', 'props', 'nature', 'stage'])
   })
 })

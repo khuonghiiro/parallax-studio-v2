@@ -59,9 +59,8 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
 
   if (!isOpen) return null
 
-  const showBlankCard =
-    (selectedCategory === 'all' || searchQuery.toLowerCase().includes('tự') || searchQuery.toLowerCase().includes('trống')) &&
-    !searchQuery.trim().match(/nhà|hộp|tháp|cổng|cây|rương|bậc|phòng/i)
+  // Blank card only on the unfiltered view; the header button is always available.
+  const showBlankCard = selectedCategory === 'all' && !searchQuery.trim()
 
   return (
     <div className="assembly-modal-overlay" onClick={onClose}>
@@ -116,7 +115,7 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
                 Tạo Mô Hình 3D Mới
               </div>
               <div style={{ fontSize: '11.5px', color: 'var(--text-dim)' }}>
-                Chọn từ hơn 20 khung mẫu có sẵn hoặc tự tạo mô hình 3D trống tùy biến
+                Chọn 1 trong {ALL_CREATE_TEMPLATES.length} khung mẫu (khung nhà + bộ phận trang trí tách rời) hoặc tự tạo mô hình trống
               </div>
             </div>
           </div>
@@ -135,7 +134,7 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
                 fontWeight: 600,
                 fontSize: '12px',
                 borderRadius: '6px',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
+                boxShadow: 'var(--shadow-popup)',
                 whiteSpace: 'nowrap'
               }}
               title="Khởi tạo ngay mô hình 3D trống từ mặt phẳng cơ bản"
@@ -212,8 +211,8 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
                       fontSize: '10px',
                       padding: '1px 5px',
                       borderRadius: '10px',
-                      background: active ? 'rgba(255, 255, 255, 0.25)' : 'var(--bg-1)',
-                      color: active ? '#ffffff' : 'var(--text-faint)'
+                      background: active ? 'color-mix(in srgb, var(--on-accent) 22%, transparent)' : 'var(--bg-1)',
+                      color: active ? 'var(--on-accent)' : 'var(--text-faint)'
                     }}
                   >
                     {count}
@@ -268,7 +267,7 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
               <div
                 style={{
                   height: '140px',
-                  background: 'radial-gradient(circle at center, rgba(56, 189, 248, 0.1) 0%, transparent 70%)',
+                  background: 'radial-gradient(circle at center, color-mix(in srgb, var(--accent-cyan) 10%, transparent) 0%, transparent 70%)',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -451,7 +450,7 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
           ))}
 
           {/* Empty search fallback */}
-          {filteredTemplates.length === 0 && !showBlankCard && (
+          {filteredTemplates.length === 0 && (
             <div
               style={{
                 gridColumn: '1 / -1',
