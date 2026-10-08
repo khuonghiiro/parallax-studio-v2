@@ -4,7 +4,13 @@ import { AssemblyViewport } from './AssemblyViewport'
 import { FaceInspector } from './FaceInspector'
 import { AssemblyAssetSidebar } from './AssemblyAssetSidebar'
 import { Mesh2DTextureEditor } from './Mesh2DTextureEditor'
-import { AssemblyHeaderBar, DEFAULT_VIEW_STATE, type AssemblyViewState } from './AssemblyHeaderBar'
+import {
+  AssemblyHeaderBar,
+  DEFAULT_VIEW_STATE,
+  loadAssemblyViewPrefs,
+  saveAssemblyViewPrefs,
+  type AssemblyViewState
+} from './AssemblyHeaderBar'
 import { saveModel3D } from './models3dStorage'
 import { insertModel3DToScene } from './insertModel3D'
 import { clearTextureCache, resolveFaceTexture, type ResolvedTexture } from './textureResolver'
@@ -72,13 +78,25 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
   }
   const { model, setModel, undo, redo, canUndo, canRedo, setGestureActive } = useAssemblyHistory(activeInitial)
   const [selectedFaceId, setSelectedFaceId] = useState<string | null>(activeInitial.faces[0]?.id || null)
-  const [view, setView] = useState<AssemblyViewState>(DEFAULT_VIEW_STATE)
+  const [view, setView] = useState<AssemblyViewState>(loadAssemblyViewPrefs)
   const [frameToken, setFrameToken] = useState(0)
   const [inserting, setInserting] = useState(false)
 
   const selectedFace = useMemo(() => model.faces.find((f) => f.id === selectedFaceId) || null, [model.faces, selectedFaceId])
   const selectedTexture = useSelectedTexture(selectedFace?.assetPath)
-  const onViewChange = useCallback((patch: Partial<AssemblyViewState>) => setView((v) => ({ ...v, ...patch })), [])
+  const onViewChange = useCallback((patch: Partial<AssemblyViewState>) => {
+    setView((v) => {
+      const next = { ...v, ...patch }
+      saveAssemblyViewPrefs(next)
+      return next
+    })
+  }, [])
+
+  useEffect(() => {
+    if (isOpen) {
+      setView(loadAssemblyViewPrefs())
+    }
+  }, [isOpen, activeInitial.id])
   const setFaces = useCallback(
     (fn: (faces: Face3D[]) => Face3D[], opts?: { discrete?: boolean }) => setModel((m) => ({ ...m, faces: fn(m.faces) }), opts),
     [setModel]

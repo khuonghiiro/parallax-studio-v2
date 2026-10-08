@@ -44,6 +44,75 @@ export const DEFAULT_VIEW_STATE: AssemblyViewState = {
   showMesh2D: true
 }
 
+export const ASSEMBLY_VIEW_PREFS_KEY = 'pxs:assembly_view_prefs'
+
+/** Load saved assembly view preferences from localStorage with fallback to default state. */
+export function loadAssemblyViewPrefs(): AssemblyViewState {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(ASSEMBLY_VIEW_PREFS_KEY) : null
+    if (!raw) return { ...DEFAULT_VIEW_STATE }
+    const parsed = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return { ...DEFAULT_VIEW_STATE }
+    return {
+      workspaceView: (['split', '3d', '2d'] as const).includes(parsed.workspaceView)
+        ? parsed.workspaceView
+        : DEFAULT_VIEW_STATE.workspaceView,
+      showWireframe: typeof parsed.showWireframe === 'boolean'
+        ? parsed.showWireframe
+        : DEFAULT_VIEW_STATE.showWireframe,
+      meshOnlyPixels: typeof parsed.meshOnlyPixels === 'boolean'
+        ? parsed.meshOnlyPixels
+        : DEFAULT_VIEW_STATE.meshOnlyPixels,
+      showGrid: typeof parsed.showGrid === 'boolean'
+        ? parsed.showGrid
+        : DEFAULT_VIEW_STATE.showGrid,
+      showAxes: typeof parsed.showAxes === 'boolean'
+        ? parsed.showAxes
+        : DEFAULT_VIEW_STATE.showAxes,
+      cameraPreset: (['front', 'left', 'right', 'top', 'iso'] as const).includes(parsed.cameraPreset)
+        ? parsed.cameraPreset
+        : DEFAULT_VIEW_STATE.cameraPreset,
+      gizmoMode: (['translate', 'rotate', 'both', 'off'] as const).includes(parsed.gizmoMode)
+        ? parsed.gizmoMode
+        : DEFAULT_VIEW_STATE.gizmoMode,
+      meshEditMode: (['none', 'erase', 'select'] as const).includes(parsed.meshEditMode)
+        ? parsed.meshEditMode
+        : DEFAULT_VIEW_STATE.meshEditMode,
+      showMesh2D: typeof parsed.showMesh2D === 'boolean'
+        ? parsed.showMesh2D
+        : DEFAULT_VIEW_STATE.showMesh2D
+    }
+  } catch (err) {
+    console.warn('[AssemblyHeaderBar] Error loading view preferences:', err)
+    return { ...DEFAULT_VIEW_STATE }
+  }
+}
+
+/** Save updated view preferences to localStorage. */
+export function saveAssemblyViewPrefs(state: Partial<AssemblyViewState>): void {
+  try {
+    if (typeof localStorage === 'undefined') return
+    const current = loadAssemblyViewPrefs()
+    const merged = { ...current, ...state }
+    localStorage.setItem(ASSEMBLY_VIEW_PREFS_KEY, JSON.stringify(merged))
+  } catch (err) {
+    console.warn('[AssemblyHeaderBar] Error saving view preferences:', err)
+  }
+}
+
+/** Compute the next GizmoMode when toggling translate or rotate independently. */
+export function computeNextGizmoMode(current: GizmoMode, toggled: 'translate' | 'rotate'): GizmoMode {
+  const isTranslate = current === 'translate' || current === 'both'
+  const isRotate = current === 'rotate' || current === 'both'
+  if (toggled === 'translate') {
+    if (isTranslate) return isRotate ? 'rotate' : 'off'
+    return isRotate ? 'both' : 'translate'
+  } else {
+    if (isRotate) return isTranslate ? 'translate' : 'off'
+    return isTranslate ? 'both' : 'rotate'
+  }
+}
+
 interface AssemblyHeaderBarProps {
   view: AssemblyViewState
   onViewChange: (patch: Partial<AssemblyViewState>) => void
@@ -116,6 +185,11 @@ export function AssemblyHeaderBar({ view, onViewChange, canUndo, canRedo, onUndo
     </button>
   )
   const meshMode = (mode: MeshEditMode) => onViewChange({ meshEditMode: view.meshEditMode === mode ? 'none' : mode })
+  const isTranslateActive = view.gizmoMode === 'translate' || view.gizmoMode === 'both'
+  const isRotateActive = view.gizmoMode === 'rotate' || view.gizmoMode === 'both'
+  const toggleGizmo = (kind: 'translate' | 'rotate') => {
+    onViewChange({ gizmoMode: computeNextGizmoMode(view.gizmoMode, kind) })
+  }
 
   return (
     <div className="assembly-modal-header">
@@ -145,15 +219,23 @@ export function AssemblyHeaderBar({ view, onViewChange, canUndo, canRedo, onUndo
         </div>
 
         <div className="ah-seg" role="group" aria-label="Công cụ biến đổi">
-          <button type="button" className={`ah-seg-btn${view.gizmoMode === 'translate' ? ' active' : ''}`}
-            onClick={() => onViewChange({ gizmoMode: view.gizmoMode === 'translate' ? 'off' : 'translate' })}
-            title="Gizmo di chuyển XYZ + khung co giãn (bấm lại để tắt)">
+          <button
+            type="button"
+            className={`ah-seg-btn${isTranslateActive ? ' active' : ''}`}
+            onClick={() => toggleGizmo('translate')}
+            title="Trục di chuyển XYZ + khung co giãn (bấm để bật/tắt)"
+            aria-pressed={isTranslateActive}
+          >
             <IconAxisMove width={12} height={12} />
             <span>Di chuyển</span>
           </button>
-          <button type="button" className={`ah-seg-btn${view.gizmoMode === 'rotate' ? ' active' : ''}`}
-            onClick={() => onViewChange({ gizmoMode: view.gizmoMode === 'rotate' ? 'off' : 'rotate' })}
-            title="Gizmo vòng xoay XYZ (bấm lại để tắt)">
+          <button
+            type="button"
+            className={`ah-seg-btn${isRotateActive ? ' active' : ''}`}
+            onClick={() => toggleGizmo('rotate')}
+            title="3 vòng tròn xoay XYZ (bấm để bật/tắt)"
+            aria-pressed={isRotateActive}
+          >
             <IconAxisRotate width={12} height={12} />
             <span>Xoay</span>
           </button>

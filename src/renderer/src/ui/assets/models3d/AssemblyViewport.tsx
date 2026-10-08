@@ -17,7 +17,7 @@ import { useView } from '../../../store/view'
 import type { AssemblyCaptureOptions, AssemblyCameraState, SetAssemblyCameraParams } from './assemblyBridge'
 import type { CameraPreset } from './assemblyMeshFactory'
 
-export type GizmoMode = 'translate' | 'rotate' | 'off'
+export type GizmoMode = 'translate' | 'rotate' | 'both' | 'off'
 
 interface AssemblyViewportProps {
   model: Model3D
@@ -549,6 +549,7 @@ export function AssemblyViewport({
           camera={cameraRef.current!}
           rect={gizmoRect!}
           tick={gizmoTick}
+          gizmoMode={gizmoMode}
           onUpdateFace={onUpdateFaceRef.current || onUpdateFace || (() => {})}
           onDragStateChange={(isDragging) => {
             isGizmoDraggingRef.current = isDragging
