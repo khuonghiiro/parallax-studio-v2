@@ -95,7 +95,17 @@ Khi sắp xếp layer hoặc camera trong Parallax Studio, AI cần nắm rõ qu
 
 ---
 
-## 4. Danh Sách 75 Công Cụ MCP (Core Tool Reference)
+## 3c. Quy Tắc Kiểm Thử Trực Tiếp & Cấm Can Thiệp Tiến Trình App Đang Chạy
+
+Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC** tuân thủ các nguyên tắc sau:
+1. **Tuyệt đối KHÔNG tự ý kill/tắt tiến trình Electron của người dùng (`Stop-Process electron`, `kill`):** Người dùng đang trực tiếp mở và theo dõi ứng dụng trên terminal launcher của họ (`pnpm dev`). Việc tắt tiến trình sẽ làm sập cửa sổ người dùng đang làm việc.
+2. **Tuyệt đối KHÔNG tự spawn thêm tiến trình dev ngầm trùng lặp (`electron-vite dev`):** Tránh gây xung đột cổng TCP 9877, chiếm dụng GPU/RAM và gây sai lệch trạng thái hiển thị.
+3. **Bắt buộc sử dụng trực tiếp app đang chạy của người dùng:** Ứng dụng luôn mở sẵn cổng TCP `127.0.0.1:9877`. AI kết nối thẳng vào cổng này (`pnpm pxs status`, `pnpm pxs review --view app`, `pnpm pxs call ...`) để kiểm tra, thao tác và review bằng mắt. Mọi thay đổi sẽ hiển thị realtime ngay trên màn hình trước mắt người dùng.
+4. **Quy tắc Hot-Reload (Vite HMR):** Khi sửa code giao diện (`src/renderer/*`), Vite tự động hot-reload trong vài chục mili-giây mà không cần khởi động lại app. Khi sửa code tầng `src/main/*` (Electron Main Process) bắt buộc phải restart: AI **phải thông báo rõ ràng để người dùng chủ động khởi động lại từ terminal của họ**, tuyệt đối không tự ý cưỡng ép tắt tiến trình OS.
+
+---
+
+## 4. Danh Sách 78 Công Cụ MCP (Core Tool Reference)
 
 > Danh mục đầy đủ, chính xác từng tham số: `pnpm pxs --help` và `pnpm pxs help <tool>` (sinh từ catalog). Phần dưới đây là tóm tắt.
 

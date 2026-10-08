@@ -17,4 +17,5 @@ Tóm tắt không được vi phạm:
 - CSS chỉ dùng design token trong `variables.css`; kiểm tra cả Dark và Light theme.
 - MCP parity: mọi logic mới phải có renderer command + test, tool song ngữ trong `mcp-server/catalog/tools-*.mjs`, cập nhật `guide.json`, chạy `pnpm mcp:schemas`, cập nhật README.
 - Kiểm tra `npm run typecheck` + `npx vitest run` trước khi commit.
+- Tuyệt đối không tự ý kill tiến trình Electron (`Stop-Process electron`) hay tự spawn dev server ngầm trùng lặp; kết nối trực tiếp vào app người dùng đang mở qua MCP (TCP 9877 / `pnpm pxs`) để test/review; Vite tự hot-reload giao diện.
 - Commit Conventional Commits bằng **tiếng Việt CÓ DẤU**, không nhắc tên AI; commit + push ngay sau mỗi fix/tính năng. Git hooks `.githooks/` sẽ chặn commit sai chuẩn.

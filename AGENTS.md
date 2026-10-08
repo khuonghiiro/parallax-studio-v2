@@ -65,6 +65,11 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
   - `pnpm pxs review --view camera --out <path>`: Chụp ảnh viewport thực tế để AI dùng `view_file` xem và đánh giá bố cục cảnh bằng mắt.
   - `pnpm pxs review --view app --out <path>` (tool `get_app_screenshot`) + `ui_click` / `ui_type`: Chụp toàn bộ cửa sổ app (dialog, panel, xưởng 3D) và thao tác UI thật. **Kiểm tra giao diện bằng cách này, không dùng trình duyệt** (trình duyệt không có preload/IPC nên hiển thị sai). Lưu ảnh ra ổ còn trống (ví dụ `D:\_tmp`) nếu ổ C: đầy.
   - `pnpm pxs call <tool> '<json>'`: Thực thi thêm/sửa layer, shot, audio, keyframe theo thời gian thực (realtime) như người dùng thao tác.
+- **Quy tắc Kiểm Thử Trực Tiếp & Cấm Can Thiệp Tiến Trình Người Dùng (BẮT BUỘC):**
+  - **Tuyệt đối KHÔNG tự ý kill/tắt tiến trình Electron của người dùng (`Stop-Process electron`, `kill`):** Người dùng đang trực tiếp mở và theo dõi ứng dụng trên terminal launcher của họ (`pnpm dev`). Việc tắt tiến trình sẽ làm sập cửa sổ người dùng đang làm việc.
+  - **Tuyệt đối KHÔNG tự spawn thêm tiến trình dev ngầm trùng lặp (`electron-vite dev`):** Tránh gây xung đột cổng TCP 9877, chiếm dụng GPU/RAM và gây sai lệch trạng thái hiển thị.
+  - **Bắt buộc sử dụng trực tiếp app đang chạy của người dùng:** AI kết nối thẳng vào cổng TCP `127.0.0.1:9877` có sẵn để kiểm tra, thao tác và review bằng mắt. Mọi thay đổi sẽ hiển thị realtime ngay trên màn hình trước mắt người dùng.
+  - **Quy tắc Hot-Reload (Vite HMR):** Khi sửa code giao diện (`src/renderer/*`), Vite tự động hot-reload trong vài chục mili-giây mà không cần khởi động lại app. Khi sửa code tầng `src/main/*` (Electron Main Process) bắt buộc phải restart: AI **phải thông báo rõ ràng để người dùng chủ động khởi động lại từ terminal của họ**, tuyệt đối không tự ý cưỡng ép tắt tiến trình OS.
 - **Bảo toàn tài nguyên:** Khi hoàn tất tác vụ tự động hóa, AI client hoặc người dùng cần ngắt kết nối (`disconnectAll`) hoặc tạm dừng server để tránh duy trì socket chạy ngầm gây hao tốn CPU/RAM máy tính.
 
 ### 2.5. Nguyên Tắc Đồng Bộ Tính Năng & AI MCP Controller (Feature & MCP Parity Principle - Bắt Buộc)
