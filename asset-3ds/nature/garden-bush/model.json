@@ -4,7 +4,7 @@
   "description": "Bụi cây xanh xum xuê 5 vòm cầu lồi đan khít tạo thể tích tròn 3D chân thực, rực rỡ điểm xuyết hoa cỏ.",
   "category": "nature",
   "thumbnail": "thumbnail.png",
-  "scale": 0.6,
+  "scale": 0.32,
   "faces": [
     {
       "id": "bush-front",
@@ -103,5 +103,5 @@
     }
   ],
   "createdAt": 1791432990364,
-  "updatedAt": 1791438854066
+  "updatedAt": 1791439860611
 }

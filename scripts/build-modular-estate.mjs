@@ -120,7 +120,7 @@ async function main() {
     name: 'Cửa Sổ Tudor Khung Gỗ 3D',
     category: 'decor',
     description: 'Cửa sổ hoa văn chì cổ điển có bậu cửa gỗ và 2 cánh mở góc 35 độ, gắn lên tường.',
-    scale: 0.6,
+    scale: 0.32,
     faces: windowFaces
   })
   console.log('✓ Đã lưu model-window-tudor')
@@ -197,7 +197,7 @@ async function main() {
     name: 'Cửa Vòm Cổng Đá 3D',
     category: 'decor',
     description: 'Cửa ra vào vòm cuốn đá khối, cánh gỗ sồi bản lề rèn thép, bậc thềm đá và mái ngói hiên.',
-    scale: 0.6,
+    scale: 0.36,
     faces: doorFaces
   })
   console.log('✓ Đã lưu model-door-arched')
@@ -274,7 +274,7 @@ async function main() {
     name: 'Bồn Hoa Dưới Cửa 3D',
     category: 'decor',
     description: 'Bồn hoa gỗ sồi treo dưới bậu cửa sổ, ngập tràn hoa phong lữ và dây leo trường xuân.',
-    scale: 0.6,
+    scale: 0.30,
     faces: flowerFaces
   })
   console.log('✓ Đã lưu model-flower-box')
@@ -342,7 +342,7 @@ async function main() {
     name: 'Ống Khói Gạch Cổ Điển 3D',
     category: 'decor',
     description: 'Ống khói gạch nung nắp chụp gờ cổ điển, cắm xuyên mái dốc công trình.',
-    scale: 0.6,
+    scale: 0.45,
     faces: chimFaces
   })
   console.log('✓ Đã lưu model-chimney-brick')
@@ -411,7 +411,7 @@ async function main() {
     name: 'Bụi Cây Hoa Sân Vườn 3D',
     category: 'nature',
     description: 'Bụi cây xanh xum xuê 5 vòm cầu lồi đan khít tạo thể tích tròn 3D chân thực, rực rỡ điểm xuyết hoa cỏ.',
-    scale: 0.6,
+    scale: 0.32,
     faces: bushFaces
   })
   console.log('✓ Đã lưu model-garden-bush')
@@ -479,7 +479,7 @@ async function main() {
     name: 'Khung Nhà Mái Chữ A Tudor (Shell 3D)',
     category: 'architecture',
     description: 'Khung nhà rỗng phong cách Tudor thuần túy: tường trát vôi trắng nẹp gỗ và mái ngói đất nung kín khít không khe hở.',
-    scale: 0.6,
+    scale: 1.0,
     faces: shellFaces
   })
   console.log('✓ Đã lưu model-house-shell')
@@ -515,122 +515,165 @@ async function main() {
     id: 'model-tudor-estate',
     name: 'Biệt Thự Tudor 3D Lắp Ráp Hoàn Chỉnh',
     category: 'architecture',
-    description: 'Biệt thự Tudor cao cấp ghép nối modular 3D hoàn chỉnh: Cửa vòm đá, cửa sổ chì mở cánh, bồn hoa ban công, ống khói gạch thẳng đứng và bụi cây cảnh sân vườn thể tích.',
-    scale: 0.6,
+    description: 'Biệt thự Tudor cao cấp ghép nối modular 3D hoàn chỉnh chuẩn tỉ lệ kiến trúc: Cửa vòm đá tỉ lệ người thật, 2 cửa sổ đối xứng có bồn hoa ban công, cửa sổ gác mái, ống khói gạch thanh mảnh thẳng đứng và bụi cây cảnh sân vườn thể tích.',
+    scale: 1.0,
     faces: shellFaces
   })
 
-  // 7.1 Gắn Cửa Vòm Đá lên tường trước (snaps flush to ground at Y = -200)
-  console.log('   ↳ Gắn Cửa Vòm Cổng Đá lên tường trước...')
+  // 7.1 Gắn Cửa Vòm Đá lên tường trước (snaps flush to ground at Y = -200, scale 0.36 from model)
+  console.log('   ↳ Gắn Cửa Vòm Cổng Đá chuẩn tỉ lệ người...')
   let r = await sendCommand('append_assembly_model', {
     model_id: 'model-tudor-estate',
     source_model_id: 'model-door-arched',
     face_id: 'face-front',
-    uv: [0.5, 0.2576],
-    scale: 0.85,
+    uv: [0.5, 0.1091],
     prefix_names: false
   })
   console.log('     [OK] Total faces:', r.faceCount)
 
-  // 7.2 Gắn Cửa Sổ Tudor lên tường trước tầng 2 (centered in gable truss at Y = 270)
-  console.log('   ↳ Gắn Cửa Sổ Tudor lên tường trước...')
+  // 7.2 Gắn Cửa Sổ Tudor Tầng 2 Trái (u = 0.25, v = 0.45)
+  console.log('   ↳ Gắn Cửa Sổ Tudor Tầng 2 Trái...')
   r = await sendCommand('append_assembly_model', {
     model_id: 'model-tudor-estate',
     source_model_id: 'model-window-tudor',
     face_id: 'face-front',
-    uv: [0.5, 0.7121],
-    scale: 0.75,
+    uv: [0.25, 0.45],
     prefix_names: false
   })
   console.log('     [OK] Total faces:', r.faceCount)
 
-  // 7.3 Gắn Bồn Hoa Ban Công trực tiếp dưới bậu cửa sổ tầng 2 (gapless snug at Y = 148)
-  console.log('   ↳ Gắn Bồn Hoa Ban Công dưới cửa sổ tầng 2...')
+  // 7.3 Gắn Cửa Sổ Tudor Tầng 2 Phải (u = 0.75, v = 0.45)
+  console.log('   ↳ Gắn Cửa Sổ Tudor Tầng 2 Phải...')
+  r = await sendCommand('append_assembly_model', {
+    model_id: 'model-tudor-estate',
+    source_model_id: 'model-window-tudor',
+    face_id: 'face-front',
+    uv: [0.75, 0.45],
+    prefix_names: false
+  })
+  console.log('     [OK] Total faces:', r.faceCount)
+
+  // 7.4 Gắn Bồn Hoa dưới cửa sổ tầng 2 Trái (u = 0.25, v = 0.364)
+  console.log('   ↳ Gắn Bồn Hoa dưới cửa sổ tầng 2 Trái...')
   r = await sendCommand('append_assembly_model', {
     model_id: 'model-tudor-estate',
     source_model_id: 'model-flower-box',
     face_id: 'face-front',
-    uv: [0.5, 0.535],
-    scale: 0.70,
+    uv: [0.25, 0.364],
     prefix_names: false
   })
   console.log('     [OK] Total faces:', r.faceCount)
 
-  // 7.4 Gắn Cửa Sổ bên tường trái
-  console.log('   ↳ Gắn Cửa Sổ Tudor bên vách trái...')
+  // 7.5 Gắn Bồn Hoa dưới cửa sổ tầng 2 Phải (u = 0.75, v = 0.364)
+  console.log('   ↳ Gắn Bồn Hoa dưới cửa sổ tầng 2 Phải...')
+  r = await sendCommand('append_assembly_model', {
+    model_id: 'model-tudor-estate',
+    source_model_id: 'model-flower-box',
+    face_id: 'face-front',
+    uv: [0.75, 0.364],
+    prefix_names: false
+  })
+  console.log('     [OK] Total faces:', r.faceCount)
+
+  // 7.6 Gắn Cửa Sổ Gác Mái Đầu Hồi (u = 0.5, v = 0.697)
+  console.log('   ↳ Gắn Cửa Sổ Gác Mái Đầu Hồi...')
+  r = await sendCommand('append_assembly_model', {
+    model_id: 'model-tudor-estate',
+    source_model_id: 'model-window-tudor',
+    face_id: 'face-front',
+    uv: [0.5, 0.697],
+    prefix_names: false
+  })
+  console.log('     [OK] Total faces:', r.faceCount)
+
+  // 7.7 Gắn Bồn Hoa dưới cửa sổ gác mái (u = 0.5, v = 0.62, scale 0.90)
+  console.log('   ↳ Gắn Bồn Hoa dưới cửa sổ gác mái...')
+  r = await sendCommand('append_assembly_model', {
+    model_id: 'model-tudor-estate',
+    source_model_id: 'model-flower-box',
+    face_id: 'face-front',
+    uv: [0.5, 0.62],
+    scale: 0.90,
+    prefix_names: false
+  })
+  console.log('     [OK] Total faces:', r.faceCount)
+
+  // 7.8 Gắn 2 Cửa Sổ bên vách trái
+  console.log('   ↳ Gắn 2 Cửa Sổ Tudor bên vách trái...')
   r = await sendCommand('append_assembly_model', {
     model_id: 'model-tudor-estate',
     source_model_id: 'model-window-tudor',
     face_id: 'face-left',
-    uv: [0.5, 0.55],
-    scale: 0.75,
+    uv: [0.32, 0.52],
+    prefix_names: false
+  })
+  r = await sendCommand('append_assembly_model', {
+    model_id: 'model-tudor-estate',
+    source_model_id: 'model-window-tudor',
+    face_id: 'face-left',
+    uv: [0.68, 0.52],
     prefix_names: false
   })
   console.log('     [OK] Total faces:', r.faceCount)
 
-  // 7.5 Gắn Cửa Sổ bên tường phải
-  console.log('   ↳ Gắn Cửa Sổ Tudor bên vách phải...')
+  // 7.9 Gắn 2 Cửa Sổ bên vách phải
+  console.log('   ↳ Gắn 2 Cửa Sổ Tudor bên vách phải...')
   r = await sendCommand('append_assembly_model', {
     model_id: 'model-tudor-estate',
     source_model_id: 'model-window-tudor',
     face_id: 'face-right',
-    uv: [0.5, 0.55],
-    scale: 0.75,
+    uv: [0.32, 0.52],
+    prefix_names: false
+  })
+  r = await sendCommand('append_assembly_model', {
+    model_id: 'model-tudor-estate',
+    source_model_id: 'model-window-tudor',
+    face_id: 'face-right',
+    uv: [0.68, 0.52],
     prefix_names: false
   })
   console.log('     [OK] Total faces:', r.faceCount)
 
-  // 7.6 Ghép Ống Khói thẳng đứng cắm xuyên qua mái dốc
-  console.log('   ↳ Ghép Ống Khói Gạch thẳng đứng cắm qua mái...')
+  // 7.10 Ghép Ống Khói thanh mảnh thẳng đứng cắm xuyên qua mái (scale 0.45 from model)
+  console.log('   ↳ Ghép Ống Khói Gạch thanh mảnh...')
   r = await sendCommand('append_assembly_model', {
     model_id: 'model-tudor-estate',
     source_model_id: 'model-chimney-brick',
-    at: [140, 420, 380],
-    scale: 0.85,
+    at: [140, 390, 380],
     prefix_names: false
   })
   console.log('     [OK] Total faces:', r.faceCount)
 
-  // 7.7 Thêm Bụi Cây Sân Vườn bên phải (base resting on ground Y = -200)
-  console.log('   ↳ Bố trí Bụi Cây Hoa Sân Vườn bên phải...')
+  // 7.11 Bố trí Bụi Cây Sân Vườn góc móng nhà bên phải & trái (scale 0.32 from model, resting at Y = -200)
+  console.log('   ↳ Bố trí Bụi Cây Hoa góc móng nhà...')
   r = await sendCommand('append_assembly_model', {
     model_id: 'model-tudor-estate',
     source_model_id: 'model-garden-bush',
-    at: [310, -82, 35],
-    scale: 0.85,
+    at: [290, -155, 35],
+    prefix_names: false
+  })
+  r = await sendCommand('append_assembly_model', {
+    model_id: 'model-tudor-estate',
+    source_model_id: 'model-garden-bush',
+    at: [-290, -155, 35],
     prefix_names: false
   })
   console.log('     [OK] Total faces:', r.faceCount)
 
-  // 7.8 Thêm Bụi Cây Sân Vườn bên trái (base resting on ground Y = -200)
-  console.log('   ↳ Bố trí Bụi Cây Hoa Sân Vườn bên trái...')
+  // 7.12 Bố trí Bụi Hoa nhỏ 2 bên lối vào bậc thềm (scale 0.70 of bush, resting at Y = -200)
+  console.log('   ↳ Bố trí Bụi Cây hoa nhỏ lối vào bậc thềm...')
   r = await sendCommand('append_assembly_model', {
     model_id: 'model-tudor-estate',
     source_model_id: 'model-garden-bush',
-    at: [-310, -82, 35],
-    scale: 0.85,
+    at: [-110, -169, 50],
+    scale: 0.70,
     prefix_names: false
   })
-  console.log('     [OK] Total faces:', r.faceCount)
-
-  // 7.9 Thêm Bụi Cây hoa nhỏ phía trước trái tiền cảnh
-  console.log('   ↳ Bố trí Bụi Cây hoa nhỏ phía trước trái...')
   r = await sendCommand('append_assembly_model', {
     model_id: 'model-tudor-estate',
     source_model_id: 'model-garden-bush',
-    at: [-210, -108, 30],
-    scale: 0.65,
-    prefix_names: false
-  })
-  console.log('     [OK] Total faces:', r.faceCount)
-
-  // 7.10 Thêm Bụi Cây hoa nhỏ phía trước phải tiền cảnh
-  console.log('   ↳ Bố trí Bụi Cây hoa nhỏ phía trước phải...')
-  r = await sendCommand('append_assembly_model', {
-    model_id: 'model-tudor-estate',
-    source_model_id: 'model-garden-bush',
-    at: [210, -108, 30],
-    scale: 0.65,
+    at: [110, -169, 50],
+    scale: 0.70,
     prefix_names: false
   })
   console.log('     [OK] Total faces:', r.faceCount)

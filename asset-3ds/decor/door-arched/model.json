@@ -4,7 +4,7 @@
   "description": "Cửa ra vào vòm cuốn đá khối, cánh gỗ sồi bản lề rèn thép, bậc thềm đá và mái ngói hiên.",
   "category": "decor",
   "thumbnail": "thumbnail.png",
-  "scale": 0.6,
+  "scale": 0.36,
   "faces": [
     {
       "id": "door-leaf",
@@ -127,5 +127,5 @@
     }
   ],
   "createdAt": 1791432990341,
-  "updatedAt": 1791438829734
+  "updatedAt": 1791439858299
 }

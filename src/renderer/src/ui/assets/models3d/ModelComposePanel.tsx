@@ -29,10 +29,19 @@ const MOUNT_POINTS: Array<{ uv: [number, number]; label: string }> = [
  * model being assembled — either mounted on the selected face at one of 9 points (the part
  * turns with that face), or placed beside the model. Images and mesh work are kept.
  */
+const SCALE_PRESETS = [
+  { val: 0.25, label: '25%' },
+  { val: 0.35, label: '35%' },
+  { val: 0.5, label: '50%' },
+  { val: 0.75, label: '75%' },
+  { val: 1.0, label: '100%' }
+]
+
 export function ModelComposePanel({ model, selectedFace, onApply }: ModelComposePanelProps) {
   const [library, setLibrary] = useState<Model3D[]>(() => getStoredModels3D())
   const [query, setQuery] = useState('')
   const [mountIdx, setMountIdx] = useState(4)
+  const [scalePercent, setScalePercent] = useState<number>(35)
 
   useEffect(() => {
     let alive = true
@@ -54,7 +63,13 @@ export function ModelComposePanel({ model, selectedFace, onApply }: ModelCompose
 
   const mountOnFace = (part: Model3D) => {
     if (!selectedFace) return
-    apply(appendModelOnFace(part, model, selectedFace, { uv: MOUNT_POINTS[mountIdx].uv }))
+    const s = Math.max(0.05, scalePercent / 100)
+    apply(appendModelOnFace(part, model, selectedFace, { uv: MOUNT_POINTS[mountIdx].uv, scale: s }))
+  }
+
+  const appendBeside = (part: Model3D) => {
+    const s = Math.max(0.05, scalePercent / 100)
+    apply(appendModel(part, model, { scale: s }))
   }
 
   return (
@@ -80,6 +95,35 @@ export function ModelComposePanel({ model, selectedFace, onApply }: ModelCompose
         </p>
       </div>
 
+      <div className="mc-scale-bar">
+        <span className="mc-scale-label">Tỉ lệ ghép:</span>
+        <div className="mc-scale-presets">
+          {SCALE_PRESETS.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              className={`mc-scale-chip${scalePercent === Math.round(p.val * 100) ? ' active' : ''}`}
+              onClick={() => setScalePercent(Math.round(p.val * 100))}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="mc-scale-input-wrap">
+          <input
+            type="number"
+            min={5}
+            max={300}
+            step={5}
+            className="input-text mc-scale-input"
+            value={scalePercent}
+            onChange={(e) => setScalePercent(Math.max(5, Math.min(300, Number(e.target.value) || 35)))}
+            aria-label="Tỉ lệ phần trăm khi ghép"
+          />
+          <span className="mc-scale-unit">%</span>
+        </div>
+      </div>
+
       <input
         type="search"
         className="input-text mc-search"
@@ -96,11 +140,11 @@ export function ModelComposePanel({ model, selectedFace, onApply }: ModelCompose
             {m.category === 'decor' && <span className="mc-tag">Trang trí</span>}
             <span className="mc-meta">{m.faces.length} mặt</span>
             <button type="button" className="mc-btn primary" disabled={!selectedFace} onClick={() => mountOnFace(m)}
-              title="Gắn lên mặt đang chọn tại điểm đã chọn">
+              title={`Gắn lên mặt đang chọn với tỉ lệ ${scalePercent}%`}>
               <IconPlus width={10} height={10} /> Gắn
             </button>
-            <button type="button" className="mc-btn" onClick={() => apply(appendModel(m, model))}
-              title="Đặt cạnh mô hình hiện tại (chân bằng nhau)">
+            <button type="button" className="mc-btn" onClick={() => appendBeside(m)}
+              title={`Đặt cạnh mô hình hiện tại với tỉ lệ ${scalePercent}%`}>
               Cạnh
             </button>
           </div>
@@ -109,7 +153,7 @@ export function ModelComposePanel({ model, selectedFace, onApply }: ModelCompose
           <div className="mc-empty">Chưa có mô hình đã lưu. Hãy tạo bộ phận (VD: “Cửa sổ có bậu”) rồi lưu, sau đó ghép tại đây.</div>
         )}
       </div>
-      <p className="fi-hint">Quy trình: tạo khung nhà → tạo từng bộ phận trang trí thành asset riêng → ghép lại tại đây (Ctrl+Z để hoàn tác).</p>
+      <p className="fi-hint">Quy trình: tạo khung nhà → tạo từng bộ phận trang trí thành asset riêng → ghép lại tại đây với tỉ lệ kiến trúc phù hợp (Ctrl+Z để hoàn tác).</p>
     </div>
   )
 }

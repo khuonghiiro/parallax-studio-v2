@@ -320,13 +320,14 @@ export const assemblyCommands: Record<string, Handler> = {
     const { model, isSession } = await resolveTargetModel(p)
     if (part.id === model.id) throw new ParamError('Cannot merge a model into itself')
     const scale = num(p, 'scale')
+    const targetCoverage = num(p, 'target_coverage')
     const prefixNames = bool(p, 'prefix_names')
     const faceId = str(p, 'face_id')
     let res
     if (faceId) {
       const host = model.faces.find((f) => f.id === faceId)
       if (!host) throw new ParamError(`Face "${faceId}" not found in model "${model.id}"`)
-      res = appendModelOnFace(part, model, host, { uv: uvParam(p), scale, prefixNames })
+      res = appendModelOnFace(part, model, host, { uv: uvParam(p), scale, targetCoverage, prefixNames })
     } else {
       res = appendModel(part, model, { at: vec3(p, 'at'), scale, prefixNames })
     }

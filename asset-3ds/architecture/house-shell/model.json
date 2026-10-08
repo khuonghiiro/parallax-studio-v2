@@ -4,7 +4,7 @@
   "description": "Khung nhà rỗng phong cách Tudor thuần túy: tường trát vôi trắng nẹp gỗ và mái ngói đất nung kín khít không khe hở.",
   "category": "architecture",
   "thumbnail": "thumbnail.png",
-  "scale": 0.6,
+  "scale": 1,
   "faces": [
     {
       "id": "face-front",
@@ -110,5 +110,5 @@
     }
   ],
   "createdAt": 1791432990372,
-  "updatedAt": 1791438823603
+  "updatedAt": 1791439863685
 }

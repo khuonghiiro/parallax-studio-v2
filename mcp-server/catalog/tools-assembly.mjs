@@ -100,6 +100,15 @@ export const ASSEMBLY_TOOLS = [
         .describe(d('Point on the host face, 0..1 each, v up (default [0.5, 0.5]).', 'Điểm trên mặt chủ, mỗi trục 0..1, v hướng lên (mặc định [0.5, 0.5]).')),
       at: vec3.optional().describe(d('Model-space point for the part origin when no face_id is given.', 'Điểm trong không gian mô hình cho gốc bộ phận khi không có face_id.')),
       scale: z.number().optional().describe(d('Extra uniform scale on top of automatic matching (default 1).', 'Tỉ lệ cộng thêm ngoài tỉ lệ tự khớp (mặc định 1).')),
+      target_coverage: z
+        .number()
+        .optional()
+        .describe(
+          d(
+            'Target coverage fraction relative to host face dimensions (0..1, e.g. 0.35 = scale part to span 35% of host height/width).',
+            'Tỉ lệ bao phủ mục tiêu so với kích thước mặt chủ (0..1, vd 0.35 = co giãn bộ phận chiếm 35% chiều cao/rộng mặt chủ).'
+          )
+        ),
       prefix_names: z.boolean().optional().describe(d('Prefix merged face names with the part name (default true).', 'Thêm tên bộ phận vào trước tên mặt (mặc định true).'))
     }),
     example: '{"source_model_id":"model-window-1","face_id":"face-front","uv":[0.25,0.55]}'

@@ -101,4 +101,14 @@ describe('appendModelOnFace', () => {
     expect(added.position[0]).toBeCloseTo(100)
     expect(added.position[1]).toBeCloseTo(-50)
   })
+
+  it('scales part proportionally with targetCoverage relative to host face', () => {
+    const host = face('wall', { width: 400, height: 200 })
+    const part = model([face('window', { width: 100, height: 100 })], { scale: 1 })
+    // targetCoverage: 0.35 means part should span 35% of host height: 200 * 0.35 = 70
+    const { faces } = appendModelOnFace(part, { scale: 1, faces: [host] }, host, { targetCoverage: 0.35 })
+    const added = faces[1]
+    expect(added.height).toBe(70)
+    expect(added.width).toBe(70)
+  })
 })

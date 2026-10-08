@@ -4,7 +4,7 @@
   "description": "Bồn hoa gỗ sồi treo dưới bậu cửa sổ, ngập tràn hoa phong lữ và dây leo trường xuân.",
   "category": "decor",
   "thumbnail": "thumbnail.png",
-  "scale": 0.6,
+  "scale": 0.3,
   "faces": [
     {
       "id": "planter-front",
@@ -127,5 +127,5 @@
     }
   ],
   "createdAt": 1791432990350,
-  "updatedAt": 1791438842257
+  "updatedAt": 1791439858789
 }

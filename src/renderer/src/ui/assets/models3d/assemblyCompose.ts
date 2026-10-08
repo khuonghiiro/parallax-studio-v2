@@ -83,8 +83,35 @@ export function appendModel(
 export interface MountOnFaceOptions {
   /** Point on the host face, UV 0..1 with v pointing up (default centre [0.5, 0.5]). */
   uv?: [number, number]
+  /** Extra uniform scale multiplier (default 1). */
   scale?: number
+  /**
+   * Target coverage fraction relative to host face (0..1).
+   * E.g. 0.35 scales the part so its bounding box spans ~35% of the host face dimensions.
+   */
+  targetCoverage?: number
   prefixNames?: boolean
+}
+
+/** Computes mounting scale taking into account relative model scale and optional target coverage. */
+function computeMountScale(
+  part: Model3D,
+  target: Pick<Model3D, 'scale'>,
+  host: Face3D,
+  opts: MountOnFaceOptions
+): number {
+  const baseK = relativeScale(part, target, opts.scale ?? 1)
+  if (typeof opts.targetCoverage !== 'number' || opts.targetCoverage <= 0) {
+    return baseK
+  }
+  const b = modelBounds(part.faces)
+  if (!b) return baseK
+  const partW = Math.max(1, b.max[0] - b.min[0])
+  const partH = Math.max(1, b.max[1] - b.min[1])
+  const fitH = (host.height * opts.targetCoverage) / partH
+  const fitW = (host.width * opts.targetCoverage) / partW
+  const fitK = Math.min(fitH, fitW)
+  return round1(fitK * (opts.scale ?? 1) * 100) / 100
 }
 
 /**
@@ -99,7 +126,7 @@ export function appendModelOnFace(
   opts: MountOnFaceOptions = {}
 ): AppendModelResult {
   if (part.faces.length === 0) return { faces: target.faces, addedIds: [] }
-  const k = relativeScale(part, target, opts.scale ?? 1)
+  const k = computeMountScale(part, target, host, opts)
   const { faces: copies, idMap } = scaledCopies(part, k, opts.prefixNames !== false)
   const [u, v] = opts.uv ?? [0.5, 0.5]
   const clamp = (x: number): number => Math.min(1, Math.max(0, x))

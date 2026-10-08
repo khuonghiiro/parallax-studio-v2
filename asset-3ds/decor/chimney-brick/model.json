@@ -4,7 +4,7 @@
   "description": "Ống khói gạch nung nắp chụp gờ cổ điển, cắm xuyên mái dốc công trình.",
   "category": "decor",
   "thumbnail": "thumbnail.png",
-  "scale": 0.6,
+  "scale": 0.45,
   "faces": [
     {
       "id": "chim-front",
@@ -110,5 +110,5 @@
     }
   ],
   "createdAt": 1791432990356,
-  "updatedAt": 1791438848070
+  "updatedAt": 1791439859657
 }

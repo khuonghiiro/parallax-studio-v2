@@ -25,6 +25,14 @@ const CATEGORY_CHIPS: Array<{ id: string; label: string }> = [
   { id: 'props', label: 'Đồ vật' }
 ]
 
+const SCALE_PRESETS = [
+  { val: 0.25, label: '25%' },
+  { val: 0.35, label: '35%' },
+  { val: 0.5, label: '50%' },
+  { val: 0.75, label: '75%' },
+  { val: 1.0, label: '100%' }
+]
+
 export function AssemblyModelLibraryTab({
   currentModel,
   selectedFace,
@@ -33,6 +41,7 @@ export function AssemblyModelLibraryTab({
   const [library, setLibrary] = useState<Model3D[]>(() => getStoredModels3D())
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
+  const [scalePercent, setScalePercent] = useState<number>(35)
 
   useEffect(() => {
     let alive = true
@@ -61,12 +70,14 @@ export function AssemblyModelLibraryTab({
 
   const handleMountOnFace = (part: Model3D) => {
     if (!selectedFace) return
-    const res = appendModelOnFace(part, currentModel, selectedFace, { uv: [0.5, 0.5] })
+    const s = Math.max(0.05, scalePercent / 100)
+    const res = appendModelOnFace(part, currentModel, selectedFace, { uv: [0.5, 0.5], scale: s })
     onApplyFaces(res.faces, res.addedIds[0] ?? null)
   }
 
   const handleAppendBeside = (part: Model3D) => {
-    const res = appendModel(part, currentModel)
+    const s = Math.max(0.05, scalePercent / 100)
+    const res = appendModel(part, currentModel, { scale: s })
     onApplyFaces(res.faces, res.addedIds[0] ?? null)
   }
 
@@ -98,7 +109,7 @@ export function AssemblyModelLibraryTab({
         ))}
       </div>
 
-      {/* Selected Face Hint */}
+      {/* Selected Face Hint & Scale Controls */}
       <div className="model-lib-mount-banner">
         {selectedFace ? (
           <span className="banner-text">
@@ -107,6 +118,35 @@ export function AssemblyModelLibraryTab({
         ) : (
           <span className="banner-text dim">Chọn 1 mặt để gắn bộ phận lên mặt đó</span>
         )}
+      </div>
+
+      <div className="mc-scale-bar" style={{ margin: '0 10px 6px 10px' }}>
+        <span className="mc-scale-label">Tỉ lệ:</span>
+        <div className="mc-scale-presets">
+          {SCALE_PRESETS.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              className={`mc-scale-chip${scalePercent === Math.round(p.val * 100) ? ' active' : ''}`}
+              onClick={() => setScalePercent(Math.round(p.val * 100))}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="mc-scale-input-wrap">
+          <input
+            type="number"
+            min={5}
+            max={300}
+            step={5}
+            className="input-text mc-scale-input"
+            value={scalePercent}
+            onChange={(e) => setScalePercent(Math.max(5, Math.min(300, Number(e.target.value) || 35)))}
+            aria-label="Tỉ lệ phần trăm khi ghép"
+          />
+          <span className="mc-scale-unit">%</span>
+        </div>
       </div>
 
       {/* Model Cards List */}

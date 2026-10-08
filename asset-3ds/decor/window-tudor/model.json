@@ -4,7 +4,7 @@
   "description": "Cửa sổ hoa văn chì cổ điển có bậu cửa gỗ và 2 cánh mở góc 35 độ, gắn lên tường.",
   "category": "decor",
   "thumbnail": "thumbnail.png",
-  "scale": 0.6,
+  "scale": 0.32,
   "faces": [
     {
       "id": "window-glass",
@@ -110,5 +110,5 @@
     }
   ],
   "createdAt": 1791432990329,
-  "updatedAt": 1791438835875
+  "updatedAt": 1791439857377
 }
