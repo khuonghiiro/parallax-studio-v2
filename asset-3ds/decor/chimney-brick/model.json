@@ -160,40 +160,95 @@
       ]
     },
     {
-      "id": "chim-pot-front",
-      "name": "Ống gốm thoát khói",
+      "id": "chim-pot-0",
+      "name": "Vách cong ống gốm trước (0°)",
       "assetPath": "assembly_3d/modular/decor_chimney_pot.png",
-      "width": 38,
-      "height": 42,
+      "width": 34,
+      "height": 46,
       "position": [
         0,
-        164,
-        0
+        166,
+        -11
       ],
       "rotation": [
         0,
         0,
         0
-      ]
+      ],
+      "bendX": 58
     },
     {
-      "id": "chim-pot-side",
-      "name": "Ống gốm thoát khói góc nghiêng",
+      "id": "chim-pot-90",
+      "name": "Vách cong ống gốm phải (90°)",
       "assetPath": "assembly_3d/modular/decor_chimney_pot.png",
-      "width": 38,
-      "height": 42,
+      "width": 34,
+      "height": 46,
+      "position": [
+        11,
+        166,
+        0
+      ],
+      "rotation": [
+        0,
+        -90,
+        0
+      ],
+      "bendX": 58
+    },
+    {
+      "id": "chim-pot-180",
+      "name": "Vách cong ống gốm sau (180°)",
+      "assetPath": "assembly_3d/modular/decor_chimney_pot.png",
+      "width": 34,
+      "height": 46,
       "position": [
         0,
-        164,
+        166,
+        11
+      ],
+      "rotation": [
+        0,
+        180,
+        0
+      ],
+      "bendX": 58
+    },
+    {
+      "id": "chim-pot-270",
+      "name": "Vách cong ống gốm trái (270°)",
+      "assetPath": "assembly_3d/modular/decor_chimney_pot.png",
+      "width": 34,
+      "height": 46,
+      "position": [
+        -11,
+        166,
         0
       ],
       "rotation": [
         0,
         90,
         0
+      ],
+      "bendX": 58
+    },
+    {
+      "id": "chim-pot-flue-bottom",
+      "name": "Lòng ống thoát khói",
+      "color": "#1c1917",
+      "width": 20,
+      "height": 20,
+      "position": [
+        0,
+        144,
+        0
+      ],
+      "rotation": [
+        -90,
+        0,
+        0
       ]
     }
   ],
   "createdAt": 1791432990356,
-  "updatedAt": 1791445278813
+  "updatedAt": 1791446224061
 }

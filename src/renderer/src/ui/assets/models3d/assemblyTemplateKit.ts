@@ -243,28 +243,3 @@ export function taperedConeFaces(
     )
   })
 }
-
-/**
- * Blender-style volumetric foliage structure:
- * 1. Woody stem/branch core crossed at 90° through the center
- * 2. Radiating curved foliage cluster cards (interlacing pixels/volume from all angles)
- * 3. Horizontal top canopy dome
- */
-export function blenderFoliageBushFaces(w = 460, h = 380): TemplateFaceSpec[] {
-  return [
-    // 1. Cốt thân cành gỗ chữ thập
-    face('Cốt cành chính (0°)', Math.round(w * 0.65), Math.round(h * 0.75), [0, 0, 0], FRONT),
-    aroundY('Cốt cành ngang (90°)', Math.round(w * 0.65), Math.round(h * 0.75), 90, [0, 0, 0]),
-    // 2. Các chùm tán lá đan chéo giao thoa đa hướng (tạo thể tích 3D uốn cong)
-    face('Chùm tán trực diện', w, h, [0, 10, 0], FRONT, undefined, { bendX: 45, bendY: 20 }),
-    aroundY('Chùm tán chéo phải (45°)', Math.round(w * 0.95), Math.round(h * 0.95), 45, [10, 15, 0]),
-    aroundY('Chùm tán ngang (90°)', w, h, 90, [0, 10, 0]),
-    aroundY('Chùm tán chéo trái (135°)', Math.round(w * 0.95), Math.round(h * 0.95), 135, [-10, 15, 0]),
-    // 3. Tán vòm che đỉnh
-    face('Tán vòm nóc', Math.round(w * 0.8), Math.round(w * 0.8), [0, Math.round(h * 0.38), 0], UP, AWAY, {
-      bendX: 45,
-      bendY: 45
-    })
-  ]
-}
-

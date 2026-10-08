@@ -16,7 +16,6 @@ import {
   tilted,
   curvedCylinderFaces,
   taperedConeFaces,
-  blenderFoliageBushFaces,
   type AssemblyTemplate
 } from './assemblyTemplateKit'
 import { HOUSE_SHELLS } from './assemblyTemplatesShells'
@@ -231,11 +230,6 @@ const nature: AssemblyTemplate[] = [
       face('Cụm nền sau', 500, 400, [0, 30, 90], BACK, undefined, { bendX: -20 }),
       face('Nóc vòm bụi', 420, 320, [0, 130, 40], UP, AWAY, { bendX: 40, bendY: 20 })
     ]
-  },
-  {
-    id: 'bush-blender-foliage', label: 'Bụi cây tán lá giao thoa Blender', category: 'nature', hint: 'Cốt cành gỗ chữ thập + các chùm lá uốn cong đan chéo giao thoa đa hướng tạo tán tròn đầy tự nhiên',
-    en: { label: 'Blender volumetric foliage bush', hint: 'Crossed branch core + multi-angle interlaced curved foliage cards creating lush organic 360° volume' },
-    faces: () => blenderFoliageBushFaces(460, 380)
   },
   {
     id: 'foliage-layers', label: 'Tán lá nhiều lớp', category: 'nature', hint: '4 lớp so le chiều sâu cho parallax mượt',

@@ -87,21 +87,6 @@
     "assembly_3d/modular/decor_flower_box.png": {
       "name": "Hộp hoa ban công rực rỡ"
     },
-    "assembly_3d/modular/nature_bush.png": {
-      "name": "Bụi cây hoa sân vườn thể tích"
-    },
-    "assembly_3d/modular/nature_bush_top.png": {
-      "name": "Tán vòm bụi cây hoa (Nhìn từ trên)"
-    },
-    "assembly_3d/modular/nature_bush_tri_1.png": {
-      "name": "Mảnh tam giác cầu lồi bụi cây (Mặt trước)"
-    },
-    "assembly_3d/modular/nature_bush_tri_2.png": {
-      "name": "Mảnh tam giác cầu lồi bụi cây (Mặt hông)"
-    },
-    "assembly_3d/modular/nature_bush_tri_3.png": {
-      "name": "Mảnh tam giác cầu lồi bụi cây (Mặt hoa đón nắng)"
-    },
     "assembly_3d/modular/decor_window_glass.png": {
       "name": "Khung kính cửa sổ Tudor"
     },
@@ -119,24 +104,6 @@
     },
     "assembly_3d/modular/decor_chimney_pot.png": {
       "name": "Ống gốm đỉnh ống khói"
-    },
-    "assembly_3d/modular/nature_branch_stem.png": {
-      "name": "Thân cành gỗ bụi cây (Cốt lõi 3D)"
-    },
-    "assembly_3d/modular/nature_leaf_cluster.png": {
-      "name": "Chùm tán lá & hoa tím thể tích (Trực diện)"
-    },
-    "assembly_3d/modular/nature_leaf_cluster_1.png": {
-      "name": "Chùm tán lá nhánh con 1"
-    },
-    "assembly_3d/modular/nature_leaf_cluster_2.png": {
-      "name": "Chùm tán lá nhánh con 2"
-    },
-    "assembly_3d/modular/nature_leaf_cluster_flip.png": {
-      "name": "Chùm tán lá & hoa tím thể tích (Đảo chiều)"
-    },
-    "assembly_3d/modular/nature_leaf_canopy.png": {
-      "name": "Chỏm vòm tán lá trên đỉnh"
     }
   }
 }

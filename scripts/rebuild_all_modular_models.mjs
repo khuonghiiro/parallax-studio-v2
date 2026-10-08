@@ -56,7 +56,7 @@ function sendCommand(method, params = {}) {
 async function captureAndSaveThumbnail(modelId, category, folderName) {
   console.log(`📸 Chụp thumbnail 3D cho ${modelId}...`)
   await sendCommand('open_assembly_workshop', { model_id: modelId })
-  await new Promise((r) => setTimeout(r, 2000))
+  await new Promise((r) => setTimeout(r, 4500))
 
   const shot = await sendCommand('get_assembly_screenshot', {
     preset: 'iso',
@@ -223,24 +223,56 @@ export function getCleanChimneyFaces() {
       position: [0, 143, 0],
       rotation: [-90, 0, 0]
     },
-    // Ống gốm thoát khói đỉnh
+    // Ống gốm thoát khói đỉnh tròn 360° (Uốn cong 4 mảnh khép kín thành hình trụ tròn)
     {
-      id: 'chim-pot-front',
-      name: 'Ống gốm thoát khói',
+      id: 'chim-pot-0',
+      name: 'Vách cong ống gốm trước (0°)',
       assetPath: 'assembly_3d/modular/decor_chimney_pot.png',
-      width: 38,
-      height: 42,
-      position: [0, 164, 0],
-      rotation: [0, 0, 0]
+      width: 34,
+      height: 46,
+      position: [0, 166, -11],
+      rotation: [0, 0, 0],
+      bendX: 58
     },
     {
-      id: 'chim-pot-side',
-      name: 'Ống gốm thoát khói góc nghiêng',
+      id: 'chim-pot-90',
+      name: 'Vách cong ống gốm phải (90°)',
       assetPath: 'assembly_3d/modular/decor_chimney_pot.png',
-      width: 38,
-      height: 42,
-      position: [0, 164, 0],
-      rotation: [0, 90, 0]
+      width: 34,
+      height: 46,
+      position: [11, 166, 0],
+      rotation: [0, -90, 0],
+      bendX: 58
+    },
+    {
+      id: 'chim-pot-180',
+      name: 'Vách cong ống gốm sau (180°)',
+      assetPath: 'assembly_3d/modular/decor_chimney_pot.png',
+      width: 34,
+      height: 46,
+      position: [0, 166, 11],
+      rotation: [0, 180, 0],
+      bendX: 58
+    },
+    {
+      id: 'chim-pot-270',
+      name: 'Vách cong ống gốm trái (270°)',
+      assetPath: 'assembly_3d/modular/decor_chimney_pot.png',
+      width: 34,
+      height: 46,
+      position: [-11, 166, 0],
+      rotation: [0, 90, 0],
+      bendX: 58
+    },
+    // Đáy lỗ thông khói bên trong lòng ống (Đổ bóng tối tự nhiên)
+    {
+      id: 'chim-pot-flue-bottom',
+      name: 'Lòng ống thoát khói',
+      color: '#1c1917',
+      width: 20,
+      height: 20,
+      position: [0, 144, 0],
+      rotation: [-90, 0, 0]
     }
   ]
 }
@@ -417,110 +449,6 @@ export function getCleanFlowerBoxFaces() {
   ]
 }
 
-export function getCleanSphericalBushFaces() {
-  return [
-    // 1. Cốt thân cành gỗ chịu lực & lộ qua kẽ lá (Woody branch skeleton)
-    {
-      id: 'bush-stem-main',
-      name: 'Thân cành gỗ chính (0°)',
-      assetPath: 'assembly_3d/modular/nature_branch_stem.png',
-      width: 300,
-      height: 260,
-      position: [0, 100, 0],
-      rotation: [0, 0, 0]
-    },
-    {
-      id: 'bush-stem-cross',
-      name: 'Thân cành gỗ ngang (90°)',
-      assetPath: 'assembly_3d/modular/nature_branch_stem.png',
-      width: 300,
-      height: 260,
-      position: [0, 100, 0],
-      rotation: [0, 90, 0]
-    },
-    // 2. Các chùm tán lá đan chéo giao thoa tạo tán 360° (Interlacing curved foliage cards)
-    {
-      id: 'bush-foliage-0',
-      name: 'Tán lá chùm trực diện (0°)',
-      assetPath: 'assembly_3d/modular/nature_leaf_cluster.png',
-      width: 440,
-      height: 290,
-      position: [0, 110, 0],
-      rotation: [0, 0, 0],
-      bendX: 42,
-      bendY: 20
-    },
-    {
-      id: 'bush-foliage-45',
-      name: 'Tán lá chùm chéo phải (45°)',
-      assetPath: 'assembly_3d/modular/nature_leaf_cluster_flip.png',
-      width: 420,
-      height: 280,
-      position: [8, 112, 0],
-      rotation: [0, 45, 0],
-      bendX: -40,
-      bendY: 18
-    },
-    {
-      id: 'bush-foliage-90',
-      name: 'Tán lá chùm ngang (90°)',
-      assetPath: 'assembly_3d/modular/nature_leaf_cluster.png',
-      width: 440,
-      height: 290,
-      position: [0, 110, 0],
-      rotation: [0, 90, 0],
-      bendX: 42,
-      bendY: 20
-    },
-    {
-      id: 'bush-foliage-135',
-      name: 'Tán lá chùm chéo trái (135°)',
-      assetPath: 'assembly_3d/modular/nature_leaf_cluster_flip.png',
-      width: 420,
-      height: 280,
-      position: [-8, 112, 0],
-      rotation: [0, 135, 0],
-      bendX: -40,
-      bendY: 18
-    },
-    // 3. Các cụm hoa vươn lệch trước và sau tạo độ phồng chiều sâu
-    {
-      id: 'bush-foliage-front',
-      name: 'Khóm hoa nhô trước (Front Bloom)',
-      assetPath: 'assembly_3d/modular/nature_leaf_cluster.png',
-      width: 350,
-      height: 240,
-      position: [0, 95, 55],
-      rotation: [-10, 0, 0],
-      bendX: 35,
-      bendY: 25
-    },
-    {
-      id: 'bush-foliage-back',
-      name: 'Khóm hoa nhô sau (Back Bloom)',
-      assetPath: 'assembly_3d/modular/nature_leaf_cluster_flip.png',
-      width: 350,
-      height: 240,
-      position: [0, 95, -55],
-      rotation: [10, 180, 0],
-      bendX: 35,
-      bendY: 25
-    },
-    // 4. Chỏm vòm tán lá trên đỉnh (Top canopy dome)
-    {
-      id: 'bush-canopy-top',
-      name: 'Chỏm vòm tán lá trên đỉnh',
-      assetPath: 'assembly_3d/modular/nature_leaf_canopy.png',
-      width: 340,
-      height: 340,
-      position: [0, 138, 0],
-      rotation: [-90, 0, 0],
-      bendX: 40,
-      bendY: 40
-    }
-  ]
-}
-
 async function rebuildAll() {
   console.log('🏛️ BẮT ĐẦU CẬP NHẬT TOÀN BỘ CÁC MÔ HÌNH 3D VÀ THUMBNAIL...\n')
 
@@ -584,17 +512,14 @@ async function rebuildAll() {
   })
   await captureAndSaveThumbnail('model-flower-box', 'decor', 'flower-box')
 
-  // 6. model-garden-bush
-  console.log('\n6️⃣ Cập nhật model-garden-bush (Bụi Cây Thể Tích 3D)...')
-  await sendCommand('save_assembly_model', {
-    id: 'model-garden-bush',
-    name: 'Bụi Cây Hoa Sân Vườn 3D',
-    category: 'nature',
-    description: 'Bụi cây xanh xum xuê hoa tím kiểu Blender: Cốt cành gỗ chữ thập kết hợp các chùm tán lá đan chéo giao thoa đa hướng uốn cong thể tích 3D, nhìn chân thực từ mọi góc độ.',
-    scale: 0.35,
-    faces: getCleanSphericalBushFaces()
-  })
-  await captureAndSaveThumbnail('model-garden-bush', 'nature', 'garden-bush')
+  // 6. Xoá model-garden-bush (Bụi cây)
+  console.log('\n🗑️ Xoá bỏ model-garden-bush...')
+  try {
+    await sendCommand('delete_model3d', { id: 'model-garden-bush' })
+    console.log('   ✓ Đã xoá model-garden-bush')
+  } catch {
+    console.log('   (model-garden-bush đã được xoá hoặc không tồn tại)')
+  }
 
   // 7. model-tudor-estate (Master Composite)
   console.log('\n7️⃣ Lắp ráp lại Biệt Thự Tudor Đầy Đủ (model-tudor-estate)...')
@@ -602,7 +527,7 @@ async function rebuildAll() {
     id: 'model-tudor-estate',
     name: 'Biệt Thự Tudor 3D Lắp Ráp Hoàn Chỉnh',
     category: 'architecture',
-    description: 'Biệt thự Tudor cao cấp ghép nối modular 3D hoàn chỉnh chuẩn tỉ lệ kiến trúc: Cửa vòm đá tỉ lệ người thật, 2 cửa sổ đối xứng có bồn hoa ban công, cửa sổ gác mái, ống khói gạch thanh mảnh thẳng đứng và bụi cây cảnh sân vườn thể tích.',
+    description: 'Biệt thự Tudor cao cấp ghép nối modular 3D hoàn chỉnh chuẩn tỉ lệ kiến trúc: Cửa vòm đá tỉ lệ người thật, 2 cửa sổ đối xứng có bồn hoa ban công, cửa sổ gác mái và ống khói gạch nắp gốm tròn 360 độ thẳng đứng.',
     scale: 1.0,
     faces: getCleanHouseShellFaces()
   })
@@ -704,35 +629,6 @@ async function rebuildAll() {
     model_id: 'model-tudor-estate',
     source_model_id: 'model-chimney-brick',
     at: [140, 390, 380],
-    prefix_names: false
-  })
-
-  // Bushes: Plump 3D spherical bushes!
-  console.log('   ↳ Ghép các Bụi Cây Thể Tích 3D góc móng và lối đi...')
-  await sendCommand('append_assembly_model', {
-    model_id: 'model-tudor-estate',
-    source_model_id: 'model-garden-bush',
-    at: [290, -155, 35],
-    prefix_names: false
-  })
-  await sendCommand('append_assembly_model', {
-    model_id: 'model-tudor-estate',
-    source_model_id: 'model-garden-bush',
-    at: [-290, -155, 35],
-    prefix_names: false
-  })
-  await sendCommand('append_assembly_model', {
-    model_id: 'model-tudor-estate',
-    source_model_id: 'model-garden-bush',
-    at: [-125, -169, 50],
-    scale: 0.70,
-    prefix_names: false
-  })
-  await sendCommand('append_assembly_model', {
-    model_id: 'model-tudor-estate',
-    source_model_id: 'model-garden-bush',
-    at: [125, -169, 50],
-    scale: 0.70,
     prefix_names: false
   })
 
