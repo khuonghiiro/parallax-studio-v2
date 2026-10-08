@@ -1,0 +1,202 @@
+{
+  "id": "model-mesh-flower-z30yb",
+  "name": "Bông Hoa Tự Nhiên 3D",
+  "description": "3 ảnh: cánh, nhụy, thân → hoa sáu cánh cong, thay ảnh tạo nhiều loài",
+  "category": "nature",
+  "scale": 0.6,
+  "faces": [
+    {
+      "id": "mesh-flower-1",
+      "name": "Thân",
+      "color": "#7c8cff",
+      "width": 40,
+      "height": 400,
+      "position": [
+        0,
+        -50,
+        12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "none",
+      "depthIntensity": 0,
+      "imageSlot": "stem",
+      "assetPath": "assembly_3d/modular/nature_flower_stem.png"
+    },
+    {
+      "id": "mesh-flower-2",
+      "name": "Cánh 1",
+      "color": "#38bdf8",
+      "width": 160,
+      "height": 240,
+      "position": [
+        0,
+        270,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "ridge",
+      "depthIntensity": 8,
+      "imageSlot": "petal",
+      "bendY": 24,
+      "assetPath": "assembly_3d/modular/nature_flower_petal.png"
+    },
+    {
+      "id": "mesh-flower-3",
+      "name": "Cánh 2",
+      "color": "#22d3ee",
+      "width": 160,
+      "height": 240,
+      "position": [
+        103.9,
+        210,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        60
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "ridge",
+      "depthIntensity": 8,
+      "imageSlot": "petal",
+      "bendY": 24,
+      "assetPath": "assembly_3d/modular/nature_flower_petal.png"
+    },
+    {
+      "id": "mesh-flower-4",
+      "name": "Cánh 3",
+      "color": "#a78bfa",
+      "width": 160,
+      "height": 240,
+      "position": [
+        103.9,
+        90,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        120
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "ridge",
+      "depthIntensity": 8,
+      "imageSlot": "petal",
+      "bendY": 24,
+      "assetPath": "assembly_3d/modular/nature_flower_petal.png"
+    },
+    {
+      "id": "mesh-flower-5",
+      "name": "Cánh 4",
+      "color": "#60a5fa",
+      "width": 160,
+      "height": 240,
+      "position": [
+        0,
+        30,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        180
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "ridge",
+      "depthIntensity": 8,
+      "imageSlot": "petal",
+      "bendY": 24,
+      "assetPath": "assembly_3d/modular/nature_flower_petal.png"
+    },
+    {
+      "id": "mesh-flower-6",
+      "name": "Cánh 5",
+      "color": "#94a3b8",
+      "width": 160,
+      "height": 240,
+      "position": [
+        -103.9,
+        90,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        -120
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "ridge",
+      "depthIntensity": 8,
+      "imageSlot": "petal",
+      "bendY": 24,
+      "assetPath": "assembly_3d/modular/nature_flower_petal.png"
+    },
+    {
+      "id": "mesh-flower-7",
+      "name": "Cánh 6",
+      "color": "#7c8cff",
+      "width": 160,
+      "height": 240,
+      "position": [
+        -103.9,
+        210,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        -60
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "ridge",
+      "depthIntensity": 8,
+      "imageSlot": "petal",
+      "bendY": 24,
+      "assetPath": "assembly_3d/modular/nature_flower_petal.png"
+    },
+    {
+      "id": "mesh-flower-8",
+      "name": "Nhụy",
+      "color": "#38bdf8",
+      "width": 100,
+      "height": 100,
+      "position": [
+        0,
+        150,
+        -12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "sphere",
+      "depthIntensity": 18,
+      "imageSlot": "center",
+      "assetPath": "assembly_3d/modular/nature_flower_center.png"
+    }
+  ],
+  "createdAt": 1791452730092,
+  "updatedAt": 1791452961997,
+  "thumbnail": "thumbnail.png"
+}

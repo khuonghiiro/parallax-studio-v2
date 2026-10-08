@@ -110,6 +110,15 @@
     },
     "assembly_3d/modular/nature_grass.png": {
       "name": "Bụi cỏ tự nhiên (Mẫu mesh)"
+    },
+    "assembly_3d/modular/nature_flower_petal.png": {
+      "name": "Cánh hoa tự nhiên (Mẫu mesh)"
+    },
+    "assembly_3d/modular/nature_flower_center.png": {
+      "name": "Nhụy hoa tự nhiên (Mẫu mesh)"
+    },
+    "assembly_3d/modular/nature_flower_stem.png": {
+      "name": "Thân cành hoa tự nhiên (Mẫu mesh)"
     }
   }
 }
