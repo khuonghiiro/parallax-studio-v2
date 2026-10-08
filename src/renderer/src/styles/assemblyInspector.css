@@ -7,13 +7,228 @@
 .assembly-inspector-panel {
   background: var(--bg-2);
   border-left: 1px solid var(--line-soft);
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   min-width: 0;
   width: 100%;
+  height: 100%;
   box-sizing: border-box;
+}
+
+/* Tab Navigation at top of right column */
+.face-inspector-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.inspector-tabs-nav {
+  display: flex;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line-soft);
+  padding: 6px 6px;
+  gap: 3px;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.inspector-tab-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 3px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.inspector-tab-btn:hover {
+  color: var(--text);
+  background: var(--bg-3);
+}
+
+.inspector-tab-btn.active {
+  color: var(--text);
+  background: var(--bg-0);
+  border-color: var(--line-soft);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  font-weight: 600;
+}
+
+.inspector-tab-badge {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 10px;
+  background: var(--bg-3);
+  color: var(--text-dim);
+  line-height: 1.2;
+}
+
+.inspector-tab-btn.active .inspector-tab-badge {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.face-inspector-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+/* Quick Face Selector Bar */
+.fi-face-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.fi-face-bar-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fi-face-idx {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: var(--bg-3);
+  color: var(--accent-cyan);
+  flex-shrink: 0;
+}
+
+.fi-face-select {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+
+.fi-face-select option {
+  background: var(--bg-1);
+  color: var(--text);
+}
+
+.fi-quick-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 7px;
+  font-size: 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.fi-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+}
+
+.fi-sub-collapsible {
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  background: var(--bg-1);
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.fi-sub-collapsible[open] {
+  border-color: var(--line-focus);
+}
+
+.fi-sub-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+  background: var(--bg-2);
+}
+
+.fi-sub-summary:hover {
+  background: var(--bg-3);
+}
+
+.fi-sub-body {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-1);
+}
+
+.fi-badge-active {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.fi-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 48px 16px;
+  color: var(--text-dim);
+}
+
+.fi-empty-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 4px;
+}
+
+.fi-empty-desc {
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.4;
+  max-width: 240px;
+  margin-bottom: 8px;
 }
 
 .face-inspector-container {
