@@ -251,5 +251,72 @@ describe('MCP assemblyCommands', () => {
       unregister()
     }
   })
+
+  it('opens and closes assembly workshop modal via open_assembly_workshop and close_assembly_workshop', async () => {
+    // 1. Open with template
+    const openRes = (await runCommand('open_assembly_workshop', {
+      template_id: 'tree-cross',
+      name: 'Cây Thể Tích Test'
+    })) as any
+    expect(openRes.ok).toBe(true)
+    expect(openRes.isOpen).toBe(true)
+    expect(openRes.faceCount).toBeGreaterThan(0)
+
+    // 2. Close workshop
+    const closeRes = (await runCommand('close_assembly_workshop', { save: false })) as any
+    expect(closeRes.ok).toBe(true)
+    expect(closeRes.isOpen).toBe(false)
+  })
+
+  it('assigns texture and adjusts dimensions via set_assembly_face_image', async () => {
+    let mockModel: Model3D = {
+      id: 'test-texture-model',
+      name: 'Texture Test',
+      category: 'nature',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      scale: 1.0,
+      faces: [
+        {
+          id: 'stem',
+          name: 'Thân cây',
+          width: 100,
+          height: 300,
+          position: [0, 0, 0],
+          rotation: [0, 0, 0]
+        }
+      ]
+    }
+    const unregister = registerAssemblySession({
+      getModel: () => mockModel,
+      setModel: (next) => {
+        mockModel = next
+      },
+      getSelectedFaceId: () => 'stem',
+      setSelectedFaceId: () => {},
+      save: () => {},
+      insert: async () => [],
+      close: () => {},
+      captureScreenshot: () => null
+    })
+
+    try {
+      const res = (await runCommand('set_assembly_face_image', {
+        face_id: 'stem',
+        asset_path: 'nature/bark_texture.png',
+        width: 120,
+        height: 350
+      })) as any
+      expect(res.ok).toBe(true)
+      expect(res.assetPath).toBe('nature/bark_texture.png')
+      expect(res.width).toBe(120)
+      expect(res.height).toBe(350)
+      expect(mockModel.faces[0].assetPath).toBe('nature/bark_texture.png')
+      expect(mockModel.faces[0].width).toBe(120)
+    } finally {
+      unregister()
+    }
+  })
 })
+
 

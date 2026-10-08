@@ -168,8 +168,13 @@ Khi sắp xếp layer hoặc camera trong Parallax Studio, AI cần nắm rõ qu
 - `apply_assembly_template`: Áp dụng khuôn mẫu hình học dựng sẵn (khung nhà, bộ phận trang trí, hộp, lều, tháp…) mà vẫn bảo toàn ảnh texture của người dùng.
 - `append_assembly_model`: Ghép một mô hình **đã lưu** (thường là bộ phận `decor`) vào mô hình đang lắp: gắn lên mặt `face_id` tại `uv`, đặt tại điểm `at`, hoặc đặt cạnh mô hình. Tự khớp tỉ lệ, sinh id mới, ánh xạ lại `clipBy`.
 - `get_assembly_screenshot`: Chụp ảnh khung nhìn xưởng lắp ráp 3D đang mở.
+- `open_assembly_workshop`: Mở modal Xưởng Lắp Ráp 3D trên màn hình ứng dụng để chỉnh sửa thời gian thực (realtime) cho người dùng quan sát (`model_id`, `template_id`, `name`).
+- `close_assembly_workshop`: Đóng cửa sổ Xưởng Lắp Ráp 3D (tùy chọn tự chụp ảnh preview sạch và lưu lại nếu `save: true`).
+- `set_assembly_face_image`: Gán ảnh chất liệu texture (`asset_path` tương đối hoặc `image_data_url` base64) cho một mặt phẳng 3D và tùy chọn cập nhật kích thước theo ảnh.
 
-**Quy trình lắp ráp dạng mô-đun (nhà + bộ phận trang trí):** chọn khung `shell-*` → dựng từng bộ phận từ khuôn `decor` và `save_assembly_model {category:"decor"}` → mở lại khung, `append_assembly_model {source_model_id, face_id, uv}` cho từng bộ phận → `auto_assembly_clip` → `set_assembly_lighting` → `insert_assembly_model`. Bộ phận gắn tường có mặt lưng ở `z = 0` và nhô về phía người xem nên gắn lên tường nào cũng chìa ra ngoài.
+**Hai chế độ làm việc cho AI (Realtime vs Headless/Ngầm):**
+- **Chế độ Realtime trực quan (Interactive on-screen):** Khi người dùng muốn xem AI thao tác lắp ráp trực tiếp, AI gọi `open_assembly_workshop` để mở dialog trên màn hình app → thao tác từng bước thêm mặt (`add_assembly_face`), gán ảnh đã tách nền (`set_assembly_face_image`), ghép cửa sổ/ống khói/cây cối (`append_assembly_model`) → người dùng thấy cảnh 3D biến đổi theo thời gian thực → `close_assembly_workshop {save: true}` tự chụp thumbnail sạch không mesh/trục và lưu lại.
+- **Chế độ Tạo ngầm (Headless background):** Khi người dùng ở màn hình chính yêu cầu tạo tài nguyên dạng ẩn, AI không cần mở dialog UI mà gọi trực tiếp `save_assembly_model` (lưu ngầm vào thư viện), hoặc gọi `insert_assembly_model` / `add_image_layer` / `add_particles` / `set_keyframe` để tạo cây cỏ, hoạt ảnh chuyển động và chèn thẳng vào cảnh phân cảnh hiện tại.
 
 ### 4.8. Nhóm Điều Khiển Timeline & Xuất Video (Playback & Export)
 - `set_time`: Di chuyển con trỏ thời gian (playhead) tới giây `time`.

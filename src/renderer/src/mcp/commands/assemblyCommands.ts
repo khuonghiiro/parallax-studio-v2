@@ -6,8 +6,10 @@ import { joinFaces, type JoinEdge, type JoinScaleMode } from '../../ui/assets/mo
 import { applyClipSuggestions, suggestClipRules } from '../../ui/assets/models3d/assemblyClip'
 import { applySunPreset, normalizeLighting } from '../../ui/assets/models3d/assemblyLighting'
 import { ASSEMBLY_TEMPLATES, TEMPLATE_CATEGORIES, appendTemplate, findTemplate, replaceWithTemplate } from '../../ui/assets/models3d/assemblyTemplates'
+import { modelFromTemplate } from '../../ui/assets/models3d/templateCatalogue'
 import { appendModel, appendModelOnFace } from '../../ui/assets/models3d/assemblyCompose'
 import { deleteFace, newFaceId, patchFace } from '../../ui/assets/models3d/assemblyFaceOps'
+import { useView } from '../../store/view'
 import { ParamError, type Handler, type Params } from '../types'
 import { bool, has, num, str, toPlain, vec3 } from '../params'
 
@@ -346,5 +348,99 @@ export const assemblyCommands: Record<string, Handler> = {
     }
     const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '')
     return { mime: 'image/png', data: base64, modelId: session.getModel().id }
+  },
+
+  open_assembly_workshop: async (p) => {
+    const modelId = str(p, 'model_id') || str(p, 'id')
+    const templateId = str(p, 'template_id')
+    const name = str(p, 'name')
+
+    let model: Model3D | null = null
+    if (modelId) {
+      const list = await fetchDiskModels3D()
+      model = list.find((m) => m.id === modelId) || null
+      if (!model) throw new ParamError(`Model "${modelId}" not found on disk`)
+    } else if (templateId) {
+      const tmpl = ASSEMBLY_TEMPLATES.find((t) => t.id === templateId)
+      if (!tmpl) throw new ParamError(`Template "${templateId}" not found`)
+      model = modelFromTemplate(tmpl)
+      if (name) model.name = name
+    } else {
+      model = {
+        id: `model-${Date.now().toString(36)}`,
+        name: name || 'Mô hình 3D tự tạo mới',
+        category: 'custom',
+        scale: 1.0,
+        faces: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      }
+    }
+
+    useView.getState().openAssemblyWorkshop(model)
+    return { ok: true, modelId: model.id, modelName: model.name, isOpen: true, faceCount: model.faces.length }
+  },
+
+  close_assembly_workshop: (p) => {
+    const save = p.save !== false
+    const session = getActiveAssemblySession()
+    let saved = false
+    let savedId: string | null = null
+    if (session) {
+      if (save) {
+        session.save()
+        saved = true
+        savedId = session.getModel().id
+      } else {
+        session.close()
+      }
+    }
+    useView.getState().closeAssemblyWorkshop()
+    return { ok: true, saved, modelId: savedId, isOpen: false }
+  },
+
+  set_assembly_face_image: async (p) => {
+    const assetPath = str(p, 'asset_path')
+    const imageDataUrl = str(p, 'image_data_url')
+    const faceId = str(p, 'face_id')
+    const width = num(p, 'width')
+    const height = num(p, 'height')
+
+    if (!assetPath && !imageDataUrl) {
+      throw new ParamError('Provide either "asset_path" or "image_data_url"')
+    }
+
+    const { model, isSession } = await resolveTargetModel(p)
+    const session = getActiveAssemblySession()
+    const fid = faceId || (isSession && session ? session.getSelectedFaceId() : null) || model.faces[0]?.id
+    if (!fid) throw new ParamError('Model has no faces or specified face_id not found')
+
+    const face = model.faces.find((f) => f.id === fid)
+    if (!face) throw new ParamError(`Face "${fid}" not found in model "${model.id}"`)
+
+    const updates: Partial<Face3D> = {}
+    if (assetPath) updates.assetPath = assetPath
+    else if (imageDataUrl) updates.assetPath = imageDataUrl
+
+    if (width && width > 0) updates.width = width
+    if (height && height > 0) updates.height = height
+
+    const updatedFaces = model.faces.map((f) => (f.id === fid ? { ...f, ...updates } : f))
+    const updatedModel = { ...model, faces: updatedFaces, updatedAt: Date.now() }
+
+    persistModel(updatedModel, isSession)
+    if (isSession && session) {
+      session.setSelectedFaceId(fid)
+    }
+
+    return {
+      ok: true,
+      modelId: model.id,
+      faceId: fid,
+      faceName: face.name,
+      assetPath: updates.assetPath,
+      width: updates.width ?? face.width,
+      height: updates.height ?? face.height
+    }
   }
 }

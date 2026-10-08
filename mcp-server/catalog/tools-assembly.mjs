@@ -193,6 +193,46 @@ export const ASSEMBLY_TOOLS = [
     doc: L('Capture a screenshot of the currently active 3D Assembly workshop viewport (PNG).', 'Chụp ảnh khung nhìn xưởng lắp ráp 3D đang mở (PNG).'),
     shape: () => ({})
   },
+  {
+    name: 'open_assembly_workshop', cat: 'assembly',
+    doc: L(
+      'Open the 3D Assembly Workshop modal in the app UI for realtime editing. The user will see all modifications live on screen.',
+      'Mở cửa sổ Xưởng Lắp Ráp 3D trên giao diện ứng dụng để chỉnh sửa theo thời gian thực. Người dùng sẽ thấy mọi thao tác trực tiếp trên màn hình.'
+    ),
+    shape: (d) => ({
+      model_id: z.string().optional().describe(d('ID of an existing saved 3D model to edit.', 'ID mô hình 3D đã lưu cần chỉnh sửa.')),
+      template_id: z.string().optional().describe(d('ID of a template to initialize (e.g. "tree-cross", "bush-3", "cottage").', 'ID khuôn mẫu để khởi tạo (VD: "tree-cross", "bush-3", "cottage").')),
+      name: z.string().optional().describe(d('Name for the model when opened.', 'Tên hiển thị của mô hình khi mở.'))
+    }),
+    example: '{"template_id":"tree-cross","name":"Cây 3D Mới"}'
+  },
+  {
+    name: 'close_assembly_workshop', cat: 'assembly',
+    doc: L(
+      'Close the 3D Assembly Workshop modal. Can optionally save the model and capture a clean preview thumbnail.',
+      'Đóng cửa sổ Xưởng Lắp Ráp 3D. Tùy chọn lưu mô hình và tự động chụp ảnh preview sạch.'
+    ),
+    shape: (d) => ({
+      save: z.boolean().optional().describe(d('Whether to save changes and clean thumbnail before closing (default true).', 'Có lưu thay đổi và chụp thumbnail sạch trước khi đóng không (mặc định true).'))
+    }),
+    example: '{"save":true}'
+  },
+  {
+    name: 'set_assembly_face_image', cat: 'assembly',
+    doc: L(
+      'Assign an image texture (relative path or base64 data URL) to a 3D assembly face and optionally update its dimensions.',
+      'Gán ảnh chất liệu texture (đường dẫn tương đối hoặc data URL base64) cho một mặt phẳng 3D và tùy chọn cập nhật kích thước theo ảnh.'
+    ),
+    shape: (d) => ({
+      face_id: z.string().optional().describe(d('Target face ID. Defaults to currently selected face in workshop or the first face.', 'ID mặt cần gán. Mặc định là mặt đang chọn trong xưởng hoặc mặt đầu tiên.')),
+      model_id: z.string().optional().describe(d('Target model ID if workshop modal is not open.', 'ID mô hình cần sửa nếu xưởng chưa mở trên màn hình.')),
+      asset_path: z.string().optional().describe(d('Relative asset path (e.g. "house/origami_front.png").', 'Đường dẫn tài nguyên tương đối (VD: "house/origami_front.png").')),
+      image_data_url: z.string().optional().describe(d('Base64 data URL of the image (e.g. "data:image/png;base64,...").', 'Chuỗi data URL base64 của ảnh (VD: "data:image/png;base64,...").')),
+      width: z.number().positive().optional().describe(d('New width of the face in units.', 'Chiều rộng mới của mặt theo đơn vị.')),
+      height: z.number().positive().optional().describe(d('New height of the face in units.', 'Chiều cao mới của mặt theo đơn vị.'))
+    }),
+    example: '{"face_id":"face-1","asset_path":"nature/tree_canopy.png","width":520,"height":600}'
+  },
 
   // ---- local (answered by the MCP server itself, no app round-trip)
   {

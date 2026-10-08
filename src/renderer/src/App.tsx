@@ -11,6 +11,7 @@ import { ExportDialog } from './ui/ExportDialog'
 import { PerformanceDialog } from './ui/PerformanceDialog'
 import { McpDialog } from './ui/McpDialog'
 import { AudioStudioDialog } from './ui/AudioStudioDialog'
+import { Assembly3DDialog } from './ui/assets/models3d/Assembly3DDialog'
 import { Inspector } from './ui/Inspector'
 import { LeftPanel } from './ui/LeftPanel'
 import { Timeline } from './ui/Timeline'
@@ -25,6 +26,8 @@ export default function App() {
   const [timelineH, setTimelineH] = useState(300)
   const toast = useToast((s) => s.message)
   const dialog = useView((s) => s.dialog)
+  const assemblyModalModel = useView((s) => s.assemblyModalModel)
+  const closeAssemblyWorkshop = useView((s) => s.closeAssemblyWorkshop)
   const openExport = useCallback(() => {
     useEditor.getState().setPlaying(false)
     setExporting(true)
@@ -122,6 +125,13 @@ export default function App() {
       {dialog === 'performance' && <PerformanceDialog />}
       {dialog === 'mcp' && <McpDialog />}
       {dialog === 'audio' && <AudioStudioDialog />}
+      {assemblyModalModel && (
+        <Assembly3DDialog
+          isOpen={true}
+          model={assemblyModalModel}
+          onClose={closeAssemblyWorkshop}
+        />
+      )}
       {toast && <div className="toast">{toast}</div>}
       {!ready && (
         <div className="loading-screen">

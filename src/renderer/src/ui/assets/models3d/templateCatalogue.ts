@@ -63,7 +63,7 @@ const LIBRARY_CATEGORY: Record<TemplateCategory, Model3D['category']> = {
 
 const categoryLabel = (c: TemplateCategory): string => TEMPLATE_CATEGORIES.find((x) => x.id === c)?.label ?? c
 
-function modelFromTemplate(tmpl: AssemblyTemplate, scale = 0.6): Model3D {
+export function modelFromTemplate(tmpl: AssemblyTemplate, scale = 0.6): Model3D {
   return {
     id: `model-${tmpl.id}-${Math.random().toString(36).slice(2, 7)}`,
     name: `${tmpl.label} 3D Mới`,

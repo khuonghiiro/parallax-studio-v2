@@ -1,6 +1,6 @@
 {
   "$comment": "Single source for the AI guide (MCP server instructions, get_ai_guide, CLI help, McpDialog prompt). Every section MUST keep the same number of lines in en and vi - catalog.test.mjs enforces it.",
-  "toolCount": 75,
+  "toolCount": 78,
   "sections": [
     {
       "id": "overview",
@@ -73,7 +73,8 @@
           "3. Re-open the shell and append_assembly_model {source_model_id, face_id, uv} to mount each part on a wall or roof face; uv [0.5, 0.5] = face centre, v points up.",
           "4. Decor anchors: wall parts have their back plane at z = 0 and protrude toward the viewer, so mounting on any wall makes them stick outward.",
           "5. auto_assembly_clip after parts sink into roofs (chimney, dormer); set_assembly_lighting for sun and shadows.",
-          "6. get_assembly_screenshot to review, save_assembly_model, then insert_assembly_model into a shot."
+          "6. get_assembly_screenshot to review, save_assembly_model, then insert_assembly_model into a shot.",
+          "7. Realtime vs headless: use open_assembly_workshop / set_assembly_face_image to let user watch edits live; or save/insert models silently in the background."
         ],
         "vi": [
           "Dựng công trình theo từng phần: một KHUNG (chỉ tường + mái) cộng các bộ phận TRANG TRÍ rời. Bộ phận rời trông thật hơn và dùng lại được.",
@@ -82,7 +83,8 @@
           "3. Mở lại khung và gọi append_assembly_model {source_model_id, face_id, uv} để gắn từng bộ phận lên mặt tường hoặc mái; uv [0.5, 0.5] = tâm mặt, v hướng lên.",
           "4. Điểm neo decor: bộ phận gắn tường có mặt lưng ở z = 0 và nhô về phía người xem, nên gắn lên tường nào cũng chìa ra ngoài.",
           "5. auto_assembly_clip sau khi bộ phận cắm vào mái (ống khói, cửa mái); set_assembly_lighting để chỉnh nắng và bóng.",
-          "6. get_assembly_screenshot để xem lại, save_assembly_model, rồi insert_assembly_model vào một shot."
+          "6. get_assembly_screenshot để xem lại, save_assembly_model, rồi insert_assembly_model vào một shot.",
+          "7. Chỉnh sửa realtime vs chạy ngầm: dùng open_assembly_workshop / set_assembly_face_image để người dùng xem trực tiếp; hoặc lưu/chèn mô hình ngầm ở chế độ ẩn."
         ]
       }
     },

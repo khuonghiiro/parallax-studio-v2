@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { EditorViewKind } from '../engine/EditorCamera'
+import type { Model3D } from '../ui/assets/models3d/types'
 
 export type PrimaryView = 'camera' | 'editor' | 'topview'
 export type TopViewMode = 'top' | 'side'
@@ -29,10 +30,13 @@ export interface ViewState extends ViewPrefs {
   focus: FocusRequest | null
   dialog: 'path' | 'sketch' | 'performance' | 'mcp' | 'audio' | null
   audioDialogMode: 'levels' | 'waveform'
+  assemblyModalModel: Model3D | null
   set(p: Partial<ViewPrefs>): void
   toggleTheme(): void
   openDialog(d: ViewState['dialog']): void
   openAudioDialog(mode?: 'levels' | 'waveform'): void
+  openAssemblyWorkshop(model: Model3D): void
+  closeAssemblyWorkshop(): void
   /** Frame something in the 3D view (switches to it if hidden). */
   requestFocus(kind: FocusRequest['kind'], id?: string): void
 }
@@ -82,11 +86,18 @@ export const useView = create<ViewState>((set, get) => ({
   focus: null,
   dialog: null,
   audioDialogMode: 'waveform',
+  assemblyModalModel: null,
   openDialog(dialog) {
     set({ dialog })
   },
   openAudioDialog(mode = 'waveform') {
     set({ dialog: 'audio', audioDialogMode: mode })
+  },
+  openAssemblyWorkshop(model) {
+    set({ assemblyModalModel: model })
+  },
+  closeAssemblyWorkshop() {
+    set({ assemblyModalModel: null })
   },
   toggleTheme() {
     const next: Theme = get().theme === 'light' ? 'dark' : 'light'
