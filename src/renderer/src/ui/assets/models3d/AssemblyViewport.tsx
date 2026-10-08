@@ -8,7 +8,7 @@ import { applyProceduralMotion } from './assemblyMotion'
 import { pickFace, cellKeyAt, droppedAssetPath, type PickContext } from './assemblyPicking'
 import { DEFAULT_SCENE_THEME, readAssemblySceneTheme, type AssemblySceneTheme } from './assemblyTheme'
 import { faceCornersThree, modelBounds, toThree } from './assemblyGeometry'
-import { resolveLightRig } from './assemblyLighting'
+import { resolveLightRig, resolveSkyAtmosphere } from './assemblyLighting'
 import { createLightRig, applyLightRig, disposeLightRig, type SceneLightRig } from './assemblySceneLighting'
 import { AssemblyGizmo } from './AssemblyGizmo'
 import type { GizmoRect } from '../../../engine/layerGizmo'
@@ -288,10 +288,18 @@ export function AssemblyViewport({
     setSceneTheme(readAssemblySceneTheme(containerRef.current, appTheme))
   }, [appTheme])
 
+  // Dynamic scene background based on lighting mood and theme
   useEffect(() => {
-    const bg = sceneRef.current?.background
-    if (bg instanceof THREE.Color) bg.set(sceneTheme.background)
-  }, [sceneTheme])
+    const sky = resolveSkyAtmosphere(model.lighting, sceneTheme.isLight, sceneTheme.background)
+    const scene = sceneRef.current
+    if (scene) {
+      if (scene.background instanceof THREE.Color) {
+        scene.background.set(sky.background)
+      } else {
+        scene.background = new THREE.Color(sky.background)
+      }
+    }
+  }, [model.lighting, sceneTheme])
 
   useThreeScene({ containerRef, rendererRef, sceneRef, cameraRef, meshGroupRef, helpersGroupRef, lightRigRef, orbitRef, bumpGizmo, setGizmoRect })
 
@@ -311,8 +319,11 @@ export function AssemblyViewport({
   }, [model.lighting, model.faces, scale])
 
   useEffect(() => {
-    if (helpersGroupRef.current) updateHelpersGroup(helpersGroupRef.current, showGrid, showAxes, sceneTheme)
-  }, [showGrid, showAxes, sceneTheme])
+    if (helpersGroupRef.current) {
+      const sky = resolveSkyAtmosphere(model.lighting, sceneTheme.isLight, sceneTheme.background)
+      updateHelpersGroup(helpersGroupRef.current, showGrid, showAxes, sceneTheme, sky.isDarkScene)
+    }
+  }, [showGrid, showAxes, sceneTheme, model.lighting])
 
   // Reconcile face meshes: rebuild only changed geometry, reposition the rest.
   useEffect(() => {
@@ -511,10 +522,12 @@ export function AssemblyViewport({
   const dragOverFace = dragOverFaceId ? model.faces.find((f) => f.id === dragOverFaceId) : null
   const selectedFace = model.faces.find((f) => f.id === selectedFaceId && !f.hidden) || null
   const showGizmo = selectedFace && !selectedFace.locked && cameraRef.current && gizmoRect && meshEditMode === 'none' && gizmoMode !== 'off'
+  const currentSky = resolveSkyAtmosphere(model.lighting, sceneTheme.isLight, sceneTheme.background)
 
   return (
     <div
       ref={containerRef}
+      style={{ backgroundColor: currentSky.background }}
       className={`assembly-viewport-canvas-container${isDragOver ? ' drag-over-active' : ''}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

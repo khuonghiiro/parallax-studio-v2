@@ -17,7 +17,9 @@ import {
   type AssemblyCameraState,
   type SetAssemblyCameraParams
 } from './assemblyBridge'
+import { resolveSkyAtmosphere } from './assemblyLighting'
 import { IconCube, IconImage } from '../../icons'
+import { useView } from '../../../store/view'
 
 interface Assembly3DDialogProps {
   isOpen: boolean
@@ -243,6 +245,8 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
     />
   )
   const hiddenCount = model.faces.filter((f) => f.hidden).length
+  const appTheme = useView((s) => s.theme)
+  const sky = resolveSkyAtmosphere(model.lighting, appTheme === 'light')
 
   return (
     <div className="assembly-modal-overlay">
@@ -295,7 +299,13 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
                 </div>
                 <div className="assembly-split-pane">
                   <div className="pane-header-tab">
-                    <span className="pane-title"><IconCube width={12} height={12} /> Không gian 3D</span>
+                    <div className="pane-header-title-group">
+                      <span className="pane-title"><IconCube width={12} height={12} /> Không gian 3D</span>
+                      <span className="assembly-lighting-indicator" title={`Ánh sáng & Bầu trời: ${sky.label}`}>
+                        <span className="lighting-indicator-dot" style={{ backgroundColor: sky.sunColor }} />
+                        <span className="lighting-indicator-label">{sky.icon} {sky.label}</span>
+                      </span>
+                    </div>
                     <span>{model.name}</span>
                   </div>
                   {viewport}

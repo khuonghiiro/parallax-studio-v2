@@ -64,6 +64,63 @@ const MOODS: Record<Exclude<SunPreset, 'auto'>, Mood> = {
   night: { sun: '#a4b8ff', sunI: 0.38, amb: '#3c4b7a', ambI: 0.36, shadow: 0.26 }
 }
 
+export interface SkyAtmosphere {
+  /** Background color for 3D scene canvas (Three.js Color) */
+  background: string
+  /** Sun light color */
+  sunColor: string
+  /** Ambient light color */
+  ambientColor: string
+  /** Human friendly label */
+  label: string
+  /** Emoji icon for HUD / badges */
+  icon: string
+  /** Whether the 3D scene should be treated as dark (for high-contrast grid lines) */
+  isDarkScene: boolean
+}
+
+interface SkyThemeColors {
+  light: string
+  dark: string
+  icon: string
+  label: string
+  isDarkScene?: boolean
+}
+
+const SKY_PRESETS: Record<Exclude<SunPreset, 'auto'>, SkyThemeColors> = {
+  morning: {
+    light: '#e2e9f2',
+    dark: '#1c2436',
+    icon: '🌅',
+    label: 'Bình minh'
+  },
+  noon: {
+    light: '#dce8f8',
+    dark: '#162234',
+    icon: '☀️',
+    label: 'Trưa'
+  },
+  sunset: {
+    light: '#ebd7d1',
+    dark: '#2c1922',
+    icon: '🌇',
+    label: 'Hoàng hôn'
+  },
+  overcast: {
+    light: '#dbe0e8',
+    dark: '#1e232b',
+    icon: '☁️',
+    label: 'Trời râm'
+  },
+  night: {
+    light: '#111728',
+    dark: '#0a0e1c',
+    icon: '🌙',
+    label: 'Đêm trăng',
+    isDarkScene: true
+  }
+}
+
 const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v))
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -156,3 +213,54 @@ export function resolveLightRig(input?: Partial<AssemblyLighting> | null): Light
     showSun: true
   }
 }
+
+/**
+ * Resolves the atmospheric 3D scene background color, sun indicator label and icon
+ * based on the active lighting preset or sun elevation angle.
+ */
+export function resolveSkyAtmosphere(
+  input?: Partial<AssemblyLighting> | null,
+  isLight = true,
+  fallbackBackground?: string
+): SkyAtmosphere {
+  const l = normalizeLighting(input)
+  if (!l.sun) {
+    const bg = fallbackBackground || (isLight ? '#dbe0e8' : '#141414')
+    return {
+      background: bg,
+      sunColor: '#ffffff',
+      ambientColor: '#ffffff',
+      label: 'Studio',
+      icon: '💡',
+      isDarkScene: !isLight
+    }
+  }
+
+  const themeKey = isLight ? 'light' : 'dark'
+  if (l.preset !== 'auto') {
+    const spec = SKY_PRESETS[l.preset]
+    const mood = MOODS[l.preset]
+    return {
+      background: spec[themeKey],
+      sunColor: mood.sun,
+      ambientColor: mood.amb,
+      label: spec.label,
+      icon: spec.icon,
+      isDarkScene: Boolean(spec.isDarkScene || !isLight)
+    }
+  }
+
+  // Auto preset: smooth interpolation based on sun elevation angle
+  const warm = 1 - clamp(l.elevation / 45, 0, 1)
+  const bg = mixHex(SKY_PRESETS.noon[themeKey], SKY_PRESETS.sunset[themeKey], warm)
+  const mood = autoMood(l.elevation)
+  return {
+    background: bg,
+    sunColor: mood.sun,
+    ambientColor: mood.amb,
+    label: `Tự động (${l.elevation}°)`,
+    icon: warm > 0.4 ? '🌅' : '☀️',
+    isDarkScene: !isLight
+  }
+}
+

@@ -4,7 +4,7 @@ import type { Face3D } from './types'
 import { joinFaces, joinPointsUV } from './assemblyJoin'
 import { faceMatrix } from './assemblyGeometry'
 import { applyClipSuggestions, faceClipPlanes, faceClipRules, hiddenImagePolygon, pruneClipRefs, suggestClipRules } from './assemblyClip'
-import { applySunPreset, normalizeLighting, resolveLightRig, sunDirection } from './assemblyLighting'
+import { applySunPreset, normalizeLighting, resolveLightRig, resolveSkyAtmosphere, sunDirection } from './assemblyLighting'
 
 const face = (id: string, over: Partial<Face3D> = {}): Face3D => ({
   id, name: id, width: 400, height: 300, position: [0, 0, 0], rotation: [0, 0, 0], ...over
@@ -117,5 +117,23 @@ describe('assemblyLighting', () => {
     expect(x).toBeGreaterThan(0.99)
     expect(Math.abs(z)).toBeLessThan(1e-6)
     expect(y).toBeGreaterThan(0)
+  })
+
+  it('resolves sky atmosphere colors and dark scene flag for presets', () => {
+    const studio = resolveSkyAtmosphere({ sun: false })
+    expect(studio.label).toBe('Studio')
+    expect(studio.icon).toBe('💡')
+
+    const night = resolveSkyAtmosphere({ sun: true, preset: 'night' })
+    expect(night.isDarkScene).toBe(true)
+    expect(night.label).toBe('Đêm trăng')
+    expect(night.icon).toBe('🌙')
+
+    const sunset = resolveSkyAtmosphere({ sun: true, preset: 'sunset' })
+    expect(sunset.label).toBe('Hoàng hôn')
+    expect(sunset.icon).toBe('🌇')
+
+    const autoDawn = resolveSkyAtmosphere({ sun: true, preset: 'auto', elevation: 8 })
+    expect(autoDawn.icon).toBe('🌅')
   })
 })

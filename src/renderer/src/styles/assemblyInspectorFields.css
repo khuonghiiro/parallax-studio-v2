@@ -47,16 +47,22 @@
 .fi-group {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
+  margin-top: 4px;
   min-width: 0;
+}
+
+.fi-group:first-of-type {
+  margin-top: 0;
 }
 
 .fi-group-label {
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-dim);
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
 }
 
 .fi-grid-2,

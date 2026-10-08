@@ -70,7 +70,8 @@ export function updateHelpersGroup(
   helpersGroup: THREE.Group,
   showGrid: boolean,
   showAxes: boolean,
-  theme: AssemblySceneTheme = DEFAULT_SCENE_THEME
+  theme: AssemblySceneTheme = DEFAULT_SCENE_THEME,
+  isDarkScene?: boolean
 ): void {
   while (helpersGroup.children.length > 0) {
     const child = helpersGroup.children[0] as THREE.LineSegments
@@ -80,7 +81,9 @@ export function updateHelpersGroup(
   }
 
   if (showGrid) {
-    const grid = new THREE.GridHelper(2000, 20, new THREE.Color(theme.gridMajor), new THREE.Color(theme.gridMinor))
+    const major = isDarkScene ? '#526077' : theme.gridMajor
+    const minor = isDarkScene ? '#283244' : theme.gridMinor
+    const grid = new THREE.GridHelper(2000, 20, new THREE.Color(major), new THREE.Color(minor))
     grid.position.y = -150
     helpersGroup.add(grid)
   }
