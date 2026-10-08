@@ -36,6 +36,7 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
 - **Kiểm tra trước khi commit:**
   - Chạy `npm test` (vitest) hoặc kiểm tra type TypeScript `npm run build` / `tsc`.
   - Không che giấu hoặc bỏ qua lỗi build, lint, type error hay unhandled promise rejection.
+  - Khi tạo hoặc chạy script/test Python, nếu thiếu thư viện (như `chardet`, `numpy`,...), chủ động kiểm tra và chạy `pip install <package>` bổ sung ngay lập tức để bảo đảm tiến trình thực thi thông suốt.
 - **Bảo vệ Secrets & Quyền riêng tư:**
   - Tuyệt đối không commit file `.env`, tokens, API keys, private keys hay file dữ liệu nhạy cảm.
 - **Git Commit & Push:**
