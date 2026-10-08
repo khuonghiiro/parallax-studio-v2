@@ -109,7 +109,7 @@
       ]
     },
     {
-      "id": "face-muz68duj-80",
+      "id": "face-muz89v4c-ds",
       "name": "Cổng đá vòm & cánh gỗ sồi",
       "assetPath": "assembly_3d/modular/decor_door.png",
       "width": 79,
@@ -126,7 +126,7 @@
       ]
     },
     {
-      "id": "face-muz68duk-81",
+      "id": "face-muz89v4e-dt",
       "name": "Mặt bậc thềm đá",
       "color": "#64748b",
       "width": 90,
@@ -143,7 +143,7 @@
       ]
     },
     {
-      "id": "face-muz68duk-82",
+      "id": "face-muz89v4e-du",
       "name": "Mặt đứng thềm đá",
       "color": "#334155",
       "width": 90,
@@ -160,7 +160,7 @@
       ]
     },
     {
-      "id": "face-muz68duk-83",
+      "id": "face-muz89v4e-dv",
       "name": "Mái hiên ngói nghiêng",
       "assetPath": "assembly_3d/modular/roof_terracotta.png",
       "width": 90,
@@ -177,7 +177,7 @@
       ]
     },
     {
-      "id": "face-muz68ef3-84",
+      "id": "face-muz89vfy-dw",
       "name": "Khung kính quả trám Tudor",
       "assetPath": "assembly_3d/modular/decor_window_glass.png",
       "width": 58,
@@ -194,7 +194,7 @@
       ]
     },
     {
-      "id": "face-muz68ef3-85",
+      "id": "face-muz89vfy-dx",
       "name": "Thanh trán trên gỗ sồi",
       "color": "#451a03",
       "width": 67,
@@ -211,7 +211,7 @@
       ]
     },
     {
-      "id": "face-muz68ef4-86",
+      "id": "face-muz89vfy-dy",
       "name": "Mặt trên bậu cửa đá",
       "color": "#a8a29e",
       "width": 70,
@@ -228,7 +228,7 @@
       ]
     },
     {
-      "id": "face-muz68ef4-87",
+      "id": "face-muz89vfy-dz",
       "name": "Gờ đứng bậu cửa đá",
       "assetPath": "assembly_3d/modular/decor_window_sill.png",
       "width": 70,
@@ -245,7 +245,7 @@
       ]
     },
     {
-      "id": "face-muz68ef4-88",
+      "id": "face-muz89vfy-e0",
       "name": "Cánh cửa sổ gỗ trái mở",
       "assetPath": "assembly_3d/modular/decor_window_shutter.png",
       "width": 14,
@@ -262,7 +262,7 @@
       ]
     },
     {
-      "id": "face-muz68ef4-89",
+      "id": "face-muz89vfy-e1",
       "name": "Cánh cửa sổ gỗ phải mở",
       "assetPath": "assembly_3d/modular/decor_window_shutter.png",
       "width": 14,
@@ -279,7 +279,7 @@
       ]
     },
     {
-      "id": "face-muz68f4r-8a",
+      "id": "face-muz89vrt-e2",
       "name": "Thành bồn gỗ trước",
       "color": "#451a03",
       "width": 72,
@@ -296,7 +296,7 @@
       ]
     },
     {
-      "id": "face-muz68f4r-8b",
+      "id": "face-muz89vrt-e3",
       "name": "Hông bồn gỗ trái",
       "color": "#3b1c0b",
       "width": 12,
@@ -313,7 +313,7 @@
       ]
     },
     {
-      "id": "face-muz68f4r-8c",
+      "id": "face-muz89vrt-e4",
       "name": "Hông bồn gỗ phải",
       "color": "#3b1c0b",
       "width": 12,
@@ -330,7 +330,7 @@
       ]
     },
     {
-      "id": "face-muz68f4r-8d",
+      "id": "face-muz89vrt-e5",
       "name": "Đáy bồn gỗ",
       "color": "#291409",
       "width": 72,
@@ -347,7 +347,7 @@
       ]
     },
     {
-      "id": "face-muz68f4r-8e",
+      "id": "face-muz89vrt-e6",
       "name": "Đất mùn trồng hoa",
       "color": "#1c1917",
       "width": 71,
@@ -364,7 +364,7 @@
       ]
     },
     {
-      "id": "face-muz68f4r-8f",
+      "id": "face-muz89vrt-e7",
       "name": "Khóm hoa trước rủ",
       "assetPath": "assembly_3d/modular/decor_flower_box.png",
       "width": 75,
@@ -381,7 +381,7 @@
       ]
     },
     {
-      "id": "face-muz68f4r-8g",
+      "id": "face-muz89vrt-e8",
       "name": "Khóm hoa sau vươn cao",
       "assetPath": "assembly_3d/modular/decor_flower_box.png",
       "width": 75,
@@ -398,7 +398,7 @@
       ]
     },
     {
-      "id": "face-muz68fsf-8h",
+      "id": "face-muz89w2n-e9",
       "name": "Khung kính quả trám Tudor",
       "assetPath": "assembly_3d/modular/decor_window_glass.png",
       "width": 58,
@@ -415,7 +415,7 @@
       ]
     },
     {
-      "id": "face-muz68fsf-8i",
+      "id": "face-muz89w2n-ea",
       "name": "Thanh trán trên gỗ sồi",
       "color": "#451a03",
       "width": 67,
@@ -432,7 +432,7 @@
       ]
     },
     {
-      "id": "face-muz68fsf-8j",
+      "id": "face-muz89w2n-eb",
       "name": "Mặt trên bậu cửa đá",
       "color": "#a8a29e",
       "width": 70,
@@ -449,7 +449,7 @@
       ]
     },
     {
-      "id": "face-muz68fsf-8k",
+      "id": "face-muz89w2n-ec",
       "name": "Gờ đứng bậu cửa đá",
       "assetPath": "assembly_3d/modular/decor_window_sill.png",
       "width": 70,
@@ -466,7 +466,7 @@
       ]
     },
     {
-      "id": "face-muz68fsf-8l",
+      "id": "face-muz89w2n-ed",
       "name": "Cánh cửa sổ gỗ trái mở",
       "assetPath": "assembly_3d/modular/decor_window_shutter.png",
       "width": 14,
@@ -483,7 +483,7 @@
       ]
     },
     {
-      "id": "face-muz68fsf-8m",
+      "id": "face-muz89w2n-ee",
       "name": "Cánh cửa sổ gỗ phải mở",
       "assetPath": "assembly_3d/modular/decor_window_shutter.png",
       "width": 14,
@@ -500,7 +500,7 @@
       ]
     },
     {
-      "id": "face-muz68gbf-8n",
+      "id": "face-muz89weo-ef",
       "name": "Thành bồn gỗ trước",
       "color": "#451a03",
       "width": 72,
@@ -517,7 +517,7 @@
       ]
     },
     {
-      "id": "face-muz68gbf-8o",
+      "id": "face-muz89weo-eg",
       "name": "Hông bồn gỗ trái",
       "color": "#3b1c0b",
       "width": 12,
@@ -534,7 +534,7 @@
       ]
     },
     {
-      "id": "face-muz68gbf-8p",
+      "id": "face-muz89weo-eh",
       "name": "Hông bồn gỗ phải",
       "color": "#3b1c0b",
       "width": 12,
@@ -551,7 +551,7 @@
       ]
     },
     {
-      "id": "face-muz68gbf-8q",
+      "id": "face-muz89weo-ei",
       "name": "Đáy bồn gỗ",
       "color": "#291409",
       "width": 72,
@@ -568,7 +568,7 @@
       ]
     },
     {
-      "id": "face-muz68gbf-8r",
+      "id": "face-muz89weo-ej",
       "name": "Đất mùn trồng hoa",
       "color": "#1c1917",
       "width": 71,
@@ -585,7 +585,7 @@
       ]
     },
     {
-      "id": "face-muz68gbf-8s",
+      "id": "face-muz89weo-ek",
       "name": "Khóm hoa trước rủ",
       "assetPath": "assembly_3d/modular/decor_flower_box.png",
       "width": 75,
@@ -602,7 +602,7 @@
       ]
     },
     {
-      "id": "face-muz68gbf-8t",
+      "id": "face-muz89weo-el",
       "name": "Khóm hoa sau vươn cao",
       "assetPath": "assembly_3d/modular/decor_flower_box.png",
       "width": 75,
@@ -619,7 +619,7 @@
       ]
     },
     {
-      "id": "face-muz68gsu-8u",
+      "id": "face-muz89wvx-em",
       "name": "Khung kính quả trám Tudor",
       "assetPath": "assembly_3d/modular/decor_window_glass.png",
       "width": 58,
@@ -636,7 +636,7 @@
       ]
     },
     {
-      "id": "face-muz68gsu-8v",
+      "id": "face-muz89wvx-en",
       "name": "Thanh trán trên gỗ sồi",
       "color": "#451a03",
       "width": 67,
@@ -653,7 +653,7 @@
       ]
     },
     {
-      "id": "face-muz68gsu-8w",
+      "id": "face-muz89wvx-eo",
       "name": "Mặt trên bậu cửa đá",
       "color": "#a8a29e",
       "width": 70,
@@ -670,7 +670,7 @@
       ]
     },
     {
-      "id": "face-muz68gsu-8x",
+      "id": "face-muz89wvx-ep",
       "name": "Gờ đứng bậu cửa đá",
       "assetPath": "assembly_3d/modular/decor_window_sill.png",
       "width": 70,
@@ -687,7 +687,7 @@
       ]
     },
     {
-      "id": "face-muz68gsu-8y",
+      "id": "face-muz89wvx-eq",
       "name": "Cánh cửa sổ gỗ trái mở",
       "assetPath": "assembly_3d/modular/decor_window_shutter.png",
       "width": 14,
@@ -704,7 +704,7 @@
       ]
     },
     {
-      "id": "face-muz68gsu-8z",
+      "id": "face-muz89wvx-er",
       "name": "Cánh cửa sổ gỗ phải mở",
       "assetPath": "assembly_3d/modular/decor_window_shutter.png",
       "width": 14,
@@ -721,7 +721,7 @@
       ]
     },
     {
-      "id": "face-muz68hha-90",
+      "id": "face-muz89y4y-es",
       "name": "Thành bồn gỗ trước",
       "color": "#451a03",
       "width": 65,
@@ -738,7 +738,7 @@
       ]
     },
     {
-      "id": "face-muz68hha-91",
+      "id": "face-muz89y4y-et",
       "name": "Hông bồn gỗ trái",
       "color": "#3b1c0b",
       "width": 11,
@@ -755,7 +755,7 @@
       ]
     },
     {
-      "id": "face-muz68hha-92",
+      "id": "face-muz89y4y-eu",
       "name": "Hông bồn gỗ phải",
       "color": "#3b1c0b",
       "width": 11,
@@ -772,7 +772,7 @@
       ]
     },
     {
-      "id": "face-muz68hha-93",
+      "id": "face-muz89y4y-ev",
       "name": "Đáy bồn gỗ",
       "color": "#291409",
       "width": 65,
@@ -789,7 +789,7 @@
       ]
     },
     {
-      "id": "face-muz68hha-94",
+      "id": "face-muz89y4y-ew",
       "name": "Đất mùn trồng hoa",
       "color": "#1c1917",
       "width": 63,
@@ -806,7 +806,7 @@
       ]
     },
     {
-      "id": "face-muz68hha-95",
+      "id": "face-muz89y4y-ex",
       "name": "Khóm hoa trước rủ",
       "assetPath": "assembly_3d/modular/decor_flower_box.png",
       "width": 68,
@@ -823,7 +823,7 @@
       ]
     },
     {
-      "id": "face-muz68hha-96",
+      "id": "face-muz89y4y-ey",
       "name": "Khóm hoa sau vươn cao",
       "assetPath": "assembly_3d/modular/decor_flower_box.png",
       "width": 68,
@@ -840,7 +840,7 @@
       ]
     },
     {
-      "id": "face-muz68ips-97",
+      "id": "face-muz89yh1-ez",
       "name": "Khung kính quả trám Tudor",
       "assetPath": "assembly_3d/modular/decor_window_glass.png",
       "width": 58,
@@ -857,7 +857,7 @@
       ]
     },
     {
-      "id": "face-muz68ips-98",
+      "id": "face-muz89yh1-f0",
       "name": "Thanh trán trên gỗ sồi",
       "color": "#451a03",
       "width": 67,
@@ -874,7 +874,7 @@
       ]
     },
     {
-      "id": "face-muz68ips-99",
+      "id": "face-muz89yh1-f1",
       "name": "Mặt trên bậu cửa đá",
       "color": "#a8a29e",
       "width": 70,
@@ -891,7 +891,7 @@
       ]
     },
     {
-      "id": "face-muz68ips-9a",
+      "id": "face-muz89yh1-f2",
       "name": "Gờ đứng bậu cửa đá",
       "assetPath": "assembly_3d/modular/decor_window_sill.png",
       "width": 70,
@@ -908,7 +908,7 @@
       ]
     },
     {
-      "id": "face-muz68ips-9b",
+      "id": "face-muz89yh1-f3",
       "name": "Cánh cửa sổ gỗ trái mở",
       "assetPath": "assembly_3d/modular/decor_window_shutter.png",
       "width": 14,
@@ -925,7 +925,7 @@
       ]
     },
     {
-      "id": "face-muz68ips-9c",
+      "id": "face-muz89yh1-f4",
       "name": "Cánh cửa sổ gỗ phải mở",
       "assetPath": "assembly_3d/modular/decor_window_shutter.png",
       "width": 14,
@@ -942,7 +942,7 @@
       ]
     },
     {
-      "id": "face-muz68j6m-9d",
+      "id": "face-muz89ysz-f5",
       "name": "Khung kính quả trám Tudor",
       "assetPath": "assembly_3d/modular/decor_window_glass.png",
       "width": 58,
@@ -959,7 +959,7 @@
       ]
     },
     {
-      "id": "face-muz68j6m-9e",
+      "id": "face-muz89ysz-f6",
       "name": "Thanh trán trên gỗ sồi",
       "color": "#451a03",
       "width": 67,
@@ -976,7 +976,7 @@
       ]
     },
     {
-      "id": "face-muz68j6m-9f",
+      "id": "face-muz89ysz-f7",
       "name": "Mặt trên bậu cửa đá",
       "color": "#a8a29e",
       "width": 70,
@@ -993,7 +993,7 @@
       ]
     },
     {
-      "id": "face-muz68j6m-9g",
+      "id": "face-muz89ysz-f8",
       "name": "Gờ đứng bậu cửa đá",
       "assetPath": "assembly_3d/modular/decor_window_sill.png",
       "width": 70,
@@ -1010,7 +1010,7 @@
       ]
     },
     {
-      "id": "face-muz68j6m-9h",
+      "id": "face-muz89ysz-f9",
       "name": "Cánh cửa sổ gỗ trái mở",
       "assetPath": "assembly_3d/modular/decor_window_shutter.png",
       "width": 14,
@@ -1027,7 +1027,7 @@
       ]
     },
     {
-      "id": "face-muz68j6m-9i",
+      "id": "face-muz89ysz-fa",
       "name": "Cánh cửa sổ gỗ phải mở",
       "assetPath": "assembly_3d/modular/decor_window_shutter.png",
       "width": 14,
@@ -1044,7 +1044,7 @@
       ]
     },
     {
-      "id": "face-muz68kx5-9j",
+      "id": "face-muz89z45-fb",
       "name": "Khung kính quả trám Tudor",
       "assetPath": "assembly_3d/modular/decor_window_glass.png",
       "width": 58,
@@ -1061,7 +1061,7 @@
       ]
     },
     {
-      "id": "face-muz68kx5-9k",
+      "id": "face-muz89z45-fc",
       "name": "Thanh trán trên gỗ sồi",
       "color": "#451a03",
       "width": 67,
@@ -1078,7 +1078,7 @@
       ]
     },
     {
-      "id": "face-muz68kx5-9l",
+      "id": "face-muz89z45-fd",
       "name": "Mặt trên bậu cửa đá",
       "color": "#a8a29e",
       "width": 70,
@@ -1095,7 +1095,7 @@
       ]
     },
     {
-      "id": "face-muz68kx5-9m",
+      "id": "face-muz89z45-fe",
       "name": "Gờ đứng bậu cửa đá",
       "assetPath": "assembly_3d/modular/decor_window_sill.png",
       "width": 70,
@@ -1112,7 +1112,7 @@
       ]
     },
     {
-      "id": "face-muz68kx5-9n",
+      "id": "face-muz89z45-ff",
       "name": "Cánh cửa sổ gỗ trái mở",
       "assetPath": "assembly_3d/modular/decor_window_shutter.png",
       "width": 14,
@@ -1129,7 +1129,7 @@
       ]
     },
     {
-      "id": "face-muz68kx5-9o",
+      "id": "face-muz89z45-fg",
       "name": "Cánh cửa sổ gỗ phải mở",
       "assetPath": "assembly_3d/modular/decor_window_shutter.png",
       "width": 14,
@@ -1146,7 +1146,7 @@
       ]
     },
     {
-      "id": "face-muz68lff-9p",
+      "id": "face-muz89zhv-fh",
       "name": "Khung kính quả trám Tudor",
       "assetPath": "assembly_3d/modular/decor_window_glass.png",
       "width": 58,
@@ -1163,7 +1163,7 @@
       ]
     },
     {
-      "id": "face-muz68lff-9q",
+      "id": "face-muz89zhv-fi",
       "name": "Thanh trán trên gỗ sồi",
       "color": "#451a03",
       "width": 67,
@@ -1180,7 +1180,7 @@
       ]
     },
     {
-      "id": "face-muz68lff-9r",
+      "id": "face-muz89zhv-fj",
       "name": "Mặt trên bậu cửa đá",
       "color": "#a8a29e",
       "width": 70,
@@ -1197,7 +1197,7 @@
       ]
     },
     {
-      "id": "face-muz68lff-9s",
+      "id": "face-muz89zhv-fk",
       "name": "Gờ đứng bậu cửa đá",
       "assetPath": "assembly_3d/modular/decor_window_sill.png",
       "width": 70,
@@ -1214,7 +1214,7 @@
       ]
     },
     {
-      "id": "face-muz68lff-9t",
+      "id": "face-muz89zhv-fl",
       "name": "Cánh cửa sổ gỗ trái mở",
       "assetPath": "assembly_3d/modular/decor_window_shutter.png",
       "width": 14,
@@ -1231,7 +1231,7 @@
       ]
     },
     {
-      "id": "face-muz68lff-9u",
+      "id": "face-muz89zhv-fm",
       "name": "Cánh cửa sổ gỗ phải mở",
       "assetPath": "assembly_3d/modular/decor_window_shutter.png",
       "width": 14,
@@ -1248,7 +1248,7 @@
       ]
     },
     {
-      "id": "face-muz68mu1-9v",
+      "id": "face-muz89ztl-fn",
       "name": "Vách ống khói gạch trước",
       "assetPath": "assembly_3d/modular/decor_chimney_brick.png",
       "width": 45,
@@ -1268,7 +1268,7 @@
       ]
     },
     {
-      "id": "face-muz68mu1-9w",
+      "id": "face-muz89ztl-fo",
       "name": "Vách ống khói gạch sau",
       "assetPath": "assembly_3d/modular/decor_chimney_brick.png",
       "width": 45,
@@ -1288,7 +1288,7 @@
       ]
     },
     {
-      "id": "face-muz68mu1-9x",
+      "id": "face-muz89ztl-fp",
       "name": "Vách ống khói gạch trái",
       "assetPath": "assembly_3d/modular/decor_chimney_brick.png",
       "width": 45,
@@ -1308,7 +1308,7 @@
       ]
     },
     {
-      "id": "face-muz68mu1-9y",
+      "id": "face-muz89ztl-fq",
       "name": "Vách ống khói gạch phải",
       "assetPath": "assembly_3d/modular/decor_chimney_brick.png",
       "width": 45,
@@ -1328,7 +1328,7 @@
       ]
     },
     {
-      "id": "face-muz68mu1-9z",
+      "id": "face-muz89ztl-fr",
       "name": "Gờ đá mũ trước",
       "assetPath": "assembly_3d/modular/decor_chimney_cap.png",
       "width": 52,
@@ -1345,7 +1345,7 @@
       ]
     },
     {
-      "id": "face-muz68mu1-a0",
+      "id": "face-muz89ztl-fs",
       "name": "Gờ đá mũ sau",
       "assetPath": "assembly_3d/modular/decor_chimney_cap.png",
       "width": 52,
@@ -1362,7 +1362,7 @@
       ]
     },
     {
-      "id": "face-muz68mu1-a1",
+      "id": "face-muz89ztl-ft",
       "name": "Gờ đá mũ trái",
       "assetPath": "assembly_3d/modular/decor_chimney_cap.png",
       "width": 52,
@@ -1379,7 +1379,7 @@
       ]
     },
     {
-      "id": "face-muz68mu1-a2",
+      "id": "face-muz89ztl-fu",
       "name": "Gờ đá mũ phải",
       "assetPath": "assembly_3d/modular/decor_chimney_cap.png",
       "width": 52,
@@ -1396,7 +1396,7 @@
       ]
     },
     {
-      "id": "face-muz68mu1-a3",
+      "id": "face-muz89ztl-fv",
       "name": "Mặt đá nắp trên",
       "color": "#78716c",
       "width": 54,
@@ -1413,7 +1413,7 @@
       ]
     },
     {
-      "id": "face-muz68mu1-a4",
+      "id": "face-muz89ztl-fw",
       "name": "Ống gốm thoát khói",
       "assetPath": "assembly_3d/modular/decor_chimney_pot.png",
       "width": 17,
@@ -1430,7 +1430,7 @@
       ]
     },
     {
-      "id": "face-muz68mu1-a5",
+      "id": "face-muz89ztl-fx",
       "name": "Ống gốm thoát khói góc nghiêng",
       "assetPath": "assembly_3d/modular/decor_chimney_pot.png",
       "width": 17,
@@ -1447,308 +1447,672 @@
       ]
     },
     {
-      "id": "face-muz68nj4-a6",
-      "name": "Tam giác cầu lồi trước (Front Gore)",
-      "assetPath": "assembly_3d/modular/nature_bush_tri_1.png",
-      "width": 119,
+      "id": "face-muz8a055-fy",
+      "name": "Thân cành gỗ chính (0°)",
+      "assetPath": "assembly_3d/modular/nature_branch_stem.png",
+      "width": 105,
       "height": 91,
       "position": [
         290,
-        -116.5,
-        63
-      ],
-      "rotation": [
-        -28,
-        0,
-        0
-      ],
-      "bendX": 68,
-      "bendY": 45
-    },
-    {
-      "id": "face-muz68nj4-a7",
-      "name": "Tam giác cầu lồi phải (Right Gore)",
-      "assetPath": "assembly_3d/modular/nature_bush_tri_2.png",
-      "width": 119,
-      "height": 91,
-      "position": [
-        318,
-        -116.5,
+        -120,
         35
       ],
       "rotation": [
-        -28,
-        90,
+        0,
+        0,
         0
-      ],
-      "bendX": 68,
-      "bendY": 45
+      ]
     },
     {
-      "id": "face-muz68nj4-a8",
-      "name": "Tam giác cầu lồi sau (Back Gore)",
-      "assetPath": "assembly_3d/modular/nature_bush_tri_1.png",
-      "width": 119,
+      "id": "face-muz8a055-fz",
+      "name": "Thân cành gỗ ngang (90°)",
+      "assetPath": "assembly_3d/modular/nature_branch_stem.png",
+      "width": 105,
       "height": 91,
       "position": [
         290,
-        -116.5,
-        7
+        -120,
+        35
       ],
       "rotation": [
-        -28,
-        180,
+        0,
+        90,
         0
-      ],
-      "bendX": 68,
-      "bendY": 45
+      ]
     },
     {
-      "id": "face-muz68nj4-a9",
-      "name": "Tam giác cầu lồi trái (Left Gore)",
-      "assetPath": "assembly_3d/modular/nature_bush_tri_3.png",
-      "width": 119,
-      "height": 91,
+      "id": "face-muz8a055-g0",
+      "name": "Tán lá chùm trực diện (0°)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster.png",
+      "width": 154,
+      "height": 102,
       "position": [
-        262,
+        290,
         -116.5,
         35
       ],
       "rotation": [
-        -28,
-        -90,
+        0,
+        0,
         0
       ],
-      "bendX": 68,
-      "bendY": 45
+      "bendX": 42,
+      "bendY": 20
     },
     {
-      "id": "face-muz68obi-aa",
-      "name": "Tam giác cầu lồi trước (Front Gore)",
-      "assetPath": "assembly_3d/modular/nature_bush_tri_1.png",
+      "id": "face-muz8a055-g1",
+      "name": "Tán lá chùm chéo phải (45°)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster_flip.png",
+      "width": 147,
+      "height": 98,
+      "position": [
+        292.8,
+        -115.8,
+        35
+      ],
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "bendX": -40,
+      "bendY": 18
+    },
+    {
+      "id": "face-muz8a055-g2",
+      "name": "Tán lá chùm ngang (90°)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster.png",
+      "width": 154,
+      "height": 102,
+      "position": [
+        290,
+        -116.5,
+        35
+      ],
+      "rotation": [
+        0,
+        90,
+        0
+      ],
+      "bendX": 42,
+      "bendY": 20
+    },
+    {
+      "id": "face-muz8a055-g3",
+      "name": "Tán lá chùm chéo trái (135°)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster_flip.png",
+      "width": 147,
+      "height": 98,
+      "position": [
+        287.2,
+        -115.8,
+        35
+      ],
+      "rotation": [
+        0,
+        135,
+        0
+      ],
+      "bendX": -40,
+      "bendY": 18
+    },
+    {
+      "id": "face-muz8a055-g4",
+      "name": "Khóm hoa nhô trước (Front Bloom)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster.png",
+      "width": 122,
+      "height": 84,
+      "position": [
+        290,
+        -121.7,
+        54.3
+      ],
+      "rotation": [
+        -10,
+        0,
+        0
+      ],
+      "bendX": 35,
+      "bendY": 25
+    },
+    {
+      "id": "face-muz8a055-g5",
+      "name": "Khóm hoa nhô sau (Back Bloom)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster_flip.png",
+      "width": 122,
+      "height": 84,
+      "position": [
+        290,
+        -121.7,
+        15.8
+      ],
+      "rotation": [
+        10,
+        180,
+        0
+      ],
+      "bendX": 35,
+      "bendY": 25
+    },
+    {
+      "id": "face-muz8a055-g6",
+      "name": "Chỏm vòm tán lá trên đỉnh",
+      "assetPath": "assembly_3d/modular/nature_leaf_canopy.png",
       "width": 119,
+      "height": 119,
+      "position": [
+        290,
+        -106.7,
+        35
+      ],
+      "rotation": [
+        -90,
+        0,
+        0
+      ],
+      "bendX": 40,
+      "bendY": 40
+    },
+    {
+      "id": "face-muz8a0hb-g7",
+      "name": "Thân cành gỗ chính (0°)",
+      "assetPath": "assembly_3d/modular/nature_branch_stem.png",
+      "width": 105,
       "height": 91,
       "position": [
         -290,
-        -116.5,
-        63
-      ],
-      "rotation": [
-        -28,
-        0,
-        0
-      ],
-      "bendX": 68,
-      "bendY": 45
-    },
-    {
-      "id": "face-muz68obi-ab",
-      "name": "Tam giác cầu lồi phải (Right Gore)",
-      "assetPath": "assembly_3d/modular/nature_bush_tri_2.png",
-      "width": 119,
-      "height": 91,
-      "position": [
-        -262,
-        -116.5,
+        -120,
         35
       ],
       "rotation": [
-        -28,
-        90,
+        0,
+        0,
         0
-      ],
-      "bendX": 68,
-      "bendY": 45
+      ]
     },
     {
-      "id": "face-muz68obi-ac",
-      "name": "Tam giác cầu lồi sau (Back Gore)",
-      "assetPath": "assembly_3d/modular/nature_bush_tri_1.png",
-      "width": 119,
+      "id": "face-muz8a0hb-g8",
+      "name": "Thân cành gỗ ngang (90°)",
+      "assetPath": "assembly_3d/modular/nature_branch_stem.png",
+      "width": 105,
       "height": 91,
       "position": [
         -290,
-        -116.5,
-        7
+        -120,
+        35
       ],
       "rotation": [
-        -28,
-        180,
+        0,
+        90,
         0
-      ],
-      "bendX": 68,
-      "bendY": 45
+      ]
     },
     {
-      "id": "face-muz68obi-ad",
-      "name": "Tam giác cầu lồi trái (Left Gore)",
-      "assetPath": "assembly_3d/modular/nature_bush_tri_3.png",
-      "width": 119,
-      "height": 91,
+      "id": "face-muz8a0hb-g9",
+      "name": "Tán lá chùm trực diện (0°)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster.png",
+      "width": 154,
+      "height": 102,
       "position": [
-        -318,
+        -290,
         -116.5,
         35
       ],
       "rotation": [
-        -28,
-        -90,
-        0
-      ],
-      "bendX": 68,
-      "bendY": 45
-    },
-    {
-      "id": "face-muz68p2n-ae",
-      "name": "Tam giác cầu lồi trước (Front Gore)",
-      "assetPath": "assembly_3d/modular/nature_bush_tri_1.png",
-      "width": 83,
-      "height": 64,
-      "position": [
-        -125,
-        -142.1,
-        69.6
-      ],
-      "rotation": [
-        -28,
+        0,
         0,
         0
       ],
-      "bendX": 68,
-      "bendY": 45
+      "bendX": 42,
+      "bendY": 20
     },
     {
-      "id": "face-muz68p2n-af",
-      "name": "Tam giác cầu lồi phải (Right Gore)",
-      "assetPath": "assembly_3d/modular/nature_bush_tri_2.png",
-      "width": 83,
-      "height": 64,
+      "id": "face-muz8a0hb-ga",
+      "name": "Tán lá chùm chéo phải (45°)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster_flip.png",
+      "width": 147,
+      "height": 98,
       "position": [
-        -105.4,
-        -142.1,
-        50
+        -287.2,
+        -115.8,
+        35
       ],
       "rotation": [
-        -28,
+        0,
+        45,
+        0
+      ],
+      "bendX": -40,
+      "bendY": 18
+    },
+    {
+      "id": "face-muz8a0hb-gb",
+      "name": "Tán lá chùm ngang (90°)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster.png",
+      "width": 154,
+      "height": 102,
+      "position": [
+        -290,
+        -116.5,
+        35
+      ],
+      "rotation": [
+        0,
         90,
         0
       ],
-      "bendX": 68,
-      "bendY": 45
+      "bendX": 42,
+      "bendY": 20
     },
     {
-      "id": "face-muz68p2n-ag",
-      "name": "Tam giác cầu lồi sau (Back Gore)",
-      "assetPath": "assembly_3d/modular/nature_bush_tri_1.png",
-      "width": 83,
-      "height": 64,
+      "id": "face-muz8a0hb-gc",
+      "name": "Tán lá chùm chéo trái (135°)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster_flip.png",
+      "width": 147,
+      "height": 98,
       "position": [
-        -125,
-        -142.1,
-        30.4
+        -292.8,
+        -115.8,
+        35
       ],
       "rotation": [
-        -28,
-        180,
+        0,
+        135,
         0
       ],
-      "bendX": 68,
-      "bendY": 45
+      "bendX": -40,
+      "bendY": 18
     },
     {
-      "id": "face-muz68p2n-ah",
-      "name": "Tam giác cầu lồi trái (Left Gore)",
-      "assetPath": "assembly_3d/modular/nature_bush_tri_3.png",
-      "width": 83,
-      "height": 64,
+      "id": "face-muz8a0hb-gd",
+      "name": "Khóm hoa nhô trước (Front Bloom)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster.png",
+      "width": 122,
+      "height": 84,
       "position": [
-        -144.6,
-        -142.1,
-        50
+        -290,
+        -121.7,
+        54.3
       ],
       "rotation": [
-        -28,
-        -90,
-        0
-      ],
-      "bendX": 68,
-      "bendY": 45
-    },
-    {
-      "id": "face-muz68pt1-ai",
-      "name": "Tam giác cầu lồi trước (Front Gore)",
-      "assetPath": "assembly_3d/modular/nature_bush_tri_1.png",
-      "width": 83,
-      "height": 64,
-      "position": [
-        125,
-        -142.1,
-        69.6
-      ],
-      "rotation": [
-        -28,
+        -10,
         0,
         0
       ],
-      "bendX": 68,
-      "bendY": 45
+      "bendX": 35,
+      "bendY": 25
     },
     {
-      "id": "face-muz68pt1-aj",
-      "name": "Tam giác cầu lồi phải (Right Gore)",
-      "assetPath": "assembly_3d/modular/nature_bush_tri_2.png",
-      "width": 83,
-      "height": 64,
+      "id": "face-muz8a0hb-ge",
+      "name": "Khóm hoa nhô sau (Back Bloom)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster_flip.png",
+      "width": 122,
+      "height": 84,
       "position": [
-        144.6,
-        -142.1,
-        50
+        -290,
+        -121.7,
+        15.8
       ],
       "rotation": [
-        -28,
-        90,
-        0
-      ],
-      "bendX": 68,
-      "bendY": 45
-    },
-    {
-      "id": "face-muz68pt1-ak",
-      "name": "Tam giác cầu lồi sau (Back Gore)",
-      "assetPath": "assembly_3d/modular/nature_bush_tri_1.png",
-      "width": 83,
-      "height": 64,
-      "position": [
-        125,
-        -142.1,
-        30.4
-      ],
-      "rotation": [
-        -28,
+        10,
         180,
         0
       ],
-      "bendX": 68,
-      "bendY": 45
+      "bendX": 35,
+      "bendY": 25
     },
     {
-      "id": "face-muz68pt1-al",
-      "name": "Tam giác cầu lồi trái (Left Gore)",
-      "assetPath": "assembly_3d/modular/nature_bush_tri_3.png",
-      "width": 83,
+      "id": "face-muz8a0hb-gf",
+      "name": "Chỏm vòm tán lá trên đỉnh",
+      "assetPath": "assembly_3d/modular/nature_leaf_canopy.png",
+      "width": 119,
+      "height": 119,
+      "position": [
+        -290,
+        -106.7,
+        35
+      ],
+      "rotation": [
+        -90,
+        0,
+        0
+      ],
+      "bendX": 40,
+      "bendY": 40
+    },
+    {
+      "id": "face-muz8a0sz-gg",
+      "name": "Thân cành gỗ chính (0°)",
+      "assetPath": "assembly_3d/modular/nature_branch_stem.png",
+      "width": 73,
       "height": 64,
       "position": [
-        105.4,
+        -125,
+        -144.5,
+        50
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "face-muz8a0sz-gh",
+      "name": "Thân cành gỗ ngang (90°)",
+      "assetPath": "assembly_3d/modular/nature_branch_stem.png",
+      "width": 73,
+      "height": 64,
+      "position": [
+        -125,
+        -144.5,
+        50
+      ],
+      "rotation": [
+        0,
+        90,
+        0
+      ]
+    },
+    {
+      "id": "face-muz8a0sz-gi",
+      "name": "Tán lá chùm trực diện (0°)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster.png",
+      "width": 108,
+      "height": 71,
+      "position": [
+        -125,
         -142.1,
         50
       ],
       "rotation": [
-        -28,
-        -90,
+        0,
+        0,
         0
       ],
-      "bendX": 68,
-      "bendY": 45
+      "bendX": 42,
+      "bendY": 20
+    },
+    {
+      "id": "face-muz8a0sz-gj",
+      "name": "Tán lá chùm chéo phải (45°)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster_flip.png",
+      "width": 103,
+      "height": 69,
+      "position": [
+        -123,
+        -141.6,
+        50
+      ],
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "bendX": -40,
+      "bendY": 18
+    },
+    {
+      "id": "face-muz8a0sz-gk",
+      "name": "Tán lá chùm ngang (90°)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster.png",
+      "width": 108,
+      "height": 71,
+      "position": [
+        -125,
+        -142.1,
+        50
+      ],
+      "rotation": [
+        0,
+        90,
+        0
+      ],
+      "bendX": 42,
+      "bendY": 20
+    },
+    {
+      "id": "face-muz8a0sz-gl",
+      "name": "Tán lá chùm chéo trái (135°)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster_flip.png",
+      "width": 103,
+      "height": 69,
+      "position": [
+        -127,
+        -141.6,
+        50
+      ],
+      "rotation": [
+        0,
+        135,
+        0
+      ],
+      "bendX": -40,
+      "bendY": 18
+    },
+    {
+      "id": "face-muz8a0t0-gm",
+      "name": "Khóm hoa nhô trước (Front Bloom)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster.png",
+      "width": 86,
+      "height": 59,
+      "position": [
+        -125,
+        -145.7,
+        63.5
+      ],
+      "rotation": [
+        -10,
+        0,
+        0
+      ],
+      "bendX": 35,
+      "bendY": 25
+    },
+    {
+      "id": "face-muz8a0t0-gn",
+      "name": "Khóm hoa nhô sau (Back Bloom)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster_flip.png",
+      "width": 86,
+      "height": 59,
+      "position": [
+        -125,
+        -145.7,
+        36.5
+      ],
+      "rotation": [
+        10,
+        180,
+        0
+      ],
+      "bendX": 35,
+      "bendY": 25
+    },
+    {
+      "id": "face-muz8a0t0-go",
+      "name": "Chỏm vòm tán lá trên đỉnh",
+      "assetPath": "assembly_3d/modular/nature_leaf_canopy.png",
+      "width": 83,
+      "height": 83,
+      "position": [
+        -125,
+        -135.2,
+        50
+      ],
+      "rotation": [
+        -90,
+        0,
+        0
+      ],
+      "bendX": 40,
+      "bendY": 40
+    },
+    {
+      "id": "face-muz8a15c-gp",
+      "name": "Thân cành gỗ chính (0°)",
+      "assetPath": "assembly_3d/modular/nature_branch_stem.png",
+      "width": 73,
+      "height": 64,
+      "position": [
+        125,
+        -144.5,
+        50
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "face-muz8a15c-gq",
+      "name": "Thân cành gỗ ngang (90°)",
+      "assetPath": "assembly_3d/modular/nature_branch_stem.png",
+      "width": 73,
+      "height": 64,
+      "position": [
+        125,
+        -144.5,
+        50
+      ],
+      "rotation": [
+        0,
+        90,
+        0
+      ]
+    },
+    {
+      "id": "face-muz8a15c-gr",
+      "name": "Tán lá chùm trực diện (0°)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster.png",
+      "width": 108,
+      "height": 71,
+      "position": [
+        125,
+        -142.1,
+        50
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "bendX": 42,
+      "bendY": 20
+    },
+    {
+      "id": "face-muz8a15c-gs",
+      "name": "Tán lá chùm chéo phải (45°)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster_flip.png",
+      "width": 103,
+      "height": 69,
+      "position": [
+        127,
+        -141.6,
+        50
+      ],
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "bendX": -40,
+      "bendY": 18
+    },
+    {
+      "id": "face-muz8a15c-gt",
+      "name": "Tán lá chùm ngang (90°)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster.png",
+      "width": 108,
+      "height": 71,
+      "position": [
+        125,
+        -142.1,
+        50
+      ],
+      "rotation": [
+        0,
+        90,
+        0
+      ],
+      "bendX": 42,
+      "bendY": 20
+    },
+    {
+      "id": "face-muz8a15c-gu",
+      "name": "Tán lá chùm chéo trái (135°)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster_flip.png",
+      "width": 103,
+      "height": 69,
+      "position": [
+        123,
+        -141.6,
+        50
+      ],
+      "rotation": [
+        0,
+        135,
+        0
+      ],
+      "bendX": -40,
+      "bendY": 18
+    },
+    {
+      "id": "face-muz8a15c-gv",
+      "name": "Khóm hoa nhô trước (Front Bloom)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster.png",
+      "width": 86,
+      "height": 59,
+      "position": [
+        125,
+        -145.7,
+        63.5
+      ],
+      "rotation": [
+        -10,
+        0,
+        0
+      ],
+      "bendX": 35,
+      "bendY": 25
+    },
+    {
+      "id": "face-muz8a15c-gw",
+      "name": "Khóm hoa nhô sau (Back Bloom)",
+      "assetPath": "assembly_3d/modular/nature_leaf_cluster_flip.png",
+      "width": 86,
+      "height": 59,
+      "position": [
+        125,
+        -145.7,
+        36.5
+      ],
+      "rotation": [
+        10,
+        180,
+        0
+      ],
+      "bendX": 35,
+      "bendY": 25
+    },
+    {
+      "id": "face-muz8a15c-gx",
+      "name": "Chỏm vòm tán lá trên đỉnh",
+      "assetPath": "assembly_3d/modular/nature_leaf_canopy.png",
+      "width": 83,
+      "height": 83,
+      "position": [
+        125,
+        -135.2,
+        50
+      ],
+      "rotation": [
+        -90,
+        0,
+        0
+      ],
+      "bendX": 40,
+      "bendY": 40
     }
   ],
   "lighting": {
@@ -1760,5 +2124,5 @@
     "preset": "morning"
   },
   "createdAt": 1791435431492,
-  "updatedAt": 1791441897273
+  "updatedAt": 1791445312107
 }

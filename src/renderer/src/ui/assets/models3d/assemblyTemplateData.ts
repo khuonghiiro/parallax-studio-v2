@@ -14,6 +14,9 @@ import {
   prismFaces,
   ridgeSlopes,
   tilted,
+  curvedCylinderFaces,
+  taperedConeFaces,
+  blenderFoliageBushFaces,
   type AssemblyTemplate
 } from './assemblyTemplateKit'
 import { HOUSE_SHELLS } from './assemblyTemplatesShells'
@@ -179,6 +182,16 @@ const props: AssemblyTemplate[] = [
     ]
   },
   {
+    id: 'cylinder-round', label: 'Ống trụ tròn 360°', category: 'props', hint: '4 mặt uốn cong trụ tròn ghép hít mép tạo thành cột tròn / ống trụ 360°',
+    en: { label: '360° Round cylinder tube', hint: '4 bent curved faces meeting at side edges to form a seamless 360° round column or pipe' },
+    faces: () => curvedCylinderFaces(180, 500, 4, 55, 'Mảnh cong trụ')
+  },
+  {
+    id: 'cone-tapered', label: 'Ống trụ nhọn / Thân cây côn 3D', category: 'props', hint: '4 mặt uốn cong thuôn đỉnh ghép thành ống côn nhọn / thân cây 3D',
+    en: { label: '360° Tapered cone / trunk', hint: '4 bent curved faces tilted inward to form a seamless 360° tapered cone, trunk, or spire' },
+    faces: () => taperedConeFaces(180, 70, 520, 4, 55, 'Vách côn nhọn')
+  },
+  {
     id: 'signpost', label: 'Biển hiệu có cột', category: 'props', hint: 'Bảng 2 mặt + cột chữ thập',
     en: { label: 'Signpost', hint: 'Double-sided board + cross-shaped post' },
     faces: () => [
@@ -218,6 +231,11 @@ const nature: AssemblyTemplate[] = [
       face('Cụm nền sau', 500, 400, [0, 30, 90], BACK, undefined, { bendX: -20 }),
       face('Nóc vòm bụi', 420, 320, [0, 130, 40], UP, AWAY, { bendX: 40, bendY: 20 })
     ]
+  },
+  {
+    id: 'bush-blender-foliage', label: 'Bụi cây tán lá giao thoa Blender', category: 'nature', hint: 'Cốt cành gỗ chữ thập + các chùm lá uốn cong đan chéo giao thoa đa hướng tạo tán tròn đầy tự nhiên',
+    en: { label: 'Blender volumetric foliage bush', hint: 'Crossed branch core + multi-angle interlaced curved foliage cards creating lush organic 360° volume' },
+    faces: () => blenderFoliageBushFaces(460, 380)
   },
   {
     id: 'foliage-layers', label: 'Tán lá nhiều lớp', category: 'nature', hint: '4 lớp so le chiều sâu cho parallax mượt',

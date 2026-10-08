@@ -119,6 +119,24 @@
     },
     "assembly_3d/modular/decor_chimney_pot.png": {
       "name": "Ống gốm đỉnh ống khói"
+    },
+    "assembly_3d/modular/nature_branch_stem.png": {
+      "name": "Thân cành gỗ bụi cây (Cốt lõi 3D)"
+    },
+    "assembly_3d/modular/nature_leaf_cluster.png": {
+      "name": "Chùm tán lá & hoa tím thể tích (Trực diện)"
+    },
+    "assembly_3d/modular/nature_leaf_cluster_1.png": {
+      "name": "Chùm tán lá nhánh con 1"
+    },
+    "assembly_3d/modular/nature_leaf_cluster_2.png": {
+      "name": "Chùm tán lá nhánh con 2"
+    },
+    "assembly_3d/modular/nature_leaf_cluster_flip.png": {
+      "name": "Chùm tán lá & hoa tím thể tích (Đảo chiều)"
+    },
+    "assembly_3d/modular/nature_leaf_canopy.png": {
+      "name": "Chỏm vòm tán lá trên đỉnh"
     }
   }
 }

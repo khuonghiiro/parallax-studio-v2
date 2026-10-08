@@ -418,56 +418,105 @@ export function getCleanFlowerBoxFaces() {
 }
 
 export function getCleanSphericalBushFaces() {
-  const tilt = -28
-  const slantY = 110
-  const slantDist = 80
-  const width = 340
-  const height = 260
-
   return [
+    // 1. Cốt thân cành gỗ chịu lực & lộ qua kẽ lá (Woody branch skeleton)
     {
-      id: 'bush-tri-front',
-      name: 'Tam giác cầu lồi trước (Front Gore)',
-      assetPath: 'assembly_3d/modular/nature_bush_tri_1.png',
-      width,
-      height,
-      position: [0, slantY, slantDist],
-      rotation: [tilt, 0, 0],
-      bendX: 68,
-      bendY: 45
+      id: 'bush-stem-main',
+      name: 'Thân cành gỗ chính (0°)',
+      assetPath: 'assembly_3d/modular/nature_branch_stem.png',
+      width: 300,
+      height: 260,
+      position: [0, 100, 0],
+      rotation: [0, 0, 0]
     },
     {
-      id: 'bush-tri-right',
-      name: 'Tam giác cầu lồi phải (Right Gore)',
-      assetPath: 'assembly_3d/modular/nature_bush_tri_2.png',
-      width,
-      height,
-      position: [slantDist, slantY, 0],
-      rotation: [tilt, 90, 0],
-      bendX: 68,
-      bendY: 45
+      id: 'bush-stem-cross',
+      name: 'Thân cành gỗ ngang (90°)',
+      assetPath: 'assembly_3d/modular/nature_branch_stem.png',
+      width: 300,
+      height: 260,
+      position: [0, 100, 0],
+      rotation: [0, 90, 0]
+    },
+    // 2. Các chùm tán lá đan chéo giao thoa tạo tán 360° (Interlacing curved foliage cards)
+    {
+      id: 'bush-foliage-0',
+      name: 'Tán lá chùm trực diện (0°)',
+      assetPath: 'assembly_3d/modular/nature_leaf_cluster.png',
+      width: 440,
+      height: 290,
+      position: [0, 110, 0],
+      rotation: [0, 0, 0],
+      bendX: 42,
+      bendY: 20
     },
     {
-      id: 'bush-tri-back',
-      name: 'Tam giác cầu lồi sau (Back Gore)',
-      assetPath: 'assembly_3d/modular/nature_bush_tri_1.png',
-      width,
-      height,
-      position: [0, slantY, -slantDist],
-      rotation: [tilt, 180, 0],
-      bendX: 68,
-      bendY: 45
+      id: 'bush-foliage-45',
+      name: 'Tán lá chùm chéo phải (45°)',
+      assetPath: 'assembly_3d/modular/nature_leaf_cluster_flip.png',
+      width: 420,
+      height: 280,
+      position: [8, 112, 0],
+      rotation: [0, 45, 0],
+      bendX: -40,
+      bendY: 18
     },
     {
-      id: 'bush-tri-left',
-      name: 'Tam giác cầu lồi trái (Left Gore)',
-      assetPath: 'assembly_3d/modular/nature_bush_tri_3.png',
-      width,
-      height,
-      position: [-slantDist, slantY, 0],
-      rotation: [tilt, -90, 0],
-      bendX: 68,
-      bendY: 45
+      id: 'bush-foliage-90',
+      name: 'Tán lá chùm ngang (90°)',
+      assetPath: 'assembly_3d/modular/nature_leaf_cluster.png',
+      width: 440,
+      height: 290,
+      position: [0, 110, 0],
+      rotation: [0, 90, 0],
+      bendX: 42,
+      bendY: 20
+    },
+    {
+      id: 'bush-foliage-135',
+      name: 'Tán lá chùm chéo trái (135°)',
+      assetPath: 'assembly_3d/modular/nature_leaf_cluster_flip.png',
+      width: 420,
+      height: 280,
+      position: [-8, 112, 0],
+      rotation: [0, 135, 0],
+      bendX: -40,
+      bendY: 18
+    },
+    // 3. Các cụm hoa vươn lệch trước và sau tạo độ phồng chiều sâu
+    {
+      id: 'bush-foliage-front',
+      name: 'Khóm hoa nhô trước (Front Bloom)',
+      assetPath: 'assembly_3d/modular/nature_leaf_cluster.png',
+      width: 350,
+      height: 240,
+      position: [0, 95, 55],
+      rotation: [-10, 0, 0],
+      bendX: 35,
+      bendY: 25
+    },
+    {
+      id: 'bush-foliage-back',
+      name: 'Khóm hoa nhô sau (Back Bloom)',
+      assetPath: 'assembly_3d/modular/nature_leaf_cluster_flip.png',
+      width: 350,
+      height: 240,
+      position: [0, 95, -55],
+      rotation: [10, 180, 0],
+      bendX: 35,
+      bendY: 25
+    },
+    // 4. Chỏm vòm tán lá trên đỉnh (Top canopy dome)
+    {
+      id: 'bush-canopy-top',
+      name: 'Chỏm vòm tán lá trên đỉnh',
+      assetPath: 'assembly_3d/modular/nature_leaf_canopy.png',
+      width: 340,
+      height: 340,
+      position: [0, 138, 0],
+      rotation: [-90, 0, 0],
+      bendX: 40,
+      bendY: 40
     }
   ]
 }
@@ -541,7 +590,7 @@ async function rebuildAll() {
     id: 'model-garden-bush',
     name: 'Bụi Cây Hoa Sân Vườn 3D',
     category: 'nature',
-    description: 'Bụi cây xanh xum xuê ghép từ 4 tam giác cầu lồi khít cạnh tạo hình quả bóng 3D tròn đầy tự nhiên nhìn được mọi góc độ.',
+    description: 'Bụi cây xanh xum xuê hoa tím kiểu Blender: Cốt cành gỗ chữ thập kết hợp các chùm tán lá đan chéo giao thoa đa hướng uốn cong thể tích 3D, nhìn chân thực từ mọi góc độ.',
     scale: 0.35,
     faces: getCleanSphericalBushFaces()
   })

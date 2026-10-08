@@ -172,3 +172,99 @@ export function swungPanel(name: string, w: number, h: number, hingeX: number, s
   const c: Vec3 = [hingeX + side * Math.cos(a) * (w / 2), y, -Math.sin(a) * (w / 2)]
   return aroundY(name, w, h, side === -1 ? deg : -deg, c)
 }
+
+/**
+ * 360° Round cylinder tube made of curved 2D faces meeting along their side edges.
+ * For 4 faces (quadrants), each curved by bendX forms a seamless circular pipe/pillar.
+ */
+export function curvedCylinderFaces(
+  radius: number,
+  h: number,
+  sides = 4,
+  bendAmount = 55,
+  prefix = 'Mặt cong'
+): TemplateFaceSpec[] {
+  const w = 2 * radius * Math.tan(Math.PI / sides) * 1.15
+  return Array.from({ length: sides }, (_, i) => {
+    const deg = (i * 360) / sides
+    const phi = deg * DEG
+    const n: Vec3 = [Math.sin(phi), 0, -Math.cos(phi)]
+    const dist = radius * 0.72
+    return face(
+      `${prefix} ${i + 1} (${deg}°)`,
+      w,
+      h,
+      [dist * Math.sin(phi), 0, -dist * Math.cos(phi)],
+      n,
+      undefined,
+      { bendX: bendAmount }
+    )
+  })
+}
+
+/**
+ * 360° Tapered cone / trunk tube made of curved 2D faces tilted inward towards the apex.
+ */
+export function taperedConeFaces(
+  bottomRadius: number,
+  topRadius: number,
+  h: number,
+  sides = 4,
+  bendAmount = 55,
+  prefix = 'Vách côn'
+): TemplateFaceSpec[] {
+  const midRadius = (bottomRadius + topRadius) / 2
+  const w = 2 * midRadius * Math.tan(Math.PI / sides) * 1.15
+  const tiltDeg = (Math.atan2(bottomRadius - topRadius, h) * 180) / Math.PI
+
+  return Array.from({ length: sides }, (_, i) => {
+    const deg = (i * 360) / sides
+    const phi = deg * DEG
+    const dist = midRadius * 0.72
+    const tRad = tiltDeg * DEG
+    const n: Vec3 = [
+      Math.sin(phi) * Math.cos(tRad),
+      Math.sin(tRad),
+      -Math.cos(phi) * Math.cos(tRad)
+    ]
+    const up: Vec3 = [
+      -Math.sin(phi) * Math.sin(tRad),
+      Math.cos(tRad),
+      Math.cos(phi) * Math.sin(tRad)
+    ]
+    return face(
+      `${prefix} ${i + 1} (${deg}°)`,
+      w,
+      h,
+      [dist * Math.sin(phi), 0, -dist * Math.cos(phi)],
+      n,
+      up,
+      { bendX: bendAmount }
+    )
+  })
+}
+
+/**
+ * Blender-style volumetric foliage structure:
+ * 1. Woody stem/branch core crossed at 90° through the center
+ * 2. Radiating curved foliage cluster cards (interlacing pixels/volume from all angles)
+ * 3. Horizontal top canopy dome
+ */
+export function blenderFoliageBushFaces(w = 460, h = 380): TemplateFaceSpec[] {
+  return [
+    // 1. Cốt thân cành gỗ chữ thập
+    face('Cốt cành chính (0°)', Math.round(w * 0.65), Math.round(h * 0.75), [0, 0, 0], FRONT),
+    aroundY('Cốt cành ngang (90°)', Math.round(w * 0.65), Math.round(h * 0.75), 90, [0, 0, 0]),
+    // 2. Các chùm tán lá đan chéo giao thoa đa hướng (tạo thể tích 3D uốn cong)
+    face('Chùm tán trực diện', w, h, [0, 10, 0], FRONT, undefined, { bendX: 45, bendY: 20 }),
+    aroundY('Chùm tán chéo phải (45°)', Math.round(w * 0.95), Math.round(h * 0.95), 45, [10, 15, 0]),
+    aroundY('Chùm tán ngang (90°)', w, h, 90, [0, 10, 0]),
+    aroundY('Chùm tán chéo trái (135°)', Math.round(w * 0.95), Math.round(h * 0.95), 135, [-10, 15, 0]),
+    // 3. Tán vòm che đỉnh
+    face('Tán vòm nóc', Math.round(w * 0.8), Math.round(w * 0.8), [0, Math.round(h * 0.38), 0], UP, AWAY, {
+      bendX: 45,
+      bendY: 45
+    })
+  ]
+}
+
