@@ -7,7 +7,8 @@ export function assemblyMeshPatch(p: Params): Partial<Face3D> {
   const patch: Partial<Face3D> = {}
   for (const [param, key, min, max] of [
     ['grid_res', 'gridRes', 4, 128], ['bend_x', 'bendX', -100, 100],
-    ['bend_y', 'bendY', -100, 100], ['depth_intensity', 'depthIntensity', -200, 200]
+    ['bend_y', 'bendY', -100, 100], ['bend_lateral', 'bendLateral', -100, 100],
+    ['depth_intensity', 'depthIntensity', -200, 200]
   ] as const) {
     if (!has(p, param)) continue
     const value = num(p, param)

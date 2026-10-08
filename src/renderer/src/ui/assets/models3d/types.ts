@@ -19,6 +19,8 @@ export interface Face3D {
   bendX?: number
   /** Độ uốn cong / vểnh mép theo chiều dọc (-100 đến 100, tạo mái cong / mép vểnh) */
   bendY?: number
+  /** Độ uốn cong lượn nghiêng sang hai bên theo chiều dài (-100 đến 100, tạo dáng cong lượn S / vòng cung sang trái hoặc phải) */
+  bendLateral?: number
   /** Khu vực uốn cong 1 phần: 'all' (toàn bộ), 'bottom' (mái hiên / mép dưới), 'top' (nửa trên), 'left' (mép trái), 'right' (mép phải), 'curl' (uốn xoăn sóng chữ S) */
   bendRegion?: 'all' | 'bottom' | 'top' | 'left' | 'right' | 'curl'
   /** Độ phân giải lưới mesh (16, 24, 32, 48) */

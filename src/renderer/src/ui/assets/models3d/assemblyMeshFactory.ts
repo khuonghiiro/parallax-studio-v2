@@ -152,7 +152,8 @@ function buildFaceGeometry(
   hiddenCells: string[],
   gridRotation: number,
   selectedCells: string[],
-  cellBendAngle: number
+  cellBendAngle: number,
+  bendLateral = 0
 ): THREE.BufferGeometry {
   const w = face.width * scale
   const h = face.height * scale
@@ -165,7 +166,7 @@ function buildFaceGeometry(
     return buildAlphaTrimmedGeometry(
       w, h, resolved?.image ?? null, cols, rows, bendX, bendY, bendRegion,
       hiddenCells, gridRotation, selectedCells, cellBendAngle, true,
-      depthProfile, depthIntensity, depthInvert, presetPolygon
+      depthProfile, depthIntensity, depthInvert, presetPolygon, bendLateral
     )
   }
   if (resolved) {
@@ -173,16 +174,16 @@ function buildFaceGeometry(
       return buildAlphaTrimmedGeometry(
         w, h, resolved.image, cols, rows, bendX, bendY, bendRegion,
         hiddenCells, gridRotation, selectedCells, cellBendAngle, face.meshMode !== 'manual',
-        depthProfile, depthIntensity, depthInvert
+        depthProfile, depthIntensity, depthInvert, undefined, bendLateral
       )
     }
     return buildCurvedPlaneGeometry(
       w, h, cols, rows, bendX, bendY, bendRegion,
-      depthProfile, depthIntensity, depthInvert, resolved.image
+      depthProfile, depthIntensity, depthInvert, resolved.image, bendLateral
     )
   }
   return buildCurvedPlaneGeometry(
-    w, h, cols, rows, bendX, bendY, bendRegion, depthProfile, depthIntensity, depthInvert
+    w, h, cols, rows, bendX, bendY, bendRegion, depthProfile, depthIntensity, depthInvert, undefined, bendLateral
   )
 }
 
@@ -201,6 +202,7 @@ export function createFaceMesh(
 ): THREE.Mesh {
   const bendX = face.bendX || 0
   const bendY = face.bendY || 0
+  const bendLateral = face.bendLateral || 0
   const bendRegion = face.bendRegion || 'all'
   const { cols, rows } = faceGridSize(face)
   const gridRotation = face.gridRotation || 0
@@ -211,7 +213,7 @@ export function createFaceMesh(
   const mat = createFaceMaterial(face, resolved?.texture ?? null, theme.fallbackFace)
   const geo = buildFaceGeometry(
     face, resolved, meshOnlyPixels, scale, cols, rows,
-    bendX, bendY, bendRegion, hiddenCells, gridRotation, selectedCells, cellBendAngle
+    bendX, bendY, bendRegion, hiddenCells, gridRotation, selectedCells, cellBendAngle, bendLateral
   )
 
   const mesh = new THREE.Mesh(geo, mat)

@@ -1,4 +1,5 @@
 import { face, FRONT, UP, AWAY, boxFaces, aroundY, offset, type AssemblyTemplate, type TemplateFaceSpec } from './assemblyTemplateKit'
+import type { Face3D } from './types'
 import type { ImageMeshSlot, ImageMeshVariant } from './imageMeshTypes'
 import { IMAGE_MESH_SLOT_RULES } from './imageMeshSlotRules'
 
@@ -88,19 +89,31 @@ const TRUMPET_STAMEN_POLYGON: Array<[number, number]> = [
   [0.38, 0.45]
 ]
 
-/** Viền mesh cánh hoa thông thường: bầu tròn mềm mại, thon gốc */
+/**
+ * Viền mesh cánh hoa chuẩn hoa tự nhiên (như hoa cúc, hoa trà, hoa giấy, cosmos trong ảnh 2):
+ * Đáy cuống hẹp ở mép dưới, thân cánh xòe rộng bầu tròn dạng muỗng (spoon petal),
+ * hai thùy tròn mềm mại ôm lấy đỉnh với khía hõm nhẹ ở giữa tâm đỉnh cánh.
+ */
 const FLOWER_PETAL_POLYGON: Array<[number, number]> = [
+  // Cuống gắn ở đáy tâm (v=0)
   [0.44, 0.0],
   [0.56, 0.0],
-  [0.74, 0.22],
-  [0.90, 0.55],
-  [0.85, 0.85],
-  [0.66, 0.98],
-  [0.50, 1.0],
-  [0.34, 0.98],
-  [0.15, 0.85],
-  [0.10, 0.55],
-  [0.26, 0.22]
+  // Mép phải xòe nở ra ngoài
+  [0.66, 0.12],
+  [0.80, 0.28],
+  [0.92, 0.50],
+  [0.96, 0.70], // Bụng cánh mở rộng tối đa
+  [0.90, 0.88], // Vai cánh uốn lượn vào trong
+  [0.74, 0.98], // Đỉnh thùy phải
+  [0.60, 0.96],
+  [0.50, 0.93], // Khía lõm nhẹ ở tâm đỉnh cánh (chuẩn hoa tự nhiên như ảnh 2)
+  [0.40, 0.96],
+  [0.26, 0.98], // Đỉnh thùy trái
+  [0.10, 0.88], // Vai cánh trái
+  [0.04, 0.70], // Bụng cánh trái
+  [0.08, 0.50],
+  [0.20, 0.28],
+  [0.34, 0.12]
 ]
 
 /** Viền mesh nhụy hoa tròn: đĩa tròn 16 cạnh đều */
@@ -112,16 +125,122 @@ const FLOWER_CENTER_POLYGON: Array<[number, number]> = Array.from({ length: 16 }
   ]
 })
 
-/** Viền mesh lá cỏ: gốc thẳng, phiến lá vuốt nhọn dần lên đỉnh */
-const GRASS_BLADE_POLYGON: Array<[number, number]> = [
-  [0.42, 0.0],
-  [0.58, 0.0],
-  [0.68, 0.25],
-  [0.64, 0.65],
-  [0.50, 1.0],
-  [0.36, 0.65],
-  [0.32, 0.25]
+/** Viền mesh lá cỏ uốn lượn sang trái: từ gốc thẳng uốn cong dần sang trái */
+const GRASS_BLADE_CURVE_LEFT_POLYGON: Array<[number, number]> = [
+  [0.46, 0.0],
+  [0.54, 0.0],
+  [0.50, 0.20],
+  [0.42, 0.42],
+  [0.30, 0.65],
+  [0.17, 0.84],
+  [0.08, 0.96],
+  [0.04, 1.0],
+  [0.02, 0.94],
+  [0.08, 0.82],
+  [0.20, 0.62],
+  [0.32, 0.40],
+  [0.41, 0.18]
 ]
+
+/** Viền mesh lá cỏ xòe ngang sang trái (uốn cong mạnh sát đất) */
+const GRASS_BLADE_FAR_LEFT_POLYGON: Array<[number, number]> = [
+  [0.46, 0.0],
+  [0.54, 0.0],
+  [0.47, 0.15],
+  [0.36, 0.32],
+  [0.22, 0.50],
+  [0.10, 0.66],
+  [0.03, 0.78],
+  [0.01, 0.82],
+  [0.01, 0.74],
+  [0.11, 0.58],
+  [0.24, 0.42],
+  [0.37, 0.25],
+  [0.41, 0.12]
+]
+
+/** Viền mesh lá cỏ uốn lượn sang phải: đối xứng với lá cong trái */
+const GRASS_BLADE_CURVE_RIGHT_POLYGON: Array<[number, number]> = [
+  [0.46, 0.0],
+  [0.54, 0.0],
+  [0.59, 0.18],
+  [0.68, 0.40],
+  [0.80, 0.62],
+  [0.92, 0.82],
+  [0.98, 0.94],
+  [0.96, 1.0],
+  [0.92, 0.96],
+  [0.83, 0.84],
+  [0.70, 0.65],
+  [0.58, 0.42],
+  [0.50, 0.20]
+]
+
+/** Viền mesh lá cỏ xòe ngang sang phải (uốn cong mạnh sát đất) */
+const GRASS_BLADE_FAR_RIGHT_POLYGON: Array<[number, number]> = [
+  [0.46, 0.0],
+  [0.54, 0.0],
+  [0.59, 0.12],
+  [0.63, 0.25],
+  [0.76, 0.42],
+  [0.89, 0.58],
+  [0.99, 0.74],
+  [0.99, 0.82],
+  [0.97, 0.78],
+  [0.91, 0.66],
+  [0.78, 0.50],
+  [0.64, 0.32],
+  [0.53, 0.15]
+]
+
+/** Viền mesh lá cỏ cao uốn vòm rủ ngọn */
+const GRASS_BLADE_DROOP_POLYGON: Array<[number, number]> = [
+  [0.45, 0.0],
+  [0.55, 0.0],
+  [0.58, 0.30],
+  [0.62, 0.60],
+  [0.60, 0.82],
+  [0.50, 0.97],
+  [0.38, 0.98],
+  [0.26, 0.91],
+  [0.24, 0.86],
+  [0.34, 0.92],
+  [0.48, 0.90],
+  [0.52, 0.78],
+  [0.49, 0.55],
+  [0.44, 0.28]
+]
+
+/** Viền mesh lá cỏ uốn lượn sóng hình chữ S */
+const GRASS_BLADE_S_CURVE_POLYGON: Array<[number, number]> = [
+  [0.46, 0.0],
+  [0.54, 0.0],
+  [0.60, 0.25],
+  [0.58, 0.50],
+  [0.45, 0.72],
+  [0.35, 0.90],
+  [0.32, 1.0],
+  [0.28, 0.94],
+  [0.38, 0.75],
+  [0.50, 0.52],
+  [0.51, 0.26],
+  [0.42, 0.12]
+]
+
+/** Viền mesh lá cỏ vươn thẳng thuôn nhọn */
+const GRASS_BLADE_UPRIGHT_POLYGON: Array<[number, number]> = [
+  [0.44, 0.0],
+  [0.56, 0.0],
+  [0.60, 0.25],
+  [0.58, 0.60],
+  [0.55, 0.85],
+  [0.50, 1.0],
+  [0.45, 0.85],
+  [0.42, 0.60],
+  [0.40, 0.25]
+]
+
+const GRASS_BLADE_POLYGON = GRASS_BLADE_UPRIGHT_POLYGON
 
 /** Viền mesh phiến lá: thuôn bầu dục, nhọn đỉnh, thon cuống */
 const LEAF_POLYGON: Array<[number, number]> = [
@@ -148,21 +267,23 @@ function flowerFaces(): TemplateFaceSpec[] {
   const petals = Array.from({ length: 6 }, (_, i) => {
     const a = (i * Math.PI) / 3
     return mesh(face(`Cánh ${i + 1}`, 160, 240,
-      [Math.sin(a) * 120, 150 + Math.cos(a) * 120, 0], FRONT,
+      [Math.sin(a) * 115, 150 + Math.cos(a) * 115, 0], FRONT,
       [Math.sin(a), Math.cos(a), 0], {
+        bendX: 28,
         bendY: 24,
         bendRegion: 'top',
         silhouettePolygon: FLOWER_PETAL_POLYGON
-      }), 'petal', 'ridge', 8)
+      }), 'petal', 'ridge', 10)
   })
+
   return [
     mesh(face('Thân', 40, 400, [0, -50, 12], FRONT, undefined, {
       silhouettePolygon: STEM_POLYGON
     }), 'stem'),
     ...petals,
-    mesh(face('Nhụy', 100, 100, [0, 150, -12], FRONT, undefined, {
+    mesh(face('Nhụy', 100, 100, [0, 150, -14], FRONT, undefined, {
       silhouettePolygon: FLOWER_CENTER_POLYGON
-    }), 'center', 'sphere', 18)
+    }), 'center', 'sphere', 20)
   ]
 }
 
@@ -273,28 +394,31 @@ interface GrassBladeSpec {
   radius: number
   bendY: number
   bendX: number
+  bendLateral: number
+  region?: Face3D['bendRegion']
+  polygon: Array<[number, number]>
 }
 
 const GRASS_BLADES: GrassBladeSpec[] = [
-  // 4 lá non ở tâm: cao, vươn thẳng (h=300..350, tilt=8°..11°)
-  { name: 'Lá cỏ tâm 1', deg: 20, w: 70, h: 350, tilt: 8, radius: 10, bendY: 20, bendX: 20 },
-  { name: 'Lá cỏ tâm 2', deg: 110, w: 60, h: 300, tilt: 10, radius: 12, bendY: 24, bendX: 22 },
-  { name: 'Lá cỏ tâm 3', deg: 200, w: 70, h: 350, tilt: 9, radius: 11, bendY: 21, bendX: 20 },
-  { name: 'Lá cỏ tâm 4', deg: 290, w: 60, h: 300, tilt: 11, radius: 12, bendY: 25, bendX: 22 },
+  // 4 ngọn cỏ cao ở tâm: vươn cao, uốn vòm rủ ngọn và uốn lượn hình chữ S
+  { name: 'Cỏ cao rủ 1', deg: 30, w: 76, h: 380, tilt: 8, radius: 10, bendY: 26, bendX: 20, bendLateral: -28, region: 'top', polygon: GRASS_BLADE_DROOP_POLYGON },
+  { name: 'Cỏ cao thẳng 2', deg: 120, w: 70, h: 350, tilt: 10, radius: 12, bendY: 24, bendX: 20, bendLateral: 22, region: 'top', polygon: GRASS_BLADE_UPRIGHT_POLYGON },
+  { name: 'Cỏ cao sóng 3', deg: 210, w: 76, h: 380, tilt: 9, radius: 11, bendY: 25, bendX: 20, bendLateral: -30, region: 'curl', polygon: GRASS_BLADE_S_CURVE_POLYGON },
+  { name: 'Cỏ cao rủ 4', deg: 300, w: 72, h: 360, tilt: 11, radius: 12, bendY: 28, bendX: 22, bendLateral: 32, region: 'top', polygon: GRASS_BLADE_DROOP_POLYGON },
 
-  // 5 lá tầm trung: uốn lượn tỏa vừa (h=250, tilt=23°..28°)
-  { name: 'Lá cỏ vừa 1', deg: 55, w: 50, h: 250, tilt: 24, radius: 26, bendY: 36, bendX: 22 },
-  { name: 'Lá cỏ vừa 2', deg: 145, w: 50, h: 250, tilt: 27, radius: 28, bendY: 40, bendX: 24 },
-  { name: 'Lá cỏ vừa 3', deg: 235, w: 50, h: 250, tilt: 23, radius: 25, bendY: 35, bendX: 22 },
-  { name: 'Lá cỏ vừa 4', deg: 325, w: 50, h: 250, tilt: 28, radius: 29, bendY: 41, bendX: 24 },
-  { name: 'Lá cỏ vừa 5', deg: 185, w: 50, h: 250, tilt: 25, radius: 27, bendY: 37, bendX: 23 },
+  // 5 ngọn cỏ tầm trung: uốn lượn tỏa đều vòng cung sang trái / phải
+  { name: 'Cỏ uốn trái 1', deg: 20, w: 52, h: 260, tilt: 24, radius: 24, bendY: 38, bendX: 22, bendLateral: -38, region: 'all', polygon: GRASS_BLADE_CURVE_LEFT_POLYGON },
+  { name: 'Cỏ uốn phải 2', deg: 90, w: 50, h: 250, tilt: 26, radius: 26, bendY: 40, bendX: 24, bendLateral: 42, region: 'all', polygon: GRASS_BLADE_CURVE_RIGHT_POLYGON },
+  { name: 'Cỏ uốn trái 3', deg: 165, w: 52, h: 260, tilt: 23, radius: 25, bendY: 36, bendX: 22, bendLateral: -36, region: 'all', polygon: GRASS_BLADE_CURVE_LEFT_POLYGON },
+  { name: 'Cỏ uốn phải 4', deg: 235, w: 50, h: 250, tilt: 28, radius: 27, bendY: 42, bendX: 24, bendLateral: 40, region: 'all', polygon: GRASS_BLADE_CURVE_RIGHT_POLYGON },
+  { name: 'Cỏ sóng chữ S 5', deg: 310, w: 54, h: 270, tilt: 22, radius: 23, bendY: 35, bendX: 22, bendLateral: -32, region: 'curl', polygon: GRASS_BLADE_S_CURVE_POLYGON },
 
-  // 5 lá ngoài cùng: già hơn, ngả thấp uốn rủ sát đất (h=175..200, tilt=42°..50°)
-  { name: 'Lá cỏ ngoài 1', deg: 0, w: 40, h: 200, tilt: 44, radius: 46, bendY: 50, bendX: 24 },
-  { name: 'Lá cỏ ngoài 2', deg: 80, w: 35, h: 175, tilt: 48, radius: 48, bendY: 54, bendX: 25 },
-  { name: 'Lá cỏ ngoài 3', deg: 165, w: 40, h: 200, tilt: 42, radius: 45, bendY: 48, bendX: 24 },
-  { name: 'Lá cỏ ngoài 4', deg: 255, w: 35, h: 175, tilt: 50, radius: 50, bendY: 56, bendX: 26 },
-  { name: 'Lá cỏ ngoài 5', deg: 340, w: 40, h: 200, tilt: 46, radius: 47, bendY: 52, bendX: 25 }
+  // 5 ngọn cỏ tầng thấp: già hơn, xòe ngang uốn lượn sát đất sang hai bên (như nét vẽ tay ảnh 1)
+  { name: 'Cỏ xòe ngang trái 1', deg: 55, w: 36, h: 180, tilt: 46, radius: 42, bendY: 52, bendX: 24, bendLateral: -46, region: 'all', polygon: GRASS_BLADE_FAR_LEFT_POLYGON },
+  { name: 'Cỏ xòe ngang phải 2', deg: 135, w: 32, h: 160, tilt: 52, radius: 46, bendY: 56, bendX: 25, bendLateral: 50, region: 'all', polygon: GRASS_BLADE_FAR_RIGHT_POLYGON },
+  { name: 'Cỏ xòe ngang trái 3', deg: 195, w: 38, h: 190, tilt: 44, radius: 40, bendY: 50, bendX: 24, bendLateral: -44, region: 'all', polygon: GRASS_BLADE_FAR_LEFT_POLYGON },
+  { name: 'Cỏ xòe ngang phải 4', deg: 275, w: 32, h: 160, tilt: 54, radius: 48, bendY: 58, bendX: 26, bendLateral: 52, region: 'all', polygon: GRASS_BLADE_FAR_RIGHT_POLYGON },
+  { name: 'Cỏ xòe ngang trái 5', deg: 345, w: 36, h: 180, tilt: 48, radius: 44, bendY: 54, bendX: 25, bendLateral: -48, region: 'all', polygon: GRASS_BLADE_FAR_LEFT_POLYGON }
 ]
 
 function radialGrassFaces(): TemplateFaceSpec[] {
@@ -323,8 +447,9 @@ function radialGrassFaces(): TemplateFaceSpec[] {
     return mesh(face(b.name, b.w, b.h, c, n, up, {
       bendX: b.bendX,
       bendY: b.bendY,
+      bendLateral: b.bendLateral,
       bendRegion: 'top',
-      silhouettePolygon: GRASS_BLADE_POLYGON
+      silhouettePolygon: b.polygon
     }), 'blade', 'ridge', 12)
   })
 }

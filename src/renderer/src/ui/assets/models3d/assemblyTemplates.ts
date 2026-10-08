@@ -10,7 +10,7 @@ export type { AssemblyTemplate, TemplateCategory } from './assemblyTemplateData'
 const NEUTRAL_COLORS = ['#7c8cff', '#38bdf8', '#22d3ee', '#a78bfa', '#60a5fa', '#94a3b8']
 
 /** Template-controlled shape fields; reset when a template is applied. */
-const SHAPE_KEYS = ['bendX', 'bendY', 'bendRegion', 'silhouettePolygon'] as const
+const SHAPE_KEYS = ['bendX', 'bendY', 'bendLateral', 'bendRegion', 'silhouettePolygon'] as const
 
 export function findTemplate(id: string): AssemblyTemplate | undefined {
   return ASSEMBLY_TEMPLATES.find((t) => t.id === id)
@@ -33,6 +33,7 @@ export function templateFaces(template: AssemblyTemplate, idPrefix = template.id
     if (spec.imageSlot) f.imageSlot = spec.imageSlot
     if (spec.bendX) f.bendX = spec.bendX
     if (spec.bendY) f.bendY = spec.bendY
+    if (spec.bendLateral) f.bendLateral = spec.bendLateral
     if (spec.bendRegion) f.bendRegion = spec.bendRegion
     if (spec.silhouettePolygon) f.silhouettePolygon = spec.silhouettePolygon
     return f

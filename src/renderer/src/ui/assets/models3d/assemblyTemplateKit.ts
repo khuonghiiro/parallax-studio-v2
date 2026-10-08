@@ -24,6 +24,7 @@ export interface TemplateFaceSpec {
   up?: Vec3
   bendX?: number
   bendY?: number
+  bendLateral?: number
   bendRegion?: Face3D['bendRegion']
   silhouettePolygon?: number[][]
   imageSlot?: string

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BufferGeometry } from 'three'
-import { buildAlphaTrimmedGeometry, computeBendZ } from './alphaMeshBuilder'
+import { buildAlphaTrimmedGeometry, computeBendZ, computeBendLateralX } from './alphaMeshBuilder'
 
 /** Geometry is indexed (welded vertices) — count rendered triangles. */
 const triCount = (geo: BufferGeometry): number => {
@@ -263,5 +263,51 @@ describe('alphaMeshBuilder - Custom Mesh Frame & Rotatable Grid', () => {
     const pos = geo.getAttribute('position')
     expect(pos).toBeDefined()
     expect(pos.count).toBeGreaterThan(15)
+  })
+
+  it('computes lateral bending in X and applies lateral displacement', () => {
+    // Root at v=0 has 0 displacement
+    expect(computeBendLateralX(0.5, 0, 100, 300, 50, 'all')).toBe(0)
+    // Tip at v=1 curves to the right with positive bendLateral
+    const tipRight = computeBendLateralX(0.5, 1, 100, 300, 50, 'all')
+    expect(tipRight).toBeGreaterThan(10)
+    // Tip at v=1 curves to the left with negative bendLateral
+    const tipLeft = computeBendLateralX(0.5, 1, 100, 300, -50, 'all')
+    expect(tipLeft).toBeLessThan(-10)
+    expect(tipLeft).toBeCloseTo(-tipRight, 4)
+
+    // Build geometry with lateral bend
+    const geo = buildAlphaTrimmedGeometry(
+      100,
+      300,
+      null,
+      8,
+      16,
+      0,
+      0,
+      'all',
+      undefined,
+      0,
+      undefined,
+      0,
+      false,
+      'none',
+      0,
+      false,
+      undefined,
+      40 // bendLateral
+    )
+    expect(geo).toBeDefined()
+    const pos = geo.getAttribute('position')
+    // Top vertices should have shifted X values compared to bottom
+    let maxTopX = -Infinity
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i)
+      const x = pos.getX(i)
+      if (y > 100) {
+        maxTopX = Math.max(maxTopX, x)
+      }
+    }
+    expect(maxTopX).toBeGreaterThan(50)
   })
 })

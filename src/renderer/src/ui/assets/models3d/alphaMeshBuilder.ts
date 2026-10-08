@@ -140,6 +140,31 @@ export function computeBendZ(
 }
 
 /**
+ * Tính toán độ lệch ngang (lateral bend / curve theo trục X) từ gốc lên đỉnh.
+ * Cho phép cánh hoa, cuống lá, phiến lá và đặc biệt là các ngọn cỏ uốn lượn hình chữ S,
+ * cong sang trái hoặc sang phải theo dáng cỏ tự nhiên như nét vẽ trong thiên nhiên.
+ */
+export function computeBendLateralX(
+  u: number,
+  v: number,
+  width: number,
+  height: number,
+  bendLateral = 0,
+  region: BendRegion = 'all'
+): number {
+  if (!bendLateral) return 0
+  const t = Math.max(0, Math.min(1, v))
+  if (region === 'curl') {
+    return (bendLateral / 100) * Math.sin(t * Math.PI * 1.5) * (height * 0.22)
+  }
+  if (region === 'top') {
+    const factor = Math.max(0, (t - 0.2) / 0.8)
+    return (bendLateral / 100) * factor * factor * (height * 0.28)
+  }
+  return (bendLateral / 100) * Math.pow(t, 1.4) * (height * 0.25)
+}
+
+/**
  * Builds a custom Three.js plane geometry that hugs the visible pixels of the image.
  *
  * Boundary cells are clipped against the exact outline polygons of the opaque pixels (see
@@ -164,7 +189,8 @@ export function buildAlphaTrimmedGeometry(
   depthProfile: DepthProfileType = 'none',
   depthIntensity = 0,
   depthInvert = false,
-  presetPolygon?: number[][]
+  presetPolygon?: number[][],
+  bendLateral = 0
 ): THREE.BufferGeometry {
   const hiddenSet = new Set(hiddenCells || [])
   const selectedSet = new Set(selectedCells || [])
@@ -203,8 +229,9 @@ export function buildAlphaTrimmedGeometry(
         u, v, width, height, profile: depthProfile, intensity: depthIntensity, invert: depthInvert, luminanceSampler: lumSampler
       }) +
       extraZ
+    const latX = computeBendLateralX(u, v, width, height, bendLateral, region)
     const [tu, tv] = transformUV(u, v)
-    positions.push(-width / 2 + gx * width, height / 2 - gy * height, z)
+    positions.push(-width / 2 + gx * width + latX, height / 2 - gy * height, z)
     uvs.push(tu, tv)
     const index = positions.length / 3 - 1
     vertexIds.set(id, index)
@@ -225,7 +252,7 @@ export function buildAlphaTrimmedGeometry(
   // Fallback if no visible vertices found
   if (indices.length === 0) {
     return buildCurvedPlaneGeometry(
-      width, height, cols, rows, bendX, bendY, region, depthProfile, depthIntensity, depthInvert, image
+      width, height, cols, rows, bendX, bendY, region, depthProfile, depthIntensity, depthInvert, image, bendLateral
     )
   }
 
@@ -257,7 +284,8 @@ export function buildCurvedPlaneGeometry(
   depthProfile: DepthProfileType = 'none',
   depthIntensity = 0,
   depthInvert = false,
-  image?: HTMLImageElement | HTMLCanvasElement
+  image?: HTMLImageElement | HTMLCanvasElement,
+  bendLateral = 0
 ): THREE.BufferGeometry {
   const geo = new THREE.PlaneGeometry(width, height, cols, rows)
   const posAttr = geo.getAttribute('position')
@@ -268,7 +296,7 @@ export function buildCurvedPlaneGeometry(
       ? createLuminanceSampler(image, Math.max(64, cols * 2), Math.max(64, rows * 2))
       : undefined
 
-  const hasBend = bendX !== 0 || bendY !== 0
+  const hasBend = bendX !== 0 || bendY !== 0 || bendLateral !== 0
   const hasDepth = depthProfile !== 'none' && depthIntensity !== 0
 
   if (hasBend || hasDepth) {
@@ -276,6 +304,7 @@ export function buildCurvedPlaneGeometry(
       const u = uvAttr.getX(i)
       const v = uvAttr.getY(i)
       const bendZ = computeBendZ(u, v, width, height, bendX, bendY, region)
+      const latX = computeBendLateralX(u, v, width, height, bendLateral, region)
       const depthZ = computeDepthProfileZ({
         u,
         v,
@@ -286,6 +315,9 @@ export function buildCurvedPlaneGeometry(
         invert: depthInvert,
         luminanceSampler: lumSampler
       })
+      if (latX !== 0) {
+        posAttr.setX(i, posAttr.getX(i) + latX)
+      }
       posAttr.setZ(i, bendZ + depthZ)
     }
     posAttr.needsUpdate = true
