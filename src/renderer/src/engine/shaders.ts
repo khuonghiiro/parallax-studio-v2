@@ -30,6 +30,8 @@ uniform int glowSide;
 uniform vec3 glowColor;
 uniform float glowRadius;
 uniform float glowIntensity;
+uniform float isModel3D;
+uniform float alphaCutoff;
 varying vec2 vUv;
 varying float vDepth;
 
@@ -103,7 +105,12 @@ void main() {
     }
   }
 
-  if (c.a < 0.004) discard;
+  if (isModel3D > 0.5) {
+    if (c.a < alphaCutoff) discard;
+    if (opacity >= 0.999) c.a = 1.0;
+  } else {
+    if (c.a < 0.004) discard;
+  }
   vec3 rgb = c.rgb / max(0.0001, c.a);
   if (fogOn > 0.5) {
     float f = smoothstep(fogNear, fogFar, vDepth);

@@ -195,7 +195,7 @@ def make_roof():
     for y in range(H - 60, H):
         for x in range(0, W, random.randint(5, 14)):
             if random.random() < 0.45:
-                draw.ellipse([(x, y), (x + random.randint(8, 20), y + random.randint(4, 10))], fill=(75, 110, 50, 210))
+                draw.ellipse([(x, y), (x + random.randint(8, 20), y + random.randint(4, 10))], fill=(75, 110, 50, 255))
 
     add_noise(im, 8)
     im.save(os.path.join(OUT_DIR, 'roof_terracotta.png'), 'PNG')
@@ -377,7 +377,7 @@ def make_flower_box():
     # Trailing ivy tendrils below trough
     for vx in range(50, W - 50, 16):
         vlen = random.randint(15, 45)
-        draw.arc([(vx - 10, 175), (vx + 10, 175 + vlen)], start=0, end=180, fill=(52, 134, 52, 235), width=3)
+        draw.arc([(vx - 10, 175), (vx + 10, 175 + vlen)], start=0, end=180, fill=(52, 134, 52, 255), width=3)
 
     # Colorful blossoms (Red geraniums, pink petunias, yellow daisies, white alyssum)
     flower_palette = [

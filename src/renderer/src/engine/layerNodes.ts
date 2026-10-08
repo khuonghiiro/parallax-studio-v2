@@ -41,6 +41,8 @@ export function makeLayerMaterial(): THREE.ShaderMaterial {
       glowColor: { value: new THREE.Color('#3dd6f5') },
       glowRadius: { value: 8 },
       glowIntensity: { value: 1.2 },
+      isModel3D: { value: 0 },
+      alphaCutoff: { value: 0.25 },
       ...sharedUniforms()
     }
   })

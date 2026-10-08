@@ -351,6 +351,8 @@ export class SceneRenderer {
         applyBlend(mat, el.layer.blendMode)
         u.multiplyOut.value = el.layer.blendMode === 'multiply' ? 1 : 0
         u.screenOut.value = el.layer.blendMode === 'screen' ? 1 : 0
+        u.isModel3D.value = el.layer.model3d ? 1 : 0
+        u.alphaCutoff.value = 0.25
 
         const activeGlow = evaluateLayerGlow(el.layer, ev.t)
         if (activeGlow) {
