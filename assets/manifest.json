@@ -104,6 +104,12 @@
     },
     "assembly_3d/modular/decor_chimney_pot.png": {
       "name": "Ống gốm đỉnh ống khói"
+    },
+    "assembly_3d/modular/nature_leaf.png": {
+      "name": "Phiến lá cây tự nhiên (Mẫu mesh)"
+    },
+    "assembly_3d/modular/nature_grass.png": {
+      "name": "Bụi cỏ tự nhiên (Mẫu mesh)"
     }
   }
 }

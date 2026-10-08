@@ -1,0 +1,36 @@
+{
+  "id": "model-mesh-leaf-hv23r",
+  "name": "Lá Cây Tự Nhiên 3D",
+  "description": "Một ảnh lá → lưới bám viền alpha, gân nổi và mặt lá uốn cong",
+  "category": "nature",
+  "scale": 0.6,
+  "faces": [
+    {
+      "id": "mesh-leaf-1",
+      "name": "Phiến lá",
+      "color": "#7c8cff",
+      "width": 240,
+      "height": 480,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "ridge",
+      "depthIntensity": 12,
+      "imageSlot": "leaf",
+      "bendY": 22,
+      "assetPath": "assembly_3d/modular/nature_leaf.png"
+    }
+  ],
+  "createdAt": 1791448883360,
+  "updatedAt": 1791449315707,
+  "thumbnail": "thumbnail.png"
+}

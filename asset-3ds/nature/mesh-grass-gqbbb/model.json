@@ -1,0 +1,81 @@
+{
+  "id": "model-mesh-grass-gqbbb",
+  "name": "Bụi Cỏ Tự Nhiên 3D",
+  "description": "Một ảnh cỏ tách nền → ba lưới giao nhau, gốc thẳng hàng",
+  "category": "nature",
+  "scale": 0.6,
+  "faces": [
+    {
+      "id": "mesh-grass-1",
+      "name": "Cỏ 1",
+      "color": "#7c8cff",
+      "width": 240,
+      "height": 240,
+      "position": [
+        0,
+        120,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "none",
+      "depthIntensity": 0,
+      "imageSlot": "grass",
+      "assetPath": "assembly_3d/modular/nature_grass.png"
+    },
+    {
+      "id": "mesh-grass-2",
+      "name": "Cỏ 2",
+      "color": "#38bdf8",
+      "width": 240,
+      "height": 240,
+      "position": [
+        0,
+        120,
+        0
+      ],
+      "rotation": [
+        0,
+        -60,
+        0
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "none",
+      "depthIntensity": 0,
+      "imageSlot": "grass",
+      "assetPath": "assembly_3d/modular/nature_grass.png"
+    },
+    {
+      "id": "mesh-grass-3",
+      "name": "Cỏ 3",
+      "color": "#22d3ee",
+      "width": 240,
+      "height": 240,
+      "position": [
+        0,
+        120,
+        0
+      ],
+      "rotation": [
+        0,
+        -120,
+        0
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "none",
+      "depthIntensity": 0,
+      "imageSlot": "grass",
+      "assetPath": "assembly_3d/modular/nature_grass.png"
+    }
+  ],
+  "createdAt": 1791450094636,
+  "updatedAt": 1791450634251,
+  "thumbnail": "thumbnail.png"
+}
