@@ -8,6 +8,7 @@ import {
   type FxPresetInfo
 } from './timelineEffects'
 import { IconSparkles } from '../icons'
+import { ColorInput } from '../controls'
 import { renderFxIcon } from './fxIcons'
 
 export interface OpenFxMenuOptions {
@@ -321,19 +322,10 @@ export function FxPresetMenu({ time, hasSelectedLayer }: FxPresetMenuProps) {
                       <div className="tl-fx-field">
                         <label className="tl-fx-label">Màu ánh sáng Neon:</label>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <input
-                            type="color"
+                          <ColorInput
                             value={glowColor}
-                            onChange={(e) => setGlowColor(e.target.value)}
-                            style={{
-                              width: 28,
-                              height: 22,
-                              padding: 0,
-                              border: '1px solid var(--line)',
-                              borderRadius: 3,
-                              cursor: 'pointer',
-                              background: 'transparent'
-                            }}
+                            onChange={(val) => setGlowColor(val)}
+                            title="Chọn màu ánh sáng Neon"
                           />
                           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', flex: 1 }}>
                             {NEON_PRESETS.map((p) => {

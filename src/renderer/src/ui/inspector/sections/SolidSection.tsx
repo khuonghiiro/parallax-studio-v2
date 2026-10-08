@@ -1,5 +1,5 @@
 import type { SolidProps } from '@shared/types'
-import { ColorInput, NumberInput, Row, Switch } from '../../controls'
+import { ColorInput, NumberInput, Row, Select, Switch } from '../../controls'
 import type { Setter } from '../types'
 
 export function SolidSection({ props, set }: { props: SolidProps; set: Setter }) {
@@ -22,16 +22,16 @@ export function SolidSection({ props, set }: { props: SolidProps; set: Setter })
         </Row>
       )}
       <Row label="Hoạ tiết / Lưới" title="Thêm lưới toạ độ hoặc sọc để nhìn rõ phối cảnh chiều sâu mặt đất">
-        <select
-          className="select"
+        <Select
           value={props.pattern ?? 'none'}
-          onChange={(e) => p((s) => void (s.pattern = e.target.value as any))}
-        >
-          <option value="none">Trơn / Gradient</option>
-          <option value="grid">Lưới phối cảnh 3D (Grid)</option>
-          <option value="stripes">Sọc chiều sâu</option>
-          <option value="dots">Chấm toạ độ</option>
-        </select>
+          options={[
+            { value: 'none', label: 'Trơn / Gradient' },
+            { value: 'grid', label: 'Lưới phối cảnh 3D (Grid)' },
+            { value: 'stripes', label: 'Sọc chiều sâu' },
+            { value: 'dots', label: 'Chấm toạ độ' }
+          ]}
+          onChange={(val) => p((s) => void (s.pattern = val as any))}
+        />
       </Row>
       {props.pattern && props.pattern !== 'none' && (
         <Row label="Cỡ lưới">

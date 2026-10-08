@@ -3,6 +3,7 @@ import { addShot, autoBuildCameraTour, deleteShot, flyToShot, SHOT_DIRECTIONS, u
 import { shotAtTime } from '../animation/cameraPath'
 import { useEditor } from '../store/editor'
 import { useView } from '../store/view'
+import { ColorInput } from './controls'
 import { IconCamera, IconEye, IconFocus, IconPen, IconPlane, IconPlus, IconRoute, IconTrash } from './icons'
 
 /** List of shots (scenes placed in 3D space) — AE-style "comp regions" the camera flies between. */
@@ -112,9 +113,15 @@ export function ShotsPanel() {
               onClick={() => selectShot(s.id)}
               onDoubleClick={() => setEditing(s.id)}
             >
-              <label className="shot-dot" title="Đổi màu" onClick={(e) => e.stopPropagation()}>
-                <input type="color" value={s.color} onChange={(e) => updateShot(s.id, { color: e.target.value }, `shot-color-${s.id}`)} />
-              </label>
+              <span className="shot-dot-wrap" onClick={(e) => e.stopPropagation()}>
+                <ColorInput
+                  compact
+                  showText={false}
+                  value={s.color}
+                  onChange={(val, k) => updateShot(s.id, { color: val }, k)}
+                  title="Đổi màu cảnh"
+                />
+              </span>
               {editing === s.id ? (
                 <input
                   className="input shot-rename"

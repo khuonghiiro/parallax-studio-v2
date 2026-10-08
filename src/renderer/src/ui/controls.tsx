@@ -393,21 +393,13 @@ export function Slider({
   )
 }
 
-export function ColorInput({ value, onChange, id }: { value: string; onChange: (v: string, mergeKey: string) => void; id?: string }) {
-  const keyRef = useRef(`color-${nanoid(6)}`)
-  return (
-    <div className="color">
-      <input
-        id={id}
-        type="color"
-        value={value}
-        onFocus={() => (keyRef.current = `color-${nanoid(6)}`)}
-        onChange={(e) => onChange(e.target.value, keyRef.current)}
-      />
-      <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text-dim)' }}>{value}</span>
-    </div>
-  )
-}
+export { ColorInput, type ColorInputProps } from './controls/ColorPicker'
+export {
+  CustomSelect,
+  CustomSelect as Select,
+  type CustomSelectProps,
+  type SelectOption
+} from './controls/CustomSelect'
 
 export function TextInput({
   value,

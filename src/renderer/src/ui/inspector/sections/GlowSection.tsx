@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import type { GlowAnimation, GlowSide, Layer, LayerGlow } from '@shared/types'
 import { useEditor } from '../../../store/editor'
-import { NumberInput, Row, Switch } from '../../controls'
+import { ColorInput, NumberInput, Row, Select, Switch } from '../../controls'
 import type { Setter } from '../types'
 import { getAllGlowConfigs } from '../../../engine/layerGlow'
 
@@ -216,27 +216,10 @@ export function GlowSection({ layer, set }: { layer: Layer; set: Setter }) {
           <Row label="Màu Neon" title="Chọn màu ánh sáng phát quang">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="color"
+                <ColorInput
                   value={glow.color ?? '#3dd6f5'}
-                  onChange={(e) => setGlow({ color: e.target.value })}
-                  style={{
-                    width: 32,
-                    height: 24,
-                    padding: 0,
-                    border: '1px solid var(--line)',
-                    borderRadius: 4,
-                    cursor: 'pointer',
-                    background: 'transparent'
-                  }}
-                  title="Chọn màu tự do"
-                />
-                <input
-                  type="text"
-                  className="input sm"
-                  style={{ flex: 1, fontFamily: 'monospace', textTransform: 'uppercase' }}
-                  value={glow.color ?? '#3dd6f5'}
-                  onChange={(e) => setGlow({ color: e.target.value })}
+                  onChange={(val, key) => setGlow({ color: val }, key)}
+                  title="Chọn màu Neon"
                 />
               </div>
 
@@ -317,17 +300,17 @@ export function GlowSection({ layer, set }: { layer: Layer; set: Setter }) {
           </Row>
 
           <Row label="Hiệu ứng động" title="Chế độ nhấp nháy, thở hoặc chập chờn bóng neon">
-            <select
+            <Select
               id="glow-animation"
-              className="select"
               value={glow.animated ?? 'none'}
-              onChange={(e) => setGlow({ animated: e.target.value as GlowAnimation })}
-            >
-              <option value="none">Sáng tĩnh (Không nhấp nháy)</option>
-              <option value="breathe">Nhịp thở (Mờ dần rồi tỏ sáng dần)</option>
-              <option value="blink">Nhấp nháy chớp tắt (Đèn hiệu)</option>
-              <option value="flicker">Chập chờn đèn Neon (Thực tế)</option>
-            </select>
+              options={[
+                { value: 'none', label: 'Sáng tĩnh (Không nhấp nháy)' },
+                { value: 'breathe', label: 'Nhịp thở (Mờ dần rồi tỏ sáng dần)' },
+                { value: 'blink', label: 'Nhấp nháy chớp tắt (Đèn hiệu)' },
+                { value: 'flicker', label: 'Chập chờn đèn Neon (Thực tế)' }
+              ]}
+              onChange={(v) => setGlow({ animated: v as GlowAnimation })}
+            />
           </Row>
 
           {glow.animated && glow.animated !== 'none' && (

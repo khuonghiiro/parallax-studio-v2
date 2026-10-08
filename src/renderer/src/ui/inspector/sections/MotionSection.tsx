@@ -1,6 +1,6 @@
 import type { DriftDirection, DriftLoopMode, Layer, LayerMotion, LayerMotionType, Vec3 } from '@shared/types'
 import { parseDirectionAngle } from '../../../engine/evaluateScene'
-import { NumberInput, Row } from '../../controls'
+import { NumberInput, Row, Select } from '../../controls'
 import type { Setter } from '../types'
 
 export function MotionSection({ layer, set }: { layer: Layer; set: Setter }) {
@@ -19,16 +19,43 @@ export function MotionSection({ layer, set }: { layer: Layer; set: Setter }) {
     }, mergeKey)
   }
 
+  const motionTypeOptions = [
+    { value: 'none', label: 'Không có (Đứng yên)' },
+    { value: 'drift', label: 'Trôi theo hướng & lặp mượt (Sương mù / Mưa / Mây)' },
+    { value: 'wind', label: 'Gió lay động (Cây cối / Lá / Cành)' },
+    { value: 'sway', label: 'Lắc lư nhẹ (Nhịp điệu)' },
+    { value: 'float', label: 'Nổi bồng bềnh (Nước / Đảo bay)' },
+    { value: 'wiggle', label: 'Rung rinh hữu cơ (After Effects Wiggle)' },
+    { value: 'pulse', label: 'Nhịp thở nhẹ (Co giãn)' }
+  ]
+
+  const directionOptions = [
+    { value: 'right', label: '➡️ Sang phải (0°)' },
+    { value: 'up-right', label: '↗️ Chéo lên - phải (45°)' },
+    { value: 'up', label: '⬆️ Lên trên (90°)' },
+    { value: 'up-left', label: '↖️ Chéo lên - trái (135°)' },
+    { value: 'left', label: '⬅️ Sang trái (180°)' },
+    { value: 'down-left', label: '↙️ Chéo xuống - trái (225° - Mưa xiên)' },
+    { value: 'down', label: '⬇️ Xuống dưới (270° - Mưa rơi)' },
+    { value: 'down-right', label: '↘️ Chéo xuống - phải (315°)' }
+  ]
+
+  const loopModeOptions = [
+    { value: 'uv', label: '🌀 Cuộn vô hạn cửa ra - vào (Pixel Wrap / AE Offset)' },
+    { value: 'ping-pong', label: '🌊 Lượn qua lại êm ái (Ping-Pong)' },
+    { value: 'continuous', label: '➡️ Trôi liên tục một chiều (Continuous)' }
+  ]
+
   return (
     <div className="section">
       <div className="section-title">Chuyển động (Motion &amp; Loop)</div>
       <Row label="Loại" title="Tự động di chuyển lặp lại hoặc đung đưa trong không gian 3D">
-        <select
+        <Select
           id="motion-type"
-          className="select"
           value={motion.type ?? 'none'}
-          onChange={(e) => {
-            const t = e.target.value as LayerMotionType
+          options={motionTypeOptions}
+          onChange={(val) => {
+            const t = val as LayerMotionType
             if (t === 'none') {
               setMotion({ type: 'none' })
             } else if (t === 'drift') {
@@ -64,15 +91,7 @@ export function MotionSection({ layer, set }: { layer: Layer; set: Setter }) {
               })
             }
           }}
-        >
-          <option value="none">Không có (Đứng yên)</option>
-          <option value="drift">Trôi theo hướng &amp; lặp mượt (Sương mù / Mưa / Mây)</option>
-          <option value="wind">Gió lay động (Cây cối / Lá / Cành)</option>
-          <option value="sway">Lắc lư nhẹ (Nhịp điệu)</option>
-          <option value="float">Nổi bồng bềnh (Nước / Đảo bay)</option>
-          <option value="wiggle">Rung rinh hữu cơ (After Effects Wiggle)</option>
-          <option value="pulse">Nhịp thở nhẹ (Co giãn)</option>
-        </select>
+        />
       </Row>
 
       {motion.type && motion.type !== 'none' && (
@@ -80,25 +99,15 @@ export function MotionSection({ layer, set }: { layer: Layer; set: Setter }) {
           {motion.type === 'drift' && (
             <>
               <Row label="Hướng trôi" title="Chọn hướng di chuyển (trái, phải, lên, xuống, chéo)">
-                <select
+                <Select
                   id="motion-direction"
-                  className="select"
                   value={typeof motion.direction === 'string' ? motion.direction : Math.round(parseDirectionAngle(motion.direction))}
-                  onChange={(e) => {
-                    const val = e.target.value
+                  options={directionOptions}
+                  onChange={(val) => {
                     const num = Number(val)
                     setMotion({ direction: isNaN(num) ? (val as DriftDirection) : num })
                   }}
-                >
-                  <option value="right">➡️ Sang phải (0°)</option>
-                  <option value="up-right">↗️ Chéo lên - phải (45°)</option>
-                  <option value="up">⬆️ Lên trên (90°)</option>
-                  <option value="up-left">↖️ Chéo lên - trái (135°)</option>
-                  <option value="left">⬅️ Sang trái (180°)</option>
-                  <option value="down-left">↙️ Chéo xuống - trái (225° - Mưa xiên)</option>
-                  <option value="down">⬇️ Xuống dưới (270° - Mưa rơi)</option>
-                  <option value="down-right">↘️ Chéo xuống - phải (315°)</option>
-                </select>
+                />
               </Row>
 
               <Row label="Góc chéo (°)" title="Góc hướng trôi tùy ý theo độ (0° - 360°)">
@@ -114,16 +123,12 @@ export function MotionSection({ layer, set }: { layer: Layer; set: Setter }) {
               </Row>
 
               <Row label="Kiểu lặp" title="Phương thức lặp: Cuộn pixel vô hạn (cửa ra nối cửa vào như After Effects Offset), Ping-pong hoặc Trôi liên tục">
-                <select
+                <Select
                   id="motion-loop-mode"
-                  className="select"
                   value={motion.loopMode === 'ping-pong' ? 'ping-pong' : motion.loopMode === 'continuous' ? 'continuous' : 'uv'}
-                  onChange={(e) => setMotion({ loopMode: e.target.value as DriftLoopMode })}
-                >
-                  <option value="uv">🌀 Cuộn vô hạn cửa ra - vào (Pixel Wrap / AE Offset)</option>
-                  <option value="ping-pong">🌊 Lượn qua lại êm ái (Ping-Pong)</option>
-                  <option value="continuous">➡️ Trôi liên tục một chiều (Continuous)</option>
-                </select>
+                  options={loopModeOptions}
+                  onChange={(val) => setMotion({ loopMode: val as DriftLoopMode })}
+                />
               </Row>
             </>
           )}

@@ -2,7 +2,7 @@ import { duplicateAudioTrack, importAudio, removeAudioTrack } from '../../action
 import { assetStore } from '../../project/assets'
 import { getProjectAudioTracks, syncProjectAudio } from '../../project/audioTracks'
 import { useEditor } from '../../store/editor'
-import { ColorInput, NumberInput, Row, Slider, Switch, TextInput } from '../controls'
+import { ColorInput, NumberInput, Row, Select, Slider, Switch, TextInput } from '../controls'
 import { IconCopy, IconMusic, IconPlus, IconTrash } from '../icons'
 import { SIZE_PRESETS } from './types'
 
@@ -13,6 +13,19 @@ export function SceneInspector() {
   const tracks = getProjectAudioTracks(project)
   const sizeKey = `${comp.width}x${comp.height}`
 
+  const sizeOptions = [
+    ...SIZE_PRESETS.map((p) => ({
+      value: `${p.w}x${p.h}`,
+      label: p.label
+    })),
+    { value: 'custom', label: 'Tuỳ chỉnh' }
+  ]
+
+  const fpsOptions = [24, 25, 30, 50, 60].map((f) => ({
+    value: f,
+    label: `${f} fps`
+  }))
+
   return (
     <>
       <div className="section">
@@ -21,39 +34,31 @@ export function SceneInspector() {
           <TextInput value={comp.name} onCommit={(v) => update((d) => void (d.comp.name = v), 'compname')} />
         </Row>
         <Row label="Khung hình">
-          <select
+          <Select
             id="comp-size"
-            className="select"
             value={SIZE_PRESETS.some((p) => `${p.w}x${p.h}` === sizeKey) ? sizeKey : 'custom'}
-            onChange={(e) => {
-              const p = SIZE_PRESETS.find((x) => `${x.w}x${x.h}` === e.target.value)
+            options={sizeOptions}
+            onChange={(val) => {
+              const p = SIZE_PRESETS.find((x) => `${x.w}x${x.h}` === val)
               if (p)
                 update((d) => {
                   d.comp.width = p.w
                   d.comp.height = p.h
                 })
             }}
-          >
-            {SIZE_PRESETS.map((p) => (
-              <option key={p.label} value={`${p.w}x${p.h}`}>
-                {p.label}
-              </option>
-            ))}
-            <option value="custom">Tuỳ chỉnh</option>
-          </select>
+          />
         </Row>
         <Row label="Rộng / Cao">
           <NumberInput axis="w" value={comp.width} min={16} max={7680} step={2} precision={0} onChange={(v, k) => update((d) => void (d.comp.width = Math.round(v / 2) * 2), k)} />
           <NumberInput axis="h" value={comp.height} min={16} max={4320} step={2} precision={0} onChange={(v, k) => update((d) => void (d.comp.height = Math.round(v / 2) * 2), k)} />
         </Row>
         <Row label="FPS">
-          <select id="comp-fps" className="select" value={comp.fps} onChange={(e) => update((d) => void (d.comp.fps = Number(e.target.value)))}>
-            {[24, 25, 30, 50, 60].map((f) => (
-              <option key={f} value={f}>
-                {f} fps
-              </option>
-            ))}
-          </select>
+          <Select
+            id="comp-fps"
+            value={comp.fps}
+            options={fpsOptions}
+            onChange={(val) => update((d) => void (d.comp.fps = Number(val)))}
+          />
         </Row>
         <Row label="Thời lượng (s)">
           <NumberInput

@@ -3,7 +3,7 @@ import type { ExportStartOptions } from '@shared/ipc'
 import { exportSize, runExport } from '../export/runExport'
 import { useEditor } from '../store/editor'
 import { IconExport, IconFolder } from './icons'
-import { Row, Switch } from './controls'
+import { Row, Select, Switch } from './controls'
 
 type Phase = 'setup' | 'rendering' | 'done' | 'error'
 
@@ -89,38 +89,40 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           {phase === 'setup' && (
             <>
               <Row label="Độ phân giải">
-                <select id="export-res" className="select" value={String(heightSel)} onChange={(e) => setHeightSel(e.target.value === 'comp' ? 'comp' : Number(e.target.value))}>
-                  {HEIGHTS.map((h) => (
-                    <option key={h.label} value={String(h.h)}>
-                      {h.label}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  id="export-res"
+                  value={String(heightSel)}
+                  options={HEIGHTS.map((h) => ({ value: String(h.h), label: h.label }))}
+                  onChange={(val) => setHeightSel(val === 'comp' ? 'comp' : Number(val))}
+                />
               </Row>
               <Row label="FPS">
-                <select id="export-fps" className="select" value={fps} onChange={(e) => setFps(Number(e.target.value))}>
-                  {[24, 25, 30, 50, 60].map((f) => (
-                    <option key={f} value={f}>
-                      {f} fps
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  id="export-fps"
+                  value={fps}
+                  options={[24, 25, 30, 50, 60].map((f) => ({ value: f, label: `${f} fps` }))}
+                  onChange={(val) => setFps(Number(val))}
+                />
               </Row>
               <Row label="Chất lượng">
-                <select id="export-quality" className="select" value={crf} onChange={(e) => setCrf(Number(e.target.value))}>
-                  {QUALITY.map((q) => (
-                    <option key={q.crf} value={q.crf}>
-                      {q.label}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  id="export-quality"
+                  value={crf}
+                  options={QUALITY.map((q) => ({ value: q.crf, label: q.label }))}
+                  onChange={(val) => setCrf(Number(val))}
+                />
               </Row>
               <Row label="Tốc độ encode">
-                <select id="export-speed" className="select" value={speed} onChange={(e) => setSpeed(e.target.value as ExportStartOptions['preset'])}>
-                  <option value="veryfast">Nhanh</option>
-                  <option value="medium">Trung bình</option>
-                  <option value="slow">Chậm (file nhỏ hơn)</option>
-                </select>
+                <Select
+                  id="export-speed"
+                  value={speed}
+                  options={[
+                    { value: 'veryfast', label: 'Nhanh' },
+                    { value: 'medium', label: 'Trung bình' },
+                    { value: 'slow', label: 'Chậm (file nhỏ hơn)' }
+                  ]}
+                  onChange={(val) => setSpeed(val as ExportStartOptions['preset'])}
+                />
               </Row>
               <Row label="Kèm nhạc nền">
                 <Switch on={withAudio && !!project.audio} onChange={(v) => setWithAudio(v)} />

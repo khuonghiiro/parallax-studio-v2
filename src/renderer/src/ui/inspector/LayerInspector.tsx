@@ -2,7 +2,7 @@ import type { AutoOrientMode, BlendMode, Layer, Vec3 } from '@shared/types'
 import { anim, evaluate, setValueAt } from '../../animation/keyframes'
 import { setLayerShot } from '../../actions'
 import { frameTolerance, useEditor } from '../../store/editor'
-import { AnimRow, NumberInput, Row, Switch, TextInput } from '../controls'
+import { AnimRow, NumberInput, Row, Select, Switch, TextInput } from '../controls'
 import { useLayerUpdater } from './useLayerUpdater'
 import { KeyEaseSection } from './KeyEaseSection'
 import { ImageSection } from './sections/ImageSection'
@@ -58,57 +58,54 @@ export function LayerInspector({ layer }: { layer: Layer }) {
         </Row>
         {shots.length > 0 && (
           <Row label="Thuộc cảnh" title="Vị trí layer tính tương đối với cảnh chứa nó">
-            <select id="layer-shot" className="select" value={layer.shotId ?? ''} onChange={(e) => setLayerShot(id, e.target.value || null)}>
-              <option value="">— Layer chung (toạ độ thế giới)</option>
-              {shots.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+            <Select
+              id="layer-shot"
+              value={layer.shotId ?? ''}
+              options={[
+                { value: '', label: '— Layer chung (toạ độ thế giới)' },
+                ...shots.map((s) => ({ value: s.id, label: s.name }))
+              ]}
+              onChange={(val) => setLayerShot(id, (val as string) || null)}
+            />
           </Row>
         )}
         <Row label="Blend mode">
-          <select
+          <Select
             id="layer-blend"
-            className="select"
             value={layer.blendMode}
-            onChange={(e) => set((l) => void (l.blendMode = e.target.value as BlendMode))}
-          >
-            <option value="normal">Normal</option>
-            <option value="add">Add</option>
-            <option value="screen">Screen</option>
-            <option value="multiply">Multiply</option>
-          </select>
+            options={[
+              { value: 'normal', label: 'Normal' },
+              { value: 'add', label: 'Add' },
+              { value: 'screen', label: 'Screen' },
+              { value: 'multiply', label: 'Multiply' }
+            ]}
+            onChange={(val) => set((l) => void (l.blendMode = val as BlendMode))}
+          />
         </Row>
         <Row label="Layer cha (Parent)" title="Kế thừa vị trí/xoay/scale theo layer cha (After Effects Parent & Link)">
-          <select
+          <Select
             id="layer-parent"
-            className="select"
             value={layer.parentId ?? ''}
-            onChange={(e) => set((l) => void (l.parentId = e.target.value || null))}
-          >
-            <option value="">— Không có (Độc lập)</option>
-            {allLayers
-              .filter((ol) => ol.id !== id && ol.parentId !== id)
-              .map((ol) => (
-                <option key={ol.id} value={ol.id}>
-                  {ol.name}
-                </option>
-              ))}
-          </select>
+            options={[
+              { value: '', label: '— Không có (Độc lập)' },
+              ...allLayers
+                .filter((ol) => ol.id !== id && ol.parentId !== id)
+                .map((ol) => ({ value: ol.id, label: ol.name }))
+            ]}
+            onChange={(val) => set((l) => void (l.parentId = (val as string) || null))}
+          />
         </Row>
         <Row label="Hướng Camera" title="Tự động xoay mặt về phía camera khi camera 3D di chuyển (After Effects Auto-Orient)">
-          <select
+          <Select
             id="layer-auto-orient"
-            className="select"
             value={layer.autoOrient ?? 'none'}
-            onChange={(e) => set((l) => void (l.autoOrient = e.target.value as AutoOrientMode))}
-          >
-            <option value="none">Tắt (Cố định góc 3D)</option>
-            <option value="camera-y">🌲 Trục đứng Y (Cây cối / Nhân vật 2.5D)</option>
-            <option value="camera">🔄 Toàn phần 3D (Khói / Hạt / Đốm sáng)</option>
-          </select>
+            options={[
+              { value: 'none', label: 'Tắt (Cố định góc 3D)' },
+              { value: 'camera-y', label: '🌲 Trục đứng Y (Cây cối / Nhân vật 2.5D)' },
+              { value: 'camera', label: '🔄 Toàn phần 3D (Khói / Hạt / Đốm sáng)' }
+            ]}
+            onChange={(val) => set((l) => void (l.autoOrient = val as AutoOrientMode))}
+          />
         </Row>
         <Row label="Giữ kích thước" title="Tự scale theo độ sâu để kích thước hiển thị không đổi (từ camera mặc định)">
           <Switch id="layer-autoscale" on={layer.autoScale} onChange={(v) => set((l) => void (l.autoScale = v))} />

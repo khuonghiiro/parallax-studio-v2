@@ -4,7 +4,7 @@ import { setValueAt } from '../../../animation/keyframes'
 import { referenceDistance } from '../../../animation/math'
 import { assetStore } from '../../../project/assets'
 import { frameTolerance, useEditor } from '../../../store/editor'
-import { NumberInput, Row, Slider, Switch } from '../../controls'
+import { NumberInput, Row, Select, Slider, Switch } from '../../controls'
 import { AssetReplaceModal } from '../AssetReplaceModal'
 import type { Setter } from '../types'
 
@@ -125,19 +125,19 @@ export function ImageSection({ layer, set }: { layer: Layer & { type: 'image' };
             />
           </Row>
           <Row label="Kiểu lặp">
-            <select
-              className="select sm"
+            <Select
               value={layer.props.loopMode ?? 'loop'}
-              onChange={(e) =>
+              options={[
+                { value: 'loop', label: 'Lặp vô tận (Loop)' },
+                { value: 'ping-pong', label: 'Lặp đảo chiều (Ping-Pong)' },
+                { value: 'once', label: 'Chạy 1 lần (Play Once)' }
+              ]}
+              onChange={(val) =>
                 set((l) => {
-                  if (l.type === 'image') l.props.loopMode = e.target.value as 'loop' | 'ping-pong' | 'once'
+                  if (l.type === 'image') l.props.loopMode = val as 'loop' | 'ping-pong' | 'once'
                 })
               }
-            >
-              <option value="loop">Lặp vô tận (Loop)</option>
-              <option value="ping-pong">Lặp đảo chiều (Ping-Pong)</option>
-              <option value="once">Chạy 1 lần (Play Once)</option>
-            </select>
+            />
           </Row>
           <Row label="Lệch thời gian">
             <Slider

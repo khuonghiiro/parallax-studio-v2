@@ -1,7 +1,7 @@
 import type { EaseName } from '@shared/types'
 import { EASE_LABELS } from '../../animation/easing'
 import { getAnimatable, getDraftAnimatable, useEditor, type PropRef } from '../../store/editor'
-import { NumberInput, Row } from '../controls'
+import { NumberInput, Row, Select } from '../controls'
 
 export function KeyEaseSection({ match }: { match: (ref: PropRef) => boolean }) {
   const sel = useEditor((s) => s.selectedKey)
@@ -11,6 +11,12 @@ export function KeyEaseSection({ match }: { match: (ref: PropRef) => boolean }) 
   const a = getAnimatable(project, sel.ref)
   const key = a?.keyframes.find((k) => k.id === sel.keyId)
   if (!key) return null
+
+  const easeOptions = (Object.keys(EASE_LABELS) as EaseName[]).map((k) => ({
+    value: k,
+    label: EASE_LABELS[k]
+  }))
+
   return (
     <div className="section">
       <div className="section-title">Keyframe đang chọn</div>
@@ -35,23 +41,17 @@ export function KeyEaseSection({ match }: { match: (ref: PropRef) => boolean }) 
         />
       </Row>
       <Row label="Easing">
-        <select
+        <Select
           id="key-ease"
-          className="select"
           value={key.ease}
-          onChange={(e) =>
+          options={easeOptions}
+          onChange={(val) =>
             update((d) => {
               const k = getDraftAnimatable(d, sel.ref)?.keyframes.find((x) => x.id === sel.keyId)
-              if (k) k.ease = e.target.value as EaseName
+              if (k) k.ease = val as EaseName
             })
           }
-        >
-          {(Object.keys(EASE_LABELS) as EaseName[]).map((k) => (
-            <option key={k} value={k}>
-              {EASE_LABELS[k]}
-            </option>
-          ))}
-        </select>
+        />
       </Row>
     </div>
   )

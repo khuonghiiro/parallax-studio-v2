@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { BuiltInAssetCategory, BuiltInAssetItem } from '@shared/ipc'
+import { CustomSelect } from '../controls'
 import { IconCode, IconMusic, IconPause, IconPlay, IconPlus, IconRefresh, IconSearch, IconX } from '../icons'
 import { useAudioPreview } from './audioPreviewManager'
 
@@ -61,28 +62,31 @@ export function BuiltInAssetGrid({
     })
   }, [items, activeCategory, search])
 
+  // Memoized category options with count
+  const categoryOptions = useMemo(() => {
+    return categories.map((c) => {
+      const count = items.filter(
+        (it) => c.id === 'all' || !c.folder || it.folder === c.folder
+      ).length
+      return {
+        value: c.id,
+        label: `${c.title} (${count})`
+      }
+    })
+  }, [categories, items])
+
   return (
     <div className="asset-content-area">
       {/* Combobox & Tool Controls */}
       <div className="asset-filter-bar">
         <div className="asset-combobox-row">
-          <select
-            className="asset-category-select"
+          <CustomSelect
+            className="asset-category-custom-select"
             value={selectedCategory}
-            onChange={(e) => onSelectCategory(e.target.value)}
+            options={categoryOptions}
+            onChange={(val) => onSelectCategory(String(val))}
             title="Chọn danh mục tài nguyên"
-          >
-            {categories.map((c) => {
-              const count = items.filter(
-                (it) => c.id === 'all' || !c.folder || it.folder === c.folder
-              ).length
-              return (
-                <option key={c.id} value={c.id}>
-                  {c.title} ({count})
-                </option>
-              )
-            })}
-          </select>
+          />
 
           <button
             type="button"
