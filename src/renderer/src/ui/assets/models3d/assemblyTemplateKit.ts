@@ -175,21 +175,33 @@ export function swungPanel(name: string, w: number, h: number, hingeX: number, s
 
 /**
  * 360° Round cylinder tube made of curved 2D faces meeting along their side edges.
- * For 4 faces (quadrants), each curved by bendX forms a seamless circular pipe/pillar.
+ * Supports any number of faces `sides`:
+ * - 2 faces (180° each): bendX = 100
+ * - 4 faces (90° each):  bendX = 59
+ * - 6 faces (60° each):  bendX = 38 (uốn nhẹ)
+ * - 8 faces (45° each):  bendX = 28 (uốn rất nhẹ)
+ *
+ * If bendAmount is not passed, it automatically calculates the exact curvature
+ * required so that the curved mesh perfectly matches a true circular arc of radius `radius`.
  */
 export function curvedCylinderFaces(
   radius: number,
   h: number,
   sides = 4,
-  bendAmount = 55,
+  bendAmount?: number,
   prefix = 'Mặt cong'
 ): TemplateFaceSpec[] {
-  const w = 2 * radius * Math.tan(Math.PI / sides) * 1.15
+  const halfAngle = Math.PI / sides
+  const autoBend = Math.min(100, Math.max(10, Math.round((100 * Math.tan(halfAngle / 2)) / 0.7)))
+  const actualBend = bendAmount !== undefined ? bendAmount : autoBend
+
+  const w = Math.round(2 * radius * Math.sin(halfAngle) * 1.01)
+  const dist = radius * Math.cos(halfAngle)
+
   return Array.from({ length: sides }, (_, i) => {
     const deg = (i * 360) / sides
     const phi = deg * DEG
     const n: Vec3 = [Math.sin(phi), 0, -Math.cos(phi)]
-    const dist = radius * 0.72
     return face(
       `${prefix} ${i + 1} (${deg}°)`,
       w,
@@ -197,7 +209,7 @@ export function curvedCylinderFaces(
       [dist * Math.sin(phi), 0, -dist * Math.cos(phi)],
       n,
       undefined,
-      { bendX: bendAmount }
+      { bendX: actualBend }
     )
   })
 }
@@ -210,17 +222,21 @@ export function taperedConeFaces(
   topRadius: number,
   h: number,
   sides = 4,
-  bendAmount = 55,
+  bendAmount?: number,
   prefix = 'Vách côn'
 ): TemplateFaceSpec[] {
+  const halfAngle = Math.PI / sides
   const midRadius = (bottomRadius + topRadius) / 2
-  const w = 2 * midRadius * Math.tan(Math.PI / sides) * 1.15
+  const autoBend = Math.min(100, Math.max(10, Math.round((100 * Math.tan(halfAngle / 2)) / 0.7)))
+  const actualBend = bendAmount !== undefined ? bendAmount : autoBend
+
+  const w = Math.round(2 * midRadius * Math.sin(halfAngle) * 1.01)
+  const dist = midRadius * Math.cos(halfAngle)
   const tiltDeg = (Math.atan2(bottomRadius - topRadius, h) * 180) / Math.PI
 
   return Array.from({ length: sides }, (_, i) => {
     const deg = (i * 360) / sides
     const phi = deg * DEG
-    const dist = midRadius * 0.72
     const tRad = tiltDeg * DEG
     const n: Vec3 = [
       Math.sin(phi) * Math.cos(tRad),
@@ -239,7 +255,25 @@ export function taperedConeFaces(
       [dist * Math.sin(phi), 0, -dist * Math.cos(phi)],
       n,
       up,
-      { bendX: bendAmount }
+      { bendX: actualBend }
     )
   })
 }
+
+/**
+ * 4-sided vertical square pillar / prism column: 4 flat faces meeting at 90° right angles.
+ */
+export function squarePillarFaces(
+  w: number,
+  h: number,
+  prefix = 'Vách'
+): TemplateFaceSpec[] {
+  const half = Math.round(w / 2)
+  return [
+    face(`${prefix} trước`, w, h, [0, 0, -half], FRONT),
+    face(`${prefix} phải`, w, h, [half, 0, 0], RIGHT),
+    face(`${prefix} sau`, w, h, [0, 0, half], BACK),
+    face(`${prefix} trái`, w, h, [-half, 0, 0], LEFT)
+  ]
+}
+

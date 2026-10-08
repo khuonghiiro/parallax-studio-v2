@@ -16,6 +16,7 @@ import {
   tilted,
   curvedCylinderFaces,
   taperedConeFaces,
+  squarePillarFaces,
   type AssemblyTemplate
 } from './assemblyTemplateKit'
 import { HOUSE_SHELLS } from './assemblyTemplatesShells'
@@ -181,14 +182,34 @@ const props: AssemblyTemplate[] = [
     ]
   },
   {
-    id: 'cylinder-round', label: 'Ống trụ tròn 360°', category: 'props', hint: '4 mặt uốn cong trụ tròn ghép hít mép tạo thành cột tròn / ống trụ 360°',
-    en: { label: '360° Round cylinder tube', hint: '4 bent curved faces meeting at side edges to form a seamless 360° round column or pipe' },
-    faces: () => curvedCylinderFaces(180, 500, 4, 55, 'Mảnh cong trụ')
+    id: 'pillar-square', label: 'Trụ vuông 4 mặt phẳng', category: 'props',
+    hint: '4 vách phẳng khép góc 90° kín khít tạo cột vuông / trụ bệ (thay 4 ảnh mặt ngoài)',
+    en: { label: '4-sided square pillar', hint: '4 flat standing faces joined at 90° right angles (square column, pedestal, post)' },
+    faces: () => squarePillarFaces(220, 600, 'Vách trụ vuông')
   },
   {
-    id: 'cone-tapered', label: 'Ống trụ nhọn / Thân cây côn 3D', category: 'props', hint: '4 mặt uốn cong thuôn đỉnh ghép thành ống côn nhọn / thân cây 3D',
+    id: 'cylinder-4', label: 'Trụ tròn 4 mảnh uốn cong', category: 'props',
+    hint: 'Khối tròn 360° tiêu chuẩn tạo từ 4 ảnh uốn cong góc 90° hít khít cạnh (cột tròn, ống khói, bình gốm)',
+    en: { label: '4-face curved round cylinder', hint: 'Standard 360° round cylinder from 4 quadrant curved images meeting along side edges' },
+    faces: () => curvedCylinderFaces(180, 520, 4, undefined, 'Mảnh cong trụ')
+  },
+  {
+    id: 'cylinder-6', label: 'Trụ tròn lớn 6 mảnh (Uốn cong vừa)', category: 'props',
+    hint: 'Vòng tròn đường kính lớn hơn, chia làm 6 ảnh uốn cong 60° (tháp tròn, bồn lớn, silo)',
+    en: { label: '6-face curved medium cylinder', hint: 'Larger diameter round cylinder from 6 curved faces bent at 60°' },
+    faces: () => curvedCylinderFaces(280, 560, 6, undefined, 'Mảnh tháp tròn')
+  },
+  {
+    id: 'cylinder-8', label: 'Trụ tròn đại 8 mảnh (Uốn cong nhẹ)', category: 'props',
+    hint: 'Vòng tròn siêu lớn chia làm 8 ảnh uốn cong nhẹ 45° tạo độ cong cực mượt (tháp lâu đài, đài quan sát)',
+    en: { label: '8-face curved large round tower', hint: 'Large diameter tower from 8 slightly bent curved images for ultra-smooth circular profile' },
+    faces: () => curvedCylinderFaces(400, 640, 8, undefined, 'Mảnh vách vòm')
+  },
+  {
+    id: 'cone-tapered', label: 'Ống trụ nhọn / Thân cây côn 3D', category: 'props',
+    hint: '4 mặt uốn cong thuôn đỉnh ghép thành ống côn nhọn / thân cây / tháp nhọn 3D',
     en: { label: '360° Tapered cone / trunk', hint: '4 bent curved faces tilted inward to form a seamless 360° tapered cone, trunk, or spire' },
-    faces: () => taperedConeFaces(180, 70, 520, 4, 55, 'Vách côn nhọn')
+    faces: () => taperedConeFaces(180, 70, 520, 4, undefined, 'Vách côn nhọn')
   },
   {
     id: 'signpost', label: 'Biển hiệu có cột', category: 'props', hint: 'Bảng 2 mặt + cột chữ thập',
