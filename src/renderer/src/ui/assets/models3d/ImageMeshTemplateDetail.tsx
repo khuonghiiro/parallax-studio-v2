@@ -58,6 +58,17 @@ export function ImageMeshTemplateDetail({ template, onBack, onCreate }: {
       onImage={(value) => setImages((prev) => { const next = { ...prev }; if (value) next[s.id] = value; else delete next[s.id]; return next })} />)}</div>
     <details><summary>Prompt render và sơ đồ gắn ảnh cho AI</summary><pre>{JSON.stringify(guide, null, 2)}</pre></details>
     <p role="status">{notice}</p>
-    <button className="btn sm primary" onClick={create}>Tạo mesh · {Object.keys(images).length}/{guide.slots.length} ảnh đã chọn</button>
+    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' }}>
+      <button type="button" className="btn sm primary" onClick={create}>
+        Chọn mẫu này &amp; Tạo mesh ({Object.keys(images).length}/{guide.slots.length} ảnh)
+      </button>
+      <button
+        type="button"
+        className="btn sm"
+        onClick={() => onCreate(modelFromTemplate(resolveImageTemplate(template, variant)))}
+      >
+        Chọn mẫu khung này (không gắn ảnh)
+      </button>
+    </div>
   </div>
 }

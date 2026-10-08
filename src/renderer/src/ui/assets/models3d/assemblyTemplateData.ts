@@ -22,6 +22,7 @@ import {
 import { HOUSE_SHELLS } from './assemblyTemplatesShells'
 import { IMAGE_MESH_TEMPLATES } from './imageMeshTemplates'
 import { DECOR_PARTS, EXTRA_PROPS } from './assemblyTemplatesDecor'
+import { enrichAllTemplatesWithRecipes } from './templateRecipes'
 
 /**
  * Geometry-only template catalogue for the Assembly workshop (see assemblyTemplateKit.ts
@@ -344,7 +345,7 @@ const stage: AssemblyTemplate[] = [
   }
 ]
 
-export const ASSEMBLY_TEMPLATES: AssemblyTemplate[] = [
+export const ASSEMBLY_TEMPLATES: AssemblyTemplate[] = enrichAllTemplatesWithRecipes([
   ...IMAGE_MESH_TEMPLATES,
   ...architecture,
   ...HOUSE_SHELLS,
@@ -353,4 +354,4 @@ export const ASSEMBLY_TEMPLATES: AssemblyTemplate[] = [
   ...EXTRA_PROPS,
   ...nature,
   ...stage
-]
+])

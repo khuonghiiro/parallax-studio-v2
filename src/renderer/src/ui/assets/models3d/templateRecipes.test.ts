@@ -1,0 +1,43 @@
+import { describe, expect, it } from 'vitest'
+import { ASSEMBLY_TEMPLATES } from './assemblyTemplateData'
+import { simplifyAspect } from './templateRecipes'
+
+describe('templateRecipes & 100% template recipe coverage', () => {
+  it('simplifies aspect ratios accurately', () => {
+    expect(simplifyAspect(600, 400)).toEqual([3, 2])
+    expect(simplifyAspect(500, 500)).toEqual([1, 1])
+    expect(simplifyAspect(120, 1200)).toEqual([1, 10])
+  })
+
+  it('guarantees 100% of ASSEMBLY_TEMPLATES have imageRecipe with slots', () => {
+    expect(ASSEMBLY_TEMPLATES.length).toBeGreaterThan(50)
+    for (const tmpl of ASSEMBLY_TEMPLATES) {
+      expect(tmpl.imageRecipe, `Template ${tmpl.id} must have imageRecipe`).toBeDefined()
+      expect(tmpl.imageRecipe?.slots.length, `Template ${tmpl.id} must have at least 1 slot`).toBeGreaterThan(0)
+
+      for (const slot of tmpl.imageRecipe!.slots) {
+        expect(slot.id).toBeTruthy()
+        expect(slot.label).toBeTruthy()
+        expect(slot.aspect.length).toBe(2)
+        expect(slot.prompt).toBeTruthy()
+      }
+
+      const faces = tmpl.faces()
+      expect(faces.length, `Template ${tmpl.id} must define faces`).toBeGreaterThan(0)
+      for (const face of faces) {
+        expect(face.imageSlot, `Face "${face.name}" in template "${tmpl.id}" must have imageSlot`).toBeDefined()
+      }
+    }
+  })
+
+  it('flower template (mesh-flower) has 3 distinct slots: petal, center, stem', () => {
+    const flower = ASSEMBLY_TEMPLATES.find((t) => t.id === 'mesh-flower')
+    expect(flower).toBeDefined()
+    expect(flower!.imageRecipe).toBeDefined()
+    const slots = flower!.imageRecipe!.slots
+    expect(slots.map((s) => s.id)).toEqual(['petal', 'center', 'stem'])
+    expect(slots.find((s) => s.id === 'petal')?.aspect).toEqual([2, 3])
+    expect(slots.find((s) => s.id === 'center')?.aspect).toEqual([1, 1])
+    expect(slots.find((s) => s.id === 'stem')?.aspect).toEqual([1, 10])
+  })
+})

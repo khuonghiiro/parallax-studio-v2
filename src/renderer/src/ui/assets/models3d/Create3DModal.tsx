@@ -96,10 +96,17 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
   const [searchQuery, setSearchQuery] = useState('')
   const [recipe, setRecipe] = useState<AssemblyTemplate | null>(null)
 
-  const handlePick = (tmpl: CreateTemplateItem) => {
-    if (tmpl.assemblyTemplate?.imageRecipe) { setRecipe(tmpl.assemblyTemplate); return }
+  const handlePickDirect = (tmpl: CreateTemplateItem) => {
     onSelectTemplate(tmpl.buildModel())
     onClose()
+  }
+
+  const handleViewRecipe = (tmpl: CreateTemplateItem) => {
+    if (tmpl.assemblyTemplate?.imageRecipe) {
+      setRecipe(tmpl.assemblyTemplate)
+      return
+    }
+    handlePickDirect(tmpl)
   }
 
   const handleCreateBlank = () => {
@@ -136,7 +143,12 @@ export function Create3DModal({ isOpen, onClose, onSelectTemplate }: Create3DMod
           <div className="c3d-grid">
             {showBlankCard && <BlankTemplateCard onCreate={handleCreateBlank} />}
             {filteredTemplates.map((t) => (
-              <TemplateCard key={t.id} item={t} onPick={handlePick} />
+              <TemplateCard
+                key={t.id}
+                item={t}
+                onPick={handlePickDirect}
+                onViewRecipe={handleViewRecipe}
+              />
             ))}
             {filteredTemplates.length === 0 && (
               <div className="c3d-empty">

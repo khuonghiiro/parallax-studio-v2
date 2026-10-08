@@ -268,17 +268,74 @@
   color: var(--text-dim);
 }
 
+.c3d-card-recipe-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  padding: 3px 7px;
+  font-size: 10.5px;
+  font-weight: 550;
+  color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 25%, transparent);
+  border-radius: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: help;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.c3d-card-recipe-tag:hover {
+  background: color-mix(in srgb, var(--accent-cyan) 16%, transparent);
+  border-color: var(--accent-cyan);
+}
+
+.c3d-card-recipe-tag svg {
+  flex-shrink: 0;
+}
+
+.c3d-card-recipe-tag span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .c3d-card-foot {
   flex-shrink: 0;
-  padding: 8px 12px;
+  display: flex;
+  gap: 5px;
+  padding: 8px 10px;
   background: var(--bg-3);
   border-top: 1px solid var(--line-soft);
 }
 
 .c3d-card-foot .btn {
-  width: 100%;
+  flex: 1 1 0;
+  min-width: 0;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
+  padding: 4.5px 5px;
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.c3d-card-foot .btn.c3d-btn-select {
+  flex: 1.15 1 0;
+  font-weight: 600;
+}
+
+.c3d-card-foot .btn.c3d-btn-recipe {
+  flex: 1 1 0;
+  background: var(--bg-2);
+  color: var(--accent-cyan);
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 35%, transparent);
+}
+
+.c3d-card-foot .btn.c3d-btn-recipe:hover {
+  background: color-mix(in srgb, var(--accent-cyan) 15%, var(--bg-2));
+  border-color: var(--accent-cyan);
 }
 
 /* ---------- Blank card ---------- */
