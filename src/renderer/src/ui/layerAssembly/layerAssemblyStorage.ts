@@ -16,152 +16,152 @@ const STORAGE_KEY = 'pxs.layerComposites'
  */
 export const BUILTIN_COMPOSITES: LayerComposite[] = [
   {
-    id: 'comp-oak-tree',
-    name: 'Cây Sồi Đung Đưa 3 Lớp',
-    category: 'nature',
-    description: 'Cây cổ thụ ghép từ thân gỗ, cành lá trung cảnh và tán lá tiền cảnh đung đưa so le trong gió.',
-    width: 600,
-    height: 700,
-    layers: [
-      {
-        id: 'layer-trunk',
-        name: 'Thân cây & Cành chính',
-        assetPath: 'nature/tree-trunk.png',
-        x: 0,
-        y: 120,
-        z: 20, // Ở sau
-        scale: 1.0,
-        rotation: 0,
-        opacity: 1,
-        motion: { type: 'sway', speed: 0.6, amplitude: 3, anchor: 'bottom', phaseOffset: 0 }
-      },
-      {
-        id: 'layer-canopy-back',
-        name: 'Tán lá hậu cảnh (Sâu)',
-        assetPath: 'nature/tree-canopy-back.png',
-        x: -15,
-        y: -140,
-        z: 35, // Lớp sâu nhất
-        scale: 1.15,
-        rotation: -2,
-        opacity: 0.85,
-        motion: { type: 'breathe', speed: 0.8, amplitude: 6, anchor: 'center', phaseOffset: 0.2 }
-      },
-      {
-        id: 'layer-canopy-mid',
-        name: 'Tán lá trung cảnh (Giữa)',
-        assetPath: 'nature/tree-canopy-mid.png',
-        x: 10,
-        y: -90,
-        z: 0, // Lớp giữa
-        scale: 1.0,
-        rotation: 1,
-        opacity: 1,
-        motion: { type: 'sway', speed: 1.0, amplitude: 14, anchor: 'bottom', phaseOffset: 0.4 }
-      },
-      {
-        id: 'layer-canopy-front',
-        name: 'Nhánh lá tiền cảnh (Trước)',
-        assetPath: 'nature/tree-leaves-front.png',
-        x: -25,
-        y: -40,
-        z: -25, // Gần camera nhất
-        scale: 0.95,
-        rotation: 4,
-        opacity: 1,
-        motion: { type: 'sway', speed: 1.25, amplitude: 22, anchor: 'bottom', phaseOffset: 0.75 }
-      }
-    ]
-  },
-  {
     id: 'comp-flower-bush',
-    name: 'Bụi Hoa Hồng Đung Đưa',
+    name: 'Bụi Hoa Tự Nhiên Đung Đưa 3 Lớp',
     category: 'nature',
-    description: 'Bụi cây hoa tự nhiên gồm lớp cỏ nền phía sau, cành hoa giữa và các cánh hoa lay động phía trước.',
+    description: 'Bụi hoa tự nhiên xếp từ bụi cỏ nền, thân cành hoa và các cánh hoa lay động so le theo gió.',
     width: 480,
     height: 520,
     layers: [
       {
-        id: 'layer-bush-base',
+        id: 'layer-grass-base',
         name: 'Bụi cỏ nền xanh',
-        assetPath: 'nature/bush-base.png',
+        assetPath: 'assembly_3d/modular/nature_grass.png',
         x: 0,
-        y: 60,
-        z: 15,
-        scale: 1.05,
+        y: 80,
+        z: 20, // Hậu cảnh
+        scale: 1.1,
         rotation: 0,
-        opacity: 0.95,
-        motion: { type: 'sway', speed: 0.8, amplitude: 6, anchor: 'bottom', phaseOffset: 0 }
+        opacity: 1,
+        motion: { type: 'sway', speed: 0.8, amplitude: 8, anchor: 'bottom', phaseOffset: 0 }
       },
       {
-        id: 'layer-stems',
-        name: 'Thân cành hoa',
-        assetPath: 'nature/flower-stem.png',
+        id: 'layer-flower-stem',
+        name: 'Thân cành hoa chính',
+        assetPath: 'assembly_3d/modular/nature_flower_stem.png',
         x: 0,
-        y: 0,
-        z: 0,
+        y: 20,
+        z: 0, // Trung cảnh
         scale: 1.0,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'sway', speed: 1.1, amplitude: 12, anchor: 'bottom', phaseOffset: 0.3 }
+        motion: { type: 'sway', speed: 1.1, amplitude: 14, anchor: 'bottom', phaseOffset: 0.25 }
       },
       {
-        id: 'layer-blossom',
-        name: 'Bông hoa đỏ tiền cảnh',
-        assetPath: 'nature/flower-blossom.png',
-        x: 10,
+        id: 'layer-flower-petal',
+        name: 'Cánh hoa lay động',
+        assetPath: 'assembly_3d/modular/nature_flower_petal.png',
+        x: -5,
         y: -110,
-        z: -18,
-        scale: 0.9,
-        rotation: 3,
+        z: -18, // Tiền cảnh
+        scale: 0.95,
+        rotation: 2,
         opacity: 1,
-        motion: { type: 'rocking', speed: 1.4, amplitude: 18, anchor: 'center', phaseOffset: 0.6 }
+        motion: { type: 'rocking', speed: 1.4, amplitude: 20, anchor: 'center', phaseOffset: 0.6 }
+      },
+      {
+        id: 'layer-flower-center',
+        name: 'Nhụy hoa rực rỡ',
+        assetPath: 'assembly_3d/modular/nature_flower_center.png',
+        x: -5,
+        y: -110,
+        z: -25, // Gần camera nhất
+        scale: 0.85,
+        rotation: 0,
+        opacity: 1,
+        motion: { type: 'breathe', speed: 1.2, amplitude: 8, anchor: 'center', phaseOffset: 0.4 }
       }
     ]
   },
   {
-    id: 'comp-hanging-lantern',
-    name: 'Đèn Lồng Treo Lay Động',
-    category: 'prop',
-    description: 'Đèn lồng cổ trang gồm dây treo neo trên đỉnh, lồng đèn lắc lư con lắc và ánh sáng quầng vàng nhấp nhô.',
-    width: 360,
-    height: 600,
+    id: 'comp-vines-ruins',
+    name: 'Cây Dây Leo & Đom Đóm Đung Đưa',
+    category: 'nature',
+    description: 'Chi tiết tự nhiên gồm vách cổng rêu phong, dây leo rủ đung đưa phía trước và đàn đom đóm lập lòe.',
+    width: 600,
+    height: 650,
     layers: [
       {
-        id: 'layer-rope',
-        name: 'Dây xích treo',
-        assetPath: 'props/lantern-rope.png',
+        id: 'layer-ruins',
+        name: 'Cổng tàn tích cổ',
+        assetPath: 'demo_transparent/layer4_ancient_ruins.png',
         x: 0,
-        y: -180,
-        z: 5,
+        y: 40,
+        z: 15, // Nền sau
         scale: 1.0,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'top' }
+        motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }
       },
       {
-        id: 'layer-lantern-body',
-        name: 'Khung đèn lồng',
-        assetPath: 'props/lantern-body.png',
+        id: 'layer-vines',
+        name: 'Dây leo rủ tiền cảnh',
+        assetPath: 'demo_transparent/layer5_foreground_vines.png',
         x: 0,
-        y: 10,
-        z: 0,
-        scale: 1.0,
+        y: -60,
+        z: -20, // Rủ phía trước
+        scale: 1.05,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'rocking', speed: 0.9, amplitude: 15, anchor: 'top', phaseOffset: 0 }
+        motion: { type: 'sway', speed: 0.9, amplitude: 18, anchor: 'top', phaseOffset: 0.1 }
       },
       {
-        id: 'layer-glow',
-        name: 'Quầng sáng ấm áp',
-        assetPath: 'props/lantern-glow.png',
-        x: 0,
-        y: 35,
-        z: -10,
+        id: 'layer-fireflies',
+        name: 'Đom đóm lấp lánh (GIF)',
+        assetPath: 'demos/sparkle_fireflies.gif',
+        x: -30,
+        y: -30,
+        z: -35, // Lơ lửng sát camera
         scale: 1.2,
         rotation: 0,
-        opacity: 0.8,
-        motion: { type: 'breathe', speed: 1.5, amplitude: 12, anchor: 'center', phaseOffset: 0.5 }
+        opacity: 0.9,
+        motion: { type: 'float', speed: 1.2, amplitude: 14, anchor: 'center', phaseOffset: 0.5 }
+      }
+    ]
+  },
+  {
+    id: 'comp-balcony-window',
+    name: 'Cửa Sổ Ban Công & Giàn Hoa Rung Rinh',
+    category: 'architecture',
+    description: 'Khung cửa gỗ cổ điển kết hợp bồn hoa rực rỡ và nhánh lá cây đung đưa trước gió.',
+    width: 520,
+    height: 580,
+    layers: [
+      {
+        id: 'layer-window',
+        name: 'Khung cửa sổ Tudor',
+        assetPath: 'assembly_3d/modular/decor_window.png',
+        x: 0,
+        y: -40,
+        z: 15,
+        scale: 1.0,
+        rotation: 0,
+        opacity: 1,
+        motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+      },
+      {
+        id: 'layer-flower-box',
+        name: 'Hộp hoa ban công',
+        assetPath: 'assembly_3d/modular/decor_flower_box.png',
+        x: 0,
+        y: 80,
+        z: -5,
+        scale: 1.05,
+        rotation: 0,
+        opacity: 1,
+        motion: { type: 'breathe', speed: 1.0, amplitude: 5, anchor: 'bottom', phaseOffset: 0.2 }
+      },
+      {
+        id: 'layer-green-leaf',
+        name: 'Nhánh lá cây rung rinh',
+        assetPath: 'assembly_3d/modular/nature_leaf.png',
+        x: 90,
+        y: 40,
+        z: -18,
+        scale: 0.8,
+        rotation: 25,
+        opacity: 1,
+        motion: { type: 'sway', speed: 1.3, amplitude: 16, anchor: 'bottom', phaseOffset: 0.5 }
       }
     ]
   }

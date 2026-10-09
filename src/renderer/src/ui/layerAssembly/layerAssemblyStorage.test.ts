@@ -29,23 +29,23 @@ describe('Layer Assembly Workshop Storage System', () => {
     globalThis.localStorage = mockLocalStorage
   })
 
-  it('loads built-in composites with oak tree, flower bush, and swinging lantern presets', () => {
+  it('loads built-in composites with flower bush, vines ruins, and balcony window presets', () => {
     const list = getStoredComposites()
     expect(list.length).toBeGreaterThanOrEqual(3)
 
-    const tree = list.find((c) => c.id === 'comp-oak-tree')
-    expect(tree).toBeDefined()
-    expect(tree?.name).toContain('Cây Sồi')
-    expect(tree?.category).toBe('nature')
-    expect(tree?.layers.length).toBe(4)
+    const bush = list.find((c) => c.id === 'comp-flower-bush')
+    expect(bush).toBeDefined()
+    expect(bush?.name).toContain('Bụi Hoa')
+    expect(bush?.category).toBe('nature')
+    expect(bush?.layers.length).toBe(4)
 
-    // Check layer stack depths & motion
-    const trunk = tree?.layers.find((l) => l.id === 'layer-trunk')
-    const canopyFront = tree?.layers.find((l) => l.id === 'layer-canopy-front')
-    expect(trunk).toBeDefined()
-    expect(canopyFront).toBeDefined()
-    expect(trunk!.z).toBeGreaterThan(canopyFront!.z) // Trunk in background, leaves in foreground
-    expect(canopyFront!.motion.type).toBe('sway')
+    // Check layer stack depths & motion: cỏ nền ở sau, cánh hoa ở trước
+    const grassBase = bush?.layers.find((l) => l.id === 'layer-grass-base')
+    const petal = bush?.layers.find((l) => l.id === 'layer-flower-petal')
+    expect(grassBase).toBeDefined()
+    expect(petal).toBeDefined()
+    expect(grassBase!.z).toBeGreaterThan(petal!.z) // Grass in background (z=20), petal in foreground (z=-18)
+    expect(grassBase!.motion.type).toBe('sway')
   })
 
   it('saves new custom composite and retrieves from storage', () => {
@@ -104,19 +104,19 @@ describe('Layer Assembly Workshop Storage System', () => {
   })
 
   it('duplicates composite with a new unique id and (Bản sao) suffix', () => {
-    const dup = duplicateComposite('comp-oak-tree')
+    const dup = duplicateComposite('comp-flower-bush')
     expect(dup).not.toBeNull()
-    expect(dup?.id).not.toBe('comp-oak-tree')
+    expect(dup?.id).not.toBe('comp-flower-bush')
     expect(dup?.name).toContain('(Bản sao)')
     expect(dup?.category).toBe('custom')
     expect(dup?.layers.length).toBe(4)
-    expect(dup?.layers[0].id).not.toBe('layer-trunk')
+    expect(dup?.layers[0].id).not.toBe('layer-grass-base')
   })
 
   it('deletes composite by id', () => {
-    deleteComposite('comp-flower-bush')
+    deleteComposite('comp-vines-ruins')
     const list = getStoredComposites()
-    const bush = list.find((c) => c.id === 'comp-flower-bush')
-    expect(bush).toBeUndefined()
+    const ruins = list.find((c) => c.id === 'comp-vines-ruins')
+    expect(ruins).toBeUndefined()
   })
 })

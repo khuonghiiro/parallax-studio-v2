@@ -165,8 +165,19 @@ export function LayerAssemblyDialog({
     onClose()
   }
 
+  // Lắng nghe phím Escape để đóng modal
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [onClose])
+
   return (
-    <div className="layer-workshop-modal" onKeyDown={(e) => e.key === 'Escape' && onClose()}>
+    <div className="layer-workshop-modal">
       {/* 1. Header */}
       <div className="layer-workshop-header">
         <IconLayers width={16} height={16} />
@@ -179,7 +190,28 @@ export function LayerAssemblyDialog({
             className="input-text sm"
             value={composite.name}
             onChange={(e) => setComposite({ ...composite, name: e.target.value })}
-            style={{ width: '220px', fontWeight: 600 }}
+            style={{ width: '200px', fontWeight: 600 }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '8px' }}>
+          <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}>Khung:</span>
+          <input
+            type="number"
+            className="input-text sm"
+            value={composite.width}
+            onChange={(e) => setComposite({ ...composite, width: Number(e.target.value) || 600 })}
+            style={{ width: '60px', textAlign: 'center' }}
+            title="Chiều rộng khung chi tiết"
+          />
+          <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>×</span>
+          <input
+            type="number"
+            className="input-text sm"
+            value={composite.height}
+            onChange={(e) => setComposite({ ...composite, height: Number(e.target.value) || 600 })}
+            style={{ width: '60px', textAlign: 'center' }}
+            title="Chiều cao khung chi tiết"
           />
         </div>
 
