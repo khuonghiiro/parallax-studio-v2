@@ -592,7 +592,7 @@ export function LayerAssemblyViewport({
           zIndex: 30
         }}
       >
-        Kéo layer: dời vị trí · Alt / chuột giữa: dời khung · Cuộn: zoom
+        Kéo layer / Mũi tên: dời 2D · +/-: độ sâu Z · Alt / chuột giữa: dời khung · Cuộn: zoom
       </div>
 
       {/* Floating Bottom Transport Bar */}

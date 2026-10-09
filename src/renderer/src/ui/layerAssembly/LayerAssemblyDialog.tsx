@@ -127,7 +127,7 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
           onAllAction={(action) => state.run(action, undefined, composite.layers.map((l) => l.id))} />
       </div>
       <footer className="lw-status"><span>{composite.layers.length} lớp · {state.selection.length} đã chọn · {composite.layers.filter((l) => l.locked).length} khóa</span>
-        <span>Ctrl+Z hoàn tác · Ctrl+D nhân bản · Space xem chuyển động</span></footer>
+        <span>Ctrl+Z hoàn tác · Ctrl+D nhân bản · Mũi tên: dời 2D · Phím +/-: độ sâu Z · Space xem chuyển động</span></footer>
     </div>
     {showNewConfirm && (
       <div className="lw-confirm-backdrop" onClick={handleCancelNew}>

@@ -983,7 +983,7 @@ export function LayerAssembly3DViewport({
           zIndex: 30
         }}
       >
-        Chuột trái: xoay 360° · Chuột giữa / Shift: dời · Cuộn: zoom · F: căn giữa
+        Chuột trái: xoay 360° · Chuột giữa / Shift: dời · +/-: độ sâu Z · Cuộn: zoom · F: căn giữa
       </div>
     </div>
   )

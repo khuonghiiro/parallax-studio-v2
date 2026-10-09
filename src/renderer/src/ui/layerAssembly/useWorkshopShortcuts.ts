@@ -31,15 +31,32 @@ export function useWorkshopShortcuts(state: ReturnType<typeof useLayerWorkshop>,
           }
         })
       }
+      else if (
+        !mod &&
+        state.selection.length &&
+        (key === '+' || key === '=' || e.code === 'NumpadAdd' || key === '-' || key === '_' || e.code === 'NumpadSubtract')
+      ) {
+        const isPlus = key === '+' || key === '=' || e.code === 'NumpadAdd'
+        const step = e.altKey ? 25 : 5
+        const dz = isPlus ? step : -step
+        state.selection.forEach((id) => {
+          const l = state.composite.layers.find((layer) => layer.id === id)
+          if (l && !l.locked) {
+            state.update(id, { z: Math.max(-2000, Math.min(2000, Math.round(l.z + dz))) })
+          }
+        })
+      }
       else return
       e.preventDefault(); e.stopImmediatePropagation()
     }
     const end = () => state.history.end()
     window.addEventListener('keydown', handle, true)
+    window.addEventListener('keyup', end)
     window.addEventListener('pointerup', end)
     window.addEventListener('pointercancel', end)
     return () => {
       window.removeEventListener('keydown', handle, true)
+      window.removeEventListener('keyup', end)
       window.removeEventListener('pointerup', end)
       window.removeEventListener('pointercancel', end)
     }
