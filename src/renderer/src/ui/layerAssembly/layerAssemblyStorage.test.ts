@@ -29,9 +29,14 @@ describe('Layer Assembly Workshop Storage System', () => {
     globalThis.localStorage = mockLocalStorage
   })
 
-  it('loads built-in composites with flower bush, vines ruins, and balcony window presets', () => {
+  it('loads built-in composites with bonsai tree, flower bush, vines ruins, and balcony window presets', () => {
     const list = getStoredComposites()
-    expect(list.length).toBeGreaterThanOrEqual(3)
+    expect(list.length).toBeGreaterThanOrEqual(4)
+
+    const bonsai = list.find((c) => c.id === 'comp-bonsai-zen')
+    expect(bonsai).toBeDefined()
+    expect(bonsai?.name).toContain('Bonsai')
+    expect(bonsai?.layers.length).toBe(5)
 
     const bush = list.find((c) => c.id === 'comp-flower-bush')
     expect(bush).toBeDefined()

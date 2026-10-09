@@ -119,6 +119,21 @@
     },
     "assembly_3d/modular/nature_flower_stem.png": {
       "name": "Thân cành hoa tự nhiên (Mẫu mesh)"
+    },
+    "assembly_3d/modular/bonsai_pot.png": {
+      "name": "Chậu gốm Bonsai dáng dẹt cổ kính"
+    },
+    "assembly_3d/modular/bonsai_trunk.png": {
+      "name": "Thân Bonsai cổ thụ uốn khúc rêu phong"
+    },
+    "assembly_3d/modular/bonsai_foliage_back.png": {
+      "name": "Tán lá tùng sau (Hậu cảnh Z dương)"
+    },
+    "assembly_3d/modular/bonsai_foliage_mid.png": {
+      "name": "Tán lá tùng chính (Trung cảnh Z=0)"
+    },
+    "assembly_3d/modular/bonsai_foliage_front.png": {
+      "name": "Tán lá tùng trước (Tiền cảnh Z âm)"
     }
   }
 }
