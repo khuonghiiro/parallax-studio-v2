@@ -7,6 +7,7 @@ import { layerCommands } from './commands/layerCommands'
 import { cameraCommands } from './commands/cameraCommands'
 import { audioCommands } from './commands/audioCommands'
 import { assemblyCommands } from './commands/assemblyCommands'
+import { layerAssemblyCommands } from './commands/layerAssemblyCommands'
 import { systemCommands } from './commands/systemCommands'
 import { uiCommands } from './commands/uiCommands'
 
@@ -25,6 +26,7 @@ const commands: Record<string, Handler> = {
   ...cameraCommands,
   ...audioCommands,
   ...assemblyCommands,
+  ...layerAssemblyCommands,
   ...systemCommands,
   ...uiCommands
 }

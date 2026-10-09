@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import type { LayerComposite, AssembledLayerItem } from './types'
 import { useLayerAssetImage } from './useLayerAssetImage'
+import { computeLayerMotion } from './layerAssemblyMotion'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
 import { IconLayers, IconImage } from '../icons'
 
@@ -355,32 +356,15 @@ function AssembledLayerItemView({
 }: AssembledLayerItemViewProps) {
   const imageUrl = useLayerAssetImage(layer.assetPath, layer.imageUrl)
 
-  // Tính chuyển động hoạt ảnh theo thời gian
-  let animRotate = 0
-  let animScaleX = 1
-  let animScaleY = 1
-  let animTranslateX = 0
-  let animTranslateY = 0
-
-  const { type, speed, amplitude, phaseOffset = 0, anchor } = layer.motion
-  const t = time * speed + phaseOffset
-
-  if (type === 'sway') {
-    // Đung đưa xoay góc mượt mà quanh điểm neo
-    animRotate = Math.sin(t * Math.PI * 2) * amplitude
-  } else if (type === 'breathe') {
-    // Phập phồng nhịp nhàng
-    const factor = 1 + Math.sin(t * Math.PI * 2) * (amplitude / 100)
-    animScaleX = factor
-    animScaleY = factor
-  } else if (type === 'float') {
-    // Lơ lửng bồng bềnh
-    animTranslateY = Math.sin(t * Math.PI * 2) * amplitude
-  } else if (type === 'rocking') {
-    // Bập bênh con lắc
-    animRotate = Math.cos(t * Math.PI * 2) * amplitude
-    animTranslateX = Math.sin(t * Math.PI * 2) * (amplitude * 0.4)
-  }
+  // Tính chuyển động hoạt ảnh theo thời gian mượt mà
+  const {
+    animRotateDeg: animRotate,
+    animScaleX,
+    animScaleY,
+    animTranslateX,
+    animTranslateY
+  } = computeLayerMotion(layer.motion, time)
+  const { anchor } = layer.motion
 
   const anchorOrigin =
     anchor === 'bottom'

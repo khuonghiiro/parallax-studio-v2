@@ -1,0 +1,54 @@
+import type { LayerComposite } from './types'
+
+export interface ActiveLayerAssemblySession {
+  getComposite: () => LayerComposite
+  setComposite: (composite: LayerComposite | ((prev: LayerComposite) => LayerComposite)) => void
+  getSelectedLayerId: () => string | null
+  setSelectedLayerId: (id: string | null) => void
+  getIsPlaying: () => boolean
+  setIsPlaying: (playing: boolean) => void
+  getTime: () => number
+  setTime: (time: number) => void
+  save: () => Promise<void>
+  insertToScene: () => Promise<void>
+  close: () => void
+}
+
+let activeSession: ActiveLayerAssemblySession | null = null
+
+export function registerLayerAssemblySession(session: ActiveLayerAssemblySession): () => void {
+  activeSession = session
+  return () => {
+    if (activeSession === session) {
+      activeSession = null
+    }
+  }
+}
+
+export function getActiveLayerAssemblySession(): ActiveLayerAssemblySession | null {
+  return activeSession
+}
+
+/**
+ * Yêu cầu mở Xưởng Lắp Ráp Layer từ bên ngoài (qua MCP hoặc UI)
+ */
+export function requestOpenLayerAssembly(compositeId?: string): void {
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(
+      new CustomEvent('layerAssembly:open', {
+        detail: { compositeId }
+      })
+    )
+  }
+}
+
+/**
+ * Yêu cầu đóng Xưởng Lắp Ráp Layer
+ */
+export function requestCloseLayerAssembly(): void {
+  if (activeSession) {
+    activeSession.close()
+  } else if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new CustomEvent('layerAssembly:close'))
+  }
+}

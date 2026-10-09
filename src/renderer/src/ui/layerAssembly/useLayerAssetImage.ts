@@ -18,6 +18,21 @@ export function getLayerFullResUrl(assetPath?: string, directUrl?: string): stri
 }
 
 /**
+ * Giải quyết URL ảnh cho layer bất đồng bộ (cho thumbnail generator hoặc headless operations)
+ */
+export async function resolveLayerImageUrlAsync(assetPath?: string, directUrl?: string): Promise<string | null> {
+  const direct = getLayerFullResUrl(assetPath, directUrl)
+  if (direct) return direct
+  if (!assetPath) return null
+  try {
+    const res = await resolveFaceTexture(assetPath)
+    return res?.url || null
+  } catch {
+    return null
+  }
+}
+
+/**
  * Hook giải quyết đường dẫn ảnh cho layer trong Xưởng Lắp Ráp Layer:
  * Hỗ trợ tự động:
  * 1. direct data: hoặc blob: URL

@@ -27,11 +27,31 @@ export function LayerAssemblyList() {
 
   useEffect(() => {
     const handleUpdate = () => reload()
+    const handleOpenReq = (e: Event) => {
+      const customEvent = e as CustomEvent<{ compositeId?: string }>
+      const targetId = customEvent.detail?.compositeId
+      if (targetId) {
+        const found = getStoredComposites().find((c) => c.id === targetId)
+        setEditingComposite(found || null)
+      } else {
+        setEditingComposite(null)
+      }
+      setIsDialogOpen(true)
+    }
+    const handleCloseReq = () => {
+      setIsDialogOpen(false)
+      setEditingComposite(null)
+    }
+
     window.addEventListener('layerComposites:changed', handleUpdate)
     window.addEventListener('storage', handleUpdate)
+    window.addEventListener('layerAssembly:open', handleOpenReq)
+    window.addEventListener('layerAssembly:close', handleCloseReq)
     return () => {
       window.removeEventListener('layerComposites:changed', handleUpdate)
       window.removeEventListener('storage', handleUpdate)
+      window.removeEventListener('layerAssembly:open', handleOpenReq)
+      window.removeEventListener('layerAssembly:close', handleCloseReq)
     }
   }, [reload])
 

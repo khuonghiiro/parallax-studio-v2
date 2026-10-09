@@ -11,39 +11,52 @@ def make_bonsai_pot():
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
-    # Thân chậu gốm dẹt chữ nhật bo góc, chân quỳ
-    # Đất trồng cây
-    draw.ellipse([100, 70, 412, 120], fill=(45, 30, 20, 255))
-    # Rêu xanh trên đất
-    draw.ellipse([120, 75, 392, 115], fill=(35, 75, 35, 230))
-    for rx in range(130, 380, 20):
-        draw.ellipse([rx, 80, rx + 25, 95], fill=(50, 100, 40, 240))
+    # Đất trồng cây hữu cơ tơi xốp
+    draw.ellipse([80, 50, 432, 115], fill=(55, 38, 25, 255))
+    # Lớp rêu nhung xanh tươi tắn phủ trên đất đón lấy gốc cây
+    draw.ellipse([100, 55, 412, 105], fill=(45, 110, 45, 255))
+    for rx in range(110, 400, 16):
+        draw.ellipse([rx, 60, rx + 24, 85], fill=(68, 148, 55, 245))
+        draw.ellipse([rx + 8, 70, rx + 26, 92], fill=(95, 180, 65, 235))
 
-    # Miệng chậu (vành gốm men xanh ngọc / đất nung viền vàng)
-    rim_color = (42, 65, 80, 255)
-    draw.rounded_rectangle([70, 95, 442, 125], radius=6, fill=rim_color, outline=(25, 40, 50, 255), width=3)
-    # Highlight miệng chậu
-    draw.line([85, 99, 427, 99], fill=(70, 105, 125, 220), width=2)
+    # Miệng chậu Bonsai Tử Sa dáng dẹt bề thế (Vành gốm đất nung viền nẹp đồng vàng kim)
+    pot_rim_gold = (220, 175, 80, 255)
+    pot_terracotta = (175, 80, 45, 255)
+    pot_dark_bark = (115, 48, 25, 255)
 
-    # Thân chậu thu nhỏ dần xuống đáy
+    # Nẹp đồng bóng sáng trên vành miệng chậu
+    draw.rounded_rectangle([45, 82, 467, 118], radius=8, fill=pot_rim_gold, outline=(140, 100, 35, 255), width=2)
+    # Lớp gốm tử sa chính của miệng chậu
+    draw.rounded_rectangle([52, 88, 460, 114], radius=6, fill=pot_terracotta, outline=(130, 55, 30, 255), width=2)
+    # Ánh sáng bóng trên miệng gốm
+    draw.line([70, 92, 442, 92], fill=(235, 130, 90, 230), width=2)
+
+    # Thân chậu chữ nhật vát cạnh cổ điển
     body_poly = [
-        (85, 125),
-        (427, 125),
-        (405, 195),
-        (107, 195)
+        (62, 114),
+        (450, 114),
+        (424, 192),
+        (88, 192)
     ]
-    draw.polygon(body_poly, fill=(35, 55, 68, 255), outline=(22, 35, 45, 255))
-    # Dải màu trang trí cổ điển
-    draw.line([100, 155, 412, 155], fill=(185, 145, 75, 230), width=3)
+    draw.polygon(body_poly, fill=(150, 65, 35, 255), outline=pot_dark_bark)
+    # Đổ bóng gradient tối ở 2 góc hông thân chậu
+    draw.polygon([(62, 114), (105, 114), (120, 192), (88, 192)], fill=(120, 50, 25, 240))
+    draw.polygon([(407, 114), (450, 114), (424, 192), (392, 192)], fill=(120, 50, 25, 240))
 
-    # Đáy chậu
-    draw.rounded_rectangle([105, 190, 407, 205], radius=3, fill=(28, 45, 55, 255))
+    # Dải hoa văn nẹp đồng & đường chỉ nổi mạ vàng chạy ngang thân chậu
+    draw.line([78, 148, 434, 148], fill=pot_rim_gold, width=4)
+    draw.line([82, 150, 430, 150], fill=(255, 220, 130, 240), width=2)
 
-    # 4 chân quỳ cách điệu
-    # Chân trái
-    draw.rounded_rectangle([115, 200, 155, 225], radius=4, fill=(22, 35, 45, 255))
-    # Chân phải
-    draw.rounded_rectangle([357, 200, 397, 225], radius=4, fill=(22, 35, 45, 255))
+    # Đáy chậu gốm
+    draw.rounded_rectangle([84, 188, 428, 204], radius=4, fill=(110, 45, 22, 255), outline=(75, 30, 15, 255), width=2)
+
+    # 4 Chân quỳ uy nghi nâng đỡ chậu
+    # Chân quỳ trái
+    draw.polygon([(100, 200), (145, 200), (140, 232), (92, 232), (90, 218)], fill=pot_dark_bark)
+    draw.rounded_rectangle([92, 222, 142, 236], radius=3, fill=pot_rim_gold)
+    # Chân quỳ phải
+    draw.polygon([(367, 200), (412, 200), (422, 218), (420, 232), (372, 232)], fill=pot_dark_bark)
+    draw.rounded_rectangle([370, 222, 420, 236], radius=3, fill=pot_rim_gold)
 
     img.save(os.path.join(out_dir, "bonsai_pot.png"))
     print("Created bonsai_pot.png")

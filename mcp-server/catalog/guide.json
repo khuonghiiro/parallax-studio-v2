@@ -1,6 +1,6 @@
 {
   "$comment": "Single source for the AI guide (MCP server instructions, get_ai_guide, CLI help, McpDialog prompt). Every section MUST keep the same number of lines in en and vi - catalog.test.mjs enforces it.",
-  "toolCount": 81,
+  "toolCount": 89,
   "sections": [
     {
       "id": "overview",
@@ -111,6 +111,24 @@
           "Để xem giao diện thật (dialog, xưởng lắp ráp, panel) dùng get_app_screenshot; thao tác bằng ui_click {text} / ui_type {selector, value}."
         ]
       }
+    },
+    {
+      "id": "layer_assembly",
+      "title": { "en": "2.5D Layer Assembly", "vi": "Xưởng lắp ráp layer 2.5D" },
+      "lines": {
+        "en": [
+          "The 2.5D Layer Assembly workshop creates multi-layer stacked composite props (e.g. bonsai trees, bushes, hanging lanterns) with depth offsets and gentle wind motion physics.",
+          "Stacked layers are ordered by depth (z > 0 farther back, z < 0 closer foreground), supporting anchor pivots and organic sway/breathe/float motions.",
+          "Use save_layer_composite to store presets with auto-generated 2D preview thumbnails, and insert_layer_composite to place all layers into shots.",
+          "Open and inspect the workshop in real-time with open_layer_assembly and get_layer_assembly_state."
+        ],
+        "vi": [
+          "Xưởng Lắp Ráp Layer 2.5D tạo các cụm chi tiết xếp chồng nhiều tầng (như cây bonsai, bụi hoa, đèn treo) kèm phân lớp chiều sâu và chuyển động gió êm ái.",
+          "Các layer xếp chồng sắp xếp theo độ sâu (z > 0 ở xa phía sau, z < 0 ở gần phía trước), hỗ trợ điểm neo uốn và hoạt ảnh đung đưa/phập phồng/lơ lửng tự nhiên.",
+          "Dùng save_layer_composite để lưu mẫu kèm ảnh xem trước 2D tự động, và insert_layer_composite để chèn toàn bộ các layer vào phân cảnh.",
+          "Mở và xem trạng thái xưởng trực quan theo thời gian thực bằng open_layer_assembly và get_layer_assembly_state."
+        ]
+      }
     }
   ],
   "categories": {
@@ -124,6 +142,7 @@
     "look_audio": { "en": "Look & audio", "vi": "Màu sắc & âm thanh" },
     "timeline": { "en": "Timeline & view", "vi": "Timeline & khung xem" },
     "export": { "en": "Export & scripting", "vi": "Xuất & script" },
-    "assembly": { "en": "3D assembly workshop", "vi": "Xưởng lắp ráp 3D" }
+    "assembly": { "en": "3D assembly workshop", "vi": "Xưởng lắp ráp 3D" },
+    "layer_assembly": { "en": "2.5D layer assembly", "vi": "Xưởng lắp ráp layer 2.5D" }
   }
 }

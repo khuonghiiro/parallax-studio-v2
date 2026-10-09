@@ -19,18 +19,18 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
     id: 'comp-bonsai-zen',
     name: 'Cây Bonsai Cổ Thụ Đung Đưa 5 Lớp',
     category: 'nature',
-    description: 'Nghệ thuật Bonsai phân tách 5 tầng chiều sâu: Chậu gốm cổ, Thân gỗ uốn khúc, Tán sau mờ xa, Tán chính ngọc bích và Tán trước đón nắng.',
+    description: 'Nghệ thuật Bonsai phân tách 5 tầng chiều sâu: Chậu gốm Tử Sa viền đồng, Thân gỗ uốn khúc, Tán sau mờ xa, Tán chính ngọc bích và Tán trước đón nắng.',
     width: 550,
     height: 600,
     layers: [
       {
         id: 'bonsai-pot',
-        name: 'Chậu gốm Bonsai dáng dẹt (Gốc neo)',
+        name: 'Chậu gốm Tử Sa viền đồng (Gốc neo)',
         assetPath: 'assembly_3d/modular/bonsai_pot.png',
         x: 0,
-        y: 160,
-        z: 10,
-        scale: 1.0,
+        y: 110,
+        z: -5,
+        scale: 1.05,
         rotation: 0,
         opacity: 1,
         motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }
@@ -40,48 +40,48 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         name: 'Thân cổ thụ uốn lượn phong trần',
         assetPath: 'assembly_3d/modular/bonsai_trunk.png',
         x: 0,
-        y: 30,
+        y: -35,
         z: 0,
         scale: 1.0,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'sway', speed: 0.7, amplitude: 6, anchor: 'bottom', phaseOffset: 0.1 }
+        motion: { type: 'sway', speed: 0.6, amplitude: 2.2, anchor: 'bottom', phaseOffset: 0.05 }
       },
       {
         id: 'bonsai-foliage-back',
         name: 'Tán lá tùng sau (Hậu cảnh Z=+35)',
         assetPath: 'assembly_3d/modular/bonsai_foliage_back.png',
         x: 5,
-        y: -10,
+        y: -105,
         z: 35,
         scale: 0.95,
         rotation: 0,
         opacity: 0.9,
-        motion: { type: 'sway', speed: 0.9, amplitude: 10, anchor: 'bottom', phaseOffset: 0.25 }
+        motion: { type: 'sway', speed: 0.75, amplitude: 3.8, anchor: 'bottom', phaseOffset: 0.2 }
       },
       {
         id: 'bonsai-foliage-mid',
         name: 'Tán lá tùng chính (Trung cảnh Z=0)',
         assetPath: 'assembly_3d/modular/bonsai_foliage_mid.png',
         x: 0,
-        y: -5,
+        y: -90,
         z: 0,
         scale: 1.0,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'sway', speed: 1.1, amplitude: 14, anchor: 'bottom', phaseOffset: 0.45 }
+        motion: { type: 'sway', speed: 0.9, amplitude: 5.2, anchor: 'bottom', phaseOffset: 0.45 }
       },
       {
         id: 'bonsai-foliage-front',
-        name: 'Tán lá tùng trước (Tiền cảnh Z=-30)',
+        name: 'Tán lá tùng trước (Tiền cảnh Z=-25)',
         assetPath: 'assembly_3d/modular/bonsai_foliage_front.png',
         x: -5,
-        y: 5,
-        z: -30,
+        y: -75,
+        z: -25,
         scale: 1.05,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'sway', speed: 1.3, amplitude: 18, anchor: 'bottom', phaseOffset: 0.7 }
+        motion: { type: 'sway', speed: 1.05, amplitude: 6.8, anchor: 'bottom', phaseOffset: 0.7 }
       }
     ]
   },
@@ -237,7 +237,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
   }
 ]
 
-const SEED_VERSION = 'v2_bonsai'
+const SEED_VERSION = 'v3_bonsai_fit'
 const SEED_KEY = 'pxs.layerComposites.seeded_version'
 
 export function getStoredComposites(): LayerComposite[] {
@@ -250,17 +250,15 @@ export function getStoredComposites(): LayerComposite[] {
     }
     const parsed = JSON.parse(raw)
     if (Array.isArray(parsed)) {
-      // Khi có cập nhật bộ mẫu builtin mới (SEED_VERSION chưa khớp), nạp các mẫu mới nếu chưa có
+      // Khi có cập nhật bộ mẫu builtin mới (SEED_VERSION chưa khớp), làm mới các preset builtin
       const currentSeed = localStorage.getItem(SEED_KEY)
       if (currentSeed !== SEED_VERSION) {
         localStorage.setItem(SEED_KEY, SEED_VERSION)
-        const existingIds = new Set(parsed.map((c) => c.id))
-        const missingBuiltins = BUILTIN_COMPOSITES.filter((b) => !existingIds.has(b.id))
-        if (missingBuiltins.length > 0) {
-          const merged = [...missingBuiltins, ...parsed]
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
-          return merged
-        }
+        const builtinIds = new Set(BUILTIN_COMPOSITES.map((b) => b.id))
+        const userCustoms = parsed.filter((c) => !builtinIds.has(c.id))
+        const merged = [...BUILTIN_COMPOSITES, ...userCustoms]
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
+        return merged
       }
       return parsed
     }

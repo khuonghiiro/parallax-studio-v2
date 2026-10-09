@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import type { LayerComposite, AssembledLayerItem } from './types'
 import { saveComposite } from './layerAssemblyStorage'
 import { insertLayerCompositeToScene } from './insertLayerComposite'
+import { captureCompositeThumbnail } from './layerAssemblyThumbnail'
+import { registerLayerAssemblySession } from './layerAssemblyBridge'
 import { LayerAssemblyViewport } from './LayerAssemblyViewport'
 import { LayerAssembly3DViewport } from './LayerAssembly3DViewport'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
@@ -65,6 +67,23 @@ export function LayerAssemblyDialog({
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
     }
   }, [isPlaying])
+
+  // Đăng ký active session cho MCP bridge điều khiển realtime
+  useEffect(() => {
+    return registerLayerAssemblySession({
+      getComposite: () => composite,
+      setComposite: (c) => setComposite(c),
+      getSelectedLayerId: () => selectedLayerId,
+      setSelectedLayerId: (id) => setSelectedLayerId(id),
+      getIsPlaying: () => isPlaying,
+      setIsPlaying: (p) => setIsPlaying(p),
+      getTime: () => animTime,
+      setTime: (t) => setAnimTime(t),
+      save: handleSave,
+      insertToScene: handleInsertToScene,
+      close: onClose
+    })
+  }, [composite, selectedLayerId, isPlaying, animTime, onClose])
 
   // Cập nhật thuộc tính của 1 layer
   const handleUpdateLayer = (id: string, patch: Partial<AssembledLayerItem>) => {
@@ -163,17 +182,42 @@ export function LayerAssemblyDialog({
     setComposite((prev) => ({ ...prev, layers: nextLayers }))
   }
 
-  // Lưu chi tiết cụm layer
-  const handleSave = () => {
-    saveComposite(composite)
-    onClose()
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Lưu chi tiết cụm layer kèm kết xuất Thumbnail 2D
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      const thumb = await captureCompositeThumbnail(composite)
+      const toSave: LayerComposite = thumb ? { ...composite, thumbnail: thumb } : composite
+      saveComposite(toSave)
+      onClose()
+    } catch (err) {
+      console.error('[LayerAssemblyDialog] Error saving composite thumbnail:', err)
+      saveComposite(composite)
+      onClose()
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   // Thêm vào cảnh hiện tại
   const handleInsertToScene = async () => {
-    saveComposite(composite)
-    await insertLayerCompositeToScene({ composite })
-    onClose()
+    setIsSaving(true)
+    try {
+      const thumb = await captureCompositeThumbnail(composite)
+      const toSave: LayerComposite = thumb ? { ...composite, thumbnail: thumb } : composite
+      saveComposite(toSave)
+      await insertLayerCompositeToScene({ composite: toSave })
+      onClose()
+    } catch (err) {
+      console.error('[LayerAssemblyDialog] Error inserting composite:', err)
+      saveComposite(composite)
+      await insertLayerCompositeToScene({ composite })
+      onClose()
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   // Lắng nghe phím Escape để đóng modal, Space để Play/Pause
@@ -271,19 +315,20 @@ export function LayerAssemblyDialog({
               type="button"
               className="btn sm"
               onClick={handleSave}
+              disabled={isSaving}
               title="Lưu lại cụm layer này vào thư viện để tái sử dụng"
             >
-              Lưu mẫu
+              {isSaving ? 'Đang lưu...' : 'Lưu mẫu'}
             </button>
 
             <button
               type="button"
               className="btn sm primary"
               onClick={handleInsertToScene}
-              disabled={composite.layers.length === 0}
+              disabled={composite.layers.length === 0 || isSaving}
               title="Chèn toàn bộ các layer đã lắp ráp vào cảnh phân cảnh hiện tại"
             >
-              <IconPlus width={12} height={12} /> Thêm vào cảnh hiện tại
+              <IconPlus width={12} height={12} /> {isSaving ? 'Đang lưu...' : 'Thêm vào cảnh hiện tại'}
             </button>
 
             <button

@@ -57,40 +57,10 @@ export function clearLayerTextureCache(): void {
 /**
  * Tính toán độ dời chuyển động hoạt ảnh của layer theo thời gian thực
  */
+import { computeLayerMotion } from './layerAssemblyMotion'
+
 export function computeLayer3DMotion(motion: LayerMotionSettings, time: number) {
-  const { type, speed, amplitude, phaseOffset = 0 } = motion
-  const t = time * speed + phaseOffset
-
-  let animRotateDeg = 0
-  let animScaleX = 1
-  let animScaleY = 1
-  let animTranslateX = 0
-  let animTranslateY = 0
-
-  if (type === 'sway') {
-    // Đung đưa xoay góc quanh điểm neo
-    animRotateDeg = Math.sin(t * Math.PI * 2) * amplitude
-  } else if (type === 'breathe') {
-    // Phập phồng co giãn tỉ lệ
-    const factor = 1 + Math.sin(t * Math.PI * 2) * (amplitude / 100)
-    animScaleX = factor
-    animScaleY = factor
-  } else if (type === 'float') {
-    // Lơ lửng dao động dọc
-    animTranslateY = Math.sin(t * Math.PI * 2) * amplitude
-  } else if (type === 'rocking') {
-    // Bập bênh con lắc
-    animRotateDeg = Math.cos(t * Math.PI * 2) * amplitude
-    animTranslateX = Math.sin(t * Math.PI * 2) * (amplitude * 0.4)
-  }
-
-  return {
-    animRotateRad: (animRotateDeg * Math.PI) / 180,
-    animScaleX,
-    animScaleY,
-    animTranslateX,
-    animTranslateY
-  }
+  return computeLayerMotion(motion, time)
 }
 
 /**
