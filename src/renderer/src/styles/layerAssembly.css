@@ -164,12 +164,29 @@
   text-overflow: ellipsis;
 }
 
-/* 2. Fullscreen Workshop Modal */
-.layer-workshop-modal {
+/* 2. Floating Workshop Modal Overlay & Shell (Dual-Theme Standard) */
+.layer-workshop-overlay {
   position: fixed;
   inset: 0;
-  z-index: 9999;
-  background: var(--bg-0);
+  background: var(--backdrop);
+  backdrop-filter: blur(6px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+}
+
+.layer-workshop-dialog,
+.layer-workshop-modal {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -284,3 +301,73 @@
   50% { transform: translateY(8px); }
   100% { transform: translateY(-8px); }
 }
+
+/* 4. Compact 3D Viewport Floating Toolbar & Popover */
+.layer-workshop-3d-toolbar {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  background: color-mix(in srgb, var(--bg-1) 85%, transparent);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+  z-index: 40;
+  max-width: calc(100% - 20px);
+  user-select: none;
+}
+
+.layer-workshop-3d-toolbar .toolbar-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--line-soft);
+  margin: 0 2px;
+}
+
+.layer-workshop-popover-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 145px;
+  z-index: 100;
+}
+
+.layer-workshop-popover-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  font-size: 11px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.layer-workshop-popover-item:hover {
+  background: var(--bg-3);
+  color: var(--accent);
+}
+
+.layer-workshop-popover-item.active {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+}
+

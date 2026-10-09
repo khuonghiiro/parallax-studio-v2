@@ -188,160 +188,135 @@ export function LayerAssemblyDialog({
   }, [onClose])
 
   return (
-    <div className="layer-workshop-modal">
-      {/* 1. Header */}
-      <div className="layer-workshop-header">
-        <IconLayers width={16} height={16} />
-        <strong style={{ fontSize: '13px', color: 'var(--text)' }}>Xưởng Lắp Ráp Layer</strong>
+    <div className="layer-workshop-overlay">
+      <div className="layer-workshop-dialog">
+        {/* 1. Header */}
+        <div className="layer-workshop-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent)', flexShrink: 0 }}>
+            <IconLayers width={16} height={16} />
+            <strong style={{ fontSize: '13px', color: 'var(--text)' }}>Xưởng Lắp Ráp Layer</strong>
+          </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '12px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Tên chi tiết:</span>
-          <input
-            type="text"
-            className="input-text sm"
-            value={composite.name}
-            onChange={(e) => setComposite({ ...composite, name: e.target.value })}
-            style={{ width: '200px', fontWeight: 600 }}
-          />
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '8px' }}>
-          <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}>Khung:</span>
-          <input
-            type="number"
-            className="input-text sm"
-            value={composite.width}
-            onChange={(e) => setComposite({ ...composite, width: Number(e.target.value) || 600 })}
-            style={{ width: '60px', textAlign: 'center' }}
-            title="Chiều rộng khung chi tiết"
-          />
-          <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>×</span>
-          <input
-            type="number"
-            className="input-text sm"
-            value={composite.height}
-            onChange={(e) => setComposite({ ...composite, height: Number(e.target.value) || 600 })}
-            style={{ width: '60px', textAlign: 'center' }}
-            title="Chiều cao khung chi tiết"
-          />
-        </div>
-
-        {/* Chuyển đổi View: 2D | 3D | Chia đôi */}
-        <div className="seg" style={{ marginLeft: '12px' }}>
-          <button
-            type="button"
-            className={`btn sm${workspaceView === '2d' ? ' active' : ''}`}
-            onClick={() => setWorkspaceView('2d')}
-            title="Chế độ xem 2D (Căn chỉnh phẳng X, Y)"
-          >
-            <IconImage width={12} height={12} /> 2D
-          </button>
-          <button
-            type="button"
-            className={`btn sm${workspaceView === '3d' ? ' active' : ''}`}
-            onClick={() => setWorkspaceView('3d')}
-            title="Không gian 3D (Xem chiều sâu các layer xếp chồng trong không gian 3 chiều)"
-          >
-            <IconCube width={12} height={12} /> 3D
-          </button>
-          <button
-            type="button"
-            className={`btn sm${workspaceView === 'split' ? ' active' : ''}`}
-            onClick={() => setWorkspaceView('split')}
-            title="Hiển thị song song 2D và 3D cạnh nhau"
-          >
-            <IconSplit width={12} height={12} /> Chia đôi
-          </button>
-        </div>
-
-        <span className="spacer" />
-
-        <button
-          type="button"
-          className="btn sm"
-          onClick={handleSave}
-          title="Lưu lại cụm layer này vào thư viện để tái sử dụng"
-        >
-          Lưu mẫu
-        </button>
-
-        <button
-          type="button"
-          className="btn sm primary"
-          onClick={handleInsertToScene}
-          disabled={composite.layers.length === 0}
-          title="Chèn toàn bộ các layer đã lắp ráp vào cảnh phân cảnh hiện tại"
-        >
-          <IconPlus width={12} height={12} /> Thêm vào cảnh hiện tại
-        </button>
-
-        <button
-          type="button"
-          className="btn sm icon"
-          onClick={onClose}
-          title="Đóng Xưởng Lắp Ráp Layer (Esc)"
-        >
-          <IconX width={14} height={14} />
-        </button>
-      </div>
-
-      {/* 2. Body: Sidebar | Viewport (2D / 3D / Split) | Inspector */}
-      <div className="layer-workshop-body">
-        {/* Left Sidebar: Assets & Presets */}
-        <LayerAssemblySidebar
-          onAddLayerFromAsset={handleAddLayerFromAsset}
-          onAppendPresetLayers={handleAppendPresetLayers}
-        />
-
-        {/* Center: 2D / 3D / Split Viewport */}
-        <div className="layer-workshop-center-area">
-          {workspaceView === '2d' && (
-            <LayerAssemblyViewport
-              composite={composite}
-              selectedLayerId={selectedLayerId}
-              onSelectLayer={setSelectedLayerId}
-              onUpdateLayer={handleUpdateLayer}
-              isPlaying={isPlaying}
-              onTogglePlay={() => setIsPlaying((p) => !p)}
-              time={animTime}
-              onSeekTime={(t) => setAnimTime(t)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '12px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Tên chi tiết:</span>
+            <input
+              type="text"
+              className="input-text sm"
+              value={composite.name}
+              onChange={(e) => setComposite({ ...composite, name: e.target.value })}
+              style={{ width: '180px', fontWeight: 600 }}
+              placeholder="Tên chi tiết layer..."
             />
-          )}
+          </div>
 
-          {workspaceView === '3d' && (
-            <div style={{ position: 'relative', flex: '1 1 0%', height: '100%', overflow: 'hidden' }}>
-              <LayerAssembly3DViewport
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '6px' }}>
+            <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}>Khung:</span>
+            <input
+              type="number"
+              className="input-text sm"
+              value={composite.width}
+              onChange={(e) => setComposite({ ...composite, width: Number(e.target.value) || 600 })}
+              style={{ width: '56px', textAlign: 'center' }}
+              title="Chiều rộng khung chi tiết"
+            />
+            <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>×</span>
+            <input
+              type="number"
+              className="input-text sm"
+              value={composite.height}
+              onChange={(e) => setComposite({ ...composite, height: Number(e.target.value) || 600 })}
+              style={{ width: '56px', textAlign: 'center' }}
+              title="Chiều cao khung chi tiết"
+            />
+          </div>
+
+          {/* Chuyển đổi View: 2D | 3D | Chia đôi */}
+          <div className="view-mode-tabs" style={{ marginLeft: '16px' }} title="Bố cục khung làm việc">
+            <button
+              type="button"
+              className={`view-mode-tab-btn${workspaceView === '2d' ? ' active' : ''}`}
+              onClick={() => setWorkspaceView('2d')}
+              title="Chế độ xem 2D (Căn chỉnh phẳng X, Y)"
+            >
+              <IconImage width={13} height={13} />
+              <span>2D</span>
+            </button>
+            <button
+              type="button"
+              className={`view-mode-tab-btn${workspaceView === 'split' ? ' active' : ''}`}
+              onClick={() => setWorkspaceView('split')}
+              title="Hiển thị song song 2D và 3D cạnh nhau"
+            >
+              <IconSplit width={13} height={13} />
+              <span>2D & 3D</span>
+            </button>
+            <button
+              type="button"
+              className={`view-mode-tab-btn${workspaceView === '3d' ? ' active' : ''}`}
+              onClick={() => setWorkspaceView('3d')}
+              title="Không gian 3D (Xem chiều sâu các layer xếp chồng trong không gian 3 chiều)"
+            >
+              <IconCube width={13} height={13} />
+              <span>3D</span>
+            </button>
+          </div>
+
+          <span className="spacer" />
+
+          <button
+            type="button"
+            className="btn sm"
+            onClick={handleSave}
+            title="Lưu lại cụm layer này vào thư viện để tái sử dụng"
+          >
+            Lưu mẫu
+          </button>
+
+          <button
+            type="button"
+            className="btn sm primary"
+            onClick={handleInsertToScene}
+            disabled={composite.layers.length === 0}
+            title="Chèn toàn bộ các layer đã lắp ráp vào cảnh phân cảnh hiện tại"
+          >
+            <IconPlus width={12} height={12} /> Thêm vào cảnh hiện tại
+          </button>
+
+          <button
+            type="button"
+            className="btn sm icon"
+            onClick={onClose}
+            title="Đóng Xưởng Lắp Ráp Layer (Esc)"
+          >
+            <IconX width={14} height={14} />
+          </button>
+        </div>
+
+        {/* 2. Body: Sidebar | Viewport (2D / 3D / Split) | Inspector */}
+        <div className="layer-workshop-body">
+          {/* Left Sidebar: Assets & Presets */}
+          <LayerAssemblySidebar
+            onAddLayerFromAsset={handleAddLayerFromAsset}
+            onAppendPresetLayers={handleAppendPresetLayers}
+          />
+
+          {/* Center: 2D / 3D / Split Viewport */}
+          <div className="layer-workshop-center-area">
+            {workspaceView === '2d' && (
+              <LayerAssemblyViewport
                 composite={composite}
                 selectedLayerId={selectedLayerId}
                 onSelectLayer={setSelectedLayerId}
                 onUpdateLayer={handleUpdateLayer}
-                time={animTime}
-              />
-              <LayerAssemblyTransportBar
                 isPlaying={isPlaying}
                 onTogglePlay={() => setIsPlaying((p) => !p)}
                 time={animTime}
                 onSeekTime={(t) => setAnimTime(t)}
               />
-            </div>
-          )}
+            )}
 
-          {workspaceView === 'split' && (
-            <div className="layer-workshop-split-container">
-              <div className="layer-workshop-split-pane left-pane">
-                <LayerAssemblyViewport
-                  composite={composite}
-                  selectedLayerId={selectedLayerId}
-                  onSelectLayer={setSelectedLayerId}
-                  onUpdateLayer={handleUpdateLayer}
-                  isPlaying={isPlaying}
-                  onTogglePlay={() => setIsPlaying((p) => !p)}
-                  time={animTime}
-                  onSeekTime={(t) => setAnimTime(t)}
-                  hideTransport
-                />
-              </div>
-              <div className="layer-workshop-split-pane">
+            {workspaceView === '3d' && (
+              <div style={{ position: 'relative', flex: '1 1 0%', height: '100%', overflow: 'hidden' }}>
                 <LayerAssembly3DViewport
                   composite={composite}
                   selectedLayerId={selectedLayerId}
@@ -349,28 +324,69 @@ export function LayerAssemblyDialog({
                   onUpdateLayer={handleUpdateLayer}
                   time={animTime}
                 />
+                <LayerAssemblyTransportBar
+                  isPlaying={isPlaying}
+                  onTogglePlay={() => setIsPlaying((p) => !p)}
+                  time={animTime}
+                  onSeekTime={(t) => setAnimTime(t)}
+                />
               </div>
-              <LayerAssemblyTransportBar
-                isPlaying={isPlaying}
-                onTogglePlay={() => setIsPlaying((p) => !p)}
-                time={animTime}
-                onSeekTime={(t) => setAnimTime(t)}
-              />
-            </div>
-          )}
-        </div>
+            )}
 
-        {/* Right Sidebar: Hierarchy & Animation Inspector */}
-        <LayerAssemblyInspector
-          composite={composite}
-          selectedLayerId={selectedLayerId}
-          onSelectLayer={setSelectedLayerId}
-          onUpdateLayer={handleUpdateLayer}
-          onAddLayer={handleAddEmptyLayer}
-          onDeleteLayer={handleDeleteLayer}
-          onDuplicateLayer={handleDuplicateLayer}
-          onMoveLayerOrder={handleMoveLayerOrder}
-        />
+            {workspaceView === 'split' && (
+              <div className="layer-workshop-split-container">
+                <div className="layer-workshop-split-pane left-pane">
+                  <div className="pane-header-tab">
+                    <span className="pane-title"><IconImage width={12} height={12} /> Mặt phẳng 2D</span>
+                    <span style={{ fontSize: '10.5px', color: 'var(--text-faint)' }}>{composite.width} × {composite.height} px</span>
+                  </div>
+                  <LayerAssemblyViewport
+                    composite={composite}
+                    selectedLayerId={selectedLayerId}
+                    onSelectLayer={setSelectedLayerId}
+                    onUpdateLayer={handleUpdateLayer}
+                    isPlaying={isPlaying}
+                    onTogglePlay={() => setIsPlaying((p) => !p)}
+                    time={animTime}
+                    onSeekTime={(t) => setAnimTime(t)}
+                    hideTransport
+                  />
+                </div>
+                <div className="layer-workshop-split-pane">
+                  <div className="pane-header-tab">
+                    <span className="pane-title"><IconCube width={12} height={12} /> Không gian 3D</span>
+                    <span style={{ fontSize: '10.5px', color: 'var(--text-faint)' }}>{composite.layers.length} layer</span>
+                  </div>
+                  <LayerAssembly3DViewport
+                    composite={composite}
+                    selectedLayerId={selectedLayerId}
+                    onSelectLayer={setSelectedLayerId}
+                    onUpdateLayer={handleUpdateLayer}
+                    time={animTime}
+                  />
+                </div>
+                <LayerAssemblyTransportBar
+                  isPlaying={isPlaying}
+                  onTogglePlay={() => setIsPlaying((p) => !p)}
+                  time={animTime}
+                  onSeekTime={(t) => setAnimTime(t)}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Right Sidebar: Hierarchy & Animation Inspector */}
+          <LayerAssemblyInspector
+            composite={composite}
+            selectedLayerId={selectedLayerId}
+            onSelectLayer={setSelectedLayerId}
+            onUpdateLayer={handleUpdateLayer}
+            onAddLayer={handleAddEmptyLayer}
+            onDeleteLayer={handleDeleteLayer}
+            onDuplicateLayer={handleDuplicateLayer}
+            onMoveLayerOrder={handleMoveLayerOrder}
+          />
+        </div>
       </div>
     </div>
   )

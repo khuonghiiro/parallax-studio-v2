@@ -9,7 +9,7 @@ import {
   createDepthGuideLine,
   type Layer3DMeshInstance
 } from './layerAssembly3DMesh'
-import { IconCube, IconEye, IconFocus, IconCamera } from '../icons'
+import { IconCube, IconEye, IconFocus, IconCamera, IconFit } from '../icons'
 
 export interface LayerAssembly3DViewportProps {
   composite: LayerComposite
@@ -65,6 +65,8 @@ export function LayerAssembly3DViewport({
   const [showGrid, setShowGrid] = useState(true)
   const [showFrustum, setShowFrustum] = useState(true)
   const [cameraPreset, setCameraPreset] = useState<CameraPreset>('orbit')
+  const [isAnglesOpen, setIsAnglesOpen] = useState(false)
+  const [isDepthOpen, setIsDepthOpen] = useState(false)
 
   // Mouse drag interaction
   const isDraggingRef = useRef(false)
@@ -479,46 +481,15 @@ export function LayerAssembly3DViewport({
         }}
       />
 
-      {/* Floating 3D HUD Toolbar: Góc nhìn & Presets */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '12px',
-          left: '12px',
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: '8px',
-          zIndex: 40,
-          background: 'color-mix(in srgb, var(--bg-1) 85%, transparent)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid var(--line-soft)',
-          borderRadius: '6px',
-          padding: '4px 8px',
-          maxWidth: 'calc(100% - 240px)'
-        }}
-      >
-        <span
-          style={{
-            fontSize: '11px',
-            fontWeight: 700,
-            color: 'var(--text)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '5px',
-            marginRight: '2px'
-          }}
-        >
-          <IconCube width={13} height={13} style={{ color: 'var(--accent-cyan)' }} /> 3D
-        </span>
-
-        {/* Camera Preset Segmented buttons */}
+      {/* 3D Floating Controls Toolbar duy nhất, thanh mảnh và hiện đại */}
+      <div className="layer-workshop-3d-toolbar">
+        {/* Preset chính */}
         <div className="seg" style={{ display: 'inline-flex' }}>
           <button
             type="button"
             className={`btn xs${cameraPreset === 'orbit' ? ' active' : ''}`}
             onClick={() => handleApplyPreset('orbit')}
-            title="Góc nhìn phối cảnh tự do (Xoay chuột để quan sát chiều sâu)"
+            title="Góc nhìn phối cảnh tự do (Xoay chuột)"
           >
             Tự do
           </button>
@@ -526,97 +497,92 @@ export function LayerAssembly3DViewport({
             type="button"
             className={`btn xs${cameraPreset === 'top' ? ' active' : ''}`}
             onClick={() => handleApplyPreset('top')}
-            title="Nhìn từ trên xuống (Thấy rõ thứ tự xếp lớp trục Z)"
+            title="Mặt trên (Thấy rõ thứ tự xếp lớp Z)"
           >
-            Mặt trên
+            Trên
           </button>
           <button
             type="button"
             className={`btn xs${cameraPreset === 'side' ? ' active' : ''}`}
             onClick={() => handleApplyPreset('side')}
-            title="Nhìn từ cạnh bên (Thấy các lát cắt layer đứng song song)"
+            title="Mặt cạnh (Thấy các lát cắt layer đứng)"
           >
-            Mặt cạnh
+            Cạnh
           </button>
           <button
             type="button"
             className={`btn xs${cameraPreset === 'front' ? ' active' : ''}`}
             onClick={() => handleApplyPreset('front')}
-            title="Nhìn chính diện 3D"
+            title="Mặt trước chính diện"
           >
-            Mặt trước
+            Trước
           </button>
         </div>
 
-        <div style={{ width: '1px', height: '14px', background: 'var(--line-soft)' }} />
-
-        {/* Quick Angles chuẩn CameraControls */}
-        <div style={{ display: 'inline-flex', gap: '3px' }}>
+        {/* Nút dropdown mở Popover chọn góc nghiêng */}
+        <div style={{ position: 'relative' }}>
           <button
             type="button"
-            className="btn xs"
-            onClick={() => applyQuickAngle(-30, 0)}
-            title="Góc nhìn chéo từ bên trái 30°"
+            className={`btn xs${isAnglesOpen ? ' active' : ''}`}
+            onClick={() => setIsAnglesOpen((v) => !v)}
+            title="Chọn góc xoay camera cố định"
           >
-            -30° Trái
+            Góc ▾
           </button>
-          <button
-            type="button"
-            className="btn xs"
-            onClick={() => applyQuickAngle(30, 0)}
-            title="Góc nhìn chéo từ bên phải 30°"
-          >
-            +30° Phải
-          </button>
-          <button
-            type="button"
-            className="btn xs"
-            onClick={() => applyQuickAngle(0, 22)}
-            title="Góc nhìn từ trên cao xuống 22°"
-          >
-            +22° Cao
-          </button>
-          <button
-            type="button"
-            className="btn xs"
-            onClick={() => applyQuickAngle(0, -15)}
-            title="Góc nhìn từ dưới thấp lên -15°"
-          >
-            -15° Thấp
-          </button>
-          <button
-            type="button"
-            className="btn xs"
-            onClick={() => applyQuickAngle(0, 75)}
-            title="Góc nhìn thẳng từ đỉnh xuống 75°"
-          >
-            75° Đỉnh
-          </button>
+          {isAnglesOpen && (
+            <div
+              className="layer-workshop-popover-menu"
+              onMouseLeave={() => setIsAnglesOpen(false)}
+            >
+              <div style={{ fontSize: '10px', color: 'var(--text-faint)', padding: '2px 8px', fontWeight: 600 }}>
+                GÓC XOAY CAMERA
+              </div>
+              {[
+                { label: '-30° Nghiêng trái', az: -30, el: 0 },
+                { label: '+30° Nghiêng phải', az: 30, el: 0 },
+                { label: '+22° Từ trên cao', az: 0, el: 22 },
+                { label: '-15° Từ dưới thấp', az: 0, el: -15 },
+                { label: '75° Từ đỉnh xuống', az: 0, el: 75 }
+              ].map((a) => (
+                <button
+                  key={a.label}
+                  type="button"
+                  className="layer-workshop-popover-item"
+                  onClick={() => {
+                    applyQuickAngle(a.az, a.el)
+                    setIsAnglesOpen(false)
+                  }}
+                >
+                  <span>{a.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div style={{ width: '1px', height: '14px', background: 'var(--line-soft)' }} />
+        <div className="toolbar-divider" />
 
-        {/* Nút Vừa vặn khung hình */}
+        {/* Nút Vừa vặn (Icon Fit) */}
         <button
           type="button"
-          className="btn xs"
+          className="btn xs icon"
           onClick={handleFitFramingDistance}
-          title="Đặt khoảng cách camera vừa vặn khung hình tiêu chuẩn"
+          title="Đặt khoảng cách camera vừa vặn khung hình (Fit)"
         >
-          📐 Vừa vặn
+          <IconFit width={12} height={12} />
         </button>
 
-        {/* Nút Focus */}
+        {/* Focus */}
         <button
           type="button"
           className="btn xs icon"
           onClick={handleFocusAll}
-          title="Lấy nét toàn bộ cụm layer (Phím F / Reset View)"
+          title="Lấy nét toàn bộ cụm layer (Phím F)"
         >
           <IconFocus width={12} height={12} />
         </button>
 
-        {/* Bật tắt Tháp Camera */}
+        {/* Tháp camera */}
         <button
           type="button"
           className={`btn xs icon${showFrustum ? ' active' : ''}`}
@@ -626,7 +592,7 @@ export function LayerAssembly3DViewport({
           <IconCamera width={12} height={12} />
         </button>
 
-        {/* Bật tắt lưới sàn */}
+        {/* Lưới sàn */}
         <button
           type="button"
           className={`btn xs icon${showGrid ? ' active' : ''}`}
@@ -635,86 +601,118 @@ export function LayerAssembly3DViewport({
         >
           <IconEye width={12} height={12} />
         </button>
+
+        <div className="toolbar-divider" />
+
+        {/* Nút dropdown mở Popover chỉnh khoảng cách Camera & Giãn Z */}
+        <div style={{ position: 'relative' }}>
+          <button
+            type="button"
+            className={`btn xs${isDepthOpen ? ' active' : ''}`}
+            onClick={() => setIsDepthOpen((v) => !v)}
+            title={`Khoảng cách: ${camDistance}px · Giãn Z: ${zExaggeration.toFixed(1)}x (bấm để tùy chỉnh)`}
+            style={{ fontSize: '10.5px' }}
+          >
+            📏 Z / Cam ▾
+          </button>
+          {isDepthOpen && (
+            <div
+              className="layer-workshop-popover-menu"
+              style={{ right: 0, left: 'auto', minWidth: '220px', padding: '8px 10px', gap: '8px' }}
+              onMouseLeave={() => setIsDepthOpen(false)}
+            >
+              <div style={{ fontSize: '10px', color: 'var(--text-faint)', fontWeight: 700, letterSpacing: '0.5px' }}>
+                KHOẢNG CÁCH & ĐỘ SÂU 3D
+              </div>
+
+              {/* Slider Khoảng cách */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                  <span style={{ color: 'var(--text-dim)' }}>Khoảng cách camera:</span>
+                  <strong style={{ color: 'var(--text)' }}>{camDistance}px</strong>
+                </div>
+                <input
+                  type="range"
+                  min="300"
+                  max="4500"
+                  step="10"
+                  value={camDistance}
+                  onChange={(e) => {
+                    const val = Number(e.target.value)
+                    orbitRef.current.distance = val
+                    setCamDistance(val)
+                    requestRender()
+                  }}
+                  style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Slider Giãn Z */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                  <span style={{ color: 'var(--text-dim)' }}>Độ giãn trục Z:</span>
+                  <strong style={{ color: 'var(--accent-cyan)' }}>{zExaggeration.toFixed(1)}x</strong>
+                </div>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="4.0"
+                  step="0.1"
+                  value={zExaggeration}
+                  onChange={(e) => setZExaggeration(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Nút tác vụ nhanh */}
+              <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
+                <button
+                  type="button"
+                  className="btn xs"
+                  style={{ flex: 1 }}
+                  onClick={() => {
+                    handleFitFramingDistance()
+                    setIsDepthOpen(false)
+                  }}
+                >
+                  📐 Vừa vặn
+                </button>
+                <button
+                  type="button"
+                  className="btn xs"
+                  style={{ flex: 1 }}
+                  onClick={() => {
+                    setZExaggeration(1.8)
+                    orbitRef.current.distance = defaultFitDist
+                    setCamDistance(defaultFitDist)
+                    requestRender()
+                  }}
+                >
+                  Mặc định
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Floating Camera Distance & Z-Exaggeration Slider (Góc trên phải) */}
+      {/* Floating Bottom Right Hint - góc phải thoáng đãng, không đè lên Transport Bar */}
       <div
         style={{
           position: 'absolute',
-          top: '12px',
-          right: '12px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '6px',
-          zIndex: 40,
-          background: 'color-mix(in srgb, var(--bg-1) 85%, transparent)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid var(--line-soft)',
-          borderRadius: '6px',
-          padding: '6px 10px',
-          fontSize: '11px',
-          color: 'var(--text-dim)',
-          minWidth: '190px'
-        }}
-      >
-        {/* Khoảng cách Camera */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span title="Khoảng cách từ camera tới cụm layer">
-            Khoảng cách: <strong style={{ color: 'var(--text)' }}>{camDistance}px</strong>
-          </span>
-          <input
-            type="range"
-            min="300"
-            max="4500"
-            step="10"
-            value={camDistance}
-            onChange={(e) => {
-              const val = Number(e.target.value)
-              orbitRef.current.distance = val
-              setCamDistance(val)
-              requestRender()
-            }}
-            style={{ width: '85px', accentColor: 'var(--accent)', cursor: 'pointer' }}
-            title="Kéo thanh trượt để di chuyển camera lại gần hoặc ra xa"
-          />
-        </div>
-
-        {/* Độ tách lớp Giãn Z */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span title="Phóng đại khoảng cách chiều sâu Z giữa các layer để dễ quan sát">
-            Giãn Z: <strong style={{ color: 'var(--accent-cyan)' }}>{zExaggeration.toFixed(1)}x</strong>
-          </span>
-          <input
-            type="range"
-            min="0.5"
-            max="4.0"
-            step="0.1"
-            value={zExaggeration}
-            onChange={(e) => setZExaggeration(Number(e.target.value))}
-            style={{ width: '85px', accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
-            title="Kéo thanh trượt để tăng/giảm khoảng cách hiển thị trục Z giữa các lớp"
-          />
-        </div>
-      </div>
-
-      {/* Floating Bottom Hint */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '8px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          fontSize: '10.5px',
-          color: 'var(--text-dim)',
-          background: 'rgba(0, 0, 0, 0.4)',
+          bottom: '12px',
+          right: '14px',
+          fontSize: '10px',
+          color: 'var(--text-faint)',
+          background: 'rgba(0, 0, 0, 0.45)',
           backdropFilter: 'blur(6px)',
-          padding: '3px 10px',
-          borderRadius: '12px',
+          padding: '2px 8px',
+          borderRadius: '4px',
           pointerEvents: 'none',
           zIndex: 30
         }}
       >
-        Chuột trái: xoay 3D · Shift / chuột phải: dời khung · Cuộn: khoảng cách · Nhấp: chọn layer
+        Chuột trái: xoay · Shift / phải: dời · Cuộn: zoom · F: căn giữa
       </div>
     </div>
   )

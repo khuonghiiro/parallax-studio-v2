@@ -221,27 +221,67 @@ export function LayerAssemblyViewport({
         )}
       </div>
 
-      {/* 2D Viewport Indicator Badge (Góc trên trái) */}
+      {/* 2D Mini Control Bar (Góc trên trái) */}
       <div
         style={{
           position: 'absolute',
-          top: '12px',
+          top: '8px',
           left: '12px',
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
+          gap: '5px',
           zIndex: 40,
           background: 'color-mix(in srgb, var(--bg-1) 85%, transparent)',
           backdropFilter: 'blur(12px)',
           border: '1px solid var(--line-soft)',
           borderRadius: '6px',
-          padding: '4px 10px',
+          padding: '3px 8px',
           fontSize: '11px',
-          fontWeight: 700,
-          color: 'var(--text)'
+          userSelect: 'none'
         }}
       >
-        <IconImage width={13} height={13} style={{ color: 'var(--accent)' }} /> 2D
+        <button
+          type="button"
+          className="btn xs"
+          onClick={() => {
+            setZoom(1.0)
+            setPan({ x: 0, y: 0 })
+          }}
+          title="Đặt lại tỉ lệ 100% và căn giữa"
+          style={{ fontFamily: 'monospace', fontWeight: 600 }}
+        >
+          {Math.round(zoom * 100)}%
+        </button>
+        <button
+          type="button"
+          className="btn xs"
+          onClick={() => {
+            setZoom(1.0)
+            setPan({ x: 0, y: 0 })
+          }}
+          title="Căn giữa khung vẽ 2D"
+        >
+          Căn giữa
+        </button>
+      </div>
+
+      {/* Floating 2D Hint */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '12px',
+          left: '14px',
+          fontSize: '10px',
+          color: 'var(--text-faint)',
+          background: 'rgba(0, 0, 0, 0.45)',
+          backdropFilter: 'blur(6px)',
+          padding: '2px 8px',
+          borderRadius: '4px',
+          pointerEvents: 'none',
+          zIndex: 30
+        }}
+      >
+        Kéo layer: dời vị trí · Alt / chuột giữa: dời khung · Cuộn: zoom
       </div>
 
       {/* Floating Bottom Transport Bar */}
