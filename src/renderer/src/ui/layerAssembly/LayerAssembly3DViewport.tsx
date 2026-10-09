@@ -51,6 +51,7 @@ export function LayerAssembly3DViewport({
   const canvasBoxRef = useRef<THREE.Group | null>(null)
   const frustumHelperRef = useRef<THREE.LineSegments | null>(null)
   const depthGuideRef = useRef<THREE.Line | null>(null)
+  const targetMarkerRef = useRef<THREE.Group | null>(null)
 
   // Mesh instances map
   const meshInstancesRef = useRef<Map<string, Layer3DMeshInstance>>(new Map())
@@ -86,6 +87,13 @@ export function LayerAssembly3DViewport({
   const [showFrustum, setShowFrustum] = useState(true)
   const [clipToCamera, setClipToCamera] = useState(true) // Cắt các phần layer vượt ra ngoài tầm nhìn camera
   const [cameraPreset, setCameraPreset] = useState<CameraPreset>('orbit')
+
+  // Trạng thái Tầm nhìn (FOV), Góc xoay 360 độ, Điểm nhìn (Target) và Vị trí Camera
+  const [cameraFov, setCameraFov] = useState(45)
+  const [cameraYaw, setCameraYaw] = useState(-32)
+  const [cameraPitch, setCameraPitch] = useState(20)
+  const [cameraTarget, setCameraTarget] = useState({ x: 0, y: 0, z: 0 })
+  const [cameraPosition, setCameraPosition] = useState({ x: 0, y: 0, z: initialFitDist })
 
   // 4 mặt phẳng cắt không gian camera 3D (Clipping Planes)
   const cameraClippingPlanes = useMemo(() => {
@@ -181,6 +189,21 @@ export function LayerAssembly3DViewport({
     scene.add(frustumHelper)
     frustumHelperRef.current = frustumHelper
 
+    // 🎯 Điểm nhìn mục tiêu (Target Marker 3D)
+    const targetMarker = new THREE.Group()
+    targetMarker.name = 'target-marker'
+    const ringGeo = new THREE.RingGeometry(10, 12, 32)
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x00e5ff,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.6,
+      depthTest: false
+    })
+    targetMarker.add(new THREE.Mesh(ringGeo, ringMat))
+    scene.add(targetMarker)
+    targetMarkerRef.current = targetMarker
+
     setGizmoRect({ x: 0, y: 0, w: width, h: height })
 
     // Vòng lặp render liên tục 60fps (đảm bảo camera orbit, zoom và chuyển động layer mượt mà)
@@ -204,6 +227,12 @@ export function LayerAssembly3DViewport({
         )
         cam.lookAt(o.target)
         cam.updateMatrixWorld()
+
+        if (targetMarkerRef.current) {
+          targetMarkerRef.current.position.copy(o.target)
+          targetMarkerRef.current.quaternion.copy(cam.quaternion)
+          targetMarkerRef.current.visible = showGrid || o.target.lengthSq() > 1
+        }
 
         if (
           o.azimuth !== prevOrbit.az ||
@@ -254,6 +283,10 @@ export function LayerAssembly3DViewport({
       if (canvasBoxRef.current) {
         disposeCanvasPlaneHelper(canvasBoxRef.current)
         canvasBoxRef.current = null
+      }
+      if (targetMarkerRef.current) {
+        scene.remove(targetMarkerRef.current)
+        targetMarkerRef.current = null
       }
       meshInstancesRef.current.clear()
     }
@@ -419,8 +452,8 @@ export function LayerAssembly3DViewport({
     const container = containerRef.current
     if (!container) return
 
-    // Chuột phải hoặc giữ Shift -> Pan góc nhìn
-    if (e.button === 2 || e.shiftKey) {
+    // Chuột phải (button 2), Chuột giữa (button 1) hoặc giữ Shift -> Pan dịch chuyển góc nhìn
+    if (e.button === 2 || e.button === 1 || e.shiftKey) {
       dragModeRef.current = 'pan'
     } else {
       dragModeRef.current = 'orbit'
@@ -450,13 +483,13 @@ export function LayerAssembly3DViewport({
     const o = orbitRef.current
 
     if (dragModeRef.current === 'orbit') {
-      // Xoay tự do Orbit
+      // Xoay tự do Orbit 360 độ (kéo chuột lên -> nhìn xuống, kéo chuột xuống -> nhìn lên)
       o.azimuth -= dx * 0.007
-      o.elevation = Math.max(-Math.PI / 2 + 0.04, Math.min(Math.PI / 2 - 0.04, o.elevation + dy * 0.007))
+      o.elevation = Math.max(-Math.PI / 2 + 0.02, Math.min(Math.PI / 2 - 0.02, o.elevation - dy * 0.007))
       setCameraPreset('orbit')
       cameraPresetRef.current = 'orbit'
     } else {
-      // Pan dịch chuyển target
+      // Pan dịch chuyển target trong không gian 3D
       const factor = (o.distance / 1000) * 1.2
       const camera = cameraRef.current
       if (camera) {
@@ -475,6 +508,27 @@ export function LayerAssembly3DViewport({
     try {
       ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
     } catch {}
+
+    // Cập nhật vị trí và góc quay camera cho panel điều khiển
+    const o = orbitRef.current
+    const cam = cameraRef.current
+    if (cam) {
+      setCameraPosition({
+        x: Math.round(cam.position.x),
+        y: Math.round(cam.position.y),
+        z: Math.round(cam.position.z)
+      })
+    }
+    let yawDeg = Math.round((o.azimuth * 180) / Math.PI) % 360
+    if (yawDeg > 180) yawDeg -= 360
+    if (yawDeg < -180) yawDeg += 360
+    setCameraYaw(yawDeg)
+    setCameraPitch(Math.round((o.elevation * 180) / Math.PI))
+    setCameraTarget({
+      x: Math.round(o.target.x),
+      y: Math.round(o.target.y),
+      z: Math.round(o.target.z)
+    })
 
     // Nếu chỉ click chuột (không rê chuột) -> Raycast chọn Layer
     if (!dragStartRef.current.moved && dragModeRef.current === 'orbit') {
@@ -516,16 +570,69 @@ export function LayerAssembly3DViewport({
   }
 
   // ------------------------------------------------------------- 8. Camera Controls & Quick Angles
+  // Xử lý thay đổi tầm nhìn (FOV)
+  const handleChangeCameraFov = (fov: number) => {
+    setCameraFov(fov)
+    if (cameraRef.current) {
+      cameraRef.current.fov = fov
+      cameraRef.current.updateProjectionMatrix()
+      requestRender()
+    }
+  }
+
+  // Xử lý thay đổi góc xoay ngang 360 độ (Yaw)
+  const handleChangeCameraYaw = (yawDeg: number) => {
+    setCameraYaw(yawDeg)
+    const o = orbitRef.current
+    o.azimuth = (yawDeg * Math.PI) / 180
+    setCameraPreset('orbit')
+    cameraPresetRef.current = 'orbit'
+    requestRender()
+  }
+
+  // Xử lý thay đổi góc ngẩng / cúi (Pitch)
+  const handleChangeCameraPitch = (pitchDeg: number) => {
+    setCameraPitch(pitchDeg)
+    const o = orbitRef.current
+    o.elevation = (pitchDeg * Math.PI) / 180
+    setCameraPreset('orbit')
+    cameraPresetRef.current = 'orbit'
+    requestRender()
+  }
+
+  // Xử lý thay đổi điểm nhìn (Target X, Y, Z)
+  const handleChangeCameraTarget = (t: { x: number; y: number; z: number }) => {
+    setCameraTarget(t)
+    orbitRef.current.target.set(t.x, t.y, t.z)
+    requestRender()
+  }
+
+  // Nhắm điểm nhìn vào layer đang chọn
+  const handleAimAtSelectedLayer = useCallback(() => {
+    if (!selectedLayer) return
+    const o = orbitRef.current
+    const tx = Math.round(selectedLayer.x)
+    const ty = Math.round(-selectedLayer.y)
+    const tz = Math.round(-selectedLayer.z * zExaggeration)
+    o.target.set(tx, ty, tz)
+    setCameraTarget({ x: tx, y: ty, z: tz })
+    requestRender()
+  }, [selectedLayer, zExaggeration, requestRender])
+
   const handleApplyPreset = (preset: CameraPreset) => {
     setCameraPreset(preset)
     cameraPresetRef.current = preset
     const o = orbitRef.current
     if (preset === 'top') {
       o.azimuth = 0
-      o.elevation = Math.PI / 2 - 0.01
+      o.elevation = Math.PI / 2 - 0.02
+      setCameraYaw(0)
+      setCameraPitch(89)
     } else if (preset === 'side') {
       o.azimuth = -Math.PI / 2
       o.elevation = 0
+      setCameraYaw(-90)
+      setCameraPitch(0)
     } else if (preset === 'front') {
       const fitD = getFitDistance()
       o.azimuth = 0
@@ -533,9 +640,14 @@ export function LayerAssembly3DViewport({
       o.target.set(0, 0, 0)
       o.distance = fitD
       setCamDistance(fitD)
+      setCameraYaw(0)
+      setCameraPitch(0)
+      setCameraTarget({ x: 0, y: 0, z: 0 })
     } else {
       o.azimuth = -0.55
       o.elevation = 0.35
+      setCameraYaw(-32)
+      setCameraPitch(20)
     }
     requestRender()
   }
@@ -545,6 +657,8 @@ export function LayerAssembly3DViewport({
     const o = orbitRef.current
     o.azimuth = (yawDeg * Math.PI) / 180
     o.elevation = (pitchDeg * Math.PI) / 180
+    setCameraYaw(yawDeg)
+    setCameraPitch(pitchDeg)
     setCameraPreset('orbit')
     cameraPresetRef.current = 'orbit'
     requestRender()
@@ -559,6 +673,9 @@ export function LayerAssembly3DViewport({
     o.azimuth = 0
     o.elevation = 0
     setCamDistance(fitD)
+    setCameraYaw(0)
+    setCameraPitch(0)
+    setCameraTarget({ x: 0, y: 0, z: 0 })
     setCameraPreset('front')
     cameraPresetRef.current = 'front'
     requestRender()
@@ -573,6 +690,9 @@ export function LayerAssembly3DViewport({
     o.azimuth = -0.55
     o.elevation = 0.35
     setCamDistance(fitD)
+    setCameraYaw(-32)
+    setCameraPitch(20)
+    setCameraTarget({ x: 0, y: 0, z: 0 })
     setCameraPreset('orbit')
     cameraPresetRef.current = 'orbit'
     requestRender()
@@ -673,6 +793,17 @@ export function LayerAssembly3DViewport({
           setZExaggeration(zEx)
           requestRender()
         }}
+        cameraFov={cameraFov}
+        onChangeCameraFov={handleChangeCameraFov}
+        cameraYaw={cameraYaw}
+        onChangeCameraYaw={handleChangeCameraYaw}
+        cameraPitch={cameraPitch}
+        onChangeCameraPitch={handleChangeCameraPitch}
+        cameraTarget={cameraTarget}
+        onChangeCameraTarget={handleChangeCameraTarget}
+        cameraPosition={cameraPosition}
+        onAimAtSelectedLayer={handleAimAtSelectedLayer}
+        selectedLayerName={selectedLayer ? selectedLayer.name : null}
       />
 
       {/* Floating Bottom Right Hint - góc phải thoáng đãng, không đè lên Transport Bar */}
@@ -691,7 +822,7 @@ export function LayerAssembly3DViewport({
           zIndex: 30
         }}
       >
-        Chuột trái: xoay · Shift / phải: dời · Cuộn: zoom · F: căn giữa
+        Chuột trái: xoay 360° · Chuột giữa / Shift: dời · Cuộn: zoom · F: căn giữa
       </div>
     </div>
   )

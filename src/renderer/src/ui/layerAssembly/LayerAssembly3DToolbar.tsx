@@ -8,6 +8,7 @@ import {
   IconAxisMove,
   IconAxisRotate
 } from '../icons'
+import { CameraControlPopover } from './CameraControlPopover'
 
 export interface LayerAssembly3DToolbarProps {
   cameraPreset: 'orbit' | 'top' | 'side' | 'front'
@@ -29,6 +30,17 @@ export interface LayerAssembly3DToolbarProps {
   onChangeCamDistance: (dist: number) => void
   zExaggeration: number
   onChangeZExaggeration: (zEx: number) => void
+  cameraFov: number
+  onChangeCameraFov: (fov: number) => void
+  cameraYaw: number
+  onChangeCameraYaw: (yaw: number) => void
+  cameraPitch: number
+  onChangeCameraPitch: (pitch: number) => void
+  cameraTarget: { x: number; y: number; z: number }
+  onChangeCameraTarget: (target: { x: number; y: number; z: number }) => void
+  cameraPosition: { x: number; y: number; z: number }
+  onAimAtSelectedLayer?: () => void
+  selectedLayerName?: string | null
 }
 
 interface TooltipInfo {
@@ -126,18 +138,31 @@ export function LayerAssembly3DToolbar({
   camDistance,
   onChangeCamDistance,
   zExaggeration,
-  onChangeZExaggeration
+  onChangeZExaggeration,
+  cameraFov,
+  onChangeCameraFov,
+  cameraYaw,
+  onChangeCameraYaw,
+  cameraPitch,
+  onChangeCameraPitch,
+  cameraTarget,
+  onChangeCameraTarget,
+  cameraPosition,
+  onAimAtSelectedLayer,
+  selectedLayerName
 }: LayerAssembly3DToolbarProps) {
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null)
   const [isAnglesOpen, setIsAnglesOpen] = useState(false)
   const [isDepthOpen, setIsDepthOpen] = useState(false)
+  const [isCameraOpen, setIsCameraOpen] = useState(false)
 
   const anglesRef = useRef<HTMLDivElement>(null)
   const depthRef = useRef<HTMLDivElement>(null)
+  const cameraRef = useRef<HTMLDivElement>(null)
 
   // Đóng popover an toàn khi click ra ngoài hoặc bấm phím Escape
   useEffect(() => {
-    if (!isAnglesOpen && !isDepthOpen) return
+    if (!isAnglesOpen && !isDepthOpen && !isCameraOpen) return
 
     const handlePointerDown = (e: PointerEvent): void => {
       if (anglesRef.current && !anglesRef.current.contains(e.target as Node)) {
@@ -146,12 +171,16 @@ export function LayerAssembly3DToolbar({
       if (depthRef.current && !depthRef.current.contains(e.target as Node)) {
         setIsDepthOpen(false)
       }
+      if (cameraRef.current && !cameraRef.current.contains(e.target as Node)) {
+        setIsCameraOpen(false)
+      }
     }
 
     const handleKeyDown = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') {
         setIsAnglesOpen(false)
         setIsDepthOpen(false)
+        setIsCameraOpen(false)
       }
     }
 
@@ -161,10 +190,10 @@ export function LayerAssembly3DToolbar({
       window.removeEventListener('pointerdown', handlePointerDown)
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [isAnglesOpen, isDepthOpen])
+  }, [isAnglesOpen, isDepthOpen, isCameraOpen])
 
   const showTooltip = (e: React.MouseEvent<HTMLElement>, key: string) => {
-    if (isAnglesOpen || isDepthOpen) return
+    if (isAnglesOpen || isDepthOpen || isCameraOpen) return
     const rect = e.currentTarget.getBoundingClientRect()
 
     let def: Omit<TooltipInfo, 'top' | 'right'> | null = null
@@ -238,6 +267,16 @@ export function LayerAssembly3DToolbar({
           sub: 'Tâm (0, 0, 0)',
           desc: 'Đưa tâm quay camera về chính giữa toàn bộ các layer và căn giữa màn hình.',
           tip: '🔍 Bấm phím F để lấy nét nhanh'
+        }
+        break
+      case 'camera':
+        def = {
+          title: 'Điều khiển Camera & Tầm nhìn 3D',
+          tag: `${cameraFov}° FOV`,
+          tagType: 'cyan',
+          sub: 'Tầm nhìn · Điểm nhìn · Vị trí',
+          desc: 'Tùy chỉnh góc mở ống kính FOV (25°-85°), xoay 360°, điểm nhìn (target), vị trí camera và các góc máy mẫu.',
+          tip: '🎥 Bấm để mở bảng điều khiển Camera & Tầm nhìn'
         }
         break
       case 'frustum':
@@ -456,20 +495,52 @@ export function LayerAssembly3DToolbar({
 
         <div className="dock-divider" />
 
-        {/* Nhóm 3: Hiển thị Tháp Camera, Lưới sàn, Cắt khung */}
-        <button
-          type="button"
-          className={`layer-3d-dock-btn${showFrustum ? ' active' : ''}`}
-          onClick={() => {
-            onToggleFrustum()
-            hideTooltip()
-          }}
-          onMouseEnter={(e) => showTooltip(e, 'frustum')}
-          onMouseLeave={hideTooltip}
-          aria-label="Tháp tầm nhìn Camera"
-        >
-          <IconCamera width={15} height={15} />
-        </button>
+        {/* Nhóm 3: Điều khiển Camera & Tầm nhìn (FOV, 360°, Điểm nhìn, Vị trí) */}
+        <div style={{ position: 'relative' }} ref={cameraRef}>
+          <button
+            type="button"
+            className={`layer-3d-dock-btn${isCameraOpen ? ' active' : ''}`}
+            onClick={() => {
+              setIsCameraOpen((v) => !v)
+              setIsAnglesOpen(false)
+              setIsDepthOpen(false)
+              hideTooltip()
+            }}
+            onMouseEnter={(e) => {
+              if (!isCameraOpen) showTooltip(e, 'camera')
+            }}
+            onMouseLeave={hideTooltip}
+            aria-label="Điều khiển Camera & Tầm nhìn 3D"
+          >
+            <IconCamera width={16} height={16} />
+          </button>
+
+          {isCameraOpen && (
+            <CameraControlPopover
+              cameraFov={cameraFov}
+              onChangeCameraFov={onChangeCameraFov}
+              cameraYaw={cameraYaw}
+              onChangeCameraYaw={onChangeCameraYaw}
+              cameraPitch={cameraPitch}
+              onChangeCameraPitch={onChangeCameraPitch}
+              camDistance={camDistance}
+              onChangeCamDistance={onChangeCamDistance}
+              cameraTarget={cameraTarget}
+              onChangeCameraTarget={onChangeCameraTarget}
+              cameraPosition={cameraPosition}
+              onApplyQuickAngle={onApplyQuickAngle}
+              onFitFramingDistance={onFitFramingDistance}
+              onFocusAll={onFocusAll}
+              onAimAtSelectedLayer={onAimAtSelectedLayer}
+              selectedLayerName={selectedLayerName}
+              showFrustum={showFrustum}
+              onToggleFrustum={onToggleFrustum}
+              clipToCamera={clipToCamera}
+              onToggleClipToCamera={onToggleClipToCamera}
+              onClose={() => setIsCameraOpen(false)}
+            />
+          )}
+        </div>
 
         <button
           type="button"

@@ -8,7 +8,7 @@ import { useWorkshopPlayback } from './useWorkshopPlayback'
 import { useWorkshopSave } from './useWorkshopSave'
 import { useWorkshopShortcuts } from './useWorkshopShortcuts'
 import { WorkshopTools } from './WorkshopTools'
-import { WorkshopHeader, WorkshopFrameControls } from './WorkshopHeader'
+import { WorkshopHeader } from './WorkshopHeader'
 import { WorkshopWorkspace } from './WorkshopWorkspace'
 import '../../styles/layerAssembly.css'
 import '../../styles/layerWorkshopTools.css'
@@ -37,13 +37,24 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
     <div className="layer-workshop-dialog" role="dialog" aria-modal="true" aria-label="Xưởng Lắp Ráp Layer" onPointerDownCapture={() => history.begin()}>
       <WorkshopHeader composite={composite} setComposite={setComposite} view={view} setView={setView}
         busy={saving.busy} save={() => void saving.save()} insert={() => void saving.insert()} close={close} />
-      <WorkshopTools count={state.selection.length} total={composite.layers.length} canUndo={history.canUndo} canRedo={history.canRedo}
-        undo={undo} redo={redo} selectAll={() => state.setIds(composite.layers.map((l) => l.id))} clear={() => state.select(null)} run={state.run} />
+      <WorkshopTools
+        count={state.selection.length}
+        total={composite.layers.length}
+        canUndo={history.canUndo}
+        canRedo={history.canRedo}
+        undo={undo}
+        redo={redo}
+        selectAll={() => state.setIds(composite.layers.map((l) => l.id))}
+        clear={() => state.select(null)}
+        run={state.run}
+        composite={composite}
+        setComposite={setComposite}
+        estimate={() => state.run('estimate-frame', undefined, composite.layers.map((l) => l.id))}
+      />
       {saving.error && <div className="lw-error" role="alert">{saving.error}</div>}
       <div className="layer-workshop-body">
         <LayerAssemblySidebar onAddLayerFromAsset={state.add} onAppendPresetLayers={state.append} />
         <div className="lw-workspace-column">
-          <WorkshopFrameControls composite={composite} setComposite={setComposite} estimate={() => state.run('estimate-frame', undefined, composite.layers.map((l) => l.id))} />
           <WorkshopWorkspace state={state} playback={playback} view={view} />
         </div>
         <LayerAssemblyInspector composite={composite} selectedLayerId={state.selectedLayerId} selectedIds={state.selection}
