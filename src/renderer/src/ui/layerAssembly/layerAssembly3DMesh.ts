@@ -194,12 +194,21 @@ export function createAnchorDot(): THREE.Mesh {
   return new THREE.Mesh(geom, mat)
 }
 
+function getTextureDimensions(texture: THREE.Texture | null): { width: number; height: number } | null {
+  const img = texture?.image as { width?: number; height?: number } | undefined
+  if (img && typeof img.width === 'number' && typeof img.height === 'number' && img.width > 0 && img.height > 0) {
+    return { width: img.width, height: img.height }
+  }
+  return null
+}
+
 /**
  * Tính toán kích thước w, h vừa vặn bảo toàn tỉ lệ ảnh (Aspect Ratio)
  */
 function computePlaneDimensions(texture: THREE.Texture | null, maxDim = 380): { w: number; h: number } {
-  if (texture && texture.image && texture.image.width && texture.image.height) {
-    const aspect = texture.image.width / texture.image.height
+  const dims = getTextureDimensions(texture)
+  if (dims) {
+    const aspect = dims.width / dims.height
     if (aspect >= 1) {
       return { w: maxDim, h: Math.round(maxDim / aspect) }
     }
@@ -221,7 +230,7 @@ export function createLayer3DInstance(
 
   const texture = textureUrl
     ? getOrCreateLayerTexture(textureUrl, () => {
-        if (texture && texture.image && texture.image.width && texture.image.height) {
+        if (getTextureDimensions(texture)) {
           const { w, h } = computePlaneDimensions(texture)
           mesh.geometry.dispose()
           mesh.geometry = new THREE.PlaneGeometry(w, h)
@@ -291,7 +300,7 @@ export function updateLayerInstanceTexture(
   }
 
   const texture = getOrCreateLayerTexture(textureUrl, () => {
-    if (texture && texture.image && texture.image.width && texture.image.height) {
+    if (getTextureDimensions(texture)) {
       const { w, h } = computePlaneDimensions(texture)
       inst.mesh.geometry.dispose()
       inst.mesh.geometry = new THREE.PlaneGeometry(w, h)
@@ -308,7 +317,7 @@ export function updateLayerInstanceTexture(
     inst.material.map = texture
     inst.material.color.setHex(0xffffff)
     inst.material.needsUpdate = true
-    if (texture.image && texture.image.width && texture.image.height) {
+    if (getTextureDimensions(texture)) {
       const { w, h } = computePlaneDimensions(texture)
       inst.mesh.geometry.dispose()
       inst.mesh.geometry = new THREE.PlaneGeometry(w, h)
