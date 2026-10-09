@@ -1,0 +1,253 @@
+/* ==========================================================================
+   Layer Assembly Workshop & Composite Studio Styles (Dual-Theme Standard)
+   ========================================================================== */
+
+/* 1. Left Panel List View */
+.layer-assembly-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
+  height: 100%;
+  background: var(--bg-1);
+  overflow: hidden;
+}
+
+.layer-assembly-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line-soft);
+  flex-shrink: 0;
+}
+
+.layer-assembly-search {
+  flex: 1;
+}
+
+.layer-assembly-create-btn {
+  background: var(--accent);
+  color: var(--on-accent, #ffffff);
+  border: none;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 11.5px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.layer-assembly-create-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.layer-assembly-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  padding: 12px;
+  overflow-y: auto;
+  flex: 1 1 0%;
+}
+
+.layer-assembly-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.layer-assembly-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.layer-assembly-card-thumb {
+  position: relative;
+  width: 100%;
+  height: 110px;
+  background: var(--bg-0);
+  background-image:
+    linear-gradient(45deg, var(--bg-1) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--bg-1) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--bg-1) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--bg-1) 75%);
+  background-size: 12px 12px;
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.layer-assembly-badge-stack {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  z-index: 5;
+}
+
+.layer-assembly-badge {
+  background: color-mix(in srgb, var(--accent) 85%, transparent);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+
+.layer-assembly-count-badge {
+  background: rgba(0, 0, 0, 0.65);
+  color: var(--text);
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  backdrop-filter: blur(4px);
+}
+
+.layer-assembly-actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0;
+  transform: translateX(4px);
+  transition: all 0.15s ease;
+  z-index: 6;
+}
+
+.layer-assembly-card:hover .layer-assembly-actions {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.layer-assembly-card-body {
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg-2);
+}
+
+.layer-assembly-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.layer-assembly-desc {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 2. Fullscreen Workshop Modal */
+.layer-workshop-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg-0);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+}
+
+.layer-workshop-header {
+  height: 44px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.layer-workshop-body {
+  flex: 1 1 0%;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Left Sidebar: Assets & Presets */
+.layer-workshop-sidebar {
+  width: 260px;
+  background: var(--bg-2);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+/* Center: 2.5D Layer Canvas Viewport */
+.layer-workshop-viewport {
+  flex: 1 1 0%;
+  position: relative;
+  background: var(--bg-0);
+  background-image:
+    linear-gradient(45deg, var(--bg-1) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--bg-1) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--bg-1) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--bg-1) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Right Sidebar: Hierarchy & Animation Inspector */
+.layer-workshop-inspector {
+  width: 300px;
+  background: var(--bg-2);
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+/* Motion Sway Animations */
+@keyframes layerSwayMotion {
+  0% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+  100% { transform: rotate(-5deg); }
+}
+
+@keyframes layerBreatheMotion {
+  0% { transform: scale(0.96); }
+  50% { transform: scale(1.04); }
+  100% { transform: scale(0.96); }
+}
+
+@keyframes layerFloatMotion {
+  0% { transform: translateY(-8px); }
+  50% { transform: translateY(8px); }
+  100% { transform: translateY(-8px); }
+}

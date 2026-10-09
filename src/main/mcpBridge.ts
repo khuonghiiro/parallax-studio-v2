@@ -350,10 +350,12 @@ export class McpBridge {
     if (method === 'get_app_screenshot') {
       const win = this.getWindow()
       if (!win || win.isDestroyed()) throw new Error('App window is not open')
+      if (win.isMinimized()) win.restore()
+      win.showInactive()
       const width = typeof params.width === 'number' ? params.width : undefined
       const format = params.format === 'jpeg' ? 'jpeg' : 'png'
-      const delay = Math.max(0, Math.min(5000, Number(params.delay_ms) || 0))
-      if (delay > 0) await new Promise((r) => setTimeout(r, delay))
+      const delay = Math.max(50, Math.min(5000, Number(params.delay_ms) || 100))
+      await new Promise((r) => setTimeout(r, delay))
       const res = await captureWebContents(win.webContents, { width, format })
       return { ...res, target: 'app-window' }
     }

@@ -3,23 +3,32 @@ import { assetStore } from '../project/assets'
 import { useEditor } from '../store/editor'
 import { useView } from '../store/view'
 import { AssetPanel } from './assets/AssetPanel'
-import { IconFilm, IconFolder, IconRoute } from './icons'
+import { IconFilm, IconFolder, IconLayers, IconRoute } from './icons'
 import { ShotsPanel } from './ShotsPanel'
 import { TopView, useFocusShotId } from './TopView'
+import { LayerAssemblyList } from './layerAssembly/LayerAssemblyList'
+import { getStoredComposites } from './layerAssembly/layerAssemblyStorage'
 
-type LeftTab = 'shots' | 'assets' | 'topview'
+type LeftTab = 'shots' | 'assets' | 'composite' | 'topview'
 
 export function LeftPanel() {
   const assets = useEditor((s) => s.project.assets)
   const shots = useEditor((s) => s.project.shots)
   const [, force] = useReducer((x: number) => x + 1, 0)
   const [tab, setTab] = useState<LeftTab>(() => (localStorage.getItem('pxs.leftTab') as LeftTab) || 'shots')
+  const [compositeCount, setCompositeCount] = useState<number>(() => getStoredComposites().length)
   const topViewMode = useView((s) => s.topViewMode)
   const focusShotId = useFocusShotId()
   const focusShot = shots.find((s) => s.id === focusShotId)
 
   useEffect(() => assetStore.subscribe(force), [])
   useEffect(() => localStorage.setItem('pxs.leftTab', tab), [tab])
+
+  useEffect(() => {
+    const handleCompChange = () => setCompositeCount(getStoredComposites().length)
+    window.addEventListener('layerComposites:changed', handleCompChange)
+    return () => window.removeEventListener('layerComposites:changed', handleCompChange)
+  }, [])
 
   const handleExpandToViewer = () => {
     useView.getState().set({ primary: 'topview' })
@@ -48,6 +57,15 @@ export function LeftPanel() {
             <IconFolder width={12} height={12} /> Tài nguyên {assets.length > 0 && <span className="tab-count">{assets.length}</span>}
           </button>
           <button
+            id="tab-composite"
+            type="button"
+            className={`tab${tab === 'composite' ? ' active' : ''}`}
+            onClick={() => setTab('composite')}
+            title="Xưởng lắp ráp layer & hoạt ảnh chi tiết xếp chồng (Cây cối, Đạo cụ, Nhân vật)"
+          >
+            <IconLayers width={12} height={12} /> Lắp ráp {compositeCount > 0 && <span className="tab-count">{compositeCount}</span>}
+          </button>
+          <button
             id="tab-topview"
             type="button"
             className={`tab${tab === 'topview' ? ' active' : ''}`}
@@ -66,6 +84,10 @@ export function LeftPanel() {
 
         {tab === 'assets' && (
           <AssetPanel />
+        )}
+
+        {tab === 'composite' && (
+          <LayerAssemblyList />
         )}
 
         {tab === 'topview' && (
