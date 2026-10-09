@@ -7,9 +7,12 @@ import {
   IconCamera,
   IconFit,
   IconAxisMove,
-  IconAxisRotate
+  IconAxisRotate,
+  IconSun
 } from '../icons'
 import { CameraControlPopover } from './CameraControlPopover'
+import { LightingControlPopover } from './LightingControlPopover'
+import type { AssemblyLighting } from '../assets/models3d/types'
 
 export interface LayerAssembly3DToolbarProps {
   cameraPreset: 'orbit' | 'top' | 'side' | 'front'
@@ -42,6 +45,8 @@ export interface LayerAssembly3DToolbarProps {
   cameraPosition: { x: number; y: number; z: number }
   onAimAtSelectedLayer?: () => void
   selectedLayerName?: string | null
+  lighting: AssemblyLighting
+  onChangeLighting: (lighting: AssemblyLighting) => void
 }
 
 interface TooltipInfo {
@@ -120,6 +125,19 @@ function IconDepthRuler() {
   )
 }
 
+// Icon Tháp tầm nhìn (Camera Frustum Pyramid)
+function IconFrustum() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="5" y="4" width="14" height="9" rx="1.5" fill="currentColor" fillOpacity="0.2" />
+      <circle cx="12" cy="20" r="1.5" fill="currentColor" />
+      <line x1="12" y1="19" x2="5" y2="13" />
+      <line x1="12" y1="19" x2="19" y2="13" />
+      <line x1="12" y1="19" x2="12" y2="13" strokeDasharray="1.5 2" />
+    </svg>
+  )
+}
+
 export function LayerAssembly3DToolbar({
   cameraPreset,
   onApplyPreset,
@@ -150,20 +168,24 @@ export function LayerAssembly3DToolbar({
   onChangeCameraTarget,
   cameraPosition,
   onAimAtSelectedLayer,
-  selectedLayerName
+  selectedLayerName,
+  lighting,
+  onChangeLighting
 }: LayerAssembly3DToolbarProps) {
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null)
   const [isAnglesOpen, setIsAnglesOpen] = useState(false)
   const [isDepthOpen, setIsDepthOpen] = useState(false)
   const [isCameraOpen, setIsCameraOpen] = useState(false)
+  const [isLightingOpen, setIsLightingOpen] = useState(false)
 
   const anglesRef = useRef<HTMLDivElement>(null)
   const depthRef = useRef<HTMLDivElement>(null)
   const cameraRef = useRef<HTMLDivElement>(null)
+  const lightingRef = useRef<HTMLDivElement>(null)
 
   // Đóng popover an toàn khi click ra ngoài hoặc bấm phím Escape
   useEffect(() => {
-    if (!isAnglesOpen && !isDepthOpen && !isCameraOpen) return
+    if (!isAnglesOpen && !isDepthOpen && !isCameraOpen && !isLightingOpen) return
 
     const handlePointerDown = (e: PointerEvent): void => {
       const target = e.target as HTMLElement | null
@@ -181,9 +203,13 @@ export function LayerAssembly3DToolbar({
       if (cameraRef.current && cameraRef.current.contains(target as Node)) {
         return
       }
+      if (lightingRef.current && lightingRef.current.contains(target as Node)) {
+        return
+      }
       setIsAnglesOpen(false)
       setIsDepthOpen(false)
       setIsCameraOpen(false)
+      setIsLightingOpen(false)
     }
 
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -191,6 +217,7 @@ export function LayerAssembly3DToolbar({
         setIsAnglesOpen(false)
         setIsDepthOpen(false)
         setIsCameraOpen(false)
+        setIsLightingOpen(false)
       }
     }
 
@@ -203,12 +230,22 @@ export function LayerAssembly3DToolbar({
   }, [isAnglesOpen, isDepthOpen, isCameraOpen])
 
   const showTooltip = (e: React.MouseEvent<HTMLElement>, key: string) => {
-    if (isAnglesOpen || isDepthOpen || isCameraOpen) return
+    if (isAnglesOpen || isDepthOpen || isCameraOpen || isLightingOpen) return
     const rect = e.currentTarget.getBoundingClientRect()
 
     let def: Omit<TooltipInfo, 'top' | 'right'> | null = null
 
     switch (key) {
+      case 'lighting':
+        def = {
+          title: 'Hướng sáng & Đổ bóng 3D',
+          tag: lighting.sun ? (lighting.shadows ? 'Nắng & Bóng' : 'Nắng') : 'Studio',
+          tagType: lighting.sun ? (lighting.preset === 'night' ? 'cyan' : 'amber') : 'green',
+          sub: lighting.preset === 'night' ? '🌙 Đêm trăng' : (lighting.preset === 'sunset' ? '🌇 Hoàng hôn' : '☀️ Ban ngày'),
+          desc: 'Tùy chỉnh thời điểm ngày / đêm, góc hướng nắng và bóng đổ giữa các layer xếp chồng.',
+          tip: '💡 Bấm để chỉnh hướng sáng & bóng đổ'
+        }
+        break
       case 'orbit':
         def = {
           title: 'Góc nhìn phối cảnh tự do',
@@ -496,6 +533,7 @@ export function LayerAssembly3DToolbar({
               setIsCameraOpen((v) => !v)
               setIsAnglesOpen(false)
               setIsDepthOpen(false)
+              setIsLightingOpen(false)
               hideTooltip()
             }}
             onMouseEnter={(e) => {
@@ -507,6 +545,20 @@ export function LayerAssembly3DToolbar({
             <IconCamera width={16} height={16} />
           </button>
         </div>
+
+        <button
+          type="button"
+          className={`layer-3d-dock-btn${showFrustum ? ' active' : ''}`}
+          onClick={() => {
+            onToggleFrustum()
+            hideTooltip()
+          }}
+          onMouseEnter={(e) => showTooltip(e, 'frustum')}
+          onMouseLeave={hideTooltip}
+          aria-label="Bật/Tắt tháp tầm nhìn Camera"
+        >
+          <IconFrustum />
+        </button>
 
         <button
           type="button"
@@ -576,6 +628,7 @@ export function LayerAssembly3DToolbar({
               setIsDepthOpen((v) => !v)
               setIsAnglesOpen(false)
               setIsCameraOpen(false)
+              setIsLightingOpen(false)
               hideTooltip()
             }}
             onMouseEnter={(e) => {
@@ -585,6 +638,28 @@ export function LayerAssembly3DToolbar({
             aria-label="Khoảng cách & Độ sâu 3D"
           >
             <IconDepthRuler />
+          </button>
+        </div>
+
+        {/* Nút Hướng sáng & Đổ bóng ngày/đêm */}
+        <div style={{ position: 'relative' }} ref={lightingRef}>
+          <button
+            type="button"
+            className={`layer-3d-dock-btn${isLightingOpen ? ' active' : ''}`}
+            onClick={() => {
+              setIsLightingOpen((v) => !v)
+              setIsAnglesOpen(false)
+              setIsCameraOpen(false)
+              setIsDepthOpen(false)
+              hideTooltip()
+            }}
+            onMouseEnter={(e) => {
+              if (!isLightingOpen) showTooltip(e, 'lighting')
+            }}
+            onMouseLeave={hideTooltip}
+            aria-label="Hướng sáng & Đổ bóng ngày/đêm 3D"
+          >
+            <IconSun width={15} height={15} />
           </button>
         </div>
       </aside>
@@ -750,6 +825,22 @@ export function LayerAssembly3DToolbar({
               </button>
             </div>
           </div>,
+          document.body
+        )}
+
+      {/* Popover Hướng sáng & Đổ bóng ngày/đêm (Portal ra document.body) */}
+      {isLightingOpen &&
+        createPortal(
+          <LightingControlPopover
+            style={{
+              left: getPopoverCoords(lightingRef, 285, 460).left,
+              top: getPopoverCoords(lightingRef, 285, 460).top,
+              zIndex: 30000
+            }}
+            lighting={lighting}
+            onChangeLighting={onChangeLighting}
+            onClose={() => setIsLightingOpen(false)}
+          />,
           document.body
         )}
 

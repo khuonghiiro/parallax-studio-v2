@@ -5,7 +5,7 @@ import { depthEuler } from '../../engine/spatial'
 export interface Layer3DMeshInstance {
   group: THREE.Group
   mesh: THREE.Mesh
-  material: THREE.MeshBasicMaterial
+  material: THREE.MeshLambertMaterial
   outline: THREE.LineSegments
   anchorDot: THREE.Mesh
   layerId: string
@@ -245,7 +245,7 @@ export function createLayer3DInstance(
   const geom = new THREE.PlaneGeometry(w, h)
 
   const opacity = Math.max(0, Math.min(1, layer.opacity ?? 1))
-  const material = new THREE.MeshBasicMaterial({
+  const material = new THREE.MeshLambertMaterial({
     map: texture,
     color: texture ? 0xffffff : 0x4a5568,
     transparent: true,
@@ -258,6 +258,16 @@ export function createLayer3DInstance(
   const mesh = new THREE.Mesh(geom, material)
   mesh.name = `layer-mesh-${layer.id}`
   mesh.userData = { layerId: layer.id }
+  mesh.castShadow = true
+  mesh.receiveShadow = true
+
+  if (texture) {
+    mesh.customDepthMaterial = new THREE.MeshDepthMaterial({
+      depthPacking: THREE.RGBADepthPacking,
+      map: texture,
+      alphaTest: 0.1
+    })
+  }
 
   const outline = createRectOutline(w + 4, h + 4, 0x38bdf8)
   outline.visible = false
@@ -295,6 +305,7 @@ export function updateLayerInstanceTexture(
     inst.material.map = null
     inst.material.color.setHex(0x4a5568)
     inst.material.needsUpdate = true
+    inst.mesh.customDepthMaterial = undefined
     onRequestRender()
     return
   }
@@ -310,6 +321,11 @@ export function updateLayerInstanceTexture(
     inst.material.map = texture
     inst.material.color.setHex(0xffffff)
     inst.material.needsUpdate = true
+    inst.mesh.customDepthMaterial = new THREE.MeshDepthMaterial({
+      depthPacking: THREE.RGBADepthPacking,
+      map: texture,
+      alphaTest: 0.1
+    })
     onRequestRender()
   })
 
@@ -317,6 +333,11 @@ export function updateLayerInstanceTexture(
     inst.material.map = texture
     inst.material.color.setHex(0xffffff)
     inst.material.needsUpdate = true
+    inst.mesh.customDepthMaterial = new THREE.MeshDepthMaterial({
+      depthPacking: THREE.RGBADepthPacking,
+      map: texture,
+      alphaTest: 0.1
+    })
     if (getTextureDimensions(texture)) {
       const { w, h } = computePlaneDimensions(texture)
       inst.mesh.geometry.dispose()

@@ -19,7 +19,7 @@ export function WorkshopWorkspace({ state, playback, view }: {
       </div>}
       {view !== '2d' && <div className="layer-workshop-split-pane">
         <div className="pane-header-tab"><span className="pane-title"><IconCube width={13} height={13} /> Chiều sâu 3D</span><span>Xoay để kiểm tra lớp</span></div>
-        <LayerAssembly3DViewport {...props} />
+        <LayerAssembly3DViewport {...props} onChangeComposite={state.setComposite} />
       </div>}
       <LayerAssemblyTransportBar isPlaying={playback.isPlaying} onTogglePlay={playback.toggle} time={playback.time} onSeekTime={playback.setTime} />
     </div>

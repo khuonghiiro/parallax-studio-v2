@@ -19,6 +19,20 @@ import { LayerAssembly3DToolbar } from './LayerAssembly3DToolbar'
 import { LayerAssemblyGizmo } from './LayerAssemblyGizmo'
 import { useView } from '../../store/view'
 import type { GizmoRect } from '../../engine/layerGizmo'
+import {
+  createLightRig,
+  applyLightRig,
+  disposeLightRig,
+  type SceneLightRig,
+  type RigBounds
+} from '../assets/models3d/assemblySceneLighting'
+import {
+  resolveLightRig,
+  resolveSkyAtmosphere,
+  normalizeLighting,
+  DEFAULT_LIGHTING
+} from '../assets/models3d/assemblyLighting'
+import type { AssemblyLighting } from '../assets/models3d/types'
 
 export interface LayerAssembly3DViewportProps {
   composite: LayerComposite
@@ -26,6 +40,7 @@ export interface LayerAssembly3DViewportProps {
   selectedIds?: string[]
   onSelectLayer: (id: string | null, additive?: boolean) => void
   onUpdateLayer?: (id: string, patch: Partial<AssembledLayerItem>) => void
+  onChangeComposite?: (update: LayerComposite | ((prev: LayerComposite) => LayerComposite)) => void
   time: number
 }
 
@@ -37,6 +52,7 @@ export function LayerAssembly3DViewport({
   selectedIds,
   onSelectLayer,
   onUpdateLayer,
+  onChangeComposite,
   time
 }: LayerAssembly3DViewportProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -46,6 +62,7 @@ export function LayerAssembly3DViewport({
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
+  const lightRigRef = useRef<SceneLightRig | null>(null)
   const layersGroupRef = useRef<THREE.Group | null>(null)
   const helpersGroupRef = useRef<THREE.Group | null>(null)
   const canvasBoxRef = useRef<THREE.Group | null>(null)
@@ -80,6 +97,30 @@ export function LayerAssembly3DViewport({
 
   const theme = useView((s) => s.theme)
   const isLight = theme === 'light'
+
+  // Trạng thái Hướng sáng Ngày/Đêm & Đổ bóng 3D
+  const [lighting, setLighting] = useState<AssemblyLighting>(() =>
+    normalizeLighting(composite.lighting || DEFAULT_LIGHTING)
+  )
+
+  useEffect(() => {
+    if (composite.lighting) {
+      setLighting(normalizeLighting(composite.lighting))
+    }
+  }, [composite.lighting])
+
+  const handleUpdateLighting = useCallback(
+    (newLighting: AssemblyLighting) => {
+      setLighting(newLighting)
+      if (onChangeComposite) {
+        onChangeComposite((prev) => ({
+          ...prev,
+          lighting: newLighting
+        }))
+      }
+    },
+    [onChangeComposite]
+  )
 
   const [camDistance, setCamDistance] = useState(initialFitDist)
   const [zExaggeration, setZExaggeration] = useState(1.8) // Độ tách lớp Z mặc định 1.8x
@@ -146,15 +187,13 @@ export function LayerAssembly3DViewport({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
     renderer.setSize(width, height)
     renderer.outputColorSpace = THREE.SRGBColorSpace
+    renderer.shadowMap.enabled = true
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap
     rendererRef.current = renderer
 
-    // Lights
-    const ambient = new THREE.AmbientLight(0xffffff, 1.4)
-    scene.add(ambient)
-
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6)
-    dirLight.position.set(400, 800, 600)
-    scene.add(dirLight)
+    // Light Rig (Hệ thống chiếu sáng ngày/đêm và đổ bóng soft shadow)
+    const lightRig = createLightRig(scene)
+    lightRigRef.current = lightRig
 
     // Layers Root Group
     const layersGroup = new THREE.Group()
@@ -284,6 +323,10 @@ export function LayerAssembly3DViewport({
         disposeCanvasPlaneHelper(canvasBoxRef.current)
         canvasBoxRef.current = null
       }
+      if (lightRigRef.current) {
+        disposeLightRig(lightRigRef.current)
+        lightRigRef.current = null
+      }
       if (targetMarkerRef.current) {
         scene.remove(targetMarkerRef.current)
         targetMarkerRef.current = null
@@ -291,6 +334,20 @@ export function LayerAssembly3DViewport({
       meshInstancesRef.current.clear()
     }
   }, [])
+
+  // ------------------------------------------------------------- Cập nhật Hướng sáng Ngày/Đêm & Đổ bóng 3D
+  useEffect(() => {
+    if (!lightRigRef.current) return
+    const spec = resolveLightRig(lighting)
+    const bounds: RigBounds = {
+      center: new THREE.Vector3(0, 0, 0),
+      radius: Math.max(composite.width, composite.height, 400) * 0.9,
+      minY: -composite.height / 2
+    }
+    applyLightRig(lightRigRef.current, spec, bounds)
+  }, [lighting, composite.width, composite.height])
+
+  const sky = useMemo(() => resolveSkyAtmosphere(lighting, isLight), [lighting, isLight])
 
   // ------------------------------------------------------------- 2. Cập nhật khung tham chiếu Canvas & Frustum
   useEffect(() => {
@@ -724,7 +781,8 @@ export function LayerAssembly3DViewport({
         flex: '1 1 0%',
         minWidth: 0,
         height: '100%',
-        background: 'var(--bg-0)',
+        background: sky.background,
+        transition: 'background 0.35s ease',
         overflow: 'hidden',
         userSelect: 'none'
       }}
@@ -804,6 +862,8 @@ export function LayerAssembly3DViewport({
         cameraPosition={cameraPosition}
         onAimAtSelectedLayer={handleAimAtSelectedLayer}
         selectedLayerName={selectedLayer ? selectedLayer.name : null}
+        lighting={lighting}
+        onChangeLighting={handleUpdateLighting}
       />
 
       {/* Floating Bottom Right Hint - góc phải thoáng đãng, không đè lên Transport Bar */}

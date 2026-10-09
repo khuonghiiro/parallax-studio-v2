@@ -27,6 +27,9 @@ export interface AssembledLayerItem {
   motion: LayerMotionSettings
 }
 
+import type { AssemblyLighting } from '../assets/models3d/types'
+export type { AssemblyLighting }
+
 export interface LayerComposite {
   id: string
   name: string
@@ -36,6 +39,7 @@ export interface LayerComposite {
   width: number
   height: number
   layers: AssembledLayerItem[]
+  lighting?: AssemblyLighting
   createdAt?: number
   updatedAt?: number
 }
