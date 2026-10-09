@@ -62,7 +62,7 @@ export async function insertLayerCompositeToScene({
     newLayer.shotId = shotId
     newLayer.transform.position.value = [posX, posY, posZ]
     newLayer.transform.scale.value = [item.scale * globalScale, item.scale * globalScale, 1]
-    newLayer.transform.rotation.value = [0, 0, item.rotation]
+    newLayer.transform.rotation.value = [item.rotationX || 0, item.rotationY || 0, item.rotation || 0]
     newLayer.transform.opacity.value = item.opacity
 
     // Gắn thông số hoạt ảnh lắc lư/đung đưa (motion) chuẩn 2.5D

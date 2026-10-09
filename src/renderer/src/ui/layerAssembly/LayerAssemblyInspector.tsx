@@ -355,28 +355,62 @@ export function LayerAssemblyInspector({
               </div>
             </div>
 
-            {/* Scale & Rotation */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-              <div>
-                <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Tỉ lệ (Scale):</span>
-                <input
-                  type="number"
-                  step="0.05"
-                  min="0.1"
-                  max="5"
-                  className="input-text sm"
-                  value={selectedLayer.scale}
-                  onChange={(e) => onUpdateLayer(selectedLayer.id, { scale: Number(e.target.value) })}
-                />
+            {/* Scale */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Tỉ lệ (Scale):</span>
+              <input
+                type="number"
+                step="0.05"
+                min="0.1"
+                max="5"
+                className="input-text sm"
+                value={selectedLayer.scale}
+                onChange={(e) => onUpdateLayer(selectedLayer.id, { scale: Number(e.target.value) })}
+              />
+            </div>
+
+            {/* Góc xoay 3D: X, Y, Z */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '10px', color: 'var(--text-dim)', fontWeight: 600 }}>Góc xoay 3D (°):</span>
+                <button
+                  type="button"
+                  className="btn xs"
+                  onClick={() => onUpdateLayer(selectedLayer.id, { rotation: 0, rotationX: 0, rotationY: 0 })}
+                  title="Đặt lại góc xoay về 0°"
+                  style={{ fontSize: '9px', padding: '1px 5px' }}
+                >
+                  Reset (0°)
+                </button>
               </div>
-              <div>
-                <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Góc xoay (°):</span>
-                <input
-                  type="number"
-                  className="input-text sm"
-                  value={selectedLayer.rotation}
-                  onChange={(e) => onUpdateLayer(selectedLayer.id, { rotation: Number(e.target.value) })}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '5px' }}>
+                <div>
+                  <span style={{ fontSize: '9.5px', color: 'var(--axis-x, #f87171)' }}>X (Nghiêng):</span>
+                  <input
+                    type="number"
+                    className="input-text sm"
+                    value={selectedLayer.rotationX || 0}
+                    onChange={(e) => onUpdateLayer(selectedLayer.id, { rotationX: Number(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <span style={{ fontSize: '9.5px', color: 'var(--axis-y, #4ade80)' }}>Y (Lắc):</span>
+                  <input
+                    type="number"
+                    className="input-text sm"
+                    value={selectedLayer.rotationY || 0}
+                    onChange={(e) => onUpdateLayer(selectedLayer.id, { rotationY: Number(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <span style={{ fontSize: '9.5px', color: 'var(--axis-z, #60a5fa)' }}>Z (Xoay):</span>
+                  <input
+                    type="number"
+                    className="input-text sm"
+                    value={selectedLayer.rotation}
+                    onChange={(e) => onUpdateLayer(selectedLayer.id, { rotation: Number(e.target.value) })}
+                  />
+                </div>
               </div>
             </div>
 

@@ -114,7 +114,7 @@ describe('layerAssemblyGizmoDrag', () => {
     expect(typeof lastPatch.x).toBe('number')
   })
 
-  it('rotates layer around Z axis', () => {
+  it('rotates layer around Z axis (Roll)', () => {
     const { context, onUpdateLayer } = createTestContext({ rotation: 0 })
     const startEvent = mockPointerEvent(450, 200)
     startLayerAssemblyGizmoDrag(startEvent, context, { kind: 'rotate', axis: 2 })
@@ -123,6 +123,28 @@ describe('layerAssemblyGizmoDrag', () => {
     expect(onUpdateLayer).toHaveBeenCalled()
     const lastPatch = onUpdateLayer.mock.calls.at(-1)?.[1]
     expect(lastPatch).toHaveProperty('rotation')
+  })
+
+  it('rotates layer around X axis (Pitch)', () => {
+    const { context, onUpdateLayer } = createTestContext({ rotationX: 0 })
+    const startEvent = mockPointerEvent(400, 250)
+    startLayerAssemblyGizmoDrag(startEvent, context, { kind: 'rotate', axis: 0 })
+
+    fire({ type: 'pointermove', pointerId: 1, clientX: 400, clientY: 280 })
+    expect(onUpdateLayer).toHaveBeenCalled()
+    const lastPatch = onUpdateLayer.mock.calls.at(-1)?.[1]
+    expect(lastPatch).toHaveProperty('rotationX')
+  })
+
+  it('rotates layer around Y axis (Yaw)', () => {
+    const { context, onUpdateLayer } = createTestContext({ rotationY: 0 })
+    const startEvent = mockPointerEvent(450, 300)
+    startLayerAssemblyGizmoDrag(startEvent, context, { kind: 'rotate', axis: 1 })
+
+    fire({ type: 'pointermove', pointerId: 1, clientX: 480, clientY: 300 })
+    expect(onUpdateLayer).toHaveBeenCalled()
+    const lastPatch = onUpdateLayer.mock.calls.at(-1)?.[1]
+    expect(lastPatch).toHaveProperty('rotationY')
   })
 
   it('scales layer via bounding box handles', () => {

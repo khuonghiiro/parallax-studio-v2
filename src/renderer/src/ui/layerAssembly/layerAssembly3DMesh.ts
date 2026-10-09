@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import type { AssembledLayerItem, LayerMotionSettings } from './types'
+import { depthEuler } from '../../engine/spatial'
 
 export interface Layer3DMeshInstance {
   group: THREE.Group
@@ -295,9 +296,14 @@ export function updateLayer3DInstance(
 
   group.position.set(posX, posY, posZ)
 
-  // 4. Xoay và Scale
-  const baseRotRad = (-layer.rotation * Math.PI) / 180
-  group.rotation.set(0, 0, baseRotRad + motion.animRotateRad)
+  // 4. Xoay 3D (X, Y, Z) và Scale
+  const euler = depthEuler([
+    layer.rotationX || 0,
+    layer.rotationY || 0,
+    layer.rotation || 0
+  ])
+  euler.z += motion.animRotateRad
+  group.rotation.copy(euler)
 
   const scaleX = layer.scale * motion.animScaleX
   const scaleY = layer.scale * motion.animScaleY

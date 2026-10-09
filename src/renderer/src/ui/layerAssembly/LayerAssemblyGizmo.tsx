@@ -5,6 +5,8 @@ import type { Layer3DMeshInstance } from './layerAssembly3DMesh'
 import {
   BOX_HANDLES,
   projectPoint,
+  ringPoint,
+  rotationBasis,
   type GizmoRect
 } from '../../engine/layerGizmo'
 import {
@@ -28,8 +30,8 @@ export interface LayerAssemblyGizmoProps {
 
 /**
  * 3D Transform Gizmo cho layer được chọn trong Xưởng Lắp Ráp Layer:
- * - Trục di chuyển 3D XYZ (Mũi tên X đỏ, Y xanh lá, Z xanh dương)
- * - Vòng xoay góc quay (Rotation Ring)
+ * - 3 Trục di chuyển 3D XYZ (Mũi tên X đỏ, Y xanh lá, Z xanh dương)
+ * - 3 Vòng xoay góc quay theo 3 trục 3D (X đỏ: Pitch, Y xanh lá: Yaw, Z xanh dương: Roll)
  * - 8 điểm mút Bounding Box kéo giãn tỉ lệ (Scale handles)
  */
 export function LayerAssemblyGizmo({
@@ -93,15 +95,31 @@ export function LayerAssemblyGizmo({
   const pixel = projectPoint(unit, camera, rect)
   const radius = 54 / Math.max(0.001, Math.hypot(pixel[0] - center[0], pixel[1] - center[1]))
 
-  // 6. Dữ liệu các trục tọa độ 3D (X: đỏ, Y: xanh lá, Z: xanh dương)
-  const axisLength = radius * 1.55
+  // 6. Vector xoay 3D hiện tại [rotX, rotY, rotZ]
+  const currentRot: [number, number, number] = [
+    layer.rotationX || 0,
+    layer.rotationY || 0,
+    layer.rotation || 0
+  ]
+
+  // 7. Dữ liệu các trục tọa độ 3D và 3 vòng xoay (X: đỏ, Y: xanh lá, Z: xanh dương)
+  const parent = new THREE.Matrix4()
   const axesData = [0, 1, 2].map((axis) => {
-    const dir = new THREE.Vector3(
-      axis === 0 ? axisLength : 0,
-      axis === 1 ? axisLength : 0,
-      axis === 2 ? axisLength : 0
-    )
-    const endWorld = pivot.clone().add(dir)
+    const basis = rotationBasis(currentRot, axis, parent)
+    const points = Array.from({ length: 65 }, (_, i) => {
+      const angle = (i / 64) * Math.PI * 2
+      const ptWorld = ringPoint(axis, angle)
+        .transformDirection(basis)
+        .multiplyScalar(radius)
+        .add(pivot)
+      return projectPoint(ptWorld, camera, rect)
+    })
+    const direction = new THREE.Vector3(
+      axis === 0 ? 1 : 0,
+      axis === 1 ? 1 : 0,
+      axis === 2 ? -1 : 0
+    ).transformDirection(parent)
+    const endWorld = direction.multiplyScalar(radius * 1.6).add(pivot)
     const end = projectPoint(endWorld, camera, rect)
     const edgeOn = Math.hypot(end[0] - center[0], end[1] - center[1]) < 14
     if (edgeOn) {
@@ -109,17 +127,8 @@ export function LayerAssemblyGizmo({
       end[1] = center[1] + 32
     }
     const angleDeg = (Math.atan2(end[1] - center[1], end[0] - center[0]) * 180) / Math.PI
-    return { axis, end, edgeOn, angleDeg }
+    return { axis, points, end, edgeOn, angleDeg }
   })
-
-  // 7. Vòng xoay góc quay trong mặt phẳng layer (Normal Z ring)
-  const ringPoints = Array.from({ length: 65 }, (_, i) => {
-    const angle = (i / 64) * Math.PI * 2
-    const localPt = new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius, 0)
-    const worldPt = localPt.applyMatrix4(worldMatrix)
-    return projectPoint(worldPt, camera, rect)
-  })
-  const ringPointsStr = ringPoints.map((p) => p.join(',')).join(' ')
 
   function begin(e: React.PointerEvent, handle: LayerGizmoHandle): void {
     if (e.button !== 0 || !layer || !camera || !rect || !onUpdateLayer) return
@@ -178,29 +187,33 @@ export function LayerAssemblyGizmo({
         </>
       )}
 
-      {/* Vòng xoay góc (Rotation Ring) */}
-      {showRotate && (
-        <g className="gizmo-ring-group gizmo-axis-2">
-          <polyline
-            className="gizmo-ring-hit"
-            points={ringPointsStr}
-            onPointerDown={(e) => begin(e, { kind: 'rotate', axis: 2 })}
-          >
-            <title>Xoay góc layer · Shift: bước 15° · Esc: hủy</title>
-          </polyline>
-          <polyline className="gizmo-ring" points={ringPointsStr} />
-        </g>
-      )}
+      {/* 3 Trục tọa độ và 3 Vòng xoay góc 3D (X: đỏ, Y: xanh lá, Z: xanh dương) */}
+      {axesData.map(({ axis, points, end, edgeOn, angleDeg }) => {
+        const angleRad = (angleDeg * Math.PI) / 180
+        const badgeX = end[0] + Math.cos(angleRad) * 16
+        const badgeY = end[1] + Math.sin(angleRad) * 16
+        const pointsStr = points.map((p) => p.join(',')).join(' ')
+        const axisLetter = 'XYZ'[axis]
+        const rotLabel = ['Nghiêng (Pitch)', 'Lắc (Yaw)', 'Xoay (Roll)'][axis]
 
-      {/* 3 Trục di chuyển XYZ (Translate Axes: X đỏ, Y xanh lá, Z xanh dương) */}
-      {showTranslate &&
-        axesData.map(({ axis, end, edgeOn, angleDeg }) => {
-          const angleRad = (angleDeg * Math.PI) / 180
-          const badgeX = end[0] + Math.cos(angleRad) * 16
-          const badgeY = end[1] + Math.sin(angleRad) * 16
+        return (
+          <g key={`axis-${axis}`} className={`gizmo-axis gizmo-axis-${axis}`}>
+            {/* Vòng xoay góc 3D với vùng tương tác mở rộng 22px */}
+            {showRotate && (
+              <g className="gizmo-ring-group">
+                <polyline
+                  className="gizmo-ring-hit"
+                  points={pointsStr}
+                  onPointerDown={(e) => begin(e, { kind: 'rotate', axis })}
+                >
+                  <title>Xoay trục {axisLetter} ({rotLabel}) · Shift: bước 15° · Esc: hủy</title>
+                </polyline>
+                <polyline className="gizmo-ring" points={pointsStr} />
+              </g>
+            )}
 
-          return (
-            <g key={`axis-${axis}`} className={`gizmo-axis gizmo-axis-${axis}`}>
+            {/* Trục di chuyển tịnh tiến XYZ */}
+            {showTranslate && (
               <g
                 className="gizmo-translate"
                 onPointerDown={(e) => begin(e, { kind: 'translate', axis, edgeOn })}
@@ -227,7 +240,7 @@ export function LayerAssemblyGizmo({
                 <g className="gizmo-axis-badge" transform={`translate(${badgeX}, ${badgeY})`}>
                   <circle className="gizmo-badge-bg" r={9} />
                   <text className="gizmo-badge-text" textAnchor="middle" dominantBaseline="central">
-                    {'XYZ'[axis]}
+                    {axisLetter}
                   </text>
                 </g>
                 <title>
@@ -239,16 +252,17 @@ export function LayerAssemblyGizmo({
                   {' · Esc: hủy'}
                 </title>
               </g>
-            </g>
-          )
-        })}
+            )}
+          </g>
+        )
+      })}
 
       {/* Điểm tâm Pivot */}
       <circle className="gizmo-pivot" cx={center[0]} cy={center[1]} r={5} />
 
       {/* Thẻ hiển thị thông số tọa độ ngay dưới Gizmo */}
       <text className="gizmo-readout" x={center[0] + 12} y={center[1] + 68}>
-        X: {layer.x} · Y: {layer.y} · Z: {layer.z} · {Math.round(layer.rotation)}° · {Math.round(layer.scale * 100)}%
+        P: {layer.x}, {layer.y}, {layer.z} · R: {layer.rotationX || 0}°, {layer.rotationY || 0}°, {Math.round(layer.rotation)}° · S: {Math.round(layer.scale * 100)}%
       </text>
     </svg>
   )

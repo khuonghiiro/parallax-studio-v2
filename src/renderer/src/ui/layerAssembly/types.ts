@@ -18,7 +18,9 @@ export interface AssembledLayerItem {
   y: number // Offset dọc tính từ tâm cụm
   z: number // Độ sâu thứ tự layer: Z càng lớn thì càng ở xa phía sau, Z càng nhỏ càng ở phía trước
   scale: number // Tỉ lệ phóng to thu nhỏ (chuẩn 1.0)
-  rotation: number // Góc xoay độ (độ)
+  rotation: number // Góc xoay trục Z (Roll) tính bằng độ (độ)
+  rotationX?: number // Góc xoay trục X (Pitch) tính bằng độ (độ)
+  rotationY?: number // Góc xoay trục Y (Yaw) tính bằng độ (độ)
   opacity: number // Độ trong suốt 0..1
   locked?: boolean
   hidden?: boolean

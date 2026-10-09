@@ -2,6 +2,8 @@ import * as THREE from 'three'
 import type { AssembledLayerItem } from './types'
 import {
   projectPoint,
+  rotationAngle,
+  rotationBasis,
   type GizmoRect,
   type Point
 } from '../../engine/layerGizmo'
@@ -22,7 +24,7 @@ export interface LayerAssemblyDragContext {
 }
 
 /**
- * Xử lý tương tác kéo thả các thành phần của Layer Gizmo 3D (di chuyển XYZ, xoay góc, phóng to thu nhỏ)
+ * Xử lý tương tác kéo thả các thành phần của Layer Gizmo 3D (di chuyển XYZ, xoay góc 3D, phóng to thu nhỏ)
  */
 export function startLayerAssemblyGizmoDrag(
   e: React.PointerEvent,
@@ -44,11 +46,23 @@ export function startLayerAssemblyGizmoDrag(
 
   const startPt = point(e)
   const startPos = { x: layer.x, y: layer.y, z: layer.z }
-  const startRot = layer.rotation
+  const startRot: [number, number, number] = [
+    layer.rotationX || 0,
+    layer.rotationY || 0,
+    layer.rotation || 0
+  ]
   const startScale = layer.scale
 
   const pivot = new THREE.Vector3().setFromMatrixPosition(worldMatrix)
   const center = projectPoint(pivot, camera, rect)
+
+  const parent = new THREE.Matrix4()
+  const basis = handle.kind === 'rotate' ? rotationBasis(startRot, handle.axis, parent) : parent
+  const angleAt = (pt: Point): number | null =>
+    handle.kind === 'rotate' ? rotationAngle(pt, camera, rect, pivot, basis, handle.axis) : null
+  let prevAngle = angleAt(startPt)
+  const edgeOnRotation = prevAngle === null
+  let totalAngle = 0
 
   const pointerId = e.pointerId
   let active = true
@@ -69,7 +83,9 @@ export function startLayerAssemblyGizmoDrag(
         x: startPos.x,
         y: startPos.y,
         z: startPos.z,
-        rotation: startRot,
+        rotationX: startRot[0],
+        rotationY: startRot[1],
+        rotation: startRot[2],
         scale: startScale
       })
     }
@@ -94,20 +110,33 @@ export function startLayerAssemblyGizmoDrag(
       return
     }
 
-    // 2. Xoay góc (Rotate)
+    // 2. Xoay góc 3D theo 3 trục (Pitch X, Yaw Y, Roll Z)
     if (handle.kind === 'rotate') {
-      const startAngle = Math.atan2(startPt[1] - center[1], startPt[0] - center[0])
-      const currAngle = Math.atan2(currPt[1] - center[1], currPt[0] - center[0])
-      let deltaAngle = currAngle - startAngle
-      let deltaDeg = (deltaAngle * 180) / Math.PI
-
-      let nextRot = startRot + deltaDeg
-      if (ev.shiftKey) {
-        nextRot = Math.round(nextRot / 15) * 15
-      } else {
-        nextRot = Math.round(nextRot)
+      const curAngle = angleAt(currPt)
+      if (!edgeOnRotation && curAngle !== null && prevAngle !== null) {
+        totalAngle += Math.atan2(Math.sin(curAngle - prevAngle), Math.cos(curAngle - prevAngle))
+        prevAngle = curAngle
       }
-      onUpdateLayer(layer.id, { rotation: nextRot })
+      let deltaDeg = edgeOnRotation
+        ? currPt[0] - startPt[0]
+        : ((totalAngle * 180) / Math.PI) * (handle.axis === 0 ? 1 : -1)
+
+      if (ev.shiftKey) {
+        deltaDeg = Math.round(deltaDeg / 15) * 15
+      } else {
+        deltaDeg = Math.round(deltaDeg)
+      }
+
+      if (handle.axis === 0) {
+        // Trục X (Pitch)
+        onUpdateLayer(layer.id, { rotationX: Math.round(startRot[0] + deltaDeg) })
+      } else if (handle.axis === 1) {
+        // Trục Y (Yaw)
+        onUpdateLayer(layer.id, { rotationY: Math.round(startRot[1] + deltaDeg) })
+      } else {
+        // Trục Z (Roll)
+        onUpdateLayer(layer.id, { rotation: Math.round(startRot[2] + deltaDeg) })
+      }
       return
     }
 
