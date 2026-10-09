@@ -1,4 +1,5 @@
 import type { LayerComposite, LayerCompositeCategory } from './types'
+import { createHumanoidBones, generateWalkCycle } from './workshopRigPresets'
 
 export const COMPOSITE_CATEGORIES: LayerCompositeCategory[] = [
   { id: 'all', title: 'Tất cả chi tiết', icon: 'all', order: 0 },
@@ -234,10 +235,169 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         motion: { type: 'sway', speed: 1.3, amplitude: 16, anchor: 'bottom', phaseOffset: 0.5 }
       }
     ]
+  },
+  {
+    id: 'comp-knight-hero',
+    name: 'Hiệp Sĩ Tí Hon Bước Đi (11 Khớp Rig)',
+    category: 'character',
+    description: 'Nhân vật hiệp sĩ 2.5D gồm 11 bộ phận layer ảnh (đầu, thân, hông, tay, chân) được gắn xương Blender hoàn chỉnh và nạp chuyển động bước đi mượt mà.',
+    width: 500,
+    height: 600,
+    layers: [
+      {
+        id: 'knight-forearm-l',
+        name: 'Cẳng tay & Găng trái',
+        assetPath: 'character_hero/forearm_l.png',
+        boneId: 'bone-forearm-l',
+        x: -38,
+        y: 10,
+        z: 20,
+        scale: 1.0,
+        rotation: 0,
+        opacity: 1,
+        motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+      },
+      {
+        id: 'knight-arm-l',
+        name: 'Bắp tay trái',
+        assetPath: 'character_hero/arm_l.png',
+        boneId: 'bone-arm-l',
+        x: -35,
+        y: -42,
+        z: 16,
+        scale: 1.0,
+        rotation: 0,
+        opacity: 1,
+        motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+      },
+      {
+        id: 'knight-shin-l',
+        name: 'Cẳng chân & Ủng trái',
+        assetPath: 'character_hero/shin_l.png',
+        boneId: 'bone-shin-l',
+        x: -25,
+        y: 145,
+        z: 12,
+        scale: 1.0,
+        rotation: 0,
+        opacity: 1,
+        motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+      },
+      {
+        id: 'knight-thigh-l',
+        name: 'Đùi trái',
+        assetPath: 'character_hero/thigh_l.png',
+        boneId: 'bone-thigh-l',
+        x: -25,
+        y: 70,
+        z: 8,
+        scale: 1.0,
+        rotation: 0,
+        opacity: 1,
+        motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+      },
+      {
+        id: 'knight-pelvis',
+        name: 'Hông & Thắt lưng giáp',
+        assetPath: 'character_hero/pelvis.png',
+        boneId: 'bone-pelvis',
+        x: 0,
+        y: 15,
+        z: 0,
+        scale: 1.0,
+        rotation: 0,
+        opacity: 1,
+        motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+      },
+      {
+        id: 'knight-torso',
+        name: 'Thân trên & Giáp ngực',
+        assetPath: 'character_hero/torso.png',
+        boneId: 'bone-torso',
+        x: 0,
+        y: -52,
+        z: -2,
+        scale: 1.0,
+        rotation: 0,
+        opacity: 1,
+        motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+      },
+      {
+        id: 'knight-head',
+        name: 'Đầu & Mũ giáp',
+        assetPath: 'character_hero/head.png',
+        boneId: 'bone-head',
+        x: 0,
+        y: -115,
+        z: -6,
+        scale: 1.0,
+        rotation: 0,
+        opacity: 1,
+        motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+      },
+      {
+        id: 'knight-thigh-r',
+        name: 'Đùi phải',
+        assetPath: 'character_hero/thigh_r.png',
+        boneId: 'bone-thigh-r',
+        x: 25,
+        y: 70,
+        z: -8,
+        scale: 1.0,
+        rotation: 0,
+        opacity: 1,
+        motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+      },
+      {
+        id: 'knight-shin-r',
+        name: 'Cẳng chân & Ủng phải',
+        assetPath: 'character_hero/shin_r.png',
+        boneId: 'bone-shin-r',
+        x: 25,
+        y: 145,
+        z: -12,
+        scale: 1.0,
+        rotation: 0,
+        opacity: 1,
+        motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+      },
+      {
+        id: 'knight-arm-r',
+        name: 'Bắp tay phải',
+        assetPath: 'character_hero/arm_r.png',
+        boneId: 'bone-arm-r',
+        x: 35,
+        y: -42,
+        z: -16,
+        scale: 1.0,
+        rotation: 0,
+        opacity: 1,
+        motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+      },
+      {
+        id: 'knight-forearm-r',
+        name: 'Cẳng tay & Kiếm găng phải',
+        assetPath: 'character_hero/forearm_r.png',
+        boneId: 'bone-forearm-r',
+        x: 38,
+        y: 10,
+        z: -20,
+        scale: 1.0,
+        rotation: 0,
+        opacity: 1,
+        motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+      }
+    ],
+    rig: {
+      bones: createHumanoidBones(),
+      duration: 1.6,
+      loop: true,
+      tracks: generateWalkCycle(createHumanoidBones(), 1.6)
+    }
   }
 ]
 
-const SEED_VERSION = 'v5_bonsai_zorder'
+const SEED_VERSION = 'v6_knight_rigged_character'
 const SEED_KEY = 'pxs.layerComposites.seeded_version'
 
 export function getStoredComposites(): LayerComposite[] {
