@@ -1,0 +1,83 @@
+import { describe, it, expect } from 'vitest'
+import {
+  computeLayer3DMotion,
+  createRectOutline,
+  createAnchorDot,
+  createLayer3DInstance,
+  updateLayer3DInstance
+} from './layerAssembly3DMesh'
+import type { AssembledLayerItem } from './types'
+
+describe('layerAssembly3DMesh', () => {
+  it('computes 3D motion for sway correctly', () => {
+    const motion = {
+      type: 'sway' as const,
+      speed: 1.0,
+      amplitude: 10,
+      anchor: 'bottom' as const
+    }
+    const result0 = computeLayer3DMotion(motion, 0)
+    expect(result0.animRotateRad).toBeCloseTo(0)
+
+    const resultQuarter = computeLayer3DMotion(motion, 0.25)
+    // sin(0.25 * 2pi) = sin(pi/2) = 1 -> 10 deg in radians
+    const expectedRad = (10 * Math.PI) / 180
+    expect(resultQuarter.animRotateRad).toBeCloseTo(expectedRad)
+  })
+
+  it('computes 3D motion for breathe correctly', () => {
+    const motion = {
+      type: 'breathe' as const,
+      speed: 1.0,
+      amplitude: 20,
+      anchor: 'center' as const
+    }
+    const resultQuarter = computeLayer3DMotion(motion, 0.25)
+    // 1 + 20/100 = 1.2
+    expect(resultQuarter.animScaleX).toBeCloseTo(1.2)
+    expect(resultQuarter.animScaleY).toBeCloseTo(1.2)
+  })
+
+  it('creates rect outline and anchor dot', () => {
+    const outline = createRectOutline(200, 200)
+    expect(outline).toBeDefined()
+    expect(outline.type).toBe('LineSegments')
+
+    const dot = createAnchorDot()
+    expect(dot).toBeDefined()
+    expect(dot.type).toBe('Mesh')
+  })
+
+  it('creates and updates layer 3D instance with depth exaggeration', () => {
+    const layer: AssembledLayerItem = {
+      id: 'test-layer-1',
+      name: 'Test Layer',
+      x: 50,
+      y: 100,
+      z: 30,
+      scale: 1.2,
+      rotation: 45,
+      opacity: 0.8,
+      motion: {
+        type: 'none',
+        speed: 1,
+        amplitude: 0,
+        anchor: 'bottom'
+      }
+    }
+
+    const inst = createLayer3DInstance(layer, null, () => {})
+    expect(inst.group).toBeDefined()
+    expect(inst.mesh.userData.layerId).toBe('test-layer-1')
+
+    // Update with zExaggeration = 2
+    updateLayer3DInstance(inst, layer, 0, 2.0, true)
+
+    expect(inst.group.position.x).toBe(50)
+    expect(inst.group.position.y).toBe(-100) // Three.js Y is inverted
+    expect(inst.group.position.z).toBe(-60) // -30 * 2.0
+    expect(inst.outline.visible).toBe(true)
+    expect(inst.anchorDot.visible).toBe(true)
+    expect(inst.material.opacity).toBe(0.8)
+  })
+})

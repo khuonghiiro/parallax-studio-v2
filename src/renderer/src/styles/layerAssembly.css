@@ -222,6 +222,39 @@
   justify-content: center;
 }
 
+/* 3. 2D & 3D Center Workspace & Split Panes */
+.layer-workshop-center-area {
+  flex: 1 1 0%;
+  display: flex;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.layer-workshop-split-container {
+  flex: 1 1 0%;
+  display: flex;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.layer-workshop-split-pane {
+  flex: 1 1 0%;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.layer-workshop-split-pane.left-pane {
+  border-right: 1px solid var(--line);
+}
+
 /* Right Sidebar: Hierarchy & Animation Inspector */
 .layer-workshop-inspector {
   width: 300px;

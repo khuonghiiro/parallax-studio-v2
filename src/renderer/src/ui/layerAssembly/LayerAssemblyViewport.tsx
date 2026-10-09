@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import type { LayerComposite, AssembledLayerItem } from './types'
 import { useLayerAssetImage } from './useLayerAssetImage'
-import { IconPlay, IconPause, IconLayers } from '../icons'
+import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
+import { IconLayers, IconImage } from '../icons'
 
 export interface LayerAssemblyViewportProps {
   composite: LayerComposite
@@ -12,6 +13,7 @@ export interface LayerAssemblyViewportProps {
   onTogglePlay: () => void
   time: number
   onSeekTime: (t: number) => void
+  hideTransport?: boolean
 }
 
 export function LayerAssemblyViewport({
@@ -22,7 +24,8 @@ export function LayerAssemblyViewport({
   isPlaying,
   onTogglePlay,
   time,
-  onSeekTime
+  onSeekTime,
+  hideTransport = false
 }: LayerAssemblyViewportProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [zoom, setZoom] = useState(1.0)
@@ -218,65 +221,43 @@ export function LayerAssemblyViewport({
         )}
       </div>
 
-      {/* Floating Bottom Transport Bar: Play / Pause, Time Scrubber, Zoom Controls */}
+      {/* 2D Viewport Indicator Badge (Góc trên trái) */}
       <div
         style={{
           position: 'absolute',
-          bottom: '16px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'color-mix(in srgb, var(--bg-1) 85%, transparent)',
-          backdropFilter: 'blur(16px)',
-          border: '1px solid var(--line-soft)',
-          borderRadius: '8px',
-          padding: '6px 14px',
+          top: '12px',
+          left: '12px',
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
-          zIndex: 50,
-          boxShadow: '0 6px 20px rgba(0, 0, 0, 0.35)'
+          gap: '6px',
+          zIndex: 40,
+          background: 'color-mix(in srgb, var(--bg-1) 85%, transparent)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid var(--line-soft)',
+          borderRadius: '6px',
+          padding: '4px 10px',
+          fontSize: '11px',
+          fontWeight: 700,
+          color: 'var(--text)'
         }}
       >
-        <button
-          type="button"
-          className="btn sm icon"
-          onClick={onTogglePlay}
-          style={{ width: '28px', height: '28px' }}
-          title={isPlaying ? 'Tạm dừng xem trước hoạt ảnh (Phím Space)' : 'Phát xem trước hoạt ảnh (Phím Space)'}
-        >
-          {isPlaying ? <IconPause width={14} height={14} /> : <IconPlay width={14} height={14} />}
-        </button>
+        <IconImage width={13} height={13} style={{ color: 'var(--accent)' }} /> 2D
+      </div>
 
-        <span style={{ fontSize: '11px', color: 'var(--text)', minWidth: '40px', fontFamily: 'monospace', fontWeight: 600 }}>
-          {time.toFixed(2)}s
-        </span>
-
-        <input
-          type="range"
-          min="0"
-          max="4"
-          step="0.05"
-          value={time % 4}
-          onChange={(e) => onSeekTime(Number(e.target.value))}
-          style={{ width: '130px', accentColor: 'var(--accent)' }}
-          title="Tua mốc thời gian chuyển động"
-        />
-
-        <div style={{ width: '1px', height: '18px', background: 'var(--line-soft)' }} />
-
-        <button
-          type="button"
-          className="btn sm"
-          onClick={() => {
+      {/* Floating Bottom Transport Bar */}
+      {!hideTransport && (
+        <LayerAssemblyTransportBar
+          isPlaying={isPlaying}
+          onTogglePlay={onTogglePlay}
+          time={time}
+          onSeekTime={onSeekTime}
+          onResetView={() => {
             setZoom(1.0)
             setPan({ x: 0, y: 0 })
           }}
-          title="Đặt lại tỉ lệ 100% và căn giữa"
-          style={{ fontSize: '10.5px', padding: '2px 8px' }}
-        >
-          {Math.round(zoom * 100)}%
-        </button>
-      </div>
+          zoomPercent={Math.round(zoom * 100)}
+        />
+      )}
     </div>
   )
 }

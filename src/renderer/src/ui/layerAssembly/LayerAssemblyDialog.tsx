@@ -3,10 +3,14 @@ import type { LayerComposite, AssembledLayerItem } from './types'
 import { saveComposite } from './layerAssemblyStorage'
 import { insertLayerCompositeToScene } from './insertLayerComposite'
 import { LayerAssemblyViewport } from './LayerAssemblyViewport'
+import { LayerAssembly3DViewport } from './LayerAssembly3DViewport'
+import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
 import { LayerAssemblyInspector } from './LayerAssemblyInspector'
 import { LayerAssemblySidebar } from './LayerAssemblySidebar'
-import { IconLayers, IconPlus, IconX } from '../icons'
+import { IconLayers, IconPlus, IconX, IconCube, IconSplit, IconImage } from '../icons'
 import '../../styles/layerAssembly.css'
+
+export type AssemblyWorkspaceView = '2d' | '3d' | 'split'
 
 export interface LayerAssemblyDialogProps {
   initialComposite?: LayerComposite | null
@@ -32,6 +36,9 @@ export function LayerAssemblyDialog({
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(() => {
     return composite.layers[0]?.id || null
   })
+
+  // Chế độ xem: 2D, 3D, hoặc Chia đôi (Split view)
+  const [workspaceView, setWorkspaceView] = useState<AssemblyWorkspaceView>('split')
 
   // Animation Playback Preview state
   const [isPlaying, setIsPlaying] = useState(true)
@@ -165,11 +172,15 @@ export function LayerAssemblyDialog({
     onClose()
   }
 
-  // Lắng nghe phím Escape để đóng modal
+  // Lắng nghe phím Escape để đóng modal, Space để Play/Pause
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
       if (e.key === 'Escape') {
         onClose()
+      } else if (e.code === 'Space') {
+        e.preventDefault()
+        setIsPlaying((p) => !p)
       }
     }
     window.addEventListener('keydown', handleKey)
@@ -215,6 +226,34 @@ export function LayerAssemblyDialog({
           />
         </div>
 
+        {/* Chuyển đổi View: 2D | 3D | Chia đôi */}
+        <div className="seg" style={{ marginLeft: '12px' }}>
+          <button
+            type="button"
+            className={`btn sm${workspaceView === '2d' ? ' active' : ''}`}
+            onClick={() => setWorkspaceView('2d')}
+            title="Chế độ xem 2D (Căn chỉnh phẳng X, Y)"
+          >
+            <IconImage width={12} height={12} /> 2D
+          </button>
+          <button
+            type="button"
+            className={`btn sm${workspaceView === '3d' ? ' active' : ''}`}
+            onClick={() => setWorkspaceView('3d')}
+            title="Không gian 3D (Xem chiều sâu các layer xếp chồng trong không gian 3 chiều)"
+          >
+            <IconCube width={12} height={12} /> 3D
+          </button>
+          <button
+            type="button"
+            className={`btn sm${workspaceView === 'split' ? ' active' : ''}`}
+            onClick={() => setWorkspaceView('split')}
+            title="Hiển thị song song 2D và 3D cạnh nhau"
+          >
+            <IconSplit width={12} height={12} /> Chia đôi
+          </button>
+        </div>
+
         <span className="spacer" />
 
         <button
@@ -246,7 +285,7 @@ export function LayerAssemblyDialog({
         </button>
       </div>
 
-      {/* 2. Body: Sidebar | Viewport | Inspector */}
+      {/* 2. Body: Sidebar | Viewport (2D / 3D / Split) | Inspector */}
       <div className="layer-workshop-body">
         {/* Left Sidebar: Assets & Presets */}
         <LayerAssemblySidebar
@@ -254,17 +293,72 @@ export function LayerAssemblyDialog({
           onAppendPresetLayers={handleAppendPresetLayers}
         />
 
-        {/* Center: Interactive 2.5D Viewport */}
-        <LayerAssemblyViewport
-          composite={composite}
-          selectedLayerId={selectedLayerId}
-          onSelectLayer={setSelectedLayerId}
-          onUpdateLayer={handleUpdateLayer}
-          isPlaying={isPlaying}
-          onTogglePlay={() => setIsPlaying((p) => !p)}
-          time={animTime}
-          onSeekTime={(t) => setAnimTime(t)}
-        />
+        {/* Center: 2D / 3D / Split Viewport */}
+        <div className="layer-workshop-center-area">
+          {workspaceView === '2d' && (
+            <LayerAssemblyViewport
+              composite={composite}
+              selectedLayerId={selectedLayerId}
+              onSelectLayer={setSelectedLayerId}
+              onUpdateLayer={handleUpdateLayer}
+              isPlaying={isPlaying}
+              onTogglePlay={() => setIsPlaying((p) => !p)}
+              time={animTime}
+              onSeekTime={(t) => setAnimTime(t)}
+            />
+          )}
+
+          {workspaceView === '3d' && (
+            <div style={{ position: 'relative', flex: '1 1 0%', height: '100%', overflow: 'hidden' }}>
+              <LayerAssembly3DViewport
+                composite={composite}
+                selectedLayerId={selectedLayerId}
+                onSelectLayer={setSelectedLayerId}
+                onUpdateLayer={handleUpdateLayer}
+                time={animTime}
+              />
+              <LayerAssemblyTransportBar
+                isPlaying={isPlaying}
+                onTogglePlay={() => setIsPlaying((p) => !p)}
+                time={animTime}
+                onSeekTime={(t) => setAnimTime(t)}
+              />
+            </div>
+          )}
+
+          {workspaceView === 'split' && (
+            <div className="layer-workshop-split-container">
+              <div className="layer-workshop-split-pane left-pane">
+                <LayerAssemblyViewport
+                  composite={composite}
+                  selectedLayerId={selectedLayerId}
+                  onSelectLayer={setSelectedLayerId}
+                  onUpdateLayer={handleUpdateLayer}
+                  isPlaying={isPlaying}
+                  onTogglePlay={() => setIsPlaying((p) => !p)}
+                  time={animTime}
+                  onSeekTime={(t) => setAnimTime(t)}
+                  hideTransport
+                />
+              </div>
+              <div className="layer-workshop-split-pane">
+                <LayerAssembly3DViewport
+                  composite={composite}
+                  selectedLayerId={selectedLayerId}
+                  onSelectLayer={setSelectedLayerId}
+                  onUpdateLayer={handleUpdateLayer}
+                  time={animTime}
+                />
+              </div>
+              <LayerAssemblyTransportBar
+                isPlaying={isPlaying}
+                onTogglePlay={() => setIsPlaying((p) => !p)}
+                time={animTime}
+                onSeekTime={(t) => setAnimTime(t)}
+              />
+            </div>
+          )}
+        </div>
 
         {/* Right Sidebar: Hierarchy & Animation Inspector */}
         <LayerAssemblyInspector
