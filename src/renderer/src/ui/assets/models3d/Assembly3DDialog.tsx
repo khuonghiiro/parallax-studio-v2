@@ -350,14 +350,12 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
                 </div>
                 <div className="assembly-split-pane">
                   <div className="pane-header-tab">
-                    <div className="pane-header-title-group">
-                      <span className="pane-title"><IconCube width={12} height={12} /> Không gian 3D</span>
-                      <span className="assembly-lighting-indicator" title={`Ánh sáng & Bầu trời: ${sky.label}`}>
-                        <span className="lighting-indicator-dot" style={{ backgroundColor: sky.sunColor }} />
-                        <span className="lighting-indicator-label">{sky.icon} {sky.label}</span>
-                      </span>
-                    </div>
-                    <span>{model.name}</span>
+                    <span className="pane-title"><IconCube width={12} height={12} /> Không gian 3D</span>
+                    <span className="assembly-lighting-indicator" title={`Ánh sáng & Bầu trời: ${sky.label}`}>
+                      <span className="lighting-indicator-dot" style={{ backgroundColor: sky.sunColor }} />
+                      <span className="lighting-indicator-label">{sky.icon} {sky.label}</span>
+                    </span>
+                    {/* <span>{model.name}</span> */}
                   </div>
                   {viewport}
                 </div>

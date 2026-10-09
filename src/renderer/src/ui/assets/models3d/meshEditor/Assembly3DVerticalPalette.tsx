@@ -152,7 +152,7 @@ interface TooltipState {
   desc: string
   tip?: string
   top: number
-  right: number
+  left: number
 }
 
 export function Assembly3DVerticalPalette({
@@ -179,7 +179,7 @@ export function Assembly3DVerticalPalette({
       desc: def.desc,
       tip: def.tip,
       top: rect.top + rect.height / 2,
-      right: rect.right
+      left: rect.left
     })
   }
 
@@ -326,16 +326,16 @@ export function Assembly3DVerticalPalette({
         </button>
       </div>
 
-      {/* Flyout Tooltip positioned like BuiltInAssetBar */}
+      {/* Flyout Tooltip positioned to the left of the vertical palette */}
       {tooltip && (
         <div
           className="vertical-tab-tooltip"
           role="tooltip"
           style={{
             position: 'fixed',
-            left: tooltip.right + 8,
+            left: tooltip.left - 8,
             top: tooltip.top,
-            transform: 'translateY(-50%)',
+            transform: 'translate(-100%, -50%)',
             zIndex: 20000
           }}
         >
