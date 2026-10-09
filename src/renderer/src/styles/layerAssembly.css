@@ -310,31 +310,88 @@
   100% { transform: translateY(-8px); }
 }
 
-/* 4. Compact 3D Viewport Floating Toolbar & Popover */
-.layer-workshop-3d-toolbar {
+/* 4. Compact 3D Viewport Vertical Dock & Popover */
+.layer-workshop-3d-vertical-dock {
   position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 12px;
+  left: 12px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 5px;
-  padding: 3px 8px;
-  background: color-mix(in srgb, var(--bg-1) 85%, transparent);
+  gap: 3px;
+  padding: 4px;
+  background: color-mix(in srgb, var(--bg-1) 88%, transparent);
   backdrop-filter: blur(14px);
   border: 1px solid var(--line-soft);
-  border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.28);
   z-index: 40;
-  max-width: calc(100% - 20px);
   user-select: none;
 }
 
-.layer-workshop-3d-toolbar .toolbar-divider {
-  width: 1px;
-  height: 14px;
-  background: var(--line-soft);
-  margin: 0 2px;
+[data-theme='light'] .layer-workshop-3d-vertical-dock {
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.layer-workshop-3d-vertical-dock .dock-divider {
+  width: 18px;
+  height: 1px;
+  background: var(--line);
+  margin: 3px 0;
+  flex: none;
+  opacity: 0.7;
+}
+
+.layer-3d-dock-btn {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  flex: none;
+}
+
+.layer-3d-dock-btn:hover {
+  background: var(--bg-2);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.layer-3d-dock-btn.active {
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-2));
+  border-color: var(--accent);
+  color: var(--accent-cyan);
+  box-shadow: 0 1px 4px rgba(38, 128, 235, 0.3);
+}
+
+[data-theme='light'] .layer-3d-dock-btn.active {
+  background: rgba(20, 115, 230, 0.12);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.layer-3d-dock-btn.active::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--accent);
+}
+
+.layer-workshop-3d-toolbar {
+  display: none;
 }
 
 .layer-workshop-popover-menu {
