@@ -261,35 +261,36 @@ export function LayerAssemblyDialog({
             </button>
           </div>
 
-          <span className="spacer" />
+          {/* Cụm Action Buttons: Đẩy sát về góc phải */}
+          <div className="layer-workshop-header-actions">
+            <button
+              type="button"
+              className="btn sm"
+              onClick={handleSave}
+              title="Lưu lại cụm layer này vào thư viện để tái sử dụng"
+            >
+              Lưu mẫu
+            </button>
 
-          <button
-            type="button"
-            className="btn sm"
-            onClick={handleSave}
-            title="Lưu lại cụm layer này vào thư viện để tái sử dụng"
-          >
-            Lưu mẫu
-          </button>
+            <button
+              type="button"
+              className="btn sm primary"
+              onClick={handleInsertToScene}
+              disabled={composite.layers.length === 0}
+              title="Chèn toàn bộ các layer đã lắp ráp vào cảnh phân cảnh hiện tại"
+            >
+              <IconPlus width={12} height={12} /> Thêm vào cảnh hiện tại
+            </button>
 
-          <button
-            type="button"
-            className="btn sm primary"
-            onClick={handleInsertToScene}
-            disabled={composite.layers.length === 0}
-            title="Chèn toàn bộ các layer đã lắp ráp vào cảnh phân cảnh hiện tại"
-          >
-            <IconPlus width={12} height={12} /> Thêm vào cảnh hiện tại
-          </button>
-
-          <button
-            type="button"
-            className="btn sm icon"
-            onClick={onClose}
-            title="Đóng Xưởng Lắp Ráp Layer (Esc)"
-          >
-            <IconX width={14} height={14} />
-          </button>
+            <button
+              type="button"
+              className="btn sm icon"
+              onClick={onClose}
+              title="Đóng Xưởng Lắp Ráp Layer (Esc)"
+            >
+              <IconX width={14} height={14} />
+            </button>
+          </div>
         </div>
 
         {/* 2. Body: Sidebar | Viewport (2D / 3D / Split) | Inspector */}

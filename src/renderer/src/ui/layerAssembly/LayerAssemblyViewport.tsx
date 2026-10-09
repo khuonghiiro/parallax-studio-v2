@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import type { LayerComposite, AssembledLayerItem } from './types'
 import { useLayerAssetImage } from './useLayerAssetImage'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
@@ -33,6 +33,31 @@ export function LayerAssemblyViewport({
   const [isPanning, setIsPanning] = useState(false)
   const [isDraggingLayer, setIsDraggingLayer] = useState(false)
   const dragStartRef = useRef({ mouseX: 0, mouseY: 0, initLayerX: 0, initLayerY: 0, initPanX: 0, initPanY: 0 })
+
+  // Tự động căn giữa và co dãn vừa vặn (Fit to screen) khung vẽ 2D
+  const handleFitView = useCallback(() => {
+    if (!containerRef.current) {
+      setZoom(1.0)
+      setPan({ x: 0, y: 0 })
+      return
+    }
+    const cw = containerRef.current.clientWidth || 500
+    const ch = containerRef.current.clientHeight || 500
+    const pad = 56
+    const scaleX = (cw - pad) / (composite.width || 600)
+    const scaleY = (ch - pad) / (composite.height || 600)
+    const fitScale = Math.min(1.0, Math.max(0.15, Math.min(scaleX, scaleY)))
+    setZoom(Number(fitScale.toFixed(2)))
+    setPan({ x: 0, y: 0 })
+  }, [composite.width, composite.height])
+
+  // Khởi tạo Fit view ban đầu hoặc khi kích thước khung thay đổi
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      handleFitView()
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [handleFitView])
 
   // Phím tắt Space để Play/Pause
   useEffect(() => {
@@ -247,7 +272,7 @@ export function LayerAssemblyViewport({
             setZoom(1.0)
             setPan({ x: 0, y: 0 })
           }}
-          title="Đặt lại tỉ lệ 100% và căn giữa"
+          title="Đặt lại tỉ lệ 100% (gốc 0, 0)"
           style={{ fontFamily: 'monospace', fontWeight: 600 }}
         >
           {Math.round(zoom * 100)}%
@@ -255,11 +280,8 @@ export function LayerAssemblyViewport({
         <button
           type="button"
           className="btn xs"
-          onClick={() => {
-            setZoom(1.0)
-            setPan({ x: 0, y: 0 })
-          }}
-          title="Căn giữa khung vẽ 2D"
+          onClick={handleFitView}
+          title="Căn giữa và thu phóng vừa vặn khung vẽ 2D"
         >
           Căn giữa
         </button>
@@ -291,10 +313,7 @@ export function LayerAssemblyViewport({
           onTogglePlay={onTogglePlay}
           time={time}
           onSeekTime={onSeekTime}
-          onResetView={() => {
-            setZoom(1.0)
-            setPan({ x: 0, y: 0 })
-          }}
+          onResetView={handleFitView}
           zoomPercent={Math.round(zoom * 100)}
         />
       )}
@@ -349,7 +368,11 @@ function AssembledLayerItemView({
       ? '50% 100%'
       : anchor === 'top'
         ? '50% 0%'
-        : '50% 50%'
+        : anchor === 'left'
+          ? '0% 50%'
+          : anchor === 'right'
+            ? '100% 50%'
+            : '50% 50%'
 
   return (
     <div
@@ -357,23 +380,26 @@ function AssembledLayerItemView({
         position: 'absolute',
         left: '50%',
         top: '50%',
-        transform: `translate(${layer.x + animTranslateX}px, ${layer.y + animTranslateY}px) rotate(${layer.rotation + animRotate}deg) scale(${layer.scale * animScaleX}, ${layer.scale * animScaleY})`,
-        transformOrigin: anchorOrigin,
-        opacity: layer.opacity,
-        cursor: layer.locked ? 'default' : 'move',
+        transform: `translate(-50%, -50%) translate(${layer.x + animTranslateX}px, ${layer.y + animTranslateY}px)`,
+        pointerEvents: 'none',
         zIndex: Math.round(1000 - layer.z)
       }}
-      onPointerDown={onPointerDown}
     >
       <div
         style={{
           position: 'relative',
           display: 'inline-block',
+          transform: `rotate(${layer.rotation + animRotate}deg) scale(${layer.scale * animScaleX}, ${layer.scale * animScaleY})`,
+          transformOrigin: anchorOrigin,
+          opacity: layer.opacity,
+          cursor: layer.locked ? 'default' : 'move',
           outline: isSelected ? '2px solid var(--accent)' : 'none',
           outlineOffset: '2px',
           borderRadius: '3px',
-          boxShadow: isSelected ? '0 0 12px rgba(38, 128, 235, 0.5)' : 'none'
+          boxShadow: isSelected ? '0 0 12px rgba(38, 128, 235, 0.5)' : 'none',
+          pointerEvents: 'auto'
         }}
+        onPointerDown={onPointerDown}
       >
         {imageUrl ? (
           <img

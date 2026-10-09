@@ -196,24 +196,38 @@ export function LayerAssemblyInspector({
             </div>
 
             {/* Transform: X, Y */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              <div>
-                <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>X (Ngang):</span>
-                <input
-                  type="number"
-                  className="input-text sm"
-                  value={selectedLayer.x}
-                  onChange={(e) => onUpdateLayer(selectedLayer.id, { x: Number(e.target.value) })}
-                />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '10px', color: 'var(--text-dim)', fontWeight: 600 }}>Tọa độ 2D:</span>
+                <button
+                  type="button"
+                  className="btn xs"
+                  onClick={() => onUpdateLayer(selectedLayer.id, { x: 0, y: 0 })}
+                  title="Căn tâm layer về chính giữa mặt phẳng (X=0, Y=0)"
+                  style={{ fontSize: '9.5px', padding: '1px 6px' }}
+                >
+                  Căn giữa (0, 0)
+                </button>
               </div>
-              <div>
-                <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Y (Dọc):</span>
-                <input
-                  type="number"
-                  className="input-text sm"
-                  value={selectedLayer.y}
-                  onChange={(e) => onUpdateLayer(selectedLayer.id, { y: Number(e.target.value) })}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>X (Ngang):</span>
+                  <input
+                    type="number"
+                    className="input-text sm"
+                    value={selectedLayer.x}
+                    onChange={(e) => onUpdateLayer(selectedLayer.id, { x: Number(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Y (Dọc):</span>
+                  <input
+                    type="number"
+                    className="input-text sm"
+                    value={selectedLayer.y}
+                    onChange={(e) => onUpdateLayer(selectedLayer.id, { y: Number(e.target.value) })}
+                  />
+                </div>
               </div>
             </div>
 

@@ -129,6 +129,20 @@ export function createAnchorDot(): THREE.Mesh {
 }
 
 /**
+ * Tính toán kích thước w, h vừa vặn bảo toàn tỉ lệ ảnh (Aspect Ratio)
+ */
+function computePlaneDimensions(texture: THREE.Texture | null, maxDim = 340): { w: number; h: number } {
+  if (texture && texture.image && texture.image.width && texture.image.height) {
+    const aspect = texture.image.width / texture.image.height
+    if (aspect >= 1) {
+      return { w: maxDim, h: Math.round(maxDim / aspect) }
+    }
+    return { w: Math.round(maxDim * aspect), h: maxDim }
+  }
+  return { w: 320, h: 320 }
+}
+
+/**
  * Tạo instance 3D Mesh cho 1 layer
  */
 export function createLayer3DInstance(
@@ -139,12 +153,21 @@ export function createLayer3DInstance(
   const group = new THREE.Group()
   group.name = `layer-group-${layer.id}`
 
-  // Kích thước chuẩn mặc định cho plane
-  const defaultW = 320
-  const defaultH = 320
-  const geom = new THREE.PlaneGeometry(defaultW, defaultH)
+  const texture = textureUrl
+    ? getOrCreateLayerTexture(textureUrl, () => {
+        if (texture && texture.image && texture.image.width && texture.image.height) {
+          const { w, h } = computePlaneDimensions(texture)
+          mesh.geometry.dispose()
+          mesh.geometry = new THREE.PlaneGeometry(w, h)
+          outline.geometry.dispose()
+          outline.geometry = createRectOutline(w + 4, h + 4, 0x38bdf8).geometry
+        }
+        onRequestRender()
+      })
+    : null
 
-  const texture = textureUrl ? getOrCreateLayerTexture(textureUrl, onRequestRender) : null
+  const { w, h } = computePlaneDimensions(texture)
+  const geom = new THREE.PlaneGeometry(w, h)
 
   const material = new THREE.MeshBasicMaterial({
     map: texture,
@@ -159,7 +182,7 @@ export function createLayer3DInstance(
   mesh.name = `layer-mesh-${layer.id}`
   mesh.userData = { layerId: layer.id }
 
-  const outline = createRectOutline(defaultW + 4, defaultH + 4, 0x38bdf8)
+  const outline = createRectOutline(w + 4, h + 4, 0x38bdf8)
   outline.visible = false
 
   const anchorDot = createAnchorDot()
@@ -195,7 +218,9 @@ export function updateLayer3DInstance(
   const motion = computeLayer3DMotion(layer.motion, time)
 
   // 2. Điểm neo (Anchor Pivot)
-  const halfH = 160 // tương ứng defaultH / 2
+  const planeGeom = mesh.geometry as THREE.PlaneGeometry
+  const meshH = planeGeom.parameters?.height || 320
+  const halfH = meshH / 2
   let pivotOffsetY = 0
   let anchorY = 0
 
