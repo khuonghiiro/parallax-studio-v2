@@ -90,6 +90,98 @@ export function createRectOutline(width: number, height: number, color = 0x2680e
 }
 
 /**
+ * Tính toán khoảng cách camera để đóng khung vừa vặn (Fit Framing Distance)
+ * bảo đảm cả chiều rộng lẫn chiều cao đều nằm trọn trong khung nhìn camera fov 45°
+ */
+export function computeFramingDistance(
+  targetWidth: number,
+  targetHeight: number,
+  viewportWidth: number,
+  viewportHeight: number,
+  fovDeg = 45,
+  padding = 1.16
+): number {
+  if (viewportWidth <= 0 || viewportHeight <= 0) {
+    const fovRad = (fovDeg * Math.PI) / 180
+    return Math.round((Math.max(targetWidth, targetHeight) * padding) / (2 * Math.tan(fovRad / 2)))
+  }
+  const aspect = viewportWidth / viewportHeight
+  const fovRad = (fovDeg * Math.PI) / 180
+  const tanHalf = Math.tan(fovRad / 2)
+  const distV = (targetHeight * padding) / (2 * tanHalf)
+  const distH = (targetWidth * padding) / (2 * tanHalf * aspect)
+  return Math.round(Math.max(distV, distH))
+}
+
+/**
+ * Mặt phẳng Canvas 2D tại z = 0 trong không gian 3D:
+ * Gồm mặt nền bán trong suốt, khung viền cyan sắc nét và tâm chữ thập định vị,
+ * giúp người dùng nhận diện ngay lập tức khung canvas tương đồng 100% với khung 2D.
+ */
+export function createCanvasPlaneHelper(width: number, height: number): THREE.Group {
+  const group = new THREE.Group()
+  group.name = 'canvas-plane-helper'
+
+  const halfW = width / 2
+  const halfH = height / 2
+
+  // 1. Mặt phẳng nền bán trong suốt (Card canvas 3D)
+  const planeGeom = new THREE.PlaneGeometry(width, height)
+  const planeMat = new THREE.MeshBasicMaterial({
+    color: 0x0f172a,
+    transparent: true,
+    opacity: 0.65,
+    depthWrite: false,
+    side: THREE.DoubleSide
+  })
+  const planeMesh = new THREE.Mesh(planeGeom, planeMat)
+  planeMesh.position.set(0, 0, -0.2)
+  group.add(planeMesh)
+
+  // 2. Khung viền canvas sáng rõ nét (cyan var(--line-focus))
+  const border = createRectOutline(width, height, 0x38bdf8)
+  group.add(border)
+
+  // 3. Đường chữ thập định tâm tại z = 0
+  const crossPoints = [
+    new THREE.Vector3(-halfW, 0, 0),
+    new THREE.Vector3(halfW, 0, 0),
+    new THREE.Vector3(0, -halfH, 0),
+    new THREE.Vector3(0, halfH, 0)
+  ]
+  const crossGeom = new THREE.BufferGeometry().setFromPoints(crossPoints)
+  const crossMat = new THREE.LineBasicMaterial({
+    color: 0x334155,
+    transparent: true,
+    opacity: 0.5,
+    depthTest: false
+  })
+  const crosshairs = new THREE.LineSegments(crossGeom, crossMat)
+  group.add(crosshairs)
+
+  return group
+}
+
+/**
+ * Thu dọn tài nguyên mặt phẳng Canvas 2D 3D
+ */
+export function disposeCanvasPlaneHelper(group: THREE.Group): void {
+  group.traverse((obj) => {
+    if ((obj as THREE.Mesh).geometry) {
+      ;(obj as THREE.Mesh).geometry.dispose()
+    }
+    if ((obj as THREE.Mesh).material) {
+      const mat = (obj as THREE.Mesh).material
+      if (Array.isArray(mat)) {
+        mat.forEach((m) => m.dispose())
+      } else {
+        mat.dispose()
+      }
+    }
+  })
+}
+
+/**
  * Điểm chấm neo (Anchor Indicator) 3D
  */
 export function createAnchorDot(): THREE.Mesh {
@@ -103,23 +195,11 @@ export function createAnchorDot(): THREE.Mesh {
 }
 
 /**
- * Lấy kích thước ảnh từ Three.Texture an toàn với type checking
- */
-function getTextureDimensions(texture: THREE.Texture | null): { width: number; height: number } | null {
-  const img = texture?.image as { width?: number; height?: number } | undefined
-  if (img && typeof img.width === 'number' && typeof img.height === 'number' && img.width > 0 && img.height > 0) {
-    return { width: img.width, height: img.height }
-  }
-  return null
-}
-
-/**
  * Tính toán kích thước w, h vừa vặn bảo toàn tỉ lệ ảnh (Aspect Ratio)
  */
 function computePlaneDimensions(texture: THREE.Texture | null, maxDim = 380): { w: number; h: number } {
-  const dim = getTextureDimensions(texture)
-  if (dim) {
-    const aspect = dim.width / dim.height
+  if (texture && texture.image && texture.image.width && texture.image.height) {
+    const aspect = texture.image.width / texture.image.height
     if (aspect >= 1) {
       return { w: maxDim, h: Math.round(maxDim / aspect) }
     }
@@ -141,7 +221,7 @@ export function createLayer3DInstance(
 
   const texture = textureUrl
     ? getOrCreateLayerTexture(textureUrl, () => {
-        if (getTextureDimensions(texture)) {
+        if (texture && texture.image && texture.image.width && texture.image.height) {
           const { w, h } = computePlaneDimensions(texture)
           mesh.geometry.dispose()
           mesh.geometry = new THREE.PlaneGeometry(w, h)
@@ -211,7 +291,7 @@ export function updateLayerInstanceTexture(
   }
 
   const texture = getOrCreateLayerTexture(textureUrl, () => {
-    if (getTextureDimensions(texture)) {
+    if (texture && texture.image && texture.image.width && texture.image.height) {
       const { w, h } = computePlaneDimensions(texture)
       inst.mesh.geometry.dispose()
       inst.mesh.geometry = new THREE.PlaneGeometry(w, h)
@@ -228,7 +308,7 @@ export function updateLayerInstanceTexture(
     inst.material.map = texture
     inst.material.color.setHex(0xffffff)
     inst.material.needsUpdate = true
-    if (getTextureDimensions(texture)) {
+    if (texture.image && texture.image.width && texture.image.height) {
       const { w, h } = computePlaneDimensions(texture)
       inst.mesh.geometry.dispose()
       inst.mesh.geometry = new THREE.PlaneGeometry(w, h)
@@ -275,12 +355,12 @@ export function updateLayer3DInstance(
     ax = halfW
   }
 
-  // 3. Tọa độ Three.js:
-  // - X: ngang (layer.x)
-  // - Y: dọc (-layer.y, đảo dấu vì màn hình Y hướng xuống)
+  // 3. Tọa độ Three.js đồng bộ chuẩn 2D:
+  // - X: ngang (layer.x + animTranslateX)
+  // - Y: dọc (-(layer.y + animTranslateY), đảo dấu vì màn hình Y hướng xuống)
   // - Z: chiều sâu (-layer.z * zExaggeration + micro-offset layerIndex để triệt tiêu Z-fighting khi trùng Z)
   const posX = layer.x + motion.animTranslateX
-  const posY = -layer.y + motion.animTranslateY
+  const posY = -(layer.y + motion.animTranslateY)
   const posZ = -layer.z * zExaggeration + layerIndex * 0.05
 
   // Group được định vị chính xác tại tâm của layer trong không gian 3D
@@ -298,12 +378,14 @@ export function updateLayer3DInstance(
   const scaleY = layer.scale * motion.animScaleY
   group.scale.set(scaleX, scaleY, 1)
 
-  // 5. Chuyển động đung đưa xoay quanh điểm neo P = (ax, ay)
-  // Khi xoay quanh điểm neo P một góc theta, tâm mesh C(0, 0) dịch chuyển:
-  // dx = ax * (1 - cos(theta)) + ay * sin(theta)
-  // dy = ay * (1 - cos(theta)) - ax * sin(theta)
-  // Đảm bảo: khi theta = 0 thì (dx, dy) = (0, 0), tâm mesh trùng đúng (posX, posY, posZ) của khung camera 2D!
-  const theta = motion.animRotateRad
+  // 5. Chuyển động đung đưa xoay quanh điểm neo P = (ax, ay) đồng bộ 100% với 2D CSS
+  // Trong CSS 2D, góc xoay dương theo chiều kim đồng hồ (Clockwise).
+  // Trong Three.js, góc xoay quanh trục Z dương ngược chiều kim đồng hồ, do đó theta = -motion.animRotateRad
+  // Khi xoay quanh điểm neo P(ax, ay) một góc theta, tâm mesh C(0, 0) dịch chuyển:
+  // shiftX = ax * (1 - cos(theta)) + ay * sin(theta)
+  // shiftY = ay * (1 - cos(theta)) - ax * sin(theta)
+  // Đảm bảo: điểm neo (ax, ay) cố định tuyệt đối, tán cây nghiêng đúng hướng và đồng bộ hoàn hảo với 2D!
+  const theta = -motion.animRotateRad
   const cosT = Math.cos(theta)
   const sinT = Math.sin(theta)
   const shiftX = ax * (1 - cosT) + ay * sinT
@@ -321,6 +403,8 @@ export function updateLayer3DInstance(
   material.depthWrite = op >= 0.95
   if (clippingPlanes) {
     material.clippingPlanes = clippingPlanes
+  } else {
+    material.clippingPlanes = null as any
   }
   group.visible = !layer.hidden
 

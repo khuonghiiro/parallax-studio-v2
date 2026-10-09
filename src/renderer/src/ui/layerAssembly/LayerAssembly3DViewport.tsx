@@ -5,17 +5,19 @@ import {
   createLayer3DInstance,
   updateLayer3DInstance,
   updateLayerInstanceTexture,
-  createRectOutline,
   createCameraFrustumHelper,
   createCameraClippingPlanes,
+  createCanvasPlaneHelper,
+  disposeCanvasPlaneHelper,
+  computeFramingDistance,
   createDepthGuideLine,
   type Layer3DMeshInstance
 } from './layerAssembly3DMesh'
 import { getLayerFullResUrl } from './useLayerAssetImage'
 import { resolveFaceTexture } from '../assets/models3d/textureResolver'
-import { useView } from '../../store/view'
-import { LayerAssemblyGizmo } from './LayerAssemblyGizmo'
 import { LayerAssembly3DToolbar } from './LayerAssembly3DToolbar'
+import { LayerAssemblyGizmo } from './LayerAssemblyGizmo'
+import { useView } from '../../store/view'
 import type { GizmoRect } from '../../engine/layerGizmo'
 
 export interface LayerAssembly3DViewportProps {
@@ -44,32 +46,39 @@ export function LayerAssembly3DViewport({
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const layersGroupRef = useRef<THREE.Group | null>(null)
   const helpersGroupRef = useRef<THREE.Group | null>(null)
-  const canvasBoxRef = useRef<THREE.LineSegments | null>(null)
+  const canvasBoxRef = useRef<THREE.Group | null>(null)
   const frustumHelperRef = useRef<THREE.LineSegments | null>(null)
   const depthGuideRef = useRef<THREE.Line | null>(null)
 
   // Mesh instances map
   const meshInstancesRef = useRef<Map<string, Layer3DMeshInstance>>(new Map())
 
-  // Tính khoảng cách camera vừa vặn chính xác góc nhìn 45° của camera
-  const defaultFitDist = useMemo(() => {
-    const fovRad = (45 * Math.PI) / 180
-    return Math.round(composite.height / (2 * Math.tan(fovRad / 2)))
-  }, [composite.height])
+  // Kích thước thực tế của viewport container
+  const viewDimsRef = useRef({ w: 600, h: 500 })
+  const cameraPresetRef = useRef<CameraPreset>('orbit')
+
+  // Hàm tính khoảng cách camera đóng khung vừa vặn chuẩn tỉ lệ khung hình thực tế
+  const getFitDistance = useCallback(() => {
+    const { w, h } = viewDimsRef.current
+    return computeFramingDistance(composite.width, composite.height, w, h)
+  }, [composite.width, composite.height])
+
+  const initialFitDist = useMemo(() => {
+    return computeFramingDistance(composite.width, composite.height, 500, 700)
+  }, [composite.width, composite.height])
 
   // Camera Orbit state
   const orbitRef = useRef({
     azimuth: -0.55, // ~ -32 độ
     elevation: 0.35, // ~ 20 độ
-    distance: defaultFitDist,
+    distance: initialFitDist,
     target: new THREE.Vector3(0, 0, 0)
   })
 
   const theme = useView((s) => s.theme)
   const isLight = theme === 'light'
 
-  // Tool states
-  const [camDistance, setCamDistance] = useState(defaultFitDist)
+  const [camDistance, setCamDistance] = useState(initialFitDist)
   const [zExaggeration, setZExaggeration] = useState(1.8) // Độ tách lớp Z mặc định 1.8x
   const [showGrid, setShowGrid] = useState(true)
   const [showFrustum, setShowFrustum] = useState(true)
@@ -127,7 +136,6 @@ export function LayerAssembly3DViewport({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
     renderer.setSize(width, height)
     renderer.outputColorSpace = THREE.SRGBColorSpace
-    renderer.localClippingEnabled = true
     rendererRef.current = renderer
 
     // Lights
@@ -160,14 +168,14 @@ export function LayerAssembly3DViewport({
     axesHelper.position.set(-composite.width / 2, -composite.height / 2, 0)
     helpersGroup.add(axesHelper)
 
-    // Khung chữ nhật bao quanh canvas 2D tại z = 0 (theme sáng dùng xanh dương, theme tối dùng slate)
-    const initialBoxColor = isLight ? 0x0284c7 : 0x64748b
-    const canvasBox = createRectOutline(composite.width, composite.height, initialBoxColor)
+    // Khung chữ nhật & Mặt phẳng Canvas 2D tại z = 0 (cyan outline + dark card + center crosshairs)
+    const canvasBox = createCanvasPlaneHelper(composite.width, composite.height)
     scene.add(canvasBox)
     canvasBoxRef.current = canvasBox
 
-    // Hình nón tháp Camera Frustum 3D (theme sáng dùng Royal Blue đậm nét, theme tối dùng vàng ấm)
-    const frustumHelper = createCameraFrustumHelper(composite.width, composite.height, defaultFitDist, isLight)
+    // Hình nón tháp Camera Frustum 3D
+    const frustumHelper = createCameraFrustumHelper(composite.width, composite.height, initialFitDist, isLight)
+    frustumHelper.visible = showFrustum && cameraPresetRef.current !== 'front'
     scene.add(frustumHelper)
     frustumHelperRef.current = frustumHelper
 
@@ -220,12 +228,20 @@ export function LayerAssembly3DViewport({
       const w = container.clientWidth
       const h = container.clientHeight
       if (w <= 0 || h <= 0) return
+      viewDimsRef.current = { w, h }
       cameraRef.current.aspect = w / h
       cameraRef.current.updateProjectionMatrix()
       rendererRef.current.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
       rendererRef.current.setSize(w, h)
       setGizmoRect({ x: 0, y: 0, w, h })
       setGizmoTick((t) => (t + 1) | 0)
+
+      // Nếu đang ở góc nhìn Front (Camera chính diện), tự động cân đối khoảng cách vừa vặn tỉ lệ khung hình mới
+      if (cameraPresetRef.current === 'front') {
+        const fitD = computeFramingDistance(composite.width, composite.height, w, h)
+        orbitRef.current.distance = fitD
+        setCamDistance(fitD)
+      }
     })
     ro.observe(container)
 
@@ -233,6 +249,10 @@ export function LayerAssembly3DViewport({
       cancelAnimationFrame(animId)
       ro.disconnect()
       renderer.dispose()
+      if (canvasBoxRef.current) {
+        disposeCanvasPlaneHelper(canvasBoxRef.current)
+        canvasBoxRef.current = null
+      }
       meshInstancesRef.current.clear()
     }
   }, [])
@@ -243,22 +263,24 @@ export function LayerAssembly3DViewport({
 
     if (canvasBoxRef.current) {
       sceneRef.current.remove(canvasBoxRef.current)
-      canvasBoxRef.current.geometry.dispose()
+      disposeCanvasPlaneHelper(canvasBoxRef.current)
+      canvasBoxRef.current = null
     }
-    const boxColor = isLight ? 0x0284c7 : 0x64748b
-    const newBox = createRectOutline(composite.width, composite.height, boxColor)
+    const newBox = createCanvasPlaneHelper(composite.width, composite.height)
     sceneRef.current.add(newBox)
     canvasBoxRef.current = newBox
 
     if (frustumHelperRef.current) {
       sceneRef.current.remove(frustumHelperRef.current)
       frustumHelperRef.current.geometry.dispose()
+      frustumHelperRef.current = null
     }
-    const newFrustum = createCameraFrustumHelper(composite.width, composite.height, defaultFitDist, isLight)
-    newFrustum.visible = showFrustum
+    const fitD = getFitDistance()
+    const newFrustum = createCameraFrustumHelper(composite.width, composite.height, fitD, isLight)
+    newFrustum.visible = showFrustum && cameraPreset !== 'front'
     sceneRef.current.add(newFrustum)
     frustumHelperRef.current = newFrustum
-  }, [composite.width, composite.height, defaultFitDist, isLight, showFrustum])
+  }, [composite.width, composite.height, getFitDistance, showFrustum, cameraPreset, isLight])
 
   // ------------------------------------------------------------- 3. Bật tắt Helpers Lưới & Tháp Camera
   useEffect(() => {
@@ -269,9 +291,9 @@ export function LayerAssembly3DViewport({
 
   useEffect(() => {
     if (frustumHelperRef.current) {
-      frustumHelperRef.current.visible = showFrustum
+      frustumHelperRef.current.visible = showFrustum && cameraPreset !== 'front'
     }
-  }, [showFrustum])
+  }, [showFrustum, cameraPreset])
 
   // ------------------------------------------------------------- 4. Đường gióng độ sâu Z cho layer được chọn
   useEffect(() => {
@@ -292,8 +314,11 @@ export function LayerAssembly3DViewport({
     }
   }, [selectedLayerId, composite.layers, zExaggeration])
 
-  // Giữ callback rỗng để tương thích với các API load texture
-  const requestRender = useCallback(() => {}, [])
+  // Kích hoạt render lại và cập nhật hình học layer khi ảnh load xong
+  const [renderTrigger, setRenderTrigger] = useState(0)
+  const requestRender = useCallback(() => {
+    setRenderTrigger((t) => (t + 1) | 0)
+  }, [])
 
   // ------------------------------------------------------------- 6. Đồng bộ hóa Mesh các Layers
   useEffect(() => {
@@ -350,9 +375,8 @@ export function LayerAssembly3DViewport({
           }
         : layer
 
-      // Đặt renderOrder = 0 để Three.js sắp xếp theo khoảng cách chiều sâu 3D (camera distance)
-      // và Z-buffer, thay vì bị ép cứng theo thứ tự mảng idx làm sai lệch layer trước/sau
-      inst.mesh.renderOrder = 0
+      // Thiết lập renderOrder để Three.js vẽ đúng thứ tự
+      inst.mesh.renderOrder = idx
 
       updateLayer3DInstance(
         inst,
@@ -364,7 +388,7 @@ export function LayerAssembly3DViewport({
         cameraClippingPlanes
       )
     })
-  }, [composite.layers, time, zExaggeration, selectedLayerId, requestRender, cameraClippingPlanes])
+  }, [composite.layers, time, zExaggeration, selectedLayerId, requestRender, renderTrigger, cameraClippingPlanes])
 
   // Native non-passive wheel listener để Chromium không chặn zoom
   useEffect(() => {
@@ -428,6 +452,7 @@ export function LayerAssembly3DViewport({
       o.azimuth -= dx * 0.007
       o.elevation = Math.max(-Math.PI / 2 + 0.04, Math.min(Math.PI / 2 - 0.04, o.elevation + dy * 0.007))
       setCameraPreset('orbit')
+      cameraPresetRef.current = 'orbit'
     } else {
       // Pan dịch chuyển target
       const factor = (o.distance / 1000) * 1.2
@@ -490,6 +515,7 @@ export function LayerAssembly3DViewport({
   // ------------------------------------------------------------- 8. Camera Controls & Quick Angles
   const handleApplyPreset = (preset: CameraPreset) => {
     setCameraPreset(preset)
+    cameraPresetRef.current = preset
     const o = orbitRef.current
     if (preset === 'top') {
       o.azimuth = 0
@@ -498,11 +524,12 @@ export function LayerAssembly3DViewport({
       o.azimuth = -Math.PI / 2
       o.elevation = 0
     } else if (preset === 'front') {
+      const fitD = getFitDistance()
       o.azimuth = 0
       o.elevation = 0
       o.target.set(0, 0, 0)
-      o.distance = defaultFitDist
-      setCamDistance(defaultFitDist)
+      o.distance = fitD
+      setCamDistance(fitD)
     } else {
       o.azimuth = -0.55
       o.elevation = 0.35
@@ -516,30 +543,35 @@ export function LayerAssembly3DViewport({
     o.azimuth = (yawDeg * Math.PI) / 180
     o.elevation = (pitchDeg * Math.PI) / 180
     setCameraPreset('orbit')
+    cameraPresetRef.current = 'orbit'
     requestRender()
   }
 
   // Vừa vặn khung hình tiêu chuẩn (Fit Framing Distance)
   const handleFitFramingDistance = () => {
     const o = orbitRef.current
+    const fitD = getFitDistance()
     o.target.set(0, 0, 0)
-    o.distance = defaultFitDist
+    o.distance = fitD
     o.azimuth = 0
     o.elevation = 0
-    setCamDistance(defaultFitDist)
+    setCamDistance(fitD)
     setCameraPreset('front')
+    cameraPresetRef.current = 'front'
     requestRender()
   }
 
   // Lấy nét lại toàn cảnh (Focus / Reset View)
   const handleFocusAll = () => {
     const o = orbitRef.current
+    const fitD = getFitDistance()
     o.target.set(0, 0, 0)
-    o.distance = defaultFitDist
+    o.distance = fitD
     o.azimuth = -0.55
     o.elevation = 0.35
-    setCamDistance(defaultFitDist)
+    setCamDistance(fitD)
     setCameraPreset('orbit')
+    cameraPresetRef.current = 'orbit'
     requestRender()
   }
 
