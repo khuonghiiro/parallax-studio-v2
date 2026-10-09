@@ -28,7 +28,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         name: 'Chậu gốm Tử Sa viền đồng (Gốc neo)',
         assetPath: 'assembly_3d/modular/bonsai_pot.png',
         x: 0,
-        y: 110,
+        y: 155,
         z: -5,
         scale: 1.05,
         rotation: 0,
@@ -40,7 +40,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         name: 'Thân cổ thụ uốn lượn phong trần',
         assetPath: 'assembly_3d/modular/bonsai_trunk.png',
         x: 0,
-        y: -35,
+        y: 10,
         z: 0,
         scale: 1.0,
         rotation: 0,
@@ -52,7 +52,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         name: 'Tán lá tùng sau (Hậu cảnh Z=+35)',
         assetPath: 'assembly_3d/modular/bonsai_foliage_back.png',
         x: 5,
-        y: -105,
+        y: -60,
         z: 35,
         scale: 0.95,
         rotation: 0,
@@ -64,7 +64,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         name: 'Tán lá tùng chính (Trung cảnh Z=0)',
         assetPath: 'assembly_3d/modular/bonsai_foliage_mid.png',
         x: 0,
-        y: -90,
+        y: -45,
         z: 0,
         scale: 1.0,
         rotation: 0,
@@ -76,7 +76,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         name: 'Tán lá tùng trước (Tiền cảnh Z=-25)',
         assetPath: 'assembly_3d/modular/bonsai_foliage_front.png',
         x: -5,
-        y: -75,
+        y: -30,
         z: -25,
         scale: 1.05,
         rotation: 0,
@@ -237,7 +237,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
   }
 ]
 
-const SEED_VERSION = 'v3_bonsai_fit'
+const SEED_VERSION = 'v4_bonsai_center'
 const SEED_KEY = 'pxs.layerComposites.seeded_version'
 
 export function getStoredComposites(): LayerComposite[] {

@@ -57,13 +57,11 @@ export function LayerAssembly3DViewport({
   // Mesh instances map
   const meshInstancesRef = useRef<Map<string, Layer3DMeshInstance>>(new Map())
 
-  // Tính khoảng cách camera vừa vặn mặc định
+  // Tính khoảng cách camera vừa vặn chính xác góc nhìn 45° của camera
   const defaultFitDist = useMemo(() => {
     const fovRad = (45 * Math.PI) / 180
-    return Math.round(
-      (Math.max(composite.width, composite.height) / (2 * Math.tan(fovRad / 2))) * 1.25
-    )
-  }, [composite.width, composite.height])
+    return Math.round(composite.height / (2 * Math.tan(fovRad / 2)))
+  }, [composite.height])
 
   // Camera Orbit state
   const orbitRef = useRef({
@@ -489,6 +487,9 @@ export function LayerAssembly3DViewport({
     } else if (preset === 'front') {
       o.azimuth = 0
       o.elevation = 0
+      o.target.set(0, 0, 0)
+      o.distance = defaultFitDist
+      setCamDistance(defaultFitDist)
     } else {
       o.azimuth = -0.55
       o.elevation = 0.35

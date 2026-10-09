@@ -105,7 +105,7 @@ export function createAnchorDot(): THREE.Mesh {
 /**
  * Tính toán kích thước w, h vừa vặn bảo toàn tỉ lệ ảnh (Aspect Ratio)
  */
-function computePlaneDimensions(texture: THREE.Texture | null, maxDim = 340): { w: number; h: number } {
+function computePlaneDimensions(texture: THREE.Texture | null, maxDim = 380): { w: number; h: number } {
   if (texture && texture.image && texture.image.width && texture.image.height) {
     const aspect = texture.image.width / texture.image.height
     if (aspect >= 1) {
@@ -113,7 +113,7 @@ function computePlaneDimensions(texture: THREE.Texture | null, maxDim = 340): { 
     }
     return { w: Math.round(maxDim * aspect), h: maxDim }
   }
-  return { w: 320, h: 320 }
+  return { w: 380, h: 380 }
 }
 
 /**
@@ -241,19 +241,23 @@ export function updateLayer3DInstance(
   // 1. Tính toán chuyển động hoạt ảnh
   const motion = computeLayer3DMotion(layer.motion, time)
 
-  // 2. Điểm neo (Anchor Pivot)
+  // 2. Điểm neo (Anchor Pivot) tính theo nửa kích thước của plane geometry
   const planeGeom = mesh.geometry as THREE.PlaneGeometry
-  const meshH = planeGeom.parameters?.height || 320
+  const meshW = planeGeom.parameters?.width || 380
+  const meshH = planeGeom.parameters?.height || 380
+  const halfW = meshW / 2
   const halfH = meshH / 2
-  let pivotOffsetY = 0
-  let anchorY = 0
 
+  let ax = 0
+  let ay = 0
   if (layer.motion.anchor === 'bottom') {
-    pivotOffsetY = halfH
-    anchorY = -halfH
+    ay = -halfH
   } else if (layer.motion.anchor === 'top') {
-    pivotOffsetY = -halfH
-    anchorY = halfH
+    ay = halfH
+  } else if (layer.motion.anchor === 'left') {
+    ax = -halfW
+  } else if (layer.motion.anchor === 'right') {
+    ax = halfW
   }
 
   // 3. Tọa độ Three.js:
@@ -264,6 +268,7 @@ export function updateLayer3DInstance(
   const posY = -layer.y + motion.animTranslateY
   const posZ = -layer.z * zExaggeration
 
+  // Group được định vị chính xác tại tâm của layer trong không gian 3D
   group.position.set(posX, posY, posZ)
 
   // 4. Xoay 3D (X, Y, Z) và Scale
@@ -272,17 +277,28 @@ export function updateLayer3DInstance(
     layer.rotationY || 0,
     layer.rotation || 0
   ])
-  euler.z += motion.animRotateRad
   group.rotation.copy(euler)
 
   const scaleX = layer.scale * motion.animScaleX
   const scaleY = layer.scale * motion.animScaleY
   group.scale.set(scaleX, scaleY, 1)
 
-  // Đặt vị trí mesh tương đối so với pivot
-  mesh.position.set(0, pivotOffsetY, 0)
-  outline.position.set(0, pivotOffsetY, 0.5)
-  anchorDot.position.set(0, anchorY + pivotOffsetY, 2)
+  // 5. Chuyển động đung đưa xoay quanh điểm neo P = (ax, ay)
+  // Khi xoay quanh điểm neo P một góc theta, tâm mesh C(0, 0) dịch chuyển:
+  // dx = ax * (1 - cos(theta)) + ay * sin(theta)
+  // dy = ay * (1 - cos(theta)) - ax * sin(theta)
+  // Đảm bảo: khi theta = 0 thì (dx, dy) = (0, 0), tâm mesh trùng đúng (posX, posY, posZ) của khung camera 2D!
+  const theta = motion.animRotateRad
+  const cosT = Math.cos(theta)
+  const sinT = Math.sin(theta)
+  const shiftX = ax * (1 - cosT) + ay * sinT
+  const shiftY = ay * (1 - cosT) - ax * sinT
+
+  mesh.position.set(shiftX, shiftY, 0)
+  mesh.rotation.z = theta
+  outline.position.set(shiftX, shiftY, 0.5)
+  outline.rotation.z = theta
+  anchorDot.position.set(ax, ay, 2)
 
   // 5. Thuộc tính hiển thị
   material.opacity = layer.opacity
@@ -307,26 +323,42 @@ export function createCameraFrustumHelper(width: number, height: number, distanc
   const c2 = new THREE.Vector3(halfW, halfH, 0)
   const c3 = new THREE.Vector3(-halfW, halfH, 0)
 
+  // Biểu tượng thân máy ảnh (Camera Body) ở phía sau đỉnh camera
+  const camW = Math.max(28, width * 0.06)
+  const camH = Math.max(24, height * 0.06)
+  const camD = 35
+  const b0 = new THREE.Vector3(-camW / 2, -camH / 2, distance + camD)
+  const b1 = new THREE.Vector3(camW / 2, -camH / 2, distance + camD)
+  const b2 = new THREE.Vector3(camW / 2, camH / 2, distance + camD)
+  const b3 = new THREE.Vector3(-camW / 2, camH / 2, distance + camD)
+
   const points = [
     // 4 tia nhìn từ đỉnh camera tới 4 góc canvas
     apex, c0,
     apex, c1,
     apex, c2,
     apex, c3,
-    // Trục ngắm tâm (Center aim line)
-    apex, new THREE.Vector3(0, 0, 0),
-    // Khung viền đáy
+    // Khung viền đáy (Khung Camera soi Canvas tại z = 0)
     c0, c1,
     c1, c2,
     c2, c3,
-    c3, c0
+    c3, c0,
+    // Thân máy ảnh ở vị trí camera
+    apex, b0,
+    apex, b1,
+    apex, b2,
+    apex, b3,
+    b0, b1,
+    b1, b2,
+    b2, b3,
+    b3, b0
   ]
 
   const geom = new THREE.BufferGeometry().setFromPoints(points)
   const mat = new THREE.LineBasicMaterial({
     color: 0xffc24b, // Vàng cam ấm chuẩn camera path/frustum
     transparent: true,
-    opacity: 0.85,
+    opacity: 0.9,
     depthTest: false
   })
 
