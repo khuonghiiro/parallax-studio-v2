@@ -176,9 +176,10 @@ export function createLayer3DInstance(
     map: texture,
     color: texture ? 0xffffff : 0x4a5568,
     transparent: true,
-    alphaTest: 0.02,
+    alphaTest: 0.01,
     side: THREE.DoubleSide,
-    opacity: layer.opacity
+    opacity: layer.opacity,
+    depthWrite: false
   })
 
   const mesh = new THREE.Mesh(geom, material)

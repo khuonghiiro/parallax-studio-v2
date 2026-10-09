@@ -78,7 +78,7 @@ export function LayerAssembly3DViewport({
 
   const rafRef = useRef<number>(0)
 
-  // ------------------------------------------------------------- 1. Setup Three.js Scene
+  // ------------------------------------------------------------- 1. Setup Three.js Scene & Continuous Render Loop
   useEffect(() => {
     const container = containerRef.current
     const canvas = canvasRef.current
@@ -144,6 +144,33 @@ export function LayerAssembly3DViewport({
     scene.add(frustumHelper)
     frustumHelperRef.current = frustumHelper
 
+    // Vòng lặp render liên tục 60fps (đảm bảo camera orbit, zoom và chuyển động layer mượt mà)
+    let animId = 0
+    const render = () => {
+      const r = rendererRef.current
+      const s = sceneRef.current
+      const cam = cameraRef.current
+      if (r && s && cam) {
+        const o = orbitRef.current
+        const cosEl = Math.cos(o.elevation)
+        const sinEl = Math.sin(o.elevation)
+        const sinAz = Math.sin(o.azimuth)
+        const cosAz = Math.cos(o.azimuth)
+
+        cam.position.set(
+          o.target.x + o.distance * cosEl * sinAz,
+          o.target.y + o.distance * sinEl,
+          o.target.z + o.distance * cosEl * cosAz
+        )
+        cam.lookAt(o.target)
+        cam.updateMatrixWorld()
+
+        r.render(s, cam)
+      }
+      animId = requestAnimationFrame(render)
+    }
+    render()
+
     // Resize Observer
     const ro = new ResizeObserver(() => {
       if (!container || !rendererRef.current || !cameraRef.current) return
@@ -154,15 +181,12 @@ export function LayerAssembly3DViewport({
       cameraRef.current.updateProjectionMatrix()
       rendererRef.current.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
       rendererRef.current.setSize(w, h)
-      requestRender()
     })
     ro.observe(container)
 
-    requestRender()
-
     return () => {
+      cancelAnimationFrame(animId)
       ro.disconnect()
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
       renderer.dispose()
       meshInstancesRef.current.clear()
     }
@@ -188,22 +212,18 @@ export function LayerAssembly3DViewport({
     newFrustum.visible = showFrustum
     sceneRef.current.add(newFrustum)
     frustumHelperRef.current = newFrustum
-
-    requestRender()
   }, [composite.width, composite.height, defaultFitDist])
 
   // ------------------------------------------------------------- 3. Bật tắt Helpers Lưới & Tháp Camera
   useEffect(() => {
     if (helpersGroupRef.current) {
       helpersGroupRef.current.visible = showGrid
-      requestRender()
     }
   }, [showGrid])
 
   useEffect(() => {
     if (frustumHelperRef.current) {
       frustumHelperRef.current.visible = showFrustum
-      requestRender()
     }
   }, [showFrustum])
 
@@ -224,43 +244,10 @@ export function LayerAssembly3DViewport({
       scene.add(guide)
       depthGuideRef.current = guide
     }
-
-    requestRender()
   }, [selectedLayerId, composite.layers, zExaggeration])
 
-  // ------------------------------------------------------------- 5. Render Frame loop
-  const requestRender = useCallback(() => {
-    if (rafRef.current) return
-    rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = 0
-      renderScene()
-    })
-  }, [])
-
-  const renderScene = useCallback(() => {
-    const r = rendererRef.current
-    const scene = sceneRef.current
-    const camera = cameraRef.current
-    if (!r || !scene || !camera) return
-
-    const o = orbitRef.current
-
-    // Cập nhật vị trí camera từ Orbit spherical coordinates
-    const cosEl = Math.cos(o.elevation)
-    const sinEl = Math.sin(o.elevation)
-    const sinAz = Math.sin(o.azimuth)
-    const cosAz = Math.cos(o.azimuth)
-
-    camera.position.set(
-      o.target.x + o.distance * cosEl * sinAz,
-      o.target.y + o.distance * sinEl,
-      o.target.z + o.distance * cosEl * cosAz
-    )
-    camera.lookAt(o.target)
-    camera.updateMatrixWorld()
-
-    r.render(scene, camera)
-  }, [])
+  // Giữ callback rỗng để tương thích với các API load texture
+  const requestRender = useCallback(() => {}, [])
 
   // ------------------------------------------------------------- 6. Đồng bộ hóa Mesh các Layers
   useEffect(() => {
@@ -281,8 +268,13 @@ export function LayerAssembly3DViewport({
       }
     }
 
+    // Kiểm tra xem tất cả các layer có đang ở Z = 0 không
+    const allZeroZ =
+      composite.layers.length > 1 &&
+      composite.layers.every((l) => Math.abs(l.z || 0) < 0.001)
+
     // Tạo hoặc cập nhật mesh cho từng layer với ảnh full-resolution sắc nét
-    for (const layer of composite.layers) {
+    composite.layers.forEach((layer, idx) => {
       let inst = currentMap.get(layer.id)
       const fullResUrl = getLayerFullResUrl(layer.assetPath, layer.imageUrl)
 
@@ -303,11 +295,42 @@ export function LayerAssembly3DViewport({
         })
       }
 
-      updateLayer3DInstance(inst, layer, time, zExaggeration, layer.id === selectedLayerId)
+      // Nếu tất cả layer có Z = 0, tự động phân tách tầng thị giác so le
+      // để trong không gian 3D người dùng thấy rõ các tấm layer xếp chồng chứ không bị hợp nhất phẳng bẹp
+      const visualLayer = allZeroZ
+        ? {
+            ...layer,
+            z: Math.round((idx - (composite.layers.length - 1) / 2) * -50)
+          }
+        : layer
+
+      // Thiết lập renderOrder để Three.js vẽ đúng thứ tự
+      inst.mesh.renderOrder = idx
+
+      updateLayer3DInstance(inst, visualLayer, time, zExaggeration, layer.id === selectedLayerId)
+    })
+  }, [composite.layers, time, zExaggeration, selectedLayerId, requestRender])
+
+  // Native non-passive wheel listener để Chromium không chặn zoom
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const handleNativeWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const factor = e.deltaY < 0 ? 0.88 : 1.14
+      const o = orbitRef.current
+      const newDist = Math.round(Math.max(100, Math.min(6000, o.distance * factor)))
+      o.distance = newDist
+      setCamDistance(newDist)
     }
 
-    requestRender()
-  }, [composite.layers, time, zExaggeration, selectedLayerId, requestRender])
+    container.addEventListener('wheel', handleNativeWheel, { passive: false })
+    return () => {
+      container.removeEventListener('wheel', handleNativeWheel)
+    }
+  }, [])
 
   // ------------------------------------------------------------- 7. Tương tác Chuột / Pointer
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -359,8 +382,6 @@ export function LayerAssembly3DViewport({
         o.target.addScaledVector(right, -dx * factor).addScaledVector(up, dy * factor)
       }
     }
-
-    requestRender()
   }
 
   const handlePointerUp = (e: React.PointerEvent) => {
@@ -375,15 +396,6 @@ export function LayerAssembly3DViewport({
     if (!dragStartRef.current.moved && dragModeRef.current === 'orbit') {
       handleRaycastSelect(e.clientX, e.clientY)
     }
-  }
-
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault()
-    const factor = e.deltaY < 0 ? 0.9 : 1.11
-    const newDist = Math.round(Math.max(150, Math.min(15000, orbitRef.current.distance * factor)))
-    orbitRef.current.distance = newDist
-    setCamDistance(newDist)
-    requestRender()
   }
 
   // Bắn tia Raycast để chọn layer trong 3D
@@ -487,7 +499,6 @@ export function LayerAssembly3DViewport({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onWheel={handleWheel}
       onContextMenu={(e) => e.preventDefault()}
     >
       <canvas

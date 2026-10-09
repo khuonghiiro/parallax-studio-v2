@@ -76,6 +76,10 @@ export function LayerAssemblyDialog({
 
   // Thêm layer từ ảnh 2D
   const handleAddLayerFromAsset = (name: string, assetPath: string, imageUrl?: string) => {
+    const count = composite.layers.length
+    // Tự động phân tầng khoảng cách Z: layer sau ở xa (Z dương), layer trước ở gần (Z âm)
+    const defaultZ = count === 0 ? 50 : count === 1 ? 0 : -50 * (count - 1)
+
     const newLayer: AssembledLayerItem = {
       id: `layer-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
       name,
@@ -83,7 +87,7 @@ export function LayerAssemblyDialog({
       imageUrl,
       x: 0,
       y: 0,
-      z: 0,
+      z: defaultZ,
       scale: 1.0,
       rotation: 0,
       opacity: 1.0,

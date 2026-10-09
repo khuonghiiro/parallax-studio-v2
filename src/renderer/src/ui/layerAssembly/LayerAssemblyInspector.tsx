@@ -25,15 +25,24 @@ export function LayerAssemblyInspector({
 }: LayerAssemblyInspectorProps) {
   const selectedLayer = composite.layers.find((l) => l.id === selectedLayerId) || null
 
-  // Tự động phân tầng khoảng cách Z đều đặn cho toàn bộ layer từ Trước ra Sau
-  const handleAutoDistributeDepth = () => {
+  // Tự động phân tầng khoảng cách Z đều đặn cho toàn bộ layer
+  const handleAutoDistributeDepth = (mode: 'back-to-front' | 'front-to-back' = 'back-to-front') => {
     const count = composite.layers.length
     if (count <= 1) return
     const step = count <= 3 ? 80 : Math.round(360 / (count - 1))
-    const startZ = -Math.round(((count - 1) * step) / 2)
-    composite.layers.forEach((l, idx) => {
-      onUpdateLayer(l.id, { z: startZ + idx * step })
-    })
+    if (mode === 'back-to-front') {
+      // Layer trên cùng trong danh sách là Hậu cảnh (nền sau, Z > 0), layer dưới là Tiền cảnh (ở trước, Z < 0)
+      const startZ = Math.round(((count - 1) * step) / 2)
+      composite.layers.forEach((l, idx) => {
+        onUpdateLayer(l.id, { z: startZ - idx * step })
+      })
+    } else {
+      // Layer trên cùng là Tiền cảnh (ở trước, Z < 0), layer dưới là Hậu cảnh (nền sau, Z > 0)
+      const startZ = -Math.round(((count - 1) * step) / 2)
+      composite.layers.forEach((l, idx) => {
+        onUpdateLayer(l.id, { z: startZ + idx * step })
+      })
+    }
   }
 
   // Đưa tất cả layer về cùng mặt phẳng Z = 0
@@ -72,7 +81,7 @@ export function LayerAssemblyInspector({
             Xếp chồng Layer ({composite.layers.length})
           </span>
           <span style={{ fontSize: '9.5px', color: 'var(--text-faint)' }}>
-            (Trước → Sau)
+            (Phân lớp Z)
           </span>
         </div>
         <button
@@ -94,28 +103,37 @@ export function LayerAssemblyInspector({
           background: 'var(--bg-1)',
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
+          gap: '5px',
           flexShrink: 0
         }}
       >
         <span style={{ fontSize: '10px', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
-          Độ sâu Z:
+          Tách Z:
         </span>
         <button
           type="button"
           className="btn xs"
-          onClick={handleAutoDistributeDepth}
-          title="Tự động phân tầng khoảng cách Z đều đặn cho các layer từ Tiền cảnh (Z âm) tới Hậu cảnh (Z dương)"
-          style={{ padding: '2px 8px', fontSize: '10px', flex: '1 1 auto', justifyContent: 'center' }}
+          onClick={() => handleAutoDistributeDepth('back-to-front')}
+          title="Layer trên cùng là Hậu cảnh (nền sau, Z > 0), layer dưới là Tiền cảnh (ở trước, Z < 0)"
+          style={{ padding: '2px 6px', fontSize: '9.5px', flex: '1 1 auto', justifyContent: 'center' }}
         >
-          📐 Tách tầng Z đều
+          📐 Nền ➔ Trước
+        </button>
+        <button
+          type="button"
+          className="btn xs"
+          onClick={() => handleAutoDistributeDepth('front-to-back')}
+          title="Layer trên cùng là Tiền cảnh (ở trước, Z < 0), layer dưới là Hậu cảnh (nền sau, Z > 0)"
+          style={{ padding: '2px 6px', fontSize: '9.5px', flex: '1 1 auto', justifyContent: 'center' }}
+        >
+          Trước ➔ Nền
         </button>
         <button
           type="button"
           className="btn xs"
           onClick={handleResetAllZ}
           title="Đưa toàn bộ các layer về cùng một mặt phẳng (Z = 0)"
-          style={{ padding: '2px 8px', fontSize: '10px' }}
+          style={{ padding: '2px 6px', fontSize: '9.5px' }}
         >
           Gom (0)
         </button>
