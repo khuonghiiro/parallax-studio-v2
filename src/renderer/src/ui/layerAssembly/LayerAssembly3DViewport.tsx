@@ -12,7 +12,17 @@ import {
 } from './layerAssembly3DMesh'
 import { getLayerFullResUrl } from './useLayerAssetImage'
 import { resolveFaceTexture } from '../assets/models3d/textureResolver'
-import { IconCube, IconEye, IconFocus, IconCamera, IconFit } from '../icons'
+import {
+  IconCube,
+  IconEye,
+  IconFocus,
+  IconCamera,
+  IconFit,
+  IconAxisMove,
+  IconAxisRotate
+} from '../icons'
+import { LayerAssemblyGizmo } from './LayerAssemblyGizmo'
+import type { GizmoRect } from '../../engine/layerGizmo'
 
 export interface LayerAssembly3DViewportProps {
   composite: LayerComposite
@@ -28,6 +38,7 @@ export function LayerAssembly3DViewport({
   composite,
   selectedLayerId,
   onSelectLayer,
+  onUpdateLayer,
   time
 }: LayerAssembly3DViewportProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -70,6 +81,21 @@ export function LayerAssembly3DViewport({
   const [cameraPreset, setCameraPreset] = useState<CameraPreset>('orbit')
   const [isAnglesOpen, setIsAnglesOpen] = useState(false)
   const [isDepthOpen, setIsDepthOpen] = useState(false)
+
+  // 3D Gizmo states: Bật/tắt trục XYZ và vòng xoay góc
+  const [showTranslate, setShowTranslate] = useState(true) // Trục di chuyển 3D XYZ
+  const [showRotate, setShowRotate] = useState(true) // Vòng xoay góc 3D
+  const [gizmoRect, setGizmoRect] = useState<GizmoRect | null>(null)
+  const [gizmoTick, setGizmoTick] = useState(0)
+  const isDraggingGizmoRef = useRef(false)
+  const [isDraggingGizmo, setIsDraggingGizmo] = useState(false)
+
+  // Layer được chọn & mesh instance 3D tương ứng
+  const selectedLayer = useMemo(
+    () => composite.layers.find((l) => l.id === selectedLayerId) || null,
+    [composite.layers, selectedLayerId]
+  )
+  const selectedInst = selectedLayerId ? meshInstancesRef.current.get(selectedLayerId) || null : null
 
   // Mouse drag interaction
   const isDraggingRef = useRef(false)
@@ -144,7 +170,10 @@ export function LayerAssembly3DViewport({
     scene.add(frustumHelper)
     frustumHelperRef.current = frustumHelper
 
+    setGizmoRect({ x: 0, y: 0, w: width, h: height })
+
     // Vòng lặp render liên tục 60fps (đảm bảo camera orbit, zoom và chuyển động layer mượt mà)
+    const prevOrbit = { az: NaN, el: NaN, dist: NaN, target: new THREE.Vector3(NaN, NaN, NaN) }
     let animId = 0
     const render = () => {
       const r = rendererRef.current
@@ -165,6 +194,19 @@ export function LayerAssembly3DViewport({
         cam.lookAt(o.target)
         cam.updateMatrixWorld()
 
+        if (
+          o.azimuth !== prevOrbit.az ||
+          o.elevation !== prevOrbit.el ||
+          o.distance !== prevOrbit.dist ||
+          !o.target.equals(prevOrbit.target)
+        ) {
+          prevOrbit.az = o.azimuth
+          prevOrbit.el = o.elevation
+          prevOrbit.dist = o.distance
+          prevOrbit.target.copy(o.target)
+          setGizmoTick((t) => (t + 1) | 0)
+        }
+
         r.render(s, cam)
       }
       animId = requestAnimationFrame(render)
@@ -181,6 +223,8 @@ export function LayerAssembly3DViewport({
       cameraRef.current.updateProjectionMatrix()
       rendererRef.current.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
       rendererRef.current.setSize(w, h)
+      setGizmoRect({ x: 0, y: 0, w, h })
+      setGizmoTick((t) => (t + 1) | 0)
     })
     ro.observe(container)
 
@@ -334,6 +378,7 @@ export function LayerAssembly3DViewport({
 
   // ------------------------------------------------------------- 7. Tương tác Chuột / Pointer
   const handlePointerDown = (e: React.PointerEvent) => {
+    if (isDraggingGizmoRef.current) return
     const container = containerRef.current
     if (!container) return
 
@@ -385,6 +430,7 @@ export function LayerAssembly3DViewport({
   }
 
   const handlePointerUp = (e: React.PointerEvent) => {
+    if (isDraggingGizmoRef.current) return
     if (!isDraggingRef.current) return
     isDraggingRef.current = false
 
@@ -483,6 +529,23 @@ export function LayerAssembly3DViewport({
     requestRender()
   }
 
+  // Phím tắt W (Trục XYZ) / E (Trục Xoay) cho Gizmo 3D
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable) {
+        return
+      }
+      if (e.key === 'w' || e.key === 'W') {
+        setShowTranslate((v) => !v)
+      } else if (e.key === 'e' || e.key === 'E') {
+        setShowRotate((v) => !v)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   return (
     <div
       ref={containerRef}
@@ -510,6 +573,28 @@ export function LayerAssembly3DViewport({
           cursor: isDraggingRef.current ? 'grabbing' : 'grab'
         }}
       />
+
+      {/* 3D Gizmo tương tác trực tiếp trên Layer đã chọn */}
+      {selectedLayer && selectedInst && cameraRef.current && (
+        <LayerAssemblyGizmo
+          layer={selectedLayer}
+          instance={selectedInst}
+          camera={cameraRef.current}
+          rect={gizmoRect}
+          zExaggeration={zExaggeration}
+          showTranslate={showTranslate}
+          showRotate={showRotate}
+          tick={gizmoTick}
+          onUpdateLayer={onUpdateLayer}
+          onDragStateChange={(isDragging) => {
+            setIsDraggingGizmo(isDragging)
+            isDraggingGizmoRef.current = isDragging
+            if (!isDragging) {
+              requestRender()
+            }
+          }}
+        />
+      )}
 
       {/* 3D Floating Controls Toolbar duy nhất, thanh mảnh và hiện đại */}
       <div className="layer-workshop-3d-toolbar">
@@ -630,6 +715,28 @@ export function LayerAssembly3DViewport({
           title={showGrid ? 'Ẩn lưới sàn 3D' : 'Hiện lưới sàn 3D'}
         >
           <IconEye width={12} height={12} />
+        </button>
+
+        <div className="toolbar-divider" />
+
+        {/* Nút bật/tắt trục di chuyển XYZ */}
+        <button
+          type="button"
+          className={`btn xs icon${showTranslate ? ' active' : ''}`}
+          onClick={() => setShowTranslate((v) => !v)}
+          title={showTranslate ? 'Ẩn trục di chuyển 3D XYZ (Phím W)' : 'Hiện trục di chuyển 3D XYZ (Phím W)'}
+        >
+          <IconAxisMove width={12} height={12} />
+        </button>
+
+        {/* Nút bật/tắt vòng xoay góc */}
+        <button
+          type="button"
+          className={`btn xs icon${showRotate ? ' active' : ''}`}
+          onClick={() => setShowRotate((v) => !v)}
+          title={showRotate ? 'Ẩn vòng xoay góc 3D (Phím E)' : 'Hiện vòng xoay góc 3D (Phím E)'}
+        >
+          <IconAxisRotate width={12} height={12} />
         </button>
 
         <div className="toolbar-divider" />
