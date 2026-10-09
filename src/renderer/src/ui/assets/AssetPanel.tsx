@@ -2,15 +2,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { BuiltInAssetCategory, BuiltInAssetItem, BuiltInCatalogResult } from '@shared/ipc'
 import { importAudio, importBuiltInAsset, importImages } from '../../actions'
 import { useEditor } from '../../store/editor'
-import { IconCube, IconFolder, IconImage, IconMusic, IconPlus } from '../icons'
+import { IconCube, IconFolder, IconImage, IconLayers, IconMusic, IconPlus } from '../icons'
 import { AssetCatalogModal } from './AssetCatalogModal'
 import { BuiltInAssetBar } from './BuiltInAssetBar'
 import { BuiltInAssetGrid } from './BuiltInAssetGrid'
 import { ProjectAssetList } from './ProjectAssetList'
 import { Model3DList } from './Model3DList'
+import { LayerAssemblyList } from '../layerAssembly/LayerAssemblyList'
+import { getStoredComposites } from '../layerAssembly/layerAssemblyStorage'
 import { sortAssetCategories } from './types'
 
-type AssetSubTab = 'builtin' | 'project' | '3d'
+type AssetSubTab = 'builtin' | 'project' | '3d' | 'assembly'
 
 export function AssetPanel() {
   const projectAssets = useEditor((s) => s.project.assets)
@@ -19,6 +21,13 @@ export function AssetPanel() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [loading, setLoading] = useState(false)
   const [isJsonModalOpen, setIsJsonModalOpen] = useState(false)
+  const [assemblyCount, setAssemblyCount] = useState<number>(() => getStoredComposites().length)
+
+  useEffect(() => {
+    const handleCompChange = () => setAssemblyCount(getStoredComposites().length)
+    window.addEventListener('layerComposites:changed', handleCompChange)
+    return () => window.removeEventListener('layerComposites:changed', handleCompChange)
+  }, [])
 
   const loadCatalog = useCallback(async () => {
     setLoading(true)
@@ -141,6 +150,16 @@ export function AssetPanel() {
           <IconCube width={13} height={13} />
           <span>3D</span>
         </button>
+        <button
+          type="button"
+          className={`asset-subtab-btn${subTab === 'assembly' ? ' active' : ''}`}
+          onClick={() => setSubTab('assembly')}
+          title="Chi tiết & vật liệu lắp ráp layer xếp chồng 2.5D"
+        >
+          <IconLayers width={13} height={13} />
+          <span>Lắp ráp</span>
+          <span className="asset-subtab-badge">{assemblyCount}</span>
+        </button>
       </div>
 
       {/* Main Content Area */}
@@ -169,8 +188,10 @@ export function AssetPanel() {
         <div className="panel-body">
           <ProjectAssetList />
         </div>
-      ) : (
+      ) : subTab === '3d' ? (
         <Model3DList />
+      ) : (
+        <LayerAssemblyList />
       )}
 
       {/* JSON Manifest Editor Modal */}

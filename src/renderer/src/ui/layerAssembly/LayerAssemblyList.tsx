@@ -2,14 +2,15 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import type { LayerComposite } from './types'
 import {
   getStoredComposites,
-  saveComposite,
   deleteComposite,
   duplicateComposite,
   COMPOSITE_CATEGORIES
 } from './layerAssemblyStorage'
 import { insertLayerCompositeToScene } from './insertLayerComposite'
 import { LayerAssemblyDialog } from './LayerAssemblyDialog'
-import { IconLayers, IconPlus, IconPen, IconTrash, IconCopy } from '../icons'
+import { LayerAssemblyCategoryBar } from './LayerAssemblyCategoryBar'
+import { IconPlus, IconPen, IconTrash, IconCopy, IconLayers } from '../icons'
+import '../../styles/model3dLibrary.css'
 import '../../styles/layerAssembly.css'
 
 export function LayerAssemblyList() {
@@ -94,108 +95,66 @@ export function LayerAssemblyList() {
   }
 
   return (
-    <div className="layer-assembly-panel">
-      {/* 1. Header Toolbar */}
-      <div className="layer-assembly-header">
-        <div className="layer-assembly-search">
-          <input
-            type="text"
-            className="input-text sm"
-            style={{ width: '100%', fontSize: '11px' }}
-            placeholder="Tìm chi tiết / hoạt ảnh..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <button
-          type="button"
-          className="layer-assembly-create-btn"
-          onClick={handleCreateNew}
-          title="Mở Xưởng Lắp Ráp Layer để tạo chi tiết xếp chồng & hoạt ảnh đung đưa mới"
-        >
-          <IconPlus width={13} height={13} />
-          <span>Tạo hoạt ảnh</span>
-        </button>
-      </div>
+    <div className="model-3d-layout">
+      {/* 1. Left Vertical Category Strip */}
+      <LayerAssemblyCategoryBar
+        categories={COMPOSITE_CATEGORIES}
+        selectedCategory={selectedCategory}
+        onSelectCategory={setSelectedCategory}
+        itemCounts={itemCounts}
+        onCreateNew={handleCreateNew}
+      />
 
-      {/* 2. Category Chips Bar */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '4px',
-          padding: '6px 10px',
-          overflowX: 'auto',
-          background: 'var(--bg-1)',
-          borderBottom: '1px solid var(--line-soft)',
-          flexShrink: 0
-        }}
-      >
-        {COMPOSITE_CATEGORIES.map((cat) => {
-          const active = selectedCategory === cat.id
-          const count = itemCounts[cat.id] || 0
-          return (
-            <button
-              key={cat.id}
-              type="button"
-              className={`btn xs${active ? ' active' : ''}`}
-              style={{
-                fontSize: '10.5px',
-                padding: '2px 7px',
-                whiteSpace: 'nowrap',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-              onClick={() => setSelectedCategory(cat.id)}
-            >
-              <span>{cat.title}</span>
-              <span
-                style={{
-                  fontSize: '9px',
-                  opacity: active ? 1 : 0.6,
-                  fontWeight: 600
-                }}
-              >
-                {count}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-
-      {/* 3. Grid Card Items */}
-      <div className="layer-assembly-grid">
-        {filtered.map((item) => (
-          <LayerCompositeCard
-            key={item.id}
-            item={item}
-            isInserting={insertingId === item.id}
-            onInsert={() => handleInsert(item)}
-            onEdit={() => handleEdit(item)}
-            onDuplicate={() => handleDuplicate(item.id)}
-            onDelete={() => handleDelete(item.id, item.name)}
-          />
-        ))}
-
-        {filtered.length === 0 && (
-          <div
-            style={{
-              gridColumn: '1 / -1',
-              padding: '32px 16px',
-              textAlign: 'center',
-              color: 'var(--text-dim)',
-              fontSize: '11.5px'
-            }}
-          >
-            <div style={{ marginBottom: '8px', opacity: 0.5 }}>
-              <IconLayers width={32} height={32} />
-            </div>
-            Không tìm thấy chi tiết lắp ráp phù hợp.
+      {/* 2. Main Content Area */}
+      <div className="model-3d-content">
+        {/* Header Search & Create Button */}
+        <div className="model-3d-header">
+          <div className="search-bar">
+            <input
+              type="text"
+              className="input-text sm"
+              placeholder="Tìm kiếm chi tiết lắp ráp..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-        )}
+          <button
+            type="button"
+            className="btn sm primary create-3d-btn"
+            onClick={handleCreateNew}
+            title="Mở Xưởng Lắp Ráp Layer để tạo chi tiết xếp chồng & hoạt ảnh đung đưa mới"
+          >
+            <IconPlus width={13} height={13} />
+            <span>Tạo hoạt ảnh</span>
+          </button>
+        </div>
+
+        {/* 2-column Grid of Layer Composite Cards */}
+        <div className="model-3d-grid">
+          {filtered.map((item) => (
+            <LayerCardItem
+              key={item.id}
+              item={item}
+              isInserting={insertingId === item.id}
+              onInsert={() => handleInsert(item)}
+              onEdit={() => handleEdit(item)}
+              onDuplicate={() => handleDuplicate(item.id)}
+              onDelete={() => handleDelete(item.id, item.name)}
+            />
+          ))}
+
+          {filtered.length === 0 && (
+            <div className="empty-state" style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-dim)', fontSize: '11.5px' }}>
+              <div style={{ marginBottom: '8px', opacity: 0.5 }}>
+                <IconLayers width={32} height={32} />
+              </div>
+              Không tìm thấy chi tiết lắp ráp phù hợp.
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* 4. Fullscreen Workshop Modal */}
+      {/* Fullscreen Workshop Modal */}
       {isDialogOpen && (
         <LayerAssemblyDialog
           initialComposite={editingComposite}
@@ -209,7 +168,7 @@ export function LayerAssemblyList() {
   )
 }
 
-interface LayerCompositeCardProps {
+interface LayerCardItemProps {
   item: LayerComposite
   isInserting: boolean
   onInsert: () => void
@@ -218,15 +177,14 @@ interface LayerCompositeCardProps {
   onDelete: () => void
 }
 
-function LayerCompositeCard({
+function LayerCardItem({
   item,
   isInserting,
   onInsert,
   onEdit,
   onDuplicate,
   onDelete
-}: LayerCompositeCardProps) {
-  // Tìm loại motion chính
+}: LayerCardItemProps) {
   const mainMotion = item.layers.find((l) => l.motion?.type && l.motion.type !== 'none')?.motion?.type || 'none'
   const motionLabels: Record<string, string> = {
     sway: 'Đung đưa 🍃',
@@ -237,60 +195,78 @@ function LayerCompositeCard({
     none: 'Tĩnh'
   }
 
+  const categoryLabels: Record<string, string> = {
+    nature: 'Cây cối',
+    prop: 'Đạo cụ',
+    character: 'Nhân vật',
+    architecture: 'Kiến trúc',
+    custom: 'Tự tạo'
+  }
+
   return (
-    <div className="layer-assembly-card">
-      {/* Thumbnail or Graphic Layer Representation */}
-      <div className="layer-assembly-card-thumb" onClick={onEdit} style={{ cursor: 'pointer' }}>
-        <div className="layer-assembly-badge-stack">
-          <span className="layer-assembly-badge">
+    <div className="model-3d-card" onClick={onEdit} style={{ cursor: 'pointer' }}>
+      {/* Thumbnail Area */}
+      <div className="model-3d-card-thumb">
+        {/* Badges on Top-Left */}
+        <div className="model-3d-badge-stack">
+          <span className="model-3d-badge">
             {motionLabels[mainMotion] || 'Chi tiết'}
           </span>
-          <span className="layer-assembly-count-badge">
+          <span className="model-3d-faces-badge">
             {item.layers.length} lớp
           </span>
         </div>
 
-        {/* Action Buttons overlay */}
-        <div className="layer-assembly-actions" onClick={(e) => e.stopPropagation()}>
+        {/* Action Buttons Top-Right */}
+        <div className="model-3d-card-actions-top" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
-            className="btn xs icon"
+            className="icon-action-btn add-btn"
+            onClick={onInsert}
+            disabled={isInserting}
+            title="Chèn ngay vào cảnh hiện tại của dự án"
+          >
+            <IconPlus width={11} height={11} />
+          </button>
+          <button
+            type="button"
+            className="icon-action-btn edit-btn"
             onClick={onEdit}
-            title="Chỉnh sửa trong Xưởng Lắp Ráp Layer"
+            title="Chỉnh sửa chi tiết trong Xưởng Lắp Ráp Layer"
           >
-            <IconPen width={11} height={11} />
+            <IconPen width={10} height={10} />
           </button>
           <button
             type="button"
-            className="btn xs icon"
+            className="icon-action-btn duplicate-btn"
             onClick={onDuplicate}
-            title="Nhân bản cụm chi tiết này"
+            title="Nhân bản chi tiết này"
           >
-            <IconCopy width={11} height={11} />
+            <IconCopy width={10} height={10} />
           </button>
           <button
             type="button"
-            className="btn xs icon"
+            className="icon-action-btn delete-btn"
             onClick={onDelete}
-            title="Xóa cụm chi tiết"
+            title="Xóa chi tiết này"
           >
-            <IconTrash width={11} height={11} />
+            <IconTrash width={10} height={10} />
           </button>
         </div>
 
-        {/* Visual Stack Graphic */}
+        {/* Thumbnail Graphic Preview */}
         {item.thumbnail ? (
           <img
             src={item.thumbnail}
             alt={item.name}
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            className="model-3d-thumb-img"
           />
         ) : (
           <div
             style={{
               position: 'relative',
-              width: '54px',
-              height: '64px',
+              width: '50px',
+              height: '60px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
@@ -301,13 +277,13 @@ function LayerCompositeCard({
                 key={idx}
                 style={{
                   position: 'absolute',
-                  width: `${36 - idx * 4}px`,
-                  height: `${42 - idx * 4}px`,
-                  borderRadius: '4px',
+                  width: `${34 - idx * 4}px`,
+                  height: `${40 - idx * 4}px`,
+                  borderRadius: '3px',
                   border: '1.5px solid var(--accent)',
-                  background: 'color-mix(in srgb, var(--accent) 15%, var(--bg-2))',
+                  background: 'color-mix(in srgb, var(--accent) 18%, var(--bg-1))',
                   transform: `translate(${(idx - 1.5) * 5}px, ${(idx - 1.5) * 5}px)`,
-                  boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.25)',
                   opacity: 0.5 + idx * 0.15
                 }}
               />
@@ -316,26 +292,21 @@ function LayerCompositeCard({
         )}
       </div>
 
-      {/* Card Info & Insert Button */}
-      <div className="layer-assembly-card-body">
-        <div className="layer-assembly-title" title={item.name}>
+      {/* Card Info */}
+      <div className="model-3d-card-info" style={{ padding: '2px 4px 4px 4px' }}>
+        <div
+          className="model-3d-card-title"
+          title={item.name}
+          style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+        >
           {item.name}
         </div>
-        <div className="layer-assembly-desc" title={item.description || ''}>
-          {item.description || `${item.width} × ${item.height}px`}
-        </div>
-
-        <button
-          type="button"
-          className="btn xs primary"
-          style={{ marginTop: '6px', width: '100%', justifyContent: 'center' }}
-          onClick={onInsert}
-          disabled={isInserting}
-          title="Chèn toàn bộ layer trong chi tiết này vào cảnh đang mở"
+        <div
+          className="model-3d-card-cat"
+          style={{ fontSize: '9.5px', color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
         >
-          <IconPlus width={10} height={10} />
-          <span>{isInserting ? 'Đang thêm...' : 'Thêm vào cảnh'}</span>
-        </button>
+          {categoryLabels[item.category] || 'Chi tiết'} • {item.width}×{item.height}
+        </div>
       </div>
     </div>
   )
