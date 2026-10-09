@@ -5,6 +5,7 @@ import { depthEuler } from '../../engine/spatial'
 export interface Layer3DMeshInstance {
   group: THREE.Group
   mesh: THREE.Mesh
+  wireframeMesh?: THREE.Mesh
   material: THREE.MeshLambertMaterial
   outline: THREE.LineSegments
   anchorDot: THREE.Mesh
@@ -239,7 +240,10 @@ export function createLayer3DInstance(
         if (getTextureDimensions(texture)) {
           const { w, h } = computePlaneDimensions(texture)
           mesh.geometry.dispose()
-          mesh.geometry = new THREE.PlaneGeometry(w, h)
+          mesh.geometry = new THREE.PlaneGeometry(w, h, 12, 16)
+          if (wireframeMesh) {
+            wireframeMesh.geometry = mesh.geometry
+          }
           outline.geometry.dispose()
           outline.geometry = createRectOutline(w + 4, h + 4, 0x38bdf8).geometry
         }
@@ -248,7 +252,8 @@ export function createLayer3DInstance(
     : null
 
   const { w, h } = computePlaneDimensions(texture)
-  const geom = new THREE.PlaneGeometry(w, h)
+  // Lưới đa giác 12 x 16 đỉnh giúp biến dạng uốn dẻo mềm mại như hoạt hình 2D chuyên nghiệp
+  const geom = new THREE.PlaneGeometry(w, h, 12, 16)
 
   const opacity = Math.max(0, Math.min(1, layer.opacity ?? 1))
   const material = new THREE.MeshLambertMaterial({
@@ -267,6 +272,18 @@ export function createLayer3DInstance(
   mesh.castShadow = true
   mesh.receiveShadow = true
 
+  // Lưới khung dây Wireframe hiển thị khi người dùng bật chế độ Mesh
+  const wireframeMat = new THREE.MeshBasicMaterial({
+    wireframe: true,
+    color: 0x38bdf8,
+    transparent: true,
+    opacity: 0.35,
+    depthTest: false
+  })
+  const wireframeMesh = new THREE.Mesh(geom, wireframeMat)
+  wireframeMesh.name = `layer-wireframe-${layer.id}`
+  wireframeMesh.visible = false
+
   if (texture) {
     mesh.customDepthMaterial = new THREE.MeshDepthMaterial({
       depthPacking: THREE.RGBADepthPacking,
@@ -282,12 +299,14 @@ export function createLayer3DInstance(
   anchorDot.visible = false
 
   group.add(mesh)
+  group.add(wireframeMesh)
   group.add(outline)
   group.add(anchorDot)
 
   return {
     group,
     mesh,
+    wireframeMesh,
     material,
     outline,
     anchorDot,
@@ -347,7 +366,10 @@ export function updateLayerInstanceTexture(
     if (getTextureDimensions(texture)) {
       const { w, h } = computePlaneDimensions(texture)
       inst.mesh.geometry.dispose()
-      inst.mesh.geometry = new THREE.PlaneGeometry(w, h)
+      inst.mesh.geometry = new THREE.PlaneGeometry(w, h, 12, 16)
+      if (inst.wireframeMesh) {
+        inst.wireframeMesh.geometry = inst.mesh.geometry
+      }
       inst.outline.geometry.dispose()
       inst.outline.geometry = createRectOutline(w + 4, h + 4, 0x38bdf8).geometry
     }
@@ -365,9 +387,10 @@ export function updateLayer3DInstance(
   zExaggeration: number,
   isSelected: boolean,
   layerIndex = 0,
-  clippingPlanes?: THREE.Plane[]
+  clippingPlanes?: THREE.Plane[],
+  showMesh = false
 ): void {
-  const { group, mesh, material, outline, anchorDot } = inst
+  const { group, mesh, wireframeMesh, material, outline, anchorDot } = inst
 
   // 1. Tính toán chuyển động hoạt ảnh
   const motion = computeLayer3DMotion(layer.motion, time)
@@ -403,7 +426,7 @@ export function updateLayer3DInstance(
   // Group được định vị chính xác tại tâm của layer trong không gian 3D
   group.position.set(posX, posY, posZ)
 
-  // 4. Xoay 3D (X, Y, Z) và Scale
+  // 4. Xoay 3D (X, Y, Z) và Scale (hỗ trợ squash & stretch scaleX / scaleY)
   const euler = depthEuler([
     layer.rotationX || 0,
     layer.rotationY || 0,
@@ -411,17 +434,11 @@ export function updateLayer3DInstance(
   ])
   group.rotation.copy(euler)
 
-  const scaleX = layer.scale * motion.animScaleX
-  const scaleY = layer.scale * motion.animScaleY
+  const scaleX = layer.scale * (layer.scaleX ?? 1) * motion.animScaleX
+  const scaleY = layer.scale * (layer.scaleY ?? 1) * motion.animScaleY
   group.scale.set(scaleX, scaleY, 1)
 
   // 5. Chuyển động đung đưa xoay quanh điểm neo P = (ax, ay) đồng bộ 100% với 2D CSS
-  // Trong CSS 2D, góc xoay dương theo chiều kim đồng hồ (Clockwise).
-  // Trong Three.js, góc xoay quanh trục Z dương ngược chiều kim đồng hồ, do đó theta = -motion.animRotateRad
-  // Khi xoay quanh điểm neo P(ax, ay) một góc theta, tâm mesh C(0, 0) dịch chuyển:
-  // shiftX = ax * (1 - cos(theta)) + ay * sin(theta)
-  // shiftY = ay * (1 - cos(theta)) - ax * sin(theta)
-  // Đảm bảo: điểm neo (ax, ay) cố định tuyệt đối, tán cây nghiêng đúng hướng và đồng bộ hoàn hảo với 2D!
   const theta = -motion.animRotateRad
   const cosT = Math.cos(theta)
   const sinT = Math.sin(theta)
@@ -434,7 +451,13 @@ export function updateLayer3DInstance(
   outline.rotation.z = theta
   anchorDot.position.set(ax, ay, 2)
 
-  // 5. Thuộc tính hiển thị & Cắt góc nhìn camera
+  if (wireframeMesh) {
+    wireframeMesh.position.set(shiftX, shiftY, 0.2)
+    wireframeMesh.rotation.z = theta
+    wireframeMesh.visible = showMesh
+  }
+
+  // 6. Thuộc tính hiển thị & Cắt góc nhìn camera
   const op = Math.max(0, Math.min(1, layer.opacity ?? 1))
   material.opacity = op
   material.depthWrite = op >= 0.95
@@ -445,7 +468,7 @@ export function updateLayer3DInstance(
   }
   group.visible = !layer.hidden
 
-  // 6. Highlight khi được chọn
+  // 7. Highlight khi được chọn
   outline.visible = isSelected
   anchorDot.visible = isSelected
 }

@@ -50,6 +50,8 @@ export interface LayerAssembly3DToolbarProps {
   onResetAllPrefs?: () => void
   showBones?: boolean
   onToggleShowBones?: () => void
+  showMesh?: boolean
+  onToggleShowMesh?: () => void
 }
 
 interface TooltipInfo {
@@ -186,7 +188,9 @@ export function LayerAssembly3DToolbar({
   onChangeLighting,
   onResetAllPrefs,
   showBones = true,
-  onToggleShowBones
+  onToggleShowBones,
+  showMesh = false,
+  onToggleShowMesh
 }: LayerAssembly3DToolbarProps) {
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null)
   const [isAnglesOpen, setIsAnglesOpen] = useState(false)
@@ -380,6 +384,16 @@ export function LayerAssembly3DToolbar({
           sub: '3D Skeleton & Joints',
           desc: 'Bật/tắt hiển thị toàn bộ khớp nối (head/tail) và thân xương 3D theo biến đổi thời gian thực.',
           tip: '🦴 Bấm để bật/tắt hiển thị xương 3D'
+        }
+        break
+      case 'mesh':
+        def = {
+          title: 'Lưới đa giác Mesh 2D/3D',
+          tag: showMesh ? 'Đang hiện' : 'Đang ẩn',
+          tagType: showMesh ? 'cyan' : 'amber',
+          sub: 'Wireframe 12x16',
+          desc: 'Bật/tắt lưới đa giác 12x16 của các layer để kiểm tra độ dẻo và phân giải đa giác như Spine2D / 3D.',
+          tip: '🕸️ Phím tắt M để bật/tắt nhanh'
         }
         break
       case 'clip':
@@ -623,6 +637,22 @@ export function LayerAssembly3DToolbar({
             aria-label="Bật/Tắt hiển thị khung xương 3D"
           >
             <span style={{ fontSize: '13px' }}>🦴</span>
+          </button>
+        )}
+
+        {onToggleShowMesh && (
+          <button
+            type="button"
+            className={`layer-3d-dock-btn${showMesh ? ' active' : ''}`}
+            onClick={() => {
+              onToggleShowMesh()
+              hideTooltip()
+            }}
+            onMouseEnter={(e) => showTooltip(e, 'mesh')}
+            onMouseLeave={hideTooltip}
+            aria-label="Bật/Tắt hiển thị lưới đa giác Mesh 3D"
+          >
+            <span style={{ fontSize: '13px' }}>🕸️</span>
           </button>
         )}
 

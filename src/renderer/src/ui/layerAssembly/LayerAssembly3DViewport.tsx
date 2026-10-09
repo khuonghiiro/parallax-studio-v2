@@ -72,6 +72,8 @@ export interface LayerAssembly3DViewportProps {
   time: number
   showBones?: boolean
   onToggleShowBones?: () => void
+  showMesh?: boolean
+  onToggleShowMesh?: () => void
 }
 
 export function LayerAssembly3DViewport({
@@ -85,7 +87,9 @@ export function LayerAssembly3DViewport({
   onAppendPresetLayers,
   time,
   showBones = true,
-  onToggleShowBones
+  onToggleShowBones,
+  showMesh = false,
+  onToggleShowMesh
 }: LayerAssembly3DViewportProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -451,9 +455,10 @@ export function LayerAssembly3DViewport({
       time,
       zExaggeration,
       cameraClippingPlanes,
-      requestRender
+      requestRender,
+      showMesh
     })
-  }, [composite.layers, time, zExaggeration, selectedLayerId, selectedIds, requestRender, renderTrigger, cameraClippingPlanes])
+  }, [composite.layers, time, zExaggeration, selectedLayerId, selectedIds, requestRender, renderTrigger, cameraClippingPlanes, showMesh])
 
   // ------------------------------------------------------------- Đồng bộ hóa Khung xương 3D
   useEffect(() => {
@@ -816,6 +821,8 @@ export function LayerAssembly3DViewport({
         onResetAllPrefs={handleResetAllPrefs}
         showBones={showBones}
         onToggleShowBones={onToggleShowBones}
+        showMesh={showMesh}
+        onToggleShowMesh={onToggleShowMesh}
       />
 
       {/* Floating Bottom Right Hint - góc phải thoáng đãng, không đè lên Transport Bar */}

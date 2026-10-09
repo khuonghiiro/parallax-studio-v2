@@ -15,10 +15,20 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
   tab: WorkshopTab; boneId: string | null; selectBone: (id: string | null) => void
 }) {
   const [showBones, setShowBones] = useState(() => loadLayerWorkshopViewPrefs().showBones)
+  const [showMesh, setShowMesh] = useState(() => loadLayerWorkshopViewPrefs().showMesh)
+
   const toggleBones = useCallback(() => {
     setShowBones((v) => {
       const next = !v
       saveLayerWorkshopViewPrefs({ showBones: next })
+      return next
+    })
+  }, [])
+
+  const toggleMesh = useCallback(() => {
+    setShowMesh((v) => {
+      const next = !v
+      saveLayerWorkshopViewPrefs({ showMesh: next })
       return next
     })
   }, [])
@@ -29,11 +39,13 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
       if (tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable) return
       if (e.key === 'b' || e.key === 'B') {
         toggleBones()
+      } else if (e.key === 'm' || e.key === 'M') {
+        toggleMesh()
       }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [toggleBones])
+  }, [toggleBones, toggleMesh])
 
   const animated = tab === 'animation' && state.composite.rig
   const transforms = animated ? evaluateRig(animated, playback.time) : undefined
@@ -56,6 +68,8 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
           {...props}
           showBones={showBones}
           onToggleShowBones={toggleBones}
+          showMesh={showMesh}
+          onToggleShowMesh={toggleMesh}
           boneOverlay={tab === 'layers' ? undefined : { composite: state.composite, boneId, selectBone, setComposite: state.setComposite, time: playback.time, editing: tab === 'bones' }}
           onChangeComposite={state.setComposite}
           isPlaying={playback.isPlaying}
@@ -70,6 +84,8 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
           {...props}
           showBones={showBones}
           onToggleShowBones={toggleBones}
+          showMesh={showMesh}
+          onToggleShowMesh={toggleMesh}
           onChangeComposite={state.setComposite}
         />
       </div>}

@@ -397,7 +397,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
   }
 ]
 
-const SEED_VERSION = 'v6_knight_rigged_character'
+const SEED_VERSION = 'v7_fluid_walk_mesh'
 const SEED_KEY = 'pxs.layerComposites.seeded_version'
 
 export function getStoredComposites(): LayerComposite[] {

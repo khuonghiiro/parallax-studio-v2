@@ -13,6 +13,7 @@ export interface LayerWorkshopViewPrefs {
   clipToCamera2D: boolean
   showBbox2D: boolean
   showBones: boolean
+  showMesh: boolean
 }
 
 export const DEFAULT_LAYER_WORKSHOP_VIEW_PREFS: LayerWorkshopViewPrefs = {
@@ -29,7 +30,8 @@ export const DEFAULT_LAYER_WORKSHOP_VIEW_PREFS: LayerWorkshopViewPrefs = {
   show3DPerspective2D: true,
   clipToCamera2D: true,
   showBbox2D: true,
-  showBones: true
+  showBones: true,
+  showMesh: false
 }
 
 export const LAYER_WORKSHOP_VIEW_PREFS_KEY = 'pxs.layerWorkshopViewPrefs'
@@ -59,7 +61,8 @@ export function loadLayerWorkshopViewPrefs(): LayerWorkshopViewPrefs {
       show3DPerspective2D: typeof parsed.show3DPerspective2D === 'boolean' ? parsed.show3DPerspective2D : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.show3DPerspective2D,
       clipToCamera2D: typeof parsed.clipToCamera2D === 'boolean' ? parsed.clipToCamera2D : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.clipToCamera2D,
       showBbox2D: typeof parsed.showBbox2D === 'boolean' ? parsed.showBbox2D : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.showBbox2D,
-      showBones: typeof parsed.showBones === 'boolean' ? parsed.showBones : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.showBones
+      showBones: typeof parsed.showBones === 'boolean' ? parsed.showBones : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.showBones,
+      showMesh: typeof parsed.showMesh === 'boolean' ? parsed.showMesh : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.showMesh
     }
   } catch (err) {
     console.warn('[LayerAssembly] Failed to load view preferences:', err)

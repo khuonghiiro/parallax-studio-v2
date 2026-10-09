@@ -29,98 +29,159 @@ export function createSimpleChainBones(): LayerBone[] {
 
 export type ProceduralMotionPreset = 'walk' | 'idle' | 'wave' | 'jump' | 'sway'
 
-function smoothKey(time: number, rotation: number, x = 0, y = 0): BoneKeyframe {
-  return { time: Number(time.toFixed(3)), rotation: Number(rotation.toFixed(2)), x, y, easing: 'smooth' }
+function smoothKey(
+  time: number,
+  rotation: number,
+  x = 0,
+  y = 0,
+  scaleX = 1,
+  scaleY = 1
+): BoneKeyframe {
+  return {
+    time: Number(time.toFixed(3)),
+    rotation: Number(rotation.toFixed(2)),
+    x,
+    y,
+    scaleX,
+    scaleY,
+    easing: 'smooth'
+  }
 }
 
-/** Generate procedural 2D cutout walk cycle animation keys. */
+/** Generate procedural 2D cutout walk cycle animation keys with professional fluidity. */
 export function generateWalkCycle(bones: LayerBone[], duration = 1.6): Record<string, BoneKeyframe[]> {
   const tracks: Record<string, BoneKeyframe[]> = {}
   const d = duration
-  const ids = new Set(bones.map((b) => b.id))
 
-  // Find legs and arms by name or id
-  const has = (keyword: string) => bones.find((b) => b.id.includes(keyword) || b.name.toLowerCase().includes(keyword))?.id
+  // Find legs, arms, and body parts by name or id
+  const has = (keyword: string) =>
+    bones.find((b) => b.id.includes(keyword) || b.name.toLowerCase().includes(keyword))?.id
 
   const thighL = has('thigh-l') ?? has('thigh_l') ?? has('đùi trái')
   const shinL = has('shin-l') ?? has('cẳng chân trái')
   const thighR = has('thigh-r') ?? has('đùi phải')
   const shinR = has('shin-r') ?? has('cẳng chân phải')
-  const armL = has('arm-l') ?? has('tay trái')
-  const armR = has('arm-r') ?? has('tay phải')
+  const armL = has('arm-l') ?? has('bắp tay trái') ?? has('tay trái')
+  const forearmL = has('forearm-l') ?? has('cẳng tay trái')
+  const armR = has('arm-r') ?? has('bắp tay phải') ?? has('tay phải')
+  const forearmR = has('forearm-r') ?? has('cẳng tay phải')
   const pelvis = has('pelvis') ?? has('hông') ?? bones[0]?.id
   const torso = has('torso') ?? has('thân')
+  const head = has('head') ?? has('đầu')
 
   if (pelvis) {
     tracks[pelvis] = [
-      smoothKey(0, 0, 0, 0),
-      smoothKey(d * 0.25, -1, 0, 4),
-      smoothKey(d * 0.5, 0, 0, 0),
-      smoothKey(d * 0.75, 1, 0, 4),
-      smoothKey(d, 0, 0, 0)
+      smoothKey(0, 0, 0, 0, 1.0, 1.0),
+      smoothKey(d * 0.15, -1.5, 0, 4.5, 1.03, 0.97),
+      smoothKey(d * 0.35, 0, 0, -2, 0.98, 1.02),
+      smoothKey(d * 0.50, 0, 0, 0, 1.0, 1.0),
+      smoothKey(d * 0.65, 1.5, 0, 4.5, 1.03, 0.97),
+      smoothKey(d * 0.85, 0, 0, -2, 0.98, 1.02),
+      smoothKey(d, 0, 0, 0, 1.0, 1.0)
     ]
   }
 
   if (torso) {
     tracks[torso] = [
-      smoothKey(0, 0, 0, 0),
-      smoothKey(d * 0.25, 2),
-      smoothKey(d * 0.5, 0),
-      smoothKey(d * 0.75, -2),
+      smoothKey(0, 0),
+      smoothKey(d * 0.25, 2.5),
+      smoothKey(d * 0.50, 0),
+      smoothKey(d * 0.75, -2.5),
+      smoothKey(d, 0)
+    ]
+  }
+
+  if (head) {
+    tracks[head] = [
+      smoothKey(0, 0),
+      smoothKey(d * 0.25, -1.5),
+      smoothKey(d * 0.50, 0),
+      smoothKey(d * 0.75, 1.5),
       smoothKey(d, 0)
     ]
   }
 
   if (thighL) {
     tracks[thighL] = [
-      smoothKey(0, 22),
-      smoothKey(d * 0.25, 0),
-      smoothKey(d * 0.5, -20),
-      smoothKey(d * 0.75, 5),
-      smoothKey(d, 22)
+      smoothKey(0, 24),
+      smoothKey(d * 0.15, 12),
+      smoothKey(d * 0.35, -4),
+      smoothKey(d * 0.50, -22),
+      smoothKey(d * 0.65, -8),
+      smoothKey(d * 0.85, 18),
+      smoothKey(d, 24)
     ]
   }
   if (shinL) {
     tracks[shinL] = [
-      smoothKey(0, 5),
-      smoothKey(d * 0.25, 25),
-      smoothKey(d * 0.5, 0),
-      smoothKey(d * 0.75, -10),
-      smoothKey(d, 5)
+      smoothKey(0, 2),
+      smoothKey(d * 0.15, 16),
+      smoothKey(d * 0.35, 4),
+      smoothKey(d * 0.50, 2),
+      smoothKey(d * 0.65, 48),
+      smoothKey(d * 0.85, 12),
+      smoothKey(d, 2)
     ]
   }
 
   if (thighR) {
     tracks[thighR] = [
-      smoothKey(0, -20),
-      smoothKey(d * 0.25, 5),
-      smoothKey(d * 0.5, 22),
-      smoothKey(d * 0.75, 0),
-      smoothKey(d, -20)
+      smoothKey(0, -22),
+      smoothKey(d * 0.15, -8),
+      smoothKey(d * 0.35, 18),
+      smoothKey(d * 0.50, 24),
+      smoothKey(d * 0.65, 12),
+      smoothKey(d * 0.85, -4),
+      smoothKey(d, -22)
     ]
   }
   if (shinR) {
     tracks[shinR] = [
-      smoothKey(0, 0),
-      smoothKey(d * 0.25, -10),
-      smoothKey(d * 0.5, 5),
-      smoothKey(d * 0.75, 25),
-      smoothKey(d, 0)
+      smoothKey(0, 2),
+      smoothKey(d * 0.15, 48),
+      smoothKey(d * 0.35, 12),
+      smoothKey(d * 0.50, 2),
+      smoothKey(d * 0.65, 16),
+      smoothKey(d * 0.85, 4),
+      smoothKey(d, 2)
     ]
   }
 
   if (armL) {
     tracks[armL] = [
-      smoothKey(0, -18),
-      smoothKey(d * 0.5, 18),
-      smoothKey(d, -18)
+      smoothKey(0, -22),
+      smoothKey(d * 0.25, -8),
+      smoothKey(d * 0.50, 16),
+      smoothKey(d * 0.75, -4),
+      smoothKey(d, -22)
     ]
   }
+  if (forearmL) {
+    tracks[forearmL] = [
+      smoothKey(0, 32),
+      smoothKey(d * 0.25, 18),
+      smoothKey(d * 0.50, 8),
+      smoothKey(d * 0.75, 16),
+      smoothKey(d, 32)
+    ]
+  }
+
   if (armR) {
     tracks[armR] = [
-      smoothKey(0, 18),
-      smoothKey(d * 0.5, -18),
-      smoothKey(d, 18)
+      smoothKey(0, 16),
+      smoothKey(d * 0.25, -4),
+      smoothKey(d * 0.50, -22),
+      smoothKey(d * 0.75, -8),
+      smoothKey(d, 16)
+    ]
+  }
+  if (forearmR) {
+    tracks[forearmR] = [
+      smoothKey(0, 8),
+      smoothKey(d * 0.25, 16),
+      smoothKey(d * 0.50, 32),
+      smoothKey(d * 0.75, 18),
+      smoothKey(d, 8)
     ]
   }
 

@@ -9,7 +9,13 @@ export interface LayerBone {
   angle: number
 }
 
-export interface BonePose { x: number; y: number; rotation: number }
+export interface BonePose {
+  x: number
+  y: number
+  rotation: number
+  scaleX?: number
+  scaleY?: number
+}
 export interface BoneKeyframe extends BonePose {
   time: number
   easing: 'smooth' | 'linear' | 'hold'

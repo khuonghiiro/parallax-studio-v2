@@ -38,6 +38,8 @@ export interface LayerAssemblyViewportProps {
   hideTransport?: boolean
   showBones?: boolean
   onToggleShowBones?: () => void
+  showMesh?: boolean
+  onToggleShowMesh?: () => void
 }
 
 export function LayerAssemblyViewport({
@@ -56,7 +58,9 @@ export function LayerAssemblyViewport({
   hideTransport = false,
   boneOverlay,
   showBones = true,
-  onToggleShowBones
+  onToggleShowBones,
+  showMesh = false,
+  onToggleShowMesh
 }: LayerAssemblyViewportProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [zoom, setZoom] = useState(1.0)
@@ -412,6 +416,7 @@ export function LayerAssemblyViewport({
               maxZ={maxZ}
               lighting={composite.lighting}
               show3DPerspective={show3DPerspective}
+              showMesh={showMesh}
               onPointerDown={(e) => handleStartDragLayer(e, layer)}
               onStartDragHandle={handleStartDragHandle}
             />
@@ -445,14 +450,16 @@ export function LayerAssemblyViewport({
           top: '8px',
           left: '12px',
           display: 'flex',
+          flexWrap: 'wrap',
+          maxWidth: 'calc(100% - 24px)',
           alignItems: 'center',
-          gap: '5px',
+          gap: '4px',
           zIndex: 40,
           background: 'color-mix(in srgb, var(--bg-1) 85%, transparent)',
           backdropFilter: 'blur(12px)',
           border: '1px solid var(--line-soft)',
           borderRadius: '6px',
-          padding: '3px 8px',
+          padding: '3px 6px',
           fontSize: '11px',
           userSelect: 'none'
         }}
@@ -560,6 +567,26 @@ export function LayerAssemblyViewport({
           </button>
         ) : null}
 
+        {/* Nút bật/tắt hiển thị lưới đa giác Mesh 2D */}
+        <button
+          type="button"
+          className={`btn xs${showMesh ? ' active' : ''}`}
+          onClick={onToggleShowMesh}
+          title={
+            showMesh
+              ? 'Đang bật hiển thị lưới đa giác Mesh 2D (Bấm để ẩn)'
+              : 'Đang tắt hiển thị lưới đa giác Mesh 2D (Bấm để hiện)'
+          }
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}
+        >
+          <span>🕸️</span>
+          <span>{showMesh ? 'Mesh' : 'Ẩn mesh'}</span>
+        </button>
+
         {/* Nút bật popup Hướng sáng & Đổ bóng ngày đêm ngay tại thanh công cụ 2D */}
         {onChangeComposite && (
           <button
@@ -644,6 +671,7 @@ interface AssembledLayerItemViewProps {
   layer: AssembledLayerItem
   isSelected: boolean
   showBbox?: boolean
+  showMesh?: boolean
   zoom?: number
   time: number
   maxZ: number
@@ -663,6 +691,7 @@ function AssembledLayerItemView({
   layer,
   isSelected,
   showBbox = true,
+  showMesh = false,
   zoom = 1.0,
   time,
   maxZ,
@@ -704,9 +733,13 @@ function AssembledLayerItemView({
   const rotY = layer.rotationY || 0
   const rotZ = layer.rotation || 0
 
+  // Hỗ trợ co dãn đàn hồi Squash & Stretch 2D đồng bộ với xương
+  const totalScaleX = layer.scale * (layer.scaleX ?? 1) * animScaleX
+  const totalScaleY = layer.scale * (layer.scaleY ?? 1) * animScaleY
+
   const layerTransform = show3DPerspective
-    ? `rotateY(${-rotY}deg) rotateX(${rotX}deg) rotateZ(${rotZ + animRotate}deg) scale(${layer.scale * animScaleX}, ${layer.scale * animScaleY})`
-    : `rotate(${rotZ + animRotate}deg) scale(${layer.scale * animScaleX}, ${layer.scale * animScaleY})`
+    ? `rotateY(${-rotY}deg) rotateX(${rotX}deg) rotateZ(${rotZ + animRotate}deg) scale(${totalScaleX}, ${totalScaleY})`
+    : `rotate(${rotZ + animRotate}deg) scale(${totalScaleX}, ${totalScaleY})`
 
   const depthTranslateZ = show3DPerspective ? -layer.z * 0.75 : 0
 
@@ -778,6 +811,29 @@ function AssembledLayerItemView({
             <span>{layer.name}</span>
             <span style={{ fontSize: '9px', color: 'var(--text-dim)' }}>Z: {layer.z}px</span>
           </div>
+        )}
+
+        {/* Lưới đa giác Mesh 2D trực quan phong cách Spine2D / Live2D */}
+        {showMesh && (
+          <svg
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
+              zIndex: 10
+            }}
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <pattern id={`mesh-pat-${layer.id}`} width="25" height="20" patternUnits="userSpaceOnUse">
+                <path d="M 0 0 L 25 0 L 25 20 L 0 20 Z M 0 0 L 25 20" fill="none" stroke="rgba(56, 189, 248, 0.45)" strokeWidth="0.8" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill={`url(#mesh-pat-${layer.id})`} />
+          </svg>
         )}
 
         {/* Điểm neo (Anchor Dot Indicator) khi layer được chọn */}

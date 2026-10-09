@@ -19,6 +19,7 @@ export interface SyncLayersGroupOptions {
   zExaggeration: number
   cameraClippingPlanes: THREE.Plane[]
   requestRender: () => void
+  showMesh?: boolean
 }
 
 /**
@@ -33,7 +34,8 @@ export function syncLayersGroupMeshes({
   time,
   zExaggeration,
   cameraClippingPlanes,
-  requestRender
+  requestRender,
+  showMesh = false
 }: SyncLayersGroupOptions) {
   const activeLayerIds = new Set(layers.map((l) => l.id))
 
@@ -90,7 +92,8 @@ export function syncLayersGroupMeshes({
       zExaggeration,
       selectedIds ? selectedIds.includes(layer.id) : layer.id === selectedLayerId,
       idx,
-      cameraClippingPlanes
+      cameraClippingPlanes,
+      showMesh
     )
   })
 }
