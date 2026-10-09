@@ -1,6 +1,6 @@
 # Phase 4 — Công cụ tạo hình mềm trong Xưởng 3D
 
-Status: pending · Priority: P1 · Depends on: 2; dùng mẫu phase 3 để nghiệm thu · Estimate: 22–36h.
+Status: completed · Priority: P1 · Depends on: 2; dùng mẫu phase 3 để nghiệm thu · Estimate: 22–36h.
 
 ## Luồng người dùng
 
@@ -15,13 +15,13 @@ Chọn mặt/cánh → **Chỉnh mesh** → chọn công cụ → click đặt t
 
 ## Công cụ cần triển khai
 
-- [ ] Bend quanh pivot + axis, cho góc âm/dương, clamp vùng và pin; Twist quay dần dọc trục; Taper loe/thuôn; Stretch/Squash giữ gốc. Không đồng nhất tất cả với thanh trượt “độ sâu”.
-- [ ] Curve editor 3–5 điểm, tangent handles, preset C/S/rủ/cuộn ngược. Xác định orientation frame để đường cong không xoắn bất ngờ.
-- [ ] Grab/Proportional: kéo vertex/vùng với smooth/linear/sharp falloff. Đổi radius khi kéo, khóa trục, front-facing-only; không kéo cả mặt bên kia do raycast xuyên.
-- [ ] Inflate/Deflate: cọ lồi/lõm theo normal, intensity có dấu; Smooth với boundary-preserving; Crease nếp gấp có radius/strength. Mask và root pin áp dụng đồng nhất cho mọi brush.
-- [ ] Lattice 4×4 mặc định, XYZ displacement cho control points; chế độ riêng từng mặt trước, mở rộng group qua rest-space chung nếu đã có test. Ghim hàng gốc; tăng resolution không làm mất hình hiện có.
-- [ ] Pin/unpin chọn vùng; mask feather; reset và đảo mask. “Độ mềm” là falloff/radius, tránh gọi là vật lý nếu không có solver.
-- [ ] Gesture history, pointer capture, pointercancel/window blur; không ghi history mỗi pixel; không ghi disk mỗi pointermove. Preview cập nhật tối đa một lần mỗi animation frame.
+- [x] Bend quanh pivot + axis, cho góc âm/dương, clamp vùng và pin; Twist quay dần dọc trục; Taper loe/thuôn; Stretch/Squash giữ gốc. Không đồng nhất tất cả với thanh trượt “độ sâu”.
+- [x] Curve editor 3–5 điểm, tangent handles, preset C/S/rủ/cuộn ngược. Xác định orientation frame để đường cong không xoắn bất ngờ.
+- [x] Grab/Proportional: kéo vertex/vùng với smooth/linear/sharp falloff. Đổi radius khi kéo, khóa trục, front-facing-only; không kéo cả mặt bên kia do raycast xuyên.
+- [x] Inflate/Deflate: cọ lồi/lõm theo normal, intensity có dấu; Smooth với boundary-preserving; Crease nếp gấp có radius/strength. Mask và root pin áp dụng đồng nhất cho mọi brush.
+- [x] Lattice 4×4 mặc định, XYZ displacement cho control points; chế độ riêng từng mặt trước, mở rộng group qua rest-space chung nếu đã có test. Ghim hàng gốc; tăng resolution không làm mất hình hiện có.
+- [x] Pin/unpin chọn vùng; mask feather; reset và đảo mask. “Độ mềm” là falloff/radius, tránh gọi là vật lý nếu không có solver.
+- [x] Gesture history, pointer capture, pointercancel/window blur; không ghi history mỗi pixel; không ghi disk mỗi pointermove. Preview cập nhật tối đa một lần mỗi animation frame.
 
 ## Các module
 

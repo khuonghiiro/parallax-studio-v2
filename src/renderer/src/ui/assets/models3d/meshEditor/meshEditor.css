@@ -1,0 +1,149 @@
+/* Mesh Editor Design Tokens & Styles */
+
+.mesh-editor-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mesh-editor-toolbar {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+
+.mesh-tool-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 2px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mesh-tool-btn:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.mesh-tool-btn.active {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.3);
+}
+
+.mesh-tool-icon {
+  font-size: 14px;
+}
+
+.mesh-editor-tool-controls {
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.tool-controls-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line-soft);
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+}
+
+.tool-title {
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--text);
+}
+
+.modifier-stack-box {
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.modifier-stack-empty {
+  padding: 8px 10px;
+  text-align: center;
+  background: var(--bg-2);
+  border: 1px dashed var(--line-soft);
+  border-radius: 6px;
+}
+
+.modifier-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  padding: 6px 8px;
+}
+
+.modifier-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.modifier-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.modifier-text {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modifier-name {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modifier-summary {
+  font-size: 9px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modifier-remove-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: all 0.15s ease;
+}
+
+.modifier-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.snap-btn.pinned {
+  border-color: var(--key) !important;
+  color: var(--key) !important;
+}
