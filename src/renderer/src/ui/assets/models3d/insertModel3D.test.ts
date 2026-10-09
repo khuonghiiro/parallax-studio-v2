@@ -129,4 +129,39 @@ describe('insertModel3D unified operations', () => {
     expect(newInst).toBeTruthy()
     expect(newLayers[1].model3d?.instanceId).toBe(newInst)
   })
+
+  it('attaches deformable mesh definition to layers on insertModel3DToScene', async () => {
+    const { insertModel3DToScene } = await import('./insertModel3D')
+    const model = {
+      id: 'm-flower-test',
+      name: 'Flower',
+      category: 'nature' as const,
+      scale: 1,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      faces: [
+        {
+          id: 'petal-1',
+          name: 'Curved Petal',
+          width: 80,
+          height: 160,
+          position: [0, 50, 0] as [number, number, number],
+          rotation: [0, 0, 0] as [number, number, number],
+          bendY: 35,
+          bendX: 20,
+          depthProfile: 'ridge' as const,
+          depthIntensity: 15
+        }
+      ]
+    }
+
+    const createdIds = await insertModel3DToScene({ model })
+    expect(createdIds).toHaveLength(1)
+    const layer = useEditor.getState().project.layers.find((l) => l.id === createdIds[0])!
+    expect(layer).toBeDefined()
+    expect(layer.mesh).toBeDefined()
+    expect(layer.mesh?.modifiers.some((m) => m.type === 'bend')).toBe(true)
+    expect(layer.mesh?.modifiers.some((m) => m.type === 'depthProfile')).toBe(true)
+    expect(layer.model3d?.mesh).toBeDefined()
+  })
 })

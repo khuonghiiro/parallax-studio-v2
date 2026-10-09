@@ -168,6 +168,8 @@ export interface AppliedLayerEffect {
   intensity?: number
 }
 
+import type { ImageMeshDefinition } from './imageMeshDefinition'
+
 export interface LayerModel3DRef {
   instanceId: string // Unique ID for this assembled 3D object in the shot
   modelId: string // e.g. 'model-tudor-cottage'
@@ -178,6 +180,8 @@ export interface LayerModel3DRef {
   basePosition: Vec3 // unscaled face offset from model origin [x, y, z]
   centerPosition?: Vec3 // position of the 3D model center in the shot
   baseSize?: [number, number]
+  /** Deformable organic mesh definition */
+  mesh?: ImageMeshDefinition
 }
 
 interface LayerBase<T extends LayerType, P> {
@@ -204,6 +208,8 @@ interface LayerBase<T extends LayerType, P> {
   shotId: string | null
   /** 3D model assembly reference if this layer is part of an assembled 3D model. */
   model3d?: LayerModel3DRef
+  /** Deformable organic mesh definition (curves, bends, tapers, lattices, sculpts) */
+  mesh?: ImageMeshDefinition
   transform: Transform
   /** Procedural or looping motion (drift/sway/wind/float/pulse/wiggle). */
   motion?: LayerMotion

@@ -6,6 +6,7 @@ import { assetStore } from '../../../project/assets'
 import { createImageLayer, createSolidLayer } from '../../../project/factory'
 import type { BuiltInAssetItem } from '@shared/ipc'
 import type { AssetMeta, ImageLayer, SolidLayer, Vec3 } from '@shared/types'
+import { faceToMeshDefinition } from '@renderer/engine/imageMesh/legacyAdapter'
 
 export interface InsertModelOptions {
   model: Model3D
@@ -29,13 +30,16 @@ export async function insertModel3DToScene({
   // Load built-in catalog to resolve relative asset paths
   let builtInItems: BuiltInAssetItem[] = []
   try {
-    const cat = await window.api.getBuiltInCatalog()
-    builtInItems = cat.items || []
+    if (typeof window !== 'undefined' && window.api?.getBuiltInCatalog) {
+      const cat = await window.api.getBuiltInCatalog()
+      builtInItems = cat.items || []
+    }
   } catch (e) {
     console.warn('[insertModel3D] Could not fetch built-in catalog:', e)
   }
 
   const createdLayerIds: string[] = []
+  const layersToAdd: (ImageLayer | SolidLayer)[] = []
 
   for (let i = 0; i < model.faces.length; i++) {
     const face = model.faces[i]
@@ -126,6 +130,8 @@ export async function insertModel3DToScene({
           imageLayer.props.width = face.width
           imageLayer.props.height = face.height
         }
+        const meshDef = faceToMeshDefinition(face)
+        imageLayer.mesh = meshDef
         imageLayer.model3d = {
           instanceId,
           modelId: model.id,
@@ -135,12 +141,11 @@ export async function insertModel3DToScene({
           globalScale: combinedScale,
           basePosition: face.position,
           centerPosition: positionOffset,
-          baseSize: [face.width, face.height]
+          baseSize: [face.width, face.height],
+          mesh: meshDef
         }
 
-        useEditor.getState().update((p) => {
-          p.layers.unshift(imageLayer)
-        })
+        layersToAdd.push(imageLayer)
         createdLayerIds.push(imageLayer.id)
         added = true
       }
@@ -158,6 +163,8 @@ export async function insertModel3DToScene({
       solidLayer.transform.position.value = [posX, posY, posZ]
       solidLayer.transform.rotation.value = face.rotation
       solidLayer.transform.scale.value = [combinedScale, combinedScale, combinedScale]
+      const meshDef = faceToMeshDefinition(face)
+      solidLayer.mesh = meshDef
       solidLayer.model3d = {
         instanceId,
         modelId: model.id,
@@ -167,14 +174,19 @@ export async function insertModel3DToScene({
         globalScale: combinedScale,
         basePosition: face.position,
         centerPosition: positionOffset,
-        baseSize: [face.width, face.height]
+        baseSize: [face.width, face.height],
+        mesh: meshDef
       }
 
-      useEditor.getState().update((p) => {
-        p.layers.unshift(solidLayer)
-      })
+      layersToAdd.push(solidLayer)
       createdLayerIds.push(solidLayer.id)
     }
+  }
+
+  if (layersToAdd.length > 0) {
+    useEditor.getState().update((p) => {
+      p.layers.unshift(...layersToAdd)
+    })
   }
 
   if (createdLayerIds.length > 0) {

@@ -3,6 +3,8 @@ import type { Layer, ParticleProps } from '@shared/types'
 import { mulberry32 } from '../animation/math'
 import { LAYER_COMPOSE_FRAG, sharedUniforms, UNIT_PLANE, type AlphaMask } from './renderTypes'
 import { LAYER_VERT, PARTICLE_FRAG, PARTICLE_VERT } from './shaders'
+import type { ImageMeshDefinition } from '@shared/imageMeshDefinition'
+import { evaluateMeshGeometry } from './imageMesh/evaluateDeformation'
 
 export interface LayerNode {
   id: string
@@ -16,6 +18,7 @@ export interface LayerNode {
   /** Texture-pool key (images share one entry per asset). */
   texKey?: string
   resident: boolean
+  meshDef?: ImageMeshDefinition
 }
 
 export function makeLayerMaterial(): THREE.ShaderMaterial {
@@ -49,12 +52,23 @@ export function makeLayerMaterial(): THREE.ShaderMaterial {
 }
 
 export function buildPlaneNode(layer: Layer, scene: THREE.Scene): LayerNode {
-  const mesh = new THREE.Mesh(UNIT_PLANE, makeLayerMaterial())
+  const meshDef = layer.mesh ?? layer.model3d?.mesh
+  const geometry = meshDef ? evaluateMeshGeometry(meshDef, { unitSpace: true }) : UNIT_PLANE
+  const mesh = new THREE.Mesh(geometry, makeLayerMaterial())
   mesh.frustumCulled = false
   mesh.matrixAutoUpdate = false
   mesh.visible = false
   scene.add(mesh)
-  return { id: layer.id, type: layer.type, object: mesh, builtFrom: null, planeW: 1, planeH: 1, resident: false }
+  return {
+    id: layer.id,
+    type: layer.type,
+    object: mesh,
+    builtFrom: meshDef ? JSON.stringify(meshDef) : null,
+    planeW: 1,
+    planeH: 1,
+    resident: false,
+    meshDef
+  }
 }
 
 export function buildParticles(layer: Layer & { props: ParticleProps }, scene: THREE.Scene): LayerNode {

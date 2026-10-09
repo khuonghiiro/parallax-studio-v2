@@ -65,7 +65,7 @@ Các tên Bend/Twist/Taper/Stretch tương ứng nhóm Simple Deform của Blend
 | Phase | Nội dung | Phụ thuộc | Ước lượng sơ bộ | Trạng thái |
 |---|---|---|---|---|
 | [1](phase-01-image-contract.md) | Prompt, mask/UV, kiểm tra ảnh và điểm neo | — | 6–10h | completed |
-| [2](phase-02-shared-deformation.md) | Lõi biến dạng dùng chung, dữ liệu, lưu và render | 1 | 16–24h | pending |
+| [2](phase-02-shared-deformation.md) | Lõi biến dạng dùng chung, dữ liệu, lưu và render | 1 | 16–24h | completed |
 | [3](phase-03-organic-templates.md) | Hoa, cỏ 360°, loa kèn sáu cánh, calla | 1, 2 | 12–20h | pending |
 | [4](phase-04-workshop-tools.md) | Công cụ uốn/kéo mềm/lồi lõm/lattice trong xưởng | 2; kiểm tra bằng mẫu phase 3 | 22–36h | pending |
 | [5](phase-05-mcp-validation.md) | MCP đầy đủ, regression, hiệu năng, giao tài liệu | 1–4 | 8–14h | pending |
@@ -85,7 +85,7 @@ Các tên Bend/Twist/Taper/Stretch tương ứng nhóm Simple Deform của Blend
 ## Checklist triển khai
 
 - [x] P1: Chốt contract ảnh và anchor; tạo validator + test.
-- [ ] P2: Chốt geometry schema và prototype qua xưởng/cảnh/export.
+- [x] P2: Chốt geometry schema và prototype qua xưởng/cảnh/export.
 - [ ] P3: Xây lại bốn nhóm mẫu từ generator có tham số.
 - [ ] P4: Công cụ sửa mesh, pin, falloff, lattice và lịch sử.
 - [ ] P5: MCP/test/hiệu năng/tài liệu và commit/push theo từng phần đạt gate.

@@ -229,10 +229,13 @@ export class SceneRenderer {
     for (const layer of project.layers) {
       alive.add(layer.id)
       let node = this.nodes.get(layer.id)
-      const rebuild = !node || node.type !== layer.type || (layer.type === 'particles' && node.builtFrom !== layer.props)
+      const meshDef = layer.mesh ?? layer.model3d?.mesh
+      const meshKey = meshDef ? JSON.stringify(meshDef) : null
+      const rebuild = !node || node.type !== layer.type || (layer.type === 'particles' && node.builtFrom !== layer.props) || (meshKey !== null && node.builtFrom !== meshKey)
       if (rebuild) {
         if (node) disposeNode(node, this.scene, (k) => this.pool.dropTexture(k))
         node = layer.type === 'particles' ? buildParticles(layer as any, this.scene) : buildPlaneNode(layer, this.scene)
+        node.builtFrom = meshKey ?? (layer.type === 'particles' ? layer.props : null)
         this.nodes.set(layer.id, node)
       }
       node = node!
@@ -243,7 +246,7 @@ export class SceneRenderer {
         node.alpha = assetStore.get(layer.props.assetId)?.alpha
       } else if (layer.type === 'text' || layer.type === 'solid') {
         node.texKey = `cv:${layer.id}`
-        if (node.builtFrom !== layer.props) {
+        if (!meshKey && node.builtFrom !== layer.props) {
           // Content changed: drop the canvas texture; it is rebuilt lazily when visible.
           this.pool.dropTexture(node.texKey)
           node.builtFrom = layer.props
