@@ -8,13 +8,14 @@ export interface Layer3DMeshInstance {
   outline: THREE.LineSegments
   anchorDot: THREE.Mesh
   layerId: string
+  currentTextureUrl?: string
 }
 
 const textureCache = new Map<string, THREE.Texture>()
 const textureLoader = new THREE.TextureLoader()
 
 /**
- * Nạp hoặc lấy texture từ cache theo URL
+ * Nạp hoặc lấy texture từ cache theo URL với độ sắc nét cao (Anisotropic filtering 16x)
  */
 export function getOrCreateLayerTexture(url: string, onLoaded?: () => void): THREE.Texture | null {
   if (!url) return null
@@ -25,6 +26,7 @@ export function getOrCreateLayerTexture(url: string, onLoaded?: () => void): THR
     url,
     () => {
       tex.colorSpace = THREE.SRGBColorSpace
+      tex.anisotropy = 16
       tex.needsUpdate = true
       onLoaded?.()
     },
@@ -36,6 +38,7 @@ export function getOrCreateLayerTexture(url: string, onLoaded?: () => void): THR
   tex.generateMipmaps = true
   tex.minFilter = THREE.LinearMipmapLinearFilter
   tex.magFilter = THREE.LinearFilter
+  tex.anisotropy = 16
   textureCache.set(url, tex)
   return tex
 }
@@ -198,8 +201,57 @@ export function createLayer3DInstance(
     material,
     outline,
     anchorDot,
-    layerId: layer.id
+    layerId: layer.id,
+    currentTextureUrl: textureUrl || undefined
   }
+}
+
+/**
+ * Cập nhật texture cho 1 layer 3D instance (khi ảnh tải xong hoặc nâng cấp lên ảnh sắc nét full-res)
+ */
+export function updateLayerInstanceTexture(
+  inst: Layer3DMeshInstance,
+  textureUrl: string | null,
+  onRequestRender: () => void
+): void {
+  if (inst.currentTextureUrl === textureUrl) return
+  inst.currentTextureUrl = textureUrl || undefined
+
+  if (!textureUrl) {
+    inst.material.map = null
+    inst.material.color.setHex(0x4a5568)
+    inst.material.needsUpdate = true
+    onRequestRender()
+    return
+  }
+
+  const texture = getOrCreateLayerTexture(textureUrl, () => {
+    if (texture && texture.image && texture.image.width && texture.image.height) {
+      const { w, h } = computePlaneDimensions(texture)
+      inst.mesh.geometry.dispose()
+      inst.mesh.geometry = new THREE.PlaneGeometry(w, h)
+      inst.outline.geometry.dispose()
+      inst.outline.geometry = createRectOutline(w + 4, h + 4, 0x38bdf8).geometry
+    }
+    inst.material.map = texture
+    inst.material.color.setHex(0xffffff)
+    inst.material.needsUpdate = true
+    onRequestRender()
+  })
+
+  if (texture) {
+    inst.material.map = texture
+    inst.material.color.setHex(0xffffff)
+    inst.material.needsUpdate = true
+    if (texture.image && texture.image.width && texture.image.height) {
+      const { w, h } = computePlaneDimensions(texture)
+      inst.mesh.geometry.dispose()
+      inst.mesh.geometry = new THREE.PlaneGeometry(w, h)
+      inst.outline.geometry.dispose()
+      inst.outline.geometry = createRectOutline(w + 4, h + 4, 0x38bdf8).geometry
+    }
+  }
+  onRequestRender()
 }
 
 /**

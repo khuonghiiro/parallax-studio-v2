@@ -380,8 +380,10 @@ function AssembledLayerItemView({
         position: 'absolute',
         left: '50%',
         top: '50%',
-        transform: `translate(-50%, -50%) translate(${layer.x + animTranslateX}px, ${layer.y + animTranslateY}px)`,
+        transform: `translate(-50%, -50%) translate3d(${layer.x + animTranslateX}px, ${layer.y + animTranslateY}px, 0)`,
         pointerEvents: 'none',
+        willChange: 'transform',
+        backfaceVisibility: 'hidden',
         zIndex: Math.round(1000 - layer.z)
       }}
     >
@@ -411,6 +413,9 @@ function AssembledLayerItemView({
               maxHeight: '380px',
               objectFit: 'contain',
               pointerEvents: 'none',
+              imageRendering: '-webkit-optimize-contrast',
+              transform: 'translateZ(0)',
+              backfaceVisibility: 'hidden',
               filter: `drop-shadow(0 4px 10px rgba(0, 0, 0, ${Math.min(0.6, Math.max(0.1, (layer.z + 50) / 150))}))`
             }}
             draggable={false}

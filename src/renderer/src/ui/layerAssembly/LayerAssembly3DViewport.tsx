@@ -4,11 +4,14 @@ import type { LayerComposite, AssembledLayerItem } from './types'
 import {
   createLayer3DInstance,
   updateLayer3DInstance,
+  updateLayerInstanceTexture,
   createRectOutline,
   createCameraFrustumHelper,
   createDepthGuideLine,
   type Layer3DMeshInstance
 } from './layerAssembly3DMesh'
+import { getLayerFullResUrl } from './useLayerAssetImage'
+import { resolveFaceTexture } from '../assets/models3d/textureResolver'
 import { IconCube, IconEye, IconFocus, IconCamera, IconFit } from '../icons'
 
 export interface LayerAssembly3DViewportProps {
@@ -98,6 +101,7 @@ export function LayerAssembly3DViewport({
     })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
     renderer.setSize(width, height)
+    renderer.outputColorSpace = THREE.SRGBColorSpace
     rendererRef.current = renderer
 
     // Lights
@@ -148,6 +152,7 @@ export function LayerAssembly3DViewport({
       if (w <= 0 || h <= 0) return
       cameraRef.current.aspect = w / h
       cameraRef.current.updateProjectionMatrix()
+      rendererRef.current.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
       rendererRef.current.setSize(w, h)
       requestRender()
     })
@@ -276,14 +281,28 @@ export function LayerAssembly3DViewport({
       }
     }
 
-    // Tạo hoặc cập nhật mesh cho từng layer
+    // Tạo hoặc cập nhật mesh cho từng layer với ảnh full-resolution sắc nét
     for (const layer of composite.layers) {
       let inst = currentMap.get(layer.id)
+      const fullResUrl = getLayerFullResUrl(layer.assetPath, layer.imageUrl)
+
       if (!inst) {
-        inst = createLayer3DInstance(layer, layer.imageUrl || layer.assetPath || null, requestRender)
+        inst = createLayer3DInstance(layer, fullResUrl, requestRender)
         layersGroup.add(inst.group)
         currentMap.set(layer.id, inst)
+      } else if (fullResUrl && inst.currentTextureUrl !== fullResUrl) {
+        updateLayerInstanceTexture(inst, fullResUrl, requestRender)
       }
+
+      // Nếu chưa có texture url và có assetPath (e.g. built-in assets), giải quyết bất đồng bộ
+      if (!fullResUrl && layer.assetPath) {
+        resolveFaceTexture(layer.assetPath).then((res) => {
+          if (res?.url && inst) {
+            updateLayerInstanceTexture(inst, res.url, requestRender)
+          }
+        })
+      }
+
       updateLayer3DInstance(inst, layer, time, zExaggeration, layer.id === selectedLayerId)
     }
 

@@ -107,7 +107,8 @@ export function LayerAssemblySidebar({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
               {filteredProjectAssets.map((asset) => {
                 const rt = assetStore.get(asset.id)
-                const imgUrl = rt?.thumbUrl || rt?.url
+                const thumbUrl = rt?.thumbUrl || rt?.url
+                const fullUrl = rt?.url || rt?.thumbUrl
                 return (
                   <div
                     key={asset.id}
@@ -122,7 +123,7 @@ export function LayerAssemblySidebar({
                       gap: '4px',
                       transition: 'all 0.15s ease'
                     }}
-                    onClick={() => onAddLayerFromAsset(asset.name, asset.id, imgUrl)}
+                    onClick={() => onAddLayerFromAsset(asset.name, asset.id, fullUrl)}
                     title={`Click để thêm layer: ${asset.name}`}
                   >
                     <div
@@ -136,9 +137,9 @@ export function LayerAssemblySidebar({
                         borderRadius: '3px'
                       }}
                     >
-                      {imgUrl ? (
+                      {thumbUrl ? (
                         <img
-                          src={imgUrl}
+                          src={thumbUrl}
                           alt={asset.name}
                           style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                           draggable={false}
