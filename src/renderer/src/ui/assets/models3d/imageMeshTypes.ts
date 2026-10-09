@@ -1,8 +1,30 @@
-export interface ImageMeshSlot {
+import {
+  type AttachmentBand,
+  type ContentBounds,
+  type BackSidePolicy,
+  type SilhouettePolicy,
+  type ReusePolicy,
+  type MaterialGroup,
+  type ImageMeshSlotContract,
+  IMAGE_CONTRACT_SCHEMA_VERSION
+} from '@shared/imageMeshContract'
+
+export {
+  type AttachmentBand,
+  type ContentBounds,
+  type BackSidePolicy,
+  type SilhouettePolicy,
+  type ReusePolicy,
+  type MaterialGroup,
+  type ImageMeshSlotContract,
+  IMAGE_CONTRACT_SCHEMA_VERSION
+}
+
+export interface ImageMeshSlot extends Partial<ImageMeshSlotContract> {
   id: string
   label: string
   en: string
-  /** Exact canvas aspect ratio, including transparent padding. */
+  /** Exact canvas aspect ratio [widthRatio, heightRatio], including transparent padding. */
   aspect: [number, number]
   prompt: string
   guidance: string

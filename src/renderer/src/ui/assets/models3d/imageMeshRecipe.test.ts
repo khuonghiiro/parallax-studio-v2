@@ -129,4 +129,24 @@ describe('image mesh recipes', () => {
     expect(() => bindTemplateImages(template, faces, { petal: '' })).toThrow(/non-empty/)
     expect(() => resolveImageTemplate(template, 'missing')).toThrow(/variant/)
   })
+
+  it('provides schema version 1, bilingual prompts, SVG guide and 3D anchor for every template', () => {
+    for (const template of IMAGE_MESH_TEMPLATES) {
+      const guide = imageTemplateGuide(template)
+      expect(guide.schemaVersion).toBe(1)
+      expect(guide.slots.length).toBeGreaterThan(0)
+      for (const slot of guide.slots) {
+        expect(slot.anchorUV).toBeDefined()
+        expect(slot.anchorUV).toHaveLength(2)
+        expect(slot.guideSvgDataUrl).toContain('data:image/svg+xml')
+        expect(slot.renderPromptEn).toBeTruthy()
+        expect(slot.renderPromptVi).toBeTruthy()
+      }
+      for (const face of guide.faces) {
+        expect(face.anchor3D).toBeDefined()
+        expect(face.anchor3D).toHaveLength(3)
+        expect(face.anchor3D.every(Number.isFinite)).toBe(true)
+      }
+    }
+  })
 })
