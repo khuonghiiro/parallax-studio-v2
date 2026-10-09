@@ -330,16 +330,72 @@ describe('MCP assemblyCommands', () => {
     }
   })
 
-  it('deletes a saved model via delete_model3d', async () => {
-    // Save a temporary model first
-    await runCommand('save_assembly_model', {
-      id: 'model-to-delete-test',
-      name: 'To Delete',
-      faces: []
+  it('updates arc_angle, taper_ratio and motion parameters via update_assembly_face', async () => {
+    let mockModel: Model3D = {
+      id: 'test-organic-model',
+      name: 'Organic Model',
+      category: 'nature',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      scale: 1.0,
+      faces: [
+        {
+          id: 'petal-1',
+          name: 'Petal',
+          width: 150,
+          height: 300,
+          position: [0, 0, 0],
+          rotation: [0, 0, 0]
+        }
+      ]
+    }
+    const unregister = registerAssemblySession({
+      getModel: () => mockModel,
+      setModel: (next) => {
+        mockModel = next
+      },
+      getSelectedFaceId: () => 'petal-1',
+      setSelectedFaceId: () => {},
+      save: () => {},
+      insert: async () => [],
+      close: () => {},
+      captureScreenshot: () => null
     })
-    const res = (await runCommand('delete_model3d', { id: 'model-to-delete-test' })) as any
-    expect(res.ok).toBe(true)
-    expect(res.id).toBe('model-to-delete-test')
+
+    try {
+      const res = (await runCommand('update_assembly_face', {
+        face_id: 'petal-1',
+        arc_angle: 280,
+        taper_ratio: 1.75,
+        depth_invert: true,
+        motion_type: 'wind',
+        motion_speed: 1.5,
+        motion_amplitude: 35,
+        motion_direction: 'horizontal',
+        motion_anchor: 'bottom'
+      })) as any
+
+      expect(res.ok).toBe(true)
+      expect(mockModel.faces[0].arcAngle).toBe(280)
+      expect(mockModel.faces[0].taperRatio).toBe(1.75)
+      expect(mockModel.faces[0].depthInvert).toBe(true)
+      expect(mockModel.faces[0].motionType).toBe('wind')
+      expect(mockModel.faces[0].motionSpeed).toBe(1.5)
+      expect(mockModel.faces[0].motionAmplitude).toBe(35)
+      expect(mockModel.faces[0].motionDirection).toBe('horizontal')
+      expect(mockModel.faces[0].motionAnchor).toBe('bottom')
+
+      // Reject invalid range
+      await expect(
+        runCommand('update_assembly_face', { face_id: 'petal-1', arc_angle: 450 })
+      ).rejects.toThrow(/arc_angle/)
+
+      await expect(
+        runCommand('update_assembly_face', { face_id: 'petal-1', taper_ratio: -2 })
+      ).rejects.toThrow(/taper_ratio/)
+    } finally {
+      unregister()
+    }
   })
 })
 

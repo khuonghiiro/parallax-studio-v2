@@ -43,5 +43,57 @@ export function assemblyMeshPatch(p: Params): Partial<Face3D> {
     }
     patch.silhouettePolygon = raw as number[][]
   }
+  if (has(p, 'arc_angle')) {
+    const value = num(p, 'arc_angle')
+    if (value === undefined || !Number.isFinite(value) || value < 0 || value > 360) {
+      throw new ParamError('arc_angle must be 0..360')
+    }
+    patch.arcAngle = value
+  }
+  if (has(p, 'taper_ratio')) {
+    const value = num(p, 'taper_ratio')
+    if (value === undefined || !Number.isFinite(value) || value < 0.05 || value > 10) {
+      throw new ParamError('taper_ratio must be 0.05..10')
+    }
+    patch.taperRatio = value
+  }
+  if (has(p, 'depth_invert')) {
+    patch.depthInvert = Boolean(p['depth_invert'])
+  }
+  if (has(p, 'motion_type')) {
+    const value = str(p, 'motion_type')
+    if (!['none', 'wind', 'wave', 'breathe', 'wiggle'].includes(value ?? '')) {
+      throw new ParamError('Invalid motion_type')
+    }
+    patch.motionType = value as Face3D['motionType']
+  }
+  if (has(p, 'motion_speed')) {
+    const value = num(p, 'motion_speed')
+    if (value === undefined || !Number.isFinite(value) || value < 0.1 || value > 10) {
+      throw new ParamError('motion_speed must be 0.1..10')
+    }
+    patch.motionSpeed = value
+  }
+  if (has(p, 'motion_amplitude')) {
+    const value = num(p, 'motion_amplitude')
+    if (value === undefined || !Number.isFinite(value) || value < 0 || value > 200) {
+      throw new ParamError('motion_amplitude must be 0..200')
+    }
+    patch.motionAmplitude = value
+  }
+  if (has(p, 'motion_direction')) {
+    const value = str(p, 'motion_direction')
+    if (!['both', 'horizontal', 'vertical', 'depthZ'].includes(value ?? '')) {
+      throw new ParamError('Invalid motion_direction')
+    }
+    patch.motionDirection = value as Face3D['motionDirection']
+  }
+  if (has(p, 'motion_anchor')) {
+    const value = str(p, 'motion_anchor')
+    if (!['bottom', 'top', 'left', 'center', 'all'].includes(value ?? '')) {
+      throw new ParamError('Invalid motion_anchor')
+    }
+    patch.motionAnchor = value as Face3D['motionAnchor']
+  }
   return patch
 }
