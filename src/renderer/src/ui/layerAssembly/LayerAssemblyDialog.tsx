@@ -53,7 +53,19 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
       />
       {saving.error && <div className="lw-error" role="alert">{saving.error}</div>}
       <div className="layer-workshop-body">
-        <LayerAssemblySidebar onAddLayerFromAsset={state.add} onAppendPresetLayers={state.append} />
+        <LayerAssemblySidebar
+          composite={composite}
+          selectedLayerId={state.selectedLayerId}
+          onSelectLayer={state.select}
+          onAddLayerFromAsset={state.add}
+          onAppendPresetLayers={state.append}
+          onLoadComposite={(loaded) => {
+            setComposite(loaded)
+            if (loaded.layers[0]) {
+              state.select(loaded.layers[0].id)
+            }
+          }}
+        />
         <div className="lw-workspace-column">
           <WorkshopWorkspace state={state} playback={playback} view={view} />
         </div>

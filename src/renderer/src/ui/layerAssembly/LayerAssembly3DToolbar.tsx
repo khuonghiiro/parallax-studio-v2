@@ -669,6 +669,11 @@ export function LayerAssembly3DToolbar({
         createPortal(
           <div
             className="layer-workshop-popover-menu"
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerMove={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
             style={{
               position: 'fixed',
               left: getPopoverCoords(anglesRef, 175, 180).left,
@@ -743,6 +748,11 @@ export function LayerAssembly3DToolbar({
         createPortal(
           <div
             className="layer-workshop-popover-menu"
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerMove={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
             style={{
               position: 'fixed',
               left: getPopoverCoords(depthRef, 250, 220).left,

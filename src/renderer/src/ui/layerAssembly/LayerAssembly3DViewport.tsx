@@ -509,6 +509,12 @@ export function LayerAssembly3DViewport({
     const container = containerRef.current
     if (!container) return
 
+    // Chỉ nhận tương tác camera khi click trực tiếp vào canvas hoặc container viewport
+    const target = e.target as HTMLElement
+    if (target.tagName.toLowerCase() !== 'canvas' && target !== container) {
+      return
+    }
+
     // Chuột phải (button 2), Chuột giữa (button 1) hoặc giữ Shift -> Pan dịch chuyển góc nhìn
     if (e.button === 2 || e.button === 1 || e.shiftKey) {
       dragModeRef.current = 'pan'

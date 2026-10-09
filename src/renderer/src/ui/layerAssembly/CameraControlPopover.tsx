@@ -60,11 +60,19 @@ export function CameraControlPopover({
   return (
     <div
       className="layer-workshop-popover-menu"
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerMove={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseMove={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onWheel={(e) => e.stopPropagation()}
       style={{
         position: 'fixed',
         width: '285px',
         maxHeight: 'calc(100vh - 160px)',
         overflowY: 'auto',
+        overflowX: 'hidden',
         padding: '12px 14px',
         gap: '10px',
         zIndex: 100,

@@ -37,11 +37,19 @@ export function LightingControlPopover({
   return (
     <div
       className="layer-workshop-popover-menu"
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerMove={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseMove={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onWheel={(e) => e.stopPropagation()}
       style={{
         position: 'fixed',
-        width: '285px',
+        width: '290px',
         maxHeight: 'calc(100vh - 160px)',
         overflowY: 'auto',
+        overflowX: 'hidden',
         padding: '12px 14px',
         gap: '10px',
         zIndex: 30000,
@@ -186,6 +194,8 @@ export function LightingControlPopover({
               max="180"
               step="5"
               value={lighting.azimuth}
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
               onChange={(e) => update({ azimuth: Number(e.target.value), preset: 'auto' })}
               style={{ width: '100%', cursor: 'pointer' }}
             />
@@ -208,6 +218,8 @@ export function LightingControlPopover({
               max="85"
               step="2"
               value={lighting.elevation}
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
               onChange={(e) => update({ elevation: Number(e.target.value), preset: 'auto' })}
               style={{ width: '100%', cursor: 'pointer' }}
             />
@@ -230,6 +242,8 @@ export function LightingControlPopover({
               max="2.0"
               step="0.05"
               value={lighting.intensity}
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
               onChange={(e) => update({ intensity: Number(e.target.value) })}
               style={{ width: '100%', cursor: 'pointer' }}
             />
@@ -250,12 +264,12 @@ export function LightingControlPopover({
         </div>
       )}
 
-      {/* 4. Tác vụ nhanh */}
-      <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
+      {/* 4. Tác vụ nhanh (Lưới 2x2 gọn gàng, không bị cuộn ngang) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px', marginTop: '2px' }}>
         <button
           type="button"
           className="btn xs"
-          style={{ flex: 1, padding: '3px 4px', fontSize: '10px' }}
+          style={{ padding: '4px 6px', fontSize: '10px', justifyContent: 'center' }}
           onClick={() => handleSelectPreset('noon')}
           title="Chuyển nhanh sang ban ngày nắng sáng"
         >
@@ -264,7 +278,7 @@ export function LightingControlPopover({
         <button
           type="button"
           className="btn xs"
-          style={{ flex: 1, padding: '3px 4px', fontSize: '10px' }}
+          style={{ padding: '4px 6px', fontSize: '10px', justifyContent: 'center' }}
           onClick={() => handleSelectPreset('night')}
           title="Chuyển nhanh sang ban đêm ánh trăng huyền ảo"
         >
@@ -273,7 +287,7 @@ export function LightingControlPopover({
         <button
           type="button"
           className="btn xs"
-          style={{ flex: 1, padding: '3px 4px', fontSize: '10px' }}
+          style={{ padding: '4px 6px', fontSize: '10px', justifyContent: 'center' }}
           onClick={() => update({ azimuth: lighting.azimuth >= 0 ? lighting.azimuth - 180 : lighting.azimuth + 180, preset: 'auto' })}
           title="Xoay ngược hướng chiếu sáng 180°"
         >
@@ -282,11 +296,11 @@ export function LightingControlPopover({
         <button
           type="button"
           className="btn xs"
-          style={{ flex: 1, padding: '3px 4px', fontSize: '10px' }}
+          style={{ padding: '4px 6px', fontSize: '10px', justifyContent: 'center' }}
           onClick={() => onChangeLighting(DEFAULT_LIGHTING)}
           title="Đặt lại thiết lập ánh sáng mặc định"
         >
-          Mặc định
+          ↺ Mặc định
         </button>
       </div>
     </div>
