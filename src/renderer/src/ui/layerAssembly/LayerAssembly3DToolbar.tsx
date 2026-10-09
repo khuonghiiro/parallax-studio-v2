@@ -47,6 +47,7 @@ export interface LayerAssembly3DToolbarProps {
   selectedLayerName?: string | null
   lighting: AssemblyLighting
   onChangeLighting: (lighting: AssemblyLighting) => void
+  onResetAllPrefs?: () => void
 }
 
 interface TooltipInfo {
@@ -58,6 +59,16 @@ interface TooltipInfo {
   tip?: string
   top: number
   right: number
+}
+
+// Icon Đặt lại mặc định (Reset / RotateCcw)
+function IconReset() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+    </svg>
+  )
 }
 
 // Icon Mặt trước (Front View)
@@ -170,7 +181,8 @@ export function LayerAssembly3DToolbar({
   onAimAtSelectedLayer,
   selectedLayerName,
   lighting,
-  onChangeLighting
+  onChangeLighting,
+  onResetAllPrefs
 }: LayerAssembly3DToolbarProps) {
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null)
   const [isAnglesOpen, setIsAnglesOpen] = useState(false)
@@ -236,6 +248,16 @@ export function LayerAssembly3DToolbar({
     let def: Omit<TooltipInfo, 'top' | 'right'> | null = null
 
     switch (key) {
+      case 'reset':
+        def = {
+          title: 'Đặt lại mặc định chiều sâu 3D',
+          tag: 'Khôi phục',
+          tagType: 'amber',
+          sub: 'Tùy chọn hiển thị & Tầm nhìn',
+          desc: 'Khôi phục tháp nhìn, lưới sàn, trục XYZ, độ sâu Z (1.8x), góc FOV và vị trí camera về chuẩn ban đầu.',
+          tip: '↺ Xóa cache & đưa về chuẩn'
+        }
+        break
       case 'lighting':
         def = {
           title: 'Hướng sáng & Đổ bóng 3D',
@@ -662,6 +684,26 @@ export function LayerAssembly3DToolbar({
             <IconSun width={15} height={15} />
           </button>
         </div>
+
+        {/* Nút Đặt lại mặc định tùy chọn 3D & Xóa cache */}
+        {onResetAllPrefs && (
+          <>
+            <div className="dock-divider" />
+            <button
+              type="button"
+              className="layer-3d-dock-btn"
+              onClick={() => {
+                onResetAllPrefs()
+                hideTooltip()
+              }}
+              onMouseEnter={(e) => showTooltip(e, 'reset')}
+              onMouseLeave={hideTooltip}
+              aria-label="Đặt lại mặc định chiều sâu 3D"
+            >
+              <IconReset />
+            </button>
+          </>
+        )}
       </aside>
 
       {/* Popover Góc xoay nhanh (Portal ra document.body) */}

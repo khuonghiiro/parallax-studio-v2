@@ -11,7 +11,11 @@ export function useWorkshopHistory(initial: () => LayerComposite) {
     history.update(typeof update === 'function' ? update(history.current) : update, key)
     render((n) => n + 1)
   }, [history])
-  return { composite: history.current, setComposite, history,
+  const resetComposite = useCallback((next: LayerComposite) => {
+    history.reset(next)
+    render((n) => n + 1)
+  }, [history])
+  return { composite: history.current, setComposite, resetComposite, history,
     undo: () => { history.undo(); render((n) => n + 1) },
     redo: () => { history.redo(); render((n) => n + 1) } }
 }

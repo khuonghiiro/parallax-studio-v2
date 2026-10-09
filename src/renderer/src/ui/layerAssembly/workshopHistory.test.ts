@@ -60,4 +60,16 @@ describe('workshopHistory', () => {
     history.update(initial)
     expect(history.canUndo).toBe(false)
   })
+
+  it('resets history stacks when reset is called', () => {
+    const history = createWorkshopHistory(makeComp('Initial'))
+    history.update(makeComp('Edit 1'))
+    history.update(makeComp('Edit 2'))
+    expect(history.canUndo).toBe(true)
+
+    history.reset(makeComp('Brand New'))
+    expect(history.current.name).toBe('Brand New')
+    expect(history.canUndo).toBe(false)
+    expect(history.canRedo).toBe(false)
+  })
 })

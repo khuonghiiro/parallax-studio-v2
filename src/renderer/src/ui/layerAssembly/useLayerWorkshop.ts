@@ -36,5 +36,18 @@ export function useLayerWorkshop(initial?: LayerComposite | null) {
     ;[layers[index], layers[target]] = [layers[target], layers[index]]
     return { ...prev, layers }
   })
-  return { ...state, selection, selectedLayerId, select, setIds, run, update, append, add, move }
+  const createNew = (fresh?: Partial<LayerComposite>) => {
+    const next: LayerComposite = {
+      id: `comp-${crypto.randomUUID()}`,
+      name: 'Mẫu Layer Mới',
+      category: 'custom',
+      width: 600,
+      height: 600,
+      layers: [],
+      ...fresh
+    }
+    state.resetComposite(next)
+    setIds([])
+  }
+  return { ...state, selection, selectedLayerId, select, setIds, run, update, append, add, move, createNew }
 }

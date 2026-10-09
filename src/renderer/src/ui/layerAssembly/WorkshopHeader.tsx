@@ -2,10 +2,11 @@ import type { LayerComposite } from './types'
 import type { AssemblyWorkspaceView } from './LayerAssemblyDialog'
 import { IconLayers, IconPlus, IconX } from '../icons'
 
-export function WorkshopHeader({ composite, setComposite, view, setView, busy, save, insert, close }: {
+export function WorkshopHeader({ composite, setComposite, view, setView, busy, save, insert, close, onNewModel }: {
   composite: LayerComposite; setComposite: (update: LayerComposite) => void
   view: AssemblyWorkspaceView; setView: (view: AssemblyWorkspaceView) => void
   busy: boolean; save: () => void; insert: () => void; close: () => void
+  onNewModel: () => void
 }) {
   return <header className="layer-workshop-header">
     <div className="lw-brand"><IconLayers width={20} height={20} /><div><strong>Xưởng Lắp Ráp Layer</strong><small>Bố cục · Chiều sâu · Chuyển động</small></div></div>
@@ -15,6 +16,9 @@ export function WorkshopHeader({ composite, setComposite, view, setView, busy, s
         aria-pressed={view === mode} onClick={() => setView(mode)}>{mode === 'split' ? '2D & 3D' : mode.toUpperCase()}</button>)}
     </div>
     <div className="layer-workshop-header-actions">
+      <button className="btn sm lw-btn-new-model" onClick={onNewModel} disabled={busy} title="Tạo mới một mẫu layer rỗng">
+        <IconPlus width={13} height={13} /> Tạo mẫu mới
+      </button>
       <button className="btn sm" onClick={save} disabled={busy || !composite.layers.length}>{busy ? 'Đang xử lý…' : 'Lưu mẫu'}</button>
       <button className="btn sm primary" onClick={insert} disabled={busy || !composite.layers.length}><IconPlus width={13} height={13} /> Thêm vào cảnh</button>
       <button className="btn sm icon" onClick={close} disabled={busy} aria-label="Đóng xưởng"><IconX width={16} height={16} /></button>

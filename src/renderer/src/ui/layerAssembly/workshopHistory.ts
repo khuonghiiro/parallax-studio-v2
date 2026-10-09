@@ -27,6 +27,15 @@ export function createWorkshopHistory(initial: LayerComposite) {
       if (!future.length) return
       past = [...past, present]; present = future[0]; future = future.slice(1)
       gesture = false; captured = false; lastKey = ''
+    },
+    reset(next: LayerComposite) {
+      present = next
+      past = []
+      future = []
+      gesture = false
+      captured = false
+      lastKey = ''
+      lastAt = -Infinity
     }
   }
 }

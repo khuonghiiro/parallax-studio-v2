@@ -8,10 +8,10 @@ export function useWorkshopSave(getComposite: () => LayerComposite, onClose: () 
   const lock = useRef(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const perform = async (insert: boolean) => {
-    if (lock.current) return
+  const perform = async (insert: boolean, closeAfter = true) => {
+    if (lock.current) return false
     const composite = getComposite()
-    if (!composite.layers.length) return
+    if (!composite.layers.length) return false
     lock.current = true; setBusy(true); setError('')
     try {
       let thumbnail = composite.thumbnail
@@ -20,10 +20,18 @@ export function useWorkshopSave(getComposite: () => LayerComposite, onClose: () 
       const saved = { ...composite, thumbnail }
       saveComposite(saved)
       if (insert) await insertLayerCompositeToScene({ composite: saved })
-      onClose()
+      if (closeAfter) onClose()
+      return true
     } catch (err) {
       setError(`Không thể ${insert ? 'thêm vào cảnh' : 'lưu mẫu'}: ${err instanceof Error ? err.message : String(err)}`)
+      return false
     } finally { lock.current = false; setBusy(false) }
   }
-  return { busy, error, save: () => perform(false), insert: () => perform(true) }
+  return {
+    busy,
+    error,
+    save: async () => { await perform(false, true) },
+    saveWithoutClosing: () => perform(false, false),
+    insert: async () => { await perform(true, true) }
+  }
 }

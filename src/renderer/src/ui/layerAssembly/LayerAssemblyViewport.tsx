@@ -10,6 +10,10 @@ import { computeLayer2DLighting, computeCanvasAtmosphere } from './layerAssembly
 import { LightingControlPopover } from './LightingControlPopover'
 import type { AssemblyLighting } from '../assets/models3d/types'
 import { DEFAULT_LIGHTING } from '../assets/models3d/assemblyLighting'
+import {
+  loadLayerWorkshopViewPrefs,
+  saveLayerWorkshopViewPrefs
+} from './layerAssemblyViewPrefs'
 
 export interface LayerAssemblyViewportProps {
   composite: LayerComposite
@@ -43,8 +47,8 @@ export function LayerAssemblyViewport({
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState(false)
   const [isDraggingLayer, setIsDraggingLayer] = useState(false)
-  const [show3DPerspective, setShow3DPerspective] = useState(true)
-  const [clipToCamera, setClipToCamera] = useState(true)
+  const [show3DPerspective, setShow3DPerspective] = useState(() => loadLayerWorkshopViewPrefs().show3DPerspective2D)
+  const [clipToCamera, setClipToCamera] = useState(() => loadLayerWorkshopViewPrefs().clipToCamera2D)
   const theme = useView((s) => s.theme)
   const isLight = theme === 'light'
   const [isLightingOpen, setIsLightingOpen] = useState(false)
@@ -354,7 +358,13 @@ export function LayerAssemblyViewport({
         <button
           type="button"
           className={`btn xs${show3DPerspective ? ' active' : ''}`}
-          onClick={() => setShow3DPerspective((v) => !v)}
+          onClick={() =>
+            setShow3DPerspective((v) => {
+              const next = !v
+              saveLayerWorkshopViewPrefs({ show3DPerspective2D: next })
+              return next
+            })
+          }
           title={
             show3DPerspective
               ? 'Đang bật phối cảnh 3D (hiển thị nghiêng sâu và xoay chéo). Bấm để chuyển về phẳng 2D'
@@ -366,7 +376,13 @@ export function LayerAssemblyViewport({
         <button
           type="button"
           className={`btn xs${clipToCamera ? ' active' : ''}`}
-          onClick={() => setClipToCamera((v) => !v)}
+          onClick={() =>
+            setClipToCamera((v) => {
+              const next = !v
+              saveLayerWorkshopViewPrefs({ clipToCamera2D: next })
+              return next
+            })
+          }
           title={
             clipToCamera
               ? 'Đang cắt gọn các phần layer vượt ra ngoài tầm nhìn khung camera (Bấm để xem tràn viền)'
