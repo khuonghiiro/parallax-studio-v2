@@ -26,6 +26,7 @@ interface CustomAssetItem {
 }
 
 const CUSTOM_ASSETS_KEY = 'pxs.customWorkshopAssets'
+const HIDDEN_BUILTIN_KEY = 'pxs.hiddenBuiltinWorkshopAssets'
 
 function loadCustomAssets(): CustomAssetItem[] {
   try {
@@ -39,6 +40,21 @@ function loadCustomAssets(): CustomAssetItem[] {
 function saveCustomAssets(list: CustomAssetItem[]) {
   try {
     localStorage.setItem(CUSTOM_ASSETS_KEY, JSON.stringify(list))
+  } catch {}
+}
+
+function loadHiddenBuiltinAssets(): string[] {
+  try {
+    const raw = localStorage.getItem(HIDDEN_BUILTIN_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function saveHiddenBuiltinAssets(list: string[]) {
+  try {
+    localStorage.setItem(HIDDEN_BUILTIN_KEY, JSON.stringify(list))
   } catch {}
 }
 
@@ -63,9 +79,10 @@ export function LayerAssemblySidebar({
   onAppendPresetLayers,
   onLoadComposite
 }: LayerAssemblySidebarProps) {
-  const [activeTab, setActiveTab] = useState<'project' | 'builtin' | 'presets'>('project')
+  const [activeTab, setActiveTab] = useState<'builtin' | 'presets' | 'project'>('builtin')
   const [searchTerm, setSearchTerm] = useState('')
   const [customAssets, setCustomAssets] = useState<CustomAssetItem[]>(loadCustomAssets)
+  const [hiddenBuiltinPaths, setHiddenBuiltinPaths] = useState<string[]>(loadHiddenBuiltinAssets)
   const [storedComposites, setStoredComposites] = useState<LayerComposite[]>(getStoredComposites)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -76,24 +93,19 @@ export function LayerAssemblySidebar({
     return () => window.removeEventListener('layerComposites:changed', handleChanged)
   }, [])
 
-  // 1. Tab Dự án: Chỉ các tài nguyên layer đang được tạo trong mẫu đó
-  const currentLayers = composite.layers
-  const filteredLayers = useMemo(() => {
-    if (!searchTerm.trim()) return currentLayers
-    const q = searchTerm.toLowerCase()
-    return currentLayers.filter((l) => l.name.toLowerCase().includes(q))
-  }, [currentLayers, searchTerm])
-
-  // 2. Tab Có sẵn: Tài nguyên hệ thống + Ảnh do người dùng thêm vào
+  // 1. Tab Có sẵn: Tài nguyên hệ thống (trừ mục đã xóa) + Ảnh do người dùng thêm vào
   const allAvailableAssets = useMemo(() => {
-    const builtinItems = BUILTIN_NATURE_ASSETS.map((b) => ({
-      id: b.path,
-      path: b.path,
-      name: b.name,
-      isCustom: false
-    }))
+    const hiddenSet = new Set(hiddenBuiltinPaths)
+    const builtinItems = BUILTIN_NATURE_ASSETS
+      .filter((b) => !hiddenSet.has(b.path))
+      .map((b) => ({
+        id: b.path,
+        path: b.path,
+        name: b.name,
+        isCustom: false
+      }))
     return [...customAssets, ...builtinItems]
-  }, [customAssets])
+  }, [customAssets, hiddenBuiltinPaths])
 
   const filteredAssets = useMemo(() => {
     if (!searchTerm.trim()) return allAvailableAssets
@@ -101,12 +113,20 @@ export function LayerAssemblySidebar({
     return allAvailableAssets.filter((a) => a.name.toLowerCase().includes(q))
   }, [allAvailableAssets, searchTerm])
 
-  // 3. Tab Mẫu layer: Các asset layer xếp chồng tạo sẵn & mẫu người dùng tự tạo đã lưu
+  // 2. Tab Mẫu layer: Các asset layer xếp chồng tạo sẵn & mẫu người dùng tự tạo đã lưu
   const filteredComposites = useMemo(() => {
     if (!searchTerm.trim()) return storedComposites
     const q = searchTerm.toLowerCase()
     return storedComposites.filter((c) => c.name.toLowerCase().includes(q))
   }, [storedComposites, searchTerm])
+
+  // 3. Tab Dự án: Chỉ các tài nguyên layer đang được tạo trong mẫu đó
+  const currentLayers = composite.layers
+  const filteredLayers = useMemo(() => {
+    if (!searchTerm.trim()) return currentLayers
+    const q = searchTerm.toLowerCase()
+    return currentLayers.filter((l) => l.name.toLowerCase().includes(q))
+  }, [currentLayers, searchTerm])
 
   // Xử lý nạp ảnh từ máy tính vào tab Có sẵn
   const handleImportFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,14 +154,22 @@ export function LayerAssemblySidebar({
     e.target.value = ''
   }
 
-  // Xóa ảnh custom khỏi tab Có sẵn
-  const handleDeleteCustomAsset = (id: string, e: React.MouseEvent) => {
+  // Xóa ảnh khỏi tab Có sẵn (nếu custom thì xóa hẳn, nếu builtin thì ẩn đi)
+  const handleDeleteAsset = (item: { id: string; path: string; isCustom: boolean }, e: React.MouseEvent) => {
     e.stopPropagation()
-    setCustomAssets((prev) => {
-      const next = prev.filter((a) => a.id !== id)
-      saveCustomAssets(next)
-      return next
-    })
+    if (item.isCustom) {
+      setCustomAssets((prev) => {
+        const next = prev.filter((a) => a.id !== item.id)
+        saveCustomAssets(next)
+        return next
+      })
+    } else {
+      setHiddenBuiltinPaths((prev) => {
+        const next = [...prev, item.path]
+        saveHiddenBuiltinAssets(next)
+        return next
+      })
+    }
   }
 
   // Xóa mẫu layer tự tạo
@@ -168,7 +196,7 @@ export function LayerAssemblySidebar({
         flexShrink: 0
       }}
     >
-      {/* 1. Tabs Switcher */}
+      {/* 1. Tabs Switcher: 1. Có sẵn -> 2. Mẫu layer -> 3. Dự án */}
       <div
         style={{
           display: 'flex',
@@ -177,25 +205,6 @@ export function LayerAssemblySidebar({
           flexShrink: 0
         }}
       >
-        <button
-          type="button"
-          className={`tab${activeTab === 'project' ? ' active' : ''}`}
-          style={{
-            flex: 1,
-            height: '34px',
-            fontSize: '11px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '4px',
-            padding: 0
-          }}
-          onClick={() => setActiveTab('project')}
-          title="Tài nguyên các layer đang tạo trong mẫu hiện tại"
-        >
-          <IconImage width={12} height={12} /> Dự án ({currentLayers.length})
-        </button>
-
         <button
           type="button"
           className={`tab${activeTab === 'builtin' ? ' active' : ''}`}
@@ -232,6 +241,25 @@ export function LayerAssemblySidebar({
           title="Kho mẫu asset layer xếp chồng đã lưu & tạo sẵn"
         >
           <IconLayers width={12} height={12} /> Mẫu layer ({storedComposites.length})
+        </button>
+
+        <button
+          type="button"
+          className={`tab${activeTab === 'project' ? ' active' : ''}`}
+          style={{
+            flex: 1,
+            height: '34px',
+            fontSize: '11px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px',
+            padding: 0
+          }}
+          onClick={() => setActiveTab('project')}
+          title="Tài nguyên các layer đang tạo trong mẫu hiện tại"
+        >
+          <IconImage width={12} height={12} /> Dự án ({currentLayers.length})
         </button>
       </div>
 
@@ -296,7 +324,49 @@ export function LayerAssemblySidebar({
 
       {/* 3. Main Content List */}
       <div style={{ flex: '1 1 0%', overflowY: 'auto', overflowX: 'hidden', padding: '8px', minHeight: 0 }}>
-        {/* TAB 1: DỰ ÁN - Các layer đang tạo trong mẫu hiện tại */}
+        {/* TAB 1: CÓ SẴN - Ảnh & Đạo cụ có sẵn + Ảnh người dùng thêm vào */}
+        {activeTab === 'builtin' && (
+          filteredAssets.length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
+              {filteredAssets.map((item) => (
+                <AssetCard
+                  key={item.id}
+                  item={item}
+                  onAdd={() => onAddLayerFromAsset(item.name, item.path, item.path.startsWith('data:') ? item.path : undefined)}
+                  onDelete={(e) => handleDeleteAsset(item, e)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-dim)', fontSize: '11px' }}>
+              Không tìm thấy tài nguyên nào.
+            </div>
+          )
+        )}
+
+        {/* TAB 2: MẪU LAYER - Các asset layer xếp chồng đã lưu & tạo sẵn kèm ảnh xem trước */}
+        {activeTab === 'presets' && (
+          filteredComposites.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
+              {filteredComposites.map((item) => (
+                <CompositeCard
+                  key={item.id}
+                  item={item}
+                  isBuiltin={builtinIds.has(item.id)}
+                  onLoad={onLoadComposite}
+                  onAppend={onAppendPresetLayers}
+                  onDelete={handleDeleteComposite}
+                />
+              ))}
+            </div>
+          ) : (
+            <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-dim)', fontSize: '11px' }}>
+              Không có mẫu layer nào. Bạn có thể nhấn &quot;Lưu mẫu&quot; ở thanh tiêu đề để lưu mẫu mới vào đây!
+            </div>
+          )
+        )}
+
+        {/* TAB 3: DỰ ÁN - Các layer đang tạo trong mẫu hiện tại */}
         {activeTab === 'project' && (
           filteredLayers.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
@@ -333,48 +403,6 @@ export function LayerAssemblySidebar({
               ) : (
                 'Không tìm thấy layer nào khớp với từ khóa tìm kiếm.'
               )}
-            </div>
-          )
-        )}
-
-        {/* TAB 2: CÓ SẴN - Ảnh & Đạo cụ có sẵn + Ảnh người dùng thêm vào */}
-        {activeTab === 'builtin' && (
-          filteredAssets.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
-              {filteredAssets.map((item) => (
-                <AssetCard
-                  key={item.id}
-                  item={item}
-                  onSelect={() => onAddLayerFromAsset(item.name, item.path, item.path.startsWith('data:') ? item.path : undefined)}
-                  onDelete={item.isCustom ? (e) => handleDeleteCustomAsset(item.id, e) : undefined}
-                />
-              ))}
-            </div>
-          ) : (
-            <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-dim)', fontSize: '11px' }}>
-              Không tìm thấy tài nguyên nào.
-            </div>
-          )
-        )}
-
-        {/* TAB 3: MẪU LAYER - Các asset layer xếp chồng đã lưu & tạo sẵn kèm ảnh xem trước */}
-        {activeTab === 'presets' && (
-          filteredComposites.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
-              {filteredComposites.map((item) => (
-                <CompositeCard
-                  key={item.id}
-                  item={item}
-                  isBuiltin={builtinIds.has(item.id)}
-                  onLoad={onLoadComposite}
-                  onAppend={onAppendPresetLayers}
-                  onDelete={handleDeleteComposite}
-                />
-              ))}
-            </div>
-          ) : (
-            <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-dim)', fontSize: '11px' }}>
-              Không có mẫu layer nào. Bạn có thể nhấn &quot;Lưu mẫu&quot; ở thanh tiêu đề để lưu mẫu mới vào đây!
             </div>
           )
         )}
@@ -492,12 +520,12 @@ function LayerItemCard({
 /** Card hiển thị Tài nguyên mẫu hoặc Ảnh người dùng thêm vào (Tab Có sẵn) */
 function AssetCard({
   item,
-  onSelect,
+  onAdd,
   onDelete
 }: {
   item: { path: string; name: string; isCustom: boolean }
-  onSelect: () => void
-  onDelete?: (e: React.MouseEvent) => void
+  onAdd: () => void
+  onDelete: (e: React.MouseEvent) => void
 }) {
   const assetUrl = useLayerAssetImage(item.isCustom ? '' : item.path)
   const displayUrl = item.isCustom ? item.path : assetUrl
@@ -518,11 +546,11 @@ function AssetCard({
           })
         )
       }}
-      onClick={onSelect}
+      onClick={onAdd}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
-          onSelect()
+          onAdd()
         }
       }}
       style={{
@@ -543,29 +571,84 @@ function AssetCard({
       }}
       title={`Click hoặc Kéo thả để thêm ${item.name} làm layer mới`}
     >
-      {/* Nút xoá cho ảnh custom */}
-      {onDelete && (
+      {/* 2 button ở góc phải của item: (+) Thêm layer và (Thùng rác) Xóa layer */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '3px',
+          right: '3px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '3px',
+          zIndex: 5
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Button (+) Thêm layer */}
         <button
           type="button"
           className="btn xs icon"
           style={{
-            position: 'absolute',
-            top: '2px',
-            right: '2px',
-            width: '16px',
-            height: '16px',
+            width: '18px',
+            height: '18px',
             padding: 0,
-            background: 'rgba(0,0,0,0.5)',
+            background: 'var(--accent)',
             color: '#fff',
-            borderRadius: '50%',
-            zIndex: 2
+            borderRadius: '3px',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+            transition: 'transform 0.1s ease, filter 0.1s ease'
           }}
-          onClick={onDelete}
-          title="Xóa ảnh này khỏi danh sách có sẵn"
+          onClick={(e) => {
+            e.stopPropagation()
+            onAdd()
+          }}
+          title={`Thêm ${item.name} làm layer mới (+) vào cảnh`}
         >
-          <IconX width={10} height={10} />
+          <IconPlus width={11} height={11} />
         </button>
-      )}
+
+        {/* Button Thùng rác Xoá layer */}
+        <button
+          type="button"
+          className="btn xs icon"
+          style={{
+            width: '18px',
+            height: '18px',
+            padding: 0,
+            background: 'color-mix(in srgb, var(--bg-0) 80%, transparent)',
+            color: 'var(--text-dim)',
+            borderRadius: '3px',
+            border: '1px solid var(--line-soft)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            backdropFilter: 'blur(4px)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+            transition: 'color 0.15s ease, border-color 0.15s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = 'var(--danger, #ef4444)'
+            e.currentTarget.style.borderColor = 'var(--danger, #ef4444)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = 'var(--text-dim)'
+            e.currentTarget.style.borderColor = 'var(--line-soft)'
+          }}
+          onClick={(e) => {
+            e.stopPropagation()
+            onDelete(e)
+          }}
+          title={`Xóa ${item.name} khỏi danh sách có sẵn`}
+        >
+          <IconTrash width={10} height={10} />
+        </button>
+      </div>
 
       <div
         style={{
