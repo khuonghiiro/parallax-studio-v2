@@ -139,7 +139,7 @@ export function createFaceMaterial(face: Face3D, texture: THREE.Texture | null, 
   return mat
 }
 
-function buildFaceGeometry(
+export function buildFaceGeometry(
   face: Face3D,
   resolved: ResolvedTexture | null,
   meshOnlyPixels: boolean,

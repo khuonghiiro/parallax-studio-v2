@@ -6,6 +6,7 @@ import { buildEditorCells, type EditorCell } from './mesh2dCells'
 import { hasFaceDeformation, generateDeformedFramePath } from './mesh2dDeform'
 import { Mesh2DHorizontalBar, type ContextTab } from './Mesh2DHorizontalBar'
 import { Mesh2DVerticalPalette, type EditorTool } from './Mesh2DVerticalPalette'
+import { DeformedMesh2DCanvas } from './DeformedMesh2DCanvas'
 import { IconEye, IconEyeOff } from '../../icons'
 
 interface Mesh2DTextureEditorProps {
@@ -360,21 +361,31 @@ export function Mesh2DTextureEditor({
               transition: 'none'
             }}
           >
-            {/* Base Texture Image */}
+            {/* Base Texture Image hoặc Deformed 3D Mesh Canvas */}
             {imageUrl ? (
-              <img
-                src={imageUrl}
-                alt={face.name}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'contain',
-                  display: 'block',
-                  pointerEvents: 'none',
-                  userSelect: 'none'
-                }}
-                draggable={false}
-              />
+              sync3DDeform && isDeformed ? (
+                <DeformedMesh2DCanvas
+                  face={face}
+                  resolvedTexture={resolvedTexture}
+                  width={imgW}
+                  height={imgH}
+                  meshOnlyPixels={!isManual}
+                />
+              ) : (
+                <img
+                  src={imageUrl}
+                  alt={face.name}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    display: 'block',
+                    pointerEvents: 'none',
+                    userSelect: 'none'
+                  }}
+                  draggable={false}
+                />
+              )
             ) : (
               <div className="m2d-loading">Đang tải texture...</div>
             )}
