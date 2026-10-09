@@ -47,6 +47,14 @@
       "icon": "user",
       "description": "Các bộ phận nhân vật phân tầng độc lập (đầu, thân, hông, tay, chân) cho lắp ráp và gắn xương 2.5D",
       "order": 6
+    },
+    {
+      "id": "character_anime",
+      "folder": "character_anime",
+      "title": "Nữ Sinh Anime Tóc Bạch Kim",
+      "icon": "user",
+      "description": "Các bộ phận nhân vật nữ sinh anime tóc dài bạch kim, đồng phục học sinh cho lắp ráp và gắn xương 2.5D",
+      "order": 7
     }
   ],
   "assets": {
@@ -175,6 +183,42 @@
     },
     "character_hero/shin_r.png": {
       "name": "Cẳng chân & Ủng sắt phải"
+    },
+    "character_anime/hair_back.png": {
+      "name": "Tóc sau dài bạch kim"
+    },
+    "character_anime/head.png": {
+      "name": "Đầu & Khuôn mặt nữ sinh anime"
+    },
+    "character_anime/torso.png": {
+      "name": "Áo đồng phục thủy thủ & Nơ đỏ"
+    },
+    "character_anime/pelvis.png": {
+      "name": "Váy xếp ly học sinh & Hông"
+    },
+    "character_anime/arm_l.png": {
+      "name": "Bắp tay áo phồng trái"
+    },
+    "character_anime/forearm_l.png": {
+      "name": "Cẳng tay & Bàn tay trái"
+    },
+    "character_anime/arm_r.png": {
+      "name": "Bắp tay áo phồng phải"
+    },
+    "character_anime/forearm_r.png": {
+      "name": "Cẳng tay & Cặp sách phải"
+    },
+    "character_anime/thigh_l.png": {
+      "name": "Đùi trái tất đùi"
+    },
+    "character_anime/shin_l.png": {
+      "name": "Cẳng chân & Giày học sinh trái"
+    },
+    "character_anime/thigh_r.png": {
+      "name": "Đùi phải tất đùi"
+    },
+    "character_anime/shin_r.png": {
+      "name": "Cẳng chân & Giày học sinh phải"
     }
   }
 }

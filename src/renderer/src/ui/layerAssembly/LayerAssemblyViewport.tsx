@@ -20,6 +20,7 @@ import {
   type Bbox2DHandle,
   calculateAnchorPinnedResize
 } from './layerAssembly2DBbox'
+import { LayerAssembly2DMeshOverlay } from './layerAssemblyAlphaMesh'
 
 export interface LayerAssemblyViewportProps {
   boneOverlay?: BoneOverlayProps
@@ -813,28 +814,8 @@ function AssembledLayerItemView({
           </div>
         )}
 
-        {/* Lưới đa giác Mesh 2D trực quan phong cách Spine2D / Live2D */}
-        {showMesh && (
-          <svg
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              pointerEvents: 'none',
-              zIndex: 10
-            }}
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-          >
-            <defs>
-              <pattern id={`mesh-pat-${layer.id}`} width="25" height="20" patternUnits="userSpaceOnUse">
-                <path d="M 0 0 L 25 0 L 25 20 L 0 20 Z M 0 0 L 25 20" fill="none" stroke="rgba(56, 189, 248, 0.45)" strokeWidth="0.8" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill={`url(#mesh-pat-${layer.id})`} />
-          </svg>
-        )}
+        {/* Lưới đa giác Mesh 2D bám sát pixel đục (loại bỏ hoàn toàn pixel trong suốt) */}
+        <LayerAssembly2DMeshOverlay imageUrl={imageUrl} showMesh={showMesh} />
 
         {/* Điểm neo (Anchor Dot Indicator) khi layer được chọn */}
         {isSelected && (

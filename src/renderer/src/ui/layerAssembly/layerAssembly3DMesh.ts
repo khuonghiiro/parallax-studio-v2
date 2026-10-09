@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import type { AssembledLayerItem, LayerMotionSettings } from './types'
 import { depthEuler } from '../../engine/spatial'
+import { createLayerAlphaTrimmedGeometry } from './layerAssemblyAlphaMesh'
 
 export interface Layer3DMeshInstance {
   group: THREE.Group
@@ -240,7 +241,13 @@ export function createLayer3DInstance(
         if (getTextureDimensions(texture)) {
           const { w, h } = computePlaneDimensions(texture)
           mesh.geometry.dispose()
-          mesh.geometry = new THREE.PlaneGeometry(w, h, 12, 16)
+          mesh.geometry = createLayerAlphaTrimmedGeometry(
+            w,
+            h,
+            texture?.image as HTMLImageElement,
+            16,
+            20
+          )
           if (wireframeMesh) {
             wireframeMesh.geometry = mesh.geometry
           }
@@ -252,8 +259,14 @@ export function createLayer3DInstance(
     : null
 
   const { w, h } = computePlaneDimensions(texture)
-  // Lưới đa giác 12 x 16 đỉnh giúp biến dạng uốn dẻo mềm mại như hoạt hình 2D chuyên nghiệp
-  const geom = new THREE.PlaneGeometry(w, h, 12, 16)
+  // Lưới đa giác bám sát pixel đục (alpha silhouette), triệt tiêu pixel trong suốt
+  const geom = createLayerAlphaTrimmedGeometry(
+    w,
+    h,
+    texture?.image as HTMLImageElement,
+    16,
+    20
+  )
 
   const opacity = Math.max(0, Math.min(1, layer.opacity ?? 1))
   const material = new THREE.MeshLambertMaterial({
@@ -339,7 +352,16 @@ export function updateLayerInstanceTexture(
     if (getTextureDimensions(texture)) {
       const { w, h } = computePlaneDimensions(texture)
       inst.mesh.geometry.dispose()
-      inst.mesh.geometry = new THREE.PlaneGeometry(w, h)
+      inst.mesh.geometry = createLayerAlphaTrimmedGeometry(
+        w,
+        h,
+        texture?.image as HTMLImageElement,
+        16,
+        20
+      )
+      if (inst.wireframeMesh) {
+        inst.wireframeMesh.geometry = inst.mesh.geometry
+      }
       inst.outline.geometry.dispose()
       inst.outline.geometry = createRectOutline(w + 4, h + 4, 0x38bdf8).geometry
     }
@@ -366,7 +388,13 @@ export function updateLayerInstanceTexture(
     if (getTextureDimensions(texture)) {
       const { w, h } = computePlaneDimensions(texture)
       inst.mesh.geometry.dispose()
-      inst.mesh.geometry = new THREE.PlaneGeometry(w, h, 12, 16)
+      inst.mesh.geometry = createLayerAlphaTrimmedGeometry(
+        w,
+        h,
+        texture?.image as HTMLImageElement,
+        16,
+        20
+      )
       if (inst.wireframeMesh) {
         inst.wireframeMesh.geometry = inst.mesh.geometry
       }
