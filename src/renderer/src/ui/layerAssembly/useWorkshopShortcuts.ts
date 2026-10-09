@@ -38,7 +38,9 @@ export function useWorkshopShortcuts(state: ReturnType<typeof useLayerWorkshop>,
       ) {
         const isPlus = key === '+' || key === '=' || e.code === 'NumpadAdd'
         const step = e.altKey ? 25 : 5
-        const dz = isPlus ? step : -step
+        // Phím +: layer tiến ra phía trước (tiền cảnh, gần camera hơn -> Z âm hơn)
+        // Phím -: layer lùi sâu về phía sau (hậu cảnh, xa camera hơn -> Z dương hơn)
+        const dz = isPlus ? -step : step
         state.selection.forEach((id) => {
           const l = state.composite.layers.find((layer) => layer.id === id)
           if (l && !l.locked) {

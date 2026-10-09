@@ -164,7 +164,7 @@ describe('useWorkshopShortcuts', () => {
       ) {
         const isPlus = key === '+' || key === '=' || e.code === 'NumpadAdd'
         const step = e.altKey ? 25 : 5
-        const dz = isPlus ? step : -step
+        const dz = isPlus ? -step : step
         state.selection.forEach((id: string) => {
           const l = state.composite.layers.find((layer: any) => layer.id === id)
           if (l && !l.locked) {
@@ -181,43 +181,43 @@ describe('useWorkshopShortcuts', () => {
     return { state, updateFn }
   }
 
-  it('tăng hệ số độ sâu Z thêm 5 khi nhấn phím +', () => {
+  it('layer tiến ra trước (Z âm hơn) khi nhấn phím +', () => {
     const { updateFn } = setupHook()
     fireKey({ key: '+', shiftKey: true, code: 'Equal' })
-    expect(updateFn).toHaveBeenCalledWith('layer-1', { z: 25 })
-  })
-
-  it('tăng hệ số độ sâu Z thêm 5 khi nhấn phím = (phím cộng không cần Shift)', () => {
-    const { updateFn } = setupHook()
-    fireKey({ key: '=', code: 'Equal' })
-    expect(updateFn).toHaveBeenCalledWith('layer-1', { z: 25 })
-  })
-
-  it('giảm hệ số độ sâu Z đi 5 khi nhấn phím -', () => {
-    const { updateFn } = setupHook()
-    fireKey({ key: '-', code: 'Minus' })
     expect(updateFn).toHaveBeenCalledWith('layer-1', { z: 15 })
   })
 
-  it('tăng độ sâu Z bước lớn (25) khi giữ phím Alt và nhấn +', () => {
+  it('layer tiến ra trước khi nhấn phím = (phím cộng không cần Shift)', () => {
     const { updateFn } = setupHook()
-    fireKey({ key: '+', altKey: true })
-    expect(updateFn).toHaveBeenCalledWith('layer-1', { z: 45 })
+    fireKey({ key: '=', code: 'Equal' })
+    expect(updateFn).toHaveBeenCalledWith('layer-1', { z: 15 })
   })
 
-  it('giảm độ sâu Z bước lớn (25) khi giữ phím Alt và nhấn -', () => {
+  it('layer lùi sâu về sau (Z dương hơn) khi nhấn phím -', () => {
+    const { updateFn } = setupHook()
+    fireKey({ key: '-', code: 'Minus' })
+    expect(updateFn).toHaveBeenCalledWith('layer-1', { z: 25 })
+  })
+
+  it('layer tiến ra trước bước lớn (25) khi giữ phím Alt và nhấn +', () => {
+    const { updateFn } = setupHook()
+    fireKey({ key: '+', altKey: true })
+    expect(updateFn).toHaveBeenCalledWith('layer-1', { z: -5 })
+  })
+
+  it('layer lùi sâu về sau bước lớn (25) khi giữ phím Alt và nhấn -', () => {
     const { updateFn } = setupHook()
     fireKey({ key: '-', altKey: true })
-    expect(updateFn).toHaveBeenCalledWith('layer-1', { z: -5 })
+    expect(updateFn).toHaveBeenCalledWith('layer-1', { z: 45 })
   })
 
   it('hỗ trợ phím NumpadAdd và NumpadSubtract', () => {
     const { updateFn } = setupHook()
     fireKey({ key: '+', code: 'NumpadAdd' })
-    expect(updateFn).toHaveBeenCalledWith('layer-1', { z: 25 })
+    expect(updateFn).toHaveBeenCalledWith('layer-1', { z: 15 })
 
     fireKey({ key: '-', code: 'NumpadSubtract' })
-    expect(updateFn).toHaveBeenCalledWith('layer-1', { z: 15 })
+    expect(updateFn).toHaveBeenCalledWith('layer-1', { z: 25 })
   })
 
   it('không làm gì nếu không có layer nào được chọn', () => {
@@ -277,8 +277,8 @@ describe('useWorkshopShortcuts', () => {
       selection: ['l1', 'l2']
     })
     fireKey({ key: '+' })
-    expect(updateFn).toHaveBeenCalledWith('l1', { z: 15 })
-    expect(updateFn).toHaveBeenCalledWith('l2', { z: 35 })
+    expect(updateFn).toHaveBeenCalledWith('l1', { z: 5 })
+    expect(updateFn).toHaveBeenCalledWith('l2', { z: 25 })
   })
 
   it('bỏ qua phím tắt khi người dùng đang nhập trong input', () => {
