@@ -8,6 +8,8 @@ export interface SculptStrokeSession {
   settings: BrushSettings
   /** Vị trí các đỉnh khi bắt đầu nhấp chuột (local space) */
   initialPositions: Float32Array
+  /** Mảng độ lệch điêu khắc đã tích lũy từ các nét cọ trước đó */
+  existingOffsets: number[]
   /** Điểm tiếp xúc cọ ở frame trước đó trong world space */
   lastHitWorld: THREE.Vector3
   /** Điểm tiếp xúc ban đầu khi nhấn chuột trong world space */
@@ -83,6 +85,7 @@ export function startSculptStroke(
     tool,
     settings,
     initialPositions,
+    existingOffsets: existingSculptOffsets && existingSculptOffsets.length > 0 ? [...existingSculptOffsets] : [],
     startHitWorld: hitPointWorld.clone(),
     lastHitWorld: hitPointWorld.clone(),
     invMat,
@@ -305,22 +308,36 @@ export function endSculptStroke(
   session: SculptStrokeSession,
   unsculptedBasePositions?: Float32Array
 ): number[] {
-  const { mesh, initialPositions } = session
+  const { mesh, initialPositions, existingOffsets } = session
   const posAttr = mesh.geometry?.getAttribute('position')
   if (!posAttr) return []
 
   const count = posAttr.count
   const offsets: number[] = new Array(count * 3)
-  const base = unsculptedBasePositions || initialPositions
 
   for (let i = 0; i < count; i++) {
     const curX = posAttr.getX(i)
     const curY = posAttr.getY(i)
     const curZ = posAttr.getZ(i)
 
-    offsets[i * 3] = Math.round((curX - base[i * 3]) * 100) / 100
-    offsets[i * 3 + 1] = Math.round((curY - base[i * 3 + 1]) * 100) / 100
-    offsets[i * 3 + 2] = Math.round((curZ - base[i * 3 + 2]) * 100) / 100
+    if (unsculptedBasePositions) {
+      offsets[i * 3] = Math.round((curX - unsculptedBasePositions[i * 3]) * 100) / 100
+      offsets[i * 3 + 1] = Math.round((curY - unsculptedBasePositions[i * 3 + 1]) * 100) / 100
+      offsets[i * 3 + 2] = Math.round((curZ - unsculptedBasePositions[i * 3 + 2]) * 100) / 100
+    } else {
+      // Cộng dồn độ biến thiên của nét cọ này (cur - initialPositions) vào existingOffsets đã có
+      const deltaX = curX - initialPositions[i * 3]
+      const deltaY = curY - initialPositions[i * 3 + 1]
+      const deltaZ = curZ - initialPositions[i * 3 + 2]
+
+      const prevX = existingOffsets[i * 3] || 0
+      const prevY = existingOffsets[i * 3 + 1] || 0
+      const prevZ = existingOffsets[i * 3 + 2] || 0
+
+      offsets[i * 3] = Math.round((prevX + deltaX) * 100) / 100
+      offsets[i * 3 + 1] = Math.round((prevY + deltaY) * 100) / 100
+      offsets[i * 3 + 2] = Math.round((prevZ + deltaZ) * 100) / 100
+    }
   }
 
   return offsets

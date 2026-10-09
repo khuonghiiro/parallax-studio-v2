@@ -133,4 +133,56 @@ describe('sculptBrushEngine - Blender Sculpt Mode Continuous Dabbing', () => {
     // Các đỉnh nằm trên vệt vẽ từ x=-20 đến x=20 đều được làm phồng lên Z > 0
     expect(positiveZCount).toBeGreaterThan(5)
   })
+
+  it('multiple strokes accumulate offsets without resetting previous strokes', () => {
+    const geo = new THREE.PlaneGeometry(100, 100, 10, 10)
+    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial())
+    mesh.updateMatrixWorld()
+
+    const camera = new THREE.PerspectiveCamera(45, 1, 1, 1000)
+    camera.position.set(0, 0, 100)
+    camera.lookAt(0, 0, 0)
+    camera.updateMatrixWorld()
+
+    // --- NÉT CỌ 1: Làm phồng góc trái (-30, 0, 0) ---
+    const s1 = startSculptStroke(
+      mesh,
+      'face-multi',
+      new THREE.Vector3(-30, 0, 0),
+      150,
+      250,
+      camera,
+      500,
+      'inflate',
+      { radius: 20, strength: 0.8, invert: false }
+    )
+    expect(s1).not.toBeNull()
+    const offsets1 = endSculptStroke(s1!)
+
+    // Kiểm tra offsets1 có phần tử Z > 0 ở vùng x < 0
+    const hasZ1 = offsets1.some((v, idx) => idx % 3 === 2 && v > 0)
+    expect(hasZ1).toBe(true)
+
+    // --- NÉT CỌ 2: Làm phồng góc phải (+30, 0, 0) với existingSculptOffsets = offsets1 ---
+    const s2 = startSculptStroke(
+      mesh,
+      'face-multi',
+      new THREE.Vector3(30, 0, 0),
+      350,
+      250,
+      camera,
+      500,
+      'inflate',
+      { radius: 20, strength: 0.8, invert: false },
+      offsets1
+    )
+    expect(s2).not.toBeNull()
+    const offsets2 = endSculptStroke(s2!)
+
+    // offsets2 BẮT BUỘC phải giữ lại Z của nét 1 và có thêm Z của nét 2
+    // Đếm số đỉnh có Z > 0 ở nét 2 phải LỚN HƠN hoặc BẰNG nét 1
+    const countZ1 = offsets1.filter((v, idx) => idx % 3 === 2 && v > 0).length
+    const countZ2 = offsets2.filter((v, idx) => idx % 3 === 2 && v > 0).length
+    expect(countZ2).toBeGreaterThan(countZ1)
+  })
 })

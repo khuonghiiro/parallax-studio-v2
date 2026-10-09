@@ -3,7 +3,7 @@ import type { Face3D } from './types'
 
 export type FaceDeformParams = Pick<
   Face3D,
-  'bendX' | 'bendY' | 'bendLateral' | 'bendRegion' | 'arcAngle' | 'taperRatio'
+  'bendX' | 'bendY' | 'bendLateral' | 'bendRegion' | 'arcAngle' | 'taperRatio' | 'sculptOffsets'
 >
 
 /**
@@ -16,7 +16,8 @@ export function hasFaceDeformation(face?: FaceDeformParams | null): boolean {
     (face.bendY !== undefined && face.bendY !== 0) ||
     (face.bendLateral !== undefined && face.bendLateral !== 0) ||
     (face.arcAngle !== undefined && face.arcAngle > 0) ||
-    (face.taperRatio !== undefined && Math.abs(face.taperRatio - 1) > 0.001)
+    (face.taperRatio !== undefined && Math.abs(face.taperRatio - 1) > 0.001) ||
+    Boolean(face.sculptOffsets && face.sculptOffsets.length > 0 && face.sculptOffsets.some((v) => Math.abs(v) > 0.01))
   )
 }
 

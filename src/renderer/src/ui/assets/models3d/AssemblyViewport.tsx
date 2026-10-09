@@ -85,7 +85,7 @@ export function AssemblyViewport({
   const [active3DTool, setActive3DTool] = useState<Assembly3DActiveTool>('gizmo')
   const isBrushTool = ['grab', 'inflate', 'smooth', 'crease'].includes(active3DTool)
   const [brushSettings, setBrushSettings] = useState<BrushSettings>({
-    radius: 60,
+    radius: 10,
     strength: 0.5,
     invert: false
   })

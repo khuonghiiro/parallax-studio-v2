@@ -17,6 +17,7 @@ describe('mesh2dDeform', () => {
     expect(hasFaceDeformation({ bendLateral: 25 })).toBe(true)
     expect(hasFaceDeformation({ arcAngle: 90 })).toBe(true)
     expect(hasFaceDeformation({ bendX: 30 })).toBe(true)
+    expect(hasFaceDeformation({ sculptOffsets: [0, 0, 5, 0, 0, 10] })).toBe(true)
   })
 
   it('returns original points when no deformation is applied', () => {

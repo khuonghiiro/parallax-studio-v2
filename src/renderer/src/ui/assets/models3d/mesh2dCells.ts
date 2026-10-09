@@ -15,6 +15,8 @@ export interface EditorCell {
   isHidden: boolean
   isSelected: boolean
   isPinned: boolean
+  /** Độ lồi (+) hoặc lõm (-) trung bình từ cọ điêu khắc 3D (Relief) */
+  depthRelief?: number
 }
 
 export interface EditorCellOptions {
@@ -42,6 +44,18 @@ export function buildEditorCells(o: EditorCellOptions): EditorCell[] {
   const contour = new Map(computeContourCells(o.cols, o.rows, o.silhouette, o.rotation, o.autoTrim).map((c) => [c.key, c]))
   const list: EditorCell[] = []
   const hasDeform = Boolean(o.deformFace)
+  const sculpt = o.deformFace?.sculptOffsets
+  const hasSculpt = Boolean(sculpt && sculpt.length > 0)
+
+  const getOffset = (row: number, col: number) => {
+    if (!sculpt) return { ox: 0, oy: 0, oz: 0 }
+    const vIdx = row * (o.cols + 1) + col
+    return {
+      ox: sculpt[vIdx * 3] || 0,
+      oy: sculpt[vIdx * 3 + 1] || 0,
+      oz: sculpt[vIdx * 3 + 2] || 0
+    }
+  }
 
   for (let r = 0; r < o.rows; r++) {
     for (let c = 0; c < o.cols; c++) {
@@ -52,7 +66,17 @@ export function buildEditorCells(o: EditorCellOptions): EditorCell[] {
       const y1 = (r + 1) * cellH
       const cell = contour.get(key)
 
-      const rawCorners: [number, number][] = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
+      const dTL = hasSculpt ? getOffset(r, c) : null
+      const dTR = hasSculpt ? getOffset(r, c + 1) : null
+      const dBR = hasSculpt ? getOffset(r + 1, c + 1) : null
+      const dBL = hasSculpt ? getOffset(r + 1, c) : null
+
+      const rawCorners: [number, number][] = [
+        [x0 + (dTL ? dTL.ox : 0), y0 - (dTL ? dTL.oy : 0)],
+        [x1 + (dTR ? dTR.ox : 0), y0 - (dTR ? dTR.oy : 0)],
+        [x1 + (dBR ? dBR.ox : 0), y1 - (dBR ? dBR.oy : 0)],
+        [x0 + (dBL ? dBL.ox : 0), y1 - (dBL ? dBL.oy : 0)]
+      ]
       const corners = hasDeform
         ? rawCorners.map(([px, py]) => projectDeformedPoint2D(px, py, o.imgW, o.imgH, o.deformFace))
         : rawCorners
@@ -60,12 +84,33 @@ export function buildEditorCells(o: EditorCellOptions): EditorCell[] {
       const triangles = cell
         ? cell.triangles.map((tri) =>
             tri.map((i) => {
-              const px = cell.polygon[i][0] * o.imgW
-              const py = cell.polygon[i][1] * o.imgH
+              let px = cell.polygon[i][0] * o.imgW
+              let py = cell.polygon[i][1] * o.imgH
+              if (hasSculpt) {
+                const uRel = Math.max(0, Math.min(1, cellW > 0 ? (px - x0) / cellW : 0))
+                const vRel = Math.max(0, Math.min(1, cellH > 0 ? (py - y0) / cellH : 0))
+                const ox =
+                  (1 - uRel) * (1 - vRel) * (dTL?.ox || 0) +
+                  uRel * (1 - vRel) * (dTR?.ox || 0) +
+                  uRel * vRel * (dBR?.ox || 0) +
+                  (1 - uRel) * vRel * (dBL?.ox || 0)
+                const oy =
+                  (1 - uRel) * (1 - vRel) * (dTL?.oy || 0) +
+                  uRel * (1 - vRel) * (dTR?.oy || 0) +
+                  uRel * vRel * (dBR?.oy || 0) +
+                  (1 - uRel) * vRel * (dBL?.oy || 0)
+                px += ox
+                py -= oy
+              }
               return hasDeform ? projectDeformedPoint2D(px, py, o.imgW, o.imgH, o.deformFace) : ([px, py] as [number, number])
             })
           )
         : []
+
+      const avgZ =
+        hasSculpt && (dTL || dTR || dBR || dBL)
+          ? ((dTL?.oz || 0) + (dTR?.oz || 0) + (dBR?.oz || 0) + (dBL?.oz || 0)) / 4
+          : 0
 
       list.push({
         key,
@@ -76,7 +121,8 @@ export function buildEditorCells(o: EditorCellOptions): EditorCell[] {
         isOpaque: Boolean(cell),
         isHidden: o.hidden.has(key),
         isSelected: o.selected.has(key),
-        isPinned: o.pinned.has(key)
+        isPinned: o.pinned.has(key),
+        depthRelief: Math.round(avgZ * 10) / 10
       })
     }
   }

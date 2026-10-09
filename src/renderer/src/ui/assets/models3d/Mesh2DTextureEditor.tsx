@@ -395,6 +395,15 @@ export function Mesh2DTextureEditor({
                   {cells.map((cell) => {
                     if (!cell.isOpaque) return null
                     const cls = `m2d-cell${cell.isHidden ? ' is-hidden' : cell.isSelected ? ' is-selected' : ''}`
+                    let reliefStyle: React.CSSProperties | undefined
+                    if (cell.depthRelief && Math.abs(cell.depthRelief) >= 0.3) {
+                      const isPositive = cell.depthRelief > 0
+                      const alpha = Math.min(0.48, Math.max(0.12, Math.abs(cell.depthRelief) / 35))
+                      // Lồi (+) hiển thị màu vàng hổ phách nổi khối, Lõm (-) hiển thị màu xanh lam râm mát
+                      reliefStyle = {
+                        fill: isPositive ? `rgba(245, 158, 11, ${alpha})` : `rgba(59, 130, 246, ${alpha})`
+                      }
+                    }
                     if (cell.triangles.length > 0) {
                       return (
                         <g key={cell.key} className={cls}>
@@ -403,6 +412,7 @@ export function Mesh2DTextureEditor({
                               key={triIdx}
                               points={tri.map((p) => `${p[0]},${p[1]}`).join(' ')}
                               vectorEffect="non-scaling-stroke"
+                              style={reliefStyle}
                             />
                           ))}
                         </g>
@@ -414,6 +424,7 @@ export function Mesh2DTextureEditor({
                         className={cls}
                         points={cell.corners.map((p) => `${p[0]},${p[1]}`).join(' ')}
                         vectorEffect="non-scaling-stroke"
+                        style={reliefStyle}
                       />
                     )
                   })}
@@ -524,6 +535,17 @@ export function Mesh2DTextureEditor({
                   <span className="mesh2d-hud-sep" />
                   <span className="mesh2d-hud-badge tag-red">
                     Đã gọt: <strong>{hiddenCells.size} ô</strong>
+                  </span>
+                </>
+              )}
+              {Boolean(face.sculptOffsets && face.sculptOffsets.length > 0) && (
+                <>
+                  <span className="mesh2d-hud-sep" />
+                  <span
+                    className="mesh2d-hud-badge tag-cyan"
+                    title="Độ lồi lõm và uốn dẻo từ không gian 3D được đồng bộ trực tiếp lên lưới 2D"
+                  >
+                    Uốn 3D: <strong>{face.sculptOffsets?.filter((v, idx) => idx % 3 === 2 && Math.abs(v) > 0.1).length || 0} đỉnh</strong>
                   </span>
                 </>
               )}

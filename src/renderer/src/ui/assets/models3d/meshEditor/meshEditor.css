@@ -410,16 +410,33 @@
   width: 28px;
   height: 28px;
   border-radius: 5px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.assembly-3d-vertical-palette .mesh2d-v-tool-btn:hover {
+  background-color: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line-soft);
+}
+
+.assembly-3d-vertical-palette .mesh2d-v-tool-btn.active {
+  background-color: var(--accent) !important;
+  color: #ffffff !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 1px 6px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .assembly-3d-vertical-palette .mesh2d-palette-divider {
   width: 18px;
   margin: 2px 0;
-}
-
-.a3d-v-icon {
-  font-size: 13px;
-  line-height: 1;
 }
 
 .assembly-3d-top-popup {

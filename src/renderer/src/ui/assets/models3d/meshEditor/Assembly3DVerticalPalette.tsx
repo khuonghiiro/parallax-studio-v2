@@ -201,6 +201,105 @@ export function Assembly3DVerticalPalette({
     onUpdateFace(face.id, patch)
   }
 
+function IconGizmo3D() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 12V3M12 3L9.5 5.5M12 3L14.5 5.5" />
+      <path d="M12 12H21M21 12L18.5 9.5M21 12L18.5 14.5" />
+      <path d="M12 12L5 19M5 19V16M5 19H8" />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+    </svg>
+  )
+}
+
+function IconBendArc() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19C4 10 10 4 20 4" />
+      <path d="M16 4H20V8" />
+      <circle cx="4" cy="19" r="1.5" fill="currentColor" />
+    </svg>
+  )
+}
+
+function IconTaper() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 4L4 20H20L15 4Z" />
+      <line x1="12" y1="4" x2="12" y2="20" strokeDasharray="2 2" />
+    </svg>
+  )
+}
+
+function IconLateral() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 19C10 19 8 5 18 5" />
+      <path d="M15 5H18V8" />
+    </svg>
+  )
+}
+
+function IconTwist() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12a9 9 0 1 1-6.2-8.5" />
+      <path d="M15 3.5V9h5.5" />
+    </svg>
+  )
+}
+
+function IconGrabBrush() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+      <circle cx="12" cy="12" r="3.5" fill="currentColor" fillOpacity="0.25" />
+    </svg>
+  )
+}
+
+function IconInflateBrush() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 7V3M12 3L10 5M12 3L14 5" />
+      <circle cx="12" cy="12" r="2.5" fill="currentColor" />
+    </svg>
+  )
+}
+
+function IconSmoothBrush() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 8c3-2 6-2 9 0s6 2 9 0" />
+      <path d="M3 13c3-2 6-2 9 0s6 2 9 0" />
+      <path d="M3 18c3-2 6-2 9 0s6 2 9 0" />
+    </svg>
+  )
+}
+
+function IconCreaseBrush() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 7L12 17L21 7" />
+      <line x1="12" y1="17" x2="12" y2="21" />
+    </svg>
+  )
+}
+
+function IconLattice() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="4" width="16" height="16" rx="2" strokeDasharray="3 2" />
+      <circle cx="4" cy="4" r="1.8" fill="currentColor" />
+      <circle cx="20" cy="4" r="1.8" fill="currentColor" />
+      <circle cx="20" cy="20" r="1.8" fill="currentColor" />
+      <circle cx="4" cy="20" r="1.8" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.8" fill="currentColor" />
+    </svg>
+  )
+}
+
   return (
     <>
       {/* 1. Left Vertical Palette matching Mesh2DVerticalPalette layout */}
@@ -214,7 +313,7 @@ export function Assembly3DVerticalPalette({
           onMouseLeave={hideTooltip}
           aria-label={TOOL_DEFS.gizmo.title}
         >
-          <span className="a3d-v-icon">🎯</span>
+          <IconGizmo3D />
         </button>
 
         <div className="mesh2d-palette-divider" />
@@ -228,29 +327,29 @@ export function Assembly3DVerticalPalette({
           onMouseLeave={hideTooltip}
           aria-label={TOOL_DEFS.bend.title}
         >
-          <span className="a3d-v-icon">🌀</span>
+          <IconBendArc />
         </button>
 
         <button
           type="button"
-          className={`mesh2d-v-tool-btn green${activeTool === 'taper' ? ' active' : ''}`}
+          className={`mesh2d-v-tool-btn${activeTool === 'taper' ? ' active' : ''}`}
           onClick={() => handleToolClick('taper')}
           onMouseEnter={(e) => showTooltip(e, 'taper')}
           onMouseLeave={hideTooltip}
           aria-label={TOOL_DEFS.taper.title}
         >
-          <span className="a3d-v-icon">📐</span>
+          <IconTaper />
         </button>
 
         <button
           type="button"
-          className={`mesh2d-v-tool-btn gold${activeTool === 'lateral' ? ' active' : ''}`}
+          className={`mesh2d-v-tool-btn${activeTool === 'lateral' ? ' active' : ''}`}
           onClick={() => handleToolClick('lateral')}
           onMouseEnter={(e) => showTooltip(e, 'lateral')}
           onMouseLeave={hideTooltip}
           aria-label={TOOL_DEFS.lateral.title}
         >
-          <span className="a3d-v-icon">➰</span>
+          <IconLateral />
         </button>
 
         <button
@@ -261,7 +360,7 @@ export function Assembly3DVerticalPalette({
           onMouseLeave={hideTooltip}
           aria-label={TOOL_DEFS.twist.title}
         >
-          <span className="a3d-v-icon">🌪️</span>
+          <IconTwist />
         </button>
 
         <div className="mesh2d-palette-divider" />
@@ -275,40 +374,40 @@ export function Assembly3DVerticalPalette({
           onMouseLeave={hideTooltip}
           aria-label={TOOL_DEFS.grab.title}
         >
-          <span className="a3d-v-icon">🖐️</span>
+          <IconGrabBrush />
         </button>
 
         <button
           type="button"
-          className={`mesh2d-v-tool-btn gold${activeTool === 'inflate' ? ' active' : ''}`}
+          className={`mesh2d-v-tool-btn${activeTool === 'inflate' ? ' active' : ''}`}
           onClick={() => handleToolClick('inflate')}
           onMouseEnter={(e) => showTooltip(e, 'inflate')}
           onMouseLeave={hideTooltip}
           aria-label={TOOL_DEFS.inflate.title}
         >
-          <span className="a3d-v-icon">🎈</span>
+          <IconInflateBrush />
         </button>
 
         <button
           type="button"
-          className={`mesh2d-v-tool-btn green${activeTool === 'smooth' ? ' active' : ''}`}
+          className={`mesh2d-v-tool-btn${activeTool === 'smooth' ? ' active' : ''}`}
           onClick={() => handleToolClick('smooth')}
           onMouseEnter={(e) => showTooltip(e, 'smooth')}
           onMouseLeave={hideTooltip}
           aria-label={TOOL_DEFS.smooth.title}
         >
-          <span className="a3d-v-icon">🫧</span>
+          <IconSmoothBrush />
         </button>
 
         <button
           type="button"
-          className={`mesh2d-v-tool-btn danger${activeTool === 'crease' ? ' active' : ''}`}
+          className={`mesh2d-v-tool-btn${activeTool === 'crease' ? ' active' : ''}`}
           onClick={() => handleToolClick('crease')}
           onMouseEnter={(e) => showTooltip(e, 'crease')}
           onMouseLeave={hideTooltip}
           aria-label={TOOL_DEFS.crease.title}
         >
-          <span className="a3d-v-icon">〰️</span>
+          <IconCreaseBrush />
         </button>
 
         <div className="mesh2d-palette-divider" />
@@ -322,7 +421,7 @@ export function Assembly3DVerticalPalette({
           onMouseLeave={hideTooltip}
           aria-label={TOOL_DEFS.lattice.title}
         >
-          <span className="a3d-v-icon">🕸️</span>
+          <IconLattice />
         </button>
       </div>
 
@@ -586,8 +685,9 @@ export function Assembly3DVerticalPalette({
                 <span>Bán kính:</span>
                 <input
                   type="range"
-                  min="20"
-                  max="180"
+                  min="5"
+                  max="150"
+                  step="1"
                   className="mini-hud-range"
                   value={brushSettings.radius}
                   onChange={(e) => onChangeBrushSettings({ radius: Number(e.target.value) })}
