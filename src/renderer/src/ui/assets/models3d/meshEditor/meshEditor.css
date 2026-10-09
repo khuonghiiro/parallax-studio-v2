@@ -511,16 +511,19 @@
 /* Brush Circle Cursor Overlay in 3D Viewport */
 .assembly-3d-brush-cursor {
   position: absolute;
+  top: 0;
+  left: 0;
   pointer-events: none;
   border-radius: 50%;
   border: 1.5px solid var(--accent-cyan);
   background: color-mix(in srgb, var(--accent-cyan) 8%, transparent);
   box-shadow: 0 0 8px rgba(56, 189, 248, 0.4), inset 0 0 4px rgba(56, 189, 248, 0.2);
-  transform: translate(-50%, -50%);
+  transform: translate3d(-50%, -50%, 0);
   z-index: 90;
   display: flex;
   align-items: center;
   justify-content: center;
+  will-change: transform;
 }
 
 .assembly-3d-brush-cursor::after {

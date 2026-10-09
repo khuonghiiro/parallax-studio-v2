@@ -216,6 +216,55 @@ function buildFaceGeometry(
 }
 
 /**
+ * Trích xuất CHỈ các cạnh biên ngoài cùng (Boundary Edges) của mesh
+ * (những cạnh chỉ thuộc về đúng 1 tam giác, không bị chia sẻ giữa 2 tam giác).
+ * Nhờ đó, đường viền chọn mặt (selection outline) CHỈ ôm theo chu vi ngoài cùng,
+ * tuyệt đối KHÔNG sinh ra các đường lưới nội bộ bên trong bề mặt khi uốn cong hay điêu khắc cọ.
+ */
+export function createBoundaryEdgesGeometry(geo: THREE.BufferGeometry): THREE.BufferGeometry {
+  const index = geo.getIndex()
+  const posAttr = geo.getAttribute('position')
+  if (!posAttr || posAttr.count === 0) return new THREE.BufferGeometry()
+
+  const edgeCount = new Map<string, [number, number]>()
+  const addEdge = (a: number, b: number) => {
+    const key = a < b ? `${a}_${b}` : `${b}_${a}`
+    if (edgeCount.has(key)) {
+      edgeCount.delete(key)
+    } else {
+      edgeCount.set(key, [a, b])
+    }
+  }
+
+  if (index) {
+    const arr = index.array
+    for (let i = 0; i < arr.length; i += 3) {
+      addEdge(arr[i], arr[i + 1])
+      addEdge(arr[i + 1], arr[i + 2])
+      addEdge(arr[i + 2], arr[i])
+    }
+  } else {
+    for (let i = 0; i < posAttr.count; i += 3) {
+      addEdge(i, i + 1)
+      addEdge(i + 1, i + 2)
+      addEdge(i + 2, i)
+    }
+  }
+
+  const linePositions: number[] = []
+  for (const [a, b] of edgeCount.values()) {
+    linePositions.push(
+      posAttr.getX(a), posAttr.getY(a), posAttr.getZ(a),
+      posAttr.getX(b), posAttr.getY(b), posAttr.getZ(b)
+    )
+  }
+
+  const edgeGeo = new THREE.BufferGeometry()
+  edgeGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3))
+  return edgeGeo
+}
+
+/**
  * Creates a Three.js Mesh for a Face3D with sub-mesh trimming and curvature.
  */
 export function createFaceMesh(
@@ -267,7 +316,7 @@ export function createFaceMesh(
         : null
   }
 
-  // Wireframe overlay: if meshOnlyPixels is true, wireframe only shows on visible pixels!
+  // Wireframe overlay: CHỈ hiển thị khi người dùng bật nút Mesh (showWireframe === true)
   if (showWireframe) {
     const wireGeo = new THREE.WireframeGeometry(geo)
     const wireMat = new THREE.LineBasicMaterial({
@@ -280,12 +329,12 @@ export function createFaceMesh(
     mesh.add(wire)
   }
 
-  // Selection outline: with welded vertices EdgesGeometry yields the contour silhouette.
+  // Selection outline: CHỈ vẽ đường bao mép ngoài cùng (boundary silhouette), không vẽ lưới bên trong!
   if (isSelected) {
-    const boxGeo = new THREE.EdgesGeometry(geo)
+    const boundaryGeo = createBoundaryEdgesGeometry(geo)
     const boxMat = new THREE.LineBasicMaterial({ color: new THREE.Color(theme.outline) })
-    const outline = new THREE.LineSegments(boxGeo, boxMat)
-    outline.position.z += 1
+    const outline = new THREE.LineSegments(boundaryGeo, boxMat)
+    outline.position.z += 0.5
     mesh.add(outline)
   }
 

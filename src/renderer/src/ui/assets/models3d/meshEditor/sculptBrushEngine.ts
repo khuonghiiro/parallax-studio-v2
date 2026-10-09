@@ -12,8 +12,8 @@ export interface SculptStrokeSession {
   baseOffsets: Float32Array
   /** Điểm tiếp xúc ban đầu của đầu cọ trong world space */
   startHitWorld: THREE.Vector3
-  /** Tọa độ điểm cọ trước đó trong world space */
-  prevHitWorld: THREE.Vector3
+  /** Ma trận nghịch đảo của mesh world matrix được cache để không clone mỗi frame */
+  invMat: THREE.Matrix4
   /** Tọa độ chuột ban đầu */
   startMouse: { x: number; y: number }
   /** Bán kính đầu cọ trong world space */
@@ -109,7 +109,7 @@ export function startSculptStroke(
     initialPositions,
     baseOffsets,
     startHitWorld: hitPointWorld.clone(),
-    prevHitWorld: hitPointWorld.clone(),
+    invMat: mesh.matrixWorld.clone().invert(),
     startMouse: { x: clientX, y: clientY },
     worldRadius,
     affectedIndices: affected,
@@ -127,7 +127,7 @@ export function applySculptStrokeMove(
   camera: THREE.Camera,
   viewportHeight: number
 ): void {
-  const { mesh, tool, settings, initialPositions, startMouse, worldRadius, affectedIndices, falloffs } = session
+  const { mesh, tool, settings, initialPositions, startMouse, worldRadius, affectedIndices, falloffs, invMat } = session
   const posAttr = mesh.geometry?.getAttribute('position')
   if (!posAttr || affectedIndices.length === 0) return
 
@@ -148,8 +148,7 @@ export function applySculptStrokeMove(
       .addScaledVector(camRight, totalDx * worldPerPx)
       .addScaledVector(camUp, -totalDy * worldPerPx)
 
-    // Chuyển delta sang local space của mesh
-    const invMat = mesh.matrixWorld.clone().invert()
+    // Chuyển delta sang local space của mesh dùng invMat đã cache
     const deltaLocal = deltaWorld.transformDirection(invMat)
 
     for (let k = 0; k < affectedIndices.length; k++) {

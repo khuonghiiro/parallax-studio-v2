@@ -89,8 +89,8 @@ export function AssemblyViewport({
     strength: 0.5,
     invert: false
   })
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0, visible: false })
   const sculptSessionRef = useRef<SculptStrokeSession | null>(null)
+  const brushCursorRef = useRef<HTMLDivElement | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
@@ -507,13 +507,16 @@ export function AssemblyViewport({
     const camera = cameraRef.current
     const container = containerRef.current
 
-    if (container) {
-      const rect = container.getBoundingClientRect()
-      setMousePos({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-        visible: true
-      })
+    if (container && brushCursorRef.current) {
+      if (isBrushTool) {
+        const rect = container.getBoundingClientRect()
+        const cx = e.clientX - rect.left
+        const cy = e.clientY - rect.top
+        brushCursorRef.current.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%)`
+        brushCursorRef.current.style.display = 'block'
+      } else {
+        brushCursorRef.current.style.display = 'none'
+      }
     }
 
     if (ds.mode === 'none') {
@@ -623,7 +626,9 @@ export function AssemblyViewport({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onPointerLeave={() => setMousePos((p) => ({ ...p, visible: false }))}
+      onPointerLeave={() => {
+        if (brushCursorRef.current) brushCursorRef.current.style.display = 'none'
+      }}
       onWheel={handleWheel}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -645,18 +650,16 @@ export function AssemblyViewport({
         onChangeBrushSettings={(patch) => setBrushSettings((s) => ({ ...s, ...patch }))}
       />
 
-      {/* Brush Circle Cursor Overlay */}
-      {isBrushTool && mousePos.visible && (
-        <div
-          className="assembly-3d-brush-cursor"
-          style={{
-            left: mousePos.x,
-            top: mousePos.y,
-            width: brushSettings.radius * 2,
-            height: brushSettings.radius * 2
-          }}
-        />
-      )}
+      {/* Brush Circle Cursor Overlay: 120fps hardware accelerated via direct DOM transform, 0 React re-renders */}
+      <div
+        ref={brushCursorRef}
+        className="assembly-3d-brush-cursor"
+        style={{
+          display: 'none',
+          width: brushSettings.radius * 2,
+          height: brushSettings.radius * 2
+        }}
+      />
 
       {showGizmo && (
         <AssemblyGizmo
