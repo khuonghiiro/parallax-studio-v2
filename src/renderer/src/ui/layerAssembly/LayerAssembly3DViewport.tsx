@@ -346,10 +346,11 @@ export function LayerAssembly3DViewport({
           }
         : layer
 
-      // Thiết lập renderOrder để Three.js vẽ đúng thứ tự
-      inst.mesh.renderOrder = idx
+      // Đặt renderOrder = 0 để Three.js sắp xếp theo khoảng cách chiều sâu 3D (camera distance)
+      // và Z-buffer, thay vì bị ép cứng theo thứ tự mảng idx làm sai lệch layer trước/sau
+      inst.mesh.renderOrder = 0
 
-      updateLayer3DInstance(inst, visualLayer, time, zExaggeration, layer.id === selectedLayerId)
+      updateLayer3DInstance(inst, visualLayer, time, zExaggeration, layer.id === selectedLayerId, idx)
     })
   }, [composite.layers, time, zExaggeration, selectedLayerId, requestRender])
 

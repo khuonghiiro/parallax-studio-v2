@@ -70,14 +70,59 @@ describe('layerAssembly3DMesh', () => {
     expect(inst.group).toBeDefined()
     expect(inst.mesh.userData.layerId).toBe('test-layer-1')
 
-    // Update with zExaggeration = 2
+    // Update with zExaggeration = 2 and default layerIndex = 0
     updateLayer3DInstance(inst, layer, 0, 2.0, true)
 
     expect(inst.group.position.x).toBe(50)
     expect(inst.group.position.y).toBe(-100) // Three.js Y is inverted
-    expect(inst.group.position.z).toBe(-60) // -30 * 2.0
+    expect(inst.group.position.z).toBe(-60) // -30 * 2.0 + 0 * 0.05
     expect(inst.outline.visible).toBe(true)
     expect(inst.anchorDot.visible).toBe(true)
     expect(inst.material.opacity).toBe(0.8)
+    expect(inst.material.depthWrite).toBe(false) // opacity 0.8 < 0.95 -> false
+  })
+
+  it('correctly configures material depthWrite, alphaTest and coplanar micro-offset', () => {
+    const potLayer: AssembledLayerItem = {
+      id: 'bonsai-pot',
+      name: 'Chậu Bonsai',
+      x: 0,
+      y: 155,
+      z: -5,
+      scale: 1.0,
+      rotation: 0,
+      opacity: 1.0,
+      motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }
+    }
+    const trunkLayer: AssembledLayerItem = {
+      id: 'bonsai-trunk',
+      name: 'Thân Bonsai',
+      x: 0,
+      y: 10,
+      z: 0,
+      scale: 1.0,
+      rotation: 0,
+      opacity: 1.0,
+      motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }
+    }
+
+    const potInst = createLayer3DInstance(potLayer, null, () => {})
+    const trunkInst = createLayer3DInstance(trunkLayer, null, () => {})
+
+    expect(potInst.material.depthWrite).toBe(true)
+    expect(potInst.material.alphaTest).toBe(0.05)
+    expect(trunkInst.material.depthWrite).toBe(true)
+
+    // Update with exaggeration = 1.8 and their respective indices (pot = 0, trunk = 1)
+    updateLayer3DInstance(potInst, potLayer, 0, 1.8, false, 0)
+    updateLayer3DInstance(trunkInst, trunkLayer, 0, 1.8, false, 1)
+
+    // Pot is at z = -5, trunk is at z = 0
+    // In Three.js: pot posZ = -(-5) * 1.8 + 0 * 0.05 = 9.0
+    // trunk posZ = -(0) * 1.8 + 1 * 0.05 = 0.05
+    // Pot must be positioned closer to camera (+Z) than trunk!
+    expect(potInst.group.position.z).toBeCloseTo(9.0)
+    expect(trunkInst.group.position.z).toBeCloseTo(0.05)
+    expect(potInst.group.position.z).toBeGreaterThan(trunkInst.group.position.z)
   })
 })

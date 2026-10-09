@@ -237,7 +237,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
   }
 ]
 
-const SEED_VERSION = 'v4_bonsai_center'
+const SEED_VERSION = 'v5_bonsai_zorder'
 const SEED_KEY = 'pxs.layerComposites.seeded_version'
 
 export function getStoredComposites(): LayerComposite[] {

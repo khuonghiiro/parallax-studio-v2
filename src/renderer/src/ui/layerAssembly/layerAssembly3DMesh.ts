@@ -103,11 +103,23 @@ export function createAnchorDot(): THREE.Mesh {
 }
 
 /**
+ * Lấy kích thước ảnh từ Three.Texture an toàn với type checking
+ */
+function getTextureDimensions(texture: THREE.Texture | null): { width: number; height: number } | null {
+  const img = texture?.image as { width?: number; height?: number } | undefined
+  if (img && typeof img.width === 'number' && typeof img.height === 'number' && img.width > 0 && img.height > 0) {
+    return { width: img.width, height: img.height }
+  }
+  return null
+}
+
+/**
  * Tính toán kích thước w, h vừa vặn bảo toàn tỉ lệ ảnh (Aspect Ratio)
  */
 function computePlaneDimensions(texture: THREE.Texture | null, maxDim = 380): { w: number; h: number } {
-  if (texture && texture.image && texture.image.width && texture.image.height) {
-    const aspect = texture.image.width / texture.image.height
+  const dim = getTextureDimensions(texture)
+  if (dim) {
+    const aspect = dim.width / dim.height
     if (aspect >= 1) {
       return { w: maxDim, h: Math.round(maxDim / aspect) }
     }
@@ -129,7 +141,7 @@ export function createLayer3DInstance(
 
   const texture = textureUrl
     ? getOrCreateLayerTexture(textureUrl, () => {
-        if (texture && texture.image && texture.image.width && texture.image.height) {
+        if (getTextureDimensions(texture)) {
           const { w, h } = computePlaneDimensions(texture)
           mesh.geometry.dispose()
           mesh.geometry = new THREE.PlaneGeometry(w, h)
@@ -143,14 +155,15 @@ export function createLayer3DInstance(
   const { w, h } = computePlaneDimensions(texture)
   const geom = new THREE.PlaneGeometry(w, h)
 
+  const opacity = Math.max(0, Math.min(1, layer.opacity ?? 1))
   const material = new THREE.MeshBasicMaterial({
     map: texture,
     color: texture ? 0xffffff : 0x4a5568,
     transparent: true,
-    alphaTest: 0.01,
+    alphaTest: 0.05,
     side: THREE.DoubleSide,
-    opacity: layer.opacity,
-    depthWrite: false
+    opacity,
+    depthWrite: opacity >= 0.95
   })
 
   const mesh = new THREE.Mesh(geom, material)
@@ -198,7 +211,7 @@ export function updateLayerInstanceTexture(
   }
 
   const texture = getOrCreateLayerTexture(textureUrl, () => {
-    if (texture && texture.image && texture.image.width && texture.image.height) {
+    if (getTextureDimensions(texture)) {
       const { w, h } = computePlaneDimensions(texture)
       inst.mesh.geometry.dispose()
       inst.mesh.geometry = new THREE.PlaneGeometry(w, h)
@@ -215,7 +228,7 @@ export function updateLayerInstanceTexture(
     inst.material.map = texture
     inst.material.color.setHex(0xffffff)
     inst.material.needsUpdate = true
-    if (texture.image && texture.image.width && texture.image.height) {
+    if (getTextureDimensions(texture)) {
       const { w, h } = computePlaneDimensions(texture)
       inst.mesh.geometry.dispose()
       inst.mesh.geometry = new THREE.PlaneGeometry(w, h)
@@ -234,7 +247,8 @@ export function updateLayer3DInstance(
   layer: AssembledLayerItem,
   time: number,
   zExaggeration: number,
-  isSelected: boolean
+  isSelected: boolean,
+  layerIndex = 0
 ): void {
   const { group, mesh, material, outline, anchorDot } = inst
 
@@ -263,10 +277,10 @@ export function updateLayer3DInstance(
   // 3. Tọa độ Three.js:
   // - X: ngang (layer.x)
   // - Y: dọc (-layer.y, đảo dấu vì màn hình Y hướng xuống)
-  // - Z: chiều sâu (-layer.z * zExaggeration)
+  // - Z: chiều sâu (-layer.z * zExaggeration + micro-offset layerIndex để triệt tiêu Z-fighting khi trùng Z)
   const posX = layer.x + motion.animTranslateX
   const posY = -layer.y + motion.animTranslateY
-  const posZ = -layer.z * zExaggeration
+  const posZ = -layer.z * zExaggeration + layerIndex * 0.05
 
   // Group được định vị chính xác tại tâm của layer trong không gian 3D
   group.position.set(posX, posY, posZ)
@@ -301,7 +315,9 @@ export function updateLayer3DInstance(
   anchorDot.position.set(ax, ay, 2)
 
   // 5. Thuộc tính hiển thị
-  material.opacity = layer.opacity
+  const op = Math.max(0, Math.min(1, layer.opacity ?? 1))
+  material.opacity = op
+  material.depthWrite = op >= 0.95
   group.visible = !layer.hidden
 
   // 6. Highlight khi được chọn
