@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   IconCube,
   IconEye,
@@ -131,6 +131,37 @@ export function LayerAssembly3DToolbar({
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null)
   const [isAnglesOpen, setIsAnglesOpen] = useState(false)
   const [isDepthOpen, setIsDepthOpen] = useState(false)
+
+  const anglesRef = useRef<HTMLDivElement>(null)
+  const depthRef = useRef<HTMLDivElement>(null)
+
+  // Đóng popover an toàn khi click ra ngoài hoặc bấm phím Escape
+  useEffect(() => {
+    if (!isAnglesOpen && !isDepthOpen) return
+
+    const handlePointerDown = (e: PointerEvent): void => {
+      if (anglesRef.current && !anglesRef.current.contains(e.target as Node)) {
+        setIsAnglesOpen(false)
+      }
+      if (depthRef.current && !depthRef.current.contains(e.target as Node)) {
+        setIsDepthOpen(false)
+      }
+    }
+
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        setIsAnglesOpen(false)
+        setIsDepthOpen(false)
+      }
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isAnglesOpen, isDepthOpen])
 
   const showTooltip = (e: React.MouseEvent<HTMLElement>, key: string) => {
     if (isAnglesOpen || isDepthOpen) return
@@ -343,7 +374,7 @@ export function LayerAssembly3DToolbar({
         </button>
 
         {/* Nút Góc xoay nhanh */}
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative' }} ref={anglesRef}>
           <button
             type="button"
             className={`layer-3d-dock-btn${isAnglesOpen ? ' active' : ''}`}
@@ -352,7 +383,9 @@ export function LayerAssembly3DToolbar({
               setIsDepthOpen(false)
               hideTooltip()
             }}
-            onMouseEnter={(e) => showTooltip(e, 'angle')}
+            onMouseEnter={(e) => {
+              if (!isAnglesOpen) showTooltip(e, 'angle')
+            }}
             onMouseLeave={hideTooltip}
             aria-label="Góc xoay camera cố định"
           >
@@ -363,7 +396,6 @@ export function LayerAssembly3DToolbar({
             <div
               className="layer-workshop-popover-menu"
               style={{ position: 'absolute', left: 'calc(100% + 8px)', top: '-4px', minWidth: '155px' }}
-              onMouseLeave={() => setIsAnglesOpen(false)}
             >
               <div style={{ fontSize: '10px', color: 'var(--text-faint)', padding: '2px 8px', fontWeight: 600 }}>
                 GÓC XOAY CAMERA
@@ -499,7 +531,7 @@ export function LayerAssembly3DToolbar({
         </button>
 
         {/* Nút Độ sâu Z & Khoảng cách Camera */}
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative' }} ref={depthRef}>
           <button
             type="button"
             className={`layer-3d-dock-btn${isDepthOpen ? ' active' : ''}`}
@@ -508,7 +540,9 @@ export function LayerAssembly3DToolbar({
               setIsAnglesOpen(false)
               hideTooltip()
             }}
-            onMouseEnter={(e) => showTooltip(e, 'depth')}
+            onMouseEnter={(e) => {
+              if (!isDepthOpen) showTooltip(e, 'depth')
+            }}
             onMouseLeave={hideTooltip}
             aria-label="Khoảng cách & Độ sâu 3D"
           >
@@ -521,14 +555,14 @@ export function LayerAssembly3DToolbar({
               style={{
                 position: 'absolute',
                 left: 'calc(100% + 8px)',
-                bottom: '-20px',
-                minWidth: '220px',
-                padding: '10px 12px',
-                gap: '8px'
+                top: 'auto',
+                bottom: '-8px',
+                minWidth: '240px',
+                padding: '12px 14px',
+                gap: '10px'
               }}
-              onMouseLeave={() => setIsDepthOpen(false)}
             >
-              <div style={{ fontSize: '10px', color: 'var(--text-faint)', fontWeight: 700, letterSpacing: '0.5px' }}>
+              <div style={{ fontSize: '10.5px', color: 'var(--text-faint)', fontWeight: 700, letterSpacing: '0.5px' }}>
                 KHOẢNG CÁCH & ĐỘ SÂU 3D
               </div>
 
@@ -569,6 +603,34 @@ export function LayerAssembly3DToolbar({
                   <span>1.0x (Chuẩn)</span>
                   <span>5.0x (Sâu)</span>
                 </div>
+              </div>
+
+              {/* Nút tác vụ nhanh */}
+              <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
+                <button
+                  type="button"
+                  className="btn xs"
+                  style={{ flex: 1, padding: '3px 8px' }}
+                  onClick={() => {
+                    onFitFramingDistance()
+                    setIsDepthOpen(false)
+                  }}
+                  title="Căn chỉnh khoảng cách camera vừa khít mô hình"
+                >
+                  📐 Vừa vặn
+                </button>
+                <button
+                  type="button"
+                  className="btn xs"
+                  style={{ flex: 1, padding: '3px 8px' }}
+                  onClick={() => {
+                    onChangeZExaggeration(1.8)
+                    onChangeCamDistance(1200)
+                  }}
+                  title="Đặt lại khoảng cách và giãn Z về mặc định 1.8x"
+                >
+                  Mặc định
+                </button>
               </div>
             </div>
           )}
