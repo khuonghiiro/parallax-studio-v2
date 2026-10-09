@@ -561,5 +561,29 @@ export const IconLink = (p: P) => (
   </svg>
 )
 
+export const IconUnlock = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="5" y="11" width="14" height="10" rx="2" />
+    <path d="M8 11V7a4 4 0 0 1 7.8-1.2" />
+  </svg>
+)
+
+export const IconLayersStack = (p: P) => (
+  <svg {...base(p)}>
+    <polygon points="12 2 2 7 12 12 22 7 12 2" />
+    <polyline points="2 17 12 22 22 17" />
+    <polyline points="2 12 12 17 22 12" />
+  </svg>
+)
+
+export const IconAnchor = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="5" r="3" />
+    <line x1="12" y1="8" x2="12" y2="21" />
+    <path d="M5 12H2a10 10 0 0 0 20 0h-3" />
+  </svg>
+)
+
+
 
 

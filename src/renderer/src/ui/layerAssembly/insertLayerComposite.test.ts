@@ -91,5 +91,19 @@ describe('Insert Layer Composite To Scene', () => {
     expect(layer1.motion?.speed).toBe(1)
     expect(layer1.motion?.amplitude).toEqual([10, 10, 0])
     expect(layer1.transform.position.value).toEqual([100, 200 - 50 * 1.5, 50 + 20 * 1.5])
+
+    // Kiểm tra thông tin cụm composite được gán chuẩn xác
+    expect(layer1.composite).toBeDefined()
+    expect(layer1.composite?.compositeId).toBe('comp-tree-test')
+    expect(layer1.composite?.compositeName).toBe('Cây Test')
+    expect(layer1.composite?.isRoot).toBe(true)
+    expect(layer1.composite?.lockedGroup).toBe(true)
+
+    const layer2 = project.layers[1]
+    expect(layer2.composite).toBeDefined()
+    expect(layer2.composite?.instanceId).toBe(layer1.composite?.instanceId)
+    expect(layer2.composite?.isRoot).toBe(false)
+    expect(layer2.composite?.lockedGroup).toBe(true)
   })
 })
+

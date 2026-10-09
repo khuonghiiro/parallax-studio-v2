@@ -66,7 +66,7 @@ export function startGizmoDrag(
   const point = (ev: { clientX: number; clientY: number }): Point => [ev.clientX - bounds.left, ev.clientY - bounds.top]
   const startPt = point(e)
 
-  const isModel3D = !!el.layer.model3d && !!modelLayers && modelLayers.length > 0
+  const isGroup = (!!el.layer.model3d || !!(el.layer.composite?.lockedGroup)) && !!modelLayers && modelLayers.length > 0
   let modelPivot = new THREE.Vector3()
   let modelCenter: Point = [0, 0]
   let startDist = 1
@@ -84,7 +84,7 @@ export function startGizmoDrag(
   let previousAngle: number | null = null
   let edgeOnRotation = false
 
-  if (isModel3D) {
+  if (isGroup) {
     const mb = new THREE.Box3()
     for (const ml of modelLayers) {
       if (!ml.bounds.isEmpty()) mb.union(ml.bounds)
@@ -102,7 +102,11 @@ export function startGizmoDrag(
         startScale: [...evaluate(l.transform.scale, time)] as Vec3,
         globalScale: l.model3d?.globalScale ?? (evaluate(l.transform.scale, time)[0] || 1.0),
         baseSize: l.model3d?.baseSize,
-        centerPosition: (l.model3d?.centerPosition ? [...l.model3d.centerPosition] : [modelPivot.x, modelPivot.y, -modelPivot.z]) as Vec3
+        centerPosition: (l.model3d?.centerPosition
+          ? [...l.model3d.centerPosition]
+          : l.composite?.centerPosition
+            ? [...l.composite.centerPosition]
+            : [modelPivot.x, modelPivot.y, -modelPivot.z]) as Vec3
       }
     })
     if (handle.kind === 'rotate') {
@@ -111,7 +115,7 @@ export function startGizmoDrag(
     }
   }
 
-  const solver = !isModel3D ? dragSolver(frame, el, parent, handle, startPt, time) : null
+  const solver = !isGroup ? dragSolver(frame, el, parent, handle, startPt, time) : null
   const key = `gizmo-${nanoid(8)}`
   const pointerId = e.pointerId
   let changed = false
@@ -150,6 +154,9 @@ export function startGizmoDrag(
           setValueAt(l.transform.position, time, nextPos, frameTolerance(draft))
           if (l.model3d) {
             l.model3d.centerPosition = [init.centerPosition[0] + deltaVec[0], init.centerPosition[1] + deltaVec[1], init.centerPosition[2] + deltaVec[2]]
+          }
+          if (l.composite) {
+            l.composite.centerPosition = [init.centerPosition[0] + deltaVec[0], init.centerPosition[1] + deltaVec[1], init.centerPosition[2] + deltaVec[2]]
           }
         }
       }, key)
@@ -232,7 +239,7 @@ export function startGizmoDrag(
     if (Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) < 2 && !changed) return
     const curPt = point(ev)
     if (changed) useEditor.setState({ lastMerge: { key, at: performance.now() } })
-    if (isModel3D) {
+    if (isGroup) {
       moveModel(curPt, ev.shiftKey)
     } else {
       const next = solver?.solve(curPt, ev.shiftKey)

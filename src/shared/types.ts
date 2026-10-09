@@ -184,6 +184,26 @@ export interface LayerModel3DRef {
   mesh?: ImageMeshDefinition
 }
 
+export interface LayerCompositeRef {
+  /** Unique ID for this composite instance in the shot */
+  instanceId: string
+  /** Composite template or preset ID */
+  compositeId: string
+  /** Composite display name (e.g. 'Cây Sồi Đung Đưa 3 Lớp') */
+  compositeName: string
+  /** True if this layer acts as the positioning anchor / root of the composite */
+  isRoot?: boolean
+  /**
+   * If true, moving or transforming this layer moves/transforms all layers in the composite together.
+   * If false, this layer can be moved, animated, or replaced individually.
+   */
+  lockedGroup: boolean
+  /** Shot-space center position of the composite group */
+  centerPosition?: Vec3
+  /** Offset relative to the root layer */
+  rootOffset?: Vec3
+}
+
 interface LayerBase<T extends LayerType, P> {
   id: string
   name: string
@@ -208,6 +228,8 @@ interface LayerBase<T extends LayerType, P> {
   shotId: string | null
   /** 3D model assembly reference if this layer is part of an assembled 3D model. */
   model3d?: LayerModel3DRef
+  /** Layer composite reference if this layer is part of an assembled multi-layer composite. */
+  composite?: LayerCompositeRef
   /** Deformable organic mesh definition (curves, bends, tapers, lattices, sculpts) */
   mesh?: ImageMeshDefinition
   transform: Transform

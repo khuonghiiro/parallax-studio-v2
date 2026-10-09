@@ -81,14 +81,24 @@ export function useViewerDrag({
     const ev = evaluateScene(s.project, s.time)
     const el = ev.layers.find((l) => l.layer.id === id)
     if (!el || el.layer.locked) return
-    const instanceId = el.layer.model3d?.instanceId
-    const related = instanceId
-      ? ev.layers.filter((l) => l.layer.model3d?.instanceId === instanceId)
-      : [el]
+    const compRef = el.layer.composite
+    const isCompLocked = !!compRef?.lockedGroup
+    const modelInstanceId = el.layer.model3d?.instanceId
+    const compInstanceId = isCompLocked ? compRef?.instanceId : undefined
+
+    const related = modelInstanceId
+      ? ev.layers.filter((l) => l.layer.model3d?.instanceId === modelInstanceId)
+      : compInstanceId
+        ? ev.layers.filter((l) => l.layer.composite?.instanceId === compInstanceId)
+        : [el]
     const initialLayers = related.map((l) => ({
       id: l.layer.id,
       start: [...l.position] as Vec3,
-      center: l.layer.model3d?.centerPosition ? [...l.layer.model3d.centerPosition] as Vec3 : undefined
+      center: l.layer.model3d?.centerPosition
+        ? [...l.layer.model3d.centerPosition] as Vec3
+        : l.layer.composite?.centerPosition
+          ? [...l.layer.composite.centerPosition] as Vec3
+          : undefined
     }))
 
     const p0 = new THREE.Vector3().setFromMatrixPosition(el.world)
@@ -133,6 +143,13 @@ export function useViewerDrag({
           setValueAt(l.transform.position, st.time, next, frameTolerance(st.project))
           if (l.model3d && init.center) {
             l.model3d.centerPosition = [
+              init.center[0] + delta[0],
+              init.center[1] + delta[1],
+              init.center[2] + delta[2]
+            ]
+          }
+          if (l.composite && init.center) {
+            l.composite.centerPosition = [
               init.center[0] + delta[0],
               init.center[1] + delta[1],
               init.center[2] + delta[2]

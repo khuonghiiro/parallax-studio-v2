@@ -544,9 +544,13 @@ export function deleteSelectedLayer(): void {
   if (!selectedLayerId) return
   const curLayer = project.layers.find((l) => l.id === selectedLayerId)
   const instanceId = curLayer?.model3d?.instanceId
+  const compInstanceId = curLayer?.composite?.lockedGroup ? curLayer?.composite?.instanceId : undefined
+
   editor().update((d) => {
     if (instanceId) {
       d.layers = d.layers.filter((l) => l.model3d?.instanceId !== instanceId)
+    } else if (compInstanceId) {
+      d.layers = d.layers.filter((l) => l.composite?.instanceId !== compInstanceId)
     } else {
       d.layers = d.layers.filter((l) => l.id !== selectedLayerId)
     }
@@ -560,6 +564,8 @@ export function duplicateSelectedLayer(): void {
   if (idx < 0) return
   const curLayer = project.layers[idx]
   const instanceId = curLayer.model3d?.instanceId
+  const compInstanceId = curLayer.composite?.lockedGroup ? curLayer.composite?.instanceId : undefined
+
   if (instanceId) {
     const newInstanceId = nanoid(8)
     const related = project.layers.filter((l) => l.model3d?.instanceId === instanceId)
@@ -570,6 +576,33 @@ export function duplicateSelectedLayer(): void {
           ...c.model3d,
           instanceId: newInstanceId,
           centerPosition: c.model3d.centerPosition ? [c.model3d.centerPosition[0] + 50, c.model3d.centerPosition[1] + 50, c.model3d.centerPosition[2]] : undefined
+        }
+        if (Array.isArray(c.transform.position.value)) {
+          c.transform.position.value = [
+            c.transform.position.value[0] + 50,
+            c.transform.position.value[1] + 50,
+            c.transform.position.value[2]
+          ]
+        }
+      }
+      return c
+    })
+    editor().update((d) => {
+      d.layers.splice(idx, 0, ...clones)
+    })
+    if (clones.length > 0) editor().selectLayer(clones[0].id)
+  } else if (compInstanceId) {
+    const newInstanceId = 'comp-inst-' + nanoid(8)
+    const related = project.layers.filter((l) => l.composite?.instanceId === compInstanceId)
+    const clones: Layer[] = related.map((l) => {
+      const c = duplicateLayer(l)
+      if (c.composite) {
+        c.composite = {
+          ...c.composite,
+          instanceId: newInstanceId,
+          centerPosition: c.composite.centerPosition
+            ? [c.composite.centerPosition[0] + 50, c.composite.centerPosition[1] + 50, c.composite.centerPosition[2]]
+            : undefined
         }
         if (Array.isArray(c.transform.position.value)) {
           c.transform.position.value = [

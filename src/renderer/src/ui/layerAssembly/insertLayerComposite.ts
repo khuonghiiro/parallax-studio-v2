@@ -33,9 +33,12 @@ export async function insertLayerCompositeToScene({
   const layersToAdd: ImageLayer[] = []
   const projectAssets = state.project.assets
 
+  const instanceId = 'comp-inst-' + nanoid(8)
+  const activeItems = composite.layers.filter((item) => !item.hidden)
+
   // Duyệt qua các layer theo thứ tự từ sau ra trước (hoặc ngược lại)
-  for (const item of composite.layers) {
-    if (item.hidden) continue
+  for (let idx = 0; idx < activeItems.length; idx++) {
+    const item = activeItems[idx]
 
     // Tìm asset trong project nếu có
     let asset: AssetMeta | undefined = projectAssets.find(
@@ -64,6 +67,17 @@ export async function insertLayerCompositeToScene({
     newLayer.transform.scale.value = [item.scale * globalScale, item.scale * globalScale, 1]
     newLayer.transform.rotation.value = [item.rotationX || 0, item.rotationY || 0, item.rotation || 0]
     newLayer.transform.opacity.value = item.opacity
+
+    // Gắn thông tin liên kết cụm composite (hỗ trợ khóa cụm, di chuyển đồng bộ, đổi layer con)
+    newLayer.composite = {
+      instanceId,
+      compositeId: composite.id,
+      compositeName: composite.name,
+      isRoot: idx === 0,
+      lockedGroup: true,
+      centerPosition: [positionOffset[0], positionOffset[1], positionOffset[2]],
+      rootOffset: [item.x * globalScale, -item.y * globalScale, item.z * globalScale]
+    }
 
     // Gắn thông số hoạt ảnh lắc lư/đung đưa (motion) chuẩn 2.5D
     if (item.motion && item.motion.type !== 'none') {

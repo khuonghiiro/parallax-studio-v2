@@ -26,39 +26,49 @@ export function LayerGizmo({ controller }: { controller: React.RefObject<GizmoCo
   }, [controller])
   if (!el || !el.active || el.layer.locked || playing) return null
   const parent = parentMatrix(el, scene)
-  const instanceId = el.layer.model3d?.instanceId
-  const modelLayers = instanceId
-    ? scene.layers.filter((l) => l.layer.model3d?.instanceId === instanceId)
-    : [el]
+  const isModel3D = !!el.layer.model3d
+  const compRef = el.layer.composite
+  const isCompLocked = !!compRef?.lockedGroup
+  const modelInstanceId = el.layer.model3d?.instanceId
+  const compInstanceId = isCompLocked ? compRef?.instanceId : undefined
+
+  const groupLayers = modelInstanceId
+    ? scene.layers.filter((l) => l.layer.model3d?.instanceId === modelInstanceId)
+    : compInstanceId
+      ? scene.layers.filter((l) => l.layer.composite?.instanceId === compInstanceId)
+      : [el]
 
   function begin(e: React.PointerEvent, frame: GizmoFrame, handle: GizmoHandle): void {
     if (e.button !== 0 || !el) return
     e.preventDefault()
     e.stopPropagation()
     cleanup.current?.()
-    cleanup.current = startGizmoDrag(e, frame, el, parent, handle, modelLayers)
+    cleanup.current = startGizmoDrag(e, frame, el, parent, handle, groupLayers)
   }
-  return <>{frames.map((frame) => <GizmoPane key={frame.key} frame={frame} el={el} parent={parent} time={time} begin={begin} modelLayers={modelLayers} />)}</>
+  return <>{frames.map((frame) => <GizmoPane key={frame.key} frame={frame} el={el} parent={parent} time={time} begin={begin} groupLayers={groupLayers} />)}</>
 }
 
-function GizmoPane({ frame, el, parent, time, begin, modelLayers }: {
+function GizmoPane({ frame, el, parent, time, begin, groupLayers }: {
   frame: GizmoFrame; el: EvaluatedLayer; parent: THREE.Matrix4; time: number
   begin: (e: React.PointerEvent, frame: GizmoFrame, handle: GizmoHandle) => void
-  modelLayers: EvaluatedLayer[]
+  groupLayers: EvaluatedLayer[]
 }) {
   const { camera, rect } = frame
   const isModel3D = !!el.layer.model3d
+  const compRef = el.layer.composite
+  const isCompLocked = !!compRef?.lockedGroup
+  const isGroup = isModel3D || isCompLocked
 
   let pivot: THREE.Vector3
-  let modelBounds: THREE.Box3 | null = null
+  let groupBounds: THREE.Box3 | null = null
 
-  if (isModel3D) {
-    modelBounds = new THREE.Box3()
-    for (const ml of modelLayers) {
-      if (!ml.bounds.isEmpty()) modelBounds.union(ml.bounds)
+  if (isGroup) {
+    groupBounds = new THREE.Box3()
+    for (const gl of groupLayers) {
+      if (!gl.bounds.isEmpty()) groupBounds.union(gl.bounds)
     }
-    if (modelBounds.isEmpty()) modelBounds.copy(el.bounds)
-    pivot = modelBounds.getCenter(new THREE.Vector3())
+    if (groupBounds.isEmpty()) groupBounds.copy(el.bounds)
+    pivot = groupBounds.getCenter(new THREE.Vector3())
   } else {
     const anchor = el.layer.transform.anchor ? evaluate(el.layer.transform.anchor, time) : [0, 0, 0] as Vec3
     pivot = layerPivot(el, anchor)
@@ -73,8 +83,8 @@ function GizmoPane({ frame, el, parent, time, begin, modelLayers }: {
   let handles: Point[]
   let boxPoints: string
 
-  if (isModel3D && modelBounds) {
-    const b = modelBounds
+  if (isGroup && groupBounds) {
+    const b = groupBounds
     const corners3D = [
       new THREE.Vector3(b.min.x, b.min.y, b.min.z),
       new THREE.Vector3(b.max.x, b.min.y, b.min.z),
@@ -117,15 +127,15 @@ function GizmoPane({ frame, el, parent, time, begin, modelLayers }: {
   const pixel = project(unit)
   const radius = 48 / Math.max(0.001, Math.hypot(pixel[0] - center[0], pixel[1] - center[1]))
   const rotation = evaluate(el.layer.transform.rotation, time)
-  const position = isModel3D ? [pivot.x, pivot.y, -pivot.z] as Vec3 : evaluate(el.layer.transform.position, time)
+  const position = isGroup ? [pivot.x, pivot.y, -pivot.z] as Vec3 : evaluate(el.layer.transform.position, time)
   return <svg className="layer-gizmo" aria-label="Layer transform controls" style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h }}>
     <polygon className="gizmo-box" points={boxPoints} />
     {handles.map(([x, y], i) => <rect key={i} className="gizmo-scale" x={x - 4} y={y - 4} width={8} height={8}
       onPointerDown={(e) => begin(e, frame, { kind: 'scale', handle: BOX_HANDLES[i] })}>
-      <title>{isModel3D ? 'Co giãn Model 3D · Shift: giữ tỷ lệ · Esc: hủy' : 'Kéo giãn ảnh · Shift: giữ tỷ lệ · Esc: hủy'}</title>
+      <title>{isModel3D ? 'Co giãn Model 3D · Shift: giữ tỷ lệ · Esc: hủy' : isCompLocked ? 'Co giãn Cụm Layer · Shift: giữ tỷ lệ · Esc: hủy' : 'Kéo giãn ảnh · Shift: giữ tỷ lệ · Esc: hủy'}</title>
     </rect>)}
     {[0, 1, 2].map((axis) => {
-      const basis = isModel3D ? parent : rotationBasis(rotation, axis, parent)
+      const basis = isGroup ? parent : rotationBasis(rotation, axis, parent)
       const points = Array.from({ length: 65 }, (_, i) => project(ringPoint(axis, i / 64 * Math.PI * 2).transformDirection(basis).multiplyScalar(radius).add(pivot)))
       const direction = new THREE.Vector3(axis === 0 ? 1 : 0, axis === 1 ? 1 : 0, axis === 2 ? -1 : 0).transformDirection(parent)
       const end = project(direction.multiplyScalar(radius * 1.6).add(pivot))
@@ -192,8 +202,10 @@ function GizmoPane({ frame, el, parent, time, begin, modelLayers }: {
     <circle className="gizmo-pivot" cx={center[0]} cy={center[1]} r={5} />
     <text className="gizmo-readout" x={center[0] + 12} y={center[1] + 100}>
       {isModel3D
-        ? `Model 3D [${el.layer.model3d?.modelName || 'Khối 3D'}] · ${modelLayers.length} mặt`
-        : `P ${position.map((v) => v.toFixed(0)).join(' / ')} · R ${rotation.map((v) => `${v.toFixed(1)}°`).join(' / ')}`}
+        ? `Model 3D [${el.layer.model3d?.modelName || 'Khối 3D'}] · ${groupLayers.length} mặt`
+        : isCompLocked
+          ? `Cụm [${compRef?.compositeName || 'Layer'}] · 🔒 Khóa nhóm · ${groupLayers.length} lớp`
+          : `P ${position.map((v) => v.toFixed(0)).join(' / ')} · R ${rotation.map((v) => `${v.toFixed(1)}°`).join(' / ')}`}
     </text>
   </svg>
 }

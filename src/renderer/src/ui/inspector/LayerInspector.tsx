@@ -13,6 +13,7 @@ import { GlowSection } from './sections/GlowSection'
 import { LayerEffectsSection } from './sections/LayerEffectsSection'
 import { ParticleSection } from './sections/ParticleSection'
 import { Model3DSection } from './sections/Model3DSection'
+import { LayerCompositeSection } from './sections/LayerCompositeSection'
 
 export function LayerInspector({ layer }: { layer: Layer }) {
   const set = useLayerUpdater(layer.id)
@@ -229,6 +230,9 @@ export function LayerInspector({ layer }: { layer: Layer }) {
           Z dương = xa camera{layer.shotId ? ' (toạ độ tương đối với cảnh)' : ''}. Kéo nhãn X/Y/Z để scrub (Shift ×10, Alt ×0.1).
         </p>
       </div>
+
+      {layer.composite && <LayerCompositeSection layer={layer} />}
+      {layer.model3d && <Model3DSection layer={layer} />}
 
       <LayerEffectsSection layer={layer} set={set} />
 
