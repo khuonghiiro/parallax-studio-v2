@@ -342,7 +342,7 @@ export function LayerAssemblyDialog({
               <div className="layer-workshop-split-container">
                 <div className="layer-workshop-split-pane left-pane">
                   <div className="pane-header-tab">
-                    <span className="pane-title"><IconImage width={12} height={12} /> Mặt phẳng 2D</span>
+                    <span className="pane-title"><IconImage width={12} height={12} /> Góc nhìn chính diện (Camera / 2D)</span>
                     <span style={{ fontSize: '10.5px', color: 'var(--text-faint)' }}>{composite.width} × {composite.height} px</span>
                   </div>
                   <LayerAssemblyViewport

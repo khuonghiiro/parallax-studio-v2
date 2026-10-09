@@ -32,6 +32,7 @@ export function LayerAssemblyViewport({
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState(false)
   const [isDraggingLayer, setIsDraggingLayer] = useState(false)
+  const [show3DPerspective, setShow3DPerspective] = useState(true)
   const dragStartRef = useRef({ mouseX: 0, mouseY: 0, initLayerX: 0, initLayerY: 0, initPanX: 0, initPanY: 0 })
 
   // Tự động căn giữa và co dãn vừa vặn (Fit to screen) khung vẽ 2D
@@ -183,7 +184,10 @@ export function LayerAssemblyViewport({
           backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px',
           border: '1.5px solid var(--line-focus)',
           boxShadow: '0 12px 48px rgba(0, 0, 0, 0.45)',
-          overflow: 'visible'
+          overflow: 'visible',
+          perspective: show3DPerspective ? '1400px' : 'none',
+          perspectiveOrigin: '50% 50%',
+          transformStyle: 'preserve-3d'
         }}
       >
         {/* Canvas Center Reference Crosshairs */}
@@ -221,6 +225,7 @@ export function LayerAssemblyViewport({
               layer={layer}
               isSelected={isSelected}
               time={time}
+              show3DPerspective={show3DPerspective}
               onPointerDown={(e) => handleStartDragLayer(e, layer)}
             />
           )
@@ -285,6 +290,18 @@ export function LayerAssemblyViewport({
         >
           Căn giữa
         </button>
+        <button
+          type="button"
+          className={`btn xs${show3DPerspective ? ' active' : ''}`}
+          onClick={() => setShow3DPerspective((v) => !v)}
+          title={
+            show3DPerspective
+              ? 'Đang bật phối cảnh 3D (hiển thị nghiêng sâu và xoay chéo). Bấm để chuyển về phẳng 2D'
+              : 'Đang xem phẳng 2D. Bấm để bật phối cảnh & hướng xoay 3D'
+          }
+        >
+          {show3DPerspective ? '📐 3D' : '🖼 2D'}
+        </button>
       </div>
 
       {/* Floating 2D Hint */}
@@ -325,6 +342,7 @@ interface AssembledLayerItemViewProps {
   layer: AssembledLayerItem
   isSelected: boolean
   time: number
+  show3DPerspective?: boolean
   onPointerDown: (e: React.PointerEvent) => void
 }
 
@@ -332,6 +350,7 @@ function AssembledLayerItemView({
   layer,
   isSelected,
   time,
+  show3DPerspective = true,
   onPointerDown
 }: AssembledLayerItemViewProps) {
   const imageUrl = useLayerAssetImage(layer.assetPath, layer.imageUrl)
@@ -374,16 +393,26 @@ function AssembledLayerItemView({
             ? '100% 50%'
             : '50% 50%'
 
+  const rotX = layer.rotationX || 0
+  const rotY = layer.rotationY || 0
+  const rotZ = layer.rotation || 0
+
+  const layerTransform = show3DPerspective
+    ? `rotateY(${-rotY}deg) rotateX(${rotX}deg) rotateZ(${rotZ + animRotate}deg) scale(${layer.scale * animScaleX}, ${layer.scale * animScaleY})`
+    : `rotate(${rotZ + animRotate}deg) scale(${layer.scale * animScaleX}, ${layer.scale * animScaleY})`
+
+  const depthTranslateZ = show3DPerspective ? -layer.z * 0.75 : 0
+
   return (
     <div
       style={{
         position: 'absolute',
         left: '50%',
         top: '50%',
-        transform: `translate(-50%, -50%) translate3d(${layer.x + animTranslateX}px, ${layer.y + animTranslateY}px, 0)`,
+        transform: `translate(-50%, -50%) translate3d(${layer.x + animTranslateX}px, ${layer.y + animTranslateY}px, ${depthTranslateZ}px)`,
+        transformStyle: 'preserve-3d',
         pointerEvents: 'none',
         willChange: 'transform',
-        backfaceVisibility: 'hidden',
         zIndex: Math.round(1000 - layer.z)
       }}
     >
@@ -391,8 +420,9 @@ function AssembledLayerItemView({
         style={{
           position: 'relative',
           display: 'inline-block',
-          transform: `rotate(${layer.rotation + animRotate}deg) scale(${layer.scale * animScaleX}, ${layer.scale * animScaleY})`,
+          transform: layerTransform,
           transformOrigin: anchorOrigin,
+          transformStyle: 'preserve-3d',
           opacity: layer.opacity,
           cursor: layer.locked ? 'default' : 'move',
           outline: isSelected ? '2px solid var(--accent)' : 'none',
