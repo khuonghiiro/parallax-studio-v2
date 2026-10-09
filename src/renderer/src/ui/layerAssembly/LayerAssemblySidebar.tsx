@@ -7,6 +7,7 @@ import {
 import type { AssembledLayerItem, LayerComposite } from './types'
 import { IconImage, IconLayers, IconPlus, IconTrash, IconX } from '../icons'
 import { useLayerAssetImage } from './useLayerAssetImage'
+import { CompositeCard } from './CompositeCard'
 
 export interface LayerAssemblySidebarProps {
   composite: LayerComposite
@@ -156,13 +157,15 @@ export function LayerAssemblySidebar({
     <div
       className="layer-workshop-sidebar"
       style={{
-        width: '270px',
+        width: '260px',
+        minWidth: '250px',
         background: 'var(--bg-2)',
         borderRight: '1px solid var(--line-soft)',
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        flexShrink: 0
       }}
     >
       {/* 1. Tabs Switcher */}
@@ -292,11 +295,11 @@ export function LayerAssemblySidebar({
       </div>
 
       {/* 3. Main Content List */}
-      <div style={{ flex: '1 1 0%', overflowY: 'auto', padding: '8px', minHeight: 0 }}>
+      <div style={{ flex: '1 1 0%', overflowY: 'auto', overflowX: 'hidden', padding: '8px', minHeight: 0 }}>
         {/* TAB 1: DỰ ÁN - Các layer đang tạo trong mẫu hiện tại */}
         {activeTab === 'project' && (
           filteredLayers.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
               {filteredLayers.map((layer) => {
                 const isSelected = selectedLayerId === layer.id
                 return (
@@ -337,7 +340,7 @@ export function LayerAssemblySidebar({
         {/* TAB 2: CÓ SẴN - Ảnh & Đạo cụ có sẵn + Ảnh người dùng thêm vào */}
         {activeTab === 'builtin' && (
           filteredAssets.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
               {filteredAssets.map((item) => (
                 <AssetCard
                   key={item.id}
@@ -354,95 +357,20 @@ export function LayerAssemblySidebar({
           )
         )}
 
-        {/* TAB 3: MẪU LAYER - Các asset layer xếp chồng đã lưu & tạo sẵn */}
+        {/* TAB 3: MẪU LAYER - Các asset layer xếp chồng đã lưu & tạo sẵn kèm ảnh xem trước */}
         {activeTab === 'presets' && (
           filteredComposites.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {filteredComposites.map((item) => {
-                const isBuiltin = builtinIds.has(item.id)
-                return (
-                  <div
-                    key={item.id}
-                    style={{
-                      background: 'var(--bg-1)',
-                      border: '1px solid var(--line-soft)',
-                      borderRadius: '5px',
-                      padding: '8px 10px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '6px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          color: 'var(--text)',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }}
-                        title={item.name}
-                      >
-                        {item.name}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '9px',
-                          padding: '1px 5px',
-                          borderRadius: '3px',
-                          background: isBuiltin ? 'var(--bg-2)' : 'color-mix(in srgb, var(--accent) 15%, transparent)',
-                          color: isBuiltin ? 'var(--text-faint)' : 'var(--accent)',
-                          flexShrink: 0
-                        }}
-                      >
-                        {isBuiltin ? 'Mẫu mẫu' : 'Đã lưu'}
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '9.5px', color: 'var(--text-dim)' }}>
-                        {item.layers.length} lớp · {item.width}×{item.height}
-                      </span>
-
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        {onLoadComposite && (
-                          <button
-                            type="button"
-                            className="btn xs"
-                            style={{ padding: '2px 7px', fontSize: '10px' }}
-                            onClick={() => onLoadComposite(item)}
-                            title="Tải toàn bộ mẫu này vào xưởng để chỉnh sửa"
-                          >
-                            Mở
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          className="btn xs primary"
-                          style={{ padding: '2px 7px', fontSize: '10px' }}
-                          onClick={() => onAppendPresetLayers(item.layers)}
-                          title="Ghép các layer từ mẫu này vào cụm hiện tại"
-                        >
-                          <IconPlus width={10} height={10} /> Ghép
-                        </button>
-                        {!isBuiltin && (
-                          <button
-                            type="button"
-                            className="btn xs icon"
-                            style={{ width: '20px', height: '20px', padding: 0, color: 'var(--text-faint)' }}
-                            onClick={(e) => handleDeleteComposite(item.id, e)}
-                            title="Xóa mẫu tự tạo này"
-                          >
-                            <IconTrash width={11} height={11} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
+              {filteredComposites.map((item) => (
+                <CompositeCard
+                  key={item.id}
+                  item={item}
+                  isBuiltin={builtinIds.has(item.id)}
+                  onLoad={onLoadComposite}
+                  onAppend={onAppendPresetLayers}
+                  onDelete={handleDeleteComposite}
+                />
+              ))}
             </div>
           ) : (
             <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-dim)', fontSize: '11px' }}>
@@ -488,6 +416,10 @@ function LayerItemCard({
         display: 'flex',
         flexDirection: 'column',
         gap: '4px',
+        minWidth: 0,
+        maxWidth: '100%',
+        boxSizing: 'border-box',
+        overflow: 'hidden',
         transition: 'all 0.15s ease'
       }}
       title={`Click để chọn: ${layer.name} (Z: ${layer.z}px)`}
@@ -495,13 +427,16 @@ function LayerItemCard({
       <div
         style={{
           height: '75px',
+          width: '100%',
+          minWidth: 0,
           background: 'var(--bg-0)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',
           borderRadius: '3px',
-          position: 'relative'
+          position: 'relative',
+          boxSizing: 'border-box'
         }}
       >
         {displayUrl ? (
@@ -537,7 +472,10 @@ function LayerItemCard({
           fontWeight: isSelected ? 600 : 400,
           whiteSpace: 'nowrap',
           overflow: 'hidden',
-          textOverflow: 'ellipsis'
+          textOverflow: 'ellipsis',
+          display: 'block',
+          width: '100%',
+          minWidth: 0
         }}
         title={layer.name}
       >
@@ -581,6 +519,10 @@ function AssetCard({
         flexDirection: 'column',
         gap: '4px',
         position: 'relative',
+        minWidth: 0,
+        maxWidth: '100%',
+        boxSizing: 'border-box',
+        overflow: 'hidden',
         transition: 'all 0.15s ease'
       }}
       title={`Click để thêm ${item.name} làm layer mới`}
@@ -612,12 +554,15 @@ function AssetCard({
       <div
         style={{
           height: '75px',
+          width: '100%',
+          minWidth: 0,
           background: 'var(--bg-0)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',
-          borderRadius: '3px'
+          borderRadius: '3px',
+          boxSizing: 'border-box'
         }}
       >
         {displayUrl ? (
@@ -638,7 +583,10 @@ function AssetCard({
           color: 'var(--text)',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
-          textOverflow: 'ellipsis'
+          textOverflow: 'ellipsis',
+          display: 'block',
+          width: '100%',
+          minWidth: 0
         }}
         title={item.name}
       >
