@@ -66,7 +66,7 @@ Các tên Bend/Twist/Taper/Stretch tương ứng nhóm Simple Deform của Blend
 |---|---|---|---|---|
 | [1](phase-01-image-contract.md) | Prompt, mask/UV, kiểm tra ảnh và điểm neo | — | 6–10h | completed |
 | [2](phase-02-shared-deformation.md) | Lõi biến dạng dùng chung, dữ liệu, lưu và render | 1 | 16–24h | completed |
-| [3](phase-03-organic-templates.md) | Hoa, cỏ 360°, loa kèn sáu cánh, calla | 1, 2 | 12–20h | pending |
+| [3](phase-03-organic-templates.md) | Hoa, cỏ 360°, loa kèn sáu cánh, calla | 1, 2 | 12–20h | completed |
 | [4](phase-04-workshop-tools.md) | Công cụ uốn/kéo mềm/lồi lõm/lattice trong xưởng | 2; kiểm tra bằng mẫu phase 3 | 22–36h | pending |
 | [5](phase-05-mcp-validation.md) | MCP đầy đủ, regression, hiệu năng, giao tài liệu | 1–4 | 8–14h | pending |
 

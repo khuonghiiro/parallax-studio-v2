@@ -112,19 +112,19 @@ export function evaluateFaceAnchor3D(
   const uv = anchorUV ?? [0.5, 0.0]
   const [lx, ly, lz] = evaluateLocalPointOnFace(face, uv)
 
-  // Construct face basis matrix from position and Euler rotation (degrees)
-  const pos = new THREE.Vector3(...face.position)
-  const rot = new THREE.Euler(
-    (face.rotation[0] * Math.PI) / 180,
-    (face.rotation[1] * Math.PI) / 180,
-    (face.rotation[2] * Math.PI) / 180,
-    'XYZ'
+  // Construct face basis matrix according to depth space convention (Euler YXZ with flipped z)
+  const DEG = Math.PI / 180
+  const q = new THREE.Quaternion().setFromEuler(
+    new THREE.Euler(face.rotation[0] * DEG, -face.rotation[1] * DEG, -face.rotation[2] * DEG, 'YXZ')
   )
+  const posThree = new THREE.Vector3(face.position[0], face.position[1], -face.position[2])
   const scale = new THREE.Vector3(...(face.scale ?? [1, 1, 1]))
+  const mat = new THREE.Matrix4().compose(posThree, q, scale)
 
-  const mat = new THREE.Matrix4().compose(pos, new THREE.Quaternion().setFromEuler(rot), scale)
-  const localVec = new THREE.Vector3(lx, ly, lz)
-  localVec.applyMatrix4(mat)
-
-  return [localVec.x, localVec.y, localVec.z]
+  const ptInThree = new THREE.Vector3(lx, ly, -lz).applyMatrix4(mat)
+  return [
+    Math.round(ptInThree.x * 100) / 100,
+    Math.round(ptInThree.y * 100) / 100,
+    Math.round(-ptInThree.z * 100) / 100
+  ]
 }

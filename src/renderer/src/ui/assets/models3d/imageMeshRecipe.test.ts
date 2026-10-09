@@ -6,7 +6,7 @@ import { buildAlphaTrimmedGeometry } from './alphaMeshBuilder'
 
 describe('image mesh recipes', () => {
   it('reports exact image counts, pixel ratios, alpha and reuse contracts for all variants', () => {
-    const counts = [[1, 1], [3, 8], [3, 8], [4, 10], [3, 5], [2, 2], [1, 3], [1, 14]]
+    const counts = [[1, 1], [3, 8], [3, 8], [3, 3], [4, 10], [3, 5], [2, 2], [1, 3], [1, 14]]
     IMAGE_MESH_TEMPLATES.forEach((template, index) => {
       for (const variant of template.imageRecipe!.variants) {
         const guide = imageTemplateGuide(template, variant.id)
@@ -50,6 +50,33 @@ describe('image mesh recipes', () => {
     expect(petalFace.bendY).toBe(-36)
     expect(petalFace.silhouettePolygon).toBeDefined()
     expect(petalFace.silhouettePolygon!.length).toBeGreaterThan(4)
+  })
+
+  it('calla lily template defines asymmetric rolled spathe, golden spadix cylinder and stem', () => {
+    const template = IMAGE_MESH_TEMPLATES.find((t) => t.id === 'mesh-calla-lily')!
+    expect(template).toBeDefined()
+    const guide = imageTemplateGuide(template)
+    expect(guide.sourceImageCount).toBe(3)
+    expect(guide.meshFaceCount).toBe(3)
+    const spatheSlot = guide.slots.find((s) => s.id === 'spathe')!
+    expect(spatheSlot.reuseCount).toBe(1)
+    expect(spatheSlot.aspect).toEqual([2, 3])
+    const spadixSlot = guide.slots.find((s) => s.id === 'spadix')!
+    expect(spadixSlot.reuseCount).toBe(1)
+    expect(spadixSlot.aspect).toEqual([1, 4])
+    const faces = templateFaces(template)
+    const bound = bindTemplateImages(template, faces, {
+      spathe: 'calla/spathe.png',
+      spadix: 'calla/spadix.png'
+    })
+    expect(bound.find((f) => f.imageSlot === 'spathe')?.assetPath).toBe('calla/spathe.png')
+    expect(bound.find((f) => f.imageSlot === 'spadix')?.assetPath).toBe('calla/spadix.png')
+
+    const spatheFace = faces.find((f) => f.imageSlot === 'spathe')!
+    expect(spatheFace.arcAngle).toBe(280)
+    expect(spatheFace.taperRatio).toBeGreaterThan(1.0)
+    expect(spatheFace.bendRegion).toBe('top')
+    expect(spatheFace.silhouettePolygon).toBeDefined()
   })
 
   it('360 degree radial grass clump generates 14 multi-tiered blades from 1 single blade slot', () => {

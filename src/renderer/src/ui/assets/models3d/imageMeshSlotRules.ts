@@ -180,6 +180,35 @@ export const IMAGE_MESH_SLOT_RULES: Record<string, SlotRuleDefinition> = {
     silhouettePolicy: 'relaxed',
     backPolicy: 'mirror',
     materialGroup: 'foliage'
+  },
+  spathe: {
+    alphaMode: 'cutout',
+    symmetry: organic,
+    anchorUV: [0.5, 0.0],
+    tipUV: [0.5, 1.0],
+    attachmentBand: { vMin: 0.0, vMax: 0.05, uMin: 0.40, uMax: 0.60, en: 'Spathe base touching bottom edge', vi: 'Cuống cánh mo chạm mép dưới' },
+    silhouettePolicy: 'relaxed',
+    backPolicy: 'same',
+    materialGroup: 'petal'
+  },
+  spadix: {
+    alphaMode: 'cutout',
+    symmetry: bilateral,
+    anchorUV: [0.5, 0.0],
+    tipUV: [0.5, 1.0],
+    attachmentBand: { vMin: 0.0, vMax: 0.05, uMin: 0.40, uMax: 0.60, en: 'Spadix base touching bottom edge', vi: 'Đáy trụ nhụy chạm mép dưới' },
+    silhouettePolicy: 'relaxed',
+    backPolicy: 'same',
+    materialGroup: 'center'
+  },
+  calyx: {
+    alphaMode: 'cutout',
+    symmetry: bilateral,
+    anchorUV: [0.5, 0.5],
+    tipUV: [0.5, 1.0],
+    silhouettePolicy: 'relaxed',
+    backPolicy: 'same',
+    materialGroup: 'foliage'
   }
 }
 

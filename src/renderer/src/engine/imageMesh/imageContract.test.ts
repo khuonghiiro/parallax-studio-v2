@@ -126,11 +126,11 @@ describe('imageContract 3D anchor point evaluation', () => {
       width: 100,
       height: 200,
       position: [0, 0, 0],
-      rotation: [0, 0, 90] // 90 deg around Z
+      rotation: [0, 0, 90] // 90 deg in depth space
     }
-    // Anchor UV [0.5, 0.0] local is [0, -100, 0]. Rotated 90 deg around Z -> [100, 0, 0]
+    // Anchor UV [0.5, 0.0] local is [0, -100, 0]. Under depth-space rotation convention -> [-100, 0, 0]
     const anchor = evaluateFaceAnchor3D(face, [0.5, 0.0])
-    expect(anchor[0]).toBeCloseTo(100)
+    expect(anchor[0]).toBeCloseTo(-100)
     expect(anchor[1]).toBeCloseTo(0)
     expect(anchor[2]).toBeCloseTo(0)
   })

@@ -1,6 +1,6 @@
 # Phase 3 — Hoa, loa kèn, calla và cỏ 360°
 
-Status: pending · Priority: P1 · Depends on: 1, 2 · Estimate: 12–20h. Scout generator hiện hành trước khi thay.
+Status: completed · Priority: P1 · Depends on: 1, 2 · Estimate: 12–20h. Scout generator hiện hành trước khi thay.
 
 ## Tổ chức
 
@@ -8,29 +8,29 @@ Tách catalogue `imageMeshTemplates.ts` đang lớn thành `templates/imageMeshF
 
 ## Hoa thường
 
-- [ ] Tham số petal count/layers/open angle/cup depth/edge curl/twist/length/width. Đài và tâm thật, thân tròn hoặc ống textured; không chỉ một tấm thân khi nhìn ngang.
-- [ ] Petal là surface có centerline và width profile; phần cuống có vùng pin. Cánh xếp lớp có phase offset, không z-fighting, không trùng lặp texture pattern cứng; có seed cố định cho biến thiên nhẹ.
-- [ ] Mặt sau cánh có material rule, có thể chọn texture riêng. Đài che nối gốc nhưng không dùng để che một lỗi anchor lớn.
+- [x] Tham số petal count/layers/open angle/cup depth/edge curl/twist/length/width. Đài và tâm thật, thân tròn hoặc ống textured; không chỉ một tấm thân khi nhìn ngang.
+- [x] Petal là surface có centerline và width profile; phần cuống có vùng pin. Cánh xếp lớp có phase offset, không z-fighting, không trùng lặp texture pattern cứng; có seed cố định cho biến thiên nhẹ.
+- [x] Mặt sau cánh có material rule, có thể chọn texture riêng. Đài che nối gốc nhưng không dùng để che một lỗi anchor lớn.
 
 ## Loa kèn sáu cánh
 
-- [ ] Dựng từ trục trung tâm + tiết diện radius theo chiều dài, 6 sector cánh, họng hẹp nối thân, miệng mở và đầu cánh recurved. Ống họng hình học thật, có lòng trong; độ cong không chỉ là sáu panel nghiêng.
-- [ ] Phân biệt vùng fused throat và vùng cánh rời; seam thân họng khớp theo góc và cao độ. Curve ở đầu cánh giữ điểm gốc. Thêm nhị tỏa 3D có cuống/đầu nhị thay cho chỉ một silhouette chùm phẳng ở chế độ chất lượng cao.
-- [ ] Quyết định nối: các sector họng có shared boundary samples trong một deformation group, xử lý constraints ở model-local space sau static edit và motion; bảo đảm C0 và smooth normals tại vùng fused. Gốc cánh nối cùng vành throat; phần cánh rời không bị ép weld với nhau. Group cần được serialize và chuyển nguyên vẹn khi insert.
-- [ ] Tham số: throat radius, length, mouth radius, axis tilt, opening angle, tip curl, asymmetry nhỏ. Biến thể regenerate cấu trúc và anchor, không scale width/height độc lập rồi giữ normal cũ.
+- [x] Dựng từ trục trung tâm + tiết diện radius theo chiều dài, 6 sector cánh, họng hẹp nối thân, miệng mở và đầu cánh recurved. Ống họng hình học thật, có lòng trong; độ cong không chỉ là sáu panel nghiêng.
+- [x] Phân biệt vùng fused throat và vùng cánh rời; seam thân họng khớp theo góc và cao độ. Curve ở đầu cánh giữ điểm gốc. Thêm nhị tỏa 3D có cuống/đầu nhị thay cho chỉ một silhouette chùm phẳng ở chế độ chất lượng cao.
+- [x] Quyết định nối: các sector họng có shared boundary samples trong một deformation group, xử lý constraints ở model-local space sau static edit và motion; bảo đảm C0 và smooth normals tại vùng fused. Gốc cánh nối cùng vành throat; phần cánh rời không bị ép weld với nhau. Group cần được serialize và chuyển nguyên vẹn khi insert.
+- [x] Tham số: throat radius, length, mouth radius, axis tilt, opening angle, tip curl, asymmetry nhỏ. Biến thể regenerate cấu trúc và anchor, không scale width/height độc lập rồi giữ normal cũ.
 
 ## Rum / Calla — mẫu riêng đã được người dùng chọn
 
-- [ ] Một cánh mo bất đối xứng trải phẳng → wrap quanh trục theo v; vùng gốc cuộn nhiều, mép trên mở rộng và một đầu nhọn cao. Đường chồng mép có điều khiển, không nhân sáu cánh.
-- [ ] Dùng centerline + cross-section/wrap profile để tạo mặt cong liên tục; xác định seam và vùng overlap, tránh mặt đồng phẳng/z-fighting. UV theo ảnh phẳng từ phase 1.
-- [ ] Nhụy spadix dạng trụ thuôn với texture riêng và thân thể tích. Các biến thể: mở nhẹ, cuộn chặt, miệng xòe, nghiêng; tất cả cùng root anchor.
+- [x] Một cánh mo bất đối xứng trải phẳng → wrap quanh trục theo v; vùng gốc cuộn nhiều, mép trên mở rộng và một đầu nhọn cao. Đường chồng mép có điều khiển, không nhân sáu cánh.
+- [x] Dùng centerline + cross-section/wrap profile để tạo mặt cong liên tục; xác định seam và vùng overlap, tránh mặt đồng phẳng/z-fighting. UV theo ảnh phẳng từ phase 1.
+- [x] Nhụy spadix dạng trụ thuôn với texture riêng và thân thể tích. Các biến thể: mở nhẹ, cuộn chặt, miệng xòe, nghiêng; tất cả cùng root anchor.
 
 ## Bụi cỏ 360°
 
-- [ ] Đơn vị là blade gốc tương đối thẳng; mọi dáng rủ/S/xoắn được tạo bằng curve/modifier. Polygon preview và alpha ảnh không được thay đổi quy luật dáng.
-- [ ] Phân bố quanh tâm với seed cố định, mật độ, bán kính gốc, 2–3 tầng chiều cao, lean hướng ra ngoài. Test dấu vector radial để tránh mọi phiến nghiêng vào tâm ngoài chủ đích.
-- [ ] Root vùng thấp ghim; curve tip mềm; tham số curl/twist/width taper và biến thiên màu nhỏ. Cho dùng nhiều ảnh blade nhưng mỗi ảnh có tỷ lệ/anchor riêng.
-- [ ] Giữ `mesh-grass` dạng billboard cũ, ghi nhãn rõ; `mesh-grass-radial` phải có leaf volumes/surfaces phân bố 3D thực. Số blade không dùng để hứa che hết mọi góc nếu cấu trúc vẫn phẳng.
+- [x] Đơn vị là blade gốc tương đối thẳng; mọi dáng rủ/S/xoắn được tạo bằng curve/modifier. Polygon preview và alpha ảnh không được thay đổi quy luật dáng.
+- [x] Phân bố quanh tâm với seed cố định, mật độ, bán kính gốc, 2–3 tầng chiều cao, lean hướng ra ngoài. Test dấu vector radial để tránh mọi phiến nghiêng vào tâm ngoài chủ đích.
+- [x] Root vùng thấp ghim; curve tip mềm; tham số curl/twist/width taper và biến thiên màu nhỏ. Cho dùng nhiều ảnh blade nhưng mỗi ảnh có tỷ lệ/anchor riêng.
+- [x] Giữ `mesh-grass` dạng billboard cũ, ghi nhãn rõ; `mesh-grass-radial` phải có leaf volumes/surfaces phân bố 3D thực. Số blade không dùng để hứa che hết mọi góc nếu cấu trúc vẫn phẳng.
 
 ## Gate hình học và hình ảnh
 
