@@ -7,7 +7,7 @@ import { syncFaceMeshes, clearFaceMeshes, type FaceMeshCache } from './assemblyM
 import { applyProceduralMotion } from './assemblyMotion'
 import { pickFace, cellKeyAt, droppedAssetPath, type PickContext } from './assemblyPicking'
 import { DEFAULT_SCENE_THEME, readAssemblySceneTheme, type AssemblySceneTheme } from './assemblyTheme'
-import { faceCornersThree, modelBounds, toThree } from './assemblyGeometry'
+import { faceCornersThree, faceOutlineThree, modelBounds, toThree } from './assemblyGeometry'
 import { resolveLightRig, resolveSkyAtmosphere } from './assemblyLighting'
 import { createLightRig, applyLightRig, disposeLightRig, type SceneLightRig } from './assemblySceneLighting'
 import { AssemblyGizmo } from './AssemblyGizmo'
@@ -135,7 +135,7 @@ export function AssemblyViewport({
       if (opts?.frameFaceId) {
         const face = model.faces.find((f) => f.id === opts.frameFaceId && !f.hidden)
         if (face) {
-          const box = new THREE.Box3().setFromPoints(faceCornersThree(face, scale))
+          const box = new THREE.Box3().setFromPoints(faceOutlineThree(face, scale))
           const sphere = box.getBoundingSphere(new THREE.Sphere())
           o.target.copy(sphere.center)
           o.radius = Math.max(150, Math.min(6000, (sphere.radius * 1.5) / Math.tan((camera.fov * Math.PI) / 360)))
@@ -143,7 +143,7 @@ export function AssemblyViewport({
       } else if (opts?.autoFit || opts?.cameraPreset === 'iso') {
         const activeFaces = model.faces.filter((f) => !f.hidden)
         if (activeFaces.length > 0) {
-          const box = new THREE.Box3().setFromPoints(activeFaces.flatMap((f) => faceCornersThree(f, scale)))
+          const box = new THREE.Box3().setFromPoints(activeFaces.flatMap((f) => faceOutlineThree(f, scale)))
           const sphere = box.getBoundingSphere(new THREE.Sphere())
           o.target.copy(sphere.center)
           o.azimuth = -Math.PI / 4
@@ -224,7 +224,7 @@ export function AssemblyViewport({
       if (params.frameFaceId) {
         const face = model.faces.find((f) => f.id === params.frameFaceId && !f.hidden)
         if (face && camera) {
-          const box = new THREE.Box3().setFromPoints(faceCornersThree(face, scale))
+          const box = new THREE.Box3().setFromPoints(faceOutlineThree(face, scale))
           const sphere = box.getBoundingSphere(new THREE.Sphere())
           o.target.copy(sphere.center)
           o.radius = Math.max(150, Math.min(6000, (sphere.radius * 1.5) / Math.tan((camera.fov * Math.PI) / 360)))
@@ -232,7 +232,7 @@ export function AssemblyViewport({
       } else if (params.frameModel) {
         const activeFaces = model.faces.filter((f) => !f.hidden)
         if (activeFaces.length > 0 && camera) {
-          const box = new THREE.Box3().setFromPoints(activeFaces.flatMap((f) => faceCornersThree(f, scale)))
+          const box = new THREE.Box3().setFromPoints(activeFaces.flatMap((f) => faceOutlineThree(f, scale)))
           const sphere = box.getBoundingSphere(new THREE.Sphere())
           o.target.copy(sphere.center)
           o.radius = Math.max(300, Math.min(8000, (sphere.radius * 1.8) / Math.tan((camera.fov * Math.PI) / 360)))
@@ -345,7 +345,7 @@ export function AssemblyViewport({
     const sel = model.faces.find((f) => f.id === selectedFaceId && !f.hidden)
     const faces = sel ? [sel] : model.faces.filter((f) => !f.hidden)
     if (!camera || faces.length === 0) return
-    const box = new THREE.Box3().setFromPoints(faces.flatMap((f) => faceCornersThree(f, scale)))
+    const box = new THREE.Box3().setFromPoints(faces.flatMap((f) => faceOutlineThree(f, scale)))
     const sphere = box.getBoundingSphere(new THREE.Sphere())
     const o = orbitRef.current
     o.target.copy(sphere.center)

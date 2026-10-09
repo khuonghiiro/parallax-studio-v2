@@ -59,6 +59,26 @@ describe('assemblyTemplates', () => {
     }
   })
 
+  it('renders realistic round curved boundaries in preview for cylinder templates', () => {
+    const cyl4 = findTemplate('cylinder-4')!
+    const polys4 = templatePreview(cyl4)
+    expect(polys4.length).toBe(4)
+    // Curved faces have sampled arc perimeters (more than 4 vertices)
+    for (const poly of polys4) {
+      const vertexCount = poly.points.trim().split(/\s+/).length
+      expect(vertexCount).toBeGreaterThan(4)
+    }
+
+    const flatPillar = findTemplate('pillar-square')!
+    const flatPolys = templatePreview(flatPillar)
+    expect(flatPolys.length).toBe(4)
+    // Flat faces retain exact 4 quad corners
+    for (const poly of flatPolys) {
+      const vertexCount = poly.points.trim().split(/\s+/).length
+      expect(vertexCount).toBe(4)
+    }
+  })
+
   it('replace keeps the user images, ids and extra faces', () => {
     const tpl = findTemplate('box')!
     const slots = templateFaces(tpl).length

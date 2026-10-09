@@ -69,7 +69,24 @@ describe('Face texture assignment logic', () => {
     expect(updated[2].assetPath).toBeUndefined()
   })
 
-  it('assigns texture to all faces in one batch (Shift "nhận 1 thể")', () => {
+  it('assigns texture to each face sequentially when moving/hovering with Shift', () => {
+    const texturePath = 'assets/nature/grass.png'
+    let current = [...sampleFaces]
+
+    // Hover over face 1 with Shift
+    current = current.map((f) => (f.id === 'f-1' ? { ...f, assetPath: texturePath } : f))
+    expect(current[0].assetPath).toBe(texturePath)
+    expect(current[1].assetPath).toBeUndefined()
+    expect(current[2].assetPath).toBeUndefined()
+
+    // Hover over face 2 with Shift
+    current = current.map((f) => (f.id === 'f-2' ? { ...f, assetPath: texturePath } : f))
+    expect(current[0].assetPath).toBe(texturePath)
+    expect(current[1].assetPath).toBe(texturePath)
+    expect(current[2].assetPath).toBeUndefined()
+  })
+
+  it('assigns texture to all faces in one batch (Ctrl "gán tất cả")', () => {
     const texturePath = 'assets/nature/grass.png'
     const updated = sampleFaces.map((f) => ({ ...f, assetPath: texturePath }))
 

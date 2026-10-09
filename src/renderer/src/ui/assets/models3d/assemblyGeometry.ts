@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import type { Face3D } from './types'
+import { computeVertexBend } from './alphaMeshBuilder'
 
 /**
  * Pure geometry helpers for the Assembly workshop.
@@ -86,9 +87,86 @@ export function faceCornersThree(face: Face3D, scale = 1): THREE.Vector3[] {
   ].map(([x, y]) => new THREE.Vector3(x, y, 0).applyMatrix4(m).multiplyScalar(scale))
 }
 
+/**
+ * Traces perimeter points of a face in three space.
+ * For curved faces (arcAngle, bendX, bendY, bendLateral, or taperRatio), it samples along
+ * the curved edges using computeVertexBend so isometric previews and bounds accurately
+ * reflect true 3D curvature (cylinders, curved trunks, domes, arches).
+ */
+export function faceOutlineThree(
+  face: Face3D,
+  scale = 1,
+  samplesU = 12,
+  samplesV = 2
+): THREE.Vector3[] {
+  const isCurved = Boolean(
+    face.arcAngle ||
+    face.bendX ||
+    face.bendY ||
+    face.bendLateral ||
+    (face.taperRatio !== undefined && face.taperRatio < 1)
+  )
+  if (!isCurved) {
+    return faceCornersThree(face, scale)
+  }
+
+  const m = faceMatrix(face)
+  const pts: THREE.Vector3[] = []
+
+  // 1. Top edge: u from 0 to 1, v = 1
+  for (let i = 0; i <= samplesU; i++) {
+    const u = i / samplesU
+    const v = 1
+    const bend = computeVertexBend(
+      u, v, face.width, face.height,
+      face.bendX, face.bendY, face.bendLateral,
+      face.bendRegion, face.arcAngle, face.taperRatio
+    )
+    pts.push(new THREE.Vector3(bend.x, (v - 0.5) * face.height, bend.z).applyMatrix4(m).multiplyScalar(scale))
+  }
+
+  // 2. Right edge: u = 1, v from 1 down to 0
+  for (let j = 1; j <= samplesV; j++) {
+    const u = 1
+    const v = 1 - j / samplesV
+    const bend = computeVertexBend(
+      u, v, face.width, face.height,
+      face.bendX, face.bendY, face.bendLateral,
+      face.bendRegion, face.arcAngle, face.taperRatio
+    )
+    pts.push(new THREE.Vector3(bend.x, (v - 0.5) * face.height, bend.z).applyMatrix4(m).multiplyScalar(scale))
+  }
+
+  // 3. Bottom edge: u from 1 down to 0, v = 0
+  for (let i = 1; i <= samplesU; i++) {
+    const u = 1 - i / samplesU
+    const v = 0
+    const bend = computeVertexBend(
+      u, v, face.width, face.height,
+      face.bendX, face.bendY, face.bendLateral,
+      face.bendRegion, face.arcAngle, face.taperRatio
+    )
+    pts.push(new THREE.Vector3(bend.x, (v - 0.5) * face.height, bend.z).applyMatrix4(m).multiplyScalar(scale))
+  }
+
+  // 4. Left edge: u = 0, v from 0 up to 1
+  for (let j = 1; j < samplesV; j++) {
+    const u = 0
+    const v = j / samplesV
+    const bend = computeVertexBend(
+      u, v, face.width, face.height,
+      face.bendX, face.bendY, face.bendLateral,
+      face.bendRegion, face.arcAngle, face.taperRatio
+    )
+    pts.push(new THREE.Vector3(bend.x, (v - 0.5) * face.height, bend.z).applyMatrix4(m).multiplyScalar(scale))
+  }
+
+  return pts
+}
+
 /** Axis-aligned bounds of faces in depth space. */
 export function modelBounds(faces: Face3D[]): { min: Vec3; max: Vec3; center: Vec3; size: Vec3 } | null {
-  const pts = faces.flatMap((f) => faceCornersThree(f).map(fromThree))
+  const pts = faces.flatMap((f) => faceOutlineThree(f).map(fromThree))
   if (pts.length === 0) return null
   const min: Vec3 = [Infinity, Infinity, Infinity]
   const max: Vec3 = [-Infinity, -Infinity, -Infinity]

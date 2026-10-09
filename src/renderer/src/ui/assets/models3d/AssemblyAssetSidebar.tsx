@@ -9,7 +9,7 @@ import { setAssemblyDraggedAsset } from './assemblyDragState'
 interface AssemblyAssetSidebarProps {
   model?: Model3D
   selectedFace: Face3D | null
-  onAssignAssetToFace: (assetPath: string, width?: number, height?: number) => void
+  onAssignAssetToFace: (assetPath: string, width?: number, height?: number, all?: boolean) => void
   modelFaces: Face3D[]
   onSelectFace: (faceId: string) => void
   onApplyFaces?: (faces: Face3D[], selectId: string | null) => void
@@ -341,11 +341,11 @@ export function AssemblyAssetSidebar({
         onDragEnd={() => {
           setAssemblyDraggedAsset(null)
         }}
-        onClick={() => onAssignAssetToFace(item.relativePath)}
+        onClick={(e) => onAssignAssetToFace(item.relativePath, undefined, undefined, e.ctrlKey || e.metaKey)}
         title={
           selectedFace
-            ? `Click hoặc Kéo vào 3D để gán ảnh "${item.name}"`
-            : `Ảnh: ${item.name} (${item.fileName})\nKéo thả trực tiếp vào không gian 3D để tạo mặt mới`
+            ? `Click để gán vào mặt đang chọn · Giữ Ctrl + Click để gán vào TẤT CẢ các mặt\nẢnh: ${item.name} (${item.fileName})`
+            : `Ảnh: ${item.name} (${item.fileName})\nGiữ Ctrl + Click để gán vào TẤT CẢ các mặt · Kéo thả vào không gian 3D để tạo mặt mới`
         }
       >
         {/* 1. Image Thumbnail Stage: Pure view of the texture */}

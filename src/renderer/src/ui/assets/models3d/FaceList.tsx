@@ -59,6 +59,7 @@ interface RowProps {
   isDragOver: boolean
   isAssigned: boolean
   isFlashing: boolean
+  isCtrlDragging?: boolean
   onSelect: () => void
   onAction: (action: 'hidden' | 'locked' | 'up' | 'down' | 'duplicate' | 'delete') => void
   onDragEnter: (e: DragEvent) => void
@@ -75,6 +76,7 @@ function FaceRow({
   isDragOver,
   isAssigned,
   isFlashing,
+  isCtrlDragging,
   onSelect,
   onAction,
   onDragEnter,
@@ -109,7 +111,7 @@ function FaceRow({
 
       {isDragOver && (
         <span className={`fl-drop-badge ${isAssigned ? 'badge-success' : 'badge-pending'}`}>
-          {isAssigned ? '✓ Đã nhận ảnh' : '+ Gán ảnh (Shift)'}
+          {isAssigned ? '✓ Đã nhận ảnh' : isCtrlDragging ? '+ Gán tất cả (Ctrl + Thả)' : '+ Gán ảnh mặt này'}
         </span>
       )}
 
@@ -141,6 +143,7 @@ function FaceRow({
 export function FaceList({ faces, selectedId, onSelect, onChange, onAdd, onAssignTexture }: FaceListProps) {
   const [draggedAsset, setDraggedAsset] = useState(() => getAssemblyDraggedAsset())
   const [hoveredFaceId, setHoveredFaceId] = useState<string | null>(null)
+  const [isCtrlDragging, setIsCtrlDragging] = useState(false)
   const [flashFaceIds, setFlashFaceIds] = useState<Set<string>>(new Set())
 
   const facesRef = useRef(faces)
@@ -205,10 +208,20 @@ export function FaceList({ faces, selectedId, onSelect, onChange, onAdd, onAssig
           }
         }
       }
+      if (e.key === 'Control' || e.key === 'Meta') {
+        setIsCtrlDragging(true)
+      }
+    }
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Control' || e.key === 'Meta') {
+        setIsCtrlDragging(false)
+      }
     }
     window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
     }
   }, [handleApply])
 
@@ -239,6 +252,7 @@ export function FaceList({ faces, selectedId, onSelect, onChange, onAdd, onAssig
   const handleDragEnter = (id: string, e: DragEvent) => {
     e.preventDefault()
     setHoveredFaceId(id)
+    setIsCtrlDragging(Boolean(e.ctrlKey || e.metaKey))
     if (e.shiftKey) {
       const dragged = draggedAssetRef.current || getAssemblyDraggedAsset()
       if (dragged) {
@@ -255,6 +269,10 @@ export function FaceList({ faces, selectedId, onSelect, onChange, onAdd, onAssig
     e.dataTransfer.dropEffect = 'copy'
     if (hoveredFaceIdRef.current !== id) {
       setHoveredFaceId(id)
+    }
+    const isCtrl = Boolean(e.ctrlKey || e.metaKey)
+    if (isCtrl !== isCtrlDragging) {
+      setIsCtrlDragging(isCtrl)
     }
     if (e.shiftKey) {
       const dragged = draggedAssetRef.current || getAssemblyDraggedAsset()
@@ -275,17 +293,19 @@ export function FaceList({ faces, selectedId, onSelect, onChange, onAdd, onAssig
     }
     if (hoveredFaceIdRef.current === id) {
       setHoveredFaceId(null)
+      setIsCtrlDragging(false)
     }
   }
 
   const handleDrop = (id: string, e: DragEvent) => {
     e.preventDefault()
     const assetPath = extractAssetPath(e)
-    const isAll = e.shiftKey
+    const isAll = Boolean(e.ctrlKey || e.metaKey)
     if (assetPath) {
       handleApply(id, assetPath, isAll)
     }
     setHoveredFaceId(null)
+    setIsCtrlDragging(false)
     setAssemblyDraggedAsset(null)
   }
 
@@ -315,7 +335,7 @@ export function FaceList({ faces, selectedId, onSelect, onChange, onAdd, onAssig
 
       {isAssetDragging && (
         <div className="fl-drag-hint-banner">
-          <span>💡 Kéo thả vào mặt để gán · Rê chuột và bấm <strong>Shift</strong> để gán nhanh</span>
+          <span>💡 Kéo vào mặt để gán · Giữ <strong>Shift</strong> & rê chuột để gán lần lượt · Giữ <strong>Ctrl</strong> & thả để gán tất cả</span>
         </div>
       )}
 
@@ -332,6 +352,7 @@ export function FaceList({ faces, selectedId, onSelect, onChange, onAdd, onAssig
               isDragOver={isAssetDragging && hoveredFaceId === f.id}
               isAssigned={isAssigned}
               isFlashing={flashFaceIds.has(f.id)}
+              isCtrlDragging={isCtrlDragging}
               onSelect={() => onSelect(f.id)}
               onAction={(a) => handleAction(f.id, a)}
               onDragEnter={(e) => handleDragEnter(f.id, e)}

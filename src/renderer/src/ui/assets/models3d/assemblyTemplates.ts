@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import type { Face3D } from './types'
-import { faceCornersThree, modelBounds, poseFromFrame, type Vec3 } from './assemblyGeometry'
+import { faceCornersThree, faceOutlineThree, faceMatrix, modelBounds, poseFromFrame, type Vec3 } from './assemblyGeometry'
+import { computeVertexBend } from './alphaMeshBuilder'
 import { ASSEMBLY_TEMPLATES, type AssemblyTemplate } from './assemblyTemplateData'
 
 export { ASSEMBLY_TEMPLATES, TEMPLATE_CATEGORIES } from './assemblyTemplateData'
@@ -103,8 +104,20 @@ export function templatePreview(template: AssemblyTemplate, size = 64): PreviewP
   const view = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(0.42, -0.62, 0, 'XYZ'))
   const light = new THREE.Vector3(0.4, 0.8, 0.45).normalize()
   const projected = faces.map((f) => {
-    const pts = faceCornersThree(f).map((p) => p.applyMatrix4(view))
-    const normal = new THREE.Vector3().subVectors(pts[1], pts[0]).cross(new THREE.Vector3().subVectors(pts[3], pts[0])).normalize()
+    const pts = faceOutlineThree(f).map((p) => p.applyMatrix4(view))
+    let worldNormal: THREE.Vector3
+    if (f.arcAngle || f.bendX || f.bendY || f.bendLateral || (f.taperRatio !== undefined && f.taperRatio < 1)) {
+      const b0 = computeVertexBend(0.5, 0.5, f.width, f.height, f.bendX, f.bendY, f.bendLateral, f.bendRegion, f.arcAngle, f.taperRatio)
+      const bu = computeVertexBend(0.55, 0.5, f.width, f.height, f.bendX, f.bendY, f.bendLateral, f.bendRegion, f.arcAngle, f.taperRatio)
+      const bv = computeVertexBend(0.5, 0.55, f.width, f.height, f.bendX, f.bendY, f.bendLateral, f.bendRegion, f.arcAngle, f.taperRatio)
+      const du = new THREE.Vector3(bu.x - b0.x, 0, bu.z - b0.z)
+      const dv = new THREE.Vector3(bv.x - b0.x, 0.05 * f.height, bv.z - b0.z)
+      const localNormal = new THREE.Vector3().crossVectors(du, dv).normalize()
+      worldNormal = localNormal.transformDirection(faceMatrix(f)).normalize()
+    } else {
+      worldNormal = new THREE.Vector3(0, 0, 1).transformDirection(faceMatrix(f)).normalize()
+    }
+    const normal = worldNormal.clone().transformDirection(view).normalize()
     const depth = pts.reduce((s, p) => s + p.z, 0) / pts.length
     return { pts, depth, shade: Math.abs(normal.dot(light)) }
   })

@@ -203,12 +203,31 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
 
   if (!isOpen) return null
 
-  const handleAssignAssetToFace = (assetPath: string, width?: number, height?: number) => {
+  const handleAssignAssetToFace = (assetPath: string, width?: number, height?: number, all = false) => {
+    if (all) {
+      setFaces(
+        (faces) =>
+          faces.map((f) => ({
+            ...f,
+            assetPath,
+            width: width && width > 0 ? width : f.width,
+            height: height && height > 0 ? height : f.height
+          })),
+        DISCRETE
+      )
+      return
+    }
     const targetId = selectedFaceId || model.faces[0]?.id
     if (!targetId) return
-    setFaces((faces) => faces.map((f) => (f.id === targetId
-      ? { ...f, assetPath, width: width && width > 0 ? width : f.width, height: height && height > 0 ? height : f.height }
-      : f)), DISCRETE)
+    setFaces(
+      (faces) =>
+        faces.map((f) =>
+          f.id === targetId
+            ? { ...f, assetPath, width: width && width > 0 ? width : f.width, height: height && height > 0 ? height : f.height }
+            : f
+        ),
+      DISCRETE
+    )
   }
 
   const handleUpdateFace = (faceId: string, updates: Partial<Face3D>) => {
