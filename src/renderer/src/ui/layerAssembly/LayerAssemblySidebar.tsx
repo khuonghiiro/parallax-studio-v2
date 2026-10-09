@@ -571,7 +571,7 @@ function AssetCard({
       }}
       title={`Click hoặc Kéo thả để thêm ${item.name} làm layer mới`}
     >
-      {/* 2 button ở góc phải của item: (+) Thêm layer và (Thùng rác) Xóa layer */}
+      {/* 2 button ở góc phải của item: (Thùng rác) Xóa layer nằm bên trái và (+) Thêm layer nằm bên phải */}
       <div
         style={{
           position: 'absolute',
@@ -584,7 +584,35 @@ function AssetCard({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Button (+) Thêm layer */}
+        {/* Button Thùng rác Xoá layer (nằm bên trái) */}
+        <button
+          type="button"
+          className="btn xs icon"
+          style={{
+            width: '18px',
+            height: '18px',
+            padding: 0,
+            background: 'var(--danger, #ef4444)',
+            color: '#fff',
+            borderRadius: '3px',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+            transition: 'transform 0.1s ease, filter 0.1s ease'
+          }}
+          onClick={(e) => {
+            e.stopPropagation()
+            onDelete(e)
+          }}
+          title={`Xóa ${item.name} khỏi danh sách có sẵn`}
+        >
+          <IconTrash width={10} height={10} />
+        </button>
+
+        {/* Button (+) Thêm layer (nằm bên phải) */}
         <button
           type="button"
           className="btn xs icon"
@@ -610,43 +638,6 @@ function AssetCard({
           title={`Thêm ${item.name} làm layer mới (+) vào cảnh`}
         >
           <IconPlus width={11} height={11} />
-        </button>
-
-        {/* Button Thùng rác Xoá layer */}
-        <button
-          type="button"
-          className="btn xs icon"
-          style={{
-            width: '18px',
-            height: '18px',
-            padding: 0,
-            background: 'color-mix(in srgb, var(--bg-0) 80%, transparent)',
-            color: 'var(--text-dim)',
-            borderRadius: '3px',
-            border: '1px solid var(--line-soft)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            backdropFilter: 'blur(4px)',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-            transition: 'color 0.15s ease, border-color 0.15s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'var(--danger, #ef4444)'
-            e.currentTarget.style.borderColor = 'var(--danger, #ef4444)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'var(--text-dim)'
-            e.currentTarget.style.borderColor = 'var(--line-soft)'
-          }}
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete(e)
-          }}
-          title={`Xóa ${item.name} khỏi danh sách có sẵn`}
-        >
-          <IconTrash width={10} height={10} />
         </button>
       </div>
 
