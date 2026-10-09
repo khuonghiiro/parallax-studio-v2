@@ -11,6 +11,7 @@ import { faceCornersThree, faceOutlineThree, modelBounds, toThree } from './asse
 import { resolveLightRig, resolveSkyAtmosphere } from './assemblyLighting'
 import { createLightRig, applyLightRig, disposeLightRig, type SceneLightRig } from './assemblySceneLighting'
 import { AssemblyGizmo } from './AssemblyGizmo'
+import { Assembly3DToolHUD, type Assembly3DActiveTool } from './meshEditor/Assembly3DToolHUD'
 import type { GizmoRect } from '../../../engine/layerGizmo'
 import { useView } from '../../../store/view'
 
@@ -28,6 +29,7 @@ interface AssemblyViewportProps {
   showAxes: boolean
   cameraPreset: 'front' | 'left' | 'right' | 'top' | 'iso'
   gizmoMode?: GizmoMode
+  onChangeGizmoMode?: (mode: GizmoMode) => void
   meshEditMode?: 'none' | 'erase' | 'select'
   /** Changing this number frames the selected face (or the whole model). */
   frameToken?: number
@@ -58,6 +60,7 @@ export function AssemblyViewport({
   showAxes,
   cameraPreset,
   gizmoMode = 'translate',
+  onChangeGizmoMode,
   meshEditMode = 'none',
   frameToken = 0,
   onSelectFace,
@@ -69,6 +72,7 @@ export function AssemblyViewport({
   onRegisterCapture,
   onRegisterCamera
 }: AssemblyViewportProps) {
+  const [active3DTool, setActive3DTool] = useState<Assembly3DActiveTool>('gizmo')
   const containerRef = useRef<HTMLDivElement | null>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
@@ -521,7 +525,14 @@ export function AssemblyViewport({
 
   const dragOverFace = dragOverFaceId ? model.faces.find((f) => f.id === dragOverFaceId) : null
   const selectedFace = model.faces.find((f) => f.id === selectedFaceId && !f.hidden) || null
-  const showGizmo = selectedFace && !selectedFace.locked && cameraRef.current && gizmoRect && meshEditMode === 'none' && gizmoMode !== 'off'
+  const showGizmo =
+    active3DTool === 'gizmo' &&
+    selectedFace &&
+    !selectedFace.locked &&
+    cameraRef.current &&
+    gizmoRect &&
+    meshEditMode === 'none' &&
+    gizmoMode !== 'off'
   const currentSky = resolveSkyAtmosphere(model.lighting, sceneTheme.isLight, sceneTheme.background)
 
   return (
@@ -541,6 +552,16 @@ export function AssemblyViewport({
       }}
       onContextMenu={(e) => e.preventDefault()}
     >
+      {/* Floating 3D Soft Deformation Tools Toolbar & Quick Mini HUD */}
+      <Assembly3DToolHUD
+        face={selectedFace || null}
+        activeTool={active3DTool}
+        onChangeTool={setActive3DTool}
+        onUpdateFace={onUpdateFaceRef.current || onUpdateFace || (() => {})}
+        gizmoMode={gizmoMode}
+        onChangeGizmoMode={(mode) => onChangeGizmoMode?.(mode)}
+      />
+
       {showGizmo && (
         <AssemblyGizmo
           key={selectedFace.id}

@@ -147,3 +147,233 @@
   border-color: var(--key) !important;
   color: var(--key) !important;
 }
+
+/* ==========================================================================
+   Assembly 3D Viewport Soft Tools Floating Toolbar & Quick Mini HUD
+   ========================================================================== */
+
+.assembly-3d-hud-container {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 80;
+  pointer-events: auto;
+  user-select: none;
+  max-width: 95%;
+}
+
+.assembly-3d-hud-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: color-mix(in srgb, var(--bg-1) 85%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.a3d-hud-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.a3d-hud-btn:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line-soft);
+}
+
+.a3d-hud-btn.active {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(38, 128, 235, 0.4);
+}
+
+.a3d-hud-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.a3d-hud-label {
+  line-height: 1;
+}
+
+/* Quick Mini HUD Bar */
+.assembly-3d-mini-hud {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background: color-mix(in srgb, var(--bg-2) 90%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  animation: hudFadeSlideIn 0.18s ease-out;
+}
+
+@keyframes hudFadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mini-hud-empty {
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+}
+
+.mini-hud-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mini-hud-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mini-hud-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.mini-hud-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.mini-hud-slider-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mini-hud-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 90px;
+  height: 4px;
+  background: var(--bg-4);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.mini-hud-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  border: 2px solid var(--bg-1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+.mini-hud-val {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  min-width: 32px;
+  text-align: right;
+  font-family: monospace;
+}
+
+.mini-hud-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mini-hud-chip {
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 500;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: var(--bg-3);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.mini-hud-chip:hover {
+  background: var(--bg-4);
+  border-color: var(--line-focus);
+}
+
+.mini-hud-chip.active {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+}
+
+.mini-hud-chip.btn-reset {
+  color: var(--text-dim);
+  border-style: dashed;
+}
+
+.mini-hud-chip.btn-reset:hover {
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.mini-hud-hint {
+  font-size: 10px;
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.mini-hud-close {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: all 0.12s ease;
+  line-height: 1;
+}
+
+.mini-hud-close:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}

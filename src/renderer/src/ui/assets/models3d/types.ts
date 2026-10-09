@@ -83,6 +83,8 @@ export interface Face3D {
    * và khi truyền ảnh vào, ảnh sẽ tự động ăn khớp theo viền mesh định sẵn này.
    */
   silhouettePolygon?: number[][]
+  /** Góc xoắn vặn mặt phẳng quanh trục (twist angle in degrees, -180° đến 180°) */
+  twistAngle?: number
 }
 
 export type SunPreset = 'auto' | 'morning' | 'noon' | 'sunset' | 'overcast' | 'night'

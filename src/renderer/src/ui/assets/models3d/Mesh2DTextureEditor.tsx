@@ -3,6 +3,7 @@ import { faceGridSize, formatFaceLabel, type Face3D } from './types'
 import type { ResolvedTexture } from './textureResolver'
 import { getImageSilhouette, silhouetteFromPolygon } from './silhouette'
 import { buildEditorCells, type EditorCell } from './mesh2dCells'
+import { hasFaceDeformation, generateDeformedFramePath } from './mesh2dDeform'
 import { Mesh2DHorizontalBar, type ContextTab } from './Mesh2DHorizontalBar'
 import { Mesh2DVerticalPalette, type EditorTool } from './Mesh2DVerticalPalette'
 import { IconEye, IconEyeOff } from '../../icons'
@@ -27,6 +28,8 @@ export function Mesh2DTextureEditor({
   const [internalShowMesh, setInternalShowMesh] = useState(true)
   const showMesh = showMeshProp ?? internalShowMesh
   const handleToggleMesh = onToggleMesh ?? (() => setInternalShowMesh((v) => !v))
+  const [sync3DDeform, setSync3DDeform] = useState(true)
+  const isDeformed = sync3DDeform && hasFaceDeformation(face)
   const canvasWrapperRef = useRef<HTMLDivElement | null>(null)
   const imagePlaneRef = useRef<HTMLDivElement | null>(null)
   const [tool, setTool] = useState<EditorTool>('bbox-select')
@@ -89,9 +92,10 @@ export function Mesh2DTextureEditor({
     () =>
       buildEditorCells({
         cols, rows, imgW, imgH, silhouette, rotation, autoTrim: !isManual,
-        hidden: hiddenCells, selected: selectedCells, pinned: pinnedCells
+        hidden: hiddenCells, selected: selectedCells, pinned: pinnedCells,
+        deformFace: isDeformed ? face : null
       }),
-    [cols, rows, rotation, isManual, silhouette, hiddenCells, selectedCells, pinnedCells, imgW, imgH]
+    [cols, rows, rotation, isManual, silhouette, hiddenCells, selectedCells, pinnedCells, imgW, imgH, isDeformed, face]
   )
 
   // Convert client cursor coords to Image (0..imgW, 0..imgH) coordinates with 100% precision
@@ -405,13 +409,10 @@ export function Mesh2DTextureEditor({
                       )
                     }
                     return (
-                      <rect
+                      <polygon
                         key={cell.key}
                         className={cls}
-                        x={cell.corners[0][0]}
-                        y={cell.corners[0][1]}
-                        width={cell.corners[1][0] - cell.corners[0][0]}
-                        height={cell.corners[2][1] - cell.corners[0][1]}
+                        points={cell.corners.map((p) => `${p[0]},${p[1]}`).join(' ')}
                         vectorEffect="non-scaling-stroke"
                       />
                     )
@@ -431,16 +432,24 @@ export function Mesh2DTextureEditor({
                     )
                   })}
 
-                  {/* Bounding Frame Outline */}
-                  <rect
-                    className="m2d-frame"
-                    x={0}
-                    y={0}
-                    width={imgW}
-                    height={imgH}
-                    vectorEffect="non-scaling-stroke"
-                    strokeDasharray={rotation !== 0 ? '6 4' : 'none'}
-                  />
+                  {/* Bounding Frame Outline (Deformed to mirror 3D bend) */}
+                  {isDeformed ? (
+                    <path
+                      className="m2d-frame is-deformed"
+                      d={generateDeformedFramePath(imgW, imgH, face)}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  ) : (
+                    <rect
+                      className="m2d-frame"
+                      x={0}
+                      y={0}
+                      width={imgW}
+                      height={imgH}
+                      vectorEffect="non-scaling-stroke"
+                      strokeDasharray={rotation !== 0 ? '6 4' : 'none'}
+                    />
+                  )}
                 </>
               )}
 
@@ -530,6 +539,21 @@ export function Mesh2DTextureEditor({
                 {showMesh ? <IconEye size={12} /> : <IconEyeOff size={12} />}
                 <span>{showMesh ? 'Lưới' : 'Ẩn'}</span>
               </button>
+
+              {hasFaceDeformation(face) && (
+                <button
+                  type="button"
+                  className={`mesh2d-tool-btn${sync3DDeform ? ' active' : ''}`}
+                  onClick={() => setSync3DDeform((v) => !v)}
+                  title={
+                    sync3DDeform
+                      ? 'Đang đồng bộ hình dáng uốn 3D sang lưới 2D (Bấm để xem lưới phẳng UV)'
+                      : 'Bấm để bật đồng bộ hình dáng uốn 3D sang lưới 2D'
+                  }
+                >
+                  <span>{sync3DDeform ? '🌊 Lưới uốn 3D' : '📐 Lưới phẳng UV'}</span>
+                </button>
+              )}
 
               {selectedCells.size > 0 ? (
                 <button

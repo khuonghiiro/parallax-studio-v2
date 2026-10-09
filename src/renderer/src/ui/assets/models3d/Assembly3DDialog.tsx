@@ -268,6 +268,7 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
       showAxes={view.showAxes}
       cameraPreset={view.cameraPreset}
       gizmoMode={view.gizmoMode}
+      onChangeGizmoMode={(mode) => onViewChange({ gizmoMode: mode })}
       meshEditMode={view.meshEditMode}
       frameToken={frameToken}
       onSelectFace={setSelectedFaceId}

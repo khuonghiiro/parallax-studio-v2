@@ -46,6 +46,12 @@
   stroke-width: 1.5;
 }
 
+.m2d-frame.is-deformed {
+  stroke: var(--accent-cyan);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 3px rgba(56, 189, 248, 0.4));
+}
+
 .m2d-marquee {
   fill: color-mix(in srgb, var(--key) 22%, transparent);
   stroke: var(--key);
