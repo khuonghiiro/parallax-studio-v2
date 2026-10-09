@@ -15,7 +15,7 @@ export function WorkshopWorkspace({ state, playback, view }: {
     <div className="layer-workshop-split-container">
       {view !== '3d' && <div className="layer-workshop-split-pane left-pane">
         <div className="pane-header-tab"><span className="pane-title"><IconImage width={13} height={13} /> Bố cục 2D</span><span>Di chuyển & căn chỉnh</span></div>
-        <LayerAssemblyViewport {...props} isPlaying={playback.isPlaying} onTogglePlay={playback.toggle} onSeekTime={playback.setTime} hideTransport />
+        <LayerAssemblyViewport {...props} onChangeComposite={state.setComposite} isPlaying={playback.isPlaying} onTogglePlay={playback.toggle} onSeekTime={playback.setTime} hideTransport />
       </div>}
       {view !== '2d' && <div className="layer-workshop-split-pane">
         <div className="pane-header-tab"><span className="pane-title"><IconCube width={13} height={13} /> Chiều sâu 3D</span><span>Xoay để kiểm tra lớp</span></div>

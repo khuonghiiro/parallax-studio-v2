@@ -1,9 +1,15 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import type { LayerComposite, AssembledLayerItem } from './types'
 import { useLayerAssetImage } from './useLayerAssetImage'
 import { computeLayerMotion } from './layerAssemblyMotion'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
 import { IconLayers, IconImage } from '../icons'
+import { useView } from '../../store/view'
+import { computeLayer2DLighting, computeCanvasAtmosphere } from './layerAssembly2DLighting'
+import { LightingControlPopover } from './LightingControlPopover'
+import type { AssemblyLighting } from '../assets/models3d/types'
+import { DEFAULT_LIGHTING } from '../assets/models3d/assemblyLighting'
 
 export interface LayerAssemblyViewportProps {
   composite: LayerComposite
@@ -11,6 +17,7 @@ export interface LayerAssemblyViewportProps {
   selectedIds?: string[]
   onSelectLayer: (id: string | null, additive?: boolean) => void
   onUpdateLayer: (id: string, patch: Partial<AssembledLayerItem>) => void
+  onChangeComposite?: (update: LayerComposite | ((prev: LayerComposite) => LayerComposite)) => void
   isPlaying: boolean
   onTogglePlay: () => void
   time: number
@@ -24,6 +31,7 @@ export function LayerAssemblyViewport({
   selectedIds,
   onSelectLayer,
   onUpdateLayer,
+  onChangeComposite,
   isPlaying,
   onTogglePlay,
   time,
@@ -37,6 +45,32 @@ export function LayerAssemblyViewport({
   const [isDraggingLayer, setIsDraggingLayer] = useState(false)
   const [show3DPerspective, setShow3DPerspective] = useState(true)
   const [clipToCamera, setClipToCamera] = useState(true)
+  const theme = useView((s) => s.theme)
+  const isLight = theme === 'light'
+  const [isLightingOpen, setIsLightingOpen] = useState(false)
+  const lightingBtnRef = useRef<HTMLButtonElement | null>(null)
+
+  const maxZ = useMemo(() => {
+    if (composite.layers.length === 0) return 0
+    return Math.max(0, ...composite.layers.map((l) => l.z || 0))
+  }, [composite.layers])
+
+  const atmosphere = useMemo(() => {
+    return computeCanvasAtmosphere(composite.lighting, isLight)
+  }, [composite.lighting, isLight])
+
+  const handleUpdateLighting = useCallback(
+    (newLighting: AssemblyLighting) => {
+      if (onChangeComposite) {
+        onChangeComposite((prev) => ({
+          ...prev,
+          lighting: newLighting
+        }))
+      }
+    },
+    [onChangeComposite]
+  )
+
   const dragStartRef = useRef<{
     mouseX: number
     mouseY: number
@@ -200,9 +234,11 @@ export function LayerAssemblyViewport({
           height: `${composite.height}px`,
           transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
           transformOrigin: 'center center',
-          background: 'var(--bg-1)',
-          backgroundImage:
-            'linear-gradient(45deg, var(--bg-2) 25%, transparent 25%), linear-gradient(-45deg, var(--bg-2) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--bg-2) 75%), linear-gradient(-45deg, transparent 75%, var(--bg-2) 75%)',
+          background: atmosphere.background,
+          transition: 'background 0.35s ease',
+          backgroundImage: atmosphere.isDarkScene
+            ? 'linear-gradient(45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%), linear-gradient(-45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.04) 75%), linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.04) 75%)'
+            : 'linear-gradient(45deg, rgba(0, 0, 0, 0.04) 25%, transparent 25%), linear-gradient(-45deg, rgba(0, 0, 0, 0.04) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(0, 0, 0, 0.04) 75%), linear-gradient(-45deg, transparent 75%, rgba(0, 0, 0, 0.04) 75%)',
           backgroundSize: '16px 16px',
           backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px',
           border: '2px solid var(--accent)',
@@ -248,6 +284,8 @@ export function LayerAssemblyViewport({
               layer={layer}
               isSelected={isSelected}
               time={time}
+              maxZ={maxZ}
+              lighting={composite.lighting}
               show3DPerspective={show3DPerspective}
               onPointerDown={(e) => handleStartDragLayer(e, layer)}
             />
@@ -337,7 +375,52 @@ export function LayerAssemblyViewport({
         >
           {clipToCamera ? '✂ Cắt khung' : '👁 Tràn viền'}
         </button>
+
+        {/* Nút bật popup Hướng sáng & Đổ bóng ngày đêm ngay tại thanh công cụ 2D */}
+        {onChangeComposite && (
+          <button
+            ref={lightingBtnRef}
+            type="button"
+            className={`btn xs${isLightingOpen ? ' active' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation()
+              setIsLightingOpen((v) => !v)
+            }}
+            title={`Hệ thống chiếu sáng: ${atmosphere.label} (Bấm để chỉnh góc nắng & đổ bóng 2D / 3D)`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontWeight: 500
+            }}
+          >
+            <span>{atmosphere.icon}</span>
+            <span>{atmosphere.label}</span>
+          </button>
+        )}
       </div>
+
+      {/* Popover Hướng sáng & Đổ bóng cho 2D viewport */}
+      {isLightingOpen &&
+        onChangeComposite &&
+        createPortal(
+          <LightingControlPopover
+            style={{
+              position: 'fixed',
+              left: lightingBtnRef.current
+                ? Math.max(10, Math.min(window.innerWidth - 300, lightingBtnRef.current.getBoundingClientRect().left))
+                : 20,
+              top: lightingBtnRef.current
+                ? Math.min(window.innerHeight - 480, lightingBtnRef.current.getBoundingClientRect().bottom + 6)
+                : 40,
+              zIndex: 30000
+            }}
+            lighting={composite.lighting || DEFAULT_LIGHTING}
+            onChangeLighting={handleUpdateLighting}
+            onClose={() => setIsLightingOpen(false)}
+          />,
+          document.body
+        )}
 
       {/* Floating 2D Hint */}
       <div
@@ -377,6 +460,8 @@ interface AssembledLayerItemViewProps {
   layer: AssembledLayerItem
   isSelected: boolean
   time: number
+  maxZ: number
+  lighting?: AssemblyLighting
   show3DPerspective?: boolean
   onPointerDown: (e: React.PointerEvent) => void
 }
@@ -385,10 +470,17 @@ function AssembledLayerItemView({
   layer,
   isSelected,
   time,
+  maxZ,
+  lighting,
   show3DPerspective = true,
   onPointerDown
 }: AssembledLayerItemViewProps) {
   const imageUrl = useLayerAssetImage(layer.assetPath, layer.imageUrl)
+
+  // Tính hiệu ứng hướng nắng, bóng đổ theo chiều sâu Z và màu sắc hấp thụ ánh sáng ngày/đêm
+  const lightingResult = useMemo(() => {
+    return computeLayer2DLighting(layer, maxZ, lighting)
+  }, [layer, maxZ, lighting])
 
   // Tính chuyển động hoạt ảnh theo thời gian mượt mà
   const {
@@ -464,7 +556,7 @@ function AssembledLayerItemView({
               imageRendering: '-webkit-optimize-contrast',
               transform: 'translateZ(0)',
               backfaceVisibility: 'hidden',
-              filter: `drop-shadow(0 4px 10px rgba(0, 0, 0, ${Math.min(0.6, Math.max(0.1, (layer.z + 50) / 150))}))`
+              filter: lightingResult.combinedFilter
             }}
             draggable={false}
           />
@@ -481,7 +573,8 @@ function AssembledLayerItemView({
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '11px',
-              color: 'var(--text)'
+              color: 'var(--text)',
+              filter: lightingResult.dropShadowFilter || undefined
             }}
           >
             <span>{layer.name}</span>
