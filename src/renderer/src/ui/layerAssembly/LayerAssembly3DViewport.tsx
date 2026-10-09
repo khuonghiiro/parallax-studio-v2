@@ -35,9 +35,17 @@ import {
   resetLayerWorkshopViewPrefs
 } from './layerAssemblyViewPrefs'
 import {
-  findLayerMeshHit,
-  createLayerDragPlane
-} from './layerAssembly3DDirectDrag'
+  create3DBonesGroup,
+  update3DBonesGroup,
+  dispose3DBonesGroup
+} from './layerAssembly3DBones'
+import {
+  handle3DPointerDown,
+  handle3DPointerMove,
+  handle3DPointerUp,
+  type LayerDragState
+} from './layerAssembly3DPointer'
+import { evaluateRig } from '../../engine/layerRig'
 import {
   applyCameraPreset,
   applyQuickAngle,
@@ -62,6 +70,8 @@ export interface LayerAssembly3DViewportProps {
   onAddLayerFromAsset?: (name: string, path: string, url?: string, pos?: { x: number; y: number }) => void
   onAppendPresetLayers?: (layers: AssembledLayerItem[], offset?: { x: number; y: number }) => void
   time: number
+  showBones?: boolean
+  onToggleShowBones?: () => void
 }
 
 export function LayerAssembly3DViewport({
@@ -73,7 +83,9 @@ export function LayerAssembly3DViewport({
   onChangeComposite,
   onAddLayerFromAsset,
   onAppendPresetLayers,
-  time
+  time,
+  showBones = true,
+  onToggleShowBones
 }: LayerAssembly3DViewportProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -89,6 +101,7 @@ export function LayerAssembly3DViewport({
   const frustumHelperRef = useRef<THREE.LineSegments | null>(null)
   const depthGuideRef = useRef<THREE.Line | null>(null)
   const targetMarkerRef = useRef<THREE.Group | null>(null)
+  const bonesGroupRef = useRef<THREE.Group | null>(null)
 
   // Mesh instances map
   const meshInstancesRef = useRef<Map<string, Layer3DMeshInstance>>(new Map())
@@ -183,17 +196,7 @@ export function LayerAssembly3DViewport({
   const isDraggingRef = useRef(false)
   const dragModeRef = useRef<'orbit' | 'pan' | 'layer'>('orbit')
   const dragStartRef = useRef({ mouseX: 0, mouseY: 0, moved: false })
-  const layerDragStateRef = useRef<{
-    layerId: string
-    startHitPoint: THREE.Vector3
-    dragPlane: THREE.Plane
-    instance: Layer3DMeshInstance
-    startLayerX: number
-    startLayerY: number
-    startLayerZ: number
-    rotationX: number
-    rotationY: number
-  } | null>(null)
+  const layerDragStateRef = useRef<LayerDragState | null>(null)
 
   const rafRef = useRef<number>(0)
 
@@ -266,6 +269,11 @@ export function LayerAssembly3DViewport({
     const targetMarker = createTargetMarkerMesh()
     scene.add(targetMarker)
     targetMarkerRef.current = targetMarker
+
+    // 🦴 Khung xương 3D (Blender 3D Armature & Joints)
+    const bonesGroup = create3DBonesGroup()
+    scene.add(bonesGroup)
+    bonesGroupRef.current = bonesGroup
 
     setGizmoRect({ x: 0, y: 0, w: width, h: height })
 
@@ -343,6 +351,10 @@ export function LayerAssembly3DViewport({
       if (targetMarkerRef.current) {
         scene.remove(targetMarkerRef.current)
         targetMarkerRef.current = null
+      }
+      if (bonesGroupRef.current) {
+        dispose3DBonesGroup(bonesGroupRef.current)
+        bonesGroupRef.current = null
       }
       meshInstancesRef.current.clear()
     }
@@ -443,6 +455,24 @@ export function LayerAssembly3DViewport({
     })
   }, [composite.layers, time, zExaggeration, selectedLayerId, selectedIds, requestRender, renderTrigger, cameraClippingPlanes])
 
+  // ------------------------------------------------------------- Đồng bộ hóa Khung xương 3D
+  useEffect(() => {
+    const bonesGroup = bonesGroupRef.current
+    if (!bonesGroup) return
+    const rig = composite.rig
+    const transforms = rig ? evaluateRig(rig, time) : undefined
+    update3DBonesGroup({
+      group: bonesGroup,
+      rig,
+      transforms,
+      layers: composite.layers,
+      selectedBoneId: null,
+      zExaggeration,
+      visible: showBones ?? true
+    })
+    requestRender()
+  }, [composite.rig, composite.layers, time, zExaggeration, showBones, requestRender])
+
   // Native non-passive wheel listener để Chromium không chặn zoom
   useEffect(() => {
     const container = containerRef.current
@@ -464,214 +494,33 @@ export function LayerAssembly3DViewport({
     }
   }, [])
 
-  // ------------------------------------------------------------- 7. Tương tác Chuột / Pointer
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (isDraggingGizmoRef.current) return
-    const container = containerRef.current
-    if (!container) return
+  // ------------------------------------------------------------- 7. Tương tác Chuột / Pointer (Ủy thác qua layerAssembly3DPointer)
+  const getPointerDeps = () => ({
+    container: containerRef.current,
+    camera: cameraRef.current,
+    meshInstances: meshInstancesRef.current,
+    composite,
+    isDraggingGizmoRef,
+    isDraggingRef,
+    dragModeRef,
+    dragStartRef,
+    layerDragStateRef,
+    orbitRef,
+    cameraPresetRef,
+    zExaggeration,
+    onSelectLayer,
+    onUpdateLayer,
+    setCameraPreset,
+    setCameraYaw,
+    setCameraPitch,
+    setCameraTarget,
+    setCameraPosition,
+    requestRender
+  })
 
-    // Chỉ nhận tương tác camera khi click trực tiếp vào canvas hoặc container viewport
-    const target = e.target as HTMLElement
-    if (target.tagName.toLowerCase() !== 'canvas' && target !== container) {
-      return
-    }
-
-    // Nếu bấm chuột trái (button === 0) và không giữ Alt / Shift:
-    // Kiểm tra xem có bấm trúng một Layer Mesh không để kéo rê layer trực tiếp trên mặt phẳng của nó!
-    if (e.button === 0 && !e.altKey && !e.shiftKey && cameraRef.current) {
-      const rect = container.getBoundingClientRect()
-      const mouse = new THREE.Vector2(
-        ((e.clientX - rect.left) / rect.width) * 2 - 1,
-        -((e.clientY - rect.top) / rect.height) * 2 + 1
-      )
-      const raycaster = new THREE.Raycaster()
-      raycaster.setFromCamera(mouse, cameraRef.current)
-      const hit = findLayerMeshHit(raycaster, meshInstancesRef.current)
-
-      if (hit) {
-        const isAdditive = e.ctrlKey || e.metaKey
-        if (isAdditive) {
-          onSelectLayer(hit.layerId, true)
-          return
-        }
-        onSelectLayer(hit.layerId, false)
-        const hitLayer = composite.layers.find((l) => l.id === hit.layerId)
-        if (hitLayer && !hitLayer.locked && onUpdateLayer) {
-          const plane = createLayerDragPlane(hit.instance, cameraRef.current, hit.point)
-          layerDragStateRef.current = {
-            layerId: hit.layerId,
-            startHitPoint: hit.point.clone(),
-            dragPlane: plane,
-            instance: hit.instance,
-            startLayerX: hitLayer.x,
-            startLayerY: hitLayer.y,
-            startLayerZ: hitLayer.z,
-            rotationX: hitLayer.rotationX || 0,
-            rotationY: hitLayer.rotationY || 0
-          }
-          dragModeRef.current = 'layer'
-          isDraggingRef.current = true
-          dragStartRef.current = {
-            mouseX: e.clientX,
-            mouseY: e.clientY,
-            moved: false
-          }
-          ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
-          return
-        }
-      }
-    }
-
-    // Chuột phải (button 2), Chuột giữa (button 1) hoặc giữ Shift -> Pan dịch chuyển góc nhìn
-    if (e.button === 2 || e.button === 1 || e.shiftKey) {
-      dragModeRef.current = 'pan'
-    } else {
-      dragModeRef.current = 'orbit'
-    }
-
-    isDraggingRef.current = true
-    dragStartRef.current = {
-      mouseX: e.clientX,
-      mouseY: e.clientY,
-      moved: false
-    }
-    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
-  }
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDraggingRef.current) return
-
-    if (dragModeRef.current === 'layer' && layerDragStateRef.current && cameraRef.current && containerRef.current) {
-      const s = layerDragStateRef.current
-      const rect = containerRef.current.getBoundingClientRect()
-      const mouse = new THREE.Vector2(
-        ((e.clientX - rect.left) / rect.width) * 2 - 1,
-        -((e.clientY - rect.top) / rect.height) * 2 + 1
-      )
-      const raycaster = new THREE.Raycaster()
-      raycaster.setFromCamera(mouse, cameraRef.current)
-
-      const currentHit = new THREE.Vector3()
-      if (raycaster.ray.intersectPlane(s.dragPlane, currentHit)) {
-        const worldDelta = currentHit.clone().sub(s.startHitPoint)
-        const patch: Partial<AssembledLayerItem> = {
-          x: Math.round(s.startLayerX + worldDelta.x),
-          y: Math.round(s.startLayerY - worldDelta.y)
-        }
-        if ((s.rotationX !== 0 || s.rotationY !== 0) && zExaggeration > 0.001) {
-          const deltaZ = -worldDelta.z / zExaggeration
-          patch.z = Math.round(s.startLayerZ + deltaZ)
-        }
-        onUpdateLayer?.(s.layerId, patch)
-        requestRender()
-      }
-      return
-    }
-
-    const dx = e.clientX - dragStartRef.current.mouseX
-    const dy = e.clientY - dragStartRef.current.mouseY
-
-    if (Math.hypot(dx, dy) > 3) {
-      dragStartRef.current.moved = true
-    }
-
-    dragStartRef.current.mouseX = e.clientX
-    dragStartRef.current.mouseY = e.clientY
-
-    const o = orbitRef.current
-
-    if (dragModeRef.current === 'orbit') {
-      // Xoay tự do Orbit 360 độ (kéo chuột lên -> nhìn xuống, kéo chuột xuống -> nhìn lên)
-      o.azimuth -= dx * 0.007
-      o.elevation = Math.max(-Math.PI / 2 + 0.02, Math.min(Math.PI / 2 - 0.02, o.elevation - dy * 0.007))
-      setCameraPreset('orbit')
-      cameraPresetRef.current = 'orbit'
-    } else {
-      // Pan dịch chuyển target trong không gian 3D
-      const factor = (o.distance / 1000) * 1.2
-      const camera = cameraRef.current
-      if (camera) {
-        const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0)
-        const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1)
-        o.target.addScaledVector(right, -dx * factor).addScaledVector(up, dy * factor)
-      }
-    }
-  }
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (isDraggingGizmoRef.current) return
-    if (!isDraggingRef.current) return
-    isDraggingRef.current = false
-
-    try {
-      ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
-    } catch {}
-
-    if (dragModeRef.current === 'layer') {
-      layerDragStateRef.current = null
-      dragModeRef.current = 'orbit'
-      return
-    }
-
-    // Cập nhật vị trí và góc quay camera cho panel điều khiển
-    const o = orbitRef.current
-    const cam = cameraRef.current
-    if (cam) {
-      setCameraPosition({
-        x: Math.round(cam.position.x),
-        y: Math.round(cam.position.y),
-        z: Math.round(cam.position.z)
-      })
-    }
-    let yawDeg = Math.round((o.azimuth * 180) / Math.PI) % 360
-    if (yawDeg > 180) yawDeg -= 360
-    if (yawDeg < -180) yawDeg += 360
-    setCameraYaw(yawDeg)
-    setCameraPitch(Math.round((o.elevation * 180) / Math.PI))
-    setCameraTarget({
-      x: Math.round(o.target.x),
-      y: Math.round(o.target.y),
-      z: Math.round(o.target.z)
-    })
-
-    // Nếu chỉ click chuột (không rê chuột) -> Raycast chọn Layer
-    if (!dragStartRef.current.moved && dragModeRef.current === 'orbit') {
-      handleRaycastSelect(e)
-    }
-  }
-
-  // Bắn tia Raycast để chọn layer trong 3D
-  const handleRaycastSelect = (e: React.PointerEvent) => {
-    const container = containerRef.current
-    const camera = cameraRef.current
-    if (!container || !camera) return
-
-    const rect = container.getBoundingClientRect()
-    const mouse = new THREE.Vector2(
-      ((e.clientX - rect.left) / rect.width) * 2 - 1,
-      -((e.clientY - rect.top) / rect.height) * 2 + 1
-    )
-
-    const raycaster = new THREE.Raycaster()
-    raycaster.setFromCamera(mouse, camera)
-
-    const meshes: THREE.Mesh[] = []
-    for (const inst of meshInstancesRef.current.values()) {
-      if (inst.group.visible) meshes.push(inst.mesh)
-    }
-
-    const isAdditive = e.ctrlKey || e.metaKey || e.shiftKey
-    const intersects = raycaster.intersectObjects(meshes, false)
-    if (intersects.length > 0) {
-      const hit = intersects[0]
-      const hitLayerId = hit.object.userData?.layerId
-      if (hitLayerId) {
-        onSelectLayer(hitLayerId, isAdditive)
-        return
-      }
-    }
-    onSelectLayer(null, false)
-  }
+  const handlePointerDown = (e: React.PointerEvent) => handle3DPointerDown(e, getPointerDeps())
+  const handlePointerMove = (e: React.PointerEvent) => handle3DPointerMove(e, getPointerDeps())
+  const handlePointerUp = (e: React.PointerEvent) => handle3DPointerUp(e, getPointerDeps())
 
   // ------------------------------------------------------------- 8. Camera Controls & Quick Angles
   // Xử lý thay đổi tầm nhìn (FOV)
@@ -965,6 +814,8 @@ export function LayerAssembly3DViewport({
         lighting={lighting}
         onChangeLighting={handleUpdateLighting}
         onResetAllPrefs={handleResetAllPrefs}
+        showBones={showBones}
+        onToggleShowBones={onToggleShowBones}
       />
 
       {/* Floating Bottom Right Hint - góc phải thoáng đãng, không đè lên Transport Bar */}

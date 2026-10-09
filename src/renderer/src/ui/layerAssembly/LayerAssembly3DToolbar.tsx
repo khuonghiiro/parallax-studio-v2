@@ -48,6 +48,8 @@ export interface LayerAssembly3DToolbarProps {
   lighting: AssemblyLighting
   onChangeLighting: (lighting: AssemblyLighting) => void
   onResetAllPrefs?: () => void
+  showBones?: boolean
+  onToggleShowBones?: () => void
 }
 
 interface TooltipInfo {
@@ -182,7 +184,9 @@ export function LayerAssembly3DToolbar({
   selectedLayerName,
   lighting,
   onChangeLighting,
-  onResetAllPrefs
+  onResetAllPrefs,
+  showBones = true,
+  onToggleShowBones
 }: LayerAssembly3DToolbarProps) {
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null)
   const [isAnglesOpen, setIsAnglesOpen] = useState(false)
@@ -366,6 +370,16 @@ export function LayerAssembly3DToolbar({
           sub: '3D Grid & Trục',
           desc: 'Bật hoặc ẩn lưới sàn 3D và các trục tọa độ không gian tham chiếu.',
           tip: '👁 Hỗ trợ định vị vị trí các layer'
+        }
+        break
+      case 'bones':
+        def = {
+          title: 'Khung xương Blender 3D',
+          tag: showBones ? 'Đang hiện' : 'Đang ẩn',
+          tagType: showBones ? 'cyan' : 'amber',
+          sub: '3D Skeleton & Joints',
+          desc: 'Bật/tắt hiển thị toàn bộ khớp nối (head/tail) và thân xương 3D theo biến đổi thời gian thực.',
+          tip: '🦴 Bấm để bật/tắt hiển thị xương 3D'
         }
         break
       case 'clip':
@@ -595,6 +609,22 @@ export function LayerAssembly3DToolbar({
         >
           <IconEye width={15} height={15} />
         </button>
+
+        {onToggleShowBones && (
+          <button
+            type="button"
+            className={`layer-3d-dock-btn${showBones ? ' active' : ''}`}
+            onClick={() => {
+              onToggleShowBones()
+              hideTooltip()
+            }}
+            onMouseEnter={(e) => showTooltip(e, 'bones')}
+            onMouseLeave={hideTooltip}
+            aria-label="Bật/Tắt hiển thị khung xương 3D"
+          >
+            <span style={{ fontSize: '13px' }}>🦴</span>
+          </button>
+        )}
 
         <button
           type="button"

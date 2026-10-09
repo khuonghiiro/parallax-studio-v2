@@ -208,13 +208,19 @@ function getTextureDimensions(texture: THREE.Texture | null): { width: number; h
 function computePlaneDimensions(texture: THREE.Texture | null, maxDim = 380): { w: number; h: number } {
   const dims = getTextureDimensions(texture)
   if (dims) {
-    const aspect = dims.width / dims.height
+    const origW = dims.width
+    const origH = dims.height
+    // Khớp 100% với 2D: Nếu kích thước ảnh nhỏ hơn hoặc bằng maxDim, giữ nguyên kích thước tự nhiên
+    if (origW <= maxDim && origH <= maxDim) {
+      return { w: origW, h: origH }
+    }
+    const aspect = origW / origH
     if (aspect >= 1) {
       return { w: maxDim, h: Math.round(maxDim / aspect) }
     }
     return { w: Math.round(maxDim * aspect), h: maxDim }
   }
-  return { w: 380, h: 380 }
+  return { w: 130, h: 130 }
 }
 
 /**
@@ -373,15 +379,16 @@ export function updateLayer3DInstance(
   const halfW = meshW / 2
   const halfH = meshH / 2
 
+  const anchor = layer.boneId ? 'center' : layer.motion.anchor
   let ax = 0
   let ay = 0
-  if (layer.motion.anchor === 'bottom') {
+  if (anchor === 'bottom') {
     ay = -halfH
-  } else if (layer.motion.anchor === 'top') {
+  } else if (anchor === 'top') {
     ay = halfH
-  } else if (layer.motion.anchor === 'left') {
+  } else if (anchor === 'left') {
     ax = -halfW
-  } else if (layer.motion.anchor === 'right') {
+  } else if (anchor === 'right') {
     ax = halfW
   }
 

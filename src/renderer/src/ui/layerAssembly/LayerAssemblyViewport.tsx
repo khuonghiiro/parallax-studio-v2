@@ -36,6 +36,8 @@ export interface LayerAssemblyViewportProps {
   time: number
   onSeekTime: (t: number) => void
   hideTransport?: boolean
+  showBones?: boolean
+  onToggleShowBones?: () => void
 }
 
 export function LayerAssemblyViewport({
@@ -52,7 +54,9 @@ export function LayerAssemblyViewport({
   time,
   onSeekTime,
   hideTransport = false,
-  boneOverlay
+  boneOverlay,
+  showBones = true,
+  onToggleShowBones
 }: LayerAssemblyViewportProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [zoom, setZoom] = useState(1.0)
@@ -367,7 +371,7 @@ export function LayerAssemblyViewport({
           transformStyle: 'preserve-3d'
         }}
       >
-        {boneOverlay && <WorkshopBoneOverlay {...boneOverlay} />}
+        {boneOverlay && showBones && <WorkshopBoneOverlay {...boneOverlay} />}
         {/* Canvas Center Reference Crosshairs */}
         <div
           style={{
@@ -533,6 +537,28 @@ export function LayerAssemblyViewport({
           <IconBoundingBox width={12} height={12} />
           <span>{showBbox ? 'BBox' : 'BBox Tắt'}</span>
         </button>
+
+        {/* Nút bật/tắt hiển thị khung xương Blender 2D */}
+        {composite.rig?.bones?.length ? (
+          <button
+            type="button"
+            className={`btn xs${showBones ? ' active' : ''}`}
+            onClick={onToggleShowBones}
+            title={
+              showBones
+                ? 'Đang bật hiển thị khung xương Blender (Bấm để ẩn)'
+                : 'Đang tắt hiển thị khung xương Blender (Bấm để hiện)'
+            }
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            <span>🦴</span>
+            <span>{showBones ? 'Xương' : 'Ẩn xương'}</span>
+          </button>
+        ) : null}
 
         {/* Nút bật popup Hướng sáng & Đổ bóng ngày đêm ngay tại thanh công cụ 2D */}
         {onChangeComposite && (
