@@ -377,3 +377,142 @@
   background: var(--bg-3);
   color: var(--text);
 }
+
+/* ==========================================================================
+   Assembly 3D Vertical Palette & Top Quick Popup
+   ========================================================================== */
+
+.assembly-3d-vertical-palette {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px;
+  width: 44px;
+  background: color-mix(in srgb, var(--bg-1) 88%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  z-index: 50;
+  user-select: none;
+}
+
+.a3d-v-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.assembly-3d-top-popup {
+  position: absolute;
+  top: 10px;
+  left: 62px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: color-mix(in srgb, var(--bg-1) 92%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  z-index: 55;
+  animation: topPopupFadeSlide 0.16s ease-out;
+  max-width: calc(100% - 80px);
+}
+
+@keyframes topPopupFadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.top-popup-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.top-popup-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.top-popup-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.top-popup-val {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  min-width: 28px;
+  text-align: right;
+  font-family: monospace;
+}
+
+.top-popup-hint {
+  font-size: 10px;
+  color: var(--text-faint);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.top-popup-close {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: all 0.12s ease;
+  margin-left: 4px;
+  line-height: 1;
+}
+
+.top-popup-close:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+
+/* Brush Circle Cursor Overlay in 3D Viewport */
+.assembly-3d-brush-cursor {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 8%, transparent);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4), inset 0 0 4px rgba(56, 189, 248, 0.2);
+  transform: translate(-50%, -50%);
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.assembly-3d-brush-cursor::after {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 4px #ffffff;
+}

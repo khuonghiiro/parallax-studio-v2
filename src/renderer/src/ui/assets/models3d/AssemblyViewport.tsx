@@ -11,7 +11,11 @@ import { faceCornersThree, faceOutlineThree, modelBounds, toThree } from './asse
 import { resolveLightRig, resolveSkyAtmosphere } from './assemblyLighting'
 import { createLightRig, applyLightRig, disposeLightRig, type SceneLightRig } from './assemblySceneLighting'
 import { AssemblyGizmo } from './AssemblyGizmo'
-import { Assembly3DToolHUD, type Assembly3DActiveTool } from './meshEditor/Assembly3DToolHUD'
+import {
+  Assembly3DVerticalPalette,
+  type Assembly3DActiveTool,
+  type BrushSettings
+} from './meshEditor/Assembly3DVerticalPalette'
 import type { GizmoRect } from '../../../engine/layerGizmo'
 import { useView } from '../../../store/view'
 
@@ -49,7 +53,7 @@ interface AssemblyViewportProps {
   ) => void
 }
 
-type DragMode = 'none' | 'orbit' | 'panSpace' | 'dragFace'
+type DragMode = 'none' | 'orbit' | 'panSpace' | 'dragFace' | 'brush'
 
 export function AssemblyViewport({
   model,
@@ -73,6 +77,19 @@ export function AssemblyViewport({
   onRegisterCamera
 }: AssemblyViewportProps) {
   const [active3DTool, setActive3DTool] = useState<Assembly3DActiveTool>('gizmo')
+  const isBrushTool = ['grab', 'inflate', 'smooth', 'crease'].includes(active3DTool)
+  const [brushSettings, setBrushSettings] = useState<BrushSettings>({
+    radius: 60,
+    strength: 0.5,
+    invert: false
+  })
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0, visible: false })
+  const brushInitRef = useRef({
+    bendX: 0,
+    bendY: 0,
+    bendLateral: 0,
+    depthIntensity: 0
+  })
   const containerRef = useRef<HTMLDivElement | null>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
@@ -448,6 +465,20 @@ export function AssemblyViewport({
     if (!hit || !face) return startDrag(e, 'panSpace')
     onSelectFace(hit.faceId)
     if (face.locked) return startDrag(e, 'panSpace')
+
+    // When a sculpt brush tool is active: sculpt the mesh instead of moving face!
+    if (isBrushTool) {
+      brushInitRef.current = {
+        bendX: face.bendX || 0,
+        bendY: face.bendY || 0,
+        bendLateral: face.bendLateral || 0,
+        depthIntensity: face.depthIntensity || 0
+      }
+      startDrag(e, 'brush', hit.faceId)
+      onGestureChange?.(true)
+      return
+    }
+
     dragRef.current.initFacePos = [...face.position]
     startDrag(e, 'dragFace', hit.faceId)
     onGestureChange?.(true)
@@ -459,11 +490,22 @@ export function AssemblyViewport({
     const o = orbitRef.current
     const camera = cameraRef.current
     const container = containerRef.current
+
+    if (container) {
+      const rect = container.getBoundingClientRect()
+      setMousePos({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+        visible: true
+      })
+    }
+
     if (ds.mode === 'none') {
       if (!container) return
       const hit = pick(e.clientX, e.clientY)
       const locked = hit ? model.faces.find((f) => f.id === hit.faceId)?.locked : false
-      if (meshEditMode === 'erase' || e.altKey) container.style.cursor = hit ? 'crosshair' : 'default'
+      if (isBrushTool) container.style.cursor = 'crosshair'
+      else if (meshEditMode === 'erase' || e.altKey) container.style.cursor = hit ? 'crosshair' : 'default'
       else if (meshEditMode === 'select' || e.shiftKey) container.style.cursor = hit ? 'pointer' : 'default'
       else container.style.cursor = hit ? (locked ? 'not-allowed' : 'move') : 'grab'
       return
@@ -487,6 +529,45 @@ export function AssemblyViewport({
       o.target.addScaledVector(right, -dx * panSpeed).addScaledVector(up, dy * panSpeed)
       return bumpGizmo()
     }
+    if (ds.mode === 'brush' && ds.faceId && onUpdateFace) {
+      container.style.cursor = 'crosshair'
+      const totalDx = e.clientX - ds.startX
+      const totalDy = e.clientY - ds.startY
+      const factor = brushSettings.strength
+
+      if (active3DTool === 'grab') {
+        const bendLateral = Math.max(
+          -100,
+          Math.min(100, Math.round(brushInitRef.current.bendLateral + totalDx * 0.35 * factor))
+        )
+        const bendY = Math.max(
+          -100,
+          Math.min(100, Math.round(brushInitRef.current.bendY - totalDy * 0.35 * factor))
+        )
+        onUpdateFace(ds.faceId, { bendLateral, bendY })
+      } else if (active3DTool === 'inflate') {
+        const delta = (brushSettings.invert ? totalDy : -totalDy) * 0.6 * factor
+        const depthIntensity = Math.max(
+          -200,
+          Math.min(200, Math.round(brushInitRef.current.depthIntensity + delta))
+        )
+        onUpdateFace(ds.faceId, { depthProfile: 'sphere', depthIntensity })
+      } else if (active3DTool === 'smooth') {
+        onUpdateFace(ds.faceId, {
+          bendX: Math.round(brushInitRef.current.bendX * 0.9),
+          bendY: Math.round(brushInitRef.current.bendY * 0.9),
+          bendLateral: Math.round(brushInitRef.current.bendLateral * 0.9)
+        })
+      } else if (active3DTool === 'crease') {
+        const delta = (brushSettings.invert ? -35 : 35) * factor
+        const depthIntensity = Math.max(
+          -200,
+          Math.min(200, Math.round(brushInitRef.current.depthIntensity + delta))
+        )
+        onUpdateFace(ds.faceId, { depthProfile: 'ridge', depthIntensity })
+      }
+      return
+    }
     if (ds.mode === 'dragFace' && ds.faceId && onUpdateFace) {
       container.style.cursor = 'move'
       const worldPerPx = (2 * Math.tan((camera.fov * Math.PI) / 360) * o.radius) / (container.clientHeight || 500)
@@ -506,14 +587,14 @@ export function AssemblyViewport({
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (isGizmoDraggingRef.current) return
-    if (dragRef.current.mode === 'dragFace') onGestureChange?.(false)
+    if (dragRef.current.mode === 'dragFace' || dragRef.current.mode === 'brush') onGestureChange?.(false)
     dragRef.current.mode = 'none'
     try {
       ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
     } catch {
       /* pointer already released */
     }
-    if (containerRef.current) containerRef.current.style.cursor = 'grab'
+    if (containerRef.current) containerRef.current.style.cursor = isBrushTool ? 'crosshair' : 'grab'
   }
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -543,6 +624,7 @@ export function AssemblyViewport({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onPointerLeave={() => setMousePos((p) => ({ ...p, visible: false }))}
       onWheel={handleWheel}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -552,15 +634,30 @@ export function AssemblyViewport({
       }}
       onContextMenu={(e) => e.preventDefault()}
     >
-      {/* Floating 3D Soft Deformation Tools Toolbar & Quick Mini HUD */}
-      <Assembly3DToolHUD
+      {/* Left Vertical Palette + Top Quick Controls Popup */}
+      <Assembly3DVerticalPalette
         face={selectedFace || null}
         activeTool={active3DTool}
         onChangeTool={setActive3DTool}
         onUpdateFace={onUpdateFaceRef.current || onUpdateFace || (() => {})}
         gizmoMode={gizmoMode}
         onChangeGizmoMode={(mode) => onChangeGizmoMode?.(mode)}
+        brushSettings={brushSettings}
+        onChangeBrushSettings={(patch) => setBrushSettings((s) => ({ ...s, ...patch }))}
       />
+
+      {/* Brush Circle Cursor Overlay */}
+      {isBrushTool && mousePos.visible && (
+        <div
+          className="assembly-3d-brush-cursor"
+          style={{
+            left: mousePos.x,
+            top: mousePos.y,
+            width: brushSettings.radius * 2,
+            height: brushSettings.radius * 2
+          }}
+        />
+      )}
 
       {showGizmo && (
         <AssemblyGizmo
