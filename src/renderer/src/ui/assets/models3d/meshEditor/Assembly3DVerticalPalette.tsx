@@ -616,7 +616,17 @@ export function Assembly3DVerticalPalette({
                   {brushSettings.invert ? 'Lõm vào (-)' : 'Phồng ra (+)'}
                 </button>
               )}
-              <span className="top-popup-hint">💡 Kéo chuột trực tiếp trên mặt 3D để điêu khắc</span>
+              {Boolean(face.sculptOffsets && face.sculptOffsets.length > 0) && (
+                <button
+                  type="button"
+                  className="mini-hud-chip btn-reset"
+                  onClick={() => updateProp({ sculptOffsets: [] })}
+                  title="Khôi phục mặt về hình dạng ban đầu trước khi vẽ cọ"
+                >
+                  Xóa nét cọ
+                </button>
+              )}
+              <span className="top-popup-hint">💡 Kéo chuột trực tiếp trên mặt 3D để điêu khắc cục bộ</span>
             </div>
           )}
 

@@ -85,6 +85,11 @@ export interface Face3D {
   silhouettePolygon?: number[][]
   /** Góc xoắn vặn mặt phẳng quanh trục (twist angle in degrees, -180° đến 180°) */
   twistAngle?: number
+  /**
+   * Mảng độ lệch đỉnh điêu khắc 3D cục bộ (sculpt deltas) [dx0, dy0, dz0, dx1, dy1, dz1, ...]
+   * được tạo bởi các cọ điêu khắc cục bộ chuẩn Blender (Grab, Inflate, Smooth, Crease).
+   */
+  sculptOffsets?: number[]
 }
 
 export type SunPreset = 'auto' | 'morning' | 'noon' | 'sunset' | 'overcast' | 'night'

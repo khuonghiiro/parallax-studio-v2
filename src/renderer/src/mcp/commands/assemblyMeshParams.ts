@@ -95,5 +95,10 @@ export function assemblyMeshPatch(p: Params): Partial<Face3D> {
     }
     patch.motionAnchor = value as Face3D['motionAnchor']
   }
+  if (has(p, 'sculpt_offsets')) {
+    const raw = p['sculpt_offsets']
+    if (!Array.isArray(raw)) throw new ParamError('sculpt_offsets must be an array of numbers')
+    patch.sculptOffsets = raw.map(Number)
+  }
   return patch
 }

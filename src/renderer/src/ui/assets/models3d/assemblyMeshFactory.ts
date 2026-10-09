@@ -164,33 +164,55 @@ function buildFaceGeometry(
   const arcAngle = face.arcAngle || 0
   const taperRatio = face.taperRatio ?? 1
 
+  let geo: THREE.BufferGeometry
   if (presetPolygon && presetPolygon.length >= 3) {
-    return buildAlphaTrimmedGeometry(
+    geo = buildAlphaTrimmedGeometry(
       w, h, resolved?.image ?? null, cols, rows, bendX, bendY, bendRegion,
       hiddenCells, gridRotation, selectedCells, cellBendAngle, true,
       depthProfile, depthIntensity, depthInvert, presetPolygon, bendLateral,
       arcAngle, taperRatio
     )
-  }
-  if (resolved) {
+  } else if (resolved) {
     if (meshOnlyPixels && resolved.image) {
-      return buildAlphaTrimmedGeometry(
+      geo = buildAlphaTrimmedGeometry(
         w, h, resolved.image, cols, rows, bendX, bendY, bendRegion,
         hiddenCells, gridRotation, selectedCells, cellBendAngle, face.meshMode !== 'manual',
         depthProfile, depthIntensity, depthInvert, undefined, bendLateral,
         arcAngle, taperRatio
       )
+    } else {
+      geo = buildCurvedPlaneGeometry(
+        w, h, cols, rows, bendX, bendY, bendRegion,
+        depthProfile, depthIntensity, depthInvert, resolved.image, bendLateral,
+        arcAngle, taperRatio
+      )
     }
-    return buildCurvedPlaneGeometry(
-      w, h, cols, rows, bendX, bendY, bendRegion,
-      depthProfile, depthIntensity, depthInvert, resolved.image, bendLateral,
+  } else {
+    geo = buildCurvedPlaneGeometry(
+      w, h, cols, rows, bendX, bendY, bendRegion, depthProfile, depthIntensity, depthInvert, undefined, bendLateral,
       arcAngle, taperRatio
     )
   }
-  return buildCurvedPlaneGeometry(
-    w, h, cols, rows, bendX, bendY, bendRegion, depthProfile, depthIntensity, depthInvert, undefined, bendLateral,
-    arcAngle, taperRatio
-  )
+
+  // Áp dụng các độ lệch điêu khắc cọ cục bộ (Sculpt deltas) nếu có
+  if (face.sculptOffsets && face.sculptOffsets.length > 0) {
+    const posAttr = geo.getAttribute('position')
+    if (posAttr) {
+      const count = Math.min(posAttr.count, Math.floor(face.sculptOffsets.length / 3))
+      for (let i = 0; i < count; i++) {
+        const ox = face.sculptOffsets[i * 3] || 0
+        const oy = face.sculptOffsets[i * 3 + 1] || 0
+        const oz = face.sculptOffsets[i * 3 + 2] || 0
+        if (ox !== 0 || oy !== 0 || oz !== 0) {
+          posAttr.setXYZ(i, posAttr.getX(i) + ox, posAttr.getY(i) + oy, posAttr.getZ(i) + oz)
+        }
+      }
+      posAttr.needsUpdate = true
+      geo.computeVertexNormals()
+    }
+  }
+
+  return geo
 }
 
 /**

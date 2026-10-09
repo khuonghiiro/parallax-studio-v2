@@ -16,6 +16,12 @@ import {
   type Assembly3DActiveTool,
   type BrushSettings
 } from './meshEditor/Assembly3DVerticalPalette'
+import {
+  startSculptStroke,
+  applySculptStrokeMove,
+  endSculptStroke,
+  type SculptStrokeSession
+} from './meshEditor/sculptBrushEngine'
 import type { GizmoRect } from '../../../engine/layerGizmo'
 import { useView } from '../../../store/view'
 
@@ -84,12 +90,7 @@ export function AssemblyViewport({
     invert: false
   })
   const [mousePos, setMousePos] = useState({ x: 0, y: 0, visible: false })
-  const brushInitRef = useRef({
-    bendX: 0,
-    bendY: 0,
-    bendLateral: 0,
-    depthIntensity: 0
-  })
+  const sculptSessionRef = useRef<SculptStrokeSession | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
@@ -466,17 +467,32 @@ export function AssemblyViewport({
     onSelectFace(hit.faceId)
     if (face.locked) return startDrag(e, 'panSpace')
 
-    // When a sculpt brush tool is active: sculpt the mesh instead of moving face!
-    if (isBrushTool) {
-      brushInitRef.current = {
-        bendX: face.bendX || 0,
-        bendY: face.bendY || 0,
-        bendLateral: face.bendLateral || 0,
-        depthIntensity: face.depthIntensity || 0
+    // When a sculpt brush tool is active: sculpt the mesh locally like Blender!
+    if (isBrushTool && hit && face) {
+      const meshObj = meshGroupRef.current?.children.find(
+        (c) => c.userData?.faceId === hit.faceId && (c as THREE.Mesh).isMesh
+      ) as THREE.Mesh | undefined
+
+      if (meshObj && cameraRef.current && containerRef.current) {
+        const session = startSculptStroke(
+          meshObj,
+          hit.faceId,
+          hit.point,
+          e.clientX,
+          e.clientY,
+          cameraRef.current,
+          containerRef.current.clientHeight || 500,
+          active3DTool,
+          brushSettings,
+          face.sculptOffsets
+        )
+        if (session) {
+          sculptSessionRef.current = session
+          startDrag(e, 'brush', hit.faceId)
+          onGestureChange?.(true)
+          return
+        }
       }
-      startDrag(e, 'brush', hit.faceId)
-      onGestureChange?.(true)
-      return
     }
 
     dragRef.current.initFacePos = [...face.position]
@@ -529,43 +545,14 @@ export function AssemblyViewport({
       o.target.addScaledVector(right, -dx * panSpeed).addScaledVector(up, dy * panSpeed)
       return bumpGizmo()
     }
-    if (ds.mode === 'brush' && ds.faceId && onUpdateFace) {
+    if (ds.mode === 'brush' && sculptSessionRef.current) {
       container.style.cursor = 'crosshair'
-      const totalDx = e.clientX - ds.startX
-      const totalDy = e.clientY - ds.startY
-      const factor = brushSettings.strength
-
-      if (active3DTool === 'grab') {
-        const bendLateral = Math.max(
-          -100,
-          Math.min(100, Math.round(brushInitRef.current.bendLateral + totalDx * 0.35 * factor))
-        )
-        const bendY = Math.max(
-          -100,
-          Math.min(100, Math.round(brushInitRef.current.bendY - totalDy * 0.35 * factor))
-        )
-        onUpdateFace(ds.faceId, { bendLateral, bendY })
-      } else if (active3DTool === 'inflate') {
-        const delta = (brushSettings.invert ? totalDy : -totalDy) * 0.6 * factor
-        const depthIntensity = Math.max(
-          -200,
-          Math.min(200, Math.round(brushInitRef.current.depthIntensity + delta))
-        )
-        onUpdateFace(ds.faceId, { depthProfile: 'sphere', depthIntensity })
-      } else if (active3DTool === 'smooth') {
-        onUpdateFace(ds.faceId, {
-          bendX: Math.round(brushInitRef.current.bendX * 0.9),
-          bendY: Math.round(brushInitRef.current.bendY * 0.9),
-          bendLateral: Math.round(brushInitRef.current.bendLateral * 0.9)
-        })
-      } else if (active3DTool === 'crease') {
-        const delta = (brushSettings.invert ? -35 : 35) * factor
-        const depthIntensity = Math.max(
-          -200,
-          Math.min(200, Math.round(brushInitRef.current.depthIntensity + delta))
-        )
-        onUpdateFace(ds.faceId, { depthProfile: 'ridge', depthIntensity })
-      }
+      applySculptStrokeMove(
+        sculptSessionRef.current,
+        { x: e.clientX, y: e.clientY },
+        camera,
+        container.clientHeight || 500
+      )
       return
     }
     if (ds.mode === 'dragFace' && ds.faceId && onUpdateFace) {
@@ -587,7 +574,19 @@ export function AssemblyViewport({
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (isGizmoDraggingRef.current) return
-    if (dragRef.current.mode === 'dragFace' || dragRef.current.mode === 'brush') onGestureChange?.(false)
+    if (dragRef.current.mode === 'brush') {
+      if (sculptSessionRef.current) {
+        const session = sculptSessionRef.current
+        const newOffsets = endSculptStroke(session)
+        sculptSessionRef.current = null
+        if (onUpdateFace && session.faceId) {
+          onUpdateFace(session.faceId, { sculptOffsets: newOffsets })
+        }
+      }
+      onGestureChange?.(false)
+    } else if (dragRef.current.mode === 'dragFace') {
+      onGestureChange?.(false)
+    }
     dragRef.current.mode = 'none'
     try {
       ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
