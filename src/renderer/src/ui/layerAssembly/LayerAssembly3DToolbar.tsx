@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import {
   IconCube,
   IconEye,
@@ -165,15 +166,24 @@ export function LayerAssembly3DToolbar({
     if (!isAnglesOpen && !isDepthOpen && !isCameraOpen) return
 
     const handlePointerDown = (e: PointerEvent): void => {
-      if (anglesRef.current && !anglesRef.current.contains(e.target as Node)) {
-        setIsAnglesOpen(false)
+      const target = e.target as HTMLElement | null
+      // Bỏ qua nếu click bên trong popover menu (kể cả khi đã portal ra body)
+      if (target && target.closest?.('.layer-workshop-popover-menu')) {
+        return
       }
-      if (depthRef.current && !depthRef.current.contains(e.target as Node)) {
-        setIsDepthOpen(false)
+      // Bỏ qua nếu click vào chính các nút dock để nút tự toggle
+      if (anglesRef.current && anglesRef.current.contains(target as Node)) {
+        return
       }
-      if (cameraRef.current && !cameraRef.current.contains(e.target as Node)) {
-        setIsCameraOpen(false)
+      if (depthRef.current && depthRef.current.contains(target as Node)) {
+        return
       }
+      if (cameraRef.current && cameraRef.current.contains(target as Node)) {
+        return
+      }
+      setIsAnglesOpen(false)
+      setIsDepthOpen(false)
+      setIsCameraOpen(false)
     }
 
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -352,6 +362,17 @@ export function LayerAssembly3DToolbar({
 
   const hideTooltip = () => setTooltip(null)
 
+  // Tính tọa độ popover mở sang bên trái (đè nhẹ lên phần 2D) để không che khuất không gian 3D
+  const getPopoverCoords = (ref: React.RefObject<HTMLDivElement | null>, width: number, approxHeight = 350) => {
+    if (!ref.current) return { left: 600, top: 100 }
+    const r = ref.current.getBoundingClientRect()
+    // Nếu bên trái còn đủ chỗ (ở chế độ split 2D & 3D), hiển thị popover sang bên trái
+    const showOnLeft = r.left - width - 8 >= 80
+    const left = showOnLeft ? Math.round(r.left - width - 8) : Math.round(r.right + 8)
+    const top = Math.max(45, Math.min(window.innerHeight - approxHeight - 15, Math.round(r.top - 80)))
+    return { left, top }
+  }
+
   return (
     <>
       <aside className="layer-workshop-3d-vertical-dock" aria-label="Thanh công cụ 3D">
@@ -420,6 +441,7 @@ export function LayerAssembly3DToolbar({
             onClick={() => {
               setIsAnglesOpen((v) => !v)
               setIsDepthOpen(false)
+              setIsCameraOpen(false)
               hideTooltip()
             }}
             onMouseEnter={(e) => {
@@ -430,36 +452,6 @@ export function LayerAssembly3DToolbar({
           >
             <IconAngleView />
           </button>
-
-          {isAnglesOpen && (
-            <div
-              className="layer-workshop-popover-menu"
-              style={{ position: 'absolute', left: 'calc(100% + 8px)', top: '-4px', minWidth: '155px' }}
-            >
-              <div style={{ fontSize: '10px', color: 'var(--text-faint)', padding: '2px 8px', fontWeight: 600 }}>
-                GÓC XOAY CAMERA
-              </div>
-              {[
-                { label: '-30° Nghiêng trái', az: -30, el: 0 },
-                { label: '+30° Nghiêng phải', az: 30, el: 0 },
-                { label: '+22° Từ trên cao', az: 0, el: 22 },
-                { label: '-15° Từ dưới thấp', az: 0, el: -15 },
-                { label: '75° Từ đỉnh xuống', az: 0, el: 75 }
-              ].map((a) => (
-                <button
-                  key={a.label}
-                  type="button"
-                  className="layer-workshop-popover-item"
-                  onClick={() => {
-                    onApplyQuickAngle(a.az, a.el)
-                    setIsAnglesOpen(false)
-                  }}
-                >
-                  <span>{a.label}</span>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
         <div className="dock-divider" />
@@ -514,32 +506,6 @@ export function LayerAssembly3DToolbar({
           >
             <IconCamera width={16} height={16} />
           </button>
-
-          {isCameraOpen && (
-            <CameraControlPopover
-              cameraFov={cameraFov}
-              onChangeCameraFov={onChangeCameraFov}
-              cameraYaw={cameraYaw}
-              onChangeCameraYaw={onChangeCameraYaw}
-              cameraPitch={cameraPitch}
-              onChangeCameraPitch={onChangeCameraPitch}
-              camDistance={camDistance}
-              onChangeCamDistance={onChangeCamDistance}
-              cameraTarget={cameraTarget}
-              onChangeCameraTarget={onChangeCameraTarget}
-              cameraPosition={cameraPosition}
-              onApplyQuickAngle={onApplyQuickAngle}
-              onFitFramingDistance={onFitFramingDistance}
-              onFocusAll={onFocusAll}
-              onAimAtSelectedLayer={onAimAtSelectedLayer}
-              selectedLayerName={selectedLayerName}
-              showFrustum={showFrustum}
-              onToggleFrustum={onToggleFrustum}
-              clipToCamera={clipToCamera}
-              onToggleClipToCamera={onToggleClipToCamera}
-              onClose={() => setIsCameraOpen(false)}
-            />
-          )}
         </div>
 
         <button
@@ -609,6 +575,7 @@ export function LayerAssembly3DToolbar({
             onClick={() => {
               setIsDepthOpen((v) => !v)
               setIsAnglesOpen(false)
+              setIsCameraOpen(false)
               hideTooltip()
             }}
             onMouseEnter={(e) => {
@@ -619,94 +586,172 @@ export function LayerAssembly3DToolbar({
           >
             <IconDepthRuler />
           </button>
-
-          {isDepthOpen && (
-            <div
-              className="layer-workshop-popover-menu"
-              style={{
-                position: 'absolute',
-                left: 'calc(100% + 8px)',
-                top: 'auto',
-                bottom: '-8px',
-                minWidth: '240px',
-                padding: '12px 14px',
-                gap: '10px'
-              }}
-            >
-              <div style={{ fontSize: '10.5px', color: 'var(--text-faint)', fontWeight: 700, letterSpacing: '0.5px' }}>
-                KHOẢNG CÁCH & ĐỘ SÂU 3D
-              </div>
-
-              {/* Slider Khoảng cách */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                  <span style={{ color: 'var(--text-dim)' }}>Khoảng cách camera:</span>
-                  <strong style={{ color: 'var(--text)' }}>{camDistance}px</strong>
-                </div>
-                <input
-                  type="range"
-                  min="300"
-                  max="4500"
-                  step="10"
-                  value={camDistance}
-                  onChange={(e) => onChangeCamDistance(Number(e.target.value))}
-                  style={{ width: '100%', cursor: 'pointer' }}
-                />
-              </div>
-
-              {/* Slider Giãn khoảng cách Z */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                  <span style={{ color: 'var(--text-dim)' }}>Hệ số giãn độ sâu Z:</span>
-                  <strong style={{ color: 'var(--accent)' }}>{zExaggeration.toFixed(1)}x</strong>
-                </div>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="5.0"
-                  step="0.1"
-                  value={zExaggeration}
-                  onChange={(e) => onChangeZExaggeration(Number(e.target.value))}
-                  style={{ width: '100%', cursor: 'pointer' }}
-                />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: 'var(--text-faint)' }}>
-                  <span>0.5x (Phẳng)</span>
-                  <span>1.0x (Chuẩn)</span>
-                  <span>5.0x (Sâu)</span>
-                </div>
-              </div>
-
-              {/* Nút tác vụ nhanh */}
-              <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
-                <button
-                  type="button"
-                  className="btn xs"
-                  style={{ flex: 1, padding: '3px 8px' }}
-                  onClick={() => {
-                    onFitFramingDistance()
-                    setIsDepthOpen(false)
-                  }}
-                  title="Căn chỉnh khoảng cách camera vừa khít mô hình"
-                >
-                  📐 Vừa vặn
-                </button>
-                <button
-                  type="button"
-                  className="btn xs"
-                  style={{ flex: 1, padding: '3px 8px' }}
-                  onClick={() => {
-                    onChangeZExaggeration(1.8)
-                    onChangeCamDistance(1200)
-                  }}
-                  title="Đặt lại khoảng cách và giãn Z về mặc định 1.8x"
-                >
-                  Mặc định
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </aside>
+
+      {/* Popover Góc xoay nhanh (Portal ra document.body) */}
+      {isAnglesOpen &&
+        createPortal(
+          <div
+            className="layer-workshop-popover-menu"
+            style={{
+              position: 'fixed',
+              left: getPopoverCoords(anglesRef, 175, 180).left,
+              top: getPopoverCoords(anglesRef, 175, 180).top,
+              minWidth: '175px',
+              zIndex: 30000,
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)'
+            }}
+          >
+            <div style={{ fontSize: '10px', color: 'var(--text-faint)', padding: '2px 8px', fontWeight: 600 }}>
+              GÓC XOAY CAMERA
+            </div>
+            {[
+              { label: '-30° Nghiêng trái', az: -30, el: 0 },
+              { label: '+30° Nghiêng phải', az: 30, el: 0 },
+              { label: '+22° Từ trên cao', az: 0, el: 22 },
+              { label: '-15° Từ dưới thấp', az: 0, el: -15 },
+              { label: '75° Từ đỉnh xuống', az: 0, el: 75 }
+            ].map((a) => (
+              <button
+                key={a.label}
+                type="button"
+                className="layer-workshop-popover-item"
+                onClick={() => {
+                  onApplyQuickAngle(a.az, a.el)
+                  setIsAnglesOpen(false)
+                }}
+              >
+                <span>{a.label}</span>
+              </button>
+            ))}
+          </div>,
+          document.body
+        )}
+
+      {/* Popover Điều khiển Camera & Tầm nhìn (Portal ra document.body) */}
+      {isCameraOpen &&
+        createPortal(
+          <CameraControlPopover
+            style={{
+              left: getPopoverCoords(cameraRef, 285, 480).left,
+              top: getPopoverCoords(cameraRef, 285, 480).top,
+              zIndex: 30000
+            }}
+            cameraFov={cameraFov}
+            onChangeCameraFov={onChangeCameraFov}
+            cameraYaw={cameraYaw}
+            onChangeCameraYaw={onChangeCameraYaw}
+            cameraPitch={cameraPitch}
+            onChangeCameraPitch={onChangeCameraPitch}
+            camDistance={camDistance}
+            onChangeCamDistance={onChangeCamDistance}
+            cameraTarget={cameraTarget}
+            onChangeCameraTarget={onChangeCameraTarget}
+            cameraPosition={cameraPosition}
+            onApplyQuickAngle={onApplyQuickAngle}
+            onFitFramingDistance={onFitFramingDistance}
+            onFocusAll={onFocusAll}
+            onAimAtSelectedLayer={onAimAtSelectedLayer}
+            selectedLayerName={selectedLayerName}
+            showFrustum={showFrustum}
+            onToggleFrustum={onToggleFrustum}
+            clipToCamera={clipToCamera}
+            onToggleClipToCamera={onToggleClipToCamera}
+            onClose={() => setIsCameraOpen(false)}
+          />,
+          document.body
+        )}
+
+      {/* Popover Khoảng cách & Độ sâu 3D (Portal ra document.body) */}
+      {isDepthOpen &&
+        createPortal(
+          <div
+            className="layer-workshop-popover-menu"
+            style={{
+              position: 'fixed',
+              left: getPopoverCoords(depthRef, 250, 220).left,
+              top: getPopoverCoords(depthRef, 250, 220).top,
+              minWidth: '250px',
+              padding: '12px 14px',
+              gap: '10px',
+              zIndex: 30000,
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)'
+            }}
+          >
+            <div style={{ fontSize: '10.5px', color: 'var(--text-faint)', fontWeight: 700, letterSpacing: '0.5px' }}>
+              KHOẢNG CÁCH & ĐỘ SÂU 3D
+            </div>
+
+            {/* Slider Khoảng cách */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                <span style={{ color: 'var(--text-dim)' }}>Khoảng cách camera:</span>
+                <strong style={{ color: 'var(--text)' }}>{camDistance}px</strong>
+              </div>
+              <input
+                type="range"
+                min="300"
+                max="4500"
+                step="10"
+                value={camDistance}
+                onChange={(e) => onChangeCamDistance(Number(e.target.value))}
+                style={{ width: '100%', cursor: 'pointer' }}
+              />
+            </div>
+
+            {/* Slider Giãn khoảng cách Z */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                <span style={{ color: 'var(--text-dim)' }}>Hệ số giãn độ sâu Z:</span>
+                <strong style={{ color: 'var(--accent)' }}>{zExaggeration.toFixed(1)}x</strong>
+              </div>
+              <input
+                type="range"
+                min="0.5"
+                max="5.0"
+                step="0.1"
+                value={zExaggeration}
+                onChange={(e) => onChangeZExaggeration(Number(e.target.value))}
+                style={{ width: '100%', cursor: 'pointer' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: 'var(--text-faint)' }}>
+                <span>0.5x (Phẳng)</span>
+                <span>1.0x (Chuẩn)</span>
+                <span>5.0x (Sâu)</span>
+              </div>
+            </div>
+
+            {/* Nút tác vụ nhanh */}
+            <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
+              <button
+                type="button"
+                className="btn xs"
+                style={{ flex: 1, padding: '3px 8px' }}
+                onClick={() => {
+                  onFitFramingDistance()
+                  setIsDepthOpen(false)
+                }}
+                title="Căn chỉnh khoảng cách camera vừa khít mô hình"
+              >
+                📐 Vừa vặn
+              </button>
+              <button
+                type="button"
+                className="btn xs"
+                style={{ flex: 1, padding: '3px 8px' }}
+                onClick={() => {
+                  onChangeZExaggeration(1.8)
+                  onChangeCamDistance(1200)
+                }}
+                title="Đặt lại khoảng cách và giãn Z về mặc định 1.8x"
+              >
+                Mặc định
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* Rich Tooltip popup matching BuiltInAssetBar */}
       {tooltip && (
@@ -718,7 +763,7 @@ export function LayerAssembly3DToolbar({
             left: tooltip.right + 8,
             top: tooltip.top,
             transform: 'translateY(-50%)',
-            zIndex: 9999
+            zIndex: 30010
           }}
         >
           <div className="tooltip-title">

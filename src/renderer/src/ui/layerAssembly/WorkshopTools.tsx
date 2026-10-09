@@ -162,26 +162,28 @@ export function WorkshopTools({
       </div>
 
       {/* 6. Thao tác hàng loạt */}
-      <select
-        aria-label="Thao tác với các lớp đã chọn"
-        className="input-text sm"
-        disabled={!count}
-        value=""
-        onChange={(e) => run(e.target.value as WorkshopAction)}
-        style={{ width: '110px', marginLeft: 'auto' }}
-      >
-        <option value="" disabled>Thao tác…</option>
-        <option value="duplicate">Nhân bản (Ctrl+D)</option>
-        <option value="delete">Xóa (Delete)</option>
-        <option value="lock">Khóa layer</option>
-        <option value="unlock">Mở khóa layer</option>
-        <option value="hide">Ẩn layer</option>
-        <option value="show">Hiện layer</option>
-        <option value="flatten">Gom phẳng về Z = 0</option>
-        <option value="reset-transform">Đặt lại biến đổi</option>
-        <option value="stagger">Hoạt ảnh so le pha</option>
-        <option value="stop-motion">Tắt hoạt ảnh</option>
-      </select>
+      <div className="lw-tool-group" style={{ borderRight: 'none' }}>
+        <select
+          aria-label="Thao tác với các lớp đã chọn"
+          className="input-text sm"
+          disabled={!count}
+          value=""
+          onChange={(e) => run(e.target.value as WorkshopAction)}
+          style={{ width: '115px' }}
+        >
+          <option value="" disabled>Thao tác…</option>
+          <option value="duplicate">Nhân bản (Ctrl+D)</option>
+          <option value="delete">Xóa (Delete)</option>
+          <option value="lock">Khóa layer</option>
+          <option value="unlock">Mở khóa layer</option>
+          <option value="hide">Ẩn layer</option>
+          <option value="show">Hiện layer</option>
+          <option value="flatten">Gom phẳng về Z = 0</option>
+          <option value="reset-transform">Đặt lại biến đổi</option>
+          <option value="stagger">Hoạt ảnh so le pha</option>
+          <option value="stop-motion">Tắt hoạt ảnh</option>
+        </select>
+      </div>
     </div>
   )
 }

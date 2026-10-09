@@ -24,6 +24,7 @@ export interface CameraControlPopoverProps {
   clipToCamera: boolean
   onToggleClipToCamera: () => void
   onClose: () => void
+  style?: React.CSSProperties
 }
 
 export function CameraControlPopover({
@@ -47,7 +48,8 @@ export function CameraControlPopover({
   onToggleFrustum,
   clipToCamera,
   onToggleClipToCamera,
-  onClose
+  onClose,
+  style
 }: CameraControlPopoverProps) {
   const getFovLabel = (fov: number) => {
     if (fov <= 35) return 'Góc hẹp (Telephoto)'
@@ -59,16 +61,15 @@ export function CameraControlPopover({
     <div
       className="layer-workshop-popover-menu"
       style={{
-        position: 'absolute',
-        left: 'calc(100% + 8px)',
-        top: '-100px',
+        position: 'fixed',
         width: '285px',
-        maxHeight: 'calc(100vh - 220px)',
+        maxHeight: 'calc(100vh - 160px)',
         overflowY: 'auto',
         padding: '12px 14px',
         gap: '10px',
         zIndex: 100,
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)'
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
+        ...style
       }}
     >
       {/* Header */}
@@ -177,32 +178,32 @@ export function CameraControlPopover({
           <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text)' }}>🎯 Điểm nhìn (Target):</span>
           <span style={{ fontSize: '9.5px', color: 'var(--text-faint)' }}>({cameraTarget.x}, {cameraTarget.y}, {cameraTarget.z})</span>
         </div>
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: 'var(--text-dim)' }}>
-            X
+        <div style={{ display: 'flex', gap: '6px', width: '100%' }}>
+          <label style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--text-dim)', minWidth: 0 }}>
+            <span>X</span>
             <input
               type="number"
               value={cameraTarget.x}
               onChange={(e) => onChangeCameraTarget({ ...cameraTarget, x: Number(e.target.value) || 0 })}
-              style={{ width: '46px', padding: '2px 4px', fontSize: '10.5px', borderRadius: '3px', border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--text)' }}
+              style={{ flex: 1, width: '100%', minWidth: 0, padding: '2px 4px', fontSize: '10.5px', borderRadius: '3px', border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--text)' }}
             />
           </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: 'var(--text-dim)' }}>
-            Y
+          <label style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--text-dim)', minWidth: 0 }}>
+            <span>Y</span>
             <input
               type="number"
               value={cameraTarget.y}
               onChange={(e) => onChangeCameraTarget({ ...cameraTarget, y: Number(e.target.value) || 0 })}
-              style={{ width: '46px', padding: '2px 4px', fontSize: '10.5px', borderRadius: '3px', border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--text)' }}
+              style={{ flex: 1, width: '100%', minWidth: 0, padding: '2px 4px', fontSize: '10.5px', borderRadius: '3px', border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--text)' }}
             />
           </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: 'var(--text-dim)' }}>
-            Z
+          <label style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--text-dim)', minWidth: 0 }}>
+            <span>Z</span>
             <input
               type="number"
               value={cameraTarget.z}
               onChange={(e) => onChangeCameraTarget({ ...cameraTarget, z: Number(e.target.value) || 0 })}
-              style={{ width: '46px', padding: '2px 4px', fontSize: '10.5px', borderRadius: '3px', border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--text)' }}
+              style={{ flex: 1, width: '100%', minWidth: 0, padding: '2px 4px', fontSize: '10.5px', borderRadius: '3px', border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--text)' }}
             />
           </label>
         </div>
