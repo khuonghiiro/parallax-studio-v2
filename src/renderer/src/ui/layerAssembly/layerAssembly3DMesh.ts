@@ -238,3 +238,66 @@ export function updateLayer3DInstance(
   outline.visible = isSelected
   anchorDot.visible = isSelected
 }
+
+/**
+ * Tạo hình nón kim tự tháp Camera Frustum 3D thể hiện góc nhìn và khoảng cách từ camera tới canvas
+ */
+export function createCameraFrustumHelper(width: number, height: number, distance: number): THREE.LineSegments {
+  const halfW = width / 2
+  const halfH = height / 2
+  const apex = new THREE.Vector3(0, 0, distance) // Đỉnh camera ở phía trước nhìn về gốc (0, 0, 0)
+
+  // 4 góc của khung canvas tại z = 0
+  const c0 = new THREE.Vector3(-halfW, -halfH, 0)
+  const c1 = new THREE.Vector3(halfW, -halfH, 0)
+  const c2 = new THREE.Vector3(halfW, halfH, 0)
+  const c3 = new THREE.Vector3(-halfW, halfH, 0)
+
+  const points = [
+    // 4 tia nhìn từ đỉnh camera tới 4 góc canvas
+    apex, c0,
+    apex, c1,
+    apex, c2,
+    apex, c3,
+    // Trục ngắm tâm (Center aim line)
+    apex, new THREE.Vector3(0, 0, 0),
+    // Khung viền đáy
+    c0, c1,
+    c1, c2,
+    c2, c3,
+    c3, c0
+  ]
+
+  const geom = new THREE.BufferGeometry().setFromPoints(points)
+  const mat = new THREE.LineBasicMaterial({
+    color: 0xffc24b, // Vàng cam ấm chuẩn camera path/frustum
+    transparent: true,
+    opacity: 0.85,
+    depthTest: false
+  })
+
+  return new THREE.LineSegments(geom, mat)
+}
+
+/**
+ * Đường gióng đo độ sâu Z từ mặt phẳng tham chiếu z=0 tới vị trí của layer
+ */
+export function createDepthGuideLine(posX: number, posY: number, posZ: number): THREE.Line {
+  const points = [
+    new THREE.Vector3(posX, posY, 0),
+    new THREE.Vector3(posX, posY, posZ)
+  ]
+  const geom = new THREE.BufferGeometry().setFromPoints(points)
+  const mat = new THREE.LineDashedMaterial({
+    color: 0x38bdf8,
+    dashSize: 8,
+    gapSize: 4,
+    transparent: true,
+    opacity: 0.9,
+    depthTest: false
+  })
+  const line = new THREE.Line(geom, mat)
+  line.computeLineDistances()
+  return line
+}
+

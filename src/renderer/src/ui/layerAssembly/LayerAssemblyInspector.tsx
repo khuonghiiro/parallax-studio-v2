@@ -25,11 +25,29 @@ export function LayerAssemblyInspector({
 }: LayerAssemblyInspectorProps) {
   const selectedLayer = composite.layers.find((l) => l.id === selectedLayerId) || null
 
+  // Tự động phân tầng khoảng cách Z đều đặn cho toàn bộ layer từ Trước ra Sau
+  const handleAutoDistributeDepth = () => {
+    const count = composite.layers.length
+    if (count <= 1) return
+    const step = count <= 3 ? 80 : Math.round(360 / (count - 1))
+    const startZ = -Math.round(((count - 1) * step) / 2)
+    composite.layers.forEach((l, idx) => {
+      onUpdateLayer(l.id, { z: startZ + idx * step })
+    })
+  }
+
+  // Đưa tất cả layer về cùng mặt phẳng Z = 0
+  const handleResetAllZ = () => {
+    composite.layers.forEach((l) => {
+      onUpdateLayer(l.id, { z: 0 })
+    })
+  }
+
   return (
     <div
       className="layer-workshop-inspector"
       style={{
-        width: '320px',
+        width: '330px',
         background: 'var(--bg-2)',
         borderLeft: '1px solid var(--line-soft)',
         display: 'flex',
@@ -41,8 +59,7 @@ export function LayerAssemblyInspector({
       {/* 1. Header: Layer Stack Hierarchy */}
       <div
         style={{
-          padding: '10px 12px',
-          borderBottom: '1px solid var(--line-soft)',
+          padding: '8px 12px 6px',
           background: 'var(--bg-1)',
           display: 'flex',
           alignItems: 'center',
@@ -51,7 +68,7 @@ export function LayerAssemblyInspector({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text)' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>
             Xếp chồng Layer ({composite.layers.length})
           </span>
           <span style={{ fontSize: '9.5px', color: 'var(--text-faint)' }}>
@@ -66,6 +83,41 @@ export function LayerAssemblyInspector({
           style={{ padding: '2px 8px', fontSize: '10.5px' }}
         >
           <IconPlus width={11} height={11} /> Thêm
+        </button>
+      </div>
+
+      {/* Dòng công cụ xử lý khoảng cách Z */}
+      <div
+        style={{
+          padding: '4px 12px 6px',
+          borderBottom: '1px solid var(--line-soft)',
+          background: 'var(--bg-1)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          flexShrink: 0
+        }}
+      >
+        <span style={{ fontSize: '10px', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
+          Độ sâu Z:
+        </span>
+        <button
+          type="button"
+          className="btn xs"
+          onClick={handleAutoDistributeDepth}
+          title="Tự động phân tầng khoảng cách Z đều đặn cho các layer từ Tiền cảnh (Z âm) tới Hậu cảnh (Z dương)"
+          style={{ padding: '2px 8px', fontSize: '10px', flex: '1 1 auto', justifyContent: 'center' }}
+        >
+          📐 Tách tầng Z đều
+        </button>
+        <button
+          type="button"
+          className="btn xs"
+          onClick={handleResetAllZ}
+          title="Đưa toàn bộ các layer về cùng một mặt phẳng (Z = 0)"
+          style={{ padding: '2px 8px', fontSize: '10px' }}
+        >
+          Gom (0)
         </button>
       </div>
 
@@ -143,8 +195,8 @@ export function LayerAssemblyInspector({
               />
             </div>
 
-            {/* Transform: X, Y, Z Depth */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
+            {/* Transform: X, Y */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <div>
                 <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>X (Ngang):</span>
                 <input
@@ -163,16 +215,111 @@ export function LayerAssemblyInspector({
                   onChange={(e) => onUpdateLayer(selectedLayer.id, { y: Number(e.target.value) })}
                 />
               </div>
-              <div>
-                <span style={{ fontSize: '10px', color: 'var(--accent-cyan)', fontWeight: 600 }} title="Độ sâu 2.5D: Z âm ở gần camera (tiền cảnh), Z dương ở xa (hậu cảnh)">
-                  Độ sâu Z:
+            </div>
+
+            {/* Khoảng cách Chiều sâu Z & Presets Phân tầng cảnh */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                background: 'var(--bg-1)',
+                border: '1px solid var(--line-soft)',
+                borderRadius: '6px',
+                padding: '8px'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '10.5px', color: 'var(--accent-cyan)', fontWeight: 600 }}>
+                  Khoảng cách Z: <strong>{selectedLayer.z}px</strong>
                 </span>
-                <input
-                  type="number"
-                  className="input-text sm"
-                  value={selectedLayer.z}
-                  onChange={(e) => onUpdateLayer(selectedLayer.id, { z: Number(e.target.value) })}
-                />
+                <span
+                  style={{
+                    fontSize: '9px',
+                    padding: '1px 5px',
+                    borderRadius: '3px',
+                    fontWeight: 600,
+                    background:
+                      selectedLayer.z < -20
+                        ? 'rgba(38, 128, 235, 0.2)'
+                        : selectedLayer.z > 20
+                          ? 'rgba(168, 85, 247, 0.2)'
+                          : 'rgba(255, 255, 255, 0.08)',
+                    color:
+                      selectedLayer.z < -20
+                        ? 'var(--accent-cyan)'
+                        : selectedLayer.z > 20
+                          ? '#c084fc'
+                          : 'var(--text-dim)'
+                  }}
+                >
+                  {selectedLayer.z < -20
+                    ? 'Tiền cảnh (gần camera)'
+                    : selectedLayer.z > 20
+                      ? 'Hậu cảnh (xa về sau)'
+                      : 'Trọng tâm (chuẩn)'}
+                </span>
+              </div>
+
+              {/* Slider trượt khoảng cách Z */}
+              <input
+                type="range"
+                min="-500"
+                max="800"
+                step="5"
+                value={selectedLayer.z}
+                onChange={(e) => onUpdateLayer(selectedLayer.id, { z: Number(e.target.value) })}
+                style={{ width: '100%', accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
+                title="Kéo thanh trượt để di chuyển layer lại gần camera (Z âm) hoặc ra xa phía sau (Z dương)"
+              />
+
+              {/* Quick Depth Presets */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
+                <button
+                  type="button"
+                  className={`btn xs ${selectedLayer.z === -120 ? 'primary' : ''}`}
+                  onClick={() => onUpdateLayer(selectedLayer.id, { z: -120 })}
+                  title="Tiền cảnh gần sát camera (-120px)"
+                  style={{ flex: '1 1 50px', fontSize: '9px', padding: '2px 0' }}
+                >
+                  Tiền cảnh
+                </button>
+                <button
+                  type="button"
+                  className={`btn xs ${selectedLayer.z === -50 ? 'primary' : ''}`}
+                  onClick={() => onUpdateLayer(selectedLayer.id, { z: -50 })}
+                  title="Cận cảnh (-50px)"
+                  style={{ flex: '1 1 45px', fontSize: '9px', padding: '2px 0' }}
+                >
+                  Cận cảnh
+                </button>
+                <button
+                  type="button"
+                  className={`btn xs ${selectedLayer.z === 0 ? 'primary' : ''}`}
+                  onClick={() => onUpdateLayer(selectedLayer.id, { z: 0 })}
+                  title="Trọng tâm mặt phẳng tiêu chuẩn (0px)"
+                  style={{ flex: '1 1 45px', fontSize: '9px', padding: '2px 0' }}
+                >
+                  Trọng tâm
+                </button>
+                <button
+                  type="button"
+                  className={`btn xs ${selectedLayer.z === 120 ? 'primary' : ''}`}
+                  onClick={() => onUpdateLayer(selectedLayer.id, { z: 120 })}
+                  title="Hậu cảnh xa vừa (+120px)"
+                  style={{ flex: '1 1 50px', fontSize: '9px', padding: '2px 0' }}
+                >
+                  Hậu cảnh
+                </button>
+                <button
+                  type="button"
+                  className={`btn xs ${selectedLayer.z === 350 ? 'primary' : ''}`}
+                  onClick={() => onUpdateLayer(selectedLayer.id, { z: 350 })}
+                  title="Hậu cảnh núi/bầu trời xa xôi (+350px)"
+                  style={{ flex: '1 1 50px', fontSize: '9px', padding: '2px 0' }}
+                >
+                  Nền xa
+                </button>
               </div>
             </div>
 
@@ -364,6 +511,8 @@ function LayerRowItem({
 
   return (
     <div
+      className={`layer-stack-row-item${isSelected ? ' selected' : ''}`}
+      data-layer-id={layer.id}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -377,7 +526,14 @@ function LayerRowItem({
         transition: 'background 0.1s ease',
         userSelect: 'none'
       }}
-      onClick={onSelect}
+      onPointerDown={(e) => {
+        e.stopPropagation()
+        onSelect()
+      }}
+      onClick={(e) => {
+        e.stopPropagation()
+        onSelect()
+      }}
     >
       {/* Mini Thumbnail */}
       <div

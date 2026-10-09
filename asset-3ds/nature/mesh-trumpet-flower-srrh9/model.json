@@ -1,0 +1,636 @@
+{
+  "id": "model-mesh-trumpet-flower-srrh9",
+  "name": "Mesh ảnh · Hoa loa kèn 3D Mới",
+  "description": "3 ảnh: cánh kèn, nhụy, thân → cánh loe hình phễu 3D, miệng kèn vểnh 360°",
+  "category": "nature",
+  "scale": 0.6,
+  "faces": [
+    {
+      "id": "mesh-trumpet-flower-1",
+      "name": "Thân cành",
+      "color": "#7c8cff",
+      "width": 40,
+      "height": 400,
+      "position": [
+        0,
+        -120,
+        95
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "luminance",
+      "depthIntensity": 0,
+      "imageSlot": "stem",
+      "silhouettePolygon": [
+        [
+          0.4,
+          0
+        ],
+        [
+          0.6,
+          0
+        ],
+        [
+          0.6,
+          1
+        ],
+        [
+          0.4,
+          1
+        ]
+      ],
+      "bendX": 20,
+      "bendY": 20,
+      "motionType": "wiggle"
+    },
+    {
+      "id": "mesh-trumpet-flower-2",
+      "name": "Cánh kèn 1 (0°)",
+      "color": "#38bdf8",
+      "width": 130,
+      "height": 260,
+      "position": [
+        45,
+        89.5,
+        -42.2
+      ],
+      "rotation": [
+        3.99,
+        -101.04,
+        -70.39
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "ridge",
+      "depthIntensity": 12,
+      "imageSlot": "petal",
+      "bendX": 42,
+      "bendY": -36,
+      "bendRegion": "top",
+      "silhouettePolygon": [
+        [
+          0.44,
+          0
+        ],
+        [
+          0.56,
+          0
+        ],
+        [
+          0.68,
+          0.2
+        ],
+        [
+          0.82,
+          0.45
+        ],
+        [
+          0.92,
+          0.72
+        ],
+        [
+          0.86,
+          0.9
+        ],
+        [
+          0.68,
+          0.98
+        ],
+        [
+          0.5,
+          1
+        ],
+        [
+          0.32,
+          0.98
+        ],
+        [
+          0.14,
+          0.9
+        ],
+        [
+          0.08,
+          0.72
+        ],
+        [
+          0.18,
+          0.45
+        ],
+        [
+          0.32,
+          0.2
+        ]
+      ]
+    },
+    {
+      "id": "mesh-trumpet-flower-3",
+      "name": "Cánh kèn 2 (60°)",
+      "color": "#22d3ee",
+      "width": 130,
+      "height": 260,
+      "position": [
+        22.5,
+        126.1,
+        -28.8
+      ],
+      "rotation": [
+        -46.66,
+        -134.5,
+        -43.2
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "ridge",
+      "depthIntensity": 12,
+      "imageSlot": "petal",
+      "bendX": 42,
+      "bendY": -36,
+      "bendRegion": "top",
+      "silhouettePolygon": [
+        [
+          0.44,
+          0
+        ],
+        [
+          0.56,
+          0
+        ],
+        [
+          0.68,
+          0.2
+        ],
+        [
+          0.82,
+          0.45
+        ],
+        [
+          0.92,
+          0.72
+        ],
+        [
+          0.86,
+          0.9
+        ],
+        [
+          0.68,
+          0.98
+        ],
+        [
+          0.5,
+          1
+        ],
+        [
+          0.32,
+          0.98
+        ],
+        [
+          0.14,
+          0.9
+        ],
+        [
+          0.08,
+          0.72
+        ],
+        [
+          0.18,
+          0.45
+        ],
+        [
+          0.32,
+          0.2
+        ]
+      ]
+    },
+    {
+      "id": "mesh-trumpet-flower-4",
+      "name": "Cánh kèn 3 (120°)",
+      "color": "#a78bfa",
+      "width": 130,
+      "height": 260,
+      "position": [
+        -22.5,
+        126.1,
+        -28.8
+      ],
+      "rotation": [
+        -46.66,
+        134.5,
+        43.2
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "ridge",
+      "depthIntensity": 12,
+      "imageSlot": "petal",
+      "bendX": 42,
+      "bendY": -36,
+      "bendRegion": "top",
+      "silhouettePolygon": [
+        [
+          0.44,
+          0
+        ],
+        [
+          0.56,
+          0
+        ],
+        [
+          0.68,
+          0.2
+        ],
+        [
+          0.82,
+          0.45
+        ],
+        [
+          0.92,
+          0.72
+        ],
+        [
+          0.86,
+          0.9
+        ],
+        [
+          0.68,
+          0.98
+        ],
+        [
+          0.5,
+          1
+        ],
+        [
+          0.32,
+          0.98
+        ],
+        [
+          0.14,
+          0.9
+        ],
+        [
+          0.08,
+          0.72
+        ],
+        [
+          0.18,
+          0.45
+        ],
+        [
+          0.32,
+          0.2
+        ]
+      ]
+    },
+    {
+      "id": "mesh-trumpet-flower-5",
+      "name": "Cánh kèn 4 (180°)",
+      "color": "#60a5fa",
+      "width": 130,
+      "height": 260,
+      "position": [
+        -45,
+        89.5,
+        -42.2
+      ],
+      "rotation": [
+        3.99,
+        101.04,
+        70.39
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "ridge",
+      "depthIntensity": 12,
+      "imageSlot": "petal",
+      "bendX": 42,
+      "bendY": -36,
+      "bendRegion": "top",
+      "silhouettePolygon": [
+        [
+          0.44,
+          0
+        ],
+        [
+          0.56,
+          0
+        ],
+        [
+          0.68,
+          0.2
+        ],
+        [
+          0.82,
+          0.45
+        ],
+        [
+          0.92,
+          0.72
+        ],
+        [
+          0.86,
+          0.9
+        ],
+        [
+          0.68,
+          0.98
+        ],
+        [
+          0.5,
+          1
+        ],
+        [
+          0.32,
+          0.98
+        ],
+        [
+          0.14,
+          0.9
+        ],
+        [
+          0.08,
+          0.72
+        ],
+        [
+          0.18,
+          0.45
+        ],
+        [
+          0.32,
+          0.2
+        ]
+      ]
+    },
+    {
+      "id": "mesh-trumpet-flower-6",
+      "name": "Cánh kèn 5 (240°)",
+      "color": "#94a3b8",
+      "width": 130,
+      "height": 260,
+      "position": [
+        -22.5,
+        52.8,
+        -55.5
+      ],
+      "rotation": [
+        60.04,
+        78.58,
+        70.18
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "ridge",
+      "depthIntensity": 12,
+      "imageSlot": "petal",
+      "bendX": 42,
+      "bendY": -36,
+      "bendRegion": "top",
+      "silhouettePolygon": [
+        [
+          0.44,
+          0
+        ],
+        [
+          0.56,
+          0
+        ],
+        [
+          0.68,
+          0.2
+        ],
+        [
+          0.82,
+          0.45
+        ],
+        [
+          0.92,
+          0.72
+        ],
+        [
+          0.86,
+          0.9
+        ],
+        [
+          0.68,
+          0.98
+        ],
+        [
+          0.5,
+          1
+        ],
+        [
+          0.32,
+          0.98
+        ],
+        [
+          0.14,
+          0.9
+        ],
+        [
+          0.08,
+          0.72
+        ],
+        [
+          0.18,
+          0.45
+        ],
+        [
+          0.32,
+          0.2
+        ]
+      ]
+    },
+    {
+      "id": "mesh-trumpet-flower-7",
+      "name": "Cánh kèn 6 (300°)",
+      "color": "#7c8cff",
+      "width": 130,
+      "height": 260,
+      "position": [
+        22.5,
+        52.8,
+        -55.5
+      ],
+      "rotation": [
+        60.04,
+        -78.58,
+        -70.18
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "ridge",
+      "depthIntensity": 12,
+      "imageSlot": "petal",
+      "bendX": 42,
+      "bendY": -36,
+      "bendRegion": "top",
+      "silhouettePolygon": [
+        [
+          0.44,
+          0
+        ],
+        [
+          0.56,
+          0
+        ],
+        [
+          0.68,
+          0.2
+        ],
+        [
+          0.82,
+          0.45
+        ],
+        [
+          0.92,
+          0.72
+        ],
+        [
+          0.86,
+          0.9
+        ],
+        [
+          0.68,
+          0.98
+        ],
+        [
+          0.5,
+          1
+        ],
+        [
+          0.32,
+          0.98
+        ],
+        [
+          0.14,
+          0.9
+        ],
+        [
+          0.08,
+          0.72
+        ],
+        [
+          0.18,
+          0.45
+        ],
+        [
+          0.32,
+          0.2
+        ]
+      ]
+    },
+    {
+      "id": "mesh-trumpet-flower-8",
+      "name": "Nhụy hoa kèn",
+      "color": "#38bdf8",
+      "width": 100,
+      "height": 200,
+      "position": [
+        0,
+        80.9,
+        -18.7
+      ],
+      "rotation": [
+        -70,
+        -180,
+        0
+      ],
+      "meshMode": "auto",
+      "gridRes": 48,
+      "depthProfile": "ridge",
+      "depthIntensity": 14,
+      "imageSlot": "stamen",
+      "bendY": 18,
+      "bendRegion": "top",
+      "silhouettePolygon": [
+        [
+          0.42,
+          0
+        ],
+        [
+          0.58,
+          0
+        ],
+        [
+          0.62,
+          0.45
+        ],
+        [
+          0.85,
+          0.75
+        ],
+        [
+          0.88,
+          0.94
+        ],
+        [
+          0.72,
+          1
+        ],
+        [
+          0.56,
+          0.84
+        ],
+        [
+          0.5,
+          1
+        ],
+        [
+          0.44,
+          0.84
+        ],
+        [
+          0.28,
+          1
+        ],
+        [
+          0.12,
+          0.94
+        ],
+        [
+          0.15,
+          0.75
+        ],
+        [
+          0.38,
+          0.45
+        ]
+      ]
+    },
+    {
+      "id": "face-hxkgpap",
+      "name": "987e4c94-bc3d-4101-8ef7-",
+      "assetPath": "blob:http://localhost:5173/987e4c94-bc3d-4101-8ef7-85bf92e4e295",
+      "width": 500,
+      "height": 500,
+      "position": [
+        -81,
+        169,
+        -248
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "depthProfile": "sphere",
+      "motionType": "wave",
+      "bendX": 31,
+      "bendY": 50,
+      "arcAngle": 90,
+      "taperRatio": 0.65,
+      "selectedCells": [],
+      "bendRegion": "top",
+      "bendLateral": 57,
+      "twistAngle": -45,
+      "depthIntensity": -30,
+      "gridRes": 32,
+      "meshMode": "manual"
+    }
+  ],
+  "createdAt": 1791512855586,
+  "updatedAt": 1791515762609
+}

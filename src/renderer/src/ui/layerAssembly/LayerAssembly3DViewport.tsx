@@ -5,10 +5,11 @@ import {
   createLayer3DInstance,
   updateLayer3DInstance,
   createRectOutline,
+  createCameraFrustumHelper,
+  createDepthGuideLine,
   type Layer3DMeshInstance
 } from './layerAssembly3DMesh'
-import { useLayerAssetImage } from './useLayerAssetImage'
-import { IconCube, IconEye, IconFocus } from '../icons'
+import { IconCube, IconEye, IconFocus, IconCamera } from '../icons'
 
 export interface LayerAssembly3DViewportProps {
   composite: LayerComposite
@@ -36,21 +37,33 @@ export function LayerAssembly3DViewport({
   const layersGroupRef = useRef<THREE.Group | null>(null)
   const helpersGroupRef = useRef<THREE.Group | null>(null)
   const canvasBoxRef = useRef<THREE.LineSegments | null>(null)
+  const frustumHelperRef = useRef<THREE.LineSegments | null>(null)
+  const depthGuideRef = useRef<THREE.Line | null>(null)
 
   // Mesh instances map
   const meshInstancesRef = useRef<Map<string, Layer3DMeshInstance>>(new Map())
+
+  // Tính khoảng cách camera vừa vặn mặc định
+  const defaultFitDist = useMemo(() => {
+    const fovRad = (45 * Math.PI) / 180
+    return Math.round(
+      (Math.max(composite.width, composite.height) / (2 * Math.tan(fovRad / 2))) * 1.25
+    )
+  }, [composite.width, composite.height])
 
   // Camera Orbit state
   const orbitRef = useRef({
     azimuth: -0.55, // ~ -32 độ
     elevation: 0.35, // ~ 20 độ
-    distance: Math.max(900, Math.hypot(composite.width, composite.height) * 1.3),
+    distance: defaultFitDist,
     target: new THREE.Vector3(0, 0, 0)
   })
 
   // Tool states
+  const [camDistance, setCamDistance] = useState(defaultFitDist)
   const [zExaggeration, setZExaggeration] = useState(1.8) // Độ tách lớp Z mặc định 1.8x
   const [showGrid, setShowGrid] = useState(true)
+  const [showFrustum, setShowFrustum] = useState(true)
   const [cameraPreset, setCameraPreset] = useState<CameraPreset>('orbit')
 
   // Mouse drag interaction
@@ -120,6 +133,11 @@ export function LayerAssembly3DViewport({
     scene.add(canvasBox)
     canvasBoxRef.current = canvasBox
 
+    // Hình nón tháp Camera Frustum 3D
+    const frustumHelper = createCameraFrustumHelper(composite.width, composite.height, defaultFitDist)
+    scene.add(frustumHelper)
+    frustumHelperRef.current = frustumHelper
+
     // Resize Observer
     const ro = new ResizeObserver(() => {
       if (!container || !rendererRef.current || !cameraRef.current) return
@@ -143,18 +161,31 @@ export function LayerAssembly3DViewport({
     }
   }, [])
 
-  // ------------------------------------------------------------- 2. Cập nhật khung tham chiếu Canvas
+  // ------------------------------------------------------------- 2. Cập nhật khung tham chiếu Canvas & Frustum
   useEffect(() => {
-    if (!canvasBoxRef.current || !sceneRef.current) return
-    sceneRef.current.remove(canvasBoxRef.current)
-    canvasBoxRef.current.geometry.dispose()
+    if (!sceneRef.current) return
+
+    if (canvasBoxRef.current) {
+      sceneRef.current.remove(canvasBoxRef.current)
+      canvasBoxRef.current.geometry.dispose()
+    }
     const newBox = createRectOutline(composite.width, composite.height, 0x64748b)
     sceneRef.current.add(newBox)
     canvasBoxRef.current = newBox
-    requestRender()
-  }, [composite.width, composite.height])
 
-  // ------------------------------------------------------------- 3. Bật tắt Helpers Lưới & Trục
+    if (frustumHelperRef.current) {
+      sceneRef.current.remove(frustumHelperRef.current)
+      frustumHelperRef.current.geometry.dispose()
+    }
+    const newFrustum = createCameraFrustumHelper(composite.width, composite.height, defaultFitDist)
+    newFrustum.visible = showFrustum
+    sceneRef.current.add(newFrustum)
+    frustumHelperRef.current = newFrustum
+
+    requestRender()
+  }, [composite.width, composite.height, defaultFitDist])
+
+  // ------------------------------------------------------------- 3. Bật tắt Helpers Lưới & Tháp Camera
   useEffect(() => {
     if (helpersGroupRef.current) {
       helpersGroupRef.current.visible = showGrid
@@ -162,7 +193,35 @@ export function LayerAssembly3DViewport({
     }
   }, [showGrid])
 
-  // ------------------------------------------------------------- 4. Render Frame loop
+  useEffect(() => {
+    if (frustumHelperRef.current) {
+      frustumHelperRef.current.visible = showFrustum
+      requestRender()
+    }
+  }, [showFrustum])
+
+  // ------------------------------------------------------------- 4. Đường gióng độ sâu Z cho layer được chọn
+  useEffect(() => {
+    const scene = sceneRef.current
+    if (!scene) return
+
+    if (depthGuideRef.current) {
+      scene.remove(depthGuideRef.current)
+      depthGuideRef.current.geometry.dispose()
+      depthGuideRef.current = null
+    }
+
+    const selLayer = composite.layers.find((l) => l.id === selectedLayerId)
+    if (selLayer && Math.abs(selLayer.z) > 1) {
+      const guide = createDepthGuideLine(selLayer.x, -selLayer.y, -selLayer.z * zExaggeration)
+      scene.add(guide)
+      depthGuideRef.current = guide
+    }
+
+    requestRender()
+  }, [selectedLayerId, composite.layers, zExaggeration])
+
+  // ------------------------------------------------------------- 5. Render Frame loop
   const requestRender = useCallback(() => {
     if (rafRef.current) return
     rafRef.current = requestAnimationFrame(() => {
@@ -196,7 +255,7 @@ export function LayerAssembly3DViewport({
     r.render(scene, camera)
   }, [])
 
-  // ------------------------------------------------------------- 5. Đồng bộ hóa Mesh các Layers
+  // ------------------------------------------------------------- 6. Đồng bộ hóa Mesh các Layers
   useEffect(() => {
     const layersGroup = layersGroupRef.current
     if (!layersGroup) return
@@ -229,7 +288,7 @@ export function LayerAssembly3DViewport({
     requestRender()
   }, [composite.layers, time, zExaggeration, selectedLayerId, requestRender])
 
-  // ------------------------------------------------------------- 6. Tương tác Chuột / Pointer
+  // ------------------------------------------------------------- 7. Tương tác Chuột / Pointer
   const handlePointerDown = (e: React.PointerEvent) => {
     const container = containerRef.current
     if (!container) return
@@ -300,7 +359,9 @@ export function LayerAssembly3DViewport({
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault()
     const factor = e.deltaY < 0 ? 0.9 : 1.11
-    orbitRef.current.distance = Math.max(150, Math.min(15000, orbitRef.current.distance * factor))
+    const newDist = Math.round(Math.max(150, Math.min(15000, orbitRef.current.distance * factor)))
+    orbitRef.current.distance = newDist
+    setCamDistance(newDist)
     requestRender()
   }
 
@@ -336,7 +397,7 @@ export function LayerAssembly3DViewport({
     onSelectLayer(null)
   }
 
-  // ------------------------------------------------------------- 7. Chuyển đổi Camera Preset
+  // ------------------------------------------------------------- 8. Camera Controls & Quick Angles
   const handleApplyPreset = (preset: CameraPreset) => {
     setCameraPreset(preset)
     const o = orbitRef.current
@@ -356,13 +417,35 @@ export function LayerAssembly3DViewport({
     requestRender()
   }
 
+  // Áp dụng góc xoay nhanh chuẩn CameraControls
+  const applyQuickAngle = (yawDeg: number, pitchDeg: number) => {
+    const o = orbitRef.current
+    o.azimuth = (yawDeg * Math.PI) / 180
+    o.elevation = (pitchDeg * Math.PI) / 180
+    setCameraPreset('orbit')
+    requestRender()
+  }
+
+  // Vừa vặn khung hình tiêu chuẩn (Fit Framing Distance)
+  const handleFitFramingDistance = () => {
+    const o = orbitRef.current
+    o.target.set(0, 0, 0)
+    o.distance = defaultFitDist
+    o.azimuth = 0
+    o.elevation = 0
+    setCamDistance(defaultFitDist)
+    setCameraPreset('front')
+    requestRender()
+  }
+
   // Lấy nét lại toàn cảnh (Focus / Reset View)
   const handleFocusAll = () => {
     const o = orbitRef.current
     o.target.set(0, 0, 0)
-    o.distance = Math.max(900, Math.hypot(composite.width, composite.height) * 1.3)
+    o.distance = defaultFitDist
     o.azimuth = -0.55
     o.elevation = 0.35
+    setCamDistance(defaultFitDist)
     setCameraPreset('orbit')
     requestRender()
   }
@@ -396,13 +479,14 @@ export function LayerAssembly3DViewport({
         }}
       />
 
-      {/* Floating 3D HUD Toolbar */}
+      {/* Floating 3D HUD Toolbar: Góc nhìn & Presets */}
       <div
         style={{
           position: 'absolute',
           top: '12px',
           left: '12px',
           display: 'flex',
+          flexWrap: 'wrap',
           alignItems: 'center',
           gap: '8px',
           zIndex: 40,
@@ -410,7 +494,8 @@ export function LayerAssembly3DViewport({
           backdropFilter: 'blur(12px)',
           border: '1px solid var(--line-soft)',
           borderRadius: '6px',
-          padding: '4px 8px'
+          padding: '4px 8px',
+          maxWidth: 'calc(100% - 240px)'
         }}
       >
         <span
@@ -421,7 +506,7 @@ export function LayerAssembly3DViewport({
             display: 'flex',
             alignItems: 'center',
             gap: '5px',
-            marginRight: '4px'
+            marginRight: '2px'
           }}
         >
           <IconCube width={13} height={13} style={{ color: 'var(--accent-cyan)' }} /> 3D
@@ -465,6 +550,62 @@ export function LayerAssembly3DViewport({
 
         <div style={{ width: '1px', height: '14px', background: 'var(--line-soft)' }} />
 
+        {/* Quick Angles chuẩn CameraControls */}
+        <div style={{ display: 'inline-flex', gap: '3px' }}>
+          <button
+            type="button"
+            className="btn xs"
+            onClick={() => applyQuickAngle(-30, 0)}
+            title="Góc nhìn chéo từ bên trái 30°"
+          >
+            -30° Trái
+          </button>
+          <button
+            type="button"
+            className="btn xs"
+            onClick={() => applyQuickAngle(30, 0)}
+            title="Góc nhìn chéo từ bên phải 30°"
+          >
+            +30° Phải
+          </button>
+          <button
+            type="button"
+            className="btn xs"
+            onClick={() => applyQuickAngle(0, 22)}
+            title="Góc nhìn từ trên cao xuống 22°"
+          >
+            +22° Cao
+          </button>
+          <button
+            type="button"
+            className="btn xs"
+            onClick={() => applyQuickAngle(0, -15)}
+            title="Góc nhìn từ dưới thấp lên -15°"
+          >
+            -15° Thấp
+          </button>
+          <button
+            type="button"
+            className="btn xs"
+            onClick={() => applyQuickAngle(0, 75)}
+            title="Góc nhìn thẳng từ đỉnh xuống 75°"
+          >
+            75° Đỉnh
+          </button>
+        </div>
+
+        <div style={{ width: '1px', height: '14px', background: 'var(--line-soft)' }} />
+
+        {/* Nút Vừa vặn khung hình */}
+        <button
+          type="button"
+          className="btn xs"
+          onClick={handleFitFramingDistance}
+          title="Đặt khoảng cách camera vừa vặn khung hình tiêu chuẩn"
+        >
+          📐 Vừa vặn
+        </button>
+
         {/* Nút Focus */}
         <button
           type="button"
@@ -473,6 +614,16 @@ export function LayerAssembly3DViewport({
           title="Lấy nét toàn bộ cụm layer (Phím F / Reset View)"
         >
           <IconFocus width={12} height={12} />
+        </button>
+
+        {/* Bật tắt Tháp Camera */}
+        <button
+          type="button"
+          className={`btn xs icon${showFrustum ? ' active' : ''}`}
+          onClick={() => setShowFrustum((f) => !f)}
+          title={showFrustum ? 'Ẩn tháp hình nón camera' : 'Hiện tháp hình nón camera'}
+        >
+          <IconCamera width={12} height={12} />
         </button>
 
         {/* Bật tắt lưới sàn */}
@@ -486,38 +637,64 @@ export function LayerAssembly3DViewport({
         </button>
       </div>
 
-      {/* Floating Z-Exaggeration Slider (Góc trên phải) */}
+      {/* Floating Camera Distance & Z-Exaggeration Slider (Góc trên phải) */}
       <div
         style={{
           position: 'absolute',
           top: '12px',
           right: '12px',
           display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
+          flexDirection: 'column',
+          gap: '6px',
           zIndex: 40,
           background: 'color-mix(in srgb, var(--bg-1) 85%, transparent)',
           backdropFilter: 'blur(12px)',
           border: '1px solid var(--line-soft)',
           borderRadius: '6px',
-          padding: '4px 10px',
+          padding: '6px 10px',
           fontSize: '11px',
-          color: 'var(--text-dim)'
+          color: 'var(--text-dim)',
+          minWidth: '190px'
         }}
       >
-        <span title="Phóng đại khoảng cách chiều sâu Z giữa các layer để dễ quan sát">
-          Giãn Z: <strong style={{ color: 'var(--accent-cyan)' }}>{zExaggeration.toFixed(1)}x</strong>
-        </span>
-        <input
-          type="range"
-          min="0.5"
-          max="4.0"
-          step="0.1"
-          value={zExaggeration}
-          onChange={(e) => setZExaggeration(Number(e.target.value))}
-          style={{ width: '75px', accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
-          title="Kéo thanh trượt để tăng/giảm khoảng cách hiển thị trục Z giữa các lớp"
-        />
+        {/* Khoảng cách Camera */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span title="Khoảng cách từ camera tới cụm layer">
+            Khoảng cách: <strong style={{ color: 'var(--text)' }}>{camDistance}px</strong>
+          </span>
+          <input
+            type="range"
+            min="300"
+            max="4500"
+            step="10"
+            value={camDistance}
+            onChange={(e) => {
+              const val = Number(e.target.value)
+              orbitRef.current.distance = val
+              setCamDistance(val)
+              requestRender()
+            }}
+            style={{ width: '85px', accentColor: 'var(--accent)', cursor: 'pointer' }}
+            title="Kéo thanh trượt để di chuyển camera lại gần hoặc ra xa"
+          />
+        </div>
+
+        {/* Độ tách lớp Giãn Z */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span title="Phóng đại khoảng cách chiều sâu Z giữa các layer để dễ quan sát">
+            Giãn Z: <strong style={{ color: 'var(--accent-cyan)' }}>{zExaggeration.toFixed(1)}x</strong>
+          </span>
+          <input
+            type="range"
+            min="0.5"
+            max="4.0"
+            step="0.1"
+            value={zExaggeration}
+            onChange={(e) => setZExaggeration(Number(e.target.value))}
+            style={{ width: '85px', accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
+            title="Kéo thanh trượt để tăng/giảm khoảng cách hiển thị trục Z giữa các lớp"
+          />
+        </div>
       </div>
 
       {/* Floating Bottom Hint */}
@@ -537,7 +714,7 @@ export function LayerAssembly3DViewport({
           zIndex: 30
         }}
       >
-        Chuột trái: xoay 3D · Shift / chuột phải: dời khung · Cuộn: thu phóng · Nhấp: chọn layer
+        Chuột trái: xoay 3D · Shift / chuột phải: dời khung · Cuộn: khoảng cách · Nhấp: chọn layer
       </div>
     </div>
   )
