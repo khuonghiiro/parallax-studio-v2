@@ -2,9 +2,6 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import * as THREE from 'three'
 import type { LayerComposite, AssembledLayerItem } from './types'
 import {
-  createLayer3DInstance,
-  updateLayer3DInstance,
-  updateLayerInstanceTexture,
   createCameraFrustumHelper,
   createCameraClippingPlanes,
   createCanvasPlaneHelper,
@@ -13,8 +10,7 @@ import {
   createDepthGuideLine,
   type Layer3DMeshInstance
 } from './layerAssembly3DMesh'
-import { getLayerFullResUrl } from './useLayerAssetImage'
-import { resolveFaceTexture } from '../assets/models3d/textureResolver'
+import { syncLayersGroupMeshes } from './layerAssembly3DSync'
 import { LayerAssembly3DToolbar } from './LayerAssembly3DToolbar'
 import { LayerAssemblyGizmo } from './LayerAssemblyGizmo'
 import { useView } from '../../store/view'
@@ -38,6 +34,23 @@ import {
   saveLayerWorkshopViewPrefs,
   resetLayerWorkshopViewPrefs
 } from './layerAssemblyViewPrefs'
+import {
+  findLayerMeshHit,
+  createLayerDragPlane
+} from './layerAssembly3DDirectDrag'
+import {
+  applyCameraPreset,
+  applyQuickAngle,
+  fitCameraFraming,
+  focusAllCamera,
+  updateOrbitCameraPosition,
+  createTargetMarkerMesh,
+  updateCameraFov,
+  updateCameraYaw,
+  updateCameraPitch,
+  aimAtSelectedLayer,
+  type CameraPreset
+} from './layerAssembly3DCamera'
 
 export interface LayerAssembly3DViewportProps {
   composite: LayerComposite
@@ -46,10 +59,10 @@ export interface LayerAssembly3DViewportProps {
   onSelectLayer: (id: string | null, additive?: boolean) => void
   onUpdateLayer?: (id: string, patch: Partial<AssembledLayerItem>) => void
   onChangeComposite?: (update: LayerComposite | ((prev: LayerComposite) => LayerComposite)) => void
+  onAddLayerFromAsset?: (name: string, path: string, url?: string, pos?: { x: number; y: number }) => void
+  onAppendPresetLayers?: (layers: AssembledLayerItem[], offset?: { x: number; y: number }) => void
   time: number
 }
-
-type CameraPreset = 'orbit' | 'top' | 'side' | 'front'
 
 export function LayerAssembly3DViewport({
   composite,
@@ -58,6 +71,8 @@ export function LayerAssembly3DViewport({
   onSelectLayer,
   onUpdateLayer,
   onChangeComposite,
+  onAddLayerFromAsset,
+  onAppendPresetLayers,
   time
 }: LayerAssembly3DViewportProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -166,8 +181,19 @@ export function LayerAssembly3DViewport({
 
   // Mouse drag interaction
   const isDraggingRef = useRef(false)
-  const dragModeRef = useRef<'orbit' | 'pan'>('orbit')
+  const dragModeRef = useRef<'orbit' | 'pan' | 'layer'>('orbit')
   const dragStartRef = useRef({ mouseX: 0, mouseY: 0, moved: false })
+  const layerDragStateRef = useRef<{
+    layerId: string
+    startHitPoint: THREE.Vector3
+    dragPlane: THREE.Plane
+    instance: Layer3DMeshInstance
+    startLayerX: number
+    startLayerY: number
+    startLayerZ: number
+    rotationX: number
+    rotationY: number
+  } | null>(null)
 
   const rafRef = useRef<number>(0)
 
@@ -237,17 +263,7 @@ export function LayerAssembly3DViewport({
     frustumHelperRef.current = frustumHelper
 
     // 🎯 Điểm nhìn mục tiêu (Target Marker 3D)
-    const targetMarker = new THREE.Group()
-    targetMarker.name = 'target-marker'
-    const ringGeo = new THREE.RingGeometry(10, 12, 32)
-    const ringMat = new THREE.MeshBasicMaterial({
-      color: 0x00e5ff,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.6,
-      depthTest: false
-    })
-    targetMarker.add(new THREE.Mesh(ringGeo, ringMat))
+    const targetMarker = createTargetMarkerMesh()
     scene.add(targetMarker)
     targetMarkerRef.current = targetMarker
 
@@ -262,18 +278,7 @@ export function LayerAssembly3DViewport({
       const cam = cameraRef.current
       if (r && s && cam) {
         const o = orbitRef.current
-        const cosEl = Math.cos(o.elevation)
-        const sinEl = Math.sin(o.elevation)
-        const sinAz = Math.sin(o.azimuth)
-        const cosAz = Math.cos(o.azimuth)
-
-        cam.position.set(
-          o.target.x + o.distance * cosEl * sinAz,
-          o.target.y + o.distance * sinEl,
-          o.target.z + o.distance * cosEl * cosAz
-        )
-        cam.lookAt(o.target)
-        cam.updateMatrixWorld()
+        updateOrbitCameraPosition(cam, o)
 
         if (targetMarkerRef.current) {
           targetMarkerRef.current.position.copy(o.target)
@@ -425,68 +430,16 @@ export function LayerAssembly3DViewport({
     const layersGroup = layersGroupRef.current
     if (!layersGroup) return
 
-    const currentMap = meshInstancesRef.current
-    const activeLayerIds = new Set(composite.layers.map((l) => l.id))
-
-    // Xóa mesh của các layer không còn tồn tại
-    for (const [id, inst] of currentMap.entries()) {
-      if (!activeLayerIds.has(id)) {
-        layersGroup.remove(inst.group)
-        inst.mesh.geometry.dispose()
-        inst.outline.geometry.dispose()
-        inst.anchorDot.geometry.dispose()
-        currentMap.delete(id)
-      }
-    }
-
-    // Kiểm tra xem tất cả các layer có đang ở Z = 0 không
-    const allZeroZ =
-      composite.layers.length > 1 &&
-      composite.layers.every((l) => Math.abs(l.z || 0) < 0.001)
-
-    // Tạo hoặc cập nhật mesh cho từng layer với ảnh full-resolution sắc nét
-    composite.layers.forEach((layer, idx) => {
-      let inst = currentMap.get(layer.id)
-      const fullResUrl = getLayerFullResUrl(layer.assetPath, layer.imageUrl)
-
-      if (!inst) {
-        inst = createLayer3DInstance(layer, fullResUrl, requestRender)
-        layersGroup.add(inst.group)
-        currentMap.set(layer.id, inst)
-      } else if (fullResUrl && inst.currentTextureUrl !== fullResUrl) {
-        updateLayerInstanceTexture(inst, fullResUrl, requestRender)
-      }
-
-      // Nếu chưa có texture url và có assetPath (e.g. built-in assets), giải quyết bất đồng bộ
-      if (!fullResUrl && layer.assetPath) {
-        resolveFaceTexture(layer.assetPath).then((res) => {
-          if (res?.url && inst) {
-            updateLayerInstanceTexture(inst, res.url, requestRender)
-          }
-        })
-      }
-
-      // Nếu tất cả layer có Z = 0, tự động phân tách tầng thị giác so le
-      // để trong không gian 3D người dùng thấy rõ các tấm layer xếp chồng chứ không bị hợp nhất phẳng bẹp
-      const visualLayer = allZeroZ
-        ? {
-            ...layer,
-            z: Math.round((idx - (composite.layers.length - 1) / 2) * -50)
-          }
-        : layer
-
-      // Thiết lập renderOrder để Three.js vẽ đúng thứ tự
-      inst.mesh.renderOrder = idx
-
-      updateLayer3DInstance(
-        inst,
-        visualLayer,
-        time,
-        zExaggeration,
-        selectedIds ? selectedIds.includes(layer.id) : layer.id === selectedLayerId,
-        idx,
-        cameraClippingPlanes
-      )
+    syncLayersGroupMeshes({
+      layers: composite.layers,
+      layersGroup,
+      meshInstances: meshInstancesRef.current,
+      selectedLayerId,
+      selectedIds,
+      time,
+      zExaggeration,
+      cameraClippingPlanes,
+      requestRender
     })
   }, [composite.layers, time, zExaggeration, selectedLayerId, selectedIds, requestRender, renderTrigger, cameraClippingPlanes])
 
@@ -523,6 +476,52 @@ export function LayerAssembly3DViewport({
       return
     }
 
+    // Nếu bấm chuột trái (button === 0) và không giữ Alt / Shift:
+    // Kiểm tra xem có bấm trúng một Layer Mesh không để kéo rê layer trực tiếp trên mặt phẳng của nó!
+    if (e.button === 0 && !e.altKey && !e.shiftKey && cameraRef.current) {
+      const rect = container.getBoundingClientRect()
+      const mouse = new THREE.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1
+      )
+      const raycaster = new THREE.Raycaster()
+      raycaster.setFromCamera(mouse, cameraRef.current)
+      const hit = findLayerMeshHit(raycaster, meshInstancesRef.current)
+
+      if (hit) {
+        const isAdditive = e.ctrlKey || e.metaKey
+        if (isAdditive) {
+          onSelectLayer(hit.layerId, true)
+          return
+        }
+        onSelectLayer(hit.layerId, false)
+        const hitLayer = composite.layers.find((l) => l.id === hit.layerId)
+        if (hitLayer && !hitLayer.locked && onUpdateLayer) {
+          const plane = createLayerDragPlane(hit.instance, cameraRef.current, hit.point)
+          layerDragStateRef.current = {
+            layerId: hit.layerId,
+            startHitPoint: hit.point.clone(),
+            dragPlane: plane,
+            instance: hit.instance,
+            startLayerX: hitLayer.x,
+            startLayerY: hitLayer.y,
+            startLayerZ: hitLayer.z,
+            rotationX: hitLayer.rotationX || 0,
+            rotationY: hitLayer.rotationY || 0
+          }
+          dragModeRef.current = 'layer'
+          isDraggingRef.current = true
+          dragStartRef.current = {
+            mouseX: e.clientX,
+            mouseY: e.clientY,
+            moved: false
+          }
+          ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+          return
+        }
+      }
+    }
+
     // Chuột phải (button 2), Chuột giữa (button 1) hoặc giữ Shift -> Pan dịch chuyển góc nhìn
     if (e.button === 2 || e.button === 1 || e.shiftKey) {
       dragModeRef.current = 'pan'
@@ -541,6 +540,34 @@ export function LayerAssembly3DViewport({
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDraggingRef.current) return
+
+    if (dragModeRef.current === 'layer' && layerDragStateRef.current && cameraRef.current && containerRef.current) {
+      const s = layerDragStateRef.current
+      const rect = containerRef.current.getBoundingClientRect()
+      const mouse = new THREE.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1
+      )
+      const raycaster = new THREE.Raycaster()
+      raycaster.setFromCamera(mouse, cameraRef.current)
+
+      const currentHit = new THREE.Vector3()
+      if (raycaster.ray.intersectPlane(s.dragPlane, currentHit)) {
+        const worldDelta = currentHit.clone().sub(s.startHitPoint)
+        const patch: Partial<AssembledLayerItem> = {
+          x: Math.round(s.startLayerX + worldDelta.x),
+          y: Math.round(s.startLayerY - worldDelta.y)
+        }
+        if ((s.rotationX !== 0 || s.rotationY !== 0) && zExaggeration > 0.001) {
+          const deltaZ = -worldDelta.z / zExaggeration
+          patch.z = Math.round(s.startLayerZ + deltaZ)
+        }
+        onUpdateLayer?.(s.layerId, patch)
+        requestRender()
+      }
+      return
+    }
+
     const dx = e.clientX - dragStartRef.current.mouseX
     const dy = e.clientY - dragStartRef.current.mouseY
 
@@ -579,6 +606,12 @@ export function LayerAssembly3DViewport({
     try {
       ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
     } catch {}
+
+    if (dragModeRef.current === 'layer') {
+      layerDragStateRef.current = null
+      dragModeRef.current = 'orbit'
+      return
+    }
 
     // Cập nhật vị trí và góc quay camera cho panel điều khiển
     const o = orbitRef.current
@@ -643,35 +676,17 @@ export function LayerAssembly3DViewport({
   // ------------------------------------------------------------- 8. Camera Controls & Quick Angles
   // Xử lý thay đổi tầm nhìn (FOV)
   const handleChangeCameraFov = (fov: number) => {
-    setCameraFov(fov)
-    saveLayerWorkshopViewPrefs({ cameraFov: fov })
-    if (cameraRef.current) {
-      cameraRef.current.fov = fov
-      cameraRef.current.updateProjectionMatrix()
-      requestRender()
-    }
+    updateCameraFov(fov, cameraRef.current, setCameraFov, requestRender)
   }
 
   // Xử lý thay đổi góc xoay ngang 360 độ (Yaw)
   const handleChangeCameraYaw = (yawDeg: number) => {
-    setCameraYaw(yawDeg)
-    saveLayerWorkshopViewPrefs({ cameraYaw: yawDeg, cameraPreset: 'orbit' })
-    const o = orbitRef.current
-    o.azimuth = (yawDeg * Math.PI) / 180
-    setCameraPreset('orbit')
-    cameraPresetRef.current = 'orbit'
-    requestRender()
+    updateCameraYaw(yawDeg, orbitRef.current, setCameraYaw, setCameraPreset, cameraPresetRef, requestRender)
   }
 
   // Xử lý thay đổi góc ngẩng / cúi (Pitch)
   const handleChangeCameraPitch = (pitchDeg: number) => {
-    setCameraPitch(pitchDeg)
-    saveLayerWorkshopViewPrefs({ cameraPitch: pitchDeg, cameraPreset: 'orbit' })
-    const o = orbitRef.current
-    o.elevation = (pitchDeg * Math.PI) / 180
-    setCameraPreset('orbit')
-    cameraPresetRef.current = 'orbit'
-    requestRender()
+    updateCameraPitch(pitchDeg, orbitRef.current, setCameraPitch, setCameraPreset, cameraPresetRef, requestRender)
   }
 
   // Xử lý thay đổi điểm nhìn (Target X, Y, Z)
@@ -684,100 +699,56 @@ export function LayerAssembly3DViewport({
   // Nhắm điểm nhìn vào layer đang chọn
   const handleAimAtSelectedLayer = useCallback(() => {
     if (!selectedLayer) return
-    const o = orbitRef.current
-    const tx = Math.round(selectedLayer.x)
-    const ty = Math.round(-selectedLayer.y)
-    const tz = Math.round(-selectedLayer.z * zExaggeration)
-    o.target.set(tx, ty, tz)
-    setCameraTarget({ x: tx, y: ty, z: tz })
-    requestRender()
+    aimAtSelectedLayer(selectedLayer, orbitRef.current, zExaggeration, setCameraTarget, requestRender)
   }, [selectedLayer, zExaggeration, requestRender])
 
   const handleApplyPreset = (preset: CameraPreset) => {
-    setCameraPreset(preset)
     cameraPresetRef.current = preset
-    const o = orbitRef.current
-    let nextYaw = -32
-    let nextPitch = 20
-    if (preset === 'top') {
-      o.azimuth = 0
-      o.elevation = Math.PI / 2 - 0.02
-      nextYaw = 0
-      nextPitch = 89
-    } else if (preset === 'side') {
-      o.azimuth = -Math.PI / 2
-      o.elevation = 0
-      nextYaw = -90
-      nextPitch = 0
-    } else if (preset === 'front') {
-      const fitD = getFitDistance()
-      o.azimuth = 0
-      o.elevation = 0
-      o.target.set(0, 0, 0)
-      o.distance = fitD
-      setCamDistance(fitD)
-      nextYaw = 0
-      nextPitch = 0
-      setCameraTarget({ x: 0, y: 0, z: 0 })
-    } else {
-      o.azimuth = -0.55
-      o.elevation = 0.35
-      nextYaw = -32
-      nextPitch = 20
-    }
-    setCameraYaw(nextYaw)
-    setCameraPitch(nextPitch)
-    saveLayerWorkshopViewPrefs({ cameraPreset: preset, cameraYaw: nextYaw, cameraPitch: nextPitch })
-    requestRender()
+    applyCameraPreset(preset, orbitRef.current, getFitDistance(), {
+      setCameraPreset,
+      setCameraYaw,
+      setCameraPitch,
+      setCamDistance,
+      setCameraTarget,
+      requestRender
+    })
   }
 
   // Áp dụng góc xoay nhanh chuẩn CameraControls
-  const applyQuickAngle = (yawDeg: number, pitchDeg: number) => {
-    const o = orbitRef.current
-    o.azimuth = (yawDeg * Math.PI) / 180
-    o.elevation = (pitchDeg * Math.PI) / 180
-    setCameraYaw(yawDeg)
-    setCameraPitch(pitchDeg)
-    setCameraPreset('orbit')
+  const applyQuickAngleHandler = (yawDeg: number, pitchDeg: number) => {
     cameraPresetRef.current = 'orbit'
-    saveLayerWorkshopViewPrefs({ cameraYaw: yawDeg, cameraPitch: pitchDeg, cameraPreset: 'orbit' })
-    requestRender()
+    applyQuickAngle(yawDeg, pitchDeg, orbitRef.current, {
+      setCameraPreset,
+      setCameraYaw,
+      setCameraPitch,
+      requestRender
+    })
   }
 
   // Vừa vặn khung hình tiêu chuẩn (Fit Framing Distance)
   const handleFitFramingDistance = () => {
-    const o = orbitRef.current
-    const fitD = getFitDistance()
-    o.target.set(0, 0, 0)
-    o.distance = fitD
-    o.azimuth = 0
-    o.elevation = 0
-    setCamDistance(fitD)
-    setCameraYaw(0)
-    setCameraPitch(0)
-    setCameraTarget({ x: 0, y: 0, z: 0 })
-    setCameraPreset('front')
     cameraPresetRef.current = 'front'
-    saveLayerWorkshopViewPrefs({ cameraPreset: 'front', cameraYaw: 0, cameraPitch: 0 })
-    requestRender()
+    fitCameraFraming(orbitRef.current, getFitDistance(), {
+      setCameraPreset,
+      setCameraYaw,
+      setCameraPitch,
+      setCamDistance,
+      setCameraTarget,
+      requestRender
+    })
   }
 
   // Lấy nét lại toàn cảnh (Focus / Reset View)
   const handleFocusAll = () => {
-    const o = orbitRef.current
-    const fitD = getFitDistance()
-    o.target.set(0, 0, 0)
-    o.distance = fitD
-    o.azimuth = -0.55
-    o.elevation = 0.35
-    setCamDistance(fitD)
-    setCameraYaw(-32)
-    setCameraPitch(20)
-    setCameraTarget({ x: 0, y: 0, z: 0 })
-    setCameraPreset('orbit')
     cameraPresetRef.current = 'orbit'
-    saveLayerWorkshopViewPrefs({ cameraPreset: 'orbit', cameraYaw: -32, cameraPitch: 20 })
-    requestRender()
+    focusAllCamera(orbitRef.current, getFitDistance(), {
+      setCameraPreset,
+      setCameraYaw,
+      setCameraPitch,
+      setCamDistance,
+      setCameraTarget,
+      requestRender
+    })
   }
 
   // Đặt lại mặc định toàn bộ tùy chọn hiển thị, công cụ 3D và xóa cache
@@ -846,6 +817,48 @@ export function LayerAssembly3DViewport({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onContextMenu={(e) => e.preventDefault()}
+      onDragOver={(e) => {
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'copy'
+      }}
+      onDrop={(e) => {
+        e.preventDefault()
+        const container = containerRef.current
+        const camera = cameraRef.current
+        if (!container || !camera) return
+        const rect = container.getBoundingClientRect()
+        const mouse = new THREE.Vector2(
+          ((e.clientX - rect.left) / rect.width) * 2 - 1,
+          -((e.clientY - rect.top) / rect.height) * 2 + 1
+        )
+        const raycaster = new THREE.Raycaster()
+        raycaster.setFromCamera(mouse, camera)
+
+        // Bắn tia lên mặt phẳng Canvas Z = 0
+        const groundPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0)
+        const hitPoint = new THREE.Vector3()
+        let dropX = 0
+        let dropY = 0
+        if (raycaster.ray.intersectPlane(groundPlane, hitPoint)) {
+          dropX = Math.round(hitPoint.x)
+          dropY = Math.round(-hitPoint.y)
+        }
+
+        try {
+          const raw = e.dataTransfer.getData('application/json')
+          if (!raw) return
+          const data = JSON.parse(raw)
+          if (data.type === 'asset' && onAddLayerFromAsset) {
+            onAddLayerFromAsset(data.name, data.path, data.url, { x: dropX, y: dropY })
+          } else if (data.type === 'composite' && onAppendPresetLayers && data.composite?.layers) {
+            onAppendPresetLayers(data.composite.layers, { x: dropX, y: dropY })
+          } else if (data.type === 'layer' && data.layer && onUpdateLayer) {
+            onUpdateLayer(data.layer.id, { x: dropX, y: dropY })
+          }
+        } catch (err) {
+          console.warn('[LayerAssembly3DViewport] Failed to parse drop data:', err)
+        }
+      }}
     >
       <canvas
         ref={canvasRef}
@@ -883,7 +896,7 @@ export function LayerAssembly3DViewport({
       <LayerAssembly3DToolbar
         cameraPreset={cameraPreset}
         onApplyPreset={handleApplyPreset}
-        onApplyQuickAngle={applyQuickAngle}
+        onApplyQuickAngle={applyQuickAngleHandler}
         onFitFramingDistance={handleFitFramingDistance}
         onFocusAll={handleFocusAll}
         showFrustum={showFrustum}

@@ -4,7 +4,7 @@ import type { LayerComposite, AssembledLayerItem } from './types'
 import { useLayerAssetImage } from './useLayerAssetImage'
 import { computeLayerMotion } from './layerAssemblyMotion'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
-import { IconLayers, IconImage } from '../icons'
+import { IconLayers, IconImage, IconBoundingBox } from '../icons'
 import { useView } from '../../store/view'
 import { computeLayer2DLighting, computeCanvasAtmosphere } from './layerAssembly2DLighting'
 import { LightingControlPopover } from './LightingControlPopover'
@@ -14,6 +14,11 @@ import {
   loadLayerWorkshopViewPrefs,
   saveLayerWorkshopViewPrefs
 } from './layerAssemblyViewPrefs'
+import {
+  BBOX_2D_HANDLES,
+  type Bbox2DHandle,
+  calculateAnchorPinnedResize
+} from './layerAssembly2DBbox'
 
 export interface LayerAssemblyViewportProps {
   composite: LayerComposite
@@ -22,6 +27,8 @@ export interface LayerAssemblyViewportProps {
   onSelectLayer: (id: string | null, additive?: boolean) => void
   onUpdateLayer: (id: string, patch: Partial<AssembledLayerItem>) => void
   onChangeComposite?: (update: LayerComposite | ((prev: LayerComposite) => LayerComposite)) => void
+  onAddLayerFromAsset?: (name: string, path: string, url?: string, pos?: { x: number; y: number }) => void
+  onAppendPresetLayers?: (layers: AssembledLayerItem[], offset?: { x: number; y: number }) => void
   isPlaying: boolean
   onTogglePlay: () => void
   time: number
@@ -36,6 +43,8 @@ export function LayerAssemblyViewport({
   onSelectLayer,
   onUpdateLayer,
   onChangeComposite,
+  onAddLayerFromAsset,
+  onAppendPresetLayers,
   isPlaying,
   onTogglePlay,
   time,
@@ -49,10 +58,24 @@ export function LayerAssemblyViewport({
   const [isDraggingLayer, setIsDraggingLayer] = useState(false)
   const [show3DPerspective, setShow3DPerspective] = useState(() => loadLayerWorkshopViewPrefs().show3DPerspective2D)
   const [clipToCamera, setClipToCamera] = useState(() => loadLayerWorkshopViewPrefs().clipToCamera2D)
+  const [showBbox, setShowBbox] = useState(() => loadLayerWorkshopViewPrefs().showBbox2D)
+  const [isDraggingHandle, setIsDraggingHandle] = useState(false)
   const theme = useView((s) => s.theme)
   const isLight = theme === 'light'
   const [isLightingOpen, setIsLightingOpen] = useState(false)
   const lightingBtnRef = useRef<HTMLButtonElement | null>(null)
+
+  const handleDragRef = useRef<{
+    handle: Bbox2DHandle
+    layerId: string
+    startX: number
+    startY: number
+    startScale: number
+    startMouseX: number
+    startMouseY: number
+    baseWidth: number
+    baseHeight: number
+  } | null>(null)
 
   const maxZ = useMemo(() => {
     if (composite.layers.length === 0) return 0
@@ -85,7 +108,13 @@ export function LayerAssemblyViewport({
 
   useEffect(() => {
     const cancel = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || (!isDraggingLayer && !isPanning)) return
+      if (e.key !== 'Escape' || (!isDraggingLayer && !isPanning && !isDraggingHandle)) return
+      if (handleDragRef.current) {
+        const d = handleDragRef.current
+        onUpdateLayer(d.layerId, { x: d.startX, y: d.startY, scale: d.startScale })
+        handleDragRef.current = null
+        setIsDraggingHandle(false)
+      }
       if (isDraggingLayer) dragStartRef.current.initPositions.forEach((position, id) => onUpdateLayer(id, position))
       if (isPanning) setPan({ x: dragStartRef.current.initPanX, y: dragStartRef.current.initPanY })
       setIsDraggingLayer(false); setIsPanning(false)
@@ -93,7 +122,7 @@ export function LayerAssemblyViewport({
     }
     window.addEventListener('keydown', cancel)
     return () => window.removeEventListener('keydown', cancel)
-  }, [isDraggingLayer, isPanning, onUpdateLayer])
+  }, [isDraggingLayer, isPanning, isDraggingHandle, onUpdateLayer])
 
   // Tự động căn giữa và co dãn vừa vặn (Fit to screen) khung vẽ 2D
   const handleFitView = useCallback(() => {
@@ -150,6 +179,28 @@ export function LayerAssemblyViewport({
       return
     }
 
+    if (handleDragRef.current) {
+      const d = handleDragRef.current
+      const dx = (e.clientX - d.startMouseX) / zoom
+      const dy = (e.clientY - d.startMouseY) / zoom
+      const res = calculateAnchorPinnedResize({
+        handle: d.handle,
+        dx,
+        dy,
+        startX: d.startX,
+        startY: d.startY,
+        startScale: d.startScale,
+        baseWidth: d.baseWidth,
+        baseHeight: d.baseHeight
+      })
+      onUpdateLayer(d.layerId, {
+        x: res.x,
+        y: res.y,
+        scale: res.scale
+      })
+      return
+    }
+
     if (!isDraggingLayer) return
     const dx = (e.clientX - dragStartRef.current.mouseX) / zoom
     const dy = (e.clientY - dragStartRef.current.mouseY) / zoom
@@ -168,12 +219,43 @@ export function LayerAssemblyViewport({
         ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
       } catch {}
     }
+    if (handleDragRef.current) {
+      handleDragRef.current = null
+      setIsDraggingHandle(false)
+      try {
+        ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
+      } catch {}
+    }
     if (isDraggingLayer) {
       setIsDraggingLayer(false)
       try {
         ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
       } catch {}
     }
+  }
+
+  const handleStartDragHandle = (
+    e: React.PointerEvent,
+    handle: Bbox2DHandle,
+    layer: AssembledLayerItem,
+    baseW: number,
+    baseH: number
+  ) => {
+    e.stopPropagation()
+    if (layer.locked) return
+    setIsDraggingHandle(true)
+    handleDragRef.current = {
+      handle,
+      layerId: layer.id,
+      startX: layer.x,
+      startY: layer.y,
+      startScale: layer.scale,
+      startMouseX: e.clientX,
+      startMouseY: e.clientY,
+      baseWidth: baseW,
+      baseHeight: baseH
+    }
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
   }
 
   const handleStartDragLayer = (e: React.PointerEvent, layer: AssembledLayerItem) => {
@@ -216,12 +298,41 @@ export function LayerAssemblyViewport({
         height: '100%',
         background: 'var(--bg-0)',
         overflow: 'hidden',
-        cursor: isPanning ? 'grab' : 'default',
+        cursor: isPanning ? 'grab' : isDraggingHandle ? 'crosshair' : 'default',
         userSelect: 'none'
       }}
       onPointerDown={handlePointerDownViewport}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onDragOver={(e) => {
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'copy'
+      }}
+      onDrop={(e) => {
+        e.preventDefault()
+        const container = containerRef.current
+        if (!container) return
+        const rect = container.getBoundingClientRect()
+        const mouseX = e.clientX - rect.left - rect.width / 2 - pan.x
+        const mouseY = e.clientY - rect.top - rect.height / 2 - pan.y
+        const dropX = Math.round(mouseX / zoom)
+        const dropY = Math.round(mouseY / zoom)
+
+        try {
+          const raw = e.dataTransfer.getData('application/json')
+          if (!raw) return
+          const data = JSON.parse(raw)
+          if (data.type === 'asset' && onAddLayerFromAsset) {
+            onAddLayerFromAsset(data.name, data.path, data.url, { x: dropX, y: dropY })
+          } else if (data.type === 'composite' && onAppendPresetLayers && data.composite?.layers) {
+            onAppendPresetLayers(data.composite.layers, { x: dropX, y: dropY })
+          } else if (data.type === 'layer' && data.layer) {
+            onUpdateLayer(data.layer.id, { x: dropX, y: dropY })
+          }
+        } catch (err) {
+          console.warn('[LayerAssemblyViewport] Failed to parse drop data:', err)
+        }
+      }}
       onWheel={(e) => {
         e.preventDefault()
         const factor = e.deltaY < 0 ? 1.12 : 0.88
@@ -287,11 +398,14 @@ export function LayerAssemblyViewport({
               key={layer.id}
               layer={layer}
               isSelected={isSelected}
+              showBbox={showBbox}
+              zoom={zoom}
               time={time}
               maxZ={maxZ}
               lighting={composite.lighting}
               show3DPerspective={show3DPerspective}
               onPointerDown={(e) => handleStartDragLayer(e, layer)}
+              onStartDragHandle={handleStartDragHandle}
             />
           )
         })}
@@ -391,6 +505,30 @@ export function LayerAssemblyViewport({
         >
           {clipToCamera ? '✂ Cắt khung' : '👁 Tràn viền'}
         </button>
+        <button
+          type="button"
+          className={`btn xs${showBbox ? ' active' : ''}`}
+          onClick={() =>
+            setShowBbox((v) => {
+              const next = !v
+              saveLayerWorkshopViewPrefs({ showBbox2D: next })
+              return next
+            })
+          }
+          title={
+            showBbox
+              ? 'Đang bật khung điều khiển co dãn BBox (Bấm để ẩn)'
+              : 'Đang tắt khung điều khiển co dãn BBox (Bấm để hiện)'
+          }
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}
+        >
+          <IconBoundingBox width={12} height={12} />
+          <span>{showBbox ? 'BBox' : 'BBox Tắt'}</span>
+        </button>
 
         {/* Nút bật popup Hướng sáng & Đổ bóng ngày đêm ngay tại thanh công cụ 2D */}
         {onChangeComposite && (
@@ -475,23 +613,36 @@ export function LayerAssemblyViewport({
 interface AssembledLayerItemViewProps {
   layer: AssembledLayerItem
   isSelected: boolean
+  showBbox?: boolean
+  zoom?: number
   time: number
   maxZ: number
   lighting?: AssemblyLighting
   show3DPerspective?: boolean
   onPointerDown: (e: React.PointerEvent) => void
+  onStartDragHandle?: (
+    e: React.PointerEvent,
+    handle: Bbox2DHandle,
+    layer: AssembledLayerItem,
+    baseW: number,
+    baseH: number
+  ) => void
 }
 
 function AssembledLayerItemView({
   layer,
   isSelected,
+  showBbox = true,
+  zoom = 1.0,
   time,
   maxZ,
   lighting,
   show3DPerspective = true,
-  onPointerDown
+  onPointerDown,
+  onStartDragHandle
 }: AssembledLayerItemViewProps) {
   const imageUrl = useLayerAssetImage(layer.assetPath, layer.imageUrl)
+  const boxRef = useRef<HTMLDivElement | null>(null)
 
   // Tính hiệu ứng hướng nắng, bóng đổ theo chiều sâu Z và màu sắc hấp thụ ánh sáng ngày/đêm
   const lightingResult = useMemo(() => {
@@ -543,6 +694,7 @@ function AssembledLayerItemView({
       }}
     >
       <div
+        ref={boxRef}
         style={{
           position: 'relative',
           display: 'inline-block',
@@ -551,7 +703,7 @@ function AssembledLayerItemView({
           transformStyle: 'preserve-3d',
           opacity: layer.opacity,
           cursor: layer.locked ? 'default' : 'move',
-          outline: isSelected ? '2px solid var(--accent)' : 'none',
+          outline: isSelected && !showBbox ? '2px solid var(--accent)' : 'none',
           outlineOffset: '2px',
           borderRadius: '3px',
           boxShadow: isSelected ? '0 0 12px rgba(38, 128, 235, 0.5)' : 'none',
@@ -617,6 +769,51 @@ function AssembledLayerItemView({
             }}
             title={`Điểm neo uốn: ${anchor}`}
           />
+        )}
+
+        {/* Khung viền và 8 điểm mút Square co dãn Bbox theo chuẩn After Effects (cố định mép đối diện) */}
+        {isSelected && showBbox && !layer.locked && (
+          <>
+            <div
+              style={{
+                position: 'absolute',
+                inset: '-2px',
+                border: '1.5px solid var(--accent)',
+                borderRadius: '2px',
+                pointerEvents: 'none',
+                zIndex: 15
+              }}
+            />
+            {BBOX_2D_HANDLES.map((h) => (
+              <div
+                key={h.handle}
+                style={{
+                  position: 'absolute',
+                  top: h.top,
+                  bottom: h.bottom,
+                  left: h.left,
+                  right: h.right,
+                  transform: h.transform,
+                  width: '9px',
+                  height: '9px',
+                  background: 'var(--bg-0)',
+                  border: '1.5px solid var(--accent)',
+                  borderRadius: '1.5px',
+                  boxShadow: '0 0 4px rgba(0,0,0,0.6)',
+                  cursor: h.cursor,
+                  pointerEvents: 'auto',
+                  zIndex: 20
+                }}
+                title={h.title}
+                onPointerDown={(e) => {
+                  const el = boxRef.current
+                  const bw = el ? el.offsetWidth : 130
+                  const bh = el ? el.offsetHeight : 130
+                  onStartDragHandle?.(e, h.handle, layer, bw, bh)
+                }}
+              />
+            ))}
+          </>
         )}
       </div>
     </div>

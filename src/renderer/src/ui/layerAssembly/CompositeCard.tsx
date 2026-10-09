@@ -47,6 +47,13 @@ export function CompositeCard({
 
   return (
     <div
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData(
+          'application/json',
+          JSON.stringify({ type: 'composite', composite: item })
+        )
+      }}
       style={{
         background: 'var(--bg-1)',
         border: '1px solid var(--line-soft)',
@@ -56,7 +63,8 @@ export function CompositeCard({
         flexDirection: 'column',
         gap: '6px',
         minWidth: 0,
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        cursor: 'grab'
       }}
     >
       {/* 1. Header: Tên mẫu & Badge loại mẫu */}

@@ -9,8 +9,16 @@ import { IconCube, IconImage } from '../icons'
 export function WorkshopWorkspace({ state, playback, view }: {
   state: ReturnType<typeof useLayerWorkshop>; playback: ReturnType<typeof useWorkshopPlayback>; view: AssemblyWorkspaceView
 }) {
-  const props = { composite: state.composite, selectedLayerId: state.selectedLayerId,
-    selectedIds: state.selection, onSelectLayer: state.select, onUpdateLayer: state.update, time: playback.time }
+  const props = {
+    composite: state.composite,
+    selectedLayerId: state.selectedLayerId,
+    selectedIds: state.selection,
+    onSelectLayer: state.select,
+    onUpdateLayer: state.update,
+    onAddLayerFromAsset: state.add,
+    onAppendPresetLayers: state.append,
+    time: playback.time
+  }
   return <div className="layer-workshop-center-area">
     <div className="layer-workshop-split-container">
       {view !== '3d' && <div className="layer-workshop-split-pane left-pane">

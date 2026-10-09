@@ -4,6 +4,8 @@ import { useEditor } from '../../store/editor'
 import { assetStore } from '../../project/assets'
 import { createImageLayer } from '../../project/factory'
 import type { AssetMeta, ImageLayer } from '@shared/types'
+import { resolveFaceTexture } from '../assets/models3d/textureResolver'
+import { toast } from '../../actions'
 
 export interface InsertCompositeOptions {
   composite: LayerComposite
@@ -31,19 +33,93 @@ export async function insertLayerCompositeToScene({
   const comp = state.project.comp
   const createdLayerIds: string[] = []
   const layersToAdd: ImageLayer[] = []
+  const newAssetsToAdd: AssetMeta[] = []
   const projectAssets = state.project.assets
 
   const instanceId = 'comp-inst-' + nanoid(8)
   const activeItems = composite.layers.filter((item) => !item.hidden)
 
-  // Duyệt qua các layer theo thứ tự từ sau ra trước (hoặc ngược lại)
+  // Duyệt qua các layer theo thứ tự
   for (let idx = 0; idx < activeItems.length; idx++) {
     const item = activeItems[idx]
 
-    // Tìm asset trong project nếu có
+    // 1. Tìm asset trong project nếu đã có
     let asset: AssetMeta | undefined = projectAssets.find(
-      (a) => (item.assetPath && a.path?.endsWith(item.assetPath)) || a.id === item.assetPath
+      (a) =>
+        (item.assetPath && (a.path?.endsWith(item.assetPath) || a.assetPath === item.assetPath)) ||
+        a.id === item.assetPath
     )
+
+    // Kiểm tra trong assetStore runtime
+    if (!asset && item.assetPath) {
+      const existingRt = assetStore.get(item.assetPath)
+      if (existingRt) {
+        asset = existingRt.meta
+      }
+    }
+
+    // 2. Nếu chưa có trong assetStore hoặc projectAssets -> Nạp dữ liệu ảnh và đăng ký vào assetStore
+    if (!asset) {
+      try {
+        let loadedData: Uint8Array | Blob | null = null
+        let mime = 'image/png'
+
+        // Nạp từ built-in assets hoặc asset-3ds
+        if (item.assetPath) {
+          if (window.api?.loadBuiltInAssetBytes) {
+            try {
+              const file =
+                (await window.api.loadBuiltInAssetBytes(item.assetPath)) ||
+                (await window.api.loadBuiltInAssetBytes(`assembly_3d/${item.assetPath.replace(/^assembly_3d[\\/]/, '')}`))
+              if (file?.data && file.data.length > 0) {
+                loadedData = file.data
+                mime = file.mime || 'image/png'
+              }
+            } catch {}
+          }
+          if (!loadedData && window.api?.asset3ds?.loadBytes) {
+            try {
+              const cleanPath = item.assetPath.replace(/^asset-3ds[\\/]/, '')
+              const file = await window.api.asset3ds.loadBytes(cleanPath)
+              if (file?.data && file.data.length > 0) {
+                loadedData = file.data
+                mime = file.mime || 'image/png'
+              }
+            } catch {}
+          }
+          if (!loadedData) {
+            const resolved = await resolveFaceTexture(item.assetPath)
+            if (resolved?.url) {
+              const res = await fetch(resolved.url)
+              loadedData = await res.blob()
+              mime = (loadedData as Blob).type || 'image/png'
+            }
+          }
+        }
+
+        // Nạp từ direct imageUrl nếu có
+        if (!loadedData && item.imageUrl && (item.imageUrl.startsWith('data:') || item.imageUrl.startsWith('blob:') || item.imageUrl.startsWith('http'))) {
+          const res = await fetch(item.imageUrl)
+          loadedData = await res.blob()
+          mime = (loadedData as Blob).type || 'image/png'
+        }
+
+        if (loadedData) {
+          const fileName = (item.assetPath || item.name || 'layer').split('/').pop() || 'layer.png'
+          const added = await assetStore.add(fileName, mime, loadedData, 'image')
+          if (item.assetPath) {
+            added.meta.assetPath = item.assetPath
+            added.meta.path = item.assetPath
+          }
+          asset = added.meta
+          if (!projectAssets.some((a) => a.id === asset!.id) && !newAssetsToAdd.some((a) => a.id === asset!.id)) {
+            newAssetsToAdd.push(added.meta)
+          }
+        }
+      } catch (err) {
+        console.warn('[insertLayerCompositeToScene] Failed to load asset bytes for item:', item.name, err)
+      }
+    }
 
     const targetAsset: AssetMeta = asset || {
       id: item.assetPath || `asset-auto-${nanoid(6)}`,
@@ -52,6 +128,10 @@ export async function insertLayerCompositeToScene({
       mime: 'image/png',
       width: composite.width,
       height: composite.height
+    }
+
+    if (asset && !projectAssets.some((a) => a.id === asset!.id) && !newAssetsToAdd.some((a) => a.id === asset!.id)) {
+      newAssetsToAdd.push(asset)
     }
 
     const layerName = `[${composite.name}] ${item.name}`
@@ -63,6 +143,11 @@ export async function insertLayerCompositeToScene({
     newLayer.id = 'layer-' + nanoid(8)
     newLayer.name = layerName
     newLayer.shotId = shotId
+    newLayer.autoScale = false
+    if (targetAsset.width && targetAsset.height) {
+      newLayer.props.width = targetAsset.width
+      newLayer.props.height = targetAsset.height
+    }
     newLayer.transform.position.value = [posX, posY, posZ]
     newLayer.transform.scale.value = [item.scale * globalScale, item.scale * globalScale, 1]
     newLayer.transform.rotation.value = [item.rotationX || 0, item.rotationY || 0, item.rotation || 0]
@@ -104,8 +189,20 @@ export async function insertLayerCompositeToScene({
 
   if (layersToAdd.length > 0) {
     useEditor.getState().update((p) => {
-      p.layers.push(...layersToAdd)
+      if (newAssetsToAdd.length > 0) {
+        p.assets.push(...newAssetsToAdd)
+      }
+      // Chèn layer lên trên cùng của shot hiện tại để hiển thị ngay trước mắt người xem
+      const firstShotIdx = p.layers.findIndex((l) => l.shotId === shotId)
+      if (firstShotIdx < 0) {
+        p.layers.unshift(...layersToAdd)
+      } else {
+        p.layers.splice(firstShotIdx, 0, ...layersToAdd)
+      }
     }, `Thêm cụm layer: ${composite.name}`)
+
+    useEditor.getState().selectLayer(createdLayerIds[0])
+    toast(`Đã thêm cụm layer "${composite.name}" vào cảnh`)
   }
 
   return createdLayerIds

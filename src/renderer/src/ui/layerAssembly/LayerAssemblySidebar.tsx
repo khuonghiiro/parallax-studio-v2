@@ -400,6 +400,10 @@ function LayerItemCard({
     <div
       role="button"
       tabIndex={0}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData('application/json', JSON.stringify({ type: 'layer', layer }))
+      }}
       onClick={onSelect}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -412,7 +416,7 @@ function LayerItemCard({
         border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--line-soft)'}`,
         borderRadius: '4px',
         padding: '5px',
-        cursor: 'pointer',
+        cursor: 'grab',
         display: 'flex',
         flexDirection: 'column',
         gap: '4px',
@@ -502,6 +506,18 @@ function AssetCard({
     <div
       role="button"
       tabIndex={0}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData(
+          'application/json',
+          JSON.stringify({
+            type: 'asset',
+            name: item.name,
+            path: item.path,
+            url: item.isCustom ? item.path : (displayUrl || undefined)
+          })
+        )
+      }}
       onClick={onSelect}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -514,7 +530,7 @@ function AssetCard({
         border: '1px solid var(--line-soft)',
         borderRadius: '4px',
         padding: '5px',
-        cursor: 'pointer',
+        cursor: 'grab',
         display: 'flex',
         flexDirection: 'column',
         gap: '4px',
@@ -525,7 +541,7 @@ function AssetCard({
         overflow: 'hidden',
         transition: 'all 0.15s ease'
       }}
-      title={`Click để thêm ${item.name} làm layer mới`}
+      title={`Click hoặc Kéo thả để thêm ${item.name} làm layer mới`}
     >
       {/* Nút xoá cho ảnh custom */}
       {onDelete && (

@@ -18,13 +18,15 @@ export function useLayerWorkshop(initial?: LayerComposite | null) {
   const update = (id: string, patch: Partial<AssembledLayerItem>) => setComposite((prev) => ({ ...prev,
     layers: prev.layers.map((l) => l.id === id && (!l.locked || Object.keys(patch).every((key) => key === 'locked')) ? { ...l, ...patch } : l)
   }), `${id}:${Object.keys(patch).sort().join(',')}`)
-  const append = (layers: AssembledLayerItem[]) => {
-    const added = layers.map((l) => ({ ...l, id: newLayerId(), motion: { ...l.motion } }))
+  const append = (layers: AssembledLayerItem[], offset?: { x: number; y: number }) => {
+    const ox = offset?.x ?? 0
+    const oy = offset?.y ?? 0
+    const added = layers.map((l) => ({ ...l, id: newLayerId(), x: l.x + ox, y: l.y + oy, motion: { ...l.motion } }))
     setComposite((prev) => ({ ...prev, layers: [...prev.layers, ...added] }))
     setIds(added.map((l) => l.id))
   }
-  const add = (name: string, assetPath: string, imageUrl?: string) => append([{
-    id: '', name, assetPath, imageUrl, x: 0, y: 0,
+  const add = (name: string, assetPath: string, imageUrl?: string, pos?: { x: number; y: number }) => append([{
+    id: '', name, assetPath, imageUrl, x: pos?.x ?? 0, y: pos?.y ?? 0,
     z: composite.layers.length ? Math.min(...composite.layers.map((l) => l.z)) - 80 : 0,
     scale: 1, rotation: 0, opacity: 1, motion: { type: 'none', speed: 1, amplitude: 15, anchor: 'bottom' }
   }])

@@ -16,6 +16,21 @@ export function useWorkshopShortcuts(state: ReturnType<typeof useLayerWorkshop>,
       else if (e.key === 'Delete' || e.key === 'Backspace') state.run('delete')
       else if (e.code === 'Space') togglePlay()
       else if (e.key === 'Escape') { if (state.selection.length) state.select(null); else close() }
+      else if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key) && state.selection.length) {
+        const step = e.shiftKey ? 10 : 1
+        let dx = 0
+        let dy = 0
+        if (key === 'arrowup') dy = -step
+        else if (key === 'arrowdown') dy = step
+        else if (key === 'arrowleft') dx = -step
+        else if (key === 'arrowright') dx = step
+        state.selection.forEach((id) => {
+          const l = state.composite.layers.find((layer) => layer.id === id)
+          if (l && !l.locked) {
+            state.update(id, { x: l.x + dx, y: l.y + dy })
+          }
+        })
+      }
       else return
       e.preventDefault(); e.stopImmediatePropagation()
     }

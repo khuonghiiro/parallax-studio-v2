@@ -584,6 +584,20 @@ export const IconAnchor = (p: P) => (
   </svg>
 )
 
+export const IconBoundingBox = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="5" y="5" width="14" height="14" rx="1" strokeDasharray="2.5 2.5" />
+    <rect x="3" y="3" width="4" height="4" fill="currentColor" />
+    <rect x="17" y="3" width="4" height="4" fill="currentColor" />
+    <rect x="3" y="17" width="4" height="4" fill="currentColor" />
+    <rect x="17" y="17" width="4" height="4" fill="currentColor" />
+    <rect x="10" y="3" width="4" height="4" fill="currentColor" />
+    <rect x="10" y="17" width="4" height="4" fill="currentColor" />
+    <rect x="3" y="10" width="4" height="4" fill="currentColor" />
+    <rect x="17" y="10" width="4" height="4" fill="currentColor" />
+  </svg>
+)
+
 
 
 
