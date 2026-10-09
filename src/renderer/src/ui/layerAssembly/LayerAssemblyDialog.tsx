@@ -182,6 +182,44 @@ export function LayerAssemblyDialog({
     setComposite((prev) => ({ ...prev, layers: nextLayers }))
   }
 
+  // Mở rộng hoặc thu nhỏ kích thước khung camera
+  const handleExpandFrame = (delta: number) => {
+    setComposite((prev) => ({
+      ...prev,
+      width: Math.max(200, Math.min(4000, prev.width + delta)),
+      height: Math.max(200, Math.min(4000, prev.height + delta))
+    }))
+  }
+
+  // Tự động mở rộng kích thước khung vừa khít tất cả các layer đang có
+  const handleFitFrameToLayers = () => {
+    if (composite.layers.length === 0) return
+    let minX = -100
+    let maxX = 100
+    let minY = -100
+    let maxY = 100
+
+    composite.layers.forEach((l) => {
+      // Ước tính kích thước layer theo scale (kích thước ảnh chuẩn ~380px)
+      const halfW = 190 * (l.scale || 1)
+      const halfH = 190 * (l.scale || 1)
+      minX = Math.min(minX, l.x - halfW)
+      maxX = Math.max(maxX, l.x + halfW)
+      minY = Math.min(minY, l.y - halfH)
+      maxY = Math.max(maxY, l.y + halfH)
+    })
+
+    const pad = 60
+    const neededW = Math.max(400, Math.ceil((Math.max(Math.abs(minX), Math.abs(maxX)) * 2 + pad) / 50) * 50)
+    const neededH = Math.max(400, Math.ceil((Math.max(Math.abs(minY), Math.abs(maxY)) * 2 + pad) / 50) * 50)
+
+    setComposite((prev) => ({
+      ...prev,
+      width: Math.min(4000, neededW),
+      height: Math.min(4000, neededH)
+    }))
+  }
+
   const [isSaving, setIsSaving] = useState(false)
 
   // Lưu chi tiết cụm layer kèm kết xuất Thumbnail 2D
@@ -264,7 +302,7 @@ export function LayerAssemblyDialog({
               className="input-text sm"
               value={composite.width}
               onChange={(e) => setComposite({ ...composite, width: Number(e.target.value) || 600 })}
-              style={{ width: '56px', textAlign: 'center' }}
+              style={{ width: '54px', textAlign: 'center' }}
               title="Chiều rộng khung chi tiết"
             />
             <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>×</span>
@@ -273,9 +311,56 @@ export function LayerAssemblyDialog({
               className="input-text sm"
               value={composite.height}
               onChange={(e) => setComposite({ ...composite, height: Number(e.target.value) || 600 })}
-              style={{ width: '56px', textAlign: 'center' }}
+              style={{ width: '54px', textAlign: 'center' }}
               title="Chiều cao khung chi tiết"
             />
+            <button
+              type="button"
+              className="btn xs"
+              onClick={() => handleExpandFrame(100)}
+              title="Mở rộng kích thước khung thêm +100px cả chiều rộng và chiều cao"
+              style={{ padding: '2px 6px', fontSize: '10px', fontWeight: 600 }}
+            >
+              +100
+            </button>
+            <button
+              type="button"
+              className="btn xs"
+              onClick={() => handleExpandFrame(-100)}
+              title="Thu nhỏ kích thước khung bớt 100px (tối thiểu 200px)"
+              style={{ padding: '2px 5px', fontSize: '10px', fontWeight: 600 }}
+            >
+              -100
+            </button>
+            <button
+              type="button"
+              className="btn xs"
+              onClick={handleFitFrameToLayers}
+              title="Tự động mở rộng khung vừa khít tất cả các layer đang có"
+              style={{ padding: '2px 6px', fontSize: '10px' }}
+            >
+              📐 Vừa khít
+            </button>
+            <select
+              className="input-text sm"
+              style={{ fontSize: '10.5px', padding: '2px 4px', width: '90px' }}
+              value=""
+              onChange={(e) => {
+                if (!e.target.value) return
+                const [w, h] = e.target.value.split('x').map(Number)
+                if (w && h) setComposite((prev) => ({ ...prev, width: w, height: h }))
+              }}
+              title="Chọn nhanh khổ kích thước chuẩn"
+            >
+              <option value="" disabled>Khổ mẫu...</option>
+              <option value="550x600">550 × 600 (Mặc định)</option>
+              <option value="800x800">800 × 800 (Vuông lớn)</option>
+              <option value="1000x1000">1000 × 1000 (Vuông rộng)</option>
+              <option value="1280x720">1280 × 720 (16:9 HD)</option>
+              <option value="1920x1080">1920 × 1080 (16:9 FHD)</option>
+              <option value="1080x1920">1080 × 1920 (9:16 Dọc)</option>
+              <option value="800x1000">800 × 1000 (Dọc lớn)</option>
+            </select>
           </div>
 
           {/* Chuyển đổi View: 2D | 3D | Chia đôi */}
@@ -388,7 +473,27 @@ export function LayerAssemblyDialog({
                 <div className="layer-workshop-split-pane left-pane">
                   <div className="pane-header-tab">
                     <span className="pane-title"><IconImage width={12} height={12} /> Góc nhìn chính diện (Camera / 2D)</span>
-                    <span style={{ fontSize: '10.5px', color: 'var(--text-faint)' }}>{composite.width} × {composite.height} px</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <span style={{ fontSize: '10.5px', color: 'var(--text-faint)' }}>{composite.width} × {composite.height} px</span>
+                      <button
+                        type="button"
+                        className="btn xs"
+                        onClick={() => handleExpandFrame(100)}
+                        title="Nới rộng khung thêm +100px chiều rộng và chiều cao"
+                        style={{ padding: '1px 5px', fontSize: '10px' }}
+                      >
+                        +100px
+                      </button>
+                      <button
+                        type="button"
+                        className="btn xs"
+                        onClick={handleFitFrameToLayers}
+                        title="Tự động mở rộng khung vừa khít các layer"
+                        style={{ padding: '1px 5px', fontSize: '10px' }}
+                      >
+                        📐 Vừa khít
+                      </button>
+                    </div>
                   </div>
                   <LayerAssemblyViewport
                     composite={composite}

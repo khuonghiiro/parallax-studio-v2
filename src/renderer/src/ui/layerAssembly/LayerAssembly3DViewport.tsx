@@ -7,11 +7,13 @@ import {
   updateLayerInstanceTexture,
   createRectOutline,
   createCameraFrustumHelper,
+  createCameraClippingPlanes,
   createDepthGuideLine,
   type Layer3DMeshInstance
 } from './layerAssembly3DMesh'
 import { getLayerFullResUrl } from './useLayerAssetImage'
 import { resolveFaceTexture } from '../assets/models3d/textureResolver'
+import { useView } from '../../store/view'
 import {
   IconCube,
   IconEye,
@@ -71,14 +73,23 @@ export function LayerAssembly3DViewport({
     target: new THREE.Vector3(0, 0, 0)
   })
 
+  const theme = useView((s) => s.theme)
+  const isLight = theme === 'light'
+
   // Tool states
   const [camDistance, setCamDistance] = useState(defaultFitDist)
   const [zExaggeration, setZExaggeration] = useState(1.8) // Độ tách lớp Z mặc định 1.8x
   const [showGrid, setShowGrid] = useState(true)
   const [showFrustum, setShowFrustum] = useState(true)
+  const [clipToCamera, setClipToCamera] = useState(true) // Cắt các phần layer vượt ra ngoài tầm nhìn camera
   const [cameraPreset, setCameraPreset] = useState<CameraPreset>('orbit')
   const [isAnglesOpen, setIsAnglesOpen] = useState(false)
   const [isDepthOpen, setIsDepthOpen] = useState(false)
+
+  // 4 mặt phẳng cắt không gian camera 3D (Clipping Planes)
+  const cameraClippingPlanes = useMemo(() => {
+    return clipToCamera ? createCameraClippingPlanes(composite.width, composite.height) : []
+  }, [clipToCamera, composite.width, composite.height])
 
   // 3D Gizmo states: Bật/tắt trục XYZ và vòng xoay góc
   const [showTranslate, setShowTranslate] = useState(true) // Trục di chuyển 3D XYZ
@@ -126,6 +137,7 @@ export function LayerAssembly3DViewport({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
     renderer.setSize(width, height)
     renderer.outputColorSpace = THREE.SRGBColorSpace
+    renderer.localClippingEnabled = true
     rendererRef.current = renderer
 
     // Lights
@@ -158,13 +170,14 @@ export function LayerAssembly3DViewport({
     axesHelper.position.set(-composite.width / 2, -composite.height / 2, 0)
     helpersGroup.add(axesHelper)
 
-    // Khung chữ nhật bao quanh canvas 2D tại z = 0
-    const canvasBox = createRectOutline(composite.width, composite.height, 0x64748b)
+    // Khung chữ nhật bao quanh canvas 2D tại z = 0 (theme sáng dùng xanh dương, theme tối dùng slate)
+    const initialBoxColor = isLight ? 0x0284c7 : 0x64748b
+    const canvasBox = createRectOutline(composite.width, composite.height, initialBoxColor)
     scene.add(canvasBox)
     canvasBoxRef.current = canvasBox
 
-    // Hình nón tháp Camera Frustum 3D
-    const frustumHelper = createCameraFrustumHelper(composite.width, composite.height, defaultFitDist)
+    // Hình nón tháp Camera Frustum 3D (theme sáng dùng Royal Blue đậm nét, theme tối dùng vàng ấm)
+    const frustumHelper = createCameraFrustumHelper(composite.width, composite.height, defaultFitDist, isLight)
     scene.add(frustumHelper)
     frustumHelperRef.current = frustumHelper
 
@@ -242,7 +255,8 @@ export function LayerAssembly3DViewport({
       sceneRef.current.remove(canvasBoxRef.current)
       canvasBoxRef.current.geometry.dispose()
     }
-    const newBox = createRectOutline(composite.width, composite.height, 0x64748b)
+    const boxColor = isLight ? 0x0284c7 : 0x64748b
+    const newBox = createRectOutline(composite.width, composite.height, boxColor)
     sceneRef.current.add(newBox)
     canvasBoxRef.current = newBox
 
@@ -250,11 +264,11 @@ export function LayerAssembly3DViewport({
       sceneRef.current.remove(frustumHelperRef.current)
       frustumHelperRef.current.geometry.dispose()
     }
-    const newFrustum = createCameraFrustumHelper(composite.width, composite.height, defaultFitDist)
+    const newFrustum = createCameraFrustumHelper(composite.width, composite.height, defaultFitDist, isLight)
     newFrustum.visible = showFrustum
     sceneRef.current.add(newFrustum)
     frustumHelperRef.current = newFrustum
-  }, [composite.width, composite.height, defaultFitDist])
+  }, [composite.width, composite.height, defaultFitDist, isLight, showFrustum])
 
   // ------------------------------------------------------------- 3. Bật tắt Helpers Lưới & Tháp Camera
   useEffect(() => {
@@ -350,9 +364,17 @@ export function LayerAssembly3DViewport({
       // và Z-buffer, thay vì bị ép cứng theo thứ tự mảng idx làm sai lệch layer trước/sau
       inst.mesh.renderOrder = 0
 
-      updateLayer3DInstance(inst, visualLayer, time, zExaggeration, layer.id === selectedLayerId, idx)
+      updateLayer3DInstance(
+        inst,
+        visualLayer,
+        time,
+        zExaggeration,
+        layer.id === selectedLayerId,
+        idx,
+        cameraClippingPlanes
+      )
     })
-  }, [composite.layers, time, zExaggeration, selectedLayerId, requestRender])
+  }, [composite.layers, time, zExaggeration, selectedLayerId, requestRender, cameraClippingPlanes])
 
   // Native non-passive wheel listener để Chromium không chặn zoom
   useEffect(() => {
@@ -717,6 +739,21 @@ export function LayerAssembly3DViewport({
           title={showGrid ? 'Ẩn lưới sàn 3D' : 'Hiện lưới sàn 3D'}
         >
           <IconEye width={12} height={12} />
+        </button>
+
+        {/* Cắt góc nhìn camera */}
+        <button
+          type="button"
+          className={`btn xs${clipToCamera ? ' active' : ''}`}
+          onClick={() => setClipToCamera((v) => !v)}
+          title={
+            clipToCamera
+              ? 'Đang cắt gọn mesh theo tầm nhìn camera 3D (ẩn phần vượt ngoài). Bấm để xem tràn viền'
+              : 'Đang xem tràn viền ngoài camera 3D. Bấm để cắt gọn theo tầm nhìn camera'
+          }
+          style={{ fontSize: '10px', padding: '2px 6px' }}
+        >
+          {clipToCamera ? '✂ Cắt khung' : '👁 Tràn viền'}
         </button>
 
         <div className="toolbar-divider" />

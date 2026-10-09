@@ -34,6 +34,7 @@ export function LayerAssemblyViewport({
   const [isPanning, setIsPanning] = useState(false)
   const [isDraggingLayer, setIsDraggingLayer] = useState(false)
   const [show3DPerspective, setShow3DPerspective] = useState(true)
+  const [clipToCamera, setClipToCamera] = useState(true)
   const dragStartRef = useRef({ mouseX: 0, mouseY: 0, initLayerX: 0, initLayerY: 0, initPanX: 0, initPanY: 0 })
 
   // Tự động căn giữa và co dãn vừa vặn (Fit to screen) khung vẽ 2D
@@ -183,9 +184,9 @@ export function LayerAssemblyViewport({
             'linear-gradient(45deg, var(--bg-2) 25%, transparent 25%), linear-gradient(-45deg, var(--bg-2) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--bg-2) 75%), linear-gradient(-45deg, transparent 75%, var(--bg-2) 75%)',
           backgroundSize: '16px 16px',
           backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px',
-          border: '1.5px solid var(--line-focus)',
-          boxShadow: '0 12px 48px rgba(0, 0, 0, 0.45)',
-          overflow: 'visible',
+          border: '2px solid var(--accent)',
+          boxShadow: '0 12px 48px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--line-focus)',
+          overflow: clipToCamera ? 'hidden' : 'visible',
           perspective: show3DPerspective ? '1400px' : 'none',
           perspectiveOrigin: '50% 50%',
           transformStyle: 'preserve-3d'
@@ -302,6 +303,18 @@ export function LayerAssemblyViewport({
           }
         >
           {show3DPerspective ? '📐 3D' : '🖼 2D'}
+        </button>
+        <button
+          type="button"
+          className={`btn xs${clipToCamera ? ' active' : ''}`}
+          onClick={() => setClipToCamera((v) => !v)}
+          title={
+            clipToCamera
+              ? 'Đang cắt gọn các phần layer vượt ra ngoài tầm nhìn khung camera (Bấm để xem tràn viền)'
+              : 'Đang hiển thị tràn viền toàn bộ layer (Bấm để cắt gọn theo khung camera)'
+          }
+        >
+          {clipToCamera ? '✂ Cắt khung' : '👁 Tràn viền'}
         </button>
       </div>
 

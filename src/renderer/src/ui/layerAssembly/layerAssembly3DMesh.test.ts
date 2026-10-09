@@ -4,7 +4,9 @@ import {
   createRectOutline,
   createAnchorDot,
   createLayer3DInstance,
-  updateLayer3DInstance
+  updateLayer3DInstance,
+  createCameraFrustumHelper,
+  createCameraClippingPlanes
 } from './layerAssembly3DMesh'
 import type { AssembledLayerItem } from './types'
 
@@ -124,5 +126,41 @@ describe('layerAssembly3DMesh', () => {
     expect(potInst.group.position.z).toBeCloseTo(9.0)
     expect(trunkInst.group.position.z).toBeCloseTo(0.05)
     expect(potInst.group.position.z).toBeGreaterThan(trunkInst.group.position.z)
+  })
+
+  it('creates camera frustum helper with high contrast blue in light theme and gold in dark theme', () => {
+    const lightFrustum = createCameraFrustumHelper(600, 600, 1000, true)
+    const darkFrustum = createCameraFrustumHelper(600, 600, 1000, false)
+
+    const lightMat = lightFrustum.material as any
+    const darkMat = darkFrustum.material as any
+
+    expect(lightMat.color.getHex()).toBe(0x2563eb) // Royal Blue for Light mode
+    expect(darkMat.color.getHex()).toBe(0xffc24b) // Amber Gold for Dark mode
+  })
+
+  it('creates 4 clipping planes correctly bounding camera viewport and attaches to material', () => {
+    const planes = createCameraClippingPlanes(600, 400)
+    expect(planes).toHaveLength(4)
+    expect(planes[0].constant).toBe(300) // halfW
+    expect(planes[1].constant).toBe(300) // halfW
+    expect(planes[2].constant).toBe(200) // halfH
+    expect(planes[3].constant).toBe(200) // halfH
+
+    const layer: AssembledLayerItem = {
+      id: 'test-layer-clip',
+      name: 'Layer Clip',
+      x: 0,
+      y: 0,
+      z: 0,
+      scale: 1,
+      rotation: 0,
+      opacity: 1,
+      motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+    }
+    const inst = createLayer3DInstance(layer, null, () => {})
+    updateLayer3DInstance(inst, layer, 0, 1, false, 0, planes)
+
+    expect(inst.material.clippingPlanes).toBe(planes)
   })
 })

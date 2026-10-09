@@ -248,7 +248,8 @@ export function updateLayer3DInstance(
   time: number,
   zExaggeration: number,
   isSelected: boolean,
-  layerIndex = 0
+  layerIndex = 0,
+  clippingPlanes?: THREE.Plane[]
 ): void {
   const { group, mesh, material, outline, anchorDot } = inst
 
@@ -314,10 +315,13 @@ export function updateLayer3DInstance(
   outline.rotation.z = theta
   anchorDot.position.set(ax, ay, 2)
 
-  // 5. Thuộc tính hiển thị
+  // 5. Thuộc tính hiển thị & Cắt góc nhìn camera
   const op = Math.max(0, Math.min(1, layer.opacity ?? 1))
   material.opacity = op
   material.depthWrite = op >= 0.95
+  if (clippingPlanes) {
+    material.clippingPlanes = clippingPlanes
+  }
   group.visible = !layer.hidden
 
   // 6. Highlight khi được chọn
@@ -328,7 +332,12 @@ export function updateLayer3DInstance(
 /**
  * Tạo hình nón kim tự tháp Camera Frustum 3D thể hiện góc nhìn và khoảng cách từ camera tới canvas
  */
-export function createCameraFrustumHelper(width: number, height: number, distance: number): THREE.LineSegments {
+export function createCameraFrustumHelper(
+  width: number,
+  height: number,
+  distance: number,
+  isLight = false
+): THREE.LineSegments {
   const halfW = width / 2
   const halfH = height / 2
   const apex = new THREE.Vector3(0, 0, distance) // Đỉnh camera ở phía trước nhìn về gốc (0, 0, 0)
@@ -372,13 +381,27 @@ export function createCameraFrustumHelper(width: number, height: number, distanc
 
   const geom = new THREE.BufferGeometry().setFromPoints(points)
   const mat = new THREE.LineBasicMaterial({
-    color: 0xffc24b, // Vàng cam ấm chuẩn camera path/frustum
+    color: isLight ? 0x2563eb : 0xffc24b, // Theme sáng dùng xanh Royal Blue đậm nét, Theme tối dùng vàng ấm
     transparent: true,
-    opacity: 0.9,
+    opacity: isLight ? 0.95 : 0.9,
     depthTest: false
   })
 
   return new THREE.LineSegments(geom, mat)
+}
+
+/**
+ * Tạo 4 mặt phẳng cắt (Clipping Planes) giới hạn tầm nhìn camera tại kích thước width x height
+ */
+export function createCameraClippingPlanes(width: number, height: number): THREE.Plane[] {
+  const halfW = width / 2
+  const halfH = height / 2
+  return [
+    new THREE.Plane(new THREE.Vector3(1, 0, 0), halfW), // x >= -halfW
+    new THREE.Plane(new THREE.Vector3(-1, 0, 0), halfW), // x <= halfW
+    new THREE.Plane(new THREE.Vector3(0, 1, 0), halfH), // y >= -halfH
+    new THREE.Plane(new THREE.Vector3(0, -1, 0), halfH) // y <= halfH
+  ]
 }
 
 /**
