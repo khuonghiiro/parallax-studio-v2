@@ -112,6 +112,8 @@ export function LayerAssemblySidebar({
                 return (
                   <div
                     key={asset.id}
+                    role="button" tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAddLayerFromAsset(asset.name, asset.id, fullUrl) } }}
                     style={{
                       background: 'var(--bg-1)',
                       border: '1px solid var(--line-soft)',
@@ -248,6 +250,8 @@ function BuiltinAssetCard({
         transition: 'all 0.15s ease'
       }}
       onClick={onSelect}
+      role="button" tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect() } }}
       title={`Click để thêm ${item.name} làm layer mới`}
     >
       <div

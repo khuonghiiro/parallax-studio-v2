@@ -1,11 +1,16 @@
+import { WorkshopSelectionPanel } from './WorkshopSelectionPanel'
+import type { WorkshopAction } from './workshopActions'
 import type { LayerComposite, AssembledLayerItem, MotionType, MotionAnchor } from './types'
-import { useLayerAssetImage } from './useLayerAssetImage'
-import { IconTrash, IconCopy, IconEye, IconEyeOff, IconPlus, IconLock } from '../icons'
+import { LayerRowItem } from './LayerAssemblyRow'
+import { IconTrash, IconCopy, IconPlus } from '../icons'
 
 export interface LayerAssemblyInspectorProps {
   composite: LayerComposite
   selectedLayerId: string | null
-  onSelectLayer: (id: string | null) => void
+  onSelectLayer: (id: string | null, additive?: boolean) => void
+  selectedIds: string[]
+  onBatchAction: (action: WorkshopAction) => void
+  onAllAction: (action: WorkshopAction) => void
   onUpdateLayer: (id: string, patch: Partial<AssembledLayerItem>) => void
   onAddLayer: () => void
   onDeleteLayer: (id: string) => void
@@ -21,36 +26,12 @@ export function LayerAssemblyInspector({
   onAddLayer,
   onDeleteLayer,
   onDuplicateLayer,
-  onMoveLayerOrder
+  onMoveLayerOrder, selectedIds, onBatchAction, onAllAction
 }: LayerAssemblyInspectorProps) {
   const selectedLayer = composite.layers.find((l) => l.id === selectedLayerId) || null
 
-  // Tự động phân tầng khoảng cách Z đều đặn cho toàn bộ layer
-  const handleAutoDistributeDepth = (mode: 'back-to-front' | 'front-to-back' = 'back-to-front') => {
-    const count = composite.layers.length
-    if (count <= 1) return
-    const step = count <= 3 ? 80 : Math.round(360 / (count - 1))
-    if (mode === 'back-to-front') {
-      // Layer trên cùng trong danh sách là Hậu cảnh (nền sau, Z > 0), layer dưới là Tiền cảnh (ở trước, Z < 0)
-      const startZ = Math.round(((count - 1) * step) / 2)
-      composite.layers.forEach((l, idx) => {
-        onUpdateLayer(l.id, { z: startZ - idx * step })
-      })
-    } else {
-      // Layer trên cùng là Tiền cảnh (ở trước, Z < 0), layer dưới là Hậu cảnh (nền sau, Z > 0)
-      const startZ = -Math.round(((count - 1) * step) / 2)
-      composite.layers.forEach((l, idx) => {
-        onUpdateLayer(l.id, { z: startZ + idx * step })
-      })
-    }
-  }
-
-  // Đưa tất cả layer về cùng mặt phẳng Z = 0
-  const handleResetAllZ = () => {
-    composite.layers.forEach((l) => {
-      onUpdateLayer(l.id, { z: 0 })
-    })
-  }
+  const handleAutoDistributeDepth = (mode: 'back-to-front' | 'front-to-back') => onAllAction(mode === 'back-to-front' ? 'depth-forward' : 'depth-reverse')
+  const handleResetAllZ = () => onAllAction('flatten')
 
   return (
     <div
@@ -139,10 +120,11 @@ export function LayerAssemblyInspector({
         </button>
       </div>
 
+      <p className="lw-selection-hint">Ctrl / Shift + bấm để chọn nhiều lớp · Khóa để giữ vị trí</p>
       {/* Layer Stack List */}
       <div
         style={{
-          height: '210px',
+          height: 'clamp(170px, 28vh, 300px)',
           overflowY: 'auto',
           borderBottom: '1px solid var(--line-soft)',
           background: 'var(--bg-1)',
@@ -150,7 +132,7 @@ export function LayerAssemblyInspector({
         }}
       >
         {composite.layers.map((layer, idx) => {
-          const isSelected = layer.id === selectedLayerId
+          const isSelected = selectedIds.includes(layer.id)
           return (
             <LayerRowItem
               key={layer.id}
@@ -158,7 +140,7 @@ export function LayerAssemblyInspector({
               index={idx}
               totalCount={composite.layers.length}
               isSelected={isSelected}
-              onSelect={() => onSelectLayer(layer.id)}
+              onSelect={(additive) => onSelectLayer(layer.id, additive)}
               onToggleHide={() => onUpdateLayer(layer.id, { hidden: !layer.hidden })}
               onToggleLock={() => onUpdateLayer(layer.id, { locked: !layer.locked })}
               onMoveUp={() => onMoveLayerOrder(layer.id, 'up')}
@@ -174,9 +156,11 @@ export function LayerAssemblyInspector({
         )}
       </div>
 
-      {/* 2. Inspector Details of Selected Layer */}
+      {/* 2. Inspector Details of Selected Layer / Multi-selection */}
       <div style={{ flex: '1 1 0%', overflowY: 'auto', padding: '12px', minHeight: 0 }}>
-        {selectedLayer ? (
+        {selectedIds.length > 1 ? (
+          <WorkshopSelectionPanel selectedIds={selectedIds} onSelectLayer={onSelectLayer} onBatchAction={onBatchAction} />
+        ) : selectedLayer ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text)' }}>
@@ -548,156 +532,6 @@ export function LayerAssemblyInspector({
           </div>
         )}
       </div>
-    </div>
-  )
-}
-
-function LayerRowItem({
-  layer,
-  index,
-  totalCount,
-  isSelected,
-  onSelect,
-  onToggleHide,
-  onToggleLock,
-  onMoveUp,
-  onMoveDown
-}: {
-  layer: AssembledLayerItem
-  index: number
-  totalCount: number
-  isSelected: boolean
-  onSelect: () => void
-  onToggleHide: () => void
-  onToggleLock: () => void
-  onMoveUp: () => void
-  onMoveDown: () => void
-}) {
-  const imageUrl = useLayerAssetImage(layer.assetPath, layer.imageUrl)
-
-  return (
-    <div
-      className={`layer-stack-row-item${isSelected ? ' selected' : ''}`}
-      data-layer-id={layer.id}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '5px 8px',
-        background: isSelected ? 'color-mix(in srgb, var(--accent) 22%, transparent)' : 'transparent',
-        borderLeft: isSelected ? '3px solid var(--accent)' : '3px solid transparent',
-        cursor: 'pointer',
-        fontSize: '11px',
-        color: isSelected ? 'var(--text)' : 'var(--text-dim)',
-        transition: 'background 0.1s ease',
-        userSelect: 'none'
-      }}
-      onPointerDown={(e) => {
-        e.stopPropagation()
-        onSelect()
-      }}
-      onClick={(e) => {
-        e.stopPropagation()
-        onSelect()
-      }}
-    >
-      {/* Mini Thumbnail */}
-      <div
-        style={{
-          width: '24px',
-          height: '24px',
-          borderRadius: '3px',
-          background: 'var(--bg-0)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          flexShrink: 0,
-          border: '1px solid var(--line-soft)'
-        }}
-      >
-        {imageUrl ? (
-          <img src={imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-        ) : (
-          <span style={{ fontSize: '8px', opacity: 0.5 }}>{index + 1}</span>
-        )}
-      </div>
-
-      {/* Layer Name & Depth */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <span
-          style={{
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            fontWeight: isSelected ? 600 : 400,
-            color: isSelected ? 'var(--text)' : 'var(--text-dim)'
-          }}
-          title={layer.name}
-        >
-          {layer.name}
-        </span>
-        <span style={{ fontSize: '9px', color: 'var(--accent-cyan)', opacity: 0.8 }}>
-          Z: {layer.z}px • {layer.motion.type !== 'none' ? `🍃 ${layer.motion.type}` : 'Tĩnh'}
-        </span>
-      </div>
-
-      {/* Hide / Unhide Button */}
-      <button
-        type="button"
-        className="btn xs icon"
-        style={{ width: '18px', height: '18px', padding: 0 }}
-        onClick={(e) => {
-          e.stopPropagation()
-          onToggleHide()
-        }}
-        title={layer.hidden ? 'Hiện layer này' : 'Ẩn layer này'}
-      >
-        {layer.hidden ? <IconEyeOff width={11} height={11} /> : <IconEye width={11} height={11} />}
-      </button>
-
-      {/* Lock Button */}
-      <button
-        type="button"
-        className="btn xs icon"
-        style={{ width: '18px', height: '18px', padding: 0, opacity: layer.locked ? 1 : 0.4 }}
-        onClick={(e) => {
-          e.stopPropagation()
-          onToggleLock()
-        }}
-        title={layer.locked ? 'Mở khóa layer' : 'Khóa layer'}
-      >
-        <IconLock width={10} height={10} />
-      </button>
-
-      {/* Reorder Buttons */}
-      <button
-        type="button"
-        className="btn xs icon"
-        style={{ width: '18px', height: '18px', padding: 0 }}
-        disabled={index === 0}
-        onClick={(e) => {
-          e.stopPropagation()
-          onMoveUp()
-        }}
-        title="Đưa lên trên (ra phía trước)"
-      >
-        ▲
-      </button>
-
-      <button
-        type="button"
-        className="btn xs icon"
-        style={{ width: '18px', height: '18px', padding: 0 }}
-        disabled={index === totalCount - 1}
-        onClick={(e) => {
-          e.stopPropagation()
-          onMoveDown()
-        }}
-        title="Đưa xuống dưới (về phía sau)"
-      >
-        ▼
-      </button>
     </div>
   )
 }

@@ -14,6 +14,21 @@ import {
 } from '../../ui/layerAssembly/layerAssemblyBridge'
 import { insertLayerCompositeToScene } from '../../ui/layerAssembly/insertLayerComposite'
 import { captureCompositeThumbnail } from '../../ui/layerAssembly/layerAssemblyThumbnail'
+import { applyWorkshopAction, type WorkshopAction } from '../../ui/layerAssembly/workshopActions'
+
+function workshopSession() {
+  const session = getActiveLayerAssemblySession()
+  if (!session) throw new ParamError('Open the layer assembly workshop first')
+  return session
+}
+
+function workshopLayerIds(p: Params, composite: LayerComposite, fallback: string[]): string[] {
+  const ids = p.layer_ids ?? fallback
+  if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string' || !composite.layers.some((l) => l.id === id))) {
+    throw new ParamError('layer_ids must contain existing layer IDs')
+  }
+  return [...new Set(ids)] as string[]
+}
 
 function resolveTargetComposite(p: Params): LayerComposite {
   const compId = str(p, 'composite_id') || str(p, 'id')
@@ -38,6 +53,31 @@ function resolveTargetComposite(p: Params): LayerComposite {
 }
 
 export const layerAssemblyCommands: Record<string, Handler> = {
+  layer_assembly_action: (p) => {
+    const session = workshopSession()
+    const before = session.getComposite()
+    const ids = workshopLayerIds(p, before, session.getSelectedLayerIds?.() ?? [])
+    const action = str(p, 'action', true) as WorkshopAction
+    const next = applyWorkshopAction(before, action, ids, num(p, 'spacing') ?? 80)
+    session.setComposite(next)
+    return { ok: true, changed: before !== next, layerCount: next.layers.length, composite: toPlain(next) }
+  },
+  select_layer_assembly_layers: (p) => {
+    const session = workshopSession()
+    const ids = workshopLayerIds(p, session.getComposite(), [])
+    if (!session.setSelectedLayerIds) throw new ParamError('Workshop selection is unavailable; reopen the workshop')
+    session.setSelectedLayerIds(ids)
+    return { ok: true, selectedLayerIds: ids }
+  },
+  layer_assembly_history: (p) => {
+    const session = workshopSession()
+    const action = str(p, 'action', true)
+    if (action !== 'undo' && action !== 'redo') throw new ParamError('action must be undo or redo')
+    if (!session[action]) throw new ParamError('Workshop history is unavailable; reopen the workshop')
+    session[action]()
+    return { ok: true, canUndo: session.canUndo?.() ?? false, canRedo: session.canRedo?.() ?? false,
+      composite: toPlain(session.getComposite()) }
+  },
   list_layer_composites: async () => {
     const list = getStoredComposites()
     const session = getActiveLayerAssemblySession()
@@ -176,6 +216,9 @@ export const layerAssemblyCommands: Record<string, Handler> = {
       isOpen: true,
       activeSessionId: composite.id,
       selectedLayerId: session.getSelectedLayerId(),
+      selectedLayerIds: session.getSelectedLayerIds?.() ?? [session.getSelectedLayerId()].filter(Boolean),
+      canUndo: session.canUndo?.() ?? false,
+      canRedo: session.canRedo?.() ?? false,
       isPlaying: session.getIsPlaying(),
       time: Number(session.getTime().toFixed(3)),
       composite: toPlain(composite)

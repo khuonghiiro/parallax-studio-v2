@@ -7,6 +7,27 @@ export const LAYER_COMPOSITE_CATEGORIES = ['nature', 'prop', 'character', 'archi
 
 export const LAYER_ASSEMBLY_TOOLS = [
   {
+    name: 'layer_assembly_action', cat: 'layer_assembly',
+    doc: L('Apply one undoable batch action to layers in the open workshop. Omitted layer_ids uses the selection; an empty list changes nothing. Locked layers are skipped except lock/unlock. Distribute X/Y spaces centers between the endpoints (3+ layers). Depth uses list order, centered around Z=0 (2+ layers); positive Z is behind. Stagger offsets existing motions by 0.35 seconds.',
+      'Thao tác hàng loạt một bước hoàn tác trong xưởng đang mở. Bỏ layer_ids dùng các lớp đã chọn; danh sách rỗng không đổi gì. Bỏ qua lớp khóa trừ khóa/mở khóa. Đều X/Y chia tâm giữa hai đầu (ít nhất 3 lớp). Tách Z theo thứ tự danh sách quanh Z=0 (ít nhất 2 lớp); Z dương ở sau. So le lệch pha hoạt ảnh sẵn có 0,35 giây.'),
+    shape: (d) => ({
+      action: z.enum(['center-x', 'center-y', 'distribute-x', 'distribute-y', 'depth-forward', 'depth-reverse', 'flatten', 'reset-transform', 'duplicate', 'delete', 'hide', 'show', 'lock', 'unlock', 'stagger', 'stop-motion', 'estimate-frame']).describe(d('Batch operation. estimate-frame conservatively estimates 2D frame dimensions for selected visible layers including locked layers, using a 380px image bound, scale and Z rotation; excludes motion and perspective.', 'Thao tác hàng loạt. estimate-frame ước lượng khung 2D cho lớp được chọn đang hiện, kể cả lớp khóa, theo ảnh tối đa 380px, scale và góc Z; chưa tính chuyển động/phối cảnh.')),
+      layer_ids: z.array(z.string()).optional().describe(d('Existing workshop layer IDs; defaults to selection.', 'ID lớp trong xưởng; mặc định dùng vùng chọn.')),
+      spacing: z.number().min(1).max(2000).optional().describe(d('Depth spacing in pixels, default 80.', 'Bước chiều sâu pixel, mặc định 80.'))
+    }), example: '{"action":"depth-forward","spacing":80}'
+  },
+  {
+    name: 'select_layer_assembly_layers', cat: 'layer_assembly',
+    doc: L('Select multiple layers in the open workshop. Pass an empty array to clear selection.', 'Chọn nhiều lớp trong xưởng đang mở. Truyền mảng rỗng để bỏ chọn.'),
+    shape: (d) => ({ layer_ids: z.array(z.string()).describe(d('Existing layer IDs from get_layer_assembly_state.', 'ID lớp từ get_layer_assembly_state.')) }),
+    example: '{"layer_ids":[]}'
+  },
+  {
+    name: 'layer_assembly_history', cat: 'layer_assembly',
+    doc: L('Undo or redo one workshop draft edit, without changing the main project history.', 'Hoàn tác hoặc làm lại một bước bản nháp xưởng, độc lập lịch sử dự án chính.'),
+    shape: (d) => ({ action: z.enum(['undo', 'redo']).describe(d('History direction.', 'Hướng lịch sử.')) }), example: '{"action":"undo"}'
+  },
+  {
     name: 'list_layer_composites',
     cat: 'layer_assembly',
     doc: L(

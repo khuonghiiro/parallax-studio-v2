@@ -151,4 +151,127 @@ describe('MCP layerAssemblyCommands', () => {
     const closedState = (await runCommand('get_layer_assembly_state')) as any
     expect(closedState.isOpen).toBe(false)
   })
+
+  it('performs batch layer_assembly_action, multi-selection and history undo/redo via MCP', async () => {
+    let mockComp: LayerComposite = {
+      id: 'batch-test-comp',
+      name: 'Batch Test',
+      category: 'nature',
+      width: 600,
+      height: 600,
+      layers: [
+        {
+          id: 'l-a',
+          name: 'Layer A',
+          x: -40,
+          y: -10,
+          z: 80,
+          scale: 1,
+          rotation: 0,
+          opacity: 1,
+          locked: false,
+          hidden: false,
+          motion: { type: 'none', speed: 1, amplitude: 10, anchor: 'bottom' }
+        },
+        {
+          id: 'l-b',
+          name: 'Layer B',
+          x: 20,
+          y: 30,
+          z: 20,
+          scale: 1,
+          rotation: 0,
+          opacity: 1,
+          locked: false,
+          hidden: false,
+          motion: { type: 'none', speed: 1, amplitude: 10, anchor: 'bottom' }
+        }
+      ]
+    }
+
+    let selectedIds: string[] = ['l-a']
+    let historyStack: LayerComposite[] = [mockComp]
+    let redoStack: LayerComposite[] = []
+
+    const unregister = registerLayerAssemblySession({
+      getComposite: () => mockComp,
+      setComposite: (c) => {
+        const next = typeof c === 'function' ? c(mockComp) : c
+        historyStack.push(mockComp)
+        redoStack = []
+        mockComp = next
+      },
+      getSelectedLayerId: () => selectedIds.at(-1) ?? null,
+      setSelectedLayerId: (id) => {
+        selectedIds = id ? [id] : []
+      },
+      getSelectedLayerIds: () => selectedIds,
+      setSelectedLayerIds: (ids) => {
+        selectedIds = ids
+      },
+      undo: () => {
+        if (historyStack.length > 0) {
+          redoStack.push(mockComp)
+          mockComp = historyStack.pop()!
+        }
+      },
+      redo: () => {
+        if (redoStack.length > 0) {
+          historyStack.push(mockComp)
+          mockComp = redoStack.pop()!
+        }
+      },
+      canUndo: () => historyStack.length > 0,
+      canRedo: () => redoStack.length > 0,
+      getIsPlaying: () => false,
+      setIsPlaying: () => {},
+      getTime: () => 0,
+      setTime: () => {},
+      save: async () => {},
+      insertToScene: async () => {},
+      close: () => {}
+    })
+
+    // 1. select_layer_assembly_layers
+    const selRes = (await runCommand('select_layer_assembly_layers', {
+      layer_ids: ['l-a', 'l-b']
+    })) as any
+    expect(selRes.ok).toBe(true)
+    expect(selRes.selectedLayerIds).toEqual(['l-a', 'l-b'])
+
+    // 2. layer_assembly_action (depth-forward)
+    const actRes = (await runCommand('layer_assembly_action', {
+      action: 'depth-forward',
+      layer_ids: ['l-a', 'l-b'],
+      spacing: 120
+    })) as any
+    expect(actRes.ok).toBe(true)
+    expect(mockComp.layers[0].z).toBe(60)
+    expect(mockComp.layers[1].z).toBe(-60)
+
+    // 3. layer_assembly_action (center-x)
+    const actCenter = (await runCommand('layer_assembly_action', {
+      action: 'center-x',
+      layer_ids: ['l-a', 'l-b']
+    })) as any
+    expect(actCenter.ok).toBe(true)
+    expect(mockComp.layers[0].x).toBe(0)
+    expect(mockComp.layers[1].x).toBe(0)
+
+    // 4. layer_assembly_history (undo)
+    const undoRes = (await runCommand('layer_assembly_history', {
+      action: 'undo'
+    })) as any
+    expect(undoRes.ok).toBe(true)
+    expect(mockComp.layers[0].x).toBe(-40) // Undone center-x
+
+    // 5. layer_assembly_history (redo)
+    const redoRes = (await runCommand('layer_assembly_history', {
+      action: 'redo'
+    })) as any
+    expect(redoRes.ok).toBe(true)
+    expect(mockComp.layers[0].x).toBe(0) // Redone center-x
+
+    unregister()
+  })
 })

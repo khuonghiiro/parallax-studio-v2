@@ -5,6 +5,12 @@ export interface ActiveLayerAssemblySession {
   setComposite: (composite: LayerComposite | ((prev: LayerComposite) => LayerComposite)) => void
   getSelectedLayerId: () => string | null
   setSelectedLayerId: (id: string | null) => void
+  getSelectedLayerIds?: () => string[]
+  setSelectedLayerIds?: (ids: string[]) => void
+  undo?: () => void
+  redo?: () => void
+  canUndo?: () => boolean
+  canRedo?: () => boolean
   getIsPlaying: () => boolean
   setIsPlaying: (playing: boolean) => void
   getTime: () => number

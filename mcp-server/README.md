@@ -327,3 +327,9 @@ pnpm pxs call set_playing '{"playing": true}'
 Camera/3D/split view now exposes XYZ position axes, anchor-centered bbox scaling and XYZ rotation rings. These author existing transform properties, available through `update_layer`: `position: [x,y,z]`, `rotation: [rx,ry,rz]` in degrees, `scale: number | [sx,sy,sz]` as multipliers. Static properties update directly; animated properties key at the playhead; `at_time` explicitly inserts a key. Changes support undo/redo.
 
 Example: `pnpm pxs call update_layer '{"layer_id":"layer-1","position":[120,80,400],"rotation":[15,30,45],"scale":[1.5,0.8,1]}'`.
+
+### Layer workshop batch editing
+
+Open `open_layer_assembly`, inspect `get_layer_assembly_state`, then select IDs with `select_layer_assembly_layers`. Use `layer_assembly_action` for alignment, center distribution, depth spacing, duplicate/delete, lock/unlock, hide/show, motion stagger/stop; use `layer_assembly_history` with `undo` or `redo` for draft history. Locked layers are skipped except lock/unlock. An empty selection changes nothing. UI and MCP share the same action implementation.
+
+Mở xưởng, lấy ID lớp, chọn nhiều lớp rồi thao tác hàng loạt qua cùng logic UI. Các lệnh này thay bản nháp và có hoàn tác riêng; chèn vào cảnh vẫn dùng lịch sử dự án. Xem [hướng dẫn](../docs/layer-workshop-tools.md).

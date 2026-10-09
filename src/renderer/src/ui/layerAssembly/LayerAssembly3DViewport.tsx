@@ -23,7 +23,8 @@ import type { GizmoRect } from '../../engine/layerGizmo'
 export interface LayerAssembly3DViewportProps {
   composite: LayerComposite
   selectedLayerId: string | null
-  onSelectLayer: (id: string | null) => void
+  selectedIds?: string[]
+  onSelectLayer: (id: string | null, additive?: boolean) => void
   onUpdateLayer?: (id: string, patch: Partial<AssembledLayerItem>) => void
   time: number
 }
@@ -33,6 +34,7 @@ type CameraPreset = 'orbit' | 'top' | 'side' | 'front'
 export function LayerAssembly3DViewport({
   composite,
   selectedLayerId,
+  selectedIds,
   onSelectLayer,
   onUpdateLayer,
   time
@@ -383,12 +385,12 @@ export function LayerAssembly3DViewport({
         visualLayer,
         time,
         zExaggeration,
-        layer.id === selectedLayerId,
+        selectedIds ? selectedIds.includes(layer.id) : layer.id === selectedLayerId,
         idx,
         cameraClippingPlanes
       )
     })
-  }, [composite.layers, time, zExaggeration, selectedLayerId, requestRender, renderTrigger, cameraClippingPlanes])
+  }, [composite.layers, time, zExaggeration, selectedLayerId, selectedIds, requestRender, renderTrigger, cameraClippingPlanes])
 
   // Native non-passive wheel listener để Chromium không chặn zoom
   useEffect(() => {
@@ -476,20 +478,20 @@ export function LayerAssembly3DViewport({
 
     // Nếu chỉ click chuột (không rê chuột) -> Raycast chọn Layer
     if (!dragStartRef.current.moved && dragModeRef.current === 'orbit') {
-      handleRaycastSelect(e.clientX, e.clientY)
+      handleRaycastSelect(e)
     }
   }
 
   // Bắn tia Raycast để chọn layer trong 3D
-  const handleRaycastSelect = (clientX: number, clientY: number) => {
+  const handleRaycastSelect = (e: React.PointerEvent) => {
     const container = containerRef.current
     const camera = cameraRef.current
     if (!container || !camera) return
 
     const rect = container.getBoundingClientRect()
     const mouse = new THREE.Vector2(
-      ((clientX - rect.left) / rect.width) * 2 - 1,
-      -((clientY - rect.top) / rect.height) * 2 + 1
+      ((e.clientX - rect.left) / rect.width) * 2 - 1,
+      -((e.clientY - rect.top) / rect.height) * 2 + 1
     )
 
     const raycaster = new THREE.Raycaster()
@@ -500,16 +502,17 @@ export function LayerAssembly3DViewport({
       if (inst.group.visible) meshes.push(inst.mesh)
     }
 
+    const isAdditive = e.ctrlKey || e.metaKey || e.shiftKey
     const intersects = raycaster.intersectObjects(meshes, false)
     if (intersects.length > 0) {
       const hit = intersects[0]
       const hitLayerId = hit.object.userData?.layerId
       if (hitLayerId) {
-        onSelectLayer(hitLayerId)
+        onSelectLayer(hitLayerId, isAdditive)
         return
       }
     }
-    onSelectLayer(null)
+    onSelectLayer(null, false)
   }
 
   // ------------------------------------------------------------- 8. Camera Controls & Quick Angles
@@ -679,8 +682,8 @@ export function LayerAssembly3DViewport({
           bottom: '12px',
           right: '14px',
           fontSize: '10px',
-          color: 'var(--text-faint)',
-          background: 'rgba(0, 0, 0, 0.45)',
+          color: 'var(--text-dim)',
+          background: 'var(--bg-1)',
           backdropFilter: 'blur(6px)',
           padding: '2px 8px',
           borderRadius: '4px',

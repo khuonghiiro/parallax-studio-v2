@@ -8,7 +8,8 @@ import { IconLayers, IconImage } from '../icons'
 export interface LayerAssemblyViewportProps {
   composite: LayerComposite
   selectedLayerId: string | null
-  onSelectLayer: (id: string | null) => void
+  selectedIds?: string[]
+  onSelectLayer: (id: string | null, additive?: boolean) => void
   onUpdateLayer: (id: string, patch: Partial<AssembledLayerItem>) => void
   isPlaying: boolean
   onTogglePlay: () => void
@@ -20,6 +21,7 @@ export interface LayerAssemblyViewportProps {
 export function LayerAssemblyViewport({
   composite,
   selectedLayerId,
+  selectedIds,
   onSelectLayer,
   onUpdateLayer,
   isPlaying,
@@ -35,7 +37,25 @@ export function LayerAssemblyViewport({
   const [isDraggingLayer, setIsDraggingLayer] = useState(false)
   const [show3DPerspective, setShow3DPerspective] = useState(true)
   const [clipToCamera, setClipToCamera] = useState(true)
-  const dragStartRef = useRef({ mouseX: 0, mouseY: 0, initLayerX: 0, initLayerY: 0, initPanX: 0, initPanY: 0 })
+  const dragStartRef = useRef<{
+    mouseX: number
+    mouseY: number
+    initPositions: Map<string, { x: number; y: number }>
+    initPanX: number
+    initPanY: number
+  }>({ mouseX: 0, mouseY: 0, initPositions: new Map(), initPanX: 0, initPanY: 0 })
+
+  useEffect(() => {
+    const cancel = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || (!isDraggingLayer && !isPanning)) return
+      if (isDraggingLayer) dragStartRef.current.initPositions.forEach((position, id) => onUpdateLayer(id, position))
+      if (isPanning) setPan({ x: dragStartRef.current.initPanX, y: dragStartRef.current.initPanY })
+      setIsDraggingLayer(false); setIsPanning(false)
+      e.preventDefault(); e.stopImmediatePropagation()
+    }
+    window.addEventListener('keydown', cancel)
+    return () => window.removeEventListener('keydown', cancel)
+  }, [isDraggingLayer, isPanning, onUpdateLayer])
 
   // Tự động căn giữa và co dãn vừa vặn (Fit to screen) khung vẽ 2D
   const handleFitView = useCallback(() => {
@@ -61,19 +81,6 @@ export function LayerAssemblyViewport({
     })
     return () => cancelAnimationFrame(raf)
   }, [handleFitView])
-
-  // Phím tắt Space để Play/Pause
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-      if (e.code === 'Space') {
-        e.preventDefault()
-        onTogglePlay()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onTogglePlay])
 
   // Sắp xếp các layer: Z càng lớn ở sau (render trước), Z càng nhỏ ở trước (render sau)
   const sortedLayers = useMemo(() => {
@@ -105,12 +112,14 @@ export function LayerAssemblyViewport({
       return
     }
 
-    if (!isDraggingLayer || !selectedLayerId) return
+    if (!isDraggingLayer) return
     const dx = (e.clientX - dragStartRef.current.mouseX) / zoom
     const dy = (e.clientY - dragStartRef.current.mouseY) / zoom
-    onUpdateLayer(selectedLayerId, {
-      x: Math.round(dragStartRef.current.initLayerX + dx),
-      y: Math.round(dragStartRef.current.initLayerY + dy)
+    dragStartRef.current.initPositions.forEach((pos, id) => {
+      onUpdateLayer(id, {
+        x: Math.round(pos.x + dx),
+        y: Math.round(pos.y + dy)
+      })
     })
   }
 
@@ -131,15 +140,27 @@ export function LayerAssemblyViewport({
 
   const handleStartDragLayer = (e: React.PointerEvent, layer: AssembledLayerItem) => {
     e.stopPropagation()
-    onSelectLayer(layer.id)
+    const isAdditive = e.ctrlKey || e.metaKey || e.shiftKey
+    if (isAdditive) {
+      onSelectLayer(layer.id, true)
+      return
+    } else if (!selectedIds?.includes(layer.id)) {
+      onSelectLayer(layer.id, false)
+    }
     if (layer.locked) return
 
     setIsDraggingLayer(true)
+    const activeSelection = selectedIds && selectedIds.includes(layer.id) ? selectedIds : [layer.id]
+    const initPositions = new Map<string, { x: number; y: number }>()
+    composite.layers.forEach((l) => {
+      if (activeSelection.includes(l.id) && !l.locked) {
+        initPositions.set(l.id, { x: l.x, y: l.y })
+      }
+    })
     dragStartRef.current = {
       mouseX: e.clientX,
       mouseY: e.clientY,
-      initLayerX: layer.x,
-      initLayerY: layer.y,
+      initPositions,
       initPanX: pan.x,
       initPanY: pan.y
     }
@@ -219,7 +240,7 @@ export function LayerAssemblyViewport({
         {/* Stacked Layers */}
         {sortedLayers.map((layer) => {
           if (layer.hidden) return null
-          const isSelected = layer.id === selectedLayerId
+          const isSelected = selectedIds ? selectedIds.includes(layer.id) : layer.id === selectedLayerId
 
           return (
             <AssembledLayerItemView
@@ -325,8 +346,8 @@ export function LayerAssemblyViewport({
           bottom: '12px',
           left: '14px',
           fontSize: '10px',
-          color: 'var(--text-faint)',
-          background: 'rgba(0, 0, 0, 0.45)',
+          color: 'var(--text-dim)',
+          background: 'var(--bg-1)',
           backdropFilter: 'blur(6px)',
           padding: '2px 8px',
           borderRadius: '4px',
