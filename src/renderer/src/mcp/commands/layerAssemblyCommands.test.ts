@@ -274,4 +274,133 @@ describe('MCP layerAssemblyCommands', () => {
 
     unregister()
   })
+
+  it('handles skeleton rigging, humanoid template, binding and procedural animation via MCP', async () => {
+    let mockComp: LayerComposite = {
+      id: 'rig-test-comp',
+      name: 'Rigging Character',
+      category: 'character',
+      width: 600,
+      height: 600,
+      layers: [
+        {
+          id: 'l-body',
+          name: 'Thân',
+          x: 0,
+          y: 0,
+          z: 0,
+          scale: 1,
+          rotation: 0,
+          opacity: 1,
+          motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+        },
+        {
+          id: 'l-arm',
+          name: 'Tay',
+          x: 35,
+          y: -70,
+          z: -10,
+          scale: 1,
+          rotation: 0,
+          opacity: 1,
+          motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'top' }
+        }
+      ]
+    }
+
+    let activeTab: 'layers' | 'bones' | 'animation' = 'layers'
+    let selectedBone: string | null = null
+    let isPlaying = false
+    let currentTime = 0
+
+    const unregister = registerLayerAssemblySession({
+      getComposite: () => mockComp,
+      setComposite: (c) => {
+        mockComp = typeof c === 'function' ? c(mockComp) : c
+      },
+      getSelectedLayerId: () => 'l-body',
+      setSelectedLayerId: () => {},
+      getSelectedLayerIds: () => ['l-body', 'l-arm'],
+      setSelectedLayerIds: () => {},
+      getTab: () => activeTab,
+      setTab: (t) => {
+        activeTab = t
+      },
+      getSelectedBoneId: () => selectedBone,
+      setSelectedBoneId: (id) => {
+        selectedBone = id
+      },
+      getIsPlaying: () => isPlaying,
+      setIsPlaying: (p) => {
+        isPlaying = p
+      },
+      getTime: () => currentTime,
+      setTime: (t) => {
+        currentTime = t
+      },
+      save: async () => {},
+      insertToScene: async () => {},
+      close: () => {}
+    })
+
+    // 1. set_layer_assembly_panel
+    const panelRes = (await runCommand('set_layer_assembly_panel', { tab: 'bones' })) as any
+    expect(panelRes.ok).toBe(true)
+    expect(activeTab).toBe('bones')
+
+    // 2. apply-template humanoid
+    const tmplRes = (await runCommand('layer_assembly_rig', {
+      action: 'apply-template',
+      template: 'humanoid'
+    })) as any
+    expect(tmplRes.ok).toBe(true)
+    expect(mockComp.rig?.bones.length).toBe(11)
+    expect(mockComp.rig?.bones[0].id).toBe('bone-pelvis')
+
+    // 3. bind layer to bone
+    const bindRes = (await runCommand('layer_assembly_rig', {
+      action: 'bind',
+      bone_id: 'bone-torso',
+      layer_ids: ['l-body']
+    })) as any
+    expect(bindRes.ok).toBe(true)
+    expect(mockComp.layers.find((l) => l.id === 'l-body')?.boneId).toBe('bone-torso')
+
+    // 4. apply-preset-animation walk
+    const walkRes = (await runCommand('layer_assembly_rig', {
+      action: 'apply-preset-animation',
+      preset: 'walk'
+    })) as any
+    expect(walkRes.ok).toBe(true)
+    expect(mockComp.rig?.duration).toBe(1.6)
+    expect(mockComp.rig?.tracks['bone-torso']).toBeDefined()
+    expect(mockComp.rig?.tracks['bone-torso'].length).toBeGreaterThan(0)
+
+    // 5. set_layer_assembly_playback
+    const playRes = (await runCommand('set_layer_assembly_playback', {
+      time: 0.8,
+      playing: true
+    })) as any
+    expect(playRes.ok).toBe(true)
+    expect(currentTime).toBe(0.8)
+    expect(isPlaying).toBe(true)
+
+    // 6. add_layer_assembly_layer
+    const addLayerRes = (await runCommand('add_layer_assembly_layer', {
+      patch: { name: 'Mũ', x: 0, y: -100 }
+    })) as any
+    expect(addLayerRes.ok).toBe(true)
+    expect(mockComp.layers.length).toBe(3)
+    expect(mockComp.layers[2].name).toBe('Mũ')
+
+    // 7. update_layer_assembly_layer
+    const updateLayerRes = (await runCommand('update_layer_assembly_layer', {
+      layer_id: addLayerRes.layerId,
+      patch: { scale: 1.5 }
+    })) as any
+    expect(updateLayerRes.ok).toBe(true)
+    expect(mockComp.layers[2].scale).toBe(1.5)
+
+    unregister()
+  })
 })

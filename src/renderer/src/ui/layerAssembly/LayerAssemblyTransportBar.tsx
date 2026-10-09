@@ -1,6 +1,7 @@
 import { IconPlay, IconPause } from '../icons'
 
 export interface LayerAssemblyTransportBarProps {
+  duration?: number
   isPlaying: boolean
   onTogglePlay: () => void
   time: number
@@ -15,7 +16,8 @@ export function LayerAssemblyTransportBar({
   time,
   onSeekTime,
   onResetView,
-  zoomPercent
+  zoomPercent,
+  duration = 4
 }: LayerAssemblyTransportBarProps) {
   return (
     <div
@@ -54,12 +56,12 @@ export function LayerAssemblyTransportBar({
       <input
         type="range"
         min="0"
-        max="4"
+        max={duration}
         step="0.05"
-        value={time % 4}
+        value={Math.min(time, duration)}
         onChange={(e) => onSeekTime(Number(e.target.value))}
         style={{ width: '140px', accentColor: 'var(--accent)' }}
-        title="Tua mốc thời gian chuyển động (0s - 4s)"
+        title={`Tua mốc thời gian chuyển động (0s - ${duration}s)`}
       />
 
       {onResetView && typeof zoomPercent === 'number' && (

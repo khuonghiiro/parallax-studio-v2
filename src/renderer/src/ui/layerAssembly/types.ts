@@ -10,6 +10,7 @@ export interface LayerMotionSettings {
 }
 
 export interface AssembledLayerItem {
+  boneId?: string
   id: string
   name: string
   assetPath?: string
@@ -31,6 +32,7 @@ import type { AssemblyLighting } from '../assets/models3d/types'
 export type { AssemblyLighting }
 
 export interface LayerComposite {
+  rig?: import('@shared/layerRig').LayerRig
   id: string
   name: string
   category: 'nature' | 'prop' | 'character' | 'architecture' | 'custom'

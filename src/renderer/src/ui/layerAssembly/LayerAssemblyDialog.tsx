@@ -13,6 +13,8 @@ import { WorkshopWorkspace } from './WorkshopWorkspace'
 import { getStoredComposites } from './layerAssemblyStorage'
 import '../../styles/layerAssembly.css'
 import '../../styles/layerWorkshopTools.css'
+import '../../styles/layerWorkshopRig.css'
+import { WorkshopRightPanel, type WorkshopTab } from './WorkshopRightPanel'
 
 export type AssemblyWorkspaceView = '2d' | '3d' | 'split'
 export interface LayerAssemblyDialogProps { initialComposite?: LayerComposite | null; onClose: () => void }
@@ -30,7 +32,9 @@ function IconAlert() {
 export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssemblyDialogProps) {
   const state = useLayerWorkshop(initialComposite)
   const { composite, setComposite, history, undo, redo, createNew } = state
-  const playback = useWorkshopPlayback()
+  const playback = useWorkshopPlayback(composite.rig?.duration, composite.rig?.loop)
+  const [tab, setTab] = useState<WorkshopTab>('layers')
+  const [boneId, selectBone] = useState<string | null>(null)
   const saving = useWorkshopSave(() => history.current, onClose)
   const close = () => { if (!saving.busy) onClose() }
   const [view, setView] = useState<AssemblyWorkspaceView>('split')
@@ -80,9 +84,10 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
     getSelectedLayerIds: () => state.selection, setSelectedLayerIds: state.setIds,
     getIsPlaying: () => playback.isPlaying, setIsPlaying: playback.setIsPlaying,
     getTime: () => playback.time, setTime: playback.setTime,
+    getTab: () => tab, setTab, getSelectedBoneId: () => boneId, setSelectedBoneId: selectBone,
     undo, redo, canUndo: () => history.canUndo, canRedo: () => history.canRedo,
     save: saving.save, insertToScene: saving.insert, close
-  }), [composite, state.selection.join(','), playback.isPlaying, playback.time, saving.busy, onClose])
+  }), [composite, state.selection.join(','), playback.isPlaying, playback.time, saving.busy, onClose, tab, boneId])
   return <div className="layer-workshop-overlay">
     <div className="layer-workshop-dialog" role="dialog" aria-modal="true" aria-label="Xưởng Lắp Ráp Layer" onPointerDownCapture={() => history.begin()}>
       <WorkshopHeader composite={composite} setComposite={setComposite} view={view} setView={setView}
@@ -118,13 +123,15 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
           }}
         />
         <div className="lw-workspace-column">
-          <WorkshopWorkspace state={state} playback={playback} view={view} />
+          <WorkshopWorkspace state={state} playback={playback} view={view} tab={tab} boneId={boneId} selectBone={selectBone} />
         </div>
+        <WorkshopRightPanel state={state} playback={playback} tab={tab} setTab={setTab} boneId={boneId} selectBone={selectBone}>
         <LayerAssemblyInspector composite={composite} selectedLayerId={state.selectedLayerId} selectedIds={state.selection}
           onSelectLayer={state.select} onUpdateLayer={state.update} onAddLayer={() => state.add(`Lớp ${composite.layers.length + 1}`, '')}
           onDeleteLayer={(id) => state.run('delete', undefined, [id])} onDuplicateLayer={(id) => state.run('duplicate', undefined, [id])}
           onMoveLayerOrder={state.move} onBatchAction={state.run}
           onAllAction={(action) => state.run(action, undefined, composite.layers.map((l) => l.id))} />
+        </WorkshopRightPanel>
       </div>
       <footer className="lw-status"><span>{composite.layers.length} lớp · {state.selection.length} đã chọn · {composite.layers.filter((l) => l.locked).length} khóa</span>
         <span>Ctrl+Z hoàn tác · Ctrl+D nhân bản · Mũi tên: dời 2D · Phím +/-: độ sâu Z · Space xem chuyển động</span></footer>

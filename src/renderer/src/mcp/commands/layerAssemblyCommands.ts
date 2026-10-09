@@ -15,6 +15,9 @@ import {
 import { insertLayerCompositeToScene } from '../../ui/layerAssembly/insertLayerComposite'
 import { captureCompositeThumbnail } from '../../ui/layerAssembly/layerAssemblyThumbnail'
 import { applyWorkshopAction, type WorkshopAction } from '../../ui/layerAssembly/workshopActions'
+import { layerWorkshopRigCommands } from './layerWorkshopRigCommands'
+import { layerWorkshopEditCommands } from './layerWorkshopEditCommands'
+import { validateWorkshop } from '../../ui/layerAssembly/workshopEdits'
 
 function workshopSession() {
   const session = getActiveLayerAssemblySession()
@@ -53,6 +56,8 @@ function resolveTargetComposite(p: Params): LayerComposite {
 }
 
 export const layerAssemblyCommands: Record<string, Handler> = {
+  ...layerWorkshopRigCommands,
+  ...layerWorkshopEditCommands,
   layer_assembly_action: (p) => {
     const session = workshopSession()
     const before = session.getComposite()
@@ -109,7 +114,8 @@ export const layerAssemblyCommands: Record<string, Handler> = {
   },
 
   save_layer_composite: async (p) => {
-    const raw = (p.composite as LayerComposite) || (p as unknown as LayerComposite)
+    const active = getActiveLayerAssemblySession()?.getComposite()
+    const raw = { ...(p.layers === undefined ? active : undefined), ...(p.composite as LayerComposite ?? p) } as LayerComposite
     const id = str(p, 'id') || raw.id || `comp-${Date.now().toString(36)}`
     const name = str(p, 'name') || raw.name || 'Chi tiết lắp ráp mới'
     const category = (str(p, 'category') as LayerComposite['category']) || raw.category || 'nature'
@@ -126,8 +132,11 @@ export const layerAssemblyCommands: Record<string, Handler> = {
       thumbnail,
       width,
       height,
-      layers
+      layers,
+      rig: raw.rig,
+      lighting: raw.lighting
     }
+    validateWorkshop(candidate)
 
     // Tự động kết xuất thumbnail 2D nếu chưa có
     if (!thumbnail && typeof document !== 'undefined') {
@@ -221,6 +230,8 @@ export const layerAssemblyCommands: Record<string, Handler> = {
       canRedo: session.canRedo?.() ?? false,
       isPlaying: session.getIsPlaying(),
       time: Number(session.getTime().toFixed(3)),
+      tab: session.getTab?.() ?? 'layers',
+      selectedBoneId: session.getSelectedBoneId?.() ?? null,
       composite: toPlain(composite)
     }
   }

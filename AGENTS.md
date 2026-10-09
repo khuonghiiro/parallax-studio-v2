@@ -151,8 +151,10 @@ Khi thực hiện các nhiệm vụ chuyên biệt, AI cần tham chiếu các s
 - **MCP Parity cho Xưởng 3D:** Đồng bộ 100% qua `assemblyBridge.ts` kết nối phiên modal trực tiếp với MCP commands (`src/renderer/src/mcp/commands/assemblyCommands.ts`): `list_models3d`, `get_model3d`, `get_assembly_state`, `list_assembly_templates`, `append_assembly_model`, `save_assembly_model`, `insert_assembly_model`, `add_assembly_face`, `update_assembly_face`, `delete_assembly_face`, `join_assembly_faces`, `auto_assembly_clip`, `set_assembly_lighting`, `get_assembly_screenshot`, `set_assembly_camera`, `apply_assembly_template`, `open_assembly_workshop`, `close_assembly_workshop`, `set_assembly_face_image`. Hỗ trợ cả 2 chế độ: Realtime (mở UI cho user xem trực tiếp) và Headless (tạo ngầm tài nguyên trong nền). Tests: `mcp/commands/assemblyCommands.test.ts`.
 
 
-### Xưởng Lắp Ráp Layer – thao tác hàng loạt
-- UI: `ui/layerAssembly/WorkshopHeader.tsx`, `WorkshopTools.tsx`, `WorkshopWorkspace.tsx`; state: `useLayerWorkshop.ts`.
-- Logic chung UI/MCP: `workshopActions.ts`; bản nháp dùng `workshopHistory.ts` (100 bước, một gesture/một lệnh hàng loạt), không ghi lịch sử dự án trước khi chèn.
-- MCP: `select_layer_assembly_layers`, `layer_assembly_action`, `layer_assembly_history`; vùng chọn rỗng không tác động, lớp khóa chỉ nhận lệnh khóa/mở khóa. Phân bố X/Y theo tâm, Z theo thứ tự danh sách.
-- Tests: `workshopActions.test.ts`, `workshopHistory.test.ts`, `mcp/commands/layerAssemblyCommands.test.ts`. Hướng dẫn: `docs/layer-workshop-tools.md`.
+### Xưởng Lắp Ráp Layer – thao tác hàng loạt & hệ thống xương Blender (Rigging & Animation)
+- UI: `ui/layerAssembly/WorkshopHeader.tsx`, `WorkshopTools.tsx`, `WorkshopWorkspace.tsx`, `WorkshopRightPanel.tsx` (3 tab: Layer, Tạo xương, Animation), `WorkshopRigPanel.tsx`, `WorkshopAnimationPanel.tsx`, `WorkshopBoneOverlay.tsx` (xương bát diện Blender, tương tác kéo Head dời khớp, kéo Tail đổi góc/chiều dài, Pose Mode kéo xoay trực quan).
+- Logic chung UI/MCP: `workshopActions.ts`, `workshopRig.ts`, `workshopRigPresets.ts` (mẫu khung xương người 2D 11 khớp, chuỗi uốn 3 khớp, bộ sinh chuyển động tự động walk cycle, idle breathe, wave hand, sway); bản nháp dùng `workshopHistory.ts` (100 bước, một gesture/một lệnh hàng loạt), không ghi lịch sử dự án trước khi chèn.
+- Nướng chuyển động (Bake): `bakeWorkshopRig.ts` chuyển đổi toàn bộ chuyển động phân cấp FK của xương thành keyframe vị trí & góc xoay chuẩn của `ImageLayer` khi chèn vào shot/dự án để xuất video MP4.
+- MCP: `select_layer_assembly_layers`, `layer_assembly_action`, `layer_assembly_history`, `layer_assembly_rig`, `set_layer_assembly_playback`, `set_layer_assembly_panel`, `add_layer_assembly_layer`, `update_layer_assembly_layer`, `reorder_layer_assembly_layer`, `update_layer_assembly`, `load_layer_assembly`.
+- Tests: `workshopActions.test.ts`, `workshopHistory.test.ts`, `workshopRig.test.ts`, `mcp/commands/layerAssemblyCommands.test.ts`. Hướng dẫn: `docs/layer-workshop-tools.md`, `mcp-server/README.md`.
+

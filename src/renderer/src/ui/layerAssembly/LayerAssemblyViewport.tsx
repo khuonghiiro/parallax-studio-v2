@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import type { LayerComposite, AssembledLayerItem } from './types'
 import { useLayerAssetImage } from './useLayerAssetImage'
 import { computeLayerMotion } from './layerAssemblyMotion'
+import { WorkshopBoneOverlay, type BoneOverlayProps } from './WorkshopBoneOverlay'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
 import { IconLayers, IconImage, IconBoundingBox } from '../icons'
 import { useView } from '../../store/view'
@@ -21,6 +22,7 @@ import {
 } from './layerAssembly2DBbox'
 
 export interface LayerAssemblyViewportProps {
+  boneOverlay?: BoneOverlayProps
   composite: LayerComposite
   selectedLayerId: string | null
   selectedIds?: string[]
@@ -49,7 +51,8 @@ export function LayerAssemblyViewport({
   onTogglePlay,
   time,
   onSeekTime,
-  hideTransport = false
+  hideTransport = false,
+  boneOverlay
 }: LayerAssemblyViewportProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [zoom, setZoom] = useState(1.0)
@@ -364,6 +367,7 @@ export function LayerAssemblyViewport({
           transformStyle: 'preserve-3d'
         }}
       >
+        {boneOverlay && <WorkshopBoneOverlay {...boneOverlay} />}
         {/* Canvas Center Reference Crosshairs */}
         <div
           style={{
@@ -657,7 +661,7 @@ function AssembledLayerItemView({
     animTranslateX,
     animTranslateY
   } = computeLayerMotion(layer.motion, time)
-  const { anchor } = layer.motion
+  const anchor = layer.boneId ? 'center' : layer.motion.anchor
 
   const anchorOrigin =
     anchor === 'bottom'

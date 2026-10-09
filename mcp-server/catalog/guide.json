@@ -1,6 +1,6 @@
 {
   "$comment": "Single source for the AI guide (MCP server instructions, get_ai_guide, CLI help, McpDialog prompt). Every section MUST keep the same number of lines in en and vi - catalog.test.mjs enforces it.",
-  "toolCount": 92,
+  "toolCount": 100,
   "sections": [
     {
       "id": "overview",
@@ -121,14 +121,16 @@
           "Stacked layers are ordered by depth (z > 0 farther back, z < 0 closer foreground), supporting anchor pivots and organic sway/breathe/float motions.",
           "Use save_layer_composite to store presets with auto-generated 2D preview thumbnails, and insert_layer_composite to place all layers into shots.",
           "Open and inspect the workshop in real-time with open_layer_assembly and get_layer_assembly_state.",
-          "Batch align, space depth and animate layers with layer_assembly_action and select_layer_assembly_layers; edit with undoable layer_assembly_history."
+          "Batch align, space depth and animate layers with layer_assembly_action and select_layer_assembly_layers; edit with undoable layer_assembly_history.",
+          "Attach character layers to skeletal bones with layer_assembly_rig; animate with keyframes or generate procedural walk/idle/wave motions."
         ],
         "vi": [
           "Xưởng Lắp Ráp Layer 2.5D tạo các cụm chi tiết xếp chồng nhiều tầng (như cây bonsai, bụi hoa, đèn treo) kèm phân lớp chiều sâu và chuyển động gió êm ái.",
           "Các layer xếp chồng sắp xếp theo độ sâu (z > 0 ở xa phía sau, z < 0 ở gần phía trước), hỗ trợ điểm neo uốn và hoạt ảnh đung đưa/phập phồng/lơ lửng tự nhiên.",
           "Dùng save_layer_composite để lưu mẫu kèm ảnh xem trước 2D tự động, và insert_layer_composite để chèn toàn bộ các layer vào phân cảnh.",
           "Mở và xem trạng thái xưởng trực quan theo thời gian thực bằng open_layer_assembly và get_layer_assembly_state.",
-          "Căn chỉnh, giãn độ sâu và tạo chuyển động hàng loạt với layer_assembly_action và select_layer_assembly_layers; chỉnh sửa với hoàn tác layer_assembly_history."
+          "Căn chỉnh, giãn độ sâu và tạo chuyển động hàng loạt với layer_assembly_action và select_layer_assembly_layers; chỉnh sửa với hoàn tác layer_assembly_history.",
+          "Gắn các layer nhân vật vào khung xương với layer_assembly_rig; tạo animation bằng keyframe hoặc sinh chuyển động tự động đi bộ/đứng thở/vẫy tay."
         ]
       }
     }

@@ -333,3 +333,11 @@ Example: `pnpm pxs call update_layer '{"layer_id":"layer-1","position":[120,80,4
 Open `open_layer_assembly`, inspect `get_layer_assembly_state`, then select IDs with `select_layer_assembly_layers`. Use `layer_assembly_action` for alignment, center distribution, depth spacing, duplicate/delete, lock/unlock, hide/show, motion stagger/stop; use `layer_assembly_history` with `undo` or `redo` for draft history. Locked layers are skipped except lock/unlock. An empty selection changes nothing. UI and MCP share the same action implementation.
 
 Mở xưởng, lấy ID lớp, chọn nhiều lớp rồi thao tác hàng loạt qua cùng logic UI. Các lệnh này thay bản nháp và có hoàn tác riêng; chèn vào cảnh vẫn dùng lịch sử dự án. Xem [hướng dẫn](../docs/layer-workshop-tools.md).
+
+### Layer workshop rigging & animation / Xương & chuyển động xưởng layer
+
+Right panel features 3 tabs: Layer (`layers`), Bone Rigging (`bones`), Animation (`animation`). Octahedral bones follow Blender conventions (Head joint pivot, Tail joint tip, faceted shaded 3D-like body, child-parent hierarchy). Edit mode allows dragging Head (position), Tail (length/angle). Pose mode allows interactive rotation on 2D canvas. Procedural animations auto-generate smooth walk cycles, idle breathing, waving, and swaying. When inserted into scenes, skeleton motion bakes into native keyframe tracks.
+
+Cột phải gồm 3 tab: Layer (`layers`), Tạo xương (`bones`), Animation (`animation`). Xương bát diện trực quan theo chuẩn Blender (khớp gốc Head, khớp đuôi Tail, thân khối 3D đổ bóng, phân cấp cha-con). Tab Tạo xương cho phép kéo Head dời vị trí, kéo Tail đổi góc xoay và chiều dài. Tab Animation hỗ trợ kéo xoay xương trực quan trên màn hình 2D (Pose Mode) và tự động sinh chuyển động đi bộ (walk cycle), đứng thở (idle breathe), vẫy tay (wave), uốn lượn (sway). Khi chèn vào phân cảnh, toàn bộ chuyển động xương được bake thành keyframe chuẩn của dự án.
+MCP: `layer_assembly_rig`, `set_layer_assembly_playback`, `set_layer_assembly_panel`, `add_layer_assembly_layer`, `update_layer_assembly_layer`, `reorder_layer_assembly_layer`, `update_layer_assembly`, `load_layer_assembly`.
+

@@ -6,6 +6,8 @@ import { createImageLayer } from '../../project/factory'
 import type { AssetMeta, ImageLayer } from '@shared/types'
 import { resolveFaceTexture } from '../assets/models3d/textureResolver'
 import { toast } from '../../actions'
+import { bakeWorkshopRig } from './bakeWorkshopRig'
+import { validateRig } from './workshopRig'
 
 export interface InsertCompositeOptions {
   composite: LayerComposite
@@ -23,6 +25,7 @@ export async function insertLayerCompositeToScene({
   positionOffset = [0, 0, 0],
   globalScale = 1.0
 }: InsertCompositeOptions): Promise<string[]> {
+  validateRig(composite)
   const state = useEditor.getState()
   const shotId = targetShotId ?? state.selectedShotId ?? state.project.shots[0]?.id ?? null
   if (!shotId) return []
@@ -183,6 +186,7 @@ export async function insertLayerCompositeToScene({
       }
     }
 
+    bakeWorkshopRig(newLayer, item, composite, comp.duration, comp.fps, globalScale, positionOffset)
     layersToAdd.push(newLayer)
     createdLayerIds.push(newLayer.id)
   }

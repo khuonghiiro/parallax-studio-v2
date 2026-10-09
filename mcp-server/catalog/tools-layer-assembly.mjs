@@ -181,10 +181,140 @@ export const LAYER_ASSEMBLY_TOOLS = [
     name: 'get_layer_assembly_state',
     cat: 'layer_assembly',
     doc: L(
-      'Inspect the current state of the 2.5D Layer Assembly workshop modal (open status, active composite, selected layer, playback time).',
-      'Kiểm tra trạng thái hiện tại của modal Xưởng Lắp Ráp Layer 2.5D (đang mở hay không, chi tiết hiện tại, layer đang chọn, thời gian chạy thử).'
+      'Inspect the current state of the 2.5D Layer Assembly workshop modal (open status, active composite, selected layer, playback time, active tab, selected bone).',
+      'Kiểm tra trạng thái hiện tại của modal Xưởng Lắp Ráp Layer 2.5D (đang mở hay không, chi tiết hiện tại, layer đang chọn, thời gian chạy thử, tab đang mở, xương đang chọn).'
     ),
     shape: () => ({}),
     example: '{}'
+  },
+  {
+    name: 'layer_assembly_rig',
+    cat: 'layer_assembly',
+    doc: L(
+      'Manage cutout skeleton bones and keyframe animations in the active layer assembly workshop. Supports adding/updating/deleting bones, binding layers, setting keyframes, applying humanoid/chain templates, and generating procedural walk/idle/wave/sway motions.',
+      'Quản lý hệ thống xương và animation trong xưởng lắp ráp layer. Hỗ trợ thêm/sửa/xóa xương, gắn layer vào xương, ghi keyframe, áp dụng khung xương người/chuỗi uốn dựng sẵn và tự động sinh chuyển động đi bộ/đứng thở/vẫy tay/uốn lượn.'
+    ),
+    shape: (d) => ({
+      action: z
+        .enum([
+          'add-bone',
+          'update-bone',
+          'delete-bone',
+          'bind',
+          'set-key',
+          'delete-key',
+          'settings',
+          'apply-template',
+          'apply-preset-animation',
+          'clear-animation'
+        ])
+        .describe(d('Rigging or animation action to perform.', 'Hành động tạo xương hoặc animation cần thực hiện.')),
+      bone_id: z.string().optional().describe(d('Target bone ID.', 'ID xương mục tiêu.')),
+      name: z.string().optional().describe(d('Bone name.', 'Tên xương.')),
+      parent_id: z.string().optional().describe(d('Parent bone ID for hierarchical transforms.', 'ID xương cha.')),
+      x: z.number().optional().describe(d('Head joint X coordinate in canvas units.', 'Tọa độ X khớp gốc.')),
+      y: z.number().optional().describe(d('Head joint Y coordinate in canvas units.', 'Tọa độ Y khớp gốc.')),
+      length: z.number().optional().describe(d('Bone length in pixels.', 'Chiều dài xương theo pixel.')),
+      angle: z.number().optional().describe(d('Bone angle in degrees (clockwise).', 'Góc xương theo độ.')),
+      layer_ids: z.array(z.string()).optional().describe(d('Layer IDs to bind to the bone.', 'Danh sách ID layer cần gắn vào xương.')),
+      time: z.number().optional().describe(d('Keyframe time in seconds.', 'Thời điểm keyframe tính bằng giây.')),
+      rotation: z.number().optional().describe(d('Keyframe rotation angle in degrees.', 'Góc xoay keyframe.')),
+      easing: z.enum(['smooth', 'linear', 'hold']).optional().describe(d('Keyframe interpolation.', 'Nội suy keyframe.')),
+      duration: z.number().optional().describe(d('Rig animation duration in seconds (0.1–120s).', 'Thời lượng animation (0.1–120s).')),
+      loop: z.boolean().optional().describe(d('Whether the animation clip loops seamlessly.', 'Có lặp chu kỳ chuyển động hay không.')),
+      template: z.enum(['humanoid', 'simple-chain']).optional().describe(d('Skeleton template to apply.', 'Mẫu khung xương áp dụng.')),
+      preset: z.enum(['walk', 'idle', 'wave', 'jump', 'sway']).optional().describe(d('Procedural motion preset to generate.', 'Chuyển động mẫu tự động sinh.'))
+    }),
+    example: '{"action":"apply-preset-animation","preset":"walk"}'
+  },
+  {
+    name: 'set_layer_assembly_playback',
+    cat: 'layer_assembly',
+    doc: L(
+      'Control playback and scrubber time inside the 2.5D Layer Assembly workshop.',
+      'Điều khiển phát thử và tua mốc thời gian trong Xưởng Lắp Ráp Layer 2.5D.'
+    ),
+    shape: (d) => ({
+      time: z.number().optional().describe(d('Playback time in seconds.', 'Thời điểm tua đến (giây).')),
+      playing: z.boolean().optional().describe(d('Whether animation playback is playing.', 'Bật hoặc tạm dừng phát thử.'))
+    }),
+    example: '{"time":0.5,"playing":true}'
+  },
+  {
+    name: 'set_layer_assembly_panel',
+    cat: 'layer_assembly',
+    doc: L(
+      'Switch between the 3 inspector tabs (layers, bones, animation) and select active bone in the workshop.',
+      'Chuyển đổi giữa 3 tab cột phải (layers, bones, animation) và chọn xương kích hoạt trong xưởng.'
+    ),
+    shape: (d) => ({
+      tab: z.enum(['layers', 'bones', 'animation']).describe(d('Active right panel tab.', 'Tab cột phải cần mở.')),
+      bone_id: z.string().optional().describe(d('Optional bone ID to select.', 'ID xương cần chọn.'))
+    }),
+    example: '{"tab":"animation"}'
+  },
+  {
+    name: 'add_layer_assembly_layer',
+    cat: 'layer_assembly',
+    doc: L(
+      'Add a new layer item into the active 2.5D Layer Assembly workshop.',
+      'Thêm một layer mới vào Xưởng Lắp Ráp Layer 2.5D đang mở.'
+    ),
+    shape: (d) => ({
+      patch: z.record(z.unknown()).optional().describe(d('Initial layer properties (name, assetPath, x, y, z, scale, rotation, motion).', 'Thuộc tính ban đầu của layer.'))
+    }),
+    example: '{"patch":{"name":"Cánh tay","x":-30,"y":-40}}'
+  },
+  {
+    name: 'update_layer_assembly_layer',
+    cat: 'layer_assembly',
+    doc: L(
+      'Update properties of an existing layer in the active 2.5D Layer Assembly workshop.',
+      'Cập nhật thuộc tính của một layer đang có trong Xưởng Lắp Ráp Layer 2.5D đang mở.'
+    ),
+    shape: (d) => ({
+      layer_id: z.string().describe(d('Target layer ID.', 'ID của layer cần sửa.')),
+      patch: z.record(z.unknown()).describe(d('Layer patch properties.', 'Các thuộc tính cần cập nhật.'))
+    }),
+    example: '{"layer_id":"l1","patch":{"scale":1.2,"rotation":15}}'
+  },
+  {
+    name: 'reorder_layer_assembly_layer',
+    cat: 'layer_assembly',
+    doc: L(
+      'Move a layer up or down in the workshop stack order.',
+      'Đổi thứ tự hiển thị của một layer lên hoặc xuống trong xưởng.'
+    ),
+    shape: (d) => ({
+      layer_id: z.string().describe(d('Layer ID to move.', 'ID của layer cần đổi thứ tự.')),
+      direction: z.enum(['up', 'down']).describe(d('Direction to move.', 'Hướng di chuyển (up hoặc down).'))
+    }),
+    example: '{"layer_id":"l1","direction":"up"}'
+  },
+  {
+    name: 'update_layer_assembly',
+    cat: 'layer_assembly',
+    doc: L(
+      'Update top-level composite properties (name, description, category, width, height, lighting) in the active workshop.',
+      'Cập nhật thông tin chi tiết mẫu lắp ráp (tên, mô tả, danh mục, kích thước khung, ánh sáng) trong xưởng đang mở.'
+    ),
+    shape: (d) => ({
+      patch: z.record(z.unknown()).describe(d('Composite patch properties.', 'Các thuộc tính cần cập nhật.'))
+    }),
+    example: '{"patch":{"name":"Nhân vật hiệp sĩ","width":700,"height":800}}'
+  },
+  {
+    name: 'load_layer_assembly',
+    cat: 'layer_assembly',
+    doc: L(
+      'Load a composite preset from storage into the active workshop, or start a new blank composite.',
+      'Nạp một mẫu cụm layer từ kho lưu trữ vào xưởng, hoặc tạo mẫu mới.'
+    ),
+    shape: (d) => ({
+      composite_id: z.string().optional().describe(d('Composite preset ID to load.', 'ID mẫu cần nạp.')),
+      mode: z.enum(['replace', 'append', 'new']).optional().describe(d('Load mode: replace current, append layers, or start fresh new.', 'Chế độ nạp: thay thế, ghép thêm hoặc tạo mới.'))
+    }),
+    example: '{"composite_id":"comp-bonsai-zen","mode":"replace"}'
   }
 ]
+

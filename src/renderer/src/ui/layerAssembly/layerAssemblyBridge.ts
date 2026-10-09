@@ -1,6 +1,10 @@
 import type { LayerComposite } from './types'
 
 export interface ActiveLayerAssemblySession {
+  getTab?: () => 'layers' | 'bones' | 'animation'
+  setTab?: (tab: 'layers' | 'bones' | 'animation') => void
+  getSelectedBoneId?: () => string | null
+  setSelectedBoneId?: (id: string | null) => void
   getComposite: () => LayerComposite
   setComposite: (composite: LayerComposite | ((prev: LayerComposite) => LayerComposite)) => void
   getSelectedLayerId: () => string | null
