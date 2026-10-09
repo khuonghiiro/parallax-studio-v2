@@ -550,9 +550,32 @@ export function AssemblyViewport({
     }
     if (ds.mode === 'brush' && sculptSessionRef.current) {
       container.style.cursor = 'crosshair'
+      const session = sculptSessionRef.current
+      const rect = container.getBoundingClientRect()
+      const mouseNdc = new THREE.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1
+      )
+      const raycaster = new THREE.Raycaster()
+      raycaster.setFromCamera(mouseNdc, camera)
+      const hits = raycaster.intersectObject(session.mesh, false)
+      let currentHitWorld: THREE.Vector3
+      if (hits.length > 0 && hits[0].point) {
+        currentHitWorld = hits[0].point
+      } else {
+        const planeNormal = camera.getWorldDirection(new THREE.Vector3()).negate()
+        const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(planeNormal, session.lastHitWorld)
+        const planeHit = new THREE.Vector3()
+        if (raycaster.ray.intersectPlane(plane, planeHit)) {
+          currentHitWorld = planeHit
+        } else {
+          currentHitWorld = session.lastHitWorld
+        }
+      }
       applySculptStrokeMove(
-        sculptSessionRef.current,
+        session,
         { x: e.clientX, y: e.clientY },
+        currentHitWorld,
         camera,
         container.clientHeight || 500
       )

@@ -8,20 +8,22 @@ export interface SculptStrokeSession {
   settings: BrushSettings
   /** Vị trí các đỉnh khi bắt đầu nhấp chuột (local space) */
   initialPositions: Float32Array
-  /** Độ lệch sculpt đã có từ trước (nếu trước đó đã vẽ cọ) */
-  baseOffsets: Float32Array
-  /** Điểm tiếp xúc ban đầu của đầu cọ trong world space */
+  /** Điểm tiếp xúc cọ ở frame trước đó trong world space */
+  lastHitWorld: THREE.Vector3
+  /** Điểm tiếp xúc ban đầu khi nhấn chuột trong world space */
   startHitWorld: THREE.Vector3
-  /** Ma trận nghịch đảo của mesh world matrix được cache để không clone mỗi frame */
+  /** Ma trận nghịch đảo của mesh world matrix được cache */
   invMat: THREE.Matrix4
   /** Tọa độ chuột ban đầu */
   startMouse: { x: number; y: number }
+  /** Tọa độ chuột ở frame trước đó */
+  lastMouse: { x: number; y: number }
   /** Bán kính đầu cọ trong world space */
   worldRadius: number
-  /** Danh sách các đỉnh nằm trong bán kính cọ */
-  affectedIndices: number[]
-  /** Trọng số suy giảm (falloff weights) [0..1] tương ứng từng đỉnh */
-  falloffs: Float32Array
+  /** Danh sách các đỉnh bị ảnh hưởng cho Grab tool */
+  grabIndices?: number[]
+  /** Trọng số suy giảm cho Grab tool */
+  grabFalloffs?: Float32Array
 }
 
 /**
@@ -41,19 +43,19 @@ export function computeWorldBrushRadius(
 }
 
 /**
- * Tính hệ số suy giảm khoảng cách (Smooth Falloff chuẩn Blender / Cosine Curve).
- * Tại tâm cọ (d = 0) -> 1.0; tại viền cọ (d = radius) -> 0.0 mượt mà không ngấn gãy.
+ * Tính hệ số suy giảm khoảng cách (Smooth Cosine Curve chuẩn Blender Sculpt Mode).
+ * Tại tâm cọ (d = 0) -> w = 1.0 với đạo hàm 0 (đỉnh vòm mềm mại, không nhọn hoắt).
+ * Tại viền cọ (d = radius) -> w = 0.0 với đạo hàm 0 (tiếp xúc phẳng lỳ với bề mặt xung quanh, không để lại vết hằn ngấn gãy).
  */
-function computeFalloffWeight(dist: number, radius: number): number {
+export function computeCosineFalloff(dist: number, radius: number): number {
   if (dist >= radius) return 0
-  const t = dist / radius
-  // Đường cong smooth cubic: (1 - t^2)^2
-  const inner = 1 - t * t
-  return inner * inner
+  const t = Math.max(0, Math.min(1, dist / radius))
+  // Cosine bell curve: 0.5 * (1 + cos(t * PI))
+  return 0.5 * (1 + Math.cos(t * Math.PI))
 }
 
 /**
- * Khởi tạo một phiên vẽ cọ điêu khắc cục bộ khi người dùng nhấn chuột xuống mesh.
+ * Khởi tạo một phiên vẽ cọ điêu khắc khi người dùng nhấn chuột xuống mesh.
  */
 export function startSculptStroke(
   mesh: THREE.Mesh,
@@ -72,72 +74,186 @@ export function startSculptStroke(
   if (!posAttr || posAttr.count === 0) return null
 
   const worldRadius = computeWorldBrushRadius(settings.radius, hitPointWorld, camera, viewportHeight)
-  const count = posAttr.count
   const initialPositions = new Float32Array(posAttr.array)
-  const baseOffsets = new Float32Array(count * 3)
+  const invMat = mesh.matrixWorld.clone().invert()
 
-  if (existingSculptOffsets && existingSculptOffsets.length > 0) {
-    const len = Math.min(baseOffsets.length, existingSculptOffsets.length)
-    for (let i = 0; i < len; i++) {
-      baseOffsets[i] = existingSculptOffsets[i] || 0
-    }
-  }
-
-  // Thu thập các đỉnh nằm trong bán kính cọ tại điểm tiếp xúc
-  const affected: number[] = []
-  const weights: number[] = []
-  const tempV = new THREE.Vector3()
-
-  for (let i = 0; i < count; i++) {
-    tempV.set(posAttr.getX(i), posAttr.getY(i), posAttr.getZ(i))
-    mesh.localToWorld(tempV)
-    const dist = tempV.distanceTo(hitPointWorld)
-    if (dist <= worldRadius) {
-      const w = computeFalloffWeight(dist, worldRadius)
-      if (w > 0.001) {
-        affected.push(i)
-        weights.push(w)
-      }
-    }
-  }
-
-  return {
+  const session: SculptStrokeSession = {
     mesh,
     faceId,
     tool,
     settings,
     initialPositions,
-    baseOffsets,
     startHitWorld: hitPointWorld.clone(),
-    invMat: mesh.matrixWorld.clone().invert(),
+    lastHitWorld: hitPointWorld.clone(),
+    invMat,
     startMouse: { x: clientX, y: clientY },
-    worldRadius,
-    affectedIndices: affected,
-    falloffs: new Float32Array(weights)
+    lastMouse: { x: clientX, y: clientY },
+    worldRadius
   }
+
+  // Đối với Grab tool: lưu lại các đỉnh neo trong bán kính ban đầu
+  if (tool === 'grab') {
+    const affected: number[] = []
+    const weights: number[] = []
+    const tempV = new THREE.Vector3()
+    const count = posAttr.count
+
+    for (let i = 0; i < count; i++) {
+      tempV.set(posAttr.getX(i), posAttr.getY(i), posAttr.getZ(i))
+      mesh.localToWorld(tempV)
+      const dist = tempV.distanceTo(hitPointWorld)
+      if (dist <= worldRadius) {
+        const w = computeCosineFalloff(dist, worldRadius)
+        if (w > 0.001) {
+          affected.push(i)
+          weights.push(w)
+        }
+      }
+    }
+    session.grabIndices = affected
+    session.grabFalloffs = new Float32Array(weights)
+  } else {
+    // Với cọ vẽ liên tục (Inflate, Smooth, Crease): áp dụng ngay dab đầu tiên tại điểm nhấn chuột
+    applySingleDab(session, hitPointWorld)
+  }
+
+  return session
 }
 
 /**
- * Cập nhật biến dạng trực tiếp trên Three.js BufferGeometry trong từng frame chuột di chuyển.
- * Thao tác thuần GPU/TypedArray, hoàn toàn không qua React re-render để đạt 60fps mượt mà.
+ * Áp dụng một điểm chạm cọ (Brush Dab) tại vị trí dabCenterWorld trên mesh.
+ * Đây là thuật toán cốt lõi của Blender Sculpt: cọ lướt qua đâu thì đỉnh ở đó biến dạng!
+ */
+export function applySingleDab(session: SculptStrokeSession, dabCenterWorld: THREE.Vector3): void {
+  const { mesh, tool, settings, worldRadius, invMat } = session
+  const posAttr = mesh.geometry?.getAttribute('position')
+  if (!posAttr) return
+
+  // Chuyển tâm dab sang local space của mesh
+  const localDab = dabCenterWorld.clone().applyMatrix4(invMat)
+
+  // Bán kính cọ trong local space (tính theo tỉ lệ scale của mesh)
+  const meshScale = mesh.scale.x || 1.0
+  const localRadius = worldRadius / meshScale
+  const localRadiusSq = localRadius * localRadius
+  const factor = settings.strength
+
+  const count = posAttr.count
+
+  if (tool === 'inflate') {
+    // 🎈 CỌ PHỒNG / LÕM (INFLATE): Đẩy các đỉnh nhô lên / lõm xuống mềm mại theo khoảng cách
+    const sign = settings.invert ? -1 : 1
+    const baseStep = localRadius * 0.04 * factor * sign
+
+    for (let i = 0; i < count; i++) {
+      const px = posAttr.getX(i)
+      const py = posAttr.getY(i)
+      const pz = posAttr.getZ(i)
+
+      const dx = px - localDab.x
+      const dy = py - localDab.y
+      const dz = pz - localDab.z
+      const distSq = dx * dx + dy * dy + dz * dz
+
+      if (distSq <= localRadiusSq) {
+        const dist = Math.sqrt(distSq)
+        const w = computeCosineFalloff(dist, localRadius)
+        // Đẩy dọc theo trục Z cục bộ của mặt phẳng
+        posAttr.setZ(i, pz + baseStep * w)
+      }
+    }
+  } else if (tool === 'smooth') {
+    // 🫧 CỌ LÀM MƯỢT (SMOOTH): Gom các đỉnh gồ ghề về mặt phẳng trung bình cục bộ
+    // 1. Tìm các đỉnh trong bán kính và tính vị trí trung bình
+    let sumZ = 0
+    let insideCount = 0
+
+    for (let i = 0; i < count; i++) {
+      const px = posAttr.getX(i)
+      const py = posAttr.getY(i)
+      const pz = posAttr.getZ(i)
+      const dx = px - localDab.x
+      const dy = py - localDab.y
+      const dz = pz - localDab.z
+
+      if (dx * dx + dy * dy + dz * dz <= localRadiusSq) {
+        sumZ += pz
+        insideCount++
+      }
+    }
+
+    if (insideCount > 1) {
+      const avgZ = sumZ / insideCount
+      const blend = 0.35 * factor
+
+      for (let i = 0; i < count; i++) {
+        const px = posAttr.getX(i)
+        const py = posAttr.getY(i)
+        const pz = posAttr.getZ(i)
+        const dx = px - localDab.x
+        const dy = py - localDab.y
+        const dz = pz - localDab.z
+        const distSq = dx * dx + dy * dy + dz * dz
+
+        if (distSq <= localRadiusSq) {
+          const dist = Math.sqrt(distSq)
+          const w = computeCosineFalloff(dist, localRadius)
+          posAttr.setZ(i, pz + (avgZ - pz) * w * blend)
+        }
+      }
+    }
+  } else if (tool === 'crease') {
+    // 〰️ CỌ GẤP NẾP / GÂN LÁ (CREASE): Ép rãnh nhọn và kéo chụm vào tâm đường cọ
+    const sign = settings.invert ? 1 : -1
+    const baseStep = localRadius * 0.05 * factor * sign
+
+    for (let i = 0; i < count; i++) {
+      const px = posAttr.getX(i)
+      const py = posAttr.getY(i)
+      const pz = posAttr.getZ(i)
+      const dx = px - localDab.x
+      const dy = py - localDab.y
+      const dz = pz - localDab.z
+      const distSq = dx * dx + dy * dy + dz * dz
+
+      if (distSq <= localRadiusSq) {
+        const dist = Math.sqrt(distSq)
+        const w = computeCosineFalloff(dist, localRadius)
+        // Pinch chụm lại trục đường vẽ
+        const pinchX = (localDab.x - px) * 0.15 * w * factor
+        const pinchY = (localDab.y - py) * 0.15 * w * factor
+        posAttr.setXYZ(i, px + pinchX, py + pinchY, pz + baseStep * w)
+      }
+    }
+  }
+
+  posAttr.needsUpdate = true
+}
+
+/**
+ * Cập nhật biến dạng cọ khi chuột di chuyển trong từng frame.
+ * Hỗ trợ nội suy nét cọ liên tục (Stroke Dabbing Interpolation) để đường vẽ luôn mượt mà.
  */
 export function applySculptStrokeMove(
   session: SculptStrokeSession,
   currentMouse: { x: number; y: number },
+  currentHitWorld: THREE.Vector3,
   camera: THREE.Camera,
   viewportHeight: number
 ): void {
-  const { mesh, tool, settings, initialPositions, startMouse, worldRadius, affectedIndices, falloffs, invMat } = session
+  const { mesh, tool, settings, initialPositions, startMouse, worldRadius, invMat } = session
   const posAttr = mesh.geometry?.getAttribute('position')
-  if (!posAttr || affectedIndices.length === 0) return
-
-  const totalDx = currentMouse.x - startMouse.x
-  const totalDy = currentMouse.y - startMouse.y
-  const factor = settings.strength
+  if (!posAttr) return
 
   if (tool === 'grab') {
-    // 1. CỌ KÉO MỀM (GRAB BRUSH CỤC BỘ)
-    // Tính vector dịch chuyển theo hướng camera
+    // 1. CỌ KÉO MỀM (GRAB): Kéo cụm đỉnh neo ban đầu theo hướng chuột di chuyển
+    const { grabIndices, grabFalloffs } = session
+    if (!grabIndices || grabIndices.length === 0 || !grabFalloffs) return
+
+    const totalDx = currentMouse.x - startMouse.x
+    const totalDy = currentMouse.y - startMouse.y
+    const factor = settings.strength
+
     const dist = camera.position.distanceTo(session.startHitWorld)
     const fov = (camera as THREE.PerspectiveCamera).fov || 45
     const worldPerPx = (2 * Math.tan((fov * Math.PI) / 360) * dist) / (viewportHeight || 500)
@@ -148,84 +264,36 @@ export function applySculptStrokeMove(
       .addScaledVector(camRight, totalDx * worldPerPx)
       .addScaledVector(camUp, -totalDy * worldPerPx)
 
-    // Chuyển delta sang local space của mesh dùng invMat đã cache
     const deltaLocal = deltaWorld.transformDirection(invMat)
 
-    for (let k = 0; k < affectedIndices.length; k++) {
-      const idx = affectedIndices[k]
-      const w = falloffs[k] * factor
+    for (let k = 0; k < grabIndices.length; k++) {
+      const idx = grabIndices[k]
+      const w = grabFalloffs[k] * factor
       const initX = initialPositions[idx * 3]
       const initY = initialPositions[idx * 3 + 1]
       const initZ = initialPositions[idx * 3 + 2]
 
       posAttr.setXYZ(idx, initX + deltaLocal.x * w, initY + deltaLocal.y * w, initZ + deltaLocal.z * w)
     }
-  } else if (tool === 'inflate') {
-    // 2. CỌ KHỐI LỒI / LÕM (INFLATE BRUSH CỤC BỘ)
-    // Đẩy các đỉnh theo pháp tuyến (Z cục bộ hoặc normal vector)
-    const sign = settings.invert ? -1 : 1
-    // Biên độ đẩy tăng theo độ dịch chuyển chuột hoặc lực cọ
-    const dragDist = Math.hypot(totalDx, totalDy)
-    const pushAmount = sign * (worldRadius * 0.18 + dragDist * 0.15) * factor
 
-    for (let k = 0; k < affectedIndices.length; k++) {
-      const idx = affectedIndices[k]
-      const w = falloffs[k]
-      const initX = initialPositions[idx * 3]
-      const initY = initialPositions[idx * 3 + 1]
-      const initZ = initialPositions[idx * 3 + 2]
+    posAttr.needsUpdate = true
+  } else {
+    // 2. CỌ VẼ LIÊN TỤC (INFLATE, SMOOTH, CREASE):
+    // Nội suy các bước dab giữa lastHitWorld và currentHitWorld để đường vẽ liền mạch không bị đứt đoạn
+    const dist = session.lastHitWorld.distanceTo(currentHitWorld)
+    const stepDist = Math.max(2, worldRadius * 0.2) // Bước nhảy dab = 20% bán kính cọ chuẩn Blender
+    const steps = Math.max(1, Math.min(8, Math.ceil(dist / stepDist)))
 
-      posAttr.setXYZ(idx, initX, initY, initZ + pushAmount * w)
+    for (let s = 1; s <= steps; s++) {
+      const alpha = s / steps
+      const dabPos = new THREE.Vector3().lerpVectors(session.lastHitWorld, currentHitWorld, alpha)
+      applySingleDab(session, dabPos)
     }
-  } else if (tool === 'smooth') {
-    // 3. CỌ LÀM MƯỢT (SMOOTH BRUSH CỤC BỘ)
-    // Tính vị trí trung bình của các đỉnh trong bán kính ảnh hưởng
-    let avgX = 0
-    let avgY = 0
-    let avgZ = 0
-    for (let k = 0; k < affectedIndices.length; k++) {
-      const idx = affectedIndices[k]
-      avgX += initialPositions[idx * 3]
-      avgY += initialPositions[idx * 3 + 1]
-      avgZ += initialPositions[idx * 3 + 2]
-    }
-    avgX /= affectedIndices.length
-    avgY /= affectedIndices.length
-    avgZ /= affectedIndices.length
 
-    const blend = 0.45 * factor
-    for (let k = 0; k < affectedIndices.length; k++) {
-      const idx = affectedIndices[k]
-      const w = falloffs[k] * blend
-      const initX = initialPositions[idx * 3]
-      const initY = initialPositions[idx * 3 + 1]
-      const initZ = initialPositions[idx * 3 + 2]
-
-      posAttr.setXYZ(idx, initX + (avgX - initX) * w, initY + (avgY - initY) * w, initZ + (avgZ - initZ) * w)
-    }
-  } else if (tool === 'crease') {
-    // 4. CỌ GẤP NẾP / GÂN LÁ (CREASE BRUSH CỤC BỘ)
-    // Bóp các đỉnh lại gần tâm cọ (pinch) đồng thời ép rãnh sâu xuống theo Z
-    const sign = settings.invert ? 1 : -1
-    const depthAmount = sign * (worldRadius * 0.2) * factor
-    const localHit = mesh.worldToLocal(session.startHitWorld.clone())
-
-    for (let k = 0; k < affectedIndices.length; k++) {
-      const idx = affectedIndices[k]
-      const w = falloffs[k]
-      const initX = initialPositions[idx * 3]
-      const initY = initialPositions[idx * 3 + 1]
-      const initZ = initialPositions[idx * 3 + 2]
-
-      // Pinch: kéo nhẹ tọa độ X/Y về gần trục hit
-      const pinchX = (localHit.x - initX) * 0.25 * w * factor
-      const pinchY = (localHit.y - initY) * 0.25 * w * factor
-
-      posAttr.setXYZ(idx, initX + pinchX, initY + pinchY, initZ + depthAmount * w)
-    }
+    session.lastHitWorld.copy(currentHitWorld)
   }
 
-  posAttr.needsUpdate = true
+  session.lastMouse = { ...currentMouse }
   mesh.geometry.computeVertexNormals()
 }
 
@@ -237,7 +305,7 @@ export function endSculptStroke(
   session: SculptStrokeSession,
   unsculptedBasePositions?: Float32Array
 ): number[] {
-  const { mesh, initialPositions, baseOffsets } = session
+  const { mesh, initialPositions } = session
   const posAttr = mesh.geometry?.getAttribute('position')
   if (!posAttr) return []
 
@@ -246,24 +314,13 @@ export function endSculptStroke(
   const base = unsculptedBasePositions || initialPositions
 
   for (let i = 0; i < count; i++) {
-    // Độ lệch = vị trí hiện tại sau khi vẽ - vị trí ban đầu chưa hề sculpt
     const curX = posAttr.getX(i)
     const curY = posAttr.getY(i)
     const curZ = posAttr.getZ(i)
 
-    if (unsculptedBasePositions) {
-      offsets[i * 3] = Math.round((curX - base[i * 3]) * 100) / 100
-      offsets[i * 3 + 1] = Math.round((curY - base[i * 3 + 1]) * 100) / 100
-      offsets[i * 3 + 2] = Math.round((curZ - base[i * 3 + 2]) * 100) / 100
-    } else {
-      // Delta so với đầu stroke cộng với baseOffsets trước đó
-      const dX = curX - initialPositions[i * 3]
-      const dY = curY - initialPositions[i * 3 + 1]
-      const dZ = curZ - initialPositions[i * 3 + 2]
-      offsets[i * 3] = Math.round((baseOffsets[i * 3] + dX) * 100) / 100
-      offsets[i * 3 + 1] = Math.round((baseOffsets[i * 3 + 1] + dY) * 100) / 100
-      offsets[i * 3 + 2] = Math.round((baseOffsets[i * 3 + 2] + dZ) * 100) / 100
-    }
+    offsets[i * 3] = Math.round((curX - base[i * 3]) * 100) / 100
+    offsets[i * 3 + 1] = Math.round((curY - base[i * 3 + 1]) * 100) / 100
+    offsets[i * 3 + 2] = Math.round((curZ - base[i * 3 + 2]) * 100) / 100
   }
 
   return offsets
