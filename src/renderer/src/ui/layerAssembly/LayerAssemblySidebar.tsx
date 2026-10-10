@@ -6,7 +6,7 @@ import {
   BUILTIN_COMPOSITES
 } from './layerAssemblyStorage'
 import type { AssembledLayerItem, LayerComposite } from './types'
-import { IconImage, IconInfo, IconLayers, IconPlus, IconTrash, IconX } from '../icons'
+import { IconGlobe, IconImage, IconInfo, IconLayers, IconLock, IconPlus, IconTrash, IconX } from '../icons'
 import { useLayerAssetImage } from './useLayerAssetImage'
 import { CompositeCard } from './CompositeCard'
 import { AssetDetailModal } from '../assets/AssetDetailModal'
@@ -561,12 +561,12 @@ function LayerItemCard({
           boxSizing: 'border-box'
         }}
       >
-        {/* Badge Public vs Private */}
+        {/* Badge Public vs Private dạng icon nhỏ gọn ở góc trên trái */}
         <span
           className={`layer-scope-badge ${isPublic ? 'public' : 'private'}`}
           title={isPublic ? 'Tài nguyên Công khai (Public)' : 'Tài nguyên Riêng của mẫu (Private)'}
         >
-          {isPublic ? '🌍 Công khai' : '🔒 Riêng'}
+          {isPublic ? <IconGlobe width={10} height={10} strokeWidth={2.2} /> : <IconLock width={10} height={10} strokeWidth={2.2} />}
         </span>
 
         {displayUrl ? (
@@ -671,6 +671,15 @@ function AssetCard({
       }}
       title={`Click hoặc Kéo thả để thêm ${item.name} làm layer mới`}
     >
+      {/* Badge Công khai dạng icon ở góc trên trái (đối xứng với 3 nút góc trên phải) */}
+      <span
+        className="layer-scope-badge public"
+        style={{ position: 'absolute', top: '3px', left: '3px', zIndex: 4 }}
+        title={item.isCustom ? 'Ảnh đã thêm vào kho công khai' : 'Tài nguyên mẫu có sẵn (Công khai)'}
+      >
+        <IconGlobe width={10} height={10} strokeWidth={2.2} />
+      </span>
+
       {/* 3 button ở góc phải của item: Xóa, Chi tiết và (+) Thêm layer */}
       <div
         style={{

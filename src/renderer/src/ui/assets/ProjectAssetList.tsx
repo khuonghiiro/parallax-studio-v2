@@ -3,7 +3,7 @@ import type { AssetMeta } from '@shared/types'
 import { addAudioTrackFromAsset, addLayerFromAsset, removeAsset } from '../../actions'
 import { assetStore } from '../../project/assets'
 import { useEditor } from '../../store/editor'
-import { IconInfo, IconMusic, IconPause, IconPlay, IconPlus, IconTrash } from '../icons'
+import { IconGlobe, IconInfo, IconLock, IconMusic, IconPause, IconPlay, IconPlus, IconTrash } from '../icons'
 import { useAudioPreview } from './audioPreviewManager'
 import { AssetDetailModal } from './AssetDetailModal'
 import { AssetDeleteConfirmModal } from './AssetDeleteConfirmModal'
@@ -61,17 +61,53 @@ export function ProjectAssetList() {
               onDragStart={(e) => e.dataTransfer.setData('application/x-pxs-asset', a.id)}
               onDragEnd={() => setHover(null)}
             >
-              {/* Badge phân biệt Public (Công khai) vs Private (Dự án) */}
-              <span
-                className={`asset-scope-badge ${isPublic ? 'public' : 'private'}`}
-                title={
-                  isPublic
-                    ? 'Tài nguyên Công khai (Public từ kho dùng chung)'
-                    : 'Tài nguyên Riêng tư (Private của riêng dự án này)'
-                }
+              {/* Badge góc trên bên trái: Scope (Public/Private) & GIF (không che các nút hành động ở góc phải) */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 4,
+                  left: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  zIndex: 2,
+                  pointerEvents: 'auto'
+                }}
               >
-                {isPublic ? '🌍 Công khai' : '🔒 Dự án'}
-              </span>
+                <span
+                  className={`asset-scope-badge ${isPublic ? 'public' : 'private'}`}
+                  title={
+                    isPublic
+                      ? 'Tài nguyên Công khai (Public từ kho dùng chung)'
+                      : 'Tài nguyên Dự án (Private của riêng dự án này)'
+                  }
+                >
+                  {isPublic ? <IconGlobe width={11} height={11} strokeWidth={2.2} /> : <IconLock width={11} height={11} strokeWidth={2.2} />}
+                </span>
+
+                {(a.isAnimated || rt?.gif) && (
+                  <span
+                    className="badge-count"
+                    style={{
+                      background: 'rgba(139, 123, 255, 0.92)',
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: '8.5px',
+                      padding: '1px 4px',
+                      borderRadius: '3px',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+                      lineHeight: '14px',
+                      height: '18px',
+                      boxSizing: 'border-box',
+                      display: 'inline-flex',
+                      alignItems: 'center'
+                    }}
+                    title="Ảnh động GIF"
+                  >
+                    GIF
+                  </span>
+                )}
+              </div>
 
               {isAudio ? (
                 <div className="audio-card-inner">
@@ -92,26 +128,6 @@ export function ProjectAssetList() {
                 </div>
               ) : (
                 rt?.thumbUrl && <img src={rt.thumbUrl} alt={a.name} draggable={false} />
-              )}
-
-              {(a.isAnimated || rt?.gif) && (
-                <span
-                  className="badge-count"
-                  style={{
-                    position: 'absolute',
-                    top: 4,
-                    left: 4,
-                    background: 'rgba(139, 123, 255, 0.9)',
-                    color: '#fff',
-                    fontWeight: 700,
-                    fontSize: '9px',
-                    padding: '1px 5px',
-                    borderRadius: '4px',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.5)'
-                  }}
-                >
-                  GIF
-                </span>
               )}
 
               <span className="asset-name">{a.name}</span>

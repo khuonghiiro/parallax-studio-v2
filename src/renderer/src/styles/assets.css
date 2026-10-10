@@ -540,27 +540,37 @@
 }
 
 
-/* ------------------------------------------------------------------ Scope Badges (Public / Private) */
+/* ------------------------------------------------------------------ Scope Badges (Public / Private) - Icon Mode */
 .asset-scope-badge {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  font-weight: 600;
-  font-size: 9px;
-  padding: 1px 5px;
+  width: 18px;
+  height: 18px;
   border-radius: 4px;
+  padding: 0;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  justify-content: center;
+  box-sizing: border-box;
   backdrop-filter: blur(6px);
   z-index: 2;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  cursor: help;
+  flex-shrink: 0;
+}
+
+.asset-scope-badge:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.asset-scope-badge svg {
+  display: block;
+  flex-shrink: 0;
 }
 
 .asset-scope-badge.public,
 .layer-scope-badge.public {
-  background: rgba(56, 189, 248, 0.25);
+  background: rgba(56, 189, 248, 0.22);
   color: #38bdf8;
   border: 1px solid rgba(56, 189, 248, 0.55);
 }
@@ -569,15 +579,14 @@
 .app.light .asset-scope-badge.public,
 [data-theme='light'] .layer-scope-badge.public,
 .app.light .layer-scope-badge.public {
-  background: rgba(2, 132, 199, 0.16);
+  background: rgba(2, 132, 199, 0.14);
   color: #0284c7;
   border: 1px solid rgba(2, 132, 199, 0.45);
-  font-weight: 700;
 }
 
 .asset-scope-badge.private,
 .layer-scope-badge.private {
-  background: rgba(245, 158, 11, 0.25);
+  background: rgba(245, 158, 11, 0.22);
   color: #facc15;
   border: 1px solid rgba(245, 158, 11, 0.55);
 }
@@ -586,24 +595,38 @@
 .app.light .asset-scope-badge.private,
 [data-theme='light'] .layer-scope-badge.private,
 .app.light .layer-scope-badge.private {
-  background: rgba(217, 119, 6, 0.16);
+  background: rgba(217, 119, 6, 0.14);
   color: #b45309;
   border: 1px solid rgba(217, 119, 6, 0.45);
-  font-weight: 700;
 }
 
 .layer-scope-badge {
   position: absolute;
   top: 3px;
   left: 3px;
-  font-size: 8px;
-  font-weight: 600;
-  padding: 1px 4px;
+  width: 18px;
+  height: 18px;
   border-radius: 3px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   backdrop-filter: blur(4px);
-  z-index: 3;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  transition: all 0.15s ease;
+  z-index: 4;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.12s ease;
+  cursor: help;
+  flex-shrink: 0;
+}
+
+.layer-scope-badge:hover {
+  transform: scale(1.1);
+}
+
+.layer-scope-badge svg {
+  display: block;
+  flex-shrink: 0;
 }
 
 /* Note: Built-in Grid & Cards modularized to ./assetGrid.css */

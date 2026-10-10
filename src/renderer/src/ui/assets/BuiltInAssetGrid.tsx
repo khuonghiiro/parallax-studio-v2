@@ -3,6 +3,7 @@ import type { BuiltInAssetCategory, BuiltInAssetItem } from '@shared/ipc'
 import { CustomSelect } from '../controls'
 import {
   IconCode,
+  IconGlobe,
   IconInfo,
   IconMusic,
   IconPause,
@@ -237,7 +238,43 @@ export function BuiltInAssetGrid({
                     <div style={{ padding: 10, fontSize: '10px', color: 'var(--text-faint)' }}>{item.ext.toUpperCase()}</div>
                   )}
 
-                  {item.isAnimated && <span className="builtin-asset-badge">GIF</span>}
+                  {/* Badge góc trên trái: Scope Public & GIF */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 4,
+                      left: 4,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 3,
+                      zIndex: 2,
+                      pointerEvents: 'auto'
+                    }}
+                  >
+                    <span
+                      className="asset-scope-badge public"
+                      title="Tài nguyên Công khai (Public từ kho dùng chung)"
+                    >
+                      <IconGlobe width={11} height={11} strokeWidth={2.2} />
+                    </span>
+
+                    {item.isAnimated && (
+                      <span
+                        className="builtin-asset-badge"
+                        style={{
+                          position: 'static',
+                          lineHeight: '14px',
+                          height: '18px',
+                          boxSizing: 'border-box',
+                          display: 'inline-flex',
+                          alignItems: 'center'
+                        }}
+                        title="Ảnh động GIF"
+                      >
+                        GIF
+                      </span>
+                    )}
+                  </div>
 
                   <span className="builtin-asset-name">{item.name}</span>
 
