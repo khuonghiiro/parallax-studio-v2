@@ -87,8 +87,11 @@ export function CustomSelect<T extends string | number = string>({
     const flipUp = spaceBelow < approxH && rect.top > approxH
 
     const top = flipUp ? rect.top - approxH - margin : rect.bottom + margin
-    const left = rect.left
     const width = typeof dropdownWidth === 'number' ? dropdownWidth : rect.width
+    let left = rect.left
+    if (left + width > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - width - 8)
+    }
 
     setPos({ top, left, width, flipUp })
   }, [isOpen, normalizedOptions.length, dropdownWidth])
@@ -212,6 +215,7 @@ export function CustomSelect<T extends string | number = string>({
                   onMouseEnter={() => setHighlightIdx(i)}
                   role="option"
                   aria-selected={isSelected}
+                  title={opt.label + (opt.sub ? ` · ${opt.sub}` : '')}
                 >
                   {opt.icon && <span className="custom-select-item-icon">{opt.icon}</span>}
                   <span className="custom-select-item-text">{opt.label}</span>

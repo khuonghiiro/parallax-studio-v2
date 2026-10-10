@@ -77,7 +77,7 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
     setShowNewConfirm(false)
   }
 
-  useWorkshopShortcuts(state, playback.toggle, close)
+  useWorkshopShortcuts(state, playback.toggle, close, { tab, boneId, selectBone })
   useEffect(() => registerLayerAssemblySession({
     getComposite: () => history.current, setComposite,
     getSelectedLayerId: () => state.selectedLayerId, setSelectedLayerId: state.select,

@@ -76,8 +76,15 @@ describe('useWorkshopShortcuts', () => {
     layers?: AssembledLayerItem[]
     selection?: string[]
     onUpdate?: (id: string, patch: Partial<AssembledLayerItem>) => void
+    boneContext?: {
+      tab?: string
+      boneId?: string | null
+      selectBone?: (id: string | null) => void
+    }
   } = {}) {
     const updateFn = overrides.onUpdate || vi.fn()
+    const boneContext = overrides.boneContext
+    const setCompositeFn = vi.fn()
     const layers: AssembledLayerItem[] = overrides.layers || [
       {
         id: 'layer-1',
@@ -114,7 +121,8 @@ describe('useWorkshopShortcuts', () => {
       setIds: vi.fn(),
       select: vi.fn(),
       run: vi.fn(),
-      update: updateFn
+      update: updateFn,
+      setComposite: setCompositeFn
     } as any
 
     const togglePlay = vi.fn()
@@ -138,10 +146,19 @@ describe('useWorkshopShortcuts', () => {
       else if (mod && key === 'y') state.redo()
       else if (mod && key === 'a') state.setIds(state.composite.layers.map((l: any) => l.id))
       else if (mod && key === 'd') state.run('duplicate')
-      else if (e.key === 'Delete' || e.key === 'Backspace') state.run('delete')
+      else if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (boneContext?.boneId && (boneContext.tab === 'bones' || state.selection.length === 0)) {
+          const targetBoneId = boneContext.boneId
+          state.setComposite((c: any) => c)
+          boneContext.selectBone?.(null)
+        } else if (state.selection.length) {
+          state.run('delete')
+        }
+      }
       else if (e.code === 'Space') togglePlay()
       else if (e.key === 'Escape') {
-        if (state.selection.length) state.select(null)
+        if (boneContext?.boneId) boneContext.selectBone?.(null)
+        else if (state.selection.length) state.select(null)
         else close()
       } else if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key) && state.selection.length) {
         const step = e.shiftKey ? 10 : 1
@@ -286,5 +303,20 @@ describe('useWorkshopShortcuts', () => {
     const input = new MockHTMLElement('input')
     fireKey({ key: '+', target: input as any })
     expect(updateFn).not.toHaveBeenCalled()
+  })
+
+  it('xóa xương được chọn khi nhấn phím Delete trong tab bones', () => {
+    const selectBone = vi.fn()
+    const { state } = setupHook({
+      selection: [],
+      boneContext: {
+        tab: 'bones',
+        boneId: 'bone-arm',
+        selectBone
+      }
+    })
+    fireKey({ key: 'Delete' })
+    expect(state.setComposite).toHaveBeenCalled()
+    expect(selectBone).toHaveBeenCalledWith(null)
   })
 })

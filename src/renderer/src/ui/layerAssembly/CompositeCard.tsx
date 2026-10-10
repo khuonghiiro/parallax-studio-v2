@@ -161,35 +161,47 @@ export function CompositeCard({
           {item.layers.length} lớp
         </span>
 
-        {/* Badge xương & số lượng động tác góc dưới trái */}
-        {item.rig && (
-          <span
-            style={{
-              position: 'absolute',
-              bottom: '3px',
-              left: '4px',
-              fontSize: '8.5px',
-              fontWeight: 600,
-              background: 'rgba(15, 23, 42, 0.85)',
-              color: 'var(--accent-cyan)',
-              border: '1px solid color-mix(in srgb, var(--accent-cyan) 35%, transparent)',
-              padding: '1px 5px',
-              borderRadius: '2px',
-              backdropFilter: 'blur(3px)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '3px'
-            }}
-            title={
-              item.rig.clips && item.rig.clips.length > 0
-                ? `Động tác (${item.rig.clips.length}): ${item.rig.clips.map((c) => c.name).join(', ')}`
-                : 'Đã gắn khung xương chuyển động'
-            }
-          >
-            <span>🏃</span>
-            <span>{item.rig.clips?.length || 1} động tác</span>
-          </span>
-        )}
+        {/* Badge số lượng chuyển động góc dưới trái */}
+        {(() => {
+          const motionCount = item.rig?.clips && item.rig.clips.length > 0
+            ? item.rig.clips.length
+            : item.rig && Object.keys(item.rig.tracks || {}).length > 0
+              ? 1
+              : item.layers.filter((l) => l.motion?.type && l.motion.type !== 'none').length
+
+          return (
+            <span
+              style={{
+                position: 'absolute',
+                bottom: '3px',
+                left: '4px',
+                fontSize: '8.5px',
+                fontWeight: 600,
+                background: motionCount > 0 ? 'rgba(15, 23, 42, 0.88)' : 'rgba(0, 0, 0, 0.65)',
+                color: motionCount > 0 ? 'var(--accent-cyan)' : 'var(--text-faint)',
+                border: motionCount > 0
+                  ? '1px solid color-mix(in srgb, var(--accent-cyan) 35%, transparent)'
+                  : '1px solid rgba(255, 255, 255, 0.12)',
+                padding: '1px 5px',
+                borderRadius: '2px',
+                backdropFilter: 'blur(3px)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '3px'
+              }}
+              title={
+                item.rig?.clips && item.rig.clips.length > 0
+                  ? `Động tác (${item.rig.clips.length}): ${item.rig.clips.map((c) => c.name).join(', ')}`
+                  : motionCount > 0
+                    ? `${motionCount} chuyển động`
+                    : '0 chuyển động (chi tiết tĩnh)'
+              }
+            >
+              {motionCount > 0 && <span>🏃</span>}
+              <span>{motionCount} chuyển động</span>
+            </span>
+          )
+        })()}
       </div>
 
       {/* 3. Footer: Thông số kích thước & Nút hành động Mở / Ghép / Xóa */}

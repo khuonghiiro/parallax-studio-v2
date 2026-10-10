@@ -249,15 +249,24 @@ function LayerCardItem({
     }
   }, [item])
 
-  const mainMotion = item.layers.find((l) => l.motion?.type && l.motion.type !== 'none')?.motion?.type || 'none'
-  const motionLabels: Record<string, string> = {
-    sway: 'Đung đưa 🍃',
-    breathe: 'Phập phồng 💨',
-    float: 'Lơ lửng ☁️',
-    wave: 'Lượn sóng 🌊',
-    rocking: 'Bập bênh ⚖️',
-    none: 'Tĩnh'
-  }
+  // Tính tổng số chuyển động của chi tiết: ưu tiên số clips gắn xương, hoặc số layer có chuyển động
+  const motionCount = (() => {
+    if (item.rig?.clips && item.rig.clips.length > 0) {
+      return item.rig.clips.length
+    }
+    if (item.rig && Object.keys(item.rig.tracks || {}).length > 0) {
+      return 1
+    }
+    const organicCount = item.layers.filter((l) => l.motion?.type && l.motion.type !== 'none').length
+    return organicCount
+  })()
+
+  const motionTooltip =
+    item.rig?.clips && item.rig.clips.length > 0
+      ? `Động tác (${item.rig.clips.length}): ${item.rig.clips.map((c) => c.name).join(', ')}`
+      : motionCount > 0
+        ? `${motionCount} chuyển động hoạt ảnh`
+        : 'Chi tiết tĩnh (0 chuyển động)'
 
   const categoryLabels: Record<string, string> = {
     nature: 'Cây cối',
@@ -273,8 +282,21 @@ function LayerCardItem({
       <div className="model-3d-card-thumb">
         {/* Badges on Top-Left */}
         <div className="model-3d-badge-stack">
-          <span className="model-3d-badge">
-            {motionLabels[mainMotion] || 'Chi tiết'}
+          <span
+            className={`model-3d-badge ${motionCount > 0 ? 'has-motion' : 'no-motion'}`}
+            title={motionTooltip}
+            style={{
+              background: motionCount > 0 ? 'var(--accent)' : 'var(--bg-3)',
+              color: motionCount > 0 ? '#ffffff' : 'var(--text-faint)',
+              border: motionCount > 0 ? '1px solid transparent' : '1px solid var(--line-soft)',
+              fontWeight: motionCount > 0 ? 600 : 500,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '3px'
+            }}
+          >
+            {motionCount > 0 && <span style={{ fontSize: '9px' }}>🏃</span>}
+            <span>{motionCount} chuyển động</span>
           </span>
           <span className="model-3d-faces-badge">
             {item.layers.length} lớp

@@ -138,6 +138,10 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
         if (e.key === 'Escape' && dragRef.current) {
           e.stopPropagation()
           endDrag()
+        } else if ((e.key === 'Delete' || e.key === 'Backspace') && boneId) {
+          e.stopPropagation()
+          setComposite((c) => applyRigAction(c, { action: 'delete-bone', boneId }))
+          selectBone(null)
         }
       }}
     >
