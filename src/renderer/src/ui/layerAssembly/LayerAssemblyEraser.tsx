@@ -29,19 +29,20 @@ export function EraserTopBar({
       onPointerDown={(e) => e.stopPropagation()}
       style={{
         position: 'absolute',
-        top: '12px',
+        top: '10px',
         left: '56px',
-        right: '10px',
-        height: '36px',
-        background: 'color-mix(in srgb, var(--bg-1) 90%, transparent)',
+        width: 'fit-content',
+        maxWidth: 'calc(100% - 66px)',
+        height: '32px',
+        background: 'color-mix(in srgb, var(--bg-1) 88%, transparent)',
         backdropFilter: 'blur(16px)',
-        border: '1px solid var(--line-soft)',
-        borderRadius: '7px',
-        boxShadow: '0 4px 18px rgba(0, 0, 0, 0.25)',
+        border: '1px solid var(--line)',
+        borderRadius: '20px',
+        boxShadow: '0 6px 20px rgba(0, 0, 0, 0.35)',
         zIndex: 50,
         display: 'flex',
         alignItems: 'center',
-        padding: '0 8px',
+        padding: '0 10px',
         gap: '8px',
         fontSize: '11px',
         userSelect: 'none'
@@ -53,45 +54,38 @@ export function EraserTopBar({
           display: 'flex',
           alignItems: 'center',
           gap: '5px',
-          color: 'var(--text)',
+          color: 'var(--accent-cyan)',
           fontWeight: 600,
-          padding: '2px 7px',
-          borderRadius: '4px',
-          background: 'rgba(56, 189, 248, 0.12)',
-          border: '1px solid rgba(56, 189, 248, 0.25)',
+          fontSize: '11px',
           flexShrink: 0
         }}
       >
-        <IconEraser width={14} height={14} style={{ color: 'var(--accent-cyan)' }} />
+        <IconEraser width={14} height={14} />
         <span>Cọ Tẩy</span>
       </div>
 
-      <div style={{ width: '1px', height: '16px', background: 'var(--line-soft)', flexShrink: 0 }} />
+      <div style={{ width: '1px', height: '14px', background: 'var(--line-soft)', flexShrink: 0 }} />
 
       {/* 2. Cỡ cọ */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-        <span style={{ color: 'var(--text-dim)', fontSize: '11px' }}>Cỡ:</span>
+        <span style={{ color: 'var(--text-dim)', fontSize: '10px' }}>Cỡ:</span>
         <input
           type="range"
           min="5"
           max="300"
           step="1"
-          style={{ width: '48px', height: '4px', accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
+          style={{ width: '40px', height: '4px', accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
           value={brushSettings.size}
           onChange={(e) => onChangeBrushSettings({ ...brushSettings, size: Number(e.target.value) })}
         />
         <span
           style={{
-            minWidth: '28px',
+            minWidth: '22px',
             textAlign: 'center',
-            padding: '1px 3px',
             fontSize: '10px',
             fontFamily: 'monospace',
             fontWeight: 600,
-            color: 'var(--text)',
-            background: 'var(--bg-0)',
-            border: '1px solid var(--line-soft)',
-            borderRadius: '3px'
+            color: 'var(--text)'
           }}
         >
           {brushSettings.size}
@@ -100,28 +94,24 @@ export function EraserTopBar({
 
       {/* 3. Lực tẩy (Opacity) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-        <span style={{ color: 'var(--text-dim)', fontSize: '11px' }}>Lực:</span>
+        <span style={{ color: 'var(--text-dim)', fontSize: '10px' }}>Lực:</span>
         <input
           type="range"
           min="0.05"
           max="1"
           step="0.05"
-          style={{ width: '40px', height: '4px', accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
+          style={{ width: '36px', height: '4px', accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
           value={brushSettings.opacity}
           onChange={(e) => onChangeBrushSettings({ ...brushSettings, opacity: Number(e.target.value) })}
         />
         <span
           style={{
-            minWidth: '28px',
+            minWidth: '26px',
             textAlign: 'center',
-            padding: '1px 3px',
             fontSize: '10px',
             fontFamily: 'monospace',
             fontWeight: 600,
-            color: 'var(--text)',
-            background: 'var(--bg-0)',
-            border: '1px solid var(--line-soft)',
-            borderRadius: '3px'
+            color: 'var(--text)'
           }}
         >
           {Math.round(brushSettings.opacity * 100)}%
@@ -130,59 +120,38 @@ export function EraserTopBar({
 
       {/* 4. Độ cứng (Hardness) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-        <span style={{ color: 'var(--text-dim)', fontSize: '11px' }}>Cứng:</span>
+        <span style={{ color: 'var(--text-dim)', fontSize: '10px' }}>Cứng:</span>
         <input
           type="range"
           min="0"
           max="1"
           step="0.05"
-          style={{ width: '40px', height: '4px', accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
+          style={{ width: '36px', height: '4px', accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
           value={brushSettings.hardness}
           onChange={(e) => onChangeBrushSettings({ ...brushSettings, hardness: Number(e.target.value) })}
         />
         <span
           style={{
-            minWidth: '28px',
+            minWidth: '26px',
             textAlign: 'center',
-            padding: '1px 3px',
             fontSize: '10px',
             fontFamily: 'monospace',
             fontWeight: 600,
-            color: 'var(--text)',
-            background: 'var(--bg-0)',
-            border: '1px solid var(--line-soft)',
-            borderRadius: '3px'
+            color: 'var(--text)'
           }}
         >
           {Math.round(brushSettings.hardness * 100)}%
         </span>
       </div>
 
-      <div style={{ width: '1px', height: '16px', background: 'var(--line-soft)', flexShrink: 0 }} />
+      <div style={{ width: '1px', height: '14px', background: 'var(--line-soft)', flexShrink: 0 }} />
 
-      {/* 5. Tooltip & Hint (flextShrink: 1 to yield room on small screens) */}
+      {/* 5. Tooltip & Hint (flextShrink: 1) */}
       {!hasSelectedLayer ? (
         <span style={{ color: '#eab308', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', flexShrink: 0 }}>
           ⚠️ Chọn 1 layer
         </span>
-      ) : (
-        <span
-          style={{
-            color: 'var(--text-dim)',
-            fontSize: '10px',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            flexShrink: 1,
-            minWidth: 0
-          }}
-          title="Cuộn chuột zoom · Giữ Space + Kéo chuột để di chuyển ảnh"
-        >
-          💡 Cuộn: Zoom · Space: Pan
-        </span>
-      )}
-
-      <div style={{ flex: 1, minWidth: '4px' }} />
+      ) : null}
 
       {/* 6. Actions */}
       <button
@@ -193,10 +162,11 @@ export function EraserTopBar({
         title="Khôi phục lại hình ảnh gốc chưa tẩy xóa"
         style={{
           padding: '2px 8px',
-          height: '24px',
-          fontSize: '11px',
+          height: '22px',
+          fontSize: '10px',
+          borderRadius: '11px',
           flexShrink: 0,
-          opacity: hasModifiedImage ? 1 : 0.45
+          opacity: hasModifiedImage ? 1 : 0.35
         }}
       >
         Khôi phục
@@ -209,20 +179,21 @@ export function EraserTopBar({
         title="Đóng chế độ cọ tẩy pixel (phím Esc)"
         style={{
           padding: '2px 8px',
-          height: '24px',
-          fontSize: '11px',
+          height: '22px',
+          fontSize: '10px',
+          borderRadius: '11px',
           flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
-          gap: '4px'
+          gap: '3px'
         }}
       >
         <span>Đóng</span>
         <kbd
           style={{
-            fontSize: '9px',
-            padding: '0 3px',
-            background: 'var(--bg-2)',
+            fontSize: '8px',
+            padding: '0 2px',
+            background: 'var(--bg-3)',
             border: '1px solid var(--line)',
             borderRadius: '2px',
             color: 'var(--text-dim)',
@@ -239,7 +210,7 @@ export function EraserTopBar({
 export function EraserIsolatedCanvas({
   layer,
   imagePreviewUrl,
-  cursorSize,
+  brushSettings,
   cursorPos,
   onPointerDown,
   onPointerMove,
@@ -247,7 +218,7 @@ export function EraserIsolatedCanvas({
 }: {
   layer: AssembledLayerItem
   imagePreviewUrl?: string | null
-  cursorSize: number
+  brushSettings: BrushSettings
   cursorPos: { x: number; y: number; isIsolated?: boolean } | null
   onPointerDown: (e: React.PointerEvent, rect: DOMRect, transform: IsolatedTransform) => void
   onPointerMove: (e: React.PointerEvent, rect: DOMRect, transform: IsolatedTransform) => void
@@ -385,8 +356,8 @@ export function EraserIsolatedCanvas({
         height: `${H}px`,
         background: 'repeating-conic-gradient(var(--bg-2) 0% 25%, var(--bg-1) 0% 50%) 50% / 14px 14px',
         border: '1.5px solid var(--accent-cyan)',
-        borderRadius: '8px',
-        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
+        borderRadius: '10px',
+        boxShadow: '0 10px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(56, 189, 248, 0.2)',
         zIndex: 50,
         display: 'flex',
         alignItems: 'center',
@@ -521,12 +492,13 @@ export function EraserIsolatedCanvas({
             position: 'absolute',
             left: cursorPos.x,
             top: cursorPos.y,
-            width: cursorSize,
-            height: cursorSize,
+            width: brushSettings.size * 2 * zoom,
+            height: brushSettings.size * 2 * zoom,
             transform: 'translate(-50%, -50%)',
             borderRadius: '50%',
             border: '1.5px solid var(--accent-cyan)',
-            background: 'rgba(56, 189, 248, 0.12)',
+            background: `rgba(56, 189, 248, ${Math.max(0.08, brushSettings.opacity * 0.22)})`,
+            boxShadow: '0 0 10px rgba(56, 189, 248, 0.45)',
             pointerEvents: 'none',
             zIndex: 9999
           }}

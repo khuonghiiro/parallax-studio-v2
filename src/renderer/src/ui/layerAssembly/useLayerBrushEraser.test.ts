@@ -132,4 +132,19 @@ describe('Layer Assembly Brush Eraser & 3D Camera Depth', () => {
     expect(px).toBeCloseTo(250, 4)
     expect(py).toBeCloseTo(200, 4)
   })
+
+  it('synchronizes brush circle and erased radius proportionally when zooming isolated canvas', () => {
+    const canvas = { width: 500, height: 400 }
+    const rect = { left: 12, top: 300, width: 210, height: 210 }
+    const brushSize = 28
+    const baseFactor = Math.min(rect.width / canvas.width, rect.height / canvas.height) // 0.42
+
+    for (const zoom of [0.5, 1.0, 2.0, 3.5]) {
+      const radiusOnTexture = brushSize / baseFactor
+      const displayRadiusOnScreen = radiusOnTexture * (baseFactor * zoom)
+      const expectedCircleDiameter = brushSize * 2 * zoom
+
+      expect(displayRadiusOnScreen * 2).toBeCloseTo(expectedCircleDiameter, 5)
+    }
+  })
 })

@@ -607,7 +607,7 @@ export function LayerAssemblyViewport({
             <EraserIsolatedCanvas
               layer={selectedLayer}
               imagePreviewUrl={isolatedPreviewUrl}
-              cursorSize={brush.brushSettings.size * 2}
+              brushSettings={brush.brushSettings}
               cursorPos={brush.cursorPos}
               onPointerDown={brush.handleIsolatedPointerDown}
               onPointerMove={brush.handleIsolatedPointerMove}

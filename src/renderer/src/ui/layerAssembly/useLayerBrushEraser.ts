@@ -127,14 +127,13 @@ export function useLayerBrushEraser({ selectedLayer, zoom, pan, onUpdateLayer, o
       const scale = rect ? 1 : Math.abs(selectedLayer!.scale)
       const scaleX = rect ? 1 : Math.abs(selectedLayer!.scaleX ?? 1)
       const scaleY = rect ? 1 : Math.abs(selectedLayer!.scaleY ?? 1)
-      const zoomFactor = (rect && transform) ? transform.zoom : 1
-      const factor = rect
-        ? Math.min(rect.width / canvas.width, rect.height / canvas.height) * zoomFactor
+      const baseFactor = rect
+        ? Math.min(rect.width / canvas.width, rect.height / canvas.height)
         : Math.min(1, 380 / Math.max(canvas.width, canvas.height)) * scale
       
       const alpha = createAlphaStroke(pixels.data, canvas.width, canvas.height, {
-        radiusX: brushSettings.size / (factor * scaleX),
-        radiusY: brushSettings.size / (factor * scaleY),
+        radiusX: brushSettings.size / (baseFactor * scaleX),
+        radiusY: brushSettings.size / (baseFactor * scaleY),
         opacity: brushSettings.opacity, hardness: brushSettings.hardness
       })
       stroke.current = {
