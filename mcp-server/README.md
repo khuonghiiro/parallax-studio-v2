@@ -1,5 +1,11 @@
 # Parallax Studio V2 — Model Context Protocol (MCP) Server
 
+### Layer workshop: alpha mesh and soft bones / Mesh alpha và xương mềm
+
+`layer_assembly_rig` with `action: "bind", bone_id, layer_ids, binding_mode: "soft"` deforms visible image triangles with the selected bone branch. Position bones along the image details first, then use `set-key` and `set_layer_assembly_playback`. Transparent holes and separate islands remain cut out. Omit `binding_mode` or use `"rigid"` for legacy whole-layer binding; omit `bone_id` to unbind. Draft history and project insertion retain the binding; saved project meshes animate in MP4 export.
+
+`layer_assembly_rig` với `action: "bind", bone_id, layer_ids, binding_mode: "soft"` uốn các tam giác vùng ảnh hiện hữu theo nhánh xương đã chọn. Đặt khớp dọc chi tiết ảnh trước, rồi dùng `set-key` và `set_layer_assembly_playback`. Giữ nguyên lỗ trong suốt và chi tiết rời. Bỏ `binding_mode` hoặc dùng `"rigid"` để gắn cứng cả layer; bỏ `bone_id` để tháo gắn. Lịch sử bản nháp và thao tác chèn dự án giữ liên kết; mesh đã lưu tiếp tục chuyển động khi xuất MP4.
+
 Tài liệu này cung cấp **đặc tả kỹ thuật toàn diện** và **hướng dẫn tích hợp** dành cho mọi AI Agent (Antigravity, Claude Desktop, Cursor, Cline, Windsurf, RooCode, Copilot...) khi kết nối và điều khiển trực tiếp ứng dụng **Parallax Studio V2**.
 
 ---

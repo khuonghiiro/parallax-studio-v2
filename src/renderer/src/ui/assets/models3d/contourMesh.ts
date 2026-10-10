@@ -11,7 +11,7 @@
  * irrational offset so they never fall exactly on a grid line (no degenerate cases).
  */
 import * as THREE from 'three'
-import type { Pt, Silhouette } from './silhouette'
+import { pointInPolygon, signedArea, type Pt, type Silhouette } from './silhouette'
 
 export interface ContourCell {
   key: string
@@ -25,8 +25,6 @@ export interface ContourCell {
   triangles: Array<[number, number, number]>
 }
 
-/** Holes smaller than this (in grid cells²) are ignored — the alpha cutout hides them. */
-const MIN_HOLE_CELLS = 2
 const NUDGE_X = 2.718281e-6
 const NUDGE_Y = 3.141592e-6
 
@@ -59,23 +57,14 @@ function fullCell(r: number, c: number, cols: number, rows: number): ContourCell
 }
 
 /**
- * Silhouette loops in grid units (cell (r, c) spans x ∈ [c, c+1], y ∈ [r, r+1]); small holes
- * and everything nested inside them are dropped.
+ * Silhouette loops in grid units (cell (r, c) spans x ∈ [c, c+1], y ∈ [r, r+1]).
+ * Preserve all holes and nested islands, including outlines smaller than one cell.
  */
 function gridLoops(sil: Silhouette, cols: number, rows: number, gridRotation: number): Pt[][] {
   const a = (gridRotation * Math.PI) / 180
   const cosA = Math.cos(a)
   const sinA = Math.sin(a)
-  const cellArea = cols * rows
-  const keep = sil.loops.map(() => true)
-  sil.loops.forEach((loop, i) => {
-    for (let k: number = i; k >= 0; k = sil.loops[k].parent) {
-      const l = sil.loops[k]
-      if (l.area < 0 && -l.area * cellArea < MIN_HOLE_CELLS) keep[i] = false
-    }
-  })
   return sil.loops
-    .filter((_, i) => keep[i])
     .map((loop) =>
       loop.points.map(([ix, iy]): Pt => {
         // image (y down) → texture uv (v up) → inverse grid rotation → grid (y down)
@@ -206,16 +195,21 @@ function stitchCell(b: CellBucket): Pt[][] {
 function triangulateRings(b: CellBucket, rings: Pt[][], cols: number, rows: number): ContourCell | null {
   const polygon: Array<[number, number]> = []
   const triangles: Array<[number, number, number]> = []
-  for (const ring of rings) {
-    const contour = ring.map(([x, y]) => new THREE.Vector2(x, y))
+  const outer = rings.filter((ring) => signedArea(ring) > 0)
+  const holes = rings.filter((ring) => signedArea(ring) < 0)
+  for (const ring of outer) {
+    const owned = holes.filter((hole) => {
+      const containers = outer.filter((o) => pointInPolygon(hole[0][0], hole[0][1], o))
+      containers.sort((a, b) => Math.abs(signedArea(a)) - Math.abs(signedArea(b)))
+      return containers[0] === ring
+    })
+    const points = [ring, ...owned].flat()
     const base = polygon.length
-    ring.forEach(([x, y]) => polygon.push([x / cols, y / rows]))
-    for (const [i, j, k] of THREE.ShapeUtils.triangulateShape(contour, [])) {
-      const [ax, ay] = ring[i]
-      const [bx, by] = ring[j]
-      const [cx, cy] = ring[k]
-      // Counter-clockwise with y up ⇔ clockwise with y down (positive cross in y-down).
-      const cross = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+    points.forEach(([x, y]) => polygon.push([x / cols, y / rows]))
+    const vectors = (pts: Pt[]) => pts.map(([x, y]) => new THREE.Vector2(x, y))
+    for (const [i, j, k] of THREE.ShapeUtils.triangulateShape(vectors(ring), owned.map(vectors))) {
+      const [a, b, c] = [points[i], points[j], points[k]]
+      const cross = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
       if (Math.abs(cross) < 1e-14) continue
       triangles.push(cross > 0 ? [base + i, base + k, base + j] : [base + i, base + j, base + k])
     }
@@ -258,7 +252,7 @@ export function computeContourCells(
   autoTrim = true
 ): ContourCell[] {
   const cells: ContourCell[] = []
-  if (!autoTrim || !silhouette || silhouette.loops.length === 0) {
+  if (!autoTrim || !silhouette) {
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) cells.push(fullCell(r, c, cols, rows))
     return cells
   }
@@ -272,8 +266,9 @@ export function computeContourCells(
       if (!b || b.chains.length === 0) {
         // No outline crosses the cell border: the cell is fully inside or outside.
         if (inside[r * cols + c]) {
-          cells.push(fullCell(r, c, cols, rows))
-          continue
+          const full = fullCell(r, c, cols, rows)
+          if (!b?.islands.length) { cells.push(full); continue }
+          b.islands.unshift(full.polygon.map(([x, y]): Pt => [x * cols, y * rows]))
         }
         if (!b) continue
       }

@@ -37,7 +37,9 @@ function rigAction(p: Params): RigAction {
   if (action === 'clear-animation') return { action }
   if (action === 'bind') {
     if (!Array.isArray(p.layer_ids) || p.layer_ids.some((id) => typeof id !== 'string')) throw new ParamError('layer_ids must be a string array')
-    return { action, boneId: str(p, 'bone_id') || undefined, layerIds: p.layer_ids }
+    const mode = str(p, 'binding_mode') ?? 'rigid'
+    if (mode !== 'rigid' && mode !== 'soft') throw new ParamError('binding_mode must be rigid or soft')
+    return { action, boneId: str(p, 'bone_id') || undefined, layerIds: p.layer_ids, mode }
   }
   const boneId = str(p, 'bone_id', true)
   if (action === 'update-bone') return { action, boneId, patch: bonePatch(p) }

@@ -6,6 +6,7 @@
  */
 
 import * as THREE from 'three'
+import { deformSkin } from '../layerSkinning'
 import type { ImageMeshDefinition } from '@shared/imageMeshDefinition'
 import { buildBaseGridMesh } from './buildBaseMesh'
 import {
@@ -78,8 +79,11 @@ export function evaluateMeshGeometry(
   const { surface, modifiers, motion, silhouettePolygon } = def
 
   // 1. Build initial planar rest grid
-  const base = buildBaseGridMesh(surface, silhouettePolygon)
-  const pos = base.positions.slice() // Clone for modifier mutations
+  const base = def.skin ? {
+    positions: new Float32Array(def.skin.positions), uvs: new Float32Array(def.skin.uvs),
+    indices: new Uint32Array(def.skin.indices), vertexCount: def.skin.positions.length / 3
+  } : buildBaseGridMesh(surface, silhouettePolygon)
+  const pos = def.skin ? deformSkin(base.positions, def.skin.binding, def.skin.rig, time) : base.positions.slice() // Clone for modifier mutations
   const uvs = base.uvs
   const count = base.vertexCount
 

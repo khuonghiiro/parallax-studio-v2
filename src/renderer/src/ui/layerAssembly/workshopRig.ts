@@ -8,7 +8,7 @@ export type RigAction =
   | { action: 'add-bone'; bone: LayerBone }
   | { action: 'update-bone'; boneId: string; patch: Partial<Omit<LayerBone, 'id'>> }
   | { action: 'delete-bone'; boneId: string }
-  | { action: 'bind'; boneId?: string; layerIds: string[] }
+  | { action: 'bind'; boneId?: string; layerIds: string[]; mode?: 'rigid' | 'soft' }
   | { action: 'set-key'; boneId: string; key: BoneKeyframe }
   | { action: 'delete-key'; boneId: string; time: number }
   | { action: 'settings'; duration?: number; loop?: boolean }
@@ -17,6 +17,7 @@ export type RigAction =
   | { action: 'clear-animation' }
 
 export function validateRig(composite: LayerComposite): void {
+  if (composite.layers.some((l) => l.bindingMode !== undefined && !['rigid', 'soft'].includes(l.bindingMode))) throw new Error('Invalid binding mode')
   const rig = composite.rig
   if (!rig) {
     if (composite.layers.some((l) => l.boneId)) throw new Error('Layer references a missing skeleton')
@@ -65,7 +66,7 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
   }
   if (action.action === 'bind') {
     if (action.layerIds.some((id) => !layers.some((l) => l.id === id))) throw new Error('Unknown layer ID')
-    layers = layers.map((l) => action.layerIds.includes(l.id) && !l.locked ? { ...l, boneId: action.boneId } : l)
+    layers = layers.map((l) => action.layerIds.includes(l.id) && !l.locked ? { ...l, boneId: action.boneId, bindingMode: action.boneId ? (action.mode ?? 'rigid') : undefined } : l)
   }
   if (action.action === 'set-key') {
     const keys = rig.tracks[action.boneId] ?? []

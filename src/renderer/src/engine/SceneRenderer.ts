@@ -1,3 +1,4 @@
+import { updateSkinGeometry } from './imageMesh/updateSkinGeometry'
 import * as THREE from 'three'
 import type { LookSettings, Project } from '@shared/types'
 import { assetStore } from '../project/assets'
@@ -312,13 +313,14 @@ export class SceneRenderer {
       const node = this.nodes.get(el.layer.id)
       if (!node) continue
       const obj = node.object
+      if (node.meshDef?.skin) updateSkinGeometry(obj.geometry, node.meshDef, ev.t)
       // Matrices are kept current for every layer so picking works even when culled.
       if (node.type === 'particles') obj.matrix.copy(el.world)
       else obj.matrix.copy(el.world).multiply(_m2.makeScale(node.planeW, node.planeH, 1))
       obj.matrixWorldNeedsUpdate = true
       obj.updateMatrixWorld(true)
 
-      const inView = el.active && el.opacity > 0.001 && frustum.intersectsBox(el.bounds)
+      const inView = el.active && el.opacity > 0.001 && (!!node.meshDef?.skin || frustum.intersectsBox(el.bounds))
       node.resident = node.type === 'particles' || (!!node.texKey && this.pool.has(node.texKey))
       if (!inView) {
         obj.visible = false
@@ -564,7 +566,7 @@ export class SceneRenderer {
       for (const el of ev.layers) {
         if (el.layer.type !== 'image' || !el.active || el.opacity <= 0.001) continue
         const node = this.nodes.get(el.layer.id)
-        if (!node || !frustum.intersectsBox(el.bounds)) continue
+        if (!node || !(!!node.meshDef?.skin || frustum.intersectsBox(el.bounds))) continue
         const level = this.pool.desiredLevel(el, node.planeW, node.planeH, cam, viewportH, 0)
         const e = this.pool.get(node.texKey!)
         if (e) this.pool.touch(node.texKey!)
@@ -590,7 +592,7 @@ export class SceneRenderer {
     for (const el of ev.layers) {
       if (el.layer.type !== 'image' || !el.active || el.opacity <= 0.001) continue
       const node = this.nodes.get(el.layer.id)
-      if (!node || !frustum.intersectsBox(el.bounds)) continue
+      if (!node || !(!!node.meshDef?.skin || frustum.intersectsBox(el.bounds))) continue
       const level = this.pool.desiredLevel(el, node.planeW, node.planeH, cam, viewportH, 0)
       const e = this.pool.get(node.texKey!)
       if (e) this.pool.touch(node.texKey!)

@@ -131,6 +131,14 @@ export interface MaterialBindings {
 }
 
 export interface ImageMeshDefinition {
+  /** Persisted alpha topology and skeleton for workshop soft bindings. */
+  skin?: {
+    rig: import('./layerRig').LayerRig
+    binding: { boneId?: string; x: number; y: number; rotation: number; scale: number; scaleX?: number; scaleY?: number }
+    positions: number[]
+    uvs: number[]
+    indices: number[]
+  }
   version: number
   id: string
   name: string

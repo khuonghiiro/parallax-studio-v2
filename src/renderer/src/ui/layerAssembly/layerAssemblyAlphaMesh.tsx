@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import * as THREE from 'three'
-import { getImageSilhouette } from '../assets/models3d/silhouette'
+import { getImageSilhouette, silhouetteFromBoolGrid } from '../assets/models3d/silhouette'
 import { computeContourCells, type ContourCell } from '../assets/models3d/contourMesh'
-import { buildAlphaTrimmedGeometry } from '../assets/models3d/alphaMeshBuilder'
+
 
 /** Cache các contour cells đã tính toán theo URL ảnh để tối ưu hiệu năng 60fps */
 const cellsCache = new Map<string, ContourCell[]>()
@@ -22,23 +22,22 @@ export function getLayerContourCells(
   const cached = cellsCache.get(cacheKey)
   if (cached) return cached
 
-  if (onReady) {
-    const list = pendingLoads.get(cacheKey)
-    if (list) {
-      list.push(onReady)
-      return null
-    }
-    pendingLoads.set(cacheKey, [onReady])
+  const list = pendingLoads.get(cacheKey)
+  if (list) {
+    if (onReady) list.push(onReady)
+    return null
   }
+  pendingLoads.set(cacheKey, onReady ? [onReady] : [])
 
   // Tải ảnh vào đối tượng Image ngầm để đọc alpha silhouette
   const img = new Image()
   img.crossOrigin = 'anonymous'
   img.onload = () => {
     try {
-      const sil = getImageSilhouette(img)
-      const cells = computeContourCells(cols, rows, sil, 0, true)
+      const sil = getImageSilhouette(img, true)
+      const cells = sil ? computeContourCells(cols, rows, sil, 0, true) : []
       cellsCache.set(cacheKey, cells)
+      if (cellsCache.size > 64) cellsCache.delete(cellsCache.keys().next().value!)
       const callbacks = pendingLoads.get(cacheKey)
       pendingLoads.delete(cacheKey)
       callbacks?.forEach((cb) => cb(cells))
@@ -73,23 +72,15 @@ export function createLayerAlphaTrimmedGeometry(
     return new THREE.PlaneGeometry(width, height, cols, rows)
   }
   try {
-    return buildAlphaTrimmedGeometry(
-      width,
-      height,
-      image,
-      cols,
-      rows,
-      0,
-      0,
-      'all',
-      undefined,
-      0,
-      undefined,
-      0,
-      true
-    )
-  } catch {
-    return new THREE.PlaneGeometry(width, height, cols, rows)
+    const silhouette = Array.isArray(image)
+      ? silhouetteFromBoolGrid(image, image[0]?.length ?? 1, image.length)
+      : getImageSilhouette(image, true)
+    const cells = silhouette ? computeContourCells(cols, rows, silhouette) : []
+    const geometry = geometryFromLayerCells(width, height, cells)
+    return geometry
+  } catch (error) {
+    console.warn('[Layer mesh] Cannot read alpha', error)
+    return geometryFromLayerCells(width, height, [])
   }
 }
 
@@ -112,12 +103,15 @@ export const LayerAssembly2DMeshOverlay: React.FC<LayerAssembly2DMeshOverlayProp
 
   useEffect(() => {
     if (!showMesh || !imageUrl) return
+    let active = true
+    setCells(null)
     const cached = getLayerContourCells(imageUrl, 16, 20, (loadedCells) => {
-      setCells(loadedCells)
+      if (active) setCells(loadedCells)
     })
     if (cached) {
       setCells(cached)
     }
+    return () => { active = false }
   }, [imageUrl, showMesh])
 
   if (!showMesh || !imageUrl || !cells || cells.length === 0) {
@@ -153,8 +147,8 @@ export const LayerAssembly2DMeshOverlay: React.FC<LayerAssembly2DMeshOverlayProp
                   key={triIdx}
                   points={pts}
                   fill="none"
-                  stroke="#38bdf8"
-                  strokeWidth="0.0035"
+                  stroke="var(--accent-cyan)"
+                  strokeWidth="0.75"
                   strokeOpacity={0.6}
                   vectorEffect="non-scaling-stroke"
                 />
@@ -165,4 +159,29 @@ export const LayerAssembly2DMeshOverlay: React.FC<LayerAssembly2DMeshOverlayProp
       })}
     </svg>
   )
+}
+
+/** Weld shared vertices so the image, wireframe and deformation share identical topology. */
+export function geometryFromLayerCells(width: number, height: number, cells: ContourCell[]): THREE.BufferGeometry {
+  const positions: number[] = [], uvs: number[] = [], indices: number[] = []
+  const ids = new Map<string, number>()
+  for (const cell of cells) for (const triangle of cell.triangles) for (const index of triangle) {
+    const [u, v] = cell.polygon[index]
+    const key = `${u.toFixed(9)}:${v.toFixed(9)}`
+    let id = ids.get(key)
+    if (id === undefined) {
+      id = positions.length / 3
+      ids.set(key, id)
+      positions.push((u - 0.5) * width, (0.5 - v) * height, 0)
+      uvs.push(u, 1 - v)
+    }
+    indices.push(id)
+  }
+  const geometry = new THREE.BufferGeometry()
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2))
+  geometry.setIndex(indices)
+  geometry.computeVertexNormals()
+  geometry.userData = { basePositions: new Float32Array(positions), width, height }
+  return geometry
 }

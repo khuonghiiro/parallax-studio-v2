@@ -165,6 +165,11 @@ export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, r
       )}
 
       <h3>Gắn Layer vào xương</h3>
+      <p>Uốn mềm: đặt chuỗi xương dọc tóc, đuôi hoặc chi; chọn xương gốc của nhánh rồi gắn ảnh. Các đỉnh mesh sẽ chuyển động theo nhánh này.</p>
+      <button className="btn sm primary" disabled={!bone || !selected.length}
+        onClick={() => run({ action: 'bind', boneId: bone!.id, layerIds: selectedIds, mode: 'soft' })}>
+        Uốn mềm theo chuỗi xương
+      </button>
       <p>{selected.length} layer đang chọn trên khung 2D. Chọn xương ở danh sách trên rồi bấm Gắn vào xương.</p>
       <div className="lw-rig-actions">
         <button
@@ -172,7 +177,7 @@ export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, r
           disabled={!bone || !selected.length}
           onClick={() => run({ action: 'bind', boneId: bone!.id, layerIds: selectedIds })}
         >
-          Gắn vào xương {bone ? `(${bone.name})` : ''}
+          Gắn cứng vào xương {bone ? `(${bone.name})` : ''}
         </button>
         <button
           className="btn sm"

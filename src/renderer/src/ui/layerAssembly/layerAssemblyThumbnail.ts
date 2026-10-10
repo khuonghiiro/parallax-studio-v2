@@ -1,6 +1,10 @@
+import type { BufferGeometry } from 'three'
+import { deformSkin } from '../../engine/layerSkinning'
+import { createLayerAlphaTrimmedGeometry } from './layerAssemblyAlphaMesh'
+import { drawSkinTriangles } from './SoftLayerImage'
 import type { LayerComposite, AssembledLayerItem } from './types'
 import { resolveLayerImageUrlAsync } from './useLayerAssetImage'
-import { evaluateRig, transformRigLayer } from '../../engine/layerRig'
+import { evaluateRig, transformRigLayer, rotatePoint } from '../../engine/layerRig'
 import { computeLayerMotion } from './layerAssemblyMotion'
 import { computeLayer2DLighting } from './layerAssembly2DLighting'
 
@@ -16,6 +20,7 @@ export interface CompositeThumbnailOptions {
 }
 
 interface PreparedLayerItem {
+  skin?: { geometry: BufferGeometry; positions: Float32Array; width: number; height: number }
   layer: AssembledLayerItem
   img: HTMLImageElement
   effW: number
@@ -162,7 +167,7 @@ export async function captureCompositeThumbnail(
     try {
       const transforms = evaluateRig(composite.rig, time)
       effectiveLayers = composite.layers.map((l) => ({
-        ...transformRigLayer(l, transforms)
+        ...(l.bindingMode === 'soft' ? l : transformRigLayer(l, transforms))
       }))
     } catch (err) {
       console.warn('[captureCompositeThumbnail] Failed to evaluate rig:', err)
@@ -201,6 +206,13 @@ export async function captureCompositeThumbnail(
 
   for (const pair of validPairs) {
     const item = prepareLayerItem(pair.layer, pair.img, time)
+    if (pair.layer.bindingMode === 'soft' && pair.layer.boneId && composite.rig) {
+      const factor = Math.min(1, 380 / Math.max(pair.img.naturalWidth, pair.img.naturalHeight))
+      const width = Math.round(pair.img.naturalWidth * factor), height = Math.round(pair.img.naturalHeight * factor)
+      const geometry = createLayerAlphaTrimmedGeometry(width, height, pair.img)
+      const positions = deformSkin(geometry.userData.basePositions, pair.layer, composite.rig, time)
+      item.skin = { geometry, positions, width, height }
+    }
     prepared.push(item)
 
     const halfW = item.effW / 2
@@ -215,6 +227,15 @@ export async function captureCompositeThumbnail(
       item.rotZ
     )
 
+    if (item.skin) {
+      corners.length = 0
+      const { positions, width, height } = item.skin
+      for (let i = 0; i < positions.length; i += 3) {
+        const point = rotatePoint(positions[i] * item.effW / width * item.signX,
+          -positions[i + 1] * item.effH / height * item.signY, item.rotZ)
+        corners.push({ x: item.posX + point.x, y: item.posY + point.y })
+      }
+    }
     for (const c of corners) {
       minX = Math.min(minX, c.x)
       maxX = Math.max(maxX, c.x)
@@ -285,7 +306,11 @@ export async function captureCompositeThumbnail(
       ctx.shadowBlur = (lightingResult.shadowBlur || 8) * scaleFactor
     }
 
-    ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH)
+    if (item.skin) {
+      ctx.scale(drawW / item.skin.width, drawH / item.skin.height)
+      drawSkinTriangles(ctx, img, item.skin.geometry, item.skin.positions)
+      item.skin.geometry.dispose()
+    } else ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH)
     ctx.restore()
   }
 

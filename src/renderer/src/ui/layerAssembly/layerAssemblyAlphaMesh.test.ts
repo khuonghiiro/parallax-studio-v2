@@ -7,6 +7,10 @@ import { silhouetteFromBoolGrid } from '../assets/models3d/silhouette'
 import { computeContourCells } from '../assets/models3d/contourMesh'
 
 describe('layerAssemblyAlphaMesh (Pixel-hugging alpha contour mesh)', () => {
+  it('does not create faces for a fully transparent image', () => {
+    const geometry = createLayerAlphaTrimmedGeometry(100, 100, [[false]], 1, 1)
+    expect(geometry.getIndex()?.count ?? 0).toBe(0)
+  })
   it('returns null when no imageUrl is provided', () => {
     const cells = getLayerContourCells(null)
     expect(cells).toBeNull()

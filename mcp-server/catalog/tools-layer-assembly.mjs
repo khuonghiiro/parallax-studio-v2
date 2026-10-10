@@ -216,6 +216,7 @@ export const LAYER_ASSEMBLY_TOOLS = [
       y: z.number().optional().describe(d('Head joint Y coordinate in canvas units.', 'Tọa độ Y khớp gốc.')),
       length: z.number().optional().describe(d('Bone length in pixels.', 'Chiều dài xương theo pixel.')),
       angle: z.number().optional().describe(d('Bone angle in degrees (clockwise).', 'Góc xương theo độ.')),
+      binding_mode: z.enum(['rigid', 'soft']).optional().describe(d('Bind rigidly or deform the alpha mesh with the selected bone and its descendants.', 'Gắn cứng hoặc uốn mesh alpha theo xương đã chọn và các xương con.')),
       layer_ids: z.array(z.string()).optional().describe(d('Layer IDs to bind to the bone.', 'Danh sách ID layer cần gắn vào xương.')),
       time: z.number().optional().describe(d('Keyframe time in seconds.', 'Thời điểm keyframe tính bằng giây.')),
       rotation: z.number().optional().describe(d('Keyframe rotation angle in degrees.', 'Góc xoay keyframe.')),

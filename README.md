@@ -1,5 +1,7 @@
 # Parallax Studio
 
+Xưởng Lắp Ráp Layer hỗ trợ mesh bám alpha (giữ lỗ và chi tiết rời) và **Uốn mềm theo chuỗi xương** cho tóc, đuôi, tay chân. Đặt khớp trong tab Tạo xương, chọn ảnh và xương gốc của nhánh, bấm Uốn mềm; tạo keyframe trong Animation. Mesh và rig được giữ khi chèn vào timeline, lưu dự án và xuất MP4. Xem [hướng dẫn xưởng](docs/layer-workshop-tools.md).
+
 App desktop (Electron + Three.js) dùng để dựng video **parallax 2.5D** giống After Effects. Bạn xếp các layer ảnh theo chiều sâu, chia thành nhiều **cảnh (shot)** đặt trong không gian 3D, cho camera bay qua từng cảnh rồi xuất MP4. App có **MCP server** để AI (Antigravity, Claude, Cursor…) điều khiển trực tiếp, giống blender-mcp.
 
 ## Chạy nhanh (Windows 1-click)

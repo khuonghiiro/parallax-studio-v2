@@ -42,6 +42,7 @@ const MIN_LOOP_AREA_PX = 3
 const EDGE_EPS = 1e-5
 
 const cache = new WeakMap<object, Silhouette>()
+const detailCache = new WeakMap<object, Silhouette>()
 
 /** 3 × 3 (radius 1) or larger square dilation of a binary mask. */
 export function dilateMask(m: BinaryMask, radius = 1): BinaryMask {
@@ -219,17 +220,17 @@ function computeParents(loops: SilhouetteLoop[]): void {
   })
 }
 
-/** Builds the silhouette of a binary mask (dilate → trace → simplify → normalize). */
-export function silhouetteFromMask(mask: BinaryMask): Silhouette {
+/** Detailed mode keeps thin islands/gaps intact; the legacy 3D path retains its bleed margin. */
+export function silhouetteFromMask(mask: BinaryMask, detailed = false): Silhouette {
   const { w, h } = mask
   // Pad by one pixel first so the dilation may spill past the image border: outlines that
   // touch the border then run just outside it and image corners stay square.
   const pw = w + 2
   const padded = new Uint8Array(pw * (h + 2))
   for (let y = 0; y < h; y++) padded.set(mask.data.subarray(y * w, (y + 1) * w), (y + 1) * pw + 1)
-  const raw = traceMaskLoops(dilateMask({ w: pw, h: h + 2, data: padded }, 1))
-    .map((l) => simplifyClosed(l, SIMPLIFY_PX))
-    .filter((l) => l.length >= 3 && Math.abs(signedArea(l)) >= MIN_LOOP_AREA_PX)
+  const raw = traceMaskLoops(dilateMask({ w: pw, h: h + 2, data: padded }, detailed ? 0 : 1))
+    .map((l) => simplifyClosed(l, detailed ? 0 : SIMPLIFY_PX))
+    .filter((l) => l.length >= 3 && Math.abs(signedArea(l)) >= (detailed ? 0.1 : MIN_LOOP_AREA_PX))
   if (raw.length === 0) return { loops: [] }
   // The biggest loop is always an outer outline → its orientation defines "outer".
   let biggest = raw[0]
@@ -293,13 +294,14 @@ export function silhouetteFromPolygon(polygon: Pt[] | number[][], space: 'uv' | 
  * Silhouette of an image (cached per image element). Returns null when the pixels cannot
  * be read (image not decoded yet, no 2D canvas, tainted canvas…).
  */
-export function getImageSilhouette(image: HTMLImageElement | HTMLCanvasElement): Silhouette | null {
-  const cached = cache.get(image)
+export function getImageSilhouette(image: HTMLImageElement | HTMLCanvasElement, detailed = false): Silhouette | null {
+  const imageCache = detailed ? detailCache : cache
+  const cached = imageCache.get(image)
   if (cached) return cached
   const nw = 'naturalWidth' in image ? image.naturalWidth : image.width
   const nh = 'naturalHeight' in image ? image.naturalHeight : image.height
   if (!nw || !nh) return null
-  const s = Math.min(1, MAX_MASK_SIZE / Math.max(nw, nh))
+  const s = Math.min(1, (detailed ? 2048 : MAX_MASK_SIZE) / Math.max(nw, nh))
   const w = Math.max(1, Math.round(nw * s))
   const h = Math.max(1, Math.round(nh * s))
   try {
@@ -314,8 +316,8 @@ export function getImageSilhouette(image: HTMLImageElement | HTMLCanvasElement):
     const rgba = ctx.getImageData(0, 0, w, h).data
     const data = new Uint8Array(w * h)
     for (let i = 0; i < data.length; i++) data[i] = rgba[i * 4 + 3] > ALPHA_MIN ? 1 : 0
-    const sil = silhouetteFromMask({ w, h, data })
-    cache.set(image, sil)
+    const sil = silhouetteFromMask({ w, h, data }, detailed)
+    imageCache.set(image, sil)
     return sil
   } catch {
     return null

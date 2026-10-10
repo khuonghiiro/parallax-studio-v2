@@ -361,9 +361,11 @@ describe('MCP layerAssemblyCommands', () => {
     const bindRes = (await runCommand('layer_assembly_rig', {
       action: 'bind',
       bone_id: 'bone-torso',
+      binding_mode: 'soft',
       layer_ids: ['l-body']
     })) as any
     expect(bindRes.ok).toBe(true)
+    expect(mockComp.layers.find((l) => l.id === 'l-body')?.bindingMode).toBe('soft')
     expect(mockComp.layers.find((l) => l.id === 'l-body')?.boneId).toBe('bone-torso')
 
     // 4. apply-preset-animation walk

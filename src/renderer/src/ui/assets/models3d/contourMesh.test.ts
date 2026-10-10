@@ -29,6 +29,14 @@ const edgeKey = (a: [number, number], b: [number, number]): string => {
 }
 
 describe('contourMesh', () => {
+  it('preserves a tiny transparent hole entirely inside one mesh cell', () => {
+    const cells = computeContourCells(1, 1, { loops: [
+      { points: [[0, 0], [1, 0], [1, 1], [0, 1]], area: 1, parent: -1 },
+      { points: [[0.4, 0.4], [0.4, 0.6], [0.6, 0.6], [0.6, 0.4]], area: -0.04, parent: 0 }
+    ] })
+    expect(cells.some((cell) => covers(cell, 0.5, 0.5))).toBe(false)
+    expect(cells.some((cell) => covers(cell, 0.2, 0.2))).toBe(true)
+  })
   it('keeps every cell as a full quad in manual mode or without a silhouette', () => {
     const sil = silhouetteFromBoolGrid(grid(4, 4, (r) => r < 2), 4, 4)
     const manual = computeContourCells(4, 4, sil, 0, false)

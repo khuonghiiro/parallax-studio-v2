@@ -315,13 +315,6 @@ export function buildAlphaTrimmedGeometry(
     })
   }
 
-  // Fallback if no visible vertices found
-  if (indices.length === 0) {
-    return buildCurvedPlaneGeometry(
-      width, height, cols, rows, bendX, bendY, region, depthProfile, depthIntensity, depthInvert, image, bendLateral, arcAngle, taperRatio
-    )
-  }
-
   const geo = new THREE.BufferGeometry()
   geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2))

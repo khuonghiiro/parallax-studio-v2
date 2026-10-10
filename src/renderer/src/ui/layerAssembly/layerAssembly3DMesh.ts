@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { deformSkin } from '../../engine/layerSkinning'
 import type { AssembledLayerItem, LayerMotionSettings } from './types'
 import { depthEuler } from '../../engine/spatial'
 import { createLayerAlphaTrimmedGeometry } from './layerAssemblyAlphaMesh'
@@ -16,6 +17,7 @@ export interface Layer3DMeshInstance {
 
 const textureCache = new Map<string, THREE.Texture>()
 const textureLoader = new THREE.TextureLoader()
+const textureWaiters = new Map<string, Array<() => void>>()
 
 /**
  * Nạp hoặc lấy texture từ cache theo URL với độ sắc nét cao (Anisotropic filtering 16x)
@@ -23,7 +25,11 @@ const textureLoader = new THREE.TextureLoader()
 export function getOrCreateLayerTexture(url: string, onLoaded?: () => void): THREE.Texture | null {
   if (!url) return null
   const cached = textureCache.get(url)
-  if (cached) return cached
+  if (cached) {
+    if (onLoaded && textureWaiters.has(url)) textureWaiters.get(url)!.push(onLoaded)
+    return cached
+  }
+  textureWaiters.set(url, onLoaded ? [onLoaded] : [])
 
   const tex = textureLoader.load(
     url,
@@ -31,11 +37,15 @@ export function getOrCreateLayerTexture(url: string, onLoaded?: () => void): THR
       tex.colorSpace = THREE.SRGBColorSpace
       tex.anisotropy = 16
       tex.needsUpdate = true
-      onLoaded?.()
+      const waiters = textureWaiters.get(url)
+      textureWaiters.delete(url)
+      waiters?.forEach((notify) => notify())
     },
     undefined,
     (err) => {
       console.warn('[LayerAssembly3D] Failed to load texture:', url, err)
+      textureWaiters.delete(url)
+      textureCache.delete(url)
     }
   )
   tex.generateMipmaps = true
@@ -54,6 +64,7 @@ export function clearLayerTextureCache(): void {
     tex.dispose()
   }
   textureCache.clear()
+  textureWaiters.clear()
 }
 
 /**
@@ -349,6 +360,7 @@ export function updateLayerInstanceTexture(
   }
 
   const texture = getOrCreateLayerTexture(textureUrl, () => {
+    if (inst.currentTextureUrl !== textureUrl) return
     if (getTextureDimensions(texture)) {
       const { w, h } = computePlaneDimensions(texture)
       inst.mesh.geometry.dispose()
@@ -420,13 +432,24 @@ export function updateLayer3DInstance(
 ): void {
   const { group, mesh, wireframeMesh, material, outline, anchorDot } = inst
 
+  const geometry = mesh.geometry
+  const rest = geometry.userData.basePositions as Float32Array | undefined
+  if (rest) {
+    const positions = layer.previewRig && layer.bindingMode === 'soft'
+      ? deformSkin(rest, layer, layer.previewRig, time) : rest
+    const attribute = geometry.getAttribute('position') as THREE.BufferAttribute
+    attribute.copyArray(positions)
+    attribute.needsUpdate = true
+    geometry.computeVertexNormals()
+    geometry.computeBoundingSphere()
+  }
   // 1. Tính toán chuyển động hoạt ảnh
   const motion = computeLayer3DMotion(layer.motion, time)
 
   // 2. Điểm neo (Anchor Pivot) tính theo nửa kích thước của plane geometry
   const planeGeom = mesh.geometry as THREE.PlaneGeometry
-  const meshW = planeGeom.parameters?.width || 380
-  const meshH = planeGeom.parameters?.height || 380
+  const meshW = mesh.geometry.userData.width ?? planeGeom.parameters?.width ?? 380
+  const meshH = mesh.geometry.userData.height ?? planeGeom.parameters?.height ?? 380
   const halfW = meshW / 2
   const halfH = meshH / 2
 
@@ -501,100 +524,4 @@ export function updateLayer3DInstance(
   anchorDot.visible = isSelected
 }
 
-/**
- * Tạo hình nón kim tự tháp Camera Frustum 3D thể hiện góc nhìn và khoảng cách từ camera tới canvas
- */
-export function createCameraFrustumHelper(
-  width: number,
-  height: number,
-  distance: number,
-  isLight = false
-): THREE.LineSegments {
-  const halfW = width / 2
-  const halfH = height / 2
-  const apex = new THREE.Vector3(0, 0, distance) // Đỉnh camera ở phía trước nhìn về gốc (0, 0, 0)
-
-  // 4 góc của khung canvas tại z = 0
-  const c0 = new THREE.Vector3(-halfW, -halfH, 0)
-  const c1 = new THREE.Vector3(halfW, -halfH, 0)
-  const c2 = new THREE.Vector3(halfW, halfH, 0)
-  const c3 = new THREE.Vector3(-halfW, halfH, 0)
-
-  // Biểu tượng thân máy ảnh (Camera Body) ở phía sau đỉnh camera
-  const camW = Math.max(28, width * 0.06)
-  const camH = Math.max(24, height * 0.06)
-  const camD = 35
-  const b0 = new THREE.Vector3(-camW / 2, -camH / 2, distance + camD)
-  const b1 = new THREE.Vector3(camW / 2, -camH / 2, distance + camD)
-  const b2 = new THREE.Vector3(camW / 2, camH / 2, distance + camD)
-  const b3 = new THREE.Vector3(-camW / 2, camH / 2, distance + camD)
-
-  const points = [
-    // 4 tia nhìn từ đỉnh camera tới 4 góc canvas
-    apex, c0,
-    apex, c1,
-    apex, c2,
-    apex, c3,
-    // Khung viền đáy (Khung Camera soi Canvas tại z = 0)
-    c0, c1,
-    c1, c2,
-    c2, c3,
-    c3, c0,
-    // Thân máy ảnh ở vị trí camera
-    apex, b0,
-    apex, b1,
-    apex, b2,
-    apex, b3,
-    b0, b1,
-    b1, b2,
-    b2, b3,
-    b3, b0
-  ]
-
-  const geom = new THREE.BufferGeometry().setFromPoints(points)
-  const mat = new THREE.LineBasicMaterial({
-    color: isLight ? 0x2563eb : 0xffc24b, // Theme sáng dùng xanh Royal Blue đậm nét, Theme tối dùng vàng ấm
-    transparent: true,
-    opacity: isLight ? 0.95 : 0.9,
-    depthTest: false
-  })
-
-  return new THREE.LineSegments(geom, mat)
-}
-
-/**
- * Tạo 4 mặt phẳng cắt (Clipping Planes) giới hạn tầm nhìn camera tại kích thước width x height
- */
-export function createCameraClippingPlanes(width: number, height: number): THREE.Plane[] {
-  const halfW = width / 2
-  const halfH = height / 2
-  return [
-    new THREE.Plane(new THREE.Vector3(1, 0, 0), halfW), // x >= -halfW
-    new THREE.Plane(new THREE.Vector3(-1, 0, 0), halfW), // x <= halfW
-    new THREE.Plane(new THREE.Vector3(0, 1, 0), halfH), // y >= -halfH
-    new THREE.Plane(new THREE.Vector3(0, -1, 0), halfH) // y <= halfH
-  ]
-}
-
-/**
- * Đường gióng đo độ sâu Z từ mặt phẳng tham chiếu z=0 tới vị trí của layer
- */
-export function createDepthGuideLine(posX: number, posY: number, posZ: number): THREE.Line {
-  const points = [
-    new THREE.Vector3(posX, posY, 0),
-    new THREE.Vector3(posX, posY, posZ)
-  ]
-  const geom = new THREE.BufferGeometry().setFromPoints(points)
-  const mat = new THREE.LineDashedMaterial({
-    color: 0x38bdf8,
-    dashSize: 8,
-    gapSize: 4,
-    transparent: true,
-    opacity: 0.9,
-    depthTest: false
-  })
-  const line = new THREE.Line(geom, mat)
-  line.computeLineDistances()
-  return line
-}
-
+export { createCameraFrustumHelper, createCameraClippingPlanes, createDepthGuideLine } from './layerAssembly3DHelpers'

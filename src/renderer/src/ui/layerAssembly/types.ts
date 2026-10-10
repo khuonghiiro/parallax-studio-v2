@@ -11,6 +11,9 @@ export interface LayerMotionSettings {
 
 export interface AssembledLayerItem {
   boneId?: string
+  bindingMode?: 'rigid' | 'soft'
+  /** Transient preview rig, never persisted by workshop actions. */
+  previewRig?: import('@shared/layerRig').LayerRig
   id: string
   name: string
   assetPath?: string

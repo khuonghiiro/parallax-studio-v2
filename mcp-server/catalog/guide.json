@@ -122,7 +122,7 @@
           "Use save_layer_composite to store presets with auto-generated 2D preview thumbnails, and insert_layer_composite to place all layers into shots.",
           "Open and inspect the workshop in real-time with open_layer_assembly and get_layer_assembly_state.",
           "Batch align, space depth and animate layers with layer_assembly_action and select_layer_assembly_layers; edit with undoable layer_assembly_history.",
-          "Attach character layers to skeletal bones with layer_assembly_rig; animate with keyframes or generate procedural walk/idle/wave motions."
+          "Attach layers with layer_assembly_rig; bind with binding_mode=soft to bend the alpha mesh along the selected bone branch (hair, tails, limbs), or rigid for cutouts; animate with keyframes or procedural motions."
         ],
         "vi": [
           "Xưởng Lắp Ráp Layer 2.5D tạo các cụm chi tiết xếp chồng nhiều tầng (như cây bonsai, bụi hoa, đèn treo) kèm phân lớp chiều sâu và chuyển động gió êm ái.",
@@ -130,7 +130,7 @@
           "Dùng save_layer_composite để lưu mẫu kèm ảnh xem trước 2D tự động, và insert_layer_composite để chèn toàn bộ các layer vào phân cảnh.",
           "Mở và xem trạng thái xưởng trực quan theo thời gian thực bằng open_layer_assembly và get_layer_assembly_state.",
           "Căn chỉnh, giãn độ sâu và tạo chuyển động hàng loạt với layer_assembly_action và select_layer_assembly_layers; chỉnh sửa với hoàn tác layer_assembly_history.",
-          "Gắn các layer nhân vật vào khung xương với layer_assembly_rig; tạo animation bằng keyframe hoặc sinh chuyển động tự động đi bộ/đứng thở/vẫy tay."
+          "Gắn layer bằng layer_assembly_rig; bind với binding_mode=soft để uốn mesh alpha theo nhánh xương đã chọn (tóc, đuôi, chi), hoặc rigid cho mảnh rời; tạo animation bằng keyframe hoặc chuyển động mẫu."
         ]
       }
     }

@@ -1,5 +1,13 @@
 # Công cụ Xưởng Lắp Ráp Layer
 
+## Mesh alpha và uốn mềm ảnh 2D
+
+Lưới chỉ phủ vùng ảnh có alpha, giữ các lỗ trong suốt và các chi tiết rời. Lưới preview 2D, preview 3D và mesh lưu vào dự án dùng cùng topology. Ảnh hoàn toàn trong suốt không sinh tam giác. Ảnh được phân tích tối đa 2048px cạnh dài; chi tiết nhỏ hơn độ phân giải này có thể bị mất.
+
+Để uốn tóc, đuôi, cành hoặc chi: chọn layer, đặt xương gốc ở chân bộ phận, thêm xương con dọc chiều dài rồi chọn lại xương gốc và bấm **Uốn mềm theo chuỗi xương**. Mỗi đỉnh nhận trọng số từ tối đa bốn xương gần nhất trong nhánh; nhánh khác không kéo layer. Chỉnh khớp tại tab **Tạo xương**; tab **Animation** dùng keyframe hoặc chuyển động mẫu. Xương được đặt thủ công, không tự nhận diện cấu trúc người/động vật từ ảnh. Với các mảnh cutout rời dùng **Gắn cứng vào xương**.
+
+MCP tương ứng: `layer_assembly_rig {action:"bind", bone_id:"…", layer_ids:["…"], binding_mode:"soft"}`. Tháo gắn bằng action `bind` không có `bone_id`. Mỗi lần gắn là một bước hoàn tác bản nháp. Chèn vào cảnh lưu mesh alpha và rig trong dự án để tiếp tục biến dạng khi phát timeline hoặc xuất video.
+
 Thanh trên cùng dành cho tên cụm, bố cục 2D/3D, lưu mẫu và chèn vào cảnh. Thanh công cụ bên dưới thao tác trên **các lớp đã chọn**; khung dựng có kích thước riêng W/H và khổ ngang/dọc/vuông. Các nút +100/−100 thay nhanh kích thước. “Ước lượng khung” (`estimate-frame`) dùng giới hạn ảnh 380px, scale và góc Z của lớp đang hiện, kể cả lớp khóa; chưa tính chuyển động hoặc phối cảnh. Trạng thái dưới cùng hiển thị số lớp, vùng chọn và lớp khóa.
 
 ## Chọn và sắp xếp

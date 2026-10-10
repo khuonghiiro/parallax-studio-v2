@@ -59,6 +59,19 @@ describe('workshopRig & layerRig engine', () => {
     }).toThrow(/cycle/)
   })
 
+  it('binds a soft branch without moving the rest pose and can unbind it', () => {
+    const original = applyRigAction(baseComposite, { action: 'apply-template', template: 'simple-chain' })
+    const bound = applyRigAction(original, { action: 'bind', boneId: original.rig!.bones[0].id,
+      layerIds: ['l-head'], mode: 'soft' })
+    expect(bound.layers[0].bindingMode).toBe('soft')
+    expect(bound.layers[0].x).toBe(original.layers[0].x)
+    expect(bound.layers[0].y).toBe(original.layers[0].y)
+    expect(original.layers[0].boneId).toBeUndefined()
+    const unbound = applyRigAction(bound, { action: 'bind', layerIds: ['l-head'] })
+    expect(unbound.layers[0].boneId).toBeUndefined()
+    expect(unbound.layers[0].bindingMode).toBeUndefined()
+  })
+
   it('applies humanoid preset template and generates walk cycle keys', () => {
     let comp = applyRigAction(baseComposite, {
       action: 'apply-template',

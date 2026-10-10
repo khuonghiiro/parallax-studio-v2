@@ -6,6 +6,7 @@ import { createImageLayer } from '../../project/factory'
 import type { AssetMeta, ImageLayer } from '@shared/types'
 import { resolveFaceTexture } from '../assets/models3d/textureResolver'
 import { toast } from '../../actions'
+import { exportWorkshopSkin } from './exportWorkshopSkin'
 import { bakeWorkshopRig } from './bakeWorkshopRig'
 import { validateRig } from './workshopRig'
 
@@ -152,7 +153,7 @@ export async function insertLayerCompositeToScene({
       newLayer.props.height = targetAsset.height
     }
     newLayer.transform.position.value = [posX, posY, posZ]
-    newLayer.transform.scale.value = [item.scale * globalScale, item.scale * globalScale, 1]
+    newLayer.transform.scale.value = [item.scale * (item.scaleX ?? 1) * globalScale, item.scale * (item.scaleY ?? 1) * globalScale, 1]
     newLayer.transform.rotation.value = [item.rotationX || 0, item.rotationY || 0, item.rotation || 0]
     newLayer.transform.opacity.value = item.opacity
 
@@ -186,6 +187,7 @@ export async function insertLayerCompositeToScene({
       }
     }
 
+    await exportWorkshopSkin(newLayer, item, composite, assetStore.get(targetAsset.id)?.url ?? item.imageUrl)
     bakeWorkshopRig(newLayer, item, composite, comp.duration, comp.fps, globalScale, positionOffset)
     layersToAdd.push(newLayer)
     createdLayerIds.push(newLayer.id)
