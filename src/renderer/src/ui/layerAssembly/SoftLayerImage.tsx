@@ -7,6 +7,13 @@ import type { BufferGeometry } from 'three'
 interface Props { url: string; layer: AssembledLayerItem; time: number; showMesh: boolean; filter?: string }
 interface ImageMesh { image: HTMLImageElement; geometry: BufferGeometry; width: number; height: number }
 
+function expandPoint(p: [number, number], cx: number, cy: number, eps = 0.65): [number, number] {
+  const dx = p[0] - cx, dy = p[1] - cy
+  const dist = Math.hypot(dx, dy)
+  if (dist < 1e-4) return p
+  return [p[0] + (dx / dist) * eps, p[1] + (dy / dist) * eps]
+}
+
 /** Canvas affine triangles use the same welded geometry as Three.js and exported meshes. */
 export function drawSkinTriangles(ctx: CanvasRenderingContext2D, image: HTMLImageElement,
   geometry: BufferGeometry, positions: Float32Array, stroke?: string): void {
@@ -24,14 +31,20 @@ export function drawSkinTriangles(ctx: CanvasRenderingContext2D, image: HTMLImag
     const c = ((p2[0] - p0[0]) * ux - (p1[0] - p0[0]) * vx) / det
     const b = ((p1[1] - p0[1]) * vy - (p2[1] - p0[1]) * uy) / det
     const d = ((p2[1] - p0[1]) * ux - (p1[1] - p0[1]) * vx) / det
+    const cx = (p0[0] + p1[0] + p2[0]) / 3, cy = (p0[1] + p1[1] + p2[1]) / 3
+    const ep0 = expandPoint(p0 as [number, number], cx, cy)
+    const ep1 = expandPoint(p1 as [number, number], cx, cy)
+    const ep2 = expandPoint(p2 as [number, number], cx, cy)
     ctx.save()
-    ctx.beginPath(); ctx.moveTo(...p0 as [number, number])
-    ctx.lineTo(...p1 as [number, number]); ctx.lineTo(...p2 as [number, number]); ctx.closePath()
+    ctx.beginPath(); ctx.moveTo(...ep0); ctx.lineTo(...ep1); ctx.lineTo(...ep2); ctx.closePath()
     ctx.clip()
     ctx.transform(a, b, c, d, p0[0] - a * s0[0] - c * s0[1], p0[1] - b * s0[0] - d * s0[1])
     ctx.drawImage(image, 0, 0)
     ctx.restore()
-    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 0.6; ctx.stroke() }
+    if (stroke) {
+      ctx.beginPath(); ctx.moveTo(...p0 as [number, number]); ctx.lineTo(...p1 as [number, number]); ctx.lineTo(...p2 as [number, number]); ctx.closePath()
+      ctx.strokeStyle = stroke; ctx.lineWidth = 0.6; ctx.stroke()
+    }
   }
 }
 

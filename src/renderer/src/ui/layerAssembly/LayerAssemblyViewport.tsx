@@ -561,7 +561,7 @@ export function LayerAssemblyViewport({
             }}
           >
             <span>🦴</span>
-            <span>{showBones ? 'Xương' : 'Ẩn xương'}</span>
+            <span>{showBones ? 'Ẩn xương' : 'Hiện xương'}</span>
           </button>
         ) : null}
 
@@ -582,7 +582,7 @@ export function LayerAssemblyViewport({
           }}
         >
           <span>🕸️</span>
-          <span>{showMesh ? 'Mesh' : 'Ẩn mesh'}</span>
+          <span>{showMesh ? 'Ẩn mesh' : 'Hiện mesh'}</span>
         </button>
 
         {/* Nút bật popup Hướng sáng & Đổ bóng ngày đêm ngay tại thanh công cụ 2D */}
