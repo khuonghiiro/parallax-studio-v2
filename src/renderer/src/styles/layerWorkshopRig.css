@@ -16,7 +16,8 @@
 .lw-preset-btn:hover { background: var(--bg-3); border-color: var(--line-focus); }
 .lw-rig-field { display: flex; align-items: center; justify-content: space-between; gap: 7px; margin: 8px 0; min-width: 0; }
 .lw-rig-field > span { color: var(--text-dim); font-size: 11px; }
-.lw-rig-field input, .lw-rig-field select { width: 145px; min-width: 0; padding: 6px; border-radius: 4px; border: 1px solid var(--line); background: var(--bg-0); color: var(--text); font-size: 11px; }
+.lw-rig-field input, .lw-rig-field select, .lw-rig-field .custom-select-wrap { width: 145px; min-width: 0; }
+.lw-rig-field input, .lw-rig-field select { padding: 6px; border-radius: 4px; border: 1px solid var(--line); background: var(--bg-0); color: var(--text); font-size: 11px; }
 .lw-rig-field input:focus, .lw-rig-field select:focus { outline: 1px solid var(--line-focus); }
 .lw-rig-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; }
 .lw-rig-grid .lw-rig-field { flex-direction: column; align-items: stretch; }

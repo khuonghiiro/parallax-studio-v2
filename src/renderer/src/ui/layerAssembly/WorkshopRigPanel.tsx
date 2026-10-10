@@ -1,6 +1,7 @@
 import type { LayerBone } from '@shared/layerRig'
 import type { LayerComposite } from './types'
 import type { RigAction } from './workshopRig'
+import { Select } from '../controls'
 
 export interface RigPanelProps {
   composite: LayerComposite
@@ -130,23 +131,20 @@ export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, r
               onChange={(e) => e.target.value.trim() && patch({ name: e.target.value })}
             />
           </label>
-          <label className="lw-rig-field">
+          <div className="lw-rig-field">
             <span>Xương cha</span>
-            <select
-              aria-label="Xương cha"
+            <Select
+              size="sm"
               value={bone.parentId ?? ''}
-              onChange={(e) => patch({ parentId: e.target.value || undefined })}
-            >
-              <option value="">Không có (Khớp gốc)</option>
-              {bones
-                .filter((b) => b.id !== bone.id)
-                .map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-            </select>
-          </label>
+              options={[
+                { value: '', label: 'Không có (Khớp gốc)' },
+                ...bones
+                  .filter((b) => b.id !== bone.id)
+                  .map((b) => ({ value: b.id, label: b.name }))
+              ]}
+              onChange={(val) => patch({ parentId: String(val) || undefined })}
+            />
+          </div>
           <div className="lw-rig-grid">
             <RigNumber label="Khớp X" value={bone.x} onChange={(x) => patch({ x })} />
             <RigNumber label="Khớp Y" value={bone.y} onChange={(y) => patch({ y })} />

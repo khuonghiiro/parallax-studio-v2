@@ -4,6 +4,7 @@ import { RigNumber, type RigPanelProps } from './WorkshopRigPanel'
 import { emptyRig } from './workshopRig'
 import type { useWorkshopPlayback } from './useWorkshopPlayback'
 import type { ProceduralMotionPreset } from './workshopRigPresets'
+import { Select } from '../controls'
 
 export function WorkshopAnimationPanel({
   composite,
@@ -120,21 +121,18 @@ export function WorkshopAnimationPanel({
       </label>
 
       <h3>Tạo dáng xương (Pose Mode)</h3>
-      <label className="lw-rig-field">
+      <div className="lw-rig-field">
         <span>Xương chọn</span>
-        <select
-          aria-label="Xương animation"
+        <Select
+          size="sm"
           value={boneId ?? ''}
-          onChange={(e) => selectBone(e.target.value || null)}
-        >
-          <option value="">-- Chọn xương --</option>
-          {bones.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </select>
-      </label>
+          options={[
+            { value: '', label: '-- Chọn xương --' },
+            ...bones.map((b) => ({ value: b.id, label: b.name }))
+          ]}
+          onChange={(val) => selectBone(String(val) || null)}
+        />
+      </div>
 
       {bone ? (
         <>
@@ -145,18 +143,19 @@ export function WorkshopAnimationPanel({
             <RigNumber label="Dời Y" value={pose.y} onChange={(y) => setKey({ y })} />
           </div>
 
-          <label className="lw-rig-field">
+          <div className="lw-rig-field">
             <span>Nội suy</span>
-            <select
-              aria-label="Nội suy keyframe"
+            <Select
+              size="sm"
               value={key.easing}
-              onChange={(e) => setKey({ easing: e.target.value as BoneKeyframe['easing'] })}
-            >
-              <option value="smooth">Mượt mà (Smooth Bezier)</option>
-              <option value="linear">Tuyến tính (Linear)</option>
-              <option value="hold">Giữ nguyên tư thế (Hold)</option>
-            </select>
-          </label>
+              options={[
+                { value: 'smooth', label: 'Mượt mà (Smooth Bezier)' },
+                { value: 'linear', label: 'Tuyến tính (Linear)' },
+                { value: 'hold', label: 'Giữ nguyên tư thế (Hold)' }
+              ]}
+              onChange={(val) => setKey({ easing: val as BoneKeyframe['easing'] })}
+            />
+          </div>
 
           <div className="lw-rig-actions">
             <button className="btn sm primary" onClick={() => setKey()}>

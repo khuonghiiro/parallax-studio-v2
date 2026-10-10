@@ -38,32 +38,7 @@ import {
   IconSettings
 } from './icons'
 
-function Menu({ label, icon, children, id }: { label: string; icon?: React.ReactNode; children: React.ReactNode; id: string }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!open) return
-    const close = (e: PointerEvent): void => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false)
-    }
-    window.addEventListener('pointerdown', close)
-    return () => window.removeEventListener('pointerdown', close)
-  }, [open])
-  return (
-    <div className={`menu-wrap${open ? ' open' : ''}`} ref={ref}>
-      <button id={id} className={`btn${open ? ' active' : ''}`} onClick={() => setOpen((o) => !o)}>
-        {icon}
-        {label}
-        <IconChevronDown style={{ width: 12, height: 12, opacity: 0.6 }} />
-      </button>
-      {open && (
-        <div className="menu" onClick={() => setOpen(false)}>
-          {children}
-        </div>
-      )}
-    </div>
-  )
-}
+import { Menu } from './controls'
 
 /** Shows whether the local MCP bridge is listening and flashes on every AI command. */
 function McpChip() {

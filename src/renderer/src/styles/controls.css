@@ -336,6 +336,13 @@
   transition: border-color 0.12s, background 0.12s;
 }
 
+.custom-select-trigger.sm,
+.custom-select-wrap.sm .custom-select-trigger {
+  height: 22px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
 .custom-select-trigger:hover:not(:disabled) {
   background: var(--bg-2);
   border-color: var(--line-focus);

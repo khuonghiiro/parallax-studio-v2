@@ -3,6 +3,7 @@ import type { WorkshopAction } from './workshopActions'
 import type { LayerComposite, AssembledLayerItem, MotionType, MotionAnchor } from './types'
 import { LayerRowItem } from './LayerAssemblyRow'
 import { IconTrash, IconCopy, IconPlus } from '../icons'
+import { Select } from '../controls'
 
 export interface LayerAssemblyInspectorProps {
   composite: LayerComposite
@@ -429,21 +430,22 @@ export function LayerAssemblyInspector({
               {/* Kiểu chuyển động */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                 <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Kiểu chuyển động:</span>
-                <select
-                  className="input-text sm"
+                <Select
+                  size="sm"
                   value={selectedLayer.motion.type}
-                  onChange={(e) =>
+                  options={[
+                    { value: 'none', label: 'Tĩnh (Không chuyển động)' },
+                    { value: 'sway', label: '🍃 Đung đưa theo gió (Sway)' },
+                    { value: 'breathe', label: '🫁 Phập phồng nhịp thở (Breathe)' },
+                    { value: 'float', label: '☁️ Lơ lửng bồng bềnh (Floating)' },
+                    { value: 'rocking', label: '🔔 Bập bênh con lắc (Rocking)' }
+                  ]}
+                  onChange={(val) =>
                     onUpdateLayer(selectedLayer.id, {
-                      motion: { ...selectedLayer.motion, type: e.target.value as MotionType }
+                      motion: { ...selectedLayer.motion, type: val as MotionType }
                     })
                   }
-                >
-                  <option value="none">Tĩnh (Không chuyển động)</option>
-                  <option value="sway">🍃 Đung đưa theo gió (Sway quanh gốc/tâm)</option>
-                  <option value="breathe">🫁 Phập phồng nhịp thở (Breathe Pulse)</option>
-                  <option value="float">☁️ Lơ lửng bồng bềnh (Floating nâng hạ)</option>
-                  <option value="rocking">🔔 Bập bênh con lắc (Rocking lắc lư)</option>
-                </select>
+                />
               </div>
 
               {selectedLayer.motion.type !== 'none' && (
@@ -451,19 +453,20 @@ export function LayerAssemblyInspector({
                   {/* Điểm neo (Anchor) */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                     <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Điểm neo uốn (Anchor):</span>
-                    <select
-                      className="input-text sm"
+                    <Select
+                      size="sm"
                       value={selectedLayer.motion.anchor}
-                      onChange={(e) =>
+                      options={[
+                        { value: 'bottom', label: 'Gốc ở dưới (Thân cây, cành hoa, bụi cỏ)' },
+                        { value: 'top', label: 'Treo ở trên (Đèn lồng, dây xích, dây leo)' },
+                        { value: 'center', label: 'Ở giữa tâm (Tán lá bồng bềnh, mây khói)' }
+                      ]}
+                      onChange={(val) =>
                         onUpdateLayer(selectedLayer.id, {
-                          motion: { ...selectedLayer.motion, anchor: e.target.value as MotionAnchor }
+                          motion: { ...selectedLayer.motion, anchor: val as MotionAnchor }
                         })
                       }
-                    >
-                      <option value="bottom">Gốc ở dưới (Thân cây, cành hoa, bụi cỏ)</option>
-                      <option value="top">Treo ở trên (Đèn lồng, dây xích, dây leo)</option>
-                      <option value="center">Ở giữa tâm (Tán lá bồng bềnh, mây khói)</option>
-                    </select>
+                    />
                   </div>
 
                   {/* Tốc độ & Biên độ */}

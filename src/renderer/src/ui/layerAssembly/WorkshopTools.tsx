@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { WorkshopAction } from './workshopActions'
 import type { LayerComposite } from './types'
+import { Menu } from '../controls'
 
 export interface WorkshopToolsProps {
   count: number
@@ -124,22 +125,42 @@ export function WorkshopTools({
             onChange={(e) => dimension('height', Number(e.target.value))}
           />
         </label>
-        <select
-          aria-label="Khổ khung mẫu"
-          className="input-text sm"
-          value=""
-          onChange={(e) => {
-            const [width, height] = e.target.value.split('x').map(Number)
-            setComposite({ ...composite, width, height })
-          }}
-          style={{ width: '92px' }}
+        <Menu
+          id="lw-frame-preset"
+          label="Khổ mẫu…"
+          btnClassName="sm"
+          title="Chọn khổ khung hình mẫu"
         >
-          <option value="" disabled>Khổ mẫu…</option>
-          <option value="600x600">600 × 600</option>
-          <option value="1920x1080">1920 × 1080</option>
-          <option value="1080x1920">1080 × 1920</option>
-          <option value="1080x1080">1080 × 1080</option>
-        </select>
+          <div className="menu-label">Khổ khung chuẩn</div>
+          <button
+            type="button"
+            className="menu-item"
+            onClick={() => setComposite({ ...composite, width: 600, height: 600 })}
+          >
+            600 × 600 <span className="hint">1:1 vuông</span>
+          </button>
+          <button
+            type="button"
+            className="menu-item"
+            onClick={() => setComposite({ ...composite, width: 1920, height: 1080 })}
+          >
+            1920 × 1080 <span className="hint">16:9 ngang</span>
+          </button>
+          <button
+            type="button"
+            className="menu-item"
+            onClick={() => setComposite({ ...composite, width: 1080, height: 1920 })}
+          >
+            1080 × 1920 <span className="hint">9:16 dọc</span>
+          </button>
+          <button
+            type="button"
+            className="menu-item"
+            onClick={() => setComposite({ ...composite, width: 1080, height: 1080 })}
+          >
+            1080 × 1080 <span className="hint">1:1 HD</span>
+          </button>
+        </Menu>
         <button
           className="btn sm"
           onClick={() => setComposite({
@@ -163,26 +184,48 @@ export function WorkshopTools({
 
       {/* 6. Thao tác hàng loạt */}
       <div className="lw-tool-group" style={{ borderRight: 'none' }}>
-        <select
-          aria-label="Thao tác với các lớp đã chọn"
-          className="input-text sm"
+        <Menu
+          id="lw-batch-actions"
+          label="Thao tác…"
+          btnClassName="sm"
+          align="right"
           disabled={!count}
-          value=""
-          onChange={(e) => run(e.target.value as WorkshopAction)}
-          style={{ width: '115px' }}
+          title="Thao tác với các lớp đã chọn"
         >
-          <option value="" disabled>Thao tác…</option>
-          <option value="duplicate">Nhân bản (Ctrl+D)</option>
-          <option value="delete">Xóa (Delete)</option>
-          <option value="lock">Khóa layer</option>
-          <option value="unlock">Mở khóa layer</option>
-          <option value="hide">Ẩn layer</option>
-          <option value="show">Hiện layer</option>
-          <option value="flatten">Gom phẳng về Z = 0</option>
-          <option value="reset-transform">Đặt lại biến đổi</option>
-          <option value="stagger">Hoạt ảnh so le pha</option>
-          <option value="stop-motion">Tắt hoạt ảnh</option>
-        </select>
+          <button type="button" className="menu-item" onClick={() => run('duplicate')}>
+            Nhân bản <span className="hint">Ctrl+D</span>
+          </button>
+          <button type="button" className="menu-item" onClick={() => run('delete')}>
+            Xóa <span className="hint">Delete</span>
+          </button>
+          <div className="menu-label">Trạng thái</div>
+          <button type="button" className="menu-item" onClick={() => run('lock')}>
+            Khóa layer
+          </button>
+          <button type="button" className="menu-item" onClick={() => run('unlock')}>
+            Mở khóa layer
+          </button>
+          <button type="button" className="menu-item" onClick={() => run('hide')}>
+            Ẩn layer
+          </button>
+          <button type="button" className="menu-item" onClick={() => run('show')}>
+            Hiện layer
+          </button>
+          <div className="menu-label">Biến đổi &amp; Chiều sâu</div>
+          <button type="button" className="menu-item" onClick={() => run('flatten')}>
+            Gom phẳng về Z = 0
+          </button>
+          <button type="button" className="menu-item" onClick={() => run('reset-transform')}>
+            Đặt lại biến đổi
+          </button>
+          <div className="menu-label">Hoạt ảnh 2.5D</div>
+          <button type="button" className="menu-item" onClick={() => run('stagger')}>
+            Hoạt ảnh so le pha
+          </button>
+          <button type="button" className="menu-item" onClick={() => run('stop-motion')}>
+            Tắt hoạt ảnh
+          </button>
+        </Menu>
       </div>
     </div>
   )

@@ -400,6 +400,7 @@ export {
   type CustomSelectProps,
   type SelectOption
 } from './controls/CustomSelect'
+export { Menu, type MenuProps } from './controls/Menu'
 
 export function TextInput({
   value,

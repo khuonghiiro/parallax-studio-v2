@@ -26,6 +26,8 @@ export interface CustomSelectProps<T = string | number> {
   placeholder?: string
   style?: CSSProperties
   dropdownWidth?: number | string
+  zIndex?: number
+  size?: 'sm' | 'md'
 }
 
 interface DropdownPos {
@@ -50,7 +52,9 @@ export function CustomSelect<T extends string | number = string>({
   disabled = false,
   placeholder,
   style,
-  dropdownWidth
+  dropdownWidth,
+  zIndex = 50000,
+  size
 }: CustomSelectProps<T>) {
   const [isOpen, setIsOpen] = useState(false)
   const [highlightIdx, setHighlightIdx] = useState(-1)
@@ -159,12 +163,12 @@ export function CustomSelect<T extends string | number = string>({
   }
 
   return (
-    <div className={`custom-select-wrap ${className}`} style={style}>
+    <div className={`custom-select-wrap ${size ? size + ' ' : ''}${className}`} style={style}>
       <button
         ref={triggerRef}
         id={id}
         type="button"
-        className={`custom-select-trigger${isOpen ? ' open' : ''}`}
+        className={`custom-select-trigger${size === 'sm' ? ' sm' : ''}${isOpen ? ' open' : ''}`}
         onClick={() => (isOpen ? setIsOpen(false) : handleOpen())}
         onKeyDown={handleKeyDown}
         title={title}
@@ -191,7 +195,7 @@ export function CustomSelect<T extends string | number = string>({
               top: `${pos.top}px`,
               left: `${pos.left}px`,
               minWidth: `${pos.width}px`,
-              zIndex: 9999
+              zIndex
             }}
             role="listbox"
           >
