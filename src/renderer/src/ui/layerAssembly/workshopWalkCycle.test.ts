@@ -31,4 +31,16 @@ describe('walk cycle joint attachment', () => {
     expect(reverse['bone-arm-l']).toEqual(rig.tracks['bone-arm-l'])
     expect(reverse['bone-arm-r']).toEqual(rig.tracks['bone-arm-r'])
   })
+  it('plants the supporting ankle while the body shifts weight', () => {
+    const shin = bones.find((b) => b.id === 'bone-shin-l')!
+    for (let t = 0; t < 0.93; t += 0.013) {
+      const tf = evaluateRig(rig, t).get(shin.id)!
+      const tip = rotatePoint(shin.length, 0, shin.angle + tf.rotation)
+      expect(tf.x + tip.x).toBeCloseTo(shin.x, 1)
+      expect(tf.y + tip.y).toBeCloseTo(shin.y + shin.length, 1)
+    }
+    const lifted = evaluateRig(rig, 1.28).get(shin.id)!
+    const tip = rotatePoint(shin.length, 0, shin.angle + lifted.rotation)
+    expect(lifted.y + tip.y).toBeLessThan(shin.y + shin.length - 10)
+  })
 })

@@ -46,16 +46,17 @@ export async function insertLayerCompositeToScene({
   // Duyệt qua các layer theo thứ tự
   for (let idx = 0; idx < activeItems.length; idx++) {
     const item = activeItems[idx]
+    const hasEditedImage = Boolean(item.imageUrl)
 
     // 1. Tìm asset trong project nếu đã có
-    let asset: AssetMeta | undefined = projectAssets.find(
+    let asset: AssetMeta | undefined = hasEditedImage ? undefined : projectAssets.find(
       (a) =>
         (item.assetPath && (a.path?.endsWith(item.assetPath) || a.assetPath === item.assetPath)) ||
         a.id === item.assetPath
     )
 
     // Kiểm tra trong assetStore runtime
-    if (!asset && item.assetPath) {
+    if (!asset && item.assetPath && !hasEditedImage) {
       const existingRt = assetStore.get(item.assetPath)
       if (existingRt) {
         asset = existingRt.meta
@@ -67,9 +68,15 @@ export async function insertLayerCompositeToScene({
       try {
         let loadedData: Uint8Array | Blob | null = null
         let mime = 'image/png'
+        if (hasEditedImage) {
+          const response = await fetch(item.imageUrl!)
+          if (!response.ok) throw new Error('Không tải được ảnh đã tẩy')
+          loadedData = await response.blob()
+          mime = loadedData.type || mime
+        }
 
         // Nạp từ built-in assets hoặc asset-3ds
-        if (item.assetPath) {
+        if (item.assetPath && !hasEditedImage) {
           if (window.api?.loadBuiltInAssetBytes) {
             try {
               const file =
@@ -111,7 +118,7 @@ export async function insertLayerCompositeToScene({
         if (loadedData) {
           const fileName = (item.assetPath || item.name || 'layer').split('/').pop() || 'layer.png'
           const added = await assetStore.add(fileName, mime, loadedData, 'image')
-          if (item.assetPath) {
+          if (item.assetPath && !hasEditedImage) {
             added.meta.assetPath = item.assetPath
             added.meta.path = item.assetPath
           }
@@ -122,6 +129,7 @@ export async function insertLayerCompositeToScene({
         }
       } catch (err) {
         console.warn('[insertLayerCompositeToScene] Failed to load asset bytes for item:', item.name, err)
+        if (hasEditedImage) throw err
       }
     }
 
@@ -153,7 +161,10 @@ export async function insertLayerCompositeToScene({
       newLayer.props.height = targetAsset.height
     }
     newLayer.transform.position.value = [posX, posY, posZ]
-    newLayer.transform.scale.value = [item.scale * (item.scaleX ?? 1) * globalScale, item.scale * (item.scaleY ?? 1) * globalScale, 1]
+    const displayFactor = item.bindingMode === 'soft' && item.boneId ? 1
+      : Math.min(1, 380 / Math.max(targetAsset.width || 1, targetAsset.height || 1))
+    newLayer.transform.scale.value = [item.scale * (item.scaleX ?? 1) * globalScale * displayFactor,
+      item.scale * (item.scaleY ?? 1) * globalScale * displayFactor, 1]
     newLayer.transform.rotation.value = [item.rotationX || 0, item.rotationY || 0, item.rotation || 0]
     newLayer.transform.opacity.value = item.opacity
 

@@ -16,9 +16,12 @@ import {
 } from './layerAssembly2DBbox'
 import { AssembledLayerItemView } from './AssembledLayerItemView'
 import { LayerAssembly2DToolbar } from './LayerAssembly2DToolbar'
-import { useLayerBrushEraser } from './useLayerBrushEraser'
+import { useLayerBrushEraser, type BrushPreview } from './useLayerBrushEraser'
 
 export interface LayerAssemblyViewportProps {
+  brushSourceLayer?: AssembledLayerItem | null
+  onBrushPreview?: (preview: BrushPreview | null) => void
+  onBrushModeChange?: (active: boolean) => void
   boneOverlay?: BoneOverlayProps
   composite: LayerComposite
   selectedLayerId: string | null
@@ -40,6 +43,9 @@ export interface LayerAssemblyViewportProps {
 }
 
 export function LayerAssemblyViewport({
+  brushSourceLayer,
+  onBrushPreview,
+  onBrushModeChange,
   composite,
   selectedLayerId,
   selectedIds,
@@ -77,14 +83,17 @@ export function LayerAssemblyViewport({
 
   // Hook công cụ Cọ Tẩy (Brush Eraser) để xoá pixel thừa và làm mờ xuyên thấu nhẹ
   const brush = useLayerBrushEraser({
-    selectedLayer,
-    compositeWidth: composite.width,
-    compositeHeight: composite.height,
+    selectedLayer: brushSourceLayer === undefined ? selectedLayer : brushSourceLayer,
     zoom,
     pan,
     onUpdateLayer,
+    onPreview: onBrushPreview ?? (() => {}),
     containerRef
   })
+  useEffect(() => {
+    onBrushModeChange?.(brush.activeTool === 'eraser')
+    return () => onBrushModeChange?.(false)
+  }, [brush.activeTool, onBrushModeChange])
 
   const handleDragRef = useRef<{
     handle: Bbox2DHandle
@@ -269,7 +278,7 @@ export function LayerAssemblyViewport({
   }
 
   const handlePointerUp = (e: React.PointerEvent) => {
-    brush.handleEraserPointerUp()
+    brush.handleEraserPointerUp(e)
 
     if (isPanning) {
       setIsPanning(false)
@@ -389,6 +398,8 @@ export function LayerAssemblyViewport({
       onPointerDown={handlePointerDownViewport}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onPointerCancel={brush.cancelStroke}
+      onLostPointerCapture={brush.cancelStroke}
       onPointerLeave={() => brush.setCursorPos(null)}
       onDragOver={(e) => {
         e.preventDefault()
@@ -445,7 +456,7 @@ export function LayerAssemblyViewport({
           border: '2px solid var(--accent)',
           boxShadow: '0 12px 48px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--line-focus)',
           overflow: clipToCamera ? 'hidden' : 'visible',
-          perspective: show3DPerspective ? '1400px' : 'none',
+          perspective: show3DPerspective && brush.activeTool !== 'eraser' ? '1400px' : 'none',
           perspectiveOrigin: '50% 50%',
           transformStyle: 'preserve-3d'
         }}
@@ -490,7 +501,7 @@ export function LayerAssemblyViewport({
               time={time}
               maxZ={maxZ}
               lighting={composite.lighting}
-              show3DPerspective={show3DPerspective}
+              show3DPerspective={show3DPerspective && brush.activeTool !== 'eraser'}
               showMesh={showMesh}
               onPointerDown={(e) => handleStartDragLayer(e, layer)}
               onStartDragHandle={handleStartDragHandle}
@@ -519,6 +530,10 @@ export function LayerAssemblyViewport({
       </div>
 
       {/* Vòng tròn con trỏ Cọ Tẩy (Brush Cursor Indicator) theo thời gian thực */}
+      {brush.activeTool === 'eraser' && <div style={{ position: 'absolute', bottom: 10, left: 48,
+        color: 'var(--text-dim)', background: 'var(--bg-1)', padding: '4px 8px', pointerEvents: 'none' }}>
+        Tẩy ở tư thế gốc · Thả chuột để lưu một nét · Escape huỷ nét
+      </div>}
       {brush.activeTool === 'eraser' && !brush.isBrushPopoverOpen && brush.cursorPos && (
         <div
           style={{

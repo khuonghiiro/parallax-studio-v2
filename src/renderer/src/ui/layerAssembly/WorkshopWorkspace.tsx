@@ -9,6 +9,7 @@ import { IconCube, IconImage } from '../icons'
 import { evaluateRig, transformRigLayer } from '../../engine/layerRig'
 import type { WorkshopTab } from './WorkshopRightPanel'
 import { loadLayerWorkshopViewPrefs, saveLayerWorkshopViewPrefs } from './layerAssemblyViewPrefs'
+import type { BrushPreview } from './useLayerBrushEraser'
 
 export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBone }: {
   state: ReturnType<typeof useLayerWorkshop>; playback: ReturnType<typeof useWorkshopPlayback>; view: AssemblyWorkspaceView
@@ -16,6 +17,12 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
 }) {
   const [showBones, setShowBones] = useState(() => loadLayerWorkshopViewPrefs().showBones)
   const [showMesh, setShowMesh] = useState(() => loadLayerWorkshopViewPrefs().showMesh)
+  const [brushEditing, setBrushEditing] = useState(false)
+  const [brushPreview, setBrushPreview] = useState<BrushPreview | null>(null)
+  const brushMode = useCallback((editing: boolean) => {
+    setBrushEditing(editing)
+    if (editing) playback.setIsPlaying(false)
+  }, [playback.setIsPlaying])
 
   const toggleBones = useCallback(() => {
     setShowBones((v) => {
@@ -48,7 +55,7 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
   }, [toggleBones, toggleMesh])
 
   const rig = state.composite.rig
-  const animated = (tab === 'animation' || playback.isPlaying || playback.time > 0) && rig
+  const animated = !brushEditing && (tab === 'animation' || playback.isPlaying || playback.time > 0) && rig
   const transforms = animated ? evaluateRig(animated, playback.time) : undefined
   const composite = {
     ...state.composite,
@@ -57,7 +64,9 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
       const transformed = transforms ? transformRigLayer(l, transforms) : l
       return {
         ...transformed,
-        ...(rig ? { previewRig: rig, bindPose } : {}),
+        ...(brushPreview?.id === l.id ? { imageUrl: brushPreview.imageUrl } : {}),
+        ...(rig && !brushEditing ? { previewRig: rig, bindPose } : {}),
+        ...(brushEditing ? { bindingMode: 'rigid' as const, motion: { ...l.motion, type: 'none' as const } } : {}),
         locked: l.locked
       }
     })
@@ -78,11 +87,14 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
         <div className="pane-header-tab"><span className="pane-title"><IconImage width={13} height={13} /> Bố cục 2D</span><span>Di chuyển & căn chỉnh</span></div>
         <LayerAssemblyViewport
           {...props}
+          brushSourceLayer={state.composite.layers.find((l) => l.id === state.selectedLayerId) ?? null}
+          onBrushPreview={setBrushPreview}
+          onBrushModeChange={brushMode}
           showBones={showBones}
           onToggleShowBones={toggleBones}
           showMesh={showMesh}
           onToggleShowMesh={toggleMesh}
-          boneOverlay={tab === 'layers' ? undefined : { composite: state.composite, boneId, selectBone, setComposite: state.setComposite, time: playback.time, editing: tab === 'bones' }}
+          boneOverlay={tab === 'layers' || brushEditing ? undefined : { composite: state.composite, boneId, selectBone, setComposite: state.setComposite, time: playback.time, editing: tab === 'bones' }}
           onChangeComposite={state.setComposite}
           isPlaying={playback.isPlaying}
           onTogglePlay={playback.toggle}
