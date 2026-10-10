@@ -14,6 +14,7 @@ export interface AssembledLayerItem {
   bindingMode?: 'rigid' | 'soft'
   /** Transient preview rig, never persisted by workshop actions. */
   previewRig?: import('@shared/layerRig').LayerRig
+  bindPose?: { x: number; y: number; rotation: number }
   id: string
   name: string
   assetPath?: string

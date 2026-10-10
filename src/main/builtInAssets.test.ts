@@ -12,10 +12,10 @@ describe('Built-in Assets Catalog & Manifest Management', () => {
     // Check default categories
     const allCat = catalog.categories.find((c) => c.id === 'all')
     const layeredCat = catalog.categories.find((c) => c.id === 'demo_transparent')
-    const demosCat = catalog.categories.find((c) => c.id === 'demos')
+    const audioCat = catalog.categories.find((c) => c.id === 'audio')
     expect(allCat).toBeDefined()
     expect(layeredCat?.title).toContain('2.5D')
-    expect(demosCat?.title).toContain('VFX')
+    expect(audioCat?.title).toContain('Âm thanh')
 
     // Check items discovered
     expect(Array.isArray(catalog.items)).toBe(true)

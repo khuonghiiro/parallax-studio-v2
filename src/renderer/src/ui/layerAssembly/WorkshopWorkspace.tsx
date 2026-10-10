@@ -48,18 +48,19 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
   }, [toggleBones, toggleMesh])
 
   const rig = state.composite.rig
-  const animated = tab === 'animation' && rig
+  const animated = (tab === 'animation' || playback.isPlaying || playback.time > 0) && rig
   const transforms = animated ? evaluateRig(animated, playback.time) : undefined
   const composite = {
     ...state.composite,
-    layers: state.composite.layers.map((l) => ({
-      ...(l.bindingMode === 'soft' && rig
-        ? { ...l, previewRig: rig }
-        : transforms
-          ? transformRigLayer(l, transforms)
-          : l),
-      locked: l.locked
-    }))
+    layers: state.composite.layers.map((l) => {
+      const bindPose = { x: l.x, y: l.y, rotation: l.rotation }
+      const transformed = transforms ? transformRigLayer(l, transforms) : l
+      return {
+        ...transformed,
+        ...(rig ? { previewRig: rig, bindPose } : {}),
+        locked: l.locked
+      }
+    })
   }
   const props = {
     composite,

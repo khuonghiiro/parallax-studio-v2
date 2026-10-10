@@ -166,9 +166,11 @@ export async function captureCompositeThumbnail(
   if (composite.rig?.bones?.length) {
     try {
       const transforms = evaluateRig(composite.rig, time)
-      effectiveLayers = composite.layers.map((l) => ({
-        ...(l.bindingMode === 'soft' ? l : transformRigLayer(l, transforms))
-      }))
+      effectiveLayers = composite.layers.map((l) => {
+        const bindPose = { x: l.x, y: l.y, rotation: l.rotation }
+        const transformed = transformRigLayer(l, transforms)
+        return { ...transformed, bindPose }
+      })
     } catch (err) {
       console.warn('[captureCompositeThumbnail] Failed to evaluate rig:', err)
     }

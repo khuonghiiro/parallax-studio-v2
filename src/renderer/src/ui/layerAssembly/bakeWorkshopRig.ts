@@ -5,7 +5,7 @@ import type { AssembledLayerItem, LayerComposite } from './types'
 /** Bake into native project tracks so preview, saved projects and MP4 use the same motion. */
 export function bakeWorkshopRig(layer: ImageLayer, item: AssembledLayerItem, composite: LayerComposite,
   duration: number, fps: number, scale: number, offset: Vec3): void {
-  if (!composite.rig || !item.boneId || item.bindingMode === 'soft') return
+  if (!composite.rig || !item.boneId) return
   const frames = Math.ceil(duration * fps)
   for (let frame = 0; frame <= frames; frame++) {
     const t = Math.min(duration, frame / fps)

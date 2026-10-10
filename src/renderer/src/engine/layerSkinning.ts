@@ -9,13 +9,17 @@ export interface SkinBinding {
   scale: number
   scaleX?: number
   scaleY?: number
+  bindPose?: { x: number; y: number; rotation: number }
 }
 export interface SkinInfluence { id: string; weight: number }
 const weightCache = new WeakMap<Float32Array, { key: string; weights: SkinInfluence[][] }>()
 
 function cachedWeights(positions: Float32Array, binding: SkinBinding, bones: LayerRig['bones']) {
-  const scale = binding.scale ?? 1, rot = binding.rotation ?? 0
-  const key = JSON.stringify([binding.x ?? 0, binding.y ?? 0, rot, scale,
+  const scale = binding.scale ?? 1
+  const rot = binding.bindPose?.rotation ?? binding.rotation ?? 0
+  const bx = binding.bindPose?.x ?? binding.x ?? 0
+  const by = binding.bindPose?.y ?? binding.y ?? 0
+  const key = JSON.stringify([bx, by, rot, scale,
     binding.scaleX ?? 1, binding.scaleY ?? 1, bones])
   const cached = weightCache.get(positions)
   if (cached?.key === key) return cached.weights
@@ -23,15 +27,18 @@ function cachedWeights(positions: Float32Array, binding: SkinBinding, bones: Lay
   for (let i = 0; i < positions.length; i += 3) {
     const p = rotatePoint(positions[i] * scale * (binding.scaleX ?? 1),
       -positions[i + 1] * scale * (binding.scaleY ?? 1), rot)
-    weights.push(skinWeights(p.x + (binding.x ?? 0), p.y + (binding.y ?? 0), bones))
+    weights.push(skinWeights(p.x + bx, p.y + by, bones))
   }
   weightCache.set(positions, { key, weights })
   return weights
 }
 
-/** Only the selected branch influences a layer (a hair chain cannot pull an arm). */
+/** Only the selected branch and immediate parent influence a layer (e.g. elbow joint bends seamlessly). */
 export function skinBones(rig: LayerRig, root?: string) {
-  const ids = new Set(root ? [root] : [])
+  if (!root) return rig.bones
+  const ids = new Set([root])
+  const current = rig.bones.find((b) => b.id === root)
+  if (current?.parentId) ids.add(current.parentId)
   for (let i = 0; i < rig.bones.length; i++) {
     for (const b of rig.bones) if (b.parentId && ids.has(b.parentId)) ids.add(b.id)
   }
@@ -58,13 +65,20 @@ export function deformSkin(positions: Float32Array, binding: SkinBinding, rig: L
   const transforms = evaluateRig(rig, time)
   const weights = cachedWeights(positions, binding, bones)
   const boneById = new Map(bones.map((b) => [b.id, b]))
-  const scale = binding.scale ?? 1, rot = binding.rotation ?? 0
+  const scale = binding.scale ?? 1
+  const restRot = binding.bindPose?.rotation ?? binding.rotation ?? 0
+  const restBx = binding.bindPose?.x ?? binding.x ?? 0
+  const restBy = binding.bindPose?.y ?? binding.y ?? 0
+  const curRot = binding.rotation ?? restRot
+  const curBx = binding.x ?? restBx
+  const curBy = binding.y ?? restBy
+
   const sx = scale * (binding.scaleX ?? 1), sy = scale * (binding.scaleY ?? 1)
   if (Math.abs(sx * sy) < 1e-10) return output
-  const bx = binding.x ?? 0, by = binding.y ?? 0
+
   for (let i = 0; i < positions.length; i += 3) {
-    const p = rotatePoint(positions[i] * sx, -positions[i + 1] * sy, rot)
-    const wx = p.x + bx, wy = p.y + by
+    const p = rotatePoint(positions[i] * sx, -positions[i + 1] * sy, restRot)
+    const wx = p.x + restBx, wy = p.y + restBy
     let x = 0, y = 0
     for (const influence of weights[i / 3]) {
       const transform = transforms.get(influence.id)
@@ -75,7 +89,7 @@ export function deformSkin(positions: Float32Array, binding: SkinBinding, rig: L
       x += (transform.x + delta.x) * influence.weight
       y += (transform.y + delta.y) * influence.weight
     }
-    const local = rotatePoint(x - bx, y - by, -rot)
+    const local = rotatePoint(x - curBx, y - curBy, -curRot)
     output[i] = local.x / sx
     output[i + 1] = -local.y / sy
   }
