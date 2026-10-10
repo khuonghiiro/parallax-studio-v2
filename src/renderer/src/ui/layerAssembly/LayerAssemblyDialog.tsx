@@ -35,7 +35,7 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
   const playback = useWorkshopPlayback(composite.rig?.duration, composite.rig?.loop)
   const [tab, setTab] = useState<WorkshopTab>('layers')
   const [boneId, selectBone] = useState<string | null>(null)
-  const saving = useWorkshopSave(() => history.current, onClose)
+  const saving = useWorkshopSave(() => history.current, onClose, () => playback.time)
   const close = () => { if (!saving.busy) onClose() }
   const [view, setView] = useState<AssemblyWorkspaceView>('split')
   const [showNewConfirm, setShowNewConfirm] = useState(false)

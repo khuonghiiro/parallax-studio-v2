@@ -4,7 +4,11 @@ import { captureCompositeThumbnail } from './layerAssemblyThumbnail'
 import { saveComposite } from './layerAssemblyStorage'
 import { insertLayerCompositeToScene } from './insertLayerComposite'
 
-export function useWorkshopSave(getComposite: () => LayerComposite, onClose: () => void) {
+export function useWorkshopSave(
+  getComposite: () => LayerComposite,
+  onClose: () => void,
+  getTime?: () => number
+) {
   const lock = useRef(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -12,11 +16,21 @@ export function useWorkshopSave(getComposite: () => LayerComposite, onClose: () 
     if (lock.current) return false
     const composite = getComposite()
     if (!composite.layers.length) return false
-    lock.current = true; setBusy(true); setError('')
+    lock.current = true
+    setBusy(true)
+    setError('')
     try {
+      const time = getTime ? getTime() : 0
       let thumbnail = composite.thumbnail
-      try { thumbnail = await captureCompositeThumbnail(composite) }
-      catch (err) { console.warn('[LayerAssembly] Thumbnail unavailable:', err) }
+      try {
+        thumbnail = await captureCompositeThumbnail(composite, {
+          size: 280,
+          time,
+          autoFit: true
+        })
+      } catch (err) {
+        console.warn('[LayerAssembly] Thumbnail capture failed:', err)
+      }
       const saved = { ...composite, thumbnail }
       saveComposite(saved)
       if (insert) await insertLayerCompositeToScene({ composite: saved })

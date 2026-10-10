@@ -2,10 +2,12 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import type { LayerComposite } from './types'
 import {
   getStoredComposites,
+  saveComposite,
   deleteComposite,
   duplicateComposite,
   COMPOSITE_CATEGORIES
 } from './layerAssemblyStorage'
+import { captureCompositeThumbnail } from './layerAssemblyThumbnail'
 import { insertLayerCompositeToScene } from './insertLayerComposite'
 import { LayerAssemblyDialog } from './LayerAssemblyDialog'
 import { LayerAssemblyCategoryBar } from './LayerAssemblyCategoryBar'
@@ -205,6 +207,30 @@ function LayerCardItem({
   onDuplicate,
   onDelete
 }: LayerCardItemProps) {
+  const [thumb, setThumb] = useState<string | undefined>(item.thumbnail)
+
+  useEffect(() => {
+    if (item.thumbnail) {
+      setThumb(item.thumbnail)
+      return
+    }
+    let active = true
+    captureCompositeThumbnail(item, { size: 240, autoFit: true })
+      .then((url) => {
+        if (active && url) {
+          setThumb(url)
+          item.thumbnail = url
+          saveComposite(item)
+        }
+      })
+      .catch((err) => {
+        console.warn('[LayerCardItem] Failed to generate thumbnail:', item.name, err)
+      })
+    return () => {
+      active = false
+    }
+  }, [item])
+
   const mainMotion = item.layers.find((l) => l.motion?.type && l.motion.type !== 'none')?.motion?.type || 'none'
   const motionLabels: Record<string, string> = {
     sway: 'Đung đưa 🍃',
@@ -275,9 +301,9 @@ function LayerCardItem({
         </div>
 
         {/* Thumbnail Graphic Preview */}
-        {item.thumbnail ? (
+        {thumb || item.thumbnail ? (
           <img
-            src={item.thumbnail}
+            src={thumb || item.thumbnail}
             alt={item.name}
             className="model-3d-thumb-img"
           />
