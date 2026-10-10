@@ -22,7 +22,7 @@ describe('walk cycle joint attachment', () => {
       const left = sampleBonePose(rig, 'bone-thigh-l', frame / 30)
       const right = sampleBonePose(rig, 'bone-thigh-r', frame / 30 + 0.8)
       expect(left.rotation).toBeCloseTo(-right.rotation, 4)
-      expect(left.scaleY ?? 1).toBe(1)
+      expect(left.scaleY ?? 1).toBeCloseTo(right.scaleY ?? 1, 4)
       expect(left.y).toBeCloseTo(right.y, 4)
     }
   })

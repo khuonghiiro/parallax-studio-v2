@@ -16,8 +16,8 @@ for (const [side, label, sign] of [['l', 'trái', -1], ['r', 'phải', 1]] as co
   )
 }
 
-function part(role: string, name: string, x: number, y: number, z: number): AssembledLayerItem {
-  return { id: `knight-${role}`, name, boneId: `bone-${role}`, bindingMode: 'rigid',
+function part(role: string, name: string, x: number, y: number, z: number, mode: 'soft' | 'rigid' = 'soft'): AssembledLayerItem {
+  return { id: `knight-${role}`, name, boneId: `bone-${role}`, bindingMode: mode,
     assetPath: `character_hero/v2/${role.replaceAll('-', '_')}.png`, x, y, z,
     scale: 0.5, rotation: 0, opacity: 1,
     motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' } }
@@ -29,12 +29,12 @@ export const KNIGHT_COMPOSITE: LayerComposite = {
   description: '11 mảnh giáp vẽ đồng bộ, khớp vai/khuỷu/gối chồng lấp. Bước tại chỗ chính diện, giữ chiều dài chi và nối vòng liên tục.',
   width: 420, height: 540,
   layers: [
-    part('thigh-l', 'Đùi trái', -29, 83, 35), part('thigh-r', 'Đùi phải', 29, 83, 35),
-    part('shin-l', 'Cẳng chân & Ủng trái', -30, 165, 22), part('shin-r', 'Cẳng chân & Ủng phải', 30, 165, 22),
-    part('torso', 'Thân & Giáp ngực', 0, -38, 10), part('pelvis', 'Hông & Thắt lưng', 0, 30, 0),
-    part('arm-l', 'Bắp tay & Giáp vai trái', -58, -36, -6), part('arm-r', 'Bắp tay & Giáp vai phải', 58, -36, -6),
-    part('head', 'Mũ giáp & Chùm lông đỏ', -6, -159, -15),
-    part('forearm-l', 'Cẳng tay & Găng trái', -58, 32, -25), part('forearm-r', 'Cẳng tay & Găng phải', 58, 32, -25)
+    part('thigh-l', 'Đùi trái', -29, 83, 35, 'soft'), part('thigh-r', 'Đùi phải', 29, 83, 35, 'soft'),
+    part('shin-l', 'Cẳng chân & Ủng trái', -30, 165, 22, 'soft'), part('shin-r', 'Cẳng chân & Ủng phải', 30, 165, 22, 'soft'),
+    part('torso', 'Thân & Giáp ngực', 0, -38, 10, 'soft'), part('pelvis', 'Hông & Thắt lưng', 0, 30, 0, 'soft'),
+    part('arm-l', 'Bắp tay & Giáp vai trái', -58, -36, -6, 'soft'), part('arm-r', 'Bắp tay & Giáp vai phải', 58, -36, -6, 'soft'),
+    part('head', 'Mũ giáp & Chùm lông đỏ', -6, -159, -15, 'rigid'),
+    part('forearm-l', 'Cẳng tay & Găng trái', -58, 32, -25, 'soft'), part('forearm-r', 'Cẳng tay & Găng phải', 58, 32, -25, 'soft')
   ],
   rig: { bones, duration: 1.6, loop: true, tracks: generateWalkCycle(bones) }
 }

@@ -13,7 +13,7 @@ function track(duration: number, pose: (phase: number) => Partial<BonePose>): Bo
 }
 
 /** Frontal marching in place: mirrored, half-cycle legs and delayed opposite arms.
- * Only root translation is animated. Child pivots and armor dimensions stay attached.
+ * Natural frontal arm swing flexes forearms forward/inward with depth scaling rather than flaring sideways.
  */
 export function generateWalkCycle(bones: LayerBone[], duration = 1.6): Record<string, BoneKeyframe[]> {
   const tracks: Record<string, BoneKeyframe[]> = {}
@@ -23,12 +23,18 @@ export function generateWalkCycle(bones: LayerBone[], duration = 1.6): Record<st
   const pelvis = roleBone(bones, 'pelvis', 'hông') ?? bones.find((b) => !b.parentId)?.id
   const unit = (bones.find((b) => b.id === pelvis)?.length ?? 50) / 50
   assign(pelvis, (p) => ({
-    x: -5.5 * unit * Math.sin(p),
-    y: unit * 6.5 * Math.cos(2 * p),
-    rotation: -2.0 * Math.sin(p)
+    x: -4.5 * unit * Math.sin(p),
+    y: unit * 5.5 * Math.cos(2 * p),
+    rotation: -1.5 * Math.sin(p)
   }))
-  assign(roleBone(bones, 'torso', 'thân'), (p) => ({ rotation: 2.8 * Math.sin(p - 0.2) }))
-  assign(roleBone(bones, 'head', 'đầu'), (p) => ({ rotation: -1.2 * Math.sin(p - 0.4) }))
+  assign(roleBone(bones, 'torso', 'thân'), (p) => ({
+    rotation: 1.8 * Math.sin(p - 0.2),
+    y: -1.0 * Math.cos(2 * p)
+  }))
+  assign(roleBone(bones, 'head', 'đầu'), (p) => ({
+    rotation: -0.8 * Math.sin(p - 0.4),
+    y: 0.5 * Math.cos(2 * p)
+  }))
 
   for (const [side, label, sign, offset] of [
     ['l', 'trái', 1, 0],
@@ -40,12 +46,14 @@ export function generateWalkCycle(bones: LayerBone[], duration = 1.6): Record<st
       return phi < Math.PI ? Math.sin(phi) : 0
     }
 
-    // Đùi nhấc lên khi bước chân (swing phase)
+    // Đùi nhấc lên khi bước chân (swing phase), tăng nhẹ tỉ lệ chiều sâu phối cảnh
     assign(roleBone(bones, `thigh-${side}`, `đùi ${label}`), (p) => {
       const l = swingLift(p)
       return {
-        y: -12 * (l ** 1.5),
-        rotation: sign * (l > 0 ? 4.5 * l : 1.5 * Math.sin(p + offset))
+        y: -11 * (l ** 1.4),
+        rotation: sign * 1.5 * Math.sin(p + offset),
+        scaleY: 1 + 0.04 * l,
+        scaleX: 1 + 0.03 * l
       }
     })
 
@@ -53,17 +61,37 @@ export function generateWalkCycle(bones: LayerBone[], duration = 1.6): Record<st
     assign(roleBone(bones, `shin-${side}`, `cẳng chân ${label}`), (p) => {
       const l = swingLift(p)
       return {
-        rotation: -sign * (l > 0 ? 4.5 * l : 1.5 * Math.sin(p + offset))
+        rotation: -sign * 1.5 * Math.sin(p + offset),
+        scaleY: 1 + 0.05 * l,
+        scaleX: 1 + 0.05 * l
       }
     })
 
-    // Bắp tay và cẳng tay vung đối xứng tự nhiên
-    assign(roleBone(bones, `arm-${side}`, `bắp tay ${label}`), (p) => ({
-      rotation: -sign * 8.0 * Math.sin(p + offset + 0.25)
-    }))
-    assign(roleBone(bones, `forearm-${side}`, `cẳng tay ${label}`), (p) => ({
-      rotation: -sign * 5.5 * Math.sin(p + offset - 0.1)
-    }))
+    // TAY VUNG CHÍNH DIỆN:
+    // Đánh tay ngược pha với chân (offset + PI)
+    // Khi đánh tới trước: cẳng tay gập lên ở khuỷu tay (y âm), cổ tay hướng nhẹ vào trong ngực, không bạt ngang
+    const armPhase = (p: number) => legPhase(p + Math.PI)
+    assign(roleBone(bones, `arm-${side}`, `bắp tay ${label}`), (p) => {
+      const fwd = Math.cos(armPhase(p))
+      return {
+        x: sign * 0.8 * fwd,
+        y: -2.0 * fwd,
+        rotation: sign * (0.8 * fwd),
+        scaleY: 1 + 0.03 * fwd,
+        scaleX: 1 + 0.03 * fwd
+      }
+    })
+    assign(roleBone(bones, `forearm-${side}`, `cẳng tay ${label}`), (p) => {
+      const fwd = Math.cos(armPhase(p))
+      const lift = Math.max(0, fwd)
+      return {
+        x: sign * 1.5 * lift,
+        y: -9.0 * (lift ** 1.3) + 3.0 * Math.max(0, -fwd),
+        rotation: sign * 3.5 * lift,
+        scaleY: 1 + 0.07 * lift - 0.04 * Math.max(0, -fwd),
+        scaleX: 1 + 0.06 * lift - 0.03 * Math.max(0, -fwd)
+      }
+    })
   }
   // Unknown bones remain at rest; the parent still carries them along.
   for (const bone of bones) if (!tracks[bone.id]) assign(bone.id, () => ({}))
