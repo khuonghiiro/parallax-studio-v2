@@ -63,12 +63,23 @@ export function generateWalkCycle(
           return { rotation: Number(Math.max(-2, backFold).toFixed(2)) }
         })
       }
+      // Bàn chân hơi duỗi/gập theo cẳng chân
+      assign(roleBone(bones, `foot-${side}`, `bàn chân ${label}`), (p) => {
+        const ph = p + offset
+        const ankleBend = Math.cos(ph) > 0 ? 10 * Math.sin(ph) : -5
+        return { rotation: Number(ankleBend.toFixed(2)) }
+      })
+
       // Tay vung ngược pha với chân
       assign(roleBone(bones, `arm-${side}`, `bắp tay ${label}`), (p) => ({
         rotation: Number((-28 * Math.sin(p + offset)).toFixed(2))
       }))
       assign(roleBone(bones, `forearm-${side}`, `cẳng tay ${label}`), (p) => ({
         rotation: Number((-14 - 16 * Math.sin(p + offset - 0.3)).toFixed(2))
+      }))
+      // Bàn tay hơi vung nhẹ
+      assign(roleBone(bones, `hand-${side}`, `bàn tay ${label}`), (p) => ({
+        rotation: Number((-10 * Math.sin(p + offset - 0.4)).toFixed(2))
       }))
     }
   } else if (viewAngle === 'diagonal') {
@@ -93,11 +104,17 @@ export function generateWalkCycle(
           return { rotation: Number((solved.shin * 0.7 + Math.max(0, 18 * Math.sin(p + offset))).toFixed(2)) }
         })
       }
+      assign(roleBone(bones, `foot-${side}`, `bàn chân ${label}`), (p) => ({
+        rotation: Number((5 * Math.sin(p + offset)).toFixed(2))
+      }))
       assign(roleBone(bones, `arm-${side}`, `bắp tay ${label}`), (p) => ({
         rotation: Number((sign * 3 - 18 * Math.sin(p + offset + 0.2)).toFixed(2))
       }))
       assign(roleBone(bones, `forearm-${side}`, `cẳng tay ${label}`), (p) => ({
         rotation: Number((-sign * 3 - 10 * Math.sin(p + offset - 0.2)).toFixed(2))
+      }))
+      assign(roleBone(bones, `hand-${side}`, `bàn tay ${label}`), (p) => ({
+        rotation: Number((-8 * Math.sin(p + offset - 0.3)).toFixed(2))
       }))
     }
   } else {
@@ -150,6 +167,18 @@ export function generateWalkCycle(
         scaleX: 1 + 0.1 * forwardSwing(p) - 0.08 * backwardSwing(p),
         scaleY: 1 - 0.2 * forwardSwing(p) // Cẳng tay ngắn lại rõ rệt do chỉa thẳng vào camera
       }))
+      assign(roleBone(bones, `hand-${side}`, `bàn tay ${label}`), (p) => ({
+        rotation: sign * (5 * forwardSwing(p)) * signMod,
+        y: -18 * unit * forwardSwing(p), 
+        scaleX: 1 + 0.15 * forwardSwing(p) - 0.1 * backwardSwing(p),
+        scaleY: 1 - 0.2 * forwardSwing(p)
+      }))
+      assign(roleBone(bones, `foot-${side}`, `bàn chân ${label}`), (p) => ({
+        rotation: -sign * (4 * lift(p)) * signMod,
+        y: -6 * unit * lift(p),
+        scaleX: 1 + 0.15 * stepPhase(p),
+        scaleY: 1 + 0.15 * stepPhase(p)
+      }))
     }
   }
 
@@ -188,11 +217,19 @@ export function generateRunCycle(
           return { rotation: Number(Math.max(-4, backFold).toFixed(2)) }
         })
       }
+      assign(roleBone(bones, `foot-${side}`, `bàn chân ${label}`), (p) => {
+        const ph = p + offset
+        const ankleBend = Math.cos(ph) > 0 ? 15 * Math.sin(ph) : -10
+        return { rotation: Number(ankleBend.toFixed(2)) }
+      })
       assign(roleBone(bones, `arm-${side}`, `bắp tay ${label}`), (p) => ({
         rotation: Number((-48 * Math.sin(p + offset)).toFixed(2))
       }))
       assign(roleBone(bones, `forearm-${side}`, `cẳng tay ${label}`), (p) => ({
         rotation: Number((-35 - 25 * Math.sin(p + offset - 0.2)).toFixed(2))
+      }))
+      assign(roleBone(bones, `hand-${side}`, `bàn tay ${label}`), (p) => ({
+        rotation: Number((-15 * Math.sin(p + offset - 0.4)).toFixed(2))
       }))
     }
   } else {
@@ -243,6 +280,18 @@ export function generateRunCycle(
         y: -20 * unit * forwardSwing(p), // Gập mạnh hơn khi chạy
         scaleX: 1 + 0.15 * forwardSwing(p) - 0.12 * backwardSwing(p),
         scaleY: 1 - 0.3 * forwardSwing(p)
+      }))
+      assign(roleBone(bones, `hand-${side}`, `bàn tay ${label}`), (p) => ({
+        rotation: sign * (8 * forwardSwing(p)) * signMod,
+        y: -24 * unit * forwardSwing(p), 
+        scaleX: 1 + 0.18 * forwardSwing(p) - 0.1 * backwardSwing(p),
+        scaleY: 1 - 0.35 * forwardSwing(p)
+      }))
+      assign(roleBone(bones, `foot-${side}`, `bàn chân ${label}`), (p) => ({
+        rotation: -sign * (6 * lift(p)) * signMod,
+        y: -12 * unit * lift(p),
+        scaleX: 1 + 0.18 * stepPhase(p),
+        scaleY: 1 + 0.18 * stepPhase(p)
       }))
     }
   }

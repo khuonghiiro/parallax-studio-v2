@@ -11,12 +11,16 @@ export function createHumanoidBones(): LayerBone[] {
     { id: 'bone-head', name: 'Đầu', parentId: 'bone-torso', x: 0, y: -85, length: 60, angle: -90 },
     { id: 'bone-arm-l', name: 'Bắp tay trái', parentId: 'bone-torso', x: -35, y: -70, length: 55, angle: 95 },
     { id: 'bone-forearm-l', name: 'Cẳng tay trái', parentId: 'bone-arm-l', x: -38, y: -15, length: 50, angle: 90 },
+    { id: 'bone-hand-l', name: 'Bàn tay trái', parentId: 'bone-forearm-l', x: -38, y: 35, length: 25, angle: 90 },
     { id: 'bone-arm-r', name: 'Bắp tay phải', parentId: 'bone-torso', x: 35, y: -70, length: 55, angle: 85 },
     { id: 'bone-forearm-r', name: 'Cẳng tay phải', parentId: 'bone-arm-r', x: 38, y: -15, length: 50, angle: 90 },
+    { id: 'bone-hand-r', name: 'Bàn tay phải', parentId: 'bone-forearm-r', x: 38, y: 35, length: 25, angle: 90 },
     { id: 'bone-thigh-l', name: 'Đùi trái', parentId: 'bone-pelvis', x: -25, y: 35, length: 70, angle: 90 },
     { id: 'bone-shin-l', name: 'Cẳng chân trái', parentId: 'bone-thigh-l', x: -25, y: 105, length: 70, angle: 90 },
+    { id: 'bone-foot-l', name: 'Bàn chân trái', parentId: 'bone-shin-l', x: -25, y: 175, length: 30, angle: 0 },
     { id: 'bone-thigh-r', name: 'Đùi phải', parentId: 'bone-pelvis', x: 25, y: 35, length: 70, angle: 90 },
-    { id: 'bone-shin-r', name: 'Cẳng chân phải', parentId: 'bone-thigh-r', x: 25, y: 105, length: 70, angle: 90 }
+    { id: 'bone-shin-r', name: 'Cẳng chân phải', parentId: 'bone-thigh-r', x: 25, y: 105, length: 70, angle: 90 },
+    { id: 'bone-foot-r', name: 'Bàn chân phải', parentId: 'bone-shin-r', x: 25, y: 175, length: 30, angle: 0 }
   ]
 }
 
@@ -103,6 +107,7 @@ export function generateWaveHand(bones: LayerBone[], duration = 1.8): Record<str
   const d = duration
   const armR = findBoneId(bones, ['arm-r', 'arm_r', 'bắp tay phải', 'upperarm-r']) ?? bones[1]?.id
   const forearmR = findBoneId(bones, ['forearm-r', 'forearm_r', 'cẳng tay phải', 'lowerarm-r']) ?? bones[2]?.id
+  const handR = findBoneId(bones, ['hand-r', 'hand_r', 'bàn tay phải'])
   const torso = findBoneId(bones, ['torso', 'thân', 'ngực'])
 
   if (torso) {
@@ -128,6 +133,15 @@ export function generateWaveHand(bones: LayerBone[], duration = 1.8): Record<str
       smoothKey(d * 0.25, 38),
       smoothKey(d * 0.5, -28),
       smoothKey(d * 0.75, 38),
+      smoothKey(d, 0)
+    ]
+  }
+  if (handR) {
+    tracks[handR] = [
+      smoothKey(0, 0),
+      smoothKey(d * 0.25, 45),
+      smoothKey(d * 0.5, -35),
+      smoothKey(d * 0.75, 45),
       smoothKey(d, 0)
     ]
   }
