@@ -326,10 +326,12 @@ export function LayerAssemblyViewport({
       return
     }
 
-    // Nếu đang ở công cụ Cọ Tẩy (Eraser): chuyển selection và bắt đầu quẹt cọ
+    // Nếu đang ở công cụ Cọ Tẩy (Eraser):
     if (brush.activeTool === 'eraser') {
       if (layer.id !== selectedLayerId) {
+        // Chuyển chọn layer sang layer mới an toàn để nạp ảnh mới vào canvas
         onSelectLayer(layer.id, false)
+        return
       }
       if (!layer.locked && e.button === 0) {
         brush.handleEraserPointerDown(e)

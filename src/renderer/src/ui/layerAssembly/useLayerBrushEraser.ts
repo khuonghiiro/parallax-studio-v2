@@ -48,6 +48,7 @@ export function useLayerBrushEraser({
   const lastPointRef = useRef<{ x: number; y: number } | null>(null)
   const layerImgRef = useRef<HTMLImageElement | null>(null)
   const activeLayerIdRef = useRef<string | null>(null)
+  const loadedCanvasLayerIdRef = useRef<string | null>(null)
   const rafUpdateRef = useRef<number | null>(null)
 
   // Dọn dẹp Animation Frame khi unmount
@@ -65,10 +66,15 @@ export function useLayerBrushEraser({
       offscreenCanvasRef.current = null
       layerImgRef.current = null
       activeLayerIdRef.current = null
+      loadedCanvasLayerIdRef.current = null
       return
     }
 
     activeLayerIdRef.current = layer.id
+    // Khóa an toàn ngay lập tức: huỷ quyền vẽ của canvas cũ để tuyệt đối không bao giờ lấy nhầm ảnh layer khác!
+    loadedCanvasLayerIdRef.current = null
+    offscreenCanvasRef.current = null
+    layerImgRef.current = null
 
     const resolveUrl = async (): Promise<string | null> => {
       if (layer.imageUrl) return layer.imageUrl
@@ -96,6 +102,7 @@ export function useLayerBrushEraser({
           ctx.drawImage(img, 0, 0)
         }
         offscreenCanvasRef.current = canvas
+        loadedCanvasLayerIdRef.current = layer.id
       }
       img.src = url
     })
@@ -108,33 +115,45 @@ export function useLayerBrushEraser({
   // Chuyển đổi toạ độ chuột màn hình sang toạ độ pixel cục bộ trên layer ảnh gốc
   const screenToLayerPixel = useCallback(
     (clientX: number, clientY: number): { x: number; y: number } | null => {
-      if (!selectedLayer || !containerRef.current || !layerImgRef.current || !offscreenCanvasRef.current) {
+      if (
+        !selectedLayer ||
+        !containerRef.current ||
+        !layerImgRef.current ||
+        !offscreenCanvasRef.current ||
+        loadedCanvasLayerIdRef.current !== selectedLayer.id
+      ) {
         return null
       }
 
       const rect = containerRef.current.getBoundingClientRect()
-      // 1. Toạ độ trong Viewport (đã khử Pan và Zoom)
-      const vpX = (clientX - rect.left - pan.x) / zoom
-      const vpY = (clientY - rect.top - pan.y) / zoom
+      // 1. Tâm của viewport container trên màn hình
+      const vpCenterX = rect.left + rect.width / 2
+      const vpCenterY = rect.top + rect.height / 2
 
-      // 2. Toạ độ tương đối so với tâm của layer trên canvas composite
-      const layerCenterX = compositeWidth / 2 + selectedLayer.x
-      const layerCenterY = compositeHeight / 2 + selectedLayer.y
-      const relX = vpX - layerCenterX
-      const relY = vpY - layerCenterY
+      // 2. Tâm của canvas composite trên màn hình (đã tính pan)
+      const compCenterX = vpCenterX + pan.x
+      const compCenterY = vpCenterY + pan.y
 
-      // 3. Khử góc xoay layer (Rotation quanh trục Z)
+      // 3. Toạ độ chuột so với tâm canvas composite (khử zoom)
+      const compMouseX = (clientX - compCenterX) / zoom
+      const compMouseY = (clientY - compCenterY) / zoom
+
+      // 4. Toạ độ chuột so với tâm của layer
+      const relX = compMouseX - selectedLayer.x
+      const relY = compMouseY - selectedLayer.y
+
+      // 5. Khử góc xoay layer (Rotation quanh trục Z)
       const rad = (-selectedLayer.rotation * Math.PI) / 180
       const rotX = relX * Math.cos(rad) - relY * Math.sin(rad)
       const rotY = relX * Math.sin(rad) + relY * Math.cos(rad)
 
-      // 4. Khử tỉ lệ co dãn (Scale & ScaleX / ScaleY)
+      // 6. Khử tỉ lệ co dãn (Scale & ScaleX / ScaleY)
       const totalScaleX = Math.max(0.001, selectedLayer.scale * (selectedLayer.scaleX ?? 1))
       const totalScaleY = Math.max(0.001, selectedLayer.scale * (selectedLayer.scaleY ?? 1))
       const unscaledX = rotX / totalScaleX
       const unscaledY = rotY / totalScaleY
 
-      // 5. Khớp tỉ lệ hiển thị 380px: Khử factor hiển thị để chuyển sang toạ độ pixel gốc trên texture
+      // 7. Khớp tỉ lệ hiển thị 380px: Khử factor hiển thị để chuyển sang toạ độ pixel gốc trên texture
       const imgW = offscreenCanvasRef.current.width
       const imgH = offscreenCanvasRef.current.height
       const factor = Math.min(1, 380 / Math.max(imgW, imgH))
@@ -144,7 +163,7 @@ export function useLayerBrushEraser({
 
       return { x: px, y: py }
     },
-    [selectedLayer, containerRef, pan, zoom, compositeWidth, compositeHeight]
+    [selectedLayer, containerRef, pan, zoom]
   )
 
   // Thực hiện một điểm chấm cọ xoá tại (x, y) trên canvas với destination-out & radial gradient
@@ -180,7 +199,15 @@ export function useLayerBrushEraser({
   // Bắt đầu quẹt cọ
   const handleEraserPointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (activeTool !== 'eraser' || e.button !== 0 || !selectedLayer || isBrushPopoverOpen) return
+      if (
+        activeTool !== 'eraser' ||
+        e.button !== 0 ||
+        !selectedLayer ||
+        isBrushPopoverOpen ||
+        loadedCanvasLayerIdRef.current !== selectedLayer.id
+      ) {
+        return
+      }
       const canvas = offscreenCanvasRef.current
       if (!canvas) return
 
@@ -206,7 +233,7 @@ export function useLayerBrushEraser({
       if (!rafUpdateRef.current) {
         rafUpdateRef.current = requestAnimationFrame(() => {
           rafUpdateRef.current = null
-          if (!offscreenCanvasRef.current || !selectedLayer) return
+          if (!offscreenCanvasRef.current || !selectedLayer || loadedCanvasLayerIdRef.current !== selectedLayer.id) return
           try {
             const liveDataUrl = offscreenCanvasRef.current.toDataURL('image/png')
             onUpdateLayer(selectedLayer.id, { imageUrl: liveDataUrl })
@@ -231,7 +258,15 @@ export function useLayerBrushEraser({
         setCursorPos(null)
       }
 
-      if (!isErasing || activeTool !== 'eraser' || !selectedLayer || isBrushPopoverOpen) return
+      if (
+        !isErasing ||
+        activeTool !== 'eraser' ||
+        !selectedLayer ||
+        isBrushPopoverOpen ||
+        loadedCanvasLayerIdRef.current !== selectedLayer.id
+      ) {
+        return
+      }
       const canvas = offscreenCanvasRef.current
       const last = lastPointRef.current
       if (!canvas || !last) return
@@ -268,7 +303,7 @@ export function useLayerBrushEraser({
       if (!rafUpdateRef.current) {
         rafUpdateRef.current = requestAnimationFrame(() => {
           rafUpdateRef.current = null
-          if (!offscreenCanvasRef.current || !selectedLayer) return
+          if (!offscreenCanvasRef.current || !selectedLayer || loadedCanvasLayerIdRef.current !== selectedLayer.id) return
           try {
             const liveDataUrl = offscreenCanvasRef.current.toDataURL('image/png')
             onUpdateLayer(selectedLayer.id, { imageUrl: liveDataUrl })
@@ -281,7 +316,7 @@ export function useLayerBrushEraser({
 
   // Kết thúc quẹt cọ và cập nhật data URL chốt vào layer để kích hoạt Undo/Redo
   const handleEraserPointerUp = useCallback(() => {
-    if (!isErasing || !selectedLayer) return
+    if (!isErasing || !selectedLayer || loadedCanvasLayerIdRef.current !== selectedLayer.id) return
     setIsErasing(false)
     lastPointRef.current = null
 

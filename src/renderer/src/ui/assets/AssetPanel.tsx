@@ -45,6 +45,12 @@ export function AssetPanel() {
     loadCatalog()
   }, [loadCatalog])
 
+  useEffect(() => {
+    const handleOpen = () => setSubTab('assembly')
+    window.addEventListener('layerAssembly:open', handleOpen)
+    return () => window.removeEventListener('layerAssembly:open', handleOpen)
+  }, [])
+
   const categories = useMemo<BuiltInAssetCategory[]>(() => {
     const list = catalog?.categories ?? [
       { id: 'all', folder: '', title: 'Tất cả tài nguyên', icon: 'all', order: 0 }

@@ -83,4 +83,31 @@ describe('Layer Assembly Brush Eraser & 3D Camera Depth', () => {
     const displayRadiusOn3D = naturalRadius * factor * layerScale
     expect(displayRadiusOn3D).toBeCloseTo(brushSize, 1)
   })
+
+  it('accurately resolves viewport container center with pan and zoom to layer center', () => {
+    // Giả lập Viewport container 800 x 600 px tại vị trí (100, 50) trên màn hình
+    const rect = { left: 100, top: 50, width: 800, height: 600 }
+    const pan = { x: 40, y: -20 }
+    const zoom = 1.5
+    const layer = { x: -30, y: 50 } // Layer dời (-30, 50) từ tâm composite
+
+    // Tâm của canvas composite trên màn hình
+    const compCenterX = rect.left + rect.width / 2 + pan.x // 100 + 400 + 40 = 540
+    const compCenterY = rect.top + rect.height / 2 + pan.y // 50 + 300 - 20 = 330
+    expect(compCenterX).toBe(540)
+    expect(compCenterY).toBe(330)
+
+    // Điểm tâm thực tế của layer trên màn hình (được phóng to bởi zoom)
+    const layerScreenX = compCenterX + layer.x * zoom // 540 + (-30 * 1.5) = 495
+    const layerScreenY = compCenterY + layer.y * zoom // 330 + (50 * 1.5) = 405
+
+    // Khi người dùng click đúng vào tâm layer trên màn hình (clientX = 495, clientY = 405):
+    const compMouseX = (layerScreenX - compCenterX) / zoom // (495 - 540) / 1.5 = -30
+    const compMouseY = (layerScreenY - compCenterY) / zoom // (405 - 330) / 1.5 = 50
+    const relX = compMouseX - layer.x // -30 - (-30) = 0
+    const relY = compMouseY - layer.y // 50 - 50 = 0
+
+    expect(relX).toBeCloseTo(0, 5)
+    expect(relY).toBeCloseTo(0, 5)
+  })
 })
