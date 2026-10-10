@@ -540,5 +540,72 @@
 }
 
 
+/* ------------------------------------------------------------------ Scope Badges (Public / Private) */
+.asset-scope-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-weight: 600;
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  backdrop-filter: blur(6px);
+  z-index: 2;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: all 0.15s ease;
+}
+
+.asset-scope-badge.public,
+.layer-scope-badge.public {
+  background: rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.55);
+}
+
+[data-theme='light'] .asset-scope-badge.public,
+.app.light .asset-scope-badge.public,
+[data-theme='light'] .layer-scope-badge.public,
+.app.light .layer-scope-badge.public {
+  background: rgba(2, 132, 199, 0.16);
+  color: #0284c7;
+  border: 1px solid rgba(2, 132, 199, 0.45);
+  font-weight: 700;
+}
+
+.asset-scope-badge.private,
+.layer-scope-badge.private {
+  background: rgba(245, 158, 11, 0.25);
+  color: #facc15;
+  border: 1px solid rgba(245, 158, 11, 0.55);
+}
+
+[data-theme='light'] .asset-scope-badge.private,
+.app.light .asset-scope-badge.private,
+[data-theme='light'] .layer-scope-badge.private,
+.app.light .layer-scope-badge.private {
+  background: rgba(217, 119, 6, 0.16);
+  color: #b45309;
+  border: 1px solid rgba(217, 119, 6, 0.45);
+  font-weight: 700;
+}
+
+.layer-scope-badge {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  font-size: 8px;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 3px;
+  backdrop-filter: blur(4px);
+  z-index: 3;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: all 0.15s ease;
+}
+
 /* Note: Built-in Grid & Cards modularized to ./assetGrid.css */
 /* Note: Asset Catalog Modal modularized to ./assetCatalogModal.css */
+

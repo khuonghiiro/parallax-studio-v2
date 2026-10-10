@@ -61,9 +61,12 @@ export function Model3DList() {
     const handleUpdate = () => reload()
     window.addEventListener('models3d:changed', handleUpdate)
     window.addEventListener('storage', handleUpdate)
+    const handleOpenCreate = () => setIsCreateModalOpen(true)
+    window.addEventListener('assembly:open', handleOpenCreate)
     return () => {
       window.removeEventListener('models3d:changed', handleUpdate)
       window.removeEventListener('storage', handleUpdate)
+      window.removeEventListener('assembly:open', handleOpenCreate)
     }
   }, [reload])
 
@@ -158,15 +161,6 @@ export function Model3DList() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button
-            type="button"
-            className="btn sm primary create-3d-btn"
-            onClick={() => setIsCreateModalOpen(true)}
-            title="Mở thư viện khung mẫu 3D có ảnh trực quan để chọn và chỉnh sửa"
-          >
-            <IconPlus width={13} height={13} />
-            <span>Tạo 3D</span>
-          </button>
         </div>
 
         {/* Model Cards Grid */}

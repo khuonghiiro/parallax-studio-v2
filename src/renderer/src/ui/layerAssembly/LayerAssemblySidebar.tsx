@@ -17,6 +17,7 @@ import {
   hideOrDeletePublicAsset
 } from '../assets/publicAssetStorage'
 import { clearLayerTextureCache } from './layerAssembly3DMesh'
+import '../../styles/assets.css'
 
 export interface LayerAssemblySidebarProps {
   composite: LayerComposite
@@ -87,7 +88,7 @@ export function LayerAssemblySidebar({
             setCatalogItems(res.items.filter((it) => it.kind === 'image'))
           }
         })
-        .catch(() => {})
+        .catch(() => { })
     }
     return () => {
       active = false
@@ -123,17 +124,17 @@ export function LayerAssemblySidebar({
       catalogItems.length > 0
         ? catalogItems
         : BUILTIN_NATURE_ASSETS.map((b) => ({
-            id: b.path,
-            name: b.name,
-            fileName: b.name,
-            relativePath: b.path,
-            path: b.path,
-            folder: 'modular',
-            ext: 'png',
-            mime: 'image/png',
-            kind: 'image' as const,
-            size: 0
-          }))
+          id: b.path,
+          name: b.name,
+          fileName: b.name,
+          relativePath: b.path,
+          path: b.path,
+          folder: 'modular',
+          ext: 'png',
+          mime: 'image/png',
+          kind: 'image' as const,
+          size: 0
+        }))
 
     const visiblePublic = getVisiblePublicAssets(baseList)
     return visiblePublic.map((it) => ({
@@ -353,7 +354,7 @@ export function LayerAssemblySidebar({
               title="Thêm ảnh layer riêng (Private) cho mẫu hiện tại, không đưa vào kho chung"
             >
               <IconPlus width={11} height={11} />
-              <span>+ Thêm ảnh layer</span>
+              <span>Thêm ảnh layer</span>
               <input
                 ref={projectFileInputRef}
                 type="file"
@@ -562,20 +563,7 @@ function LayerItemCard({
       >
         {/* Badge Public vs Private */}
         <span
-          style={{
-            position: 'absolute',
-            top: '3px',
-            left: '3px',
-            fontSize: '8px',
-            fontWeight: 600,
-            padding: '1px 4px',
-            borderRadius: '3px',
-            background: isPublic ? 'rgba(56, 189, 248, 0.3)' : 'rgba(234, 179, 8, 0.3)',
-            color: isPublic ? '#38bdf8' : '#facc15',
-            border: `1px solid ${isPublic ? 'rgba(56, 189, 248, 0.5)' : 'rgba(234, 179, 8, 0.5)'}`,
-            backdropFilter: 'blur(3px)',
-            zIndex: 3
-          }}
+          className={`layer-scope-badge ${isPublic ? 'public' : 'private'}`}
           title={isPublic ? 'Tài nguyên Công khai (Public)' : 'Tài nguyên Riêng của mẫu (Private)'}
         >
           {isPublic ? '🌍 Công khai' : '🔒 Riêng'}

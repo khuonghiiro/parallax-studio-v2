@@ -63,24 +63,7 @@ export function ProjectAssetList() {
             >
               {/* Badge phân biệt Public (Công khai) vs Private (Dự án) */}
               <span
-                className="asset-scope-badge"
-                style={{
-                  position: 'absolute',
-                  top: 4,
-                  right: 4,
-                  background: isPublic ? 'rgba(56, 189, 248, 0.25)' : 'rgba(234, 179, 8, 0.25)',
-                  color: isPublic ? '#38bdf8' : '#facc15',
-                  border: `1px solid ${isPublic ? 'rgba(56, 189, 248, 0.5)' : 'rgba(234, 179, 8, 0.5)'}`,
-                  fontWeight: 600,
-                  fontSize: '9px',
-                  padding: '1px 5px',
-                  borderRadius: '4px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 2,
-                  backdropFilter: 'blur(4px)',
-                  zIndex: 2
-                }}
+                className={`asset-scope-badge ${isPublic ? 'public' : 'private'}`}
                 title={
                   isPublic
                     ? 'Tài nguyên Công khai (Public từ kho dùng chung)'

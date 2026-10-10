@@ -152,7 +152,7 @@ export function LayerAssemblyList() {
 
       {/* 2. Main Content Area */}
       <div className="model-3d-content">
-        {/* Header Search & Create Button */}
+        {/* Header Search */}
         <div className="model-3d-header">
           <div className="search-bar">
             <input
@@ -163,15 +163,6 @@ export function LayerAssemblyList() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button
-            type="button"
-            className="btn sm primary create-3d-btn"
-            onClick={handleCreateNew}
-            title="Mở Xưởng Lắp Ráp Layer để tạo chi tiết xếp chồng & hoạt ảnh đung đưa mới"
-          >
-            <IconPlus width={13} height={13} />
-            <span>Tạo hoạt ảnh</span>
-          </button>
         </div>
 
         {/* 2-column Grid of Layer Composite Cards */}

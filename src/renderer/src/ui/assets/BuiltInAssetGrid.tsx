@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import type { BuiltInAssetCategory, BuiltInAssetItem } from '@shared/ipc'
 import { CustomSelect } from '../controls'
 import {
@@ -16,8 +16,7 @@ import {
 import { useAudioPreview } from './audioPreviewManager'
 import {
   getVisiblePublicAssets,
-  hideOrDeletePublicAsset,
-  addCustomPublicAsset
+  hideOrDeletePublicAsset
 } from './publicAssetStorage'
 import { AssetDetailModal } from './AssetDetailModal'
 import { AssetDeleteConfirmModal } from './AssetDeleteConfirmModal'
@@ -68,7 +67,6 @@ export function BuiltInAssetGrid({
   const [detailTarget, setDetailTarget] = useState<BuiltInAssetItem | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<BuiltInAssetItem | null>(null)
   const [localVersion, setLocalVersion] = useState(0)
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     const handleChanged = () => setLocalVersion((v) => v + 1)
@@ -107,22 +105,6 @@ export function BuiltInAssetGrid({
     })
   }, [categories, allVisibleItems])
 
-  const handleUploadPublic = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files || files.length === 0) return
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const dataUrl = reader.result as string
-        addCustomPublicAsset(file.name, dataUrl, file.size)
-        setLocalVersion((v) => v + 1)
-        onReload()
-      }
-      reader.readAsDataURL(file)
-    })
-    e.target.value = ''
-  }
-
 
   return (
     <div className="asset-content-area">
@@ -136,26 +118,6 @@ export function BuiltInAssetGrid({
             onChange={(val) => onSelectCategory(String(val))}
             title="Chọn danh mục tài nguyên"
           />
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,audio/*"
-            multiple
-            style={{ display: 'none' }}
-            onChange={handleUploadPublic}
-          />
-
-          <button
-            type="button"
-            className="btn sm"
-            title="Thêm tệp ảnh hoặc âm thanh vào kho tài nguyên Công khai (dùng chung cho mọi dự án)"
-            onClick={() => fileInputRef.current?.click()}
-            style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-          >
-            <IconPlus width={12} height={12} />
-            <span>Thêm ảnh</span>
-          </button>
 
           <button
             type="button"

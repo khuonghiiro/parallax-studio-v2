@@ -127,6 +127,11 @@ export function hideOrDeletePublicAsset(item: DeletableAssetTarget): void {
       saveCustomPublicAssets(next)
       return
     }
+    if (typeof window !== 'undefined' && window.api?.deleteBuiltInAsset) {
+      window.api.deleteBuiltInAsset(trimmed).catch((err) => {
+        console.warn('[publicAssetStorage] Error deleting built-in asset string from disk:', err)
+      })
+    }
     const hidden = loadHiddenPublicAssets()
     const variants = expandKeyVariants(trimmed)
     const next = Array.from(new Set([...hidden, ...variants]))
@@ -152,6 +157,13 @@ export function hideOrDeletePublicAsset(item: DeletableAssetTarget): void {
   }
 
   // 3. Nếu là Built-in asset có sẵn của hệ thống
+  const targetRelPath = obj.relativePath || obj.assetPath || obj.path || obj.id || ''
+  if (targetRelPath && typeof window !== 'undefined' && window.api?.deleteBuiltInAsset) {
+    window.api.deleteBuiltInAsset(targetRelPath).catch((err) => {
+      console.warn('[publicAssetStorage] Error deleting built-in asset from disk:', err)
+    })
+  }
+
   const hidden = loadHiddenPublicAssets()
   const rawCandidateKeys = [
     obj.id,

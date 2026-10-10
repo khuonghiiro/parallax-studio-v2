@@ -1,6 +1,6 @@
 import { app, ipcMain, shell } from 'electron'
 import { existsSync } from 'fs'
-import { readdir, readFile, stat, writeFile } from 'fs/promises'
+import { readdir, readFile, stat, unlink, writeFile } from 'fs/promises'
 import { basename, extname, join, relative } from 'path'
 import type {
   BuiltInAssetCategory,
@@ -355,6 +355,74 @@ export async function loadAssetBytes(relPath: string): Promise<{ name: string; m
   }
 }
 
+export async function deleteBuiltInAsset(
+  relPath: string
+): Promise<{ ok: boolean; error?: string }> {
+  if (!relPath) return { ok: false, error: 'Thiếu đường dẫn tệp' }
+  const root = getAssetsRoot()
+  const cleanTarget = relPath
+    .replace(/\\/g, '/')
+    .replace(/^builtin:/, '')
+    .replace(/^assets\//, '')
+    .trim()
+  const fullPath = join(root, cleanTarget)
+
+  try {
+    if (existsSync(fullPath)) {
+      await unlink(fullPath)
+    }
+
+    // Cập nhật manifest.json nếu có
+    const manifestPath = join(root, 'manifest.json')
+    if (existsSync(manifestPath)) {
+      try {
+        const rawJson = await readFile(manifestPath, 'utf-8')
+        const parsed = JSON.parse(rawJson)
+        let changed = false
+
+        if (parsed.assets && typeof parsed.assets === 'object') {
+          for (const key of Object.keys(parsed.assets)) {
+            const normKey = key
+              .replace(/\\/g, '/')
+              .replace(/^builtin:/, '')
+              .replace(/^assets\//, '')
+            if (
+              normKey === cleanTarget ||
+              normKey.endsWith(`/${cleanTarget}`) ||
+              cleanTarget.endsWith(`/${normKey}`)
+            ) {
+              delete parsed.assets[key]
+              changed = true
+            }
+          }
+        }
+
+        if (Array.isArray(parsed.items)) {
+          const initialLen = parsed.items.length
+          parsed.items = parsed.items.filter((it: any) => {
+            const k = (it?.path || it?.relativePath || it?.fileName || '').replace(/\\/g, '/')
+            return k !== cleanTarget && !k.endsWith(`/${cleanTarget}`) && !cleanTarget.endsWith(`/${k}`)
+          })
+          if (parsed.items.length !== initialLen) changed = true
+        }
+
+        if (changed) {
+          await writeFile(manifestPath, JSON.stringify(parsed, null, 2), 'utf-8')
+        }
+      } catch (manifestErr) {
+        console.warn('[BuiltInAssets] Error updating manifest after deleting asset:', manifestErr)
+      }
+    }
+
+    // Invalidate catalog cache
+    await scanBuiltInCatalog(true)
+    return { ok: true }
+  } catch (err) {
+    console.error('[BuiltInAssets] Error deleting asset:', fullPath, err)
+    return { ok: false, error: String(err) }
+  }
+}
+
 export function registerBuiltInAssetsIpc(): void {
   ipcMain.handle('builtinAssets:getCatalog', async () => scanBuiltInCatalog())
   ipcMain.handle('builtinAssets:getAssemblyAssets', async () => scanAssembly3DAssets())
@@ -362,6 +430,8 @@ export function registerBuiltInAssetsIpc(): void {
   ipcMain.handle('builtinAssets:saveManifest', async (_e, rawJson: string) => saveManifestJson(rawJson))
 
   ipcMain.handle('builtinAssets:loadAssetBytes', async (_e, relPath: string) => loadAssetBytes(relPath))
+
+  ipcMain.handle('builtinAssets:deleteAsset', async (_e, relPath: string) => deleteBuiltInAsset(relPath))
 
   ipcMain.handle('builtinAssets:openFolder', async (_e, subFolder?: string) => {
     const root = getAssetsRoot()
@@ -378,3 +448,4 @@ export function registerBuiltInAssetsIpc(): void {
     console.warn('[BuiltInAssets] Background catalog prewarm error:', err)
   })
 }
+

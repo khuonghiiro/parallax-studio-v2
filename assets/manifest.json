@@ -31,22 +31,6 @@
       "icon": "cube",
       "description": "Bộ vật liệu tường, mái ngói, cửa sổ, cửa vòm, bồn hoa và cây cỏ tách rời cho lắp ráp 3D",
       "order": 5
-    },
-    {
-      "id": "character_hero",
-      "folder": "character_hero",
-      "title": "Nhân vật & Bộ phận Rigging",
-      "icon": "user-male",
-      "description": "Các bộ phận nhân vật phân tầng độc lập (đầu, thân, hông, tay, chân) cho lắp ráp và gắn xương 2.5D",
-      "order": 6
-    },
-    {
-      "id": "character_anime",
-      "folder": "character_anime",
-      "title": "Nữ Sinh Anime Tóc Bạch Kim",
-      "icon": "user-female",
-      "description": "Các bộ phận nhân vật nữ sinh anime tóc dài bạch kim, đồng phục học sinh cho lắp ráp và gắn xương 2.5D",
-      "order": 7
     }
   ],
   "assets": {
@@ -136,108 +120,6 @@
     },
     "assembly_3d/modular/bonsai_foliage_front.png": {
       "name": "Tán lá tùng trước (Tiền cảnh Z âm)"
-    },
-    "character_hero/head.png": {
-      "name": "Đầu & Mũ giáp Hiệp sĩ"
-    },
-    "character_hero/torso.png": {
-      "name": "Thân trên & Giáp ngực"
-    },
-    "character_hero/pelvis.png": {
-      "name": "Hông & Thắt lưng giáp"
-    },
-    "character_hero/arm_l.png": {
-      "name": "Bắp tay trái giáp sắt"
-    },
-    "character_hero/forearm_l.png": {
-      "name": "Cẳng tay & Găng sắt trái"
-    },
-    "character_hero/arm_r.png": {
-      "name": "Bắp tay phải giáp sắt"
-    },
-    "character_hero/forearm_r.png": {
-      "name": "Cẳng tay & Kiếm găng phải"
-    },
-    "character_hero/thigh_l.png": {
-      "name": "Đùi trái giáp sắt"
-    },
-    "character_hero/shin_l.png": {
-      "name": "Cẳng chân & Ủng sắt trái"
-    },
-    "character_hero/thigh_r.png": {
-      "name": "Đùi phải giáp sắt"
-    },
-    "character_hero/shin_r.png": {
-      "name": "Cẳng chân & Ủng sắt phải"
-    },
-    "character_anime/hair_back.png": {
-      "name": "Tóc sau dài bạch kim"
-    },
-    "character_anime/head.png": {
-      "name": "Đầu & Khuôn mặt nữ sinh anime"
-    },
-    "character_anime/torso.png": {
-      "name": "Áo đồng phục thủy thủ & Nơ đỏ"
-    },
-    "character_anime/pelvis.png": {
-      "name": "Váy xếp ly học sinh & Hông"
-    },
-    "character_anime/arm_l.png": {
-      "name": "Bắp tay áo phồng trái"
-    },
-    "character_anime/forearm_l.png": {
-      "name": "Cẳng tay & Bàn tay trái"
-    },
-    "character_anime/arm_r.png": {
-      "name": "Bắp tay áo phồng phải"
-    },
-    "character_anime/forearm_r.png": {
-      "name": "Cẳng tay & Cặp sách phải"
-    },
-    "character_anime/thigh_l.png": {
-      "name": "Đùi trái tất đùi"
-    },
-    "character_anime/shin_l.png": {
-      "name": "Cẳng chân & Giày học sinh trái"
-    },
-    "character_anime/thigh_r.png": {
-      "name": "Đùi phải tất đùi"
-    },
-    "character_anime/shin_r.png": {
-      "name": "Cẳng chân & Giày học sinh phải"
-    },
-    "character_hero/v2/head.png": {
-      "name": "Đầu & Mũ giáp Hiệp sĩ — V2"
-    },
-    "character_hero/v2/torso.png": {
-      "name": "Thân trên & Giáp ngực — V2"
-    },
-    "character_hero/v2/pelvis.png": {
-      "name": "Hông & Thắt lưng giáp — V2"
-    },
-    "character_hero/v2/arm_l.png": {
-      "name": "Bắp tay trái giáp sắt — V2"
-    },
-    "character_hero/v2/forearm_l.png": {
-      "name": "Cẳng tay & Găng sắt trái — V2"
-    },
-    "character_hero/v2/arm_r.png": {
-      "name": "Bắp tay phải giáp sắt — V2"
-    },
-    "character_hero/v2/forearm_r.png": {
-      "name": "Cẳng tay & Kiếm găng phải — V2"
-    },
-    "character_hero/v2/thigh_l.png": {
-      "name": "Đùi trái giáp sắt — V2"
-    },
-    "character_hero/v2/shin_l.png": {
-      "name": "Cẳng chân & Ủng sắt trái — V2"
-    },
-    "character_hero/v2/thigh_r.png": {
-      "name": "Đùi phải giáp sắt — V2"
-    },
-    "character_hero/v2/shin_r.png": {
-      "name": "Cẳng chân & Ủng sắt phải — V2"
     }
   }
 }
