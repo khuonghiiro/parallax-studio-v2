@@ -138,7 +138,7 @@ describe('Layer Assembly Workshop Storage System', () => {
     const foreL = knight?.layers.find((l) => l.id === 'knight-forearm-l')
     const foreR = knight?.layers.find((l) => l.id === 'knight-forearm-r')
     expect(foreL?.z).toBe(foreR?.z)
-    // Đảm bảo có độ giãn chiều sâu Z rõ rệt giữa các tầng lớp (không bị hợp nhất phẳng)
+    // Giữ trọn độ giãn chiều sâu Z 2.5D rõ nét giữa các phân tầng cơ thể (> 40px)
     expect(legL!.z - foreL!.z).toBeGreaterThan(40)
 
     const anime = list.find((c) => c.id === 'comp-anime-girl-hero')

@@ -73,6 +73,13 @@ export const LAYER_ASSEMBLY_TOOLS = [
         .optional()
         .describe(d('Category of the composite.', 'Danh mục của chi tiết.')),
       description: z.string().optional().describe(d('Short description of the composite.', 'Mô tả ngắn về chi tiết.')),
+      rig: z.object({
+        bones: z.array(z.object({ id: z.string(), name: z.string(), parentId: z.string().optional(),
+          x: z.number(), y: z.number(), length: z.number(), angle: z.number() })),
+        duration: z.number().min(0.1).max(120), loop: z.boolean(),
+        tracks: z.record(z.array(z.object({ time: z.number(), x: z.number(), y: z.number(), rotation: z.number(),
+          scaleX: z.number().optional(), scaleY: z.number().optional(), easing: z.enum(['smooth', 'linear', 'hold']) })))
+      }).optional().describe(d('Complete skeleton and animation tracks to save with the cutout layers.', 'Toàn bộ khung xương và các track hoạt ảnh cần lưu cùng các mảnh layer.')),
       width: z.number().optional().describe(d('Reference bounding width in pixels.', 'Chiều rộng khung tham chiếu (pixel).')),
       height: z.number().optional().describe(d('Reference bounding height in pixels.', 'Chiều cao khung tham chiếu (pixel).')),
       layers: z
@@ -86,6 +93,10 @@ export const LAYER_ASSEMBLY_TOOLS = [
             y: z.number(),
             z: z.number(),
             scale: z.number(),
+            scaleX: z.number().optional(),
+            scaleY: z.number().optional(),
+            boneId: z.string().optional(),
+            bindingMode: z.enum(['rigid', 'soft']).optional(),
             rotation: z.number(),
             rotationX: z.number().optional(),
             rotationY: z.number().optional(),
@@ -191,8 +202,8 @@ export const LAYER_ASSEMBLY_TOOLS = [
     name: 'layer_assembly_rig',
     cat: 'layer_assembly',
     doc: L(
-      'Manage cutout skeleton bones and keyframe animations in the active layer assembly workshop. Supports adding/updating/deleting bones, binding layers, setting keyframes, applying humanoid/chain templates, and generating procedural walk/idle/wave/sway motions.',
-      'Quản lý hệ thống xương và animation trong xưởng lắp ráp layer. Hỗ trợ thêm/sửa/xóa xương, gắn layer vào xương, ghi keyframe, áp dụng khung xương người/chuỗi uốn dựng sẵn và tự động sinh chuyển động đi bộ/đứng thở/vẫy tay/uốn lượn.'
+      'Manage cutout skeleton bones and keyframe animations in the active layer assembly workshop. Supports adding/updating/deleting bones, binding layers, setting keyframes, applying humanoid/chain templates, and generating procedural walk/idle/wave/sway motions. Walk is a frontal in-place march with attached joints and fixed limb lengths; regenerate the preset to replace older tracks.',
+      'Quản lý hệ thống xương và animation trong xưởng lắp ráp layer. Hỗ trợ thêm/sửa/xóa xương, gắn layer vào xương, ghi keyframe, áp dụng khung xương người/chuỗi uốn dựng sẵn và tự động sinh chuyển động đi bộ/đứng thở/vẫy tay/uốn lượn. Walk là bước tại chỗ chính diện, giữ liền khớp và chiều dài chi; tạo lại preset để thay track cũ.'
     ),
     shape: (d) => ({
       action: z

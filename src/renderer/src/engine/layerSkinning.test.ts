@@ -12,6 +12,11 @@ const rig: LayerRig = { duration: 2, loop: false, bones: [
 const binding = { boneId: 'root', x: 0, y: 0, rotation: 0, scale: 1 }
 
 describe('2D mesh skinning', () => {
+  it('does not add sibling branches when including the immediate parent', () => {
+    const humanoid = { bones: createHumanoidBones(), duration: 1, loop: false, tracks: {} }
+    expect(skinBones(humanoid, 'bone-arm-l').map((b) => b.id).sort()).toEqual(
+      ['bone-arm-l', 'bone-forearm-l', 'bone-torso'].sort())
+  })
   it('normalizes weights and excludes unrelated branches', () => {
     const weights = skinWeights(0, 75, skinBones(rig, 'root'))
     expect(weights.map((w) => w.id)).not.toContain('other')

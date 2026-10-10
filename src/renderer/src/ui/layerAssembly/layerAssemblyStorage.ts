@@ -13,7 +13,7 @@ export const COMPOSITE_CATEGORIES: LayerCompositeCategory[] = [
 ]
 
 const STORAGE_KEY = 'pxs.layerComposites'
-const SEED_VERSION = 'v10_frontal_walk_depth_spread'
+const SEED_VERSION = 'v12_natural_frontal_walk_and_depth'
 const SEED_KEY = 'pxs.layerComposites.seeded_version'
 
 export function getStoredComposites(): LayerComposite[] {
@@ -32,7 +32,12 @@ export function getStoredComposites(): LayerComposite[] {
         localStorage.setItem(SEED_KEY, SEED_VERSION)
         const builtinIds = new Set(BUILTIN_COMPOSITES.map((b) => b.id))
         const userCustoms = parsed.filter((c) => !builtinIds.has(c.id))
-        const merged = [...BUILTIN_COMPOSITES, ...userCustoms]
+        // Preserve user-authored versions before installing refreshed built-in artwork.
+        const savedBuiltins = parsed.filter((c) => builtinIds.has(c.id) && c.updatedAt).map((c) => ({
+          ...c, id: `${c.id}-saved-${c.updatedAt}`, category: 'custom', name: `${c.name} (Bản đã lưu)`
+        }))
+        const merged = [...BUILTIN_COMPOSITES, ...userCustoms,
+          ...savedBuiltins.filter((c) => !userCustoms.some((saved) => saved.id === c.id))]
         localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
         return merged
       }

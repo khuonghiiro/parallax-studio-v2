@@ -1,0 +1,34 @@
+import { describe, expect, it } from 'vitest'
+import { createHumanoidBones, generateWalkCycle } from './workshopRigPresets'
+import { evaluateRig, rotatePoint, sampleBonePose } from '../../engine/layerRig'
+
+describe('walk cycle joint attachment', () => {
+  const bones = createHumanoidBones()
+  const rig = { bones, duration: 1.6, loop: true, tracks: generateWalkCycle(bones) }
+  it('keeps knees attached to the end of the thigh throughout the cycle', () => {
+    for (let frame = 0; frame < 48; frame++) {
+      const transforms = evaluateRig(rig, frame / 30)
+      for (const side of ['l', 'r']) {
+        const thigh = bones.find((b) => b.id === `bone-thigh-${side}`)!
+        const hip = transforms.get(thigh.id)!
+        const knee = transforms.get(`bone-shin-${side}`)!
+        const tail = rotatePoint(thigh.length, 0, thigh.angle + hip.rotation)
+        expect(Math.hypot(knee.x - hip.x - tail.x, knee.y - hip.y - tail.y)).toBeLessThan(0.001)
+      }
+    }
+  })
+  it('keeps limb length constant and both sides half a cycle apart', () => {
+    for (let frame = 0; frame < 48; frame++) {
+      const left = sampleBonePose(rig, 'bone-thigh-l', frame / 30)
+      const right = sampleBonePose(rig, 'bone-thigh-r', frame / 30 + 0.8)
+      expect(left.rotation).toBeCloseTo(-right.rotation, 4)
+      expect(left.scaleY ?? 1).toBe(1)
+      expect(left.y).toBe(0)
+    }
+  })
+  it('matches upper arms independently of bone array order', () => {
+    const reverse = generateWalkCycle([...bones].reverse())
+    expect(reverse['bone-arm-l']).toEqual(rig.tracks['bone-arm-l'])
+    expect(reverse['bone-arm-r']).toEqual(rig.tracks['bone-arm-r'])
+  })
+})

@@ -205,6 +205,39 @@
     },
     "character_anime/shin_r.png": {
       "name": "Cẳng chân & Giày học sinh phải"
+    },
+    "character_hero/v2/head.png": {
+      "name": "Đầu & Mũ giáp Hiệp sĩ — V2"
+    },
+    "character_hero/v2/torso.png": {
+      "name": "Thân trên & Giáp ngực — V2"
+    },
+    "character_hero/v2/pelvis.png": {
+      "name": "Hông & Thắt lưng giáp — V2"
+    },
+    "character_hero/v2/arm_l.png": {
+      "name": "Bắp tay trái giáp sắt — V2"
+    },
+    "character_hero/v2/forearm_l.png": {
+      "name": "Cẳng tay & Găng sắt trái — V2"
+    },
+    "character_hero/v2/arm_r.png": {
+      "name": "Bắp tay phải giáp sắt — V2"
+    },
+    "character_hero/v2/forearm_r.png": {
+      "name": "Cẳng tay & Kiếm găng phải — V2"
+    },
+    "character_hero/v2/thigh_l.png": {
+      "name": "Đùi trái giáp sắt — V2"
+    },
+    "character_hero/v2/shin_l.png": {
+      "name": "Cẳng chân & Ủng sắt trái — V2"
+    },
+    "character_hero/v2/thigh_r.png": {
+      "name": "Đùi phải giáp sắt — V2"
+    },
+    "character_hero/v2/shin_r.png": {
+      "name": "Cẳng chân & Ủng sắt phải — V2"
     }
   }
 }

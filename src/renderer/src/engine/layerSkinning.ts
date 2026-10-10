@@ -38,10 +38,10 @@ export function skinBones(rig: LayerRig, root?: string) {
   if (!root) return rig.bones
   const ids = new Set([root])
   const current = rig.bones.find((b) => b.id === root)
-  if (current?.parentId) ids.add(current.parentId)
   for (let i = 0; i < rig.bones.length; i++) {
     for (const b of rig.bones) if (b.parentId && ids.has(b.parentId)) ids.add(b.id)
   }
+  if (current?.parentId) ids.add(current.parentId)
   return rig.bones.filter((b) => ids.has(b.id))
 }
 
