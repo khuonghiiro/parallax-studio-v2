@@ -17,7 +17,8 @@ export function useWorkshopShortcuts(state: ReturnType<typeof useLayerWorkshop>,
       else if (e.code === 'Space') togglePlay()
       else if (e.key === 'Escape') { if (state.selection.length) state.select(null); else close() }
       else if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key) && state.selection.length) {
-        const step = e.shiftKey ? 10 : 1
+        if (!state.history.gestureActive) state.history.begin()
+        const step = e.shiftKey ? 10 : (e.altKey ? 1 : 2)
         let dx = 0
         let dy = 0
         if (key === 'arrowup') dy = -step

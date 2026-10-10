@@ -49,13 +49,21 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
 
   const animated = tab === 'animation' && state.composite.rig
   const transforms = animated ? evaluateRig(animated, playback.time) : undefined
-  const composite = transforms ? { ...state.composite, layers: state.composite.layers.map((l) => ({ ...(l.bindingMode === 'soft' ? { ...l, previewRig: state.composite.rig } : transformRigLayer(l, transforms)), locked: true })) } : state.composite
+  const composite = transforms
+    ? {
+        ...state.composite,
+        layers: state.composite.layers.map((l) => ({
+          ...(l.bindingMode === 'soft' ? { ...l, previewRig: state.composite.rig } : transformRigLayer(l, transforms)),
+          locked: l.locked
+        }))
+      }
+    : state.composite
   const props = {
     composite,
     selectedLayerId: state.selectedLayerId,
     selectedIds: state.selection,
     onSelectLayer: state.select,
-    onUpdateLayer: tab === 'animation' ? () => {} : state.update,
+    onUpdateLayer: state.update,
     onAddLayerFromAsset: state.add,
     onAppendPresetLayers: state.append,
     time: playback.time

@@ -12,7 +12,7 @@ export function createWorkshopHistory(initial: LayerComposite) {
     begin() { gesture = true; captured = false; lastKey = '' },
     end() { gesture = false; captured = false; lastKey = '' },
     update(next: LayerComposite, key = '') {
-      if (next === present || JSON.stringify(next) === JSON.stringify(present)) return
+      if (next === present) return
       const now = performance.now()
       const merge = gesture ? captured : !!key && key === lastKey && now - lastAt < 450
       if (!merge) past = [...past, present].slice(-100)
