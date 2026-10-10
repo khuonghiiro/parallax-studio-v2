@@ -661,3 +661,55 @@ export const IconPropLamp = (p: P) => (
   </svg>
 )
 
+export const IconSelectPointer = (p: P) => (
+  <svg {...base(p)}>
+    <path d="m3 3 7 18 3-7 7-3L3 3z" />
+  </svg>
+)
+
+export const IconEraser = (p: P) => (
+  <svg {...base(p)}>
+    <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
+    <path d="M22 21H7" />
+    <path d="m5 11 9 9" />
+  </svg>
+)
+
+export const IconBrush = (p: P) => (
+  <svg {...base(p)}>
+    <path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08" />
+    <path d="M7.07 14.94c-1.66 0-3 1.34-3 3 0 1.5 1.5 3 3 3s3-1.5 3-3c0-1.66-1.34-3-3-3Z" />
+  </svg>
+)
+
+export const IconPerspective2D = (p: P) => (
+  <svg {...base(p)}>
+    <polygon points="4 6 20 2 20 22 4 18 4 6" />
+    <line x1="12" y1="4" x2="12" y2="20" />
+    <line x1="4" y1="12" x2="20" y2="12" />
+  </svg>
+)
+
+export const IconCrop = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M6 2v14a2 2 0 0 0 2 2h14" />
+    <path d="M18 22V8a2 2 0 0 0-2-2H2" />
+  </svg>
+)
+
+export const IconBone = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M17 10c.7-.7 1.6-1 2.5-1a3.5 3.5 0 1 1 0 7c-.9 0-1.8-.3-2.5-1L7 19c-.7.7-1 1.6-1 2.5a3.5 3.5 0 1 1-7 0c0-.9.3-1.8 1-2.5l8-8c-.7-.7-1-1.6-1-2.5a3.5 3.5 0 1 1 7 0c0 .9-.3 1.8-1 2.5Z" />
+  </svg>
+)
+
+export const IconMeshWireframe = (p: P) => (
+  <svg {...base(p)}>
+    <polygon points="12 2 2 9 12 16 22 9 12 2" />
+    <polygon points="12 16 2 9 2 15 12 22 22 15 22 9 12 16" />
+    <line x1="12" y1="2" x2="12" y2="16" />
+    <line x1="12" y1="16" x2="12" y2="22" />
+  </svg>
+)
+
+

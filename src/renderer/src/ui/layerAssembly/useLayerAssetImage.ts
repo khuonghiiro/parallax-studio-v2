@@ -6,13 +6,15 @@ import { resolveFaceTexture } from '../assets/models3d/textureResolver'
  * Lấy URL ảnh độ phân giải cao gốc (Full Resolution) từ assetStore hoặc direct URL
  */
 export function getLayerFullResUrl(assetPath?: string, directUrl?: string): string | null {
+  // 1. Ưu tiên directUrl (ảnh do người dùng cọ tẩy, chỉnh sửa trực tiếp, data: hoặc blob:)
+  if (directUrl && (directUrl.startsWith('data:') || directUrl.startsWith('blob:') || directUrl.startsWith('http'))) {
+    return directUrl
+  }
+  // 2. Tiếp theo lấy từ assetStore nếu có assetPath
   if (assetPath) {
     const rt = assetStore.get(assetPath)
     if (rt?.url) return rt.url
     if (rt?.thumbUrl) return rt.thumbUrl
-  }
-  if (directUrl && (directUrl.startsWith('data:') || directUrl.startsWith('blob:') || directUrl.startsWith('http'))) {
-    return directUrl
   }
   return directUrl || null
 }
@@ -35,7 +37,7 @@ export async function resolveLayerImageUrlAsync(assetPath?: string, directUrl?: 
 /**
  * Hook giải quyết đường dẫn ảnh cho layer trong Xưởng Lắp Ráp Layer:
  * Hỗ trợ tự động:
- * 1. direct data: hoặc blob: URL
+ * 1. direct data: hoặc blob: URL (ảnh cọ tẩy, chỉnh sửa riêng)
  * 2. assetId trong assetStore (Project Assets - ưu tiên full-res rt.url)
  * 3. built-in assets qua resolveFaceTexture (e.g. assembly_3d/..., demo_transparent/...)
  */
@@ -45,7 +47,13 @@ export function useLayerAssetImage(assetPath?: string, directUrl?: string): stri
   })
 
   useEffect(() => {
-    // 1. Nếu có assetPath trong assetStore -> Ưu tiên lấy trực tiếp full-res URL
+    // 1. Ưu tiên directUrl nếu có (ảnh cọ tẩy/chỉnh sửa)
+    if (directUrl && (directUrl.startsWith('data:') || directUrl.startsWith('blob:') || directUrl.startsWith('http'))) {
+      setResolvedUrl(directUrl)
+      return
+    }
+
+    // 2. Nếu có assetPath trong assetStore -> lấy trực tiếp full-res URL
     if (assetPath) {
       const rt = assetStore.get(assetPath)
       if (rt?.url) {

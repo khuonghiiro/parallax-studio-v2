@@ -7,7 +7,8 @@ export function createCameraFrustumHelper(
   width: number,
   height: number,
   distance: number,
-  isLight = false
+  isLight = false,
+  backDepth = 220
 ): THREE.LineSegments {
   const halfW = width / 2
   const halfH = height / 2
@@ -19,6 +20,13 @@ export function createCameraFrustumHelper(
   const c2 = new THREE.Vector3(halfW, halfH, 0)
   const c3 = new THREE.Vector3(-halfW, halfH, 0)
 
+  // 4 góc mở rộng ở phía sau mặt phẳng canvas z = -backDepth để bao bọc toàn bộ chiều sâu các layer
+  const k = Math.max(1.05, (distance + backDepth) / Math.max(1, distance))
+  const d0 = new THREE.Vector3(-halfW * k, -halfH * k, -backDepth)
+  const d1 = new THREE.Vector3(halfW * k, -halfH * k, -backDepth)
+  const d2 = new THREE.Vector3(halfW * k, halfH * k, -backDepth)
+  const d3 = new THREE.Vector3(-halfW * k, halfH * k, -backDepth)
+
   // Biểu tượng thân máy ảnh (Camera Body) ở phía sau đỉnh camera
   const camW = Math.max(28, width * 0.06)
   const camH = Math.max(24, height * 0.06)
@@ -29,16 +37,26 @@ export function createCameraFrustumHelper(
   const b3 = new THREE.Vector3(-camW / 2, camH / 2, distance + camD)
 
   const points = [
-    // 4 tia nhìn từ đỉnh camera tới 4 góc canvas
+    // 4 tia nhìn từ đỉnh camera tới 4 góc canvas z = 0
     apex, c0,
     apex, c1,
     apex, c2,
     apex, c3,
-    // Khung viền đáy (Khung Camera soi Canvas tại z = 0)
+    // 4 tia mở rộng tiếp từ canvas z = 0 ra sau z = -backDepth
+    c0, d0,
+    c1, d1,
+    c2, d2,
+    c3, d3,
+    // Khung viền đáy trước (Khung Camera soi Canvas tại z = 0)
     c0, c1,
     c1, c2,
     c2, c3,
     c3, c0,
+    // Khung viền giới hạn đáy sau (z = -backDepth)
+    d0, d1,
+    d1, d2,
+    d2, d3,
+    d3, d0,
     // Thân máy ảnh ở vị trí camera
     apex, b0,
     apex, b1,

@@ -1,14 +1,11 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
-import { createPortal } from 'react-dom'
 import type { LayerComposite, AssembledLayerItem } from './types'
 import { WorkshopBoneOverlay, type BoneOverlayProps } from './WorkshopBoneOverlay'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
-import { IconLayers, IconImage, IconBoundingBox } from '../icons'
+import { IconLayers, IconImage } from '../icons'
 import { useView } from '../../store/view'
 import { computeCanvasAtmosphere } from './layerAssembly2DLighting'
-import { LightingControlPopover } from './LightingControlPopover'
 import type { AssemblyLighting } from '../assets/models3d/types'
-import { DEFAULT_LIGHTING } from '../assets/models3d/assemblyLighting'
 import {
   loadLayerWorkshopViewPrefs,
   saveLayerWorkshopViewPrefs
@@ -18,6 +15,8 @@ import {
   calculateAnchorPinnedResize
 } from './layerAssembly2DBbox'
 import { AssembledLayerItemView } from './AssembledLayerItemView'
+import { LayerAssembly2DToolbar } from './LayerAssembly2DToolbar'
+import { useLayerBrushEraser } from './useLayerBrushEraser'
 
 export interface LayerAssemblyViewportProps {
   boneOverlay?: BoneOverlayProps
@@ -71,8 +70,21 @@ export function LayerAssemblyViewport({
   const [isDraggingHandle, setIsDraggingHandle] = useState(false)
   const theme = useView((s) => s.theme)
   const isLight = theme === 'light'
-  const [isLightingOpen, setIsLightingOpen] = useState(false)
-  const lightingBtnRef = useRef<HTMLButtonElement | null>(null)
+
+  const selectedLayer = useMemo(() => {
+    return composite.layers.find((l) => l.id === selectedLayerId) || null
+  }, [composite.layers, selectedLayerId])
+
+  // Hook công cụ Cọ Tẩy (Brush Eraser) để xoá pixel thừa và làm mờ xuyên thấu nhẹ
+  const brush = useLayerBrushEraser({
+    selectedLayer,
+    compositeWidth: composite.width,
+    compositeHeight: composite.height,
+    zoom,
+    pan,
+    onUpdateLayer,
+    containerRef
+  })
 
   const handleDragRef = useRef<{
     handle: Bbox2DHandle
@@ -174,10 +186,23 @@ export function LayerAssemblyViewport({
       ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
       return
     }
+
+    // Nếu đang ở công cụ Cọ Tẩy (Eraser) và click lên layer đã chọn
+    if (brush.activeTool === 'eraser') {
+      if (selectedLayer && e.button === 0) {
+        brush.handleEraserPointerDown(e)
+        return
+      }
+    }
+
     onSelectLayer(null)
   }
 
   const handlePointerMove = (e: React.PointerEvent) => {
+    // Luôn cập nhật vị trí con trỏ cọ và xử lý vẽ cọ xoá
+    brush.handleEraserPointerMove(e)
+    if (brush.isErasing) return
+
     if (isPanning) {
       const dx = e.clientX - dragStartRef.current.mouseX
       const dy = e.clientY - dragStartRef.current.mouseY
@@ -222,6 +247,8 @@ export function LayerAssemblyViewport({
   }
 
   const handlePointerUp = (e: React.PointerEvent) => {
+    brush.handleEraserPointerUp()
+
     if (isPanning) {
       setIsPanning(false)
       try {
@@ -269,6 +296,18 @@ export function LayerAssemblyViewport({
 
   const handleStartDragLayer = (e: React.PointerEvent, layer: AssembledLayerItem) => {
     e.stopPropagation()
+
+    // Nếu đang ở công cụ Cọ Tẩy (Eraser): chuyển selection và bắt đầu quẹt cọ
+    if (brush.activeTool === 'eraser') {
+      if (layer.id !== selectedLayerId) {
+        onSelectLayer(layer.id, false)
+      }
+      if (!layer.locked && e.button === 0) {
+        brush.handleEraserPointerDown(e)
+      }
+      return
+    }
+
     const isAdditive = e.ctrlKey || e.metaKey || e.shiftKey
     if (isAdditive) {
       onSelectLayer(layer.id, true)
@@ -307,7 +346,13 @@ export function LayerAssemblyViewport({
         height: '100%',
         background: 'var(--bg-0)',
         overflow: 'hidden',
-        cursor: isPanning ? 'grab' : isDraggingHandle ? 'crosshair' : 'default',
+        cursor: isPanning
+          ? 'grab'
+          : isDraggingHandle
+          ? 'crosshair'
+          : brush.activeTool === 'eraser'
+          ? 'crosshair'
+          : 'default',
         userSelect: 'none'
       }}
       onPointerDown={handlePointerDownViewport}
@@ -441,195 +486,78 @@ export function LayerAssemblyViewport({
         )}
       </div>
 
-      {/* 2D Mini Control Bar (Góc trên trái) */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '8px',
-          left: '12px',
-          display: 'flex',
-          flexWrap: 'wrap',
-          maxWidth: 'calc(100% - 24px)',
-          alignItems: 'center',
-          gap: '4px',
-          zIndex: 40,
-          background: 'color-mix(in srgb, var(--bg-1) 85%, transparent)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid var(--line-soft)',
-          borderRadius: '6px',
-          padding: '3px 6px',
-          fontSize: '11px',
-          userSelect: 'none'
+      {/* Vòng tròn con trỏ Cọ Tẩy (Brush Cursor Indicator) theo thời gian thực */}
+      {brush.activeTool === 'eraser' && brush.cursorPos && (
+        <div
+          style={{
+            position: 'absolute',
+            left: `${brush.cursorPos.x}px`,
+            top: `${brush.cursorPos.y}px`,
+            width: `${brush.brushSettings.size * 2 * zoom}px`,
+            height: `${brush.brushSettings.size * 2 * zoom}px`,
+            transform: 'translate(-50%, -50%)',
+            borderRadius: '50%',
+            border: '1.5px solid var(--accent-cyan)',
+            background: `rgba(56, 189, 248, ${Math.max(0.08, brush.brushSettings.opacity * 0.22)})`,
+            boxShadow: '0 0 10px rgba(56, 189, 248, 0.45)',
+            pointerEvents: 'none',
+            zIndex: 9999
+          }}
+        />
+      )}
+
+      {/* Tab dọc công cụ 2D & Cọ tẩy xử lý (Thay thế thanh top ngang) */}
+      <LayerAssembly2DToolbar
+        activeTool={brush.activeTool}
+        onChangeTool={brush.setActiveTool}
+        brushSettings={brush.brushSettings}
+        onChangeBrushSettings={brush.setBrushSettings}
+        isBrushPopoverOpen={brush.isBrushPopoverOpen}
+        onToggleBrushPopover={() => brush.setIsBrushPopoverOpen((v) => !v)}
+        onCloseBrushPopover={() => brush.setIsBrushPopoverOpen(false)}
+        onResetLayerImage={brush.resetLayerImage}
+        hasSelectedLayer={!!selectedLayer}
+        hasModifiedImage={!!selectedLayer?.imageUrl}
+        zoom={zoom}
+        onResetZoom={() => {
+          setZoom(1.0)
+          setPan({ x: 0, y: 0 })
         }}
-      >
-        <button
-          type="button"
-          className="btn xs"
-          onClick={() => {
-            setZoom(1.0)
-            setPan({ x: 0, y: 0 })
-          }}
-          title="Đặt lại tỉ lệ 100% (gốc 0, 0)"
-          style={{ fontFamily: 'monospace', fontWeight: 600 }}
-        >
-          {Math.round(zoom * 100)}%
-        </button>
-        <button
-          type="button"
-          className="btn xs"
-          onClick={handleFitView}
-          title="Căn giữa và thu phóng vừa vặn khung vẽ 2D"
-        >
-          Căn giữa
-        </button>
-        <button
-          type="button"
-          className={`btn xs${show3DPerspective ? ' active' : ''}`}
-          onClick={() =>
-            setShow3DPerspective((v) => {
-              const next = !v
-              saveLayerWorkshopViewPrefs({ show3DPerspective2D: next })
-              return next
-            })
-          }
-          title={
-            show3DPerspective
-              ? 'Đang bật phối cảnh 3D (hiển thị nghiêng sâu và xoay chéo). Bấm để chuyển về phẳng 2D'
-              : 'Đang xem phẳng 2D. Bấm để bật phối cảnh & hướng xoay 3D'
-          }
-        >
-          {show3DPerspective ? '📐 3D' : '🖼 2D'}
-        </button>
-        <button
-          type="button"
-          className={`btn xs${clipToCamera ? ' active' : ''}`}
-          onClick={() =>
-            setClipToCamera((v) => {
-              const next = !v
-              saveLayerWorkshopViewPrefs({ clipToCamera2D: next })
-              return next
-            })
-          }
-          title={
-            clipToCamera
-              ? 'Đang cắt gọn các phần layer vượt ra ngoài tầm nhìn khung camera (Bấm để xem tràn viền)'
-              : 'Đang hiển thị tràn viền toàn bộ layer (Bấm để cắt gọn theo khung camera)'
-          }
-        >
-          {clipToCamera ? '✂ Cắt khung' : '👁 Tràn viền'}
-        </button>
-        <button
-          type="button"
-          className={`btn xs${showBbox ? ' active' : ''}`}
-          onClick={() =>
-            setShowBbox((v) => {
-              const next = !v
-              saveLayerWorkshopViewPrefs({ showBbox2D: next })
-              return next
-            })
-          }
-          title={
-            showBbox
-              ? 'Đang bật khung điều khiển co dãn BBox (Bấm để ẩn)'
-              : 'Đang tắt khung điều khiển co dãn BBox (Bấm để hiện)'
-          }
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}
-        >
-          <IconBoundingBox width={12} height={12} />
-          <span>{showBbox ? 'BBox' : 'BBox Tắt'}</span>
-        </button>
-
-        {/* Nút bật/tắt hiển thị khung xương Blender 2D */}
-        {composite.rig?.bones?.length ? (
-          <button
-            type="button"
-            className={`btn xs${showBones ? ' active' : ''}`}
-            onClick={onToggleShowBones}
-            title={
-              showBones
-                ? 'Đang bật hiển thị khung xương Blender (Bấm để ẩn)'
-                : 'Đang tắt hiển thị khung xương Blender (Bấm để hiện)'
-            }
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-          >
-            <span>🦴</span>
-            <span>{showBones ? 'Ẩn xương' : 'Hiện xương'}</span>
-          </button>
-        ) : null}
-
-        {/* Nút bật/tắt hiển thị lưới đa giác Mesh 2D */}
-        <button
-          type="button"
-          className={`btn xs${showMesh ? ' active' : ''}`}
-          onClick={onToggleShowMesh}
-          title={
-            showMesh
-              ? 'Đang bật hiển thị lưới đa giác Mesh 2D (Bấm để ẩn)'
-              : 'Đang tắt hiển thị lưới đa giác Mesh 2D (Bấm để hiện)'
-          }
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}
-        >
-          <span>🕸️</span>
-          <span>{showMesh ? 'Ẩn mesh' : 'Hiện mesh'}</span>
-        </button>
-
-        {/* Nút bật popup Hướng sáng & Đổ bóng ngày đêm ngay tại thanh công cụ 2D */}
-        {onChangeComposite && (
-          <button
-            ref={lightingBtnRef}
-            type="button"
-            className={`btn xs${isLightingOpen ? ' active' : ''}`}
-            onClick={(e) => {
-              e.stopPropagation()
-              setIsLightingOpen((v) => !v)
-            }}
-            title={`Hệ thống chiếu sáng: ${atmosphere.label} (Bấm để chỉnh góc nắng & đổ bóng 2D / 3D)`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontWeight: 500
-            }}
-          >
-            <span>{atmosphere.icon}</span>
-            <span>{atmosphere.label}</span>
-          </button>
-        )}
-      </div>
-
-      {/* Popover Hướng sáng & Đổ bóng cho 2D viewport */}
-      {isLightingOpen &&
-        onChangeComposite &&
-        createPortal(
-          <LightingControlPopover
-            style={{
-              position: 'fixed',
-              left: lightingBtnRef.current
-                ? Math.max(10, Math.min(window.innerWidth - 300, lightingBtnRef.current.getBoundingClientRect().left))
-                : 20,
-              top: lightingBtnRef.current
-                ? Math.min(window.innerHeight - 480, lightingBtnRef.current.getBoundingClientRect().bottom + 6)
-                : 40,
-              zIndex: 30000
-            }}
-            lighting={composite.lighting || DEFAULT_LIGHTING}
-            onChangeLighting={handleUpdateLighting}
-            onClose={() => setIsLightingOpen(false)}
-          />,
-          document.body
-        )}
+        onFitView={handleFitView}
+        show3DPerspective={show3DPerspective}
+        onToggle3DPerspective={() =>
+          setShow3DPerspective((v) => {
+            const next = !v
+            saveLayerWorkshopViewPrefs({ show3DPerspective2D: next })
+            return next
+          })
+        }
+        clipToCamera={clipToCamera}
+        onToggleClipToCamera={() =>
+          setClipToCamera((v) => {
+            const next = !v
+            saveLayerWorkshopViewPrefs({ clipToCamera2D: next })
+            return next
+          })
+        }
+        showBbox={showBbox}
+        onToggleShowBbox={() =>
+          setShowBbox((v) => {
+            const next = !v
+            saveLayerWorkshopViewPrefs({ showBbox2D: next })
+            return next
+          })
+        }
+        hasBones={!!composite.rig?.bones?.length}
+        showBones={showBones}
+        onToggleShowBones={onToggleShowBones}
+        showMesh={showMesh}
+        onToggleShowMesh={onToggleShowMesh}
+        lighting={composite.lighting}
+        onChangeLighting={onChangeComposite ? handleUpdateLighting : undefined}
+        atmosphereLabel={atmosphere.label}
+        atmosphereIcon={atmosphere.icon}
+      />
 
       {/* Floating 2D Hint */}
       <div
