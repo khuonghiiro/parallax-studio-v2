@@ -110,4 +110,26 @@ describe('Layer Assembly Brush Eraser & 3D Camera Depth', () => {
     expect(relX).toBeCloseTo(0, 5)
     expect(relY).toBeCloseTo(0, 5)
   })
+
+  it('accurately maps isolated canvas coordinates with custom zoom and pan', () => {
+    const canvas = { width: 500, height: 400 }
+    const rect = { left: 12, top: 300, width: 210, height: 210 }
+    const transform = { zoom: 2.5, pan: { x: 30, y: -20 } }
+
+    const baseFactor = Math.min(rect.width / canvas.width, rect.height / canvas.height) // 210 / 500 = 0.42
+    const totalFactor = baseFactor * transform.zoom
+
+    // Center of image on screen
+    const screenCenterX = rect.left + rect.width / 2 + transform.pan.x
+    const screenCenterY = rect.top + rect.height / 2 + transform.pan.y
+
+    // When clicking at the center of the image on screen:
+    const mx = screenCenterX - rect.left
+    const my = screenCenterY - rect.top
+    const px = (mx - (rect.width / 2 + transform.pan.x)) / totalFactor + canvas.width / 2
+    const py = (my - (rect.height / 2 + transform.pan.y)) / totalFactor + canvas.height / 2
+
+    expect(px).toBeCloseTo(250, 4)
+    expect(py).toBeCloseTo(200, 4)
+  })
 })

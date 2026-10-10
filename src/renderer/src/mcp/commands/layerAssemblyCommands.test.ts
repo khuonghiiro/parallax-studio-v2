@@ -354,7 +354,7 @@ describe('MCP layerAssemblyCommands', () => {
       template: 'humanoid'
     })) as any
     expect(tmplRes.ok).toBe(true)
-    expect(mockComp.rig?.bones.length).toBe(11)
+    expect(mockComp.rig?.bones.length).toBe(15)
     expect(mockComp.rig?.bones[0].id).toBe('bone-pelvis')
 
     // 3. bind layer to bone

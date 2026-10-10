@@ -19,6 +19,7 @@ interface Stroke {
   id: string; pointerId: number; canvas: HTMLCanvasElement; pixels: ImageData
   alpha: ReturnType<typeof createAlphaStroke>; last: BrushPoint
   isolatedRect?: DOMRect
+  isolatedTransform?: { zoom: number; pan: { x: number; y: number } }
 }
 
 /** Immutable source per stroke; transient preview never enters history or reloads the source. */
@@ -77,15 +78,22 @@ export function useLayerBrushEraser({ selectedLayer, zoom, pan, onUpdateLayer, o
       { x: rect.left + rect.width / 2 + pan.x, y: rect.top + rect.height / 2 + pan.y },
       zoom, selectedLayer, canvas.width, canvas.height)
   }
-  const pointIsolated = (clientX: number, clientY: number, canvas: HTMLCanvasElement, rect: DOMRect) => {
+  const pointIsolated = (
+    clientX: number,
+    clientY: number,
+    canvas: HTMLCanvasElement,
+    rect: DOMRect,
+    transform?: { zoom: number; pan: { x: number; y: number } }
+  ) => {
     if (!selectedLayer) return null
-    const factor = Math.min(rect.width / canvas.width, rect.height / canvas.height)
-    const imgW = canvas.width * factor
-    const imgH = canvas.height * factor
-    const imgLeft = rect.left + (rect.width - imgW) / 2
-    const imgTop = rect.top + (rect.height - imgH) / 2
-    const x = (clientX - imgLeft) / factor
-    const y = (clientY - imgTop) / factor
+    const z = transform?.zoom ?? 1
+    const p = transform?.pan ?? { x: 0, y: 0 }
+    const baseFactor = Math.min(rect.width / canvas.width, rect.height / canvas.height)
+    const totalFactor = baseFactor * z
+    const mx = clientX - rect.left
+    const my = clientY - rect.top
+    const x = (mx - (rect.width / 2 + p.x)) / totalFactor + canvas.width / 2
+    const y = (my - (rect.height / 2 + p.y)) / totalFactor + canvas.height / 2
     if (x < 0 || x > canvas.width || y < 0 || y > canvas.height) return null
     return { x, y }
   }
@@ -103,7 +111,12 @@ export function useLayerBrushEraser({ selectedLayer, zoom, pan, onUpdateLayer, o
     frame.current = requestAnimationFrame(tick)
   }
 
-  const startErasing = (event: React.PointerEvent, p: BrushPoint | null, rect?: DOMRect) => {
+  const startErasing = (
+    event: React.PointerEvent,
+    p: BrushPoint | null,
+    rect?: DOMRect,
+    transform?: { zoom: number; pan: { x: number; y: number } }
+  ) => {
     if (!p) return
     const canvas = document.createElement('canvas'), original = source.current!.canvas
     canvas.width = original.width; canvas.height = original.height
@@ -114,14 +127,26 @@ export function useLayerBrushEraser({ selectedLayer, zoom, pan, onUpdateLayer, o
       const scale = rect ? 1 : Math.abs(selectedLayer!.scale)
       const scaleX = rect ? 1 : Math.abs(selectedLayer!.scaleX ?? 1)
       const scaleY = rect ? 1 : Math.abs(selectedLayer!.scaleY ?? 1)
-      const factor = rect ? Math.min(rect.width / canvas.width, rect.height / canvas.height) : Math.min(1, 380 / Math.max(canvas.width, canvas.height)) * scale
+      const zoomFactor = (rect && transform) ? transform.zoom : 1
+      const factor = rect
+        ? Math.min(rect.width / canvas.width, rect.height / canvas.height) * zoomFactor
+        : Math.min(1, 380 / Math.max(canvas.width, canvas.height)) * scale
       
       const alpha = createAlphaStroke(pixels.data, canvas.width, canvas.height, {
         radiusX: brushSettings.size / (factor * scaleX),
         radiusY: brushSettings.size / (factor * scaleY),
         opacity: brushSettings.opacity, hardness: brushSettings.hardness
       })
-      stroke.current = { id: selectedLayer!.id, pointerId: event.pointerId, canvas, pixels, alpha, last: p, isolatedRect: rect }
+      stroke.current = {
+        id: selectedLayer!.id,
+        pointerId: event.pointerId,
+        canvas,
+        pixels,
+        alpha,
+        last: p,
+        isolatedRect: rect,
+        isolatedTransform: transform
+      }
       alpha.segment(p, p)
       if (rect) {
         ;(event.target as HTMLElement).setPointerCapture(event.pointerId)
@@ -139,18 +164,22 @@ export function useLayerBrushEraser({ selectedLayer, zoom, pan, onUpdateLayer, o
     startErasing(event, p)
   }
 
-  const handleIsolatedPointerDown = (event: React.PointerEvent, rect: DOMRect) => {
+  const handleIsolatedPointerDown = (
+    event: React.PointerEvent,
+    rect: DOMRect,
+    transform?: { zoom: number; pan: { x: number; y: number } }
+  ) => {
     if (activeTool !== 'eraser' || event.button !== 0 || stroke.current
       || !selectedLayer || selectedLayer.locked || selectedLayer.hidden || source.current?.id !== selectedLayer.id) return
-    const p = pointIsolated(event.clientX, event.clientY, source.current.canvas, rect)
-    startErasing(event, p, rect)
+    const p = pointIsolated(event.clientX, event.clientY, source.current.canvas, rect, transform)
+    startErasing(event, p, rect, transform)
   }
 
   const moveErasing = (event: React.PointerEvent, current: Stroke) => {
     const samples = event.nativeEvent.getCoalescedEvents?.() ?? []
     for (const sample of samples.length ? samples : [event]) {
       const p = current.isolatedRect 
-        ? pointIsolated(sample.clientX, sample.clientY, current.canvas, current.isolatedRect)
+        ? pointIsolated(sample.clientX, sample.clientY, current.canvas, current.isolatedRect, current.isolatedTransform)
         : point(sample.clientX, sample.clientY, current.canvas)
       if (p) { current.alpha.segment(current.last, p); current.last = p }
     }
@@ -166,7 +195,11 @@ export function useLayerBrushEraser({ selectedLayer, zoom, pan, onUpdateLayer, o
     moveErasing(event, current)
   }
 
-  const handleIsolatedPointerMove = (event: React.PointerEvent, rect: DOMRect) => {
+  const handleIsolatedPointerMove = (
+    event: React.PointerEvent,
+    rect: DOMRect,
+    _transform?: { zoom: number; pan: { x: number; y: number } }
+  ) => {
     if (activeTool !== 'eraser') return
     setCursorPos({ x: event.clientX - rect.left, y: event.clientY - rect.top, isIsolated: true })
     const current = stroke.current

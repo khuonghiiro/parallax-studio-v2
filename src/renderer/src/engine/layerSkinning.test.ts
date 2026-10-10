@@ -15,7 +15,7 @@ describe('2D mesh skinning', () => {
   it('does not add sibling branches when including the immediate parent', () => {
     const humanoid = { bones: createHumanoidBones(), duration: 1, loop: false, tracks: {} }
     expect(skinBones(humanoid, 'bone-arm-l').map((b) => b.id).sort()).toEqual(
-      ['bone-arm-l', 'bone-forearm-l', 'bone-torso'].sort())
+      ['bone-arm-l', 'bone-forearm-l', 'bone-hand-l', 'bone-torso'].sort())
   })
   it('normalizes weights and excludes unrelated branches', () => {
     const weights = skinWeights(0, 75, skinBones(rig, 'root'))

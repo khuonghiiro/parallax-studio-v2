@@ -359,7 +359,6 @@ export function LayerAssembly2DToolbar({
               onClick={(e) => {
                 e.stopPropagation()
                 setIsLightingOpen((v) => !v)
-                onCloseBrushPopover()
                 hideTooltip()
               }}
               onMouseEnter={(e) => showTooltip(e, 'lighting')}

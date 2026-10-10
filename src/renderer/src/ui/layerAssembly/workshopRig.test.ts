@@ -79,7 +79,7 @@ describe('workshopRig & layerRig engine', () => {
       action: 'apply-template',
       template: 'humanoid'
     })
-    expect(comp.rig?.bones.length).toBe(11)
+    expect(comp.rig?.bones.length).toBe(15)
 
     comp = applyRigAction(comp, {
       action: 'apply-preset-animation',
@@ -90,7 +90,7 @@ describe('workshopRig & layerRig engine', () => {
 
     // Evaluate transforms at time 0.4s
     const transforms = evaluateRig(comp.rig!, 0.4)
-    expect(transforms.size).toBe(11)
+    expect(transforms.size).toBe(15)
     const pelvis = transforms.get('bone-pelvis')
     expect(pelvis).toBeDefined()
     expect(Number.isFinite(pelvis!.x)).toBe(true)

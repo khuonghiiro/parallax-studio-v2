@@ -618,23 +618,25 @@ export function LayerAssemblyViewport({
       )}
 
       {/* Floating 2D Hint */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '12px',
-          left: '14px',
-          fontSize: '10px',
-          color: 'var(--text-dim)',
-          background: 'var(--bg-1)',
-          backdropFilter: 'blur(6px)',
-          padding: '2px 8px',
-          borderRadius: '4px',
-          pointerEvents: 'none',
-          zIndex: 30
-        }}
-      >
-        Kéo layer / Mũi tên: dời 2D · +/-: độ sâu Z · Alt / chuột giữa: dời khung · Cuộn: zoom
-      </div>
+      {brush.activeTool !== 'eraser' && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '12px',
+            left: '14px',
+            fontSize: '10px',
+            color: 'var(--text-dim)',
+            background: 'var(--bg-1)',
+            backdropFilter: 'blur(6px)',
+            padding: '2px 8px',
+            borderRadius: '4px',
+            pointerEvents: 'none',
+            zIndex: 30
+          }}
+        >
+          Kéo layer / Mũi tên: dời 2D · +/-: độ sâu Z · Alt / chuột giữa: dời khung · Cuộn: zoom
+        </div>
+      )}
 
       {/* Floating Bottom Transport Bar */}
       {!hideTransport && (

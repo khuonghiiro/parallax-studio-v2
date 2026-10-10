@@ -199,6 +199,7 @@ export function generateRunCycle(
     if (bone) tracks[bone.id] = track(duration, pose)
   }
   const pelvis = roleBone(bones, 'pelvis', 'hông') ?? bones.find((b) => !b.parentId)
+  const unit = (pelvis?.length ?? 50) / 50
 
   if (viewAngle === 'side') {
     assign(pelvis, (p) => ({
