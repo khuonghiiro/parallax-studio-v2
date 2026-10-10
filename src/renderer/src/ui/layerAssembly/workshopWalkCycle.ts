@@ -156,28 +156,30 @@ export function generateWalkCycle(
       const backwardSwing = (p: number) => Math.max(0, -armSwing(p))
 
       assign(roleBone(bones, `arm-${side}`, `bắp tay ${label}`), (p) => ({
-        rotation: -sign * (2 + 5 * armSwing(p)) * signMod, // Vung tới -> xoay nhẹ vào trong
-        y: -4 * unit * forwardSwing(p), // Hơi nhấc vai khi vung tay tới
-        scaleX: 1 + 0.05 * forwardSwing(p) - 0.05 * backwardSwing(p), // To ra khi tới gần, nhỏ đi khi lùi sau
-        scaleY: 1 - 0.1 * forwardSwing(p) // Bắp tay ngắn lại do phối cảnh chiếu trục Z
+        rotation: -sign * (2 + 6 * armSwing(p)) * signMod, // Vung tới xoay nhẹ vào trong
+        y: -2 * unit * forwardSwing(p), // Vai nhấc rất nhẹ khi vung tới
+        scaleX: 1 + 0.04 * forwardSwing(p) - 0.02 * backwardSwing(p),
+        scaleY: 1 - 0.05 * forwardSwing(p)
       }))
       assign(roleBone(bones, `forearm-${side}`, `cẳng tay ${label}`), (p) => ({
-        rotation: sign * (2 + 6 * forwardSwing(p)) * signMod,
-        y: -14 * unit * forwardSwing(p), // Trượt cẳng tay lên trên (gập khuỷu tay hướng về camera)
-        scaleX: 1 + 0.1 * forwardSwing(p) - 0.08 * backwardSwing(p),
-        scaleY: 1 - 0.2 * forwardSwing(p) // Cẳng tay ngắn lại rõ rệt do chỉa thẳng vào camera
+        rotation: sign * (4 + 8 * forwardSwing(p)) * signMod, // Gập nhẹ khuỷu tay
+        y: -10 * unit * forwardSwing(p) + 2 * unit * backwardSwing(p), // Trượt lên tạo phối cảnh 3D
+        scaleX: 1 + 0.08 * forwardSwing(p) - 0.04 * backwardSwing(p),
+        scaleY: 1 - 0.15 * forwardSwing(p)
       }))
       assign(roleBone(bones, `hand-${side}`, `bàn tay ${label}`), (p) => ({
-        rotation: sign * (5 * forwardSwing(p)) * signMod,
-        y: -18 * unit * forwardSwing(p), 
-        scaleX: 1 + 0.15 * forwardSwing(p) - 0.1 * backwardSwing(p),
-        scaleY: 1 - 0.2 * forwardSwing(p)
+        rotation: sign * (8 * forwardSwing(p) - 4 * backwardSwing(p)) * signMod, // Bàn tay gập linh hoạt
+        x: sign * 1.5 * unit * forwardSwing(p), // Lệch ngang tự nhiên
+        y: -12 * unit * forwardSwing(p) + 3 * unit * backwardSwing(p),
+        scaleX: 1 + 0.12 * forwardSwing(p) - 0.05 * backwardSwing(p),
+        scaleY: 1 - 0.12 * forwardSwing(p)
       }))
       assign(roleBone(bones, `foot-${side}`, `bàn chân ${label}`), (p) => ({
         rotation: -sign * (4 * lift(p)) * signMod,
-        y: -6 * unit * lift(p),
-        scaleX: 1 + 0.15 * stepPhase(p),
-        scaleY: 1 + 0.15 * stepPhase(p)
+        x: sign * 1 * unit * lift(p), // Bàn chân mở nhẹ sang 2 bên khi bước
+        y: -4 * unit * lift(p),
+        scaleX: 1 + 0.1 * stepPhase(p),
+        scaleY: 1 + 0.1 * stepPhase(p)
       }))
     }
   }
