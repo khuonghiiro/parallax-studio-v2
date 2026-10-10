@@ -7,6 +7,7 @@ import { LayerAssembly3DViewport } from './LayerAssembly3DViewport'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
 import { IconCube, IconImage } from '../icons'
 import { evaluateRig, transformRigLayer } from '../../engine/layerRig'
+import { ensureRigClips } from './workshopRig'
 import type { WorkshopTab } from './WorkshopRightPanel'
 import { loadLayerWorkshopViewPrefs, saveLayerWorkshopViewPrefs } from './layerAssemblyViewPrefs'
 import type { BrushPreview } from './useLayerBrushEraser'
@@ -54,19 +55,22 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
     return () => window.removeEventListener('keydown', handleKey)
   }, [toggleBones, toggleMesh])
 
-  const rig = state.composite.rig
-  const animated = !brushEditing && (tab === 'animation' || playback.isPlaying || playback.time > 0) && rig
+  const normalizedRig = state.composite.rig ? ensureRigClips(state.composite.rig).rig : undefined
+  const rig = normalizedRig
+  const isErasing = brushEditing && tab === 'layers' && !playback.isPlaying
+  const animated = !isErasing && (tab === 'animation' || playback.isPlaying || playback.time > 0) && rig
   const transforms = animated ? evaluateRig(animated, playback.time) : undefined
   const composite = {
     ...state.composite,
+    rig: normalizedRig ?? state.composite.rig,
     layers: state.composite.layers.map((l) => {
       const bindPose = { x: l.x, y: l.y, rotation: l.rotation }
       const transformed = transforms ? transformRigLayer(l, transforms) : l
       return {
         ...transformed,
         ...(brushPreview?.id === l.id ? { imageUrl: brushPreview.imageUrl } : {}),
-        ...(rig && !brushEditing ? { previewRig: rig, bindPose } : {}),
-        ...(brushEditing ? { bindingMode: 'rigid' as const, motion: { ...l.motion, type: 'none' as const } } : {}),
+        ...(rig && !isErasing ? { previewRig: rig, bindPose } : {}),
+        ...(isErasing ? { bindingMode: 'rigid' as const, motion: { ...l.motion, type: 'none' as const } } : {}),
         locked: l.locked
       }
     })
@@ -79,7 +83,8 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
     onUpdateLayer: state.update,
     onAddLayerFromAsset: state.add,
     onAppendPresetLayers: state.append,
-    time: playback.time
+    time: playback.time,
+    tab
   }
   return <div className="layer-workshop-center-area">
     <div className="layer-workshop-split-container">
@@ -94,7 +99,7 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
           onToggleShowBones={toggleBones}
           showMesh={showMesh}
           onToggleShowMesh={toggleMesh}
-          boneOverlay={tab === 'layers' || brushEditing ? undefined : { composite: state.composite, boneId, selectBone, setComposite: state.setComposite, time: playback.time, editing: tab === 'bones' }}
+          boneOverlay={tab === 'layers' || isErasing ? undefined : { composite: { ...state.composite, rig: normalizedRig ?? state.composite.rig }, boneId, selectBone, setComposite: state.setComposite, time: playback.time, editing: tab === 'bones' }}
           onChangeComposite={state.setComposite}
           isPlaying={playback.isPlaying}
           onTogglePlay={playback.toggle}
@@ -113,7 +118,7 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
           onChangeComposite={state.setComposite}
         />
       </div>}
-      <LayerAssemblyTransportBar duration={state.composite.rig?.duration} isPlaying={playback.isPlaying} onTogglePlay={playback.toggle} time={playback.time} onSeekTime={playback.setTime} />
+      <LayerAssemblyTransportBar duration={rig?.duration ?? state.composite.rig?.duration} isPlaying={playback.isPlaying} onTogglePlay={playback.toggle} time={playback.time} onSeekTime={playback.setTime} />
     </div>
   </div>
 }

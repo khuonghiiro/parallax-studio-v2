@@ -3,6 +3,11 @@ import { useEffect, useState } from 'react'
 export function useWorkshopPlayback(duration = 4, loop = true) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [time, setTime] = useState(0)
+
+  useEffect(() => {
+    setTime((t) => (t > duration ? 0 : t))
+  }, [duration])
+
   useEffect(() => {
     if (!isPlaying) return
     let frame = 0, last = performance.now()

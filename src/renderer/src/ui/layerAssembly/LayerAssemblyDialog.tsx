@@ -15,6 +15,7 @@ import '../../styles/layerAssembly.css'
 import '../../styles/layerWorkshopTools.css'
 import '../../styles/layerWorkshopRig.css'
 import { WorkshopRightPanel, type WorkshopTab } from './WorkshopRightPanel'
+import { ensureRigClips } from './workshopRig'
 
 export type AssemblyWorkspaceView = '2d' | '3d' | 'split'
 export interface LayerAssemblyDialogProps { initialComposite?: LayerComposite | null; onClose: () => void }
@@ -32,7 +33,8 @@ function IconAlert() {
 export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssemblyDialogProps) {
   const state = useLayerWorkshop(initialComposite)
   const { composite, setComposite, history, undo, redo, createNew } = state
-  const playback = useWorkshopPlayback(composite.rig?.duration, composite.rig?.loop)
+  const activeRig = composite.rig ? ensureRigClips(composite.rig).rig : undefined
+  const playback = useWorkshopPlayback(activeRig?.duration, activeRig?.loop)
   const [tab, setTab] = useState<WorkshopTab>('layers')
   const [boneId, selectBone] = useState<string | null>(null)
   const saving = useWorkshopSave(() => history.current, onClose, () => playback.time)

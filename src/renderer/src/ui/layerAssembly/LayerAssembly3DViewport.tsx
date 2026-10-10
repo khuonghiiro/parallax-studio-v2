@@ -46,6 +46,7 @@ import {
   type LayerDragState
 } from './layerAssembly3DPointer'
 import { evaluateRig } from '../../engine/layerRig'
+import { ensureRigClips } from './workshopRig'
 import {
   applyCameraPreset,
   applyQuickAngle,
@@ -464,7 +465,7 @@ export function LayerAssembly3DViewport({
   useEffect(() => {
     const bonesGroup = bonesGroupRef.current
     if (!bonesGroup) return
-    const rig = composite.rig
+    const rig = composite.rig ? ensureRigClips(composite.rig).rig : undefined
     const transforms = rig ? evaluateRig(rig, time) : undefined
     update3DBonesGroup({
       group: bonesGroup,

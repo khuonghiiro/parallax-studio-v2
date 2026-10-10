@@ -18,6 +18,7 @@ import { AssembledLayerItemView } from './AssembledLayerItemView'
 import { LayerAssembly2DToolbar } from './LayerAssembly2DToolbar'
 import { useLayerBrushEraser, type BrushPreview } from './useLayerBrushEraser'
 import { EraserTopBar, EraserIsolatedCanvas } from './LayerAssemblyEraser'
+import type { WorkshopTab } from './WorkshopRightPanel'
 
 export interface LayerAssemblyViewportProps {
   brushSourceLayer?: AssembledLayerItem | null
@@ -36,6 +37,7 @@ export interface LayerAssemblyViewportProps {
   onTogglePlay: () => void
   time: number
   onSeekTime: (t: number) => void
+  tab?: WorkshopTab
   hideTransport?: boolean
   showBones?: boolean
   onToggleShowBones?: () => void
@@ -59,6 +61,7 @@ export function LayerAssemblyViewport({
   onTogglePlay,
   time,
   onSeekTime,
+  tab,
   hideTransport = false,
   boneOverlay,
   showBones = true,
@@ -97,10 +100,21 @@ export function LayerAssemblyViewport({
     onPreview: handleBrushPreview,
     containerRef
   })
+
+  // Tự động đóng cọ tẩy khi chuyển tab hoặc khi đang phát hoạt ảnh
   useEffect(() => {
-    onBrushModeChange?.(brush.activeTool === 'eraser')
+    if ((tab && tab !== 'layers') || isPlaying) {
+      if (brush.activeTool === 'eraser') {
+        brush.setActiveTool('select')
+      }
+    }
+  }, [tab, isPlaying, brush])
+
+  useEffect(() => {
+    const isErasing = brush.activeTool === 'eraser' && (!tab || tab === 'layers') && !isPlaying
+    onBrushModeChange?.(isErasing)
     return () => onBrushModeChange?.(false)
-  }, [brush.activeTool, onBrushModeChange])
+  }, [brush.activeTool, tab, isPlaying, onBrushModeChange])
 
   const handleDragRef = useRef<{
     handle: Bbox2DHandle
@@ -593,7 +607,7 @@ export function LayerAssemblyViewport({
       />
 
       {/* Giao diện thanh ngang Tẩy và Khung ảnh Tẩy độc lập */}
-      {brush.activeTool === 'eraser' && (
+      {brush.activeTool === 'eraser' && (!tab || tab === 'layers') && !isPlaying && (
         <>
           <EraserTopBar
             brushSettings={brush.brushSettings}
