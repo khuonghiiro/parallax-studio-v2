@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { AssembledLayerItem } from './types'
-import { createLayerAlphaTrimmedGeometry } from './layerAssemblyAlphaMesh'
+import { createLayerAlphaTrimmedGeometry, LayerAssembly2DMeshOverlay } from './layerAssemblyAlphaMesh'
 import { deformSkin } from '../../engine/layerSkinning'
 import type { BufferGeometry } from 'three'
 
@@ -12,6 +12,23 @@ function expandPoint(p: [number, number], cx: number, cy: number, eps = 0.65): [
   const dist = Math.hypot(dx, dy)
   if (dist < 1e-4) return p
   return [p[0] + (dx / dist) * eps, p[1] + (dy / dist) * eps]
+}
+
+function loadMeshImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    if (src.startsWith('http')) {
+      img.crossOrigin = 'anonymous'
+    }
+    img.onload = () => resolve(img)
+    img.onerror = () => {
+      const fallback = new Image()
+      fallback.onload = () => resolve(fallback)
+      fallback.onerror = reject
+      fallback.src = src
+    }
+    img.src = src
+  })
 }
 
 /** Canvas affine triangles use the same welded geometry as Three.js and exported meshes. */
@@ -62,7 +79,7 @@ export function drawSkinTriangles(
       ctx.closePath()
     }
     ctx.strokeStyle = stroke
-    ctx.lineWidth = 0.6
+    ctx.lineWidth = 0.8
     ctx.stroke()
     ctx.restore()
   }
@@ -71,21 +88,28 @@ export function drawSkinTriangles(
 export function SoftLayerImage({ url, layer, time, showMesh, filter }: Props) {
   const ref = useRef<HTMLCanvasElement>(null)
   const [data, setData] = useState<ImageMesh | null>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
+
   useEffect(() => {
     let active = true, geometry: BufferGeometry | undefined
     setData(null)
-    const image = new Image()
-    image.crossOrigin = 'anonymous'
-    image.onload = () => {
-      if (!active) return
-      const factor = Math.min(1, 380 / Math.max(image.naturalWidth, image.naturalHeight))
-      const width = Math.round(image.naturalWidth * factor), height = Math.round(image.naturalHeight * factor)
-      geometry = createLayerAlphaTrimmedGeometry(width, height, image)
-      setData({ image, geometry, width, height })
-    }
-    image.src = url
+    setLoadFailed(false)
+    loadMeshImage(url)
+      .then((image) => {
+        if (!active) return
+        const factor = Math.min(1, 380 / Math.max(image.naturalWidth, image.naturalHeight))
+        const width = Math.round(image.naturalWidth * factor), height = Math.round(image.naturalHeight * factor)
+        geometry = createLayerAlphaTrimmedGeometry(width, height, image)
+        setData({ image, geometry, width, height })
+      })
+      .catch((err) => {
+        if (!active) return
+        console.warn('[SoftLayerImage] Failed to load image for soft mesh:', err)
+        setLoadFailed(true)
+      })
     return () => { active = false; geometry?.dispose() }
   }, [url])
+
   useEffect(() => {
     const canvas = ref.current, ctx = canvas?.getContext('2d')
     if (!canvas || !ctx || !data) return
@@ -104,7 +128,33 @@ export function SoftLayerImage({ url, layer, time, showMesh, filter }: Props) {
     const stroke = showMesh ? '#00e5ff' : undefined
     drawSkinTriangles(ctx, data.image, data.geometry, positions, stroke)
   }, [data, layer, time, showMesh])
-  return <div style={{ width: data?.width ?? 130, height: data?.height ?? 130, position: 'relative', filter }}>
-    <canvas ref={ref} style={{ position: 'absolute', pointerEvents: 'none' }} />
-  </div>
+
+  if (loadFailed || !data) {
+    return (
+      <div style={{ position: 'relative', filter }}>
+        <img
+          src={url}
+          alt={layer.name}
+          style={{
+            display: 'block',
+            maxWidth: '380px',
+            maxHeight: '380px',
+            objectFit: 'contain',
+            pointerEvents: 'none',
+            imageRendering: '-webkit-optimize-contrast',
+            transform: 'translateZ(0)',
+            backfaceVisibility: 'hidden'
+          }}
+          draggable={false}
+        />
+        <LayerAssembly2DMeshOverlay imageUrl={url} showMesh={showMesh} />
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ width: data.width, height: data.height, position: 'relative', filter }}>
+      <canvas ref={ref} style={{ position: 'absolute', pointerEvents: 'none' }} />
+    </div>
+  )
 }

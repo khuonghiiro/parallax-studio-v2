@@ -14,15 +14,16 @@ export interface SkinInfluence { id: string; weight: number }
 const weightCache = new WeakMap<Float32Array, { key: string; weights: SkinInfluence[][] }>()
 
 function cachedWeights(positions: Float32Array, binding: SkinBinding, bones: LayerRig['bones']) {
-  const key = JSON.stringify([binding.x, binding.y, binding.rotation, binding.scale,
-    binding.scaleX, binding.scaleY, bones])
+  const scale = binding.scale ?? 1, rot = binding.rotation ?? 0
+  const key = JSON.stringify([binding.x ?? 0, binding.y ?? 0, rot, scale,
+    binding.scaleX ?? 1, binding.scaleY ?? 1, bones])
   const cached = weightCache.get(positions)
   if (cached?.key === key) return cached.weights
   const weights: SkinInfluence[][] = []
   for (let i = 0; i < positions.length; i += 3) {
-    const p = rotatePoint(positions[i] * binding.scale * (binding.scaleX ?? 1),
-      -positions[i + 1] * binding.scale * (binding.scaleY ?? 1), binding.rotation)
-    weights.push(skinWeights(p.x + binding.x, p.y + binding.y, bones))
+    const p = rotatePoint(positions[i] * scale * (binding.scaleX ?? 1),
+      -positions[i + 1] * scale * (binding.scaleY ?? 1), rot)
+    weights.push(skinWeights(p.x + (binding.x ?? 0), p.y + (binding.y ?? 0), bones))
   }
   weightCache.set(positions, { key, weights })
   return weights
@@ -57,21 +58,24 @@ export function deformSkin(positions: Float32Array, binding: SkinBinding, rig: L
   const transforms = evaluateRig(rig, time)
   const weights = cachedWeights(positions, binding, bones)
   const boneById = new Map(bones.map((b) => [b.id, b]))
-  const sx = binding.scale * (binding.scaleX ?? 1), sy = binding.scale * (binding.scaleY ?? 1)
+  const scale = binding.scale ?? 1, rot = binding.rotation ?? 0
+  const sx = scale * (binding.scaleX ?? 1), sy = scale * (binding.scaleY ?? 1)
   if (Math.abs(sx * sy) < 1e-10) return output
+  const bx = binding.x ?? 0, by = binding.y ?? 0
   for (let i = 0; i < positions.length; i += 3) {
-    const p = rotatePoint(positions[i] * sx, -positions[i + 1] * sy, binding.rotation)
-    const wx = p.x + binding.x, wy = p.y + binding.y
+    const p = rotatePoint(positions[i] * sx, -positions[i + 1] * sy, rot)
+    const wx = p.x + bx, wy = p.y + by
     let x = 0, y = 0
     for (const influence of weights[i / 3]) {
-      const transform = transforms.get(influence.id)!
-      const bone = boneById.get(influence.id)!
+      const transform = transforms.get(influence.id)
+      const bone = boneById.get(influence.id)
+      if (!transform || !bone) continue
       const delta = rotatePoint((wx - bone.x) * (transform.scaleX ?? 1),
         (wy - bone.y) * (transform.scaleY ?? 1), transform.rotation)
       x += (transform.x + delta.x) * influence.weight
       y += (transform.y + delta.y) * influence.weight
     }
-    const local = rotatePoint(x - binding.x, y - binding.y, -binding.rotation)
+    const local = rotatePoint(x - bx, y - by, -rot)
     output[i] = local.x / sx
     output[i + 1] = -local.y / sy
   }

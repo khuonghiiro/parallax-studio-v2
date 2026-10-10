@@ -16,7 +16,15 @@ export function WorkshopRightPanel({ state, playback, tab, setTab, boneId, selec
     try { state.setComposite((c) => applyRigAction(c, action)); setError('') }
     catch (err) { setError(err instanceof Error ? err.message : String(err)) }
   }
-  const props = { composite: state.composite, selectedIds: state.selection, boneId, selectBone, run }
+  const props = {
+    composite: state.composite,
+    selectedIds: state.selection,
+    selectedLayerId: state.selectedLayerId,
+    selectLayer: state.select,
+    boneId,
+    selectBone,
+    run
+  }
   return <aside className="lw-right-column">
     <div className="lw-right-tabs" role="tablist" aria-label="Công cụ lắp ráp">
       {([['layers', 'Layer'], ['bones', 'Tạo xương'], ['animation', 'Animation']] as const).map(([id, title]) =>

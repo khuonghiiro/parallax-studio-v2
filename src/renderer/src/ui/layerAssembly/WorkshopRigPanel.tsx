@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { LayerBone } from '@shared/layerRig'
 import type { LayerComposite } from './types'
 import type { RigAction } from './workshopRig'
@@ -8,6 +9,8 @@ export interface RigPanelProps {
   boneId: string | null
   selectBone: (id: string | null) => void
   selectedIds: string[]
+  selectedLayerId?: string | null
+  selectLayer?: (id: string | null) => void
   run: (action: RigAction) => void
 }
 
@@ -47,10 +50,28 @@ export function RigNumber({
   )
 }
 
-export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, run }: RigPanelProps) {
+export function WorkshopRigPanel({
+  composite,
+  boneId,
+  selectBone,
+  selectedIds,
+  selectedLayerId,
+  selectLayer,
+  run
+}: RigPanelProps) {
   const bones = composite.rig?.bones ?? []
   const bone = bones.find((b) => b.id === boneId)
   const selected = composite.layers.filter((l) => selectedIds.includes(l.id))
+  const [localLayerId, setLocalLayerId] = useState<string>('')
+
+  const activeLayerId = (selected.length > 0 ? selected[0].id : (localLayerId || selectedLayerId)) || composite.layers[0]?.id || ''
+  const activeLayer = composite.layers.find((l) => l.id === activeLayerId)
+  const targetIds = selected.length > 0 ? selectedIds : (activeLayerId ? [activeLayerId] : [])
+
+  const handleLayerSelectChange = (id: string) => {
+    setLocalLayerId(id)
+    if (selectLayer) selectLayer(id || null)
+  }
 
   const add = () => {
     const parent = bone
@@ -68,15 +89,15 @@ export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, r
     selectBone(next.id)
   }
 
-  const patch = (p: Partial<LayerBone>) => bone && run({ action: 'update-bone', boneId: bone.id, patch: p })
+  const patch = (patch: Partial<LayerBone>) => {
+    if (!bone) return
+    run({ action: 'update-bone', boneId: bone.id, patch })
+  }
 
   return (
     <div className="lw-rig-panel">
-      <h3>Gắn xương kiểu Blender (Edit Mode)</h3>
-      <p>Tạo khớp tại vai, khuỷu tay, hông… rồi gắn các layer ảnh vào xương. Kéo khớp Head để dời, kéo Tail để đổi góc và chiều dài.</p>
-
-      <div className="lw-rig-presets-title">Khung xương dựng sẵn</div>
-      <div className="lw-rig-presets-row">
+      <h3>Mẫu khung xương Rig</h3>
+      <div className="lw-preset-row">
         <button
           className="lw-preset-btn"
           title="Tạo hệ thống 11 xương chuẩn nhân vật người"
@@ -165,37 +186,137 @@ export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, r
       )}
 
       <h3>Gắn Layer vào xương</h3>
-      <p>Uốn mềm: đặt chuỗi xương dọc tóc, đuôi hoặc chi; chọn xương gốc của nhánh rồi gắn ảnh. Các đỉnh mesh sẽ chuyển động theo nhánh này.</p>
-      <button className="btn sm primary" disabled={!bone || !selected.length}
-        onClick={() => run({ action: 'bind', boneId: bone!.id, layerIds: selectedIds, mode: 'soft' })}>
-        Uốn mềm theo chuỗi xương
-      </button>
-      <p>{selected.length} layer đang chọn trên khung 2D. Chọn xương ở danh sách trên rồi bấm Gắn vào xương.</p>
-      <div className="lw-rig-actions">
-        <button
-          className="btn sm primary"
-          disabled={!bone || !selected.length}
-          onClick={() => run({ action: 'bind', boneId: bone!.id, layerIds: selectedIds })}
-        >
-          Gắn cứng vào xương {bone ? `(${bone.name})` : ''}
-        </button>
-        <button
-          className="btn sm"
-          disabled={!selected.length}
-          onClick={() => run({ action: 'bind', layerIds: selectedIds })}
-        >
-          Tháo gắn
-        </button>
+      <p style={{ margin: '4px 0 8px', fontSize: '11px', color: 'var(--text-dim)' }}>
+        Uốn mềm: liên kết đa giác Mesh 2D của layer với chuỗi xương. Các đỉnh mesh sẽ biến dạng mượt mà theo chuyển động xương.
+      </p>
+
+      {/* Bộ chọn layer cần gắn */}
+      <div className="lw-rig-field">
+        <span style={{ fontWeight: 600 }}>Layer mục tiêu:</span>
+        <Select
+          size="sm"
+          value={activeLayerId}
+          options={[
+            { value: '', label: '-- Chọn layer để gắn xương --' },
+            ...composite.layers.map((l) => {
+              const currentBone = bones.find((b) => b.id === l.boneId)
+              const status = currentBone
+                ? (l.bindingMode === 'soft' ? `🌿 [Uốn mềm: ${currentBone.name}]` : `🔗 [Khớp: ${currentBone.name}]`)
+                : '[Chưa gắn]'
+              return {
+                value: l.id,
+                label: `${l.name} ${status}`
+              }
+            })
+          ]}
+          onChange={(val) => handleLayerSelectChange(String(val))}
+        />
       </div>
 
-      <div style={{ marginTop: '8px' }}>
-        {selected.map((l) => (
-          <div key={l.id} className="lw-rig-binding">
-            <span>{l.name}</span>
-            <small>{l.locked ? 'Đã khóa' : bones.find((b) => b.id === l.boneId)?.name ?? 'Chưa gắn'}</small>
+      {activeLayer && (
+        <div style={{ fontSize: '11px', padding: '6px 8px', background: 'var(--bg-1)', borderRadius: '4px', border: '1px solid var(--line-soft)', margin: '6px 0 8px' }}>
+          <div><strong>Layer:</strong> {activeLayer.name}</div>
+          <div style={{ color: 'var(--text-dim)', fontSize: '10.5px', marginTop: '2px' }}>
+            Trạng thái: {activeLayer.boneId ? (
+              <span style={{ color: activeLayer.bindingMode === 'soft' ? 'var(--accent-cyan)' : 'var(--key)', fontWeight: 600 }}>
+                {activeLayer.bindingMode === 'soft' ? '🌿 Uốn mềm Mesh 2D' : '🔗 Gắn cứng'} theo xương &ldquo;{bones.find(b => b.id === activeLayer.boneId)?.name || activeLayer.boneId}&rdquo;
+              </span>
+            ) : (
+              <span style={{ color: 'var(--text-faint)' }}>Chưa gắn vào xương nào</span>
+            )}
+            {activeLayer.locked && <span style={{ color: 'var(--danger, #ef4444)', marginLeft: '6px' }}>(Đã khóa)</span>}
           </div>
-        ))}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <button
+          className="btn sm primary"
+          disabled={!bone || !targetIds.length}
+          onClick={() => {
+            if (bone && targetIds.length) {
+              run({ action: 'bind', boneId: bone.id, layerIds: targetIds, mode: 'soft' })
+            }
+          }}
+          title="Uốn mềm đa giác Mesh 2D bám theo chuỗi xương (phù hợp tóc, vạt áo, đuôi, cành cây)"
+        >
+          🌿 Uốn mềm theo chuỗi xương (Mesh 2D) {bone ? `(${bone.name})` : ''}
+        </button>
+
+        <div className="lw-rig-actions" style={{ marginTop: 0 }}>
+          <button
+            className="btn sm"
+            disabled={!bone || !targetIds.length}
+            onClick={() => {
+              if (bone && targetIds.length) {
+                run({ action: 'bind', boneId: bone.id, layerIds: targetIds, mode: 'rigid' })
+              }
+            }}
+            title="Gắn cứng chuyển động vào khớp xương (phù hợp tay chân, vũ khí, phụ kiện)"
+            style={{ flex: 1 }}
+          >
+            🔗 Gắn cứng {bone ? `(${bone.name})` : ''}
+          </button>
+          <button
+            className="btn sm"
+            disabled={!targetIds.length || !targetIds.some(id => composite.layers.find(l => l.id === id)?.boneId)}
+            onClick={() => run({ action: 'bind', layerIds: targetIds })}
+            title="Tháo gắn xương của layer đang chọn"
+          >
+            Tháo gắn {targetIds.length > 1 ? `(${targetIds.length})` : ''}
+          </button>
+        </div>
       </div>
+
+      {/* Danh sách các layer đang gắn vào xương hiện tại */}
+      {bone && (
+        <div style={{ marginTop: '12px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-dim)' }}>
+            Lớp đang gắn vào xương &ldquo;{bone.name}&rdquo;:
+          </span>
+          {composite.layers.filter((l) => l.boneId === bone.id).length === 0 ? (
+            <p style={{ fontSize: '10.5px', color: 'var(--text-faint)', margin: '4px 0 0' }}>
+              Chưa có layer nào gắn vào xương này.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
+              {composite.layers.filter((l) => l.boneId === bone.id).map((l) => (
+                <div
+                  key={l.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '4px 8px',
+                    background: 'var(--bg-1)',
+                    borderRadius: '4px',
+                    fontSize: '11px'
+                  }}
+                >
+                  <span
+                    style={{ cursor: 'pointer', color: 'var(--text)' }}
+                    onClick={() => handleLayerSelectChange(l.id)}
+                    title="Bấm để chọn layer này"
+                  >
+                    {l.name} <small style={{ color: l.bindingMode === 'soft' ? 'var(--accent-cyan)' : 'var(--key)' }}>
+                      ({l.bindingMode === 'soft' ? 'Mesh 2D' : 'Khớp'})
+                    </small>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn xs"
+                    style={{ padding: '1px 6px', fontSize: '10px' }}
+                    onClick={() => run({ action: 'bind', layerIds: [l.id] })}
+                    title="Tháo gắn xương khỏi layer này"
+                  >
+                    Tháo
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

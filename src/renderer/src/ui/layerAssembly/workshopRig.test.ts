@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { applyRigAction, emptyRig, validateRig } from './workshopRig'
 import type { LayerComposite } from './types'
 import { evaluateRig, transformRigLayer } from '../../engine/layerRig'
+import { deformSkin } from '../../engine/layerSkinning'
 import { bakeWorkshopRig } from './bakeWorkshopRig'
 import { createImageLayer } from '../../project/factory'
 
@@ -145,5 +146,43 @@ describe('workshopRig & layerRig engine', () => {
     expect(imageLayer.transform.position.keyframes.length).toBeGreaterThan(30)
     expect(imageLayer.transform.rotation.keyframes.length).toBeGreaterThan(30)
     expect(imageLayer.transform.position.value).toBeDefined()
+  })
+
+  it('evaluates soft 2d mesh skinning deformation properly without NaN or failure', () => {
+    const chainComp = applyRigAction(baseComposite, { action: 'apply-template', template: 'simple-chain' })
+    const bound = applyRigAction(chainComp, {
+      action: 'bind',
+      boneId: chainComp.rig!.bones[0].id,
+      layerIds: ['l-head'],
+      mode: 'soft'
+    })
+    expect(bound.layers[0].boneId).toBe(chainComp.rig!.bones[0].id)
+    expect(bound.layers[0].bindingMode).toBe('soft')
+
+    const restPositions = new Float32Array([
+      -50, 50, 0,
+      50, 50, 0,
+      0, -50, 0
+    ])
+
+    // In rest pose
+    const restSkin = deformSkin(restPositions, bound.layers[0], bound.rig!, 0)
+    expect(restSkin.length).toBe(9)
+    for (let i = 0; i < restSkin.length; i++) {
+      expect(Number.isFinite(restSkin[i])).toBe(true)
+    }
+
+    // Set animation keyframe on the root bone to rotate it 45 deg
+    const animatedComp = applyRigAction(bound, {
+      action: 'set-key',
+      boneId: chainComp.rig!.bones[0].id,
+      key: { time: 0.5, x: 0, y: 0, rotation: 45, easing: 'smooth' }
+    })
+
+    const posedSkin = deformSkin(restPositions, animatedComp.layers[0], animatedComp.rig!, 0.5)
+    expect(posedSkin.length).toBe(9)
+    for (let i = 0; i < posedSkin.length; i++) {
+      expect(Number.isFinite(posedSkin[i])).toBe(true)
+    }
   })
 })

@@ -528,6 +528,85 @@ export function LayerAssemblyInspector({
                 </>
               )}
             </div>
+
+            {/* 4. Khung xương & Gắn xương Armature Rig */}
+            <div style={{ borderTop: '1px solid var(--line-soft)', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent-cyan)' }}>
+                  🦴 Khung xương (Armature Rig)
+                </span>
+                {selectedLayer.boneId && (
+                  <span
+                    style={{
+                      fontSize: '9px',
+                      padding: '1px 6px',
+                      borderRadius: '3px',
+                      fontWeight: 600,
+                      background: selectedLayer.bindingMode === 'soft' ? 'rgba(0, 229, 255, 0.15)' : 'rgba(234, 179, 8, 0.15)',
+                      color: selectedLayer.bindingMode === 'soft' ? 'var(--accent-cyan)' : 'var(--key)'
+                    }}
+                  >
+                    {selectedLayer.bindingMode === 'soft' ? 'Uốn mềm Mesh 2D' : 'Khớp cứng'}
+                  </span>
+                )}
+              </div>
+
+              {composite.rig?.bones?.length ? (
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Gắn vào xương:</span>
+                    <Select
+                      size="sm"
+                      value={selectedLayer.boneId ?? ''}
+                      options={[
+                        { value: '', label: 'Không gắn (Layer độc lập)' },
+                        ...composite.rig.bones.map((b) => ({
+                          value: b.id,
+                          label: `${b.parentId ? '↳ ' : '◇ '} ${b.name}`
+                        }))
+                      ]}
+                      onChange={(val) => {
+                        const newBoneId = String(val) || undefined
+                        onUpdateLayer(selectedLayer.id, {
+                          boneId: newBoneId,
+                          bindingMode: newBoneId ? (selectedLayer.bindingMode || 'soft') : undefined
+                        })
+                      }}
+                    />
+                  </div>
+
+                  {selectedLayer.boneId && (
+                    <>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Chế độ gắn:</span>
+                        <Select
+                          size="sm"
+                          value={selectedLayer.bindingMode || 'soft'}
+                          options={[
+                            { value: 'soft', label: '🌿 Uốn mềm Mesh 2D (Biến dạng lưới theo chuỗi xương)' },
+                            { value: 'rigid', label: '🔗 Gắn cứng (Khớp xoay & di chuyển theo xương)' }
+                          ]}
+                          onChange={(val) =>
+                            onUpdateLayer(selectedLayer.id, {
+                              bindingMode: val as 'soft' | 'rigid'
+                            })
+                          }
+                        />
+                      </div>
+                      {selectedLayer.bindingMode === 'soft' && (
+                        <div style={{ fontSize: '10px', color: 'var(--accent-cyan)', background: 'rgba(0, 229, 255, 0.08)', padding: '5px 8px', borderRadius: '4px', border: '1px solid rgba(0, 229, 255, 0.2)' }}>
+                          💡 Đa giác Mesh 2D sẽ uốn lượn hữu cơ theo nhánh xương này. Hãy bật &ldquo;Hiện mesh&rdquo; trên thanh công cụ để xem các tam giác bám pixel.
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
+              ) : (
+                <div style={{ fontSize: '10px', color: 'var(--text-dim)', padding: '6px 8px', background: 'var(--bg-1)', borderRadius: '4px' }}>
+                  Chưa có khung xương. Chuyển sang tab <strong>&ldquo;Tạo xương&rdquo;</strong> ở trên để thêm xương hoặc áp dụng mẫu xương nhân vật/chuỗi uốn.
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-dim)', fontSize: '11px' }}>

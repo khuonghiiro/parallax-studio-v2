@@ -87,7 +87,7 @@ export function LayerRowItem({
           {layer.name}
         </span>
         <span style={{ fontSize: '9px', color: 'var(--accent-cyan)', opacity: 0.8 }}>
-          Z: {layer.z}px • {layer.motion.type !== 'none' ? `🍃 ${layer.motion.type}` : 'Tĩnh'}
+          Z: {layer.z}px • {layer.boneId ? (layer.bindingMode === 'soft' ? '🦴 Mesh 2D' : '🦴 Khớp') : (layer.motion.type !== 'none' ? `🍃 ${layer.motion.type}` : 'Tĩnh')}
         </span>
       </div>
 

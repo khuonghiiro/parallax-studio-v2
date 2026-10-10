@@ -47,17 +47,20 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
     return () => window.removeEventListener('keydown', handleKey)
   }, [toggleBones, toggleMesh])
 
-  const animated = tab === 'animation' && state.composite.rig
+  const rig = state.composite.rig
+  const animated = tab === 'animation' && rig
   const transforms = animated ? evaluateRig(animated, playback.time) : undefined
-  const composite = transforms
-    ? {
-        ...state.composite,
-        layers: state.composite.layers.map((l) => ({
-          ...(l.bindingMode === 'soft' ? { ...l, previewRig: state.composite.rig } : transformRigLayer(l, transforms)),
-          locked: l.locked
-        }))
-      }
-    : state.composite
+  const composite = {
+    ...state.composite,
+    layers: state.composite.layers.map((l) => ({
+      ...(l.bindingMode === 'soft' && rig
+        ? { ...l, previewRig: rig }
+        : transforms
+          ? transformRigLayer(l, transforms)
+          : l),
+      locked: l.locked
+    }))
+  }
   const props = {
     composite,
     selectedLayerId: state.selectedLayerId,
