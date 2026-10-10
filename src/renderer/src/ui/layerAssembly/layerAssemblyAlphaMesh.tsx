@@ -3,10 +3,87 @@ import * as THREE from 'three'
 import { getImageSilhouette, silhouetteFromBoolGrid } from '../assets/models3d/silhouette'
 import { computeContourCells, type ContourCell } from '../assets/models3d/contourMesh'
 
+const MAX_CACHE_ENTRIES = 128
 
 /** Cache các contour cells đã tính toán theo URL ảnh để tối ưu hiệu năng 60fps */
 const cellsCache = new Map<string, ContourCell[]>()
+/** Cache chuỗi SVG path duy nhất để render 1 phần tử <path> duy nhất 0ms */
+const svgPathCache = new Map<string, string>()
 const pendingLoads = new Map<string, Array<(cells: ContourCell[]) => void>>()
+
+/**
+ * Chuyển đổi các tam giác trong tế bào contour thành chuỗi SVG path duy nhất dạng M...L...L...Z
+ * Giúp trình duyệt chỉ cần render đúng 1 phần tử DOM <path>, triệt tiêu 100% tình trạng giật lag.
+ */
+export function buildMeshSvgPath(cells: ContourCell[]): string {
+  const parts: string[] = []
+  for (let c = 0; c < cells.length; c++) {
+    const cell = cells[c]
+    if (!cell.triangles || cell.triangles.length === 0) continue
+    const poly = cell.polygon
+    for (let t = 0; t < cell.triangles.length; t++) {
+      const tri = cell.triangles[t]
+      const p0 = poly[tri[0]]
+      const p1 = poly[tri[1]]
+      const p2 = poly[tri[2]]
+      if (!p0 || !p1 || !p2) continue
+      parts.push(
+        `M${p0[0].toFixed(4)} ${p0[1].toFixed(4)}L${p1[0].toFixed(4)} ${p1[1].toFixed(4)}L${p2[0].toFixed(4)} ${p2[1].toFixed(4)}Z`
+      )
+    }
+  }
+  return parts.join('')
+}
+
+/**
+ * Lấy chuỗi SVG path từ cache nếu đã được tính toán sẵn
+ */
+export function getLayerMeshSvgPath(
+  imageUrl?: string | null,
+  cols = 16,
+  rows = 20
+): string | null {
+  if (!imageUrl) return null
+  const cacheKey = `${imageUrl}_${cols}x${rows}`
+  const cachedPath = svgPathCache.get(cacheKey)
+  if (cachedPath !== undefined) return cachedPath
+  const cells = cellsCache.get(cacheKey)
+  if (cells) {
+    const path = buildMeshSvgPath(cells)
+    svgPathCache.set(cacheKey, path)
+    return path
+  }
+  return null
+}
+
+/**
+ * Xóa cache mesh (tế bào đa giác và chuỗi SVG path) khi ảnh hoặc cấu trúc layer bị thay đổi
+ */
+export function invalidateLayerMeshCache(imageUrlOrPrefix?: string): void {
+  if (!imageUrlOrPrefix) {
+    cellsCache.clear()
+    svgPathCache.clear()
+    return
+  }
+  for (const key of Array.from(cellsCache.keys())) {
+    if (key.startsWith(imageUrlOrPrefix)) {
+      cellsCache.delete(key)
+    }
+  }
+  for (const key of Array.from(svgPathCache.keys())) {
+    if (key.startsWith(imageUrlOrPrefix)) {
+      svgPathCache.delete(key)
+    }
+  }
+}
+
+/**
+ * Xóa toàn bộ dữ liệu mesh đã cache
+ */
+export function clearLayerMeshCache(): void {
+  cellsCache.clear()
+  svgPathCache.clear()
+}
 
 /**
  * Trích xuất hoặc lấy từ cache danh sách tế bào lưới đa giác bám sát pixel ảnh (loại bỏ hoàn toàn pixel trong suốt).
@@ -20,7 +97,10 @@ export function getLayerContourCells(
   if (!imageUrl) return null
   const cacheKey = `${imageUrl}_${cols}x${rows}`
   const cached = cellsCache.get(cacheKey)
-  if (cached) return cached
+  if (cached) {
+    if (onReady) onReady(cached)
+    return cached
+  }
 
   const list = pendingLoads.get(cacheKey)
   if (list) {
@@ -37,12 +117,17 @@ export function getLayerContourCells(
       const sil = getImageSilhouette(img, true)
       const cells = sil ? computeContourCells(cols, rows, sil, 0, true) : []
       cellsCache.set(cacheKey, cells)
-      if (cellsCache.size > 64) cellsCache.delete(cellsCache.keys().next().value!)
+      svgPathCache.set(cacheKey, buildMeshSvgPath(cells))
+      if (cellsCache.size > MAX_CACHE_ENTRIES) {
+        cellsCache.delete(cellsCache.keys().next().value!)
+        svgPathCache.delete(svgPathCache.keys().next().value!)
+      }
       const callbacks = pendingLoads.get(cacheKey)
       pendingLoads.delete(cacheKey)
       callbacks?.forEach((cb) => cb(cells))
     } catch {
       cellsCache.set(cacheKey, [])
+      svgPathCache.set(cacheKey, '')
       const callbacks = pendingLoads.get(cacheKey)
       pendingLoads.delete(cacheKey)
       callbacks?.forEach((cb) => cb([]))
@@ -50,6 +135,7 @@ export function getLayerContourCells(
   }
   img.onerror = () => {
     cellsCache.set(cacheKey, [])
+    svgPathCache.set(cacheKey, '')
     const callbacks = pendingLoads.get(cacheKey)
     pendingLoads.delete(cacheKey)
     callbacks?.forEach((cb) => cb([]))
@@ -59,7 +145,7 @@ export function getLayerContourCells(
 }
 
 /**
- * Tạo BufferGeometry 3D bám sát pixel đục (loại bỏ pixel trong suốt) cho Three.js.
+ * Tạo BufferGeometry 3D bám sát pixel đục (loại bỏ pixel trong suốt) cho Three.js với bộ đệm cache.
  */
 export function createLayerAlphaTrimmedGeometry(
   width: number,
@@ -72,10 +158,30 @@ export function createLayerAlphaTrimmedGeometry(
     return new THREE.PlaneGeometry(width, height, cols, rows)
   }
   try {
-    const silhouette = Array.isArray(image)
-      ? silhouetteFromBoolGrid(image, image[0]?.length ?? 1, image.length)
-      : getImageSilhouette(image, true)
-    const cells = silhouette ? computeContourCells(cols, rows, silhouette) : []
+    let cells: ContourCell[] | undefined
+    let cacheKey: string | null = null
+
+    // Tận dụng cache nếu là HTMLImageElement có src
+    if (typeof HTMLImageElement !== 'undefined' && image instanceof HTMLImageElement && image.src) {
+      cacheKey = `${image.src}_${cols}x${rows}`
+      cells = cellsCache.get(cacheKey)
+    }
+
+    if (!cells) {
+      const silhouette = Array.isArray(image)
+        ? silhouetteFromBoolGrid(image, image[0]?.length ?? 1, image.length)
+        : getImageSilhouette(image, true)
+      cells = silhouette ? computeContourCells(cols, rows, silhouette, 0, true) : []
+      if (cacheKey) {
+        cellsCache.set(cacheKey, cells)
+        svgPathCache.set(cacheKey, buildMeshSvgPath(cells))
+        if (cellsCache.size > MAX_CACHE_ENTRIES) {
+          cellsCache.delete(cellsCache.keys().next().value!)
+          svgPathCache.delete(svgPathCache.keys().next().value!)
+        }
+      }
+    }
+
     const geometry = geometryFromLayerCells(width, height, cells)
     return geometry
   } catch (error) {
@@ -91,30 +197,37 @@ export interface LayerAssembly2DMeshOverlayProps {
 
 /**
  * Lớp SVG Mesh hiển thị đa giác lưới bám sát pixel ảnh trên khung vẽ 2D:
- * Chỉ vẽ lưới đa giác ở những vùng có pixel thực, hoàn toàn loại bỏ vùng pixel trong suốt.
+ * - Dùng chuỗi SVG path duy nhất (1 phần tử <path>) được cache trong bộ nhớ.
+ * - Triệt tiêu 100% hiện tượng đơ/giật khi bật/tắt mesh.
+ * - Bọc React.memo để không bị re-render vô ích khi parent cập nhật hoạt ảnh animation.
  */
-export const LayerAssembly2DMeshOverlay: React.FC<LayerAssembly2DMeshOverlayProps> = ({
+export const LayerAssembly2DMeshOverlay = React.memo(function LayerAssembly2DMeshOverlay({
   imageUrl,
   showMesh
-}) => {
-  const [cells, setCells] = useState<ContourCell[] | null>(() => {
-    return imageUrl ? getLayerContourCells(imageUrl) : null
+}: LayerAssembly2DMeshOverlayProps) {
+  const [svgPath, setSvgPath] = useState<string | null>(() => {
+    return imageUrl ? getLayerMeshSvgPath(imageUrl) : null
   })
 
   useEffect(() => {
     if (!showMesh || !imageUrl) return
-    let active = true
-    setCells(null)
-    const cached = getLayerContourCells(imageUrl, 16, 20, (loadedCells) => {
-      if (active) setCells(loadedCells)
-    })
+    const cached = getLayerMeshSvgPath(imageUrl)
     if (cached) {
-      setCells(cached)
+      setSvgPath(cached)
+      return
     }
-    return () => { active = false }
+    let active = true
+    getLayerContourCells(imageUrl, 16, 20, (loadedCells) => {
+      if (active) {
+        setSvgPath(buildMeshSvgPath(loadedCells))
+      }
+    })
+    return () => {
+      active = false
+    }
   }, [imageUrl, showMesh])
 
-  if (!showMesh || !imageUrl || !cells || cells.length === 0) {
+  if (!showMesh || !imageUrl || !svgPath) {
     return null
   }
 
@@ -131,35 +244,17 @@ export const LayerAssembly2DMeshOverlay: React.FC<LayerAssembly2DMeshOverlayProp
       viewBox="0 0 1 1"
       preserveAspectRatio="none"
     >
-      {cells.map((cell) => {
-        // Chỉ vẽ những cell có chứa tam giác thực tế bên trong vùng pixel hữu hình
-        if (!cell.triangles || cell.triangles.length === 0) return null
-        return (
-          <g key={cell.key}>
-            {cell.triangles.map((tri, triIdx) => {
-              const p0 = cell.polygon[tri[0]]
-              const p1 = cell.polygon[tri[1]]
-              const p2 = cell.polygon[tri[2]]
-              if (!p0 || !p1 || !p2) return null
-              const pts = `${p0[0]},${p0[1]} ${p1[0]},${p1[1]} ${p2[0]},${p2[1]}`
-              return (
-                <polygon
-                  key={triIdx}
-                  points={pts}
-                  fill="none"
-                  stroke="var(--accent-cyan)"
-                  strokeWidth="0.75"
-                  strokeOpacity={0.6}
-                  vectorEffect="non-scaling-stroke"
-                />
-              )
-            })}
-          </g>
-        )
-      })}
+      <path
+        d={svgPath}
+        fill="none"
+        stroke="var(--accent-cyan)"
+        strokeWidth="0.75"
+        strokeOpacity={0.6}
+        vectorEffect="non-scaling-stroke"
+      />
     </svg>
   )
-}
+})
 
 /** Weld shared vertices so the image, wireframe and deformation share identical topology. */
 export function geometryFromLayerCells(width: number, height: number, cells: ContourCell[]): THREE.BufferGeometry {

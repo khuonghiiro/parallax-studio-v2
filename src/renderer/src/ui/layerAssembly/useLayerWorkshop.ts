@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { AssembledLayerItem, LayerComposite } from './types'
 import { useWorkshopHistory } from './useWorkshopHistory'
 import { applyWorkshopAction, newLayerId, type WorkshopAction } from './workshopActions'
+import { invalidateLayerMeshCache } from './layerAssemblyAlphaMesh'
 
 export function useLayerWorkshop(initial?: LayerComposite | null) {
   const state = useWorkshopHistory(() => initial ? structuredClone(initial) : {
@@ -15,9 +16,15 @@ export function useLayerWorkshop(initial?: LayerComposite | null) {
   const run = (action: WorkshopAction, spacing?: number, targetIds = selection) => {
     setComposite((prev) => applyWorkshopAction(prev, action, targetIds, spacing))
   }
-  const update = (id: string, patch: Partial<AssembledLayerItem>) => setComposite((prev) => ({ ...prev,
-    layers: prev.layers.map((l) => l.id === id && (!l.locked || Object.keys(patch).every((key) => key === 'locked')) ? { ...l, ...patch } : l)
-  }), `${id}:${Object.keys(patch).sort().join(',')}`)
+  const update = (id: string, patch: Partial<AssembledLayerItem>) => {
+    if (patch.imageUrl !== undefined || patch.assetPath !== undefined) {
+      const existing = composite.layers.find((l) => l.id === id)
+      if (existing?.imageUrl) invalidateLayerMeshCache(existing.imageUrl)
+    }
+    setComposite((prev) => ({ ...prev,
+      layers: prev.layers.map((l) => l.id === id && (!l.locked || Object.keys(patch).every((key) => key === 'locked')) ? { ...l, ...patch } : l)
+    }), `${id}:${Object.keys(patch).sort().join(',')}`)
+  }
   const append = (layers: AssembledLayerItem[], offset?: { x: number; y: number }) => {
     const ox = offset?.x ?? 0
     const oy = offset?.y ?? 0
