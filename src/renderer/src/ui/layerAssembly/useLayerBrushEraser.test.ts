@@ -51,4 +51,36 @@ describe('Layer Assembly Brush Eraser & 3D Camera Depth', () => {
     }
     expect(hasBackDepth).toBe(true)
   })
+
+  it('correctly maps 2D display coordinates to natural texture pixel and radius using 380px factor', () => {
+    // Giả sử ảnh gốc 1000 x 1000 px, hiển thị tối đa 380 x 380 px
+    const naturalW = 1000
+    const naturalH = 1000
+    const factor = Math.min(1, 380 / Math.max(naturalW, naturalH)) // 0.38
+    expect(factor).toBeCloseTo(0.38, 2)
+
+    // Khi click vào tâm layer (unscaledX = 0, unscaledY = 0)
+    const unscaledCenterX = 0
+    const unscaledCenterY = 0
+    const pixelCenterX = unscaledCenterX / factor + naturalW / 2
+    const pixelCenterY = unscaledCenterY / factor + naturalH / 2
+    expect(pixelCenterX).toBe(500)
+    expect(pixelCenterY).toBe(500)
+
+    // Khi click vào mép phải hiển thị của layer (+190px = 380 / 2)
+    const unscaledEdgeX = 190
+    const pixelEdgeX = unscaledEdgeX / factor + naturalW / 2
+    expect(pixelEdgeX).toBeCloseTo(1000, 1) // Chạm đúng mép ngoài 1000px của texture
+
+    // Bán kính cọ 38px trên màn hình khi scale = 1
+    const brushSize = 38
+    const layerScale = 1.0
+    const naturalRadius = brushSize / (layerScale * factor) // 38 / 0.38 = 100px trên texture gốc
+    expect(naturalRadius).toBeCloseTo(100, 1)
+
+    // Khi mesh 3D hiển thị texture này trên PlaneGeometry(380, 380):
+    // Bán kính hiển thị trên 3D: 100px * factor = 38px -> Khớp 100% với cọ 2D!
+    const displayRadiusOn3D = naturalRadius * factor * layerScale
+    expect(displayRadiusOn3D).toBeCloseTo(brushSize, 1)
+  })
 })

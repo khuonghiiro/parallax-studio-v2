@@ -48,6 +48,16 @@ export function useLayerBrushEraser({
   const lastPointRef = useRef<{ x: number; y: number } | null>(null)
   const layerImgRef = useRef<HTMLImageElement | null>(null)
   const activeLayerIdRef = useRef<string | null>(null)
+  const rafUpdateRef = useRef<number | null>(null)
+
+  // Dọn dẹp Animation Frame khi unmount
+  useEffect(() => {
+    return () => {
+      if (rafUpdateRef.current) {
+        cancelAnimationFrame(rafUpdateRef.current)
+      }
+    }
+  }, [])
 
   // Nạp ảnh hiện tại của layer vào offscreen canvas
   const syncLayerToCanvas = useCallback((layer: AssembledLayerItem | null) => {
@@ -124,11 +134,13 @@ export function useLayerBrushEraser({
       const unscaledX = rotX / totalScaleX
       const unscaledY = rotY / totalScaleY
 
-      // 5. Chuyển về toạ độ pixel trên ảnh gốc (tâm ảnh ở W/2, H/2)
+      // 5. Khớp tỉ lệ hiển thị 380px: Khử factor hiển thị để chuyển sang toạ độ pixel gốc trên texture
       const imgW = offscreenCanvasRef.current.width
       const imgH = offscreenCanvasRef.current.height
-      const px = unscaledX + imgW / 2
-      const py = unscaledY + imgH / 2
+      const factor = Math.min(1, 380 / Math.max(imgW, imgH))
+
+      const px = unscaledX / factor + imgW / 2
+      const py = unscaledY / factor + imgH / 2
 
       return { x: px, y: py }
     },
@@ -168,7 +180,7 @@ export function useLayerBrushEraser({
   // Bắt đầu quẹt cọ
   const handleEraserPointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (activeTool !== 'eraser' || e.button !== 0 || !selectedLayer) return
+      if (activeTool !== 'eraser' || e.button !== 0 || !selectedLayer || isBrushPopoverOpen) return
       const canvas = offscreenCanvasRef.current
       if (!canvas) return
 
@@ -181,27 +193,45 @@ export function useLayerBrushEraser({
       setIsErasing(true)
       lastPointRef.current = pt
 
-      // Bán kính cọ trong không gian pixel gốc của ảnh
+      // Bán kính cọ trong không gian pixel gốc của ảnh (khớp với tỉ lệ factor 380px và 3D mesh)
+      const imgW = canvas.width
+      const imgH = canvas.height
+      const factor = Math.min(1, 380 / Math.max(imgW, imgH))
       const layerScale = Math.max(0.001, selectedLayer.scale)
-      const radius = brushSettings.size / layerScale
+      const radius = brushSettings.size / (layerScale * factor)
 
       eraseStamp(ctx, pt.x, pt.y, radius)
+
+      // Cập nhật live preview tức thì
+      if (!rafUpdateRef.current) {
+        rafUpdateRef.current = requestAnimationFrame(() => {
+          rafUpdateRef.current = null
+          if (!offscreenCanvasRef.current || !selectedLayer) return
+          try {
+            const liveDataUrl = offscreenCanvasRef.current.toDataURL('image/png')
+            onUpdateLayer(selectedLayer.id, { imageUrl: liveDataUrl })
+          } catch {}
+        })
+      }
     },
-    [activeTool, selectedLayer, screenToLayerPixel, brushSettings.size, eraseStamp]
+    [activeTool, selectedLayer, isBrushPopoverOpen, screenToLayerPixel, brushSettings.size, eraseStamp, onUpdateLayer]
   )
 
   // Di chuyển cọ và nội suy nét vẽ liên tục
   const handleEraserPointerMove = useCallback(
     (e: React.PointerEvent) => {
-      if (activeTool === 'eraser') {
+      // Khi đang mở popup hoặc không ở công cụ eraser thì không tính cursor
+      if (activeTool === 'eraser' && !isBrushPopoverOpen) {
         const container = containerRef.current
         if (container) {
           const rect = container.getBoundingClientRect()
           setCursorPos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
         }
+      } else if (isBrushPopoverOpen) {
+        setCursorPos(null)
       }
 
-      if (!isErasing || activeTool !== 'eraser' || !selectedLayer) return
+      if (!isErasing || activeTool !== 'eraser' || !selectedLayer || isBrushPopoverOpen) return
       const canvas = offscreenCanvasRef.current
       const last = lastPointRef.current
       if (!canvas || !last) return
@@ -212,14 +242,17 @@ export function useLayerBrushEraser({
       const ctx = canvas.getContext('2d', { willReadFrequently: true })
       if (!ctx) return
 
+      const imgW = canvas.width
+      const imgH = canvas.height
+      const factor = Math.min(1, 380 / Math.max(imgW, imgH))
       const layerScale = Math.max(0.001, selectedLayer.scale)
-      const radius = brushSettings.size / layerScale
+      const radius = brushSettings.size / (layerScale * factor)
 
-      // Nội suy khoảng cách giữa 2 điểm liên tiếp để nét cọ mượt mà, không đứt đoạn
+      // Nội suy khoảng cách giữa 2 điểm liên tiếp siêu mịn (bước nhỏ bằng 12% bán kính)
       const dx = curr.x - last.x
       const dy = curr.y - last.y
       const dist = Math.hypot(dx, dy)
-      const step = Math.max(1, radius * 0.25)
+      const step = Math.max(0.75, radius * 0.12)
       const numSteps = Math.ceil(dist / step)
 
       for (let i = 1; i <= numSteps; i++) {
@@ -230,15 +263,32 @@ export function useLayerBrushEraser({
       }
 
       lastPointRef.current = curr
+
+      // Cập nhật live preview 60fps mượt mà trên UI trong lúc kéo chuột
+      if (!rafUpdateRef.current) {
+        rafUpdateRef.current = requestAnimationFrame(() => {
+          rafUpdateRef.current = null
+          if (!offscreenCanvasRef.current || !selectedLayer) return
+          try {
+            const liveDataUrl = offscreenCanvasRef.current.toDataURL('image/png')
+            onUpdateLayer(selectedLayer.id, { imageUrl: liveDataUrl })
+          } catch {}
+        })
+      }
     },
-    [isErasing, activeTool, selectedLayer, containerRef, screenToLayerPixel, brushSettings.size, eraseStamp]
+    [isErasing, activeTool, selectedLayer, isBrushPopoverOpen, containerRef, screenToLayerPixel, brushSettings.size, eraseStamp, onUpdateLayer]
   )
 
-  // Kết thúc quẹt cọ và cập nhật data URL vào layer để kích hoạt Undo/Redo
+  // Kết thúc quẹt cọ và cập nhật data URL chốt vào layer để kích hoạt Undo/Redo
   const handleEraserPointerUp = useCallback(() => {
     if (!isErasing || !selectedLayer) return
     setIsErasing(false)
     lastPointRef.current = null
+
+    if (rafUpdateRef.current) {
+      cancelAnimationFrame(rafUpdateRef.current)
+      rafUpdateRef.current = null
+    }
 
     const canvas = offscreenCanvasRef.current
     if (!canvas) return

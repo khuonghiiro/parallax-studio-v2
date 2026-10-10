@@ -176,6 +176,18 @@ export function LayerAssemblyViewport({
   }, [composite.layers])
 
   const handlePointerDownViewport = (e: React.PointerEvent) => {
+    // Nếu popup điều chỉnh cọ đang mở: click vào nền chỉ đóng popup an toàn, KHÔNG vẽ cọ
+    if (brush.isBrushPopoverOpen) {
+      brush.setIsBrushPopoverOpen(false)
+      brush.setCursorPos(null)
+      return
+    }
+
+    const target = e.target as HTMLElement | null
+    if (target?.closest?.('.layer-workshop-3d-vertical-dock, .layer-brush-popover, .layer-workshop-popover-menu, .layer-workshop-transport-bar, button, input')) {
+      return
+    }
+
     // Nếu bấm chuột giữa hoặc giữ phím Alt -> Bắt đầu Pan
     if (e.button === 1 || e.altKey) {
       setIsPanning(true)
@@ -199,8 +211,18 @@ export function LayerAssemblyViewport({
   }
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    // Luôn cập nhật vị trí con trỏ cọ và xử lý vẽ cọ xoá
-    brush.handleEraserPointerMove(e)
+    const target = e.target as HTMLElement | null
+    const isOverUI = !!target?.closest?.(
+      '.layer-workshop-3d-vertical-dock, .layer-brush-popover, .layer-workshop-popover-menu, .layer-workshop-transport-bar, button, input, .dock-divider'
+    )
+
+    // Khi hover vào UI dock/toolbar hoặc khi popup cọ đang mở: Ẩn ngay vòng tròn cọ
+    if (isOverUI || brush.isBrushPopoverOpen) {
+      brush.setCursorPos(null)
+    } else {
+      brush.handleEraserPointerMove(e)
+    }
+
     if (brush.isErasing) return
 
     if (isPanning) {
@@ -297,6 +319,13 @@ export function LayerAssemblyViewport({
   const handleStartDragLayer = (e: React.PointerEvent, layer: AssembledLayerItem) => {
     e.stopPropagation()
 
+    // Nếu popup điều chỉnh cọ đang mở: click vào layer chỉ đóng popup an toàn, KHÔNG vẽ cọ hay kéo layer
+    if (brush.isBrushPopoverOpen) {
+      brush.setIsBrushPopoverOpen(false)
+      brush.setCursorPos(null)
+      return
+    }
+
     // Nếu đang ở công cụ Cọ Tẩy (Eraser): chuyển selection và bắt đầu quẹt cọ
     if (brush.activeTool === 'eraser') {
       if (layer.id !== selectedLayerId) {
@@ -358,6 +387,7 @@ export function LayerAssemblyViewport({
       onPointerDown={handlePointerDownViewport}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onPointerLeave={() => brush.setCursorPos(null)}
       onDragOver={(e) => {
         e.preventDefault()
         e.dataTransfer.dropEffect = 'copy'
@@ -487,7 +517,7 @@ export function LayerAssemblyViewport({
       </div>
 
       {/* Vòng tròn con trỏ Cọ Tẩy (Brush Cursor Indicator) theo thời gian thực */}
-      {brush.activeTool === 'eraser' && brush.cursorPos && (
+      {brush.activeTool === 'eraser' && !brush.isBrushPopoverOpen && brush.cursorPos && (
         <div
           style={{
             position: 'absolute',

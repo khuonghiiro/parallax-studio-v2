@@ -204,7 +204,13 @@ export function LayerAssembly2DToolbar({
 
   return (
     <>
-      <div className="layer-workshop-3d-vertical-dock" style={{ left: '12px', top: '12px' }} ref={dockRef}>
+      <div
+        className="layer-workshop-3d-vertical-dock"
+        style={{ left: '12px', top: '12px' }}
+        ref={dockRef}
+        onPointerDown={(e) => e.stopPropagation()}
+        onPointerMove={(e) => e.stopPropagation()}
+      >
         {/* 1. Công cụ Chọn (Select) */}
         <button
           type="button"
@@ -386,9 +392,9 @@ export function LayerAssembly2DToolbar({
             className="layer-brush-popover"
             style={{
               position: 'fixed',
-              top: Math.max(20, Math.min(window.innerHeight - 340, brushBtnRef.current.getBoundingClientRect().top - 10)),
+              top: Math.max(20, Math.min(window.innerHeight - 440, brushBtnRef.current.getBoundingClientRect().top - 10)),
               left: brushBtnRef.current.getBoundingClientRect().right + 12,
-              width: '260px',
+              width: '270px',
               padding: '12px 14px',
               background: 'color-mix(in srgb, var(--bg-1) 94%, transparent)',
               backdropFilter: 'blur(16px)',
@@ -403,15 +409,37 @@ export function LayerAssembly2DToolbar({
               userSelect: 'none'
             }}
             onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerMove={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--line-soft)', paddingBottom: '6px' }}>
               <span style={{ fontWeight: 600, color: 'var(--text)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <IconEraser width={14} height={14} style={{ color: 'var(--accent-cyan)' }} />
                 <span>Cọ Tẩy & Mờ Xuyên Thấu</span>
               </span>
-              <span style={{ fontSize: '10px', color: hasSelectedLayer ? 'var(--accent-cyan)' : 'var(--text-faint)' }}>
-                {hasSelectedLayer ? '● Sẵn sàng quẹt' : 'Chưa chọn layer'}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '10px', color: hasSelectedLayer ? 'var(--accent-cyan)' : 'var(--text-faint)' }}>
+                  {hasSelectedLayer ? '● Sẵn sàng quẹt' : 'Chưa chọn layer'}
+                </span>
+                <button
+                  type="button"
+                  onClick={onCloseBrushPopover}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-dim)',
+                    cursor: 'pointer',
+                    padding: '2px 4px',
+                    lineHeight: 1,
+                    fontSize: '13px',
+                    borderRadius: '4px'
+                  }}
+                  title="Đóng bảng cọ (Escape)"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             {!hasSelectedLayer && (
@@ -419,6 +447,56 @@ export function LayerAssembly2DToolbar({
                 💡 Vui lòng click chọn 1 layer trước khi dùng cọ để tẩy xoá chi tiết thừa.
               </div>
             )}
+
+            {/* Hộp xem trước nét cọ trực quan theo thời gian thực */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '8px 10px',
+                background: 'var(--bg-2)',
+                borderRadius: '6px',
+                border: '1px solid var(--line)'
+              }}
+            >
+              <div
+                style={{
+                  width: '54px',
+                  height: '54px',
+                  flex: 'none',
+                  borderRadius: '4px',
+                  background: 'var(--bg-0)',
+                  border: '1px solid var(--line-soft)',
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden'
+                }}
+              >
+                {/* Vòng tròn mẫu nét cọ */}
+                <div
+                  style={{
+                    width: `${Math.max(6, Math.min(48, brushSettings.size * 0.7))}px`,
+                    height: `${Math.max(6, Math.min(48, brushSettings.size * 0.7))}px`,
+                    borderRadius: '50%',
+                    background:
+                      brushSettings.hardness >= 0.95
+                        ? `rgba(56, 189, 248, ${brushSettings.opacity})`
+                        : `radial-gradient(circle, rgba(56, 189, 248, ${brushSettings.opacity}) ${Math.round(brushSettings.hardness * 100)}%, rgba(56, 189, 248, 0) 100%)`,
+                    boxShadow: '0 0 6px rgba(56, 189, 248, 0.4)'
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '10px', color: 'var(--text-dim)' }}>
+                <span style={{ fontWeight: 600, color: 'var(--text)' }}>Mẫu nét cọ trực quan</span>
+                <span>Cỡ: <strong style={{ color: 'var(--accent-cyan)' }}>{brushSettings.size}px</strong></span>
+                <span>
+                  Tẩy: <strong style={{ color: 'var(--accent-cyan)' }}>{Math.round(brushSettings.opacity * 100)}%</strong> · Mềm: <strong style={{ color: 'var(--accent-cyan)' }}>{Math.round((1 - brushSettings.hardness) * 100)}%</strong>
+                </span>
+              </div>
+            </div>
 
             {/* Thanh trượt Cỡ cọ (Size) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -478,18 +556,29 @@ export function LayerAssembly2DToolbar({
               />
             </div>
 
-            {/* Nút Khôi phục ảnh gốc nếu đã chỉnh sửa */}
-            {hasModifiedImage && (
+            {/* Nút Bắt đầu quẹt cọ và Nút Khôi phục ảnh gốc nếu đã chỉnh sửa */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '2px' }}>
               <button
                 type="button"
-                className="btn xs danger"
-                onClick={onResetLayerImage}
-                style={{ marginTop: '4px', width: '100%', justifyContent: 'center' }}
-                title="Khôi phục lại ảnh ban đầu của layer (huỷ bỏ mọi nét cọ đã xoá)"
+                className="btn sm primary"
+                onClick={onCloseBrushPopover}
+                style={{ width: '100%', justifyContent: 'center' }}
               >
-                Khôi phục ảnh gốc
+                ✓ Bắt đầu quẹt cọ
               </button>
-            )}
+
+              {hasModifiedImage && (
+                <button
+                  type="button"
+                  className="btn xs danger"
+                  onClick={onResetLayerImage}
+                  style={{ width: '100%', justifyContent: 'center' }}
+                  title="Khôi phục lại ảnh ban đầu của layer (huỷ bỏ mọi nét cọ đã xoá)"
+                >
+                  Khôi phục ảnh gốc
+                </button>
+              )}
+            </div>
           </div>,
           document.body
         )}
