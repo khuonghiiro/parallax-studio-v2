@@ -341,9 +341,21 @@ export async function saveManifestJson(rawJson: string): Promise<BuiltInSaveMani
 }
 
 export async function loadAssetBytes(relPath: string): Promise<{ name: string; mime: string; data: Uint8Array } | null> {
+  if (!relPath) return null
   const root = getAssetsRoot()
-  const fullPath = join(root, relPath)
-  if (!existsSync(fullPath)) return null
+  const cleanTarget = relPath
+    .replace(/\\/g, '/')
+    .replace(/^builtin:/, '')
+    .replace(/^assets\//, '')
+    .trim()
+  let fullPath = join(root, cleanTarget)
+  if (!existsSync(fullPath)) {
+    if (existsSync(relPath)) {
+      fullPath = relPath
+    } else {
+      return null
+    }
+  }
 
   const ext = extname(fullPath).slice(1).toLowerCase()
   const mime = MIME_MAP[ext] || 'application/octet-stream'

@@ -1,0 +1,46 @@
+{
+  "head": {
+    "width": 238,
+    "height": 308
+  },
+  "torso": {
+    "width": 207,
+    "height": 252
+  },
+  "pelvis": {
+    "width": 230,
+    "height": 128
+  },
+  "arm_l": {
+    "width": 96,
+    "height": 188
+  },
+  "forearm_l": {
+    "width": 67,
+    "height": 172
+  },
+  "arm_r": {
+    "width": 96,
+    "height": 188
+  },
+  "forearm_r": {
+    "width": 67,
+    "height": 172
+  },
+  "thigh_l": {
+    "width": 95,
+    "height": 180
+  },
+  "shin_l": {
+    "width": 99,
+    "height": 220
+  },
+  "thigh_r": {
+    "width": 94,
+    "height": 180
+  },
+  "shin_r": {
+    "width": 99,
+    "height": 220
+  }
+}

@@ -116,7 +116,7 @@ export function LayerAssemblySidebar({
             folder: 'uploads'
           })
           if (res.ok && res.relPath) {
-            onAddLayerFromAsset(cleanName, `assets/${res.relPath}`)
+            onAddLayerFromAsset(cleanName, res.relPath, res.item?.previewUrl)
             continue
           }
         }
@@ -420,7 +420,13 @@ export function LayerAssemblySidebar({
                 <AssetCard
                   key={item.id}
                   item={item}
-                  onAdd={() => onAddLayerFromAsset(item.name, item.path, item.path.startsWith('data:') ? item.path : undefined)}
+                  onAdd={() =>
+                    onAddLayerFromAsset(
+                      item.name,
+                      item.path,
+                      item.previewUrl || (item.path.startsWith('data:') ? item.path : undefined)
+                    )
+                  }
                   onDetail={() => setDetailTarget(item)}
                   onDelete={() => setDeleteTarget(item)}
                 />

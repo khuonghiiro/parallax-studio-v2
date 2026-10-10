@@ -150,6 +150,10 @@ export function resolveFaceTexture(assetPath: string): Promise<ResolvedTexture |
       if (!fileData && window.api?.loadBuiltInAssetBytes) {
         // Try exact path
         fileData = await window.api.loadBuiltInAssetBytes(cleanKey)
+        // Try stripped assets/ prefix
+        if (!fileData && cleanKey.startsWith('assets/')) {
+          fileData = await window.api.loadBuiltInAssetBytes(cleanKey.replace(/^assets\//, ''))
+        }
         // Try assembly_3d prefix
         if (!fileData && !cleanKey.startsWith('assembly_3d/')) {
           fileData = await window.api.loadBuiltInAssetBytes(`assembly_3d/${cleanKey}`)
@@ -158,11 +162,49 @@ export function resolveFaceTexture(assetPath: string): Promise<ResolvedTexture |
         if (!fileData && cleanKey.startsWith('house/')) {
           fileData = await window.api.loadBuiltInAssetBytes(`assembly_3d/${cleanKey}`)
         }
+        // Try uploads/ prefix
+        if (!fileData && !cleanKey.startsWith('uploads/')) {
+          fileData = await window.api.loadBuiltInAssetBytes(`uploads/${cleanKey}`)
+        }
       }
 
       // Fallback: check asset-3ds for any path
       if (!fileData && window.api?.asset3ds?.loadBytes) {
         fileData = await window.api.asset3ds.loadBytes(cleanKey)
+      }
+
+      // Fallback: check customPublicAssets in localStorage for base64 dataUrl
+      if (!fileData && typeof localStorage !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('pxs.customPublicAssets')
+          if (raw) {
+            const list = JSON.parse(raw)
+            const match = list.find(
+              (it: any) =>
+                it?.path === cleanKey ||
+                it?.relativePath === cleanKey ||
+                it?.id === cleanKey ||
+                it?.fileName === cleanKey ||
+                cleanKey.endsWith(it?.fileName || '___')
+            )
+            if (match?.previewUrl && typeof match.previewUrl === 'string' && match.previewUrl.startsWith('data:')) {
+              return new Promise<ResolvedTexture | null>((resolve) => {
+                const img = new Image()
+                img.onload = () => {
+                  const tex = createFaceTexture(img)
+                  resolve({ texture: tex, image: img, url: match.previewUrl, width: img.naturalWidth, height: img.naturalHeight })
+                }
+                img.onerror = () => {
+                  textureCache.delete(cleanKey)
+                  resolve(null)
+                }
+                img.src = match.previewUrl
+              })
+            }
+          }
+        } catch {
+          /* ignore storage errors */
+        }
       }
 
       if (fileData) {
@@ -176,13 +218,17 @@ export function resolveFaceTexture(assetPath: string): Promise<ResolvedTexture |
             const tex = createFaceTexture(img)
             resolve({ texture: tex, image: img, url: blobUrl, width: img.naturalWidth, height: img.naturalHeight })
           }
-          img.onerror = () => resolve(null)
+          img.onerror = () => {
+            textureCache.delete(cleanKey)
+            resolve(null)
+          }
           img.src = blobUrl
         })
       }
     } catch (err) {
       console.warn('[textureResolver] Error resolving face texture:', assetPath, err)
     }
+    textureCache.delete(cleanKey)
     return null
   })()
 

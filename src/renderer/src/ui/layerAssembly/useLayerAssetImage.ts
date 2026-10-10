@@ -15,6 +15,29 @@ export function getLayerFullResUrl(assetPath?: string, directUrl?: string): stri
     const rt = assetStore.get(assetPath)
     if (rt?.url) return rt.url
     if (rt?.thumbUrl) return rt.thumbUrl
+
+    // 3. Kiểm tra customPublicAssets nếu là ảnh người dùng thêm vào
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('pxs.customPublicAssets')
+        if (raw) {
+          const list = JSON.parse(raw)
+          const match = list.find(
+            (it: any) =>
+              it?.path === assetPath ||
+              it?.relativePath === assetPath ||
+              it?.id === assetPath ||
+              it?.fileName === assetPath ||
+              assetPath.endsWith(it?.fileName || '___')
+          )
+          if (match?.previewUrl && typeof match.previewUrl === 'string' && match.previewUrl.startsWith('data:')) {
+            return match.previewUrl
+          }
+        }
+      } catch {
+        /* ignore storage errors */
+      }
+    }
   }
   return directUrl || null
 }
@@ -39,7 +62,8 @@ export async function resolveLayerImageUrlAsync(assetPath?: string, directUrl?: 
  * Hỗ trợ tự động:
  * 1. direct data: hoặc blob: URL (ảnh cọ tẩy, chỉnh sửa riêng)
  * 2. assetId trong assetStore (Project Assets - ưu tiên full-res rt.url)
- * 3. built-in assets qua resolveFaceTexture (e.g. assembly_3d/..., demo_transparent/...)
+ * 3. customPublicAssets từ localStorage
+ * 4. built-in assets qua resolveFaceTexture (e.g. assembly_3d/..., demo_transparent/...)
  */
 export function useLayerAssetImage(assetPath?: string, directUrl?: string): string | null {
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(() => {
@@ -63,6 +87,28 @@ export function useLayerAssetImage(assetPath?: string, directUrl?: string): stri
       if (rt?.thumbUrl) {
         setResolvedUrl(rt.thumbUrl)
         return
+      }
+
+      // 3. Kiểm tra customPublicAssets
+      if (typeof localStorage !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('pxs.customPublicAssets')
+          if (raw) {
+            const list = JSON.parse(raw)
+            const match = list.find(
+              (it: any) =>
+                it?.path === assetPath ||
+                it?.relativePath === assetPath ||
+                it?.id === assetPath ||
+                it?.fileName === assetPath ||
+                assetPath.endsWith(it?.fileName || '___')
+            )
+            if (match?.previewUrl && typeof match.previewUrl === 'string' && match.previewUrl.startsWith('data:')) {
+              setResolvedUrl(match.previewUrl)
+              return
+            }
+          }
+        } catch {}
       }
     }
 

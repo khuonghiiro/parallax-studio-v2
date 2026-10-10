@@ -21,7 +21,7 @@ export function LayerItemCard({
   onDuplicate,
   onDetail
 }: LayerItemCardProps) {
-  const assetUrl = useLayerAssetImage(layer.assetPath)
+  const assetUrl = useLayerAssetImage(layer.assetPath, layer.imageUrl)
   const displayUrl = layer.imageUrl || assetUrl
   const isPublic = Boolean(
     layer.assetPath &&
