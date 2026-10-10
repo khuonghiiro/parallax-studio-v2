@@ -83,6 +83,20 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
   6. **Unit Tests:** Luôn viết test kiểm thử cho MCP commands mới trong `src/renderer/src/mcp/commands/*.test.ts`; `mcp-server/catalog/catalog.test.mjs` bắt buộc EN/VI khớp cấu trúc.
 - **Tài liệu AI song ngữ (mặc định tiếng Anh):** Công tắc trong `McpDialog` (`ui/mcp/McpAiGuideCard.tsx`) lưu `docsLang` vào `mcp.json` qua IPC `mcp:setDocsLang`; MCP server theo dõi file và đổi mô tả tool trực tiếp (`tools/list_changed`). Ưu tiên: `PARALLAX_MCP_LANG` > `docsLang` > `en`.
 
+### 2.6. Quy Chuẩn Thành Phần Giao Diện & Combobox (Custom UI Controls Standard - BẮT BUỘC)
+- **Tuyệt đối KHÔNG dùng thẻ native `<select>` hay native OS color picker:**
+  - Trong Electron desktop app (đặc biệt là môi trường modal dialog / overlay), thẻ `<select>` native kích hoạt popup window của OS rất dễ bị đứng hình, giật lag 1-2s, hoặc không mở được do xung đột với sự kiện pointer capture của modal.
+  - Mọi trường lựa chọn giá trị, menu dropdown hoặc bộ chọn màu **BẮT BUỘC** sử dụng các component chuẩn 60fps trong `src/renderer/src/ui/controls/`:
+    1. **`Menu` (`<Menu>` từ `ui/controls`):** Dành cho menu nút bấm xổ danh sách thao tác, chia nhóm, có icon và phím tắt (như menu "Thêm layer", "Tệp", "Khổ mẫu…", "Thao tác…"). Tích hợp sẵn click-outside trên `pointerdown`, tự đóng bằng `Escape`, mở tức thì 0ms.
+    2. **`Select` (`<Select>` từ `ui/controls/CustomSelect.tsx`):** Dành cho form field chọn giá trị đơn trong Inspector, Bảng thuộc tính hay Panel cấu hình. Hỗ trợ prop `size="sm"` cho panel nhỏ hẹp, hỗ trợ tìm kiếm khi danh sách dài.
+    3. **`ColorPickerCustom` (`ui/controls/ColorPickerCustom.tsx`):** Dành cho chọn màu sắc thay vì `<input type="color">`.
+- **Quy tắc Z-Index & Portals cho Popups/Dropdowns:**
+  - Các modal/workshop overlay lớn (như xưởng lắp ráp 2.5D, xưởng 3D) có `z-index: 10000` trở lên.
+  - Mọi component render popup qua React Portal (như menu thả xuống của `CustomSelect`, Tooltips, Context Menus) **BẮT BUỘC** đặt `z-index >= 50000` (mặc định của `CustomSelect` là `50000`) để bảo đảm popup luôn nổi trên cùng, không bị chìm bên dưới modal.
+- **Quy tắc Tránh Cắt Cụt Popup (Overflow Clipping):**
+  - Tuyệt đối không đặt `overflow-x: auto` hoặc `overflow: hidden` trực tiếp lên thanh công cụ (Toolbar) có chiều cao cố định (`height: 36px`) chứa menu dropdown cục bộ (`position: absolute`). Theo CSS spec, `overflow-x: auto` sẽ tự động ép `overflow-y` thành `auto`, làm các menu con tuyệt đối bị cắt cụt bên trong chiều cao 36px.
+  - Thanh công cụ chứa menu con phải luôn giữ `overflow: visible;` và định nghĩa `position: relative; z-index: 5000;`. Khi cần thanh cuộn ngang cho nội dung toolbar hẹp, phải bọc các nút không có menu trong container cuộn riêng biệt.
+
 ---
 
 ## 3. Cấu Trúc Workspace & Thư Mục Tri Thức (.agents/)

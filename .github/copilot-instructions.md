@@ -11,4 +11,5 @@ Tóm tắt không được vi phạm:
 - CSS chỉ dùng design token trong `variables.css`; kiểm tra cả Dark và Light theme.
 - MCP parity: mọi logic mới phải có renderer command + test, tool song ngữ trong `mcp-server/catalog/tools-*.mjs`, cập nhật `guide.json`, chạy `pnpm mcp:schemas`, cập nhật README.
 - Kiểm tra `npm run typecheck` + `npx vitest run` trước khi commit.
+- Cấm dùng `<select>` native và OS popups (gây treo/lỗi Electron); bắt buộc dùng component 60fps trong `ui/controls/` (`<Menu>`, `<Select>` portal z-index 50000); toolbar chứa menu phải giữ `overflow: visible; z-index: 5000`.
 - Commit Conventional Commits bằng **tiếng Việt CÓ DẤU**, không nhắc tên AI; commit + push ngay sau mỗi fix/tính năng. Git hooks `.githooks/` sẽ chặn commit sai chuẩn.

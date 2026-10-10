@@ -15,3 +15,4 @@
   - `pre-commit`: file code ≤ 1000 dòng, chặn `.env`/private key/API token.
 - Trước khi commit: `npm run typecheck` và `npx vitest run` phải sạch.
 - Sửa logic nghiệp vụ ⇒ cập nhật MCP parity (renderer command + test, `mcp-server/catalog/tools-*.mjs` song ngữ, `guide.json`, `pnpm mcp:schemas`, README).
+- UI controls: cấm dùng `<select>` native (treo/lỗi Electron modal); bắt buộc dùng `<Menu>`, `<Select>` (portal z-index 50000); toolbar chứa menu giữ `overflow: visible; z-index: 5000`.
