@@ -416,117 +416,40 @@ export function LayerAssemblyInspector({
               />
             </div>
 
-            {/* 3. Hoạt Ảnh Đung Đưa (Parallax Wind Motion) */}
-            <div style={{ borderTop: '1px solid var(--line-soft)', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--key)' }}>
-                  🍃 Hoạt ảnh chuyển động 2.5D
-                </span>
-                <span style={{ fontSize: '9px', color: 'var(--text-faint)' }}>
-                  Tự động đung đưa theo gió
-                </span>
-              </div>
-
-              {/* Kiểu chuyển động */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Kiểu chuyển động:</span>
-                <Select
-                  size="sm"
-                  value={selectedLayer.motion.type}
-                  options={[
-                    { value: 'none', label: 'Tĩnh (Không chuyển động)' },
-                    { value: 'sway', label: '🍃 Đung đưa theo gió (Sway)' },
-                    { value: 'breathe', label: '🫁 Phập phồng nhịp thở (Breathe)' },
-                    { value: 'float', label: '☁️ Lơ lửng bồng bềnh (Floating)' },
-                    { value: 'rocking', label: '🔔 Bập bênh con lắc (Rocking)' }
-                  ]}
-                  onChange={(val) =>
-                    onUpdateLayer(selectedLayer.id, {
-                      motion: { ...selectedLayer.motion, type: val as MotionType }
-                    })
-                  }
-                />
-              </div>
-
-              {selectedLayer.motion.type !== 'none' && (
-                <>
-                  {/* Điểm neo (Anchor) */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Điểm neo uốn (Anchor):</span>
-                    <Select
-                      size="sm"
-                      value={selectedLayer.motion.anchor}
-                      options={[
-                        { value: 'bottom', label: 'Gốc ở dưới (Thân cây, cành hoa, bụi cỏ)' },
-                        { value: 'top', label: 'Treo ở trên (Đèn lồng, dây xích, dây leo)' },
-                        { value: 'center', label: 'Ở giữa tâm (Tán lá bồng bềnh, mây khói)' }
-                      ]}
-                      onChange={(val) =>
-                        onUpdateLayer(selectedLayer.id, {
-                          motion: { ...selectedLayer.motion, anchor: val as MotionAnchor }
-                        })
-                      }
-                    />
-                  </div>
-
-                  {/* Tốc độ & Biên độ */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                    <div>
-                      <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Tốc độ (Speed):</span>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="0.1"
-                        max="5"
-                        className="input-text sm"
-                        value={selectedLayer.motion.speed}
-                        onChange={(e) =>
-                          onUpdateLayer(selectedLayer.id, {
-                            motion: { ...selectedLayer.motion, speed: Number(e.target.value) }
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Biên độ (°/px):</span>
-                      <input
-                        type="number"
-                        step="1"
-                        min="1"
-                        max="60"
-                        className="input-text sm"
-                        value={selectedLayer.motion.amplitude}
-                        onChange={(e) =>
-                          onUpdateLayer(selectedLayer.id, {
-                            motion: { ...selectedLayer.motion, amplitude: Number(e.target.value) }
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  {/* Lệch pha (Phase Offset) */}
+            {/* 3. Diễn hoạt chuyển động nhân vật qua Khung xương */}
+            <div
+              style={{
+                borderTop: '1px solid var(--line-soft)',
+                paddingTop: '10px',
+                marginTop: '4px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '6px 8px',
+                  borderRadius: '6px',
+                  background: 'var(--bg-1)',
+                  border: '1px solid var(--line-soft)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '13px' }}>🦴</span>
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-dim)' }}>
-                      <span>Độ lệch pha so le:</span>
-                      <span style={{ fontFamily: 'monospace' }}>{(selectedLayer.motion.phaseOffset ?? 0).toFixed(2)}s</span>
+                    <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text)' }}>
+                      Hoạt ảnh & Khung xương
                     </div>
-                    <input
-                      type="range"
-                      step="0.05"
-                      min="0"
-                      max="2"
-                      value={selectedLayer.motion.phaseOffset ?? 0}
-                      onChange={(e) =>
-                        onUpdateLayer(selectedLayer.id, {
-                          motion: { ...selectedLayer.motion, phaseOffset: Number(e.target.value) }
-                        })
-                      }
-                      style={{ accentColor: 'var(--accent)', width: '100%', marginTop: '3px' }}
-                    />
+                    <div style={{ fontSize: '9.5px', color: 'var(--text-dim)' }}>
+                      Gắn xương và tạo clip chuyển động đồng bộ
+                    </div>
                   </div>
-                </>
-              )}
+                </div>
+              </div>
             </div>
 
             {/* 4. Khung xương & Gắn xương Armature Rig */}

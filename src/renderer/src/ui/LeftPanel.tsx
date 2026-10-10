@@ -21,6 +21,12 @@ export function LeftPanel() {
   useEffect(() => assetStore.subscribe(force), [])
   useEffect(() => localStorage.setItem('pxs.leftTab', tab), [tab])
 
+  useEffect(() => {
+    const handleOpen = () => setTab('assets')
+    window.addEventListener('layerAssembly:open', handleOpen)
+    return () => window.removeEventListener('layerAssembly:open', handleOpen)
+  }, [])
+
   const handleExpandToViewer = () => {
     useView.getState().set({ primary: 'topview' })
   }

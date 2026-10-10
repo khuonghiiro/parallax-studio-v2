@@ -21,6 +21,8 @@ export interface BoneKeyframe extends BonePose {
   easing: 'smooth' | 'linear' | 'hold'
 }
 
+export type MotionViewAngle = 'front' | 'diagonal' | 'side' | 'back'
+
 /** Từng phân đoạn động tác hoạt ảnh độc lập (Animation Clip) của khung xương */
 export interface AnimationClip {
   id: string
@@ -29,6 +31,7 @@ export interface AnimationClip {
   loop: boolean
   tracks: Record<string, BoneKeyframe[]>
   description?: string
+  viewAngle?: MotionViewAngle
 }
 
 export interface LayerRig {

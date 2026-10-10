@@ -1,6 +1,6 @@
-import { generateWalkCycle } from './workshopWalkCycle'
-export { generateWalkCycle } from './workshopWalkCycle'
-import type { AnimationClip, BoneKeyframe, LayerBone, LayerRig } from '@shared/layerRig'
+import { generateWalkCycle, generateRunCycle } from './workshopWalkCycle'
+export { generateWalkCycle, generateRunCycle } from './workshopWalkCycle'
+import type { AnimationClip, BoneKeyframe, LayerBone, LayerRig, MotionViewAngle } from '@shared/layerRig'
 import type { LayerComposite } from './types'
 
 /** Preset humanoid 2D armature in workshop coordinates (origin 0,0 at center). */
@@ -370,7 +370,8 @@ export function generateSway(bones: LayerBone[], duration = 2.0): Record<string,
 export function createClipFromPreset(
   preset: ProceduralMotionPreset,
   bones: LayerBone[],
-  customName?: string
+  customName?: string,
+  viewAngle: MotionViewAngle = 'front'
 ): AnimationClip {
   const meta = MOTION_PRESETS.find((p) => p.id === preset)
   const duration = meta?.duration ?? 1.8
@@ -378,7 +379,7 @@ export function createClipFromPreset(
 
   switch (preset) {
     case 'walk':
-      tracks = generateWalkCycle(bones, duration)
+      tracks = generateWalkCycle(bones, duration, viewAngle)
       break
     case 'idle':
       tracks = generateIdleBreathe(bones, duration)
@@ -390,7 +391,7 @@ export function createClipFromPreset(
       tracks = generateBow(bones, duration)
       break
     case 'run':
-      tracks = generateRun(bones, duration)
+      tracks = generateRunCycle(bones, duration, viewAngle)
       break
     case 'jump':
       tracks = generateJump(bones, duration)
@@ -410,16 +411,21 @@ export function createClipFromPreset(
     duration,
     loop: true,
     tracks,
-    description: meta?.description
+    description: meta?.description,
+    viewAngle
   }
 }
 
 /** Apply procedural preset to composite rig. */
-export function applyMotionPresetToRig(composite: LayerComposite, preset: ProceduralMotionPreset): LayerComposite {
+export function applyMotionPresetToRig(
+  composite: LayerComposite,
+  preset: ProceduralMotionPreset,
+  viewAngle: MotionViewAngle = 'front'
+): LayerComposite {
   const bones = composite.rig?.bones ?? []
   if (!bones.length) return composite
 
-  const clip = createClipFromPreset(preset, bones)
+  const clip = createClipFromPreset(preset, bones, undefined, viewAngle)
   const currentRig = composite.rig ?? { bones, duration: clip.duration, loop: true, tracks: {} }
   const existingClips = currentRig.clips ?? []
   const activeId = currentRig.activeClipId

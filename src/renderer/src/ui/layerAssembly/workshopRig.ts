@@ -1,4 +1,4 @@
-import type { AnimationClip, BoneKeyframe, LayerBone, LayerRig } from '@shared/layerRig'
+import type { AnimationClip, BoneKeyframe, LayerBone, LayerRig, MotionViewAngle } from '@shared/layerRig'
 import type { LayerComposite } from './types'
 import {
   createHumanoidBones,
@@ -70,7 +70,7 @@ export type RigAction =
   | { action: 'delete-key'; boneId: string; time: number }
   | { action: 'settings'; duration?: number; loop?: boolean }
   | { action: 'apply-template'; template: 'humanoid' | 'simple-chain' }
-  | { action: 'apply-preset-animation'; preset: ProceduralMotionPreset; asNewClip?: boolean; clipName?: string }
+  | { action: 'apply-preset-animation'; preset: ProceduralMotionPreset; asNewClip?: boolean; clipName?: string; viewAngle?: MotionViewAngle }
   | { action: 'clear-animation' }
   | { action: 'add-clip'; clip: AnimationClip }
   | { action: 'switch-clip'; clipId: string }
@@ -207,14 +207,14 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
   }
   if (action.action === 'apply-preset-animation') {
     if (action.asNewClip) {
-      const clip = createClipFromPreset(action.preset, rig.bones, action.clipName)
+      const clip = createClipFromPreset(action.preset, rig.bones, action.clipName, action.viewAngle)
       rig.clips = [...(rig.clips ?? []), clip]
       rig.activeClipId = clip.id
       rig.tracks = structuredClone(clip.tracks)
       rig.duration = clip.duration
       rig.loop = clip.loop
     } else {
-      const res = applyMotionPresetToRig({ ...composite, layers, rig }, action.preset)
+      const res = applyMotionPresetToRig({ ...composite, layers, rig }, action.preset, action.viewAngle)
       validateRig(res)
       return res
     }

@@ -39,10 +39,13 @@ export function getActiveLayerAssemblySession(): ActiveLayerAssemblySession | nu
   return activeSession
 }
 
+let pendingOpenComposite: { compositeId?: string } | null = null
+
 /**
  * Yêu cầu mở Xưởng Lắp Ráp Layer từ bên ngoài (qua MCP hoặc UI)
  */
 export function requestOpenLayerAssembly(compositeId?: string): void {
+  pendingOpenComposite = { compositeId }
   if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
     window.dispatchEvent(
       new CustomEvent('layerAssembly:open', {
@@ -50,6 +53,12 @@ export function requestOpenLayerAssembly(compositeId?: string): void {
       })
     )
   }
+}
+
+export function consumePendingOpenLayerAssembly(): { compositeId?: string } | null {
+  const pending = pendingOpenComposite
+  pendingOpenComposite = null
+  return pending
 }
 
 /**

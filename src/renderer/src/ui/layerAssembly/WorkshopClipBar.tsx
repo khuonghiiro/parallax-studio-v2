@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import type { AnimationClip, LayerRig } from '@shared/layerRig'
+import type { AnimationClip, LayerRig, MotionViewAngle } from '@shared/layerRig'
 import type { RigAction } from './workshopRig'
-import { MOTION_PRESETS, type ProceduralMotionPreset } from './workshopRigPresets'
 import { IconCopy, IconPen, IconPlus, IconTrash } from '../icons'
+import { WorkshopNewMotionModal } from './WorkshopNewMotionModal'
 
 export interface WorkshopClipBarProps {
   rig: LayerRig
@@ -13,7 +13,8 @@ export interface WorkshopClipBarProps {
 
 export function WorkshopClipBar({ rig, activeClip, run, onOpenRetarget }: WorkshopClipBarProps) {
   const clips = rig.clips ?? [activeClip]
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isNewMotionModalOpen, setIsNewMotionModalOpen] = useState(false)
+  const [angleFilter, setAngleFilter] = useState<MotionViewAngle | 'all'>('all')
   const [isRenaming, setIsRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState(activeClip.name)
 
@@ -23,29 +24,12 @@ export function WorkshopClipBar({ rig, activeClip, run, onOpenRetarget }: Worksh
     setIsRenaming(false)
   }
 
-  const handleAddPreset = (preset: ProceduralMotionPreset) => {
-    run({ action: 'apply-preset-animation', preset, asNewClip: true })
-    setIsMenuOpen(false)
-  }
-
-  const handleAddBlank = () => {
-    const newId = `clip-custom-${Date.now().toString(36)}`
-    run({
-      action: 'add-clip',
-      clip: {
-        id: newId,
-        name: `Động tác ${clips.length + 1}`,
-        duration: 2.0,
-        loop: true,
-        tracks: {}
-      }
-    })
-    setIsMenuOpen(false)
+  const handleCreatedClip = (clip: AnimationClip) => {
+    run({ action: 'add-clip', clip })
   }
 
   const handleDuplicateCurrent = () => {
     run({ action: 'duplicate-clip', clipId: activeClip.id })
-    setIsMenuOpen(false)
   }
 
   const handleStartRename = () => {
@@ -69,150 +53,72 @@ export function WorkshopClipBar({ rig, activeClip, run, onOpenRetarget }: Worksh
     }
   }
 
+  const filteredClips = clips.filter((c) => {
+    if (angleFilter === 'all') return true
+    if (c.viewAngle) return c.viewAngle === angleFilter
+    // Heuristic dựa theo tên nếu chưa có field viewAngle (kiểm tra 90°/180°/45° trước 0°)
+    if (angleFilter === 'side') return c.name.includes('90°') || c.name.includes('Ngang')
+    if (angleFilter === 'diagonal') return c.name.includes('45°') || c.name.includes('Chéo')
+    if (angleFilter === 'back') return c.name.includes('180°') || c.name.includes('Sau lưng')
+    if (angleFilter === 'front') return c.name.includes('Chính diện') || /(?:^|[^\d])0°/.test(c.name)
+    return true
+  })
+
+  const getAngleBadge = (clip: AnimationClip) => {
+    const ang = clip.viewAngle
+    if (ang === 'side') return { text: '90°', color: 'var(--key)' }
+    if (ang === 'diagonal') return { text: '45°', color: 'var(--accent-cyan)' }
+    if (ang === 'back') return { text: '180°', color: '#c084fc' }
+    if (ang === 'front') return { text: '0°', color: 'var(--accent)' }
+    // Fallback nếu không có trường viewAngle
+    if (clip.name.includes('90°') || clip.name.includes('Ngang')) return { text: '90°', color: 'var(--key)' }
+    if (clip.name.includes('45°') || clip.name.includes('Chéo')) return { text: '45°', color: 'var(--accent-cyan)' }
+    if (clip.name.includes('180°') || clip.name.includes('Sau lưng')) return { text: '180°', color: '#c084fc' }
+    if (clip.name.includes('Chính diện') || /(?:^|[^\d])0°/.test(clip.name)) return { text: '0°', color: 'var(--accent)' }
+    return null
+  }
+
+
   return (
     <div className="lw-clip-section">
       <div className="lw-clip-header">
         <span>🎬 Động tác hoạt ảnh ({clips.length})</span>
-        <div style={{ position: 'relative' }}>
+        <button
+          type="button"
+          className="btn xs primary"
+          onClick={() => setIsNewMotionModalOpen(true)}
+          title="Tạo động tác mới kèm lựa chọn hướng nhìn nhân vật (0° chính diện, 45° chéo, 90° ngang)"
+          style={{ fontSize: '11px', padding: '3px 8px' }}
+        >
+          <IconPlus width={10} height={10} /> Thêm động tác
+        </button>
+      </div>
+
+      {/* Thanh lọc nhanh theo góc nhìn */}
+      <div style={{ display: 'flex', gap: '3px', marginBottom: '6px' }}>
+        {[
+          { id: 'all', label: 'Tất cả' },
+          { id: 'front', label: '🧭 0°' },
+          { id: 'diagonal', label: '📐 45°' },
+          { id: 'side', label: '↔️ 90°' }
+        ].map((f) => (
           <button
+            key={f.id}
             type="button"
-            className="btn xs primary"
-            onClick={() => setIsMenuOpen((prev) => !prev)}
-            style={{ fontSize: '11px', padding: '3px 8px' }}
+            className={`btn xs ${angleFilter === f.id ? 'primary' : 'ghost'}`}
+            style={{ fontSize: '9.5px', padding: '1px 6px', height: '19px' }}
+            onClick={() => setAngleFilter(f.id as any)}
           >
-            <IconPlus width={10} height={10} /> Thêm động tác
+            {f.label}
           </button>
-
-          {isMenuOpen && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '100%',
-                right: 0,
-                marginTop: '4px',
-                width: '210px',
-                background: 'var(--bg-1)',
-                border: '1px solid var(--line-focus)',
-                borderRadius: '6px',
-                boxShadow: '0 6px 20px rgba(0,0,0,0.4)',
-                zIndex: 55000,
-                padding: '5px 0'
-              }}
-            >
-              <div style={{ padding: '4px 10px', fontSize: '10px', color: 'var(--text-dim)', fontWeight: 600 }}>
-                MẪU CHUYỂN ĐỘNG CÓ SẴN
-              </div>
-              <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
-                {MOTION_PRESETS.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    style={{
-                      width: '100%',
-                      padding: '5px 10px',
-                      background: 'transparent',
-                      border: 0,
-                      color: 'var(--text)',
-                      fontSize: '11px',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                    onClick={() => handleAddPreset(p.id)}
-                  >
-                    <span>{p.icon}</span>
-                    <span>{p.name}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ height: '1px', background: 'var(--line-soft)', margin: '4px 0' }} />
-
-              <button
-                type="button"
-                style={{
-                  width: '100%',
-                  padding: '6px 10px',
-                  background: 'transparent',
-                  border: 0,
-                  color: 'var(--text)',
-                  fontSize: '11px',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                onClick={handleAddBlank}
-              >
-                <span>➕</span>
-                <span>Tạo động tác trống mới</span>
-              </button>
-
-              <button
-                type="button"
-                style={{
-                  width: '100%',
-                  padding: '6px 10px',
-                  background: 'transparent',
-                  border: 0,
-                  color: 'var(--text)',
-                  fontSize: '11px',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                onClick={handleDuplicateCurrent}
-              >
-                <IconCopy width={11} height={11} />
-                <span>Nhân bản động tác hiện tại</span>
-              </button>
-
-              <button
-                type="button"
-                style={{
-                  width: '100%',
-                  padding: '6px 10px',
-                  background: 'transparent',
-                  border: 0,
-                  color: 'var(--accent)',
-                  fontSize: '11px',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontWeight: 600
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                onClick={() => {
-                  setIsMenuOpen(false)
-                  onOpenRetarget()
-                }}
-              >
-                <span>🔄</span>
-                <span>Kế thừa từ chi tiết khác...</span>
-              </button>
-            </div>
-          )}
-        </div>
+        ))}
       </div>
 
       {/* Dãy nút chọn Clips động tác */}
       <div className="lw-clip-list">
-        {clips.map((clip) => {
+        {filteredClips.map((clip) => {
           const isActive = clip.id === activeClip.id
+          const badge = getAngleBadge(clip)
           return (
             <button
               key={clip.id}
@@ -220,12 +126,40 @@ export function WorkshopClipBar({ rig, activeClip, run, onOpenRetarget }: Worksh
               className={`lw-clip-chip ${isActive ? 'active' : ''}`}
               onClick={() => handleSelectClip(clip.id)}
               title={`${clip.name} (Thời lượng: ${clip.duration}s)`}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
             >
+              {badge && (
+                <span
+                  style={{
+                    fontSize: '9px',
+                    fontWeight: 700,
+                    padding: '0 3px',
+                    borderRadius: '2px',
+                    background: 'rgba(0, 0, 0, 0.25)',
+                    color: badge.color
+                  }}
+                >
+                  {badge.text}
+                </span>
+              )}
               <span>{clip.name}</span>
             </button>
           )
         })}
+        {filteredClips.length === 0 && (
+          <div style={{ fontSize: '10.5px', color: 'var(--text-faint)', padding: '6px 0' }}>
+            Không có động tác nào thuộc góc này. Bấm &ldquo;+ Thêm động tác&rdquo; để tạo.
+          </div>
+        )}
       </div>
+
+      {/* Modal Tạo động tác mới */}
+      <WorkshopNewMotionModal
+        isOpen={isNewMotionModalOpen}
+        onClose={() => setIsNewMotionModalOpen(false)}
+        bones={rig.bones}
+        onCreated={handleCreatedClip}
+      />
 
       {/* Thanh công cụ quản lý clip đang active */}
       <div className="lw-clip-toolbar">
@@ -293,3 +227,5 @@ export function WorkshopClipBar({ rig, activeClip, run, onOpenRetarget }: Worksh
     </div>
   )
 }
+
+

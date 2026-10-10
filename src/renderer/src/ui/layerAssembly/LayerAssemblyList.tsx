@@ -14,6 +14,7 @@ import { insertLayerCompositeToScene } from './insertLayerComposite'
 import { LayerAssemblyDialog } from './LayerAssemblyDialog'
 import { LayerAssemblyCategoryBar } from './LayerAssemblyCategoryBar'
 import { IconPlus, IconPen, IconTrash, IconCopy, IconLayers } from '../icons'
+import { consumePendingOpenLayerAssembly } from './layerAssemblyBridge'
 import '../../styles/model3dLibrary.css'
 import '../../styles/layerAssembly.css'
 
@@ -27,6 +28,19 @@ export function LayerAssemblyList() {
 
   const reload = useCallback(() => {
     setComposites(getStoredComposites())
+  }, [])
+
+  useEffect(() => {
+    const pending = consumePendingOpenLayerAssembly()
+    if (pending) {
+      if (pending.compositeId) {
+        const found = getStoredComposites().find((c) => c.id === pending.compositeId)
+        setEditingComposite(found || null)
+      } else {
+        setEditingComposite(null)
+      }
+      setIsDialogOpen(true)
+    }
   }, [])
 
   useEffect(() => {

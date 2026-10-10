@@ -31,10 +31,11 @@ export function RigNumber({
   step?: number
 }) {
   return (
-    <label className="lw-rig-field">
-      <span>{label}</span>
+    <div className="lw-num-field">
+      <span className="lw-num-label">{label}</span>
       <input
         type="number"
+        className="lw-field-input"
         aria-label={label}
         value={Number(value.toFixed(2))}
         min={min}
@@ -47,7 +48,7 @@ export function RigNumber({
           }
         }}
       />
-    </label>
+    </div>
   )
 }
 
@@ -184,13 +185,13 @@ export function WorkshopRigPanel({
                 aria-selected={isSelected}
                 onClick={() => selectBone(b.id)}
                 className={`lw-bone-item${isSelected ? ' active' : ''}`}
-                style={{ paddingLeft: b.parentId ? '18px' : '8px' }}
+                style={{ paddingLeft: b.parentId ? '22px' : '8px' }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  <span style={{ opacity: 0.6, fontSize: '10px' }}>{b.parentId ? '↳' : '◇'}</span>
-                  <span>{b.name}</span>
+                <div className="lw-bone-item-label">
+                  <span className="lw-bone-item-indent">{b.parentId ? '↳' : '◇'}</span>
+                  <span className="lw-bone-item-name">{b.name}</span>
                   {boundLayersCount > 0 && (
-                    <span style={{ fontSize: '9.5px', color: 'var(--accent-cyan)', background: 'rgba(56, 189, 248, 0.12)', padding: '0 4px', borderRadius: '3px' }}>
+                    <span className="lw-bone-item-count">
                       {boundLayersCount} lớp
                     </span>
                   )}
@@ -200,6 +201,7 @@ export function WorkshopRigPanel({
                   className="lw-bone-item-delete"
                   onClick={(e) => handleDeleteBone(b.id, e)}
                   title="Xóa xương này (Del)"
+                  aria-label={`Xóa xương ${b.name}`}
                 >
                   <IconTrash width={11} height={11} />
                 </button>
@@ -222,12 +224,13 @@ export function WorkshopRigPanel({
           </div>
 
           <div className="lw-form-group">
-            <span className="lw-form-label">Tên xương:</span>
+            <label className="lw-form-label" htmlFor="lw-bone-name-input">Tên xương:</label>
             <input
+              id="lw-bone-name-input"
+              className="lw-field-input"
               aria-label="Tên xương"
               value={bone.name}
               onChange={(e) => e.target.value.trim() && patch({ name: e.target.value })}
-              style={{ width: '100%', boxSizing: 'border-box' }}
             />
           </div>
 
