@@ -25,14 +25,14 @@ import { IconCube, IconPlus, IconPen, IconTrash, IconCopy } from '../icons'
 import '../../styles/model3dLibrary.css'
 
 const DEFAULT_CATEGORIES: Asset3DsCategory[] = [
-  { id: 'all', title: 'Tất cả mô hình', icon: 'all', order: 0 },
+  { id: 'all', title: 'Tất cả mô hình', icon: 'cube', order: 0 },
   { id: 'architecture', title: 'Kiến trúc & Nhà cửa', icon: 'home', order: 1 },
   { id: 'props', title: 'Đạo cụ & Khối hộp', icon: 'cube', order: 2 },
   { id: 'street', title: 'Đường phố & Góc cảnh', icon: 'city', order: 3 },
-  { id: 'room', title: 'Nội thất & Căn phòng', icon: 'image', order: 4 },
+  { id: 'room', title: 'Nội thất & Căn phòng', icon: 'room', order: 4 },
   { id: 'custom', title: 'Tùy biến & Tự tạo', icon: 'sparkles', order: 5 },
-  { id: 'decor', title: 'Bộ phận trang trí', icon: 'sparkles', order: 6 },
-  { id: 'nature', title: 'Thiên nhiên & Cây cỏ', icon: 'sparkles', order: 7 }
+  { id: 'decor', title: 'Bộ phận trang trí', icon: 'decor', order: 6 },
+  { id: 'nature', title: 'Thiên nhiên & Cây cỏ', icon: 'tree', order: 7 }
 ]
 
 export function Model3DList() {

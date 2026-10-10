@@ -31,7 +31,7 @@
     {
       "id": "room",
       "title": "Nội thất & Căn phòng",
-      "icon": "image",
+      "icon": "room",
       "description": "Không gian phòng studio, căn phòng 3 vách có sàn",
       "order": 4
     },
@@ -45,14 +45,14 @@
     {
       "id": "decor",
       "title": "Bộ phận trang trí",
-      "icon": "sparkles",
+      "icon": "decor",
       "description": "Cửa sổ, cửa ra vào, ống khói, cột, ban công, chậu cây… tạo riêng rồi ghép vào khung nhà",
       "order": 6
     },
     {
       "id": "nature",
       "title": "Thiên nhiên & Cây cỏ",
-      "icon": "sparkles",
+      "icon": "tree",
       "description": "Cây cối thể tích, bụi hoa, thảm cỏ sân vườn tạo cảnh quan",
       "order": 7
     }

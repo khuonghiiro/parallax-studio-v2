@@ -33,7 +33,7 @@ const SIDEBAR_CATEGORIES: MiniCategory[] = [
   { id: 'architecture', title: 'Kiến trúc & Nhà cửa', icon: 'home' },
   { id: 'props', title: 'Đạo cụ & Khối hộp', icon: 'cube' },
   { id: 'street', title: 'Đường phố & Góc cảnh', icon: 'city' },
-  { id: 'room', title: 'Nội thất & Căn phòng', icon: 'image' },
+  { id: 'room', title: 'Nội thất & Căn phòng', icon: 'room' },
   { id: 'custom', title: 'Tự thêm / Từ máy', icon: 'sparkles' }
 ]
 

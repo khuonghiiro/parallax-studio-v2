@@ -598,6 +598,33 @@ export const IconBoundingBox = (p: P) => (
   </svg>
 )
 
+export const IconTree = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 2l-5 6h3l-4 6h5v6h2v-6h5l-4-6h3l-5-6z" />
+  </svg>
+)
 
+export const IconUser = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+)
 
+export const IconArmchair = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3" />
+    <path d="M3 11v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2h-1a2 2 0 0 0-2 2v1H8v-1a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z" />
+    <path d="M6 18v3M18 18v3" />
+  </svg>
+)
 
+export const IconDecor = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 3a3 3 0 0 0-3 3c0 2 3 4 3 4s3-2 3-4a3 3 0 0 0-3-3z" />
+    <path d="M12 21a3 3 0 0 0 3-3c0-2-3-4-3-4s-3 2-3 4a3 3 0 0 0 3 3z" />
+    <path d="M3 12a3 3 0 0 0 3 3c2 0 4-3 4-3s-2-3-4-3a3 3 0 0 0-3 3z" />
+    <path d="M21 12a3 3 0 0 0-3-3c-2 0-4 3-4 3s2 3 4 3a3 3 0 0 0 3-3z" />
+  </svg>
+)
