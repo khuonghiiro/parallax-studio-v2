@@ -282,22 +282,14 @@ export function BuiltInAssetGrid({
                   <div className="builtin-asset-actions">
                     <button
                       type="button"
-                      className="btn sm icon primary"
-                      title={
-                        actionTitle ||
-                        (onSelectItem
-                          ? 'Chọn đổi sang ảnh này'
-                          : isAudio
-                            ? 'Thêm âm thanh vào mốc thời gian hiện tại'
-                            : 'Thêm thành layer vào cảnh')
-                      }
+                      className="btn sm icon danger"
+                      title="Xoá tài nguyên (kiểm tra an toàn nếu đang được dùng)"
                       onClick={(e) => {
                         e.stopPropagation()
-                        if (onSelectItem) onSelectItem(item)
-                        else onImportItem?.(item, true)
+                        setDeleteTarget(item)
                       }}
                     >
-                      {actionIcon || <IconPlus />}
+                      <IconTrash width={12} height={12} />
                     </button>
 
                     <button
@@ -314,14 +306,27 @@ export function BuiltInAssetGrid({
 
                     <button
                       type="button"
-                      className="btn sm icon danger"
-                      title="Xoá tài nguyên (kiểm tra an toàn nếu đang được dùng)"
+                      className="btn sm icon primary"
+                      style={{
+                        background: 'var(--accent)',
+                        color: '#fff',
+                        borderColor: 'var(--accent)'
+                      }}
+                      title={
+                        actionTitle ||
+                        (onSelectItem
+                          ? 'Chọn đổi sang ảnh này'
+                          : isAudio
+                            ? 'Thêm âm thanh vào mốc thời gian hiện tại'
+                            : 'Thêm thành layer vào cảnh')
+                      }
                       onClick={(e) => {
                         e.stopPropagation()
-                        setDeleteTarget(item)
+                        if (onSelectItem) onSelectItem(item)
+                        else onImportItem?.(item, true)
                       }}
                     >
-                      <IconTrash width={12} height={12} />
+                      {actionIcon || <IconPlus />}
                     </button>
                   </div>
                 </div>
@@ -355,8 +360,11 @@ export function BuiltInAssetGrid({
             scope: 'public'
           }}
           onClose={() => setDeleteTarget(null)}
-          onConfirmDelete={() => {
-            hideOrDeletePublicAsset(deleteTarget.id)
+          onConfirmDelete={(target) => {
+            const itemToDelete = deleteTarget || target
+            if (itemToDelete) {
+              hideOrDeletePublicAsset(itemToDelete)
+            }
             setDeleteTarget(null)
             setLocalVersion((v) => v + 1)
             onReload()

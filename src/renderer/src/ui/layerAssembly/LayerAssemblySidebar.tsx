@@ -16,6 +16,7 @@ import {
   addCustomPublicAsset,
   hideOrDeletePublicAsset
 } from '../assets/publicAssetStorage'
+import { clearLayerTextureCache } from './layerAssembly3DMesh'
 
 export interface LayerAssemblySidebarProps {
   composite: LayerComposite
@@ -67,7 +68,10 @@ export function LayerAssemblySidebar({
 
   // Lắng nghe thay đổi kho tài nguyên công khai
   useEffect(() => {
-    const handlePublicChanged = () => setPublicVersion((v) => v + 1)
+    const handlePublicChanged = () => {
+      clearLayerTextureCache()
+      setPublicVersion((v) => v + 1)
+    }
     window.addEventListener('publicAssets:changed', handlePublicChanged)
     return () => window.removeEventListener('publicAssets:changed', handlePublicChanged)
   }, [])
@@ -474,7 +478,13 @@ export function LayerAssemblySidebar({
           }}
           onClose={() => setDeleteTarget(null)}
           onConfirmDelete={() => {
-            hideOrDeletePublicAsset(deleteTarget.id)
+            hideOrDeletePublicAsset({
+              id: deleteTarget.id,
+              relativePath: deleteTarget.path,
+              path: deleteTarget.path,
+              fileName: deleteTarget.name,
+              isCustom: deleteTarget.isCustom
+            })
             setPublicVersion((v) => v + 1)
             setDeleteTarget(null)
           }}

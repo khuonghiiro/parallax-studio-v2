@@ -134,25 +134,17 @@ export function ProjectAssetList() {
               <span className="asset-name">{a.name}</span>
 
               <div className="add-hint" style={{ display: 'flex', gap: 3 }}>
-                {isAudio ? (
-                  <button
-                    type="button"
-                    className="btn sm icon"
-                    title="Thêm vào mốc thời gian hiện tại (tại vị trí kim phát)"
-                    onClick={() => addAudioTrackFromAsset(a.id, useEditor.getState().time)}
-                  >
-                    <IconPlus />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn sm icon"
-                    title="Thêm thành layer vào cảnh"
-                    onClick={() => addLayerFromAsset(a.id)}
-                  >
-                    <IconPlus />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="btn sm icon danger"
+                  title="Xoá asset khỏi dự án (kiểm tra cảnh báo nếu đang được dùng)"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setDeleteTarget(a)
+                  }}
+                >
+                  <IconTrash width={12} height={12} />
+                </button>
 
                 <button
                   type="button"
@@ -166,17 +158,27 @@ export function ProjectAssetList() {
                   <IconInfo width={12} height={12} />
                 </button>
 
-                <button
-                  type="button"
-                  className="btn sm icon danger"
-                  title="Xoá asset khỏi dự án (kiểm tra cảnh báo nếu đang được dùng)"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setDeleteTarget(a)
-                  }}
-                >
-                  <IconTrash width={12} height={12} />
-                </button>
+                {isAudio ? (
+                  <button
+                    type="button"
+                    className="btn sm icon primary"
+                    style={{ background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)' }}
+                    title="Thêm vào mốc thời gian hiện tại (tại vị trí kim phát)"
+                    onClick={() => addAudioTrackFromAsset(a.id, useEditor.getState().time)}
+                  >
+                    <IconPlus />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn sm icon primary"
+                    style={{ background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)' }}
+                    title="Thêm thành layer vào cảnh"
+                    onClick={() => addLayerFromAsset(a.id)}
+                  >
+                    <IconPlus />
+                  </button>
+                )}
               </div>
             </div>
           )
@@ -208,8 +210,15 @@ export function ProjectAssetList() {
             scope: isAssetPublicScope(deleteTarget) ? 'public' : 'private'
           }}
           onClose={() => setDeleteTarget(null)}
-          onConfirmDelete={() => {
-            removeAsset(deleteTarget.id)
+          onConfirmDelete={(target) => {
+            const itemToDelete = deleteTarget || target
+            if (itemToDelete) {
+              const id = 'id' in itemToDelete ? (itemToDelete as AssetMeta).id : (itemToDelete as { assetId?: string }).assetId
+              if (id) {
+                removeAsset(id)
+                assetStore.remove?.(id)
+              }
+            }
             setDeleteTarget(null)
           }}
         />

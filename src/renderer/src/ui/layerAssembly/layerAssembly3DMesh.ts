@@ -67,6 +67,13 @@ export function clearLayerTextureCache(): void {
   textureWaiters.clear()
 }
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('publicAssets:changed', () => {
+    clearLayerTextureCache()
+  })
+}
+
+
 /**
  * Tính toán độ dời chuyển động hoạt ảnh của layer theo thời gian thực
  */

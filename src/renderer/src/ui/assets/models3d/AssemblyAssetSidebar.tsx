@@ -5,6 +5,7 @@ import { renderCategoryIcon } from '../categoryIcons'
 import { IconPlus, IconCheck, IconCube, IconReplace, IconSearch, IconX } from '../../icons'
 import { AssemblyModelLibraryTab } from './AssemblyModelLibraryTab'
 import { setAssemblyDraggedAsset } from './assemblyDragState'
+import { isPublicAssetHidden } from '../publicAssetStorage'
 
 interface AssemblyAssetSidebarProps {
   model?: Model3D
@@ -128,12 +129,19 @@ export function AssemblyAssetSidebar({
   const [searchTerm, setSearchTerm] = useState('')
   const [customAssets, setCustomAssets] = useState<BuiltInAssetItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [publicVersion, setPublicVersion] = useState(0)
   const [catTooltip, setCatTooltip] = useState<{
     cat: MiniCategory
     count: number
     top: number
     right: number
   } | null>(null)
+
+  useEffect(() => {
+    const handlePubChange = () => setPublicVersion((v) => v + 1)
+    window.addEventListener('publicAssets:changed', handlePubChange)
+    return () => window.removeEventListener('publicAssets:changed', handlePubChange)
+  }, [])
 
   const showCatTooltip = (e: React.MouseEvent<HTMLElement>, cat: MiniCategory) => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -165,15 +173,16 @@ export function AssemblyAssetSidebar({
     }
   }, [])
 
-  // Combine built-in assembly assets with custom user picked files, filtering out review/raw junk
+  // Combine built-in assembly assets with custom user picked files, filtering out review/raw junk and hidden assets
   const cleanAllItems = useMemo(() => {
     return [...customAssets, ...assets].filter((item) => {
       const n = (item.fileName || item.name || '').toLowerCase()
       if (n.includes('review') || n.includes('thumb')) return false
       if (n.includes('_raw') || n.includes('raw_crop')) return false
+      if (isPublicAssetHidden(item)) return false
       return true
     })
-  }, [customAssets, assets])
+  }, [customAssets, assets, publicVersion])
 
   // Count items per category
   const itemCounts = useMemo(() => {

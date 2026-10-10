@@ -7,6 +7,7 @@ import { IconCheck, IconFolder, IconImage, IconPlus, IconSearch, IconX } from '.
 import { BuiltInAssetBar } from '../assets/BuiltInAssetBar'
 import { BuiltInAssetGrid } from '../assets/BuiltInAssetGrid'
 import { sortAssetCategories } from '../assets/types'
+import { getVisiblePublicAssets } from '../assets/publicAssetStorage'
 
 interface AssetReplaceModalProps {
   layerId: string
@@ -37,6 +38,13 @@ export function AssetReplaceModal({
   const [catalog, setCatalog] = useState<BuiltInCatalogResult | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [loading, setLoading] = useState(false)
+  const [publicVersion, setPublicVersion] = useState(0)
+
+  useEffect(() => {
+    const handlePubChange = () => setPublicVersion((v) => v + 1)
+    window.addEventListener('publicAssets:changed', handlePubChange)
+    return () => window.removeEventListener('publicAssets:changed', handlePubChange)
+  }, [])
 
   // Project assets search state
   const [projectSearch, setProjectSearch] = useState('')
@@ -73,10 +81,11 @@ export function AssetReplaceModal({
     return sortAssetCategories(list)
   }, [catalog])
 
-  // Filter only images for replacing an image layer
+  // Filter only images for replacing an image layer (excluding deleted/hidden ones)
   const builtInItems = useMemo<BuiltInAssetItem[]>(() => {
-    return (catalog?.items ?? []).filter((it) => it.kind === 'image')
-  }, [catalog])
+    const raw = (catalog?.items ?? []).filter((it) => it.kind === 'image')
+    return getVisiblePublicAssets(raw)
+  }, [catalog, publicVersion])
 
   const itemCounts = useMemo(() => {
     const counts: Record<string, number> = { all: builtInItems.length }

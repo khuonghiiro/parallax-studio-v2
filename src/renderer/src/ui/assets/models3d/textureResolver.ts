@@ -199,3 +199,10 @@ export function clearTextureCache(): void {
   createdBlobUrls.clear()
   textureCache.clear()
 }
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('publicAssets:changed', () => {
+    clearTextureCache()
+  })
+}
+

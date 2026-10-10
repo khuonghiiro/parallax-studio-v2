@@ -11,7 +11,7 @@ import { Model3DList } from './Model3DList'
 import { LayerAssemblyList } from '../layerAssembly/LayerAssemblyList'
 import { getStoredComposites } from '../layerAssembly/layerAssemblyStorage'
 import { sortAssetCategories } from './types'
-import { addCustomPublicAsset } from './publicAssetStorage'
+import { getVisiblePublicAssets, addCustomPublicAsset } from './publicAssetStorage'
 
 type AssetSubTab = 'builtin' | 'project' | '3d' | 'assembly'
 
@@ -23,11 +23,18 @@ export function AssetPanel() {
   const [loading, setLoading] = useState(false)
   const [isJsonModalOpen, setIsJsonModalOpen] = useState(false)
   const [assemblyCount, setAssemblyCount] = useState<number>(() => getStoredComposites().length)
+  const [publicVersion, setPublicVersion] = useState(0)
 
   useEffect(() => {
     const handleCompChange = () => setAssemblyCount(getStoredComposites().length)
     window.addEventListener('layerComposites:changed', handleCompChange)
     return () => window.removeEventListener('layerComposites:changed', handleCompChange)
+  }, [])
+
+  useEffect(() => {
+    const handlePubChange = () => setPublicVersion((v) => v + 1)
+    window.addEventListener('publicAssets:changed', handlePubChange)
+    return () => window.removeEventListener('publicAssets:changed', handlePubChange)
   }, [])
 
   const loadCatalog = useCallback(async () => {
@@ -63,16 +70,20 @@ export function AssetPanel() {
     return catalog?.items ?? []
   }, [catalog])
 
+  const visiblePublicItems = useMemo<BuiltInAssetItem[]>(() => {
+    return getVisiblePublicAssets(items)
+  }, [items, publicVersion])
+
   // Count items per category
   const itemCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: items.length }
+    const counts: Record<string, number> = { all: visiblePublicItems.length }
     categories.forEach((cat) => {
       if (cat.id !== 'all') {
-        counts[cat.id] = items.filter((it) => cat.folder && it.folder === cat.folder).length
+        counts[cat.id] = visiblePublicItems.filter((it) => cat.folder && it.folder === cat.folder).length
       }
     })
     return counts
-  }, [categories, items])
+  }, [categories, visiblePublicItems])
 
   const handleImportItem = async (item: BuiltInAssetItem, addLayer: boolean) => {
     const curTime = useEditor.getState().time
@@ -195,7 +206,7 @@ export function AssetPanel() {
         >
           <IconFolder width={13} height={13} />
           <span>Tất cả</span>
-          <span className="asset-subtab-badge">{items.length}</span>
+          <span className="asset-subtab-badge">{visiblePublicItems.length}</span>
         </button>
         <button
           type="button"

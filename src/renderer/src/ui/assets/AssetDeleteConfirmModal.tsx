@@ -184,8 +184,11 @@ export function AssetDeleteConfirmModal({
             type="button"
             className="btn sm danger"
             onClick={() => {
-              onClose()
-              onConfirmDelete(target)
+              try {
+                onConfirmDelete(target)
+              } finally {
+                onClose()
+              }
             }}
           >
             <IconTrash width={11} height={11} />

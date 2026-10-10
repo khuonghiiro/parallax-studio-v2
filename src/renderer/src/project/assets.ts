@@ -72,6 +72,25 @@ class AssetStore {
     return a ? new Uint8Array(await a.blob.arrayBuffer()) : undefined
   }
 
+  remove(id: string): void {
+    const a = this.assets.get(id)
+    if (a) {
+      URL.revokeObjectURL(a.url)
+      if (a.thumbUrl) URL.revokeObjectURL(a.thumbUrl)
+      if (a.gif) {
+        a.gif.frames.forEach((f) => {
+          try {
+            f.bitmap.close()
+          } catch {
+            /* ignore */
+          }
+        })
+      }
+      this.assets.delete(id)
+      this.emit()
+    }
+  }
+
   clear(): void {
     this.assets.forEach((a) => {
       URL.revokeObjectURL(a.url)
