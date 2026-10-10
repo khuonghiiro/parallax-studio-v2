@@ -13,7 +13,7 @@ export const COMPOSITE_CATEGORIES: LayerCompositeCategory[] = [
 ]
 
 const STORAGE_KEY = 'pxs.layerComposites'
-const SEED_VERSION = 'v15_clean_duplicates_and_tombstone_deletion'
+const SEED_VERSION = 'v16_multi_animation_clips_and_retargeting'
 const SEED_KEY = 'pxs.layerComposites.seeded_version'
 const DELETED_KEY = 'pxs.layerComposites.deleted'
 

@@ -160,6 +160,36 @@ export function CompositeCard({
         >
           {item.layers.length} lớp
         </span>
+
+        {/* Badge xương & số lượng động tác góc dưới trái */}
+        {item.rig && (
+          <span
+            style={{
+              position: 'absolute',
+              bottom: '3px',
+              left: '4px',
+              fontSize: '8.5px',
+              fontWeight: 600,
+              background: 'rgba(15, 23, 42, 0.85)',
+              color: 'var(--accent-cyan)',
+              border: '1px solid color-mix(in srgb, var(--accent-cyan) 35%, transparent)',
+              padding: '1px 5px',
+              borderRadius: '2px',
+              backdropFilter: 'blur(3px)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px'
+            }}
+            title={
+              item.rig.clips && item.rig.clips.length > 0
+                ? `Động tác (${item.rig.clips.length}): ${item.rig.clips.map((c) => c.name).join(', ')}`
+                : 'Đã gắn khung xương chuyển động'
+            }
+          >
+            <span>🏃</span>
+            <span>{item.rig.clips?.length || 1} động tác</span>
+          </span>
+        )}
       </div>
 
       {/* 3. Footer: Thông số kích thước & Nút hành động Mở / Ghép / Xóa */}

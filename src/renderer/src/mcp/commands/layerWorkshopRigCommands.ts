@@ -4,6 +4,7 @@ import { ParamError } from '../types'
 import { bool, num, str, toPlain } from '../params'
 import { getActiveLayerAssemblySession } from '../../ui/layerAssembly/layerAssemblyBridge'
 import { applyRigAction, type RigAction } from '../../ui/layerAssembly/workshopRig'
+import { getStoredComposites } from '../../ui/layerAssembly/layerAssemblyStorage'
 
 export function activeWorkshop() {
   const session = getActiveLayerAssemblySession()
@@ -30,11 +31,76 @@ function rigAction(p: Params): RigAction {
     return { action, template }
   }
   if (action === 'apply-preset-animation') {
-    const preset = (str(p, 'preset') ?? 'walk') as 'walk' | 'idle' | 'wave' | 'jump' | 'sway'
-    if (!['walk', 'idle', 'wave', 'jump', 'sway'].includes(preset)) throw new ParamError('preset must be walk, idle, wave, jump or sway')
-    return { action, preset }
+    const preset = (str(p, 'preset') ?? 'walk') as any
+    const validPresets = ['walk', 'idle', 'wave', 'bow', 'run', 'jump', 'action', 'sway']
+    if (!validPresets.includes(preset)) throw new ParamError(`preset must be one of: ${validPresets.join(', ')}`)
+    return {
+      action,
+      preset,
+      asNewClip: bool(p, 'as_new_clip') ?? false,
+      clipName: str(p, 'clip_name') || undefined
+    }
   }
   if (action === 'clear-animation') return { action }
+  if (action === 'add-clip') {
+    const clip = p.clip && typeof p.clip === 'object'
+      ? (p.clip as any)
+      : {
+          id: str(p, 'clip_id') ?? `clip-${Date.now().toString(36)}`,
+          name: str(p, 'name') ?? 'Động tác mới',
+          duration: num(p, 'duration') ?? 2.0,
+          loop: bool(p, 'loop') ?? true,
+          tracks: (p.tracks as any) || {}
+        }
+    return { action, clip }
+  }
+  if (action === 'switch-clip') {
+    return { action, clipId: str(p, 'clip_id', true) }
+  }
+  if (action === 'rename-clip') {
+    return { action, clipId: str(p, 'clip_id', true), name: str(p, 'name', true) }
+  }
+  if (action === 'delete-clip') {
+    return { action, clipId: str(p, 'clip_id', true) }
+  }
+  if (action === 'duplicate-clip') {
+    return { action, clipId: str(p, 'clip_id', true) }
+  }
+  if (action === 'inherit-clip') {
+    let sourceClip = p.source_clip as any
+    let sourceBones = p.source_bones as any
+    const sourceCompId = str(p, 'source_composite_id')
+    if (sourceCompId) {
+      const comps = getStoredComposites()
+      const foundComp = comps.find((c: any) => c.id === sourceCompId)
+      if (!foundComp || !foundComp.rig) {
+        throw new ParamError(`Mẫu nguồn "${sourceCompId}" không tồn tại hoặc chưa gắn xương`)
+      }
+      sourceBones = foundComp.rig.bones
+      const sourceClipId = str(p, 'source_clip_id')
+      if (sourceClipId && Array.isArray(foundComp.rig.clips)) {
+        sourceClip = foundComp.rig.clips.find((c: any) => c.id === sourceClipId)
+      }
+      if (!sourceClip) {
+        sourceClip = foundComp.rig.clips?.[0] || {
+          id: 'clip-default',
+          name: foundComp.name,
+          duration: foundComp.rig.duration,
+          loop: foundComp.rig.loop,
+          tracks: foundComp.rig.tracks
+        }
+      }
+    }
+    if (!sourceClip || !sourceBones) {
+      throw new ParamError('Cần cung cấp "source_composite_id" hoặc ("source_clip" và "source_bones")')
+    }
+    return {
+      action,
+      sourceClip,
+      sourceBones,
+      clipName: str(p, 'clip_name') || str(p, 'name') || undefined
+    }
+  }
   if (action === 'bind') {
     if (!Array.isArray(p.layer_ids) || p.layer_ids.some((id) => typeof id !== 'string')) throw new ParamError('layer_ids must be a string array')
     const mode = str(p, 'binding_mode') ?? 'rigid'

@@ -1,10 +1,12 @@
-import type { BoneKeyframe } from '@shared/layerRig'
+import { useState } from 'react'
+import type { AnimationClip, BoneKeyframe, LayerBone } from '@shared/layerRig'
 import { sampleBonePose } from '../../engine/layerRig'
 import { RigNumber, type RigPanelProps } from './WorkshopRigPanel'
-import { emptyRig } from './workshopRig'
+import { emptyRig, ensureRigClips } from './workshopRig'
 import type { useWorkshopPlayback } from './useWorkshopPlayback'
-import type { ProceduralMotionPreset } from './workshopRigPresets'
 import { Select } from '../controls'
+import { WorkshopClipBar } from './WorkshopClipBar'
+import { WorkshopRetargetDialog } from './WorkshopRetargetDialog'
 
 export function WorkshopAnimationPanel({
   composite,
@@ -15,7 +17,7 @@ export function WorkshopAnimationPanel({
 }: RigPanelProps & {
   playback: ReturnType<typeof useWorkshopPlayback>
 }) {
-  const rig = composite.rig ?? emptyRig()
+  const { rig, activeClip } = ensureRigClips(composite.rig ?? emptyRig())
   const bones = rig.bones
   const bone = bones.find((b) => b.id === boneId)
   const time = Math.min(rig.duration, playback.time)
@@ -24,38 +26,40 @@ export function WorkshopAnimationPanel({
   const pose = bone ? sampleBonePose({ ...rig, loop: false }, bone.id, time) : { x: 0, y: 0, rotation: 0 }
   const key: BoneKeyframe = { ...pose, time, easing: exact?.easing ?? 'smooth' }
 
+  const [isRetargetOpen, setIsRetargetOpen] = useState(false)
+
   const setKey = (patch: Partial<BoneKeyframe> = {}) => {
     if (!bone) return
     playback.setIsPlaying(false)
     run({ action: 'set-key', boneId: bone.id, key: { ...key, ...patch } })
   }
 
-  const applyPreset = (preset: ProceduralMotionPreset) => {
+  const handleInheritClip = (sourceClip: AnimationClip, sourceBones: LayerBone[], clipName?: string) => {
     playback.setIsPlaying(false)
     playback.setTime(0)
-    run({ action: 'apply-preset-animation', preset })
+    run({ action: 'inherit-clip', sourceClip, sourceBones, clipName })
   }
 
   return (
     <div className="lw-rig-panel">
       <h3>Animation chuyển động 2D</h3>
-      <p>Áp dụng chuyển động mẫu tự động hoặc tự xoay xương trên khung 2D (Pose Mode) để tạo dáng nhân vật.</p>
+      <p>Tạo nhiều động tác cho nhân vật, tinh chỉnh góc xoay xương (Pose Mode) hoặc kế thừa động tác từ chi tiết khác.</p>
 
-      <div className="lw-rig-presets-title">Tạo chuyển động tự động</div>
-      <div className="lw-rig-presets-row">
-        <button className="lw-preset-btn" onClick={() => applyPreset('walk')} title="Tạo chuyển động bước đi chu kỳ lặp">
-          🚶 Bước đi (Walk)
-        </button>
-        <button className="lw-preset-btn" onClick={() => applyPreset('idle')} title="Tạo nhịp thở đứng tự nhiên">
-          🌬️ Đứng thở (Idle)
-        </button>
-        <button className="lw-preset-btn" onClick={() => applyPreset('wave')} title="Động tác vẫy tay chào">
-          👋 Vẫy tay (Wave)
-        </button>
-        <button className="lw-preset-btn" onClick={() => applyPreset('sway')} title="Uốn lượn cây cối, cành lá, đuôi thú">
-          🌊 Uốn lượn (Sway)
-        </button>
-      </div>
+      {/* 1. Thanh quản lý nhiều động tác (Clips) */}
+      <WorkshopClipBar
+        rig={rig}
+        activeClip={activeClip}
+        run={run}
+        onOpenRetarget={() => setIsRetargetOpen(true)}
+      />
+
+      {/* Hộp thoại kế thừa động tác thông minh */}
+      <WorkshopRetargetDialog
+        isOpen={isRetargetOpen}
+        onClose={() => setIsRetargetOpen(false)}
+        targetComposite={composite}
+        onInherit={handleInheritClip}
+      />
 
       <div className="lw-rig-actions">
         <button className="btn sm primary" onClick={playback.toggle}>

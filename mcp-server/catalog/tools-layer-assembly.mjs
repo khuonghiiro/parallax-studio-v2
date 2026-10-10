@@ -217,11 +217,17 @@ export const LAYER_ASSEMBLY_TOOLS = [
           'settings',
           'apply-template',
           'apply-preset-animation',
-          'clear-animation'
+          'clear-animation',
+          'add-clip',
+          'switch-clip',
+          'rename-clip',
+          'delete-clip',
+          'duplicate-clip',
+          'inherit-clip'
         ])
         .describe(d('Rigging or animation action to perform.', 'Hành động tạo xương hoặc animation cần thực hiện.')),
       bone_id: z.string().optional().describe(d('Target bone ID.', 'ID xương mục tiêu.')),
-      name: z.string().optional().describe(d('Bone name.', 'Tên xương.')),
+      name: z.string().optional().describe(d('Bone name or clip name.', 'Tên xương hoặc tên clip động tác.')),
       parent_id: z.string().optional().describe(d('Parent bone ID for hierarchical transforms.', 'ID xương cha.')),
       x: z.number().optional().describe(d('Head joint X coordinate in canvas units.', 'Tọa độ X khớp gốc.')),
       y: z.number().optional().describe(d('Head joint Y coordinate in canvas units.', 'Tọa độ Y khớp gốc.')),
@@ -235,9 +241,14 @@ export const LAYER_ASSEMBLY_TOOLS = [
       duration: z.number().optional().describe(d('Rig animation duration in seconds (0.1–120s).', 'Thời lượng animation (0.1–120s).')),
       loop: z.boolean().optional().describe(d('Whether the animation clip loops seamlessly.', 'Có lặp chu kỳ chuyển động hay không.')),
       template: z.enum(['humanoid', 'simple-chain']).optional().describe(d('Skeleton template to apply.', 'Mẫu khung xương áp dụng.')),
-      preset: z.enum(['walk', 'idle', 'wave', 'jump', 'sway']).optional().describe(d('Procedural motion preset to generate.', 'Chuyển động mẫu tự động sinh.'))
+      preset: z.enum(['walk', 'idle', 'wave', 'bow', 'run', 'jump', 'action', 'sway']).optional().describe(d('Procedural motion preset to generate.', 'Chuyển động mẫu tự động sinh.')),
+      clip_id: z.string().optional().describe(d('Animation clip ID to switch, duplicate, rename or delete.', 'ID clip động tác cần chuyển, nhân bản, đổi tên hoặc xóa.')),
+      clip_name: z.string().optional().describe(d('New clip name when adding, duplicating or inheriting.', 'Tên clip mới khi thêm, nhân bản hoặc kế thừa.')),
+      as_new_clip: z.boolean().optional().describe(d('Generate motion preset into a new clip.', 'Tạo chuyển động mẫu thành clip mới độc lập.')),
+      source_composite_id: z.string().optional().describe(d('Source composite ID to inherit/retarget animation from.', 'ID mẫu layer nguồn để kế thừa động tác.')),
+      source_clip_id: z.string().optional().describe(d('Source clip ID to inherit/retarget from.', 'ID clip nguồn cần kế thừa.'))
     }),
-    example: '{"action":"apply-preset-animation","preset":"walk"}'
+    example: '{"action":"apply-preset-animation","preset":"walk","as_new_clip":true,"clip_name":"Đi bộ"}'
   },
   {
     name: 'set_layer_assembly_playback',

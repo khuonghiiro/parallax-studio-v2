@@ -5,6 +5,7 @@ import { evaluateRig, transformRigLayer } from '../../engine/layerRig'
 import { deformSkin } from '../../engine/layerSkinning'
 import { bakeWorkshopRig } from './bakeWorkshopRig'
 import { createImageLayer } from '../../project/factory'
+import { BUILTIN_COMPOSITES } from './layerAssemblyDefaultComposites'
 
 describe('workshopRig & layerRig engine', () => {
   const baseComposite: LayerComposite = {
@@ -184,5 +185,126 @@ describe('workshopRig & layerRig engine', () => {
     for (let i = 0; i < posedSkin.length; i++) {
       expect(Number.isFinite(posedSkin[i])).toBe(true)
     }
+  })
+
+  it('manages multiple animation clips and syncs active tracks', () => {
+    let comp = applyRigAction(baseComposite, { action: 'apply-template', template: 'humanoid' })
+    comp = applyRigAction(comp, { action: 'apply-preset-animation', preset: 'walk' })
+
+    expect(comp.rig?.clips).toBeDefined()
+    expect(comp.rig?.clips?.length).toBeGreaterThanOrEqual(1)
+    const initialClipId = comp.rig?.activeClipId
+
+    // Tạo clip mới
+    comp = applyRigAction(comp, {
+      action: 'add-clip',
+      clip: {
+        id: 'clip-custom-wave',
+        name: 'Vẫy tay mới',
+        duration: 2.0,
+        loop: true,
+        tracks: {
+          'bone-arm-r': [{ time: 0, x: 0, y: 0, rotation: 0, easing: 'smooth' }]
+        }
+      }
+    })
+    expect(comp.rig?.clips?.length).toBe(2)
+    expect(comp.rig?.activeClipId).toBe('clip-custom-wave')
+    expect(comp.rig?.tracks['bone-arm-r']).toBeDefined()
+
+    // Đổi tên clip
+    comp = applyRigAction(comp, {
+      action: 'rename-clip',
+      clipId: 'clip-custom-wave',
+      name: 'Vẫy tay đặc biệt'
+    })
+    expect(comp.rig?.clips?.find((c) => c.id === 'clip-custom-wave')?.name).toBe('Vẫy tay đặc biệt')
+
+    // Nhân bản clip
+    comp = applyRigAction(comp, {
+      action: 'duplicate-clip',
+      clipId: 'clip-custom-wave'
+    })
+    expect(comp.rig?.clips?.length).toBe(3)
+    const dupeClip = comp.rig?.clips?.find((c) => c.name.includes('(Bản sao)'))
+    expect(dupeClip).toBeDefined()
+
+    // Chuyển lại clip ban đầu
+    if (initialClipId) {
+      comp = applyRigAction(comp, { action: 'switch-clip', clipId: initialClipId })
+      expect(comp.rig?.activeClipId).toBe(initialClipId)
+    }
+
+    // Xóa clip
+    comp = applyRigAction(comp, { action: 'delete-clip', clipId: 'clip-custom-wave' })
+    expect(comp.rig?.clips?.some((c) => c.id === 'clip-custom-wave')).toBe(false)
+  })
+
+  it('inherits and retargets animation clip between armatures with different bone proportions', () => {
+    // 1. Armature nguồn (Humanoid chuẩn)
+    let srcComp = applyRigAction(baseComposite, { action: 'apply-template', template: 'humanoid' })
+    srcComp = applyRigAction(srcComp, { action: 'apply-preset-animation', preset: 'wave' })
+    const srcClip = srcComp.rig!.clips![0]
+    const srcBones = srcComp.rig!.bones
+
+    // 2. Armature đích (Nhân vật mới có tỉ lệ xương lớn hơn và tên tiếng Việt)
+    const tgtComposite: LayerComposite = {
+      ...baseComposite,
+      id: 'target-hero',
+      rig: {
+        bones: [
+          { id: 'b-pelvis', name: 'Khung xương hông chính', x: 0, y: 0, length: 70, angle: -90 },
+          { id: 'b-torso', name: 'Ngực áo giáp', parentId: 'b-pelvis', x: 0, y: -70, length: 90, angle: -90 },
+          { id: 'b-head', name: 'Đầu đội mũ', parentId: 'b-torso', x: 0, y: -90, length: 75, angle: -90 },
+          { id: 'b-arm-r', name: 'Bắp tay phải giáp', parentId: 'b-torso', x: 45, y: -80, length: 65, angle: 70 },
+          { id: 'b-forearm-r', name: 'Cẳng tay phải', parentId: 'b-arm-r', x: 50, y: 0, length: 65, angle: 0 }
+        ],
+        duration: 2.0,
+        loop: true,
+        tracks: {},
+        clips: [],
+        activeClipId: undefined
+      }
+    }
+
+    // Áp dụng inherit-clip
+    const retargetedComp = applyRigAction(tgtComposite, {
+      action: 'inherit-clip',
+      sourceClip: srcClip,
+      sourceBones: srcBones,
+      clipName: 'Động tác vẫy tay kế thừa'
+    })
+
+    expect(retargetedComp.rig?.clips?.length).toBe(1)
+    const newClip = retargetedComp.rig!.clips![0]
+    expect(newClip.name).toBe('Động tác vẫy tay kế thừa')
+    expect(retargetedComp.rig?.activeClipId).toBe(newClip.id)
+
+    // Các xương tay đích phải nhận được keyframe từ xương nguồn tương ứng
+    expect(newClip.tracks['b-arm-r']).toBeDefined()
+    expect(newClip.tracks['b-arm-r'].length).toBeGreaterThan(0)
+    for (const kf of newClip.tracks['b-arm-r']) {
+      expect(Number.isFinite(kf.rotation)).toBe(true)
+      expect(Number.isFinite(kf.x)).toBe(true)
+      expect(Number.isFinite(kf.y)).toBe(true)
+    }
+  })
+
+  it('evaluates wave clip pose for anime girl composite', () => {
+    const animeGirl = BUILTIN_COMPOSITES.find((c: any) => c.id === 'comp-anime-girl-hero')!
+    expect(animeGirl).toBeDefined()
+    expect(animeGirl.rig?.clips?.length).toBe(4)
+    const waveClip = animeGirl.rig!.clips!.find((c: any) => c.id === 'clip-wave')!
+    expect(waveClip).toBeDefined()
+    const waveRig = {
+      ...animeGirl.rig!,
+      tracks: waveClip.tracks,
+      duration: waveClip.duration,
+      loop: waveClip.loop
+    }
+    const transforms = evaluateRig(waveRig, 0.8)
+    const armTransform = transforms.get('bone-arm-r')
+    expect(armTransform).toBeDefined()
+    expect(Math.abs(armTransform!.rotation)).toBeGreaterThan(30)
   })
 })

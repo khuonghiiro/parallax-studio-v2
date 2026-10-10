@@ -1,6 +1,7 @@
-import type { LayerBone } from '@shared/layerRig'
+import type { AnimationClip, LayerBone } from '@shared/layerRig'
 import type { AssembledLayerItem, LayerComposite } from './types'
 import { generateWalkCycle } from './workshopWalkCycle'
+import { generateIdleBreathe, generateActionSlash } from './workshopRigPresets'
 
 const bones: LayerBone[] = [
   { id: 'bone-pelvis', name: 'Hông', x: 0, y: 38, length: 38, angle: -90 },
@@ -23,10 +24,20 @@ function part(role: string, name: string, x: number, y: number, z: number): Asse
     motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' } }
 }
 
+const walkTracks = generateWalkCycle(bones, 1.6)
+const idleTracks = generateIdleBreathe(bones, 2.4)
+const actionTracks = generateActionSlash(bones, 1.5)
+
+const knightClips: AnimationClip[] = [
+  { id: 'clip-knight-walk', name: 'Bước đi (Walk)', duration: 1.6, loop: true, tracks: walkTracks, description: 'Bước chân tiếp đất chính diện giữ vững chiều dài chi' },
+  { id: 'clip-knight-idle', name: 'Đứng thở (Idle)', duration: 2.4, loop: true, tracks: idleTracks, description: 'Đứng thở thả lỏng nhẹ nhàng' },
+  { id: 'clip-knight-action', name: 'Vung đòn (Action)', duration: 1.5, loop: true, tracks: actionTracks, description: 'Vung tay tung đòn chém dứt khoát' }
+]
+
 /** Artwork is 2x the logical dimensions; shared joint pivots overlap covered armor ends. */
 export const KNIGHT_COMPOSITE: LayerComposite = {
   id: 'comp-knight-hero', name: 'Hiệp Sĩ Tí Hon — Bước Đi Nhịp Nhàng', category: 'character',
-  description: '11 mảnh giáp vẽ đồng bộ, khớp vai/khuỷu/gối chồng lấp. Bước tại chỗ chính diện, giữ chiều dài chi và nối vòng liên tục.',
+  description: '11 mảnh giáp vẽ đồng bộ, khớp vai/khuỷu/gối chồng lấp. Đầy đủ các động tác bước đi, đứng thở và vung đòn.',
   width: 420, height: 540,
   layers: [
     part('thigh-l', 'Đùi trái', -29, 83, 0), part('thigh-r', 'Đùi phải', 29, 83, 0),
@@ -36,5 +47,13 @@ export const KNIGHT_COMPOSITE: LayerComposite = {
     part('head', 'Mũ giáp & Chùm lông đỏ', -6, -159, -32),
     part('forearm-l', 'Cẳng tay & Găng trái', -58, 32, -42), part('forearm-r', 'Cẳng tay & Găng phải', 58, 32, -42)
   ],
-  rig: { bones, duration: 1.6, loop: true, tracks: generateWalkCycle(bones) }
+  rig: {
+    bones,
+    duration: 1.6,
+    loop: true,
+    tracks: walkTracks,
+    clips: knightClips,
+    activeClipId: 'clip-knight-walk'
+  }
 }
+

@@ -1,6 +1,12 @@
 import { KNIGHT_COMPOSITE } from './knightComposite'
 import type { LayerComposite } from './types'
-import { createHumanoidBones, generateWalkCycle } from './workshopRigPresets'
+import {
+  createHumanoidBones,
+  generateWalkCycle,
+  generateWaveHand,
+  generateIdleBreathe,
+  generateBow
+} from './workshopRigPresets'
 
 /**
  * Các mẫu cụm layer dựng sẵn (Presets) minh họa việc ghép cây, nhà, nhân vật 2.5D từ các layer xếp chồng và hoạt ảnh dẻo dai.
@@ -392,11 +398,53 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
       }
     ],
-    rig: {
-      bones: createHumanoidBones(),
-      duration: 1.6,
-      loop: true,
-      tracks: generateWalkCycle(createHumanoidBones(), 1.6)
-    }
+    rig: (() => {
+      const bones = createHumanoidBones()
+      const walkTracks = generateWalkCycle(bones, 1.6)
+      const waveTracks = generateWaveHand(bones, 1.8)
+      const idleTracks = generateIdleBreathe(bones, 2.0)
+      const bowTracks = generateBow(bones, 2.2)
+      return {
+        bones,
+        duration: 1.6,
+        loop: true,
+        tracks: walkTracks,
+        activeClipId: 'clip-walk',
+        clips: [
+          {
+            id: 'clip-walk',
+            name: 'Đi bộ tự nhiên (Walk)',
+            duration: 1.6,
+            loop: true,
+            presetKey: 'walk',
+            tracks: walkTracks
+          },
+          {
+            id: 'clip-wave',
+            name: 'Vẫy tay chào bạn (Wave)',
+            duration: 1.8,
+            loop: true,
+            presetKey: 'wave',
+            tracks: waveTracks
+          },
+          {
+            id: 'clip-idle',
+            name: 'Đứng thở tự nhiên (Idle)',
+            duration: 2.0,
+            loop: true,
+            presetKey: 'idle',
+            tracks: idleTracks
+          },
+          {
+            id: 'clip-bow',
+            name: 'Cúi chào lễ phép (Bow)',
+            duration: 2.2,
+            loop: false,
+            presetKey: 'bow',
+            tracks: bowTracks
+          }
+        ]
+      }
+    })()
   }
 ]
