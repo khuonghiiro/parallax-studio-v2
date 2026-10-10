@@ -523,7 +523,7 @@ export function LayerAssemblyViewport({
       </div>
 
       {/* Vòng tròn con trỏ Cọ Tẩy (Brush Cursor Indicator) theo thời gian thực */}
-      {brush.activeTool === 'eraser' && brush.cursorPos && (
+      {brush.activeTool === 'eraser' && brush.cursorPos && !brush.cursorPos.isIsolated && (
         <div
           style={{
             position: 'absolute',

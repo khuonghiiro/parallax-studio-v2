@@ -2,6 +2,7 @@ import React, { useRef } from 'react'
 import { IconEraser } from '../icons'
 import type { AssembledLayerItem } from './types'
 import type { BrushSettings } from './useLayerBrushEraser'
+import { useLayerAssetImage } from './useLayerAssetImage'
 
 export function EraserTopBar({
   brushSettings,
@@ -100,6 +101,7 @@ export function EraserIsolatedCanvas({
   onPointerUp: (e: React.PointerEvent) => void
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const resolvedImageUrl = useLayerAssetImage(layer.assetPath, layer.imageUrl)
 
   return (
     <div
@@ -107,7 +109,7 @@ export function EraserIsolatedCanvas({
       className="layer-eraser-isolated-canvas"
       style={{
         position: 'absolute',
-        top: 60, left: 60,
+        bottom: 20, left: 60,
         width: '320px', height: '320px',
         background: 'repeating-conic-gradient(#333 0% 25%, #222 0% 50%) 50% / 20px 20px',
         border: '2px solid var(--accent-cyan)',
@@ -140,7 +142,7 @@ export function EraserIsolatedCanvas({
         Tẩy độc lập: {layer.name}
       </div>
       <img
-        src={imagePreviewUrl || layer.imageUrl || layer.assetPath}
+        src={imagePreviewUrl || resolvedImageUrl || undefined}
         alt="Eraser Canvas"
         style={{
           width: '100%', height: '100%', objectFit: 'contain',

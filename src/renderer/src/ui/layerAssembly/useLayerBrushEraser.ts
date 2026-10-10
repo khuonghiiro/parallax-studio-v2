@@ -26,7 +26,7 @@ export function useLayerBrushEraser({ selectedLayer, zoom, pan, onUpdateLayer, o
   const [activeTool, setActiveTool] = useState<Assembly2DTool>('select')
   const [brushSettings, setBrushSettings] = useState<BrushSettings>({ size: 28, opacity: 1, hardness: 0.4 })
   const [isErasing, setIsErasing] = useState(false)
-  const [cursorPos, setCursorPos] = useState<BrushPoint | null>(null)
+  const [cursorPos, setCursorPos] = useState<(BrushPoint & { isIsolated?: boolean }) | null>(null)
   const source = useRef<{ id: string; canvas: HTMLCanvasElement } | null>(null)
   const stroke = useRef<Stroke | null>(null)
   const frame = useRef<number | null>(null)
@@ -168,7 +168,7 @@ export function useLayerBrushEraser({ selectedLayer, zoom, pan, onUpdateLayer, o
 
   const handleIsolatedPointerMove = (event: React.PointerEvent, rect: DOMRect) => {
     if (activeTool !== 'eraser') return
-    setCursorPos({ x: event.clientX - rect.left, y: event.clientY - rect.top })
+    setCursorPos({ x: event.clientX - rect.left, y: event.clientY - rect.top, isIsolated: true })
     const current = stroke.current
     if (!current || current.pointerId !== event.pointerId || !current.isolatedRect) return
     moveErasing(event, current)
