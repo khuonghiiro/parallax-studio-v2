@@ -20,9 +20,6 @@ export interface LayerAssembly2DToolbarProps {
   onChangeTool: (tool: Assembly2DTool) => void
   brushSettings: BrushSettings
   onChangeBrushSettings: (settings: BrushSettings) => void
-  isBrushPopoverOpen: boolean
-  onToggleBrushPopover: () => void
-  onCloseBrushPopover: () => void
   onResetLayerImage: () => void
   hasSelectedLayer: boolean
   hasModifiedImage: boolean
@@ -60,9 +57,6 @@ export function LayerAssembly2DToolbar({
   onChangeTool,
   brushSettings,
   onChangeBrushSettings,
-  isBrushPopoverOpen,
-  onToggleBrushPopover,
-  onCloseBrushPopover,
   onResetLayerImage,
   hasSelectedLayer,
   hasModifiedImage,
@@ -101,10 +95,9 @@ export function LayerAssembly2DToolbar({
       if (target?.closest?.('.layer-workshop-popover-menu') || target?.closest?.('.layer-brush-popover')) {
         return
       }
-      if (brushBtnRef.current?.contains(target as Node) || lightingBtnRef.current?.contains(target as Node)) {
+      if (lightingBtnRef.current?.contains(target as Node)) {
         return
       }
-      onCloseBrushPopover()
       setIsLightingOpen(false)
     }
 
@@ -138,7 +131,7 @@ export function LayerAssembly2DToolbar({
         title: 'Cọ tẩy xoá pixel & Mờ xuyên thấu (B)',
         sub: 'Xoá chi tiết thừa / Làm mờ nhẹ',
         desc: 'Quẹt cọ lên layer đang chọn để tẩy xoá pixel thừa hoặc giảm mờ xuyên thấu nhẹ tại khớp nối.',
-        tip: '🖌 Click để chọn cọ, click lại để mở bảng chỉnh cỡ & độ mờ'
+        tip: '🖌 Bấm để bật cấu hình cọ'
       },
       zoom: {
         title: `Thu phóng: ${Math.round(zoom * 100)}%`,
@@ -217,7 +210,6 @@ export function LayerAssembly2DToolbar({
           className={`layer-3d-dock-btn${activeTool === 'select' ? ' active' : ''}`}
           onClick={() => {
             onChangeTool('select')
-            onCloseBrushPopover()
             hideTooltip()
           }}
           onMouseEnter={(e) => showTooltip(e, 'select')}
@@ -229,15 +221,13 @@ export function LayerAssembly2DToolbar({
 
         {/* 2. Công cụ Cọ Tẩy (Eraser / Brush) */}
         <button
-          ref={brushBtnRef}
           type="button"
           className={`layer-3d-dock-btn${activeTool === 'eraser' ? ' active' : ''}`}
           onClick={() => {
             if (activeTool !== 'eraser') {
               onChangeTool('eraser')
-              onToggleBrushPopover()
             } else {
-              onToggleBrushPopover()
+              onChangeTool('select')
             }
             hideTooltip()
           }}
@@ -384,204 +374,7 @@ export function LayerAssembly2DToolbar({
         )}
       </div>
 
-      {/* Popover Bảng điều khiển Cọ Tẩy (Brush Settings) */}
-      {isBrushPopoverOpen &&
-        brushBtnRef.current &&
-        createPortal(
-          <div
-            className="layer-brush-popover"
-            style={{
-              position: 'fixed',
-              top: Math.max(20, Math.min(window.innerHeight - 440, brushBtnRef.current.getBoundingClientRect().top - 10)),
-              left: brushBtnRef.current.getBoundingClientRect().right + 12,
-              width: '270px',
-              padding: '12px 14px',
-              background: 'color-mix(in srgb, var(--bg-1) 94%, transparent)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid var(--line-focus)',
-              borderRadius: '8px',
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.35)',
-              zIndex: 50000,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-              fontSize: '11px',
-              userSelect: 'none'
-            }}
-            onClick={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            onPointerMove={(e) => e.stopPropagation()}
-            onPointerUp={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--line-soft)', paddingBottom: '6px' }}>
-              <span style={{ fontWeight: 600, color: 'var(--text)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <IconEraser width={14} height={14} style={{ color: 'var(--accent-cyan)' }} />
-                <span>Cọ Tẩy & Mờ Xuyên Thấu</span>
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '10px', color: hasSelectedLayer ? 'var(--accent-cyan)' : 'var(--text-faint)' }}>
-                  {hasSelectedLayer ? '● Sẵn sàng quẹt' : 'Chưa chọn layer'}
-                </span>
-                <button
-                  type="button"
-                  onClick={onCloseBrushPopover}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--text-dim)',
-                    cursor: 'pointer',
-                    padding: '2px 4px',
-                    lineHeight: 1,
-                    fontSize: '13px',
-                    borderRadius: '4px'
-                  }}
-                  title="Đóng bảng cọ (Escape)"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
 
-            {!hasSelectedLayer && (
-              <div style={{ padding: '6px 8px', background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)', borderRadius: '4px', color: '#eab308', fontSize: '10px' }}>
-                💡 Vui lòng click chọn 1 layer trước khi dùng cọ để tẩy xoá chi tiết thừa.
-              </div>
-            )}
-
-            {/* Hộp xem trước nét cọ trực quan theo thời gian thực */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '8px 10px',
-                background: 'var(--bg-2)',
-                borderRadius: '6px',
-                border: '1px solid var(--line)'
-              }}
-            >
-              <div
-                style={{
-                  width: '54px',
-                  height: '54px',
-                  flex: 'none',
-                  borderRadius: '4px',
-                  background: 'var(--bg-0)',
-                  border: '1px solid var(--line-soft)',
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  overflow: 'hidden'
-                }}
-              >
-                {/* Vòng tròn mẫu nét cọ */}
-                <div
-                  style={{
-                    width: `${Math.max(6, Math.min(48, brushSettings.size * 0.7))}px`,
-                    height: `${Math.max(6, Math.min(48, brushSettings.size * 0.7))}px`,
-                    borderRadius: '50%',
-                    background:
-                      brushSettings.hardness >= 0.95
-                        ? `rgba(56, 189, 248, ${brushSettings.opacity})`
-                        : `radial-gradient(circle, rgba(56, 189, 248, ${brushSettings.opacity}) ${Math.round(brushSettings.hardness * 100)}%, rgba(56, 189, 248, 0) 100%)`,
-                    boxShadow: '0 0 6px rgba(56, 189, 248, 0.4)'
-                  }}
-                />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '10px', color: 'var(--text-dim)' }}>
-                <span style={{ fontWeight: 600, color: 'var(--text)' }}>Mẫu nét cọ trực quan</span>
-                <span>Cỡ: <strong style={{ color: 'var(--accent-cyan)' }}>{brushSettings.size}px</strong></span>
-                <span>
-                  Tẩy: <strong style={{ color: 'var(--accent-cyan)' }}>{Math.round(brushSettings.opacity * 100)}%</strong> · Mềm: <strong style={{ color: 'var(--accent-cyan)' }}>{Math.round((1 - brushSettings.hardness) * 100)}%</strong>
-                </span>
-              </div>
-            </div>
-
-            {/* Thanh trượt Cỡ cọ (Size) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-dim)' }}>
-                <span>Kích thước cọ:</span>
-                <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--text)' }}>{brushSettings.size}px</span>
-              </div>
-              <input
-                type="range"
-                min="4"
-                max="120"
-                step="2"
-                value={brushSettings.size}
-                onChange={(e) => onChangeBrushSettings({ ...brushSettings, size: Number(e.target.value) })}
-                style={{ width: '100%', accentColor: 'var(--accent)' }}
-              />
-            </div>
-
-            {/* Thanh trượt Độ mờ đục / Xuyên thấu (Opacity) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-dim)' }}>
-                <span>Độ tẩy xoá:</span>
-                <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--text)' }}>
-                  {Math.round(brushSettings.opacity * 100)}% {brushSettings.opacity < 0.9 ? '(Mờ xuyên thấu)' : '(Xoá đứt)'}
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0.05"
-                max="1.0"
-                step="0.05"
-                value={brushSettings.opacity}
-                onChange={(e) => onChangeBrushSettings({ ...brushSettings, opacity: Number(e.target.value) })}
-                style={{ width: '100%', accentColor: 'var(--accent)' }}
-              />
-              <span style={{ fontSize: '9px', color: 'var(--text-faint)' }}>
-                Kéo thấp (20% - 50%) để xoá nhạt tạo độ mờ xuyên thấu nhẹ.
-              </span>
-            </div>
-
-            {/* Thanh trượt Độ mềm nét (Hardness) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-dim)' }}>
-                <span>Độ mềm nét (Mờ viền):</span>
-                <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--text)' }}>
-                  {Math.round((1 - brushSettings.hardness) * 100)}% Mềm
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0.0"
-                max="1.0"
-                step="0.05"
-                value={brushSettings.hardness}
-                onChange={(e) => onChangeBrushSettings({ ...brushSettings, hardness: Number(e.target.value) })}
-                style={{ width: '100%', accentColor: 'var(--accent)' }}
-              />
-            </div>
-
-            {/* Nút Bắt đầu quẹt cọ và Nút Khôi phục ảnh gốc nếu đã chỉnh sửa */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '2px' }}>
-              <button
-                type="button"
-                className="btn sm primary"
-                onClick={onCloseBrushPopover}
-                style={{ width: '100%', justifyContent: 'center' }}
-              >
-                ✓ Bắt đầu quẹt cọ
-              </button>
-
-              {hasModifiedImage && (
-                <button
-                  type="button"
-                  className="btn xs danger"
-                  onClick={onResetLayerImage}
-                  style={{ width: '100%', justifyContent: 'center' }}
-                  title="Khôi phục lại ảnh ban đầu của layer (huỷ bỏ mọi nét cọ đã xoá)"
-                >
-                  Khôi phục ảnh gốc
-                </button>
-              )}
-            </div>
-          </div>,
-          document.body
-        )}
 
       {/* Popover Chiếu sáng & Đổ bóng */}
       {isLightingOpen &&

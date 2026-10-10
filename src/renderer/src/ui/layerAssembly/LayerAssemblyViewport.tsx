@@ -17,6 +17,7 @@ import {
 import { AssembledLayerItemView } from './AssembledLayerItemView'
 import { LayerAssembly2DToolbar } from './LayerAssembly2DToolbar'
 import { useLayerBrushEraser, type BrushPreview } from './useLayerBrushEraser'
+import { EraserTopBar, EraserIsolatedCanvas } from './LayerAssemblyEraser'
 
 export interface LayerAssemblyViewportProps {
   brushSourceLayer?: AssembledLayerItem | null
@@ -81,13 +82,19 @@ export function LayerAssemblyViewport({
     return composite.layers.find((l) => l.id === selectedLayerId) || null
   }, [composite.layers, selectedLayerId])
 
+  const [isolatedPreviewUrl, setIsolatedPreviewUrl] = useState<string | null>(null)
+  const handleBrushPreview = useCallback((preview: BrushPreview | null) => {
+    setIsolatedPreviewUrl(preview?.imageUrl || null)
+    if (onBrushPreview) onBrushPreview(preview)
+  }, [onBrushPreview])
+
   // Hook công cụ Cọ Tẩy (Brush Eraser) để xoá pixel thừa và làm mờ xuyên thấu nhẹ
   const brush = useLayerBrushEraser({
     selectedLayer: brushSourceLayer === undefined ? selectedLayer : brushSourceLayer,
     zoom,
     pan,
     onUpdateLayer,
-    onPreview: onBrushPreview ?? (() => {}),
+    onPreview: handleBrushPreview,
     containerRef
   })
   useEffect(() => {
@@ -185,13 +192,6 @@ export function LayerAssemblyViewport({
   }, [composite.layers])
 
   const handlePointerDownViewport = (e: React.PointerEvent) => {
-    // Nếu popup điều chỉnh cọ đang mở: click vào nền chỉ đóng popup an toàn, KHÔNG vẽ cọ
-    if (brush.isBrushPopoverOpen) {
-      brush.setIsBrushPopoverOpen(false)
-      brush.setCursorPos(null)
-      return
-    }
-
     const target = e.target as HTMLElement | null
     if (target?.closest?.('.layer-workshop-3d-vertical-dock, .layer-brush-popover, .layer-workshop-popover-menu, .layer-workshop-transport-bar, button, input')) {
       return
@@ -225,8 +225,8 @@ export function LayerAssemblyViewport({
       '.layer-workshop-3d-vertical-dock, .layer-brush-popover, .layer-workshop-popover-menu, .layer-workshop-transport-bar, button, input, .dock-divider'
     )
 
-    // Khi hover vào UI dock/toolbar hoặc khi popup cọ đang mở: Ẩn ngay vòng tròn cọ
-    if (isOverUI || brush.isBrushPopoverOpen) {
+    // Khi hover vào UI dock/toolbar: Ẩn ngay vòng tròn cọ
+    if (isOverUI) {
       brush.setCursorPos(null)
     } else {
       brush.handleEraserPointerMove(e)
@@ -530,11 +530,7 @@ export function LayerAssemblyViewport({
       </div>
 
       {/* Vòng tròn con trỏ Cọ Tẩy (Brush Cursor Indicator) theo thời gian thực */}
-      {brush.activeTool === 'eraser' && <div style={{ position: 'absolute', bottom: 10, left: 48,
-        color: 'var(--text-dim)', background: 'var(--bg-1)', padding: '4px 8px', pointerEvents: 'none' }}>
-        Tẩy ở tư thế gốc · Thả chuột để lưu một nét · Escape huỷ nét
-      </div>}
-      {brush.activeTool === 'eraser' && !brush.isBrushPopoverOpen && brush.cursorPos && (
+      {brush.activeTool === 'eraser' && brush.cursorPos && (
         <div
           style={{
             position: 'absolute',
@@ -553,15 +549,12 @@ export function LayerAssemblyViewport({
         />
       )}
 
-      {/* Tab dọc công cụ 2D & Cọ tẩy xử lý (Thay thế thanh top ngang) */}
+      {/* Tab dọc công cụ 2D & Cọ tẩy xử lý */}
       <LayerAssembly2DToolbar
         activeTool={brush.activeTool}
         onChangeTool={brush.setActiveTool}
         brushSettings={brush.brushSettings}
         onChangeBrushSettings={brush.setBrushSettings}
-        isBrushPopoverOpen={brush.isBrushPopoverOpen}
-        onToggleBrushPopover={() => brush.setIsBrushPopoverOpen((v) => !v)}
-        onCloseBrushPopover={() => brush.setIsBrushPopoverOpen(false)}
         onResetLayerImage={brush.resetLayerImage}
         hasSelectedLayer={!!selectedLayer}
         hasModifiedImage={!!selectedLayer?.imageUrl}
@@ -605,6 +598,31 @@ export function LayerAssemblyViewport({
         atmosphereLabel={atmosphere.label}
         atmosphereIcon={atmosphere.icon}
       />
+
+      {/* Giao diện thanh ngang Tẩy và Khung ảnh Tẩy độc lập */}
+      {brush.activeTool === 'eraser' && (
+        <>
+          <EraserTopBar
+            brushSettings={brush.brushSettings}
+            onChangeBrushSettings={brush.setBrushSettings}
+            hasSelectedLayer={!!selectedLayer}
+            hasModifiedImage={!!selectedLayer?.imageUrl}
+            onResetLayerImage={brush.resetLayerImage}
+            onClose={() => brush.setActiveTool('select')}
+          />
+          {selectedLayer && (
+            <EraserIsolatedCanvas
+              layer={selectedLayer}
+              imagePreviewUrl={isolatedPreviewUrl}
+              cursorSize={brush.brushSettings.size * 2}
+              cursorPos={brush.cursorPos}
+              onPointerDown={brush.handleIsolatedPointerDown}
+              onPointerMove={brush.handleIsolatedPointerMove}
+              onPointerUp={brush.handleEraserPointerUp}
+            />
+          )}
+        </>
+      )}
 
       {/* Floating 2D Hint */}
       <div

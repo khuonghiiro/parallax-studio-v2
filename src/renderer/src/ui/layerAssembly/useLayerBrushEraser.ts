@@ -18,13 +18,13 @@ export interface UseLayerBrushEraserOptions {
 interface Stroke {
   id: string; pointerId: number; canvas: HTMLCanvasElement; pixels: ImageData
   alpha: ReturnType<typeof createAlphaStroke>; last: BrushPoint
+  isolatedRect?: DOMRect
 }
 
 /** Immutable source per stroke; transient preview never enters history or reloads the source. */
 export function useLayerBrushEraser({ selectedLayer, zoom, pan, onUpdateLayer, onPreview, containerRef }: UseLayerBrushEraserOptions) {
   const [activeTool, setActiveTool] = useState<Assembly2DTool>('select')
   const [brushSettings, setBrushSettings] = useState<BrushSettings>({ size: 28, opacity: 1, hardness: 0.4 })
-  const [isBrushPopoverOpen, setIsBrushPopoverOpen] = useState(false)
   const [isErasing, setIsErasing] = useState(false)
   const [cursorPos, setCursorPos] = useState<BrushPoint | null>(null)
   const source = useRef<{ id: string; canvas: HTMLCanvasElement } | null>(null)
@@ -77,6 +77,19 @@ export function useLayerBrushEraser({ selectedLayer, zoom, pan, onUpdateLayer, o
       { x: rect.left + rect.width / 2 + pan.x, y: rect.top + rect.height / 2 + pan.y },
       zoom, selectedLayer, canvas.width, canvas.height)
   }
+  const pointIsolated = (clientX: number, clientY: number, canvas: HTMLCanvasElement, rect: DOMRect) => {
+    if (!selectedLayer) return null
+    const factor = Math.min(rect.width / canvas.width, rect.height / canvas.height)
+    const imgW = canvas.width * factor
+    const imgH = canvas.height * factor
+    const imgLeft = rect.left + (rect.width - imgW) / 2
+    const imgTop = rect.top + (rect.height - imgH) / 2
+    const x = (clientX - imgLeft) / factor
+    const y = (clientY - imgTop) / factor
+    if (x < 0 || x > canvas.width || y < 0 || y > canvas.height) return null
+    return { x, y }
+  }
+
   const preview = () => {
     if (frame.current !== null) return
     const tick = (now: number) => {
@@ -89,42 +102,78 @@ export function useLayerBrushEraser({ selectedLayer, zoom, pan, onUpdateLayer, o
     }
     frame.current = requestAnimationFrame(tick)
   }
-  const handleEraserPointerDown = (event: React.PointerEvent) => {
-    if (activeTool !== 'eraser' || event.button !== 0 || isBrushPopoverOpen || stroke.current
-      || !selectedLayer || selectedLayer.locked || selectedLayer.hidden || source.current?.id !== selectedLayer.id) return
-    const canvas = document.createElement('canvas'), original = source.current.canvas
+
+  const startErasing = (event: React.PointerEvent, p: BrushPoint | null, rect?: DOMRect) => {
+    if (!p) return
+    const canvas = document.createElement('canvas'), original = source.current!.canvas
     canvas.width = original.width; canvas.height = original.height
     const ctx = canvas.getContext('2d', { willReadFrequently: true })!
     ctx.drawImage(original, 0, 0)
-    const p = point(event.clientX, event.clientY, canvas)
-    if (!p) return
     try {
       const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      const factor = Math.min(1, 380 / Math.max(canvas.width, canvas.height)) * Math.abs(selectedLayer.scale)
+      const scale = rect ? 1 : Math.abs(selectedLayer!.scale)
+      const scaleX = rect ? 1 : Math.abs(selectedLayer!.scaleX ?? 1)
+      const scaleY = rect ? 1 : Math.abs(selectedLayer!.scaleY ?? 1)
+      const factor = rect ? Math.min(rect.width / canvas.width, rect.height / canvas.height) : Math.min(1, 380 / Math.max(canvas.width, canvas.height)) * scale
+      
       const alpha = createAlphaStroke(pixels.data, canvas.width, canvas.height, {
-        radiusX: brushSettings.size / (factor * Math.abs(selectedLayer.scaleX ?? 1)),
-        radiusY: brushSettings.size / (factor * Math.abs(selectedLayer.scaleY ?? 1)),
+        radiusX: brushSettings.size / (factor * scaleX),
+        radiusY: brushSettings.size / (factor * scaleY),
         opacity: brushSettings.opacity, hardness: brushSettings.hardness
       })
-      stroke.current = { id: selectedLayer.id, pointerId: event.pointerId, canvas, pixels, alpha, last: p }
+      stroke.current = { id: selectedLayer!.id, pointerId: event.pointerId, canvas, pixels, alpha, last: p, isolatedRect: rect }
       alpha.segment(p, p)
-      containerRef.current?.setPointerCapture(event.pointerId)
+      if (rect) {
+        ;(event.target as HTMLElement).setPointerCapture(event.pointerId)
+      } else {
+        containerRef.current?.setPointerCapture(event.pointerId)
+      }
       event.preventDefault(); setIsErasing(true); preview()
     } catch (error) { toast(`Không thể tẩy ảnh: ${String(error)}`); cancel() }
   }
-  const handleEraserPointerMove = (event: React.PointerEvent) => {
-    if (activeTool !== 'eraser' || isBrushPopoverOpen) return
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (rect) setCursorPos({ x: event.clientX - rect.left, y: event.clientY - rect.top })
-    const current = stroke.current
-    if (!current || current.pointerId !== event.pointerId) return
+
+  const handleEraserPointerDown = (event: React.PointerEvent) => {
+    if (activeTool !== 'eraser' || event.button !== 0 || stroke.current
+      || !selectedLayer || selectedLayer.locked || selectedLayer.hidden || source.current?.id !== selectedLayer.id) return
+    const p = point(event.clientX, event.clientY, source.current.canvas)
+    startErasing(event, p)
+  }
+
+  const handleIsolatedPointerDown = (event: React.PointerEvent, rect: DOMRect) => {
+    if (activeTool !== 'eraser' || event.button !== 0 || stroke.current
+      || !selectedLayer || selectedLayer.locked || selectedLayer.hidden || source.current?.id !== selectedLayer.id) return
+    const p = pointIsolated(event.clientX, event.clientY, source.current.canvas, rect)
+    startErasing(event, p, rect)
+  }
+
+  const moveErasing = (event: React.PointerEvent, current: Stroke) => {
     const samples = event.nativeEvent.getCoalescedEvents?.() ?? []
     for (const sample of samples.length ? samples : [event]) {
-      const p = point(sample.clientX, sample.clientY, current.canvas)
+      const p = current.isolatedRect 
+        ? pointIsolated(sample.clientX, sample.clientY, current.canvas, current.isolatedRect)
+        : point(sample.clientX, sample.clientY, current.canvas)
       if (p) { current.alpha.segment(current.last, p); current.last = p }
     }
     preview()
   }
+
+  const handleEraserPointerMove = (event: React.PointerEvent) => {
+    if (activeTool !== 'eraser') return
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (rect) setCursorPos({ x: event.clientX - rect.left, y: event.clientY - rect.top })
+    const current = stroke.current
+    if (!current || current.pointerId !== event.pointerId || current.isolatedRect) return
+    moveErasing(event, current)
+  }
+
+  const handleIsolatedPointerMove = (event: React.PointerEvent, rect: DOMRect) => {
+    if (activeTool !== 'eraser') return
+    setCursorPos({ x: event.clientX - rect.left, y: event.clientY - rect.top })
+    const current = stroke.current
+    if (!current || current.pointerId !== event.pointerId || !current.isolatedRect) return
+    moveErasing(event, current)
+  }
+
   const handleEraserPointerUp = (event?: React.PointerEvent) => {
     const current = stroke.current
     if (!current || (event && event.pointerId !== current.pointerId)) return
@@ -141,9 +190,9 @@ export function useLayerBrushEraser({ selectedLayer, zoom, pan, onUpdateLayer, o
     cancel()
     if (selectedLayer?.assetPath && !selectedLayer.locked) callbacks.current.onUpdateLayer(selectedLayer.id, { imageUrl: undefined })
     else toast('Ảnh này không có nguồn gốc riêng để khôi phục. Dùng Hoàn tác để trở lại nét trước.')
-    setIsBrushPopoverOpen(false)
   }
-  return { activeTool, setActiveTool, brushSettings, setBrushSettings, isBrushPopoverOpen, setIsBrushPopoverOpen,
+  return { activeTool, setActiveTool, brushSettings, setBrushSettings,
     isErasing, cursorPos, setCursorPos, handleEraserPointerDown, handleEraserPointerMove, handleEraserPointerUp,
+    handleIsolatedPointerDown, handleIsolatedPointerMove,
     cancelStroke: cancel, resetLayerImage }
 }
