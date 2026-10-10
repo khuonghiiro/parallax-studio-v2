@@ -23,7 +23,7 @@ describe('walk cycle joint attachment', () => {
       const right = sampleBonePose(rig, 'bone-thigh-r', frame / 30 + 0.8)
       expect(left.rotation).toBeCloseTo(-right.rotation, 4)
       expect(left.scaleY ?? 1).toBe(1)
-      expect(left.y).toBe(0)
+      expect(left.y).toBeCloseTo(right.y, 4)
     }
   })
   it('matches upper arms independently of bone array order', () => {

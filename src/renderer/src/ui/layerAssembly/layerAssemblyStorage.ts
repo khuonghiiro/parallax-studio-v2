@@ -13,7 +13,7 @@ export const COMPOSITE_CATEGORIES: LayerCompositeCategory[] = [
 ]
 
 const STORAGE_KEY = 'pxs.layerComposites'
-const SEED_VERSION = 'v12_natural_frontal_walk_and_depth'
+const SEED_VERSION = 'v13_dynamic_frontal_walk_cycle'
 const SEED_KEY = 'pxs.layerComposites.seeded_version'
 
 export function getStoredComposites(): LayerComposite[] {
