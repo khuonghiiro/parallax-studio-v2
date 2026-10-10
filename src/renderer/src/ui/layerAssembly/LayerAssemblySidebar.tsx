@@ -1,13 +1,21 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
+import type { BuiltInAssetItem } from '@shared/ipc'
 import {
   getStoredComposites,
   deleteComposite,
   BUILTIN_COMPOSITES
 } from './layerAssemblyStorage'
 import type { AssembledLayerItem, LayerComposite } from './types'
-import { IconImage, IconLayers, IconPlus, IconTrash, IconX } from '../icons'
+import { IconImage, IconInfo, IconLayers, IconPlus, IconTrash, IconX } from '../icons'
 import { useLayerAssetImage } from './useLayerAssetImage'
 import { CompositeCard } from './CompositeCard'
+import { AssetDetailModal } from '../assets/AssetDetailModal'
+import { AssetDeleteConfirmModal } from '../assets/AssetDeleteConfirmModal'
+import {
+  getVisiblePublicAssets,
+  addCustomPublicAsset,
+  hideOrDeletePublicAsset
+} from '../assets/publicAssetStorage'
 
 export interface LayerAssemblySidebarProps {
   composite: LayerComposite
@@ -22,40 +30,8 @@ interface CustomAssetItem {
   id: string
   path: string
   name: string
+  previewUrl?: string
   isCustom: boolean
-}
-
-const CUSTOM_ASSETS_KEY = 'pxs.customWorkshopAssets'
-const HIDDEN_BUILTIN_KEY = 'pxs.hiddenBuiltinWorkshopAssets'
-
-function loadCustomAssets(): CustomAssetItem[] {
-  try {
-    const raw = localStorage.getItem(CUSTOM_ASSETS_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
-}
-
-function saveCustomAssets(list: CustomAssetItem[]) {
-  try {
-    localStorage.setItem(CUSTOM_ASSETS_KEY, JSON.stringify(list))
-  } catch {}
-}
-
-function loadHiddenBuiltinAssets(): string[] {
-  try {
-    const raw = localStorage.getItem(HIDDEN_BUILTIN_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
-}
-
-function saveHiddenBuiltinAssets(list: string[]) {
-  try {
-    localStorage.setItem(HIDDEN_BUILTIN_KEY, JSON.stringify(list))
-  } catch {}
 }
 
 // Danh sách các vật liệu mẫu thiên nhiên & đạo cụ có sẵn trong assets
@@ -81,10 +57,54 @@ export function LayerAssemblySidebar({
 }: LayerAssemblySidebarProps) {
   const [activeTab, setActiveTab] = useState<'builtin' | 'presets' | 'project'>('builtin')
   const [searchTerm, setSearchTerm] = useState('')
-  const [customAssets, setCustomAssets] = useState<CustomAssetItem[]>(loadCustomAssets)
-  const [hiddenBuiltinPaths, setHiddenBuiltinPaths] = useState<string[]>(loadHiddenBuiltinAssets)
   const [storedComposites, setStoredComposites] = useState<LayerComposite[]>(getStoredComposites)
+  const [detailTarget, setDetailTarget] = useState<CustomAssetItem | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<CustomAssetItem | null>(null)
+  const [catalogItems, setCatalogItems] = useState<BuiltInAssetItem[]>([])
+  const [publicVersion, setPublicVersion] = useState(0)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const projectFileInputRef = useRef<HTMLInputElement | null>(null)
+
+  // Lắng nghe thay đổi kho tài nguyên công khai
+  useEffect(() => {
+    const handlePublicChanged = () => setPublicVersion((v) => v + 1)
+    window.addEventListener('publicAssets:changed', handlePublicChanged)
+    return () => window.removeEventListener('publicAssets:changed', handlePublicChanged)
+  }, [])
+
+  // Nạp toàn bộ kho tài nguyên có sẵn của hệ thống
+  useEffect(() => {
+    let active = true
+    if (typeof window !== 'undefined' && window.api?.getBuiltInCatalog) {
+      window.api
+        .getBuiltInCatalog()
+        .then((res) => {
+          if (active && res?.items) {
+            setCatalogItems(res.items.filter((it) => it.kind === 'image'))
+          }
+        })
+        .catch(() => {})
+    }
+    return () => {
+      active = false
+    }
+  }, [publicVersion])
+
+  // Xử lý nạp ảnh riêng cho layer trong mẫu hiện tại (Private - không rò rỉ vào kho Tất cả)
+  const handleImportProjectLayerFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const dataUrl = reader.result as string
+        const cleanName = file.name.replace(/\.[^/.]+$/, '')
+        onAddLayerFromAsset(cleanName, dataUrl, dataUrl)
+      }
+      reader.readAsDataURL(file)
+    })
+    e.target.value = ''
+  }
 
   // Lắng nghe thay đổi kho mẫu composite (khi bấm "Lưu mẫu" ở Header)
   useEffect(() => {
@@ -93,19 +113,33 @@ export function LayerAssemblySidebar({
     return () => window.removeEventListener('layerComposites:changed', handleChanged)
   }, [])
 
-  // 1. Tab Có sẵn: Tài nguyên hệ thống (trừ mục đã xóa) + Ảnh do người dùng thêm vào
+  // 1. Tab Có sẵn: Toàn bộ kho tài nguyên công khai (Built-in + Ảnh người dùng thêm công khai)
   const allAvailableAssets = useMemo(() => {
-    const hiddenSet = new Set(hiddenBuiltinPaths)
-    const builtinItems = BUILTIN_NATURE_ASSETS
-      .filter((b) => !hiddenSet.has(b.path))
-      .map((b) => ({
-        id: b.path,
-        path: b.path,
-        name: b.name,
-        isCustom: false
-      }))
-    return [...customAssets, ...builtinItems]
-  }, [customAssets, hiddenBuiltinPaths])
+    const baseList: BuiltInAssetItem[] =
+      catalogItems.length > 0
+        ? catalogItems
+        : BUILTIN_NATURE_ASSETS.map((b) => ({
+            id: b.path,
+            name: b.name,
+            fileName: b.name,
+            relativePath: b.path,
+            path: b.path,
+            folder: 'modular',
+            ext: 'png',
+            mime: 'image/png',
+            kind: 'image' as const,
+            size: 0
+          }))
+
+    const visiblePublic = getVisiblePublicAssets(baseList)
+    return visiblePublic.map((it) => ({
+      id: it.id,
+      path: it.relativePath || it.path || '',
+      name: it.name,
+      previewUrl: it.previewUrl,
+      isCustom: Boolean(it.id?.startsWith('custom-public-'))
+    }))
+  }, [catalogItems, publicVersion])
 
   const filteredAssets = useMemo(() => {
     if (!searchTerm.trim()) return allAvailableAssets
@@ -128,7 +162,7 @@ export function LayerAssemblySidebar({
     return currentLayers.filter((l) => l.name.toLowerCase().includes(q))
   }, [currentLayers, searchTerm])
 
-  // Xử lý nạp ảnh từ máy tính vào tab Có sẵn
+  // Xử lý nạp ảnh từ máy tính vào tab Có sẵn (Kho công khai)
   const handleImportFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
@@ -137,39 +171,12 @@ export function LayerAssemblySidebar({
       const reader = new FileReader()
       reader.onload = () => {
         const dataUrl = reader.result as string
-        const item: CustomAssetItem = {
-          id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          path: dataUrl,
-          name: file.name.replace(/\.[^/.]+$/, ''),
-          isCustom: true
-        }
-        setCustomAssets((prev) => {
-          const next = [item, ...prev]
-          saveCustomAssets(next)
-          return next
-        })
+        addCustomPublicAsset(file.name, dataUrl, file.size)
+        setPublicVersion((v) => v + 1)
       }
       reader.readAsDataURL(file)
     })
     e.target.value = ''
-  }
-
-  // Xóa ảnh khỏi tab Có sẵn (nếu custom thì xóa hẳn, nếu builtin thì ẩn đi)
-  const handleDeleteAsset = (item: { id: string; path: string; isCustom: boolean }, e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (item.isCustom) {
-      setCustomAssets((prev) => {
-        const next = prev.filter((a) => a.id !== item.id)
-        saveCustomAssets(next)
-        return next
-      })
-    } else {
-      setHiddenBuiltinPaths((prev) => {
-        const next = [...prev, item.path]
-        saveHiddenBuiltinAssets(next)
-        return next
-      })
-    }
   }
 
   // Xóa mẫu layer tự tạo
@@ -221,7 +228,7 @@ export function LayerAssemblySidebar({
           onClick={() => setActiveTab('builtin')}
           title="Kho ảnh & vật liệu có sẵn"
         >
-          <IconImage width={12} height={12} /> Có sẵn ({allAvailableAssets.length})
+          <IconImage width={12} height={12} /> Tất cả ({allAvailableAssets.length})
         </button>
 
         <button
@@ -289,11 +296,11 @@ export function LayerAssemblySidebar({
           style={{ width: '100%', fontSize: '11px' }}
         />
 
-        {/* Nút Thêm ảnh từ máy khi ở tab Có sẵn */}
+        {/* Nút Thêm ảnh từ máy khi ở tab Có sẵn (Kho công khai) */}
         {activeTab === 'builtin' && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>
-              {customAssets.length} ảnh tự thêm
+              {allAvailableAssets.filter((a) => a.isCustom).length} ảnh tự thêm
             </span>
             <label
               className="btn xs primary"
@@ -320,6 +327,40 @@ export function LayerAssemblySidebar({
             </label>
           </div>
         )}
+
+        {/* Nút Thêm ảnh từ máy khi ở tab Dự án (Tài nguyên Private riêng cho mẫu này) */}
+        {activeTab === 'project' && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>
+              {currentLayers.length} layer riêng
+            </span>
+            <label
+              className="btn xs"
+              style={{
+                padding: '2px 8px',
+                fontSize: '10.5px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: 'var(--bg-3)',
+                border: '1px solid var(--line)'
+              }}
+              title="Thêm ảnh layer riêng (Private) cho mẫu hiện tại, không đưa vào kho chung"
+            >
+              <IconPlus width={11} height={11} />
+              <span>+ Thêm ảnh layer</span>
+              <input
+                ref={projectFileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                multiple
+                style={{ display: 'none' }}
+                onChange={handleImportProjectLayerFiles}
+              />
+            </label>
+          </div>
+        )}
       </div>
 
       {/* 3. Main Content List */}
@@ -333,7 +374,8 @@ export function LayerAssemblySidebar({
                   key={item.id}
                   item={item}
                   onAdd={() => onAddLayerFromAsset(item.name, item.path, item.path.startsWith('data:') ? item.path : undefined)}
-                  onDelete={(e) => handleDeleteAsset(item, e)}
+                  onDetail={() => setDetailTarget(item)}
+                  onDelete={() => setDeleteTarget(item)}
                 />
               ))}
             </div>
@@ -407,6 +449,37 @@ export function LayerAssemblySidebar({
           )
         )}
       </div>
+
+      {detailTarget && (
+        <AssetDetailModal
+          target={{
+            name: detailTarget.name,
+            fileName: detailTarget.name,
+            previewUrl: detailTarget.previewUrl || (detailTarget.path.startsWith('data:') ? detailTarget.path : undefined),
+            assetPath: detailTarget.path.startsWith('data:') ? undefined : detailTarget.path,
+            scope: 'public'
+          }}
+          onClose={() => setDetailTarget(null)}
+        />
+      )}
+
+      {deleteTarget && (
+        <AssetDeleteConfirmModal
+          target={{
+            name: deleteTarget.name,
+            fileName: deleteTarget.name,
+            previewUrl: deleteTarget.previewUrl || (deleteTarget.path.startsWith('data:') ? deleteTarget.path : undefined),
+            assetPath: deleteTarget.path.startsWith('data:') ? undefined : deleteTarget.path,
+            scope: 'public'
+          }}
+          onClose={() => setDeleteTarget(null)}
+          onConfirmDelete={() => {
+            hideOrDeletePublicAsset(deleteTarget.id)
+            setPublicVersion((v) => v + 1)
+            setDeleteTarget(null)
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -423,6 +496,12 @@ function LayerItemCard({
 }) {
   const assetUrl = useLayerAssetImage(layer.assetPath)
   const displayUrl = layer.imageUrl || assetUrl
+  const isPublic = Boolean(
+    layer.assetPath &&
+    (layer.assetPath.startsWith('assembly_3d/') ||
+      layer.assetPath.startsWith('demo_transparent/') ||
+      layer.assetPath.startsWith('assets/'))
+  )
 
   return (
     <div
@@ -471,6 +550,27 @@ function LayerItemCard({
           boxSizing: 'border-box'
         }}
       >
+        {/* Badge Public vs Private */}
+        <span
+          style={{
+            position: 'absolute',
+            top: '3px',
+            left: '3px',
+            fontSize: '8px',
+            fontWeight: 600,
+            padding: '1px 4px',
+            borderRadius: '3px',
+            background: isPublic ? 'rgba(56, 189, 248, 0.3)' : 'rgba(234, 179, 8, 0.3)',
+            color: isPublic ? '#38bdf8' : '#facc15',
+            border: `1px solid ${isPublic ? 'rgba(56, 189, 248, 0.5)' : 'rgba(234, 179, 8, 0.5)'}`,
+            backdropFilter: 'blur(3px)',
+            zIndex: 3
+          }}
+          title={isPublic ? 'Tài nguyên Công khai (Public)' : 'Tài nguyên Riêng của mẫu (Private)'}
+        >
+          {isPublic ? '🌍 Công khai' : '🔒 Riêng'}
+        </span>
+
         {displayUrl ? (
           <img
             src={displayUrl}
@@ -521,10 +621,12 @@ function LayerItemCard({
 function AssetCard({
   item,
   onAdd,
+  onDetail,
   onDelete
 }: {
   item: { path: string; name: string; isCustom: boolean }
   onAdd: () => void
+  onDetail: (e: React.MouseEvent) => void
   onDelete: (e: React.MouseEvent) => void
 }) {
   const assetUrl = useLayerAssetImage(item.isCustom ? '' : item.path)
@@ -571,7 +673,7 @@ function AssetCard({
       }}
       title={`Click hoặc Kéo thả để thêm ${item.name} làm layer mới`}
     >
-      {/* 2 button ở góc phải của item: (Thùng rác) Xóa layer nằm bên trái và (+) Thêm layer nằm bên phải */}
+      {/* 3 button ở góc phải của item: Xóa, Chi tiết và (+) Thêm layer */}
       <div
         style={{
           position: 'absolute',
@@ -607,9 +709,37 @@ function AssetCard({
             e.stopPropagation()
             onDelete(e)
           }}
-          title={`Xóa ${item.name} khỏi danh sách có sẵn`}
+          title={`Xóa ${item.name} (kiểm tra cảnh báo nếu đang được dùng)`}
         >
           <IconTrash width={10} height={10} />
+        </button>
+
+        {/* Button Chi tiết & nơi sử dụng (ở giữa) */}
+        <button
+          type="button"
+          className="btn xs icon"
+          style={{
+            width: '18px',
+            height: '18px',
+            padding: 0,
+            background: 'var(--bg-3)',
+            color: 'var(--text)',
+            borderRadius: '3px',
+            border: '1px solid var(--line)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+            transition: 'transform 0.1s ease, filter 0.1s ease'
+          }}
+          onClick={(e) => {
+            e.stopPropagation()
+            onDetail(e)
+          }}
+          title={`Xem chi tiết & danh sách nơi sử dụng ${item.name}`}
+        >
+          <IconInfo width={10} height={10} />
         </button>
 
         {/* Button (+) Thêm layer (nằm bên phải) */}

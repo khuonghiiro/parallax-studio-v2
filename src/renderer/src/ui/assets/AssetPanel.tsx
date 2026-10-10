@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BuiltInAssetCategory, BuiltInAssetItem, BuiltInCatalogResult } from '@shared/ipc'
 import { importAudio, importBuiltInAsset, importImages } from '../../actions'
 import { useEditor } from '../../store/editor'
@@ -11,6 +11,7 @@ import { Model3DList } from './Model3DList'
 import { LayerAssemblyList } from '../layerAssembly/LayerAssemblyList'
 import { getStoredComposites } from '../layerAssembly/layerAssemblyStorage'
 import { sortAssetCategories } from './types'
+import { addCustomPublicAsset } from './publicAssetStorage'
 
 type AssetSubTab = 'builtin' | 'project' | '3d' | 'assembly'
 
@@ -100,6 +101,23 @@ export function AssetPanel() {
     window.api.openBuiltInFolder(cat?.folder)
   }
 
+  const publicFileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const handleUploadPublic = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const dataUrl = reader.result as string
+        addCustomPublicAsset(file.name, dataUrl, file.size)
+        loadCatalog()
+      }
+      reader.readAsDataURL(file)
+    })
+    e.target.value = ''
+  }
+
   return (
     <div className="asset-panel-wrapper">
       {/* Header with import actions */}
@@ -107,24 +125,65 @@ export function AssetPanel() {
         <IconImage width={14} height={14} />
         <span>Tài nguyên</span>
         <span className="spacer" />
-        <button
-          type="button"
-          id="import-images"
-          className="btn sm"
-          onClick={() => importImages(false)}
-          title="Nhập thêm ảnh từ máy tính"
-        >
-          <IconPlus /> Ảnh
-        </button>
-        <button
-          type="button"
-          id="import-audio"
-          className="btn sm icon"
-          onClick={() => importAudio(useEditor.getState().time)}
-          title="Nhập nhạc nền từ máy tính vào mốc thời gian hiện tại"
-        >
-          <IconMusic />
-        </button>
+
+        <input
+          ref={publicFileInputRef}
+          type="file"
+          accept="image/*,audio/*"
+          multiple
+          style={{ display: 'none' }}
+          onChange={handleUploadPublic}
+        />
+
+        {subTab === 'builtin' ? (
+          <button
+            type="button"
+            className="btn sm"
+            onClick={() => publicFileInputRef.current?.click()}
+            title="Thêm tệp ảnh hoặc âm thanh vào kho tài nguyên Công khai (dùng chung cho mọi dự án)"
+          >
+            <IconPlus /> Ảnh công khai
+          </button>
+        ) : subTab === 'project' ? (
+          <>
+            <button
+              type="button"
+              id="import-images"
+              className="btn sm"
+              onClick={() => importImages(false)}
+              title="Nhập ảnh riêng cho dự án hiện tại (tài nguyên nội bộ)"
+            >
+              <IconPlus /> Ảnh dự án
+            </button>
+            <button
+              type="button"
+              id="import-audio"
+              className="btn sm icon"
+              onClick={() => importAudio(useEditor.getState().time)}
+              title="Nhập nhạc nền từ máy tính vào mốc thời gian hiện tại"
+            >
+              <IconMusic />
+            </button>
+          </>
+        ) : subTab === '3d' ? (
+          <button
+            type="button"
+            className="btn sm"
+            onClick={() => window.dispatchEvent(new CustomEvent('assembly:open'))}
+            title="Mở xưởng tạo mô hình 3D từ các diện ảnh phẳng"
+          >
+            <IconPlus /> Tạo 3D
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn sm"
+            onClick={() => window.dispatchEvent(new CustomEvent('layerAssembly:open'))}
+            title="Mở xưởng lắp ráp layer xếp chồng 2.5D"
+          >
+            <IconPlus /> Tạo lắp ráp
+          </button>
+        )}
       </div>
 
       {/* Subtabs: Built-in Library vs Project Assets vs 3D Assembled Models */}

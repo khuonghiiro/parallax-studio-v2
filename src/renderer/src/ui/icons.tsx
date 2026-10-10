@@ -150,6 +150,12 @@ export const IconLock = (p: P) => (
     <path d="M8 11V7a4 4 0 0 1 8 0v4" />
   </svg>
 )
+export const IconGlobe = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+  </svg>
+)
 export const IconTrash = (p: P) => (
   <svg {...base(p)}>
     <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />

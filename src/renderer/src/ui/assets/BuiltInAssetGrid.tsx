@@ -1,8 +1,26 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import type { BuiltInAssetCategory, BuiltInAssetItem } from '@shared/ipc'
 import { CustomSelect } from '../controls'
-import { IconCode, IconMusic, IconPause, IconPlay, IconPlus, IconRefresh, IconSearch, IconX } from '../icons'
+import {
+  IconCode,
+  IconInfo,
+  IconMusic,
+  IconPause,
+  IconPlay,
+  IconPlus,
+  IconRefresh,
+  IconSearch,
+  IconTrash,
+  IconX
+} from '../icons'
 import { useAudioPreview } from './audioPreviewManager'
+import {
+  getVisiblePublicAssets,
+  hideOrDeletePublicAsset,
+  addCustomPublicAsset
+} from './publicAssetStorage'
+import { AssetDetailModal } from './AssetDetailModal'
+import { AssetDeleteConfirmModal } from './AssetDeleteConfirmModal'
 
 interface BuiltInAssetGridProps {
   categories: BuiltInAssetCategory[]
@@ -47,12 +65,26 @@ export function BuiltInAssetGrid({
   const [search, setSearch] = useState('')
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const { playingId, toggleBuiltInAsset } = useAudioPreview()
+  const [detailTarget, setDetailTarget] = useState<BuiltInAssetItem | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<BuiltInAssetItem | null>(null)
+  const [localVersion, setLocalVersion] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    const handleChanged = () => setLocalVersion((v) => v + 1)
+    window.addEventListener('publicAssets:changed', handleChanged)
+    return () => window.removeEventListener('publicAssets:changed', handleChanged)
+  }, [])
+
+  const allVisibleItems = useMemo(() => {
+    return getVisiblePublicAssets(items)
+  }, [items, localVersion])
 
   const activeCategory = categories.find((c) => c.id === selectedCategory) || categories[0]
 
   // Filter items by category & search query
   const filteredItems = useMemo(() => {
-    return items.filter((item) => {
+    return allVisibleItems.filter((item) => {
       const matchCat =
         !activeCategory ||
         activeCategory.id === 'all' ||
@@ -60,12 +92,12 @@ export function BuiltInAssetGrid({
         item.folder === activeCategory.folder
       return matchCat && matchAsset(item, search)
     })
-  }, [items, activeCategory, search])
+  }, [allVisibleItems, activeCategory, search])
 
   // Memoized category options with count
   const categoryOptions = useMemo(() => {
     return categories.map((c) => {
-      const count = items.filter(
+      const count = allVisibleItems.filter(
         (it) => c.id === 'all' || !c.folder || it.folder === c.folder
       ).length
       return {
@@ -73,7 +105,24 @@ export function BuiltInAssetGrid({
         label: `${c.title} (${count})`
       }
     })
-  }, [categories, items])
+  }, [categories, allVisibleItems])
+
+  const handleUploadPublic = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const dataUrl = reader.result as string
+        addCustomPublicAsset(file.name, dataUrl, file.size)
+        setLocalVersion((v) => v + 1)
+        onReload()
+      }
+      reader.readAsDataURL(file)
+    })
+    e.target.value = ''
+  }
+
 
   return (
     <div className="asset-content-area">
@@ -87,6 +136,26 @@ export function BuiltInAssetGrid({
             onChange={(val) => onSelectCategory(String(val))}
             title="Chọn danh mục tài nguyên"
           />
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,audio/*"
+            multiple
+            style={{ display: 'none' }}
+            onChange={handleUploadPublic}
+          />
+
+          <button
+            type="button"
+            className="btn sm"
+            title="Thêm tệp ảnh hoặc âm thanh vào kho tài nguyên Công khai (dùng chung cho mọi dự án)"
+            onClick={() => fileInputRef.current?.click()}
+            style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+          >
+            <IconPlus width={12} height={12} />
+            <span>Thêm ảnh</span>
+          </button>
 
           <button
             type="button"
@@ -210,35 +279,90 @@ export function BuiltInAssetGrid({
 
                   <span className="builtin-asset-name">{item.name}</span>
 
-                  {isHover && (
-                    <div className="builtin-asset-actions">
-                      <button
-                        type="button"
-                        className="btn sm icon primary"
-                        title={
-                          actionTitle ||
-                          (onSelectItem
-                            ? 'Chọn đổi sang ảnh này'
-                            : isAudio
-                              ? 'Thêm âm thanh vào mốc thời gian hiện tại'
-                              : 'Thêm thành layer vào cảnh')
-                        }
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (onSelectItem) onSelectItem(item)
-                          else onImportItem?.(item, true)
-                        }}
-                      >
-                        {actionIcon || <IconPlus />}
-                      </button>
-                    </div>
-                  )}
+                  <div className="builtin-asset-actions">
+                    <button
+                      type="button"
+                      className="btn sm icon primary"
+                      title={
+                        actionTitle ||
+                        (onSelectItem
+                          ? 'Chọn đổi sang ảnh này'
+                          : isAudio
+                            ? 'Thêm âm thanh vào mốc thời gian hiện tại'
+                            : 'Thêm thành layer vào cảnh')
+                      }
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (onSelectItem) onSelectItem(item)
+                        else onImportItem?.(item, true)
+                      }}
+                    >
+                      {actionIcon || <IconPlus />}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn sm icon"
+                      title="Xem chi tiết và vị trí sử dụng tệp này"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDetailTarget(item)
+                      }}
+                    >
+                      <IconInfo width={12} height={12} />
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn sm icon danger"
+                      title="Xoá tài nguyên (kiểm tra an toàn nếu đang được dùng)"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteTarget(item)
+                      }}
+                    >
+                      <IconTrash width={12} height={12} />
+                    </button>
+                  </div>
                 </div>
               )
             })}
           </div>
         )}
       </div>
+
+      {detailTarget && (
+        <AssetDetailModal
+          target={{
+            name: detailTarget.name,
+            fileName: detailTarget.fileName,
+            previewUrl: detailTarget.previewUrl,
+            assetPath: detailTarget.relativePath,
+            scope: 'public',
+            size: detailTarget.size
+          }}
+          onClose={() => setDetailTarget(null)}
+        />
+      )}
+
+      {deleteTarget && (
+        <AssetDeleteConfirmModal
+          target={{
+            name: deleteTarget.name,
+            fileName: deleteTarget.fileName,
+            previewUrl: deleteTarget.previewUrl,
+            assetPath: deleteTarget.relativePath,
+            scope: 'public'
+          }}
+          onClose={() => setDeleteTarget(null)}
+          onConfirmDelete={() => {
+            hideOrDeletePublicAsset(deleteTarget.id)
+            setDeleteTarget(null)
+            setLocalVersion((v) => v + 1)
+            onReload()
+          }}
+        />
+      )}
     </div>
   )
 }
