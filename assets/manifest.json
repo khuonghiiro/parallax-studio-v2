@@ -17,14 +17,6 @@
       "order": 1
     },
     {
-      "id": "demos",
-      "folder": "demos",
-      "title": "Hiệu ứng & Hoạt ảnh (VFX)",
-      "icon": "sparkles",
-      "description": "Hoạt ảnh GIF ngọn lửa trại, quả cầu hologram, cổng năng lượng và đom đóm",
-      "order": 3
-    },
-    {
       "id": "audio",
       "folder": "audio",
       "title": "Âm thanh & Nhạc nền",
@@ -72,12 +64,6 @@
     },
     "demo_transparent/layer5_foreground_vines.png": {
       "name": "Dây leo tiền cảnh"
-    },
-    "demos/hologram_sphere.gif": {
-      "name": "Quả cầu năng lượng hologram"
-    },
-    "demos/sparkle_fireflies.gif": {
-      "name": "Đom đóm lấp lánh"
     },
     "audio/ambient_chime.wav": {
       "name": "Chuông gió ngân vang ambient"

@@ -77,7 +77,7 @@ export function BuiltInAssetBar({
                 onClick={() => onSelectCategory(cat.id)}
                 aria-label={cat.title}
               >
-                {renderCategoryIcon(cat.icon || cat.id, 16, 16)}
+                {renderCategoryIcon(cat.icon || cat.id, 16, 16, cat.id)}
               </button>
             </div>
           )

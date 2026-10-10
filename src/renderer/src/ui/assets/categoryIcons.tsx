@@ -20,8 +20,20 @@ import {
   IconUserMale
 } from '../icons'
 
-export function renderCategoryIcon(iconKey: string, width = 16, height = 16): ReactNode {
-  switch (iconKey?.toLowerCase()) {
+export function renderCategoryIcon(iconKey: string, width = 16, height = 16, categoryId?: string): ReactNode {
+  let key = (iconKey || categoryId || '').toLowerCase()
+
+  // Tự động phân định giới tính nhân vật nếu icon là 'user' chung chung nhưng id chỉ rõ
+  if ((key === 'user' || key === 'character') && categoryId) {
+    const cid = categoryId.toLowerCase()
+    if (cid.includes('anime') || cid.includes('female') || cid.includes('girl')) {
+      key = 'user-female'
+    } else if (cid.includes('hero') || cid.includes('male') || cid.includes('boy')) {
+      key = 'user-male'
+    }
+  }
+
+  switch (key) {
     case 'user-male':
     case 'male':
     case 'hero':

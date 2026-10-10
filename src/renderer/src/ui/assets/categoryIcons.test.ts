@@ -61,6 +61,13 @@ describe('renderCategoryIcon', () => {
     expect(prop.type).toBe(IconPropLamp)
     expect(grid3d.type).not.toBe(cube.type)
     expect(prop.type).not.toBe(cube.type)
+
+    // Kiểm tra tự động phân giải giới tính ngay cả khi icon truyền vào là 'user' chung chung
+    const resolvedHero = renderCategoryIcon('user', 16, 16, 'character_hero') as React.ReactElement
+    const resolvedAnime = renderCategoryIcon('user', 16, 16, 'character_anime') as React.ReactElement
+    expect(resolvedHero.type).toBe(IconUserMale)
+    expect(resolvedAnime.type).toBe(IconUserFemale)
+    expect(resolvedHero.type).not.toBe(resolvedAnime.type)
   })
 
   it('renders fallback grid icon for unknown keys', () => {

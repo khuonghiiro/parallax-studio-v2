@@ -434,7 +434,7 @@ export function AssemblyAssetSidebar({
                 onMouseLeave={hideCatTooltip}
                 aria-label={cat.title}
               >
-                {renderCategoryIcon(cat.icon, 16, 16)}
+                {renderCategoryIcon(cat.icon, 16, 16, cat.id)}
               </button>
             )
           })}
