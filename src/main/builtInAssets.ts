@@ -1,6 +1,6 @@
 import { app, ipcMain, shell } from 'electron'
 import { existsSync } from 'fs'
-import { readdir, readFile, stat, unlink, writeFile } from 'fs/promises'
+import { mkdir, readdir, readFile, stat, unlink, writeFile } from 'fs/promises'
 import { basename, extname, join, relative } from 'path'
 import type {
   BuiltInAssetCategory,
@@ -423,6 +423,112 @@ export async function deleteBuiltInAsset(
   }
 }
 
+export async function importBuiltInAssetFile(opts: {
+  name: string
+  buffer: Uint8Array
+  folder?: string
+  title?: string
+}): Promise<{ ok: boolean; relPath?: string; fullPath?: string; item?: BuiltInAssetItem; error?: string }> {
+  if (!opts.name || !opts.buffer || opts.buffer.length === 0) {
+    return { ok: false, error: 'Thiếu tên tệp hoặc dữ liệu tệp rỗng' }
+  }
+
+  const root = getAssetsRoot()
+  const ext = extname(opts.name).slice(1).toLowerCase()
+  const isAudio = AUDIO_EXTS.has(ext)
+  const isImage = IMAGE_EXTS.has(ext)
+
+  if (!isImage && !isAudio) {
+    return { ok: false, error: `Định dạng tệp .${ext} không được hỗ trợ` }
+  }
+
+  // Chọn folder đích: Nếu có folder chỉ định thì dùng, nếu là audio thì 'audio', mặc định 'uploads'
+  const targetFolder = (opts.folder && opts.folder !== 'all' ? opts.folder : isAudio ? 'audio' : 'uploads')
+    .replace(/\\/g, '/')
+    .replace(/^\/+|\/+$/g, '')
+  const folderDir = join(root, targetFolder)
+
+  try {
+    if (!existsSync(folderDir)) {
+      await mkdir(folderDir, { recursive: true })
+    }
+
+    // Làm sạch tên file và tránh ghi đè
+    const baseName = basename(opts.name, `.${ext}`).replace(/[^a-zA-Z0-9_\-\.\s\u00C0-\u024F\u1EA0-\u1EF9]/g, '_').trim() || 'asset'
+    let finalFileName = `${baseName}.${ext}`
+    let destinationPath = join(folderDir, finalFileName)
+    let counter = 1
+
+    while (existsSync(destinationPath)) {
+      finalFileName = `${baseName}_${counter}.${ext}`
+      destinationPath = join(folderDir, finalFileName)
+      counter++
+    }
+
+    await writeFile(destinationPath, Buffer.from(opts.buffer))
+
+    const relPath = `${targetFolder}/${finalFileName}`.replace(/\\/g, '/')
+    const cleanTitle = opts.title?.trim() || baseName.replace(/[_-]/g, ' ')
+
+    // Cập nhật manifest.json
+    const manifestPath = join(root, 'manifest.json')
+    let manifestData: any = { categories: DEFAULT_CATEGORIES, assets: {} }
+    if (existsSync(manifestPath)) {
+      try {
+        const rawJson = await readFile(manifestPath, 'utf-8')
+        manifestData = JSON.parse(rawJson)
+      } catch {
+        /* ignore fallback */
+      }
+    }
+
+    if (!Array.isArray(manifestData.categories)) {
+      manifestData.categories = [...DEFAULT_CATEGORIES]
+    }
+
+    // Đảm bảo category của folder này tồn tại trong categories
+    const existingCat = manifestData.categories.find((c: any) => c.folder === targetFolder || c.id === targetFolder)
+    if (!existingCat && targetFolder === 'uploads') {
+      manifestData.categories.push({
+        id: 'uploads',
+        folder: 'uploads',
+        title: 'Tài nguyên tải lên',
+        icon: 'image',
+        description: 'Tài nguyên ảnh và vật liệu người dùng thêm vào kho',
+        order: 10
+      })
+    }
+
+    if (!manifestData.assets || typeof manifestData.assets !== 'object') {
+      manifestData.assets = {}
+    }
+
+    manifestData.assets[relPath] = {
+      name: cleanTitle
+    }
+
+    try {
+      await writeFile(manifestPath, JSON.stringify(manifestData, null, 2), 'utf-8')
+    } catch (manifestErr) {
+      console.warn('[BuiltInAssets] Failed to update manifest on import:', manifestErr)
+    }
+
+    // Làm mới catalog
+    const refreshed = await scanBuiltInCatalog(true)
+    const item = refreshed.items.find((it) => it.relativePath === relPath) || null
+
+    return {
+      ok: true,
+      relPath,
+      fullPath: destinationPath,
+      item: item || undefined
+    }
+  } catch (err) {
+    console.error('[BuiltInAssets] Error importing asset file:', err)
+    return { ok: false, error: String(err) }
+  }
+}
+
 export function registerBuiltInAssetsIpc(): void {
   ipcMain.handle('builtinAssets:getCatalog', async () => scanBuiltInCatalog())
   ipcMain.handle('builtinAssets:getAssemblyAssets', async () => scanAssembly3DAssets())
@@ -432,6 +538,19 @@ export function registerBuiltInAssetsIpc(): void {
   ipcMain.handle('builtinAssets:loadAssetBytes', async (_e, relPath: string) => loadAssetBytes(relPath))
 
   ipcMain.handle('builtinAssets:deleteAsset', async (_e, relPath: string) => deleteBuiltInAsset(relPath))
+
+  ipcMain.handle(
+    'builtinAssets:importAssetFile',
+    async (
+      _e,
+      opts: {
+        name: string
+        buffer: Uint8Array
+        folder?: string
+        title?: string
+      }
+    ) => importBuiltInAssetFile(opts)
+  )
 
   ipcMain.handle('builtinAssets:openFolder', async (_e, subFolder?: string) => {
     const root = getAssetsRoot()

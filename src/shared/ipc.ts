@@ -102,6 +102,12 @@ export interface ParallaxApi {
   loadBuiltInAssetBytes(relativePath: string): Promise<{ name: string; mime: string; data: Uint8Array } | null>
   openBuiltInFolder(subFolder?: string): Promise<void>
   deleteBuiltInAsset(relativePath: string): Promise<{ ok: boolean; error?: string }>
+  importBuiltInAssetFile(opts: {
+    name: string
+    buffer: Uint8Array
+    folder?: string
+    title?: string
+  }): Promise<{ ok: boolean; relPath?: string; fullPath?: string; item?: BuiltInAssetItem; error?: string }>
   asset3ds?: {
     getCatalog(): Promise<Asset3DsCatalogResult>
     list(): Promise<any[]>

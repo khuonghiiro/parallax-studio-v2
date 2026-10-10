@@ -114,19 +114,35 @@ export function AssetPanel() {
 
   const publicFileInputRef = useRef<HTMLInputElement | null>(null)
 
-  const handleUploadPublic = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadPublic = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const dataUrl = reader.result as string
-        addCustomPublicAsset(file.name, dataUrl, file.size)
-        loadCatalog()
+    const currentCat = categories.find((c) => c.id === selectedCategory)
+    const targetFolder = currentCat?.folder || 'uploads'
+
+    for (const file of Array.from(files)) {
+      try {
+        const buffer = new Uint8Array(await file.arrayBuffer())
+        if (window.api?.importBuiltInAssetFile) {
+          await window.api.importBuiltInAssetFile({
+            name: file.name,
+            buffer,
+            folder: targetFolder
+          })
+        } else {
+          const reader = new FileReader()
+          reader.onload = () => {
+            addCustomPublicAsset(file.name, reader.result as string, file.size, targetFolder)
+            loadCatalog()
+          }
+          reader.readAsDataURL(file)
+        }
+      } catch (err) {
+        console.error('[AssetPanel] Error importing public file:', err)
       }
-      reader.readAsDataURL(file)
-    })
+    }
     e.target.value = ''
+    await loadCatalog()
   }
 
   return (

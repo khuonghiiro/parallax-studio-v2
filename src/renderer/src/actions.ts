@@ -182,6 +182,20 @@ async function registerImages(files: { name: string; mime: string; data: Uint8Ar
           const rel = norm.slice('assets/'.length)
           asset.meta.assetPath = rel
           asset.meta.path = `assets/${rel}`
+        } else if (window.api?.importBuiltInAssetFile && f.data) {
+          try {
+            const res = await window.api.importBuiltInAssetFile({
+              name: f.name,
+              buffer: f.data,
+              folder: 'uploads'
+            })
+            if (res.ok && res.relPath) {
+              asset.meta.assetPath = res.relPath
+              asset.meta.path = `assets/${res.relPath}`
+            }
+          } catch {
+            /* ignore */
+          }
         }
       }
       editor().update((d) => {

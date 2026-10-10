@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { loadAssetBytes, saveManifestJson, scanBuiltInCatalog, sortCategories } from './builtInAssets'
+import {
+  loadAssetBytes,
+  saveManifestJson,
+  scanBuiltInCatalog,
+  sortCategories,
+  importBuiltInAssetFile,
+  deleteBuiltInAsset
+} from './builtInAssets'
 import type { BuiltInAssetCategory } from '@shared/ipc'
 
 describe('Built-in Assets Catalog & Manifest Management', () => {
@@ -88,5 +95,30 @@ describe('Built-in Assets Catalog & Manifest Management', () => {
       'cat_c',     // order 2, 'Cảnh quan biển' (chữ C)
       'cat_last'   // order 9999
     ])
+  })
+
+  it('imports an asset file buffer into assets/uploads and cleans it up with deleteBuiltInAsset', async () => {
+    // 1x1 transparent PNG buffer
+    const pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
+    const buffer = Buffer.from(pngBase64, 'base64')
+
+    const importRes = await importBuiltInAssetFile({
+      name: 'test_unit_upload_photo.png',
+      buffer: new Uint8Array(buffer),
+      folder: 'uploads',
+      title: 'Ảnh test đơn vị'
+    })
+
+    expect(importRes.ok).toBe(true)
+    expect(importRes.relPath).toBeDefined()
+    expect(importRes.relPath).toMatch(/^uploads\/test_unit_upload_photo(_\d+)?\.png$/)
+    expect(importRes.item).toBeDefined()
+    expect(importRes.item?.name).toBe('Ảnh test đơn vị')
+
+    // Clean up
+    if (importRes.relPath) {
+      const deleteRes = await deleteBuiltInAsset(importRes.relPath)
+      expect(deleteRes.ok).toBe(true)
+    }
   })
 })

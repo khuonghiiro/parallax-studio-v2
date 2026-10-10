@@ -115,6 +115,8 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
           onSelectLayer={state.select}
           onAddLayerFromAsset={state.add}
           onAppendPresetLayers={state.append}
+          onDeleteLayer={(id) => state.run('delete', undefined, [id])}
+          onDuplicateLayer={(id) => state.run('duplicate', undefined, [id])}
           onLoadComposite={(loaded) => {
             setComposite(loaded)
             if (loaded.layers[0]) {

@@ -9,6 +9,7 @@ import type { AssembledLayerItem, LayerComposite } from './types'
 import { IconGlobe, IconImage, IconInfo, IconLayers, IconLock, IconPlus, IconTrash, IconX } from '../icons'
 import { useLayerAssetImage } from './useLayerAssetImage'
 import { CompositeCard } from './CompositeCard'
+import { LayerItemCard, AssetCard } from './LayerWorkshopCards'
 import { AssetDetailModal } from '../assets/AssetDetailModal'
 import { AssetDeleteConfirmModal } from '../assets/AssetDeleteConfirmModal'
 import {
@@ -25,6 +26,8 @@ export interface LayerAssemblySidebarProps {
   onSelectLayer?: (id: string | null) => void
   onAddLayerFromAsset: (name: string, path: string, url?: string) => void
   onAppendPresetLayers: (layers: AssembledLayerItem[]) => void
+  onDeleteLayer?: (layerId: string) => void
+  onDuplicateLayer?: (layerId: string) => void
   onLoadComposite?: (composite: LayerComposite) => void
 }
 
@@ -55,6 +58,8 @@ export function LayerAssemblySidebar({
   onSelectLayer,
   onAddLayerFromAsset,
   onAppendPresetLayers,
+  onDeleteLayer,
+  onDuplicateLayer,
   onLoadComposite
 }: LayerAssemblySidebarProps) {
   const [activeTab, setActiveTab] = useState<'builtin' | 'presets' | 'project'>('builtin')
@@ -95,19 +100,37 @@ export function LayerAssemblySidebar({
     }
   }, [publicVersion])
 
-  // Xử lý nạp ảnh riêng cho layer trong mẫu hiện tại (Private - không rò rỉ vào kho Tất cả)
-  const handleImportProjectLayerFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Xử lý nạp ảnh riêng cho layer trong mẫu hiện tại (Private - lưu vào assets/uploads để không mất ảnh)
+  const handleImportProjectLayerFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const dataUrl = reader.result as string
+
+    for (const file of Array.from(files)) {
+      try {
         const cleanName = file.name.replace(/\.[^/.]+$/, '')
-        onAddLayerFromAsset(cleanName, dataUrl, dataUrl)
+        if (window.api?.importBuiltInAssetFile) {
+          const buffer = new Uint8Array(await file.arrayBuffer())
+          const res = await window.api.importBuiltInAssetFile({
+            name: file.name,
+            buffer,
+            folder: 'uploads'
+          })
+          if (res.ok && res.relPath) {
+            onAddLayerFromAsset(cleanName, `assets/${res.relPath}`)
+            continue
+          }
+        }
+        // Fallback đọc dataUrl nếu không có IPC
+        const reader = new FileReader()
+        reader.onload = () => {
+          const dataUrl = reader.result as string
+          onAddLayerFromAsset(cleanName, dataUrl, dataUrl)
+        }
+        reader.readAsDataURL(file)
+      } catch (err) {
+        console.error('[LayerAssemblySidebar] Error importing project layer file:', err)
       }
-      reader.readAsDataURL(file)
-    })
+    }
     e.target.value = ''
   }
 
@@ -167,21 +190,40 @@ export function LayerAssemblySidebar({
     return currentLayers.filter((l) => l.name.toLowerCase().includes(q))
   }, [currentLayers, searchTerm])
 
-  // Xử lý nạp ảnh từ máy tính vào tab Có sẵn (Kho công khai)
-  const handleImportFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Xử lý nạp ảnh từ máy tính vào tab Có sẵn (Kho công khai - copy vào assets/uploads)
+  const handleImportFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const dataUrl = reader.result as string
-        addCustomPublicAsset(file.name, dataUrl, file.size)
-        setPublicVersion((v) => v + 1)
+    for (const file of Array.from(files)) {
+      try {
+        if (window.api?.importBuiltInAssetFile) {
+          const buffer = new Uint8Array(await file.arrayBuffer())
+          await window.api.importBuiltInAssetFile({
+            name: file.name,
+            buffer,
+            folder: 'uploads'
+          })
+        } else {
+          const reader = new FileReader()
+          reader.onload = () => {
+            addCustomPublicAsset(file.name, reader.result as string, file.size, 'uploads')
+            setPublicVersion((v) => v + 1)
+          }
+          reader.readAsDataURL(file)
+        }
+      } catch (err) {
+        console.error('[LayerAssemblySidebar] Error importing public file:', err)
       }
-      reader.readAsDataURL(file)
-    })
+    }
     e.target.value = ''
+    try {
+      const cat = await window.api.getBuiltInCatalog()
+      setCatalogItems(cat.items || [])
+    } catch {
+      /* ignore */
+    }
+    setPublicVersion((v) => v + 1)
   }
 
   // Xóa mẫu layer tự tạo
@@ -425,6 +467,17 @@ export function LayerAssemblySidebar({
                     layer={layer}
                     isSelected={isSelected}
                     onSelect={() => onSelectLayer?.(layer.id)}
+                    onDelete={onDeleteLayer}
+                    onDuplicate={onDuplicateLayer}
+                    onDetail={(l) => {
+                      setDetailTarget({
+                        id: l.id,
+                        name: l.name,
+                        path: l.assetPath || l.imageUrl || '',
+                        previewUrl: l.imageUrl,
+                        isCustom: true
+                      })
+                    }}
                   />
                 )
               })}
@@ -491,334 +544,6 @@ export function LayerAssemblySidebar({
           }}
         />
       )}
-    </div>
-  )
-}
-
-/** Card hiển thị Layer đang có trong mẫu (Tab Dự án) */
-function LayerItemCard({
-  layer,
-  isSelected,
-  onSelect
-}: {
-  layer: AssembledLayerItem
-  isSelected: boolean
-  onSelect: () => void
-}) {
-  const assetUrl = useLayerAssetImage(layer.assetPath)
-  const displayUrl = layer.imageUrl || assetUrl
-  const isPublic = Boolean(
-    layer.assetPath &&
-    (layer.assetPath.startsWith('assembly_3d/') ||
-      layer.assetPath.startsWith('demo_transparent/') ||
-      layer.assetPath.startsWith('assets/'))
-  )
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.setData('application/json', JSON.stringify({ type: 'layer', layer }))
-      }}
-      onClick={onSelect}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onSelect()
-        }
-      }}
-      style={{
-        background: isSelected ? 'color-mix(in srgb, var(--accent) 15%, var(--bg-1))' : 'var(--bg-1)',
-        border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--line-soft)'}`,
-        borderRadius: '4px',
-        padding: '5px',
-        cursor: 'grab',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '4px',
-        minWidth: 0,
-        maxWidth: '100%',
-        boxSizing: 'border-box',
-        overflow: 'hidden',
-        transition: 'all 0.15s ease'
-      }}
-      title={`Click để chọn: ${layer.name} (Z: ${layer.z}px)`}
-    >
-      <div
-        style={{
-          height: '75px',
-          width: '100%',
-          minWidth: 0,
-          background: 'var(--bg-0)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          borderRadius: '3px',
-          position: 'relative',
-          boxSizing: 'border-box'
-        }}
-      >
-        {/* Badge Public vs Private dạng icon nhỏ gọn ở góc trên trái */}
-        <span
-          className={`layer-scope-badge ${isPublic ? 'public' : 'private'}`}
-          title={isPublic ? 'Tài nguyên Công khai (Public)' : 'Tài nguyên Riêng của mẫu (Private)'}
-        >
-          {isPublic ? <IconGlobe width={10} height={10} strokeWidth={2.2} /> : <IconLock width={10} height={10} strokeWidth={2.2} />}
-        </span>
-
-        {displayUrl ? (
-          <img
-            src={displayUrl}
-            alt={layer.name}
-            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-            draggable={false}
-          />
-        ) : (
-          <IconImage width={20} height={20} style={{ opacity: 0.4 }} />
-        )}
-        <span
-          style={{
-            position: 'absolute',
-            bottom: '2px',
-            right: '3px',
-            fontSize: '8.5px',
-            background: 'rgba(0,0,0,0.6)',
-            color: '#fff',
-            padding: '1px 3px',
-            borderRadius: '2px'
-          }}
-        >
-          Z:{layer.z}
-        </span>
-      </div>
-
-      <span
-        style={{
-          fontSize: '10px',
-          color: isSelected ? 'var(--accent)' : 'var(--text)',
-          fontWeight: isSelected ? 600 : 400,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          display: 'block',
-          width: '100%',
-          minWidth: 0
-        }}
-        title={layer.name}
-      >
-        {layer.name}
-      </span>
-    </div>
-  )
-}
-
-/** Card hiển thị Tài nguyên mẫu hoặc Ảnh người dùng thêm vào (Tab Có sẵn) */
-function AssetCard({
-  item,
-  onAdd,
-  onDetail,
-  onDelete
-}: {
-  item: { path: string; name: string; isCustom: boolean }
-  onAdd: () => void
-  onDetail: (e: React.MouseEvent) => void
-  onDelete: (e: React.MouseEvent) => void
-}) {
-  const assetUrl = useLayerAssetImage(item.isCustom ? '' : item.path)
-  const displayUrl = item.isCustom ? item.path : assetUrl
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.setData(
-          'application/json',
-          JSON.stringify({
-            type: 'asset',
-            name: item.name,
-            path: item.path,
-            url: item.isCustom ? item.path : (displayUrl || undefined)
-          })
-        )
-      }}
-      onClick={onAdd}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onAdd()
-        }
-      }}
-      style={{
-        background: 'var(--bg-1)',
-        border: '1px solid var(--line-soft)',
-        borderRadius: '4px',
-        padding: '5px',
-        cursor: 'grab',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '4px',
-        position: 'relative',
-        minWidth: 0,
-        maxWidth: '100%',
-        boxSizing: 'border-box',
-        overflow: 'hidden',
-        transition: 'all 0.15s ease'
-      }}
-      title={`Click hoặc Kéo thả để thêm ${item.name} làm layer mới`}
-    >
-      {/* Badge Công khai dạng icon ở góc trên trái (đối xứng với 3 nút góc trên phải) */}
-      <span
-        className="layer-scope-badge public"
-        style={{ position: 'absolute', top: '3px', left: '3px', zIndex: 4 }}
-        title={item.isCustom ? 'Ảnh đã thêm vào kho công khai' : 'Tài nguyên mẫu có sẵn (Công khai)'}
-      >
-        <IconGlobe width={10} height={10} strokeWidth={2.2} />
-      </span>
-
-      {/* 3 button ở góc phải của item: Xóa, Chi tiết và (+) Thêm layer */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '3px',
-          right: '3px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '3px',
-          zIndex: 5
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Button Thùng rác Xoá layer (nằm bên trái) */}
-        <button
-          type="button"
-          className="btn xs icon"
-          style={{
-            width: '18px',
-            height: '18px',
-            padding: 0,
-            background: 'var(--danger, #ef4444)',
-            color: '#fff',
-            borderRadius: '3px',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
-            transition: 'transform 0.1s ease, filter 0.1s ease'
-          }}
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete(e)
-          }}
-          title={`Xóa ${item.name} (kiểm tra cảnh báo nếu đang được dùng)`}
-        >
-          <IconTrash width={10} height={10} />
-        </button>
-
-        {/* Button Chi tiết & nơi sử dụng (ở giữa) */}
-        <button
-          type="button"
-          className="btn xs icon"
-          style={{
-            width: '18px',
-            height: '18px',
-            padding: 0,
-            background: 'var(--bg-3)',
-            color: 'var(--text)',
-            borderRadius: '3px',
-            border: '1px solid var(--line)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
-            transition: 'transform 0.1s ease, filter 0.1s ease'
-          }}
-          onClick={(e) => {
-            e.stopPropagation()
-            onDetail(e)
-          }}
-          title={`Xem chi tiết & danh sách nơi sử dụng ${item.name}`}
-        >
-          <IconInfo width={10} height={10} />
-        </button>
-
-        {/* Button (+) Thêm layer (nằm bên phải) */}
-        <button
-          type="button"
-          className="btn xs icon"
-          style={{
-            width: '18px',
-            height: '18px',
-            padding: 0,
-            background: 'var(--accent)',
-            color: '#fff',
-            borderRadius: '3px',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
-            transition: 'transform 0.1s ease, filter 0.1s ease'
-          }}
-          onClick={(e) => {
-            e.stopPropagation()
-            onAdd()
-          }}
-          title={`Thêm ${item.name} làm layer mới (+) vào cảnh`}
-        >
-          <IconPlus width={11} height={11} />
-        </button>
-      </div>
-
-      <div
-        style={{
-          height: '75px',
-          width: '100%',
-          minWidth: 0,
-          background: 'var(--bg-0)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          borderRadius: '3px',
-          boxSizing: 'border-box'
-        }}
-      >
-        {displayUrl ? (
-          <img
-            src={displayUrl}
-            alt={item.name}
-            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-            draggable={false}
-          />
-        ) : (
-          <IconImage width={20} height={20} style={{ opacity: 0.4 }} />
-        )}
-      </div>
-
-      <span
-        style={{
-          fontSize: '10px',
-          color: 'var(--text)',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          display: 'block',
-          width: '100%',
-          minWidth: 0
-        }}
-        title={item.name}
-      >
-        {item.name}
-      </span>
     </div>
   )
 }

@@ -21,6 +21,7 @@ const api: ParallaxApi = {
   loadBuiltInAssetBytes: (relPath) => ipcRenderer.invoke('builtinAssets:loadAssetBytes', relPath),
   openBuiltInFolder: (subFolder) => ipcRenderer.invoke('builtinAssets:openFolder', subFolder),
   deleteBuiltInAsset: (relPath) => ipcRenderer.invoke('builtinAssets:deleteAsset', relPath),
+  importBuiltInAssetFile: (opts) => ipcRenderer.invoke('builtinAssets:importAssetFile', opts),
   asset3ds: {
     getCatalog: () => ipcRenderer.invoke('asset3ds:getCatalog'),
     list: () => ipcRenderer.invoke('asset3ds:list'),
