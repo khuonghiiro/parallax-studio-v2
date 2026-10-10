@@ -5,6 +5,8 @@ import {
   saveComposite,
   deleteComposite,
   duplicateComposite,
+  updateCompositeThumbnail,
+  restoreDefaultComposites,
   COMPOSITE_CATEGORIES
 } from './layerAssemblyStorage'
 import { captureCompositeThumbnail } from './layerAssemblyThumbnail'
@@ -116,6 +118,13 @@ export function LayerAssemblyList() {
     reload()
   }
 
+  const handleRestoreDefaults = () => {
+    if (window.confirm('Khôi phục lại tất cả các mẫu layer có sẵn (built-in) về trạng thái ban đầu?')) {
+      restoreDefaultComposites()
+      reload()
+    }
+  }
+
   return (
     <div className="model-3d-layout">
       {/* 1. Left Vertical Category Strip */}
@@ -170,7 +179,16 @@ export function LayerAssemblyList() {
               <div style={{ marginBottom: '8px', opacity: 0.5 }}>
                 <IconLayers width={32} height={32} />
               </div>
-              Không tìm thấy chi tiết lắp ráp phù hợp.
+              <div style={{ marginBottom: '10px' }}>Không tìm thấy chi tiết lắp ráp phù hợp.</div>
+              <button
+                type="button"
+                className="btn sm"
+                onClick={handleRestoreDefaults}
+                style={{ fontSize: '11px', padding: '4px 10px' }}
+                title="Khôi phục lại các mẫu có sẵn nếu bạn đã từng xóa"
+              >
+                Khôi phục mẫu có sẵn
+              </button>
             </div>
           )}
         </div>
@@ -220,7 +238,7 @@ function LayerCardItem({
         if (active && url) {
           setThumb(url)
           item.thumbnail = url
-          saveComposite(item)
+          updateCompositeThumbnail(item.id, url)
         }
       })
       .catch((err) => {

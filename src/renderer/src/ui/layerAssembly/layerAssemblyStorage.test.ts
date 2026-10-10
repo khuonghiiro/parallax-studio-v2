@@ -4,7 +4,11 @@ import {
   getStoredComposites,
   saveComposite,
   deleteComposite,
-  duplicateComposite
+  duplicateComposite,
+  cleanDuplicateComposites,
+  updateCompositeThumbnail,
+  restoreDefaultComposites,
+  getDeletedCompositeIds
 } from './layerAssemblyStorage'
 import type { LayerComposite } from './types'
 
@@ -150,4 +154,80 @@ describe('Layer Assembly Workshop Storage System', () => {
     expect(hairBack?.z).toBeGreaterThan(0) // Tóc sau lưng nằm ở hậu cảnh
     expect(hairBack!.z - aArmL!.z).toBeGreaterThan(40)
   })
+
+  it('permanently remembers deleted built-in composites across app reloads and seed migrations', () => {
+    // 1. Ban đầu có comp-bonsai-zen
+    const initial = getStoredComposites()
+    expect(initial.some((c) => c.id === 'comp-bonsai-zen')).toBe(true)
+
+    // 2. Xóa comp-bonsai-zen
+    deleteComposite('comp-bonsai-zen')
+    expect(getDeletedCompositeIds().has('comp-bonsai-zen')).toBe(true)
+
+    // 3. Giả lập mở lại app / thay đổi SEED_VERSION
+    localStorage.setItem('pxs.layerComposites.seeded_version', 'v_old_version')
+    const reloaded = getStoredComposites()
+    expect(reloaded.some((c) => c.id === 'comp-bonsai-zen')).toBe(false)
+  })
+
+  it('filters out obsolete auto-saved duplicate clones (*-saved-<timestamp>)', () => {
+    const dirtyList: LayerComposite[] = [
+      {
+        id: 'comp-bonsai-zen',
+        name: 'Cây Bonsai Cổ Thụ Đung Đưa 5 Lớp',
+        category: 'nature',
+        width: 500,
+        height: 500,
+        layers: []
+      },
+      {
+        id: 'comp-bonsai-zen-saved-1791618755179',
+        name: 'Cây Bonsai Cổ Thụ Đung Đưa 5 Lớp (Bản đã lưu)',
+        category: 'custom',
+        width: 500,
+        height: 500,
+        layers: []
+      },
+      {
+        id: 'comp-user-created-custom',
+        name: 'Tự tạo hợp lệ',
+        category: 'custom',
+        width: 400,
+        height: 400,
+        layers: []
+      }
+    ]
+
+    const cleaned = cleanDuplicateComposites(dirtyList)
+    expect(cleaned.length).toBe(2)
+    expect(cleaned.some((c) => c.id === 'comp-bonsai-zen-saved-1791618755179')).toBe(false)
+    expect(cleaned.some((c) => c.id === 'comp-user-created-custom')).toBe(true)
+  })
+
+  it('safely updates thumbnail cache without modifying updatedAt or resurrecting deleted items', () => {
+    const list = getStoredComposites()
+    const target = list[0]
+    const originalUpdated = target.updatedAt
+
+    updateCompositeThumbnail(target.id, 'data:image/png;base64,sample')
+    const updated = getStoredComposites().find((c) => c.id === target.id)
+    expect(updated?.thumbnail).toBe('data:image/png;base64,sample')
+    expect(updated?.updatedAt).toBe(originalUpdated)
+
+    // Nếu item đã bị xóa, updateCompositeThumbnail không được phép hồi sinh nó
+    deleteComposite(target.id)
+    updateCompositeThumbnail(target.id, 'data:image/png;base64,new_thumb')
+    const afterDelete = getStoredComposites()
+    expect(afterDelete.some((c) => c.id === target.id)).toBe(false)
+  })
+
+  it('restores default built-in composites when explicitly requested', () => {
+    deleteComposite('comp-flower-bush')
+    expect(getStoredComposites().some((c) => c.id === 'comp-flower-bush')).toBe(false)
+
+    restoreDefaultComposites()
+    expect(getStoredComposites().some((c) => c.id === 'comp-flower-bush')).toBe(true)
+    expect(getDeletedCompositeIds().has('comp-flower-bush')).toBe(false)
+  })
 })
+
