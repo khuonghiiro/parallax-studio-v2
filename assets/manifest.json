@@ -44,7 +44,7 @@
       "id": "character_hero",
       "folder": "character_hero",
       "title": "Nhân vật & Bộ phận Rigging",
-      "icon": "user",
+      "icon": "user-male",
       "description": "Các bộ phận nhân vật phân tầng độc lập (đầu, thân, hông, tay, chân) cho lắp ráp và gắn xương 2.5D",
       "order": 6
     },
@@ -52,7 +52,7 @@
       "id": "character_anime",
       "folder": "character_anime",
       "title": "Nữ Sinh Anime Tóc Bạch Kim",
-      "icon": "user",
+      "icon": "user-female",
       "description": "Các bộ phận nhân vật nữ sinh anime tóc dài bạch kim, đồng phục học sinh cho lắp ráp và gắn xương 2.5D",
       "order": 7
     }

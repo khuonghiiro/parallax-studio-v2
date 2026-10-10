@@ -97,6 +97,23 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
   - Tuyệt đối không đặt `overflow-x: auto` hoặc `overflow: hidden` trực tiếp lên thanh công cụ (Toolbar) có chiều cao cố định (`height: 36px`) chứa menu dropdown cục bộ (`position: absolute`). Theo CSS spec, `overflow-x: auto` sẽ tự động ép `overflow-y` thành `auto`, làm các menu con tuyệt đối bị cắt cụt bên trong chiều cao 36px.
   - Thanh công cụ chứa menu con phải luôn giữ `overflow: visible;` và định nghĩa `position: relative; z-index: 5000;`. Khi cần thanh cuộn ngang cho nội dung toolbar hẹp, phải bọc các nút không có menu trong container cuộn riêng biệt.
 
+
+### 2.7. Quy Chuẩn Tính Duy Nhất Của Biểu Tượng (Icon Uniqueness & Semantic Differentiation Standard - BẮT BUỘC)
+- **Tuyệt đối KHÔNG sử dụng icon trùng lặp trong cùng một thanh tab (ngang hoặc dọc):**
+  - Trong bất kỳ dải tab điều hướng nào (danh mục tài nguyên, thư viện mô hình 3D, xưởng lắp ráp layer, thanh công cụ, inspector...), mỗi tab hay nút danh mục **BẮT BUỘC** phải có biểu tượng icon riêng biệt, duy nhất và thể hiện đúng bản chất nội dung bên trong.
+  - Tuyệt đối cấm tình trạng 2 hoặc nhiều tab liền kề/trong cùng một thanh dùng chung một icon (ví dụ: tab "Tất cả mô hình" và tab "Đạo cụ & Khối hộp" đều dùng chung icon Khối hộp `IconCube`; hoặc tab "Đạo cụ" trong xưởng layer 2D lại mượn icon khối hộp 3D thay vì icon chiếc đèn bão `IconPropLamp`).
+- **Phân biệt giới tính và ngữ nghĩa nhân vật (Character Gender Differentiation):**
+  - Khi danh mục hoặc tài nguyên liên quan đến nhân vật, phải đọc kỹ mô tả chức năng để chọn hoặc tạo icon phản ánh đúng ngữ nghĩa:
+    1. **Nhân vật nam / Nam anh hùng (`character_hero`):** Sử dụng `IconUserMale` (vai vuông nam tính, áo sơ mi/cà vạt thanh lịch).
+    2. **Nhân vật nữ / Nữ sinh anime (`character_anime`):** Sử dụng `IconUserFemale` (mái tóc dài buông xõa hai bên vai mềm mại).
+    3. **Nhân vật chung chung / Sinh vật:** Sử dụng `IconUser`.
+    - Tuyệt đối không được lười biếng dùng cùng một biểu tượng người `IconUser` cho cả danh mục nam và nữ, khiến người dùng khó phân biệt giới tính trên thanh tab dọc/ngang.
+- **Phân biệt thể loại và phạm vi (Scope & Context Differentiation):**
+  - Danh mục tổng quan / toàn cảnh 3D (`all`): Dùng khối không gian lưới 3D `IconGrid3D`, không mượn tạm `IconCube` của đạo cụ.
+  - Nội thất & Căn phòng (`room`): Dùng ghế bành thư giãn `IconArmchair` để phân biệt rõ rệt với Kiến trúc & Nhà cửa (`IconHome`) và Khu đô thị phố xá (`IconCity`).
+  - Đạo cụ & Trang trí 2D (`prop`): Dùng cây đèn bão / đèn decor `IconPropLamp`.
+- **Nguyên tắc tạo mới khi thiếu icon:** Khi bổ sung tính năng hoặc danh mục mới chưa có icon phù hợp, lập trình viên/AI **bắt buộc phải chủ động tạo component SVG icon mới** trong `src/renderer/src/ui/icons.tsx` và ánh xạ trong `src/renderer/src/ui/assets/categoryIcons.tsx`, tuyệt đối không được gán bừa icon có sẵn gây trùng lặp.
+
 ---
 
 ## 3. Cấu Trúc Workspace & Thư Mục Tri Thức (.agents/)

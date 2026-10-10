@@ -1,35 +1,71 @@
+import React from 'react'
 import { describe, expect, it } from 'vitest'
 import { renderCategoryIcon } from './categoryIcons'
+import {
+  IconArmchair,
+  IconCube,
+  IconDecor,
+  IconGrid,
+  IconGrid3D,
+  IconHome,
+  IconLayersStack,
+  IconPropLamp,
+  IconTree,
+  IconUser,
+  IconUserFemale,
+  IconUserMale
+} from '../icons'
 
 describe('renderCategoryIcon', () => {
   it('renders specific icons for nature, character, room and decor', () => {
-    const tree = renderCategoryIcon('tree')
-    expect(tree).toBeDefined()
+    const tree = renderCategoryIcon('tree') as React.ReactElement
+    expect(tree.type).toBe(IconTree)
 
-    const user = renderCategoryIcon('user')
-    expect(user).toBeDefined()
+    const user = renderCategoryIcon('user') as React.ReactElement
+    expect(user.type).toBe(IconUser)
 
-    const character = renderCategoryIcon('character')
-    expect(character).toBeDefined()
+    const room = renderCategoryIcon('room') as React.ReactElement
+    expect(room.type).toBe(IconArmchair)
 
-    const room = renderCategoryIcon('room')
-    expect(room).toBeDefined()
+    const decor = renderCategoryIcon('decor') as React.ReactElement
+    expect(decor.type).toBe(IconDecor)
 
-    const decor = renderCategoryIcon('decor')
-    expect(decor).toBeDefined()
+    const layers = renderCategoryIcon('layers') as React.ReactElement
+    expect(layers.type).toBe(IconLayersStack)
 
-    const layers = renderCategoryIcon('layers')
-    expect(layers).toBeDefined()
+    const cube = renderCategoryIcon('cube') as React.ReactElement
+    expect(cube.type).toBe(IconCube)
 
-    const cube = renderCategoryIcon('cube')
-    expect(cube).toBeDefined()
+    const home = renderCategoryIcon('home') as React.ReactElement
+    expect(home.type).toBe(IconHome)
+  })
 
-    const home = renderCategoryIcon('home')
-    expect(home).toBeDefined()
+  it('differentiates character gender and semantic icons without duplication', () => {
+    const male = renderCategoryIcon('user-male') as React.ReactElement
+    const female = renderCategoryIcon('user-female') as React.ReactElement
+    const hero = renderCategoryIcon('character_hero') as React.ReactElement
+    const anime = renderCategoryIcon('character_anime') as React.ReactElement
+
+    expect(male.type).toBe(IconUserMale)
+    expect(female.type).toBe(IconUserFemale)
+    expect(hero.type).toBe(IconUserMale)
+    expect(anime.type).toBe(IconUserFemale)
+    expect(male.type).not.toBe(female.type)
+
+    const grid3d = renderCategoryIcon('grid-3d') as React.ReactElement
+    const cube = renderCategoryIcon('cube') as React.ReactElement
+    const prop = renderCategoryIcon('prop') as React.ReactElement
+
+    expect(grid3d.type).toBe(IconGrid3D)
+    expect(cube.type).toBe(IconCube)
+    expect(prop.type).toBe(IconPropLamp)
+    expect(grid3d.type).not.toBe(cube.type)
+    expect(prop.type).not.toBe(cube.type)
   })
 
   it('renders fallback grid icon for unknown keys', () => {
-    const unknown = renderCategoryIcon('unknown_key_xyz')
-    expect(unknown).toBeDefined()
+    const unknown = renderCategoryIcon('unknown_key_xyz') as React.ReactElement
+    expect(unknown.type).toBe(IconGrid)
   })
 })
+

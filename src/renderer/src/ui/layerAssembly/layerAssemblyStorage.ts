@@ -6,7 +6,7 @@ export { BUILTIN_COMPOSITES }
 export const COMPOSITE_CATEGORIES: LayerCompositeCategory[] = [
   { id: 'all', title: 'Tất cả chi tiết', icon: 'layers', order: 0 },
   { id: 'nature', title: 'Cây cối & Thiên nhiên', icon: 'tree', order: 1 },
-  { id: 'prop', title: 'Đạo cụ & Trang trí', icon: 'cube', order: 2 },
+  { id: 'prop', title: 'Đạo cụ & Trang trí', icon: 'prop', order: 2 },
   { id: 'character', title: 'Nhân vật & Sinh vật', icon: 'user', order: 3 },
   { id: 'architecture', title: 'Kiến trúc & Cửa nẻo', icon: 'home', order: 4 },
   { id: 'custom', title: 'Tự tạo & Đã lưu', icon: 'folder', order: 5 }

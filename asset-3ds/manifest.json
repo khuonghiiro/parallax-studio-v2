@@ -3,7 +3,7 @@
     {
       "id": "all",
       "title": "Tất cả mô hình",
-      "icon": "all",
+      "icon": "grid-3d",
       "description": "Toàn bộ mô hình 3D trong thư mục asset-3ds",
       "order": 0
     },

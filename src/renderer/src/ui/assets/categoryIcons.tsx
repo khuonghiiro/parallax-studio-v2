@@ -7,17 +7,32 @@ import {
   IconFilm,
   IconFolder,
   IconGrid,
+  IconGrid3D,
   IconHome,
   IconImage,
   IconLayersStack,
   IconMusic,
+  IconPropLamp,
   IconSparkles,
   IconTree,
-  IconUser
+  IconUser,
+  IconUserFemale,
+  IconUserMale
 } from '../icons'
 
 export function renderCategoryIcon(iconKey: string, width = 16, height = 16): ReactNode {
   switch (iconKey?.toLowerCase()) {
+    case 'user-male':
+    case 'male':
+    case 'hero':
+    case 'character_hero':
+      return <IconUserMale width={width} height={height} />
+    case 'user-female':
+    case 'female':
+    case 'anime':
+    case 'character_anime':
+    case 'girl':
+      return <IconUserFemale width={width} height={height} />
     case 'tree':
     case 'nature':
     case 'plant':
@@ -27,8 +42,6 @@ export function renderCategoryIcon(iconKey: string, width = 16, height = 16): Re
     case 'character':
     case 'person':
     case 'creature':
-    case 'hero':
-    case 'anime':
       return <IconUser width={width} height={height} />
     case 'room':
     case 'interior':
@@ -57,11 +70,17 @@ export function renderCategoryIcon(iconKey: string, width = 16, height = 16): Re
     case 'music':
     case 'sound':
       return <IconMusic width={width} height={height} />
+    case 'grid-3d':
+    case 'models-all':
+      return <IconGrid3D width={width} height={height} />
     case 'cube':
     case '3d':
+    case 'box':
+      return <IconCube width={width} height={height} />
     case 'prop':
     case 'props':
-      return <IconCube width={width} height={height} />
+    case 'lamp':
+      return <IconPropLamp width={width} height={height} />
     case 'layers':
     case 'composite':
     case 'stack':

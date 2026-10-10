@@ -25,7 +25,7 @@ import { IconCube, IconPlus, IconPen, IconTrash, IconCopy } from '../icons'
 import '../../styles/model3dLibrary.css'
 
 const DEFAULT_CATEGORIES: Asset3DsCategory[] = [
-  { id: 'all', title: 'Tất cả mô hình', icon: 'cube', order: 0 },
+  { id: 'all', title: 'Tất cả mô hình', icon: 'grid-3d', order: 0 },
   { id: 'architecture', title: 'Kiến trúc & Nhà cửa', icon: 'home', order: 1 },
   { id: 'props', title: 'Đạo cụ & Khối hộp', icon: 'cube', order: 2 },
   { id: 'street', title: 'Đường phố & Góc cảnh', icon: 'city', order: 3 },

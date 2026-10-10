@@ -19,4 +19,5 @@ Tóm tắt không được vi phạm:
 - Kiểm tra `npm run typecheck` + `npx vitest run` trước khi commit.
 - Tuyệt đối không tự ý kill tiến trình Electron (`Stop-Process electron`) hay tự spawn dev server ngầm trùng lặp; kết nối trực tiếp vào app người dùng đang mở qua MCP (TCP 9877 / `pnpm pxs`) để test/review; Vite tự hot-reload giao diện.
 - Cấm dùng `<select>` native và OS popups (gây treo/lỗi Electron); bắt buộc dùng component 60fps trong `ui/controls/` (`<Menu>`, `<Select>` portal z-index 50000); toolbar chứa menu phải giữ `overflow: visible; z-index: 5000`.
+- Biểu tượng icon trong cùng một dải tab (ngang/dọc) bắt buộc duy nhất và đúng ngữ nghĩa; cấm dùng lại icon trùng lặp; phân biệt rõ nam (`IconUserMale`) và nữ (`IconUserFemale`), khối hộp (`IconCube`) và tổng thể 3D (`IconGrid3D`), phòng (`IconArmchair`) và nhà (`IconHome`), đạo cụ (`IconPropLamp`). Thiếu icon phải tạo mới trong `ui/icons.tsx`.
 - Commit Conventional Commits bằng **tiếng Việt CÓ DẤU**, không nhắc tên AI; commit + push ngay sau mỗi fix/tính năng. Git hooks `.githooks/` sẽ chặn commit sai chuẩn.
