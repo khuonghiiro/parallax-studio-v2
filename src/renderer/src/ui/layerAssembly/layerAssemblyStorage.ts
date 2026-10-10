@@ -13,7 +13,7 @@ export const COMPOSITE_CATEGORIES: LayerCompositeCategory[] = [
 ]
 
 const STORAGE_KEY = 'pxs.layerComposites'
-const SEED_VERSION = 'v8_anime_girl_character'
+const SEED_VERSION = 'v9_character_frontal_depth'
 const SEED_KEY = 'pxs.layerComposites.seeded_version'
 
 export function getStoredComposites(): LayerComposite[] {

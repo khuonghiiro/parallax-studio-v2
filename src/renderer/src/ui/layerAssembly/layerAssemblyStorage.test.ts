@@ -124,4 +124,27 @@ describe('Layer Assembly Workshop Storage System', () => {
     const ruins = list.find((c) => c.id === 'comp-vines-ruins')
     expect(ruins).toBeUndefined()
   })
+
+  it('ensures humanoid rigged character presets have symmetrical frontal depth', () => {
+    const list = getStoredComposites()
+    const knight = list.find((c) => c.id === 'comp-knight-hero')
+    expect(knight).toBeDefined()
+    const armL = knight?.layers.find((l) => l.id === 'knight-arm-l')
+    const armR = knight?.layers.find((l) => l.id === 'knight-arm-r')
+    expect(armL?.z).toBe(armR?.z)
+    const legL = knight?.layers.find((l) => l.id === 'knight-thigh-l')
+    const legR = knight?.layers.find((l) => l.id === 'knight-thigh-r')
+    expect(legL?.z).toBe(legR?.z)
+    const foreL = knight?.layers.find((l) => l.id === 'knight-forearm-l')
+    const foreR = knight?.layers.find((l) => l.id === 'knight-forearm-r')
+    expect(foreL?.z).toBe(foreR?.z)
+
+    const anime = list.find((c) => c.id === 'comp-anime-girl-hero')
+    expect(anime).toBeDefined()
+    const aArmL = anime?.layers.find((l) => l.id === 'anime-arm-l')
+    const aArmR = anime?.layers.find((l) => l.id === 'anime-arm-r')
+    expect(aArmL?.z).toBe(aArmR?.z)
+    const hairBack = anime?.layers.find((l) => l.id === 'anime-hair-back')
+    expect(hairBack?.z).toBeGreaterThan(0) // Tóc sau lưng nằm ở hậu cảnh
+  })
 })
