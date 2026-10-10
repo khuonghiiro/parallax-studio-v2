@@ -328,13 +328,6 @@ export function LayerAssemblyViewport({
   const handleStartDragLayer = (e: React.PointerEvent, layer: AssembledLayerItem) => {
     e.stopPropagation()
 
-    // Nếu popup điều chỉnh cọ đang mở: click vào layer chỉ đóng popup an toàn, KHÔNG vẽ cọ hay kéo layer
-    if (brush.isBrushPopoverOpen) {
-      brush.setIsBrushPopoverOpen(false)
-      brush.setCursorPos(null)
-      return
-    }
-
     // Nếu đang ở công cụ Cọ Tẩy (Eraser):
     if (brush.activeTool === 'eraser') {
       if (layer.id !== selectedLayerId) {

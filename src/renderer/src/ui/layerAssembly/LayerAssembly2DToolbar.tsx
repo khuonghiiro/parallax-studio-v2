@@ -82,17 +82,16 @@ export function LayerAssembly2DToolbar({
   const [isLightingOpen, setIsLightingOpen] = useState(false)
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null)
 
-  const brushBtnRef = useRef<HTMLButtonElement | null>(null)
   const lightingBtnRef = useRef<HTMLButtonElement | null>(null)
   const dockRef = useRef<HTMLDivElement | null>(null)
 
   // Đóng popover an toàn khi click ra ngoài hoặc bấm phím Escape
   useEffect(() => {
-    if (!isBrushPopoverOpen && !isLightingOpen) return
+    if (!isLightingOpen) return
 
     const handlePointerDown = (e: PointerEvent): void => {
       const target = e.target as HTMLElement | null
-      if (target?.closest?.('.layer-workshop-popover-menu') || target?.closest?.('.layer-brush-popover')) {
+      if (target?.closest?.('.layer-workshop-popover-menu')) {
         return
       }
       if (lightingBtnRef.current?.contains(target as Node)) {
@@ -103,7 +102,6 @@ export function LayerAssembly2DToolbar({
 
     const handleKeyDown = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') {
-        onCloseBrushPopover()
         setIsLightingOpen(false)
       }
     }
@@ -114,10 +112,10 @@ export function LayerAssembly2DToolbar({
       window.removeEventListener('pointerdown', handlePointerDown)
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [isBrushPopoverOpen, isLightingOpen, onCloseBrushPopover])
+  }, [isLightingOpen])
 
   const showTooltip = (e: React.MouseEvent<HTMLElement>, key: string) => {
-    if (isBrushPopoverOpen || isLightingOpen) return
+    if (isLightingOpen) return
     const rect = e.currentTarget.getBoundingClientRect()
 
     const map: Record<string, { title: string; sub?: string; desc: string; tip?: string }> = {
