@@ -69,119 +69,125 @@ export function generateWalkCycle(bones: LayerBone[], duration = 1.6): Record<st
   const torso = has('torso') ?? has('thân')
   const head = has('head') ?? has('đầu')
 
+  // Pelvis / Hông (Root): 2 bước chân mỗi chu kỳ
+  // Nhún xuống (contact y: 3) và nâng lên (passing y: -2), đồng thời lắc nhẹ hông sang trái/phải theo chân trụ
   if (pelvis) {
     tracks[pelvis] = [
-      smoothKey(0, 0, 0, 0, 1.0, 1.0),
-      smoothKey(d * 0.15, -1.5, 0, 4.5, 1.03, 0.97),
-      smoothKey(d * 0.35, 0, 0, -2, 0.98, 1.02),
-      smoothKey(d * 0.50, 0, 0, 0, 1.0, 1.0),
-      smoothKey(d * 0.65, 1.5, 0, 4.5, 1.03, 0.97),
-      smoothKey(d * 0.85, 0, 0, -2, 0.98, 1.02),
-      smoothKey(d, 0, 0, 0, 1.0, 1.0)
+      smoothKey(0, 0, 0, 3, 1.02, 0.98),
+      smoothKey(d * 0.15, -1.2, -2.5, -2, 0.98, 1.02),
+      smoothKey(d * 0.35, 0, 0, 3, 1.02, 0.98),
+      smoothKey(d * 0.50, 0, 0, -1, 1.0, 1.0),
+      smoothKey(d * 0.65, 1.2, 2.5, -2, 0.98, 1.02),
+      smoothKey(d * 0.85, 0, 0, 3, 1.02, 0.98),
+      smoothKey(d, 0, 0, 3, 1.02, 0.98)
     ]
   }
 
+  // Torso / Ngực: Đối trọng nhẹ giữ thăng bằng
   if (torso) {
     tracks[torso] = [
       smoothKey(0, 0),
-      smoothKey(d * 0.25, 2.5),
+      smoothKey(d * 0.20, 1.0),
       smoothKey(d * 0.50, 0),
-      smoothKey(d * 0.75, -2.5),
+      smoothKey(d * 0.70, -1.0),
       smoothKey(d, 0)
     ]
   }
 
+  // Head / Đầu: Gật nhẹ theo nhịp bước
   if (head) {
     tracks[head] = [
       smoothKey(0, 0),
-      smoothKey(d * 0.25, -1.5),
+      smoothKey(d * 0.25, -0.8),
       smoothKey(d * 0.50, 0),
-      smoothKey(d * 0.75, 1.5),
+      smoothKey(d * 0.75, 0.8),
       smoothKey(d, 0)
     ]
   }
 
+  // Đùi trái & Cẳng chân trái (Bước đi chính diện: co gối nhấc chân và tiếp đất)
   if (thighL) {
     tracks[thighL] = [
-      smoothKey(0, 24),
-      smoothKey(d * 0.15, 12),
-      smoothKey(d * 0.35, -4),
-      smoothKey(d * 0.50, -22),
-      smoothKey(d * 0.65, -8),
-      smoothKey(d * 0.85, 18),
-      smoothKey(d, 24)
+      smoothKey(0, 0, 0, 0, 1.0, 1.0),
+      smoothKey(d * 0.20, 1.5, 0, 1, 1.0, 1.0),
+      smoothKey(d * 0.45, 0, 0, 0, 1.0, 1.0),
+      smoothKey(d * 0.65, -3.0, 0, -6, 0.98, 0.94),
+      smoothKey(d * 0.85, -1.0, 0, -2, 1.0, 0.98),
+      smoothKey(d, 0, 0, 0, 1.0, 1.0)
     ]
   }
   if (shinL) {
     tracks[shinL] = [
-      smoothKey(0, 2),
-      smoothKey(d * 0.15, 16),
-      smoothKey(d * 0.35, 4),
-      smoothKey(d * 0.50, 2),
-      smoothKey(d * 0.65, 48),
-      smoothKey(d * 0.85, 12),
-      smoothKey(d, 2)
+      smoothKey(0, 0, 0, 0, 1.0, 1.0),
+      smoothKey(d * 0.20, 0, 0, 0, 1.0, 1.0),
+      smoothKey(d * 0.45, 0, 0, 0, 1.0, 1.0),
+      smoothKey(d * 0.65, 2.5, 0, -4, 0.98, 0.95),
+      smoothKey(d * 0.85, 1.0, 0, -1, 1.0, 0.99),
+      smoothKey(d, 0, 0, 0, 1.0, 1.0)
     ]
   }
 
+  // Đùi phải & Cẳng chân phải (Lệch pha nửa chu kỳ 0.5 * d)
   if (thighR) {
     tracks[thighR] = [
-      smoothKey(0, -22),
-      smoothKey(d * 0.15, -8),
-      smoothKey(d * 0.35, 18),
-      smoothKey(d * 0.50, 24),
-      smoothKey(d * 0.65, 12),
-      smoothKey(d * 0.85, -4),
-      smoothKey(d, -22)
+      smoothKey(0, 0, 0, 0, 1.0, 1.0),
+      smoothKey(d * 0.15, -3.0, 0, -6, 0.98, 0.94),
+      smoothKey(d * 0.35, -1.0, 0, -2, 1.0, 0.98),
+      smoothKey(d * 0.50, 0, 0, 0, 1.0, 1.0),
+      smoothKey(d * 0.70, 1.5, 0, 1, 1.0, 1.0),
+      smoothKey(d * 0.90, 0, 0, 0, 1.0, 1.0),
+      smoothKey(d, 0, 0, 0, 1.0, 1.0)
     ]
   }
   if (shinR) {
     tracks[shinR] = [
-      smoothKey(0, 2),
-      smoothKey(d * 0.15, 48),
-      smoothKey(d * 0.35, 12),
-      smoothKey(d * 0.50, 2),
-      smoothKey(d * 0.65, 16),
-      smoothKey(d * 0.85, 4),
-      smoothKey(d, 2)
+      smoothKey(0, 0, 0, 0, 1.0, 1.0),
+      smoothKey(d * 0.15, 2.5, 0, -4, 0.98, 0.95),
+      smoothKey(d * 0.35, 1.0, 0, -1, 1.0, 0.99),
+      smoothKey(d * 0.50, 0, 0, 0, 1.0, 1.0),
+      smoothKey(d * 0.70, 0, 0, 0, 1.0, 1.0),
+      smoothKey(d * 0.90, 0, 0, 0, 1.0, 1.0),
+      smoothKey(d, 0, 0, 0, 1.0, 1.0)
     ]
   }
 
+  // Bắp tay & Cẳng tay trái (Vung đón nhịp ngược với chân trái)
   if (armL) {
     tracks[armL] = [
-      smoothKey(0, -22),
-      smoothKey(d * 0.25, -8),
-      smoothKey(d * 0.50, 16),
-      smoothKey(d * 0.75, -4),
-      smoothKey(d, -22)
+      smoothKey(0, -3.5, 0, -1),
+      smoothKey(d * 0.25, 3.0, 0, 1),
+      smoothKey(d * 0.50, 4.5, 0, 2),
+      smoothKey(d * 0.75, -2.0, 0, 0),
+      smoothKey(d, -3.5, 0, -1)
     ]
   }
   if (forearmL) {
     tracks[forearmL] = [
-      smoothKey(0, 32),
-      smoothKey(d * 0.25, 18),
-      smoothKey(d * 0.50, 8),
-      smoothKey(d * 0.75, 16),
-      smoothKey(d, 32)
+      smoothKey(0, 4.0, 0, -1),
+      smoothKey(d * 0.25, -2.0, 0, 1),
+      smoothKey(d * 0.50, -4.0, 0, 1),
+      smoothKey(d * 0.75, 3.0, 0, 0),
+      smoothKey(d, 4.0, 0, -1)
     ]
   }
 
+  // Bắp tay & Cẳng tay phải
   if (armR) {
     tracks[armR] = [
-      smoothKey(0, 16),
-      smoothKey(d * 0.25, -4),
-      smoothKey(d * 0.50, -22),
-      smoothKey(d * 0.75, -8),
-      smoothKey(d, 16)
+      smoothKey(0, 4.5, 0, 2),
+      smoothKey(d * 0.25, -2.0, 0, 0),
+      smoothKey(d * 0.50, -3.5, 0, -1),
+      smoothKey(d * 0.75, 3.0, 0, 1),
+      smoothKey(d, 4.5, 0, 2)
     ]
   }
   if (forearmR) {
     tracks[forearmR] = [
-      smoothKey(0, 8),
-      smoothKey(d * 0.25, 16),
-      smoothKey(d * 0.50, 32),
-      smoothKey(d * 0.75, 18),
-      smoothKey(d, 8)
+      smoothKey(0, -4.0, 0, 1),
+      smoothKey(d * 0.25, 3.0, 0, 0),
+      smoothKey(d * 0.50, 4.0, 0, -1),
+      smoothKey(d * 0.75, -2.0, 0, 1),
+      smoothKey(d, -4.0, 0, 1)
     ]
   }
 

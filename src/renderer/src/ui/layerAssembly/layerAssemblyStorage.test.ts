@@ -138,6 +138,8 @@ describe('Layer Assembly Workshop Storage System', () => {
     const foreL = knight?.layers.find((l) => l.id === 'knight-forearm-l')
     const foreR = knight?.layers.find((l) => l.id === 'knight-forearm-r')
     expect(foreL?.z).toBe(foreR?.z)
+    // Đảm bảo có độ giãn chiều sâu Z rõ rệt giữa các tầng lớp (không bị hợp nhất phẳng)
+    expect(legL!.z - foreL!.z).toBeGreaterThan(40)
 
     const anime = list.find((c) => c.id === 'comp-anime-girl-hero')
     expect(anime).toBeDefined()
@@ -146,5 +148,6 @@ describe('Layer Assembly Workshop Storage System', () => {
     expect(aArmL?.z).toBe(aArmR?.z)
     const hairBack = anime?.layers.find((l) => l.id === 'anime-hair-back')
     expect(hairBack?.z).toBeGreaterThan(0) // Tóc sau lưng nằm ở hậu cảnh
+    expect(hairBack!.z - aArmL!.z).toBeGreaterThan(40)
   })
 })
