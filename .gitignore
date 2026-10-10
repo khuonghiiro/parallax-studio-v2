@@ -59,4 +59,3 @@ bin/*.exe
 
 # AI Agent runtime artifacts
 .claude/
-.agents/

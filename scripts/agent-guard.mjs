@@ -62,7 +62,7 @@ function runPreCommit() {
   const staged = git(['diff', '--cached', '--name-only', '--diff-filter=ACMR', '-z']).split('\0').filter(Boolean)
   const errors = []
   for (const path of staged) {
-    if (/^(assets|asset-3ds|resources|out|dist)\//.test(path)) continue
+    if (/^(assets|asset-3ds|resources|out|dist|\.agents)\//.test(path)) continue
     let content = ''
     try {
       content = git(['show', `:${path}`])

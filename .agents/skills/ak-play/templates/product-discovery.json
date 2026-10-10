@@ -1,0 +1,351 @@
+{
+  "id": "product-discovery",
+  "name": "Product Discovery (Founder / Product Owner)",
+  "version": "1.0.0",
+  "author": {
+    "name": "AgentKit",
+    "url": "https://agentkit.best"
+  },
+  "tags": [
+    "product-owner",
+    "founder",
+    "startup",
+    "discovery",
+    "market-research",
+    "competitor",
+    "positioning",
+    "validation"
+  ],
+  "estimatedDuration": "3 weeks",
+  "difficulty": "beginner",
+  "ai_models_used": [
+    "claude-sonnet",
+    "claude-opus"
+  ],
+  "inputs": {
+    "required": [
+      {
+        "key": "venture_name",
+        "type": "string",
+        "prompt": "Working name of the product or venture"
+      },
+      {
+        "key": "problem_statement",
+        "type": "string",
+        "prompt": "The customer problem you believe you are solving, in one sentence"
+      },
+      {
+        "key": "target_customer",
+        "type": "string",
+        "prompt": "Who you believe has this problem (role, industry, company size, or consumer segment)"
+      }
+    ],
+    "optional": [
+      {
+        "key": "competitors",
+        "type": "array",
+        "default": [],
+        "prompt": "Known competitors or current alternatives, including manual workarounds"
+      },
+      {
+        "key": "geography",
+        "type": "string",
+        "default": "global",
+        "prompt": "Primary market or geography to research first"
+      },
+      {
+        "key": "product_url",
+        "type": "url",
+        "prompt": "Existing landing page or product URL, if any"
+      },
+      {
+        "key": "discovery_budget",
+        "type": "number",
+        "default": 0,
+        "prompt": "Budget available for discovery experiments in USD"
+      },
+      {
+        "key": "decision_deadline",
+        "type": "string",
+        "default": "3 weeks",
+        "prompt": "When you need a build / pivot / stop decision"
+      }
+    ]
+  },
+  "goal_targets": {
+    "customer_conversations": {
+      "default": 10,
+      "metric": "manual"
+    },
+    "validated_problem_signals": {
+      "default": 5,
+      "metric": "manual"
+    },
+    "signups": {
+      "default": 50,
+      "metric": "manual"
+    },
+    "page_views": {
+      "default": 500,
+      "metric": "ga4"
+    }
+  },
+  "stages": [
+    {
+      "id": "evidence",
+      "name": "Market and Audience Evidence",
+      "steps": [
+        {
+          "id": "market-research",
+          "name": "Market and Demand Research",
+          "strategy": "Start from the demand that already exists, not from the product you want to build. Establish who is spending money or effort on this problem today, how big that spend is, and which trend makes the problem more urgent this year than last. Write down, before any research runs, the single finding that would make you abandon the idea — a discovery process without a kill criterion always confirms the founder.",
+          "ai_execution": "Run evidence-first market research: size the demand from published data, mine forums, review sites, job posts, and communities for people describing the problem in their own words, and separate observed behavior from opinion. Return sources with links so every claim stays checkable.",
+          "human_decision": "Decide which evidence you trust and which is vendor marketing. Confirm the market is one you actually want to serve for several years, and state the kill criterion explicitly before continuing.",
+          "agent": "researcher",
+          "skills": [
+            "marketing-research"
+          ],
+          "outputs": [
+            "market-evidence.md",
+            "demand-signals.md"
+          ],
+          "dependsOn": [],
+          "parallel": false,
+          "gate": null
+        },
+        {
+          "id": "competitor-landscape",
+          "name": "Competitor and Alternative Mapping",
+          "strategy": "Map three layers of competition: direct products, indirect solutions to the same job, and the status quo of a spreadsheet, an intern, or doing nothing. For an early-stage venture the status quo wins most deals, so the map is useless unless it names why people tolerate it. Look for the segment every incumbent deliberately underserves — that is where a small team can win.",
+          "ai_execution": "Analyze competitor positioning, pricing, feature coverage, and public customer complaints; produce a comparison matrix and a list of unserved or badly served segments. Record what each incumbent chose not to do and whether that was a trade-off or an oversight.",
+          "human_decision": "Judge which incumbent weaknesses are genuine openings versus deliberate trade-offs you would also make. Decide whether entering this market means beating a product or beating an ingrained habit.",
+          "agent": "researcher",
+          "skills": [
+            "competitor",
+            "marketing-research"
+          ],
+          "outputs": [
+            "competitor-matrix.md",
+            "alternatives-map.md"
+          ],
+          "dependsOn": [
+            "market-research"
+          ],
+          "parallel": true,
+          "gate": null
+        },
+        {
+          "id": "audience-evidence",
+          "name": "Customer Segment and Buying Trigger",
+          "strategy": "A segment is defined by a trigger, not by demographics. Capture what happens in someone's week that makes them start looking, the words they use for the problem, what they already tried, and who else has to agree before money moves. Ten real conversations beat a hundred survey answers, and they are the only part of discovery an AI cannot do for you.",
+          "ai_execution": "Build evidence-backed segment profiles from review mining, community analysis, and public discussion: buying triggers, prior attempts, objection patterns, and decision makers. Generate a short interview script with non-leading questions and a log template for recording answers.",
+          "human_decision": "Run the interviews yourself and record what contradicts your assumption, not only what supports it. Choose one primary segment to serve first; serving several at discovery stage guarantees a blurred product.",
+          "agent": "researcher",
+          "skills": [
+            "marketing-research",
+            "marketing-psychology"
+          ],
+          "outputs": [
+            "segment-profiles.md",
+            "interview-script.md",
+            "interview-log.md"
+          ],
+          "dependsOn": [
+            "market-research"
+          ],
+          "parallel": true,
+          "gate": "founder-decision"
+        }
+      ]
+    },
+    {
+      "id": "framing",
+      "name": "Opportunity Framing",
+      "steps": [
+        {
+          "id": "opportunity-options",
+          "name": "Opportunity Generation and Comparison",
+          "strategy": "Generate several distinct ways to attack the validated problem before committing to one, and compare them on the same axes: evidence strength, time to first paying customer, cost to test, and what each one forecloses. The goal of this step is an explicit contract — outcome, constraints, non-goals, and acceptance criteria — so later steps can be judged instead of rationalized.",
+          "ai_execution": "Expand the validated problem into distinct product and go-to-market options drawn from the idea catalog and the research evidence, then compare them against the stated constraints and return a recommendation with its reasoning and its main risk.",
+          "human_decision": "Choose one option and write down what you are deliberately not doing. Founders lose months to an unranked option list; pick, record the non-goals, and accept that the other options stay parked.",
+          "agent": "researcher",
+          "skills": [
+            "brainstorm",
+            "marketing-ideas",
+            "creativity"
+          ],
+          "outputs": [
+            "opportunity-options.md",
+            "opportunity-contract.md"
+          ],
+          "dependsOn": [
+            "competitor-landscape",
+            "audience-evidence"
+          ],
+          "parallel": false,
+          "gate": "founder-decision"
+        },
+        {
+          "id": "positioning",
+          "name": "Positioning and Value Narrative",
+          "strategy": "Positioning is the mental slot you occupy for the chosen segment, not a description of your features. Use the form: for [segment] who [trigger], [product] is the [category] that [differentiator], unlike [current alternative] which [limitation]. If the differentiator is not something the interviewees complained about, it is a preference of yours, not a position.",
+          "ai_execution": "Draft positioning options under established frameworks, derive the message hierarchy for site, pitch, and conversations, and check every claim against the research evidence so nothing is asserted that the sources do not support.",
+          "human_decision": "Choose the position that is both true today and defensible as you grow. Test the wording on people from the segment and keep the version they repeat back correctly, not the one you like most.",
+          "agent": "copywriter",
+          "skills": [
+            "copywriting",
+            "marketing-psychology",
+            "competitor"
+          ],
+          "outputs": [
+            "positioning.md",
+            "message-hierarchy.md"
+          ],
+          "dependsOn": [
+            "opportunity-options"
+          ],
+          "parallel": false,
+          "gate": "brand-review"
+        },
+        {
+          "id": "offer-and-pricing",
+          "name": "Offer Shape and Pricing Hypothesis",
+          "strategy": "Price is part of discovery, not an afterthought: what someone will pay is the sharpest signal of how much the problem hurts. Form a pricing hypothesis from the value the segment already loses to the problem, and design the offer so the first purchase is small enough to decide quickly and large enough to prove intent.",
+          "ai_execution": "Model pricing options against the segment's willingness to pay, competitor pricing, and the value at stake; return the recommended model, the packaging, and the questions that would falsify it.",
+          "human_decision": "Decide whether you are testing willingness to pay now or later, and accept the consequence: free sign-ups validate curiosity, payment validates the problem.",
+          "agent": "funnel-architect",
+          "skills": [
+            "pricing-strategy",
+            "marketing-psychology"
+          ],
+          "outputs": [
+            "pricing-hypothesis.md",
+            "offer-shape.md"
+          ],
+          "dependsOn": [
+            "positioning"
+          ],
+          "parallel": false,
+          "gate": null
+        }
+      ]
+    },
+    {
+      "id": "validation",
+      "name": "Demand Validation",
+      "steps": [
+        {
+          "id": "demand-test",
+          "name": "Smallest Test That Can Falsify the Idea",
+          "strategy": "Design the cheapest test that could prove you wrong within the decision deadline: a landing page with a real call to action, a concierge delivery for five customers, or a pre-order. Define the pass threshold in numbers before the test runs. A test without a pre-committed threshold becomes a story you tell about ambiguous results.",
+          "ai_execution": "Turn the positioning and offer into the test assets and the measurement plan: page copy, the call to action, tracking events, sample-size expectations, and the decision table mapping each result range to a build, pivot, or stop conclusion.",
+          "human_decision": "Commit to the pass threshold in writing before launch, and authorize any spending or outreach yourself. Discovery assets drafted here are not published, sent, or paid for without your explicit approval.",
+          "agent": "campaign-manager",
+          "skills": [
+            "marketing-research",
+            "copywriting",
+            "analytics"
+          ],
+          "outputs": [
+            "demand-test-plan.md",
+            "test-assets/",
+            "decision-table.md"
+          ],
+          "dependsOn": [
+            "offer-and-pricing"
+          ],
+          "parallel": false,
+          "gate": "human-approval"
+        },
+        {
+          "id": "evidence-review",
+          "name": "Result Review Against the Threshold",
+          "strategy": "Read the results against the threshold you wrote down, not against your hopes. Separate the three outcomes cleanly: the problem is real and this offer sells, the problem is real but this offer does not, or the problem is not urgent. Only the second calls for another iteration inside the same market.",
+          "ai_execution": "Collect the test metrics and interview notes, compare them with the decision table, and report what the evidence supports and where it is too thin to conclude — including the sample size needed before the number means anything.",
+          "human_decision": "Make the build, pivot, or stop call yourself and state the reason. Stopping on honest evidence is a successful discovery outcome, not a failed one.",
+          "agent": "analytics-analyst",
+          "skills": [
+            "analytics",
+            "marketing-research"
+          ],
+          "outputs": [
+            "evidence-review.md"
+          ],
+          "dependsOn": [
+            "demand-test"
+          ],
+          "parallel": false,
+          "gate": "founder-decision"
+        }
+      ]
+    },
+    {
+      "id": "commitment",
+      "name": "Commitment and Follow-through",
+      "steps": [
+        {
+          "id": "go-to-market-plan",
+          "name": "First Go-to-Market Plan",
+          "strategy": "Plan only as far as the evidence reaches: the first channel, the first offer, and the metric that tells you within weeks whether it works. A discovery-stage plan that schedules six months of activity commits you to assumptions the research has not tested yet.",
+          "ai_execution": "Convert the validated positioning, offer, and segment into a channel plan with owners, sequencing, and the leading indicator per activity, and mark which assumptions each activity still depends on.",
+          "human_decision": "Decide what you can actually staff and fund, and cut the rest. Name the review date on which the plan gets re-checked against real numbers.",
+          "agent": "campaign-manager",
+          "skills": [
+            "marketing-planning",
+            "launch-strategy"
+          ],
+          "outputs": [
+            "go-to-market-plan.md"
+          ],
+          "dependsOn": [
+            "evidence-review"
+          ],
+          "parallel": false,
+          "gate": "human-approval"
+        },
+        {
+          "id": "decision-record",
+          "name": "Discovery Decision Record",
+          "strategy": "Record what you learned, what you decided, and which assumptions are still unproven. Six weeks later nobody remembers why a segment was dropped, and the team re-litigates a settled question. The record is also the briefing an engineering partner or investor needs to act without a rerun of the research.",
+          "ai_execution": "Assemble the discovery journal from the artifacts produced in this playbook: evidence, decisions, rejected options and why, open assumptions, and the next review date.",
+          "human_decision": "Confirm the record matches what actually happened, including the parts that went badly, and decide who else needs to read it. If the call was build, this record is the input an engineering plan starts from, so it has to carry the open assumptions, not only the conclusion.",
+          "agent": "journal-writer",
+          "skills": [
+            "journal"
+          ],
+          "outputs": [
+            "discovery-decision-record.md"
+          ],
+          "dependsOn": [
+            "go-to-market-plan"
+          ],
+          "parallel": false,
+          "gate": null
+        }
+      ]
+    }
+  ],
+  "gates": {
+    "founder-decision": {
+      "type": "manual",
+      "prompt": "Founder or Product Owner decision required. Review the evidence above, state the decision and its reason, and confirm which assumptions remain unproven before continuing.",
+      "blocksAll": true
+    },
+    "brand-review": {
+      "type": "auto",
+      "checker": "content-reviewer",
+      "criteria": [
+        "evidence-backed-claims",
+        "positioning-alignment",
+        "competitive-fairness",
+        "tone-alignment"
+      ],
+      "pass_threshold": 0.8
+    },
+    "human-approval": {
+      "type": "manual",
+      "prompt": "Review the assets and the measurement plan. Approve before anything is published, sent, or paid for.",
+      "blocksAll": true
+    }
+  }
+}
