@@ -1,5 +1,19 @@
 import { generateWalkCycle, generateRunCycle } from './workshopWalkCycle'
 export { generateWalkCycle, generateRunCycle } from './workshopWalkCycle'
+import {
+  createFullHumanoidBones,
+  createHandDetailedBones,
+  createFootDetailedBones,
+  generateHandFistClench,
+  generateFootHeelToeRoll
+} from './workshopHandFootRig'
+export {
+  createFullHumanoidBones,
+  createHandDetailedBones,
+  createFootDetailedBones,
+  generateHandFistClench,
+  generateFootHeelToeRoll
+} from './workshopHandFootRig'
 import type { AnimationClip, BoneKeyframe, LayerBone, LayerRig, MotionViewAngle } from '@shared/layerRig'
 import type { LayerComposite } from './types'
 
@@ -33,7 +47,17 @@ export function createSimpleChainBones(): LayerBone[] {
   ]
 }
 
-export type ProceduralMotionPreset = 'walk' | 'idle' | 'wave' | 'bow' | 'run' | 'jump' | 'action' | 'sway'
+export type ProceduralMotionPreset =
+  | 'walk'
+  | 'idle'
+  | 'wave'
+  | 'bow'
+  | 'run'
+  | 'jump'
+  | 'action'
+  | 'sway'
+  | 'hand-clench'
+  | 'foot-roll'
 
 export interface MotionPresetInfo {
   id: ProceduralMotionPreset
@@ -51,7 +75,9 @@ export const MOTION_PRESETS: MotionPresetInfo[] = [
   { id: 'run', name: 'Chạy nhanh (Run)', icon: '🏃', duration: 1.0, description: 'Sải chân dứt khoát, tay vung nhịp nhanh' },
   { id: 'jump', name: 'Nhún nhảy (Jump)', icon: '🦘', duration: 1.4, description: 'Chùng gối lấy đà bật nhảy lên cao rồi tiếp đất êm ái' },
   { id: 'action', name: 'Vung đòn (Action)', icon: '⚔️', duration: 1.5, description: 'Tư thế vung tay ra đòn uy lực, dứt khoát' },
-  { id: 'sway', name: 'Uốn lượn (Sway)', icon: '🌊', duration: 2.0, description: 'Lượn sóng dẻo dai cho cành lá, cây cối, tóc hoặc đuôi' }
+  { id: 'sway', name: 'Uốn lượn (Sway)', icon: '🌊', duration: 2.0, description: 'Lượn sóng dẻo dai cho cành lá, cây cối, tóc hoặc đuôi' },
+  { id: 'hand-clench', name: 'Nắm & Xòe bàn tay (Hand Clench)', icon: '✊', duration: 2.0, description: 'Diễn hoạt bàn tay: từ xòe tự nhiên uốn cong các ngón thành nắm đấm rồi thả lỏng' },
+  { id: 'foot-roll', name: 'Nhón chân & Chạm gót (Heel-Toe Roll)', icon: '🩰', duration: 2.0, description: 'Diễn hoạt cẳng chân và bàn chân: gót chạm sàn, cuộn mu bàn chân và nhón mũi chân dẻo dai' }
 ]
 
 function smoothKey(
@@ -89,6 +115,11 @@ function findBoneId(bones: LayerBone[], keywords: string[]): string | undefined 
 export function generateIdleBreathe(bones: LayerBone[], duration = 2.4): Record<string, BoneKeyframe[]> {
   const tracks: Record<string, BoneKeyframe[]> = {}
   const d = duration
+  const handL = findBoneId(bones, ['hand-l', 'hand_l', 'bàn tay trái'])
+  const handR = findBoneId(bones, ['hand-r', 'hand_r', 'bàn tay phải'])
+  const footL = findBoneId(bones, ['foot-l', 'foot_l', 'bàn chân trái'])
+  const footR = findBoneId(bones, ['foot-r', 'foot_r', 'bàn chân phải'])
+
   for (const [idx, b] of bones.entries()) {
     const isRoot = !b.parentId
     const amp = isRoot ? 1.5 : (b.length > 60 ? 3.5 : 2)
@@ -98,6 +129,13 @@ export function generateIdleBreathe(bones: LayerBone[], duration = 2.4): Record<
       smoothKey(d, 0, 0, 0)
     ]
   }
+
+  // Micro-sways mềm mại cho bàn tay và bàn chân tiếp đất
+  if (handL) tracks[handL] = [smoothKey(0, 0), smoothKey(d * 0.5, 3), smoothKey(d, 0)]
+  if (handR) tracks[handR] = [smoothKey(0, 0), smoothKey(d * 0.5, -3), smoothKey(d, 0)]
+  if (footL) tracks[footL] = [smoothKey(0, 0), smoothKey(d * 0.5, 0.5), smoothKey(d, 0)]
+  if (footR) tracks[footR] = [smoothKey(0, 0), smoothKey(d * 0.5, -0.5), smoothKey(d, 0)]
+
   return tracks
 }
 
@@ -108,6 +146,9 @@ export function generateWaveHand(bones: LayerBone[], duration = 1.8): Record<str
   const armR = findBoneId(bones, ['arm-r', 'arm_r', 'bắp tay phải', 'upperarm-r']) ?? bones[1]?.id
   const forearmR = findBoneId(bones, ['forearm-r', 'forearm_r', 'cẳng tay phải', 'lowerarm-r']) ?? bones[2]?.id
   const handR = findBoneId(bones, ['hand-r', 'hand_r', 'bàn tay phải'])
+  const handL = findBoneId(bones, ['hand-l', 'hand_l', 'bàn tay trái'])
+  const footL = findBoneId(bones, ['foot-l', 'foot_l', 'bàn chân trái'])
+  const footR = findBoneId(bones, ['foot-r', 'foot_r', 'bàn chân phải'])
   const torso = findBoneId(bones, ['torso', 'thân', 'ngực'])
 
   if (torso) {
@@ -145,6 +186,15 @@ export function generateWaveHand(bones: LayerBone[], duration = 1.8): Record<str
       smoothKey(d, 0)
     ]
   }
+  if (handL) {
+    tracks[handL] = [
+      smoothKey(0, 0),
+      smoothKey(d * 0.5, 5),
+      smoothKey(d, 0)
+    ]
+  }
+  if (footL) tracks[footL] = [smoothKey(0, 0), smoothKey(d * 0.5, -1.5), smoothKey(d, 0)]
+  if (footR) tracks[footR] = [smoothKey(0, 0), smoothKey(d * 0.5, 1.5), smoothKey(d, 0)]
 
   // Other bones breathe gently
   for (const b of bones) {
@@ -206,6 +256,16 @@ export function generateBow(bones: LayerBone[], duration = 2.0): Record<string, 
     ]
   }
 
+  const handL = findBoneId(bones, ['hand-l', 'hand_l', 'bàn tay trái'])
+  const handR = findBoneId(bones, ['hand-r', 'hand_r', 'bàn tay phải'])
+  const footL = findBoneId(bones, ['foot-l', 'foot_l', 'bàn chân trái'])
+  const footR = findBoneId(bones, ['foot-r', 'foot_r', 'bàn chân phải'])
+
+  if (handL) tracks[handL] = [smoothKey(0, 0), smoothKey(d * 0.45, 12), smoothKey(d * 0.65, 12), smoothKey(d, 0)]
+  if (handR) tracks[handR] = [smoothKey(0, 0), smoothKey(d * 0.45, 12), smoothKey(d * 0.65, 12), smoothKey(d, 0)]
+  if (footL) tracks[footL] = [smoothKey(0, 0), smoothKey(d * 0.45, -2), smoothKey(d, 0)]
+  if (footR) tracks[footR] = [smoothKey(0, 0), smoothKey(d * 0.45, -2), smoothKey(d, 0)]
+
   for (const b of bones) {
     if (!tracks[b.id]) {
       tracks[b.id] = [smoothKey(0, 0), smoothKey(d * 0.5, 0), smoothKey(d, 0)]
@@ -226,6 +286,10 @@ export function generateJump(bones: LayerBone[], duration = 1.4): Record<string,
   const shinR = findBoneId(bones, ['shin-r', 'shin_r', 'cẳng chân phải'])
   const armL = findBoneId(bones, ['arm-l', 'arm_l', 'bắp tay trái'])
   const armR = findBoneId(bones, ['arm-r', 'arm_r', 'bắp tay phải'])
+  const footL = findBoneId(bones, ['foot-l', 'foot_l', 'bàn chân trái'])
+  const footR = findBoneId(bones, ['foot-r', 'foot_r', 'bàn chân phải'])
+  const handL = findBoneId(bones, ['hand-l', 'hand_l', 'bàn tay trái'])
+  const handR = findBoneId(bones, ['hand-r', 'hand_r', 'bàn tay phải'])
 
   if (pelvis) {
     tracks[pelvis] = [
@@ -281,6 +345,24 @@ export function generateJump(bones: LayerBone[], duration = 1.4): Record<string,
       smoothKey(d, 0)
     ]
   }
+  if (footL) {
+    tracks[footL] = [
+      smoothKey(0, 0),
+      smoothKey(d * 0.25, -14), // Gập cổ chân lấy đà
+      smoothKey(d * 0.55, 28),  // Duỗi mũi chân trên không
+      smoothKey(d * 0.85, -12), // Giảm chấn tiếp đất
+      smoothKey(d, 0)
+    ]
+  }
+  if (footR) {
+    tracks[footR] = [
+      smoothKey(0, 0),
+      smoothKey(d * 0.25, -14),
+      smoothKey(d * 0.55, 28),
+      smoothKey(d * 0.85, -12),
+      smoothKey(d, 0)
+    ]
+  }
   if (armL) {
     tracks[armL] = [
       smoothKey(0, 0),
@@ -296,6 +378,24 @@ export function generateJump(bones: LayerBone[], duration = 1.4): Record<string,
       smoothKey(d * 0.25, 22),
       smoothKey(d * 0.55, -45),
       smoothKey(d * 0.85, 15),
+      smoothKey(d, 0)
+    ]
+  }
+  if (handL) {
+    tracks[handL] = [
+      smoothKey(0, 0),
+      smoothKey(d * 0.25, 24),  // Đánh tay sau lấy đà
+      smoothKey(d * 0.55, -45), // Vươn ngửa lên trời
+      smoothKey(d * 0.85, 16),  // Hạ tay giữ thăng bằng
+      smoothKey(d, 0)
+    ]
+  }
+  if (handR) {
+    tracks[handR] = [
+      smoothKey(0, 0),
+      smoothKey(d * 0.25, 24),
+      smoothKey(d * 0.55, -45),
+      smoothKey(d * 0.85, 16),
       smoothKey(d, 0)
     ]
   }
@@ -321,6 +421,10 @@ export function generateActionSlash(bones: LayerBone[], duration = 1.5): Record<
   const torso = findBoneId(bones, ['torso', 'thân', 'ngực'])
   const armR = findBoneId(bones, ['arm-r', 'arm_r', 'bắp tay phải'])
   const forearmR = findBoneId(bones, ['forearm-r', 'forearm_r', 'cẳng tay phải'])
+  const handR = findBoneId(bones, ['hand-r', 'hand_r', 'bàn tay phải'])
+  const handL = findBoneId(bones, ['hand-l', 'hand_l', 'bàn tay trái'])
+  const footL = findBoneId(bones, ['foot-l', 'foot_l', 'bàn chân trái'])
+  const footR = findBoneId(bones, ['foot-r', 'foot_r', 'bàn chân phải'])
   const pelvis = findBoneId(bones, ['pelvis', 'hông', 'root'])
 
   if (pelvis) {
@@ -353,6 +457,39 @@ export function generateActionSlash(bones: LayerBone[], duration = 1.5): Record<
       smoothKey(0, 0),
       smoothKey(d * 0.35, -40),
       smoothKey(d * 0.55, 20),
+      smoothKey(d, 0)
+    ]
+  }
+  if (handR) {
+    tracks[handR] = [
+      smoothKey(0, 0),
+      smoothKey(d * 0.35, -28), // Gập cổ tay giương kiếm
+      smoothKey(d * 0.55, 48),  // Chém dứt khoát miết cổ tay
+      smoothKey(d * 0.75, 18),  // Thu đà
+      smoothKey(d, 0)
+    ]
+  }
+  if (handL) {
+    tracks[handL] = [
+      smoothKey(0, 0),
+      smoothKey(d * 0.35, 15),
+      smoothKey(d * 0.6, -30),
+      smoothKey(d, 0)
+    ]
+  }
+  if (footL) {
+    tracks[footL] = [
+      smoothKey(0, 0),
+      smoothKey(d * 0.35, -4),
+      smoothKey(d * 0.6, 6),
+      smoothKey(d, 0)
+    ]
+  }
+  if (footR) {
+    tracks[footR] = [
+      smoothKey(0, 0),
+      smoothKey(d * 0.35, -8),
+      smoothKey(d * 0.6, 8),
       smoothKey(d, 0)
     ]
   }
@@ -415,6 +552,12 @@ export function createClipFromPreset(
       break
     case 'sway':
       tracks = generateSway(bones, duration)
+      break
+    case 'hand-clench':
+      tracks = generateHandFistClench(bones, duration)
+      break
+    case 'foot-roll':
+      tracks = generateFootHeelToeRoll(bones, duration)
       break
   }
 

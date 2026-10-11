@@ -239,9 +239,14 @@ export const LAYER_ASSEMBLY_TOOLS = [
       rotation: z.number().optional().describe(d('Keyframe rotation angle in degrees.', 'Góc xoay keyframe.')),
       easing: z.enum(['smooth', 'linear', 'hold']).optional().describe(d('Keyframe interpolation.', 'Nội suy keyframe.')),
       duration: z.number().optional().describe(d('Rig animation duration in seconds (0.1–120s).', 'Thời lượng animation (0.1–120s).')),
-      loop: z.boolean().optional().describe(d('Whether the animation clip loops seamlessly.', 'Có lặp chu kỳ chuyển động hay không.')),
-      template: z.enum(['humanoid', 'simple-chain']).optional().describe(d('Skeleton template to apply.', 'Mẫu khung xương áp dụng.')),
-      preset: z.enum(['walk', 'idle', 'wave', 'bow', 'run', 'jump', 'action', 'sway']).optional().describe(d('Procedural motion preset to generate.', 'Chuyển động mẫu tự động sinh.')),
+      template: z
+        .enum(['humanoid', 'humanoid-full', 'hand-detailed', 'foot-detailed', 'simple-chain'])
+        .optional()
+        .describe(d('Skeleton template to apply (humanoid, humanoid-full, hand-detailed, foot-detailed, simple-chain).', 'Mẫu khung xương áp dụng (humanoid, humanoid-full, hand-detailed, foot-detailed, simple-chain).')),
+      preset: z
+        .enum(['walk', 'idle', 'wave', 'bow', 'run', 'jump', 'action', 'sway', 'hand-clench', 'foot-roll'])
+        .optional()
+        .describe(d('Procedural motion preset to generate.', 'Chuyển động mẫu tự động sinh.')),
       clip_id: z.string().optional().describe(d('Animation clip ID to switch, duplicate, rename or delete.', 'ID clip động tác cần chuyển, nhân bản, đổi tên hoặc xóa.')),
       clip_name: z.string().optional().describe(d('New clip name when adding, duplicating or inheriting.', 'Tên clip mới khi thêm, nhân bản hoặc kế thừa.')),
       as_new_clip: z.boolean().optional().describe(d('Generate motion preset into a new clip.', 'Tạo chuyển động mẫu thành clip mới độc lập.')),

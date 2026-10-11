@@ -26,13 +26,14 @@ function rigAction(p: Params): RigAction {
     name: 'Xương mới', x: 0, y: 0, length: 80, angle: -90, ...bonePatch(p) } }
   if (action === 'settings') return { action, duration: num(p, 'duration'), loop: bool(p, 'loop') }
   if (action === 'apply-template') {
-    const template = (str(p, 'template') ?? 'humanoid') as 'humanoid' | 'simple-chain'
-    if (!['humanoid', 'simple-chain'].includes(template)) throw new ParamError('template must be humanoid or simple-chain')
+    const template = (str(p, 'template') ?? 'humanoid') as any
+    const validTemplates = ['humanoid', 'humanoid-full', 'hand-detailed', 'foot-detailed', 'simple-chain']
+    if (!validTemplates.includes(template)) throw new ParamError(`template must be one of: ${validTemplates.join(', ')}`)
     return { action, template }
   }
   if (action === 'apply-preset-animation') {
     const preset = (str(p, 'preset') ?? 'walk') as any
-    const validPresets = ['walk', 'idle', 'wave', 'bow', 'run', 'jump', 'action', 'sway']
+    const validPresets = ['walk', 'idle', 'wave', 'bow', 'run', 'jump', 'action', 'sway', 'hand-clench', 'foot-roll']
     if (!validPresets.includes(preset)) throw new ParamError(`preset must be one of: ${validPresets.join(', ')}`)
     return {
       action,

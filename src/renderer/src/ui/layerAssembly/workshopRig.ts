@@ -2,12 +2,17 @@ import type { AnimationClip, BoneKeyframe, LayerBone, LayerRig, MotionViewAngle 
 import type { LayerComposite } from './types'
 import {
   createHumanoidBones,
+  createFullHumanoidBones,
+  createHandDetailedBones,
+  createFootDetailedBones,
   createSimpleChainBones,
   applyMotionPresetToRig,
   createClipFromPreset,
   type ProceduralMotionPreset
 } from './workshopRigPresets'
 import { retargetAnimationClip } from './workshopRetarget'
+
+export type RigTemplateType = 'humanoid' | 'humanoid-full' | 'hand-detailed' | 'foot-detailed' | 'simple-chain'
 
 export const emptyRig = (): LayerRig => ({
   bones: [],
@@ -69,7 +74,7 @@ export type RigAction =
   | { action: 'set-key'; boneId: string; key: BoneKeyframe }
   | { action: 'delete-key'; boneId: string; time: number }
   | { action: 'settings'; duration?: number; loop?: boolean }
-  | { action: 'apply-template'; template: 'humanoid' | 'simple-chain' }
+  | { action: 'apply-template'; template: RigTemplateType }
   | { action: 'apply-preset-animation'; preset: ProceduralMotionPreset; asNewClip?: boolean; clipName?: string; viewAngle?: MotionViewAngle }
   | { action: 'clear-animation' }
   | { action: 'add-clip'; clip: AnimationClip }
@@ -189,19 +194,38 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
     if (action.loop !== undefined) rig.loop = action.loop
   }
   if (action.action === 'apply-template') {
-    const templateBones = action.template === 'humanoid' ? createHumanoidBones() : createSimpleChainBones()
+    let templateBones: LayerBone[]
+    let defaultPreset: ProceduralMotionPreset = 'walk'
+    switch (action.template) {
+      case 'humanoid-full':
+        templateBones = createFullHumanoidBones()
+        defaultPreset = 'walk'
+        break
+      case 'hand-detailed':
+        templateBones = createHandDetailedBones()
+        defaultPreset = 'hand-clench'
+        break
+      case 'foot-detailed':
+        templateBones = createFootDetailedBones()
+        defaultPreset = 'foot-roll'
+        break
+      case 'simple-chain':
+        templateBones = createSimpleChainBones()
+        defaultPreset = 'sway'
+        break
+      case 'humanoid':
+      default:
+        templateBones = createHumanoidBones()
+        defaultPreset = 'walk'
+        break
+    }
     rig.bones = templateBones
-    rig.tracks = {}
-    rig.clips = [
-      {
-        id: 'clip-default',
-        name: 'Động tác 1',
-        duration: 2.0,
-        loop: true,
-        tracks: {}
-      }
-    ]
-    rig.activeClipId = 'clip-default'
+    const initialClip = createClipFromPreset(defaultPreset, templateBones, undefined, 'front')
+    rig.tracks = structuredClone(initialClip.tracks)
+    rig.duration = initialClip.duration
+    rig.loop = initialClip.loop
+    rig.clips = [initialClip]
+    rig.activeClipId = initialClip.id
     const validIds = new Set(templateBones.map((b) => b.id))
     layers = layers.map((l) => (l.boneId && !validIds.has(l.boneId) ? { ...l, boneId: undefined } : l))
   }

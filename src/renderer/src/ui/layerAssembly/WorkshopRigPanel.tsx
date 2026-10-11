@@ -124,14 +124,38 @@ export function WorkshopRigPanel({
         <div className="lw-card-header">
           <span className="lw-card-title">🦴 Mẫu khung xương Rig</span>
         </div>
-        <div className="lw-preset-row">
+        <div className="lw-preset-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '6px' }}>
           <button
             type="button"
             className="lw-preset-btn"
-            title="Tạo bộ 11 xương người 2D (hông, ngực, đầu, tay, chân)"
+            title="Tạo bộ 15 xương người 2D (hông, ngực, đầu, 2 bắp tay, 2 cẳng tay, 2 bàn tay, 2 đùi, 2 cẳng chân, 2 bàn chân)"
             onClick={() => run({ action: 'apply-template', template: 'humanoid' })}
           >
-            🧍 Người 2D (11 khớp)
+            🧍 Người 2D (15 khớp)
+          </button>
+          <button
+            type="button"
+            className="lw-preset-btn"
+            title="Khung xương người chi tiết 19 khớp (thêm đốt ngón tay và mũi ngón chân để nhón chân và cử động ngón)"
+            onClick={() => run({ action: 'apply-template', template: 'humanoid-full' })}
+          >
+            🧍‍♂️ Người chi tiết (19 khớp)
+          </button>
+          <button
+            type="button"
+            className="lw-preset-btn"
+            title="Khung xương chuyên biệt bàn tay chi tiết (cổ tay, lòng bàn tay và 5 ngón tay riêng biệt)"
+            onClick={() => run({ action: 'apply-template', template: 'hand-detailed' })}
+          >
+            🖐️ Bàn tay chi tiết (12 khớp)
+          </button>
+          <button
+            type="button"
+            className="lw-preset-btn"
+            title="Khung xương chuyên biệt cẳng chân & bàn chân (đùi, cẳng chân, cổ chân, gót, mu chân, mũi chân)"
+            onClick={() => run({ action: 'apply-template', template: 'foot-detailed' })}
+          >
+            🦶 Cẳng chân & Bàn chân (8 khớp)
           </button>
           <button
             type="button"
@@ -257,6 +281,63 @@ export function WorkshopRigPanel({
             <RigNumber label="Chiều dài (px)" value={bone.length} min={10} onChange={(length) => patch({ length })} />
             <RigNumber label="Hướng xương (°)" value={bone.angle} onChange={(angle) => patch({ angle })} />
           </div>
+
+          {/* Điều hướng nhanh hướng xương bàn tay */}
+          {/hand|wrist|finger|palm|bàn tay|cổ tay|ngón/i.test(bone.id + ' ' + (bone.name || '')) && (
+            <div style={{ marginTop: '8px', padding: '6px 8px', background: 'var(--bg-1)', borderRadius: '6px', border: '1px solid var(--line-soft)' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent-cyan)', marginBottom: '4px' }}>
+                🎯 Điều hướng nhanh Bàn tay:
+              </div>
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                {[
+                  { label: '✋ Thẳng (90°)', angle: 90 },
+                  { label: '✊ Nắm gập (55°)', angle: 55 },
+                  { label: '👋 Ngửa mở (135°)', angle: 135 },
+                  { label: '🤝 Hạ xuôi (75°)', angle: 75 },
+                  { label: '👉 Chỉ ngang (120°)', angle: 120 }
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    className="btn xs"
+                    style={{ fontSize: '10px', padding: '2px 6px' }}
+                    onClick={() => patch({ angle: item.angle })}
+                    title={`Chỉnh góc hướng xương về ${item.angle}°`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Điều hướng nhanh hướng xương bàn chân */}
+          {/foot|ankle|toe|heel|bàn chân|cổ chân|mũi chân|gót/i.test(bone.id + ' ' + (bone.name || '')) && (
+            <div style={{ marginTop: '8px', padding: '6px 8px', background: 'var(--bg-1)', borderRadius: '6px', border: '1px solid var(--line-soft)' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent-cyan)', marginBottom: '4px' }}>
+                🎯 Điều hướng nhanh Bàn chân:
+              </div>
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                {[
+                  { label: '🦶 Bằng phẳng (0°)', angle: 0 },
+                  { label: '🩰 Nhón mũi (+30°)', angle: 30 },
+                  { label: '👟 Chạm gót (-25°)', angle: -25 },
+                  { label: '🚶 Bước tự nhiên (+12°)', angle: 12 }
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    className="btn xs"
+                    style={{ fontSize: '10px', padding: '2px 6px' }}
+                    onClick={() => patch({ angle: item.angle })}
+                    title={`Chỉnh góc hướng xương về ${item.angle}°`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'flex-end' }}>
             <button
