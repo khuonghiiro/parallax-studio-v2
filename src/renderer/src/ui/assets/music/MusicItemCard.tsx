@@ -7,6 +7,8 @@ import { useEditor } from '../../../store/editor'
 import { useView } from '../../../store/view'
 import { getProjectAudioTracks } from '../../../project/audioTracks'
 import type { AssetMeta } from '@shared/types'
+import { formatAudioDuration } from '../MusicPanel'
+
 
 import type { AudioCategoryType } from './MusicCategoryBar'
 
@@ -207,10 +209,6 @@ export function MusicItemCard({
           )}
 
           <div className="music-badges-row">
-            <span className="music-badge-format">{item.format}</span>
-            <span className={`music-badge-source ${item.source}`}>
-              {item.source === 'project' ? 'Dự án' : 'Kho mẫu'}
-            </span>
             {item.category && (
               <span className={`music-badge-category ${item.category}`}>
                 {item.category === 'music'
@@ -224,9 +222,20 @@ export function MusicItemCard({
                   : 'Cinematic'}
               </span>
             )}
+            <span className="music-badge-format">{item.format.toUpperCase()}</span>
+            {duration > 0 && (
+              <span className="music-badge-duration" title={`Thời lượng: ${formatAudioDuration(duration)}`}>
+                {formatAudioDuration(duration)}
+              </span>
+            )}
+            {item.source === 'project' && (
+              <span className="music-badge-source project" title="Tệp âm thanh trong dự án">
+                Dự án
+              </span>
+            )}
             {usedTrackCount > 0 && (
               <span className="music-badge-used" title={`Đã dùng trong ${usedTrackCount} track trên timeline`}>
-                Timeline ×{usedTrackCount}
+                ×{usedTrackCount}
               </span>
             )}
           </div>
@@ -236,12 +245,12 @@ export function MusicItemCard({
         <div className="music-top-actions">
           <button
             type="button"
-            className="btn xs asset-action-btn-highlight music-quick-insert-btn"
+            className="btn xs icon asset-action-btn-highlight music-quick-insert-btn"
             onClick={() => onInsertTimeline(item, currentTime, settings)}
-            title={`Chèn vào timeline tại mốc kim phát hiện tại (${currentTime.toFixed(1)}s)`}
+            title={`Chèn vào timeline tại kim phát (${currentTime.toFixed(1)}s)`}
+            aria-label="Chèn vào timeline"
           >
-            <IconPlus width={11} height={11} />
-            <span>Timeline</span>
+            <IconPlus width={12} height={12} />
           </button>
 
           <button
@@ -249,6 +258,7 @@ export function MusicItemCard({
             className={`btn xs icon music-settings-toggle-btn${isExpanded ? ' active' : ''}`}
             onClick={() => setIsExpanded((v) => !v)}
             title={isExpanded ? 'Thu gọn điều chỉnh' : 'Mở bảng điều chỉnh âm thanh (Volume, Tốc độ, Lặp lại)'}
+            aria-label="Điều chỉnh âm thanh"
           >
             <IconSliders width={12} height={12} />
           </button>
@@ -259,6 +269,7 @@ export function MusicItemCard({
               className="btn xs icon danger music-del-btn"
               onClick={() => onDelete(item)}
               title="Xoá file âm thanh này khỏi dự án"
+              aria-label="Xoá âm thanh"
             >
               <IconTrash width={12} height={12} />
             </button>
@@ -275,7 +286,7 @@ export function MusicItemCard({
           isPlaying={isPlaying}
           onSeek={onSeek}
           theme={theme}
-          height={38}
+          height={32}
         />
       </div>
 
