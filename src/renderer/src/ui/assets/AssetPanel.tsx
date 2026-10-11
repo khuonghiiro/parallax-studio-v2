@@ -267,9 +267,9 @@ export function AssetPanel() {
           aria-selected={subTab === 'builtin'}
           className={`asset-subtab-btn${subTab === 'builtin' ? ' active' : ''}`}
           onClick={() => setSubTab('builtin')}
-          title="Kho mẫu có sẵn tích hợp (6 tệp)"
+          title="Kho mẫu có sẵn tích hợp"
         >
-          <IconGrid width={13} height={13} />
+          <IconGrid width={14} height={14} />
           <span className="asset-subtab-label">Kho mẫu</span>
           <span className="asset-subtab-badge">{visiblePublicItems.length}</span>
         </button>
@@ -281,7 +281,7 @@ export function AssetPanel() {
           onClick={() => setSubTab('3d')}
           title={`Mô hình 3D lắp ráp (${model3DCount} mô hình)`}
         >
-          <IconCube width={13} height={13} />
+          <IconCube width={14} height={14} />
           <span className="asset-subtab-label">3D</span>
           <span className="asset-subtab-badge">{model3DCount}</span>
         </button>
@@ -291,9 +291,9 @@ export function AssetPanel() {
           aria-selected={subTab === 'assembly'}
           className={`asset-subtab-btn${subTab === 'assembly' ? ' active' : ''}`}
           onClick={() => setSubTab('assembly')}
-          title="Chi tiết & vật liệu lắp ráp layer xếp chồng 2.5D (4 cụm)"
+          title={`Cụm layer lắp ráp 2.5D (${assemblyCount} cụm)`}
         >
-          <IconLayerAssembly width={13} height={13} />
+          <IconLayerAssembly width={14} height={14} />
           <span className="asset-subtab-label">Lắp ráp</span>
           <span className="asset-subtab-badge">{assemblyCount}</span>
         </button>
@@ -306,7 +306,7 @@ export function AssetPanel() {
           onClick={() => setSubTab('music')}
           title={`Tài nguyên âm thanh & nhạc nền (${audioCount} tệp)`}
         >
-          <IconMusic width={13} height={13} />
+          <IconMusic width={14} height={14} />
           <span className="asset-subtab-label">Nhạc</span>
           <span className="asset-subtab-badge">{audioCount}</span>
         </button>
@@ -316,9 +316,9 @@ export function AssetPanel() {
           aria-selected={subTab === 'project'}
           className={`asset-subtab-btn${subTab === 'project' ? ' active' : ''}`}
           onClick={() => setSubTab('project')}
-          title="Tệp tài nguyên trong dự án (5 tệp)"
+          title={`Tệp tài nguyên trong dự án (${projectAssets.length} tệp)`}
         >
-          <IconBriefcase width={13} height={13} />
+          <IconBriefcase width={14} height={14} />
           <span className="asset-subtab-label">Dự án</span>
           <span className="asset-subtab-badge">{projectAssets.length}</span>
         </button>

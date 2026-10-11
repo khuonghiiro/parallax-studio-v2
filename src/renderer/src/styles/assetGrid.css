@@ -97,20 +97,9 @@
   height: 100%;
 }
 
-.audio-badge {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  background: linear-gradient(135deg, var(--accent, #2563eb), #0284c7);
-  color: #ffffff;
-  border-radius: var(--radius-sm, 4px);
-  padding: 2px 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
-  z-index: 2;
-  pointer-events: none;
+.audio-badge,
+.audio-card-inner .audio-badge {
+  display: none;
 }
 
 .audio-preview-btn {

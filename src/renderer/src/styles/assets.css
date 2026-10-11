@@ -99,16 +99,25 @@
   border-bottom: 1px solid var(--line);
   flex: none;
   align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.asset-subtabs::-webkit-scrollbar {
+  display: none;
 }
 
 .asset-subtab-btn {
-  flex: 1 1 0%;
+  flex: 0 0 auto;
+  width: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
   height: 26px;
   padding: 0 6px;
+  margin: 0 1px;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   background: transparent;
@@ -117,50 +126,53 @@
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
-  min-width: 0;
-  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.15s ease;
 }
 
-/* Inactive tabs: chỉ hiển thị icon + badge, cực kỳ gọn gàng, không bao giờ ngắt dòng */
-.asset-subtab-btn:not(.active) .asset-subtab-label {
-  display: none;
+/* Hiển thị tiêu đề vừa vặn cho tất cả các tab */
+.asset-subtab-btn .asset-subtab-label {
+  display: inline-block;
+  white-space: nowrap;
 }
 
-.asset-subtab-btn:hover:not(.active) {
+.asset-subtab-btn:hover {
   color: var(--text);
   background: var(--bg-2);
 }
 
-/* Active tab: mở rộng nổi bật hiển thị icon + tên đầy đủ + badge */
+/* Active tab: nổi bật rõ nét */
 .asset-subtab-btn.active,
 .asset-subtab-btn.active:hover {
-  flex: 1.8 1 auto;
   color: var(--text);
   background: var(--bg-2);
   border-color: var(--line);
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .asset-subtab-btn.active svg {
   color: var(--accent);
 }
 
-.asset-subtab-btn.active .asset-subtab-label {
-  display: inline-block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .asset-subtab-badge {
-  font-size: 9.5px;
+  font-size: 9px;
   font-family: var(--mono);
-  padding: 1px 5px;
+  padding: 1px 4px;
   border-radius: 9px;
   background: var(--bg-3);
-  color: var(--text-faint);
+  color: var(--text-dim);
   line-height: 1.2;
+}
+
+.asset-subtab-btn.active .asset-subtab-badge {
+  background: rgba(37, 99, 235, 0.16);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+[data-theme='light'] .asset-subtab-btn.active .asset-subtab-badge {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--accent);
 }
 
 .asset-subtab-btn.active .asset-subtab-badge {
@@ -623,93 +635,125 @@
 }
 
 
-/* ------------------------------------------------------------------ Scope Badges (Public / Private) - Icon Mode */
-.asset-scope-badge {
-  width: 18px;
-  height: 18px;
+/* ------------------------------------------------------------------ Corner Badges Group */
+.asset-card-corner-badges {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  z-index: 4;
+  pointer-events: auto;
+}
+
+/* ------------------------------------------------------------------ Scope Badges (Public / Private) & Type Badges (Audio / GIF) */
+.asset-scope-badge,
+.asset-type-badge,
+.layer-scope-badge {
+  width: 20px;
+  height: 20px;
   border-radius: 4px;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  backdrop-filter: blur(6px);
   z-index: 2;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
   transition: transform 0.12s ease, box-shadow 0.12s ease;
   cursor: help;
   flex-shrink: 0;
 }
 
-.asset-scope-badge:hover {
-  transform: scale(1.1);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+.asset-scope-badge:hover,
+.asset-type-badge:hover,
+.layer-scope-badge:hover {
+  transform: scale(1.12);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
 }
 
-.asset-scope-badge svg {
+.asset-scope-badge svg,
+.asset-type-badge svg,
+.layer-scope-badge svg {
   display: block;
   flex-shrink: 0;
 }
 
+/* Public Badge: Nền xanh dương Cyan đậm, Icon TRẮNG TINH tương phản 100% */
 .asset-scope-badge.public,
 .layer-scope-badge.public {
-  background: rgba(56, 189, 248, 0.22);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.55);
+  background: #0284c7;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 1px 4px rgba(2, 132, 199, 0.45);
 }
 
 [data-theme='light'] .asset-scope-badge.public,
 .app.light .asset-scope-badge.public,
 [data-theme='light'] .layer-scope-badge.public,
 .app.light .layer-scope-badge.public {
-  background: rgba(2, 132, 199, 0.14);
-  color: #0284c7;
-  border: 1px solid rgba(2, 132, 199, 0.45);
+  background: #0284c7;
+  color: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 3px rgba(2, 132, 199, 0.4);
 }
 
+/* Private / Project Badge: Nền Hổ Phách / Cam Vàng đậm, Icon TRẮNG TINH */
 .asset-scope-badge.private,
 .layer-scope-badge.private {
-  background: rgba(245, 158, 11, 0.22);
-  color: #facc15;
-  border: 1px solid rgba(245, 158, 11, 0.55);
+  background: #d97706;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 1px 4px rgba(217, 119, 6, 0.45);
 }
 
 [data-theme='light'] .asset-scope-badge.private,
 .app.light .asset-scope-badge.private,
 [data-theme='light'] .layer-scope-badge.private,
 .app.light .layer-scope-badge.private {
-  background: rgba(217, 119, 6, 0.14);
-  color: #b45309;
-  border: 1px solid rgba(217, 119, 6, 0.45);
+  background: #d97706;
+  color: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 3px rgba(217, 119, 6, 0.4);
+}
+
+/* Audio Type Badge (Nằm ngay dưới badge public/private): Nền Tím Indigo đậm, Icon TRẮNG TINH */
+.asset-type-badge.audio {
+  background: #7c3aed;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 1px 4px rgba(124, 58, 237, 0.45);
+}
+
+[data-theme='light'] .asset-type-badge.audio,
+.app.light .asset-type-badge.audio {
+  background: #7c3aed;
+  color: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 3px rgba(124, 58, 237, 0.4);
+}
+
+/* GIF Type Badge: Nền Hồng Neon, Chữ TRẮNG TINH */
+.asset-type-badge.gif {
+  background: #db2777;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 0 4px;
+  width: auto;
+  min-width: 20px;
+  height: 18px;
+  line-height: 18px;
 }
 
 .layer-scope-badge {
   position: absolute;
   top: 3px;
   left: 3px;
-  width: 18px;
-  height: 18px;
-  border-radius: 3px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  backdrop-filter: blur(4px);
-  z-index: 4;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-  transition: transform 0.12s ease;
-  cursor: help;
-  flex-shrink: 0;
-}
-
-.layer-scope-badge:hover {
-  transform: scale(1.1);
-}
-
-.layer-scope-badge svg {
-  display: block;
-  flex-shrink: 0;
 }
 
 /* Note: Built-in Grid & Cards modularized to ./assetGrid.css */

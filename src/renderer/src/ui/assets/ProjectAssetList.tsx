@@ -61,19 +61,8 @@ export function ProjectAssetList() {
               onDragStart={(e) => e.dataTransfer.setData('application/x-pxs-asset', a.id)}
               onDragEnd={() => setHover(null)}
             >
-              {/* Badge góc trên bên trái: Scope (Public/Private) & GIF (không che các nút hành động ở góc phải) */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 4,
-                  left: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 3,
-                  zIndex: 2,
-                  pointerEvents: 'auto'
-                }}
-              >
+              {/* Badge góc trên bên trái: Scope (Public/Private) ở trên, Type Audio/GIF ở dưới */}
+              <div className="asset-card-corner-badges">
                 <span
                   className={`asset-scope-badge ${isPublic ? 'public' : 'private'}`}
                   title={
@@ -82,26 +71,21 @@ export function ProjectAssetList() {
                       : 'Tài nguyên Dự án (Private của riêng dự án này)'
                   }
                 >
-                  {isPublic ? <IconGlobe width={11} height={11} strokeWidth={2.2} /> : <IconLock width={11} height={11} strokeWidth={2.2} />}
+                  {isPublic ? <IconGlobe width={11} height={11} strokeWidth={2.4} /> : <IconLock width={11} height={11} strokeWidth={2.4} />}
                 </span>
+
+                {isAudio && (
+                  <span
+                    className="asset-type-badge audio"
+                    title="Tệp âm thanh (Audio)"
+                  >
+                    <IconMusic width={11} height={11} strokeWidth={2.4} />
+                  </span>
+                )}
 
                 {(a.isAnimated || rt?.gif) && (
                   <span
-                    className="badge-count"
-                    style={{
-                      background: 'rgba(139, 123, 255, 0.92)',
-                      color: '#fff',
-                      fontWeight: 700,
-                      fontSize: '8.5px',
-                      padding: '1px 4px',
-                      borderRadius: '3px',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
-                      lineHeight: '14px',
-                      height: '18px',
-                      boxSizing: 'border-box',
-                      display: 'inline-flex',
-                      alignItems: 'center'
-                    }}
+                    className="asset-type-badge gif"
                     title="Ảnh động GIF"
                   >
                     GIF
@@ -111,9 +95,6 @@ export function ProjectAssetList() {
 
               {isAudio ? (
                 <div className="audio-card-inner">
-                  <span className="audio-badge" title="Tệp âm thanh">
-                    <IconMusic width={10} height={10} strokeWidth={2.4} />
-                  </span>
                   <button
                     type="button"
                     className={`btn sm icon audio-preview-btn${isPlaying ? ' active' : ''}`}

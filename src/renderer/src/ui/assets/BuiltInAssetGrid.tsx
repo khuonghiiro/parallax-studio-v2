@@ -234,9 +234,6 @@ export function BuiltInAssetGrid({
                 >
                   {isAudio ? (
                     <div className="audio-card-inner">
-                      <span className="audio-badge" title="Tệp âm thanh">
-                        <IconMusic width={10} height={10} strokeWidth={2.4} />
-                      </span>
                       <button
                         type="button"
                         className={`btn sm icon audio-preview-btn${playingId === item.id ? ' active' : ''}`}
@@ -255,37 +252,27 @@ export function BuiltInAssetGrid({
                     <div style={{ padding: 10, fontSize: '10px', color: 'var(--text-faint)' }}>{item.ext.toUpperCase()}</div>
                   )}
 
-                  {/* Badge góc trên trái: Scope Public & GIF */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 4,
-                      left: 4,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 3,
-                      zIndex: 2,
-                      pointerEvents: 'auto'
-                    }}
-                  >
+                  {/* Badge góc trên trái: Scope Public ở trên, Type Audio/GIF ở dưới */}
+                  <div className="asset-card-corner-badges">
                     <span
                       className="asset-scope-badge public"
                       title="Tài nguyên Công khai (Public từ kho dùng chung)"
                     >
-                      <IconGlobe width={11} height={11} strokeWidth={2.2} />
+                      <IconGlobe width={11} height={11} strokeWidth={2.4} />
                     </span>
+
+                    {isAudio && (
+                      <span
+                        className="asset-type-badge audio"
+                        title="Tệp âm thanh (Audio)"
+                      >
+                        <IconMusic width={11} height={11} strokeWidth={2.4} />
+                      </span>
+                    )}
 
                     {item.isAnimated && (
                       <span
-                        className="builtin-asset-badge"
-                        style={{
-                          position: 'static',
-                          lineHeight: '14px',
-                          height: '18px',
-                          boxSizing: 'border-box',
-                          display: 'inline-flex',
-                          alignItems: 'center'
-                        }}
+                        className="asset-type-badge gif"
                         title="Ảnh động GIF"
                       >
                         GIF
