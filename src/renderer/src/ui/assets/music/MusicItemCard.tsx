@@ -123,7 +123,7 @@ export function MusicItemCard({
   }
 
   return (
-    <div className={`music-card-item-v2${isPlaying ? ' playing' : ''}${isExpanded ? ' expanded' : ''}`}>
+    <div className={`music-card-item-v2 source-${item.source}${isPlaying ? ' playing' : ''}${isExpanded ? ' expanded' : ''}`}>
       {/* 1. Header Dòng chính: Nút Play, Tên đầy đủ, Badges, Nút thao tác nhanh */}
       <div className="music-card-top-row">
         <button
@@ -232,7 +232,7 @@ export function MusicItemCard({
           isPlaying={isPlaying}
           onSeek={onSeek}
           theme={theme}
-          height={32}
+          height={38}
         />
       </div>
 

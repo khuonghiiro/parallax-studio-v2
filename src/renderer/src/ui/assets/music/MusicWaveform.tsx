@@ -80,9 +80,9 @@ export function MusicWaveform({
       const isPlayed = x <= progressX
 
       if (isPlayed) {
-        ctx.fillStyle = isLight ? '#0284c7' : '#38bdf8'
+        ctx.fillStyle = isLight ? '#0369a1' : '#38bdf8'
       } else {
-        ctx.fillStyle = isLight ? 'rgba(0, 0, 0, 0.18)' : 'rgba(255, 255, 255, 0.18)'
+        ctx.fillStyle = isLight ? 'rgba(15, 23, 42, 0.28)' : 'rgba(255, 255, 255, 0.32)'
       }
 
       ctx.beginPath()
@@ -93,7 +93,7 @@ export function MusicWaveform({
     }
 
     // Đường baseline mờ ở giữa
-    ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)'
+    ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.14)' : 'rgba(255, 255, 255, 0.14)'
     ctx.lineWidth = 1
     ctx.beginPath()
     ctx.moveTo(0, h / 2)
@@ -102,8 +102,8 @@ export function MusicWaveform({
 
     // Kim phát (Playhead)
     if (progressX > 0 && progressX < width) {
-      ctx.strokeStyle = isLight ? '#2563eb' : '#facc15'
-      ctx.lineWidth = 1.5
+      ctx.strokeStyle = isLight ? '#1d4ed8' : '#facc15'
+      ctx.lineWidth = 2
       ctx.beginPath()
       ctx.moveTo(progressX, 1)
       ctx.lineTo(progressX, h - 1)
