@@ -186,7 +186,7 @@ export function CameraSketchDialog() {
 
   return (
     <div className="modal-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>
-      <div className="modal wide" role="dialog" style={{ maxWidth: 980, width: '92vw' }}>
+      <div className="modal wide camera-sketch-modal" role="dialog" style={{ maxWidth: 980, width: '92vw' }}>
         <div className="modal-head">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span className="ico" style={{ background: '#38bdf8', color: '#0f172a', padding: 5, borderRadius: 6 }}>

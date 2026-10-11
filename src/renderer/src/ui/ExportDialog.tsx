@@ -77,7 +77,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="modal-backdrop" onPointerDown={(e) => e.target === e.currentTarget && phase !== 'rendering' && onClose()}>
-      <div className="modal" role="dialog" aria-labelledby="export-title">
+      <div className="modal export-modal" role="dialog" aria-labelledby="export-title">
         <div className="modal-head">
           <h2 id="export-title">Xuất video MP4</h2>
           <p>

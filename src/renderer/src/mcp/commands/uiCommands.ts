@@ -84,23 +84,73 @@ function findTarget(p: Params): HTMLElement {
 }
 
 export const UI_REGION_SELECTORS: Record<string, string[]> = {
-  left_panel: ['aside.left', '.left', '.panel-left', '.asset-panel-wrapper', '.music-panel-layout', '.shots'],
-  music: ['.music-panel-layout', '.music-panel-container', 'aside.left'],
+  // Left Sidebar and sub-sections
+  left_panel: ['aside.left', '.left', '.panel-left'],
   assets: ['.asset-panel-wrapper', '.asset-main-layout', 'aside.left'],
-  shots: ['.shots', '.shots-panel', 'aside.left'],
-  timeline: ['section.timeline', '.timeline', '.panel.timeline'],
-  inspector: ['aside.right', '.right', '.inspector'],
+  asset_grid: [
+    '.builtin-grid-wrap',
+    '.builtin-asset-grid',
+    '.project-asset-grid',
+    '.music-list-scroll',
+    '.model3d-grid-wrap',
+    '.lw-template-grid'
+  ],
+  asset_bar: ['.asset-vertical-strip', '.builtin-asset-bar', '.music-category-bar', '.model3d-category-bar', '.lw-category-bar'],
+  music: ['.music-panel-layout', '.music-panel-container', '.music-panel-main'],
+  shots: ['.shots', '.shots-panel', 'aside.left .panel-body'],
+  topview: ['.topview', '.topview-canvas-wrap', '.top-view', '#viewport-topview', '.topview-toolbar'],
+
+  // Center Viewer and sub-sections
   viewer: ['.viewer-wrap', '.viewer', '#viewport-container'],
+  viewer_canvas: ['#viewer-canvas', '.viewer canvas'],
+  viewport: ['#viewer-canvas', '.viewer canvas'],
+  camera_frame: ['#camera-frame', '.camera-frame'],
+  viewer_hud: ['.viewer-hud'],
+  viewer_tools: ['.viewer-tools'],
+
+  // Right Inspector and sub-sections
+  inspector: ['aside.right', '.right', '.inspector'],
+  inspector_tabs: ['aside.right .tabs'],
+  inspector_body: ['aside.right .panel-body'],
+
+  // Bottom Timeline and sub-sections
+  timeline: ['section.panel.timeline', 'section.timeline', '.timeline'],
+  timeline_toolbar: ['.timeline-toolbar', '.tl-toolbar'],
+  timeline_ruler: ['.tl-header', '.tl-ruler-wrap'],
+  timeline_tracks: ['.tl-scroll', '.tl-body', '.tl-rows-scroll'],
+
+  // Top Toolbar
+  toolbar: ['header.toolbar', '.toolbar'],
+  mcp_chip: ['#mcp-chip', '.mcp-chip'],
+
+  // Floating Modals & Workshops (Never include full-screen backdrop/overlay here)
   dialog: [
     '.layer-workshop-dialog',
-    '.c3d-dialog',
-    '.export-dialog',
-    '.perf-dialog',
-    '.modal-overlay',
-    '.dialog',
+    '.lat-dialog',
+    '.assembly-modal-content',
+    '.audio-studio-modal',
+    '.audio-studio-dialog',
+    '.export-modal',
+    '.perf-modal',
+    '.mcp-modal',
+    '.camera-path-modal',
+    '.camera-sketch-modal',
+    '.modal[role="dialog"]',
+    '.modal',
     '[role="dialog"]'
   ],
-  toolbar: ['header.toolbar', '.toolbar']
+  export: ['.export-modal', '.modal:has(#export-start)', '.modal[aria-labelledby="export-title"]'],
+  export_dialog: ['.export-modal', '.modal:has(#export-start)', '.modal[aria-labelledby="export-title"]'],
+  mcp_dialog: ['.mcp-modal', '.modal:has(#mcp-chip)'],
+  perf_dialog: ['.perf-modal', '.modal:has(.hw-grid)'],
+  audio_studio: ['.audio-studio-modal', '.audio-studio-dialog'],
+  assembly_3d: ['.assembly-modal-content'],
+  layer_assembly: ['.layer-workshop-dialog', '.lat-dialog'],
+  camera_path: ['.camera-path-modal', '.modal[aria-labelledby="path-title"]'],
+  camera_sketch: ['.camera-sketch-modal'],
+
+  // AI Neon HUD
+  ai_hud: ['.ai-neon-hud-badge']
 }
 
 export function resolveTargetElement(region?: string, selector?: string): HTMLElement | null {
@@ -182,13 +232,17 @@ export const uiCommands: Record<string, Handler> = {
       const b = targetEl.getBoundingClientRect()
       const winW = typeof window !== 'undefined' ? window.innerWidth : 1920
       const winH = typeof window !== 'undefined' ? window.innerHeight : 1080
-      const x = Math.max(0, Math.floor(b.left - padding))
-      const y = Math.max(0, Math.floor(b.top - padding))
-      const right = Math.min(winW, Math.ceil(b.right + padding))
-      const bottom = Math.min(winH, Math.ceil(b.bottom + padding))
-      const w = Math.max(1, right - x)
-      const h = Math.max(1, bottom - y)
-      rect = { x, y, width: w, height: h }
+      if (b.width > 0 && b.height > 0 && b.right > 0 && b.bottom > 0 && b.left < winW && b.top < winH) {
+        const x = Math.max(0, Math.floor(b.left - padding))
+        const y = Math.max(0, Math.floor(b.top - padding))
+        const right = Math.min(winW, Math.ceil(b.right + padding))
+        const bottom = Math.min(winH, Math.ceil(b.bottom + padding))
+        const w = Math.max(1, right - x)
+        const h = Math.max(1, bottom - y)
+        if (w > 5 && h > 5) {
+          rect = { x, y, width: w, height: h }
+        }
+      }
     }
 
     const res = await capture({ width: width ?? undefined, format, rect })

@@ -127,8 +127,14 @@ Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC**
 - `get_layer_info`: Đọc toàn bộ thuộc tính, keyframes và transform của 1 layer.
 - `get_camera_info`: Đọc trạng thái vị trí, mục tiêu, FOV của camera tại thời điểm `time`.
 - `get_memory_stats`: Kiểm tra dung lượng VRAM GPU, texture pool và RAM tiến trình.
-- `get_viewport_screenshot`: Chụp ảnh preview hiện tại (view: `"camera"` hoặc `"3d"`).
-- `get_app_screenshot`: Chụp toàn bộ cửa sổ app hoặc chụp theo vùng UI cụ thể (`region`: `"left_panel"`, `"music"`, `"assets"`, `"shots"`, `"timeline"`, `"inspector"`, `"viewer"`, `"dialog"`, `"toolbar"` hoặc `selector` CSS tuỳ chỉnh, `padding`) giúp AI tiết kiệm token tối đa khi chỉ cần kiểm tra một cột/panel (`pnpm pxs review --view app --region left_panel`).
+- `get_app_screenshot`: Chụp toàn bộ cửa sổ app hoặc chụp theo vùng UI chuyên biệt giúp AI tiết kiệm 70% – 90% token so với chụp toàn màn hình:
+  - Cột trái & tài nguyên: `left_panel`, `assets`, `asset_grid` (lưới card tài nguyên), `asset_bar` (thanh icon danh mục), `music` (bảng quản lý audio), `shots` (danh sách cảnh), `topview` (sơ đồ độ sâu 2.5D).
+  - Khung nhìn trung tâm: `viewer`, `viewer_canvas` / `viewport`, `camera_frame` (khung viền render), `viewer_hud` (thông số FPS/VRAM), `viewer_tools` (chế độ camera/3D).
+  - Thuộc tính bên phải: `inspector`, `inspector_tabs`, `inspector_body` (form chỉnh sửa chi tiết).
+  - Dòng thời gian: `timeline`, `timeline_toolbar` (cụm nút phát/timecode), `timeline_ruler` (thước đo), `timeline_tracks` (các hàng track layer & keyframe).
+  - Thanh tiêu đề: `toolbar`, `mcp_chip` (chỉ báo AI).
+  - Hộp thoại & Xưởng: `dialog` (bất kỳ modal nào), `export` / `export_dialog` (hộp thoại MP4), `mcp_dialog`, `perf_dialog`, `audio_studio`, `assembly_3d`, `layer_assembly`, `camera_path`, `camera_sketch`, `ai_hud` (badge viền neon).
+  - Hỗ trợ `selector` CSS tuỳ chỉnh và `padding` đệm viền. Dùng CLI: `pnpm pxs review --view app --region <name>`.
 - `set_ai_lock`: Bật/tắt trạng thái khoá tương tác an toàn (`locked: boolean`, `reason`, `timeout_ms`) ngăn người dùng vô tình bấm làm lệch UI khi AI đang tự động thao tác. App sẽ hiển thị viền neon cyberpunk xung quanh và badge HUD kèm nút mở khoá khẩn cấp (`Esc`).
 - `ui_click` / `ui_type`: Bấm phần tử UI theo chữ hoặc CSS selector, nhập ô input – để AI tự mở dialog, chuyển tab rồi chụp kiểm tra.
 - `get_ai_guide`: Đọc hướng dẫn AI theo ngôn ngữ tài liệu đang chọn (`topic`: overview, coordinates, workflow, assembly, tips). Trả lời tại chỗ, không cần app.

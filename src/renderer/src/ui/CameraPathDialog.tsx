@@ -70,7 +70,7 @@ export function CameraPathDialog() {
 
   return (
     <div className="modal-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>
-      <div className="modal wide" role="dialog" aria-labelledby="path-title">
+      <div className="modal wide camera-path-modal" role="dialog" aria-labelledby="path-title">
         <div className="modal-head">
           <h2 id="path-title">Lộ trình camera qua các cảnh</h2>
           <p>Camera tự động di chuyển và dừng ở từng cảnh với góc quay & chuyển động mong muốn. Keyframe cũ sẽ được thay thế.</p>

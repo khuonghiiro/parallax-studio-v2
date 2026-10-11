@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { pickByText, uiCommands } from './uiCommands'
+import { pickByText, resolveTargetElement, uiCommands } from './uiCommands'
 
 describe('pickByText', () => {
   const items = [
@@ -71,4 +71,30 @@ describe('get_app_screenshot', () => {
     })) as Record<string, unknown>
     expect(unlockRes).toMatchObject({ ok: true, locked: false })
   })
+
+  it('supports expanded predefined UI regions and resolves valid elements', () => {
+    const mockEl = {
+      tagName: 'DIV',
+      className: 'timeline-toolbar',
+      getBoundingClientRect: () => ({
+        x: 0,
+        y: 800,
+        left: 0,
+        top: 800,
+        right: 1200,
+        bottom: 840,
+        width: 1200,
+        height: 40
+      })
+    } as unknown as HTMLElement
+
+    vi.stubGlobal('document', {
+      querySelector: (sel: string) => (sel === '.timeline-toolbar' ? mockEl : null)
+    })
+    vi.stubGlobal('getComputedStyle', () => ({ visibility: 'visible' }))
+
+    const found = resolveTargetElement('timeline_toolbar')
+    expect(found).toBe(mockEl)
+  })
 })
+

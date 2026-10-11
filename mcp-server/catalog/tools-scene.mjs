@@ -69,7 +69,15 @@ export const SCENE_TOOLS = [
       'Chụp ảnh cửa sổ app hoặc vùng/phần tử UI cụ thể (ví dụ left_panel, timeline, inspector, viewer, dialog). Dùng region hoặc selector để chỉ chụp đúng vùng cần thiết, tối ưu token; không truyền sẽ chụp toàn bộ.'
     ),
     shape: (d) => ({
-      region: z.enum(['left_panel', 'timeline', 'inspector', 'viewer', 'dialog', 'toolbar', 'music', 'shots', 'assets', 'window']).optional().describe(d('Predefined UI region to capture (e.g. left_panel, timeline, inspector, dialog). Saves tokens by cropping to only the relevant area.', 'Vùng UI định sẵn cần chụp (ví dụ left_panel, timeline, inspector, dialog). Tiết kiệm token bằng cách cắt đúng khu vực quan trọng.')),
+      region: z.enum([
+        'left_panel', 'assets', 'asset_grid', 'asset_bar', 'music', 'shots', 'topview',
+        'viewer', 'viewer_canvas', 'viewport', 'camera_frame', 'viewer_hud', 'viewer_tools',
+        'inspector', 'inspector_tabs', 'inspector_body',
+        'timeline', 'timeline_toolbar', 'timeline_ruler', 'timeline_tracks',
+        'toolbar', 'mcp_chip',
+        'dialog', 'export', 'export_dialog', 'mcp_dialog', 'perf_dialog', 'audio_studio', 'assembly_3d', 'layer_assembly', 'camera_path', 'camera_sketch', 'ai_hud',
+        'window'
+      ]).optional().describe(d('Predefined UI region to capture (e.g. left_panel, asset_grid, timeline_tracks, inspector_body, viewer_hud, dialog). Saves tokens by cropping to only the relevant area.', 'Vùng UI định sẵn cần chụp (ví dụ left_panel, asset_grid, timeline_tracks, inspector_body, viewer_hud, dialog). Tiết kiệm token bằng cách cắt đúng khu vực quan trọng.')),
       selector: z.string().optional().describe(d('CSS selector of a specific element to capture (e.g. ".music-panel-layout", "#music-tab-add-btn"). Falls back to whole window if not found.', 'CSS selector của phần tử cụ thể cần chụp. Tự động chụp toàn bộ app nếu không tìm thấy selector.')),
       padding: z.number().int().min(0).max(200).optional().describe(d('Padding in pixels around the targeted element/region (default: 8).', 'Khoảng cách viền đệm xung quanh vùng cần chụp (mặc định: 8px).')),
       width: z.number().int().min(64).max(3840).optional().describe(d('Downscale to this width (default: native).', 'Thu nhỏ về bề rộng này (mặc định: kích thước gốc).')),
