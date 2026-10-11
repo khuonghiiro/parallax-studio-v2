@@ -44,7 +44,13 @@ export function AiControlOverlay() {
         />
       )}
 
-      {/* 2. Badge trạng thái neon nổi ở cạnh trên cùng giữa màn hình */}
+      {/* 2. Khung viền Neon nhịp tim (Heartbeat) lan toả từ mép vào trong như browser agent */}
+      <div className="ai-neon-border-frame" aria-hidden="true">
+        <div className="ai-neon-heartbeat-edge" />
+        <div className="ai-neon-heartbeat-vignette" />
+      </div>
+
+      {/* 3. Badge trạng thái neon nổi ở cạnh trên cùng giữa màn hình */}
       <div className="ai-neon-hud-badge" role="status" aria-live="polite">
         <div className="ai-neon-glow-dot" />
         <IconAiSparkle width={14} height={14} className="ai-sparkle-icon" />

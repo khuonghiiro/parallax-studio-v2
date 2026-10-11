@@ -46,6 +46,14 @@
   --ok: #22c55e;
   /* Online / OK Green */
 
+  /* AI Active Neon Heartbeat Tokens */
+  --ai-neon-primary: #00f0ff;
+  --ai-neon-secondary: #38bdf8;
+  --ai-neon-glow-base: rgba(0, 229, 255, 0.45);
+  --ai-neon-glow-strong: rgba(0, 240, 255, 0.85);
+  --ai-neon-vignette-mid: rgba(0, 240, 255, 0.16);
+  --ai-neon-vignette-edge: rgba(0, 240, 255, 0.32);
+
   /* 3D Axis Colors (AE Standard) */
   --axis-x: #ff4757;
   --axis-y: #2ed573;
@@ -134,6 +142,14 @@
   /* Vivid Red */
   --ok: #16a34a;
   /* Forest Green */
+
+  /* AI Active Neon Heartbeat Tokens */
+  --ai-neon-primary: #0284c7;
+  --ai-neon-secondary: #0ea5e9;
+  --ai-neon-glow-base: rgba(2, 132, 199, 0.45);
+  --ai-neon-glow-strong: rgba(2, 132, 199, 0.85);
+  --ai-neon-vignette-mid: rgba(2, 132, 199, 0.12);
+  --ai-neon-vignette-edge: rgba(2, 132, 199, 0.26);
 
   /* 3D Axis Colors */
   --axis-x: #e11d48;

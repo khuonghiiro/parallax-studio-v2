@@ -84,6 +84,13 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
   4. **Antigravity Tool Schemas (`~/.gemini/antigravity-ide/mcp/parallax-studio/*.json`):** Chạy `pnpm mcp:schemas` để sinh lại (kiểm tra bằng `--check`).
   5. **Tài liệu hướng dẫn:** Cập nhật ngay `mcp-server/README.md`, `README.md` và `AGENTS.md`; nếu đổi quy trình thì sửa `catalog/guide.json` (EN và VI cùng số dòng). Tuyệt đối không để xảy ra tình trạng ứng dụng có logic nhưng AI/MCP bị mù hoặc thiếu công cụ thao tác (như tình trạng thiếu logic âm thanh trước đây).
   6. **Unit Tests:** Luôn viết test kiểm thử cho MCP commands mới trong `src/renderer/src/mcp/commands/*.test.ts`; `mcp-server/catalog/catalog.test.mjs` bắt buộc EN/VI khớp cấu trúc.
+- **Nguyên Tắc Định Danh UI Control & Đồng Bộ MCP Crop (Targeted UI Inspection Principle - BẮT BUỘC):**
+  - **Định danh Control rõ nghĩa:** Khi thêm mới hoặc chỉnh sửa bất kỳ thành phần UI nào (panel, dialog, card, toolbar, danh mục, form field, button group...), **bắt buộc** phải gắn class hoặc id ngữ nghĩa rõ ràng (ví dụ: `.timeline-toolbar`, `.music-card`, `.export-modal`, `.viewer-hud`, `.topview`, `.camera-path-modal`...). Tuyệt đối không dùng class chung chung vô nghĩa.
+  - **Cập nhật song hành MCP Region:** Bổ sung ngay selector của control đó vào bảng `UI_REGION_SELECTORS` trong [`uiCommands.ts`](file:///d:/Codes/parallax-studio/src/renderer/src/mcp/commands/uiCommands.ts) và enum `region` của [`tools-scene.mjs`](file:///d:/Codes/parallax-studio/mcp-server/catalog/tools-scene.mjs).
+  - **Mục đích & Quy trình AI quan sát qua MCP:**
+    1. **Kiểm tra giao diện (Visual QA):** AI dùng `get_app_screenshot(region: ...)` để chụp đúng khu vực control vừa sửa thay vì chụp full app, giảm 70% – 95% token ảnh, tự đánh giá bố cục, màu sắc, font chữ và viền hiển thị đã chuẩn chưa.
+    2. **Chẩn đoán & Sửa lỗi cùng người dùng:** Khi người dùng đang chỉnh sửa chỗ nào chưa ổn hoặc gặp lỗi giao diện, AI thông qua MCP chụp đúng vùng control đó, đọc ảnh phân tích và trực tiếp viết code tinh chỉnh giúp người dùng.
+    3. **Thị phạm thao tác (Demonstration):** AI kết hợp `ui_click`, `ui_type` để trực tiếp điều khiển app (mở dialog, chuyển tab, kích hoạt tính năng), giúp người dùng quan sát trực quan cách làm ngay trên màn hình.
 - **Tài liệu AI song ngữ (mặc định tiếng Anh):** Công tắc trong `McpDialog` (`ui/mcp/McpAiGuideCard.tsx`) lưu `docsLang` vào `mcp.json` qua IPC `mcp:setDocsLang`; MCP server theo dõi file và đổi mô tả tool trực tiếp (`tools/list_changed`). Ưu tiên: `PARALLAX_MCP_LANG` > `docsLang` > `en`.
 
 ### 2.6. Quy Chuẩn Thành Phần Giao Diện & Combobox (Custom UI Controls Standard - BẮT BUỘC)

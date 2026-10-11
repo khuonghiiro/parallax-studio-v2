@@ -91,10 +91,11 @@ export default function App() {
 
   const theme = useView((s) => s.theme)
   const aiActive = useView((s) => s.aiActive)
+  const aiLocked = useView((s) => s.aiLocked)
 
   return (
     <div
-      className={`app ${theme}${dragOver ? ' dropzone-active' : ''}${aiActive ? ' ai-active' : ''}`}
+      className={`app ${theme}${dragOver ? ' dropzone-active' : ''}${aiActive || aiLocked ? ' ai-active' : ''}`}
       data-theme={theme}
       style={{ ['--timeline-h' as string]: `${timelineH}px` }}
       onDragOver={(e) => {

@@ -180,16 +180,124 @@ textarea:focus {
 
 .app.ai-active {
   position: relative;
-  box-shadow: inset 0 0 0 2px #00e5ff, 0 0 20px rgba(0, 229, 255, 0.45);
-  animation: ai-neon-pulse 2s ease-in-out infinite;
 }
 
-@keyframes ai-neon-pulse {
-  0%, 100% {
-    box-shadow: inset 0 0 0 2px #00e5ff, inset 0 0 15px rgba(0, 229, 255, 0.25), 0 0 25px rgba(0, 229, 255, 0.4);
+/* Khung viền Neon nhịp tim phủ toàn màn hình (không bị bất kỳ panel con nào che lấp) */
+.ai-neon-border-frame {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 84000;
+  overflow: hidden;
+}
+
+/* 1. Mép viền Neon phát sáng nhịp tim kép (Double Heartbeat Pulse) */
+.ai-neon-heartbeat-edge {
+  position: absolute;
+  inset: 0;
+  border: 3px solid var(--ai-neon-primary);
+  box-sizing: border-box;
+  animation: ai-heartbeat-edge 1.6s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+/* 2. Lớp vầng hào quang gradient lan tỏa từ đậm ở mép ngoài vào nhạt dần ở trong tâm (Vignette Glow 4 mép) */
+.ai-neon-heartbeat-vignette {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  box-shadow:
+    inset 0 0 22px var(--ai-neon-glow-strong),
+    inset 0 0 55px var(--ai-neon-glow-base),
+    inset 0 0 95px var(--ai-neon-vignette-mid),
+    inset 0 0 150px var(--ai-neon-vignette-edge);
+  animation: ai-heartbeat-vignette 1.6s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+/* Keyframes nhịp đập tim kép chân thực (Lub-dub Heartbeat Pulse) */
+@keyframes ai-heartbeat-edge {
+  0% {
+    border-color: var(--ai-neon-primary);
+    box-shadow:
+      inset 0 0 14px var(--ai-neon-glow-base),
+      0 0 16px var(--ai-neon-glow-base);
+    opacity: 0.85;
   }
-  50% {
-    box-shadow: inset 0 0 0 2px #38bdf8, inset 0 0 25px rgba(56, 189, 248, 0.35), 0 0 35px rgba(56, 189, 248, 0.55);
+  /* Nhịp co bóp 1 (Systole 1) - Viền bùng sáng mạnh */
+  14% {
+    border-color: var(--ai-neon-primary);
+    box-shadow:
+      inset 0 0 0 1px var(--ai-neon-secondary),
+      inset 0 0 32px var(--ai-neon-glow-strong),
+      0 0 30px var(--ai-neon-glow-strong);
+    opacity: 1;
+  }
+  /* Thư giãn nhẹ giữa 2 nhịp tim */
+  28% {
+    border-color: var(--ai-neon-secondary);
+    box-shadow:
+      inset 0 0 18px var(--ai-neon-glow-base),
+      0 0 20px var(--ai-neon-glow-base);
+    opacity: 0.9;
+  }
+  /* Nhịp co bóp 2 (Systole 2) - Bùng sáng sâu và lan rộng nhất */
+  42% {
+    border-color: var(--ai-neon-secondary);
+    box-shadow:
+      inset 0 0 0 1.5px rgba(255, 255, 255, 0.9),
+      inset 0 0 45px var(--ai-neon-glow-strong),
+      0 0 40px var(--ai-neon-glow-strong);
+    opacity: 1;
+  }
+  /* Pha thở / thư giãn êm dịu */
+  70%, 100% {
+    border-color: var(--ai-neon-primary);
+    box-shadow:
+      inset 0 0 12px var(--ai-neon-glow-base),
+      0 0 14px var(--ai-neon-glow-base);
+    opacity: 0.8;
+  }
+}
+
+@keyframes ai-heartbeat-vignette {
+  0% {
+    opacity: 0.75;
+    box-shadow:
+      inset 0 0 18px var(--ai-neon-glow-strong),
+      inset 0 0 45px var(--ai-neon-glow-base),
+      inset 0 0 80px var(--ai-neon-vignette-mid),
+      inset 0 0 130px var(--ai-neon-vignette-edge);
+  }
+  14% {
+    opacity: 1;
+    box-shadow:
+      inset 0 0 32px var(--ai-neon-glow-strong),
+      inset 0 0 75px var(--ai-neon-glow-strong),
+      inset 0 0 130px var(--ai-neon-vignette-mid),
+      inset 0 0 190px var(--ai-neon-vignette-edge);
+  }
+  28% {
+    opacity: 0.85;
+    box-shadow:
+      inset 0 0 22px var(--ai-neon-glow-strong),
+      inset 0 0 52px var(--ai-neon-glow-base),
+      inset 0 0 95px var(--ai-neon-vignette-mid),
+      inset 0 0 145px var(--ai-neon-vignette-edge);
+  }
+  42% {
+    opacity: 1;
+    box-shadow:
+      inset 0 0 40px var(--ai-neon-glow-strong),
+      inset 0 0 90px var(--ai-neon-glow-strong),
+      inset 0 0 150px var(--ai-neon-vignette-mid),
+      inset 0 0 220px var(--ai-neon-vignette-edge);
+  }
+  70%, 100% {
+    opacity: 0.7;
+    box-shadow:
+      inset 0 0 16px var(--ai-neon-glow-strong),
+      inset 0 0 40px var(--ai-neon-glow-base),
+      inset 0 0 75px var(--ai-neon-vignette-mid),
+      inset 0 0 120px var(--ai-neon-vignette-edge);
   }
 }
 
@@ -203,22 +311,22 @@ textarea:focus {
   pointer-events: all;
 }
 
-/* Badge trạng thái HUD nổi ở cạnh trên cùng giữa màn hình */
+/* Badge trạng thái HUD nổi ở mép dưới Toolbar (trên cùng giữa Viewer) */
 .ai-neon-hud-badge {
   position: fixed;
-  top: 7px;
+  top: 52px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 85000;
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 4px 12px;
+  gap: 8px;
+  padding: 5px 14px;
   border-radius: 20px;
-  background: rgba(13, 17, 23, 0.92);
-  border: 1px solid #00e5ff;
-  box-shadow: 0 4px 18px rgba(0, 229, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
+  background: rgba(13, 17, 23, 0.95);
+  border: 1.5px solid var(--ai-neon-primary);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 16px var(--ai-neon-glow-base), inset 0 0 10px rgba(0, 240, 255, 0.15);
+  backdrop-filter: blur(12px);
   color: #ffffff;
   font-size: 11px;
   font-weight: 600;
@@ -229,10 +337,10 @@ textarea:focus {
 }
 
 [data-theme='light'] .ai-neon-hud-badge {
-  background: rgba(255, 255, 255, 0.94);
-  border-color: #0284c7;
+  background: rgba(255, 255, 255, 0.96);
+  border-color: var(--ai-neon-primary);
   color: #0f172a;
-  box-shadow: 0 4px 18px rgba(2, 132, 199, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 16px var(--ai-neon-glow-base);
 }
 
 @keyframes ai-hud-appear {
@@ -250,29 +358,46 @@ textarea:focus {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #00e5ff;
-  box-shadow: 0 0 8px #00e5ff;
-  animation: ai-dot-blink 1s ease-in-out infinite alternate;
+  background: var(--ai-neon-primary);
+  box-shadow: 0 0 8px var(--ai-neon-primary);
+  animation: ai-dot-heartbeat 1.6s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
 }
 
-@keyframes ai-dot-blink {
-  from {
-    opacity: 0.5;
-    transform: scale(0.85);
+@keyframes ai-dot-heartbeat {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+    box-shadow: 0 0 6px var(--ai-neon-primary);
   }
-  to {
+  14% {
+    transform: scale(1.35);
     opacity: 1;
-    transform: scale(1.15);
+    box-shadow: 0 0 14px var(--ai-neon-primary), 0 0 20px var(--ai-neon-secondary);
+  }
+  28% {
+    transform: scale(1);
+    opacity: 0.8;
+    box-shadow: 0 0 8px var(--ai-neon-primary);
+  }
+  42% {
+    transform: scale(1.45);
+    opacity: 1;
+    box-shadow: 0 0 16px var(--ai-neon-primary), 0 0 24px var(--ai-neon-secondary);
+  }
+  70%, 100% {
+    transform: scale(0.9);
+    opacity: 0.7;
+    box-shadow: 0 0 6px var(--ai-neon-primary);
   }
 }
 
 .ai-sparkle-icon {
-  color: #00e5ff;
+  color: var(--ai-neon-primary);
   flex: none;
 }
 
 [data-theme='light'] .ai-sparkle-icon {
-  color: #0284c7;
+  color: var(--ai-neon-primary);
 }
 
 .ai-hud-label {
