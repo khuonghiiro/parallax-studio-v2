@@ -895,7 +895,7 @@ export function LayerAssembly3DToolbar({
               </div>
               <input
                 type="range"
-                min="0.5"
+                min="0"
                 max="5.0"
                 step="0.1"
                 value={zExaggeration}
@@ -903,7 +903,7 @@ export function LayerAssembly3DToolbar({
                 style={{ width: '100%', cursor: 'pointer' }}
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: 'var(--text-faint)' }}>
-                <span>0.5x (Phẳng)</span>
+                <span>0.0x (Mặt phẳng 2D)</span>
                 <span>1.0x (Chuẩn)</span>
                 <span>5.0x (Sâu)</span>
               </div>

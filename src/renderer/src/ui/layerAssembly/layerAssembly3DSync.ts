@@ -50,8 +50,8 @@ export function syncLayersGroupMeshes({
     }
   }
 
-  // Kiểm tra xem tất cả các layer có đang ở Z = 0 không
-  const allZeroZ = layers.length > 1 && layers.every((l) => Math.abs(l.z || 0) < 0.001)
+  // Kiểm tra xem tất cả các layer có đang ở Z = 0 không (chỉ phân tách so le khi zExaggeration > 0)
+  const allZeroZ = zExaggeration > 0 && layers.length > 1 && layers.every((l) => Math.abs(l.z || 0) < 0.001)
 
   // Tạo hoặc cập nhật mesh cho từng layer với ảnh full-resolution sắc nét
   layers.forEach((layer, idx) => {
@@ -74,7 +74,7 @@ export function syncLayersGroupMeshes({
       })
     }
 
-    // Nếu tất cả layer có Z = 0, tự động phân tách tầng thị giác so le
+    // Nếu tất cả layer có Z = 0 và zExaggeration > 0, tự động phân tách tầng thị giác so le
     const visualLayer = allZeroZ
       ? {
           ...layer,
@@ -84,6 +84,9 @@ export function syncLayersGroupMeshes({
 
     // Thiết lập renderOrder để Three.js vẽ đúng thứ tự
     inst.mesh.renderOrder = idx
+    if (inst.wireframeMesh) {
+      inst.wireframeMesh.renderOrder = 2000 + idx
+    }
 
     updateLayer3DInstance(
       inst,

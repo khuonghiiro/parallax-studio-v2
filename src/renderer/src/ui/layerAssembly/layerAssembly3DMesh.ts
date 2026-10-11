@@ -145,20 +145,7 @@ export function createCanvasPlaneHelper(width: number, height: number): THREE.Gr
   const halfW = width / 2
   const halfH = height / 2
 
-  // 1. Mặt phẳng nền bán trong suốt (Card canvas 3D)
-  const planeGeom = new THREE.PlaneGeometry(width, height)
-  const planeMat = new THREE.MeshBasicMaterial({
-    color: 0x0f172a,
-    transparent: true,
-    opacity: 0.65,
-    depthWrite: false,
-    side: THREE.DoubleSide
-  })
-  const planeMesh = new THREE.Mesh(planeGeom, planeMat)
-  planeMesh.position.set(0, 0, -0.2)
-  group.add(planeMesh)
-
-  // 2. Khung viền canvas sáng rõ nét (cyan var(--line-focus))
+  // 1. Khung viền canvas sáng rõ nét (cyan var(--line-focus)) bao quanh khổ ảnh
   const border = createRectOutline(width, height, 0x38bdf8)
   group.add(border)
 
@@ -303,13 +290,16 @@ export function createLayer3DInstance(
   mesh.castShadow = true
   mesh.receiveShadow = true
 
-  // Lưới khung dây Wireframe hiển thị khi người dùng bật chế độ Mesh
+  // Lưới khung dây Wireframe hiển thị khi người dùng bật chế độ Mesh (sáng rõ nét tương đồng 2D)
   const wireframeMat = new THREE.MeshBasicMaterial({
     wireframe: true,
-    color: 0x38bdf8,
+    color: 0x00e5ff,
     transparent: true,
-    opacity: 0.35,
-    depthTest: false
+    opacity: 0.85,
+    depthTest: true,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2
   })
   const wireframeMesh = new THREE.Mesh(geom, wireframeMat)
   wireframeMesh.name = `layer-wireframe-${layer.id}`
@@ -479,7 +469,8 @@ export function updateLayer3DInstance(
   // - Z: chiều sâu (-layer.z * zExaggeration + micro-offset layerIndex để triệt tiêu Z-fighting khi trùng Z)
   const posX = layer.x + motion.animTranslateX
   const posY = -(layer.y + motion.animTranslateY)
-  const posZ = -layer.z * zExaggeration + layerIndex * 0.05
+  const microZ = zExaggeration > 0 ? layerIndex * 0.05 : layerIndex * 0.001
+  const posZ = -layer.z * zExaggeration + microZ
 
   // Group được định vị chính xác tại tâm của layer trong không gian 3D
   group.position.set(posX, posY, posZ)
@@ -510,9 +501,14 @@ export function updateLayer3DInstance(
   anchorDot.position.set(ax, ay, 2)
 
   if (wireframeMesh) {
-    wireframeMesh.position.set(shiftX, shiftY, 0.2)
+    wireframeMesh.position.set(shiftX, shiftY, 0.6)
     wireframeMesh.rotation.z = theta
-    wireframeMesh.visible = showMesh
+    wireframeMesh.visible = Boolean(showMesh)
+    wireframeMesh.renderOrder = 2000 + layerIndex
+    if (wireframeMesh.material instanceof THREE.MeshBasicMaterial) {
+      wireframeMesh.material.color.setHex(isSelected ? 0xffb703 : 0x00e5ff)
+      wireframeMesh.material.opacity = isSelected ? 0.95 : 0.8
+    }
   }
 
   // 6. Thuộc tính hiển thị & Cắt góc nhìn camera

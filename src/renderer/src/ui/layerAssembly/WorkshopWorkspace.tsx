@@ -101,7 +101,7 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
           onToggleShowBones={toggleBones}
           showMesh={showMesh}
           onToggleShowMesh={toggleMesh}
-          boneOverlay={tab === 'layers' || isErasing ? undefined : { composite: { ...state.composite, rig: normalizedRig ?? state.composite.rig }, boneId, selectBone, setComposite: state.setComposite, time: playback.time, editing: tab === 'bones' }}
+          boneOverlay={isErasing ? undefined : { composite: { ...state.composite, rig: normalizedRig ?? state.composite.rig }, boneId, selectBone, setComposite: state.setComposite, time: playback.time, editing: tab === 'bones' }}
           onChangeComposite={state.setComposite}
           isPlaying={playback.isPlaying}
           onTogglePlay={playback.toggle}

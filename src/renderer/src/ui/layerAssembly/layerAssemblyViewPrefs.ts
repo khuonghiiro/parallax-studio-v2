@@ -53,7 +53,7 @@ export function loadLayerWorkshopViewPrefs(): LayerWorkshopViewPrefs {
       clipToCamera: typeof parsed.clipToCamera === 'boolean' ? parsed.clipToCamera : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.clipToCamera,
       showTranslate: typeof parsed.showTranslate === 'boolean' ? parsed.showTranslate : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.showTranslate,
       showRotate: typeof parsed.showRotate === 'boolean' ? parsed.showRotate : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.showRotate,
-      zExaggeration: Number.isFinite(parsed.zExaggeration) ? Math.max(0.5, Math.min(5, parsed.zExaggeration)) : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.zExaggeration,
+      zExaggeration: Number.isFinite(parsed.zExaggeration) ? Math.max(0, Math.min(5, parsed.zExaggeration)) : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.zExaggeration,
       cameraFov: Number.isFinite(parsed.cameraFov) ? Math.max(15, Math.min(120, parsed.cameraFov)) : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.cameraFov,
       cameraPreset: ['orbit', 'top', 'side', 'front'].includes(parsed.cameraPreset) ? parsed.cameraPreset : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.cameraPreset,
       cameraYaw: Number.isFinite(parsed.cameraYaw) ? parsed.cameraYaw : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.cameraYaw,

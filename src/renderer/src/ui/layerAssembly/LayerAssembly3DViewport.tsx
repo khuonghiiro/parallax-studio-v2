@@ -277,6 +277,7 @@ export function LayerAssembly3DViewport({
 
     // 🦴 Khung xương 3D (Blender 3D Armature & Joints)
     const bonesGroup = create3DBonesGroup()
+    bonesGroup.renderOrder = 5000
     scene.add(bonesGroup)
     bonesGroupRef.current = bonesGroup
 
@@ -467,17 +468,18 @@ export function LayerAssembly3DViewport({
     if (!bonesGroup) return
     const rig = composite.rig ? ensureRigClips(composite.rig).rig : undefined
     const transforms = rig ? evaluateRig(rig, time) : undefined
+    const selectedBone = composite.layers.find((l) => l.id === selectedLayerId)?.boneId || null
     update3DBonesGroup({
       group: bonesGroup,
       rig,
       transforms,
       layers: composite.layers,
-      selectedBoneId: null,
+      selectedBoneId: selectedBone,
       zExaggeration,
       visible: showBones ?? true
     })
     requestRender()
-  }, [composite.rig, composite.layers, time, zExaggeration, showBones, requestRender])
+  }, [composite.rig, composite.layers, time, zExaggeration, showBones, selectedLayerId, requestRender])
 
   // Native non-passive wheel listener để Chromium không chặn zoom
   useEffect(() => {

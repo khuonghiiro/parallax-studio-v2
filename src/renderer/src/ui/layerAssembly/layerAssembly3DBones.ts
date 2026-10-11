@@ -108,6 +108,7 @@ export function update3DBonesGroup({
     })
     const relLines = new THREE.LineSegments(relGeom, relMat)
     relLines.computeLineDistances()
+    relLines.renderOrder = 5000
     group.add(relLines)
   }
 
@@ -133,28 +134,30 @@ export function update3DBonesGroup({
     const ty = hy - uy * L
 
     // Khớp gốc Head (Pivot Sphere)
-    const headGeom = new THREE.SphereGeometry(isSelected ? 6 : 4.5, 12, 12)
+    const headGeom = new THREE.SphereGeometry(isSelected ? 8 : 6, 16, 16)
     const headMat = new THREE.MeshBasicMaterial({
-      color: isSelected ? 0x00e5ff : 0xf59e0b,
+      color: isSelected ? 0x00e5ff : 0xffb703,
       depthTest: false
     })
     const headMesh = new THREE.Mesh(headGeom, headMat)
     headMesh.position.set(hx, hy, zPos)
+    headMesh.renderOrder = 5003
     group.add(headMesh)
 
     // Khớp ngọn Tail (Tip Sphere)
-    const tailGeom = new THREE.SphereGeometry(isSelected ? 4.5 : 3.5, 10, 10)
+    const tailGeom = new THREE.SphereGeometry(isSelected ? 6 : 4.5, 14, 14)
     const tailMat = new THREE.MeshBasicMaterial({
-      color: isSelected ? 0x00e5ff : 0xe67e22,
+      color: isSelected ? 0x00e5ff : 0xfb8500,
       depthTest: false
     })
     const tailMesh = new THREE.Mesh(tailGeom, tailMat)
     tailMesh.position.set(tx, ty, zPos)
+    tailMesh.renderOrder = 5003
     group.add(tailMesh)
 
-    // Thân xương 3D bát diện (Octahedral Bone Wireframe)
+    // Thân xương 3D bát diện (Octahedral Bone Mesh & Wireframe)
     const waistFrac = 0.22
-    const waistW = Math.max(5, Math.min(16, L * 0.15))
+    const waistW = Math.max(6, Math.min(18, L * 0.16))
     const wx = hx + ux * (L * waistFrac)
     const wy = hy - uy * (L * waistFrac)
 
@@ -166,6 +169,35 @@ export function update3DBonesGroup({
     const headV = new THREE.Vector3(hx, hy, zPos)
     const tailV = new THREE.Vector3(tx, ty, zPos)
 
+    // 1. Thân bát diện bán trong suốt 3D (Solid Octahedral Faces)
+    const facePositions = new Float32Array([
+      // 4 mặt trên (từ Head tới thắt lưng)
+      hx, hy, zPos,  w1.x, w1.y, w1.z,  w3.x, w3.y, w3.z,
+      hx, hy, zPos,  w3.x, w3.y, w3.z,  w2.x, w2.y, w2.z,
+      hx, hy, zPos,  w2.x, w2.y, w2.z,  w4.x, w4.y, w4.z,
+      hx, hy, zPos,  w4.x, w4.y, w4.z,  w1.x, w1.y, w1.z,
+      // 4 mặt dưới (từ Tail tới thắt lưng)
+      tx, ty, zPos,  w3.x, w3.y, w3.z,  w1.x, w1.y, w1.z,
+      tx, ty, zPos,  w2.x, w2.y, w2.z,  w3.x, w3.y, w3.z,
+      tx, ty, zPos,  w4.x, w4.y, w4.z,  w2.x, w2.y, w2.z,
+      tx, ty, zPos,  w1.x, w1.y, w1.z,  w4.x, w4.y, w4.z
+    ])
+    const solidGeom = new THREE.BufferGeometry()
+    solidGeom.setAttribute('position', new THREE.BufferAttribute(facePositions, 3))
+    solidGeom.computeVertexNormals()
+
+    const solidMat = new THREE.MeshBasicMaterial({
+      color: isSelected ? 0x00e5ff : 0x0284c7,
+      transparent: true,
+      opacity: isSelected ? 0.45 : 0.28,
+      side: THREE.DoubleSide,
+      depthTest: false
+    })
+    const solidMesh = new THREE.Mesh(solidGeom, solidMat)
+    solidMesh.renderOrder = 5001
+    group.add(solidMesh)
+
+    // 2. Khung viền sắc nét bao quanh thân xương
     const bonePoints = [
       // 4 cạnh từ head tới thắt lưng
       headV, w1, headV, w2, headV, w3, headV, w4,
@@ -179,12 +211,13 @@ export function update3DBonesGroup({
 
     const boneGeom = new THREE.BufferGeometry().setFromPoints(bonePoints)
     const boneMat = new THREE.LineBasicMaterial({
-      color: isSelected ? 0x00e5ff : 0xf8fafc,
+      color: isSelected ? 0x00e5ff : 0xffffff,
       transparent: true,
-      opacity: isSelected ? 0.95 : 0.75,
+      opacity: isSelected ? 1.0 : 0.85,
       depthTest: false
     })
     const boneLines = new THREE.LineSegments(boneGeom, boneMat)
+    boneLines.renderOrder = 5002
     group.add(boneLines)
   })
 }
