@@ -147,25 +147,40 @@
   background: color-mix(in srgb, #ef4444 10%, var(--bg-1));
 }
 
-/* Horizontal Tools Row for 2D & 3D mode (nằm ở khoảng trống thừa trong ảnh 2) */
+/* Horizontal Tools Row for both 2D and 2D & 3D modes */
 .layer-pixel-tools-row {
   display: flex;
   align-items: center;
-  gap: 3px;
+  justify-content: space-between;
+  gap: 4px;
   padding: 3px 5px;
   background: var(--bg-1);
   border: 1px solid var(--line-soft);
-  border-radius: 5px;
+  border-radius: 6px;
+  box-sizing: border-box;
+  width: 100%;
   flex-shrink: 0;
 }
 
-.layer-pixel-tools-row button {
-  display: inline-flex;
+.layer-pixel-tools-group {
+  display: flex;
   align-items: center;
   gap: 3px;
-  height: 21px;
-  padding: 0 5px;
-  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.layer-pixel-tools-group.right {
+  flex-shrink: 0;
+}
+
+.layer-pixel-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 22px;
+  padding: 0 6px;
+  font-size: 10.5px;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius);
   background: var(--bg-2);
@@ -173,22 +188,29 @@
   cursor: pointer;
   transition: all 0.12s ease;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
-.layer-pixel-tools-row button:hover:not(:disabled) {
+.layer-pixel-tool-btn.icon-only {
+  width: 22px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.layer-pixel-tool-btn:hover:not(:disabled) {
   color: var(--text);
   background: var(--bg-3);
   border-color: var(--line);
 }
 
-.layer-pixel-tools-row button[aria-pressed='true'] {
+.layer-pixel-tool-btn[aria-pressed='true'] {
   color: var(--accent);
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 15%, var(--bg-1));
   font-weight: 600;
 }
 
-.layer-pixel-tools-row button:disabled {
+.layer-pixel-tool-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
@@ -198,62 +220,6 @@
   height: 14px;
   background: var(--line);
   margin: 0 2px;
-  flex-shrink: 0;
-}
-
-/* Vertical Icon Tab Dock (chế độ 2D: icon tab dọc nằm cạnh canvas) */
-.layer-pixel-vertical-dock {
-  position: absolute;
-  left: 10px;
-  top: 10px;
-  z-index: 20;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 4px;
-  background: var(--bg-1);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(8px);
-}
-
-.layer-pixel-vertical-dock button {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.layer-pixel-vertical-dock button:hover:not(:disabled) {
-  color: var(--text);
-  background: var(--bg-3);
-  border-color: var(--line);
-}
-
-.layer-pixel-vertical-dock button[aria-pressed='true'] {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 15%, var(--bg-1));
-}
-
-.layer-pixel-vertical-dock button:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.layer-pixel-vertical-divider {
-  width: 18px;
-  height: 1px;
-  background: var(--line);
-  margin: 2px auto;
   flex-shrink: 0;
 }
 
@@ -304,16 +270,19 @@
 
 /* Right Controls Area in Row Mode */
 .layer-pixel-controls-area {
-  width: 255px;
+  width: 290px;
+  min-width: 280px;
+  max-width: 320px;
   flex-shrink: 0;
   height: 100%;
   overflow-y: auto;
   background: var(--bg-2);
   border-left: 1px solid var(--line);
-  padding: 6px 10px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  box-sizing: border-box;
 }
 
 /* Bottom Controls Area in Column Mode (Hàng 2 của Cột 1) */
@@ -326,6 +295,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  box-sizing: border-box;
 }
 
 /* Brush Preview Card */

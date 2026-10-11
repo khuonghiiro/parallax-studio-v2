@@ -170,7 +170,7 @@ export function EraserIsolatedCanvas(props: PixelEditorProps) {
     g
   } = useIsolatedCanvasView(props)
 
-  const [settingsHeight, setSettingsHeight] = useState(230)
+  const [settingsHeight, setSettingsHeight] = useState(265)
   const unavailable = layer.locked || layer.hidden
   const setBrush = (hardness: number) => {
     setHand(false)
@@ -339,11 +339,103 @@ export function EraserIsolatedCanvas(props: PixelEditorProps) {
     </div>
   )
 
+interface EraserToolbarRowProps {
+  hand: boolean
+  brushHardness: number
+  unavailable: boolean
+  isErasing: boolean
+  canReset: boolean
+  onSetBrush: (hardness: number) => void
+  onSetHand: () => void
+  onResetView: () => void
+  onResetImage: () => void
+}
+
+function EraserToolbarRow({
+  hand,
+  brushHardness,
+  unavailable,
+  isErasing,
+  canReset,
+  onSetBrush,
+  onSetHand,
+  onResetView,
+  onResetImage
+}: EraserToolbarRowProps) {
+  return (
+    <div className="layer-pixel-tools-row" aria-label="Thanh công cụ cọ tẩy">
+      <div className="layer-pixel-tools-group">
+        <button
+          type="button"
+          className="layer-pixel-tool-btn"
+          title="Cọ tẩy mờ mềm (Độ cứng 40%)"
+          aria-label="Cọ mềm"
+          aria-pressed={!hand && brushHardness < 1}
+          disabled={unavailable || isErasing}
+          onClick={() => onSetBrush(0.4)}
+        >
+          <IconBrush width={13} height={13} />
+          <span>Cọ mềm</span>
+        </button>
+        <button
+          type="button"
+          className="layer-pixel-tool-btn"
+          title="Tẩy nét cứng (Độ cứng 100%)"
+          aria-label="Tẩy cứng"
+          aria-pressed={!hand && brushHardness === 1}
+          disabled={unavailable || isErasing}
+          onClick={() => onSetBrush(1)}
+        >
+          <IconEraser width={13} height={13} />
+          <span>Tẩy cứng</span>
+        </button>
+        <button
+          type="button"
+          className="layer-pixel-tool-btn"
+          title="Bàn tay dời ảnh (Space)"
+          aria-label="Bàn tay dời ảnh"
+          aria-pressed={hand}
+          disabled={isErasing}
+          onClick={onSetHand}
+        >
+          <IconHand width={13} height={13} />
+          <span>Dời</span>
+        </button>
+      </div>
+
+      <div className="layer-pixel-divider" />
+
+      <div className="layer-pixel-tools-group right">
+        <button
+          type="button"
+          className="layer-pixel-tool-btn icon-only"
+          title="Căn vừa vặn khung ảnh (Fit View)"
+          aria-label="Vừa khung ảnh"
+          disabled={isErasing}
+          onClick={onResetView}
+        >
+          <IconFit width={13} height={13} />
+        </button>
+        <button
+          type="button"
+          className="layer-pixel-tool-btn icon-only"
+          title="Khôi phục lại ảnh gốc ban đầu"
+          aria-label="Khôi phục ảnh gốc"
+          disabled={unavailable || !canReset || isErasing}
+          onClick={onResetImage}
+        >
+          <IconUndo width={13} height={13} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
   // =========================================================================
   // CHẾ ĐỘ 1: CHỈ CÓ 2D (is2DOnly = true)
   // Cột 1 chia 2 hàng:
-  // - Hàng 1: ảnh để cọ kèm icon tab dọc bên cạnh
-  // - Hàng 2: UI chỉnh sửa thông số cọ
+  // - Hàng 1: Canvas ảnh để cọ (thoáng đãng, sạch sẽ, không che khuất)
+  // - Hàng 2: UI chỉnh sửa thông số + thanh icon cọ ngang ở bottom
   // =========================================================================
   if (is2DOnly) {
     return (
@@ -355,60 +447,8 @@ export function EraserIsolatedCanvas(props: PixelEditorProps) {
         onPointerUp={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
       >
-        {/* HÀNG 1: Canvas ảnh để cọ + Icon Tab Dọc bên trái */}
-        {renderCanvas(
-          <div className="layer-pixel-vertical-dock" aria-label="Thanh công cụ tẩy dọc">
-            <button
-              type="button"
-              title="Cọ tẩy mềm (Độ cứng 40%)"
-              aria-label="Cọ tẩy mềm"
-              aria-pressed={!hand && brushSettings.hardness < 1}
-              disabled={unavailable || isErasing}
-              onClick={() => setBrush(0.4)}
-            >
-              <IconBrush width={15} height={15} />
-            </button>
-            <button
-              type="button"
-              title="Tẩy pixel nét cứng (Độ cứng 100%)"
-              aria-label="Tẩy pixel nét cứng"
-              aria-pressed={!hand && brushSettings.hardness === 1}
-              disabled={unavailable || isErasing}
-              onClick={() => setBrush(1)}
-            >
-              <IconEraser width={15} height={15} />
-            </button>
-            <button
-              type="button"
-              title="Bàn tay · kéo để dời ảnh (hoặc giữ phím Space)"
-              aria-label="Bàn tay"
-              aria-pressed={hand}
-              disabled={isErasing}
-              onClick={() => setHand(true)}
-            >
-              <IconHand width={15} height={15} />
-            </button>
-            <div className="layer-pixel-vertical-divider" />
-            <button
-              type="button"
-              title="Đặt lại vừa khung ảnh"
-              aria-label="Vừa khung ảnh"
-              disabled={isErasing}
-              onClick={reset}
-            >
-              <IconFit width={15} height={15} />
-            </button>
-            <button
-              type="button"
-              title="Khôi phục ảnh gốc"
-              aria-label="Khôi phục ảnh gốc"
-              disabled={unavailable || !layer.imageUrl || !layer.assetPath || isErasing}
-              onClick={props.onResetLayerImage}
-            >
-              <IconUndo width={15} height={15} />
-            </button>
-          </div>
-        )}
+        {/* HÀNG 1: Canvas ảnh để cọ thuần túy, sạch sẽ */}
+        {renderCanvas()}
 
         {/* Thanh kéo chia giữa Hàng 1 và Hàng 2 trong Cột 1 */}
         <div
@@ -417,7 +457,7 @@ export function EraserIsolatedCanvas(props: PixelEditorProps) {
           title="Kéo chuột để chỉnh độ cao khung thông số"
         />
 
-        {/* HÀNG 2: UI chỉnh sửa thông số */}
+        {/* HÀNG 2: UI chỉnh sửa thông số & thanh ngang chứa icon cọ ở bottom */}
         <div className="layer-pixel-settings-bottom" style={{ height: `${settingsHeight}px` }}>
           <div className="layer-pixel-panel-header">
             <div className="layer-pixel-title">
@@ -436,6 +476,19 @@ export function EraserIsolatedCanvas(props: PixelEditorProps) {
               <span>Thoát</span>
             </button>
           </div>
+
+          {/* Thanh ngang chứa icon công cụ cọ tẩy nằm ở Hàng 2 */}
+          <EraserToolbarRow
+            hand={hand}
+            brushHardness={brushSettings.hardness}
+            unavailable={unavailable}
+            isErasing={isErasing}
+            canReset={Boolean(layer.imageUrl && layer.assetPath)}
+            onSetBrush={setBrush}
+            onSetHand={() => setHand(true)}
+            onResetView={reset}
+            onResetImage={props.onResetLayerImage}
+          />
 
           <BrushPreviewVisualizer
             brushSettings={brushSettings}
@@ -490,56 +543,18 @@ export function EraserIsolatedCanvas(props: PixelEditorProps) {
           </button>
         </div>
 
-        {/* Các tool từ ảnh 1 đưa vào khoảng trống thừa ở đây */}
-        <div className="layer-pixel-tools-row" aria-label="Công cụ cọ tẩy">
-          <button
-            type="button"
-            title="Cọ tẩy mềm (Độ cứng 40%)"
-            aria-pressed={!hand && brushSettings.hardness < 1}
-            disabled={unavailable || isErasing}
-            onClick={() => setBrush(0.4)}
-          >
-            <IconBrush width={13} height={13} />
-            <span>Cọ mềm</span>
-          </button>
-          <button
-            type="button"
-            title="Tẩy nét cứng (Độ cứng 100%)"
-            aria-pressed={!hand && brushSettings.hardness === 1}
-            disabled={unavailable || isErasing}
-            onClick={() => setBrush(1)}
-          >
-            <IconEraser width={13} height={13} />
-            <span>Tẩy cứng</span>
-          </button>
-          <button
-            type="button"
-            title="Bàn tay dời ảnh (Space)"
-            aria-pressed={hand}
-            disabled={isErasing}
-            onClick={() => setHand(true)}
-          >
-            <IconHand width={13} height={13} />
-            <span>Dời</span>
-          </button>
-          <div className="layer-pixel-divider" />
-          <button
-            type="button"
-            title="Vừa khung ảnh"
-            disabled={isErasing}
-            onClick={reset}
-          >
-            <IconFit width={13} height={13} />
-          </button>
-          <button
-            type="button"
-            title="Khôi phục ảnh gốc"
-            disabled={unavailable || !layer.imageUrl || !layer.assetPath || isErasing}
-            onClick={props.onResetLayerImage}
-          >
-            <IconUndo width={13} height={13} />
-          </button>
-        </div>
+        {/* Thanh ngang chứa icon công cụ cọ tẩy nằm ở khoảng trống thừa */}
+        <EraserToolbarRow
+          hand={hand}
+          brushHardness={brushSettings.hardness}
+          unavailable={unavailable}
+          isErasing={isErasing}
+          canReset={Boolean(layer.imageUrl && layer.assetPath)}
+          onSetBrush={setBrush}
+          onSetHand={() => setHand(true)}
+          onResetView={reset}
+          onResetImage={props.onResetLayerImage}
+        />
 
         {/* Card xem trước cọ trực quan */}
         <BrushPreviewVisualizer
