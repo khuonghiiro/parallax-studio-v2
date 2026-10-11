@@ -5,7 +5,7 @@ import { assetStore } from '../../project/assets'
 import { importAudio, removeAudioTrack } from '../../actions'
 import { IconMusic, IconPlus, IconVolume } from '../icons'
 import { MusicItemCard, type AudioEntry, type AudioCardSettings } from './music/MusicItemCard'
-import { addAudioTrackToProject } from '../../project/audioTracks'
+import { addAudioTrackToProject, syncProjectAudio } from '../../project/audioTracks'
 import type { AssetMeta } from '@shared/types'
 
 export interface MusicPanelProps {
@@ -21,6 +21,7 @@ export function formatAudioDuration(seconds: number): string {
 
 export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
   const projectAssets = useEditor((s) => s.project.assets)
+  const projectAudioTracks = useEditor((s) => s.project.audioTracks || [])
   const currentTime = useEditor((s) => s.time)
   const theme = useView((s) => s.theme)
   const [search, setSearch] = useState('')
@@ -180,12 +181,13 @@ export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
       try {
         const res = await window.api.loadBuiltInAssetBytes(item.relPath)
         if (res && res.data) {
-          const file = new File([res.data], `${item.name}.wav`, { type: res.mime || 'audio/wav' })
-          const asset = await assetStore.addFile(file)
+          const runtimeAsset = await assetStore.add(item.name, res.mime || 'audio/wav', res.data, 'audio')
           useEditor.getState().update((proj) => {
-            proj.assets.push(asset)
+            if (!proj.assets.some((a) => a.id === runtimeAsset.meta.id)) {
+              proj.assets.push(runtimeAsset.meta)
+            }
           })
-          targetAssetId = asset.id
+          targetAssetId = runtimeAsset.meta.id
         }
       } catch (err) {
         console.error('[MusicPanel] Failed to insert builtin audio:', err)
@@ -200,6 +202,36 @@ export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
       track.loop = settings.loop
     })
   }
+
+  // Cập nhật cấu hình âm lượng / tốc độ / loop tức thì (cả preview player lẫn timeline)
+  const handleUpdateSettings = useCallback(
+    (item: AudioEntry, newSettings: AudioCardSettings) => {
+      // 1. Áp dụng ngay lập tức cho bài đang phát nghe thử
+      if (audioRef.current && playingId === item.id) {
+        audioRef.current.volume = newSettings.isMuted ? 0 : Math.min(1, Math.max(0, newSettings.volume))
+        audioRef.current.playbackRate = newSettings.playbackRate || 1
+        audioRef.current.loop = !!newSettings.loop
+      }
+
+      // 2. Đồng bộ các track của bài này trên timeline (nếu có)
+      useEditor.getState().update((proj) => {
+        let changed = false
+        ;(proj.audioTracks || []).forEach((t) => {
+          if (t.assetId === item.id || t.name === item.name) {
+            t.volume = newSettings.isMuted ? 0 : newSettings.volume
+            t.playbackRate = newSettings.playbackRate
+            t.loop = newSettings.loop
+            t.muted = newSettings.isMuted
+            changed = true
+          }
+        })
+        if (changed) {
+          syncProjectAudio(proj)
+        }
+      })
+    },
+    [playingId]
+  )
 
   // Xoá audio dự án
   const handleDeleteAudio = (item: AudioEntry) => {
@@ -297,21 +329,35 @@ export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
             </button>
           </div>
         ) : (
-          allAudios.map((item) => (
-            <MusicItemCard
-              key={item.id}
-              item={item}
-              isPlaying={playingId === item.id}
-              playbackTime={playingId === item.id ? playbackTime : 0}
-              duration={playingId === item.id ? duration : item.assetMeta?.duration || 0}
-              theme={theme}
-              currentTime={currentTime}
-              onTogglePlay={handleTogglePlay}
-              onSeek={handleSeek}
-              onInsertTimeline={handleInsertTimeline}
-              onDelete={handleDeleteAudio}
-            />
-          ))
+          allAudios.map((item) => {
+            const matchedTrack = projectAudioTracks.find((t) => t.assetId === item.id || t.name === item.name)
+            const initialSettings = matchedTrack
+              ? {
+                  volume: matchedTrack.volume ?? 1,
+                  playbackRate: matchedTrack.playbackRate ?? 1,
+                  loop: !!matchedTrack.loop,
+                  isMuted: matchedTrack.volume === 0 || !!matchedTrack.muted
+                }
+              : undefined
+
+            return (
+              <MusicItemCard
+                key={item.id}
+                item={item}
+                isPlaying={playingId === item.id}
+                playbackTime={playingId === item.id ? playbackTime : 0}
+                duration={playingId === item.id ? duration : item.assetMeta?.duration || 0}
+                theme={theme}
+                currentTime={currentTime}
+                initialSettings={initialSettings}
+                onTogglePlay={handleTogglePlay}
+                onSeek={handleSeek}
+                onInsertTimeline={handleInsertTimeline}
+                onUpdateSettings={handleUpdateSettings}
+                onDelete={handleDeleteAudio}
+              />
+            )
+          })
         )}
       </div>
 

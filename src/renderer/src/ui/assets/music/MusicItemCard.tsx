@@ -32,9 +32,11 @@ interface MusicItemCardProps {
   duration: number
   theme: string
   currentTime: number
+  initialSettings?: AudioCardSettings
   onTogglePlay: (item: AudioEntry, settings: AudioCardSettings) => void
   onSeek: (time: number) => void
   onInsertTimeline: (item: AudioEntry, offset: number, settings: AudioCardSettings) => void
+  onUpdateSettings?: (item: AudioEntry, settings: AudioCardSettings) => void
   onDelete?: (item: AudioEntry) => void
 }
 
@@ -45,9 +47,11 @@ export function MusicItemCard({
   duration,
   theme,
   currentTime,
+  initialSettings,
   onTogglePlay,
   onSeek,
   onInsertTimeline,
+  onUpdateSettings,
   onDelete
 }: MusicItemCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -56,12 +60,19 @@ export function MusicItemCard({
   const [renameVal, setRenameVal] = useState(item.name)
 
   // Cấu hình âm thanh của item (Volume, Speed, Loop)
-  const [settings, setSettings] = useState<AudioCardSettings>({
+  const [settings, setSettings] = useState<AudioCardSettings>(() => initialSettings || {
     volume: 1,
     playbackRate: 1,
     loop: false,
     isMuted: false
   })
+
+  // Đồng bộ khi initialSettings từ ngoài thay đổi (ví dụ sửa ở Inspector)
+  useEffect(() => {
+    if (initialSettings) {
+      setSettings(initialSettings)
+    }
+  }, [initialSettings?.volume, initialSettings?.playbackRate, initialSettings?.loop, initialSettings?.isMuted])
 
   // Đếm số track đang sử dụng asset này trên timeline
   const projectAudioTracks = useEditor((s) => s.project.audioTracks || [])
@@ -113,13 +124,29 @@ export function MusicItemCard({
     setIsRenaming(false)
   }
 
-  // Tùy chỉnh volume
+  // Tùy chỉnh volume tức thì
   const handleVolumeChange = (v: number) => {
-    setSettings((s) => ({ ...s, volume: v, isMuted: v === 0 ? true : false }))
+    const next: AudioCardSettings = { ...settings, volume: v, isMuted: v === 0 }
+    setSettings(next)
+    onUpdateSettings?.(item, next)
   }
 
   const toggleMute = () => {
-    setSettings((s) => ({ ...s, isMuted: !s.isMuted }))
+    const next: AudioCardSettings = { ...settings, isMuted: !settings.isMuted }
+    setSettings(next)
+    onUpdateSettings?.(item, next)
+  }
+
+  const handleSpeedChange = (rate: number) => {
+    const next: AudioCardSettings = { ...settings, playbackRate: rate }
+    setSettings(next)
+    onUpdateSettings?.(item, next)
+  }
+
+  const handleLoopChange = (loop: boolean) => {
+    const next: AudioCardSettings = { ...settings, loop }
+    setSettings(next)
+    onUpdateSettings?.(item, next)
   }
 
   return (
@@ -239,20 +266,25 @@ export function MusicItemCard({
       {/* 3. Bảng điều chỉnh âm nhạc (Volume, Tốc độ, Lặp lại, Chèn Timeline) */}
       {isExpanded && (
         <div className="music-settings-drawer">
-          {/* Hàng 1: Âm lượng */}
-          <div className="music-setting-row">
-            <span className="music-setting-label">
-              <button
-                type="button"
-                className={`music-mute-btn${settings.isMuted ? ' muted' : ''}`}
-                onClick={toggleMute}
-                title={settings.isMuted ? 'Bật tiếng' : 'Tắt tiếng'}
-              >
-                <IconVolume width={12} height={12} />
-              </button>
-              Âm lượng
-            </span>
-            <div className="music-volume-slider-box">
+          {/* Hàng 1: Âm lượng (Header hiển thị nhãn + %, thanh trượt full-width 100%) */}
+          <div className="music-setting-col">
+            <div className="music-setting-header-row">
+              <span className="music-setting-label">
+                <button
+                  type="button"
+                  className={`music-mute-btn${settings.isMuted ? ' muted' : ''}`}
+                  onClick={toggleMute}
+                  title={settings.isMuted ? 'Bật tiếng' : 'Tắt tiếng (Mute)'}
+                >
+                  <IconVolume width={12} height={12} />
+                </button>
+                Âm lượng:
+              </span>
+              <span className="music-setting-current-val">
+                {settings.isMuted ? 'Tắt tiếng' : `${Math.round(settings.volume * 100)}%`}
+              </span>
+            </div>
+            <div className="music-slider-track-wrap">
               <input
                 type="range"
                 className="music-slider"
@@ -262,22 +294,22 @@ export function MusicItemCard({
                 value={settings.isMuted ? 0 : settings.volume}
                 onChange={(e) => handleVolumeChange(Number(e.target.value))}
               />
-              <span className="music-setting-val">
-                {settings.isMuted ? 'Mute' : `${Math.round(settings.volume * 100)}%`}
-              </span>
             </div>
           </div>
 
-          {/* Hàng 2: Tốc độ phát (Playback Rate) */}
-          <div className="music-setting-row">
-            <span className="music-setting-label">Tốc độ</span>
-            <div className="music-speed-chips">
-              {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((rate) => (
+          {/* Hàng 2: Tốc độ phát (Header hiển thị nhãn + giá trị, dải nút grid 5 cột) */}
+          <div className="music-setting-col">
+            <div className="music-setting-header-row">
+              <span className="music-setting-label">Tốc độ phát:</span>
+              <span className="music-setting-current-val">{settings.playbackRate}x</span>
+            </div>
+            <div className="music-speed-grid">
+              {[0.5, 0.75, 1.0, 1.25, 1.5].map((rate) => (
                 <button
                   key={rate}
                   type="button"
                   className={`music-chip-btn${settings.playbackRate === rate ? ' active' : ''}`}
-                  onClick={() => setSettings((s) => ({ ...s, playbackRate: rate }))}
+                  onClick={() => handleSpeedChange(rate)}
                 >
                   {rate}x
                 </button>
@@ -285,38 +317,49 @@ export function MusicItemCard({
             </div>
           </div>
 
-          {/* Hàng 3: Tùy chọn lặp lại & Chèn timeline nâng cao */}
-          <div className="music-setting-row options-row">
+          {/* Hàng 3: Tùy chọn Lặp lại (Loop) */}
+          <div className="music-loop-row">
             <label className="music-checkbox-label">
               <input
                 type="checkbox"
                 checked={settings.loop}
-                onChange={(e) => setSettings((s) => ({ ...s, loop: e.target.checked }))}
+                onChange={(e) => handleLoopChange(e.target.checked)}
               />
               <IconLoop width={12} height={12} />
-              <span>Lặp lại khi hết (Loop)</span>
+              <span>Lặp lại khi hết bài (Loop)</span>
             </label>
+          </div>
 
-            <div className="music-drawer-insert-group">
+          {/* Hàng 4: Hành động chèn timeline nâng cao (Grid 2 cột) */}
+          <div className="music-actions-grid">
+            <button
+              type="button"
+              className="btn xs music-drawer-action-btn"
+              onClick={() => onInsertTimeline(item, 0, settings)}
+              title="Chèn âm thanh từ mốc bắt đầu video (0.0s)"
+            >
+              <IconPlus width={10} height={10} /> Chèn từ 0s
+            </button>
+
+            {usedTrackCount > 0 ? (
               <button
                 type="button"
-                className="btn xs"
-                onClick={() => onInsertTimeline(item, 0, settings)}
-                title="Chèn âm thanh từ mốc bắt đầu video (0.0s)"
+                className="btn xs primary text-link music-drawer-action-btn"
+                onClick={() => useView.getState().openAudioDialog('waveform')}
+                title="Mở bảng Audio Studio Waveform & Mixer chuyên sâu (phím tắt LL)"
               >
-                Chèn từ 0s
+                Audio Studio ↗
               </button>
-              {usedTrackCount > 0 && (
-                <button
-                  type="button"
-                  className="btn xs primary text-link"
-                  onClick={() => useView.getState().openAudioDialog('waveform')}
-                  title="Mở bảng Audio Studio Waveform & Mixer chuyên sâu (phím tắt LL)"
-                >
-                  Audio Studio ↗
-                </button>
-              )}
-            </div>
+            ) : (
+              <button
+                type="button"
+                className="btn xs music-drawer-action-btn"
+                onClick={() => onInsertTimeline(item, currentTime, settings)}
+                title={`Chèn tại mốc kim phát hiện tại (${currentTime.toFixed(1)}s)`}
+              >
+                <IconPlus width={10} height={10} /> Chèn tại kim
+              </button>
+            )}
           </div>
         </div>
       )}

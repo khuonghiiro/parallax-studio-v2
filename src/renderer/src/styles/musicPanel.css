@@ -149,6 +149,9 @@
   transition: all 0.15s ease;
   position: relative;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
 }
 
 /* Dải màu nhận diện nguồn bài nhạc mép trái */
@@ -526,12 +529,15 @@
 .music-settings-drawer {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  background: rgba(0, 0, 0, 0.32);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  padding: 8px 10px;
-  margin-top: 2px;
+  gap: 9px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 10px 8px;
+  margin-top: 5px;
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
 }
 
 [data-theme='light'] .music-settings-drawer {
@@ -539,11 +545,20 @@
   border: 1px solid #cbd5e1;
 }
 
-.music-setting-row {
+.music-setting-col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.music-setting-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .music-setting-label {
@@ -552,12 +567,23 @@
   gap: 5px;
   font-size: 11px;
   font-weight: 600;
-  color: #d4d4d8;
+  color: #e4e4e7;
   flex: none;
 }
 
 [data-theme='light'] .music-setting-label {
   color: #1e293b;
+}
+
+.music-setting-current-val {
+  font-size: 11px;
+  font-family: monospace;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+[data-theme='light'] .music-setting-current-val {
+  color: #0284c7;
 }
 
 .music-mute-btn {
@@ -579,46 +605,47 @@
   color: #ef4444;
 }
 
-.music-volume-slider-box {
+.music-slider-track-wrap {
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex: 1;
-  max-width: 120px;
+  box-sizing: border-box;
+  padding: 2px 0;
 }
 
 .music-slider {
-  flex: 1;
-  height: 4px;
+  width: 100%;
+  height: 6px;
   accent-color: var(--accent);
   cursor: pointer;
+  box-sizing: border-box;
+  margin: 0;
 }
 
-.music-setting-val {
-  font-size: 10px;
-  font-family: monospace;
-  font-weight: 600;
-  color: var(--text);
-  min-width: 32px;
-  text-align: right;
-}
-
-/* Speed Chips */
-.music-speed-chips {
-  display: flex;
+/* Speed Grid 5 columns */
+.music-speed-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   gap: 3px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .music-chip-btn {
   background: var(--bg-0);
   border: 1px solid var(--line);
-  border-radius: 2px;
+  border-radius: 4px;
   font-size: 9.5px;
   font-family: monospace;
   color: var(--text-dim);
-  padding: 2px 5px;
+  padding: 3px 0;
+  text-align: center;
   cursor: pointer;
   transition: all 0.12s ease;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 [data-theme='light'] .music-chip-btn {
@@ -630,6 +657,7 @@
 .music-chip-btn:hover {
   background: var(--bg-3);
   color: var(--text);
+  border-color: var(--line-focus);
 }
 
 .music-chip-btn.active {
@@ -637,19 +665,24 @@
   border-color: var(--accent);
   color: #ffffff;
   font-weight: 700;
+  box-shadow: 0 0 6px rgba(38, 128, 235, 0.4);
 }
 
-/* Options row: Loop & Insert group */
-.music-setting-row.options-row {
+/* Loop row */
+.music-loop-row {
+  display: flex;
+  align-items: center;
   border-top: 1px dashed var(--line);
-  padding-top: 5px;
+  padding-top: 6px;
   margin-top: 2px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .music-checkbox-label {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   font-size: 10.5px;
   color: var(--text-dim);
   cursor: pointer;
@@ -666,25 +699,28 @@
   cursor: pointer;
 }
 
-.music-drawer-insert-group {
-  display: flex;
-  align-items: center;
+/* Actions Grid 2 columns */
+.music-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 5px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 2px;
 }
 
-.music-drawer-insert-group .text-link {
-  color: var(--accent-cyan);
-  background: transparent;
-  border: none;
-  font-size: 10.5px;
-  text-decoration: underline;
-  cursor: pointer;
-  padding: 0 2px;
-  font-weight: 600;
-}
-
-[data-theme='light'] .music-drawer-insert-group .text-link {
-  color: #0284c7;
+.music-drawer-action-btn {
+  width: 100%;
+  justify-content: center;
+  box-sizing: border-box;
+  white-space: nowrap;
+  font-size: 10px !important;
+  padding: 0 4px !important;
+  height: 24px !important;
+  gap: 3px !important;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ------------------------------------------------------------------ Empty State */

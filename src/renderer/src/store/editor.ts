@@ -161,7 +161,7 @@ export const useEditor = create<EditorState>((set, get) => ({
       selectedLayerId: null,
       selectedShotId: null,
       selectedKey: null,
-      inspectorTab: 'scene'
+      inspectorTab: id ? 'layer' : 'scene'
     })
   },
   selectKey(k) {
