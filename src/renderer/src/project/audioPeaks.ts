@@ -2,17 +2,18 @@ import { assetStore } from './assets'
 
 const cache = new Map<string, Promise<Float32Array>>()
 
-/** Decode an audio asset and compute normalized peak amplitudes (cached). */
-export function getAudioPeaks(assetId: string, buckets = 2000): Promise<Float32Array> {
-  const key = `${assetId}:${buckets}`
+/** Decode a raw audio Blob and compute normalized peak amplitudes (cached). */
+export function getAudioPeaksFromBlob(blob: Blob, cacheKey: string, buckets = 2000): Promise<Float32Array> {
+  const key = `blob:${cacheKey}:${buckets}`
   let p = cache.get(key)
   if (!p) {
     p = (async () => {
-      const asset = assetStore.get(assetId)
-      if (!asset) return new Float32Array(0)
+      if (typeof AudioContext === 'undefined') {
+        return new Float32Array(0)
+      }
       const ctx = new AudioContext()
       try {
-        const buf = await ctx.decodeAudioData(await asset.blob.arrayBuffer())
+        const buf = await ctx.decodeAudioData(await blob.arrayBuffer())
         const ch = buf.getChannelData(0)
         const peaks = new Float32Array(buckets)
         const step = Math.max(1, Math.floor(ch.length / buckets))
@@ -26,6 +27,9 @@ export function getAudioPeaks(assetId: string, buckets = 2000): Promise<Float32A
         }
         if (max > 0) for (let i = 0; i < buckets; i++) peaks[i] /= max
         return peaks
+      } catch (err) {
+        console.warn('[audioPeaks] Failed to decode audio blob:', err)
+        return new Float32Array(0)
       } finally {
         ctx.close()
       }
@@ -33,4 +37,11 @@ export function getAudioPeaks(assetId: string, buckets = 2000): Promise<Float32A
     cache.set(key, p)
   }
   return p
+}
+
+/** Decode an audio asset and compute normalized peak amplitudes (cached). */
+export function getAudioPeaks(assetId: string, buckets = 2000): Promise<Float32Array> {
+  const asset = assetStore.get(assetId)
+  if (!asset) return Promise.resolve(new Float32Array(0))
+  return getAudioPeaksFromBlob(asset.blob, assetId, buckets)
 }

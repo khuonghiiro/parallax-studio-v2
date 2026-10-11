@@ -1,22 +1,15 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useEditor } from '../../store/editor'
+import { useView } from '../../store/view'
 import { assetStore } from '../../project/assets'
-import { importAudio, addAudioTrackFromAsset, removeAudioTrack } from '../../actions'
-import { IconMusic, IconPlay, IconPause, IconPlus, IconTrash, IconVolume } from '../icons'
+import { importAudio, removeAudioTrack } from '../../actions'
+import { IconMusic, IconPlus, IconVolume } from '../icons'
+import { MusicItemCard, type AudioEntry, type AudioCardSettings } from './music/MusicItemCard'
+import { addAudioTrackToProject } from '../../project/audioTracks'
 import type { AssetMeta } from '@shared/types'
 
 export interface MusicPanelProps {
   onImportItem?: (item: any) => void
-}
-
-interface AudioEntry {
-  id: string
-  name: string
-  source: 'project' | 'builtin'
-  assetMeta?: AssetMeta
-  relPath?: string
-  format: string
-  url?: string
 }
 
 export function formatAudioDuration(seconds: number): string {
@@ -29,6 +22,7 @@ export function formatAudioDuration(seconds: number): string {
 export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
   const projectAssets = useEditor((s) => s.project.assets)
   const currentTime = useEditor((s) => s.time)
+  const theme = useView((s) => s.theme)
   const [search, setSearch] = useState('')
   const [filterSource, setFilterSource] = useState<'all' | 'project' | 'builtin'>('all')
 
@@ -37,6 +31,7 @@ export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
   const [playbackTime, setPlaybackTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const curItemRef = useRef<AudioEntry | null>(null)
 
   // Danh sách các tệp âm thanh trong dự án
   const projectAudios: AudioEntry[] = useMemo(() => {
@@ -93,7 +88,8 @@ export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
     }
   }, [])
 
-  const handleTogglePlay = async (item: AudioEntry) => {
+  // Bật/tắt nghe thử với cấu hình tuỳ chỉnh
+  const handleTogglePlay = async (item: AudioEntry, settings: AudioCardSettings) => {
     if (playingId === item.id) {
       if (audioRef.current) {
         if (audioRef.current.paused) {
@@ -106,7 +102,6 @@ export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
       return
     }
 
-    // Nếu đang phát bài khác, dừng trước
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current = null
@@ -131,8 +126,14 @@ export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
 
     const audio = new Audio(playUrl)
     audioRef.current = audio
+    curItemRef.current = item
     setPlayingId(item.id)
     setPlaybackTime(0)
+
+    // Áp dụng volume, speed, loop
+    audio.volume = settings.isMuted ? 0 : Math.min(1, Math.max(0, settings.volume))
+    audio.playbackRate = settings.playbackRate || 1
+    audio.loop = !!settings.loop
 
     audio.onloadedmetadata = () => {
       setDuration(audio.duration || 0)
@@ -143,222 +144,190 @@ export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
     }
 
     audio.onended = () => {
-      setPlayingId(null)
-      setPlaybackTime(0)
-    }
-
-    audio.onerror = () => {
-      setPlayingId(null)
+      if (!audio.loop) {
+        setPlayingId(null)
+        setPlaybackTime(0)
+      }
     }
 
     audio.play().catch((err) => {
-      console.warn('[MusicPanel] Audio play failed:', err)
+      console.warn('[MusicPanel] Audio play error:', err)
       setPlayingId(null)
     })
   }
 
-  const handleInsertToTimeline = async (item: AudioEntry) => {
-    if (item.source === 'project' && item.assetMeta) {
-      addAudioTrackFromAsset(item.assetMeta.id, currentTime)
-    } else if (item.source === 'builtin' && item.relPath && window.api?.loadBuiltInAssetBytes) {
+  // Tua thời gian (seek) từ sóng âm
+  const handleSeek = useCallback(
+    (time: number) => {
+      const safeTime = Math.max(0, Math.min(duration || 1000, time))
+      setPlaybackTime(safeTime)
+      if (audioRef.current) {
+        audioRef.current.currentTime = safeTime
+      }
+    },
+    [duration]
+  )
+
+  // Chèn audio vào timeline
+  const handleInsertTimeline = async (
+    item: AudioEntry,
+    targetOffset: number,
+    settings: AudioCardSettings
+  ) => {
+    let targetAssetId = item.id
+
+    if (item.source === 'builtin' && item.relPath && window.api?.loadBuiltInAssetBytes) {
       try {
         const res = await window.api.loadBuiltInAssetBytes(item.relPath)
         if (res && res.data) {
-          const asset = await assetStore.add(res.name, res.mime, res.data, 'audio')
-          useEditor.getState().update((d) => {
-            if (!d.assets.some((a) => a.id === asset.meta.id)) {
-              d.assets.push(asset.meta)
-            }
+          const file = new File([res.data], `${item.name}.wav`, { type: res.mime || 'audio/wav' })
+          const asset = await assetStore.addFile(file)
+          useEditor.getState().update((proj) => {
+            proj.assets.push(asset)
           })
-          addAudioTrackFromAsset(asset.meta.id, currentTime)
+          targetAssetId = asset.id
         }
       } catch (err) {
         console.error('[MusicPanel] Failed to insert builtin audio:', err)
+        return
       }
     }
+
+    useEditor.getState().update((proj) => {
+      const track = addAudioTrackToProject(proj, targetAssetId, item.name, targetOffset)
+      track.volume = settings.isMuted ? 0 : settings.volume
+      track.playbackRate = settings.playbackRate
+      track.loop = settings.loop
+    })
   }
 
+  // Xoá audio dự án
   const handleDeleteAudio = (item: AudioEntry) => {
-    if (item.source === 'project' && item.assetMeta) {
-      const assetId = item.assetMeta.id
-      // Xoá track liên quan trên timeline
-      const editorState = useEditor.getState()
-      const tracks = editorState.project.audioTracks || []
-      tracks.filter((t) => t.assetId === assetId).forEach((t) => removeAudioTrack(t.id))
+    if (item.source !== 'project') return
+    const confirmed = window.confirm(
+      `Xoá tệp âm thanh "${item.name}"?\n(Các đoạn âm thanh liên quan trên timeline cũng sẽ được xoá)`
+    )
+    if (!confirmed) return
 
-      // Xoá khỏi asset store và project assets
-      assetStore.remove(assetId)
-      editorState.update((d) => {
-        d.assets = d.assets.filter((a) => a.id !== assetId)
-      })
+    if (playingId === item.id && audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current = null
+      setPlayingId(null)
+    }
 
-      if (playingId === item.id && audioRef.current) {
-        audioRef.current.pause()
-        setPlayingId(null)
+    const editorState = useEditor.getState()
+    const tracks = editorState.project.audioTracks || []
+    tracks.forEach((t) => {
+      if (t.assetId === item.id) {
+        removeAudioTrack(t.id)
       }
-    }
-  }
+    })
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = Number(e.target.value)
-    setPlaybackTime(val)
-    if (audioRef.current) {
-      audioRef.current.currentTime = val
-    }
+    editorState.update((proj) => {
+      proj.assets = proj.assets.filter((a) => a.id !== item.id)
+    })
   }
 
   return (
     <div className="music-panel-container">
-      {/* 1. Header công cụ tìm kiếm và bộ lọc */}
+      {/* 1. Header công cụ tìm kiếm và phân loại */}
       <div className="music-panel-filter-bar">
-        <div className="music-search-box">
+        <div className="music-search-box-v2">
           <input
             type="text"
-            className="input-text sm"
-            placeholder="Tìm theo tên âm thanh, định dạng…"
+            className="music-search-input-v2"
+            placeholder="Tìm nhạc, hiệu ứng âm thanh…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          {search && (
+            <button
+              type="button"
+              className="music-search-clear-btn"
+              onClick={() => setSearch('')}
+              title="Xoá tìm kiếm"
+            >
+              ✕
+            </button>
+          )}
         </div>
-        <div className="music-filter-tabs">
+
+        <div className="music-segmented-tabs">
           <button
             type="button"
-            className={`btn xs${filterSource === 'all' ? ' active' : ''}`}
+            className={`music-seg-tab${filterSource === 'all' ? ' active' : ''}`}
             onClick={() => setFilterSource('all')}
           >
-            Tất cả ({projectAudios.length + builtinAudios.length})
+            Tất cả <span className="music-seg-badge">{projectAudios.length + builtinAudios.length}</span>
           </button>
           <button
             type="button"
-            className={`btn xs${filterSource === 'project' ? ' active' : ''}`}
+            className={`music-seg-tab${filterSource === 'project' ? ' active' : ''}`}
             onClick={() => setFilterSource('project')}
           >
-            Dự án ({projectAudios.length})
+            Dự án <span className="music-seg-badge">{projectAudios.length}</span>
           </button>
           <button
             type="button"
-            className={`btn xs${filterSource === 'builtin' ? ' active' : ''}`}
+            className={`music-seg-tab${filterSource === 'builtin' ? ' active' : ''}`}
             onClick={() => setFilterSource('builtin')}
           >
-            Kho mẫu ({builtinAudios.length})
+            Kho mẫu <span className="music-seg-badge">{builtinAudios.length}</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Danh sách bài nhạc & hiệu ứng âm thanh */}
+      {/* 2. Danh sách thẻ âm nhạc & sóng âm */}
       <div className="music-list-scroll">
         {allAudios.length === 0 ? (
           <div className="music-empty-state">
             <div className="music-empty-icon">
-              <IconMusic width={32} height={32} />
+              <IconMusic width={28} height={28} />
             </div>
-            <div className="music-empty-title">Chưa có tệp âm thanh nào</div>
+            <div className="music-empty-title">Không tìm thấy âm thanh phù hợp</div>
             <div className="music-empty-desc">
-              Hỗ trợ các định dạng .mp3, .wav, .ogg, .m4a, .flac, .aac. Nhấn nút bên dưới để chọn tệp từ máy tính của bạn.
+              Hỗ trợ MP3, WAV, OGG, FLAC, AAC. Thêm nhanh từ máy tính vào dự án.
             </div>
             <button
               type="button"
               className="btn sm asset-action-btn-highlight"
               onClick={() => importAudio(currentTime)}
             >
-              <IconPlus /> Thêm audio từ máy tính
+              <IconPlus width={12} height={12} /> Thêm audio từ máy tính
             </button>
           </div>
         ) : (
-          allAudios.map((item) => {
-            const isPlaying = playingId === item.id
-            return (
-              <div
-                key={item.id}
-                className={`music-card-item${isPlaying ? ' playing' : ''}`}
-              >
-                <div className="music-card-header">
-                  <button
-                    type="button"
-                    className={`music-play-btn${isPlaying ? ' active' : ''}`}
-                    onClick={() => handleTogglePlay(item)}
-                    title={isPlaying ? 'Tạm dừng nghe thử' : 'Nghe thử âm thanh'}
-                  >
-                    {isPlaying ? <IconPause width={14} height={14} /> : <IconPlay width={14} height={14} />}
-                  </button>
-
-                  <div className="music-info-meta">
-                    <div className="music-title" title={item.name}>
-                      {item.name}
-                    </div>
-                    <div className="music-sub-tags">
-                      <span className="music-format-badge">{item.format}</span>
-                      <span className={`music-source-badge ${item.source}`}>
-                        {item.source === 'project' ? 'Dự án' : 'Kho mẫu'}
-                      </span>
-                      {isPlaying && (
-                        <span className="music-playing-indicator">
-                          <span className="bar b1" />
-                          <span className="bar b2" />
-                          <span className="bar b3" />
-                          <span className="bar b4" />
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="music-actions">
-                    <button
-                      type="button"
-                      className="btn xs asset-action-btn-highlight"
-                      onClick={() => handleInsertToTimeline(item)}
-                      title={`Chèn vào timeline tại mốc ${currentTime.toFixed(1)}s`}
-                    >
-                      <IconPlus width={12} height={12} /> Chèn timeline
-                    </button>
-                    {item.source === 'project' && (
-                      <button
-                        type="button"
-                        className="btn xs icon danger"
-                        onClick={() => handleDeleteAudio(item)}
-                        title="Xoá tệp âm thanh này khỏi dự án"
-                      >
-                        <IconTrash width={12} height={12} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Thanh tiến trình phát nghe thử mini khi đang chọn phát bài này */}
-                {isPlaying && (
-                  <div className="music-playback-bar">
-                    <span className="music-time-label">{formatAudioDuration(playbackTime)}</span>
-                    <input
-                      type="range"
-                      className="music-seek-slider"
-                      min={0}
-                      max={duration || 1}
-                      step={0.1}
-                      value={playbackTime}
-                      onChange={handleSeek}
-                    />
-                    <span className="music-time-label">{formatAudioDuration(duration)}</span>
-                  </div>
-                )}
-              </div>
-            )
-          })
+          allAudios.map((item) => (
+            <MusicItemCard
+              key={item.id}
+              item={item}
+              isPlaying={playingId === item.id}
+              playbackTime={playingId === item.id ? playbackTime : 0}
+              duration={playingId === item.id ? duration : item.assetMeta?.duration || 0}
+              theme={theme}
+              currentTime={currentTime}
+              onTogglePlay={handleTogglePlay}
+              onSeek={handleSeek}
+              onInsertTimeline={handleInsertTimeline}
+              onDelete={handleDeleteAudio}
+            />
+          ))
         )}
       </div>
 
       {/* 3. Footer tóm tắt */}
-      <div className="music-panel-footer">
-        <div className="music-footer-info">
-          <IconVolume width={13} height={13} />
-          <span>Vị trí kim phát hiện tại: <strong>{currentTime.toFixed(1)}s</strong></span>
+      <div className="music-panel-footer-v2">
+        <div className="music-footer-time-info">
+          <IconVolume width={12} height={12} />
+          <span>Kim phát: <strong>{currentTime.toFixed(1)}s</strong></span>
         </div>
         <button
           type="button"
-          className="btn sm asset-action-btn-highlight"
+          className="btn sm asset-action-btn-highlight music-footer-add-btn"
           onClick={() => importAudio(currentTime)}
           title="Chọn tệp âm thanh từ máy tính và chèn tại mốc thời gian hiện tại"
         >
-          <IconPlus /> Thêm audio từ máy tính
+          <IconPlus width={12} height={12} /> Thêm audio từ máy tính
         </button>
       </div>
     </div>
