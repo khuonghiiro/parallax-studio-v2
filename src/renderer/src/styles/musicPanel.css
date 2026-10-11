@@ -1,0 +1,352 @@
+/* ==========================================================================
+   Music & Audio Resources Panel Stylesheet
+   Dual-Theme design for Parallax Studio Audio Library
+   ========================================================================== */
+
+.music-panel-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-1);
+  overflow: hidden;
+  position: relative;
+}
+
+/* ------------------------------------------------------------------ Filter Bar */
+.music-panel-filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--bg-0);
+  border-bottom: 1px solid var(--line);
+  flex: none;
+}
+
+.music-search-box {
+  width: 100%;
+}
+
+.music-search-box input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.music-filter-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.music-filter-tabs .btn {
+  flex: 1;
+  text-align: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.music-filter-tabs .btn.active {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------ List Scroll */
+.music-list-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ------------------------------------------------------------------ Card Item */
+.music-card-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 9px 10px;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.music-card-item:hover {
+  background: var(--bg-3);
+  border-color: var(--line-focus);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.music-card-item.playing {
+  border-color: var(--accent);
+  background: rgba(38, 128, 235, 0.09);
+  box-shadow: 0 0 12px rgba(38, 128, 235, 0.25);
+}
+
+[data-theme='light'] .music-card-item.playing {
+  background: rgba(24, 119, 242, 0.08);
+}
+
+.music-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Play button */
+.music-play-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex: none;
+}
+
+.music-play-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px rgba(38, 128, 235, 0.4);
+}
+
+.music-play-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(38, 128, 235, 0.5);
+}
+
+/* Info Meta */
+.music-info-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.music-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.music-sub-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+}
+
+.music-format-badge {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--bg-0);
+  color: var(--text-dim);
+  border: 1px solid var(--line);
+  font-family: monospace;
+  letter-spacing: 0.03em;
+}
+
+.music-source-badge {
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.music-source-badge.builtin {
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+}
+
+[data-theme='light'] .music-source-badge.builtin {
+  background: rgba(2, 132, 199, 0.12);
+  color: #0284c7;
+  border-color: rgba(2, 132, 199, 0.35);
+}
+
+.music-source-badge.project {
+  background: rgba(245, 158, 11, 0.18);
+  color: #facc15;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+}
+
+[data-theme='light'] .music-source-badge.project {
+  background: rgba(217, 119, 6, 0.12);
+  color: #b45309;
+  border-color: rgba(217, 119, 6, 0.35);
+}
+
+/* Sóng âm nhảy múa khi playing */
+.music-playing-indicator {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+  margin-left: 2px;
+}
+
+.music-playing-indicator .bar {
+  width: 2.5px;
+  background: var(--accent);
+  border-radius: 1px;
+  animation: music-wave-bounce 0.9s ease-in-out infinite alternate;
+}
+
+.music-playing-indicator .b1 {
+  height: 4px;
+  animation-delay: 0.1s;
+}
+
+.music-playing-indicator .b2 {
+  height: 12px;
+  animation-delay: 0.35s;
+}
+
+.music-playing-indicator .b3 {
+  height: 7px;
+  animation-delay: 0.2s;
+}
+
+.music-playing-indicator .b4 {
+  height: 10px;
+  animation-delay: 0.45s;
+}
+
+@keyframes music-wave-bounce {
+  0% {
+    height: 3px;
+  }
+  100% {
+    height: 13px;
+  }
+}
+
+/* Actions in Card */
+.music-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+}
+
+.music-actions .btn {
+  white-space: nowrap;
+}
+
+/* Playback bar when playing */
+.music-playback-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  margin-top: 2px;
+}
+
+.music-time-label {
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--text-dim);
+  flex: none;
+}
+
+.music-seek-slider {
+  flex: 1;
+  height: 4px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------------ Empty State */
+.music-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  text-align: center;
+  gap: 10px;
+  margin: auto 0;
+}
+
+.music-empty-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--bg-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+  border: 1px dashed var(--line);
+  margin-bottom: 2px;
+}
+
+.music-empty-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.music-empty-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  max-width: 220px;
+  line-height: 1.45;
+}
+
+/* ------------------------------------------------------------------ Footer */
+.music-panel-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--bg-0);
+  border-top: 1px solid var(--line);
+  flex: none;
+}
+
+.music-footer-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.music-footer-info svg {
+  color: var(--accent);
+}
+
+.music-footer-info strong {
+  color: var(--text);
+}
+
+.music-panel-footer .btn {
+  width: 100%;
+  justify-content: center;
+}

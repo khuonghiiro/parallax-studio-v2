@@ -9,12 +9,13 @@ import { BuiltInAssetGrid } from './BuiltInAssetGrid'
 import { ProjectAssetList } from './ProjectAssetList'
 import { Model3DList } from './Model3DList'
 import { LayerAssemblyList } from '../layerAssembly/LayerAssemblyList'
+import { MusicPanel } from './MusicPanel'
 import { getStoredComposites } from '../layerAssembly/layerAssemblyStorage'
 import { getStoredModels3D, fetchAsset3DsCatalog } from './models3d/models3dStorage'
 import { sortAssetCategories } from './types'
 import { getVisiblePublicAssets, addCustomPublicAsset } from './publicAssetStorage'
 
-type AssetSubTab = 'builtin' | 'project' | '3d' | 'assembly'
+type AssetSubTab = 'builtin' | 'project' | '3d' | 'assembly' | 'music'
 
 export function AssetPanel() {
   const projectAssets = useEditor((s) => s.project.assets)
@@ -26,6 +27,11 @@ export function AssetPanel() {
   const [assemblyCount, setAssemblyCount] = useState<number>(() => getStoredComposites().length)
   const [model3DCount, setModel3DCount] = useState<number>(() => getStoredModels3D().length)
   const [publicVersion, setPublicVersion] = useState(0)
+
+  const audioCount = useMemo(() => {
+    const projectAudio = projectAssets.filter((a) => a.kind === 'audio').length
+    return projectAudio + 1 // + 1 mẫu có sẵn (chuông gió)
+  }, [projectAssets])
 
   useEffect(() => {
     fetchAsset3DsCatalog().then(({ models }) => {
@@ -170,11 +176,13 @@ export function AssetPanel() {
           {subTab === 'builtin' && <IconGrid width={14} height={14} />}
           {subTab === '3d' && <IconCube width={14} height={14} />}
           {subTab === 'assembly' && <IconLayerAssembly width={14} height={14} />}
+          {subTab === 'music' && <IconMusic width={14} height={14} />}
           {subTab === 'project' && <IconBriefcase width={14} height={14} />}
           <span>
             {subTab === 'builtin' && 'Kho mẫu có sẵn'}
             {subTab === '3d' && 'Mô hình 3D'}
             {subTab === 'assembly' && 'Cụm layer lắp ráp'}
+            {subTab === 'music' && 'Âm thanh & Nhạc nền'}
             {subTab === 'project' && 'Tệp trong dự án'}
           </span>
         </span>
@@ -216,6 +224,16 @@ export function AssetPanel() {
           >
             <IconPlus /> Tạo lắp ráp
           </button>
+        ) : subTab === 'music' ? (
+          <button
+            type="button"
+            id="music-tab-add-btn"
+            className="btn sm asset-action-btn-highlight"
+            onClick={() => importAudio(useEditor.getState().time)}
+            title="Thêm tệp âm thanh (mp3, wav, ogg, aac...) từ máy tính vào dự án"
+          >
+            <IconPlus /> Thêm audio
+          </button>
         ) : (
           <>
             <button
@@ -240,7 +258,7 @@ export function AssetPanel() {
         )}
       </div>
 
-      {/* Subtabs: Built-in Library vs 3D Assembled Models vs Layer Assembly vs Project Assets */}
+      {/* Subtabs: Built-in Library vs 3D Assembled Models vs Layer Assembly vs Music vs Project Assets */}
       <div className="asset-subtabs" role="tablist">
         <button
           type="button"
@@ -277,6 +295,19 @@ export function AssetPanel() {
           <IconLayerAssembly width={13} height={13} />
           <span className="asset-subtab-label">Lắp ráp</span>
           <span className="asset-subtab-badge">{assemblyCount}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="asset-subtab-music-btn"
+          aria-selected={subTab === 'music'}
+          className={`asset-subtab-btn${subTab === 'music' ? ' active' : ''}`}
+          onClick={() => setSubTab('music')}
+          title={`Tài nguyên âm thanh & nhạc nền (${audioCount} tệp)`}
+        >
+          <IconMusic width={13} height={13} />
+          <span className="asset-subtab-label">Nhạc</span>
+          <span className="asset-subtab-badge">{audioCount}</span>
         </button>
         <button
           type="button"
@@ -318,6 +349,8 @@ export function AssetPanel() {
         <Model3DList />
       ) : subTab === 'assembly' ? (
         <LayerAssemblyList />
+      ) : subTab === 'music' ? (
+        <MusicPanel />
       ) : (
         <div className="panel-body">
           <ProjectAssetList />
