@@ -4,7 +4,8 @@ import {
   getStoredModels3D,
   saveModel3D,
   deleteModel3D,
-  duplicateModel3D
+  duplicateModel3D,
+  getHiddenModel3DIds
 } from './models3dStorage'
 import type { Model3D } from './types'
 
@@ -162,5 +163,19 @@ describe('3D Models Preset and Storage System', () => {
     const listAfterDelete = getStoredModels3D()
     expect(listAfterDelete.some((m) => m.id === 'custom-model-test-1')).toBe(false)
     expect(listAfterDelete.some((m) => m.id === cloned?.id)).toBe(true)
+  })
+
+  it('permanently hides deleted models so they do not reappear on reload', () => {
+    // Delete default model
+    deleteModel3D('model-cubic-box')
+    let list = getStoredModels3D()
+    expect(list.some((m) => m.id === 'model-cubic-box')).toBe(false)
+
+    // Simulate page reload by reading storage afresh
+    list = getStoredModels3D()
+    expect(list.some((m) => m.id === 'model-cubic-box')).toBe(false)
+
+    // Check hidden list contains id
+    expect(getHiddenModel3DIds()).toContain('model-cubic-box')
   })
 })

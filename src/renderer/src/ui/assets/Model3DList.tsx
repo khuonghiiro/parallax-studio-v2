@@ -105,10 +105,10 @@ export function Model3DList() {
     }
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Bạn có chắc muốn xóa mô hình 3D này không?')) {
-      deleteModel3D(id)
       setModels((prev) => prev.filter((m) => m.id !== id))
+      await deleteModel3D(id)
       reload()
     }
   }

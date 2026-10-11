@@ -261,12 +261,49 @@ export const DEFAULT_MODELS_3D: Model3D[] = [
   }
 ]
 
+export const HIDDEN_MODELS_3D_KEY = 'parallax_hidden_models_3d_v2'
+
+export function getHiddenModel3DIds(): string[] {
+  try {
+    if (typeof localStorage === 'undefined') return []
+    const raw = localStorage.getItem(HIDDEN_MODELS_3D_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+export function saveHiddenModel3DIds(list: string[]): void {
+  try {
+    if (typeof localStorage === 'undefined') return
+    localStorage.setItem(HIDDEN_MODELS_3D_KEY, JSON.stringify(list))
+  } catch {
+    // ignore
+  }
+}
+
+export function hideOrDeleteModel3D(id: string): void {
+  const hidden = getHiddenModel3DIds()
+  if (!hidden.includes(id)) {
+    saveHiddenModel3DIds([...hidden, id])
+  }
+}
+
+export function unhideModel3D(id: string): void {
+  const hidden = getHiddenModel3DIds()
+  if (hidden.includes(id)) {
+    saveHiddenModel3DIds(hidden.filter((h) => h !== id))
+  }
+}
+
 export function getStoredModels3D(): Model3D[] {
   try {
+    const hidden = getHiddenModel3DIds()
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw === null) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_MODELS_3D))
-      return DEFAULT_MODELS_3D
+      const initial = DEFAULT_MODELS_3D.filter((m) => !hidden.includes(m.id))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(initial))
+      return initial
     }
     const parsed = JSON.parse(raw)
     if (Array.isArray(parsed)) {
@@ -291,12 +328,12 @@ export function getStoredModels3D(): Model3D[] {
           }
         }
       }
-      return parsed
+      return parsed.filter((m: Model3D) => !hidden.includes(m.id))
     }
-    return DEFAULT_MODELS_3D
+    return DEFAULT_MODELS_3D.filter((m) => !hidden.includes(m.id))
   } catch (err) {
     console.warn('[models3dStorage] Error reading localStorage:', err)
-    return DEFAULT_MODELS_3D
+    return DEFAULT_MODELS_3D.filter((m) => !getHiddenModel3DIds().includes(m.id))
   }
 }
 
@@ -364,14 +401,18 @@ export async function ensureModelThumbnails(models: Model3D[]): Promise<Model3D[
 }
 
 export async function fetchDiskModels3D(): Promise<Model3D[]> {
+  const hidden = getHiddenModel3DIds()
   try {
     if (typeof window !== 'undefined' && window.api?.asset3ds?.list) {
       const diskModels = await window.api.asset3ds.list()
       if (Array.isArray(diskModels) && diskModels.length > 0) {
         const stored = getStoredModels3D()
         const map = new Map<string, Model3D>()
-        for (const item of stored) map.set(item.id, item)
+        for (const item of stored) {
+          if (!hidden.includes(item.id)) map.set(item.id, item)
+        }
         for (const item of diskModels) {
+          if (hidden.includes(item.id)) continue
           const existing = map.get(item.id)
           if (!existing || (item.updatedAt && item.updatedAt > (existing.updatedAt || 0))) {
             map.set(item.id, item)
@@ -393,6 +434,7 @@ export async function fetchDiskModels3D(): Promise<Model3D[]> {
 }
 
 export async function saveModel3D(model: Model3D): Promise<void> {
+  unhideModel3D(model.id)
   const list = getStoredModels3D()
   const idx = list.findIndex(m => m.id === model.id)
   const updated: Model3D = { ...model, updatedAt: Date.now() }
@@ -417,6 +459,7 @@ export async function saveModel3D(model: Model3D): Promise<void> {
 }
 
 export async function deleteModel3D(id: string): Promise<void> {
+  hideOrDeleteModel3D(id)
   const list = getStoredModels3D().filter(m => m.id !== id)
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
@@ -449,19 +492,21 @@ export function duplicateModel3D(id: string): Model3D | null {
 }
 
 export async function fetchAsset3DsCatalog(): Promise<{ categories: Asset3DsCategory[]; models: Model3D[] }> {
+  const hidden = getHiddenModel3DIds()
   try {
     if (typeof window !== 'undefined' && window.api?.asset3ds?.getCatalog) {
       const res = await window.api.asset3ds.getCatalog()
       if (res && Array.isArray(res.categories) && Array.isArray(res.models)) {
         const enriched = await ensureModelThumbnails(res.models)
+        const filtered = enriched.filter((m: Model3D) => !hidden.includes(m.id))
         try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(enriched))
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
         } catch {
           // ignore
         }
         return {
           categories: res.categories,
-          models: enriched
+          models: filtered
         }
       }
     }

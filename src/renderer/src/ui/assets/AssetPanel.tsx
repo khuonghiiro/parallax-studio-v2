@@ -10,6 +10,7 @@ import { ProjectAssetList } from './ProjectAssetList'
 import { Model3DList } from './Model3DList'
 import { LayerAssemblyList } from '../layerAssembly/LayerAssemblyList'
 import { getStoredComposites } from '../layerAssembly/layerAssemblyStorage'
+import { getStoredModels3D, fetchAsset3DsCatalog } from './models3d/models3dStorage'
 import { sortAssetCategories } from './types'
 import { getVisiblePublicAssets, addCustomPublicAsset } from './publicAssetStorage'
 
@@ -23,7 +24,23 @@ export function AssetPanel() {
   const [loading, setLoading] = useState(false)
   const [isJsonModalOpen, setIsJsonModalOpen] = useState(false)
   const [assemblyCount, setAssemblyCount] = useState<number>(() => getStoredComposites().length)
+  const [model3DCount, setModel3DCount] = useState<number>(() => getStoredModels3D().length)
   const [publicVersion, setPublicVersion] = useState(0)
+
+  useEffect(() => {
+    fetchAsset3DsCatalog().then(({ models }) => {
+      if (Array.isArray(models)) {
+        setModel3DCount(models.length)
+      }
+    })
+    const handleModelsChange = () => setModel3DCount(getStoredModels3D().length)
+    window.addEventListener('models3d:changed', handleModelsChange)
+    window.addEventListener('storage', handleModelsChange)
+    return () => {
+      window.removeEventListener('models3d:changed', handleModelsChange)
+      window.removeEventListener('storage', handleModelsChange)
+    }
+  }, [])
 
   useEffect(() => {
     const handleCompChange = () => setAssemblyCount(getStoredComposites().length)
@@ -243,10 +260,11 @@ export function AssetPanel() {
           aria-selected={subTab === '3d'}
           className={`asset-subtab-btn${subTab === '3d' ? ' active' : ''}`}
           onClick={() => setSubTab('3d')}
-          title="Mô hình 3D lắp ráp từ các diện ảnh phẳng 2.5D"
+          title={`Mô hình 3D lắp ráp (${model3DCount} mô hình)`}
         >
           <IconCube width={13} height={13} />
           <span className="asset-subtab-label">3D</span>
+          <span className="asset-subtab-badge">{model3DCount}</span>
         </button>
         <button
           type="button"
