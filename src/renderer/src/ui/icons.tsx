@@ -206,6 +206,22 @@ export const IconChevronDown = (p: P) => (
   </svg>
 )
 export const IconFolderOpen = IconFolder
+export const IconBriefcase = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="2" y="7" width="20" height="14" rx="2" />
+    <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    <path d="M2 12h20" />
+    <path d="M10 12v2.5h4V12" />
+  </svg>
+)
+export const IconProject = IconBriefcase
+export const IconLayerAssembly = (p: P) => (
+  <svg {...base(p)}>
+    <path d="m12 2 9 4.5-9 4.5-9-4.5z" />
+    <path d="m3 11.5 9 4.5 9-4.5" />
+    <path d="m3 16.5 9 4.5 9-4.5" />
+  </svg>
+)
 export const IconCube = (p: P) => (
   <svg {...base(p)}>
     <path d="m12 2 9 5v10l-9 5-9-5V7z" />

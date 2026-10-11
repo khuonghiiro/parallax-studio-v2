@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BuiltInAssetCategory, BuiltInAssetItem, BuiltInCatalogResult } from '@shared/ipc'
 import { importAudio, importBuiltInAsset, importImages } from '../../actions'
 import { useEditor } from '../../store/editor'
-import { IconCube, IconFolder, IconGrid, IconImage, IconLayers, IconMusic, IconPlus } from '../icons'
+import { IconBriefcase, IconCube, IconFolder, IconGrid, IconImage, IconLayerAssembly, IconLayers, IconMusic, IconPlus } from '../icons'
 import { AssetCatalogModal } from './AssetCatalogModal'
 import { BuiltInAssetBar } from './BuiltInAssetBar'
 import { BuiltInAssetGrid } from './BuiltInAssetGrid'
@@ -152,8 +152,8 @@ export function AssetPanel() {
         <span className="asset-top-header-label">
           {subTab === 'builtin' && <IconGrid width={14} height={14} />}
           {subTab === '3d' && <IconCube width={14} height={14} />}
-          {subTab === 'assembly' && <IconLayers width={14} height={14} />}
-          {subTab === 'project' && <IconImage width={14} height={14} />}
+          {subTab === 'assembly' && <IconLayerAssembly width={14} height={14} />}
+          {subTab === 'project' && <IconBriefcase width={14} height={14} />}
           <span>
             {subTab === 'builtin' && 'Kho mẫu có sẵn'}
             {subTab === '3d' && 'Mô hình 3D'}
@@ -256,7 +256,7 @@ export function AssetPanel() {
           onClick={() => setSubTab('assembly')}
           title="Chi tiết & vật liệu lắp ráp layer xếp chồng 2.5D (4 cụm)"
         >
-          <IconLayers width={13} height={13} />
+          <IconLayerAssembly width={13} height={13} />
           <span className="asset-subtab-label">Lắp ráp</span>
           <span className="asset-subtab-badge">{assemblyCount}</span>
         </button>
@@ -268,7 +268,7 @@ export function AssetPanel() {
           onClick={() => setSubTab('project')}
           title="Tệp tài nguyên trong dự án (5 tệp)"
         >
-          <IconImage width={13} height={13} />
+          <IconBriefcase width={13} height={13} />
           <span className="asset-subtab-label">Dự án</span>
           <span className="asset-subtab-badge">{projectAssets.length}</span>
         </button>
