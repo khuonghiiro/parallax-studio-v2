@@ -77,7 +77,7 @@ Thêm vào `mcp_config.json` của Antigravity (Settings → MCP), sửa đườ
 ```
 
 ## Cách 1: Sửa file bằng tay
-1. Mở file [mcp_config.json](file:///C:/Users/Admin/.gemini/config/mcp_config.json) (đường dẫn `C:\Users\Admin\.gemini\config\mcp_config.json`).
+1. Mở file `mcp_config.json` (tại `~/.gemini/config/mcp_config.json` hoặc `%USERPROFILE%\.gemini\config\mcp_config.json`).
 2. Thêm `parallax-studio` vào cạnh `blender`. Nhớ đặt dấu phẩy sau dấu `}` của blender. File sau khi sửa sẽ như sau:
 
 ```json

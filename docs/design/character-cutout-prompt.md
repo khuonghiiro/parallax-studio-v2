@@ -78,7 +78,7 @@ Vì vậy, hệ thống áp dụng cơ chế **Chuẩn hóa theo Tỷ lệ (Norm
 
 ## 4. Tự Động Hóa Qua Script `slice_atlas.py`
 
-Ứng dụng cung cấp sẵn công cụ [`scripts/slice_atlas.py`](file:///d:/Codes/parallax-studio/scripts/slice_atlas.py) tự động thực hiện toàn bộ pipeline:
+Ứng dụng cung cấp sẵn công cụ [`scripts/slice_atlas.py`](../../scripts/slice_atlas.py) tự động thực hiện toàn bộ pipeline:
 
 ```bash
 # 1. Tách ảnh và tự động nạp thẳng vào Xưởng Lắp Ráp Layer trong app:

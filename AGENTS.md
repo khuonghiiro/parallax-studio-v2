@@ -86,7 +86,7 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
   6. **Unit Tests:** Luôn viết test kiểm thử cho MCP commands mới trong `src/renderer/src/mcp/commands/*.test.ts`; `mcp-server/catalog/catalog.test.mjs` bắt buộc EN/VI khớp cấu trúc.
 - **Nguyên Tắc Định Danh UI Control & Đồng Bộ MCP Crop (Targeted UI Inspection Principle - BẮT BUỘC):**
   - **Định danh Control rõ nghĩa:** Khi thêm mới hoặc chỉnh sửa bất kỳ thành phần UI nào (panel, dialog, card, toolbar, danh mục, form field, button group...), **bắt buộc** phải gắn class hoặc id ngữ nghĩa rõ ràng (ví dụ: `.timeline-toolbar`, `.music-card`, `.export-modal`, `.viewer-hud`, `.topview`, `.camera-path-modal`...). Tuyệt đối không dùng class chung chung vô nghĩa.
-  - **Cập nhật song hành MCP Region:** Bổ sung ngay selector của control đó vào bảng `UI_REGION_SELECTORS` trong [`uiCommands.ts`](file:///d:/Codes/parallax-studio/src/renderer/src/mcp/commands/uiCommands.ts) và enum `region` của [`tools-scene.mjs`](file:///d:/Codes/parallax-studio/mcp-server/catalog/tools-scene.mjs).
+  - **Cập nhật song hành MCP Region:** Bổ sung ngay selector của control đó vào bảng `UI_REGION_SELECTORS` trong [`uiCommands.ts`](./src/renderer/src/mcp/commands/uiCommands.ts) và enum `region` của [`tools-scene.mjs`](./mcp-server/catalog/tools-scene.mjs).
   - **Mục đích & Quy trình AI quan sát qua MCP:**
     1. **Kiểm tra giao diện (Visual QA):** AI dùng `get_app_screenshot(region: ...)` để chụp đúng khu vực control vừa sửa thay vì chụp full app, giảm 70% – 95% token ảnh, tự đánh giá bố cục, màu sắc, font chữ và viền hiển thị đã chuẩn chưa.
     2. **Chẩn đoán & Sửa lỗi cùng người dùng:** Khi người dùng đang chỉnh sửa chỗ nào chưa ổn hoặc gặp lỗi giao diện, AI thông qua MCP chụp đúng vùng control đó, đọc ảnh phân tích và trực tiếp viết code tinh chỉnh giúp người dùng.
@@ -147,6 +147,10 @@ AI làm việc với tinh thần tự chủ tối đa, hạn chế tối đa vi�
    - Không hỏi "bạn có muốn tôi sửa lỗi không?", cứ chủ động sửa nếu nằm trong phạm vi nhiệm vụ.
 5. **Báo cáo hoàn tất xúc tích:**
    - Làm xong toàn bộ rồi mới báo cáo một lần ngắn gọn gồm: đã làm gì, file nào đã đổi, giả định đã dùng (nếu có), việc nào cần người dùng quyết định tiếp theo.
+
+### 2.9. Quy Chuẩn Đường Dẫn Tài Liệu Dự Án (Relative Path Standard - BẮT BUỘC)
+- Mọi liên kết file, thư mục hoặc tài liệu tham chiếu trong các file markdown của kho mã nguồn (`README.md`, `AGENTS.md`, `docs/**/*.md`...) **BẮT BUỘC** sử dụng đường dẫn tương đối (relative path, ví dụ: `./src/...`, `../../scripts/...`).
+- **Tuyệt đối KHÔNG hardcode đường dẫn file hệ thống cục bộ** (như `file:///D:/Codes/...` hay `C:\Users\<user>\...`) vào tài liệu, file code hoặc commit. Quy định này bảo đảm khi người dùng hoặc AI khác pull/clone repo về bất kỳ môi trường OS nào (Windows/macOS/Linux) đều điều hướng chuẩn xác 100%. Cú pháp `file:///` chỉ dùng riêng trong câu trả lời trực tiếp của AI để IDE render link tương tác.
 
 ---
 
