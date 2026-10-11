@@ -2,6 +2,14 @@ import type { ReactNode } from 'react'
 
 export function renderTemplateThumbnail(templateId: string, size = 48): ReactNode {
   switch (templateId) {
+    case 'tmpl-character-articulated-13':
+      return (
+        <svg viewBox="0 0 64 64" width={size} height={size} fill="none" stroke="var(--accent)" strokeWidth="2">
+          <circle cx="32" cy="10" r="6" />
+          <path d="M24 21h16v20H24zM24 23l-8 10v10m24-20 8 10v10M27 41v15m10-15v15" />
+          <path d="M13 43h6v7h-6zm32 0h6v7h-6zM21 56h9v5h-9zm13 0h9v5h-9z" fill="var(--key)" stroke="var(--key)" />
+        </svg>
+      )
     case 'tmpl-character-male-hero':
       return (
         <svg viewBox="0 0 64 64" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

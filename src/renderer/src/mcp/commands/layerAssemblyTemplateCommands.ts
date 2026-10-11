@@ -146,11 +146,10 @@ export const layerAssemblyTemplateCommands: Record<string, Handler> = {
 
     const composite = buildCompositeFromTemplate(tpl, resolvedImages, name)
 
-    // Luôn lưu composite để người dùng có thể tái sử dụng và hiển thị ngay trên UI
-    saveComposite(composite)
+    if (saveToLibrary) saveComposite(composite)
 
     const session = getActiveLayerAssemblySession()
-    if (session && session.setComposite) {
+    if (openWorkshop && session?.setComposite) {
       session.setComposite(composite)
     } else if (openWorkshop) {
       requestOpenLayerAssembly(composite)

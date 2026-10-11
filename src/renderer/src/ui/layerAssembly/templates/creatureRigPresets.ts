@@ -491,7 +491,7 @@ export function generateChildToddle(bones: LayerBone[], duration = 1.1): Record<
   return tracks
 }
 
-/** Elderly armature with stooped back and walking cane arm. */
+/** Elderly armature with stooped back, walking cane arm, hands and feet. */
 export function createElderlyBones(): LayerBone[] {
   return [
     { id: 'bone-pelvis', name: 'Hông khom (Root)', x: 0, y: 35, length: 45, angle: -85 },
@@ -499,12 +499,16 @@ export function createElderlyBones(): LayerBone[] {
     { id: 'bone-head', name: 'Đầu tóc bạc râu dài', parentId: 'bone-torso', x: -16, y: -75, length: 55, angle: -85 },
     { id: 'bone-arm-l', name: 'Tay trái buông', parentId: 'bone-torso', x: -38, y: -65, length: 50, angle: 95 },
     { id: 'bone-forearm-l', name: 'Cẳng tay trái', parentId: 'bone-arm-l', x: -40, y: -15, length: 45, angle: 90 },
+    { id: 'bone-hand-l', name: 'Bàn tay trái', parentId: 'bone-forearm-l', x: -42, y: 30, length: 25, angle: 90 },
     { id: 'bone-arm-r', name: 'Tay phải chống gậy', parentId: 'bone-torso', x: 30, y: -65, length: 50, angle: 75 },
     { id: 'bone-forearm-r', name: 'Cẳng tay giữ gậy ba toong', parentId: 'bone-arm-r', x: 38, y: -18, length: 55, angle: 70 },
+    { id: 'bone-hand-r', name: 'Bàn tay phải cầm gậy', parentId: 'bone-forearm-r', x: 44, y: 35, length: 25, angle: 70 },
     { id: 'bone-thigh-l', name: 'Đùi trái', parentId: 'bone-pelvis', x: -22, y: 40, length: 65, angle: 90 },
     { id: 'bone-shin-l', name: 'Cẳng chân trái', parentId: 'bone-thigh-l', x: -22, y: 105, length: 65, angle: 90 },
+    { id: 'bone-foot-l', name: 'Bàn chân trái', parentId: 'bone-shin-l', x: -22, y: 170, length: 30, angle: 0 },
     { id: 'bone-thigh-r', name: 'Đùi phải', parentId: 'bone-pelvis', x: 22, y: 40, length: 65, angle: 90 },
-    { id: 'bone-shin-r', name: 'Cẳng chân phải', parentId: 'bone-thigh-r', x: 22, y: 105, length: 65, angle: 90 }
+    { id: 'bone-shin-r', name: 'Cẳng chân phải', parentId: 'bone-thigh-r', x: 22, y: 105, length: 65, angle: 90 },
+    { id: 'bone-foot-r', name: 'Bàn chân phải', parentId: 'bone-shin-r', x: 22, y: 170, length: 30, angle: 0 }
   ]
 }
 

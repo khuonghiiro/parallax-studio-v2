@@ -1,3 +1,4 @@
+import { createTemplateComposite } from './templateBuilder'
 import type { LayerAssemblyTemplate } from './layerTemplateTypes'
 
 // ---------------------------------------------------------------------------
@@ -39,25 +40,7 @@ Clean transparent edges after chroma-keying.`,
     cellLayout: ['1. Chậu gốm', '2. Thân gỗ uốn', '3. Tán lá sau', '4. Tán lá chính', '5. Nhánh non trước'],
     userGuide: 'Mẫu cây cảnh 5 lớp chiều sâu, dùng chuyển động vật lý đung đưa (sway motion) gió tự nhiên giữa các tầng.'
   },
-  buildComposite: (images = {}, nameOverride) => ({
-    id: `comp-${crypto.randomUUID()}`,
-    name: nameOverride || 'Cây Bonsai Cổ Thụ Đung Đưa 5 Lớp',
-    category: 'nature',
-    width: 550,
-    height: 600,
-    layers: TMPL_NATURE_BONSAI.slots.map((s) => ({
-      id: `layer-${s.id}`,
-      name: s.name,
-      assetPath: images[s.id] || s.suggestedAsset,
-      x: s.defaultTransform.x,
-      y: s.defaultTransform.y,
-      z: s.defaultTransform.z,
-      scale: s.defaultTransform.scale,
-      rotation: s.defaultTransform.rotation,
-      opacity: 1,
-      motion: s.defaultMotion || { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }
-    }))
-  })
+  buildComposite: (images, name) => createTemplateComposite(TMPL_NATURE_BONSAI, images, name)
 }
 
 // ---------------------------------------------------------------------------
@@ -95,25 +78,7 @@ Alpha-ready parts with crisp outlines.`,
     cellLayout: ['1. Bụi cỏ nền', '2. Thân cành hoa', '3. Cánh hoa đỏ', '4. Nhụy vàng'],
     userGuide: 'Tách nền cyan (#00FFFF). Chuyển động gió lắc lư tự nhiên giữa cành hoa và cánh hoa.'
   },
-  buildComposite: (images = {}, nameOverride) => ({
-    id: `comp-${crypto.randomUUID()}`,
-    name: nameOverride || 'Bụi Hoa Thiên Nhiên (Mẫu Lắp Ráp)',
-    category: 'nature',
-    width: 500,
-    height: 500,
-    layers: TMPL_NATURE_FLOWER.slots.map((s) => ({
-      id: `layer-${s.id}`,
-      name: s.name,
-      assetPath: images[s.id] || s.suggestedAsset,
-      x: s.defaultTransform.x,
-      y: s.defaultTransform.y,
-      z: s.defaultTransform.z,
-      scale: s.defaultTransform.scale,
-      rotation: s.defaultTransform.rotation,
-      opacity: 1,
-      motion: s.defaultMotion || { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }
-    }))
-  })
+  buildComposite: (images, name) => createTemplateComposite(TMPL_NATURE_FLOWER, images, name)
 }
 
 // ---------------------------------------------------------------------------
@@ -149,25 +114,7 @@ Crisp architectural and botanical silhouettes.`,
     cellLayout: ['1. Khung cửa sổ', '2. Bồn hoa ban công', '3. Dây leo đung đưa'],
     userGuide: 'Mẫu kiến trúc cửa sổ ban công 3 lớp, tạo cảm giác chiều sâu ngôi nhà cổ tích.'
   },
-  buildComposite: (images = {}, nameOverride) => ({
-    id: `comp-${crypto.randomUUID()}`,
-    name: nameOverride || 'Cửa Sổ Ban Công & Giàn Hoa',
-    category: 'architecture',
-    width: 520,
-    height: 580,
-    layers: TMPL_ARCH_WINDOW.slots.map((s) => ({
-      id: `layer-${s.id}`,
-      name: s.name,
-      assetPath: images[s.id] || s.suggestedAsset,
-      x: s.defaultTransform.x,
-      y: s.defaultTransform.y,
-      z: s.defaultTransform.z,
-      scale: s.defaultTransform.scale,
-      rotation: s.defaultTransform.rotation,
-      opacity: 1,
-      motion: s.defaultMotion || { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
-    }))
-  })
+  buildComposite: (images, name) => createTemplateComposite(TMPL_ARCH_WINDOW, images, name)
 }
 
 // ---------------------------------------------------------------------------
@@ -203,25 +150,7 @@ Watertight transparent cutouts.`,
     cellLayout: ['1. Vòm cổng đá', '2. Dây leo rủ', '3. Hạt đom đóm'],
     userGuide: 'Mẫu cảnh không gian chiều sâu kỳ ảo kết hợp giữa công trình kiến trúc và dây leo thiên nhiên đung đưa.'
   },
-  buildComposite: (images = {}, nameOverride) => ({
-    id: `comp-${crypto.randomUUID()}`,
-    name: nameOverride || 'Cổng Tàn Tích Cổ & Dây Leo',
-    category: 'architecture',
-    width: 600,
-    height: 650,
-    layers: TMPL_ARCH_RUINS.slots.map((s) => ({
-      id: `layer-${s.id}`,
-      name: s.name,
-      assetPath: images[s.id] || s.suggestedAsset,
-      x: s.defaultTransform.x,
-      y: s.defaultTransform.y,
-      z: s.defaultTransform.z,
-      scale: s.defaultTransform.scale,
-      rotation: s.defaultTransform.rotation,
-      opacity: 1,
-      motion: s.defaultMotion || { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
-    }))
-  })
+  buildComposite: (images, name) => createTemplateComposite(TMPL_ARCH_RUINS, images, name)
 }
 
 export const NATURE_PROP_TEMPLATES: LayerAssemblyTemplate[] = [

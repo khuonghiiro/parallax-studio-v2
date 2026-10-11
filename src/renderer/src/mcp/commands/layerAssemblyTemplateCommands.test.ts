@@ -2,6 +2,16 @@ import { describe, expect, it } from 'vitest'
 import { runCommand } from '../commands'
 
 describe('layerAssemblyTemplateCommands MCP', () => {
+  it('applies the 13-part template with hand and foot images selected by atlas cell', async () => {
+    const result = await runCommand('apply_layer_assembly_template', {
+      template_id: 'tmpl-character-articulated-13', open_workshop: false,
+      images: { cell_6: 'left-hand.png', cell_13: 'data:image/png;base64,Zm9v' }
+    }) as { layer_count: number; bone_count: number; composite: { layers: Array<{ id: string; assetPath?: string; imageUrl?: string }> } }
+    expect(result.layer_count).toBe(13)
+    expect(result.bone_count).toBe(13)
+    expect(result.composite.layers.find((l) => l.id === 'layer-hand-l')?.assetPath).toBe('left-hand.png')
+    expect(result.composite.layers.find((l) => l.id === 'layer-foot-r')?.imageUrl).toBe('data:image/png;base64,Zm9v')
+  })
   it('runs list_layer_assembly_templates and returns all templates', async () => {
     const res = (await runCommand('list_layer_assembly_templates', {})) as {
       count: number

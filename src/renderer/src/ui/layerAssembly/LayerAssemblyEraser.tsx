@@ -206,7 +206,7 @@ export function EraserIsolatedCanvas(props: PixelEditorProps) {
   } = useIsolatedCanvasView(props)
 
   const [settingsHeight, setSettingsHeight] = useState(175)
-  const unavailable = layer.locked || layer.hidden
+  const unavailable = Boolean(layer.locked || layer.hidden)
   const setBrush = (hardness: number) => {
     setHand(false)
     props.onChangeBrushSettings({ ...brushSettings, hardness })

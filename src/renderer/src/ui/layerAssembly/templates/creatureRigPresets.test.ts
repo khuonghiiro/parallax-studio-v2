@@ -68,7 +68,7 @@ describe('creatureRigPresets', () => {
     expect(toddle['bone-pelvis'].length).toBeGreaterThan(2)
 
     const oldBones = createElderlyBones()
-    expect(oldBones.length).toBe(11)
+    expect(oldBones.length).toBe(15)
     const caneWalk = generateElderlyCaneWalk(oldBones, 2.4)
     expect(caneWalk['bone-arm-r'].length).toBeGreaterThan(2)
   })

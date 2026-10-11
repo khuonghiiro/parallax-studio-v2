@@ -19,7 +19,7 @@ function PromptTabContent({ template, copied, onCopy }: {
   return (
     <div className="tpm-tab-content">
       <div className="tpm-alert-banner">
-        <span>💡 <strong>Mẹo Prompt AI:</strong> Sao chép prompt bên dưới và gửi kèm ảnh nhân vật mẫu cho AI (Flux, Midjourney v6, DALL-E 3, Recraft...) để tạo ảnh atlas chia ô đồng bộ góc nhìn và chung tỉ lệ.</span>
+        <span>💡 <strong>Mẹo Prompt AI & Đạo cụ Hoá trang:</strong> Sao chép prompt bên dưới và gửi kèm ảnh nhân vật mẫu cho AI (Flux, Midjourney v6, DALL-E 3, Recraft...) để tạo ảnh atlas chia ô. Khuôn mặt mộc được tách biệt hoàn toàn với mũ, kính, râu giả, mặt nạ để dễ dàng hoá trang đóng phim bằng cách bật/tắt layer.</span>
       </div>
       <div className="tpm-code-container">
         <div className="tpm-code-header">
@@ -65,7 +65,7 @@ function SlotsTabContent({ template }: { template: LayerAssemblyTemplate }) {
                   <strong>{slot.name}</strong>
                   {slot.suggestedAsset && (
                     <div style={{ fontSize: '10px', color: 'var(--text-faint)', marginTop: '2px' }}>
-                      Có sẵn: {slot.suggestedAsset}
+                      Có sẵn: {slot.suggestedAsset.startsWith('data:') ? 'Ảnh vector trong suốt' : slot.suggestedAsset}
                     </div>
                   )}
                 </td>
@@ -107,6 +107,15 @@ function GuideTabContent({ template }: { template: LayerAssemblyTemplate }) {
         <div>
           <h4>Tách nền & Nhập vào Xưởng Lắp Ráp Layer</h4>
           <p>{template.promptGuide.userGuide}</p>
+        </div>
+      </div>
+      <div className="tpm-guide-step">
+        <div className="tpm-step-num">4</div>
+        <div>
+          <h4>Đạo cụ đóng phim & Hoá trang đa năng (Modular Disguise & Film Props)</h4>
+          <p>
+            Đối với nhân vật người, các chi tiết đầu (Mặt mộc, Mũ, Kính mắt, Râu giả, Mặt nạ) và chân tay (Bàn tay, Bàn chân) được tách thành từng layer độc lập. Giống như đạo cụ trên phim trường, bạn có thể bật/tắt (ẩn/hiện) layer để biến hoá nhân vật thành nhiều vai diễn khác nhau (cải trang đeo kính, mang mặt nạ bí ẩn, gắn râu quai nón, cầm kiếm hoặc vali) mà không cần vẽ lại từ đầu hay tạo lại bộ khung xương.
+          </p>
         </div>
       </div>
     </div>

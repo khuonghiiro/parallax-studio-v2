@@ -31,6 +31,8 @@ export interface AnimationClip {
   loop: boolean
   tracks: Record<string, BoneKeyframe[]>
   description?: string
+  /** Source preset metadata for template catalog consumers. */
+  presetKey?: string
   viewAngle?: MotionViewAngle
 }
 

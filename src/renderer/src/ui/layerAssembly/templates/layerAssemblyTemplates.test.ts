@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { validateRig } from '../workshopRig'
 import {
   ALL_LAYER_TEMPLATES,
   findLayerTemplate,
@@ -7,6 +8,52 @@ import {
 } from './index'
 
 describe('Layer Assembly Templates Catalog', () => {
+  it('ships 13 independent illustrated parts with working wrist and ankle chains', () => {
+    const template = findLayerTemplate('tmpl-character-articulated-13')!
+    const composite = buildCompositeFromTemplate(template)
+    expect(composite.layers).toHaveLength(13)
+    expect(composite.rig?.bones).toHaveLength(13)
+    expect(composite.layers.every((layer) => layer.imageUrl?.startsWith('data:image/svg+xml'))).toBe(true)
+    for (const side of ['l', 'r']) {
+      expect(composite.rig?.bones.find((b) => b.id === `bone-hand-${side}`)?.parentId).toBe(`bone-forearm-${side}`)
+      expect(composite.rig?.bones.find((b) => b.id === `bone-foot-${side}`)?.parentId).toBe(`bone-thigh-${side}`)
+      expect(composite.layers.find((l) => l.id === `layer-hand-${side}`)?.boneId).toBe(`bone-hand-${side}`)
+      expect(composite.layers.find((l) => l.id === `layer-foot-${side}`)?.boneId).toBe(`bone-foot-${side}`)
+    }
+    const wave = composite.rig!.clips!.find((clip) => clip.id === 'clip-wave')!
+    expect(new Set(wave.tracks['bone-hand-r'].map((key) => key.rotation)).size).toBeGreaterThan(1)
+  })
+
+  it('keeps atlas cells, prompt and every rig structurally consistent', () => {
+    for (const template of ALL_LAYER_TEMPLATES) {
+      const cells = template.slots.map((slot) => slot.atlasCell)
+      expect(new Set(cells).size, template.id).toBe(cells.length)
+      expect(cells.every((cell) => Number.isInteger(cell) && cell! >= 1 && cell! <= 25)).toBe(true)
+      expect(template.promptGuide.cellLayout).toHaveLength(template.slots.length)
+      for (const slot of template.slots) {
+        expect(template.promptGuide.systemPrompt).toContain(`${slot.atlasCell}. ${slot.nameEn} [${slot.id}]`)
+      }
+      const composite = buildCompositeFromTemplate(template)
+      expect(() => validateRig(composite), template.id).not.toThrow()
+      for (const clip of composite.rig?.clips ?? []) {
+        expect(() => validateRig({ ...composite, rig: { ...composite.rig!, ...clip } }), template.id).not.toThrow()
+      }
+    }
+  })
+
+  it('isolates edits between drafts and the catalog', () => {
+    for (const template of ALL_LAYER_TEMPLATES) {
+      const first = buildCompositeFromTemplate(template)
+      const second = buildCompositeFromTemplate(template)
+      first.layers[0].motion.amplitude = 999
+      expect(second.layers[0].motion.amplitude).not.toBe(999)
+      if (first.rig) {
+        first.rig.bones[0].x = 9999
+        expect(second.rig!.bones[0].x).not.toBe(9999)
+        expect(template.bones[0].x).not.toBe(9999)
+      }
+    }
+  })
   it('contains at least 14 templates covering characters, animals, nature, and architecture', () => {
     expect(ALL_LAYER_TEMPLATES.length).toBeGreaterThanOrEqual(14)
     const ids = ALL_LAYER_TEMPLATES.map((t) => t.id)

@@ -1,3 +1,4 @@
+import { createTemplateComposite } from './templateBuilder'
 import type { AnimationClip } from '@shared/layerRig'
 import type { LayerAssemblyTemplate } from './layerTemplateTypes'
 import {
@@ -79,35 +80,7 @@ Hidden rounded overlapping joint connections. Shared pixel scale.`,
     cellLayout: ['1. Đầu & mõm', '2. Tai chó', '3. Thân ngực', '4. Đuôi vẫy', '5. Đùi trước gần', '6. Cẳng trước gần', '7. Đùi trước xa', '8. Cẳng trước xa', '9. Đùi sau gần', '10. Cẳng sau gần', '11. Đùi sau xa', '12. Cẳng sau xa'],
     userGuide: 'Mẫu động vật 4 chân góc nghiêng. Tách nền xanh lá (#00FF00). Khi nạp vào xưởng, khung xương 4 chân sẽ tự động đồng bộ nhịp bước đối xứng tự nhiên.'
   },
-  buildComposite: (images = {}, nameOverride) => ({
-    id: `comp-${crypto.randomUUID()}`,
-    name: nameOverride || 'Chó Cưng 4 Chân (Mẫu Lắp Ráp)',
-    category: 'character',
-    width: 520,
-    height: 480,
-    layers: TMPL_ANIMAL_DOG.slots.map((s) => ({
-      id: `layer-${s.id}`,
-      name: s.name,
-      boneId: s.boneId,
-      bindingMode: 'rigid',
-      assetPath: images[s.id] || (s.role ? images[s.role] : undefined) || s.suggestedAsset,
-      x: s.defaultTransform.x,
-      y: s.defaultTransform.y,
-      z: s.defaultTransform.z,
-      scale: s.defaultTransform.scale,
-      rotation: s.defaultTransform.rotation,
-      opacity: 1,
-      motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
-    })),
-    rig: {
-      bones: DOG_BONES,
-      duration: 1.3,
-      loop: true,
-      tracks: DOG_WALK,
-      clips: DOG_CLIPS,
-      activeClipId: 'clip-walk'
-    }
-  })
+  buildComposite: (images, name) => createTemplateComposite(TMPL_ANIMAL_DOG, images, name)
 }
 
 // ---------------------------------------------------------------------------
@@ -172,35 +145,7 @@ Rounded overlapping joint caps for smooth mechanical puppet rotation.`,
     cellLayout: ['1. Đầu & sừng cong', '2. Tai trâu', '3. Thân lực lưỡng', '4. Đuôi chổi', '5. Đùi trước gần', '6. Móng trước gần', '7. Đùi trước xa', '8. Móng trước xa', '9. Đùi sau gần', '10. Móng sau gần', '11. Đùi sau xa', '12. Móng sau xa'],
     userGuide: 'Mẫu con trâu đồng kéo cày/gặm cỏ, phông xanh (#00FF00). Bước đi vững chắc chậm rãi và có clip cúi đầu gặm cỏ sinh động.'
   },
-  buildComposite: (images = {}, nameOverride) => ({
-    id: `comp-${crypto.randomUUID()}`,
-    name: nameOverride || 'Con Trâu Đồng Vạm Vỡ (Mẫu Lắp Ráp)',
-    category: 'character',
-    width: 580,
-    height: 480,
-    layers: TMPL_ANIMAL_BUFFALO.slots.map((s) => ({
-      id: `layer-${s.id}`,
-      name: s.name,
-      boneId: s.boneId,
-      bindingMode: 'rigid',
-      assetPath: images[s.id] || (s.role ? images[s.role] : undefined) || s.suggestedAsset,
-      x: s.defaultTransform.x,
-      y: s.defaultTransform.y,
-      z: s.defaultTransform.z,
-      scale: s.defaultTransform.scale,
-      rotation: s.defaultTransform.rotation,
-      opacity: 1,
-      motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
-    })),
-    rig: {
-      bones: BUFFALO_BONES,
-      duration: 2.0,
-      loop: true,
-      tracks: BUFFALO_WALK,
-      clips: BUFFALO_CLIPS,
-      activeClipId: 'clip-walk'
-    }
-  })
+  buildComposite: (images, name) => createTemplateComposite(TMPL_ANIMAL_BUFFALO, images, name)
 }
 
 // ---------------------------------------------------------------------------
@@ -230,14 +175,14 @@ export const TMPL_ANIMAL_CAT: LayerAssemblyTemplate = {
     { id: 'head', name: 'Đầu mèo mắt to & Tai nhọn', nameEn: 'Cat Head & Pointed Ears', role: 'head', atlasCell: 1, boneId: 'bone-head', defaultTransform: { x: -75, y: -40, z: -15, scale: 0.85, rotation: 0 }, description: 'Đầu mèo mắt tròn to long lanh, ria mép' },
     { id: 'torso', name: 'Thân mèo thon thả', nameEn: 'Slender Cat Torso', role: 'torso', atlasCell: 6, boneId: 'bone-torso', defaultTransform: { x: -10, y: 10, z: 0, scale: 0.85, rotation: 0 }, description: 'Thân mèo dẻo dai mềm mại' },
     { id: 'tail', name: 'Đuôi mèo dài cong uốn lượn', nameEn: 'Long Curved Tail', role: 'tail', atlasCell: 5, boneId: 'bone-tail', defaultTransform: { x: 70, y: -25, z: 10, scale: 0.85, rotation: 0 }, description: 'Đuôi mèo dài cong vểnh cao' },
-    { id: 'leg-fl-thigh', name: 'Chân trước trái (Gần)', nameEn: 'Front-Left Leg', role: 'thigh', atlasCell: 8, boneId: 'bone-leg-fl-thigh', defaultTransform: { x: -40, y: 35, z: -20, scale: 0.85, rotation: 0 }, description: 'Chân trước đệm móng êm ái gần' },
-    { id: 'leg-fl-shin', name: 'Bàn chân đệm vuốt trước T', nameEn: 'Front-Left Paw', role: 'shin', atlasCell: 11, boneId: 'bone-leg-fl-shin', defaultTransform: { x: -40, y: 80, z: -22, scale: 0.85, rotation: 0 }, description: 'Bàn đệm vuốt trước gần' },
-    { id: 'leg-fr-thigh', name: 'Chân trước phải (Xa)', nameEn: 'Front-Right Leg', role: 'thigh', atlasCell: 9, boneId: 'bone-leg-fr-thigh', defaultTransform: { x: -20, y: 30, z: 20, scale: 0.82, rotation: 0 }, description: 'Chân trước xa' },
-    { id: 'leg-fr-shin', name: 'Bàn chân đệm vuốt trước P', nameEn: 'Front-Right Paw', role: 'shin', atlasCell: 12, boneId: 'bone-leg-fr-shin', defaultTransform: { x: -20, y: 75, z: 18, scale: 0.82, rotation: 0 }, description: 'Bàn đệm vuốt trước xa' },
-    { id: 'leg-bl-thigh', name: 'Chân sau trái (Gần)', nameEn: 'Back-Left Leg', role: 'thigh', atlasCell: 16, boneId: 'bone-leg-bl-thigh', defaultTransform: { x: 40, y: 35, z: -15, scale: 0.85, rotation: 0 }, description: 'Chân sau gập lò xo dẻo dai gần' },
-    { id: 'leg-bl-shin', name: 'Bàn chân đệm vuốt sau T', nameEn: 'Back-Left Paw', role: 'shin', atlasCell: 18, boneId: 'bone-leg-bl-shin', defaultTransform: { x: 40, y: 85, z: -17, scale: 0.85, rotation: 0 }, description: 'Bàn đệm vuốt sau gần' },
-    { id: 'leg-br-thigh', name: 'Chân sau phải (Xa)', nameEn: 'Back-Right Leg', role: 'thigh', atlasCell: 17, boneId: 'bone-leg-br-thigh', defaultTransform: { x: 55, y: 30, z: 25, scale: 0.82, rotation: 0 }, description: 'Chân sau xa' },
-    { id: 'leg-br-shin', name: 'Bàn chân đệm vuốt sau P', nameEn: 'Back-Right Paw', role: 'shin', atlasCell: 19, boneId: 'bone-leg-br-shin', defaultTransform: { x: 55, y: 80, z: 23, scale: 0.82, rotation: 0 }, description: 'Bàn đệm vuốt sau xa' }
+    { id: 'leg-fl-thigh', name: 'Chân trước trái (Gần)', nameEn: 'Near Front Upper Leg', role: 'thigh', atlasCell: 8, boneId: 'bone-leg-fl-thigh', defaultTransform: { x: -40, y: 35, z: -20, scale: 0.85, rotation: 0 }, description: 'Đoạn chân trước phía trên bên gần, không gồm cẳng và bàn chân' },
+    { id: 'leg-fl-shin', name: 'Bàn chân đệm vuốt trước T', nameEn: 'Near Front Shin & Paw', role: 'shin', atlasCell: 11, boneId: 'bone-leg-fl-shin', defaultTransform: { x: -40, y: 80, z: -22, scale: 0.85, rotation: 0 }, description: 'Bàn đệm vuốt trước gần' },
+    { id: 'leg-fr-thigh', name: 'Chân trước phải (Xa)', nameEn: 'Far Front Upper Leg', role: 'thigh', atlasCell: 9, boneId: 'bone-leg-fr-thigh', defaultTransform: { x: -20, y: 30, z: 20, scale: 0.82, rotation: 0 }, description: 'Chân trước xa' },
+    { id: 'leg-fr-shin', name: 'Bàn chân đệm vuốt trước P', nameEn: 'Far Front Shin & Paw', role: 'shin', atlasCell: 12, boneId: 'bone-leg-fr-shin', defaultTransform: { x: -20, y: 75, z: 18, scale: 0.82, rotation: 0 }, description: 'Bàn đệm vuốt trước xa' },
+    { id: 'leg-bl-thigh', name: 'Chân sau trái (Gần)', nameEn: 'Near Hind Upper Leg', role: 'thigh', atlasCell: 16, boneId: 'bone-leg-bl-thigh', defaultTransform: { x: 40, y: 35, z: -15, scale: 0.85, rotation: 0 }, description: 'Chân sau gập lò xo dẻo dai gần' },
+    { id: 'leg-bl-shin', name: 'Bàn chân đệm vuốt sau T', nameEn: 'Near Hind Shin & Paw', role: 'shin', atlasCell: 18, boneId: 'bone-leg-bl-shin', defaultTransform: { x: 40, y: 85, z: -17, scale: 0.85, rotation: 0 }, description: 'Bàn đệm vuốt sau gần' },
+    { id: 'leg-br-thigh', name: 'Chân sau phải (Xa)', nameEn: 'Far Hind Upper Leg', role: 'thigh', atlasCell: 17, boneId: 'bone-leg-br-thigh', defaultTransform: { x: 55, y: 30, z: 25, scale: 0.82, rotation: 0 }, description: 'Chân sau xa' },
+    { id: 'leg-br-shin', name: 'Bàn chân đệm vuốt sau P', nameEn: 'Far Hind Shin & Paw', role: 'shin', atlasCell: 19, boneId: 'bone-leg-br-shin', defaultTransform: { x: 55, y: 80, z: 23, scale: 0.82, rotation: 0 }, description: 'Bàn đệm vuốt sau xa' }
   ],
   bones: CAT_BONES,
   clips: CAT_CLIPS,
@@ -263,35 +208,7 @@ Overlapping hidden joint connections for fluid feline movement.`,
     cellLayout: ['1. Đầu & tai nhọn', '2. Thân mềm', '3. Đuôi cong', '4. Chân trước gần', '5. Vuốt trước gần', '6. Chân trước xa', '7. Vuốt trước xa', '8. Chân sau gần', '9. Vuốt sau gần', '10. Chân sau xa', '11. Vuốt sau xa'],
     userGuide: 'Mẫu mèo mềm mại, tách nền hồng tím (#FF00FF). Dáng đi rón rén và đuôi vẫy nhẹ uốn lượn đặc trưng loài mèo.'
   },
-  buildComposite: (images = {}, nameOverride) => ({
-    id: `comp-${crypto.randomUUID()}`,
-    name: nameOverride || 'Mèo Con Mềm Mại (Mẫu Lắp Ráp)',
-    category: 'character',
-    width: 480,
-    height: 440,
-    layers: TMPL_ANIMAL_CAT.slots.map((s) => ({
-      id: `layer-${s.id}`,
-      name: s.name,
-      boneId: s.boneId,
-      bindingMode: 'rigid',
-      assetPath: images[s.id] || (s.role ? images[s.role] : undefined) || s.suggestedAsset,
-      x: s.defaultTransform.x,
-      y: s.defaultTransform.y,
-      z: s.defaultTransform.z,
-      scale: s.defaultTransform.scale,
-      rotation: s.defaultTransform.rotation,
-      opacity: 1,
-      motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
-    })),
-    rig: {
-      bones: CAT_BONES,
-      duration: 1.2,
-      loop: true,
-      tracks: CAT_WALK,
-      clips: CAT_CLIPS,
-      activeClipId: 'clip-prowl'
-    }
-  })
+  buildComposite: (images, name) => createTemplateComposite(TMPL_ANIMAL_CAT, images, name)
 }
 
 // ---------------------------------------------------------------------------
@@ -346,35 +263,7 @@ Rounded hidden overlapping joints between segments so when rotated, the fish spi
     cellLayout: ['1. Đầu cá', '2. Thân giữa vảy', '3. Cuống đuôi', '4. Đuôi lụa xòe', '5. Vây lưng', '6. Vây bơi gần', '7. Vây bơi xa'],
     userGuide: 'Mẫu cá chép Koi uốn lượn, tách nền cyan (#00FFFF). Cột sống 3 khúc liên hoàn tạo hiệu ứng sóng bơi mượt mà không bị gãy khớp.'
   },
-  buildComposite: (images = {}, nameOverride) => ({
-    id: `comp-${crypto.randomUUID()}`,
-    name: nameOverride || 'Cá Chép Koi Uốn Lượn (Mẫu Lắp Ráp)',
-    category: 'character',
-    width: 520,
-    height: 420,
-    layers: TMPL_ANIMAL_FISH.slots.map((s) => ({
-      id: `layer-${s.id}`,
-      name: s.name,
-      boneId: s.boneId,
-      bindingMode: 'rigid',
-      assetPath: images[s.id] || (s.role ? images[s.role] : undefined) || s.suggestedAsset,
-      x: s.defaultTransform.x,
-      y: s.defaultTransform.y,
-      z: s.defaultTransform.z,
-      scale: s.defaultTransform.scale,
-      rotation: s.defaultTransform.rotation,
-      opacity: 1,
-      motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
-    })),
-    rig: {
-      bones: FISH_BONES,
-      duration: 1.6,
-      loop: true,
-      tracks: FISH_SWIM,
-      clips: FISH_CLIPS,
-      activeClipId: 'clip-swim'
-    }
-  })
+  buildComposite: (images, name) => createTemplateComposite(TMPL_ANIMAL_FISH, images, name)
 }
 
 // ---------------------------------------------------------------------------
@@ -407,9 +296,9 @@ export const TMPL_ANIMAL_ROOSTER: LayerAssemblyTemplate = {
     { id: 'wing-r', name: 'Cánh gà phải (Xa)', nameEn: 'Right Wing (Far)', role: 'arm-r', atlasCell: 9, boneId: 'bone-bird-wing-r', defaultTransform: { x: 20, y: -20, z: 25, scale: 0.85, rotation: 0 }, description: 'Cánh xếp lớp bên xa' },
     { id: 'tail', name: 'Chùm lông đuôi cong vút', nameEn: 'Sickle Tail Feathers', role: 'tail', atlasCell: 5, boneId: 'bone-bird-tail', defaultTransform: { x: 75, y: -45, z: 10, scale: 0.95, rotation: 0 }, description: 'Chùm lông đuôi cầu vồng cong vút kiêu hãnh' },
     { id: 'thigh-l', name: 'Đùi gà trái (Gần)', nameEn: 'Left Thigh', role: 'thigh-l', atlasCell: 16, boneId: 'bone-bird-thigh-l', defaultTransform: { x: -20, y: 50, z: -10, scale: 0.9, rotation: 0 }, description: 'Bắp đùi gà chắc khỏe gần' },
-    { id: 'shin-l', name: 'Cẳng chân & Móng vuốt trái', nameEn: 'Left Claw Foot', role: 'shin-l', atlasCell: 18, boneId: 'bone-bird-shin-l', defaultTransform: { x: -20, y: 105, z: -12, scale: 0.9, rotation: 0 }, description: 'Chân vàng và móng vuốt nhọn gần' },
+    { id: 'shin-l', name: 'Cẳng chân & Móng vuốt trái', nameEn: 'Near Shin & Clawed Foot', role: 'shin-l', atlasCell: 18, boneId: 'bone-bird-shin-l', defaultTransform: { x: -20, y: 105, z: -12, scale: 0.9, rotation: 0 }, description: 'Chân vàng và móng vuốt nhọn gần' },
     { id: 'thigh-r', name: 'Đùi gà phải (Xa)', nameEn: 'Right Thigh', role: 'thigh-r', atlasCell: 17, boneId: 'bone-bird-thigh-r', defaultTransform: { x: 15, y: 45, z: 15, scale: 0.86, rotation: 0 }, description: 'Bắp đùi gà xa' },
-    { id: 'shin-r', name: 'Cẳng chân & Móng vuốt phải', nameEn: 'Right Claw Foot', role: 'shin-r', atlasCell: 19, boneId: 'bone-bird-shin-r', defaultTransform: { x: 15, y: 100, z: 13, scale: 0.86, rotation: 0 }, description: 'Chân vàng và móng vuốt xa' }
+    { id: 'shin-r', name: 'Cẳng chân & Móng vuốt phải', nameEn: 'Far Shin & Clawed Foot', role: 'shin-r', atlasCell: 19, boneId: 'bone-bird-shin-r', defaultTransform: { x: 15, y: 100, z: 13, scale: 0.86, rotation: 0 }, description: 'Chân vàng và móng vuốt xa' }
   ],
   bones: ROOSTER_BONES,
   clips: ROOSTER_CLIPS,
@@ -433,35 +322,7 @@ Concealed overlapping joints at neck, wings and hips for clean rotation.`,
     cellLayout: ['1. Đầu mào đỏ & mỏ', '2. Thân ức gà', '3. Cánh gần', '4. Cánh xa', '5. Chùm đuôi cong', '6. Đùi gần', '7. Móng vuốt gần', '8. Đùi xa', '9. Móng vuốt xa'],
     userGuide: 'Mẫu gà trống/chim có cánh và 2 chân móng. Tách nền xanh (#00FF00), có clip mổ thóc gật đầu và vỗ cánh reo mừng.'
   },
-  buildComposite: (images = {}, nameOverride) => ({
-    id: `comp-${crypto.randomUUID()}`,
-    name: nameOverride || 'Gà Trống Mào Đỏ (Mẫu Lắp Ráp)',
-    category: 'character',
-    width: 500,
-    height: 500,
-    layers: TMPL_ANIMAL_ROOSTER.slots.map((s) => ({
-      id: `layer-${s.id}`,
-      name: s.name,
-      boneId: s.boneId,
-      bindingMode: 'rigid',
-      assetPath: images[s.id] || (s.role ? images[s.role] : undefined) || s.suggestedAsset,
-      x: s.defaultTransform.x,
-      y: s.defaultTransform.y,
-      z: s.defaultTransform.z,
-      scale: s.defaultTransform.scale,
-      rotation: s.defaultTransform.rotation,
-      opacity: 1,
-      motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
-    })),
-    rig: {
-      bones: ROOSTER_BONES,
-      duration: 1.4,
-      loop: true,
-      tracks: ROOSTER_PECK,
-      clips: ROOSTER_CLIPS,
-      activeClipId: 'clip-peck'
-    }
-  })
+  buildComposite: (images, name) => createTemplateComposite(TMPL_ANIMAL_ROOSTER, images, name)
 }
 
 export const ANIMAL_TEMPLATES: LayerAssemblyTemplate[] = [

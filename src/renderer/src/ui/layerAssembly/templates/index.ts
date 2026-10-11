@@ -1,4 +1,6 @@
 import type { LayerAssemblyTemplate, LayerTemplateCategory } from './layerTemplateTypes'
+import { TMPL_ARTICULATED_13 } from './articulatedCharacter'
+import { standardizeTemplate } from './templateBuilder'
 import { HUMANOID_TEMPLATES } from './humanoidTemplates'
 import { ANIMAL_TEMPLATES } from './animalTemplates'
 import { NATURE_PROP_TEMPLATES } from './naturePropTemplates'
@@ -12,10 +14,11 @@ export * from './naturePropTemplates'
 export * from './templateIcons'
 
 export const ALL_LAYER_TEMPLATES: LayerAssemblyTemplate[] = [
+  TMPL_ARTICULATED_13,
   ...HUMANOID_TEMPLATES,
   ...ANIMAL_TEMPLATES,
   ...NATURE_PROP_TEMPLATES
-]
+].map(standardizeTemplate)
 
 export interface LayerTemplateCategoryTab {
   id: LayerTemplateCategory

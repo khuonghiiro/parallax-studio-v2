@@ -246,6 +246,51 @@
     },
     "character_hero/v2/shin_r.png": {
       "name": "Cẳng chân & Ủng sắt phải — V2"
+    },
+    "character_hero/v2/beard.png": {
+      "name": "beard"
+    },
+    "character_hero/v2/cape.png": {
+      "name": "cape"
+    },
+    "character_hero/v2/foot_l.png": {
+      "name": "foot l"
+    },
+    "character_hero/v2/foot_r.png": {
+      "name": "foot r"
+    },
+    "character_hero/v2/forearm_upper_l.png": {
+      "name": "forearm upper l"
+    },
+    "character_hero/v2/forearm_upper_r.png": {
+      "name": "forearm upper r"
+    },
+    "character_hero/v2/glasses.png": {
+      "name": "glasses"
+    },
+    "character_hero/v2/hand_l.png": {
+      "name": "hand l"
+    },
+    "character_hero/v2/hand_r.png": {
+      "name": "hand r"
+    },
+    "character_hero/v2/mask.png": {
+      "name": "mask"
+    },
+    "character_hero/v2/prop_sword.png": {
+      "name": "prop sword"
+    },
+    "character_hero/v2/shin_upper_l.png": {
+      "name": "shin upper l"
+    },
+    "character_hero/v2/shin_upper_r.png": {
+      "name": "shin upper r"
+    },
+    "demos/hologram_sphere.gif": {
+      "name": "hologram sphere"
+    },
+    "demos/sparkle_fireflies.gif": {
+      "name": "sparkle fireflies"
     }
   }
 }
