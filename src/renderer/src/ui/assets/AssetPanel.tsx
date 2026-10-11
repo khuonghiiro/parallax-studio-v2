@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BuiltInAssetCategory, BuiltInAssetItem, BuiltInCatalogResult } from '@shared/ipc'
 import { importAudio, importBuiltInAsset, importImages } from '../../actions'
 import { useEditor } from '../../store/editor'
-import { IconCube, IconFolder, IconImage, IconLayers, IconMusic, IconPlus } from '../icons'
+import { IconCube, IconFolder, IconGrid, IconImage, IconLayers, IconMusic, IconPlus } from '../icons'
 import { AssetCatalogModal } from './AssetCatalogModal'
 import { BuiltInAssetBar } from './BuiltInAssetBar'
 import { BuiltInAssetGrid } from './BuiltInAssetGrid'
@@ -149,8 +149,18 @@ export function AssetPanel() {
     <div className="asset-panel-wrapper">
       {/* Header with import actions */}
       <div className="asset-top-header">
-        <IconImage width={14} height={14} />
-        <span>Tài nguyên</span>
+        <span className="asset-top-header-label">
+          {subTab === 'builtin' && <IconGrid width={14} height={14} />}
+          {subTab === 'project' && <IconImage width={14} height={14} />}
+          {subTab === '3d' && <IconCube width={14} height={14} />}
+          {subTab === 'assembly' && <IconLayers width={14} height={14} />}
+          <span>
+            {subTab === 'builtin' && 'Kho mẫu có sẵn'}
+            {subTab === 'project' && 'Tệp trong dự án'}
+            {subTab === '3d' && 'Mô hình 3D'}
+            {subTab === 'assembly' && 'Cụm layer lắp ráp'}
+          </span>
+        </span>
         <span className="spacer" />
 
         <input
@@ -214,42 +224,52 @@ export function AssetPanel() {
       </div>
 
       {/* Subtabs: Built-in Library vs Project Assets vs 3D Assembled Models */}
-      <div className="asset-subtabs">
+      <div className="asset-subtabs" role="tablist">
         <button
           type="button"
+          role="tab"
+          aria-selected={subTab === 'builtin'}
           className={`asset-subtab-btn${subTab === 'builtin' ? ' active' : ''}`}
           onClick={() => setSubTab('builtin')}
+          title="Kho mẫu có sẵn tích hợp (6 tệp)"
         >
-          <IconFolder width={13} height={13} />
-          <span>Tất cả</span>
+          <IconGrid width={13} height={13} />
+          <span className="asset-subtab-label">Kho mẫu</span>
           <span className="asset-subtab-badge">{visiblePublicItems.length}</span>
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={subTab === 'project'}
           className={`asset-subtab-btn${subTab === 'project' ? ' active' : ''}`}
           onClick={() => setSubTab('project')}
+          title="Tệp tài nguyên trong dự án (5 tệp)"
         >
           <IconImage width={13} height={13} />
-          <span>Dự án</span>
+          <span className="asset-subtab-label">Dự án</span>
           <span className="asset-subtab-badge">{projectAssets.length}</span>
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={subTab === '3d'}
           className={`asset-subtab-btn${subTab === '3d' ? ' active' : ''}`}
           onClick={() => setSubTab('3d')}
           title="Mô hình 3D lắp ráp từ các diện ảnh phẳng 2.5D"
         >
           <IconCube width={13} height={13} />
-          <span>3D</span>
+          <span className="asset-subtab-label">3D</span>
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={subTab === 'assembly'}
           className={`asset-subtab-btn${subTab === 'assembly' ? ' active' : ''}`}
           onClick={() => setSubTab('assembly')}
-          title="Chi tiết & vật liệu lắp ráp layer xếp chồng 2.5D"
+          title="Chi tiết & vật liệu lắp ráp layer xếp chồng 2.5D (4 cụm)"
         >
           <IconLayers width={13} height={13} />
-          <span>Lắp ráp</span>
+          <span className="asset-subtab-label">Lắp ráp</span>
           <span className="asset-subtab-badge">{assemblyCount}</span>
         </button>
       </div>

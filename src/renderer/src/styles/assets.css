@@ -21,35 +21,46 @@
   background: var(--bg-1);
   border-bottom: 1px solid var(--line);
   flex: none;
+}
+
+.asset-top-header-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-dim);
+}
+
+.asset-top-header-label svg {
+  color: var(--accent);
 }
 
 .asset-top-header .spacer {
   flex: 1;
 }
 
-/* ------------------------------------------------------------------ Subtabs (Library / Project) */
+/* ------------------------------------------------------------------ Subtabs (Smart Segmented Switcher) */
 .asset-subtabs {
   display: flex;
   background: var(--bg-0);
-  padding: 3px 6px;
-  gap: 4px;
+  padding: 4px 6px;
+  gap: 3px;
   border-bottom: 1px solid var(--line);
   flex: none;
+  align-items: center;
 }
 
 .asset-subtab-btn {
-  flex: 1;
+  flex: 1 1 0%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
-  height: 24px;
-  padding: 0 8px;
+  height: 26px;
+  padding: 0 6px;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   background: transparent;
@@ -57,7 +68,14 @@
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  white-space: nowrap;
+  min-width: 0;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Inactive tabs: chỉ hiển thị icon + badge, cực kỳ gọn gàng, không bao giờ ngắt dòng */
+.asset-subtab-btn:not(.active) .asset-subtab-label {
+  display: none;
 }
 
 .asset-subtab-btn:hover {
@@ -65,11 +83,25 @@
   background: var(--bg-2);
 }
 
+/* Active tab: mở rộng nổi bật hiển thị icon + tên đầy đủ + badge */
 .asset-subtab-btn.active {
+  flex: 1.8 1 auto;
   color: var(--text);
   background: var(--bg-2);
   border-color: var(--line);
   font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.asset-subtab-btn.active svg {
+  color: var(--accent);
+}
+
+.asset-subtab-btn.active .asset-subtab-label {
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .asset-subtab-badge {
@@ -79,11 +111,13 @@
   border-radius: 9px;
   background: var(--bg-3);
   color: var(--text-faint);
+  line-height: 1.2;
 }
 
 .asset-subtab-btn.active .asset-subtab-badge {
   background: rgba(38, 128, 235, 0.25);
   color: var(--accent-cyan);
+  font-weight: 700;
 }
 
 /* ------------------------------------------------------------------ Two-column Body */
