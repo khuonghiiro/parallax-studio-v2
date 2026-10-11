@@ -351,3 +351,8 @@ MCP: `layer_assembly_rig`, `set_layer_assembly_playback`, `set_layer_assembly_pa
 ### Layer workshop pixel editor
 - Cọ tẩy chỉ hoạt động trong khung chỉnh pixel góc dưới trái; bố cục lớn dùng để xem và chọn layer. Thanh dọc gồm cọ mềm, tẩy nét cứng, bàn tay, vừa khung và khôi phục ảnh gốc. Cuộn để zoom quanh con trỏ; Space + kéo hoặc chuột giữa để dời ảnh. Escape hủy nét, mỗi nét hoàn tất là một bước hoàn tác.
 - Hình ảnh và tọa độ cọ dùng chung `isolatedBrushGeometry.ts`; kiểm thử tại `isolatedBrushGeometry.test.ts`. MCP tiếp tục dùng `update_layer_assembly_layer` với `patch.imageUrl` qua lịch sử bản nháp, không thêm tool hay schema cho thay đổi bố trí UI.
+
+### Layer assembly templates / Mẫu lắp ráp layer & Prompt AI
+- 14 mẫu lắp ráp layer 2.5D có sẵn chia theo 4 danh mục: Nhân vật theo lứa tuổi (Nam anh hùng, Nữ anime, Bé thiếu nhi, Quý ông trung niên, Cụ già gậy gỗ), Động vật (Chó cưng, Trâu nước, Mèo mướp, Cá Koi uốn sóng, Gà trống), Cây cối & Thiên nhiên (Bonsai, Bụi hoa), Kiến trúc (Ban công, Cổng tàn tích).
+- Mỗi mẫu tích hợp sẵn bộ khung xương (armature), hoạt ảnh chuyển động (walk, idle, swim, peck...), cấu trúc layer Z-depth và Prompt AI tiếng Anh chuyên dụng tạo sprite sheet atlas (5x5 ô) đồng bộ góc nhìn.
+- MCP tools: `list_layer_assembly_templates`, `get_layer_assembly_template` (lấy prompt AI và sơ đồ slot), `apply_layer_assembly_template` (áp dụng trực tiếp mẫu vào xưởng hoặc lưu thư viện).

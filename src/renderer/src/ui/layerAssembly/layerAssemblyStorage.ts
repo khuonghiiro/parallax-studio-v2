@@ -152,7 +152,9 @@ export function saveComposite(composite: LayerComposite): void {
     nextList = [updated, ...list]
   }
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(nextList))
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextList))
+  }
   if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
     window.dispatchEvent(new CustomEvent('layerComposites:changed'))
   }

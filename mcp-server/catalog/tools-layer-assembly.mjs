@@ -338,6 +338,47 @@ export const LAYER_ASSEMBLY_TOOLS = [
       mode: z.enum(['replace', 'append', 'new']).optional().describe(d('Load mode: replace current, append layers, or start fresh new.', 'Chế độ nạp: thay thế, ghép thêm hoặc tạo mới.'))
     }),
     example: '{"composite_id":"comp-bonsai-zen","mode":"replace"}'
+  },
+  {
+    name: 'list_layer_assembly_templates',
+    cat: 'layer_assembly',
+    doc: L(
+      'List pre-configured 2.5D layer assembly templates (characters across all age groups: male hero, anime girl, toddler/child, middle-aged, elderly; animals: dog, buffalo, cat, fish, rooster; nature and architecture) with layer slots, bone rigs, animation clips and AI generation prompts.',
+      'Liệt kê các mẫu khung lắp ráp layer 2.5D dựng sẵn (nhân vật các lứa tuổi: nam hiệp sĩ, nữ anime, trẻ em chibi, người trung niên, cụ già; động vật: chó 4 chân, trâu, mèo, cá, gà; cây cỏ và kiến trúc) kèm danh sách bộ phận, xương rig, hoạt ảnh và prompt tạo ảnh AI.'
+    ),
+    shape: (d) => ({
+      category: z.enum(['all', 'character', 'animal', 'nature', 'prop', 'architecture']).optional().describe(d('Filter by category.', 'Lọc theo danh mục.')),
+      search: z.string().optional().describe(d('Search query across template names and descriptions.', 'Từ khóa tìm kiếm theo tên hoặc mô tả mẫu.'))
+    }),
+    example: '{"category":"character"}'
+  },
+  {
+    name: 'get_layer_assembly_template',
+    cat: 'layer_assembly',
+    doc: L(
+      'Get full configuration of a layer assembly template by ID, including slot coordinates, bone armature, animation clips, and the complete AI generation prompt for sprite atlas cutouts.',
+      'Lấy cấu hình chi tiết một mẫu lắp ráp layer theo ID, gồm danh sách slot bộ phận, khung xương rig, các hoạt ảnh chuyển động và toàn văn prompt tạo ảnh sprite atlas chuẩn AI.'
+    ),
+    shape: (d) => ({
+      template_id: z.string().describe(d('Template ID from list_layer_assembly_templates (e.g. "tmpl-character-male-hero", "tmpl-animal-dog").', 'ID mẫu từ list_layer_assembly_templates (vd "tmpl-character-male-hero", "tmpl-animal-dog").'))
+    }),
+    example: '{"template_id":"tmpl-character-male-hero"}'
+  },
+  {
+    name: 'apply_layer_assembly_template',
+    cat: 'layer_assembly',
+    doc: L(
+      'Apply a 2.5D layer assembly template into the workshop or save as a new composite preset, binding slot images automatically from provided asset paths.',
+      'Áp dụng mẫu lắp ráp layer 2.5D vào xưởng hoặc lưu thành mẫu mới, tự động gắn ảnh các bộ phận theo đường dẫn cung cấp.'
+    ),
+    shape: (d) => ({
+      template_id: z.string().describe(d('Template ID to instantiate.', 'ID mẫu lắp ráp cần áp dụng.')),
+      name: z.string().optional().describe(d('Custom display name for the composite.', 'Tên tùy chỉnh cho cụm layer.')),
+      images: z.record(z.string()).optional().describe(d('Map of slot ID, role, or cell index to image asset path or data URL.', 'Bản đồ ánh xạ ID bộ phận hoặc số ô atlas sang đường dẫn ảnh.')),
+      open_workshop: z.boolean().optional().describe(d('Whether to open the layer workshop modal (default true).', 'Có mở giao diện xưởng lắp ráp layer hay không (mặc định true).')),
+      save_to_library: z.boolean().optional().describe(d('Whether to persist into stored composites library (default false).', 'Có lưu vào danh sách mẫu của dự án hay không (mặc định false).'))
+    }),
+    example: '{"template_id":"tmpl-animal-dog","open_workshop":true}'
   }
 ]
 

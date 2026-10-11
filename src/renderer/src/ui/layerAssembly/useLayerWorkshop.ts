@@ -56,7 +56,7 @@ export function useLayerWorkshop(initial?: LayerComposite | null) {
       ...fresh
     }
     state.resetComposite(next)
-    setIds([])
+    setIds(next.layers[0] ? [next.layers[0].id] : [])
   }
   return { ...state, selection, selectedLayerId, select, setIds, run, update, append, add, move, createNew }
 }

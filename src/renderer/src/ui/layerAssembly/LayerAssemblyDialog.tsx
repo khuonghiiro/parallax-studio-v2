@@ -16,6 +16,7 @@ import '../../styles/layerWorkshopTools.css'
 import '../../styles/layerWorkshopRig.css'
 import { WorkshopRightPanel, type WorkshopTab } from './WorkshopRightPanel'
 import { ensureRigClips } from './workshopRig'
+import { CreateLayerAssemblyModal } from './CreateLayerAssemblyModal'
 
 export type AssemblyWorkspaceView = '2d' | '3d' | 'split'
 export interface LayerAssemblyDialogProps { initialComposite?: LayerComposite | null; onClose: () => void }
@@ -42,6 +43,7 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
   const [view, setView] = useState<AssemblyWorkspaceView>('split')
   const [showNewConfirm, setShowNewConfirm] = useState(false)
   const [isBrushActive, setIsBrushActive] = useState(false)
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
 
   // Kiểm tra xem composite hiện tại có thay đổi chưa lưu hay không
   const hasUnsavedChanges = (): boolean => {
@@ -59,7 +61,7 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
     if (hasUnsavedChanges()) {
       setShowNewConfirm(true)
     } else {
-      createNew()
+      setIsTemplateModalOpen(true)
     }
   }
 
@@ -67,13 +69,13 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
     setShowNewConfirm(false)
     const success = await saving.saveWithoutClosing()
     if (success) {
-      createNew()
+      setIsTemplateModalOpen(true)
     }
   }
 
   const handleDiscardAndCreateNew = () => {
     setShowNewConfirm(false)
-    createNew()
+    setIsTemplateModalOpen(true)
   }
 
   const handleCancelNew = () => {
@@ -170,7 +172,7 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
             </button>
             <button
               type="button"
-              className="btn sm"
+              className="btn sm lw-btn-discard-new"
               style={{ color: 'var(--text-dim)', border: '1px solid var(--line-soft)' }}
               onClick={handleDiscardAndCreateNew}
             >
@@ -187,5 +189,18 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
         </div>
       </div>
     )}
+
+    <CreateLayerAssemblyModal
+      isOpen={isTemplateModalOpen}
+      onClose={() => setIsTemplateModalOpen(false)}
+      onSelectTemplate={(comp) => {
+        createNew(comp)
+        setIsTemplateModalOpen(false)
+      }}
+      onSelectBlank={() => {
+        createNew()
+        setIsTemplateModalOpen(false)
+      }}
+    />
   </div>
 }

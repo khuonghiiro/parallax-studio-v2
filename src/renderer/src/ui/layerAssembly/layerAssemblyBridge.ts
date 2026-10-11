@@ -39,23 +39,25 @@ export function getActiveLayerAssemblySession(): ActiveLayerAssemblySession | nu
   return activeSession
 }
 
-let pendingOpenComposite: { compositeId?: string } | null = null
+let pendingOpenComposite: { compositeId?: string; composite?: LayerComposite } | null = null
 
 /**
  * Yêu cầu mở Xưởng Lắp Ráp Layer từ bên ngoài (qua MCP hoặc UI)
  */
-export function requestOpenLayerAssembly(compositeId?: string): void {
-  pendingOpenComposite = { compositeId }
+export function requestOpenLayerAssembly(target?: string | LayerComposite): void {
+  const compositeId = typeof target === 'string' ? target : target?.id
+  const composite = typeof target === 'object' ? target : undefined
+  pendingOpenComposite = { compositeId, composite }
   if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
     window.dispatchEvent(
       new CustomEvent('layerAssembly:open', {
-        detail: { compositeId }
+        detail: { compositeId, composite }
       })
     )
   }
 }
 
-export function consumePendingOpenLayerAssembly(): { compositeId?: string } | null {
+export function consumePendingOpenLayerAssembly(): { compositeId?: string; composite?: LayerComposite } | null {
   const pending = pendingOpenComposite
   pendingOpenComposite = null
   return pending

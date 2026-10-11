@@ -218,3 +218,11 @@ Khi thực hiện các nhiệm vụ chuyên biệt, AI cần tham chiếu các s
 ### Layer workshop pixel editor
 - Cọ tẩy chỉ hoạt động trong khung chỉnh pixel góc dưới trái; bố cục lớn dùng để xem và chọn layer. Thanh dọc gồm cọ mềm, tẩy nét cứng, bàn tay, vừa khung và khôi phục ảnh gốc. Cuộn để zoom quanh con trỏ; Space + kéo hoặc chuột giữa để dời ảnh. Escape hủy nét, mỗi nét hoàn tất là một bước hoàn tác.
 - Hình ảnh và tọa độ cọ dùng chung `isolatedBrushGeometry.ts`; kiểm thử tại `isolatedBrushGeometry.test.ts`. MCP tiếp tục dùng `update_layer_assembly_layer` với `patch.imageUrl` qua lịch sử bản nháp, không thêm tool hay schema cho thay đổi bố trí UI.
+
+### Xưởng Lắp Ráp Layer – Mẫu Lắp Ráp Sẵn (Templates) & Prompt AI Chuẩn Atlas
+- **Mẫu có sẵn:** 14 mẫu phong phú chia 4 danh mục: Nhân vật theo lứa tuổi (Nam anh hùng 5x5 atlas, Nữ anime váy xếp ly, Bé thiếu nhi chibi, Quý ông trung niên suit, Cụ già gậy gỗ), Động vật 4 chân & chim cá (Chó cưng, Trâu nước, Mèo mướp, Cá Koi uốn sóng, Gà trống), Cây cối & Thiên nhiên (Bonsai, Bụi hoa), Kiến trúc & Đạo cụ (Ban công, Cổng tàn tích).
+- **Bộ xương & Chuyển động sinh tự động:** `creatureRigPresets.ts` sinh xương và keyframe FK tự nhiên cho từng loài (bước đi 4 chân đối xứng chéo `quadrupedWalk`, uốn vẫy đuôi `quadrupedWag`, cá bơi sóng sin `fishSinusoidalSwim`, gà mổ thóc `avianPeckWalk`, bé lon ton `childToddleWalk`, cụ già chống gậy `elderlyCaneWalk`).
+- **Prompt AI chuẩn:** Mỗi mẫu tích hợp prompt tiếng Anh chuẩn tạo Sprite Sheet Atlas 5x5 ô trên phông xanh lá chroma-key (#00FF00), sơ đồ slot ô và hướng dẫn kỹ thuật nối khớp bo tròn (10-15% overlap) tại `TemplatePromptModal.tsx`.
+- **UI:** `CreateLayerAssemblyModal.tsx` mở khi bấm "+ Tạo mẫu mới" trong xưởng hoặc "Tạo lắp ráp" ở tab tài nguyên, lọc danh mục, tìm kiếm và nút "+ Tự tạo lắp ráp trống".
+- **MCP Parity:** `list_layer_assembly_templates`, `get_layer_assembly_template`, `apply_layer_assembly_template` tại `layerAssemblyTemplateCommands.ts` và `tools-layer-assembly.mjs`. Tests: `layerAssemblyTemplates.test.ts`, `creatureRigPresets.test.ts`, `layerAssemblyTemplateCommands.test.ts`.
+
