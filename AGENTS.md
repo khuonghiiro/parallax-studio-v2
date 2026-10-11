@@ -114,6 +114,30 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
   - Đạo cụ & Trang trí 2D (`prop`): Dùng cây đèn bão / đèn decor `IconPropLamp`.
 - **Nguyên tắc tạo mới khi thiếu icon:** Khi bổ sung tính năng hoặc danh mục mới chưa có icon phù hợp, lập trình viên/AI **bắt buộc phải chủ động tạo component SVG icon mới** trong `src/renderer/src/ui/icons.tsx` và ánh xạ trong `src/renderer/src/ui/assets/categoryIcons.tsx`, tuyệt đối không được gán bừa icon có sẵn gây trùng lặp.
 
+### 2.8. Chế Độ Làm Việc Tự Động & Quyền Tự Chủ (Autonomous Working Mode - BẮT BUỘC)
+AI làm việc với tinh thần tự chủ tối đa, hạn chế tối đa việc dừng lại hỏi người dùng:
+1. **Không hỏi lại:**
+   - Nếu yêu cầu còn mơ hồ, tự phân tích ngữ cảnh mã nguồn, tự chọn phương án hợp lý và phổ biến nhất rồi làm tiếp.
+   - Ghi các giả định đã dùng vào cuối báo cáo (mục "Giả định"), không dừng giữa chừng để hỏi.
+   - Chỉ dừng hỏi khi thực sự thiếu thông tin bắt buộc mà không thể suy luận được từ codebase (ví dụ: API key, thông tin đăng nhập bí mật, quyết định định hướng kinh doanh).
+2. **Thực thi lệnh terminal an toàn:**
+   - Với các lệnh an toàn (đọc file, liệt kê, build, test, typecheck, lint, cài package npm trong dự án, chạy dev server/script nội bộ), luôn tự chủ chạy và gộp nhiều bước liên quan vào ít lệnh nhất có thể để giảm số lần xác nhận.
+   - **Tuyệt đối KHÔNG tự ý chạy các lệnh sau (phải dừng và xin phép người dùng):**
+     - Xóa hàng loạt hoặc đệ quy (`rm -rf`, `del /s`, `Remove-Item -Recurse` trên thư mục ngoài dự án).
+     - `git push --force`, `git reset --hard`, xóa branch hoặc làm mất commit history.
+     - Lệnh tải script về rồi chạy ngay (`curl | sh`, `iwr | iex`).
+     - Thao tác lên file/thư mục nằm ngoài workspace.
+     - Thay đổi biến môi trường hệ thống, can thiệp Windows Registry, phân quyền OS.
+     - Lệnh có đụng đến database production hoặc secrets bảo mật.
+3. **Chỉnh sửa file tự động & bảo vệ Secrets:**
+   - Tự động áp dụng thay đổi trong workspace, không chờ duyệt từng file.
+   - Không sửa file `.env`, file chứa secrets, hoặc file cấu hình hệ thống.
+4. **Tự sửa lỗi (Self-Healing):**
+   - Khi gặp lỗi (build error, test failure, runtime error): tự đọc log, tự sửa và thử lại tối đa 3 lần trước khi báo người dùng.
+   - Không hỏi "bạn có muốn tôi sửa lỗi không?", cứ chủ động sửa nếu nằm trong phạm vi nhiệm vụ.
+5. **Báo cáo hoàn tất xúc tích:**
+   - Làm xong toàn bộ rồi mới báo cáo một lần ngắn gọn gồm: đã làm gì, file nào đã đổi, giả định đã dùng (nếu có), việc nào cần người dùng quyết định tiếp theo.
+
 ---
 
 ## 3. Cấu Trúc Workspace & Thư Mục Tri Thức (.agents/)

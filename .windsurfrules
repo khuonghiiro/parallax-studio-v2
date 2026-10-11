@@ -12,4 +12,5 @@ Tóm tắt không được vi phạm:
 - MCP parity: mọi logic mới phải có renderer command + test, tool song ngữ trong `mcp-server/catalog/tools-*.mjs`, cập nhật `guide.json`, chạy `pnpm mcp:schemas`, cập nhật README.
 - Kiểm tra `npm run typecheck` + `npx vitest run` trước khi commit.
 - Cấm dùng `<select>` native và OS popups (gây treo/lỗi Electron); bắt buộc dùng component 60fps trong `ui/controls/` (`<Menu>`, `<Select>` portal z-index 50000); toolbar chứa menu phải giữ `overflow: visible; z-index: 5000`.
+- Chế độ tự động & tự chủ cao: Tự chủ tối đa, hạn chế dừng hỏi; yêu cầu mơ hồ thì tự chọn phương án chuẩn nhất và ghi giả định vào mục "Giả định" cuối báo cáo; tự sửa lỗi tối đa 3 lần; cấm chạy lệnh nguy hiểm (`rm -rf` ngoài dự án, `git push --force`, `git reset --hard`, `curl | sh`, sửa `.env`/secrets); làm xong toàn bộ mới báo cáo một lần.
 - Commit Conventional Commits bằng **tiếng Việt CÓ DẤU**, không nhắc tên AI; commit + push ngay sau mỗi fix/tính năng. Git hooks `.githooks/` sẽ chặn commit sai chuẩn.
