@@ -114,10 +114,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 5px;
   height: 26px;
   padding: 0 6px;
-  margin: 0 1px;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   background: transparent;
@@ -129,20 +128,14 @@
   transition: all 0.15s ease;
 }
 
-/* Hiển thị tiêu đề vừa vặn cho tất cả các tab */
-.asset-subtab-btn .asset-subtab-label {
-  display: inline-block;
-  white-space: nowrap;
+/* Inactive tabs: chỉ hiện icon + badge số đếm, ẩn title để vừa vặn không bị khuất tab */
+.asset-subtab-btn:not(.active) .asset-subtab-label {
+  display: none;
 }
 
-.asset-subtab-btn:hover {
-  color: var(--text);
-  background: var(--bg-2);
-}
-
-/* Active tab: nổi bật rõ nét */
-.asset-subtab-btn.active,
-.asset-subtab-btn.active:hover {
+/* Active tab: hiện đầy đủ icon + title + badge số */
+.asset-subtab-btn.active {
+  padding: 0 8px;
   color: var(--text);
   background: var(--bg-2);
   border-color: var(--line);
@@ -150,35 +143,57 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
+.asset-subtab-btn.active .asset-subtab-label {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.asset-subtab-btn:hover:not(.active) {
+  color: var(--text);
+  background: var(--bg-2);
+}
+
 .asset-subtab-btn.active svg {
   color: var(--accent);
 }
 
+/* Badge số lượng: Điểm nhấn sắc nét, số đậm, tương phản cao */
 .asset-subtab-badge {
-  font-size: 9px;
+  font-size: 9.5px;
   font-family: var(--mono);
-  padding: 1px 4px;
+  font-weight: 700;
+  padding: 1px 5px;
+  min-width: 16px;
+  text-align: center;
   border-radius: 9px;
-  background: var(--bg-3);
-  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   line-height: 1.2;
 }
 
-.asset-subtab-btn.active .asset-subtab-badge {
-  background: rgba(37, 99, 235, 0.16);
-  color: var(--accent);
-  font-weight: 600;
+[data-theme='light'] .asset-subtab-badge,
+.app.light .asset-subtab-badge {
+  background: #e2e8f0;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
 }
 
-[data-theme='light'] .asset-subtab-btn.active .asset-subtab-badge {
-  background: rgba(37, 99, 235, 0.12);
-  color: var(--accent);
-}
-
+/* Badge của tab Active: Nổi bật rực rỡ với màu Accent và số màu trắng */
 .asset-subtab-btn.active .asset-subtab-badge {
-  background: rgba(38, 128, 235, 0.25);
-  color: var(--accent-cyan);
+  background: var(--accent) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
   font-weight: 700;
+  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.4);
+}
+
+[data-theme='light'] .asset-subtab-btn.active .asset-subtab-badge,
+.app.light .asset-subtab-btn.active .asset-subtab-badge {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 1px 4px rgba(2, 132, 199, 0.4);
 }
 
 /* ------------------------------------------------------------------ Two-column Body */
