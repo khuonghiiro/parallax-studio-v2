@@ -268,50 +268,61 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
-/* Right Controls Area in Row Mode */
+/* Right Controls Area in Row Mode (Chế độ 2D & 3D) */
 .layer-pixel-controls-area {
   width: 290px;
   min-width: 280px;
   max-width: 320px;
   flex-shrink: 0;
   height: 100%;
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--bg-2);
   border-left: 1px solid var(--line);
-  padding: 8px 10px;
+  padding: 6px 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   box-sizing: border-box;
 }
 
-/* Bottom Controls Area in Column Mode (Hàng 2 của Cột 1) */
+/* Bottom Controls Area in Column Mode (Hàng 2 của Cột 1 khi 2D) */
 .layer-pixel-settings-bottom {
   flex-shrink: 0;
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--bg-2);
   border-top: 1px solid var(--line);
-  padding: 8px 10px;
+  padding: 6px 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   box-sizing: border-box;
 }
 
-/* Brush Preview Card */
-.layer-brush-preview-card {
+/* Compact Grid: Kết hợp song song Live Brush Preview + Sliders Thông Số */
+.layer-brush-compact-grid {
   display: flex;
-  gap: 8px;
   align-items: center;
+  gap: 8px;
   background: var(--bg-1);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-soft);
   border-radius: 6px;
   padding: 5px 7px;
+  box-sizing: border-box;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.layer-brush-preview-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
 }
 
 .layer-brush-preview-box {
-  width: 64px;
-  height: 64px;
+  width: 44px;
+  height: 44px;
   border-radius: 5px;
   border: 1px solid var(--line-soft);
   background: repeating-conic-gradient(var(--bg-3) 0% 25%, var(--bg-1) 0% 50%) 50% / 8px 8px;
@@ -329,164 +340,133 @@
 
 .layer-brush-preview-box-badge {
   position: absolute;
-  bottom: 2px;
-  right: 2px;
+  bottom: 1px;
+  right: 1px;
   font-size: 8px;
   font-weight: 700;
-  padding: 1px 3px;
+  padding: 0 2px;
   border-radius: 2px;
   background: var(--bg-0);
   color: var(--accent-cyan);
   font-variant-numeric: tabular-nums;
   pointer-events: none;
-  opacity: 0.9;
+  line-height: 1.2;
 }
 
-.layer-brush-preview-meta {
-  flex: 1 1 0%;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.brush-tags-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-}
-
-.brush-tag {
-  font-size: 9px;
-  font-weight: 600;
-  padding: 1px 4px;
-  border-radius: 3px;
-  background: var(--bg-3);
-  color: var(--text-dim);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.brush-tag.size {
-  color: var(--accent-cyan);
-  background: color-mix(in srgb, var(--accent-cyan) 12%, var(--bg-3));
-}
-
-.brush-tag.opacity {
-  color: var(--accent);
-}
-
-.brush-tag.hardness {
-  color: var(--text);
-}
-
-.brush-presets-row {
+.layer-brush-presets-mini {
   display: flex;
   align-items: center;
   gap: 2px;
-  flex-wrap: wrap;
 }
 
-.brush-preset-label {
-  font-size: 9px;
-  color: var(--text-faint);
-  margin-right: 1px;
-}
-
-.brush-preset-btn {
-  height: 17px;
-  padding: 0 4px;
-  font-size: 9px;
+.brush-preset-mini-btn {
+  height: 14px;
+  padding: 0 3px;
+  font-size: 8.5px;
   font-weight: 600;
   border: 1px solid var(--line-soft);
-  border-radius: 3px;
+  border-radius: 2px;
   background: var(--bg-2);
   color: var(--text-dim);
   cursor: pointer;
-  transition: all 0.12s ease;
+  line-height: 1;
+  transition: all 0.1s ease;
 }
 
-.brush-preset-btn:hover {
+.brush-preset-mini-btn:hover {
   color: var(--text);
   border-color: var(--accent);
   background: var(--bg-3);
 }
 
-.brush-preset-btn.active {
+.brush-preset-mini-btn.active {
   color: var(--accent);
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 15%, var(--bg-2));
 }
 
-/* Sliders Fieldset */
-.layer-brush-sliders {
-  display: grid;
-  gap: 4px;
+/* Sliders Column bên phải */
+.layer-brush-sliders-col {
+  flex: 1 1 0%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border: none;
   margin: 0;
   padding: 0;
-  border: 0;
-  min-width: 0;
 }
 
-.layer-brush-slider-row {
-  display: grid;
-  grid-template-columns: 46px minmax(0, 1fr) 44px;
+.layer-brush-slider-compact {
+  display: flex;
   align-items: center;
   gap: 5px;
+  height: 18px;
   font-size: 10px;
-  color: var(--text-dim);
 }
 
-.layer-brush-slider-row input[type='range'] {
-  width: 100%;
-  height: 10px;
-  margin: 0;
+.layer-brush-slider-compact .slider-label {
+  width: 28px;
+  color: var(--text-dim);
+  font-size: 9.5px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.layer-brush-slider-compact input[type='range'] {
+  flex: 1 1 0%;
+  min-width: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--bg-3);
   accent-color: var(--accent);
   cursor: pointer;
 }
 
-.layer-brush-val {
+.layer-brush-slider-compact .slider-num {
+  width: 28px;
   text-align: right;
-  font-variant-numeric: tabular-nums;
+  font-size: 9.5px;
   font-weight: 600;
   color: var(--text);
-  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
-.layer-brush-steppers {
-  display: inline-flex;
+.slider-stepper-val {
+  display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 2px;
+  gap: 1px;
+  flex-shrink: 0;
 }
 
-.layer-brush-stepper-btn {
-  width: 15px;
-  height: 15px;
-  padding: 0;
-  display: grid;
-  place-items: center;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
+.slider-stepper-val .stepper-btn {
+  width: 14px;
+  height: 14px;
   border: 1px solid var(--line-soft);
   border-radius: 2px;
-  background: var(--bg-3);
+  background: var(--bg-2);
   color: var(--text-dim);
+  font-size: 9px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
   cursor: pointer;
+  padding: 0;
 }
 
-.layer-brush-stepper-btn:hover {
+.slider-stepper-val .stepper-btn:hover {
+  background: var(--bg-3);
   color: var(--text);
-  border-color: var(--line);
-  background: var(--bg-4);
+  border-color: var(--accent);
 }
 
 .layer-pixel-hint {
-  font-size: 9px;
+  font-size: 8.5px;
   color: var(--text-faint);
   text-align: center;
   white-space: nowrap;
+  line-height: 1.2;
 }
 
 /* Empty State */

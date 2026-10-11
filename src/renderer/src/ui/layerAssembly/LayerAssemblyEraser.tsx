@@ -24,13 +24,17 @@ export interface PixelEditorProps {
   is2DOnly?: boolean
 }
 
-interface BrushPreviewProps {
+export interface BrushControlsCompactProps {
   brushSettings: BrushSettings
   onChangeBrushSettings: (settings: BrushSettings) => void
   disabled?: boolean
 }
 
-export function BrushPreviewVisualizer({ brushSettings, onChangeBrushSettings, disabled }: BrushPreviewProps) {
+export function BrushControlsCompact({
+  brushSettings,
+  onChangeBrushSettings,
+  disabled
+}: BrushControlsCompactProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const { size, opacity, hardness } = brushSettings
 
@@ -47,9 +51,9 @@ export function BrushPreviewVisualizer({ brushSettings, onChangeBrushSettings, d
 
     ctx.clearRect(0, 0, w, h)
 
-    // Quy đổi bán kính cọ (1..100) sang bán kính preview (3..27px) trên khung 64x64
+    // Quy đổi bán kính cọ (1..100) sang bán kính preview (3..19px) trên khung 44x44
     const minR = 3
-    const maxR = 27
+    const maxR = 19
     const t = Math.max(0, Math.min(1, (size - 1) / 99))
     const r = minR + t * (maxR - minR)
 
@@ -71,82 +75,113 @@ export function BrushPreviewVisualizer({ brushSettings, onChangeBrushSettings, d
     ctx.save()
     ctx.beginPath()
     ctx.arc(cx, cy, r, 0, Math.PI * 2)
-    ctx.strokeStyle = 'rgba(56, 189, 248, 0.5)'
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.55)'
     ctx.lineWidth = 1
     ctx.setLineDash([2, 2])
     ctx.stroke()
     ctx.restore()
 
-    // Tâm điểm ngắm cọ 4px
-    ctx.fillStyle = 'rgba(56, 189, 248, 0.9)'
+    // Tâm điểm ngắm cọ 3px
+    ctx.fillStyle = 'rgba(56, 189, 248, 0.95)'
     ctx.fillRect(cx - 0.5, cy - 2, 1, 4)
     ctx.fillRect(cx - 2, cy - 0.5, 4, 1)
   }, [size, opacity, hardness])
 
-  const setSizePreset = (s: number) => {
-    if (disabled) return
-    onChangeBrushSettings({ ...brushSettings, size: s })
-  }
-
-  const setHardnessPreset = (h: number) => {
-    if (disabled) return
-    onChangeBrushSettings({ ...brushSettings, hardness: h })
-  }
-
   return (
-    <div className="layer-brush-preview-card">
-      <div
-        className="layer-brush-preview-box"
-        title={`Xem trước cọ tẩy: Cỡ ${size}px, Lực ${Math.round(opacity * 100)}%, Độ cứng ${Math.round(hardness * 100)}%`}
-      >
-        <canvas ref={canvasRef} width={64} height={64} className="layer-brush-preview-canvas" />
-        <span className="layer-brush-preview-box-badge">{size}px</span>
-      </div>
-      <div className="layer-brush-preview-meta">
-        <div className="brush-tags-row">
-          <span className="brush-tag size">Ø {size}px</span>
-          <span className="brush-tag opacity">{Math.round(opacity * 100)}% lực</span>
-          <span className="brush-tag hardness">
-            {hardness >= 0.8 ? 'Cứng' : hardness <= 0.3 ? 'Mềm' : 'Vừa'}
-          </span>
+    <div className="layer-brush-compact-grid">
+      {/* Cột trái: Hộp preview live + Nút đổi nhanh cỡ cọ mini */}
+      <div className="layer-brush-preview-col">
+        <div
+          className="layer-brush-preview-box"
+          title={`Xem trước cọ tẩy: Cỡ ${size}px, Lực ${Math.round(opacity * 100)}%, Độ cứng ${Math.round(hardness * 100)}%`}
+        >
+          <canvas ref={canvasRef} width={44} height={44} className="layer-brush-preview-canvas" />
+          <span className="layer-brush-preview-box-badge">{size}px</span>
         </div>
-        <div className="brush-presets-row">
-          <span className="brush-preset-label">Cỡ:</span>
+        <div className="layer-brush-presets-mini">
           {[12, 24, 48, 80].map((s) => (
             <button
               key={s}
               type="button"
-              className={`brush-preset-btn ${size === s ? 'active' : ''}`}
+              className={`brush-preset-mini-btn ${size === s ? 'active' : ''}`}
               disabled={disabled}
-              onClick={() => setSizePreset(s)}
+              title={`Đặt cỡ cọ ${s}px`}
+              onClick={() => onChangeBrushSettings({ ...brushSettings, size: s })}
             >
               {s}
             </button>
           ))}
         </div>
-        <div className="brush-presets-row">
-          <span className="brush-preset-label">Cọ:</span>
-          <button
-            type="button"
-            className={`brush-preset-btn ${hardness === 0.3 ? 'active' : ''}`}
-            disabled={disabled}
-            onClick={() => setHardnessPreset(0.3)}
-          >
-            Mềm 30%
-          </button>
-          <button
-            type="button"
-            className={`brush-preset-btn ${hardness === 1 ? 'active' : ''}`}
-            disabled={disabled}
-            onClick={() => setHardnessPreset(1)}
-          >
-            Cứng
-          </button>
-        </div>
       </div>
+
+      {/* Cột phải: 3 Sliders thông số cực kỳ thanh mảnh & trực quan */}
+      <fieldset className="layer-brush-sliders-col" disabled={disabled}>
+        {/* Cỡ cọ */}
+        <div className="layer-brush-slider-compact">
+          <span className="slider-label">Cỡ</span>
+          <input
+            type="range"
+            min={1}
+            max={100}
+            step={1}
+            value={size}
+            onChange={(e) => onChangeBrushSettings({ ...brushSettings, size: Number(e.target.value) })}
+          />
+          <div className="slider-stepper-val">
+            <button
+              type="button"
+              className="stepper-btn"
+              title="Giảm 2px"
+              onClick={() => onChangeBrushSettings({ ...brushSettings, size: Math.max(1, size - 2) })}
+            >
+              -
+            </button>
+            <span className="slider-num">{size}px</span>
+            <button
+              type="button"
+              className="stepper-btn"
+              title="Tăng 2px"
+              onClick={() => onChangeBrushSettings({ ...brushSettings, size: Math.min(100, size + 2) })}
+            >
+              +
+            </button>
+          </div>
+        </div>
+
+        {/* Lực tẩy */}
+        <div className="layer-brush-slider-compact">
+          <span className="slider-label">Lực</span>
+          <input
+            type="range"
+            min={0.05}
+            max={1}
+            step={0.05}
+            value={opacity}
+            onChange={(e) => onChangeBrushSettings({ ...brushSettings, opacity: Number(e.target.value) })}
+          />
+          <span className="slider-num">{Math.round(opacity * 100)}%</span>
+        </div>
+
+        {/* Độ cứng */}
+        <div className="layer-brush-slider-compact">
+          <span className="slider-label">Cứng</span>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={hardness}
+            onChange={(e) => onChangeBrushSettings({ ...brushSettings, hardness: Number(e.target.value) })}
+          />
+          <span className="slider-num">{Math.round(hardness * 100)}%</span>
+        </div>
+      </fieldset>
     </div>
   )
 }
+
+// Giữ lại alias để tương thích ngược nếu có
+export const BrushPreviewVisualizer = BrushControlsCompact
 
 export function EraserIsolatedCanvas(props: PixelEditorProps) {
   const { layer, imagePreviewUrl, brushSettings, cursorPos, isErasing, is2DOnly = false } = props
@@ -170,7 +205,7 @@ export function EraserIsolatedCanvas(props: PixelEditorProps) {
     g
   } = useIsolatedCanvasView(props)
 
-  const [settingsHeight, setSettingsHeight] = useState(265)
+  const [settingsHeight, setSettingsHeight] = useState(175)
   const unavailable = layer.locked || layer.hidden
   const setBrush = (hardness: number) => {
     setHand(false)
@@ -186,7 +221,7 @@ export function EraserIsolatedCanvas(props: PixelEditorProps) {
 
     const onMove = (moveEvt: PointerEvent) => {
       const deltaY = startY - moveEvt.clientY
-      const nextH = Math.max(160, Math.min(360, startHeight + deltaY))
+      const nextH = Math.max(125, Math.min(260, startHeight + deltaY))
       setSettingsHeight(nextH)
     }
 
@@ -199,87 +234,6 @@ export function EraserIsolatedCanvas(props: PixelEditorProps) {
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
   }, [settingsHeight])
-
-  // Component Sliders dùng chung
-  const renderSliders = () => (
-    <fieldset className="layer-brush-sliders" disabled={unavailable || isErasing}>
-      {/* Cỡ cọ */}
-      <div className="layer-brush-slider-row">
-        <span>Cỡ cọ</span>
-        <input
-          type="range"
-          min={1}
-          max={100}
-          step={1}
-          value={brushSettings.size}
-          onChange={(e) =>
-            props.onChangeBrushSettings({ ...brushSettings, size: Number(e.target.value) })
-          }
-        />
-        <div className="layer-brush-steppers">
-          <button
-            type="button"
-            className="layer-brush-stepper-btn"
-            title="Giảm 5px"
-            onClick={() =>
-              props.onChangeBrushSettings({
-                ...brushSettings,
-                size: Math.max(1, brushSettings.size - 5)
-              })
-            }
-          >
-            -
-          </button>
-          <span className="layer-brush-val">{brushSettings.size}px</span>
-          <button
-            type="button"
-            className="layer-brush-stepper-btn"
-            title="Tăng 5px"
-            onClick={() =>
-              props.onChangeBrushSettings({
-                ...brushSettings,
-                size: Math.min(100, brushSettings.size + 5)
-              })
-            }
-          >
-            +
-          </button>
-        </div>
-      </div>
-
-      {/* Lực tẩy */}
-      <div className="layer-brush-slider-row">
-        <span>Lực tẩy</span>
-        <input
-          type="range"
-          min={0.05}
-          max={1}
-          step={0.05}
-          value={brushSettings.opacity}
-          onChange={(e) =>
-            props.onChangeBrushSettings({ ...brushSettings, opacity: Number(e.target.value) })
-          }
-        />
-        <span className="layer-brush-val">{Math.round(brushSettings.opacity * 100)}%</span>
-      </div>
-
-      {/* Độ cứng */}
-      <div className="layer-brush-slider-row">
-        <span>Độ cứng</span>
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.05}
-          value={brushSettings.hardness}
-          onChange={(e) =>
-            props.onChangeBrushSettings({ ...brushSettings, hardness: Number(e.target.value) })
-          }
-        />
-        <span className="layer-brush-val">{Math.round(brushSettings.hardness * 100)}%</span>
-      </div>
-    </fieldset>
-  )
 
   // Khung vẽ Canvas cách ly dùng chung
   const renderCanvas = (extraOverlay?: React.ReactNode) => (
@@ -490,13 +444,11 @@ function EraserToolbarRow({
             onResetImage={props.onResetLayerImage}
           />
 
-          <BrushPreviewVisualizer
+          <BrushControlsCompact
             brushSettings={brushSettings}
             onChangeBrushSettings={props.onChangeBrushSettings}
             disabled={unavailable || isErasing}
           />
-
-          {renderSliders()}
 
           <div className="layer-pixel-hint">
             {unavailable ? 'Layer đang khóa' : 'Space: dời · Cuộn: zoom · Esc: hủy nét'}
@@ -556,15 +508,12 @@ function EraserToolbarRow({
           onResetImage={props.onResetLayerImage}
         />
 
-        {/* Card xem trước cọ trực quan */}
-        <BrushPreviewVisualizer
+        {/* Card xem trước cọ & sliders tích hợp siêu gọn */}
+        <BrushControlsCompact
           brushSettings={brushSettings}
           onChangeBrushSettings={props.onChangeBrushSettings}
           disabled={unavailable || isErasing}
         />
-
-        {/* 3 Sliders thông số */}
-        {renderSliders()}
 
         <div className="layer-pixel-hint">
           {unavailable ? 'Layer đang khóa' : 'Space: dời · Cuộn: zoom · Esc: hủy nét'}
