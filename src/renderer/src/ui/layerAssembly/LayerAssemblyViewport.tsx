@@ -19,8 +19,10 @@ import { LayerAssembly2DToolbar } from './LayerAssembly2DToolbar'
 import { useLayerBrushEraser, type BrushPreview } from './useLayerBrushEraser'
 import { EraserIsolatedCanvas } from './LayerAssemblyEraser'
 import type { WorkshopTab } from './WorkshopRightPanel'
+import type { AssemblyWorkspaceView } from './LayerAssemblyDialog'
 
 export interface LayerAssemblyViewportProps {
+  view?: AssemblyWorkspaceView
   brushSourceLayer?: AssembledLayerItem | null
   onBrushPreview?: (preview: BrushPreview | null) => void
   onBrushModeChange?: (active: boolean) => void
@@ -46,6 +48,7 @@ export interface LayerAssemblyViewportProps {
 }
 
 export function LayerAssemblyViewport({
+  view,
   brushSourceLayer,
   onBrushPreview,
   onBrushModeChange,
@@ -358,10 +361,12 @@ export function LayerAssemblyViewport({
     ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
   }
 
+  const is2DOnly = view === '2d'
   const isEraserActive = brush.activeTool === 'eraser' && (!tab || tab === 'layers') && !isPlaying
   const [eraserHeight, setEraserHeight] = useState(250)
+  const [eraserColWidth, setEraserColWidth] = useState(380)
 
-  const handleSplitterPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+  const handleRowSplitterPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault()
     const startY = e.clientY
     const startHeight = eraserHeight
@@ -390,12 +395,41 @@ export function LayerAssemblyViewport({
     window.addEventListener('pointerup', onPointerUp)
   }, [eraserHeight])
 
+  const handleColSplitterPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startWidth = eraserColWidth
+    const target = e.currentTarget
+    try {
+      target.setPointerCapture(e.pointerId)
+    } catch {}
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const deltaX = moveEvent.clientX - startX
+      const newWidth = Math.max(280, Math.min(580, startWidth + deltaX))
+      setEraserColWidth(newWidth)
+    }
+
+    const onPointerUp = (upEvent: PointerEvent) => {
+      try {
+        if (target.hasPointerCapture(upEvent.pointerId)) {
+          target.releasePointerCapture(upEvent.pointerId)
+        }
+      } catch {}
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+    }
+
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
+  }, [eraserColWidth])
+
   return (
     <div
       className="layer-assembly-viewport-container"
       style={{
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: isEraserActive && is2DOnly ? 'row' : 'column',
         flex: '1 1 0%',
         minWidth: 0,
         minHeight: 0,
@@ -405,6 +439,55 @@ export function LayerAssemblyViewport({
         overflow: 'hidden'
       }}
     >
+      {/* Chế độ 2D độc lập: Cột 1 (Eraser studio) nằm bên trái */}
+      {isEraserActive && is2DOnly && (
+        <>
+          <div
+            className="layer-eraser-col-pane"
+            style={{
+              width: `${eraserColWidth}px`,
+              flexShrink: 0,
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+          >
+            {selectedLayer ? (
+              <EraserIsolatedCanvas
+                layer={selectedLayer}
+                is2DOnly={true}
+                imagePreviewUrl={isolatedPreviewUrl}
+                brushSettings={brush.brushSettings}
+                cursorPos={brush.cursorPos}
+                onPointerDown={brush.handleIsolatedPointerDown}
+                onPointerMove={brush.handleIsolatedPointerMove}
+                onPointerUp={brush.handleEraserPointerUp}
+                onCancel={brush.cancelStroke}
+                onCursorLeave={() => brush.setCursorPos(null)}
+                onChangeBrushSettings={brush.setBrushSettings}
+                onResetLayerImage={brush.resetLayerImage}
+                onClose={() => brush.setActiveTool('select')}
+                isErasing={brush.isErasing}
+              />
+            ) : (
+              <div className="layer-eraser-empty">
+                <span>Bấm chọn một layer ở ảnh tổng thể bên phải để tẩy pixel</span>
+                <button type="button" onClick={() => brush.setActiveTool('select')}>
+                  Thoát chế độ tẩy
+                </button>
+              </div>
+            )}
+          </div>
+          <div
+            className="layer-eraser-col-splitter"
+            onPointerDown={handleColSplitterPointerDown}
+            title="Kéo chuột để chỉnh độ rộng cột tẩy"
+          />
+        </>
+      )}
+
+      {/* Khung Stage 2D chính (Bố cục 2D tổng thể) */}
       <div
         ref={containerRef}
         className="layer-workshop-viewport"
@@ -413,8 +496,8 @@ export function LayerAssemblyViewport({
           flex: '1 1 0%',
           minWidth: 0,
           minHeight: 0,
-          width: '100%',
-          height: isEraserActive ? undefined : '100%',
+          width: isEraserActive && is2DOnly ? undefined : '100%',
+          height: isEraserActive && !is2DOnly ? undefined : '100%',
           background: 'var(--bg-0)',
           overflow: 'hidden',
         cursor: isPanning
@@ -642,12 +725,12 @@ export function LayerAssemblyViewport({
       )}
     </div>
 
-    {/* Hàng 2: Splitter & Giao diện Tẩy Layer */}
-    {isEraserActive && (
+    {/* Hàng 2: Splitter & Giao diện Tẩy Layer (Chỉ áp dụng khi chế độ 2D & 3D / không phải is2DOnly) */}
+    {isEraserActive && !is2DOnly && (
       <>
         <div
           className="layer-eraser-splitter"
-          onPointerDown={handleSplitterPointerDown}
+          onPointerDown={handleRowSplitterPointerDown}
           title="Kéo chuột để chỉnh độ cao vùng tẩy"
         />
         <div
@@ -657,6 +740,7 @@ export function LayerAssemblyViewport({
           {selectedLayer ? (
             <EraserIsolatedCanvas
               layer={selectedLayer}
+              is2DOnly={false}
               imagePreviewUrl={isolatedPreviewUrl}
               brushSettings={brush.brushSettings}
               cursorPos={brush.cursorPos}

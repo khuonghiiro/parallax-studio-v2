@@ -105,6 +105,7 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
           onTogglePlay={playback.toggle}
           onSeekTime={playback.setTime}
           hideTransport
+          view={view}
         />
       </div>}
       {view !== '2d' && <div className="layer-workshop-split-pane">

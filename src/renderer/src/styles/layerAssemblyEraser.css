@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Layer Assembly Pixel Eraser - Dual-Row Layout & Live Brush Preview
+   Layer Assembly Pixel Eraser - Adaptive 2D & 3D Layout & Live Brush Preview
    Tuân thủ Dual-Theme Design Tokens (Dark & Light)
    ========================================================================== */
 
@@ -29,38 +29,62 @@
   right: 0;
 }
 
-/* Row 2 Container */
+/* Vertical Splitter bar between Column 1 (Eraser) and Column 2 (2D Stage) */
+.layer-eraser-col-splitter {
+  width: 5px;
+  background: var(--line-soft);
+  cursor: col-resize;
+  position: relative;
+  z-index: 40;
+  transition: background 0.15s ease;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.layer-eraser-col-splitter:hover,
+.layer-eraser-col-splitter:active {
+  background: var(--accent);
+}
+
+.layer-eraser-col-splitter::after {
+  content: '';
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  top: 0;
+  bottom: 0;
+}
+
+/* Base Eraser Pane */
 .layer-pixel-pane {
   display: flex;
-  flex-direction: column;
   width: 100%;
   height: 100%;
   background: var(--bg-1);
   color: var(--text);
   overflow: hidden;
   user-select: none;
+  position: relative;
+}
+
+.layer-pixel-pane.mode-row {
+  flex-direction: row;
   border-top: 1px solid var(--line);
 }
 
-.layer-pixel-header {
+.layer-pixel-pane.mode-column {
+  flex-direction: column;
+}
+
+/* Header inside settings panel */
+.layer-pixel-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  height: 32px;
-  padding: 0 8px;
-  background: var(--bg-2);
-  border-bottom: 1px solid var(--line);
+  height: 28px;
+  padding: 0 2px;
   flex-shrink: 0;
-  overflow: hidden;
-}
-
-.layer-pixel-header-left {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  overflow: hidden;
 }
 
 .layer-pixel-title {
@@ -70,7 +94,8 @@
   font-size: 11px;
   color: var(--text);
   white-space: nowrap;
-  flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .layer-pixel-title > svg {
@@ -79,7 +104,7 @@
 }
 
 .layer-pixel-title strong {
-  max-width: 90px;
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -95,83 +120,7 @@
   background: color-mix(in srgb, var(--accent) 18%, var(--bg-2));
   color: var(--accent);
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-}
-
-.layer-pixel-tools {
-  display: flex;
-  align-items: center;
-  gap: 3px;
   flex-shrink: 0;
-}
-
-.layer-pixel-tools button {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 22px;
-  padding: 0 6px;
-  font-size: 10px;
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius);
-  background: var(--bg-1);
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-
-.layer-pixel-tools button:hover:not(:disabled) {
-  color: var(--text);
-  background: var(--bg-3);
-  border-color: var(--line);
-}
-
-.layer-pixel-tools button[aria-pressed='true'] {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 15%, var(--bg-1));
-  font-weight: 600;
-}
-
-.layer-pixel-tools button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.layer-tool-label {
-  display: none;
-}
-@media (min-width: 600px) {
-  .layer-tool-label {
-    display: inline;
-  }
-}
-
-.layer-pixel-divider {
-  width: 1px;
-  height: 14px;
-  background: var(--line);
-  margin: 0 3px;
-  flex-shrink: 0;
-}
-
-.layer-pixel-header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.layer-pixel-hint {
-  font-size: 9px;
-  color: var(--text-faint);
-  white-space: nowrap;
-  display: none;
-}
-@media (min-width: 720px) {
-  .layer-pixel-hint {
-    display: inline;
-  }
 }
 
 .layer-pixel-close-btn {
@@ -189,6 +138,7 @@
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .layer-pixel-close-btn:hover {
@@ -197,18 +147,122 @@
   background: color-mix(in srgb, #ef4444 10%, var(--bg-1));
 }
 
-/* Body: Left Canvas + Right Controls */
-.layer-pixel-body {
+/* Horizontal Tools Row for 2D & 3D mode (nằm ở khoảng trống thừa trong ảnh 2) */
+.layer-pixel-tools-row {
   display: flex;
-  flex: 1 1 0%;
-  min-height: 0;
-  overflow: hidden;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 5px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: 5px;
+  flex-shrink: 0;
 }
 
+.layer-pixel-tools-row button {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 21px;
+  padding: 0 5px;
+  font-size: 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.layer-pixel-tools-row button:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--bg-3);
+  border-color: var(--line);
+}
+
+.layer-pixel-tools-row button[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-1));
+  font-weight: 600;
+}
+
+.layer-pixel-tools-row button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.layer-pixel-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--line);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+/* Vertical Icon Tab Dock (chế độ 2D: icon tab dọc nằm cạnh canvas) */
+.layer-pixel-vertical-dock {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px);
+}
+
+.layer-pixel-vertical-dock button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.layer-pixel-vertical-dock button:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--bg-3);
+  border-color: var(--line);
+}
+
+.layer-pixel-vertical-dock button[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-1));
+}
+
+.layer-pixel-vertical-dock button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.layer-pixel-vertical-divider {
+  width: 18px;
+  height: 1px;
+  background: var(--line);
+  margin: 2px auto;
+  flex-shrink: 0;
+}
+
+/* Canvas Area */
 .layer-pixel-canvas-area {
   position: relative;
   flex: 1 1 0%;
   min-width: 0;
+  min-height: 0;
   height: 100%;
   overflow: hidden;
   touch-action: none;
@@ -248,15 +302,27 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
-/* Right Controls Area */
+/* Right Controls Area in Row Mode */
 .layer-pixel-controls-area {
-  width: 245px;
+  width: 255px;
   flex-shrink: 0;
   height: 100%;
   overflow-y: auto;
   background: var(--bg-2);
   border-left: 1px solid var(--line);
   padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Bottom Controls Area in Column Mode (Hàng 2 của Cột 1) */
+.layer-pixel-settings-bottom {
+  flex-shrink: 0;
+  overflow-y: auto;
+  background: var(--bg-2);
+  border-top: 1px solid var(--line);
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -444,6 +510,13 @@
   color: var(--text);
   border-color: var(--line);
   background: var(--bg-4);
+}
+
+.layer-pixel-hint {
+  font-size: 9px;
+  color: var(--text-faint);
+  text-align: center;
+  white-space: nowrap;
 }
 
 /* Empty State */

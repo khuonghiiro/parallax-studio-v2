@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useState, useEffect, useCallback } from 'react'
 import { useIsolatedCanvasView } from './useIsolatedCanvasView'
 import { IconEraser, IconBrush, IconHand, IconFit, IconUndo, IconX } from '../icons'
 import type { AssembledLayerItem } from './types'
@@ -21,6 +21,7 @@ export interface PixelEditorProps {
   onResetLayerImage: () => void
   onClose: () => void
   isErasing: boolean
+  is2DOnly?: boolean
 }
 
 interface BrushPreviewProps {
@@ -148,7 +149,7 @@ export function BrushPreviewVisualizer({ brushSettings, onChangeBrushSettings, d
 }
 
 export function EraserIsolatedCanvas(props: PixelEditorProps) {
-  const { layer, imagePreviewUrl, brushSettings, cursorPos, isErasing } = props
+  const { layer, imagePreviewUrl, brushSettings, cursorPos, isErasing, is2DOnly = false } = props
   const resolvedImageUrl = useLayerAssetImage(layer.assetPath, layer.imageUrl)
   const {
     canvasRef,
@@ -169,31 +170,194 @@ export function EraserIsolatedCanvas(props: PixelEditorProps) {
     g
   } = useIsolatedCanvasView(props)
 
+  const [settingsHeight, setSettingsHeight] = useState(230)
   const unavailable = layer.locked || layer.hidden
   const setBrush = (hardness: number) => {
     setHand(false)
     props.onChangeBrushSettings({ ...brushSettings, hardness })
   }
 
-  return (
-    <section
-      className="layer-pixel-pane"
-      aria-label="Chỉnh sửa pixel của layer"
-      onPointerDown={(e) => e.stopPropagation()}
-      onPointerMove={(e) => e.stopPropagation()}
-      onPointerUp={(e) => e.stopPropagation()}
-      onWheel={(e) => e.stopPropagation()}
+  const handleSettingsSplitterDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const startY = e.clientY
+    const startHeight = settingsHeight
+    const target = e.currentTarget
+    try { target.setPointerCapture(e.pointerId) } catch {}
+
+    const onMove = (moveEvt: PointerEvent) => {
+      const deltaY = startY - moveEvt.clientY
+      const nextH = Math.max(160, Math.min(360, startHeight + deltaY))
+      setSettingsHeight(nextH)
+    }
+
+    const onUp = (upEvt: PointerEvent) => {
+      try { if (target.hasPointerCapture(upEvt.pointerId)) target.releasePointerCapture(upEvt.pointerId) } catch {}
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }, [settingsHeight])
+
+  // Component Sliders dùng chung
+  const renderSliders = () => (
+    <fieldset className="layer-brush-sliders" disabled={unavailable || isErasing}>
+      {/* Cỡ cọ */}
+      <div className="layer-brush-slider-row">
+        <span>Cỡ cọ</span>
+        <input
+          type="range"
+          min={1}
+          max={100}
+          step={1}
+          value={brushSettings.size}
+          onChange={(e) =>
+            props.onChangeBrushSettings({ ...brushSettings, size: Number(e.target.value) })
+          }
+        />
+        <div className="layer-brush-steppers">
+          <button
+            type="button"
+            className="layer-brush-stepper-btn"
+            title="Giảm 5px"
+            onClick={() =>
+              props.onChangeBrushSettings({
+                ...brushSettings,
+                size: Math.max(1, brushSettings.size - 5)
+              })
+            }
+          >
+            -
+          </button>
+          <span className="layer-brush-val">{brushSettings.size}px</span>
+          <button
+            type="button"
+            className="layer-brush-stepper-btn"
+            title="Tăng 5px"
+            onClick={() =>
+              props.onChangeBrushSettings({
+                ...brushSettings,
+                size: Math.min(100, brushSettings.size + 5)
+              })
+            }
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      {/* Lực tẩy */}
+      <div className="layer-brush-slider-row">
+        <span>Lực tẩy</span>
+        <input
+          type="range"
+          min={0.05}
+          max={1}
+          step={0.05}
+          value={brushSettings.opacity}
+          onChange={(e) =>
+            props.onChangeBrushSettings({ ...brushSettings, opacity: Number(e.target.value) })
+          }
+        />
+        <span className="layer-brush-val">{Math.round(brushSettings.opacity * 100)}%</span>
+      </div>
+
+      {/* Độ cứng */}
+      <div className="layer-brush-slider-row">
+        <span>Độ cứng</span>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.05}
+          value={brushSettings.hardness}
+          onChange={(e) =>
+            props.onChangeBrushSettings({ ...brushSettings, hardness: Number(e.target.value) })
+          }
+        />
+        <span className="layer-brush-val">{Math.round(brushSettings.hardness * 100)}%</span>
+      </div>
+    </fieldset>
+  )
+
+  // Khung vẽ Canvas cách ly dùng chung
+  const renderCanvas = (extraOverlay?: React.ReactNode) => (
+    <div
+      ref={canvasRef}
+      className="layer-pixel-canvas-area"
+      onWheel={wheel}
+      style={{
+        cursor: hand || space ? (panning ? 'grabbing' : 'grab') : unavailable ? 'not-allowed' : 'none'
+      }}
+      onPointerEnter={() => setHover(true)}
+      onPointerLeave={() => {
+        setHover(false)
+        props.onCursorLeave()
+      }}
+      onPointerDown={down}
+      onPointerMove={move}
+      onPointerUp={up}
+      onPointerCancel={(e) => {
+        e.stopPropagation()
+        clearGesture()
+      }}
+      onLostPointerCapture={(e) => {
+        e.stopPropagation()
+        clearGesture()
+      }}
     >
-      {/* Thanh công cụ dòng 2 */}
-      <header className="layer-pixel-header">
-        <div className="layer-pixel-header-left">
-          <span className="layer-pixel-title">
-            <IconEraser width={14} height={14} />
-            <strong title={layer.name}>{layer.name}</strong>
-            <span className="layer-pixel-badge">TẨY</span>
-          </span>
-          <div className="layer-pixel-divider" />
-          <nav className="layer-pixel-tools" aria-label="Công cụ chỉnh ảnh">
+      <img
+        key={layer.id}
+        src={imagePreviewUrl || resolvedImageUrl || undefined}
+        alt={layer.name}
+        draggable={false}
+        onLoad={(e) =>
+          setSize({ width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight })
+        }
+        style={{
+          left: g.centerX,
+          top: g.centerY,
+          width: g.width,
+          height: g.height,
+          imageRendering: g.scale >= 2 ? 'pixelated' : 'auto'
+        }}
+      />
+      {hover && !hand && !space && !panning && !unavailable && cursorPos?.isIsolated && (
+        <div
+          className="layer-pixel-cursor"
+          style={{
+            left: cursorPos.x,
+            top: cursorPos.y,
+            width: brushSettings.size * 2 * zoom,
+            height: brushSettings.size * 2 * zoom
+          }}
+        />
+      )}
+      <span className="layer-pixel-zoom">{Math.round(zoom * 100)}% · Fit</span>
+      {extraOverlay}
+    </div>
+  )
+
+  // =========================================================================
+  // CHẾ ĐỘ 1: CHỈ CÓ 2D (is2DOnly = true)
+  // Cột 1 chia 2 hàng:
+  // - Hàng 1: ảnh để cọ kèm icon tab dọc bên cạnh
+  // - Hàng 2: UI chỉnh sửa thông số cọ
+  // =========================================================================
+  if (is2DOnly) {
+    return (
+      <section
+        className="layer-pixel-pane mode-column"
+        aria-label="Chỉnh sửa pixel của layer"
+        onPointerDown={(e) => e.stopPropagation()}
+        onPointerMove={(e) => e.stopPropagation()}
+        onPointerUp={(e) => e.stopPropagation()}
+        onWheel={(e) => e.stopPropagation()}
+      >
+        {/* HÀNG 1: Canvas ảnh để cọ + Icon Tab Dọc bên trái */}
+        {renderCanvas(
+          <div className="layer-pixel-vertical-dock" aria-label="Thanh công cụ tẩy dọc">
             <button
               type="button"
               title="Cọ tẩy mềm (Độ cứng 40%)"
@@ -202,8 +366,7 @@ export function EraserIsolatedCanvas(props: PixelEditorProps) {
               disabled={unavailable || isErasing}
               onClick={() => setBrush(0.4)}
             >
-              <IconBrush width={14} height={14} />
-              <span className="layer-tool-label">Cọ mềm</span>
+              <IconBrush width={15} height={15} />
             </button>
             <button
               type="button"
@@ -213,8 +376,7 @@ export function EraserIsolatedCanvas(props: PixelEditorProps) {
               disabled={unavailable || isErasing}
               onClick={() => setBrush(1)}
             >
-              <IconEraser width={14} height={14} />
-              <span className="layer-tool-label">Tẩy cứng</span>
+              <IconEraser width={15} height={15} />
             </button>
             <button
               type="button"
@@ -224,18 +386,17 @@ export function EraserIsolatedCanvas(props: PixelEditorProps) {
               disabled={isErasing}
               onClick={() => setHand(true)}
             >
-              <IconHand width={14} height={14} />
-              <span className="layer-tool-label">Bàn tay</span>
+              <IconHand width={15} height={15} />
             </button>
-            <div className="layer-pixel-divider" />
+            <div className="layer-pixel-vertical-divider" />
             <button
               type="button"
-              title="Vừa khung ảnh"
+              title="Đặt lại vừa khung ảnh"
               aria-label="Vừa khung ảnh"
               disabled={isErasing}
               onClick={reset}
             >
-              <IconFit width={14} height={14} />
+              <IconFit width={15} height={15} />
             </button>
             <button
               type="button"
@@ -244,15 +405,79 @@ export function EraserIsolatedCanvas(props: PixelEditorProps) {
               disabled={unavailable || !layer.imageUrl || !layer.assetPath || isErasing}
               onClick={props.onResetLayerImage}
             >
-              <IconUndo width={14} height={14} />
+              <IconUndo width={15} height={15} />
             </button>
-          </nav>
-        </div>
+          </div>
+        )}
 
-        <div className="layer-pixel-header-right">
-          <span className="layer-pixel-hint">
+        {/* Thanh kéo chia giữa Hàng 1 và Hàng 2 trong Cột 1 */}
+        <div
+          className="layer-eraser-splitter"
+          onPointerDown={handleSettingsSplitterDown}
+          title="Kéo chuột để chỉnh độ cao khung thông số"
+        />
+
+        {/* HÀNG 2: UI chỉnh sửa thông số */}
+        <div className="layer-pixel-settings-bottom" style={{ height: `${settingsHeight}px` }}>
+          <div className="layer-pixel-panel-header">
+            <div className="layer-pixel-title">
+              <IconEraser width={14} height={14} />
+              <strong title={layer.name}>{layer.name}</strong>
+              <span className="layer-pixel-badge">TẨY</span>
+            </div>
+            <button
+              type="button"
+              className="layer-pixel-close-btn"
+              title="Thoát chế độ tẩy (V)"
+              aria-label="Thoát chế độ tẩy"
+              onClick={props.onClose}
+            >
+              <IconX width={12} height={12} />
+              <span>Thoát</span>
+            </button>
+          </div>
+
+          <BrushPreviewVisualizer
+            brushSettings={brushSettings}
+            onChangeBrushSettings={props.onChangeBrushSettings}
+            disabled={unavailable || isErasing}
+          />
+
+          {renderSliders()}
+
+          <div className="layer-pixel-hint">
             {unavailable ? 'Layer đang khóa' : 'Space: dời · Cuộn: zoom · Esc: hủy nét'}
-          </span>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  // =========================================================================
+  // CHẾ ĐỘ 2: 2D & 3D (is2DOnly = false)
+  // Tool được đưa vào khoảng trống thừa bên phải (ảnh 2), không còn thanh header ngang thừa
+  // =========================================================================
+  return (
+    <section
+      className="layer-pixel-pane mode-row"
+      aria-label="Chỉnh sửa pixel của layer"
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerMove={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+      onWheel={(e) => e.stopPropagation()}
+    >
+      {/* Vùng canvas bên trái (toàn bộ chiều cao) */}
+      {renderCanvas()}
+
+      {/* Cột phải: chứa Tool trong khoảng trống thừa + Xem trước + Sliders */}
+      <div className="layer-pixel-controls-area">
+        {/* Tiêu đề & Thoát */}
+        <div className="layer-pixel-panel-header">
+          <div className="layer-pixel-title">
+            <IconEraser width={14} height={14} />
+            <strong title={layer.name}>{layer.name}</strong>
+            <span className="layer-pixel-badge">TẨY</span>
+          </div>
           <button
             type="button"
             className="layer-pixel-close-btn"
@@ -264,150 +489,70 @@ export function EraserIsolatedCanvas(props: PixelEditorProps) {
             <span>Thoát</span>
           </button>
         </div>
-      </header>
 
-      {/* Nội dung dòng 2: Canvas bên trái + Controls & Live Preview bên phải */}
-      <div className="layer-pixel-body">
-        {/* Khung ảnh canvas cách ly */}
-        <div
-          ref={canvasRef}
-          className="layer-pixel-canvas-area"
-          onWheel={wheel}
-          style={{
-            cursor: hand || space ? (panning ? 'grabbing' : 'grab') : unavailable ? 'not-allowed' : 'none'
-          }}
-          onPointerEnter={() => setHover(true)}
-          onPointerLeave={() => {
-            setHover(false)
-            props.onCursorLeave()
-          }}
-          onPointerDown={down}
-          onPointerMove={move}
-          onPointerUp={up}
-          onPointerCancel={(e) => {
-            e.stopPropagation()
-            clearGesture()
-          }}
-          onLostPointerCapture={(e) => {
-            e.stopPropagation()
-            clearGesture()
-          }}
-        >
-          <img
-            key={layer.id}
-            src={imagePreviewUrl || resolvedImageUrl || undefined}
-            alt={layer.name}
-            draggable={false}
-            onLoad={(e) =>
-              setSize({ width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight })
-            }
-            style={{
-              left: g.centerX,
-              top: g.centerY,
-              width: g.width,
-              height: g.height,
-              imageRendering: g.scale >= 2 ? 'pixelated' : 'auto'
-            }}
-          />
-          {hover && !hand && !space && !panning && !unavailable && cursorPos?.isIsolated && (
-            <div
-              className="layer-pixel-cursor"
-              style={{
-                left: cursorPos.x,
-                top: cursorPos.y,
-                width: brushSettings.size * 2 * zoom,
-                height: brushSettings.size * 2 * zoom
-              }}
-            />
-          )}
-          <span className="layer-pixel-zoom">{Math.round(zoom * 100)}% · Fit</span>
+        {/* Các tool từ ảnh 1 đưa vào khoảng trống thừa ở đây */}
+        <div className="layer-pixel-tools-row" aria-label="Công cụ cọ tẩy">
+          <button
+            type="button"
+            title="Cọ tẩy mềm (Độ cứng 40%)"
+            aria-pressed={!hand && brushSettings.hardness < 1}
+            disabled={unavailable || isErasing}
+            onClick={() => setBrush(0.4)}
+          >
+            <IconBrush width={13} height={13} />
+            <span>Cọ mềm</span>
+          </button>
+          <button
+            type="button"
+            title="Tẩy nét cứng (Độ cứng 100%)"
+            aria-pressed={!hand && brushSettings.hardness === 1}
+            disabled={unavailable || isErasing}
+            onClick={() => setBrush(1)}
+          >
+            <IconEraser width={13} height={13} />
+            <span>Tẩy cứng</span>
+          </button>
+          <button
+            type="button"
+            title="Bàn tay dời ảnh (Space)"
+            aria-pressed={hand}
+            disabled={isErasing}
+            onClick={() => setHand(true)}
+          >
+            <IconHand width={13} height={13} />
+            <span>Dời</span>
+          </button>
+          <div className="layer-pixel-divider" />
+          <button
+            type="button"
+            title="Vừa khung ảnh"
+            disabled={isErasing}
+            onClick={reset}
+          >
+            <IconFit width={13} height={13} />
+          </button>
+          <button
+            type="button"
+            title="Khôi phục ảnh gốc"
+            disabled={unavailable || !layer.imageUrl || !layer.assetPath || isErasing}
+            onClick={props.onResetLayerImage}
+          >
+            <IconUndo width={13} height={13} />
+          </button>
         </div>
 
-        {/* Bảng điều khiển cọ & Live Brush Preview */}
-        <div className="layer-pixel-controls-area">
-          <BrushPreviewVisualizer
-            brushSettings={brushSettings}
-            onChangeBrushSettings={props.onChangeBrushSettings}
-            disabled={unavailable || isErasing}
-          />
+        {/* Card xem trước cọ trực quan */}
+        <BrushPreviewVisualizer
+          brushSettings={brushSettings}
+          onChangeBrushSettings={props.onChangeBrushSettings}
+          disabled={unavailable || isErasing}
+        />
 
-          <fieldset className="layer-brush-sliders" disabled={unavailable || isErasing}>
-            {/* Cỡ cọ */}
-            <div className="layer-brush-slider-row">
-              <span>Cỡ cọ</span>
-              <input
-                type="range"
-                min={1}
-                max={100}
-                step={1}
-                value={brushSettings.size}
-                onChange={(e) =>
-                  props.onChangeBrushSettings({ ...brushSettings, size: Number(e.target.value) })
-                }
-              />
-              <div className="layer-brush-steppers">
-                <button
-                  type="button"
-                  className="layer-brush-stepper-btn"
-                  title="Giảm 5px"
-                  onClick={() =>
-                    props.onChangeBrushSettings({
-                      ...brushSettings,
-                      size: Math.max(1, brushSettings.size - 5)
-                    })
-                  }
-                >
-                  -
-                </button>
-                <span className="layer-brush-val">{brushSettings.size}px</span>
-                <button
-                  type="button"
-                  className="layer-brush-stepper-btn"
-                  title="Tăng 5px"
-                  onClick={() =>
-                    props.onChangeBrushSettings({
-                      ...brushSettings,
-                      size: Math.min(100, brushSettings.size + 5)
-                    })
-                  }
-                >
-                  +
-                </button>
-              </div>
-            </div>
+        {/* 3 Sliders thông số */}
+        {renderSliders()}
 
-            {/* Lực tẩy */}
-            <div className="layer-brush-slider-row">
-              <span>Lực tẩy</span>
-              <input
-                type="range"
-                min={0.05}
-                max={1}
-                step={0.05}
-                value={brushSettings.opacity}
-                onChange={(e) =>
-                  props.onChangeBrushSettings({ ...brushSettings, opacity: Number(e.target.value) })
-                }
-              />
-              <span className="layer-brush-val">{Math.round(brushSettings.opacity * 100)}%</span>
-            </div>
-
-            {/* Độ cứng */}
-            <div className="layer-brush-slider-row">
-              <span>Độ cứng</span>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                value={brushSettings.hardness}
-                onChange={(e) =>
-                  props.onChangeBrushSettings({ ...brushSettings, hardness: Number(e.target.value) })
-                }
-              />
-              <span className="layer-brush-val">{Math.round(brushSettings.hardness * 100)}%</span>
-            </div>
-          </fieldset>
+        <div className="layer-pixel-hint">
+          {unavailable ? 'Layer đang khóa' : 'Space: dời · Cuộn: zoom · Esc: hủy nét'}
         </div>
       </div>
     </section>
