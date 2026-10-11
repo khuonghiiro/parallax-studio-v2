@@ -1,5 +1,7 @@
 import { ParamError, type Handler, type Params } from '../types'
-import { num, str } from '../params'
+import { bool, num, str } from '../params'
+import { setManualAiLock } from '../commands'
+import type { McpRect } from '@shared/ipc'
 
 /**
  * UI-level commands: let an AI see and drive the real app UI (dialogs, tabs, workshop),
@@ -55,7 +57,7 @@ export function pickByText(candidates: UiCandidate[], query: string, index = 0):
 
 const CLICKABLE = 'button, [role="button"], [role="tab"], [role="menuitem"], a, summary, label, .c3d-card'
 
-function isVisible(el: HTMLElement): boolean {
+export function isVisible(el: HTMLElement): boolean {
   const r = el.getBoundingClientRect()
   return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'
 }
@@ -81,6 +83,87 @@ function findTarget(p: Params): HTMLElement {
   return pool[i]
 }
 
+export const UI_REGION_SELECTORS: Record<string, string[]> = {
+  left_panel: ['aside.left', '.left', '.panel-left', '.asset-panel-wrapper', '.music-panel-layout', '.shots'],
+  music: ['.music-panel-layout', '.music-panel-container', 'aside.left'],
+  assets: ['.asset-panel-wrapper', '.asset-main-layout', 'aside.left'],
+  shots: ['.shots', '.shots-panel', 'aside.left'],
+  timeline: ['section.timeline', '.timeline', '.panel.timeline'],
+  inspector: ['aside.right', '.right', '.inspector'],
+  viewer: ['.viewer-wrap', '.viewer', '#viewport-container'],
+  dialog: [
+    '.layer-workshop-dialog',
+    '.c3d-dialog',
+    '.export-dialog',
+    '.perf-dialog',
+    '.modal-overlay',
+    '.dialog',
+    '[role="dialog"]'
+  ],
+  toolbar: ['header.toolbar', '.toolbar']
+}
+
+export function resolveTargetElement(region?: string, selector?: string): HTMLElement | null {
+  if (selector) {
+    try {
+      const el = document.querySelector<HTMLElement>(selector)
+      if (el && isVisible(el)) return el
+    } catch {
+      /* invalid selector */
+    }
+  }
+  if (region && region !== 'window') {
+    const candidates = UI_REGION_SELECTORS[region] || [`.${region}`, `#${region}`]
+    for (const sel of candidates) {
+      try {
+        const el = document.querySelector<HTMLElement>(sel)
+        if (el && isVisible(el)) return el
+      } catch {
+        /* continue */
+      }
+    }
+  }
+  return null
+}
+
+async function cropImageBase64(
+  base64: string,
+  mime: string,
+  rect: McpRect,
+  format: 'png' | 'jpeg'
+): Promise<{ data: string; mime: string; width: number; height: number } | null> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        const winW = window.innerWidth || 1
+        const winH = window.innerHeight || 1
+        const scaleX = img.naturalWidth / winW
+        const scaleY = img.naturalHeight / winH
+        const sx = Math.max(0, Math.floor(rect.x * scaleX))
+        const sy = Math.max(0, Math.floor(rect.y * scaleY))
+        const sw = Math.min(img.naturalWidth - sx, Math.ceil(rect.width * scaleX))
+        const sh = Math.min(img.naturalHeight - sy, Math.ceil(rect.height * scaleY))
+        if (sw <= 0 || sh <= 0) return resolve(null)
+        canvas.width = sw
+        canvas.height = sh
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return resolve(null)
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh)
+        const targetMime = format === 'jpeg' ? 'image/jpeg' : 'image/png'
+        const dataUrl = canvas.toDataURL(targetMime, 0.9)
+        const data = dataUrl.split(',')[1] || ''
+        resolve({ data, mime: targetMime, width: sw, height: sh })
+      } catch {
+        resolve(null)
+      }
+    }
+    img.onerror = () => resolve(null)
+    img.src = `data:${mime};base64,${base64}`
+  })
+}
+
 export const uiCommands: Record<string, Handler> = {
   get_app_screenshot: async (p) => {
     const capture = window.api?.mcp?.captureWindow
@@ -89,8 +172,61 @@ export const uiCommands: Record<string, Handler> = {
     await nextPaint()
     const width = num(p, 'width')
     const format = str(p, 'format') === 'jpeg' ? 'jpeg' : 'png'
-    const res = await capture({ width: width ?? undefined, format })
-    return { ...res, target: 'app-window' }
+    const region = str(p, 'region')
+    const selector = str(p, 'selector')
+    const padding = Math.max(0, Math.min(200, num(p, 'padding') ?? 8))
+
+    const targetEl = resolveTargetElement(region, selector)
+    let rect: McpRect | undefined
+    if (targetEl) {
+      const b = targetEl.getBoundingClientRect()
+      const winW = typeof window !== 'undefined' ? window.innerWidth : 1920
+      const winH = typeof window !== 'undefined' ? window.innerHeight : 1080
+      const x = Math.max(0, Math.floor(b.left - padding))
+      const y = Math.max(0, Math.floor(b.top - padding))
+      const right = Math.min(winW, Math.ceil(b.right + padding))
+      const bottom = Math.min(winH, Math.ceil(b.bottom + padding))
+      const w = Math.max(1, right - x)
+      const h = Math.max(1, bottom - y)
+      rect = { x, y, width: w, height: h }
+    }
+
+    const res = await capture({ width: width ?? undefined, format, rect })
+
+    // Fallback crop bằng canvas nếu Main process chưa crop (đang chạy process cũ chưa restart)
+    if (rect && res.width > rect.width * 1.25 && typeof document !== 'undefined') {
+      const cropped = await cropImageBase64(res.data, res.mime, rect, format)
+      if (cropped) {
+        return {
+          ...cropped,
+          target: 'region',
+          region: region ?? undefined,
+          selector: selector ?? undefined,
+          rect
+        }
+      }
+    }
+
+    return {
+      ...res,
+      target: rect ? 'region' : 'app-window',
+      region: region ?? undefined,
+      selector: selector ?? undefined,
+      rect
+    }
+  },
+
+  set_ai_lock: async (p) => {
+    const locked = bool(p, 'locked') ?? true
+    const reason = str(p, 'reason') ?? undefined
+    const timeoutMs = num(p, 'timeout_ms') ?? 10000
+    setManualAiLock(locked, reason, timeoutMs)
+    return {
+      ok: true,
+      locked,
+      reason: reason || (locked ? 'AI đang khoá UI để thao tác' : 'Đã mở khoá UI'),
+      timeout_ms: locked ? timeoutMs : undefined
+    }
   },
 
   ui_click: async (p) => {

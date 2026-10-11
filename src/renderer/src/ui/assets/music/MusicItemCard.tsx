@@ -95,7 +95,7 @@ export function MusicItemCard({
         } else if (item.relPath && window.api?.loadBuiltInAssetBytes) {
           const fileData = await window.api.loadBuiltInAssetBytes(item.relPath)
           if (alive && fileData?.data) {
-            const blob = new Blob([fileData.data], { type: fileData.mime || 'audio/wav' })
+            const blob = new Blob([fileData.data as unknown as BlobPart], { type: fileData.mime || 'audio/wav' })
             const res = await getAudioPeaksFromBlob(blob, item.id, 240)
             if (alive && res.length > 0) setPeaks(res)
           }

@@ -65,15 +65,31 @@ export const SCENE_TOOLS = [
   {
     name: 'get_app_screenshot', cat: 'inspect', format: 'image',
     doc: L(
-      'Screenshot of the WHOLE app window exactly as the user sees it (menus, dialogs, inspector, 3D assembly workshop). Use it to review UI and dialogs; get_viewport_screenshot only renders the scene.',
-      'Chụp TOÀN BỘ cửa sổ app đúng như người dùng đang thấy (menu, dialog, inspector, xưởng lắp ráp 3D). Dùng để review giao diện và dialog; get_viewport_screenshot chỉ render cảnh.'
+      'Screenshot of the app window or a targeted UI element/region (e.g. left_panel, timeline, inspector, viewer, dialog). Use region or selector to capture only the relevant area and save tokens; omit to capture the whole window.',
+      'Chụp ảnh cửa sổ app hoặc vùng/phần tử UI cụ thể (ví dụ left_panel, timeline, inspector, viewer, dialog). Dùng region hoặc selector để chỉ chụp đúng vùng cần thiết, tối ưu token; không truyền sẽ chụp toàn bộ.'
     ),
     shape: (d) => ({
+      region: z.enum(['left_panel', 'timeline', 'inspector', 'viewer', 'dialog', 'toolbar', 'music', 'shots', 'assets', 'window']).optional().describe(d('Predefined UI region to capture (e.g. left_panel, timeline, inspector, dialog). Saves tokens by cropping to only the relevant area.', 'Vùng UI định sẵn cần chụp (ví dụ left_panel, timeline, inspector, dialog). Tiết kiệm token bằng cách cắt đúng khu vực quan trọng.')),
+      selector: z.string().optional().describe(d('CSS selector of a specific element to capture (e.g. ".music-panel-layout", "#music-tab-add-btn"). Falls back to whole window if not found.', 'CSS selector của phần tử cụ thể cần chụp. Tự động chụp toàn bộ app nếu không tìm thấy selector.')),
+      padding: z.number().int().min(0).max(200).optional().describe(d('Padding in pixels around the targeted element/region (default: 8).', 'Khoảng cách viền đệm xung quanh vùng cần chụp (mặc định: 8px).')),
       width: z.number().int().min(64).max(3840).optional().describe(d('Downscale to this width (default: native).', 'Thu nhỏ về bề rộng này (mặc định: kích thước gốc).')),
       format: z.enum(['png', 'jpeg']).optional(),
       delay_ms: z.number().int().min(0).max(5000).optional().describe(d('Wait before capturing so UI transitions finish (default 150).', 'Chờ trước khi chụp để hiệu ứng UI chạy xong (mặc định 150).'))
     }),
-    example: '{"width":1280}'
+    example: '{"region":"left_panel"}'
+  },
+  {
+    name: 'set_ai_lock', cat: 'inspect',
+    doc: L(
+      'Lock or unlock the UI while the AI is performing multi-step actions. When locked, a glowing neon border appears and user input is disabled to avoid interference.',
+      'Khoá hoặc mở khoá UI khi AI đang thực hiện chuỗi thao tác. Khi khoá, viền sáng neon sẽ xuất hiện bao quanh app và vô hiệu hoá thao tác của người dùng để tránh xung đột.'
+    ),
+    shape: (d) => ({
+      locked: z.boolean().describe(d('True to lock UI with neon border, false to unlock.', 'True để khoá UI và bật viền neon, false để mở khoá.')),
+      reason: z.string().optional().describe(d('Optional reason or status message shown to user.', 'Lý do hoặc thông điệp trạng thái hiển thị cho người dùng.')),
+      timeout_ms: z.number().int().min(500).max(60000).optional().describe(d('Auto-unlock safety timeout in milliseconds (default: 10000).', 'Thời gian tự động mở khoá an toàn tính bằng mili-giây (mặc định: 10000ms).'))
+    }),
+    example: '{"locked":true,"reason":"AI đang chỉnh sửa cấu hình âm thanh"}'
   },
   {
     name: 'ui_click', cat: 'inspect',

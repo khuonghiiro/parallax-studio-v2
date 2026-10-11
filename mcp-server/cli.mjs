@@ -82,7 +82,7 @@ const t = (key) => MSG[key][lang]
 const CLI_COMMANDS = [
   ['pnpm pxs status', { en: 'Check the connection and app state', vi: 'Kiểm tra kết nối và trạng thái app' }],
   ['pnpm pxs inspect', { en: 'Dump the whole project as JSON', vi: 'Xuất toàn bộ cấu trúc dự án (JSON)' }],
-  ['pnpm pxs review [--view camera|3d|app]', { en: 'Render the viewport (or the whole app window with "app") to a PNG file', vi: 'Chụp ảnh review cảnh (hoặc toàn cửa sổ app với "app") ra file PNG' }],
+  ['pnpm pxs review [--view camera|3d|app] [--region <name>]', { en: 'Render the viewport (or app/region with "app") to a PNG file', vi: 'Chụp ảnh review cảnh (hoặc app/vùng cụ thể với "app") ra file PNG' }],
   ["pnpm pxs call <tool> '<json>'", { en: 'Call any MCP tool (params validated first)', vi: 'Gọi bất kỳ công cụ MCP nào (kiểm tra tham số trước)' }],
   ['pnpm pxs help <tool>', { en: 'Details and parameters of one tool', vi: 'Chi tiết và tham số của một công cụ' }],
   [`pnpm pxs guide [${GUIDE_TOPICS.join('|')}]`, { en: 'Read the AI guide', vi: 'Đọc hướng dẫn AI' }],
@@ -210,15 +210,19 @@ async function cmdReview(opts) {
   let view = 'camera'
   let time
   let outPath = 'artifacts/review_viewport.png'
+  let region
+  let selector
   for (let i = 0; i < opts.length; i++) {
     if (opts[i] === '--view' && opts[i + 1]) view = opts[++i]
     else if (opts[i] === '--time' && opts[i + 1]) time = parseFloat(opts[++i])
     else if (opts[i] === '--out' && opts[i + 1]) outPath = opts[++i]
+    else if (opts[i] === '--region' && opts[i + 1]) region = opts[++i]
+    else if (opts[i] === '--selector' && opts[i + 1]) selector = opts[++i]
   }
-  console.log(`⏳ ${t('rendering')} (view: ${view}, time: ${time ?? t('now')})...`)
+  console.log(`⏳ ${t('rendering')} (view: ${view}${region ? `, region: ${region}` : ''}, time: ${time ?? t('now')})...`)
   const res =
     view === 'app'
-      ? await sendCommand('get_app_screenshot', { format: 'png' })
+      ? await sendCommand('get_app_screenshot', { format: 'png', region, selector })
       : view === 'assembly'
         ? await sendCommand('get_assembly_screenshot', {})
         : await sendCommand('get_viewport_screenshot', { view, time, width: 960, format: 'png' })
@@ -227,7 +231,8 @@ async function cmdReview(opts) {
   mkdirSync(join(absOut, '..'), { recursive: true })
   writeFileSync(absOut, Buffer.from(res.data, 'base64'))
   const when = typeof res.time === 'number' ? `, t=${res.time.toFixed(2)}s` : ''
-  console.log(`✓ ${t('saved')}: ${absOut} (${res.width}x${res.height}${when})\n👉 ${t('viewHint')}`)
+  const regNote = res.target ? ` [${res.target}]` : ''
+  console.log(`✓ ${t('saved')}: ${absOut} (${res.width}x${res.height}${when}${regNote})\n👉 ${t('viewHint')}`)
 }
 
 function parseParams(arg) {

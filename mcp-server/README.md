@@ -128,7 +128,8 @@ Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC**
 - `get_camera_info`: Đọc trạng thái vị trí, mục tiêu, FOV của camera tại thời điểm `time`.
 - `get_memory_stats`: Kiểm tra dung lượng VRAM GPU, texture pool và RAM tiến trình.
 - `get_viewport_screenshot`: Chụp ảnh preview hiện tại (view: `"camera"` hoặc `"3d"`).
-- `get_app_screenshot`: Chụp toàn bộ cửa sổ app đúng như người dùng thấy (dialog, panel, xưởng lắp ráp) – dùng để AI review giao diện (`pnpm pxs review --view app`).
+- `get_app_screenshot`: Chụp toàn bộ cửa sổ app hoặc chụp theo vùng UI cụ thể (`region`: `"left_panel"`, `"music"`, `"assets"`, `"shots"`, `"timeline"`, `"inspector"`, `"viewer"`, `"dialog"`, `"toolbar"` hoặc `selector` CSS tuỳ chỉnh, `padding`) giúp AI tiết kiệm token tối đa khi chỉ cần kiểm tra một cột/panel (`pnpm pxs review --view app --region left_panel`).
+- `set_ai_lock`: Bật/tắt trạng thái khoá tương tác an toàn (`locked: boolean`, `reason`, `timeout_ms`) ngăn người dùng vô tình bấm làm lệch UI khi AI đang tự động thao tác. App sẽ hiển thị viền neon cyberpunk xung quanh và badge HUD kèm nút mở khoá khẩn cấp (`Esc`).
 - `ui_click` / `ui_type`: Bấm phần tử UI theo chữ hoặc CSS selector, nhập ô input – để AI tự mở dialog, chuyển tab rồi chụp kiểm tra.
 - `get_ai_guide`: Đọc hướng dẫn AI theo ngôn ngữ tài liệu đang chọn (`topic`: overview, coordinates, workflow, assembly, tips). Trả lời tại chỗ, không cần app.
 

@@ -45,7 +45,7 @@ describe('get_app_screenshot', () => {
       method: 'get_app_screenshot',
       params: {}
     })) as Record<string, unknown>
-    expect(captureWindow).toHaveBeenCalledWith({ width: 800, format: 'jpeg' })
+    expect(captureWindow).toHaveBeenCalledWith({ width: 800, format: 'jpeg', rect: undefined })
     expect(res).toMatchObject({ mime: 'image/jpeg', data: 'AAAA', width: 800, target: 'app-window' })
   })
 
@@ -54,5 +54,21 @@ describe('get_app_screenshot', () => {
     await expect(
       uiCommands.get_app_screenshot({ delay_ms: 0 }, { reqId: 't', method: 'get_app_screenshot', params: {} })
     ).rejects.toThrow(/not available/)
+  })
+
+  it('handles set_ai_lock to lock and unlock UI', async () => {
+    const lockRes = (await uiCommands.set_ai_lock({ locked: true, reason: 'Testing AI Lock' }, {
+      reqId: 't',
+      method: 'set_ai_lock',
+      params: {}
+    })) as Record<string, unknown>
+    expect(lockRes).toMatchObject({ ok: true, locked: true, reason: 'Testing AI Lock' })
+
+    const unlockRes = (await uiCommands.set_ai_lock({ locked: false }, {
+      reqId: 't',
+      method: 'set_ai_lock',
+      params: {}
+    })) as Record<string, unknown>
+    expect(unlockRes).toMatchObject({ ok: true, locked: false })
   })
 })

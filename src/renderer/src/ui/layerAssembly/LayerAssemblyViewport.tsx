@@ -16,7 +16,7 @@ import {
 } from './layerAssembly2DBbox'
 import { AssembledLayerItemView } from './AssembledLayerItemView'
 import { LayerAssembly2DToolbar } from './LayerAssembly2DToolbar'
-import { useLayerBrushEraser, type BrushPreview } from './useLayerBrushEraser'
+import { useLayerBrushEraser, type BrushPreview, type Assembly2DTool } from './useLayerBrushEraser'
 import { EraserIsolatedCanvas } from './LayerAssemblyEraser'
 import type { WorkshopTab } from './WorkshopRightPanel'
 import type { AssemblyWorkspaceView } from './LayerAssemblyDialog'

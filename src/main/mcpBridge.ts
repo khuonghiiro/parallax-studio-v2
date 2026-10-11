@@ -14,9 +14,17 @@ import type {
   PickedFile
 } from '@shared/ipc'
 
-/** Capture the whole app window (UI + dialogs) so an AI can review what the user sees. */
+/** Capture the whole app window (UI + dialogs) or a targeted region so an AI can review what the user sees. */
 async function captureWebContents(wc: Electron.WebContents, opts: McpCaptureOptions = {}): Promise<McpCaptureResult> {
-  const img = await wc.capturePage()
+  const rect = opts.rect
+    ? {
+        x: Math.max(0, Math.round(opts.rect.x)),
+        y: Math.max(0, Math.round(opts.rect.y)),
+        width: Math.max(1, Math.round(opts.rect.width)),
+        height: Math.max(1, Math.round(opts.rect.height))
+      }
+    : undefined
+  const img = await wc.capturePage(rect)
   const full = img.getSize()
   const width = Math.max(64, Math.min(full.width, Math.round(opts.width ?? full.width)))
   const out = width < full.width ? img.resize({ width, quality: 'good' }) : img
@@ -352,6 +360,18 @@ export class McpBridge {
       if (!win || win.isDestroyed()) throw new Error('App window is not open')
       if (win.isMinimized()) win.restore()
       win.showInactive()
+
+      // Nếu Renderer sẵn sàng và có tham số vùng hoặc selector, ưu tiên Renderer xử lý
+      if (this.rendererReady) {
+        try {
+          const cmd: McpCommand = { reqId: `${Date.now().toString(36)}-${++this.seq}`, method, params }
+          const res = await this.forward(cmd)
+          if (res.ok && res.result) return res.result
+        } catch {
+          /* fallback to main process capture */
+        }
+      }
+
       const width = typeof params.width === 'number' ? params.width : undefined
       const format = params.format === 'jpeg' ? 'jpeg' : 'png'
       const delay = Math.max(50, Math.min(5000, Number(params.delay_ms) || 100))

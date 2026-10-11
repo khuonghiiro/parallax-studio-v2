@@ -45,7 +45,8 @@ describe('layerAssemblyGitExport', () => {
           z: 0,
           rotation: 0,
           scale: 1,
-          opacity: 1
+          opacity: 1,
+          motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
         }
       ]
     }

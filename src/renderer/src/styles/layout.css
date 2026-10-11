@@ -172,3 +172,144 @@ textarea:focus {
 .right {
   padding: 4px 4px 0 0;
 }
+
+/* ==========================================================================
+   AI Active Neon Glow & Safety Lock Barrier
+   Hiển thị viền sáng neon khi AI điều khiển và bảo vệ UI tránh tác động từ user
+   ========================================================================== */
+
+.app.ai-active {
+  position: relative;
+  box-shadow: inset 0 0 0 2px #00e5ff, 0 0 20px rgba(0, 229, 255, 0.45);
+  animation: ai-neon-pulse 2s ease-in-out infinite;
+}
+
+@keyframes ai-neon-pulse {
+  0%, 100% {
+    box-shadow: inset 0 0 0 2px #00e5ff, inset 0 0 15px rgba(0, 229, 255, 0.25), 0 0 25px rgba(0, 229, 255, 0.4);
+  }
+  50% {
+    box-shadow: inset 0 0 0 2px #38bdf8, inset 0 0 25px rgba(56, 189, 248, 0.35), 0 0 35px rgba(56, 189, 248, 0.55);
+  }
+}
+
+/* Lớp chắn bảo vệ vô hình/bán mờ chặn thao tác người dùng */
+.ai-safety-barrier {
+  position: fixed;
+  inset: 0;
+  z-index: 80000;
+  background: rgba(0, 0, 0, 0.04);
+  cursor: wait;
+  pointer-events: all;
+}
+
+/* Badge trạng thái HUD nổi ở cạnh trên cùng giữa màn hình */
+.ai-neon-hud-badge {
+  position: fixed;
+  top: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 85000;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(13, 17, 23, 0.92);
+  border: 1px solid #00e5ff;
+  box-shadow: 0 4px 18px rgba(0, 229, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  user-select: none;
+  animation: ai-hud-appear 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+[data-theme='light'] .ai-neon-hud-badge {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: #0284c7;
+  color: #0f172a;
+  box-shadow: 0 4px 18px rgba(2, 132, 199, 0.3);
+}
+
+@keyframes ai-hud-appear {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+.ai-neon-glow-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #00e5ff;
+  box-shadow: 0 0 8px #00e5ff;
+  animation: ai-dot-blink 1s ease-in-out infinite alternate;
+}
+
+@keyframes ai-dot-blink {
+  from {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+.ai-sparkle-icon {
+  color: #00e5ff;
+  flex: none;
+}
+
+[data-theme='light'] .ai-sparkle-icon {
+  color: #0284c7;
+}
+
+.ai-hud-label {
+  white-space: nowrap;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ai-lock-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  text-transform: uppercase;
+}
+
+.ai-hud-unlock-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-dim);
+  border-radius: 12px;
+  padding: 2px 7px;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-left: 2px;
+}
+
+.ai-hud-unlock-btn:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: #ef4444;
+  color: #ffffff;
+}

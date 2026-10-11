@@ -64,8 +64,11 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
   - `pnpm pxs --help` / `pnpm pxs help <tool>`: Đọc toàn bộ catalog 50+ tools và quy ước tọa độ 2.5D.
   - `pnpm pxs status` / `pnpm pxs inspect`: Kiểm tra trạng thái và xuất JSON toàn bộ dự án hiện tại.
   - `pnpm pxs review --view camera --out <path>`: Chụp ảnh viewport thực tế để AI dùng `view_file` xem và đánh giá bố cục cảnh bằng mắt.
-  - `pnpm pxs review --view app --out <path>` (tool `get_app_screenshot`) + `ui_click` / `ui_type`: Chụp toàn bộ cửa sổ app (dialog, panel, xưởng 3D) và thao tác UI thật. **Kiểm tra giao diện bằng cách này, không dùng trình duyệt** (trình duyệt không có preload/IPC nên hiển thị sai). Lưu ảnh ra ổ còn trống (ví dụ `D:\_tmp`) nếu ổ C: đầy.
+  - `pnpm pxs review --view app [--region <name>] --out <path>` (tool `get_app_screenshot`): Chụp toàn bộ cửa sổ app hoặc cắt đúng vùng UI cần thiết (`region`: `left_panel`, `music`, `assets`, `shots`, `timeline`, `inspector`, `viewer`, `dialog`, `toolbar` hoặc CSS `selector`), giúp AI chỉ đọc đúng phần UI đang làm việc và tiết kiệm token tối đa. Kết hợp với `ui_click` / `ui_type` để thao tác UI thật. **Kiểm tra giao diện bằng cách này, không dùng trình duyệt** (trình duyệt không có preload/IPC nên hiển thị sai). Lưu ảnh ra ổ còn trống (ví dụ `D:\_tmp`) nếu ổ C: đầy.
   - `pnpm pxs call <tool> '<json>'`: Thực thi thêm/sửa layer, shot, audio, keyframe theo thời gian thực (realtime) như người dùng thao tác.
+  - **Phản hồi thị giác Neon & Khoá an toàn khi AI thao tác:**
+    - Khi AI gửi lệnh qua MCP, app tự kích hoạt viền sáng Neon Cyberpunk chạy quanh app kèm badge HUD trạng thái để người dùng nhận biết ngay lập tức.
+    - Lớp bảo vệ an toàn (safety lock barrier) tự động khoá tương tác chuột/bàn phím trong lúc AI thao tác, ngăn người dùng bấm nhầm làm mất trạng thái UI. Người dùng luôn có thể mở khoá khẩn cấp bằng phím `Escape` hoặc nút `[✕ Mở khoá]`. Tool `set_ai_lock` cho phép AI chủ động giữ khoá khi thực hiện chuỗi lệnh nhiều bước.
 - **Quy tắc Kiểm Thử Trực Tiếp & Cấm Can Thiệp Tiến Trình Người Dùng (BẮT BUỘC):**
   - **Tuyệt đối KHÔNG tự ý kill/tắt tiến trình Electron của người dùng (`Stop-Process electron`, `kill`):** Người dùng đang trực tiếp mở và theo dõi ứng dụng trên terminal launcher của họ (`pnpm dev`). Việc tắt tiến trình sẽ làm sập cửa sổ người dùng đang làm việc.
   - **Tuyệt đối KHÔNG tự spawn thêm tiến trình dev ngầm trùng lặp (`electron-vite dev`):** Tránh gây xung đột cổng TCP 9877, chiếm dụng GPU/RAM và gây sai lệch trạng thái hiển thị.

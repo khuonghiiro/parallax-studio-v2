@@ -154,9 +154,17 @@ export interface McpStatus {
   error?: string
 }
 
+export interface McpRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export interface McpCaptureOptions {
   width?: number
   format?: 'png' | 'jpeg'
+  rect?: McpRect
 }
 
 export interface McpCaptureResult {

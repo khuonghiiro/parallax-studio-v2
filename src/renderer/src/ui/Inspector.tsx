@@ -19,8 +19,7 @@ export function Inspector() {
   const shot = useEditor((s) => findShot(s.project, s.selectedShotId))
   const audioTrack = useEditor((s) =>
     s.selectedAudioTrackId
-      ? s.project.audioTracks?.find((t) => t.id === s.selectedAudioTrackId) ||
-        (s.project.audio?.id === s.selectedAudioTrackId ? s.project.audio : null)
+      ? s.project.audioTracks?.find((t) => t.id === s.selectedAudioTrackId) ?? null
       : null
   )
 

@@ -42,10 +42,33 @@ export async function runCommand(method: string, params: Params = {}, cmd?: McpC
 
 export const MCP_COMMANDS = Object.keys(commands)
 
+import { useView } from '../store/view'
+
+let aiTimer: any = null
+let isManuallyLocked = false
+
+export function setManualAiLock(locked: boolean, reason?: string, timeoutMs = 10000): void {
+  isManuallyLocked = locked
+  if (aiTimer) clearTimeout(aiTimer)
+  if (locked) {
+    useView.getState().setAiControl(true, true, reason || 'AI đang khoá UI để thực hiện tác vụ…')
+    aiTimer = setTimeout(() => {
+      isManuallyLocked = false
+      useView.getState().unlockAi()
+    }, Math.max(1000, Math.min(60000, timeoutMs)))
+  } else {
+    useView.getState().unlockAi()
+  }
+}
+
 /** Subscribe to MCP commands from the main process. Returns an unsubscribe function. */
 export function initMcp(onActivity?: (method: string, ok: boolean) => void): () => void {
   if (!window.api?.mcp) return () => undefined
   return window.api.mcp.onCommand(async (cmd) => {
+    if (!isManuallyLocked) {
+      if (aiTimer) clearTimeout(aiTimer)
+      useView.getState().setAiControl(true, true, `AI đang thao tác: ${cmd.method}`)
+    }
     try {
       const result = await runCommand(cmd.method, cmd.params ?? {}, cmd)
       window.api.mcp.respond({ reqId: cmd.reqId, ok: true, result: toPlain(result) })
@@ -54,6 +77,15 @@ export function initMcp(onActivity?: (method: string, ok: boolean) => void): () 
       const msg = err instanceof Error ? err.message : String(err)
       window.api.mcp.respond({ reqId: cmd.reqId, ok: false, error: msg })
       onActivity?.(cmd.method, false)
+    } finally {
+      if (!isManuallyLocked) {
+        if (aiTimer) clearTimeout(aiTimer)
+        aiTimer = setTimeout(() => {
+          if (!isManuallyLocked) {
+            useView.getState().unlockAi()
+          }
+        }, 800)
+      }
     }
   })
 }

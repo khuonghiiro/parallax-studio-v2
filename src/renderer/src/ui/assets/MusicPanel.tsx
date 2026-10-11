@@ -341,7 +341,7 @@ export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
       try {
         const res = await window.api.loadBuiltInAssetBytes(item.relPath)
         if (res && res.data) {
-          const blob = new Blob([res.data], { type: res.mime || 'audio/wav' })
+          const blob = new Blob([res.data as unknown as BlobPart], { type: res.mime || 'audio/wav' })
           playUrl = URL.createObjectURL(blob)
         }
       } catch (err) {
@@ -495,7 +495,7 @@ export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
         categoryCounts={categoryCounts}
         onImportClick={() => importAudio(currentTime, selectedCategory)}
         onOpenFolder={async () => {
-          if (window.api?.openAssetFolder) window.api.openAssetFolder('audio')
+          if (window.api?.openBuiltInFolder) window.api.openBuiltInFolder('audio')
         }}
       />
 

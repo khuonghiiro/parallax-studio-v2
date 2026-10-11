@@ -33,6 +33,11 @@ export interface ViewState extends ViewPrefs {
   assemblyModalModel: Model3D | null
   audioSelectedCategory: string
   setAudioSelectedCategory(cat: string): void
+  aiActive: boolean
+  aiLocked: boolean
+  aiActionLabel: string | null
+  setAiControl(active: boolean, locked?: boolean, label?: string | null): void
+  unlockAi(): void
   set(p: Partial<ViewPrefs>): void
   toggleTheme(): void
   openDialog(d: ViewState['dialog']): void
@@ -92,6 +97,15 @@ export const useView = create<ViewState>((set, get) => ({
   audioSelectedCategory: 'all',
   setAudioSelectedCategory(cat) {
     set({ audioSelectedCategory: cat })
+  },
+  aiActive: false,
+  aiLocked: false,
+  aiActionLabel: null,
+  setAiControl(active, locked = false, label = null) {
+    set({ aiActive: active, aiLocked: locked, aiActionLabel: label })
+  },
+  unlockAi() {
+    set({ aiActive: false, aiLocked: false, aiActionLabel: null })
   },
   openDialog(dialog) {
     set({ dialog })

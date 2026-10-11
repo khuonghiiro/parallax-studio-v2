@@ -12,6 +12,7 @@ import { PerformanceDialog } from './ui/PerformanceDialog'
 import { McpDialog } from './ui/McpDialog'
 import { AudioStudioDialog } from './ui/AudioStudioDialog'
 import { Assembly3DDialog } from './ui/assets/models3d/Assembly3DDialog'
+import { AiControlOverlay } from './ui/AiControlOverlay'
 import { Inspector } from './ui/Inspector'
 import { LeftPanel } from './ui/LeftPanel'
 import { Timeline } from './ui/Timeline'
@@ -89,10 +90,11 @@ export default function App() {
   }, [dragOver])
 
   const theme = useView((s) => s.theme)
+  const aiActive = useView((s) => s.aiActive)
 
   return (
     <div
-      className={`app ${theme}${dragOver ? ' dropzone-active' : ''}`}
+      className={`app ${theme}${dragOver ? ' dropzone-active' : ''}${aiActive ? ' ai-active' : ''}`}
       data-theme={theme}
       style={{ ['--timeline-h' as string]: `${timelineH}px` }}
       onDragOver={(e) => {
@@ -118,6 +120,8 @@ export default function App() {
       <Inspector />
       <div className="splitter" onPointerDown={startSplit} />
       <Timeline />
+
+      <AiControlOverlay />
 
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}
       {dialog === 'path' && <CameraPathDialog />}
