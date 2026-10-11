@@ -42,6 +42,54 @@
   flex: 1;
 }
 
+/* ------------------------------------------------------------------ Prominent Action Button */
+.asset-action-btn-highlight {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--accent-grad) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  font-size: 11px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 0 2px 8px rgba(38, 128, 235, 0.45);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  flex: none;
+}
+
+.asset-action-btn-highlight:hover {
+  filter: brightness(1.12);
+  box-shadow: 0 4px 14px rgba(38, 128, 235, 0.65);
+  transform: translateY(-0.5px);
+}
+
+.asset-action-btn-highlight:active {
+  transform: translateY(0.5px);
+  filter: brightness(0.96);
+}
+
+.asset-action-btn-highlight svg {
+  color: #ffffff !important;
+  stroke: currentColor;
+  stroke-width: 2.2px;
+}
+
+[data-theme='light'] .asset-action-btn-highlight {
+  background: linear-gradient(135deg, #1877f2 0%, #0056c6 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(24, 119, 242, 0.35);
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme='light'] .asset-action-btn-highlight:hover {
+  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.5);
+}
+
 /* ------------------------------------------------------------------ Subtabs (Smart Segmented Switcher) */
 .asset-subtabs {
   display: flex;

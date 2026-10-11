@@ -3,6 +3,7 @@ import type { LayerComposite } from './types'
 import { captureCompositeThumbnail } from './layerAssemblyThumbnail'
 import { saveComposite } from './layerAssemblyStorage'
 import { insertLayerCompositeToScene } from './insertLayerComposite'
+import { toast } from '../../actions'
 
 export function useWorkshopSave(
   getComposite: () => LayerComposite,
@@ -33,7 +34,18 @@ export function useWorkshopSave(
       }
       const saved = { ...composite, thumbnail }
       saveComposite(saved)
-      if (insert) await insertLayerCompositeToScene({ composite: saved })
+      if (insert) {
+        await insertLayerCompositeToScene({ composite: saved })
+      } else {
+        const hasEditedPixels = composite.layers.some(
+          (l) => typeof l.imageUrl === 'string' && l.imageUrl.startsWith('data:image/')
+        )
+        if (hasEditedPixels) {
+          toast('✓ Đã lưu mẫu vào bộ nhớ app! Bạn có layer đã tẩy sửa pixel: bấm "Xuất tệp Git" để xuất ảnh PNG vào assets/ và commit lên Git.')
+        } else {
+          toast(`✓ Đã lưu mẫu "${composite.name}" vào bộ nhớ app thành công!`)
+        }
+      }
       if (closeAfter) onClose()
       return true
     } catch (err) {

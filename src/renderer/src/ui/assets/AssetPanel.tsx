@@ -192,7 +192,7 @@ export function AssetPanel() {
         {subTab === 'builtin' ? (
           <button
             type="button"
-            className="btn sm"
+            className="btn sm asset-action-btn-highlight"
             onClick={() => publicFileInputRef.current?.click()}
             title="Thêm tệp ảnh hoặc âm thanh vào kho tài nguyên Công khai (dùng chung cho mọi dự án)"
           >
@@ -201,7 +201,7 @@ export function AssetPanel() {
         ) : subTab === '3d' ? (
           <button
             type="button"
-            className="btn sm"
+            className="btn sm asset-action-btn-highlight"
             onClick={() => window.dispatchEvent(new CustomEvent('assembly:open'))}
             title="Mở xưởng tạo mô hình 3D từ các diện ảnh phẳng"
           >
@@ -210,7 +210,7 @@ export function AssetPanel() {
         ) : subTab === 'assembly' ? (
           <button
             type="button"
-            className="btn sm"
+            className="btn sm asset-action-btn-highlight"
             onClick={() => window.dispatchEvent(new CustomEvent('layerAssembly:open'))}
             title="Mở xưởng lắp ráp layer xếp chồng 2.5D"
           >
@@ -221,7 +221,7 @@ export function AssetPanel() {
             <button
               type="button"
               id="import-images"
-              className="btn sm"
+              className="btn sm asset-action-btn-highlight"
               onClick={() => importImages(false)}
               title="Nhập ảnh riêng cho dự án hiện tại (tài nguyên nội bộ)"
             >
@@ -230,7 +230,7 @@ export function AssetPanel() {
             <button
               type="button"
               id="import-audio"
-              className="btn sm icon"
+              className="btn sm icon asset-action-btn-highlight"
               onClick={() => importAudio(useEditor.getState().time)}
               title="Nhập nhạc nền từ máy tính vào mốc thời gian hiện tại"
             >
