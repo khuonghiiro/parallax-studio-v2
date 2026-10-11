@@ -295,6 +295,7 @@ export function EraserIsolatedCanvas(props: PixelEditorProps) {
 
 interface EraserToolbarRowProps {
   hand: boolean
+  space?: boolean
   brushHardness: number
   unavailable: boolean
   isErasing: boolean
@@ -307,6 +308,7 @@ interface EraserToolbarRowProps {
 
 function EraserToolbarRow({
   hand,
+  space = false,
   brushHardness,
   unavailable,
   isErasing,
@@ -316,6 +318,7 @@ function EraserToolbarRow({
   onResetView,
   onResetImage
 }: EraserToolbarRowProps) {
+  const isMoving = hand || space
   return (
     <div className="layer-pixel-tools-row" aria-label="Thanh công cụ cọ tẩy">
       <div className="layer-pixel-tools-group">
@@ -324,7 +327,7 @@ function EraserToolbarRow({
           className="layer-pixel-tool-btn"
           title="Cọ tẩy mờ mềm (Độ cứng 40%)"
           aria-label="Cọ mềm"
-          aria-pressed={!hand && brushHardness < 1}
+          aria-pressed={!isMoving && brushHardness < 1}
           disabled={unavailable || isErasing}
           onClick={() => onSetBrush(0.4)}
         >
@@ -336,7 +339,7 @@ function EraserToolbarRow({
           className="layer-pixel-tool-btn"
           title="Tẩy nét cứng (Độ cứng 100%)"
           aria-label="Tẩy cứng"
-          aria-pressed={!hand && brushHardness === 1}
+          aria-pressed={!isMoving && brushHardness === 1}
           disabled={unavailable || isErasing}
           onClick={() => onSetBrush(1)}
         >
@@ -346,9 +349,9 @@ function EraserToolbarRow({
         <button
           type="button"
           className="layer-pixel-tool-btn"
-          title="Bàn tay dời ảnh (Space)"
+          title="Bàn tay dời ảnh (Giữ phím Space)"
           aria-label="Bàn tay dời ảnh"
-          aria-pressed={hand}
+          aria-pressed={isMoving}
           disabled={isErasing}
           onClick={onSetHand}
         >
@@ -434,12 +437,13 @@ function EraserToolbarRow({
           {/* Thanh ngang chứa icon công cụ cọ tẩy nằm ở Hàng 2 */}
           <EraserToolbarRow
             hand={hand}
+            space={space}
             brushHardness={brushSettings.hardness}
             unavailable={unavailable}
             isErasing={isErasing}
             canReset={Boolean(layer.imageUrl && layer.assetPath)}
             onSetBrush={setBrush}
-            onSetHand={() => setHand(true)}
+            onSetHand={() => setHand((v) => !v)}
             onResetView={reset}
             onResetImage={props.onResetLayerImage}
           />
@@ -498,12 +502,13 @@ function EraserToolbarRow({
         {/* Thanh ngang chứa icon công cụ cọ tẩy nằm ở khoảng trống thừa */}
         <EraserToolbarRow
           hand={hand}
+          space={space}
           brushHardness={brushSettings.hardness}
           unavailable={unavailable}
           isErasing={isErasing}
           canReset={Boolean(layer.imageUrl && layer.assetPath)}
           onSetBrush={setBrush}
-          onSetHand={() => setHand(true)}
+          onSetHand={() => setHand((v) => !v)}
           onResetView={reset}
           onResetImage={props.onResetLayerImage}
         />

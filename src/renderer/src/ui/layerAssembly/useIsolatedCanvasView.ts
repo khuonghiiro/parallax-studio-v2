@@ -2,13 +2,29 @@ import { useRef, useState, useEffect } from 'react'
 import { isolatedImageGeometry } from './isolatedBrushGeometry'
 import type { PixelEditorProps } from './LayerAssemblyEraser'
 
+function isEditingText(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  if (target.isContentEditable) return true
+  const tag = target.tagName.toLowerCase()
+  if (tag === 'textarea') return true
+  if (tag === 'input') {
+    const type = (target as HTMLInputElement).type?.toLowerCase()
+    return !['range', 'checkbox', 'radio', 'button', 'submit', 'reset', 'color'].includes(type)
+  }
+  return false
+}
+
 function usePixelKeyboard(isErasing: boolean, setSpace: (value: boolean) => void, clearGesture: () => void) {
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.closest('input, textarea, [contenteditable=true]')) return
+      const activeEl = document.activeElement as HTMLElement | null
+      const targetEl = e.target as HTMLElement | null
+      if (isEditingText(activeEl) || isEditingText(targetEl)) return
+
       if (e.code === 'Space') {
         e.preventDefault()
         e.stopImmediatePropagation()
+        if (e.repeat) return
         if (!isErasing) setSpace(true)
       }
       if (e.key === 'Escape') {

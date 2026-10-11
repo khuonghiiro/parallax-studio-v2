@@ -41,8 +41,6 @@ export function useWorkshopShortcuts(
       }
       else if (e.code === 'Space') {
         if (boneCtxRef.current?.isErasing) {
-          e.preventDefault()
-          e.stopImmediatePropagation()
           return
         }
         togglePlay()

@@ -158,8 +158,6 @@ describe('useWorkshopShortcuts', () => {
       }
       else if (e.code === 'Space') {
         if (boneContext?.isErasing) {
-          e.preventDefault()
-          e.stopImmediatePropagation()
           return
         }
         togglePlay()
@@ -334,10 +332,8 @@ describe('useWorkshopShortcuts', () => {
         isErasing: true
       }
     })
-    const ev = fireKey({ key: ' ', code: 'Space' })
+    fireKey({ key: ' ', code: 'Space' })
     expect(togglePlay).not.toHaveBeenCalled()
-    expect(ev.defaultPrevented).toBe(true)
-    expect(ev.propagationStopped).toBe(true)
   })
 
   it('kích hoạt togglePlay khi phím Space được nhấn trong lúc bình thường (isErasing là false)', () => {
