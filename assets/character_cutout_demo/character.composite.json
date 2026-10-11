@@ -11,9 +11,9 @@
       "name": "hair-back",
       "assetPath": "character_cutout_demo/hair-back.png",
       "x": 0,
-      "y": -141,
+      "y": -125,
       "z": 8,
-      "scale": 0.36,
+      "scale": 0.385,
       "rotation": 0,
       "opacity": 1,
       "boneId": "bone-head",
@@ -30,275 +30,9 @@
       "name": "neck",
       "assetPath": "character_cutout_demo/neck.png",
       "x": -4,
-      "y": -126,
+      "y": -105,
       "z": 2,
-      "scale": 0.36,
-      "rotation": 0,
-      "opacity": 1,
-      "boneId": "bone-torso",
-      "bindingMode": "rigid",
-      "motion": {
-        "type": "none",
-        "speed": 1,
-        "amplitude": 0,
-        "anchor": "center"
-      }
-    },
-    {
-      "id": "demo-thigh-right",
-      "name": "thigh-right",
-      "assetPath": "character_cutout_demo/thigh-right.png",
-      "x": -29,
-      "y": 39,
-      "z": -2,
-      "scale": 0.36,
-      "rotation": 0,
-      "opacity": 1,
-      "boneId": "bone-thigh-r",
-      "bindingMode": "rigid",
-      "motion": {
-        "type": "none",
-        "speed": 1,
-        "amplitude": 0,
-        "anchor": "center"
-      }
-    },
-    {
-      "id": "demo-thigh-left",
-      "name": "thigh-left",
-      "assetPath": "character_cutout_demo/thigh-left.png",
-      "x": 33,
-      "y": 40,
-      "z": -2,
-      "scale": 0.36,
-      "rotation": 0,
-      "opacity": 1,
-      "boneId": "bone-thigh-l",
-      "bindingMode": "rigid",
-      "motion": {
-        "type": "none",
-        "speed": 1,
-        "amplitude": 0,
-        "anchor": "center"
-      }
-    },
-    {
-      "id": "demo-foot-right",
-      "name": "foot-right",
-      "assetPath": "character_cutout_demo/foot-right.png",
-      "x": -27,
-      "y": 138,
-      "z": -3,
-      "scale": 0.36,
-      "rotation": 0,
-      "opacity": 1,
-      "boneId": "bone-foot-r",
-      "bindingMode": "rigid",
-      "motion": {
-        "type": "none",
-        "speed": 1,
-        "amplitude": 0,
-        "anchor": "center"
-      }
-    },
-    {
-      "id": "demo-foot-left",
-      "name": "foot-left",
-      "assetPath": "character_cutout_demo/foot-left.png",
-      "x": 26,
-      "y": 138,
-      "z": -3,
-      "scale": 0.36,
-      "rotation": 0,
-      "opacity": 1,
-      "boneId": "bone-foot-l",
-      "bindingMode": "rigid",
-      "motion": {
-        "type": "none",
-        "speed": 1,
-        "amplitude": 0,
-        "anchor": "center"
-      }
-    },
-    {
-      "id": "demo-shin-right",
-      "name": "shin-right",
-      "assetPath": "character_cutout_demo/shin-right.png",
-      "x": -23,
-      "y": 91,
-      "z": -5,
-      "scale": 0.36,
-      "rotation": 0,
-      "opacity": 1,
-      "boneId": "bone-shin-r",
-      "bindingMode": "rigid",
-      "motion": {
-        "type": "none",
-        "speed": 1,
-        "amplitude": 0,
-        "anchor": "center"
-      }
-    },
-    {
-      "id": "demo-shin-left",
-      "name": "shin-left",
-      "assetPath": "character_cutout_demo/shin-left.png",
-      "x": 24,
-      "y": 90,
-      "z": -5,
-      "scale": 0.36,
-      "rotation": 0,
-      "opacity": 1,
-      "boneId": "bone-shin-l",
-      "bindingMode": "rigid",
-      "motion": {
-        "type": "none",
-        "speed": 1,
-        "amplitude": 0,
-        "anchor": "center"
-      }
-    },
-    {
-      "id": "demo-pelvis",
-      "name": "pelvis",
-      "assetPath": "character_cutout_demo/pelvis.png",
-      "x": -6,
-      "y": -19,
-      "z": -6,
-      "scale": 0.36,
-      "rotation": 0,
-      "opacity": 1,
-      "boneId": "bone-pelvis",
-      "bindingMode": "rigid",
-      "motion": {
-        "type": "none",
-        "speed": 1,
-        "amplitude": 0,
-        "anchor": "center"
-      }
-    },
-    {
-      "id": "demo-arm-right",
-      "name": "arm-right",
-      "assetPath": "character_cutout_demo/arm-right.png",
-      "x": -49,
-      "y": -72,
-      "z": -8,
-      "scale": 0.36,
-      "rotation": 0,
-      "opacity": 1,
-      "boneId": "bone-arm-r",
-      "bindingMode": "rigid",
-      "motion": {
-        "type": "none",
-        "speed": 1,
-        "amplitude": 0,
-        "anchor": "center"
-      }
-    },
-    {
-      "id": "demo-arm-left",
-      "name": "arm-left",
-      "assetPath": "character_cutout_demo/arm-left.png",
-      "x": 50,
-      "y": -73,
-      "z": -8,
-      "scale": 0.36,
-      "rotation": 0,
-      "opacity": 1,
-      "boneId": "bone-arm-l",
-      "bindingMode": "rigid",
-      "motion": {
-        "type": "none",
-        "speed": 1,
-        "amplitude": 0,
-        "anchor": "center"
-      }
-    },
-    {
-      "id": "demo-hand-right",
-      "name": "hand-right",
-      "assetPath": "character_cutout_demo/hand-right.png",
-      "x": -43,
-      "y": 11,
-      "z": -9,
-      "scale": 0.36,
-      "rotation": 0,
-      "opacity": 1,
-      "boneId": "bone-hand-r",
-      "bindingMode": "rigid",
-      "motion": {
-        "type": "none",
-        "speed": 1,
-        "amplitude": 0,
-        "anchor": "center"
-      }
-    },
-    {
-      "id": "demo-hand-left",
-      "name": "hand-left",
-      "assetPath": "character_cutout_demo/hand-left.png",
-      "x": 45,
-      "y": 11,
-      "z": -9,
-      "scale": 0.36,
-      "rotation": 0,
-      "opacity": 1,
-      "boneId": "bone-hand-l",
-      "bindingMode": "rigid",
-      "motion": {
-        "type": "none",
-        "speed": 1,
-        "amplitude": 0,
-        "anchor": "center"
-      }
-    },
-    {
-      "id": "demo-forearm-right",
-      "name": "forearm-right",
-      "assetPath": "character_cutout_demo/forearm-right.png",
-      "x": -53,
-      "y": -23,
-      "z": -11,
-      "scale": 0.36,
-      "rotation": 0,
-      "opacity": 1,
-      "boneId": "bone-forearm-r",
-      "bindingMode": "rigid",
-      "motion": {
-        "type": "none",
-        "speed": 1,
-        "amplitude": 0,
-        "anchor": "center"
-      }
-    },
-    {
-      "id": "demo-forearm-left",
-      "name": "forearm-left",
-      "assetPath": "character_cutout_demo/forearm-left.png",
-      "x": 47,
-      "y": -23,
-      "z": -11,
-      "scale": 0.36,
-      "rotation": 0,
-      "opacity": 1,
-      "boneId": "bone-forearm-l",
-      "bindingMode": "rigid",
-      "motion": {
-        "type": "none",
-        "speed": 1,
-        "amplitude": 0,
-        "anchor": "center"
-      }
-    },
-    {
-      "id": "demo-torso",
-      "name": "torso",
-      "assetPath": "character_cutout_demo/torso.png",
-      "x": -5,
-      "y": -69,
-      "z": -13,
-      "scale": 0.36,
+      "scale": 0.3,
       "rotation": 0,
       "opacity": 1,
       "boneId": "bone-torso",
@@ -315,9 +49,9 @@
       "name": "head",
       "assetPath": "character_cutout_demo/head.png",
       "x": -3,
-      "y": -140,
+      "y": -127,
       "z": -18,
-      "scale": 0.36,
+      "scale": 0.385,
       "rotation": 0,
       "opacity": 1,
       "boneId": "bone-head",
@@ -334,12 +68,278 @@
       "name": "hair-front",
       "assetPath": "character_cutout_demo/hair-front.png",
       "x": -1,
-      "y": -140,
-      "z": -22,
-      "scale": 0.36,
+      "y": -127,
+      "z": -25,
+      "scale": 0.38,
       "rotation": 0,
       "opacity": 1,
       "boneId": "bone-head",
+      "bindingMode": "rigid",
+      "motion": {
+        "type": "none",
+        "speed": 1,
+        "amplitude": 0,
+        "anchor": "center"
+      }
+    },
+    {
+      "id": "demo-torso",
+      "name": "torso",
+      "assetPath": "character_cutout_demo/torso.png",
+      "x": -6,
+      "y": -43,
+      "z": -10,
+      "scale": 0.44,
+      "rotation": 0,
+      "opacity": 1,
+      "boneId": "bone-torso",
+      "bindingMode": "rigid",
+      "motion": {
+        "type": "none",
+        "speed": 1,
+        "amplitude": 0,
+        "anchor": "center"
+      }
+    },
+    {
+      "id": "demo-pelvis",
+      "name": "pelvis",
+      "assetPath": "character_cutout_demo/pelvis.png",
+      "x": -6,
+      "y": 9,
+      "z": -8,
+      "scale": 0.37,
+      "rotation": 0,
+      "opacity": 1,
+      "boneId": "bone-pelvis",
+      "bindingMode": "rigid",
+      "motion": {
+        "type": "none",
+        "speed": 1,
+        "amplitude": 0,
+        "anchor": "center"
+      }
+    },
+    {
+      "id": "demo-arm-left",
+      "name": "arm-left",
+      "assetPath": "character_cutout_demo/arm-left.png",
+      "x": -45,
+      "y": -50,
+      "z": -12,
+      "scale": 0.285,
+      "rotation": 0,
+      "opacity": 1,
+      "boneId": "bone-arm-l",
+      "bindingMode": "rigid",
+      "motion": {
+        "type": "none",
+        "speed": 1,
+        "amplitude": 0,
+        "anchor": "center"
+      }
+    },
+    {
+      "id": "demo-forearm-left",
+      "name": "forearm-left",
+      "assetPath": "character_cutout_demo/forearm-left.png",
+      "x": -50,
+      "y": -9,
+      "z": -14,
+      "scale": 0.275,
+      "rotation": 0,
+      "opacity": 1,
+      "boneId": "bone-forearm-l",
+      "bindingMode": "rigid",
+      "motion": {
+        "type": "none",
+        "speed": 1,
+        "amplitude": 0,
+        "anchor": "center"
+      }
+    },
+    {
+      "id": "demo-hand-left",
+      "name": "hand-left",
+      "assetPath": "character_cutout_demo/hand-left.png",
+      "x": -50,
+      "y": 18,
+      "z": -16,
+      "scale": 0.21,
+      "rotation": 0,
+      "opacity": 1,
+      "boneId": "bone-hand-l",
+      "bindingMode": "rigid",
+      "motion": {
+        "type": "none",
+        "speed": 1,
+        "amplitude": 0,
+        "anchor": "center"
+      }
+    },
+    {
+      "id": "demo-arm-right",
+      "name": "arm-right",
+      "assetPath": "character_cutout_demo/arm-right.png",
+      "x": 46,
+      "y": -49,
+      "z": -12,
+      "scale": 0.285,
+      "rotation": 0,
+      "opacity": 1,
+      "boneId": "bone-arm-r",
+      "bindingMode": "rigid",
+      "motion": {
+        "type": "none",
+        "speed": 1,
+        "amplitude": 0,
+        "anchor": "center"
+      }
+    },
+    {
+      "id": "demo-forearm-right",
+      "name": "forearm-right",
+      "assetPath": "character_cutout_demo/forearm-right.png",
+      "x": 45,
+      "y": -9,
+      "z": -14,
+      "scale": 0.275,
+      "rotation": 0,
+      "opacity": 1,
+      "boneId": "bone-forearm-r",
+      "bindingMode": "rigid",
+      "motion": {
+        "type": "none",
+        "speed": 1,
+        "amplitude": 0,
+        "anchor": "center"
+      }
+    },
+    {
+      "id": "demo-hand-right",
+      "name": "hand-right",
+      "assetPath": "character_cutout_demo/hand-right.png",
+      "x": 51,
+      "y": 18,
+      "z": -16,
+      "scale": 0.21,
+      "rotation": 0,
+      "opacity": 1,
+      "boneId": "bone-hand-r",
+      "bindingMode": "rigid",
+      "motion": {
+        "type": "none",
+        "speed": 1,
+        "amplitude": 0,
+        "anchor": "center"
+      }
+    },
+    {
+      "id": "demo-thigh-left",
+      "name": "thigh-left",
+      "assetPath": "character_cutout_demo/thigh-left.png",
+      "x": -12,
+      "y": 70,
+      "z": -4,
+      "scale": 0.34,
+      "rotation": 0,
+      "opacity": 1,
+      "boneId": "bone-thigh-l",
+      "bindingMode": "rigid",
+      "motion": {
+        "type": "none",
+        "speed": 1,
+        "amplitude": 0,
+        "anchor": "center"
+      }
+    },
+    {
+      "id": "demo-shin-left",
+      "name": "shin-left",
+      "assetPath": "character_cutout_demo/shin-left.png",
+      "x": -22,
+      "y": 124,
+      "z": -5,
+      "scale": 0.33,
+      "rotation": 0,
+      "opacity": 1,
+      "boneId": "bone-shin-l",
+      "bindingMode": "rigid",
+      "motion": {
+        "type": "none",
+        "speed": 1,
+        "amplitude": 0,
+        "anchor": "center"
+      }
+    },
+    {
+      "id": "demo-foot-left",
+      "name": "foot-left",
+      "assetPath": "character_cutout_demo/foot-left.png",
+      "x": -20,
+      "y": 175,
+      "z": -6,
+      "scale": 0.25,
+      "rotation": 0,
+      "opacity": 1,
+      "boneId": "bone-foot-l",
+      "bindingMode": "rigid",
+      "motion": {
+        "type": "none",
+        "speed": 1,
+        "amplitude": 0,
+        "anchor": "center"
+      }
+    },
+    {
+      "id": "demo-thigh-right",
+      "name": "thigh-right",
+      "assetPath": "character_cutout_demo/thigh-right.png",
+      "x": 17,
+      "y": 69,
+      "z": -4,
+      "scale": 0.34,
+      "rotation": 0,
+      "opacity": 1,
+      "boneId": "bone-thigh-r",
+      "bindingMode": "rigid",
+      "motion": {
+        "type": "none",
+        "speed": 1,
+        "amplitude": 0,
+        "anchor": "center"
+      }
+    },
+    {
+      "id": "demo-shin-right",
+      "name": "shin-right",
+      "assetPath": "character_cutout_demo/shin-right.png",
+      "x": 22,
+      "y": 124,
+      "z": -5,
+      "scale": 0.33,
+      "rotation": 0,
+      "opacity": 1,
+      "boneId": "bone-shin-r",
+      "bindingMode": "rigid",
+      "motion": {
+        "type": "none",
+        "speed": 1,
+        "amplitude": 0,
+        "anchor": "center"
+      }
+    },
+    {
+      "id": "demo-foot-right",
+      "name": "foot-right",
+      "assetPath": "character_cutout_demo/foot-right.png",
+      "x": 19,
+      "y": 176,
+      "z": -6,
+      "scale": 0.25,
+      "rotation": 0,
+      "opacity": 1,
+      "boneId": "bone-foot-r",
       "bindingMode": "rigid",
       "motion": {
         "type": "none",
@@ -355,8 +355,8 @@
         "id": "bone-pelvis",
         "name": "Hông",
         "x": 0,
-        "y": -11,
-        "length": 56,
+        "y": 18,
+        "length": 45,
         "angle": -90
       },
       {
@@ -364,8 +364,8 @@
         "name": "Thân",
         "parentId": "bone-pelvis",
         "x": 0,
-        "y": -67,
-        "length": 68,
+        "y": -40,
+        "length": 55,
         "angle": -90
       },
       {
@@ -373,116 +373,116 @@
         "name": "Đầu",
         "parentId": "bone-torso",
         "x": 0,
-        "y": -135,
-        "length": 60,
+        "y": -122,
+        "length": 50,
         "angle": -90
-      },
-      {
-        "id": "bone-arm-r",
-        "name": "Bắp tay phải",
-        "parentId": "bone-torso",
-        "x": -49,
-        "y": -67,
-        "length": 45,
-        "angle": 90
-      },
-      {
-        "id": "bone-forearm-r",
-        "name": "Cẳng tay phải",
-        "parentId": "bone-arm-r",
-        "x": -49,
-        "y": -22,
-        "length": 36,
-        "angle": 90
-      },
-      {
-        "id": "bone-hand-r",
-        "name": "Bàn tay phải",
-        "parentId": "bone-forearm-r",
-        "x": -49,
-        "y": 14,
-        "length": 30,
-        "angle": 90
       },
       {
         "id": "bone-arm-l",
         "name": "Bắp tay trái",
         "parentId": "bone-torso",
-        "x": 49,
-        "y": -67,
-        "length": 45,
+        "x": -46,
+        "y": -45,
+        "length": 38,
         "angle": 90
       },
       {
         "id": "bone-forearm-l",
         "name": "Cẳng tay trái",
         "parentId": "bone-arm-l",
-        "x": 49,
-        "y": -22,
-        "length": 36,
+        "x": -48,
+        "y": -8,
+        "length": 30,
         "angle": 90
       },
       {
         "id": "bone-hand-l",
         "name": "Bàn tay trái",
         "parentId": "bone-forearm-l",
-        "x": 49,
-        "y": 14,
+        "x": -48,
+        "y": 20,
+        "length": 25,
+        "angle": 90
+      },
+      {
+        "id": "bone-arm-r",
+        "name": "Bắp tay phải",
+        "parentId": "bone-torso",
+        "x": 46,
+        "y": -45,
+        "length": 38,
+        "angle": 90
+      },
+      {
+        "id": "bone-forearm-r",
+        "name": "Cẳng tay phải",
+        "parentId": "bone-arm-r",
+        "x": 48,
+        "y": -8,
         "length": 30,
         "angle": 90
       },
       {
-        "id": "bone-thigh-r",
-        "name": "Đùi phải",
-        "parentId": "bone-pelvis",
-        "x": -23,
-        "y": -11,
-        "length": 49,
-        "angle": 90
-      },
-      {
-        "id": "bone-shin-r",
-        "name": "Cẳng chân phải",
-        "parentId": "bone-thigh-r",
-        "x": -23,
-        "y": 38,
-        "length": 52,
-        "angle": 90
-      },
-      {
-        "id": "bone-foot-r",
-        "name": "Bàn chân phải",
-        "parentId": "bone-shin-r",
-        "x": -23,
-        "y": 90,
-        "length": 35,
+        "id": "bone-hand-r",
+        "name": "Bàn tay phải",
+        "parentId": "bone-forearm-r",
+        "x": 48,
+        "y": 20,
+        "length": 25,
         "angle": 90
       },
       {
         "id": "bone-thigh-l",
         "name": "Đùi trái",
         "parentId": "bone-pelvis",
-        "x": 23,
-        "y": -11,
-        "length": 49,
+        "x": -22,
+        "y": 68,
+        "length": 48,
         "angle": 90
       },
       {
         "id": "bone-shin-l",
         "name": "Cẳng chân trái",
         "parentId": "bone-thigh-l",
-        "x": 23,
-        "y": 38,
-        "length": 52,
+        "x": -22,
+        "y": 124,
+        "length": 45,
         "angle": 90
       },
       {
         "id": "bone-foot-l",
         "name": "Bàn chân trái",
         "parentId": "bone-shin-l",
-        "x": 23,
-        "y": 90,
-        "length": 35,
+        "x": -22,
+        "y": 172,
+        "length": 28,
+        "angle": 90
+      },
+      {
+        "id": "bone-thigh-r",
+        "name": "Đùi phải",
+        "parentId": "bone-pelvis",
+        "x": 22,
+        "y": 68,
+        "length": 48,
+        "angle": 90
+      },
+      {
+        "id": "bone-shin-r",
+        "name": "Cẳng chân phải",
+        "parentId": "bone-thigh-r",
+        "x": 22,
+        "y": 124,
+        "length": 45,
+        "angle": 90
+      },
+      {
+        "id": "bone-foot-r",
+        "name": "Bàn chân phải",
+        "parentId": "bone-shin-r",
+        "x": 22,
+        "y": 172,
+        "length": 28,
         "angle": 90
       }
     ],
