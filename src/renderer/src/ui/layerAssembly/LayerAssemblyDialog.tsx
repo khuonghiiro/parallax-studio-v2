@@ -41,6 +41,7 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
   const close = () => { if (!saving.busy) onClose() }
   const [view, setView] = useState<AssemblyWorkspaceView>('split')
   const [showNewConfirm, setShowNewConfirm] = useState(false)
+  const [isBrushActive, setIsBrushActive] = useState(false)
 
   // Kiểm tra xem composite hiện tại có thay đổi chưa lưu hay không
   const hasUnsavedChanges = (): boolean => {
@@ -79,7 +80,12 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
     setShowNewConfirm(false)
   }
 
-  useWorkshopShortcuts(state, playback.toggle, close, { tab, boneId, selectBone })
+  useWorkshopShortcuts(state, playback.toggle, close, {
+    tab,
+    boneId,
+    selectBone,
+    isErasing: isBrushActive && tab === 'layers'
+  })
   useEffect(() => registerLayerAssemblySession({
     getComposite: () => history.current, setComposite,
     getSelectedLayerId: () => state.selectedLayerId, setSelectedLayerId: state.select,
@@ -127,7 +133,15 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
           }}
         />
         <div className="lw-workspace-column">
-          <WorkshopWorkspace state={state} playback={playback} view={view} tab={tab} boneId={boneId} selectBone={selectBone} />
+          <WorkshopWorkspace
+            state={state}
+            playback={playback}
+            view={view}
+            tab={tab}
+            boneId={boneId}
+            selectBone={selectBone}
+            onBrushModeChange={setIsBrushActive}
+          />
         </div>
         <WorkshopRightPanel state={state} playback={playback} tab={tab} setTab={setTab} boneId={boneId} selectBone={selectBone}>
         <LayerAssemblyInspector composite={composite} selectedLayerId={state.selectedLayerId} selectedIds={state.selection}

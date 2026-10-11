@@ -80,6 +80,7 @@ describe('useWorkshopShortcuts', () => {
       tab?: string
       boneId?: string | null
       selectBone?: (id: string | null) => void
+      isErasing?: boolean
     }
   } = {}) {
     const updateFn = overrides.onUpdate || vi.fn()
@@ -155,7 +156,14 @@ describe('useWorkshopShortcuts', () => {
           state.run('delete')
         }
       }
-      else if (e.code === 'Space') togglePlay()
+      else if (e.code === 'Space') {
+        if (boneContext?.isErasing) {
+          e.preventDefault()
+          e.stopImmediatePropagation()
+          return
+        }
+        togglePlay()
+      }
       else if (e.key === 'Escape') {
         if (boneContext?.boneId) boneContext.selectBone?.(null)
         else if (state.selection.length) state.select(null)
@@ -195,7 +203,7 @@ describe('useWorkshopShortcuts', () => {
 
     listeners['keydown'] = [handle]
 
-    return { state, updateFn }
+    return { state, updateFn, togglePlay }
   }
 
   it('layer tiến ra trước (Z âm hơn) khi nhấn phím +', () => {
@@ -318,5 +326,29 @@ describe('useWorkshopShortcuts', () => {
     fireKey({ key: 'Delete' })
     expect(state.setComposite).toHaveBeenCalled()
     expect(selectBone).toHaveBeenCalledWith(null)
+  })
+
+  it('không kích hoạt togglePlay khi phím Space được nhấn trong lúc isErasing là true (chế độ cọ tẩy)', () => {
+    const { togglePlay } = setupHook({
+      boneContext: {
+        isErasing: true
+      }
+    })
+    const ev = fireKey({ key: ' ', code: 'Space' })
+    expect(togglePlay).not.toHaveBeenCalled()
+    expect(ev.defaultPrevented).toBe(true)
+    expect(ev.propagationStopped).toBe(true)
+  })
+
+  it('kích hoạt togglePlay khi phím Space được nhấn trong lúc bình thường (isErasing là false)', () => {
+    const { togglePlay } = setupHook({
+      boneContext: {
+        isErasing: false
+      }
+    })
+    const ev = fireKey({ key: ' ', code: 'Space' })
+    expect(togglePlay).toHaveBeenCalledTimes(1)
+    expect(ev.defaultPrevented).toBe(true)
+    expect(ev.propagationStopped).toBe(true)
   })
 })

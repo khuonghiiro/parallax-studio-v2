@@ -6,6 +6,7 @@ export interface WorkshopBoneContext {
   tab?: string
   boneId?: string | null
   selectBone?: (id: string | null) => void
+  isErasing?: boolean
 }
 
 export function useWorkshopShortcuts(
@@ -38,7 +39,14 @@ export function useWorkshopShortcuts(
           state.run('delete')
         }
       }
-      else if (e.code === 'Space') togglePlay()
+      else if (e.code === 'Space') {
+        if (boneCtxRef.current?.isErasing) {
+          e.preventDefault()
+          e.stopImmediatePropagation()
+          return
+        }
+        togglePlay()
+      }
       else if (e.key === 'Escape') {
         const ctx = boneCtxRef.current
         if (ctx?.boneId) ctx.selectBone?.(null)

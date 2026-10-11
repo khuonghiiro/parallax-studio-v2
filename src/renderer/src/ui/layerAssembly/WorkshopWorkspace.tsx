@@ -12,9 +12,10 @@ import type { WorkshopTab } from './WorkshopRightPanel'
 import { loadLayerWorkshopViewPrefs, saveLayerWorkshopViewPrefs } from './layerAssemblyViewPrefs'
 import type { BrushPreview } from './useLayerBrushEraser'
 
-export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBone }: {
+export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBone, onBrushModeChange }: {
   state: ReturnType<typeof useLayerWorkshop>; playback: ReturnType<typeof useWorkshopPlayback>; view: AssemblyWorkspaceView
   tab: WorkshopTab; boneId: string | null; selectBone: (id: string | null) => void
+  onBrushModeChange?: (active: boolean) => void
 }) {
   const [showBones, setShowBones] = useState(() => loadLayerWorkshopViewPrefs().showBones)
   const [showMesh, setShowMesh] = useState(() => loadLayerWorkshopViewPrefs().showMesh)
@@ -22,8 +23,9 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
   const [brushPreview, setBrushPreview] = useState<BrushPreview | null>(null)
   const brushMode = useCallback((editing: boolean) => {
     setBrushEditing(editing)
+    onBrushModeChange?.(editing)
     if (editing) playback.setIsPlaying(false)
-  }, [playback.setIsPlaying])
+  }, [playback.setIsPlaying, onBrushModeChange])
 
   const toggleBones = useCallback(() => {
     setShowBones((v) => {

@@ -2,15 +2,32 @@ import { useRef, useState, useEffect } from 'react'
 import { isolatedImageGeometry } from './isolatedBrushGeometry'
 import type { PixelEditorProps } from './LayerAssemblyEraser'
 
-function usePixelKeyboard(hover: boolean, isErasing: boolean, setSpace: (value: boolean) => void, clearGesture: () => void) {
+function usePixelKeyboard(isErasing: boolean, setSpace: (value: boolean) => void, clearGesture: () => void) {
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (!hover || (e.target as HTMLElement)?.closest('input, textarea, [contenteditable=true]')) return
-      if (e.code === 'Space') { e.preventDefault(); e.stopImmediatePropagation(); if (!isErasing) setSpace(true) }
-      if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); clearGesture() }
+      if ((e.target as HTMLElement)?.closest('input, textarea, [contenteditable=true]')) return
+      if (e.code === 'Space') {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        if (!isErasing) setSpace(true)
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        clearGesture()
+      }
     }
-    const up = (e: KeyboardEvent) => { if (e.code === 'Space') setSpace(false) }
-    const blur = () => { setSpace(false); clearGesture() }
+    const up = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        setSpace(false)
+      }
+    }
+    const blur = () => {
+      setSpace(false)
+      clearGesture()
+    }
     window.addEventListener('keydown', down, true)
     window.addEventListener('keyup', up, true)
     window.addEventListener('blur', blur)
@@ -19,7 +36,7 @@ function usePixelKeyboard(hover: boolean, isErasing: boolean, setSpace: (value: 
       window.removeEventListener('keyup', up, true)
       window.removeEventListener('blur', blur)
     }
-  }, [hover, isErasing, clearGesture, setSpace])
+  }, [isErasing, clearGesture, setSpace])
 }
 
 export function useIsolatedCanvasView(props: PixelEditorProps) {
@@ -44,7 +61,7 @@ export function useIsolatedCanvasView(props: PixelEditorProps) {
     observer.observe(el)
     return () => observer.disconnect()
   }, [])
-  usePixelKeyboard(hover, isErasing, setSpace, clearGesture)
+  usePixelKeyboard(isErasing, setSpace, clearGesture)
   const wheel = (e: React.WheelEvent) => {
     e.stopPropagation()
     if (isErasing || panning || !canvasRef.current || !e.deltaY) return
