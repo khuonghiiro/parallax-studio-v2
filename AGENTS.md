@@ -190,3 +190,7 @@ Khi thực hiện các nhiệm vụ chuyên biệt, AI cần tham chiếu các s
 - MCP: `select_layer_assembly_layers`, `layer_assembly_action`, `layer_assembly_history`, `layer_assembly_rig`, `set_layer_assembly_playback`, `set_layer_assembly_panel`, `add_layer_assembly_layer`, `update_layer_assembly_layer`, `reorder_layer_assembly_layer`, `update_layer_assembly`, `load_layer_assembly`.
 - Tests: `workshopActions.test.ts`, `workshopHistory.test.ts`, `workshopRig.test.ts`, `mcp/commands/layerAssemblyCommands.test.ts`. Hướng dẫn: `docs/layer-workshop-tools.md`, `mcp-server/README.md`.
 
+
+### Layer workshop pixel editor
+- Cọ tẩy chỉ hoạt động trong khung chỉnh pixel góc dưới trái; bố cục lớn dùng để xem và chọn layer. Thanh dọc gồm cọ mềm, tẩy nét cứng, bàn tay, vừa khung và khôi phục ảnh gốc. Cuộn để zoom quanh con trỏ; Space + kéo hoặc chuột giữa để dời ảnh. Escape hủy nét, mỗi nét hoàn tất là một bước hoàn tác.
+- Hình ảnh và tọa độ cọ dùng chung `isolatedBrushGeometry.ts`; kiểm thử tại `isolatedBrushGeometry.test.ts`. MCP tiếp tục dùng `update_layer_assembly_layer` với `patch.imageUrl` qua lịch sử bản nháp, không thêm tool hay schema cho thay đổi bố trí UI.

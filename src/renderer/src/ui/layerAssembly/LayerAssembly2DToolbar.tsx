@@ -128,8 +128,8 @@ export function LayerAssembly2DToolbar({
       eraser: {
         title: 'Cọ tẩy xoá pixel & Mờ xuyên thấu (B)',
         sub: 'Xoá chi tiết thừa / Làm mờ nhẹ',
-        desc: 'Quẹt cọ lên layer đang chọn để tẩy xoá pixel thừa hoặc giảm mờ xuyên thấu nhẹ tại khớp nối.',
-        tip: '🖌 Bấm để bật cấu hình cọ'
+        desc: 'Chỉnh pixel trong khung ảnh góc dưới trái: cọ mềm, tẩy nét cứng và bàn tay. Khung lớn chỉ xem và chọn layer.',
+        tip: '🖌 Bấm để mở khung chỉnh pixel'
       },
       zoom: {
         title: `Thu phóng: ${Math.round(zoom * 100)}%`,

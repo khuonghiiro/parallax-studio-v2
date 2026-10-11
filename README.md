@@ -145,3 +145,7 @@ Selecting an unlocked, visible layer in Camera (2D preview), 3D, orthographic or
 AI parity: `update_layer` edits the same `position`, `rotation` (degrees), and `scale` (scalar or `[x,y,z]` multipliers); `at_time` creates a keyframe explicitly. Example: `pnpm pxs call update_layer '{"layer_id":"layer-1","rotation":[0,0,30],"scale":[1.5,0.8,1]}'`.
 
 **Xưởng Lắp Ráp Layer:** thanh công cụ chọn nhiều lớp (Ctrl/Shift + bấm), kéo nhóm trong 2D, căn tâm/chia đều X–Y, tách Z theo bước tùy chỉnh, khóa/ẩn/nhân bản/xóa và so le pha. Undo/Redo riêng cho bản nháp, một bước mỗi gesture hoặc lệnh hàng loạt. MCP: `select_layer_assembly_layers`, `layer_assembly_action`, `layer_assembly_history`. [Hướng dẫn](docs/layer-workshop-tools.md).
+
+### Layer workshop pixel editor
+- Cọ tẩy chỉ hoạt động trong khung chỉnh pixel góc dưới trái; bố cục lớn dùng để xem và chọn layer. Thanh dọc gồm cọ mềm, tẩy nét cứng, bàn tay, vừa khung và khôi phục ảnh gốc. Cuộn để zoom quanh con trỏ; Space + kéo hoặc chuột giữa để dời ảnh. Escape hủy nét, mỗi nét hoàn tất là một bước hoàn tác.
+- Hình ảnh và tọa độ cọ dùng chung `isolatedBrushGeometry.ts`; kiểm thử tại `isolatedBrushGeometry.test.ts`. MCP tiếp tục dùng `update_layer_assembly_layer` với `patch.imageUrl` qua lịch sử bản nháp, không thêm tool hay schema cho thay đổi bố trí UI.

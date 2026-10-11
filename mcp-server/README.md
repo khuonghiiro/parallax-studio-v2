@@ -347,3 +347,7 @@ Right panel features 3 tabs: Layer (`layers`), Bone Rigging (`bones`), Animation
 Cột phải gồm 3 tab: Layer (`layers`), Tạo xương (`bones`), Animation (`animation`). Xương bát diện trực quan theo chuẩn Blender (khớp gốc Head, khớp đuôi Tail, thân khối 3D đổ bóng, phân cấp cha-con). Tab Tạo xương cho phép kéo Head dời vị trí, kéo Tail đổi góc xoay và chiều dài. Tab Animation hỗ trợ kéo xoay xương trực quan trên màn hình 2D (Pose Mode) và tự động sinh chuyển động đi bộ (walk cycle), đứng thở (idle breathe), vẫy tay (wave), uốn lượn (sway). Khi chèn vào phân cảnh, toàn bộ chuyển động xương được bake thành keyframe chuẩn của dự án.
 MCP: `layer_assembly_rig`, `set_layer_assembly_playback`, `set_layer_assembly_panel`, `add_layer_assembly_layer`, `update_layer_assembly_layer`, `reorder_layer_assembly_layer`, `update_layer_assembly`, `load_layer_assembly`.
 
+
+### Layer workshop pixel editor
+- Cọ tẩy chỉ hoạt động trong khung chỉnh pixel góc dưới trái; bố cục lớn dùng để xem và chọn layer. Thanh dọc gồm cọ mềm, tẩy nét cứng, bàn tay, vừa khung và khôi phục ảnh gốc. Cuộn để zoom quanh con trỏ; Space + kéo hoặc chuột giữa để dời ảnh. Escape hủy nét, mỗi nét hoàn tất là một bước hoàn tác.
+- Hình ảnh và tọa độ cọ dùng chung `isolatedBrushGeometry.ts`; kiểm thử tại `isolatedBrushGeometry.test.ts`. MCP tiếp tục dùng `update_layer_assembly_layer` với `patch.imageUrl` qua lịch sử bản nháp, không thêm tool hay schema cho thay đổi bố trí UI.

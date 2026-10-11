@@ -17,7 +17,7 @@ import {
 import { AssembledLayerItemView } from './AssembledLayerItemView'
 import { LayerAssembly2DToolbar } from './LayerAssembly2DToolbar'
 import { useLayerBrushEraser, type BrushPreview } from './useLayerBrushEraser'
-import { EraserTopBar, EraserIsolatedCanvas } from './LayerAssemblyEraser'
+import { EraserIsolatedCanvas } from './LayerAssemblyEraser'
 import type { WorkshopTab } from './WorkshopRightPanel'
 
 export interface LayerAssemblyViewportProps {
@@ -94,11 +94,8 @@ export function LayerAssemblyViewport({
   // Hook công cụ Cọ Tẩy (Brush Eraser) để xoá pixel thừa và làm mờ xuyên thấu nhẹ
   const brush = useLayerBrushEraser({
     selectedLayer: brushSourceLayer === undefined ? selectedLayer : brushSourceLayer,
-    zoom,
-    pan,
     onUpdateLayer,
-    onPreview: handleBrushPreview,
-    containerRef
+    onPreview: handleBrushPreview
   })
 
   // Tự động đóng cọ tẩy khi chuyển tab hoặc khi đang phát hoạt ảnh
@@ -222,30 +219,12 @@ export function LayerAssemblyViewport({
       return
     }
 
-    // Nếu đang ở công cụ Cọ Tẩy (Eraser) và click lên layer đã chọn
-    if (brush.activeTool === 'eraser') {
-      if (selectedLayer && e.button === 0) {
-        brush.handleEraserPointerDown(e)
-        return
-      }
-    }
+    if (brush.activeTool === 'eraser') return
 
     onSelectLayer(null)
   }
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    const target = e.target as HTMLElement | null
-    const isOverUI = !!target?.closest?.(
-      '.layer-workshop-3d-vertical-dock, .layer-brush-popover, .layer-workshop-popover-menu, .layer-workshop-transport-bar, button, input, .dock-divider'
-    )
-
-    // Khi hover vào UI dock/toolbar: Ẩn ngay vòng tròn cọ
-    if (isOverUI) {
-      brush.setCursorPos(null)
-    } else {
-      brush.handleEraserPointerMove(e)
-    }
-
     if (brush.isErasing) return
 
     if (isPanning) {
@@ -349,9 +328,6 @@ export function LayerAssemblyViewport({
         onSelectLayer(layer.id, false)
         return
       }
-      if (!layer.locked && e.button === 0) {
-        brush.handleEraserPointerDown(e)
-      }
       return
     }
 
@@ -396,8 +372,6 @@ export function LayerAssemblyViewport({
         cursor: isPanning
           ? 'grab'
           : isDraggingHandle
-          ? 'crosshair'
-          : brush.activeTool === 'eraser'
           ? 'crosshair'
           : 'default',
         userSelect: 'none'
@@ -536,26 +510,6 @@ export function LayerAssemblyViewport({
         )}
       </div>
 
-      {/* Vòng tròn con trỏ Cọ Tẩy (Brush Cursor Indicator) theo thời gian thực */}
-      {brush.activeTool === 'eraser' && brush.cursorPos && !brush.cursorPos.isIsolated && (
-        <div
-          style={{
-            position: 'absolute',
-            left: `${brush.cursorPos.x}px`,
-            top: `${brush.cursorPos.y}px`,
-            width: `${brush.brushSettings.size * 2 * zoom}px`,
-            height: `${brush.brushSettings.size * 2 * zoom}px`,
-            transform: 'translate(-50%, -50%)',
-            borderRadius: '50%',
-            border: '1.5px solid var(--accent-cyan)',
-            background: `rgba(56, 189, 248, ${Math.max(0.08, brush.brushSettings.opacity * 0.22)})`,
-            boxShadow: '0 0 10px rgba(56, 189, 248, 0.45)',
-            pointerEvents: 'none',
-            zIndex: 9999
-          }}
-        />
-      )}
-
       {/* Tab dọc công cụ 2D & Cọ tẩy xử lý */}
       <LayerAssembly2DToolbar
         activeTool={brush.activeTool}
@@ -609,14 +563,6 @@ export function LayerAssemblyViewport({
       {/* Giao diện thanh ngang Tẩy và Khung ảnh Tẩy độc lập */}
       {brush.activeTool === 'eraser' && (!tab || tab === 'layers') && !isPlaying && (
         <>
-          <EraserTopBar
-            brushSettings={brush.brushSettings}
-            onChangeBrushSettings={brush.setBrushSettings}
-            hasSelectedLayer={!!selectedLayer}
-            hasModifiedImage={!!selectedLayer?.imageUrl}
-            onResetLayerImage={brush.resetLayerImage}
-            onClose={() => brush.setActiveTool('select')}
-          />
           {selectedLayer && (
             <EraserIsolatedCanvas
               layer={selectedLayer}
@@ -626,6 +572,12 @@ export function LayerAssemblyViewport({
               onPointerDown={brush.handleIsolatedPointerDown}
               onPointerMove={brush.handleIsolatedPointerMove}
               onPointerUp={brush.handleEraserPointerUp}
+              onCancel={brush.cancelStroke}
+              onCursorLeave={() => brush.setCursorPos(null)}
+              onChangeBrushSettings={brush.setBrushSettings}
+              onResetLayerImage={brush.resetLayerImage}
+              onClose={() => brush.setActiveTool('select')}
+              isErasing={brush.isErasing}
             />
           )}
         </>
