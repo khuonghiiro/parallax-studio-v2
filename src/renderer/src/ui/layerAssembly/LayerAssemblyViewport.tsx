@@ -358,17 +358,65 @@ export function LayerAssemblyViewport({
     ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
   }
 
+  const isEraserActive = brush.activeTool === 'eraser' && (!tab || tab === 'layers') && !isPlaying
+  const [eraserHeight, setEraserHeight] = useState(250)
+
+  const handleSplitterPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const startY = e.clientY
+    const startHeight = eraserHeight
+    const target = e.currentTarget
+    try {
+      target.setPointerCapture(e.pointerId)
+    } catch {}
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const deltaY = startY - moveEvent.clientY
+      const newHeight = Math.max(160, Math.min(480, startHeight + deltaY))
+      setEraserHeight(newHeight)
+    }
+
+    const onPointerUp = (upEvent: PointerEvent) => {
+      try {
+        if (target.hasPointerCapture(upEvent.pointerId)) {
+          target.releasePointerCapture(upEvent.pointerId)
+        }
+      } catch {}
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+    }
+
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
+  }, [eraserHeight])
+
   return (
     <div
-      ref={containerRef}
-      className="layer-workshop-viewport"
+      className="layer-assembly-viewport-container"
       style={{
-        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
         flex: '1 1 0%',
         minWidth: 0,
+        minHeight: 0,
+        width: '100%',
         height: '100%',
-        background: 'var(--bg-0)',
-        overflow: 'hidden',
+        position: 'relative',
+        overflow: 'hidden'
+      }}
+    >
+      <div
+        ref={containerRef}
+        className="layer-workshop-viewport"
+        style={{
+          position: 'relative',
+          flex: '1 1 0%',
+          minWidth: 0,
+          minHeight: 0,
+          width: '100%',
+          height: isEraserActive ? undefined : '100%',
+          background: 'var(--bg-0)',
+          overflow: 'hidden',
         cursor: isPanning
           ? 'grab'
           : isDraggingHandle
@@ -560,29 +608,6 @@ export function LayerAssemblyViewport({
         atmosphereIcon={atmosphere.icon}
       />
 
-      {/* Giao diện thanh ngang Tẩy và Khung ảnh Tẩy độc lập */}
-      {brush.activeTool === 'eraser' && (!tab || tab === 'layers') && !isPlaying && (
-        <>
-          {selectedLayer && (
-            <EraserIsolatedCanvas
-              layer={selectedLayer}
-              imagePreviewUrl={isolatedPreviewUrl}
-              brushSettings={brush.brushSettings}
-              cursorPos={brush.cursorPos}
-              onPointerDown={brush.handleIsolatedPointerDown}
-              onPointerMove={brush.handleIsolatedPointerMove}
-              onPointerUp={brush.handleEraserPointerUp}
-              onCancel={brush.cancelStroke}
-              onCursorLeave={() => brush.setCursorPos(null)}
-              onChangeBrushSettings={brush.setBrushSettings}
-              onResetLayerImage={brush.resetLayerImage}
-              onClose={() => brush.setActiveTool('select')}
-              isErasing={brush.isErasing}
-            />
-          )}
-        </>
-      )}
-
       {/* Floating 2D Hint */}
       {brush.activeTool !== 'eraser' && (
         <div
@@ -616,6 +641,47 @@ export function LayerAssemblyViewport({
         />
       )}
     </div>
+
+    {/* Hàng 2: Splitter & Giao diện Tẩy Layer */}
+    {isEraserActive && (
+      <>
+        <div
+          className="layer-eraser-splitter"
+          onPointerDown={handleSplitterPointerDown}
+          title="Kéo chuột để chỉnh độ cao vùng tẩy"
+        />
+        <div
+          className="layer-eraser-bottom-pane"
+          style={{ height: `${eraserHeight}px`, flexShrink: 0, minHeight: 0 }}
+        >
+          {selectedLayer ? (
+            <EraserIsolatedCanvas
+              layer={selectedLayer}
+              imagePreviewUrl={isolatedPreviewUrl}
+              brushSettings={brush.brushSettings}
+              cursorPos={brush.cursorPos}
+              onPointerDown={brush.handleIsolatedPointerDown}
+              onPointerMove={brush.handleIsolatedPointerMove}
+              onPointerUp={brush.handleEraserPointerUp}
+              onCancel={brush.cancelStroke}
+              onCursorLeave={() => brush.setCursorPos(null)}
+              onChangeBrushSettings={brush.setBrushSettings}
+              onResetLayerImage={brush.resetLayerImage}
+              onClose={() => brush.setActiveTool('select')}
+              isErasing={brush.isErasing}
+            />
+          ) : (
+            <div className="layer-eraser-empty">
+              <span>Bấm chọn một layer ở ảnh tổng thể phía trên để tẩy pixel</span>
+              <button type="button" onClick={() => brush.setActiveTool('select')}>
+                Thoát chế độ tẩy
+              </button>
+            </div>
+          )}
+        </div>
+      </>
+    )}
+  </div>
   )
 }
 

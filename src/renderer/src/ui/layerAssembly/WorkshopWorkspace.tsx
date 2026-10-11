@@ -118,7 +118,15 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
           onChangeComposite={state.setComposite}
         />
       </div>}
-      <LayerAssemblyTransportBar duration={rig?.duration ?? state.composite.rig?.duration} isPlaying={playback.isPlaying} onTogglePlay={playback.toggle} time={playback.time} onSeekTime={playback.setTime} />
+      {!isErasing && (
+        <LayerAssemblyTransportBar
+          duration={rig?.duration ?? state.composite.rig?.duration}
+          isPlaying={playback.isPlaying}
+          onTogglePlay={playback.toggle}
+          time={playback.time}
+          onSeekTime={playback.setTime}
+        />
+      )}
     </div>
   </div>
 }
