@@ -635,7 +635,81 @@ def slice_character_atlas_grid(raw_img, img_np, output_dir, w, h, pad=4):
 
     return manifest, warnings
 
-def slice_character_atlas(atlas_path, output_dir="out", mode="auto", pad=4):
+def get_mcp_auth():
+    """Đọc host, port và token từ mcp.json trong AppData."""
+    appdata = os.environ.get('APPDATA', '')
+    p = os.path.join(appdata, 'parallax-studio', 'mcp.json')
+    if os.path.exists(p):
+        try:
+            with open(p, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return data.get('host', '127.0.0.1'), data.get('port', 9877), data.get('token')
+        except Exception:
+            pass
+    return '127.0.0.1', 9877, None
+
+def export_composite_and_apply(output_dir, character_name="Nhân vật 13 lớp Cutout", apply_to_app=False):
+    """Xuất file character.composite.json chuẩn của Parallax Studio và nạp vào app nếu có cờ apply."""
+    import base64
+    import socket
+
+    parts_dir = os.path.join(output_dir, "parts")
+    if not os.path.isdir(parts_dir):
+        return
+
+    images = {}
+    for cell_idx, pinfo in PARTS_SPEC.items():
+        fname = f"{pinfo['id']}.png"
+        fpath = os.path.join(parts_dir, fname)
+        if os.path.exists(fpath):
+            with open(fpath, "rb") as f:
+                b64 = base64.b64encode(f.read()).decode("utf-8")
+                images[pinfo["id"]] = f"data:image/png;base64,{b64}"
+
+    composite_path = os.path.join(output_dir, "character.composite.json")
+    payload = {
+        "template_id": "tmpl-character-articulated-13",
+        "name": character_name,
+        "images": images,
+        "open_workshop": True,
+        "save_to_library": True
+    }
+
+    with open(composite_path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, ensure_ascii=False)
+    print(f"      ✓ Đã xuất cấu hình LayerComposite: {composite_path}")
+
+    if apply_to_app:
+        print("[App Integration] Đang gửi lệnh nạp nhân vật vào Xưởng Lắp Ráp Layer (127.0.0.1:9877)...")
+        host, port, token = get_mcp_auth()
+        mcp_cmd = {
+            "method": "apply_layer_assembly_template",
+            "params": payload
+        }
+        if token:
+            mcp_cmd["token"] = token
+
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(6.0)
+            s.connect((host, port))
+            s.sendall((json.dumps(mcp_cmd) + '\n').encode('utf-8'))
+            res_data = b''
+            while True:
+                chunk = s.recv(4096)
+                if not chunk: break
+                res_data += chunk
+                if b'\n' in chunk: break
+            s.close()
+            res = json.loads(res_data.decode('utf-8').strip())
+            if res.get("ok"):
+                print("      ✓ THÀNH CÔNG! Đã nạp nhân vật vào Xưởng Lắp Ráp Layer có gắn sẵn 13 xương và chuyển động mẫu.")
+            else:
+                print(f"      ⚠️ Lỗi phản hồi từ app: {res.get('error', res)}")
+        except Exception as e:
+            print(f"      ⚠️ Không thể kết nối trực tiếp đến Parallax Studio: {e}")
+
+def slice_character_atlas(atlas_path, output_dir="out", mode="auto", pad=4, character_name="Nhân vật 13 lớp Cutout", apply_to_app=False):
     if not os.path.exists(atlas_path):
         print(f"LỖI: Không tìm thấy file atlas: {atlas_path}", file=sys.stderr)
         sys.exit(1)
@@ -647,32 +721,35 @@ def slice_character_atlas(atlas_path, output_dir="out", mode="auto", pad=4):
     img_np = np.array(raw_img)
 
     if mode == "cc":
-        return slice_character_atlas_cc(raw_img, img_np, output_dir, w, h)
+        manifest = slice_character_atlas_cc(raw_img, img_np, output_dir, w, h)
     elif mode == "grid":
         manifest, warnings = slice_character_atlas_grid(raw_img, img_np, output_dir, w, h, pad)
         if warnings:
             print("Cảnh báo khi cắt theo lưới:")
             for warn in warnings: print(f" - {warn}")
-        return manifest
     else: # auto
         print("[Auto-detect] Kiểm tra tính tương thích lưới...")
         manifest, warnings = slice_character_atlas_grid(raw_img, img_np, output_dir, w, h, pad)
         if len(warnings) > 0:
             print(f"[Auto-detect] Phát hiện {len(warnings)} ô bị lệch/chạm mép. Tự động chuyển sang Connected Components theo SPEC...")
-            return slice_character_atlas_cc(raw_img, img_np, output_dir, w, h)
+            manifest = slice_character_atlas_cc(raw_img, img_np, output_dir, w, h)
         else:
             print("[Auto-detect] Lưới khớp chuẩn xác!")
-            return manifest
+
+    export_composite_and_apply(output_dir, character_name=character_name, apply_to_app=apply_to_app)
+    return manifest
 
 def main():
-    parser = argparse.ArgumentParser(description="Tách atlas nhân vật 16:9 thành các bộ phận sprite 2D cutout.")
+    parser = argparse.ArgumentParser(description="Tách atlas nhân vật 16:9 thành các bộ phận sprite 2D cutout và nạp vào xưởng Parallax Studio.")
     parser.add_argument("atlas", help="Đường dẫn đến file ảnh atlas 16:9 (.png hoặc .jpg)")
     parser.add_argument("--out", default="out", help="Thư mục xuất kết quả (mặc định: ./out)")
     parser.add_argument("--mode", choices=["auto", "cc", "grid"], default="auto", help="Chế độ cắt: auto (khuyên dùng), cc (connected components), grid (lưới cố định)")
     parser.add_argument("--pad", type=int, default=4, help="Khoảng cách đệm mép ô (mặc định: 4px)")
+    parser.add_argument("--name", default="Nhân vật 13 lớp Cutout", help="Tên hiển thị của nhân vật trong xưởng layer")
+    parser.add_argument("--apply", action="store_true", help="Tự động nạp trực tiếp nhân vật vào Xưởng Lắp Ráp Layer trong app qua TCP")
     args = parser.parse_args()
 
-    slice_character_atlas(args.atlas, args.out, mode=args.mode, pad=args.pad)
+    slice_character_atlas(args.atlas, args.out, mode=args.mode, pad=args.pad, character_name=args.name, apply_to_app=args.apply)
 
 if __name__ == "__main__":
     main()
