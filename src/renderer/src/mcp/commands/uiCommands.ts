@@ -139,15 +139,57 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
     '.modal',
     '[role="dialog"]'
   ],
+
+  // 1. Xưởng 3D (Assembly 3D Workshop) - Toàn bộ & Từng cột
+  assembly_3d: ['.assembly-modal-content'],
+  assembly_sidebar: ['.assembly-asset-sidebar', '.assembly-modal-body > aside'],
+  assembly_viewport: ['.assembly-viewport-panel', '.assembly-split-container'],
+  assembly_inspector: ['.assembly-inspector-panel'],
+  assembly_header: ['.assembly-modal-header'],
+  assembly_footer: ['.assembly-modal-footer'],
+  assembly_hud: ['.assembly-3d-hud-container'],
+
+  // 2. Xưởng Layer 2.5D (Layer Assembly Workshop) - Toàn bộ & Từng cột
+  layer_assembly: ['.layer-workshop-dialog', '.lat-dialog'],
+  layer_assembly_sidebar: ['.layer-workshop-sidebar'],
+  layer_assembly_workspace: ['.lw-workspace-column'],
+  layer_assembly_inspector: ['.lw-right-panel'],
+  layer_assembly_tools: ['.workshop-tools'],
+  layer_assembly_header: ['.workshop-header'],
+
+  // 3. Audio Studio (Phòng thu Âm thanh) - Toàn bộ & Từng cột
+  audio_studio: ['.audio-studio-modal', '.audio-studio-dialog'],
+  audio_studio_sidebar: ['.audio-track-list', '.audio-studio-track-list'],
+  audio_studio_editor: ['.audio-track-editor'],
+  audio_studio_waveform: ['.audio-waveform-panel'],
+  audio_studio_tone: ['.audio-tone-panel'],
+  audio_studio_mixer: ['.audio-levels-panel'],
+
+  // 4. Hộp thoại Hiệu năng (Performance Dialog) - Khối chi tiết
+  perf_dialog: ['.perf-modal', '.modal:has(.hw-grid)'],
+  perf_hardware: ['.hw-grid'],
+  perf_meter: ['.perf-meter'],
+  perf_settings: ['.perf-auto-box', '.perf-preset-grid'],
+
+  // 5. Hộp thoại Xuất video (Export Dialog) - Khối chi tiết
   export: ['.export-modal', '.modal:has(#export-start)', '.modal[aria-labelledby="export-title"]'],
   export_dialog: ['.export-modal', '.modal:has(#export-start)', '.modal[aria-labelledby="export-title"]'],
-  mcp_dialog: ['.mcp-modal', '.modal:has(#mcp-chip)'],
-  perf_dialog: ['.perf-modal', '.modal:has(.hw-grid)'],
-  audio_studio: ['.audio-studio-modal', '.audio-studio-dialog'],
-  assembly_3d: ['.assembly-modal-content'],
-  layer_assembly: ['.layer-workshop-dialog', '.lat-dialog'],
-  camera_path: ['.camera-path-modal', '.modal[aria-labelledby="path-title"]'],
+  export_preview: ['.export-preview'],
+
+  // 6. Hộp thoại Vẽ đường bay Camera (Camera Sketch Dialog) - Khối chi tiết
   camera_sketch: ['.camera-sketch-modal'],
+  camera_sketch_canvas: ['.camera-sketch-canvas'],
+  camera_sketch_sidebar: ['.camera-sketch-sidebar'],
+
+  // 7. Hộp thoại Lộ trình Camera (Camera Path Dialog) - Khối chi tiết
+  camera_path: ['.camera-path-modal', '.modal[aria-labelledby="path-title"]'],
+  camera_path_steps: ['.path-steps'],
+
+  // 8. Hộp thoại MCP (MCP & AI Guide Dialog) - Khối chi tiết
+  mcp_dialog: ['.mcp-modal', '.modal:has(#mcp-chip)'],
+  mcp_status: ['.mcp-status-card'],
+  mcp_config: ['.mcp-ide-config'],
+  mcp_guide: ['.mcp-ai-guide-card'],
 
   // AI Neon HUD
   ai_hud: ['.ai-neon-hud-badge']

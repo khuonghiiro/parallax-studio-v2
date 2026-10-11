@@ -194,6 +194,7 @@ export function McpDialog() {
         >
           {/* Status & Resource Control Card */}
           <div
+            className="mcp-status-card"
             style={{
               background: 'var(--bg-0)',
               border: '1px solid var(--line)',
@@ -288,6 +289,7 @@ export function McpDialog() {
 
           {/* Quick Config Tabs */}
           <div
+            className="mcp-ide-config"
             style={{
               background: 'var(--bg-0)',
               border: '1px solid var(--line)',

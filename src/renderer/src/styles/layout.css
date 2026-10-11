@@ -191,13 +191,13 @@ textarea:focus {
   overflow: hidden;
 }
 
-/* 1. Mép viền Neon phát sáng nhịp tim kép (Double Heartbeat Pulse) */
+/* 1. Mép viền Neon phát sáng nhịp thở êm ái (Gentle Calm Breathing Pulse) */
 .ai-neon-heartbeat-edge {
   position: absolute;
   inset: 0;
-  border: 3px solid var(--ai-neon-primary);
+  border: 2.5px solid var(--ai-neon-primary);
   box-sizing: border-box;
-  animation: ai-heartbeat-edge 1.6s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  animation: ai-heartbeat-edge 2.8s ease-in-out infinite;
 }
 
 /* 2. Lớp vầng hào quang gradient lan tỏa từ đậm ở mép ngoài vào nhạt dần ở trong tâm (Vignette Glow 4 mép) */
@@ -206,98 +206,78 @@ textarea:focus {
   inset: 0;
   box-sizing: border-box;
   box-shadow:
-    inset 0 0 22px var(--ai-neon-glow-strong),
-    inset 0 0 55px var(--ai-neon-glow-base),
-    inset 0 0 95px var(--ai-neon-vignette-mid),
-    inset 0 0 150px var(--ai-neon-vignette-edge);
-  animation: ai-heartbeat-vignette 1.6s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    inset 0 0 20px var(--ai-neon-glow-strong),
+    inset 0 0 50px var(--ai-neon-glow-base),
+    inset 0 0 90px var(--ai-neon-vignette-mid),
+    inset 0 0 140px var(--ai-neon-vignette-edge);
+  animation: ai-heartbeat-vignette 2.8s ease-in-out infinite;
 }
 
-/* Keyframes nhịp đập tim kép chân thực (Lub-dub Heartbeat Pulse) */
+/* Keyframes nhịp thở êm ái, nhẹ nhàng, thư thái (không dồn dập) */
 @keyframes ai-heartbeat-edge {
-  0% {
+  0%, 100% {
+    border-color: var(--ai-neon-primary);
+    box-shadow:
+      inset 0 0 10px var(--ai-neon-glow-base),
+      0 0 12px var(--ai-neon-glow-base);
+    opacity: 0.75;
+  }
+  38% {
+    border-color: var(--ai-neon-secondary);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.75),
+      inset 0 0 28px var(--ai-neon-glow-strong),
+      0 0 26px var(--ai-neon-glow-strong);
+    opacity: 1;
+  }
+  50% {
+    border-color: var(--ai-neon-secondary);
+    box-shadow:
+      inset 0 0 22px var(--ai-neon-glow-strong),
+      0 0 20px var(--ai-neon-glow-base);
+    opacity: 0.94;
+  }
+  75% {
     border-color: var(--ai-neon-primary);
     box-shadow:
       inset 0 0 14px var(--ai-neon-glow-base),
-      0 0 16px var(--ai-neon-glow-base);
-    opacity: 0.85;
-  }
-  /* Nhịp co bóp 1 (Systole 1) - Viền bùng sáng mạnh */
-  14% {
-    border-color: var(--ai-neon-primary);
-    box-shadow:
-      inset 0 0 0 1px var(--ai-neon-secondary),
-      inset 0 0 32px var(--ai-neon-glow-strong),
-      0 0 30px var(--ai-neon-glow-strong);
-    opacity: 1;
-  }
-  /* Thư giãn nhẹ giữa 2 nhịp tim */
-  28% {
-    border-color: var(--ai-neon-secondary);
-    box-shadow:
-      inset 0 0 18px var(--ai-neon-glow-base),
-      0 0 20px var(--ai-neon-glow-base);
-    opacity: 0.9;
-  }
-  /* Nhịp co bóp 2 (Systole 2) - Bùng sáng sâu và lan rộng nhất */
-  42% {
-    border-color: var(--ai-neon-secondary);
-    box-shadow:
-      inset 0 0 0 1.5px rgba(255, 255, 255, 0.9),
-      inset 0 0 45px var(--ai-neon-glow-strong),
-      0 0 40px var(--ai-neon-glow-strong);
-    opacity: 1;
-  }
-  /* Pha thở / thư giãn êm dịu */
-  70%, 100% {
-    border-color: var(--ai-neon-primary);
-    box-shadow:
-      inset 0 0 12px var(--ai-neon-glow-base),
-      0 0 14px var(--ai-neon-glow-base);
-    opacity: 0.8;
+      0 0 15px var(--ai-neon-glow-base);
+    opacity: 0.82;
   }
 }
 
 @keyframes ai-heartbeat-vignette {
-  0% {
+  0%, 100% {
+    opacity: 0.65;
+    box-shadow:
+      inset 0 0 15px var(--ai-neon-glow-strong),
+      inset 0 0 38px var(--ai-neon-glow-base),
+      inset 0 0 70px var(--ai-neon-vignette-mid),
+      inset 0 0 115px var(--ai-neon-vignette-edge);
+  }
+  38% {
+    opacity: 1;
+    box-shadow:
+      inset 0 0 28px var(--ai-neon-glow-strong),
+      inset 0 0 65px var(--ai-neon-glow-strong),
+      inset 0 0 115px var(--ai-neon-vignette-mid),
+      inset 0 0 170px var(--ai-neon-vignette-edge);
+  }
+  50% {
+    opacity: 0.92;
+    box-shadow:
+      inset 0 0 24px var(--ai-neon-glow-strong),
+      inset 0 0 55px var(--ai-neon-glow-base),
+      inset 0 0 100px var(--ai-neon-vignette-mid),
+      inset 0 0 150px var(--ai-neon-vignette-edge);
+  }
+  75% {
     opacity: 0.75;
     box-shadow:
       inset 0 0 18px var(--ai-neon-glow-strong),
       inset 0 0 45px var(--ai-neon-glow-base),
       inset 0 0 80px var(--ai-neon-vignette-mid),
-      inset 0 0 130px var(--ai-neon-vignette-edge);
-  }
-  14% {
-    opacity: 1;
-    box-shadow:
-      inset 0 0 32px var(--ai-neon-glow-strong),
-      inset 0 0 75px var(--ai-neon-glow-strong),
-      inset 0 0 130px var(--ai-neon-vignette-mid),
-      inset 0 0 190px var(--ai-neon-vignette-edge);
-  }
-  28% {
-    opacity: 0.85;
-    box-shadow:
-      inset 0 0 22px var(--ai-neon-glow-strong),
-      inset 0 0 52px var(--ai-neon-glow-base),
-      inset 0 0 95px var(--ai-neon-vignette-mid),
-      inset 0 0 145px var(--ai-neon-vignette-edge);
-  }
-  42% {
-    opacity: 1;
-    box-shadow:
-      inset 0 0 40px var(--ai-neon-glow-strong),
-      inset 0 0 90px var(--ai-neon-glow-strong),
-      inset 0 0 150px var(--ai-neon-vignette-mid),
-      inset 0 0 220px var(--ai-neon-vignette-edge);
-  }
-  70%, 100% {
-    opacity: 0.7;
-    box-shadow:
-      inset 0 0 16px var(--ai-neon-glow-strong),
-      inset 0 0 40px var(--ai-neon-glow-base),
-      inset 0 0 75px var(--ai-neon-vignette-mid),
-      inset 0 0 120px var(--ai-neon-vignette-edge);
+      inset 0 0 125px var(--ai-neon-vignette-edge);
   }
 }
 
@@ -360,33 +340,28 @@ textarea:focus {
   border-radius: 50%;
   background: var(--ai-neon-primary);
   box-shadow: 0 0 8px var(--ai-neon-primary);
-  animation: ai-dot-heartbeat 1.6s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  animation: ai-dot-heartbeat 2.8s ease-in-out infinite;
 }
 
 @keyframes ai-dot-heartbeat {
-  0% {
+  0%, 100% {
     transform: scale(0.9);
     opacity: 0.7;
-    box-shadow: 0 0 6px var(--ai-neon-primary);
+    box-shadow: 0 0 5px var(--ai-neon-primary);
   }
-  14% {
-    transform: scale(1.35);
+  38% {
+    transform: scale(1.28);
     opacity: 1;
-    box-shadow: 0 0 14px var(--ai-neon-primary), 0 0 20px var(--ai-neon-secondary);
+    box-shadow: 0 0 12px var(--ai-neon-primary), 0 0 18px var(--ai-neon-secondary);
   }
-  28% {
-    transform: scale(1);
+  50% {
+    transform: scale(1.15);
+    opacity: 0.9;
+    box-shadow: 0 0 9px var(--ai-neon-primary);
+  }
+  75% {
+    transform: scale(0.95);
     opacity: 0.8;
-    box-shadow: 0 0 8px var(--ai-neon-primary);
-  }
-  42% {
-    transform: scale(1.45);
-    opacity: 1;
-    box-shadow: 0 0 16px var(--ai-neon-primary), 0 0 24px var(--ai-neon-secondary);
-  }
-  70%, 100% {
-    transform: scale(0.9);
-    opacity: 0.7;
     box-shadow: 0 0 6px var(--ai-neon-primary);
   }
 }

@@ -204,6 +204,7 @@ export function CameraSketchDialog() {
         <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 16 }}>
           {/* 2D Canvas Area */}
           <div
+            className="camera-sketch-canvas"
             style={{
               position: 'relative',
               background: '#090d16',
@@ -348,7 +349,7 @@ export function CameraSketchDialog() {
           </div>
 
           {/* Settings Sidebar */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="camera-sketch-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* Tool Mode */}
             <div>
               <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>

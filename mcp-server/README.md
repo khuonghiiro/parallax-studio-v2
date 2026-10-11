@@ -127,13 +127,20 @@ Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC**
 - `get_layer_info`: Đọc toàn bộ thuộc tính, keyframes và transform của 1 layer.
 - `get_camera_info`: Đọc trạng thái vị trí, mục tiêu, FOV của camera tại thời điểm `time`.
 - `get_memory_stats`: Kiểm tra dung lượng VRAM GPU, texture pool và RAM tiến trình.
-- `get_app_screenshot`: Chụp toàn bộ cửa sổ app hoặc chụp theo vùng UI chuyên biệt giúp AI tiết kiệm 70% – 90% token so với chụp toàn màn hình:
+- `get_app_screenshot`: Chụp toàn bộ cửa sổ app hoặc chụp theo vùng UI chuyên biệt giúp AI tiết kiệm 70% – 95% token so với chụp toàn màn hình:
   - Cột trái & tài nguyên: `left_panel`, `assets`, `asset_grid` (lưới card tài nguyên), `asset_bar` (thanh icon danh mục), `music` (bảng quản lý audio), `shots` (danh sách cảnh), `topview` (sơ đồ độ sâu 2.5D).
   - Khung nhìn trung tâm: `viewer`, `viewer_canvas` / `viewport`, `camera_frame` (khung viền render), `viewer_hud` (thông số FPS/VRAM), `viewer_tools` (chế độ camera/3D).
   - Thuộc tính bên phải: `inspector`, `inspector_tabs`, `inspector_body` (form chỉnh sửa chi tiết).
   - Dòng thời gian: `timeline`, `timeline_toolbar` (cụm nút phát/timecode), `timeline_ruler` (thước đo), `timeline_tracks` (các hàng track layer & keyframe).
-  - Thanh tiêu đề: `toolbar`, `mcp_chip` (chỉ báo AI).
-  - Hộp thoại & Xưởng: `dialog` (bất kỳ modal nào), `export` / `export_dialog` (hộp thoại MP4), `mcp_dialog`, `perf_dialog`, `audio_studio`, `assembly_3d`, `layer_assembly`, `camera_path`, `camera_sketch`, `ai_hud` (badge viền neon).
+  - Thanh tiêu đề: `toolbar`, `mcp_chip` (chỉ báo AI), `ai_hud` (badge viền neon).
+  - Hộp thoại tổng thể: `dialog` (bất kỳ modal nổi nào).
+  - Xưởng 3D & từng cột: `assembly_3d` (toàn bộ), `assembly_sidebar` (cột trái tài nguyên/mặt), `assembly_viewport` (cột giữa 3D/2D), `assembly_inspector` (cột phải thuộc tính), `assembly_header`, `assembly_footer`, `assembly_hud`.
+  - Xưởng Layer 2.5D & từng cột: `layer_assembly` (toàn bộ), `layer_assembly_sidebar` (cột trái kho mẫu/layer), `layer_assembly_workspace` (cột giữa canvas), `layer_assembly_inspector` (cột phải rig/xương), `layer_assembly_tools`, `layer_assembly_header`.
+  - Audio Studio & từng cột: `audio_studio` (toàn bộ), `audio_studio_sidebar` (cột trái danh sách luồng âm), `audio_studio_editor` (cột phải trình biên tập), `audio_studio_waveform` (biểu đồ sóng âm), `audio_studio_tone` (âm điệu & EQ), `audio_studio_mixer` (bộ trộn âm lượng).
+  - Hiệu năng & bộ nhớ: `perf_dialog` (toàn bộ), `perf_hardware` (khối CPU/GPU/RAM), `perf_meter` (thước đo VRAM thời gian thực), `perf_settings` (cấu hình VRAM).
+  - Xuất video MP4: `export` / `export_dialog`, `export_preview` (khung hình render).
+  - Lộ trình & đường vẽ Camera: `camera_path`, `camera_path_steps`, `camera_sketch`, `camera_sketch_canvas`, `camera_sketch_sidebar`.
+  - Bảng điều khiển MCP: `mcp_dialog`, `mcp_status`, `mcp_config`, `mcp_guide`.
   - Hỗ trợ `selector` CSS tuỳ chỉnh và `padding` đệm viền. Dùng CLI: `pnpm pxs review --view app --region <name>`.
 - `set_ai_lock`: Bật/tắt trạng thái khoá tương tác an toàn (`locked: boolean`, `reason`, `timeout_ms`) ngăn người dùng vô tình bấm làm lệch UI khi AI đang tự động thao tác. App sẽ hiển thị viền neon cyberpunk xung quanh và badge HUD kèm nút mở khoá khẩn cấp (`Esc`).
 - `ui_click` / `ui_type`: Bấm phần tử UI theo chữ hoặc CSS selector, nhập ô input – để AI tự mở dialog, chuyển tab rồi chụp kiểm tra.
