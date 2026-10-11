@@ -750,4 +750,47 @@ export const IconUpload = (p: P) => (
   </svg>
 )
 
+/* Các icon phân loại thể loại âm thanh độc nhất (Audio Categories) */
+export const IconAudioLibrary = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M3 6h18M3 12h18M3 18h18" />
+    <circle cx="8" cy="6" r="2" fill="currentColor" />
+    <circle cx="16" cy="12" r="2" fill="currentColor" />
+    <circle cx="9" cy="18" r="2" fill="currentColor" />
+  </svg>
+)
+
+export const IconWindAmbience = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4 9h11a3 3 0 1 0-3-3" />
+    <path d="M2 14h15a3 3 0 1 1-3 3" />
+    <path d="M5 19h7a2 2 0 1 0-2-2" />
+  </svg>
+)
+
+export const IconActionFx = (p: P) => (
+  <svg {...base(p)}>
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+)
+
+export const IconVoiceDialogue = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+    <line x1="12" y1="19" x2="12" y2="22" />
+  </svg>
+)
+
+export const IconCinematicClapper = (p: P) => (
+  <svg {...base(p)}>
+    <rect width="20" height="15" x="2" y="5" rx="2" />
+    <path d="M2 9.5h20" />
+    <path d="m6 5 2.5 4.5" />
+    <path d="m11 5 2.5 4.5" />
+    <path d="m16 5 2.5 4.5" />
+  </svg>
+)
+
+
 

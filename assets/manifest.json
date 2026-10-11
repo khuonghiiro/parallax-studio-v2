@@ -74,7 +74,25 @@
       "name": "Dây leo tiền cảnh"
     },
     "audio/ambient_chime.wav": {
-      "name": "Chuông gió ngân vang ambient"
+      "name": "Chuông gió ngân vang (Ambient Chime)"
+    },
+    "audio/ambient_night_wind.wav": {
+      "name": "Gió đêm huyền ảo (Night Wind)"
+    },
+    "audio/music_chill_melody.wav": {
+      "name": "Giai điệu thư giãn (Chill Melody)"
+    },
+    "audio/sfx_gunshot.wav": {
+      "name": "Phát súng không gian (Laser Shot)"
+    },
+    "audio/sfx_branch_snap.wav": {
+      "name": "Cành cây gãy giòn (Branch Snap)"
+    },
+    "audio/cinematic_whoosh.wav": {
+      "name": "Chuyển cảnh vút gió (Camera Whoosh)"
+    },
+    "audio/voice_radio_intro.wav": {
+      "name": "Tín hiệu lời thoại vô tuyến (Radio Voice)"
     },
     "assembly_3d/modular/wall_front_tudor.png": {
       "name": "Tường đầu hồi Tudor mộc (Mặt tiền)"

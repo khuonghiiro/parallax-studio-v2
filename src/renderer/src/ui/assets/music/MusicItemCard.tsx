@@ -8,10 +8,13 @@ import { useView } from '../../../store/view'
 import { getProjectAudioTracks } from '../../../project/audioTracks'
 import type { AssetMeta } from '@shared/types'
 
+import type { AudioCategoryType } from './MusicCategoryBar'
+
 export interface AudioEntry {
   id: string
   name: string
   source: 'project' | 'builtin'
+  category?: AudioCategoryType
   assetMeta?: AssetMeta
   relPath?: string
   format: string
@@ -208,6 +211,19 @@ export function MusicItemCard({
             <span className={`music-badge-source ${item.source}`}>
               {item.source === 'project' ? 'Dự án' : 'Kho mẫu'}
             </span>
+            {item.category && (
+              <span className={`music-badge-category ${item.category}`}>
+                {item.category === 'music'
+                  ? 'Nhạc'
+                  : item.category === 'ambient'
+                  ? 'Âm đệm'
+                  : item.category === 'sfx'
+                  ? 'SFX'
+                  : item.category === 'voice'
+                  ? 'Lời thoại'
+                  : 'Cinematic'}
+              </span>
+            )}
             {usedTrackCount > 0 && (
               <span className="music-badge-used" title={`Đã dùng trong ${usedTrackCount} track trên timeline`}>
                 Timeline ×{usedTrackCount}
