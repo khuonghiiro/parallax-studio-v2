@@ -126,13 +126,14 @@
   display: none;
 }
 
-.asset-subtab-btn:hover {
+.asset-subtab-btn:hover:not(.active) {
   color: var(--text);
   background: var(--bg-2);
 }
 
 /* Active tab: mở rộng nổi bật hiển thị icon + tên đầy đủ + badge */
-.asset-subtab-btn.active {
+.asset-subtab-btn.active,
+.asset-subtab-btn.active:hover {
   flex: 1.8 1 auto;
   color: var(--text);
   background: var(--bg-2);

@@ -121,20 +121,23 @@
   white-space: nowrap;
 }
 
-.music-seg-tab:hover {
+.music-seg-tab:hover:not(.active) {
   color: var(--text);
   background: rgba(255, 255, 255, 0.06);
 }
 
-[data-theme='light'] .music-seg-tab:hover {
+[data-theme='light'] .music-seg-tab:hover:not(.active) {
   background: rgba(0, 0, 0, 0.05);
+  color: var(--text);
 }
 
-.music-seg-tab.active {
-  background: var(--accent);
-  color: #ffffff;
+.music-seg-tab.active,
+.music-seg-tab.active:hover {
+  background: var(--accent) !important;
+  color: #ffffff !important;
   font-weight: 600;
   box-shadow: 0 1px 4px rgba(38, 128, 235, 0.35);
+  cursor: default;
 }
 
 .music-seg-badge {
@@ -145,8 +148,10 @@
   line-height: 1.2;
 }
 
-.music-seg-tab.active .music-seg-badge {
-  background: rgba(255, 255, 255, 0.28);
+.music-seg-tab.active .music-seg-badge,
+.music-seg-tab.active:hover .music-seg-badge {
+  background: rgba(255, 255, 255, 0.28) !important;
+  color: #ffffff !important;
 }
 
 /* ------------------------------------------------------------------ List Viewport */
@@ -888,13 +893,14 @@
   transition: all 0.15s ease;
 }
 
-.music-cat-tab-btn:hover {
+.music-cat-tab-btn:hover:not(.active) {
   background: var(--bg-2);
   color: var(--text);
   border-color: var(--line);
 }
 
-.music-cat-tab-btn.active {
+.music-cat-tab-btn.active,
+.music-cat-tab-btn.active:hover {
   background: color-mix(in srgb, var(--cat-accent, var(--accent)) 26%, var(--bg-2)) !important;
   border-color: var(--cat-accent, var(--accent)) !important;
   color: var(--cat-accent, var(--accent-cyan)) !important;

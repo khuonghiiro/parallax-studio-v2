@@ -31,6 +31,8 @@ export interface ViewState extends ViewPrefs {
   dialog: 'path' | 'sketch' | 'performance' | 'mcp' | 'audio' | null
   audioDialogMode: 'levels' | 'waveform'
   assemblyModalModel: Model3D | null
+  audioSelectedCategory: string
+  setAudioSelectedCategory(cat: string): void
   set(p: Partial<ViewPrefs>): void
   toggleTheme(): void
   openDialog(d: ViewState['dialog']): void
@@ -87,6 +89,10 @@ export const useView = create<ViewState>((set, get) => ({
   dialog: null,
   audioDialogMode: 'waveform',
   assemblyModalModel: null,
+  audioSelectedCategory: 'all',
+  setAudioSelectedCategory(cat) {
+    set({ audioSelectedCategory: cat })
+  },
   openDialog(dialog) {
     set({ dialog })
   },

@@ -32,6 +32,7 @@ import { PARTICLE_PRESETS } from './animation/presets'
 import { referenceDistance } from './animation/math'
 import { evaluate, setValueAt } from './animation/keyframes'
 import { frameTolerance, getDraftAnimatable, useEditor } from './store/editor'
+import { useView } from './store/view'
 
 // ------------------------------------------------------------------ toast
 
@@ -232,28 +233,40 @@ export async function importImages(addLayers = true): Promise<void> {
   await registerImages(files, addLayers)
 }
 
-export async function importAudio(targetTime?: number | unknown): Promise<void> {
+export async function importAudio(
+  targetTime?: number | unknown,
+  category?: string
+): Promise<void> {
   const [f] = await window.api.openFiles('audio')
   if (!f) return
   const time = typeof targetTime === 'number' && !isNaN(targetTime) ? targetTime : editor().time
-  await setAudioFromBytes(f.name, f.mime, f.data, time)
+  const cat = category || useView.getState().audioSelectedCategory
+  await setAudioFromBytes(f.name, f.mime, f.data, time, cat)
 }
 
 export async function setAudioFromBytes(
   name: string,
   mime: string,
   data: Uint8Array,
-  targetTime?: number | unknown
+  targetTime?: number | unknown,
+  category?: string
 ): Promise<void> {
   const asset = await assetStore.add(name, mime, data, 'audio')
   const time = typeof targetTime === 'number' && !isNaN(targetTime) ? targetTime : editor().time
+  const cat = category || useView.getState().audioSelectedCategory
+  if (cat && cat !== 'all') {
+    asset.meta.category = cat
+  }
   editor().update((d) => {
-    if (!d.assets.some((a) => a.id === asset.meta.id)) {
+    const existing = d.assets.find((a) => a.id === asset.meta.id)
+    if (!existing) {
       d.assets.push(asset.meta)
+    } else if (cat && cat !== 'all') {
+      existing.category = cat
     }
     addAudioTrackToProject(d as Project, asset.meta.id, name, time)
   })
-  toast(`Đã thêm âm thanh tại ${time.toFixed(1)}s: ${name}`)
+  toast(`Đã thêm âm thanh (${cat && cat !== 'all' ? cat.toUpperCase() + ' - ' : ''}${name}) tại ${time.toFixed(1)}s`)
 }
 
 /** Thêm đoạn âm thanh từ tài nguyên dự án vào mốc thời gian hiện tại */

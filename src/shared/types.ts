@@ -338,6 +338,8 @@ export interface AssetMeta {
   assetPath?: string
   /** Base64 dataUrl if embedded */
   dataUrl?: string
+  /** Audio category: 'music' | 'ambient' | 'sfx' | 'voice' | 'cinematic' */
+  category?: string
 }
 
 export interface Project {

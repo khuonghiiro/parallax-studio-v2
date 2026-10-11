@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BuiltInAssetCategory, BuiltInAssetItem, BuiltInCatalogResult } from '@shared/ipc'
 import { importAudio, importBuiltInAsset, importImages } from '../../actions'
 import { useEditor } from '../../store/editor'
+import { useView } from '../../store/view'
 import { IconBriefcase, IconCube, IconFolder, IconGrid, IconImage, IconLayerAssembly, IconLayers, IconMusic, IconPlus } from '../icons'
 import { AssetCatalogModal } from './AssetCatalogModal'
 import { BuiltInAssetBar } from './BuiltInAssetBar'
@@ -229,7 +230,7 @@ export function AssetPanel() {
             type="button"
             id="music-tab-add-btn"
             className="btn sm asset-action-btn-highlight"
-            onClick={() => importAudio(useEditor.getState().time)}
+            onClick={() => importAudio(useEditor.getState().time, useView.getState().audioSelectedCategory)}
             title="Thêm tệp âm thanh (mp3, wav, ogg, aac...) từ máy tính vào dự án"
           >
             <IconPlus /> Thêm audio
@@ -249,7 +250,7 @@ export function AssetPanel() {
               type="button"
               id="import-audio"
               className="btn sm icon asset-action-btn-highlight"
-              onClick={() => importAudio(useEditor.getState().time)}
+              onClick={() => importAudio(useEditor.getState().time, useView.getState().audioSelectedCategory)}
               title="Nhập nhạc nền từ máy tính vào mốc thời gian hiện tại"
             >
               <IconMusic />

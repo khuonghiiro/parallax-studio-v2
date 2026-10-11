@@ -64,5 +64,18 @@ describe('detectAudioCategory', () => {
     expect(detectAudioCategory('piano_theme.wav')).toBe('music')
     expect(detectAudioCategory('track_01.mp3')).toBe('music')
   })
+
+  it('ưu tiên category chỉ định trước tên tệp nếu có trường category trong AssetMeta', () => {
+    // Tệp tên sfx nhưng người dùng phân loại vào voice
+    const metaWithCat = { name: 'sfx_sound.wav', category: 'voice' }
+    const cat = metaWithCat.category || detectAudioCategory(metaWithCat.name)
+    expect(cat).toBe('voice')
+
+    // Tệp không có category thì tự động nhận diện
+    const metaWithoutCat = { name: 'sfx_gunshot.wav', category: undefined }
+    const fallbackCat = metaWithoutCat.category || detectAudioCategory(metaWithoutCat.name)
+    expect(fallbackCat).toBe('sfx')
+  })
 })
+
 

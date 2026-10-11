@@ -170,7 +170,10 @@ export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
   const theme = useView((s) => s.theme)
   const [search, setSearch] = useState('')
   const [filterSource, setFilterSource] = useState<'all' | 'project' | 'builtin'>('all')
-  const [selectedCategory, setSelectedCategory] = useState<AudioCategoryType>('all')
+  const selectedCategory = useView((s) => (s.audioSelectedCategory || 'all') as AudioCategoryType)
+  const setSelectedCategory = useCallback((cat: AudioCategoryType) => {
+    useView.getState().setAudioSelectedCategory(cat)
+  }, [])
 
   // Quản lý phát âm thanh nghe thử (Preview player)
   const [playingId, setPlayingId] = useState<string | null>(null)
@@ -190,7 +193,7 @@ export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
           id: a.id,
           name: a.name,
           source: 'project',
-          category: detectAudioCategory(a.name),
+          category: (a.category as AudioCategoryType) || detectAudioCategory(a.name),
           assetMeta: a,
           format: ext,
           url: runtime?.url
@@ -490,7 +493,7 @@ export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         categoryCounts={categoryCounts}
-        onImportClick={() => importAudio(currentTime)}
+        onImportClick={() => importAudio(currentTime, selectedCategory)}
         onOpenFolder={async () => {
           if (window.api?.openAssetFolder) window.api.openAssetFolder('audio')
         }}
@@ -559,7 +562,7 @@ export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
               <button
                 type="button"
                 className="btn sm asset-action-btn-highlight"
-                onClick={() => importAudio(currentTime)}
+                onClick={() => importAudio(currentTime, selectedCategory)}
               >
                 <IconPlus width={12} height={12} /> Thêm audio từ máy tính
               </button>
@@ -606,7 +609,7 @@ export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
           <button
             type="button"
             className="btn sm asset-action-btn-highlight music-footer-add-btn"
-            onClick={() => importAudio(currentTime)}
+            onClick={() => importAudio(currentTime, selectedCategory)}
             title="Chọn tệp âm thanh từ máy tính và chèn tại mốc thời gian hiện tại"
           >
             <IconPlus width={12} height={12} /> Thêm audio từ máy tính

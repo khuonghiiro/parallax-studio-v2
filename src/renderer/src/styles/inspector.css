@@ -31,11 +31,12 @@
   transition: background 0.12s, color 0.12s;
   position: relative;
 }
-.tab:hover {
+.tab:hover:not(.active) {
   color: var(--text);
   background: var(--bg-3);
 }
-.tab.active {
+.tab.active,
+.tab.active:hover {
   background: var(--bg-2);
   color: var(--text);
   box-shadow: inset 0 -2px 0 var(--accent);
