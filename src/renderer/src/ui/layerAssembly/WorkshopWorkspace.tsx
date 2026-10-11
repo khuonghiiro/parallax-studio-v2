@@ -12,9 +12,9 @@ import type { WorkshopTab } from './WorkshopRightPanel'
 import { loadLayerWorkshopViewPrefs, saveLayerWorkshopViewPrefs } from './layerAssemblyViewPrefs'
 import type { BrushPreview } from './useLayerBrushEraser'
 
-export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBone, onBrushModeChange }: {
+export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, boneId, selectBone, onBrushModeChange }: {
   state: ReturnType<typeof useLayerWorkshop>; playback: ReturnType<typeof useWorkshopPlayback>; view: AssemblyWorkspaceView
-  tab: WorkshopTab; boneId: string | null; selectBone: (id: string | null) => void
+  tab: WorkshopTab; onSelectTab?: (tab: WorkshopTab) => void; boneId: string | null; selectBone: (id: string | null) => void
   onBrushModeChange?: (active: boolean) => void
 }) {
   const [showBones, setShowBones] = useState(() => loadLayerWorkshopViewPrefs().showBones)
@@ -47,7 +47,8 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
     const handleKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
       if (tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable) return
-      if (e.key === 'b' || e.key === 'B') {
+      // Shift+B hoặc B (chỉ khi ở tab bones) để bật/tắt hiển thị xương
+      if ((e.shiftKey && (e.key === 'b' || e.key === 'B')) || ((e.key === 'b' || e.key === 'B') && tab === 'bones')) {
         toggleBones()
       } else if (e.key === 'm' || e.key === 'M') {
         toggleMesh()
@@ -55,7 +56,7 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [toggleBones, toggleMesh])
+  }, [toggleBones, toggleMesh, tab])
 
   const normalizedRig = state.composite.rig ? ensureRigClips(state.composite.rig).rig : undefined
   const rig = normalizedRig
@@ -86,7 +87,8 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
     onAddLayerFromAsset: state.add,
     onAppendPresetLayers: state.append,
     time: playback.time,
-    tab
+    tab,
+    onSelectTab
   }
   return <div className="layer-workshop-center-area">
     <div className="layer-workshop-split-container">
@@ -94,6 +96,7 @@ export function WorkshopWorkspace({ state, playback, view, tab, boneId, selectBo
         <div className="pane-header-tab"><span className="pane-title"><IconImage width={13} height={13} /> Bố cục 2D</span><span>Di chuyển & căn chỉnh</span></div>
         <LayerAssemblyViewport
           {...props}
+          onSelectTab={onSelectTab}
           brushSourceLayer={state.composite.layers.find((l) => l.id === state.selectedLayerId) ?? null}
           onBrushPreview={setBrushPreview}
           onBrushModeChange={brushMode}

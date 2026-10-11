@@ -40,6 +40,7 @@ export interface LayerAssemblyViewportProps {
   time: number
   onSeekTime: (t: number) => void
   tab?: WorkshopTab
+  onSelectTab?: (tab: WorkshopTab) => void
   hideTransport?: boolean
   showBones?: boolean
   onToggleShowBones?: () => void
@@ -65,6 +66,7 @@ export function LayerAssemblyViewport({
   time,
   onSeekTime,
   tab,
+  onSelectTab,
   hideTransport = false,
   boneOverlay,
   showBones = true,
@@ -101,14 +103,61 @@ export function LayerAssemblyViewport({
     onPreview: handleBrushPreview
   })
 
-  // Tự động đóng cọ tẩy khi chuyển tab hoặc khi đang phát hoạt ảnh
+  // Hàm chuyển đổi công cụ 2D an toàn: tự chuyển sang tab layers nếu đang ở tab khác, tự dừng playback, tự chọn layer
+  const handleToolChange = useCallback((tool: Assembly2DTool) => {
+    if (tool === 'eraser') {
+      if (isPlaying) {
+        onTogglePlay?.()
+      }
+      if (tab && tab !== 'layers') {
+        onSelectTab?.('layers')
+      }
+      if (!selectedLayerId && composite.layers.length > 0) {
+        const firstAvailable = composite.layers.find((l) => !l.locked && !l.hidden) ?? composite.layers[0]
+        if (firstAvailable) {
+          onSelectLayer(firstAvailable.id)
+        }
+      }
+    }
+    brush.setActiveTool(tool)
+  }, [isPlaying, onTogglePlay, tab, onSelectTab, selectedLayerId, composite.layers, onSelectLayer, brush])
+
+  // Tự động đóng cọ tẩy khi người dùng chủ động chuyển từ tab 'layers' sang tab khác
+  const prevTabRef = useRef(tab)
   useEffect(() => {
-    if ((tab && tab !== 'layers') || isPlaying) {
+    if (prevTabRef.current === 'layers' && tab && tab !== 'layers') {
       if (brush.activeTool === 'eraser') {
         brush.setActiveTool('select')
       }
     }
-  }, [tab, isPlaying, brush])
+    prevTabRef.current = tab
+  }, [tab, brush])
+
+  // Tự động đóng cọ tẩy khi phát hoạt ảnh
+  useEffect(() => {
+    if (isPlaying && brush.activeTool === 'eraser') {
+      brush.setActiveTool('select')
+    }
+  }, [isPlaying, brush])
+
+  // Phím tắt bàn phím: V (Chọn), E / B (Cọ tẩy)
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable) return
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+      const k = e.key.toLowerCase()
+      if (k === 'v') {
+        handleToolChange('select')
+      } else if (k === 'e' || k === 'b') {
+        if (!e.shiftKey) {
+          handleToolChange(brush.activeTool === 'eraser' ? 'select' : 'eraser')
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [handleToolChange, brush.activeTool])
 
   useEffect(() => {
     const isErasing = brush.activeTool === 'eraser' && (!tab || tab === 'layers') && !isPlaying
@@ -644,7 +693,7 @@ export function LayerAssemblyViewport({
       {/* Tab dọc công cụ 2D & Cọ tẩy xử lý */}
       <LayerAssembly2DToolbar
         activeTool={brush.activeTool}
-        onChangeTool={brush.setActiveTool}
+        onChangeTool={handleToolChange}
         brushSettings={brush.brushSettings}
         onChangeBrushSettings={brush.setBrushSettings}
         onResetLayerImage={brush.resetLayerImage}

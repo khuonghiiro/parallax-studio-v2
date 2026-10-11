@@ -140,6 +140,7 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
             playback={playback}
             view={view}
             tab={tab}
+            onSelectTab={setTab}
             boneId={boneId}
             selectBone={selectBone}
             onBrushModeChange={setIsBrushActive}

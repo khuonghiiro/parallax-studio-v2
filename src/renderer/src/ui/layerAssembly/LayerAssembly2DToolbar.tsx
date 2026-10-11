@@ -126,10 +126,10 @@ export function LayerAssembly2DToolbar({
         tip: '🖱 Bấm để kích hoạt chế độ chọn'
       },
       eraser: {
-        title: 'Cọ tẩy xoá pixel & Mờ xuyên thấu (B)',
+        title: 'Cọ tẩy xoá pixel & Mờ xuyên thấu (E / B)',
         sub: 'Xoá chi tiết thừa / Làm mờ nhẹ',
-        desc: 'Chỉnh pixel trong khung ảnh góc dưới trái: cọ mềm, tẩy nét cứng và bàn tay. Khung lớn chỉ xem và chọn layer.',
-        tip: '🖌 Bấm để mở khung chỉnh pixel'
+        desc: 'Chỉnh pixel trong khung ảnh góc dưới trái: cọ mềm, tẩy nét cứng và bàn tay. Tự động chuyển sang tab Layer để chọn layer cần tẩy.',
+        tip: '🖌 Bấm hoặc phím E/B để mở khung chỉnh pixel'
       },
       zoom: {
         title: `Thu phóng: ${Math.round(zoom * 100)}%`,
@@ -206,6 +206,8 @@ export function LayerAssembly2DToolbar({
         <button
           type="button"
           className={`layer-3d-dock-btn${activeTool === 'select' ? ' active' : ''}`}
+          onPointerDown={(e) => e.stopPropagation()}
+          onPointerUp={(e) => e.stopPropagation()}
           onClick={() => {
             onChangeTool('select')
             hideTooltip()
@@ -221,6 +223,8 @@ export function LayerAssembly2DToolbar({
         <button
           type="button"
           className={`layer-3d-dock-btn${activeTool === 'eraser' ? ' active' : ''}`}
+          onPointerDown={(e) => e.stopPropagation()}
+          onPointerUp={(e) => e.stopPropagation()}
           onClick={() => {
             if (activeTool !== 'eraser') {
               onChangeTool('eraser')
