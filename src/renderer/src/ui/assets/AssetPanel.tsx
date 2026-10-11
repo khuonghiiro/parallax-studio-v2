@@ -151,14 +151,14 @@ export function AssetPanel() {
       <div className="asset-top-header">
         <span className="asset-top-header-label">
           {subTab === 'builtin' && <IconGrid width={14} height={14} />}
-          {subTab === 'project' && <IconImage width={14} height={14} />}
           {subTab === '3d' && <IconCube width={14} height={14} />}
           {subTab === 'assembly' && <IconLayers width={14} height={14} />}
+          {subTab === 'project' && <IconImage width={14} height={14} />}
           <span>
             {subTab === 'builtin' && 'Kho mẫu có sẵn'}
-            {subTab === 'project' && 'Tệp trong dự án'}
             {subTab === '3d' && 'Mô hình 3D'}
             {subTab === 'assembly' && 'Cụm layer lắp ráp'}
+            {subTab === 'project' && 'Tệp trong dự án'}
           </span>
         </span>
         <span className="spacer" />
@@ -181,7 +181,25 @@ export function AssetPanel() {
           >
             <IconPlus /> Ảnh công khai
           </button>
-        ) : subTab === 'project' ? (
+        ) : subTab === '3d' ? (
+          <button
+            type="button"
+            className="btn sm"
+            onClick={() => window.dispatchEvent(new CustomEvent('assembly:open'))}
+            title="Mở xưởng tạo mô hình 3D từ các diện ảnh phẳng"
+          >
+            <IconPlus /> Tạo 3D
+          </button>
+        ) : subTab === 'assembly' ? (
+          <button
+            type="button"
+            className="btn sm"
+            onClick={() => window.dispatchEvent(new CustomEvent('layerAssembly:open'))}
+            title="Mở xưởng lắp ráp layer xếp chồng 2.5D"
+          >
+            <IconPlus /> Tạo lắp ráp
+          </button>
+        ) : (
           <>
             <button
               type="button"
@@ -202,28 +220,10 @@ export function AssetPanel() {
               <IconMusic />
             </button>
           </>
-        ) : subTab === '3d' ? (
-          <button
-            type="button"
-            className="btn sm"
-            onClick={() => window.dispatchEvent(new CustomEvent('assembly:open'))}
-            title="Mở xưởng tạo mô hình 3D từ các diện ảnh phẳng"
-          >
-            <IconPlus /> Tạo 3D
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="btn sm"
-            onClick={() => window.dispatchEvent(new CustomEvent('layerAssembly:open'))}
-            title="Mở xưởng lắp ráp layer xếp chồng 2.5D"
-          >
-            <IconPlus /> Tạo lắp ráp
-          </button>
         )}
       </div>
 
-      {/* Subtabs: Built-in Library vs Project Assets vs 3D Assembled Models */}
+      {/* Subtabs: Built-in Library vs 3D Assembled Models vs Layer Assembly vs Project Assets */}
       <div className="asset-subtabs" role="tablist">
         <button
           type="button"
@@ -236,18 +236,6 @@ export function AssetPanel() {
           <IconGrid width={13} height={13} />
           <span className="asset-subtab-label">Kho mẫu</span>
           <span className="asset-subtab-badge">{visiblePublicItems.length}</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={subTab === 'project'}
-          className={`asset-subtab-btn${subTab === 'project' ? ' active' : ''}`}
-          onClick={() => setSubTab('project')}
-          title="Tệp tài nguyên trong dự án (5 tệp)"
-        >
-          <IconImage width={13} height={13} />
-          <span className="asset-subtab-label">Dự án</span>
-          <span className="asset-subtab-badge">{projectAssets.length}</span>
         </button>
         <button
           type="button"
@@ -271,6 +259,18 @@ export function AssetPanel() {
           <IconLayers width={13} height={13} />
           <span className="asset-subtab-label">Lắp ráp</span>
           <span className="asset-subtab-badge">{assemblyCount}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={subTab === 'project'}
+          className={`asset-subtab-btn${subTab === 'project' ? ' active' : ''}`}
+          onClick={() => setSubTab('project')}
+          title="Tệp tài nguyên trong dự án (5 tệp)"
+        >
+          <IconImage width={13} height={13} />
+          <span className="asset-subtab-label">Dự án</span>
+          <span className="asset-subtab-badge">{projectAssets.length}</span>
         </button>
       </div>
 
@@ -296,14 +296,14 @@ export function AssetPanel() {
             loading={loading}
           />
         </div>
-      ) : subTab === 'project' ? (
+      ) : subTab === '3d' ? (
+        <Model3DList />
+      ) : subTab === 'assembly' ? (
+        <LayerAssemblyList />
+      ) : (
         <div className="panel-body">
           <ProjectAssetList />
         </div>
-      ) : subTab === '3d' ? (
-        <Model3DList />
-      ) : (
-        <LayerAssemblyList />
       )}
 
       {/* JSON Manifest Editor Modal */}

@@ -81,17 +81,23 @@ export function BuiltInAssetGrid({
 
   const activeCategory = categories.find((c) => c.id === selectedCategory) || categories[0]
 
-  // Filter items by category & search query
-  const filteredItems = useMemo(() => {
+  // Danh sách các tài nguyên hiển thị thuộc danh mục đang chọn (chưa lọc theo từ khoá tìm kiếm)
+  const categoryVisibleItems = useMemo(() => {
     return allVisibleItems.filter((item) => {
       const matchCat =
         !activeCategory ||
         activeCategory.id === 'all' ||
         !activeCategory.folder ||
         item.folder === activeCategory.folder
-      return matchCat && matchAsset(item, search)
+      return matchCat
     })
-  }, [allVisibleItems, activeCategory, search])
+  }, [allVisibleItems, activeCategory])
+
+  // Lọc tiếp theo từ khoá tìm kiếm
+  const filteredItems = useMemo(() => {
+    if (!search.trim()) return categoryVisibleItems
+    return categoryVisibleItems.filter((item) => matchAsset(item, search))
+  }, [categoryVisibleItems, search])
 
   // Memoized category options with count
   const categoryOptions = useMemo(() => {
@@ -164,9 +170,20 @@ export function BuiltInAssetGrid({
 
         <div className="asset-match-count">
           <span>
-            {activeCategory?.title || 'Tất cả'} · <b>{filteredItems.length}</b>/{items.length} tệp
+            {activeCategory?.title || 'Tất cả'} ·{' '}
+            {search.trim() ? (
+              <>
+                <b>{filteredItems.length}</b>/{categoryVisibleItems.length} tệp
+              </>
+            ) : (
+              <>
+                <b>{categoryVisibleItems.length}</b> tệp
+              </>
+            )}
           </span>
-          {search && <span style={{ color: 'var(--accent-cyan)' }}>Lọc: &quot;{search}&quot;</span>}
+          {search.trim() && (
+            <span style={{ color: 'var(--accent-cyan)' }}>Lọc: &quot;{search.trim()}&quot;</span>
+          )}
         </div>
       </div>
 
