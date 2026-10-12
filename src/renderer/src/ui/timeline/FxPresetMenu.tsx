@@ -1,3 +1,5 @@
+import { useEditor } from '../../store/editor'
+import { useEffectSelection } from '../../store/effectSelection'
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { GlowSide } from '@shared/types'
@@ -122,6 +124,10 @@ export function FxPresetMenu({ time, hasSelectedLayer }: FxPresetMenuProps) {
       thickness: isGlow ? glowThickness : undefined
     })
     if (success) {
+      const state = useEditor.getState()
+      const layer = state.project.layers.find((l) => l.id === state.selectedLayerId)
+      const effect = layer?.appliedEffects?.at(-1)
+      if (layer && effect) useEffectSelection.getState().select(layer.id, effect.id)
       setIsOpen(false)
     }
   }
@@ -284,9 +290,9 @@ export function FxPresetMenu({ time, hasSelectedLayer }: FxPresetMenuProps) {
                   ))}
 
                   <div className="tl-fx-group-label" style={{ marginTop: 6 }}>
-                    Vị trí &amp; Phóng to
+                    Motion &amp; Transform
                   </div>
-                  {FX_PRESETS.filter((p) => p.category === 'transform').map((p) => (
+                  {FX_PRESETS.filter((p) => p.category === 'transform' || p.category === 'motion').map((p) => (
                     <button
                       key={p.id}
                       type="button"
@@ -313,7 +319,7 @@ export function FxPresetMenu({ time, hasSelectedLayer }: FxPresetMenuProps) {
                       </span>
                       <strong>{activePreset.name}</strong>
                     </div>
-                    <p className="tl-fx-desc-p">{activePreset.description}</p>
+                    <p className="tl-fx-desc-p">{activePreset.description}{activePreset.category === 'motion' ? ' · Sau khi thêm, chỉnh biên độ, tần số và chuyển tiếp trong Inspector.' : ''}</p>
                   </div>
 
                   {activePreset.category === 'glow' ? (

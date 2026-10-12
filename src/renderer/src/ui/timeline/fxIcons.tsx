@@ -1,3 +1,4 @@
+import { MotionFxIcon } from './MotionFxIcon'
 import React from 'react'
 import {
   IconFxBlink,
@@ -14,6 +15,7 @@ import {
  * Returns a clean, semantically accurate SVG icon for animation presets.
  */
 export function renderFxIcon(presetId: string, size = 14, customColor?: string): React.ReactNode {
+  if (presetId.startsWith('motion')) return <MotionFxIcon presetId={presetId} size={size} color={customColor} />
   switch (presetId) {
     case 'blink':
       return <IconFxBlink width={size} height={size} style={{ color: customColor || '#b45309' }} />
@@ -47,6 +49,7 @@ export function renderFxIcon(presetId: string, size = 14, customColor?: string):
  * Returns signature theme color for each effect preset.
  */
 export function getFxColor(presetId: string): string {
+  if (presetId.startsWith('motion')) return 'var(--accent-cyan)'
   switch (presetId) {
     case 'blink':
       return '#b45309'

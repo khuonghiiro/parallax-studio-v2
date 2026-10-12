@@ -1,11 +1,12 @@
+import { addMotionEffect, effectMotion, listLayerEffects, updateMotionEffect } from '../../animation/motionEffects'
 import type { LayerMotion } from '@shared/types'
-import { MOTION_TYPES, patchLayerMotion, sampleLayerMotion } from '../../animation/proceduralMotion'
+import { MOTION_TYPES, sampleLayerMotion } from '../../animation/proceduralMotion'
 import { useEditor } from '../../store/editor'
 import { bool, num, requireLayer, str, vec3 } from '../params'
 import { ParamError, type Handler, type Params } from '../types'
 import { layerNominalSize } from '../../engine/spatial'
 
-function motionPatch(p: Params): Partial<LayerMotion> {
+export function motionPatch(p: Params): Partial<LayerMotion> {
   const patch: Partial<LayerMotion> = {}
   if (p.type !== undefined) {
     const type = str(p, 'type') as LayerMotion['type']
@@ -51,14 +52,20 @@ export const proceduralMotionCommands: Record<string, Handler> = {
     requireLayer(useEditor.getState().project, id)
     useEditor.getState().update((project) => {
       const layer = requireLayer(project, id)
-      layer.motion = patchLayerMotion(layer.motion, patch, reset)
+      if (layer.locked) throw new ParamError('Layer is locked')
+      let fx = listLayerEffects(layer).find((f) => f.category === 'motion')
+      if (!fx) fx = addMotionEffect(layer, patch.type === 'none' ? 'wiggle' : patch.type ?? 'wiggle', patch.startTime ?? 0, patch.duration ?? 0)
+      updateMotionEffect(layer, fx.id, patch, reset)
     })
-    return { ok: true, layer_id: id, motion: requireLayer(useEditor.getState().project, id).motion }
+    const fx = listLayerEffects(requireLayer(useEditor.getState().project, id)).find((f) => f.category === 'motion')!
+    return { ok: true, layer_id: id, fx_id: fx.id, motion: effectMotion(fx) }
   },
   get_layer_motion: (p) => {
     const layer = requireLayer(useEditor.getState().project, str(p, 'layer_id', true))
     const time = num(p, 'time') ?? useEditor.getState().time
-    return { layer_id: layer.id, motion: layer.motion ?? { type: 'none' }, time,
-      sample: sampleLayerMotion(layer.motion, time, layerNominalSize(layer)) }
+    const fx = listLayerEffects(layer).find((f) => f.category === 'motion')
+    const motion = fx ? effectMotion(fx) : undefined
+    return { layer_id: layer.id, fx_id: fx?.id, motion: motion ?? { type: 'none' }, time,
+      sample: sampleLayerMotion(motion, time, layerNominalSize(layer)) }
   }
 }

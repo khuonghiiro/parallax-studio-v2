@@ -168,10 +168,12 @@ export interface AppliedLayerEffect {
   presetId: string
   name: string
   badge: string
-  category: 'opacity' | 'transform' | 'glow'
+  category: 'opacity' | 'transform' | 'glow' | 'motion'
   startTime: number
   duration: number
   enabled: boolean
+  /** Procedural effect parameters. Timing and enabled state belong to this effect instance. */
+  motion?: LayerMotion
   targetProp?: 'opacity' | 'position' | 'scale' | 'rotation'
   keyframeIds?: string[]
   glow?: LayerGlow

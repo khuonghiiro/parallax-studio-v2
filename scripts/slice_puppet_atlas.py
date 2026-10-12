@@ -59,22 +59,34 @@ def components(rgba):
         cx, cy = points.mean(axis=0)
         cell = int(cy * 5 / height) * 5 + int(cx * 5 / width)
         lo, hi = points.min(axis=0), points.max(axis=0) + 1
-        found.append((cell, [int(lo[0]), int(lo[1]), int(hi[0]), int(hi[1])]))
+        found.append((cell, [int(lo[0]), int(lo[1]), int(hi[0]), int(hi[1])], len(pixels)))
     return found
 
 
-def extract(source, output):
+def extract(source, output, lenient: bool = False):
     image = Image.open(source).convert('RGBA')
     width, height = image.size
     if abs(width / height - 1) > .02:
         raise ValueError('This preset requires a 1:1 atlas with 5 columns and 5 rows')
     rgba = key_green(image)
     detected = components(rgba)
+    from collections import defaultdict
+    cell_comps = defaultdict(list)
+    for cell, box, count in detected:
+        cell_comps[cell].append((box, count))
+
     by_cell = {}
-    for cell, box in detected:
-        if cell in by_cell:
-            raise ValueError(f'Multiple silhouettes in cell {cell + 1}; inspect source before assigning')
-        by_cell[cell] = box
+    for cell, comps in cell_comps.items():
+        if len(comps) == 1:
+            by_cell[cell] = comps[0][0]
+        else:
+            comps.sort(key=lambda x: x[1], reverse=True)
+            largest_box, largest_count = comps[0]
+            second_box, second_count = comps[1]
+            if lenient and second_count < largest_count * 0.25:
+                by_cell[cell] = largest_box
+            else:
+                raise ValueError(f'Multiple silhouettes in cell {cell + 1}; inspect source before assigning')
     output.mkdir(parents=True, exist_ok=True)
     manifest = {'template_id': 'tmpl-character-puppet-15', 'size': [width, height],
                 'aspect_ratio': '1:1', 'grid': [5, 5], 'parts': [], 'warnings': []}
@@ -118,5 +130,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('atlas', type=Path)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--lenient', action='store_true', help='Ignore small secondary artifacts/numbers in cell')
     args = parser.parse_args()
-    extract(args.atlas, args.out)
+    extract(args.atlas, args.out, lenient=args.lenient)

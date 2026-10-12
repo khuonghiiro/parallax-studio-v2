@@ -1,0 +1,11 @@
+.timeline-effect-row { background: var(--bg-1); }
+.timeline-effect-name { display: flex; align-items: center; gap: 5px; width: 100%; min-width: 0; padding: 0 8px 0 22px; }
+.timeline-effect-select { flex: 1; min-width: 0; border: 0; background: none; color: var(--text-dim); text-align: left; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.timeline-effect-clip { position: absolute; top: 4px; bottom: 4px; display: flex; align-items: center; border: 1px solid var(--accent-cyan); background: var(--bg-3); color: var(--text); border-radius: 3px; cursor: grab; user-select: none; touch-action: none; box-sizing: border-box; }
+.timeline-effect-clip.selected { border-color: var(--key); }
+.timeline-effect-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; margin: 0 10px; pointer-events: none; }
+.timeline-effect-trim { position: absolute; width: 7px; top: 0; bottom: 0; background: var(--line-focus); cursor: ew-resize; touch-action: none; }
+.timeline-effect-trim.start { left: 0; }
+.timeline-effect-trim.end { right: 0; }
+.timeline-effect-row.is-disabled .timeline-effect-clip { border-color: var(--text-faint); border-style: dashed; color: var(--text-dim); background: var(--bg-1); }
+.timeline-effect-clip:focus-visible, .timeline-effect-name button:focus-visible { outline: 1px solid var(--line-focus); outline-offset: 2px; }

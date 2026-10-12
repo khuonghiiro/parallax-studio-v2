@@ -1,3 +1,4 @@
+import { effectStackCommands } from './commands/effectStackCommands'
 import { proceduralMotionCommands } from './commands/proceduralMotionCommands'
 import type { McpCommand } from '@shared/ipc'
 import type { Handler, Params } from './types'
@@ -33,6 +34,7 @@ const commands: Record<string, Handler> = {
   ...layerAssemblyTemplateCommands,
   ...motionCommands,
   ...proceduralMotionCommands,
+  ...effectStackCommands,
   ...systemCommands,
   ...uiCommands
 }
@@ -77,6 +79,7 @@ const SILENT_MCP_COMMANDS = new Set([
   'get_shot_info',
   'get_layer_info',
   'get_layer_motion',
+  'list_layer_fx',
   'get_camera_info',
   'get_memory_stats',
   'get_audio_info',

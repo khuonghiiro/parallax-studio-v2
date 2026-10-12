@@ -13,6 +13,7 @@ dist/
 release/
 build/
 artifacts/
+flow-video/
 *.tsbuildinfo
 
 # Vite & Vitest caches
@@ -37,6 +38,8 @@ logs/
 Thumbs.db
 desktop.ini
 $RECYCLE.BIN/
+__pycache__/
+*.pyc
 
 # Editor & IDE configurations
 .idea/

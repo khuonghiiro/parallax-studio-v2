@@ -317,6 +317,8 @@ export function applyCommonLayerProps(layer: Layer, spec: DeclarativeLayerSpec, 
   if (spec.inPoint !== undefined) layer.inPoint = spec.inPoint
   if (spec.outPoint !== undefined) layer.outPoint = spec.outPoint
 
+  if (spec.appliedEffects) layer.appliedEffects = structuredClone(spec.appliedEffects)
+
   if (spec.motion) {
     layer.motion = { ...spec.motion }
   }

@@ -72,7 +72,7 @@ export const SCENE_TOOLS = [
       region: z.enum([
         'left_panel', 'assets', 'asset_grid', 'asset_bar', 'music', 'shots', 'topview',
         'viewer', 'viewer_canvas', 'viewport', 'camera_frame', 'viewer_hud', 'viewer_tools',
-        'inspector', 'inspector_tabs', 'inspector_body', 'motion', 'motion_preview', 'motion_parameters', 'motion_timing',
+        'inspector', 'inspector_tabs', 'inspector_body', 'effect_stack', 'effect_editor', 'timeline_effects', 'fx_presets', 'motion', 'motion_preview', 'motion_parameters', 'motion_timing',
         'timeline', 'timeline_toolbar', 'timeline_ruler', 'timeline_tracks',
         'toolbar', 'mcp_chip',
         'dialog',

@@ -1,0 +1,16 @@
+.effect-stack-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.effect-stack-heading h3 { display: flex; gap: 6px; align-items: center; font-size: 12px; margin: 0; }
+.effect-stack-list { display: grid; gap: 5px; margin-top: 10px; }
+.layer-fx-card { display: flex; align-items: center; gap: 4px; padding: 6px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 4px; }
+.layer-fx-card.selected { border-color: var(--accent); }
+.layer-fx-card.is-disabled .effect-card-select { color: var(--text-dim); }
+.effect-card-select { display: flex; align-items: center; gap: 7px; min-width: 0; flex: 1; text-align: left; background: none; border: 0; color: var(--text); cursor: pointer; padding: 3px; }
+.effect-card-select > span { min-width: 0; }
+.effect-card-select strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.effect-card-select small { display: block; color: var(--text-dim); font-size: 10px; margin-top: 3px; }
+.effect-editor-fieldset { padding: 0; margin: 12px 0 0; border: 0; min-width: 0; }
+.effect-editor { border-top: 1px solid var(--line); padding-top: 10px; }
+.effect-editor .motion-controls { padding: 8px 0 0; border: 0; }
+.effect-empty { margin-top: 10px; width: 100%; }
+.effect-legacy-row { display: flex; align-items: center; gap: 6px; color: var(--text-dim); font-size: 11px; margin-top: 8px; }
+.layer-effects-section button:focus-visible { outline: 1px solid var(--line-focus); outline-offset: 2px; }

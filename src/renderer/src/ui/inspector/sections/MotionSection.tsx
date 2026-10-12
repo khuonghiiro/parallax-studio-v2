@@ -1,7 +1,5 @@
-import type { Layer, LayerMotion, LayerMotionType } from '@shared/types'
-import { defaultLayerMotion, patchLayerMotion } from '../../../animation/proceduralMotion'
+import type { LayerMotion, LayerMotionType } from '@shared/types'
 import { NumberInput, Row, Select } from '../../controls'
-import type { Setter } from '../types'
 import { MotionParameters } from './MotionParameters'
 import { MotionPreview } from './MotionPreview'
 import '../../../styles/motion.css'
@@ -15,19 +13,15 @@ const options = [
 
 export type MotionChange = (patch: Partial<LayerMotion>, key?: string) => void
 
-export function MotionSection({ layer, set }: { layer: Layer; set: Setter }) {
-  const motion = layer.motion ?? { type: 'none' }
-  const change: MotionChange = (patch, key) => set((l) => {
-    l.motion = patchLayerMotion(l.motion, patch)
-  }, key)
+export function MotionEffectControls({ motion, change, reset }: {
+  motion: LayerMotion; change: MotionChange; reset: () => void
+}) {
   const active = motion.type !== 'none'
   return <section className="section motion-controls" aria-label="Motion controls">
     <div className="motion-heading">
-      <div><span className="motion-eyebrow">EFFECT CONTROLS</span><h3>Motion</h3></div>
+      <div><span className="motion-eyebrow">EFFECT CONTROLS</span><h3>Thông số Motion</h3></div>
       <div className="motion-actions">
-        <button className="btn sm ghost" disabled={!active} onClick={() => set((l) => {
-          l.motion = defaultLayerMotion(motion.type)
-        })} title="Khôi phục thông số mặc định của loại chuyển động">Reset</button>
+        <button className="btn sm ghost" disabled={!active} onClick={reset} title="Khôi phục thông số mặc định của loại chuyển động">Reset</button>
         <button id="motion-enabled" className={`switch${active && motion.enabled !== false ? ' on' : ''}`}
           aria-label="Bật hoặc tắt Motion" aria-pressed={active && motion.enabled !== false} disabled={!active}
           onClick={() => change({ enabled: motion.enabled === false })} />

@@ -24,8 +24,8 @@ export const FX_TOOLS = [
   {
     name: 'set_layer_motion', cat: 'fx',
     doc: L(
-      'Configure procedural Motion Effect Controls on one layer, additive to existing transform keyframes. Type changes reset defaults; patches preserve other settings. Supports undo/redo. Does not create keyframes.',
-      'Chỉnh Motion Effect Controls trên một layer, cộng vào keyframe Transform hiện có. Đổi loại đặt lại mặc định; sửa từng tham số giữ các mục khác. Hỗ trợ undo/redo. Không tạo keyframe.'
+      'Compatibility tool: edit the first Motion effect (creates one if absent); use apply_layer_fx and update_layer_fx for multiple effects. Configure procedural Motion Effect Controls on one layer, additive to existing transform keyframes. Type changes reset defaults; patches preserve other settings. Supports undo/redo. Does not create keyframes.',
+      'Tool tương thích: chỉnh Motion đầu tiên (tạo nếu chưa có); dùng apply_layer_fx và update_layer_fx cho nhiều hiệu ứng. Chỉnh Motion Effect Controls trên một layer, cộng vào keyframe Transform hiện có. Đổi loại đặt lại mặc định; sửa từng tham số giữ các mục khác. Hỗ trợ undo/redo. Không tạo keyframe.'
     ),
     shape: (d) => ({
       layer_id: z.string(),
@@ -56,13 +56,13 @@ export const FX_TOOLS = [
   {
     name: 'apply_layer_fx', cat: 'fx',
     doc: L(
-      'Apply an animation or neon glow FX preset at a specific time: "neonBreathe" (soft breathing neon edge glow), "neonBlink" (blinking neon outline), "neonFlicker" (flickering neon sign), "neonSolid" (constant neon outline), "blink" (opacity blink), "fadeIn", "fadeOut", "breathe", "shake", "popIn", "pulse".',
-      'Áp preset hiệu ứng chuyển động hoặc viền neon tại một thời điểm: "neonBreathe" (viền neon thở nhẹ), "neonBlink" (viền neon nhấp nháy), "neonFlicker" (biển neon chập chờn), "neonSolid" (viền neon cố định), "blink" (nhấp nháy độ mờ), "fadeIn", "fadeOut", "breathe", "shake", "popIn", "pulse".'
+      'Add an effect instance and return fx_id. Motion presets: motionDrift, motionWind, motionSway, motionFloat, motionWiggle, motionPulse (edit with update_layer_fx). Animation or neon presets: "neonBreathe" (soft breathing neon edge glow), "neonBlink" (blinking neon outline), "neonFlicker" (flickering neon sign), "neonSolid" (constant neon outline), "blink" (opacity blink), "fadeIn", "fadeOut", "breathe", "shake", "popIn", "pulse".',
+      'Thêm hiệu ứng và trả fx_id. Preset Motion: motionDrift, motionWind, motionSway, motionFloat, motionWiggle, motionPulse (chỉnh qua update_layer_fx). Preset hoạt ảnh hoặc neon: "neonBreathe" (viền neon thở nhẹ), "neonBlink" (viền neon nhấp nháy), "neonFlicker" (biển neon chập chờn), "neonSolid" (viền neon cố định), "blink" (nhấp nháy độ mờ), "fadeIn", "fadeOut", "breathe", "shake", "popIn", "pulse".'
     ),
     shape: (d) => ({
       layer_id: z.string(),
       preset: z
-        .enum(['neonBreathe', 'neonBlink', 'neonFlicker', 'neonSolid', 'blink', 'fadeIn', 'fadeOut', 'breathe', 'shake', 'popIn', 'pulse'])
+        .enum(['neonBreathe', 'neonBlink', 'neonFlicker', 'neonSolid', 'blink', 'fadeIn', 'fadeOut', 'breathe', 'shake', 'popIn', 'pulse', 'motionDrift', 'motionWind', 'motionSway', 'motionFloat', 'motionWiggle', 'motionPulse'])
         .describe(d('Animation / Glow FX preset name.', 'Tên preset hiệu ứng chuyển động / phát sáng.')),
       time: z.number().optional().describe(d('Start time in seconds (default: current playhead time).', 'Thời điểm bắt đầu, giây (mặc định: vị trí playhead).')),
       duration: z.number().optional().describe(d('Effect duration in seconds (default depends on preset, e.g. 1.0s).', 'Thời lượng hiệu ứng, giây (mặc định tùy preset, vd 1.0s).')),
@@ -429,3 +429,19 @@ export const FX_TOOLS = [
     example: '{"code":"return api.project.layers.length"}'
   }
 ]
+
+const motionShape = FX_TOOLS.find((tool) => tool.name === 'set_layer_motion').shape
+FX_TOOLS.push(
+  {
+    name: 'list_layer_fx', cat: 'fx',
+    doc: L('List all effect instances, including legacy Motion, with ids, timing and parameters.', 'Liệt kê mọi hiệu ứng, gồm Motion cũ, với ID, thời gian và tham số.'),
+    shape: () => ({ layer_id: z.string() }), example: '{"layer_id":"layer-1"}'
+  },
+  {
+    name: 'update_layer_fx', cat: 'fx',
+    doc: L('Edit one effect by fx_id. Timing edits retime owned keyframes. Motion parameters affect only this instance. Undoable; locked layers are rejected.',
+      'Chỉnh một hiệu ứng theo fx_id. Sửa thời gian co giãn keyframe thuộc hiệu ứng. Tham số Motion chỉ ảnh hưởng hiệu ứng này. Có Undo; từ chối layer khóa.'),
+    shape: (d) => ({ ...motionShape(d), fx_id: z.string(), name: z.string().optional().describe(d('Display name.', 'Tên hiển thị.')) }),
+    example: '{"layer_id":"layer-1","fx_id":"fx-1","start_time":1,"duration":3,"speed":2,"amount":0.5}'
+  }
+)

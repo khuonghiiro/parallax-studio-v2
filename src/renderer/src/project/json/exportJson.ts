@@ -153,6 +153,8 @@ export async function exportProjectToDeclarativeJson(project: Project, pretty = 
         }
         if (l.blendMode && l.blendMode !== 'normal') item.blendMode = l.blendMode
         if (l.motion && l.motion.type !== 'none') item.motion = l.motion
+        const motionEffects = l.appliedEffects?.filter((fx) => fx.category === 'motion')
+        if (motionEffects?.length) item.appliedEffects = motionEffects
         return item
       })
     }

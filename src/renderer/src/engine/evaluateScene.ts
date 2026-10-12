@@ -1,4 +1,4 @@
-import { sampleLayerMotion } from '../animation/proceduralMotion'
+import { sampleMotionEffects } from '../animation/motionEffects'
 import * as THREE from 'three'
 import type { Layer, Project, Shot, Vec3 } from '@shared/types'
 import { evaluate } from '../animation/keyframes'
@@ -132,7 +132,7 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
     const rot = [...evaluate(tr.rotation, t)] as Vec3
     const sc = [...evaluate(tr.scale, t)] as Vec3
 
-    const motion = sampleLayerMotion(layer.motion, t, layerNominalSize(layer))
+    const motion = sampleMotionEffects(layer, t, layerNominalSize(layer))
     const uvOffset = motion.uvOffset
     for (let axis = 0; axis < 3; axis++) {
       pos[axis] += motion.position[axis]

@@ -1,4 +1,4 @@
-import type { AssetMeta, AutoOrientMode, Composition, EaseName, Layer, LayerMotion, LookSettings, Vec3 } from '@shared/types'
+import type { AppliedLayerEffect, AssetMeta, AutoOrientMode, Composition, EaseName, Layer, LayerMotion, LookSettings, Vec3 } from '@shared/types'
 import type { TransitionType } from '../../animation/cameraPath'
 import type { ParticlePreset } from '../../animation/presets'
 import type { AssetTable } from './assetTable'
@@ -62,6 +62,7 @@ export interface DeclarativeLayerSpec {
 
   // Procedural / Looping motion (drift, wind sway, float, pulse, wiggle)
   motion?: LayerMotion
+  appliedEffects?: AppliedLayerEffect[]
 
   // GIF / Animated Image props
   speed?: number

@@ -1,3 +1,4 @@
+import { listLayerEffects } from '../../animation/motionEffects'
 import type { Animatable, GlowAnimation, GlowSide, Layer, LayerGlow, Project, Vec3 } from '@shared/types'
 import type { Draft } from 'immer'
 import { evaluate } from '../../animation/keyframes'
@@ -281,6 +282,7 @@ export const layerCommands: Record<string, Handler> = {
     const preset = str(p, 'preset', true) as FxPresetId
     const time = num(p, 'time') ?? ed().time
     const duration = num(p, 'duration')
+    if (time < 0 || duration !== undefined && duration < 0) throw new ParamError('Invalid effect timing')
     const blinks = num(p, 'blinks')
     const intensity = num(p, 'intensity')
 
@@ -292,7 +294,8 @@ export const layerCommands: Record<string, Handler> = {
       intensity
     })
     if (!ok) throw new ParamError(`Failed to apply FX preset "${preset}" to layer "${layer.name}"`)
-    return layerSummary(requireLayer(proj(), layer.id), time)
+    const updated = requireLayer(proj(), layer.id)
+    return { ...layerSummary(updated, time), fx_id: updated.appliedEffects?.at(-1)?.id }
   },
 
   split_layer: (p) => {
@@ -333,6 +336,9 @@ export const layerCommands: Record<string, Handler> = {
     const id = requireLayer(project, str(p, 'layer_id', true)).id
     const fxId = str(p, 'fx_id', true)
     const enabled = bool(p, 'enabled') ?? true
+    const source = requireLayer(project, id)
+    if (source.locked) throw new ParamError('Layer is locked')
+    if (!listLayerEffects(source).some((fx) => fx.id === fxId)) throw new ParamError('Effect not found')
     let ok = false
     ed().update((d) => {
       const l = d.layers.find((x) => x.id === id)
@@ -348,6 +354,9 @@ export const layerCommands: Record<string, Handler> = {
     const project = proj()
     const id = requireLayer(project, str(p, 'layer_id', true)).id
     const fxId = str(p, 'fx_id', true)
+    const source = requireLayer(project, id)
+    if (source.locked) throw new ParamError('Layer is locked')
+    if (!listLayerEffects(source).some((fx) => fx.id === fxId)) throw new ParamError('Effect not found')
     let ok = false
     ed().update((d) => {
       const l = d.layers.find((x) => x.id === id)

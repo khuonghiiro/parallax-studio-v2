@@ -1,3 +1,6 @@
+import { TimelineEffectRows } from './TimelineEffectRows'
+import { listLayerEffects } from '../../animation/motionEffects'
+import { useEffectSelection } from '../../store/effectSelection'
 import React, { useEffect, useMemo, useState } from 'react'
 import type { Animatable, AnimValue, Layer } from '@shared/types'
 import { evaluate } from '../../animation/keyframes'
@@ -539,7 +542,7 @@ function TimelineLayerRowComponent({
             />
 
             {/* Visual Effect Badges on Layer Bar */}
-            {layer.appliedEffects?.filter((fx) => fx.category !== 'glow').map((fx) => {
+            {listLayerEffects(layer).filter((fx) => fx.category !== 'glow').map((fx) => {
               const isOff = !fx.enabled
               const fxColor = getFxColor(fx.presetId)
               return (
@@ -550,6 +553,7 @@ function TimelineLayerRowComponent({
                   title={`${fx.name} @ ${fx.startTime.toFixed(2)}s (${fx.duration ? `${fx.duration.toFixed(1)}s` : ''}) ${isOff ? '[ĐÃ TẮT]' : ''} - Click để nhảy tới`}
                   onPointerDown={(e) => {
                     e.stopPropagation()
+                    useEffectSelection.getState().select(layer.id, fx.id)
                     useEditor.getState().setTime(fx.startTime)
                   }}
                 >
@@ -568,6 +572,7 @@ function TimelineLayerRowComponent({
           </>
         }
       />
+      {isOpen && <TimelineEffectRows layer={layer} x={x} trackWidth={trackWidth} />}
       {isOpen &&
         LAYER_PROPS.map((p) => (
           <TimelineRow
