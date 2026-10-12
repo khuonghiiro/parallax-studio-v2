@@ -153,3 +153,6 @@ AI parity: `update_layer` edits the same `position`, `rotation` (degrees), and `
 ### Layer workshop pixel editor
 - Cọ tẩy chỉ hoạt động trong khung chỉnh pixel góc dưới trái; bố cục lớn dùng để xem và chọn layer. Thanh dọc gồm cọ mềm, tẩy nét cứng, bàn tay, vừa khung và khôi phục ảnh gốc. Cuộn để zoom quanh con trỏ; Space + kéo hoặc chuột giữa để dời ảnh. Escape hủy nét, mỗi nét hoàn tất là một bước hoàn tác.
 - Hình ảnh và tọa độ cọ dùng chung `isolatedBrushGeometry.ts`; kiểm thử tại `isolatedBrushGeometry.test.ts`. MCP tiếp tục dùng `update_layer_assembly_layer` với `patch.imageUrl` qua lịch sử bản nháp, không thêm tool hay schema cho thay đổi bố trí UI.
+
+### Motion Effect Controls
+Bảng Motion hỗ trợ bypass, reset, cường độ, seed Wiggle, thời gian và Ease In/Out; preview/viewport/MP4 dùng chung bộ tính. MCP: `set_layer_motion`, `get_layer_motion`. [Hướng dẫn](./docs/motion-controls.md).

@@ -112,6 +112,17 @@ export type DriftDirection =
 export type DriftLoopMode = 'wrap' | 'uv' | 'ping-pong' | 'continuous'
 
 export interface LayerMotion {
+  enabled?: boolean
+  /** Overall effect strength, 0..1. */
+  amount?: number
+  /** Composition seconds; absent preserves legacy absolute timing. */
+  startTime?: number
+  /** Seconds; 0 means unlimited. */
+  duration?: number
+  fadeIn?: number
+  fadeOut?: number
+  /** Deterministic Wiggle variation; 0 preserves legacy noise. */
+  seed?: number
   type: LayerMotionType
   /** Speed multiplier (units/sec for drift, cycles/sec for periodic waves). */
   speed?: number

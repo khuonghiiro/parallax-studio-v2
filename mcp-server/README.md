@@ -372,3 +372,6 @@ MCP: `layer_assembly_rig`, `set_layer_assembly_playback`, `set_layer_assembly_pa
 - 16 mẫu lắp ráp layer 2.5D có sẵn chia theo 4 danh mục: Nhân vật theo lứa tuổi (Nam anh hùng, Nữ anime, Bé thiếu nhi, Quý ông trung niên, Cụ già gậy gỗ), Động vật (Chó cưng, Trâu nước, Mèo mướp, Cá Koi uốn sóng, Gà trống), Cây cối & Thiên nhiên (Bonsai, Bụi hoa), Kiến trúc (Ban công, Cổng tàn tích).
 - Mỗi mẫu tích hợp sẵn bộ khung xương (armature), hoạt ảnh chuyển động (walk, idle, swim, peck...), cấu trúc layer Z-depth và Prompt AI tiếng Anh chuyên dụng tạo sprite sheet atlas (5x5 ô) đồng bộ góc nhìn.
 - MCP tools: `list_layer_assembly_templates`, `get_layer_assembly_template` (lấy prompt AI và sơ đồ slot), `apply_layer_assembly_template` (áp dụng trực tiếp mẫu vào xưởng hoặc lưu thư viện).
+
+### Procedural Motion Effect Controls
+`set_layer_motion` chỉnh Motion của layer qua Undo/Redo; `get_layer_motion` đọc cấu hình và offset tại thời gian yêu cầu. Hỗ trợ type, enabled, reset, speed, amplitude, amount, phase, seed, start_time, duration, fade_in, fade_out, direction, loop_mode, loop_width. Vùng chụp: `motion`, `motion_preview`, `motion_parameters`, `motion_timing`. [Thông số và ví dụ](../docs/motion-controls.md).

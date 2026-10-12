@@ -1,189 +1,65 @@
-import type { DriftDirection, DriftLoopMode, Layer, LayerMotion, LayerMotionType, Vec3 } from '@shared/types'
-import { parseDirectionAngle } from '../../../engine/evaluateScene'
+import type { Layer, LayerMotion, LayerMotionType } from '@shared/types'
+import { defaultLayerMotion, patchLayerMotion } from '../../../animation/proceduralMotion'
 import { NumberInput, Row, Select } from '../../controls'
 import type { Setter } from '../types'
+import { MotionParameters } from './MotionParameters'
+import { MotionPreview } from './MotionPreview'
+import '../../../styles/motion.css'
+
+const options = [
+  { value: 'none', label: 'Không có chuyển động' }, { value: 'drift', label: 'Offset · Trôi & cuộn' },
+  { value: 'wind', label: 'Wind · Gió lay' }, { value: 'sway', label: 'Sway · Lắc nhẹ' },
+  { value: 'float', label: 'Float · Bồng bềnh' }, { value: 'wiggle', label: 'Wiggle · Rung hữu cơ' },
+  { value: 'pulse', label: 'Pulse · Nhịp thở' }
+]
+
+export type MotionChange = (patch: Partial<LayerMotion>, key?: string) => void
 
 export function MotionSection({ layer, set }: { layer: Layer; set: Setter }) {
   const motion = layer.motion ?? { type: 'none' }
-  const setMotion = (patch: Partial<LayerMotion>): void => {
-    set((l) => {
-      l.motion = { ...(l.motion ?? { type: 'none' }), ...patch }
-    }, 'motion')
-  }
-
-  const setAmp = (axisIdx: number, val: number, mergeKey: string): void => {
-    set((l) => {
-      const cur = [...(l.motion?.amplitude ?? [20, 0, 0])] as Vec3
-      cur[axisIdx] = val
-      l.motion = { ...(l.motion ?? { type: 'drift' }), amplitude: cur }
-    }, mergeKey)
-  }
-
-  const motionTypeOptions = [
-    { value: 'none', label: 'Không có (Đứng yên)' },
-    { value: 'drift', label: 'Trôi theo hướng & lặp mượt (Sương mù / Mưa / Mây)' },
-    { value: 'wind', label: 'Gió lay động (Cây cối / Lá / Cành)' },
-    { value: 'sway', label: 'Lắc lư nhẹ (Nhịp điệu)' },
-    { value: 'float', label: 'Nổi bồng bềnh (Nước / Đảo bay)' },
-    { value: 'wiggle', label: 'Rung rinh hữu cơ (After Effects Wiggle)' },
-    { value: 'pulse', label: 'Nhịp thở nhẹ (Co giãn)' }
-  ]
-
-  const directionOptions = [
-    { value: 'right', label: '➡️ Sang phải (0°)' },
-    { value: 'up-right', label: '↗️ Chéo lên - phải (45°)' },
-    { value: 'up', label: '⬆️ Lên trên (90°)' },
-    { value: 'up-left', label: '↖️ Chéo lên - trái (135°)' },
-    { value: 'left', label: '⬅️ Sang trái (180°)' },
-    { value: 'down-left', label: '↙️ Chéo xuống - trái (225° - Mưa xiên)' },
-    { value: 'down', label: '⬇️ Xuống dưới (270° - Mưa rơi)' },
-    { value: 'down-right', label: '↘️ Chéo xuống - phải (315°)' }
-  ]
-
-  const loopModeOptions = [
-    { value: 'uv', label: '🌀 Cuộn vô hạn cửa ra - vào (Pixel Wrap / AE Offset)' },
-    { value: 'ping-pong', label: '🌊 Lượn qua lại êm ái (Ping-Pong)' },
-    { value: 'continuous', label: '➡️ Trôi liên tục một chiều (Continuous)' }
-  ]
-
-  return (
-    <div className="section">
-      <div className="section-title">Chuyển động (Motion &amp; Loop)</div>
-      <Row label="Loại" title="Tự động di chuyển lặp lại hoặc đung đưa trong không gian 3D">
-        <Select
-          id="motion-type"
-          value={motion.type ?? 'none'}
-          options={motionTypeOptions}
-          onChange={(val) => {
-            const t = val as LayerMotionType
-            if (t === 'none') {
-              setMotion({ type: 'none' })
-            } else if (t === 'drift') {
-              setMotion({
-                type: 'drift',
-                speed: motion.speed ?? 40,
-                loopWidth: motion.loopWidth ?? 3000,
-                amplitude: motion.amplitude ?? [1500, 12, 0]
-              })
-            } else if (t === 'wind' || t === 'sway') {
-              setMotion({
-                type: t,
-                speed: motion.speed ?? 0.6,
-                amplitude: motion.amplitude ?? [8, 2, 1.2]
-              })
-            } else if (t === 'float') {
-              setMotion({
-                type: 'float',
-                speed: motion.speed ?? 0.4,
-                amplitude: motion.amplitude ?? [4, 15, 0]
-              })
-            } else if (t === 'wiggle') {
-              setMotion({
-                type: 'wiggle',
-                speed: motion.speed ?? 1.5,
-                amplitude: motion.amplitude ?? [15, 15, 0]
-              })
-            } else if (t === 'pulse') {
-              setMotion({
-                type: 'pulse',
-                speed: motion.speed ?? 0.5,
-                amplitude: motion.amplitude ?? [0.05, 0.05, 0]
-              })
-            }
-          }}
-        />
-      </Row>
-
-      {motion.type && motion.type !== 'none' && (
-        <>
-          {motion.type === 'drift' && (
-            <>
-              <Row label="Hướng trôi" title="Chọn hướng di chuyển (trái, phải, lên, xuống, chéo)">
-                <Select
-                  id="motion-direction"
-                  value={
-                    typeof motion.direction === 'string'
-                      ? motion.direction
-                      : String(Math.round(parseDirectionAngle(motion.direction)))
-                  }
-                  options={directionOptions}
-                  onChange={(val) => {
-                    const num = Number(val)
-                    setMotion({ direction: isNaN(num) ? (val as DriftDirection) : num })
-                  }}
-                />
-              </Row>
-
-              <Row label="Góc chéo (°)" title="Góc hướng trôi tùy ý theo độ (0° - 360°)">
-                <NumberInput
-                  axis="deg"
-                  value={Math.round(parseDirectionAngle(motion.direction))}
-                  min={0}
-                  max={360}
-                  step={5}
-                  precision={0}
-                  onChange={(v) => setMotion({ direction: v })}
-                />
-              </Row>
-
-              <Row label="Kiểu lặp" title="Phương thức lặp: Cuộn pixel vô hạn (cửa ra nối cửa vào như After Effects Offset), Ping-pong hoặc Trôi liên tục">
-                <Select
-                  id="motion-loop-mode"
-                  value={motion.loopMode === 'ping-pong' ? 'ping-pong' : motion.loopMode === 'continuous' ? 'continuous' : 'uv'}
-                  options={loopModeOptions}
-                  onChange={(val) => setMotion({ loopMode: val as DriftLoopMode })}
-                />
-              </Row>
-            </>
-          )}
-
-          <Row label="Tốc độ" title="Tốc độ trôi (px/s) hoặc chu kỳ nhịp (Hz)">
-            <NumberInput
-              axis="spd"
-              value={motion.speed ?? (motion.type === 'drift' ? 40 : 0.6)}
-              step={motion.type === 'drift' ? 2 : 0.05}
-              precision={motion.type === 'drift' ? 0 : 2}
-              onChange={(v, _k) => setMotion({ speed: v })}
-            />
-          </Row>
-
-          <Row label="Biên độ" title="Độ dịch chuyển (X, Y) và góc nghiêng (Z)">
-            {[0, 1, 2].map((i) => (
-              <NumberInput
-                key={i}
-                axis={'xyz'[i]}
-                value={motion.amplitude?.[i] ?? 0}
-                step={motion.type === 'pulse' ? 0.01 : 1}
-                precision={motion.type === 'pulse' ? 2 : 1}
-                onChange={(v, k) => setAmp(i, v, k)}
-              />
-            ))}
-          </Row>
-
-          {motion.type === 'drift' && motion.loopMode === 'ping-pong' && (
-            <Row label="Độ rộng loop" title="Khoảng cách trôi qua trước khi đảo chiều (px)">
-              <NumberInput
-                axis="px"
-                value={motion.loopWidth ?? 3000}
-                min={200}
-                step={100}
-                precision={0}
-                onChange={(v) => setMotion({ loopWidth: v })}
-              />
-            </Row>
-          )}
-
-          <Row label="Lệch pha" title="Lệch pha giúp các layer không chuyển động đồng thời">
-            <NumberInput
-              axis="φ"
-              value={motion.phase ?? 0}
-              step={0.5}
-              precision={1}
-              onChange={(v) => setMotion({ phase: v })}
-            />
-          </Row>
-        </>
-      )}
+  const change: MotionChange = (patch, key) => set((l) => {
+    l.motion = patchLayerMotion(l.motion, patch)
+  }, key)
+  const active = motion.type !== 'none'
+  return <section className="section motion-controls" aria-label="Motion controls">
+    <div className="motion-heading">
+      <div><span className="motion-eyebrow">EFFECT CONTROLS</span><h3>Motion</h3></div>
+      <div className="motion-actions">
+        <button className="btn sm ghost" disabled={!active} onClick={() => set((l) => {
+          l.motion = defaultLayerMotion(motion.type)
+        })} title="Khôi phục thông số mặc định của loại chuyển động">Reset</button>
+        <button id="motion-enabled" className={`switch${active && motion.enabled !== false ? ' on' : ''}`}
+          aria-label="Bật hoặc tắt Motion" aria-pressed={active && motion.enabled !== false} disabled={!active}
+          onClick={() => change({ enabled: motion.enabled === false })} />
+      </div>
     </div>
-  )
+    <Select id="motion-type" value={motion.type} options={options}
+      onChange={(type) => change({ type: type as LayerMotionType })} />
+    {active ? <>
+      <MotionPreview motion={motion} />
+      <Row label="Cường độ" title="Trộn chuyển động vào Transform gốc; 0% giữ nguyên Transform">
+        <NumberInput id="motion-amount" value={(motion.amount ?? 1) * 100} suffix="%" min={0} max={100}
+          onChange={(v, k) => change({ amount: v / 100 }, k)} />
+      </Row>
+      <MotionParameters motion={motion} change={change} />
+      <details className="motion-timing" open>
+        <summary>Thời gian & chuyển tiếp</summary>
+        <Row label="Bắt đầu" title="Thời điểm bắt đầu trên timeline, tính bằng giây">
+          <NumberInput id="motion-start" value={motion.startTime ?? 0} min={0} step={0.1} suffix="s"
+            onChange={(v, k) => change({ startTime: v }, k)} />
+        </Row>
+        <Row label="Thời lượng" title="0 = chạy đến hết layer; sau thời lượng này trở về Transform gốc">
+          <NumberInput id="motion-duration" value={motion.duration ?? 0} min={0} step={0.1} suffix="s"
+            onChange={(v, k) => change({ duration: v }, k)} />
+        </Row>
+        <Row label="Ease In / Out" title="Tăng/giảm cường độ mềm. Ease Out cần thời lượng lớn hơn 0.">
+          <NumberInput id="motion-fade-in" axis="in" value={motion.fadeIn ?? 0} min={0} step={0.1} suffix="s"
+            onChange={(v, k) => change({ fadeIn: v }, k)} />
+          <NumberInput id="motion-fade-out" axis="out" value={motion.fadeOut ?? 0} min={0} step={0.1} suffix="s"
+            onChange={(v, k) => change({ fadeOut: v }, k)} />
+        </Row>
+      </details>
+      <p className="motion-note">Cộng vào Transform và keyframe hiện có. Kéo giá trị để chỉnh nhanh; Shift ×10, Alt ×0.1.</p>
+    </> : <p className="motion-note">Chọn chuyển động để tinh chỉnh nhịp, biên độ và chuyển tiếp.</p>}
+  </section>
 }

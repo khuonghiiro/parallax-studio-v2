@@ -112,6 +112,10 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   inspector: ['aside.right', '.right', '.inspector'],
   inspector_tabs: ['aside.right .tabs'],
   inspector_body: ['aside.right .panel-body'],
+  motion: ['.motion-controls'],
+  motion_preview: ['.motion-preview'],
+  motion_parameters: ['.motion-parameters'],
+  motion_timing: ['.motion-timing'],
 
   // Bottom Timeline and sub-sections
   timeline: ['section.panel.timeline', 'section.timeline', '.timeline'],

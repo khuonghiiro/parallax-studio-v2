@@ -22,6 +22,38 @@ const audioTrackId = (d, en, vi) => z.string().describe(d(en, vi))
 
 export const FX_TOOLS = [
   {
+    name: 'set_layer_motion', cat: 'fx',
+    doc: L(
+      'Configure procedural Motion Effect Controls on one layer, additive to existing transform keyframes. Type changes reset defaults; patches preserve other settings. Supports undo/redo. Does not create keyframes.',
+      'Chỉnh Motion Effect Controls trên một layer, cộng vào keyframe Transform hiện có. Đổi loại đặt lại mặc định; sửa từng tham số giữ các mục khác. Hỗ trợ undo/redo. Không tạo keyframe.'
+    ),
+    shape: (d) => ({
+      layer_id: z.string(),
+      type: z.enum(['none', 'drift', 'wind', 'sway', 'float', 'wiggle', 'pulse']).optional().describe(d('Motion type.', 'Loại chuyển động.')),
+      enabled: z.boolean().optional().describe(d('Bypass without losing settings.', 'Bật/tắt mà vẫn giữ thông số.')),
+      reset: z.boolean().optional().describe(d('Reset current/selected type before applying parameters.', 'Đặt lại loại hiện tại/được chọn trước khi áp tham số.')),
+      speed: z.number().min(0).optional().describe(d('World units/sec for drift, Hz otherwise.', 'Đơn vị không gian/giây với drift, Hz với các loại khác.')),
+      amplitude: vec3.optional().describe(d('[X,Y,Z rotation degrees]; pulse X/Y are scale fractions; drift Y is perpendicular sway, X fallback span; float ignores Z.', '[X,Y,góc xoay Z độ]; pulse X/Y là tỉ lệ co giãn; drift Y là dao động vuông góc, X dự phòng quãng đường; float bỏ qua Z.')),
+      amount: z.number().min(0).max(1).optional().describe(d('Overall strength 0..1.', 'Cường độ tổng 0..1.')),
+      phase: z.number().optional().describe(d('Radians; drift UV/continuous uses world units.', 'Radian; drift UV/continuous dùng đơn vị không gian.')),
+      seed: z.number().int().min(0).max(999999).optional().describe(d('Deterministic Wiggle seed.', 'Seed cố định của Wiggle.')),
+      start_time: z.number().min(0).optional().describe(d('Composition start time in seconds.', 'Thời điểm bắt đầu trên timeline, giây.')),
+      duration: z.number().min(0).optional().describe(d('Seconds; 0 unlimited, returns to base transform at end.', 'Giây; 0 vô hạn, trở về Transform gốc khi kết thúc.')),
+      fade_in: z.number().min(0).optional().describe(d('Smooth strength entrance in seconds.', 'Tăng cường độ mềm, giây.')),
+      fade_out: z.number().min(0).optional().describe(d('Smooth strength exit, requires duration > 0.', 'Giảm cường độ mềm, cần duration > 0.')),
+      direction: z.union([z.number(), z.enum(['right','up-right','up','up-left','left','down-left','down','down-right'])]).optional().describe(d('Drift angle: 0 right, 90 up, or named direction.', 'Góc trôi: 0 phải, 90 lên, hoặc tên hướng.')),
+      loop_mode: z.enum(['uv', 'wrap', 'ping-pong', 'continuous']).optional().describe(d('Drift loop mode; wrap aliases uv.', 'Kiểu lặp drift; wrap tương đương uv.')),
+      loop_width: z.number().min(0.01).optional().describe(d('Ping-pong full span in world units.', 'Toàn bộ quãng đường ping-pong, đơn vị không gian.'))
+    }),
+    example: '{"layer_id":"layer-1","type":"wiggle","speed":1.5,"amplitude":[15,15,2],"seed":42,"duration":4,"fade_in":0.5,"fade_out":0.5}'
+  },
+  {
+    name: 'get_layer_motion', cat: 'fx',
+    doc: L('Read Motion settings and evaluated offsets at a timeline time.', 'Đọc thông số Motion và độ dịch chuyển đã tính tại một thời điểm timeline.'),
+    shape: (d) => ({ layer_id: z.string(), time: z.number().optional().describe(d('Seconds; defaults to playhead.', 'Giây; mặc định theo playhead.')) }),
+    example: '{"layer_id":"layer-1","time":1}'
+  },
+  {
     name: 'apply_layer_fx', cat: 'fx',
     doc: L(
       'Apply an animation or neon glow FX preset at a specific time: "neonBreathe" (soft breathing neon edge glow), "neonBlink" (blinking neon outline), "neonFlicker" (flickering neon sign), "neonSolid" (constant neon outline), "blink" (opacity blink), "fadeIn", "fadeOut", "breathe", "shake", "popIn", "pulse".',

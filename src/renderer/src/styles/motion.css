@@ -1,0 +1,16 @@
+.motion-controls { color: var(--text); }
+.motion-heading, .motion-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.motion-heading { margin-bottom: 10px; }
+.motion-heading h3 { font-size: 14px; margin: 2px 0 0; font-weight: 600; }
+.motion-eyebrow { font-size: 9px; letter-spacing: 0.1em; color: var(--text-dim); }
+.motion-preview { margin: 12px 0; padding: 8px; background: var(--bg-0); border: 1px solid var(--line); border-radius: 4px; }
+.motion-preview figcaption { display: flex; justify-content: space-between; gap: 8px; font-size: 9px; color: var(--text-dim); }
+.motion-preview svg { display: block; width: 100%; height: 80px; overflow: visible; }
+.motion-preview path { fill: none; vector-effect: non-scaling-stroke; }
+.motion-grid { stroke: var(--line-soft); stroke-width: 1; }
+.motion-curve-x { stroke: var(--accent); stroke-width: 1.5; }
+.motion-curve-y { stroke: var(--accent-cyan); stroke-width: 1.5; stroke-dasharray: 4 2; }
+.motion-timing { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.motion-timing summary { cursor: pointer; color: var(--text); font-size: 11px; margin-bottom: 8px; }
+.motion-timing summary:focus-visible { outline: 1px solid var(--line-focus); outline-offset: 3px; }
+.motion-note { font-size: 10px; line-height: 1.5; color: var(--text-dim); margin: 10px 0 0; }

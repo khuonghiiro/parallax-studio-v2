@@ -1,3 +1,4 @@
+import { sampleLayerMotion } from '../animation/proceduralMotion'
 import * as THREE from 'three'
 import type { Layer, Project, Shot, Vec3 } from '@shared/types'
 import { evaluate } from '../animation/keyframes'
@@ -52,30 +53,7 @@ export interface EvaluatedLayer {
   uvOffset?: [number, number]
 }
 
-/** Parses named direction presets or degrees (0-360) into degrees. 0 = right, 90 = up. */
-export function parseDirectionAngle(dir?: number | string): number {
-  if (typeof dir === 'number' && !Number.isNaN(dir)) return ((dir % 360) + 360) % 360
-  switch (dir) {
-    case 'right':
-      return 0
-    case 'up-right':
-      return 45
-    case 'up':
-      return 90
-    case 'up-left':
-      return 135
-    case 'left':
-      return 180
-    case 'down-left':
-      return 225
-    case 'down':
-      return 270
-    case 'down-right':
-      return 315
-    default:
-      return 0
-  }
-}
+export { parseDirectionAngle } from '../animation/proceduralMotion'
 
 export interface EvaluatedScene {
   t: number
@@ -154,82 +132,12 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
     const rot = [...evaluate(tr.rotation, t)] as Vec3
     const sc = [...evaluate(tr.scale, t)] as Vec3
 
-    let uvOffset: [number, number] | undefined = undefined
-
-    if (layer.motion && layer.motion.type && layer.motion.type !== 'none') {
-      const m = layer.motion
-      const sp = m.speed ?? (m.type === 'drift' ? 40 : 0.6)
-      const ph = m.phase ?? 0
-      const amp = m.amplitude ?? (m.type === 'drift' ? [1500, 10, 0] : m.type === 'float' ? [4, 15, 0] : [8, 2, 1.2])
-      if (m.type === 'drift') {
-        const dirDeg = parseDirectionAngle(m.direction)
-        const rad = (dirDeg * Math.PI) / 180
-        const dx = Math.cos(rad)
-        const dy = Math.sin(rad)
-        const mode = m.loopMode ?? 'uv'
-        const loopW = m.loopWidth ?? (amp[0] ? Math.abs(amp[0]) * 2 : 3000)
-
-        if (mode === 'uv' || mode === 'wrap') {
-          // Seamless toroidal pixel wrap (cửa ra nối cửa vào / After Effects Offset effect)
-          // Pixels drift towards one edge and seamlessly re-enter from the opposite edge,
-          // creating an infinite running loop without moving or jumping the layer plane.
-          const size = layerNominalSize(layer)
-          const w = size[0] || comp.width
-          const h = size[1] || comp.height
-          const dist = t * sp + ph
-          uvOffset = [(-dist * dx) / w, (-dist * dy) / h]
-          if (amp[1]) {
-            // Optional gentle undulating wave perpendicular to drift
-            const sway = Math.sin(t * 0.8 + ph) * amp[1]
-            pos[0] += sway * -dy
-            pos[1] += sway * dx
-          }
-        } else if (mode === 'ping-pong') {
-          // Smooth back-and-forth oscillation along the directional vector
-          const halfSpan = loopW > 0 ? loopW / 2 : 1500
-          const angle = (t * sp * Math.PI) / halfSpan + ph
-          const d = Math.sin(angle) * halfSpan
-          pos[0] += d * dx
-          pos[1] += d * dy
-          if (amp[1]) {
-            const sway = Math.cos(angle * 0.7) * amp[1]
-            pos[0] += sway * -dy
-            pos[1] += sway * dx
-          }
-        } else {
-          // Continuous monotonic drift along vector without reset
-          const dist = t * sp + ph
-          pos[0] += dist * dx
-          pos[1] += dist * dy
-          if (amp[1]) {
-            const sway = Math.sin(t * 0.8 + ph) * amp[1]
-            pos[0] += sway * -dy
-            pos[1] += sway * dx
-          }
-        }
-      } else if (m.type === 'wind' || m.type === 'sway') {
-        const angle = t * sp * Math.PI * 2 + ph
-        pos[0] += Math.sin(angle) * amp[0]
-        pos[1] += Math.cos(angle * 0.7) * amp[1]
-        rot[2] += Math.sin(angle) * (amp[2] || 0)
-      } else if (m.type === 'float') {
-        const angle = t * sp * Math.PI * 2 + ph
-        pos[0] += Math.cos(angle * 0.5) * amp[0]
-        pos[1] += Math.sin(angle) * amp[1]
-      } else if (m.type === 'wiggle') {
-        const freq = sp || 1
-        const amp0 = amp[0] ?? 20
-        const amp1 = amp[1] ?? 20
-        const amp2 = amp[2] ?? 0
-        const s = t * freq * Math.PI * 2 + ph
-        pos[0] += smoothNoise(s, 2.1) * amp0
-        pos[1] += smoothNoise(s, 5.7) * amp1
-        if (amp2) rot[2] += smoothNoise(s, 8.3) * amp2
-      } else if (m.type === 'pulse') {
-        const p = Math.sin(t * sp * Math.PI * 2 + ph)
-        sc[0] *= 1 + p * (amp[0] || 0.05)
-        sc[1] *= 1 + p * (amp[1] || 0.05)
-      }
+    const motion = sampleLayerMotion(layer.motion, t, layerNominalSize(layer))
+    const uvOffset = motion.uvOffset
+    for (let axis = 0; axis < 3; axis++) {
+      pos[axis] += motion.position[axis]
+      rot[axis] += motion.rotation[axis]
+      sc[axis] *= motion.scale[axis]
     }
 
     // Đánh giá chuyển động miệng / Lip-sync từ audio giọng nói nhân vật theo thời gian thực
