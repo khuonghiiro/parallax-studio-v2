@@ -15,6 +15,7 @@ import { getStoredComposites } from '../layerAssembly/layerAssemblyStorage'
 import { getStoredModels3D, fetchAsset3DsCatalog } from './models3d/models3dStorage'
 import { sortAssetCategories } from './types'
 import { getVisiblePublicAssets, addCustomPublicAsset } from './publicAssetStorage'
+import { getAudioCount } from './music/builtinAudios'
 
 type AssetSubTab = 'builtin' | 'project' | '3d' | 'assembly' | 'music'
 
@@ -28,11 +29,6 @@ export function AssetPanel() {
   const [assemblyCount, setAssemblyCount] = useState<number>(() => getStoredComposites().length)
   const [model3DCount, setModel3DCount] = useState<number>(() => getStoredModels3D().length)
   const [publicVersion, setPublicVersion] = useState(0)
-
-  const audioCount = useMemo(() => {
-    const projectAudio = projectAssets.filter((a) => a.kind === 'audio').length
-    return projectAudio + 1 // + 1 mẫu có sẵn (chuông gió)
-  }, [projectAssets])
 
   useEffect(() => {
     fetchAsset3DsCatalog().then(({ models }) => {
@@ -97,6 +93,10 @@ export function AssetPanel() {
   const visiblePublicItems = useMemo<BuiltInAssetItem[]>(() => {
     return getVisiblePublicAssets(items)
   }, [items, publicVersion])
+
+  const audioCount = useMemo(() => {
+    return getAudioCount(projectAssets, visiblePublicItems)
+  }, [projectAssets, visiblePublicItems])
 
   // Count items per category
   const itemCounts = useMemo(() => {
@@ -351,7 +351,7 @@ export function AssetPanel() {
       ) : subTab === 'assembly' ? (
         <LayerAssemblyList />
       ) : subTab === 'music' ? (
-        <MusicPanel />
+        <MusicPanel catalogItems={visiblePublicItems} onImportItem={handleImportItem} />
       ) : (
         <div className="panel-body">
           <ProjectAssetList />

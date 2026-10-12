@@ -78,4 +78,47 @@ describe('detectAudioCategory', () => {
   })
 })
 
+describe('getBuiltInAudios và getAudioCount', () => {
+  it('getBuiltInAudios trả về đúng 7 tệp mặc định khi không truyền catalogItems', async () => {
+    const { getBuiltInAudios } = await import('./music/builtinAudios')
+    const list = getBuiltInAudios()
+    expect(list.length).toBe(7)
+    expect(list.some((a) => a.id === 'builtin-ambient-chime')).toBe(true)
+    expect(list.some((a) => a.id === 'builtin-sfx-gunshot')).toBe(true)
+  })
+
+  it('getBuiltInAudios tự động tích hợp tệp âm thanh bổ sung từ catalog', async () => {
+    const { getBuiltInAudios } = await import('./music/builtinAudios')
+    const extraItem = {
+      id: 'custom-sound-1',
+      name: 'Tiếng chuông chùa',
+      fileName: 'chuong_chua.wav',
+      relativePath: 'audio/chuong_chua.wav',
+      folder: 'audio',
+      ext: 'wav',
+      mime: 'audio/wav',
+      kind: 'audio' as const,
+      size: 1024,
+      path: '/assets/audio/chuong_chua.wav'
+    }
+    const list = getBuiltInAudios([extraItem])
+    expect(list.length).toBe(8)
+    expect(list.some((a) => a.id === 'builtin-custom-sound-1')).toBe(true)
+  })
+
+  it('getAudioCount tính chính xác tổng số audio dự án và kho mẫu', async () => {
+    const { getAudioCount } = await import('./music/builtinAudios')
+    // Dự án rỗng -> 7 mẫu có sẵn
+    expect(getAudioCount([])).toBe(7)
+
+    // Dự án có 2 tệp audio và 1 tệp ảnh
+    const dummyAssets: any[] = [
+      { id: 'a1', kind: 'audio', name: 'song.mp3' },
+      { id: 'a2', kind: 'image', name: 'pic.png' },
+      { id: 'a3', kind: 'audio', name: 'effect.wav' }
+    ]
+    expect(getAudioCount(dummyAssets)).toBe(9) // 2 + 7 = 9
+  })
+})
+
 

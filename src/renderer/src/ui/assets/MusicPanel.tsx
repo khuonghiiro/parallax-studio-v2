@@ -10,8 +10,18 @@ import type { AssetMeta } from '@shared/types'
 
 import { MusicCategoryBar, type AudioCategoryType } from './music/MusicCategoryBar'
 
+import type { BuiltInAssetItem } from '@shared/ipc'
+import {
+  detectAudioCategory,
+  getBuiltInAudios,
+  DEFAULT_BUILTIN_AUDIOS
+} from './music/builtinAudios'
+
+export { detectAudioCategory }
+
 export interface MusicPanelProps {
-  onImportItem?: (item: any) => void
+  onImportItem?: (item: BuiltInAssetItem, addLayer: boolean) => void
+  catalogItems?: BuiltInAssetItem[]
 }
 
 export function formatAudioDuration(seconds: number): string {
@@ -21,149 +31,7 @@ export function formatAudioDuration(seconds: number): string {
   return `${m}:${s < 10 ? '0' : ''}${s}`
 }
 
-/** Loại bỏ dấu tiếng Việt để đối chiếu tên tệp không dấu (ví dụ: tieng_sung, hoi_thoai) */
-function removeVietnameseDiacritics(str: string): string {
-  return str
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[đĐ]/g, 'd')
-    .toLowerCase()
-}
-
-/** Tự động nhận diện thể loại âm thanh dựa trên từ khóa tên tệp (hỗ trợ cả tiếng Anh, tiếng Việt có dấu và không dấu) */
-export function detectAudioCategory(name: string): AudioCategoryType {
-  const raw = (name || '').toLowerCase()
-  const norm = removeVietnameseDiacritics(raw)
-  // Thay thế ký tự phân cách gạch dưới, gạch ngang, dấu chấm bằng dấu cách
-  const clean = norm.replace(/[^a-z0-9]/g, ' ')
-  const words = new Set(clean.split(/\s+/).filter(Boolean))
-
-  const hasPhrase = (phrase: string) => {
-    const cleanPhrase = removeVietnameseDiacritics(phrase).replace(/[^a-z0-9]/g, ' ')
-    return clean.includes(cleanPhrase) || raw.includes(phrase.toLowerCase())
-  }
-  const hasWord = (word: string) => words.has(word.toLowerCase())
-
-  // 1. Thể loại Lời thoại & Lồng tiếng (Voice)
-  if (
-    hasPhrase('voice') ||
-    hasPhrase('thoại') ||
-    hasPhrase('thoai') ||
-    hasPhrase('speech') ||
-    hasPhrase('podcast') ||
-    hasPhrase('dialog') ||
-    hasPhrase('narration') ||
-    hasPhrase('thuyết minh') ||
-    hasPhrase('thuyet minh') ||
-    hasPhrase('lồng tiếng') ||
-    hasPhrase('long tieng') ||
-    hasPhrase('radio') ||
-    hasPhrase('vocal') ||
-    hasPhrase('diễn đọc') ||
-    hasPhrase('dien doc') ||
-    hasWord('noi') ||
-    hasWord('talk')
-  ) {
-    return 'voice'
-  }
-
-  // 2. Thể loại Hiệu ứng & Tiếng động (SFX)
-  if (
-    hasPhrase('shot') ||
-    hasPhrase('gun') ||
-    hasPhrase('súng') ||
-    hasPhrase('sung') ||
-    hasPhrase('bắn') ||
-    hasPhrase('snap') ||
-    hasPhrase('cành cây') ||
-    hasPhrase('canh cay') ||
-    hasPhrase('gãy') ||
-    hasPhrase('break') ||
-    hasPhrase('va chạm') ||
-    hasPhrase('va cham') ||
-    hasPhrase('footstep') ||
-    hasPhrase('bước chân') ||
-    hasPhrase('buoc chan') ||
-    hasPhrase('sword') ||
-    hasPhrase('kiếm') ||
-    hasPhrase('kiem') ||
-    hasPhrase('punch') ||
-    hasPhrase('door') ||
-    hasPhrase('cửa') ||
-    hasPhrase('cua') ||
-    hasPhrase('sfx') ||
-    hasPhrase('explosion') ||
-    hasPhrase('tiếng nổ') ||
-    hasPhrase('tieng no') ||
-    hasPhrase('laser') ||
-    hasWord('hit') ||
-    hasWord('no') ||
-    hasWord('gay')
-  ) {
-    return 'sfx'
-  }
-
-  // 3. Thể loại Chuyển cảnh & Kịch tính (Cinematic)
-  if (
-    hasPhrase('whoosh') ||
-    hasPhrase('swoosh') ||
-    hasPhrase('riser') ||
-    hasPhrase('impact') ||
-    hasPhrase('boom') ||
-    hasPhrase('cinematic') ||
-    hasPhrase('kịch tính') ||
-    hasPhrase('kich tinh') ||
-    hasPhrase('transition') ||
-    hasPhrase('chuyển cảnh') ||
-    hasPhrase('chuyen canh') ||
-    hasPhrase('stinger') ||
-    hasPhrase('trailer') ||
-    hasPhrase('hit marker')
-  ) {
-    return 'cinematic'
-  }
-
-  // 4. Thể loại Âm đệm & Môi trường (Ambient)
-  if (
-    hasPhrase('wind') ||
-    hasPhrase('gió') ||
-    hasPhrase('gio') ||
-    hasPhrase('rain') ||
-    hasPhrase('mưa') ||
-    hasPhrase('mua') ||
-    hasPhrase('chime') ||
-    hasPhrase('chuông') ||
-    hasPhrase('chuong') ||
-    hasPhrase('ambient') ||
-    hasPhrase('âm đệm') ||
-    hasPhrase('am dem') ||
-    hasPhrase('môi trường') ||
-    hasPhrase('moi truong') ||
-    hasPhrase('nature') ||
-    hasPhrase('thiên nhiên') ||
-    hasPhrase('thien nhien') ||
-    hasPhrase('đêm tĩnh') ||
-    hasPhrase('dem tinh') ||
-    hasPhrase('forest') ||
-    hasPhrase('rừng') ||
-    hasPhrase('rung') ||
-    hasPhrase('sea') ||
-    hasPhrase('biển') ||
-    hasPhrase('bien') ||
-    hasPhrase('water') ||
-    hasPhrase('sóng biển') ||
-    hasPhrase('song bien') ||
-    hasPhrase('chim') ||
-    hasPhrase('bird')
-  ) {
-    return 'ambient'
-  }
-
-  // Mặc định là Nhạc nền & Giai điệu (Music)
-  return 'music'
-}
-
-export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
+export function MusicPanel({ onImportItem: _onImportItem, catalogItems }: MusicPanelProps) {
   const projectAssets = useEditor((s) => s.project.assets)
   const projectAudioTracks = useEditor((s) => s.project.audioTracks || [])
   const currentTime = useEditor((s) => s.time)
@@ -201,67 +69,10 @@ export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
       })
   }, [projectAssets])
 
-  // Danh sách audio có sẵn trong kho mẫu (Built-in phong phú nhiều thể loại)
+  // Danh sách audio có sẵn trong kho mẫu (Built-in phong phú nhiều thể loại, hỗ trợ tệp thêm trong thư mục assets/audio)
   const builtinAudios: AudioEntry[] = useMemo(() => {
-    return [
-      {
-        id: 'builtin-ambient-chime',
-        name: 'Chuông gió ngân vang (Ambient Chime)',
-        source: 'builtin',
-        category: 'ambient',
-        relPath: 'audio/ambient_chime.wav',
-        format: 'WAV'
-      },
-      {
-        id: 'builtin-ambient-night-wind',
-        name: 'Gió đêm huyền ảo (Night Wind)',
-        source: 'builtin',
-        category: 'ambient',
-        relPath: 'audio/ambient_night_wind.wav',
-        format: 'WAV'
-      },
-      {
-        id: 'builtin-music-chill-melody',
-        name: 'Giai điệu thư giãn (Chill Melody)',
-        source: 'builtin',
-        category: 'music',
-        relPath: 'audio/music_chill_melody.wav',
-        format: 'WAV'
-      },
-      {
-        id: 'builtin-sfx-gunshot',
-        name: 'Phát súng không gian (Laser Shot)',
-        source: 'builtin',
-        category: 'sfx',
-        relPath: 'audio/sfx_gunshot.wav',
-        format: 'WAV'
-      },
-      {
-        id: 'builtin-sfx-branch-snap',
-        name: 'Cành cây gãy giòn (Branch Snap)',
-        source: 'builtin',
-        category: 'sfx',
-        relPath: 'audio/sfx_branch_snap.wav',
-        format: 'WAV'
-      },
-      {
-        id: 'builtin-cinematic-whoosh',
-        name: 'Chuyển cảnh vút gió (Camera Whoosh)',
-        source: 'builtin',
-        category: 'cinematic',
-        relPath: 'audio/cinematic_whoosh.wav',
-        format: 'WAV'
-      },
-      {
-        id: 'builtin-voice-radio-intro',
-        name: 'Tín hiệu lời thoại vô tuyến (Radio Voice)',
-        source: 'builtin',
-        category: 'voice',
-        relPath: 'audio/voice_radio_intro.wav',
-        format: 'WAV'
-      }
-    ]
-  }, [])
+    return getBuiltInAudios(catalogItems)
+  }, [catalogItems])
 
   // Thống kê số lượng âm thanh theo từng thể loại
   const categoryCounts = useMemo(() => {
@@ -303,6 +114,22 @@ export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
       return true
     })
   }, [projectAudios, builtinAudios, selectedCategory, filterSource, search])
+
+  // Thống kê số lượng âm thanh theo nguồn tương ứng với thể loại đang chọn
+  const countsBySource = useMemo(() => {
+    const isCatMatch = (item: AudioEntry) => {
+      if (selectedCategory === 'all') return true
+      const cat = item.category || detectAudioCategory(item.name)
+      return cat === selectedCategory
+    }
+    const filteredProj = projectAudios.filter(isCatMatch)
+    const filteredBuiltin = builtinAudios.filter(isCatMatch)
+    return {
+      all: filteredProj.length + filteredBuiltin.length,
+      project: filteredProj.length,
+      builtin: filteredBuiltin.length
+    }
+  }, [projectAudios, builtinAudios, selectedCategory])
 
   // Dừng phát khi component unmount
   useEffect(() => {
@@ -529,21 +356,21 @@ export function MusicPanel({ onImportItem: _onImportItem }: MusicPanelProps) {
               className={`music-seg-tab${filterSource === 'all' ? ' active' : ''}`}
               onClick={() => setFilterSource('all')}
             >
-              Tất cả <span className="music-seg-badge">{projectAudios.length + builtinAudios.length}</span>
+              Tất cả <span className="music-seg-badge">{countsBySource.all}</span>
             </button>
             <button
               type="button"
               className={`music-seg-tab${filterSource === 'project' ? ' active' : ''}`}
               onClick={() => setFilterSource('project')}
             >
-              Dự án <span className="music-seg-badge">{projectAudios.length}</span>
+              Dự án <span className="music-seg-badge">{countsBySource.project}</span>
             </button>
             <button
               type="button"
               className={`music-seg-tab${filterSource === 'builtin' ? ' active' : ''}`}
               onClick={() => setFilterSource('builtin')}
             >
-              Kho mẫu <span className="music-seg-badge">{builtinAudios.length}</span>
+              Kho mẫu <span className="music-seg-badge">{countsBySource.builtin}</span>
             </button>
           </div>
         </div>
