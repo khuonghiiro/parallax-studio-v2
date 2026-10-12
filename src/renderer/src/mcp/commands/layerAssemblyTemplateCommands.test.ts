@@ -2,6 +2,22 @@ import { describe, expect, it } from 'vitest'
 import { runCommand } from '../commands'
 
 describe('layerAssemblyTemplateCommands MCP', () => {
+  it('exposes the puppet prompt and applies all 15 parts through existing MCP tools', async () => {
+    const detail = await runCommand('get_layer_assembly_template', {
+      template_id: 'tmpl-character-puppet-15'
+    }) as { slots: unknown[]; prompt_guide: { system_prompt: string } }
+    expect(detail.slots).toHaveLength(15)
+    expect(detail.prompt_guide.system_prompt).toContain('Knee to ankle ONLY')
+    const result = await runCommand('apply_layer_assembly_template', {
+      template_id: 'tmpl-character-puppet-15', open_workshop: false,
+      images: { cell_11: 'left-shin.png', cell_15: 'right-foot.png' }
+    }) as { layer_count: number; bone_count: number; composite: { layers: Array<{ id: string; boneId: string; assetPath?: string }> } }
+    expect(result.layer_count).toBe(15)
+    expect(result.bone_count).toBe(15)
+    expect(result.composite.layers.find((l) => l.id === 'layer-shin-l')).toMatchObject({ boneId: 'bone-shin-l', assetPath: 'left-shin.png' })
+    expect(result.composite.layers.find((l) => l.id === 'layer-foot-r')?.assetPath).toBe('right-foot.png')
+  })
+
   it('applies the 13-part template with hand and foot images selected by atlas cell', async () => {
     const result = await runCommand('apply_layer_assembly_template', {
       template_id: 'tmpl-character-articulated-13', open_workshop: false,

@@ -1,0 +1,63 @@
+import type { LayerAssemblyTemplate, LayerTemplateSlot } from './layerTemplateTypes'
+
+function partBoundary(slot: LayerTemplateSlot, ids: Set<string>): string {
+  const side = slot.id.endsWith('-l') ? 'l' : 'r'
+  if (slot.id.startsWith('arm-') && ids.has(`forearm-${side}`))
+    return 'Shoulder to elbow ONLY, including its sleeve; NO forearm, hand, chest or opposite arm.'
+  if (slot.id.startsWith('forearm-') && ids.has(`hand-${side}`))
+    return 'Elbow to wrist ONLY; NO upper arm, hand, fingers or held prop.'
+  if (slot.id.startsWith('hand-'))
+    return 'One complete hand/glove with five fingers and a short hidden wrist tab; NO forearm or held prop.'
+  if (slot.id.startsWith('thigh-') && ids.has(`shin-${side}`))
+    return 'Hip to knee ONLY, including its clothing; NO pelvis, lower leg, foot or opposite leg.'
+  if (slot.id.startsWith('shin-') && ids.has(`foot-${side}`))
+    return 'Knee to ankle ONLY; NO thigh, foot, shoe or sole.'
+  if (slot.id.startsWith('foot-'))
+    return 'One complete foot inside its shoe/boot, including heel and toe, with a short hidden ankle tab; NO shin.'
+  if (slot.id === 'torso')
+    return 'Chest and abdomen to waist, with a short neck connector; NO head, arms, hands, pelvis or legs. Sleeves belong to upper arms.'
+  if (slot.id === 'pelvis')
+    return 'Waist/hip block and assigned belt/skirt ONLY; NO torso, thighs, lower legs or feet. Reconstruct hips hidden by clothing.'
+  if (slot.id === 'head') {
+    const detached = ['hair-front', 'hair-back', 'hat', 'beard', 'glasses', 'mask'].filter((id) => ids.has(id))
+    return `Complete head, ears and face; NO torso.${detached.length ? ` Do NOT bake these separate layers into the head: ${detached.join(', ')}.` : ' Keep hair and assigned headwear with the head.'}`
+  }
+  return 'Only the named part and explicitly combined elements; NO neighboring body parts. Accessories contain NO face, skin or holding hand.'
+}
+
+/** One prompt contract for the UI and MCP, derived from the actual import slots. */
+export function characterPrompt(template: LayerAssemblyTemplate): string {
+  const ids = new Set(template.slots.map((slot) => slot.id))
+  const identity = template.promptGuide.systemPrompt.match(/^(?:IDENTITY|CHARACTER):\s*(.+)$/m)?.[1]
+    || template.descriptionEn
+  const key = template.promptGuide.systemPrompt.includes('#FF00FF') ? '#FF00FF' : '#00FF00'
+  const layout = [...template.slots].sort((a, b) => a.atlasCell! - b.atlasCell!)
+    .map((slot) => `${slot.atlasCell}. ${slot.nameEn} [${slot.id}] — ${partBoundary(slot, ids)}`)
+  return `Create ONE 4096x4096 CHARACTER CUTOUT SPRITE ATLAS: a disassembled paper puppet / articulated doll kit for 2D skeletal animation.
+IDENTITY: ${identity}
+If a reference is attached, preserve that character's identity, costume, palette and proportions. Otherwise use the identity above.
+VIEW: FRONT ORTHOGRAPHIC, neutral straight limbs, shoulders at the top and feet pointing down; no perspective or foreshortening.
+OUTPUT: Square PNG, flat OPAQUE chroma-key background ${key}. No checkerboard, gradients, texture, ground or cast shadows.
+GRID: Exactly 5 rows x 5 columns, numbered 1–25 left-to-right, top-to-bottom for instructions ONLY. Do not draw numbers, labels, IDs or grid lines.
+Exactly ${template.slots.length} isolated parts, one assigned part per cell. NO assembled reference character anywhere in this atlas.
+CELL ASSIGNMENTS:
+${layout.join('\n')}
+Leave all unassigned cells empty with only the background color.
+
+PUPPET CONSTRUCTION:
+- Left/right ALWAYS mean assembled screen positions, not anatomical sides. Keep the same front-facing orientation in every cell.
+- Use ONE shared pixel scale. Choose it so the largest part, including hidden tabs, fits with at least 8% of cell width/height as clear padding on every side. Never enlarge small hands or feet to fill a cell.
+- Separate at the actual shoulder, elbow, wrist, hip, knee and ankle ONLY where the slot list provides separate segments. A combined legacy slot stays one piece; never invent extra parts.
+- Reconstruct the COMPLETE silhouette, including surfaces hidden by hair, sleeves, skirt or overlapping parts. Never copy an occluded fragment from the reference.
+- At each separated joint extend a rounded hidden overlap by 10–15% of the shorter adjoining segment's length, centered on the rotation pivot. Paint matching skin/fabric through the overlap; no socket holes, exposed ball joints, metal pins or joint markers.
+- Keep visible outer contours clean. Do not draw a dark transverse cut line across a concealed joint cap. Connectors overlap only AFTER assembly, never between atlas cells.
+- Clothing follows its own body segment. No duplicated cuffs, hands, shoes or accessories. Hands do not include props; a separate prop must be complete behind the grip.
+
+CLEAN EXTRACTION:
+- Each cell contains one complete isolated silhouette (natural holes allowed), with no neighboring fragments, detached specks, guide marks or duplicate views.
+- Crisp antialiased edges; no blur, glow, fringe, colored halo, matte border or contact shadow. The background must remain perfectly uniform, including holes between fingers and inside accessories.
+- Do not use the chroma-key color in skin, costume, outlines, highlights or reflections. Preserve fine fingers and hair without fuzzy stray pixels.
+- Before output, verify every assigned cell against this list: correct part, complete hidden ends, consistent scale, clean separation and clear padding. Redraw merged or contaminated parts.`
+}
+
+export const CHARACTER_PROMPT_GUIDE = 'Atlas vuông 4096×4096, lưới 5×5; mỗi ô đúng bộ phận ghi trong danh sách, không kèm hình nhân vật hoàn chỉnh. Tay/chân chỉ tách tại các khớp có slot riêng; muốn gập đủ khuỷu tay, cổ tay, gối và cổ chân hãy chọn mẫu Búp bê 15 lớp. Vẽ bù phần bị che, chừa đệm khớp 10–15% và lề sạch ít nhất 8% mỗi ô. Sau khi tách nền, kiểm tra viền trên nền sáng/tối và xoay thử khớp; prompt không bảo đảm ảnh AI luôn tách sạch. Tài liệu: docs/design/character-cutout-prompt.md.'

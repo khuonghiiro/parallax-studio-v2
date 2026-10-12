@@ -1,5 +1,6 @@
 import type { LayerComposite } from '../types'
 import type { LayerAssemblyTemplate } from './layerTemplateTypes'
+import { characterPrompt, CHARACTER_PROMPT_GUIDE } from './characterPrompt'
 
 /** Each draft owns its skeleton, clips and motion settings. */
 export function createTemplateComposite(
@@ -46,8 +47,9 @@ export function standardizeTemplate(template: LayerAssemblyTemplate): LayerAssem
     promptGuide: {
       ...template.promptGuide,
       aspectRatio: '1:1', recommendedResolution: '4096x4096',
+      userGuide: template.category === 'character' ? CHARACTER_PROMPT_GUIDE : template.promptGuide.userGuide,
       cellLayout: template.slots.map((slot) => `${slot.atlasCell}. ${slot.name}`),
-      systemPrompt: `${intro}\nGRID: Exactly 5 rows x 5 columns, numbered 1–25 left-to-right, top-to-bottom.
+      systemPrompt: template.category === 'character' ? characterPrompt(template) : `${intro}\nGRID: Exactly 5 rows x 5 columns, numbered 1–25 left-to-right, top-to-bottom.
 CELL ASSIGNMENTS (one isolated part per assigned cell):
 ${layout.join('\n')}
 Leave all unassigned cells empty with only the background color. No text, labels, grid lines or cast shadows.

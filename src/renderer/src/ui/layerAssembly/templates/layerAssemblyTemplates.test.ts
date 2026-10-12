@@ -8,6 +8,38 @@ import {
 } from './index'
 
 describe('Layer Assembly Templates Catalog', () => {
+  it('provides a complete 15-part puppet with separate knee and ankle chains', () => {
+    const template = findLayerTemplate('tmpl-character-puppet-15')!
+    const composite = template.buildComposite()
+    expect(composite.layers).toHaveLength(15)
+    expect(composite.rig!.bones).toHaveLength(15)
+    expect(composite.layers.every((layer) => layer.imageUrl?.startsWith('data:image/svg+xml'))).toBe(true)
+    for (const side of ['l', 'r']) {
+      expect(composite.rig!.bones.find((b) => b.id === `bone-shin-${side}`)?.parentId).toBe(`bone-thigh-${side}`)
+      expect(composite.rig!.bones.find((b) => b.id === `bone-foot-${side}`)?.parentId).toBe(`bone-shin-${side}`)
+      const walk = composite.rig!.clips!.find((clip) => clip.id === 'clip-walk')!
+      expect(new Set(walk.tracks[`bone-shin-${side}`].map((key) => key.rotation)).size).toBeGreaterThan(1)
+    }
+  })
+
+  it('removes conflicting legacy layouts and describes only real import slots', () => {
+    for (const template of ALL_LAYER_TEMPLATES.filter((t) => t.category === 'character')) {
+      const prompt = template.promptGuide.systemPrompt
+      expect(prompt).not.toMatch(/16:9|3840x2160|COLUMN 1|Cell 23|5x5 EQUAL CELLS/)
+      expect(prompt).toContain('Exactly 5 rows x 5 columns')
+      expect(prompt).toContain(`Exactly ${template.slots.length} isolated parts`)
+      expect(prompt).toContain('no blur, glow, fringe')
+      expect(template.promptGuide.userGuide).not.toContain('slice_atlas.py')
+      const assignments = [...prompt.matchAll(/^(\d+)\. .*?\[([^\]]+)\]/gm)]
+      expect(assignments.map((match) => `${match[1]}:${match[2]}`).sort()).toEqual(
+        template.slots.map((slot) => `${slot.atlasCell}:${slot.id}`).sort()
+      )
+    }
+    const prompt = findLayerTemplate('tmpl-character-puppet-15')!.promptGuide.systemPrompt
+    expect(prompt).toContain('Knee to ankle ONLY; NO thigh, foot, shoe or sole')
+    expect(prompt).toContain('Elbow to wrist ONLY; NO upper arm, hand, fingers or held prop')
+  })
+
   it('ships 13 independent illustrated parts with working wrist and ankle chains', () => {
     const template = findLayerTemplate('tmpl-character-articulated-13')!
     const composite = buildCompositeFromTemplate(template)

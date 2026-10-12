@@ -1,108 +1,133 @@
-# Quy Trình Tách Atlas Nhân Vật 13 Lớp & Nạp Vào Xưởng Lắp Ráp Layer (Parallax Studio)
+# Nhân vật cutout: tách bộ phận như búp bê để lắp ráp và diễn hoạt
 
-Tài liệu này quy chuẩn luồng tạo ảnh bằng AI, tự động bóc tách sprite bộ phận và nạp trực tiếp vào **Xưởng Lắp Ráp Layer (Layer Assembly Workshop)** có gắn sẵn hệ thống xương và chuyển động mẫu trong **Parallax Studio**.
+## 1. Chọn đúng mẫu
 
----
+Trong **Xưởng Lắp Ráp Layer → Mẫu lắp ráp → Nhân vật**, chọn **Búp bê 15 lớp — Tách đủ khớp tay & chân** (`tmpl-character-puppet-15`). Mẫu có sẵn ảnh vector minh họa, 15 xương và chuyển động đứng thở, bước đi gập gối, vẫy tay.
 
-## 1. Mục Tiêu & Kiến Trúc Tích Hợp
+Cấu trúc tối thiểu để gập đủ khớp:
 
-Khác với các công cụ kiểm tra đồ họa rời rạc bên ngoài, trong Parallax Studio:
-- **Ảnh Atlas 16:9** do AI sinh ra gồm 2 cột:
-  - **Cột 1 (30% bên trái):** Nhân vật hoàn chỉnh (Reference) để làm mốc tỷ lệ và đối chiếu visual QA.
-  - **Cột 2 (70% bên phải):** Lưới 5 cột × 3 hàng (15 ô) chứa đúng **13 bộ phận rời** trên phông xanh lá `#00FF00` (2 ô cuối để trống).
-- **Kết quả đích đến:** Tự động tách 13 mảnh PNG trong suốt, khử sạch ám xanh (despill), và **nạp trực tiếp vào Xưởng Lắp Ráp Layer** của Parallax Studio:
-  - Ánh xạ chính xác vào template **"Nhân vật 13 lớp — Bàn tay & Bàn chân riêng"** (`tmpl-character-articulated-13`).
-  - Tự động gắn sẵn **13 xương humanoid** (`bones` phân cấp: `pelvis` làm gốc → `torso` → `head` & 2 tay; `pelvis` → 2 chân).
-  - Tự động kế thừa các **hoạt cảnh chuyển động mẫu** (`clips`: `clip-idle` Đứng thở, `clip-wave` Vẫy bàn tay).
-  - Cho phép người dùng và AI xem nhân vật cử động 60fps ngay trên giao diện xưởng (2D & 3D), tinh chỉnh vị trí/pivot và chèn vào phân cảnh video 2.5D.
+- Đầu (kèm tóc), thân (kèm đoạn nối cổ), hông: 3 lớp.
+- Mỗi tay: bắp tay → cẳng tay → bàn tay: 6 lớp cho hai bên.
+- Mỗi chân: đùi → cẳng chân → bàn chân/giày: 6 lớp cho hai bên.
 
----
+Tổng cộng **15 lớp**. Bàn tay giữ nguyên năm ngón trong một ảnh; mẫu này không tách từng đốt ngón. Cổ nằm trong thân, không có slot cổ riêng. Quần áo được chia theo đoạn cơ thể, không dính xuyên qua khớp cần xoay.
 
-## 2. Prompt Tạo Ảnh Chuẩn 16:9 (Dán vào Model Tạo Ảnh AI)
+Mẫu **13 lớp** vẫn được giữ cho tài nguyên cũ: chân liền, không có khớp gối độc lập. Các mẫu cũ khác có thể gộp bàn tay, giày hoặc phụ kiện theo slot; muốn tách đủ tay chân hãy dùng mẫu 15 lớp. Mẫu nam hiệp sĩ có 23 slot bao gồm các lớp hóa trang riêng.
 
-Sao chép prompt bên dưới và dán vào model tạo ảnh (Flux, Midjourney v6, DALL-E 3, Recraft...):
+## 2. Atlas chuẩn trong app: vuông 5×5
+
+- Một PNG vuông, khuyến nghị 4096×4096, lưới **5 cột × 5 hàng**.
+- Số ô tính từ trái sang phải, trên xuống dưới. Không vẽ chữ, số hay đường kẻ lên ảnh.
+- Mỗi ô chứa đúng một bộ phận. Không vẽ thêm nhân vật hoàn chỉnh trong atlas; ảnh tham chiếu gửi riêng.
+- Phông xanh lá phẳng `#00FF00` cho mẫu búp bê; các mẫu khác dùng màu nền được chỉ định trong prompt.
+- Dùng chung tỉ lệ pixel giữa mọi mảnh; chọn tỉ lệ theo mảnh lớn nhất, chừa lề sạch ít nhất 8% chiều rộng/cao ô ở mỗi cạnh. Không phóng to bàn tay để lấp đầy ô.
+
+### Ánh xạ mẫu búp bê 15 lớp
+
+Trái/phải luôn là **phía màn hình khi nhân vật đã lắp**, không phải trái/phải giải phẫu.
+
+| Ô | Slot | Nội dung chính xác |
+|---|---|---|
+| 1 | `head` | Đầu, tai, mặt và tóc; không có thân |
+| 2 | `torso` | Ngực, bụng, áo thân và đoạn nối cổ; không đầu, tay, hông |
+| 3 | `pelvis` | Khối hông và thắt lưng; không đùi hoặc thân |
+| 4 | `arm-l` | Bắp tay trái từ vai đến khuỷu, gồm tay áo |
+| 5 | `forearm-l` | Cẳng tay trái từ khuỷu đến cổ tay, không bàn tay |
+| 6 | `hand-l` | Bàn tay trái đủ năm ngón, chỉ thêm đệm cổ tay ngắn |
+| 7 | `arm-r` | Bắp tay phải từ vai đến khuỷu, gồm tay áo |
+| 8 | `forearm-r` | Cẳng tay phải từ khuỷu đến cổ tay, không bàn tay |
+| 9 | `hand-r` | Bàn tay phải đủ năm ngón, không đạo cụ |
+| 10 | `thigh-l` | Đùi trái từ hông đến gối, không cẳng chân |
+| 11 | `shin-l` | Cẳng chân trái từ gối đến cổ chân, không giày |
+| 12 | `foot-l` | Bàn chân và giày trái, đủ gót/mũi, đệm cổ chân ngắn |
+| 13 | `thigh-r` | Đùi phải từ hông đến gối |
+| 14 | `shin-r` | Cẳng chân phải từ gối đến cổ chân, không bàn chân |
+| 15 | `foot-r` | Bàn chân và giày phải, không cẳng chân |
+| 16–25 | — | Để trống, chỉ màu nền |
+
+Ánh xạ này chỉ dành cho `tmpl-character-puppet-15`. Với mẫu khác, dùng danh sách ô của chính mẫu đó. Prompt trong app và MCP được sinh từ cùng danh sách slot tại [characterPrompt.ts](../../src/renderer/src/ui/layerAssembly/templates/characterPrompt.ts), tránh chỉ dẫn ô thừa hoặc hai bố cục mâu thuẫn.
+
+## 3. Prompt dùng ngay cho mẫu búp bê 15 lớp
+
+Prompt đầy đủ cập nhật theo mẫu nằm ở nút **Sao chép Prompt** hoặc MCP `get_layer_assembly_template`. Bản dưới đây dành riêng cho mẫu 15 lớp; có thể đổi dòng IDENTITY nhưng giữ nguyên bố cục và giới hạn từng bộ phận.
 
 ```text
-Create ONE 16:9 character model sheet, 3840x2160 PNG, opaque flat green #00FF00 background.
-Hand-drawn 2D cartoon animation style (like a character design sheet for an animated film):
-clean bold outlines, flat cel-shaded colors, no gradients, no cast shadows, no text, no labels, no grid lines.
+Create ONE square 4096x4096 PNG CHARACTER CUTOUT SPRITE ATLAS: a disassembled
+paper puppet / articulated doll kit for 2D skeletal animation.
+IDENTITY: Adult hand-drawn cartoon, blue shirt, dark trousers, dark shoes,
+belt, short hair. Clean outlines and flat cel shading.
+If a reference is attached, preserve its identity, costume and proportions.
+FRONT ORTHOGRAPHIC view, neutral straight limbs, same orientation throughout.
+Flat OPAQUE green #00FF00 background. No perspective or foreshortening.
 
-LAYOUT: split into 2 columns.
-- COLUMN 1 (left, ~30% width, x 0–1140): the COMPLETE assembled character, standing, FRONT orthographic view,
-  straight relaxed limbs, centered vertically with padding. This is the reference for how the parts fit together.
-- COLUMN 2 (right, ~70% width, x 1140–3840): a strict 5 columns x 3 rows grid (15 cells, each 540x720 px),
-  numbered 1–15 left-to-right, top-to-bottom. One isolated part per cell.
+LAYOUT: exactly 5 columns x 5 rows. Cells numbered 1–25 left-to-right,
+top-to-bottom for instructions only. Do not draw numbers, labels or grid lines.
+Exactly 15 isolated parts. NO assembled reference character in the atlas.
 
-CHARACTER: adult, blue shirt, dark trousers, dark shoes, belt, short hair.
+CELL ASSIGNMENTS (left/right mean assembled SCREEN positions):
+1. Head with hair and ears; NO torso.
+2. Torso from chest to waist, shirt and short neck connector; NO head, arms or hips.
+3. Pelvis and belt; NO torso, thighs or legs.
+4. Screen-left upper arm, shoulder to elbow including sleeve; NO forearm or hand.
+5. Screen-left forearm, elbow to wrist ONLY; NO upper arm, hand or fingers.
+6. Screen-left complete hand, five fingers and short wrist tab; NO forearm or prop.
+7. Screen-right upper arm, shoulder to elbow including sleeve; NO forearm or hand.
+8. Screen-right forearm, elbow to wrist ONLY; NO hand or fingers.
+9. Screen-right complete hand, five fingers and short wrist tab; NO forearm or prop.
+10. Screen-left thigh, hip to knee ONLY; NO pelvis, shin or foot.
+11. Screen-left shin, knee to ankle ONLY; NO thigh, foot, shoe or sole.
+12. Screen-left foot inside its shoe, complete heel and toe, short ankle tab; NO shin.
+13. Screen-right thigh, hip to knee ONLY; NO pelvis, shin or foot.
+14. Screen-right shin, knee to ankle ONLY; NO foot, shoe or sole.
+15. Screen-right foot inside its shoe, complete heel and toe, short ankle tab; NO shin.
+16–25. EMPTY, background color only.
 
-COLUMN 2 CELL ASSIGNMENTS:
-1 head with hair | 2 shirt torso | 3 pelvis and belt | 4 screen-left upper arm | 5 screen-left forearm (no hand)
-6 screen-left hand | 7 screen-right upper arm | 8 screen-right forearm (no hand) | 9 screen-right hand | 10 screen-left whole leg (no foot)
-11 screen-left shoe and foot | 12 screen-right whole leg (no foot) | 13 screen-right shoe and foot | 14 EMPTY | 15 EMPTY
-Empty cells contain only the green background.
+CONSTRUCTION:
+Use ONE shared pixel scale. Choose it so the largest part INCLUDING joint tabs
+fits with at least 8% of cell width/height as clear padding on every side.
+Never enlarge small parts to fill cells. Parts must never touch cell boundaries
+or each other. Keep full silhouettes, reconstruct areas hidden in the reference.
+At shoulder, elbow, wrist, waist, neck, hip, knee and ankle joins, extend rounded
+hidden caps by 10–15% of the shorter adjoining segment's length around the pivot.
+Paint continuous matching skin/fabric through the overlap. No socket holes,
+exposed ball joints, pins, pivot markers or black transverse lines on hidden caps.
+Clothing belongs to its own segment. No duplicated sleeves, cuffs, hands or shoes.
+Joint caps overlap only AFTER assembly, never between atlas cells.
 
-RULES:
-- Parts in column 2 must be IDENTICAL in design, color and scale to the character in column 1 (same pixel scale, same orthographic front view).
-- Do NOT resize parts to fill cells. Keep each part fully inside its cell with padding. Parts must not touch cell edges or each other.
-- Left/right follow screen positions, not anatomical.
-- Add rounded hidden joint overlaps of 10–15% at shoulder, elbow, wrist, hip, knee, ankle, neck, waist.
-- Combined parts stay in ONE cutout. Do not duplicate hands or feet. Keep head and hair together.
-- No green in the character itself (avoid green-tinted outlines or highlights).
+CLEAN EXTRACTION:
+One complete isolated silhouette per assigned cell, natural holes allowed.
+No neighboring fragments, detached specks, extra parts or duplicate views.
+Crisp antialiased edges, no blur, glow, fringe, matte border or cast/contact shadow.
+Background stays flat and uniform, including gaps between fingers.
+No chroma-key green in the character, outlines, highlights or reflections.
+Check all 15 cells for correct anatomy, complete hidden ends, consistent scale,
+clear padding and clean separation. Redraw merged or contaminated parts.
 ```
 
----
+## 4. Tách sạch và lắp đúng
 
-## 3. Nguyên Lý Pivot & Tọa Độ Theo Tỷ Lệ Ảnh
+1. Kiểm tra atlas trước khi cắt: đúng số mảnh, đúng ô, không dính tay vào thân hoặc giày vào cẳng chân. Nếu AI vẽ sai, yêu cầu vẽ lại ô lỗi; không trông chờ tách nền sẽ tự chia được các phần đã dính nhau.
+2. Cắt theo lưới 5×5 của ảnh thực tế, dùng biên ô theo tỉ lệ kích thước ảnh, không mặc định 4096 chia hết cho 5. Loại nền chroma-key rồi xuất từng mảnh PNG RGBA. Giữ lỗ giữa các ngón; không xóa chi tiết thật vì nhầm là nhiễu.
+3. Khử ám nền có kiểm soát ở viền. Kiểm tra trên cả nền sáng và tối: không viền xanh/hồng/trắng, không răng cưa lớn, không mất ngón tay hoặc tóc. Không dùng bộ khử xanh cho atlas nền hồng.
+4. Gán đúng slot trong xưởng. Sau khi crop sát ảnh, giữ cùng tỉ lệ vật thể khi lắp; kích thước canvas PNG khác nhau không có nghĩa là phải scale mọi mảnh về cùng kích thước.
+5. Đặt pivot tại tâm khớp trong phần chồng lấp, căn theo hình thực tế. Các transform/xương mẫu là điểm khởi đầu, không phải tọa độ đúng tuyệt đối cho mọi ảnh AI.
+6. Kiểm tra thứ tự trước/sau ở vai, hông, tóc và phụ kiện. Xoay thử khớp ở 0°, ±30°, ±45° và phạm vi chuyển động dự kiến; chỉnh pivot, độ chồng hoặc vẽ bù nếu hở. Đệm 10–15% không bảo đảm kín ở mọi góc.
 
-> [!IMPORTANT]
-> **Không thể cố định Pivot và Tọa độ bằng số pixel tuyệt đối:**
-> - Mỗi model AI tạo ảnh có thể xuất ra kích thước khác nhau (1024×576, 1920×1080, 3840×2160...).
-> - Dáng người, độ dài chi tiết (tay áo cộc, cẳng tay, ống quần, giày) của mỗi nhân vật do AI vẽ sẽ có tỷ lệ giải phẫu khác nhau đôi chút.
+Muốn sửa riêng một ô: gửi ảnh tham chiếu và yêu cầu chỉ vẽ bộ phận của slot đó, cùng hướng nhìn, tỉ lệ, màu và đầu nối; không yêu cầu lại cả nhân vật. Kết quả AI vẫn cần kiểm tra bằng mắt.
 
-Vì vậy, hệ thống áp dụng cơ chế **Chuẩn hóa theo Tỷ lệ (Normalized Proportions)**:
-1. **Pivot tương đối:** Thiết lập theo hệ số chuẩn hóa `pivot_norm: [x_ratio, y_ratio]` (ví dụ: khớp cổ nằm ở `[0.5, 0.88]` của đầu; khớp vai nằm ở `[0.5, 0.15]` của bắp tay; khớp cổ chân nằm ở `[0.5, 0.25]` của giày).
-2. **Khung lắp ráp chuẩn:** Template `tmpl-character-articulated-13` trong Xưởng Layer đã có sẵn khoảng cách transform tương đối giữa các khớp xương người:
-   - Đầu (`head`): Z: -15px, Y: -115px (nối vào xương thân).
-   - Thân (`torso`): Z: -5px, Y: -39px (nối vào xương hông).
-   - Hông (`pelvis`): Z: -10px, Y: +30px (gốc tọa độ root).
-   - Tay trái (`arm-l`, `forearm-l`, `hand-l`): Z: -12px đến -16px, X âm.
-   - Tay phải (`arm-r`, `forearm-r`, `hand-r`): Z: -12px đến -16px, X dương.
-   - Hai chân (`thigh-l`, `thigh-r`) & Giày (`foot-l`, `foot-r`): Z: +5px và -2px, Y dương hướng xuống đất.
-3. **Tinh chỉnh trực tiếp 60fps trên Xưởng Layer:**
-   - Sau khi nạp, nếu model AI vẽ tay/chân dài ngắn khác template, người dùng hoặc AI có thể:
-     - Dùng chuột kéo di chuyển từng layer trên khung 2D hoặc 3D.
-     - Điều chỉnh nhanh trên thanh tra thuộc tính (Inspector): `Tọa độ 2D (X, Y)`, `Khoảng cách Z`, `Tỉ lệ (Scale)`, `Góc xoay 3D`.
-     - Sử dụng ảnh **Reference (Cột 1)** đặt làm nền đối chiếu để căn chỉnh khít 100%.
+## 5. MCP và CLI
 
----
-
-## 4. Tự Động Hóa Qua Script `slice_atlas.py`
-
-Ứng dụng cung cấp sẵn công cụ [`scripts/slice_atlas.py`](../../scripts/slice_atlas.py) tự động thực hiện toàn bộ pipeline:
+Các tool hiện có dùng chung catalog với giao diện, không cần tool mới:
 
 ```bash
-# 1. Tách ảnh và tự động nạp thẳng vào Xưởng Lắp Ráp Layer trong app:
-python scripts/slice_atlas.py path/to/atlas.png --apply
-
-# 2. Hoặc chỉ tách ảnh ra thư mục (mặc định out/):
-python scripts/slice_atlas.py path/to/atlas.png --out out/
+pnpm pxs call get_layer_assembly_template '{"template_id":"tmpl-character-puppet-15"}'
+pnpm pxs call apply_layer_assembly_template '{"template_id":"tmpl-character-puppet-15","images":{"shin-l":"path/to/shin-l.png","foot-r":"path/to/foot-r.png"},"open_workshop":true}'
 ```
 
-### Các tính năng tự động:
-- **Khử ám xanh (Despill) triệt để:** Ép kênh Green ở các viền bán trong suốt xuống `max(Red, Blue)`, triệt tiêu hoàn toàn viền xanh ám quanh rìa da, tóc và áo.
-- **Tự khắc phục độ lệch lưới (Connected Components):** Nếu model AI vẽ lệch nhẹ khỏi ranh giới ô lưới, script tự động kích hoạt thuật toán phân đoạn thành phần liên thông, bóc tách chính xác 100% 13 mảnh nguyên vẹn mà **không bao giờ bị chạm mép ô**.
-- **Tự tạo cấu trúc LayerComposite:** Xuất file `character.composite.json` gồm 13 layers, gắn đúng xương và 2 chuyển động mẫu (`clip-idle`, `clip-wave`).
-- **Nạp trực tiếp qua TCP (cờ `--apply`):** Kết nối thẳng vào app Parallax Studio đang chạy (`127.0.0.1:9877`), tự xác thực qua `mcp.json` và mở ngay nhân vật lên màn hình Xưởng Lắp Ráp Layer trước mắt người dùng.
+Có thể truyền khóa slot như `shin-l` hoặc khóa ô như `cell_11`. `apply_layer_assembly_template` gắn ảnh, xương và clips theo mẫu; không tự suy luận giải phẫu hoặc sửa viền PNG. Đường dẫn ảnh phải tồn tại trên máy chạy app. Lấy danh sách tham số bằng `pnpm pxs help apply_layer_assembly_template`.
 
----
+## 6. Script 16:9 cũ không dùng cho atlas mới
 
-## 5. Quy Chuẩn Ánh Xạ Màn Hình & Khớp Ẩn (Bắt Buộc)
+[scripts/slice_atlas.py](../../scripts/slice_atlas.py) hiện chỉ phục vụ bố cục **16:9 cũ**, nhân vật tham chiếu bên trái và lưới **5×3 chứa 13 mảnh** bên phải, phông xanh. Script chưa hỗ trợ atlas vuông 5×5 hoặc mẫu búp bê 15 lớp; không chạy script này với prompt mới.
 
-### 5.1. Quy ước Trái/Phải theo Màn Hình (Screen Positions)
-- **Screen-left (Trái màn hình):** Bên tay/chân ở phía bên trái người nhìn (ứng với tọa độ X âm trên canvas, ID `arm-l`, `forearm-l`, `hand-l`, `thigh-l`, `foot-l`).
-- **Screen-right (Phải màn hình):** Bên tay/chân ở phía bên phải người nhìn (ứng với tọa độ X dương trên canvas, ID `arm-r`, `forearm-r`, `hand-r`, `thigh-r`, `foot-r`).
-- Tuyệt đối không dùng khái niệm giải phẫu cơ thể trong prompt để tránh model AI đảo ngược vị trí hai tay và hai chân.
-
-### 5.2. Khớp ẩn bo tròn (Joint Overlaps 10–15%)
-- Khi vẽ cẳng tay, bàn tay, bắp tay, đùi và bàn chân, tại các điểm nối khớp (vai, khuỷu, cổ tay, háng, cổ chân) bắt buộc phải có phần đệm bo tròn dư ra 10–15%.
-- Phần dư này sẽ chui vào bên dưới layer cha (hoặc nằm đè lên), bảo đảm khi nhân vật cử động xoay góc ±45° (vẫy tay, bước đi, co gối) không bao giờ bị lộ khe hở đứt rời cơ thể.
+Với ảnh cũ đúng bố cục, script vẫn có thể tách và nạp mẫu `tmpl-character-articulated-13` bằng `--apply`. Phân đoạn connected components dựa vào số lượng/vị trí mảnh có thể nhận sai tóc rời, ngón tay rời hoặc mảnh dính nhau. Không có bảo đảm “sạch 100%”, “không bao giờ chạm mép” hoặc tự căn pivot chính xác. Luôn kiểm tra kết quả trước khi dùng.
