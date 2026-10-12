@@ -1,6 +1,11 @@
+import type { AssetTable } from '../../../project/json/assetTable'
+export type { AssetTable }
+
 export interface Face3D {
   id: string
   name: string
+  /** Resource path, or alias reference in assets table (e.g. '@wall_front' or 'wall_front') */
+  asset?: string
   /** Relative asset path (e.g. 'house/origami_front.png') or project assetId or data URL */
   assetPath?: string
   assetId?: string
@@ -134,6 +139,8 @@ export interface Model3D {
   thumbnail?: string
   thumbnailDataUrl?: string
   scale: number // overall scaling factor (default 1.0)
+  /** Bảng tài nguyên ánh xạ nhãn -> đường dẫn (Asset Aliases Table), giúp dễ dàng thay thế tài nguyên linh hoạt */
+  assets?: AssetTable
   faces: Face3D[]
   /** Ánh sáng / bóng đổ khi xem trong Xưởng lắp ráp. */
   lighting?: AssemblyLighting

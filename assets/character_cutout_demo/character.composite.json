@@ -5,10 +5,31 @@
   "description": "Nhân vật chàng trai lãng tử 18 lớp chuẩn tỉ lệ giải phẫu học, khớp nối hoàn hảo và khung xương 15 bones chuyển động mượt mà.",
   "width": 500,
   "height": 600,
+  "assets": {
+    "hair_back": "character_cutout_demo/hair-back.png",
+    "neck": "character_cutout_demo/neck.png",
+    "head": "character_cutout_demo/head.png",
+    "hair_front": "character_cutout_demo/hair-front.png",
+    "torso": "character_cutout_demo/torso.png",
+    "pelvis": "character_cutout_demo/pelvis.png",
+    "arm_left": "character_cutout_demo/arm-left.png",
+    "forearm_left": "character_cutout_demo/forearm-left.png",
+    "hand_left": "character_cutout_demo/hand-left.png",
+    "arm_right": "character_cutout_demo/arm-right.png",
+    "forearm_right": "character_cutout_demo/forearm-right.png",
+    "hand_right": "character_cutout_demo/hand-right.png",
+    "thigh_left": "character_cutout_demo/thigh-left.png",
+    "shin_left": "character_cutout_demo/shin-left.png",
+    "foot_left": "character_cutout_demo/foot-left.png",
+    "thigh_right": "character_cutout_demo/thigh-right.png",
+    "shin_right": "character_cutout_demo/shin-right.png",
+    "foot_right": "character_cutout_demo/foot-right.png"
+  },
   "layers": [
     {
       "id": "demo-hair-back",
       "name": "hair-back",
+      "asset": "@hair_back",
       "assetPath": "character_cutout_demo/hair-back.png",
       "x": 0,
       "y": -125,
@@ -28,6 +49,7 @@
     {
       "id": "demo-neck",
       "name": "neck",
+      "asset": "@neck",
       "assetPath": "character_cutout_demo/neck.png",
       "x": -4,
       "y": -105,
@@ -47,6 +69,7 @@
     {
       "id": "demo-head",
       "name": "head",
+      "asset": "@head",
       "assetPath": "character_cutout_demo/head.png",
       "x": -3,
       "y": -127,

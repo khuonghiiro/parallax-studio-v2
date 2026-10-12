@@ -1,11 +1,15 @@
 import type { Handler, Params } from '../types'
 import { ParamError } from '../types'
-import { str, num, toPlain } from '../params'
+import { str, num, bool, has, toPlain } from '../params'
 import type { LayerComposite } from '../../ui/layerAssembly/types'
 import {
   getStoredComposites,
   saveComposite,
-  deleteComposite
+  deleteComposite,
+  exportLayerCompositeToJson,
+  importLayerCompositeFromJson,
+  setAssetAliasInComposite,
+  replaceAssetPathInComposite
 } from '../../ui/layerAssembly/layerAssemblyStorage'
 import {
   getActiveLayerAssemblySession,
@@ -176,6 +180,58 @@ export const layerAssemblyCommands: Record<string, Handler> = {
     }
 
     return { ok: true, deletedId: id }
+  },
+
+  export_layer_composite_json: async (p) => {
+    const composite = resolveTargetComposite(p)
+    const pretty = bool(p, 'pretty') ?? true
+    const json = exportLayerCompositeToJson(composite, pretty)
+    return { ok: true, id: composite.id, name: composite.name, json, layerCount: composite.layers.length }
+  },
+
+  import_layer_composite_json: async (p, cmd) => {
+    let jsonStr: string
+    if (has(p, 'json')) {
+      const j = p.json
+      jsonStr = typeof j === 'string' ? j : JSON.stringify(j)
+    } else if (cmd.file) {
+      jsonStr = new TextDecoder('utf-8').decode(cmd.file.data)
+    } else {
+      throw new ParamError('Provide "json" string/object or "file_path"')
+    }
+    const composite = importLayerCompositeFromJson(jsonStr)
+    saveComposite(composite)
+    const session = getActiveLayerAssemblySession()
+    if (session && session.getComposite().id === composite.id) {
+      session.setComposite(composite)
+    }
+    return { ok: true, id: composite.id, name: composite.name, layerCount: composite.layers.length }
+  },
+
+  set_layer_composite_asset_alias: async (p) => {
+    const composite = resolveTargetComposite(p)
+    const alias = str(p, 'alias', true)
+    const path = str(p, 'path', true)
+    const updated = setAssetAliasInComposite(composite, alias, path)
+    saveComposite(updated)
+    const session = getActiveLayerAssemblySession()
+    if (session && session.getComposite().id === composite.id) {
+      session.setComposite(updated)
+    }
+    return { ok: true, compositeId: composite.id, alias, path }
+  },
+
+  replace_layer_composite_asset_path: async (p) => {
+    const composite = resolveTargetComposite(p)
+    const oldPath = str(p, 'old_path', true)
+    const newPath = str(p, 'new_path', true)
+    const { composite: updated, replacedCount } = replaceAssetPathInComposite(composite, oldPath, newPath)
+    saveComposite(updated)
+    const session = getActiveLayerAssemblySession()
+    if (session && session.getComposite().id === composite.id) {
+      session.setComposite(updated)
+    }
+    return { ok: true, compositeId: composite.id, oldPath, newPath, replacedCount }
   },
 
   insert_layer_composite: async (p) => {

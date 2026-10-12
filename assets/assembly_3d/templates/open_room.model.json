@@ -1,0 +1,45 @@
+{
+  "id": "model-open-room",
+  "name": "Phòng Trưng Bày 3D (Interior Room)",
+  "description": "Không gian nội thất 3 mặt tường và sàn nhà, camera có thể bay vào bên trong phòng.",
+  "category": "room",
+  "scale": 0.7,
+  "faces": [
+    {
+      "id": "room-floor",
+      "name": "Dưới",
+      "color": "#475569",
+      "width": 700,
+      "height": 700,
+      "position": [0, -250, 350],
+      "rotation": [-90, 0, 0]
+    },
+    {
+      "id": "room-back",
+      "name": "Sau",
+      "color": "#1e293b",
+      "width": 700,
+      "height": 500,
+      "position": [0, 0, 700],
+      "rotation": [0, 0, 0]
+    },
+    {
+      "id": "room-left",
+      "name": "Trái",
+      "color": "#334155",
+      "width": 700,
+      "height": 500,
+      "position": [-350, 0, 350],
+      "rotation": [0, 90, 0]
+    },
+    {
+      "id": "room-right",
+      "name": "Phải",
+      "color": "#334155",
+      "width": 700,
+      "height": 500,
+      "position": [350, 0, 350],
+      "rotation": [0, -90, 0]
+    }
+  ]
+}

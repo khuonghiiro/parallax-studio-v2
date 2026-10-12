@@ -115,5 +115,49 @@ describe('JSON Project Format & Declarative Scene Spec', () => {
     expect(child?.fadeIn).toBe(1.0)
     expect(child?.fadeOut).toBe(0.5)
   })
+
+  it('imports declarative JSON with an asset alias dictionary and exports back cleanly', async () => {
+    const { exportProjectToDeclarativeJson } = await import('./jsonFormat')
+    const spec = {
+      name: 'Aliased Scene Demo',
+      assets: {
+        sky_bg: 'demo_transparent/layer1_sky.png',
+        mountain_view: 'demo_transparent/layer2_mountain.png'
+      },
+      shots: [
+        {
+          name: 'Scene 1',
+          layers: [
+            { name: 'Sky 1', asset: '@sky_bg', z: 800 },
+            { name: 'Mountain 1', asset: 'mountain_view', z: 400 }
+          ]
+        },
+        {
+          name: 'Scene 2',
+          layers: [
+            { name: 'Sky 2', asset: '@sky_bg', z: 800 }
+          ]
+        }
+      ]
+    }
+
+    const project = await importProjectFromJson(JSON.stringify(spec))
+    expect(project.shots).toHaveLength(2)
+    expect(project.layers).toHaveLength(3)
+
+    const sky1 = project.layers.find((l) => l.name === 'Sky 1')
+    const sky2 = project.layers.find((l) => l.name === 'Sky 2')
+    expect(sky1?.type).toBe('image')
+    expect(sky2?.type).toBe('image')
+    // Cả hai layer cùng trỏ tới 1 asset ID
+    expect((sky1?.props as any)?.assetId).toBe((sky2?.props as any)?.assetId)
+
+    // Export ra declarative JSON siêu gọn
+    const declJsonStr = await exportProjectToDeclarativeJson(project)
+    const exportedSpec = JSON.parse(declJsonStr)
+    expect(exportedSpec.assets).toBeDefined()
+    expect(exportedSpec.shots).toHaveLength(2)
+  })
 })
+
 

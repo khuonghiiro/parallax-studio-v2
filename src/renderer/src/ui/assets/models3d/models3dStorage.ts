@@ -1,4 +1,4 @@
-import type { Model3D, Face3D, PresetType } from './types'
+import type { Model3D, Face3D, PresetType, AssetTable } from './types'
 import type { Asset3DsCategory } from '@shared/ipc'
 
 const STORAGE_KEY = 'parallax_models_3d_v2'
@@ -538,3 +538,134 @@ export async function saveAsset3DsManifest(jsonContent: string): Promise<boolean
   }
   return false
 }
+
+/**
+ * Xuất Model3D thành chuỗi JSON tiêu chuẩn kèm bảng ánh xạ tài nguyên `assets`.
+ * Giúp người dùng & AI đọc và sửa đường dẫn texture cực kỳ nhanh chóng.
+ */
+export function exportModel3DToJson(model: Model3D, pretty = true): string {
+  const assets = model.assets || {}
+  const faceAssets: AssetTable = { ...assets }
+
+  // Tự động trích xuất các assetPath từ các mặt nếu chưa có trong bảng assets
+  for (const f of model.faces) {
+    const p = f.assetPath || f.asset
+    if (!p || p.startsWith('@') || p.startsWith('data:') || p.startsWith('blob:')) continue
+    const key = (f.name || f.id)
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '')
+
+    if (key && !(key in faceAssets)) {
+      faceAssets[key] = p
+    }
+  }
+
+  const exportable: Model3D = {
+    ...model,
+    assets: Object.keys(faceAssets).length > 0 ? faceAssets : undefined
+  }
+
+  return JSON.stringify(exportable, null, pretty ? 2 : undefined)
+}
+
+/**
+ * Nạp Model3D từ chuỗi JSON cấu hình
+ */
+export function importModel3DFromJson(jsonString: string): Model3D {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(jsonString)
+  } catch (err) {
+    throw new Error(`Invalid JSON format: ${String(err)}`)
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('JSON root must be an object representing a Model3D')
+  }
+
+  const raw = parsed as Partial<Model3D>
+  if (!Array.isArray(raw.faces)) {
+    throw new Error('Model3D JSON must contain a "faces" array')
+  }
+
+  const model: Model3D = {
+    id: raw.id || `model-${Math.random().toString(36).slice(2, 9)}`,
+    name: raw.name || 'Mô hình 3D tùy chỉnh',
+    description: raw.description,
+    category: raw.category || 'custom',
+    thumbnail: raw.thumbnail,
+    scale: typeof raw.scale === 'number' ? raw.scale : 1.0,
+    assets: raw.assets,
+    faces: raw.faces,
+    lighting: raw.lighting,
+    lockedStructure: raw.lockedStructure,
+    createdAt: raw.createdAt || Date.now(),
+    updatedAt: Date.now()
+  }
+
+  return model
+}
+
+/**
+ * Gán hoặc cập nhật nhãn tài nguyên cho Model3D (tự động cập nhật tức thì)
+ */
+export function setAssetAliasInModel(
+  model: Model3D,
+  alias: string,
+  newPath: string
+): Model3D {
+  const cleanAlias = alias.replace(/^@/, '').trim()
+  const nextAssets = { ...(model.assets || {}), [cleanAlias]: newPath }
+  return {
+    ...model,
+    assets: nextAssets,
+    updatedAt: Date.now()
+  }
+}
+
+/**
+ * Thay thế đường dẫn tài nguyên cũ bằng đường dẫn mới trên toàn bộ Model3D
+ */
+export function replaceAssetPathInModel(
+  model: Model3D,
+  oldPath: string,
+  newPath: string
+): { model: Model3D; replacedCount: number } {
+  let replacedCount = 0
+  const normOld = oldPath.trim().replace(/\\/g, '/').replace(/^assets\//, '')
+  const normNew = newPath.trim().replace(/\\/g, '/')
+
+  const nextAssets = { ...(model.assets || {}) }
+  for (const [key, val] of Object.entries(nextAssets)) {
+    const strVal = typeof val === 'string' ? val : (val as any)?.path
+    if (strVal && (strVal.replace(/\\/g, '/').replace(/^assets\//, '') === normOld || strVal === oldPath)) {
+      if (typeof val === 'string') {
+        nextAssets[key] = normNew
+      } else {
+        nextAssets[key] = { ...(val as any), path: normNew }
+      }
+      replacedCount++
+    }
+  }
+
+  const nextFaces = model.faces.map((f) => {
+    if (f.assetPath && (f.assetPath.replace(/\\/g, '/').replace(/^assets\//, '') === normOld || f.assetPath === oldPath)) {
+      replacedCount++
+      return { ...f, assetPath: normNew }
+    }
+    return f
+  })
+
+  return {
+    model: {
+      ...model,
+      assets: nextAssets,
+      faces: nextFaces,
+      updatedAt: Date.now()
+    },
+    replacedCount
+  }
+}
+

@@ -662,6 +662,7 @@ export function LayerAssemblyViewport({
               time={time}
               maxZ={maxZ}
               lighting={composite.lighting}
+              assetTable={composite.assets}
               show3DPerspective={show3DPerspective && brush.activeTool !== 'eraser'}
               showMesh={showMesh}
               onPointerDown={(e) => handleStartDragLayer(e, layer)}

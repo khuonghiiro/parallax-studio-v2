@@ -1,6 +1,15 @@
 import type { Face3D, Model3D, SunPreset } from '../../ui/assets/models3d/types'
 import { getActiveAssemblySession } from '../../ui/assets/models3d/assemblyBridge'
-import { deleteModel3D, fetchDiskModels3D, getStoredModels3D, saveModel3D } from '../../ui/assets/models3d/models3dStorage'
+import {
+  deleteModel3D,
+  fetchDiskModels3D,
+  getStoredModels3D,
+  saveModel3D,
+  exportModel3DToJson,
+  importModel3DFromJson,
+  setAssetAliasInModel,
+  replaceAssetPathInModel
+} from '../../ui/assets/models3d/models3dStorage'
 import { insertModel3DToScene } from '../../ui/assets/models3d/insertModel3D'
 import { joinFaces, type JoinEdge, type JoinScaleMode } from '../../ui/assets/models3d/assemblyJoin'
 import { applyClipSuggestions, suggestClipRules } from '../../ui/assets/models3d/assemblyClip'
@@ -149,6 +158,50 @@ export const assemblyCommands: Record<string, Handler> = {
     if (!id) throw new ParamError('Missing "id" or "model_id"')
     await deleteModel3D(id)
     return { ok: true, id }
+  },
+
+  export_model3d_json: async (p) => {
+    const { model } = await resolveTargetModel(p)
+    const pretty = bool(p, 'pretty') ?? true
+    const json = exportModel3DToJson(model, pretty)
+    return { ok: true, id: model.id, name: model.name, json, faceCount: model.faces.length }
+  },
+
+  import_model3d_json: async (p, cmd) => {
+    let jsonStr: string
+    if (has(p, 'json')) {
+      const j = p.json
+      jsonStr = typeof j === 'string' ? j : JSON.stringify(j)
+    } else if (cmd.file) {
+      jsonStr = new TextDecoder('utf-8').decode(cmd.file.data)
+    } else {
+      throw new ParamError('Provide "json" string/object or "file_path"')
+    }
+    const model = importModel3DFromJson(jsonStr)
+    await saveModel3D(model)
+    const session = getActiveAssemblySession()
+    if (session && session.getModel().id === model.id) {
+      session.setModel(model)
+    }
+    return { ok: true, id: model.id, name: model.name, faceCount: model.faces.length }
+  },
+
+  set_assembly_asset_alias: async (p) => {
+    const { model, isSession } = await resolveTargetModel(p)
+    const alias = str(p, 'alias', true)
+    const path = str(p, 'path', true)
+    const updated = setAssetAliasInModel(model, alias, path)
+    await persistModel(updated, isSession)
+    return { ok: true, modelId: model.id, alias, path }
+  },
+
+  replace_assembly_asset_path: async (p) => {
+    const { model, isSession } = await resolveTargetModel(p)
+    const oldPath = str(p, 'old_path', true)
+    const newPath = str(p, 'new_path', true)
+    const { model: updated, replacedCount } = replaceAssetPathInModel(model, oldPath, newPath)
+    await persistModel(updated, isSession)
+    return { ok: true, modelId: model.id, oldPath, newPath, replacedCount }
   },
 
   insert_assembly_model: async (p) => {

@@ -7,6 +7,7 @@ import { createImageLayer, createSolidLayer } from '../../../project/factory'
 import type { BuiltInAssetItem } from '@shared/ipc'
 import type { AssetMeta, ImageLayer, SolidLayer, Vec3 } from '@shared/types'
 import { faceToMeshDefinition } from '@renderer/engine/imageMesh/legacyAdapter'
+import { resolveAssetAlias } from '../../../project/json/assetTable'
 
 export interface InsertModelOptions {
   model: Model3D
@@ -52,19 +53,20 @@ export async function insertModel3DToScene({
     const posZ = (face.position[2] * combinedScale) + positionOffset[2]
 
     let added = false
+    const resolvedAssetPath = resolveAssetAlias(face.asset || face.assetPath, model.assets)
 
-    if (face.assetPath) {
+    if (resolvedAssetPath) {
       // Find asset in project assets first
       const curProjectAssets = useEditor.getState().project.assets
       let projectAsset: AssetMeta | undefined = curProjectAssets.find(
-        (a) => a.path?.endsWith(face.assetPath!) || a.name === face.name
+        (a) => a.path?.endsWith(resolvedAssetPath) || a.name === face.name
       )
 
       // Try loading from asset-3ds if path references asset-3ds
-      if (!projectAsset && (face.assetPath.includes('asset-3ds') || face.assetPath.includes('tudor_cottage'))) {
+      if (!projectAsset && (resolvedAssetPath.includes('asset-3ds') || resolvedAssetPath.includes('tudor_cottage'))) {
         try {
           if (window.api?.asset3ds?.loadBytes) {
-            const cleanPath = face.assetPath.replace(/^asset-3ds[\\/]/, '')
+            const cleanPath = resolvedAssetPath.replace(/^asset-3ds[\\/]/, '')
             const file = await window.api.asset3ds.loadBytes(cleanPath)
             if (file) {
               const addedAsset = await assetStore.add(file.name, file.mime, file.data, 'image')
@@ -85,8 +87,8 @@ export async function insertModel3DToScene({
       if (!projectAsset && window.api?.loadBuiltInAssetBytes) {
         try {
           const file =
-            (await window.api.loadBuiltInAssetBytes(face.assetPath)) ||
-            (await window.api.loadBuiltInAssetBytes(`assembly_3d/${face.assetPath.replace(/^assembly_3d[\\/]/, '')}`))
+            (await window.api.loadBuiltInAssetBytes(resolvedAssetPath)) ||
+            (await window.api.loadBuiltInAssetBytes(`assembly_3d/${resolvedAssetPath.replace(/^assembly_3d[\\/]/, '')}`))
           if (file) {
             const addedAsset = await assetStore.add(file.name, file.mime, file.data, 'image')
             useEditor.getState().update((p) => {
@@ -103,12 +105,12 @@ export async function insertModel3DToScene({
 
       // Fallback: Find in built-in items
       if (!projectAsset) {
-        const cleanBuiltIn = face.assetPath.replace(/^asset-3ds[\\/]/, '')
+        const cleanBuiltIn = resolvedAssetPath.replace(/^asset-3ds[\\/]/, '')
         const builtIn = builtInItems.find(
           (b) =>
-            b.relativePath === face.assetPath ||
+            b.relativePath === resolvedAssetPath ||
             b.relativePath === cleanBuiltIn ||
-            `${b.folder}/${b.fileName}` === face.assetPath
+            `${b.folder}/${b.fileName}` === resolvedAssetPath
         )
         if (builtIn) {
           const importedId = await importBuiltInAsset(builtIn, false)

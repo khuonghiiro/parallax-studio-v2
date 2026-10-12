@@ -184,8 +184,48 @@ export const SCENE_TOOLS = [
   },
   {
     name: 'export_project_json', cat: 'project',
-    doc: L('Export the entire current project to a self-contained JSON string (with embedded assets).', 'Xuất toàn bộ dự án hiện tại thành chuỗi JSON độc lập (nhúng sẵn asset).'),
-    shape: () => ({})
+    doc: L(
+      'Export the entire current project to a self-contained JSON string or human-friendly declarative scene JSON with asset aliases table.',
+      'Xuất toàn bộ dự án hiện tại thành chuỗi JSON độc lập hoặc JSON mô tả cảnh khai báo với bảng nhãn tài nguyên (asset aliases).'
+    ),
+    shape: (d) => ({
+      format: z.enum(['raw', 'declarative']).optional().describe(d('JSON format: "raw" (full internal structure) or "declarative" (clean readable spec with asset aliases table, default "raw").', 'Định dạng JSON: "raw" (cấu trúc nội bộ đầy đủ) hoặc "declarative" (mô tả cảnh gọn gàng kèm bảng nhãn asset, mặc định "raw").')),
+      pretty: z.boolean().optional().describe(d('Format JSON with indentation (default true).', 'Định dạng JSON có thụt dòng (mặc định true).'))
+    }),
+    example: '{"format":"declarative"}'
+  },
+  {
+    name: 'set_project_asset_alias', cat: 'project',
+    doc: L(
+      'Define or update an asset alias in the project asset table. Shots and layers referencing "@alias" or "alias" will resolve to this path. Updating here re-targets all uses instantly.',
+      'Định nghĩa hoặc cập nhật một nhãn asset alias trong bảng tài nguyên của dự án. Các cảnh và layer tham chiếu "@alias" hoặc "alias" sẽ trỏ tới đường dẫn này. Đổi tại đây cập nhật tức thì mọi nơi sử dụng.'
+    ),
+    shape: (d) => ({
+      alias: z.string().describe(d('Asset alias key (e.g. "@hero_head" or "hero_head").', 'Tên nhãn alias của tài nguyên (vd: "@hero_head" hoặc "hero_head").')),
+      path: z.string().describe(d('Relative asset file path (e.g. "characters/hero/head.png").', 'Đường dẫn file tài nguyên tương đối (vd: "characters/hero/head.png").'))
+    }),
+    example: '{"alias":"@hero_head","path":"characters/hero/head_v2.png"}'
+  },
+  {
+    name: 'replace_project_asset_path', cat: 'project',
+    doc: L(
+      'Batch replace an asset file path across project assets table and layers, updating old asset references to a new path.',
+      'Thay thế hàng loạt một đường dẫn file tài nguyên trong bảng assets và các layer của dự án sang đường dẫn mới.'
+    ),
+    shape: (d) => ({
+      old_path: z.string().describe(d('Existing asset path to replace.', 'Đường dẫn asset cũ cần thay thế.')),
+      new_path: z.string().describe(d('New asset path to apply.', 'Đường dẫn asset mới áp dụng.'))
+    }),
+    example: '{"old_path":"tree_4k.png","new_path":"tree_optimized.png"}'
+  },
+  {
+    name: 'get_project_asset_aliases', cat: 'project',
+    doc: L(
+      'List all defined asset aliases and their mapped paths in the current project.',
+      'Liệt kê tất cả các nhãn alias tài nguyên và đường dẫn tương ứng trong dự án hiện tại.'
+    ),
+    shape: () => ({}),
+    example: '{}'
   },
   {
     name: 'import_shot_json', cat: 'project',

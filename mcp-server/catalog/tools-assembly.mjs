@@ -97,6 +97,57 @@ export const ASSEMBLY_TOOLS = [
     example: '{"id":"model-tudor-cottage"}'
   },
   {
+    name: 'export_model3d_json', cat: 'assembly',
+    doc: L(
+      'Export a 3D assembly model to JSON string with its geometry, faces, and reusable asset aliases table.',
+      'Xuất mô hình lắp ráp 3D ra chuỗi JSON với đầy đủ hình học các mặt và bảng nhãn tài nguyên (asset aliases).'
+    ),
+    shape: (d) => ({
+      id: z.string().optional().describe(d('Model ID (defaults to active session model).', 'ID mô hình (mặc định: mô hình của phiên đang mở).')),
+      model_id: z.string().optional().describe(d('Alias for id.', 'Bí danh của id.')),
+      pretty: z.boolean().optional().describe(d('Format JSON with indentation (default true).', 'Định dạng JSON có thụt dòng (mặc định true).'))
+    }),
+    example: '{"id":"model-tudor-cottage"}'
+  },
+  {
+    name: 'import_model3d_json', cat: 'assembly',
+    doc: L(
+      'Import a 3D assembly model from a JSON string or file with face meshes and asset aliases table, saving it to disk library.',
+      'Nhập một mô hình lắp ráp 3D từ chuỗi hoặc file JSON kèm mesh các mặt và bảng asset aliases, lưu vào thư viện trên đĩa.'
+    ),
+    shape: (d) => ({
+      json: z.string().optional().describe(d('JSON string or object containing the 3D model definition.', 'Chuỗi hoặc đối tượng JSON định nghĩa mô hình 3D.')),
+      file_path: z.string().optional().describe(d('Path to a .json model file on disk.', 'Đường dẫn file .json mô hình trên ổ đĩa.'))
+    }),
+    example: '{"file_path":"assets/assembly_3d/templates/tudor_cottage.model.json"}'
+  },
+  {
+    name: 'set_assembly_asset_alias', cat: 'assembly',
+    doc: L(
+      'Define or update an asset alias in a 3D model\'s asset table. All faces using "@alias" will resolve to this texture path.',
+      'Định nghĩa hoặc cập nhật nhãn tài nguyên trong bảng asset của mô hình 3D. Mọi mặt dùng "@alias" sẽ dùng texture theo đường dẫn này.'
+    ),
+    shape: (d) => ({
+      alias: z.string().describe(d('Asset alias key (e.g. "@wall" or "wall").', 'Tên nhãn alias của tài nguyên (vd: "@wall" hoặc "wall").')),
+      path: z.string().describe(d('Relative asset texture path.', 'Đường dẫn texture tương đối.')),
+      model_id: modelId(d)
+    }),
+    example: '{"model_id":"model-tudor-cottage","alias":"@wall","path":"architecture/wall_brick.png"}'
+  },
+  {
+    name: 'replace_assembly_asset_path', cat: 'assembly',
+    doc: L(
+      'Batch replace a texture path in a 3D model\'s asset table and faces.',
+      'Thay thế hàng loạt một đường dẫn texture trong bảng asset và các mặt của mô hình 3D.'
+    ),
+    shape: (d) => ({
+      old_path: z.string().describe(d('Existing texture path to replace.', 'Đường dẫn texture cũ cần thay thế.')),
+      new_path: z.string().describe(d('New texture path to apply.', 'Đường dẫn texture mới áp dụng.')),
+      model_id: modelId(d)
+    }),
+    example: '{"old_path":"wood_rough.png","new_path":"wood_polished.png"}'
+  },
+  {
     name: 'append_assembly_model', cat: 'assembly',
     doc: L(
       'Merge a SAVED model (typically a decor part) into the target model. With face_id it is mounted on that face (front wall, side wall, roof slope…) at uv, facing outward; with `at` its origin lands on that point; otherwise it is placed beside the model. Scale is matched automatically, ids are regenerated and clip references remapped. Run auto_assembly_clip afterwards when parts sink into roofs.',

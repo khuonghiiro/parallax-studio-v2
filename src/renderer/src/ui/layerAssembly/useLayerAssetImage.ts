@@ -1,18 +1,22 @@
 import { useState, useEffect } from 'react'
 import { assetStore } from '../../project/assets'
 import { resolveFaceTexture } from '../assets/models3d/textureResolver'
+import { resolveAssetAlias, type AssetTable } from '../../project/json/assetTable'
 
 /**
  * Lấy URL ảnh độ phân giải cao gốc (Full Resolution) từ assetStore hoặc direct URL
  */
-export function getLayerFullResUrl(assetPath?: string, directUrl?: string): string | null {
+export function getLayerFullResUrl(assetPath?: string, directUrl?: string, assetTable?: AssetTable): string | null {
   // 1. Ưu tiên directUrl (ảnh do người dùng cọ tẩy, chỉnh sửa trực tiếp, data: hoặc blob:)
   if (directUrl && (directUrl.startsWith('data:') || directUrl.startsWith('blob:') || directUrl.startsWith('http'))) {
     return directUrl
   }
-  // 2. Tiếp theo lấy từ assetStore nếu có assetPath
-  if (assetPath) {
-    const rt = assetStore.get(assetPath)
+
+  const effectivePath = resolveAssetAlias(assetPath, assetTable)
+
+  // 2. Tiếp theo lấy từ assetStore nếu có effectivePath
+  if (effectivePath) {
+    const rt = assetStore.get(effectivePath)
     if (rt?.url) return rt.url
     if (rt?.thumbUrl) return rt.thumbUrl
 
@@ -24,11 +28,11 @@ export function getLayerFullResUrl(assetPath?: string, directUrl?: string): stri
           const list = JSON.parse(raw)
           const match = list.find(
             (it: any) =>
-              it?.path === assetPath ||
-              it?.relativePath === assetPath ||
-              it?.id === assetPath ||
-              it?.fileName === assetPath ||
-              assetPath.endsWith(it?.fileName || '___')
+              it?.path === effectivePath ||
+              it?.relativePath === effectivePath ||
+              it?.id === effectivePath ||
+              it?.fileName === effectivePath ||
+              effectivePath.endsWith(it?.fileName || '___')
           )
           if (match?.previewUrl && typeof match.previewUrl === 'string' && match.previewUrl.startsWith('data:')) {
             return match.previewUrl
@@ -45,12 +49,13 @@ export function getLayerFullResUrl(assetPath?: string, directUrl?: string): stri
 /**
  * Giải quyết URL ảnh cho layer bất đồng bộ (cho thumbnail generator hoặc headless operations)
  */
-export async function resolveLayerImageUrlAsync(assetPath?: string, directUrl?: string): Promise<string | null> {
-  const direct = getLayerFullResUrl(assetPath, directUrl)
+export async function resolveLayerImageUrlAsync(assetPath?: string, directUrl?: string, assetTable?: AssetTable): Promise<string | null> {
+  const direct = getLayerFullResUrl(assetPath, directUrl, assetTable)
   if (direct) return direct
-  if (!assetPath) return null
+  const effectivePath = resolveAssetAlias(assetPath, assetTable)
+  if (!effectivePath) return null
   try {
-    const res = await resolveFaceTexture(assetPath)
+    const res = await resolveFaceTexture(effectivePath, assetTable)
     return res?.url || null
   } catch {
     return null
@@ -61,13 +66,14 @@ export async function resolveLayerImageUrlAsync(assetPath?: string, directUrl?: 
  * Hook giải quyết đường dẫn ảnh cho layer trong Xưởng Lắp Ráp Layer:
  * Hỗ trợ tự động:
  * 1. direct data: hoặc blob: URL (ảnh cọ tẩy, chỉnh sửa riêng)
- * 2. assetId trong assetStore (Project Assets - ưu tiên full-res rt.url)
- * 3. customPublicAssets từ localStorage
- * 4. built-in assets qua resolveFaceTexture (e.g. assembly_3d/..., demo_transparent/...)
+ * 2. alias trong assetTable của composite
+ * 3. assetId trong assetStore (Project Assets - ưu tiên full-res rt.url)
+ * 4. customPublicAssets từ localStorage
+ * 5. built-in assets qua resolveFaceTexture (e.g. character_cutout_demo/..., assembly_3d/...)
  */
-export function useLayerAssetImage(assetPath?: string, directUrl?: string): string | null {
+export function useLayerAssetImage(assetPath?: string, directUrl?: string, assetTable?: AssetTable): string | null {
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(() => {
-    return getLayerFullResUrl(assetPath, directUrl)
+    return getLayerFullResUrl(assetPath, directUrl, assetTable)
   })
 
   useEffect(() => {
@@ -77,9 +83,11 @@ export function useLayerAssetImage(assetPath?: string, directUrl?: string): stri
       return
     }
 
-    // 2. Nếu có assetPath trong assetStore -> lấy trực tiếp full-res URL
-    if (assetPath) {
-      const rt = assetStore.get(assetPath)
+    const effectivePath = resolveAssetAlias(assetPath, assetTable)
+
+    // 2. Nếu có effectivePath trong assetStore -> lấy trực tiếp full-res URL
+    if (effectivePath) {
+      const rt = assetStore.get(effectivePath)
       if (rt?.url) {
         setResolvedUrl(rt.url)
         return
@@ -97,47 +105,37 @@ export function useLayerAssetImage(assetPath?: string, directUrl?: string): stri
             const list = JSON.parse(raw)
             const match = list.find(
               (it: any) =>
-                it?.path === assetPath ||
-                it?.relativePath === assetPath ||
-                it?.id === assetPath ||
-                it?.fileName === assetPath ||
-                assetPath.endsWith(it?.fileName || '___')
+                it?.path === effectivePath ||
+                it?.relativePath === effectivePath ||
+                it?.id === effectivePath ||
+                it?.fileName === effectivePath ||
+                effectivePath.endsWith(it?.fileName || '___')
             )
             if (match?.previewUrl && typeof match.previewUrl === 'string' && match.previewUrl.startsWith('data:')) {
               setResolvedUrl(match.previewUrl)
               return
             }
           }
-        } catch {}
+        } catch {
+          /* ignore storage errors */
+        }
       }
-    }
 
-    if (directUrl && (directUrl.startsWith('data:') || directUrl.startsWith('blob:') || directUrl.startsWith('http'))) {
-      setResolvedUrl(directUrl)
-      return
-    }
-
-    if (!assetPath) {
-      setResolvedUrl(directUrl || null)
-      return
-    }
-
-    // 2. Thử giải quyết qua textureResolver (built-in asset hoặc disk asset)
-    let isCancelled = false
-    resolveFaceTexture(assetPath)
-      .then((res) => {
-        if (!isCancelled && res?.url) {
+      // 4. Resolve qua built-in textures
+      let active = true
+      resolveFaceTexture(effectivePath, assetTable).then((res) => {
+        if (active && res?.url) {
           setResolvedUrl(res.url)
         }
       })
-      .catch(() => {
-        if (!isCancelled) setResolvedUrl(null)
-      })
-
-    return () => {
-      isCancelled = true
+      return () => {
+        active = false
+      }
     }
-  }, [assetPath, directUrl])
+
+    setResolvedUrl(null)
+  }, [assetPath, directUrl, assetTable])
 
   return resolvedUrl
 }
+

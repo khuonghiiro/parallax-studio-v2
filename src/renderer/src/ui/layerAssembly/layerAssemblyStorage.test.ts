@@ -222,5 +222,78 @@ describe('Layer Assembly Workshop Storage System', () => {
     expect(getStoredComposites().some((c) => c.id === 'comp-flower-bush')).toBe(true)
     expect(getDeletedCompositeIds().has('comp-flower-bush')).toBe(false)
   })
+
+  it('exports and imports LayerComposite via JSON with AssetTable aliases', async () => {
+    const {
+      exportLayerCompositeToJson,
+      importLayerCompositeFromJson,
+      setAssetAliasInComposite,
+      replaceAssetPathInComposite
+    } = await import('./layerAssemblyStorage')
+
+    const comp: LayerComposite = {
+      id: 'comp-json-test-1',
+      name: 'Test Cutout Composite',
+      category: 'character',
+      width: 500,
+      height: 600,
+      assets: {
+        head: 'character_cutout_demo/head.png',
+        torso: 'character_cutout_demo/torso.png'
+      },
+      layers: [
+        {
+          id: 'l1',
+          name: 'Head Layer',
+          asset: '@head',
+          assetPath: 'character_cutout_demo/head.png',
+          x: 0,
+          y: -100,
+          z: 0,
+          scale: 1,
+          rotation: 0,
+          opacity: 1,
+          motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+        },
+        {
+          id: 'l2',
+          name: 'Torso Layer',
+          asset: '@torso',
+          assetPath: 'character_cutout_demo/torso.png',
+          x: 0,
+          y: 0,
+          z: 5,
+          scale: 1,
+          rotation: 0,
+          opacity: 1,
+          motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+        }
+      ]
+    }
+
+    const jsonStr = exportLayerCompositeToJson(comp, true)
+    expect(jsonStr).toContain('"head": "character_cutout_demo/head.png"')
+    expect(jsonStr).toContain('"@head"')
+
+    const imported = importLayerCompositeFromJson(jsonStr)
+    expect(imported.id).toBe('comp-json-test-1')
+    expect(imported.assets?.head).toBe('character_cutout_demo/head.png')
+    expect(imported.layers).toHaveLength(2)
+
+    // Thử cập nhật nhãn tài nguyên (setAssetAliasInComposite)
+    const updated = setAssetAliasInComposite(imported, 'head', 'character_cutout_demo/head_4k.png')
+    expect(updated.assets?.head).toBe('character_cutout_demo/head_4k.png')
+
+    // Thử thay thế đường dẫn (replaceAssetPathInComposite)
+    const { composite: replaced, replacedCount } = replaceAssetPathInComposite(
+      updated,
+      'character_cutout_demo/torso.png',
+      'character_cutout_demo/torso_hd.png'
+    )
+    expect(replacedCount).toBeGreaterThan(0)
+    expect(replaced.assets?.torso).toBe('character_cutout_demo/torso_hd.png')
+    expect(replaced.layers.find((l) => l.id === 'l2')?.assetPath).toBe('character_cutout_demo/torso_hd.png')
+  })
 })
+
 

@@ -178,4 +178,72 @@ describe('3D Models Preset and Storage System', () => {
     // Check hidden list contains id
     expect(getHiddenModel3DIds()).toContain('model-cubic-box')
   })
+
+  it('exports and imports Model3D via JSON with AssetTable aliases', async () => {
+    const {
+      exportModel3DToJson,
+      importModel3DFromJson,
+      setAssetAliasInModel,
+      replaceAssetPathInModel
+    } = await import('./models3dStorage')
+
+    const model: Model3D = {
+      id: 'model-tudor-json-test',
+      name: 'Tudor House JSON Test',
+      category: 'architecture',
+      scale: 1.0,
+      assets: {
+        front_wall: 'assembly_3d/modular/wall_front_tudor.png',
+        roof: 'assembly_3d/modular/roof_terracotta.png'
+      },
+      faces: [
+        {
+          id: 'f1',
+          name: 'Front Wall',
+          asset: '@front_wall',
+          assetPath: 'assembly_3d/modular/wall_front_tudor.png',
+          width: 600,
+          height: 660,
+          position: [0, 0, 0],
+          rotation: [0, 0, 0]
+        },
+        {
+          id: 'f2',
+          name: 'Roof',
+          asset: '@roof',
+          assetPath: 'assembly_3d/modular/roof_terracotta.png',
+          width: 600,
+          height: 397,
+          position: [0, 200, 0],
+          rotation: [-45, 0, 0]
+        }
+      ],
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }
+
+    const jsonStr = exportModel3DToJson(model, true)
+    expect(jsonStr).toContain('"front_wall": "assembly_3d/modular/wall_front_tudor.png"')
+    expect(jsonStr).toContain('"@front_wall"')
+
+    const imported = importModel3DFromJson(jsonStr)
+    expect(imported.id).toBe('model-tudor-json-test')
+    expect(imported.assets?.front_wall).toBe('assembly_3d/modular/wall_front_tudor.png')
+    expect(imported.faces).toHaveLength(2)
+
+    // Thử cập nhật nhãn tài nguyên (setAssetAliasInModel)
+    const updated = setAssetAliasInModel(imported, 'front_wall', 'assembly_3d/modular/wall_front_tudor_4k.png')
+    expect(updated.assets?.front_wall).toBe('assembly_3d/modular/wall_front_tudor_4k.png')
+
+    // Thử thay thế đường dẫn (replaceAssetPathInModel)
+    const { model: replaced, replacedCount } = replaceAssetPathInModel(
+      updated,
+      'assembly_3d/modular/roof_terracotta.png',
+      'assembly_3d/modular/roof_terracotta_hd.png'
+    )
+    expect(replacedCount).toBeGreaterThan(0)
+    expect(replaced.assets?.roof).toBe('assembly_3d/modular/roof_terracotta_hd.png')
+    expect(replaced.faces.find((f) => f.id === 'f2')?.assetPath).toBe('assembly_3d/modular/roof_terracotta_hd.png')
+  })
 })
+

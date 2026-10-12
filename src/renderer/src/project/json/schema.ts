@@ -1,6 +1,7 @@
 import type { AssetMeta, AutoOrientMode, Composition, EaseName, Layer, LayerMotion, LookSettings, Vec3 } from '@shared/types'
 import type { TransitionType } from '../../animation/cameraPath'
 import type { ParticlePreset } from '../../animation/presets'
+import type { AssetTable } from './assetTable'
 
 export interface DeclarativeKeyframe<T = unknown> {
   t: number
@@ -13,7 +14,9 @@ export interface DeclarativeLayerSpec {
   type?: 'image' | 'text' | 'solid' | 'ground' | 'particles' | 'generator'
   effect?: 'mist' | 'fog' | 'rain' | 'twilight_mist' | 'twilightMist'
   generator?: string
-  src?: string // data:image/... or url or effect:mist
+  /** Resource path, data URL, or alias reference in assets table (e.g. '@hero_head' or 'hero_head') */
+  asset?: string
+  src?: string // data:image/... or url or effect:mist or @alias
   assetName?: string
   z?: number
   position?: Vec3
@@ -112,6 +115,8 @@ export interface DeclarativeShotSpec {
   title?: DeclarativeTitleSpec
   particles?: DeclarativeParticleSpec
   layers?: DeclarativeLayerSpec[]
+  /** Optional local asset dictionary for this shot */
+  assets?: AssetTable
 }
 
 export interface DeclarativeCameraTourStep {
@@ -135,5 +140,9 @@ export interface DeclarativeProjectSpec {
   }
   shots?: DeclarativeShotSpec[]
   layers?: Layer[] // in case of raw layer array
-  assets?: (AssetMeta & { dataUrl?: string })[]
+  /** Assets can be either raw metadata array or human-friendly alias table dictionary */
+  assets?: AssetTable | (AssetMeta & { dataUrl?: string })[]
+  /** Explicit alias dictionary for easy lookup */
+  assetTable?: AssetTable
 }
+

@@ -9,6 +9,9 @@ export interface LayerMotionSettings {
   phaseOffset?: number // Độ lệch pha giây để chuyển động so le tự nhiên
 }
 
+import type { AssetTable } from '../../project/json/assetTable'
+export type { AssetTable }
+
 export interface AssembledLayerItem {
   boneId?: string
   bindingMode?: 'rigid' | 'soft'
@@ -17,6 +20,8 @@ export interface AssembledLayerItem {
   bindPose?: { x: number; y: number; rotation: number }
   id: string
   name: string
+  /** Resource path or alias in composite assets table (e.g. '@head' or 'head') */
+  asset?: string
   assetPath?: string
   imageUrl?: string
   x: number // Offset ngang tính từ tâm cụm
@@ -46,6 +51,8 @@ export interface LayerComposite {
   thumbnail?: string
   width: number
   height: number
+  /** Bảng tài nguyên ánh xạ nhãn -> đường dẫn (Asset Aliases Table), giúp dễ dàng thay thế tài nguyên linh hoạt */
+  assets?: AssetTable
   layers: AssembledLayerItem[]
   lighting?: AssemblyLighting
   createdAt?: number

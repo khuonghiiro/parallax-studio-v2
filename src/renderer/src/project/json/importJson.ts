@@ -7,6 +7,7 @@ import { parseDataUrl } from './base64'
 import { loadAssetBytesFromDiskOrBuiltIn } from './assetLoader'
 import type { DeclarativeProjectSpec, DeclarativeShotSpec } from './schema'
 import { buildLayersForShot } from './layerBuilder'
+import { isAssetTable, getAssetPathFromEntry, type AssetTable } from './assetTable'
 
 /**
  * Universal JSON Importer:
@@ -109,7 +110,27 @@ export async function importShotFromJson(
     const shot = createShot(shotSpec.name, shotSpec.position ?? [shotIndex * spacing, 0, 0], shotIndex)
     targetProject.shots.push(shot)
 
-    const layers = await buildLayersForShot(shotSpec, shot, targetProject)
+    const shotAssetTable: AssetTable = isAssetTable(shotSpec.assets) ? shotSpec.assets : {}
+    for (const [alias, entry] of Object.entries(shotAssetTable)) {
+      const p = getAssetPathFromEntry(entry)
+      if (!p) continue
+      if (p.startsWith('data:')) {
+        const { mime, data } = parseDataUrl(p)
+        const asset = await assetStore.add(alias, mime, data, 'image')
+        targetProject.assets.push(asset.meta)
+      } else {
+        const clean = p.replace(/^assets\//, '')
+        const file = await loadAssetBytesFromDiskOrBuiltIn(clean)
+        if (file) {
+          const asset = await assetStore.add(alias, file.mime, file.data, 'image')
+          asset.meta.assetPath = clean
+          asset.meta.path = `assets/${clean}`
+          targetProject.assets.push(asset.meta)
+        }
+      }
+    }
+
+    const layers = await buildLayersForShot(shotSpec, shot, targetProject, shotAssetTable)
     targetProject.layers.push(...layers)
     return { shot, layers }
   }
@@ -138,7 +159,30 @@ export async function buildProjectFromDeclarativeSpec(spec: DeclarativeProjectSp
     if (spec.camera.dofEnabled !== undefined) project.camera.dofEnabled = spec.camera.dofEnabled
   }
 
-  // Pre-load any explicitly provided dataUrl or path assets
+  // Pre-load assets from AssetTable dictionary (human & AI friendly)
+  const rawTable = spec.assetTable || (isAssetTable(spec.assets) ? spec.assets : undefined)
+  const projectAssetTable: AssetTable = rawTable || {}
+
+  for (const [alias, entry] of Object.entries(projectAssetTable)) {
+    const p = getAssetPathFromEntry(entry)
+    if (!p) continue
+    if (p.startsWith('data:')) {
+      const { mime, data } = parseDataUrl(p)
+      const asset = await assetStore.add(alias, mime, data, 'image')
+      project.assets.push(asset.meta)
+    } else {
+      const clean = p.replace(/^assets\//, '')
+      const file = await loadAssetBytesFromDiskOrBuiltIn(clean)
+      if (file) {
+        const asset = await assetStore.add(alias, file.mime, file.data, 'image')
+        asset.meta.assetPath = clean
+        asset.meta.path = `assets/${clean}`
+        project.assets.push(asset.meta)
+      }
+    }
+  }
+
+  // Pre-load any explicitly provided dataUrl or path assets in array form
   if (Array.isArray(spec.assets)) {
     for (const a of spec.assets) {
       if (a.dataUrl) {
@@ -165,7 +209,7 @@ export async function buildProjectFromDeclarativeSpec(spec: DeclarativeProjectSp
     const shot = createShot(sSpec.name, pos, i)
     project.shots.push(shot)
 
-    const layers = await buildLayersForShot(sSpec, shot, project)
+    const layers = await buildLayersForShot(sSpec, shot, project, projectAssetTable)
     project.layers.push(...layers)
   }
 

@@ -9,6 +9,7 @@ import { toast } from '../../actions'
 import { exportWorkshopSkin } from './exportWorkshopSkin'
 import { bakeWorkshopRig } from './bakeWorkshopRig'
 import { validateRig } from './workshopRig'
+import { resolveAssetAlias } from '../../project/json/assetTable'
 
 export interface InsertCompositeOptions {
   composite: LayerComposite
@@ -47,17 +48,18 @@ export async function insertLayerCompositeToScene({
   for (let idx = 0; idx < activeItems.length; idx++) {
     const item = activeItems[idx]
     const hasEditedImage = Boolean(item.imageUrl)
+    const resolvedAssetPath = resolveAssetAlias(item.asset || item.assetPath, composite.assets)
 
     // 1. Tìm asset trong project nếu đã có
     let asset: AssetMeta | undefined = hasEditedImage ? undefined : projectAssets.find(
       (a) =>
-        (item.assetPath && (a.path?.endsWith(item.assetPath) || a.assetPath === item.assetPath)) ||
-        a.id === item.assetPath
+        (resolvedAssetPath && (a.path?.endsWith(resolvedAssetPath) || a.assetPath === resolvedAssetPath)) ||
+        a.id === resolvedAssetPath
     )
 
     // Kiểm tra trong assetStore runtime
-    if (!asset && item.assetPath && !hasEditedImage) {
-      const existingRt = assetStore.get(item.assetPath)
+    if (!asset && resolvedAssetPath && !hasEditedImage) {
+      const existingRt = assetStore.get(resolvedAssetPath)
       if (existingRt) {
         asset = existingRt.meta
       }
@@ -76,12 +78,12 @@ export async function insertLayerCompositeToScene({
         }
 
         // Nạp từ built-in assets hoặc asset-3ds
-        if (item.assetPath && !hasEditedImage) {
+        if (resolvedAssetPath && !hasEditedImage) {
           if (window.api?.loadBuiltInAssetBytes) {
             try {
               const file =
-                (await window.api.loadBuiltInAssetBytes(item.assetPath)) ||
-                (await window.api.loadBuiltInAssetBytes(`assembly_3d/${item.assetPath.replace(/^assembly_3d[\\/]/, '')}`))
+                (await window.api.loadBuiltInAssetBytes(resolvedAssetPath)) ||
+                (await window.api.loadBuiltInAssetBytes(`assembly_3d/${resolvedAssetPath.replace(/^assembly_3d[\\/]/, '')}`))
               if (file?.data && file.data.length > 0) {
                 loadedData = file.data
                 mime = file.mime || 'image/png'
@@ -90,7 +92,7 @@ export async function insertLayerCompositeToScene({
           }
           if (!loadedData && window.api?.asset3ds?.loadBytes) {
             try {
-              const cleanPath = item.assetPath.replace(/^asset-3ds[\\/]/, '')
+              const cleanPath = resolvedAssetPath.replace(/^asset-3ds[\\/]/, '')
               const file = await window.api.asset3ds.loadBytes(cleanPath)
               if (file?.data && file.data.length > 0) {
                 loadedData = file.data
@@ -99,7 +101,7 @@ export async function insertLayerCompositeToScene({
             } catch {}
           }
           if (!loadedData) {
-            const resolved = await resolveFaceTexture(item.assetPath)
+            const resolved = await resolveFaceTexture(resolvedAssetPath)
             if (resolved?.url) {
               const res = await fetch(resolved.url)
               loadedData = await res.blob()

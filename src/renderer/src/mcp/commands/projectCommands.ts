@@ -5,7 +5,7 @@ import { isExporting, runExport } from '../../export/runExport'
 import { assetStore } from '../../project/assets'
 import * as factory from '../../project/factory'
 import { deserializeProject, serializeProject } from '../../project/serialize'
-import { exportProjectToJson, importProjectFromJson } from '../../project/jsonFormat'
+import { exportProjectToJson, exportProjectToDeclarativeJson, importProjectFromJson } from '../../project/jsonFormat'
 import { addAudioTrackToProject, getProjectAudioTracks, syncProjectAudio } from '../../project/audioTracks'
 import { ParamError, ed, proj, type Handler } from '../types'
 import { bool, has, num, str } from '../params'
@@ -109,10 +109,65 @@ export const projectCommands: Record<string, Handler> = {
     }
   },
 
-  export_project_json: async () => {
-    const json = await exportProjectToJson(proj(), true)
-    return { json, shots: proj().shots.length, layers: proj().layers.length }
+  export_project_json: async (p) => {
+    const format = str(p, 'format')
+    const pretty = bool(p, 'pretty') ?? true
+    let json: string
+    if (format === 'declarative') {
+      json = await exportProjectToDeclarativeJson(proj(), pretty)
+    } else {
+      json = await exportProjectToJson(proj(), pretty)
+    }
+    return { json, format: format || 'raw', shots: proj().shots.length, layers: proj().layers.length }
   },
+
+  set_project_asset_alias: async (p) => {
+    const alias = str(p, 'alias', true)
+    const path = str(p, 'path', true)
+    ed().update((d) => {
+      const existing = d.assets.find((a) => a.name === alias || a.assetPath === path)
+      if (existing) {
+        existing.assetPath = path
+        existing.path = `assets/${path.replace(/^assets\//, '')}`
+      } else {
+        d.assets.push({
+          id: `asset-${Date.now().toString(36)}`,
+          name: alias,
+          path: `assets/${path.replace(/^assets\//, '')}`,
+          assetPath: path.replace(/^assets\//, ''),
+          mime: 'image/png',
+          kind: 'image'
+        })
+      }
+    })
+    return { ok: true, alias, path }
+  },
+
+  replace_project_asset_path: async (p) => {
+    const oldPath = str(p, 'old_path', true).replace(/^assets\//, '')
+    const newPath = str(p, 'new_path', true).replace(/^assets\//, '')
+    let replacedAssets = 0
+    ed().update((d) => {
+      for (const a of d.assets) {
+        if (a.assetPath === oldPath || a.path?.endsWith(oldPath)) {
+          a.assetPath = newPath
+          a.path = `assets/${newPath}`
+          replacedAssets++
+        }
+      }
+    })
+    return { ok: true, oldPath, newPath, replacedAssets }
+  },
+
+  get_project_asset_aliases: () => {
+    const p = proj()
+    const aliases: Record<string, string> = {}
+    for (const a of p.assets) {
+      aliases[a.name] = a.assetPath || a.path || a.name
+    }
+    return { count: Object.keys(aliases).length, aliases }
+  },
+
 
   undo: () => {
     ed().undo()

@@ -1,4 +1,4 @@
-import type { LayerComposite, LayerCompositeCategory } from './types'
+import type { LayerComposite, LayerCompositeCategory, AssetTable } from './types'
 import { BUILTIN_COMPOSITES } from './layerAssemblyDefaultComposites'
 
 export { BUILTIN_COMPOSITES }
@@ -241,4 +241,136 @@ export function restoreDefaultComposites(): LayerComposite[] {
   }
   return merged
 }
+
+/**
+ * Xuất LayerComposite thành chuỗi JSON tiêu chuẩn kèm bảng ánh xạ tài nguyên `assets`.
+ * Giúp người dùng & AI đọc và sửa đường dẫn layer cực kỳ nhanh chóng.
+ */
+export function exportLayerCompositeToJson(composite: LayerComposite, pretty = true): string {
+  const assets = composite.assets || {}
+  const layerAssets: AssetTable = { ...assets }
+
+  // Tự động trích xuất các assetPath từ các layer nếu chưa có trong bảng assets
+  for (const l of composite.layers) {
+    const p = l.assetPath || l.asset
+    if (!p || p.startsWith('@') || p.startsWith('data:') || p.startsWith('blob:')) continue
+    const key = (l.name || l.id)
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '')
+
+    if (key && !(key in layerAssets)) {
+      layerAssets[key] = p
+    }
+  }
+
+  const exportable: LayerComposite = {
+    ...composite,
+    assets: Object.keys(layerAssets).length > 0 ? layerAssets : undefined
+  }
+
+  return JSON.stringify(exportable, null, pretty ? 2 : undefined)
+}
+
+/**
+ * Nạp LayerComposite từ chuỗi JSON cấu hình
+ */
+export function importLayerCompositeFromJson(jsonString: string): LayerComposite {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(jsonString)
+  } catch (err) {
+    throw new Error(`Invalid JSON format: ${String(err)}`)
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('JSON root must be an object representing a LayerComposite')
+  }
+
+  const raw = parsed as Partial<LayerComposite>
+  if (!Array.isArray(raw.layers)) {
+    throw new Error('LayerComposite JSON must contain a "layers" array')
+  }
+
+  const composite: LayerComposite = {
+    id: raw.id || `comp-${Date.now().toString(36)}`,
+    name: raw.name || 'Chi tiết lắp ráp tùy chỉnh',
+    description: raw.description,
+    category: raw.category || 'custom',
+    thumbnail: raw.thumbnail,
+    width: typeof raw.width === 'number' ? raw.width : 550,
+    height: typeof raw.height === 'number' ? raw.height : 600,
+    assets: raw.assets,
+    layers: raw.layers,
+    rig: raw.rig,
+    lighting: raw.lighting,
+    createdAt: raw.createdAt || Date.now(),
+    updatedAt: Date.now()
+  }
+
+  return composite
+}
+
+/**
+ * Gán hoặc cập nhật nhãn tài nguyên cho LayerComposite (tự động cập nhật tức thì)
+ */
+export function setAssetAliasInComposite(
+  composite: LayerComposite,
+  alias: string,
+  newPath: string
+): LayerComposite {
+  const cleanAlias = alias.replace(/^@/, '').trim()
+  const nextAssets = { ...(composite.assets || {}), [cleanAlias]: newPath }
+  return {
+    ...composite,
+    assets: nextAssets,
+    updatedAt: Date.now()
+  }
+}
+
+/**
+ * Thay thế đường dẫn tài nguyên cũ bằng đường dẫn mới trên toàn bộ LayerComposite
+ */
+export function replaceAssetPathInComposite(
+  composite: LayerComposite,
+  oldPath: string,
+  newPath: string
+): { composite: LayerComposite; replacedCount: number } {
+  let replacedCount = 0
+  const normOld = oldPath.trim().replace(/\\/g, '/').replace(/^assets\//, '')
+  const normNew = newPath.trim().replace(/\\/g, '/')
+
+  const nextAssets = { ...(composite.assets || {}) }
+  for (const [key, val] of Object.entries(nextAssets)) {
+    const strVal = typeof val === 'string' ? val : (val as any)?.path
+    if (strVal && (strVal.replace(/\\/g, '/').replace(/^assets\//, '') === normOld || strVal === oldPath)) {
+      if (typeof val === 'string') {
+        nextAssets[key] = normNew
+      } else {
+        nextAssets[key] = { ...(val as any), path: normNew }
+      }
+      replacedCount++
+    }
+  }
+
+  const nextLayers = composite.layers.map((l) => {
+    if (l.assetPath && (l.assetPath.replace(/\\/g, '/').replace(/^assets\//, '') === normOld || l.assetPath === oldPath)) {
+      replacedCount++
+      return { ...l, assetPath: normNew }
+    }
+    return l
+  })
+
+  return {
+    composite: {
+      ...composite,
+      assets: nextAssets,
+      layers: nextLayers,
+      updatedAt: Date.now()
+    },
+    replacedCount
+  }
+}
+
 

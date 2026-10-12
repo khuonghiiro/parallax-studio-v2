@@ -1,5 +1,5 @@
 import { useRef, useMemo } from 'react'
-import type { AssembledLayerItem } from './types'
+import type { AssembledLayerItem, AssetTable } from './types'
 import type { AssemblyLighting } from '../assets/models3d/types'
 import { useLayerAssetImage } from './useLayerAssetImage'
 import { computeLayerMotion } from './layerAssemblyMotion'
@@ -17,6 +17,7 @@ interface AssembledLayerItemViewProps {
   time: number
   maxZ: number
   lighting?: AssemblyLighting
+  assetTable?: AssetTable
   show3DPerspective?: boolean
   onPointerDown: (e: React.PointerEvent) => void
   onStartDragHandle?: (
@@ -37,11 +38,12 @@ export function AssembledLayerItemView({
   time,
   maxZ,
   lighting,
+  assetTable,
   show3DPerspective = true,
   onPointerDown,
   onStartDragHandle
 }: AssembledLayerItemViewProps) {
-  const imageUrl = useLayerAssetImage(layer.assetPath, layer.imageUrl)
+  const imageUrl = useLayerAssetImage(layer.asset || layer.assetPath, layer.imageUrl, assetTable)
   const boxRef = useRef<HTMLDivElement | null>(null)
 
   // Tính hiệu ứng hướng nắng, bóng đổ theo chiều sâu Z và màu sắc hấp thụ ánh sáng ngày/đêm

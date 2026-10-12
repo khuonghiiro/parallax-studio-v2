@@ -14,20 +14,23 @@ import { EFFECT_ASSETS } from '../effectAssets'
 import { parseDataUrl } from './base64'
 import { loadAssetBytesFromDiskOrBuiltIn } from './assetLoader'
 import type { DeclarativeLayerSpec, DeclarativeShotSpec } from './schema'
+import { resolveAssetAlias, type AssetTable } from './assetTable'
 
 export async function buildLayersForShot(
   sSpec: DeclarativeShotSpec,
   shot: Shot,
-  project: Project
+  project: Project,
+  projectAssetTable?: AssetTable
 ): Promise<Layer[]> {
   const comp = project.comp
   const d = referenceDistance(comp)
   const shotLayers: Layer[] = []
+  const combinedTable: AssetTable = { ...(projectAssetTable || {}), ...(sSpec.assets || {}) }
 
   // 1. Process plates & custom layers
   if (Array.isArray(sSpec.layers)) {
     for (const lSpec of sSpec.layers) {
-      const layer = await buildSingleLayer(lSpec, comp, project)
+      const layer = await buildSingleLayer(lSpec, comp, project, combinedTable)
       layer.shotId = shot.id
       shotLayers.unshift(layer)
     }
@@ -118,12 +121,24 @@ export async function buildLayersForShot(
 export async function buildSingleLayer(
   lSpec: DeclarativeLayerSpec,
   comp: Composition,
-  project: Project
+  project: Project,
+  assetTable?: AssetTable
 ): Promise<Layer> {
   const z = lSpec.z ?? (lSpec.position ? lSpec.position[2] : 0)
 
+  // Resolve asset ref if any
+  const rawRef = lSpec.asset || lSpec.src || (lSpec as any).assetPath || (lSpec as any).path
+  const resolvedRef = resolveAssetAlias(rawRef, assetTable)
+
   // 0. Realistic effect image layer (mist, rain, twilight mist)
-  const effectKey = lSpec.effect ?? (lSpec.src?.startsWith('effect:') ? lSpec.src.slice(7) : undefined)
+  const effectKey =
+    lSpec.effect ??
+    (resolvedRef?.startsWith('effect:')
+      ? resolvedRef.slice(7)
+      : lSpec.src?.startsWith('effect:')
+        ? lSpec.src.slice(7)
+        : undefined)
+
   if (effectKey) {
     const assetUrl =
       effectKey === 'mist' || effectKey === 'fog'
@@ -170,18 +185,18 @@ export async function buildSingleLayer(
     return layer
   }
 
-  // 2. Image layer from src (dataUrl or local path or existing asset)
-  if (lSpec.type === 'image' || lSpec.src) {
+  // 2. Image layer from resolved asset / src (dataUrl or local path or existing asset)
+  if (lSpec.type === 'image' || resolvedRef) {
     let assetMeta: AssetMeta | undefined
-    if (lSpec.src?.startsWith('data:')) {
-      const { mime, data } = parseDataUrl(lSpec.src)
+    if (resolvedRef?.startsWith('data:')) {
+      const { mime, data } = parseDataUrl(resolvedRef)
       const asset = await assetStore.add(lSpec.name || 'image.png', mime, data, 'image')
       assetMeta = asset.meta
       project.assets.push(assetMeta)
     } else if (lSpec.assetName) {
       assetMeta = project.assets.find((a) => a.name === lSpec.assetName)
-    } else if (lSpec.src || (lSpec as any).path) {
-      const p = (lSpec.src || (lSpec as any).path || '').replace(/^assets\//, '')
+    } else if (resolvedRef) {
+      const p = resolvedRef.replace(/^assets\//, '')
       assetMeta = project.assets.find((a) => a.name === lSpec.name || a.assetPath === p || a.path === `assets/${p}`)
       if (!assetMeta) {
         const file = await loadAssetBytesFromDiskOrBuiltIn(p)

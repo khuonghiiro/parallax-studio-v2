@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { resolveAssetAlias, type AssetTable } from '../../../project/json/assetTable'
 
 export interface ResolvedTexture {
   texture: THREE.Texture
@@ -115,9 +116,11 @@ export function createFaceTexture(img: HTMLImageElement): THREE.Texture {
   return tex
 }
 
-export function resolveFaceTexture(assetPath: string): Promise<ResolvedTexture | null> {
-  const cleanKey = assetPath.trim()
+export function resolveFaceTexture(assetPath: string, assetTable?: AssetTable): Promise<ResolvedTexture | null> {
+  const resolved = resolveAssetAlias(assetPath, assetTable)
+  const cleanKey = (resolved || assetPath || '').trim()
   if (!cleanKey) return Promise.resolve(null)
+
 
   const cached = textureCache.get(cleanKey)
   if (cached) return cached

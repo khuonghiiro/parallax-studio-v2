@@ -131,6 +131,61 @@ export const LAYER_ASSEMBLY_TOOLS = [
     example: '{"id":"comp-my-custom"}'
   },
   {
+    name: 'export_layer_composite_json',
+    cat: 'layer_assembly',
+    doc: L(
+      'Export a 2.5D layer composite preset to JSON string with its depth stack, bone rig, and reusable asset aliases table.',
+      'Xuất mẫu cụm layer 2.5D ra chuỗi JSON kèm phân tầng độ sâu, khung xương rig và bảng nhãn tài nguyên (asset aliases).'
+    ),
+    shape: (d) => ({
+      id: z.string().optional().describe(d('Composite ID (defaults to active session composite).', 'ID cụm layer (mặc định: cụm của phiên đang mở).')),
+      composite_id: z.string().optional().describe(d('Alias for id.', 'Bí danh của id.')),
+      pretty: z.boolean().optional().describe(d('Format JSON with indentation (default true).', 'Định dạng JSON có thụt dòng (mặc định true).'))
+    }),
+    example: '{"id":"comp-bonsai-zen"}'
+  },
+  {
+    name: 'import_layer_composite_json',
+    cat: 'layer_assembly',
+    doc: L(
+      'Import a 2.5D layer composite preset from a JSON string or file with layered parts, bone armature, and asset aliases table.',
+      'Nhập một mẫu cụm layer 2.5D từ chuỗi hoặc file JSON kèm các lớp xếp chồng, khung xương và bảng asset aliases.'
+    ),
+    shape: (d) => ({
+      json: z.string().optional().describe(d('JSON string or object containing the composite definition.', 'Chuỗi hoặc đối tượng JSON định nghĩa cụm layer.')),
+      file_path: z.string().optional().describe(d('Path to a .composite.json file on disk.', 'Đường dẫn file .composite.json trên ổ đĩa.'))
+    }),
+    example: '{"file_path":"assets/character_cutout_demo/character.composite.json"}'
+  },
+  {
+    name: 'set_layer_composite_asset_alias',
+    cat: 'layer_assembly',
+    doc: L(
+      'Define or update an asset alias in a 2.5D layer composite\'s asset table. All cutout layers using "@alias" will resolve to this image path.',
+      'Định nghĩa hoặc cập nhật nhãn tài nguyên trong bảng asset của cụm layer 2.5D. Mọi layer dùng "@alias" sẽ dùng ảnh theo đường dẫn này.'
+    ),
+    shape: (d) => ({
+      alias: z.string().describe(d('Asset alias key (e.g. "@head" or "head").', 'Tên nhãn alias của tài nguyên (vd: "@head" hoặc "head").')),
+      path: z.string().describe(d('Relative asset image path.', 'Đường dẫn ảnh tương đối.')),
+      composite_id: z.string().optional().describe(d('Target composite ID (defaults to active workshop composite).', 'ID cụm layer đích (mặc định: cụm của phiên đang mở).'))
+    }),
+    example: '{"composite_id":"comp-bonsai-zen","alias":"@leaf","path":"nature/bonsai_leaves.png"}'
+  },
+  {
+    name: 'replace_layer_composite_asset_path',
+    cat: 'layer_assembly',
+    doc: L(
+      'Batch replace an image path in a 2.5D layer composite\'s asset table and layers.',
+      'Thay thế hàng loạt một đường dẫn ảnh trong bảng asset và các layer của cụm layer 2.5D.'
+    ),
+    shape: (d) => ({
+      old_path: z.string().describe(d('Existing image path to replace.', 'Đường dẫn ảnh cũ cần thay thế.')),
+      new_path: z.string().describe(d('New image path to apply.', 'Đường dẫn ảnh mới áp dụng.')),
+      composite_id: z.string().optional().describe(d('Target composite ID (defaults to active workshop composite).', 'ID cụm layer đích (mặc định: cụm của phiên đang mở).'))
+    }),
+    example: '{"old_path":"arm_left_sketch.png","new_path":"arm_left_final.png"}'
+  },
+  {
     name: 'insert_layer_composite',
     cat: 'layer_assembly',
     doc: L(
