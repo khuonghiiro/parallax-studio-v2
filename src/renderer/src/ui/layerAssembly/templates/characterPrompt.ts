@@ -15,7 +15,7 @@ function partBoundary(slot: LayerTemplateSlot, ids: Set<string>): string {
   if (slot.id.startsWith('foot-'))
     return 'One complete foot inside its shoe/boot, including heel and toe, with a short hidden ankle tab; NO shin.'
   if (slot.id === 'torso')
-    return 'Chest and abdomen to waist, with a short neck connector; NO head, arms, hands, pelvis or legs. Sleeves belong to upper arms.'
+    return 'Sleeveless chest and abdomen to waist, with a short neck connector; stop at armholes, NO sleeve stubs or shoulder caps; NO head, arms, hands, pelvis or legs. Sleeves belong to upper arms.'
   if (slot.id === 'pelvis')
     return 'Waist/hip block and assigned belt/skirt ONLY; NO torso, thighs, lower legs or feet. Reconstruct hips hidden by clothing.'
   if (slot.id === 'head') {
@@ -33,11 +33,11 @@ export function characterPrompt(template: LayerAssemblyTemplate): string {
   const key = template.promptGuide.systemPrompt.includes('#FF00FF') ? '#FF00FF' : '#00FF00'
   const layout = [...template.slots].sort((a, b) => a.atlasCell! - b.atlasCell!)
     .map((slot) => `${slot.atlasCell}. ${slot.nameEn} [${slot.id}] — ${partBoundary(slot, ids)}`)
-  return `Create ONE 4096x4096 CHARACTER CUTOUT SPRITE ATLAS: a disassembled paper puppet / articulated doll kit for 2D skeletal animation.
+  return `Create ONE square (1:1 aspect ratio) CHARACTER CUTOUT SPRITE ATLAS: flat 2D animation character layers, separated like a paper puppet. NOT a physical doll, toy or mannequin.
 IDENTITY: ${identity}
 If a reference is attached, preserve that character's identity, costume, palette and proportions. Otherwise use the identity above.
-VIEW: FRONT ORTHOGRAPHIC, neutral straight limbs, shoulders at the top and feet pointing down; no perspective or foreshortening.
-OUTPUT: Square PNG, flat OPAQUE chroma-key background ${key}. No checkerboard, gradients, texture, ground or cast shadows.
+VIEW: FRONT ORTHOGRAPHIC, vertically upright arm and leg segments, proximal joints centered at top and distal joints centered at bottom; no diagonal or bent limbs; no perspective or foreshortening.
+OUTPUT: PNG at the native resolution supported by the image model; preserve the 1:1 aspect ratio. Flat OPAQUE chroma-key background ${key}. No checkerboard, gradients, texture, ground or cast shadows.
 GRID: Exactly 5 rows x 5 columns, numbered 1–25 left-to-right, top-to-bottom for instructions ONLY. Do not draw numbers, labels, IDs or grid lines.
 Exactly ${template.slots.length} isolated parts, one assigned part per cell. NO assembled reference character anywhere in this atlas.
 CELL ASSIGNMENTS:
@@ -49,7 +49,7 @@ PUPPET CONSTRUCTION:
 - Use ONE shared pixel scale. Choose it so the largest part, including hidden tabs, fits with at least 8% of cell width/height as clear padding on every side. Never enlarge small hands or feet to fill a cell.
 - Separate at the actual shoulder, elbow, wrist, hip, knee and ankle ONLY where the slot list provides separate segments. A combined legacy slot stays one piece; never invent extra parts.
 - Reconstruct the COMPLETE silhouette, including surfaces hidden by hair, sleeves, skirt or overlapping parts. Never copy an occluded fragment from the reference.
-- At each separated joint extend a rounded hidden overlap by 10–15% of the shorter adjoining segment's length, centered on the rotation pivot. Paint matching skin/fabric through the overlap; no socket holes, exposed ball joints, metal pins or joint markers.
+- At each separated joint extend a rounded hidden overlap by 10–15% of the shorter adjoining segment's length, centered on the rotation pivot. Extend the SAME material through each flat rounded overlap: dark trouser fabric at knees/ankles, shirt fabric at shoulders/waist. NO skin-colored cylindrical pegs on clothed parts; skin only where anatomically exposed. Paint matching skin/fabric through the overlap; no socket holes, exposed ball joints, metal pins or joint markers.
 - Keep visible outer contours clean. Do not draw a dark transverse cut line across a concealed joint cap. Connectors overlap only AFTER assembly, never between atlas cells.
 - Clothing follows its own body segment. No duplicated cuffs, hands, shoes or accessories. Hands do not include props; a separate prop must be complete behind the grip.
 
@@ -60,4 +60,4 @@ CLEAN EXTRACTION:
 - Before output, verify every assigned cell against this list: correct part, complete hidden ends, consistent scale, clean separation and clear padding. Redraw merged or contaminated parts.`
 }
 
-export const CHARACTER_PROMPT_GUIDE = 'Atlas vuông 4096×4096, lưới 5×5; mỗi ô đúng bộ phận ghi trong danh sách, không kèm hình nhân vật hoàn chỉnh. Tay/chân chỉ tách tại các khớp có slot riêng; muốn gập đủ khuỷu tay, cổ tay, gối và cổ chân hãy chọn mẫu Búp bê 15 lớp. Vẽ bù phần bị che, chừa đệm khớp 10–15% và lề sạch ít nhất 8% mỗi ô. Sau khi tách nền, kiểm tra viền trên nền sáng/tối và xoay thử khớp; prompt không bảo đảm ảnh AI luôn tách sạch. Tài liệu: docs/design/character-cutout-prompt.md.'
+export const CHARACTER_PROMPT_GUIDE = 'Atlas tỉ lệ 1:1, độ phân giải theo model AI, lưới 5×5; mỗi ô đúng bộ phận ghi trong danh sách, không kèm hình nhân vật hoàn chỉnh. Tay/chân chỉ tách tại các khớp có slot riêng; muốn gập đủ khuỷu tay, cổ tay, gối và cổ chân hãy chọn mẫu Búp bê 15 lớp. Vẽ bù phần bị che, chừa đệm khớp 10–15% và lề sạch ít nhất 8% mỗi ô. Sau khi tách nền, kiểm tra viền trên nền sáng/tối và xoay thử khớp; prompt không bảo đảm ảnh AI luôn tách sạch. Tài liệu: docs/design/character-cutout-prompt.md.'

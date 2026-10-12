@@ -46,7 +46,7 @@ export function standardizeTemplate(template: LayerAssemblyTemplate): LayerAssem
     ...template,
     promptGuide: {
       ...template.promptGuide,
-      aspectRatio: '1:1', recommendedResolution: '4096x4096',
+      aspectRatio: '1:1', recommendedResolution: template.category === 'character' ? 'model-native' : '4096x4096',
       userGuide: template.category === 'character' ? CHARACTER_PROMPT_GUIDE : template.promptGuide.userGuide,
       cellLayout: template.slots.map((slot) => `${slot.atlasCell}. ${slot.name}`),
       systemPrompt: template.category === 'character' ? characterPrompt(template) : `${intro}\nGRID: Exactly 5 rows x 5 columns, numbered 1–25 left-to-right, top-to-bottom.

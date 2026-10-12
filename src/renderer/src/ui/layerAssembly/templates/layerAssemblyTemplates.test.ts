@@ -27,6 +27,9 @@ describe('Layer Assembly Templates Catalog', () => {
       const prompt = template.promptGuide.systemPrompt
       expect(prompt).not.toMatch(/16:9|3840x2160|COLUMN 1|Cell 23|5x5 EQUAL CELLS/)
       expect(prompt).toContain('Exactly 5 rows x 5 columns')
+      expect(prompt).not.toMatch(/\b\d{3,5}[x×]\d{3,5}\b/)
+      expect(template.promptGuide.aspectRatio).toBe('1:1')
+      expect(template.promptGuide.recommendedResolution).toBe('model-native')
       expect(prompt).toContain(`Exactly ${template.slots.length} isolated parts`)
       expect(prompt).toContain('no blur, glow, fringe')
       expect(template.promptGuide.userGuide).not.toContain('slice_atlas.py')

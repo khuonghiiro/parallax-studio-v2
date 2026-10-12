@@ -2,6 +2,8 @@
 
 Mẫu **Búp bê 15 lớp** trong Xưởng Lắp Ráp Layer tách riêng bắp tay, cẳng tay, bàn tay và đùi, cẳng chân, bàn chân. Prompt atlas vuông 5×5 mô tả ranh giới từng bộ phận, đệm khớp và viền sạch; dùng chung trên UI/MCP. Xem [quy chuẩn prompt nhân vật](docs/design/character-cutout-prompt.md).
 
+Atlas nhân vật chỉ yêu cầu tỉ lệ 1:1, độ phân giải tùy model AI. [Bộ tách PNG](scripts/slice_puppet_atlas.py) đọc kích thước thực tế và lấy trọn mảnh lấn nhẹ biên ô; cần kiểm tra viền, scale và khớp sau khi nhập.
+
 Xưởng Lắp Ráp Layer hỗ trợ mesh bám alpha (giữ lỗ và chi tiết rời) và **Uốn mềm theo chuỗi xương** cho tóc, đuôi, tay chân. Đặt khớp trong tab Tạo xương, chọn ảnh và xương gốc của nhánh, bấm Uốn mềm; tạo keyframe trong Animation. Mesh và rig được giữ khi chèn vào timeline, lưu dự án và xuất MP4. Xem [hướng dẫn xưởng](docs/layer-workshop-tools.md).
 
 App desktop (Electron + Three.js) dùng để dựng video **parallax 2.5D** giống After Effects. Bạn xếp các layer ảnh theo chiều sâu, chia thành nhiều **cảnh (shot)** đặt trong không gian 3D, cho camera bay qua từng cảnh rồi xuất MP4. App có **MCP server** để AI (Antigravity, Claude, Cursor…) điều khiển trực tiếp, giống blender-mcp.
