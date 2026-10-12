@@ -54,6 +54,8 @@ export type ProceduralMotionPreset =
   | 'bow'
   | 'run'
   | 'jump'
+  | 'fall'
+  | 'land'
   | 'action'
   | 'sway'
   | 'hand-clench'
@@ -74,6 +76,8 @@ export const MOTION_PRESETS: MotionPresetInfo[] = [
   { id: 'bow', name: 'Cúi chào (Bow)', icon: '🙇', duration: 2.0, description: 'Cúi người chào lịch thiệp, đầu gật nhẹ trang trọng' },
   { id: 'run', name: 'Chạy nhanh (Run)', icon: '🏃', duration: 1.0, description: 'Sải chân dứt khoát, tay vung nhịp nhanh' },
   { id: 'jump', name: 'Nhún nhảy (Jump)', icon: '🦘', duration: 1.4, description: 'Chùng gối lấy đà bật nhảy lên cao rồi tiếp đất êm ái' },
+  { id: 'fall', name: 'Vấp ngã (Trip & Fall)', icon: '💥', duration: 1.8, description: 'Khựng chân vấp ngã, người đổ nhào sấp xuống sàn, hai tay chống đỡ đất' },
+  { id: 'land', name: 'Tiếp đất (Land)', icon: '🧘', duration: 1.2, description: 'Tiếp đất giảm chấn, chùng gối hạ trọng tâm rồi từ từ đứng thẳng dậy' },
   { id: 'action', name: 'Vung đòn (Action)', icon: '⚔️', duration: 1.5, description: 'Tư thế vung tay ra đòn uy lực, dứt khoát' },
   { id: 'sway', name: 'Uốn lượn (Sway)', icon: '🌊', duration: 2.0, description: 'Lượn sóng dẻo dai cho cành lá, cây cối, tóc hoặc đuôi' },
   { id: 'hand-clench', name: 'Nắm & Xòe bàn tay (Hand Clench)', icon: '✊', duration: 2.0, description: 'Diễn hoạt bàn tay: từ xòe tự nhiên uốn cong các ngón thành nắm đấm rồi thả lỏng' },
@@ -517,6 +521,101 @@ export function generateSway(bones: LayerBone[], duration = 2.0): Record<string,
   return tracks
 }
 
+/** Generate tripping and falling animation keys. */
+export function generateTripAndFall(bones: LayerBone[], duration = 1.8): Record<string, BoneKeyframe[]> {
+  const tracks: Record<string, BoneKeyframe[]> = {}
+  const d = duration
+  const pelvis = findBoneId(bones, ['pelvis', 'hông', 'root'])
+  const torso = findBoneId(bones, ['torso', 'ngực', 'thân'])
+  const head = findBoneId(bones, ['head', 'đầu'])
+  const thighL = findBoneId(bones, ['thigh-l', 'thigh_l', 'đùi trái'])
+  const thighR = findBoneId(bones, ['thigh-r', 'thigh_r', 'đùi phải'])
+  const shinL = findBoneId(bones, ['shin-l', 'shin_l', 'cẳng chân trái'])
+  const shinR = findBoneId(bones, ['shin-r', 'shin_r', 'cẳng chân phải'])
+  const armL = findBoneId(bones, ['arm-l', 'arm_l', 'bắp tay trái'])
+  const armR = findBoneId(bones, ['arm-r', 'arm_r', 'bắp tay phải'])
+  const forearmL = findBoneId(bones, ['forearm-l', 'forearm_l', 'cẳng tay trái'])
+  const forearmR = findBoneId(bones, ['forearm-r', 'forearm_r', 'cẳng tay phải'])
+  const handL = findBoneId(bones, ['hand-l', 'hand_l', 'bàn tay trái'])
+  const handR = findBoneId(bones, ['hand-r', 'hand_r', 'bàn tay phải'])
+
+  if (pelvis) {
+    tracks[pelvis] = [
+      smoothKey(0, 0, 0, 0),
+      smoothKey(d * 0.25, 20, 20, 15),
+      smoothKey(d * 0.55, 65, 45, 95),
+      smoothKey(d * 0.75, 75, 48, 90),
+      smoothKey(d, 70, 50, 95)
+    ]
+  }
+  if (torso) {
+    tracks[torso] = [smoothKey(0, 0), smoothKey(d * 0.25, 30), smoothKey(d * 0.55, 55), smoothKey(d, 50)]
+  }
+  if (head) {
+    tracks[head] = [smoothKey(0, 0), smoothKey(d * 0.25, -20), smoothKey(d * 0.55, -35), smoothKey(d, -25)]
+  }
+  if (thighL) {
+    tracks[thighL] = [smoothKey(0, 0), smoothKey(d * 0.25, -40), smoothKey(d * 0.55, -60), smoothKey(d, -55)]
+  }
+  if (thighR) {
+    tracks[thighR] = [smoothKey(0, 0), smoothKey(d * 0.25, 25), smoothKey(d * 0.55, -45), smoothKey(d, -50)]
+  }
+  if (shinL) tracks[shinL] = [smoothKey(0, 0), smoothKey(d * 0.55, 25), smoothKey(d, 20)]
+  if (shinR) tracks[shinR] = [smoothKey(0, 0), smoothKey(d * 0.55, 30), smoothKey(d, 25)]
+  if (armL) {
+    tracks[armL] = [smoothKey(0, 0), smoothKey(d * 0.25, -60), smoothKey(d * 0.55, -85), smoothKey(d, -75)]
+  }
+  if (armR) {
+    tracks[armR] = [smoothKey(0, 0), smoothKey(d * 0.25, -55), smoothKey(d * 0.55, -80), smoothKey(d, -70)]
+  }
+  if (forearmL) tracks[forearmL] = [smoothKey(0, 0), smoothKey(d * 0.55, -30), smoothKey(d, -25)]
+  if (forearmR) tracks[forearmR] = [smoothKey(0, 0), smoothKey(d * 0.55, -30), smoothKey(d, -25)]
+  if (handL) tracks[handL] = [smoothKey(0, 0), smoothKey(d * 0.55, 40), smoothKey(d, 35)]
+  if (handR) tracks[handR] = [smoothKey(0, 0), smoothKey(d * 0.55, 40), smoothKey(d, 35)]
+
+  for (const b of bones) {
+    if (!tracks[b.id]) {
+      tracks[b.id] = [smoothKey(0, 0), smoothKey(d * 0.55, 0), smoothKey(d, 0)]
+    }
+  }
+  return tracks
+}
+
+/** Generate landing / recovery animation keys. */
+export function generateLand(bones: LayerBone[], duration = 1.2): Record<string, BoneKeyframe[]> {
+  const tracks: Record<string, BoneKeyframe[]> = {}
+  const d = duration
+  const pelvis = findBoneId(bones, ['pelvis', 'hông', 'root'])
+  const torso = findBoneId(bones, ['torso', 'ngực', 'thân'])
+  const thighL = findBoneId(bones, ['thigh-l', 'thigh_l', 'đùi trái'])
+  const thighR = findBoneId(bones, ['thigh-r', 'thigh_r', 'đùi phải'])
+  const shinL = findBoneId(bones, ['shin-l', 'shin_l', 'cẳng chân trái'])
+  const shinR = findBoneId(bones, ['shin-r', 'shin_r', 'cẳng chân phải'])
+
+  if (pelvis) {
+    tracks[pelvis] = [
+      smoothKey(0, 0, 0, 0),
+      smoothKey(d * 0.35, 0, 0, 45),
+      smoothKey(d * 0.75, 0, 0, 10),
+      smoothKey(d, 0, 0, 0)
+    ]
+  }
+  if (torso) {
+    tracks[torso] = [smoothKey(0, 0), smoothKey(d * 0.35, 18), smoothKey(d * 0.75, 5), smoothKey(d, 0)]
+  }
+  if (thighL) tracks[thighL] = [smoothKey(0, 0), smoothKey(d * 0.35, -25), smoothKey(d, 0)]
+  if (thighR) tracks[thighR] = [smoothKey(0, 0), smoothKey(d * 0.35, -25), smoothKey(d, 0)]
+  if (shinL) tracks[shinL] = [smoothKey(0, 0), smoothKey(d * 0.35, 35), smoothKey(d, 0)]
+  if (shinR) tracks[shinR] = [smoothKey(0, 0), smoothKey(d * 0.35, 35), smoothKey(d, 0)]
+
+  for (const b of bones) {
+    if (!tracks[b.id]) {
+      tracks[b.id] = [smoothKey(0, 0), smoothKey(d * 0.35, 0), smoothKey(d, 0)]
+    }
+  }
+  return tracks
+}
+
 /** Tạo một AnimationClip hoàn chỉnh từ preset */
 export function createClipFromPreset(
   preset: ProceduralMotionPreset,
@@ -546,6 +645,12 @@ export function createClipFromPreset(
       break
     case 'jump':
       tracks = generateJump(bones, duration)
+      break
+    case 'fall':
+      tracks = generateTripAndFall(bones, duration)
+      break
+    case 'land':
+      tracks = generateLand(bones, duration)
       break
     case 'action':
       tracks = generateActionSlash(bones, duration)

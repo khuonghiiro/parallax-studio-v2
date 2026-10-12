@@ -412,5 +412,87 @@ export const SCENE_TOOLS = [
       layer_id: z.string().describe(d('Layer ID to update.', 'Id layer cần cập nhật.')),
       asset_id: z.string().describe(d('New asset ID or asset name in project assets.', 'Id hoặc tên asset mới trong dự án.'))
     })
+  },
+  {
+    name: 'get_motion_presets', cat: 'layers',
+    doc: L(
+      'List all After Effects style spatial motion presets (e.g. walk_into_depth, emerge_from_depth, jump_arc, trip_and_fall, cross_screen, floating_hover, dramatic_zoom_in) with descriptions, parameter guides and recommended character action clips.',
+      'Liệt kê tất cả các mẫu chuyển động không gian kiểu After Effects (ví dụ: walk_into_depth, emerge_from_depth, jump_arc, trip_and_fall, cross_screen, floating_hover, dramatic_zoom_in) kèm mô tả, gợi ý thông số và clip hành động nhân vật tương thích.'
+    ),
+    shape: () => ({}),
+    example: '{}'
+  },
+  {
+    name: 'get_character_actions', cat: 'layer_assembly',
+    doc: L(
+      'Inspect available skeletal animation clips, durations, view angles, and suggested multi-step action choreographies for a character or composite prop before planning scene scripts.',
+      'Tra cứu danh sách các clip hành động của khung xương, thời lượng, góc nhìn và gợi ý phối hợp kịch bản chuỗi hành động cho nhân vật hoặc cụm chi tiết trước khi lên kịch bản cảnh phim.'
+    ),
+    shape: (d) => ({
+      target_id: z.string().describe(d('Target layer ID or composite instance ID of the character.', 'ID của layer hoặc ID của cụm composite nhân vật.'))
+    }),
+    example: '{"target_id":"layer-hero"}'
+  },
+  {
+    name: 'apply_motion_preset', cat: 'layers',
+    doc: L(
+      'Apply an After Effects style spatial motion preset to a layer, 3D assembled model, or multi-layer character composite. For "walk_into_depth", the subject moves deep into 3D perspective space (Z increases), automatically shrinks scale, and fades opacity to 0 at the end to vanish into the deep forest or mist.',
+      'Gắn mẫu chuyển động không gian kiểu After Effects cho layer, mô hình 3D hoặc cụm nhân vật. Với "walk_into_depth", đối tượng di chuyển sâu vào không gian phối cảnh 3D (Z tăng mạnh), tự động thu nhỏ scale và giảm dần opacity về 0 ở cuối để biến mất vào rừng sâu hoặc sương mù.'
+    ),
+    shape: (d) => ({
+      target_id: z.string().describe(d('Layer ID, composite instance ID, or model3d instance ID to animate.', 'ID layer, ID cụm composite hoặc ID khối 3D cần tạo chuyển động.')),
+      preset: z.enum([
+        'walk_into_depth',
+        'emerge_from_depth',
+        'jump_arc',
+        'trip_and_fall',
+        'cross_screen',
+        'floating_hover',
+        'dramatic_zoom_in',
+        'retreat_disappear'
+      ]).describe(d('Motion preset ID.', 'Mã mẫu chuyển động.')),
+      time: z.number().optional().describe(d('Start time in seconds (default: current playhead time).', 'Thời điểm bắt đầu tính bằng giây (mặc định: vị trí playhead).')),
+      duration: z.number().positive().optional().describe(d('Duration of the motion in seconds.', 'Thời lượng chuyển động tính bằng giây.')),
+      depth_z: z.number().optional().describe(d('Depth delta Z in 3D world units (default: preset guide, e.g. +2400 for deep forest).', 'Độ dời trục sâu Z theo đơn vị thế giới 3D (mặc định theo preset, vd: +2400 khi vào rừng sâu).')),
+      delta_x: z.number().optional().describe(d('Horizontal displacement in pixels.', 'Độ dời ngang tính bằng pixel.')),
+      delta_y: z.number().optional().describe(d('Vertical displacement in pixels.', 'Độ dời dọc tính bằng pixel.')),
+      jump_height: z.number().optional().describe(d('Jump peak height in pixels (for jump_arc, default 180).', 'Độ cao đỉnh nhảy tính bằng pixel (cho jump_arc, mặc định 180).')),
+      end_scale: z.number().positive().optional().describe(d('Target end scale multiplier (e.g. 0.08 to shrink into tiny distance).', 'Hệ số tỉ lệ thu nhỏ/phóng to ở đích đến (vd: 0.08 để thu nhỏ li ti về xa).')),
+      fade_opacity: z.boolean().optional().describe(d('Whether to fade opacity to 0 when moving deep into distance (default true for walk_into_depth).', 'Có làm mờ dần opacity về 0 khi đi vào sâu hay không (mặc định true cho walk_into_depth).'))
+    }),
+    example: '{"target_id":"layer-hero","preset":"walk_into_depth","duration":3.5,"depth_z":2500}'
+  },
+  {
+    name: 'choreograph_motion_sequence', cat: 'layers',
+    doc: L(
+      'Choreograph a multi-step timeline action script combining After Effects spatial motion trajectories with character skeletal clips (e.g. walk 3s deep into the forest -> jump over stream 1.4s -> trip & fall 1.8s -> fade out). Each step automatically connects seamlessly from the previous end position.',
+      'Lên kịch bản chuỗi hành động phối hợp theo trục thời gian, kết hợp quỹ đạo không gian kiểu After Effects với các clip hành động khung xương của nhân vật (ví dụ: đi bộ 3s vào sâu trong rừng -> nhảy qua suối 1.4s -> vấp ngã 1.8s -> mờ biến mất). Mỗi bước tự động nối tiếp mượt mà từ vị trí kết thúc của bước trước.'
+    ),
+    shape: (d) => ({
+      target_id: z.string().describe(d('Layer ID, composite instance ID, or model instance ID.', 'ID layer, ID cụm composite hoặc ID khối 3D.')),
+      start_time: z.number().optional().describe(d('Start time of the sequence in seconds (default: current playhead time).', 'Thời điểm bắt đầu chuỗi hành động tính bằng giây (mặc định: vị trí playhead).')),
+      steps: z.array(z.object({
+        name: z.string().optional().describe(d('Step title or label.', 'Tên hoặc nhãn mô tả bước.')),
+        duration: z.number().positive().describe(d('Duration of this action step in seconds.', 'Thời lượng bước hành động tính bằng giây.')),
+        motion_preset: z.enum([
+          'walk_into_depth',
+          'emerge_from_depth',
+          'jump_arc',
+          'trip_and_fall',
+          'cross_screen',
+          'floating_hover',
+          'dramatic_zoom_in',
+          'retreat_disappear'
+        ]).optional().describe(d('After Effects spatial motion trajectory preset.', 'Mẫu quỹ đạo chuyển động không gian After Effects.')),
+        action_clip: z.string().optional().describe(d('Skeletal clip name from get_character_actions (e.g. "walk", "jump", "fall", "idle", "action").', 'Tên clip hành động xương từ get_character_actions (vd: "walk", "jump", "fall", "idle", "action").')),
+        delta_x: z.number().optional().describe(d('Horizontal displacement in pixels.', 'Độ dời ngang tính bằng pixel.')),
+        delta_y: z.number().optional().describe(d('Vertical displacement in pixels.', 'Độ dời dọc tính bằng pixel.')),
+        depth_z: z.number().optional().describe(d('Depth delta Z in world units.', 'Độ dời độ sâu Z theo đơn vị thế giới.')),
+        jump_height: z.number().optional().describe(d('Jump arc height in pixels.', 'Độ cao vồng nhảy tính bằng pixel.')),
+        to_opacity: z.number().min(0).max(1).optional().describe(d('Target opacity at step end.', 'Độ mờ đục mục tiêu ở cuối bước.')),
+        fade_opacity: z.boolean().optional().describe(d('Whether to fade out opacity to 0.', 'Có làm mờ dần opacity về 0 hay không.'))
+      })).describe(d('Sequential action and motion steps list.', 'Danh sách các bước hành động và chuyển động nối tiếp nhau.'))
+    }),
+    example: '{"target_id":"layer-hero","steps":[{"motion_preset":"walk_into_depth","action_clip":"walk","duration":3.0,"depth_z":2000},{"motion_preset":"jump_arc","action_clip":"jump","duration":1.4,"jump_height":150},{"motion_preset":"trip_and_fall","action_clip":"fall","duration":1.8}]}'
   }
 ]
