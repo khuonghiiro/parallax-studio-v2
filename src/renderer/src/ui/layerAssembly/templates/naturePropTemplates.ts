@@ -134,7 +134,7 @@ export const TMPL_ARCH_RUINS: LayerAssemblyTemplate = {
   slots: [
     { id: 'ruins-gate', name: 'Cổng đá tàn tích cổ rêu phong', nameEn: 'Ancient Stone Portal', role: 'gate', atlasCell: 1, defaultTransform: { x: 0, y: 40, z: 15, scale: 1.0, rotation: 0 }, defaultMotion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }, suggestedAsset: 'demo_transparent/layer4_ancient_ruins.png', description: 'Vách cổng vòm đá cổ kính' },
     { id: 'vines-front', name: 'Dây leo rủ tiền cảnh (Z=-20)', nameEn: 'Hanging Foreground Vines', role: 'vines', atlasCell: 2, defaultTransform: { x: 0, y: -60, z: -20, scale: 1.05, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.9, amplitude: 18, anchor: 'top', phaseOffset: 0.1 }, suggestedAsset: 'demo_transparent/layer5_foreground_vines.png', description: 'Dây leo xanh đung đưa đỉnh cổng' },
-    { id: 'fireflies', name: 'Đom đóm lấp lánh huyền ảo', nameEn: 'Sparkling Fireflies', role: 'vfx', atlasCell: 3, defaultTransform: { x: -30, y: -30, z: -35, scale: 1.2, rotation: 0 }, defaultMotion: { type: 'float', speed: 1.2, amplitude: 14, anchor: 'center', phaseOffset: 0.5 }, suggestedAsset: 'demos/sparkle_fireflies.gif', description: 'Hiệu ứng hạt đom đóm lơ lửng' }
+    { id: 'fireflies', name: 'Đom đóm lấp lánh huyền ảo', nameEn: 'Sparkling Fireflies', role: 'vfx', atlasCell: 3, defaultTransform: { x: -30, y: -30, z: -35, scale: 1.2, rotation: 0 }, defaultMotion: { type: 'float', speed: 1.2, amplitude: 14, anchor: 'center', phaseOffset: 0.5 }, description: 'Hiệu ứng hạt đom đóm lơ lửng' }
   ],
   bones: [],
   clips: [],

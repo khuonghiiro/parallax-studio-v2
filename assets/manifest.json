@@ -33,20 +33,12 @@
       "order": 5
     },
     {
-      "id": "character_hero",
-      "folder": "character_hero",
-      "title": "Nhân vật & Bộ phận Rigging",
+      "id": "character_cutout_demo",
+      "folder": "character_cutout_demo",
+      "title": "Nhân vật Cắt lớp (Cutout 18 Lớp)",
       "icon": "user-male",
-      "description": "Các bộ phận nhân vật phân tầng độc lập (đầu, thân, hông, tay, chân) cho lắp ráp và gắn xương 2.5D",
+      "description": "Bộ phận nhân vật phân tầng độc lập (đầu, thân, hông, tay, chân) chuẩn tỉ lệ giải phẫu học",
       "order": 6
-    },
-    {
-      "id": "character_anime",
-      "folder": "character_anime",
-      "title": "Nữ Sinh Anime Tóc Bạch Kim",
-      "icon": "user-female",
-      "description": "Các bộ phận nhân vật nữ sinh anime tóc dài bạch kim, đồng phục học sinh cho lắp ráp và gắn xương 2.5D",
-      "order": 7
     },
     {
       "id": "uploads",
@@ -163,152 +155,59 @@
     "assembly_3d/modular/bonsai_foliage_front.png": {
       "name": "Tán lá tùng trước (Tiền cảnh Z âm)"
     },
-    "character_hero/head.png": {
-      "name": "Đầu & Mũ giáp Hiệp sĩ"
+    "character_cutout_demo/arm-left.png": {
+      "name": "arm left"
     },
-    "character_hero/torso.png": {
-      "name": "Thân trên & Giáp ngực"
+    "character_cutout_demo/arm-right.png": {
+      "name": "arm right"
     },
-    "character_hero/pelvis.png": {
-      "name": "Hông & Thắt lưng giáp"
+    "character_cutout_demo/foot-left.png": {
+      "name": "foot left"
     },
-    "character_hero/arm_l.png": {
-      "name": "Bắp tay trái giáp sắt"
+    "character_cutout_demo/foot-right.png": {
+      "name": "foot right"
     },
-    "character_hero/forearm_l.png": {
-      "name": "Cẳng tay & Găng sắt trái"
+    "character_cutout_demo/forearm-left.png": {
+      "name": "forearm left"
     },
-    "character_hero/arm_r.png": {
-      "name": "Bắp tay phải giáp sắt"
+    "character_cutout_demo/forearm-right.png": {
+      "name": "forearm right"
     },
-    "character_hero/forearm_r.png": {
-      "name": "Cẳng tay & Kiếm găng phải"
+    "character_cutout_demo/hair-back.png": {
+      "name": "hair back"
     },
-    "character_hero/thigh_l.png": {
-      "name": "Đùi trái giáp sắt"
+    "character_cutout_demo/hair-front.png": {
+      "name": "hair front"
     },
-    "character_hero/shin_l.png": {
-      "name": "Cẳng chân & Ủng sắt trái"
+    "character_cutout_demo/hand-left.png": {
+      "name": "hand left"
     },
-    "character_hero/thigh_r.png": {
-      "name": "Đùi phải giáp sắt"
+    "character_cutout_demo/hand-right.png": {
+      "name": "hand right"
     },
-    "character_hero/shin_r.png": {
-      "name": "Cẳng chân & Ủng sắt phải"
+    "character_cutout_demo/head.png": {
+      "name": "head"
     },
-    "character_anime/hair_back.png": {
-      "name": "Tóc sau dài bạch kim"
+    "character_cutout_demo/neck.png": {
+      "name": "neck"
     },
-    "character_anime/head.png": {
-      "name": "Đầu & Khuôn mặt nữ sinh anime"
+    "character_cutout_demo/pelvis.png": {
+      "name": "pelvis"
     },
-    "character_anime/torso.png": {
-      "name": "Áo đồng phục thủy thủ & Nơ đỏ"
+    "character_cutout_demo/shin-left.png": {
+      "name": "shin left"
     },
-    "character_anime/pelvis.png": {
-      "name": "Váy xếp ly học sinh & Hông"
+    "character_cutout_demo/shin-right.png": {
+      "name": "shin right"
     },
-    "character_anime/arm_l.png": {
-      "name": "Bắp tay áo phồng trái"
+    "character_cutout_demo/thigh-left.png": {
+      "name": "thigh left"
     },
-    "character_anime/forearm_l.png": {
-      "name": "Cẳng tay & Bàn tay trái"
+    "character_cutout_demo/thigh-right.png": {
+      "name": "thigh right"
     },
-    "character_anime/arm_r.png": {
-      "name": "Bắp tay áo phồng phải"
-    },
-    "character_anime/forearm_r.png": {
-      "name": "Cẳng tay & Cặp sách phải"
-    },
-    "character_anime/thigh_l.png": {
-      "name": "Đùi trái tất đùi"
-    },
-    "character_anime/shin_l.png": {
-      "name": "Cẳng chân & Giày học sinh trái"
-    },
-    "character_anime/thigh_r.png": {
-      "name": "Đùi phải tất đùi"
-    },
-    "character_anime/shin_r.png": {
-      "name": "Cẳng chân & Giày học sinh phải"
-    },
-    "character_hero/v2/head.png": {
-      "name": "Đầu & Mũ giáp Hiệp sĩ — V2"
-    },
-    "character_hero/v2/torso.png": {
-      "name": "Thân trên & Giáp ngực — V2"
-    },
-    "character_hero/v2/pelvis.png": {
-      "name": "Hông & Thắt lưng giáp — V2"
-    },
-    "character_hero/v2/arm_l.png": {
-      "name": "Bắp tay trái giáp sắt — V2"
-    },
-    "character_hero/v2/forearm_l.png": {
-      "name": "Cẳng tay & Găng sắt trái — V2"
-    },
-    "character_hero/v2/arm_r.png": {
-      "name": "Bắp tay phải giáp sắt — V2"
-    },
-    "character_hero/v2/forearm_r.png": {
-      "name": "Cẳng tay & Kiếm găng phải — V2"
-    },
-    "character_hero/v2/thigh_l.png": {
-      "name": "Đùi trái giáp sắt — V2"
-    },
-    "character_hero/v2/shin_l.png": {
-      "name": "Cẳng chân & Ủng sắt trái — V2"
-    },
-    "character_hero/v2/thigh_r.png": {
-      "name": "Đùi phải giáp sắt — V2"
-    },
-    "character_hero/v2/shin_r.png": {
-      "name": "Cẳng chân & Ủng sắt phải — V2"
-    },
-    "character_hero/v2/beard.png": {
-      "name": "beard"
-    },
-    "character_hero/v2/cape.png": {
-      "name": "cape"
-    },
-    "character_hero/v2/foot_l.png": {
-      "name": "foot l"
-    },
-    "character_hero/v2/foot_r.png": {
-      "name": "foot r"
-    },
-    "character_hero/v2/forearm_upper_l.png": {
-      "name": "forearm upper l"
-    },
-    "character_hero/v2/forearm_upper_r.png": {
-      "name": "forearm upper r"
-    },
-    "character_hero/v2/glasses.png": {
-      "name": "glasses"
-    },
-    "character_hero/v2/hand_l.png": {
-      "name": "hand l"
-    },
-    "character_hero/v2/hand_r.png": {
-      "name": "hand r"
-    },
-    "character_hero/v2/mask.png": {
-      "name": "mask"
-    },
-    "character_hero/v2/prop_sword.png": {
-      "name": "prop sword"
-    },
-    "character_hero/v2/shin_upper_l.png": {
-      "name": "shin upper l"
-    },
-    "character_hero/v2/shin_upper_r.png": {
-      "name": "shin upper r"
-    },
-    "demos/hologram_sphere.gif": {
-      "name": "hologram sphere"
-    },
-    "demos/sparkle_fireflies.gif": {
-      "name": "sparkle fireflies"
+    "character_cutout_demo/torso.png": {
+      "name": "torso"
     }
   }
 }

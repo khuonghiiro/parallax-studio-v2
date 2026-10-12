@@ -48,8 +48,7 @@ const BUILTIN_NATURE_ASSETS = [
   { path: 'assembly_3d/modular/nature_leaf.png', name: 'Nhánh lá cây' },
   { path: 'assembly_3d/modular/decor_flower_box.png', name: 'Bồn hoa ban công' },
   { path: 'assembly_3d/modular/decor_window.png', name: 'Cửa sổ Tudor' },
-  { path: 'demo_transparent/layer5_foreground_vines.png', name: 'Dây leo rủ' },
-  { path: 'demos/sparkle_fireflies.gif', name: 'Đom đóm (GIF)' }
+  { path: 'demo_transparent/layer5_foreground_vines.png', name: 'Dây leo rủ' }
 ]
 
 export function LayerAssemblySidebar({

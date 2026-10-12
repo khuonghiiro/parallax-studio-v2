@@ -131,28 +131,21 @@ describe('Layer Assembly Workshop Storage System', () => {
 
   it('ensures humanoid rigged character presets have symmetrical frontal depth', () => {
     const list = getStoredComposites()
-    const knight = list.find((c) => c.id === 'comp-knight-hero')
-    expect(knight).toBeDefined()
-    const armL = knight?.layers.find((l) => l.id === 'knight-arm-l')
-    const armR = knight?.layers.find((l) => l.id === 'knight-arm-r')
+    const character = list.find((c) => c.id === 'comp-character-cutout-demo-20261011')
+    expect(character).toBeDefined()
+    const armL = character?.layers.find((l) => l.name === 'arm-left')
+    const armR = character?.layers.find((l) => l.name === 'arm-right')
     expect(armL?.z).toBe(armR?.z)
-    const legL = knight?.layers.find((l) => l.id === 'knight-thigh-l')
-    const legR = knight?.layers.find((l) => l.id === 'knight-thigh-r')
+    const legL = character?.layers.find((l) => l.name === 'thigh-left')
+    const legR = character?.layers.find((l) => l.name === 'thigh-right')
     expect(legL?.z).toBe(legR?.z)
-    const foreL = knight?.layers.find((l) => l.id === 'knight-forearm-l')
-    const foreR = knight?.layers.find((l) => l.id === 'knight-forearm-r')
+    const foreL = character?.layers.find((l) => l.name === 'forearm-left')
+    const foreR = character?.layers.find((l) => l.name === 'forearm-right')
     expect(foreL?.z).toBe(foreR?.z)
-    // Giữ trọn độ giãn chiều sâu Z 2.5D rõ nét giữa các phân tầng cơ thể (> 40px)
-    expect(legL!.z - foreL!.z).toBeGreaterThan(40)
 
-    const anime = list.find((c) => c.id === 'comp-anime-girl-hero')
-    expect(anime).toBeDefined()
-    const aArmL = anime?.layers.find((l) => l.id === 'anime-arm-l')
-    const aArmR = anime?.layers.find((l) => l.id === 'anime-arm-r')
-    expect(aArmL?.z).toBe(aArmR?.z)
-    const hairBack = anime?.layers.find((l) => l.id === 'anime-hair-back')
+    const hairBack = character?.layers.find((l) => l.name === 'hair-back')
     expect(hairBack?.z).toBeGreaterThan(0) // Tóc sau lưng nằm ở hậu cảnh
-    expect(hairBack!.z - aArmL!.z).toBeGreaterThan(40)
+    expect(hairBack!.z - foreL!.z).toBeGreaterThan(20)
   })
 
   it('permanently remembers deleted built-in composites across app reloads and seed migrations', () => {

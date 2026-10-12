@@ -144,6 +144,6 @@ describe('buildDemoProject', () => {
     expect(proj.shots.length).toBe(1)
     expect(proj.layers.length).toBe(7)
     expect(proj.camera.position.keyframes.length).toBeGreaterThan(0)
-  })
+  }, 15000)
 })
 

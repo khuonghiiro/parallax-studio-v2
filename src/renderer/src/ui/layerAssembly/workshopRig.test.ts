@@ -6,6 +6,7 @@ import { deformSkin } from '../../engine/layerSkinning'
 import { bakeWorkshopRig } from './bakeWorkshopRig'
 import { createImageLayer } from '../../project/factory'
 import { BUILTIN_COMPOSITES } from './layerAssemblyDefaultComposites'
+import { createHumanoidBones, generateWaveHand } from './workshopRigPresets'
 
 describe('workshopRig & layerRig engine', () => {
   const baseComposite: LayerComposite = {
@@ -290,17 +291,16 @@ describe('workshopRig & layerRig engine', () => {
     }
   })
 
-  it('evaluates wave clip pose for anime girl composite', () => {
-    const animeGirl = BUILTIN_COMPOSITES.find((c: any) => c.id === 'comp-anime-girl-hero')!
-    expect(animeGirl).toBeDefined()
-    expect(animeGirl.rig?.clips?.length).toBe(4)
-    const waveClip = animeGirl.rig!.clips!.find((c: any) => c.id === 'clip-wave')!
-    expect(waveClip).toBeDefined()
+  it('evaluates wave clip pose for humanoid composite', () => {
+    const bones = createHumanoidBones()
+    const waveTracks = generateWaveHand(bones, 1.8)
     const waveRig = {
-      ...animeGirl.rig!,
-      tracks: waveClip.tracks,
-      duration: waveClip.duration,
-      loop: waveClip.loop
+      bones,
+      tracks: waveTracks,
+      duration: 1.8,
+      loop: true,
+      activeClipId: 'clip-wave',
+      clips: [{ id: 'clip-wave', name: 'Wave', duration: 1.8, loop: true, presetKey: 'wave', tracks: waveTracks }]
     }
     const transforms = evaluateRig(waveRig, 0.8)
     const armTransform = transforms.get('bone-arm-r')

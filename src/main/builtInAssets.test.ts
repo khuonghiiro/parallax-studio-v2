@@ -33,8 +33,8 @@ describe('Built-in Assets Catalog & Manifest Management', () => {
     expect(layeredItem).toBeDefined()
     expect(layeredItem?.kind).toBe('image')
 
-    const demoItem = catalog.items.find((it) => it.folder === 'demos' && it.isAnimated)
-    expect(demoItem).toBeDefined()
+    const characterItem = catalog.items.find((it) => it.folder === 'character_cutout_demo')
+    expect(characterItem).toBeDefined()
 
     // 3D assembly textures are excluded from the regular 2D library
     expect(catalog.items.some((it) => it.relativePath.startsWith('assembly_3d/'))).toBe(false)

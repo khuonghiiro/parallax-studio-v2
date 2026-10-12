@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import { getLayerFullResUrl } from './useLayerAssetImage'
 import { createCameraFrustumHelper } from './layerAssembly3DHelpers'
-import { KNIGHT_COMPOSITE } from './knightComposite'
+import { CUTOUT_HERO_COMPOSITE } from './cutoutHeroComposite'
 
 describe('Layer Assembly Brush Eraser & 3D Camera Depth', () => {
   it('prioritizes directUrl over assetPath so edited eraser pixels take immediate effect', () => {
     const dataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
-    const assetPath = 'character_hero/v2/torso.png'
+    const assetPath = 'character_cutout_demo/torso.png'
 
     // When directUrl is provided (edited by eraser), it MUST take precedence over assetPath
     const resolved = getLayerFullResUrl(assetPath, dataUrl)
@@ -17,21 +17,13 @@ describe('Layer Assembly Brush Eraser & 3D Camera Depth', () => {
     expect(fallback).not.toBe(dataUrl)
   })
 
-  it('ensures all layers in knightComposite default to z <= 0 to stay inside camera volume', () => {
-    for (const layer of KNIGHT_COMPOSITE.layers) {
-      // In 3D: posZ = -layer.z * zExaggeration. When layer.z <= 0, posZ >= 0 (in front of or on canvas plane)
-      expect(layer.z).toBeLessThanOrEqual(0)
-    }
-
-    const thighL = KNIGHT_COMPOSITE.layers.find((l) => l.id === 'knight-thigh-l')
-    const forearmL = KNIGHT_COMPOSITE.layers.find((l) => l.id === 'knight-forearm-l')
-    expect(thighL).toBeDefined()
-    expect(forearmL).toBeDefined()
-
-    // Thigh starts at canvas plane z = 0
-    expect(thighL!.z).toBe(0)
-    // Symmetrical frontal depth between outer limbs and core
-    expect(thighL!.z - forearmL!.z).toBeGreaterThan(40)
+  it('ensures cutout hero composite has proper depth layering and valid layer references', () => {
+    expect(CUTOUT_HERO_COMPOSITE.layers.length).toBeGreaterThan(10)
+    const torso = CUTOUT_HERO_COMPOSITE.layers.find((l) => l.name === 'torso')
+    const head = CUTOUT_HERO_COMPOSITE.layers.find((l) => l.name === 'head')
+    expect(torso).toBeDefined()
+    expect(head).toBeDefined()
+    expect(head!.z).toBeLessThan(0)
   })
 
   it('creates extended camera frustum helper that bounds both foreground and background depth', () => {

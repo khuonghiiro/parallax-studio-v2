@@ -54,11 +54,11 @@ const DEFAULT_CATEGORIES: BuiltInAssetCategory[] = [
     order: 1
   },
   {
-    id: 'demos',
-    folder: 'demos',
-    title: 'Hiệu ứng & Hoạt ảnh (VFX)',
-    icon: 'sparkles',
-    description: 'Hoạt ảnh GIF quả cầu hologram và đom đóm lấp lánh',
+    id: 'character_cutout_demo',
+    folder: 'character_cutout_demo',
+    title: 'Nhân vật Cắt lớp (Cutout 18 Lớp)',
+    icon: 'user-male',
+    description: 'Bộ phận nhân vật phân tầng độc lập (đầu, thân, hông, tay, chân) chuẩn tỉ lệ giải phẫu học',
     order: 3
   },
   {
