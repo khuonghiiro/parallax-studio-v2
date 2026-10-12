@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { nanoid } from 'nanoid'
 import type { Animatable, AnimValue, AudioTrackItem, Layer, Shot } from '@shared/types'
 import { snapToFrame } from '../animation/math'
@@ -32,9 +32,18 @@ import {
   splitSelectedLayer
 } from './timeline/timelineActions'
 
+const TimelineRulerPlayhead = memo(function TimelineRulerPlayhead({ x }: { x: (t: number) => number }) {
+  const time = useEditor((s) => s.time)
+  return <div className="tl-ruler-playhead" style={{ left: x(time) }} />
+})
+
+const TimelinePlayhead = memo(function TimelinePlayhead({ x }: { x: (t: number) => number }) {
+  const time = useEditor((s) => s.time)
+  return <div className="playhead" style={{ left: x(time) }} />
+})
+
 export function Timeline() {
   const project = useEditor((s) => s.project)
-  const time = useEditor((s) => s.time)
   const playing = useEditor((s) => s.playing)
   const loop = useEditor((s) => s.loop)
   const selectedLayerId = useEditor((s) => s.selectedLayerId)
@@ -75,16 +84,22 @@ export function Timeline() {
   }, [])
 
   const contentW = Math.max(trackW, Math.round((trackW - PAD * 2) * zoom + PAD * 2))
-  const x = (t: number): number => PAD + (t / comp.duration) * (contentW - PAD * 2)
-  const tAt = (px: number): number => ((px - PAD) / (contentW - PAD * 2)) * comp.duration
+  const x = useCallback(
+    (t: number): number => PAD + (t / comp.duration) * (contentW - PAD * 2),
+    [comp.duration, contentW]
+  )
+  const tAt = useCallback(
+    (px: number): number => ((px - PAD) / (contentW - PAD * 2)) * comp.duration,
+    [contentW, comp.duration]
+  )
 
-  const toggle = (id: string): void =>
+  const toggle = useCallback((id: string): void =>
     setExpanded((s) => {
       const n = new Set(s)
       if (n.has(id)) n.delete(id)
       else n.add(id)
       return n
-    })
+    }), [])
 
   // Synchronize horizontal scrolling between Ruler and Rows Track Viewport
   const onRowsScroll = (e: React.UIEvent<HTMLDivElement>): void => {
@@ -215,7 +230,7 @@ export function Timeline() {
   const handleTimelineDrop = async (e: React.DragEvent): Promise<void> => {
     e.preventDefault()
     const rulerEl = trackRef.current
-    let dropTime = time
+    let dropTime = useEditor.getState().time
     if (rulerEl) {
       const rect = rulerEl.getBoundingClientRect()
       dropTime = Math.max(0, Math.min(comp.duration, snapToFrame(tAt(e.clientX - rect.left), comp.fps)))
@@ -278,13 +293,14 @@ export function Timeline() {
     selectLayer(layer.id)
 
     const trackCol = (e.currentTarget as HTMLElement).closest('.tl-row-track-col')
-    let clickedTime = time
+    const currentTime = useEditor.getState().time
+    let clickedTime = currentTime
     if (trackCol) {
       const rect = trackCol.getBoundingClientRect()
       const clickX = e.clientX - rect.left
       clickedTime = Math.max(0, Math.min(comp.duration, snapToFrame(tAt(clickX), comp.fps)))
     } else {
-      clickedTime = Math.max(layer.inPoint, Math.min(layer.outPoint, time))
+      clickedTime = Math.max(layer.inPoint, Math.min(layer.outPoint, currentTime))
     }
 
     setTime(clickedTime)
@@ -314,7 +330,7 @@ export function Timeline() {
 
   // ---------------------------------------------------------------- keyframe drag
 
-  const startKeyDrag = (e: React.PointerEvent, ref: PropRef, keyId: string): void => {
+  const startKeyDrag = useCallback((e: React.PointerEvent, ref: PropRef, keyId: string): void => {
     e.stopPropagation()
     const st = useEditor.getState()
     st.selectKey({ ref, keyId })
@@ -348,11 +364,11 @@ export function Timeline() {
     }
     el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', up)
-  }
+  }, [contentW, comp.duration, comp.fps])
 
   // ---------------------------------------------------------------- layer bar drag with click-to-playhead
 
-  const startBarDrag = (e: React.PointerEvent, layer: Layer, mode: 'move' | 'in' | 'out'): void => {
+  const startBarDrag = useCallback((e: React.PointerEvent, layer: Layer, mode: 'move' | 'in' | 'out'): void => {
     e.stopPropagation()
     selectLayer(layer.id)
     if (layer.locked) return
@@ -401,15 +417,27 @@ export function Timeline() {
     }
     el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', up)
-  }
+  }, [selectLayer, contentW, comp.duration, comp.fps, tAt, setTime])
 
   // ---------------------------------------------------------------- render helpers
 
 
   const selectedKey = useEditor((s) => s.selectedKey)
   const renderKeys = useCallback(
-    (a: Animatable<AnimValue>, ref: PropRef) =>
-      a.keyframes.map((k) => (
+    (a: Animatable<AnimValue>, ref: PropRef) => {
+      const ks = a.keyframes
+      if (ks.length === 0) return null
+      let lastPx = -9999
+      const visibleKeys = ks.filter((k) => {
+        if (selectedKey?.keyId === k.id) return true
+        const px = x(k.t)
+        if (px - lastPx >= 5) {
+          lastPx = px
+          return true
+        }
+        return false
+      })
+      return visibleKeys.map((k) => (
         <div
           key={k.id}
           className={`tl-key${k.ease === 'hold' ? ' hold' : ''}${selectedKey?.keyId === k.id ? ' selected' : ''}`}
@@ -418,14 +446,24 @@ export function Timeline() {
           onPointerDown={(e) => startKeyDrag(e, ref, k.id)}
           onDoubleClick={() => setTime(k.t)}
         />
-      )),
-    [selectedKey, x, setTime]
+      ))
+    },
+    [selectedKey, x, setTime, startKeyDrag]
   )
 
   const summaryKeys = useCallback(
     (anims: Animatable<AnimValue>[]) => {
-      const times = [...new Set(anims.flatMap((a) => a.keyframes.map((k) => Math.round(k.t * 1000) / 1000)))]
-      return times.map((t) => (
+      const times = [...new Set(anims.flatMap((a) => a.keyframes.map((k) => Math.round(k.t * 1000) / 1000)))].sort((a, b) => a - b)
+      let lastPx = -9999
+      const decimated = times.filter((t) => {
+        const px = x(t)
+        if (px - lastPx >= 6) {
+          lastPx = px
+          return true
+        }
+        return false
+      })
+      return decimated.map((t) => (
         <div
           key={t}
           className="tl-key summary"
@@ -591,7 +629,6 @@ export function Timeline() {
   return (
     <section className="panel timeline">
       <TimelineToolbar
-        time={time}
         fps={comp.fps}
         duration={comp.duration}
         playing={playing}
@@ -638,7 +675,7 @@ export function Timeline() {
                   {tk.major && <span className="tick-label">{tk.t % 1 === 0 ? `${tk.t}s` : `${tk.t.toFixed(1)}s`}</span>}
                 </div>
               ))}
-              <div className="tl-ruler-playhead" style={{ left: x(time) }} />
+              <TimelineRulerPlayhead x={x} />
             </div>
           </div>
 
@@ -917,7 +954,7 @@ export function Timeline() {
 
             {/* Playhead vertical line passing through all tracks */}
             <div style={{ position: 'absolute', top: 0, bottom: 0, left: NAME_W, width: contentW, pointerEvents: 'none' }}>
-              <div className="playhead" style={{ left: x(time) }} />
+              <TimelinePlayhead x={x} />
             </div>
           </div>
         </div>

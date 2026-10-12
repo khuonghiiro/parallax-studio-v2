@@ -29,7 +29,7 @@ import { deleteSelectedAudioTrack, deleteSelectedLayer, duplicateSelectedLayer }
 import { useEditor } from '../../store/editor'
 
 export interface TimelineToolbarProps {
-  time: number
+  time?: number
   fps: number
   duration: number
   playing: boolean
@@ -43,7 +43,7 @@ export interface TimelineToolbarProps {
 }
 
 export function TimelineToolbar({
-  time,
+  time: propTime,
   fps,
   duration,
   playing,
@@ -55,6 +55,8 @@ export function TimelineToolbar({
   setLoop,
   setZoom
 }: TimelineToolbarProps) {
+  const storeTime = useEditor((s) => s.time)
+  const time = propTime !== undefined ? propTime : storeTime
   const selectedAudioTrackId = useEditor((s) => s.selectedAudioTrackId)
   const canDelete = hasSelectedLayer || !!selectedAudioTrackId
 

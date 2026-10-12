@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { flyToShot } from '../actions'
-import { evaluate } from '../animation/keyframes'
 import { EditorCamera } from '../engine/EditorCamera'
 import { evaluateScene } from '../engine/evaluateScene'
 import { SceneRenderer, type ResidencyStats } from '../engine/SceneRenderer'
@@ -45,8 +44,6 @@ export function Viewer() {
   const [stats, setStats] = useState<ResidencyStats | null>(null)
   const [rects, setRects] = useState<Layout>({ dpr: 1, cam: null, ed: null })
   const comp = useEditor((s) => s.project.comp)
-  const cameraFov = useEditor((s) => s.project.camera.fov)
-  const time = useEditor((s) => s.time)
   const playing = useEditor((s) => s.playing)
   const view = useView()
 
@@ -440,10 +437,6 @@ export function Viewer() {
     if (el?.dataset.shot) flyToShot(el.dataset.shot)
   }
 
-  // ---------------------------------------------------------------- UI
-
-  const fov = evaluate(cameraFov, time)
-
   return (
     <div className="viewer" ref={wrapRef}>
       <canvas
@@ -473,7 +466,6 @@ export function Viewer() {
         comp={comp}
         playing={playing}
         fps={fps}
-        fov={fov}
         stats={stats}
         rects={rects}
         quality={quality}

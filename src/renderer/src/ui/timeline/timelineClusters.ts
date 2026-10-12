@@ -130,7 +130,12 @@ export function buildTimelineClusters(
  */
 export function getCleanLayerSubName(layer: Layer, clusterName?: string): string {
   let name = layer.name || 'Layer'
-  if (clusterName) {
+  if (name.startsWith('[')) {
+    const endBracket = name.indexOf(']')
+    if (endBracket > 0) {
+      name = name.slice(endBracket + 1).trim()
+    }
+  } else if (clusterName) {
     const prefix1 = `[${clusterName}]`
     const prefix2 = `${clusterName} - `
     if (name.startsWith(prefix1)) {
@@ -139,5 +144,5 @@ export function getCleanLayerSubName(layer: Layer, clusterName?: string): string
       name = name.slice(prefix2.length).trim()
     }
   }
-  return name
+  return name || layer.name || 'Layer'
 }

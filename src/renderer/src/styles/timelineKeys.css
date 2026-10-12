@@ -28,11 +28,12 @@
   box-shadow: 0 0 0 2px rgba(38, 128, 235, 0.7);
 }
 .tl-key.summary {
-  width: 6px;
-  height: 6px;
-  margin: -3px 0 0 -3px;
-  background: rgba(245, 158, 11, 0.6);
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  background: rgba(245, 158, 11, 0.5);
   cursor: default;
+  z-index: 2;
 }
 .tl-key.hold {
   border-radius: 0;

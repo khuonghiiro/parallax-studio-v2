@@ -297,8 +297,8 @@ function TimelineClusterRowComponent({
               )
             })}
 
-          {/* Keyframes tổng hợp của cụm */}
-          {summaryKeys && summaryKeys(allAnims)}
+          {/* Keyframes tổng hợp của cụm khi thu gọn */}
+          {isCollapsed && summaryKeys && summaryKeys(allAnims)}
         </div>
       }
     />

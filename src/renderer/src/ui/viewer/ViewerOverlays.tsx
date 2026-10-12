@@ -2,6 +2,8 @@ import type { Project } from '@shared/types'
 import type { ResidencyStats } from '../../engine/SceneRenderer'
 import type { EditorViewKind } from '../../engine/EditorCamera'
 import { useView, type ViewState } from '../../store/view'
+import { useEditor } from '../../store/editor'
+import { evaluate } from '../../animation/keyframes'
 import { IconCamera, IconCube, IconEye, IconFocus, IconRoute, IconSingle, IconSplit } from '../icons'
 import { EDITOR_KINDS, type Layout, type Quality } from './viewerLayout'
 
@@ -10,7 +12,7 @@ interface ViewerOverlaysProps {
   comp: Project['comp']
   playing: boolean
   fps: number
-  fov: number
+  fov?: number
   stats: ResidencyStats | null
   rects: Layout
   quality: Quality
@@ -28,6 +30,9 @@ export function ViewerOverlays({
   quality,
   setQuality
 }: ViewerOverlaysProps) {
+  const cameraFov = useEditor((s) => s.project.camera.fov)
+  const time = useEditor((s) => s.time)
+  const currentFov = fov ?? evaluate(cameraFov, time)
   const showEd = !!rects.ed
   const kindLabel = EDITOR_KINDS.find((k) => k.id === view.editorKind)?.label ?? ''
 
@@ -51,7 +56,7 @@ export function ViewerOverlays({
         <span className="chip">
           {comp.width}×{comp.height} · {comp.fps}p
         </span>
-        {rects.cam && <span className="chip">FOV {fov.toFixed(1)}°</span>}
+        {rects.cam && <span className="chip">FOV {currentFov.toFixed(1)}°</span>}
         {stats && (
           <span
             id="memory-chip"

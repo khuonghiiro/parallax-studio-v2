@@ -193,7 +193,20 @@ function TimelineLayerRowComponent({
       }
     }
 
-    return Array.from(keyMap.entries()).map(([t, { fxList }]) => {
+    const entries = Array.from(keyMap.entries()).sort((a, b) => a[0] - b[0])
+    let lastPx = -9999
+    // Decimate keyframes that are closer than 6px to avoid rendering thousands of overlapping DOM diamonds
+    const visibleEntries = entries.filter(([t, { fxList }]) => {
+      if (fxList && fxList.length > 0) return true
+      const px = x(t)
+      if (px - lastPx >= 6) {
+        lastPx = px
+        return true
+      }
+      return false
+    })
+
+    return visibleEntries.map(([t, { fxList }]) => {
       if (fxList && fxList.length > 0) {
         const primaryFx = fxList[0]
         const isOff = !primaryFx.enabled
@@ -506,7 +519,7 @@ function TimelineLayerRowComponent({
                 <span className="gripper" />
               </div>
               <span className="tl-bar-label">
-                <span className="bar-title">{layer.name}</span>
+                <span className="bar-title">{clusterRole === 'child' ? getCleanLayerSubName(layer, clusterName) : layer.name}</span>
                 <span className="bar-span">{(layer.outPoint - layer.inPoint).toFixed(1)}s</span>
               </span>
               <div
