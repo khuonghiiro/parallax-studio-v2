@@ -358,8 +358,9 @@ export class McpBridge {
     if (method === 'get_app_screenshot') {
       const win = this.getWindow()
       if (!win || win.isDestroyed()) throw new Error('App window is not open')
+      // Chỉ khôi phục nếu bị minimize (Chromium cần render surface để chụp).
+      // Không gọi win.showInactive() để app giữ nguyên vị trí background, không tự ý trồi lên che màn hình người dùng.
       if (win.isMinimized()) win.restore()
-      win.showInactive()
 
       // Nếu Renderer sẵn sàng và có tham số vùng hoặc selector, ưu tiên Renderer xử lý
       if (this.rendererReady) {
