@@ -10,16 +10,17 @@ export function getAnimatedGifFrameIndex(
   t: number,
   props: Partial<ImageProps> = {}
 ): number {
-  const frames = gif.frames
+  const frames = gif?.frames
   if (!frames || frames.length <= 1) return 0
+  if (typeof t !== 'number' || isNaN(t)) return 0
 
-  const speed = Math.max(0.01, props.speed ?? 1)
+  const speed = Math.max(0.01, typeof props.speed === 'number' && !isNaN(props.speed) ? props.speed : 1)
   const loopMode = props.loopMode ?? 'loop'
-  const offset = props.timeOffset ?? 0
-  const duration = gif.totalDuration || 1
+  const offset = typeof props.timeOffset === 'number' && !isNaN(props.timeOffset) ? props.timeOffset : 0
+  const duration = gif.totalDuration && !isNaN(gif.totalDuration) && gif.totalDuration > 0 ? gif.totalDuration : 1
 
   let localT = (t + offset) * speed
-  if (localT < 0) localT = 0
+  if (isNaN(localT) || localT < 0) localT = 0
 
   let frameT: number
   if (loopMode === 'once') {
@@ -33,12 +34,16 @@ export function getAnimatedGifFrameIndex(
     frameT = localT % duration
   }
 
-  // Binary search for frame
+  if (isNaN(frameT) || frameT < 0) frameT = 0
+
+  // Binary search for frame with safety guard
   let low = 0
   let high = frames.length - 1
-  while (low <= high) {
+  let iters = 0
+  while (low <= high && iters++ < 64) {
     const mid = (low + high) >> 1
     const f = frames[mid]
+    if (!f) break
     if (frameT < f.startTime) {
       high = mid - 1
     } else if (mid + 1 < frames.length && frameT >= frames[mid + 1].startTime) {

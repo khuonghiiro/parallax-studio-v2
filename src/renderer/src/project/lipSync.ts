@@ -4,17 +4,30 @@ import { getAudioPeaks } from './audioPeaks'
 
 /** Cache đồng bộ bộ đệm sóng âm đã nạp trong runtime để tra cứu 60fps */
 const syncPeakCache = new Map<string, Float32Array>()
+const pendingPreloadPeaks = new Map<string, Promise<Float32Array>>()
 
 /** Nạp trước đệm sóng âm vào RAM */
 export async function preloadAudioPeaks(assetId: string): Promise<Float32Array> {
-  let peaks = syncPeakCache.get(assetId)
-  if (!peaks) {
-    peaks = await getAudioPeaks(assetId, 2400)
-    if (peaks && peaks.length > 0) {
-      syncPeakCache.set(assetId, peaks)
+  const cached = syncPeakCache.get(assetId)
+  if (cached) return cached
+
+  const pending = pendingPreloadPeaks.get(assetId)
+  if (pending) return pending
+
+  const promise = (async () => {
+    try {
+      const peaks = await getAudioPeaks(assetId, 2400)
+      if (peaks && peaks.length > 0) {
+        syncPeakCache.set(assetId, peaks)
+      }
+      return peaks || new Float32Array(0)
+    } finally {
+      pendingPreloadPeaks.delete(assetId)
     }
-  }
-  return peaks || new Float32Array(0)
+  })()
+
+  pendingPreloadPeaks.set(assetId, promise)
+  return promise
 }
 
 /**

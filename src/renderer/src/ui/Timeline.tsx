@@ -8,6 +8,7 @@ import { CAMERA_PROPS, PAD, SHOT_PROPS, NAME_W, shotSegments } from './timeline/
 import { TimelineRow } from './timeline/TimelineRow'
 import { AudioRow } from './timeline/AudioRow'
 import { addAudioTrackToProject, getProjectAudioTracks } from '../project/audioTracks'
+import { isMouthLayer } from '../project/lipSync'
 import { AudioTargetModal } from './timeline/AudioTargetModal'
 import { TimelineToolbar } from './timeline/TimelineToolbar'
 import { TimelineLayerRow } from './timeline/TimelineLayerRow'
@@ -472,21 +473,23 @@ export function Timeline() {
     return set
   }, [project.layers])
 
-  // Audio toàn cục / nền (không gắn vào cụm nhân vật hay 3D cụ thể nào)
+  // Audio toàn cục / nền (không gắn vào cụm nhân vật, mô hình 3D hay layer cụ thể nào trong scene)
   const globalAudioTracks = useMemo(() => {
     return allAudioTracks.filter((t) => {
       if (!t.targetId || t.targetType === 'ambient') return true
       if (t.targetType === 'character' || t.targetType === 'model3d') {
-        return !targetedInstanceIds.has(t.targetId)
+        const hasTarget = project.layers.some(
+          (l) => l.composite?.instanceId === t.targetId || l.model3d?.instanceId === t.targetId || l.id === t.targetId
+        )
+        return !hasTarget
       }
       if (t.targetType === 'layer') {
-        const layer = project.layers.find((l) => l.id === t.targetId)
-        const inst = layer?.composite?.instanceId || layer?.model3d?.instanceId
-        return !inst
+        const layerExists = project.layers.some((l) => l.id === t.targetId)
+        return !layerExists
       }
       return true
     })
-  }, [allAudioTracks, targetedInstanceIds, project.layers])
+  }, [allAudioTracks, project.layers])
 
   // Gom cụm các layer và gắn liền track âm thanh của nhân vật vào cụm đó (memoized 60fps)
   const clusteredGroups = useMemo(() => {
@@ -528,6 +531,40 @@ export function Timeline() {
       )
       createdId = tr.id
     }, `Gắn audio cho nhân vật: ${cluster.name}`)
+
+    if (createdId) {
+      const found = getProjectAudioTracks(useEditor.getState().project).find((t) => t.id === createdId)
+      if (found) setModalTrack(found)
+    }
+  }
+
+  const handleOpenAttachAudioForLayer = (layer: Layer) => {
+    const existing = allAudioTracks.find((t) => t.targetType === 'layer' && t.targetId === layer.id)
+    if (existing) {
+      setModalTrack(existing)
+      return
+    }
+    const audioAssets = project.assets.filter((a) => a.kind === 'audio')
+    const firstAudio = audioAssets[0]
+
+    let createdId: string | null = null
+    useEditor.getState().update((d) => {
+      const tr = addAudioTrackToProject(
+        d,
+        firstAudio?.id || '',
+        `Thoại - ${layer.name}`,
+        layer.inPoint,
+        {
+          targetType: 'layer',
+          targetId: layer.id,
+          targetName: layer.name,
+          targetShotId: layer.shotId || undefined,
+          characterRole: isMouthLayer(layer) ? 'voice' : 'sfx',
+          lipSyncEnabled: isMouthLayer(layer)
+        }
+      )
+      createdId = tr.id
+    }, `Gắn audio cho layer: ${layer.name}`)
 
     if (createdId) {
       const found = getProjectAudioTracks(useEditor.getState().project).find((t) => t.id === createdId)
@@ -833,25 +870,42 @@ export function Timeline() {
 
                       const layer = item.layer
                       return (
-                        <TimelineLayerRow
-                          key={layer.id}
-                          layer={layer}
-                          nested={project.shots.length > 0 && !!shot}
-                          isOpen={expanded.has(layer.id)}
-                          isSelected={layer.id === selectedLayerId}
-                          isRenaming={renaming === layer.id}
-                          x={x}
-                          trackWidth={contentW}
-                          onTrackPointerDown={handleTrackPointerDown}
-                          onBarContextMenu={handleLayerContextMenu}
-                          onToggleOpen={() => toggle(layer.id)}
-                          onSelect={() => selectLayer(layer.id)}
-                          setRenaming={setRenaming}
-                          startBarDrag={startBarDrag}
-                          startKeyDrag={startKeyDrag}
-                          renderKeys={renderKeys}
-                          summaryKeys={summaryKeys}
-                        />
+                        <div key={layer.id} className="tl-single-layer-group">
+                          <TimelineLayerRow
+                            layer={layer}
+                            nested={project.shots.length > 0 && !!shot}
+                            isOpen={expanded.has(layer.id)}
+                            isSelected={layer.id === selectedLayerId}
+                            isRenaming={renaming === layer.id}
+                            hasAudio={Boolean(item.audioTracks && item.audioTracks.length > 0)}
+                            audioCount={item.audioTracks?.length || 0}
+                            audioTracks={item.audioTracks}
+                            onManageAudio={(tr) => setModalTrack(tr || (item.audioTracks?.[0] ?? null))}
+                            onOpenAttachAudio={() => handleOpenAttachAudioForLayer(layer)}
+                            x={x}
+                            trackWidth={contentW}
+                            onTrackPointerDown={handleTrackPointerDown}
+                            onBarContextMenu={handleLayerContextMenu}
+                            onToggleOpen={() => toggle(layer.id)}
+                            onSelect={() => selectLayer(layer.id)}
+                            setRenaming={setRenaming}
+                            startBarDrag={startBarDrag}
+                            startKeyDrag={startKeyDrag}
+                            renderKeys={renderKeys}
+                            summaryKeys={summaryKeys}
+                          />
+                          {/* Audio tracks thuộc riêng về layer đơn lẻ này */}
+                          {item.audioTracks?.map((aTrack) => (
+                            <AudioRow
+                              key={aTrack.id}
+                              track={aTrack}
+                              nested={true}
+                              clusterRole="child"
+                              x={x}
+                              trackW={contentW}
+                            />
+                          ))}
+                        </div>
                       )
                     })}
                 </div>

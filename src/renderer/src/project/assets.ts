@@ -28,8 +28,8 @@ export interface RuntimeAsset {
   thumbUrl?: string
   /** Low-res alpha mask used for pixel-accurate picking in the viewer. */
   alpha?: { w: number; h: number; data: Uint8ClampedArray }
-  /** Decoded frames if this asset is an animated GIF or animated WebP */
-  gif?: AnimatedGifData
+  /** Decoded frames if this asset is an animated GIF or animated WebP; null if probed and static */
+  gif?: AnimatedGifData | null
 }
 
 type Listener = () => void
@@ -49,6 +49,7 @@ class AssetStore {
   private listeners = new Set<Listener>()
   private active = 0
   private queue: (() => void)[] = []
+  private pendingGifDecodes = new Map<string, Promise<AnimatedGifData | null>>()
   version = 0
   /** Diagnostics. */
   stats = { decodes: 0, decodedBytes: 0 }
@@ -116,62 +117,80 @@ class AssetStore {
   async getAnimatedGif(id: string): Promise<AnimatedGifData | null> {
     const asset = this.assets.get(id)
     if (!asset) return null
-    if (asset.gif) return asset.gif
+    if (asset.gif !== undefined) return asset.gif
 
     const isGif = asset.meta.mime === 'image/gif' || asset.meta.name.toLowerCase().endsWith('.gif')
     const isWebp = asset.meta.mime === 'image/webp' || asset.meta.name.toLowerCase().endsWith('.webp')
-    if (!isGif && !isWebp) return null
-
-    if (typeof ImageDecoder === 'undefined') return null
-
-    try {
-      const mime = isGif ? 'image/gif' : 'image/webp'
-      const buf = await asset.blob.arrayBuffer()
-      const decoder = new ImageDecoder({ data: buf, type: mime })
-      await decoder.tracks.ready
-      const track = decoder.tracks.selectedTrack
-      if (!track || track.frameCount <= 1) {
-        decoder.close()
-        return null
-      }
-
-      const frames: GifFrame[] = []
-      let totalDuration = 0
-      for (let i = 0; i < track.frameCount; i++) {
-        const result = await decoder.decode({ frameIndex: i })
-        const durMicro = result.image.duration && result.image.duration > 0 ? result.image.duration : 100000
-        const durSec = Math.max(0.015, durMicro / 1000000)
-        const bmp = await createImageBitmap(result.image, {
-          imageOrientation: 'flipY',
-          premultiplyAlpha: 'none'
-        })
-        result.image.close()
-        frames.push({
-          index: i,
-          duration: durSec,
-          startTime: totalDuration,
-          bitmap: bmp
-        })
-        totalDuration += durSec
-      }
-      decoder.close()
-
-      const gifData: AnimatedGifData = {
-        frames,
-        totalDuration: Math.max(0.04, totalDuration),
-        width: frames[0]?.bitmap.width ?? (asset.meta.width ?? 0),
-        height: frames[0]?.bitmap.height ?? (asset.meta.height ?? 0)
-      }
-
-      asset.gif = gifData
-      asset.meta.isAnimated = true
-      asset.meta.frameCount = frames.length
-      asset.meta.duration = gifData.totalDuration
-      return gifData
-    } catch (e) {
-      console.warn('[AssetStore] ImageDecoder error:', e)
+    if (!isGif && !isWebp) {
+      asset.gif = null
       return null
     }
+
+    if (typeof ImageDecoder === 'undefined') {
+      asset.gif = null
+      return null
+    }
+
+    const pending = this.pendingGifDecodes.get(id)
+    if (pending) return pending
+
+    const decodePromise = (async () => {
+      try {
+        const mime = isGif ? 'image/gif' : 'image/webp'
+        const buf = await asset.blob.arrayBuffer()
+        const decoder = new ImageDecoder({ data: buf, type: mime })
+        await decoder.tracks.ready
+        const track = decoder.tracks.selectedTrack
+        if (!track || track.frameCount <= 1) {
+          decoder.close()
+          asset.gif = null
+          return null
+        }
+
+        const frames: GifFrame[] = []
+        let totalDuration = 0
+        for (let i = 0; i < track.frameCount; i++) {
+          const result = await decoder.decode({ frameIndex: i })
+          const durMicro = result.image.duration && result.image.duration > 0 ? result.image.duration : 100000
+          const durSec = Math.max(0.015, durMicro / 1000000)
+          const bmp = await createImageBitmap(result.image, {
+            imageOrientation: 'flipY',
+            premultiplyAlpha: 'none'
+          })
+          result.image.close()
+          frames.push({
+            index: i,
+            duration: durSec,
+            startTime: totalDuration,
+            bitmap: bmp
+          })
+          totalDuration += durSec
+        }
+        decoder.close()
+
+        const gifData: AnimatedGifData = {
+          frames,
+          totalDuration: Math.max(0.04, totalDuration),
+          width: frames[0]?.bitmap.width ?? (asset.meta.width ?? 0),
+          height: frames[0]?.bitmap.height ?? (asset.meta.height ?? 0)
+        }
+
+        asset.gif = gifData
+        asset.meta.isAnimated = true
+        asset.meta.frameCount = frames.length
+        asset.meta.duration = gifData.totalDuration
+        return gifData
+      } catch (e) {
+        console.warn('[AssetStore] ImageDecoder error:', e)
+        asset.gif = null
+        return null
+      } finally {
+        this.pendingGifDecodes.delete(id)
+      }
+    })()
+
+    this.pendingGifDecodes.set(id, decodePromise)
+    return decodePromise
   }
 
   /** Register bytes as an asset; resolves once probed (size, thumbnail, alpha mask). */

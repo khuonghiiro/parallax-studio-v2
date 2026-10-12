@@ -21,6 +21,7 @@ export class TexturePool {
   private maxTex: number
   budgetMB: number
   private maxAnisotropy: number
+  private checkingGifs = new Set<string>()
   disposed = false
 
   onInvalidate: () => void = () => undefined
@@ -197,15 +198,23 @@ export class TexturePool {
         }
       } else if (
         asset &&
-        !asset.gif &&
+        asset.gif === undefined &&
+        !this.checkingGifs.has(layer.props.assetId) &&
         (asset.meta.mime === 'image/gif' ||
           asset.meta.name.toLowerCase().endsWith('.gif') ||
           asset.meta.mime === 'image/webp' ||
           asset.meta.name.toLowerCase().endsWith('.webp'))
       ) {
-        void assetStore.getAnimatedGif(layer.props.assetId).then((g) => {
-          if (g) this.onInvalidate()
-        })
+        this.checkingGifs.add(layer.props.assetId)
+        void assetStore
+          .getAnimatedGif(layer.props.assetId)
+          .then((g) => {
+            this.checkingGifs.delete(layer.props.assetId)
+            if (g) this.onInvalidate()
+          })
+          .catch(() => {
+            this.checkingGifs.delete(layer.props.assetId)
+          })
       }
 
       let e = this.pool.get(node.texKey)

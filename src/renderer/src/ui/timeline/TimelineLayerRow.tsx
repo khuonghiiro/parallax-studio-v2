@@ -25,7 +25,8 @@ import { getFxColor, renderFxIcon } from './fxIcons'
 import { getAllGlowConfigs } from '../../engine/layerGlow'
 import { isMouthLayer } from '../../project/lipSync'
 import { getCleanLayerSubName } from './timelineClusters'
-import { IconLipSync } from '../icons'
+import { IconLipSync, IconVoiceDialogue } from '../icons'
+import type { AudioTrackItem } from '@shared/types'
 
 function renderLayerTypeIcon(type: Layer['type']) {
   switch (type) {
@@ -51,6 +52,11 @@ export interface TimelineLayerRowProps {
   clusterRole?: 'child'
   clusterType?: 'composite' | 'model3d'
   clusterName?: string
+  hasAudio?: boolean
+  audioCount?: number
+  audioTracks?: AudioTrackItem[]
+  onManageAudio?: (track?: AudioTrackItem) => void
+  onOpenAttachAudio?: () => void
   time?: number
   x: (t: number) => number
   trackWidth?: number
@@ -74,6 +80,11 @@ function TimelineLayerRowComponent({
   clusterRole,
   clusterType,
   clusterName,
+  hasAudio,
+  audioCount,
+  audioTracks,
+  onManageAudio,
+  onOpenAttachAudio: _onOpenAttachAudio,
   time: _time,
   x,
   trackWidth,
@@ -293,6 +304,36 @@ function TimelineLayerRowComponent({
                       <IconLipSync width={9} height={9} strokeWidth={2.4} />
                       <span style={{ marginLeft: 2 }}>Khẩu hình</span>
                     </span>
+                  )}
+                  {hasAudio && (
+                    <button
+                      type="button"
+                      className="tl-cluster-audio-badge"
+                      title={`Layer đã gắn ${audioCount} track âm thanh (Click để xem / đổi)`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (audioTracks && audioTracks[0]) {
+                          onManageAudio?.(audioTracks[0])
+                        } else {
+                          onManageAudio?.()
+                        }
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 2,
+                        padding: '1px 5px',
+                        borderRadius: 3,
+                        fontSize: 9,
+                        background: 'rgba(168, 85, 247, 0.15)',
+                        color: '#c084fc',
+                        border: '1px solid rgba(168, 85, 247, 0.35)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <IconVoiceDialogue width={9} height={9} strokeWidth={2.4} />
+                      <span>{audioCount && audioCount > 1 ? `${audioCount} Thoại` : 'Thoại'}</span>
+                    </button>
                   )}
                 </span>
               )}
