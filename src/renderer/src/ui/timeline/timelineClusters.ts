@@ -1,4 +1,4 @@
-import type { Layer } from '@shared/types'
+import type { AudioTrackItem, Layer } from '@shared/types'
 import { isMouthLayer } from '../../project/lipSync'
 
 export interface TimelineClusterGroup {
@@ -7,6 +7,7 @@ export interface TimelineClusterGroup {
   instanceId: string
   name: string
   layers: Layer[]
+  audioTracks: AudioTrackItem[]
   inPoint: number
   outPoint: number
   hasMouth: boolean
@@ -23,8 +24,12 @@ export type TimelineClusterItem = TimelineClusterGroup | TimelineSingleLayerItem
 /**
  * Phân tích danh sách layer trong shot và gom các layer thuộc cùng một cụm
  * (Nhân vật xếp chồng từ xưởng Layer Assembly hoặc Mô hình 3D).
+ * Đồng thời liên kết các track âm thanh thoại/SFX được gán cho nhân vật/3D vào cụm.
  */
-export function buildTimelineClusters(layers: Layer[]): TimelineClusterItem[] {
+export function buildTimelineClusters(
+  layers: Layer[],
+  audioTracks?: AudioTrackItem[]
+): TimelineClusterItem[] {
   const result: TimelineClusterItem[] = []
   const clusterMap = new Map<string, TimelineClusterGroup>()
   const clusterOrder: string[] = []
@@ -56,6 +61,7 @@ export function buildTimelineClusters(layers: Layer[]): TimelineClusterItem[] {
           instanceId: instId,
           name: clusterName,
           layers: [],
+          audioTracks: [],
           inPoint: layer.inPoint,
           outPoint: layer.outPoint,
           hasMouth: false,
@@ -81,6 +87,26 @@ export function buildTimelineClusters(layers: Layer[]): TimelineClusterItem[] {
         kind: 'single',
         layer
       })
+    }
+  }
+
+  // Gắn các audio track thuộc về cụm nhân vật hoặc mô hình 3D
+  if (audioTracks && audioTracks.length > 0) {
+    for (const group of clusterMap.values()) {
+      const charAudio = audioTracks.filter((tr) => {
+        if (group.clusterType === 'composite' && tr.targetType === 'character' && tr.targetId === group.instanceId) {
+          return true
+        }
+        if (group.clusterType === 'model3d' && tr.targetType === 'model3d' && tr.targetId === group.instanceId) {
+          return true
+        }
+        // Gắn qua layer con trong cụm
+        if (tr.targetType === 'layer' && group.layers.some((l) => l.id === tr.targetId)) {
+          return true
+        }
+        return false
+      })
+      group.audioTracks = charAudio
     }
   }
 

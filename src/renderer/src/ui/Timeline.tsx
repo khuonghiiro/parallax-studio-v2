@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { nanoid } from 'nanoid'
-import type { Animatable, AnimValue, Layer, Shot } from '@shared/types'
+import type { Animatable, AnimValue, AudioTrackItem, Layer, Shot } from '@shared/types'
 import { snapToFrame } from '../animation/math'
 import { getAnimatable, getDraftAnimatable, useEditor, type PropRef } from '../store/editor'
 import { IconCamera, IconCaret, IconFilm } from './icons'
 import { CAMERA_PROPS, PAD, SHOT_PROPS, NAME_W, shotSegments } from './timeline/timelineTypes'
 import { TimelineRow } from './timeline/TimelineRow'
 import { AudioRow } from './timeline/AudioRow'
-import { getProjectAudioTracks } from '../project/audioTracks'
+import { addAudioTrackToProject, getProjectAudioTracks } from '../project/audioTracks'
+import { AudioTargetModal } from './timeline/AudioTargetModal'
 import { TimelineToolbar } from './timeline/TimelineToolbar'
 import { TimelineLayerRow } from './timeline/TimelineLayerRow'
 import { TimelineClusterRow } from './timeline/TimelineClusterRow'
-import { buildTimelineClusters } from './timeline/timelineClusters'
+import { buildTimelineClusters, type TimelineClusterGroup } from './timeline/timelineClusters'
 import { openFxPresetMenu } from './timeline/FxPresetMenu'
 import {
   addAudioTrackFromAsset,
@@ -45,6 +46,7 @@ export function Timeline() {
   const [collapsedClusters, setCollapsedClusters] = useState<Set<string>>(new Set())
   const [renaming, setRenaming] = useState<string | null>(null)
   const [zoom, setZoom] = useState<number>(1)
+  const [modalTrack, setModalTrack] = useState<AudioTrackItem | null>(null)
 
   const trackRef = useRef<HTMLDivElement>(null)
   const rulerScrollRef = useRef<HTMLDivElement>(null)
@@ -404,34 +406,43 @@ export function Timeline() {
 
 
   const selectedKey = useEditor((s) => s.selectedKey)
-  const renderKeys = (a: Animatable<AnimValue>, ref: PropRef) =>
-    a.keyframes.map((k) => (
-      <div
-        key={k.id}
-        className={`tl-key${k.ease === 'hold' ? ' hold' : ''}${selectedKey?.keyId === k.id ? ' selected' : ''}`}
-        style={{ left: x(k.t) }}
-        title={`${k.t.toFixed(2)}s`}
-        onPointerDown={(e) => startKeyDrag(e, ref, k.id)}
-        onDoubleClick={() => setTime(k.t)}
-      />
-    ))
+  const renderKeys = useCallback(
+    (a: Animatable<AnimValue>, ref: PropRef) =>
+      a.keyframes.map((k) => (
+        <div
+          key={k.id}
+          className={`tl-key${k.ease === 'hold' ? ' hold' : ''}${selectedKey?.keyId === k.id ? ' selected' : ''}`}
+          style={{ left: x(k.t) }}
+          title={`${k.t.toFixed(2)}s`}
+          onPointerDown={(e) => startKeyDrag(e, ref, k.id)}
+          onDoubleClick={() => setTime(k.t)}
+        />
+      )),
+    [selectedKey, x, setTime]
+  )
 
-  const summaryKeys = (anims: Animatable<AnimValue>[]) => {
-    const times = [...new Set(anims.flatMap((a) => a.keyframes.map((k) => Math.round(k.t * 1000) / 1000)))]
-    return times.map((t) => (
-      <div
-        key={t}
-        className="tl-key summary"
-        style={{ left: x(t) }}
-        onPointerDown={(e) => {
-          e.stopPropagation()
-          setTime(t)
-        }}
-      />
-    ))
-  }
+  const summaryKeys = useCallback(
+    (anims: Animatable<AnimValue>[]) => {
+      const times = [...new Set(anims.flatMap((a) => a.keyframes.map((k) => Math.round(k.t * 1000) / 1000)))]
+      return times.map((t) => (
+        <div
+          key={t}
+          className="tl-key summary"
+          style={{ left: x(t) }}
+          onPointerDown={(e) => {
+            e.stopPropagation()
+            setTime(t)
+          }}
+        />
+      ))
+    },
+    [x, setTime]
+  )
 
-  const cameraAnims = CAMERA_PROPS.map((p) => project.camera[p.prop] as Animatable<AnimValue>)
+  const cameraAnims = useMemo(
+    () => CAMERA_PROPS.map((p) => project.camera[p.prop] as Animatable<AnimValue>),
+    [project.camera]
+  )
   const camOpen = expanded.has('camera')
   const segments = useMemo(() => (project.shots.length ? shotSegments(project) : []), [project])
   const shotById = useMemo(() => new Map(project.shots.map((s) => [s.id, s])), [project.shots])
@@ -444,6 +455,85 @@ export function Timeline() {
     for (const s of project.shots) out.push({ shot: s, layers: project.layers.filter((l) => l.shotId === s.id) })
     return out
   }, [project.layers, project.shots, shotById])
+
+  // Lấy toàn bộ danh sách track âm thanh của dự án
+  const allAudioTracks = useMemo(
+    () => getProjectAudioTracks(project),
+    [project.audioTracks, project.audio]
+  )
+
+  // Tập hợp các ID cụm nhân vật composite và mô hình 3D trong scene
+  const targetedInstanceIds = useMemo(() => {
+    const set = new Set<string>()
+    for (const l of project.layers) {
+      const inst = l.composite?.instanceId || l.model3d?.instanceId
+      if (inst) set.add(inst)
+    }
+    return set
+  }, [project.layers])
+
+  // Audio toàn cục / nền (không gắn vào cụm nhân vật hay 3D cụ thể nào)
+  const globalAudioTracks = useMemo(() => {
+    return allAudioTracks.filter((t) => {
+      if (!t.targetId || t.targetType === 'ambient') return true
+      if (t.targetType === 'character' || t.targetType === 'model3d') {
+        return !targetedInstanceIds.has(t.targetId)
+      }
+      if (t.targetType === 'layer') {
+        const layer = project.layers.find((l) => l.id === t.targetId)
+        const inst = layer?.composite?.instanceId || layer?.model3d?.instanceId
+        return !inst
+      }
+      return true
+    })
+  }, [allAudioTracks, targetedInstanceIds, project.layers])
+
+  // Gom cụm các layer và gắn liền track âm thanh của nhân vật vào cụm đó (memoized 60fps)
+  const clusteredGroups = useMemo(() => {
+    return groups.map((g) => ({
+      ...g,
+      items: buildTimelineClusters(g.layers, allAudioTracks)
+    }))
+  }, [groups, allAudioTracks])
+
+  const handleOpenAttachAudioForCluster = (cluster: TimelineClusterGroup) => {
+    if (cluster.audioTracks && cluster.audioTracks.length > 0) {
+      setModalTrack(cluster.audioTracks[0])
+      return
+    }
+    // Tìm layer miệng nếu có
+    const mouthLayer = cluster.layers.find((l) => {
+      const n = (l.name || '').toLowerCase()
+      return n.includes('mouth') || n.includes('mieng') || n.includes('miệng') || n.includes('lips')
+    })
+    const audioAssets = project.assets.filter((a) => a.kind === 'audio')
+    const firstAudio = audioAssets[0]
+
+    let createdId: string | null = null
+    useEditor.getState().update((d) => {
+      const tr = addAudioTrackToProject(
+        d,
+        firstAudio?.id || '',
+        `Thoại - ${cluster.name}`,
+        cluster.inPoint,
+        {
+          targetType: cluster.clusterType === 'composite' ? 'character' : 'model3d',
+          targetId: cluster.instanceId,
+          targetName: cluster.name,
+          targetShotId: cluster.layers[0]?.shotId || undefined,
+          characterRole: 'voice',
+          lipSyncEnabled: true,
+          lipSyncLayerId: mouthLayer?.id
+        }
+      )
+      createdId = tr.id
+    }, `Gắn audio cho nhân vật: ${cluster.name}`)
+
+    if (createdId) {
+      const found = getProjectAudioTracks(useEditor.getState().project).find((t) => t.id === createdId)
+      if (found) setModalTrack(found)
+    }
+  }
 
   const toggleGroup = (id: string): void =>
     setCollapsed((s) => {
@@ -610,18 +700,18 @@ export function Timeline() {
               />
             )}
 
-            {getProjectAudioTracks(project).map((track, idx, all) => (
+            {globalAudioTracks.map((track, idx) => (
               <AudioRow
                 key={track.id}
                 track={track}
                 trackIndex={idx}
-                totalTracks={all.length}
+                totalTracks={globalAudioTracks.length}
                 x={x}
                 trackW={contentW}
               />
             ))}
 
-            {groups.map((g) => {
+            {clusteredGroups.map((g) => {
               const shot = g.shot
               const gid = shot?.id ?? '__global'
               const isCollapsed = collapsed.has(gid)
@@ -675,7 +765,7 @@ export function Timeline() {
                       />
                     ))}
                   {!isCollapsed &&
-                    buildTimelineClusters(g.layers).map((item) => {
+                    g.items.map((item) => {
                       if (item.kind === 'cluster') {
                         const isClusterCollapsed = collapsedClusters.has(item.instanceId)
                         return (
@@ -691,35 +781,52 @@ export function Timeline() {
                                 if (item.rootLayerId) selectLayer(item.rootLayerId)
                                 else if (item.layers[0]) selectLayer(item.layers[0].id)
                               }}
+                              onManageAudio={(tr) => setModalTrack(tr)}
+                              onOpenAttachAudio={() => handleOpenAttachAudioForCluster(item)}
                               onTrackPointerDown={handleTrackPointerDown}
                               summaryKeys={summaryKeys}
                             />
-                            {!isClusterCollapsed &&
-                              item.layers.map((layer) => (
-                                <TimelineLayerRow
-                                  key={layer.id}
-                                  layer={layer}
-                                  nested={project.shots.length > 0 && !!shot}
-                                  clusterRole="child"
-                                  clusterType={item.clusterType}
-                                  clusterName={item.name}
-                                  isOpen={expanded.has(layer.id)}
-                                  isSelected={layer.id === selectedLayerId}
-                                  isRenaming={renaming === layer.id}
-                                  time={time}
-                                  x={x}
-                                  trackWidth={contentW}
-                                  onTrackPointerDown={handleTrackPointerDown}
-                                  onBarContextMenu={handleLayerContextMenu}
-                                  onToggleOpen={() => toggle(layer.id)}
-                                  onSelect={() => selectLayer(layer.id)}
-                                  setRenaming={setRenaming}
-                                  startBarDrag={startBarDrag}
-                                  startKeyDrag={startKeyDrag}
-                                  renderKeys={renderKeys}
-                                  summaryKeys={summaryKeys}
-                                />
-                              ))}
+                            {!isClusterCollapsed && (
+                              <>
+                                {/* Audio tracks thuộc riêng về cụm nhân vật / 3D */}
+                                {item.audioTracks?.map((aTrack) => (
+                                  <AudioRow
+                                    key={aTrack.id}
+                                    track={aTrack}
+                                    nested={true}
+                                    clusterRole="child"
+                                    x={x}
+                                    trackW={contentW}
+                                  />
+                                ))}
+
+                                {/* Các layer thành phần của cụm nhân vật */}
+                                {item.layers.map((layer) => (
+                                  <TimelineLayerRow
+                                    key={layer.id}
+                                    layer={layer}
+                                    nested={project.shots.length > 0 && !!shot}
+                                    clusterRole="child"
+                                    clusterType={item.clusterType}
+                                    clusterName={item.name}
+                                    isOpen={expanded.has(layer.id)}
+                                    isSelected={layer.id === selectedLayerId}
+                                    isRenaming={renaming === layer.id}
+                                    x={x}
+                                    trackWidth={contentW}
+                                    onTrackPointerDown={handleTrackPointerDown}
+                                    onBarContextMenu={handleLayerContextMenu}
+                                    onToggleOpen={() => toggle(layer.id)}
+                                    onSelect={() => selectLayer(layer.id)}
+                                    setRenaming={setRenaming}
+                                    startBarDrag={startBarDrag}
+                                    startKeyDrag={startKeyDrag}
+                                    renderKeys={renderKeys}
+                                    summaryKeys={summaryKeys}
+                                  />
+                                ))}
+                              </>
+                            )}
                           </div>
                         )
                       }
@@ -733,7 +840,6 @@ export function Timeline() {
                           isOpen={expanded.has(layer.id)}
                           isSelected={layer.id === selectedLayerId}
                           isRenaming={renaming === layer.id}
-                          time={time}
                           x={x}
                           trackWidth={contentW}
                           onTrackPointerDown={handleTrackPointerDown}
@@ -762,6 +868,10 @@ export function Timeline() {
           </div>
         </div>
       </div>
+
+      {modalTrack && (
+        <AudioTargetModal track={modalTrack} onClose={() => setModalTrack(null)} />
+      )}
     </section>
   )
 }

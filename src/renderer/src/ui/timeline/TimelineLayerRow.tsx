@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import type { Animatable, AnimValue, Layer } from '@shared/types'
 import { evaluate } from '../../animation/keyframes'
 import { deleteSelectedLayer, duplicateSelectedLayer, importBuiltInAsset, moveLayer, replaceLayerAsset } from '../../actions'
@@ -51,7 +51,7 @@ export interface TimelineLayerRowProps {
   clusterRole?: 'child'
   clusterType?: 'composite' | 'model3d'
   clusterName?: string
-  time: number
+  time?: number
   x: (t: number) => number
   trackWidth?: number
   onToggleOpen: () => void
@@ -65,7 +65,7 @@ export interface TimelineLayerRowProps {
   onBarContextMenu?: (e: React.MouseEvent, layer: Layer) => void
 }
 
-export function TimelineLayerRow({
+function TimelineLayerRowComponent({
   layer,
   isOpen,
   isSelected,
@@ -74,7 +74,7 @@ export function TimelineLayerRow({
   clusterRole,
   clusterType,
   clusterName,
-  time,
+  time: _time,
   x,
   trackWidth,
   onToggleOpen,
@@ -87,7 +87,14 @@ export function TimelineLayerRow({
   onTrackPointerDown,
   onBarContextMenu
 }: TimelineLayerRowProps) {
-  const anims = LAYER_PROPS.map((p) => layer.transform[p.prop] as Animatable<AnimValue>)
+  const anims = useMemo(
+    () => LAYER_PROPS.map((p) => layer.transform[p.prop] as Animatable<AnimValue>),
+    [layer.transform]
+  )
+  const zDepth = useMemo(() => {
+    const p = layer.transform.position
+    return Math.round(Array.isArray(p.value) ? (p.value[2] ?? 0) : evaluate(p, 0)[2])
+  }, [layer.transform.position])
   const color = TYPE_COLORS[layer.type]
   const selectedKey = useEditor((s) => s.selectedKey)
   const setTime = useEditor((s) => s.setTime)
@@ -153,7 +160,7 @@ export function TimelineLayerRow({
   }
 
   // Specialized summary keyframe renderer on main layer bar: combines nested effects into distinct visual icons
-  const renderLayerSummary = () => {
+  const summaryElements = useMemo(() => {
     const keyMap = new Map<number, { keyIds: string[]; fxList: NonNullable<typeof layer.appliedEffects> }>()
 
     for (const a of anims) {
@@ -216,7 +223,7 @@ export function TimelineLayerRow({
         />
       )
     })
-  }
+  }, [anims, layer.appliedEffects, layer.name, x, setTime])
 
   return (
     <div>
@@ -328,8 +335,8 @@ export function TimelineLayerRow({
                 <IconTrash />
               </button>
             </span>
-            <span className="depth" title={`Độ sâu trục Z: ${Math.round(evaluate(layer.transform.position, time)[2])}px`}>
-              {Math.round(evaluate(layer.transform.position, time)[2])}
+            <span className="depth" title={`Độ sâu trục Z: ${zDepth}px`}>
+              {zDepth}
             </span>
             <button
               className={`mini${layer.visible ? '' : ' off'}`}
@@ -469,7 +476,7 @@ export function TimelineLayerRow({
                 <span className="gripper" />
               </div>
             </div>
-            {renderLayerSummary()}
+            {summaryElements}
             <TimelineGlowKeys
               layer={layer}
               x={x}
@@ -596,3 +603,5 @@ export function TimelineLayerRow({
     </div>
   )
 }
+
+export const TimelineLayerRow = React.memo(TimelineLayerRowComponent)

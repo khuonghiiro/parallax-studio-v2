@@ -1,5 +1,5 @@
 import React from 'react'
-import type { Animatable, AnimValue } from '@shared/types'
+import type { Animatable, AnimValue, AudioTrackItem } from '@shared/types'
 import { useEditor } from '../../store/editor'
 import {
   IconCaret,
@@ -7,7 +7,8 @@ import {
   IconEye,
   IconLayerAssembly,
   IconLipSync,
-  IconLock
+  IconLock,
+  IconVoiceDialogue
 } from '../icons'
 import type { TimelineClusterGroup } from './timelineClusters'
 import { TimelineRow } from './TimelineRow'
@@ -21,10 +22,12 @@ export interface TimelineClusterRowProps {
   onToggleCollapse: () => void
   onSelect: () => void
   onTrackPointerDown?: (e: React.PointerEvent) => void
+  onManageAudio?: (track: AudioTrackItem) => void
+  onOpenAttachAudio?: () => void
   summaryKeys?: (anims: Animatable<AnimValue>[]) => React.ReactNode
 }
 
-export function TimelineClusterRow({
+function TimelineClusterRowComponent({
   cluster,
   isCollapsed,
   isSelected,
@@ -33,6 +36,8 @@ export function TimelineClusterRow({
   onToggleCollapse,
   onSelect,
   onTrackPointerDown,
+  onManageAudio,
+  onOpenAttachAudio,
   summaryKeys
 }: TimelineClusterRowProps) {
   const isComposite = cluster.clusterType === 'composite'
@@ -163,10 +168,51 @@ export function TimelineClusterRow({
             </span>
           )}
 
+          {cluster.audioTracks && cluster.audioTracks.length > 0 && (
+            <span
+              className="tl-cluster-audio-badge"
+              title={`Nhân vật đã gắn ${cluster.audioTracks.length} track âm thanh (Click để xem / đổi)`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 2,
+                fontSize: '9.5px',
+                color: '#a855f7',
+                background: 'rgba(168, 85, 247, 0.14)',
+                border: '1px solid rgba(168, 85, 247, 0.35)',
+                padding: '1px 4px',
+                borderRadius: '3px',
+                cursor: 'pointer',
+                fontWeight: 600
+              }}
+              onClick={(e) => {
+                e.stopPropagation()
+                if (cluster.audioTracks && cluster.audioTracks[0]) {
+                  onManageAudio?.(cluster.audioTracks[0])
+                }
+              }}
+            >
+              <IconVoiceDialogue width={10} height={10} strokeWidth={2.2} />
+              <span>{cluster.audioTracks.length > 1 ? `${cluster.audioTracks.length} Thoại` : 'Thoại'}</span>
+            </span>
+          )}
+
           <span className="depth" title={`Số lớp cấu thành: ${cluster.layers.length}`}>
             {cluster.layers.length} lớp
           </span>
 
+          <button
+            type="button"
+            className="mini"
+            title="Gắn âm thanh thoại / hiệu ứng cho nhân vật này"
+            style={{ color: cluster.audioTracks?.length ? '#a855f7' : undefined }}
+            onClick={(e) => {
+              e.stopPropagation()
+              onOpenAttachAudio?.()
+            }}
+          >
+            <IconVoiceDialogue width={11} height={11} />
+          </button>
           <button
             type="button"
             className={`mini${allVisible ? '' : ' off'}`}
@@ -219,6 +265,38 @@ export function TimelineClusterRow({
             </div>
           )}
 
+          {/* Dải âm thanh thoại thu gọn hiển thị trên thanh cụm */}
+          {isCollapsed &&
+            cluster.audioTracks?.map((atr) => {
+              const aLeft = x(atr.offset)
+              const aWidth = Math.max(6, x(atr.offset + (atr.duration || 2)) - aLeft)
+              return (
+                <div
+                  key={atr.id}
+                  style={{
+                    position: 'absolute',
+                    top: 2,
+                    bottom: 2,
+                    left: aLeft,
+                    width: aWidth,
+                    background: 'rgba(168, 85, 247, 0.45)',
+                    border: '1px solid #a855f7',
+                    borderRadius: 2,
+                    zIndex: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    paddingLeft: 4,
+                    fontSize: '8.5px',
+                    color: '#fff',
+                    overflow: 'hidden',
+                    pointerEvents: 'none'
+                  }}
+                >
+                  🎙️ {atr.name}
+                </div>
+              )
+            })}
+
           {/* Keyframes tổng hợp của cụm */}
           {summaryKeys && summaryKeys(allAnims)}
         </div>
@@ -226,3 +304,5 @@ export function TimelineClusterRow({
     />
   )
 }
+
+export const TimelineClusterRow = React.memo(TimelineClusterRowComponent)

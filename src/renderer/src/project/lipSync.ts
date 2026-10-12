@@ -62,13 +62,24 @@ function normalizeVietnamese(str: string): string {
 /** Biểu thức regex nhận diện layer miệng của nhân vật */
 const MOUTH_REGEX = /(?:^|[\s\-_.[\]()/\\])(mouth|mieng|lips?|moi|khau[-_ ]?hinh|cuoi|smile|jaw)(?:[\s\-_.[\]()/\\]|$)/i
 
+/** Cache kết quả nhận diện layer miệng để tránh chạy regex 60fps */
+const mouthCache = new Map<string, boolean>()
+
 /** Kiểm tra xem một layer có phải là layer miệng hay không */
 export function isMouthLayer(layer: Layer): boolean {
   if (!layer || !layer.name) return false
+  const cacheKey = `${layer.id}_${layer.name}`
+  const cached = mouthCache.get(cacheKey)
+  if (cached !== undefined) return cached
+
   const raw = `${layer.name} ${layer.id || ''}`
-  if (MOUTH_REGEX.test(raw)) return true
-  const norm = normalizeVietnamese(raw)
-  return MOUTH_REGEX.test(norm)
+  let res = MOUTH_REGEX.test(raw)
+  if (!res) {
+    const norm = normalizeVietnamese(raw)
+    res = MOUTH_REGEX.test(norm)
+  }
+  mouthCache.set(cacheKey, res)
+  return res
 }
 
 /** Tìm layer miệng của một cụm nhân vật */
@@ -109,40 +120,30 @@ const INACTIVE_LIP_SYNC: EvaluatedLipSync = {
 
 /**
  * Đánh giá biến đổi khẩu hình miệng cho một layer tại thời điểm t.
- * Nếu layer thuộc nhân vật đang có audio track thoại bật lip-sync,
- * tính toán mức độ mở hé miệng và dịch chuyển hàm dưới.
+ * Tối ưu hóa tối đa: thoát ngay 0ms cho các layer không phải là miệng.
  */
 export function evaluateCharacterLipSync(
   project: Project,
   layer: Layer,
   t: number
 ): EvaluatedLipSync {
-  if (!layer.composite?.instanceId && !layer.id) return INACTIVE_LIP_SYNC
+  const charId = layer.composite?.instanceId
+  if (!charId && !layer.id) return INACTIVE_LIP_SYNC
+
   const tracks = project.audioTracks || (project.audio ? [project.audio as AudioTrackItem] : [])
   if (tracks.length === 0) return INACTIVE_LIP_SYNC
 
-  // Tìm audio track đang phát gắn cho nhân vật này hoặc layer này
-  const charId = layer.composite?.instanceId
+  // Tìm nhanh xem có audio track nào gắn cho nhân vật này hoặc layer này không
   const matchingTrack = tracks.find((tr) => {
     if (tr.muted) return false
-    const isTargetChar = tr.targetType === 'character' && tr.targetId === charId
-    const isTargetLayer = tr.targetType === 'layer' && tr.targetId === layer.id
-    if (!isTargetChar && !isTargetLayer) return false
-
-    // Phải là giọng nói thoại hoặc được bật lip-sync rõ ràng
-    const isVoiceOrLipSync = tr.lipSyncEnabled || tr.characterRole === 'voice' || !tr.characterRole
-    if (!isVoiceOrLipSync) return false
-
-    // Kiểm tra thời gian t có nằm trong track không
-    const rate = tr.playbackRate || 1
-    const meta = assetStore.get(tr.assetId)?.meta
-    const dur = tr.duration ?? (meta?.duration ? meta.duration / rate : 60)
-    return t >= tr.offset && t <= tr.offset + dur
+    if (tr.targetType === 'character') return tr.targetId === charId
+    if (tr.targetType === 'layer') return tr.targetId === layer.id
+    return false
   })
 
   if (!matchingTrack) return INACTIVE_LIP_SYNC
 
-  // Kiểm tra xem layer hiện tại có phải là layer miệng được chỉ định hoặc tự động nhận diện
+  // Thoát ngay nếu không phải layer miệng (chỉ layer miệng mới tiếp tục)
   const isTargetedMouth =
     matchingTrack.lipSyncLayerId === layer.id ||
     (!matchingTrack.lipSyncLayerId && isMouthLayer(layer)) ||
@@ -150,7 +151,16 @@ export function evaluateCharacterLipSync(
 
   if (!isTargetedMouth) return INACTIVE_LIP_SYNC
 
+  // Phải là giọng nói thoại hoặc được bật lip-sync rõ ràng
+  const isVoiceOrLipSync = matchingTrack.lipSyncEnabled || matchingTrack.characterRole === 'voice' || !matchingTrack.characterRole
+  if (!isVoiceOrLipSync) return INACTIVE_LIP_SYNC
+
+  // Kiểm tra thời gian t có nằm trong track không
+  const rate = matchingTrack.playbackRate || 1
   const meta = assetStore.get(matchingTrack.assetId)?.meta
+  const dur = matchingTrack.duration ?? (meta?.duration ? meta.duration / rate : 60)
+  if (t < matchingTrack.offset || t > matchingTrack.offset + dur) return INACTIVE_LIP_SYNC
+
   const assetDur = meta?.duration ?? 0
   const amp = sampleAudioPeakAtTime(matchingTrack, t, assetDur)
   if (amp <= 0.01) return INACTIVE_LIP_SYNC

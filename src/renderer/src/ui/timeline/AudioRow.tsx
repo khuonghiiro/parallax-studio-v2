@@ -26,11 +26,13 @@ export interface AudioRowProps {
   track?: AudioTrackItem
   trackIndex?: number
   totalTracks?: number
+  nested?: boolean
+  clusterRole?: 'child'
   x: (t: number) => number
   trackW: number
 }
 
-export function AudioRow({ track: propTrack, x, trackW }: AudioRowProps) {
+function AudioRowComponent({ track: propTrack, nested, clusterRole, x, trackW }: AudioRowProps) {
   const projectAudio = useEditor((s) => s.project.audio)
   const duration = useEditor((s) => s.project.comp.duration)
   const selectedAudioTrackId = useEditor((s) => s.selectedAudioTrackId)
@@ -142,7 +144,13 @@ export function AudioRow({ track: propTrack, x, trackW }: AudioRowProps) {
         onClick={() => useEditor.getState().selectAudioTrack(track.id)}
         onTrackPointerDown={() => useEditor.getState().selectAudioTrack(track.id)}
         name={
-          <div className="tl-name">
+          <div
+            className={`tl-name${nested ? ' nested' : ''}${clusterRole === 'child' ? ' tl-cluster-child' : ''}`}
+            style={{
+              paddingLeft: clusterRole === 'child' ? 14 : undefined,
+              borderLeft: clusterRole === 'child' ? '2px solid rgba(168, 85, 247, 0.4)' : undefined
+            }}
+          >
             <span style={{ width: 14 }} />
             <span
               className="ico"
@@ -158,7 +166,7 @@ export function AudioRow({ track: propTrack, x, trackW }: AudioRowProps) {
               title={`${trackName} · Bắt đầu lúc ${track.offset.toFixed(2)}s · Click để chọn (nhấn Del để xoá)`}
               style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}
             >
-              {trackName}
+              {clusterRole === 'child' ? `[Thoại] ${trackName}` : trackName}
             </span>
 
             {/* Badge mục tiêu liên kết */}
@@ -355,3 +363,5 @@ export function AudioRow({ track: propTrack, x, trackW }: AudioRowProps) {
     </>
   )
 }
+
+export const AudioRow = React.memo(AudioRowComponent)
