@@ -260,55 +260,63 @@ export const uiCommands: Record<string, Handler> = {
   get_app_screenshot: async (p) => {
     const capture = window.api?.mcp?.captureWindow
     if (!capture) throw new Error('Window capture is not available in this build')
-    await sleep(Math.max(0, Math.min(5000, num(p, 'delay_ms') ?? 150)))
-    await nextPaint()
-    const width = num(p, 'width')
-    const format = str(p, 'format') === 'jpeg' ? 'jpeg' : 'png'
-    const region = str(p, 'region')
-    const selector = str(p, 'selector')
-    const padding = Math.max(0, Math.min(200, num(p, 'padding') ?? 8))
 
-    const targetEl = resolveTargetElement(region, selector)
-    let rect: McpRect | undefined
-    if (targetEl) {
-      const b = targetEl.getBoundingClientRect()
-      const winW = typeof window !== 'undefined' ? window.innerWidth : 1920
-      const winH = typeof window !== 'undefined' ? window.innerHeight : 1080
-      if (b.width > 0 && b.height > 0 && b.right > 0 && b.bottom > 0 && b.left < winW && b.top < winH) {
-        const x = Math.max(0, Math.floor(b.left - padding))
-        const y = Math.max(0, Math.floor(b.top - padding))
-        const right = Math.min(winW, Math.ceil(b.right + padding))
-        const bottom = Math.min(winH, Math.ceil(b.bottom + padding))
-        const w = Math.max(1, right - x)
-        const h = Math.max(1, bottom - y)
-        if (w > 5 && h > 5) {
-          rect = { x, y, width: w, height: h }
+    const root = typeof document !== 'undefined' ? document.documentElement : null
+    root?.classList.add('ai-screenshot-hide-neon')
+
+    try {
+      await sleep(Math.max(0, Math.min(5000, num(p, 'delay_ms') ?? 150)))
+      await nextPaint()
+      const width = num(p, 'width')
+      const format = str(p, 'format') === 'jpeg' ? 'jpeg' : 'png'
+      const region = str(p, 'region')
+      const selector = str(p, 'selector')
+      const padding = Math.max(0, Math.min(200, num(p, 'padding') ?? 8))
+
+      const targetEl = resolveTargetElement(region, selector)
+      let rect: McpRect | undefined
+      if (targetEl) {
+        const b = targetEl.getBoundingClientRect()
+        const winW = typeof window !== 'undefined' ? window.innerWidth : 1920
+        const winH = typeof window !== 'undefined' ? window.innerHeight : 1080
+        if (b.width > 0 && b.height > 0 && b.right > 0 && b.bottom > 0 && b.left < winW && b.top < winH) {
+          const x = Math.max(0, Math.floor(b.left - padding))
+          const y = Math.max(0, Math.floor(b.top - padding))
+          const right = Math.min(winW, Math.ceil(b.right + padding))
+          const bottom = Math.min(winH, Math.ceil(b.bottom + padding))
+          const w = Math.max(1, right - x)
+          const h = Math.max(1, bottom - y)
+          if (w > 5 && h > 5) {
+            rect = { x, y, width: w, height: h }
+          }
         }
       }
-    }
 
-    const res = await capture({ width: width ?? undefined, format, rect })
+      const res = await capture({ width: width ?? undefined, format, rect })
 
-    // Fallback crop bằng canvas nếu Main process chưa crop (đang chạy process cũ chưa restart)
-    if (rect && res.width > rect.width * 1.25 && typeof document !== 'undefined') {
-      const cropped = await cropImageBase64(res.data, res.mime, rect, format)
-      if (cropped) {
-        return {
-          ...cropped,
-          target: 'region',
-          region: region ?? undefined,
-          selector: selector ?? undefined,
-          rect
+      // Fallback crop bằng canvas nếu Main process chưa crop (đang chạy process cũ chưa restart)
+      if (rect && res.width > rect.width * 1.25 && typeof document !== 'undefined') {
+        const cropped = await cropImageBase64(res.data, res.mime, rect, format)
+        if (cropped) {
+          return {
+            ...cropped,
+            target: 'region',
+            region: region ?? undefined,
+            selector: selector ?? undefined,
+            rect
+          }
         }
       }
-    }
 
-    return {
-      ...res,
-      target: rect ? 'region' : 'app-window',
-      region: region ?? undefined,
-      selector: selector ?? undefined,
-      rect
+      return {
+        ...res,
+        target: rect ? 'region' : 'app-window',
+        region: region ?? undefined,
+        selector: selector ?? undefined,
+        rect
+      }
+    } finally {
+      root?.classList.remove('ai-screenshot-hide-neon')
     }
   },
 

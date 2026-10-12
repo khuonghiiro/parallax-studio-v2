@@ -182,6 +182,15 @@ textarea:focus {
   position: relative;
 }
 
+/* Khi đang chụp ảnh màn hình cho AI (get_app_screenshot), ẩn hoàn toàn viền neon, hiệu ứng tỏa sáng và HUD badge để ảnh không bị dính viền neon */
+.ai-screenshot-hide-neon .ai-neon-border-frame,
+.ai-screenshot-hide-neon .ai-neon-hud-badge,
+.ai-screenshot-hide-neon .ai-safety-barrier {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
 /* Khung viền Neon nhịp tim phủ toàn màn hình (không bị bất kỳ panel con nào che lấp) */
 .ai-neon-border-frame {
   position: fixed;

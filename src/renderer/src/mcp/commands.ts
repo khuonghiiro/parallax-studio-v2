@@ -63,11 +63,40 @@ export function setManualAiLock(locked: boolean, reason?: string, timeoutMs = 10
   }
 }
 
+/**
+ * Các lệnh chỉ đọc (query/inspect) hoặc chụp ảnh màn hình.
+ * Tuyệt đối không bật viền neon hay badge HUD để ảnh chụp không bị dính viền neon và không gây xao nhãng khi AI chỉ đọc thông tin.
+ */
+const SILENT_MCP_COMMANDS = new Set([
+  'get_app_screenshot',
+  'get_viewport_screenshot',
+  'get_assembly_screenshot',
+  'get_project_info',
+  'get_shot_info',
+  'get_layer_info',
+  'get_camera_info',
+  'get_memory_stats',
+  'get_audio_info',
+  'get_assembly_state',
+  'get_layer_assembly_state',
+  'list_commands',
+  'list_models3d',
+  'get_model3d',
+  'list_assembly_templates',
+  'list_layer_composites',
+  'get_layer_composite',
+  'get_assembly_template',
+  'get_ai_guide',
+  'export_project_json',
+  'export_shot_json'
+])
+
 /** Subscribe to MCP commands from the main process. Returns an unsubscribe function. */
 export function initMcp(onActivity?: (method: string, ok: boolean) => void): () => void {
   if (!window.api?.mcp) return () => undefined
   return window.api.mcp.onCommand(async (cmd) => {
-    if (!isManuallyLocked) {
+    const isSilent = SILENT_MCP_COMMANDS.has(cmd.method)
+    if (!isManuallyLocked && !isSilent) {
       if (aiTimer) clearTimeout(aiTimer)
       useView.getState().setAiControl(true, true, `AI đang thao tác: ${cmd.method}`)
     }
@@ -80,7 +109,7 @@ export function initMcp(onActivity?: (method: string, ok: boolean) => void): () 
       window.api.mcp.respond({ reqId: cmd.reqId, ok: false, error: msg })
       onActivity?.(cmd.method, false)
     } finally {
-      if (!isManuallyLocked) {
+      if (!isManuallyLocked && !isSilent) {
         if (aiTimer) clearTimeout(aiTimer)
         aiTimer = setTimeout(() => {
           if (!isManuallyLocked) {
