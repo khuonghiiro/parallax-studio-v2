@@ -208,7 +208,7 @@ export const FX_TOOLS = [
   },
   {
     name: 'add_audio_track', cat: 'look_audio',
-    doc: L('Add an audio track from a file or existing project asset at a specific timeline offset.', 'Thêm track âm thanh từ file hoặc asset có sẵn tại một vị trí trên timeline.'),
+    doc: L('Add an audio track from a file or existing project asset at a specific timeline offset, optionally bound to a character, 3D model, or layer.', 'Thêm track âm thanh từ file hoặc asset có sẵn tại một vị trí trên timeline, có thể gắn cho nhân vật, 3D hoặc layer.'),
     shape: (d) => ({
       file_path: z.string().optional().describe(d('Path to an audio file on disk (mp3, wav, aac, ogg).', 'Đường dẫn file âm thanh (mp3, wav, aac, ogg).')),
       asset_id: z.string().optional().describe(d('ID of an existing audio asset already in the project.', 'ID asset âm thanh đã có trong dự án.')),
@@ -219,15 +219,22 @@ export const FX_TOOLS = [
       loop: z.boolean().optional(),
       fade_in: z.number().optional().describe(d('Fade-in duration in seconds.', 'Thời lượng fade-in, giây.')),
       fade_out: z.number().optional().describe(d('Fade-out duration in seconds.', 'Thời lượng fade-out, giây.')),
-      playback_rate: z.number().optional().describe(d('Speed factor (0.25 to 4.0).', 'Hệ số tốc độ (0.25 đến 4.0).'))
+      playback_rate: z.number().optional().describe(d('Speed factor (0.25 to 4.0).', 'Hệ số tốc độ (0.25 đến 4.0).')),
+      target_type: z.enum(['character', 'layer', 'model3d', 'ambient']).optional().describe(d('Target category: character, model3d, layer, or ambient.', 'Loại mục tiêu: nhân vật, mô hình 3D, layer, hoặc âm thanh chung.')),
+      target_id: z.string().optional().describe(d('ID of the target entity (instanceId for character/3D model, or layer ID).', 'ID của thực thể mục tiêu (instanceId của nhân vật/khối 3D, hoặc layer ID).')),
+      target_name: z.string().optional().describe(d('Display name of the target entity.', 'Tên hiển thị của thực thể mục tiêu.')),
+      target_shot_id: z.string().optional().describe(d('Shot containing the target entity.', 'ID phân cảnh chứa đối tượng mục tiêu.')),
+      character_role: z.enum(['voice', 'sfx', 'footstep', 'foley', 'bgm']).optional().describe(d('Audio role: voice dialogue, sound effects, footsteps, foley, or theme music.', 'Vai trò âm thanh: thoại/lồng tiếng, hiệu ứng, bước chân, foley hoặc nhạc chủ đề.')),
+      lip_sync: z.boolean().optional().describe(d('Enable audio-driven mouth animation (lip-sync).', 'Bật cử động hé mở khẩu hình miệng theo âm thanh.')),
+      lip_sync_intensity: z.number().min(0.1).max(3.0).optional().describe(d('Mouth opening intensity multiplier (default 1.0).', 'Hệ số độ mở miệng (mặc định 1.0).'))
     }),
-    example: '{"file_path":"D:/music/theme.mp3","offset":0,"fade_in":1.5}'
+    example: '{"file_path":"D:/music/voice.mp3","target_type":"character","character_role":"voice","lip_sync":true}'
   },
   {
     name: 'update_audio_track', cat: 'look_audio',
     doc: L(
-      'Update parameters of an audio track: volume, offset, mute, loop, speed, fade, duration, or gain.',
-      'Cập nhật thông số track âm thanh: âm lượng, offset, tắt tiếng, lặp, tốc độ, fade, thời lượng hoặc gain.'
+      'Update parameters of an audio track: volume, offset, mute, loop, speed, fade, duration, target binding, or lip-sync.',
+      'Cập nhật thông số track âm thanh: âm lượng, offset, tắt tiếng, lặp, tốc độ, fade, thời lượng, liên kết mục tiêu hoặc khẩu hình miệng.'
     ),
     shape: (d) => ({
       track_id: audioTrackId(d, 'Track ID or "main" for the primary audio track.', 'ID track hoặc "main" cho track chính.'),
@@ -241,7 +248,13 @@ export const FX_TOOLS = [
       fade_out: z.number().optional(),
       trim_in: z.number().optional(),
       duration: z.number().optional(),
-      gain_db: z.number().optional().describe(d('dB offset (-24 to +12).', 'Độ lệch dB (-24 đến +12).'))
+      gain_db: z.number().optional().describe(d('dB offset (-24 to +12).', 'Độ lệch dB (-24 đến +12).')),
+      target_type: z.enum(['character', 'layer', 'model3d', 'ambient']).optional(),
+      target_id: z.string().optional(),
+      target_name: z.string().optional(),
+      character_role: z.enum(['voice', 'sfx', 'footstep', 'foley', 'bgm']).optional(),
+      lip_sync: z.boolean().optional(),
+      lip_sync_intensity: z.number().min(0.1).max(3.0).optional()
     })
   },
   {
@@ -274,6 +287,60 @@ export const FX_TOOLS = [
     shape: (d) => ({
       track_ids: z.array(z.string()).optional().describe(d('List of track IDs to merge. If omitted, merges all audio tracks.', 'Danh sách ID track cần gộp. Bỏ trống = gộp tất cả.'))
     })
+  },
+  {
+    name: 'get_audio_targets', cat: 'look_audio',
+    doc: L(
+      'List all entities that can be bound to audio: characters created in layer workshop, 3D models, and layers.',
+      'Liệt kê tất cả các thực thể có thể gắn âm thanh: nhân vật từ xưởng lắp ráp layer, mô hình 3D và các layer.'
+    ),
+    shape: (d) => ({
+      shot_id: z.string().optional().describe(d('Filter targets by shot ID.', 'Lọc các mục tiêu theo ID phân cảnh.'))
+    })
+  },
+  {
+    name: 'attach_audio_to_target', cat: 'look_audio',
+    doc: L(
+      'Bind an audio track to a character, 3D model, or layer, specifying its audio role and enabling mouth lip-sync.',
+      'Gắn track âm thanh vào nhân vật, mô hình 3D hoặc layer, chọn vai trò âm thanh và bật khẩu hình miệng lip-sync.'
+    ),
+    shape: (d) => ({
+      track_id: audioTrackId(d, 'Track ID to bind.', 'ID track cần gắn.'),
+      target_type: z.enum(['character', 'layer', 'model3d', 'ambient']).describe(d('Target category.', 'Loại mục tiêu.')),
+      target_id: z.string().optional().describe(d('Target instance ID or layer ID.', 'ID thực thể mục tiêu (instanceId hoặc layerId).')),
+      target_name: z.string().optional().describe(d('Target display name.', 'Tên hiển thị mục tiêu.')),
+      character_role: z.enum(['voice', 'sfx', 'footstep', 'foley', 'bgm']).optional().describe(d('Audio role for this character.', 'Vai trò âm thanh của nhân vật.')),
+      lip_sync: z.boolean().optional().describe(d('Enable mouth animation driven by this audio track.', 'Kích hoạt khẩu hình miệng đồng bộ theo track âm thanh này.')),
+      lip_sync_intensity: z.number().min(0.1).max(3.0).optional().describe(d('Mouth opening intensity multiplier.', 'Hệ số độ mở miệng.'))
+    }),
+    example: '{"track_id":"audio-1","target_type":"character","target_id":"comp-inst-hero","character_role":"voice","lip_sync":true}'
+  },
+  {
+    name: 'replace_character_audio', cat: 'look_audio',
+    doc: L(
+      'Quickly replace the audio file of a specific character (e.g. voice dialogue or SFX) while preserving timeline timing and binding.',
+      'Thay thế nhanh file âm thanh cho một nhân vật cụ thể trong cảnh (như thoại hoặc SFX), bảo lưu toàn bộ timing và liên kết.'
+    ),
+    shape: (d) => ({
+      character_instance_id: z.string().describe(d('Character instance ID in the shot.', 'ID nhân vật trong phân cảnh.')),
+      asset_id: z.string().describe(d('ID of the new audio asset.', 'ID tài nguyên âm thanh mới.')),
+      character_role: z.enum(['voice', 'sfx', 'footstep', 'foley', 'bgm']).optional().describe(d('Filter character audio by role.', 'Lọc track âm thanh theo vai trò.')),
+      name: z.string().optional().describe(d('Optional new display name for the track.', 'Tên hiển thị mới tùy chọn.'))
+    }),
+    example: '{"character_instance_id":"comp-inst-hero","asset_id":"asset-sound-voice-new","character_role":"voice"}'
+  },
+  {
+    name: 'bake_character_lipsync', cat: 'look_audio',
+    doc: L(
+      'Bake voice audio peaks into keyframes on the character mouth layer timeline for visual inspection and export fidelity.',
+      'Nướng sóng âm giọng nói thành keyframe hé mở miệng trực tiếp lên Timeline của layer miệng nhân vật.'
+    ),
+    shape: (d) => ({
+      track_id: audioTrackId(d, 'Track ID containing voice audio.', 'ID track âm thanh chứa giọng nói.'),
+      intensity: z.number().min(0.1).max(3.0).optional().describe(d('Mouth opening intensity (default 1.0).', 'Độ nhạy hé mở miệng (mặc định 1.0).')),
+      fps: z.number().optional().describe(d('Sampling rate in frames per second (defaults to project FPS).', 'Tần số lấy mẫu khung hình/giây (mặc định: FPS dự án).'))
+    }),
+    example: '{"track_id":"audio-voice-1","intensity":1.2}'
   },
 
   // ---- timeline & view

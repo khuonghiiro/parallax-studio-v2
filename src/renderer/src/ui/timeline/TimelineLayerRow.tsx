@@ -23,6 +23,9 @@ import { TimelineRow } from './TimelineRow'
 import { TimelineGlowKeys } from './TimelineGlowKeys'
 import { getFxColor, renderFxIcon } from './fxIcons'
 import { getAllGlowConfigs } from '../../engine/layerGlow'
+import { isMouthLayer } from '../../project/lipSync'
+import { getCleanLayerSubName } from './timelineClusters'
+import { IconLipSync } from '../icons'
 
 function renderLayerTypeIcon(type: Layer['type']) {
   switch (type) {
@@ -45,6 +48,9 @@ export interface TimelineLayerRowProps {
   isSelected: boolean
   isRenaming: boolean
   nested?: boolean
+  clusterRole?: 'child'
+  clusterType?: 'composite' | 'model3d'
+  clusterName?: string
   time: number
   x: (t: number) => number
   trackWidth?: number
@@ -65,6 +71,9 @@ export function TimelineLayerRow({
   isSelected,
   isRenaming,
   nested,
+  clusterRole,
+  clusterType,
+  clusterName,
   time,
   x,
   trackWidth,
@@ -218,7 +227,18 @@ export function TimelineLayerRow({
         onTrackPointerDown={onTrackPointerDown}
         onTrackContextMenu={(e) => onBarContextMenu?.(e, layer)}
         name={
-          <div className={`tl-name${nested ? ' nested' : ''}`}>
+          <div
+            className={`tl-name${nested ? ' nested' : ''}${clusterRole === 'child' ? ' tl-cluster-child' : ''}`}
+            style={{
+              paddingLeft: clusterRole === 'child' ? 14 : undefined,
+              borderLeft:
+                clusterRole === 'child'
+                  ? clusterType === 'composite'
+                    ? '2px solid rgba(99, 102, 241, 0.4)'
+                    : '2px solid rgba(6, 182, 212, 0.4)'
+                  : undefined
+            }}
+          >
             <button className="mini" onClick={(e) => (e.stopPropagation(), onToggleOpen())}>
               <IconCaret className={`caret${isOpen ? ' open' : ''}`} />
             </button>
@@ -247,7 +267,27 @@ export function TimelineLayerRow({
                   }}
                 />
               ) : (
-                layer.name
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span>{clusterRole === 'child' ? getCleanLayerSubName(layer, clusterName) : layer.name}</span>
+                  {isMouthLayer(layer) && (
+                    <span
+                      title="Layer khẩu hình miệng (Sẵn sàng đồng bộ âm thanh)"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        color: '#f43f5e',
+                        background: 'rgba(244, 63, 94, 0.1)',
+                        padding: '0 3px',
+                        borderRadius: 3,
+                        fontSize: '9px',
+                        lineHeight: '13px'
+                      }}
+                    >
+                      <IconLipSync width={9} height={9} strokeWidth={2.4} />
+                      <span style={{ marginLeft: 2 }}>Khẩu hình</span>
+                    </span>
+                  )}
+                </span>
               )}
             </span>
             <span className="row-actions">

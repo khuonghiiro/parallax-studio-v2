@@ -799,6 +799,10 @@ export const IconAiSparkle = (p: P) => (
   </svg>
 )
 
-
-
-
+export const IconLipSync = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M3 11c2.5-3 5.5-4 9-4s6.5 1 9 4c-2.5 4-5.5 6-9 6s-6.5-2-9-6Z" />
+    <path d="M7 11.5c1.5 1.5 3 2.5 5 2.5s3.5-1 5-2.5" />
+    <path d="M9 10c1 .8 2 1.2 3 1.2s2-.4 3-1.2" />
+  </svg>
+)

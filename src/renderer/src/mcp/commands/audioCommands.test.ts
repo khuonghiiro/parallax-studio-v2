@@ -108,4 +108,128 @@ describe('MCP audioCommands', () => {
     expect(del.deleted).toBe(added.id)
     expect(del.remainingTracks).toBe(0)
   })
+
+  it('lists audio targets and binds audio track to character with lip-sync', async () => {
+    // Thêm một nhân vật composite gồm 2 layer (thân và miệng)
+    useEditor.getState().update((p) => {
+      p.layers.push({
+        id: 'layer-body-1',
+        name: '[Nam Hiệp Sĩ] Thân',
+        type: 'image',
+        visible: true,
+        locked: false,
+        inPoint: 0,
+        outPoint: 10,
+        blendMode: 'normal',
+        props: { assetId: 'asset-img-1' },
+        transform: {
+          position: { value: [0, 0, 0], keyframes: [] },
+          rotation: { value: [0, 0, 0], keyframes: [] },
+          scale: { value: [1, 1, 1], keyframes: [] },
+          opacity: { value: 1, keyframes: [] }
+        },
+        composite: {
+          instanceId: 'comp-inst-hero-1',
+          compositeId: 'comp-hero',
+          compositeName: 'Nam Hiệp Sĩ',
+          lockedGroup: true
+        }
+      } as any)
+      p.layers.push({
+        id: 'layer-mouth-1',
+        name: '[Nam Hiệp Sĩ] Miệng',
+        type: 'image',
+        visible: true,
+        locked: false,
+        inPoint: 0,
+        outPoint: 10,
+        blendMode: 'normal',
+        props: { assetId: 'asset-img-2' },
+        transform: {
+          position: { value: [0, -10, 0], keyframes: [] },
+          rotation: { value: [0, 0, 0], keyframes: [] },
+          scale: { value: [1, 1, 1], keyframes: [] },
+          opacity: { value: 1, keyframes: [] }
+        },
+        composite: {
+          instanceId: 'comp-inst-hero-1',
+          compositeId: 'comp-hero',
+          compositeName: 'Nam Hiệp Sĩ',
+          lockedGroup: true
+        }
+      } as any)
+    })
+
+    // 1. Kiểm tra get_audio_targets
+    const targetsRes = (await runCommand('get_audio_targets')) as any
+    expect(targetsRes.totalTargets).toBeGreaterThanOrEqual(1)
+    const heroTarget = targetsRes.targets.find((t: any) => t.id === 'comp-inst-hero-1')
+    expect(heroTarget).toBeDefined()
+    expect(heroTarget.name).toBe('Nam Hiệp Sĩ')
+    expect(heroTarget.mouthLayerId).toBe('layer-mouth-1')
+
+    // 2. Thêm track thoại và gắn vào nhân vật
+    const track = (await runCommand('add_audio_track', {
+      asset_id: 'asset-sound-1',
+      name: 'Giọng nói anh hùng',
+      target_type: 'character',
+      target_id: 'comp-inst-hero-1',
+      target_name: 'Nam Hiệp Sĩ',
+      character_role: 'voice',
+      lip_sync: true,
+      lip_sync_intensity: 1.2
+    })) as any
+
+    expect(track.targetType).toBe('character')
+    expect(track.targetId).toBe('comp-inst-hero-1')
+    expect(track.characterRole).toBe('voice')
+    expect(track.lipSyncEnabled).toBe(true)
+    expect(track.lipSyncIntensity).toBe(1.2)
+
+    // 3. Cập nhật gắn lại qua attach_audio_to_target
+    const attached = (await runCommand('attach_audio_to_target', {
+      track_id: track.id,
+      target_type: 'character',
+      target_id: 'comp-inst-hero-1',
+      character_role: 'voice',
+      lip_sync: true,
+      lip_sync_intensity: 1.5
+    })) as any
+
+    expect(attached.lipSyncIntensity).toBe(1.5)
+    expect(attached.lipSyncLayerId).toBe('layer-mouth-1')
+
+    // 4. Thay thế audio cho nhân vật qua replace_character_audio
+    // Thêm dummy asset mới
+    useEditor.getState().update((p) => {
+      p.assets.push({
+        id: 'asset-sound-voice-2',
+        name: 'voice_take2.mp3',
+        kind: 'audio',
+        mime: 'audio/mp3'
+      })
+    })
+
+    const replaced = (await runCommand('replace_character_audio', {
+      character_instance_id: 'comp-inst-hero-1',
+      asset_id: 'asset-sound-voice-2',
+      name: 'Thoại Take 2'
+    })) as any
+
+    expect(replaced.assetId).toBe('asset-sound-voice-2')
+    expect(replaced.name).toBe('Thoại Take 2')
+    expect(replaced.targetId).toBe('comp-inst-hero-1')
+
+    // 5. Nướng keyframe khẩu hình qua bake_character_lipsync
+    const bakeRes = (await runCommand('bake_character_lipsync', {
+      track_id: track.id,
+      intensity: 1.2,
+      fps: 24
+    })) as any
+
+    expect(bakeRes.success).toBe(true)
+    expect(bakeRes.layerId).toBe('layer-mouth-1')
+    expect(bakeRes.bakedKeyframeCount).toBeGreaterThan(0)
+  })
 })
+

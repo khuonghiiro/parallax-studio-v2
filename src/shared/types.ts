@@ -299,7 +299,15 @@ export interface AudioTrack {
   assetId: string
   offset: number // seconds; positive delays the audio
   volume: number // 0..1
+  targetType?: AudioTargetType
+  targetId?: string
+  targetName?: string
+  characterRole?: AudioCharacterRole
+  lipSyncEnabled?: boolean
 }
+
+export type AudioTargetType = 'character' | 'layer' | 'model3d' | 'ambient'
+export type AudioCharacterRole = 'voice' | 'sfx' | 'footstep' | 'foley' | 'bgm'
 
 export interface AudioTrackItem {
   id: string
@@ -316,6 +324,24 @@ export interface AudioTrackItem {
   muted?: boolean // true if track is muted
   loop?: boolean // true if track loops
   gainDb?: number // gain in decibels
+
+  /** Loại mục tiêu gắn âm thanh: nhân vật composite, mô hình 3D, layer đơn lẻ hoặc âm thanh chung */
+  targetType?: AudioTargetType
+  /** ID thực thể mục tiêu (instanceId đối với nhân vật/mô hình 3D, hoặc layer.id) */
+  targetId?: string
+  /** Tên hiển thị của đối tượng mục tiêu (ví dụ: 'Nam Hiệp Sĩ', 'Ngôi Nhà Tudor 3D') */
+  targetName?: string
+  /** ID phân cảnh chứa đối tượng mục tiêu */
+  targetShotId?: string
+  /** Vai trò âm thanh của nhân vật: lồng tiếng/thoại, hiệu ứng, bước chân, foley, nhạc nền */
+  characterRole?: AudioCharacterRole
+
+  /** Bật cơ chế chuyển động / hé mở khẩu hình miệng (Lip-sync) theo biên độ giọng nói */
+  lipSyncEnabled?: boolean
+  /** ID của layer miệng cụ thể (nếu không chỉ định sẽ tự động nhận diện trong cụm nhân vật) */
+  lipSyncLayerId?: string
+  /** Độ nhạy / biên độ hé mở khẩu hình miệng (0.2 .. 3.0, mặc định: 1.0) */
+  lipSyncIntensity?: number
 }
 
 export type AssetKind = 'image' | 'audio'

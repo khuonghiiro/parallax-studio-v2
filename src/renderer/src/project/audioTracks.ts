@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid'
-import type { AudioTrackItem, Project } from '@shared/types'
+import type { AudioCharacterRole, AudioTargetType, AudioTrackItem, Project } from '@shared/types'
 import { assetStore } from './assets'
+import { isMouthLayer } from './lipSync'
 
 /**
  * Normalizes and returns all audio tracks in the project.
@@ -51,7 +52,8 @@ export function addAudioTrackToProject(
   project: Project,
   assetId: string,
   name?: string,
-  offset: number = 0
+  offset: number = 0,
+  binding?: Partial<AudioTrackItem>
 ): AudioTrackItem {
   const existingTracks = getProjectAudioTracks(project)
   const safeOffset = typeof offset === 'number' && !isNaN(offset) ? Math.max(0, Math.round(offset * 100) / 100) : 0
@@ -60,7 +62,8 @@ export function addAudioTrackToProject(
     assetId,
     name: name || assetStore.get(assetId)?.meta.name || 'Audio',
     offset: safeOffset,
-    volume: 1
+    volume: 1,
+    ...binding
   }
   project.audioTracks = [...existingTracks, item]
   syncProjectAudio(project)
@@ -219,6 +222,187 @@ export function removeAudioTrackFromProject(project: Project, trackId: string): 
   const existingTracks = getProjectAudioTracks(project)
   project.audioTracks = existingTracks.filter((t) => t.id !== trackId)
   syncProjectAudio(project)
+}
+
+export interface AudioTargetOption {
+  type: AudioTargetType
+  id: string // instanceId hoặc layer.id
+  name: string
+  shotId?: string
+  shotName?: string
+  layerCount?: number
+  mouthLayerId?: string
+}
+
+/**
+ * Quét toàn bộ project (hoặc shot) để lấy danh sách các mục tiêu có thể gắn Audio:
+ * - Nhân vật được tạo từ xưởng lắp ráp layer (Composite)
+ * - Khối mô hình 3D (Model 3D)
+ * - Layer đơn lẻ (Image, Text, Solid...)
+ */
+export function getAvailableAudioTargets(project: Project, shotId?: string): AudioTargetOption[] {
+  const results: AudioTargetOption[] = []
+  const shotMap = new Map(project.shots.map((s) => [s.id, s.name]))
+
+  // 1. Gom các cụm nhân vật composite
+  const compositeMap = new Map<string, { name: string; shotId?: string; layers: string[]; mouthId?: string }>()
+  // 2. Gom các mô hình 3D
+  const model3dMap = new Map<string, { name: string; shotId?: string; layers: string[] }>()
+  // 3. Các layer độc lập
+  const singleLayers: AudioTargetOption[] = []
+
+  const relevantLayers = shotId ? project.layers.filter((l) => l.shotId === shotId) : project.layers
+
+  for (const l of relevantLayers) {
+    if (l.composite?.instanceId) {
+      const inst = l.composite.instanceId
+      let entry = compositeMap.get(inst)
+      if (!entry) {
+        const newEntry = { name: l.composite.compositeName, shotId: l.shotId || undefined, layers: [] }
+        compositeMap.set(inst, newEntry)
+        entry = newEntry
+      }
+      entry.layers.push(l.id)
+      if (isMouthLayer(l) && !entry.mouthId) {
+        entry.mouthId = l.id
+      }
+    } else if (l.model3d?.instanceId) {
+      const inst = l.model3d.instanceId
+      let entry = model3dMap.get(inst)
+      if (!entry) {
+        const newEntry = { name: l.model3d.modelName, shotId: l.shotId || undefined, layers: [] }
+        model3dMap.set(inst, newEntry)
+        entry = newEntry
+      }
+      entry.layers.push(l.id)
+    } else {
+      singleLayers.push({
+        type: 'layer',
+        id: l.id,
+        name: l.name,
+        shotId: l.shotId || undefined,
+        shotName: l.shotId ? shotMap.get(l.shotId) : undefined
+      })
+    }
+  }
+
+  // Thêm các nhân vật composite
+  for (const [id, comp] of compositeMap.entries()) {
+    results.push({
+      type: 'character',
+      id,
+      name: comp.name,
+      shotId: comp.shotId,
+      shotName: comp.shotId ? shotMap.get(comp.shotId) : undefined,
+      layerCount: comp.layers.length,
+      mouthLayerId: comp.mouthId
+    })
+  }
+
+  // Thêm các mô hình 3D
+  for (const [id, mod] of model3dMap.entries()) {
+    results.push({
+      type: 'model3d',
+      id,
+      name: mod.name,
+      shotId: mod.shotId,
+      shotName: mod.shotId ? shotMap.get(mod.shotId) : undefined,
+      layerCount: mod.layers.length
+    })
+  }
+
+  // Thêm các layer đơn lẻ
+  results.push(...singleLayers)
+  return results
+}
+
+/**
+ * Gắn hoặc cập nhật liên kết mục tiêu cho track âm thanh.
+ */
+export function attachAudioTrackToTarget(
+  project: Project,
+  trackId: string,
+  binding: {
+    targetType?: AudioTargetType
+    targetId?: string
+    targetName?: string
+    targetShotId?: string
+    characterRole?: AudioCharacterRole
+    lipSyncEnabled?: boolean
+    lipSyncLayerId?: string
+    lipSyncIntensity?: number
+  }
+): AudioTrackItem | null {
+  const tracks = getProjectAudioTracks(project)
+  const target = trackId === 'main' ? tracks[0] : tracks.find((t) => t.id === trackId)
+  if (!target) return null
+
+  if (binding.targetType !== undefined) target.targetType = binding.targetType
+  if (binding.targetId !== undefined) target.targetId = binding.targetId
+  if (binding.targetName !== undefined) target.targetName = binding.targetName
+  if (binding.targetShotId !== undefined) target.targetShotId = binding.targetShotId
+  if (binding.characterRole !== undefined) target.characterRole = binding.characterRole
+  if (binding.lipSyncEnabled !== undefined) target.lipSyncEnabled = binding.lipSyncEnabled
+  if (binding.lipSyncLayerId !== undefined) target.lipSyncLayerId = binding.lipSyncLayerId
+  if (binding.lipSyncIntensity !== undefined) target.lipSyncIntensity = binding.lipSyncIntensity
+
+  // Tự động tìm mouth layer nếu là nhân vật và chưa có mouthLayerId
+  if (target.targetType === 'character' && target.targetId && !target.lipSyncLayerId) {
+    const targets = getAvailableAudioTargets(project)
+    const charTarget = targets.find((t) => t.id === target.targetId)
+    if (charTarget?.mouthLayerId) {
+      target.lipSyncLayerId = charTarget.mouthLayerId
+    }
+  }
+
+  syncProjectAudio(project)
+  return target
+}
+
+/**
+ * Thay thế tệp âm thanh (asset) mới cho track đã có, bảo lưu nguyên vẹn target binding và timeline offset.
+ */
+export function replaceAudioTrackAsset(
+  project: Project,
+  trackId: string,
+  newAssetId: string,
+  newName?: string
+): AudioTrackItem | null {
+  const tracks = getProjectAudioTracks(project)
+  const target = trackId === 'main' ? tracks[0] : tracks.find((t) => t.id === trackId)
+  if (!target) return null
+
+  target.assetId = newAssetId
+  if (newName) {
+    target.name = newName
+  } else {
+    const meta = assetStore.get(newAssetId)?.meta
+    if (meta?.name) target.name = meta.name
+  }
+
+  syncProjectAudio(project)
+  return target
+}
+
+/**
+ * Thay thế âm thanh nhanh cho một nhân vật cụ thể trong cảnh.
+ */
+export function replaceCharacterAudio(
+  project: Project,
+  characterInstanceId: string,
+  newAssetId: string,
+  role?: AudioCharacterRole,
+  newName?: string
+): AudioTrackItem | null {
+  const tracks = getProjectAudioTracks(project)
+  const charTrack = tracks.find((t) => {
+    if (t.targetType !== 'character' || t.targetId !== characterInstanceId) return false
+    if (role && t.characterRole && t.characterRole !== role) return false
+    return true
+  })
+
+  if (!charTrack) return null
+  return replaceAudioTrackAsset(project, charTrack.id, newAssetId, newName)
 }
 
 /**

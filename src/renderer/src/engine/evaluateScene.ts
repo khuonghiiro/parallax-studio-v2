@@ -3,6 +3,7 @@ import type { Layer, Project, Shot, Vec3 } from '@shared/types'
 import { evaluate } from '../animation/keyframes'
 import { autoScaleFactor, referenceDistance, smoothNoise } from '../animation/math'
 import { composeDepthMatrix, depthToThree, layerNominalSize, threeToDepth, transformedBox } from './spatial'
+import { evaluateCharacterLipSync } from '../project/lipSync'
 
 export interface EvaluatedCamera {
   position: Vec3
@@ -229,6 +230,14 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
         sc[0] *= 1 + p * (amp[0] || 0.05)
         sc[1] *= 1 + p * (amp[1] || 0.05)
       }
+    }
+
+    // Đánh giá chuyển động miệng / Lip-sync từ audio giọng nói nhân vật theo thời gian thực
+    const lipSync = evaluateCharacterLipSync(project, layer, t)
+    if (lipSync.active) {
+      sc[0] *= lipSync.scaleX
+      sc[1] *= lipSync.scaleY
+      pos[1] += lipSync.offsetY
     }
 
     const k = layer.autoScale ? autoScaleFactor(pos[2], comp) : 1

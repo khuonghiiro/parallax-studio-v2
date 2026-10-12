@@ -7,9 +7,20 @@ import { getAudioPeaks } from '../../project/audioPeaks'
 import { syncProjectAudio } from '../../project/audioTracks'
 import { useEditor } from '../../store/editor'
 import { useView } from '../../store/view'
-import { IconCopy, IconMusic, IconScissors, IconSliders, IconTrash } from '../icons'
+import {
+  IconCopy,
+  IconCube,
+  IconLayerAssembly,
+  IconLipSync,
+  IconMusic,
+  IconScissors,
+  IconSliders,
+  IconTrash,
+  IconVoiceDialogue
+} from '../icons'
 import { PAD } from './timelineTypes'
 import { TimelineRow } from './TimelineRow'
+import { AudioTargetModal } from './AudioTargetModal'
 
 export interface AudioRowProps {
   track?: AudioTrackItem
@@ -25,6 +36,7 @@ export function AudioRow({ track: propTrack, x, trackW }: AudioRowProps) {
   const selectedAudioTrackId = useEditor((s) => s.selectedAudioTrackId)
   const theme = useView((s) => s.theme)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [isTargetModalOpen, setIsTargetModalOpen] = React.useState(false)
 
   const track: AudioTrackItem | null =
     propTrack ||
@@ -47,6 +59,7 @@ export function AudioRow({ track: propTrack, x, trackW }: AudioRowProps) {
   const left = x(track.offset)
   const width = Math.max(4, x(track.offset + audioDur) - left)
   const trackName = track.name || meta?.name || 'Audio'
+  const isVoice = track.characterRole === 'voice' || track.lipSyncEnabled
 
   useEffect(() => {
     let alive = true
@@ -62,8 +75,13 @@ export function AudioRow({ track: propTrack, x, trackW }: AudioRowProps) {
 
       const isLight = theme === 'light'
       // High contrast electric sky blue on the dark blue bar in Light theme, vivid cyan blue on Dark theme
-      const waveColor = isLight ? '#e0f2fe' : '#38bdf8'
-      const centerLine = isLight ? 'rgba(224, 242, 254, 0.22)' : 'rgba(56, 189, 248, 0.2)'
+      // Dùng màu hồng cánh sen nếu là track thoại của nhân vật
+      const waveColor = isVoice
+        ? (isLight ? '#f43f5e' : '#fb7185')
+        : (isLight ? '#e0f2fe' : '#38bdf8')
+      const centerLine = isVoice
+        ? 'rgba(244, 63, 94, 0.25)'
+        : (isLight ? 'rgba(224, 242, 254, 0.22)' : 'rgba(56, 189, 248, 0.2)')
 
       // Draw subtle center baseline
       ctx.strokeStyle = centerLine
@@ -86,7 +104,7 @@ export function AudioRow({ track: propTrack, x, trackW }: AudioRowProps) {
     return () => {
       alive = false
     }
-  }, [track.assetId, track.volume, width, theme])
+  }, [track.assetId, track.volume, width, theme, isVoice])
 
   const drag = (e: React.PointerEvent): void => {
     const startX = e.clientX
@@ -117,120 +135,223 @@ export function AudioRow({ track: propTrack, x, trackW }: AudioRowProps) {
   }
 
   return (
-    <TimelineRow
-      trackWidth={trackW}
-      selected={isSelected}
-      onClick={() => useEditor.getState().selectAudioTrack(track.id)}
-      onTrackPointerDown={() => useEditor.getState().selectAudioTrack(track.id)}
-      name={
-        <div className="tl-name">
-          <span style={{ width: 14 }} />
-          <span className="ico" style={{ background: '#2563eb', color: '#fff' }}>
-            <IconMusic width={11} height={11} />
-          </span>
-          <span
-            className="label"
-            title={`${trackName} · Bắt đầu lúc ${track.offset.toFixed(2)}s · Click để chọn (nhấn Del để xoá)`}
-            style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}
-          >
-            {trackName}
-          </span>
-          <span
+    <>
+      <TimelineRow
+        trackWidth={trackW}
+        selected={isSelected}
+        onClick={() => useEditor.getState().selectAudioTrack(track.id)}
+        onTrackPointerDown={() => useEditor.getState().selectAudioTrack(track.id)}
+        name={
+          <div className="tl-name">
+            <span style={{ width: 14 }} />
+            <span
+              className="ico"
+              style={{
+                background: isVoice ? '#be185d' : '#2563eb',
+                color: '#fff'
+              }}
+            >
+              {isVoice ? <IconVoiceDialogue width={11} height={11} /> : <IconMusic width={11} height={11} />}
+            </span>
+            <span
+              className="label"
+              title={`${trackName} · Bắt đầu lúc ${track.offset.toFixed(2)}s · Click để chọn (nhấn Del để xoá)`}
+              style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}
+            >
+              {trackName}
+            </span>
+
+            {/* Badge mục tiêu liên kết */}
+            {track.targetName ? (
+              <button
+                type="button"
+                className="tl-audio-target-badge mini"
+                title={`Đã gắn vào: ${track.targetName} (${track.characterRole || 'voice'}) · Click để sửa hoặc đổi`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsTargetModalOpen(true)
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  fontSize: '9.5px',
+                  padding: '1px 5px',
+                  borderRadius: 3,
+                  border:
+                    track.targetType === 'character'
+                      ? '1px solid rgba(99, 102, 241, 0.4)'
+                      : '1px solid rgba(6, 182, 212, 0.4)',
+                  background:
+                    track.targetType === 'character'
+                      ? 'rgba(99, 102, 241, 0.15)'
+                      : 'rgba(6, 182, 212, 0.15)',
+                  color: track.targetType === 'character' ? 'var(--accent, #6366f1)' : 'var(--accent-cyan, #06b6d4)',
+                  cursor: 'pointer',
+                  flexShrink: 0
+                }}
+              >
+                {track.targetType === 'character' ? (
+                  <IconLayerAssembly width={9} height={9} />
+                ) : track.targetType === 'model3d' ? (
+                  <IconCube width={9} height={9} />
+                ) : (
+                  <IconMusic width={9} height={9} />
+                )}
+                <span style={{ fontWeight: 600 }}>{track.targetName}</span>
+                {track.characterRole === 'voice' && <span style={{ opacity: 0.85 }}>[Thoại]</span>}
+                {track.lipSyncEnabled && (
+                  <span title="Đang bật khẩu hình miệng" style={{ color: '#f43f5e', display: 'flex' }}>
+                    <IconLipSync width={9} height={9} strokeWidth={2.4} />
+                  </span>
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="tl-audio-bind-btn mini"
+                title="Gắn đoạn âm thanh này vào nhân vật / khối 3D / layer để đồng bộ animation"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsTargetModalOpen(true)
+                }}
+                style={{
+                  fontSize: '9px',
+                  color: 'var(--text-faint)',
+                  border: '1px dashed var(--line)',
+                  padding: '1px 4px',
+                  borderRadius: 3,
+                  cursor: 'pointer',
+                  flexShrink: 0
+                }}
+              >
+                + Gắn mục tiêu
+              </button>
+            )}
+
+            <span
+              style={{
+                fontSize: '10px',
+                fontVariantNumeric: 'tabular-nums',
+                color: 'var(--text-faint)',
+                marginRight: 4,
+                flexShrink: 0
+              }}
+            >
+              {track.offset.toFixed(1)}s
+            </span>
+
+            <span className="row-actions">
+              <button
+                type="button"
+                className={`mini${track.targetName ? ' active' : ''}`}
+                title="Gắn mục tiêu (nhân vật, 3D, khẩu hình miệng Lip-sync, đổi âm thanh)"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsTargetModalOpen(true)
+                }}
+              >
+                <IconVoiceDialogue width={12} height={12} />
+              </button>
+              <button
+                type="button"
+                className="mini"
+                title="Cấu hình mức âm lượng & biểu đồ sóng âm (L / LL)"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  useView.getState().openAudioDialog('waveform')
+                }}
+              >
+                <IconSliders width={12} height={12} />
+              </button>
+              <button
+                type="button"
+                className="mini"
+                title="Cắt đôi đoạn âm thanh này tại vị trí kim phát"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  splitAudioTrack(track.id)
+                }}
+              >
+                <IconScissors width={12} height={12} />
+              </button>
+              <button
+                type="button"
+                className="mini"
+                title="Tạo trùng (nhân bản) đoạn âm thanh này tại kim phát"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  duplicateAudioTrack(track.id)
+                }}
+              >
+                <IconCopy width={12} height={12} />
+              </button>
+              <button
+                type="button"
+                className="mini danger"
+                title="Xoá đoạn âm thanh này (Del)"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  removeAudioTrack(track.id)
+                }}
+              >
+                <IconTrash width={12} height={12} />
+              </button>
+            </span>
+          </div>
+        }
+        track={
+          <div
+            className={`tl-bar tl-audio-bar${isSelected ? ' selected' : ''}${isVoice ? ' tl-audio-bar-voice' : ''}`}
+            tabIndex={0}
+            title={`Click để chọn (nhấn Del để xoá) · Kéo để dời thời điểm (${track.offset.toFixed(2)}s) · Double click để mở bảng sóng âm (LL) · ${trackName}`}
             style={{
-              fontSize: '10px',
-              fontVariantNumeric: 'tabular-nums',
-              color: 'var(--text-faint)',
-              marginRight: 4,
-              flexShrink: 0
+              left,
+              width,
+              overflow: 'hidden',
+              ...(isVoice
+                ? {
+                    border: '1px solid rgba(244, 63, 94, 0.65)',
+                    boxShadow: '0 0 8px rgba(244, 63, 94, 0.25)'
+                  }
+                : {})
             }}
-          >
-            {track.offset.toFixed(1)}s
-          </span>
-          <span className="row-actions">
-            <button
-              type="button"
-              className="mini"
-              title="Cấu hình mức âm lượng & biểu đồ sóng âm (L / LL)"
-              onClick={(e) => {
-                e.stopPropagation()
-                useView.getState().openAudioDialog('waveform')
-              }}
-            >
-              <IconSliders width={12} height={12} />
-            </button>
-            <button
-              type="button"
-              className="mini"
-              title="Cắt đôi đoạn âm thanh này tại vị trí kim phát"
-              onClick={(e) => {
-                e.stopPropagation()
-                splitAudioTrack(track.id)
-              }}
-            >
-              <IconScissors width={12} height={12} />
-            </button>
-            <button
-              type="button"
-              className="mini"
-              title="Tạo trùng (nhân bản) đoạn âm thanh này tại kim phát"
-              onClick={(e) => {
-                e.stopPropagation()
-                duplicateAudioTrack(track.id)
-              }}
-            >
-              <IconCopy width={12} height={12} />
-            </button>
-            <button
-              type="button"
-              className="mini danger"
-              title="Xoá đoạn âm thanh này (Del)"
-              onClick={(e) => {
+            onPointerDown={(e) => {
+              useEditor.getState().selectAudioTrack(track.id)
+              drag(e)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Delete' || e.key === 'Backspace') {
+                e.preventDefault()
                 e.stopPropagation()
                 removeAudioTrack(track.id)
-              }}
-            >
-              <IconTrash width={12} height={12} />
-            </button>
-          </span>
-        </div>
-      }
-      track={
-        <div
-          className={`tl-bar tl-audio-bar${isSelected ? ' selected' : ''}`}
-          tabIndex={0}
-          title={`Click để chọn (nhấn Del để xoá) · Kéo để dời thời điểm (${track.offset.toFixed(2)}s) · Double click để mở bảng sóng âm (LL) · ${trackName}`}
-          style={{
-            left,
-            width,
-            overflow: 'hidden'
-          }}
-          onPointerDown={(e) => {
-            useEditor.getState().selectAudioTrack(track.id)
-            drag(e)
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Delete' || e.key === 'Backspace') {
-              e.preventDefault()
+              }
+            }}
+            onDoubleClick={(e) => {
               e.stopPropagation()
-              removeAudioTrack(track.id)
-            }
-          }}
-          onDoubleClick={(e) => {
-            e.stopPropagation()
-            useView.getState().openAudioDialog('waveform')
-          }}
-        >
-          <span className="tl-audio-bar-tag">
-            <IconMusic width={10} height={10} strokeWidth={2.4} />
-            {trackName}
-          </span>
-          <canvas
-            ref={canvasRef}
-            className="audio-wave"
-            style={{ width: '100%', height: 'calc(100% - 4px)' }}
-          />
-        </div>
-      }
-    />
+              useView.getState().openAudioDialog('waveform')
+            }}
+          >
+            <span className="tl-audio-bar-tag" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {isVoice ? (
+                <IconLipSync width={10} height={10} strokeWidth={2.4} />
+              ) : (
+                <IconMusic width={10} height={10} strokeWidth={2.4} />
+              )}
+              {track.targetName ? `[${track.targetName}] ${trackName}` : trackName}
+            </span>
+            <canvas
+              ref={canvasRef}
+              className="audio-wave"
+              style={{ width: '100%', height: 'calc(100% - 4px)' }}
+            />
+          </div>
+        }
+      />
+
+      {isTargetModalOpen && (
+        <AudioTargetModal track={track} onClose={() => setIsTargetModalOpen(false)} />
+      )}
+    </>
   )
 }

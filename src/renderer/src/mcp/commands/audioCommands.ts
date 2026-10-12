@@ -1,13 +1,18 @@
-import type { AudioTrackItem, Project } from '@shared/types'
+import type { AudioCharacterRole, AudioTargetType, AudioTrackItem, Project } from '@shared/types'
 import {
   addAudioTrackToProject,
+  attachAudioTrackToTarget,
   duplicateAudioTrackInProject,
+  getAvailableAudioTargets,
   getProjectAudioTracks,
   mergeAudioTracksInProject,
   removeAudioTrackFromProject,
+  replaceAudioTrackAsset,
+  replaceCharacterAudio,
   splitAudioTrackInProject,
   syncProjectAudio
 } from '../../project/audioTracks'
+import { bakeLipSyncToCharacterLayerSync, preloadAudioPeaks } from '../../project/lipSync'
 import { assetStore } from '../../project/assets'
 import { ParamError, ed, proj, type Handler } from '../types'
 import { bool, has, num, str } from '../params'
@@ -28,7 +33,15 @@ function summarizeTrack(t: AudioTrackItem) {
     fadeIn: t.fadeIn ?? 0,
     fadeOut: t.fadeOut ?? 0,
     tone: t.tone,
-    gainDb: t.gainDb ?? 0
+    gainDb: t.gainDb ?? 0,
+    targetType: t.targetType,
+    targetId: t.targetId,
+    targetName: t.targetName,
+    targetShotId: t.targetShotId,
+    characterRole: t.characterRole,
+    lipSyncEnabled: t.lipSyncEnabled,
+    lipSyncLayerId: t.lipSyncLayerId,
+    lipSyncIntensity: t.lipSyncIntensity
   }
 }
 
@@ -78,6 +91,18 @@ export const audioCommands: Record<string, Handler> = {
       if (has(p, 'fade_out')) created.fadeOut = Math.max(0, num(p, 'fade_out')!)
       if (has(p, 'trim_in')) created.trimIn = Math.max(0, num(p, 'trim_in')!)
       if (has(p, 'duration')) created.duration = Math.max(0.1, num(p, 'duration')!)
+
+      // Target binding và lip-sync
+      if (has(p, 'target_type')) created.targetType = str(p, 'target_type') as AudioTargetType
+      if (has(p, 'target_id')) created.targetId = str(p, 'target_id')!
+      if (has(p, 'target_name')) created.targetName = str(p, 'target_name')!
+      if (has(p, 'target_shot_id')) created.targetShotId = str(p, 'target_shot_id')!
+      if (has(p, 'character_role')) created.characterRole = str(p, 'character_role') as AudioCharacterRole
+      if (has(p, 'lip_sync')) created.lipSyncEnabled = bool(p, 'lip_sync')!
+      else if (has(p, 'lip_sync_enabled')) created.lipSyncEnabled = bool(p, 'lip_sync_enabled')!
+      if (has(p, 'lip_sync_layer_id')) created.lipSyncLayerId = str(p, 'lip_sync_layer_id')!
+      if (has(p, 'lip_sync_intensity')) created.lipSyncIntensity = Math.max(0.1, Math.min(3, num(p, 'lip_sync_intensity')!))
+
       syncProjectAudio(d as Project)
     })
 
@@ -107,6 +132,17 @@ export const audioCommands: Record<string, Handler> = {
       if (has(p, 'duration')) target.duration = Math.max(0.1, num(p, 'duration')!)
       if (has(p, 'gain_db')) target.gainDb = Math.max(-24, Math.min(12, num(p, 'gain_db')!))
       if (has(p, 'tone')) target.tone = str(p, 'tone') as AudioTrackItem['tone']
+
+      // Target binding và lip-sync
+      if (has(p, 'target_type')) target.targetType = str(p, 'target_type') as AudioTargetType
+      if (has(p, 'target_id')) target.targetId = str(p, 'target_id')!
+      if (has(p, 'target_name')) target.targetName = str(p, 'target_name')!
+      if (has(p, 'target_shot_id')) target.targetShotId = str(p, 'target_shot_id')!
+      if (has(p, 'character_role')) target.characterRole = str(p, 'character_role') as AudioCharacterRole
+      if (has(p, 'lip_sync')) target.lipSyncEnabled = bool(p, 'lip_sync')!
+      else if (has(p, 'lip_sync_enabled')) target.lipSyncEnabled = bool(p, 'lip_sync_enabled')!
+      if (has(p, 'lip_sync_layer_id')) target.lipSyncLayerId = str(p, 'lip_sync_layer_id')!
+      if (has(p, 'lip_sync_intensity')) target.lipSyncIntensity = Math.max(0.1, Math.min(3, num(p, 'lip_sync_intensity')!))
 
       syncProjectAudio(d as Project)
     })
@@ -185,5 +221,113 @@ export const audioCommands: Record<string, Handler> = {
 
     const found = getProjectAudioTracks(proj()).find((t) => t.id === merged.id)
     return found ? summarizeTrack(found) : summarizeTrack(merged)
+  },
+
+  /**
+   * Liệt kê tất cả các mục tiêu (nhân vật, mô hình 3D, layer) trong dự án có thể gắn audio.
+   */
+  get_audio_targets: (p) => {
+    const shotId = str(p, 'shot_id')
+    const targets = getAvailableAudioTargets(proj(), shotId)
+    return {
+      shotId: shotId || null,
+      totalTargets: targets.length,
+      targets
+    }
+  },
+
+  /**
+   * Gắn hoặc cập nhật liên kết mục tiêu cho track âm thanh (nhân vật, vai trò, khẩu hình miệng).
+   */
+  attach_audio_to_target: (p) => {
+    const trackId = str(p, 'track_id', true)
+    let targetTrackId = trackId
+
+    ed().update((d) => {
+      const binding = {
+        targetType: has(p, 'target_type') ? (str(p, 'target_type') as AudioTargetType) : undefined,
+        targetId: has(p, 'target_id') ? str(p, 'target_id')! : undefined,
+        targetName: has(p, 'target_name') ? str(p, 'target_name')! : undefined,
+        targetShotId: has(p, 'target_shot_id') ? str(p, 'target_shot_id')! : undefined,
+        characterRole: has(p, 'character_role') ? (str(p, 'character_role') as AudioCharacterRole) : undefined,
+        lipSyncEnabled: has(p, 'lip_sync')
+          ? bool(p, 'lip_sync')!
+          : has(p, 'lip_sync_enabled')
+            ? bool(p, 'lip_sync_enabled')!
+            : undefined,
+        lipSyncLayerId: has(p, 'lip_sync_layer_id') ? str(p, 'lip_sync_layer_id')! : undefined,
+        lipSyncIntensity: has(p, 'lip_sync_intensity') ? num(p, 'lip_sync_intensity')! : undefined
+      }
+
+      const updated = attachAudioTrackToTarget(d as Project, trackId, binding)
+      if (!updated) {
+        throw new ParamError(`Không tìm thấy track âm thanh với ID: ${trackId}`)
+      }
+      targetTrackId = updated.id
+    }, `Gắn âm thanh ${trackId} vào mục tiêu`)
+
+    const found = getProjectAudioTracks(proj()).find((t) => t.id === targetTrackId)
+    return found ? summarizeTrack(found) : null
+  },
+
+  /**
+   * Thay thế tệp âm thanh (asset) mới cho một nhân vật cụ thể trong cảnh.
+   */
+  replace_character_audio: (p) => {
+    const characterInstanceId = str(p, 'character_instance_id', true)
+    const newAssetId = str(p, 'asset_id', true)
+    const role = has(p, 'character_role') ? (str(p, 'character_role') as AudioCharacterRole) : undefined
+    const newName = str(p, 'name')
+    let replacedId = ''
+
+    ed().update((d) => {
+      const replaced = replaceCharacterAudio(d as Project, characterInstanceId, newAssetId, role, newName)
+      if (!replaced) {
+        throw new ParamError(
+          `Không tìm thấy track âm thanh gắn với nhân vật: ${characterInstanceId}${role ? ` (vai trò: ${role})` : ''}`
+        )
+      }
+      replacedId = replaced.id
+    }, `Thay thế âm thanh cho nhân vật ${characterInstanceId}`)
+
+    const found = getProjectAudioTracks(proj()).find((t) => t.id === replacedId)
+    return found ? summarizeTrack(found) : null
+  },
+
+  /**
+   * Nướng keyframes khẩu hình miệng trực tiếp vào Timeline của layer miệng nhân vật theo track âm thanh.
+   */
+  bake_character_lipsync: async (p) => {
+    const trackId = str(p, 'track_id', true)
+    const intensity = has(p, 'intensity') ? num(p, 'intensity')! : undefined
+    const fps = has(p, 'fps') ? num(p, 'fps')! : undefined
+
+    const track = getProjectAudioTracks(proj()).find((t) => t.id === trackId)
+    if (!track) {
+      throw new ParamError(`Không tìm thấy track âm thanh: "${trackId}"`)
+    }
+
+    if (track.assetId) {
+      await preloadAudioPeaks(track.assetId)
+    }
+
+    let result: { success: boolean; layerId?: string; bakedKeyframeCount: number } = {
+      success: false,
+      bakedKeyframeCount: 0
+    }
+
+    ed().update((d) => {
+      result = bakeLipSyncToCharacterLayerSync(d as Project, trackId, {
+        intensity,
+        fps
+      })
+      if (!result.success) {
+        throw new ParamError(
+          `Không thể nướng keyframe khẩu hình cho track "${trackId}". Hãy kiểm tra track đã gắn vào nhân vật và nhân vật có layer miệng.`
+        )
+      }
+    }, `Nướng keyframe khẩu hình cho track ${trackId}`)
+
+    return result
   }
 }

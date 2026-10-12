@@ -10,6 +10,8 @@ import { AudioRow } from './timeline/AudioRow'
 import { getProjectAudioTracks } from '../project/audioTracks'
 import { TimelineToolbar } from './timeline/TimelineToolbar'
 import { TimelineLayerRow } from './timeline/TimelineLayerRow'
+import { TimelineClusterRow } from './timeline/TimelineClusterRow'
+import { buildTimelineClusters } from './timeline/timelineClusters'
 import { openFxPresetMenu } from './timeline/FxPresetMenu'
 import {
   addAudioTrackFromAsset,
@@ -40,6 +42,7 @@ export function Timeline() {
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [collapsedClusters, setCollapsedClusters] = useState<Set<string>>(new Set())
   const [renaming, setRenaming] = useState<string | null>(null)
   const [zoom, setZoom] = useState<number>(1)
 
@@ -450,6 +453,14 @@ export function Timeline() {
       return n
     })
 
+  const toggleCluster = (id: string): void =>
+    setCollapsedClusters((s) => {
+      const n = new Set(s)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
+
   return (
     <section className="panel timeline">
       <TimelineToolbar
@@ -664,28 +675,79 @@ export function Timeline() {
                       />
                     ))}
                   {!isCollapsed &&
-                    g.layers.map((layer) => (
-                      <TimelineLayerRow
-                        key={layer.id}
-                        layer={layer}
-                        nested={project.shots.length > 0 && !!shot}
-                        isOpen={expanded.has(layer.id)}
-                        isSelected={layer.id === selectedLayerId}
-                        isRenaming={renaming === layer.id}
-                        time={time}
-                        x={x}
-                        trackWidth={contentW}
-                        onTrackPointerDown={handleTrackPointerDown}
-                        onBarContextMenu={handleLayerContextMenu}
-                        onToggleOpen={() => toggle(layer.id)}
-                        onSelect={() => selectLayer(layer.id)}
-                        setRenaming={setRenaming}
-                        startBarDrag={startBarDrag}
-                        startKeyDrag={startKeyDrag}
-                        renderKeys={renderKeys}
-                        summaryKeys={summaryKeys}
-                      />
-                    ))}
+                    buildTimelineClusters(g.layers).map((item) => {
+                      if (item.kind === 'cluster') {
+                        const isClusterCollapsed = collapsedClusters.has(item.instanceId)
+                        return (
+                          <div key={`cluster-${item.instanceId}`} className="tl-cluster-group">
+                            <TimelineClusterRow
+                              cluster={item}
+                              isCollapsed={isClusterCollapsed}
+                              isSelected={item.layers.some((l) => l.id === selectedLayerId)}
+                              trackWidth={contentW}
+                              x={x}
+                              onToggleCollapse={() => toggleCluster(item.instanceId)}
+                              onSelect={() => {
+                                if (item.rootLayerId) selectLayer(item.rootLayerId)
+                                else if (item.layers[0]) selectLayer(item.layers[0].id)
+                              }}
+                              onTrackPointerDown={handleTrackPointerDown}
+                              summaryKeys={summaryKeys}
+                            />
+                            {!isClusterCollapsed &&
+                              item.layers.map((layer) => (
+                                <TimelineLayerRow
+                                  key={layer.id}
+                                  layer={layer}
+                                  nested={project.shots.length > 0 && !!shot}
+                                  clusterRole="child"
+                                  clusterType={item.clusterType}
+                                  clusterName={item.name}
+                                  isOpen={expanded.has(layer.id)}
+                                  isSelected={layer.id === selectedLayerId}
+                                  isRenaming={renaming === layer.id}
+                                  time={time}
+                                  x={x}
+                                  trackWidth={contentW}
+                                  onTrackPointerDown={handleTrackPointerDown}
+                                  onBarContextMenu={handleLayerContextMenu}
+                                  onToggleOpen={() => toggle(layer.id)}
+                                  onSelect={() => selectLayer(layer.id)}
+                                  setRenaming={setRenaming}
+                                  startBarDrag={startBarDrag}
+                                  startKeyDrag={startKeyDrag}
+                                  renderKeys={renderKeys}
+                                  summaryKeys={summaryKeys}
+                                />
+                              ))}
+                          </div>
+                        )
+                      }
+
+                      const layer = item.layer
+                      return (
+                        <TimelineLayerRow
+                          key={layer.id}
+                          layer={layer}
+                          nested={project.shots.length > 0 && !!shot}
+                          isOpen={expanded.has(layer.id)}
+                          isSelected={layer.id === selectedLayerId}
+                          isRenaming={renaming === layer.id}
+                          time={time}
+                          x={x}
+                          trackWidth={contentW}
+                          onTrackPointerDown={handleTrackPointerDown}
+                          onBarContextMenu={handleLayerContextMenu}
+                          onToggleOpen={() => toggle(layer.id)}
+                          onSelect={() => selectLayer(layer.id)}
+                          setRenaming={setRenaming}
+                          startBarDrag={startBarDrag}
+                          startKeyDrag={startKeyDrag}
+                          renderKeys={renderKeys}
+                          summaryKeys={summaryKeys}
+                        />
+                      )
+                    })}
                 </div>
               )
             })}
