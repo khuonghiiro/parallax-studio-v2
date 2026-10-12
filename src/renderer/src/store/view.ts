@@ -18,6 +18,14 @@ interface ViewPrefs {
   theme: Theme
   /** 2.5D Depth Diagram projection mode: Top-down (X-Z) or Side-elevation (Z-Y). */
   topViewMode: TopViewMode
+  /** Bounding box and resize handles for active layer selection. */
+  showBbox: boolean
+  /** 3D Translation Gizmo (XYZ arrows & axes). */
+  showTranslate: boolean
+  /** 3D Rotation Gizmo (XYZ rotation rings). */
+  showRotate: boolean
+  /** Layer position and rotation telemetry readout (P 0 / 0 / ... · R 0° / 0° / ...). */
+  showReadout: boolean
 }
 
 export interface FocusRequest {
@@ -71,13 +79,24 @@ function load(): ViewPrefs {
     showPath: true,
     cameraOnly: false,
     theme: 'dark',
-    topViewMode: 'top'
+    topViewMode: 'top',
+    showBbox: true,
+    showTranslate: true,
+    showRotate: true,
+    showReadout: true
   }
   try {
     const raw = localStorage.getItem(KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<ViewPrefs>
-      const res = { ...d, ...parsed }
+      const res: ViewPrefs = {
+        ...d,
+        ...parsed,
+        showBbox: typeof parsed.showBbox === 'boolean' ? parsed.showBbox : d.showBbox,
+        showTranslate: typeof parsed.showTranslate === 'boolean' ? parsed.showTranslate : d.showTranslate,
+        showRotate: typeof parsed.showRotate === 'boolean' ? parsed.showRotate : d.showRotate,
+        showReadout: typeof parsed.showReadout === 'boolean' ? parsed.showReadout : d.showReadout
+      }
       applyTheme(res.theme)
       return res
     }
@@ -126,8 +145,35 @@ export const useView = create<ViewState>((set, get) => ({
   set(p) {
     if (p.theme) applyTheme(p.theme)
     set(p)
-    const { split, primary, editorKind, showPath, cameraOnly, theme, topViewMode } = get()
-    localStorage.setItem(KEY, JSON.stringify({ split, primary, editorKind, showPath, cameraOnly, theme, topViewMode }))
+    const {
+      split,
+      primary,
+      editorKind,
+      showPath,
+      cameraOnly,
+      theme,
+      topViewMode,
+      showBbox,
+      showTranslate,
+      showRotate,
+      showReadout
+    } = get()
+    localStorage.setItem(
+      KEY,
+      JSON.stringify({
+        split,
+        primary,
+        editorKind,
+        showPath,
+        cameraOnly,
+        theme,
+        topViewMode,
+        showBbox,
+        showTranslate,
+        showRotate,
+        showReadout
+      })
+    )
   },
   requestFocus(kind, id) {
     const s = get()

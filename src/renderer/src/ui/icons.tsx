@@ -806,3 +806,13 @@ export const IconLipSync = (p: P) => (
     <path d="M9 10c1 .8 2 1.2 3 1.2s2-.4 3-1.2" />
   </svg>
 )
+
+export const IconReadout = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="2.5" y="4.5" width="19" height="15" rx="2.5" />
+    <path d="M6 15V9h2a1.5 1.5 0 0 1 0 3H6" />
+    <path d="M12.5 15v-6h2a1.5 1.5 0 0 1 1.5 1.5c0 .7-.5 1.3-1.2 1.4l1.7 3.1h-1.5L13.5 12" />
+  </svg>
+)
+
+

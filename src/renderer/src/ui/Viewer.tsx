@@ -256,6 +256,14 @@ export function Viewer() {
       if (e.key === 'f' || e.key === 'F') {
         useView.getState().requestFocus('selection')
         e.preventDefault()
+      } else if (e.key === 'w' || e.key === 'W') {
+        const v = useView.getState()
+        v.set({ showTranslate: !v.showTranslate })
+        e.preventDefault()
+      } else if (e.key === 'e' || e.key === 'E') {
+        const v = useView.getState()
+        v.set({ showRotate: !v.showRotate })
+        e.preventDefault()
       }
     }
     window.addEventListener('keydown', onKey)

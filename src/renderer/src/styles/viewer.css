@@ -186,17 +186,82 @@
   z-index: 12;
 }
 
-/* Viewport HUD */
+/* ==========================================================================
+   Viewport HUD (Left Telemetry Pill Dock)
+   ========================================================================== */
 .viewer-hud {
   position: absolute;
   top: 8px;
   left: 10px;
-  display: flex;
-  gap: 6px;
-  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 4px;
+  background: var(--hud-bg);
+  border: 1px solid var(--hud-border);
+  border-radius: var(--radius-sm);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+  user-select: none;
   z-index: 15;
+  pointer-events: auto;
 }
 
+.hud-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 2px;
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-family: var(--mono);
+  white-space: nowrap;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.hud-item .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 6px var(--ok);
+}
+
+.hud-item .dot.live {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan);
+  animation: hudPulse 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes hudPulse {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  100% { transform: scale(1.15); opacity: 1; }
+}
+
+.hud-item.mem {
+  cursor: pointer;
+  color: var(--accent-cyan);
+}
+.hud-item.mem:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+.hud-item.mem.warn {
+  color: var(--key);
+}
+
+.hud-sep {
+  width: 1px;
+  height: 12px;
+  background: var(--line-soft);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+/* Fallback chips for backwards-compatibility */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -228,16 +293,135 @@
   border-color: rgba(245, 158, 11, 0.4);
 }
 
-/* Viewer Controls Overlay */
+/* ==========================================================================
+   Viewer Controls Dock (Right Floating Action Bar)
+   ========================================================================== */
 .viewer-tools {
   position: absolute;
   top: 8px;
   right: 10px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  height: 26px;
+  padding: 0 3px;
+  gap: 2px;
+  background: var(--hud-bg);
+  border: 1px solid var(--hud-border);
+  border-radius: var(--radius-sm);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+  user-select: none;
   z-index: 15;
 }
+
+.viewer-mode-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 1px;
+  background: color-mix(in srgb, var(--bg-0) 65%, transparent);
+  border-radius: 2px;
+}
+
+.seg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+.seg-btn:hover {
+  color: var(--text);
+  background: var(--bg-3);
+}
+.seg-btn.active {
+  background: var(--bg-2);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.viewer-tool-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.viewer-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  min-width: 22px;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 10.5px;
+  transition: all 0.12s ease;
+}
+.viewer-tool-btn:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line-soft);
+}
+.viewer-tool-btn.active {
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-2));
+  color: var(--accent-cyan);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.viewer-tool-btn.quality {
+  font-family: var(--mono);
+  font-weight: 600;
+  padding: 0 5px;
+  font-size: 10px;
+}
+
+.viewer-tool-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--line-soft);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+/* CustomSelect integration inside .viewer-tools */
+.viewer-tools .custom-select-wrap.viewer-kind-select {
+  width: auto;
+  min-width: 104px;
+}
+.viewer-tools .custom-select-wrap.viewer-kind-select .custom-select-trigger {
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  color: var(--text);
+}
+.viewer-tools .custom-select-wrap.viewer-kind-select .custom-select-trigger:hover {
+  background: var(--bg-3);
+  border-color: var(--line-soft);
+}
+.viewer-tools .custom-select-wrap.viewer-kind-select .custom-select-trigger.open {
+  background: var(--bg-3);
+  border-color: var(--accent);
+}
+
+/* Backwards-compatibility for older button and select styles */
 .viewer-tools .btn,
 .viewer-tools .select {
   background: var(--hud-bg);
@@ -275,3 +459,4 @@
   color: var(--text);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
+
