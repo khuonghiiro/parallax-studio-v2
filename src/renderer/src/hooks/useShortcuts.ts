@@ -22,12 +22,40 @@ function isTyping(e: KeyboardEvent): boolean {
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
 }
 
+function isModalOpen(): boolean {
+  const view = useView.getState()
+  if (view.dialog !== null || view.assemblyModalModel !== null) return true
+  if (typeof document !== 'undefined') {
+    return Boolean(document.querySelector('.modal-backdrop, .la-dialog-backdrop, .a3d-backdrop'))
+  }
+  return false
+}
+
 export function useShortcuts(onExport: () => void): void {
   const lastLPressRef = useRef<number>(0)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      if (e.defaultPrevented || isTyping(e)) return
+      if (e.defaultPrevented) return
+
+      const view = useView.getState()
+      // Escape should always close non-export dialogs or blur active inputs
+      if (e.key === 'Escape') {
+        if (view.dialog && view.dialog !== 'export') {
+          view.openDialog(null)
+          e.preventDefault()
+          return
+        }
+        if (isTyping(e)) {
+          ;(e.target as HTMLElement | null)?.blur?.()
+          e.preventDefault()
+          return
+        }
+      }
+
+      // Block background scene/timeline shortcuts while any modal or workshop is open
+      if (isModalOpen() || isTyping(e)) return
+
       const st = useEditor.getState()
       const ctrl = e.ctrlKey || e.metaKey
       const fps = st.project.comp.fps
@@ -74,10 +102,6 @@ export function useShortcuts(onExport: () => void): void {
           }
           break
         case 'Escape':
-          if (useView.getState().dialog) {
-            useView.getState().openDialog(null)
-            break
-          }
           st.selectLayer(null)
           st.selectAudioTrack(null)
           break
@@ -89,9 +113,9 @@ export function useShortcuts(onExport: () => void): void {
           useEditor.getState().setInspectorTab('scene')
           useView.getState().openAudioDialog(isDoubleL ? 'waveform' : 'levels')
           if (isDoubleL) {
-            toast('Phím tắt LL (After Effects): Đã mở bảng sóng âm Waveform & Audio Levels')
+            toast('Phím tắt LL (After Effects): Đã mở bảng sóng âm Waveform & Audio Studio')
           } else {
-            toast('Phím tắt L (After Effects): Đã mở bảng cấu hình Audio Levels (âm lượng)')
+            toast('Phím tắt L (After Effects): Đã mở bảng cấu hình Audio Levels & Mixer')
           }
           break
         }
@@ -104,3 +128,4 @@ export function useShortcuts(onExport: () => void): void {
     return () => window.removeEventListener('keydown', onKey)
   }, [onExport])
 }
+

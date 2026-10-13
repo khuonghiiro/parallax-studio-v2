@@ -12,6 +12,7 @@ import { AssemblyLightingSection } from './AssemblyLightingSection'
 import { FaceJoinSection } from './FaceJoinSection'
 import { FaceClipSection } from './FaceClipSection'
 import { addFoldedFace, centerFaces, newFaceId, patchFace } from './assemblyFaceOps'
+import { Select } from '../../controls'
 import { IconCube, IconLayers, IconGrid, IconSun, IconPlus, IconLock } from '../../icons'
 
 export type InspectorTab = 'face' | 'layers' | 'templates' | 'lighting'
@@ -165,18 +166,17 @@ export function FaceInspector({ model, selectedFaceId, imageSize, onChangeModel,
                 <span className="fi-face-idx" title="Thứ tự mặt trong mô hình">
                   {currentIndex >= 0 ? `${currentIndex + 1}/${model.faces.length}` : '—'}
                 </span>
-                <select
+                <Select
+                  size="sm"
                   className="fi-face-select"
                   value={selectedFace?.id ?? ''}
-                  onChange={(e) => onSelectFace(e.target.value || null)}
+                  options={model.faces.map((f, i) => ({
+                    value: f.id,
+                    label: `${i + 1}. ${f.name}${f.hidden ? ' (Ẩn)' : ''}${f.locked ? ' (Khóa)' : ''}`
+                  }))}
+                  onChange={(val) => onSelectFace(String(val) || null)}
                   title="Chọn nhanh mặt 3D để chỉnh sửa"
-                >
-                  {model.faces.map((f, i) => (
-                    <option key={f.id} value={f.id}>
-                      {i + 1}. {f.name} {f.hidden ? ' (Ẩn)' : ''} {f.locked ? ' (Khóa)' : ''}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
               <button
                 type="button"

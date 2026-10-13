@@ -93,14 +93,19 @@ const SILENT_MCP_COMMANDS = new Set([
   'get_layer_composite',
   'get_assembly_template',
   'get_ai_guide',
+  'get_ui_state',
   'export_project_json',
   'export_shot_json'
 ])
 
+type McpWin = { __pxsMcpUnsub?: () => void }
+
 /** Subscribe to MCP commands from the main process. Returns an unsubscribe function. */
 export function initMcp(onActivity?: (method: string, ok: boolean) => void): () => void {
-  if (!window.api?.mcp) return () => undefined
-  return window.api.mcp.onCommand(async (cmd) => {
+  if (typeof window === 'undefined' || !window.api?.mcp) return () => undefined
+  const w = window as unknown as McpWin
+  w.__pxsMcpUnsub?.()
+  const unsub = window.api.mcp.onCommand(async (cmd) => {
     const isSilent = SILENT_MCP_COMMANDS.has(cmd.method)
     if (!isManuallyLocked && !isSilent) {
       if (aiTimer) clearTimeout(aiTimer)
@@ -125,4 +130,13 @@ export function initMcp(onActivity?: (method: string, ok: boolean) => void): () 
       }
     }
   })
+  w.__pxsMcpUnsub = unsub
+  return () => {
+    unsub()
+    if (w.__pxsMcpUnsub === unsub) w.__pxsMcpUnsub = undefined
+  }
+}
+
+if (typeof window !== 'undefined' && (window as unknown as McpWin).__pxsMcpUnsub) {
+  initMcp()
 }

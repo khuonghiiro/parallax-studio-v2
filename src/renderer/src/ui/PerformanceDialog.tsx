@@ -3,14 +3,29 @@ import { usePerformance } from '../store/performance'
 import { useView } from '../store/view'
 import { getLiveRenderer } from '../engine/liveRenderer'
 import type { ResidencyStats } from '../engine/renderTypes'
-import { IconCheck, IconRedo } from './icons'
+import { Select } from './controls'
+import { IconCheck, IconRedo, IconSparkles, IconX } from './icons'
+
+const ANISO_OPTIONS = [
+  { value: 1, label: '1x (Tắt — Tiết kiệm tối đa)' },
+  { value: 2, label: '2x (Cơ bản)' },
+  { value: 4, label: '4x (Cân bằng)' },
+  { value: 8, label: '8x (Sắc nét)' },
+  { value: 16, label: '16x (Cực nét — Khuyên dùng)' }
+]
+
+const TEXTURE_SIZE_OPTIONS = [
+  { value: 4096, label: '4096px (Chuẩn 4K)' },
+  { value: 8192, label: '8192px (Chuẩn 8K — Khuyên dùng)' },
+  { value: 16384, label: '16384px (Siêu phân giải)' }
+]
 
 export function PerformanceDialog() {
   const perf = usePerformance()
   const [stats, setStats] = useState<ResidencyStats | null>(null)
+  const close = (): void => useView.getState().openDialog(null)
 
   useEffect(() => {
-    // Poll live memory stats while dialog is open
     const timer = setInterval(() => {
       const live = getLiveRenderer()
       if (live) {
@@ -22,7 +37,17 @@ export function PerformanceDialog() {
     return () => clearInterval(timer)
   }, [])
 
-  const close = (): void => useView.getState().openDialog(null)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        close()
+      }
+      e.stopPropagation()
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [])
 
   const hw = perf.hardware
   const totalRamGB = hw ? Math.round(hw.totalRamMB / 1024) : 16
@@ -44,11 +69,21 @@ export function PerformanceDialog() {
   ]
 
   return (
-    <div className="modal-backdrop" onClick={close}>
+    <div className="modal-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>
       <div className="modal perf-modal" role="dialog" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h2>⚡ Cấu hình Hiệu năng, RAM & VRAM GPU</h2>
-          <p>Tối ưu hóa bộ nhớ đệm và sức mạnh đồ họa dựa trên cấu hình phần cứng thực tế của bạn.</p>
+        <div className="modal-head modal-head-row">
+          <div className="modal-head-title-group">
+            <span className="modal-head-badge">
+              <IconSparkles width={15} height={15} />
+            </span>
+            <div>
+              <h2>Cấu hình Hiệu năng, RAM & VRAM GPU</h2>
+              <p>Tối ưu hóa bộ nhớ đệm và sức mạnh đồ họa dựa trên cấu hình phần cứng thực tế của bạn.</p>
+            </div>
+          </div>
+          <button type="button" className="btn icon ghost sm modal-close-btn" onClick={close} title="Đóng (Esc)">
+            <IconX width={14} height={14} />
+          </button>
         </div>
 
         <div className="modal-body">
@@ -100,12 +135,14 @@ export function PerformanceDialog() {
           {/* Mode Switch Tabs */}
           <div className="perf-tabs">
             <button
+              type="button"
               className={`perf-tab${perf.mode === 'auto' ? ' active' : ''}`}
               onClick={() => perf.setMode('auto')}
             >
               ⚡ Tự động tính toán (Khuyên dùng)
             </button>
             <button
+              type="button"
               className={`perf-tab${perf.mode === 'manual' ? ' active' : ''}`}
               onClick={() => perf.setMode('manual')}
             >
@@ -150,6 +187,7 @@ export function PerformanceDialog() {
                   {presets.map((p) => (
                     <button
                       key={p.mb}
+                      type="button"
                       className={`perf-preset-btn${perf.budgetMB === p.mb ? ' active' : ''}`}
                       onClick={() => perf.setBudget(p.mb)}
                     >
@@ -180,33 +218,27 @@ export function PerformanceDialog() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <span className="perf-section-title">Lọc bề mặt nghiêng (Anisotropic):</span>
-                  <select
-                    className="select"
+                  <span className="perf-section-title" style={{ display: 'block', marginBottom: 4 }}>
+                    Lọc bề mặt nghiêng (Anisotropic):
+                  </span>
+                  <Select
+                    size="sm"
                     value={perf.maxAnisotropy}
-                    onChange={(e) => perf.setAnisotropy(Number(e.target.value))}
-                    style={{ width: '100%', marginTop: 4 }}
-                  >
-                    <option value={1}>1x (Tắt - Tiết kiệm tối đa)</option>
-                    <option value={2}>2x (Cơ bản)</option>
-                    <option value={4}>4x (Cân bằng)</option>
-                    <option value={8}>8x (Sắc nét)</option>
-                    <option value={16}>16x (Cực nét - Khuyên dùng)</option>
-                  </select>
+                    options={ANISO_OPTIONS}
+                    onChange={(val) => perf.setAnisotropy(Number(val))}
+                  />
                 </div>
 
                 <div>
-                  <span className="perf-section-title">Kích thước ảnh tối đa (Texture):</span>
-                  <select
-                    className="select"
+                  <span className="perf-section-title" style={{ display: 'block', marginBottom: 4 }}>
+                    Kích thước ảnh tối đa (Texture):
+                  </span>
+                  <Select
+                    size="sm"
                     value={perf.maxTextureSize}
-                    onChange={(e) => perf.setMaxTextureSize(Number(e.target.value))}
-                    style={{ width: '100%', marginTop: 4 }}
-                  >
-                    <option value={4096}>4096px (Dành cho ảnh 4K)</option>
-                    <option value={8192}>8192px (Dành cho ảnh 8K - Khuyên dùng)</option>
-                    <option value={16384}>16384px (Siêu phân giải)</option>
-                  </select>
+                    options={TEXTURE_SIZE_OPTIONS}
+                    onChange={(val) => perf.setMaxTextureSize(Number(val))}
+                  />
                 </div>
               </div>
             </div>
@@ -234,12 +266,12 @@ export function PerformanceDialog() {
 
         <div className="modal-foot">
           {perf.mode === 'manual' && (
-            <button className="btn ghost" onClick={() => perf.resetToAuto()} title="Quay về mức tự động tính toán">
+            <button type="button" className="btn ghost" onClick={() => perf.resetToAuto()} title="Quay về mức tự động tính toán">
               <IconRedo /> Khôi phục Tự động
             </button>
           )}
           <span style={{ flex: 1 }} />
-          <button className="btn primary" onClick={close}>
+          <button type="button" className="btn primary" onClick={close}>
             <IconCheck /> Áp dụng & Đóng
           </button>
         </div>
@@ -247,3 +279,4 @@ export function PerformanceDialog() {
     </div>
   )
 }
+

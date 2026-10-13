@@ -4,6 +4,8 @@ import { LayerAssemblyDialog } from './LayerAssemblyDialog'
 import { CreateLayerAssemblyModal } from './CreateLayerAssemblyModal'
 import { getStoredComposites } from './layerAssemblyStorage'
 import { consumePendingOpenLayerAssembly } from './layerAssemblyBridge'
+import { useEditor } from '../../store/editor'
+import { useView } from '../../store/view'
 
 /**
  * Top-level Host component rendered in App.tsx to ensure Layer Assembly Workshop
@@ -15,17 +17,26 @@ export function GlobalLayerAssemblyHost() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
+  const dismissOtherModals = useCallback(() => {
+    useEditor.getState().setPlaying(false)
+    const view = useView.getState()
+    if (view.dialog) view.openDialog(null)
+    if (view.assemblyModalModel) view.closeAssemblyWorkshop()
+  }, [])
+
   const openWithComposite = useCallback((comp: LayerComposite | null) => {
+    dismissOtherModals()
     setEditingComposite(comp)
     setIsDialogOpen(true)
     setIsCreateModalOpen(false)
-  }, [])
+  }, [dismissOtherModals])
 
   const openCreateModal = useCallback(() => {
+    dismissOtherModals()
     setIsCreateModalOpen(true)
     setIsDialogOpen(false)
     setEditingComposite(null)
-  }, [])
+  }, [dismissOtherModals])
 
   const closeAll = useCallback(() => {
     setIsDialogOpen(false)

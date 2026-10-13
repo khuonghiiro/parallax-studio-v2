@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { Face3D } from './types'
 import { joinFaces, JOIN_EDGE_LABELS, type JoinEdge, type JoinScaleMode } from './assemblyJoin'
+import { Select } from '../../controls'
 import { IconLink } from '../../icons'
 
 interface FaceJoinSectionProps {
@@ -9,8 +10,19 @@ interface FaceJoinSectionProps {
   onApplyJoin: (updatedFaces: Face3D[]) => void
 }
 
+const EDGE_OPTIONS = (Object.keys(JOIN_EDGE_LABELS) as JoinEdge[]).map((k) => ({
+  value: k,
+  label: JOIN_EDGE_LABELS[k]
+}))
+
+const SCALE_MODE_OPTIONS: { value: JoinScaleMode; label: string }[] = [
+  { value: 'longest', label: 'Theo cạnh dài nhất' },
+  { value: 'source', label: 'Chỉ chỉnh mặt này' },
+  { value: 'none', label: 'Giữ nguyên kích thước' }
+]
+
 export function FaceJoinSection({ currentFace, allFaces, onApplyJoin }: FaceJoinSectionProps) {
-  const otherFaces = allFaces.filter((f) => f.id !== currentFace.id)
+  const otherFaces = useMemo(() => allFaces.filter((f) => f.id !== currentFace.id), [allFaces, currentFace.id])
   const [targetId, setTargetId] = useState<string>(otherFaces[0]?.id || '')
   const [targetEdge, setTargetEdge] = useState<JoinEdge>('left')
   const [sourceEdge, setSourceEdge] = useState<JoinEdge>('right')
@@ -56,52 +68,37 @@ export function FaceJoinSection({ currentFace, allFaces, onApplyJoin }: FaceJoin
         {/* Target face */}
         <div className="inspector-row">
           <label htmlFor="join-target-face">Ghép vào mặt</label>
-          <select
+          <Select
             id="join-target-face"
-            className="input-select"
+            size="sm"
             value={targetId}
-            onChange={(e) => setTargetId(e.target.value)}
-          >
-            {otherFaces.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
+            options={otherFaces.map((f) => ({ value: f.id, label: f.name }))}
+            onChange={(val) => setTargetId(String(val))}
+          />
         </div>
 
         {/* Edges */}
         <div className="adv-grid-2col">
           <div className="inspector-row">
             <label htmlFor="join-target-edge">Cạnh mặt đích</label>
-            <select
+            <Select
               id="join-target-edge"
-              className="input-select"
+              size="sm"
               value={targetEdge}
-              onChange={(e) => setTargetEdge(e.target.value as JoinEdge)}
-            >
-              {(Object.keys(JOIN_EDGE_LABELS) as JoinEdge[]).map((k) => (
-                <option key={k} value={k}>
-                  {JOIN_EDGE_LABELS[k]}
-                </option>
-              ))}
-            </select>
+              options={EDGE_OPTIONS}
+              onChange={(val) => setTargetEdge(val as JoinEdge)}
+            />
           </div>
 
           <div className="inspector-row">
             <label htmlFor="join-source-edge">Cạnh mặt này</label>
-            <select
+            <Select
               id="join-source-edge"
-              className="input-select"
+              size="sm"
               value={sourceEdge}
-              onChange={(e) => setSourceEdge(e.target.value as JoinEdge)}
-            >
-              {(Object.keys(JOIN_EDGE_LABELS) as JoinEdge[]).map((k) => (
-                <option key={k} value={k}>
-                  {JOIN_EDGE_LABELS[k]}
-                </option>
-              ))}
-            </select>
+              options={EDGE_OPTIONS}
+              onChange={(val) => setSourceEdge(val as JoinEdge)}
+            />
           </div>
         </div>
 
@@ -125,16 +122,13 @@ export function FaceJoinSection({ currentFace, allFaces, onApplyJoin }: FaceJoin
         <div className="adv-grid-2col">
           <div className="inspector-row">
             <label htmlFor="join-scale-mode">Chế độ co giãn</label>
-            <select
+            <Select
               id="join-scale-mode"
-              className="input-select"
+              size="sm"
               value={scaleMode}
-              onChange={(e) => setScaleMode(e.target.value as JoinScaleMode)}
-            >
-              <option value="longest">Theo cạnh dài nhất</option>
-              <option value="source">Chỉ chỉnh mặt này</option>
-              <option value="none">Giữ nguyên kích thước</option>
-            </select>
+              options={SCALE_MODE_OPTIONS}
+              onChange={(val) => setScaleMode(val as JoinScaleMode)}
+            />
           </div>
 
           <div className="inspector-row adv-center-checkbox">

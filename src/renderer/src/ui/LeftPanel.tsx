@@ -7,25 +7,16 @@ import { IconFilm, IconFolder, IconRoute } from './icons'
 import { ShotsPanel } from './ShotsPanel'
 import { TopView, useFocusShotId } from './TopView'
 
-type LeftTab = 'shots' | 'assets' | 'topview'
-
 export function LeftPanel() {
   const assets = useEditor((s) => s.project.assets)
   const shots = useEditor((s) => s.project.shots)
   const [, force] = useReducer((x: number) => x + 1, 0)
-  const [tab, setTab] = useState<LeftTab>(() => (localStorage.getItem('pxs.leftTab') as LeftTab) || 'shots')
+  const tab = useView((s) => s.leftTab)
+  const setTab = useView((s) => s.setLeftTab)
   const topViewMode = useView((s) => s.topViewMode)
   const focusShotId = useFocusShotId()
-  const focusShot = shots.find((s) => s.id === focusShotId)
 
   useEffect(() => assetStore.subscribe(force), [])
-  useEffect(() => localStorage.setItem('pxs.leftTab', tab), [tab])
-
-  useEffect(() => {
-    const handleOpen = () => setTab('assets')
-    window.addEventListener('layerAssembly:open', handleOpen)
-    return () => window.removeEventListener('layerAssembly:open', handleOpen)
-  }, [])
 
   const handleExpandToViewer = () => {
     useView.getState().set({ primary: 'topview' })

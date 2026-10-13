@@ -1,6 +1,12 @@
 import { ParamError, type Handler, type Params } from '../types'
 import { bool, num, str } from '../params'
 import { setManualAiLock } from '../commands'
+import { useView } from '../../store/view'
+import {
+  getActiveLayerAssemblySession,
+  requestCloseLayerAssembly,
+  requestOpenLayerAssembly
+} from '../../ui/layerAssembly/layerAssemblyBridge'
 import type { McpRect } from '@shared/ipc'
 
 /**
@@ -129,6 +135,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
 
   // Top Toolbar
   toolbar: ['header.toolbar', '.toolbar'],
+  studio_menu: ['#menu-studio', '.toolbar'],
   mcp_chip: ['#mcp-chip', '.mcp-chip'],
 
   // Floating Modals & Workshops (Never include full-screen backdrop/overlay here)
@@ -175,6 +182,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   audio_studio_waveform: ['.audio-waveform-panel'],
   audio_studio_tone: ['.audio-tone-panel'],
   audio_studio_mixer: ['.audio-levels-panel'],
+  audio_studio_console: ['.audio-multitrack-console', '.audio-levels-panel'],
 
   // 4. Hộp thoại Hiệu năng (Performance Dialog) - Khối chi tiết
   perf_dialog: ['.perf-modal', '.modal:has(.hw-grid)'],
@@ -191,9 +199,11 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   camera_sketch: ['.camera-sketch-modal'],
   camera_sketch_canvas: ['.camera-sketch-canvas'],
   camera_sketch_sidebar: ['.camera-sketch-sidebar'],
+  camera_sketch_waypoints: ['.camera-sketch-shot-pills', '.camera-sketch-modal'],
 
   // 7. Hộp thoại Lộ trình Camera (Camera Path Dialog) - Khối chi tiết
   camera_path: ['.camera-path-modal', '.modal[aria-labelledby="path-title"]'],
+  camera_path_presets: ['.path-preset-bar', '.camera-path-modal'],
   camera_path_steps: ['.path-steps'],
 
   // 8. Hộp thoại MCP (MCP & AI Guide Dialog) - Khối chi tiết
@@ -363,5 +373,83 @@ export const uiCommands: Record<string, Handler> = {
     el.dispatchEvent(new Event('change', { bubbles: true }))
     await nextPaint()
     return { ok: true, value }
+  },
+
+  get_ui_state: () => {
+    const v = useView.getState()
+    const lwSession = getActiveLayerAssemblySession()
+    return {
+      theme: v.theme,
+      dialog: v.dialog,
+      audio_dialog_mode: v.audioDialogMode,
+      left_tab: v.leftTab,
+      primary_view: v.primary,
+      split_view: v.split,
+      top_view_mode: v.topViewMode,
+      camera_only: v.cameraOnly,
+      show_path: v.showPath,
+      assembly_workshop_open: !!v.assemblyModalModel,
+      layer_assembly_open: !!lwSession,
+      ai_active: v.aiActive,
+      ai_locked: v.aiLocked
+    }
+  },
+
+  set_ui_dialog: async (p) => {
+    const v = useView.getState()
+    const dialog = str(p, 'dialog')
+    const audioMode = str(p, 'audio_mode')
+    const leftTab = str(p, 'left_tab')
+    const theme = str(p, 'theme')
+
+    if (theme === 'dark' || theme === 'light') {
+      v.set({ theme })
+    }
+
+    if (leftTab === 'shots' || leftTab === 'assets' || leftTab === 'topview') {
+      v.setLeftTab(leftTab)
+    }
+
+    if (dialog !== undefined) {
+      if (dialog === 'none' || dialog === 'close' || dialog === '') {
+        v.openDialog(null)
+        if (v.assemblyModalModel) v.closeAssemblyWorkshop()
+        requestCloseLayerAssembly()
+      } else if (dialog === 'audio') {
+        const mode =
+          audioMode === 'levels' || audioMode === 'mixer' || audioMode === 'waveform'
+            ? audioMode
+            : v.audioDialogMode
+        v.openAudioDialog(mode)
+      } else if (
+        dialog === 'path' ||
+        dialog === 'sketch' ||
+        dialog === 'performance' ||
+        dialog === 'mcp' ||
+        dialog === 'export'
+      ) {
+        v.openDialog(dialog)
+      } else if (dialog === 'layer_assembly' || dialog === 'layer_assembly_create') {
+        requestOpenLayerAssembly(str(p, 'composite_id') ?? undefined)
+      } else {
+        throw new ParamError(
+          `Invalid dialog "${dialog}". Expected none, path, sketch, performance, mcp, audio, export, layer_assembly, or layer_assembly_create.`
+        )
+      }
+    } else if (audioMode === 'levels' || audioMode === 'mixer' || audioMode === 'waveform') {
+      v.openAudioDialog(audioMode)
+    }
+
+    await nextPaint()
+    const s = useView.getState()
+    return {
+      ok: true,
+      theme: s.theme,
+      dialog: s.dialog,
+      audio_dialog_mode: s.audioDialogMode,
+      left_tab: s.leftTab,
+      assembly_workshop_open: !!s.assemblyModalModel,
+      layer_assembly_open: !!getActiveLayerAssemblySession()
+    }
   }
 }

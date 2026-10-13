@@ -1,35 +1,39 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ExportStartOptions } from '@shared/ipc'
 import { exportSize, runExport } from '../export/runExport'
+import { getProjectAudioTracks } from '../project/audioTracks'
 import { useEditor } from '../store/editor'
-import { IconExport, IconFolder } from './icons'
+import { IconExport, IconFolder, IconX } from './icons'
 import { Row, Select, Switch } from './controls'
 
 type Phase = 'setup' | 'rendering' | 'done' | 'error'
 
 const HEIGHTS: { label: string; h: number | 'comp' }[] = [
   { label: 'Theo composition', h: 'comp' },
-  { label: '720p', h: 720 },
+  { label: '720p (HD)', h: 720 },
   { label: '1080p (Full HD)', h: 1080 },
-  { label: '1440p (QHD)', h: 1440 },
-  { label: '2160p (4K)', h: 2160 }
+  { label: '1440p (QHD 2K)', h: 1440 },
+  { label: '2160p (4K Ultra HD)', h: 2160 }
 ]
 
 const QUALITY: { label: string; crf: number }[] = [
-  { label: 'Cao nhất (CRF 14)', crf: 14 },
-  { label: 'Cao (CRF 18)', crf: 18 },
+  { label: 'Cao nhất — Master (CRF 14)', crf: 14 },
+  { label: 'Cao — Chuẩn YouTube (CRF 18)', crf: 18 },
   { label: 'Cân bằng (CRF 22)', crf: 22 },
-  { label: 'Nhẹ (CRF 27)', crf: 27 }
+  { label: 'Nhẹ — Xem trước nhanh (CRF 27)', crf: 27 }
 ]
 
 export function ExportDialog({ onClose }: { onClose: () => void }) {
   const project = useEditor((s) => s.project)
   const { comp } = project
+  const audioTracks = getProjectAudioTracks(project).filter((t) => !t.muted)
+  const hasAudio = audioTracks.length > 0
+
   const [heightSel, setHeightSel] = useState<number | 'comp'>('comp')
   const [fps, setFps] = useState(comp.fps)
   const [crf, setCrf] = useState(18)
   const [speed, setSpeed] = useState<ExportStartOptions['preset']>('medium')
-  const [withAudio, setWithAudio] = useState(!!project.audio)
+  const [withAudio, setWithAudio] = useState(hasAudio)
   const [phase, setPhase] = useState<Phase>('setup')
   const [progress, setProgress] = useState({ frame: 0, total: 1, eta: 0, fps: 0 })
   const [error, setError] = useState('')
@@ -42,7 +46,10 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape' && phase !== 'rendering') onClose()
+      if (e.key === 'Escape' && phase !== 'rendering') {
+        e.preventDefault()
+        onClose()
+      }
       e.stopPropagation()
     }
     window.addEventListener('keydown', onKey, true)
@@ -60,7 +67,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     const snapshot = useEditor.getState().project
     const res = await runExport(
       snapshot,
-      { outPath: path, height: outH, fps, crf, preset: speed, withAudio },
+      { outPath: path, height: outH, fps, crf, preset: speed, withAudio: withAudio && hasAudio },
       setProgress,
       () => cancelRef.current,
       previewRef.current
@@ -73,16 +80,31 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     }
   }
 
-  const pct = Math.round((progress.frame / progress.total) * 100)
+  const pct = Math.round((progress.frame / Math.max(1, progress.total)) * 100)
 
   return (
-    <div className="modal-backdrop" onPointerDown={(e) => e.target === e.currentTarget && phase !== 'rendering' && onClose()}>
+    <div
+      className="modal-backdrop"
+      onPointerDown={(e) => e.target === e.currentTarget && phase !== 'rendering' && onClose()}
+    >
       <div className="modal export-modal" role="dialog" aria-labelledby="export-title">
-        <div className="modal-head">
-          <h2 id="export-title">Xuất video MP4</h2>
-          <p>
-            H.264 · {outW}×{outH} · {fps} fps · {comp.duration.toFixed(2)}s ({totalFrames} frame)
-          </p>
+        <div className="modal-head modal-head-row">
+          <div className="modal-head-title-group">
+            <span className="modal-head-badge">
+              <IconExport width={15} height={15} />
+            </span>
+            <div>
+              <h2 id="export-title">Xuất video MP4 (Render Queue)</h2>
+              <p>
+                H.264 · {outW}×{outH}px · {fps} fps · {comp.duration.toFixed(2)}s ({totalFrames} frame)
+              </p>
+            </div>
+          </div>
+          {phase !== 'rendering' && (
+            <button type="button" className="btn icon ghost sm modal-close-btn" onClick={onClose} title="Đóng (Esc)">
+              <IconX width={14} height={14} />
+            </button>
+          )}
         </div>
 
         <div className="modal-body">
@@ -96,7 +118,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                   onChange={(val) => setHeightSel(val === 'comp' ? 'comp' : Number(val))}
                 />
               </Row>
-              <Row label="FPS">
+              <Row label="Khung hình / giây">
                 <Select
                   id="export-fps"
                   value={fps}
@@ -104,7 +126,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                   onChange={(val) => setFps(Number(val))}
                 />
               </Row>
-              <Row label="Chất lượng">
+              <Row label="Chất lượng nén">
                 <Select
                   id="export-quality"
                   value={crf}
@@ -117,16 +139,20 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                   id="export-speed"
                   value={speed}
                   options={[
-                    { value: 'veryfast', label: 'Nhanh' },
-                    { value: 'medium', label: 'Trung bình' },
-                    { value: 'slow', label: 'Chậm (file nhỏ hơn)' }
+                    { value: 'veryfast', label: 'Nhanh (Veryfast)' },
+                    { value: 'medium', label: 'Chuẩn cân bằng (Medium)' },
+                    { value: 'slow', label: 'Nén kỹ — File nhẹ (Slow)' }
                   ]}
                   onChange={(val) => setSpeed(val as ExportStartOptions['preset'])}
                 />
               </Row>
-              <Row label="Kèm nhạc nền">
-                <Switch on={withAudio && !!project.audio} onChange={(v) => setWithAudio(v)} />
-                {!project.audio && <span className="hint-text">Chưa có nhạc nền</span>}
+              <Row label="Kèm âm thanh">
+                <Switch on={withAudio && hasAudio} onChange={(v) => hasAudio && setWithAudio(v)} />
+                <span className="hint-text">
+                  {hasAudio
+                    ? `Gộp ${audioTracks.length} luồng âm thanh đang bật`
+                    : 'Chưa có luồng âm thanh trong dự án'}
+                </span>
               </Row>
             </>
           )}
@@ -147,7 +173,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                   {progress.fps.toFixed(1)} fps · còn {phase === 'done' ? 0 : Math.ceil(progress.eta)}s
                 </span>
               </div>
-              {phase === 'done' && <div style={{ color: 'var(--ok)' }}>✓ Đã xuất xong: {outPath}</div>}
+              {phase === 'done' && <div className="export-done-banner">✓ Đã xuất xong: {outPath}</div>}
             </>
           )}
 
@@ -157,35 +183,35 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         <div className="modal-foot">
           {phase === 'setup' && (
             <>
-              <button className="btn" onClick={onClose}>
+              <button type="button" className="btn" onClick={onClose}>
                 Huỷ
               </button>
-              <button id="export-start" className="btn primary" onClick={run}>
-                <IconExport /> Xuất video
+              <button type="button" id="export-start" className="btn primary" onClick={run}>
+                <IconExport /> Bắt đầu Render MP4
               </button>
             </>
           )}
           {phase === 'rendering' && (
-            <button id="export-cancel" className="btn" onClick={() => (cancelRef.current = true)}>
-              Dừng
+            <button type="button" id="export-cancel" className="btn danger" onClick={() => (cancelRef.current = true)}>
+              Dừng Render
             </button>
           )}
           {phase === 'done' && (
             <>
-              <button className="btn" onClick={() => window.api.revealFile(outPath)}>
-                <IconFolder /> Mở thư mục
+              <button type="button" className="btn" onClick={() => window.api.revealFile(outPath)}>
+                <IconFolder /> Mở thư mục chứa file
               </button>
-              <button className="btn primary" onClick={onClose}>
-                Xong
+              <button type="button" className="btn primary" onClick={onClose}>
+                Hoàn tất
               </button>
             </>
           )}
           {phase === 'error' && (
             <>
-              <button className="btn" onClick={onClose}>
+              <button type="button" className="btn" onClick={onClose}>
                 Đóng
               </button>
-              <button className="btn primary" onClick={() => setPhase('setup')}>
+              <button type="button" className="btn primary" onClick={() => setPhase('setup')}>
                 Thử lại
               </button>
             </>
@@ -195,3 +221,4 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     </div>
   )
 }
+

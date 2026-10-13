@@ -132,16 +132,18 @@ Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC**
   - Khung nhìn trung tâm: `viewer`, `viewer_canvas` / `viewport`, `camera_frame` (khung viền render), `viewer_hud` (thông số FPS/VRAM), `viewer_tools` (chế độ camera/3D).
   - Thuộc tính bên phải: `inspector`, `inspector_tabs`, `inspector_body` (form chỉnh sửa chi tiết).
   - Dòng thời gian: `timeline`, `timeline_toolbar` (cụm nút phát/timecode), `timeline_ruler` (thước đo), `timeline_tracks` (các hàng track layer & keyframe).
-  - Thanh tiêu đề: `toolbar`, `mcp_chip` (chỉ báo AI), `ai_hud` (badge viền neon).
+  - Thanh tiêu đề: `toolbar`, `studio_menu` (menu Studio & Đạo diễn), `mcp_chip` (chỉ báo AI), `ai_hud` (badge viền neon).
   - Hộp thoại tổng thể: `dialog` (bất kỳ modal nổi nào).
   - Xưởng 3D & từng cột: `assembly_3d` (toàn bộ), `assembly_sidebar` (cột trái tài nguyên/mặt), `assembly_viewport` (cột giữa 3D/2D), `assembly_inspector` (cột phải thuộc tính), `assembly_header`, `assembly_footer`, `assembly_hud`.
   - Xưởng Layer 2.5D & từng cột: `layer_assembly` (toàn bộ), `layer_assembly_sidebar` (cột trái kho mẫu/layer), `layer_assembly_workspace` (cột giữa canvas), `layer_assembly_inspector` (cột phải rig/xương), `layer_assembly_tools`, `layer_assembly_header`.
-  - Audio Studio & từng cột: `audio_studio` (toàn bộ), `audio_studio_sidebar` (cột trái danh sách luồng âm), `audio_studio_editor` (cột phải trình biên tập), `audio_studio_waveform` (biểu đồ sóng âm), `audio_studio_tone` (âm điệu & EQ), `audio_studio_mixer` (bộ trộn âm lượng).
+  - Audio Studio & từng cột: `audio_studio` (toàn bộ), `audio_studio_sidebar` (cột trái danh sách luồng âm), `audio_studio_editor` (cột phải trình biên tập), `audio_studio_waveform` (biểu đồ sóng âm), `audio_studio_tone` (âm điệu & EQ), `audio_studio_mixer` (bộ trộn âm lượng), `audio_studio_console` (bàn trộn đa luồng).
   - Hiệu năng & bộ nhớ: `perf_dialog` (toàn bộ), `perf_hardware` (khối CPU/GPU/RAM), `perf_meter` (thước đo VRAM thời gian thực), `perf_settings` (cấu hình VRAM).
   - Xuất video MP4: `export` / `export_dialog`, `export_preview` (khung hình render).
-  - Lộ trình & đường vẽ Camera: `camera_path`, `camera_path_steps`, `camera_sketch`, `camera_sketch_canvas`, `camera_sketch_sidebar`.
+  - Lộ trình & đường vẽ Camera: `camera_path`, `camera_path_presets`, `camera_path_steps`, `camera_sketch`, `camera_sketch_canvas`, `camera_sketch_sidebar`, `camera_sketch_waypoints`.
   - Bảng điều khiển MCP: `mcp_dialog`, `mcp_status`, `mcp_config`, `mcp_guide`.
   - Hỗ trợ `selector` CSS tuỳ chỉnh và `padding` đệm viền. Dùng CLI: `pnpm pxs review --view app --region <name>`.
+- `get_ui_state`: Tra cứu trạng thái giao diện hiện tại (`theme`, `dialog`, `audio_dialog_mode`, `left_tab`, `primary_view`, `split_view`, `top_view_mode`, `assembly_workshop_open`, `layer_assembly_open`, `ai_active`, `ai_locked`).
+- `set_ui_dialog`: Mở, chuyển đổi hoặc đóng bất kỳ hộp thoại/xưởng UI nào (`dialog`: `'none' | 'path' | 'sketch' | 'performance' | 'mcp' | 'audio' | 'export' | 'layer_assembly' | 'layer_assembly_create'`), chuyển chế độ Audio Studio (`audio_mode`: `'waveform' | 'levels' | 'mixer'`), chuyển tab cột trái (`left_tab`: `'shots' | 'assets' | 'topview'`), hoặc đổi giao diện Sáng/Tối (`theme`: `'dark' | 'light'`).
 - `set_ai_lock`: Bật/tắt trạng thái khoá tương tác an toàn (`locked: boolean`, `reason`, `timeout_ms`) ngăn người dùng vô tình bấm làm lệch UI khi AI đang tự động thao tác. App sẽ hiển thị viền neon cyberpunk xung quanh và badge HUD kèm nút mở khoá khẩn cấp (`Esc`).
 - `ui_click` / `ui_type`: Bấm phần tử UI theo chữ hoặc CSS selector, nhập ô input – để AI tự mở dialog, chuyển tab rồi chụp kiểm tra.
 - `get_ai_guide`: Đọc hướng dẫn AI theo ngôn ngữ tài liệu đang chọn (`topic`: overview, coordinates, workflow, assembly, tips). Trả lời tại chỗ, không cần app.

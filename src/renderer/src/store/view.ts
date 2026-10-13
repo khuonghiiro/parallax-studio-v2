@@ -1,10 +1,13 @@
 import { create } from 'zustand'
 import type { EditorViewKind } from '../engine/EditorCamera'
 import type { Model3D } from '../ui/assets/models3d/types'
+import { useEditor } from './editor'
 
 export type PrimaryView = 'camera' | 'editor' | 'topview'
 export type TopViewMode = 'top' | 'side'
 export type Theme = 'dark' | 'light'
+export type LeftTab = 'shots' | 'assets' | 'topview'
+export type DialogKind = 'path' | 'sketch' | 'performance' | 'mcp' | 'audio' | 'export' | null
 
 interface ViewPrefs {
   /** Two views side by side: camera (left) + 3D editor view (right). */
@@ -36,9 +39,11 @@ export interface FocusRequest {
 
 export interface ViewState extends ViewPrefs {
   focus: FocusRequest | null
-  dialog: 'path' | 'sketch' | 'performance' | 'mcp' | 'audio' | null
-  audioDialogMode: 'levels' | 'waveform'
+  dialog: DialogKind
+  audioDialogMode: 'levels' | 'waveform' | 'mixer'
   assemblyModalModel: Model3D | null
+  leftTab: LeftTab
+  setLeftTab(tab: LeftTab): void
   audioSelectedCategory: string
   setAudioSelectedCategory(cat: string): void
   aiActive: boolean
@@ -48,8 +53,8 @@ export interface ViewState extends ViewPrefs {
   unlockAi(): void
   set(p: Partial<ViewPrefs>): void
   toggleTheme(): void
-  openDialog(d: ViewState['dialog']): void
-  openAudioDialog(mode?: 'levels' | 'waveform'): void
+  openDialog(d: DialogKind): void
+  openAudioDialog(mode?: 'levels' | 'waveform' | 'mixer'): void
   openAssemblyWorkshop(model: Model3D): void
   closeAssemblyWorkshop(): void
   /** Frame something in the 3D view (switches to it if hidden). */
@@ -57,16 +62,35 @@ export interface ViewState extends ViewPrefs {
 }
 
 const KEY = 'pxs.viewPrefs.v2'
+const LEFT_TAB_KEY = 'pxs.leftTab'
+
+function loadLeftTab(): LeftTab {
+  try {
+    const raw = localStorage.getItem(LEFT_TAB_KEY)
+    if (raw === 'shots' || raw === 'assets' || raw === 'topview') return raw
+  } catch {
+    /* ignore */
+  }
+  return 'shots'
+}
+
+function closeLayerAssemblyOverlay(): void {
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new CustomEvent('layerAssembly:close'))
+  }
+}
 
 function applyTheme(theme: Theme): void {
-  if (typeof document !== 'undefined') {
+  if (typeof document !== 'undefined' && document.documentElement) {
     document.documentElement.setAttribute('data-theme', theme)
-    if (theme === 'light') {
-      document.documentElement.classList.add('theme-light')
-      document.documentElement.classList.remove('theme-dark')
-    } else {
-      document.documentElement.classList.add('theme-dark')
-      document.documentElement.classList.remove('theme-light')
+    if (document.documentElement.classList) {
+      if (theme === 'light') {
+        document.documentElement.classList.add('theme-light')
+        document.documentElement.classList.remove('theme-dark')
+      } else {
+        document.documentElement.classList.add('theme-dark')
+        document.documentElement.classList.remove('theme-light')
+      }
     }
   }
 }
@@ -113,6 +137,15 @@ export const useView = create<ViewState>((set, get) => ({
   dialog: null,
   audioDialogMode: 'waveform',
   assemblyModalModel: null,
+  leftTab: loadLeftTab(),
+  setLeftTab(leftTab) {
+    set({ leftTab })
+    try {
+      localStorage.setItem(LEFT_TAB_KEY, leftTab)
+    } catch {
+      /* ignore */
+    }
+  },
   audioSelectedCategory: 'all',
   setAudioSelectedCategory(cat) {
     set({ audioSelectedCategory: cat })
@@ -127,13 +160,23 @@ export const useView = create<ViewState>((set, get) => ({
     set({ aiActive: false, aiLocked: false, aiActionLabel: null })
   },
   openDialog(dialog) {
-    set({ dialog })
+    if (dialog !== null) {
+      useEditor.getState().setPlaying(false)
+      closeLayerAssemblyOverlay()
+      set({ dialog, assemblyModalModel: null })
+    } else {
+      set({ dialog: null })
+    }
   },
   openAudioDialog(mode = 'waveform') {
-    set({ dialog: 'audio', audioDialogMode: mode })
+    useEditor.getState().setPlaying(false)
+    closeLayerAssemblyOverlay()
+    set({ dialog: 'audio', audioDialogMode: mode, assemblyModalModel: null })
   },
   openAssemblyWorkshop(model) {
-    set({ assemblyModalModel: model })
+    useEditor.getState().setPlaying(false)
+    closeLayerAssemblyOverlay()
+    set({ assemblyModalModel: model, dialog: null })
   },
   closeAssemblyWorkshop() {
     set({ assemblyModalModel: null })
@@ -158,22 +201,26 @@ export const useView = create<ViewState>((set, get) => ({
       showRotate,
       showReadout
     } = get()
-    localStorage.setItem(
-      KEY,
-      JSON.stringify({
-        split,
-        primary,
-        editorKind,
-        showPath,
-        cameraOnly,
-        theme,
-        topViewMode,
-        showBbox,
-        showTranslate,
-        showRotate,
-        showReadout
-      })
-    )
+    try {
+      localStorage.setItem(
+        KEY,
+        JSON.stringify({
+          split,
+          primary,
+          editorKind,
+          showPath,
+          cameraOnly,
+          theme,
+          topViewMode,
+          showBbox,
+          showTranslate,
+          showRotate,
+          showReadout
+        })
+      )
+    } catch {
+      /* ignore */
+    }
   },
   requestFocus(kind, id) {
     const s = get()

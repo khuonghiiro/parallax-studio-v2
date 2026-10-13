@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import type { LayerComposite } from './types'
 import {
   ALL_LAYER_TEMPLATES,
@@ -89,6 +89,20 @@ export function CreateLayerAssemblyModal({
   const [searchQuery, setSearchQuery] = useState('')
   const [promptTemplate, setPromptTemplate] = useState<LayerAssemblyTemplate | null>(null)
 
+  useEffect(() => {
+    if (!isOpen) return
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        if (promptTemplate) setPromptTemplate(null)
+        else onClose()
+      }
+      e.stopPropagation()
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [isOpen, promptTemplate, onClose])
+
   const filteredTemplates = useMemo(() => {
     return ALL_LAYER_TEMPLATES.filter((t) => matchesFilter(t, category, searchQuery.trim()))
   }, [category, searchQuery])
@@ -112,7 +126,13 @@ export function CreateLayerAssemblyModal({
   }
 
   return (
-    <div className="lat-overlay" role="dialog" aria-modal="true" aria-label="Tạo lắp ráp layer mới">
+    <div
+      className="lat-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Tạo lắp ráp layer mới"
+      onPointerDown={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div className="lat-dialog">
         {/* Header */}
         <div className="lat-header">

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import type { AudioTrackItem } from '@shared/types'
 import {
   importAudio,
   mergeAudioTracks,
@@ -15,6 +14,7 @@ import {
   IconPause,
   IconPlay,
   IconVolume,
+  IconVolumeOff,
   IconX
 } from './icons'
 import { AudioStudioTrackList } from './audioStudio/AudioStudioTrackList'
@@ -37,8 +37,13 @@ export function AudioStudioDialog() {
   const close = () => useView.getState().openDialog(null)
 
   const [activeTab, setActiveTab] = useState<'waveform' | 'tone' | 'mixer'>(
-    mode === 'levels' ? 'tone' : 'waveform'
+    mode === 'levels' || mode === 'mixer' ? 'mixer' : 'waveform'
   )
+
+  useEffect(() => {
+    setActiveTab(mode === 'levels' || mode === 'mixer' ? 'mixer' : 'waveform')
+  }, [mode])
+
   const tracks = getProjectAudioTracks(project)
   const [selectedTrackId, setSelectedTrackId] = useState<string>(tracks[0]?.id || '')
 
@@ -143,7 +148,7 @@ export function AudioStudioDialog() {
   }
 
   return (
-    <div className="modal-backdrop" onClick={close}>
+    <div className="modal-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>
       <div className="modal audio-studio-modal" role="dialog" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="modal-head audio-studio-head">
@@ -154,29 +159,32 @@ export function AudioStudioDialog() {
               </span>
               <div>
                 <h2>Studio Cấu Hình Âm Thanh & Sóng Âm</h2>
-                <p>Biên tập sóng âm, chỉnh âm điệu, cắt tách gộp và cân chỉnh mức âm lượng (After Effects)</p>
+                <p>Biên tập sóng âm, chỉnh âm điệu, cắt tách gộp và cân chỉnh mức âm lượng đa luồng (After Effects)</p>
               </div>
             </div>
-            <button className="btn sm icon" onClick={close} title="Đóng bảng (Esc)">
-              <IconX width={13} height={13} />
+            <button type="button" className="btn sm icon ghost modal-close-btn" onClick={close} title="Đóng bảng (Esc)">
+              <IconX width={14} height={14} />
             </button>
           </div>
 
           {/* Tab selector */}
           <div className="audio-studio-tabs">
             <button
+              type="button"
               className={`audio-tab-btn${activeTab === 'waveform' ? ' active' : ''}`}
               onClick={() => setActiveTab('waveform')}
             >
               🌊 Sóng âm & Cắt tách (Waveforms & Cut)
             </button>
             <button
+              type="button"
               className={`audio-tab-btn${activeTab === 'tone' ? ' active' : ''}`}
               onClick={() => setActiveTab('tone')}
             >
               🎛️ Âm điệu, Tốc độ & EQ (Pitch & Tone)
             </button>
             <button
+              type="button"
               className={`audio-tab-btn${activeTab === 'mixer' ? ' active' : ''}`}
               onClick={() => setActiveTab('mixer')}
             >
@@ -219,6 +227,7 @@ export function AudioStudioDialog() {
 
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button
+                      type="button"
                       className={`btn sm${isPlayingAudition ? ' active' : ''}`}
                       onClick={toggleAudition}
                       title="Nghe thử file âm thanh này kèm các hiệu ứng âm điệu đã chỉnh"
@@ -234,6 +243,7 @@ export function AudioStudioDialog() {
                       )}
                     </button>
                     <button
+                      type="button"
                       className={`btn sm${curTrack.muted ? ' active danger' : ''}`}
                       onClick={() => updateAudioTrack(curTrack.id, { muted: !curTrack.muted })}
                       title={curTrack.muted ? 'Bật lại tiếng (Unmute)' : 'Tắt tiếng đoạn này (Mute)'}
@@ -245,13 +255,67 @@ export function AudioStudioDialog() {
 
                 {/* TAB 1: SÓNG ÂM & CẮT TÁCH (Waveforms & Editing) */}
                 {activeTab === 'waveform' && (
-                  <AudioStudioWaveform
-                    curTrack={curTrack}
-                    time={time}
-                    totalTracks={tracks.length}
-                    theme={theme}
-                    onSeek={setTime}
-                  />
+                  <>
+                    <AudioStudioWaveform
+                      curTrack={curTrack}
+                      time={time}
+                      totalTracks={tracks.length}
+                      theme={theme}
+                      onSeek={setTime}
+                    />
+                    <div className="audio-levels-panel">
+                      <div className="levels-row">
+                        <div className="levels-header">
+                          <span className="levels-label">
+                            <IconVolume width={14} height={14} /> Mức âm lượng nhanh (Quick Gain):
+                          </span>
+                          <span className="levels-value-badge">
+                            {Math.round(curTrack.volume * 100)}% ({toDbString(curTrack.volume)})
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={2}
+                          step={0.01}
+                          value={curTrack.volume}
+                          onChange={(e) =>
+                            updateAudioTrack(curTrack.id, { volume: parseFloat(e.target.value) })
+                          }
+                          className="audio-fader-slider"
+                        />
+                      </div>
+
+                      <div className="levels-row offset-row" style={{ marginTop: 8 }}>
+                        <div className="levels-header">
+                          <span className="levels-label">Thời điểm phát trên timeline (Offset):</span>
+                          <span className="levels-value-badge">{curTrack.offset.toFixed(2)}s</span>
+                        </div>
+                        <div className="offset-controls">
+                          <input
+                            type="number"
+                            min={0}
+                            step={0.05}
+                            value={curTrack.offset}
+                            onChange={(e) =>
+                              updateAudioTrack(curTrack.id, {
+                                offset: Math.max(0, parseFloat(e.target.value) || 0)
+                              })
+                            }
+                            className="audio-offset-input"
+                          />
+                          <button
+                            type="button"
+                            className="btn sm"
+                            onClick={() => updateAudioTrack(curTrack.id, { offset: time })}
+                            title="Dời âm thanh về đúng mốc giây hiện tại của kim phát timeline"
+                          >
+                            📍 Đặt tại kim phát ({time.toFixed(2)}s)
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </>
                 )}
 
                 {/* TAB 2: CHỈNH ÂM ĐIỆU, TỐC ĐỘ & EQUALIZER (Pitch, Speed & Tone) */}
@@ -291,6 +355,7 @@ export function AudioStudioDialog() {
                         ].map((p) => (
                           <button
                             key={p.rate}
+                            type="button"
                             className={`pill-btn${Math.abs((curTrack.playbackRate || 1) - p.rate) < 0.04 ? ' active' : ''}`}
                             onClick={() => updateAudioTrack(curTrack.id, { playbackRate: p.rate })}
                           >
@@ -321,8 +386,9 @@ export function AudioStudioDialog() {
                         ].map((item) => (
                           <button
                             key={item.key}
+                            type="button"
                             className={`pill-btn${(curTrack.tone || 'normal') === item.key ? ' active' : ''}`}
-                            onClick={() => updateAudioTrack(curTrack.id, { tone: item.key as any })}
+                            onClick={() => updateAudioTrack(curTrack.id, { tone: item.key as 'normal' | 'bass' | 'treble' | 'vocal' | 'warm' })}
                             title={item.desc}
                           >
                             {item.label}
@@ -330,97 +396,199 @@ export function AudioStudioDialog() {
                         ))}
                       </div>
                     </div>
+
+                    {/* Loop Playback Option */}
+                    <div className="levels-row" style={{ marginTop: 12 }}>
+                      <div className="levels-header">
+                        <span className="levels-label">🔁 Chế độ lặp lại (Loop Track):</span>
+                        <button
+                          type="button"
+                          className={`pill-btn${curTrack.loop ? ' active' : ''}`}
+                          onClick={() => updateAudioTrack(curTrack.id, { loop: !curTrack.loop })}
+                        >
+                          {curTrack.loop ? '✓ Đang bật lặp vô tận theo thời lượng cảnh' : 'Tắt lặp (Chỉ phát 1 lần)'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                {/* TAB 3: BỘ TRỘN ÂM LƯỢNG & FADE (Levels, Faders & Mixer) */}
-                <div className="audio-levels-panel">
-                  <div className="levels-row">
-                    <div className="levels-header">
-                      <span className="levels-label">
-                        <IconVolume width={14} height={14} /> Mức âm lượng (Audio Levels):
-                      </span>
-                      <span className="levels-value-badge">
-                        {Math.round(curTrack.volume * 100)}% ({toDbString(curTrack.volume)})
-                      </span>
-                    </div>
+                {/* TAB 3: BỘ TRỘN ÂM LƯỢNG, FADE & GỘP ÂM (Mixer, Fade In/Out & Merge) */}
+                {activeTab === 'mixer' && (
+                  <div className="audio-levels-panel">
+                    {/* Active Track Fader */}
+                    <div className="levels-row">
+                      <div className="levels-header">
+                        <span className="levels-label">
+                          <IconVolume width={14} height={14} /> Mức âm lượng luồng đang chọn (Audio Levels):
+                        </span>
+                        <span className="levels-value-badge">
+                          {Math.round(curTrack.volume * 100)}% ({toDbString(curTrack.volume)})
+                        </span>
+                      </div>
 
-                    <input
-                      type="range"
-                      min={0}
-                      max={2}
-                      step={0.01}
-                      value={curTrack.volume}
-                      onChange={(e) =>
-                        updateAudioTrack(curTrack.id, { volume: parseFloat(e.target.value) })
-                      }
-                      className="audio-fader-slider"
-                    />
-
-                    <div className="audio-preset-pills">
-                      <button
-                        className={`pill-btn${curTrack.volume === 0 ? ' active' : ''}`}
-                        onClick={() => updateAudioTrack(curTrack.id, { volume: 0 })}
-                      >
-                        Mute (-∞ dB)
-                      </button>
-                      <button
-                        className={`pill-btn${Math.abs(curTrack.volume - 0.5) < 0.05 ? ' active' : ''}`}
-                        onClick={() => updateAudioTrack(curTrack.id, { volume: 0.5 })}
-                      >
-                        50% (-6.0 dB)
-                      </button>
-                      <button
-                        className={`pill-btn${Math.abs(curTrack.volume - 1) < 0.05 ? ' active' : ''}`}
-                        onClick={() => updateAudioTrack(curTrack.id, { volume: 1 })}
-                      >
-                        100% (0.0 dB Chuẩn)
-                      </button>
-                      <button
-                        className={`pill-btn${Math.abs(curTrack.volume - 1.5) < 0.05 ? ' active' : ''}`}
-                        onClick={() => updateAudioTrack(curTrack.id, { volume: 1.5 })}
-                      >
-                        150% (+3.5 dB)
-                      </button>
-                      <button
-                        className={`pill-btn${Math.abs(curTrack.volume - 2) < 0.05 ? ' active' : ''}`}
-                        onClick={() => updateAudioTrack(curTrack.id, { volume: 2 })}
-                      >
-                        200% (+6.0 dB Max)
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Offset & Position Controls */}
-                  <div className="levels-row offset-row" style={{ marginTop: 8 }}>
-                    <div className="levels-header">
-                      <span className="levels-label">Thời điểm phát trên timeline (Offset):</span>
-                      <span className="levels-value-badge">{curTrack.offset.toFixed(2)}s</span>
-                    </div>
-
-                    <div className="offset-controls">
                       <input
-                        type="number"
+                        type="range"
                         min={0}
-                        step={0.05}
-                        value={curTrack.offset}
+                        max={2}
+                        step={0.01}
+                        value={curTrack.volume}
                         onChange={(e) =>
-                          updateAudioTrack(curTrack.id, {
-                            offset: Math.max(0, parseFloat(e.target.value) || 0)
-                          })
+                          updateAudioTrack(curTrack.id, { volume: parseFloat(e.target.value) })
                         }
-                        className="audio-offset-input"
+                        className="audio-fader-slider"
                       />
-                      <button
-                        className="btn sm"
-                        onClick={() => updateAudioTrack(curTrack.id, { offset: time })}
-                        title="Dời âm thanh về đúng mốc giây hiện tại của kim phát timeline"
-                      >
-                        📍 Đặt tại kim phát ({time.toFixed(2)}s)
-                      </button>
+
+                      <div className="audio-preset-pills">
+                        <button
+                          type="button"
+                          className={`pill-btn${curTrack.volume === 0 ? ' active' : ''}`}
+                          onClick={() => updateAudioTrack(curTrack.id, { volume: 0 })}
+                        >
+                          Mute (-∞ dB)
+                        </button>
+                        <button
+                          type="button"
+                          className={`pill-btn${Math.abs(curTrack.volume - 0.5) < 0.05 ? ' active' : ''}`}
+                          onClick={() => updateAudioTrack(curTrack.id, { volume: 0.5 })}
+                        >
+                          50% (-6.0 dB)
+                        </button>
+                        <button
+                          type="button"
+                          className={`pill-btn${Math.abs(curTrack.volume - 1) < 0.05 ? ' active' : ''}`}
+                          onClick={() => updateAudioTrack(curTrack.id, { volume: 1 })}
+                        >
+                          100% (0.0 dB Chuẩn)
+                        </button>
+                        <button
+                          type="button"
+                          className={`pill-btn${Math.abs(curTrack.volume - 1.5) < 0.05 ? ' active' : ''}`}
+                          onClick={() => updateAudioTrack(curTrack.id, { volume: 1.5 })}
+                        >
+                          150% (+3.5 dB)
+                        </button>
+                        <button
+                          type="button"
+                          className={`pill-btn${Math.abs(curTrack.volume - 2) < 0.05 ? ' active' : ''}`}
+                          onClick={() => updateAudioTrack(curTrack.id, { volume: 2 })}
+                        >
+                          200% (+6.0 dB Max)
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Fade In / Fade Out Envelope */}
+                    <div className="audio-fade-grid">
+                      <div className="levels-row">
+                        <div className="levels-header">
+                          <span className="levels-label">📈 Rõ dần đầu đoạn (Fade In):</span>
+                          <span className="levels-value-badge">{(curTrack.fadeIn || 0).toFixed(2)}s</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={5}
+                          step={0.1}
+                          value={curTrack.fadeIn || 0}
+                          onChange={(e) =>
+                            updateAudioTrack(curTrack.id, { fadeIn: parseFloat(e.target.value) })
+                          }
+                          className="audio-fader-slider"
+                        />
+                      </div>
+
+                      <div className="levels-row">
+                        <div className="levels-header">
+                          <span className="levels-label">📉 Nhỏ dần cuối đoạn (Fade Out):</span>
+                          <span className="levels-value-badge">{(curTrack.fadeOut || 0).toFixed(2)}s</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={5}
+                          step={0.1}
+                          value={curTrack.fadeOut || 0}
+                          onChange={(e) =>
+                            updateAudioTrack(curTrack.id, { fadeOut: parseFloat(e.target.value) })
+                          }
+                          className="audio-fader-slider"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Multi-Track Mixer Console */}
+                    <div className="audio-multitrack-console">
+                      <div className="levels-header" style={{ marginBottom: 8 }}>
+                        <span className="levels-label">🎚️ Bàn trộn đa luồng (Multi-Track Console — {tracks.length} luồng):</span>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            type="button"
+                            className="btn xs"
+                            onClick={() => tracks.forEach((t) => updateAudioTrack(t.id, { volume: 1, muted: false }))}
+                            title="Đưa tất cả các luồng về mức chuẩn 100% (0.0 dB)"
+                          >
+                            ⚖️ Chuẩn hóa 0 dB
+                          </button>
+                          {tracks.length > 1 && (
+                            <button
+                              type="button"
+                              className="btn xs primary"
+                              onClick={() => mergeAudioTracks()}
+                              title="Gộp toàn bộ các luồng âm thanh đang bật thành 1 luồng duy nhất"
+                            >
+                              🔗 Gộp tất cả ({tracks.length} luồng)
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="audio-mixer-rows">
+                        {tracks.map((t, idx) => {
+                          const tAsset = assetStore.get(t.assetId)
+                          const isSel = t.id === curTrack.id
+                          return (
+                            <div
+                              key={t.id}
+                              className={`audio-mixer-strip${isSel ? ' active' : ''}`}
+                              onClick={() => setSelectedTrackId(t.id)}
+                            >
+                              <button
+                                type="button"
+                                className={`btn xs icon${t.muted ? ' danger' : ' ghost'}`}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateAudioTrack(t.id, { muted: !t.muted })
+                                }}
+                                title={t.muted ? 'Bật tiếng' : 'Tắt tiếng'}
+                              >
+                                {t.muted ? <IconVolumeOff width={12} height={12} /> : <IconVolume width={12} height={12} />}
+                              </button>
+                              <span className="audio-mixer-strip-name" title={t.name || tAsset?.meta.name}>
+                                {idx + 1}. {t.name || tAsset?.meta.name || 'Âm thanh'}
+                              </span>
+                              <input
+                                type="range"
+                                min={0}
+                                max={2}
+                                step={0.01}
+                                value={t.volume}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) =>
+                                  updateAudioTrack(t.id, { volume: parseFloat(e.target.value) })
+                                }
+                                className="audio-fader-slider"
+                              />
+                              <span className="audio-mixer-strip-db">
+                                {t.muted ? 'MUTE' : `${Math.round(t.volume * 100)}% (${toDbString(t.volume)})`}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             ) : (
               <div className="audio-editor-placeholder">
@@ -434,9 +602,9 @@ export function AudioStudioDialog() {
         {/* Footer */}
         <div className="modal-foot audio-studio-foot">
           <div className="audio-studio-shortcuts-tip">
-            💡 <strong>Phím tắt:</strong> Nhấn <code>L</code> để mở nhanh mức âm lượng, nhấn <code>LL</code> (2 lần L) để xem biểu đồ sóng âm & công cụ cắt tách âm thanh.
+            💡 <strong>Phím tắt:</strong> Nhấn <code>L</code> để mở nhanh Bàn trộn mức âm lượng (Mixer), nhấn <code>LL</code> (2 lần L) để mở Biểu đồ sóng âm & Cắt tách.
           </div>
-          <button className="btn primary" onClick={close}>
+          <button type="button" className="btn primary" onClick={close}>
             <IconCheck width={13} height={13} /> Hoàn tất
           </button>
         </div>
@@ -444,3 +612,4 @@ export function AudioStudioDialog() {
     </div>
   )
 }
+

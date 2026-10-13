@@ -92,7 +92,7 @@ export function WorkshopRetargetDialog({
         justifyContent: 'center',
         padding: '16px'
       }}
-      onClick={onClose}
+      onPointerDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
         style={{

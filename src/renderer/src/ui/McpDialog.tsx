@@ -151,7 +151,7 @@ export function McpDialog() {
   const activeCfg = configs[ideTab]
 
   return (
-    <div className="modal-backdrop" onClick={close}>
+    <div className="modal-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>
       <div
         className="modal wide mcp-modal"
         role="dialog"

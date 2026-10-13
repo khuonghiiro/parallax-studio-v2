@@ -74,16 +74,16 @@ export const SCENE_TOOLS = [
         'viewer', 'viewer_canvas', 'viewport', 'camera_frame', 'viewer_hud', 'viewer_tools',
         'inspector', 'inspector_tabs', 'inspector_body', 'effect_stack', 'effect_editor', 'timeline_effects', 'fx_presets', 'motion', 'motion_preview', 'motion_parameters', 'motion_timing',
         'timeline', 'timeline_toolbar', 'timeline_ruler', 'timeline_tracks',
-        'toolbar', 'mcp_chip',
+        'toolbar', 'studio_menu', 'mcp_chip',
         'dialog',
         'assembly_3d', 'assembly_sidebar', 'assembly_viewport', 'assembly_inspector', 'assembly_header', 'assembly_footer', 'assembly_hud',
         'layer_assembly', 'layer_assembly_sidebar', 'layer_assembly_workspace', 'layer_assembly_inspector', 'layer_assembly_tools', 'layer_assembly_header',
         'layer_assembly_cutter', 'layer_assembly_source', 'layer_assembly_target',
-        'audio_studio', 'audio_studio_sidebar', 'audio_studio_editor', 'audio_studio_waveform', 'audio_studio_tone', 'audio_studio_mixer',
+        'audio_studio', 'audio_studio_sidebar', 'audio_studio_editor', 'audio_studio_waveform', 'audio_studio_tone', 'audio_studio_mixer', 'audio_studio_console',
         'perf_dialog', 'perf_hardware', 'perf_meter', 'perf_settings',
         'export', 'export_dialog', 'export_preview',
-        'camera_sketch', 'camera_sketch_canvas', 'camera_sketch_sidebar',
-        'camera_path', 'camera_path_steps',
+        'camera_sketch', 'camera_sketch_canvas', 'camera_sketch_sidebar', 'camera_sketch_waypoints',
+        'camera_path', 'camera_path_presets', 'camera_path_steps',
         'mcp_dialog', 'mcp_status', 'mcp_config', 'mcp_guide',
         'ai_hud', 'window'
       ]).optional().describe(d('Predefined UI region to capture (e.g. left_panel, asset_grid, audio_studio_waveform, assembly_sidebar, layer_assembly_inspector). Saves tokens by cropping to only the relevant area.', 'Vùng UI định sẵn cần chụp (ví dụ left_panel, asset_grid, audio_studio_waveform, assembly_sidebar, layer_assembly_inspector). Tiết kiệm token bằng cách cắt đúng khu vực quan trọng.')),
@@ -94,6 +94,35 @@ export const SCENE_TOOLS = [
       delay_ms: z.number().int().min(0).max(5000).optional().describe(d('Wait before capturing so UI transitions finish (default 150).', 'Chờ trước khi chụp để hiệu ứng UI chạy xong (mặc định 150).'))
     }),
     example: '{"region":"left_panel"}'
+  },
+  {
+    name: 'get_ui_state', cat: 'inspect',
+    doc: L(
+      'Inspect current UI state: active dialog/modal, Audio Studio mode, left sidebar tab, right inspector tab, viewer split/mode, open workshops, and active theme (dark/light).',
+      'Tra cứu trạng thái giao diện hiện tại: hộp thoại/modal đang mở, tab Phòng thu âm thanh, tab thanh bên trái, tab thanh tra bên phải, chế độ khung xem, các xưởng đang mở và giao diện sáng/tối.'
+    ),
+    shape: () => ({}),
+    example: '{}'
+  },
+  {
+    name: 'set_ui_dialog', cat: 'inspect',
+    doc: L(
+      'Open, switch, or close any UI dialog/workshop (Camera Path, Camera Sketch, Audio Studio, Performance, Export, MCP, 3D Assembly, 2.5D Layer Assembly), switch sidebar/inspector tabs, or toggle dark/light theme.',
+      'Mở, chuyển đổi hoặc đóng bất kỳ hộp thoại/xưởng UI nào (Lộ trình Camera, Vẽ đường bay, Phòng thu Âm thanh, Hiệu năng, Xuất MP4, MCP, Xưởng 3D, Xưởng 2.5D), chuyển tab trái/phải hoặc đổi giao diện Tối/Sáng.'
+    ),
+    shape: (d) => ({
+      dialog: z.enum([
+        'none', 'path', 'sketch', 'performance', 'mcp', 'audio', 'export', 'assembly_3d', 'layer_assembly', 'layer_assembly_create'
+      ]).optional().describe(d('Dialog or workshop to open, or "none" to close all modals.', 'Hộp thoại hoặc xưởng cần mở, hoặc "none" để đóng tất cả hộp thoại.')),
+      audio_mode: z.enum(['waveform', 'levels', 'mixer']).optional().describe(d('Audio Studio tab mode when opening or switching Audio Studio.', 'Chế độ tab Phòng thu âm thanh khi mở hoặc chuyển tab (waveform, levels, mixer).')),
+      track_id: z.string().optional().describe(d('Audio track ID to select in Audio Studio.', 'ID track âm thanh cần chọn trong Phòng thu.')),
+      model_id: z.string().optional().describe(d('3D model ID when opening assembly_3d.', 'ID mô hình 3D khi mở xưởng assembly_3d.')),
+      composite_id: z.string().optional().describe(d('2.5D composite ID when opening layer_assembly.', 'ID cụm 2.5D khi mở xưởng layer_assembly.')),
+      left_tab: z.enum(['shots', 'assets', 'topview']).optional().describe(d('Switch Left Sidebar tab.', 'Chuyển tab thanh bên trái.')),
+      inspector_tab: z.enum(['scene', 'layer', 'camera']).optional().describe(d('Switch Right Inspector tab.', 'Chuyển tab bảng thuộc tính bên phải.')),
+      theme: z.enum(['dark', 'light']).optional().describe(d('Switch UI theme ("dark" or "light").', 'Đổi giao diện Sáng ("light") hoặc Tối ("dark").'))
+    }),
+    example: '{"dialog":"path"}'
   },
   {
     name: 'set_ai_lock', cat: 'inspect',

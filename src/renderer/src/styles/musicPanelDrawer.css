@@ -1,0 +1,469 @@
+/* ------------------------------------------------------------------ Settings Drawer (Inside Card) */
+.music-settings-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 10px 8px;
+  margin-top: 5px;
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
+}
+
+[data-theme='light'] .music-settings-drawer {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+}
+
+.music-setting-col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.music-setting-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.music-setting-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #e4e4e7;
+  flex: none;
+}
+
+[data-theme='light'] .music-setting-label {
+  color: #1e293b;
+}
+
+.music-setting-current-val {
+  font-size: 11px;
+  font-family: monospace;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+[data-theme='light'] .music-setting-current-val {
+  color: #0284c7;
+}
+
+.music-mute-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.music-mute-btn:hover {
+  color: var(--accent);
+}
+
+.music-mute-btn.muted {
+  color: #ef4444;
+}
+
+.music-slider-track-wrap {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 2px 0;
+}
+
+.music-slider {
+  width: 100%;
+  height: 6px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+/* Speed Grid 5 columns */
+.music-speed-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 3px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.music-chip-btn {
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 9.5px;
+  font-family: monospace;
+  color: var(--text-dim);
+  padding: 3px 0;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+[data-theme='light'] .music-chip-btn {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+.music-chip-btn:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line-focus);
+}
+
+.music-chip-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 0 6px rgba(38, 128, 235, 0.4);
+}
+
+/* Loop row */
+.music-loop-row {
+  display: flex;
+  align-items: center;
+  border-top: 1px dashed var(--line);
+  padding-top: 6px;
+  margin-top: 2px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.music-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+}
+
+[data-theme='light'] .music-checkbox-label {
+  color: #334155;
+}
+
+.music-checkbox-label input[type='checkbox'] {
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Actions Grid 2 columns */
+.music-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 2px;
+}
+
+.music-drawer-action-btn {
+  width: 100%;
+  justify-content: center;
+  box-sizing: border-box;
+  white-space: nowrap;
+  font-size: 10px !important;
+  padding: 0 4px !important;
+  height: 24px !important;
+  gap: 3px !important;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ------------------------------------------------------------------ Empty State */
+.music-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 14px;
+  text-align: center;
+  gap: 8px;
+  margin: auto 0;
+}
+
+.music-empty-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+  border: 1px dashed var(--line);
+}
+
+.music-empty-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.music-empty-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  max-width: 210px;
+  line-height: 1.45;
+}
+
+/* ------------------------------------------------------------------ Footer V2 */
+.music-panel-footer-v2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--bg-0);
+  border-top: 1px solid var(--line);
+  flex: none;
+}
+
+.music-footer-time-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.music-footer-time-info svg {
+  color: var(--accent);
+}
+
+.music-footer-time-info strong {
+  color: var(--text);
+}
+
+.music-footer-add-btn {
+  flex: 1;
+  justify-content: center;
+  font-size: 11px !important;
+  height: 25px !important;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ Music Category Rail (Thanh Thể Loại Dọc) */
+.music-vertical-strip {
+  width: 40px;
+  flex: none;
+  background: var(--bg-0);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+  z-index: 10;
+  height: 100%;
+}
+
+.music-cat-tab-btn {
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.music-cat-tab-btn:hover:not(.active) {
+  background: var(--bg-2);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.music-cat-tab-btn.active,
+.music-cat-tab-btn.active:hover {
+  background: color-mix(in srgb, var(--cat-accent, var(--accent)) 26%, var(--bg-2)) !important;
+  border-color: var(--cat-accent, var(--accent)) !important;
+  color: var(--cat-accent, var(--accent-cyan)) !important;
+  box-shadow: 0 1px 6px color-mix(in srgb, var(--cat-accent, var(--accent)) 35%, transparent);
+}
+
+.music-cat-tab-btn.active::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--cat-accent, var(--accent));
+}
+
+.music-cat-dot-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 4px var(--accent);
+  pointer-events: none;
+}
+
+.music-add-action-btn {
+  color: var(--accent-cyan) !important;
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent) !important;
+}
+
+.music-add-action-btn:hover {
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-2)) !important;
+  border-color: var(--accent) !important;
+}
+
+/* Category Tooltip */
+.music-category-tooltip {
+  position: fixed;
+  z-index: 60000;
+  transform: translateY(-50%);
+  background: var(--bg-0);
+  border: 1px solid var(--line-focus, var(--line));
+  border-radius: var(--radius-md, 6px);
+  padding: 6px 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  min-width: 140px;
+  max-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cat-tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cat-tooltip-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.cat-tooltip-count {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-2));
+  color: var(--accent-cyan);
+}
+
+.cat-tooltip-desc {
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1.35;
+}
+
+/* ------------------------------------------------------------------ Audio Category Badge (Trên Item Card) */
+.music-badge-category {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+}
+
+.music-badge-category.cat-all {
+  background: color-mix(in srgb, var(--text-dim) 15%, transparent);
+  color: var(--text-dim);
+  border: 1px solid var(--line);
+}
+
+.music-badge-category.cat-music {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
+.music-badge-category.cat-ambient {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.music-badge-category.cat-sfx {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.music-badge-category.cat-voice {
+  background: rgba(236, 72, 153, 0.15);
+  color: #ec4899;
+  border: 1px solid rgba(236, 72, 153, 0.35);
+}
+
+.music-badge-category.cat-cinematic {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+}
+
+/* Dual-Theme Adjustments for Badges in Light Mode */
+[data-theme='light'] .music-badge-category.cat-music,
+.app.light .music-badge-category.cat-music {
+  background: rgba(2, 132, 199, 0.12);
+  color: #0369a1;
+  border-color: rgba(2, 132, 199, 0.4);
+}
+
+[data-theme='light'] .music-badge-category.cat-ambient,
+.app.light .music-badge-category.cat-ambient {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+[data-theme='light'] .music-badge-category.cat-sfx,
+.app.light .music-badge-category.cat-sfx {
+  background: rgba(217, 119, 6, 0.12);
+  color: #b45309;
+  border-color: rgba(217, 119, 6, 0.4);
+}
+
+[data-theme='light'] .music-badge-category.cat-voice,
+.app.light .music-badge-category.cat-voice {
+  background: rgba(219, 39, 119, 0.12);
+  color: #be185d;
+  border-color: rgba(219, 39, 119, 0.4);
+}
+
+[data-theme='light'] .music-badge-category.cat-cinematic,
+.app.light .music-badge-category.cat-cinematic {
+  background: rgba(147, 51, 234, 0.12);
+  color: #7e22ce;
+  border-color: rgba(147, 51, 234, 0.4);
+}

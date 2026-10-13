@@ -96,5 +96,48 @@ describe('get_app_screenshot', () => {
     const found = resolveTargetElement('timeline_toolbar')
     expect(found).toBe(mockEl)
   })
+
+  it('inspects and updates UI dialogs, tabs, and theme via get_ui_state and set_ui_dialog', async () => {
+    const initial = uiCommands.get_ui_state({}, { reqId: 't', method: 'get_ui_state', params: {} }) as Record<
+      string,
+      unknown
+    >
+    expect(initial.theme).toBe('dark')
+    expect(initial.dialog).toBeNull()
+
+    const pathRes = (await uiCommands.set_ui_dialog(
+      { dialog: 'path', left_tab: 'topview', theme: 'light' },
+      { reqId: 't', method: 'set_ui_dialog', params: {} }
+    )) as Record<string, unknown>
+    expect(pathRes).toMatchObject({
+      ok: true,
+      theme: 'light',
+      dialog: 'path',
+      left_tab: 'topview'
+    })
+
+    const audioRes = (await uiCommands.set_ui_dialog(
+      { dialog: 'audio', audio_mode: 'mixer' },
+      { reqId: 't', method: 'set_ui_dialog', params: {} }
+    )) as Record<string, unknown>
+    expect(audioRes).toMatchObject({
+      ok: true,
+      dialog: 'audio',
+      audio_dialog_mode: 'mixer'
+    })
+
+    const closeRes = (await uiCommands.set_ui_dialog(
+      { dialog: 'none', theme: 'dark', left_tab: 'shots' },
+      { reqId: 't', method: 'set_ui_dialog', params: {} }
+    )) as Record<string, unknown>
+    expect(closeRes).toMatchObject({
+      ok: true,
+      theme: 'dark',
+      dialog: null,
+      left_tab: 'shots'
+    })
+  })
 })
+
+
 

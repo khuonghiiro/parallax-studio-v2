@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   addGroundLayer,
   addMistLayer,
@@ -6,6 +6,7 @@ import {
   addRainLayer,
   addSolidLayer,
   addTextLayer,
+  importAudio,
   importImages,
   loadDemo,
   newProject,
@@ -18,14 +19,16 @@ import type { McpStatus } from '@shared/ipc'
 import { useEditor } from '../store/editor'
 import { useView } from '../store/view'
 import {
-  IconChevronDown,
   IconExport,
   IconFile,
   IconFolder,
   IconGround,
   IconImage,
+  IconMusic,
+  IconPen,
   IconPlus,
   IconRedo,
+  IconRoute,
   IconSave,
   IconSparkles,
   IconSquare,
@@ -111,7 +114,7 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
         </div>
       </div>
 
-      <Menu id="menu-file" label="File" icon={<IconFile />}>
+      <Menu id="menu-file" label="Tệp" icon={<IconFile />}>
         <button className="menu-item" onClick={newProject}>
           <IconFile width={15} /> Dự án mới <span className="hint">Ctrl+N</span>
         </button>
@@ -131,7 +134,7 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
         <button id="export-json" className="menu-item" onClick={saveProjectJson}>
           <IconSave width={15} /> Xuất ra JSON…
         </button>
-        <div className="menu-label">Mẫu</div>
+        <div className="menu-label">Mẫu dựng sẵn</div>
         <button className="menu-item" onClick={() => loadDemo()}>
           <IconWand width={15} /> Mở cảnh mẫu “Parallax Journey” (4 cảnh)
         </button>
@@ -142,7 +145,7 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
           <IconImage width={15} /> Ảnh (PNG/JPG)… <span className="hint">Ctrl+I</span>
         </button>
         <button id="add-text" className="menu-item" onClick={addTextLayer}>
-          <IconText width={15} /> Text <span className="hint">Ctrl+T</span>
+          <IconText width={15} /> Chữ (Text Layer) <span className="hint">Ctrl+T</span>
         </button>
         <button id="add-solid" className="menu-item" onClick={addSolidLayer}>
           <IconSquare width={15} /> Solid / Gradient nền
@@ -157,11 +160,41 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
           <IconSparkles width={15} /> Mưa rào thực (Ảnh PNG/WebP)
         </button>
         <button id="add-particles" className="menu-item" onClick={addParticleLayer}>
-          <IconSparkles width={15} /> Particles (bụi, đom đóm, tuyết)
+          <IconSparkles width={15} /> Hạt môi trường (Bụi, Đom đóm, Tuyết)
         </button>
-        <div className="menu-label">Lắp ráp & Nhân vật</div>
+        <div className="menu-label">Âm thanh & Lắp ráp</div>
+        <button id="add-audio-file" className="menu-item" onClick={() => importAudio()}>
+          <IconMusic width={15} /> Nhập âm thanh / Nhạc nền…
+        </button>
         <button id="add-assembly-workshop" className="menu-item" onClick={() => requestOpenLayerAssembly()}>
-          <IconLayerAssembly width={15} /> Xưởng Lắp Ráp Layer 2.5D…
+          <IconLayerAssembly width={15} /> Xưởng Lắp Ráp Layer & Rigging 2.5D…
+        </button>
+      </Menu>
+
+      <Menu id="menu-studio" label="Studio & Đạo diễn" icon={<IconWand />}>
+        <div className="menu-label">Đạo diễn Camera 3D (After Effects)</div>
+        <button id="studio-cam-path" className="menu-item" onClick={() => useView.getState().openDialog('path')}>
+          <IconRoute width={15} /> Lộ trình Camera qua các Cảnh…
+        </button>
+        <button id="studio-cam-sketch" className="menu-item" onClick={() => useView.getState().openDialog('sketch')}>
+          <IconPen width={15} /> Vẽ đường bay Camera 2D (Top-Down)…
+        </button>
+        <div className="menu-label">Xưởng Hoạt Ảnh & Âm Thanh (Animate)</div>
+        <button id="studio-layer-assembly" className="menu-item" onClick={() => requestOpenLayerAssembly()}>
+          <IconLayerAssembly width={15} /> Xưởng Lắp Ráp Nhân Vật & Gắn Xương 2.5D…
+        </button>
+        <button id="studio-audio" className="menu-item" onClick={() => useView.getState().openAudioDialog('waveform')}>
+          <IconMusic width={15} /> Studio Âm Thanh, Sóng Âm & Mixer… <span className="hint">LL</span>
+        </button>
+        <div className="menu-label">Hệ thống & Kết xuất</div>
+        <button id="studio-perf" className="menu-item" onClick={() => useView.getState().openDialog('performance')}>
+          <IconSettings width={15} /> Cấu hình Hiệu năng, RAM & VRAM GPU…
+        </button>
+        <button id="studio-mcp" className="menu-item" onClick={() => useView.getState().openDialog('mcp')}>
+          <IconPlug width={15} /> Kết nối AI Agent (MCP Controller)…
+        </button>
+        <button id="studio-export" className="menu-item" onClick={onExport}>
+          <IconExport width={15} /> Xuất video MP4 (Render Queue)… <span className="hint">Ctrl+M</span>
         </button>
       </Menu>
 
@@ -174,7 +207,12 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
       </button>
 
       <span className="tb-spacer" />
-      <div className="doc-title" title={`Composition: ${compName} (${comp.width}×${comp.height} @ ${comp.fps}fps)`}>
+      <div
+        className="doc-title"
+        style={{ cursor: 'pointer' }}
+        onClick={() => useEditor.getState().setInspectorTab('scene')}
+        title={`Composition: ${compName} (${comp.width}×${comp.height} @ ${comp.fps}fps) — Bấm để mở thiết lập Composition & Cảnh`}
+      >
         {dirty && <span className="dirty" title="Có thay đổi chưa lưu" />}
         <b style={{ color: 'var(--text)' }}>{compName}</b>
         <span style={{ color: 'var(--accent-cyan)', opacity: 0.85, fontSize: '10.5px', fontFamily: 'var(--mono)' }}>
@@ -186,6 +224,14 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
       <span className="tb-spacer" />
 
       <McpChip />
+      <button
+        id="audio-studio-btn"
+        className="tb-btn-icon"
+        onClick={() => useView.getState().openAudioDialog('waveform')}
+        title="Mở Studio Âm thanh, Sóng âm & Bàn trộn Mixer (Phím tắt: L / LL)"
+      >
+        <IconMusic width={14} height={14} />
+      </button>
       <button
         id="theme-toggle"
         className="tb-btn-icon"
@@ -211,3 +257,4 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
     </header>
   )
 }
+

@@ -23,7 +23,6 @@ import { usePerformance } from './store/performance'
 
 export default function App() {
   const [ready, setReady] = useState(false)
-  const [exporting, setExporting] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [timelineH, setTimelineH] = useState(300)
   const toast = useToast((s) => s.message)
@@ -31,30 +30,27 @@ export default function App() {
   const assemblyModalModel = useView((s) => s.assemblyModalModel)
   const closeAssemblyWorkshop = useView((s) => s.closeAssemblyWorkshop)
   const openExport = useCallback(() => {
-    useEditor.getState().setPlaying(false)
-    setExporting(true)
+    useView.getState().openDialog('export')
   }, [])
 
   usePlayback()
   useShortcuts(openExport)
 
-  // Open the demo scene on first launch, then accept AI commands over MCP.
+  // Open the demo scene on first launch.
   useEffect(() => {
-    let off: (() => void) | undefined
-    let disposed = false
     loadDemo(true)
       .catch((err) => console.error(err))
       .finally(() => {
         setReady(true)
         usePerformance.getState().init().catch(() => undefined)
-        // StrictMode mounts twice in dev: never subscribe from a disposed effect.
-        if (!disposed) off = initMcp()
       })
-    return () => {
-      disposed = true
-      off?.()
-    }
   }, [])
+
+  // Accept AI commands over MCP (re-subscribes cleanly on HMR).
+  useEffect(() => {
+    if (!ready) return
+    return initMcp()
+  }, [ready])
 
   // Window title reflects document state.
   const dirty = useEditor((s) => s.dirty)
@@ -125,7 +121,7 @@ export default function App() {
 
       <AiControlOverlay />
 
-      {exporting && <ExportDialog onClose={() => setExporting(false)} />}
+      {dialog === 'export' && <ExportDialog onClose={() => useView.getState().openDialog(null)} />}
       {dialog === 'path' && <CameraPathDialog />}
       {dialog === 'sketch' && <CameraSketchDialog />}
       {dialog === 'performance' && <PerformanceDialog />}
