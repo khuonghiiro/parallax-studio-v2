@@ -16,11 +16,14 @@ export interface BonePose {
   scaleX?: number
   scaleY?: number
 }
-export type BoneEasing = 'smooth' | 'linear' | 'hold' | 'ease-in' | 'ease-out' | 'ease-in-out'
+export type BoneEasing = 'smooth' | 'linear' | 'hold' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'bezier'
+export type BoneBezier = [number, number, number, number]
 
 export interface BoneKeyframe extends BonePose {
   time: number
   easing: BoneEasing
+  /** Outgoing cubic Bezier curve [x1, y1, x2, y2]; x controls are in [0, 1]. */
+  bezier?: BoneBezier
 }
 
 export type MotionViewAngle = 'front' | 'diagonal' | 'side' | 'back'

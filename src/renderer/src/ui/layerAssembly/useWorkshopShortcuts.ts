@@ -21,6 +21,8 @@ export function useWorkshopShortcuts(
   useEffect(() => {
     const handle = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable="true"]')) { e.stopPropagation(); return }
+      // Timeline owns key deletion and drag cancellation; never delete a bone here.
+      if ((e.target as Element)?.closest?.('.lw-animation-timeline') && ['Escape', 'Delete', 'Backspace'].includes(e.key)) return
       const mod = e.ctrlKey || e.metaKey, key = e.key.toLowerCase()
       // The viewport/gizmo owns Escape while a gesture is active.
       if (e.key === 'Escape' && state.history.gestureActive) return
@@ -31,11 +33,11 @@ export function useWorkshopShortcuts(
       else if (mod && key === 'd') state.run('duplicate')
       else if (e.key === 'Delete' || e.key === 'Backspace') {
         const ctx = boneCtxRef.current
-        if (ctx?.boneId && (ctx.tab === 'bones' || state.selection.length === 0)) {
+        if (ctx?.boneId && ctx.tab === 'bones') {
           const targetBoneId = ctx.boneId
           state.setComposite((c) => applyRigAction(c, { action: 'delete-bone', boneId: targetBoneId }))
           ctx.selectBone?.(null)
-        } else if (state.selection.length) {
+        } else if (state.selection.length && ctx?.tab !== 'animation') {
           state.run('delete')
         }
       }
@@ -88,13 +90,14 @@ export function useWorkshopShortcuts(
       e.preventDefault(); e.stopImmediatePropagation()
     }
     const end = () => state.history.end()
+    const endKey = (e: KeyboardEvent) => { if (e.key.startsWith('Arrow')) end() }
     window.addEventListener('keydown', handle, true)
-    window.addEventListener('keyup', end)
+    window.addEventListener('keyup', endKey)
     window.addEventListener('pointerup', end)
     window.addEventListener('pointercancel', end)
     return () => {
       window.removeEventListener('keydown', handle, true)
-      window.removeEventListener('keyup', end)
+      window.removeEventListener('keyup', endKey)
       window.removeEventListener('pointerup', end)
       window.removeEventListener('pointercancel', end)
     }

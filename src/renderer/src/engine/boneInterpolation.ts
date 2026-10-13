@@ -1,4 +1,5 @@
 import type { BoneKeyframe, BonePose, LayerRig } from '@shared/layerRig'
+import { cubicBezierProgress } from './boneEasing'
 
 const REST: BonePose = { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }
 const fields = ['x', 'y', 'rotation', 'scaleX', 'scaleY'] as const
@@ -22,7 +23,9 @@ function interpolate(keys: BoneKeyframe[], time: number): BonePose {
     if (field === 'rotation') {
       v0 = unwrap(v1, v0); v2 = unwrap(v1, v2); v3 = unwrap(v2, v3)
     }
-    if (easing === 'linear') {
+    if (easing === 'bezier') {
+      result[field] = v1 + (v2 - v1) * cubicBezierProgress(t, b.bezier)
+    } else if (easing === 'linear') {
       result[field] = v1 + (v2 - v1) * t
     } else if (easing === 'ease-in') {
       const et = t * t * t
@@ -35,7 +38,7 @@ function interpolate(keys: BoneKeyframe[], time: number): BonePose {
       const et = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
       result[field] = v1 + (v2 - v1) * et
     } else {
-      // 'smooth': Hermite spline with continuous curvature
+      // 'smooth': Hermite spline with continuous first derivative
       const m1 = (v2 - v0) / (c.time - a.time) * span
       const m2 = (v3 - v1) / (d.time - b.time) * span
       const t2 = t * t, t3 = t2 * t

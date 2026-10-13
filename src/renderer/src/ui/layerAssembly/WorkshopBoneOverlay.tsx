@@ -1,6 +1,7 @@
 import { useRef, useState, type PointerEvent } from 'react'
 import { evaluateRig, rotatePoint, sampleBonePose } from '../../engine/layerRig'
 import type { LayerComposite } from './types'
+import { startBoneDrag, boneDragAction, type BoneDragMode } from './workshopBoneDrag'
 import { applyRigAction } from './workshopRig'
 
 export interface BoneOverlayProps {
@@ -10,33 +11,20 @@ export interface BoneOverlayProps {
   setComposite: (update: (prev: LayerComposite) => LayerComposite) => void
   time: number
   editing: boolean
+  stopPlayback?: () => void
+  cancelGesture?: () => void
 }
 
-type DragMode = 'head' | 'tail' | 'rotate'
-
-interface DragState {
-  boneId: string
-  mode: DragMode
-  startX: number
-  startY: number
-  startAngle: number
-  startLength: number
-  startRotation: number
-  headX: number
-  headY: number
-  startMouseAngle: number
-}
-
-export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposite, time, editing }: BoneOverlayProps) {
+export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposite, time, editing, stopPlayback, cancelGesture }: BoneOverlayProps) {
   const svgRef = useRef<SVGSVGElement>(null)
-  const dragRef = useRef<DragState | null>(null)
+  const dragRef = useRef<ReturnType<typeof startBoneDrag> | null>(null)
   const [activeDrag, setActiveDrag] = useState<string | null>(null)
   const [dragAngle, setDragAngle] = useState<{ x: number; y: number; text: string } | null>(null)
 
   const rig = composite.rig
   if (!rig || !rig.bones.length) return null
 
-  const transforms = evaluateRig(rig, time, editing)
+  const transforms = evaluateRig({ ...rig, loop: false }, time, editing)
 
   const toLocalPoint = (event: PointerEvent) => {
     const matrix = svgRef.current?.getScreenCTM()
@@ -44,32 +32,14 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
     return new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse())
   }
 
-  const handlePointerDown = (e: PointerEvent, id: string, mode: DragMode) => {
+  const handlePointerDown = (e: PointerEvent, id: string, mode: BoneDragMode) => {
+    if (e.button !== 0) return
     e.stopPropagation()
+    const point = toLocalPoint(e)
+    if (!point) return
+    stopPlayback?.()
     selectBone(id)
-    const bone = rig.bones.find((b) => b.id === id)
-    if (!bone) return
-    const p = toLocalPoint(e)
-    if (!p) return
-
-    const transform = transforms.get(id) ?? { x: bone.x, y: bone.y, rotation: 0, tx: 0, ty: 0 }
-    const headX = transform.x
-    const headY = transform.y
-    const startMouseAngle = Math.atan2(p.y - headY, p.x - headX) * 180 / Math.PI
-    const currentPose = sampleBonePose(rig, id, time)
-
-    dragRef.current = {
-      boneId: id,
-      mode,
-      startX: bone.x,
-      startY: bone.y,
-      startAngle: bone.angle,
-      startLength: bone.length,
-      startRotation: currentPose.rotation,
-      headX,
-      headY,
-      startMouseAngle
-    }
+    dragRef.current = startBoneDrag(rig, id, time, editing, mode, point)
     setActiveDrag(id)
     e.currentTarget.setPointerCapture(e.pointerId)
     svgRef.current?.focus()
@@ -77,76 +47,14 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
 
   const handlePointerMove = (e: PointerEvent) => {
     const drag = dragRef.current
-    if (!drag) return
-    const p = toLocalPoint(e)
-    if (!p) return
-
-    if (drag.mode === 'head') {
-      const dx = p.x - drag.headX
-      const dy = p.y - drag.headY
-      if (editing) {
-        setComposite((c) =>
-          applyRigAction(c, {
-            action: 'update-bone',
-            boneId: drag.boneId,
-            patch: { x: Math.round(drag.startX + dx), y: Math.round(drag.startY + dy) }
-          })
-        )
-      } else {
-        const existingPose = sampleBonePose(rig, drag.boneId, time)
-        setComposite((c) =>
-          applyRigAction(c, {
-            action: 'set-key',
-            boneId: drag.boneId,
-            key: {
-              time,
-              x: Math.round(dx),
-              y: Math.round(dy),
-              rotation: existingPose.rotation,
-              scaleX: existingPose.scaleX ?? 1,
-              scaleY: existingPose.scaleY ?? 1,
-              easing: 'smooth'
-            }
-          })
-        )
-      }
-      setDragAngle({ x: p.x, y: p.y, text: `Δ (${Math.round(dx)}, ${Math.round(dy)})` })
-    } else if (drag.mode === 'tail') {
-      const dx = p.x - drag.headX
-      const dy = p.y - drag.headY
-      const length = Math.max(15, Math.round(Math.hypot(dx, dy)))
-      const angle = Math.round(Math.atan2(dy, dx) * 180 / Math.PI)
-      setComposite((c) =>
-        applyRigAction(c, {
-          action: 'update-bone',
-          boneId: drag.boneId,
-          patch: { length, angle }
-        })
-      )
-      setDragAngle({ x: p.x, y: p.y, text: `${length}px · ${angle}°` })
-    } else if (drag.mode === 'rotate') {
-      const currentMouseAngle = Math.atan2(p.y - drag.headY, p.x - drag.headX) * 180 / Math.PI
-      const deltaAngle = currentMouseAngle - drag.startMouseAngle
-      const newRotation = Math.round(drag.startRotation + deltaAngle)
-      const existingPose = sampleBonePose(rig, drag.boneId, time)
-      setComposite((c) =>
-        applyRigAction(c, {
-          action: 'set-key',
-          boneId: drag.boneId,
-          key: {
-            time,
-            x: existingPose.x,
-            y: existingPose.y,
-            rotation: newRotation,
-            scaleX: existingPose.scaleX ?? 1,
-            scaleY: existingPose.scaleY ?? 1,
-            easing: 'smooth'
-          }
-        })
-      )
-      const sign = newRotation > 0 ? '+' : ''
-      setDragAngle({ x: p.x, y: p.y, text: `${sign}${newRotation}°` })
-    }
+    const point = toLocalPoint(e)
+    if (!drag || !point) return
+    const action = boneDragAction(drag, point, e.shiftKey)
+    setComposite((c) => applyRigAction(c, action))
+    const text = action.action === 'set-key'
+      ? action.key.rotation !== undefined ? `${action.key.rotation.toFixed(1)}°` : `${action.key.x?.toFixed(0)}, ${action.key.y?.toFixed(0)}`
+      : action.action === 'update-bone' ? `${action.patch.angle?.toFixed(0) ?? ''}°` : ''
+    setDragAngle({ ...point, text })
   }
 
   const endDrag = () => {
@@ -164,15 +72,13 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
       aria-label="Khung xương Blender trên màn hình 2D"
       onPointerMove={handlePointerMove}
       onPointerUp={endDrag}
-      onPointerCancel={endDrag}
+      onPointerCancel={() => { cancelGesture?.(); endDrag() }}
+      onLostPointerCapture={() => { if (dragRef.current) { cancelGesture?.(); endDrag() } }}
       onKeyDown={(e) => {
         if (e.key === 'Escape' && dragRef.current) {
           e.stopPropagation()
+          cancelGesture?.()
           endDrag()
-        } else if ((e.key === 'Delete' || e.key === 'Backspace') && boneId) {
-          e.stopPropagation()
-          setComposite((c) => applyRigAction(c, { action: 'delete-bone', boneId }))
-          selectBone(null)
         }
       }}
     >
@@ -302,7 +208,7 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
             width={72}
             height={20}
             rx={5}
-            fill="rgba(10, 15, 30, 0.92)"
+            fill="var(--bg-1)"
             stroke="var(--accent-cyan)"
             strokeWidth={1.2}
           />
@@ -310,7 +216,7 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
             x={30}
             y={0}
             textAnchor="middle"
-            fill="#ffffff"
+            fill="var(--text)"
             fontSize={11}
             fontWeight={600}
             fontFamily="system-ui, sans-serif"

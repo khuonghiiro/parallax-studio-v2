@@ -16,6 +16,7 @@ export function useWorkshopHistory(initial: () => LayerComposite) {
     render((n) => n + 1)
   }, [history])
   return { composite: history.current, setComposite, resetComposite, history,
+    cancelGesture: () => { history.cancel(); render((n) => n + 1) },
     undo: () => { history.undo(); render((n) => n + 1) },
     redo: () => { history.redo(); render((n) => n + 1) } }
 }

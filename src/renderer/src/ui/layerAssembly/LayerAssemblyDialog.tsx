@@ -9,6 +9,7 @@ import { useWorkshopSave } from './useWorkshopSave'
 import { useWorkshopShortcuts } from './useWorkshopShortcuts'
 import { WorkshopTools } from './WorkshopTools'
 import { WorkshopHeader } from './WorkshopHeader'
+import { WorkshopAnimationTimeline } from './WorkshopAnimationTimeline'
 import { WorkshopWorkspace } from './WorkshopWorkspace'
 import { getStoredComposites } from './layerAssemblyStorage'
 import '../../styles/layerAssembly.css'
@@ -145,6 +146,7 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
             selectBone={selectBone}
             onBrushModeChange={setIsBrushActive}
           />
+          {tab === 'animation' && <WorkshopAnimationTimeline state={state} playback={playback} boneId={boneId} selectBone={selectBone} />}
         </div>
         <WorkshopRightPanel state={state} playback={playback} tab={tab} setTab={setTab} boneId={boneId} selectBone={selectBone}>
         <LayerAssemblyInspector composite={composite} selectedLayerId={state.selectedLayerId} selectedIds={state.selection}

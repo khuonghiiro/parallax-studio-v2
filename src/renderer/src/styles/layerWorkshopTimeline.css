@@ -1,0 +1,29 @@
+.lw-animation-timeline { flex: 0 0 auto; min-width: 0; color: var(--text); background: var(--bg-1); border-top: 1px solid var(--line); font-size: 11px; }
+.lw-animation-timeline:focus-visible { outline: 1px solid var(--line-focus); outline-offset: -1px; }
+.lw-animation-timeline-toolbar { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; min-height: 36px; padding: 5px 12px; position: relative; overflow: visible; z-index: 5000; }
+.lw-animation-timeline-toolbar strong { color: var(--text); margin-right: 4px; }
+.lw-animation-timeline-toolbar label { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; color: var(--text-dim); }
+.lw-animation-timecode { color: var(--accent); font-variant-numeric: tabular-nums; }
+.lw-animation-track-scroll { overflow: auto; max-height: 190px; border-block: 1px solid var(--line-soft); }
+.lw-animation-track-content { min-width: 100%; }
+.lw-animation-track-row { display: grid; grid-template-columns: 148px minmax(0, 1fr); height: 29px; border-bottom: 1px solid var(--line-soft); }
+.lw-animation-track-name { position: sticky; left: 0; z-index: 2; border: 0; border-right: 1px solid var(--line); background: var(--bg-1); color: var(--text-dim); padding: 6px 10px; font: inherit; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button.lw-animation-track-name { cursor: pointer; }
+.lw-animation-track-name small { float: right; color: var(--text-faint); margin-left: 5px; }
+.lw-animation-track-row.selected { background: color-mix(in srgb, var(--accent) 8%, var(--bg-0)); }
+.lw-animation-track-row.selected .lw-animation-track-name { color: var(--accent); background: var(--bg-2); }
+.lw-animation-track-lane { position: relative; margin: 0 14px; touch-action: none; background-image: repeating-linear-gradient(to right, var(--line-soft) 0 1px, transparent 1px 12.5%); }
+.lw-animation-ruler-row { position: sticky; top: 0; z-index: 3; background: var(--bg-2); height: 26px; }
+.lw-animation-ruler-row .lw-animation-track-name { background: var(--bg-2); font-size: 10px; font-weight: 600; }
+.lw-animation-ruler span { position: absolute; top: 6px; transform: translateX(-50%); font-size: 10px; color: var(--text-dim); pointer-events: none; }
+.lw-animation-ruler span:first-child { transform: none; }
+.lw-animation-ruler span:last-child { transform: translateX(-100%); }
+.lw-animation-key { position: absolute; top: 50%; width: 10px; height: 10px; padding: 0; transform: translate(-50%, -50%) rotate(45deg); border-radius: 1px; border: 1px solid var(--bg-1); background: var(--key); cursor: ew-resize; touch-action: none; }
+.lw-animation-key.active, .lw-animation-key:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; background: var(--accent); z-index: 1; }
+.lw-animation-key.dragging { background: var(--accent-cyan); z-index: 2; }
+.lw-animation-playhead { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--accent); pointer-events: none; }
+.lw-animation-timeline-hint { color: var(--text-faint); padding: 6px 12px; font-size: 10px; }
+.lw-interpolation-editor { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; }
+.lw-bezier-preview { width: 100%; height: 92px; border-radius: 4px; background: var(--bg-0); border: 1px solid var(--line-soft); }
+.lw-bezier-axis { fill: none; stroke: var(--line); }
+.lw-bezier-curve { fill: none; stroke: var(--accent-cyan); stroke-width: 2; }

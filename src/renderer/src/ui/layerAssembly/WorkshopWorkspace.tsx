@@ -65,13 +65,13 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
   }, [toggleBones, toggleMesh, tab])
 
   const normalizedRig = state.composite.rig ? ensureRigClips(state.composite.rig).rig : undefined
-  const rig = normalizedRig
+  const rig = normalizedRig ? { ...normalizedRig, loop: playback.isPlaying && normalizedRig.loop } : undefined
   const isErasing = brushEditing && tab === 'layers' && !playback.isPlaying
   const animated = !isErasing && (tab === 'animation' || playback.isPlaying || playback.time > 0) && rig
   const transforms = animated ? evaluateRig(animated, playback.time) : undefined
   const composite = {
     ...state.composite,
-    rig: normalizedRig ?? state.composite.rig,
+    rig: rig ?? state.composite.rig,
     layers: state.composite.layers.map((l) => {
       const bindPose = { x: l.x, y: l.y, rotation: l.rotation }
       const transformed = transforms ? transformRigLayer(l, transforms) : l
@@ -110,7 +110,7 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
           onToggleShowBones={toggleBones}
           showMesh={showMesh}
           onToggleShowMesh={toggleMesh}
-          boneOverlay={isErasing ? undefined : { composite: { ...state.composite, rig: normalizedRig ?? state.composite.rig }, boneId, selectBone, setComposite: state.setComposite, time: playback.time, editing: tab === 'bones' }}
+          boneOverlay={isErasing ? undefined : { composite: { ...state.composite, rig: normalizedRig ?? state.composite.rig }, boneId, selectBone, setComposite: state.setComposite, stopPlayback: () => playback.setIsPlaying(false), cancelGesture: state.cancelGesture, time: playback.time, editing: tab === 'bones' }}
           onChangeComposite={state.setComposite}
           isPlaying={playback.isPlaying}
           onTogglePlay={playback.toggle}

@@ -4,13 +4,22 @@ export function createWorkshopHistory(initial: LayerComposite) {
   let present = initial
   let past: LayerComposite[] = [], future: LayerComposite[] = []
   let gesture = false, captured = false, lastKey = '', lastAt = -Infinity
+  let gestureStart: { present: LayerComposite; past: LayerComposite[]; future: LayerComposite[] } | null = null
   return {
     get current() { return present },
     get canUndo() { return past.length > 0 },
     get canRedo() { return future.length > 0 },
     get gestureActive() { return gesture },
-    begin() { gesture = true; captured = false; lastKey = '' },
-    end() { gesture = false; captured = false; lastKey = '' },
+    begin() {
+      if (gesture) return
+      gestureStart = { present, past, future }
+      gesture = true; captured = false; lastKey = ''
+    },
+    end() { gesture = false; captured = false; lastKey = ''; gestureStart = null },
+    cancel() {
+      if (gestureStart) ({ present, past, future } = gestureStart)
+      gesture = false; captured = false; lastKey = ''; gestureStart = null
+    },
     update(next: LayerComposite, key = '') {
       if (next === present) return
       const now = performance.now()

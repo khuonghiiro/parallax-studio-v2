@@ -11,6 +11,8 @@ import {
   createClipFromPreset,
   type ProceduralMotionPreset
 } from './workshopRigPresets'
+import { applyAnimationAction, isAnimationAction, validateCurve, type AnimationAction, type AnimationBatch } from './workshopAnimation'
+export type { BonePoseEntry } from './workshopAnimation'
 import { retargetAnimationClip } from './workshopRetarget'
 
 export type RigTemplateType = 'humanoid' | 'humanoid-full' | 'hand-detailed' | 'foot-detailed' | 'simple-chain'
@@ -67,24 +69,11 @@ export function ensureRigClips(rig: LayerRig): { rig: LayerRig; activeClip: Anim
   return { rig: nextRig, activeClip }
 }
 
-export interface BonePoseEntry {
-  boneId: string
-  x?: number
-  y?: number
-  rotation?: number
-  scaleX?: number
-  scaleY?: number
-  easing?: BoneEasing
-}
-
-export type RigAction =
+export type RigAction = AnimationAction | AnimationBatch
   | { action: 'add-bone'; bone: LayerBone }
   | { action: 'update-bone'; boneId: string; patch: Partial<Omit<LayerBone, 'id'>> }
   | { action: 'delete-bone'; boneId: string }
   | { action: 'bind'; boneId?: string; layerIds: string[]; mode?: 'rigid' | 'soft' }
-  | { action: 'set-key'; boneId: string; key: BoneKeyframe }
-  | { action: 'delete-key'; boneId: string; time: number }
-  | { action: 'set-pose'; time: number; easing?: BoneEasing; poses: BonePoseEntry[] }
   | { action: 'mirror-pose'; time: number }
   | { action: 'settings'; duration?: number; loop?: boolean }
   | { action: 'apply-template'; template: RigTemplateType }
@@ -142,12 +131,13 @@ export function validateRig(composite: LayerComposite): void {
         key.time < 0 ||
         key.time > rig.duration ||
         key.time <= previous ||
-        !['smooth', 'linear', 'hold', 'ease-in', 'ease-out', 'ease-in-out'].includes(key.easing)
+        !['smooth', 'linear', 'hold', 'ease-in', 'ease-out', 'ease-in-out', 'bezier'].includes(key.easing)
       ) {
         throw new Error('Invalid or unsorted bone keyframes')
       }
       if (key.scaleX !== undefined && !Number.isFinite(key.scaleX)) throw new Error('Invalid scaleX')
       if (key.scaleY !== undefined && !Number.isFinite(key.scaleY)) throw new Error('Invalid scaleY')
+      validateCurve(key.easing, key.bezier)
       previous = key.time
     }
   }
@@ -222,34 +212,10 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
         : l
     )
   }
-  if (action.action === 'set-key') {
-    const keys = rig.tracks[action.boneId] ?? []
-    rig.tracks[action.boneId] = [
-      ...keys.filter((k) => Math.abs(k.time - action.key.time) > 0.0001),
-      { ...action.key }
-    ].sort((a, b) => a.time - b.time)
-  }
-  if (action.action === 'set-pose') {
-    const defaultEasing: BoneEasing = action.easing ?? 'smooth'
-    for (const poseItem of action.poses) {
-      if (!rig.bones.some((b) => b.id === poseItem.boneId)) continue
-      const keys = rig.tracks[poseItem.boneId] ?? []
-      const existing = keys.find((k) => Math.abs(k.time - action.time) <= 0.0001)
-      const currentSample = sampleBonePose(rig, poseItem.boneId, action.time)
-      const key: BoneKeyframe = {
-        time: action.time,
-        x: poseItem.x ?? existing?.x ?? currentSample.x ?? 0,
-        y: poseItem.y ?? existing?.y ?? currentSample.y ?? 0,
-        rotation: poseItem.rotation ?? existing?.rotation ?? currentSample.rotation ?? 0,
-        scaleX: poseItem.scaleX ?? existing?.scaleX ?? currentSample.scaleX ?? 1,
-        scaleY: poseItem.scaleY ?? existing?.scaleY ?? currentSample.scaleY ?? 1,
-        easing: poseItem.easing ?? action.easing ?? existing?.easing ?? 'smooth'
-      }
-      rig.tracks[poseItem.boneId] = [
-        ...keys.filter((k) => Math.abs(k.time - action.time) > 0.0001),
-        key
-      ].sort((a, b) => a.time - b.time)
-    }
+  if (isAnimationAction(action)) applyAnimationAction(rig, action)
+  if (action.action === 'batch') {
+    if (!action.operations.length || action.operations.length > 200) throw new Error('Batch requires 1–200 operations')
+    for (const operation of action.operations) applyAnimationAction(rig, operation)
   }
   if (action.action === 'mirror-pose') {
     const time = action.time
@@ -258,8 +224,8 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
       if (processed.has(bone.id)) continue
       const mirrorId = findMirrorBoneId(bone.id, rig.bones)
       if (mirrorId && mirrorId !== bone.id) {
-        const poseA = sampleBonePose(rig, bone.id, time)
-        const poseB = sampleBonePose(rig, mirrorId, time)
+        const poseA = sampleBonePose({ ...rig, loop: false }, bone.id, time)
+        const poseB = sampleBonePose({ ...rig, loop: false }, mirrorId, time)
         const keysA = rig.tracks[bone.id] ?? []
         const keysB = rig.tracks[mirrorId] ?? []
         const keyA: BoneKeyframe = {
@@ -285,7 +251,7 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
         processed.add(bone.id)
         processed.add(mirrorId)
       } else {
-        const pose = sampleBonePose(rig, bone.id, time)
+        const pose = sampleBonePose({ ...rig, loop: false }, bone.id, time)
         const keys = rig.tracks[bone.id] ?? []
         const key: BoneKeyframe = {
           time,
@@ -300,11 +266,6 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
         processed.add(bone.id)
       }
     }
-  }
-  if (action.action === 'delete-key') {
-    rig.tracks[action.boneId] = (rig.tracks[action.boneId] ?? []).filter(
-      (k) => Math.abs(k.time - action.time) > 0.0001
-    )
   }
   if (action.action === 'settings') {
     if (action.duration !== undefined) rig.duration = action.duration
