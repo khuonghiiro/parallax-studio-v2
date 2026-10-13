@@ -257,8 +257,8 @@ export const LAYER_ASSEMBLY_TOOLS = [
     name: 'layer_assembly_rig',
     cat: 'layer_assembly',
     doc: L(
-      'Manage cutout skeleton bones and keyframe animations in the active layer assembly workshop. Supports adding/updating/deleting bones, binding layers, setting keyframes, applying humanoid/chain templates, and generating procedural walk/idle/wave/sway motions. Walk is a frontal in-place march with attached joints and fixed limb lengths; regenerate the preset to replace older tracks.',
-      'Quản lý hệ thống xương và animation trong xưởng lắp ráp layer. Hỗ trợ thêm/sửa/xóa xương, gắn layer vào xương, ghi keyframe, áp dụng khung xương người/chuỗi uốn dựng sẵn và tự động sinh chuyển động đi bộ/đứng thở/vẫy tay/uốn lượn. Walk là bước tại chỗ chính diện, giữ liền khớp và chiều dài chi; tạo lại preset để thay track cũ.'
+      'Manage cutout skeleton bones and keyframe animations in the active layer assembly workshop. Supports adding/updating/deleting bones, binding layers, setting keyframes/poses (set-pose, mirror-pose), adjusting scaleX/scaleY, rich easings (smooth, linear, hold, ease-in, ease-out, ease-in-out), applying humanoid/chain templates, and generating procedural walk/idle/wave/sway motions.',
+      'Quản lý hệ thống xương và animation trong xưởng lắp ráp layer. Hỗ trợ thêm/sửa/xóa xương, gắn layer vào xương, ghi keyframe/tạo dáng toàn thân (set-pose, mirror-pose), chỉnh scaleX/scaleY, 6 kiểu nội suy Moho (smooth, linear, hold, ease-in, ease-out, ease-in-out), áp dụng khung xương người/chuỗi uốn dựng sẵn và tự động sinh chuyển động đi bộ/đứng thở/vẫy tay/uốn lượn.'
     ),
     shape: (d) => ({
       action: z
@@ -269,6 +269,8 @@ export const LAYER_ASSEMBLY_TOOLS = [
           'bind',
           'set-key',
           'delete-key',
+          'set-pose',
+          'mirror-pose',
           'settings',
           'apply-template',
           'apply-preset-animation',
@@ -292,7 +294,26 @@ export const LAYER_ASSEMBLY_TOOLS = [
       layer_ids: z.array(z.string()).optional().describe(d('Layer IDs to bind to the bone.', 'Danh sách ID layer cần gắn vào xương.')),
       time: z.number().optional().describe(d('Keyframe time in seconds.', 'Thời điểm keyframe tính bằng giây.')),
       rotation: z.number().optional().describe(d('Keyframe rotation angle in degrees.', 'Góc xoay keyframe.')),
-      easing: z.enum(['smooth', 'linear', 'hold']).optional().describe(d('Keyframe interpolation.', 'Nội suy keyframe.')),
+      scale_x: z.number().optional().describe(d('Keyframe scale X factor (for squash/stretch or horizontal flip).', 'Tỷ lệ co giãn trục X (squash/stretch hoặc lật ngang).')),
+      scale_y: z.number().optional().describe(d('Keyframe scale Y factor.', 'Tỷ lệ co giãn trục Y.')),
+      easing: z.enum(['smooth', 'linear', 'hold', 'ease-in', 'ease-out', 'ease-in-out']).optional().describe(d('Keyframe interpolation.', 'Nội suy keyframe.')),
+      poses: z
+        .array(
+          z.object({
+            bone_id: z.string().optional(),
+            boneId: z.string().optional(),
+            x: z.number().optional(),
+            y: z.number().optional(),
+            rotation: z.number().optional(),
+            scale_x: z.number().optional(),
+            scaleX: z.number().optional(),
+            scale_y: z.number().optional(),
+            scaleY: z.number().optional(),
+            easing: z.enum(['smooth', 'linear', 'hold', 'ease-in', 'ease-out', 'ease-in-out']).optional()
+          })
+        )
+        .optional()
+        .describe(d('List of bone transforms for set-pose action.', 'Danh sách chuyển đổi xương khi dùng hành động set-pose.')),
       duration: z.number().optional().describe(d('Rig animation duration in seconds (0.1–120s).', 'Thời lượng animation (0.1–120s).')),
       template: z
         .enum(['humanoid', 'humanoid-full', 'hand-detailed', 'foot-detailed', 'simple-chain'])
@@ -308,7 +329,7 @@ export const LAYER_ASSEMBLY_TOOLS = [
       source_composite_id: z.string().optional().describe(d('Source composite ID to inherit/retarget animation from.', 'ID mẫu layer nguồn để kế thừa động tác.')),
       source_clip_id: z.string().optional().describe(d('Source clip ID to inherit/retarget from.', 'ID clip nguồn cần kế thừa.'))
     }),
-    example: '{"action":"apply-preset-animation","preset":"walk","as_new_clip":true,"clip_name":"Đi bộ"}'
+    example: '{"action":"set-pose","time":0.5,"poses":[{"boneId":"arm_l","rotation":45},{"boneId":"arm_r","rotation":-30}]}'
   },
   {
     name: 'set_layer_assembly_playback',

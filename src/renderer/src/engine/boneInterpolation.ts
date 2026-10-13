@@ -2,7 +2,7 @@ import type { BoneKeyframe, BonePose, LayerRig } from '@shared/layerRig'
 
 const REST: BonePose = { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }
 const fields = ['x', 'y', 'rotation', 'scaleX', 'scaleY'] as const
-const value = (k: BonePose, field: typeof fields[number]) => k[field] ?? 1
+const value = (k: BonePose, field: typeof fields[number]) => k[field] ?? REST[field] ?? 0
 const shifted = (key: BoneKeyframe, offset: number) => ({ ...key, time: key.time + offset })
 
 function unwrap(ref: number, angle: number): number {
@@ -14,15 +14,28 @@ function interpolate(keys: BoneKeyframe[], time: number): BonePose {
   const [a, b, c, d] = keys
   if (b.easing === 'hold') return b
   const span = c.time - b.time
-  const t = Math.max(0, Math.min(1, (time - b.time) / span))
+  const t = span <= 0 ? 0 : Math.max(0, Math.min(1, (time - b.time) / span))
   const result = { ...REST }
+  const easing = b.easing
   for (const field of fields) {
     let [v0, v1, v2, v3] = keys.map((k) => value(k, field))
-    if (field === 'rotation' && b.easing === 'smooth') {
+    if (field === 'rotation') {
       v0 = unwrap(v1, v0); v2 = unwrap(v1, v2); v3 = unwrap(v2, v3)
     }
-    if (b.easing === 'linear') result[field] = v1 + (v2 - v1) * t
-    else {
+    if (easing === 'linear') {
+      result[field] = v1 + (v2 - v1) * t
+    } else if (easing === 'ease-in') {
+      const et = t * t * t
+      result[field] = v1 + (v2 - v1) * et
+    } else if (easing === 'ease-out') {
+      const inv = 1 - t
+      const et = 1 - inv * inv * inv
+      result[field] = v1 + (v2 - v1) * et
+    } else if (easing === 'ease-in-out') {
+      const et = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+      result[field] = v1 + (v2 - v1) * et
+    } else {
+      // 'smooth': Hermite spline with continuous curvature
       const m1 = (v2 - v0) / (c.time - a.time) * span
       const m2 = (v3 - v1) / (d.time - b.time) * span
       const t2 = t * t, t3 = t2 * t

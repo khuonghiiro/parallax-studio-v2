@@ -403,6 +403,31 @@ describe('MCP layerAssemblyCommands', () => {
     expect(updateLayerRes.ok).toBe(true)
     expect(mockComp.layers[2].scale).toBe(1.5)
 
+    // 8. layer_assembly_rig: set-pose (batch pose control)
+    const poseRes = (await runCommand('layer_assembly_rig', {
+      action: 'set-pose',
+      time: 0.6,
+      easing: 'ease-out',
+      poses: [
+        { bone_id: 'bone-arm-l', rotation: 25, scale_x: 1.05 },
+        { bone_id: 'bone-arm-r', rotation: -30, scale_x: 0.95 }
+      ]
+    })) as any
+    expect(poseRes.ok).toBe(true)
+    const armL = mockComp.rig?.tracks['bone-arm-l']?.find((k) => Math.abs(k.time - 0.6) < 0.001)
+    expect(armL?.rotation).toBe(25)
+    expect(armL?.scaleX).toBe(1.05)
+    expect(armL?.easing).toBe('ease-out')
+
+    // 9. layer_assembly_rig: mirror-pose
+    const mirrorRes = (await runCommand('layer_assembly_rig', {
+      action: 'mirror-pose',
+      time: 0.6
+    })) as any
+    expect(mirrorRes.ok).toBe(true)
+    const mirroredL = mockComp.rig?.tracks['bone-arm-l']?.find((k) => Math.abs(k.time - 0.6) < 0.001)
+    expect(mirroredL?.rotation).toBeCloseTo(30, 1)
+
     unregister()
   })
 })

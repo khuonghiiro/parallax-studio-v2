@@ -307,4 +307,60 @@ describe('workshopRig & layerRig engine', () => {
     expect(armTransform).toBeDefined()
     expect(Math.abs(armTransform!.rotation)).toBeGreaterThan(30)
   })
+
+  it('supports set-pose batch keyframing across multiple bones with Moho easing', () => {
+    let comp = applyRigAction(baseComposite, { action: 'apply-template', template: 'humanoid' })
+    comp = applyRigAction(comp, {
+      action: 'set-pose',
+      time: 0.5,
+      easing: 'ease-in-out',
+      poses: [
+        { boneId: 'bone-arm-l', rotation: 35, scaleX: 1.1, scaleY: 0.9 },
+        { boneId: 'bone-arm-r', rotation: -40, scaleX: 1.2, scaleY: 1.2 }
+      ]
+    })
+
+    const armL = comp.rig?.tracks['bone-arm-l']?.find((k) => Math.abs(k.time - 0.5) < 0.001)
+    const armR = comp.rig?.tracks['bone-arm-r']?.find((k) => Math.abs(k.time - 0.5) < 0.001)
+
+    expect(armL).toBeDefined()
+    expect(armL?.rotation).toBe(35)
+    expect(armL?.scaleX).toBe(1.1)
+    expect(armL?.easing).toBe('ease-in-out')
+
+    expect(armR).toBeDefined()
+    expect(armR?.rotation).toBe(-40)
+    expect(armR?.scaleX).toBe(1.2)
+  })
+
+  it('mirrors character poses symmetrically between left and right limb bones', () => {
+    let comp = applyRigAction(baseComposite, { action: 'apply-template', template: 'humanoid' })
+    // Đặt pose ban đầu cho tay trái và tay phải
+    comp = applyRigAction(comp, {
+      action: 'set-pose',
+      time: 1.0,
+      poses: [
+        { boneId: 'bone-arm-l', rotation: 45, x: 10, y: 5 },
+        { boneId: 'bone-arm-r', rotation: -20, x: -5, y: 15 }
+      ]
+    })
+
+    // Thực hiện lật đối xứng dáng
+    comp = applyRigAction(comp, { action: 'mirror-pose', time: 1.0 })
+
+    const mirroredL = comp.rig?.tracks['bone-arm-l']?.find((k) => Math.abs(k.time - 1.0) < 0.001)
+    const mirroredR = comp.rig?.tracks['bone-arm-r']?.find((k) => Math.abs(k.time - 1.0) < 0.001)
+
+    // Tay trái nhận giá trị đối xứng của tay phải (-(-20) = 20 độ, -(-5) = 5 px, y = 15 px)
+    expect(mirroredL).toBeDefined()
+    expect(mirroredL?.rotation).toBe(20)
+    expect(mirroredL?.x).toBe(5)
+    expect(mirroredL?.y).toBe(15)
+
+    // Tay phải nhận giá trị đối xứng của tay trái (-45 độ, -10 px, y = 5 px)
+    expect(mirroredR).toBeDefined()
+    expect(mirroredR?.rotation).toBe(-45)
+    expect(mirroredR?.x).toBe(-10)
+    expect(mirroredR?.y).toBe(5)
+  })
 })

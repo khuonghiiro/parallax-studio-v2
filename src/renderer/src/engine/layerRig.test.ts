@@ -26,4 +26,48 @@ describe('bone interpolation velocity', () => {
     r.tracks.root[0].easing = 'hold'
     expect(x(r, 0.9)).toBe(0)
   })
+
+  it('correctly calculates cubic ease-in, ease-out and ease-in-out curves', () => {
+    const rIn: LayerRig = {
+      bones: [],
+      duration: 1,
+      loop: false,
+      tracks: {
+        root: [
+          { time: 0, x: 0, y: 0, rotation: 0, easing: 'ease-in' },
+          { time: 1, x: 100, y: 0, rotation: 100, easing: 'ease-in' }
+        ]
+      }
+    }
+    // Midpoint t=0.5: t^3 = 0.125 -> x = 12.5
+    expect(x(rIn, 0.5)).toBeCloseTo(12.5, 1)
+
+    const rOut: LayerRig = {
+      bones: [],
+      duration: 1,
+      loop: false,
+      tracks: {
+        root: [
+          { time: 0, x: 0, y: 0, rotation: 0, easing: 'ease-out' },
+          { time: 1, x: 100, y: 0, rotation: 100, easing: 'ease-out' }
+        ]
+      }
+    }
+    // Midpoint t=0.5: 1 - (1-0.5)^3 = 0.875 -> x = 87.5
+    expect(x(rOut, 0.5)).toBeCloseTo(87.5, 1)
+
+    const rInOut: LayerRig = {
+      bones: [],
+      duration: 1,
+      loop: false,
+      tracks: {
+        root: [
+          { time: 0, x: 0, y: 0, rotation: 0, easing: 'ease-in-out' },
+          { time: 1, x: 100, y: 0, rotation: 100, easing: 'ease-in-out' }
+        ]
+      }
+    }
+    // Midpoint t=0.5: 0.5 -> x = 50
+    expect(x(rInOut, 0.5)).toBeCloseTo(50, 1)
+  })
 })

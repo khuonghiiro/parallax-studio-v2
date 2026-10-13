@@ -16,9 +16,11 @@ export interface BonePose {
   scaleX?: number
   scaleY?: number
 }
+export type BoneEasing = 'smooth' | 'linear' | 'hold' | 'ease-in' | 'ease-out' | 'ease-in-out'
+
 export interface BoneKeyframe extends BonePose {
   time: number
-  easing: 'smooth' | 'linear' | 'hold'
+  easing: BoneEasing
 }
 
 export type MotionViewAngle = 'front' | 'diagonal' | 'side' | 'back'

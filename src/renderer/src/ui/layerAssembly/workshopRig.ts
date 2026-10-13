@@ -1,4 +1,5 @@
-import type { AnimationClip, BoneKeyframe, LayerBone, LayerRig, MotionViewAngle } from '@shared/layerRig'
+import type { AnimationClip, BoneEasing, BoneKeyframe, LayerBone, LayerRig, MotionViewAngle } from '@shared/layerRig'
+import { sampleBonePose } from '../../engine/layerRig'
 import type { LayerComposite } from './types'
 import {
   createHumanoidBones,
@@ -66,6 +67,16 @@ export function ensureRigClips(rig: LayerRig): { rig: LayerRig; activeClip: Anim
   return { rig: nextRig, activeClip }
 }
 
+export interface BonePoseEntry {
+  boneId: string
+  x?: number
+  y?: number
+  rotation?: number
+  scaleX?: number
+  scaleY?: number
+  easing?: BoneEasing
+}
+
 export type RigAction =
   | { action: 'add-bone'; bone: LayerBone }
   | { action: 'update-bone'; boneId: string; patch: Partial<Omit<LayerBone, 'id'>> }
@@ -73,6 +84,8 @@ export type RigAction =
   | { action: 'bind'; boneId?: string; layerIds: string[]; mode?: 'rigid' | 'soft' }
   | { action: 'set-key'; boneId: string; key: BoneKeyframe }
   | { action: 'delete-key'; boneId: string; time: number }
+  | { action: 'set-pose'; time: number; easing?: BoneEasing; poses: BonePoseEntry[] }
+  | { action: 'mirror-pose'; time: number }
   | { action: 'settings'; duration?: number; loop?: boolean }
   | { action: 'apply-template'; template: RigTemplateType }
   | { action: 'apply-preset-animation'; preset: ProceduralMotionPreset; asNewClip?: boolean; clipName?: string; viewAngle?: MotionViewAngle }
@@ -129,14 +142,46 @@ export function validateRig(composite: LayerComposite): void {
         key.time < 0 ||
         key.time > rig.duration ||
         key.time <= previous ||
-        !['smooth', 'linear', 'hold'].includes(key.easing)
+        !['smooth', 'linear', 'hold', 'ease-in', 'ease-out', 'ease-in-out'].includes(key.easing)
       ) {
         throw new Error('Invalid or unsorted bone keyframes')
       }
+      if (key.scaleX !== undefined && !Number.isFinite(key.scaleX)) throw new Error('Invalid scaleX')
+      if (key.scaleY !== undefined && !Number.isFinite(key.scaleY)) throw new Error('Invalid scaleY')
       previous = key.time
     }
   }
   if (composite.layers.some((l) => l.boneId && !ids.has(l.boneId))) throw new Error('Layer references a missing bone')
+}
+
+export function findMirrorBoneId(boneId: string, bones: LayerBone[]): string | null {
+  const b = bones.find((item) => item.id === boneId)
+  if (!b) return null
+  const name = b.name.toLowerCase()
+  const id = b.id.toLowerCase()
+
+  const patterns: [RegExp, (m: string) => string][] = [
+    [/\bleft\b/i, () => 'right'],
+    [/\bright\b/i, () => 'left'],
+    [/[-_]l\b/i, (m) => m[0] + 'r'],
+    [/[-_]r\b/i, (m) => m[0] + 'l'],
+    [/\.l\b/i, () => '.r'],
+    [/\.r\b/i, () => '.l'],
+    [/\btrái\b/i, () => 'phải'],
+    [/\bphải\b/i, () => 'trái']
+  ]
+
+  for (const other of bones) {
+    if (other.id === boneId) continue
+    const oname = other.name.toLowerCase()
+    const oid = other.id.toLowerCase()
+    for (const [pat, rep] of patterns) {
+      if (name.replace(pat, rep) === oname || id.replace(pat, rep) === oid) {
+        return other.id
+      }
+    }
+  }
+  return null
 }
 
 /** Shared immutable operation: UI and MCP each commit this as one draft history entry. */
@@ -183,6 +228,78 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
       ...keys.filter((k) => Math.abs(k.time - action.key.time) > 0.0001),
       { ...action.key }
     ].sort((a, b) => a.time - b.time)
+  }
+  if (action.action === 'set-pose') {
+    const defaultEasing: BoneEasing = action.easing ?? 'smooth'
+    for (const poseItem of action.poses) {
+      if (!rig.bones.some((b) => b.id === poseItem.boneId)) continue
+      const keys = rig.tracks[poseItem.boneId] ?? []
+      const existing = keys.find((k) => Math.abs(k.time - action.time) <= 0.0001)
+      const currentSample = sampleBonePose(rig, poseItem.boneId, action.time)
+      const key: BoneKeyframe = {
+        time: action.time,
+        x: poseItem.x ?? existing?.x ?? currentSample.x ?? 0,
+        y: poseItem.y ?? existing?.y ?? currentSample.y ?? 0,
+        rotation: poseItem.rotation ?? existing?.rotation ?? currentSample.rotation ?? 0,
+        scaleX: poseItem.scaleX ?? existing?.scaleX ?? currentSample.scaleX ?? 1,
+        scaleY: poseItem.scaleY ?? existing?.scaleY ?? currentSample.scaleY ?? 1,
+        easing: poseItem.easing ?? action.easing ?? existing?.easing ?? 'smooth'
+      }
+      rig.tracks[poseItem.boneId] = [
+        ...keys.filter((k) => Math.abs(k.time - action.time) > 0.0001),
+        key
+      ].sort((a, b) => a.time - b.time)
+    }
+  }
+  if (action.action === 'mirror-pose') {
+    const time = action.time
+    const processed = new Set<string>()
+    for (const bone of rig.bones) {
+      if (processed.has(bone.id)) continue
+      const mirrorId = findMirrorBoneId(bone.id, rig.bones)
+      if (mirrorId && mirrorId !== bone.id) {
+        const poseA = sampleBonePose(rig, bone.id, time)
+        const poseB = sampleBonePose(rig, mirrorId, time)
+        const keysA = rig.tracks[bone.id] ?? []
+        const keysB = rig.tracks[mirrorId] ?? []
+        const keyA: BoneKeyframe = {
+          time,
+          x: -poseB.x,
+          y: poseB.y,
+          rotation: -poseB.rotation,
+          scaleX: poseB.scaleX ?? 1,
+          scaleY: poseB.scaleY ?? 1,
+          easing: 'smooth'
+        }
+        const keyB: BoneKeyframe = {
+          time,
+          x: -poseA.x,
+          y: poseA.y,
+          rotation: -poseA.rotation,
+          scaleX: poseA.scaleX ?? 1,
+          scaleY: poseA.scaleY ?? 1,
+          easing: 'smooth'
+        }
+        rig.tracks[bone.id] = [...keysA.filter((k) => Math.abs(k.time - time) > 0.0001), keyA].sort((a, b) => a.time - b.time)
+        rig.tracks[mirrorId] = [...keysB.filter((k) => Math.abs(k.time - time) > 0.0001), keyB].sort((a, b) => a.time - b.time)
+        processed.add(bone.id)
+        processed.add(mirrorId)
+      } else {
+        const pose = sampleBonePose(rig, bone.id, time)
+        const keys = rig.tracks[bone.id] ?? []
+        const key: BoneKeyframe = {
+          time,
+          x: -pose.x,
+          y: pose.y,
+          rotation: -pose.rotation,
+          scaleX: pose.scaleX ?? 1,
+          scaleY: pose.scaleY ?? 1,
+          easing: 'smooth'
+        }
+        rig.tracks[bone.id] = [...keys.filter((k) => Math.abs(k.time - time) > 0.0001), key].sort((a, b) => a.time - b.time)
+        processed.add(bone.id)
+      }
+    }
   }
   if (action.action === 'delete-key') {
     rig.tracks[action.boneId] = (rig.tracks[action.boneId] ?? []).filter(

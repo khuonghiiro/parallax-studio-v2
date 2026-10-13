@@ -1,4 +1,4 @@
-import type { BoneKeyframe, LayerBone } from '@shared/layerRig'
+import type { BoneEasing, BoneKeyframe, LayerBone } from '@shared/layerRig'
 import type { Handler, Params } from '../types'
 import { ParamError } from '../types'
 import { bool, num, str, toPlain } from '../params'
@@ -108,12 +108,46 @@ function rigAction(p: Params): RigAction {
     if (mode !== 'rigid' && mode !== 'soft') throw new ParamError('binding_mode must be rigid or soft')
     return { action, boneId: str(p, 'bone_id') || undefined, layerIds: p.layer_ids, mode }
   }
+  if (action === 'set-pose') {
+    const time = num(p, 'time', true)
+    const defaultEasing = (str(p, 'easing') ?? 'smooth') as BoneEasing
+    const rawPoses = p.poses
+    if (!Array.isArray(rawPoses)) throw new ParamError('poses must be an array')
+    const poses = rawPoses.map((item: any) => ({
+      boneId: String(item.boneId || item.bone_id),
+      x: typeof item.x === 'number' ? item.x : 0,
+      y: typeof item.y === 'number' ? item.y : 0,
+      rotation: typeof item.rotation === 'number' ? item.rotation : 0,
+      scaleX: typeof item.scaleX === 'number' ? item.scaleX : (typeof item.scale_x === 'number' ? item.scale_x : 1),
+      scaleY: typeof item.scaleY === 'number' ? item.scaleY : (typeof item.scale_y === 'number' ? item.scale_y : 1),
+      easing: (item.easing as BoneEasing) ?? defaultEasing
+    }))
+    return { action, time, easing: defaultEasing, poses }
+  }
+  if (action === 'mirror-pose') {
+    return { action, time: num(p, 'time', true) }
+  }
   const boneId = str(p, 'bone_id', true)
   if (action === 'update-bone') return { action, boneId, patch: bonePatch(p) }
   if (action === 'delete-bone') return { action, boneId }
   if (action === 'delete-key') return { action, boneId, time: num(p, 'time', true) }
-  if (action === 'set-key') return { action, boneId, key: { time: num(p, 'time', true), x: num(p, 'x') ?? 0,
-    y: num(p, 'y') ?? 0, rotation: num(p, 'rotation') ?? 0, easing: (str(p, 'easing') ?? 'smooth') as BoneKeyframe['easing'] } }
+  if (action === 'set-key') {
+    const scaleX = num(p, 'scale_x') ?? num(p, 'scaleX')
+    const scaleY = num(p, 'scale_y') ?? num(p, 'scaleY')
+    return {
+      action,
+      boneId,
+      key: {
+        time: num(p, 'time', true),
+        x: num(p, 'x') ?? 0,
+        y: num(p, 'y') ?? 0,
+        rotation: num(p, 'rotation') ?? 0,
+        scaleX: scaleX !== undefined ? scaleX : 1,
+        scaleY: scaleY !== undefined ? scaleY : 1,
+        easing: (str(p, 'easing') ?? 'smooth') as BoneKeyframe['easing']
+      }
+    }
+  }
   throw new ParamError('Unknown rig action')
 }
 
