@@ -9,7 +9,8 @@ import {
 } from './slotPresets'
 import { SaveTemplateDialog } from './SaveTemplateDialog'
 import { AssembledPartsDrawer } from './AssembledPartsDrawer'
-import { IconLayers, IconTrash, IconPlus, IconCheck } from '../../icons'
+import { computeNextLayerZ } from '../useLayerWorkshop'
+import { IconLayers, IconTrash, IconPlus, IconCheck, IconFlipHorizontal } from '../../icons'
 import { CustomSelect } from '../../controls/CustomSelect'
 
 export interface SpriteCutterTargetPaneProps {
@@ -17,7 +18,7 @@ export interface SpriteCutterTargetPaneProps {
   selectedLayerId: string | null
   selectedPiece: CutPiece | null
   onSelectLayer: (id: string | null) => void
-  onAddLayer: (name: string, assetPath: string, imageUrl?: string, pos?: { x: number; y: number }) => void
+  onAddLayer: (name: string, assetPath: string, imageUrl?: string, pos?: { x: number; y: number }, customZ?: number) => void
   onUpdateLayer: (id: string, patch: Partial<AssembledLayerItem>) => void
   onDeleteLayer: (id: string) => void
   onClearAllLayers?: () => void
@@ -74,13 +75,14 @@ export function SpriteCutterTargetPane({
         const cutPart = (window as unknown as { __parallax_cut_part?: CutPiece }).__parallax_cut_part
         if (cutPart) {
           e.preventDefault()
-          onAddLayer(cutPart.label || 'Mảnh cắt', '', cutPart.dataUrl, mouseCanvasPos)
+          const nextZ = computeNextLayerZ(composite.layers)
+          onAddLayer(cutPart.label || 'Mảnh cắt', '', cutPart.dataUrl, mouseCanvasPos, nextZ)
         }
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [mouseCanvasPos, onAddLayer])
+  }, [composite.layers, mouseCanvasPos, onAddLayer])
 
   // Track mouse coordinates for pasting
   const handleBoardPointerMove = (e: React.PointerEvent) => {
@@ -116,7 +118,8 @@ export function SpriteCutterTargetPane({
 
     if (piece) {
       const pos = getBoardCoords(e.clientX, e.clientY)
-      onAddLayer(piece.label || 'Mảnh cắt', '', piece.dataUrl, pos)
+      const nextZ = computeNextLayerZ(composite.layers)
+      onAddLayer(piece.label || 'Mảnh cắt', '', piece.dataUrl, pos, nextZ)
     }
   }
 
@@ -481,6 +484,8 @@ export function SpriteCutterTargetPane({
             {composite.layers.map((layer) => {
               const isSelected = selectedLayerId === layer.id
               const imgUrl = layer.imageUrl || ''
+              const currentScaleX = layer.scale * (layer.scaleX ?? 1)
+              const currentScaleY = layer.scale * (layer.scaleY ?? 1)
 
               return (
                 <div
@@ -489,8 +494,8 @@ export function SpriteCutterTargetPane({
                   style={{
                     left: `calc(50% + ${layer.x}px)`,
                     top: `calc(50% + ${layer.y}px)`,
-                    transform: `translate(-50%, -50%) rotate(${layer.rotation}deg) scale(${layer.scale})`,
-                    zIndex: isSelected ? 30 : Math.round(100 - (layer.z ?? 0))
+                    transform: `translate(-50%, -50%) rotate(${layer.rotation}deg) scale(${currentScaleX}, ${currentScaleY})`,
+                    zIndex: isSelected ? 1000 : Math.round(layer.z ?? 10)
                   }}
                   onPointerDown={(e) => handleLayerPointerDown(e, layer)}
                   onPointerMove={handleLayerPointerMove}
@@ -603,70 +608,175 @@ export function SpriteCutterTargetPane({
       {/* Footer Info & Transform Controls for Selected Layer */}
       <div className="layer-cutter-footer">
         {currentSelectedLayer ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <span>
-              <strong>Lớp:</strong> {currentSelectedLayer.name}
-            </span>
+          <div className="layer-cutter-footer-controls">
+            <div className="layer-cutter-footer-group">
+              <span style={{ fontWeight: 600, color: 'var(--text)' }}>
+                {currentSelectedLayer.name}
+              </span>
+              <span className="layer-cutter-badge" style={{ fontSize: 9, padding: '1px 5px' }}>
+                ({Math.round(currentSelectedLayer.x)}, {Math.round(currentSelectedLayer.y)})
+              </span>
+            </div>
 
-            <div className="layer-cutter-control-row">
+            {/* Scale control */}
+            <div className="layer-cutter-footer-group">
               <span>Thu phóng:</span>
+              <button
+                type="button"
+                className="btn sm icon"
+                style={{ width: 18, height: 18, padding: 0 }}
+                title="Giảm kích thước (-10%)"
+                onClick={() =>
+                  onUpdateLayer(currentSelectedLayer.id, {
+                    scale: Math.max(0.1, Number((currentSelectedLayer.scale - 0.1).toFixed(2)))
+                  })
+                }
+              >
+                -
+              </button>
               <input
                 type="range"
-                min={0.2}
+                min={0.1}
                 max={3.0}
                 step={0.05}
                 value={currentSelectedLayer.scale}
-                onChange={(e) => onUpdateLayer(currentSelectedLayer.id, { scale: Number(e.target.value) })}
+                onChange={(e) =>
+                  onUpdateLayer(currentSelectedLayer.id, { scale: Number(e.target.value) })
+                }
               />
-              <span>{Math.round(currentSelectedLayer.scale * 100)}%</span>
+              <button
+                type="button"
+                className="btn sm icon"
+                style={{ width: 18, height: 18, padding: 0 }}
+                title="Tăng kích thước (+10%)"
+                onClick={() =>
+                  onUpdateLayer(currentSelectedLayer.id, {
+                    scale: Math.min(4.0, Number((currentSelectedLayer.scale + 0.1).toFixed(2)))
+                  })
+                }
+              >
+                +
+              </button>
+              <button
+                type="button"
+                className="layer-cutter-footer-mini-btn"
+                title="Đặt lại tỉ lệ chuẩn 100%"
+                onClick={() => onUpdateLayer(currentSelectedLayer.id, { scale: 1 })}
+              >
+                {Math.round(currentSelectedLayer.scale * 100)}%
+              </button>
             </div>
 
-            <div className="layer-cutter-control-row">
-              <span>Góc xoay:</span>
+            {/* Rotation control */}
+            <div className="layer-cutter-footer-group">
+              <span>Xoay:</span>
               <input
                 type="range"
                 min={-180}
                 max={180}
                 step={1}
                 value={currentSelectedLayer.rotation}
-                onChange={(e) => onUpdateLayer(currentSelectedLayer.id, { rotation: Number(e.target.value) })}
+                onChange={(e) =>
+                  onUpdateLayer(currentSelectedLayer.id, { rotation: Number(e.target.value) })
+                }
               />
-              <span>{currentSelectedLayer.rotation}°</span>
+              <button
+                type="button"
+                className="layer-cutter-footer-mini-btn"
+                title="Đặt lại góc xoay 0°"
+                onClick={() => onUpdateLayer(currentSelectedLayer.id, { rotation: 0 })}
+              >
+                {currentSelectedLayer.rotation}°
+              </button>
             </div>
 
-            <div className="layer-cutter-control-row">
-              <span>Độ sâu Z:</span>
-              <input
-                type="range"
-                min={-40}
-                max={40}
-                step={1}
-                value={currentSelectedLayer.z || 0}
-                onChange={(e) => onUpdateLayer(currentSelectedLayer.id, { z: Number(e.target.value) })}
-              />
-              <span>{currentSelectedLayer.z || 0}</span>
+            {/* Z-Depth (Layer Stacking) control */}
+            <div
+              className="layer-cutter-footer-group"
+              title="Thứ tự lớp (Z-index): Càng cao càng nằm đè lên trên"
+            >
+              <span style={{ fontWeight: 600, color: 'var(--accent-cyan)' }}>Z:</span>
+              <button
+                type="button"
+                className="btn sm icon"
+                style={{ width: 18, height: 18, padding: 0 }}
+                title="Giảm Z (-1): Đưa chìm xuống dưới"
+                onClick={() => {
+                  const cur = currentSelectedLayer.z ?? 10
+                  onUpdateLayer(currentSelectedLayer.id, { z: cur - 1 })
+                }}
+              >
+                -
+              </button>
+              <span
+                style={{
+                  fontFamily: 'monospace',
+                  fontWeight: 700,
+                  color: 'var(--accent-cyan)',
+                  minWidth: 20,
+                  textAlign: 'center'
+                }}
+              >
+                {currentSelectedLayer.z ?? 10}
+              </span>
+              <button
+                type="button"
+                className="btn sm icon"
+                style={{ width: 18, height: 18, padding: 0 }}
+                title="Tăng Z (+1): Đưa nổi lên trên"
+                onClick={() => {
+                  const cur = currentSelectedLayer.z ?? 10
+                  onUpdateLayer(currentSelectedLayer.id, { z: cur + 1 })
+                }}
+              >
+                +
+              </button>
             </div>
+
+            {/* Flip Horizontal */}
+            <button
+              type="button"
+              className={`btn sm ${(currentSelectedLayer.scaleX ?? 1) < 0 ? 'primary' : ''}`}
+              style={{ height: 22, padding: '0 8px', fontSize: 10 }}
+              title="Lật ảnh nằm ngang (Flip Horizontal)"
+              onClick={() =>
+                onUpdateLayer(currentSelectedLayer.id, {
+                  scaleX: (currentSelectedLayer.scaleX ?? 1) * -1
+                })
+              }
+            >
+              <IconFlipHorizontal width={12} height={12} /> Lật ngang
+            </button>
+
+            {/* Center button */}
+            <button
+              type="button"
+              className="btn sm"
+              style={{ height: 22, padding: '0 8px', fontSize: 10 }}
+              title="Đặt bộ phận về ngay chính giữa (0, 0)"
+              onClick={() => onUpdateLayer(currentSelectedLayer.id, { x: 0, y: 0 })}
+            >
+              ⊙ Về giữa
+            </button>
           </div>
         ) : (
-          <div>
-            <span style={{ color: 'var(--text-faint)' }}>
-              Click lớp để di chuyển/tinh chỉnh · Kéo từ trái sang hoặc <kbd>Ctrl+V</kbd> để dán ảnh
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-faint)' }}>
+            <span>💡 Click chọn lớp để chỉnh sửa hoặc di chuyển · Kéo từ trái sang hoặc</span>
+            <kbd style={{ background: 'var(--bg-3)', padding: '1px 5px', borderRadius: 3, border: '1px solid var(--line)', color: 'var(--text)', fontSize: 10 }}>Ctrl+V</kbd>
+            <span>để dán tại chuột</span>
           </div>
         )}
 
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginLeft: 'auto' }}>
-          <span className="layer-cutter-footer-hint">
-            Dán tại chuột: <kbd>Ctrl+V</kbd>
-          </span>
           {selectedLayerId && (
             <button
               type="button"
-              className="btn sm"
+              className="btn sm icon"
+              style={{ color: '#ef4444', height: 24, padding: '0 8px', gap: 4 }}
               onClick={() => onDeleteLayer(selectedLayerId)}
-              title="Xóa lớp đang chọn"
+              title="Xóa bộ phận đang chọn"
             >
-              <IconTrash width={12} height={12} /> Xóa lớp
+              <IconTrash width={12} height={12} /> Xóa
             </button>
           )}
         </div>

@@ -835,6 +835,12 @@ export const IconArrowDown = (p: P) => (
   </svg>
 )
 
+export const IconFlipHorizontal = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M8 7 3 12l5 5V7zm8 0 5 5-5 5V7zM12 2v20" />
+  </svg>
+)
+
 
 
 

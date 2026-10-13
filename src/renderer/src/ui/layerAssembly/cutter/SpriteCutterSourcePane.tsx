@@ -345,8 +345,8 @@ export function SpriteCutterSourcePane({
               />
               <button
                 type="button"
-                className={`btn sm icon ${isPickingColor ? 'primary' : ''}`}
-                style={{ height: 24, padding: '0 6px' }}
+                className={`btn sm ${isPickingColor ? 'primary' : ''}`}
+                style={{ height: 24, padding: '0 8px', gap: 4 }}
                 title="Hút màu trực tiếp trên ảnh"
                 onClick={() => setIsPickingColor(!isPickingColor)}
               >
@@ -555,6 +555,7 @@ export function SpriteCutterSourcePane({
             Kéo thả sang phải hoặc <kbd>Ctrl+C</kbd> rồi <kbd>Ctrl+V</kbd>
           </span>
           <button
+            id="btn-copy-piece"
             type="button"
             className="btn sm"
             disabled={!selectedPiece}
@@ -564,6 +565,7 @@ export function SpriteCutterSourcePane({
             {copiedBadge ? <><IconCheck width={12} height={12} /> Đã chép!</> : 'Sao chép (Ctrl+C)'}
           </button>
           <button
+            id="btn-transfer-to-target"
             type="button"
             className="btn sm primary"
             disabled={!selectedPiece}

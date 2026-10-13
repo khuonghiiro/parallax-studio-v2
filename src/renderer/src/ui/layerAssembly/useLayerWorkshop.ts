@@ -4,6 +4,13 @@ import { useWorkshopHistory } from './useWorkshopHistory'
 import { applyWorkshopAction, newLayerId, type WorkshopAction } from './workshopActions'
 import { invalidateLayerMeshCache } from './layerAssemblyAlphaMesh'
 
+export function computeNextLayerZ(layers: { z?: number }[], customZ?: number): number {
+  if (typeof customZ === 'number') return customZ
+  if (layers.length === 0) return 11 // 10 + 1 cho layer đầu tiên
+  const maxZ = Math.max(10, ...layers.map((l) => l.z ?? 10))
+  return maxZ + 1 // layer vào sau tăng thêm 1 (như tay 10+1, áo 10+1+1)
+}
+
 export function useLayerWorkshop(initial?: LayerComposite | null) {
   const state = useWorkshopHistory(() => initial ? structuredClone(initial) : {
     id: `comp-${crypto.randomUUID()}`, name: 'Chi tiết Layer Mới', category: 'nature', width: 600, height: 600, layers: []
@@ -32,11 +39,14 @@ export function useLayerWorkshop(initial?: LayerComposite | null) {
     setComposite((prev) => ({ ...prev, layers: [...prev.layers, ...added] }))
     setIds(added.map((l) => l.id))
   }
-  const add = (name: string, assetPath: string, imageUrl?: string, pos?: { x: number; y: number }) => append([{
-    id: '', name, assetPath, imageUrl, x: pos?.x ?? 0, y: pos?.y ?? 0,
-    z: composite.layers.length ? Math.min(...composite.layers.map((l) => l.z)) - 80 : 0,
-    scale: 1, rotation: 0, opacity: 1, motion: { type: 'none', speed: 1, amplitude: 15, anchor: 'bottom' }
-  }])
+  const add = (name: string, assetPath: string, imageUrl?: string, pos?: { x: number; y: number }, customZ?: number) => {
+    const nextZ = computeNextLayerZ(composite.layers, customZ)
+    return append([{
+      id: '', name, assetPath, imageUrl, x: pos?.x ?? 0, y: pos?.y ?? 0,
+      z: nextZ,
+      scale: 1, rotation: 0, opacity: 1, motion: { type: 'none', speed: 1, amplitude: 15, anchor: 'bottom' }
+    }])
+  }
   const move = (id: string, direction: 'up' | 'down') => setComposite((prev) => {
     const index = prev.layers.findIndex((l) => l.id === id)
     const target = index + (direction === 'up' ? -1 : 1)
