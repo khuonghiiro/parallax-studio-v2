@@ -3,7 +3,7 @@ import type { AssembledLayerItem, LayerComposite } from '../types'
 import type { CutPiece, TemplateSlotDef, TemplateSlotPreset } from './types'
 import { SLOT_PRESETS } from './slotPresets'
 import { IconLayers, IconTrash, IconPlus, IconCheck } from '../../icons'
-import { Select } from '../../controls/CustomSelect'
+import { CustomSelect } from '../../controls/CustomSelect'
 
 export interface SpriteCutterTargetPaneProps {
   composite: LayerComposite
@@ -225,10 +225,10 @@ export function SpriteCutterTargetPane({
       {/* Preset Toolbar */}
       <div className="layer-cutter-toolbar">
         <div style={{ width: 220 }}>
-          <Select
+          <CustomSelect<string>
             size="sm"
             value={activePresetId}
-            onChange={(val) => setActivePresetId(val)}
+            onChange={(val: string) => setActivePresetId(val)}
             options={SLOT_PRESETS.map((p) => ({ value: p.id, label: p.name }))}
           />
         </div>

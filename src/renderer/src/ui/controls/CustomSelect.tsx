@@ -230,3 +230,6 @@ export function CustomSelect<T extends string | number = string>({
     </div>
   )
 }
+
+export const Select = CustomSelect
+
