@@ -8,6 +8,11 @@ export function useViewerLabels(labelsRef: React.RefObject<HTMLDivElement | null
   function updateLabels(labels: ScreenLabel[], ed: Rect | null, dpr: number, selectedShotId: string | null): void {
     const host = labelsRef.current
     if (!host) return
+    if (!ed) {
+      host.replaceChildren()
+      labelEls.clear()
+      return
+    }
     const seen = new Set<string>()
     if (ed) {
       for (const l of labels) {

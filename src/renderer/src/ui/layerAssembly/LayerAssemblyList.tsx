@@ -11,11 +11,9 @@ import {
 } from './layerAssemblyStorage'
 import { captureCompositeThumbnail } from './layerAssemblyThumbnail'
 import { insertLayerCompositeToScene } from './insertLayerComposite'
-import { LayerAssemblyDialog } from './LayerAssemblyDialog'
 import { LayerAssemblyCategoryBar } from './LayerAssemblyCategoryBar'
-import { CreateLayerAssemblyModal } from './CreateLayerAssemblyModal'
 import { IconPlus, IconPen, IconTrash, IconCopy, IconLayers } from '../icons'
-import { consumePendingOpenLayerAssembly } from './layerAssemblyBridge'
+import { requestOpenLayerAssembly } from './layerAssemblyBridge'
 import '../../styles/model3dLibrary.css'
 import '../../styles/layerAssembly.css'
 
@@ -23,9 +21,6 @@ export function LayerAssemblyList() {
   const [composites, setComposites] = useState<LayerComposite[]>(() => getStoredComposites())
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState('')
-  const [editingComposite, setEditingComposite] = useState<LayerComposite | null>(null)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [insertingId, setInsertingId] = useState<string | null>(null)
 
   const reload = useCallback(() => {
@@ -33,55 +28,12 @@ export function LayerAssemblyList() {
   }, [])
 
   useEffect(() => {
-    const pending = consumePendingOpenLayerAssembly()
-    if (pending) {
-      if (pending.composite) {
-        setEditingComposite(pending.composite)
-        setIsDialogOpen(true)
-      } else if (pending.compositeId) {
-        const found = getStoredComposites().find((c) => c.id === pending.compositeId)
-        setEditingComposite(found || null)
-        setIsDialogOpen(true)
-      } else {
-        setIsCreateModalOpen(true)
-      }
-    }
-  }, [])
-
-  useEffect(() => {
     const handleUpdate = () => reload()
-    const handleOpenReq = (e: Event) => {
-      const customEvent = e as CustomEvent<{ compositeId?: string; composite?: LayerComposite }>
-      const direct = customEvent.detail?.composite
-      const targetId = customEvent.detail?.compositeId
-      if (direct) {
-        setEditingComposite(direct)
-        setIsDialogOpen(true)
-        setIsCreateModalOpen(false)
-      } else if (targetId) {
-        const found = getStoredComposites().find((c) => c.id === targetId)
-        setEditingComposite(found || null)
-        setIsDialogOpen(true)
-        setIsCreateModalOpen(false)
-      } else {
-        setIsCreateModalOpen(true)
-      }
-    }
-    const handleCloseReq = () => {
-      setIsDialogOpen(false)
-      setIsCreateModalOpen(false)
-      setEditingComposite(null)
-    }
-
     window.addEventListener('layerComposites:changed', handleUpdate)
     window.addEventListener('storage', handleUpdate)
-    window.addEventListener('layerAssembly:open', handleOpenReq)
-    window.addEventListener('layerAssembly:close', handleCloseReq)
     return () => {
       window.removeEventListener('layerComposites:changed', handleUpdate)
       window.removeEventListener('storage', handleUpdate)
-      window.removeEventListener('layerAssembly:open', handleOpenReq)
-      window.removeEventListener('layerAssembly:close', handleCloseReq)
     }
   }, [reload])
 
@@ -112,12 +64,11 @@ export function LayerAssemblyList() {
   }, [composites, selectedCategory, searchTerm])
 
   const handleCreateNew = () => {
-    setIsCreateModalOpen(true)
+    requestOpenLayerAssembly()
   }
 
   const handleEdit = (comp: LayerComposite) => {
-    setEditingComposite(comp)
-    setIsDialogOpen(true)
+    requestOpenLayerAssembly(comp)
   }
 
   const handleInsert = async (comp: LayerComposite) => {
@@ -210,31 +161,6 @@ export function LayerAssemblyList() {
         </div>
       </div>
 
-      {/* Fullscreen Workshop Modal */}
-      {isDialogOpen && (
-        <LayerAssemblyDialog
-          key={editingComposite?.id || 'new'}
-          initialComposite={editingComposite}
-          onClose={() => {
-            setIsDialogOpen(false)
-            setEditingComposite(null)
-          }}
-        />
-      )}
-
-      {/* Layer Assembly Template Picker Modal */}
-      <CreateLayerAssemblyModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSelectTemplate={(comp) => {
-          setEditingComposite(comp)
-          setIsDialogOpen(true)
-        }}
-        onSelectBlank={() => {
-          setEditingComposite(null)
-          setIsDialogOpen(true)
-        }}
-      />
     </div>
   )
 }

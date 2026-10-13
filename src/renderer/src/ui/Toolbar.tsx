@@ -35,8 +35,10 @@ import {
   IconPlug,
   IconSun,
   IconMoon,
-  IconSettings
+  IconSettings,
+  IconLayerAssembly
 } from './icons'
+import { requestOpenLayerAssembly } from './layerAssembly/layerAssemblyBridge'
 
 import { Menu } from './controls'
 
@@ -156,6 +158,10 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
         </button>
         <button id="add-particles" className="menu-item" onClick={addParticleLayer}>
           <IconSparkles width={15} /> Particles (bụi, đom đóm, tuyết)
+        </button>
+        <div className="menu-label">Lắp ráp & Nhân vật</div>
+        <button id="add-assembly-workshop" className="menu-item" onClick={() => requestOpenLayerAssembly()}>
+          <IconLayerAssembly width={15} /> Xưởng Lắp Ráp Layer 2.5D…
         </button>
       </Menu>
 

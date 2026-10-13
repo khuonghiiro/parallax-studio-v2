@@ -163,6 +163,7 @@ export function Viewer() {
       unsubAssets()
       unsubPerf()
       cancelAnimationFrame(rafRef.current)
+      rafRef.current = 0
       r.dispose()
       setLiveRenderer(null)
       rendererRef.current = null

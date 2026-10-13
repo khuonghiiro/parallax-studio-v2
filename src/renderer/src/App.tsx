@@ -12,6 +12,7 @@ import { PerformanceDialog } from './ui/PerformanceDialog'
 import { McpDialog } from './ui/McpDialog'
 import { AudioStudioDialog } from './ui/AudioStudioDialog'
 import { Assembly3DDialog } from './ui/assets/models3d/Assembly3DDialog'
+import { GlobalLayerAssemblyHost } from './ui/layerAssembly/GlobalLayerAssemblyHost'
 import { AiControlOverlay } from './ui/AiControlOverlay'
 import { Inspector } from './ui/Inspector'
 import { LeftPanel } from './ui/LeftPanel'
@@ -138,6 +139,7 @@ export default function App() {
           onClose={closeAssemblyWorkshop}
         />
       )}
+      <GlobalLayerAssemblyHost />
       {toast && <div className="toast">{toast}</div>}
       {!ready && (
         <div className="loading-screen">
