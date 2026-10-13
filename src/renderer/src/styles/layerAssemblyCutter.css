@@ -211,8 +211,6 @@
 
 .layer-cutter-island-tag {
   position: absolute;
-  top: -20px;
-  left: 0;
   font-size: 10px;
   font-weight: 600;
   padding: 1px 5px;
@@ -222,13 +220,126 @@
   border: 1px solid var(--line);
   white-space: nowrap;
   pointer-events: none;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: opacity 0.15s ease, background 0.15s ease;
+  z-index: 15;
+}
+
+.layer-cutter-island-tag.outside-top {
+  top: -20px;
+  left: 0;
+}
+
+.layer-cutter-island-tag.outside-bottom {
+  bottom: -20px;
+  left: 0;
+}
+
+/* Inside placement: ngăn tag che đè sang bbox bên trên hoặc lân cận */
+.layer-cutter-island-tag.inside-top-left {
+  top: 2px;
+  left: 2px;
+  max-width: calc(100% - 4px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: rgba(28, 28, 28, 0.92);
+  backdrop-filter: blur(4px);
+}
+
+[data-theme='light'] .layer-cutter-island-tag.inside-top-left {
+  background: rgba(245, 245, 245, 0.92);
+}
+
+/* Tag visibility modes */
+.tag-mode-hover .layer-cutter-island-tag {
+  opacity: 0;
+}
+
+.tag-mode-hover .layer-cutter-island-box:hover .layer-cutter-island-tag,
+.tag-mode-hover .layer-cutter-island-box.selected .layer-cutter-island-tag {
+  opacity: 1;
+  z-index: 40;
+}
+
+.tag-mode-always .layer-cutter-island-tag {
+  opacity: 1;
+}
+
+.tag-mode-hidden .layer-cutter-island-tag {
+  opacity: 0 !important;
 }
 
 .layer-cutter-island-box.selected .layer-cutter-island-tag {
-  background: var(--key);
-  color: #000;
+  background: var(--key) !important;
+  color: #000 !important;
   font-weight: 700;
+  border-color: #000;
+  z-index: 50;
+}
+
+/* Ô nhập tên bộ phận có visual affordance và icon cây bút */
+.layer-cutter-part-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 6px;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  cursor: text;
+}
+
+.layer-cutter-part-input-wrap:hover {
+  border-color: var(--line-focus);
+  background: var(--bg-1);
+}
+
+.layer-cutter-part-input-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  background: var(--bg-0);
+}
+
+.layer-cutter-part-pen {
+  color: var(--text-faint);
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.layer-cutter-part-input-wrap:hover .layer-cutter-part-pen,
+.layer-cutter-part-input-wrap:focus-within .layer-cutter-part-pen {
+  color: var(--accent-cyan);
+}
+
+.layer-cutter-part-name-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  height: 18px;
+  line-height: 18px;
+  font-family: inherit;
+}
+
+.layer-cutter-part-name-input::placeholder {
+  color: var(--text-faint);
+  font-weight: 400;
+}
+
+.footer-name-wrap {
+  max-width: 150px;
+  height: 20px;
+}
+
+.footer-name-input {
+  font-size: 11px;
+  font-weight: 600;
 }
 
 /* Manual Marquee Selection */

@@ -10,7 +10,7 @@ import {
 import { SaveTemplateDialog } from './SaveTemplateDialog'
 import { AssembledPartsDrawer } from './AssembledPartsDrawer'
 import { computeNextLayerZ } from '../useLayerWorkshop'
-import { IconLayers, IconTrash, IconPlus, IconCheck, IconFlipHorizontal } from '../../icons'
+import { IconLayers, IconTrash, IconPlus, IconCheck, IconFlipHorizontal, IconPen } from '../../icons'
 import { CustomSelect } from '../../controls/CustomSelect'
 
 export interface SpriteCutterTargetPaneProps {
@@ -610,9 +610,19 @@ export function SpriteCutterTargetPane({
         {currentSelectedLayer ? (
           <div className="layer-cutter-footer-controls">
             <div className="layer-cutter-footer-group">
-              <span style={{ fontWeight: 600, color: 'var(--text)' }}>
-                {currentSelectedLayer.name}
-              </span>
+              <div
+                className="layer-cutter-part-input-wrap footer-name-wrap"
+                title="Nhấp để đổi tên bộ phận đang chọn"
+              >
+                <IconPen width={11} height={11} className="layer-cutter-part-pen" />
+                <input
+                  type="text"
+                  className="layer-cutter-part-name-input footer-name-input"
+                  value={currentSelectedLayer.name}
+                  onChange={(e) => onUpdateLayer(currentSelectedLayer.id, { name: e.target.value })}
+                  placeholder="Tên bộ phận..."
+                />
+              </div>
               <span className="layer-cutter-badge" style={{ fontSize: 9, padding: '1px 5px' }}>
                 ({Math.round(currentSelectedLayer.x)}, {Math.round(currentSelectedLayer.y)})
               </span>

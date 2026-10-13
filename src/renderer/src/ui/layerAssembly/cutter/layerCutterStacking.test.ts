@@ -44,3 +44,28 @@ describe('2D Layer Cutter Stacking & Z-Index Ordering Rules', () => {
     expect(customZ).toBe(30)
   })
 })
+
+describe('2D Layer Cutter Smart Tag Placement Rules', () => {
+  function getTagPlacement(w: number, h: number, y: number): string {
+    const isInside = h >= 34 && w >= 46
+    const isNearTop = y < 22
+    return isInside ? 'inside-top-left' : isNearTop ? 'outside-bottom' : 'outside-top'
+  }
+
+  it('places tag inside-top-left when box is tall and wide enough, preventing overlap with box above', () => {
+    // Like Mảnh #3 (145x51) in user screenshot
+    const placement = getTagPlacement(145, 51, 80)
+    expect(placement).toBe('inside-top-left')
+  })
+
+  it('places tag outside-top when box is shallow and not near top edge', () => {
+    // Like Mảnh #4 (77x24) in user screenshot
+    const placement = getTagPlacement(77, 24, 50)
+    expect(placement).toBe('outside-top')
+  })
+
+  it('places tag outside-bottom when box is shallow but near top edge', () => {
+    const placement = getTagPlacement(77, 24, 10)
+    expect(placement).toBe('outside-bottom')
+  })
+})

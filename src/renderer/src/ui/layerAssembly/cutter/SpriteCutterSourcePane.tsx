@@ -32,6 +32,7 @@ export function SpriteCutterSourcePane({
   const [selectedIslandId, setSelectedIslandId] = useState<string | null>(null)
   const [minIslandArea, setMinIslandArea] = useState<number>(100)
   const [brushRadius, setBrushRadius] = useState<number>(18)
+  const [tagVisibility, setTagVisibility] = useState<'hover' | 'always' | 'hidden'>('hover')
 
   // Drag marquee selection
   const [marquee, setMarquee] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null)
@@ -437,25 +438,60 @@ export function SpriteCutterSourcePane({
         )}
 
         {tool === 'auto' && (
-          <div className="layer-cutter-control-row" style={{ marginLeft: 6 }}>
-            <span>Lọc hạt &lt;</span>
-            <input
-              type="range"
-              min={40}
-              max={400}
-              step={10}
-              value={minIslandArea}
-              onChange={(e) => setMinIslandArea(Number(e.target.value))}
-              title="Kích thước pixel tối thiểu để xem là một bộ phận"
-            />
-            <span>{minIslandArea}px</span>
-          </div>
+          <>
+            <div className="layer-cutter-control-row" style={{ marginLeft: 6 }}>
+              <span>Lọc hạt &lt;</span>
+              <input
+                type="range"
+                min={40}
+                max={400}
+                step={10}
+                value={minIslandArea}
+                onChange={(e) => setMinIslandArea(Number(e.target.value))}
+                title="Kích thước pixel tối thiểu để xem là một bộ phận"
+              />
+              <span>{minIslandArea}px</span>
+            </div>
+
+            <div className="layer-cutter-control-row" style={{ marginLeft: 8 }}>
+              <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>Nhãn:</span>
+              <div className="btn-group sm" style={{ display: 'inline-flex' }}>
+                <button
+                  type="button"
+                  className={`btn sm ${tagVisibility === 'hover' ? 'primary' : ''}`}
+                  onClick={() => setTagVisibility('hover')}
+                  title="Chỉ hiện nhãn khi rê chuột hoặc click chọn (Tránh che khuất các bộ phận khác)"
+                  style={{ height: 22, padding: '0 6px', fontSize: 10 }}
+                >
+                  Rê chuột
+                </button>
+                <button
+                  type="button"
+                  className={`btn sm ${tagVisibility === 'always' ? 'primary' : ''}`}
+                  onClick={() => setTagVisibility('always')}
+                  title="Luôn hiện tất cả nhãn kích thước"
+                  style={{ height: 22, padding: '0 6px', fontSize: 10 }}
+                >
+                  Hiện hết
+                </button>
+                <button
+                  type="button"
+                  className={`btn sm ${tagVisibility === 'hidden' ? 'primary' : ''}`}
+                  onClick={() => setTagVisibility('hidden')}
+                  title="Ẩn nhãn để nhìn ảnh rõ ràng nhất"
+                  style={{ height: 22, padding: '0 6px', fontSize: 10 }}
+                >
+                  Ẩn
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
       {/* Main Canvas View */}
       <div className={`layer-cutter-canvas-wrap bg-${chroma.previewBackground}`}>
-        <div className="layer-cutter-source-canvas-box">
+        <div className={`layer-cutter-source-canvas-box tag-mode-${tagVisibility}`}>
           <canvas
             ref={procCanvasRef}
             className="layer-cutter-canvas"
@@ -483,6 +519,18 @@ export function SpriteCutterSourcePane({
               const scaleX = canvas.clientWidth / canvas.width
               const scaleY = canvas.clientHeight / canvas.height
 
+              const boxW = isl.width * scaleX
+              const boxH = isl.height * scaleY
+              // If box is large enough, place tag INSIDE to completely avoid overlapping adjacent boxes above/around it
+              const isInside = boxH >= 34 && boxW >= 46
+              // If outside and close to top edge, place at bottom instead
+              const isNearTop = isl.y * scaleY < 22
+              const tagPlacementClass = isInside
+                ? 'inside-top-left'
+                : isNearTop
+                ? 'outside-bottom'
+                : 'outside-top'
+
               return (
                 <div
                   key={isl.id}
@@ -496,12 +544,14 @@ export function SpriteCutterSourcePane({
                   style={{
                     left: `${isl.x * scaleX}px`,
                     top: `${isl.y * scaleY}px`,
-                    width: `${isl.width * scaleX}px`,
-                    height: `${isl.height * scaleY}px`
+                    width: `${boxW}px`,
+                    height: `${boxH}px`
                   }}
                   title="Click để chọn · Kéo thả sang phải để gán vào bố cục 2D"
                 >
-                  <span className="layer-cutter-island-tag">{isl.label}</span>
+                  <span className={`layer-cutter-island-tag ${tagPlacementClass}`}>
+                    {isl.label}
+                  </span>
                 </div>
               )
             })}
