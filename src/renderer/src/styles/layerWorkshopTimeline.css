@@ -21,7 +21,8 @@ button.lw-animation-track-name { cursor: pointer; }
 .lw-animation-key { position: absolute; top: 50%; width: 10px; height: 10px; padding: 0; transform: translate(-50%, -50%) rotate(45deg); border-radius: 1px; border: 1px solid var(--bg-1); background: var(--key); cursor: ew-resize; touch-action: none; }
 .lw-animation-key.active, .lw-animation-key:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; background: var(--accent); z-index: 1; }
 .lw-animation-key.dragging { background: var(--accent-cyan); z-index: 2; }
-.lw-animation-playhead { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--accent); pointer-events: none; }
+.lw-animation-playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent-cyan); box-shadow: 0 0 6px rgba(0, 229, 255, 0.7); pointer-events: none; z-index: 10; }
+.lw-animation-playhead-cap { position: absolute; top: 0; width: 9px; height: 11px; transform: translateX(-50%); background: var(--accent-cyan); clip-path: polygon(0 0, 100% 0, 100% 55%, 50% 100%, 0 55%); pointer-events: none; z-index: 12; filter: drop-shadow(0 0 3px rgba(0, 229, 255, 0.8)); }
 .lw-animation-timeline-hint { color: var(--text-faint); padding: 6px 12px; font-size: 10px; }
 .lw-interpolation-editor { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; }
 .lw-bezier-preview { width: 100%; height: 92px; border-radius: 4px; background: var(--bg-0); border: 1px solid var(--line-soft); }

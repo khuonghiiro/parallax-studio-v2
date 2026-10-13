@@ -13,9 +13,11 @@ export interface BoneOverlayProps {
   editing: boolean
   stopPlayback?: () => void
   cancelGesture?: () => void
+  beginGesture?: () => void
+  endGesture?: () => void
 }
 
-export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposite, time, editing, stopPlayback, cancelGesture }: BoneOverlayProps) {
+export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposite, time, editing, stopPlayback, cancelGesture, beginGesture, endGesture }: BoneOverlayProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const dragRef = useRef<ReturnType<typeof startBoneDrag> | null>(null)
   const [activeDrag, setActiveDrag] = useState<string | null>(null)
@@ -39,9 +41,10 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
     if (!point) return
     stopPlayback?.()
     selectBone(id)
+    beginGesture?.()
     dragRef.current = startBoneDrag(rig, id, time, editing, mode, point)
     setActiveDrag(id)
-    e.currentTarget.setPointerCapture(e.pointerId)
+    svgRef.current?.setPointerCapture(e.pointerId)
     svgRef.current?.focus()
   }
 
@@ -58,6 +61,9 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
   }
 
   const endDrag = () => {
+    if (dragRef.current) {
+      endGesture?.()
+    }
     dragRef.current = null
     setActiveDrag(null)
     setDragAngle(null)
@@ -200,31 +206,34 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
       })}
 
       {/* Live Dragging Tooltip HUD Badge */}
-      {dragAngle && (
-        <g transform={`translate(${dragAngle.x + 14}, ${dragAngle.y - 12})`} pointerEvents="none">
-          <rect
-            x={-6}
-            y={-14}
-            width={72}
-            height={20}
-            rx={5}
-            fill="var(--bg-1)"
-            stroke="var(--accent-cyan)"
-            strokeWidth={1.2}
-          />
-          <text
-            x={30}
-            y={0}
-            textAnchor="middle"
-            fill="var(--text)"
-            fontSize={11}
-            fontWeight={600}
-            fontFamily="system-ui, sans-serif"
-          >
-            {dragAngle.text}
-          </text>
-        </g>
-      )}
+      {dragAngle && (() => {
+        const badgeW = Math.max(76, dragAngle.text.length * 8 + 18)
+        return (
+          <g transform={`translate(${dragAngle.x + 14}, ${dragAngle.y - 12})`} pointerEvents="none">
+            <rect
+              x={-6}
+              y={-14}
+              width={badgeW}
+              height={20}
+              rx={5}
+              fill="var(--bg-1)"
+              stroke="var(--accent-cyan)"
+              strokeWidth={1.2}
+            />
+            <text
+              x={(badgeW - 12) / 2}
+              y={0}
+              textAnchor="middle"
+              fill="var(--text)"
+              fontSize={11}
+              fontWeight={600}
+              fontFamily="system-ui, sans-serif"
+            >
+              {dragAngle.text}
+            </text>
+          </g>
+        )
+      })()}
     </svg>
   )
 }

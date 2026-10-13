@@ -6,7 +6,9 @@ export function timelineTime(clientX: number, left: number, width: number, durat
   return Math.max(0, Math.min(duration, snap ? Math.round(time * fps) / fps : time))
 }
 
-export function adjacentKeyTime(rig: LayerRig, time: number, direction: -1 | 1) {
-  const times = [...new Set(Object.values(rig.tracks).flatMap((keys) => keys.map((k) => k.time)))].sort((a, b) => a - b)
+export function adjacentKeyTime(rig: LayerRig, time: number, direction: -1 | 1, boneId?: string | null) {
+  const tracks = boneId ? [rig.tracks[boneId] ?? []] : Object.values(rig.tracks)
+  const times = [...new Set(tracks.flatMap((keys) => keys.map((k) => k.time)))].sort((a, b) => a - b)
   return direction === -1 ? times.filter((t) => t < time - KEY_EPSILON).at(-1) : times.find((t) => t > time + KEY_EPSILON)
 }
+

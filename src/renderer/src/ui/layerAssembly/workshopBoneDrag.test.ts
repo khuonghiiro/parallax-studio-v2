@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { LayerRig } from '@shared/layerRig'
+import type { LayerComposite } from './types'
 import { startBoneDrag, boneDragAction } from './workshopBoneDrag'
 import { createWorkshopHistory } from './workshopHistory'
 
@@ -23,7 +24,7 @@ describe('bone pose gestures', () => {
     }
   })
   it('restores pose and redo history on Escape cancellation', () => {
-    const initial = { id: 'test', name: 'Initial', category: 'character', width: 500, height: 600, layers: [], rig }
+    const initial: LayerComposite = { id: 'test', name: 'Initial', category: 'character', width: 500, height: 600, layers: [], rig }
     const history = createWorkshopHistory(initial)
     history.update({ ...initial, name: 'Next' }); history.undo()
     history.begin(); history.update({ ...initial, name: 'Dragging' }); history.cancel()

@@ -33,7 +33,9 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
   const bones = rig.bones.filter((b) => !onlySelected || b.id === boneId)
   const selectedKey = boneId && rig.tracks[boneId]?.find((k) => sameKeyTime(k.time, playback.time))
   const remove = () => { if (boneId && selectedKey) run({ action: 'delete-key', boneId, time: selectedKey.time }) }
-  const jump = (direction: -1 | 1) => { const time = adjacentKeyTime(rig, playback.time, direction); if (time !== undefined) seek(time) }
+  const jump = (direction: -1 | 1) => { const time = adjacentKeyTime(rig, playback.time, direction, onlySelected ? boneId : undefined); if (time !== undefined) seek(time) }
+  const rewind = () => seek(0)
+  const addKey = () => { if (boneId) run({ action: 'set-key', boneId, key: { time: playback.time } }) }
   const scrub = (event: PointerEvent<HTMLDivElement>) => {
     if (event.type === 'pointermove' && !(event.buttons & 1)) return
     if (event.type === 'pointerdown') event.currentTarget.setPointerCapture(event.pointerId)
@@ -45,8 +47,8 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
       if (e.key === 'Escape') { e.stopPropagation(); drag.cancel() }
       if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); e.stopPropagation(); remove() }
     }}>
-    <TimelineToolbar playback={playback} fps={fps} zoom={zoom} setZoom={setZoom} jump={jump}
-      canDelete={!!selectedKey} remove={remove} onlySelected={onlySelected} setOnlySelected={setOnlySelected} />
+    <TimelineToolbar playback={playback} fps={fps} zoom={zoom} setZoom={setZoom} jump={jump} rewind={rewind}
+      canDelete={!!selectedKey} remove={remove} addKey={addKey} canAdd={!!boneId} onlySelected={onlySelected} setOnlySelected={setOnlySelected} />
     {error && <div className="lw-error" role="alert">{error}</div>}
     <div className="lw-animation-track-scroll">
       <div className="lw-animation-track-content" style={{ width: `${zoom * 100}%` }}>
@@ -54,6 +56,7 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
           <span className="lw-animation-track-name">XƯƠNG · {rig.bones.length}</span>
           <div className="lw-animation-track-lane lw-animation-ruler" onPointerDown={scrub} onPointerMove={scrub}>
             {Array.from({ length: 9 }, (_, i) => <span key={i} style={{ left: `${i * 12.5}%` }}>{(rig.duration * i / 8).toFixed(2)}s</span>)}
+            <span className="lw-animation-playhead-cap" style={{ left: `${playback.time / rig.duration * 100}%` }} />
           </div>
         </div>
         {bones.map((bone) => <div className={`lw-animation-track-row ${bone.id === boneId ? 'selected' : ''}`} key={bone.id}>
@@ -78,16 +81,18 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
   </section>
 }
 
-function TimelineToolbar({ playback, fps, zoom, setZoom, jump, canDelete, remove, onlySelected, setOnlySelected }: {
+function TimelineToolbar({ playback, fps, zoom, setZoom, jump, rewind, canDelete, remove, addKey, canAdd, onlySelected, setOnlySelected }: {
   playback: Props['playback']; fps: number; zoom: number; setZoom: (v: number) => void
-  jump: (v: -1 | 1) => void; canDelete: boolean; remove: () => void
+  jump: (v: -1 | 1) => void; rewind: () => void; canDelete: boolean; remove: () => void; addKey: () => void; canAdd: boolean
   onlySelected: boolean; setOnlySelected: (v: boolean) => void
 }) {
   return <div className="lw-animation-timeline-toolbar">
     <strong>Animation</strong>
-    <button className="btn xs" onClick={() => jump(-1)} aria-label="Key trước">◀◆</button>
+    <button className="btn xs" onClick={rewind} title="Về đầu (0s)" aria-label="Về đầu">⏮</button>
+    <button className="btn xs" onClick={() => jump(-1)} title="Key trước" aria-label="Key trước">◀◆</button>
     <button className="btn xs" onClick={playback.toggle}>{playback.isPlaying ? 'Tạm dừng' : 'Phát thử'}</button>
-    <button className="btn xs" onClick={() => jump(1)} aria-label="Key sau">◆▶</button>
+    <button className="btn xs" onClick={() => jump(1)} title="Key sau" aria-label="Key sau">◆▶</button>
+    <button className="btn xs primary" disabled={!canAdd} onClick={addKey} title="Ghi keyframe tại thời điểm hiện tại">+ Key</button>
     <span className="lw-animation-timecode">{playback.time.toFixed(3)}s · F{Math.round(playback.time * fps)} · {fps} fps</span>
     <label><input type="checkbox" checked={onlySelected} onChange={(e) => setOnlySelected(e.target.checked)} /> Xương đang chọn</label>
     <button className="btn xs" disabled={!canDelete} onClick={remove}>Xóa key</button>

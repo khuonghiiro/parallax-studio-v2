@@ -110,7 +110,18 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
           onToggleShowBones={toggleBones}
           showMesh={showMesh}
           onToggleShowMesh={toggleMesh}
-          boneOverlay={isErasing ? undefined : { composite: { ...state.composite, rig: normalizedRig ?? state.composite.rig }, boneId, selectBone, setComposite: state.setComposite, stopPlayback: () => playback.setIsPlaying(false), cancelGesture: state.cancelGesture, time: playback.time, editing: tab === 'bones' }}
+          boneOverlay={isErasing ? undefined : {
+            composite: { ...state.composite, rig: normalizedRig ?? state.composite.rig },
+            boneId,
+            selectBone,
+            setComposite: state.setComposite,
+            stopPlayback: () => playback.setIsPlaying(false),
+            cancelGesture: state.cancelGesture,
+            beginGesture: () => state.history.begin(),
+            endGesture: () => state.history.end(),
+            time: playback.time,
+            editing: tab === 'bones'
+          }}
           onChangeComposite={state.setComposite}
           isPlaying={playback.isPlaying}
           onTogglePlay={playback.toggle}
@@ -130,7 +141,7 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
           onChangeComposite={state.setComposite}
         />
       </div>}
-      {!isErasing && (
+      {!isErasing && tab !== 'animation' && (
         <LayerAssemblyTransportBar
           duration={rig?.duration ?? state.composite.rig?.duration}
           isPlaying={playback.isPlaying}

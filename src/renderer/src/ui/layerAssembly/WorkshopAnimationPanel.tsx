@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { AnimationClip, BoneKeyframe, LayerBone, LayerRig } from '@shared/layerRig'
 import { sampleBonePose } from '../../engine/layerRig'
 import { RigNumber, type RigPanelProps } from './WorkshopRigPanel'
 import { emptyRig, ensureRigClips } from './workshopRig'
-import { sameKeyTime } from './workshopAnimation'
+import { sameKeyTime, type BonePoseEntry } from './workshopAnimation'
 import type { useWorkshopPlayback } from './useWorkshopPlayback'
 import { Select } from '../controls'
 import { WorkshopClipBar } from './WorkshopClipBar'
@@ -14,7 +14,8 @@ type Props = RigPanelProps & { playback: ReturnType<typeof useWorkshopPlayback> 
 
 export function WorkshopAnimationPanel({ composite, boneId, selectBone, run, playback }: Props) {
   const { rig, activeClip } = ensureRigClips(composite.rig ?? emptyRig())
-  const bone = rig.bones.find((b) => b.id === boneId)
+  const activeBone = rig.bones.find((b) => b.id === boneId) ?? (rig.bones[0] || null)
+  const bone = activeBone
   const time = Math.min(rig.duration, playback.time)
   const keys = bone ? rig.tracks[bone.id] ?? [] : []
   const exact = keys.find((k) => sameKeyTime(k.time, time))
@@ -22,6 +23,14 @@ export function WorkshopAnimationPanel({ composite, boneId, selectBone, run, pla
   const pose = bone ? sampleBonePose({ ...rig, loop: false }, bone.id, time) : { x: 0, y: 0, rotation: 0 }
   const key: BoneKeyframe = { ...pose, time, easing: exact?.easing ?? previous?.easing ?? 'smooth', bezier: exact?.bezier ?? previous?.bezier }
   const [isRetargetOpen, setIsRetargetOpen] = useState(false)
+  const [copiedPose, setCopiedPose] = useState<BonePoseEntry[] | null>(null)
+
+  useEffect(() => {
+    if (!boneId && rig.bones.length > 0) {
+      selectBone(rig.bones[0].id)
+    }
+  }, [boneId, rig.bones, selectBone])
+
   const setKey = (patch: Partial<BoneKeyframe> = {}) => {
     if (!bone) return
     playback.setIsPlaying(false)
@@ -31,6 +40,27 @@ export function WorkshopAnimationPanel({ composite, boneId, selectBone, run, pla
     playback.setIsPlaying(false); playback.setTime(0)
     run({ action: 'inherit-clip', sourceClip, sourceBones, clipName })
   }
+  const copyPose = () => {
+    const poses: BonePoseEntry[] = rig.bones.map((b) => ({
+      boneId: b.id,
+      ...sampleBonePose({ ...rig, loop: false }, b.id, time)
+    }))
+    setCopiedPose(poses)
+  }
+  const pastePose = () => {
+    if (!copiedPose) return
+    playback.setIsPlaying(false)
+    run({ action: 'set-pose', time, poses: copiedPose })
+  }
+  const resetAllPose = () => {
+    playback.setIsPlaying(false)
+    run({
+      action: 'set-pose',
+      time,
+      poses: rig.bones.map((b) => ({ boneId: b.id, x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }))
+    })
+  }
+
   return <div className="lw-rig-panel lw-animation-panel">
     <WorkshopClipBar rig={rig} activeClip={activeClip} run={(action) => {
       playback.setIsPlaying(false)
@@ -54,7 +84,7 @@ export function WorkshopAnimationPanel({ composite, boneId, selectBone, run, pla
           <button className="btn sm primary" onClick={() => setKey()}>◆ Ghi tư thế</button>
           <button className="btn sm" onClick={() => setKey({ x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 })}>Về tư thế gốc</button>
         </div>
-        <AnimationPoseActions rig={rig} time={time} run={run} playback={playback} />
+        <AnimationPoseActions rig={rig} time={time} run={run} playback={playback} onCopyPose={copyPose} onPastePose={pastePose} onResetAllPose={resetAllPose} canPaste={!!copiedPose} />
         <AnimationKeyList bone={bone} keys={keys} time={time} playback={playback} run={run} />
       </> : <p>Chọn một xương để chỉnh pose. Mỗi hàng timeline bên dưới khung hình là một xương.</p>}
     </div>
@@ -86,11 +116,19 @@ function PoseFields({ keyframe: pose, setKey }: { keyframe: BoneKeyframe; setKey
   </div>
 }
 
-function AnimationPoseActions({ rig, time, run, playback }: { rig: LayerRig; time: number; run: Props['run']; playback: Props['playback'] }) {
+function AnimationPoseActions({ rig, time, run, playback, onCopyPose, onPastePose, onResetAllPose, canPaste }: {
+  rig: LayerRig; time: number; run: Props['run']; playback: Props['playback']
+  onCopyPose: () => void; onPastePose: () => void; onResetAllPose: () => void; canPaste: boolean
+}) {
   return <div className="lw-animation-pose-actions">
     <div className="lw-rig-actions">
-      <button className="btn sm" onClick={() => { playback.setIsPlaying(false); run({ action: 'set-pose', time, poses: rig.bones.map((b) => ({ boneId: b.id })) }) }}>Ghi dáng toàn thân</button>
+      <button className="btn sm" onClick={() => { playback.setIsPlaying(false); run({ action: 'set-pose', time, poses: rig.bones.map((b) => ({ boneId: b.id })) }) }}>Ghi toàn thân</button>
       <button className="btn sm" onClick={() => { playback.setIsPlaying(false); run({ action: 'mirror-pose', time }) }}>Lật dáng</button>
+    </div>
+    <div className="lw-rig-actions" style={{ marginTop: '4px' }}>
+      <button className="btn sm" onClick={onCopyPose} title="Sao chép dáng toàn thân tại thời điểm này">Sao chép</button>
+      <button className="btn sm" disabled={!canPaste} onClick={onPastePose} title="Dán dáng đã sao chép vào thời điểm này">Dán dáng</button>
+      <button className="btn sm" onClick={onResetAllPose} title="Đặt lại mọi xương về dáng gốc">Dáng gốc</button>
     </div>
     <p>Tạo clip mới từ chuyển động mẫu:</p>
     <div className="lw-rig-presets-row">{([['walk', 'Đi bộ'], ['idle', 'Đứng thở'], ['wave', 'Vẫy tay'], ['jump', 'Nhảy']] as const).map(([preset, title]) =>
