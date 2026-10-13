@@ -2,7 +2,21 @@ import React, { useRef, useState, useEffect, useCallback } from 'react'
 import type { ChromaKeySettings, CutToolMode, DetectedIsland, CutPoint, CutPiece } from './types'
 import { applyChromaKey, detectOpaqueIslands, extractRegionDataUrl, applyBrushToCanvas } from './chromaKey'
 import { SAMPLE_ANIME_SPRITESHEET_URL } from './sampleSpriteSheet'
-import { IconScissors, IconWand, IconDropper, IconUpload, IconRefresh, IconCheck, IconTrash } from '../../icons'
+import {
+  IconScissors,
+  IconWand,
+  IconDropper,
+  IconUpload,
+  IconRefresh,
+  IconCheck,
+  IconTrash,
+  IconCrop,
+  IconSelectPointer,
+  IconEraser,
+  IconBrush,
+  IconUndo,
+  IconRedo
+} from '../../icons'
 
 export interface SpriteCutterSourcePaneProps {
   onSelectPiece: (piece: CutPiece | null) => void
@@ -33,6 +47,13 @@ export function SpriteCutterSourcePane({
   const [minIslandArea, setMinIslandArea] = useState<number>(100)
   const [brushRadius, setBrushRadius] = useState<number>(18)
   const [tagVisibility, setTagVisibility] = useState<'hover' | 'always' | 'hidden'>('hover')
+  const [brushCursorPos, setBrushCursorPos] = useState<{ x: number; y: number } | null>(null)
+
+  // Canvas pixel undo / redo stack
+  const undoStackRef = useRef<ImageData[]>([])
+  const redoStackRef = useRef<ImageData[]>([])
+  const [canUndo, setCanUndo] = useState(false)
+  const [canRedo, setCanRedo] = useState(false)
 
   // Drag marquee selection
   const [marquee, setMarquee] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null)
@@ -110,6 +131,71 @@ export function SpriteCutterSourcePane({
     })
   }
 
+  // Canvas Undo / Redo logic
+  const handleUndo = useCallback(() => {
+    const proc = procCanvasRef.current
+    if (!proc || undoStackRef.current.length === 0) return
+    const pctx = proc.getContext('2d', { willReadFrequently: true })
+    if (!pctx) return
+    const currentSnap = pctx.getImageData(0, 0, proc.width, proc.height)
+    redoStackRef.current.push(currentSnap)
+    const prevSnap = undoStackRef.current.pop()!
+    pctx.putImageData(prevSnap, 0, 0)
+    setCanUndo(undoStackRef.current.length > 0)
+    setCanRedo(true)
+    if (chroma.enabled) {
+      const found = detectOpaqueIslands(pctx, proc.width, proc.height, minIslandArea)
+      setIslands(found)
+    }
+  }, [chroma.enabled, minIslandArea])
+
+  const handleRedo = useCallback(() => {
+    const proc = procCanvasRef.current
+    if (!proc || redoStackRef.current.length === 0) return
+    const pctx = proc.getContext('2d', { willReadFrequently: true })
+    if (!pctx) return
+    const currentSnap = pctx.getImageData(0, 0, proc.width, proc.height)
+    undoStackRef.current.push(currentSnap)
+    const nextSnap = redoStackRef.current.pop()!
+    pctx.putImageData(nextSnap, 0, 0)
+    setCanUndo(true)
+    setCanRedo(redoStackRef.current.length > 0)
+    if (chroma.enabled) {
+      const found = detectOpaqueIslands(pctx, proc.width, proc.height, minIslandArea)
+      setIslands(found)
+    }
+  }, [chroma.enabled, minIslandArea])
+
+  // Global Keyboard Shortcuts (Ctrl+Z, Ctrl+Y, Ctrl+C)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return
+      const mod = e.ctrlKey || e.metaKey
+      if (!mod) return
+
+      const key = e.key.toLowerCase()
+      if (key === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) {
+          handleRedo()
+        } else {
+          handleUndo()
+        }
+      } else if (key === 'y') {
+        e.preventDefault()
+        handleRedo()
+      } else if (key === 'c') {
+        if (selectedPiece) {
+          e.preventDefault()
+          handleCopyPiece()
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleUndo, handleRedo, selectedPiece])
+
   // Pointer interactions on canvas (Marquee / Lasso / Eyedropper / Brush)
   const getCanvasCoords = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -146,6 +232,14 @@ export function SpriteCutterSourcePane({
         const rctx = raw.getContext('2d', { willReadFrequently: true })
         const pctx = proc.getContext('2d', { willReadFrequently: true })
         if (rctx && pctx) {
+          // Push to undo stack before stroke begins
+          const snap = pctx.getImageData(0, 0, proc.width, proc.height)
+          undoStackRef.current.push(snap)
+          if (undoStackRef.current.length > 25) undoStackRef.current.shift()
+          redoStackRef.current = []
+          setCanUndo(true)
+          setCanRedo(false)
+
           applyBrushToCanvas(pctx, rctx, x, y, brushRadius, tool === 'eraser')
         }
       }
@@ -167,6 +261,14 @@ export function SpriteCutterSourcePane({
   }
 
   const handleCanvasPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    if (tool === 'eraser' || tool === 'restore') {
+      setBrushCursorPos({
+        x: Math.round(e.clientX - rect.left),
+        y: Math.round(e.clientY - rect.top)
+      })
+    }
+
     if (!isDrawing) return
     const { x, y } = getCanvasCoords(e)
 
@@ -210,7 +312,6 @@ export function SpriteCutterSourcePane({
       return
     }
 
-
     if (tool === 'box' && marquee) {
       const minX = Math.min(marquee.startX, marquee.currentX)
       const minY = Math.min(marquee.startY, marquee.currentY)
@@ -220,14 +321,18 @@ export function SpriteCutterSourcePane({
       if (w >= 10 && h >= 10) {
         const box = { x: minX, y: minY, width: w, height: h }
         const dataUrl = extractRegionDataUrl(proc, box)
-        onSelectPiece({
+        const piece: CutPiece = {
           id: `box-${Date.now()}`,
           dataUrl,
           width: w,
           height: h,
           label: `Vùng ${w}×${h}px`,
           sourceBox: box
-        })
+        }
+        try {
+          ;(window as unknown as { __parallax_cut_part?: CutPiece }).__parallax_cut_part = piece
+        } catch {}
+        onSelectPiece(piece)
       }
     } else if (tool === 'lasso' && lassoPoints.length >= 3) {
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
@@ -242,14 +347,18 @@ export function SpriteCutterSourcePane({
       if (w >= 10 && h >= 10) {
         const box = { x: minX, y: minY, width: w, height: h }
         const dataUrl = extractRegionDataUrl(proc, box, lassoPoints)
-        onSelectPiece({
+        const piece: CutPiece = {
           id: `lasso-${Date.now()}`,
           dataUrl,
           width: w,
           height: h,
           label: `Vùng tự do`,
           sourceBox: box
-        })
+        }
+        try {
+          ;(window as unknown as { __parallax_cut_part?: CutPiece }).__parallax_cut_part = piece
+        } catch {}
+        onSelectPiece(piece)
       }
     }
   }
@@ -359,8 +468,8 @@ export function SpriteCutterSourcePane({
               <span>Độ nhạy:</span>
               <input
                 type="range"
-                min={5}
-                max={90}
+                min={1}
+                max={100}
                 value={chroma.tolerance}
                 onChange={(e) => setChroma({ ...chroma, tolerance: Number(e.target.value) })}
               />
@@ -394,7 +503,7 @@ export function SpriteCutterSourcePane({
             onClick={() => { setTool('box'); setSelectedIslandId(null) }}
             title="Kéo chuột vẽ khung chữ nhật bao quanh bộ phận"
           >
-            Khung chữ nhật
+            <IconCrop width={12} height={12} /> Khung chữ nhật
           </button>
           <button
             type="button"
@@ -402,23 +511,23 @@ export function SpriteCutterSourcePane({
             onClick={() => { setTool('lasso'); setSelectedIslandId(null) }}
             title="Vẽ vùng chọn tự do theo hình dáng"
           >
-            Lasso
+            <IconSelectPointer width={12} height={12} /> Lasso
           </button>
           <button
             type="button"
             className={`layer-cutter-tool-btn ${tool === 'eraser' ? 'active' : ''}`}
             onClick={() => { setTool('eraser'); setSelectedIslandId(null); setMarquee(null); setLassoPoints([]) }}
-            title="Cọ tẩy: Quét chuột để xóa viền xanh hoặc chi tiết thừa"
+            title="Cọ tẩy: Quét chuột để xóa viền xanh hoặc chi tiết thừa (Ctrl+Z để hoàn tác)"
           >
-            Cọ tẩy
+            <IconEraser width={12} height={12} /> Cọ tẩy
           </button>
           <button
             type="button"
             className={`layer-cutter-tool-btn ${tool === 'restore' ? 'active' : ''}`}
             onClick={() => { setTool('restore'); setSelectedIslandId(null); setMarquee(null); setLassoPoints([]) }}
-            title="Khôi phục: Quét chuột để lấy lại pixel gốc nguyên bản"
+            title="Khôi phục: Quét chuột để lấy lại pixel gốc nguyên bản (Ctrl+Z để hoàn tác)"
           >
-            Khôi phục
+            <IconBrush width={12} height={12} /> Khôi phục
           </button>
         </div>
 
@@ -434,6 +543,30 @@ export function SpriteCutterSourcePane({
               onChange={(e) => setBrushRadius(Number(e.target.value))}
             />
             <span>{brushRadius}px</span>
+
+            {/* Undo / Redo for Brush */}
+            <div className="btn-group sm" style={{ display: 'inline-flex', marginLeft: 4 }}>
+              <button
+                type="button"
+                className="btn sm icon"
+                disabled={!canUndo}
+                onClick={handleUndo}
+                title="Hoàn tác nét cọ / tẩy (Ctrl+Z)"
+                style={{ width: 22, height: 22, padding: 0 }}
+              >
+                <IconUndo width={12} height={12} />
+              </button>
+              <button
+                type="button"
+                className="btn sm icon"
+                disabled={!canRedo}
+                onClick={handleRedo}
+                title="Làm lại nét cọ / tẩy (Ctrl+Y)"
+                style={{ width: 22, height: 22, padding: 0 }}
+              >
+                <IconRedo width={12} height={12} />
+              </button>
+            </div>
           </div>
         )}
 
@@ -499,7 +632,7 @@ export function SpriteCutterSourcePane({
               cursor: isPickingColor
                 ? 'crosshair'
                 : tool === 'eraser' || tool === 'restore'
-                ? 'cell'
+                ? 'none'
                 : tool === 'box' || tool === 'lasso'
                 ? 'crosshair'
                 : 'default'
@@ -508,7 +641,21 @@ export function SpriteCutterSourcePane({
             onPointerDown={handleCanvasPointerDown}
             onPointerMove={handleCanvasPointerMove}
             onPointerUp={handleCanvasPointerUp}
+            onPointerLeave={() => setBrushCursorPos(null)}
           />
+
+          {/* Circular Brush Cursor Indicator */}
+          {(tool === 'eraser' || tool === 'restore') && brushCursorPos && procCanvasRef.current && (
+            <div
+              className="layer-cutter-brush-cursor"
+              style={{
+                left: `${brushCursorPos.x}px`,
+                top: `${brushCursorPos.y}px`,
+                width: `${brushRadius * 2 * (procCanvasRef.current.clientWidth / procCanvasRef.current.width)}px`,
+                height: `${brushRadius * 2 * (procCanvasRef.current.clientHeight / procCanvasRef.current.height)}px`
+              }}
+            />
+          )}
 
           {/* Render Detected Islands (Auto Mode) */}
           {tool === 'auto' &&
@@ -559,32 +706,98 @@ export function SpriteCutterSourcePane({
           {/* Render Manual Box Marquee */}
           {tool === 'box' && marquee && procCanvasRef.current && (
             <div
-              className="layer-cutter-marquee"
+              className={`layer-cutter-marquee ${!isDrawing && selectedPiece ? 'ready' : ''}`}
+              draggable={!isDrawing && Boolean(selectedPiece)}
+              onDragStart={(e) => selectedPiece && handleDragStart(e, selectedPiece)}
+              onClick={(e) => e.stopPropagation()}
               style={{
                 left: `${(Math.min(marquee.startX, marquee.currentX) * procCanvasRef.current.clientWidth) / procCanvasRef.current.width}px`,
                 top: `${(Math.min(marquee.startY, marquee.currentY) * procCanvasRef.current.clientHeight) / procCanvasRef.current.height}px`,
                 width: `${(Math.abs(marquee.currentX - marquee.startX) * procCanvasRef.current.clientWidth) / procCanvasRef.current.width}px`,
                 height: `${(Math.abs(marquee.currentY - marquee.startY) * procCanvasRef.current.clientHeight) / procCanvasRef.current.height}px`
               }}
-            />
+              title={!isDrawing && selectedPiece ? 'Kéo thả sang phải hoặc click để đưa vào Bố cục 2D' : undefined}
+            >
+              {!isDrawing && selectedPiece && (
+                <div className="layer-cutter-marquee-badge" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    className="btn sm primary"
+                    style={{ height: 20, padding: '0 6px', fontSize: 10 }}
+                    onClick={() => onTransferToTarget(selectedPiece)}
+                    title="Đưa vùng chọn này vào Bố cục 2D"
+                  >
+                    Đưa vào 2D ➡️
+                  </button>
+                  <button
+                    type="button"
+                    className="btn sm"
+                    style={{ height: 20, padding: '0 6px', fontSize: 10 }}
+                    onClick={handleCopyPiece}
+                    title="Sao chép vùng này (Ctrl+C)"
+                  >
+                    {copiedBadge ? 'Đã chép!' : 'Sao chép'}
+                  </button>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Render Lasso Path Overlay */}
           {tool === 'lasso' && lassoPoints.length >= 2 && procCanvasRef.current && (
-            <svg className="layer-cutter-lasso-svg">
-              <polyline
-                points={lassoPoints
-                  .map(
-                    (p) =>
-                      `${(p.x * procCanvasRef.current!.clientWidth) / procCanvasRef.current!.width},${(p.y * procCanvasRef.current!.clientHeight) / procCanvasRef.current!.height}`
-                  )
-                  .join(' ')}
-                fill="rgba(251, 191, 36, 0.2)"
-                stroke="var(--key)"
-                strokeWidth="1.5"
-                strokeDasharray="4 2"
-              />
-            </svg>
+            <>
+              <svg className="layer-cutter-lasso-svg">
+                <polyline
+                  points={lassoPoints
+                    .map(
+                      (p) =>
+                        `${(p.x * procCanvasRef.current!.clientWidth) / procCanvasRef.current!.width},${(p.y * procCanvasRef.current!.clientHeight) / procCanvasRef.current!.height}`
+                    )
+                    .join(' ')}
+                  fill="rgba(251, 191, 36, 0.2)"
+                  stroke="var(--key)"
+                  strokeWidth="1.5"
+                  strokeDasharray="4 2"
+                />
+              </svg>
+
+              {!isDrawing && selectedPiece && selectedPiece.sourceBox && (
+                <div
+                  className="layer-cutter-marquee ready"
+                  draggable={true}
+                  onDragStart={(e) => handleDragStart(e, selectedPiece)}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    left: `${(selectedPiece.sourceBox.x * procCanvasRef.current.clientWidth) / procCanvasRef.current.width}px`,
+                    top: `${(selectedPiece.sourceBox.y * procCanvasRef.current.clientHeight) / procCanvasRef.current.height}px`,
+                    width: `${(selectedPiece.sourceBox.width * procCanvasRef.current.clientWidth) / procCanvasRef.current.width}px`,
+                    height: `${(selectedPiece.sourceBox.height * procCanvasRef.current.clientHeight) / procCanvasRef.current.height}px`
+                  }}
+                  title="Kéo thả sang phải hoặc click để đưa vào Bố cục 2D"
+                >
+                  <div className="layer-cutter-marquee-badge" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      className="btn sm primary"
+                      style={{ height: 20, padding: '0 6px', fontSize: 10 }}
+                      onClick={() => onTransferToTarget(selectedPiece)}
+                      title="Đưa vùng chọn này vào Bố cục 2D"
+                    >
+                      Đưa vào 2D ➡️
+                    </button>
+                    <button
+                      type="button"
+                      className="btn sm"
+                      style={{ height: 20, padding: '0 6px', fontSize: 10 }}
+                      onClick={handleCopyPiece}
+                      title="Sao chép vùng này (Ctrl+C)"
+                    >
+                      {copiedBadge ? 'Đã chép!' : 'Sao chép'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

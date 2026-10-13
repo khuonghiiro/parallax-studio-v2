@@ -68,8 +68,8 @@ export function AssembledPartsDrawer({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  padding: '6px 8px',
-                  gap: 8,
+                  padding: '7px 9px',
+                  gap: 10,
                   borderColor: isSelected ? 'var(--key)' : 'var(--line-soft)',
                   background: isSelected ? 'var(--bg-3)' : 'var(--bg-1)',
                   boxShadow: isSelected ? '0 0 10px rgba(251, 191, 36, 0.2)' : 'none',
@@ -81,8 +81,8 @@ export function AssembledPartsDrawer({
                 <div
                   className="layer-cutter-slot-thumb"
                   style={{
-                    width: 34,
-                    height: 34,
+                    width: 38,
+                    height: 38,
                     flexShrink: 0,
                     borderRadius: 4,
                     background: 'var(--bg-0)',
@@ -96,8 +96,9 @@ export function AssembledPartsDrawer({
                   )}
                 </div>
 
-                {/* Name Input with pencil visual affordance & Z-index badge */}
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {/* Right Column: Row 1 = Full-width Title Input; Row 2 = Z badge + Stepper & Delete */}
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {/* Row 1: Title input taking 100% width of the card's content area */}
                   <div
                     className="layer-cutter-part-input-wrap"
                     onClick={(e) => e.stopPropagation()}
@@ -113,65 +114,67 @@ export function AssembledPartsDrawer({
                     />
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 6 }}>
-                    <span
-                      style={{
-                        fontSize: 9,
-                        fontFamily: 'monospace',
-                        color: 'var(--accent-cyan)',
-                        fontWeight: 600,
-                        background: 'rgba(56, 189, 248, 0.1)',
-                        padding: '1px 4px',
-                        borderRadius: 3
-                      }}
-                      title="Thứ tự lớp (z-index): Càng cao càng nằm đè lên trên"
-                    >
-                      z: {zVal}
-                    </span>
-                    <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>
-                      ({Math.round(layer.x)}, {Math.round(layer.y)})
-                    </span>
-                  </div>
-                </div>
+                  {/* Row 2: Z-depth & Coordinates on left; Action buttons on right */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span
+                        style={{
+                          fontSize: 9,
+                          fontFamily: 'monospace',
+                          color: 'var(--accent-cyan)',
+                          fontWeight: 700,
+                          background: 'rgba(56, 189, 248, 0.1)',
+                          padding: '1px 5px',
+                          borderRadius: 3
+                        }}
+                        title="Thứ tự lớp (z-index): Càng cao càng nằm đè lên trên"
+                      >
+                        z: {zVal}
+                      </span>
+                      <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>
+                        ({Math.round(layer.x)}, {Math.round(layer.y)})
+                      </span>
+                    </div>
 
-                {/* Action buttons: Up, Down, Delete */}
-                <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-                  <button
-                    type="button"
-                    className="btn sm icon"
-                    style={{ width: 22, height: 22, padding: 0 }}
-                    title="Tăng z (+1): Đưa nổi lên trên"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleStepZ(layer, 1)
-                    }}
-                  >
-                    <IconArrowUp width={11} height={11} />
-                  </button>
-                  <button
-                    type="button"
-                    className="btn sm icon"
-                    style={{ width: 22, height: 22, padding: 0 }}
-                    title="Giảm z (-1): Đưa chìm xuống dưới"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleStepZ(layer, -1)
-                    }}
-                  >
-                    <IconArrowDown width={11} height={11} />
-                  </button>
-                  <button
-                    type="button"
-                    className="btn sm icon"
-                    style={{ width: 22, height: 22, padding: 0, color: '#ef4444' }}
-                    title="Xóa bộ phận này"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onDeleteLayer(layer.id)
-                    }}
-                  >
-                    <IconTrash width={11} height={11} />
-                  </button>
+                    <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        className="btn sm icon"
+                        style={{ width: 20, height: 20, padding: 0 }}
+                        title="Tăng z (+1): Đưa nổi lên trên"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleStepZ(layer, 1)
+                        }}
+                      >
+                        <IconArrowUp width={10} height={10} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn sm icon"
+                        style={{ width: 20, height: 20, padding: 0 }}
+                        title="Giảm z (-1): Đưa chìm xuống dưới"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleStepZ(layer, -1)
+                        }}
+                      >
+                        <IconArrowDown width={10} height={10} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn sm icon"
+                        style={{ width: 20, height: 20, padding: 0, color: 'var(--danger)' }}
+                        title="Xóa bộ phận này"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onDeleteLayer(layer.id)
+                        }}
+                      >
+                        <IconTrash width={10} height={10} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )
