@@ -44,6 +44,12 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
   }, [])
 
   useEffect(() => {
+    if ((tab === 'bones' || tab === 'animation') && !showBones) {
+      setShowBones(true)
+    }
+  }, [tab, showBones])
+
+  useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
       if (tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable) return

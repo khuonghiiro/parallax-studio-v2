@@ -345,6 +345,39 @@ export function WorkshopAnimationPanel({
               </button>
             </div>
 
+            {/* Tạo dáng chuyển động mẫu nhanh một chạm (Moho Quick Motion Presets) */}
+            <div style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px solid var(--line-soft)' }}>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-dim)' }}>
+                Tạo chu kỳ chuyển động nhanh (1-Click):
+              </span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', marginTop: '5px' }}>
+                <button
+                  type="button"
+                  className="btn xs"
+                  onClick={() => run({ action: 'apply-preset-animation', preset: 'walk' })}
+                  title="Tự động sinh chu kỳ bước đi hoàn chỉnh cho toàn thân"
+                >
+                  🚶 Đi bộ
+                </button>
+                <button
+                  type="button"
+                  className="btn xs"
+                  onClick={() => run({ action: 'apply-preset-animation', preset: 'idle' })}
+                  title="Tự động sinh chu kỳ đứng thở nhịp nhàng tự nhiên"
+                >
+                  🧍 Đứng thở
+                </button>
+                <button
+                  type="button"
+                  className="btn xs"
+                  onClick={() => run({ action: 'apply-preset-animation', preset: 'wave' })}
+                  title="Tự động sinh chu kỳ vẫy tay chào thân thiện"
+                >
+                  🙋 Vẫy tay
+                </button>
+              </div>
+            </div>
+
             <div style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px solid var(--line-soft)' }}>
               <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-dim)' }}>
                 Các mốc Keyframe của &ldquo;{bone.name}&rdquo; ({keys.length}):

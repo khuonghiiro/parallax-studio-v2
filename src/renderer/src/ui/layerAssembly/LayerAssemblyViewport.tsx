@@ -86,6 +86,8 @@ export function LayerAssemblyViewport({
   const theme = useView((s) => s.theme)
   const isLight = theme === 'light'
 
+  const isBonesVisible = showBones || tab === 'bones' || tab === 'animation'
+
   const selectedLayer = useMemo(() => {
     return composite.layers.find((l) => l.id === selectedLayerId) || null
   }, [composite.layers, selectedLayerId])
@@ -622,7 +624,6 @@ export function LayerAssemblyViewport({
           transformStyle: 'preserve-3d'
         }}
       >
-        {boneOverlay && showBones && <WorkshopBoneOverlay {...boneOverlay} />}
         {/* Canvas Center Reference Crosshairs */}
         <div
           style={{
@@ -670,6 +671,9 @@ export function LayerAssemblyViewport({
             />
           )
         })}
+
+        {/* Khung xương Blender/Moho SVG Overlay - Hiển thị NỔI TRÊN CÙNG các lớp để thao tác kéo xoay trực tiếp 60fps */}
+        {boneOverlay && isBonesVisible && <WorkshopBoneOverlay {...boneOverlay} />}
 
         {composite.layers.length === 0 && (
           <div
@@ -731,7 +735,7 @@ export function LayerAssemblyViewport({
           })
         }
         hasBones={!!composite.rig?.bones?.length}
-        showBones={showBones}
+        showBones={isBonesVisible}
         onToggleShowBones={onToggleShowBones}
         showMesh={showMesh}
         onToggleShowMesh={onToggleShowMesh}
@@ -758,7 +762,11 @@ export function LayerAssemblyViewport({
             zIndex: 30
           }}
         >
-          Kéo layer / Mũi tên: dời 2D · +/-: độ sâu Z · Alt / chuột giữa: dời khung · Cuộn: zoom
+          {tab === 'animation'
+            ? '🎭 Hoạt ảnh Moho: Kéo trực tiếp xương trên màn hình để tạo dáng · Space: phát thử · Alt / chuột giữa: dời khung · Cuộn: zoom'
+            : tab === 'bones'
+              ? '🦴 Khung xương: Kéo khớp đầu/đuôi để chỉnh độ dài & góc · Kéo thân để dời vị trí · Delete: xóa xương'
+              : 'Kéo layer / Mũi tên: dời 2D · +/-: độ sâu Z · Alt / chuột giữa: dời khung · Cuộn: zoom'}
         </div>
       )}
 

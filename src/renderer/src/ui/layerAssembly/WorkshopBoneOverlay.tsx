@@ -31,6 +31,7 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
   const svgRef = useRef<SVGSVGElement>(null)
   const dragRef = useRef<DragState | null>(null)
   const [activeDrag, setActiveDrag] = useState<string | null>(null)
+  const [dragAngle, setDragAngle] = useState<{ x: number; y: number; text: string } | null>(null)
 
   const rig = composite.rig
   if (!rig || !rig.bones.length) return null
@@ -81,18 +82,36 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
     if (!p) return
 
     if (drag.mode === 'head') {
-      // Move bone base position
       const dx = p.x - drag.headX
       const dy = p.y - drag.headY
-      setComposite((c) =>
-        applyRigAction(c, {
-          action: 'update-bone',
-          boneId: drag.boneId,
-          patch: { x: Math.round(drag.startX + dx), y: Math.round(drag.startY + dy) }
-        })
-      )
+      if (editing) {
+        setComposite((c) =>
+          applyRigAction(c, {
+            action: 'update-bone',
+            boneId: drag.boneId,
+            patch: { x: Math.round(drag.startX + dx), y: Math.round(drag.startY + dy) }
+          })
+        )
+      } else {
+        const existingPose = sampleBonePose(rig, drag.boneId, time)
+        setComposite((c) =>
+          applyRigAction(c, {
+            action: 'set-key',
+            boneId: drag.boneId,
+            key: {
+              time,
+              x: Math.round(dx),
+              y: Math.round(dy),
+              rotation: existingPose.rotation,
+              scaleX: existingPose.scaleX ?? 1,
+              scaleY: existingPose.scaleY ?? 1,
+              easing: 'smooth'
+            }
+          })
+        )
+      }
+      setDragAngle({ x: p.x, y: p.y, text: `Δ (${Math.round(dx)}, ${Math.round(dy)})` })
     } else if (drag.mode === 'tail') {
-      // In edit mode: change bone length and orientation angle
       const dx = p.x - drag.headX
       const dy = p.y - drag.headY
       const length = Math.max(15, Math.round(Math.hypot(dx, dy)))
@@ -104,24 +123,36 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
           patch: { length, angle }
         })
       )
+      setDragAngle({ x: p.x, y: p.y, text: `${length}px · ${angle}°` })
     } else if (drag.mode === 'rotate') {
-      // In pose/animation mode: rotate bone around head pivot
       const currentMouseAngle = Math.atan2(p.y - drag.headY, p.x - drag.headX) * 180 / Math.PI
       const deltaAngle = currentMouseAngle - drag.startMouseAngle
       const newRotation = Math.round(drag.startRotation + deltaAngle)
+      const existingPose = sampleBonePose(rig, drag.boneId, time)
       setComposite((c) =>
         applyRigAction(c, {
           action: 'set-key',
           boneId: drag.boneId,
-          key: { time, x: 0, y: 0, rotation: newRotation, easing: 'smooth' }
+          key: {
+            time,
+            x: existingPose.x,
+            y: existingPose.y,
+            rotation: newRotation,
+            scaleX: existingPose.scaleX ?? 1,
+            scaleY: existingPose.scaleY ?? 1,
+            easing: 'smooth'
+          }
         })
       )
+      const sign = newRotation > 0 ? '+' : ''
+      setDragAngle({ x: p.x, y: p.y, text: `${sign}${newRotation}°` })
     }
   }
 
   const endDrag = () => {
     dragRef.current = null
     setActiveDrag(null)
+    setDragAngle(null)
   }
 
   return (
@@ -261,6 +292,33 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
           </g>
         )
       })}
+
+      {/* Live Dragging Tooltip HUD Badge */}
+      {dragAngle && (
+        <g transform={`translate(${dragAngle.x + 14}, ${dragAngle.y - 12})`} pointerEvents="none">
+          <rect
+            x={-6}
+            y={-14}
+            width={72}
+            height={20}
+            rx={5}
+            fill="rgba(10, 15, 30, 0.92)"
+            stroke="var(--accent-cyan)"
+            strokeWidth={1.2}
+          />
+          <text
+            x={30}
+            y={0}
+            textAnchor="middle"
+            fill="#ffffff"
+            fontSize={11}
+            fontWeight={600}
+            fontFamily="system-ui, sans-serif"
+          >
+            {dragAngle.text}
+          </text>
+        </g>
+      )}
     </svg>
   )
 }
