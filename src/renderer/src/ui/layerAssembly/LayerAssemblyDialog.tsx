@@ -8,9 +8,10 @@ import { useWorkshopPlayback } from './useWorkshopPlayback'
 import { useWorkshopSave } from './useWorkshopSave'
 import { useWorkshopShortcuts } from './useWorkshopShortcuts'
 import { WorkshopTools } from './WorkshopTools'
-import { WorkshopHeader } from './WorkshopHeader'
+import { WorkshopHeader, type WorkshopPrimaryMode } from './WorkshopHeader'
 import { WorkshopAnimationTimeline } from './WorkshopAnimationTimeline'
 import { WorkshopWorkspace } from './WorkshopWorkspace'
+import { LayerAssemblyCutterWorkspace } from './cutter/LayerAssemblyCutterWorkspace'
 import { getStoredComposites } from './layerAssemblyStorage'
 import '../../styles/layerAssembly.css'
 import '../../styles/layerWorkshopTools.css'
@@ -42,6 +43,7 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
   const saving = useWorkshopSave(() => history.current, onClose, () => playback.time)
   const close = () => { if (!saving.busy) onClose() }
   const [view, setView] = useState<AssemblyWorkspaceView>('split')
+  const [primaryMode, setPrimaryMode] = useState<WorkshopPrimaryMode>('assembly')
   const [showNewConfirm, setShowNewConfirm] = useState(false)
   const [isBrushActive, setIsBrushActive] = useState(false)
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
@@ -90,6 +92,7 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
     isErasing: isBrushActive && tab === 'layers'
   })
   useEffect(() => registerLayerAssemblySession({
+    getPrimaryMode: () => primaryMode, setPrimaryMode,
     getComposite: () => history.current, setComposite,
     getSelectedLayerId: () => state.selectedLayerId, setSelectedLayerId: state.select,
     getSelectedLayerIds: () => state.selection, setSelectedLayerIds: state.setIds,
@@ -98,64 +101,72 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
     getTab: () => tab, setTab, getSelectedBoneId: () => boneId, setSelectedBoneId: selectBone,
     undo, redo, canUndo: () => history.canUndo, canRedo: () => history.canRedo,
     save: saving.save, insertToScene: saving.insert, close
-  }), [composite, state.selection.join(','), playback.isPlaying, playback.time, saving.busy, onClose, tab, boneId])
+  }), [composite, state.selection.join(','), playback.isPlaying, playback.time, saving.busy, onClose, tab, boneId, primaryMode])
   return <div className="layer-workshop-overlay">
     <div className="layer-workshop-dialog" role="dialog" aria-modal="true" aria-label="Xưởng Lắp Ráp Layer" onPointerDownCapture={() => history.begin()}>
-      <WorkshopHeader composite={composite} setComposite={setComposite} view={view} setView={setView}
+      <WorkshopHeader composite={composite} setComposite={setComposite} primaryMode={primaryMode} setPrimaryMode={setPrimaryMode} view={view} setView={setView}
         busy={saving.busy} save={() => void saving.save()} insert={() => void saving.insert()} close={close}
         onNewModel={handleRequestNewModel} />
-      <WorkshopTools
-        count={state.selection.length}
-        total={composite.layers.length}
-        canUndo={history.canUndo}
-        canRedo={history.canRedo}
-        undo={undo}
-        redo={redo}
-        selectAll={() => state.setIds(composite.layers.map((l) => l.id))}
-        clear={() => state.select(null)}
-        run={state.run}
-        composite={composite}
-        setComposite={setComposite}
-        estimate={() => state.run('estimate-frame', undefined, composite.layers.map((l) => l.id))}
-      />
-      {saving.error && <div className="lw-error" role="alert">{saving.error}</div>}
-      <div className="layer-workshop-body">
-        <LayerAssemblySidebar
-          composite={composite}
-          selectedLayerId={state.selectedLayerId}
-          onSelectLayer={state.select}
-          onAddLayerFromAsset={state.add}
-          onAppendPresetLayers={state.append}
-          onDeleteLayer={(id) => state.run('delete', undefined, [id])}
-          onDuplicateLayer={(id) => state.run('duplicate', undefined, [id])}
-          onLoadComposite={(loaded) => {
-            setComposite(loaded)
-            if (loaded.layers[0]) {
-              state.select(loaded.layers[0].id)
-            }
-          }}
-        />
-        <div className="lw-workspace-column">
-          <WorkshopWorkspace
-            state={state}
-            playback={playback}
-            view={view}
-            tab={tab}
-            onSelectTab={setTab}
-            boneId={boneId}
-            selectBone={selectBone}
-            onBrushModeChange={setIsBrushActive}
+      {primaryMode === 'assembly' ? (
+        <>
+          <WorkshopTools
+            count={state.selection.length}
+            total={composite.layers.length}
+            canUndo={history.canUndo}
+            canRedo={history.canRedo}
+            undo={undo}
+            redo={redo}
+            selectAll={() => state.setIds(composite.layers.map((l) => l.id))}
+            clear={() => state.select(null)}
+            run={state.run}
+            composite={composite}
+            setComposite={setComposite}
+            estimate={() => state.run('estimate-frame', undefined, composite.layers.map((l) => l.id))}
           />
-          {tab === 'animation' && <WorkshopAnimationTimeline state={state} playback={playback} boneId={boneId} selectBone={selectBone} />}
+          {saving.error && <div className="lw-error" role="alert">{saving.error}</div>}
+          <div className="layer-workshop-body">
+            <LayerAssemblySidebar
+              composite={composite}
+              selectedLayerId={state.selectedLayerId}
+              onSelectLayer={state.select}
+              onAddLayerFromAsset={state.add}
+              onAppendPresetLayers={state.append}
+              onDeleteLayer={(id) => state.run('delete', undefined, [id])}
+              onDuplicateLayer={(id) => state.run('duplicate', undefined, [id])}
+              onLoadComposite={(loaded) => {
+                setComposite(loaded)
+                if (loaded.layers[0]) {
+                  state.select(loaded.layers[0].id)
+                }
+              }}
+            />
+            <div className="lw-workspace-column">
+              <WorkshopWorkspace
+                state={state}
+                playback={playback}
+                view={view}
+                tab={tab}
+                onSelectTab={setTab}
+                boneId={boneId}
+                selectBone={selectBone}
+                onBrushModeChange={setIsBrushActive}
+              />
+              {tab === 'animation' && <WorkshopAnimationTimeline state={state} playback={playback} boneId={boneId} selectBone={selectBone} />}
+            </div>
+            <WorkshopRightPanel state={state} playback={playback} tab={tab} setTab={setTab} boneId={boneId} selectBone={selectBone}>
+            <LayerAssemblyInspector composite={composite} selectedLayerId={state.selectedLayerId} selectedIds={state.selection}
+              onSelectLayer={state.select} onUpdateLayer={state.update} onAddLayer={() => state.add(`Lớp ${composite.layers.length + 1}`, '')}
+              onDeleteLayer={(id) => state.run('delete', undefined, [id])} onDuplicateLayer={(id) => state.run('duplicate', undefined, [id])}
+              onMoveLayerOrder={state.move} onBatchAction={state.run}
+              onAllAction={(action) => state.run(action, undefined, composite.layers.map((l) => l.id))} />
+            </WorkshopRightPanel>
+          </div>
+        </>
+      ) : (
+        <div className="layer-workshop-body">
+          <LayerAssemblyCutterWorkspace state={state} />
         </div>
-        <WorkshopRightPanel state={state} playback={playback} tab={tab} setTab={setTab} boneId={boneId} selectBone={selectBone}>
-        <LayerAssemblyInspector composite={composite} selectedLayerId={state.selectedLayerId} selectedIds={state.selection}
-          onSelectLayer={state.select} onUpdateLayer={state.update} onAddLayer={() => state.add(`Lớp ${composite.layers.length + 1}`, '')}
-          onDeleteLayer={(id) => state.run('delete', undefined, [id])} onDuplicateLayer={(id) => state.run('duplicate', undefined, [id])}
-          onMoveLayerOrder={state.move} onBatchAction={state.run}
-          onAllAction={(action) => state.run(action, undefined, composite.layers.map((l) => l.id))} />
-        </WorkshopRightPanel>
-      </div>
+      )}
       <footer className="lw-status"><span>{composite.layers.length} lớp · {state.selection.length} đã chọn · {composite.layers.filter((l) => l.locked).length} khóa</span>
         <span>Ctrl+Z hoàn tác · Ctrl+D nhân bản · Mũi tên: dời 2D · Phím +/-: độ sâu Z · Space xem chuyển động</span></footer>
     </div>

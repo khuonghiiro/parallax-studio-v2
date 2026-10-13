@@ -164,6 +164,9 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   layer_assembly_inspector: ['.lw-right-panel'],
   layer_assembly_tools: ['.workshop-tools'],
   layer_assembly_header: ['.workshop-header'],
+  layer_assembly_cutter: ['.layer-cutter-split-container'],
+  layer_assembly_source: ['.layer-cutter-pane.left-pane'],
+  layer_assembly_target: ['.layer-cutter-target-container'],
 
   // 3. Audio Studio (Phòng thu Âm thanh) - Toàn bộ & Từng cột
   audio_studio: ['.audio-studio-modal', '.audio-studio-dialog'],

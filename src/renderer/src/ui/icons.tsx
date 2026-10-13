@@ -815,4 +815,11 @@ export const IconReadout = (p: P) => (
   </svg>
 )
 
+export const IconDropper = (p: P) => (
+  <svg {...base(p)}>
+    <path d="m14 7 3 3m-3-3L6 15l-1 4 4-1 8-8m-3-3 2-2a2.12 2.12 0 1 1 3 3l-2 2" />
+  </svg>
+)
+
+
 
