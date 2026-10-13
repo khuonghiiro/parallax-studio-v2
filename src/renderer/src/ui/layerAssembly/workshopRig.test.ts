@@ -363,4 +363,19 @@ describe('workshopRig & layerRig engine', () => {
     expect(mirroredR?.x).toBe(-10)
     expect(mirroredR?.y).toBe(5)
   })
+
+  it('clears animation tracks globally and clears individual bone tracks', () => {
+    let comp = applyRigAction(baseComposite, { action: 'apply-template', template: 'humanoid' })
+    expect(Object.keys(comp.rig?.tracks || {}).length).toBeGreaterThan(0)
+
+    // Xóa riêng track của một xương
+    comp = applyRigAction(comp, { action: 'clear-bone-track', boneId: 'bone-pelvis' })
+    expect(comp.rig?.tracks['bone-pelvis']).toBeUndefined()
+    expect(Object.keys(comp.rig?.tracks || {}).length).toBeGreaterThan(0)
+
+    // Xóa sạch toàn bộ animation
+    comp = applyRigAction(comp, { action: 'clear-animation' })
+    expect(Object.keys(comp.rig?.tracks || {}).length).toBe(0)
+    expect(comp.rig?.clips?.[0].tracks).toEqual({})
+  })
 })

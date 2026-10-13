@@ -86,7 +86,7 @@ export function LayerAssemblyViewport({
   const theme = useView((s) => s.theme)
   const isLight = theme === 'light'
 
-  const isBonesVisible = showBones || tab === 'bones' || tab === 'animation'
+  const isBonesVisible = showBones
 
   const selectedLayer = useMemo(() => {
     return composite.layers.find((l) => l.id === selectedLayerId) || null

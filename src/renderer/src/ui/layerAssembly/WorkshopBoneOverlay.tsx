@@ -156,6 +156,19 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
             key={bone.id}
             className={`lw-blender-bone ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''}`}
           >
+            {/* Invisible forgiving hitbox line along the bone body for easy grabbing */}
+            <line
+              x1={hx}
+              y1={hy}
+              x2={tx}
+              y2={ty}
+              stroke="transparent"
+              strokeWidth={Math.max(28, waistW * 2 + 14)}
+              strokeLinecap="round"
+              style={{ cursor: editing ? 'move' : 'grab', pointerEvents: 'stroke' }}
+              onPointerDown={(e) => handlePointerDown(e, bone.id, editing ? 'head' : 'rotate')}
+            />
+
             {/* Shaded Top Half of Octahedral Bone */}
             <polygon
               points={`${hx},${hy} ${leftX},${leftY} ${tx},${ty}`}
@@ -175,22 +188,42 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
             {/* Central 3D Ridge Line */}
             <line x1={hx} y1={hy} x2={tx} y2={ty} className="lw-bone-ridge" />
 
+            {/* Invisible forgiving hitbox for Tail Joint (Tip) */}
+            <circle
+              cx={tx}
+              cy={ty}
+              r={16}
+              fill="transparent"
+              style={{ cursor: 'crosshair', pointerEvents: 'all' }}
+              onPointerDown={(e) => handlePointerDown(e, bone.id, editing ? 'tail' : 'rotate')}
+            />
+
             {/* Tail Joint (Tip) */}
             <circle
               cx={tx}
               cy={ty}
-              r={isSelected ? 6 : 4.5}
+              r={isSelected ? 6.5 : 5}
               className="lw-bone-tail-joint"
               onPointerDown={(e) => handlePointerDown(e, bone.id, editing ? 'tail' : 'rotate')}
             >
               <title>{editing ? 'Kéo để đổi hướng và chiều dài xương' : 'Kéo để xoay xương'}</title>
             </circle>
 
+            {/* Invisible forgiving hitbox for Head Joint (Pivot) */}
+            <circle
+              cx={hx}
+              cy={hy}
+              r={18}
+              fill="transparent"
+              style={{ cursor: 'move', pointerEvents: 'all' }}
+              onPointerDown={(e) => handlePointerDown(e, bone.id, 'head')}
+            />
+
             {/* Head Joint (Pivot) */}
             <circle
               cx={hx}
               cy={hy}
-              r={isSelected ? 8 : 6.5}
+              r={isSelected ? 8.5 : 7}
               className="lw-bone-head-joint"
               onPointerDown={(e) => handlePointerDown(e, bone.id, 'head')}
             >

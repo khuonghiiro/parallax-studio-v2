@@ -66,6 +66,22 @@ describe('layerAssembly3DBones', () => {
     })
     expect(group.visible).toBe(false)
 
+    // Test userData and hover highlight
+    update3DBonesGroup({
+      group,
+      rig,
+      transforms,
+      layers,
+      selectedBoneId: null,
+      hoveredBoneId: 'bone-pelvis',
+      zExaggeration: 1.0,
+      visible: true
+    })
+    expect(group.visible).toBe(true)
+    const boneChildren = group.children.filter((c) => c.userData?.type === 'bone')
+    expect(boneChildren.length).toBeGreaterThan(0)
+    expect(boneChildren.some((c) => c.userData?.boneId === 'bone-pelvis')).toBe(true)
+
     dispose3DBonesGroup(group)
     expect(group.children.length).toBe(0)
   })

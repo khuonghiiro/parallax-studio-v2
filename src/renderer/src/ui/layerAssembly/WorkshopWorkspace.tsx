@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import type { useLayerWorkshop } from './useLayerWorkshop'
 import type { useWorkshopPlayback } from './useWorkshopPlayback'
 import type { AssemblyWorkspaceView } from './LayerAssemblyDialog'
@@ -21,6 +21,8 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
   const [showMesh, setShowMesh] = useState(() => loadLayerWorkshopViewPrefs().showMesh)
   const [brushEditing, setBrushEditing] = useState(false)
   const [brushPreview, setBrushPreview] = useState<BrushPreview | null>(null)
+  const prevTabRef = useRef(tab)
+
   const brushMode = useCallback((editing: boolean) => {
     setBrushEditing(editing)
     onBrushModeChange?.(editing)
@@ -44,8 +46,11 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
   }, [])
 
   useEffect(() => {
-    if ((tab === 'bones' || tab === 'animation') && !showBones) {
-      setShowBones(true)
+    if (prevTabRef.current !== tab) {
+      if ((tab === 'bones' || tab === 'animation') && !showBones) {
+        setShowBones(true)
+      }
+      prevTabRef.current = tab
     }
   }, [tab, showBones])
 
@@ -139,6 +144,8 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
           showMesh={showMesh}
           onToggleShowMesh={toggleMesh}
           onChangeComposite={state.setComposite}
+          boneId={boneId}
+          selectBone={selectBone}
         />
       </div>}
       {!isErasing && tab !== 'animation' && (

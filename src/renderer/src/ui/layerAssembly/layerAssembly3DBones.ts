@@ -9,6 +9,7 @@ export interface Sync3DBonesOptions {
   transforms?: Map<string, BoneTransform>
   layers: AssembledLayerItem[]
   selectedBoneId?: string | null
+  hoveredBoneId?: string | null
   zExaggeration: number
   visible: boolean
 }
@@ -53,6 +54,7 @@ export function update3DBonesGroup({
   transforms,
   layers,
   selectedBoneId,
+  hoveredBoneId,
   zExaggeration,
   visible
 }: Sync3DBonesOptions): void {
@@ -118,6 +120,7 @@ export function update3DBonesGroup({
     if (!tf) return
 
     const isSelected = bone.id === selectedBoneId
+    const isHovered = !isSelected && bone.id === hoveredBoneId
     const zPos = boneDepthMap.get(bone.id) ?? 0
 
     const angle = bone.angle + tf.rotation
@@ -134,25 +137,27 @@ export function update3DBonesGroup({
     const ty = hy - uy * L
 
     // Khớp gốc Head (Pivot Sphere)
-    const headGeom = new THREE.SphereGeometry(isSelected ? 8 : 6, 16, 16)
+    const headGeom = new THREE.SphereGeometry(isSelected ? 8 : (isHovered ? 7.5 : 6), 16, 16)
     const headMat = new THREE.MeshBasicMaterial({
-      color: isSelected ? 0x00e5ff : 0xffb703,
+      color: isSelected ? 0x00e5ff : (isHovered ? 0x38bdf8 : 0xffb703),
       depthTest: false
     })
     const headMesh = new THREE.Mesh(headGeom, headMat)
     headMesh.position.set(hx, hy, zPos)
     headMesh.renderOrder = 5003
+    headMesh.userData = { type: 'bone', boneId: bone.id, part: 'head' }
     group.add(headMesh)
 
     // Khớp ngọn Tail (Tip Sphere)
-    const tailGeom = new THREE.SphereGeometry(isSelected ? 6 : 4.5, 14, 14)
+    const tailGeom = new THREE.SphereGeometry(isSelected ? 6 : (isHovered ? 5.5 : 4.5), 14, 14)
     const tailMat = new THREE.MeshBasicMaterial({
-      color: isSelected ? 0x00e5ff : 0xfb8500,
+      color: isSelected ? 0x00e5ff : (isHovered ? 0x38bdf8 : 0xfb8500),
       depthTest: false
     })
     const tailMesh = new THREE.Mesh(tailGeom, tailMat)
     tailMesh.position.set(tx, ty, zPos)
     tailMesh.renderOrder = 5003
+    tailMesh.userData = { type: 'bone', boneId: bone.id, part: 'tail' }
     group.add(tailMesh)
 
     // Thân xương 3D bát diện (Octahedral Bone Mesh & Wireframe)
@@ -187,14 +192,15 @@ export function update3DBonesGroup({
     solidGeom.computeVertexNormals()
 
     const solidMat = new THREE.MeshBasicMaterial({
-      color: isSelected ? 0x00e5ff : 0x0284c7,
+      color: isSelected ? 0x00e5ff : (isHovered ? 0x38bdf8 : 0x0284c7),
       transparent: true,
-      opacity: isSelected ? 0.45 : 0.28,
+      opacity: isSelected ? 0.45 : (isHovered ? 0.42 : 0.28),
       side: THREE.DoubleSide,
       depthTest: false
     })
     const solidMesh = new THREE.Mesh(solidGeom, solidMat)
     solidMesh.renderOrder = 5001
+    solidMesh.userData = { type: 'bone', boneId: bone.id, part: 'body' }
     group.add(solidMesh)
 
     // 2. Khung viền sắc nét bao quanh thân xương
@@ -211,13 +217,14 @@ export function update3DBonesGroup({
 
     const boneGeom = new THREE.BufferGeometry().setFromPoints(bonePoints)
     const boneMat = new THREE.LineBasicMaterial({
-      color: isSelected ? 0x00e5ff : 0xffffff,
+      color: isSelected ? 0x00e5ff : (isHovered ? 0x38bdf8 : 0xffffff),
       transparent: true,
-      opacity: isSelected ? 1.0 : 0.85,
+      opacity: isSelected ? 1.0 : (isHovered ? 0.95 : 0.85),
       depthTest: false
     })
     const boneLines = new THREE.LineSegments(boneGeom, boneMat)
     boneLines.renderOrder = 5002
+    boneLines.userData = { type: 'bone', boneId: bone.id, part: 'wire' }
     group.add(boneLines)
   })
 }

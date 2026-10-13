@@ -75,6 +75,8 @@ export interface LayerAssembly3DViewportProps {
   onToggleShowBones?: () => void
   showMesh?: boolean
   onToggleShowMesh?: () => void
+  boneId?: string | null
+  selectBone?: (id: string | null) => void
 }
 
 export function LayerAssembly3DViewport({
@@ -90,7 +92,9 @@ export function LayerAssembly3DViewport({
   showBones = true,
   onToggleShowBones,
   showMesh = false,
-  onToggleShowMesh
+  onToggleShowMesh,
+  boneId,
+  selectBone
 }: LayerAssembly3DViewportProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -204,6 +208,8 @@ export function LayerAssembly3DViewport({
   const layerDragStateRef = useRef<LayerDragState | null>(null)
 
   const rafRef = useRef<number>(0)
+  const [hoveredBoneId, setHoveredBoneId] = useState<string | null>(null)
+  const hoveredBoneIdRef = useRef<string | null>(null)
 
   // ------------------------------------------------------------- 1. Setup Three.js Scene & Continuous Render Loop
   useEffect(() => {
@@ -468,18 +474,19 @@ export function LayerAssembly3DViewport({
     if (!bonesGroup) return
     const rig = composite.rig ? ensureRigClips(composite.rig).rig : undefined
     const transforms = rig ? evaluateRig(rig, time) : undefined
-    const selectedBone = composite.layers.find((l) => l.id === selectedLayerId)?.boneId || null
+    const selectedBone = boneId || composite.layers.find((l) => l.id === selectedLayerId)?.boneId || null
     update3DBonesGroup({
       group: bonesGroup,
       rig,
       transforms,
       layers: composite.layers,
       selectedBoneId: selectedBone,
+      hoveredBoneId,
       zExaggeration,
       visible: showBones ?? true
     })
     requestRender()
-  }, [composite.rig, composite.layers, time, zExaggeration, showBones, selectedLayerId, requestRender])
+  }, [composite.rig, composite.layers, time, zExaggeration, showBones, selectedLayerId, boneId, hoveredBoneId, requestRender])
 
   // Native non-passive wheel listener để Chromium không chặn zoom
   useEffect(() => {
@@ -508,6 +515,12 @@ export function LayerAssembly3DViewport({
     camera: cameraRef.current,
     meshInstances: meshInstancesRef.current,
     composite,
+    bonesGroup: bonesGroupRef.current,
+    showBones,
+    selectedBoneId: boneId,
+    selectBone,
+    hoveredBoneIdRef,
+    onHoverBone: setHoveredBoneId,
     isDraggingGizmoRef,
     isDraggingRef,
     dragModeRef,
@@ -529,6 +542,13 @@ export function LayerAssembly3DViewport({
   const handlePointerDown = (e: React.PointerEvent) => handle3DPointerDown(e, getPointerDeps())
   const handlePointerMove = (e: React.PointerEvent) => handle3DPointerMove(e, getPointerDeps())
   const handlePointerUp = (e: React.PointerEvent) => handle3DPointerUp(e, getPointerDeps())
+  const handlePointerLeave = () => {
+    if (hoveredBoneIdRef.current) {
+      hoveredBoneIdRef.current = null
+      setHoveredBoneId(null)
+      requestRender()
+    }
+  }
 
   // ------------------------------------------------------------- 8. Camera Controls & Quick Angles
   // Xử lý thay đổi tầm nhìn (FOV)
@@ -673,6 +693,7 @@ export function LayerAssembly3DViewport({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerLeave}
       onContextMenu={(e) => e.preventDefault()}
       onDragOver={(e) => {
         e.preventDefault()

@@ -21,6 +21,12 @@ export interface PointerHandlerDeps {
   camera: THREE.PerspectiveCamera | null
   meshInstances: Map<string, Layer3DMeshInstance>
   composite: LayerComposite
+  bonesGroup?: THREE.Group | null
+  showBones?: boolean
+  selectedBoneId?: string | null
+  selectBone?: (id: string | null) => void
+  hoveredBoneIdRef?: { current: string | null }
+  onHoverBone?: (id: string | null) => void
   isDraggingGizmoRef: { current: boolean }
   isDraggingRef: { current: boolean }
   dragModeRef: { current: 'orbit' | 'pan' | 'layer' }
@@ -47,6 +53,31 @@ export function handle3DPointerDown(e: React.PointerEvent, deps: PointerHandlerD
   const target = e.target as HTMLElement
   if (target.tagName.toLowerCase() !== 'canvas' && target !== container) {
     return
+  }
+
+  // Click vào xương 3D để active/select xương đồng bộ với 2D
+  if (e.button === 0 && !e.altKey && !e.shiftKey && deps.showBones && deps.bonesGroup && deps.selectBone) {
+    const rect = container.getBoundingClientRect()
+    const mouse = new THREE.Vector2(
+      ((e.clientX - rect.left) / rect.width) * 2 - 1,
+      -((e.clientY - rect.top) / rect.height) * 2 + 1
+    )
+    const raycaster = new THREE.Raycaster()
+    raycaster.setFromCamera(mouse, camera)
+    raycaster.params.Line = { threshold: 14 }
+
+    const intersects = raycaster.intersectObjects(deps.bonesGroup.children, true)
+    const boneHit = intersects.find((h) => h.object.userData?.type === 'bone')
+    if (boneHit && boneHit.object.userData?.boneId) {
+      const boneId = boneHit.object.userData.boneId as string
+      deps.selectBone(boneId)
+      const linkedLayer = deps.composite.layers.find((l) => l.boneId === boneId)
+      if (linkedLayer) {
+        deps.onSelectLayer(linkedLayer.id, false)
+      }
+      deps.requestRender()
+      return
+    }
   }
 
   // Click layer để kéo trực tiếp
@@ -97,10 +128,45 @@ export function handle3DPointerDown(e: React.PointerEvent, deps: PointerHandlerD
 }
 
 export function handle3DPointerMove(e: React.PointerEvent, deps: PointerHandlerDeps) {
-  if (!deps.isDraggingRef.current) return
   const { container, camera } = deps
+  if (!container || !camera) return
 
-  if (deps.dragModeRef.current === 'layer' && deps.layerDragStateRef.current && camera && container) {
+  // Hover kiểm tra xương 3D khi không thực hiện thao tác kéo
+  if (!deps.isDraggingRef.current) {
+    if (deps.showBones && deps.bonesGroup) {
+      const rect = container.getBoundingClientRect()
+      const mouse = new THREE.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1
+      )
+      const raycaster = new THREE.Raycaster()
+      raycaster.setFromCamera(mouse, camera)
+      raycaster.params.Line = { threshold: 12 }
+
+      const intersects = raycaster.intersectObjects(deps.bonesGroup.children, true)
+      const boneHit = intersects.find((h) => h.object.userData?.type === 'bone')
+      if (boneHit && boneHit.object.userData?.boneId) {
+        const boneId = boneHit.object.userData.boneId as string
+        if (deps.hoveredBoneIdRef?.current !== boneId) {
+          if (deps.hoveredBoneIdRef) deps.hoveredBoneIdRef.current = boneId
+          deps.onHoverBone?.(boneId)
+          deps.requestRender()
+        }
+        container.style.cursor = 'pointer'
+        return
+      } else {
+        if (deps.hoveredBoneIdRef?.current) {
+          deps.hoveredBoneIdRef.current = null
+          deps.onHoverBone?.(null)
+          deps.requestRender()
+        }
+        container.style.cursor = 'grab'
+      }
+    }
+    return
+  }
+
+  if (deps.dragModeRef.current === 'layer' && deps.layerDragStateRef.current) {
     const s = deps.layerDragStateRef.current
     const rect = container.getBoundingClientRect()
     const mouse = new THREE.Vector2(

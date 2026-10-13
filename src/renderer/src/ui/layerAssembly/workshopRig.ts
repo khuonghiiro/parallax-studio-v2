@@ -79,6 +79,7 @@ export type RigAction = AnimationAction | AnimationBatch
   | { action: 'apply-template'; template: RigTemplateType }
   | { action: 'apply-preset-animation'; preset: ProceduralMotionPreset; asNewClip?: boolean; clipName?: string; viewAngle?: MotionViewAngle }
   | { action: 'clear-animation' }
+  | { action: 'clear-bone-track'; boneId: string }
   | { action: 'add-clip'; clip: AnimationClip }
   | { action: 'switch-clip'; clipId: string }
   | { action: 'rename-clip'; clipId: string; name: string }
@@ -323,6 +324,20 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
   }
   if (action.action === 'clear-animation') {
     rig.tracks = {}
+    if (rig.activeClipId && rig.clips) {
+      rig.clips = rig.clips.map((c) => (c.id === rig.activeClipId ? { ...c, tracks: {} } : c))
+    }
+  }
+  if (action.action === 'clear-bone-track') {
+    delete rig.tracks[action.boneId]
+    if (rig.activeClipId && rig.clips) {
+      rig.clips = rig.clips.map((c) => {
+        if (c.id !== rig.activeClipId) return c
+        const nextTracks = { ...c.tracks }
+        delete nextTracks[action.boneId]
+        return { ...c, tracks: nextTracks }
+      })
+    }
   }
 
   // --- Quản lý Clips Động Tác ---
