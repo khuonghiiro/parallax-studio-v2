@@ -453,16 +453,26 @@ export function Timeline() {
 
   const summaryKeys = useCallback(
     (anims: Animatable<AnimValue>[]) => {
-      const times = [...new Set(anims.flatMap((a) => a.keyframes.map((k) => Math.round(k.t * 1000) / 1000)))].sort((a, b) => a - b)
-      let lastPx = -9999
-      const decimated = times.filter((t) => {
-        const px = x(t)
-        if (px - lastPx >= 6) {
-          lastPx = px
-          return true
+      if (anims.length === 0) return null
+      const timeSet = new Set<number>()
+      for (let i = 0; i < anims.length; i++) {
+        const kfs = anims[i].keyframes
+        for (let j = 0; j < kfs.length; j++) {
+          timeSet.add(Math.round(kfs[j].t * 100) / 100)
         }
-        return false
-      })
+      }
+      if (timeSet.size === 0) return null
+      const times = Array.from(timeSet).sort((a, b) => a - b)
+      let lastPx = -9999
+      const decimated: number[] = []
+      for (let i = 0; i < times.length; i++) {
+        const t = times[i]
+        const px = x(t)
+        if (px - lastPx >= 7) {
+          decimated.push(t)
+          lastPx = px
+        }
+      }
       return decimated.map((t) => (
         <div
           key={t}

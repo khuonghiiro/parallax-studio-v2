@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import type { Animatable, AnimValue, AudioTrackItem } from '@shared/types'
 import { useEditor } from '../../store/editor'
 import {
@@ -44,16 +44,19 @@ function TimelineClusterRowComponent({
   const accentColor = isComposite ? 'var(--accent, #6366f1)' : 'var(--accent-cyan, #06b6d4)'
   const badgeLabel = isComposite ? 'Nhân vật' : 'Mô hình 3D'
 
-  // Thu thập tất cả keyframe của các layer con trong cụm
-  const allAnims: Animatable<AnimValue>[] = []
-  for (const l of cluster.layers) {
-    allAnims.push(
-      l.transform.position as Animatable<AnimValue>,
-      l.transform.rotation as Animatable<AnimValue>,
-      l.transform.scale as Animatable<AnimValue>,
-      l.transform.opacity as Animatable<AnimValue>
-    )
-  }
+  // Thu thập tất cả keyframe của các layer con trong cụm (được memoize để không tính lại mỗi frame)
+  const allAnims = useMemo(() => {
+    const anims: Animatable<AnimValue>[] = []
+    for (const l of cluster.layers) {
+      anims.push(
+        l.transform.position as Animatable<AnimValue>,
+        l.transform.rotation as Animatable<AnimValue>,
+        l.transform.scale as Animatable<AnimValue>,
+        l.transform.opacity as Animatable<AnimValue>
+      )
+    }
+    return anims
+  }, [cluster.layers])
 
   const allVisible = cluster.layers.every((l) => l.visible)
   const allLocked = cluster.layers.every((l) => l.locked)

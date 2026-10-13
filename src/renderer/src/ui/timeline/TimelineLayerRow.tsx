@@ -131,8 +131,25 @@ function TimelineLayerRowComponent({
   // Specialized keyframe renderer for layer properties: identifies effect keyframes and shows dedicated icons
   const renderLayerTrackKeys = (a: Animatable<AnimValue>, p: (typeof LAYER_PROPS)[number]) => {
     const ref: PropRef = { kind: 'layer', layerId: layer.id, prop: p.prop }
+    const ks = a.keyframes
+    if (ks.length === 0) return null
 
-    return a.keyframes.map((k) => {
+    let lastPx = -9999
+    // Decimate keyframes cách nhau dưới 6px và culling ngoài màn hình để triệt tiêu tình trạng lag timeline
+    const visibleKeys = ks.filter((k) => {
+      if (selectedKey?.keyId === k.id) return true
+      const fx = layer.appliedEffects?.find((e) => e.keyframeIds?.includes(k.id))
+      if (fx) return true
+      const px = x(k.t)
+      if (trackWidth && (px < -20 || px > trackWidth + 20)) return false
+      if (px - lastPx >= 6) {
+        lastPx = px
+        return true
+      }
+      return false
+    })
+
+    return visibleKeys.map((k) => {
       // Find if this keyframe is part of an applied layer effect
       const fx = layer.appliedEffects?.find((e) => e.keyframeIds?.includes(k.id))
       const isSelectedKey = selectedKey?.keyId === k.id
