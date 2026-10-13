@@ -67,6 +67,39 @@ export function ViewerOverlays({
         <div className="pane-divider" style={{ left: rects.ed.x - 1 }} />
       )}
 
+      {/* Dock trạng thái thông số & bộ nhớ (Top-Left HUD) */}
+      <div className="viewer-hud">
+        <span className="hud-item" title={playing ? 'Đang phát video' : 'Trạng thái sẵn sàng'}>
+          <span className={`dot${playing ? ' live' : ''}`} /> {playing ? `${fps} fps` : 'Sẵn sàng'}
+        </span>
+        <span className="hud-sep" />
+        <span className="hud-item" title="Độ phân giải & Tỉ lệ khung hình">
+          {comp.width}×{comp.height} · {comp.fps}p
+        </span>
+        {rects.cam && (
+          <>
+            <span className="hud-sep" />
+            <span className="hud-item" title={`Góc mở ống kính camera: ${currentFov.toFixed(1)}°`}>
+              FOV {currentFov.toFixed(1)}°
+            </span>
+          </>
+        )}
+        {stats && (
+          <>
+            <span className="hud-sep" />
+            <span
+              id="memory-chip"
+              className={`hud-item mem${stats.textureMB > stats.budgetMB * 0.85 ? ' warn' : ''}`}
+              onClick={() => useView.getState().openDialog('performance')}
+              title={`⚡ Texture GPU đang giữ: ${stats.textures} (${stats.pending} đang giải mã)\nNgân sách VRAM: ${stats.budgetMB} MB · LOD bias ${stats.lodBias}\nLayer đang vẽ trong camera: ${stats.visibleLayers}/${stats.totalLayers}\n\n👉 Bấm vào đây để mở Cấu hình Hiệu năng, RAM & VRAM GPU.`}
+            >
+              ⚡ VRAM {stats.textureMB.toFixed(0)}/{stats.budgetMB} MB · {stats.textures} tex
+              {stats.totalShots > 0 && ` · cảnh ${stats.visibleShots}/${stats.totalShots}`}
+            </span>
+          </>
+        )}
+      </div>
+
       {view.split && rects.cam && (
         <span
           className="pane-tag"
@@ -100,40 +133,6 @@ export function ViewerOverlays({
           </span>
         </span>
       )}
-
-      <div className="viewer-chrome">
-      {/* Dock trạng thái thông số & bộ nhớ (Top-Left HUD) */}
-      <div className="viewer-hud">
-        <span className="hud-item" title={playing ? 'Đang phát video' : 'Trạng thái sẵn sàng'}>
-          <span className={`dot${playing ? ' live' : ''}`} /> {playing ? `${fps} fps` : 'Sẵn sàng'}
-        </span>
-        <span className="hud-sep" />
-        <span className="hud-item" title="Độ phân giải & Tỉ lệ khung hình">
-          {comp.width}×{comp.height} · {comp.fps}p
-        </span>
-        {rects.cam && (
-          <>
-            <span className="hud-sep" />
-            <span className="hud-item" title={`Góc mở ống kính camera: ${currentFov.toFixed(1)}°`}>
-              FOV {currentFov.toFixed(1)}°
-            </span>
-          </>
-        )}
-        {stats && (
-          <>
-            <span className="hud-sep" />
-            <span
-              id="memory-chip"
-              className={`hud-item mem${stats.textureMB > stats.budgetMB * 0.85 ? ' warn' : ''}`}
-              onClick={() => useView.getState().openDialog('performance')}
-              title={`⚡ Texture GPU đang giữ: ${stats.textures} (${stats.pending} đang giải mã)\nNgân sách VRAM: ${stats.budgetMB} MB · LOD bias ${stats.lodBias}\nLayer đang vẽ trong camera: ${stats.visibleLayers}/${stats.totalLayers}\n\n👉 Bấm vào đây để mở Cấu hình Hiệu năng, RAM & VRAM GPU.`}
-            >
-              ⚡ VRAM {stats.textureMB.toFixed(0)}/{stats.budgetMB} MB · {stats.textures} tex
-              {stats.totalShots > 0 && ` · cảnh ${stats.visibleShots}/${stats.totalShots}`}
-            </span>
-          </>
-        )}
-      </div>
 
       {/* Dock công cụ Viewport & Thao tác Layer (Top-Right Tools) */}
       <div className="viewer-tools">
@@ -281,7 +280,6 @@ export function ViewerOverlays({
             {quality === 1 ? 'Full' : 'Half'}
           </button>
         </div>
-      </div>
       </div>
     </>
   )

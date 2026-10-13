@@ -26,10 +26,10 @@
 .layer-workshop-dialog .layer-workshop-header,
 .layer-workshop-modal .layer-workshop-header {
   height: auto;
-  min-height: 48px;
+  min-height: 38px;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 6px;
+  padding: 6px 10px;
 }
 .assembly-modal-header .header-view-controls,
 .layer-workshop-header .layer-workshop-header-actions { flex-wrap: wrap; flex-shrink: 1; }

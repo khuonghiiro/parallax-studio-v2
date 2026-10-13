@@ -4,18 +4,18 @@
 
 /* ------------------------------------------------------------------ Dark Theme (Default) */
 :root {
-  /* CSS viewport pixels already account for the OS display scale. */
-  --font-xs: clamp(11px, 0.2vw + 8px, 13px);
-  --font-sm: clamp(12px, 0.25vw + 8px, 14px);
-  --font-body: clamp(13px, 0.3vw + 8px, 16px);
-  --font-md: clamp(14px, 0.3vw + 9px, 17px);
-  --font-lg: clamp(16px, 0.4vw + 9px, 20px);
-  --font-xl: clamp(20px, 0.5vw + 12px, 26px);
-  --control-h: clamp(28px, 1.6vw + 4px, 36px);
-  --control-sm-h: clamp(26px, 1.4vw + 4px, 32px);
-  --workspace-gap: 4px;
-  --workspace-left: clamp(280px, 21vw, 420px);
-  --workspace-right: clamp(300px, 22vw, 440px);
+  /* High-precision desktop creative application design tokens (Adobe / DCC Pro standard) */
+  --font-xs: 10px;
+  --font-sm: 11px;
+  --font-body: 12px;
+  --font-md: 13px;
+  --font-lg: 14px;
+  --font-xl: 16px;
+  --control-h: 24px;
+  --control-sm-h: 20px;
+  --workspace-gap: 3px;
+  --workspace-left: clamp(230px, 20vw, 320px);
+  --workspace-right: clamp(250px, 22vw, 330px);
 }
 
 :root,
