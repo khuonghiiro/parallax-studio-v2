@@ -5,17 +5,17 @@
 /* ------------------------------------------------------------------ Dark Theme (Default) */
 :root {
   /* High-precision desktop creative application design tokens (Adobe / DCC Pro standard) */
-  --font-xs: 10px;
+  --font-xs: 9.5px;
   --font-sm: 11px;
-  --font-body: 12px;
-  --font-md: 13px;
+  --font-body: 11.5px;
+  --font-md: 12.5px;
   --font-lg: 14px;
   --font-xl: 16px;
   --control-h: 24px;
   --control-sm-h: 20px;
   --workspace-gap: 3px;
-  --workspace-left: clamp(230px, 20vw, 320px);
-  --workspace-right: clamp(250px, 22vw, 330px);
+  --workspace-left: clamp(210px, 20vw, 300px);
+  --workspace-right: clamp(230px, 22vw, 320px);
 }
 
 :root,
