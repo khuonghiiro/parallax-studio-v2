@@ -12,7 +12,7 @@
 
 .fi-hint {
   margin: 0;
-  font-size: 10px;
+  font-size: var(--font-xs);
   line-height: 1.4;
   color: var(--text-faint);
 }
@@ -29,7 +29,7 @@
   border: 1px solid var(--line);
   background: var(--bg-3);
   color: var(--text-dim);
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
@@ -57,7 +57,7 @@
 }
 
 .fi-group-label {
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 700;
   color: var(--text-dim);
   text-transform: uppercase;
@@ -91,7 +91,7 @@
   width: 16px;
   height: 16px;
   border-radius: 4px;
-  font-size: 9px;
+  font-size: var(--font-xs);
   font-weight: 700;
   color: var(--bg-0);
 }
@@ -101,7 +101,7 @@
 .fi-axis-dot.axis-z { background: var(--axis-z); }
 
 .fi-rot-label {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--text-dim);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -140,7 +140,7 @@
   border: 1px solid var(--line-soft);
   background: var(--bg-3);
   color: var(--text-dim);
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

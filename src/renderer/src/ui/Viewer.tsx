@@ -216,6 +216,7 @@ export function Viewer() {
     const fit = (): void => {
       const W = wrap.clientWidth
       const H = wrap.clientHeight
+      if (W === 0 || H === 0) return
       const c = canvasRef.current!
       c.style.width = `${W}px`
       c.style.height = `${H}px`
@@ -225,15 +226,15 @@ export function Viewer() {
       let cam: Layout['cam'] = null
       let ed: Layout['ed'] = null
       // Reserve space for top HUD chips & controls overlay so camera preview is visually centered
-      const topHudH = 38
+      const topHudH = Math.min(H - 10, (wrap.querySelector('.viewer-chrome')?.getBoundingClientRect().height ?? 38) + 16)
       if (view.split) {
         const half = Math.floor(W / 2)
         cam = fitRect({ x: 0, y: topHudH, w: half - 1, h: Math.max(10, H - topHudH) }, aspect, 16)
-        ed = { x: half + 1, y: 0, w: W - half - 1, h: H }
+        ed = { x: half + 1, y: topHudH, w: W - half - 1, h: Math.max(10, H - topHudH) }
       } else if (view.primary === 'camera') {
         cam = fitRect({ x: 0, y: topHudH, w: W, h: Math.max(10, H - topHudH) }, aspect, 20)
       } else {
-        ed = { x: 0, y: 0, w: W, h: H }
+        ed = { x: 0, y: topHudH, w: W, h: Math.max(10, H - topHudH) }
       }
       const L = { dpr, cam, ed }
       layoutRef.current = L
@@ -242,6 +243,8 @@ export function Viewer() {
     }
     const ro = new ResizeObserver(fit)
     ro.observe(wrap)
+    const chrome = wrap.querySelector('.viewer-chrome')
+    if (chrome) ro.observe(chrome)
     fit()
     return () => ro.disconnect()
     // eslint-disable-next-line react-hooks/exhaustive-deps

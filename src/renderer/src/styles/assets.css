@@ -27,7 +27,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -50,7 +50,7 @@
   background: var(--accent-grad) !important;
   color: #ffffff !important;
   font-weight: 600;
-  font-size: 11px;
+  font-size: var(--font-sm);
   height: 22px;
   padding: 0 9px;
   border-radius: var(--radius-sm);
@@ -121,7 +121,7 @@
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-dim);
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
@@ -159,7 +159,7 @@
 
 /* Badge số lượng: Điểm nhấn sắc nét, số đậm, tương phản cao */
 .asset-subtab-badge {
-  font-size: 9.5px;
+  font-size: var(--font-xs);
   font-family: var(--mono);
   font-weight: 700;
   padding: 1px 5px;
@@ -387,7 +387,7 @@
 /* Tooltip tag for system actions */
 .tooltip-tag-system {
   display: inline-block;
-  font-size: 8.5px;
+  font-size: var(--font-xs);
   font-family: var(--mono);
   font-weight: 600;
   text-transform: uppercase;
@@ -500,7 +500,7 @@
 }
 
 .tooltip-title {
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: #ffffff;
   margin-bottom: 2px;
@@ -514,21 +514,21 @@
 }
 
 .tooltip-folder {
-  font-size: 9.5px;
+  font-size: var(--font-xs);
   font-family: var(--mono);
   color: var(--accent-cyan);
   margin-bottom: 4px;
 }
 
 .tooltip-desc {
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   color: var(--text-dim);
   line-height: 1.35;
   margin-bottom: 6px;
 }
 
 .tooltip-count {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--text-faint);
   display: flex;
   align-items: center;
@@ -572,7 +572,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 500;
   padding: 0 6px;
   cursor: pointer;
@@ -609,7 +609,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 11px;
+  font-size: var(--font-sm);
   outline: none;
   transition: border-color 0.12s;
 }
@@ -755,7 +755,7 @@
   background: #db2777;
   color: #ffffff !important;
   border: 1px solid rgba(255, 255, 255, 0.35);
-  font-size: 8.5px;
+  font-size: var(--font-xs);
   font-weight: 700;
   letter-spacing: 0.5px;
   padding: 0 4px;

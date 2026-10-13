@@ -3,6 +3,21 @@
    ========================================================================== */
 
 /* ------------------------------------------------------------------ Dark Theme (Default) */
+:root {
+  /* CSS viewport pixels already account for the OS display scale. */
+  --font-xs: clamp(11px, 0.2vw + 8px, 13px);
+  --font-sm: clamp(12px, 0.25vw + 8px, 14px);
+  --font-body: clamp(13px, 0.3vw + 8px, 16px);
+  --font-md: clamp(14px, 0.3vw + 9px, 17px);
+  --font-lg: clamp(16px, 0.4vw + 9px, 20px);
+  --font-xl: clamp(20px, 0.5vw + 12px, 26px);
+  --control-h: clamp(28px, 1.6vw + 4px, 36px);
+  --control-sm-h: clamp(26px, 1.4vw + 4px, 32px);
+  --workspace-gap: 4px;
+  --workspace-left: clamp(280px, 21vw, 420px);
+  --workspace-right: clamp(300px, 22vw, 440px);
+}
+
 :root,
 [data-theme='dark'] {
   color-scheme: dark;
@@ -26,7 +41,7 @@
   /* Typography Colors */
   --text: #e6e6e6;
   --text-dim: #9e9e9e;
-  --text-faint: #666666;
+  --text-faint: #999999;
 
   /* Signature Adobe Accent Colors */
   --accent: #2680eb;
@@ -92,7 +107,6 @@
   --mono: 'JetBrains Mono', 'Fira Code', ui-monospace, Menlo, Monaco, Consolas, monospace;
 
   /* Dimensions */
-  --timeline-h: 300px;
 }
 
 /* ------------------------------------------------------------------ Light Theme (AE Pro Light Mode) */
@@ -122,7 +136,7 @@
   /* Deep crisp charcoal text */
   --text-dim: #4b5262;
   /* High-contrast readable secondary */
-  --text-faint: #798294;
+  --text-faint: #626b7c;
   /* Muted text */
 
   /* Signature Accent Colors for Light Mode */

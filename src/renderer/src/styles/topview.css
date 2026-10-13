@@ -45,7 +45,7 @@
   height: 30px;
   background: var(--bg-2);
   border-bottom: 1px solid var(--line);
-  font-size: 11px;
+  font-size: var(--font-sm);
   flex: none;
 }
 
@@ -64,7 +64,7 @@
 }
 
 .topview-header-switcher .btn {
-  font-size: 10px;
+  font-size: var(--font-xs);
   padding: 1px 6px;
   height: 20px;
   border-radius: 3px;
@@ -103,7 +103,7 @@
 
 /* ------------------------------------------------------------------ Depth Zones & Labels */
 .tv-zone-label {
-  font-size: 9.5px;
+  font-size: var(--font-xs);
   font-family: var(--font);
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -122,7 +122,7 @@
 }
 
 .tv-zero-label {
-  font-size: 9px;
+  font-size: var(--font-xs);
   font-family: var(--mono);
   font-weight: 600;
   fill: #38bdf8;
@@ -139,7 +139,7 @@
 
 /* Layer Text in SVG */
 .tv-label {
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-family: var(--font);
   font-weight: 500;
   fill: #e2e8f0;
@@ -205,7 +205,7 @@
   position: absolute;
   top: 8px;
   left: 8px;
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   font-family: var(--mono);
   font-weight: 600;
   color: #38bdf8;
@@ -245,7 +245,7 @@
   transform: translateX(-50%);
   background: rgba(14, 165, 233, 0.9);
   color: #fff;
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
   padding: 4px 10px;
   border-radius: var(--radius-pill);

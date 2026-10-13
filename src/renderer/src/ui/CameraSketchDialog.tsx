@@ -201,7 +201,7 @@ export function CameraSketchDialog() {
           </div>
         </div>
 
-        <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 16 }}>
+        <div className="modal-body camera-sketch-body">
           {/* 2D Canvas Area */}
           <div
             className="camera-sketch-canvas"
@@ -211,8 +211,7 @@ export function CameraSketchDialog() {
               borderRadius: 8,
               border: '1px solid var(--line)',
               overflow: 'hidden',
-              userSelect: 'none',
-              minHeight: 420
+              userSelect: 'none'
             }}
           >
             <svg

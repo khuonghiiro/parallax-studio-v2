@@ -68,7 +68,7 @@
   white-space: nowrap;
   padding: 0 9px;
   color: var(--text);
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 500;
   background: var(--hud-bg);
   border: 1px solid var(--hud-border);
@@ -99,7 +99,7 @@
 
 .pane-hint {
   color: var(--text-faint);
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 400;
   white-space: nowrap;
   overflow: hidden;
@@ -126,7 +126,7 @@
   translate: -50% 0;
   padding: 2px 8px;
   border-radius: 3px;
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   font-weight: 600;
   white-space: nowrap;
   color: var(--vlabel-color);
@@ -165,7 +165,7 @@
   -webkit-user-select: none;
   touch-action: none;
   margin-top: -26px;
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 600;
   color: var(--accent-cyan);
   background: var(--vlabel-bg);
@@ -216,7 +216,7 @@
   padding: 0 6px;
   border-radius: 2px;
   color: var(--text-dim);
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   font-family: var(--mono);
   white-space: nowrap;
   transition: color 0.12s ease, background 0.12s ease;
@@ -272,7 +272,7 @@
   background: var(--hud-bg);
   border: 1px solid var(--hud-border);
   color: var(--text-dim);
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-family: var(--mono);
   backdrop-filter: blur(8px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
@@ -333,7 +333,7 @@
   border: none;
   background: transparent;
   color: var(--text-dim);
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 500;
   border-radius: 2px;
   cursor: pointer;
@@ -369,7 +369,7 @@
   background: transparent;
   color: var(--text-dim);
   cursor: pointer;
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   transition: all 0.12s ease;
 }
 .viewer-tool-btn:hover {
@@ -387,7 +387,7 @@
   font-family: var(--mono);
   font-weight: 600;
   padding: 0 5px;
-  font-size: 10px;
+  font-size: var(--font-xs);
 }
 
 .viewer-tool-sep {
@@ -406,7 +406,7 @@
 .viewer-tools .custom-select-wrap.viewer-kind-select .custom-select-trigger {
   height: 20px;
   padding: 0 6px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   background: transparent;
   border: 1px solid transparent;
   border-radius: 2px;
@@ -437,7 +437,7 @@
 .select.sm {
   width: auto;
   height: 22px;
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   padding: 0 5px;
   border-color: var(--line);
 }

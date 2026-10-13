@@ -15,7 +15,7 @@
   border: 1px solid var(--line);
   background: var(--bg-2);
   color: var(--text);
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   cursor: pointer;
   white-space: nowrap;
   transition:
@@ -56,7 +56,7 @@
 .btn.sm {
   height: 22px;
   padding: 0 7px;
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 .btn.sm.icon {
   width: 22px;
@@ -109,7 +109,7 @@
 }
 .row-label {
   color: var(--text-dim);
-  font-size: 11px;
+  font-size: var(--font-sm);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -167,7 +167,7 @@
 /* AE Axis Badges */
 .num .axis {
   padding: 0 1px 0 4px;
-  font-size: 9px;
+  font-size: var(--font-xs);
   font-weight: 700;
   color: var(--text-faint);
   user-select: none;
@@ -194,7 +194,7 @@
   outline: none;
   background: transparent;
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   font-variant-numeric: tabular-nums;
   color: var(--accent-cyan);
   cursor: ew-resize;
@@ -253,7 +253,7 @@
   background: none;
   color: var(--text-faint);
   cursor: pointer;
-  font-size: 8px;
+  font-size: var(--font-xs);
   display: grid;
   place-items: center;
   border-radius: 2px;
@@ -267,7 +267,7 @@
 }
 .keynav .diamond {
   color: var(--text-faint);
-  font-size: 10px;
+  font-size: var(--font-xs);
 }
 .keynav .diamond.on {
   color: var(--key);
@@ -287,7 +287,7 @@
   border: 1px solid var(--line);
   outline: none;
   color: var(--text);
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   transition: border-color 0.12s;
 }
 .textarea {
@@ -329,7 +329,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   text-align: left;
   cursor: pointer;
   user-select: none;
@@ -340,7 +340,7 @@
 .custom-select-wrap.sm .custom-select-trigger {
   height: 22px;
   padding: 0 6px;
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 
 .custom-select-trigger:hover:not(:disabled) {
@@ -379,7 +379,7 @@
 .custom-select-arrow {
   margin-left: 6px;
   color: var(--text-dim);
-  font-size: 9px;
+  font-size: var(--font-xs);
   transition: transform 0.15s ease;
 }
 
@@ -405,7 +405,7 @@
   gap: 6px;
   padding: 5px 8px;
   border-radius: var(--radius-sm);
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   color: var(--text);
   cursor: pointer;
   user-select: none;
@@ -435,14 +435,14 @@
 }
 
 .custom-select-item-sub {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--text-faint);
   font-family: var(--mono);
 }
 
 .custom-select-item-check {
   color: var(--accent);
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: bold;
 }
 
@@ -511,7 +511,7 @@
 
 .color-swatch-hex {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--text-dim);
   text-transform: uppercase;
   padding-right: 2px;
@@ -668,7 +668,7 @@
 .cp-hex-hash {
   color: var(--text-faint);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 
 .cp-hex-input {
@@ -677,7 +677,7 @@
   border: none;
   color: var(--text);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
   text-transform: uppercase;
   padding: 0 2px;
   outline: none;
@@ -772,7 +772,7 @@
   width: 36px;
   text-align: right;
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   font-variant-numeric: tabular-nums;
   color: var(--accent-cyan);
 }
@@ -813,7 +813,7 @@
   background: none;
   border-radius: 3px;
   text-align: left;
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   color: var(--text);
   cursor: pointer;
 }
@@ -824,7 +824,7 @@
 .menu-item .hint {
   margin-left: auto;
   color: var(--text-faint);
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   font-family: var(--mono);
 }
 .menu-item:hover .hint {
@@ -832,7 +832,7 @@
 }
 .menu-label {
   padding: 6px 8px 3px;
-  font-size: 9.5px;
+  font-size: var(--font-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-faint);

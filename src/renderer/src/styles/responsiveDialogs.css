@@ -1,0 +1,93 @@
+/* Keep actions reachable on short windows, even at increased UI text sizes. */
+.modal-backdrop { padding: 12px; background: var(--backdrop); z-index: 10000; }
+.modal {
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.modal-head p { line-height: 1.5; }
+.modal-foot { flex-wrap: wrap; }
+.modal-body { min-width: 0; }
+.modal-body > * { min-width: 0; }
+.modal .modal-foot { position: sticky; bottom: 0; z-index: 2; }
+.camera-sketch-body { grid-template-columns: minmax(0, 1fr) minmax(220px, 28%); gap: 16px; }
+.camera-sketch-canvas { min-height: min(420px, 55dvh); }
+.hw-grid, .perf-hardware-grid { grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); }
+.perf-stats-row { flex-wrap: wrap; gap: 8px 16px; }
+.menu { max-width: calc(100vw - 16px); }
+.menu-item { white-space: normal; overflow-wrap: anywhere; }
+.menu-item .hint { white-space: nowrap; }
+
+.assembly-modal-content .assembly-modal-body {
+  grid-template-columns: clamp(260px, 21vw, 380px) minmax(0, 1fr) clamp(280px, 23vw, 400px);
+}
+.assembly-modal-content .assembly-modal-header,
+.layer-workshop-dialog .layer-workshop-header,
+.layer-workshop-modal .layer-workshop-header {
+  height: auto;
+  min-height: 48px;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 12px;
+}
+.assembly-modal-header .header-view-controls,
+.layer-workshop-header .layer-workshop-header-actions { flex-wrap: wrap; flex-shrink: 1; }
+.assembly-modal-header .header-view-controls { overflow: visible; }
+.layer-workshop-header .lw-name { min-width: 100px; max-width: 24vw; }
+
+@media (max-width: 1199px) {
+  .assembly-modal-content .assembly-modal-body,
+  .layer-workshop-dialog .layer-workshop-body,
+  .layer-workshop-modal .layer-workshop-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(260px, 48dvh) minmax(300px, 45dvh);
+    overflow-y: auto;
+  }
+  .assembly-modal-body > .assembly-viewport-panel,
+  .layer-workshop-body > .layer-workshop-center-area {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    min-height: 0;
+  }
+  .layer-workshop-body > .layer-workshop-sidebar,
+  .layer-workshop-body > .layer-workshop-inspector {
+    width: auto;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .assembly-modal-content .assembly-modal-footer { flex-wrap: wrap; height: auto; min-height: 40px; gap: 8px; }
+}
+
+@media (max-width: 719px) {
+  .modal-backdrop { padding: 8px; }
+  .modal { max-width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
+  .modal-head, .modal-body, .modal-foot { padding: 12px; }
+  .camera-sketch-body { grid-template-columns: minmax(0, 1fr); }
+  .path-step { grid-template-columns: 28px minmax(0, 1fr) repeat(3, 28px); }
+  .path-step > .select { grid-column: 2 / -1; }
+  .path-step > .num { grid-column: 2; }
+  .path-trans { grid-template-columns: 22px minmax(0, 1fr); }
+  .path-trans .fields { flex-wrap: wrap; }
+  .modal.audio-studio-modal { height: calc(100dvh - 16px); max-height: calc(100dvh - 16px); }
+  .audio-studio-modal .audio-studio-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(140px, 30%) minmax(220px, 1fr);
+    overflow-y: auto;
+  }
+  .audio-studio-title-row, .audio-studio-tabs, .audio-studio-foot { flex-wrap: wrap; }
+  .audio-track-editor { min-width: 0; }
+  .assembly-modal-overlay, .layer-workshop-overlay { padding: 4px; }
+  .assembly-modal-content .assembly-modal-body,
+  .layer-workshop-dialog .layer-workshop-body,
+  .layer-workshop-modal .layer-workshop-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(260px, 48dvh) 320px 360px;
+  }
+  .layer-workshop-header .lw-brand { display: none; }
+  .layer-workshop-header .lw-name { max-width: 45vw; }
+  .layer-workshop-center-area .layer-workshop-split-container { flex-direction: column; }
+  .layer-workshop-split-container .layer-workshop-split-pane { height: auto; min-height: 0; }
+}

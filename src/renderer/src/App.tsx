@@ -19,12 +19,15 @@ import { Timeline } from './ui/Timeline'
 import { Toolbar } from './ui/Toolbar'
 import { Viewer } from './ui/Viewer'
 import { usePerformance } from './store/performance'
+import { TimelineSplitter } from './ui/workspace/TimelineSplitter'
+import { WorkspaceNavigation, type WorkspacePanel } from './ui/workspace/WorkspaceNavigation'
 
 export default function App() {
   const [ready, setReady] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [dragOver, setDragOver] = useState(false)
-  const [timelineH, setTimelineH] = useState(300)
+  const [timelineH, setTimelineH] = useState<number | undefined>()
+  const [workspacePanel, setWorkspacePanel] = useState<WorkspacePanel>('viewer')
   const toast = useToast((s) => s.message)
   const dialog = useView((s) => s.dialog)
   const assemblyModalModel = useView((s) => s.assemblyModalModel)
@@ -63,21 +66,6 @@ export default function App() {
     window.api?.setTitle(`${dirty ? '• ' : ''}${name} — Parallax Studio`)
   }, [dirty, filePath])
 
-  const startSplit = (e: React.PointerEvent): void => {
-    const startY = e.clientY
-    const startH = timelineH
-    const el = e.currentTarget as HTMLElement
-    el.setPointerCapture(e.pointerId)
-    const move = (ev: PointerEvent): void =>
-      setTimelineH(Math.max(160, Math.min(window.innerHeight - 320, startH - (ev.clientY - startY))))
-    const up = (): void => {
-      el.removeEventListener('pointermove', move)
-      el.removeEventListener('pointerup', up)
-    }
-    el.addEventListener('pointermove', move)
-    el.addEventListener('pointerup', up)
-  }
-
   useEffect(() => {
     if (!dragOver) return
     const handleDragEnd = () => setDragOver(false)
@@ -97,7 +85,8 @@ export default function App() {
     <div
       className={`app ${theme}${dragOver ? ' dropzone-active' : ''}${aiActive || aiLocked ? ' ai-active' : ''}`}
       data-theme={theme}
-      style={{ ['--timeline-h' as string]: `${timelineH}px` }}
+      data-workspace-panel={workspacePanel}
+      style={{ ['--timeline-h' as string]: timelineH === undefined ? undefined : `${timelineH}px` }}
       onDragOver={(e) => {
         e.preventDefault()
         setDragOver(true)
@@ -114,12 +103,13 @@ export default function App() {
       }}
     >
       <Toolbar onExport={openExport} />
+      <WorkspaceNavigation active={workspacePanel} onChange={setWorkspacePanel} />
       <LeftPanel />
-      <div className="viewer-wrap">
+      <div className="viewer-wrap" id="workspace-viewer">
         <Viewer />
       </div>
       <Inspector />
-      <div className="splitter" onPointerDown={startSplit} />
+      <TimelineSplitter onResize={setTimelineH} />
       <Timeline />
 
       <AiControlOverlay />

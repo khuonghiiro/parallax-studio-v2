@@ -76,7 +76,7 @@ export function Menu({
         aria-expanded={open}
       >
         {icon}
-        {label}
+        <span className="menu-trigger-label">{label}</span>
         <IconChevronDown style={{ width: 12, height: 12, opacity: 0.6 }} />
       </button>
       {open && (

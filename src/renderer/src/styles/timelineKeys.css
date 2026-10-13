@@ -290,7 +290,7 @@
   background: color-mix(in srgb, var(--glow-color, var(--accent-cyan)) 30%, transparent);
 }
 .tl-glow-strip-label {
-  font-size: 9px;
+  font-size: var(--font-xs);
   font-weight: 700;
   color: #ffffff;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
@@ -376,7 +376,7 @@
   box-shadow: 0 0 7px var(--fx-color, var(--accent-cyan)),
               0 0 12px color-mix(in srgb, var(--fx-color, var(--accent-cyan)) 45%, transparent),
               0 1px 4px rgba(0, 0, 0, 0.4);
-  font-size: 11px;
+  font-size: var(--font-sm);
   line-height: 1;
   transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
 }

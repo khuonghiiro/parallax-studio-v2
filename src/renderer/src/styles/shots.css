@@ -18,7 +18,7 @@
 
 .shots .empty {
   padding: 12px 6px;
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 
 .shot-list {
@@ -101,7 +101,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 500;
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 .shot-rename {
   flex: 1;
@@ -127,7 +127,7 @@
   min-width: 18px;
   text-align: center;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--text-faint);
 }
 
@@ -178,7 +178,7 @@
   height: 17px;
   padding: 0 6px;
   border-radius: 8px;
-  font-size: 9.5px;
+  font-size: var(--font-xs);
   font-weight: 600;
   color: var(--text);
   background: color-mix(in srgb, var(--c) 25%, var(--bg-2));
@@ -216,7 +216,7 @@
   position: absolute;
   inset: auto 0 0 0;
   padding: 10px 5px 3px;
-  font-size: 9.5px;
+  font-size: var(--font-xs);
   color: #fff;
   white-space: nowrap;
   overflow: hidden;
@@ -245,7 +245,7 @@
   text-align: center;
   color: var(--text-faint);
   line-height: 1.5;
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 .dropzone-active {
   outline: 2px dashed var(--accent);
@@ -263,7 +263,7 @@
   cursor: ns-resize;
 }
 .topview .tv-label {
-  font-size: 9px;
+  font-size: var(--font-xs);
   fill: var(--text-dim);
   pointer-events: none;
 }
@@ -300,7 +300,7 @@
   position: absolute;
   top: 6px;
   left: 6px;
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-family: var(--font-mono, monospace);
   color: var(--accent-cyan);
   background: var(--hud-bg);

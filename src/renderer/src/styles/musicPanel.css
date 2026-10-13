@@ -61,7 +61,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 11px;
+  font-size: var(--font-sm);
   padding: 4px 22px 4px 8px;
   outline: none;
   transition: all 0.15s ease;
@@ -74,7 +74,7 @@
 
 .music-search-input-v2::placeholder {
   color: var(--text-faint);
-  font-size: 10.5px;
+  font-size: var(--font-xs);
 }
 
 .music-search-clear-btn {
@@ -83,7 +83,7 @@
   background: transparent;
   border: none;
   color: var(--text-faint);
-  font-size: 11px;
+  font-size: var(--font-sm);
   cursor: pointer;
   padding: 0;
   line-height: 1;
@@ -112,7 +112,7 @@
   background: transparent;
   border: none;
   border-radius: 2px;
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--text-dim);
   padding: 3px 5px;
   cursor: pointer;
@@ -141,7 +141,7 @@
 }
 
 .music-seg-badge {
-  font-size: 9px;
+  font-size: var(--font-xs);
   padding: 0 4px;
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.28);
@@ -303,7 +303,7 @@
 }
 
 .music-title-text {
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: #ffffff;
   white-space: nowrap;
@@ -344,7 +344,7 @@
 
 .music-rename-input {
   width: 100%;
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
   background: var(--bg-0);
   border: 1px solid var(--accent);
@@ -365,7 +365,7 @@
 }
 
 .music-badge-format {
-  font-size: 8px;
+  font-size: var(--font-xs);
   font-weight: 700;
   padding: 1px 3.5px;
   border-radius: 2px;
@@ -385,7 +385,7 @@
 }
 
 .music-badge-duration {
-  font-size: 8.5px;
+  font-size: var(--font-xs);
   font-weight: 600;
   color: var(--text-dim);
   font-family: monospace;
@@ -395,7 +395,7 @@
 }
 
 .music-badge-source {
-  font-size: 8px;
+  font-size: var(--font-xs);
   padding: 1px 3.5px;
   border-radius: 2px;
   font-weight: 600;
@@ -429,7 +429,7 @@
 }
 
 .music-badge-used {
-  font-size: 8px;
+  font-size: var(--font-xs);
   font-weight: 700;
   padding: 1px 3.5px;
   border-radius: 2px;
@@ -506,299 +506,6 @@
   flex-shrink: 0;
 }
 
-/* ------------------------------------------------------------------ Waveform Box */
-.music-waveform-section {
-  width: 100%;
-}
-
-.music-waveform-box {
-  width: 100%;
-  height: 32px;
-  background: #141519;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.15s ease;
-  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.3);
-}
-
-[data-theme='light'] .music-waveform-box {
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-.music-waveform-box:hover {
-  border-color: var(--accent);
-}
-
-.music-waveform-box.playing {
-  border-color: #38bdf8;
-  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.3), 0 0 8px rgba(56, 189, 248, 0.25);
-}
-
-[data-theme='light'] .music-waveform-box.playing {
-  border-color: #0284c7;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06), 0 0 6px rgba(2, 132, 199, 0.2);
-}
-
-.music-waveform-canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-/* Waveform overlay time display */
-.music-waveform-overlay-time {
-  position: absolute;
-  right: 5px;
-  bottom: 3px;
-  font-size: 9.5px;
-  font-family: monospace;
-  color: #94a3b8;
-  background: rgba(0, 0, 0, 0.65);
-  padding: 1px 5px;
-  border-radius: 3px;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  backdrop-filter: blur(2px);
-}
-
-.music-waveform-overlay-time .cur {
-  color: #38bdf8;
-  font-weight: 700;
-}
-
-[data-theme='light'] .music-waveform-overlay-time {
-  background: rgba(255, 255, 255, 0.9);
-  color: #475569;
-  border: 1px solid #e2e8f0;
-}
-
-[data-theme='light'] .music-waveform-overlay-time .cur {
-  color: #0369a1;
-}
-
-/* Hover time tag tooltip */
-.music-waveform-hover-tag {
-  position: absolute;
-  top: 2px;
-  transform: translateX(-50%);
-  background: var(--accent);
-  color: #ffffff;
-  font-size: 9px;
-  font-family: monospace;
-  padding: 1px 4px;
-  border-radius: 3px;
-  pointer-events: none;
-  white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-  z-index: 2;
-}
-
-/* ------------------------------------------------------------------ Settings Drawer (Inside Card) */
-.music-settings-drawer {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 6px;
-  padding: 10px 8px;
-  margin-top: 5px;
-  box-sizing: border-box;
-  width: 100%;
-  overflow: hidden;
-}
-
-[data-theme='light'] .music-settings-drawer {
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-}
-
-.music-setting-col {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.music-setting-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.music-setting-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #e4e4e7;
-  flex: none;
-}
-
-[data-theme='light'] .music-setting-label {
-  color: #1e293b;
-}
-
-.music-setting-current-val {
-  font-size: 11px;
-  font-family: monospace;
-  font-weight: 700;
-  color: #38bdf8;
-}
-
-[data-theme='light'] .music-setting-current-val {
-  color: #0284c7;
-}
-
-.music-mute-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-dim);
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  line-height: 1;
-}
-
-.music-mute-btn:hover {
-  color: var(--accent);
-}
-
-.music-mute-btn.muted {
-  color: #ef4444;
-}
-
-.music-slider-track-wrap {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  box-sizing: border-box;
-  padding: 2px 0;
-}
-
-.music-slider {
-  width: 100%;
-  height: 6px;
-  accent-color: var(--accent);
-  cursor: pointer;
-  box-sizing: border-box;
-  margin: 0;
-}
-
-/* Speed Grid 5 columns */
-.music-speed-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 3px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.music-chip-btn {
-  background: var(--bg-0);
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  font-size: 9.5px;
-  font-family: monospace;
-  color: var(--text-dim);
-  padding: 3px 0;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.12s ease;
-  box-sizing: border-box;
-  width: 100%;
-  min-width: 0;
-  white-space: nowrap;
-}
-
-[data-theme='light'] .music-chip-btn {
-  background: #ffffff;
-  border-color: #cbd5e1;
-  color: #334155;
-}
-
-.music-chip-btn:hover {
-  background: var(--bg-3);
-  color: var(--text);
-  border-color: var(--line-focus);
-}
-
-.music-chip-btn.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #ffffff;
-  font-weight: 700;
-  box-shadow: 0 0 6px rgba(38, 128, 235, 0.4);
-}
-
-/* Loop row */
-.music-loop-row {
-  display: flex;
-  align-items: center;
-  border-top: 1px dashed var(--line);
-  padding-top: 6px;
-  margin-top: 2px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.music-checkbox-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 10.5px;
-  color: var(--text-dim);
-  cursor: pointer;
-  user-select: none;
-}
-
-[data-theme='light'] .music-checkbox-label {
-  color: #334155;
-}
-
-.music-checkbox-label input[type='checkbox'] {
-  margin: 0;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
-/* Actions Grid 2 columns */
-.music-actions-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 5px;
-  width: 100%;
-  box-sizing: border-box;
-  margin-top: 2px;
-}
-
-.music-drawer-action-btn {
-  width: 100%;
-  justify-content: center;
-  box-sizing: border-box;
-  white-space: nowrap;
-  font-size: 10px !important;
-  padding: 0 4px !important;
-  height: 24px !important;
-  gap: 3px !important;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /* ------------------------------------------------------------------ Empty State */
 .music-empty-state {
   display: flex;
@@ -824,13 +531,13 @@
 }
 
 .music-empty-title {
-  font-size: 12.5px;
+  font-size: var(--font-body);
   font-weight: 700;
   color: var(--text);
 }
 
 .music-empty-desc {
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--text-dim);
   max-width: 210px;
   line-height: 1.45;
@@ -852,7 +559,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   color: var(--text-dim);
   white-space: nowrap;
 }
@@ -868,7 +575,7 @@
 .music-footer-add-btn {
   flex: 1;
   justify-content: center;
-  font-size: 11px !important;
+  font-size: var(--font-sm) !important;
   height: 25px !important;
   white-space: nowrap;
 }
@@ -966,13 +673,13 @@
 }
 
 .cat-tooltip-title {
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   font-weight: 700;
   color: var(--text);
 }
 
 .cat-tooltip-count {
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 700;
   padding: 1px 5px;
   border-radius: 8px;
@@ -981,7 +688,7 @@
 }
 
 .cat-tooltip-desc {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--text-dim);
   line-height: 1.35;
 }
@@ -990,7 +697,7 @@
 .music-badge-category {
   display: inline-flex;
   align-items: center;
-  font-size: 9.5px;
+  font-size: var(--font-xs);
   font-weight: 600;
   padding: 1px 5px;
   border-radius: 3px;

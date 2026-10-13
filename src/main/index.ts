@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, screen, shell } from 'electron'
 import { join, extname, basename } from 'path'
 import { readFile, writeFile, unlink } from 'fs/promises'
 import { tmpdir } from 'os'
@@ -8,6 +8,7 @@ import { recentPaths } from './recentPaths'
 import { getSystemHardwareInfo } from './systemInfo'
 import { registerBuiltInAssetsIpc } from './builtInAssets'
 import { registerAsset3DsIpc } from './asset3ds'
+import { initialWindowSize } from './windowSizing'
 import type { ExportStartOptions, PickedFile } from '@shared/ipc'
 
 // ANGLE's default D3D11 backend crashes the GPU process right at startup on some
@@ -42,10 +43,7 @@ const MIME: Record<string, string> = {
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
-    width: 1600,
-    height: 960,
-    minWidth: 1100,
-    minHeight: 700,
+    ...initialWindowSize(screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workAreaSize),
     backgroundColor: '#0b0d12',
     title: 'Parallax Studio',
     autoHideMenuBar: true,

@@ -84,6 +84,9 @@ function findTarget(p: Params): HTMLElement {
 }
 
 export const UI_REGION_SELECTORS: Record<string, string[]> = {
+  workspace_navigation: ['.workspace-navigation'],
+  timeline_splitter: ['.splitter'],
+  viewer_chrome: ['.viewer-chrome'],
   // Left Sidebar and sub-sections
   left_panel: ['aside.left', '.left', '.panel-left'],
   assets: ['.asset-panel-wrapper', '.asset-main-layout', 'aside.left'],

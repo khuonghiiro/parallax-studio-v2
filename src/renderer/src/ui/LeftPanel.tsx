@@ -32,7 +32,7 @@ export function LeftPanel() {
   }
 
   return (
-    <aside className="left">
+    <aside className="left" id="workspace-library" aria-label="Tài nguyên và cảnh">
       <section className="panel" style={{ flex: '1 1 100%', height: '100%' }}>
         <div className="tabs">
           <button

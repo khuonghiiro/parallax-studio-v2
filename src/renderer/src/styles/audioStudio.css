@@ -47,7 +47,7 @@
 
 .audio-tab-btn {
   padding: 6px 12px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
@@ -91,7 +91,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 700;
   color: var(--text);
   border-bottom: 1px solid var(--line);
@@ -114,7 +114,7 @@
   align-items: center;
   gap: 8px;
   color: var(--text-dim);
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 
 .audio-track-card {
@@ -147,14 +147,14 @@
 }
 
 .audio-track-num {
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 800;
   color: var(--accent);
   font-family: var(--mono);
 }
 
 .audio-track-card-name {
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--text);
   flex: 1;
@@ -164,7 +164,7 @@
 }
 
 .audio-track-db-tag {
-  font-size: 9.5px;
+  font-size: var(--font-xs);
   font-weight: 700;
   font-family: var(--mono);
   color: var(--text-dim);
@@ -176,7 +176,7 @@
 .audio-track-card-meta {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--text-dim);
 }
 
@@ -213,13 +213,13 @@
 }
 
 .audio-editor-name {
-  font-size: 13px;
+  font-size: var(--font-md);
   font-weight: 700;
   color: var(--text);
 }
 
 .audio-editor-submeta {
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--text-dim);
   margin-top: 2px;
 }
@@ -238,13 +238,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--text);
 }
 
 .waveform-hint {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--text-dim);
 }
 
@@ -267,7 +267,7 @@
 .waveform-ruler-marks {
   display: flex;
   justify-content: space-between;
-  font-size: 9.5px;
+  font-size: var(--font-xs);
   font-family: var(--mono);
   color: var(--text-faint);
   padding: 0 2px;
@@ -293,7 +293,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--text);
 }
@@ -306,7 +306,7 @@
 
 .levels-value-badge {
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   font-weight: 700;
   color: var(--accent);
   background: var(--bg-2);
@@ -331,7 +331,7 @@
 
 .pill-btn {
   padding: 3px 8px;
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   font-weight: 600;
   border-radius: 12px;
   border: 1px solid var(--line);
@@ -363,7 +363,7 @@
   width: 90px;
   padding: 4px 8px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--bg-2);
@@ -378,7 +378,7 @@
   justify-content: center;
   gap: 10px;
   color: var(--text-dim);
-  font-size: 12px;
+  font-size: var(--font-body);
 }
 
 .audio-studio-foot {
@@ -390,7 +390,7 @@
 }
 
 .audio-studio-shortcuts-tip {
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   color: var(--text-dim);
   flex: 1;
 }

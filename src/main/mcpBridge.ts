@@ -1,4 +1,4 @@
-import { app, ipcMain, type BrowserWindow } from 'electron'
+import { app, ipcMain, BrowserWindow } from 'electron'
 import { createServer, type Server, type Socket } from 'net'
 import { randomBytes, timingSafeEqual } from 'crypto'
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
@@ -135,8 +135,11 @@ export class McpBridge {
     ipcMain.handle('mcp:toggleListening', (_e, enable?: boolean) => {
       return this.toggleListening(enable)
     })
-    ipcMain.handle('mcp:setDocsLang', (_e, lang: unknown) => this.setDocsLang(lang))
-    ipcMain.handle('mcp:captureWindow', (e, opts?: McpCaptureOptions) => captureWebContents(e.sender, opts))
+    ipcMain.handle('mcp:captureWindow', (e, opts?: McpCaptureOptions) => {
+      const win = BrowserWindow.fromWebContents(e.sender)
+      if (win?.isMinimized()) win.restore()
+      return captureWebContents(e.sender, opts)
+    })
   }
 
   /** Call when the window (re)loads — commands queue until the renderer subscribes again. */

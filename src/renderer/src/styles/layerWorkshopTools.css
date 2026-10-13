@@ -1,23 +1,23 @@
 .layer-workshop-header { height: 40px; min-height: 40px; flex-wrap: nowrap; padding: 0 14px; gap: 10px; }
 .lw-brand { display: flex; align-items: center; gap: 8px; color: var(--accent); margin-right: 6px; }
-.lw-brand strong { display: block; color: var(--text); font-size: 12px; line-height: 1.2; }
-.lw-brand small { display: block; color: var(--text-faint); font-size: 9.5px; margin-top: 1px; }
-.lw-name { width: 280px; min-width: 220px; max-width: 420px; height: 26px; font-weight: 600; font-size: 11.5px; }
+.lw-brand strong { display: block; color: var(--text); font-size: var(--font-body); line-height: 1.2; }
+.lw-brand small { display: block; color: var(--text-faint); font-size: var(--font-xs); margin-top: 1px; }
+.lw-name { width: 280px; min-width: 220px; max-width: 420px; height: 26px; font-weight: 600; font-size: var(--font-sm); }
 .lw-workspace-column { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .lw-workspace-column .layer-workshop-center-area { height: auto; min-height: 0; }
 .lw-tools { position: relative; z-index: 5000; display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; height: 36px; min-height: 36px; padding: 0 10px; background: var(--bg-2); border-bottom: 1px solid var(--line); overflow: visible; }
 .lw-tool-group { display: flex; align-items: center; gap: 4px; padding-right: 8px; border-right: 1px solid var(--line-soft); flex-shrink: 0; }
-.lw-tool-group label { display: flex; gap: 4px; align-items: center; font-size: 10.5px; color: var(--text-dim); }
-.lw-tool-group input { width: 48px; height: 24px; border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; font-size: 11px; color: var(--text); background: var(--bg-1); }
-.lw-tools .btn { min-height: 24px; height: 24px; padding: 2px 7px; font-size: 10.5px; }
-.lw-tools select { height: 24px; min-height: 24px; padding: 1px 6px; font-size: 10.5px; }
-.lw-selection-hint { padding: 4px 10px; margin: 0; font-size: 10px; line-height: 1.4; color: var(--text-dim); border-bottom: 1px solid var(--line-soft); }
+.lw-tool-group label { display: flex; gap: 4px; align-items: center; font-size: var(--font-xs); color: var(--text-dim); }
+.lw-tool-group input { width: 48px; height: 24px; border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; font-size: var(--font-sm); color: var(--text); background: var(--bg-1); }
+.lw-tools .btn { min-height: 24px; height: 24px; padding: 2px 7px; font-size: var(--font-xs); }
+.lw-tools select { height: 24px; min-height: 24px; padding: 1px 6px; font-size: var(--font-xs); }
+.lw-selection-hint { padding: 4px 10px; margin: 0; font-size: var(--font-xs); line-height: 1.4; color: var(--text-dim); border-bottom: 1px solid var(--line-soft); }
 .layer-workshop-dialog :is(button, input, select, [tabindex]):focus-visible { outline: 2px solid var(--line-focus); outline-offset: 2px; }
 .layer-workshop-dialog .layer-stack-row-item { min-height: 38px; }
 .layer-workshop-dialog .layer-stack-row-item .btn { min-width: 22px; min-height: 22px; }
-.layer-workshop-dialog .pane-header-tab { min-height: 34px; height: 34px; padding: 4px 10px; font-size: 11px; }
-.lw-error { padding: 6px 12px; background: var(--bg-2); color: var(--text); border-bottom: 1px solid var(--line-focus); font-size: 11px; }
-.lw-status { display: flex; justify-content: space-between; gap: 12px; padding: 4px 12px; border-top: 1px solid var(--line); background: var(--bg-1); color: var(--text-dim); font-size: 10.5px; }
+.layer-workshop-dialog .pane-header-tab { min-height: 34px; height: 34px; padding: 4px 10px; font-size: var(--font-sm); }
+.lw-error { padding: 6px 12px; background: var(--bg-2); color: var(--text); border-bottom: 1px solid var(--line-focus); font-size: var(--font-sm); }
+.lw-status { display: flex; justify-content: space-between; gap: 12px; padding: 4px 12px; border-top: 1px solid var(--line); background: var(--bg-1); color: var(--text-dim); font-size: var(--font-xs); }
 @media (max-width: 1280px) {
   .layer-workshop-dialog .layer-workshop-sidebar { width: 250px !important; }
   .layer-workshop-dialog .layer-workshop-inspector { width: 290px !important; }
@@ -78,12 +78,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: var(--font-md);
   font-weight: 600;
   color: var(--text);
 }
 .lw-confirm-desc {
-  font-size: 12px;
+  font-size: var(--font-body);
   color: var(--text-dim);
   line-height: 1.5;
 }

@@ -46,7 +46,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: var(--font-md);
   font-weight: 600;
   color: var(--text);
   white-space: nowrap;
@@ -68,7 +68,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--text-dim);
   background: var(--bg-3);
   padding: 4px 8px;
@@ -111,7 +111,7 @@
 .cam-preset-group .preset-btn {
   background: transparent;
   border: none;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--text-dim);
   padding: 3px 8px;
   border-radius: 4px;
@@ -144,7 +144,7 @@
 .gizmo-tool-btn {
   background: transparent;
   border: none;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--text-dim);
   padding: 3px 7px;
   border-radius: 4px;
@@ -166,7 +166,7 @@
 .assembly-modal-header .close-btn {
   background: transparent;
   border: none;
-  font-size: 20px;
+  font-size: var(--font-xl);
   line-height: 1;
   color: var(--text-dim);
   cursor: pointer;
@@ -226,7 +226,7 @@
   border: 1px solid var(--hud-border);
   border-radius: 4px;
   padding: 4px 10px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--text-dim);
   pointer-events: none;
   text-align: center;
@@ -254,7 +254,7 @@
   border-radius: 20px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   color: var(--text);
-  font-size: 12px;
+  font-size: var(--font-body);
   font-weight: 500;
   backdrop-filter: blur(8px);
 }
@@ -276,7 +276,7 @@
 }
 
 .footer-status {
-  font-size: 12px;
+  font-size: var(--font-body);
   color: var(--text-dim);
 }
 

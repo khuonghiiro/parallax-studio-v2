@@ -14,9 +14,8 @@ body,
   overflow: hidden;
   background: var(--bg-0);
   color: var(--text);
-  color-scheme: dark;
   font-family: var(--font);
-  font-size: 12px;
+  font-size: var(--font-body);
   -webkit-font-smoothing: antialiased;
   user-select: none;
 }
@@ -61,14 +60,14 @@ textarea:focus {
 /* Master Grid Layout */
 .app {
   display: grid;
-  grid-template-rows: 46px minmax(0, 1fr) 5px var(--timeline-h);
-  grid-template-columns: 340px minmax(0, 1fr) 350px;
+  grid-template-rows: auto minmax(0, 1fr) 8px min(45dvh, var(--timeline-h, clamp(160px, 30dvh, 420px)));
+  grid-template-columns: var(--workspace-left) minmax(0, 1fr) var(--workspace-right);
   grid-template-areas:
     'top top top'
     'left view right'
     'split split split'
     'time time time';
-  height: 100vh;
+  height: 100dvh;
   background: var(--bg-0);
   gap: 0;
   overflow: hidden;
@@ -95,6 +94,7 @@ textarea:focus {
 .splitter {
   grid-area: split;
   cursor: row-resize;
+  touch-action: none;
   position: relative;
   background: var(--bg-0);
   z-index: 50;

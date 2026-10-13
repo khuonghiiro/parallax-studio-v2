@@ -39,7 +39,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 10px;
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 700;
   color: var(--text-faint);
   letter-spacing: 0.06em;
@@ -92,7 +92,7 @@
   bottom: 12px;
   left: 3px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--text-dim);
@@ -207,7 +207,7 @@
   padding: 0 8px;
   cursor: pointer;
   min-width: 0;
-  font-size: 11.5px;
+  font-size: var(--font-sm);
 }
 
 .tl-name .label {
@@ -228,7 +228,7 @@
   border-radius: 2px;
   outline: none;
   padding: 1px 4px;
-  font-size: 11.5px;
+  font-size: var(--font-sm);
 }
 
 .tl-name .label input:focus {
@@ -301,7 +301,7 @@
   display: grid;
   place-items: center;
   flex: none;
-  font-size: 8.5px;
+  font-size: var(--font-xs);
   font-weight: 800;
   color: #ffffff !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
@@ -310,7 +310,7 @@
 
 .tl-name .depth {
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size: var(--font-xs);
   color: var(--text-faint);
   min-width: 32px;
   text-align: right;
@@ -455,7 +455,7 @@
   justify-content: center;
   background: var(--accent);
   color: #ffffff;
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 700;
   letter-spacing: 0.2px;
   z-index: 10;
@@ -499,7 +499,7 @@
 }
 
 .tl-bar-label .bar-title {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: #ffffff;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
@@ -513,7 +513,7 @@
 }
 
 .tl-bar-label .bar-span {
-  font-size: 9.5px;
+  font-size: var(--font-xs);
   font-family: var(--mono);
   color: rgba(255, 255, 255, 0.9);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
@@ -657,7 +657,7 @@
   background: color-mix(in srgb, var(--c, var(--accent)) 30%, transparent);
   border: 1px solid color-mix(in srgb, var(--c, var(--accent)) 65%, transparent);
   color: var(--text);
-  font-size: 9.5px;
+  font-size: var(--font-xs);
   font-weight: 600;
   padding: 0 5px;
   line-height: 16px;
@@ -744,7 +744,7 @@
   position: absolute;
   top: 2px;
   left: 6px;
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 700;
   pointer-events: none;
   z-index: 3;

@@ -38,7 +38,7 @@
   padding: 4px 10px;
   border-radius: 5px;
   cursor: pointer;
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   transition: all 0.15s ease;
   white-space: nowrap;
 }
@@ -105,7 +105,7 @@
 .layer-assembly-badge {
   background: color-mix(in srgb, var(--accent) 85%, transparent);
   color: #ffffff;
-  font-size: 9px;
+  font-size: var(--font-xs);
   font-weight: 700;
   padding: 1px 5px;
   border-radius: 3px;
@@ -115,7 +115,7 @@
 .layer-assembly-count-badge {
   background: rgba(0, 0, 0, 0.65);
   color: var(--text);
-  font-size: 9px;
+  font-size: var(--font-xs);
   padding: 1px 4px;
   border-radius: 3px;
   backdrop-filter: blur(4px);
@@ -148,7 +148,7 @@
 }
 
 .layer-assembly-title {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--text);
   white-space: nowrap;
@@ -157,7 +157,7 @@
 }
 
 .layer-assembly-desc {
-  font-size: 9.5px;
+  font-size: var(--font-xs);
   color: var(--text-dim);
   white-space: nowrap;
   overflow: hidden;
@@ -432,7 +432,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 6px 10px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--text);
   background: transparent;
   border: none;

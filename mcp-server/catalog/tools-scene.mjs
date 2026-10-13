@@ -84,6 +84,7 @@ export const SCENE_TOOLS = [
         'camera_sketch', 'camera_sketch_canvas', 'camera_sketch_sidebar',
         'camera_path', 'camera_path_steps',
         'mcp_dialog', 'mcp_status', 'mcp_config', 'mcp_guide',
+        'workspace_navigation', 'timeline_splitter', 'viewer_chrome',
         'ai_hud', 'window'
       ]).optional().describe(d('Predefined UI region to capture (e.g. left_panel, asset_grid, audio_studio_waveform, assembly_sidebar, layer_assembly_inspector). Saves tokens by cropping to only the relevant area.', 'Vùng UI định sẵn cần chụp (ví dụ left_panel, asset_grid, audio_studio_waveform, assembly_sidebar, layer_assembly_inspector). Tiết kiệm token bằng cách cắt đúng khu vực quan trọng.')),
       selector: z.string().optional().describe(d('CSS selector of a specific element to capture (e.g. ".music-panel-layout", "#music-tab-add-btn"). Falls back to whole window if not found.', 'CSS selector của phần tử cụ thể cần chụp. Tự động chụp toàn bộ app nếu không tìm thấy selector.')),

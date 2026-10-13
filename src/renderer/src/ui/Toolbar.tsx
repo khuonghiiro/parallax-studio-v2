@@ -73,7 +73,8 @@ function McpChip() {
     `Token: ${status.configPath}`
   ].join('\n')
   return (
-    <div
+    <button
+      type="button"
       id="mcp-chip"
       className={`mcp-chip ${state}${flash ? ' flash' : ''}`}
       title={`${title}\n\n👉 Bấm vào đây để mở Cấu hình & Trợ giúp kết nối MCP`}
@@ -81,9 +82,9 @@ function McpChip() {
     >
       <IconPlug width={13} height={13} />
       <span className="dot" />
-      {label}
+      <span className="mcp-chip-label">{label}</span>
       {status.lastMethod && state === 'connected' && <small>{status.lastMethod}</small>}
-    </div>
+    </button>
   )
 }
 
@@ -103,7 +104,7 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
     <header className="toolbar">
       <div className="brand">
         <div className="brand-logo" />
-        <div>
+        <div className="brand-name">
           Parallax Studio
           <small>2.5D motion</small>
         </div>
@@ -171,7 +172,7 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
       <div className="doc-title" title={`Composition: ${compName} (${comp.width}×${comp.height} @ ${comp.fps}fps)`}>
         {dirty && <span className="dirty" title="Có thay đổi chưa lưu" />}
         <b style={{ color: 'var(--text)' }}>{compName}</b>
-        <span style={{ color: 'var(--accent-cyan)', opacity: 0.85, fontSize: '10.5px', fontFamily: 'var(--mono)' }}>
+        <span className="doc-resolution">
           {comp.width}×{comp.height} @ {comp.fps}fps
         </span>
         <span style={{ opacity: 0.4 }}>•</span>
@@ -197,10 +198,10 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
         <IconSettings width={14} height={14} />
       </button>
       <button id="save" className="tb-btn-save" onClick={() => saveProject(false)} title="Lưu dự án (Ctrl+S)">
-        <IconSave width={14} height={14} /> Lưu
+        <IconSave width={14} height={14} /> <span>Lưu</span>
       </button>
       <button id="export" className="btn primary" onClick={onExport} title="Xuất MP4 (Ctrl+M)">
-        <IconExport width={14} height={14} /> Xuất MP4
+        <IconExport width={14} height={14} /> <span>Xuất MP4</span>
       </button>
     </header>
   )

@@ -26,7 +26,7 @@ export function Inspector() {
   const tabTitle = audioTrack ? 'Âm thanh' : !layer && shot ? 'Cảnh này' : 'Layer'
 
   return (
-    <aside className="right">
+    <aside className="right" id="workspace-inspector" aria-label="Thuộc tính">
       <section className="panel" style={{ flex: 1 }}>
         <div className="tabs">
           <button id="tab-layer" className={`tab${tab === 'layer' ? ' active' : ''}`} onClick={() => setTab('layer')}>

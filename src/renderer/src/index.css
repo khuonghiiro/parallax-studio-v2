@@ -17,6 +17,7 @@
 @import './styles/mcp.css';
 @import './styles/audioStudio.css';
 @import './styles/musicPanel.css';
+@import './styles/musicWaveform.css';
 @import './styles/assets.css';
 @import './styles/assetGrid.css';
 @import './styles/assetCatalogModal.css';
@@ -32,3 +33,5 @@
 @import './styles/assemblyCompose.css';
 @import './styles/create3d.css';
 @import './styles/assemblyAdvanced.css';
+@import './styles/responsiveWorkspace.css';
+@import './styles/responsiveDialogs.css';
