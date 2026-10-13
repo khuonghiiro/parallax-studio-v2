@@ -19,7 +19,8 @@ export function WorkshopAnimationPanel({
 }) {
   const { rig, activeClip } = ensureRigClips(composite.rig ?? emptyRig())
   const bones = rig.bones
-  const bone = bones.find((b) => b.id === boneId)
+  const activeBoneId = boneId ?? (bones.length > 0 ? bones[0].id : null)
+  const bone = bones.find((b) => b.id === activeBoneId)
   const time = Math.min(rig.duration, playback.time)
   const keys = bone ? (rig.tracks[bone.id] ?? []) : []
   const exact = keys.find((k) => Math.abs(k.time - time) < 0.0001)
@@ -257,7 +258,7 @@ export function WorkshopAnimationPanel({
             size="sm"
             dropdownWidth={280}
             style={{ width: '100%' }}
-            value={boneId ?? ''}
+            value={bone?.id ?? ''}
             options={[
               { value: '', label: '-- Chọn xương để tạo dáng --' },
               ...bones.map((b) => ({ value: b.id, label: b.name }))
