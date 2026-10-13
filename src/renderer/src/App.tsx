@@ -24,7 +24,7 @@ export default function App() {
   const [ready, setReady] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [dragOver, setDragOver] = useState(false)
-  const [timelineH, setTimelineH] = useState(300)
+  const [timelineH, setTimelineH] = useState<number | undefined>(undefined)
   const toast = useToast((s) => s.message)
   const dialog = useView((s) => s.dialog)
   const assemblyModalModel = useView((s) => s.assemblyModalModel)
@@ -65,11 +65,13 @@ export default function App() {
 
   const startSplit = (e: React.PointerEvent): void => {
     const startY = e.clientY
-    const startH = timelineH
+    const startH = timelineH ?? (document.querySelector('.timeline')?.clientHeight || 200)
     const el = e.currentTarget as HTMLElement
     el.setPointerCapture(e.pointerId)
-    const move = (ev: PointerEvent): void =>
-      setTimelineH(Math.max(160, Math.min(window.innerHeight - 320, startH - (ev.clientY - startY))))
+    const move = (ev: PointerEvent): void => {
+      const maxH = Math.max(140, window.innerHeight - 180)
+      setTimelineH(Math.max(100, Math.min(maxH, startH - (ev.clientY - startY))))
+    }
     const up = (): void => {
       el.removeEventListener('pointermove', move)
       el.removeEventListener('pointerup', up)
@@ -97,7 +99,7 @@ export default function App() {
     <div
       className={`app ${theme}${dragOver ? ' dropzone-active' : ''}${aiActive || aiLocked ? ' ai-active' : ''}`}
       data-theme={theme}
-      style={{ ['--timeline-h' as string]: `${timelineH}px` }}
+      style={{ ['--timeline-h' as string]: timelineH === undefined ? undefined : `${timelineH}px` }}
       onDragOver={(e) => {
         e.preventDefault()
         setDragOver(true)

@@ -61,8 +61,8 @@ textarea:focus {
 /* Master Grid Layout */
 .app {
   display: grid;
-  grid-template-rows: 46px minmax(0, 1fr) 5px var(--timeline-h);
-  grid-template-columns: 340px minmax(0, 1fr) 350px;
+  grid-template-rows: 36px minmax(0, 1fr) 5px var(--timeline-h, clamp(140px, 28vh, 280px));
+  grid-template-columns: clamp(220px, 20vw, 300px) minmax(320px, 1fr) clamp(240px, 22vw, 320px);
   grid-template-areas:
     'top top top'
     'left view right'
@@ -79,16 +79,26 @@ textarea:focus {
 }
 .left {
   grid-area: left;
-  min-width: 320px;
+  min-width: 0;
+  overflow: hidden;
 }
 .viewer-wrap {
   grid-area: view;
+  min-width: 300px;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
 }
 .right {
   grid-area: right;
+  min-width: 0;
+  overflow: hidden;
 }
 .timeline {
   grid-area: time;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Horizontal Panel Splitter */

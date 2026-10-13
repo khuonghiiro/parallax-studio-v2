@@ -9,9 +9,16 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 0 10px;
+  padding: 0 8px;
+  height: 36px;
+  min-height: 36px;
+  flex-wrap: nowrap;
+  overflow: visible;
   border-bottom: 1px solid var(--line);
   background: var(--bg-1);
+}
+.toolbar > :not(.tb-spacer, .doc-title) {
+  flex-shrink: 0;
 }
 
 /* Brand & AE Logo Badge */
@@ -24,11 +31,12 @@
   font-size: 13px;
   letter-spacing: 0.02em;
   color: var(--text);
+  white-space: nowrap;
 }
 
 .brand-logo {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--radius-sm);
   background: var(--bg-0);
   border: 1.5px solid var(--accent);
@@ -36,6 +44,7 @@
   display: grid;
   place-items: center;
   box-shadow: 0 0 10px rgba(38, 128, 235, 0.35);
+  flex-shrink: 0;
 }
 
 .brand-logo::before {
@@ -79,6 +88,19 @@
   border-radius: var(--radius-sm);
   background: var(--bg-2);
   border: 1px solid var(--line);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  max-width: 38vw;
+}
+.doc-title b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.doc-title > span {
+  flex-shrink: 0;
 }
 
 .doc-title .dirty {

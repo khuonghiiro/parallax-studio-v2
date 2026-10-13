@@ -92,7 +92,7 @@
   --mono: 'JetBrains Mono', 'Fira Code', ui-monospace, Menlo, Monaco, Consolas, monospace;
 
   /* Dimensions */
-  --timeline-h: 300px;
+  --timeline-h: clamp(140px, 28vh, 260px);
 }
 
 /* ------------------------------------------------------------------ Light Theme (AE Pro Light Mode) */
