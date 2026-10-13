@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { hexToRgb, computeColorDist, extractRegionDataUrl } from './chromaKey'
+import { hexToRgb, computeColorDist, extractRegionDataUrl, createCutterStroke } from './chromaKey'
 
 describe('chromaKey algorithms', () => {
   it('correctly converts hex colors to rgb', () => {
@@ -47,5 +47,94 @@ describe('chromaKey algorithms', () => {
     } finally {
       ;(globalThis as unknown as { document: unknown }).document = originalDoc
     }
+  })
+
+  it('performs continuous smooth stroke segment interpolation with createCutterStroke', () => {
+    const w = 50
+    const h = 50
+    const targetBuffer = new Uint8ClampedArray(w * h * 4)
+    // Fill all pixels with opaque white (255, 255, 255, 255)
+    for (let i = 0; i < w * h; i++) {
+      targetBuffer[i * 4] = 255
+      targetBuffer[i * 4 + 1] = 255
+      targetBuffer[i * 4 + 2] = 255
+      targetBuffer[i * 4 + 3] = 255
+    }
+
+    const mockTargetCtx = {
+      canvas: { width: w, height: h },
+      getImageData: () => ({ data: targetBuffer }),
+      putImageData: () => {}
+    } as unknown as CanvasRenderingContext2D
+
+    // Khởi tạo stroke tẩy xóa với bán kính 5px, hardness 1.0 (sắc nét)
+    const stroke = createCutterStroke(mockTargetCtx, null, w, h, {
+      radius: 5,
+      hardness: 1.0,
+      opacity: 1.0,
+      isEraser: true
+    })
+
+    // Vẽ nét quét ngang từ (10, 20) tới (30, 20)
+    stroke.segment({ x: 10, y: 20 }, { x: 30, y: 20 })
+    expect(stroke.changed).toBe(true)
+
+    // Kiểm tra pixel tại điểm bắt đầu (10, 20): alpha = 0
+    const idxStart = (20 * w + 10) * 4
+    expect(targetBuffer[idxStart + 3]).toBe(0)
+
+    // Điểm chính giữa đoạn (20, 20): nội suy liên tục không bị đứt đoạn, alpha = 0
+    const idxMid = (20 * w + 20) * 4
+    expect(targetBuffer[idxMid + 3]).toBe(0)
+
+    // Điểm kết thúc (30, 20): alpha = 0
+    const idxEnd = (20 * w + 30) * 4
+    expect(targetBuffer[idxEnd + 3]).toBe(0)
+
+    // Điểm xa ngoài bán kính (20, 40): không bị ảnh hưởng, alpha vẫn là 255
+    const idxFar = (40 * w + 20) * 4
+    expect(targetBuffer[idxFar + 3]).toBe(255)
+  })
+
+  it('restores raw pixels when isEraser is false', () => {
+    const w = 40
+    const h = 40
+    const targetBuffer = new Uint8ClampedArray(w * h * 4) // Đã bị tẩy alpha = 0
+    const rawBuffer = new Uint8ClampedArray(w * h * 4) // Pixel gốc màu đỏ (255, 0, 0, 255)
+    for (let i = 0; i < w * h; i++) {
+      rawBuffer[i * 4] = 255
+      rawBuffer[i * 4 + 1] = 0
+      rawBuffer[i * 4 + 2] = 0
+      rawBuffer[i * 4 + 3] = 255
+    }
+
+    const mockTargetCtx = {
+      canvas: { width: w, height: h },
+      getImageData: () => ({ data: targetBuffer }),
+      putImageData: () => {}
+    } as unknown as CanvasRenderingContext2D
+
+    const mockRawCtx = {
+      canvas: { width: w, height: h },
+      getImageData: () => ({ data: rawBuffer }),
+      putImageData: () => {}
+    } as unknown as CanvasRenderingContext2D
+
+    const stroke = createCutterStroke(mockTargetCtx, mockRawCtx, w, h, {
+      radius: 6,
+      hardness: 1.0,
+      opacity: 1.0,
+      isEraser: false
+    })
+
+    // Khôi phục tại (15, 15)
+    stroke.segment({ x: 15, y: 15 }, { x: 15, y: 15 })
+    expect(stroke.changed).toBe(true)
+
+    // Pixel tại (15, 15) được phục hồi thành màu đỏ nguyên bản (255, 0, 0, 255)
+    const idx = (15 * w + 15) * 4
+    expect(targetBuffer[idx]).toBe(255)
+    expect(targetBuffer[idx + 1]).toBe(0)
+    expect(targetBuffer[idx + 3]).toBe(255)
   })
 })

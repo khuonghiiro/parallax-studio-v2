@@ -202,6 +202,108 @@ export function detectOpaqueIslands(
   }))
 }
 
+export interface CutterStrokeSettings {
+  radius: number
+  opacity?: number
+  hardness?: number
+  isEraser: boolean
+}
+
+export interface CutterStrokeSession {
+  segment: (from: { x: number; y: number }, to: { x: number; y: number }) => void
+  commit: () => void
+  readonly changed: boolean
+}
+
+/**
+ * Khởi tạo phiên nét cọ nội suy liên tục (segment interpolation) mượt mà như After Effects/Photoshop.
+ * Hỗ trợ cọ tẩy (giảm alpha) và cọ khôi phục (lấy lại pixel từ ảnh gốc) với độ cứng (hardness) và lực tẩy (opacity).
+ */
+export function createCutterStroke(
+  targetCtx: CanvasRenderingContext2D,
+  rawCtx: CanvasRenderingContext2D | null,
+  width: number,
+  height: number,
+  settings: CutterStrokeSettings
+): CutterStrokeSession {
+  const targetImg = targetCtx.getImageData(0, 0, width, height)
+  const tdata = targetImg.data
+  const rdata = !settings.isEraser && rawCtx ? rawCtx.getImageData(0, 0, width, height).data : null
+
+  const coverage = new Float32Array(width * height)
+  const initialAlpha = new Uint8Array(width * height)
+  for (let i = 0; i < width * height; i++) {
+    initialAlpha[i] = tdata[i * 4 + 3]
+  }
+
+  const radius = Math.max(1, Math.round(settings.radius))
+  const opacity = Math.max(0.05, Math.min(1, settings.opacity ?? 1))
+  const hardness = Math.max(0, Math.min(1, settings.hardness ?? 0.85))
+  const isEraser = settings.isEraser
+  let changed = false
+
+  function segment(from: { x: number; y: number }, to: { x: number; y: number }) {
+    const dx = to.x - from.x
+    const dy = to.y - from.y
+    const lenSq = dx * dx + dy * dy
+
+    const minX = Math.max(0, Math.floor(Math.min(from.x, to.x) - radius - 1))
+    const maxX = Math.min(width - 1, Math.ceil(Math.max(from.x, to.x) + radius + 1))
+    const minY = Math.max(0, Math.floor(Math.min(from.y, to.y) - radius - 1))
+    const maxY = Math.min(height - 1, Math.ceil(Math.max(from.y, to.y) + radius + 1))
+
+    const feather = Math.max(1 - hardness, 1 / radius)
+
+    for (let y = minY; y <= maxY; y++) {
+      for (let x = minX; x <= maxX; x++) {
+        const px = x + 0.5 - from.x
+        const py = y + 0.5 - from.y
+        const t = lenSq > 0 ? Math.max(0, Math.min(1, (px * dx + py * dy) / lenSq)) : 0
+        const dist = Math.hypot(px - dx * t, py - dy * t) / radius
+        if (dist > 1) continue
+
+        const fade = Math.max(0, Math.min(1, (1 - dist) / feather))
+        // Smoothstep curve (3x^2 - 2x^3) for soft natural edge
+        const amount = fade * fade * (3 - 2 * fade)
+        const i = y * width + x
+        if (amount <= coverage[i]) continue
+        coverage[i] = amount
+
+        const idx = i * 4
+        if (isEraser) {
+          const newAlpha = Math.round(initialAlpha[i] * (1 - opacity * amount))
+          if (tdata[idx + 3] !== newAlpha) {
+            tdata[idx + 3] = newAlpha
+            changed = true
+          }
+        } else if (rdata) {
+          const blend = amount * opacity
+          const targetR = Math.round(tdata[idx] + (rdata[idx] - tdata[idx]) * blend)
+          const targetG = Math.round(tdata[idx + 1] + (rdata[idx + 1] - tdata[idx + 1]) * blend)
+          const targetB = Math.round(tdata[idx + 2] + (rdata[idx + 2] - tdata[idx + 2]) * blend)
+          const targetA = Math.round(tdata[idx + 3] + (rdata[idx + 3] - tdata[idx + 3]) * blend)
+
+          if (tdata[idx + 3] !== targetA || tdata[idx] !== targetR) {
+            tdata[idx] = targetR
+            tdata[idx + 1] = targetG
+            tdata[idx + 2] = targetB
+            tdata[idx + 3] = targetA
+            changed = true
+          }
+        }
+      }
+    }
+  }
+
+  function commit() {
+    if (changed) {
+      targetCtx.putImageData(targetImg, 0, 0)
+    }
+  }
+
+  return { segment, commit, get changed() { return changed } }
+}
+
 /**
  * Áp dụng cọ tẩy (xóa viền xanh còn sót) hoặc cọ khôi phục (lấy lại pixel gốc)
  */
@@ -211,45 +313,19 @@ export function applyBrushToCanvas(
   centerX: number,
   centerY: number,
   radius: number,
-  isEraser: boolean
+  isEraser: boolean,
+  hardness = 0.85,
+  opacity = 1
 ): void {
-  const r = Math.max(2, Math.round(radius))
-  const startX = Math.max(0, centerX - r)
-  const startY = Math.max(0, centerY - r)
-  const w = Math.min(targetCtx.canvas.width - startX, r * 2)
-  const h = Math.min(targetCtx.canvas.height - startY, r * 2)
-  if (w <= 0 || h <= 0) return
-
-  const targetData = targetCtx.getImageData(startX, startY, w, h)
-  const rawData = isEraser ? null : rawCtx.getImageData(startX, startY, w, h)
-
-  const tdata = targetData.data
-  const rdata = rawData?.data
-
-  const rSq = r * r
-
-  for (let py = 0; py < h; py++) {
-    const dy = startY + py - centerY
-    for (let px = 0; px < w; px++) {
-      const dx = startX + px - centerX
-      const distSq = dx * dx + dy * dy
-      if (distSq <= rSq) {
-        const idx = (py * w + px) * 4
-        if (isEraser) {
-          // Xóa pixel về trong suốt
-          tdata[idx + 3] = 0
-        } else if (rdata) {
-          // Khôi phục pixel gốc nguyên bản
-          tdata[idx] = rdata[idx]
-          tdata[idx + 1] = rdata[idx + 1]
-          tdata[idx + 2] = rdata[idx + 2]
-          tdata[idx + 3] = rdata[idx + 3]
-        }
-      }
-    }
-  }
-
-  targetCtx.putImageData(targetData, startX, startY)
+  const stroke = createCutterStroke(
+    targetCtx,
+    rawCtx,
+    targetCtx.canvas.width,
+    targetCtx.canvas.height,
+    { radius, hardness, opacity, isEraser }
+  )
+  stroke.segment({ x: centerX, y: centerY }, { x: centerX, y: centerY })
+  stroke.commit()
 }
 
 /**

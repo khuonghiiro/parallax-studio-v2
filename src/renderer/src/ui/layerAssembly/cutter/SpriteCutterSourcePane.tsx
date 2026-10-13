@@ -1,6 +1,13 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react'
 import type { ChromaKeySettings, CutToolMode, DetectedIsland, CutPoint, CutPiece } from './types'
-import { applyChromaKey, detectOpaqueIslands, extractRegionDataUrl, applyBrushToCanvas } from './chromaKey'
+import {
+  applyChromaKey,
+  detectOpaqueIslands,
+  extractRegionDataUrl,
+  createCutterStroke,
+  type CutterStrokeSession
+} from './chromaKey'
+import { CutterBrushSubBar } from './CutterBrushSubBar'
 import { SAMPLE_ANIME_SPRITESHEET_URL } from './sampleSpriteSheet'
 import {
   IconScissors,
@@ -46,8 +53,14 @@ export function SpriteCutterSourcePane({
   const [selectedIslandId, setSelectedIslandId] = useState<string | null>(null)
   const [minIslandArea, setMinIslandArea] = useState<number>(100)
   const [brushRadius, setBrushRadius] = useState<number>(18)
+  const [brushHardness, setBrushHardness] = useState<number>(0.85)
+  const [brushOpacity, setBrushOpacity] = useState<number>(1.0)
   const [tagVisibility, setTagVisibility] = useState<'hover' | 'always' | 'hidden'>('hover')
   const [brushCursorPos, setBrushCursorPos] = useState<{ x: number; y: number } | null>(null)
+
+  // Active stroke session and point tracker for continuous interpolation
+  const activeStrokeRef = useRef<CutterStrokeSession | null>(null)
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null)
 
   // Canvas pixel undo / redo stack
   const undoStackRef = useRef<ImageData[]>([])
@@ -240,7 +253,16 @@ export function SpriteCutterSourcePane({
           setCanUndo(true)
           setCanRedo(false)
 
-          applyBrushToCanvas(pctx, rctx, x, y, brushRadius, tool === 'eraser')
+          const stroke = createCutterStroke(pctx, rctx, proc.width, proc.height, {
+            radius: brushRadius,
+            hardness: brushHardness,
+            opacity: brushOpacity,
+            isEraser: tool === 'eraser'
+          })
+          stroke.segment({ x, y }, { x, y })
+          stroke.commit()
+          activeStrokeRef.current = stroke
+          lastPointRef.current = { x, y }
         }
       }
       try { e.currentTarget.setPointerCapture(e.pointerId) } catch {}
@@ -273,14 +295,20 @@ export function SpriteCutterSourcePane({
     const { x, y } = getCanvasCoords(e)
 
     if (tool === 'eraser' || tool === 'restore') {
-      const raw = rawCanvasRef.current
-      const proc = procCanvasRef.current
-      if (raw && proc) {
-        const rctx = raw.getContext('2d', { willReadFrequently: true })
-        const pctx = proc.getContext('2d', { willReadFrequently: true })
-        if (rctx && pctx) {
-          applyBrushToCanvas(pctx, rctx, x, y, brushRadius, tool === 'eraser')
+      if (activeStrokeRef.current && lastPointRef.current) {
+        const rawSamples = e.nativeEvent.getCoalescedEvents?.() ?? []
+        const samples = rawSamples.length ? rawSamples : [e.nativeEvent]
+        for (const sample of samples) {
+          const scaleX = e.currentTarget.width / rect.width
+          const scaleY = e.currentTarget.height / rect.height
+          const pt = {
+            x: Math.round((sample.clientX - rect.left) * scaleX),
+            y: Math.round((sample.clientY - rect.top) * scaleY)
+          }
+          activeStrokeRef.current.segment(lastPointRef.current, pt)
+          lastPointRef.current = pt
         }
+        activeStrokeRef.current.commit()
       }
       return
     }
@@ -301,6 +329,12 @@ export function SpriteCutterSourcePane({
     if (!proc) return
 
     if (tool === 'eraser' || tool === 'restore') {
+      if (activeStrokeRef.current) {
+        activeStrokeRef.current.commit()
+        activeStrokeRef.current = null
+      }
+      lastPointRef.current = null
+
       // Re-scan islands if auto islands were active
       if (chroma.enabled && rawCanvasRef.current) {
         const pctx = proc.getContext('2d', { willReadFrequently: true })
@@ -402,7 +436,7 @@ export function SpriteCutterSourcePane({
         <div className="layer-cutter-title">
           <IconScissors width={14} height={14} />
           <strong>Nguồn ảnh & Tách nền</strong>
-          <span className="layer-cutter-badge">Pane 1</span>
+          <span className="layer-cutter-badge-pill">{islands.length} mảnh cắt</span>
         </div>
         <div className="layer-cutter-actions">
           <input
@@ -490,6 +524,7 @@ export function SpriteCutterSourcePane({
         {/* Tool modes */}
         <div className="layer-cutter-tool-group" style={{ marginLeft: 'auto' }}>
           <button
+            id="btn-tool-auto"
             type="button"
             className={`layer-cutter-tool-btn ${tool === 'auto' ? 'active' : ''}`}
             onClick={() => { setTool('auto'); setMarquee(null); setLassoPoints([]) }}
@@ -498,6 +533,7 @@ export function SpriteCutterSourcePane({
             <IconWand width={12} height={12} /> Quét tự động ({islands.length})
           </button>
           <button
+            id="btn-tool-box"
             type="button"
             className={`layer-cutter-tool-btn ${tool === 'box' ? 'active' : ''}`}
             onClick={() => { setTool('box'); setSelectedIslandId(null) }}
@@ -506,6 +542,7 @@ export function SpriteCutterSourcePane({
             <IconCrop width={12} height={12} /> Khung chữ nhật
           </button>
           <button
+            id="btn-tool-lasso"
             type="button"
             className={`layer-cutter-tool-btn ${tool === 'lasso' ? 'active' : ''}`}
             onClick={() => { setTool('lasso'); setSelectedIslandId(null) }}
@@ -514,6 +551,7 @@ export function SpriteCutterSourcePane({
             <IconSelectPointer width={12} height={12} /> Lasso
           </button>
           <button
+            id="btn-tool-eraser"
             type="button"
             className={`layer-cutter-tool-btn ${tool === 'eraser' ? 'active' : ''}`}
             onClick={() => { setTool('eraser'); setSelectedIslandId(null); setMarquee(null); setLassoPoints([]) }}
@@ -522,6 +560,7 @@ export function SpriteCutterSourcePane({
             <IconEraser width={12} height={12} /> Cọ tẩy
           </button>
           <button
+            id="btn-tool-restore"
             type="button"
             className={`layer-cutter-tool-btn ${tool === 'restore' ? 'active' : ''}`}
             onClick={() => { setTool('restore'); setSelectedIslandId(null); setMarquee(null); setLassoPoints([]) }}
@@ -531,48 +570,9 @@ export function SpriteCutterSourcePane({
           </button>
         </div>
 
-        {/* Extra sub-controls depending on active tool */}
-        {(tool === 'eraser' || tool === 'restore') && (
-          <div className="layer-cutter-control-row" style={{ marginLeft: 6 }}>
-            <span>Cỡ cọ:</span>
-            <input
-              type="range"
-              min={4}
-              max={60}
-              value={brushRadius}
-              onChange={(e) => setBrushRadius(Number(e.target.value))}
-            />
-            <span>{brushRadius}px</span>
-
-            {/* Undo / Redo for Brush */}
-            <div className="btn-group sm" style={{ display: 'inline-flex', marginLeft: 4 }}>
-              <button
-                type="button"
-                className="btn sm icon"
-                disabled={!canUndo}
-                onClick={handleUndo}
-                title="Hoàn tác nét cọ / tẩy (Ctrl+Z)"
-                style={{ width: 22, height: 22, padding: 0 }}
-              >
-                <IconUndo width={12} height={12} />
-              </button>
-              <button
-                type="button"
-                className="btn sm icon"
-                disabled={!canRedo}
-                onClick={handleRedo}
-                title="Làm lại nét cọ / tẩy (Ctrl+Y)"
-                style={{ width: 22, height: 22, padding: 0 }}
-              >
-                <IconRedo width={12} height={12} />
-              </button>
-            </div>
-          </div>
-        )}
-
         {tool === 'auto' && (
-          <>
-            <div className="layer-cutter-control-row" style={{ marginLeft: 6 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+            <div className="layer-cutter-control-row">
               <span>Lọc hạt &lt;</span>
               <input
                 type="range"
@@ -586,7 +586,7 @@ export function SpriteCutterSourcePane({
               <span>{minIslandArea}px</span>
             </div>
 
-            <div className="layer-cutter-control-row" style={{ marginLeft: 8 }}>
+            <div className="layer-cutter-control-row">
               <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>Nhãn:</span>
               <div className="btn-group sm" style={{ display: 'inline-flex' }}>
                 <button
@@ -618,9 +618,26 @@ export function SpriteCutterSourcePane({
                 </button>
               </div>
             </div>
-          </>
+          </div>
         )}
       </div>
+
+      {/* Specialized Sub-toolbar for Eraser / Restore Brush */}
+      {(tool === 'eraser' || tool === 'restore') && (
+        <CutterBrushSubBar
+          tool={tool}
+          brushRadius={brushRadius}
+          brushHardness={brushHardness}
+          brushOpacity={brushOpacity}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onChangeRadius={setBrushRadius}
+          onChangeHardness={setBrushHardness}
+          onChangeOpacity={setBrushOpacity}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+        />
+      )}
 
       {/* Main Canvas View */}
       <div className={`layer-cutter-canvas-wrap bg-${chroma.previewBackground}`}>

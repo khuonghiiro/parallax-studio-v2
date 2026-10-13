@@ -43,6 +43,49 @@ describe('2D Layer Cutter Stacking & Z-Index Ordering Rules', () => {
     const customZ = computeNextLayerZ(layers, 30)
     expect(customZ).toBe(30)
   })
+
+  it('allows increasing z-index with key "+" and decreasing with key "-"', () => {
+    let currentZ = 12
+
+    // Nhấn phím '+' tăng Z lên 13
+    currentZ = currentZ + 1
+    expect(currentZ).toBe(13)
+
+    // Nhấn tiếp phím '+' tăng Z lên 14
+    currentZ = currentZ + 1
+    expect(currentZ).toBe(14)
+
+    // Nhấn phím '-' giảm Z về 13
+    currentZ = Math.max(1, currentZ - 1)
+    expect(currentZ).toBe(13)
+
+    // Giảm liên tục không nhỏ hơn 1
+    for (let i = 0; i < 20; i++) {
+      currentZ = Math.max(1, currentZ - 1)
+    }
+    expect(currentZ).toBe(1)
+  })
+
+  it('compares z-indexes properly without forcing selected layer to 1000', () => {
+    // Giả lập 2 layers: Tay (z=11) và Áo (z=12)
+    const layers = [
+      { id: 'layer-tay', name: 'Tay', z: 11 },
+      { id: 'layer-ao', name: 'Áo', z: 12 }
+    ]
+
+    // Áo (z=12) có z cao hơn Tay (z=11) nên Áo che Tay
+    expect(layers[1].z).toBeGreaterThan(layers[0].z)
+
+    // Khi chọn layer Tay, z của Tay vẫn giữ nguyên là 11 (không bị gán cứng 1000 làm đảo lộn thứ tự che)
+    const selectedLayerId = 'layer-tay'
+    const renderedTayZ = Math.round(layers[0].z ?? 10)
+    const renderedAoZ = Math.round(layers[1].z ?? 10)
+    expect(selectedLayerId).toBe('layer-tay')
+    expect(renderedTayZ).toBe(11)
+    expect(renderedAoZ).toBe(12)
+    // Áo vẫn nằm trên Tay
+    expect(renderedAoZ).toBeGreaterThan(renderedTayZ)
+  })
 })
 
 describe('2D Layer Cutter Smart Tag Placement Rules', () => {

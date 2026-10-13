@@ -68,9 +68,15 @@ export function SpriteCutterTargetPane({
     }
   }, [])
 
-  // Paste handler (Ctrl + V) at mouse position
+  // Global Keyboard Shortcuts for Target Pane:
+  // - Ctrl + V: Dán mảnh cắt tại vị trí chuột
+  // - Phím '+' / '=' / NumpadAdd: Tăng Z-index của layer đang chọn (+1)
+  // - Phím '-' / '_' / NumpadSubtract: Giảm Z-index của layer đang chọn (-1)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return
+
       if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
         const cutPart = (window as unknown as { __parallax_cut_part?: CutPiece }).__parallax_cut_part
         if (cutPart) {
@@ -78,11 +84,25 @@ export function SpriteCutterTargetPane({
           const nextZ = computeNextLayerZ(composite.layers)
           onAddLayer(cutPart.label || 'Mảnh cắt', '', cutPart.dataUrl, mouseCanvasPos, nextZ)
         }
+        return
+      }
+
+      // Phím + / - điều khiển Z-index layer đang chọn (layer Z cao hơn sẽ che layer Z thấp hơn)
+      if (currentSelectedLayer) {
+        if (e.key === '+' || e.key === '=' || e.code === 'NumpadAdd') {
+          e.preventDefault()
+          const curZ = currentSelectedLayer.z ?? 10
+          onUpdateLayer(currentSelectedLayer.id, { z: curZ + 1 })
+        } else if (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract') {
+          e.preventDefault()
+          const curZ = currentSelectedLayer.z ?? 10
+          onUpdateLayer(currentSelectedLayer.id, { z: Math.max(1, curZ - 1) })
+        }
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [composite.layers, mouseCanvasPos, onAddLayer])
+  }, [composite.layers, currentSelectedLayer, mouseCanvasPos, onAddLayer, onUpdateLayer])
 
   // Track mouse coordinates for pasting
   const handleBoardPointerMove = (e: React.PointerEvent) => {
@@ -281,17 +301,18 @@ export function SpriteCutterTargetPane({
         <div className="layer-cutter-title">
           <IconLayers width={14} height={14} />
           <strong>Bố cục lắp ráp 2D</strong>
-          <span className="layer-cutter-badge">{composite.layers.length} bộ phận</span>
+          <span className="layer-cutter-badge-pill">{composite.layers.length} bộ phận</span>
         </div>
         <div className="layer-cutter-actions">
           {onClearAllLayers && composite.layers.length > 0 && (
             <button
               type="button"
-              className="btn sm icon"
+              className="btn sm"
+              style={{ color: '#ef4444', height: 26, padding: '0 8px', gap: 4 }}
               title="Xóa tất cả các lớp đang có trên bố cục 2D"
               onClick={onClearAllLayers}
             >
-              <IconTrash width={12} height={12} />
+              <IconTrash width={12} height={12} /> Xóa hết
             </button>
           )}
         </div>
@@ -308,7 +329,7 @@ export function SpriteCutterTargetPane({
             onClick={() => setUseTemplate(false)}
             title="Chế độ Tự do: Thoải mái đặt vị trí và tự đặt tên cho bộ phận"
           >
-            Chế độ tự do
+            ⚡ Chế độ tự do
           </button>
           <button
             id="btn-mode-template"
@@ -317,14 +338,14 @@ export function SpriteCutterTargetPane({
             onClick={() => setUseTemplate(true)}
             title="Dùng khuôn mẫu: Bật các ô khung định vị vị trí có sẵn"
           >
-            Dùng khuôn mẫu
+            📐 Dùng khuôn mẫu
           </button>
         </div>
 
         {/* When useTemplate is ON: Preset selector and slots toggle */}
         {useTemplate && (
           <>
-            <div style={{ width: 220 }}>
+            <div style={{ width: 200 }}>
               <CustomSelect<string>
                 size="sm"
                 value={activePresetId}
@@ -336,7 +357,7 @@ export function SpriteCutterTargetPane({
               />
             </div>
 
-            <label className="layer-cutter-control-row" style={{ cursor: 'pointer', marginLeft: 4 }}>
+            <label className="layer-cutter-control-row" style={{ cursor: 'pointer', marginLeft: 2 }}>
               <input
                 type="checkbox"
                 checked={showSlots}
@@ -359,8 +380,10 @@ export function SpriteCutterTargetPane({
           </>
         )}
 
+        <div className="layer-cutter-divider" />
+
         {/* Save Template Button & Export/Import */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: useTemplate ? 0 : 8 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
           <button
             type="button"
             className="btn sm"
@@ -368,7 +391,7 @@ export function SpriteCutterTargetPane({
             onClick={() => setShowSaveDialog(true)}
             title="Lưu bố cục và tên bộ phận hiện tại thành Khuôn mẫu mới để sau ghép nhanh hơn"
           >
-            💾 Lưu thành mẫu mới
+            💾 Lưu mẫu mới
           </button>
 
           {useTemplate && (
@@ -399,8 +422,49 @@ export function SpriteCutterTargetPane({
           </button>
         </div>
 
+        {/* Quick Z-Index controls on toolbar when a layer is selected */}
+        {currentSelectedLayer && (
+          <>
+            <div className="layer-cutter-divider" />
+            <div
+              className="layer-cutter-z-controls"
+              title="Thứ tự lớp (Z-index): Layer có Z lớn hơn sẽ che layer có Z nhỏ hơn. Nhấn phím '+' hoặc '-' để thay đổi nhanh"
+            >
+              <span className="subbar-label">Thứ tự Z:</span>
+              <button
+                id="btn-cutter-z-minus"
+                type="button"
+                className="stepper-btn"
+                title="Giảm Z (-1, phím '-')"
+                onClick={() =>
+                  onUpdateLayer(currentSelectedLayer.id, {
+                    z: Math.max(1, (currentSelectedLayer.z ?? 10) - 1)
+                  })
+                }
+              >
+                -
+              </button>
+              <span className="layer-cutter-z-val">{currentSelectedLayer.z ?? 10}</span>
+              <button
+                id="btn-cutter-z-plus"
+                type="button"
+                className="stepper-btn"
+                title="Tăng Z (+1, phím '+')"
+                onClick={() =>
+                  onUpdateLayer(currentSelectedLayer.id, {
+                    z: (currentSelectedLayer.z ?? 10) + 1
+                  })
+                }
+              >
+                +
+              </button>
+              <span className="layer-cutter-z-hint">(Phím + / -)</span>
+            </div>
+          </>
+        )}
+
         <span style={{ marginLeft: 'auto', color: 'var(--text-faint)', fontSize: 11 }}>
-          Tọa độ chuột: ({mouseCanvasPos.x}, {mouseCanvasPos.y})
+          Tọa độ: ({mouseCanvasPos.x}, {mouseCanvasPos.y})
         </span>
       </div>
 
@@ -495,12 +559,21 @@ export function SpriteCutterTargetPane({
                     left: `calc(50% + ${layer.x}px)`,
                     top: `calc(50% + ${layer.y}px)`,
                     transform: `translate(-50%, -50%) rotate(${layer.rotation}deg) scale(${currentScaleX}, ${currentScaleY})`,
-                    zIndex: isSelected ? 1000 : Math.round(layer.z ?? 10)
+                    zIndex: Math.round(layer.z ?? 10)
                   }}
                   onPointerDown={(e) => handleLayerPointerDown(e, layer)}
                   onPointerMove={handleLayerPointerMove}
                   onPointerUp={handleLayerPointerUp}
                 >
+                  {/* Badge hiển thị Z-index khi được chọn */}
+                  {isSelected && (
+                    <div
+                      className="layer-cutter-layer-zbadge"
+                      title={`Thứ tự lớp Z: ${layer.z ?? 10} (Phím + để tăng, - để giảm)`}
+                    >
+                      Z: {layer.z ?? 10}
+                    </div>
+                  )}
                   {imgUrl ? (
                     <img src={imgUrl} alt={layer.name} draggable={false} />
                   ) : (
@@ -703,17 +776,17 @@ export function SpriteCutterTargetPane({
             {/* Z-Depth (Layer Stacking) control */}
             <div
               className="layer-cutter-footer-group"
-              title="Thứ tự lớp (Z-index): Càng cao càng nằm đè lên trên"
+              title="Thứ tự lớp (Z-index): Layer có Z lớn hơn sẽ che layer có Z nhỏ hơn. Nhấn phím '+' để tăng, '-' để giảm"
             >
               <span style={{ fontWeight: 600, color: 'var(--accent-cyan)' }}>Z:</span>
               <button
                 type="button"
                 className="btn sm icon"
                 style={{ width: 18, height: 18, padding: 0 }}
-                title="Giảm Z (-1): Đưa chìm xuống dưới"
+                title="Giảm Z (-1, phím '-')"
                 onClick={() => {
                   const cur = currentSelectedLayer.z ?? 10
-                  onUpdateLayer(currentSelectedLayer.id, { z: cur - 1 })
+                  onUpdateLayer(currentSelectedLayer.id, { z: Math.max(1, cur - 1) })
                 }}
               >
                 -
@@ -733,7 +806,7 @@ export function SpriteCutterTargetPane({
                 type="button"
                 className="btn sm icon"
                 style={{ width: 18, height: 18, padding: 0 }}
-                title="Tăng Z (+1): Đưa nổi lên trên"
+                title="Tăng Z (+1, phím '+')"
                 onClick={() => {
                   const cur = currentSelectedLayer.z ?? 10
                   onUpdateLayer(currentSelectedLayer.id, { z: cur + 1 })

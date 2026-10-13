@@ -646,3 +646,230 @@
   font-size: 10px;
   color: var(--text);
 }
+
+/* Badge Pill hiện đại */
+.layer-cutter-badge-pill {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 1px 7px;
+  border-radius: 10px;
+  letter-spacing: 0.2px;
+}
+
+/* Vạch phân chia dọc giữa các cụm công cụ */
+.layer-cutter-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--line-soft);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* Sub-toolbar chuyên nghiệp cho Cọ tẩy / Cọ khôi phục */
+.layer-cutter-brush-subbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 11px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  min-height: 32px;
+  animation: cutterSubbarFadeIn 0.15s ease-out;
+}
+
+@keyframes cutterSubbarFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.layer-cutter-brush-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: var(--text);
+  font-size: 11px;
+}
+
+.subbar-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.subbar-val {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  min-width: 24px;
+}
+
+/* Nút chọn nhanh cỡ cọ dạng pill */
+.layer-cutter-brush-presets {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.brush-preset-btn-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-1);
+  padding: 2px;
+  border-radius: 4px;
+  border: 1px solid var(--line-soft);
+}
+
+.brush-preset-pill {
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.brush-preset-pill:hover {
+  color: var(--text);
+  background: var(--bg-3);
+}
+
+.brush-preset-pill.active {
+  color: var(--on-accent);
+  background: var(--accent);
+}
+
+/* Nút chọn độ cứng Mềm / Cứng */
+.brush-hardness-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-1);
+  padding: 2px;
+  border-radius: 4px;
+  border: 1px solid var(--line-soft);
+}
+
+.brush-hardness-pill {
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.brush-hardness-pill:hover {
+  color: var(--text);
+  background: var(--bg-3);
+}
+
+.brush-hardness-pill.active {
+  color: var(--on-accent);
+  background: var(--accent);
+  font-weight: 600;
+}
+
+/* Stepper button (- / +) */
+.stepper-btn {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.stepper-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--line-focus);
+  color: var(--accent-cyan);
+}
+
+.stepper-btn:active {
+  transform: scale(0.92);
+}
+
+/* Actions & Hint trong Sub-toolbar */
+.layer-cutter-brush-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.layer-cutter-subbar-hint {
+  font-size: 10px;
+  color: var(--text-faint);
+  margin-left: 4px;
+}
+
+/* Điều khiển Z-Index trên Toolbar 2D */
+.layer-cutter-z-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-2);
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+}
+
+.layer-cutter-z-val {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  min-width: 20px;
+  text-align: center;
+}
+
+.layer-cutter-z-hint {
+  font-size: 10px;
+  color: var(--text-faint);
+  margin-left: 2px;
+}
+
+/* Badge Z-Index hiển thị trực tiếp trên góc của layer đang chọn */
+.layer-cutter-layer-zbadge {
+  position: absolute;
+  top: -16px;
+  left: 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+  z-index: 50;
+  animation: zbadgePulse 0.15s ease-out;
+}
+
+@keyframes zbadgePulse {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
