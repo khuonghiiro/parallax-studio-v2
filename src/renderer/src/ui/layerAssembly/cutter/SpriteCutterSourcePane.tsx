@@ -1,8 +1,8 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react'
 import type { ChromaKeySettings, CutToolMode, DetectedIsland, CutPoint, CutPiece } from './types'
-import { applyChromaKey, detectOpaqueIslands, extractRegionDataUrl } from './chromaKey'
+import { applyChromaKey, detectOpaqueIslands, extractRegionDataUrl, applyBrushToCanvas } from './chromaKey'
 import { SAMPLE_ANIME_SPRITESHEET_URL } from './sampleSpriteSheet'
-import { IconScissors, IconWand, IconDropper, IconUpload, IconRefresh, IconCheck } from '../../icons'
+import { IconScissors, IconWand, IconDropper, IconUpload, IconRefresh, IconCheck, IconTrash } from '../../icons'
 
 export interface SpriteCutterSourcePaneProps {
   onSelectPiece: (piece: CutPiece | null) => void
@@ -30,6 +30,8 @@ export function SpriteCutterSourcePane({
   const [isPickingColor, setIsPickingColor] = useState(false)
   const [islands, setIslands] = useState<DetectedIsland[]>([])
   const [selectedIslandId, setSelectedIslandId] = useState<string | null>(null)
+  const [minIslandArea, setMinIslandArea] = useState<number>(100)
+  const [brushRadius, setBrushRadius] = useState<number>(18)
 
   // Drag marquee selection
   const [marquee, setMarquee] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null)
@@ -75,14 +77,14 @@ export function SpriteCutterSourcePane({
 
       // Auto detect islands if in auto mode
       if (chroma.enabled) {
-        const found = detectOpaqueIslands(pctx, w, h, 60)
+        const found = detectOpaqueIslands(pctx, w, h, minIslandArea)
         setIslands(found)
       } else {
         setIslands([])
       }
     }
     img.src = imageUrl
-  }, [imageUrl, chroma])
+  }, [imageUrl, chroma, minIslandArea])
 
   useEffect(() => {
     processImage()
@@ -107,7 +109,7 @@ export function SpriteCutterSourcePane({
     })
   }
 
-  // Pointer interactions on canvas (Marquee / Lasso / Eyedropper)
+  // Pointer interactions on canvas (Marquee / Lasso / Eyedropper / Brush)
   const getCanvasCoords = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const scaleX = e.currentTarget.width / rect.width
@@ -135,6 +137,21 @@ export function SpriteCutterSourcePane({
       return
     }
 
+    if (tool === 'eraser' || tool === 'restore') {
+      setIsDrawing(true)
+      const raw = rawCanvasRef.current
+      const proc = procCanvasRef.current
+      if (raw && proc) {
+        const rctx = raw.getContext('2d', { willReadFrequently: true })
+        const pctx = proc.getContext('2d', { willReadFrequently: true })
+        if (rctx && pctx) {
+          applyBrushToCanvas(pctx, rctx, x, y, brushRadius, tool === 'eraser')
+        }
+      }
+      try { e.currentTarget.setPointerCapture(e.pointerId) } catch {}
+      return
+    }
+
     if (tool === 'box') {
       setIsDrawing(true)
       setSelectedIslandId(null)
@@ -152,6 +169,19 @@ export function SpriteCutterSourcePane({
     if (!isDrawing) return
     const { x, y } = getCanvasCoords(e)
 
+    if (tool === 'eraser' || tool === 'restore') {
+      const raw = rawCanvasRef.current
+      const proc = procCanvasRef.current
+      if (raw && proc) {
+        const rctx = raw.getContext('2d', { willReadFrequently: true })
+        const pctx = proc.getContext('2d', { willReadFrequently: true })
+        if (rctx && pctx) {
+          applyBrushToCanvas(pctx, rctx, x, y, brushRadius, tool === 'eraser')
+        }
+      }
+      return
+    }
+
     if (tool === 'box' && marquee) {
       setMarquee({ ...marquee, currentX: x, currentY: y })
     } else if (tool === 'lasso') {
@@ -166,6 +196,19 @@ export function SpriteCutterSourcePane({
 
     const proc = procCanvasRef.current
     if (!proc) return
+
+    if (tool === 'eraser' || tool === 'restore') {
+      // Re-scan islands if auto islands were active
+      if (chroma.enabled && rawCanvasRef.current) {
+        const pctx = proc.getContext('2d', { willReadFrequently: true })
+        if (pctx) {
+          const found = detectOpaqueIslands(pctx, proc.width, proc.height, minIslandArea)
+          setIslands(found)
+        }
+      }
+      return
+    }
+
 
     if (tool === 'box' && marquee) {
       const minX = Math.min(marquee.startX, marquee.currentX)
@@ -360,7 +403,54 @@ export function SpriteCutterSourcePane({
           >
             Lasso
           </button>
+          <button
+            type="button"
+            className={`layer-cutter-tool-btn ${tool === 'eraser' ? 'active' : ''}`}
+            onClick={() => { setTool('eraser'); setSelectedIslandId(null); setMarquee(null); setLassoPoints([]) }}
+            title="Cọ tẩy: Quét chuột để xóa viền xanh hoặc chi tiết thừa"
+          >
+            Cọ tẩy
+          </button>
+          <button
+            type="button"
+            className={`layer-cutter-tool-btn ${tool === 'restore' ? 'active' : ''}`}
+            onClick={() => { setTool('restore'); setSelectedIslandId(null); setMarquee(null); setLassoPoints([]) }}
+            title="Khôi phục: Quét chuột để lấy lại pixel gốc nguyên bản"
+          >
+            Khôi phục
+          </button>
         </div>
+
+        {/* Extra sub-controls depending on active tool */}
+        {(tool === 'eraser' || tool === 'restore') && (
+          <div className="layer-cutter-control-row" style={{ marginLeft: 6 }}>
+            <span>Cỡ cọ:</span>
+            <input
+              type="range"
+              min={4}
+              max={60}
+              value={brushRadius}
+              onChange={(e) => setBrushRadius(Number(e.target.value))}
+            />
+            <span>{brushRadius}px</span>
+          </div>
+        )}
+
+        {tool === 'auto' && (
+          <div className="layer-cutter-control-row" style={{ marginLeft: 6 }}>
+            <span>Lọc hạt &lt;</span>
+            <input
+              type="range"
+              min={40}
+              max={400}
+              step={10}
+              value={minIslandArea}
+              onChange={(e) => setMinIslandArea(Number(e.target.value))}
+              title="Kích thước pixel tối thiểu để xem là một bộ phận"
+            />
+            <span>{minIslandArea}px</span>
+          </div>
+        )}
       </div>
 
       {/* Main Canvas View */}
@@ -369,7 +459,16 @@ export function SpriteCutterSourcePane({
           <canvas
             ref={procCanvasRef}
             className="layer-cutter-canvas"
-            style={{ cursor: isPickingColor ? 'crosshair' : tool === 'box' || tool === 'lasso' ? 'crosshair' : 'default' }}
+            style={{
+              cursor: isPickingColor
+                ? 'crosshair'
+                : tool === 'eraser' || tool === 'restore'
+                ? 'cell'
+                : tool === 'box' || tool === 'lasso'
+                ? 'crosshair'
+                : 'default'
+            }}
+
             onPointerDown={handleCanvasPointerDown}
             onPointerMove={handleCanvasPointerMove}
             onPointerUp={handleCanvasPointerUp}

@@ -344,7 +344,7 @@
 
 /* Side Slot Drawer / Deck */
 .layer-cutter-slot-drawer {
-  width: 220px;
+  width: 250px;
   background: var(--bg-2);
   border-left: 1px solid var(--line);
   display: flex;
@@ -419,17 +419,20 @@
 
 /* Footer Info Bar */
 .layer-cutter-footer {
-  height: 30px;
+  min-height: 34px;
   background: var(--bg-2);
   border-top: 1px solid var(--line-soft);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px;
+  padding: 4px 12px;
   font-size: 11px;
   color: var(--text-dim);
   flex-shrink: 0;
+  gap: 8px;
+  flex-wrap: wrap;
 }
+
 
 .layer-cutter-footer-hint {
   display: inline-flex;

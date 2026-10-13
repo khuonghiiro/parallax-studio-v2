@@ -7,7 +7,7 @@ export interface ChromaKeySettings {
   previewBackground: 'checkerboard' | 'dark' | 'light'
 }
 
-export type CutToolMode = 'auto' | 'box' | 'lasso' | 'eraser'
+export type CutToolMode = 'auto' | 'box' | 'lasso' | 'eraser' | 'restore'
 
 export interface DetectedIsland {
   id: string
@@ -52,4 +52,7 @@ export interface TemplateSlotPreset {
   category?: string
   description?: string
   slots: TemplateSlotDef[]
+  isCustom?: boolean
+  createdAt?: string
 }
+

@@ -23,8 +23,25 @@ export function computeColorDist(
   const dr = r - kr
   const dg = g - kg
   const db = b - kb
-  // Standard RGB Euclidean distance normalized to 0..100
-  return (Math.sqrt(dr * dr + dg * dg + db * db) / 441.67) * 100
+  const isGreenKey = kg > kr + 20 && kg > kb + 20
+  const isBlueKey = kb > kr + 20 && kb > kg + 20
+
+  if (isGreenKey) {
+    const greenDom = g - Math.max(r, b)
+    const wDist = Math.sqrt(0.25 * dr * dr + 0.6 * dg * dg + 0.15 * db * db)
+    const bonus = greenDom > 15 ? Math.min(25, (greenDom - 15) * 0.6) : 0
+    return Math.max(0, (wDist / 255) * 100 - bonus)
+  }
+
+  if (isBlueKey) {
+    const blueDom = b - Math.max(r, g)
+    const wDist = Math.sqrt(0.2 * dr * dr + 0.2 * dg * dg + 0.6 * db * db)
+    const bonus = blueDom > 15 ? Math.min(25, (blueDom - 15) * 0.6) : 0
+    return Math.max(0, (wDist / 255) * 100 - bonus)
+  }
+
+  // Perceptually weighted Euclidean distance (0..100)
+  return (Math.sqrt(0.299 * dr * dr + 0.587 * dg * dg + 0.114 * db * db) / 255) * 100
 }
 
 export function applyChromaKey(
@@ -60,11 +77,13 @@ export function applyChromaKey(
     if (dist <= tol) {
       data[i + 3] = 0
     } else if (dist < tol + smooth) {
-      const feather = (dist - tol) / smooth
+      const t = Math.max(0, Math.min(1, (dist - tol) / smooth))
+      // Smoothstep interpolation for soft anti-aliased edge
+      const feather = t * t * (3 - 2 * t)
       data[i + 3] = Math.round(a * feather)
       if (settings.despill) {
-        if (isGreenKey) data[i + 1] = Math.min(g, Math.round((r + b) / 2))
-        else if (isBlueKey) data[i + 2] = Math.min(b, Math.round((r + g) / 2))
+        if (isGreenKey && g > (r + b) / 2) data[i + 1] = Math.min(g, Math.round((r + b) / 2))
+        else if (isBlueKey && b > (r + g) / 2) data[i + 2] = Math.min(b, Math.round((r + g) / 2))
       }
     } else if (settings.despill) {
       if (isGreenKey && g > Math.max(r, b)) {
@@ -85,15 +104,15 @@ export function detectOpaqueIslands(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  minArea = 80
+  minArea = 100
 ): DetectedIsland[] {
   const imgData = ctx.getImageData(0, 0, width, height)
   const data = imgData.data
   const visited = new Uint8Array(width * height)
   const islands: DetectedIsland[] = []
 
-  // Bước nhảy scan lưới để phát hiện mầm nhanh
-  const step = 4
+  // Bước nhảy scan lưới để phát hiện mầm nhanh và chính xác
+  const step = 2
 
   for (let sy = 0; sy < height; sy += step) {
     for (let sx = 0; sx < width; sx += step) {
@@ -135,8 +154,8 @@ export function detectOpaqueIslands(
 
       const w = maxX - minX + 1
       const h = maxY - minY + 1
-      if (area >= minArea && w >= 10 && h >= 10) {
-        // Mở rộng viền 2px để không bị cắt xém
+      if (area >= minArea && w >= 12 && h >= 12) {
+        // Mở rộng viền 2px để bảo toàn đường nét chi tiết
         const paddedMinX = Math.max(0, minX - 2)
         const paddedMinY = Math.max(0, minY - 2)
         const paddedMaxX = Math.min(width - 1, maxX + 2)
@@ -163,24 +182,74 @@ export function detectOpaqueIslands(
         other.y <= isl.y &&
         other.x + other.width >= isl.x + isl.width &&
         other.y + other.height >= isl.y + isl.height &&
-        other.area > isl.area * 1.5
+        other.area > isl.area * 1.4
       )
     })
   })
 
-  // Đặt nhãn gợi ý theo vị trí tương đối
-  const centerY = height / 2
-  return filtered.map((isl, idx) => {
-    let label = `Mảnh #${idx + 1}`
-    if (isl.y + isl.height < centerY * 0.7) {
-      label = isl.width > isl.height ? 'Tóc / Nón' : 'Đầu / Mặt'
-    } else if (isl.y > centerY * 1.1) {
-      label = 'Chân / Bàn chân'
-    } else {
-      label = isl.width > isl.height * 1.2 ? 'Thân áo' : 'Cánh tay'
-    }
-    return { ...isl, label }
+  // Sắp xếp các mảnh tự nhiên theo thứ tự hàng trên -> dưới, cột trái -> phải
+  filtered.sort((a, b) => {
+    const rowA = Math.floor(a.y / 60)
+    const rowB = Math.floor(b.y / 60)
+    if (rowA !== rowB) return rowA - rowB
+    return a.x - b.x
   })
+
+  // Đặt nhãn rõ ràng, chuẩn xác không gán nhãn giải phẫu đoán mò
+  return filtered.map((isl, idx) => ({
+    ...isl,
+    label: `Mảnh #${idx + 1} (${isl.width}×${isl.height})`
+  }))
+}
+
+/**
+ * Áp dụng cọ tẩy (xóa viền xanh còn sót) hoặc cọ khôi phục (lấy lại pixel gốc)
+ */
+export function applyBrushToCanvas(
+  targetCtx: CanvasRenderingContext2D,
+  rawCtx: CanvasRenderingContext2D,
+  centerX: number,
+  centerY: number,
+  radius: number,
+  isEraser: boolean
+): void {
+  const r = Math.max(2, Math.round(radius))
+  const startX = Math.max(0, centerX - r)
+  const startY = Math.max(0, centerY - r)
+  const w = Math.min(targetCtx.canvas.width - startX, r * 2)
+  const h = Math.min(targetCtx.canvas.height - startY, r * 2)
+  if (w <= 0 || h <= 0) return
+
+  const targetData = targetCtx.getImageData(startX, startY, w, h)
+  const rawData = isEraser ? null : rawCtx.getImageData(startX, startY, w, h)
+
+  const tdata = targetData.data
+  const rdata = rawData?.data
+
+  const rSq = r * r
+
+  for (let py = 0; py < h; py++) {
+    const dy = startY + py - centerY
+    for (let px = 0; px < w; px++) {
+      const dx = startX + px - centerX
+      const distSq = dx * dx + dy * dy
+      if (distSq <= rSq) {
+        const idx = (py * w + px) * 4
+        if (isEraser) {
+          // Xóa pixel về trong suốt
+          tdata[idx + 3] = 0
+        } else if (rdata) {
+          // Khôi phục pixel gốc nguyên bản
+          tdata[idx] = rdata[idx]
+          tdata[idx + 1] = rdata[idx + 1]
+          tdata[idx + 2] = rdata[idx + 2]
+          tdata[idx + 3] = rdata[idx + 3]
+        }
+      }
+    }
+  }
+
+  targetCtx.putImageData(targetData, startX, startY)
 }
 
 /**
@@ -213,3 +282,4 @@ export function extractRegionDataUrl(
   tctx.drawImage(sourceCanvas, box.x, box.y, w, h, 0, 0, w, h)
   return temp.toDataURL('image/png')
 }
+

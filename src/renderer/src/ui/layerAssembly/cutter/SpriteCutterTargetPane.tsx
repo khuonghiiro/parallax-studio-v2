@@ -1,7 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import type { AssembledLayerItem, LayerComposite } from '../types'
 import type { CutPiece, TemplateSlotDef, TemplateSlotPreset } from './types'
-import { SLOT_PRESETS } from './slotPresets'
+import {
+  getAllPresets,
+  deleteCustomPreset,
+  exportPresetJson,
+  importPresetJson
+} from './slotPresets'
+import { SaveTemplateDialog } from './SaveTemplateDialog'
+import { AssembledPartsDrawer } from './AssembledPartsDrawer'
 import { IconLayers, IconTrash, IconPlus, IconCheck } from '../../icons'
 import { CustomSelect } from '../../controls/CustomSelect'
 
@@ -26,17 +33,26 @@ export function SpriteCutterTargetPane({
   onDeleteLayer,
   onClearAllLayers
 }: SpriteCutterTargetPaneProps) {
+  // Freeform mode by default per user request
+  const [useTemplate, setUseTemplate] = useState<boolean>(false)
   const [activePresetId, setActivePresetId] = useState<string>('humanoid_anime')
   const [showSlots, setShowSlots] = useState<boolean>(true)
+  const [presetsList, setPresetsList] = useState<TemplateSlotPreset[]>(() => getAllPresets())
+  const [showSaveDialog, setShowSaveDialog] = useState<boolean>(false)
+
   const [dragOverSlotId, setDragOverSlotId] = useState<string | null>(null)
   const [isDragOverCanvas, setIsDragOverCanvas] = useState<boolean>(false)
   const [mouseCanvasPos, setMouseCanvasPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
 
+  const boardRef = useRef<HTMLDivElement | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
   // Active slot preset
   const activePreset: TemplateSlotPreset =
-    SLOT_PRESETS.find((p) => p.id === activePresetId) || SLOT_PRESETS[0]
+    presetsList.find((p) => p.id === activePresetId) || presetsList[0]
 
-  const boardRef = useRef<HTMLDivElement | null>(null)
+  // Currently selected layer
+  const currentSelectedLayer = composite.layers.find((l) => l.id === selectedLayerId) || null
 
   // Convert client pointer event to board coordinates (center is 0,0)
   const getBoardCoords = useCallback((clientX: number, clientY: number) => {
@@ -122,7 +138,6 @@ export function SpriteCutterTargetPane({
 
     if (!piece) return
 
-    // Find if a layer already corresponds to this slot
     const existing = composite.layers.find(
       (l) => l.name.toLowerCase().includes(slot.name.toLowerCase()) || l.id === slot.id
     )
@@ -199,14 +214,71 @@ export function SpriteCutterTargetPane({
     }
   }
 
+  // Custom template operations
+  const handleTemplateSaved = (newPreset: TemplateSlotPreset) => {
+    const updated = getAllPresets()
+    setPresetsList(updated)
+    setActivePresetId(newPreset.id)
+    setUseTemplate(true)
+  }
+
+  const handleDeleteActivePreset = () => {
+    if (!activePreset.isCustom) return
+    deleteCustomPreset(activePreset.id)
+    const updated = getAllPresets()
+    setPresetsList(updated)
+    setActivePresetId(updated[0]?.id || 'humanoid_anime')
+  }
+
+  const handleExportPreset = () => {
+    const json = exportPresetJson(activePreset)
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${activePreset.name.replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1EA0-\u1EF9-]/g, '_')}_template.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleImportPresetFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        const text = ev.target?.result as string
+        if (text) {
+          const imported = importPresetJson(text)
+          const updated = getAllPresets()
+          setPresetsList(updated)
+          setActivePresetId(imported.id)
+          setUseTemplate(true)
+        }
+      } catch (err) {
+        alert(`Không thể nạp file mẫu: ${err instanceof Error ? err.message : String(err)}`)
+      }
+    }
+    reader.readAsText(file)
+  }
+
   return (
     <div className="layer-cutter-pane">
+      {/* Save Template Modal */}
+      {showSaveDialog && (
+        <SaveTemplateDialog
+          layers={composite.layers}
+          onClose={() => setShowSaveDialog(false)}
+          onSaved={handleTemplateSaved}
+        />
+      )}
+
       {/* Pane Header */}
       <div className="layer-cutter-header">
         <div className="layer-cutter-title">
           <IconLayers width={14} height={14} />
-          <strong>Khung mẫu & Bố cục 2D</strong>
-          <span className="layer-cutter-badge">{composite.layers.length} lớp</span>
+          <strong>Bố cục lắp ráp 2D</strong>
+          <span className="layer-cutter-badge">{composite.layers.length} bộ phận</span>
         </div>
         <div className="layer-cutter-actions">
           {onClearAllLayers && composite.layers.length > 0 && (
@@ -222,34 +294,116 @@ export function SpriteCutterTargetPane({
         </div>
       </div>
 
-      {/* Preset Toolbar */}
+      {/* Toolbar */}
       <div className="layer-cutter-toolbar">
-        <div style={{ width: 220 }}>
-          <CustomSelect<string>
-            size="sm"
-            value={activePresetId}
-            onChange={(val: string) => setActivePresetId(val)}
-            options={SLOT_PRESETS.map((p) => ({ value: p.id, label: p.name }))}
-          />
+        {/* Mode Toggle: Tự do vs Dùng khuôn mẫu */}
+        <div className="layer-cutter-tool-group">
+          <button
+            id="btn-mode-freeform"
+            type="button"
+            className={`layer-cutter-tool-btn ${!useTemplate ? 'active' : ''}`}
+            onClick={() => setUseTemplate(false)}
+            title="Chế độ Tự do: Thoải mái đặt vị trí và tự đặt tên cho bộ phận"
+          >
+            Chế độ tự do
+          </button>
+          <button
+            id="btn-mode-template"
+            type="button"
+            className={`layer-cutter-tool-btn ${useTemplate ? 'active' : ''}`}
+            onClick={() => setUseTemplate(true)}
+            title="Dùng khuôn mẫu: Bật các ô khung định vị vị trí có sẵn"
+          >
+            Dùng khuôn mẫu
+          </button>
         </div>
 
-        <label className="layer-cutter-control-row" style={{ cursor: 'pointer', marginLeft: 6 }}>
+        {/* When useTemplate is ON: Preset selector and slots toggle */}
+        {useTemplate && (
+          <>
+            <div style={{ width: 220 }}>
+              <CustomSelect<string>
+                size="sm"
+                value={activePresetId}
+                onChange={(val: string) => setActivePresetId(val)}
+                options={presetsList.map((p) => ({
+                  value: p.id,
+                  label: `${p.isCustom ? '⭐ ' : ''}${p.name}`
+                }))}
+              />
+            </div>
+
+            <label className="layer-cutter-control-row" style={{ cursor: 'pointer', marginLeft: 4 }}>
+              <input
+                type="checkbox"
+                checked={showSlots}
+                onChange={(e) => setShowSlots(e.target.checked)}
+              />
+              <span>Hiện khung</span>
+            </label>
+
+            {activePreset.isCustom && (
+              <button
+                type="button"
+                className="btn sm icon"
+                style={{ color: '#ef4444', height: 24, padding: '0 6px' }}
+                title="Xóa mẫu tùy chỉnh này"
+                onClick={handleDeleteActivePreset}
+              >
+                <IconTrash width={12} height={12} />
+              </button>
+            )}
+          </>
+        )}
+
+        {/* Save Template Button & Export/Import */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: useTemplate ? 0 : 8 }}>
+          <button
+            type="button"
+            className="btn sm"
+            disabled={composite.layers.length === 0}
+            onClick={() => setShowSaveDialog(true)}
+            title="Lưu bố cục và tên bộ phận hiện tại thành Khuôn mẫu mới để sau ghép nhanh hơn"
+          >
+            💾 Lưu thành mẫu mới
+          </button>
+
+          {useTemplate && (
+            <button
+              type="button"
+              className="btn sm"
+              onClick={handleExportPreset}
+              title="Xuất file JSON khuôn mẫu này"
+            >
+              Xuất JSON
+            </button>
+          )}
+
           <input
-            type="checkbox"
-            checked={showSlots}
-            onChange={(e) => setShowSlots(e.target.checked)}
+            type="file"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            accept=".json,application/json"
+            onChange={handleImportPresetFile}
           />
-          <span>Hiện khung mẫu gợi ý</span>
-        </label>
+          <button
+            type="button"
+            className="btn sm"
+            onClick={() => fileInputRef.current?.click()}
+            title="Nhập file JSON khuôn mẫu từ máy tính"
+          >
+            Nhập JSON
+          </button>
+        </div>
 
         <span style={{ marginLeft: 'auto', color: 'var(--text-faint)', fontSize: 11 }}>
           Tọa độ chuột: ({mouseCanvasPos.x}, {mouseCanvasPos.y})
         </span>
       </div>
 
-      {/* Target Container: Canvas + Side Slot Drawer */}
+      {/* Target Container: Canvas + Side Drawer */}
       <div className="layer-cutter-target-container">
-        {/* 2D Canvas Area */}
+        {/* 2D Canvas Viewport */}
         <div className="layer-cutter-target-viewport">
           <div
             ref={boardRef}
@@ -267,7 +421,7 @@ export function SpriteCutterTargetPane({
                 top: '50%',
                 width: 1,
                 height: '100%',
-                background: 'rgba(255, 255, 255, 0.04)',
+                background: 'rgba(255, 255, 255, 0.05)',
                 transform: 'translateY(-50%)',
                 pointerEvents: 'none'
               }}
@@ -279,14 +433,15 @@ export function SpriteCutterTargetPane({
                 top: '50%',
                 width: '100%',
                 height: 1,
-                background: 'rgba(255, 255, 255, 0.04)',
+                background: 'rgba(255, 255, 255, 0.05)',
                 transform: 'translateX(-50%)',
                 pointerEvents: 'none'
               }}
             />
 
-            {/* Template Slot Wireframe Overlays */}
-            {showSlots &&
+            {/* Template Slot Wireframe Overlays (ONLY WHEN useTemplate IS ACTIVE) */}
+            {useTemplate &&
+              showSlots &&
               activePreset.slots.map((slot) => {
                 const isOver = dragOverSlotId === slot.id
                 const isFilled = composite.layers.some(
@@ -362,11 +517,19 @@ export function SpriteCutterTargetPane({
           </div>
         </div>
 
-        {/* Side Slot Deck / Drawer */}
-        {activePreset.slots.length > 0 && (
+        {/* Right Side Drawer: AssembledPartsDrawer in Freeform mode, or Slots Drawer in Template mode */}
+        {!useTemplate ? (
+          <AssembledPartsDrawer
+            layers={composite.layers}
+            selectedLayerId={selectedLayerId}
+            onSelectLayer={onSelectLayer}
+            onUpdateLayer={onUpdateLayer}
+            onDeleteLayer={onDeleteLayer}
+          />
+        ) : (
           <div className="layer-cutter-slot-drawer">
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-dim)', marginBottom: 4 }}>
-              Danh mục bộ phận ({activePreset.slots.length})
+              Khung mẫu ({activePreset.slots.length})
             </div>
             {activePreset.slots.map((slot) => {
               const matchedLayer = composite.layers.find(
@@ -437,21 +600,62 @@ export function SpriteCutterTargetPane({
         )}
       </div>
 
-      {/* Footer Info */}
+      {/* Footer Info & Transform Controls for Selected Layer */}
       <div className="layer-cutter-footer">
-        <div>
-          {selectedLayerId ? (
+        {currentSelectedLayer ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <span>
-              <strong>Lớp đang chọn:</strong>{' '}
-              {composite.layers.find((l) => l.id === selectedLayerId)?.name}
+              <strong>Lớp:</strong> {currentSelectedLayer.name}
             </span>
-          ) : (
+
+            <div className="layer-cutter-control-row">
+              <span>Thu phóng:</span>
+              <input
+                type="range"
+                min={0.2}
+                max={3.0}
+                step={0.05}
+                value={currentSelectedLayer.scale}
+                onChange={(e) => onUpdateLayer(currentSelectedLayer.id, { scale: Number(e.target.value) })}
+              />
+              <span>{Math.round(currentSelectedLayer.scale * 100)}%</span>
+            </div>
+
+            <div className="layer-cutter-control-row">
+              <span>Góc xoay:</span>
+              <input
+                type="range"
+                min={-180}
+                max={180}
+                step={1}
+                value={currentSelectedLayer.rotation}
+                onChange={(e) => onUpdateLayer(currentSelectedLayer.id, { rotation: Number(e.target.value) })}
+              />
+              <span>{currentSelectedLayer.rotation}°</span>
+            </div>
+
+            <div className="layer-cutter-control-row">
+              <span>Độ sâu Z:</span>
+              <input
+                type="range"
+                min={-40}
+                max={40}
+                step={1}
+                value={currentSelectedLayer.z || 0}
+                onChange={(e) => onUpdateLayer(currentSelectedLayer.id, { z: Number(e.target.value) })}
+              />
+              <span>{currentSelectedLayer.z || 0}</span>
+            </div>
+          </div>
+        ) : (
+          <div>
             <span style={{ color: 'var(--text-faint)' }}>
-              Click lớp để di chuyển · Kéo từ trái sang để thả ảnh
+              Click lớp để di chuyển/tinh chỉnh · Kéo từ trái sang hoặc <kbd>Ctrl+V</kbd> để dán ảnh
             </span>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginLeft: 'auto' }}>
           <span className="layer-cutter-footer-hint">
             Dán tại chuột: <kbd>Ctrl+V</kbd>
           </span>
