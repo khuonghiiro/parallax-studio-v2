@@ -26,6 +26,10 @@ interface ViewPrefs {
   showRotate: boolean
   /** Layer position and rotation telemetry readout (P 0 / 0 / ... · R 0° / 0° / ...). */
   showReadout: boolean
+  /** Whether the left sidebar (Assets / Shots / Library) is expanded. */
+  leftPanelOpen: boolean
+  /** Whether the right sidebar (Inspector / Layer / Camera properties) is expanded. */
+  rightPanelOpen: boolean
 }
 
 export interface FocusRequest {
@@ -48,6 +52,10 @@ export interface ViewState extends ViewPrefs {
   unlockAi(): void
   set(p: Partial<ViewPrefs>): void
   toggleTheme(): void
+  toggleLeftPanel(): void
+  toggleRightPanel(): void
+  setLeftPanelOpen(open: boolean): void
+  setRightPanelOpen(open: boolean): void
   openDialog(d: ViewState['dialog']): void
   openAudioDialog(mode?: 'levels' | 'waveform'): void
   openAssemblyWorkshop(model: Model3D): void
@@ -83,7 +91,9 @@ function load(): ViewPrefs {
     showBbox: true,
     showTranslate: true,
     showRotate: true,
-    showReadout: true
+    showReadout: true,
+    leftPanelOpen: true,
+    rightPanelOpen: true
   }
   try {
     const raw = localStorage.getItem(KEY)
@@ -95,7 +105,9 @@ function load(): ViewPrefs {
         showBbox: typeof parsed.showBbox === 'boolean' ? parsed.showBbox : d.showBbox,
         showTranslate: typeof parsed.showTranslate === 'boolean' ? parsed.showTranslate : d.showTranslate,
         showRotate: typeof parsed.showRotate === 'boolean' ? parsed.showRotate : d.showRotate,
-        showReadout: typeof parsed.showReadout === 'boolean' ? parsed.showReadout : d.showReadout
+        showReadout: typeof parsed.showReadout === 'boolean' ? parsed.showReadout : d.showReadout,
+        leftPanelOpen: typeof parsed.leftPanelOpen === 'boolean' ? parsed.leftPanelOpen : d.leftPanelOpen,
+        rightPanelOpen: typeof parsed.rightPanelOpen === 'boolean' ? parsed.rightPanelOpen : d.rightPanelOpen
       }
       applyTheme(res.theme)
       return res
@@ -142,6 +154,18 @@ export const useView = create<ViewState>((set, get) => ({
     const next: Theme = get().theme === 'light' ? 'dark' : 'light'
     get().set({ theme: next })
   },
+  toggleLeftPanel() {
+    get().set({ leftPanelOpen: !get().leftPanelOpen })
+  },
+  toggleRightPanel() {
+    get().set({ rightPanelOpen: !get().rightPanelOpen })
+  },
+  setLeftPanelOpen(open) {
+    get().set({ leftPanelOpen: open })
+  },
+  setRightPanelOpen(open) {
+    get().set({ rightPanelOpen: open })
+  },
   set(p) {
     if (p.theme) applyTheme(p.theme)
     set(p)
@@ -156,7 +180,9 @@ export const useView = create<ViewState>((set, get) => ({
       showBbox,
       showTranslate,
       showRotate,
-      showReadout
+      showReadout,
+      leftPanelOpen,
+      rightPanelOpen
     } = get()
     localStorage.setItem(
       KEY,
@@ -171,7 +197,9 @@ export const useView = create<ViewState>((set, get) => ({
         showBbox,
         showTranslate,
         showRotate,
-        showReadout
+        showReadout,
+        leftPanelOpen,
+        rightPanelOpen
       })
     )
   },

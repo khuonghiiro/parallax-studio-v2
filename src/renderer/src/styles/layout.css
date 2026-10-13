@@ -60,17 +60,29 @@ textarea:focus {
 /* Master Grid Layout */
 .app {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) 8px min(45dvh, var(--timeline-h, clamp(160px, 30dvh, 420px)));
-  grid-template-columns: var(--workspace-left) minmax(0, 1fr) var(--workspace-right);
+  grid-template-rows: auto minmax(0, 1fr) 6px var(--timeline-h, clamp(140px, 28vh, 320px));
+  grid-template-columns: var(--workspace-left, 270px) minmax(340px, 1fr) var(--workspace-right, 290px);
   grid-template-areas:
     'top top top'
     'left view right'
     'split split split'
     'time time time';
   height: 100dvh;
+  width: 100vw;
   background: var(--bg-0);
   gap: 0;
   overflow: hidden;
+}
+
+/* Collapsible Sidebars */
+.app.left-collapsed {
+  grid-template-columns: 0px minmax(340px, 1fr) var(--workspace-right, 290px);
+}
+.app.right-collapsed {
+  grid-template-columns: var(--workspace-left, 270px) minmax(340px, 1fr) 0px;
+}
+.app.left-collapsed.right-collapsed {
+  grid-template-columns: 0px 1fr 0px;
 }
 
 .toolbar {
@@ -78,16 +90,38 @@ textarea:focus {
 }
 .left {
   grid-area: left;
-  min-width: 320px;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.app.left-collapsed > .left {
+  display: none !important;
 }
 .viewer-wrap {
   grid-area: view;
+  min-width: 320px;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .right {
   grid-area: right;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.app.right-collapsed > .right {
+  display: none !important;
 }
 .timeline {
   grid-area: time;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Horizontal Panel Splitter */

@@ -43,7 +43,13 @@ export function useShortcuts(onExport: () => void): void {
         else if (k === 't') addTextLayer()
         else if (k === 'd') duplicateSelectedLayer()
         else if (k === 'm') onExport()
-        else return
+        else if (k === 'b' && !e.altKey) {
+          useView.getState().toggleLeftPanel()
+          toast(useView.getState().leftPanelOpen ? 'Đã mở Panel Trái' : 'Đã thu gọn Panel Trái')
+        } else if (k === 'b' && e.altKey) {
+          useView.getState().toggleRightPanel()
+          toast(useView.getState().rightPanelOpen ? 'Đã mở Inspector Phải' : 'Đã thu gọn Inspector Phải')
+        } else return
         e.preventDefault()
         return
       }

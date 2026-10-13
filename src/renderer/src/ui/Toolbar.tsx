@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   addGroundLayer,
   addMistLayer,
@@ -18,7 +18,6 @@ import type { McpStatus } from '@shared/ipc'
 import { useEditor } from '../store/editor'
 import { useView } from '../store/view'
 import {
-  IconChevronDown,
   IconExport,
   IconFile,
   IconFolder,
@@ -35,7 +34,9 @@ import {
   IconPlug,
   IconSun,
   IconMoon,
-  IconSettings
+  IconSettings,
+  IconSidebarLeft,
+  IconSidebarRight
 } from './icons'
 
 import { Menu } from './controls'
@@ -99,15 +100,42 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
   const fileName = filePath ? filePath.split(/[\\/]/).pop() : 'Chưa lưu'
 
   const theme = useView((s) => s.theme)
+  const leftPanelOpen = useView((s) => s.leftPanelOpen)
+  const rightPanelOpen = useView((s) => s.rightPanelOpen)
+  const toggleLeftPanel = useView((s) => s.toggleLeftPanel)
+  const toggleRightPanel = useView((s) => s.toggleRightPanel)
 
   return (
     <header className="toolbar">
-      <div className="brand">
+      <div className="brand" title="Parallax Studio — 2.5D Motion Workspace">
         <div className="brand-logo" />
         <div className="brand-name">
           Parallax Studio
           <small>2.5D motion</small>
         </div>
+      </div>
+
+      <div className="btn-group tb-panel-toggles">
+        <button
+          id="toggle-left-panel"
+          type="button"
+          className={`btn ghost icon tb-btn-toggle ${leftPanelOpen ? 'active' : ''}`}
+          title={leftPanelOpen ? 'Ẩn Panel Trái (Tài nguyên & Cảnh) · Ctrl+B' : 'Hiện Panel Trái (Tài nguyên & Cảnh) · Ctrl+B'}
+          onClick={toggleLeftPanel}
+          aria-pressed={leftPanelOpen}
+        >
+          <IconSidebarLeft width={15} height={15} />
+        </button>
+        <button
+          id="toggle-right-panel"
+          type="button"
+          className={`btn ghost icon tb-btn-toggle ${rightPanelOpen ? 'active' : ''}`}
+          title={rightPanelOpen ? 'Ẩn Inspector Phải (Thuộc tính) · Ctrl+Alt+B' : 'Hiện Inspector Phải (Thuộc tính) · Ctrl+Alt+B'}
+          onClick={toggleRightPanel}
+          aria-pressed={rightPanelOpen}
+        >
+          <IconSidebarRight width={15} height={15} />
+        </button>
       </div>
 
       <Menu id="menu-file" label="File" icon={<IconFile />}>

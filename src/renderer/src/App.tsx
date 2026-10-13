@@ -20,18 +20,18 @@ import { Toolbar } from './ui/Toolbar'
 import { Viewer } from './ui/Viewer'
 import { usePerformance } from './store/performance'
 import { TimelineSplitter } from './ui/workspace/TimelineSplitter'
-import { WorkspaceNavigation, type WorkspacePanel } from './ui/workspace/WorkspaceNavigation'
 
 export default function App() {
   const [ready, setReady] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [timelineH, setTimelineH] = useState<number | undefined>()
-  const [workspacePanel, setWorkspacePanel] = useState<WorkspacePanel>('viewer')
   const toast = useToast((s) => s.message)
   const dialog = useView((s) => s.dialog)
   const assemblyModalModel = useView((s) => s.assemblyModalModel)
   const closeAssemblyWorkshop = useView((s) => s.closeAssemblyWorkshop)
+  const leftPanelOpen = useView((s) => s.leftPanelOpen)
+  const rightPanelOpen = useView((s) => s.rightPanelOpen)
   const openExport = useCallback(() => {
     useEditor.getState().setPlaying(false)
     setExporting(true)
@@ -83,9 +83,8 @@ export default function App() {
 
   return (
     <div
-      className={`app ${theme}${dragOver ? ' dropzone-active' : ''}${aiActive || aiLocked ? ' ai-active' : ''}`}
+      className={`app ${theme}${dragOver ? ' dropzone-active' : ''}${aiActive || aiLocked ? ' ai-active' : ''}${!leftPanelOpen ? ' left-collapsed' : ''}${!rightPanelOpen ? ' right-collapsed' : ''}`}
       data-theme={theme}
-      data-workspace-panel={workspacePanel}
       style={{ ['--timeline-h' as string]: timelineH === undefined ? undefined : `${timelineH}px` }}
       onDragOver={(e) => {
         e.preventDefault()
@@ -103,7 +102,6 @@ export default function App() {
       }}
     >
       <Toolbar onExport={openExport} />
-      <WorkspaceNavigation active={workspacePanel} onChange={setWorkspacePanel} />
       <LeftPanel />
       <div className="viewer-wrap" id="workspace-viewer">
         <Viewer />

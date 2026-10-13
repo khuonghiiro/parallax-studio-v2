@@ -1,39 +1,25 @@
 /* ==========================================================================
-   Responsive Workspace: High-density Pro Creative Desktop Layout
-   Adheres to Adobe / DCC creative workstation standards
+   Responsive Workspace: Bootstrap 5 Creative Desktop Layout
+   Proportional Grid, Collapsible Sidebars & High-Density UI
    ========================================================================== */
 
-/* By default, Parallax Studio is a 3-panel professional editing workspace */
-.workspace-navigation {
-  display: none !important;
-}
-
-/* Master 3-Panel Layout: Left Panel, Center Viewer, Right Panel, Bottom Timeline */
-.app {
-  display: grid;
-  grid-template-columns: var(--workspace-left, clamp(210px, 20vw, 300px)) minmax(0, 1fr) var(--workspace-right, clamp(230px, 22vw, 320px));
-  grid-template-rows: auto minmax(0, 1fr) 4px var(--timeline-h, clamp(140px, 28vh, 320px));
-  grid-template-areas:
-    'top top top'
-    'left view right'
-    'split split split'
-    'time time time';
-  height: 100dvh;
-  width: 100vw;
-  background: var(--bg-0);
-  gap: 0;
-  overflow: hidden;
-}
-
+/* Left and Right docked panels & Center Viewer */
 .app > .left,
 .app > .right,
 .app > .viewer-wrap {
-  display: flex !important;
   min-width: 0;
   min-height: 0;
 }
 
-/* Toolbar: Sleek 34px-36px single row */
+/* Ensure collapsed panels never take space or show */
+.app.left-collapsed > .left {
+  display: none !important;
+}
+.app.right-collapsed > .right {
+  display: none !important;
+}
+
+/* Toolbar: Bootstrap 5 Slate Pro single-row layout */
 .toolbar {
   height: 34px;
   min-height: 34px;
@@ -50,22 +36,57 @@
 .toolbar > :not(.tb-spacer, .doc-title) {
   flex-shrink: 0;
 }
+
+/* Sidebar Toggle Buttons Button-Group on Toolbar */
+.tb-panel-toggles {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1px;
+  gap: 1px;
+}
+.tb-panel-toggles .tb-btn-toggle {
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(var(--radius) - 1px);
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  transition: all 0.15s ease-in-out;
+}
+.tb-panel-toggles .tb-btn-toggle:hover {
+  color: var(--text);
+  background: var(--bg-3);
+}
+.tb-panel-toggles .tb-btn-toggle.active {
+  color: var(--accent-cyan);
+  background: rgba(31, 111, 235, 0.22);
+}
+
 .toolbar .btn,
 .toolbar .tb-btn-save,
 .toolbar .tb-btn-icon {
   height: 24px;
   font-size: var(--font-sm);
-  padding: 0 7px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  transition: all 0.15s ease-in-out;
 }
 .toolbar .btn.icon,
 .toolbar .tb-btn-icon {
-  width: 24px;
+  width: 26px;
   padding: 0;
 }
 .toolbar .brand {
   font-size: var(--font-sm);
   gap: 6px;
-  margin-right: 6px;
+  margin-right: 4px;
   white-space: nowrap;
 }
 .toolbar .brand-logo {
@@ -77,6 +98,7 @@
   min-height: 22px;
   font-size: var(--font-xs);
   padding: 0 6px;
+  border-radius: var(--radius);
 }
 
 .doc-title {
@@ -113,15 +135,16 @@
   border-bottom: 1px solid var(--line);
 }
 .timeline-toolbar .tl-play-btn {
-  height: 22px;
-  width: 26px;
+  height: 24px;
+  width: 28px;
   padding: 0 !important;
 }
 .timeline-toolbar .tl-action-btn {
-  height: 20px;
+  height: 22px;
   font-size: var(--font-xs);
-  padding: 0 5px !important;
+  padding: 0 6px !important;
   gap: 3px;
+  border-radius: var(--radius-sm);
 }
 .timecode {
   font-size: var(--font-xs);
@@ -139,16 +162,19 @@
   top: 8px;
   left: 8px;
   height: 24px;
-  padding: 0 4px;
+  padding: 0 6px;
+  gap: 6px;
+  display: flex;
+  align-items: center;
   background: var(--hud-bg);
   border: 1px solid var(--hud-border);
-  border-radius: var(--radius-sm);
-  backdrop-filter: blur(10px);
+  border-radius: var(--radius);
+  backdrop-filter: blur(8px);
   z-index: 15;
 }
 .viewer-hud .hud-item {
   height: 18px;
-  padding: 0 5px;
+  padding: 0 4px;
   font-size: var(--font-xs);
   font-family: var(--mono);
 }
@@ -157,12 +183,14 @@
   top: 8px;
   right: 8px;
   height: 24px;
-  padding: 0 3px;
-  gap: 2px;
+  padding: 0 4px;
+  gap: 3px;
+  display: flex;
+  align-items: center;
   background: var(--hud-bg);
   border: 1px solid var(--hud-border);
-  border-radius: var(--radius-sm);
-  backdrop-filter: blur(10px);
+  border-radius: var(--radius);
+  backdrop-filter: blur(8px);
   z-index: 15;
 }
 .viewer-tool-btn,
@@ -178,100 +206,22 @@
   font-size: var(--font-xs);
 }
 
-/* ------------------------------------------------------------------ High-DPI Display Scaling Optimization */
-/* Windows 10/11 Scaling (150%, 175%, 200%, 250% on 1920x1080 / 4K) */
-@media (-webkit-min-device-pixel-ratio: 1.5), (min-resolution: 144dpi) {
+/* ------------------------------------------------------------------ Bootstrap Breakpoints */
+
+/* Bootstrap XXL / XL (>= 1200px): Full desktop creative workstation */
+@media (min-width: 1200px) {
   :root {
-    --font-xs: 9px;
-    --font-sm: 10px;
-    --font-body: 10.5px;
-    --font-md: 11.5px;
-    --font-lg: 13px;
-    --font-xl: 15px;
-    --control-h: 21px;
-    --control-sm-h: 17px;
-    --workspace-left: clamp(190px, 24vw, 240px);
-    --workspace-right: clamp(210px, 26vw, 260px);
-  }
-  .toolbar {
-    height: 30px;
-    min-height: 30px;
-  }
-  .toolbar .btn,
-  .toolbar .tb-btn-save,
-  .toolbar .tb-btn-icon {
-    height: 21px;
-    font-size: var(--font-sm);
-    padding: 0 6px;
-  }
-  .toolbar .brand-logo {
-    width: 20px;
-    height: 20px;
-  }
-  .mcp-chip {
-    height: 20px;
-    min-height: 20px;
-    font-size: var(--font-xs);
-    padding: 0 5px;
-  }
-  .timeline-toolbar {
-    height: 28px;
-    min-height: 28px;
-    gap: 2px;
-  }
-  .timeline-toolbar .tl-play-btn {
-    height: 19px;
-    width: 23px;
-  }
-  .timeline-toolbar .tl-action-btn {
-    height: 18px;
-    font-size: var(--font-xs);
-    padding: 0 4px !important;
-  }
-  .btn {
-    height: 21px;
-    padding: 0 6px;
-    font-size: var(--font-sm);
-  }
-  .btn.sm {
-    height: 17px;
-    padding: 0 4px;
-    font-size: var(--font-xs);
-  }
-  .btn.icon {
-    width: 21px;
-  }
-  .btn.sm.icon {
-    width: 17px;
-  }
-  .custom-select-trigger {
-    height: 21px;
-    font-size: var(--font-sm);
-  }
-  .custom-select-wrap.sm .custom-select-trigger {
-    height: 17px;
-    font-size: var(--font-xs);
-  }
-  .tab {
-    height: 22px;
-    font-size: var(--font-sm);
-  }
-  .panel-header {
-    height: 24px;
-    font-size: var(--font-sm);
-  }
-  .num {
-    height: 18px;
-    font-size: var(--font-xs);
-  }
-  .row {
-    min-height: 22px;
+    --workspace-left: 270px;
+    --workspace-right: 290px;
   }
 }
 
-/* ------------------------------------------------------------------ Responsive Breakpoints */
-
-@media (max-width: 1399px) {
+/* Bootstrap LG (992px - 1199px) */
+@media (max-width: 1199px) {
+  :root {
+    --workspace-left: 240px;
+    --workspace-right: 260px;
+  }
   .doc-title > span:not(.dirty) {
     display: none;
   }
@@ -280,27 +230,57 @@
   }
 }
 
-@media (max-width: 719px) {
+/* Bootstrap MD (768px - 991px) */
+@media (max-width: 991px) {
+  :root {
+    --workspace-left: 220px;
+    --workspace-right: 240px;
+  }
+  .toolbar {
+    padding: 0 6px;
+    gap: 3px;
+  }
+  .toolbar .brand-name small {
+    display: none;
+  }
+  .mcp-chip-label {
+    display: none;
+  }
+}
+
+/* Bootstrap SM / XS (< 768px): Focused Viewer Mode (Small screen or high OS scale) */
+@media (max-width: 767px) {
+  :root {
+    --workspace-left: 220px;
+    --workspace-right: 220px;
+    --font-xs: 9.5px;
+    --font-sm: 10.5px;
+    --font-body: 11px;
+    --control-h: 22px;
+  }
+
+  /* Critical: When both panels would squeeze viewer below 320px, auto-collapse right inspector */
+  .app:not(.left-collapsed):not(.right-collapsed) {
+    grid-template-columns: var(--workspace-left, 220px) minmax(280px, 1fr) 0px !important;
+  }
+  .app:not(.left-collapsed):not(.right-collapsed) > .right {
+    display: none !important;
+  }
+
+  /* Toolbar styling for narrow screens */
   .toolbar {
     height: 32px;
     min-height: 32px;
     padding: 0 4px;
-    gap: 3px;
-    overflow-x: auto;
-    scrollbar-width: none;
+    gap: 2px;
   }
-  .toolbar::-webkit-scrollbar {
+  .toolbar .brand-name {
     display: none;
   }
   .toolbar .tb-sep,
   .toolbar .doc-title,
-  .mcp-chip-label,
-  .mcp-chip .dot {
+  .toolbar #perf-settings-btn {
     display: none;
-  }
-  .mcp-chip {
-    margin: 0;
-    padding: 0 5px;
   }
   .toolbar .tb-btn-save > span,
   .toolbar #export > span {
@@ -308,102 +288,41 @@
   }
   .toolbar .tb-btn-save,
   .toolbar #export {
-    padding-inline: 5px;
+    padding-inline: 6px;
   }
+
   .timeline-toolbar {
-    gap: 2px;
-    padding-inline: 4px;
     height: 28px;
     min-height: 28px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
-  }
-  .timeline-toolbar::-webkit-scrollbar {
-    display: none;
-  }
-  .timeline-toolbar .tl-toolbar-divider {
-    display: none;
+    padding: 0 4px;
+    gap: 2px;
   }
   .timeline-toolbar .tl-zoom-slider {
-    display: none;
-  }
-  .timecode {
-    font-size: 9.5px;
-    padding: 1px 3px;
-  }
-  .timecode small {
     display: none;
   }
   .tl-action-btn > span {
     display: none;
   }
-  .tl-tool-group {
-    flex-wrap: nowrap;
-    min-width: 0;
-  }
-  .viewer-tool-sep {
+  .timecode small {
     display: none;
-  }
-  .pane-hint {
-    display: none;
-  }
-  .viewer-hud {
-    top: 6px;
-    left: 6px;
-    height: 20px;
-    padding: 0 4px;
-    max-width: 76px;
-    overflow: hidden;
-  }
-  .viewer-hud .hud-sep,
-  .viewer-hud .hud-item:not(:first-child) {
-    display: none;
-  }
-  .viewer-tools {
-    top: 6px;
-    right: 6px;
-    height: 20px;
-    gap: 1px;
-    padding: 0 2px;
-  }
-  .viewer-tool-btn,
-  .seg-btn {
-    height: 16px;
-    font-size: 9.5px;
-  }
-  .viewer-tool-btn.icon {
-    width: 16px;
-  }
-  .viewer-kind-select {
-    height: 16px;
-    font-size: 9.5px;
-    max-width: 72px;
   }
 }
 
+/* Extra small height (< 540px) */
 @media (max-height: 540px) {
   .toolbar {
     height: 28px;
     min-height: 28px;
     padding: 0 4px;
   }
-  .toolbar .btn {
-    height: 19px;
-    font-size: 9.5px;
-    padding: 0 4px;
-  }
-  .toolbar .brand-logo {
-    width: 18px;
-    height: 18px;
+  .toolbar .btn,
+  .toolbar .tb-btn-save,
+  .toolbar .tb-btn-icon {
+    height: 20px;
   }
   .timeline-toolbar {
     height: 26px;
     min-height: 26px;
-  }
-  .viewer-hud .hud-sep:nth-of-type(n+2),
-  .viewer-hud .hud-item:nth-of-type(n+3) {
-    display: none;
   }
 }
 
