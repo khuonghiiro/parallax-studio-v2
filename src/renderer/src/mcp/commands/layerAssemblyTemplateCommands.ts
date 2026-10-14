@@ -3,6 +3,7 @@ import {
   LAYER_TEMPLATE_CATEGORY_TABS,
   findLayerTemplate,
   buildCompositeFromTemplate,
+  buildTemplatePromptWithBrief,
   type LayerTemplateCategory
 } from '../../ui/layerAssembly/templates'
 import {
@@ -70,6 +71,11 @@ export const layerAssemblyTemplateCommands: Record<string, Handler> = {
       )
     }
 
+    const appearance = str(p, 'appearance')
+    const costume = str(p, 'costume')
+    const props = str(p, 'props')
+    const systemPrompt = buildTemplatePromptWithBrief(tpl, { appearance, costume, props })
+
     return {
       id: tpl.id,
       name: tpl.name,
@@ -107,7 +113,7 @@ export const layerAssemblyTemplateCommands: Record<string, Handler> = {
         description: c.description ?? null
       })),
       prompt_guide: {
-        system_prompt: tpl.promptGuide.systemPrompt,
+        system_prompt: systemPrompt,
         cell_layout: tpl.promptGuide.cellLayout,
         user_guide: tpl.promptGuide.userGuide,
         aspect_ratio: tpl.promptGuide.aspectRatio || '1:1',

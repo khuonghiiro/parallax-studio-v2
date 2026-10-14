@@ -108,4 +108,18 @@ describe('layerAssemblyTemplateCommands MCP', () => {
     const headLayer = res.composite.layers.find((l) => l.id.includes('head'))
     expect(headLayer?.assetPath).toBe('my_dog_head.png')
   })
+
+  it('injects custom appearance, costume, and props into get_layer_assembly_template prompt_guide', async () => {
+    const res = (await runCommand('get_layer_assembly_template', {
+      template_id: 'tmpl-character-shadiao-panda',
+      appearance: 'Đầu gấu trúc cười nham hiểm',
+      costume: 'Áo đạo bào tím thêu hạc trắng',
+      props: 'Cầm gạch ống đỏ'
+    })) as {
+      prompt_guide: { system_prompt: string }
+    }
+    expect(res.prompt_guide.system_prompt).toContain('Đầu gấu trúc cười nham hiểm')
+    expect(res.prompt_guide.system_prompt).toContain('Áo đạo bào tím thêu hạc trắng')
+    expect(res.prompt_guide.system_prompt).toContain('Cầm gạch ống đỏ')
+  })
 })

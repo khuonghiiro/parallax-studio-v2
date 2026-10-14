@@ -9,6 +9,7 @@ import { NATURE_PROP_TEMPLATES } from './naturePropTemplates'
 import type { LayerComposite } from '../types'
 
 export * from './layerTemplateTypes'
+export * from './characterPrompt'
 export * from './creatureRigPresets'
 export * from './humanoidTemplates'
 export * from './shadiaoTemplates'

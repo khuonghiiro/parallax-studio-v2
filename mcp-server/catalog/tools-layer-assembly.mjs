@@ -437,13 +437,16 @@ export const LAYER_ASSEMBLY_TOOLS = [
     name: 'get_layer_assembly_template',
     cat: 'layer_assembly',
     doc: L(
-      'Get full configuration of a layer assembly template by ID, including slot coordinates, bone armature, animation clips, and the complete AI generation prompt for sprite atlas cutouts.',
-      'Lấy cấu hình chi tiết một mẫu lắp ráp layer theo ID, gồm danh sách slot bộ phận, khung xương rig, các hoạt ảnh chuyển động và toàn văn prompt tạo ảnh sprite atlas chuẩn AI.'
+      'Get full configuration of a layer assembly template by ID, including slot coordinates, bone armature, animation clips, and the complete AI generation prompt for sprite atlas cutouts (optionally customized with user appearance, costume and props descriptions).',
+      'Lấy cấu hình chi tiết một mẫu lắp ráp layer theo ID, gồm danh sách slot bộ phận, khung xương rig, các hoạt ảnh chuyển động và toàn văn prompt tạo ảnh sprite atlas chuẩn AI (hỗ trợ gắn kèm mô tả tướng mạo, quần áo và phụ kiện tùy chỉnh).'
     ),
     shape: (d) => ({
-      template_id: z.string().describe(d('Template ID from list_layer_assembly_templates (e.g. "tmpl-character-male-hero", "tmpl-animal-dog").', 'ID mẫu từ list_layer_assembly_templates (vd "tmpl-character-male-hero", "tmpl-animal-dog").'))
+      template_id: z.string().describe(d('Template ID from list_layer_assembly_templates (e.g. "tmpl-character-shadiao-panda", "tmpl-character-male-hero").', 'ID mẫu từ list_layer_assembly_templates (vd "tmpl-character-shadiao-panda", "tmpl-character-male-hero").')),
+      appearance: z.string().optional().describe(d('Custom character appearance, facial expression, or hairstyle to inject into the AI prompt.', 'Mô tả tướng mạo, khuôn mặt, kiểu tóc hoặc biểu cảm nhân vật để gắn vào prompt AI.')),
+      costume: z.string().optional().describe(d('Custom outfit, clothing, robe, armor, or footwear to inject into the AI prompt.', 'Mô tả quần áo, trang phục, đạo bào hoặc giày dép để gắn vào prompt AI.')),
+      props: z.string().optional().describe(d('Custom accessories, headwear, glasses, beard, mask, or handheld weapon to inject into the AI prompt.', 'Mô tả phụ kiện hoá trang (mũ, kính, râu, mặt nạ) hoặc vũ khí cầm tay để gắn vào prompt AI.'))
     }),
-    example: '{"template_id":"tmpl-character-male-hero"}'
+    example: '{"template_id":"tmpl-character-shadiao-panda","appearance":"Đầu gấu trúc meme cười nham hiểm","costume":"Hoàng bào rồng vàng cổ trang"}'
   },
   {
     name: 'apply_layer_assembly_template',

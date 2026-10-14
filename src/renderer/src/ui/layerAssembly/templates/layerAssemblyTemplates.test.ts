@@ -161,4 +161,21 @@ describe('Layer Assembly Templates Catalog', () => {
       }
     }
   })
+
+  it('merges user character appearance, costume, and props into the AI prompt and cell assignments', async () => {
+    const { buildTemplatePromptWithBrief } = await import('./characterPrompt')
+    const tmpl = findLayerTemplate('tmpl-character-shadiao-panda')!
+    const customPrompt = buildTemplatePromptWithBrief(tmpl, {
+      appearance: 'Đầu gấu trúc meme mắt lé cười đểu',
+      costume: 'Hoàng bào rồng vàng cổ trang và hài thêu rồng',
+      props: 'Cầm quạt xếp thiết phiến và đeo kính đen'
+    })
+    expect(customPrompt).toContain('USER CHARACTER & COSTUME SPECIFICATION')
+    expect(customPrompt).toContain('Đầu gấu trúc meme mắt lé cười đểu')
+    expect(customPrompt).toContain('Hoàng bào rồng vàng cổ trang và hài thêu rồng')
+    expect(customPrompt).toContain('Cầm quạt xếp thiết phiến và đeo kính đen')
+    expect(customPrompt).toContain('Match user appearance/face/hair: "Đầu gấu trúc meme mắt lé cười đểu"')
+    expect(customPrompt).toContain('Draw wearing user\'s described outfit/clothing: "Hoàng bào rồng vàng cổ trang và hài thêu rồng"')
+    expect(customPrompt).toContain('Match user\'s described accessory/prop: "Cầm quạt xếp thiết phiến và đeo kính đen"')
+  })
 })

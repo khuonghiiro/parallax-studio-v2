@@ -141,6 +141,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
 
   // Floating Modals & Workshops (Never include full-screen backdrop/overlay here)
   dialog: [
+    '.tpm-modal',
     '.layer-workshop-dialog',
     '.lat-dialog',
     '.assembly-modal-content',
@@ -166,7 +167,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   assembly_hud: ['.assembly-3d-hud-container'],
 
   // 2. Xưởng Layer 2.5D (Layer Assembly Workshop) - Toàn bộ & Từng cột
-  layer_assembly: ['.layer-workshop-dialog', '.lat-dialog'],
+  layer_assembly: ['.tpm-modal', '.layer-workshop-dialog', '.lat-dialog'],
   layer_assembly_sidebar: ['.layer-workshop-sidebar'],
   layer_assembly_workspace: ['.lw-workspace-column'],
   layer_assembly_inspector: ['.lw-right-panel'],
