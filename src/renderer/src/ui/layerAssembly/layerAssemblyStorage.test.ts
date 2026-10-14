@@ -46,7 +46,17 @@ describe('Layer Assembly Workshop Storage System', () => {
     expect(tree).toBeDefined()
     expect(tree?.name).toContain('Cây Đại Thụ Bóc Tách')
     expect(tree?.category).toBe('nature')
-    expect(tree?.layers.length).toBe(11)
+    expect(tree?.layers.length).toBe(16)
+    const appleAssets = new Set(
+      tree?.layers.filter((l) => l.id.startsWith('tree-fruits')).map((l) => l.assetPath)
+    )
+    expect(appleAssets).toEqual(
+      new Set([
+        'nature_modular/tree_fruits_apples.png',
+        'nature_modular/tree_fruit_apple_tilt_left.png',
+        'nature_modular/tree_fruit_apple_tilt_right.png'
+      ])
+    )
 
     const rock = list.find((c) => c.id === 'comp-modular-rock')
     expect(rock).toBeDefined()

@@ -176,7 +176,10 @@ describe('Layer Assembly Templates Catalog', () => {
     const treePrompt = treeTmpl.promptGuide.systemPrompt
     expect(treePrompt).toContain('PURE 4-CORNER UNCLIPPED EARTHEN & MOSSY GRASS MOUND (NO TREE ROOTS OR WOODEN STUMP)')
     expect(treePrompt).toContain('COMPLETE OAK TRUNK, UPPER BRANCHES & SPRAWLING GNARLED ROOT SYSTEM IN ONE UNIFIED PIECE')
-    expect(treePrompt).toContain('ISOLATED SINGLE RIPE RED APPLE SPRITE (FOR FREE STACKING & CUSTOM CLUSTERING)')
+    expect(treePrompt).toContain('ONE 100% continuous hand-painted wooden artwork')
+    expect(treePrompt).toContain('ISOLATED SINGLE RIPE RED APPLE SPRITE (FOR FREE STACKING & CUSTOM CLUSTERING — POSE: UPRIGHT FRONT-FACING')
+    expect(treePrompt).toContain('POSE: TILTED LEFT')
+    expect(treePrompt).toContain('POSE: TILTED RIGHT / DOWNWARD')
     expect(treePrompt).toContain('CANOPY-CONFORMING BLOSSOM CLUSTERS OVERLAY (SEAMLESS FOLIAGE FIT, NO BUSH STEMS)')
     expect(treePrompt).toContain('ZERO EDGE CLIPPING — FULL 4-CORNER SILHOUETTES')
 
