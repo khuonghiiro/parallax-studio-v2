@@ -265,8 +265,14 @@ export function buildAlphaTrimmedGeometry(
 
   let silhouette: Silhouette | null = null
   if (autoTrimAlpha && image) {
-    // Dynamic alpha trimming: when an image is loaded, dynamically hug THAT image's alpha outline!
-    silhouette = getImageSilhouette(image)
+    // Dynamic alpha trimming: when an image has alpha cutout, hug its outline; if fully opaque rectangle on a polygon face, keep presetPolygon!
+    const imgSil = getImageSilhouette(image)
+    const isFullOpaqueRect = imgSil.loops.length === 1 && imgSil.loops[0].area >= 0.985
+    if (isFullOpaqueRect && presetPolygon && presetPolygon.length >= 3) {
+      silhouette = silhouetteFromPolygon(presetPolygon, 'uv')
+    } else {
+      silhouette = imgSil
+    }
   } else if (presetPolygon && presetPolygon.length >= 3) {
     // Fallback outline preview when no image is loaded yet
     silhouette = silhouetteFromPolygon(presetPolygon, 'uv')

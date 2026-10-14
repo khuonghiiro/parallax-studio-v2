@@ -185,3 +185,10 @@ export function initMcp(onActivity?: (method: string, ok: boolean) => void): () 
 if (typeof window !== 'undefined' && (window as unknown as McpWin).__pxsMcpUnsub) {
   initMcp()
 }
+
+if (import.meta.hot) {
+  import.meta.hot.accept(() => {
+    initMcp()
+  })
+}
+

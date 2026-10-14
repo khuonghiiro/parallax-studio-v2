@@ -21,15 +21,16 @@ async function captureWebContents(wc: Electron.WebContents, opts: McpCaptureOpti
   } catch {
     /* ignore */
   }
-  const rect = opts.rect
-    ? {
-        x: Math.max(0, Math.round(opts.rect.x)),
-        y: Math.max(0, Math.round(opts.rect.y)),
-        width: Math.max(1, Math.round(opts.rect.width)),
-        height: Math.max(1, Math.round(opts.rect.height))
-      }
-    : undefined
-  const img = await wc.capturePage(rect, { stayHidden: true })
+  const fullImg = await wc.capturePage(undefined, { stayHidden: true })
+  const fullSize = fullImg.getSize()
+  let img = fullImg
+  if (opts.rect && fullSize.width > 0 && fullSize.height > 0) {
+    const x = Math.max(0, Math.min(fullSize.width - 1, Math.round(opts.rect.x)))
+    const y = Math.max(0, Math.min(fullSize.height - 1, Math.round(opts.rect.y)))
+    const w = Math.max(1, Math.min(fullSize.width - x, Math.round(opts.rect.width)))
+    const h = Math.max(1, Math.min(fullSize.height - y, Math.round(opts.rect.height)))
+    img = fullImg.crop({ x, y, width: w, height: h })
+  }
   const full = img.getSize()
   const width = Math.max(64, Math.min(full.width, Math.round(opts.width ?? full.width)))
   const out = width < full.width ? img.resize({ width, quality: 'good' }) : img

@@ -56,10 +56,10 @@ export const DECOR_PARTS: AssemblyTemplate[] = [
     en: { label: 'Bay window', hint: '3 glass panels bulging outward + top cap + bottom' },
     faces: () => [
       face('Kính giữa', 200, 240, [0, 0, -90], FRONT),
-      aroundY('Kính trái', 127, 240, -45, [-145, 0, -45]),
-      aroundY('Kính phải', 127, 240, 45, [145, 0, -45]),
-      face('Mái trên', 380, 90, [0, 120, -45], UP, AWAY),
-      face('Đáy', 380, 90, [0, -120, -45], DOWN, [0, 0, -1])
+      aroundY('Kính trái', 120, 240, -45, [-142, 0, -42]),
+      aroundY('Kính phải', 120, 240, 45, [142, 0, -42]),
+      face('Mái trên', 360, 90, [0, 120, -45], UP, AWAY),
+      face('Đáy', 360, 90, [0, -120, -45], DOWN, [0, 0, -1])
     ]
   },
   {
@@ -136,8 +136,8 @@ export const DECOR_PARTS: AssemblyTemplate[] = [
     faces: () => [
       ...offset(prefixed('Bồn', boxFaces(260, 70, 60, { top: false, back: false })), [0, 0, -60]),
       face('Bồn · Dưới', 260, 60, [0, -35, -30], DOWN, [0, 0, -1]),
-      face('Mặt đất', 250, 55, [0, 25, -30], UP, AWAY),
-      face('Hoa lớp trước', 280, 110, [0, 80, -45], FRONT),
+      face('Mặt đất', 250, 50, [0, 25, -30], UP, AWAY),
+      face('Hoa lớp trước', 260, 130, [0, 80, -45], FRONT),
       face('Hoa lớp sau', 280, 140, [0, 95, -15], FRONT)
     ]
   },

@@ -10,6 +10,8 @@ import {
   requestOpenLayerAssembly
 } from '../../ui/layerAssembly/layerAssemblyBridge'
 import { saveComposite } from '../../ui/layerAssembly/layerAssemblyStorage'
+import { clearTextureCache } from '../../ui/assets/models3d/textureResolver'
+import { clear3DLayerTextureCache } from '../../ui/layerAssembly/layerAssembly3DMesh'
 import { ParamError, type Handler } from '../types'
 import { str, bool, toPlain } from '../params'
 
@@ -143,6 +145,9 @@ export const layerAssemblyTemplateCommands: Record<string, Handler> = {
         resolvedImages[slot.id] = match
       }
     }
+
+    clearTextureCache()
+    clear3DLayerTextureCache()
 
     const composite = buildCompositeFromTemplate(tpl, resolvedImages, name)
 

@@ -1,5 +1,136 @@
 import { createTemplateComposite } from './templateBuilder'
 import type { LayerAssemblyTemplate } from './layerTemplateTypes'
+import { RUINS_FIREFLIES_ART } from './animalTemplateArtwork'
+
+// ---------------------------------------------------------------------------
+// 0A. Cây Đại Thụ Bóc Tách 7 Lớp — Đổi Tán Lá Xanh / Lá Vàng / Hoa / Quả
+// ---------------------------------------------------------------------------
+
+export const TMPL_NATURE_MODULAR_TREE: LayerAssemblyTemplate = {
+  id: 'tmpl-nature-modular-tree',
+  name: 'Cây Đại Thụ Bóc Tách (Đổi Tán Lá Xanh / Vàng / Hoa / Quả)',
+  nameEn: 'Modular Canopy Tree (Swappable Green/Gold Leaves, Flowers & Fruits)',
+  category: 'nature',
+  ageGroup: 'plant',
+  description: 'Cây cổ thụ 2.5D bóc tách 7 layer độc lập: Gốc rễ rêu phong, Thân gỗ & Cành nhánh, 3 tầng Tán lá (dễ dàng đổi từ tán lá xanh sang tán lá vàng mùa thu hoặc hoa anh đào), kèm Layer Hoa nở và Layer Quả táo đỏ có thể bật/tắt tuỳ ý.',
+  descriptionEn: '7-layer modular tree with roots, trunk & branches, 3 depth-layered foliage canopies (swappable between green, autumn gold, and sakura), plus toggleable blossom and red apple fruit layers.',
+  width: 550,
+  height: 600,
+  slots: [
+    { id: 'tree-roots', name: '1. Gốc rễ & Thảm cỏ rêu (Đế tĩnh)', nameEn: 'Tree Roots & Mossy Ground', role: 'base', atlasCell: 1, defaultTransform: { x: 0, y: 150, z: -5, scale: 0.72, rotation: 0 }, defaultMotion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }, suggestedAsset: 'nature_modular/tree_roots_moss.png', description: 'Gốc rễ bám đất và thảm cỏ rêu cố định dưới mặt đất' },
+    { id: 'tree-foliage-back', name: '2. Tán lá hậu cảnh (Đổi Xanh / Vàng)', nameEn: 'Background Canopy (Green/Gold)', role: 'back-foliage', atlasCell: 2, defaultTransform: { x: 0, y: -62, z: 35, scale: 1.15, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.75, amplitude: 3.5, anchor: 'bottom', phaseOffset: 0.25 }, suggestedAsset: 'nature_modular/tree_foliage_back_green.png', description: 'Tán lá lớp sau cùng (Z=+35). Có thể đổi sang tree_foliage_back_gold.png' },
+    { id: 'tree-trunk', name: '3. Thân gỗ đại thụ & Cành nhánh', nameEn: 'Main Trunk & Branches', role: 'trunk', atlasCell: 3, defaultTransform: { x: 0, y: 46, z: 12, scale: 0.78, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.6, amplitude: 1.8, anchor: 'bottom', phaseOffset: 0.05 }, suggestedAsset: 'nature_modular/tree_trunk_branches.png', description: 'Thân cây gỗ sồi và các nhánh lớn vươn lên đỡ tán lá' },
+    { id: 'tree-foliage-mid', name: '4. Tán lá trung cảnh (Đổi Xanh / Vàng / Sakura)', nameEn: 'Midground Canopy (Green/Gold/Sakura)', role: 'mid-foliage', atlasCell: 4, defaultTransform: { x: 0, y: -74, z: -5, scale: 1.05, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.85, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.15 }, suggestedAsset: 'nature_modular/tree_foliage_mid_green.png', description: 'Tán lá chính giữa (dễ dàng đổi sang tree_foliage_mid_gold.png hoặc tree_foliage_mid_sakura.png)' },
+    { id: 'tree-foliage-front', name: '5. Tán lá tiền cảnh đón nắng (Đổi Xanh / Vàng)', nameEn: 'Foreground Sunlit Canopy', role: 'front-foliage', atlasCell: 5, defaultTransform: { x: 0, y: -102, z: -25, scale: 0.88, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.95, amplitude: 5.5, anchor: 'bottom', phaseOffset: 0.4 }, suggestedAsset: 'nature_modular/tree_foliage_front_green.png', description: 'Tán lá non phía trước đón nắng (có thể đổi sang tree_foliage_front_gold.png)' },
+    { id: 'tree-blossoms', name: '6. Layer Hoa nở trắng hồng (Bật/Tắt)', nameEn: 'Blossom Flowers Overlay', role: 'flowers', atlasCell: 6, defaultTransform: { x: 0, y: -78, z: -35, scale: 0.88, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.95, amplitude: 5.5, anchor: 'bottom', phaseOffset: 0.42 }, suggestedAsset: 'nature_modular/tree_blossoms_cluster.png', description: 'Chùm hoa nở trên tán cây — có thể ẩn đi nếu chỉ muốn cây lá thuần túy' },
+    { id: 'tree-fruits', name: '7. Layer Quả táo đỏ chín mọng (Bật/Tắt)', nameEn: 'Red Apples Fruit Overlay', role: 'fruits', atlasCell: 7, defaultTransform: { x: 0, y: -55, z: -42, scale: 0.68, rotation: 0 }, defaultMotion: { type: 'rocking', speed: 1.1, amplitude: 4.0, anchor: 'top', phaseOffset: 0.5 }, suggestedAsset: 'nature_modular/tree_fruits_apples.png', description: 'Chùm quả táo đỏ đung đưa trên cành — có thể ẩn/hiện tuỳ mùa' }
+  ],
+  bones: [],
+  clips: [],
+  activeClipId: '',
+  promptGuide: {
+    systemPrompt: `Create ONE high-resolution 4096x4096 MODULAR TREE SPRITE ATLAS for 2.5D parallax animation.
+IDENTITY: Stylized 2D animated lush oak/fruit tree with swappable seasonal canopy layers.
+BACKGROUND: Flat solid green #00FF00 or magenta #FF00FF chroma-key background.
+CELLS:
+1. Tree roots and mossy grass ground base
+2. Bare wooden trunk with spreading main branches (no leaves baked on trunk)
+3. Background dark foliage canopy silhouette (Green or Autumn Gold)
+4. Midground main leafy canopy cluster (Green, Autumn Gold, or Pink Sakura)
+5. Foreground sunlit leaf clusters (Green or Bright Gold)
+6. Isolated flower blossoms cluster overlay (fits over canopy)
+7. Isolated hanging red apples / fruits overlay (fits over canopy)
+CRITICAL: Keep trunk, foliage canopies, flowers, and fruits completely separated in their own cells so the animator can swap green leaves for golden autumn leaves or toggle flowers/fruits on and off.`,
+    cellLayout: [
+      '1. Gốc rễ & thảm cỏ',
+      '2. Tán lá hậu cảnh (Xanh/Vàng)',
+      '3. Thân gỗ & cành nhánh',
+      '4. Tán lá trung cảnh (Xanh/Vàng/Sakura)',
+      '5. Tán lá tiền cảnh (Xanh/Vàng)',
+      '6. Chùm hoa nở tách rời',
+      '7. Chùm quả chín tách rời'
+    ],
+    userGuide: 'Thiết kế bóc tách chuẩn Studio: Khi muốn đổi cây mùa xuân/hạ sang cây mùa thu lá vàng, bạn chỉ cần chọn 3 layer Tán lá và đổi ảnh sang bộ Tán Lá Vàng (tree_foliage_*_gold.png) trong mục Cây cối & Đá bóc tách, hoặc ẩn/hiện layer Hoa và Quả chỉ với 1 cú nhấp chuột.'
+  },
+  buildComposite: (images, name) => createTemplateComposite(TMPL_NATURE_MODULAR_TREE, images, name)
+}
+
+// ---------------------------------------------------------------------------
+// 0B. Cây Đại Thụ Mùa Thu — Tán Lá Vàng Rực & Quả Chín (Biến thể đổi sẵn)
+// ---------------------------------------------------------------------------
+
+export const TMPL_NATURE_AUTUMN_TREE: LayerAssemblyTemplate = {
+  id: 'tmpl-nature-autumn-tree',
+  name: 'Cây Đại Thụ Mùa Thu (Tán Lá Vàng Cam & Quả Chín)',
+  nameEn: 'Autumn Golden Tree (Swapped Gold Canopy & Fruits)',
+  category: 'nature',
+  ageGroup: 'plant',
+  description: 'Biến thể mùa thu của Cây Đại Thụ Bóc Tách: giữ nguyên gốc rễ và thân cành nhưng thay 3 lớp tán lá xanh bằng 3 lớp tán lá vàng cam rực rỡ kèm quả chín.',
+  descriptionEn: 'Autumn variant using the exact same modular trunk and roots paired with golden-amber foliage layers and ripe fruits.',
+  width: 550,
+  height: 600,
+  slots: [
+    { id: 'tree-roots', name: '1. Gốc rễ & Thảm cỏ rêu', nameEn: 'Tree Roots & Mossy Ground', role: 'base', atlasCell: 1, defaultTransform: { x: 0, y: 150, z: -5, scale: 0.72, rotation: 0 }, defaultMotion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }, suggestedAsset: 'nature_modular/tree_roots_moss.png', description: 'Gốc rễ bám đất cố định' },
+    { id: 'tree-foliage-back', name: '2. Tán lá vàng hậu cảnh (Z=+35)', nameEn: 'Autumn Back Canopy', role: 'back-foliage', atlasCell: 2, defaultTransform: { x: 0, y: -62, z: 35, scale: 1.15, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.75, amplitude: 3.5, anchor: 'bottom', phaseOffset: 0.25 }, suggestedAsset: 'nature_modular/tree_foliage_back_gold.png', description: 'Tán lá cam sẫm phía sau' },
+    { id: 'tree-trunk', name: '3. Thân gỗ đại thụ & Cành nhánh', nameEn: 'Main Trunk & Branches', role: 'trunk', atlasCell: 3, defaultTransform: { x: 0, y: 46, z: 12, scale: 0.78, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.6, amplitude: 1.8, anchor: 'bottom', phaseOffset: 0.05 }, suggestedAsset: 'nature_modular/tree_trunk_branches.png', description: 'Thân cây gỗ sồi và cành lớn' },
+    { id: 'tree-foliage-mid', name: '4. Tán lá vàng trung cảnh (Z=-5)', nameEn: 'Autumn Mid Canopy', role: 'mid-foliage', atlasCell: 4, defaultTransform: { x: 0, y: -74, z: -5, scale: 1.05, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.85, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.15 }, suggestedAsset: 'nature_modular/tree_foliage_mid_gold.png', description: 'Tán lá vàng hổ phách trung cảnh' },
+    { id: 'tree-foliage-front', name: '5. Tán lá vàng tiền cảnh (Z=-25)', nameEn: 'Autumn Front Canopy', role: 'front-foliage', atlasCell: 5, defaultTransform: { x: 0, y: -102, z: -25, scale: 0.88, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.95, amplitude: 5.5, anchor: 'bottom', phaseOffset: 0.4 }, suggestedAsset: 'nature_modular/tree_foliage_front_gold.png', description: 'Tán lá vàng tươi đón nắng thu' },
+    { id: 'tree-fruits', name: '6. Layer Quả táo đỏ mùa thu', nameEn: 'Ripe Red Apples', role: 'fruits', atlasCell: 6, defaultTransform: { x: 0, y: -55, z: -38, scale: 0.68, rotation: 0 }, defaultMotion: { type: 'rocking', speed: 1.1, amplitude: 4.0, anchor: 'top', phaseOffset: 0.5 }, suggestedAsset: 'nature_modular/tree_fruits_apples.png', description: 'Chùm quả chín mọng trên tán lá vàng' }
+  ],
+  bones: [],
+  clips: [],
+  activeClipId: '',
+  promptGuide: TMPL_NATURE_MODULAR_TREE.promptGuide,
+  buildComposite: (images, name) => createTemplateComposite(TMPL_NATURE_AUTUMN_TREE, images, name)
+}
+
+// ---------------------------------------------------------------------------
+// 0C. Cụm Đá Rêu Phong & Tinh Thể Bóc Tách — Đổi Rêu Xanh / Tuyết Phủ
+// ---------------------------------------------------------------------------
+
+export const TMPL_NATURE_MODULAR_ROCK: LayerAssemblyTemplate = {
+  id: 'tmpl-nature-modular-rock',
+  name: 'Cụm Đá Rêu Phong & Tinh Thể Bóc Tách (Đổi Rêu / Tuyết)',
+  nameEn: 'Modular Boulder, Moss/Snow Cap & Glowing Crystals',
+  category: 'nature',
+  ageGroup: 'plant',
+  description: 'Cụm đá tảng thiên nhiên bóc tách 6 layer: Đế đất cỏ, Cụm tinh thể phát sáng hậu cảnh, Khối đá tảng chính, Lớp phủ đỉnh đá (đổi giữa Rêu xanh hoặc Tuyết trắng), Đá cuội tiền cảnh và Khóm hoa dại.',
+  descriptionEn: '6-layer modular rock formation with ground base, glowing crystals, main boulder, swappable moss/snow cap, front pebbles, and wildflowers.',
+  width: 500,
+  height: 460,
+  slots: [
+    { id: 'rock-ground', name: '1. Đế đất & Thảm cỏ chân đá', nameEn: 'Ground Soil & Grass Base', role: 'base', atlasCell: 1, defaultTransform: { x: 0, y: 105, z: 15, scale: 0.98, rotation: 0 }, defaultMotion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }, suggestedAsset: 'nature_modular/rock_base_ground.png', description: 'Nền đất và cỏ dưới chân cụm đá' },
+    { id: 'rock-crystals', name: '2. Cụm tinh thể phát sáng (Bật/Tắt)', nameEn: 'Glowing Cyan Crystals', role: 'vfx', atlasCell: 2, defaultTransform: { x: 62, y: -32, z: 18, scale: 0.78, rotation: 0 }, defaultMotion: { type: 'breathe', speed: 1.2, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.2 }, suggestedAsset: 'nature_modular/rock_crystal_glow.png', description: 'Tinh thể năng lượng mọc sau tảng đá — có thể ẩn đi nếu làm đá thường' },
+    { id: 'rock-main', name: '3. Khối đá tảng chính góc cạnh', nameEn: 'Main Faceted Boulder', role: 'body', atlasCell: 3, defaultTransform: { x: 0, y: 18, z: 0, scale: 0.88, rotation: 0 }, defaultMotion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }, suggestedAsset: 'nature_modular/rock_boulder_main.png', description: 'Tảng đá lớn trung tâm' },
+    { id: 'rock-cap', name: '4. Lớp phủ đỉnh đá (Đổi Rêu xanh / Tuyết trắng)', nameEn: 'Swappable Moss or Snow Cap', role: 'cap', atlasCell: 4, defaultTransform: { x: 0, y: -54, z: -8, scale: 0.82, rotation: 0 }, defaultMotion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }, suggestedAsset: 'nature_modular/rock_moss_cap.png', description: 'Lớp rêu xanh phủ mặt trên tảng đá — đổi sang rock_snow_cap.png để biến thành cảnh mùa đông' },
+    { id: 'rock-pebbles', name: '5. Cụm đá cuội tiền cảnh (Z=-20)', nameEn: 'Foreground Pebbles & Stones', role: 'front', atlasCell: 5, defaultTransform: { x: -28, y: 82, z: -20, scale: 0.72, rotation: 0 }, defaultMotion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }, suggestedAsset: 'nature_modular/rock_stones_front.png', description: 'Các viên đá nhỏ xếp lớp phía trước tạo chiều sâu 2.5D' },
+    { id: 'rock-flowers', name: '6. Khóm hoa dại & Dương xỉ đung đưa', nameEn: 'Swaying Wildflowers & Ferns', role: 'flowers', atlasCell: 6, defaultTransform: { x: 36, y: 68, z: -28, scale: 0.58, rotation: 0 }, defaultMotion: { type: 'sway', speed: 1.1, amplitude: 6.0, anchor: 'bottom', phaseOffset: 0.3 }, suggestedAsset: 'nature_modular/rock_wildflowers.png', description: 'Hoa dại mọc ven chân đá đung đưa theo gió' }
+  ],
+  bones: [],
+  clips: [],
+  activeClipId: '',
+  promptGuide: {
+    systemPrompt: `Create ONE high-resolution 4096x4096 MODULAR ROCK & ENVIRONMENT SPRITE ATLAS for 2.5D parallax scene building.
+BACKGROUND: Flat solid green #00FF00 chroma-key background.
+CELLS:
+1. Earthy ground mound and grass base
+2. Glowing cyan magic crystal cluster (optional back attachment)
+3. Large stylized faceted stone boulder (bare rock without moss)
+4. Swappable top surface cap (Lush green moss cap OR winter white snow cap fitting the boulder top)
+5. Smaller foreground stones and pebbles cluster
+6. Wildflowers and fern fronds cluster for foreground base`,
+    cellLayout: [
+      '1. Đế đất & cỏ',
+      '2. Tinh thể phát sáng',
+      '3. Tảng đá chính',
+      '4. Lớp phủ Rêu xanh / Tuyết trắng',
+      '5. Đá cuội tiền cảnh',
+      '6. Hoa dại & dương xỉ'
+    ],
+    userGuide: 'Bạn có thể đổi nhanh giữa đá rêu rừng nhiệt đới (rock_moss_cap.png) và đá phủ tuyết mùa đông (rock_snow_cap.png), hoặc bật/tắt cụm tinh thể phát sáng chỉ bằng 1 thao tác.'
+  },
+  buildComposite: (images, name) => createTemplateComposite(TMPL_NATURE_MODULAR_ROCK, images, name)
+}
 
 // ---------------------------------------------------------------------------
 // 1. Cây Bonsai Cổ Thụ Đung Đưa 5 Lớp (Nature)
@@ -58,10 +189,10 @@ export const TMPL_NATURE_FLOWER: LayerAssemblyTemplate = {
   width: 500,
   height: 500,
   slots: [
-    { id: 'grass-base', name: 'Bụi cỏ xanh nền sau', nameEn: 'Background Grass Clump', role: 'base', atlasCell: 1, defaultTransform: { x: 0, y: 80, z: 20, scale: 1.1, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.8, amplitude: 8, anchor: 'bottom', phaseOffset: 0.1 }, suggestedAsset: 'assembly_3d/modular/nature_grass.png', description: 'Cụm cỏ nền phía sau' },
-    { id: 'flower-stem', name: 'Thân cành hoa uốn lượn', nameEn: 'Curved Flower Stem', role: 'stem', atlasCell: 2, defaultTransform: { x: -10, y: 10, z: 5, scale: 1.0, rotation: 0 }, defaultMotion: { type: 'sway', speed: 1.1, amplitude: 12, anchor: 'bottom', phaseOffset: 0.3 }, suggestedAsset: 'assembly_3d/modular/nature_flower_stem.png', description: 'Cành hoa dẻo dai' },
-    { id: 'flower-petal', name: 'Cánh hoa đỏ tươi xòe nở', nameEn: 'Red Blossom Petals', role: 'petals', atlasCell: 3, defaultTransform: { x: -5, y: -110, z: -18, scale: 0.95, rotation: 2 }, defaultMotion: { type: 'rocking', speed: 1.4, amplitude: 20, anchor: 'center', phaseOffset: 0.6 }, suggestedAsset: 'assembly_3d/modular/nature_flower_petal.png', description: 'Các cánh hoa đỏ bồng bềnh' },
-    { id: 'flower-center', name: 'Nhụy hoa vàng rực rỡ', nameEn: 'Golden Flower Center', role: 'center', atlasCell: 4, defaultTransform: { x: -5, y: -110, z: -25, scale: 0.85, rotation: 0 }, defaultMotion: { type: 'breathe', speed: 1.2, amplitude: 8, anchor: 'center', phaseOffset: 0.4 }, suggestedAsset: 'assembly_3d/modular/nature_flower_center.png', description: 'Nhụy hoa trung tâm nhấp nhô' }
+    { id: 'grass-base', name: 'Bụi cỏ xanh nền sau', nameEn: 'Background Grass Clump', role: 'base', atlasCell: 1, defaultTransform: { x: 0, y: 95, z: 20, scale: 0.85, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.8, amplitude: 8, anchor: 'bottom', phaseOffset: 0.1 }, suggestedAsset: 'assembly_3d/modular/nature_grass.png', description: 'Cụm cỏ nền phía sau' },
+    { id: 'flower-stem', name: 'Thân cành hoa uốn lượn', nameEn: 'Curved Flower Stem', role: 'stem', atlasCell: 2, defaultTransform: { x: 0, y: 15, z: 5, scale: 0.65, rotation: 0 }, defaultMotion: { type: 'sway', speed: 1.1, amplitude: 12, anchor: 'bottom', phaseOffset: 0.3 }, suggestedAsset: 'assembly_3d/modular/nature_flower_stem.png', description: 'Cành hoa dẻo dai' },
+    { id: 'flower-petal', name: 'Cánh hoa đỏ tươi xòe nở', nameEn: 'Red Blossom Petals', role: 'petals', atlasCell: 3, defaultTransform: { x: 4, y: -88, z: -18, scale: 0.56, rotation: 2 }, defaultMotion: { type: 'rocking', speed: 1.4, amplitude: 20, anchor: 'center', phaseOffset: 0.6 }, suggestedAsset: 'assembly_3d/modular/nature_flower_corolla.png', description: 'Các cánh hoa đỏ bồng bềnh' },
+    { id: 'flower-center', name: 'Nhụy hoa vàng rực rỡ', nameEn: 'Golden Flower Center', role: 'center', atlasCell: 4, defaultTransform: { x: 4, y: -88, z: -25, scale: 0.22, rotation: 0 }, defaultMotion: { type: 'breathe', speed: 1.2, amplitude: 8, anchor: 'center', phaseOffset: 0.4 }, suggestedAsset: 'assembly_3d/modular/nature_flower_center.png', description: 'Nhụy hoa trung tâm nhấp nhô' }
   ],
   bones: [],
   clips: [],
@@ -98,7 +229,7 @@ export const TMPL_ARCH_WINDOW: LayerAssemblyTemplate = {
   slots: [
     { id: 'window-frame', name: 'Khung cửa sổ Tudor cổ điển', nameEn: 'Wooden Window Frame', role: 'frame', atlasCell: 1, defaultTransform: { x: 0, y: -40, z: 15, scale: 1.0, rotation: 0 }, defaultMotion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }, suggestedAsset: 'assembly_3d/modular/decor_window.png', description: 'Khung cửa kính chia ô Tudor' },
     { id: 'flower-box', name: 'Hộp hoa ban công rực rỡ', nameEn: 'Balcony Flower Box', role: 'decor', atlasCell: 2, defaultTransform: { x: 0, y: 80, z: -5, scale: 1.05, rotation: 0 }, defaultMotion: { type: 'breathe', speed: 1.0, amplitude: 5, anchor: 'bottom', phaseOffset: 0.2 }, suggestedAsset: 'assembly_3d/modular/decor_flower_box.png', description: 'Bồn hoa ban công gỗ trồng hoa phong lữ' },
-    { id: 'green-leaf', name: 'Nhánh lá cây rung rinh', nameEn: 'Swaying Vine Leaves', role: 'nature', atlasCell: 3, defaultTransform: { x: 90, y: 40, z: -18, scale: 0.8, rotation: 25 }, defaultMotion: { type: 'sway', speed: 1.3, amplitude: 16, anchor: 'bottom', phaseOffset: 0.5 }, suggestedAsset: 'assembly_3d/modular/nature_leaf.png', description: 'Dây lá vươn ngoài bồn hoa đung đưa' }
+    { id: 'green-leaf', name: 'Nhánh lá cây rung rinh', nameEn: 'Swaying Vine Leaves', role: 'nature', atlasCell: 3, defaultTransform: { x: 118, y: 65, z: -18, scale: 0.34, rotation: 32 }, defaultMotion: { type: 'sway', speed: 1.3, amplitude: 16, anchor: 'bottom', phaseOffset: 0.5 }, suggestedAsset: 'assembly_3d/modular/nature_leaf.png', description: 'Dây lá vươn ngoài bồn hoa đung đưa' }
   ],
   bones: [],
   clips: [],
@@ -134,7 +265,7 @@ export const TMPL_ARCH_RUINS: LayerAssemblyTemplate = {
   slots: [
     { id: 'ruins-gate', name: 'Cổng đá tàn tích cổ rêu phong', nameEn: 'Ancient Stone Portal', role: 'gate', atlasCell: 1, defaultTransform: { x: 0, y: 40, z: 15, scale: 1.0, rotation: 0 }, defaultMotion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }, suggestedAsset: 'demo_transparent/layer4_ancient_ruins.png', description: 'Vách cổng vòm đá cổ kính' },
     { id: 'vines-front', name: 'Dây leo rủ tiền cảnh (Z=-20)', nameEn: 'Hanging Foreground Vines', role: 'vines', atlasCell: 2, defaultTransform: { x: 0, y: -60, z: -20, scale: 1.05, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.9, amplitude: 18, anchor: 'top', phaseOffset: 0.1 }, suggestedAsset: 'demo_transparent/layer5_foreground_vines.png', description: 'Dây leo xanh đung đưa đỉnh cổng' },
-    { id: 'fireflies', name: 'Đom đóm lấp lánh huyền ảo', nameEn: 'Sparkling Fireflies', role: 'vfx', atlasCell: 3, defaultTransform: { x: -30, y: -30, z: -35, scale: 1.2, rotation: 0 }, defaultMotion: { type: 'float', speed: 1.2, amplitude: 14, anchor: 'center', phaseOffset: 0.5 }, description: 'Hiệu ứng hạt đom đóm lơ lửng' }
+    { id: 'fireflies', name: 'Đom đóm lấp lánh huyền ảo', nameEn: 'Sparkling Fireflies', role: 'vfx', atlasCell: 3, defaultTransform: { x: -30, y: -30, z: -35, scale: 1.2, rotation: 0 }, defaultMotion: { type: 'float', speed: 1.2, amplitude: 14, anchor: 'center', phaseOffset: 0.5 }, suggestedAsset: RUINS_FIREFLIES_ART, description: 'Hiệu ứng hạt đom đóm lơ lửng' }
   ],
   bones: [],
   clips: [],
@@ -154,6 +285,9 @@ Watertight transparent cutouts.`,
 }
 
 export const NATURE_PROP_TEMPLATES: LayerAssemblyTemplate[] = [
+  TMPL_NATURE_MODULAR_TREE,
+  TMPL_NATURE_AUTUMN_TREE,
+  TMPL_NATURE_MODULAR_ROCK,
   TMPL_NATURE_BONSAI,
   TMPL_NATURE_FLOWER,
   TMPL_ARCH_WINDOW,

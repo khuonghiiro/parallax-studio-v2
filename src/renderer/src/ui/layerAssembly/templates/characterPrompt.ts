@@ -4,14 +4,24 @@ function partBoundary(slot: LayerTemplateSlot, ids: Set<string>): string {
   const side = slot.id.endsWith('-l') ? 'l' : 'r'
   if (slot.id.startsWith('arm-') && ids.has(`forearm-${side}`))
     return 'Shoulder to elbow ONLY, including its sleeve; NO forearm, hand, chest or opposite arm.'
+  if (slot.id.startsWith('arm-'))
+    return 'Whole arm from shoulder to hand in one piece, including sleeve and fingers; NO torso or opposite arm.'
   if (slot.id.startsWith('forearm-') && ids.has(`hand-${side}`))
     return 'Elbow to wrist ONLY; NO upper arm, hand, fingers or held prop.'
+  if (slot.id.startsWith('forearm-'))
+    return 'Forearm and hand combined in one piece from elbow to fingertips (plus assigned held bag/prop if named); NO upper arm or shoulder.'
   if (slot.id.startsWith('hand-'))
     return 'One complete hand/glove with five fingers and a short hidden wrist tab; NO forearm or held prop.'
   if (slot.id.startsWith('thigh-') && ids.has(`shin-${side}`))
     return 'Hip to knee ONLY, including its clothing; NO pelvis, lower leg, foot or opposite leg.'
+  if (slot.id.startsWith('thigh-') && ids.has(`foot-${side}`))
+    return 'Whole leg from hip to ankle in one piece, including trousers; NO pelvis, foot or shoe.'
+  if (slot.id.startsWith('thigh-'))
+    return 'Whole leg and shoe/sneaker combined in one piece from hip to sole; NO pelvis or opposite leg.'
   if (slot.id.startsWith('shin-') && ids.has(`foot-${side}`))
     return 'Knee to ankle ONLY; NO thigh, foot, shoe or sole.'
+  if (slot.id.startsWith('shin-'))
+    return 'Lower leg and shoe/loafer combined in one piece from knee to sole; NO thigh or pelvis.'
   if (slot.id.startsWith('foot-'))
     return 'One complete foot inside its shoe/boot, including heel and toe, with a short hidden ankle tab; NO shin.'
   if (slot.id === 'torso')
@@ -22,6 +32,22 @@ function partBoundary(slot: LayerTemplateSlot, ids: Set<string>): string {
     const detached = ['hair-front', 'hair-back', 'hat', 'beard', 'glasses', 'mask'].filter((id) => ids.has(id))
     return `Complete head, ears and face; NO torso.${detached.length ? ` Do NOT bake these separate layers into the head: ${detached.join(', ')}.` : ' Keep hair and assigned headwear with the head.'}`
   }
+  if (slot.id === 'hair-back')
+    return 'Complete back hair silhouette behind head and shoulders ONLY; NO face, ears, neck or torso.'
+  if (slot.id === 'hair-front')
+    return 'Front bangs/fringe and side hair locks ONLY, leaving open space for the face; NO eyes, nose, mouth or head base.'
+  if (slot.id === 'hat')
+    return 'Isolated headwear/helmet ONLY, sized to fit the head crown; NO hair, face or head.'
+  if (slot.id === 'beard')
+    return 'Isolated detachable beard/mustache prop ONLY, sized to fit chin and upper lip; NO skin, mouth, nose or jaw.'
+  if (slot.id === 'glasses')
+    return 'Isolated eyewear/spectacles frame and lenses ONLY; NO eyes, eyebrows, nose or face.'
+  if (slot.id === 'mask')
+    return 'Isolated face mask/scarf/visor prop ONLY; NO face, skin, nose or neck.'
+  if (slot.id === 'cape')
+    return 'Complete back cape/cloak silhouette from shoulders to hem ONLY; NO torso, armor, arms or legs.'
+  if (slot.id.startsWith('prop-'))
+    return 'Complete isolated handheld prop/weapon ONLY, reconstructed through the grip area; NO hand or fingers attached.'
   return 'Only the named part and explicitly combined elements; NO neighboring body parts. Accessories contain NO face, skin or holding hand.'
 }
 

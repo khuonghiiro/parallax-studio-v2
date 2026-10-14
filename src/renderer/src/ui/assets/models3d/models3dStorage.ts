@@ -23,6 +23,9 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
       const pitchDeg = (Math.atan2(apexRise, hw) * 180) / Math.PI
       const pitchEulerX = Number(-(90 - pitchDeg).toFixed(2))
 
+      const eaveV = Number((h / gableH).toFixed(6))
+      const gablePoly: number[][] = [[0.5, 1], [1, eaveV], [1, 0], [0, 0], [0, eaveV]]
+
       return [
         {
           id: 'face-front',
@@ -31,7 +34,10 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
           width: w,
           height: gableH,
           position: [0, gableCenterY, 0],
-          rotation: [0, 0, 0]
+          rotation: [0, 0, 0],
+          gridRes: 32,
+          meshMode: 'auto',
+          silhouettePolygon: gablePoly
         },
         {
           id: 'face-back',
@@ -40,7 +46,10 @@ export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: 
           width: w,
           height: gableH,
           position: [0, gableCenterY, d],
-          rotation: [0, 180, 0]
+          rotation: [0, 180, 0],
+          gridRes: 32,
+          meshMode: 'auto',
+          silhouettePolygon: gablePoly.map(([u, v]) => [u, v])
         },
         {
           id: 'face-left',

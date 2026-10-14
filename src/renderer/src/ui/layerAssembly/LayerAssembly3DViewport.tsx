@@ -445,9 +445,19 @@ export function LayerAssembly3DViewport({
 
   // Kích hoạt render lại và cập nhật hình học layer khi ảnh load xong
   const [renderTrigger, setRenderTrigger] = useState(0)
+  const flushImmediateRender = useCallback(() => {
+    const r = rendererRef.current
+    const s = sceneRef.current
+    const cam = cameraRef.current
+    if (r && s && cam) {
+      updateOrbitCameraPosition(cam, orbitRef.current)
+      r.render(s, cam)
+    }
+  }, [])
   const requestRender = useCallback(() => {
     setRenderTrigger((t) => (t + 1) | 0)
-  }, [])
+    flushImmediateRender()
+  }, [flushImmediateRender])
 
   // ------------------------------------------------------------- 6. Đồng bộ hóa Mesh các Layers
   useEffect(() => {
@@ -466,7 +476,8 @@ export function LayerAssembly3DViewport({
       requestRender,
       showMesh
     })
-  }, [composite.layers, time, zExaggeration, selectedLayerId, selectedIds, requestRender, renderTrigger, cameraClippingPlanes, showMesh])
+    flushImmediateRender()
+  }, [composite.layers, time, zExaggeration, selectedLayerId, selectedIds, requestRender, flushImmediateRender, renderTrigger, cameraClippingPlanes, showMesh])
 
   // ------------------------------------------------------------- Đồng bộ hóa Khung xương 3D
   useEffect(() => {

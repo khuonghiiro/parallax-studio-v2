@@ -152,4 +152,13 @@ describe('Layer Assembly Templates Catalog', () => {
       expect(LAYER_TEMPLATE_CATEGORY_TABS.some((tab) => tab.id === cat)).toBe(true)
     }
   })
+
+  it('provides a default visual asset for every slot in every template so no layer renders as an empty placeholder box', () => {
+    for (const tmpl of ALL_LAYER_TEMPLATES) {
+      const comp = buildCompositeFromTemplate(tmpl)
+      for (const layer of comp.layers) {
+        expect(Boolean(layer.imageUrl || layer.assetPath), `${tmpl.id}:${layer.id}`).toBe(true)
+      }
+    }
+  })
 })

@@ -255,3 +255,10 @@ if (typeof window !== 'undefined') {
   })
 }
 
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    clearTextureCache()
+  })
+}
+
+

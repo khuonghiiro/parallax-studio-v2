@@ -1,3 +1,4 @@
+import { convertPolygonSpace } from '@shared/imageMeshContract'
 import type { AssemblyTemplate, TemplateFaceSpec } from './assemblyTemplateKit'
 import type { ImageMeshSlot } from './imageMeshTypes'
 
@@ -18,8 +19,15 @@ function silhouette(template: AssemblyTemplate, f: TemplateFaceSpec): number[][]
     const rise = template.id === 'gable-house' ? 260 : 240
     return [[0.5, 0], [1, rise / f.h], [1, 1], [0, 1], [0, rise / f.h]]
   }
+  if (template.id === 'dormer' && /mặt trước/i.test(f.name)) {
+    const rise = 80
+    return [[0.5, 0], [1, rise / f.h], [1, 1], [0, 1], [0, rise / f.h]]
+  }
   if (template.id === 'pyramid' || (template.id === 'shell-spire-tower' && /mái/i.test(f.name))) return [[0.5, 0], [1, 1], [0, 1]]
   if (template.id === 'tent' && /cửa|vách/i.test(f.name)) return [[0.5, 0], [1, 1], [0, 1]]
+  if (template.id === 'fabric-awning' && /hông/i.test(f.name)) {
+    return f.n[0] < 0 ? [[1, 0], [1, 1], [0, 1]] : [[0, 0], [1, 1], [0, 1]]
+  }
   if (template.id === 'shell-shed-roof' && /trái|phải/i.test(f.name)) {
     const low = 140 / 480
     return f.n[0] < 0 ? [[0, low], [1, 0], [1, 1], [0, 1]] : [[0, 0], [1, low], [1, 1], [0, 1]]
@@ -57,7 +65,23 @@ export function fitRecipeToGeometry(template: AssemblyTemplate, slots: ImageMesh
         guidance: `${source.guidance}${polygon ? ` Biên alpha theo đa giác tọa độ ảnh chuẩn hóa (x sang phải, y xuống): ${JSON.stringify(polygon)}; ngoài biên trong suốt, không chừa viền.` : ''}`
       })
     }
-    return { ...face, imageSlot: id }
+    const uvPolygon = polygon ? convertPolygonSpace(polygon, 'image', 'uv') : face.silhouettePolygon ?? face.mesh?.silhouettePolygon
+    return {
+      ...face,
+      imageSlot: id,
+      ...(uvPolygon
+        ? {
+            silhouettePolygon: uvPolygon,
+            mesh: {
+              gridRes: 32,
+              meshMode: 'auto' as const,
+              ...face.mesh,
+              silhouettePolygon: uvPolygon
+            }
+          }
+        : {})
+    }
   })
   return { slots: fitted, faces: result }
 }
+

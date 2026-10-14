@@ -234,10 +234,10 @@ const nature: AssemblyTemplate[] = [
       aroundY('Thân cây trước', 120, 360, 0, [0, -180, 0]),
       aroundY('Thân cây ngang', 120, 360, 90, [0, -180, 0]),
       // 4 Mặt tán lá xoay đều 4 hướng (0°, 45°, 90°, 135°)
-      aroundY('Tán chính (0°)', 520, 600, 0, [0, 80, 0]),
-      aroundY('Tán chéo 1 (45°)', 500, 580, 45, [0, 80, 0]),
-      aroundY('Tán ngang (90°)', 520, 600, 90, [0, 80, 0]),
-      aroundY('Tán chéo 2 (135°)', 500, 580, 135, [0, 80, 0]),
+      aroundY('Tán chính (0°)', 520, 520, 0, [0, 80, 0]),
+      aroundY('Tán chéo 1 (45°)', 500, 500, 45, [0, 80, 0]),
+      aroundY('Tán ngang (90°)', 520, 520, 90, [0, 80, 0]),
+      aroundY('Tán chéo 2 (135°)', 500, 500, 135, [0, 80, 0]),
       // 2 Tầng đĩa vòm tán ngang che góc nhìn từ trên xuống
       face('Tán vòm giữa', 460, 460, [0, 60, 0], UP, AWAY, { bendX: 30, bendY: 30 }),
       face('Tán vòm ngọn', 360, 360, [0, 240, 0], UP, AWAY, { bendX: 45, bendY: 45 })
@@ -247,21 +247,21 @@ const nature: AssemblyTemplate[] = [
     id: 'bush-3', label: 'Bụi cây đa cụm tự nhiên', category: 'nature', hint: '5 cụm lá đan xen: cụm trung tâm, 2 cụm lệch bên, nền sau và vòm che nóc',
     en: { label: 'Volumetric bush cluster', hint: '5 staggered foliage clumps: center, left/right offset, back ground and top canopy dome' },
     faces: () => [
-      face('Cụm chính giữa', 460, 380, [0, 0, 0], FRONT, undefined, { bendX: 25 }),
-      aroundY('Cụm lệch trái', 400, 340, -35, [-110, -20, 40]),
-      aroundY('Cụm lệch phải', 400, 340, 35, [110, -20, 40]),
-      face('Cụm nền sau', 500, 400, [0, 30, 90], BACK, undefined, { bendX: -20 }),
-      face('Nóc vòm bụi', 420, 320, [0, 130, 40], UP, AWAY, { bendX: 40, bendY: 20 })
+      face('Cụm chính giữa', 480, 360, [0, 0, 0], FRONT, undefined, { bendX: 25 }),
+      aroundY('Cụm lệch trái', 400, 300, -35, [-110, -20, 40]),
+      aroundY('Cụm lệch phải', 400, 300, 35, [110, -20, 40]),
+      face('Cụm nền sau', 520, 390, [0, 30, 90], BACK, undefined, { bendX: -20 }),
+      face('Nóc vòm bụi', 440, 330, [0, 130, 40], UP, AWAY, { bendX: 40, bendY: 20 })
     ]
   },
   {
     id: 'foliage-layers', label: 'Tán lá nhiều lớp', category: 'nature', hint: '4 lớp so le chiều sâu cho parallax mượt',
     en: { label: 'Layered foliage', hint: '4 staggered depth layers for smooth parallax' },
     faces: () => [
-      face('Lớp 1 (trước)', 420, 300, [-120, -60, 0], FRONT),
-      face('Lớp 2', 460, 360, [140, -20, 80], FRONT),
-      face('Lớp 3', 520, 420, [-40, 20, 160], FRONT),
-      face('Lớp 4 (sau)', 600, 480, [60, 60, 240], FRONT)
+      face('Lớp 1 (trước)', 420, 280, [-120, -60, 0], FRONT),
+      face('Lớp 2', 480, 320, [140, -20, 80], FRONT),
+      face('Lớp 3', 540, 360, [-40, 20, 160], FRONT),
+      face('Lớp 4 (sau)', 600, 400, [60, 60, 240], FRONT)
     ]
   },
   {
@@ -269,8 +269,8 @@ const nature: AssemblyTemplate[] = [
     en: { label: 'Grass patch with edge', hint: 'Ground + front grass edge + bushes behind' },
     faces: () => [
       face('Mặt đất', 800, 600, [0, -150, 300], UP, AWAY),
-      face('Viền trước', 800, 120, [0, -100, 0], FRONT),
-      face('Bụi sau', 800, 260, [0, -30, 600], FRONT)
+      face('Viền trước', 800, 160, [0, -100, 0], FRONT),
+      face('Bụi sau', 800, 240, [0, -30, 600], FRONT)
     ]
   },
   {
@@ -278,10 +278,10 @@ const nature: AssemblyTemplate[] = [
     en: { label: 'Garden flower patch', hint: 'Ground base + multi-directional blooming flower clumps' },
     faces: () => [
       face('Mặt đất nền', 700, 500, [0, -100, 200], UP, AWAY),
-      face('Cụm hoa trước', 500, 180, [0, -30, 50], FRONT, undefined, { bendX: 15 }),
-      aroundY('Cụm hoa trái', 360, 200, -30, [-160, -10, 180]),
-      aroundY('Cụm hoa phải', 360, 200, 30, [160, -10, 180]),
-      face('Cụm hoa sau', 620, 240, [0, 40, 320], FRONT)
+      face('Cụm hoa trước', 480, 240, [0, -30, 50], FRONT, undefined, { bendX: 15 }),
+      aroundY('Cụm hoa trái', 360, 180, -30, [-160, -10, 180]),
+      aroundY('Cụm hoa phải', 360, 180, 30, [160, -10, 180]),
+      face('Cụm hoa sau', 600, 300, [0, 40, 320], FRONT)
     ]
   },
   {

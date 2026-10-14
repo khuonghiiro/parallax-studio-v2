@@ -92,6 +92,7 @@ export const ALL_CREATE_TEMPLATES: CreateTemplateItem[] = [
     category: 'architecture',
     categoryLabel: categoryLabel('architecture'),
     image: COTTAGE_THUMBNAIL,
+    assemblyTemplate: ASSEMBLY_TEMPLATES.find((t) => t.id === 'gable-house'),
     buildModel: () => ({
       id: 'model-cottage-' + Math.random().toString(36).slice(2, 7),
       name: 'Khung Nhà Mái Chữ A Tudor (Shell 3D)',
@@ -113,6 +114,7 @@ export const ALL_CREATE_TEMPLATES: CreateTemplateItem[] = [
     category: 'props',
     categoryLabel: categoryLabel('props'),
     image: CUBE_THUMBNAIL,
+    assemblyTemplate: ASSEMBLY_TEMPLATES.find((t) => t.id === 'box'),
     buildModel: () => ({
       id: 'model-cube-' + Math.random().toString(36).slice(2, 7),
       name: 'Khối Hộp 3D Mới',
@@ -134,6 +136,7 @@ export const ALL_CREATE_TEMPLATES: CreateTemplateItem[] = [
     category: 'stage',
     categoryLabel: categoryLabel('stage'),
     image: CORNER_THUMBNAIL,
+    assemblyTemplate: ASSEMBLY_TEMPLATES.find((t) => t.id === 'street-corner'),
     buildModel: () => ({
       id: 'model-corner-' + Math.random().toString(36).slice(2, 7),
       name: 'Góc Phố 3D Mới',
@@ -155,6 +158,7 @@ export const ALL_CREATE_TEMPLATES: CreateTemplateItem[] = [
     category: 'stage',
     categoryLabel: categoryLabel('stage'),
     image: ROOM_THUMBNAIL,
+    assemblyTemplate: ASSEMBLY_TEMPLATES.find((t) => t.id === 'room-open'),
     buildModel: () => ({
       id: 'model-room-' + Math.random().toString(36).slice(2, 7),
       name: 'Căn Phòng 3D Mới',

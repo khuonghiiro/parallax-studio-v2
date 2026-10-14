@@ -52,7 +52,7 @@ export default function App() {
   useEffect(() => {
     if (!ready) return
     return initMcp()
-  }, [ready])
+  }, [ready, initMcp])
 
   // Window title reflects document state.
   const dirty = useEditor((s) => s.dirty)

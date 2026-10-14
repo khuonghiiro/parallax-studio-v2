@@ -41,7 +41,14 @@ export function createTemplateComposite(
 /** The atlas and the importer use the same slot IDs and cell numbers. */
 export function standardizeTemplate(template: LayerAssemblyTemplate): LayerAssemblyTemplate {
   const intro = template.promptGuide.systemPrompt.split(/(?:5x5 EQUAL CELLS:|CELLS:)/)[0].trim()
-  const layout = template.slots.map((slot) => `${slot.atlasCell}. ${slot.nameEn} [${slot.id}]`)
+  const layout = template.slots.map((slot) => `${slot.atlasCell}. ${slot.nameEn} [${slot.id}] — ${slot.description || slot.nameEn}`)
+  const categoryRules =
+    template.category === 'animal'
+      ? `Include rounded hidden joint overlaps of 10–15% at neck, shoulder, hip, knee/hock, wing, fin and tail base so rotating parts never expose gaps.
+Near-side and far-side limbs must be drawn as separate isolated cutouts at the same pixel scale; shade far-side limbs slightly darker for 2.5D depth.
+Crisp antialiased edges on a flat uniform chroma-key background; no blur, glow, fringe, cast shadows or ground plane.`
+      : `Reconstruct the complete occluded silhouette of each depth layer (e.g., full foliage crown behind trunk, full window frame behind planter, full stone archway behind hanging vines) so 2.5D parallax camera movement and wind sway never expose raw cut gaps.
+Crisp antialiased edges on a flat uniform chroma-key background; no blur, glow, fringe, cast shadows or ground plane.`
   return {
     ...template,
     promptGuide: {
@@ -49,14 +56,15 @@ export function standardizeTemplate(template: LayerAssemblyTemplate): LayerAssem
       aspectRatio: '1:1', recommendedResolution: template.category === 'character' ? 'model-native' : '4096x4096',
       userGuide: template.category === 'character' ? CHARACTER_PROMPT_GUIDE : template.promptGuide.userGuide,
       cellLayout: template.slots.map((slot) => `${slot.atlasCell}. ${slot.name}`),
-      systemPrompt: template.category === 'character' ? characterPrompt(template) : `${intro}\nGRID: Exactly 5 rows x 5 columns, numbered 1–25 left-to-right, top-to-bottom.
+      systemPrompt: template.category === 'character' ? characterPrompt(template) : `${intro}
+GRID: Exactly 5 rows x 5 columns, numbered 1–25 left-to-right, top-to-bottom.
+Exactly ${template.slots.length} isolated parts, one assigned part per cell:
 CELL ASSIGNMENTS (one isolated part per assigned cell):
 ${layout.join('\n')}
 Leave all unassigned cells empty with only the background color. No text, labels, grid lines or cast shadows.
 Use one consistent pixel scale and the same orthographic view for all parts. Do not resize each part to fill its cell.
-Left/right follow the assembled screen positions, not anatomical left/right. Keep all parts fully inside their cells with padding.
-Include rounded hidden joint overlaps of 10–15%. Parts described as combined must stay in ONE cutout; do not duplicate hands or feet.
-Preserve the complete head including hair unless a separate hair slot is listed. Keep the specified clothing and accessories with their assigned part.`
+Left/right follow the assembled screen positions, not anatomical left/right. Keep all parts fully inside their cells with at least 8% clear padding.
+${categoryRules}`
     },
     buildComposite: (images, name) => createTemplateComposite(template, images, name)
   }

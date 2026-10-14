@@ -26,13 +26,14 @@
     {
       "id": "window-lintel",
       "name": "Thanh trán trên gỗ sồi",
+      "assetPath": "assembly_3d/modular/decor_window_shutter.png",
       "color": "#451a03",
-      "width": 210,
-      "height": 24,
+      "width": 182,
+      "height": 14,
       "position": [
         0,
-        142,
-        -6
+        123,
+        -4
       ],
       "rotation": [
         0,

@@ -217,7 +217,7 @@ export function generateSlotGuideSvg(
   let polygonSvg = ''
   if (slot.silhouettePolygon && slot.silhouettePolygon.length >= 3) {
     const pts = slot.silhouettePolygon
-      .map(([u, v]) => `${(u * width).toFixed(1)},${((1 - v) * height).toFixed(1)}`)
+      .map(([x, y]) => `${(x * width).toFixed(1)},${(y * height).toFixed(1)}`)
       .join(' ')
     polygonSvg = `<polygon points="${pts}" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 2" />`
   }

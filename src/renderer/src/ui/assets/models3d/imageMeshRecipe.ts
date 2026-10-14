@@ -5,6 +5,7 @@ import { IMAGE_ALPHA_RULES } from './imageMeshSlotRules'
 import {
   IMAGE_CONTRACT_SCHEMA_VERSION,
   buildSlotPrompts,
+  convertPolygonSpace,
   generateSlotGuideDataUrl
 } from '@shared/imageMeshContract'
 import { evaluateFaceAnchor3D } from '@renderer/engine/imageMesh/imageContract'
@@ -48,6 +49,8 @@ export function imageTemplateGuide(template: AssemblyTemplate, variantId?: strin
       const prompts = buildSlotPrompts(s)
       const anchorUV: [number, number] = s.anchorUV ?? (s.alphaMode === 'opaque' ? [0.5, 0.5] : [0.5, 0.0])
       const tipUV: [number, number] | undefined = s.tipUV ?? (s.alphaMode === 'cutout' ? [0.5, 1.0] : undefined)
+      const faceUvPoly = specs.find((f) => f.imageSlot === s.id)?.mesh?.silhouettePolygon
+      const guidePolygon = s.silhouettePolygon ?? (faceUvPoly ? convertPolygonSpace(faceUvPoly, 'uv', 'image') : undefined)
       const guideSvgDataUrl = generateSlotGuideDataUrl({
         id: s.id,
         label: s.label,
@@ -55,7 +58,7 @@ export function imageTemplateGuide(template: AssemblyTemplate, variantId?: strin
         anchorUV,
         tipUV,
         attachmentBand: s.attachmentBand,
-        silhouettePolygon: s.silhouettePolygon,
+        silhouettePolygon: guidePolygon,
         alphaMode: s.alphaMode
       }, 240)
 

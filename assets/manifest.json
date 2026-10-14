@@ -12,9 +12,41 @@
       "id": "demo_transparent",
       "folder": "demo_transparent",
       "title": "Cảnh mẫu trong suốt (2.5D)",
-      "icon": "image",
-      "description": "Bộ ảnh phân tầng nền trong suốt kiểm thử Parallax 2.5D",
+      "icon": "layers",
+      "description": "Bộ ảnh phân tầng nền trong suốt chuẩn Studio Ghibli kiểm thử Parallax 2.5D",
       "order": 1
+    },
+    {
+      "id": "nature_modular",
+      "folder": "nature_modular",
+      "title": "Cây cối & Đá tảng (Modular 2.5D)",
+      "icon": "tree",
+      "description": "Bộ phận rễ, thân, tán lá theo mùa, hoa quả, đá tảng và tinh thể phát sáng tách lớp 2.5D",
+      "order": 2
+    },
+    {
+      "id": "assembly_3d",
+      "folder": "assembly_3d/modular",
+      "title": "Vật liệu Xưởng 3D Rời (Modular)",
+      "icon": "cube",
+      "description": "Bộ vật liệu kiến trúc Tudor, mái ngói, cửa sổ, cửa vòm, ống khói, bonsai và thực vật 3D",
+      "order": 3
+    },
+    {
+      "id": "character_cutout_demo",
+      "folder": "character_cutout_demo",
+      "title": "Hiệp Sĩ Cutout (Nam Anh Hùng)",
+      "icon": "user-male",
+      "description": "Bộ phận nhân vật hiệp sĩ phân tầng độc lập (đầu, thân, giáp, tay, chân và phụ kiện vũ khí)",
+      "order": 4
+    },
+    {
+      "id": "character_chibi_female",
+      "folder": "character_chibi_female",
+      "title": "Nữ Sinh Anime (Cutout 12 Lớp)",
+      "icon": "user-female",
+      "description": "Bộ phận nhân vật nữ sinh anime tóc hồng phân tầng độc lập (đầu, tóc, áo thủy thủ, váy, tay, chân)",
+      "order": 5
     },
     {
       "id": "audio",
@@ -22,31 +54,7 @@
       "title": "Âm thanh & Nhạc nền",
       "icon": "music",
       "description": "Nhạc nền, tiếng chuông ambient và hiệu ứng âm thanh cho phân cảnh",
-      "order": 4
-    },
-    {
-      "id": "assembly_3d",
-      "folder": "assembly_3d/modular",
-      "title": "Vật liệu Xưởng 3D Rời (Modular)",
-      "icon": "cube",
-      "description": "Bộ vật liệu tường, mái ngói, cửa sổ, cửa vòm, bồn hoa và cây cỏ tách rời cho lắp ráp 3D",
-      "order": 5
-    },
-    {
-      "id": "character_cutout_demo",
-      "folder": "character_cutout_demo",
-      "title": "Nhân vật Cắt lớp (Cutout 18 Lớp)",
-      "icon": "user-male",
-      "description": "Bộ phận nhân vật phân tầng độc lập (đầu, thân, hông, tay, chân) chuẩn tỉ lệ giải phẫu học",
       "order": 6
-    },
-    {
-      "id": "uploads",
-      "folder": "uploads",
-      "title": "Tài nguyên tải lên",
-      "icon": "image",
-      "description": "Tài nguyên ảnh và vật liệu người dùng thêm vào kho",
-      "order": 10
     }
   ],
   "assets": {
@@ -54,16 +62,253 @@
       "name": "Bầu trời hoàng hôn"
     },
     "demo_transparent/layer2_distant_mountains.png": {
-      "name": "Dãy núi xa xăm"
+      "name": "Dãy núi sương mù xa xăm (Viễn cảnh)"
     },
     "demo_transparent/layer3_floating_island.png": {
-      "name": "Đảo đá bay kỳ ảo"
+      "name": "Đảo đá bay tinh thể cổ đại (Trung cảnh)"
     },
     "demo_transparent/layer4_ancient_ruins.png": {
-      "name": "Cổng tàn tích cổ"
+      "name": "Cổng vòm tàn tích rêu phong (Cận cảnh)"
     },
     "demo_transparent/layer5_foreground_vines.png": {
-      "name": "Dây leo tiền cảnh"
+      "name": "Vòm dây leo & đom đóm (Tiền cảnh)"
+    },
+    "nature_modular/tree_roots_moss.png": {
+      "name": "Bộ rễ cổ thụ bám thảm cỏ rêu"
+    },
+    "nature_modular/tree_trunk_branches.png": {
+      "name": "Thân gỗ sồi cổ thụ & cành vươn"
+    },
+    "nature_modular/tree_foliage_back_green.png": {
+      "name": "Tán lá xanh thẫm lớp sau (Mùa hạ)"
+    },
+    "nature_modular/tree_foliage_mid_green.png": {
+      "name": "Tán lá xanh ngọc lục bảo chính (Mùa hạ)"
+    },
+    "nature_modular/tree_foliage_front_green.png": {
+      "name": "Tán lá non đón nắng lớp trước (Mùa hạ)"
+    },
+    "nature_modular/tree_foliage_back_gold.png": {
+      "name": "Tán lá phong đỏ cam lớp sau (Mùa thu)"
+    },
+    "nature_modular/tree_foliage_mid_gold.png": {
+      "name": "Tán lá phong vàng rực chính (Mùa thu)"
+    },
+    "nature_modular/tree_foliage_front_gold.png": {
+      "name": "Tán lá vàng óng đón nắng trước (Mùa thu)"
+    },
+    "nature_modular/tree_foliage_mid_sakura.png": {
+      "name": "Tán hoa anh đào Sakura hồng phấn (Mùa xuân)"
+    },
+    "nature_modular/tree_blossoms_cluster.png": {
+      "name": "Chùm hoa xuân trắng hồng điểm xuyết"
+    },
+    "nature_modular/tree_fruits_apples.png": {
+      "name": "Chùm quả táo đỏ chín mọng"
+    },
+    "nature_modular/rock_base_ground.png": {
+      "name": "Nền đất mùn & thảm cỏ chân đá"
+    },
+    "nature_modular/rock_crystal_glow.png": {
+      "name": "Cụm tinh thể ma thuật xanh lam phát sáng"
+    },
+    "nature_modular/rock_boulder_main.png": {
+      "name": "Khối đá tảng hoa cương nguyên khối"
+    },
+    "nature_modular/rock_moss_cap.png": {
+      "name": "Thảm rêu nhung xanh phủ đỉnh đá"
+    },
+    "nature_modular/rock_snow_cap.png": {
+      "name": "Chỏm tuyết trắng & nhũ băng mùa đông"
+    },
+    "nature_modular/rock_stones_front.png": {
+      "name": "Cụm đá cuội nhỏ tiền cảnh"
+    },
+    "nature_modular/rock_wildflowers.png": {
+      "name": "Khóm dương xỉ & hoa dại chân đá"
+    },
+    "assembly_3d/modular/wall_front_tudor.png": {
+      "name": "Tường đầu hồi Tudor mộc (Mặt tiền)"
+    },
+    "assembly_3d/modular/wall_side_tudor.png": {
+      "name": "Tường hông Tudor mộc (Khung gỗ sồi)"
+    },
+    "assembly_3d/modular/roof_terracotta.png": {
+      "name": "Mái ngói đất nung cổ điển rêu phong"
+    },
+    "assembly_3d/modular/decor_window.png": {
+      "name": "Cửa sổ Tudor kính quả trám (Nguyên bộ)"
+    },
+    "assembly_3d/modular/decor_window_glass.png": {
+      "name": "Khung kính cửa sổ quả trám Tudor"
+    },
+    "assembly_3d/modular/decor_window_shutter.png": {
+      "name": "Cánh chớp cửa sổ gỗ sồi Tudor"
+    },
+    "assembly_3d/modular/decor_window_sill.png": {
+      "name": "Bậu cửa sổ đá chạm khắc Tudor"
+    },
+    "assembly_3d/modular/decor_door.png": {
+      "name": "Cửa vòm gỗ sồi cổ điển (Bản lề sắt)"
+    },
+    "assembly_3d/modular/decor_chimney.png": {
+      "name": "Ống khói gạch đỏ cổ điển (Nguyên bộ)"
+    },
+    "assembly_3d/modular/decor_chimney_brick.png": {
+      "name": "Vách ống khói gạch đỏ liền mạch"
+    },
+    "assembly_3d/modular/decor_chimney_cap.png": {
+      "name": "Gờ đá mũ ống khói cổ điển"
+    },
+    "assembly_3d/modular/decor_chimney_pot.png": {
+      "name": "Ống gốm đất nung đỉnh ống khói"
+    },
+    "assembly_3d/modular/decor_flower_box.png": {
+      "name": "Bồn hoa gỗ sồi phong lữ & dây leo"
+    },
+    "assembly_3d/modular/bonsai_pot.png": {
+      "name": "Chậu gốm Tử Sa Bonsai dáng dẹt cổ kính"
+    },
+    "assembly_3d/modular/bonsai_trunk.png": {
+      "name": "Thân Bonsai tùng cổ thụ uốn khúc"
+    },
+    "assembly_3d/modular/bonsai_foliage_back.png": {
+      "name": "Tán lá tùng Bonsai lớp sau (Hậu cảnh)"
+    },
+    "assembly_3d/modular/bonsai_foliage_mid.png": {
+      "name": "Tán lá tùng Bonsai chính (Trung cảnh)"
+    },
+    "assembly_3d/modular/bonsai_foliage_front.png": {
+      "name": "Tán lá tùng Bonsai đón nắng (Tiền cảnh)"
+    },
+    "assembly_3d/modular/nature_leaf.png": {
+      "name": "Phiến lá cây xanh mướt (Mẫu mesh 3D)"
+    },
+    "assembly_3d/modular/nature_grass.png": {
+      "name": "Khóm cỏ dại tự nhiên (Mẫu mesh 3D)"
+    },
+    "assembly_3d/modular/nature_flower_petal.png": {
+      "name": "Cánh hoa đỏ thắm đơn lẻ (Mẫu mesh 3D)"
+    },
+    "assembly_3d/modular/nature_flower_corolla.png": {
+      "name": "Vòng cánh hoa đỏ nở rộ (Corolla)"
+    },
+    "assembly_3d/modular/nature_flower_center.png": {
+      "name": "Nhụy hoa vàng óng (Mẫu mesh 3D)"
+    },
+    "assembly_3d/modular/nature_flower_stem.png": {
+      "name": "Thân cành hoa xanh uốn nhẹ (Mẫu mesh 3D)"
+    },
+    "character_cutout_demo/head.png": {
+      "name": "Đầu & khuôn mặt Hiệp sĩ"
+    },
+    "character_cutout_demo/neck.png": {
+      "name": "Cổ nhân vật Hiệp sĩ"
+    },
+    "character_cutout_demo/hair-back.png": {
+      "name": "Tóc sau Hiệp sĩ"
+    },
+    "character_cutout_demo/hair-front.png": {
+      "name": "Tóc mái trước Hiệp sĩ"
+    },
+    "character_cutout_demo/torso.png": {
+      "name": "Giáp ngực Hoàng gia (Torso)"
+    },
+    "character_cutout_demo/pelvis.png": {
+      "name": "Đai lưng & giáp hông (Pelvis)"
+    },
+    "character_cutout_demo/arm-left.png": {
+      "name": "Bắp tay & giáp vai trái"
+    },
+    "character_cutout_demo/arm-right.png": {
+      "name": "Bắp tay & giáp vai phải"
+    },
+    "character_cutout_demo/forearm-left.png": {
+      "name": "Cẳng tay bọc giáp trái"
+    },
+    "character_cutout_demo/forearm-right.png": {
+      "name": "Cẳng tay bọc giáp phải"
+    },
+    "character_cutout_demo/hand-left.png": {
+      "name": "Bàn tay găng sắt trái"
+    },
+    "character_cutout_demo/hand-right.png": {
+      "name": "Bàn tay găng sắt phải"
+    },
+    "character_cutout_demo/thigh-left.png": {
+      "name": "Bắp đùi giáp trái"
+    },
+    "character_cutout_demo/thigh-right.png": {
+      "name": "Bắp đùi giáp phải"
+    },
+    "character_cutout_demo/shin-left.png": {
+      "name": "Ống chân giáp trái"
+    },
+    "character_cutout_demo/shin-right.png": {
+      "name": "Ống chân giáp phải"
+    },
+    "character_cutout_demo/foot-left.png": {
+      "name": "Ủng chiến binh trái"
+    },
+    "character_cutout_demo/foot-right.png": {
+      "name": "Ủng chiến binh phải"
+    },
+    "character_cutout_demo/cape.png": {
+      "name": "Áo choàng đỏ Hiệp sĩ (Sau lưng)"
+    },
+    "character_cutout_demo/hat.png": {
+      "name": "Mũ giáp cánh chim Hiệp sĩ"
+    },
+    "character_cutout_demo/beard.png": {
+      "name": "Bộ râu quai nón phong trần"
+    },
+    "character_cutout_demo/glasses.png": {
+      "name": "Kính chiến thuật xanh lam"
+    },
+    "character_cutout_demo/mask.png": {
+      "name": "Mặt nạ che mặt chiến binh"
+    },
+    "character_cutout_demo/weapon.png": {
+      "name": "Thanh đại kiếm ánh sáng xanh"
+    },
+    "character_cutout_demo/spritesheet_green.jpg": {
+      "name": "Bảng Sprite Atlas Hiệp Sĩ (Phông xanh Chroma-Key)"
+    },
+    "character_chibi_female/head.png": {
+      "name": "Đầu & gương mặt Nữ sinh Anime"
+    },
+    "character_chibi_female/hair-back.png": {
+      "name": "Tóc buộc hai bên hồng phấn (Sau lưng)"
+    },
+    "character_chibi_female/torso.png": {
+      "name": "Áo đồng phục thủy thủ nơ đỏ (Torso)"
+    },
+    "character_chibi_female/pelvis.png": {
+      "name": "Chân váy xếp ly xanh tím than (Pelvis)"
+    },
+    "character_chibi_female/arm-left.png": {
+      "name": "Ống tay áo phồng bên trái"
+    },
+    "character_chibi_female/arm-right.png": {
+      "name": "Ống tay áo phồng bên phải"
+    },
+    "character_chibi_female/forearm-left.png": {
+      "name": "Cẳng tay & bàn tay trái Nữ sinh"
+    },
+    "character_chibi_female/forearm-right.png": {
+      "name": "Cẳng tay phải cầm cặp da học sinh"
+    },
+    "character_chibi_female/thigh-left.png": {
+      "name": "Đùi trái & tất cao cổ"
+    },
+    "character_chibi_female/thigh-right.png": {
+      "name": "Đùi phải & tất cao cổ"
+    },
+    "character_chibi_female/shin-left.png": {
+      "name": "Cẳng chân & giày Loafer trái"
+    },
+    "character_chibi_female/shin-right.png": {
+      "name": "Cẳng chân & giày Loafer phải"
     },
     "audio/ambient_chime.wav": {
       "name": "Chuông gió ngân vang (Ambient Chime)"
@@ -85,129 +330,6 @@
     },
     "audio/voice_radio_intro.wav": {
       "name": "Tín hiệu lời thoại vô tuyến (Radio Voice)"
-    },
-    "assembly_3d/modular/wall_front_tudor.png": {
-      "name": "Tường đầu hồi Tudor mộc (Mặt tiền)"
-    },
-    "assembly_3d/modular/wall_side_tudor.png": {
-      "name": "Tường hông Tudor mộc (Trơn)"
-    },
-    "assembly_3d/modular/roof_terracotta.png": {
-      "name": "Mái ngói đất nung cổ điển"
-    },
-    "assembly_3d/modular/decor_window.png": {
-      "name": "Cửa sổ Tudor kính quả trám (Có cánh)"
-    },
-    "assembly_3d/modular/decor_door.png": {
-      "name": "Cửa vòm gỗ sồi cổ điển (Bản lề sắt)"
-    },
-    "assembly_3d/modular/decor_chimney.png": {
-      "name": "Ống khói gạch đỏ cổ điển"
-    },
-    "assembly_3d/modular/decor_flower_box.png": {
-      "name": "Hộp hoa ban công rực rỡ"
-    },
-    "assembly_3d/modular/decor_window_glass.png": {
-      "name": "Khung kính cửa sổ Tudor"
-    },
-    "assembly_3d/modular/decor_window_shutter.png": {
-      "name": "Cánh cửa sổ gỗ Tudor"
-    },
-    "assembly_3d/modular/decor_window_sill.png": {
-      "name": "Bậu cửa sổ đá Tudor"
-    },
-    "assembly_3d/modular/decor_chimney_brick.png": {
-      "name": "Vách ống khói gạch đỏ liền mạch"
-    },
-    "assembly_3d/modular/decor_chimney_cap.png": {
-      "name": "Gờ đá mũ ống khói"
-    },
-    "assembly_3d/modular/decor_chimney_pot.png": {
-      "name": "Ống gốm đỉnh ống khói"
-    },
-    "assembly_3d/modular/nature_leaf.png": {
-      "name": "Phiến lá cây tự nhiên (Mẫu mesh)"
-    },
-    "assembly_3d/modular/nature_grass.png": {
-      "name": "Bụi cỏ tự nhiên (Mẫu mesh)"
-    },
-    "assembly_3d/modular/nature_flower_petal.png": {
-      "name": "Cánh hoa tự nhiên (Mẫu mesh)"
-    },
-    "assembly_3d/modular/nature_flower_center.png": {
-      "name": "Nhụy hoa tự nhiên (Mẫu mesh)"
-    },
-    "assembly_3d/modular/nature_flower_stem.png": {
-      "name": "Thân cành hoa tự nhiên (Mẫu mesh)"
-    },
-    "assembly_3d/modular/bonsai_pot.png": {
-      "name": "Chậu gốm Bonsai dáng dẹt cổ kính"
-    },
-    "assembly_3d/modular/bonsai_trunk.png": {
-      "name": "Thân Bonsai cổ thụ uốn khúc rêu phong"
-    },
-    "assembly_3d/modular/bonsai_foliage_back.png": {
-      "name": "Tán lá tùng sau (Hậu cảnh Z dương)"
-    },
-    "assembly_3d/modular/bonsai_foliage_mid.png": {
-      "name": "Tán lá tùng chính (Trung cảnh Z=0)"
-    },
-    "assembly_3d/modular/bonsai_foliage_front.png": {
-      "name": "Tán lá tùng trước (Tiền cảnh Z âm)"
-    },
-    "character_cutout_demo/arm-left.png": {
-      "name": "arm left"
-    },
-    "character_cutout_demo/arm-right.png": {
-      "name": "arm right"
-    },
-    "character_cutout_demo/foot-left.png": {
-      "name": "foot left"
-    },
-    "character_cutout_demo/foot-right.png": {
-      "name": "foot right"
-    },
-    "character_cutout_demo/forearm-left.png": {
-      "name": "forearm left"
-    },
-    "character_cutout_demo/forearm-right.png": {
-      "name": "forearm right"
-    },
-    "character_cutout_demo/hair-back.png": {
-      "name": "hair back"
-    },
-    "character_cutout_demo/hair-front.png": {
-      "name": "hair front"
-    },
-    "character_cutout_demo/hand-left.png": {
-      "name": "hand left"
-    },
-    "character_cutout_demo/hand-right.png": {
-      "name": "hand right"
-    },
-    "character_cutout_demo/head.png": {
-      "name": "head"
-    },
-    "character_cutout_demo/neck.png": {
-      "name": "neck"
-    },
-    "character_cutout_demo/pelvis.png": {
-      "name": "pelvis"
-    },
-    "character_cutout_demo/shin-left.png": {
-      "name": "shin left"
-    },
-    "character_cutout_demo/shin-right.png": {
-      "name": "shin right"
-    },
-    "character_cutout_demo/thigh-left.png": {
-      "name": "thigh left"
-    },
-    "character_cutout_demo/thigh-right.png": {
-      "name": "thigh right"
-    },
-    "character_cutout_demo/torso.png": {
-      "name": "torso"
     }
   }
 }

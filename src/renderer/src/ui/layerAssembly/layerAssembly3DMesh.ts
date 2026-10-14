@@ -67,6 +67,8 @@ export function clearLayerTextureCache(): void {
   textureWaiters.clear()
 }
 
+export const clear3DLayerTextureCache = clearLayerTextureCache
+
 if (typeof window !== 'undefined') {
   window.addEventListener('publicAssets:changed', () => {
     clearLayerTextureCache()

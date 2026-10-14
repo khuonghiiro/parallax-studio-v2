@@ -244,7 +244,8 @@ async function cropImageBase64(
   base64: string,
   mime: string,
   rect: McpRect,
-  format: 'png' | 'jpeg'
+  format: 'png' | 'jpeg',
+  targetWidth?: number
 ): Promise<{ data: string; mime: string; width: number; height: number } | null> {
   return new Promise((resolve) => {
     const img = new Image()
@@ -260,15 +261,17 @@ async function cropImageBase64(
         const sw = Math.min(img.naturalWidth - sx, Math.ceil(rect.width * scaleX))
         const sh = Math.min(img.naturalHeight - sy, Math.ceil(rect.height * scaleY))
         if (sw <= 0 || sh <= 0) return resolve(null)
-        canvas.width = sw
-        canvas.height = sh
+        const outW = targetWidth && targetWidth > 0 && targetWidth < sw ? Math.round(targetWidth) : sw
+        const outH = outW < sw ? Math.max(1, Math.round((sh * outW) / sw)) : sh
+        canvas.width = outW
+        canvas.height = outH
         const ctx = canvas.getContext('2d')
         if (!ctx) return resolve(null)
-        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh)
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH)
         const targetMime = format === 'jpeg' ? 'image/jpeg' : 'image/png'
         const dataUrl = canvas.toDataURL(targetMime, 0.9)
         const data = dataUrl.split(',')[1] || ''
-        resolve({ data, mime: targetMime, width: sw, height: sh })
+        resolve({ data, mime: targetMime, width: outW, height: outH })
       } catch {
         resolve(null)
       }
@@ -288,6 +291,8 @@ export const uiCommands: Record<string, Handler> = {
 
     try {
       await sleep(Math.max(0, Math.min(5000, num(p, 'delay_ms') ?? 150)))
+      // Đánh thức compositor ngầm của Chromium khi cửa sổ bị che khuất để commit frame DOM/WebGL mới nhất
+      await capture({ width: 64, format: 'jpeg' }).catch(() => undefined)
       await nextPaint()
       const width = num(p, 'width')
       const format = str(p, 'format') === 'jpeg' ? 'jpeg' : 'png'
@@ -314,11 +319,12 @@ export const uiCommands: Record<string, Handler> = {
         }
       }
 
-      const res = await capture({ width: width ?? undefined, format, rect })
+      // Chụp toàn bộ khung hình trước (không truyền rect trực tiếp vào capturePage của Chromium)
+      // để buộc GPU compositor kết xuất frame mới nhất khi cửa sổ đang nằm ở nền, sau đó crop vùng chọn.
+      const res = await capture({ width: rect ? undefined : (width ?? undefined), format })
 
-      // Fallback crop bằng canvas nếu Main process chưa crop (đang chạy process cũ chưa restart)
-      if (rect && res.width > rect.width * 1.25 && typeof document !== 'undefined') {
-        const cropped = await cropImageBase64(res.data, res.mime, rect, format)
+      if (rect && typeof document !== 'undefined') {
+        const cropped = await cropImageBase64(res.data, res.mime, rect, format, width ?? undefined)
         if (cropped) {
           return {
             ...cropped,

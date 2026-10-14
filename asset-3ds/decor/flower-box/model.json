@@ -9,13 +9,14 @@
     {
       "id": "planter-front",
       "name": "Thành bồn gỗ trước",
+      "assetPath": "assembly_3d/modular/decor_window_shutter.png",
       "color": "#451a03",
-      "width": 240,
-      "height": 50,
+      "width": 156,
+      "height": 42,
       "position": [
         0,
-        0,
-        -40
+        -6,
+        -39
       ],
       "rotation": [
         0,
@@ -26,12 +27,13 @@
     {
       "id": "planter-left",
       "name": "Hông bồn gỗ trái",
+      "assetPath": "assembly_3d/modular/decor_window_shutter.png",
       "color": "#3b1c0b",
-      "width": 40,
-      "height": 50,
+      "width": 38,
+      "height": 42,
       "position": [
-        -120,
-        0,
+        -78,
+        -6,
         -20
       ],
       "rotation": [
@@ -43,12 +45,13 @@
     {
       "id": "planter-right",
       "name": "Hông bồn gỗ phải",
+      "assetPath": "assembly_3d/modular/decor_window_shutter.png",
       "color": "#3b1c0b",
-      "width": 40,
-      "height": 50,
+      "width": 38,
+      "height": 42,
       "position": [
-        120,
-        0,
+        78,
+        -6,
         -20
       ],
       "rotation": [
@@ -61,11 +64,11 @@
       "id": "planter-bottom",
       "name": "Đáy bồn gỗ",
       "color": "#291409",
-      "width": 240,
-      "height": 40,
+      "width": 156,
+      "height": 38,
       "position": [
         0,
-        -25,
+        -27,
         -20
       ],
       "rotation": [
@@ -78,11 +81,11 @@
       "id": "planter-soil",
       "name": "Đất mùn trồng hoa",
       "color": "#1c1917",
-      "width": 235,
+      "width": 152,
       "height": 36,
       "position": [
         0,
-        20,
+        14,
         -20
       ],
       "rotation": [
@@ -95,12 +98,12 @@
       "id": "flowers-front",
       "name": "Khóm hoa trước rủ",
       "assetPath": "assembly_3d/modular/decor_flower_box.png",
-      "width": 250,
-      "height": 95,
+      "width": 255,
+      "height": 145,
       "position": [
         0,
-        50,
-        -35
+        22,
+        -41
       ],
       "rotation": [
         0,
