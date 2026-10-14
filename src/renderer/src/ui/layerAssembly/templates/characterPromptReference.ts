@@ -11,6 +11,22 @@ export type CharacterReferenceMode = 'layout' | 'disassemble' | 'none'
 /** Tạo theo nhóm bộ phận giúp AI vẽ đầy đủ phần bị che khuất hơn. */
 export type CharacterPartGroup = 'all' | 'head' | 'upper' | 'lower'
 
+/** Kiểu sheet: 13 mảnh theo khung mẫu hoặc bóc tách chi tiết Live2D / Spine. */
+export type CharacterSheetStyle = 'template' | 'granular'
+
+export const SHEET_STYLE_OPTIONS: Array<{ id: CharacterSheetStyle; label: string; hint: string }> = [
+  {
+    id: 'template',
+    label: '🧱 13 mảnh theo khung mẫu',
+    hint: 'Bộ phận khớp đúng các slot của mẫu này để nhập thẳng vào Xưởng lắp ráp (đầu kèm tóc, biểu cảm rời, thân, 2 đoạn tay, 2 đoạn chân).'
+  },
+  {
+    id: 'granular',
+    label: '🧬 Bóc tách chi tiết Live2D / Spine (~45 mảnh)',
+    hint: 'Tóc nhiều lớp, đầu trơn, mắt/lông mày/miệng rời, thân trần + quần áo từng lớp, tay chân trái phải vẽ riêng — cho rig 2.5D mềm mại.'
+  }
+]
+
 export const REFERENCE_MODE_OPTIONS: Array<{ id: CharacterReferenceMode; label: string; hint: string }> = [
   {
     id: 'layout',
@@ -69,7 +85,9 @@ export const COMPLETE_PARTS_RULE = `CRITICAL — DRAW EVERY PART COMPLETE AS IF 
 - Full oval head shape under the hair, full back hair, full neck under the collar, full shoulder inside the sleeve, full thigh inside the trousers/skirt, full ankle inside the shoe.
 - Rounded overlapping joint ends on every limb segment (shoulder, elbow, hip, knee) so rotated parts never expose gaps.
 - Front view, neutral A-pose proportions, orthographic, clean black outlines, cel shading, consistent line weight, high resolution.
-- Flat solid pure green (#00FF00) background with no shadow and no gradient; every part is isolated with at least 40px spacing, none touching or overlapping.`
+- Flat solid pure green (#00FF00) background with no shadow and no gradient; every part is isolated with at least 50px spacing, none touching or overlapping.
+- ONE sheet, FRONT VIEW ONLY: no assembled character, no preview, no back view, no side view. NO text, labels, headings or group names anywhere.
+- Draw each listed part exactly once: no duplicated limbs, no extra legs, no repeated pieces; the torso never has arms fused to it.`
 
 export function partGroupBlock(group: CharacterPartGroup = 'all'): string {
   if (group === 'all') return ''
@@ -87,8 +105,18 @@ export function characterNegativePrompt(mode: CharacterReferenceMode = 'layout')
     'shadows',
     'background details',
     'text',
+    'labels',
+    'headings',
     'watermark',
-    '3/4 view'
+    'gradient background',
+    'back view',
+    'side view',
+    '3/4 view',
+    'touching parts',
+    'duplicated parts',
+    'extra limbs',
+    'torso fused with arms',
+    'cut-off shoulders'
   ]
   return items.join(', ')
 }

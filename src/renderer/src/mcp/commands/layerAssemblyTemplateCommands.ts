@@ -16,6 +16,7 @@ import { clear3DLayerTextureCache } from '../../ui/layerAssembly/layerAssembly3D
 import { ParamError, type Handler } from '../types'
 import { str, bool, toPlain } from '../params'
 import { characterNegativePrompt } from '../../ui/layerAssembly/templates/characterPromptReference'
+import { granularNegativePrompt } from '../../ui/layerAssembly/templates/granularCharacterPrompt'
 
 export const layerAssemblyTemplateCommands: Record<string, Handler> = {
   list_layer_assembly_templates: async (p) => {
@@ -77,12 +78,27 @@ export const layerAssemblyTemplateCommands: Record<string, Handler> = {
     const props = str(p, 'props')
     const modeRaw = str(p, 'reference_mode')
     const groupRaw = str(p, 'part_group')
+    const styleRaw = str(p, 'sheet_style')
     const referenceMode = (['layout', 'disassemble', 'none'] as const).find((m) => m === modeRaw)
     const partGroup = (['all', 'head', 'upper', 'lower'] as const).find((g) => g === groupRaw)
+    const sheetStyle = (['template', 'granular'] as const).find((s) => s === styleRaw)
     if (modeRaw && !referenceMode) throw new ParamError('reference_mode must be layout | disassemble | none')
     if (groupRaw && !partGroup) throw new ParamError('part_group must be all | head | upper | lower')
-    const systemPrompt = buildTemplatePromptWithBrief(tpl, { appearance, costume, props, referenceMode, partGroup })
-    const negativePrompt = tpl.category === 'character' ? characterNegativePrompt(referenceMode ?? 'layout') : null
+    if (styleRaw && !sheetStyle) throw new ParamError('sheet_style must be template | granular')
+    const systemPrompt = buildTemplatePromptWithBrief(tpl, {
+      appearance,
+      costume,
+      props,
+      referenceMode,
+      partGroup,
+      sheetStyle
+    })
+    const negativePrompt =
+      tpl.category !== 'character'
+        ? null
+        : sheetStyle === 'granular'
+          ? granularNegativePrompt(referenceMode ?? 'layout')
+          : characterNegativePrompt(referenceMode ?? 'layout')
 
     return {
       id: tpl.id,

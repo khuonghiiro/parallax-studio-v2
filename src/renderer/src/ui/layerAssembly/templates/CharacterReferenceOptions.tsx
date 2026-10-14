@@ -3,12 +3,45 @@ import type { CharacterPromptCustomBrief } from './characterPrompt'
 import {
   PART_GROUP_OPTIONS,
   REFERENCE_MODE_OPTIONS,
+  SHEET_STYLE_OPTIONS,
   characterNegativePrompt
 } from './characterPromptReference'
+import { granularNegativePrompt } from './granularCharacterPrompt'
 import { IconCopy } from '../../icons'
 
+function ChipRow<T extends string>({
+  label,
+  options,
+  value,
+  onSelect
+}: {
+  label: string
+  options: Array<{ id: T; label: string; hint?: string }>
+  value: T
+  onSelect: (id: T) => void
+}) {
+  return (
+    <div className="tpm-ref-row">
+      <span className="tpm-field-label">{label}</span>
+      <div className="tpm-preset-chips">
+        {options.map((opt) => (
+          <button
+            key={opt.id}
+            type="button"
+            className={`tpm-preset-chip ${value === opt.id ? 'active' : ''}`}
+            onClick={() => onSelect(opt.id)}
+            title={opt.hint}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 /**
- * Bảng chọn vai trò ảnh đính kèm + nhóm bộ phận + sao chép negative prompt.
+ * Bảng chọn kiểu sheet + vai trò ảnh đính kèm + nhóm bộ phận + sao chép negative prompt.
  * Mục đích: tránh AI coi ảnh mẫu là ảnh cần sửa (img2img) thay vì chỉ tham khảo bố cục.
  */
 export function CharacterReferenceOptions({
@@ -19,10 +52,14 @@ export function CharacterReferenceOptions({
   onChange: (next: CharacterPromptCustomBrief) => void
 }) {
   const [negCopied, setNegCopied] = useState(false)
+  const style = brief.sheetStyle ?? 'template'
   const mode = brief.referenceMode ?? 'layout'
   const group = brief.partGroup ?? 'all'
-  const activeMode = REFERENCE_MODE_OPTIONS.find((m) => m.id === mode)
-  const negative = characterNegativePrompt(mode)
+  const hints = [
+    SHEET_STYLE_OPTIONS.find((s) => s.id === style)?.hint,
+    REFERENCE_MODE_OPTIONS.find((m) => m.id === mode)?.hint
+  ].filter(Boolean)
+  const negative = style === 'granular' ? granularNegativePrompt(mode) : characterNegativePrompt(mode)
 
   const copyNegative = async () => {
     try {
@@ -36,41 +73,27 @@ export function CharacterReferenceOptions({
 
   return (
     <div className="tpm-reference-options" id="template-prompt-reference-options">
-      <div className="tpm-ref-row">
-        <span className="tpm-field-label">Vai trò ảnh đính kèm:</span>
-        <div className="tpm-preset-chips">
-          {REFERENCE_MODE_OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              className={`tpm-preset-chip ${mode === opt.id ? 'active' : ''}`}
-              onClick={() => onChange({ ...brief, referenceMode: opt.id })}
-              title={opt.hint}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      {activeMode && <div className="tpm-ref-hint">{activeMode.hint}</div>}
-
-      <div className="tpm-ref-row">
-        <span className="tpm-field-label">Tạo theo nhóm bộ phận:</span>
-        <div className="tpm-preset-chips">
-          {PART_GROUP_OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              className={`tpm-preset-chip ${group === opt.id ? 'active' : ''}`}
-              onClick={() => onChange({ ...brief, partGroup: opt.id })}
-              title="Mỗi lần tạo một nhóm bộ phận giúp AI vẽ phần bị che khuất đầy đủ hơn"
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
+      <ChipRow
+        label="Kiểu sheet:"
+        options={SHEET_STYLE_OPTIONS}
+        value={style}
+        onSelect={(id) => onChange({ ...brief, sheetStyle: id })}
+      />
+      <ChipRow
+        label="Vai trò ảnh đính kèm:"
+        options={REFERENCE_MODE_OPTIONS}
+        value={mode}
+        onSelect={(id) => onChange({ ...brief, referenceMode: id })}
+      />
+      <ChipRow
+        label="Tạo theo nhóm bộ phận:"
+        options={PART_GROUP_OPTIONS}
+        value={group}
+        onSelect={(id) => onChange({ ...brief, partGroup: id })}
+      />
+      {hints.map((h) => (
+        <div key={h} className="tpm-ref-hint">• {h}</div>
+      ))}
       <div className="tpm-ref-row tpm-negative-row">
         <span className="tpm-field-label">Negative prompt:</span>
         <code className="tpm-negative-text">{negative}</code>

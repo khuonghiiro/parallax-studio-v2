@@ -329,6 +329,7 @@ function GuideTabContent({ template }: { template: LayerAssemblyTemplate }) {
           <h4>Ảnh mẫu chỉ là bố cục — Mô tả nhân vật mới thật cụ thể</h4>
           <p>Chọn &quot;Ảnh mẫu chỉ để tham khảo bố cục&quot; khi đính kèm sprite sheet mẫu: prompt ghi rõ AI chỉ học cách tách bộ phận trên nền xanh, không chép mặt, tóc, quần áo hay màu của mẫu. Mô tả càng mơ hồ AI càng bám ảnh mẫu, nên hãy điền đủ giới tính, tóc, mắt, trang phục, phụ kiện, màu da và tính cách. Dán thêm phần Negative prompt vào ô negative của công cụ tạo ảnh.</p>
           <p><strong>Quy trình 2 bước cho nhân vật nhất quán:</strong> (1) tạo ảnh nhân vật đầy đủ (không đính kèm mẫu), (2) đính kèm ảnh vừa tạo và chọn &quot;Tách bộ phận đúng nhân vật trong ảnh&quot;. Mỗi lần nên tạo một nhóm bộ phận (đầu / thân trên / thân dưới) để phần bị che khuất được vẽ đầy đủ hơn.</p>
+          <p><strong>Kiểu sheet:</strong> &quot;13 mảnh theo khung mẫu&quot; để nhập thẳng vào mẫu này; &quot;Bóc tách chi tiết Live2D / Spine&quot; (~45 mảnh: tóc nhiều lớp, đầu trơn, mắt/lông mày/miệng rời, thân trần + quần áo từng lớp, tay chân trái phải riêng) khi cần rig 2.5D mềm mại hơn.</p>
         </div>
       </div>
       <div className="tpm-guide-step">
@@ -370,7 +371,8 @@ export function TemplatePromptModal({
     costume: '',
     props: '',
     referenceMode: 'layout',
-    partGroup: 'all'
+    partGroup: 'all',
+    sheetStyle: 'template'
   })
 
   const activePrompt = useMemo(() => {

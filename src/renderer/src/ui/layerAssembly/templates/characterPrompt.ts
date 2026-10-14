@@ -6,8 +6,10 @@ import {
   partGroupBlock,
   referenceRoleBlock,
   type CharacterPartGroup,
-  type CharacterReferenceMode
+  type CharacterReferenceMode,
+  type CharacterSheetStyle
 } from './characterPromptReference'
+import { granularCharacterPrompt } from './granularCharacterPrompt'
 
 export interface CharacterPromptCustomBrief {
   /** Mô tả tướng mạo, khuôn mặt, kiểu tóc, màu mắt, biểu cảm */
@@ -20,6 +22,8 @@ export interface CharacterPromptCustomBrief {
   referenceMode?: CharacterReferenceMode
   /** Chỉ tạo một nhóm bộ phận (đầu / thân trên / thân dưới) để vẽ phần bị che đầy đủ hơn */
   partGroup?: CharacterPartGroup
+  /** `template` = 13 mảnh theo khung mẫu (mặc định); `granular` = bóc tách chi tiết Live2D / Spine ~45 mảnh */
+  sheetStyle?: CharacterSheetStyle
 }
 
 function slotBriefHint(slot: LayerTemplateSlot, brief?: CharacterPromptCustomBrief): string {
@@ -236,7 +240,8 @@ export function buildTemplatePromptWithBrief(
     customBrief?.appearance?.trim() || customBrief?.costume?.trim() || customBrief?.props?.trim()
   )
   if (template.category === 'character') {
-    // Prompt nhân vật luôn dựng lại theo brief (vai trò ảnh tham chiếu, nhóm bộ phận, mô tả mới).
+    // Prompt nhân vật luôn dựng lại theo brief (kiểu sheet, vai trò ảnh tham chiếu, nhóm bộ phận, mô tả mới).
+    if (customBrief?.sheetStyle === 'granular') return granularCharacterPrompt(customBrief)
     return characterPrompt(template, customBrief)
   }
   if (template.category === 'nature') {

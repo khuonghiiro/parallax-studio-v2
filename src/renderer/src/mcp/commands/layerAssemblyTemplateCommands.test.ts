@@ -165,4 +165,33 @@ describe('layerAssemblyTemplateCommands MCP', () => {
       runCommand('get_layer_assembly_template', { template_id: 'tmpl-character-front', reference_mode: 'edit' })
     ).rejects.toThrow()
   })
+
+  it('builds the granular Live2D / Spine sheet prompt with the character brief, part groups and full negative prompt', async () => {
+    type Res = { prompt_guide: { system_prompt: string; negative_prompt: string | null } }
+    const full = (await runCommand('get_layer_assembly_template', {
+      template_id: 'tmpl-character-front',
+      sheet_style: 'granular',
+      appearance: 'Gender: female. Hair: long silver twin-tails.',
+      costume: 'Navy sailor uniform',
+      props: 'Star hairpin'
+    })) as Res
+    const prompt = full.prompt_guide.system_prompt
+    expect(prompt).toContain('highly granular disassembled 2D cutout sprite sheet')
+    expect(prompt).toContain('Gender: female. Hair: long silver twin-tails.')
+    expect(prompt).toContain('Outfit: Navy sailor uniform')
+    expect(prompt).toContain('Accessories: Star hairpin')
+    expect(prompt).toContain('BACK HAIR: one wide flat hair mass')
+    expect(prompt).toContain('33. 2 shoes (complete)')
+    expect(full.prompt_guide.negative_prompt).toContain('torso fused with arms')
+    expect(full.prompt_guide.negative_prompt).toContain('hair ball')
+
+    const legs = (await runCommand('get_layer_assembly_template', {
+      template_id: 'tmpl-character-front',
+      sheet_style: 'granular',
+      part_group: 'lower'
+    })) as Res
+    expect(legs.prompt_guide.system_prompt).toContain('LEGS (BOTH left and right')
+    expect(legs.prompt_guide.system_prompt).not.toContain('HAIR (at least 6-8 pieces)')
+    expect(legs.prompt_guide.system_prompt).toContain('Gender: ...')
+  })
 })
