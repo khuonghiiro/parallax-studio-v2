@@ -214,12 +214,12 @@ function getTextureDimensions(texture: THREE.Texture | null): { width: number; h
 /**
  * Tính toán kích thước w, h vừa vặn bảo toàn tỉ lệ ảnh (Aspect Ratio)
  */
-function computePlaneDimensions(texture: THREE.Texture | null, maxDim = 380): { w: number; h: number } {
+function computePlaneDimensions(texture: THREE.Texture | null, maxDim = 4096): { w: number; h: number } {
   const dims = getTextureDimensions(texture)
   if (dims) {
     const origW = dims.width
     const origH = dims.height
-    // Khớp 100% với 2D: Nếu kích thước ảnh nhỏ hơn hoặc bằng maxDim, giữ nguyên kích thước tự nhiên
+    // Khớp 100% với 2D: Giữ nguyên kích thước tự nhiên 1:1 của bộ phận ảnh
     if (origW <= maxDim && origH <= maxDim) {
       return { w: origW, h: origH }
     }
@@ -289,8 +289,8 @@ export function createLayer3DInstance(
   const mesh = new THREE.Mesh(geom, material)
   mesh.name = `layer-mesh-${layer.id}`
   mesh.userData = { layerId: layer.id }
-  mesh.castShadow = true
-  mesh.receiveShadow = true
+  mesh.castShadow = false
+  mesh.receiveShadow = false
 
   // Lưới khung dây Wireframe hiển thị khi người dùng bật chế độ Mesh (sáng rõ nét tương đồng 2D)
   const wireframeMat = new THREE.MeshBasicMaterial({

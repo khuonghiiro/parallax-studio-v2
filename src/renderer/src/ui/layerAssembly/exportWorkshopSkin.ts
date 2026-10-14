@@ -14,8 +14,7 @@ export async function exportWorkshopSkin(layer: ImageLayer, item: AssembledLayer
     image.onerror = () => reject(new Error(`Không tải được ảnh mesh: ${item.name}`))
     image.src = url
   })
-  const factor = Math.min(1, 380 / Math.max(image.naturalWidth, image.naturalHeight))
-  const width = Math.round(image.naturalWidth * factor), height = Math.round(image.naturalHeight * factor)
+  const width = image.naturalWidth, height = image.naturalHeight
   const geometry = createLayerAlphaTrimmedGeometry(width, height, image)
   const { boneId, x, y, rotation, scale, scaleX, scaleY } = item
   layer.mesh = {

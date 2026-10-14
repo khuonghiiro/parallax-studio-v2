@@ -96,7 +96,7 @@ function prepareLayerItem(
 ): PreparedLayerItem {
   const nw = img.naturalWidth || 100
   const nh = img.naturalHeight || 100
-  const maxDim = 380
+  const maxDim = 4096
   const imgScale = Math.min(1, maxDim / Math.max(nw, nh))
 
   const { animRotateDeg, animScaleX, animScaleY, animTranslateX, animTranslateY } =
@@ -209,8 +209,7 @@ export async function captureCompositeThumbnail(
   for (const pair of validPairs) {
     const item = prepareLayerItem(pair.layer, pair.img, time)
     if (pair.layer.bindingMode === 'soft' && pair.layer.boneId && composite.rig) {
-      const factor = Math.min(1, 380 / Math.max(pair.img.naturalWidth, pair.img.naturalHeight))
-      const width = Math.round(pair.img.naturalWidth * factor), height = Math.round(pair.img.naturalHeight * factor)
+      const width = pair.img.naturalWidth, height = pair.img.naturalHeight
       const geometry = createLayerAlphaTrimmedGeometry(width, height, pair.img)
       const positions = deformSkin(geometry.userData.basePositions, pair.layer, composite.rig, time)
       item.skin = { geometry, positions, width, height }

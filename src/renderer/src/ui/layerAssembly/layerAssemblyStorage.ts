@@ -13,9 +13,21 @@ export const COMPOSITE_CATEGORIES: LayerCompositeCategory[] = [
 ]
 
 const STORAGE_KEY = 'pxs.layerComposites'
-const SEED_VERSION = 'v18_modular_13part_cutout_characters'
+const SEED_VERSION = 'v19_clean_5_presets_native_1to1'
 const SEED_KEY = 'pxs.layerComposites.seeded_version'
 const DELETED_KEY = 'pxs.layerComposites.deleted'
+
+const REMOVED_LEGACY_COMPOSITE_IDS = new Set([
+  'comp-character-human-back',
+  'comp-animal-dog',
+  'comp-animal-rooster',
+  'comp-animal-fish',
+  'comp-flower-bush',
+  'comp-vines-ruins',
+  'comp-balcony-window',
+  'comp-74ffeb8c-3d22-4296-851f-e35465d027f7',
+  'comp-2b34674a-188b-4490-b8f6-3deb1f547783'
+])
 
 /** Lấy tập hợp ID các mẫu composite mà người dùng đã chủ động xóa (bao gồm cả mẫu có sẵn) */
 export function getDeletedCompositeIds(): Set<string> {
@@ -40,11 +52,12 @@ export function saveDeletedCompositeIds(ids: Set<string>): void {
   }
 }
 
-/** Lọc bỏ các bản sao rác auto-clone `(Bản đã lưu)` từ lỗi seed cũ và khử trùng lặp id */
+/** Lọc bỏ các bản sao rác auto-clone `(Bản đã lưu)`, các mẫu cũ đã xoá và khử trùng lặp id */
 export function cleanDuplicateComposites(list: LayerComposite[]): LayerComposite[] {
   const seenIds = new Set<string>()
   return list.filter((item) => {
     if (!item || !item.id) return false
+    if (REMOVED_LEGACY_COMPOSITE_IDS.has(item.id)) return false
     // Loại bỏ các bản sao auto-saved do lỗi seed cũ tạo ra (*-saved-<timestamp>)
     if (
       typeof item.id === 'string' &&
@@ -93,19 +106,17 @@ export function getStoredComposites(): LayerComposite[] {
       const builtinMap = new Map(BUILTIN_COMPOSITES.map((b) => [b.id, b]))
       const resultMap = new Map<string, LayerComposite>()
 
-      // Đưa các mẫu builtin cập nhật mới vào (trừ những mẫu người dùng đã xóa)
+      // Đưa các mẫu builtin cập nhật mới vào (làm mới thumbnail để phản ánh bộ phận mới)
       for (const builtin of BUILTIN_COMPOSITES) {
         if (!deletedIds.has(builtin.id)) {
-          // Bảo lưu thumbnail đã render cache trước đó nếu có
-          const existing = cleaned.find((c) => c.id === builtin.id)
           resultMap.set(builtin.id, {
             ...builtin,
-            thumbnail: existing?.thumbnail || builtin.thumbnail
+            thumbnail: builtin.thumbnail
           })
         }
       }
 
-      // Giữ nguyên các mẫu tự tạo của người dùng (không nằm trong builtin và chưa bị xóa)
+      // Giữ nguyên các mẫu tự tạo hợp lệ của người dùng (không nằm trong builtin và chưa bị xóa)
       for (const item of cleaned) {
         if (!builtinMap.has(item.id)) {
           resultMap.set(item.id, item)

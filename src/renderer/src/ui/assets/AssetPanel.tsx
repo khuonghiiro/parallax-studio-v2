@@ -14,7 +14,7 @@ import { MusicPanel } from './MusicPanel'
 import { getStoredComposites } from '../layerAssembly/layerAssemblyStorage'
 import { getStoredModels3D, fetchAsset3DsCatalog } from './models3d/models3dStorage'
 import { sortAssetCategories } from './types'
-import { getVisiblePublicAssets, addCustomPublicAsset } from './publicAssetStorage'
+import { getVisiblePublicAssets, addCustomPublicAsset, isPrivateModularAsset } from './publicAssetStorage'
 import { getAudioCount } from './music/builtinAudios'
 
 type AssetSubTab = 'builtin' | 'project' | '3d' | 'assembly' | 'music'
@@ -80,9 +80,11 @@ export function AssetPanel() {
   }, [])
 
   const categories = useMemo<BuiltInAssetCategory[]>(() => {
-    const list = catalog?.categories ?? [
-      { id: 'all', folder: '', title: 'Tất cả tài nguyên', icon: 'all', order: 0 }
-    ]
+    const list = (
+      catalog?.categories ?? [
+        { id: 'all', folder: '', title: 'Tất cả tài nguyên', icon: 'all', order: 0 }
+      ]
+    ).filter((c) => c.id === 'all' || !isPrivateModularAsset(c.folder ? `${c.folder}/` : `${c.id}/`))
     return sortAssetCategories(list)
   }, [catalog])
 

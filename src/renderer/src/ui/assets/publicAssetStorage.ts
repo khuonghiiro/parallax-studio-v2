@@ -210,21 +210,38 @@ export function isPublicAssetHidden(item: DeletableAssetTarget): boolean {
   return rawCandidateKeys.some((k) => expandKeyVariants(k).some((v) => hiddenSet.has(v)))
 }
 
-/** Lọc danh sách tài nguyên công khai hiển thị cho người dùng */
+const PRIVATE_MODULAR_PREFIXES = [
+  'character_cutout_demo/',
+  'character_human_',
+  'animal_modular/',
+  'nature_modular/',
+  'assembly_3d/',
+  'house/'
+]
+
+/** Kiểm tra xem tài nguyên có thuộc bộ phận lắp ráp riêng (private theo mẫu) hay không */
+export function isPrivateModularAsset(rawPathOrId?: string): boolean {
+  if (!rawPathOrId) return false
+  const stripped = normalizeKey(rawPathOrId)
+    .replace(/^builtin:/, '')
+    .replace(/^assets\//, '')
+  return PRIVATE_MODULAR_PREFIXES.some((prefix) => stripped.startsWith(prefix))
+}
+
+/** Lọc danh sách tài nguyên công khai hiển thị cho người dùng (ẩn các mảnh lắp ráp private của từng mẫu) */
 export function getVisiblePublicAssets(builtinList: BuiltInAssetItem[]): BuiltInAssetItem[] {
   const custom = loadCustomPublicAssets()
   const hiddenList = loadHiddenPublicAssets()
-  if (!hiddenList || hiddenList.length === 0) {
-    return [...custom, ...(builtinList || [])]
-  }
-
-  const hiddenSet = new Set(hiddenList)
+  const hiddenSet = new Set(hiddenList || [])
 
   const filteredBuiltin = (builtinList || []).filter((b) => {
     const candidates = [b.id, b.relativePath, b.path, b.fileName].filter(Boolean) as string[]
+    if (candidates.some((c) => isPrivateModularAsset(c))) return false
+    if (hiddenSet.size === 0) return true
     const isHidden = candidates.some((k) => expandKeyVariants(k).some((v) => hiddenSet.has(v)))
     return !isHidden
   })
 
   return [...custom, ...filteredBuiltin]
 }
+

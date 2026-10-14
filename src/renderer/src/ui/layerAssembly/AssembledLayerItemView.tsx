@@ -125,9 +125,6 @@ export function AssembledLayerItemView({
             alt={layer.name}
             style={{
               display: 'block',
-              maxWidth: '380px',
-              maxHeight: '380px',
-              objectFit: 'contain',
               pointerEvents: 'none',
               imageRendering: '-webkit-optimize-contrast',
               transform: 'translateZ(0)',

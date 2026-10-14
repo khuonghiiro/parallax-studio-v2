@@ -7,7 +7,7 @@ import { IconCheck, IconFolder, IconImage, IconPlus, IconSearch, IconX } from '.
 import { BuiltInAssetBar } from '../assets/BuiltInAssetBar'
 import { BuiltInAssetGrid } from '../assets/BuiltInAssetGrid'
 import { sortAssetCategories } from '../assets/types'
-import { getVisiblePublicAssets } from '../assets/publicAssetStorage'
+import { getVisiblePublicAssets, isPrivateModularAsset } from '../assets/publicAssetStorage'
 
 interface AssetReplaceModalProps {
   layerId: string
@@ -75,9 +75,11 @@ export function AssetReplaceModal({
   }, [onClose])
 
   const categories = useMemo<BuiltInAssetCategory[]>(() => {
-    const list = catalog?.categories ?? [
-      { id: 'all', folder: '', title: 'Tất cả tài nguyên', icon: 'all', order: 0 }
-    ]
+    const list = (
+      catalog?.categories ?? [
+        { id: 'all', folder: '', title: 'Tất cả tài nguyên', icon: 'all', order: 0 }
+      ]
+    ).filter((c) => c.id === 'all' || !isPrivateModularAsset(c.folder ? `${c.folder}/` : `${c.id}/`))
     return sortAssetCategories(list)
   }, [catalog])
 

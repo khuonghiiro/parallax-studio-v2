@@ -39,16 +39,13 @@ interface CustomAssetItem {
   isCustom: boolean
 }
 
-// Danh sách các vật liệu mẫu thiên nhiên & đạo cụ có sẵn trong assets
+// Danh sách tài nguyên công khai mặc định khi chạy môi trường test không có IPC
 const BUILTIN_NATURE_ASSETS = [
-  { path: 'assembly_3d/modular/nature_grass.png', name: 'Bụi cỏ xanh' },
-  { path: 'assembly_3d/modular/nature_flower_stem.png', name: 'Thân cành hoa' },
-  { path: 'assembly_3d/modular/nature_flower_petal.png', name: 'Cánh hoa đỏ' },
-  { path: 'assembly_3d/modular/nature_flower_center.png', name: 'Nhụy hoa vàng' },
-  { path: 'assembly_3d/modular/nature_leaf.png', name: 'Nhánh lá cây' },
-  { path: 'assembly_3d/modular/decor_flower_box.png', name: 'Bồn hoa ban công' },
-  { path: 'assembly_3d/modular/decor_window.png', name: 'Cửa sổ Tudor' },
-  { path: 'demo_transparent/layer5_foreground_vines.png', name: 'Dây leo rủ' }
+  { path: 'demo_transparent/layer1_sky.png', name: 'Bầu trời hoàng hôn' },
+  { path: 'demo_transparent/layer2_distant_mountains.png', name: 'Dãy núi sương mù xa xăm' },
+  { path: 'demo_transparent/layer3_floating_island.png', name: 'Đảo đá bay tinh thể cổ đại' },
+  { path: 'demo_transparent/layer4_ancient_ruins.png', name: 'Cổng vòm tàn tích rêu phong' },
+  { path: 'demo_transparent/layer5_foreground_vines.png', name: 'Vòm dây leo & đom đóm' }
 ]
 
 export function LayerAssemblySidebar({
@@ -61,7 +58,7 @@ export function LayerAssemblySidebar({
   onDuplicateLayer,
   onLoadComposite
 }: LayerAssemblySidebarProps) {
-  const [activeTab, setActiveTab] = useState<'builtin' | 'presets' | 'project'>('builtin')
+  const [activeTab, setActiveTab] = useState<'builtin' | 'presets' | 'project'>('project')
   const [searchTerm, setSearchTerm] = useState('')
   const [storedComposites, setStoredComposites] = useState<LayerComposite[]>(getStoredComposites)
   const [detailTarget, setDetailTarget] = useState<CustomAssetItem | null>(null)

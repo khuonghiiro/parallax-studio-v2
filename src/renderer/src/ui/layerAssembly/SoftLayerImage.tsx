@@ -97,8 +97,7 @@ export function SoftLayerImage({ url, layer, time, showMesh, filter }: Props) {
     loadMeshImage(url)
       .then((image) => {
         if (!active) return
-        const factor = Math.min(1, 380 / Math.max(image.naturalWidth, image.naturalHeight))
-        const width = Math.round(image.naturalWidth * factor), height = Math.round(image.naturalHeight * factor)
+        const width = image.naturalWidth, height = image.naturalHeight
         geometry = createLayerAlphaTrimmedGeometry(width, height, image)
         setData({ image, geometry, width, height })
       })
@@ -137,9 +136,6 @@ export function SoftLayerImage({ url, layer, time, showMesh, filter }: Props) {
           alt={layer.name}
           style={{
             display: 'block',
-            maxWidth: '380px',
-            maxHeight: '380px',
-            objectFit: 'contain',
             pointerEvents: 'none',
             imageRendering: '-webkit-optimize-contrast',
             transform: 'translateZ(0)',

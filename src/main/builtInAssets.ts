@@ -42,7 +42,7 @@ const DEFAULT_CATEGORIES: BuiltInAssetCategory[] = [
     folder: '',
     title: 'Tất cả tài nguyên',
     icon: 'all',
-    description: 'Toàn bộ tài nguyên có sẵn trong thư mục assets',
+    description: 'Toàn bộ tài nguyên công khai có sẵn trong thư mục assets',
     order: 0
   },
   {
@@ -54,20 +54,12 @@ const DEFAULT_CATEGORIES: BuiltInAssetCategory[] = [
     order: 1
   },
   {
-    id: 'character_cutout_demo',
-    folder: 'character_cutout_demo',
-    title: 'Nhân vật Cắt lớp (Cutout 18 Lớp)',
-    icon: 'user-male',
-    description: 'Bộ phận nhân vật phân tầng độc lập (đầu, thân, hông, tay, chân) chuẩn tỉ lệ giải phẫu học',
-    order: 3
-  },
-  {
     id: 'audio',
     folder: 'audio',
     title: 'Âm thanh & Nhạc nền',
     icon: 'music',
     description: 'Nhạc nền, tiếng chuông ambient và hiệu ứng âm thanh cho phân cảnh',
-    order: 4
+    order: 2
   }
 ]
 
@@ -228,8 +220,17 @@ export async function scanBuiltInCatalog(forceRefresh = false): Promise<BuiltInC
     const name = basename(filePath).toLowerCase()
     if (name === 'manifest.json' || name === 'readme.md') return false
     const rel = relative(root, filePath).replace(/\\/g, '/')
-    // 3D Assembly textures belong to assembly dialog, exclude from regular 2D library
-    if (rel.startsWith('assembly_3d/') || rel.startsWith('house/')) return false
+    // Các bộ phận lắp ráp (Layer Assembly & 3D Assembly) thuộc riêng từng mẫu dự án (private), không public ra thư viện chung
+    if (
+      rel.startsWith('assembly_3d/') ||
+      rel.startsWith('house/') ||
+      rel.startsWith('character_cutout_demo/') ||
+      rel.startsWith('character_human_') ||
+      rel.startsWith('animal_modular/') ||
+      rel.startsWith('nature_modular/')
+    ) {
+      return false
+    }
     return true
   })
 

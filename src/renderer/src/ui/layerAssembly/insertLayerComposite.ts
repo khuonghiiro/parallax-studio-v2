@@ -163,10 +163,11 @@ export async function insertLayerCompositeToScene({
       newLayer.props.height = targetAsset.height
     }
     newLayer.transform.position.value = [posX, posY, posZ]
-    const displayFactor = item.bindingMode === 'soft' && item.boneId ? 1
-      : Math.min(1, 380 / Math.max(targetAsset.width || 1, targetAsset.height || 1))
-    newLayer.transform.scale.value = [item.scale * (item.scaleX ?? 1) * globalScale * displayFactor,
-      item.scale * (item.scaleY ?? 1) * globalScale * displayFactor, 1]
+    newLayer.transform.scale.value = [
+      item.scale * (item.scaleX ?? 1) * globalScale,
+      item.scale * (item.scaleY ?? 1) * globalScale,
+      1
+    ]
     newLayer.transform.rotation.value = [item.rotationX || 0, item.rotationY || 0, item.rotation || 0]
     newLayer.transform.opacity.value = item.opacity
 

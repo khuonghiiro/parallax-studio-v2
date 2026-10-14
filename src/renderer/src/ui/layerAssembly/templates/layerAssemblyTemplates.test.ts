@@ -8,21 +8,20 @@ import {
 } from './index'
 
 describe('Layer Assembly Templates Catalog', () => {
-  it('provides 3 standard human character templates (Front 0°, Quarter 45°, Back 180°) with faceless head and swappable expressions', () => {
+  it('provides 2 13-part 2.5D anime cutout character templates at 1:1 native pixel scale with faceless head and swappable expressions', () => {
     const front = findLayerTemplate('tmpl-character-front')!
     const quarter = findLayerTemplate('tmpl-character-quarter')!
-    const back = findLayerTemplate('tmpl-character-back')!
 
     expect(front).toBeDefined()
     expect(quarter).toBeDefined()
-    expect(back).toBeDefined()
 
-    // Front and Quarter views include 13 slots (combined faceless head+hair + glasses + 2 swappable face expressions + torso + 2 sleeves + 2 forearms + 2 thighs + 2 shins)
     expect(front.slots).toHaveLength(13)
     expect(quarter.slots).toHaveLength(13)
-    expect(back.slots).toHaveLength(17)
 
     for (const tmpl of [front, quarter]) {
+      // Every slot uses scale: 1 (100% native pixel proportions, zero resizing)
+      expect(tmpl.slots.every((s) => s.defaultTransform.scale === 1)).toBe(true)
+
       const comp = buildCompositeFromTemplate(tmpl)
       const faceNormal = comp.layers.find((l) => l.id === 'layer-face-normal')
       const faceHappy = comp.layers.find((l) => l.id === 'layer-face-happy')
@@ -89,41 +88,26 @@ describe('Layer Assembly Templates Catalog', () => {
     }
   })
 
-  it('contains 13 curated real-cutout templates covering characters (3 views), animals (3 types), nature (5), and architecture (2)', () => {
-    expect(ALL_LAYER_TEMPLATES.length).toBe(13)
+  it('contains the 5 retained curated real-cutout templates (2 characters + 3 nature presets)', () => {
+    expect(ALL_LAYER_TEMPLATES.length).toBe(5)
     const ids = ALL_LAYER_TEMPLATES.map((t) => t.id)
     expect(new Set(ids).size).toBe(ALL_LAYER_TEMPLATES.length)
     expect(ids).toEqual([
       'tmpl-character-front',
       'tmpl-character-quarter',
-      'tmpl-character-back',
-      'tmpl-animal-dog',
-      'tmpl-animal-rooster',
-      'tmpl-animal-fish',
       'tmpl-nature-modular-tree',
-      'tmpl-nature-autumn-tree',
       'tmpl-nature-modular-rock',
-      'tmpl-nature-bonsai',
-      'tmpl-nature-flower-bush',
-      'tmpl-arch-window',
-      'tmpl-arch-ruins'
+      'tmpl-nature-bonsai'
     ])
-  })
-
-  it('contains animal templates for dog, rooster/bird, and koi fish with real PNG assets', () => {
-    const animalIds = ALL_LAYER_TEMPLATES.filter((t) => t.category === 'animal').map((t) => t.id)
-    expect(animalIds).toContain('tmpl-animal-dog')
-    expect(animalIds).toContain('tmpl-animal-rooster')
-    expect(animalIds).toContain('tmpl-animal-fish')
   })
 
   it('every template has a valid prompt guide with non-empty system prompt and cell layout', () => {
     for (const tmpl of ALL_LAYER_TEMPLATES) {
       expect(tmpl.name.trim()).not.toBe('')
       expect(tmpl.description.trim()).not.toBe('')
-      expect(tmpl.slots.length).toBeGreaterThanOrEqual(3)
+      expect(tmpl.slots.length).toBeGreaterThanOrEqual(5)
       expect(tmpl.promptGuide.systemPrompt.trim().length).toBeGreaterThan(50)
-      expect(tmpl.promptGuide.cellLayout.length).toBeGreaterThanOrEqual(3)
+      expect(tmpl.promptGuide.cellLayout.length).toBeGreaterThanOrEqual(5)
       expect(tmpl.promptGuide.userGuide.trim()).not.toBe('')
     }
   })
@@ -147,7 +131,7 @@ describe('Layer Assembly Templates Catalog', () => {
   it('findLayerTemplate finds templates case-insensitively and supports legacy aliases', () => {
     expect(findLayerTemplate('tmpl-character-front')).toBeDefined()
     expect(findLayerTemplate('tmpl-character-male-hero')?.id).toBe('tmpl-character-front')
-    expect(findLayerTemplate('TMPL-ANIMAL-DOG')).toBeDefined()
+    expect(findLayerTemplate('TMPL-NATURE-BONSAI')).toBeDefined()
     expect(findLayerTemplate('unknown-template-xyz')).toBeUndefined()
   })
 

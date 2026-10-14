@@ -424,8 +424,8 @@ export const LAYER_ASSEMBLY_TOOLS = [
     name: 'list_layer_assembly_templates',
     cat: 'layer_assembly',
     doc: L(
-      'List pre-configured 2.5D layer assembly templates (standard human characters in 3 views: 0° front view, 45° three-quarter view, 180° back view with faceless head + swappable face expressions; animals: dog, rooster/bird, koi fish; nature and architecture) with layer slots, bone rigs, animation clips and AI generation prompts.',
-      'Liệt kê các mẫu khung lắp ráp layer 2.5D dựng sẵn (nhân vật chuẩn đầu người trơn kèm mặt biểu cảm thay thế theo 3 hướng: chính diện 0°, góc chéo 3/4 45°, sau lưng 180°; động vật: chó Shiba, chim họa mi/gà trống, cá Koi; cây cỏ và kiến trúc) kèm danh sách bộ phận, xương rig, hoạt ảnh và prompt tạo ảnh AI.'
+      'List pre-configured 2.5D layer assembly templates (13-part 1:1 native scale anime cutout characters with faceless head, glasses and swappable expressions; modular canopy tree, modular mossy rock & crystals, and 5-layer zen bonsai) with layer slots, bone rigs, animation clips and AI generation prompts.',
+      'Liệt kê các mẫu khung lắp ráp layer 2.5D dựng sẵn (nhân vật anime 2.5D bóc tách 13 mảnh tỉ lệ gốc 1:1 gồm đầu trơn kèm tóc, mắt kính rời và biểu cảm thay thế; cây đại thụ bóc tách, cụm đá rêu phong & tinh thể, cây bonsai cổ thụ đung đưa) kèm danh sách bộ phận, xương rig, hoạt ảnh và prompt tạo ảnh AI.'
     ),
     shape: (d) => ({
       category: z.enum(['all', 'character', 'animal', 'nature', 'prop', 'architecture']).optional().describe(d('Filter by category.', 'Lọc theo danh mục.')),
@@ -441,12 +441,12 @@ export const LAYER_ASSEMBLY_TOOLS = [
       'Lấy cấu hình chi tiết một mẫu lắp ráp layer theo ID, gồm danh sách slot bộ phận, khung xương rig, các hoạt ảnh chuyển động và toàn văn prompt tạo ảnh sprite atlas chuẩn AI (hỗ trợ gắn kèm mô tả tướng mạo, quần áo và phụ kiện tùy chỉnh).'
     ),
     shape: (d) => ({
-      template_id: z.string().describe(d('Template ID from list_layer_assembly_templates (e.g. "tmpl-character-front", "tmpl-character-quarter", "tmpl-character-back").', 'ID mẫu từ list_layer_assembly_templates (vd "tmpl-character-front", "tmpl-character-quarter", "tmpl-character-back").')),
+      template_id: z.string().describe(d('Template ID from list_layer_assembly_templates (e.g. "tmpl-character-front", "tmpl-character-quarter", "tmpl-nature-modular-tree", "tmpl-nature-modular-rock", "tmpl-nature-bonsai").', 'ID mẫu từ list_layer_assembly_templates (vd "tmpl-character-front", "tmpl-character-quarter", "tmpl-nature-modular-tree", "tmpl-nature-modular-rock", "tmpl-nature-bonsai").')),
       appearance: z.string().optional().describe(d('Custom character appearance, facial expression, or hairstyle to inject into the AI prompt.', 'Mô tả tướng mạo, khuôn mặt, kiểu tóc hoặc biểu cảm nhân vật để gắn vào prompt AI.')),
       costume: z.string().optional().describe(d('Custom outfit, clothing, robe, armor, or footwear to inject into the AI prompt.', 'Mô tả quần áo, trang phục, đạo bào hoặc giày dép để gắn vào prompt AI.')),
       props: z.string().optional().describe(d('Custom accessories, headwear, glasses, beard, mask, or handheld weapon to inject into the AI prompt.', 'Mô tả phụ kiện hoá trang (mũ, kính, râu, mặt nạ) hoặc vũ khí cầm tay để gắn vào prompt AI.'))
     }),
-    example: '{"template_id":"tmpl-character-front","appearance":"Nam kiếm khách tóc đen buộc cao, mắt sắc lạnh","costume":"Chiến bào xanh dương viền vàng"}'
+    example: '{"template_id":"tmpl-character-front","appearance":"Nam sinh tóc xanh đen highlight bạc","costume":"Áo gile học viện xanh navy kèm cà vạt"}'
   },
   {
     name: 'apply_layer_assembly_template',
@@ -462,7 +462,7 @@ export const LAYER_ASSEMBLY_TOOLS = [
       open_workshop: z.boolean().optional().describe(d('Whether to open the layer workshop modal (default true).', 'Có mở giao diện xưởng lắp ráp layer hay không (mặc định true).')),
       save_to_library: z.boolean().optional().describe(d('Whether to persist into stored composites library (default false).', 'Có lưu vào danh sách mẫu của dự án hay không (mặc định false).'))
     }),
-    example: '{"template_id":"tmpl-animal-dog","open_workshop":true}'
+    example: '{"template_id":"tmpl-character-quarter","open_workshop":true}'
   }
 ]
 

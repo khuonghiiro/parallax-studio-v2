@@ -2,76 +2,75 @@ import { describe, expect, it } from 'vitest'
 import { runCommand } from '../commands'
 
 describe('layerAssemblyTemplateCommands MCP', () => {
-  it('exposes the 3-view human character templates and applies all 23 parts through MCP tools', async () => {
+  it('exposes the 13-part human character templates and applies all 13 parts through MCP tools', async () => {
     const detail = (await runCommand('get_layer_assembly_template', {
       template_id: 'tmpl-character-front'
     })) as { slots: unknown[]; prompt_guide: { system_prompt: string } }
-    expect(detail.slots).toHaveLength(23)
-    expect(detail.prompt_guide.system_prompt).toContain('FACELESS HEAD')
+    expect(detail.slots).toHaveLength(13)
+    expect(detail.prompt_guide.system_prompt).toContain('FACELESS')
 
     const result = (await runCommand('apply_layer_assembly_template', {
       template_id: 'tmpl-character-front',
       open_workshop: false,
-      images: { cell_15: 'left-shin.png', cell_18: 'right-foot.png' }
+      images: { cell_11: 'left-shin.png', cell_2: 'custom-glasses.png' }
     })) as {
       layer_count: number
       bone_count: number
       composite: { layers: Array<{ id: string; boneId: string; assetPath?: string }> }
     }
-    expect(result.layer_count).toBe(23)
+    expect(result.layer_count).toBe(13)
     expect(result.bone_count).toBe(15)
     expect(result.composite.layers.find((l) => l.id === 'layer-shin-l')).toMatchObject({
       boneId: 'bone-shin-l',
       assetPath: 'left-shin.png'
     })
-    expect(result.composite.layers.find((l) => l.id === 'layer-foot-r')?.assetPath).toBe('right-foot.png')
+    expect(result.composite.layers.find((l) => l.id === 'layer-glasses')?.assetPath).toBe('custom-glasses.png')
   })
 
-  it('applies the 3/4 quarter-view character template with custom hand and foot images selected by atlas cell', async () => {
+  it('applies the similar academy student character template with custom forearm and glasses images selected by atlas cell', async () => {
     const result = (await runCommand('apply_layer_assembly_template', {
       template_id: 'tmpl-character-quarter',
       open_workshop: false,
-      images: { cell_11: 'left-hand.png', cell_18: 'data:image/png;base64,Zm9v' }
+      images: { cell_8: 'left-forearm.png', cell_2: 'data:image/png;base64,Zm9v' }
     })) as {
       layer_count: number
       bone_count: number
       composite: { layers: Array<{ id: string; assetPath?: string; imageUrl?: string }> }
     }
-    expect(result.layer_count).toBe(23)
+    expect(result.layer_count).toBe(13)
     expect(result.bone_count).toBe(15)
-    expect(result.composite.layers.find((l) => l.id === 'layer-hand-l')?.assetPath).toBe('left-hand.png')
-    expect(result.composite.layers.find((l) => l.id === 'layer-foot-r')?.imageUrl).toBe('data:image/png;base64,Zm9v')
+    expect(result.composite.layers.find((l) => l.id === 'layer-forearm-l')?.assetPath).toBe('left-forearm.png')
+    expect(result.composite.layers.find((l) => l.id === 'layer-glasses')?.imageUrl).toBe('data:image/png;base64,Zm9v')
   })
 
-  it('runs list_layer_assembly_templates and returns all 13 curated templates', async () => {
+  it('runs list_layer_assembly_templates and returns the 5 curated templates', async () => {
     const res = (await runCommand('list_layer_assembly_templates', {})) as {
       count: number
       categories: Array<{ id: string; label: string }>
       templates: Array<{ id: string; name: string; category: string }>
     }
 
-    expect(res.count).toBe(13)
-    expect(res.categories.length).toBeGreaterThanOrEqual(5)
+    expect(res.count).toBe(5)
+    expect(res.categories.length).toBeGreaterThanOrEqual(3)
     expect(res.templates.some((t) => t.id === 'tmpl-character-front')).toBe(true)
     expect(res.templates.some((t) => t.id === 'tmpl-character-quarter')).toBe(true)
-    expect(res.templates.some((t) => t.id === 'tmpl-character-back')).toBe(true)
-    expect(res.templates.some((t) => t.id === 'tmpl-animal-dog')).toBe(true)
-    expect(res.templates.some((t) => t.id === 'tmpl-animal-rooster')).toBe(true)
-    expect(res.templates.some((t) => t.id === 'tmpl-animal-fish')).toBe(true)
+    expect(res.templates.some((t) => t.id === 'tmpl-nature-modular-tree')).toBe(true)
+    expect(res.templates.some((t) => t.id === 'tmpl-nature-modular-rock')).toBe(true)
+    expect(res.templates.some((t) => t.id === 'tmpl-nature-bonsai')).toBe(true)
   })
 
   it('filters templates by category and search term', async () => {
-    const resCat = (await runCommand('list_layer_assembly_templates', { category: 'animal' })) as {
+    const resCat = (await runCommand('list_layer_assembly_templates', { category: 'nature' })) as {
       count: number
       templates: Array<{ category: string }>
     }
-    expect(resCat.templates.every((t) => t.category === 'animal')).toBe(true)
+    expect(resCat.templates.every((t) => t.category === 'nature')).toBe(true)
     expect(resCat.count).toBe(3)
 
-    const resSearch = (await runCommand('list_layer_assembly_templates', { search: 'chó' })) as {
+    const resSearch = (await runCommand('list_layer_assembly_templates', { search: 'bonsai' })) as {
       templates: Array<{ id: string }>
     }
-    expect(resSearch.templates.some((t) => t.id === 'tmpl-animal-dog')).toBe(true)
+    expect(resSearch.templates.some((t) => t.id === 'tmpl-nature-bonsai')).toBe(true)
   })
 
   it('runs get_layer_assembly_template with valid template ID (including legacy alias) and returns full prompt and slots', async () => {
@@ -86,9 +85,9 @@ describe('layerAssemblyTemplateCommands MCP', () => {
     }
 
     expect(res.id).toBe('tmpl-character-front')
-    expect(res.slots.length).toBe(23)
+    expect(res.slots.length).toBe(13)
     expect(res.prompt_guide.system_prompt).toContain('CHARACTER CUTOUT SPRITE ATLAS')
-    expect(res.prompt_guide.cell_layout.length).toBe(23)
+    expect(res.prompt_guide.cell_layout.length).toBe(13)
     expect(res.clips.length).toBeGreaterThanOrEqual(3)
   })
 
@@ -100,11 +99,11 @@ describe('layerAssemblyTemplateCommands MCP', () => {
 
   it('runs apply_layer_assembly_template and binds slot images', async () => {
     const res = (await runCommand('apply_layer_assembly_template', {
-      template_id: 'tmpl-animal-dog',
-      name: 'Chú chó Shiba của tôi',
+      template_id: 'tmpl-nature-bonsai',
+      name: 'Cây Bonsai của tôi',
       images: {
-        head: 'my_dog_head.png',
-        tail: 'my_dog_tail.png'
+        'bonsai-pot': 'my_pot.png',
+        'bonsai-trunk': 'my_trunk.png'
       },
       open_workshop: false,
       save_to_library: true
@@ -117,13 +116,13 @@ describe('layerAssemblyTemplateCommands MCP', () => {
     }
 
     expect(res.ok).toBe(true)
-    expect(res.template_id).toBe('tmpl-animal-dog')
-    expect(res.name).toBe('Chú chó Shiba của tôi')
-    expect(res.bound_slots).toContain('head')
-    expect(res.bound_slots).toContain('tail')
+    expect(res.template_id).toBe('tmpl-nature-bonsai')
+    expect(res.name).toBe('Cây Bonsai của tôi')
+    expect(res.bound_slots).toContain('bonsai-pot')
+    expect(res.bound_slots).toContain('bonsai-trunk')
 
-    const headLayer = res.composite.layers.find((l) => l.id.includes('head'))
-    expect(headLayer?.assetPath).toBe('my_dog_head.png')
+    const potLayer = res.composite.layers.find((l) => l.id.includes('bonsai-pot'))
+    expect(potLayer?.assetPath).toBe('my_pot.png')
   })
 
   it('injects custom appearance, costume, and props into get_layer_assembly_template prompt_guide', async () => {

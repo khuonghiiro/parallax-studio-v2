@@ -1,6 +1,5 @@
 import { CUTOUT_HERO_COMPOSITE } from './cutoutHeroComposite'
-import { TMPL_CHARACTER_QUARTER, TMPL_CHARACTER_BACK } from './templates/humanoidTemplates'
-import { TMPL_ANIMAL_DOG, TMPL_ANIMAL_ROOSTER, TMPL_ANIMAL_FISH } from './templates/animalTemplates'
+import { TMPL_CHARACTER_QUARTER } from './templates/humanoidTemplates'
 import type { LayerComposite } from './types'
 
 const HUMAN_QUARTER_COMPOSITE: LayerComposite = {
@@ -8,42 +7,20 @@ const HUMAN_QUARTER_COMPOSITE: LayerComposite = {
   id: 'comp-character-human-quarter'
 }
 
-const HUMAN_BACK_COMPOSITE: LayerComposite = {
-  ...TMPL_CHARACTER_BACK.buildComposite(),
-  id: 'comp-character-human-back'
-}
-
-const ANIMAL_DOG_COMPOSITE: LayerComposite = {
-  ...TMPL_ANIMAL_DOG.buildComposite(),
-  id: 'comp-animal-dog'
-}
-
-const ANIMAL_ROOSTER_COMPOSITE: LayerComposite = {
-  ...TMPL_ANIMAL_ROOSTER.buildComposite(),
-  id: 'comp-animal-rooster'
-}
-
-const ANIMAL_FISH_COMPOSITE: LayerComposite = {
-  ...TMPL_ANIMAL_FISH.buildComposite(),
-  id: 'comp-animal-fish'
-}
-
 /**
- * Các mẫu cụm layer dựng sẵn (Presets) minh họa việc ghép nhân vật đầu người 3 hướng, động vật, cây cối và kiến trúc 2.5D.
+ * Danh sách 5 mẫu cụm layer dựng sẵn (Presets):
+ * - 2 mẫu nhân vật Anime 2.5D bóc tách 13 mảnh tỉ lệ gốc 1:1 (Mẫu minh hoạ kính cận & Nam sinh học viện tương tự)
+ * - 3 mẫu thiên nhiên bóc tách được giữ lại theo yêu cầu: Cây Đại Thụ Bóc Tách, Cụm Đá Rêu Phong & Tinh Thể Bóc Tách, Cây Bonsai Cổ Thụ Đung Đưa
  */
 export const BUILTIN_COMPOSITES: LayerComposite[] = [
   CUTOUT_HERO_COMPOSITE,
   HUMAN_QUARTER_COMPOSITE,
-  HUMAN_BACK_COMPOSITE,
-  ANIMAL_DOG_COMPOSITE,
-  ANIMAL_ROOSTER_COMPOSITE,
-  ANIMAL_FISH_COMPOSITE,
   {
     id: 'comp-modular-tree',
     name: 'Cây Đại Thụ Bóc Tách (Đổi Tán Lá Xanh / Vàng / Hoa / Quả)',
     category: 'nature',
     description:
-      'Cây cổ thụ 2.5D bóc tách 7 layer: Gốc rễ rêu phong, Thân gỗ & Cành nhánh, 3 tầng Tán lá (dễ dàng đổi sang tán lá vàng mùa thu hoặc hoa anh đào), kèm Layer Hoa nở và Layer Quả táo đỏ có thể bật/tắt.',
+      'Cây cổ thụ 2.5D bóc tách kèm các layer biến thể mùa thu & hoa anh đào riêng theo dự án: Gốc rễ rêu phong, Thân gỗ & Cành nhánh, 3 tầng Tán lá Xanh (kèm Tán lá Vàng & Sakura ẩn sẵn để bật/tắt đổi mùa trong tab Layer), kèm Layer Hoa nở và Layer Quả táo đỏ.',
     width: 550,
     height: 600,
     layers: [
@@ -61,7 +38,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
       },
       {
         id: 'tree-foliage-back',
-        name: '2. Tán lá hậu cảnh (Đổi Xanh / Vàng)',
+        name: '2. Tán lá xanh hậu cảnh (Z=+35)',
         assetPath: 'nature_modular/tree_foliage_back_green.png',
         x: 0,
         y: -62,
@@ -69,6 +46,19 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 1.15,
         rotation: 0,
         opacity: 1,
+        motion: { type: 'sway', speed: 0.75, amplitude: 3.5, anchor: 'bottom', phaseOffset: 0.25 }
+      },
+      {
+        id: 'tree-foliage-back-gold',
+        name: '2B. Tán lá vàng hậu cảnh (Ẩn sẵn - Bật để đổi mùa thu)',
+        assetPath: 'nature_modular/tree_foliage_back_gold.png',
+        x: 0,
+        y: -62,
+        z: 34,
+        scale: 1.15,
+        rotation: 0,
+        opacity: 1,
+        hidden: true,
         motion: { type: 'sway', speed: 0.75, amplitude: 3.5, anchor: 'bottom', phaseOffset: 0.25 }
       },
       {
@@ -85,7 +75,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
       },
       {
         id: 'tree-foliage-mid',
-        name: '4. Tán lá trung cảnh (Đổi Xanh / Vàng / Sakura)',
+        name: '4. Tán lá xanh trung cảnh (Z=-5)',
         assetPath: 'nature_modular/tree_foliage_mid_green.png',
         x: 0,
         y: -74,
@@ -96,8 +86,34 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         motion: { type: 'sway', speed: 0.85, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.15 }
       },
       {
+        id: 'tree-foliage-mid-gold',
+        name: '4B. Tán lá vàng trung cảnh (Ẩn sẵn - Bật để đổi mùa thu)',
+        assetPath: 'nature_modular/tree_foliage_mid_gold.png',
+        x: 0,
+        y: -74,
+        z: -6,
+        scale: 1.05,
+        rotation: 0,
+        opacity: 1,
+        hidden: true,
+        motion: { type: 'sway', speed: 0.85, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.15 }
+      },
+      {
+        id: 'tree-foliage-mid-sakura',
+        name: '4C. Tán hoa anh đào Sakura trung cảnh (Ẩn sẵn)',
+        assetPath: 'nature_modular/tree_foliage_mid_sakura.png',
+        x: 0,
+        y: -74,
+        z: -7,
+        scale: 1.05,
+        rotation: 0,
+        opacity: 1,
+        hidden: true,
+        motion: { type: 'sway', speed: 0.85, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.15 }
+      },
+      {
         id: 'tree-foliage-front',
-        name: '5. Tán lá tiền cảnh đón nắng (Đổi Xanh / Vàng)',
+        name: '5. Tán lá xanh tiền cảnh đón nắng (Z=-25)',
         assetPath: 'nature_modular/tree_foliage_front_green.png',
         x: 0,
         y: -102,
@@ -105,6 +121,19 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 0.88,
         rotation: 0,
         opacity: 1,
+        motion: { type: 'sway', speed: 0.95, amplitude: 5.5, anchor: 'bottom', phaseOffset: 0.4 }
+      },
+      {
+        id: 'tree-foliage-front-gold',
+        name: '5B. Tán lá vàng tiền cảnh (Ẩn sẵn - Bật để đổi mùa thu)',
+        assetPath: 'nature_modular/tree_foliage_front_gold.png',
+        x: 0,
+        y: -102,
+        z: -26,
+        scale: 0.88,
+        rotation: 0,
+        opacity: 1,
+        hidden: true,
         motion: { type: 'sway', speed: 0.95, amplitude: 5.5, anchor: 'bottom', phaseOffset: 0.4 }
       },
       {
@@ -138,7 +167,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
     name: 'Cụm Đá Rêu Phong & Tinh Thể Bóc Tách (Đổi Rêu / Tuyết)',
     category: 'nature',
     description:
-      'Cụm đá tảng thiên nhiên bóc tách 6 layer: Đế đất cỏ, Cụm tinh thể phát sáng hậu cảnh, Khối đá tảng chính, Lớp phủ đỉnh đá (Rêu xanh / Tuyết trắng), Đá cuội tiền cảnh và Khóm hoa dại.',
+      'Cụm đá tảng thiên nhiên bóc tách kèm các layer riêng theo dự án: Đế đất cỏ, Cụm tinh thể phát sáng hậu cảnh, Khối đá tảng chính, Lớp phủ đỉnh đá (Rêu xanh & Tuyết trắng mùa đông ẩn sẵn), Đá cuội tiền cảnh và Khóm hoa dại.',
     width: 500,
     height: 460,
     layers: [
@@ -180,7 +209,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
       },
       {
         id: 'rock-cap',
-        name: '4. Lớp phủ đỉnh đá (Đổi Rêu xanh / Tuyết trắng)',
+        name: '4. Lớp phủ Rêu xanh đỉnh đá',
         assetPath: 'nature_modular/rock_moss_cap.png',
         x: 0,
         y: -54,
@@ -188,6 +217,19 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 0.82,
         rotation: 0,
         opacity: 1,
+        motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+      },
+      {
+        id: 'rock-snow-cap',
+        name: '4B. Lớp phủ Tuyết trắng mùa đông (Ẩn sẵn - Bật để đổi mùa)',
+        assetPath: 'nature_modular/rock_snow_cap.png',
+        x: 0,
+        y: -54,
+        z: -9,
+        scale: 0.82,
+        rotation: 0,
+        opacity: 1,
+        hidden: true,
         motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
       },
       {
@@ -232,7 +274,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         x: 0,
         y: 140,
         z: -5,
-        scale: 0.72,
+        scale: 0.534,
         rotation: 0,
         opacity: 1,
         motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }
@@ -244,7 +286,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         x: 0,
         y: 20,
         z: 0,
-        scale: 0.75,
+        scale: 0.557,
         rotation: 0,
         opacity: 1,
         motion: { type: 'sway', speed: 0.6, amplitude: 2.2, anchor: 'bottom', phaseOffset: 0.05 }
@@ -256,7 +298,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         x: 5,
         y: -55,
         z: 35,
-        scale: 0.85,
+        scale: 0.631,
         rotation: 0,
         opacity: 0.9,
         motion: { type: 'sway', speed: 0.8, amplitude: 3.5, anchor: 'bottom', phaseOffset: 0.3 }
@@ -268,7 +310,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         x: -8,
         y: -78,
         z: -2,
-        scale: 0.85,
+        scale: 0.631,
         rotation: 0,
         opacity: 1,
         motion: { type: 'sway', speed: 0.7, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.15 }
@@ -280,163 +322,10 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         x: 18,
         y: -42,
         z: -30,
-        scale: 0.75,
+        scale: 0.557,
         rotation: 0,
         opacity: 1,
         motion: { type: 'sway', speed: 0.9, amplitude: 6.0, anchor: 'bottom', phaseOffset: 0.4 }
-      }
-    ]
-  },
-  {
-    id: 'comp-flower-bush',
-    name: 'Bụi Hoa Tự Nhiên Rung Rinh Trong Gió',
-    category: 'nature',
-    description:
-      'Bụi hoa nhiều lớp gồm cỏ nền, cành hoa, cánh hoa đỏ và nhụy hoa vàng đung đưa theo gió sinh động.',
-    width: 500,
-    height: 500,
-    layers: [
-      {
-        id: 'layer-grass-base',
-        name: 'Bụi cỏ xanh nền sau',
-        assetPath: 'assembly_3d/modular/nature_grass.png',
-        x: 0,
-        y: 110,
-        z: 20,
-        scale: 0.72,
-        rotation: 0,
-        opacity: 1,
-        motion: { type: 'sway', speed: 0.8, amplitude: 8, anchor: 'bottom', phaseOffset: 0.1 }
-      },
-      {
-        id: 'layer-flower-stem',
-        name: 'Thân cành hoa uốn lượn',
-        assetPath: 'assembly_3d/modular/nature_flower_stem.png',
-        x: 0,
-        y: 30,
-        z: 5,
-        scale: 0.62,
-        rotation: 0,
-        opacity: 1,
-        motion: { type: 'sway', speed: 1.1, amplitude: 12, anchor: 'bottom', phaseOffset: 0.3 }
-      },
-      {
-        id: 'layer-flower-petal',
-        name: 'Cánh hoa đỏ tươi',
-        assetPath: 'assembly_3d/modular/nature_flower_corolla.png',
-        x: 4,
-        y: -70,
-        z: -18,
-        scale: 0.22,
-        rotation: 2,
-        opacity: 1,
-        motion: { type: 'rocking', speed: 1.4, amplitude: 20, anchor: 'center', phaseOffset: 0.6 }
-      },
-      {
-        id: 'layer-flower-center',
-        name: 'Nhụy hoa rực rỡ',
-        assetPath: 'assembly_3d/modular/nature_flower_center.png',
-        x: 4,
-        y: -70,
-        z: -25,
-        scale: 0.20,
-        rotation: 0,
-        opacity: 1,
-        motion: { type: 'breathe', speed: 1.2, amplitude: 8, anchor: 'center', phaseOffset: 0.4 }
-      }
-    ]
-  },
-  {
-    id: 'comp-vines-ruins',
-    name: 'Cổng Tàn Tích Cổ & Dây Leo Đom Đóm',
-    category: 'nature',
-    description:
-      'Chi tiết tự nhiên gồm vách cổng rêu phong, dây leo rủ đung đưa phía trước và đàn đom đóm lập lòe.',
-    width: 600,
-    height: 650,
-    layers: [
-      {
-        id: 'layer-ruins',
-        name: 'Cổng tàn tích cổ',
-        assetPath: 'demo_transparent/layer4_ancient_ruins.png',
-        x: 0,
-        y: 35,
-        z: 15,
-        scale: 0.42,
-        rotation: 0,
-        opacity: 1,
-        motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }
-      },
-      {
-        id: 'layer-vines',
-        name: 'Dây leo rủ tiền cảnh',
-        assetPath: 'demo_transparent/layer5_foreground_vines.png',
-        x: 0,
-        y: -85,
-        z: -20,
-        scale: 0.36,
-        rotation: 0,
-        opacity: 1,
-        motion: { type: 'sway', speed: 0.9, amplitude: 18, anchor: 'top', phaseOffset: 0.1 }
-      },
-      {
-        id: 'layer-fireflies',
-        name: 'Đom đóm lấp lánh huyền ảo',
-        assetPath: 'nature_modular/fireflies_glow.png',
-        x: 0,
-        y: 10,
-        z: -35,
-        scale: 0.85,
-        rotation: 0,
-        opacity: 1,
-        motion: { type: 'float', speed: 1.2, amplitude: 14, anchor: 'center', phaseOffset: 0.5 }
-      }
-    ]
-  },
-  {
-    id: 'comp-balcony-window',
-    name: 'Cửa Sổ Ban Công & Giàn Hoa Rung Rinh',
-    category: 'architecture',
-    description:
-      'Khung cửa gỗ cổ điển kết hợp bồn hoa rực rỡ và nhánh lá cây đung đưa trước gió.',
-    width: 520,
-    height: 580,
-    layers: [
-      {
-        id: 'layer-window',
-        name: 'Khung cửa sổ Tudor',
-        assetPath: 'assembly_3d/modular/decor_window.png',
-        x: 0,
-        y: -35,
-        z: 15,
-        scale: 0.62,
-        rotation: 0,
-        opacity: 1,
-        motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
-      },
-      {
-        id: 'layer-flower-box',
-        name: 'Hộp hoa ban công',
-        assetPath: 'assembly_3d/modular/decor_flower_box.png',
-        x: 0,
-        y: 95,
-        z: -5,
-        scale: 0.56,
-        rotation: 0,
-        opacity: 1,
-        motion: { type: 'breathe', speed: 1.0, amplitude: 5, anchor: 'bottom', phaseOffset: 0.2 }
-      },
-      {
-        id: 'layer-green-leaf',
-        name: 'Nhánh lá cây rung rinh',
-        assetPath: 'assembly_3d/modular/nature_leaf.png',
-        x: 118,
-        y: 80,
-        z: -18,
-        scale: 0.28,
-        rotation: 32,
-        opacity: 1,
-        motion: { type: 'sway', speed: 1.3, amplitude: 16, anchor: 'bottom', phaseOffset: 0.5 }
       }
     ]
   }

@@ -33,28 +33,33 @@ describe('Layer Assembly Workshop Storage System', () => {
     globalThis.localStorage = mockLocalStorage
   })
 
-  it('loads built-in composites with bonsai tree, flower bush, vines ruins, and balcony window presets', () => {
+  it('loads built-in composites with the 2 anime characters and 3 approved nature presets (modular tree, modular rock, bonsai)', () => {
     const list = getStoredComposites()
-    expect(list.length).toBeGreaterThanOrEqual(4)
+    expect(list.length).toBe(5)
 
     const bonsai = list.find((c) => c.id === 'comp-bonsai-zen')
     expect(bonsai).toBeDefined()
     expect(bonsai?.name).toContain('Bonsai')
     expect(bonsai?.layers.length).toBe(5)
 
-    const bush = list.find((c) => c.id === 'comp-flower-bush')
-    expect(bush).toBeDefined()
-    expect(bush?.name).toContain('Bụi Hoa')
-    expect(bush?.category).toBe('nature')
-    expect(bush?.layers.length).toBe(4)
+    const tree = list.find((c) => c.id === 'comp-modular-tree')
+    expect(tree).toBeDefined()
+    expect(tree?.name).toContain('Cây Đại Thụ Bóc Tách')
+    expect(tree?.category).toBe('nature')
+    expect(tree?.layers.length).toBe(11)
 
-    // Check layer stack depths & motion: cỏ nền ở sau, cánh hoa ở trước
-    const grassBase = bush?.layers.find((l) => l.id === 'layer-grass-base')
-    const petal = bush?.layers.find((l) => l.id === 'layer-flower-petal')
-    expect(grassBase).toBeDefined()
-    expect(petal).toBeDefined()
-    expect(grassBase!.z).toBeGreaterThan(petal!.z) // Grass in background (z=20), petal in foreground (z=-18)
-    expect(grassBase!.motion.type).toBe('sway')
+    const rock = list.find((c) => c.id === 'comp-modular-rock')
+    expect(rock).toBeDefined()
+    expect(rock?.name).toContain('Cụm Đá Rêu Phong')
+    expect(rock?.layers.length).toBe(7)
+
+    // Check layer stack depths & motion: tán lá hậu cảnh ở sau, hoa quả ở trước
+    const backFoliage = tree?.layers.find((l) => l.id === 'tree-foliage-back')
+    const frontFoliage = tree?.layers.find((l) => l.id === 'tree-foliage-front')
+    expect(backFoliage).toBeDefined()
+    expect(frontFoliage).toBeDefined()
+    expect(backFoliage!.z).toBeGreaterThan(frontFoliage!.z)
+    expect(backFoliage!.motion.type).toBe('sway')
   })
 
   it('saves new custom composite and retrieves from storage', () => {
@@ -113,20 +118,20 @@ describe('Layer Assembly Workshop Storage System', () => {
   })
 
   it('duplicates composite with a new unique id and (Bản sao) suffix', () => {
-    const dup = duplicateComposite('comp-flower-bush')
+    const dup = duplicateComposite('comp-modular-rock')
     expect(dup).not.toBeNull()
-    expect(dup?.id).not.toBe('comp-flower-bush')
+    expect(dup?.id).not.toBe('comp-modular-rock')
     expect(dup?.name).toContain('(Bản sao)')
     expect(dup?.category).toBe('custom')
-    expect(dup?.layers.length).toBe(4)
-    expect(dup?.layers[0].id).not.toBe('layer-grass-base')
+    expect(dup?.layers.length).toBe(7)
+    expect(dup?.layers[0].id).not.toBe('rock-ground')
   })
 
   it('deletes composite by id', () => {
-    deleteComposite('comp-vines-ruins')
+    deleteComposite('comp-modular-rock')
     const list = getStoredComposites()
-    const ruins = list.find((c) => c.id === 'comp-vines-ruins')
-    expect(ruins).toBeUndefined()
+    const rock = list.find((c) => c.id === 'comp-modular-rock')
+    expect(rock).toBeUndefined()
   })
 
   it('ensures humanoid rigged character presets have symmetrical frontal depth', () => {
@@ -218,12 +223,12 @@ describe('Layer Assembly Workshop Storage System', () => {
   })
 
   it('restores default built-in composites when explicitly requested', () => {
-    deleteComposite('comp-flower-bush')
-    expect(getStoredComposites().some((c) => c.id === 'comp-flower-bush')).toBe(false)
+    deleteComposite('comp-modular-rock')
+    expect(getStoredComposites().some((c) => c.id === 'comp-modular-rock')).toBe(false)
 
     restoreDefaultComposites()
-    expect(getStoredComposites().some((c) => c.id === 'comp-flower-bush')).toBe(true)
-    expect(getDeletedCompositeIds().has('comp-flower-bush')).toBe(false)
+    expect(getStoredComposites().some((c) => c.id === 'comp-modular-rock')).toBe(true)
+    expect(getDeletedCompositeIds().has('comp-modular-rock')).toBe(false)
   })
 
   it('exports and imports LayerComposite via JSON with AssetTable aliases', async () => {
