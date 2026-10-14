@@ -4,6 +4,7 @@ import type { CutPiece } from './types'
 import { SpriteCutterSourcePane } from './SpriteCutterSourcePane'
 import { SpriteCutterTargetPane } from './SpriteCutterTargetPane'
 import '../../../styles/layerAssemblyCutter.css'
+import '../../../styles/layerAssemblyCutterToolbar.css'
 
 export interface LayerAssemblyCutterWorkspaceProps {
   state: ReturnType<typeof useLayerWorkshop>

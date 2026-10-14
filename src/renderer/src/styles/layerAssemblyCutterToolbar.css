@@ -1,0 +1,378 @@
+/* Thanh công cụ tab Cắt tách Sprite — ribbon gọn 2 hàng, mọi control cao đồng nhất 26px */
+
+.layer-cutter-pane.left-pane {
+  container: cutter-src / inline-size;
+}
+
+/* ---------- Khung hàng toolbar (dùng chung cột 1 & cột 2) ---------- */
+.layer-cutter-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  min-height: 38px;
+  box-sizing: border-box;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 11px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+/* Hàng ribbon cột 1: không bao giờ xuống dòng, co nhãn theo container */
+.layer-cutter-ribbon {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.layer-cutter-toolbar-row {
+  justify-content: flex-start;
+}
+
+.layer-cutter-chroma-bar {
+  background: var(--bg-1);
+}
+
+.layer-cutter-toolbar-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+/* ---------- Nhóm nút phân đoạn (công cụ cắt / chế độ) ---------- */
+.layer-cutter-tool-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  padding: 2px;
+  box-sizing: border-box;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 7px;
+  flex-shrink: 0;
+}
+
+.layer-cutter-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.layer-cutter-tool-btn:hover {
+  color: var(--text);
+  background: var(--bg-3);
+}
+
+.layer-cutter-tool-btn.active {
+  color: var(--on-accent);
+  background: var(--accent);
+  font-weight: 600;
+}
+
+.lc-count-badge {
+  min-width: 16px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 8px;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+  background: var(--bg-4);
+  color: var(--text);
+}
+
+.layer-cutter-tool-btn.active .lc-count-badge {
+  background: color-mix(in srgb, var(--on-accent) 25%, transparent);
+  color: var(--on-accent);
+}
+
+/* ---------- Ô điều khiển dạng viên (slider, màu, checkbox) ---------- */
+.layer-cutter-control-row,
+.layer-cutter-control-pill,
+.layer-cutter-check-pill,
+.layer-cutter-switch-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.layer-cutter-check-pill,
+.layer-cutter-switch-pill {
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.layer-cutter-check-pill:hover,
+.layer-cutter-switch-pill:hover {
+  border-color: var(--line-focus);
+  color: var(--text);
+}
+
+.layer-cutter-switch-pill {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.layer-cutter-control-row input[type='range'],
+.layer-cutter-control-pill input[type='range'] {
+  width: 64px;
+  height: 4px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.lc-ctl-label {
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.layer-cutter-val-mono {
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  min-width: 30px;
+  text-align: right;
+}
+
+/* Công tắc bật/tắt dạng switch */
+.lc-switch {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 26px;
+  height: 14px;
+  margin: 0;
+  border-radius: 7px;
+  background: var(--bg-4);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+
+.lc-switch::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.lc-switch:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.lc-switch:checked::after {
+  transform: translateX(12px);
+  background: var(--on-accent);
+}
+
+.layer-cutter-color-swatch {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.layer-cutter-eyedropper-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.layer-cutter-eyedropper-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--line-focus);
+}
+
+.layer-cutter-eyedropper-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ---------- Nhóm lựa chọn nhỏ (Nhãn / Nền) ---------- */
+.layer-cutter-seg-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 26px;
+  padding: 0 3px 0 7px;
+  box-sizing: border-box;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.layer-cutter-seg-mini .seg-label {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  margin-right: 3px;
+}
+
+.layer-cutter-seg-mini .seg-btn {
+  height: 20px;
+  padding: 0 7px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.layer-cutter-seg-mini .seg-btn:hover {
+  color: var(--text);
+  background: var(--bg-3);
+}
+
+.layer-cutter-seg-mini .seg-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+/* ---------- Thu phóng ảnh nguồn trên header ---------- */
+.layer-cutter-zoom-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 26px;
+  padding: 0 3px;
+  box-sizing: border-box;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+}
+
+.layer-cutter-zoom-mode-btn {
+  height: 20px;
+  padding: 0 7px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.layer-cutter-zoom-mode-btn:hover {
+  color: var(--text);
+  background: var(--bg-3);
+}
+
+.layer-cutter-zoom-mode-btn.active {
+  background: color-mix(in srgb, var(--accent-cyan) 16%, transparent);
+  color: var(--accent-cyan);
+}
+
+/* ---------- Gợi ý & toạ độ ---------- */
+.layer-cutter-inline-tip {
+  font-size: 10.5px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.layer-cutter-coord-pill {
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--text-dim);
+  background: var(--bg-2);
+  padding: 3px 7px;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+  white-space: nowrap;
+}
+
+/* ---------- Footer cột 1 ---------- */
+.layer-cutter-footer-selected {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.layer-cutter-piece-mini-thumb {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+/* ---------- Co giãn theo bề rộng cột 1 (không bao giờ xuống dòng) ---------- */
+@container cutter-src (max-width: 760px) {
+  .layer-cutter-ribbon .layer-cutter-tool-btn:not(.active) .lc-tool-label {
+    display: none;
+  }
+  .layer-cutter-ribbon .lc-ctl-label,
+  .layer-cutter-ribbon .seg-label {
+    display: none;
+  }
+}
+
+@container cutter-src (max-width: 600px) {
+  .layer-cutter-ribbon .lc-tool-label,
+  .layer-cutter-ribbon .layer-cutter-inline-tip {
+    display: none;
+  }
+  .layer-cutter-ribbon input[type='range'] {
+    width: 44px;
+  }
+}
