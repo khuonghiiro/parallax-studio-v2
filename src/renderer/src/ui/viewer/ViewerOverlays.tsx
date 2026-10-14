@@ -47,6 +47,7 @@ export function ViewerOverlays({
   const time = useEditor((s) => s.time)
   const currentFov = fov ?? evaluate(cameraFov, time)
   const showEd = !!rects.ed
+  const isSplitActive = Boolean(view.split && rects.cam && rects.ed)
   const kindLabel = EDITOR_KINDS.find((k) => k.id === view.editorKind)?.label ?? ''
 
   const showBbox = view.showBbox ?? true
@@ -63,7 +64,7 @@ export function ViewerOverlays({
           style={{ left: rects.cam.x, top: rects.cam.y, width: rects.cam.w, height: rects.cam.h }}
         />
       )}
-      {view.split && rects.ed && (
+      {isSplitActive && rects.ed && (
         <div className="pane-divider" style={{ left: rects.ed.x - 1 }} />
       )}
 
@@ -100,7 +101,7 @@ export function ViewerOverlays({
         )}
       </div>
 
-      {view.split && rects.cam && (
+      {isSplitActive && rects.cam && (
         <span
           className="pane-tag"
           style={{
@@ -137,7 +138,7 @@ export function ViewerOverlays({
       {/* Dock công cụ Viewport & Thao tác Layer (Top-Right Tools) */}
       <div className="viewer-tools">
         {/* Nhóm 1: Chuyển đổi góc nhìn chính (khi không chia đôi màn hình) */}
-        {!view.split && (
+        {!isSplitActive && (
           <>
             <div className="viewer-mode-seg">
               <button

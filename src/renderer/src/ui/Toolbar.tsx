@@ -176,7 +176,7 @@ function McpChip() {
     >
       <IconPlug width={13} height={13} />
       <span className="dot" />
-      <span>{label}</span>
+      <span className="mcp-chip-label">{label}</span>
       {shownMethod && isBusy && <small>{shownMethod}</small>}
       {status.lastMethod && status.clients > 0 && !isBusy && <small>✓ {status.lastMethod}</small>}
       {status.lastMethod && status.clients === 0 && justDisconnected && <small>✓ {status.lastMethod}</small>}
@@ -212,7 +212,7 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
     <header className="toolbar">
       <div className="brand">
         <div className="brand-logo" />
-        <div>
+        <div className="brand-text">
           Parallax Studio
           <small>2.5D motion</small>
         </div>
@@ -314,7 +314,11 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
       <div
         className="doc-title"
         style={{ cursor: 'pointer' }}
-        onClick={() => useEditor.getState().setInspectorTab('scene')}
+        onClick={() => {
+          useEditor.getState().setInspectorTab('scene')
+          useView.getState().setMobileTab('right')
+          useView.getState().setTabletTab('right')
+        }}
         title={`Composition: ${compName} (${comp.width}×${comp.height} @ ${comp.fps}fps) — Bấm để mở thiết lập Composition & Cảnh`}
       >
         {dirty && <span className="dirty" title="Có thay đổi chưa lưu" />}
@@ -353,10 +357,10 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
         <IconSettings width={14} height={14} />
       </button>
       <button id="save" className="tb-btn-save" onClick={() => saveProject(false)} title="Lưu dự án (Ctrl+S)">
-        <IconSave width={14} height={14} /> Lưu
+        <IconSave width={14} height={14} /> <span className="tb-btn-text">Lưu</span>
       </button>
       <button id="export" className="btn primary" onClick={onExport} title="Xuất MP4 (Ctrl+M)">
-        <IconExport width={14} height={14} /> Xuất MP4
+        <IconExport width={14} height={14} /> <span className="tb-btn-text">Xuất </span>MP4
       </button>
     </header>
   )

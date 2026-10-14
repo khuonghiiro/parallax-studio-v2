@@ -133,10 +133,11 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   timeline_ruler: ['.tl-header', '.tl-ruler-wrap'],
   timeline_tracks: ['.tl-scroll', '.tl-body', '.tl-rows-scroll'],
 
-  // Top Toolbar
+  // Top Toolbar & Responsive Workspace Dock
   toolbar: ['header.toolbar', '.toolbar'],
   studio_menu: ['#menu-studio', '.toolbar'],
   mcp_chip: ['#mcp-chip', '.mcp-chip'],
+  responsive_dock: ['#responsive-dock', '.responsive-dock'],
 
   // Floating Modals & Workshops (Never include full-screen backdrop/overlay here)
   dialog: [
@@ -383,6 +384,8 @@ export const uiCommands: Record<string, Handler> = {
       dialog: v.dialog,
       audio_dialog_mode: v.audioDialogMode,
       left_tab: v.leftTab,
+      mobile_tab: v.mobileTab,
+      tablet_tab: v.tabletTab,
       primary_view: v.primary,
       split_view: v.split,
       top_view_mode: v.topViewMode,
@@ -400,6 +403,8 @@ export const uiCommands: Record<string, Handler> = {
     const dialog = str(p, 'dialog')
     const audioMode = str(p, 'audio_mode')
     const leftTab = str(p, 'left_tab')
+    const inspectorTab = str(p, 'inspector_tab')
+    const mobileTab = str(p, 'mobile_tab')
     const theme = str(p, 'theme')
 
     if (theme === 'dark' || theme === 'light') {
@@ -408,6 +413,33 @@ export const uiCommands: Record<string, Handler> = {
 
     if (leftTab === 'shots' || leftTab === 'assets' || leftTab === 'topview') {
       v.setLeftTab(leftTab)
+      useView.setState({ mobileTab: 'left', tabletTab: 'left' })
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('pxs:responsive-tab', { detail: { mobileTab: 'left', tabletTab: 'left' } }))
+      }
+    }
+
+    if (inspectorTab === 'scene' || inspectorTab === 'layer' || inspectorTab === 'camera') {
+      const { useEditor } = await import('../../store/editor')
+      useEditor.getState().setInspectorTab(inspectorTab)
+      useView.setState({ mobileTab: 'right', tabletTab: 'right' })
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('pxs:responsive-tab', { detail: { mobileTab: 'right', tabletTab: 'right' } }))
+      }
+    }
+
+    if (mobileTab === 'timeline' || mobileTab === 'left' || mobileTab === 'right') {
+      useView.setState({
+        mobileTab,
+        ...(mobileTab === 'left' || mobileTab === 'right' ? { tabletTab: mobileTab } : {})
+      })
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('pxs:responsive-tab', {
+            detail: { mobileTab, ...(mobileTab === 'left' || mobileTab === 'right' ? { tabletTab: mobileTab } : {}) }
+          })
+        )
+      }
     }
 
     if (dialog !== undefined) {
@@ -448,6 +480,8 @@ export const uiCommands: Record<string, Handler> = {
       dialog: s.dialog,
       audio_dialog_mode: s.audioDialogMode,
       left_tab: s.leftTab,
+      mobile_tab: s.mobileTab,
+      tablet_tab: s.tabletTab,
       assembly_workshop_open: !!s.assemblyModalModel,
       layer_assembly_open: !!getActiveLayerAssemblySession()
     }

@@ -16,6 +16,7 @@ import { GlobalLayerAssemblyHost } from './ui/layerAssembly/GlobalLayerAssemblyH
 import { AiControlOverlay } from './ui/AiControlOverlay'
 import { Inspector } from './ui/Inspector'
 import { LeftPanel } from './ui/LeftPanel'
+import { ResponsiveDockBar } from './ui/ResponsiveDockBar'
 import { Timeline } from './ui/Timeline'
 import { Toolbar } from './ui/Toolbar'
 import { Viewer } from './ui/Viewer'
@@ -67,8 +68,8 @@ export default function App() {
     const el = e.currentTarget as HTMLElement
     el.setPointerCapture(e.pointerId)
     const move = (ev: PointerEvent): void => {
-      const maxH = Math.max(140, Math.floor(window.innerHeight * 0.58))
-      setTimelineH(Math.max(110, Math.min(maxH, startH - (ev.clientY - startY))))
+      const maxH = Math.max(160, Math.floor(window.innerHeight * 0.65))
+      setTimelineH(Math.max(120, Math.min(maxH, startH - (ev.clientY - startY))))
     }
     const up = (): void => {
       el.removeEventListener('pointermove', move)
@@ -92,11 +93,46 @@ export default function App() {
   const theme = useView((s) => s.theme)
   const aiActive = useView((s) => s.aiActive)
   const aiLocked = useView((s) => s.aiLocked)
+  const storeMobileTab = useView((s) => s.mobileTab)
+  const storeTabletTab = useView((s) => s.tabletTab)
+  const [mobileTab, setMobileTabLocal] = useState<'timeline' | 'left' | 'right'>(storeMobileTab ?? 'timeline')
+  const [tabletTab, setTabletTabLocal] = useState<'left' | 'right'>(storeTabletTab ?? 'left')
+
+  useEffect(() => {
+    if (storeMobileTab) setMobileTabLocal(storeMobileTab)
+  }, [storeMobileTab])
+
+  useEffect(() => {
+    if (storeTabletTab) setTabletTabLocal(storeTabletTab)
+  }, [storeTabletTab])
+
+  const handleSetMobileTab = useCallback((tab: 'timeline' | 'left' | 'right') => {
+    setMobileTabLocal(tab)
+    if (tab === 'left' || tab === 'right') setTabletTabLocal(tab)
+    useView.setState({ mobileTab: tab, ...(tab === 'left' || tab === 'right' ? { tabletTab: tab } : {}) })
+  }, [])
+
+  const handleSetTabletTab = useCallback((tab: 'left' | 'right') => {
+    setTabletTabLocal(tab)
+    useView.setState({ tabletTab: tab })
+  }, [])
+
+  useEffect(() => {
+    const onTabEvent = (e: Event): void => {
+      const detail = (e as CustomEvent<{ mobileTab?: 'timeline' | 'left' | 'right'; tabletTab?: 'left' | 'right' }>).detail
+      if (detail?.mobileTab) handleSetMobileTab(detail.mobileTab)
+      if (detail?.tabletTab) handleSetTabletTab(detail.tabletTab)
+    }
+    window.addEventListener('pxs:responsive-tab', onTabEvent)
+    return () => window.removeEventListener('pxs:responsive-tab', onTabEvent)
+  }, [handleSetMobileTab, handleSetTabletTab])
 
   return (
     <div
       className={`app ${theme}${dragOver ? ' dropzone-active' : ''}${aiActive || aiLocked ? ' ai-active' : ''}`}
       data-theme={theme}
+      data-mobile-tab={mobileTab}
+      data-tablet-tab={tabletTab}
       style={{ ['--timeline-h' as string]: `${timelineH}px` }}
       onDragOver={(e) => {
         e.preventDefault()
@@ -120,6 +156,12 @@ export default function App() {
       </div>
       <Inspector />
       <div className="splitter" onPointerDown={startSplit} />
+      <ResponsiveDockBar
+        mobileTab={mobileTab}
+        tabletTab={tabletTab}
+        setMobileTab={handleSetMobileTab}
+        setTabletTab={handleSetTabletTab}
+      />
       <Timeline />
 
       <AiControlOverlay />

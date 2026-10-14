@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Responsive Workspace & Adaptive Breakpoints (Desktop / Laptop / Tablet / Compact)
+   Responsive Workspace & Adaptive Breakpoints (Desktop / Tablet / Phone)
    Reflows panels, toolbars, viewer overlays, inspector, and timeline by window size
    without modifying UI zoom factor. Adheres strictly to Dual-Theme CSS variables
    and keeps overflow: visible on toolbars containing popup menus.
@@ -31,10 +31,114 @@
   white-space: nowrap;
 }
 
-/* Ensure modals always fit inside any window size */
+/* Ensure modals always fit and scroll cleanly inside any window size */
 .modal {
-  max-width: calc(100vw - 24px);
-  max-height: calc(100vh - 24px);
+  max-width: calc(100vw - 20px);
+  max-height: calc(100vh - 20px);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-body {
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+}
+
+/* --- Responsive Workspace Dock Bar (Hidden on large Desktop > 1120px) --- */
+.responsive-dock {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 8px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  z-index: 40;
+  min-width: 0;
+}
+
+.responsive-dock-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.dock-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  flex: 1;
+  min-width: 0;
+}
+
+.dock-tab span:not(.dock-badge) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dock-tab:hover {
+  background: var(--bg-2);
+  color: var(--text);
+}
+
+.dock-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--bg-3);
+  color: var(--text-dim);
+  font-size: 9.5px;
+  font-family: var(--mono);
+  font-weight: 700;
+}
+
+.dock-quick-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--accent-cyan);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.dock-quick-play:hover {
+  background: var(--bg-3);
+  border-color: var(--accent);
+}
+
+.dock-quick-play.playing {
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-2));
+  border-color: var(--accent);
+  color: var(--text);
 }
 
 /* ==========================================================================
@@ -42,7 +146,7 @@
    ========================================================================== */
 @media (max-width: 1366px) {
   .app {
-    grid-template-columns: clamp(205px, 21vw, 285px) minmax(0, 1fr) clamp(215px, 22vw, 295px);
+    grid-template-columns: clamp(220px, 21vw, 290px) minmax(0, 1fr) clamp(230px, 22vw, 300px);
   }
 
   .toolbar {
@@ -54,14 +158,9 @@
     padding: 4px 7px;
   }
 
-  /* Hide verbose hint chip in Viewer HUD so it never collides with Viewer Tools */
-  .viewer-hud .chip:nth-child(n + 3) {
-    display: none;
-  }
-
   /* Compact Inspector label column */
   .row {
-    grid-template-columns: 76px minmax(0, 1fr);
+    grid-template-columns: 78px minmax(0, 1fr);
     gap: 6px;
   }
 
@@ -86,23 +185,84 @@
 }
 
 /* ==========================================================================
-   2. Compact Laptop / Tablet Landscape (<= 1120px)
+   2. Tablet Mode (769px <= width <= 1120px)
+   Instead of squeezing 3 columns into tiny <200px sidebars, Tablet mode uses:
+   - Left/Main (1fr): Spacious 3D/Camera Viewer
+   - Right Side Dock (310px - 350px): Tabbed switcher between
+     [🗂️ Cảnh & Kho mẫu] and [🎛️ Thuộc tính] so neither panel is ever squished!
+   - Bottom (100%): Full-width Timeline
    ========================================================================== */
-@media (max-width: 1120px) {
+@media (max-width: 1120px) and (min-width: 769px) {
   .app {
-    grid-template-columns: clamp(180px, 21.5vw, 235px) minmax(0, 1fr) clamp(190px, 22.5vw, 245px);
+    grid-template-columns: minmax(0, 1fr) clamp(305px, 35vw, 350px);
+    grid-template-rows:
+      auto
+      36px
+      minmax(0, 1fr)
+      5px
+      clamp(130px, var(--timeline-h, 250px), 42vh);
+    grid-template-areas:
+      'top top'
+      'view dock'
+      'view side'
+      'split split'
+      'time time';
   }
 
-  /* Hide secondary MCP status text in top toolbar, keep port + status dot */
-  .toolbar .mcp-chip-state {
+  .responsive-dock {
+    display: flex;
+    grid-area: dock;
+    border-top: none;
+    border-left: 1px solid var(--line);
+    background: var(--bg-2);
+  }
+
+  /* Hide Phone-only Timeline tab and quick-play pill on Tablet since Timeline is visible below */
+  .responsive-dock .phone-only-tab {
+    display: none;
+  }
+
+  .dock-tab.active-tablet {
+    background: color-mix(in srgb, var(--accent) 18%, var(--bg-3));
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+    color: var(--text);
+  }
+
+  .dock-tab.active-tablet .dock-badge {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .app[data-tablet-tab='left'] .left {
+    grid-area: side;
+    display: flex;
+    border-right: none;
+    border-left: 1px solid var(--line);
+  }
+
+  .app[data-tablet-tab='left'] .right {
+    display: none;
+  }
+
+  .app[data-tablet-tab='right'] .right {
+    grid-area: side;
+    display: flex;
+    border-left: 1px solid var(--line);
+  }
+
+  .app[data-tablet-tab='right'] .left {
     display: none;
   }
 
   .doc-title {
-    max-width: 120px;
+    max-width: 140px;
   }
 
-  /* Convert Timeline Toolbar creative buttons to icon-only with tooltip to save ~280px */
+  .brand-text small {
+    display: none;
+  }
+
+  /* Convert Timeline Toolbar creative buttons to icon-only with tooltip to save horizontal space */
   .timeline-toolbar .tl-action-btn > span {
     display: none;
   }
@@ -110,219 +270,262 @@
   .timeline-toolbar .tl-action-btn {
     padding: 0 7px;
   }
-
-  .tl-zoom-slider {
-    width: 56px;
-  }
-
-  .tl-fps-badge {
-    display: none;
-  }
-
-  /* Inspector tighter rows */
-  .inspector-body {
-    padding: 8px 8px;
-  }
-
-  .row {
-    grid-template-columns: 66px minmax(0, 1fr);
-    gap: 5px;
-  }
-
-  .panel-tabs button {
-    padding: 6px 4px;
-    font-size: 10.5px;
-  }
-
-  /* Viewer HUD & Tools compact mode */
-  .viewer-hud {
-    top: 6px;
-    left: 6px;
-    gap: 4px;
-  }
-
-  .viewer-tools {
-    top: 6px;
-    right: 6px;
-    gap: 4px;
-  }
-
-  .viewer-hud .chip {
-    padding: 3px 7px;
-    font-size: 10px;
-  }
-
-  .viewer-tools .seg button,
-  .viewer-tools .btn {
-    padding: 3px 6px;
-    font-size: 10px;
-  }
 }
 
 /* ==========================================================================
-   3. Tablet Portrait / Split-Screen Window (<= 860px)
-   Reflows into 2-column stacked workspace:
-   - Row 1: Top Toolbar (100% width)
-   - Row 2: 3D/Camera Viewer (100% width)
-   - Row 3: Left Panel (50%) + Inspector (50%) side by side
-   - Row 4: Splitter
-   - Row 5: Timeline (100% width)
+   3. Phone / Compact Window Mode (width <= 768px)
+   Single-column studio workspace:
+   - Row 1: Compact Top Toolbar (1-2 clean lines)
+   - Row 2: Full-width Single-Pane Viewer (with Camera / 3D / 2.5D switcher)
+   - Row 3: Draggable Splitter
+   - Row 4: 3-Tab Workspace Switcher ([🎞️ Timeline] [🗂️ Cảnh & Kho] [🎛️ Thuộc tính] + [▶ Play])
+   - Row 5: Active Drawer at 100% full width & generous height!
    ========================================================================== */
-@media (max-width: 860px) {
+@media (max-width: 768px) {
   .app {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows:
       auto
-      minmax(150px, 1.15fr)
-      minmax(130px, 0.95fr)
-      5px
-      clamp(110px, var(--timeline-h, 195px), 35vh);
+      minmax(165px, 1fr)
+      6px
+      38px
+      clamp(220px, var(--timeline-h, 360px), 56vh);
     grid-template-areas:
-      'top top'
-      'view view'
-      'left right'
-      'split split'
-      'time time';
+      'top'
+      'view'
+      'split'
+      'dock'
+      'drawer';
   }
 
-  .viewer-wrap {
-    border-bottom: 1px solid var(--line);
+  .responsive-dock {
+    display: flex;
+    grid-area: dock;
+    background: var(--bg-2);
   }
 
-  .left {
-    border-right: 1px solid var(--line);
+  .dock-tab.active-mobile {
+    background: color-mix(in srgb, var(--accent) 20%, var(--bg-3));
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+    color: var(--text);
   }
 
-  .right {
+  .dock-tab.active-mobile .dock-badge {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* Route whichever tab is active into the full-width bottom drawer */
+  .app[data-mobile-tab='timeline'] .timeline {
+    grid-area: drawer;
+    display: flex;
+  }
+  .app[data-mobile-tab='timeline'] .left,
+  .app[data-mobile-tab='timeline'] .right {
+    display: none;
+  }
+
+  .app[data-mobile-tab='left'] .left {
+    grid-area: drawer;
+    display: flex;
+    border-right: none;
+  }
+  .app[data-mobile-tab='left'] .timeline,
+  .app[data-mobile-tab='left'] .right {
+    display: none;
+  }
+
+  .app[data-mobile-tab='right'] .right {
+    grid-area: drawer;
+    display: flex;
     border-left: none;
   }
-
-  .doc-title {
+  .app[data-mobile-tab='right'] .timeline,
+  .app[data-mobile-tab='right'] .left {
     display: none;
+  }
+
+  /* --- Compact Top Toolbar (1-2 clean rows instead of 3 bulky rows) --- */
+  .toolbar {
+    height: auto;
+    min-height: 38px;
+    padding: 4px 6px;
+    gap: 4px;
+    flex-wrap: wrap;
+    overflow: visible;
   }
 
   .brand {
-    padding-right: 4px;
-    gap: 6px;
-    font-size: 12px;
+    padding-right: 2px;
+    gap: 0;
   }
 
-  /* Keep toolbar overflow: visible so dropdown menus are never clipped */
-  .toolbar {
-    height: auto;
-    min-height: 42px;
-    padding: 4px 8px;
-    flex-wrap: wrap;
-    row-gap: 4px;
-    overflow: visible;
-  }
-
-  .timeline-toolbar {
-    height: auto;
-    min-height: 34px;
-    padding: 4px 8px;
-    flex-wrap: wrap;
-    row-gap: 4px;
-    overflow: visible;
-  }
-
-  .tl-names-head-meta {
-    display: none !important;
-  }
-}
-
-/* ==========================================================================
-   4. Narrow / Mobile-Width Window (<= 600px)
-   ========================================================================== */
-@media (max-width: 600px) {
-  .toolbar .sep,
-  .timeline-toolbar .tl-sep {
+  .brand-text,
+  .doc-title,
+  .tb-sep,
+  .tb-btn-text {
     display: none;
   }
 
-  .viewer-hud .chip:nth-child(n + 2) {
+  .toolbar .btn,
+  .toolbar .tb-btn-save {
+    padding: 4px 7px;
+    font-size: 11px;
+  }
+
+  .mcp-chip {
+    padding: 3px 7px;
+    gap: 5px;
+  }
+
+  .mcp-chip-label,
+  .mcp-chip small {
     display: none;
   }
 
-  .tl-time-badge {
-    min-width: 86px;
-    height: 22px;
-    padding: 0 6px;
+  /* --- Viewer Overlays: Zero Overlap on Narrow Screens --- */
+  .viewer-tools {
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    width: fit-content;
+    max-width: calc(100% - 12px);
+    margin-left: auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 3px;
+    padding: 3px 5px;
+  }
+
+  /* Move HUD to bottom-left so it never collides with top Viewer Tools */
+  .viewer-hud {
+    top: auto;
+    bottom: 6px;
+    left: 6px;
+    padding: 2px 7px;
     font-size: 10px;
   }
 
-  .tl-zoom-box {
-    padding: 0 5px;
+  .pane-tag,
+  #view-split {
+    display: none !important;
+  }
+
+  /* --- Timeline & Timeline Toolbar in Phone Mode --- */
+  .timeline-toolbar {
+    height: auto;
+    min-height: 34px;
+    padding: 4px 6px;
     gap: 4px;
+    flex-wrap: wrap;
+    overflow: visible;
   }
 
-  .tl-zoom-slider {
-    width: 44px;
+  .timeline-toolbar .tl-action-btn > span,
+  .timeline-toolbar .timecode small,
+  .timeline-toolbar #tl-start,
+  .timeline-toolbar #tl-end,
+  .tl-toolbar-divider {
+    display: none;
   }
 
-  .builtin-asset-sidebar {
-    width: 30px;
+  .timeline-toolbar .timecode {
+    min-width: 68px;
+    padding: 2px 6px;
+    font-size: 11px;
   }
 
-  .builtin-asset-cat-btn {
-    width: 24px;
-    height: 24px;
+  .timeline-toolbar .tl-action-btn {
+    padding: 0 6px;
   }
 
+  /* Make layer names clearly readable inside the 172px left column */
+  .tl-names-head-meta,
+  .tl-name .depth {
+    display: none !important;
+  }
+
+  .tl-name.nested {
+    padding-left: 10px;
+  }
+
+  /* --- LeftPanel & Inspector enjoy full 100% width in Phone Drawer --- */
   .builtin-asset-grid {
-    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-    gap: 5px;
-    padding: 5px;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .row {
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 8px;
   }
 }
 
 /* ==========================================================================
-   5. Short Window Heights (<= 700px and <= 540px)
-   Prevents timeline from crushing the central workspace when height shrinks
+   4. Extra-Narrow Phone Width (<= 480px)
    ========================================================================== */
-@media (max-height: 700px) {
-  .app {
-    grid-template-rows: auto minmax(0, 1fr) 5px clamp(105px, var(--timeline-h, 190px), 38vh);
+@media (max-width: 480px) {
+  .dock-tab {
+    padding: 0 6px;
+    font-size: 11px;
+    gap: 4px;
   }
 
-  @media (max-width: 860px) {
-    .app {
-      grid-template-rows:
-        auto
-        minmax(120px, 1.15fr)
-        minmax(105px, 0.9fr)
-        5px
-        clamp(100px, var(--timeline-h, 165px), 33vh);
-    }
+  .dock-badge {
+    display: none;
   }
 
-  .panel-head {
-    padding: 5px 10px;
-    min-height: 28px;
-  }
-
-  .inspector-body {
-    padding: 6px 8px;
-  }
-
-  .group-body {
-    padding: 6px 8px;
+  .viewer-hud .hud-item:nth-child(n + 4),
+  .viewer-hud .hud-sep:nth-child(n + 3) {
+    display: none;
   }
 }
 
-@media (max-height: 540px) {
+/* ==========================================================================
+   5. Short Landscape Window / Phone Landscape (max-height: 520px)
+   Places Viewer on the Left (48%) and Tabbed Workspace on the Right (52%)
+   so both get full vertical height!
+   ========================================================================== */
+@media (max-height: 520px) and (max-width: 960px) {
   .app {
-    grid-template-rows: auto minmax(0, 1fr) 4px clamp(92px, var(--timeline-h, 145px), 34vh);
+    grid-template-columns: minmax(190px, 48fr) minmax(240px, 52fr);
+    grid-template-rows: auto 34px minmax(0, 1fr);
+    grid-template-areas:
+      'top top'
+      'view dock'
+      'view drawer';
   }
 
-  @media (max-width: 860px) {
-    .app {
-      grid-template-rows:
-        auto
-        minmax(95px, 1.2fr)
-        minmax(85px, 0.85fr)
-        4px
-        clamp(88px, var(--timeline-h, 130px), 30vh);
-    }
+  .splitter {
+    display: none;
+  }
+
+  .responsive-dock {
+    display: flex;
+    grid-area: dock;
+    border-top: none;
+    border-left: 1px solid var(--line);
+  }
+
+  .responsive-dock .phone-only-tab {
+    display: inline-flex;
+  }
+
+  .app[data-mobile-tab='timeline'] .timeline,
+  .app[data-mobile-tab='left'] .left,
+  .app[data-mobile-tab='right'] .right {
+    grid-area: drawer;
+    display: flex;
+    border-left: 1px solid var(--line);
+  }
+
+  .app[data-mobile-tab='timeline'] .left,
+  .app[data-mobile-tab='timeline'] .right,
+  .app[data-mobile-tab='left'] .timeline,
+  .app[data-mobile-tab='left'] .right,
+  .app[data-mobile-tab='right'] .timeline,
+  .app[data-mobile-tab='right'] .left {
+    display: none;
   }
 }

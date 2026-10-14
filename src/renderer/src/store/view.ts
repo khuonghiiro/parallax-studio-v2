@@ -7,6 +7,8 @@ export type PrimaryView = 'camera' | 'editor' | 'topview'
 export type TopViewMode = 'top' | 'side'
 export type Theme = 'dark' | 'light'
 export type LeftTab = 'shots' | 'assets' | 'topview'
+export type MobileWorkspaceTab = 'timeline' | 'left' | 'right'
+export type TabletSideTab = 'left' | 'right'
 export type DialogKind = 'path' | 'sketch' | 'performance' | 'mcp' | 'audio' | 'export' | null
 
 interface ViewPrefs {
@@ -44,6 +46,10 @@ export interface ViewState extends ViewPrefs {
   assemblyModalModel: Model3D | null
   leftTab: LeftTab
   setLeftTab(tab: LeftTab): void
+  mobileTab: MobileWorkspaceTab
+  setMobileTab(tab: MobileWorkspaceTab): void
+  tabletTab: TabletSideTab
+  setTabletTab(tab: TabletSideTab): void
   audioSelectedCategory: string
   setAudioSelectedCategory(cat: string): void
   aiActive: boolean
@@ -139,12 +145,23 @@ export const useView = create<ViewState>((set, get) => ({
   assemblyModalModel: null,
   leftTab: loadLeftTab(),
   setLeftTab(leftTab) {
-    set({ leftTab })
+    set({ leftTab, tabletTab: 'left', mobileTab: 'left' })
     try {
       localStorage.setItem(LEFT_TAB_KEY, leftTab)
     } catch {
       /* ignore */
     }
+  },
+  mobileTab: 'timeline',
+  setMobileTab(mobileTab) {
+    set({ mobileTab })
+    if (mobileTab === 'left' || mobileTab === 'right') {
+      set({ tabletTab: mobileTab })
+    }
+  },
+  tabletTab: 'left',
+  setTabletTab(tabletTab) {
+    set({ tabletTab })
   },
   audioSelectedCategory: 'all',
   setAudioSelectedCategory(cat) {

@@ -43,13 +43,15 @@ export function Viewer() {
   const [fps, setFps] = useState(0)
   const [stats, setStats] = useState<ResidencyStats | null>(null)
   const [rects, setRects] = useState<Layout>({ dpr: 1, cam: null, ed: null })
+  const [narrowViewer, setNarrowViewer] = useState(false)
   const comp = useEditor((s) => s.project.comp)
   const playing = useEditor((s) => s.playing)
   const view = useView()
 
   edCam.setKind(view.editorKind)
   const focusShotId = useFocusShotId()
-  const isTopView = view.primary === 'topview' && !view.split
+  const effectiveSplit = view.split && !narrowViewer
+  const isTopView = view.primary === 'topview' && !effectiveSplit
 
   const { updateLabels } = useViewerLabels(labelsRef)
   const { localXY, ndcIn, capture, startLayerDrag, startShotDrag, startCameraDrag } = useViewerDrag({
@@ -226,10 +228,13 @@ export function Viewer() {
       let cam: Layout['cam'] = null
       let ed: Layout['ed'] = null
       // Reserve space for top HUD chips & controls overlay so camera preview is visually centered
-      const topHudH = H < 260 ? 28 : 38
+      const isNarrow = W < 620
+      setNarrowViewer(isNarrow)
+      const canSplit = view.split && !isNarrow
+      const topHudH = H < 260 ? 32 : 38
       const splitPad = W < 540 || H < 260 ? 6 : 16
       const singlePad = W < 540 || H < 260 ? 8 : 20
-      if (view.split) {
+      if (canSplit) {
         const half = Math.floor(W / 2)
         cam = fitRect({ x: 0, y: topHudH, w: Math.max(10, half - 1), h: Math.max(10, H - topHudH) }, aspect, splitPad)
         ed = { x: half + 1, y: 0, w: Math.max(10, W - half - 1), h: H }
