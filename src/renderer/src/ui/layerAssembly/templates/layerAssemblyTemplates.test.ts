@@ -168,14 +168,15 @@ describe('Layer Assembly Templates Catalog', () => {
     expect(customPrompt).toContain('Match user\'s described accessory/weapon/prop: "Cầm quạt xếp thiết phiến và đeo kiếm báu"')
   })
 
-  it('enforces full 4-corner unclipped margins, trunk-to-root continuity, and canopy-conforming fruit/blossom leaf blending in nature prompts', async () => {
+  it('enforces full 4-corner unclipped margins, pure ground mound without roots, rooted trunk in one piece, and isolated stackable fruits in nature prompts', async () => {
     const { buildTemplatePromptWithBrief } = await import('./characterPrompt')
     const treeTmpl = findLayerTemplate('tmpl-nature-modular-tree')!
     const rockTmpl = findLayerTemplate('tmpl-nature-modular-rock')!
 
     const treePrompt = treeTmpl.promptGuide.systemPrompt
-    expect(treePrompt).toContain('COMPLETE 4-CORNER UNCLIPPED MOSSY ROOT HILLOCK & SEAMLESS TRUNK BASE CONTINUITY')
-    expect(treePrompt).toContain('CANOPY-CONFORMING RIPE RED APPLES OVERLAY (SEAMLESS FOLIAGE & LEAF BLEND)')
+    expect(treePrompt).toContain('PURE 4-CORNER UNCLIPPED EARTHEN & MOSSY GRASS MOUND (NO TREE ROOTS OR WOODEN STUMP)')
+    expect(treePrompt).toContain('COMPLETE OAK TRUNK, UPPER BRANCHES & SPRAWLING GNARLED ROOT SYSTEM IN ONE UNIFIED PIECE')
+    expect(treePrompt).toContain('ISOLATED SINGLE RIPE RED APPLE SPRITE (FOR FREE STACKING & CUSTOM CLUSTERING)')
     expect(treePrompt).toContain('CANOPY-CONFORMING BLOSSOM CLUSTERS OVERLAY (SEAMLESS FOLIAGE FIT, NO BUSH STEMS)')
     expect(treePrompt).toContain('ZERO EDGE CLIPPING — FULL 4-CORNER SILHOUETTES')
 
@@ -184,11 +185,11 @@ describe('Layer Assembly Templates Catalog', () => {
     expect(rockPrompt).toContain('NEVER slice the left or right ends vertically flat')
 
     const customTreePrompt = buildTemplatePromptWithBrief(treeTmpl, {
-      appearance: 'Gốc rễ cổ thụ rêu xanh bo tròn 4 góc',
+      appearance: 'Nền đất cỏ rêu riêng không rễ, thân gỗ kèm bộ rễ xoè rộng',
       costume: 'Tán lá xanh ngọc bích bồng bềnh',
-      props: 'Quả táo đỏ chín mọng cài lá xanh'
+      props: 'Quả táo đỏ lẻ tẻ ghép chồng tạo chùm'
     })
     expect(customTreePrompt).toContain('USER NATURE & PROP CUSTOMIZATION')
-    expect(customTreePrompt).toContain('Gốc rễ cổ thụ rêu xanh bo tròn 4 góc')
+    expect(customTreePrompt).toContain('Nền đất cỏ rêu riêng không rễ, thân gỗ kèm bộ rễ xoè rộng')
   })
 })

@@ -39,10 +39,10 @@ export function naturePartBoundary(
   const hint = natureSlotBriefHint(slot, brief)
 
   if (slot.id === 'tree-roots') {
-    return `COMPLETE 4-CORNER UNCLIPPED MOSSY ROOT HILLOCK & SEAMLESS TRUNK BASE CONTINUITY — Draw a wide, low, flat-bottomed mossy earthen mound with spreading gnarled oak surface roots, keeping at least 15% pure #00FF00 background margin on ALL 4 SIDES (Left, Right, Top, Bottom). The left end, right end, and bottom edge of the mound MUST be 100% complete and organically rounded/tapered with natural overhanging grass tufts, small mossy stones, and root tips (NEVER touch or get sliced by the left, right, or bottom cell border; ZERO vertical side cuts, ZERO flat horizontal cuts). At the top-center, the roots converge smoothly upward into a SOLID, CONTINUOUS VERTICAL-BARK LOWER TRUNK COLLAR matching the exact trunk width, bark ridge lines, and warm brown color (#5A3E28–#8B6240) of [tree-trunk] (NO hollow sawed-off stump hole, NO open pipe cross-section, and NO blurry white/foggy gradient fade at the top) so [tree-trunk] locks onto [tree-roots] as one seamless tree.${hint}`
+    return `PURE 4-CORNER UNCLIPPED EARTHEN & MOSSY GRASS MOUND (NO TREE ROOTS OR WOODEN STUMP) — Draw a standalone, wide, low, flat-bottomed earthen ground mound covered with lush green moss cushions, soft grass tufts, and small mossy corner pebbles, with ZERO wooden tree roots, ZERO tree stump, and ZERO wood bark. Keep at least 15% pure #00FF00 background margin on ALL 4 SIDES (Left, Right, Top, Bottom). The left end, right end, continuous grassy top surface, and bottom rim MUST be 100% complete and organically rounded/tapered (NEVER touch or get sliced by the left, right, or bottom cell border; ZERO vertical side cuts, ZERO flat horizontal cuts, and ZERO blurry white/foggy gradient fade) so the rooted trunk [tree-trunk] rests cleanly anywhere on top of this grassy mound.${hint}`
   }
   if (slot.id === 'tree-trunk') {
-    return `STURDY GNARLED OAK TRUNK & BRANCHES WITH INTERLOCKING ROOT-BUTTRESS BASE — Draw the complete wooden trunk with spreading upper branches and a flared bottom root-buttress collar (#5A3E28–#8B6240) whose vertical bark ridges extend 15% downward to overlap and blend coaxially into the top bark collar of [tree-roots] with zero visible seam or color jump; keep at least 12% clear #00FF00 margin around all branch tips and root flares (NO leaves attached).${hint}`
+    return `COMPLETE OAK TRUNK, UPPER BRANCHES & SPRAWLING GNARLED ROOT SYSTEM IN ONE UNIFIED PIECE — Draw the entire wooden tree structure from the spreading upper branches down through the sturdy central trunk and all the way into the wide, gnarled surface roots flaring out at the bottom to grip the earth (#4A321F–#8C6239) as ONE continuous wooden piece (ALL tree roots are attached directly to [tree-trunk]; NEVER split roots onto the ground layer and NEVER cut the bottom of the trunk flat). Keep at least 12% clear #00FF00 margin around all branch tips and tapering root tips (NO leaves attached).${hint}`
   }
   if (slot.id === 'tree-foliage-back') {
     return `Complete deep-emerald background foliage crown silhouette (#14451B–#256B2C) behind the upper branches, with 100% unclipped rounded outer leaf puffs and at least 12% clear #00FF00 margin on all 4 sides (NO trunk or branches attached).${hint}`
@@ -68,8 +68,8 @@ export function naturePartBoundary(
   if (slot.id === 'tree-blossoms') {
     return `CANOPY-CONFORMING BLOSSOM CLUSTERS OVERLAY (SEAMLESS FOLIAGE FIT, NO BUSH STEMS) — Draw 6–8 organic clusters of 5-petal white-and-blush-pink blossoms distributed across the EXACT same cloud-like multi-lobe tree-crown silhouette (upper, center, left, and right puffs) as [tree-foliage-mid] and [tree-foliage-front] (NOT a hollow horseshoe arch, and NOT a ground flower bush). Border each blossom cluster with small rounded canopy leaves painted in the EXACT same emerald-to-sunlit-green palette (#246929–#76C938) as the tree's foliage layers so the flowers nestle seamlessly into the canopy; ZERO exposed bottom brown bush stems or trunk branches, 15% clear #00FF00 margin on all 4 sides.${hint}`
   }
-  if (slot.id === 'tree-fruits') {
-    return `CANOPY-CONFORMING RIPE RED APPLES OVERLAY (SEAMLESS FOLIAGE & LEAF BLEND) — Draw 14–18 proportional glossy ripe red apples arranged in 5–7 natural small sub-clusters of 2–3 apples distributed across the upper, center, left, and right puffs of the EXACT same cloud-like multi-lobe tree-crown silhouette as [tree-foliage-mid] and [tree-foliage-front] (NEVER one single giant clumped bunch in the middle, and NEVER a hollow horseshoe arch). Tuck each apple group inside small rounded oak-leaf puffs painted in the EXACT same emerald-to-sunlit-green palette (#246929–#76C938) and brush style as [tree-foliage-front] (ZERO pale olive/grey-brown leaves, ZERO thick cut branches), with 15% clear #00FF00 margin on all 4 sides.${hint}`
+  if (slot.id.startsWith('tree-fruits')) {
+    return `ISOLATED SINGLE RIPE RED APPLE SPRITE (FOR FREE STACKING & CUSTOM CLUSTERING) — Draw ONE single, isolated, plump glossy ripe red apple (#9E1414–#FF3B30) with a short brown stem and 1–2 small rounded oak leaves painted in the exact canopy emerald-to-sunlit-green palette (#246929–#76C938) attached right at the top stem (NEVER draw a giant pre-clumped bunch of fruits, NEVER draw a wide bush patch, and ZERO cut branches). Keep a crisp, self-contained single-fruit silhouette with at least 20% pure #00FF00 margin on all 4 sides so the user can stack and overlap individual fruit layers to build custom fruit clusters anywhere on the canopy.${hint}`
   }
   if (slot.id === 'rock-ground') {
     return `COMPLETE 4-CORNER UNCLIPPED EARTHEN TURF & STONE BASE MOUND — Draw a wide, low, flat-bottomed soil-and-grass base mound (NOT a pointed V-shaped floating cone) from left corner to right corner and along the bottom rim with 100% COMPLETE, NATURALLY ROUNDED AND TAPERED CORNERS (finished with overhanging grass blades, small corner pebbles, and a crisp dark-earth lower contour; keep at least 15% pure #00FF00 background margin on ALL 4 SIDES — NEVER slice the left or right ends vertically flat, NEVER cut the bottom flat, and ZERO blurry white bottom fade). Top-center forms a recessed mossy soil cradle shaped to hug the bottom contour of [rock-main] seamlessly.${hint}`
@@ -105,11 +105,11 @@ function formatNatureBriefBlock(brief?: CharacterPromptCustomBrief): string {
   const lines = [
     '\nUSER NATURE & PROP CUSTOMIZATION (HIGHEST PRIORITY — APPLY ACROSS ALL CELLS):'
   ]
-  if (app) lines.push(`- TRUNK / BOULDER & GROUND BASE (Thân cây / Khối đá & Gốc rễ đế đất): ${app}`)
+  if (app) lines.push(`- TRUNK+ROOTS / BOULDER & PURE GROUND MOUND (Thân gỗ kèm rễ cây / Khối đá & Nền đất cỏ riêng): ${app}`)
   if (cos) lines.push(`- CANOPY FOLIAGE & SEASONAL VARIANT (Tán lá / Rêu phủ / Biến thể mùa): ${cos}`)
-  if (prp) lines.push(`- FRUITS, BLOSSOMS & DETAILS (Quả chín / Hoa nở / Tinh thể phụ kiện): ${prp}`)
+  if (prp) lines.push(`- INDIVIDUAL FRUITS, BLOSSOMS & DETAILS (Quả lẻ ghép chùm / Hoa nở / Tinh thể phụ kiện): ${prp}`)
   lines.push(
-    '- CRITICAL: Apply the user specification above consistently across all cells while keeping 15% clear #00FF00 margin on all 4 edges (zero clipped corners) and seamless trunk-to-root / canopy-to-fruit alignment!'
+    '- CRITICAL: Apply the user specification above consistently across all cells while keeping 15% clear #00FF00 margin on all 4 edges (zero clipped corners), keeping [tree-roots] as a pure grassy mound without tree roots, including the full root system on [tree-trunk], and drawing [tree-fruits] as isolated single fruits for free stacking!'
   )
   return lines.join('\n')
 }
@@ -139,7 +139,7 @@ export function naturePrompt(
 
   return `Create ONE square (1:1 aspect ratio) 2.5D MODULAR NATURE CUTOUT SPRITE ATLAS: stylized 2D game-art botanical/environment layers separated for 2.5D parallax depth and wind-sway animation.
 IDENTITY: ${identity}${briefBlock}
-VIEW: FRONT ORTHOGRAPHIC VIEW (0° eye-level straight-on), consistent top-front sunlight angle across all layers so stacked canopies, trunk, roots, rocks, blossoms, and fruits form ONE unified hand-painted illustration.
+VIEW: FRONT ORTHOGRAPHIC VIEW (0° eye-level straight-on), consistent top-front sunlight angle across all layers so stacked canopies, rooted trunk, ground mound, rocks, blossoms, and individual fruits form ONE unified hand-painted illustration.
 OUTPUT: PNG at 4096x4096 (or highest native 1:1 resolution). Flat OPAQUE solid neon green chroma-key background #00FF00. No checkerboard, gradients, ground shadow, or vignette.
 GRID: Exactly 5 rows x 5 columns, numbered 1–25 left-to-right, top-to-bottom for instructions ONLY. Do not draw numbers, labels, IDs, watermarks, or grid lines.
 Exactly ${template.slots.length} isolated parts, one assigned part per cell:
@@ -151,19 +151,19 @@ Left/right follow the assembled screen positions, not anatomical left/right. Kee
 
 CRITICAL 2.5D NATURE LAYER COHESION, FULL CORNERS & SEAMLESS FITTING RULES:
 1. ZERO EDGE CLIPPING — FULL 4-CORNER SILHOUETTES (BẮT BUỘC ĐỦ GÓC CẠNH ẢNH, KHÔNG BỊ CẮT CỤT VIỀN):
-   - Every single piece — especially ground/root mounds ([tree-roots], [rock-ground], [bonsai-pot]) and wide foliage crowns — MUST be drawn as a 100% complete, self-contained silhouette with at least 15% pure #00FF00 margin on ALL 4 SIDES (Left, Right, Top, Bottom).
-   - NEVER crop, slice, or let any root tip, soil mound corner, grass tuft, stone edge, or foliage puff touch the cell border! Left, right, and bottom corners of [tree-roots] and [rock-ground] must be wide, low, flat-bottomed mounds that taper off organically at both left and right ends with rounded stones, overhanging grass blades, and natural root tips — ZERO vertical side cuts, ZERO flat horizontal bottom cuts, and ZERO blurry white/foggy gradient fades!
-2. SEAMLESS INTERLOCKING TRUNK-TO-ROOT & BOULDER-TO-GROUND JOINTS (KHỚP NỐI GỐC RỄ & ĐẾ ĐẤT ĂN KHÍT 100%):
-   - [tree-roots] and [tree-trunk] MUST be designed from ONE unified tree trunk base sharing the exact same central collar width, vertical bark ridges, and warm wood palette (#5A3E28–#8B6240).
-   - In [tree-roots], the spreading surface roots converge upward at the top-center into a solid, crisp vertical-bark lower trunk collar (NO hollow sawed-off stump hole, NO open pipe cross-section, and NO white fog erase band!). In [tree-trunk], the bottom flares into interlocking buttress roots that overlap 15% downward over [tree-roots] so trunk and roots join with zero visible seam.
+   - Every single piece — especially ground mounds ([tree-roots], [rock-ground], [bonsai-pot]) and wide foliage crowns — MUST be drawn as a 100% complete, self-contained silhouette with at least 15% pure #00FF00 margin on ALL 4 SIDES (Left, Right, Top, Bottom).
+   - NEVER crop, slice, or let any root tip, soil mound corner, grass tuft, stone edge, or foliage puff touch the cell border! Left, right, and bottom corners of [tree-roots] and [rock-ground] must be wide, low, flat-bottomed mounds that taper off organically at both left and right ends with rounded stones and overhanging grass blades — ZERO vertical side cuts, ZERO flat horizontal bottom cuts, and ZERO blurry white/foggy gradient fades!
+2. PURE GRASSY GROUND MOUND + ROOTED TRUNK IN ONE PIECE (NỀN ĐẤT RIÊNG KHÔNG CHỨA RỄ — THÂN CÂY KÈM CẢ BỘ RỄ LIỀN KHỐI):
+   - [tree-roots] MUST be a 100% pure earthen, mossy, and grassy ground mound with ZERO wooden tree roots and ZERO tree stump on it.
+   - [tree-trunk] MUST include the ENTIRE wooden tree from its upper branches down through the central trunk AND its complete sprawling, gnarled root system at the bottom in ONE unified piece (#4A321F–#8C6239). When [tree-trunk] is placed on top of the pure grassy mound [tree-roots], the tree's roots rest naturally over the grass with zero misaligned root seams!
    - [rock-ground] must feature a recessed mossy earth cradle at its top center that hugs the lower contour of [rock-main] seamlessly.
-3. CANOPY-CONFORMING FRUITS & BLOSSOMS OVERLAYS (HOA NỞ & QUẢ CHÍN ĂN KHÍT VỚI TÁN LÁ):
-   - [tree-fruits] and [tree-blossoms] MUST follow the exact same cloud-like, multi-lobe rounded tree-crown silhouette (upper, center, left, and right puffs) as [tree-foliage-mid] and [tree-foliage-front] — NEVER clump all fruits into one single central ball, and NEVER draw a hollow horseshoe arch.
-   - Any small backing leaf tufts attached to [tree-fruits] or [tree-blossoms] MUST match the exact rounded oak-leaf shape and emerald-to-sunlit-green palette (#246929–#76C938) of the tree's foliage layers, with ZERO exposed thick bottom bush stems and ZERO mismatched olive/grey-brown leaf patches.
+3. ISOLATED SINGLE FRUITS FOR FREE STACKING & CANOPY-CONFORMING BLOSSOMS (QUẢ LẺ TẺ ĐỂ GHÉP CHỒNG TẠO CHÙM & HOA NỞ ĂN KHÍT TÁN LÁ):
+   - Each fruit slot ([tree-fruits], [tree-fruits-2], etc.) MUST be drawn as ONE single, isolated, plump glossy ripe red apple with a short stem and 1–2 small green oak leaves (#246929–#76C938) at the stem — NEVER draw a pre-clumped big fruit bunch or a wide bush patch. This allows the user to freely duplicate, position, and stack/overlap individual apples in the editor to build custom fruit clusters anywhere on the canopy.
+   - [tree-blossoms] MUST follow the exact cloud-like, multi-lobe rounded tree-crown silhouette (upper, center, left, and right puffs) as [tree-foliage-mid] and [tree-foliage-front], with small backing leaves matching the canopy green (#246929–#76C938) and ZERO exposed bottom brown bush stems.
 4. CLEAN CHROMA-KEY EXTRACTION:
    - Reconstruct the complete occluded silhouette of each depth layer so 2.5D parallax camera movement and wind sway never expose raw cut gaps.
    - Crisp antialiased edges on a flat uniform chroma-key background; no blur, glow, fringe, cast shadows or ground plane.`
 }
 
 export const NATURE_PROMPT_GUIDE =
-  'Sprite Sheet nền xanh lá (#00FF00) chuẩn Cây cối & Đá tảng 2.5D bóc tách: Mọi bộ phận (đặc biệt là Đế gốc rễ [tree-roots] và Đế đất cỏ chân đá [rock-ground]) bắt buộc vẽ trọn vẹn 100% chu vi 4 góc cạnh với lề an toàn >=15% (tuyệt đối không cắt phẳng mép trái/phải/đáy, không làm mờ sương trắng hay khoét lỗ rỗng ở cổ gốc). Cổ rễ [tree-roots] và gốc thân cây [tree-trunk] dùng chung khổ rộng & vân vỏ gỗ ăn khít liền khối. Lớp Quả táo đỏ [tree-fruits] và Hoa nở [tree-blossoms] phân bố trải đều theo đúng vòm đám mây của tán lá kèm cụm lá đệm đồng bộ 100% tông xanh với tán cây.'
+  'Sprite Sheet nền xanh lá (#00FF00) chuẩn Cây cối & Đá tảng 2.5D bóc tách: Mọi bộ phận bắt buộc vẽ trọn vẹn 100% chu vi 4 góc cạnh với lề an toàn >=15% (không cắt phẳng mép trái/phải/đáy). Lớp Nền đất [tree-roots] chỉ vẽ gò đất & thảm cỏ rêu riêng biệt (không chứa rễ cây); lớp Thân gỗ [tree-trunk] đi kèm luôn cả bộ rễ cây xoè rộng liền một khối để đặt lên nền đất luôn ăn khớp tự nhiên. Các layer Quả táo đỏ [tree-fruits] vẽ thành từng quả lẻ tẻ (kèm cuống & 1–2 lá nhỏ) để bạn tự do ghép chồng nhiều quả lên nhau tạo thành chùm quả đẹp mắt trên tán cây.'

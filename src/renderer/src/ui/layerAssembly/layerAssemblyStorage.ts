@@ -13,7 +13,7 @@ export const COMPOSITE_CATEGORIES: LayerCompositeCategory[] = [
 ]
 
 const STORAGE_KEY = 'pxs.layerComposites'
-const SEED_VERSION = 'v24_nature_prompt_and_full_corner_assets'
+const SEED_VERSION = 'v25_nature_pure_ground_rooted_trunk_single_fruits'
 const SEED_KEY = 'pxs.layerComposites.seeded_version'
 const DELETED_KEY = 'pxs.layerComposites.deleted'
 

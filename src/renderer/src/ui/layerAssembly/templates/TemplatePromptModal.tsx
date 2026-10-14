@@ -49,19 +49,19 @@ const CHARACTER_BRIEF_PRESETS: Array<{ label: string; brief: CharacterPromptCust
 
 const NATURE_BRIEF_PRESETS: Array<{ label: string; brief: CharacterPromptCustomBrief }> = [
   {
-    label: '🌳 Đại Thụ Sồi & Táo Đỏ (Chuẩn 4 Góc)',
+    label: '🌳 Đại Thụ Sồi & Táo Lẻ Ghép Chùm (Chuẩn 4 Góc)',
     brief: {
-      appearance: 'Ancient gnarled oak trunk with flared root buttresses locking seamlessly into a wide, low, 4-corner unclipped mossy root hillock (15% margin on all sides, no white fog at top)',
+      appearance: 'Standalone 4-corner unclipped mossy grass ground mound (no tree roots on the ground), paired with a unified ancient oak trunk that includes both upper branches and sprawling gnarled roots in one piece',
       costume: '3 depth-layered billowy emerald-to-sunlit-green oak foliage crowns (plus golden autumn and sakura pink canopy variants matching the exact contour)',
-      props: '5–7 small natural clusters of glossy ripe red apples and 6–8 white-pink blossom clusters distributed across the canopy lobes with matching green oak leaf tufts'
+      props: 'Isolated single glossy ripe red apples (with short stem & 2 small green oak leaves for free stacking into custom clusters) and 6–8 white-pink blossom clusters matching the canopy contour'
     }
   },
   {
     label: '🌸 Đại Thụ Anh Đào Cổ Thụ',
     brief: {
-      appearance: 'Graceful dark-bark cherry blossom tree trunk and wide unclipped mossy root mound with fallen petals and rounded stone corners (15% clear margin)',
+      appearance: 'Standalone 4-corner unclipped mossy ground mound with fallen petals (no tree roots), paired with a graceful cherry blossom tree trunk and its full gnarled root system in one piece',
       costume: 'Lush multi-lobe spring green and pastel sakura-pink layered foliage canopies',
-      props: 'Abundant glowing 5-petal sakura blossom garlands and golden morning dew fruits nestled seamlessly across the canopy puffs'
+      props: 'Isolated single ripe cherries/apples for stacking into clusters and abundant glowing 5-petal sakura blossom garlands nestled across the canopy puffs'
     }
   },
   {
@@ -92,7 +92,7 @@ function PromptCustomizerBox({
           <IconSparkles width={14} height={14} />
           <span>
             {isNature
-              ? 'Tuỳ chỉnh Thân/Gốc Đế, Tán Lá & Hoa Quả (Tự động gắn vào Prompt AI)'
+              ? 'Tuỳ chỉnh Nền đất riêng, Thân kèm rễ, Tán lá & Quả lẻ (Tự động gắn vào Prompt AI)'
               : 'Mô tả Tướng mạo & Quần áo Nhân vật (Tự động gắn vào Prompt AI)'}
           </span>
         </div>
@@ -123,7 +123,7 @@ function PromptCustomizerBox({
         <label className="tpm-field">
           <span className="tpm-field-label">
             {isNature
-              ? '1. Thân cây / Khối đá & Gốc rễ đế đất (Đủ 4 góc cạnh, ăn khớp gốc)'
+              ? '1. Nền đất cỏ riêng (không rễ) & Thân gỗ kèm rễ cây liền khối'
               : '1. Tướng mạo, Kiểu tóc & Biểu cảm rời'}
           </span>
           <input
@@ -131,7 +131,7 @@ function PromptCustomizerBox({
             className="input-text sm tpm-field-input"
             placeholder={
               isNature
-                ? 'VD: Gốc rễ sồi rêu phong bo tròn đủ 4 góc cạnh, cổ rễ liền mạch ăn khít đáy thân cây...'
+                ? 'VD: Nền đất cỏ rêu riêng đủ 4 góc cạnh không chứa rễ; thân gỗ sồi đi kèm luôn cả bộ rễ xoè rộng...'
                 : 'VD: Nam thanh niên tuấn tú, tóc đen rẽ ngôi, đầu gốc trơn kèm 2 biểu cảm mắt xanh...'
             }
             value={brief.appearance || ''}
@@ -159,7 +159,7 @@ function PromptCustomizerBox({
         <label className="tpm-field">
           <span className="tpm-field-label">
             {isNature
-              ? '3. Quả chín, Hoa nở ăn khít tán lá & Chi tiết phụ'
+              ? '3. Quả lẻ tẻ (để ghép chồng tạo chùm), Hoa nở & Chi tiết phụ'
               : '3. Áo choàng & Vũ khí / Đạo cụ cầm tay'}
           </span>
           <input
@@ -167,7 +167,7 @@ function PromptCustomizerBox({
             className="input-text sm tpm-field-input"
             placeholder={
               isNature
-                ? 'VD: 6 chùm táo đỏ & hoa trắng hồng phân bố đều khắp vòm tán lá kèm lá đệm cùng màu xanh...'
+                ? 'VD: Quả táo đỏ lẻ tẻ kèm 2 lá nhỏ ở cuống để ghép chồng tạo chùm, hoa trắng hồng ăn khít tán lá...'
                 : 'VD: Gọng kính cận chữ nhật rời, đồng hồ đeo tay phải...'
             }
             value={brief.props || ''}
@@ -200,7 +200,7 @@ function PromptTabContent({
       <div className="tpm-alert-banner">
         {isNature ? (
           <span>
-            💡 <strong>Chuẩn Tạo Cây Cối & Đá Tảng 2.5D Không Bị Lộ Góc Cạnh:</strong> Prompt đã được tối ưu bắt buộc AI vẽ <strong>trọn vẹn 100% chu vi 4 góc cạnh với lề xanh &gt;=15%</strong> (không cắt phẳng mép trái/phải/đáy của <em>Gốc rễ &amp; Đế đất cỏ</em>, không làm mờ trắng cổ gốc), đồng bộ vân vỏ gỗ giữa <em>Gốc rễ</em> và <em>Thân cây</em>, đồng thời phân bố <em>Quả táo đỏ &amp; Hoa nở</em> kèm lá đệm ăn khít theo đúng vòm tán lá.
+            💡 <strong>Chuẩn Cây Cối &amp; Đá Tảng 2.5D (Nền Đất Riêng · Thân Kèm Rễ · Quả Lẻ Ghép Chùm):</strong> Prompt bắt buộc AI vẽ <strong>trọn vẹn 100% chu vi 4 góc cạnh với lề xanh &gt;=15%</strong>, tách <em>Nền đất cỏ rêu riêng biệt không chứa rễ cây</em>, đưa <em>toàn bộ bộ rễ cây liền khối vào Thân gỗ</em> để đặt lên nền đất luôn khớp 100%, và vẽ <em>Quả táo đỏ thành từng quả lẻ tẻ</em> để bạn tự do ghép chồng nhiều quả lên nhau tạo chùm quả đẹp mắt.
           </span>
         ) : (
           <span>
@@ -284,25 +284,25 @@ function GuideTabContent({ template }: { template: LayerAssemblyTemplate }) {
           <div>
             <h4>Chuẩn chỉ 4 góc cạnh ảnh — Tuyệt đối không chạm viền ô (15% Safe Margin)</h4>
             <p>
-              Mọi bộ phận, đặc biệt là <strong>Gốc rễ &amp; Thảm cỏ rêu</strong> (<code>tree-roots</code>) và <strong>Đế đất &amp; Thảm cỏ chân đá</strong> (<code>rock-ground</code>), bắt buộc vẽ trọn vẹn 100% chu vi gò đất thấp đáy bằng, hai đầu trái/phải bo tròn tự nhiên bằng cụm cỏ rủ, sỏi nhỏ và chóp rễ với khoảng lề xanh <code>#00FF00</code> tối thiểu 15% ở cả 4 phía để không bao giờ bị cắt phẳng mép ảnh.
+              Mọi bộ phận, đặc biệt là <strong>Nền đất &amp; Thảm cỏ rêu</strong> (<code>tree-roots</code>) và <strong>Đế đất &amp; Thảm cỏ chân đá</strong> (<code>rock-ground</code>), bắt buộc vẽ trọn vẹn 100% chu vi gò đất thấp đáy bằng, hai đầu trái/phải bo tròn tự nhiên với khoảng lề xanh <code>#00FF00</code> tối thiểu 15% ở cả 4 phía để không bao giờ bị cắt phẳng mép ảnh.
             </p>
           </div>
         </div>
         <div className="tpm-guide-step">
           <div className="tpm-step-num">2</div>
           <div>
-            <h4>Khớp nối Gốc rễ &amp; Thân cây / Đế đất &amp; Tảng đá ăn khít 100%</h4>
+            <h4>Nền đất cỏ riêng không chứa rễ &amp; Thân cây đi kèm cả bộ rễ liền khối</h4>
             <p>
-              Phần đỉnh giữa của <code>tree-roots</code> hội tụ các rễ nổi thành cổ thân gỗ liền mạch (cùng khổ rộng, vân vỏ gỗ dọc và màu nâu gỗ <code>#5A3E28–#8B6240</code> với <code>tree-trunk</code>, tuyệt đối không làm mờ sương trắng hay khoét lỗ rỗng), giúp đáy thân cây đặt chồng lên khớp liền khối 100%.
+              Lớp <code>tree-roots</code> chỉ vẽ gò đất và thảm cỏ rêu thuần tuý (tuyệt đối không vẽ rễ cây gỗ trên nền đất). Toàn bộ bộ rễ cây xoè rộng nằm liền khối luôn với <code>tree-trunk</code> (Thân gỗ đại thụ &amp; Bộ rễ cây) để khi đặt thân cây lên nền đất cỏ luôn ăn khớp tự nhiên 100%, không bao giờ bị lệch cổ gốc.
             </p>
           </div>
         </div>
         <div className="tpm-guide-step">
           <div className="tpm-step-num">3</div>
           <div>
-            <h4>Layer Quả táo đỏ &amp; Hoa nở trắng hồng ăn khít vòm tán lá</h4>
+            <h4>Layer Quả táo đỏ lẻ tẻ — Tự do ghép chồng tạo chùm quả đẹp mắt</h4>
             <p>
-              Thay vì gom thành 1 cụm đơn lẻ ở giữa hay lộ cành bụi phía dưới, <code>tree-fruits</code> và <code>tree-blossoms</code> được phân bố thành 5–8 chùm nhỏ trải đều theo đúng chu vi vòm mây nhiều múi của tán lá trung/tiền cảnh, kèm các cụm lá đệm vẽ đúng tông xanh lục bảo – xanh nắng (<code>#246929–#76C938</code>) để hoà quyện tự nhiên vào tán cây.
+              Thay vì vẽ sẵn cả một mảng chùm quả cứng nhắc, mỗi layer quả (<code>tree-fruits</code>, <code>tree-fruits-2</code>...) là <strong>một quả táo đỏ chín mọng đơn lẻ</strong> kèm cuống và 1–2 chiếc lá xanh nhỏ. Bạn có thể tự do kéo thả, nhân bản và xếp chồng nhiều quả lên nhau để tạo chùm quả 2–3 trái tại bất kỳ múi tán lá nào.
             </p>
           </div>
         </div>
