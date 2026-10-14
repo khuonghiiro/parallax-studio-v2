@@ -8,22 +8,9 @@ import {
   type CutterStrokeSession
 } from './chromaKey'
 import { CutterBrushSubBar } from './CutterBrushSubBar'
+import { SpriteCutterSourceToolbar } from './SpriteCutterSourceToolbar'
 import { SAMPLE_ANIME_SPRITESHEET_URL } from './sampleSpriteSheet'
-import {
-  IconScissors,
-  IconWand,
-  IconDropper,
-  IconUpload,
-  IconRefresh,
-  IconCheck,
-  IconTrash,
-  IconCrop,
-  IconSelectPointer,
-  IconEraser,
-  IconBrush,
-  IconUndo,
-  IconRedo
-} from '../../icons'
+import { IconScissors, IconUpload, IconRefresh, IconCheck } from '../../icons'
 
 export interface SpriteCutterSourcePaneProps {
   onSelectPiece: (piece: CutPiece | null) => void
@@ -74,10 +61,31 @@ export function SpriteCutterSourcePane({
   const [isDrawing, setIsDrawing] = useState(false)
   const [copiedBadge, setCopiedBadge] = useState(false)
 
+  // Responsive canvas fitting & zoom so the cutout image is never clipped at top/bottom
+  const [imgNaturalSize, setImgNaturalSize] = useState<{ w: number; h: number }>({ w: 665, h: 702 })
+  const [viewportSize, setViewportSize] = useState<{ w: number; h: number }>({ w: 560, h: 520 })
+  const [zoomMode, setZoomMode] = useState<'fit' | number>('fit')
+
   const rawCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const procCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const viewportWrapRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    const el = viewportWrapRef.current
+    if (!el) return
+    const updateSize = () => {
+      const rect = el.getBoundingClientRect()
+      if (rect.width > 0 && rect.height > 0) {
+        setViewportSize({ w: Math.round(rect.width), h: Math.round(rect.height) })
+      }
+    }
+    updateSize()
+    const ro = new ResizeObserver(updateSize)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   // Load image into raw canvas and process
   const processImage = useCallback(() => {
@@ -85,8 +93,9 @@ export function SpriteCutterSourcePane({
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.onload = () => {
-      const w = img.naturalWidth
-      const h = img.naturalHeight
+      const w = img.naturalWidth || 665
+      const h = img.naturalHeight || 702
+      setImgNaturalSize({ w, h })
 
       // Raw canvas
       let raw = rawCanvasRef.current
@@ -429,6 +438,29 @@ export function SpriteCutterSourcePane({
     reader.readAsDataURL(file)
   }
 
+  const availW = Math.max(180, viewportSize.w - 36)
+  const availH = Math.max(180, viewportSize.h - 44)
+  const fitScale = Math.min(1, availW / Math.max(1, imgNaturalSize.w), availH / Math.max(1, imgNaturalSize.h))
+  const effectiveScale = zoomMode === 'fit' ? fitScale : zoomMode
+  const displayW = Math.max(1, Math.round(imgNaturalSize.w * effectiveScale))
+  const displayH = Math.max(1, Math.round(imgNaturalSize.h * effectiveScale))
+  const scaleX = displayW / Math.max(1, imgNaturalSize.w)
+  const scaleY = displayH / Math.max(1, imgNaturalSize.h)
+
+  const handleSelectTool = (next: CutToolMode) => {
+    setTool(next)
+    if (next !== 'auto') setSelectedIslandId(null)
+    if (next !== 'box' && next !== 'lasso') {
+      setMarquee(null)
+      setLassoPoints([])
+    }
+  }
+
+  const stepZoom = (delta: number) => {
+    const next = Math.min(2.0, Math.max(0.25, Number((effectiveScale + delta).toFixed(2))))
+    setZoomMode(next)
+  }
+
   return (
     <div className="layer-cutter-pane left-pane" ref={containerRef}>
       {/* Pane Header */}
@@ -437,8 +469,47 @@ export function SpriteCutterSourcePane({
           <IconScissors width={14} height={14} />
           <strong>Nguồn ảnh & Tách nền</strong>
           <span className="layer-cutter-badge-pill">{islands.length} mảnh cắt</span>
+          <span className="layer-cutter-badge" title="Kích thước ảnh gốc">
+            {imgNaturalSize.w}×{imgNaturalSize.h}px
+          </span>
         </div>
         <div className="layer-cutter-actions">
+          {/* Zoom & Fit-to-View Pill */}
+          <div className="layer-cutter-zoom-pill" title="Thu phóng khung nhìn ảnh nguồn">
+            <button
+              type="button"
+              className="stepper-btn"
+              onClick={() => stepZoom(-0.15)}
+              title="Thu nhỏ (-15%)"
+            >
+              -
+            </button>
+            <button
+              type="button"
+              className={`layer-cutter-zoom-mode-btn ${zoomMode === 'fit' ? 'active' : ''}`}
+              onClick={() => setZoomMode('fit')}
+              title="Tự động căn vừa toàn bộ ảnh trong khung nhìn (không khuất chi tiết)"
+            >
+              Vừa khung ({Math.round(effectiveScale * 100)}%)
+            </button>
+            <button
+              type="button"
+              className={`layer-cutter-zoom-mode-btn ${zoomMode === 1 ? 'active' : ''}`}
+              onClick={() => setZoomMode(1)}
+              title="Xem tỉ lệ 1:1 (100%)"
+            >
+              100%
+            </button>
+            <button
+              type="button"
+              className="stepper-btn"
+              onClick={() => stepZoom(0.15)}
+              title="Phóng to (+15%)"
+            >
+              +
+            </button>
+          </div>
+
           <input
             type="file"
             ref={fileInputRef}
@@ -457,170 +528,31 @@ export function SpriteCutterSourcePane({
           <button
             type="button"
             className="btn sm"
-            onClick={() => setImageUrl(SAMPLE_ANIME_SPRITESHEET_URL)}
+            onClick={() => {
+              setImageUrl(SAMPLE_ANIME_SPRITESHEET_URL)
+              setZoomMode('fit')
+            }}
             title="Nạp lại ảnh mẫu Anime Green Screen"
           >
-            <IconRefresh width={12} height={12} /> Ảnh mẫu Anime
+            <IconRefresh width={12} height={12} /> Ảnh mẫu
           </button>
         </div>
       </div>
 
-      {/* Chroma Key Controls Toolbar */}
-      <div className="layer-cutter-toolbar">
-        <label className="layer-cutter-control-row" style={{ cursor: 'pointer' }}>
-          <input
-            type="checkbox"
-            checked={chroma.enabled}
-            onChange={(e) => setChroma({ ...chroma, enabled: e.target.checked })}
-          />
-          <span style={{ fontWeight: 600, color: 'var(--text)' }}>Tách nền Chroma</span>
-        </label>
-
-        {chroma.enabled && (
-          <>
-            <div className="layer-cutter-control-row">
-              <span>Màu:</span>
-              <button
-                type="button"
-                className="layer-cutter-color-swatch"
-                style={{ backgroundColor: chroma.keyColor }}
-                title={`Màu khóa: ${chroma.keyColor}`}
-                onClick={() => setIsPickingColor(!isPickingColor)}
-              />
-              <button
-                type="button"
-                className={`btn sm ${isPickingColor ? 'primary' : ''}`}
-                style={{ height: 24, padding: '0 8px', gap: 4 }}
-                title="Hút màu trực tiếp trên ảnh"
-                onClick={() => setIsPickingColor(!isPickingColor)}
-              >
-                <IconDropper width={12} height={12} /> Hút màu
-              </button>
-            </div>
-
-            <div className="layer-cutter-control-row">
-              <span>Độ nhạy:</span>
-              <input
-                type="range"
-                min={1}
-                max={100}
-                value={chroma.tolerance}
-                onChange={(e) => setChroma({ ...chroma, tolerance: Number(e.target.value) })}
-              />
-              <span>{chroma.tolerance}%</span>
-            </div>
-
-            <div className="layer-cutter-control-row">
-              <span>Khử viền:</span>
-              <input
-                type="checkbox"
-                checked={chroma.despill}
-                onChange={(e) => setChroma({ ...chroma, despill: e.target.checked })}
-              />
-            </div>
-          </>
-        )}
-
-        {/* Tool modes */}
-        <div className="layer-cutter-tool-group" style={{ marginLeft: 'auto' }}>
-          <button
-            id="btn-tool-auto"
-            type="button"
-            className={`layer-cutter-tool-btn ${tool === 'auto' ? 'active' : ''}`}
-            onClick={() => { setTool('auto'); setMarquee(null); setLassoPoints([]) }}
-            title="Tự động phát hiện các đảo pixel không dính nhau"
-          >
-            <IconWand width={12} height={12} /> Quét tự động ({islands.length})
-          </button>
-          <button
-            id="btn-tool-box"
-            type="button"
-            className={`layer-cutter-tool-btn ${tool === 'box' ? 'active' : ''}`}
-            onClick={() => { setTool('box'); setSelectedIslandId(null) }}
-            title="Kéo chuột vẽ khung chữ nhật bao quanh bộ phận"
-          >
-            <IconCrop width={12} height={12} /> Khung chữ nhật
-          </button>
-          <button
-            id="btn-tool-lasso"
-            type="button"
-            className={`layer-cutter-tool-btn ${tool === 'lasso' ? 'active' : ''}`}
-            onClick={() => { setTool('lasso'); setSelectedIslandId(null) }}
-            title="Vẽ vùng chọn tự do theo hình dáng"
-          >
-            <IconSelectPointer width={12} height={12} /> Lasso
-          </button>
-          <button
-            id="btn-tool-eraser"
-            type="button"
-            className={`layer-cutter-tool-btn ${tool === 'eraser' ? 'active' : ''}`}
-            onClick={() => { setTool('eraser'); setSelectedIslandId(null); setMarquee(null); setLassoPoints([]) }}
-            title="Cọ tẩy: Quét chuột để xóa viền xanh hoặc chi tiết thừa (Ctrl+Z để hoàn tác)"
-          >
-            <IconEraser width={12} height={12} /> Cọ tẩy
-          </button>
-          <button
-            id="btn-tool-restore"
-            type="button"
-            className={`layer-cutter-tool-btn ${tool === 'restore' ? 'active' : ''}`}
-            onClick={() => { setTool('restore'); setSelectedIslandId(null); setMarquee(null); setLassoPoints([]) }}
-            title="Khôi phục: Quét chuột để lấy lại pixel gốc nguyên bản (Ctrl+Z để hoàn tác)"
-          >
-            <IconBrush width={12} height={12} /> Khôi phục
-          </button>
-        </div>
-
-        {tool === 'auto' && (
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
-            <div className="layer-cutter-control-row">
-              <span>Lọc hạt &lt;</span>
-              <input
-                type="range"
-                min={40}
-                max={400}
-                step={10}
-                value={minIslandArea}
-                onChange={(e) => setMinIslandArea(Number(e.target.value))}
-                title="Kích thước pixel tối thiểu để xem là một bộ phận"
-              />
-              <span>{minIslandArea}px</span>
-            </div>
-
-            <div className="layer-cutter-control-row">
-              <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>Nhãn:</span>
-              <div className="btn-group sm" style={{ display: 'inline-flex' }}>
-                <button
-                  type="button"
-                  className={`btn sm ${tagVisibility === 'hover' ? 'primary' : ''}`}
-                  onClick={() => setTagVisibility('hover')}
-                  title="Chỉ hiện nhãn khi rê chuột hoặc click chọn (Tránh che khuất các bộ phận khác)"
-                  style={{ height: 22, padding: '0 6px', fontSize: 10 }}
-                >
-                  Rê chuột
-                </button>
-                <button
-                  type="button"
-                  className={`btn sm ${tagVisibility === 'always' ? 'primary' : ''}`}
-                  onClick={() => setTagVisibility('always')}
-                  title="Luôn hiện tất cả nhãn kích thước"
-                  style={{ height: 22, padding: '0 6px', fontSize: 10 }}
-                >
-                  Hiện hết
-                </button>
-                <button
-                  type="button"
-                  className={`btn sm ${tagVisibility === 'hidden' ? 'primary' : ''}`}
-                  onClick={() => setTagVisibility('hidden')}
-                  title="Ẩn nhãn để nhìn ảnh rõ ràng nhất"
-                  style={{ height: 22, padding: '0 6px', fontSize: 10 }}
-                >
-                  Ẩn
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Studio Topbar Ribbon: Row 1 (cutting tools) + Row 2 (compact Chroma Key bar) */}
+      <SpriteCutterSourceToolbar
+        tool={tool}
+        islandCount={islands.length}
+        minIslandArea={minIslandArea}
+        tagVisibility={tagVisibility}
+        chroma={chroma}
+        isPickingColor={isPickingColor}
+        onSelectTool={handleSelectTool}
+        onChangeMinIslandArea={setMinIslandArea}
+        onChangeTagVisibility={setTagVisibility}
+        onChangeChroma={setChroma}
+        onTogglePicking={() => setIsPickingColor((v) => !v)}
+      />
 
       {/* Specialized Sub-toolbar for Eraser / Restore Brush */}
       {(tool === 'eraser' || tool === 'restore') && (
@@ -639,13 +571,21 @@ export function SpriteCutterSourcePane({
         />
       )}
 
-      {/* Main Canvas View */}
-      <div className={`layer-cutter-canvas-wrap bg-${chroma.previewBackground}`}>
-        <div className={`layer-cutter-source-canvas-box tag-mode-${tagVisibility}`}>
+      {/* Main Canvas View (Fit-to-Viewport by default so zero top/bottom details are ever clipped) */}
+      <div
+        ref={viewportWrapRef}
+        className={`layer-cutter-canvas-wrap bg-${chroma.previewBackground} ${zoomMode !== 'fit' && effectiveScale > fitScale ? 'is-scrollable' : ''}`}
+      >
+        <div
+          className={`layer-cutter-source-canvas-box tag-mode-${tagVisibility}`}
+          style={{ width: `${displayW}px`, height: `${displayH}px` }}
+        >
           <canvas
             ref={procCanvasRef}
             className="layer-cutter-canvas"
             style={{
+              width: '100%',
+              height: '100%',
               cursor: isPickingColor
                 ? 'crosshair'
                 : tool === 'eraser' || tool === 'restore'
@@ -654,7 +594,6 @@ export function SpriteCutterSourcePane({
                 ? 'crosshair'
                 : 'default'
             }}
-
             onPointerDown={handleCanvasPointerDown}
             onPointerMove={handleCanvasPointerMove}
             onPointerUp={handleCanvasPointerUp}
@@ -662,14 +601,14 @@ export function SpriteCutterSourcePane({
           />
 
           {/* Circular Brush Cursor Indicator */}
-          {(tool === 'eraser' || tool === 'restore') && brushCursorPos && procCanvasRef.current && (
+          {(tool === 'eraser' || tool === 'restore') && brushCursorPos && (
             <div
               className="layer-cutter-brush-cursor"
               style={{
                 left: `${brushCursorPos.x}px`,
                 top: `${brushCursorPos.y}px`,
-                width: `${brushRadius * 2 * (procCanvasRef.current.clientWidth / procCanvasRef.current.width)}px`,
-                height: `${brushRadius * 2 * (procCanvasRef.current.clientHeight / procCanvasRef.current.height)}px`
+                width: `${brushRadius * 2 * scaleX}px`,
+                height: `${brushRadius * 2 * scaleY}px`
               }}
             />
           )}
@@ -678,16 +617,9 @@ export function SpriteCutterSourcePane({
           {tool === 'auto' &&
             islands.map((isl) => {
               const isSelected = selectedIslandId === isl.id
-              const canvas = procCanvasRef.current
-              if (!canvas) return null
-              const scaleX = canvas.clientWidth / canvas.width
-              const scaleY = canvas.clientHeight / canvas.height
-
               const boxW = isl.width * scaleX
               const boxH = isl.height * scaleY
-              // If box is large enough, place tag INSIDE to completely avoid overlapping adjacent boxes above/around it
               const isInside = boxH >= 34 && boxW >= 46
-              // If outside and close to top edge, place at bottom instead
               const isNearTop = isl.y * scaleY < 22
               const tagPlacementClass = isInside
                 ? 'inside-top-left'
@@ -721,17 +653,17 @@ export function SpriteCutterSourcePane({
             })}
 
           {/* Render Manual Box Marquee */}
-          {tool === 'box' && marquee && procCanvasRef.current && (
+          {tool === 'box' && marquee && (
             <div
               className={`layer-cutter-marquee ${!isDrawing && selectedPiece ? 'ready' : ''}`}
               draggable={!isDrawing && Boolean(selectedPiece)}
               onDragStart={(e) => selectedPiece && handleDragStart(e, selectedPiece)}
               onClick={(e) => e.stopPropagation()}
               style={{
-                left: `${(Math.min(marquee.startX, marquee.currentX) * procCanvasRef.current.clientWidth) / procCanvasRef.current.width}px`,
-                top: `${(Math.min(marquee.startY, marquee.currentY) * procCanvasRef.current.clientHeight) / procCanvasRef.current.height}px`,
-                width: `${(Math.abs(marquee.currentX - marquee.startX) * procCanvasRef.current.clientWidth) / procCanvasRef.current.width}px`,
-                height: `${(Math.abs(marquee.currentY - marquee.startY) * procCanvasRef.current.clientHeight) / procCanvasRef.current.height}px`
+                left: `${Math.min(marquee.startX, marquee.currentX) * scaleX}px`,
+                top: `${Math.min(marquee.startY, marquee.currentY) * scaleY}px`,
+                width: `${Math.abs(marquee.currentX - marquee.startX) * scaleX}px`,
+                height: `${Math.abs(marquee.currentY - marquee.startY) * scaleY}px`
               }}
               title={!isDrawing && selectedPiece ? 'Kéo thả sang phải hoặc click để đưa vào Bố cục 2D' : undefined}
             >
@@ -761,15 +693,12 @@ export function SpriteCutterSourcePane({
           )}
 
           {/* Render Lasso Path Overlay */}
-          {tool === 'lasso' && lassoPoints.length >= 2 && procCanvasRef.current && (
+          {tool === 'lasso' && lassoPoints.length >= 2 && (
             <>
               <svg className="layer-cutter-lasso-svg">
                 <polyline
                   points={lassoPoints
-                    .map(
-                      (p) =>
-                        `${(p.x * procCanvasRef.current!.clientWidth) / procCanvasRef.current!.width},${(p.y * procCanvasRef.current!.clientHeight) / procCanvasRef.current!.height}`
-                    )
+                    .map((p) => `${p.x * scaleX},${p.y * scaleY}`)
                     .join(' ')}
                   fill="rgba(251, 191, 36, 0.2)"
                   stroke="var(--key)"
@@ -785,10 +714,10 @@ export function SpriteCutterSourcePane({
                   onDragStart={(e) => handleDragStart(e, selectedPiece)}
                   onClick={(e) => e.stopPropagation()}
                   style={{
-                    left: `${(selectedPiece.sourceBox.x * procCanvasRef.current.clientWidth) / procCanvasRef.current.width}px`,
-                    top: `${(selectedPiece.sourceBox.y * procCanvasRef.current.clientHeight) / procCanvasRef.current.height}px`,
-                    width: `${(selectedPiece.sourceBox.width * procCanvasRef.current.clientWidth) / procCanvasRef.current.width}px`,
-                    height: `${(selectedPiece.sourceBox.height * procCanvasRef.current.clientHeight) / procCanvasRef.current.height}px`
+                    left: `${selectedPiece.sourceBox.x * scaleX}px`,
+                    top: `${selectedPiece.sourceBox.y * scaleY}px`,
+                    width: `${selectedPiece.sourceBox.width * scaleX}px`,
+                    height: `${selectedPiece.sourceBox.height * scaleY}px`
                   }}
                   title="Kéo thả sang phải hoặc click để đưa vào Bố cục 2D"
                 >
@@ -821,18 +750,30 @@ export function SpriteCutterSourcePane({
 
       {/* Footer Info & Actions */}
       <div className="layer-cutter-footer">
-        <div>
+        <div className="layer-cutter-footer-selected">
           {selectedPiece ? (
-            <span>
-              <strong>Đang chọn:</strong> {selectedPiece.label} ({selectedPiece.width}×{selectedPiece.height}px)
-            </span>
+            <>
+              <img
+                src={selectedPiece.dataUrl}
+                alt={selectedPiece.label}
+                className="layer-cutter-piece-mini-thumb"
+              />
+              <span>
+                <strong>Đang chọn:</strong> {selectedPiece.label}{' '}
+                <span className="layer-cutter-val-mono">
+                  ({selectedPiece.width}×{selectedPiece.height}px)
+                </span>
+              </span>
+            </>
           ) : (
-            <span style={{ color: 'var(--text-faint)' }}>Chưa chọn mảnh nào. Click vào mảnh hoặc vẽ khung để chọn.</span>
+            <span style={{ color: 'var(--text-faint)' }}>
+              Click vào mảnh cắt trên ảnh hoặc khoanh vùng để chọn bộ phận
+            </span>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginLeft: 'auto' }}>
           <span className="layer-cutter-footer-hint">
-            Kéo thả sang phải hoặc <kbd>Ctrl+C</kbd> rồi <kbd>Ctrl+V</kbd>
+            Kéo thả sang phải hoặc <kbd>Ctrl+C</kbd> ➔ <kbd>Ctrl+V</kbd>
           </span>
           <button
             id="btn-copy-piece"

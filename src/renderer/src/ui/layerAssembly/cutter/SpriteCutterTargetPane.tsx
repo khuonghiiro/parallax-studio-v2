@@ -44,9 +44,27 @@ export function SpriteCutterTargetPane({
   const [dragOverSlotId, setDragOverSlotId] = useState<string | null>(null)
   const [isDragOverCanvas, setIsDragOverCanvas] = useState<boolean>(false)
   const [mouseCanvasPos, setMouseCanvasPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
+  const [boardScale, setBoardScale] = useState<number>(1)
 
   const boardRef = useRef<HTMLDivElement | null>(null)
+  const targetViewportRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    const el = targetViewportRef.current
+    if (!el) return
+    const updateScale = () => {
+      const rect = el.getBoundingClientRect()
+      if (rect.width > 0 && rect.height > 0) {
+        const s = Math.min(1, Math.max(0.45, Math.min((rect.width - 28) / 600, (rect.height - 28) / 600)))
+        setBoardScale(Number(s.toFixed(3)))
+      }
+    }
+    updateScale()
+    const ro = new ResizeObserver(updateScale)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   // Active slot preset
   const activePreset: TemplateSlotPreset =
@@ -62,9 +80,11 @@ export function SpriteCutterTargetPane({
     const rect = board.getBoundingClientRect()
     const cx = rect.left + rect.width / 2
     const cy = rect.top + rect.height / 2
+    const sx = 600 / Math.max(1, rect.width)
+    const sy = 600 / Math.max(1, rect.height)
     return {
-      x: Math.round(clientX - cx),
-      y: Math.round(clientY - cy)
+      x: Math.round((clientX - cx) * sx),
+      y: Math.round((clientY - cy) * sy)
     }
   }, [])
 
@@ -222,8 +242,9 @@ export function SpriteCutterTargetPane({
 
   const handleLayerPointerMove = (e: React.PointerEvent) => {
     if (!draggingLayer) return
-    const dx = e.clientX - draggingLayer.startX
-    const dy = e.clientY - draggingLayer.startY
+    const invScale = 1 / Math.max(0.25, boardScale)
+    const dx = Math.round((e.clientX - draggingLayer.startX) * invScale)
+    const dy = Math.round((e.clientY - draggingLayer.startY) * invScale)
     onUpdateLayer(draggingLayer.id, {
       x: draggingLayer.layerX + dx,
       y: draggingLayer.layerY + dy
@@ -304,86 +325,6 @@ export function SpriteCutterTargetPane({
           <span className="layer-cutter-badge-pill">{composite.layers.length} bộ phận</span>
         </div>
         <div className="layer-cutter-actions">
-          {onClearAllLayers && composite.layers.length > 0 && (
-            <button
-              type="button"
-              className="btn sm"
-              style={{ color: '#ef4444', height: 26, padding: '0 8px', gap: 4 }}
-              title="Xóa tất cả các lớp đang có trên bố cục 2D"
-              onClick={onClearAllLayers}
-            >
-              <IconTrash width={12} height={12} /> Xóa hết
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Toolbar */}
-      <div className="layer-cutter-toolbar">
-        {/* Mode Toggle: Tự do vs Dùng khuôn mẫu */}
-        <div className="layer-cutter-tool-group">
-          <button
-            id="btn-mode-freeform"
-            type="button"
-            className={`layer-cutter-tool-btn ${!useTemplate ? 'active' : ''}`}
-            onClick={() => setUseTemplate(false)}
-            title="Chế độ Tự do: Thoải mái đặt vị trí và tự đặt tên cho bộ phận"
-          >
-            ⚡ Chế độ tự do
-          </button>
-          <button
-            id="btn-mode-template"
-            type="button"
-            className={`layer-cutter-tool-btn ${useTemplate ? 'active' : ''}`}
-            onClick={() => setUseTemplate(true)}
-            title="Dùng khuôn mẫu: Bật các ô khung định vị vị trí có sẵn"
-          >
-            📐 Dùng khuôn mẫu
-          </button>
-        </div>
-
-        {/* When useTemplate is ON: Preset selector and slots toggle */}
-        {useTemplate && (
-          <>
-            <div style={{ width: 200 }}>
-              <CustomSelect<string>
-                size="sm"
-                value={activePresetId}
-                onChange={(val: string) => setActivePresetId(val)}
-                options={presetsList.map((p) => ({
-                  value: p.id,
-                  label: `${p.isCustom ? '⭐ ' : ''}${p.name}`
-                }))}
-              />
-            </div>
-
-            <label className="layer-cutter-control-row" style={{ cursor: 'pointer', marginLeft: 2 }}>
-              <input
-                type="checkbox"
-                checked={showSlots}
-                onChange={(e) => setShowSlots(e.target.checked)}
-              />
-              <span>Hiện khung</span>
-            </label>
-
-            {activePreset.isCustom && (
-              <button
-                type="button"
-                className="btn sm icon"
-                style={{ color: '#ef4444', height: 24, padding: '0 6px' }}
-                title="Xóa mẫu tùy chỉnh này"
-                onClick={handleDeleteActivePreset}
-              >
-                <IconTrash width={12} height={12} />
-              </button>
-            )}
-          </>
-        )}
-
-        <div className="layer-cutter-divider" />
-
-        {/* Save Template Button & Export/Import */}
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
           <button
             type="button"
             className="btn sm"
@@ -420,61 +361,139 @@ export function SpriteCutterTargetPane({
           >
             Nhập JSON
           </button>
+
+          {onClearAllLayers && composite.layers.length > 0 && (
+            <button
+              type="button"
+              className="btn sm"
+              style={{ color: '#ef4444', height: 26, padding: '0 8px', gap: 4 }}
+              title="Xóa tất cả các lớp đang có trên bố cục 2D"
+              onClick={onClearAllLayers}
+            >
+              <IconTrash width={12} height={12} /> Xóa hết
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Studio Topbar Row: Mode Switcher, Preset Options & Quick Z-Order */}
+      <div className="layer-cutter-toolbar layer-cutter-toolbar-row">
+        {/* Mode Toggle: Tự do vs Dùng khuôn mẫu */}
+        <div className="layer-cutter-tool-group">
+          <button
+            id="btn-mode-freeform"
+            type="button"
+            className={`layer-cutter-tool-btn ${!useTemplate ? 'active' : ''}`}
+            onClick={() => setUseTemplate(false)}
+            title="Chế độ Tự do: Thoải mái đặt vị trí và tự đặt tên cho bộ phận"
+          >
+            ⚡ Chế độ tự do
+          </button>
+          <button
+            id="btn-mode-template"
+            type="button"
+            className={`layer-cutter-tool-btn ${useTemplate ? 'active' : ''}`}
+            onClick={() => setUseTemplate(true)}
+            title="Dùng khuôn mẫu: Bật các ô khung định vị vị trí có sẵn"
+          >
+            📐 Dùng khuôn mẫu
+          </button>
         </div>
 
-        {/* Quick Z-Index controls on toolbar when a layer is selected */}
-        {currentSelectedLayer && (
+        {/* When useTemplate is ON: Preset selector and slots toggle */}
+        {useTemplate && (
           <>
-            <div className="layer-cutter-divider" />
-            <div
-              className="layer-cutter-z-controls"
-              title="Thứ tự lớp (Z-index): Layer có Z lớn hơn sẽ che layer có Z nhỏ hơn. Nhấn phím '+' hoặc '-' để thay đổi nhanh"
-            >
-              <span className="subbar-label">Thứ tự Z:</span>
-              <button
-                id="btn-cutter-z-minus"
-                type="button"
-                className="stepper-btn"
-                title="Giảm Z (-1, phím '-')"
-                onClick={() =>
-                  onUpdateLayer(currentSelectedLayer.id, {
-                    z: Math.max(1, (currentSelectedLayer.z ?? 10) - 1)
-                  })
-                }
-              >
-                -
-              </button>
-              <span className="layer-cutter-z-val">{currentSelectedLayer.z ?? 10}</span>
-              <button
-                id="btn-cutter-z-plus"
-                type="button"
-                className="stepper-btn"
-                title="Tăng Z (+1, phím '+')"
-                onClick={() =>
-                  onUpdateLayer(currentSelectedLayer.id, {
-                    z: (currentSelectedLayer.z ?? 10) + 1
-                  })
-                }
-              >
-                +
-              </button>
-              <span className="layer-cutter-z-hint">(Phím + / -)</span>
+            <div style={{ width: 190 }}>
+              <CustomSelect<string>
+                size="sm"
+                value={activePresetId}
+                onChange={(val: string) => setActivePresetId(val)}
+                options={presetsList.map((p) => ({
+                  value: p.id,
+                  label: `${p.isCustom ? '⭐ ' : ''}${p.name}`
+                }))}
+              />
             </div>
+
+            <label className="layer-cutter-check-pill" title="Hiện/ẩn các ô khung định vị trên bảng 2D">
+              <input
+                type="checkbox"
+                checked={showSlots}
+                onChange={(e) => setShowSlots(e.target.checked)}
+              />
+              <span>Hiện khung</span>
+            </label>
+
+            {activePreset.isCustom && (
+              <button
+                type="button"
+                className="btn sm icon"
+                style={{ color: '#ef4444', height: 24, padding: '0 6px' }}
+                title="Xóa mẫu tùy chỉnh này"
+                onClick={handleDeleteActivePreset}
+              >
+                <IconTrash width={12} height={12} />
+              </button>
+            )}
           </>
         )}
 
-        <span style={{ marginLeft: 'auto', color: 'var(--text-faint)', fontSize: 11 }}>
-          Tọa độ: ({mouseCanvasPos.x}, {mouseCanvasPos.y})
-        </span>
+        {/* Quick Z-Index controls on toolbar when a layer is selected */}
+        {currentSelectedLayer && (
+          <div
+            className="layer-cutter-z-controls"
+            title="Thứ tự lớp (Z-index): Layer có Z lớn hơn sẽ che layer có Z nhỏ hơn. Nhấn phím '+' hoặc '-' để thay đổi nhanh"
+          >
+            <span className="subbar-label">Thứ tự Z:</span>
+            <button
+              id="btn-cutter-z-minus"
+              type="button"
+              className="stepper-btn"
+              title="Giảm Z (-1, phím '-')"
+              onClick={() =>
+                onUpdateLayer(currentSelectedLayer.id, {
+                  z: Math.max(1, (currentSelectedLayer.z ?? 10) - 1)
+                })
+              }
+            >
+              -
+            </button>
+            <span className="layer-cutter-z-val">{currentSelectedLayer.z ?? 10}</span>
+            <button
+              id="btn-cutter-z-plus"
+              type="button"
+              className="stepper-btn"
+              title="Tăng Z (+1, phím '+')"
+              onClick={() =>
+                onUpdateLayer(currentSelectedLayer.id, {
+                  z: (currentSelectedLayer.z ?? 10) + 1
+                })
+              }
+            >
+              +
+            </button>
+            <span className="layer-cutter-z-hint">(Phím + / -)</span>
+          </div>
+        )}
+
+        <div className="layer-cutter-toolbar-right">
+          <span className="layer-cutter-coord-pill" title="Tọa độ con trỏ chuột trên bảng lắp ráp 2D">
+            XY: ({mouseCanvasPos.x}, {mouseCanvasPos.y})
+          </span>
+        </div>
       </div>
 
       {/* Target Container: Canvas + Side Drawer */}
       <div className="layer-cutter-target-container">
         {/* 2D Canvas Viewport */}
-        <div className="layer-cutter-target-viewport">
+        <div className="layer-cutter-target-viewport" ref={targetViewportRef}>
           <div
             ref={boardRef}
             className={`layer-cutter-target-board ${isDragOverCanvas ? 'drag-over' : ''}`}
+            style={{
+              transform: boardScale < 1 ? `scale(${boardScale})` : undefined,
+              transformOrigin: 'center center'
+            }}
             onPointerMove={handleBoardPointerMove}
             onDragOver={handleBoardDragOver}
             onDragLeave={handleBoardDragLeave}
