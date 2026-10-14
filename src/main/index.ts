@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { join, extname, basename } from 'path'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { readFile, writeFile, unlink } from 'fs/promises'
 import { tmpdir } from 'os'
 import { FfmpegEncoder } from './ffmpeg'
@@ -40,7 +41,34 @@ const MIME: Record<string, string> = {
   flac: 'audio/flac'
 }
 
+function clearCachedZoomPreferences(): void {
+  try {
+    const prefsPath = join(app.getPath('userData'), 'Preferences')
+    if (!existsSync(prefsPath)) return
+    const raw = readFileSync(prefsPath, 'utf-8')
+    const parsed = JSON.parse(raw)
+    if (parsed?.partition?.per_host_zoom_levels) {
+      delete parsed.partition.per_host_zoom_levels
+      writeFileSync(prefsPath, JSON.stringify(parsed), 'utf-8')
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+clearCachedZoomPreferences()
+
+function enforceWindowZoom100(win: BrowserWindow | null): void {
+  if (!win || win.isDestroyed()) return
+  const wc = win.webContents
+  if (wc.isDestroyed()) return
+  wc.setZoomLevel(0)
+  wc.setZoomFactor(1)
+  wc.setVisualZoomLevelLimits(1, 1).catch(() => undefined)
+}
+
 function createWindow(): void {
+  clearCachedZoomPreferences()
   mainWindow = new BrowserWindow({
     width: 1600,
     height: 960,
@@ -54,11 +82,29 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      zoomFactor: 1.0
     }
   })
 
-  mainWindow.once('ready-to-show', () => mainWindow?.show())
+  enforceWindowZoom100(mainWindow)
+  mainWindow.webContents.on('dom-ready', () => enforceWindowZoom100(mainWindow))
+  mainWindow.webContents.on('did-finish-load', () => enforceWindowZoom100(mainWindow))
+  mainWindow.webContents.on('zoom-changed', (event) => {
+    event.preventDefault()
+    enforceWindowZoom100(mainWindow)
+  })
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if ((input.control || input.meta) && ['+', '=', '-', '_', '0'].includes(input.key)) {
+      event.preventDefault()
+      enforceWindowZoom100(mainWindow)
+    }
+  })
+
+  mainWindow.once('ready-to-show', () => {
+    enforceWindowZoom100(mainWindow)
+    mainWindow?.show()
+  })
   mainWindow.webContents.on('did-start-loading', () => mcp?.onWindowLoading())
   mainWindow.on('closed', () => {
     mainWindow = null

@@ -62,6 +62,11 @@ export function useShortcuts(onExport: () => void): void {
       const k = e.key.toLowerCase()
 
       if (ctrl) {
+        if (k === '0' || k === '=' || k === '+' || k === '-' || k === '_') {
+          window.api?.resetZoom?.()
+          e.preventDefault()
+          return
+        }
         if (k === 'z' && !e.shiftKey) st.undo()
         else if (k === 'y' || (k === 'z' && e.shiftKey)) st.redo()
         else if (k === 's') saveProject(e.shiftKey)

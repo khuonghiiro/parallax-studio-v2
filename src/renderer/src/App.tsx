@@ -36,8 +36,9 @@ export default function App() {
   usePlayback()
   useShortcuts(openExport)
 
-  // Open the demo scene on first launch.
+  // Open the demo scene on first launch and ensure UI zoom is at 100%.
   useEffect(() => {
+    window.api?.resetZoom?.()
     loadDemo(true)
       .catch((err) => console.error(err))
       .finally(() => {

@@ -95,6 +95,7 @@ export interface ParallaxApi {
   exportCancel(): Promise<void>
   revealFile(path: string): Promise<void>
   setTitle(title: string): void
+  resetZoom?(): void
   getSystemInfo(): Promise<SystemHardwareInfo>
   getBuiltInCatalog(): Promise<BuiltInCatalogResult>
   getAssemblyAssets(): Promise<BuiltInAssetItem[]>

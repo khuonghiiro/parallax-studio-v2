@@ -1,5 +1,21 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webFrame } from 'electron'
 import type { McpCommand, McpStatus, ParallaxApi } from '@shared/ipc'
+
+function enforceZoom100(): void {
+  try {
+    webFrame.setZoomLevel(0)
+    webFrame.setZoomFactor(1)
+    webFrame.setVisualZoomLevelLimits(1, 1)
+  } catch {
+    /* ignore in non-electron env */
+  }
+}
+
+enforceZoom100()
+if (typeof window !== 'undefined') {
+  window.addEventListener('DOMContentLoaded', enforceZoom100)
+  window.addEventListener('load', enforceZoom100)
+}
 
 const api: ParallaxApi = {
   openFiles: (kind) => ipcRenderer.invoke('files:open', kind),
@@ -14,6 +30,7 @@ const api: ParallaxApi = {
   exportCancel: () => ipcRenderer.invoke('export:cancel'),
   revealFile: (p) => ipcRenderer.invoke('shell:reveal', p),
   setTitle: (title) => ipcRenderer.send('window:title', title),
+  resetZoom: () => enforceZoom100(),
   getSystemInfo: () => ipcRenderer.invoke('system:getInfo'),
   getBuiltInCatalog: () => ipcRenderer.invoke('builtinAssets:getCatalog'),
   getAssemblyAssets: () => ipcRenderer.invoke('builtinAssets:getAssemblyAssets'),
