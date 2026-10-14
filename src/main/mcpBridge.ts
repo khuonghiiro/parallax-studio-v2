@@ -16,6 +16,11 @@ import type {
 
 /** Capture the whole app window (UI + dialogs) or a targeted region so an AI can review what the user sees. */
 async function captureWebContents(wc: Electron.WebContents, opts: McpCaptureOptions = {}): Promise<McpCaptureResult> {
+  try {
+    wc.setBackgroundThrottling(false)
+  } catch {
+    /* ignore */
+  }
   const rect = opts.rect
     ? {
         x: Math.max(0, Math.round(opts.rect.x)),
@@ -24,7 +29,7 @@ async function captureWebContents(wc: Electron.WebContents, opts: McpCaptureOpti
         height: Math.max(1, Math.round(opts.rect.height))
       }
     : undefined
-  const img = await wc.capturePage(rect)
+  const img = await wc.capturePage(rect, { stayHidden: true })
   const full = img.getSize()
   const width = Math.max(64, Math.min(full.width, Math.round(opts.width ?? full.width)))
   const out = width < full.width ? img.resize({ width, quality: 'good' }) : img
@@ -378,24 +383,23 @@ export class McpBridge {
 
   private async dispatch(method: string, params: Record<string, unknown>): Promise<unknown> {
     if (!method) throw new Error('Missing method')
+    const normalizedMethod = method === 'capture_app_silent' ? 'get_app_screenshot' : method
     this.status.commands++
-    this.status.lastMethod = method
+    this.status.lastMethod = normalizedMethod
     this.status.lastAt = Date.now()
     this.broadcast()
 
-    if (method === 'ping') return { app: 'parallax-studio', version: app.getVersion(), port: this.status.port, rendererReady: this.rendererReady }
+    if (normalizedMethod === 'ping') return { app: 'parallax-studio', version: app.getVersion(), port: this.status.port, rendererReady: this.rendererReady }
 
-    if (method === 'get_app_screenshot') {
+    if (normalizedMethod === 'get_app_screenshot') {
       const win = this.getWindow()
       if (!win || win.isDestroyed()) throw new Error('App window is not open')
-      // Chỉ khôi phục nếu bị minimize (Chromium cần render surface để chụp).
-      // Không gọi win.showInactive() để app giữ nguyên vị trí background, không tự ý trồi lên che màn hình người dùng.
-      if (win.isMinimized()) win.restore()
+      // Tuyệt đối không gọi win.restore(), win.show() hay win.showInactive()
+      // để cửa sổ luôn nằm yên ở nền (background) khi người dùng đang làm việc trên ứng dụng khác.
 
-      // Nếu Renderer sẵn sàng và có tham số vùng hoặc selector, ưu tiên Renderer xử lý
       if (this.rendererReady) {
         try {
-          const cmd: McpCommand = { reqId: `${Date.now().toString(36)}-${++this.seq}`, method, params }
+          const cmd: McpCommand = { reqId: `${Date.now().toString(36)}-${++this.seq}`, method: 'get_app_screenshot', params }
           const res = await this.forward(cmd)
           if (res.ok && res.result) return res.result
         } catch {

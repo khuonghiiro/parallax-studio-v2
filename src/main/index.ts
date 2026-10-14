@@ -19,6 +19,12 @@ if (process.platform === 'win32' && !app.commandLine.hasSwitch('use-angle')) {
   app.commandLine.appendSwitch('use-angle', process.env.PARALLAX_ANGLE || 'd3d11on12')
 }
 
+// Giữ cho tiến trình Renderer luôn cập nhật khung hình khi cửa sổ bị che khuất hoặc nằm ở nền,
+// giúp MCP chụp ảnh màn hình ngầm (background screenshot) mượt mà mà không cần bật cửa sổ lên.
+app.commandLine.appendSwitch('disable-background-timer-throttling')
+app.commandLine.appendSwitch('disable-renderer-backgrounding')
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows')
+
 let mainWindow: BrowserWindow | null = null
 let encoder: FfmpegEncoder | null = null
 let mcp: McpBridge | null = null
@@ -62,6 +68,7 @@ function enforceWindowZoom100(win: BrowserWindow | null): void {
   if (!win || win.isDestroyed()) return
   const wc = win.webContents
   if (wc.isDestroyed()) return
+  wc.setBackgroundThrottling(false)
   wc.setZoomLevel(0)
   wc.setZoomFactor(1)
   wc.setVisualZoomLevelLimits(1, 1).catch(() => undefined)
@@ -83,6 +90,7 @@ function createWindow(): void {
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,
+      backgroundThrottling: false,
       zoomFactor: 1.0
     }
   })

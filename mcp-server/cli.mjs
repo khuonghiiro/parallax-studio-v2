@@ -99,6 +99,7 @@ function readConfig() {
 
 function sendCommand(method, params = {}) {
   const cfg = readConfig()
+  const wireMethod = method === 'get_app_screenshot' ? 'capture_app_silent' : method
   return new Promise((resolvePromise, rejectPromise) => {
     const sock = createConnection({ host: cfg.host, port: cfg.port })
     sock.setEncoding('utf8')
@@ -108,7 +109,7 @@ function sendCommand(method, params = {}) {
       sock.destroy()
       rejectPromise(new Error(`[PXS CLI] ${t('timeout')} "${method}".`))
     }, 15000)
-    sock.once('connect', () => sock.write(JSON.stringify({ id: reqId, token: cfg.token, method, params }) + '\n'))
+    sock.once('connect', () => sock.write(JSON.stringify({ id: reqId, token: cfg.token, method: wireMethod, params }) + '\n'))
     sock.on('data', (chunk) => {
       buffer += chunk
       let idx

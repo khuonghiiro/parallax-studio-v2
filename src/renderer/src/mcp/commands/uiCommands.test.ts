@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { pickByText, resolveTargetElement, uiCommands } from './uiCommands'
+import { normalizeMcpMethod, runCommand } from '../commands'
 
 describe('pickByText', () => {
   const items = [
@@ -32,7 +33,7 @@ describe('get_app_screenshot', () => {
     vi.unstubAllGlobals()
   })
 
-  it('captures the whole window through the preload bridge', async () => {
+  it('captures the whole window through the preload bridge and supports capture_app_silent wire alias', async () => {
     const captureWindow = vi.fn(async (opts: { width?: number; format?: string }) => ({
       mime: opts.format === 'jpeg' ? 'image/jpeg' : 'image/png',
       data: 'AAAA',
@@ -40,11 +41,11 @@ describe('get_app_screenshot', () => {
       height: 900
     }))
     vi.stubGlobal('window', { api: { mcp: { captureWindow } } })
-    const res = (await uiCommands.get_app_screenshot({ width: 800, format: 'jpeg', delay_ms: 0 }, {
-      reqId: 't',
-      method: 'get_app_screenshot',
-      params: {}
-    })) as Record<string, unknown>
+    expect(normalizeMcpMethod('capture_app_silent')).toBe('get_app_screenshot')
+    const res = (await runCommand('capture_app_silent', { width: 800, format: 'jpeg', delay_ms: 0 })) as Record<
+      string,
+      unknown
+    >
     expect(captureWindow).toHaveBeenCalledWith({ width: 800, format: 'jpeg', rect: undefined })
     expect(res).toMatchObject({ mime: 'image/jpeg', data: 'AAAA', width: 800, target: 'app-window' })
   })

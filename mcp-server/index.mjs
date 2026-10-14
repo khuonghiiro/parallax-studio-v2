@@ -137,9 +137,10 @@ class Bridge {
     await this.connect()
     this.clearIdle()
     const id = ++this.seq
+    const wireMethod = method === 'get_app_screenshot' ? 'capture_app_silent' : method
     return new Promise((res, rej) => {
       this.pending.set(id, { resolve: res, reject: rej })
-      this.sock.write(JSON.stringify({ id, token: this.token, method, params }) + '\n')
+      this.sock.write(JSON.stringify({ id, token: this.token, method: wireMethod, params }) + '\n')
     })
   }
 }

@@ -39,11 +39,20 @@ const commands: Record<string, Handler> = {
   ...uiCommands
 }
 
+const WIRE_METHOD_ALIASES: Record<string, string> = {
+  capture_app_silent: 'get_app_screenshot'
+}
+
+export function normalizeMcpMethod(method: string): string {
+  return WIRE_METHOD_ALIASES[method] ?? method
+}
+
 /** Run a command by name (also used by execute_script's `api.run`). */
 export async function runCommand(method: string, params: Params = {}, cmd?: McpCommand): Promise<unknown> {
-  const h = commands[method]
+  const canonical = normalizeMcpMethod(method)
+  const h = commands[canonical] ?? uiCommands?.[canonical]
   if (!h) throw new Error(`Unknown method "${method}". Available: ${Object.keys(commands).sort().join(', ')}`)
-  return h(params, cmd ?? { reqId: 'local', method, params })
+  return h(params, cmd ?? { reqId: 'local', method: canonical, params })
 }
 
 export const MCP_COMMANDS = Object.keys(commands)
@@ -130,29 +139,30 @@ export function initMcp(onActivity?: (method: string, ok: boolean) => void): () 
   const w = window as unknown as McpWin
   w.__pxsMcpUnsub?.()
   const unsub = window.api.mcp.onCommand(async (cmd) => {
+    const canonicalMethod = normalizeMcpMethod(cmd.method)
     inFlightCommands++
     if (rendererIdleTimer) {
       clearTimeout(rendererIdleTimer)
       rendererIdleTimer = null
     }
-    notifyMcpActivity(true, cmd.method)
+    notifyMcpActivity(true, canonicalMethod)
 
-    const isSilent = SILENT_MCP_COMMANDS.has(cmd.method)
+    const isSilent = SILENT_MCP_COMMANDS.has(canonicalMethod)
     if (!isManuallyLocked && !isSilent) {
       if (aiTimer) clearTimeout(aiTimer)
-      useView.getState().setAiControl(true, true, `AI đang thao tác: ${cmd.method}`)
+      useView.getState().setAiControl(true, true, `AI đang thao tác: ${canonicalMethod}`)
     }
     try {
-      const result = await runCommand(cmd.method, cmd.params ?? {}, cmd)
+      const result = await runCommand(canonicalMethod, cmd.params ?? {}, cmd)
       window.api.mcp.respond({ reqId: cmd.reqId, ok: true, result: toPlain(result) })
-      onActivity?.(cmd.method, true)
+      onActivity?.(canonicalMethod, true)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       window.api.mcp.respond({ reqId: cmd.reqId, ok: false, error: msg })
-      onActivity?.(cmd.method, false)
+      onActivity?.(canonicalMethod, false)
     } finally {
       inFlightCommands = Math.max(0, inFlightCommands - 1)
-      notifyMcpActivity(inFlightCommands > 0, cmd.method)
+      notifyMcpActivity(inFlightCommands > 0, canonicalMethod)
       scheduleRendererIdleDisconnect()
 
       if (!isManuallyLocked && !isSilent) {
