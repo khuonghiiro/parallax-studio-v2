@@ -849,6 +849,20 @@ export const IconFlipHorizontal = (p: P) => (
   </svg>
 )
 
+export const IconPandaMeme = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="6.5" cy="6" r="2.5" fill="currentColor" />
+    <circle cx="17.5" cy="6" r="2.5" fill="currentColor" />
+    <circle cx="12" cy="13" r="7.5" />
+    <path d="M9 11.5h2M13 11.5h2" strokeWidth="2.2" />
+    <path d="M9 15.5c1.5 1.2 4.5 1.2 6 0" />
+  </svg>
+)
 
-
-
+export const IconMushroomMeme = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4.5 12c0-5 3.4-8 7.5-8s7.5 3 7.5 8H4.5Z" fill="currentColor" />
+    <path d="M6 12v2a6 6 0 0 0 12 0v-2" />
+    <path d="M9.5 14h1.5M13 14h1.5M9.5 16.8c1.2.8 3.8.8 5 0" />
+  </svg>
+)

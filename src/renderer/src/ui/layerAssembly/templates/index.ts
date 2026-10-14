@@ -3,6 +3,7 @@ import { TMPL_ARTICULATED_13 } from './articulatedCharacter'
 import { TMPL_PUPPET_15 } from './puppetCharacter'
 import { standardizeTemplate } from './templateBuilder'
 import { HUMANOID_TEMPLATES } from './humanoidTemplates'
+import { SHADIAO_TEMPLATES } from './shadiaoTemplates'
 import { ANIMAL_TEMPLATES } from './animalTemplates'
 import { NATURE_PROP_TEMPLATES } from './naturePropTemplates'
 import type { LayerComposite } from '../types'
@@ -10,11 +11,13 @@ import type { LayerComposite } from '../types'
 export * from './layerTemplateTypes'
 export * from './creatureRigPresets'
 export * from './humanoidTemplates'
+export * from './shadiaoTemplates'
 export * from './animalTemplates'
 export * from './naturePropTemplates'
 export * from './templateIcons'
 
 export const ALL_LAYER_TEMPLATES: LayerAssemblyTemplate[] = [
+  ...SHADIAO_TEMPLATES,
   TMPL_PUPPET_15,
   TMPL_ARTICULATED_13,
   ...HUMANOID_TEMPLATES,

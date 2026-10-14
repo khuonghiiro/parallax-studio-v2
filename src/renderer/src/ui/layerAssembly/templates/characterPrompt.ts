@@ -43,11 +43,13 @@ function partBoundary(slot: LayerTemplateSlot, ids: Set<string>): string {
   if (slot.id === 'glasses')
     return 'Isolated eyewear/spectacles frame and lenses ONLY; NO eyes, eyebrows, nose or face.'
   if (slot.id === 'mask')
-    return 'Isolated face mask/scarf/visor prop ONLY; NO face, skin, nose or neck.'
+    return 'Isolated face mask/scarf/visor or alternate meme expression overlay prop ONLY; NO torso, neck or hair.'
+  if (slot.id === 'face-meme')
+    return 'Isolated alternate meme facial expression / emotion head swap ONLY; NO torso, neck, hat or glasses.'
   if (slot.id === 'cape')
-    return 'Complete back cape/cloak silhouette from shoulders to hem ONLY; NO torso, armor, arms or legs.'
+    return 'Complete back cape/cloak or immortal aura ribbon silhouette from shoulders to hem ONLY; NO torso, armor, arms or legs.'
   if (slot.id.startsWith('prop-'))
-    return 'Complete isolated handheld prop/weapon ONLY, reconstructed through the grip area; NO hand or fingers attached.'
+    return 'Complete isolated handheld slapstick/movie prop or weapon ONLY, reconstructed through the grip area; NO hand or fingers attached.'
   return 'Only the named part and explicitly combined elements; NO neighboring body parts. Accessories contain NO face, skin or holding hand.'
 }
 
@@ -57,11 +59,19 @@ export function characterPrompt(template: LayerAssemblyTemplate): string {
   const identity = template.promptGuide.systemPrompt.match(/^(?:IDENTITY|CHARACTER):\s*(.+)$/m)?.[1]
     || template.descriptionEn
   const key = template.promptGuide.systemPrompt.includes('#FF00FF') ? '#FF00FF' : '#00FF00'
+  const isShadiao =
+    template.id.includes('shadiao') ||
+    /shadiao|panda|mushroom|điêu khắc cát|cát gấu|bựa/i.test(`${template.name} ${identity}`)
+  const styleBlock = isShadiao
+    ? `\nSHADIAO MEME CUTOUT STYLE (沙雕动画 / 熊猫人 / 蘑菇头):
+- Authentic Chinese 2D Flash vector "Sand Sculpture Animation" (Hoạt hình Điêu Khắc Cát / Cát Gấu) & Baozou Manhua meme aesthetic: bold crisp black comic ink outlines, flat high-contrast cel-shaded fills, humorous 2.5-to-3-head proportions.
+- Keep the iconic pure-white (#FFFFFF) meme head/face contrast crisp against bold black facial linework, with detachable meme expression overlays, Thug-Life sunglasses, hats, and slapstick props (red brick, flip-flop slipper, wooden sword) strictly isolated in their assigned cells.`
+    : ''
   const layout = [...template.slots].sort((a, b) => a.atlasCell! - b.atlasCell!)
     .map((slot) => `${slot.atlasCell}. ${slot.nameEn} [${slot.id}] — ${partBoundary(slot, ids)}`)
   return `Create ONE square (1:1 aspect ratio) CHARACTER CUTOUT SPRITE ATLAS: flat 2D animation character layers, separated like a paper puppet. NOT a physical doll, toy or mannequin.
 IDENTITY: ${identity}
-If a reference is attached, preserve that character's identity, costume, palette and proportions. Otherwise use the identity above.
+If a reference is attached, preserve that character's identity, costume, palette and proportions. Otherwise use the identity above.${styleBlock}
 VIEW: FRONT ORTHOGRAPHIC, vertically upright arm and leg segments, proximal joints centered at top and distal joints centered at bottom; no diagonal or bent limbs; no perspective or foreshortening.
 OUTPUT: PNG at the native resolution supported by the image model; preserve the 1:1 aspect ratio. Flat OPAQUE chroma-key background ${key}. No checkerboard, gradients, texture, ground or cast shadows.
 GRID: Exactly 5 rows x 5 columns, numbered 1–25 left-to-right, top-to-bottom for instructions ONLY. Do not draw numbers, labels, IDs or grid lines.
@@ -86,4 +96,5 @@ CLEAN EXTRACTION:
 - Before output, verify every assigned cell against this list: correct part, complete hidden ends, consistent scale, clean separation and clear padding. Redraw merged or contaminated parts.`
 }
 
-export const CHARACTER_PROMPT_GUIDE = 'Atlas tỉ lệ 1:1, độ phân giải theo model AI, lưới 5×5; mỗi ô đúng bộ phận ghi trong danh sách, không kèm hình nhân vật hoàn chỉnh. Tay/chân chỉ tách tại các khớp có slot riêng; muốn gập đủ khuỷu tay, cổ tay, gối và cổ chân hãy chọn mẫu Búp bê 15 lớp. Vẽ bù phần bị che, chừa đệm khớp 10–15% và lề sạch ít nhất 8% mỗi ô. Sau khi tách nền, kiểm tra viền trên nền sáng/tối và xoay thử khớp; prompt không bảo đảm ảnh AI luôn tách sạch. Tài liệu: docs/design/character-cutout-prompt.md.'
+export const CHARACTER_PROMPT_GUIDE = 'Atlas tỉ lệ 1:1, độ phân giải theo model AI, lưới 5×5; mỗi ô đúng bộ phận ghi trong danh sách, không kèm hình nhân vật hoàn chỉnh. Hỗ trợ chuẩn Hoạt hình Điêu Khắc Cát / Cát Gấu (沙雕动画 - Đầu Gấu Trúc Meme, Đầu Nấm Baozou, biểu cảm hài bựa, đạo cụ dép lào/gạch ống) lẫn hoạt hình 2D/Chibi truyền thống. Tay/chân chỉ tách tại các khớp có slot riêng; vẽ bù đầu khớp bán nguyệt 10–15% và chừa lề sạch ít nhất 8% mỗi ô để xoay khớp 360° không hở. Tài liệu: docs/design/character-cutout-prompt.md.'
+

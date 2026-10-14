@@ -49,12 +49,36 @@
       "order": 5
     },
     {
+      "id": "character_shadiao_panda",
+      "folder": "character_shadiao_panda",
+      "title": "Cát Gấu Tu Tiên (Điêu Khắc Cát)",
+      "icon": "panda-meme",
+      "description": "Nhân vật Hoạt hình Điêu Khắc Cát (沙雕动画 - 熊猫人修仙): Đầu Gấu Trúc Meme, biểu cảm khóc thét, kính 8-bit, trường bào và kiếm gỗ buộc gạch",
+      "order": 6
+    },
+    {
+      "id": "character_shadiao_modern",
+      "folder": "character_shadiao_modern",
+      "title": "Đầu Nấm Đô Thị (Điêu Khắc Cát)",
+      "icon": "mushroom-meme",
+      "description": "Nhân vật Đầu Nấm Baozou (蘑菇头) hài bựa: Đầu Nấm cười khẩy, mặt khóc thác nước, mũ bảo hiểm, kính đen tổng tài, quần đùi hoa và dép lào",
+      "order": 7
+    },
+    {
       "id": "audio",
       "folder": "audio",
       "title": "Âm thanh & Nhạc nền",
       "icon": "music",
       "description": "Nhạc nền, tiếng chuông ambient và hiệu ứng âm thanh cho phân cảnh",
-      "order": 6
+      "order": 8
+    },
+    {
+      "id": "uploads",
+      "folder": "uploads",
+      "title": "Tài nguyên tải lên",
+      "icon": "image",
+      "description": "Tài nguyên ảnh và vật liệu người dùng thêm vào kho",
+      "order": 10
     }
   ],
   "assets": {
@@ -309,6 +333,114 @@
     },
     "character_chibi_female/shin-right.png": {
       "name": "Cẳng chân & giày Loafer phải"
+    },
+    "character_shadiao_panda/head.png": {
+      "name": "Đầu Gấu Trúc Meme Cười Khẩy (熊猫头)"
+    },
+    "character_shadiao_panda/mask.png": {
+      "name": "Biểu cảm Gấu Trúc Khóc Thét & Nổi Gân"
+    },
+    "character_shadiao_panda/hat.png": {
+      "name": "Mão Ngọc Đạo Sĩ Tu Tiên"
+    },
+    "character_shadiao_panda/glasses.png": {
+      "name": "Kính Đen Thug Life 8-Bit Pixel"
+    },
+    "character_shadiao_panda/beard.png": {
+      "name": "Râu Cá Trê Đạo Sĩ Hoá Trang"
+    },
+    "character_shadiao_panda/cape.png": {
+      "name": "Khăn Choàng Cổ Trang Tu Tiên"
+    },
+    "character_shadiao_panda/torso.png": {
+      "name": "Thân Áo Trường Bào Tu Tiên"
+    },
+    "character_shadiao_panda/pelvis.png": {
+      "name": "Đai Lưng Ngọc Bội & Hông"
+    },
+    "character_shadiao_panda/arm-left.png": {
+      "name": "Bắp Tay Áo Cổ Trang Trái"
+    },
+    "character_shadiao_panda/arm-right.png": {
+      "name": "Bắp Tay Áo Cổ Trang Phải"
+    },
+    "character_shadiao_panda/forearm-left.png": {
+      "name": "Cổ Tay Áo Trắng Trái"
+    },
+    "character_shadiao_panda/forearm-right.png": {
+      "name": "Cổ Tay Áo Trắng Phải"
+    },
+    "character_shadiao_panda/hand-left.png": {
+      "name": "Bàn Tay Gấu Trúc Trái"
+    },
+    "character_shadiao_panda/hand-right.png": {
+      "name": "Bàn Tay Gấu Trúc Phải"
+    },
+    "character_shadiao_panda/thigh-left.png": {
+      "name": "Đùi Quần Cổ Trang Trái"
+    },
+    "character_shadiao_panda/thigh-right.png": {
+      "name": "Đùi Quần Cổ Trang Phải"
+    },
+    "character_shadiao_panda/shin-left.png": {
+      "name": "Xà Cạp Quấn Chân Trái"
+    },
+    "character_shadiao_panda/shin-right.png": {
+      "name": "Xà Cạp Quấn Chân Phải"
+    },
+    "character_shadiao_panda/foot-left.png": {
+      "name": "Giày Vải Mây Cổ Trang Trái"
+    },
+    "character_shadiao_panda/foot-right.png": {
+      "name": "Giày Vải Mây Cổ Trang Phải"
+    },
+    "character_shadiao_panda/weapon.png": {
+      "name": "Kiếm Gỗ Buộc Gạch Ống Vả Mặt"
+    },
+    "character_shadiao_modern/head.png": {
+      "name": "Đầu Nấm Meme Baozou Cười Bựa (蘑菇头)"
+    },
+    "character_shadiao_modern/mask.png": {
+      "name": "Biểu Cảm Khóc Thác Nước Lụt Nhà"
+    },
+    "character_shadiao_modern/hat.png": {
+      "name": "Mũ Bảo Hiểm Vàng Công Trường"
+    },
+    "character_shadiao_modern/glasses.png": {
+      "name": "Kính Râm Đen Tổng Tài Bá Đạo"
+    },
+    "character_shadiao_modern/torso.png": {
+      "name": "Áo Ba Lỗ Đỏ & Dây Chuyền Vàng"
+    },
+    "character_shadiao_modern/pelvis.png": {
+      "name": "Quần Đùi Hoa Đi Biển (Hông)"
+    },
+    "character_shadiao_modern/arm-left.png": {
+      "name": "Bắp Tay Áo Đỏ Trái"
+    },
+    "character_shadiao_modern/arm-right.png": {
+      "name": "Bắp Tay Áo Đỏ Phải"
+    },
+    "character_shadiao_modern/forearm-left.png": {
+      "name": "Cẳng Tay & Bàn Tay Trái"
+    },
+    "character_shadiao_modern/forearm-right.png": {
+      "name": "Cẳng Tay & Bàn Tay Phải"
+    },
+    "character_shadiao_modern/thigh-left.png": {
+      "name": "Đùi Quần Đùi Hoa Trái"
+    },
+    "character_shadiao_modern/thigh-right.png": {
+      "name": "Đùi Quần Đùi Hoa Phải"
+    },
+    "character_shadiao_modern/shin-left.png": {
+      "name": "Cẳng Chân & Dép Lào Trái"
+    },
+    "character_shadiao_modern/shin-right.png": {
+      "name": "Cẳng Chân & Dép Lào Phải"
+    },
+    "character_shadiao_modern/weapon.png": {
+      "name": "Chiếc Dép Lào Xanh Tấu Hài (Vũ Khí)"
     },
     "audio/ambient_chime.wav": {
       "name": "Chuông gió ngân vang (Ambient Chime)"

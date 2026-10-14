@@ -11,7 +11,9 @@ import {
   IconHome,
   IconImage,
   IconLayersStack,
+  IconMushroomMeme,
   IconMusic,
+  IconPandaMeme,
   IconPropLamp,
   IconSparkles,
   IconTree,
@@ -26,7 +28,11 @@ export function renderCategoryIcon(iconKey: string, width = 16, height = 16, cat
   // Tự động phân định giới tính nhân vật nếu icon là 'user' chung chung nhưng id chỉ rõ
   if ((key === 'user' || key === 'character') && categoryId) {
     const cid = categoryId.toLowerCase()
-    if (cid.includes('anime') || cid.includes('female') || cid.includes('girl')) {
+    if (cid.includes('panda')) {
+      key = 'panda-meme'
+    } else if (cid.includes('mushroom') || cid.includes('shadiao_modern')) {
+      key = 'mushroom-meme'
+    } else if (cid.includes('anime') || cid.includes('female') || cid.includes('girl')) {
       key = 'user-female'
     } else if (cid.includes('hero') || cid.includes('male') || cid.includes('boy')) {
       key = 'user-male'
@@ -34,6 +40,14 @@ export function renderCategoryIcon(iconKey: string, width = 16, height = 16, cat
   }
 
   switch (key) {
+    case 'panda-meme':
+    case 'panda':
+    case 'shadiao-panda':
+      return <IconPandaMeme width={width} height={height} />
+    case 'mushroom-meme':
+    case 'mushroom':
+    case 'shadiao-modern':
+      return <IconMushroomMeme width={width} height={height} />
     case 'user-male':
     case 'male':
     case 'hero':

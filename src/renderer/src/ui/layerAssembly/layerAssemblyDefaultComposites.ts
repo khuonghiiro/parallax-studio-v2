@@ -1,4 +1,5 @@
 import { CUTOUT_HERO_COMPOSITE } from './cutoutHeroComposite'
+import { SHADIAO_DEFAULT_COMPOSITES } from './templates/shadiaoTemplates'
 import type { LayerComposite } from './types'
 
 /**
@@ -389,6 +390,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
       }
     ]
   },
-  CUTOUT_HERO_COMPOSITE
+  CUTOUT_HERO_COMPOSITE,
+  ...SHADIAO_DEFAULT_COMPOSITES
 ]
 

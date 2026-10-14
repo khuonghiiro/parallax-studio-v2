@@ -2,6 +2,30 @@ import type { ReactNode } from 'react'
 
 export function renderTemplateThumbnail(templateId: string, size = 48): ReactNode {
   switch (templateId) {
+    case 'tmpl-character-shadiao-panda':
+      return (
+        <svg viewBox="0 0 64 64" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="21" cy="10" r="4" fill="var(--text)" />
+          <circle cx="43" cy="10" r="4" fill="var(--text)" />
+          <circle cx="32" cy="18" r="11" fill="var(--bg-3)" stroke="var(--accent-cyan)" />
+          <path d="M27 16h3M34 16h3M27 22c2 1.8 8 1.8 10 0" stroke="var(--text)" />
+          <path d="M28 6h8v4h-8z" fill="var(--key)" stroke="var(--key)" />
+          <path d="M20 30l12-2 12 2-3 18H23l-3-18z" fill="var(--bg-2)" stroke="var(--accent)" />
+          <path d="M26 48v12M38 48v12M18 32l-7 12M46 32l7 12" stroke="var(--text)" />
+        </svg>
+      )
+    case 'tmpl-character-shadiao-modern':
+      return (
+        <svg viewBox="0 0 64 64" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="32" cy="19" r="11" fill="var(--bg-3)" stroke="var(--text)" />
+          <path d="M20 18c0-8 5-12 12-12s12 4 12 12H20z" fill="var(--text)" />
+          <rect x="25" y="19" width="5" height="3" fill="var(--accent-cyan)" />
+          <rect x="34" y="19" width="5" height="3" fill="var(--accent-cyan)" />
+          <path d="M28 25c2 1.5 6 1.5 8 0" stroke="var(--key)" />
+          <path d="M22 31h20v15H22z" fill="var(--bg-2)" stroke="var(--accent)" />
+          <path d="M26 46v13M38 46v13M18 33l-6 11M46 33l6 11" stroke="var(--text)" />
+        </svg>
+      )
     case 'tmpl-character-articulated-13':
       return (
         <svg viewBox="0 0 64 64" width={size} height={size} fill="none" stroke="var(--accent)" strokeWidth="2">
