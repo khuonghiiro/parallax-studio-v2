@@ -1,5 +1,6 @@
 import type { LayerComposite, LayerCompositeCategory, AssetTable } from './types'
 import { BUILTIN_COMPOSITES } from './layerAssemblyDefaultComposites'
+import { BUILTIN_NATURE_SPINE_KEYS, natureSpines } from './templates/natureDefaultSpines'
 
 export { BUILTIN_COMPOSITES }
 
@@ -74,7 +75,44 @@ export function cleanDuplicateComposites(list: LayerComposite[]): LayerComposite
   })
 }
 
+const PLANT_MIGRATION_KEY = 'pxs.layerComposites.plantMigration'
+const PLANT_MIGRATION_VERSION = 'v1_plant_spines_replace_legacy_motion'
+
+/** Mẫu thiên nhiên dựng sẵn đã lưu: bỏ chuyển động sway/rocking cũ, thêm xương thực vật (chạy 1 lần). */
+export function migrateNaturePlantMotion(list: LayerComposite[]): LayerComposite[] {
+  return list.map((c) => {
+    const key = BUILTIN_NATURE_SPINE_KEYS[c.id]
+    if (!key) return c
+    const known = new Set(c.layers.map((l) => l.id))
+    const spines = c.plantSpines?.length
+      ? c.plantSpines
+      : natureSpines(key)
+          .map((s) => ({ ...s, layerIds: s.layerIds.filter((id) => known.has(id)) }))
+          .filter((s) => s.layerIds.length > 0)
+    return {
+      ...c,
+      layers: c.layers.map((l) => (l.motion?.type && l.motion.type !== 'none' ? { ...l, motion: { ...l.motion, type: 'none' } } : l)),
+      plantSpines: spines
+    }
+  })
+}
+
 export function getStoredComposites(): LayerComposite[] {
+  const list = loadStoredComposites()
+  try {
+    if (typeof localStorage === 'undefined' || localStorage.getItem(PLANT_MIGRATION_KEY) === PLANT_MIGRATION_VERSION) {
+      return list
+    }
+    const migrated = migrateNaturePlantMotion(list)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated))
+    localStorage.setItem(PLANT_MIGRATION_KEY, PLANT_MIGRATION_VERSION)
+    return migrated
+  } catch {
+    return list
+  }
+}
+
+function loadStoredComposites(): LayerComposite[] {
   try {
     if (typeof localStorage === 'undefined') return BUILTIN_COMPOSITES
 

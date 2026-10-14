@@ -437,18 +437,29 @@ export function updateLayer3DInstance(
 ): void {
   const { group, mesh, wireframeMesh, material, outline, anchorDot } = inst
 
+  if (layer.hidden) {
+    group.visible = false
+    outline.visible = false
+    anchorDot.visible = false
+    if (wireframeMesh) wireframeMesh.visible = false
+    return
+  }
+
   const geometry = mesh.geometry
   const rest = geometry.userData.basePositions as Float32Array | undefined
   if (rest) {
-    const skinned = layer.previewRig && layer.bindingMode === 'soft'
-      ? deformSkin(rest, layer, layer.previewRig, time) : rest
-    const positions = layer.previewPlantSpines?.length
-      ? deformPlantSpines(skinned, layer, layer.previewPlantSpines, time) : skinned
-    const attribute = geometry.getAttribute('position') as THREE.BufferAttribute
-    attribute.copyArray(positions)
-    attribute.needsUpdate = true
-    geometry.computeVertexNormals()
-    geometry.computeBoundingSphere()
+    const hasSkin = Boolean(layer.previewRig && layer.bindingMode === 'soft')
+    const hasSpines = Boolean(layer.previewPlantSpines?.length)
+    if (hasSkin || hasSpines || geometry.userData.wasDeformed) {
+      const skinned = hasSkin
+        ? deformSkin(rest, layer, layer.previewRig!, time) : rest
+      const positions = hasSpines
+        ? deformPlantSpines(skinned, layer, layer.previewPlantSpines!, time) : skinned
+      const attribute = geometry.getAttribute('position') as THREE.BufferAttribute
+      attribute.copyArray(positions)
+      attribute.needsUpdate = true
+      geometry.userData.wasDeformed = hasSkin || hasSpines
+    }
   }
   // 1. Tính toán chuyển động hoạt ảnh
   const motion = computeLayer3DMotion(layer.motion, time)

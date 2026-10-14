@@ -49,7 +49,7 @@ export function AssembledLayerItemView({
   // Tính hiệu ứng hướng nắng, bóng đổ theo chiều sâu Z và màu sắc hấp thụ ánh sáng ngày/đêm
   const lightingResult = useMemo(() => {
     return computeLayer2DLighting(layer, maxZ, lighting)
-  }, [layer, maxZ, lighting])
+  }, [layer.z, maxZ, lighting])
 
   // Tính chuyển động hoạt ảnh theo thời gian mượt mà
   const {
@@ -122,7 +122,7 @@ export function AssembledLayerItemView({
         onPointerDown={onPointerDown}
       >
         {imageUrl && usesMeshCanvas ? (
-          <SoftLayerImage url={imageUrl} layer={layer} time={time} showMesh={showMesh} filter={lightingResult.combinedFilter} />
+          <SoftLayerImage url={imageUrl} layer={layer} time={time} showMesh={showMesh} filter={lightingResult.atmosphereFilter || undefined} />
         ) : imageUrl ? (
           <img
             src={imageUrl}

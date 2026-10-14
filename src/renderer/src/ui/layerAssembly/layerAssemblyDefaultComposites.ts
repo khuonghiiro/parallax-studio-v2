@@ -1,6 +1,7 @@
 import { CUTOUT_HERO_COMPOSITE } from './cutoutHeroComposite'
 import { TMPL_CHARACTER_QUARTER } from './templates/humanoidTemplates'
 import type { LayerComposite } from './types'
+import { BUILTIN_NATURE_SPINE_KEYS, natureSpines } from './templates/natureDefaultSpines'
 
 const HUMAN_QUARTER_COMPOSITE: LayerComposite = {
   ...TMPL_CHARACTER_QUARTER.buildComposite(),
@@ -12,7 +13,7 @@ const HUMAN_QUARTER_COMPOSITE: LayerComposite = {
  * - 2 mẫu nhân vật Anime 2.5D bóc tách 13 mảnh tỉ lệ gốc 1:1 (Mẫu minh hoạ kính cận & Nam sinh học viện tương tự)
  * - 3 mẫu thiên nhiên bóc tách được giữ lại theo yêu cầu: Cây Đại Thụ Bóc Tách, Cụm Đá Rêu Phong & Tinh Thể Bóc Tách, Cây Bonsai Cổ Thụ Đung Đưa
  */
-export const BUILTIN_COMPOSITES: LayerComposite[] = [
+const RAW_BUILTIN_COMPOSITES: LayerComposite[] = [
   CUTOUT_HERO_COMPOSITE,
   HUMAN_QUARTER_COMPOSITE,
   {
@@ -46,7 +47,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 1.16,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'sway', speed: 0.75, amplitude: 3.5, anchor: 'bottom', phaseOffset: 0.25 }
+        motion: { type: 'none', speed: 0.75, amplitude: 3.5, anchor: 'bottom', phaseOffset: 0.25 }
       },
       {
         id: 'tree-foliage-back-gold',
@@ -59,7 +60,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         rotation: 0,
         opacity: 1,
         hidden: true,
-        motion: { type: 'sway', speed: 0.75, amplitude: 3.5, anchor: 'bottom', phaseOffset: 0.25 }
+        motion: { type: 'none', speed: 0.75, amplitude: 3.5, anchor: 'bottom', phaseOffset: 0.25 }
       },
       {
         id: 'tree-trunk',
@@ -71,7 +72,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 0.8,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'sway', speed: 0.6, amplitude: 1.8, anchor: 'bottom', phaseOffset: 0.05 }
+        motion: { type: 'none', speed: 0.6, amplitude: 1.8, anchor: 'bottom', phaseOffset: 0.05 }
       },
       {
         id: 'tree-foliage-mid',
@@ -83,7 +84,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 1.04,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'sway', speed: 0.85, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.15 }
+        motion: { type: 'none', speed: 0.85, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.15 }
       },
       {
         id: 'tree-foliage-mid-gold',
@@ -96,7 +97,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         rotation: 0,
         opacity: 1,
         hidden: true,
-        motion: { type: 'sway', speed: 0.85, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.15 }
+        motion: { type: 'none', speed: 0.85, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.15 }
       },
       {
         id: 'tree-foliage-mid-sakura',
@@ -109,7 +110,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         rotation: 0,
         opacity: 1,
         hidden: true,
-        motion: { type: 'sway', speed: 0.85, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.15 }
+        motion: { type: 'none', speed: 0.85, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.15 }
       },
       {
         id: 'tree-foliage-front',
@@ -121,7 +122,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 0.86,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'sway', speed: 0.95, amplitude: 5.5, anchor: 'bottom', phaseOffset: 0.4 }
+        motion: { type: 'none', speed: 0.95, amplitude: 5.5, anchor: 'bottom', phaseOffset: 0.4 }
       },
       {
         id: 'tree-foliage-front-gold',
@@ -134,7 +135,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         rotation: 0,
         opacity: 1,
         hidden: true,
-        motion: { type: 'sway', speed: 0.95, amplitude: 5.5, anchor: 'bottom', phaseOffset: 0.4 }
+        motion: { type: 'none', speed: 0.95, amplitude: 5.5, anchor: 'bottom', phaseOffset: 0.4 }
       },
       {
         id: 'tree-blossoms',
@@ -147,7 +148,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         rotation: 0,
         opacity: 1,
         hidden: true,
-        motion: { type: 'sway', speed: 0.95, amplitude: 5.5, anchor: 'bottom', phaseOffset: 0.42 }
+        motion: { type: 'none', speed: 0.95, amplitude: 5.5, anchor: 'bottom', phaseOffset: 0.42 }
       },
       {
         id: 'tree-fruits',
@@ -159,7 +160,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 0.3,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'rocking', speed: 1.1, amplitude: 4.0, anchor: 'top', phaseOffset: 0.5 }
+        motion: { type: 'none', speed: 1.1, amplitude: 4.0, anchor: 'top', phaseOffset: 0.5 }
       },
       {
         id: 'tree-fruits-2',
@@ -171,7 +172,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 0.31,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'rocking', speed: 1.1, amplitude: 4.0, anchor: 'top', phaseOffset: 0.55 }
+        motion: { type: 'none', speed: 1.1, amplitude: 4.0, anchor: 'top', phaseOffset: 0.55 }
       },
       {
         id: 'tree-fruits-3',
@@ -183,7 +184,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 0.29,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'rocking', speed: 1.1, amplitude: 4.0, anchor: 'top', phaseOffset: 0.35 }
+        motion: { type: 'none', speed: 1.1, amplitude: 4.0, anchor: 'top', phaseOffset: 0.35 }
       },
       {
         id: 'tree-fruits-4',
@@ -195,7 +196,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 0.29,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'rocking', speed: 1.1, amplitude: 4.0, anchor: 'top', phaseOffset: 0.6 }
+        motion: { type: 'none', speed: 1.1, amplitude: 4.0, anchor: 'top', phaseOffset: 0.6 }
       },
       {
         id: 'tree-fruits-5',
@@ -207,7 +208,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 0.3,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'rocking', speed: 1.1, amplitude: 4.0, anchor: 'top', phaseOffset: 0.65 }
+        motion: { type: 'none', speed: 1.1, amplitude: 4.0, anchor: 'top', phaseOffset: 0.65 }
       },
       {
         id: 'tree-fruits-6',
@@ -219,7 +220,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 0.31,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'rocking', speed: 1.1, amplitude: 4.0, anchor: 'top', phaseOffset: 0.45 }
+        motion: { type: 'none', speed: 1.1, amplitude: 4.0, anchor: 'top', phaseOffset: 0.45 }
       }
     ]
   },
@@ -254,7 +255,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 0.78,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'breathe', speed: 1.2, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.2 }
+        motion: { type: 'none', speed: 1.2, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.2 }
       },
       {
         id: 'rock-main',
@@ -315,7 +316,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 0.58,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'sway', speed: 1.1, amplitude: 6.0, anchor: 'bottom', phaseOffset: 0.3 }
+        motion: { type: 'none', speed: 1.1, amplitude: 6.0, anchor: 'bottom', phaseOffset: 0.3 }
       }
     ]
   },
@@ -338,7 +339,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 0.88,
         rotation: 0,
         opacity: 0.92,
-        motion: { type: 'sway', speed: 0.8, amplitude: 3.5, anchor: 'bottom', phaseOffset: 0.3 }
+        motion: { type: 'none', speed: 0.8, amplitude: 3.5, anchor: 'bottom', phaseOffset: 0.3 }
       },
       {
         id: 'bonsai-pot',
@@ -362,7 +363,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 0.82,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'sway', speed: 0.6, amplitude: 2.2, anchor: 'bottom', phaseOffset: 0.05 }
+        motion: { type: 'none', speed: 0.6, amplitude: 2.2, anchor: 'bottom', phaseOffset: 0.05 }
       },
       {
         id: 'bonsai-foliage-mid',
@@ -374,7 +375,7 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 0.85,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'sway', speed: 0.7, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.15 }
+        motion: { type: 'none', speed: 0.7, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.15 }
       },
       {
         id: 'bonsai-foliage-front',
@@ -386,8 +387,14 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         scale: 0.8,
         rotation: 0,
         opacity: 1,
-        motion: { type: 'sway', speed: 0.9, amplitude: 5.5, anchor: 'bottom', phaseOffset: 0.4 }
+        motion: { type: 'none', speed: 0.9, amplitude: 5.5, anchor: 'bottom', phaseOffset: 0.4 }
       }
     ]
   }
 ]
+
+/** Mẫu thiên nhiên dùng Xương thực vật dựng sẵn thay cho chuyển động sway/rocking cũ. */
+export const BUILTIN_COMPOSITES: LayerComposite[] = RAW_BUILTIN_COMPOSITES.map((c) => {
+  const key = BUILTIN_NATURE_SPINE_KEYS[c.id]
+  return key ? { ...c, plantSpines: natureSpines(key) } : c
+})

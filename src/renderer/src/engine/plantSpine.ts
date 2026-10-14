@@ -63,8 +63,19 @@ export function plantBendAngle(spine: PlantSpine, u: number, time: number): numb
 }
 
 /** Tính hình dạng xương đã uốn tại thời điểm t (tích phân tiếp tuyến nghỉ đã xoay theo góc uốn). */
+/** Đường xương đã chia đều được cache theo mảng điểm (không chia lại mỗi khung hình). */
+const restCache = new WeakMap<PlantSpinePoint[], PlantSpinePoint[]>()
+function restSamples(spine: PlantSpine): PlantSpinePoint[] {
+  let rest = restCache.get(spine.points)
+  if (!rest) {
+    rest = resamplePolyline(spine.points)
+    restCache.set(spine.points, rest)
+  }
+  return rest
+}
+
 export function evaluatePlantSpine(spine: PlantSpine, time: number): SpineFrame {
-  const rest = resamplePolyline(spine.points)
+  const rest = restSamples(spine)
   const n = rest.length
   const rot: number[] = new Array(n)
   const bent: PlantSpinePoint[] = new Array(n)
@@ -110,39 +121,57 @@ function projectOnRest(rest: PlantSpinePoint[], x: number, y: number): Projectio
   return best
 }
 
-/** Dời một điểm (toạ độ composite) theo xương đã uốn; trả về độ dời (dx, dy). */
-function displacePoint(frame: SpineFrame, spine: PlantSpine, x: number, y: number): PlantSpinePoint {
-  const { rest, bent, rot } = frame
-  if (rest.length < 2) return { x: 0, y: 0 }
-  const { seg, t, dist } = projectOnRest(rest, x, y)
-  if (t < 0 && seg === 0) return { x: 0, y: 0 } // dưới gốc: đứng yên (rễ, đất)
-  const a = rest[seg]
-  const b = rest[seg + 1]
-  const tc = Math.min(1, Math.max(0, t))
-  const restX = a.x + (b.x - a.x) * t
-  const restY = a.y + (b.y - a.y) * t
-  const angle = rot[seg] + (rot[seg + 1] - rot[seg]) * tc
-  const ba = bent[seg]
-  const bb = bent[seg + 1]
-  let baseX = ba.x + (bb.x - ba.x) * tc
-  let baseY = ba.y + (bb.y - ba.y) * tc
-  if (t > 1) {
-    // Vượt quá ngọn (tán lá phía trên): kéo dài theo hướng ngọn đã xoay
-    const ext = rotate((b.x - a.x) * (t - 1), (b.y - a.y) * (t - 1), angle)
-    baseX += ext.x
-    baseY += ext.y
+/** Mỗi đỉnh 5 số: [đoạn (-1 = dưới gốc, đứng yên), t, lệchX, lệchY, trọng số bán kính]. */
+const STRIDE = 5
+interface LayerProjection { key: string; world: Float32Array; perSpine: Float32Array[] }
+const projectionCache = new WeakMap<Float32Array, LayerProjection>()
+
+function projectionKey(binding: SkinBinding, spines: PlantSpine[]): string {
+  const b = `${binding.x},${binding.y},${binding.rotation},${binding.scale},${binding.scaleX ?? 1},${binding.scaleY ?? 1}`
+  return b + '|' + spines.map((s) => `${s.reach ?? 0}:${s.points.map((p) => `${p.x},${p.y}`).join(';')}`).join('|')
+}
+
+function buildProjection(positions: Float32Array, binding: SkinBinding, spines: PlantSpine[], key: string): LayerProjection {
+  const count = positions.length / 3
+  const scale = binding.scale ?? 1
+  const sx = scale * (binding.scaleX ?? 1)
+  const sy = scale * (binding.scaleY ?? 1)
+  const rot = binding.rotation ?? 0
+  const world = new Float32Array(count * 2)
+  for (let i = 0; i < count; i++) {
+    const p = rotate(positions[i * 3] * sx, -positions[i * 3 + 1] * sy, rot)
+    world[i * 2] = p.x + (binding.x ?? 0)
+    world[i * 2 + 1] = p.y + (binding.y ?? 0)
   }
-  const off = rotate(x - restX, y - restY, angle)
-  let dx = baseX + off.x - x
-  let dy = baseY + off.y - y
-  const reach = spine.reach ?? 0
-  if (reach > 0) {
-    const k = Math.min(1, Math.max(0, (reach - dist) / (reach * 0.5)))
-    const w = k * k * (3 - 2 * k)
-    dx *= w
-    dy *= w
-  }
-  return { x: dx, y: dy }
+  const perSpine = spines.map((spine) => {
+    const rest = restSamples(spine)
+    const data = new Float32Array(count * STRIDE)
+    const reach = spine.reach ?? 0
+    for (let i = 0; i < count; i++) {
+      const x = world[i * 2]
+      const y = world[i * 2 + 1]
+      const o = i * STRIDE
+      const { seg, t, dist } = projectOnRest(rest, x, y)
+      if (rest.length < 2 || (t < 0 && seg === 0)) {
+        data[o] = -1
+        continue
+      }
+      const a = rest[seg]
+      const b = rest[seg + 1]
+      let w = 1
+      if (reach > 0) {
+        const k = Math.min(1, Math.max(0, (reach - dist) / (reach * 0.5)))
+        w = k * k * (3 - 2 * k)
+      }
+      data[o] = seg
+      data[o + 1] = t
+      data[o + 2] = x - (a.x + (b.x - a.x) * t)
+      data[o + 3] = y - (a.y + (b.y - a.y) * t)
+      data[o + 4] = w
+    }
+    return data
+  })
+  return { key, world, perSpine }
 }
 
 /** Chỉ lấy các xương đang bật và có gắn layer này. */
@@ -162,29 +191,54 @@ export function deformPlantSpines(
 ): Float32Array {
   if (!spines.length) return positions
   const output = positions.slice()
-  const frames = spines.map((s) => evaluatePlantSpine(s, time))
   const scale = binding.scale ?? 1
   const sx = scale * (binding.scaleX ?? 1)
   const sy = scale * (binding.scaleY ?? 1)
   if (Math.abs(sx * sy) < 1e-10) return output
+  const key = projectionKey(binding, spines)
+  let proj = projectionCache.get(positions)
+  if (!proj || proj.key !== key) {
+    proj = buildProjection(positions, binding, spines, key)
+    projectionCache.set(positions, proj)
+  }
+  const frames = spines.map((s) => evaluatePlantSpine(s, time))
+  const count = positions.length / 3
   const rot = binding.rotation ?? 0
   const bx = binding.x ?? 0
   const by = binding.y ?? 0
-  for (let i = 0; i < positions.length; i += 3) {
-    const p = rotate(positions[i] * sx, -positions[i + 1] * sy, rot)
-    const wx = p.x + bx
-    const wy = p.y + by
+  for (let i = 0; i < count; i++) {
+    const wx = proj.world[i * 2]
+    const wy = proj.world[i * 2 + 1]
     let dx = 0
     let dy = 0
     for (let k = 0; k < spines.length; k++) {
-      const d = displacePoint(frames[k], spines[k], wx, wy)
-      dx += d.x
-      dy += d.y
+      const data = proj.perSpine[k]
+      const o = i * STRIDE
+      if (data[o] < 0) continue
+      const { rest, bent, rot: angles } = frames[k]
+      const seg = data[o]
+      const t = data[o + 1]
+      const tc = t < 0 ? 0 : t > 1 ? 1 : t
+      const a = rest[seg]
+      const b = rest[seg + 1]
+      const angle = angles[seg] + (angles[seg + 1] - angles[seg]) * tc
+      let baseX = bent[seg].x + (bent[seg + 1].x - bent[seg].x) * tc
+      let baseY = bent[seg].y + (bent[seg + 1].y - bent[seg].y) * tc
+      if (t > 1) {
+        // Vượt quá ngọn (tán lá phía trên): kéo dài theo hướng ngọn đã xoay
+        const ext = rotate((b.x - a.x) * (t - 1), (b.y - a.y) * (t - 1), angle)
+        baseX += ext.x
+        baseY += ext.y
+      }
+      const off = rotate(data[o + 2], data[o + 3], angle)
+      const w = data[o + 4]
+      dx += (baseX + off.x - wx) * w
+      dy += (baseY + off.y - wy) * w
     }
     if (dx === 0 && dy === 0) continue
     const local = rotate(wx + dx - bx, wy + dy - by, -rot)
-    output[i] = local.x / sx
-    output[i + 1] = -local.y / sy
+    output[i * 3] = local.x / sx
+    output[i * 3 + 1] = -local.y / sy
   }
   return output
 }

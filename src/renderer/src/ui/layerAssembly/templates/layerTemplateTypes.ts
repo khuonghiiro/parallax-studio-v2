@@ -61,5 +61,7 @@ export interface LayerAssemblyTemplate {
   clips: AnimationClip[]
   activeClipId: string
   promptGuide: LayerPromptGuide
+  /** Xương thực vật dựng sẵn (layerIds = ID slot), thay cho chuyển động sway cũ */
+  plantSpines?: import('@shared/plantSpine').PlantSpine[]
   buildComposite: (images?: Record<string, string>, nameOverride?: string) => LayerComposite
 }

@@ -63,13 +63,15 @@ describe('Layer Assembly Workshop Storage System', () => {
     expect(rock?.name).toContain('Cụm Đá Rêu Phong')
     expect(rock?.layers.length).toBe(7)
 
-    // Check layer stack depths & motion: tán lá hậu cảnh ở sau, hoa quả ở trước
+    // Check layer stack depths & plant spines: tán lá hậu cảnh ở sau, hoa quả ở trước, chuyển động qua plantSpines
     const backFoliage = tree?.layers.find((l) => l.id === 'tree-foliage-back')
     const frontFoliage = tree?.layers.find((l) => l.id === 'tree-foliage-front')
     expect(backFoliage).toBeDefined()
     expect(frontFoliage).toBeDefined()
     expect(backFoliage!.z).toBeGreaterThan(frontFoliage!.z)
-    expect(backFoliage!.motion.type).toBe('sway')
+    expect(backFoliage!.motion.type).toBe('none')
+    expect(tree?.plantSpines?.length).toBeGreaterThan(0)
+    expect(tree?.plantSpines?.[0].layerIds).toContain('tree-foliage-back')
   })
 
   it('saves new custom composite and retrieves from storage', () => {

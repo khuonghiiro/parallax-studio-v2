@@ -12,6 +12,7 @@ import type { WorkshopTab } from './WorkshopRightPanel'
 import { loadLayerWorkshopViewPrefs, saveLayerWorkshopViewPrefs } from './layerAssemblyViewPrefs'
 import type { BrushPreview } from './useLayerBrushEraser'
 import { spinesForLayer } from '../../engine/plantSpine'
+import { usePlantClockOffset } from './usePlantClock'
 
 export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, boneId, selectBone, onBrushModeChange }: {
   state: ReturnType<typeof useLayerWorkshop>; playback: ReturnType<typeof useWorkshopPlayback>; view: AssemblyWorkspaceView
@@ -71,6 +72,11 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
   }, [toggleBones, toggleMesh, tab])
 
   const normalizedRig = state.composite.rig ? ensureRigClips(state.composite.rig).rig : undefined
+  // Bù thời gian khi thanh phát lặp lại để xương thực vật chuyển động liên tục, không giật về 0
+  const plantOffset = usePlantClockOffset(playback.time, playback.isPlaying, normalizedRig?.duration ?? 4)
+  const shiftedSpines = (state.composite.plantSpines ?? []).map((s) =>
+    plantOffset ? { ...s, phaseOffset: (s.phaseOffset ?? 0) + plantOffset } : s
+  )
   const rig = normalizedRig ? { ...normalizedRig, loop: playback.isPlaying && normalizedRig.loop } : undefined
   const isErasing = brushEditing && tab === 'layers' && !playback.isPlaying
   const animated = !isErasing && (tab === 'animation' || playback.isPlaying || playback.time > 0) && rig
@@ -81,11 +87,12 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
     layers: state.composite.layers.map((l) => {
       const bindPose = { x: l.x, y: l.y, rotation: l.rotation }
       const transformed = transforms ? transformRigLayer(l, transforms) : l
+      const layerSpines = !isErasing && !l.hidden ? spinesForLayer(shiftedSpines, l.id) : undefined
       return {
         ...transformed,
         ...(brushPreview?.id === l.id ? { imageUrl: brushPreview.imageUrl } : {}),
         ...(rig && !isErasing ? { previewRig: rig, bindPose } : {}),
-        ...(!isErasing ? { previewPlantSpines: spinesForLayer(state.composite.plantSpines, l.id) } : {}),
+        ...(layerSpines?.length ? { previewPlantSpines: layerSpines } : {}),
         ...(isErasing ? { bindingMode: 'rigid' as const, motion: { ...l.motion, type: 'none' as const } } : {}),
         locked: l.locked
       }
@@ -133,7 +140,7 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
             composite: state.composite,
             setComposite: state.setComposite,
             selectedIds: state.selection,
-            time: playback.time,
+            time: playback.time + plantOffset,
             drawing: tab === 'plant'
           }}
           onChangeComposite={state.setComposite}

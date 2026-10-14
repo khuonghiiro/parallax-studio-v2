@@ -318,9 +318,8 @@ export function LayerAssembly3DViewport({
           prevOrbit.dist = o.distance
           prevOrbit.target.copy(o.target)
           setGizmoTick((t) => (t + 1) | 0)
+          r.render(s, cam)
         }
-
-        r.render(s, cam)
       }
       animId = requestAnimationFrame(render)
     }
@@ -439,13 +438,12 @@ export function LayerAssembly3DViewport({
       depthGuideRef.current = null
     }
 
-    const selLayer = composite.layers.find((l) => l.id === selectedLayerId)
-    if (selLayer && Math.abs(selLayer.z) > 1 && effectiveZExaggeration > 0) {
-      const guide = createDepthGuideLine(selLayer.x, -selLayer.y, -selLayer.z * effectiveZExaggeration)
+    if (selectedLayer && Math.abs(selectedLayer.z) > 1 && effectiveZExaggeration > 0) {
+      const guide = createDepthGuideLine(selectedLayer.x, -selectedLayer.y, -selectedLayer.z * effectiveZExaggeration)
       scene.add(guide)
       depthGuideRef.current = guide
     }
-  }, [selectedLayerId, composite.layers, effectiveZExaggeration])
+  }, [selectedLayer?.id, selectedLayer?.x, selectedLayer?.y, selectedLayer?.z, effectiveZExaggeration])
 
   // Kích hoạt render lại và cập nhật hình học layer khi ảnh load xong
   const [renderTrigger, setRenderTrigger] = useState(0)
@@ -458,50 +456,46 @@ export function LayerAssembly3DViewport({
       r.render(s, cam)
     }
   }, [])
-  const requestRender = useCallback(() => {
+  const onTextureReady = useCallback(() => {
     setRenderTrigger((t) => (t + 1) | 0)
-    flushImmediateRender()
-  }, [flushImmediateRender])
+  }, [])
+  const requestRender = flushImmediateRender
 
-  // ------------------------------------------------------------- 6. Đồng bộ hóa Mesh các Layers
+  // ------------------------------------------------------------- 6. Đồng bộ hóa Mesh các Layers & Khung xương 3D
   useEffect(() => {
     const layersGroup = layersGroupRef.current
-    if (!layersGroup) return
-
-    syncLayersGroupMeshes({
-      layers: composite.layers,
-      layersGroup,
-      meshInstances: meshInstancesRef.current,
-      selectedLayerId,
-      selectedIds,
-      time,
-      zExaggeration: effectiveZExaggeration,
-      cameraClippingPlanes,
-      requestRender,
-      showMesh
-    })
-    flushImmediateRender()
-  }, [composite.layers, time, effectiveZExaggeration, selectedLayerId, selectedIds, requestRender, flushImmediateRender, renderTrigger, cameraClippingPlanes, showMesh])
-
-  // ------------------------------------------------------------- Đồng bộ hóa Khung xương 3D
-  useEffect(() => {
+    if (layersGroup) {
+      syncLayersGroupMeshes({
+        layers: composite.layers,
+        layersGroup,
+        meshInstances: meshInstancesRef.current,
+        selectedLayerId,
+        selectedIds,
+        time,
+        zExaggeration: effectiveZExaggeration,
+        cameraClippingPlanes,
+        requestRender: onTextureReady,
+        showMesh
+      })
+    }
     const bonesGroup = bonesGroupRef.current
-    if (!bonesGroup) return
-    const rig = composite.rig ? ensureRigClips(composite.rig).rig : undefined
-    const transforms = rig ? evaluateRig(rig, time) : undefined
-    const selectedBone = boneId || composite.layers.find((l) => l.id === selectedLayerId)?.boneId || null
-    update3DBonesGroup({
-      group: bonesGroup,
-      rig,
-      transforms,
-      layers: composite.layers,
-      selectedBoneId: selectedBone,
-      hoveredBoneId,
-      zExaggeration: effectiveZExaggeration,
-      visible: showBones ?? true
-    })
-    requestRender()
-  }, [composite.rig, composite.layers, time, effectiveZExaggeration, showBones, selectedLayerId, boneId, hoveredBoneId, requestRender])
+    if (bonesGroup) {
+      const rig = composite.rig ? ensureRigClips(composite.rig).rig : undefined
+      const transforms = rig ? evaluateRig(rig, time) : undefined
+      const selectedBone = boneId || composite.layers.find((l) => l.id === selectedLayerId)?.boneId || null
+      update3DBonesGroup({
+        group: bonesGroup,
+        rig,
+        transforms,
+        layers: composite.layers,
+        selectedBoneId: selectedBone,
+        hoveredBoneId,
+        zExaggeration: effectiveZExaggeration,
+        visible: showBones ?? true
+      })
+    }
+    flushImmediateRender()
+  }, [composite.rig, composite.layers, time, effectiveZExaggeration, selectedLayerId, selectedIds, boneId, hoveredBoneId, showBones, onTextureReady, flushImmediateRender, renderTrigger, cameraClippingPlanes, showMesh])
 
   // Native non-passive wheel listener để Chromium không chặn zoom
   useEffect(() => {

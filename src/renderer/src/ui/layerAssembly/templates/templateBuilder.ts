@@ -30,6 +30,9 @@ export function createTemplateComposite(
         motion: slot.defaultMotion || { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
       }
     }),
+    ...(template.plantSpines?.length ? {
+      plantSpines: template.plantSpines.map((s) => ({ ...s, layerIds: s.layerIds.map((id) => `layer-${id}`) }))
+    } : {}),
     ...(template.bones.length ? {
       rig: {
         bones: template.bones, duration: active?.duration ?? 2,

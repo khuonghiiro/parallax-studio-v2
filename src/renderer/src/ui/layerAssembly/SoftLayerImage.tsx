@@ -3,6 +3,7 @@ import type { AssembledLayerItem } from './types'
 import { createLayerAlphaTrimmedGeometry, LayerAssembly2DMeshOverlay } from './layerAssemblyAlphaMesh'
 import { deformSkin } from '../../engine/layerSkinning'
 import { deformPlantSpines } from '../../engine/plantSpine'
+import { renderMeshToCanvas, type MeshCanvasBounds } from './sharedMeshRenderer'
 import type { BufferGeometry } from 'three'
 
 interface Props { url: string; layer: AssembledLayerItem; time: number; showMesh: boolean; filter?: string }
@@ -86,8 +87,28 @@ export function drawSkinTriangles(
   }
 }
 
+/** Vẽ khung lưới mesh (gom 1 path, stroke 1 lần) phục vụ chế độ xem lưới. */
+function strokeMeshWireframe(ctx: CanvasRenderingContext2D, geometry: BufferGeometry, positions: Float32Array, color: string): void {
+  const indices = geometry.getIndex()
+  if (!indices) return
+  ctx.save()
+  ctx.beginPath()
+  for (let i = 0; i < indices.count; i += 3) {
+    const a = indices.getX(i), b = indices.getX(i + 1), c = indices.getX(i + 2)
+    ctx.moveTo(positions[a * 3], -positions[a * 3 + 1])
+    ctx.lineTo(positions[b * 3], -positions[b * 3 + 1])
+    ctx.lineTo(positions[c * 3], -positions[c * 3 + 1])
+    ctx.closePath()
+  }
+  ctx.strokeStyle = color
+  ctx.lineWidth = 0.8
+  ctx.stroke()
+  ctx.restore()
+}
+
 export function SoftLayerImage({ url, layer, time, showMesh, filter }: Props) {
   const ref = useRef<HTMLCanvasElement>(null)
+  const allocRef = useRef<(MeshCanvasBounds & { ratio: number }) | null>(null)
   const [data, setData] = useState<ImageMesh | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
 
@@ -100,6 +121,7 @@ export function SoftLayerImage({ url, layer, time, showMesh, filter }: Props) {
         if (!active) return
         const width = image.naturalWidth, height = image.naturalHeight
         geometry = createLayerAlphaTrimmedGeometry(width, height, image)
+        allocRef.current = null
         setData({ image, geometry, width, height })
       })
       .catch((err) => {
@@ -123,14 +145,25 @@ export function SoftLayerImage({ url, layer, time, showMesh, filter }: Props) {
       minX = Math.min(minX, positions[i]); maxX = Math.max(maxX, positions[i])
       minY = Math.min(minY, -positions[i + 1]); maxY = Math.max(maxY, -positions[i + 1])
     }
-    const width = Math.ceil(maxX - minX + 2), height = Math.ceil(maxY - minY + 2)
-    const ratio = Math.min(2, window.devicePixelRatio || 1)
-    canvas.width = width * ratio; canvas.height = height * ratio
-    Object.assign(canvas.style, { width: `${width}px`, height: `${height}px`, left: `${minX + data.width / 2 - 1}px`, top: `${minY + data.height / 2 - 1}px` })
-    ctx.scale(ratio, ratio); ctx.translate(1 - minX, 1 - minY)
-    const stroke = showMesh ? '#00e5ff' : undefined
-    drawSkinTriangles(ctx, data.image, data.geometry, positions, stroke)
-  }, [data, layer, time, showMesh])
+    const ratio = 1
+    let alloc = allocRef.current
+    const fits = alloc && alloc.ratio === ratio && minX >= alloc.minX && minY >= alloc.minY &&
+      maxX <= alloc.minX + alloc.width && maxY <= alloc.minY + alloc.height
+    if (!alloc || !fits) {
+      // Cấp phát dư một khoảng đệm để các khung hình sau không phải đổi kích thước canvas (tránh giật)
+      const pad = Math.max(12, Math.round(Math.max(data.width, data.height) * 0.18))
+      alloc = { minX: Math.floor(minX - pad), minY: Math.floor(minY - pad), width: Math.ceil(maxX - minX + pad * 2), height: Math.ceil(maxY - minY + pad * 2), ratio }
+      allocRef.current = alloc
+      canvas.width = Math.ceil(alloc.width * ratio); canvas.height = Math.ceil(alloc.height * ratio)
+      Object.assign(canvas.style, { width: `${alloc.width}px`, height: `${alloc.height}px`, left: `${alloc.minX + data.width / 2}px`, top: `${alloc.minY + data.height / 2}px` })
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    const drawnByGL = renderMeshToCanvas(ctx, data.image, data.geometry, positions, alloc, ratio)
+    ctx.setTransform(ratio, 0, 0, ratio, -alloc.minX * ratio, -alloc.minY * ratio)
+    if (!drawnByGL) drawSkinTriangles(ctx, data.image, data.geometry, positions)
+    if (showMesh) strokeMeshWireframe(ctx, data.geometry, positions, '#00e5ff')
+  }, [data, layer.x, layer.y, layer.rotation, layer.scale, layer.scaleX, layer.scaleY, layer.bindingMode, layer.boneId, layer.previewRig, layer.previewPlantSpines, time, showMesh])
 
   if (loadFailed || !data) {
     return (

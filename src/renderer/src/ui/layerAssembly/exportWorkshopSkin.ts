@@ -9,16 +9,24 @@ export async function exportWorkshopSkin(layer: ImageLayer, item: AssembledLayer
   const skinned = item.bindingMode === 'soft' && Boolean(item.boneId) && Boolean(composite.rig)
   const spines = spinesForLayer(composite.plantSpines, item.id)
   if (!skinned && !spines.length) return
-  if (!url) throw new Error(`Không đọc được ảnh để tạo mesh: ${item.name}`)
-  const image = new Image()
-  image.crossOrigin = 'anonymous'
-  await new Promise<void>((resolve, reject) => {
-    image.onload = () => resolve()
-    image.onerror = () => reject(new Error(`Không tải được ảnh mesh: ${item.name}`))
-    image.src = url
-  })
-  const width = image.naturalWidth, height = image.naturalHeight
-  const geometry = createLayerAlphaTrimmedGeometry(width, height, image)
+  let loadedImage: HTMLImageElement | null = null
+  if (url) {
+    try {
+      const image = new Image()
+      image.crossOrigin = 'anonymous'
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve()
+        image.onerror = () => reject(new Error(`Không tải được ảnh mesh: ${item.name}`))
+        image.src = url
+      })
+      loadedImage = image
+    } catch {
+      loadedImage = null
+    }
+  }
+  const width = loadedImage?.naturalWidth || layer.props.width || composite.width || 400
+  const height = loadedImage?.naturalHeight || layer.props.height || composite.height || 400
+  const geometry = createLayerAlphaTrimmedGeometry(width, height, loadedImage)
   const { boneId, x, y, rotation, scale, scaleX, scaleY } = item
   layer.mesh = {
     version: 1, id: `${layer.id}-skin`, name: item.name,
