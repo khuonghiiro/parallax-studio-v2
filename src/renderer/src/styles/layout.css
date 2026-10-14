@@ -61,13 +61,14 @@ textarea:focus {
 /* Master Grid Layout */
 .app {
   display: grid;
-  grid-template-rows: 46px minmax(0, 1fr) 5px var(--timeline-h);
-  grid-template-columns: 340px minmax(0, 1fr) 350px;
+  grid-template-rows: auto minmax(0, 1fr) 5px clamp(110px, var(--timeline-h, 280px), 46vh);
+  grid-template-columns: clamp(220px, 22vw, 340px) minmax(0, 1fr) clamp(230px, 23vw, 350px);
   grid-template-areas:
     'top top top'
     'left view right'
     'split split split'
     'time time time';
+  width: 100vw;
   height: 100vh;
   background: var(--bg-0);
   gap: 0;
@@ -76,19 +77,27 @@ textarea:focus {
 
 .toolbar {
   grid-area: top;
+  min-width: 0;
 }
 .left {
   grid-area: left;
-  min-width: 320px;
+  min-width: 0;
+  min-height: 0;
 }
 .viewer-wrap {
   grid-area: view;
+  min-width: 0;
+  min-height: 0;
 }
 .right {
   grid-area: right;
+  min-width: 0;
+  min-height: 0;
 }
 .timeline {
   grid-area: time;
+  min-width: 0;
+  min-height: 0;
 }
 
 /* Horizontal Panel Splitter */

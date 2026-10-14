@@ -77,7 +77,7 @@ export function CameraPathDialog() {
 
   const applyPresetStyle = (preset: 'cinematic' | 'fly' | 'cut'): void => {
     setSteps((arr) =>
-      arr.map((s, i) => {
+      arr.map((s, i): PathStep => {
         const isLast = i === arr.length - 1
         if (preset === 'cinematic') {
           return {
@@ -85,7 +85,7 @@ export function CameraPathDialog() {
             hold: 2.5,
             type: 'arc',
             transition: isLast ? 0 : 1.8,
-            angle: i % 2 === 0 ? 'front' : 'left',
+            angle: i % 2 === 0 ? 'front' : 'left30',
             motion: 'push'
           }
         }
@@ -96,7 +96,7 @@ export function CameraPathDialog() {
             type: 'fly',
             transition: isLast ? 0 : 1.4,
             angle: 'front',
-            motion: 'drift'
+            motion: 'orbit-left'
           }
         }
         return {
@@ -105,7 +105,7 @@ export function CameraPathDialog() {
           type: 'cut',
           transition: 0,
           angle: 'front',
-          motion: 'zoomOut'
+          motion: 'pull'
         }
       })
     )

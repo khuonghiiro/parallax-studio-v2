@@ -66,8 +66,10 @@ export default function App() {
     const startH = timelineH
     const el = e.currentTarget as HTMLElement
     el.setPointerCapture(e.pointerId)
-    const move = (ev: PointerEvent): void =>
-      setTimelineH(Math.max(160, Math.min(window.innerHeight - 320, startH - (ev.clientY - startY))))
+    const move = (ev: PointerEvent): void => {
+      const maxH = Math.max(140, Math.floor(window.innerHeight * 0.58))
+      setTimelineH(Math.max(110, Math.min(maxH, startH - (ev.clientY - startY))))
+    }
     const up = (): void => {
       el.removeEventListener('pointermove', move)
       el.removeEventListener('pointerup', up)

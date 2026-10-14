@@ -32,7 +32,7 @@ export function TimelineRow({
       <div
         className="tl-row-name-col"
         style={{
-          width: NAME_W,
+          width: `var(--tl-name-w, ${NAME_W}px)`,
           flex: 'none',
           height: '100%',
           display: 'flex',

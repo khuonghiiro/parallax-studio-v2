@@ -226,15 +226,17 @@ export function Viewer() {
       let cam: Layout['cam'] = null
       let ed: Layout['ed'] = null
       // Reserve space for top HUD chips & controls overlay so camera preview is visually centered
-      const topHudH = 38
+      const topHudH = H < 260 ? 28 : 38
+      const splitPad = W < 540 || H < 260 ? 6 : 16
+      const singlePad = W < 540 || H < 260 ? 8 : 20
       if (view.split) {
         const half = Math.floor(W / 2)
-        cam = fitRect({ x: 0, y: topHudH, w: half - 1, h: Math.max(10, H - topHudH) }, aspect, 16)
-        ed = { x: half + 1, y: 0, w: W - half - 1, h: H }
+        cam = fitRect({ x: 0, y: topHudH, w: Math.max(10, half - 1), h: Math.max(10, H - topHudH) }, aspect, splitPad)
+        ed = { x: half + 1, y: 0, w: Math.max(10, W - half - 1), h: H }
       } else if (view.primary === 'camera') {
-        cam = fitRect({ x: 0, y: topHudH, w: W, h: Math.max(10, H - topHudH) }, aspect, 20)
+        cam = fitRect({ x: 0, y: topHudH, w: Math.max(10, W), h: Math.max(10, H - topHudH) }, aspect, singlePad)
       } else {
-        ed = { x: 0, y: 0, w: W, h: H }
+        ed = { x: 0, y: 0, w: Math.max(10, W), h: H }
       }
       const L = { dpr, cam, ed }
       layoutRef.current = L

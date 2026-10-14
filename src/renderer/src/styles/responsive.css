@@ -1,0 +1,328 @@
+/* ==========================================================================
+   Responsive Workspace & Adaptive Breakpoints (Desktop / Laptop / Tablet / Compact)
+   Reflows panels, toolbars, viewer overlays, inspector, and timeline by window size
+   without modifying UI zoom factor. Adheres strictly to Dual-Theme CSS variables
+   and keeps overflow: visible on toolbars containing popup menus.
+   ========================================================================== */
+
+/* --- Base Fluid Safeguards --- */
+.panel,
+.panel-body,
+.inspector-body,
+.viewer,
+.tl-body,
+.tl-header-row,
+.tl-ruler-viewport {
+  min-width: 0;
+  min-height: 0;
+}
+
+.row > *,
+.xy > *,
+.xyz > *,
+.num-pair > * {
+  min-width: 0;
+}
+
+.doc-title {
+  max-width: clamp(90px, 16vw, 260px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Ensure modals always fit inside any window size */
+.modal {
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 24px);
+}
+
+/* ==========================================================================
+   1. Laptop & Medium Desktop Screens (<= 1366px)
+   ========================================================================== */
+@media (max-width: 1366px) {
+  .app {
+    grid-template-columns: clamp(205px, 21vw, 285px) minmax(0, 1fr) clamp(215px, 22vw, 295px);
+  }
+
+  .toolbar {
+    padding: 0 8px;
+    gap: 4px;
+  }
+
+  .toolbar .btn {
+    padding: 4px 7px;
+  }
+
+  /* Hide verbose hint chip in Viewer HUD so it never collides with Viewer Tools */
+  .viewer-hud .chip:nth-child(n + 3) {
+    display: none;
+  }
+
+  /* Compact Inspector label column */
+  .row {
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  /* Compact Asset Grid so 2 columns fit cleanly */
+  .builtin-asset-grid {
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 6px;
+    padding: 6px;
+  }
+
+  /* Timeline toolbar tighter spacing */
+  .timeline-toolbar {
+    padding: 0 8px;
+    gap: 5px;
+  }
+
+  .tl-action-btn,
+  .tl-fx-trigger {
+    padding: 0 7px;
+    gap: 4px;
+  }
+}
+
+/* ==========================================================================
+   2. Compact Laptop / Tablet Landscape (<= 1120px)
+   ========================================================================== */
+@media (max-width: 1120px) {
+  .app {
+    grid-template-columns: clamp(180px, 21.5vw, 235px) minmax(0, 1fr) clamp(190px, 22.5vw, 245px);
+  }
+
+  /* Hide secondary MCP status text in top toolbar, keep port + status dot */
+  .toolbar .mcp-chip-state {
+    display: none;
+  }
+
+  .doc-title {
+    max-width: 120px;
+  }
+
+  /* Convert Timeline Toolbar creative buttons to icon-only with tooltip to save ~280px */
+  .timeline-toolbar .tl-action-btn > span {
+    display: none;
+  }
+
+  .timeline-toolbar .tl-action-btn {
+    padding: 0 7px;
+  }
+
+  .tl-zoom-slider {
+    width: 56px;
+  }
+
+  .tl-fps-badge {
+    display: none;
+  }
+
+  /* Inspector tighter rows */
+  .inspector-body {
+    padding: 8px 8px;
+  }
+
+  .row {
+    grid-template-columns: 66px minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .panel-tabs button {
+    padding: 6px 4px;
+    font-size: 10.5px;
+  }
+
+  /* Viewer HUD & Tools compact mode */
+  .viewer-hud {
+    top: 6px;
+    left: 6px;
+    gap: 4px;
+  }
+
+  .viewer-tools {
+    top: 6px;
+    right: 6px;
+    gap: 4px;
+  }
+
+  .viewer-hud .chip {
+    padding: 3px 7px;
+    font-size: 10px;
+  }
+
+  .viewer-tools .seg button,
+  .viewer-tools .btn {
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+}
+
+/* ==========================================================================
+   3. Tablet Portrait / Split-Screen Window (<= 860px)
+   Reflows into 2-column stacked workspace:
+   - Row 1: Top Toolbar (100% width)
+   - Row 2: 3D/Camera Viewer (100% width)
+   - Row 3: Left Panel (50%) + Inspector (50%) side by side
+   - Row 4: Splitter
+   - Row 5: Timeline (100% width)
+   ========================================================================== */
+@media (max-width: 860px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows:
+      auto
+      minmax(150px, 1.15fr)
+      minmax(130px, 0.95fr)
+      5px
+      clamp(110px, var(--timeline-h, 195px), 35vh);
+    grid-template-areas:
+      'top top'
+      'view view'
+      'left right'
+      'split split'
+      'time time';
+  }
+
+  .viewer-wrap {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .left {
+    border-right: 1px solid var(--line);
+  }
+
+  .right {
+    border-left: none;
+  }
+
+  .doc-title {
+    display: none;
+  }
+
+  .brand {
+    padding-right: 4px;
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  /* Keep toolbar overflow: visible so dropdown menus are never clipped */
+  .toolbar {
+    height: auto;
+    min-height: 42px;
+    padding: 4px 8px;
+    flex-wrap: wrap;
+    row-gap: 4px;
+    overflow: visible;
+  }
+
+  .timeline-toolbar {
+    height: auto;
+    min-height: 34px;
+    padding: 4px 8px;
+    flex-wrap: wrap;
+    row-gap: 4px;
+    overflow: visible;
+  }
+
+  .tl-names-head-meta {
+    display: none !important;
+  }
+}
+
+/* ==========================================================================
+   4. Narrow / Mobile-Width Window (<= 600px)
+   ========================================================================== */
+@media (max-width: 600px) {
+  .toolbar .sep,
+  .timeline-toolbar .tl-sep {
+    display: none;
+  }
+
+  .viewer-hud .chip:nth-child(n + 2) {
+    display: none;
+  }
+
+  .tl-time-badge {
+    min-width: 86px;
+    height: 22px;
+    padding: 0 6px;
+    font-size: 10px;
+  }
+
+  .tl-zoom-box {
+    padding: 0 5px;
+    gap: 4px;
+  }
+
+  .tl-zoom-slider {
+    width: 44px;
+  }
+
+  .builtin-asset-sidebar {
+    width: 30px;
+  }
+
+  .builtin-asset-cat-btn {
+    width: 24px;
+    height: 24px;
+  }
+
+  .builtin-asset-grid {
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 5px;
+    padding: 5px;
+  }
+}
+
+/* ==========================================================================
+   5. Short Window Heights (<= 700px and <= 540px)
+   Prevents timeline from crushing the central workspace when height shrinks
+   ========================================================================== */
+@media (max-height: 700px) {
+  .app {
+    grid-template-rows: auto minmax(0, 1fr) 5px clamp(105px, var(--timeline-h, 190px), 38vh);
+  }
+
+  @media (max-width: 860px) {
+    .app {
+      grid-template-rows:
+        auto
+        minmax(120px, 1.15fr)
+        minmax(105px, 0.9fr)
+        5px
+        clamp(100px, var(--timeline-h, 165px), 33vh);
+    }
+  }
+
+  .panel-head {
+    padding: 5px 10px;
+    min-height: 28px;
+  }
+
+  .inspector-body {
+    padding: 6px 8px;
+  }
+
+  .group-body {
+    padding: 6px 8px;
+  }
+}
+
+@media (max-height: 540px) {
+  .app {
+    grid-template-rows: auto minmax(0, 1fr) 4px clamp(92px, var(--timeline-h, 145px), 34vh);
+  }
+
+  @media (max-width: 860px) {
+    .app {
+      grid-template-rows:
+        auto
+        minmax(95px, 1.2fr)
+        minmax(85px, 0.85fr)
+        4px
+        clamp(88px, var(--timeline-h, 130px), 30vh);
+    }
+  }
+}

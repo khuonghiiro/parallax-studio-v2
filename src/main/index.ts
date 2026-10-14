@@ -72,8 +72,8 @@ function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1600,
     height: 960,
-    minWidth: 1100,
-    minHeight: 700,
+    minWidth: 480,
+    minHeight: 360,
     backgroundColor: '#0b0d12',
     title: 'Parallax Studio',
     autoHideMenuBar: true,

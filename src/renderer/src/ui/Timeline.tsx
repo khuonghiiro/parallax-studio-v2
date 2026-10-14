@@ -64,6 +64,7 @@ export function Timeline() {
   const lastLPressRef = useRef<number>(0)
   const isSyncingScrollRef = useRef(false)
   const [trackW, setTrackW] = useState(800)
+  const [nameW, setNameW] = useState(NAME_W)
   const [scrollbarW, setScrollbarW] = useState(0)
 
   // Measure visible track area from rows container to account for vertical scrollbar
@@ -72,10 +73,10 @@ export function Timeline() {
     if (!el) return
     const update = () => {
       const sw = el.offsetWidth - el.clientWidth
+      const nw = el.clientWidth < 560 ? 156 : el.clientWidth < 860 ? 204 : NAME_W
       setScrollbarW(sw)
-      // Track width available in rows scroll area
-      const available = Math.max(100, el.clientWidth - NAME_W)
-      setTrackW(available)
+      setNameW(nw)
+      setTrackW(Math.max(100, el.clientWidth - nw))
     }
     update()
     const ro = new ResizeObserver(update)
@@ -637,7 +638,7 @@ export function Timeline() {
     })
 
   return (
-    <section className="panel timeline">
+    <section className="panel timeline" style={{ ['--tl-name-w' as string]: `${nameW}px` }}>
       <TimelineToolbar
         fps={comp.fps}
         duration={comp.duration}
@@ -656,10 +657,10 @@ export function Timeline() {
         <div className="tl-header-row">
           <div
             className="tl-names-head"
-            style={{ width: NAME_W }}
+            style={{ width: nameW }}
           >
             <span>Layer</span>
-            <span style={{ display: 'inline-flex', gap: 7, color: 'var(--text-faint)', fontSize: 9.5, fontWeight: 700 }}>
+            <span className="tl-names-head-meta" style={{ display: 'inline-flex', gap: 7, color: 'var(--text-faint)', fontSize: 9.5, fontWeight: 700 }}>
               <span title="Độ sâu 3D (Z depth)">Z-Depth</span>
               <span title="Ẩn / Hiện (Visibility)">👁</span>
               <span title="Khóa layer (Lock)">🔒</span>
@@ -711,7 +712,7 @@ export function Timeline() {
           onDrop={handleTimelineDrop}
           style={{ flex: 1, overflowX: 'auto', overflowY: 'auto', position: 'relative' }}
         >
-          <div style={{ width: NAME_W + contentW, minWidth: '100%', position: 'relative' }}>
+          <div style={{ width: nameW + contentW, minWidth: '100%', position: 'relative' }}>
             {/* camera */}
             <TimelineRow
               selected={false}
@@ -963,7 +964,7 @@ export function Timeline() {
             )}
 
             {/* Playhead vertical line passing through all tracks */}
-            <div style={{ position: 'absolute', top: 0, bottom: 0, left: NAME_W, width: contentW, pointerEvents: 'none' }}>
+            <div style={{ position: 'absolute', top: 0, bottom: 0, left: nameW, width: contentW, pointerEvents: 'none' }}>
               <TimelinePlayhead x={x} />
             </div>
           </div>
