@@ -143,9 +143,12 @@ describe('Layer Assembly Workshop Storage System', () => {
     const foreR = character?.layers.find((l) => l.name === 'forearm-right')
     expect(foreL?.z).toBe(foreR?.z)
 
-    const hairBack = character?.layers.find((l) => l.name === 'hair-back')
-    expect(hairBack?.z).toBeGreaterThan(0) // Tóc sau lưng nằm ở hậu cảnh
-    expect(hairBack!.z - foreL!.z).toBeGreaterThan(20)
+    const head = character?.layers.find((l) => l.name === 'head')
+    const glasses = character?.layers.find((l) => l.name === 'glasses')
+    const shinL = character?.layers.find((l) => l.name === 'shin-left')
+    expect(shinL?.z).toBeGreaterThan(0) // Ống quần nằm ở lớp sau đùi
+    expect(head!.z).toBeLessThan(0) // Đầu nằm phía trước cổ áo
+    expect(glasses!.z).toBeLessThan(head!.z) // Kính nằm phía trước đầu và mặt
   })
 
   it('permanently remembers deleted built-in composites across app reloads and seed migrations', () => {

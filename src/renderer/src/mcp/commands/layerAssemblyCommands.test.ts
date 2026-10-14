@@ -55,12 +55,12 @@ describe('MCP layerAssemblyCommands', () => {
 
     const pot = res.layers.find((l: any) => l.id === 'bonsai-pot')
     expect(pot).toBeDefined()
-    expect(pot.y).toBe(155)
+    expect(pot.y).toBe(140)
     expect(pot.z).toBe(-5)
 
     const trunk = res.layers.find((l: any) => l.id === 'bonsai-trunk')
     expect(trunk).toBeDefined()
-    expect(trunk.y).toBe(10)
+    expect(trunk.y).toBe(20)
     expect(trunk.z).toBe(0)
     expect(trunk.motion.amplitude).toBeCloseTo(2.2)
   })

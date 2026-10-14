@@ -14,35 +14,35 @@ type ModalTab = 'prompt' | 'slots' | 'guide'
 
 const BRIEF_PRESETS: Array<{ label: string; brief: CharacterPromptCustomBrief }> = [
   {
+    label: '👓 Nam Sinh Kính Cận (Mẫu Minh Hoạ)',
+    brief: {
+      appearance: 'Anime young male student, combined faceless head with messy layered black hair and hairpin, plus 2 floating facial expressions (calm smile & confident smirk)',
+      costume: 'White collared dress shirt with diagonal black shoulder strap and brown leather waist belt, rolled-up white upper sleeves, dark charcoal trousers and black-and-white shoes',
+      props: 'Thin black rectangular eyeglasses frame and a wristwatch on the right forearm'
+    }
+  },
+  {
+    label: '🎓 Nam Sinh Học Viện',
+    brief: {
+      appearance: 'Handsome anime academy student, combined faceless head with dark-blue hair and silver highlights, plus 2 floating facial expressions (calm & cheerful)',
+      costume: 'Dark-navy sleeveless academy sweater vest over a white collared shirt with blue tie and brown leather belt, white upper sleeves, charcoal slacks and sneakers',
+      props: 'Sleek rectangular black eyeglasses frame'
+    }
+  },
+  {
     label: '⚔️ Kiếm Khách Cổ Trang',
     brief: {
-      appearance: 'Handsome young adult martial arts swordsman, faceless base head with 4 separate anime facial expressions (calm, happy, fierce angry, shocked) and layered black-and-navy hair',
-      costume: 'Royal-blue and white Wuxia martial tunic with gold trim, leather belt with flared lower tunic skirt, dark wrist bracers, charcoal trousers and leather martial boots',
-      props: 'Flowing crimson-and-gold back cape and a silver-and-gold broadsword'
+      appearance: 'Handsome young adult martial arts swordsman, faceless head with layered black-and-navy hair and 2 expressive anime faces',
+      costume: 'Royal-blue and white Wuxia martial tunic with gold trim, leather waist belt, charcoal trousers and martial boots',
+      props: 'Stylish headband / glasses frame accessory'
     }
   },
   {
-    label: '🧥 Nam Chính Hiện Đại',
+    label: '🌸 Nữ Sinh Anime Dịu Dàng',
     brief: {
-      appearance: 'Handsome modern webtoon young man, faceless base head with 4 separate facial expressions and stylish parted dark-brown hair',
-      costume: 'Smart-casual navy bomber jacket over a white crewneck shirt, tailored dark-grey slacks and clean white-and-black sneakers',
-      props: 'Light trench cloak and a sleek messenger bag / smartphone prop'
-    }
-  },
-  {
-    label: '🌸 Nữ Hiệp Tiên Hiệp',
-    brief: {
-      appearance: 'Graceful Xianxia heroine, faceless base head with 4 separate expressive anime faces (gentle smile, joyful, fierce, surprised) and long flowing silk-black hair with jade hairpin',
-      costume: 'Pastel cyan-and-white layered immortal hanfu tunic with silver embroidery, silk waist sash, flowing skirt hem and white embroidered boots',
-      props: 'Translucent sky-blue silk back ribbon cloak and a glowing jade spirit sword'
-    }
-  },
-  {
-    label: '🛡️ Chiến Binh Giáp Bạc',
-    brief: {
-      appearance: 'Heroic fantasy paladin knight, faceless base head with 4 separate facial expressions and spiky silver-blonde hair',
-      costume: 'Polished silver-and-blue steel chest cuirass, armored waist tassets belt, steel vambraces, greaves and sabaton knight boots',
-      props: 'Royal crimson cloak with gold clasps and a radiant rune broadsword'
+      appearance: 'Cute anime high school girl, combined faceless head with long twin-tail chestnut hair and ribbon clips, plus 2 floating kawaii facial expressions',
+      costume: 'Cream sailor uniform blouse with red ribbon tie, pleated navy skirt/trousers and brown loafers with white socks',
+      props: 'Round thin gold wire eyeglasses frame'
     }
   }
 ]

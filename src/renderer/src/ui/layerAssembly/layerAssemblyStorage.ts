@@ -13,7 +13,7 @@ export const COMPOSITE_CATEGORIES: LayerCompositeCategory[] = [
 ]
 
 const STORAGE_KEY = 'pxs.layerComposites'
-const SEED_VERSION = 'v17_chibi_and_modular_nature_assets'
+const SEED_VERSION = 'v18_modular_13part_cutout_characters'
 const SEED_KEY = 'pxs.layerComposites.seeded_version'
 const DELETED_KEY = 'pxs.layerComposites.deleted'
 

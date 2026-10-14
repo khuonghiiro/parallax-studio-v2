@@ -137,4 +137,41 @@ describe('chromaKey algorithms', () => {
     expect(targetBuffer[idx + 1]).toBe(0)
     expect(targetBuffer[idx + 3]).toBe(255)
   })
+
+  it('clusters nearby small facial strokes (eyes, nose, mouth) into a single facial expression island', async () => {
+    const { detectOpaqueIslands } = await import('./chromaKey')
+    const w = 300
+    const h = 300
+    const buf = new Uint8ClampedArray(w * h * 4)
+
+    function fillRect(x0: number, y0: number, rw: number, rh: number) {
+      for (let y = y0; y < y0 + rh; y++) {
+        for (let x = x0; x < x0 + rw; x++) {
+          const idx = (y * w + x) * 4
+          buf[idx] = 20
+          buf[idx + 1] = 20
+          buf[idx + 2] = 20
+          buf[idx + 3] = 255
+        }
+      }
+    }
+
+    // Vẽ mắt trái, mắt phải, mũi nhỏ và miệng cười nằm gần nhau trong phạm vi 1 khuôn mặt
+    fillRect(40, 40, 16, 12) // Mắt trái
+    fillRect(68, 40, 16, 12) // Mắt phải
+    fillRect(58, 56, 6, 8)   // Mũi nhỏ
+    fillRect(50, 70, 24, 6)  // Miệng
+
+    // Vẽ 1 bộ phận lớn nằm xa (ví dụ: Thân áo)
+    fillRect(160, 120, 80, 110)
+
+    const mockCtx = {
+      getImageData: () => ({ data: buf })
+    } as unknown as CanvasRenderingContext2D
+
+    const islands = detectOpaqueIslands(mockCtx, w, h, 80)
+    expect(islands).toHaveLength(2)
+    expect(islands[0].width).toBeGreaterThanOrEqual(44)
+    expect(islands[0].height).toBeGreaterThanOrEqual(36)
+  })
 })

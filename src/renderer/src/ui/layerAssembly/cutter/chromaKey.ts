@@ -154,7 +154,7 @@ export function detectOpaqueIslands(
 
       const w = maxX - minX + 1
       const h = maxY - minY + 1
-      if (area >= minArea && w >= 12 && h >= 12) {
+      if (area >= 16 && w >= 4 && h >= 4) {
         // Mở rộng viền 2px để bảo toàn đường nét chi tiết
         const paddedMinX = Math.max(0, minX - 2)
         const paddedMinY = Math.max(0, minY - 2)
@@ -173,9 +173,51 @@ export function detectOpaqueIslands(
     }
   }
 
+  // Gom cụm các nét ngũ quan rời (lông mày, mắt, mũi, miệng) nằm gần nhau thành 1 mảnh biểu cảm khuôn mặt duy nhất
+  const maxClusterW = Math.max(80, width * 0.23)
+  const maxClusterH = Math.max(60, height * 0.16)
+  let merged = true
+  while (merged) {
+    merged = false
+    for (let i = 0; i < islands.length; i++) {
+      for (let j = i + 1; j < islands.length; j++) {
+        const a = islands[i]
+        const b = islands[j]
+        if (a.width > maxClusterW || a.height > maxClusterH) continue
+        if (b.width > maxClusterW || b.height > maxClusterH) continue
+        const gapX = Math.max(0, Math.max(a.x, b.x) - Math.min(a.x + a.width, b.x + b.width))
+        const gapY = Math.max(0, Math.max(a.y, b.y) - Math.min(a.y + a.height, b.y + b.height))
+        if (gapX <= 18 && gapY <= 16) {
+          const nx = Math.min(a.x, b.x)
+          const ny = Math.min(a.y, b.y)
+          const nw = Math.max(a.x + a.width, b.x + b.width) - nx
+          const nh = Math.max(a.y + a.height, b.y + b.height) - ny
+          if (nw <= maxClusterW && nh <= maxClusterH) {
+            islands[i] = {
+              id: a.id,
+              x: nx,
+              y: ny,
+              width: nw,
+              height: nh,
+              area: a.area + b.area
+            }
+            islands.splice(j, 1)
+            merged = true
+            break
+          }
+        }
+      }
+      if (merged) break
+    }
+  }
+
+  const sizeFiltered = islands.filter(
+    (isl) => isl.area >= minArea && isl.width >= 12 && isl.height >= 12
+  )
+
   // Loại bỏ các box bị bao bọc hoàn toàn bởi box lớn hơn
-  const filtered = islands.filter((isl, i) => {
-    return !islands.some((other, j) => {
+  const filtered = sizeFiltered.filter((isl, i) => {
+    return !sizeFiltered.some((other, j) => {
       if (i === j) return false
       return (
         other.x <= isl.x &&
@@ -198,6 +240,7 @@ export function detectOpaqueIslands(
   // Đặt nhãn rõ ràng, chuẩn xác không gán nhãn giải phẫu đoán mò
   return filtered.map((isl, idx) => ({
     ...isl,
+    id: `island-${idx + 1}`,
     label: `Mảnh #${idx + 1} (${isl.width}×${isl.height})`
   }))
 }

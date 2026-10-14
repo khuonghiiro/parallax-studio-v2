@@ -17,22 +17,20 @@ describe('Layer Assembly Templates Catalog', () => {
     expect(quarter).toBeDefined()
     expect(back).toBeDefined()
 
-    // Front and Quarter views include 23 slots (faceless head + 4 swappable face expressions + hair + body + limbs + cape + weapon)
-    expect(front.slots).toHaveLength(23)
-    expect(quarter.slots).toHaveLength(23)
+    // Front and Quarter views include 13 slots (combined faceless head+hair + glasses + 2 swappable face expressions + torso + 2 sleeves + 2 forearms + 2 thighs + 2 shins)
+    expect(front.slots).toHaveLength(13)
+    expect(quarter.slots).toHaveLength(13)
     expect(back.slots).toHaveLength(17)
 
     for (const tmpl of [front, quarter]) {
       const comp = buildCompositeFromTemplate(tmpl)
       const faceNormal = comp.layers.find((l) => l.id === 'layer-face-normal')
       const faceHappy = comp.layers.find((l) => l.id === 'layer-face-happy')
-      const faceAngry = comp.layers.find((l) => l.id === 'layer-face-angry')
-      const faceShock = comp.layers.find((l) => l.id === 'layer-face-shock')
+      const glasses = comp.layers.find((l) => l.id === 'layer-glasses')
 
       expect(Boolean(faceNormal?.hidden)).toBe(false)
       expect(faceHappy?.hidden).toBe(true)
-      expect(faceAngry?.hidden).toBe(true)
-      expect(faceShock?.hidden).toBe(true)
+      expect(Boolean(glasses?.hidden)).toBe(false)
     }
 
     // All layers use real PNG cutout assets (no fake inline data:image/svg+xml placeholders)

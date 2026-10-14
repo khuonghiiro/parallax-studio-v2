@@ -4,21 +4,23 @@ import type { AssembledLayerItem } from '../types'
 export const BUILTIN_SLOT_PRESETS: TemplateSlotPreset[] = [
   {
     id: 'humanoid_anime',
-    name: 'Nhân vật Anime / Manga (Tóc, Mặt, Thân, Khớp tay & chân)',
+    name: 'Nhân vật Anime 2.5D — 13 Mảnh (Đầu kèm Tóc, Kính, 2 Biểu cảm, Thân, 4 Tay, 4 Chân)',
     category: 'character',
-    description: 'Khung mẫu giải phẫu đầy đủ cho nhân vật anime: Tóc trước, Tóc sau, Đầu trọc, Thân áo, Tay và Chân.',
+    description: 'Khung mẫu giải phẫu 13 bộ phận chuẩn ảnh minh hoạ: Đầu kèm tóc trơn, Gọng kính, 2 Biểu cảm mặt rời, Thân áo sơ mi, 2 Bắp tay, 2 Cẳng tay, 2 Đùi và 2 Ống quần kèm giày.',
     slots: [
-      { id: 'hair_front', name: 'Tóc trước (Mái)', role: 'hair-front', x: 0, y: -160, width: 140, height: 100, z: -10 },
-      { id: 'face_details', name: 'Lông mày / Râu', role: 'face', x: 0, y: -110, width: 70, height: 35, z: -5 },
-      { id: 'head', name: 'Đầu (Khuôn mặt)', role: 'head', x: 0, y: -115, width: 110, height: 110, z: 0 },
-      { id: 'hair_back', name: 'Tóc sau / Đuôi', role: 'hair-back', x: 0, y: -150, width: 130, height: 130, z: 25 },
-      { id: 'torso', name: 'Thân áo / Ngực', role: 'torso', x: 0, y: 10, width: 105, height: 130, z: 5 },
-      { id: 'arm_left', name: 'Cánh tay trái', role: 'arm-left', x: -70, y: -15, width: 50, height: 75, z: 8 },
-      { id: 'forearm_left', name: 'Cẳng tay / Bàn tay trái', role: 'forearm-left', x: -90, y: 45, width: 50, height: 75, z: 6 },
-      { id: 'arm_right', name: 'Cánh tay phải', role: 'arm-right', x: 70, y: -15, width: 50, height: 75, z: 8 },
-      { id: 'forearm_right', name: 'Cẳng tay / Bàn tay phải', role: 'forearm-right', x: 90, y: 45, width: 50, height: 75, z: 6 },
-      { id: 'leg_left', name: 'Chân trái', role: 'leg-left', x: -30, y: 145, width: 50, height: 120, z: 12 },
-      { id: 'leg_right', name: 'Chân phải', role: 'leg-right', x: 30, y: 145, width: 50, height: 120, z: 12 }
+      { id: 'head', name: '1. Đầu & Mái tóc trơn', role: 'head', x: -3, y: -162, width: 199, height: 166, z: -20, scale: 0.52 },
+      { id: 'glasses', name: '2. Gọng mắt kính rời', role: 'glasses', x: -7, y: -121, width: 105, height: 16, z: -30, scale: 0.52 },
+      { id: 'face_normal', name: '3. Biểu cảm 1 (Bình thường)', role: 'face', x: -7, y: -125, width: 74, height: 53, z: -25, scale: 0.52 },
+      { id: 'face_happy', name: '4. Biểu cảm 2 (Cười mỉm)', role: 'face-alt', x: -7, y: -123, width: 78, height: 62, z: -26, scale: 0.52 },
+      { id: 'arm_left', name: '5. Bắp tay áo trái', role: 'arm-left', x: -50, y: -18, width: 45, height: 94, z: 10, scale: 0.52 },
+      { id: 'arm_right', name: '6. Bắp tay áo phải', role: 'arm-right', x: 52, y: -18, width: 45, height: 94, z: 10, scale: 0.52 },
+      { id: 'torso', name: '7. Thân áo, Cổ & Thắt lưng', role: 'torso', x: 0, y: -12, width: 113, height: 184, z: 0, scale: 0.52 },
+      { id: 'thigh_left', name: '8. Đùi quần trái', role: 'thigh-left', x: -23, y: 92, width: 48, height: 114, z: 20, scale: 0.52 },
+      { id: 'thigh_right', name: '9. Đùi quần phải', role: 'thigh-right', x: 25, y: 92, width: 48, height: 114, z: 20, scale: 0.52 },
+      { id: 'shin_left', name: '10. Ống quần & Giày trái', role: 'shin-left', x: -28, y: 184, width: 54, height: 123, z: 25, scale: 0.52 },
+      { id: 'shin_right', name: '11. Ống quần & Giày phải', role: 'shin-right', x: 20, y: 184, width: 54, height: 123, z: 25, scale: 0.52 },
+      { id: 'forearm_left', name: '12. Cẳng tay & Bàn tay trái', role: 'forearm-left', x: -56, y: 52, width: 27, height: 89, z: 15, scale: 0.52 },
+      { id: 'forearm_right', name: '13. Cẳng tay & Bàn tay phải', role: 'forearm-right', x: 58, y: 52, width: 27, height: 87, z: 15, scale: 0.52 }
     ]
   },
   {

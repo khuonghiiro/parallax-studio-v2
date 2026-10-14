@@ -579,6 +579,15 @@
     },
     "animal_modular/fish_fin_far.png": {
       "name": "Vây ngực chèo nước bên xa (Cá Koi)"
+    },
+    "character_cutout_demo/glasses.png": {
+      "name": "Gọng kính cận thời trang (Mẫu Minh Hoạ)"
+    },
+    "character_human_front/glasses.png": {
+      "name": "Gọng kính cận thời trang (Mẫu Minh Hoạ)"
+    },
+    "character_human_quarter/glasses.png": {
+      "name": "Gọng kính cận thời trang (Nam Sinh Học Viện)"
     }
   }
 }
