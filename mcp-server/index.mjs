@@ -45,14 +45,44 @@ function readConfig() {
   }
 }
 
+const IDLE_DISCONNECT_MS = 8000
+
 class Bridge {
   sock = null
   buf = ''
   seq = 0
   pending = new Map()
   connecting = null
+  idleTimer = null
+
+  clearIdle() {
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer)
+      this.idleTimer = null
+    }
+  }
+
+  scheduleIdleDisconnect() {
+    this.clearIdle()
+    if (this.pending.size === 0 && this.sock && !this.sock.destroyed) {
+      this.idleTimer = setTimeout(() => {
+        this.idleTimer = null
+        if (this.pending.size === 0 && this.sock && !this.sock.destroyed) {
+          try {
+            this.sock.end()
+            this.sock.destroy()
+          } catch {
+            /* ignore */
+          }
+          this.sock = null
+        }
+      }, IDLE_DISCONNECT_MS)
+      this.idleTimer.unref?.()
+    }
+  }
 
   connect() {
+    this.clearIdle()
     if (this.sock && !this.sock.destroyed) return Promise.resolve()
     if (this.connecting) return this.connecting
     const cfg = readConfig()
@@ -71,6 +101,7 @@ class Bridge {
       })
       s.on('data', (chunk) => this.onData(chunk))
       s.on('close', () => {
+        this.clearIdle()
         if (this.sock === s) this.sock = null
         for (const [, p] of this.pending) p.reject(new Error('Connection to Parallax Studio closed'))
         this.pending.clear()
@@ -96,6 +127,7 @@ class Bridge {
       const p = this.pending.get(msg.id)
       if (!p) continue
       this.pending.delete(msg.id)
+      this.scheduleIdleDisconnect()
       if (msg.ok) p.resolve(msg.result)
       else p.reject(new Error(msg.error ?? 'Command failed'))
     }
@@ -103,6 +135,7 @@ class Bridge {
 
   async call(method, params = {}) {
     await this.connect()
+    this.clearIdle()
     const id = ++this.seq
     return new Promise((res, rej) => {
       this.pending.set(id, { resolve: res, reject: rej })

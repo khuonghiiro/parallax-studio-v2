@@ -89,6 +89,8 @@ export class McpBridge {
   private queue: McpCommand[] = []
   private rendererReady = false
   private seq = 0
+  private inFlight = 0
+  private idleTimer: NodeJS.Timeout | null = null
   private token = ''
   private status: McpStatus
 
@@ -106,6 +108,7 @@ export class McpBridge {
       port: Number(process.env.PARALLAX_MCP_PORT) || DEFAULT_PORT,
       clients: 0,
       commands: 0,
+      busy: false,
       lastMethod: null,
       lastAt: null,
       configPath: join(app.getPath('userData'), 'mcp.json'),
@@ -264,8 +267,24 @@ export class McpBridge {
     })
   }
 
+  private scheduleIdleCleanup(): void {
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer)
+      this.idleTimer = null
+    }
+    if (this.inFlight === 0 && this.sockets.size > 0) {
+      this.idleTimer = setTimeout(() => {
+        this.idleTimer = null
+        if (this.inFlight === 0 && this.sockets.size > 0) {
+          this.disconnectAll()
+        }
+      }, 10000)
+    }
+  }
+
   private broadcast(): void {
     this.status.clients = this.sockets.size
+    this.status.busy = this.inFlight > 0
     const win = this.getWindow()
     if (!win || win.isDestroyed()) return
     try {
@@ -287,6 +306,7 @@ export class McpBridge {
       return
     }
     this.sockets.add(sock)
+    this.scheduleIdleCleanup()
     this.broadcast()
     let buf = ''
     sock.setEncoding('utf8')
@@ -306,6 +326,7 @@ export class McpBridge {
     })
     const drop = (): void => {
       this.sockets.delete(sock)
+      this.scheduleIdleCleanup()
       this.broadcast()
     }
     sock.on('close', drop)
@@ -338,11 +359,20 @@ export class McpBridge {
     }
     const method = typeof req.method === 'string' ? req.method : ''
     const params = (req.params && typeof req.params === 'object' ? req.params : {}) as Record<string, unknown>
+    this.inFlight++
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer)
+      this.idleTimer = null
+    }
     try {
       const result = await this.dispatch(method, params)
       this.send(sock, { id, ok: true, result })
     } catch (err) {
       this.send(sock, { id, ok: false, error: err instanceof Error ? err.message : String(err) })
+    } finally {
+      this.inFlight = Math.max(0, this.inFlight - 1)
+      this.scheduleIdleCleanup()
+      this.broadcast()
     }
   }
 

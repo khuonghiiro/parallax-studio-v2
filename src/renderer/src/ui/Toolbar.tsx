@@ -45,49 +45,153 @@ import { requestOpenLayerAssembly } from './layerAssembly/layerAssemblyBridge'
 
 import { Menu } from './controls'
 
-/** Shows whether the local MCP bridge is listening and flashes on every AI command. */
+/** Shows real-time MCP connection lifecycle: listening, AI executing, AI connected (idle/done), and AI disconnected. */
 function McpChip() {
   const [status, setStatus] = useState<McpStatus | null>(null)
-  const [flash, setFlash] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [activeMethod, setActiveMethod] = useState<string | null>(null)
+  const [justDisconnected, setJustDisconnected] = useState(false)
+
   useEffect(() => {
     if (!window.api?.mcp) return
-    let timer: number | undefined
+    let busyTimer: number | undefined
+    let discTimer: number | undefined
+    let idleDisconnectTimer: number | undefined
+    let prevClients = -1
     let lastCount = -1
+
+    const resetIdleDisconnect = (clients: number, isBusy: boolean): void => {
+      window.clearTimeout(idleDisconnectTimer)
+      if (clients > 0 && !isBusy) {
+        idleDisconnectTimer = window.setTimeout(() => {
+          window.api?.mcp?.disconnectAll?.().catch(() => undefined)
+        }, 8000)
+      }
+    }
+
     const apply = (s: McpStatus): void => {
       setStatus({ ...s })
-      if (lastCount >= 0 && s.commands !== lastCount) {
-        setFlash(true)
-        window.clearTimeout(timer)
-        timer = window.setTimeout(() => setFlash(false), 700)
+      const commandChanged = lastCount >= 0 && s.commands !== lastCount
+      if (commandChanged || s.busy) {
+        setBusy(true)
+        if (s.lastMethod) setActiveMethod(s.lastMethod)
+        window.clearTimeout(busyTimer)
+        if (!s.busy) {
+          busyTimer = window.setTimeout(() => setBusy(false), 750)
+        }
+      } else if (s.busy === false) {
+        window.clearTimeout(busyTimer)
+        busyTimer = window.setTimeout(() => setBusy(false), 450)
       }
+
+      if (prevClients > 0 && s.clients === 0) {
+        setBusy(false)
+        setJustDisconnected(true)
+        window.clearTimeout(discTimer)
+        discTimer = window.setTimeout(() => setJustDisconnected(false), 4500)
+      } else if (s.clients > 0) {
+        setJustDisconnected(false)
+      }
+
+      prevClients = s.clients
       lastCount = s.commands
+      resetIdleDisconnect(s.clients, Boolean(s.busy || commandChanged))
     }
+
+    const onActivity = (e: Event): void => {
+      const detail = (e as CustomEvent<{ busy: boolean; method: string }>).detail
+      if (!detail) return
+      if (detail.busy) {
+        setBusy(true)
+        setActiveMethod(detail.method)
+        window.clearTimeout(busyTimer)
+        window.clearTimeout(idleDisconnectTimer)
+      } else {
+        window.clearTimeout(busyTimer)
+        busyTimer = window.setTimeout(() => setBusy(false), 500)
+      }
+    }
+
     window.api.mcp.status().then(apply).catch(() => undefined)
     const off = window.api.mcp.onStatus(apply)
+    window.addEventListener('pxs:mcp-activity', onActivity)
     return () => {
       off()
-      window.clearTimeout(timer)
+      window.removeEventListener('pxs:mcp-activity', onActivity)
+      window.clearTimeout(busyTimer)
+      window.clearTimeout(discTimer)
+      window.clearTimeout(idleDisconnectTimer)
     }
   }, [])
+
   if (!status) return null
-  const state = status.error ? 'error' : status.clients > 0 ? 'connected' : status.listening ? 'listening' : 'off'
-  const label = state === 'connected' ? `AI đã kết nối` : state === 'listening' ? 'MCP sẵn sàng' : state === 'error' ? 'MCP lỗi' : 'MCP tắt'
+
+  const isBusy = status.clients > 0 && (busy || Boolean(status.busy))
+  const state = status.error
+    ? 'error'
+    : isBusy
+      ? 'connected busy flash'
+      : status.clients > 0
+        ? 'connected idle'
+        : justDisconnected && status.listening
+          ? 'disconnected'
+          : status.listening
+            ? 'listening'
+            : 'off'
+
+  const label = status.error
+    ? 'MCP lỗi'
+    : isBusy
+      ? 'AI đang thao tác'
+      : status.clients > 0
+        ? 'AI đã kết nối (Đã xong)'
+        : justDisconnected && status.listening
+          ? 'AI đã ngắt kết nối'
+          : status.listening
+            ? 'MCP sẵn sàng'
+            : 'MCP tắt'
+
+  const shownMethod = activeMethod || status.lastMethod
   const title = [
-    status.error ?? `Cổng 127.0.0.1:${status.port} · ${status.clients} client`,
-    `Lệnh đã nhận: ${status.commands}${status.lastMethod ? ` · gần nhất: ${status.lastMethod}` : ''}`,
+    status.error ?? `Cổng 127.0.0.1:${status.port} · ${status.clients} client kết nối`,
+    isBusy
+      ? `Trạng thái: Đang thực thi lệnh "${shownMethod ?? '...'}"`
+      : status.clients > 0
+        ? `Trạng thái: Đã thực thi xong lệnh, đang giữ kết nối chờ (tự ngắt sau 8s nhàn rỗi)`
+        : justDisconnected
+          ? `Trạng thái: AI vừa hoàn tất phiên và ngắt kết nối`
+          : status.listening
+            ? `Trạng thái: Đang chờ AI kết nối`
+            : `Trạng thái: Đã tắt MCP Server`,
+    `Tổng lệnh đã nhận: ${status.commands}${status.lastMethod ? ` · gần nhất: ${status.lastMethod}` : ''}`,
     `Token: ${status.configPath}`
   ].join('\n')
+
   return (
     <div
       id="mcp-chip"
-      className={`mcp-chip ${state}${flash ? ' flash' : ''}`}
-      title={`${title}\n\n👉 Bấm vào đây để mở Cấu hình & Trợ giúp kết nối MCP`}
+      className={`mcp-chip ${state}`}
+      title={`${title}\n\n👉 Bấm vào đây để mở Cấu hình & Quản lý kết nối MCP`}
       onClick={() => useView.getState().openDialog('mcp')}
     >
       <IconPlug width={13} height={13} />
       <span className="dot" />
-      {label}
-      {status.lastMethod && state === 'connected' && <small>{status.lastMethod}</small>}
+      <span>{label}</span>
+      {shownMethod && isBusy && <small>{shownMethod}</small>}
+      {status.lastMethod && status.clients > 0 && !isBusy && <small>✓ {status.lastMethod}</small>}
+      {status.lastMethod && status.clients === 0 && justDisconnected && <small>✓ {status.lastMethod}</small>}
+      {status.clients > 0 && (
+        <span
+          className="mcp-chip-disconnect"
+          title="Ngắt kết nối AI ngay lập tức"
+          onClick={(e) => {
+            e.stopPropagation()
+            window.api?.mcp?.disconnectAll?.().catch(() => undefined)
+          }}
+        >
+          ✕
+        </span>
+      )}
     </div>
   )
 }

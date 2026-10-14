@@ -100,12 +100,43 @@ const SILENT_MCP_COMMANDS = new Set([
 
 type McpWin = { __pxsMcpUnsub?: () => void }
 
+let inFlightCommands = 0
+let rendererIdleTimer: ReturnType<typeof setTimeout> | null = null
+
+function notifyMcpActivity(busy: boolean, method: string): void {
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new CustomEvent('pxs:mcp-activity', { detail: { busy, method } }))
+  }
+}
+
+function scheduleRendererIdleDisconnect(): void {
+  if (rendererIdleTimer) {
+    clearTimeout(rendererIdleTimer)
+    rendererIdleTimer = null
+  }
+  if (inFlightCommands === 0 && !isManuallyLocked) {
+    rendererIdleTimer = setTimeout(() => {
+      rendererIdleTimer = null
+      if (inFlightCommands === 0 && !isManuallyLocked) {
+        window.api?.mcp?.disconnectAll?.().catch(() => undefined)
+      }
+    }, 8000)
+  }
+}
+
 /** Subscribe to MCP commands from the main process. Returns an unsubscribe function. */
 export function initMcp(onActivity?: (method: string, ok: boolean) => void): () => void {
   if (typeof window === 'undefined' || !window.api?.mcp) return () => undefined
   const w = window as unknown as McpWin
   w.__pxsMcpUnsub?.()
   const unsub = window.api.mcp.onCommand(async (cmd) => {
+    inFlightCommands++
+    if (rendererIdleTimer) {
+      clearTimeout(rendererIdleTimer)
+      rendererIdleTimer = null
+    }
+    notifyMcpActivity(true, cmd.method)
+
     const isSilent = SILENT_MCP_COMMANDS.has(cmd.method)
     if (!isManuallyLocked && !isSilent) {
       if (aiTimer) clearTimeout(aiTimer)
@@ -120,6 +151,10 @@ export function initMcp(onActivity?: (method: string, ok: boolean) => void): () 
       window.api.mcp.respond({ reqId: cmd.reqId, ok: false, error: msg })
       onActivity?.(cmd.method, false)
     } finally {
+      inFlightCommands = Math.max(0, inFlightCommands - 1)
+      notifyMcpActivity(inFlightCommands > 0, cmd.method)
+      scheduleRendererIdleDisconnect()
+
       if (!isManuallyLocked && !isSilent) {
         if (aiTimer) clearTimeout(aiTimer)
         aiTimer = setTimeout(() => {

@@ -216,13 +216,16 @@ export function McpDialog() {
                 />
                 <span style={{ fontWeight: 600, fontSize: '12px', color: 'var(--text)' }}>
                   {isConnected
-                    ? `Đang có ${status.clients} AI Agent kết nối trực tiếp`
+                    ? status.busy
+                      ? `AI đang thực thi lệnh: ${status.lastMethod ?? '...'}`
+                      : `AI đã kết nối (${status.clients} client) — Đã xong lệnh, đang chờ (tự ngắt sau 8s nhàn rỗi)`
                     : isListening
-                      ? `MCP đang lắng nghe tại 127.0.0.1:${status?.port ?? 9877}`
+                      ? `MCP sẵn sàng tại 127.0.0.1:${status?.port ?? 9877} (Chưa có AI giữ kết nối)`
                       : 'MCP Server đang tắt (Đã giải phóng socket)'}
                 </span>
                 <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--mono)' }}>
-                  (Lệnh đã thực thi: {status?.commands ?? 0})
+                  (Lệnh đã chạy: {status?.commands ?? 0}
+                  {status?.lastMethod ? ` · gần nhất: ${status.lastMethod}` : ''})
                 </span>
                 <button
                   type="button"

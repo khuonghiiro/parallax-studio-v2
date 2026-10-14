@@ -147,6 +147,7 @@ export interface McpStatus {
   port: number
   clients: number
   commands: number
+  busy?: boolean
   lastMethod: string | null
   lastAt: number | null
   configPath: string
