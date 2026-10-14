@@ -348,14 +348,41 @@ export const LAYER_ASSEMBLY_TOOLS = [
     name: 'set_layer_assembly_panel',
     cat: 'layer_assembly',
     doc: L(
-      'Switch between the 3 inspector tabs (layers, bones, animation) and select active bone in the workshop.',
-      'Chuyển đổi giữa 3 tab cột phải (layers, bones, animation) và chọn xương kích hoạt trong xưởng.'
+      'Switch between the 4 inspector tabs (layers, bones, animation, plant) and select active bone in the workshop.',
+      'Chuyển đổi giữa 4 tab cột phải (layers, bones, animation, plant) và chọn xương kích hoạt trong xưởng.'
     ),
     shape: (d) => ({
-      tab: z.enum(['layers', 'bones', 'animation']).describe(d('Active right panel tab.', 'Tab cột phải cần mở.')),
+      tab: z.enum(['layers', 'bones', 'animation', 'plant']).describe(d('Active right panel tab ("plant" = draw plant spines for wind sway).', 'Tab cột phải cần mở ("plant" = vẽ xương thực vật đung đưa theo gió).')),
       bone_id: z.string().optional().describe(d('Optional bone ID to select.', 'ID xương cần chọn.'))
     }),
     example: '{"tab":"animation"}'
+  },
+  {
+    name: 'layer_assembly_plant_spine',
+    cat: 'layer_assembly',
+    doc: L(
+      'Manage plant spines in the open 2.5D Layer Assembly workshop: a hand-drawn curve from ROOT to TIP that makes bound plant layers (grass, trees, branches, flowers, seaweed) bend and sway in the wind. Actions: list, add, update, delete, clear. Supports undo (Ctrl+Z) and is exported with the composite into the scene/video.',
+      'Quản lý Xương thực vật trong Xưởng Lắp Ráp Layer 2.5D đang mở: đường cong vẽ từ GỐC lên NGỌN giúp các layer cây cỏ (cỏ, cây, cành, hoa, rong biển) gắn vào uốn cong đung đưa theo gió. Hành động: list, add, update, delete, clear. Hỗ trợ hoàn tác (Ctrl+Z) và được mang theo khi thêm cụm vào cảnh/xuất video.'
+    ),
+    shape: (d) => ({
+      action: z.enum(['list', 'add', 'update', 'delete', 'clear']).describe(d('Operation to perform.', 'Thao tác cần thực hiện.')),
+      spine_id: z.string().optional().describe(d('Target spine ID (update/delete).', 'ID xương cần sửa/xoá (update/delete).')),
+      points: z.array(z.array(z.number()).length(2)).optional().describe(d('Spine points [[x,y],...] in composite coordinates (X right, Y down, origin at frame center), ordered from ROOT (fixed) to TIP (bends most). At least 2 points.', 'Các điểm xương [[x,y],...] theo toạ độ cụm (X sang phải, Y xuống, gốc ở tâm khung), xếp từ GỐC (đứng yên) tới NGỌN (uốn nhiều nhất). Tối thiểu 2 điểm.')),
+      layer_ids: z.array(z.string()).optional().describe(d('Layer IDs that bend with this spine.', 'Danh sách ID layer uốn theo xương.')),
+      apply_to: z.enum(['selected', 'all']).optional().describe(d('When layer_ids is omitted on add: bind to the selected layers or all visible layers. Default "selected".', 'Khi không truyền layer_ids lúc add: gắn vào layer đang chọn hoặc toàn bộ layer đang hiện. Mặc định "selected".')),
+      preset: z.enum(['grass', 'sapling', 'branch', 'canopy', 'flower', 'seaweed']).optional().describe(d('Plant motion preset (grass, sapling, branch, canopy = big tree, flower, seaweed/vine).', 'Kiểu cây mẫu (grass = cỏ lau, sapling = cây non, branch = cành, canopy = đại thụ, flower = hoa, seaweed = rong biển/dây leo).')),
+      name: z.string().optional().describe(d('Spine display name.', 'Tên hiển thị của xương.')),
+      amplitude: z.number().optional().describe(d('Max bend at the tip in degrees.', 'Góc uốn tối đa tại ngọn (độ).')),
+      speed: z.number().optional().describe(d('Sway cycles per second.', 'Số nhịp đung đưa mỗi giây.')),
+      stiffness: z.number().optional().describe(d('0 = whole stem bends · 1 = only the tip bends.', '0 = cả thân cong · 1 = chỉ ngọn cong.')),
+      flexibility: z.number().optional().describe(d('0..1 extra tip flutter.', '0..1 độ rung phụ ở ngọn.')),
+      turbulence: z.number().optional().describe(d('0..1 gusty wind.', '0..1 gió giật thất thường.')),
+      lean: z.number().optional().describe(d('Constant wind lean in degrees (positive = right).', 'Độ nghiêng cố định theo gió (độ, dương = sang phải).')),
+      phase_offset: z.number().optional().describe(d('Phase offset in seconds so several plants sway out of sync.', 'Lệch pha (giây) để nhiều cây đung đưa so le.')),
+      reach: z.number().optional().describe(d('Influence radius in px around the spine; 0 = the whole layer follows.', 'Bán kính ảnh hưởng quanh xương (px); 0 = cả layer uốn theo.')),
+      enabled: z.boolean().optional().describe(d('Enable or disable this spine.', 'Bật/tắt xương này.'))
+    }),
+    example: '{"action":"add","points":[[0,180],[4,90],[-6,0],[2,-90]],"apply_to":"all","preset":"sapling"}'
   },
   {
     name: 'add_layer_assembly_layer',

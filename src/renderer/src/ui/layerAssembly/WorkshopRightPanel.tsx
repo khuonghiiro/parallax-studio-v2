@@ -3,9 +3,10 @@ import type { useLayerWorkshop } from './useLayerWorkshop'
 import type { useWorkshopPlayback } from './useWorkshopPlayback'
 import { WorkshopRigPanel } from './WorkshopRigPanel'
 import { WorkshopAnimationPanel } from './WorkshopAnimationPanel'
+import { WorkshopPlantPanel } from './WorkshopPlantPanel'
 import { applyRigAction, type RigAction } from './workshopRig'
 
-export type WorkshopTab = 'layers' | 'bones' | 'animation'
+export type WorkshopTab = 'layers' | 'bones' | 'animation' | 'plant'
 export function WorkshopRightPanel({ state, playback, tab, setTab, boneId, selectBone, children }: {
   state: ReturnType<typeof useLayerWorkshop>; playback: ReturnType<typeof useWorkshopPlayback>
   tab: WorkshopTab; setTab: (tab: WorkshopTab) => void; boneId: string | null
@@ -27,13 +28,24 @@ export function WorkshopRightPanel({ state, playback, tab, setTab, boneId, selec
   }
   return <aside className="lw-right-column">
     <div className="lw-right-tabs" role="tablist" aria-label="Công cụ lắp ráp">
-      {([['layers', 'Layer'], ['bones', 'Tạo xương'], ['animation', 'Animation']] as const).map(([id, title]) =>
+      {([['layers', 'Layer'], ['bones', 'Tạo xương'], ['animation', 'Animation'], ['plant', 'Thực vật']] as const).map(([id, title]) =>
         <button key={id} role="tab" id={`lw-tab-${id}`} aria-controls={`lw-panel-${id}`} aria-selected={tab === id}
           onClick={() => { setTab(id); setError(''); playback.setIsPlaying(false); playback.setTime(0) }}>{title}</button>)}
     </div>
     {error && <div className="lw-error" role="alert">{error}</div>}
     <div className="lw-right-content" role="tabpanel" id={`lw-panel-${tab}`} aria-labelledby={`lw-tab-${tab}`}>
-      {tab === 'layers' ? children : tab === 'bones' ? <WorkshopRigPanel {...props} /> : <WorkshopAnimationPanel {...props} playback={playback} />}
+      {tab === 'layers' ? children
+        : tab === 'bones' ? <WorkshopRigPanel {...props} />
+        : tab === 'plant' ? (
+          <WorkshopPlantPanel
+            composite={state.composite}
+            setComposite={state.setComposite}
+            selectedIds={state.selection}
+            isPlaying={playback.isPlaying}
+            onTogglePlay={playback.toggle}
+          />
+        )
+        : <WorkshopAnimationPanel {...props} playback={playback} />}
     </div>
   </aside>
 }

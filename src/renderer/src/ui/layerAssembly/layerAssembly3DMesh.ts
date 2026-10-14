@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { deformSkin } from '../../engine/layerSkinning'
+import { deformPlantSpines } from '../../engine/plantSpine'
 import type { AssembledLayerItem, LayerMotionSettings } from './types'
 import { depthEuler } from '../../engine/spatial'
 import { createLayerAlphaTrimmedGeometry } from './layerAssemblyAlphaMesh'
@@ -439,8 +440,10 @@ export function updateLayer3DInstance(
   const geometry = mesh.geometry
   const rest = geometry.userData.basePositions as Float32Array | undefined
   if (rest) {
-    const positions = layer.previewRig && layer.bindingMode === 'soft'
+    const skinned = layer.previewRig && layer.bindingMode === 'soft'
       ? deformSkin(rest, layer, layer.previewRig, time) : rest
+    const positions = layer.previewPlantSpines?.length
+      ? deformPlantSpines(skinned, layer, layer.previewPlantSpines, time) : skinned
     const attribute = geometry.getAttribute('position') as THREE.BufferAttribute
     attribute.copyArray(positions)
     attribute.needsUpdate = true

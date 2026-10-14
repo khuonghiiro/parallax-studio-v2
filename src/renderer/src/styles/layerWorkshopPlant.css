@@ -1,0 +1,255 @@
+/* Xương thực vật — tab "Thực vật" trong Xưởng lắp ráp layer (dùng design tokens cho cả 2 theme) */
+
+.lw-plant-overlay,
+.lw-plant-panel {
+  --plant-green: #3ddc84;
+}
+
+[data-theme='light'] .lw-plant-overlay,
+[data-theme='light'] .lw-plant-panel {
+  --plant-green: #15924b;
+}
+
+.lw-plant-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  z-index: 5100;
+  pointer-events: none;
+  transform: translateZ(210px);
+}
+
+.lw-plant-overlay.drawing {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+.lw-plant-rest {
+  fill: none;
+  stroke: var(--text-faint);
+  stroke-width: 1.2px;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.lw-plant-bent {
+  fill: none;
+  stroke: var(--plant-green);
+  stroke-width: 2.4px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.55));
+}
+
+.lw-plant-spine.selected .lw-plant-bent {
+  stroke: var(--key);
+  stroke-width: 3.2px;
+}
+
+.lw-plant-spine.disabled {
+  opacity: 0.4;
+}
+
+.lw-plant-root {
+  fill: var(--bg-0);
+  stroke: var(--plant-green);
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+}
+
+.lw-plant-tip {
+  fill: var(--plant-green);
+  stroke: var(--bg-0);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.lw-plant-spine.selected .lw-plant-root { stroke: var(--key); }
+.lw-plant-spine.selected .lw-plant-tip { fill: var(--key); }
+
+.lw-plant-label {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--key);
+  paint-order: stroke;
+  stroke: var(--bg-0);
+  stroke-width: 3px;
+}
+
+.lw-plant-stroke {
+  fill: none;
+  stroke: var(--accent-cyan);
+  stroke-width: 2.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ---------- Bảng điều khiển ---------- */
+.lw-plant-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  font-size: 11px;
+  color: var(--text);
+}
+
+.lw-plant-hint {
+  padding: 8px 10px;
+  border-radius: 7px;
+  line-height: 1.5;
+  background: color-mix(in srgb, var(--plant-green) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--plant-green) 35%, transparent);
+  color: var(--text);
+}
+
+.lw-plant-section-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.lw-plant-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.lw-plant-chip {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 500;
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.lw-plant-chip:hover {
+  color: var(--text);
+  border-color: var(--line-focus);
+}
+
+.lw-plant-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.lw-plant-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.lw-plant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lw-plant-empty {
+  padding: 14px 10px;
+  text-align: center;
+  color: var(--text-faint);
+  border: 1px dashed var(--line);
+  border-radius: 7px;
+}
+
+.lw-plant-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 7px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  cursor: pointer;
+}
+
+.lw-plant-card.selected {
+  border-color: var(--key);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--key) 40%, transparent);
+  cursor: default;
+}
+
+.lw-plant-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lw-plant-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-0);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.lw-plant-name:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.lw-plant-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.lw-plant-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lw-plant-slider {
+  display: grid;
+  grid-template-columns: 104px 1fr 48px;
+  align-items: center;
+  gap: 6px;
+}
+
+.lw-plant-slider-label {
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lw-plant-slider input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.lw-plant-slider-val {
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  text-align: right;
+}

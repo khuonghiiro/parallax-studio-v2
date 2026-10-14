@@ -59,6 +59,7 @@ export function AssembledLayerItemView({
     animTranslateX,
     animTranslateY
   } = computeLayerMotion(layer.motion, time)
+  const usesMeshCanvas = Boolean((layer.bindingMode === 'soft' && layer.boneId) || layer.previewPlantSpines?.length)
   const anchor = layer.boneId ? 'center' : layer.motion.anchor
 
   const anchorOrigin =
@@ -120,7 +121,7 @@ export function AssembledLayerItemView({
         }}
         onPointerDown={onPointerDown}
       >
-        {imageUrl && layer.bindingMode === 'soft' && layer.boneId ? (
+        {imageUrl && usesMeshCanvas ? (
           <SoftLayerImage url={imageUrl} layer={layer} time={time} showMesh={showMesh} filter={lightingResult.combinedFilter} />
         ) : imageUrl ? (
           <img
@@ -159,7 +160,7 @@ export function AssembledLayerItemView({
         )}
 
         {/* Lưới đa giác Mesh 2D bám sát pixel đục (loại bỏ hoàn toàn pixel trong suốt) */}
-        <LayerAssembly2DMeshOverlay imageUrl={imageUrl} showMesh={showMesh && !(layer.bindingMode === 'soft' && layer.boneId)} />
+        <LayerAssembly2DMeshOverlay imageUrl={imageUrl} showMesh={showMesh && !usesMeshCanvas} />
 
         {/* Điểm neo (Anchor Dot Indicator) khi layer được chọn */}
         {isSelected && (

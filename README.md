@@ -6,6 +6,8 @@ Atlas nhân vật chỉ yêu cầu tỉ lệ 1:1, độ phân giải tùy model 
 
 Xưởng Lắp Ráp Layer hỗ trợ mesh bám alpha (giữ lỗ và chi tiết rời) và **Uốn mềm theo chuỗi xương** cho tóc, đuôi, tay chân. Đặt khớp trong tab Tạo xương, chọn ảnh và xương gốc của nhánh, bấm Uốn mềm; tạo keyframe trong Animation. Mesh và rig được giữ khi chèn vào timeline, lưu dự án và xuất MP4. Xem [hướng dẫn xưởng](docs/layer-workshop-tools.md).
 
+**Xương thực vật (tab Thực vật):** kéo chuột trên Bố cục 2D từ gốc lên ngọn cây để tạo một đường xương cong; các layer gắn vào (layer đang chọn hoặc toàn bộ layer) uốn mềm theo đường đó như cỏ, cây non, cành, đại thụ, hoa hay rong biển đung đưa trong gió. Chỉnh biên độ, tốc độ, độ cứng thân, rung ngọn, gió giật, nghiêng, lệch pha và bán kính ảnh hưởng; chuyển động hiển thị đồng bộ ở 2D, 3D và được mang theo khi thêm vào cảnh / xuất video. AI điều khiển qua tool MCP `layer_assembly_plant_spine`.
+
 App desktop (Electron + Three.js) dùng để dựng video **parallax 2.5D** giống After Effects. Bạn xếp các layer ảnh theo chiều sâu, chia thành nhiều **cảnh (shot)** đặt trong không gian 3D, cho camera bay qua từng cảnh rồi xuất MP4. App có **MCP server** để AI (Antigravity, Claude, Cursor…) điều khiển trực tiếp, giống blender-mcp.
 
 ## Chạy nhanh (Windows 1-click)

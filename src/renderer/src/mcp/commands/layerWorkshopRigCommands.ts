@@ -140,10 +140,10 @@ export const layerWorkshopRigCommands: Record<string, Handler> = {
   set_layer_assembly_panel: (p) => {
     const session = activeWorkshop()
     const tab = str(p, 'tab', true)
-    if (!['layers', 'bones', 'animation'].includes(tab)) throw new ParamError('Invalid tab')
+    if (!['layers', 'bones', 'animation', 'plant'].includes(tab)) throw new ParamError('Invalid tab')
     const boneId = str(p, 'bone_id') || null
     if (boneId && !session.getComposite().rig?.bones.some((b) => b.id === boneId)) throw new ParamError('Unknown bone ID')
-    session.setTab?.(tab as 'layers' | 'bones' | 'animation')
+    session.setTab?.(tab as 'layers' | 'bones' | 'animation' | 'plant')
     session.setSelectedBoneId?.(boneId)
     session.setIsPlaying(false)
     session.setTime(0)

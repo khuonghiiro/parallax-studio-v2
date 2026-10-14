@@ -17,6 +17,8 @@ export interface AssembledLayerItem {
   bindingMode?: 'rigid' | 'soft'
   /** Transient preview rig, never persisted by workshop actions. */
   previewRig?: import('@shared/layerRig').LayerRig
+  /** Transient: xương thực vật đang tác động lên layer (chỉ để xem trước, không lưu). */
+  previewPlantSpines?: import('@shared/plantSpine').PlantSpine[]
   bindPose?: { x: number; y: number; rotation: number }
   id: string
   name: string
@@ -44,6 +46,8 @@ export type { AssemblyLighting }
 
 export interface LayerComposite {
   rig?: import('@shared/layerRig').LayerRig
+  /** Xương thực vật: đường cong vẽ tay giúp layer uốn đung đưa như cây cỏ */
+  plantSpines?: import('@shared/plantSpine').PlantSpine[]
   id: string
   name: string
   category: 'nature' | 'prop' | 'character' | 'architecture' | 'custom'

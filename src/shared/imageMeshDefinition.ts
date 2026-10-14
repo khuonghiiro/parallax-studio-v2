@@ -138,6 +138,8 @@ export interface ImageMeshDefinition {
     positions: number[]
     uvs: number[]
     indices: number[]
+    /** Xương thực vật uốn mesh theo thời gian (đã lọc cho riêng layer này). */
+    plantSpines?: import('./plantSpine').PlantSpine[]
   }
   version: number
   id: string

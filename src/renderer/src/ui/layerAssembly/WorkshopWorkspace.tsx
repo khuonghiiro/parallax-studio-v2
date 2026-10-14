@@ -11,6 +11,7 @@ import { ensureRigClips } from './workshopRig'
 import type { WorkshopTab } from './WorkshopRightPanel'
 import { loadLayerWorkshopViewPrefs, saveLayerWorkshopViewPrefs } from './layerAssemblyViewPrefs'
 import type { BrushPreview } from './useLayerBrushEraser'
+import { spinesForLayer } from '../../engine/plantSpine'
 
 export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, boneId, selectBone, onBrushModeChange }: {
   state: ReturnType<typeof useLayerWorkshop>; playback: ReturnType<typeof useWorkshopPlayback>; view: AssemblyWorkspaceView
@@ -84,6 +85,7 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
         ...transformed,
         ...(brushPreview?.id === l.id ? { imageUrl: brushPreview.imageUrl } : {}),
         ...(rig && !isErasing ? { previewRig: rig, bindPose } : {}),
+        ...(!isErasing ? { previewPlantSpines: spinesForLayer(state.composite.plantSpines, l.id) } : {}),
         ...(isErasing ? { bindingMode: 'rigid' as const, motion: { ...l.motion, type: 'none' as const } } : {}),
         locked: l.locked
       }
@@ -126,6 +128,13 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
             endGesture: () => state.history.end(),
             time: playback.time,
             editing: tab === 'bones'
+          }}
+          plantOverlay={isErasing ? undefined : {
+            composite: state.composite,
+            setComposite: state.setComposite,
+            selectedIds: state.selection,
+            time: playback.time,
+            drawing: tab === 'plant'
           }}
           onChangeComposite={state.setComposite}
           isPlaying={playback.isPlaying}

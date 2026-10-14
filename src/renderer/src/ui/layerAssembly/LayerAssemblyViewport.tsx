@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import type { LayerComposite, AssembledLayerItem } from './types'
 import { WorkshopBoneOverlay, type BoneOverlayProps } from './WorkshopBoneOverlay'
+import { PlantSpineOverlay, type PlantSpineOverlayProps } from './PlantSpineOverlay'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
 import { IconLayers, IconImage } from '../icons'
 import { useView } from '../../store/view'
@@ -27,6 +28,7 @@ export interface LayerAssemblyViewportProps {
   onBrushPreview?: (preview: BrushPreview | null) => void
   onBrushModeChange?: (active: boolean) => void
   boneOverlay?: BoneOverlayProps
+  plantOverlay?: PlantSpineOverlayProps
   composite: LayerComposite
   selectedLayerId: string | null
   selectedIds?: string[]
@@ -69,6 +71,7 @@ export function LayerAssemblyViewport({
   onSelectTab,
   hideTransport = false,
   boneOverlay,
+  plantOverlay,
   showBones = true,
   onToggleShowBones,
   showMesh = false,
@@ -696,6 +699,9 @@ export function LayerAssemblyViewport({
 
         {/* Khung xương Blender/Moho SVG Overlay - Hiển thị NỔI TRÊN CÙNG các lớp để thao tác kéo xoay trực tiếp 60fps */}
         {boneOverlay && isBonesVisible && <WorkshopBoneOverlay {...boneOverlay} />}
+
+        {/* Xương thực vật: hiển thị đường uốn & vẽ tay xương mới khi ở tab Thực vật */}
+        {plantOverlay && <PlantSpineOverlay {...plantOverlay} />}
 
         {composite.layers.length === 0 && (
           <div

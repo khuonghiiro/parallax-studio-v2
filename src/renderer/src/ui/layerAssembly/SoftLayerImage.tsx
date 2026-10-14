@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { AssembledLayerItem } from './types'
 import { createLayerAlphaTrimmedGeometry, LayerAssembly2DMeshOverlay } from './layerAssemblyAlphaMesh'
 import { deformSkin } from '../../engine/layerSkinning'
+import { deformPlantSpines } from '../../engine/plantSpine'
 import type { BufferGeometry } from 'three'
 
 interface Props { url: string; layer: AssembledLayerItem; time: number; showMesh: boolean; filter?: string }
@@ -113,7 +114,10 @@ export function SoftLayerImage({ url, layer, time, showMesh, filter }: Props) {
     const canvas = ref.current, ctx = canvas?.getContext('2d')
     if (!canvas || !ctx || !data) return
     const rest = data.geometry.userData.basePositions as Float32Array
-    const positions = layer.previewRig ? deformSkin(rest, layer, layer.previewRig, time) : rest
+    const skinned = layer.previewRig && layer.bindingMode === 'soft' && layer.boneId
+      ? deformSkin(rest, layer, layer.previewRig, time) : rest
+    const positions = layer.previewPlantSpines?.length
+      ? deformPlantSpines(skinned, layer, layer.previewPlantSpines, time) : skinned
     let minX = -data.width / 2, minY = -data.height / 2, maxX = data.width / 2, maxY = data.height / 2
     for (let i = 0; i < positions.length; i += 3) {
       minX = Math.min(minX, positions[i]); maxX = Math.max(maxX, positions[i])

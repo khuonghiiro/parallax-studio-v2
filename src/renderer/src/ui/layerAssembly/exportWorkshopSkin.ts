@@ -1,11 +1,14 @@
 import type { ImageLayer } from '@shared/types'
 import type { AssembledLayerItem, LayerComposite } from './types'
 import { createLayerAlphaTrimmedGeometry } from './layerAssemblyAlphaMesh'
+import { spinesForLayer } from '../../engine/plantSpine'
 
 /** Store rest topology, not per-frame vertices: saved projects evaluate the exact same skin. */
 export async function exportWorkshopSkin(layer: ImageLayer, item: AssembledLayerItem,
   composite: LayerComposite, url: string | undefined): Promise<void> {
-  if (item.bindingMode !== 'soft' || !item.boneId || !composite.rig) return
+  const skinned = item.bindingMode === 'soft' && Boolean(item.boneId) && Boolean(composite.rig)
+  const spines = spinesForLayer(composite.plantSpines, item.id)
+  if (!skinned && !spines.length) return
   if (!url) throw new Error(`Không đọc được ảnh để tạo mesh: ${item.name}`)
   const image = new Image()
   image.crossOrigin = 'anonymous'
@@ -22,7 +25,9 @@ export async function exportWorkshopSkin(layer: ImageLayer, item: AssembledLayer
     surface: { width, height, subdivisions: [16, 20], restUVBounds: [0, 0, 1, 1] },
     anchorUV: [0.5, 0.5], modifiers: [], materials: {},
     skin: {
-      rig: structuredClone(composite.rig), binding: { boneId, x, y, rotation, scale, scaleX, scaleY },
+      rig: skinned ? structuredClone(composite.rig!) : { bones: [], duration: 0, loop: true, tracks: {} },
+      binding: { boneId: skinned ? boneId : undefined, x, y, rotation, scale, scaleX, scaleY },
+      ...(spines.length ? { plantSpines: structuredClone(spines) } : {}),
       positions: Array.from(geometry.getAttribute('position').array),
       uvs: Array.from(geometry.getAttribute('uv').array),
       indices: Array.from(geometry.getIndex()!.array)

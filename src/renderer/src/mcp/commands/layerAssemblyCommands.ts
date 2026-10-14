@@ -20,6 +20,7 @@ import { insertLayerCompositeToScene } from '../../ui/layerAssembly/insertLayerC
 import { captureCompositeThumbnail } from '../../ui/layerAssembly/layerAssemblyThumbnail'
 import { applyWorkshopAction, type WorkshopAction } from '../../ui/layerAssembly/workshopActions'
 import { layerWorkshopRigCommands } from './layerWorkshopRigCommands'
+import { layerPlantSpineCommands } from './layerPlantSpineCommands'
 import { layerWorkshopEditCommands } from './layerWorkshopEditCommands'
 import { validateWorkshop } from '../../ui/layerAssembly/workshopEdits'
 
@@ -61,6 +62,7 @@ function resolveTargetComposite(p: Params): LayerComposite {
 
 export const layerAssemblyCommands: Record<string, Handler> = {
   ...layerWorkshopRigCommands,
+  ...layerPlantSpineCommands,
   ...layerWorkshopEditCommands,
   layer_assembly_action: (p) => {
     const session = workshopSession()
