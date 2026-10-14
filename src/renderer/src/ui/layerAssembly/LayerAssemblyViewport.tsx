@@ -226,8 +226,8 @@ export function LayerAssemblyViewport({
     return () => window.removeEventListener('keydown', cancel)
   }, [isDraggingLayer, isPanning, isDraggingHandle, onUpdateLayer])
 
-  // Tự động căn giữa và co dãn vừa vặn (Fit to screen) khung vẽ 2D
-  const handleFitView = useCallback(() => {
+  // Tự động căn giữa và co dãn vừa vặn (Fit to screen) khung vẽ 2D đồng bộ 100% tỉ lệ padding = 1.16 với 3D
+  const handleFitView = useCallback((sync3D = false) => {
     if (!containerRef.current) {
       setZoom(1.0)
       setPan({ x: 0, y: 0 })
@@ -235,20 +235,42 @@ export function LayerAssemblyViewport({
     }
     const cw = containerRef.current.clientWidth || 500
     const ch = containerRef.current.clientHeight || 500
-    const pad = 56
-    const scaleX = (cw - pad) / (composite.width || 600)
-    const scaleY = (ch - pad) / (composite.height || 600)
-    const fitScale = Math.min(1.0, Math.max(0.15, Math.min(scaleX, scaleY)))
-    setZoom(Number(fitScale.toFixed(2)))
+    const padding = 1.16
+    const scaleX = cw / ((composite.width || 600) * padding)
+    const scaleY = ch / ((composite.height || 600) * padding)
+    const fitScale = Math.min(2.5, Math.max(0.15, Math.min(scaleX, scaleY)))
+    setZoom(Number(fitScale.toFixed(3)))
     setPan({ x: 0, y: 0 })
+    if (sync3D && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('layerWorkshop:fitFrontSync', { detail: { source: '2d' } }))
+    }
   }, [composite.width, composite.height])
 
-  // Khởi tạo Fit view ban đầu hoặc khi kích thước khung thay đổi
+  // Khởi tạo Fit view ban đầu, khi kích thước khung thay đổi hoặc khi đồng bộ từ 3D
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
-      handleFitView()
+      handleFitView(false)
     })
-    return () => cancelAnimationFrame(raf)
+    const container = containerRef.current
+    const ro = container
+      ? new ResizeObserver(() => {
+          handleFitView(false)
+        })
+      : null
+    if (container && ro) ro.observe(container)
+
+    const onSyncFit = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail
+      if (detail?.source !== '2d') {
+        handleFitView(false)
+      }
+    }
+    window.addEventListener('layerWorkshop:fitFrontSync', onSyncFit)
+    return () => {
+      cancelAnimationFrame(raf)
+      ro?.disconnect()
+      window.removeEventListener('layerWorkshop:fitFrontSync', onSyncFit)
+    }
   }, [handleFitView])
 
   // Sắp xếp các layer: Z càng lớn ở sau (render trước), Z càng nhỏ ở trước (render sau)
@@ -709,7 +731,7 @@ export function LayerAssemblyViewport({
           setZoom(1.0)
           setPan({ x: 0, y: 0 })
         }}
-        onFitView={handleFitView}
+        onFitView={() => handleFitView(true)}
         show3DPerspective={show3DPerspective}
         onToggle3DPerspective={() =>
           setShow3DPerspective((v) => {
@@ -777,7 +799,7 @@ export function LayerAssemblyViewport({
           onTogglePlay={onTogglePlay}
           time={time}
           onSeekTime={onSeekTime}
-          onResetView={handleFitView}
+          onResetView={() => handleFitView(true)}
           zoomPercent={Math.round(zoom * 100)}
         />
       )}

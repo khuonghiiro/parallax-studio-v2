@@ -125,12 +125,13 @@ export function LayerAssembly3DViewport({
   // Hàm tính khoảng cách camera đóng khung vừa vặn chuẩn tỉ lệ khung hình thực tế
   const getFitDistance = useCallback(() => {
     const { w, h } = viewDimsRef.current
-    return computeFramingDistance(composite.width, composite.height, w, h)
-  }, [composite.width, composite.height])
+    const fov = cameraRef.current?.fov || initialPrefs.cameraFov || 45
+    return computeFramingDistance(composite.width, composite.height, w, h, fov)
+  }, [composite.width, composite.height, initialPrefs.cameraFov])
 
   const initialFitDist = useMemo(() => {
-    return computeFramingDistance(composite.width, composite.height, 500, 700)
-  }, [composite.width, composite.height])
+    return computeFramingDistance(composite.width, composite.height, 500, 700, initialPrefs.cameraFov || 45)
+  }, [composite.width, composite.height, initialPrefs.cameraFov])
 
   // Camera Orbit state khởi tạo từ cache
   const orbitRef = useRef({
@@ -223,7 +224,7 @@ export function LayerAssembly3DViewport({
     const scene = new THREE.Scene()
     sceneRef.current = scene
 
-    const camera = new THREE.PerspectiveCamera(45, width / height, 1, 60000)
+    const camera = new THREE.PerspectiveCamera(initialPrefs.cameraFov || 45, width / height, 1, 60000)
     cameraRef.current = camera
 
     const renderer = new THREE.WebGLRenderer({
@@ -341,7 +342,7 @@ export function LayerAssembly3DViewport({
 
       // Nếu đang ở góc nhìn Front (Camera chính diện), tự động cân đối khoảng cách vừa vặn tỉ lệ khung hình mới
       if (cameraPresetRef.current === 'front') {
-        const fitD = computeFramingDistance(composite.width, composite.height, w, h)
+        const fitD = computeFramingDistance(composite.width, composite.height, w, h, cameraRef.current.fov)
         orbitRef.current.distance = fitD
         setCamDistance(fitD)
       }
@@ -424,6 +425,9 @@ export function LayerAssembly3DViewport({
     }
   }, [showFrustum, cameraPreset])
 
+  // Khi ở góc nhìn chính diện (front / Căn vừa khung hình), đưa độ tách lớp Z về 0 để đồng bộ chính xác 1:1 với Bố cục 2D
+  const effectiveZExaggeration = cameraPreset === 'front' ? 0 : zExaggeration
+
   // ------------------------------------------------------------- 4. Đường gióng độ sâu Z cho layer được chọn
   useEffect(() => {
     const scene = sceneRef.current
@@ -436,12 +440,12 @@ export function LayerAssembly3DViewport({
     }
 
     const selLayer = composite.layers.find((l) => l.id === selectedLayerId)
-    if (selLayer && Math.abs(selLayer.z) > 1) {
-      const guide = createDepthGuideLine(selLayer.x, -selLayer.y, -selLayer.z * zExaggeration)
+    if (selLayer && Math.abs(selLayer.z) > 1 && effectiveZExaggeration > 0) {
+      const guide = createDepthGuideLine(selLayer.x, -selLayer.y, -selLayer.z * effectiveZExaggeration)
       scene.add(guide)
       depthGuideRef.current = guide
     }
-  }, [selectedLayerId, composite.layers, zExaggeration])
+  }, [selectedLayerId, composite.layers, effectiveZExaggeration])
 
   // Kích hoạt render lại và cập nhật hình học layer khi ảnh load xong
   const [renderTrigger, setRenderTrigger] = useState(0)
@@ -471,13 +475,13 @@ export function LayerAssembly3DViewport({
       selectedLayerId,
       selectedIds,
       time,
-      zExaggeration,
+      zExaggeration: effectiveZExaggeration,
       cameraClippingPlanes,
       requestRender,
       showMesh
     })
     flushImmediateRender()
-  }, [composite.layers, time, zExaggeration, selectedLayerId, selectedIds, requestRender, flushImmediateRender, renderTrigger, cameraClippingPlanes, showMesh])
+  }, [composite.layers, time, effectiveZExaggeration, selectedLayerId, selectedIds, requestRender, flushImmediateRender, renderTrigger, cameraClippingPlanes, showMesh])
 
   // ------------------------------------------------------------- Đồng bộ hóa Khung xương 3D
   useEffect(() => {
@@ -493,11 +497,11 @@ export function LayerAssembly3DViewport({
       layers: composite.layers,
       selectedBoneId: selectedBone,
       hoveredBoneId,
-      zExaggeration,
+      zExaggeration: effectiveZExaggeration,
       visible: showBones ?? true
     })
     requestRender()
-  }, [composite.rig, composite.layers, time, zExaggeration, showBones, selectedLayerId, boneId, hoveredBoneId, requestRender])
+  }, [composite.rig, composite.layers, time, effectiveZExaggeration, showBones, selectedLayerId, boneId, hoveredBoneId, requestRender])
 
   // Native non-passive wheel listener để Chromium không chặn zoom
   useEffect(() => {
@@ -539,7 +543,7 @@ export function LayerAssembly3DViewport({
     layerDragStateRef,
     orbitRef,
     cameraPresetRef,
-    zExaggeration,
+    zExaggeration: effectiveZExaggeration,
     onSelectLayer,
     onUpdateLayer,
     setCameraPreset,
@@ -587,8 +591,8 @@ export function LayerAssembly3DViewport({
   // Nhắm điểm nhìn vào layer đang chọn
   const handleAimAtSelectedLayer = useCallback(() => {
     if (!selectedLayer) return
-    aimAtSelectedLayer(selectedLayer, orbitRef.current, zExaggeration, setCameraTarget, requestRender)
-  }, [selectedLayer, zExaggeration, requestRender])
+    aimAtSelectedLayer(selectedLayer, orbitRef.current, effectiveZExaggeration, setCameraTarget, requestRender)
+  }, [selectedLayer, effectiveZExaggeration, requestRender])
 
   const handleApplyPreset = (preset: CameraPreset) => {
     cameraPresetRef.current = preset
@@ -600,6 +604,9 @@ export function LayerAssembly3DViewport({
       setCameraTarget,
       requestRender
     })
+    if (preset === 'front' && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('layerWorkshop:fitFrontSync', { detail: { source: '3d' } }))
+    }
   }
 
   // Áp dụng góc xoay nhanh chuẩn CameraControls
@@ -614,7 +621,7 @@ export function LayerAssembly3DViewport({
   }
 
   // Vừa vặn khung hình tiêu chuẩn (Fit Framing Distance)
-  const handleFitFramingDistance = () => {
+  const handleFitFramingDistance = useCallback((sync2D = true) => {
     cameraPresetRef.current = 'front'
     fitCameraFraming(orbitRef.current, getFitDistance(), {
       setCameraPreset,
@@ -624,7 +631,21 @@ export function LayerAssembly3DViewport({
       setCameraTarget,
       requestRender
     })
-  }
+    if (sync2D && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('layerWorkshop:fitFrontSync', { detail: { source: '3d' } }))
+    }
+  }, [getFitDistance, requestRender])
+
+  useEffect(() => {
+    const onSyncFit = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail
+      if (detail?.source !== '3d') {
+        handleFitFramingDistance(false)
+      }
+    }
+    window.addEventListener('layerWorkshop:fitFrontSync', onSyncFit)
+    return () => window.removeEventListener('layerWorkshop:fitFrontSync', onSyncFit)
+  }, [handleFitFramingDistance])
 
   // Lấy nét lại toàn cảnh (Focus / Reset View)
   const handleFocusAll = () => {
@@ -766,7 +787,7 @@ export function LayerAssembly3DViewport({
           instance={selectedInst}
           camera={cameraRef.current}
           rect={gizmoRect}
-          zExaggeration={zExaggeration}
+          zExaggeration={effectiveZExaggeration}
           showTranslate={showTranslate}
           showRotate={showRotate}
           tick={gizmoTick}
@@ -786,7 +807,7 @@ export function LayerAssembly3DViewport({
         cameraPreset={cameraPreset}
         onApplyPreset={handleApplyPreset}
         onApplyQuickAngle={applyQuickAngleHandler}
-        onFitFramingDistance={handleFitFramingDistance}
+        onFitFramingDistance={() => handleFitFramingDistance(true)}
         onFocusAll={handleFocusAll}
         showFrustum={showFrustum}
         onToggleFrustum={() =>

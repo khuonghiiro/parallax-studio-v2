@@ -471,17 +471,18 @@ export function updateLayer3DInstance(
   // - Z: chiều sâu (-layer.z * zExaggeration + micro-offset layerIndex để triệt tiêu Z-fighting khi trùng Z)
   const posX = layer.x + motion.animTranslateX
   const posY = -(layer.y + motion.animTranslateY)
-  const microZ = zExaggeration > 0 ? layerIndex * 0.05 : layerIndex * 0.001
-  const posZ = -layer.z * zExaggeration + microZ
+  const effectiveZScale = zExaggeration > 0 ? zExaggeration : 0.002
+  const microZ = zExaggeration > 0 ? layerIndex * 0.05 : layerIndex * 0.0001
+  const posZ = -layer.z * effectiveZScale + microZ
 
   // Group được định vị chính xác tại tâm của layer trong không gian 3D
   group.position.set(posX, posY, posZ)
 
-  // 4. Xoay 3D (X, Y, Z) và Scale (hỗ trợ squash & stretch scaleX / scaleY)
+  // 4. Xoay 3D (X, Y) và Scale (hỗ trợ squash & stretch scaleX / scaleY)
   const euler = depthEuler([
     layer.rotationX || 0,
     layer.rotationY || 0,
-    layer.rotation || 0
+    0
   ])
   group.rotation.copy(euler)
 
@@ -489,8 +490,9 @@ export function updateLayer3DInstance(
   const scaleY = layer.scale * (layer.scaleY ?? 1) * motion.animScaleY
   group.scale.set(scaleX, scaleY, 1)
 
-  // 5. Chuyển động đung đưa xoay quanh điểm neo P = (ax, ay) đồng bộ 100% với 2D CSS
-  const theta = -motion.animRotateRad
+  // 5. Góc xoay Z tĩnh + hoạt ảnh đung đưa xoay quanh điểm neo P = (ax, ay) đồng bộ 100% với 2D CSS
+  const staticRotRad = ((layer.rotation || 0) * Math.PI) / 180
+  const theta = -(staticRotRad + motion.animRotateRad)
   const cosT = Math.cos(theta)
   const sinT = Math.sin(theta)
   const shiftX = ax * (1 - cosT) + ay * sinT

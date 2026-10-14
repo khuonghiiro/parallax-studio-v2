@@ -82,10 +82,10 @@ export function syncLayersGroupMeshes({
         }
       : layer
 
-    // Thiết lập renderOrder để Three.js vẽ đúng thứ tự
-    inst.mesh.renderOrder = idx
+    // Thiết lập renderOrder đồng bộ 100% với zIndex của 2D (1000 - layer.z)
+    inst.mesh.renderOrder = Math.round(1000 - visualLayer.z) * 10 + idx
     if (inst.wireframeMesh) {
-      inst.wireframeMesh.renderOrder = 2000 + idx
+      inst.wireframeMesh.renderOrder = 20000 + idx
     }
 
     updateLayer3DInstance(

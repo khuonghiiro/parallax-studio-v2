@@ -76,15 +76,17 @@ export function AssembledLayerItemView({
   const rotY = layer.rotationY || 0
   const rotZ = layer.rotation || 0
 
-  // Hỗ trợ co dãn đàn hồi Squash & Stretch 2D đồng bộ với xương
-  const totalScaleX = layer.scale * (layer.scaleX ?? 1) * animScaleX
-  const totalScaleY = layer.scale * (layer.scaleY ?? 1) * animScaleY
+  // Tách riêng scale cơ sở quanh tâm (50% 50%) và xoay/đàn hồi quanh điểm neo (anchorOrigin) để đồng bộ 100% với 3D
+  const baseScale = Math.max(0.05, layer.scale || 1)
+  const squashScaleX = (layer.scaleX ?? 1) * animScaleX
+  const squashScaleY = (layer.scaleY ?? 1) * animScaleY
+  const invScale = 1 / Math.max(0.2, baseScale)
 
   const layerTransform = show3DPerspective
-    ? `rotateY(${-rotY}deg) rotateX(${rotX}deg) rotateZ(${rotZ + animRotate}deg) scale(${totalScaleX}, ${totalScaleY})`
-    : `rotate(${rotZ + animRotate}deg) scale(${totalScaleX}, ${totalScaleY})`
+    ? `rotateY(${-rotY}deg) rotateX(${rotX}deg) rotateZ(${rotZ + animRotate}deg) scale(${squashScaleX}, ${squashScaleY})`
+    : `rotate(${rotZ + animRotate}deg) scale(${squashScaleX}, ${squashScaleY})`
 
-  const depthTranslateZ = show3DPerspective ? -layer.z * 0.75 : 0
+  const depthTranslateZ = 0
 
   return (
     <div
@@ -92,7 +94,8 @@ export function AssembledLayerItemView({
         position: 'absolute',
         left: '50%',
         top: '50%',
-        transform: `translate(-50%, -50%) translate3d(${layer.x + animTranslateX}px, ${layer.y + animTranslateY}px, ${depthTranslateZ}px)`,
+        transform: `translate(-50%, -50%) translate3d(${layer.x + animTranslateX}px, ${layer.y + animTranslateY}px, ${depthTranslateZ}px) scale(${baseScale})`,
+        transformOrigin: '50% 50%',
         transformStyle: 'preserve-3d',
         pointerEvents: 'none',
         willChange: 'transform',
@@ -109,7 +112,7 @@ export function AssembledLayerItemView({
           transformStyle: 'preserve-3d',
           opacity: layer.opacity,
           cursor: layer.locked ? 'default' : 'move',
-          outline: isSelected && !showBbox ? '2px solid var(--accent)' : 'none',
+          outline: isSelected && !showBbox ? `${Math.max(1, 2 * invScale)}px solid var(--accent)` : 'none',
           outlineOffset: '2px',
           borderRadius: '3px',
           boxShadow: isSelected ? '0 0 12px rgba(38, 128, 235, 0.5)' : 'none',
@@ -170,7 +173,7 @@ export function AssembledLayerItemView({
               borderRadius: '50%',
               background: 'var(--key)',
               border: '2px solid var(--bg-0)',
-              transform: 'translate(-50%, -50%)',
+              transform: `translate(-50%, -50%) scale(${invScale})`,
               boxShadow: '0 0 6px rgba(0,0,0,0.6)',
               pointerEvents: 'none',
               zIndex: 10
@@ -186,7 +189,7 @@ export function AssembledLayerItemView({
               style={{
                 position: 'absolute',
                 inset: '-2px',
-                border: '1.5px solid var(--accent)',
+                border: `${Math.max(1, 1.5 * invScale)}px solid var(--accent)`,
                 borderRadius: '2px',
                 pointerEvents: 'none',
                 zIndex: 15
@@ -201,7 +204,7 @@ export function AssembledLayerItemView({
                   bottom: h.bottom,
                   left: h.left,
                   right: h.right,
-                  transform: h.transform,
+                  transform: h.transform ? `${h.transform} scale(${invScale})` : `scale(${invScale})`,
                   width: '9px',
                   height: '9px',
                   background: 'var(--bg-0)',

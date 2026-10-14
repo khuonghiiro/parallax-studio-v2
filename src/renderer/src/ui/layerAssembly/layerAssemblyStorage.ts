@@ -13,7 +13,7 @@ export const COMPOSITE_CATEGORIES: LayerCompositeCategory[] = [
 ]
 
 const STORAGE_KEY = 'pxs.layerComposites'
-const SEED_VERSION = 'v19_clean_5_presets_native_1to1'
+const SEED_VERSION = 'v22_sync_2d_3d_front_and_native_bonsai_final'
 const SEED_KEY = 'pxs.layerComposites.seeded_version'
 const DELETED_KEY = 'pxs.layerComposites.deleted'
 
@@ -125,6 +125,9 @@ export function getStoredComposites(): LayerComposite[] {
 
       const merged = Array.from(resultMap.values())
       localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
+      if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+        window.dispatchEvent(new Event('publicAssets:changed'))
+      }
       return merged
     }
 
