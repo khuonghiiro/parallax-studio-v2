@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react'
 import type { LayerAssemblyTemplate } from './layerTemplateTypes'
 import { buildTemplatePromptWithBrief, type CharacterPromptCustomBrief } from './characterPrompt'
 import { renderTemplateThumbnail } from './templateIcons'
+import { CharacterReferenceOptions } from './CharacterReferenceOptions'
+import { NEW_CHARACTER_EXAMPLES } from './characterPromptReference'
 import { IconX, IconCopy, IconSparkles } from '../../icons'
 
 interface TemplatePromptModalProps {
@@ -44,7 +46,8 @@ const CHARACTER_BRIEF_PRESETS: Array<{ label: string; brief: CharacterPromptCust
       costume: 'Cream sailor uniform blouse with red ribbon tie, pleated navy skirt/trousers and brown loafers with white socks',
       props: 'Round thin gold wire eyeglasses frame'
     }
-  }
+  },
+  ...NEW_CHARACTER_EXAMPLES
 ]
 
 const NATURE_BRIEF_PRESETS: Array<{ label: string; brief: CharacterPromptCustomBrief }> = [
@@ -102,7 +105,7 @@ function PromptCustomizerBox({
               key={p.label}
               type="button"
               className="tpm-preset-chip"
-              onClick={() => onChange(p.brief)}
+              onClick={() => onChange({ ...brief, ...p.brief })}
               title="Điền nhanh mẫu mô tả này vào Prompt"
             >
               {p.label}
@@ -112,7 +115,7 @@ function PromptCustomizerBox({
             <button
               type="button"
               className="tpm-preset-chip clear"
-              onClick={() => onChange({ appearance: '', costume: '', props: '' })}
+              onClick={() => onChange({ ...brief, appearance: '', costume: '', props: '' })}
             >
               ✕ Xoá mô tả
             </button>
@@ -132,7 +135,7 @@ function PromptCustomizerBox({
             placeholder={
               isNature
                 ? 'VD: Nền đất cỏ rêu riêng đủ 4 góc cạnh không chứa rễ; thân gỗ sồi đi kèm luôn cả bộ rễ xoè rộng...'
-                : 'VD: Nam thanh niên tuấn tú, tóc đen rẽ ngôi, đầu gốc trơn kèm 2 biểu cảm mắt xanh...'
+                : 'VD: Gender: male. Hair: messy short ginger hair. Eyes: sharp amber eyes. Skin: tan. Vibe: laid-back.'
             }
             value={brief.appearance || ''}
             onChange={(e) => onChange({ ...brief, appearance: e.target.value })}
@@ -150,7 +153,7 @@ function PromptCustomizerBox({
             placeholder={
               isNature
                 ? 'VD: 3 tầng tán lá xanh ngọc bích bồng bềnh dạng mây, kèm tán vàng mùa thu & hồng sakura...'
-                : 'VD: Mặc võ phục xanh hoàng gia viền vàng, đai lưng da, quần tối màu và ủng cổ cao...'
+                : 'VD: Dark green hooded jacket over a white t-shirt, black cargo pants, white sneakers.'
             }
             value={brief.costume || ''}
             onChange={(e) => onChange({ ...brief, costume: e.target.value })}
@@ -168,7 +171,7 @@ function PromptCustomizerBox({
             placeholder={
               isNature
                 ? 'VD: Quả táo đỏ lẻ tẻ kèm 2 lá nhỏ ở cuống để ghép chồng tạo chùm, hoa trắng hồng ăn khít tán lá...'
-                : 'VD: Gọng kính cận chữ nhật rời, đồng hồ đeo tay phải...'
+                : 'VD: Silver chain necklace, fingerless glove on the left hand (2-3 phụ kiện).'
             }
             value={brief.props || ''}
             onChange={(e) => onChange({ ...brief, props: e.target.value })}
@@ -204,10 +207,11 @@ function PromptTabContent({
           </span>
         ) : (
           <span>
-            💡 <strong>Mẹo Tạo Nhân Vật Chuẩn Khớp Lắp Ráp:</strong> Nhập mô tả <em>Tướng mạo</em>, <em>Quần áo</em> và <em>Phụ kiện</em> ở khung dưới (bằng tiếng Việt hoặc tiếng Anh). Hệ thống sẽ tự động gắn mô tả của bạn vào cả phần <code>IDENTITY</code> lẫn từng ô bộ phận (<code>CELL ASSIGNMENTS</code>) để AI vẽ tất cả các mảnh khớp nhau như một bức vẽ hoàn chỉnh.
+            💡 <strong>Vì sao AI hay &quot;sửa ảnh mẫu&quot; thay vì tạo nhân vật mới?</strong> Khi đính kèm ảnh, AI thường hiểu đó là ảnh cần chỉnh sửa. Hãy chọn <em>vai trò ảnh đính kèm</em> bên dưới và mô tả nhân vật mới thật cụ thể (giới tính, tóc, mắt, trang phục, 2-3 phụ kiện, màu da, tính cách). Nếu AI vẫn chép mẫu: giảm <em>image strength / reference weight</em> hoặc bỏ hẳn ảnh mẫu.
           </span>
         )}
       </div>
+      {!isNature && <CharacterReferenceOptions brief={brief} onChange={onChangeBrief} />}
       <PromptCustomizerBox isNature={isNature} brief={brief} onChange={onChangeBrief} />
       <div className="tpm-code-container">
         <div className="tpm-code-header">
@@ -322,8 +326,9 @@ function GuideTabContent({ template }: { template: LayerAssemblyTemplate }) {
       <div className="tpm-guide-step">
         <div className="tpm-step-num">1</div>
         <div>
-          <h4>Mô tả Tướng mạo & Quần áo trước khi copy Prompt</h4>
-          <p>Điền tướng mạo khuôn mặt, trang phục và đạo cụ vào khung tuỳ chỉnh ở tab đầu tiên. Prompt sẽ tự động đồng bộ chất liệu vải và màu sắc vào từng ô tay, chân, thân, hông để khi ghép lại nhìn như một nhân vật vẽ liền mạch.</p>
+          <h4>Ảnh mẫu chỉ là bố cục — Mô tả nhân vật mới thật cụ thể</h4>
+          <p>Chọn &quot;Ảnh mẫu chỉ để tham khảo bố cục&quot; khi đính kèm sprite sheet mẫu: prompt ghi rõ AI chỉ học cách tách bộ phận trên nền xanh, không chép mặt, tóc, quần áo hay màu của mẫu. Mô tả càng mơ hồ AI càng bám ảnh mẫu, nên hãy điền đủ giới tính, tóc, mắt, trang phục, phụ kiện, màu da và tính cách. Dán thêm phần Negative prompt vào ô negative của công cụ tạo ảnh.</p>
+          <p><strong>Quy trình 2 bước cho nhân vật nhất quán:</strong> (1) tạo ảnh nhân vật đầy đủ (không đính kèm mẫu), (2) đính kèm ảnh vừa tạo và chọn &quot;Tách bộ phận đúng nhân vật trong ảnh&quot;. Mỗi lần nên tạo một nhóm bộ phận (đầu / thân trên / thân dưới) để phần bị che khuất được vẽ đầy đủ hơn.</p>
         </div>
       </div>
       <div className="tpm-guide-step">
@@ -363,7 +368,9 @@ export function TemplatePromptModal({
   const [brief, setBrief] = useState<CharacterPromptCustomBrief>({
     appearance: '',
     costume: '',
-    props: ''
+    props: '',
+    referenceMode: 'layout',
+    partGroup: 'all'
   })
 
   const activePrompt = useMemo(() => {

@@ -138,4 +138,31 @@ describe('layerAssemblyTemplateCommands MCP', () => {
     expect(res.prompt_guide.system_prompt).toContain('Áo đạo bào tím thêu hạc trắng')
     expect(res.prompt_guide.system_prompt).toContain('Cầm trường kiếm phát sáng')
   })
+
+  it('treats attached images as layout-only by default and supports disassemble mode + part groups', async () => {
+    type Res = { prompt_guide: { system_prompt: string; negative_prompt: string | null } }
+    const fresh = (await runCommand('get_layer_assembly_template', {
+      template_id: 'tmpl-character-front',
+      appearance: 'Gender: female. Hair: long silver twin-tails.'
+    })) as Res
+    expect(fresh.prompt_guide.system_prompt).toContain('LAYOUT REFERENCE ONLY')
+    expect(fresh.prompt_guide.system_prompt).toContain('COMPLETELY NEW ORIGINAL')
+    expect(fresh.prompt_guide.system_prompt).not.toContain('messy layered black hair with hairpin')
+    expect(fresh.prompt_guide.negative_prompt).toContain('copy of reference character')
+
+    const split = (await runCommand('get_layer_assembly_template', {
+      template_id: 'tmpl-character-front',
+      reference_mode: 'disassemble',
+      part_group: 'lower'
+    })) as Res
+    expect(split.prompt_guide.system_prompt).toContain('DISASSEMBLE MODE')
+    expect(split.prompt_guide.system_prompt).toContain('Exactly 4 isolated parts')
+    expect(split.prompt_guide.system_prompt).toContain('[shin-l]')
+    expect(split.prompt_guide.system_prompt).not.toContain('[torso] —')
+    expect(split.prompt_guide.negative_prompt).not.toContain('copy of reference character')
+
+    await expect(
+      runCommand('get_layer_assembly_template', { template_id: 'tmpl-character-front', reference_mode: 'edit' })
+    ).rejects.toThrow()
+  })
 })

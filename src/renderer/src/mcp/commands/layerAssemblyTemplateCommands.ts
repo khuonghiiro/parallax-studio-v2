@@ -15,6 +15,7 @@ import { clearTextureCache } from '../../ui/assets/models3d/textureResolver'
 import { clear3DLayerTextureCache } from '../../ui/layerAssembly/layerAssembly3DMesh'
 import { ParamError, type Handler } from '../types'
 import { str, bool, toPlain } from '../params'
+import { characterNegativePrompt } from '../../ui/layerAssembly/templates/characterPromptReference'
 
 export const layerAssemblyTemplateCommands: Record<string, Handler> = {
   list_layer_assembly_templates: async (p) => {
@@ -74,7 +75,14 @@ export const layerAssemblyTemplateCommands: Record<string, Handler> = {
     const appearance = str(p, 'appearance')
     const costume = str(p, 'costume')
     const props = str(p, 'props')
-    const systemPrompt = buildTemplatePromptWithBrief(tpl, { appearance, costume, props })
+    const modeRaw = str(p, 'reference_mode')
+    const groupRaw = str(p, 'part_group')
+    const referenceMode = (['layout', 'disassemble', 'none'] as const).find((m) => m === modeRaw)
+    const partGroup = (['all', 'head', 'upper', 'lower'] as const).find((g) => g === groupRaw)
+    if (modeRaw && !referenceMode) throw new ParamError('reference_mode must be layout | disassemble | none')
+    if (groupRaw && !partGroup) throw new ParamError('part_group must be all | head | upper | lower')
+    const systemPrompt = buildTemplatePromptWithBrief(tpl, { appearance, costume, props, referenceMode, partGroup })
+    const negativePrompt = tpl.category === 'character' ? characterNegativePrompt(referenceMode ?? 'layout') : null
 
     return {
       id: tpl.id,
@@ -114,6 +122,7 @@ export const layerAssemblyTemplateCommands: Record<string, Handler> = {
       })),
       prompt_guide: {
         system_prompt: systemPrompt,
+        negative_prompt: negativePrompt,
         cell_layout: tpl.promptGuide.cellLayout,
         user_guide: tpl.promptGuide.userGuide,
         aspect_ratio: tpl.promptGuide.aspectRatio || '1:1',

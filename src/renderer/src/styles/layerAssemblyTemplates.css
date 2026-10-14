@@ -465,6 +465,48 @@
   color: var(--text-dim);
 }
 
+.tpm-preset-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.tpm-reference-options {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+}
+
+.tpm-ref-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.tpm-ref-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.45;
+  padding-left: 2px;
+}
+
+.tpm-negative-row .tpm-negative-text {
+  flex: 1 1 260px;
+  min-width: 0;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  padding: 3px 6px;
+  white-space: normal;
+}
+
 .tpm-customizer-grid {
   display: grid;
   grid-template-columns: 1fr;

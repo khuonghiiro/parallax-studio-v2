@@ -1,4 +1,13 @@
 import type { LayerAssemblyTemplate, LayerTemplateSlot } from './layerTemplateTypes'
+import {
+  COMPLETE_PARTS_RULE,
+  characterNegativePrompt,
+  filterSlotsByGroup,
+  partGroupBlock,
+  referenceRoleBlock,
+  type CharacterPartGroup,
+  type CharacterReferenceMode
+} from './characterPromptReference'
 
 export interface CharacterPromptCustomBrief {
   /** Mô tả tướng mạo, khuôn mặt, kiểu tóc, màu mắt, biểu cảm */
@@ -7,6 +16,10 @@ export interface CharacterPromptCustomBrief {
   costume?: string
   /** Mô tả phụ kiện (áo choàng, mũ, kính) hoặc vũ khí/đạo cụ cầm tay */
   props?: string
+  /** Vai trò ảnh đính kèm: chỉ tham khảo bố cục (mặc định), tách đúng nhân vật, hoặc không dùng ảnh */
+  referenceMode?: CharacterReferenceMode
+  /** Chỉ tạo một nhóm bộ phận (đầu / thân trên / thân dưới) để vẽ phần bị che đầy đủ hơn */
+  partGroup?: CharacterPartGroup
 }
 
 function slotBriefHint(slot: LayerTemplateSlot, brief?: CharacterPromptCustomBrief): string {
@@ -141,27 +154,38 @@ function formatUserBriefBlock(brief?: CharacterPromptCustomBrief): string {
   return lines.join('\n')
 }
 
+function resolveIdentity(
+  template: LayerAssemblyTemplate,
+  brief: CharacterPromptCustomBrief | undefined,
+  mode: CharacterReferenceMode
+): string {
+  const baseIdentity =
+    template.promptGuide.systemPrompt.match(/^(?:IDENTITY|CHARACTER):\s*(.+)$/m)?.[1] ||
+    template.descriptionEn
+  const customParts = [brief?.appearance?.trim(), brief?.costume?.trim(), brief?.props?.trim()].filter(Boolean)
+  if (mode === 'disassemble') {
+    const extra = customParts.length ? ` Extra notes: ${customParts.join(' | ')}` : ''
+    return `The exact character shown in the attached image, disassembled into the modular cutout parts below.${extra}`
+  }
+  if (!customParts.length) return baseIdentity
+  // Nhân vật MỚI: không ghép ngoại hình của mẫu minh hoạ để AI không bám vào nhân vật cũ.
+  return `COMPLETELY NEW ORIGINAL anime chibi character (Custom Character Brief: ${customParts.join(' | ')}), presented as a disassembled 2D cutout sprite sheet (Live2D / Spine style).`
+}
+
 /** One prompt contract for the UI and MCP, derived from the actual import slots. */
 export function characterPrompt(
   template: LayerAssemblyTemplate,
   customBrief?: CharacterPromptCustomBrief
 ): string {
+  const mode = customBrief?.referenceMode ?? 'layout'
+  const group = customBrief?.partGroup ?? 'all'
   const ids = new Set(template.slots.map((slot) => slot.id))
-  const baseIdentity =
-    template.promptGuide.systemPrompt.match(/^(?:IDENTITY|CHARACTER):\s*(.+)$/m)?.[1] ||
-    template.descriptionEn
-  const customParts = [
-    customBrief?.appearance?.trim(),
-    customBrief?.costume?.trim(),
-    customBrief?.props?.trim()
-  ].filter(Boolean)
-  const identity = customParts.length
-    ? `${baseIdentity} — Custom Character Brief: ${customParts.join(' | ')}`
-    : baseIdentity
+  const slots = filterSlotsByGroup(template.slots, group)
+  const identity = resolveIdentity(template, customBrief, mode)
   const key = template.promptGuide.systemPrompt.includes('#FF00FF') ? '#FF00FF' : '#00FF00'
   const viewSpec = detectViewSpec(template)
   const userBriefBlock = formatUserBriefBlock(customBrief)
-  const layout = [...template.slots]
+  const layout = [...slots]
     .sort((a, b) => (a.atlasCell || 0) - (b.atlasCell || 0))
     .map(
       (slot) =>
@@ -169,11 +193,11 @@ export function characterPrompt(
     )
   return `Create ONE square (1:1 aspect ratio) CHARACTER CUTOUT SPRITE ATLAS: flat 2D anime/Gacha/Live2D modular character layers with bold clean black outlines and cel-shading, separated for skeletal 2.5D rigging. NOT a physical doll, toy or mannequin.
 IDENTITY: ${identity}
-If a reference is attached, preserve that character's proportions, hairstyle, costume, palette and line-art style. Otherwise use the identity above.${userBriefBlock}
+${referenceRoleBlock(mode)}${userBriefBlock}${partGroupBlock(group)}
 VIEW: ${viewSpec}
 OUTPUT: PNG at the native resolution supported by the image model; preserve the 1:1 aspect ratio. Flat OPAQUE chroma-key background ${key}. No checkerboard, gradients, texture, ground or cast shadows.
 GRID: Exactly 5 rows x 5 columns, numbered 1–25 left-to-right, top-to-bottom for instructions ONLY. Do not draw numbers, labels, IDs, watermarks or grid lines.
-Exactly ${template.slots.length} isolated parts, one assigned part per cell. NO assembled reference character anywhere in this atlas.
+Exactly ${slots.length} isolated parts, one assigned part per cell. NO assembled reference character anywhere in this atlas.
 CELL ASSIGNMENTS:
 ${layout.join('\n')}
 Leave all unassigned cells empty with only the background color.
@@ -185,6 +209,8 @@ MODULAR 13-PART ANIME CUTOUT SHEET ARCHITECTURE (CRITICAL):
 - SLEEVELESS TORSO WITH NECK & BELT (torso): Draw the shirt/vest/jacket torso with the shaded neck sticking up from the collar at the top and the waist belt/hem at the bottom, with clean sleeveless armholes (no arms attached).
 - 2-SEGMENT ARMS & LEGS: Draw upper arm sleeves (arm-l, arm-r) separate from forearms+hands (forearm-l, forearm-r), and draw upper trouser thighs (thigh-l, thigh-r) with rounded knee caps separate from lower shins+shoes (shin-l, shin-r).
 
+${COMPLETE_PARTS_RULE}
+
 SEAMLESS WHOLE-CHARACTER COHESION & JOINT OVERLAPS:
 - Mentally design ONE single cohesive full-body 2D anime character illustration first, then place each anatomical segment into its assigned cell at the exact same pixel scale so that when reassembled coaxially, all parts lock together like ONE continuous hand-drawn illustration.
 - Left/right ALWAYS mean assembled screen positions, not anatomical sides. Forearms+hands and shins+shoes must hang vertically straight downward.
@@ -194,7 +220,9 @@ SEAMLESS WHOLE-CHARACTER COHESION & JOINT OVERLAPS:
 CLEAN EXTRACTION:
 - Each cell contains one complete isolated silhouette, with no neighboring fragments, detached specks, text watermarks or duplicate views.
 - Crisp antialiased edges; no blur, glow, fringe, colored halo, matte border or contact shadow. The background must remain perfectly uniform ${key}.
-- Do not use the chroma-key color in skin, costume, outlines, highlights or reflections.`
+- Do not use the chroma-key color in skin, costume, outlines, highlights or reflections.
+
+NEGATIVE PROMPT: ${characterNegativePrompt(mode)}`
 }
 
 import { naturePrompt } from './naturePrompt'
@@ -208,7 +236,8 @@ export function buildTemplatePromptWithBrief(
     customBrief?.appearance?.trim() || customBrief?.costume?.trim() || customBrief?.props?.trim()
   )
   if (template.category === 'character') {
-    return hasCustom ? characterPrompt(template, customBrief) : template.promptGuide.systemPrompt
+    // Prompt nhân vật luôn dựng lại theo brief (vai trò ảnh tham chiếu, nhóm bộ phận, mô tả mới).
+    return characterPrompt(template, customBrief)
   }
   if (template.category === 'nature') {
     return hasCustom ? naturePrompt(template, customBrief) : template.promptGuide.systemPrompt
