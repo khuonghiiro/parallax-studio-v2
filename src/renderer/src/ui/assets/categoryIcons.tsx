@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import {
+  IconAnimalPaw,
   IconArmchair,
   IconCity,
   IconCube,
@@ -11,47 +12,50 @@ import {
   IconHome,
   IconImage,
   IconLayersStack,
-  IconMushroomMeme,
   IconMusic,
-  IconPandaMeme,
   IconPropLamp,
   IconSparkles,
   IconTree,
   IconUser,
+  IconUserBack,
   IconUserFemale,
-  IconUserMale
+  IconUserMale,
+  IconUserQuarter
 } from '../icons'
 
 export function renderCategoryIcon(iconKey: string, width = 16, height = 16, categoryId?: string): ReactNode {
   let key = (iconKey || categoryId || '').toLowerCase()
 
-  // Tự động phân định giới tính nhân vật nếu icon là 'user' chung chung nhưng id chỉ rõ
+  // Tự động phân định hướng nhân vật hoặc động vật nếu icon là 'user' chung chung nhưng id chỉ rõ
   if ((key === 'user' || key === 'character') && categoryId) {
     const cid = categoryId.toLowerCase()
-    if (cid.includes('panda')) {
-      key = 'panda-meme'
-    } else if (cid.includes('mushroom') || cid.includes('shadiao_modern')) {
-      key = 'mushroom-meme'
+    if (cid.includes('quarter')) {
+      key = 'user-quarter'
+    } else if (cid.includes('back')) {
+      key = 'user-back'
+    } else if (cid.includes('front') || cid.includes('hero') || cid.includes('male') || cid.includes('boy')) {
+      key = 'user-male'
     } else if (cid.includes('anime') || cid.includes('female') || cid.includes('girl')) {
       key = 'user-female'
-    } else if (cid.includes('hero') || cid.includes('male') || cid.includes('boy')) {
-      key = 'user-male'
     }
   }
 
   switch (key) {
-    case 'panda-meme':
-    case 'panda':
-    case 'shadiao-panda':
-      return <IconPandaMeme width={width} height={height} />
-    case 'mushroom-meme':
-    case 'mushroom':
-    case 'shadiao-modern':
-      return <IconMushroomMeme width={width} height={height} />
+    case 'user-quarter':
+    case 'character_human_quarter':
+      return <IconUserQuarter width={width} height={height} />
+    case 'user-back':
+    case 'character_human_back':
+      return <IconUserBack width={width} height={height} />
+    case 'paw':
+    case 'animal':
+    case 'animal_modular':
+      return <IconAnimalPaw width={width} height={height} />
     case 'user-male':
     case 'male':
     case 'hero':
     case 'character_hero':
+    case 'character_human_front':
       return <IconUserMale width={width} height={height} />
     case 'user-female':
     case 'female':

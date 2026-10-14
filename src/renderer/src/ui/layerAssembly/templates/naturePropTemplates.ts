@@ -1,6 +1,5 @@
 import { createTemplateComposite } from './templateBuilder'
 import type { LayerAssemblyTemplate } from './layerTemplateTypes'
-import { RUINS_FIREFLIES_ART } from './animalTemplateArtwork'
 
 // ---------------------------------------------------------------------------
 // 0A. Cây Đại Thụ Bóc Tách 7 Lớp — Đổi Tán Lá Xanh / Lá Vàng / Hoa / Quả
@@ -147,11 +146,11 @@ export const TMPL_NATURE_BONSAI: LayerAssemblyTemplate = {
   width: 550,
   height: 600,
   slots: [
-    { id: 'bonsai-pot', name: 'Chậu gốm Tử Sa viền đồng (Gốc neo)', nameEn: 'Ceramic Pot Base', role: 'base', atlasCell: 1, defaultTransform: { x: 0, y: 155, z: -5, scale: 1.05, rotation: 0 }, defaultMotion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }, suggestedAsset: 'assembly_3d/modular/bonsai_pot.png', description: 'Chậu gốm cổ điển đế vững' },
-    { id: 'bonsai-trunk', name: 'Thân cổ thụ uốn lượn phong trần', nameEn: 'Gnarled Wood Trunk', role: 'trunk', atlasCell: 2, defaultTransform: { x: 0, y: 10, z: 0, scale: 1.0, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.6, amplitude: 2.2, anchor: 'bottom', phaseOffset: 0.05 }, suggestedAsset: 'assembly_3d/modular/bonsai_trunk.png', description: 'Thân gỗ uốn lượn đung đưa gốc' },
-    { id: 'bonsai-foliage-back', name: 'Tán lá tùng sau (Hậu cảnh Z=+35)', nameEn: 'Background Foliage', role: 'back-foliage', atlasCell: 3, defaultTransform: { x: 5, y: -60, z: 35, scale: 0.95, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.8, amplitude: 3.5, anchor: 'bottom', phaseOffset: 0.3 }, suggestedAsset: 'assembly_3d/modular/bonsai_foliage_back.png', description: 'Tán lá phía sau tạo chiều sâu' },
-    { id: 'bonsai-foliage-mid', name: 'Tán tùng chính bồng bềnh (Trung cảnh Z=0)', nameEn: 'Midground Foliage', role: 'mid-foliage', atlasCell: 4, defaultTransform: { x: -10, y: -90, z: 0, scale: 1.0, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.7, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.15 }, suggestedAsset: 'assembly_3d/modular/bonsai_foliage_mid.png', description: 'Tán lá chính giữa thân cây' },
-    { id: 'bonsai-foliage-front', name: 'Nhánh non vươn nắng (Tiền cảnh Z=-30)', nameEn: 'Foreground Foliage', role: 'front-foliage', atlasCell: 5, defaultTransform: { x: 25, y: -40, z: -30, scale: 1.02, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.9, amplitude: 6.0, anchor: 'bottom', phaseOffset: 0.4 }, suggestedAsset: 'assembly_3d/modular/bonsai_foliage_front.png', description: 'Tán lá non vươn về phía trước' }
+    { id: 'bonsai-pot', name: 'Chậu gốm Tử Sa viền đồng (Gốc neo)', nameEn: 'Ceramic Pot Base', role: 'base', atlasCell: 1, defaultTransform: { x: 0, y: 140, z: -5, scale: 0.72, rotation: 0 }, defaultMotion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }, suggestedAsset: 'assembly_3d/modular/bonsai_pot.png', description: 'Chậu gốm cổ điển đế vững' },
+    { id: 'bonsai-trunk', name: 'Thân cổ thụ uốn lượn phong trần', nameEn: 'Gnarled Wood Trunk', role: 'trunk', atlasCell: 2, defaultTransform: { x: 0, y: 20, z: 0, scale: 0.75, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.6, amplitude: 2.2, anchor: 'bottom', phaseOffset: 0.05 }, suggestedAsset: 'assembly_3d/modular/bonsai_trunk.png', description: 'Thân gỗ uốn lượn đung đưa gốc' },
+    { id: 'bonsai-foliage-back', name: 'Tán lá tùng sau (Hậu cảnh Z=+35)', nameEn: 'Background Foliage', role: 'back-foliage', atlasCell: 3, defaultTransform: { x: 5, y: -55, z: 35, scale: 0.85, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.8, amplitude: 3.5, anchor: 'bottom', phaseOffset: 0.3 }, suggestedAsset: 'assembly_3d/modular/bonsai_foliage_back.png', description: 'Tán lá phía sau tạo chiều sâu' },
+    { id: 'bonsai-foliage-mid', name: 'Tán tùng chính bồng bềnh (Trung cảnh Z=0)', nameEn: 'Midground Foliage', role: 'mid-foliage', atlasCell: 4, defaultTransform: { x: -8, y: -78, z: -2, scale: 0.85, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.7, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.15 }, suggestedAsset: 'assembly_3d/modular/bonsai_foliage_mid.png', description: 'Tán lá chính giữa thân cây' },
+    { id: 'bonsai-foliage-front', name: 'Nhánh non vươn nắng (Tiền cảnh Z=-30)', nameEn: 'Foreground Foliage', role: 'front-foliage', atlasCell: 5, defaultTransform: { x: 18, y: -42, z: -30, scale: 0.75, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.9, amplitude: 6.0, anchor: 'bottom', phaseOffset: 0.4 }, suggestedAsset: 'assembly_3d/modular/bonsai_foliage_front.png', description: 'Tán lá non vươn về phía trước' }
   ],
   bones: [],
   clips: [],
@@ -189,10 +188,10 @@ export const TMPL_NATURE_FLOWER: LayerAssemblyTemplate = {
   width: 500,
   height: 500,
   slots: [
-    { id: 'grass-base', name: 'Bụi cỏ xanh nền sau', nameEn: 'Background Grass Clump', role: 'base', atlasCell: 1, defaultTransform: { x: 0, y: 95, z: 20, scale: 0.85, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.8, amplitude: 8, anchor: 'bottom', phaseOffset: 0.1 }, suggestedAsset: 'assembly_3d/modular/nature_grass.png', description: 'Cụm cỏ nền phía sau' },
-    { id: 'flower-stem', name: 'Thân cành hoa uốn lượn', nameEn: 'Curved Flower Stem', role: 'stem', atlasCell: 2, defaultTransform: { x: 0, y: 15, z: 5, scale: 0.65, rotation: 0 }, defaultMotion: { type: 'sway', speed: 1.1, amplitude: 12, anchor: 'bottom', phaseOffset: 0.3 }, suggestedAsset: 'assembly_3d/modular/nature_flower_stem.png', description: 'Cành hoa dẻo dai' },
-    { id: 'flower-petal', name: 'Cánh hoa đỏ tươi xòe nở', nameEn: 'Red Blossom Petals', role: 'petals', atlasCell: 3, defaultTransform: { x: 4, y: -88, z: -18, scale: 0.56, rotation: 2 }, defaultMotion: { type: 'rocking', speed: 1.4, amplitude: 20, anchor: 'center', phaseOffset: 0.6 }, suggestedAsset: 'assembly_3d/modular/nature_flower_corolla.png', description: 'Các cánh hoa đỏ bồng bềnh' },
-    { id: 'flower-center', name: 'Nhụy hoa vàng rực rỡ', nameEn: 'Golden Flower Center', role: 'center', atlasCell: 4, defaultTransform: { x: 4, y: -88, z: -25, scale: 0.22, rotation: 0 }, defaultMotion: { type: 'breathe', speed: 1.2, amplitude: 8, anchor: 'center', phaseOffset: 0.4 }, suggestedAsset: 'assembly_3d/modular/nature_flower_center.png', description: 'Nhụy hoa trung tâm nhấp nhô' }
+    { id: 'grass-base', name: 'Bụi cỏ xanh nền sau', nameEn: 'Background Grass Clump', role: 'base', atlasCell: 1, defaultTransform: { x: 0, y: 110, z: 20, scale: 0.72, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.8, amplitude: 8, anchor: 'bottom', phaseOffset: 0.1 }, suggestedAsset: 'assembly_3d/modular/nature_grass.png', description: 'Cụm cỏ nền phía sau' },
+    { id: 'flower-stem', name: 'Thân cành hoa uốn lượn', nameEn: 'Curved Flower Stem', role: 'stem', atlasCell: 2, defaultTransform: { x: 0, y: 30, z: 5, scale: 0.62, rotation: 0 }, defaultMotion: { type: 'sway', speed: 1.1, amplitude: 12, anchor: 'bottom', phaseOffset: 0.3 }, suggestedAsset: 'assembly_3d/modular/nature_flower_stem.png', description: 'Cành hoa dẻo dai' },
+    { id: 'flower-petal', name: 'Cánh hoa đỏ tươi xòe nở', nameEn: 'Red Blossom Petals', role: 'petals', atlasCell: 3, defaultTransform: { x: 4, y: -70, z: -18, scale: 0.22, rotation: 2 }, defaultMotion: { type: 'rocking', speed: 1.4, amplitude: 20, anchor: 'center', phaseOffset: 0.6 }, suggestedAsset: 'assembly_3d/modular/nature_flower_corolla.png', description: 'Các cánh hoa đỏ bồng bềnh' },
+    { id: 'flower-center', name: 'Nhụy hoa vàng rực rỡ', nameEn: 'Golden Flower Center', role: 'center', atlasCell: 4, defaultTransform: { x: 4, y: -70, z: -25, scale: 0.20, rotation: 0 }, defaultMotion: { type: 'breathe', speed: 1.2, amplitude: 8, anchor: 'center', phaseOffset: 0.4 }, suggestedAsset: 'assembly_3d/modular/nature_flower_center.png', description: 'Nhụy hoa trung tâm nhấp nhô' }
   ],
   bones: [],
   clips: [],
@@ -227,9 +226,9 @@ export const TMPL_ARCH_WINDOW: LayerAssemblyTemplate = {
   width: 520,
   height: 580,
   slots: [
-    { id: 'window-frame', name: 'Khung cửa sổ Tudor cổ điển', nameEn: 'Wooden Window Frame', role: 'frame', atlasCell: 1, defaultTransform: { x: 0, y: -40, z: 15, scale: 1.0, rotation: 0 }, defaultMotion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }, suggestedAsset: 'assembly_3d/modular/decor_window.png', description: 'Khung cửa kính chia ô Tudor' },
-    { id: 'flower-box', name: 'Hộp hoa ban công rực rỡ', nameEn: 'Balcony Flower Box', role: 'decor', atlasCell: 2, defaultTransform: { x: 0, y: 80, z: -5, scale: 1.05, rotation: 0 }, defaultMotion: { type: 'breathe', speed: 1.0, amplitude: 5, anchor: 'bottom', phaseOffset: 0.2 }, suggestedAsset: 'assembly_3d/modular/decor_flower_box.png', description: 'Bồn hoa ban công gỗ trồng hoa phong lữ' },
-    { id: 'green-leaf', name: 'Nhánh lá cây rung rinh', nameEn: 'Swaying Vine Leaves', role: 'nature', atlasCell: 3, defaultTransform: { x: 118, y: 65, z: -18, scale: 0.34, rotation: 32 }, defaultMotion: { type: 'sway', speed: 1.3, amplitude: 16, anchor: 'bottom', phaseOffset: 0.5 }, suggestedAsset: 'assembly_3d/modular/nature_leaf.png', description: 'Dây lá vươn ngoài bồn hoa đung đưa' }
+    { id: 'window-frame', name: 'Khung cửa sổ Tudor cổ điển', nameEn: 'Wooden Window Frame', role: 'frame', atlasCell: 1, defaultTransform: { x: 0, y: -35, z: 15, scale: 0.62, rotation: 0 }, defaultMotion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }, suggestedAsset: 'assembly_3d/modular/decor_window.png', description: 'Khung cửa kính chia ô Tudor' },
+    { id: 'flower-box', name: 'Hộp hoa ban công rực rỡ', nameEn: 'Balcony Flower Box', role: 'decor', atlasCell: 2, defaultTransform: { x: 0, y: 95, z: -5, scale: 0.56, rotation: 0 }, defaultMotion: { type: 'breathe', speed: 1.0, amplitude: 5, anchor: 'bottom', phaseOffset: 0.2 }, suggestedAsset: 'assembly_3d/modular/decor_flower_box.png', description: 'Bồn hoa ban công gỗ trồng hoa phong lữ' },
+    { id: 'green-leaf', name: 'Nhánh lá cây rung rinh', nameEn: 'Swaying Vine Leaves', role: 'nature', atlasCell: 3, defaultTransform: { x: 118, y: 80, z: -18, scale: 0.28, rotation: 32 }, defaultMotion: { type: 'sway', speed: 1.3, amplitude: 16, anchor: 'bottom', phaseOffset: 0.5 }, suggestedAsset: 'assembly_3d/modular/nature_leaf.png', description: 'Dây lá vươn ngoài bồn hoa đung đưa' }
   ],
   bones: [],
   clips: [],
@@ -263,9 +262,9 @@ export const TMPL_ARCH_RUINS: LayerAssemblyTemplate = {
   width: 600,
   height: 650,
   slots: [
-    { id: 'ruins-gate', name: 'Cổng đá tàn tích cổ rêu phong', nameEn: 'Ancient Stone Portal', role: 'gate', atlasCell: 1, defaultTransform: { x: 0, y: 40, z: 15, scale: 1.0, rotation: 0 }, defaultMotion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }, suggestedAsset: 'demo_transparent/layer4_ancient_ruins.png', description: 'Vách cổng vòm đá cổ kính' },
-    { id: 'vines-front', name: 'Dây leo rủ tiền cảnh (Z=-20)', nameEn: 'Hanging Foreground Vines', role: 'vines', atlasCell: 2, defaultTransform: { x: 0, y: -60, z: -20, scale: 1.05, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.9, amplitude: 18, anchor: 'top', phaseOffset: 0.1 }, suggestedAsset: 'demo_transparent/layer5_foreground_vines.png', description: 'Dây leo xanh đung đưa đỉnh cổng' },
-    { id: 'fireflies', name: 'Đom đóm lấp lánh huyền ảo', nameEn: 'Sparkling Fireflies', role: 'vfx', atlasCell: 3, defaultTransform: { x: -30, y: -30, z: -35, scale: 1.2, rotation: 0 }, defaultMotion: { type: 'float', speed: 1.2, amplitude: 14, anchor: 'center', phaseOffset: 0.5 }, suggestedAsset: RUINS_FIREFLIES_ART, description: 'Hiệu ứng hạt đom đóm lơ lửng' }
+    { id: 'ruins-gate', name: 'Cổng đá tàn tích cổ rêu phong', nameEn: 'Ancient Stone Portal', role: 'gate', atlasCell: 1, defaultTransform: { x: 0, y: 35, z: 15, scale: 0.42, rotation: 0 }, defaultMotion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }, suggestedAsset: 'demo_transparent/layer4_ancient_ruins.png', description: 'Vách cổng vòm đá cổ kính' },
+    { id: 'vines-front', name: 'Dây leo rủ tiền cảnh (Z=-20)', nameEn: 'Hanging Foreground Vines', role: 'vines', atlasCell: 2, defaultTransform: { x: 0, y: -85, z: -20, scale: 0.36, rotation: 0 }, defaultMotion: { type: 'sway', speed: 0.9, amplitude: 18, anchor: 'top', phaseOffset: 0.1 }, suggestedAsset: 'demo_transparent/layer5_foreground_vines.png', description: 'Dây leo xanh đung đưa đỉnh cổng' },
+    { id: 'fireflies', name: 'Đom đóm lấp lánh huyền ảo', nameEn: 'Sparkling Fireflies', role: 'vfx', atlasCell: 3, defaultTransform: { x: 0, y: 10, z: -35, scale: 0.85, rotation: 0 }, defaultMotion: { type: 'float', speed: 1.2, amplitude: 14, anchor: 'center', phaseOffset: 0.5 }, suggestedAsset: 'nature_modular/fireflies_glow.png', description: 'Hiệu ứng hạt đom đóm lơ lửng' }
   ],
   bones: [],
   clips: [],

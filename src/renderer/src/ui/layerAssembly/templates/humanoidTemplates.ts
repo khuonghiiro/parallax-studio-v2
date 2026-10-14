@@ -9,465 +9,177 @@ import {
   generateWaveHand,
   generateBow
 } from '../workshopRigPresets'
-import {
-  createChildBones,
-  generateChildToddle,
-  createElderlyBones,
-  generateElderlyCaneWalk
-} from './creatureRigPresets'
-import {
-  HERO_PROP_ART,
-  ANIME_GIRL_ART,
-  CHIBI_KID_ART,
-  BUSINESSMAN_ART,
-  GRANDPA_ART
-} from './humanoidTemplateArtwork'
 
-// ---------------------------------------------------------------------------
-// 1. Nam Trưởng Thành / Nam Anh Hùng (Atlas 5x5 theo character-cutout-prompt.md)
-// ---------------------------------------------------------------------------
+const HUMAN_BONES = createHumanoidBones()
+const HUMAN_WALK = generateWalkCycle(HUMAN_BONES, 1.6)
+const HUMAN_IDLE = generateIdleBreathe(HUMAN_BONES, 2.4)
+const HUMAN_SLASH = generateActionSlash(HUMAN_BONES, 1.5)
+const HUMAN_WAVE = generateWaveHand(HUMAN_BONES, 1.8)
+const HUMAN_BOW = generateBow(HUMAN_BONES, 2.0)
 
-const HERO_BONES = createHumanoidBones()
-const HERO_WALK = generateWalkCycle(HERO_BONES, 1.6)
-const HERO_IDLE = generateIdleBreathe(HERO_BONES, 2.4)
-const HERO_SLASH = generateActionSlash(HERO_BONES, 1.5)
-const HERO_WAVE = generateWaveHand(HERO_BONES, 1.8)
-
-const HERO_CLIPS: AnimationClip[] = [
-  { id: 'clip-walk', name: 'Bước đi (Walk)', duration: 1.6, loop: true, presetKey: 'walk', tracks: HERO_WALK },
-  { id: 'clip-idle', name: 'Đứng thở (Idle)', duration: 2.4, loop: true, presetKey: 'idle', tracks: HERO_IDLE },
-  { id: 'clip-action', name: 'Vung kiếm (Slash)', duration: 1.5, loop: true, presetKey: 'action', tracks: HERO_SLASH },
-  { id: 'clip-wave', name: 'Vẫy tay chào (Wave)', duration: 1.8, loop: true, presetKey: 'wave', tracks: HERO_WAVE }
+const HUMAN_CLIPS: AnimationClip[] = [
+  { id: 'clip-walk', name: 'Bước đi (Walk)', duration: 1.6, loop: true, presetKey: 'walk', tracks: HUMAN_WALK },
+  { id: 'clip-idle', name: 'Đứng thở (Idle)', duration: 2.4, loop: true, presetKey: 'idle', tracks: HUMAN_IDLE },
+  { id: 'clip-action', name: 'Vung kiếm (Slash)', duration: 1.5, loop: true, presetKey: 'action', tracks: HUMAN_SLASH },
+  { id: 'clip-wave', name: 'Vẫy tay chào (Wave)', duration: 1.8, loop: true, presetKey: 'wave', tracks: HUMAN_WAVE },
+  { id: 'clip-bow', name: 'Cúi chào (Bow)', duration: 2.0, loop: false, presetKey: 'bow', tracks: HUMAN_BOW }
 ]
 
-export const TMPL_MALE_HERO: LayerAssemblyTemplate = {
-  id: 'tmpl-character-male-hero',
-  name: 'Nam Anh Hùng / Hiệp Sĩ Trưởng Thành (Atlas 5x5)',
-  nameEn: 'Adult Male Hero / Knight (5x5 Cutout Atlas)',
+// ---------------------------------------------------------------------------
+// 1. Nhân Vật Chuẩn Đầu Người — Hướng Chính Diện (0° Front View)
+// ---------------------------------------------------------------------------
+
+export const TMPL_CHARACTER_FRONT: LayerAssemblyTemplate = {
+  id: 'tmpl-character-front',
+  name: 'Nhân Vật Chuẩn Đầu Người — Hướng Chính Diện (0° + Đầu Trơn & 4 Biểu Cảm)',
+  nameEn: 'Standard Human Character — Front View (0° Faceless Head & 4 Expressions)',
   category: 'character',
   ageGroup: 'adult',
-  description: 'Nhân vật nam thanh niên / hiệp sĩ chia 23 bộ phận chuẩn Atlas 5x5: tách rời cẳng tay & bàn tay, cẳng chân & bàn chân; khuôn mặt mộc độc lập với Mũ, Kính mắt, Râu giả, Mặt nạ để hoá trang đóng phim.',
-  descriptionEn: 'Adult male character with 23 modular cutout parts: separated hands & feet, bare head isolated from hat, glasses, beard and mask for movie disguise and costume changes.',
+  description:
+    'Mẫu nhân vật chuẩn đầu người góc nhìn chính diện (0°): phần Đầu gốc trơn không ngũ quan (không mắt mũi miệng) để ghép chồng 4 bộ Biểu cảm khuôn mặt rời (Bình thường, Vui vẻ, Tức giận, Hoảng hốt), kết hợp tóc trước/sau và 3 khúc tay chân chuẩn giải phẫu.',
+  descriptionEn:
+    'Standard front-view (0°) human character rig featuring a faceless base head with 4 swappable facial expression overlays (Normal, Happy, Angry, Shocked), layered hair, and 3-segment limbs.',
   width: 500,
   height: 600,
   slots: [
-    { id: 'cape', name: 'Áo choàng đỏ sau lưng', nameEn: 'Hero Crimson Cape', role: 'cape', atlasCell: 25, boneId: 'bone-torso', defaultTransform: { x: 0, y: 18, z: 60, scale: 0.48, rotation: 0 }, suggestedAsset: 'character_cutout_demo/cape.png', description: 'Áo choàng đỏ bay phía sau lưng nhân vật Chibi' },
-    { id: 'hair-back', name: 'Tóc sau gáy & Lông mũ', nameEn: 'Back Hair / Helmet Plume', role: 'hair-back', atlasCell: 3, boneId: 'bone-head', defaultTransform: { x: 0, y: -125, z: 50, scale: 0.385, rotation: 0 }, suggestedAsset: 'character_cutout_demo/hair-back.png', description: 'Khối tóc sau đầu Chibi' },
-    { id: 'pelvis', name: 'Hông & Thắt lưng giáp', nameEn: 'Pelvis & Armored Belt', role: 'pelvis', atlasCell: 7, boneId: 'bone-pelvis', defaultTransform: { x: -4, y: 12, z: 0, scale: 0.37, rotation: 0 }, suggestedAsset: 'character_cutout_demo/pelvis.png', description: 'Hông và thắt lưng che khớp đùi' },
-    { id: 'thigh-l', name: 'Đùi trái giáp sắt', nameEn: 'Left Thigh', role: 'thigh-l', atlasCell: 16, boneId: 'bone-thigh-l', defaultTransform: { x: -16, y: 58, z: 15, scale: 0.28, rotation: 0 }, suggestedAsset: 'character_cutout_demo/thigh-left.png', description: 'Đùi trái từ hông đến đầu gối' },
-    { id: 'shin-l', name: 'Cẳng chân trái (Không dính bàn chân)', nameEn: 'Left Shin / Greave', role: 'shin-l', atlasCell: 18, boneId: 'bone-shin-l', defaultTransform: { x: -21, y: 112, z: 10, scale: 0.28, rotation: 0 }, suggestedAsset: 'character_cutout_demo/shin-left.png', description: 'Cẳng chân trái từ đầu gối tới cổ chân' },
-    { id: 'foot-l', name: 'Bàn chân & Ủng sắt trái', nameEn: 'Left Foot / Sabaton Boot', role: 'foot-l', atlasCell: 21, boneId: 'bone-foot-l', defaultTransform: { x: -22, y: 152, z: 5, scale: 0.22, rotation: 0 }, suggestedAsset: 'character_cutout_demo/foot-left.png', description: 'Bàn chân trái có thể xoay cổ chân độc lập' },
-    { id: 'thigh-r', name: 'Đùi phải giáp sắt', nameEn: 'Right Thigh', role: 'thigh-r', atlasCell: 17, boneId: 'bone-thigh-r', defaultTransform: { x: 16, y: 58, z: 15, scale: 0.28, rotation: 0 }, suggestedAsset: 'character_cutout_demo/thigh-right.png', description: 'Đùi phải từ hông đến đầu gối' },
-    { id: 'shin-r', name: 'Cẳng chân phải (Không dính bàn chân)', nameEn: 'Right Shin / Greave', role: 'shin-r', atlasCell: 19, boneId: 'bone-shin-r', defaultTransform: { x: 18, y: 112, z: 10, scale: 0.28, rotation: 0 }, suggestedAsset: 'character_cutout_demo/shin-right.png', description: 'Cẳng chân phải từ đầu gối tới cổ chân' },
-    { id: 'foot-r', name: 'Bàn chân & Ủng sắt phải', nameEn: 'Right Foot / Sabaton Boot', role: 'foot-r', atlasCell: 22, boneId: 'bone-foot-r', defaultTransform: { x: 18, y: 152, z: 5, scale: 0.22, rotation: 0 }, suggestedAsset: 'character_cutout_demo/foot-right.png', description: 'Bàn chân phải có thể xoay cổ chân độc lập' },
-    { id: 'torso', name: 'Thân & Áo giáp ngực', nameEn: 'Torso & Cuirass Armor', role: 'torso', atlasCell: 6, boneId: 'bone-torso', defaultTransform: { x: -4, y: -43, z: -15, scale: 0.44, rotation: 0 }, suggestedAsset: 'character_cutout_demo/torso.png', description: 'Thân từ vai đến eo' },
-    { id: 'arm-l', name: 'Bắp tay trái & Giáp vai', nameEn: 'Left Upper Arm & Pauldron', role: 'arm-l', atlasCell: 8, boneId: 'bone-arm-l', defaultTransform: { x: -44, y: -49, z: -20, scale: 0.285, rotation: 0 }, suggestedAsset: 'character_cutout_demo/arm-left.png', description: 'Bắp tay trái khớp vai chuẩn' },
-    { id: 'forearm-l', name: 'Cẳng tay trái (Không dính bàn tay)', nameEn: 'Left Forearm / Vambrace', role: 'forearm-l', atlasCell: 11, boneId: 'bone-forearm-l', defaultTransform: { x: -48, y: -9, z: -32, scale: 0.275, rotation: 0 }, suggestedAsset: 'character_cutout_demo/forearm-left.png', description: 'Cẳng tay trái từ khuỷu tay đến cổ tay' },
-    { id: 'hand-l', name: 'Bàn tay & Găng sắt trái', nameEn: 'Left Hand / Gauntlet', role: 'hand-l', atlasCell: 13, boneId: 'bone-hand-l', defaultTransform: { x: -48, y: 18, z: -44, scale: 0.21, rotation: 0 }, suggestedAsset: 'character_cutout_demo/hand-left.png', description: 'Bàn tay trái có thể xoay cổ tay' },
-    { id: 'arm-r', name: 'Bắp tay phải & Giáp vai', nameEn: 'Right Upper Arm & Pauldron', role: 'arm-r', atlasCell: 9, boneId: 'bone-arm-r', defaultTransform: { x: 44, y: -49, z: -20, scale: 0.285, rotation: 0 }, suggestedAsset: 'character_cutout_demo/arm-right.png', description: 'Bắp tay phải khớp vai chuẩn' },
-    { id: 'forearm-r', name: 'Cẳng tay phải (Không dính bàn tay)', nameEn: 'Right Forearm / Vambrace', role: 'forearm-r', atlasCell: 12, boneId: 'bone-forearm-r', defaultTransform: { x: 44, y: -9, z: -32, scale: 0.275, rotation: 0 }, suggestedAsset: 'character_cutout_demo/forearm-right.png', description: 'Cẳng tay phải từ khuỷu tay đến cổ tay' },
-    { id: 'hand-r', name: 'Bàn tay & Găng sắt phải', nameEn: 'Right Hand / Gauntlet', role: 'hand-r', atlasCell: 14, boneId: 'bone-hand-r', defaultTransform: { x: 48, y: 18, z: -44, scale: 0.21, rotation: 0 }, suggestedAsset: 'character_cutout_demo/hand-right.png', description: 'Bàn tay phải có thể xoay cổ tay' },
-    { id: 'head', name: 'Khuôn mặt Nam Chibi (Mặt mộc)', nameEn: 'Bare Chibi Head & Face', role: 'head', atlasCell: 1, boneId: 'bone-head', defaultTransform: { x: -2, y: -127, z: -25, scale: 0.385, rotation: 0 }, suggestedAsset: 'character_cutout_demo/head.png', description: 'Khuôn mặt Nam Chibi mắt sáng long lanh' },
-    { id: 'beard', name: 'Râu giả / Râu quai nón hoá trang', nameEn: 'Fake Beard / Mustache Prop', role: 'beard', atlasCell: 10, boneId: 'bone-head', defaultTransform: { x: -2, y: -102, z: -30, scale: 0.38, rotation: 0 }, suggestedAsset: 'character_cutout_demo/beard.png', description: 'Đạo cụ râu quai nón hoá trang' },
-    { id: 'glasses', name: 'Kính mắt chiến thuật đạo cụ', nameEn: 'Eyewear / Glasses Prop', role: 'glasses', atlasCell: 20, boneId: 'bone-head', defaultTransform: { x: -2, y: -122, z: -33, scale: 0.42, rotation: 0 }, suggestedAsset: 'character_cutout_demo/glasses.png', description: 'Kính mắt đạo cụ' },
-    { id: 'mask', name: 'Mặt nạ / Khăn che mặt hoá trang', nameEn: 'Costume Mask / Face Visor', role: 'mask', atlasCell: 15, boneId: 'bone-head', defaultTransform: { x: -2, y: -108, z: -36, scale: 0.42, rotation: 0 }, suggestedAsset: 'character_cutout_demo/mask.png', description: 'Mặt nạ che mặt' },
-    { id: 'hair-front', name: 'Tóc mái trước Anime Chibi', nameEn: 'Front Hair / Bangs Wig', role: 'hair-front', atlasCell: 4, boneId: 'bone-head', defaultTransform: { x: -1, y: -127, z: -40, scale: 0.38, rotation: 0 }, suggestedAsset: 'character_cutout_demo/hair-front.png', description: 'Tóc mái trước Chibi' },
-    { id: 'hat', name: 'Mũ / Vương miện chiến binh', nameEn: 'Helmet / Hat Headwear', role: 'hat', atlasCell: 5, boneId: 'bone-head', defaultTransform: { x: -1, y: -162, z: -45, scale: 0.44, rotation: 0 }, suggestedAsset: 'character_cutout_demo/hat.png', description: 'Mũ nón đội lên đỉnh đầu' },
-    { id: 'prop-weapon', name: 'Thanh kiếm ánh sáng cầm tay', nameEn: 'Sword / Handheld Film Prop', role: 'prop-weapon', atlasCell: 24, boneId: 'bone-hand-r', defaultTransform: { x: 68, y: -18, z: -50, scale: 0.45, rotation: 0 }, suggestedAsset: 'character_cutout_demo/weapon.png', description: 'Đạo cụ cầm tay gắn vào xương bàn tay phải' }
+    { id: 'cape', name: 'Áo choàng sau lưng', nameEn: 'Back Cape / Cloak', role: 'cape', atlasCell: 4, boneId: 'bone-torso', defaultTransform: { x: 0, y: 24, z: 40, scale: 0.698, rotation: 0 }, suggestedAsset: 'character_human_front/cape.png', description: 'Áo choàng rộng phía sau lưng nhân vật' },
+    { id: 'hair-back', name: 'Tóc sau gáy', nameEn: 'Back Hair Silhouette', role: 'hair-back', atlasCell: 2, boneId: 'bone-head', defaultTransform: { x: 0, y: -118, z: 30, scale: 0.473, rotation: 0 }, suggestedAsset: 'character_human_front/hair-back.png', description: 'Khối tóc phía sau đầu và gáy' },
+    { id: 'thigh-l', name: 'Đùi trái', nameEn: 'Left Thigh', role: 'thigh-l', atlasCell: 13, boneId: 'bone-thigh-l', defaultTransform: { x: -21, y: 64, z: 20, scale: 0.383, rotation: 0 }, suggestedAsset: 'character_human_front/thigh-left.png', description: 'Đùi trái từ hông đến đầu gối' },
+    { id: 'thigh-r', name: 'Đùi phải', nameEn: 'Right Thigh', role: 'thigh-r', atlasCell: 14, boneId: 'bone-thigh-r', defaultTransform: { x: 21, y: 64, z: 15, scale: 0.383, rotation: 0 }, suggestedAsset: 'character_human_front/thigh-right.png', description: 'Đùi phải từ hông đến đầu gối' },
+    { id: 'shin-l', name: 'Cẳng chân trái (Không dính giày)', nameEn: 'Left Shin / Lower Leg', role: 'shin-l', atlasCell: 15, boneId: 'bone-shin-l', defaultTransform: { x: -21, y: 123, z: 10, scale: 0.383, rotation: 0 }, suggestedAsset: 'character_human_front/shin-left.png', description: 'Cẳng chân trái từ gối tới cổ chân' },
+    { id: 'shin-r', name: 'Cẳng chân phải (Không dính giày)', nameEn: 'Right Shin / Lower Leg', role: 'shin-r', atlasCell: 16, boneId: 'bone-shin-r', defaultTransform: { x: 21, y: 123, z: 5, scale: 0.383, rotation: 0 }, suggestedAsset: 'character_human_front/shin-right.png', description: 'Cẳng chân phải từ gối tới cổ chân' },
+    { id: 'foot-l', name: 'Bàn chân & Giày ủng trái', nameEn: 'Left Boot / Foot', role: 'foot-l', atlasCell: 17, boneId: 'bone-foot-l', defaultTransform: { x: -22, y: 168, z: 0, scale: 0.36, rotation: 0 }, suggestedAsset: 'character_human_front/foot-left.png', description: 'Giày ủng trái tách rời xoay cổ chân độc lập' },
+    { id: 'foot-r', name: 'Bàn chân & Giày ủng phải', nameEn: 'Right Boot / Foot', role: 'foot-r', atlasCell: 18, boneId: 'bone-foot-r', defaultTransform: { x: 22, y: 168, z: -5, scale: 0.36, rotation: 0 }, suggestedAsset: 'character_human_front/foot-right.png', description: 'Giày ủng phải tách rời xoay cổ chân độc lập' },
+    { id: 'pelvis', name: 'Đai lưng & Vạt áo dưới che hông', nameEn: 'Waist Belt & Lower Tunic Pelvis', role: 'pelvis', atlasCell: 6, boneId: 'bone-pelvis', defaultTransform: { x: 0, y: 20, z: -10, scale: 0.432, rotation: 0 }, suggestedAsset: 'character_human_front/pelvis.png', description: 'Thắt lưng da và vạt áo dưới che khớp hông' },
+    { id: 'torso', name: 'Thân áo ngực (Không kèm tay)', nameEn: 'Sleeveless Jacket / Tunic Torso', role: 'torso', atlasCell: 5, boneId: 'bone-torso', defaultTransform: { x: 0, y: -35, z: -15, scale: 0.432, rotation: 0 }, suggestedAsset: 'character_human_front/torso.png', description: 'Thân áo từ cổ đến eo, tách rời hai cánh tay' },
+    { id: 'arm-l', name: 'Bắp tay trái', nameEn: 'Left Upper Arm Sleeve', role: 'arm-l', atlasCell: 7, boneId: 'bone-arm-l', defaultTransform: { x: -40, y: -34, z: -20, scale: 0.36, rotation: 0 }, suggestedAsset: 'character_human_front/arm-left.png', description: 'Bắp tay áo trái từ vai đến khuỷu tay' },
+    { id: 'arm-r', name: 'Bắp tay phải', nameEn: 'Right Upper Arm Sleeve', role: 'arm-r', atlasCell: 8, boneId: 'bone-arm-r', defaultTransform: { x: 40, y: -34, z: -20, scale: 0.36, rotation: 0 }, suggestedAsset: 'character_human_front/arm-right.png', description: 'Bắp tay áo phải từ vai đến khuỷu tay' },
+    { id: 'hand-l', name: 'Bàn tay trái', nameEn: 'Left Human Hand', role: 'hand-l', atlasCell: 11, boneId: 'bone-hand-l', defaultTransform: { x: -43, y: 32, z: -25, scale: 0.293, rotation: 0 }, suggestedAsset: 'character_human_front/hand-left.png', description: 'Bàn tay người bên trái buông tự nhiên' },
+    { id: 'prop-weapon', name: 'Kiếm / Vũ khí cầm tay (Bật/Tắt)', nameEn: 'Handheld Sword / Weapon Prop', role: 'prop-weapon', atlasCell: 23, boneId: 'bone-hand-r', defaultTransform: { x: 52, y: -10, z: -28, scale: 0.608, rotation: 0 }, suggestedAsset: 'character_human_front/weapon.png', description: 'Vũ khí/đạo cụ gắn theo bàn tay phải' },
+    { id: 'hand-r', name: 'Bàn tay phải', nameEn: 'Right Human Hand', role: 'hand-r', atlasCell: 12, boneId: 'bone-hand-r', defaultTransform: { x: 43, y: 32, z: -30, scale: 0.293, rotation: 0 }, suggestedAsset: 'character_human_front/hand-right.png', description: 'Bàn tay người bên phải buông tự nhiên' },
+    { id: 'forearm-l', name: 'Cẳng tay & Hộ uyển trái', nameEn: 'Left Forearm Bracer', role: 'forearm-l', atlasCell: 9, boneId: 'bone-forearm-l', defaultTransform: { x: -42, y: 2, z: -35, scale: 0.369, rotation: 0 }, suggestedAsset: 'character_human_front/forearm-left.png', description: 'Cẳng tay trái từ khuỷu đến cổ tay (không dính bàn tay)' },
+    { id: 'forearm-r', name: 'Cẳng tay & Hộ uyển phải', nameEn: 'Right Forearm Bracer', role: 'forearm-r', atlasCell: 10, boneId: 'bone-forearm-r', defaultTransform: { x: 42, y: 2, z: -35, scale: 0.369, rotation: 0 }, suggestedAsset: 'character_human_front/forearm-right.png', description: 'Cẳng tay phải từ khuỷu đến cổ tay (không dính bàn tay)' },
+    { id: 'head', name: 'Đầu người trơn (Không ngũ quan)', nameEn: 'Faceless Human Head & Neck Base', role: 'head', atlasCell: 1, boneId: 'bone-head', defaultTransform: { x: 0, y: -106, z: -40, scale: 0.423, rotation: 0 }, suggestedAsset: 'character_human_front/head.png', description: 'Đầu người trơn không có mắt mũi miệng để ghép các layer biểu cảm lên trên' },
+    { id: 'face-normal', name: 'Biểu cảm 1: Bình thường / Tự tin', nameEn: 'Face Expression: Calm / Normal', role: 'face', atlasCell: 19, boneId: 'bone-head', defaultTransform: { x: 0, y: -107, z: -45, scale: 0.153, rotation: 0 }, suggestedAsset: 'character_human_front/face-normal.png', description: 'Ngũ quan biểu cảm bình thường tự tin ghép trên đầu trơn' },
+    { id: 'face-happy', name: 'Biểu cảm 2: Vui vẻ / Cười tươi (Ẩn sẵn)', nameEn: 'Face Expression: Happy / Laughing', role: 'face-alt', atlasCell: 20, boneId: 'bone-head', defaultTransform: { x: 0, y: -107, z: -46, scale: 0.153, rotation: 0, hidden: true }, suggestedAsset: 'character_human_front/face-happy.png', description: 'Bật con mắt layer này (và ẩn biểu cảm 1) để đổi sang mặt cười vui vẻ' },
+    { id: 'face-angry', name: 'Biểu cảm 3: Tức giận / Chiến đấu (Ẩn sẵn)', nameEn: 'Face Expression: Angry / Fierce', role: 'face-alt', atlasCell: 21, boneId: 'bone-head', defaultTransform: { x: 0, y: -107, z: -47, scale: 0.153, rotation: 0, hidden: true }, suggestedAsset: 'character_human_front/face-angry.png', description: 'Bật con mắt layer này để đổi sang biểu cảm tức giận chiến đấu' },
+    { id: 'face-shock', name: 'Biểu cảm 4: Hoảng hốt / Kinh ngạc (Ẩn sẵn)', nameEn: 'Face Expression: Shocked / Panic', role: 'face-alt', atlasCell: 22, boneId: 'bone-head', defaultTransform: { x: 0, y: -107, z: -48, scale: 0.153, rotation: 0, hidden: true }, suggestedAsset: 'character_human_front/face-shock.png', description: 'Bật con mắt layer này để đổi sang biểu cảm hoảng hốt đổ mồ hôi' },
+    { id: 'hair-front', name: 'Tóc mái trước & Tóc mai', nameEn: 'Front Hair Bangs & Sideburns', role: 'hair-front', atlasCell: 3, boneId: 'bone-head', defaultTransform: { x: 0, y: -124, z: -50, scale: 0.459, rotation: 0 }, suggestedAsset: 'character_human_front/hair-front.png', description: 'Tóc mái trước ôm lấy trán, chừa khoảng trống cho khuôn mặt' }
   ],
-  bones: HERO_BONES,
-  clips: HERO_CLIPS,
+  bones: HUMAN_BONES,
+  clips: HUMAN_CLIPS,
   activeClipId: 'clip-walk',
   promptGuide: {
-    systemPrompt: `Use the attached character image as the strict identity reference.
-Create ONE high-resolution 4096x4096 CHARACTER CUTOUT SPRITE ATLAS for 2D skeletal / 2.5D animation.
-IDENTITY: Chibi / stylized 2D animated male hero with modular costume disguise kit.
-VIEW: Strict FRONT ORTHOGRAPHIC view, neutral relaxed rest pose, limbs straight, no perspective.
-OUTPUT: Single square 4096x4096 PNG on flat OPAQUE green chroma-key background (#00FF00). Exactly 5 columns x 5 rows of equal cells.
-
-MODULAR FILM DISGUISE & ACTOR PROPS PRINCIPLE (CRITICAL):
-1. BARE BASE HEAD (Cell 1): Must draw a completely clean, bare face (eyes, nose, mouth, ears, forehead). NEVER bake a beard, glasses, mask, or hat into the base face. The face acts as an unadorned actor base.
-2. DISGUISE ACCESSORIES (Cells 5, 10, 15, 20):
-   - Cell 5 (HAT / HELMET): Isolated headwear with hollow space matching the head crown.
-   - Cell 10 (DETACHABLE BEARD / MUSTACHE): Isolated facial hair prop aligning precisely with the chin and upper lip of Cell 1.
-   - Cell 15 (DISGUISE MASK / BANDANA / VISOR): Isolated face mask covering lower face or eyes.
-   - Cell 20 (EYEWEAR / GLASSES): Isolated spectacles/sunglasses matching the interpupillary distance of Cell 1.
-3. SEPARATED 3-SEGMENT LIMBS:
-   - Forearms (Cells 11, 12) must NOT have hands. Extend wrist with 10-15% rounded joint overlap.
-   - Hands (Cells 13, 14) are independent sprites with 5 fingers and rounded wrist caps for independent wrist rotation.
-   - Shins / Lower Legs (Cells 18, 19) must NOT have feet or shoes. Extend ankle with 10-15% rounded joint overlap.
-   - Feet / Boots / Shoes (Cells 21, 22) are independent sprites with rounded ankle caps for ankle pivoting.
-4. MOVIE PROPS & CAPE (Cells 24, 25): Handheld sword/prop in Cell 24, flowing back cape in Cell 25.
-
-5x5 EQUAL CELLS:
-Row 1: 1.Head/face (bare, no beard/hat/mask/glasses), 2.Neck, 3.Back hair silhouette, 4.Front bangs/wig, 5.Hat/helmet/headwear
-Row 2: 6.Torso/chestplate, 7.Pelvis/belt, 8.LEFT upper arm, 9.RIGHT upper arm, 10.Detachable beard/mustache prop
-Row 3: 11.LEFT forearm (no hand), 12.RIGHT forearm (no hand), 13.LEFT hand/glove, 14.RIGHT hand/glove, 15.Costume mask/bandana
-Row 4: 16.LEFT thigh, 17.RIGHT thigh, 18.LEFT lower leg (no foot), 19.RIGHT lower leg (no foot), 20.Glasses/eyewear prop
-Row 5: 21.LEFT foot/boot, 22.RIGHT foot/boot, 23.Left shoulder pad/cape lock, 24.Handheld movie prop/sword, 25.Back cape/cloak
-CRITICAL: Extend all joints with rounded concealed overlapping ends (10-15%). One shared pixel scale across all cells.`,
-    cellLayout: [
-      '1. Mặt mộc nam (không râu/kính/mặt nạ/mũ)',
-      '3. Tóc sau gáy',
-      '4. Tóc mái trước / Tóc giả',
-      '5. Mũ / Nón / Mũ giáp',
-      '6. Thân áo / Giáp ngực',
-      '7. Hông & Thắt lưng',
-      '8. Bắp tay trái',
-      '9. Bắp tay phải',
-      '10. Râu giả / Râu quai nón',
-      '11. Cẳng tay trái (không kèm bàn tay)',
-      '12. Cẳng tay phải (không kèm bàn tay)',
-      '13. Bàn tay / Găng tay trái',
-      '14. Bàn tay / Găng tay phải',
-      '15. Mặt nạ / Khăn che mặt hoá trang',
-      '16. Đùi trái',
-      '17. Đùi phải',
-      '18. Cẳng chân trái (không kèm bàn chân)',
-      '19. Cẳng chân phải (không kèm bàn chân)',
-      '20. Kính mắt / Kính râm hoá trang',
-      '21. Bàn chân / Ủng trái',
-      '22. Bàn chân / Ủng phải',
-      '24. Đạo cụ cầm tay / Kiếm',
-      '25. Áo choàng đỏ sau lưng'
-    ],
-    userGuide: 'Mẫu nhân vật Nam Hiệp Sĩ Chibi bóc tách 23 bộ phận chuẩn phim hoạt hình: Tách riêng 3 khúc tay (bắp tay - cẳng tay - bàn tay) và 3 khúc chân (đùi - cẳng chân - bàn chân). Khuôn mặt mộc được tách riêng biệt với Mũ, Kính mắt, Râu giả và Mặt nạ để bật/tắt hoá trang.'
+    systemPrompt: `IDENTITY: Stylized 2D animated young adult human martial/adventure hero in strict FRONT ORTHOGRAPHIC VIEW (0°), wearing royal-blue and white layered jacket tunic with gold trim, leather belt, dark trousers and boots, featuring a FACELESS base head and 4 separate facial expression overlays.`,
+    cellLayout: [],
+    userGuide: ''
   },
-  buildComposite: (images, name) => createTemplateComposite(TMPL_MALE_HERO, images, name)
+  buildComposite: (images, name) => createTemplateComposite(TMPL_CHARACTER_FRONT, images, name)
 }
 
 // ---------------------------------------------------------------------------
-// 2. Nữ Thiếu Nữ / Nữ Sinh Anime (12 Khớp Rigging)
+// 2. Nhân Vật Chuẩn Đầu Người — Hướng Chéo 3/4 (45° Three-Quarter View)
 // ---------------------------------------------------------------------------
 
-const ANIME_BONES = createHumanoidBones()
-const ANIME_WALK = generateWalkCycle(ANIME_BONES, 1.6)
-const ANIME_IDLE = generateIdleBreathe(ANIME_BONES, 2.0)
-const ANIME_WAVE = generateWaveHand(ANIME_BONES, 1.8)
-const ANIME_BOW = generateBow(ANIME_BONES, 2.0)
-
-const ANIME_CLIPS: AnimationClip[] = [
-  { id: 'clip-walk', name: 'Đi bộ tự nhiên (Walk)', duration: 1.6, loop: true, presetKey: 'walk', tracks: ANIME_WALK },
-  { id: 'clip-idle', name: 'Đứng thở nhẹ nhàng (Idle)', duration: 2.0, loop: true, presetKey: 'idle', tracks: ANIME_IDLE },
-  { id: 'clip-wave', name: 'Vẫy tay chào bạn (Wave)', duration: 1.8, loop: true, presetKey: 'wave', tracks: ANIME_WAVE },
-  { id: 'clip-bow', name: 'Cúi chào lễ phép (Bow)', duration: 2.0, loop: false, presetKey: 'bow', tracks: ANIME_BOW }
-]
-
-export const TMPL_FEMALE_ANIME: LayerAssemblyTemplate = {
-  id: 'tmpl-character-female-anime',
-  name: 'Nữ Thiếu Nữ Chibi / Anime Girl (Tóc Buông & Váy Xếp Ly)',
-  nameEn: 'Young Female Chibi / Anime Heroine (Sailor Outfit & Rigged Hair)',
+export const TMPL_CHARACTER_QUARTER: LayerAssemblyTemplate = {
+  id: 'tmpl-character-quarter',
+  name: 'Nhân Vật Chuẩn Đầu Người — Hướng Chéo 3/4 (45° + Đầu Trơn & 4 Biểu Cảm)',
+  nameEn: 'Standard Human Character — Three-Quarter View (45° Faceless Head & 4 Expressions)',
   category: 'character',
-  ageGroup: 'youth',
-  description: 'Nữ sinh Chibi Anime tóc hồng Sakura dài buông xõa hai bên vai, đồng phục học sinh áo thủy thủ nơ đỏ váy xếp ly, 12 bộ phận tách rời khớp xương 100%.',
-  descriptionEn: 'Young female Chibi anime character with flowing twin hair, sailor blouse, pleated skirt and 12 rigged cutout layers.',
+  ageGroup: 'adult',
+  description:
+    'Mẫu nhân vật chuẩn đầu người góc nhìn chéo 3/4 (45°): đầu người 3/4 trơn không ngũ quan kết hợp 4 biểu cảm mặt góc nghiêng 3/4 (Bình thường, Vui vẻ, Tức giận, Hoảng hốt), phân lớp tay chân xa/gần tạo chiều sâu 2.5D tự nhiên.',
+  descriptionEn:
+    'Three-quarter view (45°) standard human character rig with a faceless 3/4 head, 4 swappable 3/4 facial expression overlays, and depth-sorted near/far limbs.',
   width: 500,
   height: 600,
   slots: [
-    { id: 'hair-back', name: 'Tóc sau dài buông vai', nameEn: 'Back Hair', role: 'hair-back', atlasCell: 3, boneId: 'bone-head', defaultTransform: { x: 0, y: -80, z: 50, scale: 0.55, rotation: 0 }, suggestedAsset: 'character_chibi_female/hair-back.png', description: 'Khối tóc hồng Sakura sau đầu mờ xa phía hậu cảnh' },
-    { id: 'head', name: 'Đầu & Khuôn mặt Nữ Chibi', nameEn: 'Head, Face & Front Bangs', role: 'head', atlasCell: 1, boneId: 'bone-head', defaultTransform: { x: 0, y: -124, z: -15, scale: 0.5, rotation: 0 }, suggestedAsset: 'character_chibi_female/head.png', description: 'Khuôn mặt Chibi anime mắt tím to long lanh, tóc mái nơ đỏ' },
-    { id: 'torso', name: 'Áo đồng phục thủy thủ & Nơ', nameEn: 'Sailor Torso & Bow', role: 'torso', atlasCell: 6, boneId: 'bone-torso', defaultTransform: { x: 0, y: -40, z: 10, scale: 0.54, rotation: 0 }, suggestedAsset: 'character_chibi_female/torso.png', description: 'Thân áo thủy thủ trắng kèm nơ đỏ' },
-    { id: 'pelvis', name: 'Váy xếp ly học sinh & Hông', nameEn: 'Pleated Skirt & Pelvis', role: 'pelvis', atlasCell: 7, boneId: 'bone-pelvis', defaultTransform: { x: 0, y: 12, z: 0, scale: 0.54, rotation: 0 }, suggestedAsset: 'character_chibi_female/pelvis.png', description: 'Váy xếp ly màu lam sẫm che khớp đùi' },
-    { id: 'arm-l', name: 'Bắp tay áo phồng trái', nameEn: 'Left Upper Arm', role: 'arm-l', atlasCell: 8, boneId: 'bone-arm-l', defaultTransform: { x: -36, y: -42, z: -6, scale: 0.52, rotation: 0 }, suggestedAsset: 'character_chibi_female/arm-left.png', description: 'Tay áo học sinh bên trái' },
-    { id: 'forearm-l', name: 'Cẳng tay & Bàn tay trái', nameEn: 'Left Forearm & Hand', role: 'forearm-l', atlasCell: 11, boneId: 'bone-forearm-l', defaultTransform: { x: -38, y: 10, z: -25, scale: 0.52, rotation: 0 }, suggestedAsset: 'character_chibi_female/forearm-left.png', description: 'Cẳng tay và bàn tay trái Chibi' },
-    { id: 'arm-r', name: 'Bắp tay áo phồng phải', nameEn: 'Right Upper Arm', role: 'arm-r', atlasCell: 9, boneId: 'bone-arm-r', defaultTransform: { x: 36, y: -42, z: -6, scale: 0.52, rotation: 0 }, suggestedAsset: 'character_chibi_female/arm-right.png', description: 'Tay áo học sinh bên phải' },
-    { id: 'forearm-r', name: 'Cẳng tay & Cặp sách phải', nameEn: 'Right Forearm, Hand & School Bag', role: 'forearm-r', atlasCell: 12, boneId: 'bone-forearm-r', defaultTransform: { x: 42, y: 14, z: -25, scale: 0.52, rotation: 0 }, suggestedAsset: 'character_chibi_female/forearm-right.png', description: 'Cẳng tay phải cầm cặp sách đi học' },
-    { id: 'thigh-l', name: 'Đùi trái mang tất dài', nameEn: 'Left Thigh', role: 'thigh-l', atlasCell: 16, boneId: 'bone-thigh-l', defaultTransform: { x: -20, y: 64, z: 35, scale: 0.58, rotation: 0 }, suggestedAsset: 'character_chibi_female/thigh-left.png', description: 'Đùi trái mang tất đùi đen' },
-    { id: 'shin-l', name: 'Cẳng chân & Giày học sinh trái', nameEn: 'Left Shin & Loafer', role: 'shin-l', atlasCell: 18, boneId: 'bone-shin-l', defaultTransform: { x: -20, y: 136, z: 22, scale: 0.58, rotation: 0 }, suggestedAsset: 'character_chibi_female/shin-left.png', description: 'Cẳng chân và giày da học sinh trái' },
-    { id: 'thigh-r', name: 'Đùi phải mang tất dài', nameEn: 'Right Thigh', role: 'thigh-r', atlasCell: 17, boneId: 'bone-thigh-r', defaultTransform: { x: 20, y: 64, z: 35, scale: 0.58, rotation: 0 }, suggestedAsset: 'character_chibi_female/thigh-right.png', description: 'Đùi phải mang tất đùi đen' },
-    { id: 'shin-r', name: 'Cẳng chân & Giày học sinh phải', nameEn: 'Right Shin & Loafer', role: 'shin-r', atlasCell: 19, boneId: 'bone-shin-r', defaultTransform: { x: 20, y: 136, z: 22, scale: 0.58, rotation: 0 }, suggestedAsset: 'character_chibi_female/shin-right.png', description: 'Cẳng chân và giày da học sinh phải' }
+    { id: 'cape', name: 'Áo choàng sau lưng (Góc chéo)', nameEn: 'Back Cape (3/4 View)', role: 'cape', atlasCell: 4, boneId: 'bone-torso', defaultTransform: { x: -11, y: 24, z: 45, scale: 0.666, rotation: 0 }, suggestedAsset: 'character_human_quarter/cape.png', description: 'Áo choàng phía sau lưng góc nhìn chéo 45°' },
+    { id: 'hair-back', name: 'Tóc sau gáy (Góc chéo 3/4)', nameEn: 'Back Hair (3/4 View)', role: 'hair-back', atlasCell: 2, boneId: 'bone-head', defaultTransform: { x: -6, y: -116, z: 40, scale: 0.459, rotation: 0 }, suggestedAsset: 'character_human_quarter/hair-back.png', description: 'Tóc sau đầu góc chéo 3/4' },
+    { id: 'arm-r', name: 'Bắp tay phải (Bên xa)', nameEn: 'Far-Side Upper Arm (3/4 View)', role: 'arm-r', atlasCell: 8, boneId: 'bone-arm-r', defaultTransform: { x: 29, y: -34, z: 35, scale: 0.351, rotation: 0 }, suggestedAsset: 'character_human_quarter/arm-right.png', description: 'Bắp tay phía xa nằm sau thân ngực' },
+    { id: 'prop-weapon', name: 'Kiếm / Vũ khí cầm tay (Ẩn sẵn)', nameEn: 'Handheld Sword Prop', role: 'prop-weapon', atlasCell: 23, boneId: 'bone-hand-r', defaultTransform: { x: 41, y: -8, z: 32, scale: 0.585, rotation: 0, hidden: true }, suggestedAsset: 'character_human_quarter/weapon.png', description: 'Vũ khí cầm tay góc nghiêng 3/4' },
+    { id: 'hand-r', name: 'Bàn tay phải (Bên xa)', nameEn: 'Far-Side Hand (3/4 View)', role: 'hand-r', atlasCell: 12, boneId: 'bone-hand-r', defaultTransform: { x: 33, y: 31, z: 30, scale: 0.252, rotation: 0 }, suggestedAsset: 'character_human_quarter/hand-right.png', description: 'Bàn tay phía xa' },
+    { id: 'forearm-r', name: 'Cẳng tay phải (Bên xa)', nameEn: 'Far-Side Forearm (3/4 View)', role: 'forearm-r', atlasCell: 10, boneId: 'bone-forearm-r', defaultTransform: { x: 32, y: 2, z: 25, scale: 0.324, rotation: 0 }, suggestedAsset: 'character_human_quarter/forearm-right.png', description: 'Cẳng tay phía xa' },
+    { id: 'thigh-r', name: 'Đùi phải (Chân xa)', nameEn: 'Far-Side Thigh (3/4 View)', role: 'thigh-r', atlasCell: 14, boneId: 'bone-thigh-r', defaultTransform: { x: 14, y: 64, z: 20, scale: 0.383, rotation: 0 }, suggestedAsset: 'character_human_quarter/thigh-right.png', description: 'Đùi chân phía xa góc 3/4' },
+    { id: 'shin-r', name: 'Cẳng chân phải (Chân xa)', nameEn: 'Far-Side Shin (3/4 View)', role: 'shin-r', atlasCell: 16, boneId: 'bone-shin-r', defaultTransform: { x: 14, y: 122, z: 15, scale: 0.383, rotation: 0 }, suggestedAsset: 'character_human_quarter/shin-right.png', description: 'Cẳng chân phía xa góc 3/4' },
+    { id: 'foot-r', name: 'Giày ủng phải (Chân xa)', nameEn: 'Far-Side Boot (3/4 View)', role: 'foot-r', atlasCell: 18, boneId: 'bone-foot-r', defaultTransform: { x: 20, y: 165, z: 10, scale: 0.342, rotation: 0 }, suggestedAsset: 'character_human_quarter/foot-right.png', description: 'Bàn chân và giày ủng phía xa hướng chéo' },
+    { id: 'thigh-l', name: 'Đùi trái (Chân gần)', nameEn: 'Near-Side Thigh (3/4 View)', role: 'thigh-l', atlasCell: 13, boneId: 'bone-thigh-l', defaultTransform: { x: -12, y: 65, z: 5, scale: 0.396, rotation: 0 }, suggestedAsset: 'character_human_quarter/thigh-left.png', description: 'Đùi chân phía gần góc 3/4' },
+    { id: 'shin-l', name: 'Cẳng chân trái (Chân gần)', nameEn: 'Near-Side Shin (3/4 View)', role: 'shin-l', atlasCell: 15, boneId: 'bone-shin-l', defaultTransform: { x: -12, y: 124, z: 0, scale: 0.396, rotation: 0 }, suggestedAsset: 'character_human_quarter/shin-left.png', description: 'Cẳng chân phía gần góc 3/4' },
+    { id: 'foot-l', name: 'Giày ủng trái (Chân gần)', nameEn: 'Near-Side Boot (3/4 View)', role: 'foot-l', atlasCell: 17, boneId: 'bone-foot-l', defaultTransform: { x: -6, y: 168, z: -5, scale: 0.351, rotation: 0 }, suggestedAsset: 'character_human_quarter/foot-left.png', description: 'Bàn chân và giày ủng phía gần hướng chéo' },
+    { id: 'pelvis', name: 'Đai lưng & Vạt áo dưới (Góc 3/4)', nameEn: 'Waist Belt & Lower Tunic (3/4 View)', role: 'pelvis', atlasCell: 6, boneId: 'bone-pelvis', defaultTransform: { x: 0, y: 20, z: -10, scale: 0.405, rotation: 0 }, suggestedAsset: 'character_human_quarter/pelvis.png', description: 'Đai lưng và vạt áo dưới góc nghiêng 45°' },
+    { id: 'torso', name: 'Thân áo ngực (Góc 3/4)', nameEn: 'Sleeveless Jacket Torso (3/4 View)', role: 'torso', atlasCell: 5, boneId: 'bone-torso', defaultTransform: { x: 0, y: -35, z: -15, scale: 0.414, rotation: 0 }, suggestedAsset: 'character_human_quarter/torso.png', description: 'Thân ngực xoay góc chéo 45°' },
+    { id: 'head', name: 'Đầu người trơn 3/4 (Không ngũ quan)', nameEn: 'Faceless Human Head (3/4 View)', role: 'head', atlasCell: 1, boneId: 'bone-head', defaultTransform: { x: 2, y: -106, z: -20, scale: 0.405, rotation: 0 }, suggestedAsset: 'character_human_quarter/head.png', description: 'Đầu người góc 3/4 trơn không mắt mũi miệng để ghép các biểu cảm 3/4' },
+    { id: 'face-normal', name: 'Biểu cảm 3/4: Bình thường / Tự tin', nameEn: '3/4 Face: Calm / Normal', role: 'face', atlasCell: 19, boneId: 'bone-head', defaultTransform: { x: 11, y: -106, z: -25, scale: 0.189, rotation: 0 }, suggestedAsset: 'character_human_quarter/face-normal.png', description: 'Ngũ quan góc nghiêng 3/4 bình thường tự tin' },
+    { id: 'face-happy', name: 'Biểu cảm 3/4: Vui vẻ / Cười tươi (Ẩn sẵn)', nameEn: '3/4 Face: Happy / Laughing', role: 'face-alt', atlasCell: 20, boneId: 'bone-head', defaultTransform: { x: 11, y: -106, z: -26, scale: 0.189, rotation: 0, hidden: true }, suggestedAsset: 'character_human_quarter/face-happy.png', description: 'Bật con mắt layer này để đổi sang biểu cảm cười tươi góc 3/4' },
+    { id: 'face-angry', name: 'Biểu cảm 3/4: Tức giận / Chiến đấu (Ẩn sẵn)', nameEn: '3/4 Face: Angry / Fierce', role: 'face-alt', atlasCell: 21, boneId: 'bone-head', defaultTransform: { x: 11, y: -106, z: -27, scale: 0.189, rotation: 0, hidden: true }, suggestedAsset: 'character_human_quarter/face-angry.png', description: 'Bật con mắt layer này để đổi sang biểu cảm tức giận góc 3/4' },
+    { id: 'face-shock', name: 'Biểu cảm 3/4: Hoảng hốt / Kinh ngạc (Ẩn sẵn)', nameEn: '3/4 Face: Shocked / Panic', role: 'face-alt', atlasCell: 22, boneId: 'bone-head', defaultTransform: { x: 11, y: -106, z: -28, scale: 0.189, rotation: 0, hidden: true }, suggestedAsset: 'character_human_quarter/face-shock.png', description: 'Bật con mắt layer này để đổi sang biểu cảm hoảng hốt góc 3/4' },
+    { id: 'hair-front', name: 'Tóc mái trước & Tóc mai (Góc 3/4)', nameEn: 'Front Hair Bangs (3/4 View)', role: 'hair-front', atlasCell: 3, boneId: 'bone-head', defaultTransform: { x: 5, y: -133, z: -30, scale: 0.441, rotation: 0 }, suggestedAsset: 'character_human_quarter/hair-front.png', description: 'Tóc mái trước theo phối cảnh góc chéo 45°' },
+    { id: 'arm-l', name: 'Bắp tay trái (Bên gần)', nameEn: 'Near-Side Upper Arm (3/4 View)', role: 'arm-l', atlasCell: 7, boneId: 'bone-arm-l', defaultTransform: { x: -32, y: -33, z: -35, scale: 0.369, rotation: 0 }, suggestedAsset: 'character_human_quarter/arm-left.png', description: 'Bắp tay phía gần người xem' },
+    { id: 'hand-l', name: 'Bàn tay trái (Bên gần)', nameEn: 'Near-Side Hand (3/4 View)', role: 'hand-l', atlasCell: 11, boneId: 'bone-hand-l', defaultTransform: { x: -34, y: 32, z: -40, scale: 0.261, rotation: 0 }, suggestedAsset: 'character_human_quarter/hand-left.png', description: 'Bàn tay phía gần người xem' },
+    { id: 'forearm-l', name: 'Cẳng tay trái (Bên gần)', nameEn: 'Near-Side Forearm (3/4 View)', role: 'forearm-l', atlasCell: 9, boneId: 'bone-forearm-l', defaultTransform: { x: -33, y: 2, z: -45, scale: 0.342, rotation: 0 }, suggestedAsset: 'character_human_quarter/forearm-left.png', description: 'Cẳng tay và hộ uyển phía gần người xem' }
   ],
-  bones: ANIME_BONES,
-  clips: ANIME_CLIPS,
+  bones: HUMAN_BONES,
+  clips: HUMAN_CLIPS,
   activeClipId: 'clip-walk',
   promptGuide: {
-    systemPrompt: `Create ONE high-resolution 4096x4096 CHARACTER CUTOUT SPRITE ATLAS for 2D anime girl skeletal animation.
-IDENTITY: Young anime schoolgirl, silver-lavender twin-tail hair, gentle smiling expression, white sailor uniform with navy collar and red ribbon bow, navy pleated skirt, black thigh-high socks, brown loafers, leather school bag.
-VIEW: Front orthographic view, calm relaxed standing rest pose, arms at sides.
-BACKGROUND: Uniform flat opaque chroma-key magenta #FF00FF background.
-CELLS:
-1. Head, face & front bangs
-3. Long flowing back hair silhouette
-6. Sailor blouse with red bow
-7. Pleated navy skirt & hips
-8. Left puffy sleeve & upper arm
-9. Right puffy sleeve & upper arm
-11. Left slender forearm & hand
-12. Right forearm, hand & school bag
-16. Left thigh with black stocking
-17. Right thigh with black stocking
-18. Left shin with school loafer
-19. Right shin with school loafer
-Hidden rounded overlaps at joints (10-15%). Clear silhouette edges, no color bleed.`,
-    cellLayout: ['1. Mặt anime', '3. Tóc sau dài', '6. Thân áo thủy thủ', '7. Váy xếp ly', '8. Tay áo T', '9. Tay áo P', '11. Cẳng tay T', '12. Cẳng tay P', '16. Đùi tất T', '17. Đùi tất P', '18. Chân giày T', '19. Chân giày P'],
-    userGuide: 'Lưu ảnh sprite atlas với phông hồng tím (#FF00FF), loại bỏ nền trong suốt rồi gắn từng bộ phận vào xưởng lắp ráp.'
+    systemPrompt: `IDENTITY: Stylized 2D animated young adult human martial/adventure hero in THREE-QUARTER VIEW (45° angled perspective), wearing royal-blue and white layered jacket tunic with gold trim, leather belt, dark trousers and boots, featuring a FACELESS 3/4 base head and 4 separate 3/4 facial expression overlays.`,
+    cellLayout: [],
+    userGuide: ''
   },
-  buildComposite: (images, name) => createTemplateComposite(TMPL_FEMALE_ANIME, images, name)
+  buildComposite: (images, name) => createTemplateComposite(TMPL_CHARACTER_QUARTER, images, name)
 }
 
 // ---------------------------------------------------------------------------
-// 3. Trẻ Em / Bé Trai / Bé Gái Chibi (Tỉ lệ 3.5 đầu, lon ton tinh nghịch)
+// 3. Nhân Vật Chuẩn Đầu Người — Hướng Sau Lưng (180° Back View)
 // ---------------------------------------------------------------------------
 
-const CHILD_BONES = createChildBones()
-const CHILD_TODDLE = generateChildToddle(CHILD_BONES, 1.1)
-const CHILD_IDLE = generateIdleBreathe(CHILD_BONES, 1.8)
-
-const CHILD_CLIPS: AnimationClip[] = [
-  { id: 'clip-toddle', name: 'Bước đi lon ton (Toddle)', duration: 1.1, loop: true, presetKey: 'walk', tracks: CHILD_TODDLE },
-  { id: 'clip-idle', name: 'Đứng thở tinh nghịch (Idle)', duration: 1.8, loop: true, presetKey: 'idle', tracks: CHILD_IDLE }
-]
-
-export const TMPL_CHILD_KID: LayerAssemblyTemplate = {
-  id: 'tmpl-character-child-kid',
-  name: 'Bé Trai / Trẻ Em Chibi (Lon Ton Tinh Nghịch)',
-  nameEn: 'Toddler / Chibi Kid (Playful & Energetic)',
+export const TMPL_CHARACTER_BACK: LayerAssemblyTemplate = {
+  id: 'tmpl-character-back',
+  name: 'Nhân Vật Chuẩn Đầu Người — Hướng Sau Lưng (180° Back View)',
+  nameEn: 'Standard Human Character — Back View (180° Rear Orthographic)',
   category: 'character',
-  ageGroup: 'child',
-  description: 'Trẻ em / bé trai chibi tỉ lệ 3.5 đầu tròn lẳn, má phính dễ thương, áo thun quần yếm, bước đi lon ton nhí nhảnh và vui tươi.',
-  descriptionEn: 'Cute chibi child character with 3.5 heads proportion, overalls, short chubby limbs and energetic waddle.',
-  width: 450,
-  height: 520,
-  slots: [
-    { id: 'head', name: 'Đầu to tròn & Mũ lưỡi trai', nameEn: 'Chibi Head & Cap', role: 'head', atlasCell: 1, boneId: 'bone-head', defaultTransform: { x: 0, y: -82, z: -15, scale: 0.9, rotation: 0 }, suggestedAsset: CHIBI_KID_ART.head, description: 'Đầu tròn to, má phính hồng hào, mũ lưỡi trai' },
-    { id: 'torso', name: 'Thân áo thun trẻ em', nameEn: 'Child T-Shirt Torso', role: 'torso', atlasCell: 6, boneId: 'bone-torso', defaultTransform: { x: 0, y: -20, z: 0, scale: 0.9, rotation: 0 }, suggestedAsset: CHIBI_KID_ART.torso, description: 'Áo thun sọc ngắn trẻ em' },
-    { id: 'pelvis', name: 'Quần yếm bò dễ thương', nameEn: 'Denim Overalls & Hips', role: 'pelvis', atlasCell: 7, boneId: 'bone-pelvis', defaultTransform: { x: 0, y: 25, z: -5, scale: 0.9, rotation: 0 }, suggestedAsset: CHIBI_KID_ART.pelvis, description: 'Quần yếm ngắn bò xanh có túi' },
-    { id: 'arm-l', name: 'Tay áo trái bụ bẫm', nameEn: 'Left Whole Arm & Hand', role: 'arm-l', atlasCell: 8, boneId: 'bone-arm-l', defaultTransform: { x: -34, y: -12, z: -10, scale: 0.9, rotation: 0 }, suggestedAsset: CHIBI_KID_ART.armL, description: 'Cánh tay liền và bàn tay tròn ngắn bụ bẫm bên trái' },
-    { id: 'arm-r', name: 'Tay áo phải bụ bẫm', nameEn: 'Right Whole Arm & Hand', role: 'arm-r', atlasCell: 9, boneId: 'bone-arm-r', defaultTransform: { x: 34, y: -12, z: -10, scale: 0.9, rotation: 0 }, suggestedAsset: CHIBI_KID_ART.armR, description: 'Cánh tay liền và bàn tay tròn ngắn bụ bẫm bên phải' },
-    { id: 'thigh-l', name: 'Chân trái ngắn & Giày thể thao', nameEn: 'Left Leg & Sneaker', role: 'thigh-l', atlasCell: 16, boneId: 'bone-thigh-l', defaultTransform: { x: -20, y: 72, z: 10, scale: 0.9, rotation: 0 }, suggestedAsset: CHIBI_KID_ART.legL, description: 'Chân ngắn bụ bẫm và giày đỏ bên trái' },
-    { id: 'thigh-r', name: 'Chân phải ngắn & Giày thể thao', nameEn: 'Right Leg & Sneaker', role: 'thigh-r', atlasCell: 17, boneId: 'bone-thigh-r', defaultTransform: { x: 20, y: 72, z: 10, scale: 0.9, rotation: 0 }, suggestedAsset: CHIBI_KID_ART.legR, description: 'Chân ngắn bụ bẫm và giày đỏ bên phải' }
-  ],
-  bones: CHILD_BONES,
-  clips: CHILD_CLIPS,
-  activeClipId: 'clip-toddle',
-  promptGuide: {
-    systemPrompt: `Create ONE high-resolution 4096x4096 CHARACTER CUTOUT SPRITE ATLAS for a 2D cute toddler / child character.
-IDENTITY: 5-year-old child, chibi proportions (3.5 heads tall), oversized round head with chubby cheeks, backwards baseball cap, colorful striped t-shirt and blue denim overalls, small red sneakers.
-VIEW: Front orthographic view, relaxed friendly pose, short chubby limbs.
-BACKGROUND: Solid flat green chroma-key background #00FF00.
-CELLS:
-1. Head and cap (large round silhouette, cheerful big eyes)
-6. Torso with striped tee
-7. Denim overalls hip section
-8. Left chubby arm with small hand
-9. Right chubby arm with small hand
-16. Left short leg with red sneaker
-17. Right short leg with red sneaker
-Overlapping rounded joint caps for smooth puppet animation.`,
-    cellLayout: ['1. Đầu chibi & mũ', '6. Thân áo sọc', '7. Quần yếm bò', '8. Tay trái bụ bẫm', '9. Tay phải bụ bẫm', '16. Chân & giày trái', '17. Chân & giày phải'],
-    userGuide: 'Prompt tạo tỉ lệ chibi 3.5 đầu dễ thương, tách nền và ráp vào các khớp ngắn của trẻ em.'
-  },
-  buildComposite: (images, name) => createTemplateComposite(TMPL_CHILD_KID, images, name)
-}
-
-// ---------------------------------------------------------------------------
-// 4. Người Trung Niên / Doanh Nhân Công Sở (Đĩnh đạc, Vest lịch thiệp)
-// ---------------------------------------------------------------------------
-
-const MID_BONES = createHumanoidBones()
-const MID_WALK = generateWalkCycle(MID_BONES, 1.8)
-const MID_IDLE = generateIdleBreathe(MID_BONES, 2.6)
-
-const MID_CLIPS: AnimationClip[] = [
-  { id: 'clip-firm-walk', name: 'Bước đi đĩnh đạc (Firm Walk)', duration: 1.8, loop: true, presetKey: 'walk', tracks: MID_WALK },
-  { id: 'clip-idle', name: 'Đứng phong thái đĩnh đạc (Idle)', duration: 2.6, loop: true, presetKey: 'idle', tracks: MID_IDLE }
-]
-
-export const TMPL_MIDDLEAGED_MAN: LayerAssemblyTemplate = {
-  id: 'tmpl-character-middleaged-man',
-  name: 'Người Trung Niên / Quý Ông Công Sở (Vest Đĩnh Đạc)',
-  nameEn: 'Middle-Aged Professional / Gentleman (Business Suit)',
-  category: 'character',
-  ageGroup: 'middleaged',
-  description: 'Nhân vật nam trung niên tầm 45 tuổi: tách rời cẳng tay & bàn tay, cẳng chân & giày tây; khuôn mặt mộc độc lập với Kính mắt, Râu mép, Mũ phớt và Cặp da đạo cụ.',
-  descriptionEn: 'Middle-aged businessman in tailored suit with separated hands, oxford shoes, and modular disguise props: bare face, mustache, eyewear, fedora and briefcase.',
+  ageGroup: 'adult',
+  description:
+    'Mẫu nhân vật chuẩn đầu người nhìn từ phía sau lưng (180°): hiển thị trọn vẹn mái tóc sau gáy, cổ và vành tai sau, lưng áo, đai lưng sau, mu bàn tay và gót giày ủng để diễn hoạt cảnh nhân vật quay lưng bước đi hoặc đối mặt kẻ địch.',
+  descriptionEn:
+    'Rear orthographic (180° back view) human character rig showing the full back hair crown, back of head and ears, back tunic, waist belt, dorsal hands, and boot heels.',
   width: 500,
   height: 600,
   slots: [
-    { id: 'head', name: 'Khuôn mặt mộc trung niên', nameEn: 'Mature Bare Head', role: 'head', atlasCell: 1, boneId: 'bone-head', defaultTransform: { x: 0, y: -119, z: -20, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.head, description: 'Khuôn mặt trung niên chín chắn, tóc chải ngược, không dính kính mắt hay râu' },
-    { id: 'beard', name: 'Râu mép / Râu doanh nhân', nameEn: 'Mustache / Executive Beard', role: 'beard', atlasCell: 10, boneId: 'bone-head', defaultTransform: { x: 0, y: -98, z: -26, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.beard, description: 'Râu mép cắt tỉa gọn gàng lịch lãm' },
-    { id: 'glasses', name: 'Kính mắt gọng kim loại', nameEn: 'Metal Frame Eyeglasses', role: 'glasses', atlasCell: 20, boneId: 'bone-head', defaultTransform: { x: 0, y: -120, z: -30, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.glasses, description: 'Kính cận hoặc kính râm doanh nhân' },
-    { id: 'mask', name: 'Khẩu trang / Mặt nạ hoá trang', nameEn: 'Face Mask / Disguise', role: 'mask', atlasCell: 15, boneId: 'bone-head', defaultTransform: { x: 0, y: -104, z: -32, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.mask, description: 'Khẩu trang y tế hoặc khăn che nửa mặt' },
-    { id: 'hat', name: 'Mũ phớt Fedora', nameEn: 'Fedora Felt Hat', role: 'hat', atlasCell: 5, boneId: 'bone-head', defaultTransform: { x: 0, y: -152, z: -35, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.hat, description: 'Mũ phớt nỉ phong cách quý ông cổ điển' },
-    { id: 'torso', name: 'Áo Vest âu & Cà vạt đỏ', nameEn: 'Suit Jacket & Red Tie', role: 'torso', atlasCell: 6, boneId: 'bone-torso', defaultTransform: { x: 0, y: -40, z: -5, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.torso, description: 'Áo vest xám cắt may chỉn chu, sơ mi trắng và cà vạt đỏ' },
-    { id: 'pelvis', name: 'Hông thắt lưng da', nameEn: 'Hips & Leather Belt', role: 'pelvis', atlasCell: 7, boneId: 'bone-pelvis', defaultTransform: { x: 0, y: 25, z: 0, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.pelvis, description: 'Thắt lưng da khóa kim loại và phần trên quần âu' },
-    { id: 'arm-l', name: 'Tay áo vest trái', nameEn: 'Left Suit Arm', role: 'arm-l', atlasCell: 8, boneId: 'bone-arm-l', defaultTransform: { x: -40, y: -40, z: -15, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.armL, description: 'Cánh tay áo vest trái' },
-    { id: 'forearm-l', name: 'Cẳng tay sơ mi trái', nameEn: 'Left Forearm', role: 'forearm-l', atlasCell: 11, boneId: 'bone-forearm-l', defaultTransform: { x: -42, y: 12, z: -25, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.forearmL, description: 'Cẳng tay trái tay áo sơ mi lót' },
-    { id: 'hand-l', name: 'Bàn tay trái & Đồng hồ', nameEn: 'Left Hand & Watch', role: 'hand-l', atlasCell: 13, boneId: 'bone-hand-l', defaultTransform: { x: -42, y: 54, z: -35, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.handL, description: 'Bàn tay trái đeo đồng hồ kim loại' },
-    { id: 'arm-r', name: 'Tay áo vest phải', nameEn: 'Right Suit Arm', role: 'arm-r', atlasCell: 9, boneId: 'bone-arm-r', defaultTransform: { x: 40, y: -40, z: -15, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.armR, description: 'Cánh tay áo vest phải' },
-    { id: 'forearm-r', name: 'Cẳng tay sơ mi phải', nameEn: 'Right Forearm', role: 'forearm-r', atlasCell: 12, boneId: 'bone-forearm-r', defaultTransform: { x: 42, y: 12, z: -25, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.forearmR, description: 'Cẳng tay phải tay áo sơ mi' },
-    { id: 'hand-r', name: 'Bàn tay phải xách cặp', nameEn: 'Right Hand', role: 'hand-r', atlasCell: 14, boneId: 'bone-hand-r', defaultTransform: { x: 42, y: 54, z: -35, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.handR, description: 'Bàn tay phải cầm quai xách' },
-    { id: 'prop-hand', name: 'Cặp tài liệu da công sở', nameEn: 'Leather Briefcase Prop', role: 'prop-hand', atlasCell: 24, boneId: 'bone-hand-r', defaultTransform: { x: 52, y: 80, z: -40, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.briefcase, description: 'Cặp da tài liệu đạo cụ công sở' },
-    { id: 'thigh-l', name: 'Quần âu đùi trái', nameEn: 'Left Trousers Thigh', role: 'thigh-l', atlasCell: 16, boneId: 'bone-thigh-l', defaultTransform: { x: -24, y: 75, z: 20, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.thighL, description: 'Ống quần âu ủi ly phẳng phiu trái' },
-    { id: 'shin-l', name: 'Cẳng chân quần âu trái', nameEn: 'Left Trousers Shin', role: 'shin-l', atlasCell: 18, boneId: 'bone-shin-l', defaultTransform: { x: -24, y: 145, z: 15, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.shinL, description: 'Ống quần cẳng chân trái' },
-    { id: 'foot-l', name: 'Giày da Oxford đen trái', nameEn: 'Left Oxford Shoe', role: 'foot-l', atlasCell: 21, boneId: 'bone-foot-l', defaultTransform: { x: -26, y: 192, z: 10, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.footL, description: 'Giày da Oxford đen bóng trái' },
-    { id: 'thigh-r', name: 'Quần âu đùi phải', nameEn: 'Right Trousers Thigh', role: 'thigh-r', atlasCell: 17, boneId: 'bone-thigh-r', defaultTransform: { x: 24, y: 75, z: 20, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.thighR, description: 'Ống quần âu ủi ly phẳng phiu phải' },
-    { id: 'shin-r', name: 'Cẳng chân quần âu phải', nameEn: 'Right Trousers Shin', role: 'shin-r', atlasCell: 19, boneId: 'bone-shin-r', defaultTransform: { x: 24, y: 145, z: 15, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.shinR, description: 'Ống quần cẳng chân phải' },
-    { id: 'foot-r', name: 'Giày da Oxford đen phải', nameEn: 'Right Oxford Shoe', role: 'foot-r', atlasCell: 22, boneId: 'bone-foot-r', defaultTransform: { x: 26, y: 192, z: 10, scale: 0.95, rotation: 0 }, suggestedAsset: BUSINESSMAN_ART.footR, description: 'Giày da Oxford đen bóng phải' }
+    { id: 'thigh-l', name: 'Đùi trái (Nhìn từ sau)', nameEn: 'Left Thigh (Back View)', role: 'thigh-l', atlasCell: 10, boneId: 'bone-thigh-l', defaultTransform: { x: -19, y: 64, z: 20, scale: 0.306, rotation: 0 }, suggestedAsset: 'character_human_back/thigh-left.png', description: 'Đùi trái nhìn từ phía sau lưng' },
+    { id: 'thigh-r', name: 'Đùi phải (Nhìn từ sau)', nameEn: 'Right Thigh (Back View)', role: 'thigh-r', atlasCell: 11, boneId: 'bone-thigh-r', defaultTransform: { x: 19, y: 64, z: 15, scale: 0.306, rotation: 0 }, suggestedAsset: 'character_human_back/thigh-right.png', description: 'Đùi phải nhìn từ phía sau lưng' },
+    { id: 'shin-l', name: 'Bắp chân trái (Nhìn từ sau)', nameEn: 'Left Shin (Back View)', role: 'shin-l', atlasCell: 12, boneId: 'bone-shin-l', defaultTransform: { x: -19, y: 123, z: 10, scale: 0.306, rotation: 0 }, suggestedAsset: 'character_human_back/shin-left.png', description: 'Bắp chân trái nhìn từ phía sau' },
+    { id: 'shin-r', name: 'Bắp chân phải (Nhìn từ sau)', nameEn: 'Right Shin (Back View)', role: 'shin-r', atlasCell: 13, boneId: 'bone-shin-r', defaultTransform: { x: 19, y: 123, z: 5, scale: 0.306, rotation: 0 }, suggestedAsset: 'character_human_back/shin-right.png', description: 'Bắp chân phải nhìn từ phía sau' },
+    { id: 'foot-l', name: 'Gót giày ủng trái (Nhìn từ sau)', nameEn: 'Left Boot Heel (Back View)', role: 'foot-l', atlasCell: 14, boneId: 'bone-foot-l', defaultTransform: { x: -19, y: 167, z: 0, scale: 0.279, rotation: 0 }, suggestedAsset: 'character_human_back/foot-left.png', description: 'Giày ủng trái nhìn từ gót chân sau' },
+    { id: 'foot-r', name: 'Gót giày ủng phải (Nhìn từ sau)', nameEn: 'Right Boot Heel (Back View)', role: 'foot-r', atlasCell: 15, boneId: 'bone-foot-r', defaultTransform: { x: 19, y: 167, z: -5, scale: 0.279, rotation: 0 }, suggestedAsset: 'character_human_back/foot-right.png', description: 'Giày ủng phải nhìn từ gót chân sau' },
+    { id: 'head', name: 'Sau đầu, Vành tai & Gáy', nameEn: 'Back of Head, Ears & Nape', role: 'head', atlasCell: 1, boneId: 'bone-head', defaultTransform: { x: 0, y: -106, z: -10, scale: 0.293, rotation: 0 }, suggestedAsset: 'character_human_back/head.png', description: 'Phần gáy, cổ và hai vành tai nhìn từ sau lưng' },
+    { id: 'torso', name: 'Lưng áo trên (Nhìn từ sau)', nameEn: 'Back of Jacket / Tunic Torso', role: 'torso', atlasCell: 3, boneId: 'bone-torso', defaultTransform: { x: 0, y: -37, z: -15, scale: 0.306, rotation: 0 }, suggestedAsset: 'character_human_back/torso.png', description: 'Phần lưng áo và cổ áo sau' },
+    { id: 'pelvis', name: 'Đai lưng sau & Vạt áo dưới', nameEn: 'Back Waist Belt & Lower Tunic', role: 'pelvis', atlasCell: 4, boneId: 'bone-pelvis', defaultTransform: { x: 0, y: 19, z: -20, scale: 0.306, rotation: 0 }, suggestedAsset: 'character_human_back/pelvis.png', description: 'Thắt lưng da và vạt áo sau che khớp hông' },
+    { id: 'arm-l', name: 'Bắp tay trái (Nhìn từ sau)', nameEn: 'Left Upper Arm (Back View)', role: 'arm-l', atlasCell: 5, boneId: 'bone-arm-l', defaultTransform: { x: -39, y: -34, z: -25, scale: 0.288, rotation: 0 }, suggestedAsset: 'character_human_back/arm-left.png', description: 'Bắp tay trái nhìn từ sau lưng' },
+    { id: 'arm-r', name: 'Bắp tay phải (Nhìn từ sau)', nameEn: 'Right Upper Arm (Back View)', role: 'arm-r', atlasCell: 6, boneId: 'bone-arm-r', defaultTransform: { x: 39, y: -34, z: -25, scale: 0.288, rotation: 0 }, suggestedAsset: 'character_human_back/arm-right.png', description: 'Bắp tay phải nhìn từ sau lưng' },
+    { id: 'hand-l', name: 'Mu bàn tay trái (Nhìn từ sau)', nameEn: 'Left Dorsal Hand (Back View)', role: 'hand-l', atlasCell: 9, boneId: 'bone-hand-l', defaultTransform: { x: -41, y: 31, z: -30, scale: 0.198, rotation: 0 }, suggestedAsset: 'character_human_back/hand-left.png', description: 'Mu bàn tay trái nhìn từ phía sau' },
+    { id: 'hand-r', name: 'Mu bàn tay phải (Nhìn từ sau)', nameEn: 'Right Dorsal Hand (Back View)', role: 'hand-r', atlasCell: 16, boneId: 'bone-hand-r', defaultTransform: { x: 41, y: 31, z: -30, scale: 0.198, rotation: 0 }, suggestedAsset: 'character_human_back/hand-right.png', description: 'Mu bàn tay phải nhìn từ phía sau' },
+    { id: 'forearm-l', name: 'Cẳng tay trái (Nhìn từ sau)', nameEn: 'Left Forearm (Back View)', role: 'forearm-l', atlasCell: 7, boneId: 'bone-forearm-l', defaultTransform: { x: -40, y: 2, z: -35, scale: 0.252, rotation: 0 }, suggestedAsset: 'character_human_back/forearm-left.png', description: 'Cẳng tay và hộ uyển trái nhìn từ sau' },
+    { id: 'forearm-r', name: 'Cẳng tay phải (Nhìn từ sau)', nameEn: 'Right Forearm (Back View)', role: 'forearm-r', atlasCell: 8, boneId: 'bone-forearm-r', defaultTransform: { x: 40, y: 2, z: -35, scale: 0.252, rotation: 0 }, suggestedAsset: 'character_human_back/forearm-right.png', description: 'Cẳng tay và hộ uyển phải nhìn từ sau' },
+    { id: 'hair-back', name: 'Mái tóc sau đầu trọn vẹn', nameEn: 'Full Back Hair Crown (Back View)', role: 'hair-back', atlasCell: 2, boneId: 'bone-head', defaultTransform: { x: 0, y: -118, z: -40, scale: 0.324, rotation: 0 }, suggestedAsset: 'character_human_back/hair-back.png', description: 'Toàn bộ mái tóc nhìn từ phía sau đầu' },
+    { id: 'cape', name: 'Áo choàng phủ lưng (Ẩn sẵn)', nameEn: 'Full Back Cape Overlay (Back View)', role: 'cape', atlasCell: 17, boneId: 'bone-torso', defaultTransform: { x: 0, y: 24, z: -45, scale: 0.675, rotation: 0, hidden: true }, suggestedAsset: 'character_human_back/cape.png', description: 'Áo choàng phủ sau lưng — ẩn sẵn để lộ chi tiết lưng áo và đai lưng' }
   ],
-  bones: MID_BONES,
-  clips: MID_CLIPS,
-  activeClipId: 'clip-firm-walk',
+  bones: HUMAN_BONES,
+  clips: HUMAN_CLIPS,
+  activeClipId: 'clip-walk',
   promptGuide: {
-    systemPrompt: `Create ONE high-resolution 4096x4096 CHARACTER CUTOUT SPRITE ATLAS for a 2D middle-aged businessman character with modular film disguise props.
-IDENTITY: 45-year-old dignified male executive in charcoal tailored suit, white shirt and red silk tie, with detachable disguise accessories: bare unmasked face, mustache, wireframe glasses, fedora hat, leather briefcase, Oxford dress shoes.
-VIEW: Front orthographic view, upright confident posture.
-BACKGROUND: Uniform solid chroma-key background #00FF00.
-CELLS:
-1. Bare Head/Face (clean face, no glasses, no beard, no hat)
-5. Fedora hat prop
-6. Torso with suit jacket and red tie
-7. Leather belt and hip waist
-8. Left suit jacket arm
-9. Right suit jacket arm
-10. Detachable mustache / beard prop
-11. Left forearm
-12. Right forearm
-13. Left hand with wristwatch
-14. Right hand
-15. Face mask / disguise bandana
-16. Left tailored trouser thigh
-17. Right tailored trouser thigh
-18. Left trouser shin
-19. Right trouser shin
-20. Metal frame eyeglasses prop
-21. Left Oxford dress shoe
-22. Right Oxford dress shoe
-24. Handheld leather briefcase prop
-Overlapping concealed joint ends for clean cutout rotation and costume swapping.`,
-    cellLayout: [
-      '1. Mặt mộc trung niên',
-      '5. Mũ phớt Fedora',
-      '6. Áo vest & cà vạt',
-      '7. Thắt lưng',
-      '8. Bắp tay vest T',
-      '9. Bắp tay vest P',
-      '10. Râu mép doanh nhân',
-      '11. Cẳng tay T',
-      '12. Cẳng tay P',
-      '13. Bàn tay & đồng hồ T',
-      '14. Bàn tay P',
-      '15. Khẩu trang / Mặt nạ',
-      '16. Quần âu đùi T',
-      '17. Quần âu đùi P',
-      '18. Cẳng chân quần T',
-      '19. Cẳng chân quần P',
-      '20. Kính mắt gọng kim loại',
-      '21. Giày tây Oxford T',
-      '22. Giày tây Oxford P',
-      '24. Cặp tài liệu da P'
-    ],
-    userGuide: 'Mẫu nhân vật trung niên công sở chuyên nghiệp: tách rời tay và chân, khuôn mặt mộc kèm các lớp kính mắt, râu mép, mũ phớt và cặp da đạo cụ có thể ẩn/hiện tuỳ ý.'
+    systemPrompt: `IDENTITY: Stylized 2D animated young adult human martial/adventure hero in strict BACK ORTHOGRAPHIC VIEW (180° seen directly from behind), showing the back hair crown, back of head and ears, royal-blue back tunic, brown leather waist belt, arms, dorsal hands, trousers and boot heels.`,
+    cellLayout: [],
+    userGuide: ''
   },
-  buildComposite: (images, name) => createTemplateComposite(TMPL_MIDDLEAGED_MAN, images, name)
+  buildComposite: (images, name) => createTemplateComposite(TMPL_CHARACTER_BACK, images, name)
 }
 
-// ---------------------------------------------------------------------------
-// 5. Cụ Già / Ông Lão Tóc Bạc & Gậy Chống (Chậm rãi, Lưng khom hiền từ)
-// ---------------------------------------------------------------------------
-
-const OLD_BONES = createElderlyBones()
-const OLD_CANE_WALK = generateElderlyCaneWalk(OLD_BONES, 2.4)
-const OLD_IDLE = generateIdleBreathe(OLD_BONES, 2.8)
-
-const OLD_CLIPS: AnimationClip[] = [
-  { id: 'clip-cane-walk', name: 'Bước đi chống gậy (Cane Walk)', duration: 2.4, loop: true, presetKey: 'walk', tracks: OLD_CANE_WALK },
-  { id: 'clip-idle', name: 'Đứng thở chậm rãi (Calm Idle)', duration: 2.8, loop: true, presetKey: 'idle', tracks: OLD_IDLE }
-]
-
-export const TMPL_ELDERLY_GRANDPA: LayerAssemblyTemplate = {
-  id: 'tmpl-character-elderly-grandpa',
-  name: 'Cụ Già / Ông Lão Tóc Bạc & Gậy Chống',
-  nameEn: 'Elderly Senior / Wise Grandpa (Walking Cane & Long Beard)',
-  category: 'character',
-  ageGroup: 'elderly',
-  description: 'Cụ già tóc bạc râu trắng hiền hậu: tách rời cẳng tay & bàn tay, cẳng chân & giày vải; mặt mộc già nua kèm các lớp chòm râu bạc, kính lão, mũ len và gậy ba toong đạo cụ.',
-  descriptionEn: 'Elderly grandfather with separated hands, cloth shoes, and modular disguise props: bare wrinkled face, detachable long white beard, spectacles, beanie and wooden cane.',
-  width: 500,
-  height: 600,
-  slots: [
-    { id: 'head', name: 'Khuôn mặt mộc già nua', nameEn: 'Bare Wrinkled Face', role: 'head', atlasCell: 1, boneId: 'bone-head', defaultTransform: { x: -12, y: -120, z: -25, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.head, description: 'Khuôn mặt nếp nhăn hiền từ, tóc bạc phơ, không dính râu hay kính' },
-    { id: 'beard', name: 'Chòm râu trắng dài buông ngực', nameEn: 'Long White Beard Prop', role: 'beard', atlasCell: 10, boneId: 'bone-head', defaultTransform: { x: -12, y: -82, z: -30, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.beard, description: 'Chòm râu trắng dài hiền từ có thể tháo lắp hoá trang' },
-    { id: 'glasses', name: 'Kính lão trễ sống mũi', nameEn: 'Reading Spectacles Prop', role: 'glasses', atlasCell: 20, boneId: 'bone-head', defaultTransform: { x: -12, y: -120, z: -32, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.glasses, description: 'Kính lão đọc sách gọng tròn trễ xuống sống mũi' },
-    { id: 'mask', name: 'Khăn len quàng cổ / Khăn bịt', nameEn: 'Scarf / Face Cover Prop', role: 'mask', atlasCell: 15, boneId: 'bone-head', defaultTransform: { x: -10, y: -90, z: -34, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.mask, description: 'Khăn len quàng cổ giữ ấm hoặc khăn che mặt' },
-    { id: 'hat', name: 'Mũ nồi len / Khăn xếp', nameEn: 'Knit Beanie / Cap', role: 'hat', atlasCell: 5, boneId: 'bone-head', defaultTransform: { x: -12, y: -152, z: -36, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.hat, description: 'Mũ len ấm áp đội trùm đầu' },
-    { id: 'torso', name: 'Thân áo dài khom lưng', nameEn: 'Stooped Traditional Robe', role: 'torso', atlasCell: 6, boneId: 'bone-torso', defaultTransform: { x: -6, y: -42, z: -10, scale: 0.95, rotation: 4 }, suggestedAsset: GRANDPA_ART.torso, description: 'Áo dài vải bông mộc mạc, dáng hơi gù lưng về trước' },
-    { id: 'pelvis', name: 'Hông khom & Đai vải', nameEn: 'Hips & Cloth Sash', role: 'pelvis', atlasCell: 7, boneId: 'bone-pelvis', defaultTransform: { x: 0, y: 25, z: 0, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.pelvis, description: 'Hông áo dài và đai vải thắt eo' },
-    { id: 'arm-l', name: 'Tay áo dài trái buông', nameEn: 'Left Robe Sleeve', role: 'arm-l', atlasCell: 8, boneId: 'bone-arm-l', defaultTransform: { x: -40, y: -42, z: -18, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.armL, description: 'Tay áo dài thụng mộc mạc bên trái' },
-    { id: 'forearm-l', name: 'Cẳng tay trái', nameEn: 'Left Forearm', role: 'forearm-l', atlasCell: 11, boneId: 'bone-forearm-l', defaultTransform: { x: -42, y: 10, z: -28, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.forearmL, description: 'Cẳng tay gầy guộc bên trái' },
-    { id: 'hand-l', name: 'Bàn tay trái gầy guộc', nameEn: 'Left Hand', role: 'hand-l', atlasCell: 13, boneId: 'bone-hand-l', defaultTransform: { x: -42, y: 48, z: -35, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.handL, description: 'Bàn tay gầy guộc của người cao tuổi bên trái' },
-    { id: 'arm-r', name: 'Tay áo phải giữ gậy', nameEn: 'Right Arm on Cane', role: 'arm-r', atlasCell: 9, boneId: 'bone-arm-r', defaultTransform: { x: 34, y: -42, z: -18, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.armR, description: 'Tay áo phải vươn giữ gậy chống' },
-    { id: 'forearm-r', name: 'Cẳng tay phải', nameEn: 'Right Forearm', role: 'forearm-r', atlasCell: 12, boneId: 'bone-forearm-r', defaultTransform: { x: 40, y: 12, z: -32, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.forearmR, description: 'Cẳng tay phải hướng về phía cây gậy' },
-    { id: 'hand-r', name: 'Bàn tay phải nắm gậy', nameEn: 'Right Hand Gripping Cane', role: 'hand-r', atlasCell: 14, boneId: 'bone-hand-r', defaultTransform: { x: 42, y: 48, z: -38, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.handR, description: 'Bàn tay phải nắm chặt đầu cây gậy ba toong' },
-    { id: 'prop-hand', name: 'Gậy ba toong gỗ uốn cong', nameEn: 'Wooden Walking Cane Prop', role: 'prop-hand', atlasCell: 24, boneId: 'bone-hand-r', defaultTransform: { x: 48, y: 122, z: -42, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.cane, description: 'Cây gậy ba toong gỗ uốn cong đạo cụ chống bước đi' },
-    { id: 'thigh-l', name: 'Chân áo dài trái', nameEn: 'Left Leg in Robe', role: 'thigh-l', atlasCell: 16, boneId: 'bone-thigh-l', defaultTransform: { x: -22, y: 75, z: 20, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.thighL, description: 'Chân trong tà áo dài bên trái' },
-    { id: 'shin-l', name: 'Cẳng chân trái áo dài', nameEn: 'Left Shin in Robe', role: 'shin-l', atlasCell: 18, boneId: 'bone-shin-l', defaultTransform: { x: -22, y: 145, z: 15, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.shinL, description: 'Cẳng chân áo dài bên trái' },
-    { id: 'foot-l', name: 'Giày vải đen truyền thống trái', nameEn: 'Left Traditional Cloth Shoe', role: 'foot-l', atlasCell: 21, boneId: 'bone-foot-l', defaultTransform: { x: -24, y: 192, z: 10, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.footL, description: 'Giày vải đen truyền thống bên trái' },
-    { id: 'thigh-r', name: 'Chân áo dài phải', nameEn: 'Right Leg in Robe', role: 'thigh-r', atlasCell: 17, boneId: 'bone-thigh-r', defaultTransform: { x: 22, y: 75, z: 20, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.thighR, description: 'Chân trong tà áo dài bên phải' },
-    { id: 'shin-r', name: 'Cẳng chân phải áo dài', nameEn: 'Right Shin in Robe', role: 'shin-r', atlasCell: 19, boneId: 'bone-shin-r', defaultTransform: { x: 22, y: 145, z: 15, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.shinR, description: 'Cẳng chân áo dài bên phải' },
-    { id: 'foot-r', name: 'Giày vải đen truyền thống phải', nameEn: 'Right Traditional Cloth Shoe', role: 'foot-r', atlasCell: 22, boneId: 'bone-foot-r', defaultTransform: { x: 24, y: 192, z: 10, scale: 0.95, rotation: 0 }, suggestedAsset: GRANDPA_ART.footR, description: 'Giày vải đen truyền thống bên phải' }
-  ],
-  bones: OLD_BONES,
-  clips: OLD_CLIPS,
-  activeClipId: 'clip-cane-walk',
-  promptGuide: {
-    systemPrompt: `Create ONE high-resolution 4096x4096 CHARACTER CUTOUT SPRITE ATLAS for a 2D elderly grandfather / senior character with modular disguise accessories.
-IDENTITY: 75-year-old gentle wise grandfather with detachable accessories: bare wrinkled face, long white beard, round reading spectacles, knit beanie, brown traditional robe, black cloth shoes, gnarled wooden walking cane.
-VIEW: Front orthographic view, standing with cane.
-BACKGROUND: Flat opaque chroma-key magenta #FF00FF background.
-CELLS:
-1. Bare Head/Face (wrinkled gentle face, no beard, no glasses, no hat)
-5. Knit beanie hat prop
-6. Stooped traditional robe torso
-7. Sash and hips
-8. Left loose robe sleeve
-9. Right robe arm
-10. Long white flowing beard prop
-11. Left forearm
-12. Right forearm
-13. Left weathered hand
-14. Right hand gripping cane
-15. Scarf / neck cover prop
-16. Left robe leg thigh
-17. Right robe leg thigh
-18. Left robe shin
-19. Right robe shin
-20. Reading spectacles prop
-21. Left traditional cloth shoe
-22. Right traditional cloth shoe
-24. Gnarled wooden walking cane prop
-Concealed overlapping joint caps for smooth puppet animation and costume customization.`,
-    cellLayout: [
-      '1. Mặt mộc già nua',
-      '5. Mũ nồi len',
-      '6. Thân áo gù',
-      '7. Hông đai vải',
-      '8. Tay áo T',
-      '9. Tay áo P',
-      '10. Chòm râu trắng dài',
-      '11. Cẳng tay T',
-      '12. Cẳng tay P',
-      '13. Bàn tay T',
-      '14. Bàn tay P',
-      '15. Khăn len quàng cổ',
-      '16. Chân T',
-      '17. Chân P',
-      '18. Cẳng chân T',
-      '19. Cẳng chân P',
-      '20. Kính lão trễ mũi',
-      '21. Giày vải T',
-      '22. Giày vải P',
-      '24. Gậy ba toong gỗ'
-    ],
-    userGuide: 'Mẫu cụ già tóc bạc chống gậy: tách rời tay và chân, khuôn mặt mộc kèm các lớp râu dài, kính lão, mũ len và gậy ba toong đạo cụ có thể ẩn/hiện tuỳ ý để hoá trang đóng phim.'
-  },
-  buildComposite: (images, name) => createTemplateComposite(TMPL_ELDERLY_GRANDPA, images, name)
-}
+/** Alias tương thích ngược cho các module gọi TMPL_MALE_HERO */
+export const TMPL_MALE_HERO = TMPL_CHARACTER_FRONT
 
 export const HUMANOID_TEMPLATES: LayerAssemblyTemplate[] = [
-  TMPL_MALE_HERO,
-  TMPL_FEMALE_ANIME,
-  TMPL_CHILD_KID,
-  TMPL_MIDDLEAGED_MAN,
-  TMPL_ELDERLY_GRANDPA
+  TMPL_CHARACTER_FRONT,
+  TMPL_CHARACTER_QUARTER,
+  TMPL_CHARACTER_BACK
 ]

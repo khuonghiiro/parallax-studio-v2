@@ -14,35 +14,35 @@ type ModalTab = 'prompt' | 'slots' | 'guide'
 
 const BRIEF_PRESETS: Array<{ label: string; brief: CharacterPromptCustomBrief }> = [
   {
-    label: '🐼 Cát Gấu Tu Tiên',
-    brief: {
-      appearance: 'Classic Chinese Panda-Head meme (熊猫头), round pure-white head with 2 black panda ears and smug Baozou Manhua comic human smirk face',
-      costume: 'Sky-blue & white Xianxia cross-collar immortal robe with golden cloud embroidery, jade waist sash, flared lower robe skirt, white cloth gaiters and black cloud boots',
-      props: 'Ancient gold-and-jade cultivator hair crown, 8-bit Thug-Life sunglasses, Taoist beard, and a wooden sword tied with a red clay brick'
-    }
-  },
-  {
-    label: '🍄 Đầu Nấm Tổng Tài',
-    brief: {
-      appearance: 'Chinese Mushroom-Head meme (蘑菇头), oversized white cartoon head with shiny black bowl-cut hair and cheeky Baozou smirk expression',
-      costume: 'Modern boss outfit: sleek black tailored suit jacket over a red shirt with a thick gold chain, floral beach shorts and yellow-blue flip-flop sandals',
-      props: 'Black boss sunglasses, yellow construction hard-hat, and a giant blue flip-flop slipper weapon'
-    }
-  },
-  {
     label: '⚔️ Kiếm Khách Cổ Trang',
     brief: {
-      appearance: 'Handsome anime/comic martial arts swordsman with sharp heroic eyes, confident smile and flowing black-and-silver hair',
-      costume: 'White and royal-blue Wuxia martial robe with silver dragon trim, armored leather bracers, dark trousers and martial boots',
-      props: 'Silver headband crown, mysterious half-face mask, and a glowing celestial broadsword'
+      appearance: 'Handsome young adult martial arts swordsman, faceless base head with 4 separate anime facial expressions (calm, happy, fierce angry, shocked) and layered black-and-navy hair',
+      costume: 'Royal-blue and white Wuxia martial tunic with gold trim, leather belt with flared lower tunic skirt, dark wrist bracers, charcoal trousers and leather martial boots',
+      props: 'Flowing crimson-and-gold back cape and a silver-and-gold broadsword'
     }
   },
   {
-    label: '🕶️ Giang Hồ Dép Lào',
+    label: '🧥 Nam Chính Hiện Đại',
     brief: {
-      appearance: 'Funny Baozou meme street character with exaggerated smug grin, thick comic eyebrows and spiky hair',
-      costume: 'Sleeveless red street tank-top with gold necklace, tropical floral shorts and plastic flip-flops',
-      props: 'Pixelated Deal-With-It sunglasses, fake handlebar mustache, and a red brick / slipper slapstick prop'
+      appearance: 'Handsome modern webtoon young man, faceless base head with 4 separate facial expressions and stylish parted dark-brown hair',
+      costume: 'Smart-casual navy bomber jacket over a white crewneck shirt, tailored dark-grey slacks and clean white-and-black sneakers',
+      props: 'Light trench cloak and a sleek messenger bag / smartphone prop'
+    }
+  },
+  {
+    label: '🌸 Nữ Hiệp Tiên Hiệp',
+    brief: {
+      appearance: 'Graceful Xianxia heroine, faceless base head with 4 separate expressive anime faces (gentle smile, joyful, fierce, surprised) and long flowing silk-black hair with jade hairpin',
+      costume: 'Pastel cyan-and-white layered immortal hanfu tunic with silver embroidery, silk waist sash, flowing skirt hem and white embroidered boots',
+      props: 'Translucent sky-blue silk back ribbon cloak and a glowing jade spirit sword'
+    }
+  },
+  {
+    label: '🛡️ Chiến Binh Giáp Bạc',
+    brief: {
+      appearance: 'Heroic fantasy paladin knight, faceless base head with 4 separate facial expressions and spiky silver-blonde hair',
+      costume: 'Polished silver-and-blue steel chest cuirass, armored waist tassets belt, steel vambraces, greaves and sabaton knight boots',
+      props: 'Royal crimson cloak with gold clasps and a radiant rune broadsword'
     }
   }
 ]
@@ -87,11 +87,11 @@ function PromptCustomizerBox({
       </div>
       <div className="tpm-customizer-grid">
         <label className="tpm-field">
-          <span className="tpm-field-label">1. Tướng mạo, Khuôn mặt & Kiểu tóc</span>
+          <span className="tpm-field-label">1. Tướng mạo, Kiểu tóc & Biểu cảm rời</span>
           <input
             type="text"
             className="input-text sm tpm-field-input"
-            placeholder="VD: Đầu gấu trúc meme cười đểu, mắt sắc / hoặc Nam hiệp sĩ tóc bạc dài..."
+            placeholder="VD: Nam thanh niên tuấn tú, tóc đen rẽ ngôi, đầu gốc trơn kèm 4 biểu cảm mắt xanh..."
             value={brief.appearance || ''}
             onChange={(e) => onChange({ ...brief, appearance: e.target.value })}
           />
@@ -101,17 +101,17 @@ function PromptCustomizerBox({
           <input
             type="text"
             className="input-text sm tpm-field-input"
-            placeholder="VD: Mặc trường bào tu tiên xanh trắng thêu mây vàng, đai ngọc, đi hài cổ trang..."
+            placeholder="VD: Mặc võ phục xanh hoàng gia viền vàng, đai lưng da, quần tối màu và ủng cổ cao..."
             value={brief.costume || ''}
             onChange={(e) => onChange({ ...brief, costume: e.target.value })}
           />
         </label>
         <label className="tpm-field">
-          <span className="tpm-field-label">3. Phụ kiện Hoá trang & Vũ khí cầm tay</span>
+          <span className="tpm-field-label">3. Áo choàng & Vũ khí / Đạo cụ cầm tay</span>
           <input
             type="text"
             className="input-text sm tpm-field-input"
-            placeholder="VD: Đội mão ngọc, đeo kính đen 8-bit Thug Life, cầm kiếm gỗ buộc gạch ống..."
+            placeholder="VD: Áo choàng đỏ viền vàng sau lưng, tay phải cầm trường kiếm bạc..."
             value={brief.props || ''}
             onChange={(e) => onChange({ ...brief, props: e.target.value })}
           />
@@ -236,9 +236,9 @@ function GuideTabContent({ template }: { template: LayerAssemblyTemplate }) {
       <div className="tpm-guide-step">
         <div className="tpm-step-num">4</div>
         <div>
-          <h4>Đạo cụ đóng phim & Biểu cảm Điêu Khắc Cát (Meme Face Swap)</h4>
+          <h4>Đầu người trơn không ngũ quan & Ghép biểu cảm rời (Faceless Head + Swappable Faces)</h4>
           <p>
-            Các chi tiết đầu (Đầu gốc, Biểu cảm phụ Khóc/Nổi gân, Mũ, Kính mắt, Râu giả) và Vũ khí cầm tay được tách thành từng layer độc lập. Bạn chỉ cần bật/tắt (ẩn/hiện) layer để đổi biểu cảm tức thì hoặc hoá trang nhân vật đóng nhiều vai khác nhau.
+            Phần đầu gốc (<code>head</code>) được thiết kế trơn hoàn toàn (không vẽ sẵn mắt, mũi, miệng) để bạn tự do bật/tắt hoặc ghép chồng các layer biểu cảm rời (Bình thường, Vui vẻ, Tức giận, Hoảng hốt) lên trên theo từng phân cảnh diễn xuất.
           </p>
         </div>
       </div>

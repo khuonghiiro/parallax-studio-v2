@@ -1,16 +1,49 @@
 import { CUTOUT_HERO_COMPOSITE } from './cutoutHeroComposite'
-import { SHADIAO_DEFAULT_COMPOSITES } from './templates/shadiaoTemplates'
+import { TMPL_CHARACTER_QUARTER, TMPL_CHARACTER_BACK } from './templates/humanoidTemplates'
+import { TMPL_ANIMAL_DOG, TMPL_ANIMAL_ROOSTER, TMPL_ANIMAL_FISH } from './templates/animalTemplates'
 import type { LayerComposite } from './types'
 
+const HUMAN_QUARTER_COMPOSITE: LayerComposite = {
+  ...TMPL_CHARACTER_QUARTER.buildComposite(),
+  id: 'comp-character-human-quarter'
+}
+
+const HUMAN_BACK_COMPOSITE: LayerComposite = {
+  ...TMPL_CHARACTER_BACK.buildComposite(),
+  id: 'comp-character-human-back'
+}
+
+const ANIMAL_DOG_COMPOSITE: LayerComposite = {
+  ...TMPL_ANIMAL_DOG.buildComposite(),
+  id: 'comp-animal-dog'
+}
+
+const ANIMAL_ROOSTER_COMPOSITE: LayerComposite = {
+  ...TMPL_ANIMAL_ROOSTER.buildComposite(),
+  id: 'comp-animal-rooster'
+}
+
+const ANIMAL_FISH_COMPOSITE: LayerComposite = {
+  ...TMPL_ANIMAL_FISH.buildComposite(),
+  id: 'comp-animal-fish'
+}
+
 /**
- * Các mẫu cụm layer dựng sẵn (Presets) minh họa việc ghép cây, nhà, nhân vật 2.5D từ các layer xếp chồng và hoạt ảnh dẻo dai.
+ * Các mẫu cụm layer dựng sẵn (Presets) minh họa việc ghép nhân vật đầu người 3 hướng, động vật, cây cối và kiến trúc 2.5D.
  */
 export const BUILTIN_COMPOSITES: LayerComposite[] = [
+  CUTOUT_HERO_COMPOSITE,
+  HUMAN_QUARTER_COMPOSITE,
+  HUMAN_BACK_COMPOSITE,
+  ANIMAL_DOG_COMPOSITE,
+  ANIMAL_ROOSTER_COMPOSITE,
+  ANIMAL_FISH_COMPOSITE,
   {
     id: 'comp-modular-tree',
     name: 'Cây Đại Thụ Bóc Tách (Đổi Tán Lá Xanh / Vàng / Hoa / Quả)',
     category: 'nature',
-    description: 'Cây cổ thụ 2.5D bóc tách 7 layer: Gốc rễ rêu phong, Thân gỗ & Cành nhánh, 3 tầng Tán lá (dễ dàng đổi sang tán lá vàng mùa thu hoặc hoa anh đào), kèm Layer Hoa nở và Layer Quả táo đỏ có thể bật/tắt.',
+    description:
+      'Cây cổ thụ 2.5D bóc tách 7 layer: Gốc rễ rêu phong, Thân gỗ & Cành nhánh, 3 tầng Tán lá (dễ dàng đổi sang tán lá vàng mùa thu hoặc hoa anh đào), kèm Layer Hoa nở và Layer Quả táo đỏ có thể bật/tắt.',
     width: 550,
     height: 600,
     layers: [
@@ -104,7 +137,8 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
     id: 'comp-modular-rock',
     name: 'Cụm Đá Rêu Phong & Tinh Thể Bóc Tách (Đổi Rêu / Tuyết)',
     category: 'nature',
-    description: 'Cụm đá tảng thiên nhiên bóc tách 6 layer: Đế đất cỏ, Cụm tinh thể phát sáng hậu cảnh, Khối đá tảng chính, Lớp phủ đỉnh đá (Rêu xanh / Tuyết trắng), Đá cuội tiền cảnh và Khóm hoa dại.',
+    description:
+      'Cụm đá tảng thiên nhiên bóc tách 6 layer: Đế đất cỏ, Cụm tinh thể phát sáng hậu cảnh, Khối đá tảng chính, Lớp phủ đỉnh đá (Rêu xanh / Tuyết trắng), Đá cuội tiền cảnh và Khóm hoa dại.',
     width: 500,
     height: 460,
     layers: [
@@ -186,7 +220,8 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
     id: 'comp-bonsai-zen',
     name: 'Cây Bonsai Cổ Thụ Đung Đưa 5 Lớp',
     category: 'nature',
-    description: 'Nghệ thuật Bonsai phân tách 5 tầng chiều sâu: Chậu gốm Tử Sa viền đồng, Thân gỗ uốn khúc, Tán sau mờ xa, Tán chính ngọc bích và Tán trước đón nắng.',
+    description:
+      'Nghệ thuật Bonsai phân tách 5 tầng chiều sâu: Chậu gốm Tử Sa viền đồng, Thân gỗ uốn khúc, Tán sau mờ xa, Tán chính ngọc bích và Tán trước đón nắng.',
     width: 550,
     height: 600,
     layers: [
@@ -195,9 +230,9 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         name: 'Chậu gốm Tử Sa viền đồng (Gốc neo)',
         assetPath: 'assembly_3d/modular/bonsai_pot.png',
         x: 0,
-        y: 155,
+        y: 140,
         z: -5,
-        scale: 1.05,
+        scale: 0.72,
         rotation: 0,
         opacity: 1,
         motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }
@@ -207,9 +242,9 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         name: 'Thân cổ thụ uốn lượn phong trần',
         assetPath: 'assembly_3d/modular/bonsai_trunk.png',
         x: 0,
-        y: 10,
+        y: 20,
         z: 0,
-        scale: 1.0,
+        scale: 0.75,
         rotation: 0,
         opacity: 1,
         motion: { type: 'sway', speed: 0.6, amplitude: 2.2, anchor: 'bottom', phaseOffset: 0.05 }
@@ -219,9 +254,9 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         name: 'Tán lá tùng sau (Hậu cảnh Z=+35)',
         assetPath: 'assembly_3d/modular/bonsai_foliage_back.png',
         x: 5,
-        y: -60,
+        y: -55,
         z: 35,
-        scale: 0.95,
+        scale: 0.85,
         rotation: 0,
         opacity: 0.9,
         motion: { type: 'sway', speed: 0.8, amplitude: 3.5, anchor: 'bottom', phaseOffset: 0.3 }
@@ -230,10 +265,10 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         id: 'bonsai-foliage-mid',
         name: 'Tán tùng chính bồng bềnh (Trung cảnh Z=0)',
         assetPath: 'assembly_3d/modular/bonsai_foliage_mid.png',
-        x: -10,
-        y: -90,
-        z: 0,
-        scale: 1.0,
+        x: -8,
+        y: -78,
+        z: -2,
+        scale: 0.85,
         rotation: 0,
         opacity: 1,
         motion: { type: 'sway', speed: 0.7, amplitude: 4.5, anchor: 'bottom', phaseOffset: 0.15 }
@@ -242,10 +277,10 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         id: 'bonsai-foliage-front',
         name: 'Nhánh non vươn nắng (Tiền cảnh Z=-30)',
         assetPath: 'assembly_3d/modular/bonsai_foliage_front.png',
-        x: 25,
-        y: -40,
+        x: 18,
+        y: -42,
         z: -30,
-        scale: 1.02,
+        scale: 0.75,
         rotation: 0,
         opacity: 1,
         motion: { type: 'sway', speed: 0.9, amplitude: 6.0, anchor: 'bottom', phaseOffset: 0.4 }
@@ -256,7 +291,8 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
     id: 'comp-flower-bush',
     name: 'Bụi Hoa Tự Nhiên Rung Rinh Trong Gió',
     category: 'nature',
-    description: 'Bụi hoa nhiều lớp gồm cỏ nền, cành hoa, cánh hoa đỏ và nhụy hoa vàng đung đưa theo gió sinh động.',
+    description:
+      'Bụi hoa nhiều lớp gồm cỏ nền, cành hoa, cánh hoa đỏ và nhụy hoa vàng đung đưa theo gió sinh động.',
     width: 500,
     height: 500,
     layers: [
@@ -265,9 +301,9 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         name: 'Bụi cỏ xanh nền sau',
         assetPath: 'assembly_3d/modular/nature_grass.png',
         x: 0,
-        y: 95,
+        y: 110,
         z: 20,
-        scale: 0.85,
+        scale: 0.72,
         rotation: 0,
         opacity: 1,
         motion: { type: 'sway', speed: 0.8, amplitude: 8, anchor: 'bottom', phaseOffset: 0.1 }
@@ -277,9 +313,9 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         name: 'Thân cành hoa uốn lượn',
         assetPath: 'assembly_3d/modular/nature_flower_stem.png',
         x: 0,
-        y: 15,
+        y: 30,
         z: 5,
-        scale: 0.65,
+        scale: 0.62,
         rotation: 0,
         opacity: 1,
         motion: { type: 'sway', speed: 1.1, amplitude: 12, anchor: 'bottom', phaseOffset: 0.3 }
@@ -289,9 +325,9 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         name: 'Cánh hoa đỏ tươi',
         assetPath: 'assembly_3d/modular/nature_flower_corolla.png',
         x: 4,
-        y: -88,
+        y: -70,
         z: -18,
-        scale: 0.56,
+        scale: 0.22,
         rotation: 2,
         opacity: 1,
         motion: { type: 'rocking', speed: 1.4, amplitude: 20, anchor: 'center', phaseOffset: 0.6 }
@@ -301,9 +337,9 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         name: 'Nhụy hoa rực rỡ',
         assetPath: 'assembly_3d/modular/nature_flower_center.png',
         x: 4,
-        y: -88,
+        y: -70,
         z: -25,
-        scale: 0.22,
+        scale: 0.20,
         rotation: 0,
         opacity: 1,
         motion: { type: 'breathe', speed: 1.2, amplitude: 8, anchor: 'center', phaseOffset: 0.4 }
@@ -312,9 +348,10 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
   },
   {
     id: 'comp-vines-ruins',
-    name: 'Cây Dây Leo & Đom Đóm Đung Đưa',
+    name: 'Cổng Tàn Tích Cổ & Dây Leo Đom Đóm',
     category: 'nature',
-    description: 'Chi tiết tự nhiên gồm vách cổng rêu phong, dây leo rủ đung đưa phía trước và đàn đom đóm lập lòe.',
+    description:
+      'Chi tiết tự nhiên gồm vách cổng rêu phong, dây leo rủ đung đưa phía trước và đàn đom đóm lập lòe.',
     width: 600,
     height: 650,
     layers: [
@@ -323,9 +360,9 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         name: 'Cổng tàn tích cổ',
         assetPath: 'demo_transparent/layer4_ancient_ruins.png',
         x: 0,
-        y: 40,
+        y: 35,
         z: 15,
-        scale: 1.0,
+        scale: 0.42,
         rotation: 0,
         opacity: 1,
         motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }
@@ -335,12 +372,24 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         name: 'Dây leo rủ tiền cảnh',
         assetPath: 'demo_transparent/layer5_foreground_vines.png',
         x: 0,
-        y: -60,
+        y: -85,
         z: -20,
-        scale: 1.05,
+        scale: 0.36,
         rotation: 0,
         opacity: 1,
         motion: { type: 'sway', speed: 0.9, amplitude: 18, anchor: 'top', phaseOffset: 0.1 }
+      },
+      {
+        id: 'layer-fireflies',
+        name: 'Đom đóm lấp lánh huyền ảo',
+        assetPath: 'nature_modular/fireflies_glow.png',
+        x: 0,
+        y: 10,
+        z: -35,
+        scale: 0.85,
+        rotation: 0,
+        opacity: 1,
+        motion: { type: 'float', speed: 1.2, amplitude: 14, anchor: 'center', phaseOffset: 0.5 }
       }
     ]
   },
@@ -348,7 +397,8 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
     id: 'comp-balcony-window',
     name: 'Cửa Sổ Ban Công & Giàn Hoa Rung Rinh',
     category: 'architecture',
-    description: 'Khung cửa gỗ cổ điển kết hợp bồn hoa rực rỡ và nhánh lá cây đung đưa trước gió.',
+    description:
+      'Khung cửa gỗ cổ điển kết hợp bồn hoa rực rỡ và nhánh lá cây đung đưa trước gió.',
     width: 520,
     height: 580,
     layers: [
@@ -357,9 +407,9 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         name: 'Khung cửa sổ Tudor',
         assetPath: 'assembly_3d/modular/decor_window.png',
         x: 0,
-        y: -40,
+        y: -35,
         z: 15,
-        scale: 1.0,
+        scale: 0.62,
         rotation: 0,
         opacity: 1,
         motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
@@ -369,9 +419,9 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         name: 'Hộp hoa ban công',
         assetPath: 'assembly_3d/modular/decor_flower_box.png',
         x: 0,
-        y: 80,
+        y: 95,
         z: -5,
-        scale: 1.05,
+        scale: 0.56,
         rotation: 0,
         opacity: 1,
         motion: { type: 'breathe', speed: 1.0, amplitude: 5, anchor: 'bottom', phaseOffset: 0.2 }
@@ -381,16 +431,13 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         name: 'Nhánh lá cây rung rinh',
         assetPath: 'assembly_3d/modular/nature_leaf.png',
         x: 118,
-        y: 65,
+        y: 80,
         z: -18,
-        scale: 0.34,
+        scale: 0.28,
         rotation: 32,
         opacity: 1,
         motion: { type: 'sway', speed: 1.3, amplitude: 16, anchor: 'bottom', phaseOffset: 0.5 }
       }
     ]
-  },
-  CUTOUT_HERO_COMPOSITE,
-  ...SHADIAO_DEFAULT_COMPOSITES
+  }
 ]
-

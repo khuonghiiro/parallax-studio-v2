@@ -849,20 +849,30 @@ export const IconFlipHorizontal = (p: P) => (
   </svg>
 )
 
-export const IconPandaMeme = (p: P) => (
+export const IconUserQuarter = (p: P) => (
   <svg {...base(p)}>
-    <circle cx="6.5" cy="6" r="2.5" fill="currentColor" />
-    <circle cx="17.5" cy="6" r="2.5" fill="currentColor" />
-    <circle cx="12" cy="13" r="7.5" />
-    <path d="M9 11.5h2M13 11.5h2" strokeWidth="2.2" />
-    <path d="M9 15.5c1.5 1.2 4.5 1.2 6 0" />
+    <circle cx="13" cy="7.5" r="4" />
+    <path d="M13 6.5h2M14 9.2c.8.3 1.6.2 2.2-.2" />
+    <path d="M5.5 20.5c.8-4.2 3.8-6.5 7.5-6.5 2.8 0 5.2 1.5 6.3 4.2" />
+    <path d="M18 4l3 3-3 3" />
   </svg>
 )
 
-export const IconMushroomMeme = (p: P) => (
+export const IconUserBack = (p: P) => (
   <svg {...base(p)}>
-    <path d="M4.5 12c0-5 3.4-8 7.5-8s7.5 3 7.5 8H4.5Z" fill="currentColor" />
-    <path d="M6 12v2a6 6 0 0 0 12 0v-2" />
-    <path d="M9.5 14h1.5M13 14h1.5M9.5 16.8c1.2.8 3.8.8 5 0" />
+    <circle cx="12" cy="8" r="4.2" />
+    <path d="M8.5 6.8c1.5-2 5.5-2 7 0M9.2 10.2c1.5 1 4.1 1 5.6 0" />
+    <path d="M5 20.5v-1.8A4.7 4.7 0 0 1 9.7 14h4.6a4.7 4.7 0 0 1 4.7 4.7v1.8" />
+    <line x1="12" y1="14" x2="12" y2="20.5" />
+  </svg>
+)
+
+export const IconAnimalPaw = (p: P) => (
+  <svg {...base(p)}>
+    <ellipse cx="12" cy="15.5" rx="4.2" ry="3.5" />
+    <circle cx="6.5" cy="10.5" r="1.8" />
+    <circle cx="10" cy="7.5" r="1.8" />
+    <circle cx="14" cy="7.5" r="1.8" />
+    <circle cx="17.5" cy="10.5" r="1.8" />
   </svg>
 )

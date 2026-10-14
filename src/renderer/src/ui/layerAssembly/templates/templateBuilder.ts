@@ -25,6 +25,7 @@ export function createTemplateComposite(
         imageUrl: direct ? source : undefined,
         ...slot.defaultTransform,
         opacity: slot.defaultTransform.opacity ?? 1,
+        hidden: slot.defaultTransform.hidden,
         motion: slot.defaultMotion || { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
       }
     }),

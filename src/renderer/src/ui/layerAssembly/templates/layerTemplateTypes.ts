@@ -30,6 +30,7 @@ export interface LayerTemplateSlot {
     scale: number
     rotation: number
     opacity?: number
+    hidden?: boolean
   }
   defaultMotion?: LayerMotionSettings
   suggestedAsset?: string

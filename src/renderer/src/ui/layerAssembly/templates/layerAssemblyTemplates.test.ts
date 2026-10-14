@@ -8,17 +8,37 @@ import {
 } from './index'
 
 describe('Layer Assembly Templates Catalog', () => {
-  it('provides a complete 15-part puppet with separate knee and ankle chains', () => {
-    const template = findLayerTemplate('tmpl-character-puppet-15')!
-    const composite = template.buildComposite()
-    expect(composite.layers).toHaveLength(15)
-    expect(composite.rig!.bones).toHaveLength(15)
-    expect(composite.layers.every((layer) => layer.imageUrl?.startsWith('data:image/svg+xml'))).toBe(true)
-    for (const side of ['l', 'r']) {
-      expect(composite.rig!.bones.find((b) => b.id === `bone-shin-${side}`)?.parentId).toBe(`bone-thigh-${side}`)
-      expect(composite.rig!.bones.find((b) => b.id === `bone-foot-${side}`)?.parentId).toBe(`bone-shin-${side}`)
-      const walk = composite.rig!.clips!.find((clip) => clip.id === 'clip-walk')!
-      expect(new Set(walk.tracks[`bone-shin-${side}`].map((key) => key.rotation)).size).toBeGreaterThan(1)
+  it('provides 3 standard human character templates (Front 0°, Quarter 45°, Back 180°) with faceless head and swappable expressions', () => {
+    const front = findLayerTemplate('tmpl-character-front')!
+    const quarter = findLayerTemplate('tmpl-character-quarter')!
+    const back = findLayerTemplate('tmpl-character-back')!
+
+    expect(front).toBeDefined()
+    expect(quarter).toBeDefined()
+    expect(back).toBeDefined()
+
+    // Front and Quarter views include 23 slots (faceless head + 4 swappable face expressions + hair + body + limbs + cape + weapon)
+    expect(front.slots).toHaveLength(23)
+    expect(quarter.slots).toHaveLength(23)
+    expect(back.slots).toHaveLength(17)
+
+    for (const tmpl of [front, quarter]) {
+      const comp = buildCompositeFromTemplate(tmpl)
+      const faceNormal = comp.layers.find((l) => l.id === 'layer-face-normal')
+      const faceHappy = comp.layers.find((l) => l.id === 'layer-face-happy')
+      const faceAngry = comp.layers.find((l) => l.id === 'layer-face-angry')
+      const faceShock = comp.layers.find((l) => l.id === 'layer-face-shock')
+
+      expect(Boolean(faceNormal?.hidden)).toBe(false)
+      expect(faceHappy?.hidden).toBe(true)
+      expect(faceAngry?.hidden).toBe(true)
+      expect(faceShock?.hidden).toBe(true)
+    }
+
+    // All layers use real PNG cutout assets (no fake inline data:image/svg+xml placeholders)
+    for (const tmpl of ALL_LAYER_TEMPLATES) {
+      const comp = buildCompositeFromTemplate(tmpl)
+      expect(comp.layers.every((l) => Boolean(l.assetPath) && !l.imageUrl?.startsWith('data:image/svg+xml'))).toBe(true)
     }
   })
 
@@ -38,25 +58,6 @@ describe('Layer Assembly Templates Catalog', () => {
         template.slots.map((slot) => `${slot.atlasCell}:${slot.id}`).sort()
       )
     }
-    const prompt = findLayerTemplate('tmpl-character-puppet-15')!.promptGuide.systemPrompt
-    expect(prompt).toContain('Knee to ankle ONLY; NO thigh, foot, shoe or sole')
-    expect(prompt).toContain('Elbow to wrist ONLY; NO upper arm, hand, fingers or held prop')
-  })
-
-  it('ships 13 independent illustrated parts with working wrist and ankle chains', () => {
-    const template = findLayerTemplate('tmpl-character-articulated-13')!
-    const composite = buildCompositeFromTemplate(template)
-    expect(composite.layers).toHaveLength(13)
-    expect(composite.rig?.bones).toHaveLength(13)
-    expect(composite.layers.every((layer) => layer.imageUrl?.startsWith('data:image/svg+xml'))).toBe(true)
-    for (const side of ['l', 'r']) {
-      expect(composite.rig?.bones.find((b) => b.id === `bone-hand-${side}`)?.parentId).toBe(`bone-forearm-${side}`)
-      expect(composite.rig?.bones.find((b) => b.id === `bone-foot-${side}`)?.parentId).toBe(`bone-thigh-${side}`)
-      expect(composite.layers.find((l) => l.id === `layer-hand-${side}`)?.boneId).toBe(`bone-hand-${side}`)
-      expect(composite.layers.find((l) => l.id === `layer-foot-${side}`)?.boneId).toBe(`bone-foot-${side}`)
-    }
-    const wave = composite.rig!.clips!.find((clip) => clip.id === 'clip-wave')!
-    expect(new Set(wave.tracks['bone-hand-r'].map((key) => key.rotation)).size).toBeGreaterThan(1)
   })
 
   it('keeps atlas cells, prompt and every rig structurally consistent', () => {
@@ -89,28 +90,33 @@ describe('Layer Assembly Templates Catalog', () => {
       }
     }
   })
-  it('contains at least 14 templates covering characters, animals, nature, and architecture', () => {
-    expect(ALL_LAYER_TEMPLATES.length).toBeGreaterThanOrEqual(14)
+
+  it('contains 13 curated real-cutout templates covering characters (3 views), animals (3 types), nature (5), and architecture (2)', () => {
+    expect(ALL_LAYER_TEMPLATES.length).toBe(13)
     const ids = ALL_LAYER_TEMPLATES.map((t) => t.id)
     expect(new Set(ids).size).toBe(ALL_LAYER_TEMPLATES.length)
+    expect(ids).toEqual([
+      'tmpl-character-front',
+      'tmpl-character-quarter',
+      'tmpl-character-back',
+      'tmpl-animal-dog',
+      'tmpl-animal-rooster',
+      'tmpl-animal-fish',
+      'tmpl-nature-modular-tree',
+      'tmpl-nature-autumn-tree',
+      'tmpl-nature-modular-rock',
+      'tmpl-nature-bonsai',
+      'tmpl-nature-flower-bush',
+      'tmpl-arch-window',
+      'tmpl-arch-ruins'
+    ])
   })
 
-  it('contains humanoid templates across all requested age groups', () => {
-    const ageGroups = ALL_LAYER_TEMPLATES.filter((t) => t.category === 'character').map((t) => t.ageGroup)
-    expect(ageGroups).toContain('child')
-    expect(ageGroups).toContain('youth')
-    expect(ageGroups).toContain('adult')
-    expect(ageGroups).toContain('middleaged')
-    expect(ageGroups).toContain('elderly')
-  })
-
-  it('contains animal templates for dog, buffalo, cat, fish, and rooster', () => {
+  it('contains animal templates for dog, rooster/bird, and koi fish with real PNG assets', () => {
     const animalIds = ALL_LAYER_TEMPLATES.filter((t) => t.category === 'animal').map((t) => t.id)
     expect(animalIds).toContain('tmpl-animal-dog')
-    expect(animalIds).toContain('tmpl-animal-buffalo')
-    expect(animalIds).toContain('tmpl-animal-cat')
-    expect(animalIds).toContain('tmpl-animal-fish')
     expect(animalIds).toContain('tmpl-animal-rooster')
+    expect(animalIds).toContain('tmpl-animal-fish')
   })
 
   it('every template has a valid prompt guide with non-empty system prompt and cell layout', () => {
@@ -140,8 +146,9 @@ describe('Layer Assembly Templates Catalog', () => {
     }
   })
 
-  it('findLayerTemplate finds templates case-insensitively and returns undefined for unknown', () => {
-    expect(findLayerTemplate('tmpl-character-male-hero')).toBeDefined()
+  it('findLayerTemplate finds templates case-insensitively and supports legacy aliases', () => {
+    expect(findLayerTemplate('tmpl-character-front')).toBeDefined()
+    expect(findLayerTemplate('tmpl-character-male-hero')?.id).toBe('tmpl-character-front')
     expect(findLayerTemplate('TMPL-ANIMAL-DOG')).toBeDefined()
     expect(findLayerTemplate('unknown-template-xyz')).toBeUndefined()
   })
@@ -164,18 +171,18 @@ describe('Layer Assembly Templates Catalog', () => {
 
   it('merges user character appearance, costume, and props into the AI prompt and cell assignments', async () => {
     const { buildTemplatePromptWithBrief } = await import('./characterPrompt')
-    const tmpl = findLayerTemplate('tmpl-character-shadiao-panda')!
+    const tmpl = findLayerTemplate('tmpl-character-front')!
     const customPrompt = buildTemplatePromptWithBrief(tmpl, {
-      appearance: 'Đầu gấu trúc meme mắt lé cười đểu',
+      appearance: 'Nam kiếm khách tóc đen buộc cao, mắt sắc lạnh',
       costume: 'Hoàng bào rồng vàng cổ trang và hài thêu rồng',
-      props: 'Cầm quạt xếp thiết phiến và đeo kính đen'
+      props: 'Cầm quạt xếp thiết phiến và đeo kiếm báu'
     })
     expect(customPrompt).toContain('USER CHARACTER & COSTUME SPECIFICATION')
-    expect(customPrompt).toContain('Đầu gấu trúc meme mắt lé cười đểu')
+    expect(customPrompt).toContain('Nam kiếm khách tóc đen buộc cao, mắt sắc lạnh')
     expect(customPrompt).toContain('Hoàng bào rồng vàng cổ trang và hài thêu rồng')
-    expect(customPrompt).toContain('Cầm quạt xếp thiết phiến và đeo kính đen')
-    expect(customPrompt).toContain('Match user appearance/face/hair: "Đầu gấu trúc meme mắt lé cười đểu"')
+    expect(customPrompt).toContain('Cầm quạt xếp thiết phiến và đeo kiếm báu')
+    expect(customPrompt).toContain('Match user\'s described appearance/hair/facial style: "Nam kiếm khách tóc đen buộc cao, mắt sắc lạnh"')
     expect(customPrompt).toContain('Draw wearing user\'s described outfit/clothing: "Hoàng bào rồng vàng cổ trang và hài thêu rồng"')
-    expect(customPrompt).toContain('Match user\'s described accessory/prop: "Cầm quạt xếp thiết phiến và đeo kính đen"')
+    expect(customPrompt).toContain('Match user\'s described accessory/weapon/prop: "Cầm quạt xếp thiết phiến và đeo kiếm báu"')
   })
 })
