@@ -167,4 +167,28 @@ describe('Layer Assembly Templates Catalog', () => {
     expect(customPrompt).toContain('Draw wearing user\'s described outfit/clothing: "Hoàng bào rồng vàng cổ trang và hài thêu rồng"')
     expect(customPrompt).toContain('Match user\'s described accessory/weapon/prop: "Cầm quạt xếp thiết phiến và đeo kiếm báu"')
   })
+
+  it('enforces full 4-corner unclipped margins, trunk-to-root continuity, and canopy-conforming fruit/blossom leaf blending in nature prompts', async () => {
+    const { buildTemplatePromptWithBrief } = await import('./characterPrompt')
+    const treeTmpl = findLayerTemplate('tmpl-nature-modular-tree')!
+    const rockTmpl = findLayerTemplate('tmpl-nature-modular-rock')!
+
+    const treePrompt = treeTmpl.promptGuide.systemPrompt
+    expect(treePrompt).toContain('COMPLETE 4-CORNER UNCLIPPED MOSSY ROOT HILLOCK & SEAMLESS TRUNK BASE CONTINUITY')
+    expect(treePrompt).toContain('CANOPY-CONFORMING RIPE RED APPLES OVERLAY (SEAMLESS FOLIAGE & LEAF BLEND)')
+    expect(treePrompt).toContain('CANOPY-CONFORMING BLOSSOM CLUSTERS OVERLAY (SEAMLESS FOLIAGE FIT, NO BUSH STEMS)')
+    expect(treePrompt).toContain('ZERO EDGE CLIPPING — FULL 4-CORNER SILHOUETTES')
+
+    const rockPrompt = rockTmpl.promptGuide.systemPrompt
+    expect(rockPrompt).toContain('COMPLETE 4-CORNER UNCLIPPED EARTHEN TURF & STONE BASE MOUND')
+    expect(rockPrompt).toContain('NEVER slice the left or right ends vertically flat')
+
+    const customTreePrompt = buildTemplatePromptWithBrief(treeTmpl, {
+      appearance: 'Gốc rễ cổ thụ rêu xanh bo tròn 4 góc',
+      costume: 'Tán lá xanh ngọc bích bồng bềnh',
+      props: 'Quả táo đỏ chín mọng cài lá xanh'
+    })
+    expect(customTreePrompt).toContain('USER NATURE & PROP CUSTOMIZATION')
+    expect(customTreePrompt).toContain('Gốc rễ cổ thụ rêu xanh bo tròn 4 góc')
+  })
 })

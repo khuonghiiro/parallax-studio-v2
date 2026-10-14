@@ -197,6 +197,8 @@ CLEAN EXTRACTION:
 - Do not use the chroma-key color in skin, costume, outlines, highlights or reflections.`
 }
 
+import { naturePrompt } from './naturePrompt'
+
 /** Build a customized prompt for ANY template (character, animal, nature, architecture). */
 export function buildTemplatePromptWithBrief(
   template: LayerAssemblyTemplate,
@@ -207,6 +209,9 @@ export function buildTemplatePromptWithBrief(
   )
   if (template.category === 'character') {
     return hasCustom ? characterPrompt(template, customBrief) : template.promptGuide.systemPrompt
+  }
+  if (template.category === 'nature') {
+    return hasCustom ? naturePrompt(template, customBrief) : template.promptGuide.systemPrompt
   }
   if (!hasCustom) {
     return template.promptGuide.systemPrompt

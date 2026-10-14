@@ -12,7 +12,7 @@ interface TemplatePromptModalProps {
 
 type ModalTab = 'prompt' | 'slots' | 'guide'
 
-const BRIEF_PRESETS: Array<{ label: string; brief: CharacterPromptCustomBrief }> = [
+const CHARACTER_BRIEF_PRESETS: Array<{ label: string; brief: CharacterPromptCustomBrief }> = [
   {
     label: '👓 Nam Sinh Kính Cận (Mẫu Minh Hoạ)',
     brief: {
@@ -47,23 +47,57 @@ const BRIEF_PRESETS: Array<{ label: string; brief: CharacterPromptCustomBrief }>
   }
 ]
 
+const NATURE_BRIEF_PRESETS: Array<{ label: string; brief: CharacterPromptCustomBrief }> = [
+  {
+    label: '🌳 Đại Thụ Sồi & Táo Đỏ (Chuẩn 4 Góc)',
+    brief: {
+      appearance: 'Ancient gnarled oak trunk with flared root buttresses locking seamlessly into a wide, low, 4-corner unclipped mossy root hillock (15% margin on all sides, no white fog at top)',
+      costume: '3 depth-layered billowy emerald-to-sunlit-green oak foliage crowns (plus golden autumn and sakura pink canopy variants matching the exact contour)',
+      props: '5–7 small natural clusters of glossy ripe red apples and 6–8 white-pink blossom clusters distributed across the canopy lobes with matching green oak leaf tufts'
+    }
+  },
+  {
+    label: '🌸 Đại Thụ Anh Đào Cổ Thụ',
+    brief: {
+      appearance: 'Graceful dark-bark cherry blossom tree trunk and wide unclipped mossy root mound with fallen petals and rounded stone corners (15% clear margin)',
+      costume: 'Lush multi-lobe spring green and pastel sakura-pink layered foliage canopies',
+      props: 'Abundant glowing 5-petal sakura blossom garlands and golden morning dew fruits nestled seamlessly across the canopy puffs'
+    }
+  },
+  {
+    label: '💎 Cụm Đá Rêu Phong & Tinh Thể',
+    brief: {
+      appearance: 'Heavy chiseled granite boulder resting inside a complete 4-corner unclipped flat-bottomed grassy soil mound with rounded corner pebbles (zero flat side cuts)',
+      costume: 'Thick emerald forest moss blanket and toggleable fluffy white winter snow cap draping over the top boulder ridges',
+      props: 'Radiant cyan-blue magic crystal cluster, mossy foreground pebbles, and swaying forest ferns & wildflowers'
+    }
+  }
+]
+
 function PromptCustomizerBox({
+  isNature,
   brief,
   onChange
 }: {
+  isNature: boolean
   brief: CharacterPromptCustomBrief
   onChange: (next: CharacterPromptCustomBrief) => void
 }) {
   const hasAny = Boolean(brief.appearance?.trim() || brief.costume?.trim() || brief.props?.trim())
+  const presets = isNature ? NATURE_BRIEF_PRESETS : CHARACTER_BRIEF_PRESETS
   return (
     <div className="tpm-customizer" id="template-prompt-customizer">
       <div className="tpm-customizer-header">
         <div className="tpm-customizer-title">
           <IconSparkles width={14} height={14} />
-          <span>Mô tả Tướng mạo & Quần áo Nhân vật (Tự động gắn vào Prompt AI)</span>
+          <span>
+            {isNature
+              ? 'Tuỳ chỉnh Thân/Gốc Đế, Tán Lá & Hoa Quả (Tự động gắn vào Prompt AI)'
+              : 'Mô tả Tướng mạo & Quần áo Nhân vật (Tự động gắn vào Prompt AI)'}
+          </span>
         </div>
         <div className="tpm-preset-chips">
-          {BRIEF_PRESETS.map((p) => (
+          {presets.map((p) => (
             <button
               key={p.label}
               type="button"
@@ -87,31 +121,55 @@ function PromptCustomizerBox({
       </div>
       <div className="tpm-customizer-grid">
         <label className="tpm-field">
-          <span className="tpm-field-label">1. Tướng mạo, Kiểu tóc & Biểu cảm rời</span>
+          <span className="tpm-field-label">
+            {isNature
+              ? '1. Thân cây / Khối đá & Gốc rễ đế đất (Đủ 4 góc cạnh, ăn khớp gốc)'
+              : '1. Tướng mạo, Kiểu tóc & Biểu cảm rời'}
+          </span>
           <input
             type="text"
             className="input-text sm tpm-field-input"
-            placeholder="VD: Nam thanh niên tuấn tú, tóc đen rẽ ngôi, đầu gốc trơn kèm 4 biểu cảm mắt xanh..."
+            placeholder={
+              isNature
+                ? 'VD: Gốc rễ sồi rêu phong bo tròn đủ 4 góc cạnh, cổ rễ liền mạch ăn khít đáy thân cây...'
+                : 'VD: Nam thanh niên tuấn tú, tóc đen rẽ ngôi, đầu gốc trơn kèm 2 biểu cảm mắt xanh...'
+            }
             value={brief.appearance || ''}
             onChange={(e) => onChange({ ...brief, appearance: e.target.value })}
           />
         </label>
         <label className="tpm-field">
-          <span className="tpm-field-label">2. Quần áo, Trang phục & Giày dép</span>
+          <span className="tpm-field-label">
+            {isNature
+              ? '2. Tán lá / Lớp phủ Rêu & Biến thể theo mùa'
+              : '2. Quần áo, Trang phục & Giày dép'}
+          </span>
           <input
             type="text"
             className="input-text sm tpm-field-input"
-            placeholder="VD: Mặc võ phục xanh hoàng gia viền vàng, đai lưng da, quần tối màu và ủng cổ cao..."
+            placeholder={
+              isNature
+                ? 'VD: 3 tầng tán lá xanh ngọc bích bồng bềnh dạng mây, kèm tán vàng mùa thu & hồng sakura...'
+                : 'VD: Mặc võ phục xanh hoàng gia viền vàng, đai lưng da, quần tối màu và ủng cổ cao...'
+            }
             value={brief.costume || ''}
             onChange={(e) => onChange({ ...brief, costume: e.target.value })}
           />
         </label>
         <label className="tpm-field">
-          <span className="tpm-field-label">3. Áo choàng & Vũ khí / Đạo cụ cầm tay</span>
+          <span className="tpm-field-label">
+            {isNature
+              ? '3. Quả chín, Hoa nở ăn khít tán lá & Chi tiết phụ'
+              : '3. Áo choàng & Vũ khí / Đạo cụ cầm tay'}
+          </span>
           <input
             type="text"
             className="input-text sm tpm-field-input"
-            placeholder="VD: Áo choàng đỏ viền vàng sau lưng, tay phải cầm trường kiếm bạc..."
+            placeholder={
+              isNature
+                ? 'VD: 6 chùm táo đỏ & hoa trắng hồng phân bố đều khắp vòm tán lá kèm lá đệm cùng màu xanh...'
+                : 'VD: Gọng kính cận chữ nhật rời, đồng hồ đeo tay phải...'
+            }
             value={brief.props || ''}
             onChange={(e) => onChange({ ...brief, props: e.target.value })}
           />
@@ -122,12 +180,14 @@ function PromptCustomizerBox({
 }
 
 function PromptTabContent({
+  isNature,
   activePrompt,
   brief,
   onChangeBrief,
   copied,
   onCopy
 }: {
+  isNature: boolean
   activePrompt: string
   brief: CharacterPromptCustomBrief
   onChangeBrief: (next: CharacterPromptCustomBrief) => void
@@ -138,11 +198,17 @@ function PromptTabContent({
   return (
     <div className="tpm-tab-content">
       <div className="tpm-alert-banner">
-        <span>
-          💡 <strong>Mẹo Tạo Nhân Vật Chuẩn Khớp Lắp Ráp:</strong> Nhập mô tả <em>Tướng mạo</em>, <em>Quần áo</em> và <em>Phụ kiện</em> ở khung dưới (bằng tiếng Việt hoặc tiếng Anh). Hệ thống sẽ tự động gắn mô tả của bạn vào cả phần <code>IDENTITY</code> lẫn từng ô bộ phận (<code>CELL ASSIGNMENTS</code>) để AI vẽ tất cả các mảnh khớp nhau như một bức vẽ hoàn chỉnh.
-        </span>
+        {isNature ? (
+          <span>
+            💡 <strong>Chuẩn Tạo Cây Cối & Đá Tảng 2.5D Không Bị Lộ Góc Cạnh:</strong> Prompt đã được tối ưu bắt buộc AI vẽ <strong>trọn vẹn 100% chu vi 4 góc cạnh với lề xanh &gt;=15%</strong> (không cắt phẳng mép trái/phải/đáy của <em>Gốc rễ &amp; Đế đất cỏ</em>, không làm mờ trắng cổ gốc), đồng bộ vân vỏ gỗ giữa <em>Gốc rễ</em> và <em>Thân cây</em>, đồng thời phân bố <em>Quả táo đỏ &amp; Hoa nở</em> kèm lá đệm ăn khít theo đúng vòm tán lá.
+          </span>
+        ) : (
+          <span>
+            💡 <strong>Mẹo Tạo Nhân Vật Chuẩn Khớp Lắp Ráp:</strong> Nhập mô tả <em>Tướng mạo</em>, <em>Quần áo</em> và <em>Phụ kiện</em> ở khung dưới (bằng tiếng Việt hoặc tiếng Anh). Hệ thống sẽ tự động gắn mô tả của bạn vào cả phần <code>IDENTITY</code> lẫn từng ô bộ phận (<code>CELL ASSIGNMENTS</code>) để AI vẽ tất cả các mảnh khớp nhau như một bức vẽ hoàn chỉnh.
+          </span>
+        )}
       </div>
-      <PromptCustomizerBox brief={brief} onChange={onChangeBrief} />
+      <PromptCustomizerBox isNature={isNature} brief={brief} onChange={onChangeBrief} />
       <div className="tpm-code-container">
         <div className="tpm-code-header">
           <span className="tpm-code-lang">
@@ -210,6 +276,47 @@ function SlotsTabContent({ template }: { template: LayerAssemblyTemplate }) {
 }
 
 function GuideTabContent({ template }: { template: LayerAssemblyTemplate }) {
+  if (template.category === 'nature') {
+    return (
+      <div className="tpm-tab-content tpm-guide-body">
+        <div className="tpm-guide-step">
+          <div className="tpm-step-num">1</div>
+          <div>
+            <h4>Chuẩn chỉ 4 góc cạnh ảnh — Tuyệt đối không chạm viền ô (15% Safe Margin)</h4>
+            <p>
+              Mọi bộ phận, đặc biệt là <strong>Gốc rễ &amp; Thảm cỏ rêu</strong> (<code>tree-roots</code>) và <strong>Đế đất &amp; Thảm cỏ chân đá</strong> (<code>rock-ground</code>), bắt buộc vẽ trọn vẹn 100% chu vi gò đất thấp đáy bằng, hai đầu trái/phải bo tròn tự nhiên bằng cụm cỏ rủ, sỏi nhỏ và chóp rễ với khoảng lề xanh <code>#00FF00</code> tối thiểu 15% ở cả 4 phía để không bao giờ bị cắt phẳng mép ảnh.
+            </p>
+          </div>
+        </div>
+        <div className="tpm-guide-step">
+          <div className="tpm-step-num">2</div>
+          <div>
+            <h4>Khớp nối Gốc rễ &amp; Thân cây / Đế đất &amp; Tảng đá ăn khít 100%</h4>
+            <p>
+              Phần đỉnh giữa của <code>tree-roots</code> hội tụ các rễ nổi thành cổ thân gỗ liền mạch (cùng khổ rộng, vân vỏ gỗ dọc và màu nâu gỗ <code>#5A3E28–#8B6240</code> với <code>tree-trunk</code>, tuyệt đối không làm mờ sương trắng hay khoét lỗ rỗng), giúp đáy thân cây đặt chồng lên khớp liền khối 100%.
+            </p>
+          </div>
+        </div>
+        <div className="tpm-guide-step">
+          <div className="tpm-step-num">3</div>
+          <div>
+            <h4>Layer Quả táo đỏ &amp; Hoa nở trắng hồng ăn khít vòm tán lá</h4>
+            <p>
+              Thay vì gom thành 1 cụm đơn lẻ ở giữa hay lộ cành bụi phía dưới, <code>tree-fruits</code> và <code>tree-blossoms</code> được phân bố thành 5–8 chùm nhỏ trải đều theo đúng chu vi vòm mây nhiều múi của tán lá trung/tiền cảnh, kèm các cụm lá đệm vẽ đúng tông xanh lục bảo – xanh nắng (<code>#246929–#76C938</code>) để hoà quyện tự nhiên vào tán cây.
+            </p>
+          </div>
+        </div>
+        <div className="tpm-guide-step">
+          <div className="tpm-step-num">4</div>
+          <div>
+            <h4>Tài nguyên đóng gói riêng (Private) &amp; Đổi mùa linh hoạt</h4>
+            <p>{template.promptGuide.userGuide}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="tpm-tab-content tpm-guide-body">
       <div className="tpm-guide-step">
@@ -266,6 +373,8 @@ export function TemplatePromptModal({
 
   if (!template) return null
 
+  const isNature = template.category === 'nature'
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(activePrompt)
@@ -292,7 +401,7 @@ export function TemplatePromptModal({
                     ? 'Nhân vật'
                     : template.category === 'animal'
                       ? 'Động vật'
-                      : 'Thiên nhiên / Kiến trúc'}
+                      : 'Thiên nhiên / Cây cối & Đá bóc tách'}
                 </span>
                 {template.clips.length > 0 && (
                   <>
@@ -341,6 +450,7 @@ export function TemplatePromptModal({
         <div className="tpm-body">
           {activeTab === 'prompt' && (
             <PromptTabContent
+              isNature={isNature}
               activePrompt={activePrompt}
               brief={brief}
               onChangeBrief={setBrief}

@@ -1,6 +1,7 @@
 import type { LayerComposite } from '../types'
 import type { LayerAssemblyTemplate } from './layerTemplateTypes'
 import { characterPrompt, CHARACTER_PROMPT_GUIDE } from './characterPrompt'
+import { naturePrompt, NATURE_PROMPT_GUIDE } from './naturePrompt'
 
 /** Each draft owns its skeleton, clips and motion settings. */
 export function createTemplateComposite(
@@ -50,14 +51,12 @@ Near-side and far-side limbs must be drawn as separate isolated cutouts at the s
 Crisp antialiased edges on a flat uniform chroma-key background; no blur, glow, fringe, cast shadows or ground plane.`
       : `Reconstruct the complete occluded silhouette of each depth layer (e.g., full foliage crown behind trunk, full window frame behind planter, full stone archway behind hanging vines) so 2.5D parallax camera movement and wind sway never expose raw cut gaps.
 Crisp antialiased edges on a flat uniform chroma-key background; no blur, glow, fringe, cast shadows or ground plane.`
-  return {
-    ...template,
-    promptGuide: {
-      ...template.promptGuide,
-      aspectRatio: '1:1', recommendedResolution: template.category === 'character' ? 'model-native' : '4096x4096',
-      userGuide: template.category === 'character' ? CHARACTER_PROMPT_GUIDE : template.promptGuide.userGuide,
-      cellLayout: template.slots.map((slot) => `${slot.atlasCell}. ${slot.name}`),
-      systemPrompt: template.category === 'character' ? characterPrompt(template) : `${intro}
+  const resolvedSystemPrompt =
+    template.category === 'character'
+      ? characterPrompt(template)
+      : template.category === 'nature'
+        ? naturePrompt(template)
+        : `${intro}
 GRID: Exactly 5 rows x 5 columns, numbered 1–25 left-to-right, top-to-bottom.
 Exactly ${template.slots.length} isolated parts, one assigned part per cell:
 CELL ASSIGNMENTS (one isolated part per assigned cell):
@@ -66,6 +65,20 @@ Leave all unassigned cells empty with only the background color. No text, labels
 Use one consistent pixel scale and the same orthographic view for all parts. Do not resize each part to fill its cell.
 Left/right follow the assembled screen positions, not anatomical left/right. Keep all parts fully inside their cells with at least 8% clear padding.
 ${categoryRules}`
+  return {
+    ...template,
+    promptGuide: {
+      ...template.promptGuide,
+      aspectRatio: '1:1',
+      recommendedResolution: template.category === 'character' ? 'model-native' : '4096x4096',
+      userGuide:
+        template.category === 'character'
+          ? CHARACTER_PROMPT_GUIDE
+          : template.category === 'nature'
+            ? NATURE_PROMPT_GUIDE
+            : template.promptGuide.userGuide,
+      cellLayout: template.slots.map((slot) => `${slot.atlasCell}. ${slot.name}`),
+      systemPrompt: resolvedSystemPrompt
     },
     buildComposite: (images, name) => createTemplateComposite(template, images, name)
   }
