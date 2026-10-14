@@ -7,7 +7,9 @@ import { LayerAssembly3DViewport } from './LayerAssembly3DViewport'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
 import { IconCube, IconImage } from '../icons'
 import { evaluateRig, transformRigLayer } from '../../engine/layerRig'
-import { ensureRigClips } from './workshopRig'
+import { ensureRigClips, applyRigAction } from './workshopRig'
+import { applyPlantSpineAction } from './workshopPlantSpines'
+import { applySketchToComposite, type MotionSketchState } from './workshopMotionSketch'
 import type { WorkshopTab } from './WorkshopRightPanel'
 import { loadLayerWorkshopViewPrefs, saveLayerWorkshopViewPrefs } from './layerAssemblyViewPrefs'
 import type { BrushPreview } from './useLayerBrushEraser'
@@ -98,6 +100,24 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
       }
     })
   }
+  const handleApplyMotionSketch = (sketch: MotionSketchState) => {
+    state.setComposite((prev) => {
+      let draft = { ...prev }
+      applySketchToComposite(
+        draft,
+        sketch,
+        playback.time,
+        (rigAction) => {
+          draft = applyRigAction(draft, rigAction)
+        },
+        (plantAction) => {
+          draft = applyPlantSpineAction(draft, plantAction)
+        }
+      )
+      return draft
+    })
+  }
+
   const props = {
     composite,
     selectedLayerId: state.selectedLayerId,
@@ -124,6 +144,7 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
           onToggleShowBones={toggleBones}
           showMesh={showMesh}
           onToggleShowMesh={toggleMesh}
+          onApplyMotionSketch={handleApplyMotionSketch}
           boneOverlay={isErasing ? undefined : {
             composite: { ...state.composite, rig: normalizedRig ?? state.composite.rig },
             boneId,

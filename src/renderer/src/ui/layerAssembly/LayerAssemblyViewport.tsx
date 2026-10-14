@@ -2,6 +2,8 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import type { LayerComposite, AssembledLayerItem } from './types'
 import { WorkshopBoneOverlay, type BoneOverlayProps } from './WorkshopBoneOverlay'
 import { PlantSpineOverlay, type PlantSpineOverlayProps } from './PlantSpineOverlay'
+import { MotionSketchOverlay } from './MotionSketchOverlay'
+import type { MotionSketchState } from './workshopMotionSketch'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
 import { IconLayers, IconImage } from '../icons'
 import { useView } from '../../store/view'
@@ -48,6 +50,7 @@ export interface LayerAssemblyViewportProps {
   onToggleShowBones?: () => void
   showMesh?: boolean
   onToggleShowMesh?: () => void
+  onApplyMotionSketch?: (sketch: MotionSketchState) => void
 }
 
 export function LayerAssemblyViewport({
@@ -75,7 +78,8 @@ export function LayerAssemblyViewport({
   showBones = true,
   onToggleShowBones,
   showMesh = false,
-  onToggleShowMesh
+  onToggleShowMesh,
+  onApplyMotionSketch
 }: LayerAssemblyViewportProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [zoom, setZoom] = useState(1.0)
@@ -287,8 +291,8 @@ export function LayerAssemblyViewport({
       return
     }
 
-    // Nếu bấm chuột giữa hoặc giữ phím Alt -> Bắt đầu Pan
-    if (e.button === 1 || e.altKey) {
+    // Nếu bấm chuột giữa hoặc giữ phím Alt (khi không ở tab animation) -> Bắt đầu Pan
+    if (e.button === 1 || (e.altKey && tab !== 'animation')) {
       setIsPanning(true)
       dragStartRef.current.mouseX = e.clientX
       dragStartRef.current.mouseY = e.clientY
@@ -702,6 +706,19 @@ export function LayerAssemblyViewport({
 
         {/* Xương thực vật: hiển thị đường uốn & vẽ tay xương mới khi ở tab Thực vật */}
         {plantOverlay && <PlantSpineOverlay {...plantOverlay} />}
+
+        {/* Lớp vẽ chuyển động hoạt ảnh (Motion Sketch) khi ở tab Animation: Alt (xương đỏ) + Shift (nét blue) */}
+        {tab === 'animation' && (
+          <MotionSketchOverlay
+            composite={composite}
+            time={time}
+            active={tab === 'animation'}
+            isPlaying={isPlaying}
+            onTogglePlay={onTogglePlay}
+            selectBone={(id) => boneOverlay?.selectBone?.(id)}
+            onApplySketch={(sk) => onApplyMotionSketch?.(sk)}
+          />
+        )}
 
         {composite.layers.length === 0 && (
           <div

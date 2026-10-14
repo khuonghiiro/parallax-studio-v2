@@ -9,6 +9,7 @@ import { Select } from '../controls'
 import { WorkshopClipBar } from './WorkshopClipBar'
 import { WorkshopRetargetDialog } from './WorkshopRetargetDialog'
 import { WorkshopInterpolation } from './WorkshopInterpolation'
+import { WorkshopMotionSketchCard } from './WorkshopMotionSketchCard'
 
 type Props = RigPanelProps & { playback: ReturnType<typeof useWorkshopPlayback> }
 
@@ -69,6 +70,7 @@ export function WorkshopAnimationPanel({ composite, boneId, selectBone, run, pla
     }} onOpenRetarget={() => setIsRetargetOpen(true)} />
     <WorkshopRetargetDialog isOpen={isRetargetOpen} onClose={() => setIsRetargetOpen(false)} targetComposite={composite} onInherit={inherit} />
     <AnimationSettings rig={rig} playback={playback} run={run} />
+    <WorkshopMotionSketchCard isPlaying={playback.isPlaying} onTogglePlay={playback.toggle} />
     <div className="lw-card-section lw-animation-pose">
       <div className="lw-card-header"><span className="lw-card-title">Tạo dáng xương</span><span className="lw-card-badge">{exact ? '◆ Có key' : 'Chưa ghi key'}</span></div>
       <Select size="sm" value={bone?.id ?? ''} options={[{ value: '', label: 'Chọn xương trên hình hoặc timeline' }, ...rig.bones.map((b) => ({ value: b.id, label: b.name }))]}

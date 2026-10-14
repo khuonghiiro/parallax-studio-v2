@@ -1,0 +1,160 @@
+/* Lớp vẽ chuyển động hoạt ảnh (Motion Sketch) — Tab Animation */
+
+.lw-motion-sketch-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 45;
+  user-select: none;
+}
+
+.lw-motion-sketch-overlay.interactive {
+  pointer-events: all;
+}
+
+.lw-motion-sketch-overlay.alt-held {
+  cursor: crosshair;
+}
+
+.lw-motion-sketch-overlay.shift-held {
+  cursor: crosshair;
+}
+
+/* 1. XƯƠNG MÀU ĐỎ (Alt) */
+.lw-sketch-red-line {
+  stroke: var(--axis-x, #ff3344);
+  stroke-width: 4px;
+  stroke-linecap: round;
+}
+
+.lw-sketch-red-line.live {
+  stroke-dasharray: 6, 3;
+}
+
+.lw-sketch-root-joint {
+  fill: #ffffff;
+  stroke: var(--axis-x, #ff3344);
+  stroke-width: 3px;
+}
+
+.lw-sketch-tip-joint {
+  fill: var(--axis-x, #ff3344);
+  stroke: #ffffff;
+  stroke-width: 1.5px;
+}
+
+/* 2. ĐƯỜNG KẺ XÁM (Tư thế đích đến) */
+.lw-sketch-gray-line {
+  stroke: var(--text-dim, #94a3b8);
+  stroke-width: 3px;
+  stroke-dasharray: 6, 4;
+  stroke-linecap: round;
+}
+
+.lw-sketch-gray-joint {
+  fill: var(--bg-1, #1e1e1e);
+  stroke: var(--text-dim, #94a3b8);
+  stroke-width: 2.5px;
+}
+
+/* 3. NÉT VẼ CHUYỂN ĐỘNG BLUE (Shift) */
+.lw-sketch-blue-path {
+  stroke: var(--accent-cyan, #00e5ff);
+  stroke-width: 3.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.lw-sketch-blue-path.live {
+  stroke-dasharray: 4, 3;
+}
+
+/* Nhãn chú thích trên SVG */
+.lw-sketch-label {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.lw-sketch-label.red {
+  fill: var(--axis-x, #ff3344);
+}
+
+.lw-sketch-label.blue {
+  fill: var(--accent-cyan, #00e5ff);
+}
+
+.lw-sketch-label.gray {
+  fill: var(--text-dim, #94a3b8);
+}
+
+.lw-sketch-hint {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.lw-sketch-hint.red {
+  fill: var(--axis-x, #ff3344);
+}
+
+.lw-sketch-hint.blue {
+  fill: var(--accent-cyan, #00e5ff);
+}
+
+/* HUD Toolbar nổi trên Bố cục 2D */
+.lw-sketch-hud-wrapper {
+  overflow: visible;
+  pointer-events: none;
+}
+
+.lw-sketch-hud-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-1);
+  border: 1px solid var(--accent-cyan);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 10px rgba(56, 189, 248, 0.2);
+  border-radius: 6px;
+  padding: 4px 10px;
+  pointer-events: auto;
+  font-size: 11px;
+  color: var(--text);
+}
+
+.lw-sketch-badge {
+  font-weight: 600;
+  color: var(--accent-cyan);
+  padding-right: 4px;
+  border-right: 1px solid var(--line);
+}
+
+.lw-sketch-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 11px;
+  user-select: none;
+}
+
+.lw-sketch-check input[type='checkbox'] {
+  cursor: pointer;
+  accent-color: var(--accent-cyan);
+}
+
+.lw-sketch-clear-btn {
+  color: var(--text-faint);
+  padding: 2px 6px;
+}
+
+.lw-sketch-clear-btn:hover {
+  color: var(--danger);
+}
