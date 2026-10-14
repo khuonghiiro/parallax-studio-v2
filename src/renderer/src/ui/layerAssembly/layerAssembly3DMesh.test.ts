@@ -126,6 +126,12 @@ describe('layerAssembly3DMesh', () => {
     expect(potInst.group.position.z).toBeCloseTo(9.0)
     expect(trunkInst.group.position.z).toBeCloseTo(0.05)
     expect(potInst.group.position.z).toBeGreaterThan(trunkInst.group.position.z)
+
+    // In flat front view (zExaggeration = 0), posZ is 0 and depthTest/depthWrite are disabled for painter order
+    updateLayer3DInstance(potInst, potLayer, 0, 0, false, 0)
+    expect(potInst.group.position.z).toBe(0)
+    expect(potInst.material.depthTest).toBe(false)
+    expect(potInst.material.depthWrite).toBe(false)
   })
 
   it('creates camera frustum helper with high contrast blue in light theme and gold in dark theme', () => {

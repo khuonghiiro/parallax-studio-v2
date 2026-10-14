@@ -269,6 +269,18 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
     height: 600,
     layers: [
       {
+        id: 'bonsai-foliage-back',
+        name: 'Tán lá tùng sau (Hậu cảnh Z=+35)',
+        assetPath: 'assembly_3d/modular/bonsai_foliage_back.png',
+        x: 4,
+        y: -28,
+        z: 35,
+        scale: 0.88,
+        rotation: 0,
+        opacity: 0.92,
+        motion: { type: 'sway', speed: 0.8, amplitude: 3.5, anchor: 'bottom', phaseOffset: 0.3 }
+      },
+      {
         id: 'bonsai-pot',
         name: 'Chậu gốm Tử Sa viền đồng (Gốc neo)',
         assetPath: 'assembly_3d/modular/bonsai_pot.png',
@@ -291,18 +303,6 @@ export const BUILTIN_COMPOSITES: LayerComposite[] = [
         rotation: 0,
         opacity: 1,
         motion: { type: 'sway', speed: 0.6, amplitude: 2.2, anchor: 'bottom', phaseOffset: 0.05 }
-      },
-      {
-        id: 'bonsai-foliage-back',
-        name: 'Tán lá tùng sau (Hậu cảnh Z=+35)',
-        assetPath: 'assembly_3d/modular/bonsai_foliage_back.png',
-        x: 4,
-        y: -28,
-        z: 35,
-        scale: 0.88,
-        rotation: 0,
-        opacity: 0.92,
-        motion: { type: 'sway', speed: 0.8, amplitude: 3.5, anchor: 'bottom', phaseOffset: 0.3 }
       },
       {
         id: 'bonsai-foliage-mid',

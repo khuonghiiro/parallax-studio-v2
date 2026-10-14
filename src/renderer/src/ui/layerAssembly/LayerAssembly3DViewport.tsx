@@ -224,7 +224,7 @@ export function LayerAssembly3DViewport({
     const scene = new THREE.Scene()
     sceneRef.current = scene
 
-    const camera = new THREE.PerspectiveCamera(initialPrefs.cameraFov || 45, width / height, 1, 60000)
+    const camera = new THREE.PerspectiveCamera(initialPrefs.cameraFov || 45, width / height, 10, 15000)
     cameraRef.current = camera
 
     const renderer = new THREE.WebGLRenderer({
@@ -284,7 +284,7 @@ export function LayerAssembly3DViewport({
 
     // 🦴 Khung xương 3D (Blender 3D Armature & Joints)
     const bonesGroup = create3DBonesGroup()
-    bonesGroup.renderOrder = 5000
+    bonesGroup.renderOrder = 250000
     scene.add(bonesGroup)
     bonesGroupRef.current = bonesGroup
 

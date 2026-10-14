@@ -158,7 +158,8 @@ export function createTargetMarkerMesh(): THREE.Group {
     side: THREE.DoubleSide,
     transparent: true,
     opacity: 0.6,
-    depthTest: false
+    depthTest: false,
+    depthWrite: false
   })
   targetMarker.add(new THREE.Mesh(ringGeo, ringMat))
   return targetMarker

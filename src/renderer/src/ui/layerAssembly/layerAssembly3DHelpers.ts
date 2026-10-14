@@ -73,7 +73,8 @@ export function createCameraFrustumHelper(
     color: isLight ? 0x2563eb : 0xffc24b, // Theme sáng dùng xanh Royal Blue đậm nét, Theme tối dùng vàng ấm
     transparent: true,
     opacity: isLight ? 0.95 : 0.9,
-    depthTest: false
+    depthTest: false,
+    depthWrite: false
   })
 
   return new THREE.LineSegments(geom, mat)
@@ -108,7 +109,8 @@ export function createDepthGuideLine(posX: number, posY: number, posZ: number): 
     gapSize: 4,
     transparent: true,
     opacity: 0.9,
-    depthTest: false
+    depthTest: false,
+    depthWrite: false
   })
   const line = new THREE.Line(geom, mat)
   line.computeLineDistances()

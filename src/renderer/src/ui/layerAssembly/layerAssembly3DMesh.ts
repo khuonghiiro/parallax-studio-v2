@@ -105,6 +105,7 @@ export function createRectOutline(width: number, height: number, color = 0x2680e
   const mat = new THREE.LineBasicMaterial({
     color,
     depthTest: false,
+    depthWrite: false,
     transparent: true,
     opacity: 0.95
   })
@@ -149,9 +150,10 @@ export function createCanvasPlaneHelper(width: number, height: number): THREE.Gr
 
   // 1. Khung viền canvas sáng rõ nét (cyan var(--line-focus)) bao quanh khổ ảnh
   const border = createRectOutline(width, height, 0x38bdf8)
+  border.renderOrder = 180000
   group.add(border)
 
-  // 3. Đường chữ thập định tâm tại z = 0
+  // 3. Đường chữ thập định tâm tại z = 0 (vẽ phía sau tất cả layer)
   const crossPoints = [
     new THREE.Vector3(-halfW, 0, 0),
     new THREE.Vector3(halfW, 0, 0),
@@ -163,9 +165,11 @@ export function createCanvasPlaneHelper(width: number, height: number): THREE.Gr
     color: 0x334155,
     transparent: true,
     opacity: 0.5,
-    depthTest: false
+    depthTest: false,
+    depthWrite: false
   })
   const crosshairs = new THREE.LineSegments(crossGeom, crossMat)
+  crosshairs.renderOrder = -10
   group.add(crosshairs)
 
   return group
@@ -198,6 +202,7 @@ export function createAnchorDot(): THREE.Mesh {
   const mat = new THREE.MeshBasicMaterial({
     color: 0xf59e0b,
     depthTest: false,
+    depthWrite: false,
     transparent: true
   })
   return new THREE.Mesh(geom, mat)
@@ -471,9 +476,8 @@ export function updateLayer3DInstance(
   // - Z: chiều sâu (-layer.z * zExaggeration + micro-offset layerIndex để triệt tiêu Z-fighting khi trùng Z)
   const posX = layer.x + motion.animTranslateX
   const posY = -(layer.y + motion.animTranslateY)
-  const effectiveZScale = zExaggeration > 0 ? zExaggeration : 0.002
-  const microZ = zExaggeration > 0 ? layerIndex * 0.05 : layerIndex * 0.0001
-  const posZ = -layer.z * effectiveZScale + microZ
+  const isFlatFrontView = zExaggeration <= 0
+  const posZ = isFlatFrontView ? 0 : -layer.z * zExaggeration + layerIndex * 0.05
 
   // Group được định vị chính xác tại tâm của layer trong không gian 3D
   group.position.set(posX, posY, posZ)
@@ -502,13 +506,15 @@ export function updateLayer3DInstance(
   mesh.rotation.z = theta
   outline.position.set(shiftX, shiftY, 0.5)
   outline.rotation.z = theta
+  outline.renderOrder = 200000 + layerIndex
   anchorDot.position.set(ax, ay, 2)
+  anchorDot.renderOrder = 200100 + layerIndex
 
   if (wireframeMesh) {
     wireframeMesh.position.set(shiftX, shiftY, 0.6)
     wireframeMesh.rotation.z = theta
     wireframeMesh.visible = Boolean(showMesh)
-    wireframeMesh.renderOrder = 2000 + layerIndex
+    wireframeMesh.renderOrder = 190000 + layerIndex
     if (wireframeMesh.material instanceof THREE.MeshBasicMaterial) {
       wireframeMesh.material.color.setHex(isSelected ? 0xffb703 : 0x00e5ff)
       wireframeMesh.material.opacity = isSelected ? 0.95 : 0.8
@@ -518,7 +524,8 @@ export function updateLayer3DInstance(
   // 6. Thuộc tính hiển thị & Cắt góc nhìn camera
   const op = Math.max(0, Math.min(1, layer.opacity ?? 1))
   material.opacity = op
-  material.depthWrite = op >= 0.95
+  material.depthTest = !isFlatFrontView
+  material.depthWrite = false
   if (clippingPlanes) {
     material.clippingPlanes = clippingPlanes
   } else {
