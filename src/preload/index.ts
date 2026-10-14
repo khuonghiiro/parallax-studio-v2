@@ -12,10 +12,9 @@ function enforceZoom100(): void {
 }
 
 enforceZoom100()
-if (typeof window !== 'undefined') {
-  window.addEventListener('DOMContentLoaded', enforceZoom100)
-  window.addEventListener('load', enforceZoom100)
-}
+const g = globalThis as unknown as { addEventListener?: (type: string, listener: () => void) => void }
+g.addEventListener?.('DOMContentLoaded', enforceZoom100)
+g.addEventListener?.('load', enforceZoom100)
 
 const api: ParallaxApi = {
   openFiles: (kind) => ipcRenderer.invoke('files:open', kind),
