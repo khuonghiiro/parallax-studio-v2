@@ -12,6 +12,7 @@ interface AnimateShotPlane2DProps {
   screenLeft: number
   screenTop: number
   onSelectShot: (shotId: string | null) => void
+  onStartShotDrag: (e: React.PointerEvent, box: ShotStageBox) => void
   onAimCurrentAtShot: (box: ShotStageBox) => void
   onAddFrameAtShot: (box: ShotStageBox) => void
   onAimAtLayer: (box: ShotStageBox, layer: ProjectedLayer2D) => void
@@ -29,6 +30,7 @@ export function AnimateShotPlane2D({
   screenLeft,
   screenTop,
   onSelectShot,
+  onStartShotDrag,
   onAimCurrentAtShot,
   onAddFrameAtShot,
   onAimAtLayer,
@@ -60,14 +62,15 @@ export function AnimateShotPlane2D({
       }}
       onDoubleClick={handleSurfaceDoubleClick}
     >
-      {/* Header gọn gàng của Cảnh 2D */}
+      {/* Header gọn gàng của Cảnh 2D (Nhấn giữ để kéo dời Cảnh đồng bộ 2D & 3D) */}
       <div
         className="anim2d-shot-header"
-        onPointerDown={(e) => {
-          e.stopPropagation()
-          onSelectShot(box.shotId)
-        }}
+        title={`✥ Nhấn giữ tiêu đề để kéo dời vị trí "${box.name}" (Trái/Phải/Trên/Dưới — đồng bộ 2D & 3D, giữ Shift khóa trục, giữ Alt chỉ dời Cảnh)`}
+        onPointerDown={(e) => onStartShotDrag(e, box)}
       >
+        <span className="anim2d-shot-grip" aria-hidden="true">
+          ✥
+        </span>
         <span className="anim2d-shot-dot" style={{ background: box.color }} />
         <span className="anim2d-shot-title">
           {box.index + 1}. {box.name}

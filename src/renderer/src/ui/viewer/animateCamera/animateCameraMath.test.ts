@@ -7,6 +7,7 @@ import {
   evaluateLiveCameraFrame2D,
   extractCameraFrames2D,
   projectShotLayers2D,
+  stageDeltaTo3DDelta,
   stageFrameTo3DCamera
 } from './animateCameraMath'
 
@@ -24,6 +25,24 @@ describe('animateCameraMath — Adobe Animate 2D Camera Stage & Multi-Shot Mappi
     expect(layout[1].stageX).toBeGreaterThan(1920)
     // s3 has same X/Y as s2 but different Z: should be offset so it never overlaps s2 on the 2D stage
     expect(Math.abs(layout[2].stageX - layout[1].stageX)).toBeGreaterThanOrEqual(1920)
+  })
+
+  it('synchronizes 2D stage shot header drag deltas (left/right/up/down) 1:1 with 3D shot position', () => {
+    const p = createProject({ width: 1920, height: 1080 })
+    const s1 = createShot('Cảnh 1', [0, 0, 0], 0)
+    const s2 = createShot('Cảnh 2', [10560, 0, 0], 1)
+    p.shots.push(s1, s2)
+
+    const [dx3d, dy3d] = stageDeltaTo3DDelta(1920, 1080, -600, 400)
+    expect(dx3d).toBeLessThan(0)
+    expect(dy3d).toBeLessThan(0)
+
+    s1.position.value = [dx3d, dy3d, 0]
+    const layout = computeShotStageLayout(p, 0)
+    expect(layout[0].stageX).toBeCloseTo(-600, 0)
+    expect(layout[0].stageY).toBeCloseTo(400, 0)
+    expect(layout[1].stageX).toBe(2458)
+    expect(layout[1].stageY).toBe(0)
   })
 
   it('projects a shot’s stacked 3D layers onto its 2D plane in back-to-front order', () => {

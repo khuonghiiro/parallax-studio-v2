@@ -26,7 +26,7 @@
 .tl-header-row {
   display: flex;
   flex: none;
-  height: 30px;
+  height: 32px;
   overflow: hidden;
   border-bottom: 1px solid var(--line);
   background: var(--bg-1);
@@ -38,16 +38,39 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 10px;
-  font-size: 10px;
+  padding: 0 8px;
+  font-size: 9.5px;
   font-weight: 700;
-  color: var(--text-faint);
-  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  background: var(--bg-1);
+  background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg-1) 100%);
   border-right: 1px solid var(--line);
   box-sizing: border-box;
   flex-shrink: 0;
+}
+
+.tl-names-head-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tl-head-col-idx {
+  display: inline-block;
+  width: 24px;
+  text-align: center;
+  color: var(--accent-cyan);
+  font-family: var(--mono);
+}
+
+.tl-names-head-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-faint);
+  font-size: 9.5px;
+  font-weight: 700;
 }
 
 .tl-ruler-viewport {
@@ -71,9 +94,37 @@
   height: 100%;
   position: relative;
   cursor: col-resize;
-  background: var(--bg-2);
+  background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
   box-sizing: border-box;
   overflow: hidden;
+}
+
+/* After Effects Work Area Bar */
+.tl-work-area-bar {
+  position: absolute;
+  top: 0;
+  height: 5px;
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.35), rgba(37, 99, 235, 0.45), rgba(56, 189, 248, 0.35));
+  border-bottom: 1px solid rgba(56, 189, 248, 0.65);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.tl-work-area-cap {
+  position: absolute;
+  top: 0;
+  width: 4px;
+  height: 7px;
+  background: var(--accent-cyan);
+  border-radius: 0 0 1px 1px;
+}
+
+.tl-work-area-cap.l {
+  left: 0;
+}
+
+.tl-work-area-cap.r {
+  right: 0;
 }
 
 .tl-ruler .tick {
@@ -84,46 +135,98 @@
 }
 
 .tl-ruler .tick.major {
-  background: var(--line);
+  background: var(--text-faint);
 }
 
 .tl-ruler .tick-label {
   position: absolute;
-  bottom: 12px;
-  left: 3px;
+  bottom: 10px;
+  left: 4px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
   font-family: var(--mono);
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--text-dim);
+  color: var(--text);
   pointer-events: none;
   user-select: none;
   white-space: nowrap;
 }
 
+.tl-ruler .tick-frame {
+  font-size: 8.5px;
+  font-weight: 500;
+  color: var(--text-faint);
+}
+
+/* Pro After Effects / Adobe Animate Playhead Cap */
 .tl-ruler-playhead {
   position: absolute;
   top: 0;
   bottom: 0;
   width: 2px;
-  background: #ef4444;
+  background: #38bdf8;
   transform: translateX(-1px);
   pointer-events: none;
   z-index: 25;
-  box-shadow: 0 0 4px rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.7);
 }
 
 .tl-ruler-playhead::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: -5px;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 9px solid #ef4444;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  bottom: 0;
+  left: -6px;
+  width: 14px;
+  height: 12px;
+  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+  clip-path: polygon(0% 0%, 100% 0%, 100% 58%, 50% 100%, 0% 58%);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
 }
 
+.tl-playhead-cap-badge {
+  position: absolute;
+  top: 2px;
+  left: 1px;
+  transform: translateX(-50%);
+  padding: 0 5px;
+  height: 14px;
+  line-height: 14px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+  border: 1px solid #38bdf8;
+  color: #ffffff;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+/* Vertical Frame & Second Grid Overlay across all Timeline Tracks */
+.tl-grid-overlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.tl-grid-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: color-mix(in srgb, var(--line-soft) 42%, transparent);
+}
+
+.tl-grid-line.major {
+  background: color-mix(in srgb, var(--line) 75%, transparent);
+}
 
 .tl-scroll {
   overflow-y: auto;
@@ -624,12 +727,12 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 2px;
-  background: #ef4444;
-  transform: translateX(-1px);
+  width: 1.5px;
+  background: #38bdf8;
+  transform: translateX(-0.75px);
   pointer-events: none;
   z-index: 25;
-  box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.75);
 }
 
 .playhead::before {
@@ -653,24 +756,55 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  border-radius: 2px;
-  background: color-mix(in srgb, var(--c, var(--accent)) 30%, transparent);
-  border: 1px solid color-mix(in srgb, var(--c, var(--accent)) 65%, transparent);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--c, var(--accent)) 32%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--c, var(--accent)) 75%, transparent);
   color: var(--text);
   font-size: 9.5px;
   font-weight: 600;
-  padding: 0 5px;
-  line-height: 16px;
+  padding: 0 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: pointer;
 }
 
-.tl-shot-seg.dark {
+.tl-shot-seg:hover {
+  filter: brightness(1.15);
+  border-color: var(--accent-cyan);
+}
+
+.tl-shot-seg-idx {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 800;
+  padding: 0 3px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #ffffff;
+}
+
+.tl-shot-seg.transition-bridge {
   border-style: dashed;
   border-color: var(--line);
-  color: var(--text-faint);
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 4px,
+    color-mix(in srgb, var(--accent-cyan) 10%, transparent) 4px,
+    color-mix(in srgb, var(--accent-cyan) 10%, transparent) 8px
+  );
+  color: var(--text-dim);
+  justify-content: center;
+}
+
+.tl-shot-seg-trans {
+  font-size: 8.5px;
+  font-weight: 700;
+  color: var(--accent-cyan);
 }
 
 .tl-name.group {

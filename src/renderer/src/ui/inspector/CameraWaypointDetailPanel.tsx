@@ -333,7 +333,7 @@ export function CameraWaypointDetailPanel({
               onClick={() => onAlignInShot('left')}
               title={`Lia lệch sang phần bên trái của cảnh “${currentShotBox?.name}”`}
             >
-              ↤ Trái
+              ↤
             </button>
             <button
               type="button"
@@ -341,7 +341,7 @@ export function CameraWaypointDetailPanel({
               onClick={() => onAlignInShot('center')}
               title={`Căn tâm Camera về chính giữa cảnh “${currentShotBox?.name}”`}
             >
-              ⊡ Tâm
+              ⊡
             </button>
             <button
               type="button"
@@ -349,7 +349,7 @@ export function CameraWaypointDetailPanel({
               onClick={() => onAlignInShot('right')}
               title={`Lia lệch sang phần bên phải của cảnh “${currentShotBox?.name}”`}
             >
-              Phải ↦
+              ↦
             </button>
           </div>
         </div>

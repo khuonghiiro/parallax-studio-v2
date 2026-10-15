@@ -191,7 +191,8 @@ export function AnimateCameraStage() {
     startFrameMoveDrag,
     startFrameResizeDrag,
     startFrameRotateDrag,
-    startFrameOrbit3DDrag
+    startFrameOrbit3DDrag,
+    startShotMoveDrag
   } = useCameraStageDrag({
     compWidth: project.comp.width,
     compHeight: project.comp.height,
@@ -462,7 +463,7 @@ export function AnimateCameraStage() {
   }
 
   return (
-    <div id="animate-camera-stage" className={`anim2d-stage ${theme}`}>
+    <div id="animate-camera-stage" className={`anim2d-stage ${theme}${!animate2dSplit ? ' single-2d' : ''}`}>
       {/* Thanh công cụ 2 dòng siêu gọn */}
       <div className="anim2d-toolbar">
         <div className="anim2d-toolbar-row1">
@@ -677,6 +678,7 @@ export function AnimateCameraStage() {
                 screenLeft={topLeft.x}
                 screenTop={topLeft.y}
                 onSelectShot={selectShot}
+                onStartShotDrag={startShotMoveDrag}
                 onAimCurrentAtShot={handleAimAtShot}
                 onAddFrameAtShot={(targetBox) => spawnNextCameraFrame('shot', targetBox)}
                 onAimAtLayer={handleAimAtLayer}

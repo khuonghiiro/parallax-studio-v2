@@ -117,29 +117,25 @@ export function computeShotStageLayout(project: Project, time = 0): ShotStageBox
 
   const spacing3DX = Math.max(1, W * 5.5)
   const spacing3DY = Math.max(1, H * 5.5)
-  const stepStageX = Math.round(W * 1.28)
-  const stepStageY = Math.round(H * 1.32)
+  const stepStageX = Math.max(1, Math.round(W * 1.28))
+  const stepStageY = Math.max(1, Math.round(H * 1.32))
 
-  const origin0 = evaluate(shots[0].position, time)
   const placed: ShotStageBox[] = []
 
   shots.forEach((s, idx) => {
     const pos3d = [...evaluate(s.position, time)] as Vec3
-    let sx = 0
-    let sy = 0
-    if (idx > 0) {
-      const dx3d = pos3d[0] - origin0[0]
-      const dy3d = pos3d[1] - origin0[1]
-      sx = Math.round((dx3d / spacing3DX) * stepStageX)
-      sy = Math.round((-dy3d / spacing3DY) * stepStageY)
-    }
+    let sx = Math.round((pos3d[0] / spacing3DX) * stepStageX) || 0
+    const sy = Math.round((-pos3d[1] / spacing3DY) * stepStageY) || 0
 
-    // Prevent overlap when shots are placed along the Z depth axis with similar X/Y
+    // Auto-offset along X only when shots are separated along the Z depth axis (|dz| > 50) with overlapping X/Y
     let guard = 0
     while (
       guard < 32 &&
       placed.some(
-        (p) => Math.abs(sx - p.stageX) < W * 1.08 && Math.abs(sy - p.stageY) < H * 1.08
+        (p) =>
+          Math.abs(pos3d[2] - p.worldOrigin[2]) > 50 &&
+          Math.abs(sx - p.stageX) < W * 1.08 &&
+          Math.abs(sy - p.stageY) < H * 1.08
       )
     ) {
       sx += stepStageX
@@ -161,6 +157,26 @@ export function computeShotStageLayout(project: Project, time = 0): ShotStageBox
   })
 
   return placed
+}
+
+/**
+ * Converts a 2D Stage drag delta (deltaStageX, deltaStageY) into the exact 3D world space delta
+ * (delta3DX, delta3DY) so dragging a Shot on the 2D Stage moves the 3D Shot synchronously 1:1.
+ */
+export function stageDeltaTo3DDelta(
+  compWidth: number,
+  compHeight: number,
+  deltaStageX: number,
+  deltaStageY: number
+): [number, number] {
+  const spacing3DX = Math.max(1, compWidth * 5.5)
+  const spacing3DY = Math.max(1, compHeight * 5.5)
+  const stepStageX = Math.max(1, Math.round(compWidth * 1.28))
+  const stepStageY = Math.max(1, Math.round(compHeight * 1.32))
+  return [
+    Math.round((deltaStageX / stepStageX) * spacing3DX) || 0,
+    Math.round((-deltaStageY / stepStageY) * spacing3DY) || 0
+  ]
 }
 
 /**
@@ -228,7 +244,7 @@ export function projectShotLayers2D(
   })
 }
 
-function findNearestShotBy3D(layout: ShotStageBox[], target3D: Vec3): ShotStageBox {
+export function findNearestShotBy3D(layout: ShotStageBox[], target3D: Vec3): ShotStageBox {
   let best = layout[0]
   let bestDist = Infinity
   for (const box of layout) {

@@ -49,6 +49,10 @@
   flex-wrap: wrap;
 }
 
+.anim2d-stage.single-2d .anim2d-toolbar-row1 {
+  padding-left: 124px;
+}
+
 .anim2d-toolbar-row2 {
   display: flex;
   align-items: center;
@@ -197,15 +201,32 @@
   backdrop-filter: blur(8px);
   white-space: nowrap;
   overflow: hidden;
-  cursor: pointer;
+  cursor: grab;
   z-index: 12;
-  transition: max-width 0.15s ease, z-index 0.15s ease;
+  transition: max-width 0.15s ease, z-index 0.15s ease, border-color 0.12s ease;
+}
+
+.anim2d-shot-header:active {
+  cursor: grabbing;
+  border-color: var(--accent-cyan);
 }
 
 .anim2d-shot-card:hover .anim2d-shot-header {
-  max-width: 340px;
+  max-width: 360px;
   z-index: 48;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+.anim2d-shot-grip {
+  font-size: 10px;
+  color: var(--text-faint);
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.12s ease;
+}
+
+.anim2d-shot-header:hover .anim2d-shot-grip {
+  color: var(--accent-cyan);
 }
 
 .anim2d-shot-dot {

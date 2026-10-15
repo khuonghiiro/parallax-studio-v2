@@ -48,6 +48,7 @@ function renderLayerTypeIcon(type: Layer['type']) {
 
 export interface TimelineLayerRowProps {
   layer: Layer
+  layerIndex?: number
   isOpen: boolean
   isSelected: boolean
   isRenaming: boolean
@@ -76,6 +77,7 @@ export interface TimelineLayerRowProps {
 
 function TimelineLayerRowComponent({
   layer,
+  layerIndex,
   isOpen,
   isSelected,
   isRenaming,
@@ -96,8 +98,8 @@ function TimelineLayerRowComponent({
   setRenaming,
   startBarDrag,
   startKeyDrag,
-  renderKeys,
-  summaryKeys,
+  renderKeys: _renderKeys,
+  summaryKeys: _summaryKeys,
   onTrackPointerDown,
   onBarContextMenu
 }: TimelineLayerRowProps) {
@@ -128,14 +130,13 @@ function TimelineLayerRowComponent({
     }
   }, [isDragOver])
 
-  // Specialized keyframe renderer for layer properties: identifies effect keyframes and shows dedicated icons
+  // Specialized keyframe renderer for layer properties: identifies effect keyframes & draws Adobe Animate tween lines
   const renderLayerTrackKeys = (a: Animatable<AnimValue>, p: (typeof LAYER_PROPS)[number]) => {
     const ref: PropRef = { kind: 'layer', layerId: layer.id, prop: p.prop }
     const ks = a.keyframes
     if (ks.length === 0) return null
 
     let lastPx = -9999
-    // Decimate keyframes cách nhau dưới 6px và culling ngoài màn hình để triệt tiêu tình trạng lag timeline
     const visibleKeys = ks.filter((k) => {
       if (selectedKey?.keyId === k.id) return true
       const fx = layer.appliedEffects?.find((e) => e.keyframeIds?.includes(k.id))
@@ -149,48 +150,64 @@ function TimelineLayerRowComponent({
       return false
     })
 
-    return visibleKeys.map((k) => {
-      // Find if this keyframe is part of an applied layer effect
-      const fx = layer.appliedEffects?.find((e) => e.keyframeIds?.includes(k.id))
-      const isSelectedKey = selectedKey?.keyId === k.id
+    return (
+      <>
+        {visibleKeys.map((k, idx) => {
+          const next = visibleKeys[idx + 1]
+          if (!next) return null
+          const x0 = x(k.t)
+          const x1 = x(next.t)
+          if (x1 - x0 < 8) return null
+          return (
+            <div
+              key={`tween-${k.id}`}
+              className={`tl-tween-line${k.ease === 'hold' ? ' hold' : ''}`}
+              style={{ left: x0, width: x1 - x0 }}
+            />
+          )
+        })}
+        {visibleKeys.map((k) => {
+          const fx = layer.appliedEffects?.find((e) => e.keyframeIds?.includes(k.id))
+          const isSelectedKey = selectedKey?.keyId === k.id
 
-      if (fx) {
-        const isOff = !fx.enabled
-        const fxColor = getFxColor(fx.presetId)
-        return (
-          <div
-            key={k.id}
-            className={`tl-key tl-key-fx${isOff ? ' disabled' : ''}${isSelectedKey ? ' selected' : ''}${k.ease === 'hold' ? ' hold' : ''}`}
-            style={{
-              left: x(k.t),
-              ['--fx-color' as string]: isOff ? 'var(--text-faint)' : fxColor
-            }}
-            title={`${fx.name} Keyframe @ ${k.t.toFixed(2)}s ${isOff ? '[ĐÃ TẮT]' : ''} · Kéo để dời mốc, double-click để nhảy tới`}
-            onPointerDown={(e) => (startKeyDrag ? startKeyDrag(e, ref, k.id) : undefined)}
-            onDoubleClick={() => setTime(k.t)}
-          >
-            <span className="tl-key-fx-icon">
-              {renderFxIcon(fx.presetId, 12, isOff ? 'var(--text-faint)' : fxColor)}
-            </span>
-          </div>
-        )
-      }
+          if (fx) {
+            const isOff = !fx.enabled
+            const fxColor = getFxColor(fx.presetId)
+            return (
+              <div
+                key={k.id}
+                className={`tl-key tl-key-fx${isOff ? ' disabled' : ''}${isSelectedKey ? ' selected' : ''}${k.ease === 'hold' ? ' hold' : ''}`}
+                style={{
+                  left: x(k.t),
+                  ['--fx-color' as string]: isOff ? 'var(--text-faint)' : fxColor
+                }}
+                title={`${fx.name} Keyframe @ ${k.t.toFixed(2)}s ${isOff ? '[ĐÃ TẮT]' : ''} · Kéo để dời mốc, double-click để nhảy tới`}
+                onPointerDown={(e) => (startKeyDrag ? startKeyDrag(e, ref, k.id) : undefined)}
+                onDoubleClick={() => setTime(k.t)}
+              >
+                <span className="tl-key-fx-icon">
+                  {renderFxIcon(fx.presetId, 12, isOff ? 'var(--text-faint)' : fxColor)}
+                </span>
+              </div>
+            )
+          }
 
-      // Default classic diamond keyframe for user manual keys
-      return (
-        <div
-          key={k.id}
-          className={`tl-key${k.ease === 'hold' ? ' hold' : ''}${isSelectedKey ? ' selected' : ''}`}
-          style={{ left: x(k.t) }}
-          title={`${p.label}: ${k.t.toFixed(2)}s`}
-          onPointerDown={(e) => (startKeyDrag ? startKeyDrag(e, ref, k.id) : undefined)}
-          onDoubleClick={() => setTime(k.t)}
-        />
-      )
-    })
+          return (
+            <div
+              key={k.id}
+              className={`tl-key${k.ease === 'hold' ? ' hold' : ''}${isSelectedKey ? ' selected' : ''}`}
+              style={{ left: x(k.t) }}
+              title={`${p.label}: ${k.t.toFixed(2)}s`}
+              onPointerDown={(e) => (startKeyDrag ? startKeyDrag(e, ref, k.id) : undefined)}
+              onDoubleClick={() => setTime(k.t)}
+            />
+          )
+        })}
+      </>
+    )
   }
 
-  // Specialized summary keyframe renderer on main layer bar: combines nested effects into distinct visual icons
+  // Specialized summary keyframe renderer on main layer bar: combines nested effects & draws tween spans
   const summaryElements = useMemo(() => {
     const keyMap = new Map<number, { keyIds: string[]; fxList: NonNullable<typeof layer.appliedEffects> }>()
 
@@ -215,7 +232,6 @@ function TimelineLayerRowComponent({
 
     const entries = Array.from(keyMap.entries()).sort((a, b) => a[0] - b[0])
     let lastPx = -9999
-    // Decimate keyframes that are closer than 6px to avoid rendering thousands of overlapping DOM diamonds
     const visibleEntries = entries.filter(([t, { fxList }]) => {
       if (fxList && fxList.length > 0) return true
       const px = x(t)
@@ -226,47 +242,65 @@ function TimelineLayerRowComponent({
       return false
     })
 
-    return visibleEntries.map(([t, { fxList }]) => {
-      if (fxList && fxList.length > 0) {
-        const primaryFx = fxList[0]
-        const isOff = !primaryFx.enabled
-        const fxColor = getFxColor(primaryFx.presetId)
-        const allNames = fxList.map((f) => f.name).join(' + ')
+    return (
+      <>
+        {visibleEntries.map(([t], idx) => {
+          const next = visibleEntries[idx + 1]
+          if (!next) return null
+          const x0 = x(t)
+          const x1 = x(next[0])
+          if (x1 - x0 < 8) return null
+          return (
+            <div
+              key={`sum-tween-${t}`}
+              className="tl-tween-line summary-tween"
+              style={{ left: x0, width: x1 - x0 }}
+            />
+          )
+        })}
+        {visibleEntries.map(([t, { fxList }]) => {
+          if (fxList && fxList.length > 0) {
+            const primaryFx = fxList[0]
+            const isOff = !primaryFx.enabled
+            const fxColor = getFxColor(primaryFx.presetId)
+            const allNames = fxList.map((f) => f.name).join(' + ')
 
-        return (
-          <div
-            key={`summary-fx-${t}`}
-            className={`tl-key summary tl-key-fx${isOff ? ' disabled' : ''}`}
-            style={{
-              left: x(t),
-              ['--fx-color' as string]: isOff ? 'var(--text-faint)' : fxColor
-            }}
-            title={`Hiệu ứng: [${allNames}] @ ${t.toFixed(2)}s ${isOff ? '[ĐÃ TẮT]' : ''} · Click để nhảy tới`}
-            onPointerDown={(e) => {
-              e.stopPropagation()
-              setTime(t)
-            }}
-          >
-            <span className="tl-key-fx-icon">
-              {renderFxIcon(primaryFx.presetId, 11, isOff ? 'var(--text-faint)' : fxColor)}
-            </span>
-          </div>
-        )
-      }
+            return (
+              <div
+                key={`summary-fx-${t}`}
+                className={`tl-key summary tl-key-fx${isOff ? ' disabled' : ''}`}
+                style={{
+                  left: x(t),
+                  ['--fx-color' as string]: isOff ? 'var(--text-faint)' : fxColor
+                }}
+                title={`Hiệu ứng: [${allNames}] @ ${t.toFixed(2)}s ${isOff ? '[ĐÃ TẮT]' : ''} · Click để nhảy tới`}
+                onPointerDown={(e) => {
+                  e.stopPropagation()
+                  setTime(t)
+                }}
+              >
+                <span className="tl-key-fx-icon">
+                  {renderFxIcon(primaryFx.presetId, 11, isOff ? 'var(--text-faint)' : fxColor)}
+                </span>
+              </div>
+            )
+          }
 
-      return (
-        <div
-          key={`summary-${t}`}
-          className="tl-key summary"
-          style={{ left: x(t) }}
-          title={`${layer.name} @ ${t.toFixed(2)}s`}
-          onPointerDown={(e) => {
-            e.stopPropagation()
-            setTime(t)
-          }}
-        />
-      )
-    })
+          return (
+            <div
+              key={`summary-${t}`}
+              className="tl-key summary"
+              style={{ left: x(t) }}
+              title={`${layer.name} @ ${t.toFixed(2)}s`}
+              onPointerDown={(e) => {
+                e.stopPropagation()
+                setTime(t)
+              }}
+            />
+          )
+        })}
+      </>
+    )
   }, [anims, layer.appliedEffects, layer.name, x, setTime])
 
   return (
@@ -293,6 +327,12 @@ function TimelineLayerRowComponent({
             <button className="mini" onClick={(e) => (e.stopPropagation(), onToggleOpen())}>
               <IconCaret className={`caret${isOpen ? ' open' : ''}`} />
             </button>
+            {layerIndex !== undefined && (
+              <span className="tl-index-col" title={`Layer #${layerIndex}`}>
+                {String(layerIndex).padStart(2, '0')}
+              </span>
+            )}
+            <span className="tl-color-swatch" style={{ background: color }} />
             <span className="ico" style={{ background: color }} title={`Layer ${layer.type.toUpperCase()}: ${layer.name}`}>
               {renderLayerTypeIcon(layer.type)}
             </span>

@@ -1,11 +1,14 @@
 import type React from 'react'
 import { nanoid } from 'nanoid'
-import type { Project } from '@shared/types'
+import type { Project, Vec3 } from '@shared/types'
+import { evaluate } from '../../../animation/keyframes'
 import {
   applyStageFrameToDraft,
   clampCameraAngle,
   clampFrameScale,
+  findNearestShotBy3D,
   findNearestShotByStage2D,
+  stageDeltaTo3DDelta,
   type CameraFrame2D,
   type ShotStageBox
 } from './animateCameraMath'
@@ -234,10 +237,143 @@ export function useCameraStageDrag({
     window.addEventListener('pointerup', onUp)
   }
 
+  // 5. Kéo thanh tiêu đề Cảnh (.anim2d-shot-header) để dời vị trí Cảnh trái/phải/trên/dưới đồng bộ 2D & 3D
+  const startShotMoveDrag = (e: React.PointerEvent, box: ShotStageBox): void => {
+    if (e.button !== 0 || !box.shotId) return
+    if ((e.target as HTMLElement).closest('button')) return
+    e.stopPropagation()
+    e.preventDefault()
+    setPlaying(false)
+    useEditor.getState().selectShot(box.shotId)
+
+    const p0 = useEditor.getState().project
+    const shot0 = p0.shots.find((s) => s.id === box.shotId)
+    if (!shot0) return
+
+    const startClientX = e.clientX
+    const startClientY = e.clientY
+    const origStageX = box.stageX
+    const origStageY = box.stageY
+    const origShotVal = [...shot0.position.value] as Vec3
+    const origShotKeys = shot0.position.keyframes.map((k) => ({
+      id: k.id,
+      value: [...k.value] as Vec3
+    }))
+
+    // Ghi nhận các mốc Camera đang quay Cảnh này để dịch chuyển đồng bộ theo Cảnh (trừ khi giữ phím Alt)
+    const targetKeys = p0.camera.target.keyframes
+      .filter((tk) => findNearestShotBy3D(stageLayout, tk.value).shotId === box.shotId)
+      .map((tk) => ({ id: tk.id, t: tk.t, value: [...tk.value] as Vec3 }))
+    const posKeys = p0.camera.position.keyframes
+      .filter(
+        (pk) =>
+          targetKeys.some((tk) => Math.abs(tk.t - pk.t) <= 0.05) ||
+          findNearestShotBy3D(stageLayout, evaluate(p0.camera.target, pk.t)).shotId === box.shotId
+      )
+      .map((pk) => ({ id: pk.id, t: pk.t, value: [...pk.value] as Vec3 }))
+    const moveDefaultCam =
+      findNearestShotBy3D(stageLayout, p0.camera.target.value).shotId === box.shotId
+    const origCamPosVal = [...p0.camera.position.value] as Vec3
+    const origCamTgtVal = [...p0.camera.target.value] as Vec3
+
+    const mergeKey = `anim2d-shot-move-${nanoid(6)}`
+    const safeZoom = Math.max(0.04, zoom)
+    let moved = false
+
+    const onMove = (pev: PointerEvent): void => {
+      const dxScreen = pev.clientX - startClientX
+      const dyScreen = pev.clientY - startClientY
+      if (!moved && Math.hypot(dxScreen, dyScreen) < 3) return
+      moved = true
+
+      let nextStageX = Math.round(origStageX + dxScreen / safeZoom)
+      let nextStageY = Math.round(origStageY + dyScreen / safeZoom)
+      let snappedX: number | null = null
+      let snappedY: number | null = null
+
+      if (pev.shiftKey) {
+        if (Math.abs(dxScreen) >= Math.abs(dyScreen)) nextStageY = origStageY
+        else nextStageX = origStageX
+      } else {
+        const snapThresh = Math.max(16, 12 / safeZoom)
+        for (const other of stageLayout) {
+          if (other.shotId === box.shotId) continue
+          if (snappedX === null && Math.abs(nextStageX - other.stageX) <= snapThresh) {
+            nextStageX = other.stageX
+            snappedX = other.stageX
+          }
+          if (snappedY === null && Math.abs(nextStageY - other.stageY) <= snapThresh) {
+            nextStageY = other.stageY
+            snappedY = other.stageY
+          }
+        }
+      }
+
+      setSnapGuide({ x: snappedX, y: snappedY })
+      const deltaStageX = nextStageX - origStageX
+      const deltaStageY = nextStageY - origStageY
+      const [delta3DX, delta3DY] = stageDeltaTo3DDelta(compWidth, compHeight, deltaStageX, deltaStageY)
+
+      update((d) => {
+        const sh = d.shots.find((s) => s.id === box.shotId)
+        if (!sh) return
+        sh.position.value = [
+          origShotVal[0] + delta3DX,
+          origShotVal[1] + delta3DY,
+          origShotVal[2]
+        ]
+        for (const ok of origShotKeys) {
+          const kf = sh.position.keyframes.find((k) => k.id === ok.id)
+          if (kf) {
+            kf.value = [ok.value[0] + delta3DX, ok.value[1] + delta3DY, ok.value[2]]
+          }
+        }
+
+        // Dịch chuyển đồng bộ các mốc Camera thuộc Cảnh này (nếu không giữ phím Alt)
+        if (!pev.altKey) {
+          if (moveDefaultCam) {
+            d.camera.position.value = [
+              origCamPosVal[0] + delta3DX,
+              origCamPosVal[1] + delta3DY,
+              origCamPosVal[2]
+            ]
+            d.camera.target.value = [
+              origCamTgtVal[0] + delta3DX,
+              origCamTgtVal[1] + delta3DY,
+              origCamTgtVal[2]
+            ]
+          }
+          for (const tk of targetKeys) {
+            const kf = d.camera.target.keyframes.find((k) => k.id === tk.id)
+            if (kf) {
+              kf.value = [tk.value[0] + delta3DX, tk.value[1] + delta3DY, tk.value[2]]
+            }
+          }
+          for (const pk of posKeys) {
+            const kf = d.camera.position.keyframes.find((k) => k.id === pk.id)
+            if (kf) {
+              kf.value = [pk.value[0] + delta3DX, pk.value[1] + delta3DY, pk.value[2]]
+            }
+          }
+        }
+      }, mergeKey)
+    }
+
+    const onUp = (): void => {
+      setSnapGuide({ x: null, y: null })
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+
   return {
     startFrameMoveDrag,
     startFrameResizeDrag,
     startFrameRotateDrag,
-    startFrameOrbit3DDrag
+    startFrameOrbit3DDrag,
+    startShotMoveDrag
   }
 }
