@@ -1,30 +1,39 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react'
-import type { ChromaKeySettings, CutToolMode, DetectedIsland, CutPoint, CutPiece } from './types'
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react'
+import type {
+  ChromaKeySettings,
+  CutterToolMode,
+  DetectedIsland,
+  CutPoint,
+  CutPiece,
+  EyedropperTarget,
+  EyedropperSample,
+  GridSlicerSettings
+} from './types'
+import { DEFAULT_CHROMA_SETTINGS } from './types'
 import {
   applyChromaKey,
   detectOpaqueIslands,
   extractRegionDataUrl,
   createCutterStroke,
+  sampleEyedropperAtPoint,
   type CutterStrokeSession
 } from './chromaKey'
+import { computeGridIslands, rgbToHex } from './chromaAdvancedProcessor'
 import { CutterBrushSubBar } from './CutterBrushSubBar'
-import { SpriteCutterSourceToolbar } from './SpriteCutterSourceToolbar'
+import { CutterGridSubBar, CutterQuickPartsStrip } from './CutterSlicesBar'
+import { PhotoshopEyedropperOverlay } from './PhotoshopEyedropperOverlay'
+import {
+  SpriteCutterSourceToolbar,
+  type CanvasBgMode,
+  type TagDisplayMode
+} from './SpriteCutterSourceToolbar'
 import { SAMPLE_ANIME_SPRITESHEET_URL } from './sampleSpriteSheet'
 import { IconScissors, IconUpload, IconRefresh, IconCheck } from '../../icons'
 
 export interface SpriteCutterSourcePaneProps {
   onSelectPiece: (piece: CutPiece | null) => void
-  onTransferToTarget: (piece: CutPiece) => void
+  onTransferToTarget: (piece: CutPiece, pos?: { x: number; y: number }) => void
   selectedPiece: CutPiece | null
-}
-
-const DEFAULT_CHROMA: ChromaKeySettings = {
-  enabled: true,
-  keyColor: '#00db4e', // Xanh lá cây Chroma Green
-  tolerance: 36,
-  smoothness: 2,
-  despill: true,
-  previewBackground: 'checkerboard'
 }
 
 export function SpriteCutterSourcePane({
@@ -33,37 +42,48 @@ export function SpriteCutterSourcePane({
   selectedPiece
 }: SpriteCutterSourcePaneProps) {
   const [imageUrl, setImageUrl] = useState<string>(SAMPLE_ANIME_SPRITESHEET_URL)
-  const [chroma, setChroma] = useState<ChromaKeySettings>(DEFAULT_CHROMA)
-  const [tool, setTool] = useState<CutToolMode>('auto')
-  const [isPickingColor, setIsPickingColor] = useState(false)
+  const [chroma, setChroma] = useState<ChromaKeySettings>(DEFAULT_CHROMA_SETTINGS)
+  const [showChromaStudio, setShowChromaStudio] = useState<boolean>(true)
+  const [tool, setTool] = useState<CutterToolMode>('auto')
+  const [eyedropperTarget, setEyedropperTarget] = useState<EyedropperTarget | null>(null)
+  const [eyedropperSample, setEyedropperSample] = useState<EyedropperSample | null>(null)
+
   const [islands, setIslands] = useState<DetectedIsland[]>([])
   const [selectedIslandId, setSelectedIslandId] = useState<string | null>(null)
-  const [minIslandArea, setMinIslandArea] = useState<number>(100)
+  const [minIslandArea, setMinIslandArea] = useState<number>(80)
+  const [gridSettings, setGridSettings] = useState<GridSlicerSettings>({
+    rows: 2,
+    cols: 3,
+    paddingInset: 2
+  })
+
   const [brushRadius, setBrushRadius] = useState<number>(18)
   const [brushHardness, setBrushHardness] = useState<number>(0.85)
   const [brushOpacity, setBrushOpacity] = useState<number>(1.0)
-  const [tagVisibility, setTagVisibility] = useState<'hover' | 'always' | 'hidden'>('hover')
+  const [tagDisplayMode, setTagDisplayMode] = useState<TagDisplayMode>('hover')
+  const [canvasBg, setCanvasBg] = useState<CanvasBgMode>('checker')
   const [brushCursorPos, setBrushCursorPos] = useState<{ x: number; y: number } | null>(null)
 
-  // Active stroke session and point tracker for continuous interpolation
   const activeStrokeRef = useRef<CutterStrokeSession | null>(null)
   const lastPointRef = useRef<{ x: number; y: number } | null>(null)
 
-  // Canvas pixel undo / redo stack
   const undoStackRef = useRef<ImageData[]>([])
   const redoStackRef = useRef<ImageData[]>([])
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
 
-  // Drag marquee selection
-  const [marquee, setMarquee] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null)
+  const [marquee, setMarquee] = useState<{
+    startX: number
+    startY: number
+    currentX: number
+    currentY: number
+  } | null>(null)
   const [lassoPoints, setLassoPoints] = useState<CutPoint[]>([])
   const [isDrawing, setIsDrawing] = useState(false)
   const [copiedBadge, setCopiedBadge] = useState(false)
 
-  // Responsive canvas fitting & zoom so the cutout image is never clipped at top/bottom
   const [imgNaturalSize, setImgNaturalSize] = useState<{ w: number; h: number }>({ w: 665, h: 702 })
-  const [viewportSize, setViewportSize] = useState<{ w: number; h: number }>({ w: 560, h: 520 })
+  const [viewportSize, setViewportSize] = useState<{ w: number; h: number }>({ w: 560, h: 460 })
   const [zoomMode, setZoomMode] = useState<'fit' | number>('fit')
 
   const rawCanvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -87,7 +107,53 @@ export function SpriteCutterSourcePane({
     return () => ro.disconnect()
   }, [])
 
-  // Load image into raw canvas and process
+  // Tự động phát hiện màu góc ảnh khi nạp ảnh mới
+  const detectCornerBgPreset = useCallback((rctx: CanvasRenderingContext2D) => {
+    const p = rctx.getImageData(2, 2, 1, 1).data
+    const [r, g, b, a] = [p[0], p[1], p[2], p[3]]
+    if (a < 30) return
+    const hex = rgbToHex(r, g, b)
+    if (g > 150 && g > r + 50 && g > b + 50) {
+      setChroma((prev) => ({
+        ...prev,
+        keyColorType: 'chroma_green',
+        keyColorHex: hex,
+        keyColor: hex,
+        fringeColorType: 'chroma_green',
+        fringeColorHex: hex
+      }))
+    } else if (r > 235 && g > 235 && b > 235) {
+      setChroma((prev) => ({
+        ...prev,
+        keyColorType: 'pure_white',
+        keyColorHex: '#FFFFFF',
+        keyColor: '#FFFFFF',
+        fringeColorType: 'pure_white',
+        fringeColorHex: '#FFFFFF'
+      }))
+    } else if (r < 20 && g < 20 && b < 20) {
+      setChroma((prev) => ({
+        ...prev,
+        keyColorType: 'pure_black',
+        keyColorHex: '#000000',
+        keyColor: '#000000',
+        fringeColorType: 'pure_black',
+        fringeColorHex: '#000000'
+      }))
+    } else {
+      setChroma((prev) => ({
+        ...prev,
+        keyColorType: 'custom',
+        keyColorHex: hex,
+        keyColor: hex,
+        fringeColorType: 'custom',
+        fringeColorHex: hex
+      }))
+    }
+  }, [])
+
+  const lastLoadedUrlRef = useRef<string>('')
+
   const processImage = useCallback(() => {
     if (!imageUrl) return
     const img = new Image()
@@ -97,7 +163,6 @@ export function SpriteCutterSourcePane({
       const h = img.naturalHeight || 702
       setImgNaturalSize({ w, h })
 
-      // Raw canvas
       let raw = rawCanvasRef.current
       if (!raw) {
         raw = document.createElement('canvas')
@@ -109,7 +174,11 @@ export function SpriteCutterSourcePane({
       if (!rctx) return
       rctx.drawImage(img, 0, 0)
 
-      // Processed canvas
+      if (lastLoadedUrlRef.current !== imageUrl) {
+        lastLoadedUrlRef.current = imageUrl
+        detectCornerBgPreset(rctx)
+      }
+
       const proc = procCanvasRef.current
       if (!proc) return
       proc.width = w
@@ -119,8 +188,7 @@ export function SpriteCutterSourcePane({
 
       applyChromaKey(rctx, pctx, w, h, chroma)
 
-      // Auto detect islands if in auto mode
-      if (chroma.enabled) {
+      if (chroma.enabled && chroma.previewMode !== 'original') {
         const found = detectOpaqueIslands(pctx, w, h, minIslandArea)
         setIslands(found)
       } else {
@@ -128,32 +196,96 @@ export function SpriteCutterSourcePane({
       }
     }
     img.src = imageUrl
-  }, [imageUrl, chroma, minIslandArea])
+  }, [imageUrl, chroma, minIslandArea, detectCornerBgPreset])
 
   useEffect(() => {
     processImage()
   }, [processImage])
 
-  // Select an island
-  const handleSelectIsland = (isl: DetectedIsland) => {
-    const proc = procCanvasRef.current
-    if (!proc) return
-    setSelectedIslandId(isl.id)
-    setMarquee(null)
-    setLassoPoints([])
+  const activeIslands = useMemo(() => {
+    if (tool === 'grid') {
+      return computeGridIslands(imgNaturalSize.w, imgNaturalSize.h, gridSettings)
+    }
+    return islands
+  }, [tool, islands, imgNaturalSize.w, imgNaturalSize.h, gridSettings])
 
-    const dataUrl = extractRegionDataUrl(proc, isl)
-    onSelectPiece({
-      id: isl.id,
-      dataUrl,
-      width: isl.width,
-      height: isl.height,
-      label: isl.label || 'Mảnh cắt',
-      sourceBox: isl
+  const handleUpdateChroma = useCallback((patch: Partial<ChromaKeySettings>) => {
+    setChroma((prev) => {
+      const next = { ...prev, ...patch }
+      if (patch.keyColorHex) next.keyColor = patch.keyColorHex
+      return next
     })
-  }
+  }, [])
 
-  // Canvas Undo / Redo logic
+  const handleSelectIsland = useCallback(
+    (isl: DetectedIsland) => {
+      const proc = procCanvasRef.current
+      if (!proc) return
+      setSelectedIslandId(isl.id)
+      setMarquee(null)
+      setLassoPoints([])
+
+      const dataUrl = extractRegionDataUrl(proc, isl)
+      const piece: CutPiece = {
+        id: isl.id,
+        dataUrl,
+        width: isl.width,
+        height: isl.height,
+        label: isl.label || 'Mảnh cắt',
+        sourceBox: isl
+      }
+      try {
+        ;(window as unknown as { __parallax_cut_part?: CutPiece }).__parallax_cut_part = piece
+      } catch {}
+      onSelectPiece(piece)
+    },
+    [onSelectPiece]
+  )
+
+  const handleQuickAddIsland = useCallback(
+    (isl: DetectedIsland) => {
+      const proc = procCanvasRef.current
+      if (!proc) return
+      const dataUrl = extractRegionDataUrl(proc, isl)
+      const piece: CutPiece = {
+        id: isl.id,
+        dataUrl,
+        width: isl.width,
+        height: isl.height,
+        label: isl.label || 'Mảnh cắt',
+        sourceBox: isl
+      }
+      onSelectPiece(piece)
+      onTransferToTarget(piece, { x: 0, y: 0 })
+    },
+    [onSelectPiece, onTransferToTarget]
+  )
+
+  const handleSendAllToBoard = useCallback(() => {
+    const proc = procCanvasRef.current
+    if (!proc || activeIslands.length === 0) return
+    const centerX = imgNaturalSize.w / 2
+    const centerY = imgNaturalSize.h / 2
+    const scaleToBoard = Math.min(1, 460 / Math.max(imgNaturalSize.w, imgNaturalSize.h))
+
+    for (const isl of activeIslands) {
+      const dataUrl = extractRegionDataUrl(proc, isl)
+      const relX = Math.round((isl.x + isl.width / 2 - centerX) * scaleToBoard)
+      const relY = Math.round((isl.y + isl.height / 2 - centerY) * scaleToBoard)
+      onTransferToTarget(
+        {
+          id: `${isl.id}-${Date.now()}`,
+          dataUrl,
+          width: isl.width,
+          height: isl.height,
+          label: isl.label || 'Mảnh cắt',
+          sourceBox: isl
+        },
+        { x: relX, y: relY }
+      )
+    }
+  }, [activeIslands, imgNaturalSize.w, imgNaturalSize.h, onTransferToTarget])
+
   const handleUndo = useCallback(() => {
     const proc = procCanvasRef.current
     if (!proc || undoStackRef.current.length === 0) return
@@ -166,8 +298,7 @@ export function SpriteCutterSourcePane({
     setCanUndo(undoStackRef.current.length > 0)
     setCanRedo(true)
     if (chroma.enabled) {
-      const found = detectOpaqueIslands(pctx, proc.width, proc.height, minIslandArea)
-      setIslands(found)
+      setIslands(detectOpaqueIslands(pctx, proc.width, proc.height, minIslandArea))
     }
   }, [chroma.enabled, minIslandArea])
 
@@ -183,66 +314,106 @@ export function SpriteCutterSourcePane({
     setCanUndo(true)
     setCanRedo(redoStackRef.current.length > 0)
     if (chroma.enabled) {
-      const found = detectOpaqueIslands(pctx, proc.width, proc.height, minIslandArea)
-      setIslands(found)
+      setIslands(detectOpaqueIslands(pctx, proc.width, proc.height, minIslandArea))
     }
   }, [chroma.enabled, minIslandArea])
 
-  // Global Keyboard Shortcuts (Ctrl+Z, Ctrl+Y, Ctrl+C)
+  // Phím tắt ESC huỷ hút màu, Ctrl+Z / Ctrl+Y / Ctrl+C
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && eyedropperTarget) {
+        e.preventDefault()
+        setEyedropperTarget(null)
+        setEyedropperSample(null)
+        return
+      }
       const target = e.target as HTMLElement | null
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return
       const mod = e.ctrlKey || e.metaKey
       if (!mod) return
-
       const key = e.key.toLowerCase()
       if (key === 'z') {
         e.preventDefault()
-        if (e.shiftKey) {
-          handleRedo()
-        } else {
-          handleUndo()
-        }
+        e.shiftKey ? handleRedo() : handleUndo()
       } else if (key === 'y') {
         e.preventDefault()
         handleRedo()
-      } else if (key === 'c') {
-        if (selectedPiece) {
-          e.preventDefault()
-          handleCopyPiece()
-        }
+      } else if (key === 'c' && selectedPiece) {
+        e.preventDefault()
+        handleCopyPiece()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleUndo, handleRedo, selectedPiece])
+  }, [eyedropperTarget, handleUndo, handleRedo, selectedPiece])
 
-  // Pointer interactions on canvas (Marquee / Lasso / Eyedropper / Brush)
+  const getCurrentTargetHex = useCallback(
+    (t: EyedropperTarget | null) => {
+      if (t === 'fringe') return chroma.fringeColorHex || chroma.keyColorHex || '#00DB4E'
+      if (t === 'smooth') return chroma.smoothColorHex || '#000000'
+      return chroma.keyColorHex || '#00DB4E'
+    },
+    [chroma.fringeColorHex, chroma.keyColorHex, chroma.smoothColorHex]
+  )
+
   const getCanvasCoords = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
-    const scaleX = e.currentTarget.width / rect.width
-    const scaleY = e.currentTarget.height / rect.height
+    const sx = e.currentTarget.width / Math.max(1, rect.width)
+    const sy = e.currentTarget.height / Math.max(1, rect.height)
     return {
-      x: Math.round((e.clientX - rect.left) * scaleX),
-      y: Math.round((e.clientY - rect.top) * scaleY)
+      x: Math.round((e.clientX - rect.left) * sx),
+      y: Math.round((e.clientY - rect.top) * sy),
+      canvasX: Math.round(e.clientX - rect.left),
+      canvasY: Math.round(e.clientY - rect.top)
     }
   }
 
   const handleCanvasPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const { x, y } = getCanvasCoords(e)
+    const { x, y, canvasX, canvasY } = getCanvasCoords(e)
 
-    if (isPickingColor) {
-      const raw = rawCanvasRef.current
-      if (raw) {
-        const rctx = raw.getContext('2d')
-        if (rctx) {
-          const pixel = rctx.getImageData(x, y, 1, 1).data
-          const hex = `#${((1 << 24) + (pixel[0] << 16) + (pixel[1] << 8) + pixel[2]).toString(16).slice(1)}`
-          setChroma((prev) => ({ ...prev, keyColor: hex, enabled: true }))
-          setIsPickingColor(false)
+    if (eyedropperTarget) {
+      const sourceCanvas =
+        eyedropperTarget === 'key'
+          ? rawCanvasRef.current || procCanvasRef.current
+          : procCanvasRef.current || rawCanvasRef.current
+      if (sourceCanvas) {
+        const sctx = sourceCanvas.getContext('2d', { willReadFrequently: true })
+        if (sctx) {
+          const sample = sampleEyedropperAtPoint(
+            sctx,
+            sourceCanvas.width,
+            sourceCanvas.height,
+            x,
+            y,
+            e.clientX,
+            e.clientY,
+            canvasX,
+            canvasY,
+            getCurrentTargetHex(eyedropperTarget)
+          )
+          if (eyedropperTarget === 'key') {
+            handleUpdateChroma({
+              enabled: true,
+              keyColorType: 'custom',
+              keyColorHex: sample.hex,
+              fringeColorType: 'custom',
+              fringeColorHex: sample.hex
+            })
+          } else if (eyedropperTarget === 'fringe') {
+            handleUpdateChroma({
+              fringeColorType: 'custom',
+              fringeColorHex: sample.hex
+            })
+          } else if (eyedropperTarget === 'smooth') {
+            handleUpdateChroma({
+              smoothColorType: 'custom',
+              smoothColorHex: sample.hex
+            })
+          }
         }
       }
+      setEyedropperTarget(null)
+      setEyedropperSample(null)
       return
     }
 
@@ -254,7 +425,6 @@ export function SpriteCutterSourcePane({
         const rctx = raw.getContext('2d', { willReadFrequently: true })
         const pctx = proc.getContext('2d', { willReadFrequently: true })
         if (rctx && pctx) {
-          // Push to undo stack before stroke begins
           const snap = pctx.getImageData(0, 0, proc.width, proc.height)
           undoStackRef.current.push(snap)
           if (undoStackRef.current.length > 25) undoStackRef.current.shift()
@@ -274,7 +444,9 @@ export function SpriteCutterSourcePane({
           lastPointRef.current = { x, y }
         }
       }
-      try { e.currentTarget.setPointerCapture(e.pointerId) } catch {}
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId)
+      } catch {}
       return
     }
 
@@ -282,37 +454,66 @@ export function SpriteCutterSourcePane({
       setIsDrawing(true)
       setSelectedIslandId(null)
       setMarquee({ startX: x, startY: y, currentX: x, currentY: y })
-      try { e.currentTarget.setPointerCapture(e.pointerId) } catch {}
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId)
+      } catch {}
     } else if (tool === 'lasso') {
       setIsDrawing(true)
       setSelectedIslandId(null)
       setLassoPoints([{ x, y }])
-      try { e.currentTarget.setPointerCapture(e.pointerId) } catch {}
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId)
+      } catch {}
     }
   }
 
   const handleCanvasPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
+    const { x, y, canvasX, canvasY } = getCanvasCoords(e)
+
+    if (eyedropperTarget) {
+      const sourceCanvas =
+        eyedropperTarget === 'key'
+          ? rawCanvasRef.current || procCanvasRef.current
+          : procCanvasRef.current || rawCanvasRef.current
+      if (sourceCanvas) {
+        const sctx = sourceCanvas.getContext('2d', { willReadFrequently: true })
+        if (sctx) {
+          setEyedropperSample(
+            sampleEyedropperAtPoint(
+              sctx,
+              sourceCanvas.width,
+              sourceCanvas.height,
+              x,
+              y,
+              e.clientX,
+              e.clientY,
+              canvasX,
+              canvasY,
+              getCurrentTargetHex(eyedropperTarget)
+            )
+          )
+        }
+      }
+      return
+    }
+
     if (tool === 'eraser' || tool === 'restore') {
-      setBrushCursorPos({
-        x: Math.round(e.clientX - rect.left),
-        y: Math.round(e.clientY - rect.top)
-      })
+      setBrushCursorPos({ x: canvasX, y: canvasY })
     }
 
     if (!isDrawing) return
-    const { x, y } = getCanvasCoords(e)
 
     if (tool === 'eraser' || tool === 'restore') {
       if (activeStrokeRef.current && lastPointRef.current) {
         const rawSamples = e.nativeEvent.getCoalescedEvents?.() ?? []
         const samples = rawSamples.length ? rawSamples : [e.nativeEvent]
-        for (const sample of samples) {
-          const scaleX = e.currentTarget.width / rect.width
-          const scaleY = e.currentTarget.height / rect.height
+        const sx = e.currentTarget.width / Math.max(1, rect.width)
+        const sy = e.currentTarget.height / Math.max(1, rect.height)
+        for (const s of samples) {
           const pt = {
-            x: Math.round((sample.clientX - rect.left) * scaleX),
-            y: Math.round((sample.clientY - rect.top) * scaleY)
+            x: Math.round((s.clientX - rect.left) * sx),
+            y: Math.round((s.clientY - rect.top) * sy)
           }
           activeStrokeRef.current.segment(lastPointRef.current, pt)
           lastPointRef.current = pt
@@ -332,7 +533,9 @@ export function SpriteCutterSourcePane({
   const handleCanvasPointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return
     setIsDrawing(false)
-    try { e.currentTarget.releasePointerCapture(e.pointerId) } catch {}
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch {}
 
     const proc = procCanvasRef.current
     if (!proc) return
@@ -343,14 +546,9 @@ export function SpriteCutterSourcePane({
         activeStrokeRef.current = null
       }
       lastPointRef.current = null
-
-      // Re-scan islands if auto islands were active
       if (chroma.enabled && rawCanvasRef.current) {
         const pctx = proc.getContext('2d', { willReadFrequently: true })
-        if (pctx) {
-          const found = detectOpaqueIslands(pctx, proc.width, proc.height, minIslandArea)
-          setIslands(found)
-        }
+        if (pctx) setIslands(detectOpaqueIslands(pctx, proc.width, proc.height, minIslandArea))
       }
       return
     }
@@ -360,7 +558,6 @@ export function SpriteCutterSourcePane({
       const minY = Math.min(marquee.startY, marquee.currentY)
       const w = Math.abs(marquee.currentX - marquee.startX)
       const h = Math.abs(marquee.currentY - marquee.startY)
-
       if (w >= 10 && h >= 10) {
         const box = { x: minX, y: minY, width: w, height: h }
         const dataUrl = extractRegionDataUrl(proc, box)
@@ -378,7 +575,10 @@ export function SpriteCutterSourcePane({
         onSelectPiece(piece)
       }
     } else if (tool === 'lasso' && lassoPoints.length >= 3) {
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+      let minX = Infinity,
+        maxX = -Infinity,
+        minY = Infinity,
+        maxY = -Infinity
       for (const p of lassoPoints) {
         if (p.x < minX) minX = p.x
         if (p.x > maxX) maxX = p.x
@@ -395,7 +595,7 @@ export function SpriteCutterSourcePane({
           dataUrl,
           width: w,
           height: h,
-          label: `Vùng tự do`,
+          label: 'Vùng tự do',
           sourceBox: box
         }
         try {
@@ -415,7 +615,6 @@ export function SpriteCutterSourcePane({
     } catch {}
   }
 
-  // Handle Drag Start from Left Pane to Right Pane
   const handleDragStart = (e: React.DragEvent, piece: CutPiece) => {
     e.dataTransfer.setData('application/json', JSON.stringify(piece))
     e.dataTransfer.setData('text/plain', piece.dataUrl)
@@ -438,22 +637,36 @@ export function SpriteCutterSourcePane({
     reader.readAsDataURL(file)
   }
 
-  const availW = Math.max(180, viewportSize.w - 36)
-  const availH = Math.max(180, viewportSize.h - 44)
-  const fitScale = Math.min(1, availW / Math.max(1, imgNaturalSize.w), availH / Math.max(1, imgNaturalSize.h))
+  const availW = Math.max(180, viewportSize.w - 32)
+  const availH = Math.max(180, viewportSize.h - 36)
+  const fitScale = Math.min(
+    1,
+    availW / Math.max(1, imgNaturalSize.w),
+    availH / Math.max(1, imgNaturalSize.h)
+  )
   const effectiveScale = zoomMode === 'fit' ? fitScale : zoomMode
   const displayW = Math.max(1, Math.round(imgNaturalSize.w * effectiveScale))
   const displayH = Math.max(1, Math.round(imgNaturalSize.h * effectiveScale))
   const scaleX = displayW / Math.max(1, imgNaturalSize.w)
   const scaleY = displayH / Math.max(1, imgNaturalSize.h)
 
-  const handleSelectTool = (next: CutToolMode) => {
+  const handleSelectTool = (next: CutterToolMode) => {
     setTool(next)
-    if (next !== 'auto') setSelectedIslandId(null)
+    setEyedropperTarget(null)
+    setEyedropperSample(null)
+    if (next !== 'auto' && next !== 'grid') setSelectedIslandId(null)
     if (next !== 'box' && next !== 'lasso') {
       setMarquee(null)
       setLassoPoints([])
     }
+  }
+
+  const handleToggleEyedropper = (target: EyedropperTarget) => {
+    setEyedropperTarget((prev) => {
+      const next = prev === target ? null : target
+      if (!next) setEyedropperSample(null)
+      return next
+    })
   }
 
   const stepZoom = (delta: number) => {
@@ -467,28 +680,21 @@ export function SpriteCutterSourcePane({
       <div className="layer-cutter-header">
         <div className="layer-cutter-title">
           <IconScissors width={14} height={14} />
-          <strong>Nguồn ảnh & Tách nền</strong>
-          <span className="layer-cutter-badge-pill">{islands.length} mảnh cắt</span>
+          <strong>Nguồn ảnh & Tách nền Studio</strong>
+          <span className="layer-cutter-badge-pill">{activeIslands.length} mảnh cắt</span>
           <span className="layer-cutter-badge" title="Kích thước ảnh gốc">
             {imgNaturalSize.w}×{imgNaturalSize.h}px
           </span>
         </div>
         <div className="layer-cutter-actions">
-          {/* Zoom & Fit-to-View Pill */}
           <div className="layer-cutter-zoom-pill" title="Thu phóng khung nhìn ảnh nguồn">
-            <button
-              type="button"
-              className="stepper-btn"
-              onClick={() => stepZoom(-0.15)}
-              title="Thu nhỏ (-15%)"
-            >
+            <button type="button" className="stepper-btn" onClick={() => stepZoom(-0.15)}>
               -
             </button>
             <button
               type="button"
               className={`layer-cutter-zoom-mode-btn ${zoomMode === 'fit' ? 'active' : ''}`}
               onClick={() => setZoomMode('fit')}
-              title="Tự động căn vừa toàn bộ ảnh trong khung nhìn (không khuất chi tiết)"
             >
               Vừa khung ({Math.round(effectiveScale * 100)}%)
             </button>
@@ -496,16 +702,10 @@ export function SpriteCutterSourcePane({
               type="button"
               className={`layer-cutter-zoom-mode-btn ${zoomMode === 1 ? 'active' : ''}`}
               onClick={() => setZoomMode(1)}
-              title="Xem tỉ lệ 1:1 (100%)"
             >
               100%
             </button>
-            <button
-              type="button"
-              className="stepper-btn"
-              onClick={() => stepZoom(0.15)}
-              title="Phóng to (+15%)"
-            >
+            <button type="button" className="stepper-btn" onClick={() => stepZoom(0.15)}>
               +
             </button>
           </div>
@@ -539,22 +739,37 @@ export function SpriteCutterSourcePane({
         </div>
       </div>
 
-      {/* Studio Topbar Ribbon: Row 1 (cutting tools) + Row 2 (compact Chroma Key bar) */}
+      {/* Thanh công cụ + Bảng Studio Tách nền & Khử viền chuyên sâu (2 Sub-tabs) */}
       <SpriteCutterSourceToolbar
         tool={tool}
-        islandCount={islands.length}
-        minIslandArea={minIslandArea}
-        tagVisibility={tagVisibility}
+        islandsCount={islands.length}
+        gridSettings={gridSettings}
+        tagDisplayMode={tagDisplayMode}
+        canvasBg={canvasBg}
         chroma={chroma}
-        isPickingColor={isPickingColor}
-        onSelectTool={handleSelectTool}
-        onChangeMinIslandArea={setMinIslandArea}
-        onChangeTagVisibility={setTagVisibility}
-        onChangeChroma={setChroma}
-        onTogglePicking={() => setIsPickingColor((v) => !v)}
+        showChromaStudio={showChromaStudio}
+        eyedropperTarget={eyedropperTarget}
+        eyedropperSample={eyedropperSample}
+        onChangeTool={handleSelectTool}
+        onChangeTagDisplayMode={setTagDisplayMode}
+        onChangeCanvasBg={setCanvasBg}
+        onChangeChroma={handleUpdateChroma}
+        onToggleChromaStudio={() => setShowChromaStudio((v) => !v)}
+        onToggleEyedropper={handleToggleEyedropper}
+        onResetChroma={() => setChroma(DEFAULT_CHROMA_SETTINGS)}
       />
 
-      {/* Specialized Sub-toolbar for Eraser / Restore Brush */}
+      {/* Thanh cấu hình Cắt Lưới Ma Trận khi ở chế độ Grid */}
+      {tool === 'grid' && (
+        <CutterGridSubBar
+          grid={gridSettings}
+          totalCells={activeIslands.length}
+          onChangeGrid={(patch) => setGridSettings((prev) => ({ ...prev, ...patch }))}
+          onSendAllToBoard={handleSendAllToBoard}
+        />
+      )}
+
+      {/* Thanh cấu hình Cọ Tẩy / Khôi Phục */}
       {(tool === 'eraser' || tool === 'restore') && (
         <CutterBrushSubBar
           tool={tool}
@@ -571,13 +786,26 @@ export function SpriteCutterSourcePane({
         />
       )}
 
-      {/* Main Canvas View (Fit-to-Viewport by default so zero top/bottom details are ever clipped) */}
+      {/* Vùng hiển thị Canvas Ảnh Nguồn + Kính lúp Hút màu Photoshop */}
       <div
         ref={viewportWrapRef}
-        className={`layer-cutter-canvas-wrap bg-${chroma.previewBackground} ${zoomMode !== 'fit' && effectiveScale > fitScale ? 'is-scrollable' : ''}`}
+        className={`layer-cutter-canvas-wrap bg-${canvasBg} ${
+          zoomMode !== 'fit' && effectiveScale > fitScale ? 'is-scrollable' : ''
+        }`}
       >
+        {/* Banner & Kính lúp Hút màu kiểu Adobe Photoshop */}
+        <PhotoshopEyedropperOverlay
+          target={eyedropperTarget}
+          currentHex={getCurrentTargetHex(eyedropperTarget)}
+          sample={eyedropperSample}
+          onCancel={() => {
+            setEyedropperTarget(null)
+            setEyedropperSample(null)
+          }}
+        />
+
         <div
-          className={`layer-cutter-source-canvas-box tag-mode-${tagVisibility}`}
+          className={`layer-cutter-source-canvas-box tag-mode-${tagDisplayMode}`}
           style={{ width: `${displayW}px`, height: `${displayH}px` }}
         >
           <canvas
@@ -586,7 +814,7 @@ export function SpriteCutterSourcePane({
             style={{
               width: '100%',
               height: '100%',
-              cursor: isPickingColor
+              cursor: eyedropperTarget
                 ? 'crosshair'
                 : tool === 'eraser' || tool === 'restore'
                 ? 'none'
@@ -597,11 +825,13 @@ export function SpriteCutterSourcePane({
             onPointerDown={handleCanvasPointerDown}
             onPointerMove={handleCanvasPointerMove}
             onPointerUp={handleCanvasPointerUp}
-            onPointerLeave={() => setBrushCursorPos(null)}
+            onPointerLeave={() => {
+              setBrushCursorPos(null)
+              setEyedropperSample(null)
+            }}
           />
 
-          {/* Circular Brush Cursor Indicator */}
-          {(tool === 'eraser' || tool === 'restore') && brushCursorPos && (
+          {(tool === 'eraser' || tool === 'restore') && brushCursorPos && !eyedropperTarget && (
             <div
               className="layer-cutter-brush-cursor"
               style={{
@@ -613,9 +843,10 @@ export function SpriteCutterSourcePane({
             />
           )}
 
-          {/* Render Detected Islands (Auto Mode) */}
-          {tool === 'auto' &&
-            islands.map((isl) => {
+          {/* Hiển thị các khung mảnh cắt (Tự động hoặc Lưới) khi không ở chế độ Hút màu */}
+          {!eyedropperTarget &&
+            (tool === 'auto' || tool === 'grid') &&
+            activeIslands.map((isl) => {
               const isSelected = selectedIslandId === isl.id
               const boxW = isl.width * scaleX
               const boxH = isl.height * scaleY
@@ -637,13 +868,17 @@ export function SpriteCutterSourcePane({
                     e.stopPropagation()
                     handleSelectIsland(isl)
                   }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation()
+                    handleQuickAddIsland(isl)
+                  }}
                   style={{
                     left: `${isl.x * scaleX}px`,
                     top: `${isl.y * scaleY}px`,
                     width: `${boxW}px`,
                     height: `${boxH}px`
                   }}
-                  title="Click để chọn · Kéo thả sang phải để gán vào bố cục 2D"
+                  title="Click để chọn · Nhấp đúp hoặc kéo thả sang phải để đưa vào Bố cục 2D"
                 >
                   <span className={`layer-cutter-island-tag ${tagPlacementClass}`}>
                     {isl.label}
@@ -652,8 +887,7 @@ export function SpriteCutterSourcePane({
               )
             })}
 
-          {/* Render Manual Box Marquee */}
-          {tool === 'box' && marquee && (
+          {tool === 'box' && marquee && !eyedropperTarget && (
             <div
               className={`layer-cutter-marquee ${!isDrawing && selectedPiece ? 'ready' : ''}`}
               draggable={!isDrawing && Boolean(selectedPiece)}
@@ -665,7 +899,6 @@ export function SpriteCutterSourcePane({
                 width: `${Math.abs(marquee.currentX - marquee.startX) * scaleX}px`,
                 height: `${Math.abs(marquee.currentY - marquee.startY) * scaleY}px`
               }}
-              title={!isDrawing && selectedPiece ? 'Kéo thả sang phải hoặc click để đưa vào Bố cục 2D' : undefined}
             >
               {!isDrawing && selectedPiece && (
                 <div className="layer-cutter-marquee-badge" onClick={(e) => e.stopPropagation()}>
@@ -674,7 +907,6 @@ export function SpriteCutterSourcePane({
                     className="btn sm primary"
                     style={{ height: 20, padding: '0 6px', fontSize: 10 }}
                     onClick={() => onTransferToTarget(selectedPiece)}
-                    title="Đưa vùng chọn này vào Bố cục 2D"
                   >
                     Đưa vào 2D ➡️
                   </button>
@@ -683,7 +915,6 @@ export function SpriteCutterSourcePane({
                     className="btn sm"
                     style={{ height: 20, padding: '0 6px', fontSize: 10 }}
                     onClick={handleCopyPiece}
-                    title="Sao chép vùng này (Ctrl+C)"
                   >
                     {copiedBadge ? 'Đã chép!' : 'Sao chép'}
                   </button>
@@ -692,14 +923,11 @@ export function SpriteCutterSourcePane({
             </div>
           )}
 
-          {/* Render Lasso Path Overlay */}
-          {tool === 'lasso' && lassoPoints.length >= 2 && (
+          {tool === 'lasso' && lassoPoints.length >= 2 && !eyedropperTarget && (
             <>
               <svg className="layer-cutter-lasso-svg">
                 <polyline
-                  points={lassoPoints
-                    .map((p) => `${p.x * scaleX},${p.y * scaleY}`)
-                    .join(' ')}
+                  points={lassoPoints.map((p) => `${p.x * scaleX},${p.y * scaleY}`).join(' ')}
                   fill="rgba(251, 191, 36, 0.2)"
                   stroke="var(--key)"
                   strokeWidth="1.5"
@@ -719,7 +947,6 @@ export function SpriteCutterSourcePane({
                     width: `${selectedPiece.sourceBox.width * scaleX}px`,
                     height: `${selectedPiece.sourceBox.height * scaleY}px`
                   }}
-                  title="Kéo thả sang phải hoặc click để đưa vào Bố cục 2D"
                 >
                   <div className="layer-cutter-marquee-badge" onClick={(e) => e.stopPropagation()}>
                     <button
@@ -727,7 +954,6 @@ export function SpriteCutterSourcePane({
                       className="btn sm primary"
                       style={{ height: 20, padding: '0 6px', fontSize: 10 }}
                       onClick={() => onTransferToTarget(selectedPiece)}
-                      title="Đưa vùng chọn này vào Bố cục 2D"
                     >
                       Đưa vào 2D ➡️
                     </button>
@@ -736,7 +962,6 @@ export function SpriteCutterSourcePane({
                       className="btn sm"
                       style={{ height: 20, padding: '0 6px', fontSize: 10 }}
                       onClick={handleCopyPiece}
-                      title="Sao chép vùng này (Ctrl+C)"
                     >
                       {copiedBadge ? 'Đã chép!' : 'Sao chép'}
                     </button>
@@ -747,6 +972,20 @@ export function SpriteCutterSourcePane({
           )}
         </div>
       </div>
+
+      {/* Dải Danh Sách Mảnh Cắt Trực Quan giúp chọn nhanh & Đưa tất cả vào 2D */}
+      {(tool === 'auto' || tool === 'grid') && (
+        <CutterQuickPartsStrip
+          mode={tool}
+          islands={activeIslands}
+          selectedIslandId={selectedIslandId}
+          minIslandArea={minIslandArea}
+          onChangeMinIslandArea={setMinIslandArea}
+          onSelectIsland={handleSelectIsland}
+          onQuickAddIsland={handleQuickAddIsland}
+          onSendAllToBoard={handleSendAllToBoard}
+        />
+      )}
 
       {/* Footer Info & Actions */}
       <div className="layer-cutter-footer">
@@ -767,13 +1006,13 @@ export function SpriteCutterSourcePane({
             </>
           ) : (
             <span style={{ color: 'var(--text-faint)' }}>
-              Click vào mảnh cắt trên ảnh hoặc khoanh vùng để chọn bộ phận
+              Chọn mảnh trong danh sách bên trên hoặc nhấp đúp trên ảnh để đưa sang Bố cục 2D
             </span>
           )}
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginLeft: 'auto' }}>
           <span className="layer-cutter-footer-hint">
-            Kéo thả sang phải hoặc <kbd>Ctrl+C</kbd> ➔ <kbd>Ctrl+V</kbd>
+            Nhấp đúp mảnh hoặc <kbd>Ctrl+C</kbd> ➔ <kbd>Ctrl+V</kbd>
           </span>
           <button
             id="btn-copy-piece"
@@ -781,9 +1020,14 @@ export function SpriteCutterSourcePane({
             className="btn sm"
             disabled={!selectedPiece}
             onClick={handleCopyPiece}
-            title="Sao chép mảnh đã chọn (Ctrl+C)"
           >
-            {copiedBadge ? <><IconCheck width={12} height={12} /> Đã chép!</> : 'Sao chép (Ctrl+C)'}
+            {copiedBadge ? (
+              <>
+                <IconCheck width={12} height={12} /> Đã chép!
+              </>
+            ) : (
+              'Sao chép (Ctrl+C)'
+            )}
           </button>
           <button
             id="btn-transfer-to-target"
@@ -791,7 +1035,6 @@ export function SpriteCutterSourcePane({
             className="btn sm primary"
             disabled={!selectedPiece}
             onClick={() => selectedPiece && onTransferToTarget(selectedPiece)}
-            title="Thêm mảnh đã chọn thành Layer vào Bố cục 2D"
           >
             Đưa vào Bố cục 2D ➡️
           </button>

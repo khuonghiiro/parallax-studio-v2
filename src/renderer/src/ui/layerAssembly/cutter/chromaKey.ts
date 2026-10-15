@@ -1,7 +1,8 @@
-import type { ChromaKeySettings, CutPoint, DetectedIsland } from './types'
+import type { ChromaKeySettings, CutPoint, DetectedIsland, EyedropperSample } from './types'
+import { processAdvancedChromaPixelData, rgbToHex } from './chromaAdvancedProcessor'
 
 export function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const clean = hex.replace('#', '').trim()
+  const clean = (hex || '#ffffff').replace('#', '').trim()
   if (clean.length === 3) {
     return {
       r: parseInt(clean[0] + clean[0], 16) || 0,
@@ -52,49 +53,82 @@ export function applyChromaKey(
   settings: ChromaKeySettings
 ): void {
   const imgData = sourceCtx.getImageData(0, 0, width, height)
-  if (!settings.enabled) {
+  if (!settings.enabled || settings.previewMode === 'original') {
     targetCtx.putImageData(imgData, 0, 0)
     return
   }
 
-  const data = imgData.data
-  const { r: kr, g: kg, b: kb } = hexToRgb(settings.keyColor)
-  const tol = settings.tolerance
-  const smooth = Math.max(0.5, settings.smoothness)
-  const isGreenKey = kg > kr && kg > kb
-  const isBlueKey = kb > kr && kb > kg
+  processAdvancedChromaPixelData(imgData.data, width, height, settings)
+  targetCtx.putImageData(imgData, 0, 0)
+}
 
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i]
-    const g = data[i + 1]
-    const b = data[i + 2]
-    const a = data[i + 3]
+/**
+ * Lấy mẫu màu pixel kèm lưới lân cận 9x9 để hiển thị kính lúp & vòng đối chiếu kiểu Adobe Photoshop
+ */
+export function sampleEyedropperAtPoint(
+  ctx: CanvasRenderingContext2D,
+  imgW: number,
+  imgH: number,
+  imgX: number,
+  imgY: number,
+  clientX: number,
+  clientY: number,
+  canvasX: number,
+  canvasY: number,
+  prevHex: string,
+  gridRadius = 4
+): EyedropperSample {
+  const cx = Math.max(0, Math.min(imgW - 1, Math.round(imgX)))
+  const cy = Math.max(0, Math.min(imgH - 1, Math.round(imgY)))
+  const size = gridRadius * 2 + 1
+  const x0 = Math.max(0, cx - gridRadius)
+  const y0 = Math.max(0, cy - gridRadius)
+  const x1 = Math.min(imgW - 1, cx + gridRadius)
+  const y1 = Math.min(imgH - 1, cy + gridRadius)
+  const rw = Math.max(1, x1 - x0 + 1)
+  const rh = Math.max(1, y1 - y0 + 1)
+  const patch = ctx.getImageData(x0, y0, rw, rh).data
 
-    if (a === 0) continue
-
-    const dist = computeColorDist(r, g, b, kr, kg, kb)
-
-    if (dist <= tol) {
-      data[i + 3] = 0
-    } else if (dist < tol + smooth) {
-      const t = Math.max(0, Math.min(1, (dist - tol) / smooth))
-      // Smoothstep interpolation for soft anti-aliased edge
-      const feather = t * t * (3 - 2 * t)
-      data[i + 3] = Math.round(a * feather)
-      if (settings.despill) {
-        if (isGreenKey && g > (r + b) / 2) data[i + 1] = Math.min(g, Math.round((r + b) / 2))
-        else if (isBlueKey && b > (r + g) / 2) data[i + 2] = Math.min(b, Math.round((r + g) / 2))
-      }
-    } else if (settings.despill) {
-      if (isGreenKey && g > Math.max(r, b)) {
-        data[i + 1] = Math.min(g, Math.round((r + b) / 2))
-      } else if (isBlueKey && b > Math.max(r, g)) {
-        data[i + 2] = Math.min(b, Math.round((r + g) / 2))
-      }
+  const getPixel = (px: number, py: number) => {
+    const clampedX = Math.max(x0, Math.min(x1, px)) - x0
+    const clampedY = Math.max(y0, Math.min(y1, py)) - y0
+    const idx = (clampedY * rw + clampedX) * 4
+    return {
+      r: patch[idx] ?? 0,
+      g: patch[idx + 1] ?? 0,
+      b: patch[idx + 2] ?? 0,
+      a: patch[idx + 3] ?? 255
     }
   }
 
-  targetCtx.putImageData(imgData, 0, 0)
+  const center = getPixel(cx, cy)
+  const hex = rgbToHex(center.r, center.g, center.b)
+  const pixelGrid: string[][] = []
+
+  for (let dy = -gridRadius; dy <= gridRadius; dy++) {
+    const row: string[] = []
+    for (let dx = -gridRadius; dx <= gridRadius; dx++) {
+      const p = getPixel(cx + dx, cy + dy)
+      row.push(p.a < 15 ? 'transparent' : rgbToHex(p.r, p.g, p.b))
+    }
+    pixelGrid.push(row)
+  }
+
+  return {
+    clientX,
+    clientY,
+    canvasX,
+    canvasY,
+    imgX: cx,
+    imgY: cy,
+    hex,
+    r: center.r,
+    g: center.g,
+    b: center.b,
+    a: center.a,
+    prevHex: (prevHex || '#FFFFFF').toUpperCase(),
+    pixelGrid: pixelGrid.length === size ? pixelGrid : []
+  }
 }
 
 /**

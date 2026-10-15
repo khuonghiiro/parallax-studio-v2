@@ -1,0 +1,932 @@
+/* ==========================================================================
+   Layer Assembly Cutter Studio Panel, Photoshop Eyedropper & Quick Parts Strip
+   Tuân thủ Dual-Theme (Dark & Light) qua Design Tokens tại variables.css
+   ========================================================================== */
+
+/* ---------- Nút bật/tắt Bảng Bộ Lọc Studio trên Toolbar ---------- */
+.cutter-studio-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 6px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.14s ease;
+}
+
+.cutter-studio-toggle-btn:hover {
+  border-color: var(--line-focus);
+  color: var(--text);
+  background: var(--bg-3);
+}
+
+.cutter-studio-toggle-btn.active {
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-2));
+  border-color: var(--accent);
+  color: var(--accent-cyan);
+}
+
+.cutter-studio-toggle-btn .caret {
+  font-size: 9px;
+  opacity: 0.8;
+}
+
+/* ---------- Nút Hút Màu Kiểu Adobe Photoshop (Dual Swatch + HEX) ---------- */
+.ps-eyedropper-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 8px 0 6px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.14s ease;
+}
+
+.ps-eyedropper-btn:hover {
+  border-color: var(--accent-cyan);
+  background: var(--bg-3);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-cyan) 22%, transparent);
+}
+
+.ps-eyedropper-btn.active {
+  background: var(--accent);
+  border-color: var(--accent-cyan);
+  color: var(--on-accent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.ps-eyedropper-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-cyan);
+}
+
+.ps-eyedropper-btn.active .ps-eyedropper-icon-wrap {
+  color: var(--on-accent);
+}
+
+/* Vòng tròn chia đôi Mới (trên) / Cũ (dưới) chuẩn Photoshop */
+.ps-eyedropper-dual-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  flex-direction: column;
+  border: 1.5px solid #808080;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+  flex-shrink: 0;
+}
+
+.ps-swatch-half {
+  width: 100%;
+  height: 50%;
+  display: block;
+}
+
+.ps-eyedropper-label {
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.ps-eyedropper-hex {
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--bg-0);
+  color: var(--accent-cyan);
+  border: 1px solid var(--line-soft);
+}
+
+.ps-eyedropper-btn.active .ps-eyedropper-hex {
+  background: rgba(0, 0, 0, 0.35);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* ---------- Bảng Studio Tách Nền & Khử Viền Chuyên Sâu (2 Sub-tabs) ---------- */
+.cutter-studio-panel {
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+  padding: 6px 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex-shrink: 0;
+  animation: cutterSubbarFadeIn 0.15s ease-out;
+}
+
+.cutter-studio-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cutter-studio-subtabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px;
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  border-radius: 7px;
+}
+
+.cutter-studio-subtab {
+  height: 24px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  white-space: nowrap;
+}
+
+.cutter-studio-subtab:hover {
+  color: var(--text);
+  background: var(--bg-2);
+}
+
+.cutter-studio-subtab.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.cutter-studio-header-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.cutter-preview-mode-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+}
+
+.cutter-preview-mode-btn {
+  height: 20px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.cutter-preview-mode-btn:hover {
+  color: var(--text);
+}
+
+.cutter-preview-mode-btn.active {
+  background: color-mix(in srgb, var(--accent-cyan) 18%, var(--bg-2));
+  color: var(--accent-cyan);
+}
+
+.cutter-studio-reset-btn {
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.cutter-studio-reset-btn:hover {
+  color: var(--text);
+  border-color: var(--line-focus);
+  background: var(--bg-3);
+}
+
+/* ---------- Nội dung Bảng Studio ---------- */
+.cutter-studio-body {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.cutter-studio-row-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cutter-studio-field-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cutter-field-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.cutter-color-preset-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cutter-color-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.cutter-color-pill:hover {
+  color: var(--text);
+  border-color: var(--line-focus);
+}
+
+.cutter-color-pill.active {
+  border-color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 14%, var(--bg-2));
+  color: var(--text);
+}
+
+.cutter-color-pill .pill-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cutter-hex-picker-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 5px;
+  border-radius: 6px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-0);
+}
+
+.cutter-hex-input {
+  width: 58px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cutter-isolation-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+}
+
+.cutter-iso-btn {
+  height: 21px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+}
+
+.cutter-iso-btn:hover {
+  color: var(--text);
+}
+
+.cutter-iso-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ---------- Lưới 4 Thanh Trượt Thông Số Tách Nền ---------- */
+.cutter-studio-sliders-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 6px;
+}
+
+@container cutter-src (max-width: 680px) {
+  .cutter-studio-sliders-grid {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+}
+
+.cutter-slider-card {
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  padding: 5px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cutter-slider-card.compact {
+  background: var(--bg-1);
+  padding: 4px 7px;
+}
+
+.cutter-slider-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.cutter-slider-head strong {
+  font-family: monospace;
+  font-size: 10.5px;
+  color: var(--accent-cyan);
+}
+
+.cutter-slider-card input[type='range'] {
+  width: 100%;
+  height: 4px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ---------- Các Cột Lọc Rác & Làm Mịn Viền (Sub-tab 2) ---------- */
+.cutter-cleanup-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 6px;
+}
+
+.cutter-cleanup-box {
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cutter-cleanup-box-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cutter-mini-color-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mini-color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  cursor: pointer;
+  padding: 0;
+}
+
+.mini-color-dot.active {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 1px;
+}
+
+.cutter-tiny-pill {
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 4px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  font-size: 9.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cutter-tiny-pill.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.cutter-dual-sliders {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+
+/* ==========================================================================
+   Kính Lúp Hút Màu & Vòng Đối Chiếu Màu Chuẩn Adobe Photoshop
+   ========================================================================== */
+.ps-eyedropper-banner {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-1) 94%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid var(--accent-cyan);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  font-size: 11px;
+  color: var(--text);
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.ps-eyedropper-banner-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ps-eyedropper-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan);
+}
+
+.ps-eyedropper-target-tag {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bg-3);
+  color: var(--accent-cyan);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.ps-eyedropper-banner-compare {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+}
+
+.ps-compare-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ps-compare-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+}
+
+.ps-compare-meta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.ps-compare-meta small {
+  font-size: 9.5px;
+  color: var(--text-dim);
+}
+
+.ps-compare-meta code {
+  font-family: monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ps-compare-arrow {
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.ps-compare-rgb {
+  font-family: monospace;
+  font-size: 10px;
+  color: var(--accent-cyan);
+  margin-left: 4px;
+}
+
+.ps-eyedropper-cancel-btn {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.14);
+  color: #f87171;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ps-eyedropper-cancel-btn:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+/* Cụm Kính Lúp & Vòng Nhẫn Đối Chiếu Màu Đi Theo Chuột */
+.ps-eyedropper-loupe-container {
+  position: absolute;
+  z-index: 150;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transform: translate(16px, -50%);
+}
+
+.ps-loupe-ring-outer {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  padding: 4px;
+  background: #808080;
+  border: 1.5px solid #ffffff;
+  box-shadow:
+    0 0 0 1px #000000,
+    0 8px 24px rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ps-loupe-color-ring {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+}
+
+.ps-loupe-ring-half {
+  width: 100%;
+  height: 50%;
+}
+
+.ps-loupe-pixel-grid {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(9, 1fr);
+  border: 2px solid #808080;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+  background: var(--bg-0);
+}
+
+.ps-loupe-pixel-cell {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border: 0.5px solid rgba(128, 128, 128, 0.2);
+}
+
+.ps-loupe-pixel-cell.center {
+  border: 1.5px solid #ffffff;
+  box-shadow: inset 0 0 0 1px #000000;
+  z-index: 2;
+}
+
+.ps-loupe-readout-card {
+  background: color-mix(in srgb, var(--bg-1) 96%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--line-focus);
+  border-radius: 8px;
+  padding: 6px 9px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 128px;
+}
+
+.ps-readout-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ps-readout-dual-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.ps-readout-swatch-new,
+.ps-readout-swatch-old {
+  width: 100%;
+  height: 50%;
+}
+
+.ps-readout-codes {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.ps-readout-hex {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.ps-readout-rgb {
+  font-family: monospace;
+  font-size: 9.5px;
+  color: var(--accent-cyan);
+}
+
+.ps-readout-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 3px;
+  font-size: 9.5px;
+  color: var(--text-dim);
+}
+
+.ps-readout-click-hint {
+  color: var(--key);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Thanh Cắt Lưới (Grid Subbar) & Dải Danh Sách Mảnh Cắt (Quick Parts Strip)
+   ========================================================================== */
+.cutter-grid-subbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 11px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.cutter-grid-badge {
+  font-weight: 700;
+  color: var(--accent-cyan);
+  font-size: 11px;
+}
+
+.cutter-grid-presets {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-1);
+  padding: 2px;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+}
+
+.cutter-parts-strip-wrap {
+  background: var(--bg-1);
+  border-top: 1px solid var(--line);
+  padding: 5px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.cutter-parts-strip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cutter-parts-strip-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cutter-parts-collapse-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cutter-parts-collapse-btn:hover {
+  color: var(--accent-cyan);
+}
+
+.cutter-min-area-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.cutter-min-area-pill input[type='range'] {
+  width: 64px;
+  height: 4px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.cutter-min-area-pill strong {
+  font-family: monospace;
+  color: var(--accent-cyan);
+  min-width: 36px;
+}
+
+.cutter-send-all-btn {
+  height: 23px;
+  padding: 0 10px;
+  border-radius: 5px;
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-2));
+  color: var(--accent-cyan);
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.cutter-send-all-btn:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.cutter-parts-chips-scroll {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  max-height: 36px;
+}
+
+.cutter-part-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 6px 0 7px;
+  border-radius: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  font-size: 10.5px;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.12s ease;
+}
+
+.cutter-part-chip:hover {
+  border-color: var(--accent-cyan);
+  background: var(--bg-3);
+}
+
+.cutter-part-chip.selected {
+  border-color: var(--key);
+  background: color-mix(in srgb, var(--key) 18%, var(--bg-2));
+}
+
+.cutter-part-chip-idx {
+  font-family: monospace;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.cutter-part-chip-name {
+  font-weight: 600;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cutter-part-chip-dim {
+  font-family: monospace;
+  font-size: 9.5px;
+  color: var(--text-faint);
+}
+
+.cutter-part-chip-add {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.cutter-part-chip-add:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}

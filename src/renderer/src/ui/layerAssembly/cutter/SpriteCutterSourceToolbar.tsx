@@ -1,203 +1,216 @@
-import type { ChromaKeySettings, CutToolMode } from './types'
+import React from 'react'
+import type {
+  ChromaKeySettings,
+  CutterToolMode,
+  EyedropperSample,
+  EyedropperTarget,
+  GridSlicerSettings
+} from './types'
 import {
-  IconWand,
-  IconDropper,
+  IconSparkles,
   IconCrop,
-  IconSelectPointer,
   IconEraser,
-  IconBrush
+  IconBrush,
+  IconGrid3D
 } from '../../icons'
+import { CutterChromaStudioPanel } from './CutterChromaStudioPanel'
+import { PhotoshopEyedropperButton } from './PhotoshopEyedropperOverlay'
 
-export type CutterTagVisibility = 'hover' | 'always' | 'hidden'
+export type TagDisplayMode = 'hover' | 'always' | 'hidden'
+export type CanvasBgMode = 'checker' | 'dark' | 'light'
 
 export interface SpriteCutterSourceToolbarProps {
-  tool: CutToolMode
-  islandCount: number
-  minIslandArea: number
-  tagVisibility: CutterTagVisibility
+  tool: CutterToolMode
+  islandsCount: number
+  gridSettings: GridSlicerSettings
+  tagDisplayMode: TagDisplayMode
+  canvasBg: CanvasBgMode
   chroma: ChromaKeySettings
-  isPickingColor: boolean
-  onSelectTool: (tool: CutToolMode) => void
-  onChangeMinIslandArea: (value: number) => void
-  onChangeTagVisibility: (value: CutterTagVisibility) => void
-  onChangeChroma: (next: ChromaKeySettings) => void
-  onTogglePicking: () => void
+  showChromaStudio: boolean
+  eyedropperTarget: EyedropperTarget | null
+  eyedropperSample: EyedropperSample | null
+  onChangeTool: (tool: CutterToolMode) => void
+  onChangeTagDisplayMode: (mode: TagDisplayMode) => void
+  onChangeCanvasBg: (bg: CanvasBgMode) => void
+  onChangeChroma: (patch: Partial<ChromaKeySettings>) => void
+  onToggleChromaStudio: () => void
+  onToggleEyedropper: (target: EyedropperTarget) => void
+  onResetChroma: () => void
 }
 
-const TOOL_BUTTONS: Array<{
-  id: CutToolMode
-  label: string
-  title: string
-  Icon: typeof IconWand
-}> = [
-  { id: 'auto', label: 'Tự động', title: 'Quét tự động: phát hiện các mảnh pixel không dính nhau', Icon: IconWand },
-  { id: 'box', label: 'Khung', title: 'Khung chữ nhật: kéo chuột bao quanh bộ phận', Icon: IconCrop },
-  { id: 'lasso', label: 'Lasso', title: 'Lasso: vẽ vùng chọn tự do theo hình dáng', Icon: IconSelectPointer },
-  { id: 'eraser', label: 'Tẩy', title: 'Cọ tẩy: quét để xoá viền xanh hoặc chi tiết thừa (Ctrl+Z hoàn tác)', Icon: IconEraser },
-  { id: 'restore', label: 'Khôi phục', title: 'Cọ khôi phục: quét để lấy lại pixel gốc (Ctrl+Z hoàn tác)', Icon: IconBrush }
-]
-
-const TAG_MODES: Array<{ id: CutterTagVisibility; label: string; title: string }> = [
-  { id: 'hover', label: 'Rê chuột', title: 'Chỉ hiện nhãn khi rê chuột hoặc click chọn' },
-  { id: 'always', label: 'Hiện', title: 'Luôn hiện tất cả nhãn kích thước' },
-  { id: 'hidden', label: 'Ẩn', title: 'Ẩn toàn bộ nhãn để nhìn chi tiết rõ nhất' }
-]
-
-const PREVIEW_BGS: Array<{ id: ChromaKeySettings['previewBackground']; label: string }> = [
-  { id: 'checkerboard', label: 'Caro' },
-  { id: 'dark', label: 'Tối' },
-  { id: 'light', label: 'Sáng' }
-]
-
-/** Hàng 1: chọn công cụ cắt + tuỳ chọn theo ngữ cảnh (lọc hạt, nhãn, gợi ý). */
-function CutterToolRow(props: SpriteCutterSourceToolbarProps) {
-  const { tool, islandCount, minIslandArea, tagVisibility } = props
+export function SpriteCutterSourceToolbar({
+  tool,
+  islandsCount,
+  gridSettings,
+  tagDisplayMode,
+  canvasBg,
+  chroma,
+  showChromaStudio,
+  eyedropperTarget,
+  eyedropperSample,
+  onChangeTool,
+  onChangeTagDisplayMode,
+  onChangeCanvasBg,
+  onChangeChroma,
+  onToggleChromaStudio,
+  onToggleEyedropper,
+  onResetChroma
+}: SpriteCutterSourceToolbarProps) {
   return (
-    <div className="layer-cutter-toolbar layer-cutter-ribbon layer-cutter-toolbar-row">
-      <div className="layer-cutter-tool-group">
-        {TOOL_BUTTONS.map(({ id, label, title, Icon }) => (
+    <>
+      {/* Hàng 1: Nhóm Công Cụ Cắt Tách + Nút Hút Màu Nhanh + Nút Mở Bộ Lọc Studio + Nền Canvas */}
+      <div className="layer-cutter-toolbar layer-cutter-ribbon">
+        <div className="layer-cutter-tool-group" role="tablist" aria-label="Chế độ cắt tách sprite">
           <button
-            key={id}
-            id={`btn-tool-${id}`}
+            id="btn-cutter-tool-auto"
             type="button"
-            className={`layer-cutter-tool-btn ${tool === id ? 'active' : ''}`}
-            onClick={() => props.onSelectTool(id)}
-            title={title}
+            className={`layer-cutter-tool-btn ${tool === 'auto' ? 'active' : ''}`}
+            onClick={() => onChangeTool('auto')}
+            title="Quét tự động (Auto Islands): Tự động nhận diện các mảnh bộ phận rời trên ảnh đã tách nền"
           >
-            <Icon width={12} height={12} />
-            <span className="lc-tool-label">{label}</span>
-            {id === 'auto' && <span className="lc-count-badge">{islandCount}</span>}
+            <IconSparkles width={12} height={12} />
+            <span className="lc-tool-label">Tự động</span>
+            <span className="lc-count-badge">{islandsCount}</span>
           </button>
-        ))}
-      </div>
 
-      {tool === 'auto' && (
+          <button
+            id="btn-cutter-tool-grid"
+            type="button"
+            className={`layer-cutter-tool-btn ${tool === 'grid' ? 'active' : ''}`}
+            onClick={() => onChangeTool('grid')}
+            title="Cắt lưới ma trận (Grid Slicer): Chia đều tấm ảnh theo Số Hàng × Số Cột để cắt nhanh"
+          >
+            <IconGrid3D width={12} height={12} />
+            <span className="lc-tool-label">Cắt lưới</span>
+            <span className="lc-count-badge">
+              {gridSettings.rows}×{gridSettings.cols}
+            </span>
+          </button>
+
+          <button
+            id="btn-cutter-tool-box"
+            type="button"
+            className={`layer-cutter-tool-btn ${tool === 'box' ? 'active' : ''}`}
+            onClick={() => onChangeTool('box')}
+            title="Kéo khung chữ nhật (Box): Khoanh vùng chữ nhật bất kỳ để cắt riêng bộ phận"
+          >
+            <IconCrop width={12} height={12} />
+            <span className="lc-tool-label">Khung</span>
+          </button>
+
+          <button
+            id="btn-cutter-tool-lasso"
+            type="button"
+            className={`layer-cutter-tool-btn ${tool === 'lasso' ? 'active' : ''}`}
+            onClick={() => onChangeTool('lasso')}
+            title="Khoanh vùng tự do (Lasso): Vẽ đường viền tự do để tách bộ phận nằm sát nhau"
+          >
+            <span>✂️</span>
+            <span className="lc-tool-label">Lasso</span>
+          </button>
+
+          <button
+            id="btn-cutter-tool-eraser"
+            type="button"
+            className={`layer-cutter-tool-btn ${tool === 'eraser' ? 'active' : ''}`}
+            onClick={() => onChangeTool('eraser')}
+            title="Cọ tẩy (Eraser): Xóa thủ công chi tiết thừa hoặc tách rời 2 bộ phận dính nhau"
+          >
+            <IconEraser width={12} height={12} />
+            <span className="lc-tool-label">Cọ tẩy</span>
+          </button>
+
+          <button
+            id="btn-cutter-tool-restore"
+            type="button"
+            className={`layer-cutter-tool-btn ${tool === 'restore' ? 'active' : ''}`}
+            onClick={() => onChangeTool('restore')}
+            title="Cọ khôi phục (Restore): Vẽ lấy lại phần chi tiết bị xóa nhầm"
+          >
+            <IconBrush width={12} height={12} />
+            <span className="lc-tool-label">Khôi phục</span>
+          </button>
+        </div>
+
+        {/* Công tắc bật/tắt Tách nền + Nút mở Bảng Studio Tách Nền Chuyên Sâu */}
+        <label
+          className="layer-cutter-switch-pill"
+          title="Bật/tắt thuật toán tách nền tự động"
+        >
+          <input
+            type="checkbox"
+            className="lc-switch"
+            checked={chroma.enabled}
+            onChange={(e) => onChangeChroma({ enabled: e.target.checked })}
+          />
+          <span>Tách nền</span>
+        </label>
+
+        {/* Nút Hút màu kiểu Adobe Photoshop ngay trên thanh công cụ chính */}
+        <PhotoshopEyedropperButton
+          id="btn-toolbar-eyedropper"
+          active={eyedropperTarget === 'key'}
+          currentHex={chroma.keyColorHex}
+          hoveredHex={eyedropperTarget === 'key' ? eyedropperSample?.hex : null}
+          label="Hút màu"
+          title="Hút màu nền trực tiếp trên ảnh với Kính lúp Pixel & Vòng đối chiếu màu kiểu Adobe Photoshop"
+          onToggle={() => onToggleEyedropper('key')}
+        />
+
+        <button
+          id="btn-toggle-chroma-studio"
+          type="button"
+          className={`cutter-studio-toggle-btn ${showChromaStudio ? 'active' : ''}`}
+          onClick={onToggleChromaStudio}
+          title="Đóng/mở bảng thiết lập Tách nền & Khử viền rác chuyên sâu"
+        >
+          <span>🧪 Bộ lọc Tách & Khử viền</span>
+          <span className="caret">{showChromaStudio ? '▴' : '▾'}</span>
+        </button>
+
+        {/* Nhóm hiển thị bên phải: Nhãn & Nền Canvas */}
         <div className="layer-cutter-toolbar-right">
-          <div className="layer-cutter-control-pill" title="Lọc bỏ các hạt nhiễu nhỏ hơn diện tích này">
-            <span className="lc-ctl-label">Lọc hạt</span>
-            <input
-              type="range"
-              min={40}
-              max={400}
-              step={10}
-              value={minIslandArea}
-              onChange={(e) => props.onChangeMinIslandArea(Number(e.target.value))}
-            />
-            <span className="layer-cutter-val-mono">{minIslandArea}px</span>
-          </div>
-          <div className="layer-cutter-seg-mini" title="Chế độ hiển thị nhãn kích thước trên từng mảnh">
-            <span className="seg-label">Nhãn</span>
-            {TAG_MODES.map((m) => (
+          <div className="layer-cutter-seg-mini" title="Chế độ hiển thị nhãn tên mảnh cắt">
+            <span className="seg-label">Nhãn:</span>
+            {(['hover', 'always', 'hidden'] as const).map((m) => (
               <button
-                key={m.id}
+                key={m}
                 type="button"
-                className={`seg-btn ${tagVisibility === m.id ? 'active' : ''}`}
-                onClick={() => props.onChangeTagVisibility(m.id)}
-                title={m.title}
+                className={`seg-btn ${tagDisplayMode === m ? 'active' : ''}`}
+                onClick={() => onChangeTagDisplayMode(m)}
               >
-                {m.label}
+                {m === 'hover' ? 'Trỏ' : m === 'always' ? 'Luôn' : 'Ẩn'}
+              </button>
+            ))}
+          </div>
+
+          <div className="layer-cutter-seg-mini" title="Màu nền vùng xem để kiểm tra viền rác">
+            <span className="seg-label">Nền:</span>
+            {(['checker', 'dark', 'light'] as const).map((bg) => (
+              <button
+                key={bg}
+                type="button"
+                className={`seg-btn ${canvasBg === bg ? 'active' : ''}`}
+                onClick={() => onChangeCanvasBg(bg)}
+              >
+                {bg === 'checker' ? 'Caro' : bg === 'dark' ? 'Tối' : 'Sáng'}
               </button>
             ))}
           </div>
         </div>
-      )}
-
-      {(tool === 'box' || tool === 'lasso') && (
-        <div className="layer-cutter-toolbar-right">
-          <span className="layer-cutter-inline-tip">
-            {tool === 'box'
-              ? 'Kéo chuột bao quanh bộ phận cần cắt'
-              : 'Vẽ đường viền khép kín quanh bộ phận cần tách'}
-          </span>
-        </div>
-      )}
-    </div>
-  )
-}
-
-/** Hàng 2: thanh Chroma Key gọn (bật/tắt, màu khoá, độ nhạy, khử viền, nền xem trước). */
-function CutterChromaRow(props: SpriteCutterSourceToolbarProps) {
-  const { chroma, isPickingColor, onChangeChroma, onTogglePicking } = props
-  return (
-    <div className="layer-cutter-toolbar layer-cutter-ribbon layer-cutter-chroma-bar">
-      <label className="layer-cutter-switch-pill" title="Bật/tắt tự động tách phông nền màu đồng nhất">
-        <input
-          type="checkbox"
-          className="lc-switch"
-          checked={chroma.enabled}
-          onChange={(e) => onChangeChroma({ ...chroma, enabled: e.target.checked })}
-        />
-        <span>Tách nền</span>
-      </label>
-
-      {chroma.enabled && (
-        <>
-          <div className="layer-cutter-control-pill">
-            <span className="lc-ctl-label">Màu</span>
-            <button
-              type="button"
-              className="layer-cutter-color-swatch"
-              style={{ backgroundColor: chroma.keyColor }}
-              title={`Màu nền đang tách: ${chroma.keyColor} (Click để hút màu trên ảnh)`}
-              onClick={onTogglePicking}
-            />
-            <button
-              type="button"
-              className={`layer-cutter-eyedropper-btn ${isPickingColor ? 'active' : ''}`}
-              title="Click lên vùng nền của ảnh để lấy màu tách nền chính xác"
-              onClick={onTogglePicking}
-            >
-              <IconDropper width={11} height={11} />
-              <span>{isPickingColor ? 'Chấm lên ảnh…' : 'Hút màu'}</span>
-            </button>
-          </div>
-          <div className="layer-cutter-control-pill" title="Ngưỡng độ nhạy tách màu nền">
-            <span className="lc-ctl-label">Độ nhạy</span>
-            <input
-              type="range"
-              min={1}
-              max={100}
-              value={chroma.tolerance}
-              onChange={(e) => onChangeChroma({ ...chroma, tolerance: Number(e.target.value) })}
-            />
-            <span className="layer-cutter-val-mono">{chroma.tolerance}%</span>
-          </div>
-          <label className="layer-cutter-check-pill" title="Khử ám màu nền bám quanh mép bộ phận">
-            <input
-              type="checkbox"
-              className="lc-switch"
-              checked={chroma.despill}
-              onChange={(e) => onChangeChroma({ ...chroma, despill: e.target.checked })}
-            />
-            <span>Khử viền</span>
-          </label>
-        </>
-      )}
-
-      <div className="layer-cutter-toolbar-right">
-        <div className="layer-cutter-seg-mini" title="Đổi phông nền kiểm tra viền tách">
-          <span className="seg-label">Nền</span>
-          {PREVIEW_BGS.map((bg) => (
-            <button
-              key={bg.id}
-              type="button"
-              className={`seg-btn ${chroma.previewBackground === bg.id ? 'active' : ''}`}
-              onClick={() => onChangeChroma({ ...chroma, previewBackground: bg.id })}
-            >
-              {bg.label}
-            </button>
-          ))}
-        </div>
       </div>
-    </div>
-  )
-}
 
-export function SpriteCutterSourceToolbar(props: SpriteCutterSourceToolbarProps) {
-  return (
-    <>
-      <CutterToolRow {...props} />
-      <CutterChromaRow {...props} />
+      {/* Bảng Studio Tách Nền & Khử Viền Sượng Chuyên Sâu (2 Sub-tabs giống Xưởng Lắp Ráp 2D) */}
+      {showChromaStudio && chroma.enabled && (
+        <CutterChromaStudioPanel
+          chroma={chroma}
+          eyedropperTarget={eyedropperTarget}
+          eyedropperSample={eyedropperSample}
+          onChangeChroma={onChangeChroma}
+          onToggleEyedropper={onToggleEyedropper}
+          onResetChroma={onResetChroma}
+        />
+      )}
     </>
   )
 }

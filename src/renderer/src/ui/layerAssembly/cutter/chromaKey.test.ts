@@ -174,4 +174,83 @@ describe('chromaKey algorithms', () => {
     expect(islands[0].width).toBeGreaterThanOrEqual(44)
     expect(islands[0].height).toBeGreaterThanOrEqual(36)
   })
+
+  it('protects internal white pixels (eyes/shirt) when isolationMode is outer_only (BFS)', async () => {
+    const { processAdvancedChromaPixelData } = await import('./chromaAdvancedProcessor')
+    const w = 20
+    const h = 20
+    const data = new Uint8ClampedArray(w * h * 4)
+
+    // Fill entire canvas with white background (255, 255, 255, 255)
+    for (let i = 0; i < w * h; i++) {
+      data[i * 4] = 255
+      data[i * 4 + 1] = 255
+      data[i * 4 + 2] = 255
+      data[i * 4 + 3] = 255
+    }
+
+    // Draw a closed dark ring from (5,5) to (14,14) with white interior (7..12, 7..12)
+    for (let y = 5; y <= 14; y++) {
+      for (let x = 5; x <= 14; x++) {
+        const isBorder = x <= 6 || x >= 13 || y <= 6 || y >= 13
+        if (isBorder) {
+          const idx = (y * w + x) * 4
+          data[idx] = 20
+          data[idx + 1] = 20
+          data[idx + 2] = 25
+          data[idx + 3] = 255
+        }
+      }
+    }
+
+    processAdvancedChromaPixelData(data, w, h, {
+      enabled: true,
+      keyColorHex: '#FFFFFF',
+      keyColorType: 'pure_white',
+      isolationMode: 'outer_only',
+      tolerance: 30,
+      smoothness: 0,
+      despill: false,
+      defringeStrength: 0,
+      edgeSmooth: 0,
+      despeckleSize: 0
+    })
+
+    // Outer corner pixel (0, 0) must be transparent (alpha = 0)
+    expect(data[3]).toBe(0)
+    // Interior white pixel (9, 9) inside the closed dark border must remain protected (alpha = 255)
+    const innerIdx = (9 * w + 9) * 4
+    expect(data[innerIdx + 3]).toBe(255)
+  })
+
+  it('computes grid islands accurately and samples 9x9 pixel grid for Photoshop Eyedropper', async () => {
+    const { computeGridIslands } = await import('./chromaAdvancedProcessor')
+    const { sampleEyedropperAtPoint } = await import('./chromaKey')
+
+    const cells = computeGridIslands(300, 200, { rows: 2, cols: 3, paddingInset: 5 })
+    expect(cells).toHaveLength(6)
+    expect(cells[0]).toMatchObject({ x: 5, y: 5, width: 90, height: 90 })
+
+    const w = 15
+    const h = 15
+    const patch = new Uint8ClampedArray(w * h * 4)
+    for (let i = 0; i < w * h; i++) {
+      patch[i * 4] = 18
+      patch[i * 4 + 1] = 210
+      patch[i * 4 + 2] = 95
+      patch[i * 4 + 3] = 255
+    }
+    const mockCtx = {
+      getImageData: (_x: number, _y: number, rw: number, rh: number) => ({
+        data: patch.subarray(0, rw * rh * 4)
+      })
+    } as unknown as CanvasRenderingContext2D
+
+    const sample = sampleEyedropperAtPoint(mockCtx, w, h, 7, 7, 120, 140, 50, 60, '#FF0055', 4)
+    expect(sample.hex).toBe('#12D25F')
+    expect(sample.prevHex).toBe('#FF0055')
+    expect(sample.pixelGrid).toHaveLength(9)
+    expect(sample.pixelGrid[4]).toHaveLength(9)
+    expect(sample.pixelGrid[4][4]).toBe('#12D25F')
+  })
 })

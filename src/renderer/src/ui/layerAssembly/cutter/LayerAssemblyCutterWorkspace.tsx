@@ -5,6 +5,7 @@ import { SpriteCutterSourcePane } from './SpriteCutterSourcePane'
 import { SpriteCutterTargetPane } from './SpriteCutterTargetPane'
 import '../../../styles/layerAssemblyCutter.css'
 import '../../../styles/layerAssemblyCutterToolbar.css'
+import '../../../styles/layerAssemblyCutterStudio.css'
 
 export interface LayerAssemblyCutterWorkspaceProps {
   state: ReturnType<typeof useLayerWorkshop>
@@ -13,8 +14,8 @@ export interface LayerAssemblyCutterWorkspaceProps {
 export function LayerAssemblyCutterWorkspace({ state }: LayerAssemblyCutterWorkspaceProps) {
   const [selectedPiece, setSelectedPiece] = useState<CutPiece | null>(null)
 
-  const handleTransferToTarget = (piece: CutPiece) => {
-    state.add(piece.label || 'Mảnh cắt', '', piece.dataUrl, { x: 0, y: 0 })
+  const handleTransferToTarget = (piece: CutPiece, pos?: { x: number; y: number }) => {
+    state.add(piece.label || 'Mảnh cắt', '', piece.dataUrl, pos || { x: 0, y: 0 })
   }
 
   const handleClearAllLayers = () => {

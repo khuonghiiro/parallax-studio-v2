@@ -829,6 +829,8 @@ export const IconDropper = (p: P) => (
   </svg>
 )
 
+export const IconEyedropper = IconDropper
+
 export const IconArrowUp = (p: P) => (
   <svg {...base(p)}>
     <line x1="12" y1="19" x2="12" y2="5" />
