@@ -1,0 +1,1165 @@
+/* ==========================================================================
+   Camera Route Inspector, Vertical Filmstrip Preview & Pro Action Footer
+   Supports Dark & Light Themes via CSS Design Tokens (variables.css)
+   ========================================================================== */
+
+/* ------------------------------------------------------------------ 2D Stage Workspace Row + Vertical Filmstrip */
+
+.anim2d-workspace-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.anim2d-filmstrip {
+  display: flex;
+  flex-direction: column;
+  width: 164px;
+  min-width: 164px;
+  background: var(--bg-1);
+  border-left: 1px solid var(--line);
+  z-index: 22;
+  user-select: none;
+  transition: width 0.15s ease;
+}
+
+.anim2d-filmstrip.compact-only {
+  width: 146px;
+  min-width: 146px;
+}
+
+.anim2d-filmstrip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 5px 7px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.filmstrip-title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.filmstrip-ico {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.filmstrip-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.filmstrip-preview-toggle {
+  height: 19px;
+  padding: 0 6px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  font-size: 9px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+}
+
+.filmstrip-preview-toggle.on {
+  border-color: color-mix(in srgb, var(--accent-cyan) 65%, var(--line));
+  color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-2));
+}
+
+.filmstrip-preview-toggle:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.anim2d-filmstrip-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 7px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* Filmstrip perforation pattern along left edge */
+  background-image: radial-gradient(var(--line-soft) 1.5px, transparent 1.5px);
+  background-size: 8px 14px;
+  background-position: 2px 0;
+  background-repeat: repeat-y;
+}
+
+.anim2d-film-step-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.anim2d-film-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 16px;
+  font-size: 9px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+}
+
+.anim2d-film-connector .connector-dur {
+  padding: 0 5px;
+  border-radius: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  color: var(--accent-cyan);
+  font-size: 8.5px;
+  line-height: 13px;
+}
+
+.anim2d-film-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px;
+  border-radius: 5px;
+  background: var(--bg-2);
+  border: 1.5px solid var(--line);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.anim2d-film-card:hover {
+  border-color: var(--accent-cyan);
+  background: var(--bg-3);
+}
+
+.anim2d-film-card.active {
+  border-color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-2));
+  box-shadow:
+    0 0 0 1px var(--accent-cyan),
+    0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.film-card-top {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+}
+
+.film-card-num {
+  font-weight: 800;
+  color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-1));
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+.anim2d-film-card.active .film-card-num {
+  background: var(--accent);
+  color: #fff;
+}
+
+.film-card-time {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.film-card-dur {
+  color: var(--text-dim);
+  font-size: 9px;
+}
+
+.film-card-zoom {
+  margin-left: auto;
+  color: var(--key);
+  font-weight: 700;
+  font-size: 9px;
+}
+
+.anim2d-film-thumb {
+  position: relative;
+  overflow: hidden;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  align-self: center;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.35);
+}
+
+.anim2d-film-card.active .anim2d-film-thumb {
+  border-color: var(--accent-cyan);
+}
+
+.anim2d-film-thumb-world {
+  position: relative;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.film-thumb-guides {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 33.33% 33.33%;
+}
+
+.film-thumb-mode-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  padding: 0 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--bg-0) 84%, transparent);
+  color: var(--text);
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 13px;
+  max-width: 126px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.film-card-bottom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9.5px;
+  color: var(--text-dim);
+  min-width: 0;
+}
+
+.film-shot-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.film-shot-name {
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.film-compact-tag {
+  font-size: 8.5px;
+  color: var(--accent-cyan);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ Unified Pro Camera Moves Footer Bar */
+
+.anim2d-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 32px;
+  padding: 3px 10px;
+  background: var(--bg-2);
+  border-top: 1px solid var(--line);
+  z-index: 25;
+  flex-wrap: wrap;
+}
+
+.anim2d-footer-current {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.footer-nav-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  font-size: 9px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.footer-nav-btn:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.footer-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.footer-active-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 4px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  font-size: 10px;
+  font-family: var(--mono);
+}
+
+.footer-active-pill .pill-idx {
+  font-weight: 800;
+  color: var(--accent-cyan);
+}
+
+.footer-active-pill .pill-time {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.footer-active-pill .pill-dur {
+  color: var(--text-dim);
+  font-size: 9.5px;
+}
+
+.footer-active-pill .pill-shot {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 9.5px;
+}
+
+.anim2d-footer-modes {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.footer-modes-label {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-right: 2px;
+}
+
+.anim2d-footer-modes .mode-chip,
+.anim2d-footer-right .mode-chip {
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+}
+
+.anim2d-footer-modes .mode-chip:hover,
+.anim2d-footer-right .mode-chip:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line-focus);
+}
+
+.anim2d-footer-modes .mode-chip.active,
+.anim2d-footer-right .mode-chip.active {
+  background: color-mix(in srgb, var(--accent) 26%, var(--bg-2));
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+.anim2d-footer-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ------------------------------------------------------------------ Cam 2D Route Inspector (Global vs Per-Waypoint Separation) */
+
+.camera-route-inspector {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 8px;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.scope-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.scope-badge.global {
+  background: color-mix(in srgb, var(--key) 20%, var(--bg-2));
+  border: 1px solid color-mix(in srgb, var(--key) 60%, var(--line));
+  color: var(--key);
+}
+
+.scope-badge.per-waypoint {
+  background: color-mix(in srgb, var(--accent) 26%, var(--bg-2));
+  border: 1px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+.global-route-section {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.route-global-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.global-banner-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.route-global-banner .spacer {
+  flex: 1;
+}
+
+.route-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.presets-dropdown-rel {
+  position: relative;
+}
+
+.route-presets-popover {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  width: 235px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-focus);
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 60000;
+}
+
+.route-presets-popover .popover-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 11px;
+  text-align: left;
+  border-radius: 3px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.route-presets-popover .popover-item:hover {
+  background: var(--bg-3);
+  color: var(--accent-cyan);
+}
+
+.route-presets-popover .popover-sep {
+  height: 1px;
+  background: var(--line);
+  margin: 3px 0;
+}
+
+/* Global Handheld Shake Sub-card */
+.global-shake-card {
+  background: var(--bg-2);
+  border: 1px dashed var(--line);
+  border-radius: 4px;
+  padding: 6px 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.global-shake-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+}
+
+.global-shake-head .shake-title {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.global-shake-head .shake-title small {
+  font-weight: 400;
+  color: var(--text-faint);
+  font-size: 9px;
+}
+
+.waypoints-list-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* Waypoints Sequence Flow */
+.route-waypoints-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 164px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.route-wp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px 7px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.route-wp-card:hover {
+  background: var(--bg-3);
+  border-color: var(--line-focus);
+}
+
+.route-wp-card.active {
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-2));
+  border-color: var(--accent-cyan);
+  box-shadow: inset 3px 0 0 var(--accent-cyan);
+}
+
+.wp-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.wp-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.wp-card-idx {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  font-family: var(--mono);
+}
+
+.wp-card-time {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text);
+  font-family: var(--mono);
+}
+
+.wp-card-dur {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+
+.wp-editing-pill {
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  white-space: nowrap;
+}
+
+.wp-type-badge {
+  font-size: 8.5px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wp-type-badge.start {
+  background: color-mix(in srgb, var(--accent-cyan) 16%, transparent);
+  color: var(--accent-cyan);
+}
+
+.wp-type-badge.pan {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent-cyan);
+}
+
+.wp-type-badge.zoom-in {
+  background: color-mix(in srgb, var(--key) 20%, transparent);
+  color: var(--key);
+}
+
+.wp-type-badge.zoom-out {
+  background: rgba(34, 197, 94, 0.16);
+  color: #4ade80;
+}
+
+.wp-type-badge.hold {
+  background: var(--bg-3);
+  color: var(--text-dim);
+}
+
+.wp-card-inline-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0.45;
+  transition: opacity 0.12s ease;
+}
+
+.route-wp-card:hover .wp-card-inline-btns,
+.route-wp-card.active .wp-card-inline-btns {
+  opacity: 1;
+}
+
+.wp-mini-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.wp-mini-icon-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.wp-mini-icon-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.wp-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9.5px;
+  color: var(--text-dim);
+}
+
+.wp-meta-shot {
+  font-weight: 600;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wp-meta-3d {
+  color: var(--accent-cyan);
+  font-family: var(--mono);
+  font-size: 9px;
+}
+
+.wp-card-ease {
+  margin-left: auto;
+  font-size: 9px;
+  font-family: var(--mono);
+  color: var(--text-faint);
+}
+
+/* ------------------------------------------------------------------ Per-Waypoint Detail Panel */
+
+.active-wp-section {
+  background: var(--bg-1);
+  border: 1.5px solid color-mix(in srgb, var(--accent-cyan) 60%, var(--line));
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wp-detail-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.wp-banner-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.wp-banner-time {
+  font-size: 11.5px;
+  font-weight: 800;
+  font-family: var(--mono);
+  color: var(--text);
+}
+
+.wp-active-shot {
+  font-size: 9.5px;
+  color: var(--text);
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--bg-2);
+  border-left: 2.5px solid var(--accent-cyan);
+  max-width: 115px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wp-step-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Priority Section 1: Timing & Duration Box */
+.priority-timing-box {
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-2));
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 40%, var(--line));
+  border-radius: 5px;
+  padding: 7px !important;
+}
+
+.timing-hint-tag {
+  font-size: 8.5px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--bg-3);
+  color: var(--accent-cyan);
+}
+
+.timing-main-row {
+  margin-top: 2px;
+}
+
+.timing-field-card label {
+  font-size: 9.5px !important;
+  font-weight: 600;
+  color: var(--text) !important;
+  margin-bottom: 3px !important;
+}
+
+.input-prefix-box.highlight {
+  height: 26px;
+  background: var(--bg-1);
+  border-color: color-mix(in srgb, var(--accent-cyan) 50%, var(--line));
+}
+
+.input-prefix-box.highlight input {
+  font-weight: 700;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--accent-cyan);
+}
+
+.input-prefix-box .suffix {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-left: 3px;
+}
+
+.quick-duration-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.quick-dur-lbl {
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-right: 2px;
+}
+
+.dur-chip {
+  flex: 1;
+  height: 19px;
+  padding: 0 4px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  font-size: 9.5px;
+  font-family: var(--mono);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.dur-chip:hover {
+  border-color: var(--accent-cyan);
+  color: var(--text);
+}
+
+.dur-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.wp-mode-current {
+  font-size: 9.5px;
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+/* 8-Button Camera Action Mode Grid */
+.cam-action-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.cam-mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 2px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.cam-mode-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--line-focus);
+  color: var(--text);
+}
+
+.cam-mode-btn.active {
+  background: color-mix(in srgb, var(--accent) 26%, var(--bg-2));
+  border-color: var(--accent-cyan);
+  color: var(--text);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-cyan) 22%, transparent);
+}
+
+.cam-mode-btn .mode-ico {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.cam-mode-btn .mode-lbl {
+  font-size: 9px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.row-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.row-group:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.field-header label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.quick-align-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.mini-chip-btn {
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 2px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 9px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mini-chip-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.target-selects-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.zoom-val {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  font-family: var(--mono);
+}
+
+.angle-neutral-tag {
+  font-size: 9.5px;
+  color: var(--text-faint);
+  font-family: var(--mono);
+}
+
+/* 3D Angle Sliders Stack */
+.angle-sliders-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 2px 0;
+}
+
+.angle-slider-row {
+  display: grid;
+  grid-template-columns: 86px 1fr 34px;
+  align-items: center;
+  gap: 6px;
+}
+
+.angle-lbl {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.angle-num {
+  font-size: 9.5px;
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--accent-cyan);
+  text-align: right;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.field-row label {
+  font-size: 9.5px;
+  color: var(--text-faint);
+  margin-bottom: 2px;
+  display: block;
+}
+
+.field-row input {
+  width: 100%;
+  height: 23px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0 6px;
+  color: var(--text);
+  font-size: 10.5px;
+  box-sizing: border-box;
+}
+
+.field-row input:focus {
+  border-color: var(--accent-cyan);
+  outline: none;
+}
+
+.input-prefix-box {
+  display: flex;
+  align-items: center;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  height: 23px;
+  padding: 0 5px;
+}
+
+.input-prefix-box:focus-within {
+  border-color: var(--accent-cyan);
+}
+
+.input-prefix-box .prefix {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-faint);
+  margin-right: 4px;
+}
+
+.input-prefix-box input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 10.5px;
+  text-align: right;
+  height: 21px;
+  padding: 0;
+}
+
+.field-select-mt {
+  margin-top: 3px;
+}
+
+.field-slider {
+  display: flex;
+  align-items: center;
+  margin: 2px 0;
+}
+
+.zoom-range {
+  width: 100%;
+  height: 4px;
+  accent-color: var(--accent-cyan);
+  cursor: pointer;
+}
+
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.preset-row.zoom-presets-5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 3px;
+}
+
+.preset-row.zoom-presets-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.preset-row .btn {
+  min-width: 0;
+  padding: 2px 3px;
+  font-size: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  justify-content: center;
+}
+
+.preset-row .btn.active {
+  background: color-mix(in srgb, var(--accent) 30%, var(--bg-2));
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.route-insp-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-top: 2px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line-soft);
+}
+
+.route-insp-actions .btn {
+  padding: 3px 4px;
+  font-size: 9.5px;
+  justify-content: center;
+}

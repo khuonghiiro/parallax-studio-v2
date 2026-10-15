@@ -760,57 +760,17 @@
 .anim2d-cam-handle.handle-sw { left: -5px; bottom: -5px; }
 .anim2d-cam-handle.handle-w  { left: -5px; top: calc(50% - 4.5px); }
 
-/* Stage Bottom Footer Bar (Camera Frame Progression Strip & Quick Mode Chips) */
-.anim2d-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: 30px;
-  padding: 2px 8px;
-  background: var(--bg-2);
-  border-top: 1px solid var(--line);
-  z-index: 25;
+.anim2d-callout-bubble {
+  cursor: grab;
 }
 
-.anim2d-footer-label {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-dim);
-  white-space: nowrap;
-  margin-right: 2px;
+.anim2d-callout-bubble:active {
+  cursor: grabbing;
 }
 
-.anim2d-footer-modes {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  flex-shrink: 0;
+.anim2d-callout-bubble.custom-moved .bubble-circle {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--key) 42%, transparent),
+    0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-.anim2d-footer-modes .mode-chip {
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 3px;
-  border: 1px solid var(--line);
-  background: var(--bg-1);
-  color: var(--text-dim);
-  font-size: 9.5px;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.12s ease;
-}
-
-.anim2d-footer-modes .mode-chip:hover {
-  background: var(--bg-3);
-  color: var(--text);
-  border-color: var(--line-focus);
-}
-
-.anim2d-footer-modes .mode-chip.active {
-  background: color-mix(in srgb, var(--accent) 26%, var(--bg-2));
-  border-color: var(--accent-cyan);
-  color: var(--accent-cyan);
-  font-weight: 600;
-}

@@ -1,5 +1,11 @@
 import { useMemo, useState } from 'react'
 import { IconPlus, IconTrash } from '../../icons'
+import {
+  buildReactFlowBezierPath,
+  buildReactFlowSmoothStepPath,
+  computeBubbleAnchorAttachment,
+  type CameraLineStyle
+} from './animateCameraEdgePaths'
 import { findNearestShotByStage2D, type CameraFrame2D, type ShotStageBox } from './animateCameraMath'
 import type { CameraWaypointItem } from './animateCameraRouteLogic'
 
@@ -16,6 +22,11 @@ const RESIZE_HANDLES: { id: string; sx: number; sy: number; cursor: string }[] =
 
 export type StageToolMode = 'pan-scale' | 'orbit-3d' | 'aim-target'
 
+export interface BubbleStageOffset {
+  dx: number
+  dy: number
+}
+
 interface CalloutBubbleNode {
   idx: number
   wp: CameraWaypointItem
@@ -27,6 +38,7 @@ interface CalloutBubbleNode {
   frameTop: number
   frameW: number
   frameH: number
+  isCustomMoved: boolean
 }
 
 interface AnimateCameraViewfinderProps {
@@ -46,11 +58,19 @@ interface AnimateCameraViewfinderProps {
   playing: boolean
   zoom: number
   toolMode: StageToolMode
+  lineStyle: CameraLineStyle
   showAllFrames: boolean
   showGrid: boolean
   snapGuide: { x: number | null; y: number | null }
+  bubbleOffsets: Record<number, BubbleStageOffset>
   stageToScreen: (sx: number, sy: number) => { x: number; y: number }
-  onSelectFrame: (frame: CameraFrame2D) => void
+  onSelectFrame: (frame: CameraFrame2D | CameraWaypointItem, activateRouteTab?: boolean) => void
+  onStartBubbleDrag: (
+    e: React.PointerEvent,
+    idx: number,
+    wp: CameraWaypointItem
+  ) => void
+  onResetBubbleOffset: (idx: number) => void
   onStartMoveDrag: (e: React.PointerEvent, frame: CameraFrame2D) => void
   onStartResizeDrag: (e: React.PointerEvent, frame: CameraFrame2D, sx: number, sy: number) => void
   onStartRotateDrag: (e: React.PointerEvent, frame: CameraFrame2D) => void
@@ -69,11 +89,15 @@ export function AnimateCameraViewfinder({
   playing,
   zoom,
   toolMode,
+  lineStyle,
   showAllFrames,
   showGrid,
   snapGuide,
+  bubbleOffsets,
   stageToScreen,
   onSelectFrame,
+  onStartBubbleDrag,
+  onResetBubbleOffset,
   onStartMoveDrag,
   onStartResizeDrag,
   onStartRotateDrag,
@@ -87,7 +111,7 @@ export function AnimateCameraViewfinder({
   const activeWp = waypoints[activeFrameIndex] ?? waypoints[0]
 
   // Tính toán vị trí các Bóng tròn điều khiển (Callout Bubbles) nằm NGOÀI khung cảnh
-  // kèm dây liên kết (Tether Line) nối vào tâm lộ trình & viền khung camera
+  // Hỗ trợ người dùng kéo thả tự do từng bóng tròn sang vị trí bất kỳ (bubbleOffsets)
   const calloutNodes = useMemo<CalloutBubbleNode[]>(() => {
     if (waypoints.length === 0) return []
 
@@ -132,8 +156,6 @@ export function AnimateCameraViewfinder({
         if (fBottom > maxBottomY) maxBottomY = fBottom
       }
 
-      // Nếu 1 cảnh có nhiều mốc (> 2 mốc và bề ngang cảnh hẹp), xếp so le 2 hàng bên dưới cảnh
-      // để các bóng tròn luôn nằm gọn dưới cảnh đó và dây liên kết không đè lên nhau
       const useTwoRows = items.length >= 3 && items.length * minSpacing > shotScreenW + 16
 
       const prepared = items.map(({ idx, wp }, localIdx) => {
@@ -153,11 +175,11 @@ export function AnimateCameraViewfinder({
           frameLeft: tl.x,
           frameTop: tl.y,
           frameW: Math.max(20, wp.width * zoom),
-          frameH: Math.max(14, wp.height * zoom)
+          frameH: Math.max(14, wp.height * zoom),
+          isCustomMoved: false
         }
       })
 
-      // Chia theo từng hàng (row 0, row 1) trong phạm vi cảnh để căn đều dưới chân cảnh
       for (const r of [0, 1]) {
         const rowItems = prepared.filter((p) => p.row === r)
         if (rowItems.length === 0) continue
@@ -180,7 +202,7 @@ export function AnimateCameraViewfinder({
       result.push(...prepared)
     }
 
-    // Khử va chạm toàn cục giữa các cảnh liền kề trên cùng một dải độ cao Y
+    // Khử va chạm cho các bóng ở vị trí mặc định
     const byYBand = new Map<number, CalloutBubbleNode[]>()
     for (const node of result) {
       let foundBand: number | null = null
@@ -204,12 +226,22 @@ export function AnimateCameraViewfinder({
       }
     }
 
+    // Áp dụng độ lệch kéo thả tự do (custom user drag offset) theo không gian sân khấu
+    for (const node of result) {
+      const custom = bubbleOffsets[node.idx]
+      if (custom && (Math.abs(custom.dx) > 0.5 || Math.abs(custom.dy) > 0.5)) {
+        node.bubbleX = Math.round(node.bubbleX + custom.dx * zoom)
+        node.bubbleY = Math.round(node.bubbleY + custom.dy * zoom)
+        node.isCustomMoved = true
+      }
+    }
+
     return result.sort((a, b) => a.idx - b.idx)
-  }, [waypoints, stageLayout, stageToScreen, zoom])
+  }, [waypoints, stageLayout, stageToScreen, zoom, bubbleOffsets])
 
   return (
     <>
-      {/* 1. Đường nối lộ trình Camera & Dây liên kết (Tether Lines) từ Bóng tròn ngoài cảnh vào Lộ trình (SVG) */}
+      {/* 1. Đường nối lộ trình Camera & Dây liên kết (ReactFlow SmoothStep / Bezier Edges) */}
       <svg className="anim2d-trajectory-svg">
         <defs>
           <marker
@@ -262,7 +294,7 @@ export function AnimateCameraViewfinder({
           />
         )}
 
-        {/* Đường bay nối giữa các mốc trên Lộ trình Camera */}
+        {/* Đường bay nối giữa các mốc trên Lộ trình Camera (ReactFlow Edge Style) */}
         {waypoints.map((f, idx) => {
           if (idx === 0) return null
           const prev = waypoints[idx - 1]
@@ -272,73 +304,121 @@ export function AnimateCameraViewfinder({
           const isCut = prev.ease === 'hold'
           const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y)
 
-          const midX = (p1.x + p2.x) / 2
-          const midY = (p1.y + p2.y) / 2 - Math.min(36, dist * 0.12)
           const pathD =
-            dist > 25 && !isCut
-              ? `M ${p1.x} ${p1.y} Q ${midX} ${midY} ${p2.x} ${p2.y}`
-              : `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`
+            lineStyle === 'smoothstep'
+              ? buildReactFlowSmoothStepPath(p1.x, p1.y, p2.x, p2.y, 'horizontal', 14)
+              : buildReactFlowBezierPath(p1.x, p1.y, p2.x, p2.y, 'horizontal', 0.36)
 
           return (
             <g key={`path-${idx}`}>
               {dist > 4 && (
-                <path
-                  d={pathD}
-                  fill="none"
-                  stroke={isCurrentSeg ? 'var(--key)' : 'var(--accent-cyan)'}
-                  strokeWidth={isCurrentSeg ? 2.5 : 1.8}
-                  strokeOpacity={isCurrentSeg ? 0.95 : 0.7}
-                  strokeDasharray={isCut ? '2 5' : isCurrentSeg ? 'none' : '6 4'}
-                  markerEnd={isCurrentSeg ? 'url(#anim2d-arrow-active)' : 'url(#anim2d-arrow)'}
-                />
+                <>
+                  {/* Lớp viền phát sáng mờ kiểu ReactFlow Edge Halo */}
+                  <path
+                    d={pathD}
+                    fill="none"
+                    stroke={isCurrentSeg ? 'var(--key)' : 'var(--accent-cyan)'}
+                    strokeWidth={isCurrentSeg ? 6 : 4}
+                    strokeOpacity={isCurrentSeg ? 0.18 : 0.08}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  {/* Đường chính ReactFlow Edge */}
+                  <path
+                    d={pathD}
+                    fill="none"
+                    stroke={isCurrentSeg ? 'var(--key)' : 'var(--accent-cyan)'}
+                    strokeWidth={isCurrentSeg ? 2.4 : 1.7}
+                    strokeOpacity={isCurrentSeg ? 0.96 : 0.72}
+                    strokeDasharray={isCut ? '2 5' : isCurrentSeg ? 'none' : '6 4'}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    markerEnd={isCurrentSeg ? 'url(#anim2d-arrow-active)' : 'url(#anim2d-arrow)'}
+                  />
+                </>
               )}
             </g>
           )
         })}
 
-        {/* Sợi dây liên kết (Tether Lines) nối từ Bóng tròn ngoài khung cảnh vào Lộ trình Camera & Viền khung */}
+        {/* Sợi dây liên kết (Tether Lines) nối từ Bóng tròn ngoài khung cảnh vào Lộ trình Camera */}
         {calloutNodes.map((node) => {
           const isActive = node.idx === activeFrameIndex
           const isHovered = node.idx === hoveredIdx
           const highlight = isActive || isHovered
-          const startX = node.bubbleX
-          const startY = node.bubbleY - 19
+
+          const attach = computeBubbleAnchorAttachment(
+            node.bubbleX,
+            node.bubbleY,
+            node.anchorX,
+            node.anchorY,
+            18
+          )
+          const startX = attach.startX
+          const startY = attach.startY
           const endX = node.anchorX
           const endY = node.anchorY
-          const ctrlY1 = startY - Math.max(24, (startY - endY) * 0.42)
-          const ctrlY2 = endY + Math.max(20, (startY - endY) * 0.32)
-          const tetherPath = `M ${startX} ${startY} C ${startX} ${ctrlY1}, ${endX} ${ctrlY2}, ${endX} ${endY}`
+
+          const tetherPath =
+            lineStyle === 'smoothstep'
+              ? buildReactFlowSmoothStepPath(startX, startY, endX, endY, attach.flowMode, 12)
+              : buildReactFlowBezierPath(startX, startY, endX, endY, attach.flowMode, 0.38)
 
           const frameBottomLeftX = node.frameLeft
           const frameBottomRightX = node.frameLeft + node.frameW
-          const frameBottomY = node.frameTop + node.frameH
+          const frameCornerY =
+            node.bubbleY < node.frameTop ? node.frameTop : node.frameTop + node.frameH
 
           return (
             <g key={`tether-${node.idx}`}>
-              {/* Tia gióng phụ nối từ bóng tròn vào 2 góc dưới của Viền khung Camera khi active/hover */}
+              {/* Tia gióng phụ nối từ bóng tròn vào 2 góc của Viền khung Camera khi active/hover */}
               {highlight && (
                 <g
                   stroke={isActive ? 'var(--accent-cyan)' : 'var(--key)'}
                   strokeWidth={1}
                   strokeDasharray="3 3"
-                  strokeOpacity={0.55}
+                  strokeOpacity={0.5}
                 >
-                  <line x1={startX} y1={startY} x2={frameBottomLeftX} y2={frameBottomY} />
-                  <line x1={startX} y1={startY} x2={frameBottomRightX} y2={frameBottomY} />
+                  <line x1={startX} y1={startY} x2={frameBottomLeftX} y2={frameCornerY} />
+                  <line x1={startX} y1={startY} x2={frameBottomRightX} y2={frameCornerY} />
                 </g>
               )}
 
-              {/* Sợi dây liên kết chính nối từ Bóng tròn ngoài cảnh đến tâm Lộ trình Camera */}
+              {/* Halo nền dưới dây liên kết kiểu ReactFlow khi đang chọn/hover */}
+              {highlight && (
+                <path
+                  d={tetherPath}
+                  fill="none"
+                  stroke={isActive ? 'var(--accent-cyan)' : 'var(--key)'}
+                  strokeWidth={5.5}
+                  strokeOpacity={0.16}
+                  strokeLinecap="round"
+                />
+              )}
+
+              {/* Sợi dây liên kết chính (Vuông góc bo tròn hoặc Vòng cung) */}
               <path
                 d={tetherPath}
                 fill="none"
                 stroke={isActive ? 'var(--accent-cyan)' : isHovered ? 'var(--key)' : 'var(--accent-cyan)'}
-                strokeWidth={highlight ? 2.2 : 1.4}
+                strokeWidth={highlight ? 2.1 : 1.4}
                 strokeDasharray={isActive ? 'none' : '4 3'}
-                strokeOpacity={highlight ? 0.95 : 0.55}
+                strokeOpacity={highlight ? 0.96 : 0.58}
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
 
-              {/* Điểm nút neo ngay trên đường Lộ trình Camera bên trong cảnh */}
+              {/* Điểm nút cổng kết nối trên viền bóng tròn (ReactFlow Handle Port) */}
+              <circle
+                cx={startX}
+                cy={startY}
+                r={highlight ? 3.5 : 2.5}
+                fill={isActive ? '#ffffff' : 'var(--accent-cyan)'}
+                stroke="var(--bg-2)"
+                strokeWidth={1.2}
+              />
+
+              {/* Điểm nút neo ngay trên tâm Lộ trình Camera bên trong cảnh */}
               <circle
                 cx={endX}
                 cy={endY}
@@ -352,7 +432,7 @@ export function AnimateCameraViewfinder({
         })}
       </svg>
 
-      {/* 2. Viền khung mờ (Subtle Frame Outlines) của các mốc khác trên cảnh — không chặn chuột (pointer-events: none) */}
+      {/* 2. Viền khung mờ (Subtle Frame Outlines) của các mốc khác trên cảnh */}
       {calloutNodes.map((node) => {
         if (node.idx === activeFrameIndex) return null
         const isHovered = hoveredIdx === node.idx
@@ -380,9 +460,9 @@ export function AnimateCameraViewfinder({
         )
       })}
 
-      {/* 3. Hệ thống Bóng Tròn Liên Kết Ngoài Khung Cảnh (External Camera Callout Bubbles) */}
+      {/* 3. Hệ thống Bóng Tròn Liên Kết Ngoài Khung Cảnh (Cho phép Kéo Thả Di Chuyển Tự Do & Click Mở Tab Lộ Trình) */}
       {calloutNodes.map((node) => {
-        const { idx, wp } = node
+        const { idx, wp, isCustomMoved } = node
         const isActive = idx === activeFrameIndex
         const isHovered = idx === hoveredIdx
         const isSmallFrame = wp.zoomPct >= 135
@@ -391,7 +471,7 @@ export function AnimateCameraViewfinder({
           <div
             key={`callout-bubble-${idx}-${wp.time}`}
             id={`anim2d-bubble-${idx + 1}`}
-            className={`anim2d-callout-bubble ${wp.tag}${isActive ? ' active' : ''}${isHovered ? ' hovered' : ''}${isSmallFrame ? ' closeup' : ''}`}
+            className={`anim2d-callout-bubble ${wp.tag}${isActive ? ' active' : ''}${isHovered ? ' hovered' : ''}${isSmallFrame ? ' closeup' : ''}${isCustomMoved ? ' custom-moved' : ''}`}
             style={{
               left: node.bubbleX,
               top: node.bubbleY,
@@ -402,13 +482,17 @@ export function AnimateCameraViewfinder({
             onPointerDown={(e) => {
               if (e.button !== 0) return
               e.stopPropagation()
-              onSelectFrame(wp)
+              onStartBubbleDrag(e, idx, wp)
             }}
             onClick={(e) => {
               e.stopPropagation()
-              onSelectFrame(wp)
+              onSelectFrame(wp, true)
             }}
-            title={`Bóng điều khiển Mốc #${idx + 1} (${wp.time.toFixed(1)}s) · ${wp.tagLabel}\nCỡ khung: Zoom ${wp.zoomPct}% · ${wp.angleSummary}\n👉 Bấm vào bóng tròn này để kích hoạt Viền khung Camera #${idx + 1} trên cảnh (dù khung nhỏ nằm lồng trong khung to)`}
+            onDoubleClick={(e) => {
+              e.stopPropagation()
+              onResetBubbleOffset(idx)
+            }}
+            title={`Bóng điều khiển Mốc #${idx + 1} (${wp.time.toFixed(1)}s) · ${wp.tagLabel}\nCỡ khung: Zoom ${wp.zoomPct}% · ${wp.angleSummary}\n👉 Click: Chọn khung #${idx + 1} & mở tab Lộ trình để sửa\n✋ Kéo thả: Di chuyển bóng tròn ra chỗ thoáng tùy ý\n↺ Đúp chuột: Đặt lại vị trí mặc định`}
           >
             <div className="bubble-circle">
               <span className="bubble-num">#{idx + 1}</span>
@@ -435,7 +519,7 @@ export function AnimateCameraViewfinder({
         />
       )}
 
-      {/* 5. Thanh HUD nổi cố định ở góc trên-trái bàn dựng 2D (không bao giờ che khuất khung cảnh hay khung nhỏ) */}
+      {/* 5. Thanh HUD nổi cố định ở góc trên-trái bàn dựng 2D */}
       {activeWp && (() => {
         const hasAngles =
           Math.abs(activeWp.yaw) >= 1 || Math.abs(activeWp.pitch) >= 1 || Math.abs(activeWp.roll) >= 1

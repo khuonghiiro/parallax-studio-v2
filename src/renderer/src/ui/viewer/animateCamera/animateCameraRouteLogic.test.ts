@@ -6,6 +6,11 @@ import {
   applyStageFrameToDraft
 } from './animateCameraMath'
 import {
+  buildReactFlowBezierPath,
+  buildReactFlowSmoothStepPath,
+  computeBubbleAnchorAttachment
+} from './animateCameraEdgePaths'
+import {
   alignWaypointInShot,
   applyCameraRoutePreset,
   applyWaypointActionMode,
@@ -298,5 +303,29 @@ describe('animateCameraRouteLogic — Camera 2D Route Management & Parameter Tun
     expect(frames[0].yaw).toBeLessThan(0)
     expect(frames[1].yaw).toBeGreaterThan(0)
   })
+
+  it('builds ReactFlow-style SmoothStep (orthogonal rounded) and Bezier (arc) SVG paths accurately', () => {
+    const smoothOrtho = buildReactFlowSmoothStepPath(100, 100, 300, 220, 'horizontal', 14)
+    expect(smoothOrtho).toContain('M 100 100')
+    expect(smoothOrtho).toContain('Q ')
+    expect(smoothOrtho).toContain('L 300 220')
+
+    // Same-Y horizontal bridge should still produce rounded Q corners
+    const smoothSameY = buildReactFlowSmoothStepPath(100, 150, 400, 150, 'horizontal', 14)
+    expect(smoothSameY).toContain('Q ')
+
+    const bezierArc = buildReactFlowBezierPath(100, 150, 400, 150, 'horizontal', 0.36)
+    expect(bezierArc).toContain('M 100 150 C ')
+    expect(bezierArc).toContain('400 150')
+
+    const attachBelow = computeBubbleAnchorAttachment(200, 320, 200, 150, 18)
+    expect(attachBelow.flowMode).toBe('vertical')
+    expect(attachBelow.startY).toBeLessThan(320)
+
+    const attachRight = computeBubbleAnchorAttachment(450, 150, 200, 150, 18)
+    expect(attachRight.flowMode).toBe('horizontal')
+    expect(attachRight.startX).toBeLessThan(450)
+  })
 })
+
 

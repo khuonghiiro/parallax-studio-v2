@@ -75,7 +75,7 @@ export function CameraRouteInspector() {
 
   const activeWaypoint: CameraWaypointItem | undefined = waypoints[activeFrameIndex] ?? waypoints[0]
 
-  // Tự động cuộn danh sách mốc để mốc đang chọn luôn nằm trong vùng nhìn thấy
+  // Tự động cuộn danh sách mốc để mốc đang chọn (từ bóng tròn 2D hoặc kẻ phim) luôn nổi bật trong tầm mắt
   useEffect(() => {
     const container = stackRef.current
     if (!container) return
@@ -197,6 +197,27 @@ export function CameraRouteInspector() {
     }
   }
 
+  const handleUpdateSegmentDuration = (targetWaypointIndex: number, newDurationSec: number): void => {
+    const targetWp = waypoints[targetWaypointIndex]
+    const prevWp = targetWaypointIndex > 0 ? waypoints[targetWaypointIndex - 1] : null
+    if (!targetWp || !prevWp) return
+    const newTime = Math.max(
+      prevWp.time + 0.1,
+      Math.round((prevWp.time + newDurationSec) * 100) / 100
+    )
+    const oldTime = targetWp.time
+    update((draft) => {
+      updateCameraWaypoint(draft, stageLayout, oldTime, {
+        time: newTime,
+        ripple: true
+      })
+    })
+    if (targetWaypointIndex === activeFrameIndex) {
+      setPlaying(false)
+      setTime(newTime)
+    }
+  }
+
   const handleApplyActionMode = (mode: CameraActionMode): void => {
     if (!activeWaypoint) return
     update((draft) => {
@@ -266,7 +287,7 @@ export function CameraRouteInspector() {
       draft.camera.shakeAmount = amount
       draft.camera.shakeSpeed = speed
     })
-    toast(amount === 0 ? 'Đã tắt rung máy' : `Bật rung máy cầm tay (${amount}px)`)
+    toast(amount === 0 ? 'Đã tắt rung máy toàn lộ trình' : `Đã bật rung máy cầm tay toàn lộ trình (${amount}px)`)
   }
 
   const handleReverse = (): void => {
@@ -311,12 +332,13 @@ export function CameraRouteInspector() {
 
   return (
     <div id="camera-route-inspector" className="camera-route-inspector">
-      {/* 1. Tiêu đề tổng quan & Kịch bản lộ trình mẫu */}
-      <div className="section">
-        <div className="section-title">
-          <IconRoute width={13} height={13} className="accent-icon" />
-          <span>Lộ trình Camera 2D</span>
-          <span className="route-badge">{waypoints.length} mốc</span>
+      {/* =====================================================================
+          PHẦN 1: THIẾT LẬP DÙNG CHUNG TOÀN LỘ TRÌNH (Global Camera Route)
+          ===================================================================== */}
+      <div className="section global-route-section">
+        <div className="route-global-banner">
+          <span className="scope-badge global">🌐 DÙNG CHUNG</span>
+          <span className="global-banner-title">Toàn Lộ trình ({waypoints.length} mốc)</span>
           <span className="spacer" />
 
           <div className="route-head-actions">
@@ -336,7 +358,7 @@ export function CameraRouteInspector() {
                 type="button"
                 className="btn xs"
                 onClick={() => setShowPresetsMenu((v) => !v)}
-                title="Chọn kịch bản lộ trình camera mẫu chuyên nghiệp"
+                title="Chọn kịch bản lộ trình camera mẫu chuyên nghiệp cho toàn video"
               >
                 <IconWand width={11} height={11} /> Mẫu ▾
               </button>
@@ -410,7 +432,57 @@ export function CameraRouteInspector() {
           </div>
         </div>
 
-        {/* Danh sách các mốc lộ trình dạng Stepper tinh gọn, tự cuộn tới mốc đang chọn */}
+        {/* Hiệu ứng Rung Máy Cầm Tay Chung Cho Toàn Lộ Trình (Đặt rõ trong khối Dùng Chung) */}
+        <div className="global-shake-card">
+          <div className="global-shake-head">
+            <span className="shake-title">
+              🤚 Rung máy cầm tay <small>(Áp dụng cả lộ trình)</small>
+            </span>
+            <span className="zoom-val">
+              {project.camera.shakeAmount > 0 ? `${project.camera.shakeAmount}px` : 'Tắt'}
+            </span>
+          </div>
+          <div className="preset-row zoom-presets-4">
+            <button
+              type="button"
+              className={`btn xs${project.camera.shakeAmount === 0 ? ' active' : ''}`}
+              onClick={() => setShake(0, 1)}
+              title="Tắt hiệu ứng rung máy trên toàn lộ trình"
+            >
+              Tắt
+            </button>
+            <button
+              type="button"
+              className={`btn xs${project.camera.shakeAmount === 4 ? ' active' : ''}`}
+              onClick={() => setShake(4, 1.5)}
+              title="Rung máy cầm tay nhẹ tự nhiên xuyên suốt video"
+            >
+              ✋ Nhẹ (4px)
+            </button>
+            <button
+              type="button"
+              className={`btn xs${project.camera.shakeAmount === 12 ? ' active' : ''}`}
+              onClick={() => setShake(12, 2.5)}
+              title="Mô phỏng người quay đang bước đi xuyên suốt lộ trình"
+            >
+              🚶 Bước (12px)
+            </button>
+            <button
+              type="button"
+              className={`btn xs${project.camera.shakeAmount === 22 ? ' active' : ''}`}
+              onClick={() => setShake(22, 4.0)}
+              title="Rung lắc mạnh kiểu hành động kịch tính toàn lộ trình"
+            >
+              💥 Mạnh (22px)
+            </button>
+          </div>
+        </div>
+
+        {/* Danh sách các mốc lộ trình (Click vào bóng tròn ngoài cảnh sẽ tự active & cuộn tới đây) */}
+        <div className="waypoints-list-header">
+          <IconRoute width={11} height={11} />
+          <span>Danh sách Mốc trên Lộ trình (Bấm để chọn sửa)</span>
+        </div>
         <div ref={stackRef} className="route-waypoints-stack">
           {waypoints.map((wp, idx) => {
             const isActive = idx === activeFrameIndex
@@ -418,6 +490,7 @@ export function CameraRouteInspector() {
             return (
               <div
                 key={`wp-card-${wp.time}-${idx}`}
+                id={`route-wp-item-${idx + 1}`}
                 className={`route-wp-card${isActive ? ' active' : ''}`}
                 onClick={() => handleSelectWaypoint(wp)}
               >
@@ -427,6 +500,7 @@ export function CameraRouteInspector() {
                     <span className="wp-card-time">{wp.time.toFixed(1)}s</span>
                     {idx > 0 && <span className="wp-card-dur">+{wp.durationFromPrev.toFixed(1)}s</span>}
                     <span className={`wp-type-badge ${wp.tag}`}>{wp.tagLabel}</span>
+                    {isActive && <span className="wp-editing-pill">● Đang sửa</span>}
                   </div>
 
                   <div className="wp-card-inline-btns" onClick={(e) => e.stopPropagation()}>
@@ -465,7 +539,9 @@ export function CameraRouteInspector() {
         </div>
       </div>
 
-      {/* 2. Bảng Thông Số & Chế Độ Quay Chi Tiết Mốc Đang Chọn */}
+      {/* =====================================================================
+          PHẦN 2: CHỈNH SỬA RIÊNG MỐC ĐANG CHỌN (Per-Waypoint Settings)
+          ===================================================================== */}
       {activeWaypoint && (
         <CameraWaypointDetailPanel
           activeWaypoint={activeWaypoint}
@@ -482,6 +558,7 @@ export function CameraRouteInspector() {
             }
           }}
           onUpdate={handleUpdate}
+          onUpdateSegmentDuration={handleUpdateSegmentDuration}
           onApplyActionMode={handleApplyActionMode}
           onAlignInShot={handleAlignInShot}
           onTargetShot={handleTargetShot}
@@ -490,51 +567,6 @@ export function CameraRouteInspector() {
           onAddHold={handleHold}
         />
       )}
-
-      {/* 3. Rung Máy Cầm Tay Điện Ảnh (Handheld Camera Shake) */}
-      <div className="section">
-        <div className="section-title">
-          <span>Rung máy Cầm tay (Handheld)</span>
-          <span className="spacer" />
-          <span className="zoom-val">
-            {project.camera.shakeAmount > 0 ? `${project.camera.shakeAmount}px` : 'Tắt'}
-          </span>
-        </div>
-        <div className="preset-row zoom-presets-4">
-          <button
-            type="button"
-            className={`btn xs${project.camera.shakeAmount === 0 ? ' active' : ''}`}
-            onClick={() => setShake(0, 1)}
-            title="Tắt hiệu ứng rung máy"
-          >
-            Tắt
-          </button>
-          <button
-            type="button"
-            className={`btn xs${project.camera.shakeAmount === 4 ? ' active' : ''}`}
-            onClick={() => setShake(4, 1.5)}
-            title="Rung máy cầm tay nhẹ tự nhiên"
-          >
-            ✋ Nhẹ (4px)
-          </button>
-          <button
-            type="button"
-            className={`btn xs${project.camera.shakeAmount === 12 ? ' active' : ''}`}
-            onClick={() => setShake(12, 2.5)}
-            title="Mô phỏng người quay đang bước đi"
-          >
-            🚶 Bước (12px)
-          </button>
-          <button
-            type="button"
-            className={`btn xs${project.camera.shakeAmount === 22 ? ' active' : ''}`}
-            onClick={() => setShake(22, 4.0)}
-            title="Rung lắc mạnh kiểu hành động kịch tính"
-          >
-            💥 Mạnh (22px)
-          </button>
-        </div>
-      </div>
     </div>
   )
 }

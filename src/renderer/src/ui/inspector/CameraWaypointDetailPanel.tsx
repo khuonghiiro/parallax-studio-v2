@@ -19,16 +19,19 @@ const EASING_OPTIONS: { value: EaseName; label: string }[] = [
   { value: 'hold', label: '⚡ Cắt cảnh tức thì (Jump Cut)' }
 ]
 
+// Sắp xếp ưu tiên các động tác quay phim & hoạt hình chuyên nghiệp dùng nhiều nhất lên hàng đầu
 const ACTION_MODES: { id: CameraActionMode; icon: string; label: string; hint: string }[] = [
-  { id: 'hold', icon: '⏸', label: 'Dừng ngắm', hint: 'Giữ nguyên khung hình của mốc trước để dừng ngắm cảnh' },
-  { id: 'pan', icon: '↔', label: 'Lia cân bằng', hint: 'Lia máy mượt mà với góc nhìn thẳng 0° cân bằng' },
+  { id: 'pan', icon: '↔', label: 'Lia cân bằng', hint: 'Lia máy mượt mà với góc nhìn thẳng 0° cân bằng (dùng nhiều nhất)' },
   { id: 'push-in', icon: '🔍+', label: 'Đẩy cận', hint: 'Thu nhỏ khung camera để đẩy cận cảnh vào chủ thể (Dolly In)' },
-  { id: 'pull-out', icon: '🔍-', label: 'Kéo rộng', hint: 'Mở rộng khung camera để lấy toàn cảnh (Dolly Out)' },
+  { id: 'pull-out', icon: '🔍-', label: 'Kéo rộng', hint: 'Mở rộng khung camera để lấy toàn cảnh không gian (Dolly Out)' },
+  { id: 'hold', icon: '⏸', label: 'Dừng ngắm', hint: 'Giữ nguyên khung hình của mốc trước để dừng ngắm cảnh' },
+  { id: 'cut', icon: '⚡', label: 'Cắt cảnh', hint: 'Chuyển thẳng sang khung hình này không lia giữa chừng (Jump Cut)' },
   { id: 'orbit-left', icon: '↺', label: '3D Trái', hint: 'Xoay góc máy 3D sang trái (-25°) tạo chiều sâu Parallax 2.5D' },
   { id: 'orbit-right', icon: '↻', label: '3D Phải', hint: 'Xoay góc máy 3D sang phải (+25°) tạo chiều sâu Parallax 2.5D' },
-  { id: 'dutch-tilt', icon: '📐', label: 'Nghiêng máy', hint: 'Xoay nghiêng máy kịch tính (Dutch Angle Roll ±12°)' },
-  { id: 'cut', icon: '⚡', label: 'Cắt cảnh', hint: 'Chuyển thẳng sang khung hình này không lia giữa chừng (Jump Cut)' }
+  { id: 'dutch-tilt', icon: '📐', label: 'Nghiêng máy', hint: 'Xoay nghiêng máy kịch tính (Dutch Angle Roll ±12°)' }
 ]
+
+const QUICK_DURATIONS = [1, 2, 3, 4, 5]
 
 interface CameraWaypointDetailPanelProps {
   activeWaypoint: CameraWaypointItem
@@ -51,6 +54,7 @@ interface CameraWaypointDetailPanelProps {
     },
     mergeKey?: string
   ) => void
+  onUpdateSegmentDuration: (targetWaypointIndex: number, newDurationSec: number) => void
   onApplyActionMode: (mode: CameraActionMode) => void
   onAlignInShot: (align: 'left' | 'center' | 'right' | 'top' | 'bottom' | 'reset-angles') => void
   onTargetShot: (shotId: string) => void
@@ -67,6 +71,7 @@ export function CameraWaypointDetailPanel({
   compDuration,
   onSelectTime,
   onUpdate,
+  onUpdateSegmentDuration,
   onApplyActionMode,
   onAlignInShot,
   onTargetShot,
@@ -94,17 +99,33 @@ export function CameraWaypointDetailPanel({
     activeWaypoint.stageY - (currentShotBox ? currentShotBox.stageY : 0)
   )
 
+  // Cho phép chỉnh thời lượng ngay cả khi đang chọn Mốc #1 (chỉnh đoạn #1 -> #2)
+  // hoặc khi chọn Mốc #N (chỉnh đoạn #(N-1) -> #N)
+  const isFirstWaypoint = activeWaypoint.index === 0
+  const editableDurationWpIndex = isFirstWaypoint ? (nextWp ? 1 : -1) : activeWaypoint.index
+  const currentSegmentDuration = isFirstWaypoint
+    ? (nextWp ? nextWp.durationFromPrev : 0)
+    : activeWaypoint.durationFromPrev
+  const durationLabel = isFirstWaypoint
+    ? nextWp
+      ? 'Thời lượng đoạn (#1 ➔ #2)'
+      : 'Thời lượng đoạn (s)'
+    : `Thời lượng đoạn (#${activeWaypoint.index} ➔ #${activeWaypoint.index + 1})`
+
   return (
-    <div className="section active-wp-section">
-      {/* Header điều hướng nhanh giữa các Mốc */}
-      <div className="section-title wp-detail-head">
-        <span>
-          Mốc #{activeWaypoint.index + 1} · <b>{activeWaypoint.time.toFixed(1)}s</b>
-        </span>
-        <span className="wp-active-shot" style={{ borderColor: activeWaypoint.shotColor }}>
-          {activeWaypoint.shotName}
-        </span>
-        <span className="spacer" />
+    <div id="camera-waypoint-detail-panel" className="section active-wp-section">
+      {/* Header phân biệt rõ đây là thông số RIÊNG của Mốc đang chọn */}
+      <div className="wp-detail-banner">
+        <div className="wp-banner-left">
+          <span className="scope-badge per-waypoint">
+            🎯 RIÊNG MỐC #{activeWaypoint.index + 1}
+          </span>
+          <span className="wp-banner-time">{activeWaypoint.time.toFixed(1)}s</span>
+          <span className="wp-active-shot" style={{ borderColor: activeWaypoint.shotColor }}>
+            {activeWaypoint.shotName}
+          </span>
+        </div>
+
         <div className="wp-step-nav">
           <button
             type="button"
@@ -127,10 +148,96 @@ export function CameraWaypointDetailPanel({
         </div>
       </div>
 
-      {/* 1. Chế độ Quay & Động tác tại Mốc (Camera State & Action Mode) */}
+      {/* 1. QUAN TRỌNG NHẤT (ĐƯA LÊN ĐẦU): Thời điểm, Thời lượng đoạn & Kiểu chuyển tiếp */}
+      <div className="row-group priority-timing-box">
+        <div className="field-header">
+          <label>⏱ Thời gian &amp; Thời lượng đoạn</label>
+          <span className="timing-hint-tag">Tự dồn mốc sau</span>
+        </div>
+
+        <div className="field-row timing-main-row">
+          <div className="timing-field-card">
+            <label htmlFor="wp-input-timestamp">Thời điểm mốc (Giây)</label>
+            <div className="input-prefix-box highlight">
+              <span className="prefix">⏱</span>
+              <input
+                id="wp-input-timestamp"
+                type="number"
+                step="0.1"
+                min="0"
+                max={compDuration + 30}
+                value={activeWaypoint.time}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value)
+                  if (!isNaN(val)) onUpdate({ time: Math.max(0, val) })
+                }}
+              />
+              <span className="suffix">s</span>
+            </div>
+          </div>
+
+          <div className="timing-field-card">
+            <label
+              htmlFor="wp-input-duration"
+              title="Thay đổi thời lượng đoạn này sẽ tự động đẩy lùi/kéo gọn các mốc phía sau tương ứng"
+            >
+              {durationLabel}
+            </label>
+            <div className="input-prefix-box highlight">
+              <span className="prefix">+</span>
+              <input
+                id="wp-input-duration"
+                type="number"
+                step="0.1"
+                min="0.1"
+                disabled={editableDurationWpIndex < 0}
+                value={currentSegmentDuration}
+                onChange={(e) => {
+                  const dur = parseFloat(e.target.value)
+                  if (!isNaN(dur) && editableDurationWpIndex > 0) {
+                    onUpdateSegmentDuration(editableDurationWpIndex, Math.max(0.1, dur))
+                  }
+                }}
+              />
+              <span className="suffix">s</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Nút chọn nhanh Thời lượng đoạn (1s, 2s, 3s, 4s, 5s) */}
+        {editableDurationWpIndex > 0 && (
+          <div className="quick-duration-bar">
+            <span className="quick-dur-lbl">Nhịp nhanh:</span>
+            {QUICK_DURATIONS.map((sec) => (
+              <button
+                key={sec}
+                type="button"
+                className={`dur-chip${Math.abs(currentSegmentDuration - sec) < 0.08 ? ' active' : ''}`}
+                onClick={() => onUpdateSegmentDuration(editableDurationWpIndex, sec)}
+                title={`Đặt thời lượng đoạn này thành +${sec}.0 giây`}
+              >
+                +{sec}s
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="field-select-mt">
+          <CustomSelect<EaseName>
+            id="route-insp-ease-select"
+            value={activeWaypoint.ease}
+            onChange={(val) => onUpdate({ ease: val })}
+            options={EASING_OPTIONS}
+            size="sm"
+            title="Chọn kiểu gia tốc chuyển động riêng cho mốc này"
+          />
+        </div>
+      </div>
+
+      {/* 2. Động tác Quay Chuyên Nghiệp & Cỡ Khung (Zoom %) */}
       <div className="row-group">
         <div className="field-header">
-          <label>Chế độ Quay tại Mốc</label>
+          <label>🎬 Động tác Quay tại Mốc #{activeWaypoint.index + 1}</label>
           <span className="wp-mode-current">{activeWaypoint.tagLabel}</span>
         </div>
         <div className="cam-action-mode-grid">
@@ -147,121 +254,9 @@ export function CameraWaypointDetailPanel({
             </button>
           ))}
         </div>
-      </div>
 
-      {/* 2. Điểm nhìn (Cảnh, Layer) & Vị trí Lia 2D */}
-      <div className="row-group">
-        <div className="field-header">
-          <label>Lệch tâm trong Cảnh (ΔX, ΔY)</label>
-          <div className="quick-align-strip">
-            <button
-              type="button"
-              className="mini-chip-btn"
-              onClick={() => onAlignInShot('left')}
-              title={`Lia lệch sang phần bên trái của cảnh “${currentShotBox?.name}”`}
-            >
-              ↤ Trái
-            </button>
-            <button
-              type="button"
-              className="mini-chip-btn"
-              onClick={() => onAlignInShot('center')}
-              title={`Căn tâm Camera về chính giữa cảnh “${currentShotBox?.name}”`}
-            >
-              ⊡ Tâm
-            </button>
-            <button
-              type="button"
-              className="mini-chip-btn"
-              onClick={() => onAlignInShot('right')}
-              title={`Lia lệch sang phần bên phải của cảnh “${currentShotBox?.name}”`}
-            >
-              Phải ↦
-            </button>
-          </div>
-        </div>
-
-        <div className="field-row">
-          <div
-            className="input-prefix-box"
-            title={`Độ lệch ngang so với tâm cảnh “${currentShotBox?.name}” (0px = chính giữa)`}
-          >
-            <span className="prefix">ΔX</span>
-            <input
-              type="number"
-              step="10"
-              value={localOffsetX}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10)
-                if (!isNaN(val)) {
-                  const nextStageX = (currentShotBox ? currentShotBox.stageX : 0) + val
-                  onUpdate({ stageX: nextStageX }, 'wp-pan-x')
-                }
-              }}
-            />
-          </div>
-          <div
-            className="input-prefix-box"
-            title={`Độ lệch dọc so với tâm cảnh “${currentShotBox?.name}” (0px = chính giữa)`}
-          >
-            <span className="prefix">ΔY</span>
-            <input
-              type="number"
-              step="10"
-              value={localOffsetY}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10)
-                if (!isNaN(val)) {
-                  const nextStageY = (currentShotBox ? currentShotBox.stageY : 0) + val
-                  onUpdate({ stageY: nextStageY }, 'wp-pan-y')
-                }
-              }}
-            />
-          </div>
-        </div>
-
-        <div style={{ fontSize: '11px', color: 'var(--text-faint)', marginTop: '2px', display: 'flex', gap: '6px' }}>
-          <span>Neo tại: <b style={{ color: 'var(--text-dim)' }}>🎬 {currentShotBox?.name}</b></span>
-          <span>•</span>
-          <span>Sân khấu: ({activeWaypoint.stageX}, {activeWaypoint.stageY})</span>
-        </div>
-
-        <div className="target-selects-grid">
-          {stageLayout.length > 1 && (
-            <CustomSelect<string>
-              id="route-insp-target-shot"
-              value={activeWaypoint.shotId ?? 'global'}
-              onChange={(val) => onTargetShot(val)}
-              options={stageLayout.map((b) => ({
-                value: b.shotId ?? 'global',
-                label: `🎬 ${b.name}`
-              }))}
-              size="sm"
-              title="Chọn Cảnh để lia tâm Camera tới"
-            />
-          )}
-
-          {activeShotLayers.length > 0 && (
-            <CustomSelect<string>
-              id="route-insp-target-layer"
-              value=""
-              placeholder="🎯 Ngắm & Lấy nét Layer..."
-              onChange={(val) => onTargetLayer(val)}
-              options={activeShotLayers.map((l) => ({
-                value: l.id,
-                label: `🎯 ${l.name}`
-              }))}
-              size="sm"
-              title="Căn Camera tập trung và lấy nét DOF vào một Layer cụ thể"
-            />
-          )}
-        </div>
-      </div>
-
-      {/* 3. Cỡ Cảnh & Độ Phóng Đại (Zoom) */}
-      <div className="row-group">
-        <div className="field-header">
-          <label>Cỡ Cảnh &amp; Độ Phóng (Zoom)</label>
+        <div className="field-header" style={{ marginTop: 6 }}>
+          <label>🔍 Cỡ Cảnh &amp; Độ Phóng (Zoom)</label>
           <span className="zoom-val">{activeWaypoint.zoomPct}%</span>
         </div>
 
@@ -327,10 +322,113 @@ export function CameraWaypointDetailPanel({
         </div>
       </div>
 
-      {/* 4. Góc Quay 3D & Nghiêng Máy (Orbit Yaw, Pitch & Dutch Roll) */}
+      {/* 3. Điểm nhìn (Cảnh đích, Layer lấy nét) & Vị trí Lia 2D trong Cảnh */}
       <div className="row-group">
         <div className="field-header">
-          <label>Góc Quay 3D &amp; Xoay Máy (Parallax)</label>
+          <label>📍 Cảnh đích &amp; Vị trí trong Cảnh (ΔX, ΔY)</label>
+          <div className="quick-align-strip">
+            <button
+              type="button"
+              className="mini-chip-btn"
+              onClick={() => onAlignInShot('left')}
+              title={`Lia lệch sang phần bên trái của cảnh “${currentShotBox?.name}”`}
+            >
+              ↤ Trái
+            </button>
+            <button
+              type="button"
+              className="mini-chip-btn"
+              onClick={() => onAlignInShot('center')}
+              title={`Căn tâm Camera về chính giữa cảnh “${currentShotBox?.name}”`}
+            >
+              ⊡ Tâm
+            </button>
+            <button
+              type="button"
+              className="mini-chip-btn"
+              onClick={() => onAlignInShot('right')}
+              title={`Lia lệch sang phần bên phải của cảnh “${currentShotBox?.name}”`}
+            >
+              Phải ↦
+            </button>
+          </div>
+        </div>
+
+        <div className="target-selects-grid">
+          {stageLayout.length > 1 && (
+            <CustomSelect<string>
+              id="route-insp-target-shot"
+              value={activeWaypoint.shotId ?? 'global'}
+              onChange={(val) => onTargetShot(val)}
+              options={stageLayout.map((b) => ({
+                value: b.shotId ?? 'global',
+                label: `🎬 Cảnh: ${b.name}`
+              }))}
+              size="sm"
+              title="Chọn Cảnh để chuyển Mốc Camera này tới"
+            />
+          )}
+
+          {activeShotLayers.length > 0 && (
+            <CustomSelect<string>
+              id="route-insp-target-layer"
+              value=""
+              placeholder="🎯 Ngắm & Lấy nét vào Layer..."
+              onChange={(val) => onTargetLayer(val)}
+              options={activeShotLayers.map((l) => ({
+                value: l.id,
+                label: `🎯 ${l.name}`
+              }))}
+              size="sm"
+              title="Căn Camera tập trung và lấy nét DOF vào một Layer cụ thể trong cảnh"
+            />
+          )}
+        </div>
+
+        <div className="field-row" style={{ marginTop: 4 }}>
+          <div
+            className="input-prefix-box"
+            title={`Độ lệch ngang so với tâm cảnh “${currentShotBox?.name}” (0px = chính giữa)`}
+          >
+            <span className="prefix">ΔX</span>
+            <input
+              type="number"
+              step="10"
+              value={localOffsetX}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10)
+                if (!isNaN(val)) {
+                  const nextStageX = (currentShotBox ? currentShotBox.stageX : 0) + val
+                  onUpdate({ stageX: nextStageX }, 'wp-pan-x')
+                }
+              }}
+            />
+          </div>
+          <div
+            className="input-prefix-box"
+            title={`Độ lệch dọc so với tâm cảnh “${currentShotBox?.name}” (0px = chính giữa)`}
+          >
+            <span className="prefix">ΔY</span>
+            <input
+              type="number"
+              step="10"
+              value={localOffsetY}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10)
+                if (!isNaN(val)) {
+                  const nextStageY = (currentShotBox ? currentShotBox.stageY : 0) + val
+                  onUpdate({ stageY: nextStageY }, 'wp-pan-y')
+                }
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Góc Quay 3D & Nghiêng Máy Nâng Cao (Parallax Yaw, Pitch & Dutch Roll) */}
+      <div className="row-group">
+        <div className="field-header">
+          <label>🌐 Góc Xoay 3D &amp; Nghiêng Máy (Nâng cao)</label>
           {has3DAngle ? (
             <button
               type="button"
@@ -403,104 +501,9 @@ export function CameraWaypointDetailPanel({
             </span>
           </div>
         </div>
-
-        <div className="preset-row zoom-presets-5">
-          <button
-            type="button"
-            className={`btn xs${activeWaypoint.yaw <= -20 ? ' active' : ''}`}
-            onClick={() => onUpdate({ yaw: -28, pitch: 4 })}
-            title="Góc chéo trái -28°"
-          >
-            -28° Trái
-          </button>
-          <button
-            type="button"
-            className={`btn xs${!has3DAngle ? ' active' : ''}`}
-            onClick={() => onAlignInShot('reset-angles')}
-            title="Chính diện thẳng 0°"
-          >
-            0° Thẳng
-          </button>
-          <button
-            type="button"
-            className={`btn xs${activeWaypoint.yaw >= 20 ? ' active' : ''}`}
-            onClick={() => onUpdate({ yaw: 28, pitch: 4 })}
-            title="Góc chéo phải +28°"
-          >
-            +28° Phải
-          </button>
-          <button
-            type="button"
-            className={`btn xs${activeWaypoint.pitch >= 15 ? ' active' : ''}`}
-            onClick={() => onUpdate({ yaw: 0, pitch: 22 })}
-            title="Góc cao nhìn xuống +22°"
-          >
-            +22° Cao
-          </button>
-          <button
-            type="button"
-            className={`btn xs${activeWaypoint.pitch <= -12 ? ' active' : ''}`}
-            onClick={() => onUpdate({ yaw: 0, pitch: -16 })}
-            title="Góc thấp ngước lên -16°"
-          >
-            -16° Thấp
-          </button>
-        </div>
       </div>
 
-      {/* 5. Thời gian & Chuyển tiếp (Timing & Easing) */}
-      <div className="row-group">
-        <div className="field-row">
-          <div>
-            <label>Thời điểm (s)</label>
-            <input
-              type="number"
-              step="0.1"
-              min="0"
-              max={compDuration + 10}
-              value={activeWaypoint.time}
-              onChange={(e) => {
-                const val = parseFloat(e.target.value)
-                if (!isNaN(val)) onUpdate({ time: Math.max(0, val) })
-              }}
-            />
-          </div>
-          <div>
-            <label title="Đổi thời lượng đoạn này sẽ tự động dồn các mốc phía sau">
-              Thời lượng đoạn (s)
-            </label>
-            <input
-              type="number"
-              step="0.1"
-              min="0.1"
-              disabled={activeWaypoint.index === 0}
-              value={activeWaypoint.durationFromPrev}
-              onChange={(e) => {
-                const dur = parseFloat(e.target.value)
-                if (!isNaN(dur) && activeWaypoint.index > 0 && prevWp) {
-                  onUpdate({
-                    time: Math.max(prevWp.time + 0.1, Math.round((prevWp.time + dur) * 100) / 100),
-                    ripple: true
-                  })
-                }
-              }}
-            />
-          </div>
-        </div>
-
-        <div className="field-select-mt">
-          <CustomSelect<EaseName>
-            id="route-insp-ease-select"
-            value={activeWaypoint.ease}
-            onChange={(val) => onUpdate({ ease: val })}
-            options={EASING_OPTIONS}
-            size="sm"
-            title="Chọn kiểu đường cong chuyển tiếp từ mốc này sang mốc kế tiếp"
-          />
-        </div>
-      </div>
-
-      {/* 6. Nút tạo nhanh mốc kế tiếp */}
+      {/* 5. Nút nối tiếp tạo nhanh mốc kế tiếp từ mốc này */}
       <div className="route-insp-actions">
         <button
           type="button"

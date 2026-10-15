@@ -14,8 +14,17 @@ import {
   IconRoute,
   IconSingle
 } from '../../icons'
+import {
+  AnimateCameraProFooterBar,
+  AnimateCameraVerticalFilmstrip
+} from './AnimateCameraFilmstrip'
 import { AnimateShotPlane2D } from './AnimateShotPlane2D'
-import { AnimateCameraViewfinder, type StageToolMode } from './AnimateCameraViewfinder'
+import {
+  AnimateCameraViewfinder,
+  type BubbleStageOffset,
+  type StageToolMode
+} from './AnimateCameraViewfinder'
+import type { CameraLineStyle } from './animateCameraEdgePaths'
 import {
   applyStageFrameToDraft,
   clampFrameScale,
@@ -61,6 +70,9 @@ export function AnimateCameraStage() {
   const [zoom, setZoom] = useState(0.28)
   const [autoFitted, setAutoFitted] = useState(false)
   const [toolMode, setToolMode] = useState<StageToolMode>('pan-scale')
+  const [lineStyle, setLineStyle] = useState<CameraLineStyle>('smoothstep')
+  const [showFilmstripPreview, setShowFilmstripPreview] = useState<boolean>(true)
+  const [bubbleOffsets, setBubbleOffsets] = useState<Record<number, BubbleStageOffset>>({})
   const [showAllFrames, setShowAllFrames] = useState(true)
   const [showGrid, setShowGrid] = useState(true)
   const [snapGuide, setSnapGuide] = useState<{ x: number | null; y: number | null }>({ x: null, y: null })
@@ -78,6 +90,15 @@ export function AnimateCameraStage() {
     () => evaluateLiveCameraFrame2D(project, stageLayout, frames, time),
     [project, stageLayout, frames, time]
   )
+
+  const layersByShot = useMemo(() => {
+    const map = new Map<string | null, ProjectedLayer2D[]>()
+    for (let idx = 0; idx < stageLayout.length; idx++) {
+      const box = stageLayout[idx]
+      map.set(box.shotId, projectShotLayers2D(project, ev, box.shotId, idx === 0))
+    }
+    return map
+  }, [stageLayout, project, ev])
 
   const tol = frameTolerance(project)
   const activeFrameIndex = useMemo(() => {
@@ -147,11 +168,14 @@ export function AnimateCameraStage() {
   }, [])
 
   const prevShotCountRef = useRef(stageLayout.length)
+  const lastFittedWRef = useRef(0)
 
   useEffect(() => {
     if (viewportSize.w > 100 && viewportSize.h > 100) {
-      if (!autoFitted || prevShotCountRef.current !== stageLayout.length) {
+      const widthChanged = Math.abs(viewportSize.w - lastFittedWRef.current) > 48
+      if (!autoFitted || prevShotCountRef.current !== stageLayout.length || widthChanged) {
         prevShotCountRef.current = stageLayout.length
+        lastFittedWRef.current = viewportSize.w
         fitStage(viewportSize.w, viewportSize.h)
         setAutoFitted(true)
       }
@@ -180,6 +204,67 @@ export function AnimateCameraStage() {
     setSnapGuide,
     update
   })
+
+  // Chọn mốc Camera, đồng bộ Cảnh và tự động bật tab Lộ trình khi click bóng tròn / thẻ kẻ phim
+  const handleSelectFrame = useCallback(
+    (f: CameraFrame2D | CameraWaypointItem, activateRouteTab = false): void => {
+      setPlaying(false)
+      setTime(f.time)
+      const targetShot =
+        f.shotId ?? findNearestShotByStage2D(stageLayout, f.stageX, f.stageY)?.shotId ?? null
+      if (targetShot) {
+        selectShot(targetShot)
+      }
+      if (activateRouteTab) {
+        useEditor.getState().setInspectorTab('route')
+      }
+    },
+    [stageLayout, selectShot, setPlaying, setTime]
+  )
+
+  // Cho phép kéo thả di chuyển Bóng Tròn Liên Kết (#1, #2...) ra vị trí thoáng bất kỳ
+  const handleStartBubbleDrag = useCallback(
+    (e: React.PointerEvent, idx: number, wp: CameraWaypointItem): void => {
+      handleSelectFrame(wp, true)
+      const startX = e.clientX
+      const startY = e.clientY
+      const orig = bubbleOffsets[idx] ?? { dx: 0, dy: 0 }
+      const safeZoom = Math.max(0.04, zoom)
+
+      const onMove = (pev: PointerEvent): void => {
+        const deltaScreenX = pev.clientX - startX
+        const deltaScreenY = pev.clientY - startY
+        if (Math.hypot(deltaScreenX, deltaScreenY) < 3) return
+        setBubbleOffsets((prev) => ({
+          ...prev,
+          [idx]: {
+            dx: Math.round(orig.dx + deltaScreenX / safeZoom),
+            dy: Math.round(orig.dy + deltaScreenY / safeZoom)
+          }
+        }))
+      }
+
+      const onUp = (): void => {
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+      }
+
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+    },
+    [bubbleOffsets, zoom, handleSelectFrame]
+  )
+
+  const handleResetBubbleOffset = useCallback((idx: number): void => {
+    setBubbleOffsets((prev) => {
+      const next = { ...prev }
+      delete next[idx]
+      return next
+    })
+    toast(`Đã đặt lại vị trí bóng tròn #${idx + 1}`)
+  }, [])
+
+  const hasMovedBubbles = Object.keys(bubbleOffsets).length > 0
 
   // Spawn next Camera Frame (pan / zoom in / zoom out / target shot)
   const spawnNextCameraFrame = (
@@ -278,6 +363,26 @@ export function AnimateCameraStage() {
     })
   }
 
+  const handleEstablishCenter100 = (): void => {
+    if (!activeFrame) return
+    const box =
+      (activeFrame.shotId ? stageLayout.find((b) => b.shotId === activeFrame.shotId) : null) ??
+      findNearestShotByStage2D(stageLayout, activeFrame.stageX, activeFrame.stageY) ??
+      stageLayout[0]
+    if (!box) return
+    update((d) => {
+      updateCameraWaypoint(d, stageLayout, activeFrame.time, {
+        stageX: box.stageX,
+        stageY: box.stageY,
+        scale: 1.0,
+        yaw: 0,
+        pitch: 0,
+        roll: 0
+      })
+    })
+    toast(`⊡ Đã căn khung chuẩn 100% vào chính giữa "${box.name}"`)
+  }
+
   const deleteFrameAt = (frame: CameraFrame2D): void => {
     if (!frame.isKeyframed || frames.length <= 1) {
       toast('Cần giữ ít nhất 1 mốc Camera gốc')
@@ -356,22 +461,9 @@ export function AnimateCameraStage() {
     toast(`📍 Đã dời tâm Camera tới (${stageX}, ${stageY})`)
   }
 
-  const handleSelectFrame = useCallback(
-    (f: CameraFrame2D | CameraWaypointItem): void => {
-      setPlaying(false)
-      setTime(f.time)
-      const targetShot =
-        f.shotId ?? findNearestShotByStage2D(stageLayout, f.stageX, f.stageY)?.shotId ?? null
-      if (targetShot) {
-        selectShot(targetShot)
-      }
-    },
-    [stageLayout, selectShot, setPlaying, setTime]
-  )
-
   return (
     <div id="animate-camera-stage" className={`anim2d-stage ${theme}`}>
-      {/* Thanh công cụ 2 dòng siêu gọn: Dòng 1 nhường góc phải cho bộ nút chuyển View chính, Dòng 2 chứa đầy đủ nút tạo mốc & điều khiển */}
+      {/* Thanh công cụ 2 dòng siêu gọn */}
       <div className="anim2d-toolbar">
         <div className="anim2d-toolbar-row1">
           {/* 1. Bố cục 2D & 3D / Chỉ 2D */}
@@ -414,7 +506,7 @@ export function AnimateCameraStage() {
               type="button"
               className={`seg-btn${toolMode === 'orbit-3d' ? ' active' : ''}`}
               onClick={() => setToolMode('orbit-3d')}
-              title="Chế độ Xoay góc 3D: Kéo bên trong khung để xoay góc nhìn 3D (Yaw trái/phải, Pitch cao/thấp) tạo hiệu ứng Parallax"
+              title="Chế độ Xoay góc 3D: Kéo bên trong khung để xoay góc nhìn 3D (Yaw trái/phải, Pitch cao/thấp)"
             >
               ↻ Xoay 3D
             </button>
@@ -430,7 +522,7 @@ export function AnimateCameraStage() {
           </div>
         </div>
 
-        {/* 3. Dòng 2: Các nút tạo mốc & điều khiển khung nhìn (hiển thị trọn vẹn không bao giờ bị che) */}
+        {/* Dòng 2: Các nút tạo mốc, chọn kiểu dây ReactFlow & điều khiển khung nhìn (1 hàng gọn gàng) */}
         <div className="anim2d-toolbar-row2">
           <div className="anim2d-actions">
             <button
@@ -440,7 +532,7 @@ export function AnimateCameraStage() {
               onClick={() => spawnNextCameraFrame('pan')}
               title="Tạo thêm Mốc Camera tiếp theo để lia sang vị trí hoặc cảnh kế tiếp"
             >
-              <IconPlus width={11} height={11} /> Mốc tiếp
+              <IconPlus width={11} height={11} /> Mốc
             </button>
             <button
               id="anim2d-add-hold"
@@ -449,7 +541,7 @@ export function AnimateCameraStage() {
               onClick={handleAddHold}
               title="Tạo mốc Dừng ngắm (+2.0s) giữ nguyên khung hình để người xem thưởng thức cảnh"
             >
-              ⏸ Dừng (2s)
+              ⏸ Dừng
             </button>
             <button
               id="anim2d-add-zoom-in"
@@ -469,6 +561,48 @@ export function AnimateCameraStage() {
             >
               🔍- Rộng
             </button>
+
+            <span className="viewer-tool-sep" />
+
+            {/* Kiểu Đường Nối Lộ Trình & Dây Liên Kết (ReactFlow Line Styles: Vuông góc bo tròn vs Vòng cung) */}
+            <div
+              className="viewer-mode-seg"
+              title="Chọn kiểu đường dây liên kết Lộ trình Camera (Thiết kế chuẩn ReactFlow)"
+            >
+              <button
+                id="anim2d-line-smoothstep"
+                type="button"
+                className={`seg-btn${lineStyle === 'smoothstep' ? ' active' : ''}`}
+                onClick={() => setLineStyle('smoothstep')}
+                title="Kiểu đường Vuông góc bo tròn (ReactFlow SmoothStep Edge)"
+              >
+                ╭╯ Vuông bo
+              </button>
+              <button
+                id="anim2d-line-bezier"
+                type="button"
+                className={`seg-btn${lineStyle === 'bezier' ? ' active' : ''}`}
+                onClick={() => setLineStyle('bezier')}
+                title="Kiểu đường Vòng cung mềm mại (ReactFlow Bezier Arc Edge)"
+              >
+                ⌒ Vòng cung
+              </button>
+            </div>
+
+            {hasMovedBubbles && (
+              <button
+                id="anim2d-reset-bubbles"
+                type="button"
+                className="btn xs"
+                onClick={() => {
+                  setBubbleOffsets({})
+                  toast('Đã đặt lại vị trí tất cả bóng tròn về mặc định')
+                }}
+                title="Đặt lại vị trí các bóng tròn đã kéo về hàng mặc định bên dưới cảnh"
+              >
+                ↺ Đặt lại bóng
+              </button>
+            )}
           </div>
 
           <div className="anim2d-actions">
@@ -517,146 +651,95 @@ export function AnimateCameraStage() {
         </div>
       </div>
 
-      {/* Bàn dựng Mặt phẳng 2D của các Cảnh & Khung Camera */}
-      <div
-        ref={stageRef}
-        className={`anim2d-canvas mode-${toolMode}`}
-        onPointerDown={onStagePointerDown}
-        onWheel={onStageWheel}
-        onContextMenu={(e) => e.preventDefault()}
-      >
-        {/* 1. Các Cảnh 3D được ánh xạ lên mặt phẳng 2D */}
-        {stageLayout.map((box, idx) => {
-          const layers2D = projectShotLayers2D(project, ev, box.shotId, idx === 0)
-          const topLeft = stageToScreen(box.stageX - box.width / 2, box.stageY - box.height / 2)
-          return (
-            <AnimateShotPlane2D
-              key={box.shotId ?? 'global'}
-              box={box}
-              layers={layers2D}
-              background={project.comp.background}
-              isSelectedShot={selectedShotId === box.shotId}
-              isActiveCameraShot={activeFrame?.shotId === box.shotId}
-              aimMode={toolMode === 'aim-target'}
-              zoom={zoom}
-              screenLeft={topLeft.x}
-              screenTop={topLeft.y}
-              onSelectShot={selectShot}
-              onAimCurrentAtShot={handleAimAtShot}
-              onAddFrameAtShot={(targetBox) => spawnNextCameraFrame('shot', targetBox)}
-              onAimAtLayer={handleAimAtLayer}
-              onDoubleClickSpot={handleDoubleClickSpot}
-            />
-          )
-        })}
+      {/* Khu vực chính: Bàn dựng 2D bên trái + Kẻ phim dọc (Vertical Filmstrip Preview) bên phải */}
+      <div className="anim2d-workspace-row">
+        <div
+          ref={stageRef}
+          className={`anim2d-canvas mode-${toolMode}`}
+          onPointerDown={onStagePointerDown}
+          onWheel={onStageWheel}
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          {/* 1. Các Cảnh 3D được ánh xạ lên mặt phẳng 2D */}
+          {stageLayout.map((box) => {
+            const layers2D = layersByShot.get(box.shotId) ?? []
+            const topLeft = stageToScreen(box.stageX - box.width / 2, box.stageY - box.height / 2)
+            return (
+              <AnimateShotPlane2D
+                key={box.shotId ?? 'global'}
+                box={box}
+                layers={layers2D}
+                background={project.comp.background}
+                isSelectedShot={selectedShotId === box.shotId}
+                isActiveCameraShot={activeFrame?.shotId === box.shotId}
+                aimMode={toolMode === 'aim-target'}
+                zoom={zoom}
+                screenLeft={topLeft.x}
+                screenTop={topLeft.y}
+                onSelectShot={selectShot}
+                onAimCurrentAtShot={handleAimAtShot}
+                onAddFrameAtShot={(targetBox) => spawnNextCameraFrame('shot', targetBox)}
+                onAimAtLayer={handleAimAtLayer}
+                onDoubleClickSpot={handleDoubleClickSpot}
+              />
+            )
+          })}
 
-        {/* 2. Đường bay, Bóng tròn liên kết ngoài cảnh & Khung Ngắm Camera Đang Chọn */}
-        <AnimateCameraViewfinder
-          stageLayout={stageLayout}
+          {/* 2. Đường bay ReactFlow, Bóng tròn kéo thả tự do & Khung Ngắm Camera Đang Chọn */}
+          <AnimateCameraViewfinder
+            stageLayout={stageLayout}
+            waypoints={waypoints}
+            activeFrameIndex={activeFrameIndex}
+            liveFrame={liveFrame}
+            playing={playing}
+            zoom={zoom}
+            toolMode={toolMode}
+            lineStyle={lineStyle}
+            showAllFrames={showAllFrames}
+            showGrid={showGrid}
+            snapGuide={snapGuide}
+            bubbleOffsets={bubbleOffsets}
+            stageToScreen={stageToScreen}
+            onSelectFrame={handleSelectFrame}
+            onStartBubbleDrag={handleStartBubbleDrag}
+            onResetBubbleOffset={handleResetBubbleOffset}
+            onStartMoveDrag={startFrameMoveDrag}
+            onStartResizeDrag={startFrameResizeDrag}
+            onStartRotateDrag={startFrameRotateDrag}
+            onStartOrbit3DDrag={startFrameOrbit3DDrag}
+            onSpawnNextPan={() => spawnNextCameraFrame('pan')}
+            onAddHold={handleAddHold}
+            onResetAngles={(f) => {
+              update((d) => {
+                alignWaypointInShot(d, stageLayout, f.time, 'reset-angles')
+              })
+              toast('Đã đặt lại góc xoay 3D & Roll về 0°')
+            }}
+            onDeleteFrame={deleteFrameAt}
+          />
+        </div>
+
+        {/* 3. Kẻ phim dọc (Vertical Filmstrip Preview) chứa list ảnh từng mốc + thông tin thời gian & lộ trình */}
+        <AnimateCameraVerticalFilmstrip
           waypoints={waypoints}
           activeFrameIndex={activeFrameIndex}
-          liveFrame={liveFrame}
-          playing={playing}
-          zoom={zoom}
-          toolMode={toolMode}
-          showAllFrames={showAllFrames}
-          showGrid={showGrid}
-          snapGuide={snapGuide}
-          stageToScreen={stageToScreen}
-          onSelectFrame={handleSelectFrame}
-          onStartMoveDrag={startFrameMoveDrag}
-          onStartResizeDrag={startFrameResizeDrag}
-          onStartRotateDrag={startFrameRotateDrag}
-          onStartOrbit3DDrag={startFrameOrbit3DDrag}
-          onSpawnNextPan={() => spawnNextCameraFrame('pan')}
-          onAddHold={handleAddHold}
-          onResetAngles={(f) => {
-            update((d) => {
-              alignWaypointInShot(d, stageLayout, f.time, 'reset-angles')
-            })
-            toast('Đã đặt lại góc xoay 3D & Roll về 0°')
-          }}
-          onDeleteFrame={deleteFrameAt}
+          stageLayout={stageLayout}
+          layersByShot={layersByShot}
+          background={project.comp.background}
+          showPreview={showFilmstripPreview}
+          onTogglePreview={() => setShowFilmstripPreview((v) => !v)}
+          onSelectWaypoint={(wp) => handleSelectFrame(wp, true)}
         />
       </div>
 
-      {/* Thanh Trạng thái Quay & Lộ trình các Mốc phía dưới */}
-      <div className="anim2d-footer">
-        <div className="anim2d-frames-strip" title="Danh sách các Mốc Camera theo trình tự thời gian">
-          <span className="anim2d-footer-label">Mốc:</span>
-          {waypoints.map((wp, idx) => {
-            const isActive = idx === activeFrameIndex
-            return (
-              <div key={`${wp.time}-${idx}`} className="anim2d-frame-step">
-                {idx > 0 && (
-                  <span className="anim2d-step-arrow" title={`Thời lượng: +${wp.durationFromPrev.toFixed(1)}s (${wp.ease})`}>
-                    {wp.actionMode === 'cut' ? '⚡' : '➔'}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  className={`anim2d-frame-pill${isActive ? ' active' : ''}`}
-                  onClick={() => handleSelectFrame(wp)}
-                  title={`Mốc #${idx + 1} tại ${wp.time.toFixed(1)}s · ${wp.tagLabel}\nCảnh: ${wp.shotName} · Zoom ${wp.zoomPct}% · ${wp.angleSummary}`}
-                >
-                  <span className="anim2d-pill-num">#{idx + 1}</span>
-                  <span>{wp.time.toFixed(1)}s</span>
-                  <span className="anim2d-pill-scale">{wp.zoomPct}%</span>
-                  {(Math.abs(wp.yaw) >= 1 || Math.abs(wp.roll) >= 1) && (
-                    <span className="anim2d-pill-angle">3D</span>
-                  )}
-                </button>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Bộ chọn nhanh Chế độ quay cho Mốc đang chọn ngay dưới chân trang */}
-        {activeFrame && (
-          <div className="anim2d-footer-modes" title="Chuyển nhanh chế độ động tác quay tại mốc đang chọn">
-            <button
-              type="button"
-              className={`mode-chip${activeFrame.actionMode === 'hold' ? ' active' : ''}`}
-              onClick={() => handleQuickActionMode('hold')}
-              title="Giữ nguyên khung hình của mốc trước (Dừng ngắm)"
-            >
-              ⏸ Giữ khung
-            </button>
-            <button
-              type="button"
-              className={`mode-chip${activeFrame.actionMode === 'orbit-left' ? ' active' : ''}`}
-              onClick={() => handleQuickActionMode('orbit-left')}
-              title="Xoay góc 3D sang trái (-25°) tạo chiều sâu Parallax"
-            >
-              ↺ 3D Trái
-            </button>
-            <button
-              type="button"
-              className={`mode-chip${activeFrame.actionMode === 'orbit-right' ? ' active' : ''}`}
-              onClick={() => handleQuickActionMode('orbit-right')}
-              title="Xoay góc 3D sang phải (+25°) tạo chiều sâu Parallax"
-            >
-              ↻ 3D Phải
-            </button>
-            <button
-              type="button"
-              className={`mode-chip${activeFrame.actionMode === 'dutch-tilt' ? ' active' : ''}`}
-              onClick={() => handleQuickActionMode('dutch-tilt')}
-              title="Xoay nghiêng máy kịch tính (Dutch Angle ±12°)"
-            >
-              📐 Nghiêng
-            </button>
-            <button
-              type="button"
-              className={`mode-chip${activeFrame.actionMode === 'cut' ? ' active' : ''}`}
-              onClick={() => handleQuickActionMode('cut')}
-              title="Cắt cảnh tức thì (Jump Cut) không lia máy giữa chừng"
-            >
-              ⚡ Cắt cảnh
-            </button>
-          </div>
-        )}
-      </div>
+      {/* 4. Thanh công cụ Động tác Quay Chuyên Nghiệp dưới chân (Gọn gàng, đồng nhất) */}
+      <AnimateCameraProFooterBar
+        activeFrame={activeFrame}
+        waypoints={waypoints}
+        onSelectWaypoint={(wp) => handleSelectFrame(wp, true)}
+        onQuickActionMode={handleQuickActionMode}
+        onEstablishCenter100={handleEstablishCenter100}
+      />
     </div>
   )
 }
