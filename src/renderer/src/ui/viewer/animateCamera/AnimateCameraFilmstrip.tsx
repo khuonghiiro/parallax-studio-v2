@@ -100,13 +100,20 @@ export function AnimateCameraVerticalFilmstrip({
 
               <div
                 id={`anim2d-film-card-${idx + 1}`}
-                className={`anim2d-film-card${isActive ? ' active' : ''}`}
+                className={`anim2d-film-card${wp.isFirstOfShot ? ' first-of-shot' : ''}${isActive ? ' active' : ''}`}
                 onClick={() => onSelectWaypoint(wp)}
-                title={`Mốc #${idx + 1} tại ${wp.time.toFixed(1)}s ${idx > 0 ? `(+${wp.durationFromPrev.toFixed(1)}s)` : '(Bắt đầu)'}\nCảnh: ${wp.shotName} · Zoom ${wp.zoomPct}% · ${wp.tagLabel}\n👉 Bấm để chọn mốc này và mở tab Lộ trình chỉnh sửa`}
+                title={`${wp.isFirstOfShot ? `⚑ MỐC MỞ MÀN CẢNH: ${wp.shotName}\n` : ''}Mốc #${idx + 1} tại ${wp.time.toFixed(1)}s ${idx > 0 ? `(+${wp.durationFromPrev.toFixed(1)}s)` : '(Bắt đầu)'}\nCảnh: ${wp.shotName} · Zoom ${wp.zoomPct}% · ${wp.tagLabel}\n👉 Bấm để chọn mốc này và mở tab Lộ trình chỉnh sửa`}
               >
                 {/* Dải lỗ phim điện ảnh 2 bên (Sprocket Holes) */}
                 <div className="film-card-top">
-                  <span className="film-card-num">#{idx + 1}</span>
+                  <span className={`film-card-num${wp.isFirstOfShot ? ' first-of-shot' : ''}`}>
+                    {wp.isFirstOfShot ? '⚑ ' : ''}#{idx + 1}
+                  </span>
+                  {wp.isFirstOfShot && (
+                    <span className="film-card-first-tag" title="Mốc camera lộ trình đầu tiên của cảnh này">
+                      ⚑ Đầu cảnh
+                    </span>
+                  )}
                   <span className="film-card-time">{wp.time.toFixed(1)}s</span>
                   {idx > 0 && (
                     <span className="film-card-dur">+{wp.durationFromPrev.toFixed(1)}s</span>

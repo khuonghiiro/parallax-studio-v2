@@ -120,6 +120,11 @@ export function CameraWaypointDetailPanel({
           <span className="scope-badge per-waypoint">
             🎯 RIÊNG MỐC #{activeWaypoint.index + 1}
           </span>
+          {activeWaypoint.isFirstOfShot && (
+            <span className="scope-badge first-of-shot" title="Mốc camera lộ trình đầu tiên của cảnh này">
+              ⚑ MỞ CẢNH
+            </span>
+          )}
           <span className="wp-banner-time">{activeWaypoint.time.toFixed(1)}s</span>
           <span className="wp-active-shot" style={{ borderColor: activeWaypoint.shotColor }}>
             {activeWaypoint.shotName}

@@ -39,6 +39,7 @@ interface CalloutBubbleNode {
   frameW: number
   frameH: number
   isCustomMoved: boolean
+  isFirstOfShot: boolean
 }
 
 interface AnimateCameraViewfinderProps {
@@ -176,7 +177,8 @@ export function AnimateCameraViewfinder({
           frameTop: tl.y,
           frameW: Math.max(20, wp.width * zoom),
           frameH: Math.max(14, wp.height * zoom),
-          isCustomMoved: false
+          isCustomMoved: false,
+          isFirstOfShot: wp.isFirstOfShot ?? localIdx === 0
         }
       })
 
@@ -460,9 +462,9 @@ export function AnimateCameraViewfinder({
         )
       })}
 
-      {/* 3. Hệ thống Bóng Tròn Liên Kết Ngoài Khung Cảnh (Cho phép Kéo Thả Di Chuyển Tự Do & Click Mở Tab Lộ Trình) */}
+      {/* 3. Hệ thống Bóng Tròn / Vuông Bo Góc Điều Khiển Ngoài Khung Cảnh (Cho phép Kéo Thả Di Chuyển Tự Do & Click Mở Tab Lộ Trình) */}
       {calloutNodes.map((node) => {
-        const { idx, wp, isCustomMoved } = node
+        const { idx, wp, isCustomMoved, isFirstOfShot } = node
         const isActive = idx === activeFrameIndex
         const isHovered = idx === hoveredIdx
         const isSmallFrame = wp.zoomPct >= 135
@@ -471,7 +473,7 @@ export function AnimateCameraViewfinder({
           <div
             key={`callout-bubble-${idx}-${wp.time}`}
             id={`anim2d-bubble-${idx + 1}`}
-            className={`anim2d-callout-bubble ${wp.tag}${isActive ? ' active' : ''}${isHovered ? ' hovered' : ''}${isSmallFrame ? ' closeup' : ''}${isCustomMoved ? ' custom-moved' : ''}`}
+            className={`anim2d-callout-bubble ${wp.tag}${isFirstOfShot ? ' first-of-shot' : ''}${isActive ? ' active' : ''}${isHovered ? ' hovered' : ''}${isSmallFrame ? ' closeup' : ''}${isCustomMoved ? ' custom-moved' : ''}`}
             style={{
               left: node.bubbleX,
               top: node.bubbleY,
@@ -492,12 +494,22 @@ export function AnimateCameraViewfinder({
               e.stopPropagation()
               onResetBubbleOffset(idx)
             }}
-            title={`Bóng điều khiển Mốc #${idx + 1} (${wp.time.toFixed(1)}s) · ${wp.tagLabel}\nCỡ khung: Zoom ${wp.zoomPct}% · ${wp.angleSummary}\n👉 Click: Chọn khung #${idx + 1} & mở tab Lộ trình để sửa\n✋ Kéo thả: Di chuyển bóng tròn ra chỗ thoáng tùy ý\n↺ Đúp chuột: Đặt lại vị trí mặc định`}
+            title={`${isFirstOfShot ? `⚑ MỐC MỞ MÀN CẢNH: ${wp.shotName}\n` : ''}Bóng điều khiển Mốc #${idx + 1} (${wp.time.toFixed(1)}s) · ${wp.tagLabel}\nCỡ khung: Zoom ${wp.zoomPct}% · ${wp.angleSummary}\n👉 Click: Chọn khung #${idx + 1} & mở tab Lộ trình để sửa\n✋ Kéo thả: Di chuyển bóng ra chỗ thoáng tùy ý\n↺ Đúp chuột: Đặt lại vị trí mặc định`}
           >
             <div className="bubble-circle">
+              {isFirstOfShot && (
+                <span className="bubble-first-flag" title="Mốc camera lộ trình đầu tiên của cảnh này">
+                  ⚑
+                </span>
+              )}
               <span className="bubble-num">#{idx + 1}</span>
             </div>
             <div className="bubble-meta">
+              {isFirstOfShot && (
+                <span className="bubble-shot-flag" title={`Mốc mở cảnh: ${wp.shotName}`}>
+                  ⚑ {wp.shotName}
+                </span>
+              )}
               <span className="bubble-time">{wp.time.toFixed(1)}s</span>
               <span className="bubble-zoom">{wp.zoomPct}%</span>
             </div>

@@ -153,6 +153,10 @@
     0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
+.anim2d-film-card.first-of-shot {
+  border-top: 2.5px solid var(--key);
+}
+
 .film-card-top {
   display: flex;
   align-items: center;
@@ -167,6 +171,23 @@
   background: color-mix(in srgb, var(--accent) 22%, var(--bg-1));
   padding: 0 4px;
   border-radius: 3px;
+}
+
+.film-card-num.first-of-shot {
+  color: var(--key);
+  background: color-mix(in srgb, var(--key) 18%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--key) 45%, transparent);
+}
+
+.film-card-first-tag {
+  font-size: 8px;
+  font-weight: 700;
+  padding: 0 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--key) 20%, transparent);
+  color: var(--key);
+  border: 1px solid color-mix(in srgb, var(--key) 45%, transparent);
+  white-space: nowrap;
 }
 
 .anim2d-film-card.active .film-card-num {
@@ -435,6 +456,12 @@
   color: var(--accent-cyan);
 }
 
+.scope-badge.first-of-shot {
+  background: color-mix(in srgb, var(--key) 24%, var(--bg-2));
+  border: 1px solid var(--key);
+  color: var(--key);
+}
+
 .global-route-section {
   background: var(--bg-1);
   border: 1px solid var(--line);
@@ -588,6 +615,10 @@
   box-shadow: inset 3px 0 0 var(--accent-cyan);
 }
 
+.route-wp-card.first-of-shot {
+  border-left: 3px solid var(--key);
+}
+
 .wp-card-head {
   display: flex;
   align-items: center;
@@ -608,6 +639,21 @@
   font-weight: 800;
   color: var(--accent-cyan);
   font-family: var(--mono);
+}
+
+.wp-card-idx.first-of-shot {
+  color: var(--key);
+}
+
+.wp-first-of-shot-badge {
+  font-size: 8px;
+  font-weight: 700;
+  padding: 0 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--key) 20%, transparent);
+  color: var(--key);
+  border: 1px solid color-mix(in srgb, var(--key) 45%, transparent);
+  white-space: nowrap;
 }
 
 .wp-card-time {

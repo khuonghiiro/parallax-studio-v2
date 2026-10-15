@@ -32,14 +32,25 @@ export interface CameraWaypointItem extends CameraFrame2D {
   angleSummary: string
   durationFromPrev: number
   zoomPct: number
+  isFirstOfShot: boolean
 }
 
 /**
  * Enriches extracted 2D camera frames with waypoint tags, action modes, 3D angle badges,
- * durations, and zoom percentages for intuitive list display and editing.
+ * durations, zoom percentages, and first-of-shot flags for intuitive list display and editing.
  */
 export function enrichCameraWaypoints(frames: CameraFrame2D[]): CameraWaypointItem[] {
+  // Xác định mốc đầu tiên của mỗi Cảnh (dựa trên mốc xuất hiện đầu tiên của từng shotId theo trục thời gian)
+  const firstIdxByShot = new Map<string, number>()
+  frames.forEach((f, idx) => {
+    const shotKey = f.shotId ?? 'global'
+    if (!firstIdxByShot.has(shotKey)) {
+      firstIdxByShot.set(shotKey, idx)
+    }
+  })
+
   return frames.map((f, idx) => {
+    const isFirstOfShot = firstIdxByShot.get(f.shotId ?? 'global') === idx
     const prev = idx > 0 ? frames[idx - 1] : null
     const durationFromPrev = prev ? Math.max(0, Math.round((f.time - prev.time) * 100) / 100) : 0
     const zoomPct = Math.round((1 / Math.max(0.1, f.scale)) * 100)
@@ -111,7 +122,8 @@ export function enrichCameraWaypoints(frames: CameraFrame2D[]): CameraWaypointIt
       actionMode,
       angleSummary,
       durationFromPrev,
-      zoomPct
+      zoomPct,
+      isFirstOfShot
     }
   })
 }

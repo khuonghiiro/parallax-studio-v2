@@ -46,14 +46,17 @@ describe('animateCameraRouteLogic — Camera 2D Route Management & Parameter Tun
     expect(waypoints[0].tag).toBe('start')
     expect(waypoints[0].durationFromPrev).toBe(0)
     expect(waypoints[0].zoomPct).toBe(100)
+    expect(waypoints[0].isFirstOfShot).toBe(true)
 
     expect(waypoints[1].tag).toBe('pan')
     expect(waypoints[1].tagLabel).toContain('Cảnh 2')
     expect(waypoints[1].durationFromPrev).toBe(2.5)
+    expect(waypoints[1].isFirstOfShot).toBe(true)
 
     expect(waypoints[2].tag).toBe('zoom-in')
     expect(waypoints[2].zoomPct).toBe(200)
     expect(waypoints[2].durationFromPrev).toBe(2.5)
+    expect(waypoints[2].isFirstOfShot).toBe(false)
   })
 
   it('pans camera to target shot accurately', () => {

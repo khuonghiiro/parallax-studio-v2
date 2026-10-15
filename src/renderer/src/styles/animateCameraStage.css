@@ -419,11 +419,30 @@
   border-color: var(--key);
 }
 
+/* Mốc Camera Lộ Trình Đầu Tiên Của Cảnh (Hình Vuông Bo Góc & Viền Vàng/Cam Nổi Bật) */
+.anim2d-callout-bubble.first-of-shot .bubble-circle {
+  border-radius: 7px;
+  border-color: var(--key);
+  background: color-mix(in srgb, var(--key) 14%, var(--bg-2));
+  box-shadow:
+    0 0 0 1.5px color-mix(in srgb, var(--key) 45%, transparent),
+    0 4px 12px rgba(0, 0, 0, 0.38);
+}
+
 .anim2d-callout-bubble:hover .bubble-circle,
 .anim2d-callout-bubble.hovered .bubble-circle {
   border-color: var(--key);
   background: var(--bg-3);
   box-shadow: 0 0 12px color-mix(in srgb, var(--key) 55%, transparent);
+}
+
+.anim2d-callout-bubble.first-of-shot:hover .bubble-circle,
+.anim2d-callout-bubble.first-of-shot.hovered .bubble-circle {
+  border-radius: 7px;
+  border-color: var(--key);
+  box-shadow:
+    0 0 0 2px var(--key),
+    0 0 14px color-mix(in srgb, var(--key) 65%, transparent);
 }
 
 .anim2d-callout-bubble.active .bubble-circle {
@@ -435,6 +454,16 @@
     0 4px 14px rgba(0, 0, 0, 0.45);
 }
 
+.anim2d-callout-bubble.first-of-shot.active .bubble-circle {
+  border-radius: 7px;
+  background: var(--accent);
+  border-color: #ffffff;
+  box-shadow:
+    0 0 0 2.5px var(--key),
+    0 0 16px color-mix(in srgb, var(--key) 60%, transparent),
+    0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
 .anim2d-callout-bubble .bubble-num {
   font-size: 10.5px;
   font-weight: 800;
@@ -442,11 +471,27 @@
   color: var(--accent-cyan);
 }
 
+.anim2d-callout-bubble.first-of-shot .bubble-num {
+  color: var(--key);
+}
+
 .anim2d-callout-bubble.closeup .bubble-num {
   color: var(--key);
 }
 
 .anim2d-callout-bubble.active .bubble-num {
+  color: #ffffff;
+}
+
+.anim2d-callout-bubble .bubble-first-flag {
+  font-size: 8px;
+  line-height: 1;
+  margin-right: 1.5px;
+  color: var(--key);
+  display: inline-block;
+}
+
+.anim2d-callout-bubble.active .bubble-first-flag {
   color: #ffffff;
 }
 
@@ -464,9 +509,27 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
+.anim2d-callout-bubble.first-of-shot .bubble-meta {
+  border-color: color-mix(in srgb, var(--key) 45%, var(--line));
+  background: color-mix(in srgb, var(--key) 10%, var(--bg-2));
+}
+
 .anim2d-callout-bubble.active .bubble-meta {
   border-color: var(--accent-cyan);
   background: color-mix(in srgb, var(--accent) 22%, var(--bg-2));
+}
+
+.anim2d-callout-bubble.first-of-shot.active .bubble-meta {
+  border-color: var(--key);
+}
+
+.anim2d-callout-bubble .bubble-shot-flag {
+  color: var(--key);
+  font-weight: 700;
+  max-width: 68px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .anim2d-callout-bubble .bubble-time {

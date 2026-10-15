@@ -595,12 +595,49 @@
   z-index: 14;
 }
 
+/* Mốc Camera Đầu Cảnh: Hình Chữ Nhật Bo Góc & Viền Vàng Gold */
+.tl-cam-wp-node.first-of-shot {
+  border-radius: 4px;
+  border-color: var(--key);
+  background: color-mix(in srgb, var(--key) 14%, var(--bg-1));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--key) 50%, transparent),
+    0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+.tl-cam-wp-node.first-of-shot:hover {
+  border-color: var(--key);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--key) 75%, transparent);
+}
+
+.tl-cam-wp-node.first-of-shot.active {
+  border-radius: 4px;
+  background: var(--accent);
+  border-color: #ffffff;
+  box-shadow: 0 0 0 2px var(--key), 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.tl-cam-wp-flag {
+  font-size: 7.5px;
+  line-height: 1;
+  color: var(--key);
+  margin-right: 2px;
+}
+
+.tl-cam-wp-node.active .tl-cam-wp-flag {
+  color: #ffffff;
+}
+
 .tl-cam-wp-num {
   font-family: var(--mono);
   font-size: 9px;
   font-weight: 800;
   color: var(--text);
   line-height: 1;
+}
+
+.tl-cam-wp-node.first-of-shot .tl-cam-wp-num {
+  color: var(--key);
 }
 
 .tl-cam-wp-node.active .tl-cam-wp-num {

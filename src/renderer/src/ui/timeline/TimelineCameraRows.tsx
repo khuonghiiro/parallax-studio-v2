@@ -135,14 +135,15 @@ export function TimelineCameraRows({
               return (
                 <div
                   key={`cam-wp-${idx}-${wp.time}`}
-                  className={`tl-cam-wp-node${isAtPlayhead ? ' active' : ''}${wp.actionMode === 'hold' ? ' hold' : ''}`}
+                  className={`tl-cam-wp-node${wp.isFirstOfShot ? ' first-of-shot' : ''}${isAtPlayhead ? ' active' : ''}${wp.actionMode === 'hold' ? ' hold' : ''}`}
                   style={{
                     left: x(wp.time),
                     ['--wp-color' as string]: shotColor
                   }}
-                  title={`Mốc Camera #${idx + 1} @ ${wp.time.toFixed(2)}s · ${wp.shotName} · ${wp.actionLabel}\n💡 Click để chọn & mở Lộ trình, kéo ngang để dời thời gian mốc`}
+                  title={`${wp.isFirstOfShot ? `⚑ MỐC MỞ ĐẦU CẢNH: ${wp.shotName}\n` : ''}Mốc Camera #${idx + 1} @ ${wp.time.toFixed(2)}s · ${wp.shotName} · ${wp.actionLabel}\n💡 Click để chọn & mở Lộ trình, kéo ngang để dời thời gian mốc`}
                   onPointerDown={(e) => onStartCameraWaypointDrag(e, wp.time, wp.shotId)}
                 >
+                  {wp.isFirstOfShot && <span className="tl-cam-wp-flag">⚑</span>}
                   <span className="tl-cam-wp-num">#{idx + 1}</span>
                 </div>
               )

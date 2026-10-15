@@ -491,12 +491,20 @@ export function CameraRouteInspector() {
               <div
                 key={`wp-card-${wp.time}-${idx}`}
                 id={`route-wp-item-${idx + 1}`}
-                className={`route-wp-card${isActive ? ' active' : ''}`}
+                className={`route-wp-card${wp.isFirstOfShot ? ' first-of-shot' : ''}${isActive ? ' active' : ''}`}
                 onClick={() => handleSelectWaypoint(wp)}
+                title={`${wp.isFirstOfShot ? `⚑ MỐC MỞ MÀN CẢNH: ${wp.shotName}\n` : ''}Mốc #${idx + 1} tại ${wp.time.toFixed(1)}s · ${wp.shotName}`}
               >
                 <div className="wp-card-head">
                   <div className="wp-card-title">
-                    <span className="wp-card-idx">#{idx + 1}</span>
+                    <span className={`wp-card-idx${wp.isFirstOfShot ? ' first-of-shot' : ''}`}>
+                      {wp.isFirstOfShot ? '⚑ ' : ''}#{idx + 1}
+                    </span>
+                    {wp.isFirstOfShot && (
+                      <span className="wp-first-of-shot-badge" title="Mốc camera lộ trình đầu tiên của cảnh này">
+                        ⚑ Đầu cảnh
+                      </span>
+                    )}
                     <span className="wp-card-time">{wp.time.toFixed(1)}s</span>
                     {idx > 0 && <span className="wp-card-dur">+{wp.durationFromPrev.toFixed(1)}s</span>}
                     <span className={`wp-type-badge ${wp.tag}`}>{wp.tagLabel}</span>
