@@ -183,20 +183,29 @@
 
 .anim2d-shot-header {
   position: absolute;
-  top: -48px;
+  top: -46px;
   left: -2px;
+  max-width: calc(100% + 8px);
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   height: 22px;
-  padding: 0 7px;
+  padding: 0 6px;
   background: var(--hud-bg);
   border: 1px solid color-mix(in srgb, var(--shot-color, var(--accent)) 60%, var(--line));
   border-radius: var(--radius-sm);
   backdrop-filter: blur(8px);
   white-space: nowrap;
+  overflow: hidden;
   cursor: pointer;
   z-index: 12;
+  transition: max-width 0.15s ease, z-index 0.15s ease;
+}
+
+.anim2d-shot-card:hover .anim2d-shot-header {
+  max-width: 340px;
+  z-index: 48;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
 }
 
 .anim2d-shot-dot {
@@ -207,19 +216,24 @@
 }
 
 .anim2d-shot-title {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
   color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .anim2d-shot-meta {
-  font-size: 10px;
+  font-size: 9.5px;
   color: var(--text-dim);
   font-family: var(--mono);
+  flex-shrink: 0;
 }
 
 .anim2d-shot-btn,
 .anim2d-shot-add-cam {
+  display: none;
   height: 16px;
   padding: 0 5px;
   border-radius: 2px;
@@ -229,7 +243,14 @@
   font-size: 9.5px;
   font-weight: 600;
   cursor: pointer;
+  flex-shrink: 0;
   transition: all 0.12s ease;
+}
+
+.anim2d-shot-card:hover .anim2d-shot-btn,
+.anim2d-shot-card:hover .anim2d-shot-add-cam {
+  display: inline-flex;
+  align-items: center;
 }
 
 .anim2d-shot-add-cam {
@@ -294,73 +315,146 @@
   z-index: 15;
 }
 
-/* Ghost Frames for Inactive Waypoints */
+/* Ghost Frames for Inactive Waypoints (Big & Small nested frames) */
 .anim2d-ghost-frame {
   position: absolute;
   pointer-events: none;
-  border: 1.5px dashed color-mix(in srgb, var(--accent-cyan) 42%, transparent);
+  border: 1.5px dashed color-mix(in srgb, var(--accent-cyan) 55%, transparent);
   background: color-mix(in srgb, var(--accent-cyan) 3%, transparent);
   border-radius: 2px;
   z-index: 16;
   box-sizing: border-box;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.anim2d-ghost-frame.closeup {
+  border-color: color-mix(in srgb, var(--key) 75%, transparent);
+  background: color-mix(in srgb, var(--key) 4%, transparent);
+  z-index: 17;
+}
+
+.anim2d-ghost-frame.closeup .anim2d-ghost-tag {
+  color: var(--key);
 }
 
 .anim2d-ghost-frame.hovered {
-  border-color: var(--accent-cyan);
-  background: color-mix(in srgb, var(--accent-cyan) 9%, transparent);
+  border: 2px solid var(--key);
+  background: color-mix(in srgb, var(--key) 12%, transparent);
+  z-index: 32;
 }
 
-/* Compact Waypoint Pins (#1, #2, #3...) on the 2D Stage */
-.anim2d-wp-pin {
+.anim2d-ghost-tag {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  padding: 0 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--bg-2) 86%, transparent);
+  color: var(--accent-cyan);
+  font-size: 8.5px;
+  font-family: var(--mono);
+  font-weight: 600;
+  line-height: 13px;
+  white-space: nowrap;
+}
+
+.anim2d-ghost-frame.hovered .anim2d-ghost-tag {
+  background: var(--key);
+  color: #111;
+}
+
+/* External Camera Callout Bubbles (#1, #2, #3...) positioned OUTSIDE the shot frame */
+.anim2d-callout-bubble {
   position: absolute;
   transform: translate(-50%, -50%);
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 3px;
-  height: 19px;
-  padding: 0 6px;
-  border-radius: 10px;
-  background: var(--bg-2);
-  border: 1.5px solid var(--accent-cyan);
-  color: var(--text);
-  font-size: 9.5px;
-  font-family: var(--mono);
-  white-space: nowrap;
+  gap: 2px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-  transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+  user-select: none;
+  transition: transform 0.14s ease;
 }
 
-.anim2d-wp-pin:hover {
+.anim2d-callout-bubble:hover {
   transform: translate(-50%, -50%) scale(1.1);
-  background: var(--bg-3);
+}
+
+.anim2d-callout-bubble .bubble-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-2);
+  border: 2px solid var(--accent-cyan);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.38);
+  transition: all 0.14s ease;
+}
+
+.anim2d-callout-bubble.closeup .bubble-circle {
   border-color: var(--key);
 }
 
-.anim2d-wp-pin.active {
-  background: var(--accent);
-  border-color: #fff;
-  color: #fff;
-  font-weight: 700;
-  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-cyan) 65%, transparent);
+.anim2d-callout-bubble:hover .bubble-circle,
+.anim2d-callout-bubble.hovered .bubble-circle {
+  border-color: var(--key);
+  background: var(--bg-3);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--key) 55%, transparent);
 }
 
-.anim2d-wp-pin .pin-num {
-  font-weight: 700;
+.anim2d-callout-bubble.active .bubble-circle {
+  background: var(--accent);
+  border-color: #ffffff;
+  color: #ffffff;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--accent-cyan) 38%, transparent),
+    0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+.anim2d-callout-bubble .bubble-num {
+  font-size: 10.5px;
+  font-weight: 800;
+  font-family: var(--mono);
   color: var(--accent-cyan);
 }
 
-.anim2d-wp-pin.active .pin-num {
-  color: #fff;
+.anim2d-callout-bubble.closeup .bubble-num {
+  color: var(--key);
 }
 
-.anim2d-wp-pin .pin-time {
+.anim2d-callout-bubble.active .bubble-num {
+  color: #ffffff;
+}
+
+.anim2d-callout-bubble .bubble-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  font-size: 8.5px;
+  font-family: var(--mono);
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.anim2d-callout-bubble.active .bubble-meta {
+  border-color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-2));
+}
+
+.anim2d-callout-bubble .bubble-time {
   color: var(--text-dim);
-  font-size: 9px;
 }
 
-.anim2d-wp-pin.active .pin-time {
-  color: rgba(255, 255, 255, 0.9);
+.anim2d-callout-bubble .bubble-zoom {
+  color: var(--key);
+  font-weight: 700;
 }
 
 /* Live Interpolated Camera Box */
@@ -489,27 +583,53 @@
   color: #fff;
 }
 
-/* Active Viewfinder Floating HUD Badge */
+/* Active Viewfinder Floating HUD Badge (pinned at top-left of 2D canvas so scenes & frames are 100% clear) */
 .anim2d-cam-badge.active-hud {
   position: absolute;
-  bottom: -27px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 8px;
+  left: 8px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 22px;
-  padding: 0 8px;
-  border-radius: 4px;
-  background: var(--bg-2);
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 5px;
+  background: var(--hud-bg);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--accent-cyan);
   color: var(--text);
   font-size: 10px;
   font-family: var(--mono);
   white-space: nowrap;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  cursor: grab;
-  z-index: 40;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  z-index: 48;
+}
+
+.anim2d-cam-shot-tag {
+  color: var(--text);
+  background: var(--bg-3);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 9.5px;
+  font-family: var(--sans);
+  font-weight: 600;
+}
+
+.anim2d-active-corner-tag {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  padding: 0 5px;
+  border-radius: 2px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 9px;
+  font-family: var(--mono);
+  font-weight: 700;
+  line-height: 14px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 6;
 }
 
 .anim2d-cam-num {

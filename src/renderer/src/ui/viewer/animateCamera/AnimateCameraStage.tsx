@@ -59,7 +59,7 @@ export function AnimateCameraStage() {
   const [zoom, setZoom] = useState(0.28)
   const [autoFitted, setAutoFitted] = useState(false)
   const [toolMode, setToolMode] = useState<StageToolMode>('pan-scale')
-  const [showAllFrames, setShowAllFrames] = useState(false)
+  const [showAllFrames, setShowAllFrames] = useState(true)
   const [showGrid, setShowGrid] = useState(true)
   const [snapGuide, setSnapGuide] = useState<{ x: number | null; y: number | null }>({ x: null, y: null })
   const [, setAssetTick] = useState(0)
@@ -95,7 +95,7 @@ export function AnimateCameraStage() {
 
   const activeFrame = waypoints[activeFrameIndex] ?? waypoints[0]
 
-  // Fit all 2D shot planes into the stage viewport
+  // Fit all 2D shot planes and external callout bubbles into the stage viewport
   const fitStage = useCallback(
     (vw = viewportSize.w, vh = viewportSize.h) => {
       if (stageLayout.length === 0 || vw < 40 || vh < 40) return
@@ -104,26 +104,26 @@ export function AnimateCameraStage() {
       let minY = Infinity
       let maxY = -Infinity
       for (const box of stageLayout) {
-        minX = Math.min(minX, box.stageX - box.width * 0.65)
-        maxX = Math.max(maxX, box.stageX + box.width * 0.65)
+        minX = Math.min(minX, box.stageX - box.width * 0.6)
+        maxX = Math.max(maxX, box.stageX + box.width * 0.6)
         minY = Math.min(minY, box.stageY - box.height * 0.72)
-        maxY = Math.max(maxY, box.stageY + box.height * 0.72)
+        maxY = Math.max(maxY, box.stageY + box.height * 0.78)
       }
       for (const f of frames) {
-        minX = Math.min(minX, f.stageX - f.width * 0.6)
-        maxX = Math.max(maxX, f.stageX + f.width * 0.6)
+        minX = Math.min(minX, f.stageX - f.width * 0.58)
+        maxX = Math.max(maxX, f.stageX + f.width * 0.58)
         minY = Math.min(minY, f.stageY - f.height * 0.65)
-        maxY = Math.max(maxY, f.stageY + f.height * 0.65)
+        maxY = Math.max(maxY, f.stageY + f.height * 0.72)
       }
       const spanW = Math.max(project.comp.width, maxX - minX)
       const spanH = Math.max(project.comp.height, maxY - minY)
-      const availW = Math.max(120, vw - 76)
-      const availH = Math.max(120, vh - 124)
-      const nextZoom = Math.max(0.06, Math.min(0.85, Math.min(availW / spanW, availH / spanH)))
+      const availW = Math.max(120, vw - 64)
+      const availH = Math.max(120, vh - 165)
+      const nextZoom = Math.max(0.04, Math.min(0.85, Math.min(availW / spanW, availH / spanH)))
       const cx = (minX + maxX) / 2
       const cy = (minY + maxY) / 2
       setZoom(nextZoom)
-      setPan({ x: -cx * nextZoom, y: -cy * nextZoom + 18 })
+      setPan({ x: -cx * nextZoom, y: -cy * nextZoom - 14 })
     },
     [stageLayout, frames, project.comp.width, project.comp.height, viewportSize.w, viewportSize.h]
   )
@@ -144,10 +144,15 @@ export function AnimateCameraStage() {
     return () => ro.disconnect()
   }, [])
 
+  const prevShotCountRef = useRef(stageLayout.length)
+
   useEffect(() => {
-    if (!autoFitted && viewportSize.w > 100 && viewportSize.h > 100) {
-      fitStage(viewportSize.w, viewportSize.h)
-      setAutoFitted(true)
+    if (viewportSize.w > 100 && viewportSize.h > 100) {
+      if (!autoFitted || prevShotCountRef.current !== stageLayout.length) {
+        prevShotCountRef.current = stageLayout.length
+        fitStage(viewportSize.w, viewportSize.h)
+        setAutoFitted(true)
+      }
     }
   }, [autoFitted, viewportSize.w, viewportSize.h, fitStage, stageLayout.length])
 
@@ -530,8 +535,9 @@ export function AnimateCameraStage() {
           )
         })}
 
-        {/* 2. Đường bay, Điểm neo mốc & Khung Ngắm Camera Đang Chọn */}
+        {/* 2. Đường bay, Bóng tròn liên kết ngoài cảnh & Khung Ngắm Camera Đang Chọn */}
         <AnimateCameraViewfinder
+          stageLayout={stageLayout}
           waypoints={waypoints}
           activeFrameIndex={activeFrameIndex}
           liveFrame={liveFrame}

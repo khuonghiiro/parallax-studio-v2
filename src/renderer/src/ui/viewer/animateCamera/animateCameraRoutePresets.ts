@@ -84,16 +84,18 @@ export function applyCameraRoutePreset(
     if (count === 0) return
     let curTime = 0
     layout.forEach((box, i) => {
-      const startYaw = i % 2 === 0 ? -24 : 24
+      const startYaw = i % 2 === 0 ? -22 : 22
       const endYaw = i % 2 === 0 ? 18 : -18
+      const offsetX = i % 2 === 0 ? 110 : -110
       applyStageFrameToDraft(draft, layout, curTime, box.stageX, box.stageY, 1.0, true, {
         yaw: startYaw,
-        pitch: 5
+        pitch: 6
       })
-      curTime = Math.round((curTime + 2.4) * 100) / 100
-      applyStageFrameToDraft(draft, layout, curTime, box.stageX, box.stageY, 0.82, true, {
+      curTime = Math.round((curTime + 2.2) * 100) / 100
+      applyStageFrameToDraft(draft, layout, curTime, box.stageX + offsetX, box.stageY - 28, 0.56, true, {
         yaw: endYaw,
-        pitch: -4
+        pitch: -5,
+        roll: i % 2 === 0 ? 6 : -6
       })
       if (i < count - 1) {
         curTime = Math.round((curTime + 1.8) * 100) / 100

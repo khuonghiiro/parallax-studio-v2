@@ -228,7 +228,7 @@ export async function buildProjectFromDeclarativeSpec(spec: DeclarativeProjectSp
     }
 
     if (steps.length > 0) {
-      const end = buildCameraPath(project, steps, { pushIn: 0.14 })
+      const end = buildCameraPath(project, steps, { pushIn: 0.42 })
       project.comp.duration = Math.round(end * comp.fps) / comp.fps
       for (const l of project.layers) l.outPoint = project.comp.duration
     }

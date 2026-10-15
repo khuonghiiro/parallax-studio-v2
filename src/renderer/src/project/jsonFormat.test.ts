@@ -6,8 +6,10 @@ import demoJson from './demoProject.json'
 describe('JSON Project Format & Declarative Scene Spec', () => {
   it('loads demoProject.json cleanly into a transparent 2.5D demo scene', async () => {
     const project = await buildDemoProject()
-    expect(project.shots).toHaveLength(1)
+    expect(project.shots).toHaveLength(3)
     expect(project.shots[0].name).toBe('Thung Lũng Huyền Ảo')
+    expect(project.shots[1].name).toBe('Rừng Anh Đào Cổ Thụ')
+    expect(project.shots[2].name).toBe('Đỉnh Đá Tinh Thể')
 
     const s0 = project.shots[0]
     const s0Layers = project.layers.filter((l) => l.shotId === s0.id)
@@ -32,7 +34,7 @@ describe('JSON Project Format & Declarative Scene Spec', () => {
     const { evaluateScene } = await import('../engine/evaluateScene')
     const ev = evaluateScene(project, 0)
     expect(ev.camera.position).toBeDefined()
-    expect(project.comp.duration).toBe(8)
+    expect(project.comp.duration).toBe(16)
   })
 
   it('exports and re-imports project via JSON with 100% roundtrip fidelity', async () => {

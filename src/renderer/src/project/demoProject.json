@@ -4,7 +4,7 @@
     "width": 1920,
     "height": 1080,
     "fps": 30,
-    "duration": 8.0,
+    "duration": 18.0,
     "background": "#05060a"
   },
   "look": {
@@ -20,8 +20,20 @@
     "tour": [
       {
         "shot": "Thung Lũng Huyền Ảo",
-        "hold": 8.0,
-        "type": "arc",
+        "hold": 4.0,
+        "type": "fly",
+        "transition": 2.0
+      },
+      {
+        "shot": "Rừng Anh Đào Cổ Thụ",
+        "hold": 4.0,
+        "type": "fly",
+        "transition": 2.0
+      },
+      {
+        "shot": "Đỉnh Đá Tinh Thể",
+        "hold": 4.0,
+        "type": "fly",
         "transition": 2.0
       }
     ]
@@ -107,6 +119,167 @@
             -120
           ],
           "src": "assets/demo_transparent/layer5_foreground_vines.png"
+        }
+      ]
+    },
+    {
+      "name": "Rừng Anh Đào Cổ Thụ",
+      "arrive": 6.0,
+      "layers": [
+        {
+          "name": "Bầu trời chiều tím",
+          "type": "image",
+          "z": 3200,
+          "src": "assets/demo_transparent/layer1_sky.png"
+        },
+        {
+          "name": "Dãy núi sương mù",
+          "type": "image",
+          "z": 1900,
+          "src": "assets/demo_transparent/layer2_distant_mountains.png"
+        },
+        {
+          "name": "Tán lá hậu cảnh vàng",
+          "type": "image",
+          "z": 980,
+          "position": [
+            -80,
+            60,
+            980
+          ],
+          "src": "assets/nature_modular/tree_foliage_back_gold.png"
+        },
+        {
+          "name": "Thân cây cổ thụ",
+          "type": "image",
+          "z": 620,
+          "position": [
+            0,
+            -40,
+            620
+          ],
+          "src": "assets/nature_modular/tree_trunk_branches.png"
+        },
+        {
+          "name": "Tán hoa Anh Đào Sakura",
+          "type": "image",
+          "z": 420,
+          "position": [
+            20,
+            90,
+            420
+          ],
+          "src": "assets/nature_modular/tree_foliage_mid_sakura.png"
+        },
+        {
+          "name": "Cánh hoa đào bay",
+          "type": "particles",
+          "z": 240,
+          "particles": {
+            "count": 85,
+            "size": 5,
+            "color": "#ffb3d9",
+            "velocity": [
+              -12,
+              -14,
+              0
+            ],
+            "sway": 32
+          }
+        },
+        {
+          "name": "Cụm hoa tiền cảnh",
+          "type": "image",
+          "z": -110,
+          "position": [
+            160,
+            110,
+            -110
+          ],
+          "src": "assets/nature_modular/tree_blossoms_cluster.png"
+        }
+      ]
+    },
+    {
+      "name": "Đỉnh Đá Tinh Thể",
+      "arrive": 12.0,
+      "layers": [
+        {
+          "name": "Bầu trời đêm huyền bí",
+          "type": "image",
+          "z": 3200,
+          "src": "assets/demo_transparent/layer1_sky.png"
+        },
+        {
+          "name": "Đảo nổi chân trời",
+          "type": "image",
+          "z": 1650,
+          "position": [
+            220,
+            80,
+            1650
+          ],
+          "src": "assets/demo_transparent/layer3_floating_island.png"
+        },
+        {
+          "name": "Nền đá cổ đại",
+          "type": "image",
+          "z": 900,
+          "position": [
+            0,
+            -180,
+            900
+          ],
+          "src": "assets/nature_modular/rock_base_ground.png"
+        },
+        {
+          "name": "Khối đá rêu phong",
+          "type": "image",
+          "z": 560,
+          "position": [
+            -40,
+            -60,
+            560
+          ],
+          "src": "assets/nature_modular/rock_boulder_main.png"
+        },
+        {
+          "name": "Tinh thể năng lượng",
+          "type": "image",
+          "z": 380,
+          "position": [
+            30,
+            -10,
+            380
+          ],
+          "src": "assets/nature_modular/rock_crystal_glow.png"
+        },
+        {
+          "name": "Hạt năng lượng tinh thể",
+          "type": "particles",
+          "z": 210,
+          "particles": {
+            "count": 90,
+            "size": 4.5,
+            "color": "#67e8f9",
+            "velocity": [
+              0,
+              16,
+              0
+            ],
+            "sway": 28
+          }
+        },
+        {
+          "name": "Đá tiền cảnh & Hoa dại",
+          "type": "image",
+          "z": -130,
+          "position": [
+            0,
+            -190,
+            -130
+          ],
+          "src": "assets/nature_modular/rock_stones_front.png"
         }
       ]
     }
