@@ -52,7 +52,7 @@ interface EditorState {
   selectedShotId: string | null
   selectedAudioTrackId: string | null
   selectedKey: KeySelection | null
-  inspectorTab: 'layer' | 'camera' | 'scene'
+  inspectorTab: 'layer' | 'camera' | 'scene' | 'route'
   past: Project[]
   future: Project[]
   lastMerge: { key: string; at: number } | null

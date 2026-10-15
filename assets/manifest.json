@@ -23,6 +23,14 @@
       "icon": "music",
       "description": "Nhạc nền, tiếng chuông ambient và hiệu ứng âm thanh cho phân cảnh",
       "order": 2
+    },
+    {
+      "id": "uploads",
+      "folder": "uploads",
+      "title": "Tài nguyên tải lên",
+      "icon": "image",
+      "description": "Tài nguyên ảnh và vật liệu người dùng thêm vào kho",
+      "order": 10
     }
   ],
   "assets": {

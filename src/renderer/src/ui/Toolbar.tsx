@@ -281,7 +281,10 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
         <button
           id="studio-cam-animate2d"
           className="menu-item"
-          onClick={() => useView.getState().set({ split: false, primary: 'animate2d', animate2dSplit: true })}
+          onClick={() => {
+            useView.getState().set({ split: false, primary: 'animate2d', animate2dSplit: true })
+            useEditor.getState().setInspectorTab('route')
+          }}
         >
           <IconCameraStage width={15} /> Bàn dựng Khung Camera 2D &amp; 3D (Adobe Animate)
         </button>

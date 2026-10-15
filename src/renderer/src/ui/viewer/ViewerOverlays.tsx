@@ -175,7 +175,10 @@ export function ViewerOverlays({
             id="view-animate2d"
             className={`seg-btn${view.primary === 'animate2d' ? ' active' : ''}`}
             title="Lộ trình Camera 2D kiểu Adobe Animate: đóng khung camera, lia cảnh, phóng to/thu nhỏ dần trực quan trên mặt phẳng 2D"
-            onClick={() => view.set({ split: false, primary: 'animate2d' })}
+            onClick={() => {
+              view.set({ split: false, primary: 'animate2d' })
+              useEditor.getState().setInspectorTab('route')
+            }}
           >
             <IconCameraStage width={12} height={12} /> Cam 2D
           </button>

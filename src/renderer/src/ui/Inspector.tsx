@@ -5,12 +5,14 @@ import { LayerInspector } from './inspector/LayerInspector'
 import { CameraInspector } from './inspector/CameraInspector'
 import { SceneInspector } from './inspector/SceneInspector'
 import { AudioTrackInspector } from './inspector/AudioTrackInspector'
+import { CameraRouteInspector } from './inspector/CameraRouteInspector'
 
 export { ShotInspector } from './inspector/ShotInspector'
 export { LayerInspector } from './inspector/LayerInspector'
 export { CameraInspector } from './inspector/CameraInspector'
 export { SceneInspector } from './inspector/SceneInspector'
 export { AudioTrackInspector } from './inspector/AudioTrackInspector'
+export { CameraRouteInspector } from './inspector/CameraRouteInspector'
 
 export function Inspector() {
   const tab = useEditor((s) => s.inspectorTab)
@@ -35,6 +37,14 @@ export function Inspector() {
           <button id="tab-camera" className={`tab${tab === 'camera' ? ' active' : ''}`} onClick={() => setTab('camera')}>
             Camera
           </button>
+          <button
+            id="tab-route"
+            className={`tab${tab === 'route' ? ' active' : ''}`}
+            onClick={() => setTab('route')}
+            title="Lộ trình di chuyển và thu phóng Camera 2D (Adobe Animate)"
+          >
+            Lộ trình
+          </button>
           <button id="tab-scene" className={`tab${tab === 'scene' ? ' active' : ''}`} onClick={() => setTab('scene')}>
             Dự án
           </button>
@@ -55,6 +65,7 @@ export function Inspector() {
               </div>
             ))}
           {tab === 'camera' && <CameraInspector />}
+          {tab === 'route' && <CameraRouteInspector />}
           {tab === 'scene' && <SceneInspector />}
         </div>
       </section>

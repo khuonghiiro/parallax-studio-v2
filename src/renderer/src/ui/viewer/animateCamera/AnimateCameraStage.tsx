@@ -16,7 +16,6 @@ import {
   IconSingle,
   IconTrash
 } from '../../icons'
-import { AnimateCameraRouteList } from './AnimateCameraRouteList'
 import { AnimateShotPlane2D } from './AnimateShotPlane2D'
 import {
   applyStageFrameToDraft,
@@ -26,7 +25,6 @@ import {
   extractCameraFrames2D,
   projectShotLayers2D,
   type CameraFrame2D,
-  type ProjectedLayer2D,
   type ShotStageBox
 } from './animateCameraMath'
 
@@ -52,6 +50,7 @@ export function AnimateCameraStage() {
   const setPlaying = useEditor((s) => s.setPlaying)
   const selectShot = useEditor((s) => s.selectShot)
   const update = useEditor((s) => s.update)
+  const inspectorTab = useEditor((s) => s.inspectorTab)
   const theme = useView((s) => s.theme)
   const animate2dSplit = useView((s) => s.animate2dSplit)
   const setView = useView((s) => s.set)
@@ -61,7 +60,6 @@ export function AnimateCameraStage() {
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(0.28)
   const [autoFitted, setAutoFitted] = useState(false)
-  const [isRouteListOpen, setIsRouteListOpen] = useState(true)
   const [, setAssetTick] = useState(0)
 
   useEffect(() => {
@@ -75,15 +73,6 @@ export function AnimateCameraStage() {
     () => evaluateLiveCameraFrame2D(project, stageLayout, frames, time),
     [project, stageLayout, frames, time]
   )
-
-  const layersByShot = useMemo(() => {
-    const map = new Map<string | null, ProjectedLayer2D[]>()
-    for (let idx = 0; idx < stageLayout.length; idx++) {
-      const box = stageLayout[idx]
-      map.set(box.shotId, projectShotLayers2D(project, ev, box.shotId, idx === 0))
-    }
-    return map
-  }, [stageLayout, project, ev])
 
   const tol = frameTolerance(project)
   const activeFrameIndex = useMemo(() => {
@@ -437,24 +426,23 @@ export function AnimateCameraStage() {
           <button
             id="view-toggle-route-panel"
             type="button"
-            className={`btn xs icon${isRouteListOpen ? ' primary' : ''}`}
-            onClick={() => setIsRouteListOpen(!isRouteListOpen)}
-            title={isRouteListOpen ? 'Ẩn bảng danh sách lộ trình camera' : 'Hiện bảng danh sách lộ trình camera'}
+            className={`btn xs icon${inspectorTab === 'route' ? ' primary' : ''}`}
+            onClick={() => useEditor.getState().setInspectorTab('route')}
+            title="Mở Bảng Lộ trình Camera ở cột bên phải (Inspector)"
           >
             <IconRoute width={13} height={13} />
           </button>
         </div>
       </div>
 
-      {/* Bàn dựng Mặt phẳng 2D của các Cảnh & Khung Camera kèm Bảng Lộ trình */}
-      <div className="anim2d-body">
-        <div
-          ref={stageRef}
-          className="anim2d-canvas"
-          onPointerDown={onStagePointerDown}
-          onWheel={onStageWheel}
-          onContextMenu={(e) => e.preventDefault()}
-        >
+      {/* Bàn dựng Mặt phẳng 2D của các Cảnh & Khung Camera (Rộng 100% vùng xem) */}
+      <div
+        ref={stageRef}
+        className="anim2d-canvas"
+        onPointerDown={onStagePointerDown}
+        onWheel={onStageWheel}
+        onContextMenu={(e) => e.preventDefault()}
+      >
           {/* 1. Các Cảnh 3D được ánh xạ lên mặt phẳng 2D với đầy đủ các layer xếp chồng */}
           {stageLayout.map((box, idx) => {
             const layers2D = projectShotLayers2D(project, ev, box.shotId, idx === 0)
@@ -618,25 +606,6 @@ export function AnimateCameraStage() {
             )
           })}
         </div>
-
-        {/* 5. Bảng Danh sách Lộ trình Camera & Bảng Thông số chỉnh sửa */}
-        <AnimateCameraRouteList
-          project={project}
-          stageLayout={stageLayout}
-          frames={frames}
-          activeFrameIndex={activeFrameIndex}
-          currentTime={time}
-          layersByShot={layersByShot}
-          onSelectFrame={(targetTime) => {
-            setPlaying(false)
-            setTime(targetTime)
-          }}
-          onUpdateProject={update}
-          onSpawnFrame={spawnNextCameraFrame}
-          isOpen={isRouteListOpen}
-          onToggleOpen={() => setIsRouteListOpen(!isRouteListOpen)}
-        />
-      </div>
 
       {/* Thanh lộ trình các Khung Camera phía dưới (#1 -> #2 -> #3...) */}
       <div className="anim2d-footer">
