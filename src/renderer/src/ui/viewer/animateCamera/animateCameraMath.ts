@@ -197,14 +197,12 @@ export function projectShotLayers2D(
     } else if (el.layer.type === 'text') {
       base.text = el.layer.props.text
       base.textColor = el.layer.props.color
-      base.font = el.layer.props.font
-      base.fontSize = el.layer.props.size * el.scale[1] * pFactor
-      base.fontWeight = el.layer.props.weight
-      base.align = el.layer.props.align
+      base.font = el.layer.props.fontFamily
+      base.fontSize = el.layer.props.fontSize * el.scale[1] * pFactor
+      base.fontWeight = el.layer.props.fontWeight
     } else if (el.layer.type === 'solid') {
       base.solidColor = el.layer.props.color
       base.solidColor2 = el.layer.props.color2
-      base.gradientAngle = el.layer.props.gradientAngle
     }
 
     return base

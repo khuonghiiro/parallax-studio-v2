@@ -519,12 +519,12 @@ export function enrichTemplateWithRecipe(template: AssemblyTemplate): AssemblyTe
         c: [...f.c] as [number, number, number],
         n: [...f.n] as [number, number, number],
         up: f.up ? ([...f.up] as [number, number, number]) : undefined,
-        silhouettePolygon: f.silhouettePolygon ? f.silhouettePolygon.map((pt) => [...pt]) : undefined,
+        silhouettePolygon: f.silhouettePolygon ? f.silhouettePolygon.map((pt: number[]) => [...pt]) : undefined,
         mesh: f.mesh
           ? {
               ...f.mesh,
               hiddenCells: f.mesh.hiddenCells ? [...f.mesh.hiddenCells] : undefined,
-              silhouettePolygon: f.mesh.silhouettePolygon ? f.mesh.silhouettePolygon.map((pt) => [...pt]) : undefined
+              silhouettePolygon: f.mesh.silhouettePolygon ? f.mesh.silhouettePolygon.map((pt: number[]) => [...pt]) : undefined
             }
           : undefined
       }))

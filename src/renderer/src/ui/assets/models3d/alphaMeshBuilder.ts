@@ -267,7 +267,7 @@ export function buildAlphaTrimmedGeometry(
   if (autoTrimAlpha && image) {
     // Dynamic alpha trimming: when an image has alpha cutout, hug its outline; if fully opaque rectangle on a polygon face, keep presetPolygon!
     const imgSil = getImageSilhouette(image)
-    const isFullOpaqueRect = imgSil.loops.length === 1 && imgSil.loops[0].area >= 0.985
+    const isFullOpaqueRect = Boolean(imgSil && imgSil.loops.length === 1 && imgSil.loops[0].area >= 0.985)
     if (isFullOpaqueRect && presetPolygon && presetPolygon.length >= 3) {
       silhouette = silhouetteFromPolygon(presetPolygon, 'uv')
     } else {

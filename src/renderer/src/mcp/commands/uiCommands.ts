@@ -115,6 +115,8 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   viewer_tools: ['.viewer-tools'],
   animate_camera_stage: ['#animate-camera-stage', '.anim2d-stage', '.anim2d-pane-host'],
   animate_camera_toolbar: ['.anim2d-toolbar'],
+  animate_camera_route: ['#anim2d-route-sidebar', '.anim2d-route-panel'],
+  animate_camera_inspector: ['.anim2d-wp-inspector'],
 
   // Right Inspector and sub-sections
   inspector: ['aside.right', '.right', '.inspector'],

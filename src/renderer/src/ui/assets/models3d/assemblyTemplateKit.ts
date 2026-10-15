@@ -30,7 +30,7 @@ export interface TemplateFaceSpec {
   taperRatio?: number
   silhouettePolygon?: number[][]
   imageSlot?: string
-  mesh?: Pick<Face3D, 'meshMode' | 'gridRes' | 'depthProfile' | 'depthIntensity'>
+  mesh?: Pick<Face3D, 'meshMode' | 'gridRes' | 'depthProfile' | 'depthIntensity' | 'silhouettePolygon' | 'hiddenCells'>
 }
 
 export interface AssemblyTemplate {

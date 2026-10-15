@@ -446,3 +446,441 @@
   text-overflow: ellipsis;
 }
 
+/* Stage Main Body: Flex row for Canvas & Route Sidebar */
+.anim2d-body {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Collapsed Route Toggle Button */
+.anim2d-route-toggle-btn.collapsed {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 35;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg-2);
+  color: var(--accent-cyan);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.anim2d-route-toggle-btn.collapsed:hover {
+  background: var(--bg-3);
+  border-color: var(--accent-cyan);
+}
+
+/* Route List Panel (Sidebar on the right) */
+.anim2d-route-panel {
+  display: flex;
+  flex-direction: column;
+  width: 310px;
+  min-width: 280px;
+  max-width: 360px;
+  height: 100%;
+  background: var(--bg-1);
+  border-left: 1px solid var(--line);
+  z-index: 30;
+  overflow: hidden;
+}
+
+.anim2d-route-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.anim2d-route-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.anim2d-route-title .accent-icon {
+  color: var(--accent-cyan);
+}
+
+.anim2d-route-count {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--bg-3);
+  color: var(--text-dim);
+}
+
+.anim2d-route-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+.anim2d-presets-dropdown-wrapper {
+  position: relative;
+}
+
+.anim2d-presets-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  width: 220px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-focus);
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 60000;
+}
+
+.anim2d-presets-menu .preset-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 11px;
+  text-align: left;
+  border-radius: 3px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.anim2d-presets-menu .preset-item:hover {
+  background: var(--bg-3);
+  color: var(--accent-cyan);
+}
+
+.anim2d-presets-menu .preset-sep {
+  height: 1px;
+  background: var(--line);
+  margin: 3px 0;
+}
+
+.rotate-270 {
+  transform: rotate(270deg);
+}
+
+/* Waypoints List Scroll Area */
+.anim2d-waypoints-list {
+  flex: 0 0 auto;
+  max-height: 155px;
+  min-height: 60px;
+  overflow-y: auto;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-0);
+}
+
+.anim2d-wp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 7px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.anim2d-wp-card:hover {
+  background: var(--bg-3);
+  border-color: var(--line-focus);
+}
+
+.anim2d-wp-card.active {
+  background: var(--bg-2);
+  border-color: var(--accent-cyan);
+  box-shadow: inset 2px 0 0 var(--accent-cyan), 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.anim2d-wp-row-1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.anim2d-wp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wp-num {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.wp-time {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.wp-dur {
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.anim2d-wp-tag {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+}
+
+.anim2d-wp-tag.start {
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--accent-cyan);
+}
+
+.anim2d-wp-tag.pan {
+  background: rgba(99, 102, 241, 0.18);
+  color: #818cf8;
+}
+
+.anim2d-wp-tag.zoom-in {
+  background: rgba(234, 179, 8, 0.18);
+  color: var(--key);
+}
+
+.anim2d-wp-tag.zoom-out {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.anim2d-wp-tag.hold {
+  background: var(--bg-3);
+  color: var(--text-dim);
+}
+
+.anim2d-wp-row-2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.wp-meta-item.ease {
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--text-faint);
+  font-family: monospace;
+}
+
+.anim2d-wp-quick-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 2px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--line-soft);
+}
+
+/* Waypoint Parameter Inspector */
+.anim2d-wp-inspector {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 55%;
+  min-height: 0;
+  background: var(--bg-1);
+  overflow: hidden;
+}
+
+.anim2d-inspector-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.anim2d-inspector-head .head-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.anim2d-inspector-head .head-shot-name {
+  font-size: 9px;
+  color: var(--text-dim);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.anim2d-inspector-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 8px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.anim2d-prop-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.prop-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.prop-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.prop-val-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.link-btn {
+  font-size: 9px;
+  color: var(--accent-cyan);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.link-btn:hover {
+  color: var(--text);
+}
+
+.prop-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.prop-row.dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.prop-row.mt-4 {
+  margin-top: 4px;
+}
+
+.input-with-label {
+  display: flex;
+  align-items: center;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0 4px;
+  height: 24px;
+}
+
+.input-with-label:focus-within {
+  border-color: var(--accent-cyan);
+}
+
+.input-prefix {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-faint);
+  margin-right: 4px;
+  user-select: none;
+}
+
+.input-with-label input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 10px;
+  font-family: inherit;
+  text-align: right;
+}
+
+.range-slider {
+  width: 100%;
+  accent-color: var(--accent-cyan);
+  height: 4px;
+  cursor: pointer;
+}
+
+.preset-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 3px;
+}
+
+.preset-buttons .btn {
+  padding: 2px 4px;
+  font-size: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preset-buttons .btn.active {
+  background: var(--accent-cyan);
+  color: #000;
+  font-weight: 600;
+}
+
+.anim2d-inspector-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line-soft);
+}
+
