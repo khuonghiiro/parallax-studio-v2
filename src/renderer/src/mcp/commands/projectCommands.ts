@@ -1,6 +1,6 @@
 import type { LookSettings, Project } from '@shared/types'
 import { referenceDistance } from '../../animation/math'
-import { setCompDuration } from '../../actions'
+import { setCompDuration, isInternalSourcePath } from '../../actions'
 import { isExporting, runExport } from '../../export/runExport'
 import { assetStore } from '../../project/assets'
 import * as factory from '../../project/factory'
@@ -69,6 +69,9 @@ export const projectCommands: Record<string, Handler> = {
   save_project: async (p) => {
     const path = str(p, 'path') ?? ed().filePath
     if (!path) throw new ParamError('Missing "path" (absolute path ending in .pxs)')
+    if (isInternalSourcePath(path)) {
+      throw new ParamError('Cannot overwrite internal source or demo files with save_project')
+    }
     const data = await serializeProject(proj())
     const saved = await window.api.saveProject(data, path)
     if (!saved) throw new Error('Save failed')
@@ -85,7 +88,8 @@ export const projectCommands: Record<string, Handler> = {
     } else {
       project = await deserializeProject(cmd.file.data)
     }
-    ed().loadProject(project, cmd.file.path)
+    const safePath = isInternalSourcePath(cmd.file.path) ? null : cmd.file.path
+    ed().loadProject(project, safePath)
     return { path: cmd.file.path, shots: project.shots.length, layers: project.layers.length }
   },
 
@@ -100,7 +104,8 @@ export const projectCommands: Record<string, Handler> = {
       throw new ParamError('Provide "json" string/object or "file_path"')
     }
     const project = await importProjectFromJson(jsonStr)
-    ed().loadProject(project, cmd.file?.path ?? null)
+    const safePath = isInternalSourcePath(cmd.file?.path) ? null : (cmd.file?.path ?? null)
+    ed().loadProject(project, safePath)
     return {
       name: project.comp.name,
       shots: project.shots.length,

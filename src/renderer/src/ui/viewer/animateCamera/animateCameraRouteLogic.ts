@@ -7,6 +7,7 @@ import {
   clampCameraAngle,
   clampFrameScale,
   extractCameraFrames2D,
+  findNearestShotByStage2D,
   pose3DToStageFrame,
   type CameraFrame2D,
   type ShotStageBox
@@ -142,7 +143,10 @@ export function panCameraToShot(
   scale = 1.0,
   ease: EaseName = 'easeInOut'
 ): void {
-  const box = layout.find((b) => b.shotId === targetShotId) || layout[0]
+  const box =
+    (targetShotId && targetShotId !== 'global'
+      ? layout.find((b) => b.shotId === targetShotId)
+      : null) ?? layout[0]
   if (!box) return
 
   if (time > draft.comp.duration) {
@@ -174,7 +178,8 @@ export function panCameraToLayer2D(
   ease: EaseName = 'easeInOut',
   layerDepthZ?: number
 ): void {
-  const box = layout.find((b) => b.shotId === shotId) || layout[0]
+  const box =
+    (shotId && shotId !== 'global' ? layout.find((b) => b.shotId === shotId) : null) ?? layout[0]
   if (!box) return
 
   const targetStageX = Math.round(box.stageX + layerOffsetX)
@@ -338,8 +343,18 @@ export function applyWaypointActionMode(
 ): void {
   const frames = extractCameraFrames2D(draft, layout)
   const tol = Math.max(frameTolerance(draft), 0.04)
-  const idx = frames.findIndex((f) => Math.abs(f.time - waypointTime) <= tol)
-  const cur = idx >= 0 ? frames[idx] : frames[0]
+  let idx = frames.findIndex((f) => Math.abs(f.time - waypointTime) <= tol)
+  if (idx < 0 && frames.length > 0) {
+    let bestDist = Infinity
+    for (let i = 0; i < frames.length; i++) {
+      const d = Math.abs(frames[i].time - waypointTime)
+      if (d < bestDist) {
+        bestDist = d
+        idx = i
+      }
+    }
+  }
+  const cur = idx >= 0 ? frames[idx] : null
   if (!cur) return
   const prev = idx > 0 ? frames[idx - 1] : null
 
@@ -455,9 +470,23 @@ export function alignWaypointInShot(
 ): void {
   const frames = extractCameraFrames2D(draft, layout)
   const tol = Math.max(frameTolerance(draft), 0.04)
-  const cur = frames.find((f) => Math.abs(f.time - waypointTime) <= tol) ?? frames[0]
+  let cur = frames.find((f) => Math.abs(f.time - waypointTime) <= tol)
+  if (!cur && frames.length > 0) {
+    let bestDist = Infinity
+    for (const f of frames) {
+      const d = Math.abs(f.time - waypointTime)
+      if (d < bestDist) {
+        bestDist = d
+        cur = f
+      }
+    }
+  }
   if (!cur) return
-  const box = layout.find((b) => b.shotId === cur.shotId) ?? layout[0]
+
+  const box =
+    (cur.shotId ? layout.find((b) => b.shotId === cur.shotId) : null) ??
+    findNearestShotByStage2D(layout, cur.stageX, cur.stageY) ??
+    layout[0]
   if (!box) return
 
   if (align === 'reset-angles') {

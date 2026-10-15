@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { EaseName } from '@shared/types'
 import { setCompDuration, toast } from '../../actions'
 import { evaluateScene } from '../../engine/evaluateScene'
@@ -18,6 +18,7 @@ import {
   clampFrameScale,
   computeShotStageLayout,
   extractCameraFrames2D,
+  findNearestShotByStage2D,
   projectShotLayers2D,
   type ProjectedLayer2D
 } from '../viewer/animateCamera/animateCameraMath'
@@ -45,6 +46,7 @@ export function CameraRouteInspector() {
   const setTime = useEditor((s) => s.setTime)
   const update = useEditor((s) => s.update)
   const setPlaying = useEditor((s) => s.setPlaying)
+  const selectShot = useEditor((s) => s.selectShot)
   const primaryView = useView((s) => s.primary)
 
   const [showPresetsMenu, setShowPresetsMenu] = useState(false)
@@ -82,6 +84,19 @@ export function CameraRouteInspector() {
       activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     }
   }, [activeFrameIndex])
+
+  const handleSelectWaypoint = useCallback(
+    (wp: CameraWaypointItem): void => {
+      setPlaying(false)
+      setTime(wp.time)
+      const targetShot =
+        wp.shotId ?? findNearestShotByStage2D(stageLayout, wp.stageX, wp.stageY)?.shotId ?? null
+      if (targetShot) {
+        selectShot(targetShot)
+      }
+    },
+    [stageLayout, selectShot, setPlaying, setTime]
+  )
 
   const layersByShot = useMemo(() => {
     const map = new Map<string | null, ProjectedLayer2D[]>()
@@ -269,6 +284,7 @@ export function CameraRouteInspector() {
     update((draft) => {
       panCameraToShot(draft, stageLayout, shotId, activeWaypoint.time, activeWaypoint.scale)
     })
+    selectShot(shotId === 'global' ? null : shotId)
     toast('Đã căn camera tới cảnh được chọn')
   }
 
@@ -403,10 +419,7 @@ export function CameraRouteInspector() {
               <div
                 key={`wp-card-${wp.time}-${idx}`}
                 className={`route-wp-card${isActive ? ' active' : ''}`}
-                onClick={() => {
-                  setPlaying(false)
-                  setTime(wp.time)
-                }}
+                onClick={() => handleSelectWaypoint(wp)}
               >
                 <div className="wp-card-head">
                   <div className="wp-card-title">
@@ -461,8 +474,12 @@ export function CameraRouteInspector() {
           activeShotLayers={activeShotLayers}
           compDuration={project.comp.duration}
           onSelectTime={(t) => {
-            setPlaying(false)
-            setTime(t)
+            const wp = waypoints.find((w) => Math.abs(w.time - t) <= 0.05)
+            if (wp) handleSelectWaypoint(wp)
+            else {
+              setPlaying(false)
+              setTime(t)
+            }
           }}
           onUpdate={handleUpdate}
           onApplyActionMode={handleApplyActionMode}

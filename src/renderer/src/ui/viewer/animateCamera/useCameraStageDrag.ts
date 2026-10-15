@@ -10,6 +10,7 @@ import {
   type ShotStageBox
 } from './animateCameraMath'
 import { updateCameraWaypoint } from './animateCameraRouteLogic'
+import { useEditor } from '../../../store/editor'
 
 interface UseCameraStageDragParams {
   compWidth: number
@@ -43,6 +44,11 @@ export function useCameraStageDrag({
     e.preventDefault()
     setPlaying(false)
     setTime(frame.time)
+    const initShot =
+      frame.shotId ?? findNearestShotByStage2D(stageLayout, frame.stageX, frame.stageY)?.shotId ?? null
+    if (initShot) {
+      useEditor.getState().selectShot(initShot)
+    }
 
     const startClientX = e.clientX
     const startClientY = e.clientY
@@ -50,6 +56,8 @@ export function useCameraStageDrag({
     const origStageY = frame.stageY
     const frameTime = frame.time
     const mergeKey = `anim2d-move-${nanoid(6)}`
+    let lastX = origStageX
+    let lastY = origStageY
 
     const onMove = (pev: PointerEvent): void => {
       const dxScreen = pev.clientX - startClientX
@@ -76,6 +84,8 @@ export function useCameraStageDrag({
         }
       }
 
+      lastX = nextX
+      lastY = nextY
       setSnapGuide({ x: snappedX, y: snappedY })
       update((d) => {
         applyStageFrameToDraft(d, stageLayout, frameTime, nextX, nextY, frame.scale, frame.isKeyframed, {
@@ -91,6 +101,10 @@ export function useCameraStageDrag({
       setSnapGuide({ x: null, y: null })
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      const finalShot = findNearestShotByStage2D(stageLayout, lastX, lastY)?.shotId ?? null
+      if (finalShot) {
+        useEditor.getState().selectShot(finalShot)
+      }
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)

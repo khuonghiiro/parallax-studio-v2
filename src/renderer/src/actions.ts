@@ -92,13 +92,25 @@ export async function openProject(): Promise<void> {
   }
 }
 
+export function isInternalSourcePath(path: string | null | undefined): boolean {
+  if (!path) return false
+  const p = path.replace(/\\/g, '/').toLowerCase()
+  return (
+    p.includes('/src/renderer/') ||
+    p.includes('/src/main/') ||
+    p.endsWith('demoproject.json') ||
+    p.includes('/node_modules/')
+  )
+}
+
 export async function openProjectJson(): Promise<void> {
   if (!confirmDiscard()) return
   try {
     const res = await window.api.openJson()
     if (!res) return
     const p = await importProjectFromJson(res.content)
-    editor().loadProject(p, res.path)
+    const safePath = isInternalSourcePath(res.path) ? null : res.path
+    editor().loadProject(p, safePath)
     toast('Đã mở dự án từ JSON')
   } catch (err) {
     window.alert(`Không mở được file JSON:\n${String(err)}`)
@@ -109,11 +121,15 @@ export async function saveProjectJson(): Promise<void> {
   const { project, filePath } = editor()
   try {
     const jsonStr = await exportProjectToJson(project)
-    const baseName = (filePath ? filePath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, '') : project.comp.name || 'project') + '.json'
+    const isInternal = isInternalSourcePath(filePath)
+    const baseName =
+      (!isInternal && filePath
+        ? filePath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, '')
+        : project.comp.name || 'project') + '.json'
     const path = await window.api.saveJson(jsonStr, baseName)
     if (path) {
       editor().markSaved(path)
-      toast('Đã xuất dự án ra JSON')
+      toast('Đã lưu dự án ra JSON')
     }
   } catch (err) {
     window.alert(`Không xuất được JSON:\n${String(err)}`)
@@ -122,11 +138,22 @@ export async function saveProjectJson(): Promise<void> {
 
 export async function saveProject(saveAs = false): Promise<void> {
   const { project, filePath } = editor()
+  const isInternal = isInternalSourcePath(filePath)
+  const isJson = Boolean(filePath?.toLowerCase().endsWith('.json'))
+
+  // Nếu tệp hiện tại là JSON, lưu lại dưới định dạng JSON text sạch sẽ
+  if (isJson) {
+    await saveProjectJson()
+    return
+  }
+
+  // Tuyệt đối không ghi đè vào file mã nguồn/demo nội bộ; mở hộp thoại Lưu Thành (Save As)
+  const validPath = !saveAs && !isInternal && filePath ? filePath : undefined
   const data = await serializeProject(project)
-  const path = await window.api.saveProject(data, saveAs ? undefined : (filePath ?? undefined))
+  const path = await window.api.saveProject(data, validPath)
   if (path) {
     editor().markSaved(path)
-    toast('Đã lưu dự án')
+    toast('Đã lưu dự án (.pxs)')
   }
 }
 

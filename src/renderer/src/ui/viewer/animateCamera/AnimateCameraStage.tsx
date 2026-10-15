@@ -22,6 +22,7 @@ import {
   computeShotStageLayout,
   evaluateLiveCameraFrame2D,
   extractCameraFrames2D,
+  findNearestShotByStage2D,
   projectShotLayers2D,
   type CameraFrame2D,
   type ProjectedLayer2D,
@@ -35,7 +36,8 @@ import {
   panCameraToLayer2D,
   panCameraToShot,
   updateCameraWaypoint,
-  type CameraActionMode
+  type CameraActionMode,
+  type CameraWaypointItem
 } from './animateCameraRouteLogic'
 import { useCameraStageDrag } from './useCameraStageDrag'
 
@@ -354,6 +356,19 @@ export function AnimateCameraStage() {
     toast(`📍 Đã dời tâm Camera tới (${stageX}, ${stageY})`)
   }
 
+  const handleSelectFrame = useCallback(
+    (f: CameraFrame2D | CameraWaypointItem): void => {
+      setPlaying(false)
+      setTime(f.time)
+      const targetShot =
+        f.shotId ?? findNearestShotByStage2D(stageLayout, f.stageX, f.stageY)?.shotId ?? null
+      if (targetShot) {
+        selectShot(targetShot)
+      }
+    },
+    [stageLayout, selectShot, setPlaying, setTime]
+  )
+
   return (
     <div id="animate-camera-stage" className={`anim2d-stage ${theme}`}>
       {/* Thanh công cụ 2 dòng siêu gọn: Dòng 1 nhường góc phải cho bộ nút chuyển View chính, Dòng 2 chứa đầy đủ nút tạo mốc & điều khiển */}
@@ -548,10 +563,7 @@ export function AnimateCameraStage() {
           showGrid={showGrid}
           snapGuide={snapGuide}
           stageToScreen={stageToScreen}
-          onSelectFrame={(f) => {
-            setPlaying(false)
-            setTime(f.time)
-          }}
+          onSelectFrame={handleSelectFrame}
           onStartMoveDrag={startFrameMoveDrag}
           onStartResizeDrag={startFrameResizeDrag}
           onStartRotateDrag={startFrameRotateDrag}
@@ -584,10 +596,7 @@ export function AnimateCameraStage() {
                 <button
                   type="button"
                   className={`anim2d-frame-pill${isActive ? ' active' : ''}`}
-                  onClick={() => {
-                    setPlaying(false)
-                    setTime(wp.time)
-                  }}
+                  onClick={() => handleSelectFrame(wp)}
                   title={`Mốc #${idx + 1} tại ${wp.time.toFixed(1)}s · ${wp.tagLabel}\nCảnh: ${wp.shotName} · Zoom ${wp.zoomPct}% · ${wp.angleSummary}`}
                 >
                   <span className="anim2d-pill-num">#{idx + 1}</span>

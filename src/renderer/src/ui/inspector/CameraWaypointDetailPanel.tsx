@@ -1,6 +1,10 @@
 import type { EaseName } from '@shared/types'
 import { CustomSelect } from '../controls/CustomSelect'
-import type { ProjectedLayer2D, ShotStageBox } from '../viewer/animateCamera/animateCameraMath'
+import {
+  findNearestShotByStage2D,
+  type ProjectedLayer2D,
+  type ShotStageBox
+} from '../viewer/animateCamera/animateCameraMath'
 import type {
   CameraActionMode,
   CameraWaypointItem
@@ -78,6 +82,18 @@ export function CameraWaypointDetailPanel({
     Math.abs(activeWaypoint.pitch) >= 0.5 ||
     Math.abs(activeWaypoint.roll) >= 0.5
 
+  const currentShotBox =
+    (activeWaypoint.shotId ? stageLayout.find((b) => b.shotId === activeWaypoint.shotId) : null) ??
+    findNearestShotByStage2D(stageLayout, activeWaypoint.stageX, activeWaypoint.stageY) ??
+    stageLayout[0]
+
+  const localOffsetX = Math.round(
+    activeWaypoint.stageX - (currentShotBox ? currentShotBox.stageX : 0)
+  )
+  const localOffsetY = Math.round(
+    activeWaypoint.stageY - (currentShotBox ? currentShotBox.stageY : 0)
+  )
+
   return (
     <div className="section active-wp-section">
       {/* Header điều hướng nhanh giữa các Mốc */}
@@ -136,13 +152,13 @@ export function CameraWaypointDetailPanel({
       {/* 2. Điểm nhìn (Cảnh, Layer) & Vị trí Lia 2D */}
       <div className="row-group">
         <div className="field-header">
-          <label>Vị trí Lia &amp; Điểm Ngắm (Pan 2D)</label>
+          <label>Lệch tâm trong Cảnh (ΔX, ΔY)</label>
           <div className="quick-align-strip">
             <button
               type="button"
               className="mini-chip-btn"
               onClick={() => onAlignInShot('left')}
-              title="Lia lệch sang phần bên trái của Cảnh"
+              title={`Lia lệch sang phần bên trái của cảnh “${currentShotBox?.name}”`}
             >
               ↤ Trái
             </button>
@@ -150,7 +166,7 @@ export function CameraWaypointDetailPanel({
               type="button"
               className="mini-chip-btn"
               onClick={() => onAlignInShot('center')}
-              title="Căn tâm Camera về chính giữa Cảnh hiện tại"
+              title={`Căn tâm Camera về chính giữa cảnh “${currentShotBox?.name}”`}
             >
               ⊡ Tâm
             </button>
@@ -158,7 +174,7 @@ export function CameraWaypointDetailPanel({
               type="button"
               className="mini-chip-btn"
               onClick={() => onAlignInShot('right')}
-              title="Lia lệch sang phần bên phải của Cảnh"
+              title={`Lia lệch sang phần bên phải của cảnh “${currentShotBox?.name}”`}
             >
               Phải ↦
             </button>
@@ -166,30 +182,48 @@ export function CameraWaypointDetailPanel({
         </div>
 
         <div className="field-row">
-          <div className="input-prefix-box">
-            <span className="prefix">X</span>
+          <div
+            className="input-prefix-box"
+            title={`Độ lệch ngang so với tâm cảnh “${currentShotBox?.name}” (0px = chính giữa)`}
+          >
+            <span className="prefix">ΔX</span>
             <input
               type="number"
               step="10"
-              value={activeWaypoint.stageX}
+              value={localOffsetX}
               onChange={(e) => {
                 const val = parseInt(e.target.value, 10)
-                if (!isNaN(val)) onUpdate({ stageX: val }, 'wp-pan-x')
+                if (!isNaN(val)) {
+                  const nextStageX = (currentShotBox ? currentShotBox.stageX : 0) + val
+                  onUpdate({ stageX: nextStageX }, 'wp-pan-x')
+                }
               }}
             />
           </div>
-          <div className="input-prefix-box">
-            <span className="prefix">Y</span>
+          <div
+            className="input-prefix-box"
+            title={`Độ lệch dọc so với tâm cảnh “${currentShotBox?.name}” (0px = chính giữa)`}
+          >
+            <span className="prefix">ΔY</span>
             <input
               type="number"
               step="10"
-              value={activeWaypoint.stageY}
+              value={localOffsetY}
               onChange={(e) => {
                 const val = parseInt(e.target.value, 10)
-                if (!isNaN(val)) onUpdate({ stageY: val }, 'wp-pan-y')
+                if (!isNaN(val)) {
+                  const nextStageY = (currentShotBox ? currentShotBox.stageY : 0) + val
+                  onUpdate({ stageY: nextStageY }, 'wp-pan-y')
+                }
               }}
             />
           </div>
+        </div>
+
+        <div style={{ fontSize: '11px', color: 'var(--text-faint)', marginTop: '2px', display: 'flex', gap: '6px' }}>
+          <span>Neo tại: <b style={{ color: 'var(--text-dim)' }}>🎬 {currentShotBox?.name}</b></span>
+          <span>•</span>
+          <span>Sân khấu: ({activeWaypoint.stageX}, {activeWaypoint.stageY})</span>
         </div>
 
         <div className="target-selects-grid">
