@@ -177,8 +177,13 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   layer_assembly_source: ['.layer-cutter-pane.left-pane'],
   layer_assembly_target: ['.layer-cutter-target-container'],
   layer_assembly_motion_sketch: ['.lw-motion-sketch-card', '.lw-motion-sketch-overlay'],
-  layer_assembly_anim_tools: ['.lw-anim-chips', '.lw-anim-assist-card', '.lw-secondary-card'],
-  layer_assembly_plant_motion: ['.lw-plant-motion', '.lw-plant-motion-chips'],
+  layer_assembly_anim_tools: ['.lw-anim-assist-card', '.lw-secondary-card', '.lw-anim-chips'],
+  layer_assembly_anim_chips: ['.lw-anim-chips'],
+  layer_assembly_anim_assist: ['.lw-anim-assist-card'],
+  layer_assembly_anim_secondary: ['.lw-secondary-card'],
+  layer_assembly_plant_motion: ['.lw-plant-motion', '.lw-plant-panel', '.lw-plant-motion-chips'],
+  layer_assembly_plant_chips: ['.lw-plant-motion-chips'],
+  layer_assembly_plant_panel: ['.lw-plant-panel'],
 
   // 3. Audio Studio (Phòng thu Âm thanh) - Toàn bộ & Từng cột
   audio_studio: ['.audio-studio-modal', '.audio-studio-dialog'],
@@ -294,17 +299,26 @@ export const uiCommands: Record<string, Handler> = {
     root?.classList.add('ai-screenshot-hide-neon')
 
     try {
-      await sleep(Math.max(0, Math.min(5000, num(p, 'delay_ms') ?? 150)))
-      // Đánh thức compositor ngầm của Chromium khi cửa sổ bị che khuất để commit frame DOM/WebGL mới nhất
-      await capture({ width: 64, format: 'jpeg' }).catch(() => undefined)
-      await nextPaint()
-      const width = num(p, 'width')
-      const format = str(p, 'format') === 'jpeg' ? 'jpeg' : 'png'
       const region = str(p, 'region')
       const selector = str(p, 'selector')
+      const targetEl = resolveTargetElement(region, selector)
+      if (targetEl) {
+        try {
+          targetEl.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+        } catch {
+          /* ignore scroll errors */
+        }
+      }
+
+      await sleep(Math.max(0, Math.min(5000, num(p, 'delay_ms') ?? 150)))
+      // Đánh thức compositor ngầm của Chromium khi cửa sổ bị che khuất để commit frame DOM/WebGL mới nhất (bao gồm cả vị trí cuộn mới)
+      await capture({ width: 64, format: 'jpeg' }).catch(() => undefined)
+      await nextPaint()
+
+      const width = num(p, 'width')
+      const format = str(p, 'format') === 'jpeg' ? 'jpeg' : 'png'
       const padding = Math.max(0, Math.min(200, num(p, 'padding') ?? 8))
 
-      const targetEl = resolveTargetElement(region, selector)
       let rect: McpRect | undefined
       if (targetEl) {
         const b = targetEl.getBoundingClientRect()

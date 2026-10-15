@@ -145,6 +145,10 @@ describe('MCP layerAssemblyCommands', () => {
     expect(state.selectedLayerId).toBe('l-selected')
     expect(state.isPlaying).toBe(true)
     expect(state.time).toBeCloseTo(1.45)
+    expect(state.animAssist).toBeDefined()
+    expect(typeof state.animAssist.ik).toBe('boolean')
+    expect(state.plantEditor).toBeDefined()
+    expect(state.plantEditor.grabMode).toBe('record')
 
     unregister()
 
@@ -347,6 +351,19 @@ describe('MCP layerAssemblyCommands', () => {
     const panelRes = (await runCommand('set_layer_assembly_panel', { tab: 'bones' })) as any
     expect(panelRes.ok).toBe(true)
     expect(activeTab).toBe('bones')
+
+    const panelAnim = (await runCommand('set_layer_assembly_panel', {
+      tab: 'animation',
+      anim_ik: false,
+      anim_ik_chain: 3,
+      anim_onion: true,
+      plant_grab_mode: 'learn'
+    })) as any
+    expect(panelAnim.ok).toBe(true)
+    expect(panelAnim.animAssist.ik).toBe(false)
+    expect(panelAnim.animAssist.ikChain).toBe(3)
+    expect(panelAnim.animAssist.onion).toBe(true)
+    expect(panelAnim.plantEditor.grabMode).toBe('learn')
 
     // 2. apply-template humanoid
     const tmplRes = (await runCommand('layer_assembly_rig', {

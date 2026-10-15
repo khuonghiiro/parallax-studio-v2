@@ -23,6 +23,8 @@ import { layerWorkshopRigCommands } from './layerWorkshopRigCommands'
 import { layerPlantSpineCommands } from './layerPlantSpineCommands'
 import { layerMotionSketchCommands } from './layerMotionSketchCommands'
 import { layerAnimProCommands } from './layerAnimProCommands'
+import { getPlantSpineEditorState } from '../../ui/layerAssembly/plantSpineEditorStore'
+import { getAnimAssist } from '../../ui/layerAssembly/animAssistStore'
 import { layerWorkshopEditCommands } from './layerWorkshopEditCommands'
 import { validateWorkshop } from '../../ui/layerAssembly/workshopEdits'
 
@@ -283,6 +285,7 @@ export const layerAssemblyCommands: Record<string, Handler> = {
     }
 
     const composite = session.getComposite()
+    const plantEditor = getPlantSpineEditorState()
     return {
       isOpen: true,
       activeSessionId: composite.id,
@@ -294,6 +297,17 @@ export const layerAssemblyCommands: Record<string, Handler> = {
       time: Number(session.getTime().toFixed(3)),
       tab: session.getTab?.() ?? 'layers',
       selectedBoneId: session.getSelectedBoneId?.() ?? null,
+      selectedSpineId: plantEditor.selectedSpineId,
+      animAssist: getAnimAssist(),
+      plantEditor: {
+        preset: plantEditor.preset,
+        target: plantEditor.target,
+        selectedSpineId: plantEditor.selectedSpineId,
+        live: plantEditor.live,
+        grabMode: plantEditor.grabMode,
+        pathRecord: plantEditor.pathRecord,
+        recordEnd: plantEditor.recordEnd
+      },
       composite: toPlain(composite)
     }
   }

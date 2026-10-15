@@ -39,6 +39,43 @@ const commands: Record<string, Handler> = {
   ...uiCommands
 }
 
+function getHandler(canonical: string): Handler | undefined {
+  if (canonical === 'list_commands') {
+    return () => Array.from(new Set([
+      ...Object.keys(commands),
+      ...Object.keys(uiCommands),
+      ...Object.keys(layerAssemblyCommands),
+      ...Object.keys(layerAssemblyTemplateCommands),
+      ...Object.keys(assemblyCommands),
+      ...Object.keys(audioCommands),
+      ...Object.keys(cameraCommands),
+      ...Object.keys(layerCommands),
+      ...Object.keys(shotCommands),
+      ...Object.keys(projectCommands),
+      ...Object.keys(motionCommands),
+      ...Object.keys(proceduralMotionCommands),
+      ...Object.keys(effectStackCommands),
+      ...Object.keys(systemCommands)
+    ])).sort()
+  }
+  return (
+    uiCommands[canonical] ??
+    layerAssemblyCommands[canonical] ??
+    layerAssemblyTemplateCommands[canonical] ??
+    assemblyCommands[canonical] ??
+    audioCommands[canonical] ??
+    cameraCommands[canonical] ??
+    layerCommands[canonical] ??
+    shotCommands[canonical] ??
+    projectCommands[canonical] ??
+    motionCommands[canonical] ??
+    proceduralMotionCommands[canonical] ??
+    effectStackCommands[canonical] ??
+    systemCommands[canonical] ??
+    commands[canonical]
+  )
+}
+
 const WIRE_METHOD_ALIASES: Record<string, string> = {
   capture_app_silent: 'get_app_screenshot'
 }
@@ -50,7 +87,7 @@ export function normalizeMcpMethod(method: string): string {
 /** Run a command by name (also used by execute_script's `api.run`). */
 export async function runCommand(method: string, params: Params = {}, cmd?: McpCommand): Promise<unknown> {
   const canonical = normalizeMcpMethod(method)
-  const h = commands[canonical] ?? uiCommands?.[canonical]
+  const h = getHandler(canonical)
   if (!h) throw new Error(`Unknown method "${method}". Available: ${Object.keys(commands).sort().join(', ')}`)
   return h(params, cmd ?? { reqId: 'local', method: canonical, params })
 }

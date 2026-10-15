@@ -6,6 +6,8 @@ import { getActiveLayerAssemblySession } from '../../ui/layerAssembly/layerAssem
 import { applyRigAction, type RigAction } from '../../ui/layerAssembly/workshopRig'
 import { parseWorkshopAnimation } from './layerWorkshopAnimationParams'
 import { getStoredComposites } from '../../ui/layerAssembly/layerAssemblyStorage'
+import { setPlantSpineEditorState, getPlantSpineEditorState } from '../../ui/layerAssembly/plantSpineEditorStore'
+import { setAnimAssist, getAnimAssist } from '../../ui/layerAssembly/animAssistStore'
 
 export function activeWorkshop() {
   const session = getActiveLayerAssemblySession()
@@ -139,14 +141,71 @@ export const layerWorkshopRigCommands: Record<string, Handler> = {
   },
   set_layer_assembly_panel: (p) => {
     const session = activeWorkshop()
-    const tab = str(p, 'tab', true)
-    if (!['layers', 'bones', 'animation', 'plant'].includes(tab)) throw new ParamError('Invalid tab')
+    const tab = str(p, 'tab')
+    if (tab && !['layers', 'bones', 'animation', 'plant'].includes(tab)) throw new ParamError('Invalid tab')
+    const activeTab = (tab ?? session.getTab?.() ?? 'layers') as 'layers' | 'bones' | 'animation' | 'plant'
+
     const boneId = str(p, 'bone_id') || null
     if (boneId && !session.getComposite().rig?.bones.some((b) => b.id === boneId)) throw new ParamError('Unknown bone ID')
-    session.setTab?.(tab as 'layers' | 'bones' | 'animation' | 'plant')
-    session.setSelectedBoneId?.(boneId)
-    session.setIsPlaying(false)
-    session.setTime(0)
-    return { ok: true, tab, boneId }
+    if (tab) session.setTab?.(activeTab)
+    if (boneId !== null || p.bone_id !== undefined) session.setSelectedBoneId?.(boneId)
+
+    const spineId = str(p, 'spine_id')
+    const plantPatch: Record<string, unknown> = {}
+    if (spineId !== undefined) {
+      if (spineId && !session.getComposite().plantSpines?.some((s) => s.id === spineId)) throw new ParamError('Unknown spine ID')
+      plantPatch.selectedSpineId = spineId || null
+    }
+    const grabMode = str(p, 'plant_grab_mode')
+    if (grabMode) {
+      if (grabMode !== 'record' && grabMode !== 'learn') throw new ParamError('plant_grab_mode must be record or learn')
+      plantPatch.grabMode = grabMode
+    }
+    const recordEnd = str(p, 'plant_record_end')
+    if (recordEnd) {
+      if (recordEnd !== 'loop' && recordEnd !== 'spring') throw new ParamError('plant_record_end must be loop or spring')
+      plantPatch.recordEnd = recordEnd
+    }
+    const pathRecord = bool(p, 'plant_path_record')
+    if (pathRecord !== undefined) plantPatch.pathRecord = pathRecord
+    const plantLive = bool(p, 'plant_live')
+    if (plantLive !== undefined) plantPatch.live = plantLive
+    if (Object.keys(plantPatch).length > 0) setPlantSpineEditorState(plantPatch)
+
+    const animPatch: Record<string, unknown> = {}
+    const animIk = bool(p, 'anim_ik')
+    if (animIk !== undefined) animPatch.ik = animIk
+    const animIkChain = num(p, 'anim_ik_chain')
+    if (animIkChain !== undefined) {
+      if (animIkChain < 2 || animIkChain > 4) throw new ParamError('anim_ik_chain must be 2, 3 or 4')
+      animPatch.ikChain = Math.round(animIkChain)
+    }
+    const animOnion = bool(p, 'anim_onion')
+    if (animOnion !== undefined) animPatch.onion = animOnion
+    const animOnionCount = num(p, 'anim_onion_count')
+    if (animOnionCount !== undefined) animPatch.onionCount = Math.max(1, Math.min(5, Math.round(animOnionCount)))
+    const animOnionStep = num(p, 'anim_onion_step')
+    if (animOnionStep !== undefined) animPatch.onionStep = Math.max(0.03, Math.min(0.5, animOnionStep))
+    const animPath = bool(p, 'anim_path')
+    if (animPath !== undefined) animPatch.path = animPath
+    if (Object.keys(animPatch).length > 0) setAnimAssist(animPatch)
+
+    if (tab) {
+      session.setIsPlaying(false)
+      session.setTime(0)
+    }
+    return {
+      ok: true,
+      tab: activeTab,
+      boneId,
+      spineId: getPlantSpineEditorState().selectedSpineId,
+      animAssist: getAnimAssist(),
+      plantEditor: {
+        grabMode: getPlantSpineEditorState().grabMode,
+        pathRecord: getPlantSpineEditorState().pathRecord,
+        recordEnd: getPlantSpineEditorState().recordEnd,
+        live: getPlantSpineEditorState().live
+      }
+    }
   }
 }

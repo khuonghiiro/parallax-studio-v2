@@ -352,10 +352,21 @@ export const LAYER_ASSEMBLY_TOOLS = [
       'Chuyển đổi giữa 4 tab cột phải (layers, bones, animation, plant) và chọn xương kích hoạt trong xưởng.'
     ),
     shape: (d) => ({
-      tab: z.enum(['layers', 'bones', 'animation', 'plant']).describe(d('Active right panel tab ("plant" = draw plant spines for wind sway).', 'Tab cột phải cần mở ("plant" = vẽ xương thực vật đung đưa theo gió).')),
-      bone_id: z.string().optional().describe(d('Optional bone ID to select.', 'ID xương cần chọn.'))
+      tab: z.enum(['layers', 'bones', 'animation', 'plant']).optional().describe(d('Active right panel tab ("plant" = draw plant spines for wind sway).', 'Tab cột phải cần mở ("plant" = vẽ xương thực vật đung đưa theo gió).')),
+      bone_id: z.string().optional().describe(d('Optional bone ID to select.', 'ID xương cần chọn.')),
+      spine_id: z.string().optional().describe(d('Optional plant spine ID to select.', 'ID xương thực vật cần chọn.')),
+      plant_grab_mode: z.enum(['record', 'learn']).optional().describe(d('Plant grab circle behavior: "record" = records custom hand-drawn sway · "learn" = infers procedural wind amplitude/lean/period.', 'Hành vi vòng tròn ở ngọn: "record" = ghi chuyển động vẽ tay · "learn" = học biên độ/độ nghiêng/nhịp gió tự động.')),
+      plant_record_end: z.enum(['loop', 'spring']).optional().describe(d('Release behavior after grabbing: "loop" = seamless loop · "spring" = damped spring back to rest.', 'Khi thả tay: "loop" = lặp đúng cử chỉ · "spring" = nảy tắt dần về nghỉ.')),
+      plant_path_record: z.boolean().optional().describe(d('Toggle "Record Tip Path" (key R): dragging anywhere on the canvas draws the tip path and records motion.', 'Bật/tắt "Vẽ quỹ đạo ngọn" (phím R): kéo chuột bất kỳ đâu trên khung để vẽ đường đi ngọn.')),
+      plant_live: z.boolean().optional().describe(d('Live wind sway preview in the workshop.', 'Bật/tắt gió trực tiếp trong xưởng.')),
+      anim_ik: z.boolean().optional().describe(d('Enable IK when dragging bone tips (I hotkey).', 'Bật IK khi kéo ngọn xương (phím I).')),
+      anim_ik_chain: z.number().int().min(2).max(4).optional().describe(d('Number of bones in the IK chain (2–4).', 'Số xương trong chuỗi IK (2–4).')),
+      anim_onion: z.boolean().optional().describe(d('Enable onion skin ghosting of previous/next poses (O hotkey).', 'Bật bóng mờ Onion skin các dáng trước/sau (phím O).')),
+      anim_onion_count: z.number().int().min(1).max(5).optional().describe(d('Number of ghosts on each side.', 'Số bóng mỗi bên.')),
+      anim_onion_step: z.number().min(0.03).max(0.5).optional().describe(d('Time spacing between ghosts in seconds.', 'Khoảng thời gian giữa các bóng (giây).')),
+      anim_path: z.boolean().optional().describe(d('Show motion path of the active bone tip (P hotkey).', 'Hiện quỹ đạo chuyển động của ngọn xương đang chọn (phím P).'))
     }),
-    example: '{"tab":"animation"}'
+    example: '{"tab":"animation","anim_ik":true}'
   },
   {
     name: 'layer_assembly_plant_spine',
@@ -388,6 +399,8 @@ export const LAYER_ASSEMBLY_TOOLS = [
       motion_speed: z.number().min(0.1).max(4).optional().describe(d('Playback speed multiplier of the recorded motion (1 = as recorded).', 'Hệ số tốc độ phát lại chuyển động vẽ tay (1 = đúng nhịp đã ghi).')),
       motion_lag: z.number().min(0).max(1).optional().describe(d('Tip delay behind the root in seconds (whip-like follow-through). Default 0.08 for recordings.', 'Độ trễ của ngọn so với gốc (giây), tạo cảm giác đánh roi. Mặc định 0.08 khi ghi.')),
       motion_wind_mix: z.number().min(0).max(1).optional().describe(d('0..1 procedural wind layered on top of the recorded motion.', '0..1 trộn thêm gió tự động chồng lên chuyển động vẽ tay.')),
+      scale_motion: z.number().min(0.05).max(10).optional().describe(d('Scale the bend angle of an existing or new motion (e.g. 1.25 for +25% or 0.8 for -20%).', 'Nhân tỷ lệ góc uốn của chuyển động hiện có hoặc mới (ví dụ 1.25 = mạnh hơn 25%, 0.8 = nhẹ hơn 20%).')),
+      mirror_motion: z.boolean().optional().describe(d('Mirror the bend angles of the motion (swaps left and right sways).', 'Đảo chiều góc uốn của chuyển động (đổi qua lại giữa lắc trái và lắc phải).')),
       clear_motion: z.boolean().optional().describe(d('Remove the recorded motion and return to procedural wind.', 'Xoá chuyển động vẽ tay, quay về gió tự động.'))
     }),
     example: '{"action":"add","points":[[0,180],[4,90],[-6,0],[2,-90]],"apply_to":"all","preset":"sapling"}'

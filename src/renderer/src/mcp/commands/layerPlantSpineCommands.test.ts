@@ -89,6 +89,13 @@ describe('layer_assembly_plant_spine', () => {
     expect(m.duration).toBe(1.5)
     expect(m.speed).toBeUndefined()
 
+    await runCommand('layer_assembly_plant_spine', {
+      action: 'update', spine_id: added.spineId, scale_motion: 1.5, mirror_motion: true
+    })
+    const m2 = ws.get().plantSpines![0].motion!
+    expect(m2.keys[1].angle).toBe(-22.5)
+    expect(m2.keys[2].angle).toBe(22.5)
+
     await runCommand('layer_assembly_plant_spine', { action: 'update', spine_id: added.spineId, clear_motion: true })
     expect(ws.get().plantSpines![0].motion).toBeUndefined()
     await expect(runCommand('layer_assembly_plant_spine', { action: 'update', spine_id: added.spineId, motion_lag: 0.2 })).rejects.toThrow()

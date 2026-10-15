@@ -2,7 +2,7 @@ import type { PlantSpine, PlantSpineMotion } from '@shared/plantSpine'
 import type { Params } from '../types'
 import { ParamError } from '../types'
 import { bool, num, str } from '../params'
-import { buildPlantMotion, type PlantRecordEnd } from '../../ui/layerAssembly/plantMotionRecord'
+import { buildPlantMotion, mirrorPlantMotion, scalePlantMotion, type PlantRecordEnd } from '../../ui/layerAssembly/plantMotionRecord'
 
 /** Đọc mảng [[t, angle], ...] số hữu hạn. */
 function parsePairs(p: Params, key: string): Array<[number, number]> | undefined {
@@ -43,7 +43,7 @@ function samplesMotion(p: Params, current?: PlantSpineMotion): PlantSpineMotion 
 /**
  * Tham số chuyển động vẽ tay cho layer_assembly_plant_spine:
  * motion_keys (mốc trực tiếp) | motion_samples (+ motion_end: mô phỏng nắm ngọn kéo) | clear_motion,
- * cùng motion_speed / motion_lag / motion_wind_mix chỉnh phát lại.
+ * cùng motion_speed / motion_lag / motion_wind_mix / scale_motion / mirror_motion chỉnh phát lại.
  * Trả về undefined khi không có tham số chuyển động nào; { motion: undefined } khi xoá.
  */
 export function parsePlantMotionPatch(p: Params, current?: PlantSpine['motion']): Pick<PlantSpine, 'motion'> | undefined {
@@ -52,10 +52,18 @@ export function parsePlantMotionPatch(p: Params, current?: PlantSpine['motion'])
   const speed = num(p, 'motion_speed')
   const lag = num(p, 'motion_lag')
   const windMix = num(p, 'motion_wind_mix')
-  const tweaks = speed !== undefined || lag !== undefined || windMix !== undefined
+  const scale = num(p, 'scale_motion')
+  const mirror = bool(p, 'mirror_motion')
+  const tweaks = speed !== undefined || lag !== undefined || windMix !== undefined || scale !== undefined || mirror !== undefined
   if (!motion && !tweaks) return undefined
   motion = motion ?? current
-  if (!motion) throw new ParamError('motion_speed / motion_lag / motion_wind_mix need an existing or new motion (motion_keys / motion_samples)')
+  if (!motion) throw new ParamError('motion_speed / motion_lag / motion_wind_mix / scale_motion / mirror_motion need an existing or new motion')
+  if (scale !== undefined && scale > 0) {
+    motion = scalePlantMotion(motion, scale)
+  }
+  if (mirror) {
+    motion = mirrorPlantMotion(motion)
+  }
   return {
     motion: {
       ...motion,
