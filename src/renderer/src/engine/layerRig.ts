@@ -19,8 +19,16 @@ export function rotatePoint(x: number, y: number, angle: number) {
   return { x: x * c - y * s, y: x * s + y * c }
 }
 
-/** World delta from the bind pose. Layers never jump when attached to a resting bone. */
-export function evaluateRig(rig: LayerRig, time: number, rest = false): Map<string, BoneTransform> {
+/**
+ * World delta from the bind pose. Layers never jump when attached to a resting bone.
+ * adjust (tuỳ chọn): chỉnh tạm tư thế từng xương trước khi tính (IK, vật lý thứ cấp) mà không sửa track.
+ */
+export function evaluateRig(
+  rig: LayerRig,
+  time: number,
+  rest = false,
+  adjust?: (boneId: string, pose: BonePose) => BonePose
+): Map<string, BoneTransform> {
   const result = new Map<string, BoneTransform>()
   const bones = new Map(rig.bones.map((b) => [b.id, b]))
   const visiting = new Set<string>()
@@ -30,7 +38,8 @@ export function evaluateRig(rig: LayerRig, time: number, rest = false): Map<stri
     if (!bone || visiting.has(id)) return undefined
     visiting.add(id)
     const parent = bone.parentId ? visit(bone.parentId) : undefined
-    const pose = rest ? REST : sampleBonePose(rig, id, time)
+    const sampled = rest ? REST : sampleBonePose(rig, id, time)
+    const pose = adjust ? adjust(id, sampled) : sampled
     const parentAngle = parent?.rotation ?? 0
     const pivot = rotatePoint(bone.x + pose.x, bone.y + pose.y, parentAngle)
     const x = pivot.x + (parent?.tx ?? 0), y = pivot.y + (parent?.ty ?? 0)

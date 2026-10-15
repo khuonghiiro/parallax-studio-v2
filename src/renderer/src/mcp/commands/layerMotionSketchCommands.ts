@@ -47,15 +47,14 @@ export const layerMotionSketchCommands: Record<string, Handler> = {
     const { samples, timed } = parseSamples(p)
     const duration = num(p, 'duration') ?? DEFAULT_SKETCH_SETTINGS.duration
     if (duration < 0.1 || duration > 20) throw new ParamError('duration must be between 0.1 and 20 seconds')
-    const settings = {
-      mode: parseEnum<MotionSketchMode>(p, 'mode', ['rotate', 'move']) ?? 'rotate',
-      timing: parseEnum<MotionSketchTiming>(p, 'timing', ['hand', 'even']) ?? (timed ? 'hand' : 'even'),
-      duration,
-      loopBack: bool(p, 'loop_back') ?? false,
-      autoPlay: bool(p, 'play') ?? false
-    }
+    const chain = Math.round(num(p, 'chain_length') ?? 1)
+    if (chain < 1 || chain > 4) throw new ParamError('chain_length must be between 1 and 4')
+    const timing = parseEnum<MotionSketchTiming>(p, 'timing', ['live', 'hand', 'even']) ?? (timed ? 'hand' : 'even')
+    if (timing === 'live' && !timed) throw new ParamError('timing "live" needs timed points [x, y, t]')
+    const mode = parseEnum<MotionSketchMode>(p, 'mode', ['rotate', 'move']) ?? 'rotate'
+    const settings = { mode, timing, duration, chain, loopBack: bool(p, 'loop_back') ?? false, autoPlay: bool(p, 'play') ?? false }
     const startTime = Math.min(rig.duration, Math.max(0, num(p, 'start_time') ?? session.getTime()))
-    const anchor = createSketchAnchor(rig, boneId, startTime, samples[0])
+    const anchor = createSketchAnchor(rig, boneId, startTime, samples[0], mode === 'rotate' ? chain : 1)
     const result = applyMotionSketch(composite, anchor, samples, settings, startTime)
     session.setComposite(result.composite)
     if (settings.autoPlay) {
@@ -67,9 +66,11 @@ export const layerMotionSketchCommands: Record<string, Handler> = {
       bone_id: boneId,
       mode: settings.mode,
       timing: settings.timing,
+      chain_bones: anchor.ik ? anchor.ik.chain.boneIds : [boneId],
       start_time: result.startTime,
       end_time: result.endTime,
       key_count: result.keys.length,
+      track_key_counts: Object.fromEntries(Object.entries(result.tracks).map(([id, keys]) => [id, keys.length])),
       keys: toPlain(result.keys),
       clip_duration: result.composite.rig?.duration
     }

@@ -1,6 +1,7 @@
 import type { PointerEvent, MouseEvent } from 'react'
 import type { PlantSpine, PlantSpinePoint } from '@shared/plantSpine'
 import { evaluatePlantSpine, plantStaticPose } from '../../engine/plantSpine'
+import { plantMotionRange } from '../../engine/plantMotion'
 import { grabbedSpine, plantGrabHandle } from './plantSpineEdit'
 
 export const toPlantPath = (pts: PlantSpinePoint[]) =>
@@ -28,25 +29,40 @@ export function PlantSpineShape({ spine, time, selected, grabAngle }: {
 
 /** Bóng biên độ: 2 dáng cực trái/phải + cung quỹ đạo ngọn, giúp thấy ngay cây sẽ đung đưa rộng tới đâu. */
 function SwayRange({ spine }: { spine: PlantSpine }) {
-  const amp = Math.abs(spine.amplitude)
-  const lean = spine.lean ?? 0
-  if (amp < 0.25 && Math.abs(lean) < 0.25) return null
-  const left = plantStaticPose(spine, lean - amp)
-  const right = plantStaticPose(spine, lean + amp)
+  const range = swayLimits(spine)
+  if (!range) return null
+  const { lo, hi, center } = range
+  const left = plantStaticPose(spine, lo)
+  const right = plantStaticPose(spine, hi)
   const arc: PlantSpinePoint[] = []
   for (let k = 0; k <= 12; k++) {
-    const pose = plantStaticPose(spine, lean - amp + (2 * amp * k) / 12)
+    const pose = plantStaticPose(spine, lo + ((hi - lo) * k) / 12)
     arc.push(pose[pose.length - 1])
   }
-  const center = plantStaticPose(spine, lean)
+  const lean = center
+  const centerPose = plantStaticPose(spine, center)
   return (
-    <g className="lw-plant-range" pointerEvents="none">
+    <g className={`lw-plant-range${spine.motion ? ' recorded' : ''}`} pointerEvents="none">
       <path d={toPlantPath(left)} className="lw-plant-range-ghost" />
       <path d={toPlantPath(right)} className="lw-plant-range-ghost" />
-      {Math.abs(lean) >= 0.25 && <path d={toPlantPath(center)} className="lw-plant-range-lean" />}
+      {Math.abs(lean) >= 0.25 && <path d={toPlantPath(centerPose)} className="lw-plant-range-lean" />}
       <path d={toPlantPath(arc)} className="lw-plant-range-arc" />
     </g>
   )
+}
+
+/** Biên góc ngọn: theo bản ghi vẽ tay (min/max thật) hoặc theo gió (nghiêng ± biên độ). */
+function swayLimits(spine: PlantSpine): { lo: number; hi: number; center: number } | null {
+  if (spine.motion?.keys.length) {
+    const { min, max } = plantMotionRange(spine.motion)
+    const wind = Math.abs(spine.amplitude) * Math.min(1, Math.max(0, spine.motion.windMix ?? 0))
+    if (max - min < 0.5 && wind < 0.25) return null
+    return { lo: min - wind, hi: max + wind, center: 0 }
+  }
+  const amp = Math.abs(spine.amplitude)
+  const lean = spine.lean ?? 0
+  if (amp < 0.25 && Math.abs(lean) < 0.25) return null
+  return { lo: lean - amp, hi: lean + amp, center: lean }
 }
 
 export interface SelectedHandlesProps {
@@ -57,6 +73,8 @@ export interface SelectedHandlesProps {
   onPointDown: (e: PointerEvent, index: number) => void
   onPointDoubleClick: (e: MouseEvent, index: number) => void
   onGrabDown: (e: PointerEvent) => void
+  /** Chế độ tay nắm: ghi chuyển động vẽ tay hay học thông số gió. */
+  grabMode?: 'record' | 'learn'
 }
 
 /** Tay nắm của xương đang chọn: thân (dời cả xương), chấm điểm (sửa dáng), tay nắm ngọn (dạy cây đung đưa). */
@@ -66,6 +84,9 @@ export function SelectedSpineHandles(props: SelectedHandlesProps) {
   const grab = plantGrabHandle(spine.points)
   const amp = Math.abs(spine.amplitude)
   const lean = spine.lean ?? 0
+  const grabTitle = props.grabMode === 'learn'
+    ? 'Nắm ngọn lắc qua lại để học nhịp gió (biên độ / nghiêng / tốc độ)'
+    : 'Nắm ngọn kéo theo nhịp bạn muốn — app ghi lại đúng chuyển động và lặp lại khi thả chuột'
   return (
     <g className="lw-plant-handles">
       {!grabbing && <SwayRange spine={spine} />}
@@ -96,10 +117,12 @@ export function SelectedSpineHandles(props: SelectedHandlesProps) {
       <g className={`lw-plant-grab${grabbing ? ' active' : ''}`} onPointerDown={props.onGrabDown}>
         <circle cx={grab.x} cy={grab.y} r={11} className="lw-plant-grab-ring" />
         <path d={`M${grab.x - 5},${grab.y} l3,-3 m-3,3 l3,3 M${grab.x + 5},${grab.y} l-3,-3 m3,3 l-3,3`} className="lw-plant-grab-arrows" />
-        <title>Nắm ngọn kéo qua lại để dạy cây đung đưa (thả ra là cây lặp lại nhịp vừa lắc)</title>
+        <title>{grabTitle}</title>
       </g>
       <text x={spine.points[0].x + 9} y={spine.points[0].y + 16} className="lw-plant-label">
-        {`${spine.name} · ±${amp.toFixed(1)}°${Math.abs(lean) >= 0.25 ? ` · nghiêng ${lean.toFixed(1)}°` : ''}`}
+        {spine.motion
+          ? `${spine.name} · ✍️ vẽ tay ${spine.motion.duration.toFixed(1)}s · ${spine.motion.keys.length} mốc`
+          : `${spine.name} · ±${amp.toFixed(1)}°${Math.abs(lean) >= 0.25 ? ` · nghiêng ${lean.toFixed(1)}°` : ''}`}
       </text>
     </g>
   )

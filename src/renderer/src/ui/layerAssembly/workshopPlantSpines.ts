@@ -5,6 +5,7 @@ import {
   type PlantSpinePresetId
 } from '@shared/plantSpine'
 import type { LayerComposite } from './types'
+import { validatePlantMotion } from '../../engine/plantMotion'
 
 /** auto = layer nằm dưới nét vẽ · selected = layer đang chọn · all = toàn bộ layer. */
 export type PlantSpineTarget = 'auto' | 'selected' | 'all'
@@ -105,6 +106,7 @@ export function validatePlantSpine(spine: PlantSpine, composite: LayerComposite)
   for (const key of ['amplitude', 'speed', 'stiffness', 'flexibility', 'turbulence'] as const) {
     if (!Number.isFinite(spine[key])) throw new Error(`Thông số ${key} không hợp lệ`)
   }
+  if (spine.motion) validatePlantMotion(spine.motion)
 }
 
 /** Tắt chuyển động đung đưa cũ của layer vừa gắn xương để không bị lắc chồng 2 lần. */

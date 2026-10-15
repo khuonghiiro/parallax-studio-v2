@@ -1,8 +1,9 @@
 import { useRef, useState, type PointerEvent } from 'react'
-import { evaluateRig, rotatePoint, sampleBonePose } from '../../engine/layerRig'
+import { evaluateRig, rotatePoint } from '../../engine/layerRig'
 import type { LayerComposite } from './types'
 import { startBoneDrag, boneDragAction, type BoneDragMode } from './workshopBoneDrag'
 import { applyRigAction } from './workshopRig'
+import { useAnimAssist } from './animAssistStore'
 
 export interface BoneOverlayProps {
   composite: LayerComposite
@@ -22,6 +23,8 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
   const dragRef = useRef<ReturnType<typeof startBoneDrag> | null>(null)
   const [activeDrag, setActiveDrag] = useState<string | null>(null)
   const [dragAngle, setDragAngle] = useState<{ x: number; y: number; text: string } | null>(null)
+  const [chainIds, setChainIds] = useState<string[]>([])
+  const assist = useAnimAssist()
 
   const rig = composite.rig
   if (!rig || !rig.bones.length) return null
@@ -34,6 +37,13 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
     return new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse())
   }
 
+  /** Kéo ngọn ở tab Animation: IK (chuỗi xương cha xoay theo) khi bật IK; giữ Ctrl để đảo IK/FK tạm thời. */
+  const tailMode = (e: PointerEvent): BoneDragMode => {
+    if (editing) return 'tail'
+    const useIk = e.ctrlKey || e.metaKey ? !assist.ik : assist.ik
+    return useIk ? 'ik' : 'rotate'
+  }
+
   const handlePointerDown = (e: PointerEvent, id: string, mode: BoneDragMode) => {
     if (e.button !== 0) return
     e.stopPropagation()
@@ -42,8 +52,9 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
     stopPlayback?.()
     selectBone(id)
     beginGesture?.()
-    dragRef.current = startBoneDrag(rig, id, time, editing, mode, point)
+    dragRef.current = startBoneDrag(rig, id, time, editing, mode, point, assist.ikChain)
     setActiveDrag(id)
+    setChainIds(dragRef.current.ik?.chain.boneIds ?? [])
     svgRef.current?.setPointerCapture(e.pointerId)
     svgRef.current?.focus()
   }
@@ -54,9 +65,11 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
     if (!drag || !point) return
     const action = boneDragAction(drag, point, e.shiftKey)
     setComposite((c) => applyRigAction(c, action))
-    const text = action.action === 'set-key'
-      ? action.key.rotation !== undefined ? `${action.key.rotation.toFixed(1)}°` : `${action.key.x?.toFixed(0)}, ${action.key.y?.toFixed(0)}`
-      : action.action === 'update-bone' ? `${action.patch.angle?.toFixed(0) ?? ''}°` : ''
+    const text = action.action === 'batch'
+      ? `IK · ${action.operations.length} xương`
+      : action.action === 'set-key'
+        ? action.key.rotation !== undefined ? `${action.key.rotation.toFixed(1)}°` : `${action.key.x?.toFixed(0)}, ${action.key.y?.toFixed(0)}`
+        : action.action === 'update-bone' ? `${action.patch.angle?.toFixed(0) ?? ''}°` : ''
     setDragAngle({ ...point, text })
   }
 
@@ -66,6 +79,7 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
     }
     dragRef.current = null
     setActiveDrag(null)
+    setChainIds([])
     setDragAngle(null)
   }
 
@@ -127,7 +141,7 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
         const tf = transforms.get(bone.id)
         if (!tf) return null
         const isSelected = bone.id === boneId
-        const isDragging = activeDrag === bone.id
+        const isDragging = activeDrag === bone.id || chainIds.includes(bone.id)
         const angle = bone.angle + tf.rotation
         const rad = (angle * Math.PI) / 180
         const ux = Math.cos(rad)
@@ -195,7 +209,7 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
               r={16}
               fill="transparent"
               style={{ cursor: 'crosshair', pointerEvents: 'all' }}
-              onPointerDown={(e) => handlePointerDown(e, bone.id, editing ? 'tail' : 'rotate')}
+              onPointerDown={(e) => handlePointerDown(e, bone.id, tailMode(e))}
             />
 
             {/* Tail Joint (Tip) */}
@@ -203,10 +217,10 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
               cx={tx}
               cy={ty}
               r={isSelected ? 6.5 : 5}
-              className="lw-bone-tail-joint"
-              onPointerDown={(e) => handlePointerDown(e, bone.id, editing ? 'tail' : 'rotate')}
+              className={`lw-bone-tail-joint${!editing && assist.ik ? ' ik' : ''}`}
+              onPointerDown={(e) => handlePointerDown(e, bone.id, tailMode(e))}
             >
-              <title>{editing ? 'Kéo để đổi hướng và chiều dài xương' : 'Kéo để xoay xương'}</title>
+              <title>{editing ? 'Kéo để đổi hướng và chiều dài xương' : assist.ik ? `IK: kéo ngọn, ${assist.ikChain} xương trong chuỗi xoay theo (Ctrl = chỉ xoay xương này)` : 'Kéo để xoay xương (Ctrl = IK)'}</title>
             </circle>
 
             {/* Invisible forgiving hitbox for Head Joint (Pivot) */}

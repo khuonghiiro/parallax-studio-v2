@@ -177,6 +177,8 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   layer_assembly_source: ['.layer-cutter-pane.left-pane'],
   layer_assembly_target: ['.layer-cutter-target-container'],
   layer_assembly_motion_sketch: ['.lw-motion-sketch-card', '.lw-motion-sketch-overlay'],
+  layer_assembly_anim_tools: ['.lw-anim-chips', '.lw-anim-assist-card', '.lw-secondary-card'],
+  layer_assembly_plant_motion: ['.lw-plant-motion', '.lw-plant-motion-chips'],
 
   // 3. Audio Studio (Phòng thu Âm thanh) - Toàn bộ & Từng cột
   audio_studio: ['.audio-studio-modal', '.audio-studio-dialog'],

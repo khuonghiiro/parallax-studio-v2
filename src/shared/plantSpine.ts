@@ -32,6 +32,30 @@ export interface PlantSpine {
   /** Bán kính ảnh hưởng quanh xương (px). 0 hoặc bỏ trống = toàn bộ layer uốn theo. */
   reach?: number
   enabled?: boolean
+  /** Chuyển động vẽ tay (ghi lại khi nắm ngọn kéo). Có thì thay thế sóng gió tự động. */
+  motion?: PlantSpineMotion
+}
+
+/** Một mốc của chuyển động vẽ tay: góc uốn tại ngọn (độ) ở thời điểm t (giây, 0 ≤ t < duration). */
+export interface PlantMotionKey {
+  t: number
+  angle: number
+}
+
+/**
+ * Chuyển động vẽ tay của xương thực vật: đường cong góc-ngọn theo thời gian, lặp liền mạch theo chu kỳ duration.
+ * Gốc đứng yên; độ uốn phân bố dọc thân theo stiffness; ngọn trễ nhịp theo lag (đánh roi tự nhiên).
+ */
+export interface PlantSpineMotion {
+  keys: PlantMotionKey[]
+  /** Chu kỳ lặp (giây). */
+  duration: number
+  /** Hệ số tốc độ phát lại (1 = đúng nhịp tay). */
+  speed?: number
+  /** Độ trễ của ngọn so với gốc (giây) — tạo cảm giác thân mềm đánh roi. */
+  lag?: number
+  /** 0..1 — trộn thêm gió tự nhiên (theo amplitude/speed) chồng lên chuyển động vẽ tay. */
+  windMix?: number
 }
 
 export type PlantSpinePresetId = 'grass' | 'sapling' | 'branch' | 'canopy' | 'flower' | 'seaweed'

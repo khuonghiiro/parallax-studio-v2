@@ -14,12 +14,12 @@ import {
   PLANT_LEAN_MAX,
   distanceToPolyline,
   insertPlantSpinePoint,
-  learnSwayFromGesture,
   movePlantSpinePoint,
   removePlantSpinePoint,
   translatePlantSpine,
   type SwaySample
 } from './plantSpineEdit'
+import { resolvePlantGrab } from './plantMotionRecord'
 import { layersUnderClientStroke } from './plantStrokeHitTest'
 import { PlantSpineShape, SelectedSpineHandles, toPlantPath } from './PlantSpineShapes'
 import { getPlantSpineEditorState, setPlantSpineEditorState, usePlantSpineEditor } from './plantSpineEditorStore'
@@ -40,9 +40,10 @@ type Drag =
   | { kind: 'draw'; pts: PlantSpinePoint[]; client: Array<{ x: number; y: number }> }
   | { kind: 'point'; spineId: string; index: number }
   | { kind: 'move'; spineId: string; start: PlantSpinePoint; origin: PlantSpinePoint[] }
-  | { kind: 'grab'; spine: PlantSpine; start: number; t0: number; samples: SwaySample[] }
+  | { kind: 'grab'; spine: PlantSpine; start: number; t0: number; samples: SwaySample[]; record: boolean }
 
 const GRAB_LIMIT = PLANT_AMPLITUDE_MAX + PLANT_LEAN_MAX
+const RECORD_LIMIT = 85
 
 /** Lớp SVG trên Bố cục 2D: hiển thị xương thực vật, vẽ tay xương mới và chỉnh trực tiếp bằng tay nắm. */
 export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
@@ -94,6 +95,13 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
     const p = toLocal(e)
     if (!p) return
     capture(e)
+    if (editor.pathRecord && selected) {
+      // Vẽ quỹ đạo ngọn: ngọn bám theo hướng bút (tuyệt đối so với gốc), ghi theo thời gian thật
+      props.beginGesture?.()
+      dragRef.current = { kind: 'grab', spine: selected, start: 0, t0: performance.now(), samples: [], record: true }
+      onMove(e)
+      return
+    }
     dragRef.current = { kind: 'draw', pts: [p], client: [{ x: e.clientX, y: e.clientY }] }
     setStroke([p])
   }
@@ -114,10 +122,12 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
     } else if (drag.kind === 'move') {
       patchSpine(drag.spineId, { points: translatePlantSpine(drag.origin, p.x - drag.start.x, p.y - drag.start.y) })
     } else {
+      const limit = drag.record ? RECORD_LIMIT : GRAB_LIMIT
       const raw = plantTipAngleToward(drag.spine, p) - drag.start
-      const angle = Math.max(-GRAB_LIMIT, Math.min(GRAB_LIMIT, raw))
-      drag.samples.push({ angle, t: (performance.now() - drag.t0) / 1000 })
-      setPlantSpineEditorState({ grab: { spineId: drag.spine.id, angle } })
+      const angle = Math.max(-limit, Math.min(limit, raw))
+      const elapsed = (performance.now() - drag.t0) / 1000
+      drag.samples.push({ angle, t: elapsed })
+      setPlantSpineEditorState({ grab: { spineId: drag.spine.id, angle, elapsed, recording: drag.record } })
     }
   }
 
@@ -146,13 +156,13 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
 
   const finishGrab = (drag: Extract<Drag, { kind: 'grab' }>) => {
     setPlantSpineEditorState({ grab: null })
-    const learned = learnSwayFromGesture(drag.samples, drag.spine)
-    if (!learned) return
-    patchSpine(drag.spine.id, learned)
-    const parts = [`±${learned.amplitude ?? drag.spine.amplitude}°`]
-    if (learned.lean !== undefined) parts.push(`nghiêng ${learned.lean}°`)
-    if (learned.speed !== undefined) parts.push(`${learned.speed} nhịp/s`)
-    setFlash(`Đã học nhịp đung đưa: ${parts.join(' · ')}`)
+    const result = resolvePlantGrab(drag.samples, drag.spine, { mode: drag.record ? 'record' : 'learn', end: editor.recordEnd })
+    if (!result) {
+      if (drag.record) setFlash('Chuyển động quá ngắn — giữ chuột và kéo qua lại lâu hơn (≥ 0,2 giây)')
+      return
+    }
+    patchSpine(drag.spine.id, result.patch)
+    setFlash(result.message)
   }
 
   const finish = () => {
@@ -178,6 +188,7 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
 
   const handleProps = selected && {
     spine: selected,
+    grabMode: editor.grabMode,
     grabbing: editor.grab?.spineId === selected.id,
     onBodyDown: (e: PointerEvent) => {
       const p = toLocal(e)
@@ -193,14 +204,17 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
     onGrabDown: (e: PointerEvent) => {
       const p = toLocal(e)
       if (!p) return
-      startHandleDrag(e, { kind: 'grab', spine: selected, start: plantTipAngleToward(selected, p), t0: performance.now(), samples: [] })
+      startHandleDrag(e, {
+        kind: 'grab', spine: selected, start: plantTipAngleToward(selected, p), t0: performance.now(), samples: [],
+        record: editor.grabMode === 'record'
+      })
     }
   }
 
   return (
     <svg
       ref={svgRef}
-      className={`lw-plant-overlay${drawing ? ' drawing' : ''}`}
+      className={`lw-plant-overlay${drawing ? ' drawing' : ''}${drawing && editor.pathRecord && selected ? ' path-record' : ''}`}
       viewBox={`${-composite.width / 2} ${-composite.height / 2} ${composite.width} ${composite.height}`}
       aria-label="Xương thực vật trên Bố cục 2D"
       onPointerDown={onDown}
@@ -222,6 +236,11 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
       {stroke && <circle cx={stroke[0].x} cy={stroke[0].y} r={5} className="lw-plant-root" />}
       {flash && (
         <text x={0} y={composite.height / 2 - 18} textAnchor="middle" className="lw-plant-flash">{flash}</text>
+      )}
+      {editor.grab?.recording && (
+        <text x={0} y={composite.height / 2 - 44} textAnchor="middle" className="lw-plant-rec">
+          {`● REC ${(editor.grab.elapsed ?? 0).toFixed(1)}s · ${editor.grab.angle.toFixed(0)}° — thả chuột để lưu`}
+        </text>
       )}
     </svg>
   )

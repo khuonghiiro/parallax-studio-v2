@@ -1,22 +1,51 @@
 import type { LayerRig } from '@shared/layerRig'
 import { evaluateRig, rotatePoint, sampleBonePose } from '../../engine/layerRig'
 import type { RigAction } from './workshopRig'
+import { buildIkChain, ikRotations, solveCcd, type IkChain } from './workshopIk'
 
-export type BoneDragMode = 'head' | 'tail' | 'rotate'
+/** head = dời khớp · tail = chỉnh xương (tạo xương) · rotate = xoay FK · ik = kéo ngọn, chuỗi xương cha xoay theo. */
+export type BoneDragMode = 'head' | 'tail' | 'rotate' | 'ik'
+
+interface IkDragState {
+  chain: IkChain
+  /** Độ lệch giữa điểm nhấn chuột và ngọn xương để không bị giật khi bắt đầu kéo. */
+  offset: { x: number; y: number }
+  /** Nghiệm lần trước — giải tiếp từ đây để chuyển động liền mạch. */
+  deltas: number[]
+}
+
 export function startBoneDrag(rig: LayerRig, boneId: string, time: number, editing: boolean,
-  mode: BoneDragMode, point: { x: number; y: number }) {
+  mode: BoneDragMode, point: { x: number; y: number }, ikChainLength = 2) {
   const bone = rig.bones.find((b) => b.id === boneId)!
   const transforms = evaluateRig({ ...rig, loop: false }, time, editing)
   const transform = transforms.get(boneId)!
   const parent = bone.parentId ? transforms.get(bone.parentId) : undefined
-  return { bone, time, editing, mode, point, transform, parent,
+  let ik: IkDragState | undefined
+  if (mode === 'ik' && !editing) {
+    const chain = buildIkChain(rig, boneId, ikChainLength, time)
+    const tip = chain.points[chain.points.length - 1]
+    ik = { chain, offset: { x: tip.x - point.x, y: tip.y - point.y }, deltas: chain.boneIds.map(() => 0) }
+  }
+  return { bone, time, editing, mode, point, transform, parent, ik,
     pose: sampleBonePose({ ...rig, loop: false }, boneId, time),
     mouseAngle: Math.atan2(point.y - transform.y, point.x - transform.x) * 180 / Math.PI }
 }
 
-export function boneDragAction(drag: ReturnType<typeof startBoneDrag>, point: { x: number; y: number }, shift: boolean): RigAction {
+export type BoneDrag = ReturnType<typeof startBoneDrag>
+
+function ikDragAction(drag: BoneDrag, ik: IkDragState, point: { x: number; y: number }): RigAction {
+  const target = { x: point.x + ik.offset.x, y: point.y + ik.offset.y }
+  ik.deltas = solveCcd(ik.chain, target, ik.deltas)
+  return {
+    action: 'batch',
+    operations: ikRotations(ik.chain, ik.deltas).map(({ boneId, rotation }) => ({ action: 'set-key' as const, boneId, key: { time: drag.time, rotation } }))
+  }
+}
+
+export function boneDragAction(drag: BoneDrag, point: { x: number; y: number }, shift: boolean): RigAction {
   const { bone, mode, editing, transform, pose, time } = drag
   const dx = point.x - drag.point.x, dy = point.y - drag.point.y
+  if (mode === 'ik' && drag.ik) return ikDragAction(drag, drag.ik, point)
   if (mode === 'head') {
     if (editing) return { action: 'update-bone', boneId: bone.id, patch: { x: bone.x + dx, y: bone.y + dy } }
     const local = rotatePoint(dx, dy, -(drag.parent?.rotation ?? 0))

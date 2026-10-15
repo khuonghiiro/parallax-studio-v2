@@ -9,6 +9,7 @@ import {
   resolveSpineLayerIds,
   type PlantSpineTarget
 } from '../../ui/layerAssembly/workshopPlantSpines'
+import { parsePlantMotionPatch, summarizePlantMotion } from './layerPlantMotionParams'
 
 const PRESETS: PlantSpinePresetId[] = ['grass', 'sapling', 'branch', 'canopy', 'flower', 'seaweed']
 
@@ -77,7 +78,8 @@ function summarize(spines: PlantSpine[] | undefined) {
     turbulence: s.turbulence,
     lean: s.lean ?? 0,
     phase_offset: s.phaseOffset ?? 0,
-    reach: s.reach ?? 0
+    reach: s.reach ?? 0,
+    motion: summarizePlantMotion(s.motion)
   }))
 }
 
@@ -99,7 +101,7 @@ export const layerPlantSpineCommands: Record<string, Handler> = {
       const layerIds = parseLayerIds(p) ?? resolveSpineLayerIds(composite, target, selected)
       const base = createPlantSpine({ points, layerIds, preset: parsePreset(p), id: str(p, 'spine_id') })
       const { points: _ignoredPoints, layerIds: _ignoredLayers, ...overrides } = parsePatch(p)
-      const spine = { ...base, ...overrides }
+      const spine = { ...base, ...overrides, ...parsePlantMotionPatch(p) }
       next = applyPlantSpineAction(composite, { action: 'add', spine })
       spineId = spine.id
     } else if (action === 'update') {
@@ -109,7 +111,8 @@ export const layerPlantSpineCommands: Record<string, Handler> = {
       const patch = presetParams
         ? { amplitude: presetParams.amplitude, speed: presetParams.speed, stiffness: presetParams.stiffness, flexibility: presetParams.flexibility, turbulence: presetParams.turbulence, lean: presetParams.lean, reach: presetParams.reach, ...parsePatch(p) }
         : parsePatch(p)
-      next = applyPlantSpineAction(composite, { action: 'update', id: spineId, patch })
+      const current = composite.plantSpines?.find((s) => s.id === spineId)
+      next = applyPlantSpineAction(composite, { action: 'update', id: spineId, patch: { ...patch, ...parsePlantMotionPatch(p, current?.motion) } })
     } else if (action === 'delete') {
       spineId = str(p, 'spine_id', true)
       next = applyPlantSpineAction(composite, { action: 'delete', id: spineId })

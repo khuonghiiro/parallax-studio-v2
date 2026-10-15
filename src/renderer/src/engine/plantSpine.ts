@@ -1,5 +1,6 @@
 import type { PlantSpine, PlantSpinePoint } from '@shared/plantSpine'
 import type { SkinBinding } from './layerSkinning'
+import { samplePlantMotion } from './plantMotion'
 
 /** Số mẫu chia đều theo chiều dài xương — đủ mượt cho uốn cong mà vẫn rẻ mỗi khung hình. */
 const SAMPLES = 32
@@ -58,13 +59,24 @@ export function plantEnvelope(stiffness: number, u: number): number {
 export function plantBendAngle(spine: PlantSpine, u: number, time: number): number {
   const envelope = plantEnvelope(spine.stiffness, u)
   const t = time + (spine.phaseOffset ?? 0)
+  const motion = spine.motion
+  if (motion && motion.keys.length) {
+    const local = t * (motion.speed ?? 1) - (motion.lag ?? 0) * u
+    const mix = Math.min(1, Math.max(0, motion.windMix ?? 0))
+    const wind = mix > 0 ? mix * spine.amplitude * windWave(spine, u, t) : 0
+    return envelope * (samplePlantMotion(motion, local) + wind)
+  }
+  return envelope * (spine.amplitude * windWave(spine, u, t) + (spine.lean ?? 0))
+}
+
+/** Sóng gió tự nhiên chuẩn hoá (≈ -1..1): nhịp chính + phất ngọn + gió giật. */
+function windWave(spine: PlantSpine, u: number, t: number): number {
   const w = Math.PI * 2 * Math.max(0, spine.speed)
   const turbulence = Math.min(1, Math.max(0, spine.turbulence))
   const main = Math.sin(w * t)
   const flutter = Math.min(1, Math.max(0, spine.flexibility)) * 0.5 * u * Math.sin(2 * w * t)
   const gust = turbulence * 0.9 * Math.sin(w * 0.43 * t) * Math.sin(w * 1.7 * t + u * 1.3)
-  const wave = main * (1 - turbulence * 0.35) + flutter + gust
-  return envelope * (spine.amplitude * wave + (spine.lean ?? 0))
+  return main * (1 - turbulence * 0.35) + flutter + gust
 }
 
 /** Tính hình dạng xương đã uốn tại thời điểm t (tích phân tiếp tuyến nghỉ đã xoay theo góc uốn). */

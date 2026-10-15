@@ -45,7 +45,7 @@ export function WorkshopRightPanel({ state, playback, tab, setTab, boneId, selec
             onTogglePlay={playback.toggle}
           />
         )
-        : <WorkshopAnimationPanel {...props} playback={playback} />}
+        : <WorkshopAnimationPanel {...props} playback={playback} setComposite={state.setComposite} />}
     </div>
   </aside>
 }

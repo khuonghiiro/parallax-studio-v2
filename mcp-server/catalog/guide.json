@@ -1,6 +1,6 @@
 {
   "$comment": "Single source for the AI guide (MCP server instructions, get_ai_guide, CLI help, McpDialog prompt). Every section MUST keep the same number of lines in en and vi - catalog.test.mjs enforces it.",
-  "toolCount": 131,
+  "toolCount": 133,
   "sections": [
     {
       "id": "overview",
@@ -124,7 +124,8 @@
           "Batch align, space depth and animate layers with layer_assembly_action and select_layer_assembly_layers; edit with undoable layer_assembly_history.",
           "Attach layers with layer_assembly_rig; bind with binding_mode=soft to bend the alpha mesh along the selected bone branch (hair, tails, limbs), or rigid for cutouts; animate with keyframes or procedural motions.",
           "List character and animal cutout templates with list_layer_assembly_templates, query generation prompts with get_layer_assembly_template, and instantiate into the workshop with apply_layer_assembly_template.",
-          "Draw motion fast: layer_assembly_motion_sketch {bone_id, points:[[x,y,t],...]} turns the path of a bone tip into smooth keyframes (mode rotate/move, loop_back); layer_assembly_plant_spine draws root→tip plant spines that bend grass/trees in the wind."
+          "Draw motion fast: layer_assembly_motion_sketch {bone_id, points:[[x,y,t],...]} turns the path of a bone tip into smooth keyframes (mode rotate/move, chain_length 2-4 = IK chain, timing live/hand/even, loop_back); layer_assembly_plant_spine draws root→tip plant spines that bend grass/trees in the wind.",
+          "Pro animation: layer_assembly_ik_pose {bone_id, target:[x,y], chain_length} poses a limb by its tip; layer_assembly_secondary_motion {bone_id, preset: hair|tail|cloth|antenna} bakes lagging/bouncing physics onto a bone branch after the main motion; plant spines accept a recorded hand-drawn motion (motion_samples or motion_keys, motion_end loop|spring) instead of procedural wind."
         ],
         "vi": [
           "Xưởng Lắp Ráp Layer 2.5D tạo các cụm chi tiết xếp chồng nhiều tầng (như cây bonsai, bụi hoa, đèn treo) kèm phân lớp chiều sâu và chuyển động gió êm ái.",
@@ -134,7 +135,8 @@
           "Căn chỉnh, giãn độ sâu và tạo chuyển động hàng loạt với layer_assembly_action và select_layer_assembly_layers; chỉnh sửa với hoàn tác layer_assembly_history.",
           "Gắn layer bằng layer_assembly_rig; bind với binding_mode=soft để uốn mesh alpha theo nhánh xương đã chọn (tóc, đuôi, chi), hoặc rigid cho mảnh rời; tạo animation bằng keyframe hoặc chuyển động mẫu.",
           "Tra cứu các mẫu khung nhân vật và con vật bằng list_layer_assembly_templates, lấy prompt tạo ảnh AI với get_layer_assembly_template, và nạp vào xưởng bằng apply_layer_assembly_template.",
-          "Vẽ động tác nhanh: layer_assembly_motion_sketch {bone_id, points:[[x,y,t],...]} biến đường đi của ngọn xương thành chuỗi keyframe mượt (mode rotate/move, loop_back); layer_assembly_plant_spine vẽ xương thực vật gốc→ngọn để cây cỏ uốn theo gió."
+          "Vẽ động tác nhanh: layer_assembly_motion_sketch {bone_id, points:[[x,y,t],...]} biến đường đi của ngọn xương thành chuỗi keyframe mượt (mode rotate/move, chain_length 2-4 = chuỗi IK, timing live/hand/even, loop_back); layer_assembly_plant_spine vẽ xương thực vật gốc→ngọn để cây cỏ uốn theo gió.",
+          "Hoạt hoạ chuyên nghiệp: layer_assembly_ik_pose {bone_id, target:[x,y], chain_length} tạo dáng tay chân bằng cách kéo ngọn; layer_assembly_secondary_motion {bone_id, preset: hair|tail|cloth|antenna} nướng vật lý trễ nhịp/nảy cho nhánh xương sau động tác chính; xương thực vật nhận chuyển động vẽ tay đã ghi (motion_samples hoặc motion_keys, motion_end loop|spring) thay cho gió tự động."
         ]
       }
     }

@@ -66,4 +66,34 @@ describe('layer_assembly_plant_spine', () => {
     await expect(runCommand('layer_assembly_plant_spine', { action: 'add', points: [[0, 0], [0, -50]], preset: 'cactus' })).rejects.toThrow()
     await expect(runCommand('layer_assembly_plant_spine', { action: 'update', spine_id: 'missing', amplitude: 3 })).rejects.toThrow()
   })
+
+  it('ghi chuyển động vẽ tay qua motion_samples / motion_keys, chỉnh phát lại và xoá', async () => {
+    const ws = openWorkshop()
+    const samples = Array.from({ length: 91 }, (_, i) => [i / 60, 20 * Math.sin((i / 60) * Math.PI * 2)])
+    const added = (await runCommand('layer_assembly_plant_spine', {
+      action: 'add', points: [[0, 100], [0, -100]], motion_samples: samples, motion_end: 'loop'
+    })) as { spineId: string; spines: Array<{ motion: { key_count: number; duration: number; lag: number } | null }> }
+    expect(added.spines[0].motion?.key_count).toBeGreaterThan(2)
+    expect(added.spines[0].motion?.duration).toBeGreaterThan(1.3)
+    expect(added.spines[0].motion?.lag).toBe(0.08)
+
+    await runCommand('layer_assembly_plant_spine', { action: 'update', spine_id: added.spineId, motion_speed: 2, motion_wind_mix: 0.5 })
+    expect(ws.get().plantSpines![0].motion?.speed).toBe(2)
+    expect(ws.get().plantSpines![0].motion?.windMix).toBe(0.5)
+
+    await runCommand('layer_assembly_plant_spine', {
+      action: 'update', spine_id: added.spineId, motion_keys: [[0, 0], [0.5, 15], [1, -15]], motion_duration: 1.5
+    })
+    const m = ws.get().plantSpines![0].motion!
+    expect(m.keys).toEqual([{ t: 0, angle: 0 }, { t: 0.5, angle: 15 }, { t: 1, angle: -15 }])
+    expect(m.duration).toBe(1.5)
+    expect(m.speed).toBeUndefined()
+
+    await runCommand('layer_assembly_plant_spine', { action: 'update', spine_id: added.spineId, clear_motion: true })
+    expect(ws.get().plantSpines![0].motion).toBeUndefined()
+    await expect(runCommand('layer_assembly_plant_spine', { action: 'update', spine_id: added.spineId, motion_lag: 0.2 })).rejects.toThrow()
+    await expect(runCommand('layer_assembly_plant_spine', {
+      action: 'update', spine_id: added.spineId, motion_keys: [[0, 0], [1, 500]], motion_duration: 2
+    })).rejects.toThrow()
+  })
 })

@@ -65,7 +65,7 @@ export function plantGrabHandle(points: PlantSpinePoint[], offset = 26): PlantSp
 
 /** Ghi đè tạm thời khi đang nắm ngọn: cây uốn tĩnh đúng theo góc tay kéo (không sóng gió). */
 export function grabbedSpine(spine: PlantSpine, tipAngle: number): PlantSpine {
-  return { ...spine, amplitude: 0, lean: tipAngle, turbulence: 0, flexibility: 0 }
+  return { ...spine, amplitude: 0, lean: tipAngle, turbulence: 0, flexibility: 0, motion: undefined }
 }
 
 export interface SwaySample {

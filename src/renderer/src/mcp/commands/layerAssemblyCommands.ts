@@ -22,6 +22,7 @@ import { applyWorkshopAction, type WorkshopAction } from '../../ui/layerAssembly
 import { layerWorkshopRigCommands } from './layerWorkshopRigCommands'
 import { layerPlantSpineCommands } from './layerPlantSpineCommands'
 import { layerMotionSketchCommands } from './layerMotionSketchCommands'
+import { layerAnimProCommands } from './layerAnimProCommands'
 import { layerWorkshopEditCommands } from './layerWorkshopEditCommands'
 import { validateWorkshop } from '../../ui/layerAssembly/workshopEdits'
 
@@ -65,6 +66,7 @@ export const layerAssemblyCommands: Record<string, Handler> = {
   ...layerWorkshopRigCommands,
   ...layerPlantSpineCommands,
   ...layerMotionSketchCommands,
+  ...layerAnimProCommands,
   ...layerWorkshopEditCommands,
   layer_assembly_action: (p) => {
     const session = workshopSession()

@@ -239,7 +239,7 @@ async function cmdReview(opts) {
 function parseParams(arg) {
   if (!arg) return {}
   try {
-    if (arg.startsWith('@') || (arg.endsWith('.json') && existsSync(arg))) return JSON.parse(readFileSync(arg.replace(/^@/, ''), 'utf-8'))
+    if (arg.startsWith('@') || (arg.endsWith('.json') && existsSync(arg))) return JSON.parse(readFileSync(arg.replace(/^@/, ''), 'utf-8').replace(/^\uFEFF/, ''))
     try {
       return JSON.parse(arg)
     } catch {

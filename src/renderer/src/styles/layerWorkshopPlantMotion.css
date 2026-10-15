@@ -1,0 +1,151 @@
+/* Tab Thực vật — Ghi chuyển động vẽ tay: mục Chuyển động, biểu đồ mốc, thanh nổi R, nhãn REC */
+
+.lw-plant-motion {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 4px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+}
+
+.lw-plant-motion-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.lw-plant-motion-head .lw-plant-section-label { margin: 0; }
+
+.lw-plant-motion-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-2);
+  color: var(--text-dim);
+  border: 1px solid var(--line-soft);
+}
+.lw-plant-motion-badge.recorded {
+  background: color-mix(in srgb, var(--key) 18%, var(--bg-1));
+  border-color: color-mix(in srgb, var(--key) 55%, transparent);
+  color: var(--text);
+}
+
+.lw-plant-motion-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.lw-plant-seg {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  border-radius: 7px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+}
+.lw-plant-seg button {
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10.5px;
+  padding: 3px 7px;
+  border-radius: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.lw-plant-seg button:hover { color: var(--text); background: var(--bg-3); }
+.lw-plant-seg button.active { background: var(--accent); color: var(--bg-0); }
+
+.lw-plant-record-btn {
+  width: 100%;
+  justify-content: center;
+  font-weight: 700;
+  border: 1px dashed color-mix(in srgb, var(--key) 60%, transparent) !important;
+  color: var(--text) !important;
+}
+.lw-plant-record-btn.armed {
+  background: color-mix(in srgb, var(--key) 22%, var(--bg-1)) !important;
+  border-style: solid !important;
+  animation: lw-plant-rec-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes lw-plant-rec-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--key) 45%, transparent); }
+  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--key) 0%, transparent); }
+}
+
+.lw-plant-motion-hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+.lw-plant-motion-graph {
+  border-radius: 6px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  padding: 4px 4px 2px;
+}
+.lw-plant-motion-graph svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: none;
+}
+.lw-plant-graph-zero {
+  stroke: var(--line);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.lw-plant-graph-curve {
+  fill: none;
+  stroke: var(--plant-green, var(--accent-cyan));
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.lw-plant-graph-key {
+  fill: var(--key);
+  stroke: var(--bg-0);
+  stroke-width: 1.5;
+  cursor: ns-resize;
+}
+.lw-plant-graph-key:hover,
+.lw-plant-graph-key.active { fill: var(--accent-cyan); }
+
+.lw-plant-graph-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-faint);
+  padding: 2px 2px 0;
+}
+.lw-plant-graph-meta span:nth-child(2) { color: var(--accent-cyan); font-weight: 600; }
+
+/* Bóng biên độ khi có bản ghi vẽ tay: tông vàng (key) để phân biệt với gió (xanh lá) */
+.lw-plant-range.recorded .lw-plant-range-arc { stroke: var(--key); }
+
+/* Nhãn đang ghi trên khung */
+.lw-plant-rec {
+  font-size: 13px;
+  font-weight: 800;
+  fill: var(--key);
+  paint-order: stroke;
+  stroke: var(--bg-0);
+  stroke-width: 4px;
+  pointer-events: none;
+  animation: lw-plant-rec-blink 1s steps(2, start) infinite;
+}
+@keyframes lw-plant-rec-blink { to { opacity: 0.55; } }
+
+/* Thanh nổi dùng chung kiểu .lw-anim-chips; con trỏ chữ thập khi chờ vẽ quỹ đạo */
+.lw-plant-overlay.drawing.path-record { cursor: crosshair; }

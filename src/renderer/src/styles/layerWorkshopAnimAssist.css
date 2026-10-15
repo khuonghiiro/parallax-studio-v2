@@ -1,0 +1,163 @@
+/* Công cụ hoạt họa chuyên nghiệp (tab Animation): Onion skin, Quỹ đạo, thanh công cụ nổi, IK, Vật lý thứ cấp */
+
+.lw-rig-ghost-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  /* Ngay dưới lớp xương (5000) nhưng trên các layer ảnh */
+  z-index: 4990;
+  transform: translateZ(195px);
+}
+
+.lw-onion-bone {
+  stroke-width: 3;
+  stroke-linecap: round;
+  fill: none;
+}
+.lw-onion.past .lw-onion-bone { stroke: color-mix(in srgb, var(--key) 70%, transparent); }
+.lw-onion.future .lw-onion-bone { stroke: color-mix(in srgb, var(--accent-cyan) 75%, transparent); }
+
+.lw-motion-path-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  stroke-dasharray: 5 4;
+  opacity: 0.85;
+}
+.lw-motion-path-dot { fill: var(--accent); opacity: 0.55; }
+.lw-motion-path-key { fill: var(--key); stroke: var(--bg-0); stroke-width: 1; }
+.lw-motion-path-now { fill: none; stroke: var(--accent-cyan); stroke-width: 2.2; }
+
+/* Ngọn xương khi bật IK: vòng mục tiêu dễ nhận biết */
+.lw-blender-bone .lw-bone-tail-joint.ik {
+  stroke: var(--accent-cyan);
+  stroke-width: 2.4;
+  stroke-dasharray: 3 2;
+}
+
+/* Thanh công cụ nổi trên Bố cục 2D */
+.lw-anim-chips {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5300;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+.lw-anim-chips-row {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--bg-0) 55%, transparent);
+  pointer-events: auto;
+}
+.lw-anim-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.lw-anim-chip:hover { background: var(--bg-3); color: var(--text); }
+.lw-anim-chip.active { background: var(--accent); color: var(--bg-0); }
+.lw-anim-chip.recording { background: var(--key); color: var(--bg-0); }
+.lw-anim-chip kbd {
+  font-size: 9px;
+  padding: 0 4px;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  opacity: 0.75;
+  font-family: inherit;
+}
+.lw-anim-chip-status {
+  max-width: 460px;
+  padding: 2px 10px;
+  border-radius: 6px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  color: var(--text-dim);
+  font-size: 10.5px;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Thẻ cấu hình trong bảng Animation */
+.lw-anim-assist-card .lw-assist-row,
+.lw-secondary-card .lw-assist-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 4px 0;
+}
+.lw-assist-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  min-width: 92px;
+}
+.lw-assist-seg {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.lw-assist-seg button {
+  border: 0;
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+.lw-assist-seg button + button { border-left: 1px solid var(--line); }
+.lw-assist-seg button.active { background: var(--accent); color: var(--bg-0); }
+.lw-assist-slider {
+  display: grid;
+  grid-template-columns: 92px 1fr 46px;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin: 3px 0;
+}
+.lw-assist-slider input[type='range'] { width: 100%; accent-color: var(--accent); }
+.lw-assist-slider output { text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
+.lw-assist-hint {
+  font-size: 10.5px;
+  color: var(--text-faint);
+  line-height: 1.45;
+  margin: 4px 0 0;
+}
+.lw-secondary-card .lw-secondary-target {
+  font-size: 11px;
+  color: var(--text);
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+}
+.lw-secondary-result {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--accent-cyan);
+}

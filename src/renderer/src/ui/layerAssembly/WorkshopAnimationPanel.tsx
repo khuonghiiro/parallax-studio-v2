@@ -10,10 +10,15 @@ import { WorkshopClipBar } from './WorkshopClipBar'
 import { WorkshopRetargetDialog } from './WorkshopRetargetDialog'
 import { WorkshopInterpolation } from './WorkshopInterpolation'
 import { WorkshopMotionSketchCard } from './WorkshopMotionSketchCard'
+import { WorkshopAnimAssistCard, WorkshopSecondaryMotionCard } from './WorkshopAnimAssistCards'
+import type { LayerComposite } from './types'
 
-type Props = RigPanelProps & { playback: ReturnType<typeof useWorkshopPlayback> }
+type Props = RigPanelProps & {
+  playback: ReturnType<typeof useWorkshopPlayback>
+  setComposite: (update: (prev: LayerComposite) => LayerComposite) => void
+}
 
-export function WorkshopAnimationPanel({ composite, boneId, selectBone, run, playback }: Props) {
+export function WorkshopAnimationPanel({ composite, boneId, selectBone, run, playback, setComposite }: Props) {
   const { rig, activeClip } = ensureRigClips(composite.rig ?? emptyRig())
   const activeBone = rig.bones.find((b) => b.id === boneId) ?? (rig.bones[0] || null)
   const bone = activeBone
@@ -70,6 +75,9 @@ export function WorkshopAnimationPanel({ composite, boneId, selectBone, run, pla
     }} onOpenRetarget={() => setIsRetargetOpen(true)} />
     <WorkshopRetargetDialog isOpen={isRetargetOpen} onClose={() => setIsRetargetOpen(false)} targetComposite={composite} onInherit={inherit} />
     <WorkshopMotionSketchCard isPlaying={playback.isPlaying} onTogglePlay={playback.toggle} />
+    <WorkshopAnimAssistCard />
+    <WorkshopSecondaryMotionCard rig={rig} boneId={bone?.id ?? null} setComposite={setComposite}
+      onDone={() => { playback.setTime(0); playback.setIsPlaying(true) }} />
     <AnimationSettings rig={rig} playback={playback} run={run} />
     <div className="lw-card-section lw-animation-pose">
       <div className="lw-card-header"><span className="lw-card-title">Tạo dáng xương</span><span className="lw-card-badge">{exact ? '◆ Có key' : 'Chưa ghi key'}</span></div>

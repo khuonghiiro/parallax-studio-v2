@@ -3,33 +3,21 @@ import { setMotionSketchSettings, toggleMotionSketchArmed, useMotionSketch } fro
 import type { MotionSketchMode, MotionSketchTiming } from './workshopMotionSketch'
 
 const MODES: Array<[MotionSketchMode, string, string]> = [
-  ['rotate', '⟳ Xoay theo nét', 'Xương xoay quanh khớp gốc, ngọn xương bám theo đường vẽ (tay, chân, đầu, đuôi…)'],
+  ['rotate', '⟳ Xoay theo nét', 'Ngọn xương bám theo đường vẽ (tay, chân, đầu, đuôi…); bật chuỗi IK để cả cánh tay/chân cùng chuyển động'],
   ['move', '✥ Dời theo nét', 'Khớp gốc dời theo đường vẽ (nhún hông, nhảy, lắc người…)']
 ]
 const TIMINGS: Array<[MotionSketchTiming, string, string]> = [
-  ['hand', 'Theo nhịp tay', 'Vẽ nhanh chỗ nào thì động tác nhanh chỗ đó (giống quay lại cử chỉ thật)'],
-  ['even', 'Đều nhau', 'Chia đều tốc độ theo độ dài nét vẽ, không phụ thuộc tay vẽ nhanh hay chậm']
+  ['live', '● Thời gian thực', 'Ghi đúng tốc độ tay như quay phim: đầu phát chạy theo nên các xương khác chuyển động cùng lúc (ghi chồng từng phần)'],
+  ['hand', 'Theo nhịp tay', 'Giữ nhịp nhanh/chậm của tay nhưng co giãn vừa đúng thời lượng bên dưới'],
+  ['even', 'Đều nhau', 'Chia đều tốc độ theo độ dài nét vẽ']
+]
+const CHAINS: Array<[number, string, string]> = [
+  [1, '1 xương', 'Chỉ xoay xương được nhấn (FK)'],
+  [2, 'IK 2', 'Xương được nhấn + xương cha (cẳng tay kéo theo bắp tay)'],
+  [3, 'IK 3', 'Thêm một cấp nữa (bàn tay kéo cả cẳng tay và bắp tay)']
 ]
 
-/** Nút nổi trên Bố cục 2D để bật/tắt nhanh bút vẽ động tác (phím D). */
-export function MotionSketchToggleChip() {
-  const { armed, status } = useMotionSketch()
-  return (
-    <div className={`lw-sketch-chip-wrap${armed ? ' armed' : ''}`}>
-      <button
-        type="button"
-        className={`lw-sketch-chip${armed ? ' active' : ''}`}
-        onClick={() => toggleMotionSketchArmed()}
-        title="Bật/tắt bút vẽ động tác (phím D)"
-      >
-        ✏️ {armed ? 'Đang vẽ động tác' : 'Vẽ động tác'} <kbd>D</kbd>
-      </button>
-      {armed && status && <span className="lw-sketch-chip-status">{status}</span>}
-    </div>
-  )
-}
-
-/** Thẻ "Vẽ động tác" trong tab Animation: bật bút, chọn kiểu chuyển động, nhịp và thời lượng. */
+/** Thẻ "Vẽ động tác" trong tab Animation: bật bút, chọn kiểu chuyển động, chuỗi IK, nhịp và thời lượng. */
 export function WorkshopMotionSketchCard({ isPlaying, onTogglePlay }: { isPlaying: boolean; onTogglePlay: () => void }) {
   const { armed, settings, last, status } = useMotionSketch()
   return (
@@ -47,9 +35,9 @@ export function WorkshopMotionSketchCard({ isPlaying, onTogglePlay }: { isPlayin
         {armed ? '■ Tắt bút vẽ (D)' : '✏️ Bật bút vẽ động tác (D)'}
       </button>
       <ol className="lw-sketch-steps">
-        <li>Nhấn <strong>gần một xương</strong> trên Bố cục 2D (xương sáng lên khi rê chuột tới).</li>
-        <li>Giữ chuột và <strong>vẽ đường đi của ngọn xương</strong> — layer chuyển động theo ngay.</li>
-        <li>Thả chuột: tự ghi keyframe theo nét vẽ và phát thử. <kbd>Ctrl+Z</kbd> để vẽ lại.</li>
+        <li>Nhấn <strong>gần ngọn một xương</strong> trên Bố cục 2D (xương sáng lên khi rê chuột tới).</li>
+        <li>Giữ chuột và <strong>diễn động tác</strong> — xương chạy theo tay, đầu phát chạy theo thời gian thật.</li>
+        <li>Thả chuột: tự ghi keyframe và phát thử. Vẽ tiếp xương khác để ghi chồng. <kbd>Ctrl+Z</kbd> để vẽ lại.</li>
       </ol>
       <div className="lw-sketch-label-row">Kiểu chuyển động <span>(giữ Shift khi bắt đầu để đổi tạm)</span></div>
       <div className="lw-sketch-chips">
@@ -59,6 +47,18 @@ export function WorkshopMotionSketchCard({ isPlaying, onTogglePlay }: { isPlayin
           </button>
         ))}
       </div>
+      {settings.mode === 'rotate' && (
+        <>
+          <div className="lw-sketch-label-row">Chuỗi xương <span>(giữ Ctrl khi bắt đầu = 1 xương)</span></div>
+          <div className="lw-sketch-chips">
+            {CHAINS.map(([n, title, hint]) => (
+              <button key={n} type="button" title={hint} className={`lw-sketch-option${settings.chain === n ? ' active' : ''}`} onClick={() => setMotionSketchSettings({ chain: n })}>
+                {title}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
       <div className="lw-sketch-label-row">Nhịp động tác</div>
       <div className="lw-sketch-chips">
         {TIMINGS.map(([id, title, hint]) => (
@@ -67,9 +67,11 @@ export function WorkshopMotionSketchCard({ isPlaying, onTogglePlay }: { isPlayin
           </button>
         ))}
       </div>
-      <div className="lw-rig-grid">
-        <RigNumber label="Thời lượng nét (s)" value={settings.duration} min={0.1} max={20} step={0.1} onChange={(duration) => setMotionSketchSettings({ duration })} />
-      </div>
+      {settings.timing !== 'live' && (
+        <div className="lw-rig-grid">
+          <RigNumber label="Thời lượng nét (s)" value={settings.duration} min={0.1} max={20} step={0.1} onChange={(duration) => setMotionSketchSettings({ duration })} />
+        </div>
+      )}
       <label className="lw-rig-check" title="Đi hết nét vẽ rồi quay ngược về tư thế ban đầu (gấp đôi thời lượng)">
         <input type="checkbox" checked={settings.loopBack} onChange={(e) => setMotionSketchSettings({ loopBack: e.target.checked })} />
         <span>Khứ hồi (vẽ đi, tự quay về)</span>

@@ -152,7 +152,8 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
           onToggleShowMesh={toggleMesh}
           sketchOverlay={isErasing ? undefined : {
             ...boneOverlay,
-            playFrom: (t: number) => { playback.setTime(t); playback.setIsPlaying(true) }
+            playFrom: (t: number) => { playback.setTime(t); playback.setIsPlaying(true) },
+            seek: playback.setTime
           }}
           boneOverlay={isErasing ? undefined : boneOverlay}
           plantOverlay={isErasing ? undefined : {

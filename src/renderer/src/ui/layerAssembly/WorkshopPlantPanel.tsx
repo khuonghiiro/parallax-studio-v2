@@ -3,7 +3,9 @@ import { PLANT_SPINE_PRESETS, type PlantSpine } from '@shared/plantSpine'
 import type { LayerComposite } from './types'
 import { applyPlantSpineAction, type PlantSpineAction, type PlantSpineTarget } from './workshopPlantSpines'
 import { setPlantSpineEditorState, usePlantSpineEditor } from './plantSpineEditorStore'
+import { PlantMotionSection } from './PlantMotionSection'
 import '../../styles/layerWorkshopPlant.css'
+import '../../styles/layerWorkshopPlantMotion.css'
 
 interface PanelProps {
   composite: LayerComposite
@@ -83,6 +85,10 @@ function SpineCard({ spine, composite, selected, run }: {
               </button>
             ))}
           </div>
+          <PlantMotionSection spine={spine} patch={patch} />
+          <div className="lw-plant-section-label">
+            🌬️ Gió tự nhiên{spine.motion ? ' (chỉ dùng khi Trộn gió > 0)' : ''}
+          </div>
           <div className="lw-plant-sliders">
             {SLIDERS.map((s) => {
               const value = (spine[s.key] as number | undefined) ?? 0
@@ -127,7 +133,8 @@ export function WorkshopPlantPanel({ composite, setComposite, selectedIds, isPla
       <div className="lw-plant-hint">
         🌿 <strong>Vẽ xương:</strong> kéo chuột trên <em>Bố cục 2D</em> từ <strong>GỐC</strong> lên <strong>NGỌN</strong> của cây.
         <ul>
-          <li>✋ <strong>Nắm tay nắm ở ngọn</strong> kéo qua lại để dạy cây đung đưa: lắc rộng/hẹp, nhanh/chậm thế nào cây lặp lại đúng như vậy.</li>
+          <li>✍️ <strong>Nắm vòng tròn ở ngọn</strong> kéo theo nhịp bạn muốn → app <strong>ghi lại đúng chuyển động</strong> và lặp lại. Hoặc bấm <kbd>R</kbd> rồi vẽ quỹ đạo ngọn ở bất kỳ đâu.</li>
+          <li>🌬️ Muốn gió tự động: đổi tay nắm sang <em>Học nhịp gió</em> hoặc chỉnh các thanh trượt Gió tự nhiên.</li>
           <li>Kéo <strong>chấm vuông</strong> để sửa dáng · kéo <strong>thân xương</strong> để dời · nhấp đúp để thêm/xoá điểm.</li>
           <li>Click gần một xương để chọn · Alt / chuột giữa để dời khung.</li>
         </ul>

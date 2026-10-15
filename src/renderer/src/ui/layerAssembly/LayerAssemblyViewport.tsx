@@ -3,7 +3,9 @@ import type { LayerComposite, AssembledLayerItem } from './types'
 import { WorkshopBoneOverlay, type BoneOverlayProps } from './WorkshopBoneOverlay'
 import { PlantSpineOverlay, type PlantSpineOverlayProps } from './PlantSpineOverlay'
 import { MotionSketchOverlay, type MotionSketchOverlayProps } from './MotionSketchOverlay'
-import { MotionSketchToggleChip } from './WorkshopMotionSketchCard'
+import { AnimAssistChips } from './AnimAssistChips'
+import { PlantMotionChips } from './PlantMotionSection'
+import { RigGhostOverlay } from './RigGhostOverlay'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
 import { IconLayers, IconImage } from '../icons'
 import { useView } from '../../store/view'
@@ -702,6 +704,11 @@ export function LayerAssemblyViewport({
           )
         })}
 
+        {/* Onion skin + quỹ đạo ngọn xương (tab Animation), nằm ngay dưới lớp xương */}
+        {tab === 'animation' && boneOverlay && isBonesVisible && (
+          <RigGhostOverlay rig={boneOverlay.composite.rig} width={composite.width} height={composite.height} time={boneOverlay.time} boneId={boneOverlay.boneId} />
+        )}
+
         {/* Khung xương Blender/Moho SVG Overlay - Hiển thị NỔI TRÊN CÙNG các lớp để thao tác kéo xoay trực tiếp 60fps */}
         {boneOverlay && isBonesVisible && <WorkshopBoneOverlay {...boneOverlay} />}
 
@@ -781,8 +788,9 @@ export function LayerAssemblyViewport({
         atmosphereIcon={atmosphere.icon}
       />
 
-      {/* Nút nổi bật/tắt bút Vẽ động tác */}
-      {tab === 'animation' && sketchOverlay && brush.activeTool !== 'eraser' && <MotionSketchToggleChip />}
+      {/* Thanh công cụ hoạt họa nổi: bút vẽ động tác, IK, Onion skin, Quỹ đạo */}
+      {tab === 'animation' && sketchOverlay && brush.activeTool !== 'eraser' && <AnimAssistChips />}
+      {tab === 'plant' && plantOverlay && brush.activeTool !== 'eraser' && <PlantMotionChips />}
 
       {/* Floating 2D Hint */}
       {brush.activeTool !== 'eraser' && (
@@ -802,11 +810,11 @@ export function LayerAssemblyViewport({
           }}
         >
           {tab === 'animation'
-            ? '🎭 Hoạt ảnh: Kéo xương để tạo dáng · D: bật bút vẽ động tác (vẽ đường đi ngọn xương) · Space: phát thử · Alt / chuột giữa: dời khung · Cuộn: zoom'
+            ? '🎭 Hoạt ảnh: Kéo ngọn xương = IK (Ctrl: chỉ 1 xương) · D: diễn động tác bằng chuột · O: onion skin · P: quỹ đạo · Space: phát thử · Alt / chuột giữa: dời khung'
             : tab === 'bones'
               ? '🦴 Khung xương: Kéo khớp đầu/đuôi để chỉnh độ dài & góc · Kéo thân để dời vị trí · Delete: xóa xương'
               : tab === 'plant'
-                ? '🌿 Thực vật: Kéo từ GỐC lên NGỌN để vẽ xương · Nắm tay nắm ở ngọn lắc qua lại để dạy cây đung đưa · Kéo chấm để sửa dáng'
+                ? '🌿 Thực vật: Kéo từ GỐC lên NGỌN để vẽ xương · Nắm vòng tròn ở ngọn kéo theo nhịp để GHI chuyển động · R: vẽ quỹ đạo ngọn · Kéo chấm để sửa dáng'
                 : 'Kéo layer / Mũi tên: dời 2D · +/-: độ sâu Z · Alt / chuột giữa: dời khung · Cuộn: zoom'}
         </div>
       )}
