@@ -113,6 +113,8 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   camera_frame: ['#camera-frame', '.camera-frame'],
   viewer_hud: ['.viewer-hud'],
   viewer_tools: ['.viewer-tools'],
+  animate_camera_stage: ['#animate-camera-stage', '.anim2d-stage', '.anim2d-pane-host'],
+  animate_camera_toolbar: ['.anim2d-toolbar'],
 
   // Right Inspector and sub-sections
   inspector: ['aside.right', '.right', '.inspector'],

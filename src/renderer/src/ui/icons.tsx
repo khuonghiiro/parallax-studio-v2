@@ -876,3 +876,20 @@ export const IconAnimalPaw = (p: P) => (
     <circle cx="17.5" cy="10.5" r="1.8" />
   </svg>
 )
+
+export const IconCameraStage = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="2.5" y="4" width="12" height="9" rx="1.5" />
+    <rect x="9.5" y="11" width="12" height="9" rx="1.5" strokeDasharray="2.5 2" />
+    <path d="M8.5 8.5 15.5 15.5" />
+    <path d="M12.5 15.5h3v-3" />
+  </svg>
+)
+
+export const IconLayout2D3D = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <path d="M11 4v16M3 12h8" />
+  </svg>
+)
+

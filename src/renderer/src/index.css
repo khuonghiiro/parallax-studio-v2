@@ -8,6 +8,7 @@
 @import './styles/controls.css';
 @import './styles/toolbar.css';
 @import './styles/viewer.css';
+@import './styles/animateCameraStage.css';
 @import './styles/inspector.css';
 @import './styles/timelineToolbar.css';
 @import './styles/timeline.css';

@@ -202,15 +202,24 @@ export const systemCommands: Record<string, Handler> = {
     const mode = str(p, 'mode')
     if (mode === 'camera') v.set({ split: false, primary: 'camera' })
     else if (mode === '3d') v.set({ split: false, primary: 'editor' })
+    else if (mode === 'topview') v.set({ split: false, primary: 'topview' })
+    else if (mode === 'animate2d' || mode === '2d_3d') v.set({ split: false, primary: 'animate2d', animate2dSplit: true })
+    else if (mode === '2d_only') v.set({ split: false, primary: 'animate2d', animate2dSplit: false })
     else if (mode === 'split') v.set({ split: true })
-    else if (mode) throw new ParamError('"mode" must be camera, 3d or split')
+    else if (mode) throw new ParamError('"mode" must be camera, 3d, topview, animate2d, 2d_3d, 2d_only or split')
     if (has(p, 'camera_only')) v.set({ cameraOnly: bool(p, 'camera_only')! })
     if (has(p, 'show_path')) v.set({ showPath: bool(p, 'show_path')! })
     const focus = str(p, 'focus')
     if (focus === 'all' || focus === 'selection') v.requestFocus(focus)
     else if (focus) v.requestFocus('shot', requireShot(proj(), focus).id)
     const s = useView.getState()
-    return { split: s.split, primary: s.primary, camera_only: s.cameraOnly, show_path: s.showPath }
+    return {
+      split: s.split,
+      primary: s.primary,
+      animate2d_split: s.animate2dSplit,
+      camera_only: s.cameraOnly,
+      show_path: s.showPath
+    }
   },
 
   get_viewport_screenshot: (p) => screenshot(p),

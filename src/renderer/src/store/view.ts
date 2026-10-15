@@ -3,7 +3,7 @@ import type { EditorViewKind } from '../engine/EditorCamera'
 import type { Model3D } from '../ui/assets/models3d/types'
 import { useEditor } from './editor'
 
-export type PrimaryView = 'camera' | 'editor' | 'topview'
+export type PrimaryView = 'camera' | 'editor' | 'topview' | 'animate2d'
 export type TopViewMode = 'top' | 'side'
 export type Theme = 'dark' | 'light'
 export type LeftTab = 'shots' | 'assets' | 'topview'
@@ -16,6 +16,8 @@ interface ViewPrefs {
   split: boolean
   /** Which view fills the viewer when not split. */
   primary: PrimaryView
+  /** In animate2d mode: true = 2D & 3D (Col 1: Row 1 Camera + Row 2 3D, Col 2: 2D Scene Stage), false = 2D Stage only. */
+  animate2dSplit: boolean
   editorKind: EditorViewKind
   showPath: boolean
   /** 3D view previews streaming: only content the active camera loads is drawn. */
@@ -105,6 +107,7 @@ function load(): ViewPrefs {
   const d: ViewPrefs = {
     split: false,
     primary: 'camera',
+    animate2dSplit: true,
     editorKind: 'custom',
     showPath: true,
     cameraOnly: false,
@@ -122,6 +125,7 @@ function load(): ViewPrefs {
       const res: ViewPrefs = {
         ...d,
         ...parsed,
+        animate2dSplit: typeof parsed.animate2dSplit === 'boolean' ? parsed.animate2dSplit : d.animate2dSplit,
         showBbox: typeof parsed.showBbox === 'boolean' ? parsed.showBbox : d.showBbox,
         showTranslate: typeof parsed.showTranslate === 'boolean' ? parsed.showTranslate : d.showTranslate,
         showRotate: typeof parsed.showRotate === 'boolean' ? parsed.showRotate : d.showRotate,
@@ -208,6 +212,7 @@ export const useView = create<ViewState>((set, get) => ({
     const {
       split,
       primary,
+      animate2dSplit,
       editorKind,
       showPath,
       cameraOnly,
@@ -224,6 +229,7 @@ export const useView = create<ViewState>((set, get) => ({
         JSON.stringify({
           split,
           primary,
+          animate2dSplit,
           editorKind,
           showPath,
           cameraOnly,

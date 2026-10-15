@@ -7,8 +7,9 @@ import { shotAtTime } from '../animation/cameraPath'
 import { evaluateScene, shotFramingPose } from '../engine/evaluateScene'
 import { depthToThree, threeToDepth } from '../engine/spatial'
 import { findLayer, findShot, frameTolerance, useEditor } from '../store/editor'
+import { useView } from '../store/view'
 import { Row, Slider } from './controls'
-import { IconCamera, IconFocus, IconPlane, IconTrash } from './icons'
+import { IconCamera, IconCameraStage, IconFocus, IconPlane, IconTrash } from './icons'
 
 const DEG = 180 / Math.PI
 
@@ -19,6 +20,7 @@ export function CameraControls() {
   const setTime = useEditor((s) => s.setTime)
   const selectedShotId = useEditor((s) => s.selectedShotId)
   const selectedLayerId = useEditor((s) => s.selectedLayerId)
+  const primaryView = useView((s) => s.primary)
 
   const cam = project.camera
   const tol = frameTolerance(project)
@@ -150,6 +152,30 @@ export function CameraControls() {
 
   return (
     <>
+      {/* 0. Quick toggle for Adobe Animate 2D & 3D Camera Stage */}
+      <div className="section">
+        <button
+          type="button"
+          className={`btn sm ${primaryView === 'animate2d' ? 'secondary' : 'primary'}`}
+          style={{ width: '100%', justifyContent: 'center', gap: 6 }}
+          onClick={() =>
+            useView
+              .getState()
+              .set(
+                primaryView === 'animate2d'
+                  ? { primary: 'camera' }
+                  : { split: false, primary: 'animate2d', animate2dSplit: true }
+              )
+          }
+          title="Mở Bàn dựng Khung Camera 2D & 3D kiểu Adobe Animate ngay trên màn hình chính"
+        >
+          <IconCameraStage width={14} height={14} />
+          {primaryView === 'animate2d'
+            ? 'Đang mở Khung Camera 2D & 3D (Bấm để về Camera)'
+            : 'Mở Khung Camera 2D & 3D (Kiểu Adobe Animate)'}
+        </button>
+      </div>
+
       {/* 1. Point / Waypoint Navigator */}
       <div className="section">
         <div className="section-title">

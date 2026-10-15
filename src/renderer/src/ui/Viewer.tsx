@@ -16,13 +16,13 @@ import {
   inRect,
   toDevice,
   worldBox,
-  type Layout,
-  type Quality
+  type Layout
 } from './viewer/viewerLayout'
 import { useViewerLabels } from './viewer/useViewerLabels'
 import { useViewerDrag } from './viewer/useViewerDrag'
 import { ViewerOverlays } from './viewer/ViewerOverlays'
 import { LayerGizmo, type GizmoController, type GizmoFrame } from './viewer/LayerGizmo'
+import { AnimateCameraStage } from './viewer/animateCamera/AnimateCameraStage'
 import { TopView, useFocusShotId } from './TopView'
 
 export { EDITOR_KINDS }
@@ -36,13 +36,12 @@ export function Viewer() {
   const edCam = useRef(new EditorCamera()).current
   const needsFrame = useRef(true)
   const pendingFocus = useRef<THREE.Box3 | null>(null)
-  const layoutRef = useRef<Layout>({ dpr: 1, cam: null, ed: null })
+  const layoutRef = useRef<Layout>({ dpr: 1, cam: null, ed: null, stage2d: null })
   const rafRef = useRef(0)
   const frameTimes = useRef<number[]>([])
-  const [quality, setQuality] = useState<Quality>(1)
   const [fps, setFps] = useState(0)
   const [stats, setStats] = useState<ResidencyStats | null>(null)
-  const [rects, setRects] = useState<Layout>({ dpr: 1, cam: null, ed: null })
+  const [rects, setRects] = useState<Layout>({ dpr: 1, cam: null, ed: null, stage2d: null })
   const [narrowViewer, setNarrowViewer] = useState(false)
   const comp = useEditor((s) => s.project.comp)
   const playing = useEditor((s) => s.playing)
@@ -52,6 +51,7 @@ export function Viewer() {
   const focusShotId = useFocusShotId()
   const effectiveSplit = view.split && !narrowViewer
   const isTopView = view.primary === 'topview' && !effectiveSplit
+  const isAnimate2DOnly = view.primary === 'animate2d' && (!view.animate2dSplit || narrowViewer)
 
   const { updateLabels } = useViewerLabels(labelsRef)
   const { localXY, ndcIn, capture, startLayerDrag, startShotDrag, startCameraDrag } = useViewerDrag({
@@ -73,10 +73,10 @@ export function Viewer() {
 
   function draw(): void {
     const r = rendererRef.current
-    if (!r || (useView.getState().primary === 'topview' && !useView.getState().split)) return
+    const L = layoutRef.current
+    if (!r || (!L.cam && !L.ed)) return
     const s = useEditor.getState()
     const v = useView.getState()
-    const L = layoutRef.current
     const gizmoFrames: GizmoFrame[] = []
     const clearCol = v.theme === 'light' ? '#e2e5eb' : CLEAR
     r.beginFrame(clearCol)
@@ -222,28 +222,52 @@ export function Viewer() {
       const c = canvasRef.current!
       c.style.width = `${W}px`
       c.style.height = `${H}px`
-      const dpr = Math.min(window.devicePixelRatio || 1, 2) * quality
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
       rendererRef.current?.setSize(W * dpr, H * dpr)
       const aspect = comp.width / comp.height
       let cam: Layout['cam'] = null
       let ed: Layout['ed'] = null
-      // Reserve space for top HUD chips & controls overlay so camera preview is visually centered
+      let stage2d: Layout['stage2d'] = null
       const isNarrow = W < 620
       setNarrowViewer(isNarrow)
       const canSplit = view.split && !isNarrow
       const topHudH = H < 260 ? 32 : 38
       const splitPad = W < 540 || H < 260 ? 6 : 16
       const singlePad = W < 540 || H < 260 ? 8 : 20
-      if (canSplit) {
+
+      if (view.primary === 'animate2d') {
+        if (view.animate2dSplit && !isNarrow) {
+          // Chế độ 2D & 3D: Cột 1 chia 2 hàng (Hàng 1: Camera, Hàng 2: 3D), Cột 2: Mặt phẳng 2D của Cảnh
+          const col1W = Math.max(240, Math.floor(W * 0.42))
+          const availH = Math.max(20, H - topHudH)
+          const row1H = Math.max(10, Math.floor(availH * 0.48))
+          const row2Y = topHudH + row1H + 1
+          cam = fitRect({ x: 0, y: topHudH, w: col1W, h: row1H }, aspect, 8)
+          ed = { x: 0, y: row2Y, w: col1W, h: Math.max(10, H - row2Y) }
+          stage2d = {
+            x: col1W + 1,
+            y: topHudH,
+            w: Math.max(10, W - col1W - 1),
+            h: availH
+          }
+        } else {
+          stage2d = {
+            x: 0,
+            y: topHudH,
+            w: Math.max(10, W),
+            h: Math.max(10, H - topHudH)
+          }
+        }
+      } else if (canSplit) {
         const half = Math.floor(W / 2)
         cam = fitRect({ x: 0, y: topHudH, w: Math.max(10, half - 1), h: Math.max(10, H - topHudH) }, aspect, splitPad)
         ed = { x: half + 1, y: 0, w: Math.max(10, W - half - 1), h: H }
       } else if (view.primary === 'camera') {
         cam = fitRect({ x: 0, y: topHudH, w: Math.max(10, W), h: Math.max(10, H - topHudH) }, aspect, singlePad)
-      } else {
+      } else if (view.primary === 'editor') {
         ed = { x: 0, y: 0, w: Math.max(10, W), h: H }
       }
-      const L = { dpr, cam, ed }
+      const L: Layout = { dpr, cam, ed, stage2d }
       layoutRef.current = L
       setRects(L)
       requestRender()
@@ -253,7 +277,7 @@ export function Viewer() {
     fit()
     return () => ro.disconnect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [comp.width, comp.height, quality, view.split, view.primary])
+  }, [comp.width, comp.height, view.split, view.primary, view.animate2dSplit])
 
   // F = frame selection in the 3D view.
   useEffect(() => {
@@ -462,12 +486,12 @@ export function Viewer() {
         onWheel={onWheel}
         onDoubleClick={onDoubleClick}
         onContextMenu={(e) => e.preventDefault()}
-        style={{ display: isTopView ? 'none' : 'block' }}
+        style={{ display: isTopView || isAnimate2DOnly ? 'none' : 'block' }}
       />
-      {!isTopView && (
+      {!isTopView && !isAnimate2DOnly && (
         <LayerGizmo controller={gizmoRef} />
       )}
-      {!isTopView && (
+      {!isTopView && !isAnimate2DOnly && (
         <div className="view-labels" ref={labelsRef} onPointerDown={onLabelPointerDown} onDoubleClick={onLabelDoubleClick} />
       )}
 
@@ -477,15 +501,28 @@ export function Viewer() {
         </div>
       )}
 
+      {view.primary === 'animate2d' && rects.stage2d && (
+        <div
+          className="anim2d-pane-host"
+          style={{
+            position: 'absolute',
+            left: rects.stage2d.x,
+            top: rects.stage2d.y,
+            width: rects.stage2d.w,
+            height: rects.stage2d.h,
+            zIndex: 8
+          }}
+        >
+          <AnimateCameraStage />
+        </div>
+      )}
+
       <ViewerOverlays
         view={view}
-        comp={comp}
         playing={playing}
         fps={fps}
         stats={stats}
         rects={rects}
-        quality={quality}
-        setQuality={setQuality}
       />
     </div>
   )

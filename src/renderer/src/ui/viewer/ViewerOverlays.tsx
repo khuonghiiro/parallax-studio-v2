@@ -1,4 +1,3 @@
-import type { Project } from '@shared/types'
 import type { ResidencyStats } from '../../engine/SceneRenderer'
 import type { EditorViewKind } from '../../engine/EditorCamera'
 import { useView, type ViewState } from '../../store/view'
@@ -9,6 +8,7 @@ import {
   IconAxisRotate,
   IconBoundingBox,
   IconCamera,
+  IconCameraStage,
   IconCube,
   IconEye,
   IconFocus,
@@ -18,36 +18,32 @@ import {
   IconSplit
 } from '../icons'
 import { CustomSelect } from '../controls/CustomSelect'
-import { EDITOR_KINDS, type Layout, type Quality } from './viewerLayout'
+import { EDITOR_KINDS, type Layout } from './viewerLayout'
 
 interface ViewerOverlaysProps {
   view: ViewState
-  comp: Project['comp']
   playing: boolean
   fps: number
   fov?: number
   stats: ResidencyStats | null
   rects: Layout
-  quality: Quality
-  setQuality: React.Dispatch<React.SetStateAction<Quality>>
 }
 
 export function ViewerOverlays({
   view,
-  comp,
   playing,
   fps,
   fov,
   stats,
-  rects,
-  quality,
-  setQuality
+  rects
 }: ViewerOverlaysProps) {
   const cameraFov = useEditor((s) => s.project.camera.fov)
   const time = useEditor((s) => s.time)
   const currentFov = fov ?? evaluate(cameraFov, time)
   const showEd = !!rects.ed
-  const isSplitActive = Boolean(view.split && rects.cam && rects.ed)
+  const isAnimate2D = view.primary === 'animate2d'
+  const isAnimateSplit = Boolean(isAnimate2D && view.animate2dSplit && rects.cam && rects.ed && rects.stage2d)
+  const isStandardSplit = Boolean(!isAnimate2D && view.split && rects.cam && rects.ed)
   const kindLabel = EDITOR_KINDS.find((k) => k.id === view.editorKind)?.label ?? ''
 
   const showBbox = view.showBbox ?? true
@@ -64,52 +60,62 @@ export function ViewerOverlays({
           style={{ left: rects.cam.x, top: rects.cam.y, width: rects.cam.w, height: rects.cam.h }}
         />
       )}
-      {isSplitActive && rects.ed && (
+
+      {/* Vách ngăn chia đôi tiêu chuẩn (Camera | 3D) */}
+      {isStandardSplit && rects.ed && (
         <div className="pane-divider" style={{ left: rects.ed.x - 1 }} />
       )}
 
-      {/* Dock trạng thái thông số & bộ nhớ (Top-Left HUD) */}
+      {/* Vách ngăn chế độ 2D & 3D (Cột 1 chia 2 hàng: Hàng 1 Camera + Hàng 2 3D | Cột 2: Mặt phẳng 2D) */}
+      {isAnimateSplit && rects.ed && rects.stage2d && (
+        <>
+          <div className="pane-divider" style={{ left: rects.stage2d.x - 1 }} />
+          <div
+            className="pane-divider-h"
+            style={{ top: rects.ed.y - 1, left: 0, width: rects.ed.w }}
+          />
+        </>
+      )}
+
+      {/* Dock trạng thái thông số & bộ nhớ gọn nhẹ, không lặp lại kích thước/fps đã có trên thanh tiêu đề */}
       <div className="viewer-hud">
-        <span className="hud-item" title={playing ? 'Đang phát video' : 'Trạng thái sẵn sàng'}>
-          <span className={`dot${playing ? ' live' : ''}`} /> {playing ? `${fps} fps` : 'Sẵn sàng'}
-        </span>
-        <span className="hud-sep" />
-        <span className="hud-item" title="Độ phân giải & Tỉ lệ khung hình">
-          {comp.width}×{comp.height} · {comp.fps}p
-        </span>
-        {rects.cam && (
+        {playing && (
           <>
-            <span className="hud-sep" />
-            <span className="hud-item" title={`Góc mở ống kính camera: ${currentFov.toFixed(1)}°`}>
-              FOV {currentFov.toFixed(1)}°
+            <span className="hud-item" title="Tốc độ khung hình phát thực tế">
+              <span className="dot live" /> {fps} fps
             </span>
+            <span className="hud-sep" />
           </>
+        )}
+        {rects.cam && (
+          <span className="hud-item" title={`Góc mở ống kính camera: ${currentFov.toFixed(1)}°`}>
+            FOV {currentFov.toFixed(0)}°
+          </span>
         )}
         {stats && (
           <>
-            <span className="hud-sep" />
+            {rects.cam && <span className="hud-sep" />}
             <span
               id="memory-chip"
               className={`hud-item mem${stats.textureMB > stats.budgetMB * 0.85 ? ' warn' : ''}`}
               onClick={() => useView.getState().openDialog('performance')}
               title={`⚡ Texture GPU đang giữ: ${stats.textures} (${stats.pending} đang giải mã)\nNgân sách VRAM: ${stats.budgetMB} MB · LOD bias ${stats.lodBias}\nLayer đang vẽ trong camera: ${stats.visibleLayers}/${stats.totalLayers}\n\n👉 Bấm vào đây để mở Cấu hình Hiệu năng, RAM & VRAM GPU.`}
             >
-              ⚡ VRAM {stats.textureMB.toFixed(0)}/{stats.budgetMB} MB · {stats.textures} tex
-              {stats.totalShots > 0 && ` · cảnh ${stats.visibleShots}/${stats.totalShots}`}
+              ⚡ {stats.textureMB.toFixed(0)}/{stats.budgetMB} MB
             </span>
           </>
         )}
       </div>
 
-      {isSplitActive && rects.cam && (
+      {(isStandardSplit || isAnimateSplit) && rects.cam && (
         <span
           className="pane-tag"
           style={{
-            left: rects.cam.x + 8,
-            top: rects.cam.y + rects.cam.h - 34,
-            maxWidth: Math.max(120, rects.cam.w - 16)
+            left: 8,
+            top: isAnimateSplit && rects.ed ? rects.ed.y - 30 : rects.cam.y + rects.cam.h - 34,
+            maxWidth: Math.max(100, (isAnimateSplit && rects.ed ? rects.ed.w : rects.cam.w) - 16)
           }}
-          title="Khung nhìn Camera (Góc render video chính thức)"
+          title="Hàng 1 — Khung nhìn Camera (Kết quả render video chính thức)"
         >
           <span className="pane-tag-badge">
             <IconCamera /> Camera
@@ -120,57 +126,78 @@ export function ViewerOverlays({
         <span
           className="pane-tag"
           style={{
-            left: rects.ed!.x + 12,
-            top: rects.ed!.y + rects.ed!.h - 34,
-            maxWidth: Math.max(160, rects.ed!.w - 24)
+            left: rects.ed!.x + 8,
+            top: rects.ed!.y + rects.ed!.h - 30,
+            maxWidth: Math.max(120, rects.ed!.w - 16)
           }}
           title={`Không gian 3D (${kindLabel})\n• Chuột trái: Xoay tự do (Orbit)\n• Shift + Chuột trái / Chuột phải: Di chuyển mặt phẳng (Pan)\n• Cuộn chuột: Phóng to / Thu nhỏ (Zoom)\n• Phím F: Tiêu điểm (Focus vào layer hoặc cảnh đang chọn)\n• Nhấp đúp chuột vào cảnh: Bay camera tới cảnh đó`}
         >
           <span className="pane-tag-badge">
             <IconCube /> 3D · {kindLabel}
           </span>
-          <span className="pane-hint">
-            Kéo: xoay · Shift: pan · Lăn: zoom · F: focus · Nhấp đúp cảnh: bay tới
-          </span>
+          {!isAnimateSplit && (
+            <span className="pane-hint">
+              Kéo: xoay · Shift: pan · Lăn: zoom · F: focus
+            </span>
+          )}
         </span>
       )}
 
       {/* Dock công cụ Viewport & Thao tác Layer (Top-Right Tools) */}
       <div className="viewer-tools">
-        {/* Nhóm 1: Chuyển đổi góc nhìn chính (khi không chia đôi màn hình) */}
-        {!isSplitActive && (
+        {/* Nhóm 1: Chuyển đổi góc nhìn chính (luôn hiển thị để dễ thao tác) */}
+        <div className="viewer-mode-seg">
+          <button
+            id="view-camera"
+            className={`seg-btn${!view.split && view.primary === 'camera' ? ' active' : ''}`}
+            title="Góc nhìn Camera (kết quả render)"
+            onClick={() => view.set({ split: false, primary: 'camera' })}
+          >
+            <IconCamera width={12} height={12} /> Camera
+          </button>
+          <button
+            id="view-3d"
+            className={`seg-btn${!view.split && view.primary === 'editor' ? ' active' : ''}`}
+            title="Không gian 3D: xem các layer xếp chồng, các cảnh và đường bay camera"
+            onClick={() => view.set({ split: false, primary: 'editor' })}
+          >
+            <IconCube width={12} height={12} /> 3D
+          </button>
+          <button
+            id="view-topview"
+            className={`seg-btn${!view.split && view.primary === 'topview' ? ' active' : ''}`}
+            title="Sơ đồ độ sâu 2.5D: nhìn từ trên xuống để dàn dựng bố cục cảnh nhanh chóng"
+            onClick={() => view.set({ split: false, primary: 'topview' })}
+          >
+            <IconRoute width={12} height={12} /> 2.5D
+          </button>
+          <button
+            id="view-animate2d"
+            className={`seg-btn${view.primary === 'animate2d' ? ' active' : ''}`}
+            title="Lộ trình Camera 2D kiểu Adobe Animate: đóng khung camera, lia cảnh, phóng to/thu nhỏ dần trực quan trên mặt phẳng 2D"
+            onClick={() => view.set({ split: false, primary: 'animate2d' })}
+          >
+            <IconCameraStage width={12} height={12} /> Cam 2D
+          </button>
+        </div>
+
+        <span className="viewer-tool-sep" />
+
+        {!isAnimate2D && (
           <>
-            <div className="viewer-mode-seg">
-              <button
-                id="view-camera"
-                className={`seg-btn${view.primary === 'camera' ? ' active' : ''}`}
-                title="Góc nhìn camera (kết quả render)"
-                onClick={() => view.set({ primary: 'camera' })}
-              >
-                <IconCamera width={12} height={12} /> Camera
-              </button>
-              <button
-                id="view-3d"
-                className={`seg-btn${view.primary === 'editor' ? ' active' : ''}`}
-                title="Không gian 3D: xem các layer xếp chồng, các cảnh và đường bay camera"
-                onClick={() => view.set({ primary: 'editor' })}
-              >
-                <IconCube width={12} height={12} /> 3D
-              </button>
-              <button
-                id="view-topview"
-                className={`seg-btn${view.primary === 'topview' ? ' active' : ''}`}
-                title="Sơ đồ độ sâu 2.5D: nhìn từ trên xuống để dàn dựng bố cục cảnh nhanh chóng"
-                onClick={() => view.set({ primary: 'topview' })}
-              >
-                <IconRoute width={12} height={12} /> 2.5D
-              </button>
-            </div>
+            <button
+              id="view-split"
+              className={`viewer-tool-btn icon${view.split ? ' active' : ''}`}
+              title={view.split ? '1 view: Phóng to góc nhìn hiện tại' : '2 view: Camera + 3D song song'}
+              onClick={() => view.set({ split: !view.split })}
+            >
+              {view.split ? <IconSingle width={14} height={14} /> : <IconSplit width={14} height={14} />}
+            </button>
             <span className="viewer-tool-sep" />
           </>
         )}
 
-        {/* Nhóm 2: Kiểu nhìn 3D (CustomSelect chuẩn 60fps thay thế native select) */}
+        {/* Nhóm 2: Kiểu nhìn 3D (CustomSelect chuẩn 60fps) */}
         {showEd && (
           <>
             <CustomSelect<EditorViewKind>
@@ -187,7 +214,7 @@ export function ViewerOverlays({
           </>
         )}
 
-        {/* Nhóm 3: Các công cụ Gizmo & BBox thao tác layer (Bật/Tắt BBox, Di chuyển, Xoay, Tọa độ) */}
+        {/* Nhóm 3: Các công cụ Gizmo & BBox thao tác layer */}
         <div className="viewer-tool-group" title="Công cụ thao tác layer (BBox, Di chuyển, Xoay, Tọa độ)">
           <button
             id="view-toggle-bbox"
@@ -259,30 +286,7 @@ export function ViewerOverlays({
             </div>
           </>
         )}
-
-        <span className="viewer-tool-sep" />
-
-        {/* Nhóm 5: Chia màn hình & Chất lượng render */}
-        <div className="viewer-tool-group">
-          <button
-            id="view-split"
-            className={`viewer-tool-btn icon${view.split ? ' active' : ''}`}
-            title={view.split ? '1 view: Phóng to góc nhìn hiện tại' : '2 view: Camera + 3D song song'}
-            onClick={() => view.set({ split: !view.split })}
-          >
-            {view.split ? <IconSingle width={14} height={14} /> : <IconSplit width={14} height={14} />}
-          </button>
-          <button
-            id="quality-toggle"
-            className={`viewer-tool-btn quality${quality === 1 ? ' active' : ''}`}
-            title={`Chất lượng preview: ${quality === 1 ? 'Full 100% (Sắc nét)' : 'Half 50% (Tiết kiệm)'}`}
-            onClick={() => setQuality((q) => (q === 1 ? 0.5 : 1))}
-          >
-            {quality === 1 ? 'Full' : 'Half'}
-          </button>
-        </div>
       </div>
     </>
   )
 }
-

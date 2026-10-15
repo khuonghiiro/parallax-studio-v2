@@ -394,9 +394,9 @@ export const FX_TOOLS = [
   },
   {
     name: 'set_view', cat: 'timeline',
-    doc: L("Change the app's viewer for the user: camera view, 3D view or split; frame a shot.", 'Đổi khung xem của app: camera, 3D hoặc chia đôi; đóng khung một shot.'),
+    doc: L("Change the app's viewer for the user: camera view, 3D view, 2.5D topview, Adobe Animate 2D & 3D camera stage, or split; frame a shot.", 'Đổi khung xem của app: camera, 3D, sơ đồ 2.5D, bàn dựng khung camera 2D & 3D (Adobe Animate) hoặc chia đôi; đóng khung một shot.'),
     shape: (d) => ({
-      mode: z.enum(['camera', '3d', 'split']).optional(),
+      mode: z.enum(['camera', '3d', 'topview', 'animate2d', '2d_3d', '2d_only', 'split']).optional(),
       focus: z.string().optional().describe(d('"all", "selection" or a shot id.', '"all", "selection" hoặc id shot.')),
       camera_only: z.boolean().optional().describe(d('3D view previews only what the camera loads.', 'View 3D chỉ hiển thị những gì camera nạp.')),
       show_path: z.boolean().optional()

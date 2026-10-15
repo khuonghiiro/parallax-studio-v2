@@ -10,6 +10,7 @@ export interface Layout {
   /** CSS px, relative to the canvas. */
   cam: Rect | null
   ed: Rect | null
+  stage2d?: Rect | null
 }
 
 export const EDITOR_KINDS: { id: EditorViewKind; label: string }[] = [

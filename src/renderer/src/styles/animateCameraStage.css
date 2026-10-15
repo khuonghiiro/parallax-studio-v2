@@ -1,0 +1,448 @@
+/* ==========================================================================
+   Adobe Animate 2D Camera Stage & Multi-Shot 2D Projection Plane
+   Supports both Dark Theme and Light Theme via CSS Design Tokens
+   ========================================================================== */
+
+.pane-divider-h {
+  position: absolute;
+  height: 2px;
+  background: var(--line);
+  pointer-events: none;
+  z-index: 12;
+}
+
+.anim2d-pane-host {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-1);
+}
+
+.anim2d-stage {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-0);
+  color: var(--text);
+  user-select: none;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Top Toolbar for Camera Frames */
+.anim2d-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 32px;
+  padding: 3px 8px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line-soft);
+  z-index: 25;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+
+.anim2d-frames-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 60px;
+  overflow-x: auto;
+  padding: 1px 0;
+}
+
+.anim2d-frame-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.anim2d-step-arrow {
+  color: var(--text-faint);
+  font-size: 9.5px;
+}
+
+.anim2d-frame-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 21px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  font-size: 10px;
+  font-family: var(--mono);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.anim2d-frame-pill:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--accent-cyan);
+}
+
+.anim2d-frame-pill.active {
+  background: color-mix(in srgb, var(--accent) 24%, var(--bg-2));
+  border-color: var(--accent-cyan);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-cyan) 28%, transparent);
+}
+
+.anim2d-pill-num {
+  color: var(--accent-cyan);
+  font-weight: 700;
+}
+
+.anim2d-pill-scale {
+  color: var(--key);
+  font-size: 9.5px;
+}
+
+.anim2d-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* 2D Stage Interactive Workspace */
+.anim2d-canvas {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+  background-color: var(--bg-0);
+  background-image:
+    linear-gradient(to right, var(--line-soft) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line-soft) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.anim2d-canvas:active {
+  cursor: grabbing;
+}
+
+/* 2D Projected Shot Card */
+.anim2d-shot-card {
+  position: absolute;
+  border-radius: 3px;
+  border: 2px solid color-mix(in srgb, var(--shot-color, var(--accent)) 65%, var(--line));
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  z-index: 5;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.anim2d-shot-card.selected {
+  border-color: var(--shot-color, var(--accent-cyan));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--shot-color, var(--accent-cyan)) 35%, transparent),
+    0 10px 32px rgba(0, 0, 0, 0.45);
+}
+
+.anim2d-shot-card.hidden-shot {
+  opacity: 0.4;
+}
+
+.anim2d-shot-header {
+  position: absolute;
+  top: -48px;
+  left: -2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px;
+  background: var(--hud-bg);
+  border: 1px solid color-mix(in srgb, var(--shot-color, var(--accent)) 60%, var(--line));
+  border-radius: var(--radius-sm);
+  backdrop-filter: blur(8px);
+  white-space: nowrap;
+  cursor: pointer;
+  z-index: 12;
+}
+
+.anim2d-shot-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.anim2d-shot-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.anim2d-shot-meta {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+
+.anim2d-shot-add-cam {
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 2px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--accent-cyan);
+  font-size: 9.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.anim2d-shot-add-cam:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.anim2d-shot-surface {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 1px;
+}
+
+/* Trajectory SVG */
+.anim2d-trajectory-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 15;
+}
+
+/* Live Interpolated Camera Box */
+.anim2d-live-cam {
+  position: absolute;
+  pointer-events: none;
+  border: 2px dotted var(--key);
+  border-radius: 2px;
+  z-index: 18;
+  opacity: 0.55;
+}
+
+.anim2d-live-cam.playing {
+  opacity: 0.95;
+  border-style: solid;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--key) 35%, transparent),
+    inset 0 0 18px color-mix(in srgb, var(--key) 20%, transparent);
+}
+
+/* Interactive Camera Frame Box (#1, #2, #3...) */
+.anim2d-cam-frame {
+  position: absolute;
+  border: 2px dashed var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 6%, transparent);
+  border-radius: 2px;
+  cursor: move;
+  box-sizing: border-box;
+  transition: background 0.12s ease;
+}
+
+.anim2d-cam-frame:hover {
+  background: color-mix(in srgb, var(--accent-cyan) 12%, transparent);
+}
+
+.anim2d-cam-frame.active {
+  border: 2px solid var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 10%, transparent);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 0 16px color-mix(in srgb, var(--accent-cyan) 32%, transparent);
+}
+
+.anim2d-cam-badge {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 3px;
+  background: var(--bg-2);
+  border: 1px solid var(--accent-cyan);
+  color: var(--text);
+  font-size: 10px;
+  font-family: var(--mono);
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  cursor: grab;
+}
+
+.anim2d-cam-badge.pos-tl {
+  top: -23px;
+  left: -2px;
+}
+
+.anim2d-cam-badge.pos-br {
+  bottom: -23px;
+  right: -2px;
+}
+
+.anim2d-cam-badge.pos-tr {
+  top: -23px;
+  right: -2px;
+}
+
+.anim2d-cam-badge.pos-bl {
+  bottom: -23px;
+  left: -2px;
+}
+
+.anim2d-cam-frame.active .anim2d-cam-badge {
+  background: color-mix(in srgb, var(--accent) 30%, var(--bg-2));
+  border-color: var(--accent-cyan);
+}
+
+.anim2d-cam-num {
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.anim2d-cam-time {
+  color: var(--text-dim);
+}
+
+.anim2d-cam-scale {
+  color: var(--key);
+  font-weight: 600;
+}
+
+.anim2d-cam-quick-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 3px;
+  padding-left: 4px;
+  border-left: 1px solid var(--line);
+}
+
+.anim2d-cam-quick-btns button {
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 2px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text);
+  font-size: 9px;
+  font-family: var(--mono);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.anim2d-cam-quick-btns button:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.anim2d-cam-quick-btns button.danger:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+/* Center crosshair inside Camera Frame */
+.anim2d-cam-crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.anim2d-cam-crosshair::before,
+.anim2d-cam-crosshair::after {
+  content: '';
+  position: absolute;
+  background: var(--accent-cyan);
+  opacity: 0.75;
+}
+
+.anim2d-cam-crosshair::before {
+  left: 5px;
+  top: 0;
+  width: 2px;
+  height: 12px;
+}
+
+.anim2d-cam-crosshair::after {
+  left: 0;
+  top: 5px;
+  width: 12px;
+  height: 2px;
+}
+
+/* 8 Resize Handles on Camera Frame */
+.anim2d-cam-handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: var(--bg-0);
+  border: 1.5px solid var(--accent-cyan);
+  border-radius: 1.5px;
+  z-index: 5;
+}
+
+.anim2d-cam-frame.active .anim2d-cam-handle {
+  width: 9px;
+  height: 9px;
+  background: var(--accent-cyan);
+  border-color: var(--bg-0);
+}
+
+.anim2d-cam-handle.handle-nw { left: -5px; top: -5px; }
+.anim2d-cam-handle.handle-n  { left: calc(50% - 4px); top: -5px; }
+.anim2d-cam-handle.handle-ne { right: -5px; top: -5px; }
+.anim2d-cam-handle.handle-e  { right: -5px; top: calc(50% - 4px); }
+.anim2d-cam-handle.handle-se { right: -5px; bottom: -5px; }
+.anim2d-cam-handle.handle-s  { left: calc(50% - 4px); bottom: -5px; }
+.anim2d-cam-handle.handle-sw { left: -5px; bottom: -5px; }
+.anim2d-cam-handle.handle-w  { left: -5px; top: calc(50% - 4px); }
+
+/* Stage Bottom Footer Bar (Camera Frame Progression Strip & Quick Hint) */
+.anim2d-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 29px;
+  padding: 2px 8px;
+  background: var(--bg-2);
+  border-top: 1px solid var(--line);
+  z-index: 25;
+}
+
+.anim2d-footer-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+  white-space: nowrap;
+  margin-right: 2px;
+}
+
+.anim2d-footer-hint {
+  font-size: 10px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+

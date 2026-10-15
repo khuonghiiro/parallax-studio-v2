@@ -39,7 +39,8 @@ import {
   IconSun,
   IconMoon,
   IconSettings,
-  IconLayerAssembly
+  IconLayerAssembly,
+  IconCameraStage
 } from './icons'
 import { requestOpenLayerAssembly } from './layerAssembly/layerAssemblyBridge'
 
@@ -276,7 +277,14 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
       </Menu>
 
       <Menu id="menu-studio" label="Studio & Đạo diễn" icon={<IconWand />}>
-        <div className="menu-label">Đạo diễn Camera 3D (After Effects)</div>
+        <div className="menu-label">Đạo diễn Camera 3D &amp; 2D (Animate / AE)</div>
+        <button
+          id="studio-cam-animate2d"
+          className="menu-item"
+          onClick={() => useView.getState().set({ split: false, primary: 'animate2d', animate2dSplit: true })}
+        >
+          <IconCameraStage width={15} /> Bàn dựng Khung Camera 2D &amp; 3D (Adobe Animate)
+        </button>
         <button id="studio-cam-path" className="menu-item" onClick={() => useView.getState().openDialog('path')}>
           <IconRoute width={15} /> Lộ trình Camera qua các Cảnh…
         </button>

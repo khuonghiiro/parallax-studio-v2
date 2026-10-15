@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { join, extname, basename } from 'path'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { readFile, writeFile, unlink } from 'fs/promises'
@@ -76,6 +76,7 @@ function enforceWindowZoom100(win: BrowserWindow | null): void {
 
 function createWindow(): void {
   clearCachedZoomPreferences()
+  Menu.setApplicationMenu(null)
   mainWindow = new BrowserWindow({
     width: 1600,
     height: 960,
@@ -95,6 +96,9 @@ function createWindow(): void {
     }
   })
 
+  mainWindow.setMenu(null)
+  mainWindow.removeMenu()
+  mainWindow.setMenuBarVisibility(false)
   enforceWindowZoom100(mainWindow)
   mainWindow.webContents.on('dom-ready', () => enforceWindowZoom100(mainWindow))
   mainWindow.webContents.on('did-finish-load', () => enforceWindowZoom100(mainWindow))

@@ -48,6 +48,21 @@ export default function App() {
       })
   }, [])
 
+  // Chặn phím Alt kích hoạt thanh menu mặc định của Windows để dành trọn phím Alt cho thao tác 3D/2D và phím tắt trong app.
+  useEffect(() => {
+    const suppressAltMenu = (e: KeyboardEvent): void => {
+      if (e.key === 'Alt') {
+        e.preventDefault()
+      }
+    }
+    window.addEventListener('keydown', suppressAltMenu, true)
+    window.addEventListener('keyup', suppressAltMenu, true)
+    return () => {
+      window.removeEventListener('keydown', suppressAltMenu, true)
+      window.removeEventListener('keyup', suppressAltMenu, true)
+    }
+  }, [])
+
   // Accept AI commands over MCP (re-subscribes cleanly on HMR).
   useEffect(() => {
     if (!ready) return
