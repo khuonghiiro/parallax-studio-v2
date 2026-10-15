@@ -523,15 +523,6 @@
   border-color: var(--key);
 }
 
-.anim2d-callout-bubble .bubble-shot-flag {
-  color: var(--key);
-  font-weight: 700;
-  max-width: 68px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .anim2d-callout-bubble .bubble-time {
   color: var(--text-dim);
 }

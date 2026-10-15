@@ -505,11 +505,6 @@ export function AnimateCameraViewfinder({
               <span className="bubble-num">#{idx + 1}</span>
             </div>
             <div className="bubble-meta">
-              {isFirstOfShot && (
-                <span className="bubble-shot-flag" title={`Mốc mở cảnh: ${wp.shotName}`}>
-                  ⚑ {wp.shotName}
-                </span>
-              )}
               <span className="bubble-time">{wp.time.toFixed(1)}s</span>
               <span className="bubble-zoom">{wp.zoomPct}%</span>
             </div>
