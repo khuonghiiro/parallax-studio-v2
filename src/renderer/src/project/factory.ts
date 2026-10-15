@@ -32,6 +32,7 @@ export function defaultCamera(comp: Composition): CameraSettings {
     position: anim<Vec3>([0, 0, -d]),
     target: anim<Vec3>([0, 0, 0]),
     fov: anim(REFERENCE_FOV),
+    roll: anim(0),
     dofEnabled: false,
     focusDistance: anim(Math.round(d)),
     aperture: anim(0.6),
@@ -100,6 +101,7 @@ export function migrateProject(raw: unknown): Project {
   }
   p.shots ??= []
   if (!p.camera.fade) p.camera.fade = anim(0)
+  if (!p.camera.roll) p.camera.roll = anim(0)
   for (const l of p.layers) if ((l as Layer).shotId === undefined) (l as Layer).shotId = null
   if (p.audio && (!p.audioTracks || p.audioTracks.length === 0)) {
     p.audioTracks = [

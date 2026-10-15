@@ -265,6 +265,8 @@ export interface CameraSettings {
   position: Animatable<Vec3>
   target: Animatable<Vec3>
   fov: Animatable<number> // vertical, degrees
+  /** Optional camera roll / Dutch angle tilt in degrees (clockwise). */
+  roll?: Animatable<number>
   dofEnabled: boolean
   focusDistance: Animatable<number> // distance from camera, world units
   aperture: Animatable<number> // blur strength

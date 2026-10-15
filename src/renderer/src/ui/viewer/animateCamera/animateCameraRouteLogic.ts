@@ -4,21 +4,38 @@ import { addKeyframe, evaluate, keyAt } from '../../../animation/keyframes'
 import { frameTolerance } from '../../../store/editor'
 import {
   applyStageFrameToDraft,
+  clampCameraAngle,
   clampFrameScale,
+  extractCameraFrames2D,
+  pose3DToStageFrame,
   type CameraFrame2D,
   type ShotStageBox
 } from './animateCameraMath'
 
+export type CameraActionMode =
+  | 'hold'
+  | 'pan'
+  | 'push-in'
+  | 'pull-out'
+  | 'orbit-left'
+  | 'orbit-right'
+  | 'high-angle'
+  | 'low-angle'
+  | 'dutch-tilt'
+  | 'cut'
+
 export interface CameraWaypointItem extends CameraFrame2D {
   tag: 'start' | 'pan' | 'zoom-in' | 'zoom-out' | 'hold'
   tagLabel: string
+  actionMode: CameraActionMode
+  angleSummary: string
   durationFromPrev: number
   zoomPct: number
 }
 
 /**
- * Enriches extracted 2D camera frames with waypoint tags, durations, and zoom percentages
- * for intuitive list display and editing.
+ * Enriches extracted 2D camera frames with waypoint tags, action modes, 3D angle badges,
+ * durations, and zoom percentages for intuitive list display and editing.
  */
 export function enrichCameraWaypoints(frames: CameraFrame2D[]): CameraWaypointItem[] {
   return frames.map((f, idx) => {
@@ -28,43 +45,90 @@ export function enrichCameraWaypoints(frames: CameraFrame2D[]): CameraWaypointIt
 
     let tag: CameraWaypointItem['tag'] = 'hold'
     let tagLabel = durationFromPrev > 0 ? `Dừng ngắm (+${durationFromPrev.toFixed(1)}s)` : 'Điểm dừng'
+    let actionMode: CameraActionMode = 'hold'
+
+    const hasYawLeft = f.yaw <= -10
+    const hasYawRight = f.yaw >= 10
+    const hasPitchHigh = f.pitch >= 10
+    const hasPitchLow = f.pitch <= -10
+    const hasRoll = Math.abs(f.roll) >= 4
+    const isJumpCut = prev?.ease === 'hold'
 
     if (idx === 0) {
       tag = 'start'
       tagLabel = 'Khung gốc (Bắt đầu)'
+      actionMode = 'pan'
     } else if (prev) {
       const scaleDiff = f.scale - prev.scale
       const dist = Math.hypot(f.stageX - prev.stageX, f.stageY - prev.stageY)
+      const angleDiff = Math.hypot(f.yaw - prev.yaw, f.pitch - prev.pitch, f.roll - prev.roll)
 
-      if (dist <= 60 && Math.abs(scaleDiff) <= 0.12 && f.shotId === prev.shotId) {
+      if (dist <= 60 && Math.abs(scaleDiff) <= 0.12 && f.shotId === prev.shotId && angleDiff <= 5) {
         tag = 'hold'
         tagLabel = `Dừng ngắm (+${durationFromPrev.toFixed(1)}s)`
+        actionMode = 'hold'
       } else if (scaleDiff < -0.04) {
         tag = 'zoom-in'
         tagLabel = `Phóng to (${zoomPct}%)`
+        actionMode = 'push-in'
       } else if (scaleDiff > 0.04) {
         tag = 'zoom-out'
         tagLabel = `Thu nhỏ (${zoomPct}%)`
+        actionMode = 'pull-out'
       } else if (f.shotId && prev.shotId && f.shotId !== prev.shotId) {
         tag = 'pan'
-        tagLabel = `Lia tới ${f.shotName}`
-      } else if (dist > 60) {
+        tagLabel = isJumpCut ? `Cắt tới ${f.shotName}` : `Lia tới ${f.shotName}`
+        actionMode = isJumpCut ? 'cut' : 'pan'
+      } else if (dist > 60 || angleDiff > 5) {
         tag = 'pan'
-        tagLabel = 'Lia góc nhìn'
+        tagLabel = angleDiff > 8 ? `Xoay góc 3D (${Math.round(f.yaw)}°)` : 'Lia góc nhìn'
+        actionMode = 'pan'
       } else {
         tag = 'hold'
         tagLabel = `Dừng ngắm (+${durationFromPrev.toFixed(1)}s)`
+        actionMode = 'hold'
       }
     }
+
+    if (isJumpCut) actionMode = 'cut'
+    else if (hasRoll) actionMode = 'dutch-tilt'
+    else if (hasYawLeft) actionMode = 'orbit-left'
+    else if (hasYawRight) actionMode = 'orbit-right'
+    else if (hasPitchHigh) actionMode = 'high-angle'
+    else if (hasPitchLow) actionMode = 'low-angle'
+
+    const angleParts: string[] = []
+    if (Math.abs(f.yaw) >= 1) angleParts.push(`Yaw ${f.yaw > 0 ? '+' : ''}${Math.round(f.yaw)}°`)
+    if (Math.abs(f.pitch) >= 1) angleParts.push(`Pitch ${f.pitch > 0 ? '+' : ''}${Math.round(f.pitch)}°`)
+    if (Math.abs(f.roll) >= 1) angleParts.push(`Roll ${f.roll > 0 ? '+' : ''}${Math.round(f.roll)}°`)
+    const angleSummary = angleParts.length > 0 ? angleParts.join(' · ') : 'Thẳng 0°'
 
     return {
       ...f,
       tag,
       tagLabel,
+      actionMode,
+      angleSummary,
       durationFromPrev,
       zoomPct
     }
   })
+}
+
+/**
+ * Sets easing curve across all camera transform tracks at given timestamp.
+ */
+function setKeyframeEaseAtTime(draft: Project, time: number, ease: EaseName): void {
+  const tol = frameTolerance(draft)
+  const setEase = (track?: Animatable<unknown>) => {
+    if (!track) return
+    const k = keyAt(track, time, tol)
+    if (k) k.ease = ease
+  }
+  setEase(draft.camera.position)
+  setEase(draft.camera.target)
+  setEase(draft.camera.focusDistance)
+  setEase(draft.camera.roll)
 }
 
 /**
@@ -85,9 +149,13 @@ export function panCameraToShot(
     setCompDuration(draft, Math.ceil(time + 1))
   }
 
-  applyStageFrameToDraft(draft, layout, time, box.stageX, box.stageY, scale, true)
-
-  // Update ease curve on position & target keyframes at this timestamp
+  const existing = extractCameraFrames2D(draft, layout).find((f) => Math.abs(f.time - time) <= 0.05)
+  applyStageFrameToDraft(draft, layout, time, box.stageX, box.stageY, scale, true, {
+    yaw: existing?.yaw ?? 0,
+    pitch: existing?.pitch ?? 0,
+    roll: existing?.roll ?? 0,
+    ease
+  })
   setKeyframeEaseAtTime(draft, time, ease)
 }
 
@@ -116,7 +184,13 @@ export function panCameraToLayer2D(
     setCompDuration(draft, Math.ceil(time + 1))
   }
 
-  applyStageFrameToDraft(draft, layout, time, targetStageX, targetStageY, scale, true)
+  const existing = extractCameraFrames2D(draft, layout).find((f) => Math.abs(f.time - time) <= 0.05)
+  applyStageFrameToDraft(draft, layout, time, targetStageX, targetStageY, scale, true, {
+    yaw: existing?.yaw ?? 0,
+    pitch: existing?.pitch ?? 0,
+    roll: existing?.roll ?? 0,
+    ease
+  })
   setKeyframeEaseAtTime(draft, time, ease)
 
   if (layerDepthZ !== undefined) {
@@ -146,27 +220,28 @@ export function zoomCameraAtPoint(
   }
 
   const clampedScale = clampFrameScale(targetScale)
-  applyStageFrameToDraft(draft, layout, time, stageX, stageY, clampedScale, true)
+  applyStageFrameToDraft(draft, layout, time, stageX, stageY, clampedScale, true, { ease })
   setKeyframeEaseAtTime(draft, time, ease)
 }
 
-/**
- * Sets easing curve across all camera transform tracks at given timestamp.
- */
-function setKeyframeEaseAtTime(draft: Project, time: number, ease: EaseName): void {
-  const tol = frameTolerance(draft)
-  const setEase = (anim: Animatable<unknown>) => {
-    const k = keyAt(anim, time, tol)
-    if (k) k.ease = ease
+function removeKeyframeAtTime<T>(track: Animatable<T> | undefined, time: number, tol: number): void {
+  if (!track) return
+  track.keyframes = track.keyframes.filter((k) => Math.abs(k.t - time) > tol)
+}
+
+function shiftSubsequentKeyframes<T>(track: Animatable<T> | undefined, afterTime: number, delta: number, tol: number): void {
+  if (!track || Math.abs(delta) < 0.001) return
+  for (const k of track.keyframes) {
+    if (k.t > afterTime + tol) {
+      k.t = Math.max(0, Math.round((k.t + delta) * 1000) / 1000)
+    }
   }
-  setEase(draft.camera.position)
-  setEase(draft.camera.target)
-  setEase(draft.camera.focusDistance)
+  track.keyframes.sort((a, b) => a.t - b.t)
 }
 
 /**
- * Updates an existing camera waypoint parameters (time, pan X/Y, scale, ease).
- * If timestamp changes, moves keyframes cleanly without creating duplicates.
+ * Updates an existing camera waypoint parameters (time, pan X/Y, scale, yaw, pitch, roll, ease).
+ * Preserves all unedited parameters of the waypoint accurately!
  */
 export function updateCameraWaypoint(
   draft: Project,
@@ -177,48 +252,235 @@ export function updateCameraWaypoint(
     stageX?: number
     stageY?: number
     scale?: number
+    yaw?: number
+    pitch?: number
+    roll?: number
     ease?: EaseName
+    ripple?: boolean
   }
 ): void {
-  const tol = frameTolerance(draft)
-  const newTime = updates.time !== undefined ? Math.max(0, updates.time) : oldTime
+  const tol = Math.max(frameTolerance(draft), 0.02)
+  const existingFrames = extractCameraFrames2D(draft, layout)
+  const existing = existingFrames.find((f) => Math.abs(f.time - oldTime) <= tol)
 
-  if (newTime > draft.comp.duration) {
-    setCompDuration(draft, Math.ceil(newTime + 1))
+  let baseStageX = existing?.stageX
+  let baseStageY = existing?.stageY
+  let baseScale = existing?.scale
+  let baseYaw = existing?.yaw ?? 0
+  let basePitch = existing?.pitch ?? 0
+  let baseRoll = existing?.roll ?? 0
+  const baseEase = existing?.ease ?? 'easeInOut'
+
+  if (baseStageX === undefined || baseStageY === undefined || baseScale === undefined) {
+    const pos = evaluate(draft.camera.position, oldTime)
+    const tgt = evaluate(draft.camera.target, oldTime)
+    const rVal = draft.camera.roll ? evaluate(draft.camera.roll, oldTime) : 0
+    const mapped = pose3DToStageFrame(draft, layout, pos, tgt, rVal)
+    baseStageX = mapped.stageX
+    baseStageY = mapped.stageY
+    baseScale = mapped.scale
+    baseYaw = mapped.yaw
+    basePitch = mapped.pitch
+    baseRoll = mapped.roll
   }
 
-  // If time changed, remove existing keyframe at old timestamp before re-adding
-  if (Math.abs(newTime - oldTime) > 0.001) {
+  const newTime = updates.time !== undefined ? Math.max(0, Math.round(updates.time * 100) / 100) : oldTime
+  const deltaT = newTime - oldTime
+
+  // If ripple is requested and time changed, shift later keyframes first (or after)
+  if (Math.abs(deltaT) > 0.001) {
     removeKeyframeAtTime(draft.camera.position, oldTime, tol)
     removeKeyframeAtTime(draft.camera.target, oldTime, tol)
     removeKeyframeAtTime(draft.camera.focusDistance, oldTime, tol)
+    removeKeyframeAtTime(draft.camera.roll, oldTime, tol)
+
+    if (updates.ripple) {
+      shiftSubsequentKeyframes(draft.camera.position, oldTime, deltaT, tol)
+      shiftSubsequentKeyframes(draft.camera.target, oldTime, deltaT, tol)
+      shiftSubsequentKeyframes(draft.camera.focusDistance, oldTime, deltaT, tol)
+      shiftSubsequentKeyframes(draft.camera.roll, oldTime, deltaT, tol)
+    }
   }
 
-  // Determine stage coordinates and scale
-  const currentPos = evaluate(draft.camera.position, newTime)
-  const currentTgt = evaluate(draft.camera.target, newTime)
-  const fallbackBox = layout[0]
-  const currentScale =
-    updates.scale !== undefined
-      ? clampFrameScale(updates.scale)
-      : Math.hypot(currentTgt[0] - currentPos[0], currentTgt[1] - currentPos[1], currentTgt[2] - currentPos[2]) /
-        Math.max(100, draft.comp.width * 1.2)
+  const nextStageX = updates.stageX !== undefined ? Math.round(updates.stageX) : baseStageX
+  const nextStageY = updates.stageY !== undefined ? Math.round(updates.stageY) : baseStageY
+  const nextScale = updates.scale !== undefined ? clampFrameScale(updates.scale) : baseScale
+  const nextYaw = updates.yaw !== undefined ? clampCameraAngle(updates.yaw, -85, 85) : baseYaw
+  const nextPitch = updates.pitch !== undefined ? clampCameraAngle(updates.pitch, -75, 75) : basePitch
+  const nextRoll = updates.roll !== undefined ? clampCameraAngle(updates.roll, -180, 180) : baseRoll
+  const nextEase = updates.ease ?? baseEase
 
-  const stageX = updates.stageX ?? fallbackBox?.stageX ?? 0
-  const stageY = updates.stageY ?? fallbackBox?.stageY ?? 0
+  applyStageFrameToDraft(draft, layout, newTime, nextStageX, nextStageY, nextScale, true, {
+    yaw: nextYaw,
+    pitch: nextPitch,
+    roll: nextRoll,
+    ease: nextEase
+  })
+  setKeyframeEaseAtTime(draft, newTime, nextEase)
 
-  applyStageFrameToDraft(draft, layout, newTime, stageX, stageY, currentScale, true)
-
-  if (updates.ease) {
-    setKeyframeEaseAtTime(draft, newTime, updates.ease)
+  const maxKeyT = Math.max(
+    newTime,
+    ...draft.camera.position.keyframes.map((k) => k.t)
+  )
+  if (maxKeyT > draft.comp.duration) {
+    setCompDuration(draft, Math.ceil(maxKeyT + 1))
   }
 }
 
 /**
- * Removes a keyframe from an Animatable track if within tolerance.
+ * Applies a high-level professional Camera Action Mode to the waypoint at `waypointTime`.
  */
-function removeKeyframeAtTime<T>(track: Animatable<T>, time: number, tol: number): void {
-  track.keyframes = track.keyframes.filter((k) => Math.abs(k.t - time) > tol)
+export function applyWaypointActionMode(
+  draft: Project,
+  layout: ShotStageBox[],
+  waypointTime: number,
+  mode: CameraActionMode
+): void {
+  const frames = extractCameraFrames2D(draft, layout)
+  const tol = Math.max(frameTolerance(draft), 0.04)
+  const idx = frames.findIndex((f) => Math.abs(f.time - waypointTime) <= tol)
+  const cur = idx >= 0 ? frames[idx] : frames[0]
+  if (!cur) return
+  const prev = idx > 0 ? frames[idx - 1] : null
+
+  switch (mode) {
+    case 'hold': {
+      if (prev) {
+        updateCameraWaypoint(draft, layout, cur.time, {
+          stageX: prev.stageX,
+          stageY: prev.stageY,
+          scale: prev.scale,
+          yaw: prev.yaw,
+          pitch: prev.pitch,
+          roll: prev.roll,
+          ease: 'easeInOut'
+        })
+      } else {
+        addCameraHoldWaypoint(draft, layout, cur, 2.0)
+      }
+      break
+    }
+    case 'pan': {
+      updateCameraWaypoint(draft, layout, cur.time, {
+        yaw: 0,
+        pitch: 0,
+        roll: 0,
+        ease: 'easeInOut'
+      })
+      if (prev) setKeyframeEaseAtTime(draft, prev.time, 'easeInOut')
+      break
+    }
+    case 'push-in': {
+      const targetScale = clampFrameScale(prev ? Math.min(0.68, prev.scale * 0.68) : 0.68)
+      updateCameraWaypoint(draft, layout, cur.time, {
+        scale: targetScale,
+        ease: 'easeInOut'
+      })
+      break
+    }
+    case 'pull-out': {
+      const targetScale = clampFrameScale(prev ? Math.max(1.25, prev.scale * 1.32) : 1.32)
+      updateCameraWaypoint(draft, layout, cur.time, {
+        scale: targetScale,
+        ease: 'easeInOut'
+      })
+      break
+    }
+    case 'orbit-left': {
+      updateCameraWaypoint(draft, layout, cur.time, {
+        yaw: -25,
+        pitch: 4,
+        roll: 0,
+        ease: 'easeInOut'
+      })
+      break
+    }
+    case 'orbit-right': {
+      updateCameraWaypoint(draft, layout, cur.time, {
+        yaw: 25,
+        pitch: 4,
+        roll: 0,
+        ease: 'easeInOut'
+      })
+      break
+    }
+    case 'high-angle': {
+      updateCameraWaypoint(draft, layout, cur.time, {
+        yaw: 0,
+        pitch: 22,
+        roll: 0,
+        ease: 'easeInOut'
+      })
+      break
+    }
+    case 'low-angle': {
+      updateCameraWaypoint(draft, layout, cur.time, {
+        yaw: 0,
+        pitch: -16,
+        scale: Math.min(cur.scale, 0.82),
+        roll: 0,
+        ease: 'easeInOut'
+      })
+      break
+    }
+    case 'dutch-tilt': {
+      const nextRoll = cur.roll >= 8 ? -12 : 12
+      updateCameraWaypoint(draft, layout, cur.time, {
+        roll: nextRoll,
+        scale: Math.min(cur.scale, 0.85),
+        ease: 'easeInOut'
+      })
+      break
+    }
+    case 'cut': {
+      // Jump Cut: previous keyframe holds pose until this waypoint's timestamp
+      if (prev) {
+        setKeyframeEaseAtTime(draft, prev.time, 'hold')
+      } else {
+        setKeyframeEaseAtTime(draft, cur.time, 'hold')
+      }
+      break
+    }
+  }
+}
+
+/**
+ * Aligns a waypoint within its active shot (Left, Center, Right, Top, Bottom, or Reset 3D angles).
+ */
+export function alignWaypointInShot(
+  draft: Project,
+  layout: ShotStageBox[],
+  waypointTime: number,
+  align: 'left' | 'center' | 'right' | 'top' | 'bottom' | 'reset-angles'
+): void {
+  const frames = extractCameraFrames2D(draft, layout)
+  const tol = Math.max(frameTolerance(draft), 0.04)
+  const cur = frames.find((f) => Math.abs(f.time - waypointTime) <= tol) ?? frames[0]
+  if (!cur) return
+  const box = layout.find((b) => b.shotId === cur.shotId) ?? layout[0]
+  if (!box) return
+
+  if (align === 'reset-angles') {
+    updateCameraWaypoint(draft, layout, cur.time, { yaw: 0, pitch: 0, roll: 0 })
+    return
+  }
+
+  let sx = cur.stageX
+  let sy = cur.stageY
+  if (align === 'center') {
+    sx = box.stageX
+    sy = box.stageY
+  } else if (align === 'left') {
+    sx = Math.round(box.stageX - box.width * 0.2)
+  } else if (align === 'right') {
+    sx = Math.round(box.stageX + box.width * 0.2)
+  } else if (align === 'top') {
+    sy = Math.round(box.stageY - box.height * 0.18)
+  } else if (align === 'bottom') {
+    sy = Math.round(box.stageY + box.height * 0.18)
+  }
+
+  updateCameraWaypoint(draft, layout, cur.time, { stageX: sx, stageY: sy })
 }
 
 /**
@@ -232,6 +494,7 @@ export function removeCameraWaypoint(draft: Project, time: number): boolean {
   removeKeyframeAtTime(draft.camera.position, time, tol)
   removeKeyframeAtTime(draft.camera.target, time, tol)
   removeKeyframeAtTime(draft.camera.focusDistance, time, tol)
+  removeKeyframeAtTime(draft.camera.roll, time, tol)
   return true
 }
 
@@ -254,37 +517,16 @@ export function duplicateCameraWaypoint(
     sourceFrame.stageX,
     sourceFrame.stageY,
     sourceFrame.scale,
-    true
+    true,
+    {
+      yaw: sourceFrame.yaw,
+      pitch: sourceFrame.pitch,
+      roll: sourceFrame.roll,
+      ease: sourceFrame.ease
+    }
   )
   setKeyframeEaseAtTime(draft, targetTime, sourceFrame.ease)
 }
-
-/**
- * Reverses the camera path so camera travels in opposite direction over the same total duration.
- */
-export function reverseCameraRoute(draft: Project): void {
-  const cam = draft.camera
-  const reverseTrack = (track: Animatable<unknown>) => {
-    if (track.keyframes.length < 2) return
-    const minT = track.keyframes[0].t
-    const maxT = track.keyframes[track.keyframes.length - 1].t
-    track.keyframes = track.keyframes.map((k) => ({
-      ...k,
-      t: Math.round((maxT - (k.t - minT)) * 1000) / 1000
-    }))
-    track.keyframes.sort((a, b) => a.t - b.t)
-  }
-  reverseTrack(cam.position)
-  reverseTrack(cam.target)
-  reverseTrack(cam.focusDistance)
-}
-
-export type CameraRoutePresetType =
-  | 'tour-all-shots'
-  | 'tour-hold-and-pan'
-  | 'cinematic-zoom'
-  | 'dramatic-pan'
-  | 'dolly-vertigo'
 
 /**
  * Adds a hold waypoint at time + holdSec that maintains the same camera framing,
@@ -307,96 +549,20 @@ export function addCameraHoldWaypoint(
     sourceFrame.stageX,
     sourceFrame.stageY,
     sourceFrame.scale,
-    true
+    true,
+    {
+      yaw: sourceFrame.yaw,
+      pitch: sourceFrame.pitch,
+      roll: sourceFrame.roll,
+      ease: 'easeInOut'
+    }
   )
   setKeyframeEaseAtTime(draft, targetTime, 'easeInOut')
 }
 
-/**
- * Generates automated high-quality camera route presets across project shots.
- */
-export function applyCameraRoutePreset(
-  draft: Project,
-  layout: ShotStageBox[],
-  preset: CameraRoutePresetType
-): void {
-  // Clear existing camera keyframes
-  draft.camera.position.keyframes = []
-  draft.camera.target.keyframes = []
-  draft.camera.focusDistance.keyframes = []
+export {
+  applyCameraRoutePreset,
+  reverseCameraRoute,
+  type CameraRoutePresetType
+} from './animateCameraRoutePresets'
 
-  if (preset === 'tour-all-shots') {
-    const count = layout.length
-    if (count === 0) return
-    const durPerShot = Math.max(1.8, Math.min(4.0, draft.comp.duration / Math.max(1, count)))
-    layout.forEach((box, i) => {
-      const t = Math.round(i * durPerShot * 100) / 100
-      applyStageFrameToDraft(draft, layout, t, box.stageX, box.stageY, 1.0, true)
-    })
-    const totalT = Math.round(count * durPerShot * 100) / 100
-    if (totalT > draft.comp.duration) {
-      setCompDuration(draft, Math.ceil(totalT))
-    }
-  } else if (preset === 'tour-hold-and-pan') {
-    // Cinematic hold & pan: At each shot, pause for 1.8s, then smoothly pan to the next
-    const count = layout.length
-    if (count === 0) return
-    let curTime = 0
-    const holdSec = 1.8
-    const panSec = 2.0
-
-    layout.forEach((box, i) => {
-      // Arrival / Start framing
-      applyStageFrameToDraft(draft, layout, curTime, box.stageX, box.stageY, 1.0, true)
-
-      // Hold framing at shot with subtle creep-in to 0.92
-      curTime = Math.round((curTime + holdSec) * 100) / 100
-      applyStageFrameToDraft(draft, layout, curTime, box.stageX, box.stageY, 0.92, true)
-
-      if (i < count - 1) {
-        curTime = Math.round((curTime + panSec) * 100) / 100
-      }
-    })
-
-    if (curTime > draft.comp.duration) {
-      setCompDuration(draft, Math.ceil(curTime))
-    }
-  } else if (preset === 'cinematic-zoom') {
-    // Shot center overview -> Push in close-up -> Pull out
-    const box = layout[0]
-    if (!box) return
-    const t0 = 0
-    const t1 = Math.round((draft.comp.duration * 0.45) * 100) / 100
-    const t2 = Math.round(draft.comp.duration * 100) / 100
-
-    applyStageFrameToDraft(draft, layout, t0, box.stageX, box.stageY, 1.2, true)
-    applyStageFrameToDraft(draft, layout, t1, box.stageX, box.stageY, 0.55, true)
-    applyStageFrameToDraft(draft, layout, t2, box.stageX, box.stageY, 1.0, true)
-  } else if (preset === 'dolly-vertigo') {
-    // Alfred Hitchcock Dolly Zoom: Camera physically pushes in while wide angles compress
-    const box = layout[0]
-    if (!box) return
-    const t0 = 0
-    const t1 = Math.round((draft.comp.duration * 0.5) * 100) / 100
-    const t2 = Math.round(draft.comp.duration * 100) / 100
-
-    applyStageFrameToDraft(draft, layout, t0, box.stageX, box.stageY, 1.4, true)
-    applyStageFrameToDraft(draft, layout, t1, box.stageX, box.stageY, 0.45, true)
-    applyStageFrameToDraft(draft, layout, t2, box.stageX, box.stageY, 1.0, true)
-  } else if (preset === 'dramatic-pan') {
-    // Pan across width of first shot or between first two shots with slight angle
-    const b0 = layout[0]
-    const b1 = layout[1] || layout[0]
-    const t0 = 0
-    const t1 = Math.round((draft.comp.duration * 0.5) * 100) / 100
-    const t2 = Math.round(draft.comp.duration * 100) / 100
-
-    const startX = b0.stageX - draft.comp.width * 0.25
-    const midX = b1.stageX
-    const endX = b1.stageX + draft.comp.width * 0.2
-
-    applyStageFrameToDraft(draft, layout, t0, startX, b0.stageY, 1.1, true)
-    applyStageFrameToDraft(draft, layout, t1, midX, b1.stageY, 0.75, true)
-    applyStageFrameToDraft(draft, layout, t2, endX, b1.stageY, 0.95, true)
-  }
-}

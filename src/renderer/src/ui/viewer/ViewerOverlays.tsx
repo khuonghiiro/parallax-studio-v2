@@ -184,10 +184,10 @@ export function ViewerOverlays({
           </button>
         </div>
 
-        <span className="viewer-tool-sep" />
-
         {!isAnimate2D && (
           <>
+            <span className="viewer-tool-sep" />
+
             <button
               id="view-split"
               className={`viewer-tool-btn icon${view.split ? ' active' : ''}`}
@@ -197,96 +197,96 @@ export function ViewerOverlays({
               {view.split ? <IconSingle width={14} height={14} /> : <IconSplit width={14} height={14} />}
             </button>
             <span className="viewer-tool-sep" />
-          </>
-        )}
 
-        {/* Nhóm 2: Kiểu nhìn 3D (CustomSelect chuẩn 60fps) */}
-        {showEd && (
-          <>
-            <CustomSelect<EditorViewKind>
-              id="view-kind"
-              className="viewer-kind-select"
-              value={view.editorKind}
-              onChange={(val) => view.set({ editorKind: val })}
-              options={EDITOR_KINDS.map((k) => ({ value: k.id, label: k.label }))}
-              size="sm"
-              title="Kiểu nhìn 3D"
-              dropdownWidth={126}
-            />
-            <span className="viewer-tool-sep" />
-          </>
-        )}
+            {/* Nhóm 2: Kiểu nhìn 3D (CustomSelect chuẩn 60fps) */}
+            {showEd && (
+              <>
+                <CustomSelect<EditorViewKind>
+                  id="view-kind"
+                  className="viewer-kind-select"
+                  value={view.editorKind}
+                  onChange={(val) => view.set({ editorKind: val })}
+                  options={EDITOR_KINDS.map((k) => ({ value: k.id, label: k.label }))}
+                  size="sm"
+                  title="Kiểu nhìn 3D"
+                  dropdownWidth={126}
+                />
+                <span className="viewer-tool-sep" />
+              </>
+            )}
 
-        {/* Nhóm 3: Các công cụ Gizmo & BBox thao tác layer */}
-        <div className="viewer-tool-group" title="Công cụ thao tác layer (BBox, Di chuyển, Xoay, Tọa độ)">
-          <button
-            id="view-toggle-bbox"
-            className={`viewer-tool-btn icon${showBbox ? ' active' : ''}`}
-            title={`Khung bao BBox (${showBbox ? 'Đang hiện' : 'Đang ẩn'})\n• Bật/Tắt khung viền và 8 điểm mút co dãn layer`}
-            onClick={() => view.set({ showBbox: !showBbox })}
-            aria-label="Khung bao co dãn BBox"
-          >
-            <IconBoundingBox width={14} height={14} />
-          </button>
-          <button
-            id="view-toggle-translate"
-            className={`viewer-tool-btn icon${showTranslate ? ' active' : ''}`}
-            title={`Trục di chuyển XYZ (${showTranslate ? 'Đang hiện' : 'Đang ẩn'})\n• Kéo mũi tên XYZ để dời vị trí\n• Phím W để bật/tắt nhanh`}
-            onClick={() => view.set({ showTranslate: !showTranslate })}
-            aria-label="Trục di chuyển XYZ"
-          >
-            <IconAxisMove width={14} height={14} />
-          </button>
-          <button
-            id="view-toggle-rotate"
-            className={`viewer-tool-btn icon${showRotate ? ' active' : ''}`}
-            title={`Vòng xoay góc 3D (${showRotate ? 'Đang hiện' : 'Đang ẩn'})\n• Kéo vòng tròn để xoay nghiêng\n• Phím E để bật/tắt nhanh`}
-            onClick={() => view.set({ showRotate: !showRotate })}
-            aria-label="Vòng xoay góc 3D"
-          >
-            <IconAxisRotate width={14} height={14} />
-          </button>
-          <button
-            id="view-toggle-readout"
-            className={`viewer-tool-btn icon${showReadout ? ' active' : ''}`}
-            title={`Thông số tọa độ P/R (${showReadout ? 'Đang hiện' : 'Đang ẩn'})\n• Bật/Tắt hiển thị vị trí (P) và góc xoay (R) của layer`}
-            onClick={() => view.set({ showReadout: !showReadout })}
-            aria-label="Thông số tọa độ P/R"
-          >
-            <IconReadout width={14} height={14} />
-          </button>
-        </div>
-
-        {/* Nhóm 4: Hỗ trợ hiển thị không gian 3D */}
-        {showEd && (
-          <>
-            <span className="viewer-tool-sep" />
-            <div className="viewer-tool-group">
+            {/* Nhóm 3: Các công cụ Gizmo & BBox thao tác layer */}
+            <div className="viewer-tool-group" title="Công cụ thao tác layer (BBox, Di chuyển, Xoay, Tọa độ)">
               <button
-                id="view-path"
-                className={`viewer-tool-btn icon${view.showPath ? ' active' : ''}`}
-                title="Hiện đường bay camera"
-                onClick={() => view.set({ showPath: !view.showPath })}
+                id="view-toggle-bbox"
+                className={`viewer-tool-btn icon${showBbox ? ' active' : ''}`}
+                title={`Khung bao BBox (${showBbox ? 'Đang hiện' : 'Đang ẩn'})\n• Bật/Tắt khung viền và 8 điểm mút co dãn layer`}
+                onClick={() => view.set({ showBbox: !showBbox })}
+                aria-label="Khung bao co dãn BBox"
               >
-                <IconRoute width={14} height={14} />
+                <IconBoundingBox width={14} height={14} />
               </button>
               <button
-                id="view-camera-only"
-                className={`viewer-tool-btn icon${view.cameraOnly ? ' active' : ''}`}
-                title="Chỉ hiện nội dung camera đang thấy (xem trước cơ chế streaming — cảnh ngoài khung chỉ là khung viền)"
-                onClick={() => view.set({ cameraOnly: !view.cameraOnly })}
+                id="view-toggle-translate"
+                className={`viewer-tool-btn icon${showTranslate ? ' active' : ''}`}
+                title={`Trục di chuyển XYZ (${showTranslate ? 'Đang hiện' : 'Đang ẩn'})\n• Kéo mũi tên XYZ để dời vị trí\n• Phím W để bật/tắt nhanh`}
+                onClick={() => view.set({ showTranslate: !showTranslate })}
+                aria-label="Trục di chuyển XYZ"
               >
-                <IconEye width={14} height={14} />
+                <IconAxisMove width={14} height={14} />
               </button>
               <button
-                id="view-focus"
-                className="viewer-tool-btn icon"
-                title="Focus vùng chọn (Phím F)"
-                onClick={() => useView.getState().requestFocus('selection')}
+                id="view-toggle-rotate"
+                className={`viewer-tool-btn icon${showRotate ? ' active' : ''}`}
+                title={`Vòng xoay góc 3D (${showRotate ? 'Đang hiện' : 'Đang ẩn'})\n• Kéo vòng tròn để xoay nghiêng\n• Phím E để bật/tắt nhanh`}
+                onClick={() => view.set({ showRotate: !showRotate })}
+                aria-label="Vòng xoay góc 3D"
               >
-                <IconFocus width={14} height={14} />
+                <IconAxisRotate width={14} height={14} />
+              </button>
+              <button
+                id="view-toggle-readout"
+                className={`viewer-tool-btn icon${showReadout ? ' active' : ''}`}
+                title={`Thông số tọa độ P/R (${showReadout ? 'Đang hiện' : 'Đang ẩn'})\n• Bật/Tắt hiển thị vị trí (P) và góc xoay (R) của layer`}
+                onClick={() => view.set({ showReadout: !showReadout })}
+                aria-label="Thông số tọa độ P/R"
+              >
+                <IconReadout width={14} height={14} />
               </button>
             </div>
+
+            {/* Nhóm 4: Hỗ trợ hiển thị không gian 3D */}
+            {showEd && (
+              <>
+                <span className="viewer-tool-sep" />
+                <div className="viewer-tool-group">
+                  <button
+                    id="view-path"
+                    className={`viewer-tool-btn icon${view.showPath ? ' active' : ''}`}
+                    title="Hiện đường bay camera"
+                    onClick={() => view.set({ showPath: !view.showPath })}
+                  >
+                    <IconRoute width={14} height={14} />
+                  </button>
+                  <button
+                    id="view-camera-only"
+                    className={`viewer-tool-btn icon${view.cameraOnly ? ' active' : ''}`}
+                    title="Chỉ hiện nội dung camera đang thấy (xem trước cơ chế streaming — cảnh ngoài khung chỉ là khung viền)"
+                    onClick={() => view.set({ cameraOnly: !view.cameraOnly })}
+                  >
+                    <IconEye width={14} height={14} />
+                  </button>
+                  <button
+                    id="view-focus"
+                    className="viewer-tool-btn icon"
+                    title="Focus vùng chọn (Phím F)"
+                    onClick={() => useView.getState().requestFocus('selection')}
+                  >
+                    <IconFocus width={14} height={14} />
+                  </button>
+                </div>
+              </>
+            )}
           </>
         )}
       </div>

@@ -1,12 +1,12 @@
-import { useMemo, useState } from 'react'
-import type { EaseName, Project } from '@shared/types'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { EaseName } from '@shared/types'
 import { setCompDuration, toast } from '../../actions'
 import { evaluateScene } from '../../engine/evaluateScene'
 import { frameTolerance, useEditor } from '../../store/editor'
-import { CustomSelect } from '../controls/CustomSelect'
+import { useView } from '../../store/view'
 import {
+  IconCameraStage,
   IconCopy,
-  IconFocus,
   IconPlus,
   IconRoute,
   IconTrash,
@@ -19,12 +19,13 @@ import {
   computeShotStageLayout,
   extractCameraFrames2D,
   projectShotLayers2D,
-  type ProjectedLayer2D,
-  type ShotStageBox
+  type ProjectedLayer2D
 } from '../viewer/animateCamera/animateCameraMath'
 import {
   addCameraHoldWaypoint,
+  alignWaypointInShot,
   applyCameraRoutePreset,
+  applyWaypointActionMode,
   duplicateCameraWaypoint,
   enrichCameraWaypoints,
   panCameraToLayer2D,
@@ -32,16 +33,11 @@ import {
   removeCameraWaypoint,
   reverseCameraRoute,
   updateCameraWaypoint,
+  type CameraActionMode,
   type CameraRoutePresetType,
   type CameraWaypointItem
 } from '../viewer/animateCamera/animateCameraRouteLogic'
-
-const EASING_OPTIONS: { value: EaseName; label: string }[] = [
-  { value: 'easeInOut', label: 'Mượt mà (easeInOut)' },
-  { value: 'easeIn', label: 'Tăng tốc (easeIn)' },
-  { value: 'easeOut', label: 'Giảm tốc (easeOut)' },
-  { value: 'linear', label: 'Đều đặn (linear)' }
-]
+import { CameraWaypointDetailPanel } from './CameraWaypointDetailPanel'
 
 export function CameraRouteInspector() {
   const project = useEditor((s) => s.project)
@@ -49,8 +45,10 @@ export function CameraRouteInspector() {
   const setTime = useEditor((s) => s.setTime)
   const update = useEditor((s) => s.update)
   const setPlaying = useEditor((s) => s.setPlaying)
+  const primaryView = useView((s) => s.primary)
 
   const [showPresetsMenu, setShowPresetsMenu] = useState(false)
+  const stackRef = useRef<HTMLDivElement>(null)
 
   const stageLayout = useMemo(() => computeShotStageLayout(project, time), [project, time])
   const ev = useMemo(() => evaluateScene(project, time), [project, time])
@@ -74,6 +72,16 @@ export function CameraRouteInspector() {
   }, [waypoints, time, tol])
 
   const activeWaypoint: CameraWaypointItem | undefined = waypoints[activeFrameIndex] ?? waypoints[0]
+
+  // Tự động cuộn danh sách mốc để mốc đang chọn luôn nằm trong vùng nhìn thấy
+  useEffect(() => {
+    const container = stackRef.current
+    if (!container) return
+    const activeEl = container.querySelector<HTMLElement>('.route-wp-card.active')
+    if (activeEl && typeof activeEl.scrollIntoView === 'function') {
+      activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+  }, [activeFrameIndex])
 
   const layersByShot = useMemo(() => {
     const map = new Map<string | null, ProjectedLayer2D[]>()
@@ -128,12 +136,20 @@ export function CameraRouteInspector() {
 
     update((d) => {
       if (d.camera.position.keyframes.length === 0 && d.camera.target.keyframes.length === 0) {
-        applyStageFrameToDraft(d, stageLayout, 0, base.stageX, base.stageY, base.scale, true)
+        applyStageFrameToDraft(d, stageLayout, 0, base.stageX, base.stageY, base.scale, true, {
+          yaw: base.yaw,
+          pitch: base.pitch,
+          roll: base.roll
+        })
       }
       if (nextTime > d.comp.duration) {
         setCompDuration(d, Math.ceil(nextTime + 1))
       }
-      applyStageFrameToDraft(d, stageLayout, nextTime, nextStageX, nextStageY, nextScale, true)
+      applyStageFrameToDraft(d, stageLayout, nextTime, nextStageX, nextStageY, nextScale, true, {
+        yaw: base.yaw,
+        pitch: base.pitch,
+        roll: base.roll
+      })
     })
 
     setPlaying(false)
@@ -147,7 +163,11 @@ export function CameraRouteInspector() {
       stageX?: number
       stageY?: number
       scale?: number
+      yaw?: number
+      pitch?: number
+      roll?: number
       ease?: EaseName
+      ripple?: boolean
     },
     mergeKey?: string
   ): void => {
@@ -160,6 +180,23 @@ export function CameraRouteInspector() {
       setPlaying(false)
       setTime(updates.time)
     }
+  }
+
+  const handleApplyActionMode = (mode: CameraActionMode): void => {
+    if (!activeWaypoint) return
+    update((draft) => {
+      applyWaypointActionMode(draft, stageLayout, activeWaypoint.time, mode)
+    })
+    toast('Đã cập nhật chế độ động tác quay cho mốc hiện tại')
+  }
+
+  const handleAlignInShot = (
+    align: 'left' | 'center' | 'right' | 'top' | 'bottom' | 'reset-angles'
+  ): void => {
+    if (!activeWaypoint) return
+    update((draft) => {
+      alignWaypointInShot(draft, stageLayout, activeWaypoint.time, align)
+    })
   }
 
   const handleDelete = (wp: CameraWaypointItem): void => {
@@ -195,15 +232,18 @@ export function CameraRouteInspector() {
     setShowPresetsMenu(false)
     setPlaying(false)
     setTime(0)
-    toast('Đã áp dụng lộ trình camera mẫu')
+    toast('🎬 Đã áp dụng kịch bản lộ trình camera mẫu')
   }
 
   const handleHold = (): void => {
     if (!activeWaypoint) return
+    const nextTime = Math.round((activeWaypoint.time + 2.0) * 100) / 100
     update((draft) => {
       addCameraHoldWaypoint(draft, stageLayout, activeWaypoint, 2.0)
     })
-    toast('Đã thêm mốc dừng ngắm cảnh (+2.0s)')
+    setPlaying(false)
+    setTime(nextTime)
+    toast('⏸ Đã thêm mốc dừng ngắm cảnh (+2.0s)')
   }
 
   const setShake = (amount: number, speed: number): void => {
@@ -218,9 +258,10 @@ export function CameraRouteInspector() {
     update((draft) => {
       reverseCameraRoute(draft)
     })
+    setShowPresetsMenu(false)
     setPlaying(false)
     setTime(0)
-    toast('Đã đảo chiều lộ trình camera')
+    toast('⇄ Đã đảo chiều lộ trình camera')
   }
 
   const handleTargetShot = (shotId: string): void => {
@@ -245,16 +286,16 @@ export function CameraRouteInspector() {
         targetLayer.offsetY,
         activeWaypoint.time,
         activeWaypoint.scale,
-        'easeInOut',
+        activeWaypoint.ease,
         targetLayer.zDepth
       )
     })
-    toast(`Đã lia & lấy nét vào layer "${targetLayer.name}"`)
+    toast(`🎯 Đã ngắm & lấy nét vào layer "${targetLayer.name}"`)
   }
 
   return (
     <div id="camera-route-inspector" className="camera-route-inspector">
-      {/* 1. Tiêu đề tổng quan & Thao tác lộ trình mẫu */}
+      {/* 1. Tiêu đề tổng quan & Kịch bản lộ trình mẫu */}
       <div className="section">
         <div className="section-title">
           <IconRoute width={13} height={13} className="accent-icon" />
@@ -263,14 +304,25 @@ export function CameraRouteInspector() {
           <span className="spacer" />
 
           <div className="route-head-actions">
-            <div className="presets-dropdown-rel">
+            {primaryView !== 'animate2d' && (
               <button
                 type="button"
-                className="btn xs icon"
-                onClick={() => setShowPresetsMenu((v) => !v)}
-                title="Lộ trình camera mẫu & Đảo chiều"
+                className="btn xs"
+                onClick={() => useView.getState().set({ split: false, primary: 'animate2d' })}
+                title="Mở Bàn dựng Cam 2D trên màn hình chính"
               >
-                <IconWand width={12} height={12} />
+                <IconCameraStage width={11} height={11} /> Bàn dựng
+              </button>
+            )}
+            <div className="presets-dropdown-rel">
+              <button
+                id="route-presets-btn"
+                type="button"
+                className="btn xs"
+                onClick={() => setShowPresetsMenu((v) => !v)}
+                title="Chọn kịch bản lộ trình camera mẫu chuyên nghiệp"
+              >
+                <IconWand width={11} height={11} /> Mẫu ▾
               </button>
               {showPresetsMenu && (
                 <div className="route-presets-popover">
@@ -279,21 +331,28 @@ export function CameraRouteInspector() {
                     className="popover-item"
                     onClick={() => handlePreset('tour-hold-and-pan')}
                   >
-                    🎬 Lộ trình Điện ảnh: Lia &amp; Dừng ngắm
+                    🎬 Điện ảnh: Lia &amp; Dừng ngắm
+                  </button>
+                  <button
+                    type="button"
+                    className="popover-item"
+                    onClick={() => handlePreset('parallax-orbit')}
+                  >
+                    🌐 Lượn sóng 2.5D Parallax (Xoay 3D)
                   </button>
                   <button
                     type="button"
                     className="popover-item"
                     onClick={() => handlePreset('tour-all-shots')}
                   >
-                    🌐 Lia lướt qua tất cả Cảnh ({stageLayout.length} cảnh)
+                    🗺️ Lia lướt qua {stageLayout.length} Cảnh
                   </button>
                   <button
                     type="button"
                     className="popover-item"
                     onClick={() => handlePreset('cinematic-zoom')}
                   >
-                    🔍 Phóng to điện ảnh (Push-in &amp; Pull-out)
+                    🔍 Đẩy cận &amp; Kéo rộng (Push-in)
                   </button>
                   <button
                     type="button"
@@ -305,13 +364,20 @@ export function CameraRouteInspector() {
                   <button
                     type="button"
                     className="popover-item"
+                    onClick={() => handlePreset('action-dutch-cut')}
+                  >
+                    ⚡ Hành động: Nghiêng máy &amp; Cắt cảnh
+                  </button>
+                  <button
+                    type="button"
+                    className="popover-item"
                     onClick={() => handlePreset('dramatic-pan')}
                   >
                     📐 Lia ngang góc rộng (Dramatic Pan)
                   </button>
                   <div className="popover-sep" />
                   <button type="button" className="popover-item" onClick={handleReverse}>
-                    <IconUndo width={11} height={11} /> Đảo ngược hướng đi
+                    <IconUndo width={11} height={11} /> Đảo ngược hướng lộ trình
                   </button>
                 </div>
               )}
@@ -328,10 +394,11 @@ export function CameraRouteInspector() {
           </div>
         </div>
 
-        {/* Danh sách các mốc lộ trình dạng flow dọc tinh gọn */}
-        <div className="route-waypoints-stack">
+        {/* Danh sách các mốc lộ trình dạng Stepper tinh gọn, tự cuộn tới mốc đang chọn */}
+        <div ref={stackRef} className="route-waypoints-stack">
           {waypoints.map((wp, idx) => {
             const isActive = idx === activeFrameIndex
+            const has3D = Math.abs(wp.yaw) >= 1 || Math.abs(wp.pitch) >= 1 || Math.abs(wp.roll) >= 1
             return (
               <div
                 key={`wp-card-${wp.time}-${idx}`}
@@ -346,299 +413,65 @@ export function CameraRouteInspector() {
                     <span className="wp-card-idx">#{idx + 1}</span>
                     <span className="wp-card-time">{wp.time.toFixed(1)}s</span>
                     {idx > 0 && <span className="wp-card-dur">+{wp.durationFromPrev.toFixed(1)}s</span>}
+                    <span className={`wp-type-badge ${wp.tag}`}>{wp.tagLabel}</span>
                   </div>
-                  <span className={`wp-type-badge ${wp.tag}`}>{wp.tagLabel}</span>
-                </div>
 
-                <div className="wp-card-meta">
-                  <span>X: {wp.stageX} · Y: {wp.stageY}</span>
-                  <span>Zoom {wp.zoomPct}%</span>
-                  <span className="wp-card-ease">{wp.ease}</span>
-                </div>
-
-                {isActive && (
-                  <div className="wp-card-actions" onClick={(e) => e.stopPropagation()}>
+                  <div className="wp-card-inline-btns" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
-                      className="btn xs icon"
-                      onClick={() => {
-                        setPlaying(false)
-                        setTime(wp.time)
-                      }}
-                      title="Nhảy thời gian tới mốc này"
-                    >
-                      <IconFocus width={11} height={11} />
-                    </button>
-                    <button
-                      type="button"
-                      className="btn xs icon"
+                      className="wp-mini-icon-btn"
                       onClick={() => handleDuplicate(wp)}
                       title="Nhân bản mốc này"
                     >
-                      <IconCopy width={11} height={11} />
+                      <IconCopy width={10} height={10} />
                     </button>
                     {waypoints.length > 1 && (
                       <button
                         type="button"
-                        className="btn xs icon danger"
+                        className="wp-mini-icon-btn danger"
                         onClick={() => handleDelete(wp)}
                         title="Xoá mốc này"
                       >
-                        <IconTrash width={11} height={11} />
+                        <IconTrash width={10} height={10} />
                       </button>
                     )}
                   </div>
-                )}
+                </div>
+
+                <div className="wp-card-meta">
+                  <span className="wp-meta-shot" style={{ color: wp.shotColor }}>
+                    ● {wp.shotName}
+                  </span>
+                  <span>Zoom {wp.zoomPct}%</span>
+                  {has3D && <span className="wp-meta-3d">{wp.angleSummary}</span>}
+                  <span className="wp-card-ease">{wp.ease === 'hold' ? '⚡ cut' : wp.ease}</span>
+                </div>
               </div>
             )
           })}
         </div>
       </div>
 
-      {/* 2. Bảng Thông Số Chi Tiết Mốc Đang Chọn */}
+      {/* 2. Bảng Thông Số & Chế Độ Quay Chi Tiết Mốc Đang Chọn */}
       {activeWaypoint && (
-        <div className="section active-wp-section">
-          <div className="section-title">
-            <span>Thông số Mốc #{activeWaypoint.index + 1} ({activeWaypoint.time.toFixed(1)}s)</span>
-            <span className="spacer" />
-            <span className="wp-active-shot">{activeWaypoint.shotName}</span>
-          </div>
-
-          {/* Thời điểm & Thời lượng */}
-          <div className="row-group">
-            <div className="field-row">
-              <label>Thời điểm (s)</label>
-              <input
-                type="number"
-                step="0.1"
-                min="0"
-                max={project.comp.duration}
-                value={activeWaypoint.time}
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value)
-                  if (!isNaN(val)) handleUpdate({ time: Math.max(0, val) })
-                }}
-              />
-            </div>
-            <div className="field-row">
-              <label>Thời lượng (s)</label>
-              <input
-                type="number"
-                step="0.1"
-                min="0.1"
-                disabled={activeWaypoint.index === 0}
-                value={activeWaypoint.durationFromPrev}
-                onChange={(e) => {
-                  const dur = parseFloat(e.target.value)
-                  if (!isNaN(dur) && activeWaypoint.index > 0) {
-                    const prevT = waypoints[activeWaypoint.index - 1].time
-                    handleUpdate({ time: Math.max(prevT + 0.1, prevT + dur) })
-                  }
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Vị trí Lia (Pan Stage) */}
-          <div className="row-group">
-            <div className="field-header">
-              <label>Vị trí Lia (Pan 2D)</label>
-              <button
-                type="button"
-                className="link-btn"
-                onClick={() => {
-                  const currentShot =
-                    stageLayout.find((b) => b.shotId === activeWaypoint.shotId) || stageLayout[0]
-                  if (currentShot) handleUpdate({ stageX: currentShot.stageX, stageY: currentShot.stageY })
-                }}
-                title="Căn tâm camera về chính giữa Cảnh hiện tại"
-              >
-                Căn tâm cảnh
-              </button>
-            </div>
-            <div className="field-row">
-              <div className="input-prefix-box">
-                <span className="prefix">X</span>
-                <input
-                  type="number"
-                  step="10"
-                  value={activeWaypoint.stageX}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value, 10)
-                    if (!isNaN(val)) handleUpdate({ stageX: val }, 'wp-pan-x')
-                  }}
-                />
-              </div>
-              <div className="input-prefix-box">
-                <span className="prefix">Y</span>
-                <input
-                  type="number"
-                  step="10"
-                  value={activeWaypoint.stageY}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value, 10)
-                    if (!isNaN(val)) handleUpdate({ stageY: val }, 'wp-pan-y')
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Menu lia tới Cảnh */}
-            {stageLayout.length > 1 && (
-              <div className="field-select-mt">
-                <CustomSelect<string>
-                  id="route-insp-target-shot"
-                  value={activeWaypoint.shotId ?? 'global'}
-                  onChange={(val) => handleTargetShot(val)}
-                  options={stageLayout.map((b) => ({
-                    value: b.shotId ?? 'global',
-                    label: `Lia tới: ${b.name}`
-                  }))}
-                  size="sm"
-                  title="Chọn cảnh để lia tâm camera tới"
-                />
-              </div>
-            )}
-
-            {/* Menu lia vào Layer */}
-            {activeShotLayers.length > 0 && (
-              <div className="field-select-mt">
-                <CustomSelect<string>
-                  id="route-insp-target-layer"
-                  value=""
-                  placeholder="Lia vào Layer mục tiêu..."
-                  onChange={(val) => handleTargetLayer(val)}
-                  options={activeShotLayers.map((l) => ({
-                    value: l.id,
-                    label: `🎯 ${l.name}`
-                  }))}
-                  size="sm"
-                  title="Căn camera tập trung vào một layer cụ thể"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Độ Phóng To (Zoom) */}
-          <div className="row-group">
-            <div className="field-header">
-              <label>Độ Phóng To (Zoom)</label>
-              <span className="zoom-val">{activeWaypoint.zoomPct}%</span>
-            </div>
-
-            <div className="field-slider">
-              <input
-                type="range"
-                min="30"
-                max="350"
-                step="5"
-                value={activeWaypoint.zoomPct}
-                className="zoom-range"
-                onChange={(e) => {
-                  const zoomVal = parseInt(e.target.value, 10)
-                  if (!isNaN(zoomVal) && zoomVal > 0) {
-                    const nextScale = Math.round((1 / (zoomVal / 100)) * 100) / 100
-                    handleUpdate({ scale: nextScale }, 'wp-zoom')
-                  }
-                }}
-              />
-            </div>
-
-            <div className="preset-row">
-              <button
-                type="button"
-                className={`btn xs${activeWaypoint.zoomPct <= 80 ? ' active' : ''}`}
-                onClick={() => handleUpdate({ scale: 1.43 })}
-                title="Toàn cảnh rộng (Zoom 70%)"
-              >
-                🌐 Toàn cảnh (70%)
-              </button>
-              <button
-                type="button"
-                className={`btn xs${activeWaypoint.zoomPct >= 95 && activeWaypoint.zoomPct <= 105 ? ' active' : ''}`}
-                onClick={() => handleUpdate({ scale: 1.0 })}
-                title="Khung chuẩn (Zoom 100%)"
-              >
-                ⊡ Chuẩn (100%)
-              </button>
-              <button
-                type="button"
-                className={`btn xs${activeWaypoint.zoomPct >= 130 && activeWaypoint.zoomPct <= 155 ? ' active' : ''}`}
-                onClick={() => handleUpdate({ scale: 0.71 })}
-                title="Trung cảnh (Zoom 140%)"
-              >
-                👤 Trung cảnh (140%)
-              </button>
-              <button
-                type="button"
-                className={`btn xs${activeWaypoint.zoomPct >= 170 && activeWaypoint.zoomPct <= 210 ? ' active' : ''}`}
-                onClick={() => handleUpdate({ scale: 0.55 })}
-                title="Cận cảnh (Zoom 180%)"
-              >
-                🔍 Cận cảnh (180%)
-              </button>
-              <button
-                type="button"
-                className={`btn xs${activeWaypoint.zoomPct >= 240 ? ' active' : ''}`}
-                onClick={() => handleUpdate({ scale: 0.38 })}
-                title="Đặc tả chi tiết (Zoom 260%)"
-              >
-                🎯 Đặc tả (260%)
-              </button>
-            </div>
-          </div>
-
-          {/* Đường cong chuyển động (Easing) */}
-          <div className="row-group">
-            <div className="field-header">
-              <label>Đường cong Easing</label>
-            </div>
-            <CustomSelect<EaseName>
-              id="route-insp-ease-select"
-              value={activeWaypoint.ease}
-              onChange={(val) => handleUpdate({ ease: val })}
-              options={EASING_OPTIONS}
-              size="sm"
-              title="Chọn kiểu đường cong nội suy chuyển động"
-            />
-          </div>
-
-          {/* Nút tạo mốc tiếp theo */}
-          <div className="route-insp-actions">
-            <button
-              type="button"
-              className="btn xs primary"
-              onClick={() => spawnNextFrame('pan')}
-              title="Tạo mốc tiếp theo lia sang vị trí kế tiếp"
-            >
-              + Lia tiếp
-            </button>
-            <button
-              type="button"
-              className="btn xs"
-              onClick={handleHold}
-              title="Tạo mốc dừng ngắm cảnh giữ nguyên vị trí trong 2 giây"
-            >
-              ⏸ Dừng ngắm (2s)
-            </button>
-            <button
-              type="button"
-              className="btn xs"
-              onClick={() => spawnNextFrame('zoom-in')}
-              title="Tạo mốc tiếp theo phóng to cận cảnh"
-            >
-              🔍+ Phóng to
-            </button>
-            <button
-              type="button"
-              className="btn xs"
-              onClick={() => spawnNextFrame('zoom-out')}
-              title="Tạo mốc tiếp theo thu nhỏ mở rộng"
-            >
-              🔍- Thu nhỏ
-            </button>
-          </div>
-        </div>
+        <CameraWaypointDetailPanel
+          activeWaypoint={activeWaypoint}
+          waypoints={waypoints}
+          stageLayout={stageLayout}
+          activeShotLayers={activeShotLayers}
+          compDuration={project.comp.duration}
+          onSelectTime={(t) => {
+            setPlaying(false)
+            setTime(t)
+          }}
+          onUpdate={handleUpdate}
+          onApplyActionMode={handleApplyActionMode}
+          onAlignInShot={handleAlignInShot}
+          onTargetShot={handleTargetShot}
+          onTargetLayer={handleTargetLayer}
+          onSpawnNext={spawnNextFrame}
+          onAddHold={handleHold}
+        />
       )}
 
       {/* 3. Rung Máy Cầm Tay Điện Ảnh (Handheld Camera Shake) */}
@@ -650,7 +483,7 @@ export function CameraRouteInspector() {
             {project.camera.shakeAmount > 0 ? `${project.camera.shakeAmount}px` : 'Tắt'}
           </span>
         </div>
-        <div className="preset-row">
+        <div className="preset-row zoom-presets-4">
           <button
             type="button"
             className={`btn xs${project.camera.shakeAmount === 0 ? ' active' : ''}`}
@@ -673,7 +506,7 @@ export function CameraRouteInspector() {
             onClick={() => setShake(12, 2.5)}
             title="Mô phỏng người quay đang bước đi"
           >
-            🚶 Bước đi (12px)
+            🚶 Bước (12px)
           </button>
           <button
             type="button"

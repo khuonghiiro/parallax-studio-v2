@@ -30,20 +30,34 @@
   position: relative;
 }
 
-/* Top Toolbar for Camera Frames */
+/* Unified 2-Row Top Toolbar for Camera Stage (Row 1 leaves right side clear for .viewer-tools) */
 .anim2d-toolbar {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  z-index: 14;
+}
+
+.anim2d-toolbar-row1 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 270px 4px 8px;
+  border-bottom: 1px solid var(--line-soft);
+  flex-wrap: wrap;
+}
+
+.anim2d-toolbar-row2 {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  min-height: 32px;
+  min-height: 30px;
   padding: 3px 8px;
-  background: var(--bg-2);
-  border-bottom: 1px solid var(--line);
-  border-top: 1px solid var(--line-soft);
-  z-index: 25;
-  flex-wrap: nowrap;
-  overflow-x: auto;
+  background: color-mix(in srgb, var(--bg-1) 60%, var(--bg-2));
+  flex-wrap: wrap;
 }
 
 .anim2d-frames-strip {
@@ -108,10 +122,19 @@
   font-size: 9.5px;
 }
 
+.anim2d-pill-angle {
+  font-size: 8.5px;
+  padding: 0 3px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--accent-cyan);
+  font-weight: 700;
+}
+
 .anim2d-actions {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   flex-shrink: 0;
 }
 
@@ -132,20 +155,25 @@
   cursor: grabbing;
 }
 
+.anim2d-canvas.mode-aim-target {
+  cursor: crosshair;
+}
+
 /* 2D Projected Shot Card */
 .anim2d-shot-card {
   position: absolute;
   border-radius: 3px;
-  border: 2px solid color-mix(in srgb, var(--shot-color, var(--accent)) 65%, var(--line));
+  border: 2px solid color-mix(in srgb, var(--shot-color, var(--accent)) 60%, var(--line));
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
   z-index: 5;
   transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 
-.anim2d-shot-card.selected {
+.anim2d-shot-card.selected,
+.anim2d-shot-card.cam-here {
   border-color: var(--shot-color, var(--accent-cyan));
   box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--shot-color, var(--accent-cyan)) 35%, transparent),
+    0 0 0 2px color-mix(in srgb, var(--shot-color, var(--accent-cyan)) 30%, transparent),
     0 10px 32px rgba(0, 0, 0, 0.45);
 }
 
@@ -159,9 +187,9 @@
   left: -2px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   height: 22px;
-  padding: 0 8px;
+  padding: 0 7px;
   background: var(--hud-bg);
   border: 1px solid color-mix(in srgb, var(--shot-color, var(--accent)) 60%, var(--line));
   border-radius: var(--radius-sm);
@@ -190,20 +218,28 @@
   font-family: var(--mono);
 }
 
+.anim2d-shot-btn,
 .anim2d-shot-add-cam {
   height: 16px;
   padding: 0 5px;
   border-radius: 2px;
   border: 1px solid var(--line);
   background: var(--bg-2);
-  color: var(--accent-cyan);
+  color: var(--text-dim);
   font-size: 9.5px;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.12s ease;
 }
 
+.anim2d-shot-add-cam {
+  color: var(--accent-cyan);
+}
+
+.anim2d-shot-btn:hover,
 .anim2d-shot-add-cam:hover {
   background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
 }
 
@@ -215,6 +251,39 @@
   border-radius: 1px;
 }
 
+/* Layer Aiming Mode inside 2D Shot */
+.anim2d-layer-item.aimable {
+  cursor: crosshair;
+  transition: outline 0.1s ease, box-shadow 0.1s ease;
+}
+
+.anim2d-layer-item.aimable:hover {
+  outline: 2px solid var(--accent-cyan);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-cyan) 45%, transparent);
+  z-index: 10;
+}
+
+.anim2d-layer-aim-tag {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--bg-2);
+  border: 1px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+  font-size: 9.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.anim2d-layer-item.aimable:hover .anim2d-layer-aim-tag {
+  opacity: 1;
+}
+
 /* Trajectory SVG */
 .anim2d-trajectory-svg {
   position: absolute;
@@ -223,6 +292,75 @@
   height: 100%;
   pointer-events: none;
   z-index: 15;
+}
+
+/* Ghost Frames for Inactive Waypoints */
+.anim2d-ghost-frame {
+  position: absolute;
+  pointer-events: none;
+  border: 1.5px dashed color-mix(in srgb, var(--accent-cyan) 42%, transparent);
+  background: color-mix(in srgb, var(--accent-cyan) 3%, transparent);
+  border-radius: 2px;
+  z-index: 16;
+  box-sizing: border-box;
+}
+
+.anim2d-ghost-frame.hovered {
+  border-color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 9%, transparent);
+}
+
+/* Compact Waypoint Pins (#1, #2, #3...) on the 2D Stage */
+.anim2d-wp-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 19px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--bg-2);
+  border: 1.5px solid var(--accent-cyan);
+  color: var(--text);
+  font-size: 9.5px;
+  font-family: var(--mono);
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+.anim2d-wp-pin:hover {
+  transform: translate(-50%, -50%) scale(1.1);
+  background: var(--bg-3);
+  border-color: var(--key);
+}
+
+.anim2d-wp-pin.active {
+  background: var(--accent);
+  border-color: #fff;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-cyan) 65%, transparent);
+}
+
+.anim2d-wp-pin .pin-num {
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.anim2d-wp-pin.active .pin-num {
+  color: #fff;
+}
+
+.anim2d-wp-pin .pin-time {
+  color: var(--text-dim);
+  font-size: 9px;
+}
+
+.anim2d-wp-pin.active .pin-time {
+  color: rgba(255, 255, 255, 0.9);
 }
 
 /* Live Interpolated Camera Box */
@@ -243,70 +381,135 @@
     inset 0 0 18px color-mix(in srgb, var(--key) 20%, transparent);
 }
 
-/* Interactive Camera Frame Box (#1, #2, #3...) */
+/* Active Camera Viewfinder Frame */
 .anim2d-cam-frame {
   position: absolute;
-  border: 2px dashed var(--accent-cyan);
-  background: color-mix(in srgb, var(--accent-cyan) 6%, transparent);
+  border: 2px solid var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 7%, transparent);
   border-radius: 2px;
   cursor: move;
   box-sizing: border-box;
-  transition: background 0.12s ease;
-}
-
-.anim2d-cam-frame:hover {
-  background: color-mix(in srgb, var(--accent-cyan) 12%, transparent);
-}
-
-.anim2d-cam-frame.active {
-  border: 2px solid var(--accent-cyan);
-  background: color-mix(in srgb, var(--accent-cyan) 10%, transparent);
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.35),
-    0 0 16px color-mix(in srgb, var(--accent-cyan) 32%, transparent);
+    0 0 20px color-mix(in srgb, var(--accent-cyan) 28%, transparent);
 }
 
-.anim2d-cam-badge {
+.anim2d-cam-frame.mode-orbit-3d {
+  cursor: all-scroll;
+  border-color: var(--key);
+}
+
+/* Rule of Thirds Grid inside Active Viewfinder */
+.anim2d-thirds-grid {
   position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.anim2d-thirds-grid .grid-v,
+.anim2d-thirds-grid .grid-h {
+  position: absolute;
+  background: color-mix(in srgb, var(--accent-cyan) 28%, transparent);
+}
+
+.anim2d-thirds-grid .grid-v {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+.anim2d-thirds-grid .grid-v.v1 { left: 33.33%; }
+.anim2d-thirds-grid .grid-v.v2 { left: 66.66%; }
+
+.anim2d-thirds-grid .grid-h {
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+.anim2d-thirds-grid .grid-h.h1 { top: 33.33%; }
+.anim2d-thirds-grid .grid-h.h2 { top: 66.66%; }
+
+/* Cinema Viewfinder Corner Brackets */
+.vf-corner {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: var(--accent-cyan);
+  border-style: solid;
+  pointer-events: none;
+}
+.vf-corner.tl { top: 3px; left: 3px; border-width: 2px 0 0 2px; }
+.vf-corner.tr { top: 3px; right: 3px; border-width: 2px 2px 0 0; }
+.vf-corner.bl { bottom: 3px; left: 3px; border-width: 0 0 2px 2px; }
+.vf-corner.br { bottom: 3px; right: 3px; border-width: 0 2px 2px 0; }
+
+/* Top Camera Rotation Handle (Roll / Dutch Angle) */
+.anim2d-rot-stem {
+  position: absolute;
+  top: -26px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 22px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  cursor: grab;
+  z-index: 40;
+}
+
+.anim2d-rot-stem::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 1.5px;
+  height: 8px;
+  background: var(--accent-cyan);
+  transform: translateX(-50%);
+}
+
+.anim2d-rot-knob {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--bg-2);
+  border: 1.5px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+  font-size: 10px;
+  line-height: 14px;
+  text-align: center;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.anim2d-rot-stem:hover .anim2d-rot-knob {
+  transform: scale(1.15);
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Active Viewfinder Floating HUD Badge */
+.anim2d-cam-badge.active-hud {
+  position: absolute;
+  bottom: -27px;
+  left: 50%;
+  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 3px;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 4px;
   background: var(--bg-2);
   border: 1px solid var(--accent-cyan);
   color: var(--text);
   font-size: 10px;
   font-family: var(--mono);
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   cursor: grab;
-}
-
-.anim2d-cam-badge.pos-tl {
-  top: -23px;
-  left: -2px;
-}
-
-.anim2d-cam-badge.pos-br {
-  bottom: -23px;
-  right: -2px;
-}
-
-.anim2d-cam-badge.pos-tr {
-  top: -23px;
-  right: -2px;
-}
-
-.anim2d-cam-badge.pos-bl {
-  bottom: -23px;
-  left: -2px;
-}
-
-.anim2d-cam-frame.active .anim2d-cam-badge {
-  background: color-mix(in srgb, var(--accent) 30%, var(--bg-2));
-  border-color: var(--accent-cyan);
+  z-index: 40;
 }
 
 .anim2d-cam-num {
@@ -323,27 +526,43 @@
   font-weight: 600;
 }
 
+.anim2d-cam-angle {
+  color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  padding: 0 4px;
+  border-radius: 2px;
+  font-size: 9.5px;
+}
+
 .anim2d-cam-quick-btns {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  margin-left: 3px;
-  padding-left: 4px;
+  gap: 3px;
+  margin-left: 2px;
+  padding-left: 5px;
   border-left: 1px solid var(--line);
 }
 
 .anim2d-cam-quick-btns button {
-  height: 15px;
-  padding: 0 4px;
+  height: 16px;
+  padding: 0 5px;
   border-radius: 2px;
   border: 1px solid var(--line);
   background: var(--bg-1);
   color: var(--text);
-  font-size: 9px;
+  font-size: 9.5px;
   font-family: var(--mono);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  gap: 2px;
+}
+
+.anim2d-cam-quick-btns button.primary-mini {
+  background: color-mix(in srgb, var(--accent) 28%, var(--bg-2));
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  font-weight: 600;
 }
 
 .anim2d-cam-quick-btns button:hover {
@@ -357,13 +576,13 @@
   border-color: #ef4444;
 }
 
-/* Center crosshair inside Camera Frame */
+/* Center crosshair & 3D Tilt Vector inside Camera Frame */
 .anim2d-cam-crosshair {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
@@ -373,57 +592,61 @@
   content: '';
   position: absolute;
   background: var(--accent-cyan);
-  opacity: 0.75;
+  opacity: 0.85;
 }
 
 .anim2d-cam-crosshair::before {
-  left: 5px;
+  left: 6px;
   top: 0;
   width: 2px;
-  height: 12px;
+  height: 14px;
 }
 
 .anim2d-cam-crosshair::after {
   left: 0;
-  top: 5px;
-  width: 12px;
+  top: 6px;
+  width: 14px;
   height: 2px;
 }
 
-/* 8 Resize Handles on Camera Frame */
-.anim2d-cam-handle {
+.anim2d-3d-tilt-vector {
   position: absolute;
+  left: 3px;
+  top: 3px;
   width: 8px;
   height: 8px;
-  background: var(--bg-0);
-  border: 1.5px solid var(--accent-cyan);
-  border-radius: 1.5px;
-  z-index: 5;
+  border-radius: 50%;
+  background: var(--key);
+  box-shadow: 0 0 8px var(--key);
 }
 
-.anim2d-cam-frame.active .anim2d-cam-handle {
+/* 8 Resize Handles on Active Camera Frame */
+.anim2d-cam-handle {
+  position: absolute;
   width: 9px;
   height: 9px;
   background: var(--accent-cyan);
-  border-color: var(--bg-0);
+  border: 1.5px solid var(--bg-0);
+  border-radius: 2px;
+  z-index: 5;
 }
 
 .anim2d-cam-handle.handle-nw { left: -5px; top: -5px; }
-.anim2d-cam-handle.handle-n  { left: calc(50% - 4px); top: -5px; }
+.anim2d-cam-handle.handle-n  { left: calc(50% - 4.5px); top: -5px; }
 .anim2d-cam-handle.handle-ne { right: -5px; top: -5px; }
-.anim2d-cam-handle.handle-e  { right: -5px; top: calc(50% - 4px); }
+.anim2d-cam-handle.handle-e  { right: -5px; top: calc(50% - 4.5px); }
 .anim2d-cam-handle.handle-se { right: -5px; bottom: -5px; }
-.anim2d-cam-handle.handle-s  { left: calc(50% - 4px); bottom: -5px; }
+.anim2d-cam-handle.handle-s  { left: calc(50% - 4.5px); bottom: -5px; }
 .anim2d-cam-handle.handle-sw { left: -5px; bottom: -5px; }
-.anim2d-cam-handle.handle-w  { left: -5px; top: calc(50% - 4px); }
+.anim2d-cam-handle.handle-w  { left: -5px; top: calc(50% - 4.5px); }
 
-/* Stage Bottom Footer Bar (Camera Frame Progression Strip & Quick Hint) */
+/* Stage Bottom Footer Bar (Camera Frame Progression Strip & Quick Mode Chips) */
 .anim2d-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  min-height: 29px;
+  min-height: 30px;
   padding: 2px 8px;
   background: var(--bg-2);
   border-top: 1px solid var(--line);
@@ -438,11 +661,36 @@
   margin-right: 2px;
 }
 
-.anim2d-footer-hint {
-  font-size: 10px;
-  color: var(--text-faint);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.anim2d-footer-modes {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
 }
 
+.anim2d-footer-modes .mode-chip {
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  font-size: 9.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+}
+
+.anim2d-footer-modes .mode-chip:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line-focus);
+}
+
+.anim2d-footer-modes .mode-chip.active {
+  background: color-mix(in srgb, var(--accent) 26%, var(--bg-2));
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  font-weight: 600;
+}

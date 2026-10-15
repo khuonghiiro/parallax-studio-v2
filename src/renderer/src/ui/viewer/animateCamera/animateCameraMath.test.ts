@@ -93,4 +93,37 @@ describe('animateCameraMath — Adobe Animate 2D Camera Stage & Multi-Shot Mappi
     const zoomedOut = stageFrameTo3DCamera(p, layout, layout[1].stageX, layout[1].stageY, 1.4)
     expect(zoomedOut.focusDistance).toBeGreaterThan(dist2)
   })
+
+  it('preserves and interpolates 3D spherical angles (yaw, pitch) and Dutch angle roll', () => {
+    const p = createProject({ width: 1920, height: 1080, duration: 6 })
+    const s1 = createShot('Cảnh 1', [0, 0, 0], 0)
+    p.shots.push(s1)
+    const layout = computeShotStageLayout(p, 0)
+
+    applyStageFrameToDraft(p, layout, 0, 0, 0, 1.0, true, {
+      yaw: -15,
+      pitch: 10,
+      roll: -6
+    })
+    applyStageFrameToDraft(p, layout, 4, 150, -50, 0.8, true, {
+      yaw: 20,
+      pitch: -12,
+      roll: 12
+    })
+
+    const frames = extractCameraFrames2D(p, layout)
+    expect(frames).toHaveLength(2)
+    expect(frames[0].yaw).toBeCloseTo(-15, 0)
+    expect(frames[0].pitch).toBeCloseTo(10, 0)
+    expect(frames[0].roll).toBeCloseTo(-6, 1)
+
+    expect(frames[1].yaw).toBeCloseTo(20, 0)
+    expect(frames[1].pitch).toBeCloseTo(-12, 0)
+    expect(frames[1].roll).toBeCloseTo(12, 1)
+
+    const mid = evaluateLiveCameraFrame2D(p, layout, frames, 2.0)
+    expect(mid.roll).toBeGreaterThan(-6)
+    expect(mid.roll).toBeLessThan(12)
+  })
 })
+

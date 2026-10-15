@@ -126,6 +126,9 @@ export function applyEvaluatedCamera(cam: THREE.PerspectiveCamera, ev: Evaluated
   cam.position.set(ev.position[0], ev.position[1], -ev.position[2])
   cam.up.set(0, 1, 0)
   cam.lookAt(ev.target[0], ev.target[1], -ev.target[2])
+  if (ev.roll && Math.abs(ev.roll) > 0.01) {
+    cam.rotateZ((-ev.roll * Math.PI) / 180)
+  }
   cam.updateProjectionMatrix()
   cam.updateMatrixWorld()
 }

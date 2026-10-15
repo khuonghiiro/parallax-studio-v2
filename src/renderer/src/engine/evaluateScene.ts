@@ -10,6 +10,7 @@ export interface EvaluatedCamera {
   position: Vec3
   target: Vec3
   fov: number
+  roll?: number
   dof: boolean
   focusDistance: number
   aperture: number
@@ -66,6 +67,7 @@ export function evaluateCamera(project: Project, t: number): EvaluatedCamera {
   const cam = project.camera
   const position = [...evaluate(cam.position, t)] as Vec3
   const target = [...evaluate(cam.target, t)] as Vec3
+  let roll = cam.roll ? evaluate(cam.roll, t) : 0
 
   if (cam.shakeAmount > 0) {
     const s = t * cam.shakeSpeed * Math.PI * 2
@@ -75,12 +77,14 @@ export function evaluateCamera(project: Project, t: number): EvaluatedCamera {
     position[1] += dy
     target[0] += dx * 0.3
     target[1] += dy * 0.3
+    roll += smoothNoise(s * 0.7, 3.7) * (cam.shakeAmount * 0.05)
   }
 
   return {
     position,
     target,
     fov: evaluate(cam.fov, t),
+    roll,
     dof: cam.dofEnabled,
     focusDistance: evaluate(cam.focusDistance, t),
     aperture: evaluate(cam.aperture, t),

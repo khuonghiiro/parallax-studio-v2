@@ -6,7 +6,9 @@ import {
   applyStageFrameToDraft
 } from './animateCameraMath'
 import {
+  alignWaypointInShot,
   applyCameraRoutePreset,
+  applyWaypointActionMode,
   duplicateCameraWaypoint,
   enrichCameraWaypoints,
   panCameraToLayer2D,
@@ -211,4 +213,90 @@ describe('animateCameraRouteLogic — Camera 2D Route Management & Parameter Tun
     panCameraToLayer2D(p, layout, s1.id, 100, 50, 4.0, 0.6, 'easeInOut', 250)
     expect(p.camera.focusDistance.keyframes.some((k) => Math.abs(k.t - 4.0) < 0.05)).toBe(true)
   })
+
+  it('preserves existing stageX, stageY, yaw, pitch, and roll when performing partial updateCameraWaypoint', () => {
+    const p = createProject({ width: 1920, height: 1080, duration: 10 })
+    const s1 = createShot('Cảnh 1', [0, 0, 0], 0)
+    const s2 = createShot('Cảnh 2', [10560, 0, 0], 1)
+    p.shots.push(s1, s2)
+    const layout = computeShotStageLayout(p, 0)
+
+    // Place a keyframe on Shot 2 with custom offset and 3D angles
+    applyStageFrameToDraft(p, layout, 3.0, layout[1].stageX + 240, layout[1].stageY - 120, 0.85, true, {
+      yaw: 16,
+      pitch: -8,
+      roll: 9
+    })
+
+    // Partial update: only change scale (Zoom) and ease — must NOT reset stageX/stageY to Shot 1 (0, 0)
+    updateCameraWaypoint(p, layout, 3.0, {
+      scale: 0.55,
+      ease: 'easeOut'
+    })
+
+    const frames = extractCameraFrames2D(p, layout)
+    const updated = frames.find((f) => Math.abs(f.time - 3.0) < 0.05)
+    expect(updated).toBeDefined()
+    expect(updated?.shotId).toBe(s2.id)
+    expect(updated?.stageX).toBe(layout[1].stageX + 240)
+    expect(updated?.stageY).toBe(layout[1].stageY - 120)
+    expect(updated?.scale).toBeCloseTo(0.55, 2)
+    expect(updated?.yaw).toBeCloseTo(16, 0)
+    expect(updated?.pitch).toBeCloseTo(-8, 0)
+    expect(updated?.roll).toBeCloseTo(9, 1)
+    expect(updated?.ease).toBe('easeOut')
+  })
+
+  it('shifts subsequent keyframes cleanly when ripple is enabled on updateCameraWaypoint', () => {
+    const p = createProject({ width: 1920, height: 1080, duration: 12 })
+    const layout = computeShotStageLayout(p, 0)
+
+    applyStageFrameToDraft(p, layout, 0, 0, 0, 1.0, true)
+    applyStageFrameToDraft(p, layout, 2.0, 200, 0, 0.8, true)
+    applyStageFrameToDraft(p, layout, 5.0, 400, 0, 0.6, true)
+
+    // Move keyframe at 2.0s to 3.5s (+1.5s) with ripple = true
+    updateCameraWaypoint(p, layout, 2.0, {
+      time: 3.5,
+      ripple: true
+    })
+
+    const frames = extractCameraFrames2D(p, layout)
+    expect(frames).toHaveLength(3)
+    expect(frames[0].time).toBe(0)
+    expect(frames[1].time).toBeCloseTo(3.5, 2)
+    // Keyframe that was at 5.0s should shift by +1.5s to 6.5s
+    expect(frames[2].time).toBeCloseTo(6.5, 2)
+  })
+
+  it('applies camera action modes (orbit, dutch-tilt, cut) and 2D shot alignments accurately', () => {
+    const p = createProject({ width: 1920, height: 1080, duration: 10 })
+    const s1 = createShot('Cảnh 1', [0, 0, 0], 0)
+    p.shots.push(s1)
+    const layout = computeShotStageLayout(p, 0)
+
+    applyStageFrameToDraft(p, layout, 0, 0, 0, 1.0, true)
+    applyStageFrameToDraft(p, layout, 3.0, 100, -50, 1.0, true)
+
+    applyWaypointActionMode(p, layout, 3.0, 'orbit-left')
+    let frames = extractCameraFrames2D(p, layout)
+    expect(frames[1].yaw).toBeCloseTo(-25, 0)
+
+    applyWaypointActionMode(p, layout, 3.0, 'dutch-tilt')
+    frames = extractCameraFrames2D(p, layout)
+    expect(Math.abs(frames[1].roll)).toBeCloseTo(12, 1)
+
+    alignWaypointInShot(p, layout, 3.0, 'center')
+    frames = extractCameraFrames2D(p, layout)
+    expect(frames[1].stageX).toBe(layout[0].stageX)
+    expect(frames[1].stageY).toBe(layout[0].stageY)
+
+    // Test new presets: parallax-orbit and action-dutch-cut
+    applyCameraRoutePreset(p, layout, 'parallax-orbit')
+    frames = extractCameraFrames2D(p, layout)
+    expect(frames).toHaveLength(2)
+    expect(frames[0].yaw).toBeLessThan(0)
+    expect(frames[1].yaw).toBeGreaterThan(0)
+  })
 })
+

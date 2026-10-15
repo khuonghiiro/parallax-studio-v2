@@ -6,11 +6,16 @@ interface AnimateShotPlane2DProps {
   layers: ProjectedLayer2D[]
   background: string
   isSelectedShot: boolean
+  isActiveCameraShot: boolean
+  aimMode: boolean
   zoom: number
   screenLeft: number
   screenTop: number
   onSelectShot: (shotId: string | null) => void
+  onAimCurrentAtShot: (box: ShotStageBox) => void
   onAddFrameAtShot: (box: ShotStageBox) => void
+  onAimAtLayer: (box: ShotStageBox, layer: ProjectedLayer2D) => void
+  onDoubleClickSpot: (stageX: number, stageY: number) => void
 }
 
 export function AnimateShotPlane2D({
@@ -18,18 +23,31 @@ export function AnimateShotPlane2D({
   layers,
   background,
   isSelectedShot,
+  isActiveCameraShot,
+  aimMode,
   zoom,
   screenLeft,
   screenTop,
   onSelectShot,
-  onAddFrameAtShot
+  onAimCurrentAtShot,
+  onAddFrameAtShot,
+  onAimAtLayer,
+  onDoubleClickSpot
 }: AnimateShotPlane2DProps) {
   const screenW = Math.max(8, box.width * zoom)
   const screenH = Math.max(6, box.height * zoom)
 
+  const handleSurfaceDoubleClick = (e: React.MouseEvent<HTMLDivElement>): void => {
+    e.stopPropagation()
+    const rect = e.currentTarget.getBoundingClientRect()
+    const localX = (e.clientX - rect.left) / zoom - box.width / 2
+    const localY = (e.clientY - rect.top) / zoom - box.height / 2
+    onDoubleClickSpot(Math.round(box.stageX + localX), Math.round(box.stageY + localY))
+  }
+
   return (
     <div
-      className={`anim2d-shot-card${isSelectedShot ? ' selected' : ''}${box.visible ? '' : ' hidden-shot'}`}
+      className={`anim2d-shot-card${isSelectedShot ? ' selected' : ''}${isActiveCameraShot ? ' cam-here' : ''}${box.visible ? '' : ' hidden-shot'}`}
       style={{
         left: screenLeft,
         top: screenTop,
@@ -40,8 +58,9 @@ export function AnimateShotPlane2D({
       onPointerDown={(e) => {
         if (e.button === 0) onSelectShot(box.shotId)
       }}
+      onDoubleClick={handleSurfaceDoubleClick}
     >
-      {/* Header của Cảnh 2D */}
+      {/* Header gọn gàng của Cảnh 2D */}
       <div
         className="anim2d-shot-header"
         onPointerDown={(e) => {
@@ -53,17 +72,28 @@ export function AnimateShotPlane2D({
         <span className="anim2d-shot-title">
           {box.index + 1}. {box.name}
         </span>
-        <span className="anim2d-shot-meta">{layers.length} layer 2D</span>
+        <span className="anim2d-shot-meta">{layers.length} lớp</span>
+        <button
+          type="button"
+          className="anim2d-shot-btn"
+          title={`Căn khung Camera đang chọn về chính giữa "${box.name}"`}
+          onClick={(e) => {
+            e.stopPropagation()
+            onAimCurrentAtShot(box)
+          }}
+        >
+          ⊡ Căn tâm
+        </button>
         <button
           type="button"
           className="anim2d-shot-add-cam"
-          title={`Thêm khung Camera mới lia tới "${box.name}"`}
+          title={`Tạo mốc lộ trình mới lia tới "${box.name}"`}
           onClick={(e) => {
             e.stopPropagation()
             onAddFrameAtShot(box)
           }}
         >
-          + Khung Cam
+          + Lia tới
         </button>
       </div>
 
@@ -74,7 +104,7 @@ export function AnimateShotPlane2D({
           const lh = layer.height * zoom
           const lx = screenW / 2 + layer.offsetX * zoom - lw / 2
           const ly = screenH / 2 + layer.offsetY * zoom - lh / 2
-          const style: React.CSSProperties = {
+          const baseStyle: React.CSSProperties = {
             position: 'absolute',
             left: lx,
             top: ly,
@@ -82,25 +112,42 @@ export function AnimateShotPlane2D({
             height: lh,
             opacity: layer.opacity,
             transform: layer.rotation ? `rotate(${layer.rotation}deg)` : undefined,
-            pointerEvents: 'none'
+            pointerEvents: aimMode ? 'auto' : 'none'
           }
+
+          const onLayerClick = aimMode
+            ? (e: React.MouseEvent) => {
+                e.stopPropagation()
+                onAimAtLayer(box, layer)
+              }
+            : undefined
 
           if (layer.type === 'image' && layer.assetId) {
             const runtimeAsset = assetStore.get(layer.assetId)
             const imgUrl = runtimeAsset?.url || runtimeAsset?.thumbUrl
             if (!imgUrl) return null
             return (
-              <img
+              <div
                 key={layer.id}
-                src={imgUrl}
-                alt={layer.name}
-                draggable={false}
-                style={{
-                  ...style,
-                  objectFit: 'fill',
-                  userSelect: 'none'
-                }}
-              />
+                className={`anim2d-layer-item${aimMode ? ' aimable' : ''}`}
+                style={baseStyle}
+                onClick={onLayerClick}
+                title={aimMode ? `🎯 Bấm để ngắm Camera vào "${layer.name}"` : undefined}
+              >
+                <img
+                  src={imgUrl}
+                  alt={layer.name}
+                  draggable={false}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'fill',
+                    userSelect: 'none',
+                    display: 'block'
+                  }}
+                />
+                {aimMode && <span className="anim2d-layer-aim-tag">🎯 {layer.name}</span>}
+              </div>
             )
           }
 
@@ -108,7 +155,14 @@ export function AnimateShotPlane2D({
             const bg = layer.solidColor2
               ? `linear-gradient(${layer.gradientAngle ?? 180}deg, ${layer.solidColor ?? '#000'}, ${layer.solidColor2})`
               : (layer.solidColor ?? '#000')
-            return <div key={layer.id} style={{ ...style, background: bg }} />
+            return (
+              <div
+                key={layer.id}
+                className={`anim2d-layer-item${aimMode ? ' aimable' : ''}`}
+                style={{ ...baseStyle, background: bg }}
+                onClick={onLayerClick}
+              />
+            )
           }
 
           if (layer.type === 'text') {
@@ -116,8 +170,9 @@ export function AnimateShotPlane2D({
             return (
               <div
                 key={layer.id}
+                className={`anim2d-layer-item${aimMode ? ' aimable' : ''}`}
                 style={{
-                  ...style,
+                  ...baseStyle,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent:
@@ -131,8 +186,11 @@ export function AnimateShotPlane2D({
                   textShadow: '0 2px 8px rgba(0,0,0,0.65)',
                   lineHeight: 1.15
                 }}
+                onClick={onLayerClick}
+                title={aimMode ? `🎯 Bấm để ngắm Camera vào chữ "${layer.name}"` : undefined}
               >
                 {layer.text}
+                {aimMode && <span className="anim2d-layer-aim-tag">🎯 {layer.name}</span>}
               </div>
             )
           }

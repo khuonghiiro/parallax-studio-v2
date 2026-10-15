@@ -335,7 +335,7 @@
   top: 100%;
   right: 0;
   margin-top: 4px;
-  width: 220px;
+  width: 235px;
   background: var(--bg-2);
   border: 1px solid var(--line-focus);
   border-radius: 4px;
@@ -378,8 +378,8 @@
 .route-waypoints-stack {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  max-height: 220px;
+  gap: 4px;
+  max-height: 158px;
   overflow-y: auto;
   padding: 2px;
   margin-top: 4px;
@@ -388,13 +388,13 @@
 .route-wp-card {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 6px 8px;
+  gap: 2px;
+  padding: 5px 7px;
   background: var(--bg-2);
   border: 1px solid var(--line);
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.12s ease;
 }
 
 .route-wp-card:hover {
@@ -403,66 +403,73 @@
 }
 
 .route-wp-card.active {
-  background: var(--bg-2);
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-2));
   border-color: var(--accent-cyan);
-  box-shadow: inset 2px 0 0 var(--accent-cyan), 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 2.5px 0 0 var(--accent-cyan);
 }
 
 .wp-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 4px;
 }
 
 .wp-card-title {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .wp-card-idx {
   font-size: 10px;
   font-weight: 700;
   color: var(--accent-cyan);
+  font-family: var(--mono);
 }
 
 .wp-card-time {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
   color: var(--text);
+  font-family: var(--mono);
 }
 
 .wp-card-dur {
   font-size: 9.5px;
   color: var(--text-dim);
+  font-family: var(--mono);
 }
 
 .wp-type-badge {
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 600;
   padding: 1px 5px;
   border-radius: 3px;
-  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .wp-type-badge.start {
-  background: rgba(56, 189, 248, 0.15);
+  background: color-mix(in srgb, var(--accent-cyan) 16%, transparent);
   color: var(--accent-cyan);
 }
 
 .wp-type-badge.pan {
-  background: rgba(99, 102, 241, 0.18);
-  color: #818cf8;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent-cyan);
 }
 
 .wp-type-badge.zoom-in {
-  background: rgba(234, 179, 8, 0.18);
+  background: color-mix(in srgb, var(--key) 20%, transparent);
   color: var(--key);
 }
 
 .wp-type-badge.zoom-out {
-  background: rgba(34, 197, 94, 0.15);
+  background: rgba(34, 197, 94, 0.16);
   color: #4ade80;
 }
 
@@ -471,45 +478,155 @@
   color: var(--text-dim);
 }
 
+.wp-card-inline-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0.45;
+  transition: opacity 0.12s ease;
+}
+
+.route-wp-card:hover .wp-card-inline-btns,
+.route-wp-card.active .wp-card-inline-btns {
+  opacity: 1;
+}
+
+.wp-mini-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.wp-mini-icon-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.wp-mini-icon-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
 .wp-card-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 10px;
+  gap: 6px;
+  font-size: 9.5px;
   color: var(--text-dim);
+}
+
+.wp-meta-shot {
+  font-weight: 600;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wp-meta-3d {
+  color: var(--accent-cyan);
+  font-family: var(--mono);
+  font-size: 9px;
 }
 
 .wp-card-ease {
   margin-left: auto;
-  font-size: 9.5px;
-  font-family: monospace;
+  font-size: 9px;
+  font-family: var(--mono);
   color: var(--text-faint);
-}
-
-.wp-card-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-  margin-top: 2px;
-  padding-top: 4px;
-  border-top: 1px dashed var(--line-soft);
 }
 
 /* Active Waypoint Parameters */
 .active-wp-section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+}
+
+.wp-detail-head {
+  gap: 6px;
 }
 
 .wp-active-shot {
-  font-size: 10px;
+  font-size: 9.5px;
   color: var(--text-dim);
-  font-weight: 500;
-  max-width: 140px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--bg-2);
+  border-left: 2.5px solid var(--accent-cyan);
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wp-step-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.wp-mode-current {
+  font-size: 9.5px;
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+/* 8-Button Camera Action Mode Grid */
+.cam-action-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.cam-mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 2px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.cam-mode-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--line-focus);
+  color: var(--text);
+}
+
+.cam-mode-btn.active {
+  background: color-mix(in srgb, var(--accent) 26%, var(--bg-2));
+  border-color: var(--accent-cyan);
+  color: var(--text);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-cyan) 22%, transparent);
+}
+
+.cam-mode-btn .mode-ico {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.cam-mode-btn .mode-lbl {
+  font-size: 9px;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -517,7 +634,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding-bottom: 8px;
+  padding-bottom: 7px;
   border-bottom: 1px solid var(--line-soft);
 }
 
@@ -538,10 +655,77 @@
   color: var(--text-dim);
 }
 
+.quick-align-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.mini-chip-btn {
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 2px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 9px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mini-chip-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.target-selects-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+
 .zoom-val {
   font-size: 10.5px;
   font-weight: 700;
   color: var(--accent-cyan);
+  font-family: var(--mono);
+}
+
+.angle-neutral-tag {
+  font-size: 9.5px;
+  color: var(--text-faint);
+  font-family: var(--mono);
+}
+
+/* 3D Angle Sliders Stack */
+.angle-sliders-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 2px 0;
+}
+
+.angle-slider-row {
+  display: grid;
+  grid-template-columns: 86px 1fr 34px;
+  align-items: center;
+  gap: 6px;
+}
+
+.angle-lbl {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.angle-num {
+  font-size: 9.5px;
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--accent-cyan);
+  text-align: right;
 }
 
 .field-row {
@@ -559,7 +743,7 @@
 
 .field-row input {
   width: 100%;
-  height: 24px;
+  height: 23px;
   background: var(--bg-2);
   border: 1px solid var(--line);
   border-radius: 3px;
@@ -580,8 +764,8 @@
   background: var(--bg-2);
   border: 1px solid var(--line);
   border-radius: 3px;
-  height: 24px;
-  padding: 0 4px;
+  height: 23px;
+  padding: 0 5px;
 }
 
 .input-prefix-box:focus-within {
@@ -605,16 +789,18 @@
   color: var(--text);
   font-size: 10.5px;
   text-align: right;
+  height: 21px;
+  padding: 0;
 }
 
 .field-select-mt {
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .field-slider {
   display: flex;
   align-items: center;
-  margin: 3px 0;
+  margin: 2px 0;
 }
 
 .zoom-range {
@@ -627,32 +813,51 @@
 .preset-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 3px;
   margin-top: 2px;
 }
 
+.preset-row.zoom-presets-5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 3px;
+}
+
+.preset-row.zoom-presets-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
 .preset-row .btn {
-  flex: 1 1 calc(33.3% - 4px);
-  min-width: 58px;
-  padding: 3px 4px;
-  font-size: 9.5px;
+  min-width: 0;
+  padding: 2px 3px;
+  font-size: 9px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: center;
+  justify-content: center;
 }
 
 .preset-row .btn.active {
-  background: var(--accent-cyan);
-  color: #000;
+  background: color-mix(in srgb, var(--accent) 30%, var(--bg-2));
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
   font-weight: 600;
 }
 
 .route-insp-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 5px;
-  margin-top: 4px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-top: 2px;
   padding-top: 6px;
   border-top: 1px dashed var(--line-soft);
+}
+
+.route-insp-actions .btn {
+  padding: 3px 4px;
+  font-size: 9.5px;
+  justify-content: center;
 }

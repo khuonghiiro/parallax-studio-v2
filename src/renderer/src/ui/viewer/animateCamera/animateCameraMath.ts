@@ -1,5 +1,5 @@
 import type { EaseName, Layer, Project, Vec3 } from '@shared/types'
-import { addKeyframe, evaluate, setValueAt } from '../../../animation/keyframes'
+import { addKeyframe, anim, evaluate, setValueAt } from '../../../animation/keyframes'
 import { referenceDistance } from '../../../animation/math'
 import { evaluateScene, type EvaluatedScene } from '../../../engine/evaluateScene'
 import { frameTolerance } from '../../../store/editor'
@@ -59,15 +59,34 @@ export interface CameraFrame2D {
   scale: number
   width: number
   height: number
+  /** 3D Horizontal Orbit angle around target in degrees (-80..80, 0 = straight front) */
+  yaw: number
+  /** 3D Vertical Pitch/Tilt angle around target in degrees (-75..75, 0 = level) */
+  pitch: number
+  /** 2D/3D Camera Roll / Dutch angle in degrees (-180..180, 0 = level) */
+  roll: number
   position3D: Vec3
   target3D: Vec3
 }
 
+export interface StageFramePoseOptions {
+  yaw?: number
+  pitch?: number
+  roll?: number
+  ease?: EaseName
+}
+
 const MIN_FRAME_SCALE = 0.15
 const MAX_FRAME_SCALE = 3.0
+const DEG = 180 / Math.PI
+const RAD = Math.PI / 180
 
 export function clampFrameScale(scale: number): number {
   return Math.max(MIN_FRAME_SCALE, Math.min(MAX_FRAME_SCALE, scale))
+}
+
+export function clampCameraAngle(val: number, min = -75, max = 75): number {
+  return Math.max(min, Math.min(max, Math.round(val * 10) / 10))
 }
 
 /**
@@ -243,7 +262,8 @@ export function pose3DToStageFrame(
   project: Project,
   layout: ShotStageBox[],
   position3D: Vec3,
-  target3D: Vec3
+  target3D: Vec3,
+  rollDeg = 0
 ): {
   shotBox: ShotStageBox
   stageX: number
@@ -251,19 +271,25 @@ export function pose3DToStageFrame(
   scale: number
   width: number
   height: number
+  yaw: number
+  pitch: number
+  roll: number
 } {
   const refD = Math.max(100, referenceDistance(project.comp))
   const shotBox = findNearestShotBy3D(layout, target3D)
   const localDx = target3D[0] - shotBox.worldOrigin[0]
   const localDy = target3D[1] - shotBox.worldOrigin[1]
-  const dist = Math.max(
-    80,
-    Math.hypot(
-      target3D[0] - position3D[0],
-      target3D[1] - position3D[1],
-      target3D[2] - position3D[2]
-    )
-  )
+
+  // Vector from target to camera in Three.js space (where camera in front of shot has vz > 0)
+  const vx = position3D[0] - target3D[0]
+  const vy = position3D[1] - target3D[1]
+  const vz = target3D[2] - position3D[2]
+  const dist = Math.max(80, Math.hypot(vx, vy, vz))
+
+  const pitch = clampCameraAngle(Math.asin(Math.max(-1, Math.min(1, vy / dist))) * DEG, -75, 75)
+  const yaw = clampCameraAngle(Math.atan2(vx, vz) * DEG, -85, 85)
+  const roll = clampCameraAngle(rollDeg, -180, 180)
+
   const scale = clampFrameScale(dist / refD)
   const stageX = Math.round(shotBox.stageX + localDx)
   const stageY = Math.round(shotBox.stageY - localDy)
@@ -273,7 +299,10 @@ export function pose3DToStageFrame(
     stageY,
     scale,
     width: Math.round(project.comp.width * scale),
-    height: Math.round(project.comp.height * scale)
+    height: Math.round(project.comp.height * scale),
+    yaw,
+    pitch,
+    roll
   }
 }
 
@@ -286,14 +315,16 @@ export function extractCameraFrames2D(project: Project, layout: ShotStageBox[]):
   const keyTimes = Array.from(
     new Set([
       ...cam.position.keyframes.map((k) => Math.round(k.t * 1000) / 1000),
-      ...cam.target.keyframes.map((k) => Math.round(k.t * 1000) / 1000)
+      ...cam.target.keyframes.map((k) => Math.round(k.t * 1000) / 1000),
+      ...(cam.roll?.keyframes.map((k) => Math.round(k.t * 1000) / 1000) ?? [])
     ])
   ).sort((a, b) => a - b)
 
   if (keyTimes.length === 0) {
     const pos = [...cam.position.value] as Vec3
     const tgt = [...cam.target.value] as Vec3
-    const mapped = pose3DToStageFrame(project, layout, pos, tgt)
+    const rollVal = cam.roll ? cam.roll.value : 0
+    const mapped = pose3DToStageFrame(project, layout, pos, tgt, rollVal)
     return [
       {
         index: 0,
@@ -308,17 +339,29 @@ export function extractCameraFrames2D(project: Project, layout: ShotStageBox[]):
         scale: mapped.scale,
         width: mapped.width,
         height: mapped.height,
+        yaw: mapped.yaw,
+        pitch: mapped.pitch,
+        roll: mapped.roll,
         position3D: pos,
         target3D: tgt
       }
     ]
   }
 
-  return keyTimes.map((t, idx) => {
+  // Merge timestamps that are within 0.01s of each other
+  const mergedTimes: number[] = []
+  for (const t of keyTimes) {
+    if (mergedTimes.length === 0 || Math.abs(t - mergedTimes[mergedTimes.length - 1]) > 0.01) {
+      mergedTimes.push(t)
+    }
+  }
+
+  return mergedTimes.map((t, idx) => {
     const pos = [...evaluate(cam.position, t)] as Vec3
     const tgt = [...evaluate(cam.target, t)] as Vec3
-    const keyObj = cam.position.keyframes.find((k) => Math.abs(k.t - t) <= 0.005)
-    const mapped = pose3DToStageFrame(project, layout, pos, tgt)
+    const rollVal = cam.roll ? evaluate(cam.roll, t) : 0
+    const keyObj = cam.position.keyframes.find((k) => Math.abs(k.t - t) <= 0.015)
+    const mapped = pose3DToStageFrame(project, layout, pos, tgt, rollVal)
     return {
       index: idx,
       time: t,
@@ -332,6 +375,9 @@ export function extractCameraFrames2D(project: Project, layout: ShotStageBox[]):
       scale: mapped.scale,
       width: mapped.width,
       height: mapped.height,
+      yaw: mapped.yaw,
+      pitch: mapped.pitch,
+      roll: mapped.roll,
       position3D: pos,
       target3D: tgt
     }
@@ -339,7 +385,7 @@ export function extractCameraFrames2D(project: Project, layout: ShotStageBox[]):
 }
 
 /**
- * Converts a 2D Stage Camera Frame `(stageX, stageY, scale)` back into 3D camera
+ * Converts a 2D Stage Camera Frame `(stageX, stageY, scale, yaw, pitch)` back into 3D camera
  * `position`, `target`, and `focusDistance`.
  */
 export function stageFrameTo3DCamera(
@@ -347,7 +393,8 @@ export function stageFrameTo3DCamera(
   layout: ShotStageBox[],
   stageX: number,
   stageY: number,
-  scale: number
+  scale: number,
+  angles?: { yaw?: number; pitch?: number }
 ): { position: Vec3; target: Vec3; focusDistance: number; shotId: string | null } {
   const refD = Math.max(100, referenceDistance(project.comp))
   const clampedScale = clampFrameScale(scale)
@@ -361,7 +408,19 @@ export function stageFrameTo3DCamera(
     Math.round(shotBox.worldOrigin[1] + localDy),
     Math.round(shotBox.worldOrigin[2])
   ]
-  const position: Vec3 = [target[0], target[1], Math.round(target[2] - dist)]
+
+  const yawRad = clampCameraAngle(angles?.yaw ?? 0, -85, 85) * RAD
+  const pitchRad = clampCameraAngle(angles?.pitch ?? 0, -75, 75) * RAD
+
+  const vx = dist * Math.cos(pitchRad) * Math.sin(yawRad)
+  const vy = dist * Math.sin(pitchRad)
+  const vz = dist * Math.cos(pitchRad) * Math.cos(yawRad)
+
+  const position: Vec3 = [
+    Math.round(target[0] + vx),
+    Math.round(target[1] + vy),
+    Math.round(target[2] - vz)
+  ]
 
   return {
     position,
@@ -373,6 +432,7 @@ export function stageFrameTo3DCamera(
 
 /**
  * Applies a 2D Stage Camera Frame edit at time `t` onto the draft project.
+ * Supports optional 3D orbit angles (`yaw`, `pitch`), camera `roll` (Dutch angle), and `ease`.
  */
 export function applyStageFrameToDraft(
   draft: Project,
@@ -381,57 +441,111 @@ export function applyStageFrameToDraft(
   stageX: number,
   stageY: number,
   scale: number,
-  forceKeyframe = false
+  forceKeyframe = false,
+  opts?: StageFramePoseOptions
 ): void {
   const tol = frameTolerance(draft)
-  const { position, target, focusDistance } = stageFrameTo3DCamera(draft, layout, stageX, stageY, scale)
-  const hasKeys = draft.camera.position.keyframes.length > 0 || draft.camera.target.keyframes.length > 0
+  const ease: EaseName = opts?.ease ?? 'easeInOut'
+  const { position, target, focusDistance } = stageFrameTo3DCamera(draft, layout, stageX, stageY, scale, {
+    yaw: opts?.yaw,
+    pitch: opts?.pitch
+  })
+
+  if (!draft.camera.roll) {
+    draft.camera.roll = anim(0)
+  }
+  const rollVal = opts?.roll !== undefined ? clampCameraAngle(opts.roll, -180, 180) : evaluate(draft.camera.roll, time)
+
+  const hasKeys =
+    draft.camera.position.keyframes.length > 0 ||
+    draft.camera.target.keyframes.length > 0 ||
+    draft.camera.roll.keyframes.length > 0
+
   if (forceKeyframe || hasKeys) {
-    addKeyframe(draft.camera.position, time, position, 'easeInOut')
-    addKeyframe(draft.camera.target, time, target, 'easeInOut')
-    addKeyframe(draft.camera.focusDistance, time, focusDistance, 'easeInOut')
+    addKeyframe(draft.camera.position, time, position, ease)
+    addKeyframe(draft.camera.target, time, target, ease)
+    addKeyframe(draft.camera.focusDistance, time, focusDistance, ease)
+    if (opts?.roll !== undefined || draft.camera.roll.keyframes.length > 0) {
+      addKeyframe(draft.camera.roll, time, rollVal, ease)
+    }
   } else {
     setValueAt(draft.camera.position, time, position, tol)
     setValueAt(draft.camera.target, time, target, tol)
     setValueAt(draft.camera.focusDistance, time, focusDistance, tol)
+    if (opts?.roll !== undefined) {
+      setValueAt(draft.camera.roll, time, rollVal, tol)
+    }
   }
 }
 
 /**
  * Evaluates the live interpolated 2D Camera Frame at arbitrary time `t`
- * so the active viewport frame glides smoothly between keyframes during playback.
+ * so the active viewport frame glides and rotates smoothly between keyframes during playback.
  */
 export function evaluateLiveCameraFrame2D(
   project: Project,
   layout: ShotStageBox[],
   frames: CameraFrame2D[],
   time: number
-): { stageX: number; stageY: number; scale: number; width: number; height: number } {
+): {
+  stageX: number
+  stageY: number
+  scale: number
+  width: number
+  height: number
+  yaw: number
+  pitch: number
+  roll: number
+} {
   if (frames.length === 0) {
     return {
       stageX: 0,
       stageY: 0,
       scale: 1,
       width: project.comp.width,
-      height: project.comp.height
+      height: project.comp.height,
+      yaw: 0,
+      pitch: 0,
+      roll: 0
     }
   }
   if (frames.length === 1 || time <= frames[0].time) {
     const f = frames[0]
-    return { stageX: f.stageX, stageY: f.stageY, scale: f.scale, width: f.width, height: f.height }
+    return {
+      stageX: f.stageX,
+      stageY: f.stageY,
+      scale: f.scale,
+      width: f.width,
+      height: f.height,
+      yaw: f.yaw,
+      pitch: f.pitch,
+      roll: f.roll
+    }
   }
   const last = frames[frames.length - 1]
   if (time >= last.time) {
-    return { stageX: last.stageX, stageY: last.stageY, scale: last.scale, width: last.width, height: last.height }
+    return {
+      stageX: last.stageX,
+      stageY: last.stageY,
+      scale: last.scale,
+      width: last.width,
+      height: last.height,
+      yaw: last.yaw,
+      pitch: last.pitch,
+      roll: last.roll
+    }
   }
 
   const ev = evaluateScene(project, time)
-  const mapped = pose3DToStageFrame(project, layout, ev.camera.position, ev.camera.target)
+  const mapped = pose3DToStageFrame(project, layout, ev.camera.position, ev.camera.target, ev.camera.roll ?? 0)
   return {
     stageX: mapped.stageX,
     stageY: mapped.stageY,
     scale: mapped.scale,
     width: mapped.width,
-    height: mapped.height
+    height: mapped.height,
+    yaw: mapped.yaw,
+    pitch: mapped.pitch,
+    roll: mapped.roll
   }
 }

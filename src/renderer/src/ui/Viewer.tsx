@@ -238,7 +238,7 @@ export function Viewer() {
       if (view.primary === 'animate2d') {
         if (view.animate2dSplit && !isNarrow) {
           // Chế độ 2D & 3D: Cột 1 chia 2 hàng (Hàng 1: Camera, Hàng 2: 3D), Cột 2: Mặt phẳng 2D của Cảnh
-          const col1W = Math.max(240, Math.floor(W * 0.42))
+          const col1W = Math.max(240, Math.floor(W * 0.40))
           const availH = Math.max(20, H - topHudH)
           const row1H = Math.max(10, Math.floor(availH * 0.48))
           const row2Y = topHudH + row1H + 1
@@ -246,16 +246,16 @@ export function Viewer() {
           ed = { x: 0, y: row2Y, w: col1W, h: Math.max(10, H - row2Y) }
           stage2d = {
             x: col1W + 1,
-            y: topHudH,
+            y: 0,
             w: Math.max(10, W - col1W - 1),
-            h: availH
+            h: H
           }
         } else {
           stage2d = {
             x: 0,
-            y: topHudH,
+            y: 0,
             w: Math.max(10, W),
-            h: Math.max(10, H - topHudH)
+            h: H
           }
         }
       } else if (canSplit) {
