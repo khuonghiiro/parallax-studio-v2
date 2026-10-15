@@ -23,6 +23,7 @@ import { AssembledLayerItemView } from './AssembledLayerItemView'
 import { LayerAssembly2DToolbar } from './LayerAssembly2DToolbar'
 import { useLayerBrushEraser, type BrushPreview, type Assembly2DTool } from './useLayerBrushEraser'
 import { EraserIsolatedCanvas } from './LayerAssemblyEraser'
+import { LayerAssemblyCalloutOverlay } from './LayerAssemblyCalloutOverlay'
 import type { WorkshopTab } from './WorkshopRightPanel'
 import type { AssemblyWorkspaceView } from './LayerAssemblyDialog'
 
@@ -236,7 +237,7 @@ export function LayerAssemblyViewport({
     return () => window.removeEventListener('keydown', cancel)
   }, [isDraggingLayer, isPanning, isDraggingHandle, onUpdateLayer])
 
-  // Tự động căn giữa và co dãn vừa vặn (Fit to screen) khung vẽ 2D đồng bộ 100% tỉ lệ padding = 1.16 với 3D
+  // Tự động căn giữa và co dãn vừa vặn (Fit to screen) khung vẽ 2D kèm hành lang hai bên cho bóng chọn layer ngoài khung caro
   const handleFitView = useCallback((sync3D = false) => {
     if (!containerRef.current) {
       setZoom(1.0)
@@ -245,12 +246,15 @@ export function LayerAssemblyViewport({
     }
     const cw = containerRef.current.clientWidth || 500
     const ch = containerRef.current.clientHeight || 500
-    const padding = 1.16
-    const scaleX = cw / ((composite.width || 600) * padding)
-    const scaleY = ch / ((composite.height || 600) * padding)
+    const padding = 1.26
+    const availW = Math.max(160, cw - 152)
+    const availH = Math.max(160, ch - 96)
+    const scaleX = Math.min(cw / ((composite.width || 600) * padding), availW / (composite.width || 600))
+    const scaleY = Math.min(ch / ((composite.height || 600) * padding), availH / (composite.height || 600))
     const fitScale = Math.min(2.5, Math.max(0.15, Math.min(scaleX, scaleY)))
     setZoom(Number(fitScale.toFixed(3)))
-    setPan({ x: 0, y: 0 })
+    // Dịch nhẹ tâm sang phải 16px để nhường chỗ cho thanh dock dọc bên trái + cột bóng tròn bên trái
+    setPan({ x: 16, y: 0 })
     if (sync3D && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('layerWorkshop:fitFrontSync', { detail: { source: '2d' } }))
     }
@@ -290,7 +294,11 @@ export function LayerAssemblyViewport({
 
   const handlePointerDownViewport = (e: React.PointerEvent) => {
     const target = e.target as HTMLElement | null
-    if (target?.closest?.('.layer-workshop-3d-vertical-dock, .layer-brush-popover, .layer-workshop-popover-menu, .layer-workshop-transport-bar, button, input')) {
+    if (
+      target?.closest?.(
+        '.layer-workshop-3d-vertical-dock, .layer-brush-popover, .layer-workshop-popover-menu, .layer-workshop-transport-bar, .lw-callout-hud, .lw-layer-callout-bubble, button, input'
+      )
+    ) {
       return
     }
 
@@ -737,6 +745,26 @@ export function LayerAssemblyViewport({
           </div>
         )}
       </div>
+
+      {/* Bóng tròn chọn nhanh Layer nằm ngoài khung caro (kèm dây nối Cung tròn / Vuông bo giống Cam 2D) */}
+      {brush.activeTool !== 'eraser' && (!tab || tab === 'layers') && (
+        <LayerAssemblyCalloutOverlay
+          layers={composite.layers}
+          selectedLayerId={selectedLayerId}
+          selectedIds={selectedIds}
+          canvasWidth={composite.width || 600}
+          canvasHeight={composite.height || 600}
+          zoom={zoom}
+          panX={pan.x}
+          panY={pan.y}
+          containerRef={containerRef}
+          onSelectLayer={onSelectLayer}
+          safeLeft={54}
+          safeRight={14}
+          safeTop={42}
+          safeBottom={54}
+        />
+      )}
 
       {/* Tab dọc công cụ 2D & Cọ tẩy xử lý */}
       <LayerAssembly2DToolbar

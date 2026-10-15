@@ -132,7 +132,6 @@
   flex-direction: column;
   gap: 7px;
   flex-shrink: 0;
-  animation: cutterSubbarFadeIn 0.15s ease-out;
 }
 
 .cutter-studio-panel-header {

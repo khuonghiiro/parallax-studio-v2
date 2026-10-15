@@ -12,12 +12,14 @@ import { AssembledPartsDrawer } from './AssembledPartsDrawer'
 import { computeNextLayerZ } from '../useLayerWorkshop'
 import { IconLayers, IconTrash, IconPlus, IconCheck, IconFlipHorizontal, IconPen } from '../../icons'
 import { CustomSelect } from '../../controls/CustomSelect'
+import { LayerAssemblyCalloutOverlay } from '../LayerAssemblyCalloutOverlay'
 
 export interface SpriteCutterTargetPaneProps {
   composite: LayerComposite
+  assetUrls?: Record<string, string>
   selectedLayerId: string | null
   selectedPiece: CutPiece | null
-  onSelectLayer: (id: string | null) => void
+  onSelectLayer: (id: string | null, additive?: boolean) => void
   onAddLayer: (name: string, assetPath: string, imageUrl?: string, pos?: { x: number; y: number }, customZ?: number) => void
   onUpdateLayer: (id: string, patch: Partial<AssembledLayerItem>) => void
   onDeleteLayer: (id: string) => void
@@ -26,6 +28,7 @@ export interface SpriteCutterTargetPaneProps {
 
 export function SpriteCutterTargetPane({
   composite,
+  assetUrls,
   selectedLayerId,
   selectedPiece,
   onSelectLayer,
@@ -56,7 +59,7 @@ export function SpriteCutterTargetPane({
     const updateScale = () => {
       const rect = el.getBoundingClientRect()
       if (rect.width > 0 && rect.height > 0) {
-        const s = Math.min(1, Math.max(0.45, Math.min((rect.width - 28) / 600, (rect.height - 28) / 600)))
+        const s = Math.min(1, Math.max(0.4, Math.min((rect.width - 96) / 600, (rect.height - 68) / 600)))
         setBoardScale(Number(s.toFixed(3)))
       }
     }
@@ -566,7 +569,10 @@ export function SpriteCutterTargetPane({
             {/* Render Placed Layers in 2D Assembly */}
             {composite.layers.map((layer) => {
               const isSelected = selectedLayerId === layer.id
-              const imgUrl = layer.imageUrl || ''
+              const imgUrl =
+                layer.imageUrl ||
+                (layer.assetPath ? assetUrls?.[layer.assetPath] || composite.assets?.[layer.assetPath] : '') ||
+                ''
               const currentScaleX = layer.scale * (layer.scaleX ?? 1)
               const currentScaleY = layer.scale * (layer.scaleY ?? 1)
 
@@ -612,6 +618,22 @@ export function SpriteCutterTargetPane({
               )
             })}
           </div>
+
+          {/* Bóng tròn chọn nhanh Layer nằm ngoài khung caro trên bảng lắp ráp 2D */}
+          <LayerAssemblyCalloutOverlay
+            layers={composite.layers}
+            selectedLayerId={selectedLayerId}
+            canvasWidth={600}
+            canvasHeight={600}
+            zoom={boardScale}
+            containerRef={targetViewportRef}
+            onSelectLayer={(id) => onSelectLayer(id)}
+            safeLeft={12}
+            safeRight={12}
+            safeTop={40}
+            safeBottom={16}
+            storageKey="parallax.cutterTarget.callouts.v1"
+          />
         </div>
 
         {/* Right Side Drawer: AssembledPartsDrawer in Freeform mode, or Slots Drawer in Template mode */}

@@ -91,6 +91,56 @@ export function createPlantSpine(options: {
   }
 }
 
+/**
+ * Tự động sinh đường trục xương 4 điểm từ GỐC (dưới) lên NGỌN (trên) theo toạ độ của các layer đích
+ * giúp người dùng bấm 1 nút là tạo ngay được chuyển động mới mà không cần tự kéo vẽ tay.
+ */
+export function buildAutoPlantSpinePoints(
+  composite: LayerComposite,
+  targetLayerIds: string[],
+  existingCount = 0
+): PlantSpinePoint[] {
+  const targetLayers = composite.layers.filter((l) => targetLayerIds.includes(l.id))
+  const pool = targetLayers.length > 0 ? targetLayers : composite.layers
+  const canvasH = composite.height || 600
+
+  if (pool.length === 0) {
+    const halfSpan = Math.round(canvasH * 0.34)
+    return [
+      { x: 0, y: halfSpan },
+      { x: 0, y: Math.round(halfSpan * 0.33) },
+      { x: 0, y: -Math.round(halfSpan * 0.33) },
+      { x: 0, y: -halfSpan }
+    ]
+  }
+
+  let sumX = 0
+  let minY = Infinity
+  let maxY = -Infinity
+  for (const l of pool) {
+    sumX += l.x
+    const estHalfH = Math.max(55, Math.round(130 * (l.scale || 1)))
+    if (l.y - estHalfH < minY) minY = l.y - estHalfH
+    if (l.y + estHalfH > maxY) maxY = l.y + estHalfH
+  }
+  const avgX = Math.round(sumX / pool.length)
+  // Nếu tạo thêm nhiều xương trên cùng vị trí thì dịch nhẹ X để dễ phân biệt trên khung 2D
+  const xOffset = existingCount > 0 && pool.length > 1 ? ((existingCount % 3) - 1) * 18 : 0
+  const rootX = avgX + xOffset
+  const bottomY = Math.min(Math.round(canvasH * 0.44), Math.max(40, Math.round(maxY * 0.85)))
+  const topY = Math.max(-Math.round(canvasH * 0.44), Math.min(-40, Math.round(minY * 0.85)))
+  const spanY = Math.max(110, bottomY - topY)
+  const rY = Math.round((bottomY + topY) / 2 + spanY / 2)
+  const tY = Math.round((bottomY + topY) / 2 - spanY / 2)
+
+  return [
+    { x: rootX, y: rY },
+    { x: rootX, y: Math.round(rY - spanY * 0.33) },
+    { x: rootX, y: Math.round(rY - spanY * 0.67) },
+    { x: rootX, y: tY }
+  ]
+}
+
 export function validatePlantSpine(spine: PlantSpine, composite: LayerComposite): void {
   if (!Array.isArray(spine.points) || spine.points.length < 2) {
     throw new Error('Xương thực vật cần ít nhất 2 điểm (vẽ từ gốc lên ngọn)')

@@ -31,6 +31,7 @@ export function LayerAssemblyCutterWorkspace({ state }: LayerAssemblyCutterWorks
       />
       <SpriteCutterTargetPane
         composite={state.composite}
+        assetUrls={state.assetUrls}
         selectedLayerId={state.selectedLayerId}
         selectedPiece={selectedPiece}
         onSelectLayer={state.select}

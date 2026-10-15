@@ -9,7 +9,9 @@ import {
   reducePlantKeys,
   resolvePlantGrab,
   setPlantMotionKeyAngle,
-  springTail
+  springTail,
+  generateCustomPlantMotion,
+  PLANT_CUSTOM_PATTERNS
 } from './plantMotionRecord'
 
 /** Mẫu nắm ngọn 60 Hz: đứng yên idle giây, rồi lắc sin biên độ amp, chu kỳ period trong dur giây. */
@@ -102,5 +104,21 @@ describe('resolvePlantGrab', () => {
     const learn = resolvePlantGrab(gesture(0, 2), { ...spine, motion: rec.patch.motion }, { mode: 'learn', end: 'loop' })!
     expect(learn.patch.amplitude).toBeGreaterThan(15)
     expect('motion' in learn.patch && learn.patch.motion === undefined).toBe(true)
+  })
+})
+
+describe('generateCustomPlantMotion', () => {
+  it('sinh chuyển động thực vật hợp lệ cho cả 5 kiểu nhịp tuỳ chỉnh', () => {
+    for (const p of PLANT_CUSTOM_PATTERNS) {
+      const m = generateCustomPlantMotion({
+        pattern: p.id,
+        leftAngle: -16,
+        rightAngle: 20,
+        duration: 2.2
+      })
+      expect(m.duration).toBe(2.2)
+      expect(m.keys.length).toBeGreaterThanOrEqual(4)
+      expect(() => validatePlantMotion(m)).not.toThrow()
+    }
   })
 })

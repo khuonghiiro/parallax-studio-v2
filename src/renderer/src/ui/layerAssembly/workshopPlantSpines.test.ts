@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { LayerComposite } from './types'
 import {
   applyPlantSpineAction,
+  buildAutoPlantSpinePoints,
   createPlantSpine,
   prunePlantSpines,
   resolveSpineLayerIds,
@@ -27,6 +28,16 @@ describe('workshop plant spines', () => {
     expect(out.length).toBeLessThan(6)
     expect(out[0]).toEqual({ x: 0, y: 150 })
     expect(out.at(-1)!.y).toBe(150 - 49 * 4)
+  })
+
+  it('builds a valid 4-point vertical spine from root to tip automatically', () => {
+    const c = composite()
+    const pts = buildAutoPlantSpinePoints(c, ['trunk'])
+    expect(pts).toHaveLength(4)
+    expect(pts[0].y).toBeGreaterThan(pts[3].y)
+    const spine = createPlantSpine({ points: pts, layerIds: ['trunk'] })
+    const next = applyPlantSpineAction(c, { action: 'add', spine })
+    expect(next.plantSpines).toHaveLength(1)
   })
 
   it('binds to selected layers, or all layers including hidden seasonal variants', () => {

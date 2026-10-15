@@ -178,3 +178,110 @@ export function resolvePlantGrab(
   if (learned.speed !== undefined) parts.push(`${learned.speed} nhịp/s`)
   return { patch: { ...learned, motion: undefined }, message: `🌬️ Đã học nhịp gió: ${parts.join(' · ')}` }
 }
+
+export type PlantCustomPatternId = 'sine' | 'double' | 'gust' | 'spring' | 'flutter'
+
+export const PLANT_CUSTOM_PATTERNS: Array<{
+  id: PlantCustomPatternId
+  label: string
+  desc: string
+}> = [
+  { id: 'sine', label: '🌊 Đung đưa nhịp nhàng', desc: 'Lắc qua trái - phải mượt mà theo chu kỳ chuẩn' },
+  { id: 'double', label: '🍃 Nhịp đôi lá rủ', desc: 'Nghiêng lớn kèm một nhịp phất phụ ở ngọn' },
+  { id: 'gust', label: '💨 Gió thổi dồn rồi nhả', desc: 'Gió đẩy nghiêng nhanh về một phía rồi từ từ hồi về' },
+  { id: 'spring', label: '🪀 Bật nảy lò xo', desc: 'Uốn căng rồi bật nảy tắt dần theo quán tính' },
+  { id: 'flutter', label: '⚡ Rung lá liên hồi', desc: 'Dao động tần số cao cho tán lá hoặc ngọn cỏ trước gió mạnh' }
+]
+
+/**
+ * Tạo mới chuyển động thực vật (PlantSpineMotion) từ mẫu nhịp và thông số tuỳ chỉnh của người dùng
+ * để người dùng không bắt buộc phải tự vẽ tay trên canvas.
+ */
+export function generateCustomPlantMotion(options: {
+  pattern: PlantCustomPatternId
+  leftAngle?: number
+  rightAngle?: number
+  duration?: number
+  lag?: number
+  windMix?: number
+  speed?: number
+}): PlantSpineMotion {
+  const dur = Math.min(
+    PLANT_MOTION_LIMITS.maxDuration,
+    Math.max(0.4, Number(options.duration) || 2.4)
+  )
+  const left = clampAngle(options.leftAngle ?? -14)
+  const right = clampAngle(options.rightAngle ?? 16)
+  const mid = (left + right) / 2
+  const amp = Math.max(1, (right - left) / 2)
+
+  let ratios: Array<[number, number]> = []
+  switch (options.pattern) {
+    case 'sine':
+      ratios = [
+        [0, 0],
+        [0.25, right],
+        [0.5, 0],
+        [0.75, left],
+        [0.95, 0]
+      ]
+      break
+    case 'double':
+      ratios = [
+        [0, 0],
+        [0.2, right],
+        [0.36, right * 0.35],
+        [0.52, right * 0.78],
+        [0.76, left],
+        [0.95, 0]
+      ]
+      break
+    case 'gust':
+      ratios = [
+        [0, 0],
+        [0.16, right],
+        [0.32, right * 0.68],
+        [0.48, right * 0.88],
+        [0.72, left * 0.35],
+        [0.95, 0]
+      ]
+      break
+    case 'spring':
+      ratios = [
+        [0, 0],
+        [0.18, right],
+        [0.36, left * 0.65],
+        [0.54, right * 0.4],
+        [0.72, left * 0.2],
+        [0.88, right * 0.08],
+        [0.96, 0]
+      ]
+      break
+    case 'flutter':
+      ratios = [
+        [0, mid],
+        [0.14, mid + amp],
+        [0.28, mid - amp * 0.7],
+        [0.42, mid + amp * 0.85],
+        [0.56, mid - amp],
+        [0.7, mid + amp * 0.65],
+        [0.84, mid - amp * 0.45],
+        [0.96, mid]
+      ]
+      break
+  }
+
+  const keys: PlantMotionKey[] = ratios.map(([r, angle]) => ({
+    t: round(Math.min(dur - 0.02, Math.max(0, r * dur)), 3),
+    angle: round(clampAngle(angle), 2)
+  }))
+
+  return {
+    keys,
+    duration: round(dur, 2),
+    speed: options.speed ?? 1,
+    lag: options.lag ?? 0.1,
+    windMix: options.windMix ?? 0.15
+  }
+}
+

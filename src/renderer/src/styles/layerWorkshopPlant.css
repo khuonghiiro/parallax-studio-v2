@@ -88,14 +88,43 @@
   vector-effect: non-scaling-stroke;
 }
 
-/* ---------- Bảng điều khiển ---------- */
+/* ---------- Bảng điều khiển (Hỗ trợ cuộn dọc 100%) ---------- */
 .lw-plant-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px;
+  gap: 9px;
+  padding: 10px 12px 24px;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
   font-size: 11px;
   color: var(--text);
+}
+
+.lw-plant-topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 7px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  flex-shrink: 0;
+}
+
+.lw-plant-help-btn {
+  margin-left: auto;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 5px;
+  font-size: 10.5px;
+}
+
+.lw-plant-help-btn.active {
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-2));
+  border-color: var(--accent);
+  color: var(--accent-cyan);
 }
 
 .lw-plant-hint {
@@ -105,6 +134,154 @@
   background: color-mix(in srgb, var(--plant-green) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--plant-green) 35%, transparent);
   color: var(--text);
+  flex-shrink: 0;
+}
+
+/* ---------- Thẻ Tạo Mới Chuyển Động Thực Vật (1-Click Wizard) ---------- */
+.lw-plant-create-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 11px;
+  border-radius: 8px;
+  background: var(--bg-1);
+  border: 1px solid color-mix(in srgb, var(--plant-green) 42%, var(--line));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+}
+
+.lw-plant-create-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.lw-plant-create-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.lw-plant-create-sub {
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--plant-green) 18%, var(--bg-2));
+  color: var(--plant-green);
+}
+
+.lw-plant-submode-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 3px;
+  padding: 2px;
+  border-radius: 6px;
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+}
+
+.lw-plant-submode-btn {
+  height: 24px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.12s ease;
+}
+
+.lw-plant-submode-btn:hover {
+  color: var(--text);
+  background: var(--bg-2);
+}
+
+.lw-plant-submode-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.lw-plant-init-box {
+  padding: 7px 8px;
+  border-radius: 6px;
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+}
+
+.lw-plant-pattern-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.lw-plant-pattern-chip {
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.12s ease;
+}
+
+.lw-plant-pattern-chip:hover {
+  color: var(--text);
+  border-color: var(--line-focus);
+}
+
+.lw-plant-pattern-chip.active {
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-1));
+  border-color: var(--accent);
+  color: var(--accent-cyan);
+}
+
+.lw-plant-create-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.lw-plant-create-btn {
+  width: 100%;
+  height: 28px;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.lw-plant-draw-note {
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.lw-plant-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.lw-plant-clear-btn {
+  height: 20px;
+  padding: 0 6px;
+  font-size: 10px;
+  color: var(--text-dim);
 }
 
 .lw-plant-section-label {
@@ -151,34 +328,37 @@
 
 .lw-plant-actions {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   flex-wrap: wrap;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .lw-plant-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
+  flex-shrink: 0;
 }
 
 .lw-plant-empty {
   padding: 14px 10px;
   text-align: center;
-  color: var(--text-faint);
+  color: var(--text-dim);
   border: 1px dashed var(--line);
   border-radius: 7px;
+  line-height: 1.5;
 }
 
 .lw-plant-card {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 8px;
-  border-radius: 7px;
+  padding: 8px 9px;
+  border-radius: 8px;
   background: var(--bg-1);
   border: 1px solid var(--line-soft);
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .lw-plant-card.selected {
@@ -193,10 +373,21 @@
   gap: 6px;
 }
 
+.lw-plant-index-badge {
+  font-family: var(--mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: var(--bg-3);
+  color: var(--accent-cyan);
+  flex-shrink: 0;
+}
+
 .lw-plant-name {
   flex: 1 1 auto;
   min-width: 0;
-  height: 24px;
+  height: 25px;
   padding: 0 7px;
   border-radius: 5px;
   border: 1px solid var(--line-soft);
@@ -204,6 +395,7 @@
   color: var(--text);
   font-size: 11px;
   font-weight: 600;
+  box-sizing: border-box;
 }
 
 .lw-plant-name:focus {
@@ -220,6 +412,117 @@
   white-space: nowrap;
 }
 
+.lw-plant-del-btn {
+  height: 22px;
+  padding: 0 6px;
+  font-size: 10px;
+}
+
+.lw-plant-card-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--text-dim);
+  padding: 0 2px;
+}
+
+.lw-plant-expand-hint {
+  margin-left: auto;
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.lw-plant-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 2px;
+}
+
+.lw-plant-card-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  padding: 2px;
+  border-radius: 6px;
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+}
+
+.lw-plant-card-tab {
+  height: 24px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.lw-plant-card-tab:hover {
+  color: var(--text);
+  background: var(--bg-2);
+}
+
+.lw-plant-card-tab.active {
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-2));
+  color: var(--accent-cyan);
+}
+
+.lw-plant-group-box {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+}
+
+.lw-plant-row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.lw-plant-mini-link {
+  border: none;
+  background: transparent;
+  color: var(--accent-cyan);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.lw-plant-mini-link:hover {
+  text-decoration: underline;
+}
+
+.lw-plant-builder-box,
+.lw-plant-recorded-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+}
+
+.lw-plant-generate-btn {
+  width: 100%;
+  height: 27px;
+  justify-content: center;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
 .lw-plant-sliders {
   display: flex;
   flex-direction: column;
@@ -228,7 +531,7 @@
 
 .lw-plant-slider {
   display: grid;
-  grid-template-columns: 104px 1fr 48px;
+  grid-template-columns: 98px 1fr 44px;
   align-items: center;
   gap: 6px;
 }
