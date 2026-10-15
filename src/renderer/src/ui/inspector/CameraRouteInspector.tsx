@@ -23,6 +23,7 @@ import {
   type ShotStageBox
 } from '../viewer/animateCamera/animateCameraMath'
 import {
+  addCameraHoldWaypoint,
   applyCameraRoutePreset,
   duplicateCameraWaypoint,
   enrichCameraWaypoints,
@@ -31,6 +32,7 @@ import {
   removeCameraWaypoint,
   reverseCameraRoute,
   updateCameraWaypoint,
+  type CameraRoutePresetType,
   type CameraWaypointItem
 } from '../viewer/animateCamera/animateCameraRouteLogic'
 
@@ -186,7 +188,7 @@ export function CameraRouteInspector() {
     toast(`Đã nhân bản mốc camera #${wp.index + 1} tại ${nextTime.toFixed(1)}s`)
   }
 
-  const handlePreset = (preset: 'tour-all-shots' | 'cinematic-zoom' | 'dramatic-pan'): void => {
+  const handlePreset = (preset: CameraRoutePresetType): void => {
     update((draft) => {
       applyCameraRoutePreset(draft, stageLayout, preset)
     })
@@ -194,6 +196,22 @@ export function CameraRouteInspector() {
     setPlaying(false)
     setTime(0)
     toast('Đã áp dụng lộ trình camera mẫu')
+  }
+
+  const handleHold = (): void => {
+    if (!activeWaypoint) return
+    update((draft) => {
+      addCameraHoldWaypoint(draft, stageLayout, activeWaypoint, 2.0)
+    })
+    toast('Đã thêm mốc dừng ngắm cảnh (+2.0s)')
+  }
+
+  const setShake = (amount: number, speed: number): void => {
+    update((draft) => {
+      draft.camera.shakeAmount = amount
+      draft.camera.shakeSpeed = speed
+    })
+    toast(amount === 0 ? 'Đã tắt rung máy' : `Bật rung máy cầm tay (${amount}px)`)
   }
 
   const handleReverse = (): void => {
@@ -226,10 +244,12 @@ export function CameraRouteInspector() {
         targetLayer.offsetX,
         targetLayer.offsetY,
         activeWaypoint.time,
-        activeWaypoint.scale
+        activeWaypoint.scale,
+        'easeInOut',
+        targetLayer.zDepth
       )
     })
-    toast(`Đã lia camera vào layer "${targetLayer.name}"`)
+    toast(`Đã lia & lấy nét vào layer "${targetLayer.name}"`)
   }
 
   return (
@@ -257,9 +277,16 @@ export function CameraRouteInspector() {
                   <button
                     type="button"
                     className="popover-item"
+                    onClick={() => handlePreset('tour-hold-and-pan')}
+                  >
+                    🎬 Lộ trình Điện ảnh: Lia &amp; Dừng ngắm
+                  </button>
+                  <button
+                    type="button"
+                    className="popover-item"
                     onClick={() => handlePreset('tour-all-shots')}
                   >
-                    🌐 Lia qua tất cả Cảnh ({stageLayout.length} cảnh)
+                    🌐 Lia lướt qua tất cả Cảnh ({stageLayout.length} cảnh)
                   </button>
                   <button
                     type="button"
@@ -271,9 +298,16 @@ export function CameraRouteInspector() {
                   <button
                     type="button"
                     className="popover-item"
+                    onClick={() => handlePreset('dolly-vertigo')}
+                  >
+                    🌀 Hiệu ứng Dolly Zoom (Vertigo)
+                  </button>
+                  <button
+                    type="button"
+                    className="popover-item"
                     onClick={() => handlePreset('dramatic-pan')}
                   >
-                    🎬 Lia ngang góc rộng (Dramatic Pan)
+                    📐 Lia ngang góc rộng (Dramatic Pan)
                   </button>
                   <div className="popover-sep" />
                   <button type="button" className="popover-item" onClick={handleReverse}>
@@ -513,27 +547,43 @@ export function CameraRouteInspector() {
             <div className="preset-row">
               <button
                 type="button"
-                className={`btn xs${activeWaypoint.zoomPct >= 170 ? ' active' : ''}`}
-                onClick={() => handleUpdate({ scale: 0.55 })}
-                title="Phóng to cận cảnh (Zoom In 180%)"
+                className={`btn xs${activeWaypoint.zoomPct <= 80 ? ' active' : ''}`}
+                onClick={() => handleUpdate({ scale: 1.43 })}
+                title="Toàn cảnh rộng (Zoom 70%)"
               >
-                🔍 Cận cảnh (180%)
+                🌐 Toàn cảnh (70%)
               </button>
               <button
                 type="button"
                 className={`btn xs${activeWaypoint.zoomPct >= 95 && activeWaypoint.zoomPct <= 105 ? ' active' : ''}`}
                 onClick={() => handleUpdate({ scale: 1.0 })}
-                title="Khung chuẩn 100%"
+                title="Khung chuẩn (Zoom 100%)"
               >
                 ⊡ Chuẩn (100%)
               </button>
               <button
                 type="button"
-                className={`btn xs${activeWaypoint.zoomPct <= 70 ? ' active' : ''}`}
-                onClick={() => handleUpdate({ scale: 1.65 })}
-                title="Thu nhỏ toàn cảnh (Zoom Out 60%)"
+                className={`btn xs${activeWaypoint.zoomPct >= 130 && activeWaypoint.zoomPct <= 155 ? ' active' : ''}`}
+                onClick={() => handleUpdate({ scale: 0.71 })}
+                title="Trung cảnh (Zoom 140%)"
               >
-                🌐 Toàn cảnh (60%)
+                👤 Trung cảnh (140%)
+              </button>
+              <button
+                type="button"
+                className={`btn xs${activeWaypoint.zoomPct >= 170 && activeWaypoint.zoomPct <= 210 ? ' active' : ''}`}
+                onClick={() => handleUpdate({ scale: 0.55 })}
+                title="Cận cảnh (Zoom 180%)"
+              >
+                🔍 Cận cảnh (180%)
+              </button>
+              <button
+                type="button"
+                className={`btn xs${activeWaypoint.zoomPct >= 240 ? ' active' : ''}`}
+                onClick={() => handleUpdate({ scale: 0.38 })}
+                title="Đặc tả chi tiết (Zoom 260%)"
+              >
+                🎯 Đặc tả (260%)
               </button>
             </div>
           </div>
@@ -566,6 +616,14 @@ export function CameraRouteInspector() {
             <button
               type="button"
               className="btn xs"
+              onClick={handleHold}
+              title="Tạo mốc dừng ngắm cảnh giữ nguyên vị trí trong 2 giây"
+            >
+              ⏸ Dừng ngắm (2s)
+            </button>
+            <button
+              type="button"
+              className="btn xs"
               onClick={() => spawnNextFrame('zoom-in')}
               title="Tạo mốc tiếp theo phóng to cận cảnh"
             >
@@ -582,6 +640,51 @@ export function CameraRouteInspector() {
           </div>
         </div>
       )}
+
+      {/* 3. Rung Máy Cầm Tay Điện Ảnh (Handheld Camera Shake) */}
+      <div className="section">
+        <div className="section-title">
+          <span>Rung máy Cầm tay (Handheld)</span>
+          <span className="spacer" />
+          <span className="zoom-val">
+            {project.camera.shakeAmount > 0 ? `${project.camera.shakeAmount}px` : 'Tắt'}
+          </span>
+        </div>
+        <div className="preset-row">
+          <button
+            type="button"
+            className={`btn xs${project.camera.shakeAmount === 0 ? ' active' : ''}`}
+            onClick={() => setShake(0, 1)}
+            title="Tắt hiệu ứng rung máy"
+          >
+            Tắt
+          </button>
+          <button
+            type="button"
+            className={`btn xs${project.camera.shakeAmount === 4 ? ' active' : ''}`}
+            onClick={() => setShake(4, 1.5)}
+            title="Rung máy cầm tay nhẹ tự nhiên"
+          >
+            ✋ Nhẹ (4px)
+          </button>
+          <button
+            type="button"
+            className={`btn xs${project.camera.shakeAmount === 12 ? ' active' : ''}`}
+            onClick={() => setShake(12, 2.5)}
+            title="Mô phỏng người quay đang bước đi"
+          >
+            🚶 Bước đi (12px)
+          </button>
+          <button
+            type="button"
+            className={`btn xs${project.camera.shakeAmount === 22 ? ' active' : ''}`}
+            onClick={() => setShake(22, 4.0)}
+            title="Rung lắc mạnh kiểu hành động kịch tính"
+          >
+            💥 Mạnh (22px)
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

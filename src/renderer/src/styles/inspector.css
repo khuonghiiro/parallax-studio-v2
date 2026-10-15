@@ -625,18 +625,21 @@
 }
 
 .preset-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-top: 2px;
 }
 
 .preset-row .btn {
-  padding: 2px 4px;
+  flex: 1 1 calc(33.3% - 4px);
+  min-width: 58px;
+  padding: 3px 4px;
   font-size: 9.5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center;
 }
 
 .preset-row .btn.active {
@@ -647,7 +650,7 @@
 
 .route-insp-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 5px;
   margin-top: 4px;
   padding-top: 6px;

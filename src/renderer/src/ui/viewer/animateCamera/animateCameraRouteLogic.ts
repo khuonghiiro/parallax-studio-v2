@@ -27,7 +27,7 @@ export function enrichCameraWaypoints(frames: CameraFrame2D[]): CameraWaypointIt
     const zoomPct = Math.round((1 / Math.max(0.1, f.scale)) * 100)
 
     let tag: CameraWaypointItem['tag'] = 'hold'
-    let tagLabel = 'Điểm dừng'
+    let tagLabel = durationFromPrev > 0 ? `Dừng ngắm (+${durationFromPrev.toFixed(1)}s)` : 'Điểm dừng'
 
     if (idx === 0) {
       tag = 'start'
@@ -36,7 +36,10 @@ export function enrichCameraWaypoints(frames: CameraFrame2D[]): CameraWaypointIt
       const scaleDiff = f.scale - prev.scale
       const dist = Math.hypot(f.stageX - prev.stageX, f.stageY - prev.stageY)
 
-      if (scaleDiff < -0.04) {
+      if (dist <= 60 && Math.abs(scaleDiff) <= 0.12 && f.shotId === prev.shotId) {
+        tag = 'hold'
+        tagLabel = `Dừng ngắm (+${durationFromPrev.toFixed(1)}s)`
+      } else if (scaleDiff < -0.04) {
         tag = 'zoom-in'
         tagLabel = `Phóng to (${zoomPct}%)`
       } else if (scaleDiff > 0.04) {
@@ -48,6 +51,9 @@ export function enrichCameraWaypoints(frames: CameraFrame2D[]): CameraWaypointIt
       } else if (dist > 60) {
         tag = 'pan'
         tagLabel = 'Lia góc nhìn'
+      } else {
+        tag = 'hold'
+        tagLabel = `Dừng ngắm (+${durationFromPrev.toFixed(1)}s)`
       }
     }
 
@@ -87,6 +93,7 @@ export function panCameraToShot(
 
 /**
  * Creates a camera waypoint panning directly to a 2D layer's projected coordinates.
+ * Also adjusts focus distance to match the target layer's depth (Rack Focus).
  */
 export function panCameraToLayer2D(
   draft: Project,
@@ -96,7 +103,8 @@ export function panCameraToLayer2D(
   layerOffsetY: number,
   time: number,
   scale = 0.65,
-  ease: EaseName = 'easeInOut'
+  ease: EaseName = 'easeInOut',
+  layerDepthZ?: number
 ): void {
   const box = layout.find((b) => b.shotId === shotId) || layout[0]
   if (!box) return
@@ -110,6 +118,15 @@ export function panCameraToLayer2D(
 
   applyStageFrameToDraft(draft, layout, time, targetStageX, targetStageY, scale, true)
   setKeyframeEaseAtTime(draft, time, ease)
+
+  if (layerDepthZ !== undefined) {
+    const dist = Math.hypot(
+      draft.camera.position.keyframes.find((k) => Math.abs(k.t - time) < 0.05)?.value[2] ?? 1000,
+      1000
+    )
+    const focusDist = Math.max(10, Math.round(dist + layerDepthZ))
+    addKeyframe(draft.camera.focusDistance, time, focusDist, ease)
+  }
 }
 
 /**
@@ -262,13 +279,46 @@ export function reverseCameraRoute(draft: Project): void {
   reverseTrack(cam.focusDistance)
 }
 
+export type CameraRoutePresetType =
+  | 'tour-all-shots'
+  | 'tour-hold-and-pan'
+  | 'cinematic-zoom'
+  | 'dramatic-pan'
+  | 'dolly-vertigo'
+
+/**
+ * Adds a hold waypoint at time + holdSec that maintains the same camera framing,
+ * creating a cinematic pause to appreciate the scene before the next movement.
+ */
+export function addCameraHoldWaypoint(
+  draft: Project,
+  layout: ShotStageBox[],
+  sourceFrame: CameraFrame2D,
+  holdSec = 2.0
+): void {
+  const targetTime = Math.round((sourceFrame.time + holdSec) * 100) / 100
+  if (targetTime > draft.comp.duration) {
+    setCompDuration(draft, Math.ceil(targetTime + 1))
+  }
+  applyStageFrameToDraft(
+    draft,
+    layout,
+    targetTime,
+    sourceFrame.stageX,
+    sourceFrame.stageY,
+    sourceFrame.scale,
+    true
+  )
+  setKeyframeEaseAtTime(draft, targetTime, 'easeInOut')
+}
+
 /**
  * Generates automated high-quality camera route presets across project shots.
  */
 export function applyCameraRoutePreset(
   draft: Project,
   layout: ShotStageBox[],
-  preset: 'tour-all-shots' | 'cinematic-zoom' | 'dramatic-pan'
+  preset: CameraRoutePresetType
 ): void {
   // Clear existing camera keyframes
   draft.camera.position.keyframes = []
@@ -287,6 +337,30 @@ export function applyCameraRoutePreset(
     if (totalT > draft.comp.duration) {
       setCompDuration(draft, Math.ceil(totalT))
     }
+  } else if (preset === 'tour-hold-and-pan') {
+    // Cinematic hold & pan: At each shot, pause for 1.8s, then smoothly pan to the next
+    const count = layout.length
+    if (count === 0) return
+    let curTime = 0
+    const holdSec = 1.8
+    const panSec = 2.0
+
+    layout.forEach((box, i) => {
+      // Arrival / Start framing
+      applyStageFrameToDraft(draft, layout, curTime, box.stageX, box.stageY, 1.0, true)
+
+      // Hold framing at shot with subtle creep-in to 0.92
+      curTime = Math.round((curTime + holdSec) * 100) / 100
+      applyStageFrameToDraft(draft, layout, curTime, box.stageX, box.stageY, 0.92, true)
+
+      if (i < count - 1) {
+        curTime = Math.round((curTime + panSec) * 100) / 100
+      }
+    })
+
+    if (curTime > draft.comp.duration) {
+      setCompDuration(draft, Math.ceil(curTime))
+    }
   } else if (preset === 'cinematic-zoom') {
     // Shot center overview -> Push in close-up -> Pull out
     const box = layout[0]
@@ -297,6 +371,17 @@ export function applyCameraRoutePreset(
 
     applyStageFrameToDraft(draft, layout, t0, box.stageX, box.stageY, 1.2, true)
     applyStageFrameToDraft(draft, layout, t1, box.stageX, box.stageY, 0.55, true)
+    applyStageFrameToDraft(draft, layout, t2, box.stageX, box.stageY, 1.0, true)
+  } else if (preset === 'dolly-vertigo') {
+    // Alfred Hitchcock Dolly Zoom: Camera physically pushes in while wide angles compress
+    const box = layout[0]
+    if (!box) return
+    const t0 = 0
+    const t1 = Math.round((draft.comp.duration * 0.5) * 100) / 100
+    const t2 = Math.round(draft.comp.duration * 100) / 100
+
+    applyStageFrameToDraft(draft, layout, t0, box.stageX, box.stageY, 1.4, true)
+    applyStageFrameToDraft(draft, layout, t1, box.stageX, box.stageY, 0.45, true)
     applyStageFrameToDraft(draft, layout, t2, box.stageX, box.stageY, 1.0, true)
   } else if (preset === 'dramatic-pan') {
     // Pan across width of first shot or between first two shots with slight angle

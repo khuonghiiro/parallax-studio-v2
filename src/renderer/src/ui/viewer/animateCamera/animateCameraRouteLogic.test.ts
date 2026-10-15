@@ -182,4 +182,33 @@ describe('animateCameraRouteLogic — Camera 2D Route Management & Parameter Tun
     expect(frames[1].shotId).toBe(s2.id)
     expect(frames[2].shotId).toBe(s3.id)
   })
+
+  it('creates hold waypoints and applies tour-hold-and-pan & dolly-vertigo presets', () => {
+    const p = createProject({ width: 1920, height: 1080, duration: 12 })
+    const s1 = createShot('Cảnh A', [0, 0, 0], 0)
+    const s2 = createShot('Cảnh B', [5000, 0, 0], 1)
+    p.shots.push(s1, s2)
+    const layout = computeShotStageLayout(p, 0)
+
+    // Test tour-hold-and-pan: creates arrival + hold for each shot
+    applyCameraRoutePreset(p, layout, 'tour-hold-and-pan')
+    const frames = extractCameraFrames2D(p, layout)
+    const waypoints = enrichCameraWaypoints(frames)
+    expect(waypoints.length).toBe(4) // 2 shots * 2 frames each (arrival + hold)
+    expect(waypoints[0].tag).toBe('start')
+    expect(waypoints[1].tag).toBe('hold')
+    expect(waypoints[1].tagLabel).toContain('Dừng ngắm')
+
+    // Test dolly-vertigo preset
+    applyCameraRoutePreset(p, layout, 'dolly-vertigo')
+    const vertigoFrames = extractCameraFrames2D(p, layout)
+    expect(vertigoFrames).toHaveLength(3)
+    expect(vertigoFrames[0].scale).toBeCloseTo(1.4, 2)
+    expect(vertigoFrames[1].scale).toBeCloseTo(0.45, 2)
+    expect(vertigoFrames[2].scale).toBeCloseTo(1.0, 2)
+
+    // Test panCameraToLayer2D with layerDepthZ (Rack Focus)
+    panCameraToLayer2D(p, layout, s1.id, 100, 50, 4.0, 0.6, 'easeInOut', 250)
+    expect(p.camera.focusDistance.keyframes.some((k) => Math.abs(k.t - 4.0) < 0.05)).toBe(true)
+  })
 })
