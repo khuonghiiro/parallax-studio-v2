@@ -1,288 +1,257 @@
-import type { LayerRig, BoneKeyframe, LayerBone } from '@shared/layerRig'
-import type { PlantSpine, PlantSpinePoint } from '@shared/plantSpine'
+import type { BonePose, LayerBone, LayerRig } from '@shared/layerRig'
 import { evaluateRig, rotatePoint, sampleBonePose } from '../../engine/layerRig'
 import type { LayerComposite } from './types'
-import { applyRigAction, type RigAction } from './workshopRig'
-import { applyPlantSpineAction } from './workshopPlantSpines'
+import { applyRigAction, emptyRig, ensureRigClips, type RigAction } from './workshopRig'
+import { sameKeyTime, type AnimationAction, type KeyPatch } from './workshopAnimation'
+
+/**
+ * Vẽ động tác (Motion Sketch) — tab Animation:
+ * nhấn gần một xương rồi vẽ đường đi của ngọn xương; nét vẽ được lấy mẫu theo đúng nhịp tay
+ * (hoặc chia đều) và ghi thành keyframe xoay/dời cho xương đó.
+ */
 
 export interface Point2D {
   x: number
   y: number
 }
 
-export interface RedBoneInfo {
-  root: Point2D
-  tip: Point2D
-  length: number
-  angle: number // độ [-180, 180]
-  matchedBoneId?: string
-  matchedBoneName?: string
-  targetLayerId?: string
+export interface SketchSample extends Point2D {
+  /** Thời điểm (giây) khi chuột đi qua điểm này. */
+  t: number
 }
 
-export interface GrayBoneInfo {
-  root: Point2D
-  tip: Point2D
-  length: number
-  angle: number
-}
+export type MotionSketchMode = 'rotate' | 'move'
+export type MotionSketchTiming = 'hand' | 'even'
 
-export interface MotionSketchState {
-  redBone: RedBoneInfo | null
-  blueStroke: Point2D[] | null
-  grayBone: GrayBoneInfo | null
-  deltaAngle: number
+export interface MotionSketchSettings {
+  mode: MotionSketchMode
+  timing: MotionSketchTiming
+  /** Thời lượng động tác (giây) tính từ thời điểm bắt đầu vẽ. */
   duration: number
-  enableMeshBend: boolean
+  /** Khứ hồi: đi hết nét vẽ rồi quay ngược về tư thế ban đầu. */
   loopBack: boolean
-  statusMessage?: string
+  /** Tự phát thử ngay sau khi thả chuột. */
+  autoPlay: boolean
 }
 
-export const DEFAULT_SKETCH_STATE: MotionSketchState = {
-  redBone: null,
-  blueStroke: null,
-  grayBone: null,
-  deltaAngle: 0,
-  duration: 0.6,
-  enableMeshBend: true,
-  loopBack: false
+export const DEFAULT_SKETCH_SETTINGS: MotionSketchSettings = {
+  mode: 'rotate',
+  timing: 'hand',
+  duration: 1,
+  loopBack: false,
+  autoPlay: true
+}
+
+/** Mốc neo khi bắt đầu nét vẽ: khớp xoay, hướng tham chiếu và tư thế gốc tại thời điểm bắt đầu. */
+export interface SketchAnchor {
+  boneId: string
+  boneName: string
+  pivot: Point2D
+  refAngle: number
+  start: Point2D
+  base: BonePose
+  parentRotation: number
+  parentScaleX: number
+  parentScaleY: number
 }
 
 export function normalizeAngle(deg: number): number {
-  let a = (deg + 180) % 360
-  if (a < 0) a += 360
-  return a - 180
+  return ((deg + 180) % 360 + 360) % 360 - 180
 }
 
-export function distance2D(a: Point2D, b: Point2D): number {
-  return Math.hypot(b.x - a.x, b.y - a.y)
+const angleTo = (from: Point2D, to: Point2D) => (Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI
+const round = (v: number, digits: number) => Number(v.toFixed(digits))
+
+function distanceToSegment(p: Point2D, a: Point2D, b: Point2D): number {
+  const dx = b.x - a.x, dy = b.y - a.y
+  const len2 = dx * dx + dy * dy || 1
+  const t = Math.min(1, Math.max(0, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2))
+  return Math.hypot(p.x - a.x - dx * t, p.y - a.y - dy * t)
 }
 
-/** Đơn giản hoá các điểm vẽ chuột để loại bỏ rung tay */
-export function simplifyStrokePoints(pts: Point2D[], minDistance = 3): Point2D[] {
-  if (pts.length <= 2) return pts.map((p) => ({ ...p }))
-  const out: Point2D[] = [pts[0]]
-  for (let i = 1; i < pts.length; i++) {
-    const last = out[out.length - 1]
-    if (distance2D(last, pts[i]) >= minDistance) {
-      out.push(pts[i])
-    }
-  }
-  if (distance2D(out[out.length - 1], pts[pts.length - 1]) > 0.5) {
-    out.push(pts[pts.length - 1])
-  }
-  return out
-}
-
-/** Nhận diện xương gần nhất trong khung xương khớp với đường vẽ đỏ (Root → Tip) */
-export function findClosestRigBone(
-  rig: LayerRig | undefined,
-  root: Point2D,
-  tip: Point2D,
-  time = 0
-): { bone: LayerBone; score: number } | null {
-  if (!rig || !rig.bones.length) return null
+/** Vị trí khớp gốc & ngọn của từng xương tại thời điểm time (toạ độ cụm layer). */
+export function boneSegments(rig: LayerRig, time: number): Array<{ bone: LayerBone; head: Point2D; tail: Point2D }> {
   const transforms = evaluateRig({ ...rig, loop: false }, time)
-  let bestBone: LayerBone | null = null
-  let bestScore = Infinity
-
-  for (const bone of rig.bones) {
+  return rig.bones.flatMap((bone) => {
     const tf = transforms.get(bone.id)
-    if (!tf) continue
-    const head: Point2D = { x: tf.x, y: tf.y }
-    const tailOffset = rotatePoint(bone.length, 0, bone.angle + tf.rotation)
-    const tail: Point2D = { x: tf.x + tailOffset.x, y: tf.y + tailOffset.y }
-
-    // Khoảng cách từ đầu vẽ đến khớp gốc, và từ đuôi vẽ đến khớp ngọn
-    const directScore = distance2D(root, head) * 1.2 + distance2D(tip, tail)
-    // Khoảng cách nếu người dùng lỡ vẽ ngược hướng (ngọn về gốc)
-    const reverseScore = distance2D(root, tail) + distance2D(tip, head) * 1.2 + 40
-
-    const score = Math.min(directScore, reverseScore)
-    if (score < bestScore) {
-      bestScore = score
-      bestBone = bone
-    }
-  }
-
-  // Ngưỡng tối đa để khớp xương tự động (250px)
-  if (bestBone && bestScore < 250) {
-    return { bone: bestBone, score: bestScore }
-  }
-  return null
+    if (!tf) return []
+    const off = rotatePoint(bone.length, 0, bone.angle + tf.rotation)
+    return [{ bone, head: { x: tf.x, y: tf.y }, tail: { x: tf.x + off.x, y: tf.y + off.y } }]
+  })
 }
 
-/** Tính toán đường kẻ xám (tư thế đích) từ gốc xương đỏ và điểm cuối nét vẽ blue */
-export function computeTargetGrayBone(
-  root: Point2D,
-  redLength: number,
-  strokeEnd: Point2D
-): GrayBoneInfo {
-  const dx = strokeEnd.x - root.x
-  const dy = strokeEnd.y - root.y
-  const angle = Math.atan2(dy, dx) * (180 / Math.PI)
-  const rad = (angle * Math.PI) / 180
-  const tip: Point2D = {
-    x: root.x + redLength * Math.cos(rad),
-    y: root.y + redLength * Math.sin(rad)
+/** Chọn xương gần điểm nhấn nhất (trong bán kính maxDistance). */
+export function pickSketchBone(
+  rig: LayerRig | undefined,
+  point: Point2D,
+  time: number,
+  maxDistance = 60
+): { bone: LayerBone; distance: number } | null {
+  if (!rig?.bones.length) return null
+  let best: { bone: LayerBone; distance: number } | null = null
+  for (const seg of boneSegments(rig, time)) {
+    const distance = distanceToSegment(point, seg.head, seg.tail)
+    if (distance <= maxDistance && (!best || distance < best.distance)) best = { bone: seg.bone, distance }
   }
-  return { root: { ...root }, tip, length: redLength, angle }
+  return best
 }
 
-/** Sinh danh sách keyframe xoay theo quỹ đạo nét vẽ blue */
-export function buildMotionSketchKeyframes(
-  rig: LayerRig,
-  boneId: string,
-  startTime: number,
-  duration: number,
-  redAngle: number,
-  blueStroke: Point2D[],
-  grayAngle: number,
-  loopBack = false
-): BoneKeyframe[] {
+export function createSketchAnchor(rig: LayerRig, boneId: string, time: number, start: Point2D): SketchAnchor {
   const bone = rig.bones.find((b) => b.id === boneId)
-  if (!bone) return []
-
-  const currentPose = sampleBonePose({ ...rig, loop: false }, boneId, startTime)
-  const baseRotation = currentPose.rotation
-  const totalDelta = normalizeAngle(grayAngle - redAngle)
-
-  const keys: BoneKeyframe[] = []
-  const count = Math.max(2, Math.min(7, Math.ceil(duration * 12))) // 2 đến 7 keyframes tối ưu
-
-  if (!blueStroke || blueStroke.length < 2) {
-    // Nếu chỉ có điểm đầu và điểm cuối
-    keys.push({
-      time: Number(startTime.toFixed(4)),
-      rotation: Number(baseRotation.toFixed(2)),
-      easing: 'smooth'
-    })
-    keys.push({
-      time: Number((startTime + duration).toFixed(4)),
-      rotation: Number((baseRotation + totalDelta).toFixed(2)),
-      easing: 'smooth'
-    })
-  } else {
-    // Lấy mẫu dọc theo đường cong blue
-    for (let i = 0; i < count; i++) {
-      const frac = i / (count - 1)
-      const t = startTime + duration * frac
-      const sampleIdx = Math.min(blueStroke.length - 1, Math.round(frac * (blueStroke.length - 1)))
-      const pt = blueStroke[sampleIdx]
-      const sampleAngle = Math.atan2(pt.y - blueStroke[0].y, pt.x - blueStroke[0].x) * (180 / Math.PI)
-      const fracAngle = totalDelta * frac
-      // Hoà trộn góc hướng nét vẽ thực tế và góc tuyến tính để chuyển động mượt mà
-      const rot = baseRotation + fracAngle
-
-      keys.push({
-        time: Number(t.toFixed(4)),
-        rotation: Number(rot.toFixed(2)),
-        easing: 'smooth'
-      })
-    }
+  if (!bone) throw new Error(`Không tìm thấy xương "${boneId}"`)
+  const transforms = evaluateRig({ ...rig, loop: false }, time)
+  const tf = transforms.get(boneId)
+  if (!tf) throw new Error(`Không tính được vị trí xương "${boneId}"`)
+  const parent = bone.parentId ? transforms.get(bone.parentId) : undefined
+  const pivot = { x: tf.x, y: tf.y }
+  // Bắt đầu quá sát khớp thì hướng chuột không ổn định → dùng hướng xương làm tham chiếu
+  const refAngle = Math.hypot(start.x - pivot.x, start.y - pivot.y) < 12 ? bone.angle + tf.rotation : angleTo(pivot, start)
+  return {
+    boneId,
+    boneName: bone.name,
+    pivot,
+    refAngle,
+    start: { ...start },
+    base: sampleBonePose({ ...rig, loop: false }, boneId, time),
+    parentRotation: parent?.rotation ?? 0,
+    parentScaleX: parent?.scaleX ?? 1,
+    parentScaleY: parent?.scaleY ?? 1
   }
-
-  // Khứ hồi (Yo-yo): sau khi vung tới chỗ kẻ xám thì quay lại tư thế cũ
-  if (loopBack) {
-    keys.push({
-      time: Number((startTime + duration * 2).toFixed(4)),
-      rotation: Number(baseRotation.toFixed(2)),
-      easing: 'smooth'
-    })
-  }
-
-  return keys
 }
 
-/**
- * Áp dụng chuyển động nét vẽ vào Composite:
- * 1. Ghi các keyframe xoay vào xương (rig.tracks[boneId])
- * 2. Kích hoạt bindingMode: 'soft' cho các layer liên quan để bật mesh 2D
- * 3. Nếu bật enableMeshBend: tạo/cập nhật PlantSpine uốn cong theo chuyển động
- */
-export function applySketchToComposite(
-  composite: LayerComposite,
-  sketch: MotionSketchState,
-  currentTime: number,
-  runRigAction: (action: RigAction) => void,
-  runPlantAction?: (action: import('./workshopPlantSpines').PlantSpineAction) => void
-): LayerComposite {
-  if (!sketch.redBone || !sketch.grayBone) return composite
+/** Tư thế xương khi ngọn bút ở điểm point (xoay quanh khớp, hoặc dời theo chuột trong hệ toạ độ cha). */
+export function sketchPoseAt(anchor: SketchAnchor, point: Point2D, mode: MotionSketchMode, prevRotation?: number): Partial<BonePose> {
+  if (mode === 'move') {
+    const local = rotatePoint(point.x - anchor.start.x, point.y - anchor.start.y, -anchor.parentRotation)
+    const sx = Math.abs(anchor.parentScaleX) > 1e-8 ? anchor.parentScaleX : 1
+    const sy = Math.abs(anchor.parentScaleY) > 1e-8 ? anchor.parentScaleY : 1
+    return { x: anchor.base.x + local.x / sx, y: anchor.base.y + local.y / sy }
+  }
+  const rotation = anchor.base.rotation + normalizeAngle(angleTo(anchor.pivot, point) - anchor.refAngle)
+  if (prevRotation === undefined) return { rotation }
+  return { rotation: prevRotation + normalizeAngle(rotation - prevRotation) }
+}
 
-  let next = { ...composite }
-  const boneId = sketch.redBone.matchedBoneId || composite.rig?.bones[0]?.id
-  if (!boneId || !composite.rig) return composite
+type Channel = 'rotation' | 'x' | 'y'
+const channelsOf = (mode: MotionSketchMode): Channel[] => (mode === 'move' ? ['x', 'y'] : ['rotation'])
 
-  // 1. Sinh và ghi keyframe
-  const keys = buildMotionSketchKeyframes(
-    composite.rig,
-    boneId,
-    currentTime,
-    sketch.duration,
-    sketch.redBone.angle,
-    sketch.blueStroke ?? [],
-    sketch.grayBone.angle,
-    sketch.loopBack
+/** Tiến độ [0..1] của từng mẫu: theo nhịp tay thật, hoặc chia đều theo độ dài nét vẽ. */
+function progressOf(samples: SketchSample[], timing: MotionSketchTiming): number[] {
+  const span = samples[samples.length - 1].t - samples[0].t
+  if (timing === 'hand' && span > 0.05) return samples.map((s) => (s.t - samples[0].t) / span)
+  const cum = [0]
+  for (let i = 1; i < samples.length; i++) {
+    cum.push(cum[i - 1] + Math.hypot(samples[i].x - samples[i - 1].x, samples[i].y - samples[i - 1].y))
+  }
+  const total = cum[cum.length - 1] || 1
+  return cum.map((c) => c / total)
+}
+
+function sampleAt(progress: number[], values: number[], s: number): number {
+  let j = 1
+  while (j < progress.length - 1 && progress[j] < s) j++
+  const span = progress[j] - progress[j - 1]
+  const k = span > 1e-9 ? Math.min(1, Math.max(0, (s - progress[j - 1]) / span)) : 1
+  return values[j - 1] + (values[j] - values[j - 1]) * k
+}
+
+/** Giữ các mốc cần thiết: bỏ mốc mà nội suy tuyến tính giữa 2 mốc kề đã đủ sát (sai số < tolerance). */
+function reduceKeys(rows: number[][], from: number, to: number, tolerance: number[], keep: Set<number>): void {
+  let worst = -1
+  let worstErr = 0
+  for (let i = from + 1; i < to; i++) {
+    const k = (rows[i][0] - rows[from][0]) / (rows[to][0] - rows[from][0] || 1)
+    const err = Math.max(...tolerance.map((tol, c) => Math.abs(rows[i][c + 1] - (rows[from][c + 1] + (rows[to][c + 1] - rows[from][c + 1]) * k)) / tol))
+    if (err > worstErr) { worstErr = err; worst = i }
+  }
+  if (worst < 0 || worstErr <= 1) return
+  keep.add(worst)
+  reduceKeys(rows, from, worst, tolerance, keep)
+  reduceKeys(rows, worst, to, tolerance, keep)
+}
+
+/** Chuỗi giá trị kênh (xoay đã "mở vòng" để quay quá 180° vẫn liền mạch, hoặc dời x/y). */
+function channelValues(anchor: SketchAnchor, samples: SketchSample[], mode: MotionSketchMode): number[][] {
+  const channels = channelsOf(mode)
+  let prev: number | undefined
+  const poses = samples.map((s) => {
+    const pose = sketchPoseAt(anchor, s, mode, prev)
+    prev = pose.rotation ?? prev
+    return pose
+  })
+  return channels.map((c) => poses.map((p) => p[c] ?? anchor.base[c] ?? 0))
+}
+
+/** Mẫu hoá nét vẽ thành danh sách keyframe (đã làm mượt + rút gọn) cho xương đang neo. */
+export function buildSketchKeyframes(
+  anchor: SketchAnchor,
+  samples: SketchSample[],
+  settings: MotionSketchSettings,
+  startTime: number
+): KeyPatch[] {
+  if (samples.length < 2) return []
+  const channels = channelsOf(settings.mode)
+  const progress = progressOf(samples, settings.timing)
+  const values = channelValues(anchor, samples, settings.mode)
+  const n = Math.max(6, Math.min(60, Math.round(settings.duration * 24)))
+  const rows: number[][] = []
+  for (let k = 0; k <= n; k++) {
+    const s = k / n
+    rows.push([s, ...values.map((v) => sampleAt(progress, v, s))])
+  }
+  // Làm mượt nhẹ (bỏ rung tay) nhưng giữ nguyên mốc đầu & cuối
+  const smooth = rows.map((row, i) =>
+    i === 0 || i === rows.length - 1 ? row : row.map((v, c) => (c === 0 ? v : (rows[i - 1][c] + 2 * v + rows[i + 1][c]) / 4))
   )
+  const keep = new Set([0, smooth.length - 1])
+  reduceKeys(smooth, 0, smooth.length - 1, channels.map((c) => (c === 'rotation' ? 0.75 : 1)), keep)
+  const keys: KeyPatch[] = [...keep].sort((a, b) => a - b).map((i) => {
+    const key: KeyPatch = { time: round(startTime + smooth[i][0] * settings.duration, 4), easing: 'smooth' }
+    channels.forEach((c, ci) => { key[c] = round(smooth[i][ci + 1], 2) })
+    return key
+  })
+  if (!settings.loopBack) return keys
+  const end = startTime + settings.duration
+  const back = keys.slice(0, -1).reverse().map((k) => ({ ...k, time: round(end + (end - k.time), 4) }))
+  return [...keys, ...back]
+}
 
-  for (const k of keys) {
-    runRigAction({
-      action: 'set-key',
-      boneId,
-      key: { time: k.time, rotation: k.rotation, easing: k.easing }
-    })
-  }
+export function sketchEndTime(startTime: number, settings: Pick<MotionSketchSettings, 'duration' | 'loopBack'>): number {
+  return startTime + settings.duration * (settings.loopBack ? 2 : 1)
+}
 
-  // 2. Tự động bật bindingMode: 'soft' cho layer liên quan đến xương này để render Mesh 2D
-  const affectedLayerIds = composite.layers
-    .filter((l) => l.boneId === boneId || l.id === sketch.redBone?.targetLayerId)
-    .map((l) => l.id)
+/** Đổi keyframe thành các thao tác rig: nới thời lượng clip nếu cần, xoá key cũ trong đoạn, ghi key mới. */
+export function sketchToRigActions(rig: LayerRig, boneId: string, keys: KeyPatch[]): RigAction[] {
+  if (!keys.length) return []
+  const startTime = keys[0].time
+  const endTime = keys[keys.length - 1].time
+  const actions: RigAction[] = []
+  if (endTime > rig.duration) actions.push({ action: 'settings', duration: Math.min(120, Math.ceil(endTime * 100) / 100) })
+  const ops: AnimationAction[] = (rig.tracks[boneId] ?? [])
+    .filter((k) => k.time > startTime && k.time <= endTime + 1e-4 && !keys.some((n) => sameKeyTime(n.time, k.time)))
+    .map((k) => ({ action: 'delete-key' as const, boneId, time: k.time }))
+  for (const key of keys) ops.push({ action: 'set-key', boneId, key })
+  for (let i = 0; i < ops.length; i += 200) actions.push({ action: 'batch', operations: ops.slice(i, i + 200) })
+  return actions
+}
 
-  if (affectedLayerIds.length > 0) {
-    runRigAction({
-      action: 'bind',
-      boneId,
-      layerIds: affectedLayerIds,
-      mode: 'soft'
-    })
-  }
+export interface MotionSketchResult {
+  composite: LayerComposite
+  keys: KeyPatch[]
+  startTime: number
+  endTime: number
+}
 
-  // 3. Nếu chọn uốn cong Mesh: tạo xương thực vật uốn mềm theo quỹ đạo nét vẽ
-  if (sketch.enableMeshBend && affectedLayerIds.length > 0 && runPlantAction) {
-    const spinePoints: PlantSpinePoint[] = [
-      { x: sketch.redBone.root.x, y: sketch.redBone.root.y },
-      {
-        x: (sketch.redBone.root.x + sketch.redBone.tip.x) / 2,
-        y: (sketch.redBone.root.y + sketch.redBone.tip.y) / 2
-      },
-      { x: sketch.redBone.tip.x, y: sketch.redBone.tip.y }
-    ]
-
-    const spineId = `motion-spine-${boneId}`
-    const existingSpine = (composite.plantSpines ?? []).find((s) => s.id === spineId)
-
-    const spineData: PlantSpine = {
-      id: spineId,
-      name: `Uốn mềm: ${sketch.redBone.matchedBoneName || 'Xương'}`,
-      points: spinePoints,
-      layerIds: affectedLayerIds,
-      amplitude: Math.min(24, Math.max(6, Math.abs(sketch.deltaAngle) * 0.3)),
-      speed: Number((1 / Math.max(0.1, sketch.duration * 2)).toFixed(2)),
-      stiffness: 0.35,
-      flexibility: 0.65,
-      turbulence: 0,
-      lean: 0,
-      phaseOffset: currentTime,
-      reach: 0,
-      enabled: true
-    }
-
-    if (existingSpine) {
-      runPlantAction({ action: 'update', id: spineId, patch: spineData })
-    } else {
-      runPlantAction({ action: 'add', spine: spineData })
-    }
-  }
-
-  return next
+/** Áp dụng trọn một nét vẽ vào cụm layer (một lần commit lịch sử, hỗ trợ Ctrl+Z). */
+export function applyMotionSketch(
+  composite: LayerComposite,
+  anchor: SketchAnchor,
+  samples: SketchSample[],
+  settings: MotionSketchSettings,
+  startTime: number
+): MotionSketchResult {
+  const rig = ensureRigClips(composite.rig ?? emptyRig()).rig
+  const keys = buildSketchKeyframes(anchor, samples, settings, startTime)
+  const next = sketchToRigActions(rig, anchor.boneId, keys).reduce((c, action) => applyRigAction(c, action), composite)
+  return { composite: next, keys, startTime, endTime: keys.length ? keys[keys.length - 1].time : startTime }
 }

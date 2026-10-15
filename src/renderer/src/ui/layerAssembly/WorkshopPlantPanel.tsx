@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { PLANT_SPINE_PRESETS, type PlantSpine } from '@shared/plantSpine'
 import type { LayerComposite } from './types'
-import { applyPlantSpineAction, type PlantSpineAction } from './workshopPlantSpines'
+import { applyPlantSpineAction, type PlantSpineAction, type PlantSpineTarget } from './workshopPlantSpines'
 import { setPlantSpineEditorState, usePlantSpineEditor } from './plantSpineEditorStore'
 import '../../styles/layerWorkshopPlant.css'
 
@@ -21,9 +21,15 @@ const SLIDERS: Array<{ key: NumKey; label: string; min: number; max: number; ste
   { key: 'stiffness', label: 'Độ cứng thân', min: 0, max: 1, step: 0.05, hint: '0 = cả thân cong mềm · 1 = chỉ ngọn cong' },
   { key: 'flexibility', label: 'Rung ngọn', min: 0, max: 1, step: 0.05, hint: 'Ngọn/lá phất thêm nhịp phụ' },
   { key: 'turbulence', label: 'Gió giật', min: 0, max: 1, step: 0.05, hint: 'Gió thổi thất thường, lúc mạnh lúc nhẹ' },
-  { key: 'lean', label: 'Nghiêng theo gió', min: -20, max: 20, step: 0.5, unit: '°', hint: 'Độ nghiêng cố định (dương = sang phải)' },
+  { key: 'lean', label: 'Nghiêng theo gió', min: -30, max: 30, step: 0.5, unit: '°', hint: 'Độ nghiêng cố định (dương = sang phải)' },
   { key: 'phaseOffset', label: 'Lệch pha', min: 0, max: 3, step: 0.05, unit: 's', hint: 'Cho nhiều cây đung đưa so le' },
   { key: 'reach', label: 'Bán kính ảnh hưởng', min: 0, max: 400, step: 5, unit: 'px', hint: '0 = cả layer uốn theo xương' }
+]
+
+const TARGETS: Array<[PlantSpineTarget, string, string]> = [
+  ['auto', 'Tự nhận theo nét vẽ', 'Gắn vào các layer mà nét vẽ đi qua (không cần chọn layer trước)'],
+  ['selected', 'Layer đang chọn', 'Gắn vào các layer đang chọn ở tab Layer'],
+  ['all', 'Toàn bộ layer', 'Gắn vào mọi layer (kể cả biến thể đang ẩn)']
 ]
 
 function SpineCard({ spine, composite, selected, run }: {
@@ -119,17 +125,20 @@ export function WorkshopPlantPanel({ composite, setComposite, selectedIds, isPla
   return (
     <div className="lw-plant-panel" id="layer-assembly-plant-panel">
       <div className="lw-plant-hint">
-        🌿 <strong>Vẽ xương thực vật:</strong> kéo chuột trên <em>Bố cục 2D</em> từ <strong>GỐC</strong> lên <strong>NGỌN</strong> của cây.
-        Layer gắn vào sẽ uốn cong mềm mại theo đường vẽ khi phát hoạt ảnh. Click gần một xương để chọn và chỉnh.
+        🌿 <strong>Vẽ xương:</strong> kéo chuột trên <em>Bố cục 2D</em> từ <strong>GỐC</strong> lên <strong>NGỌN</strong> của cây.
+        <ul>
+          <li>✋ <strong>Nắm tay nắm ở ngọn</strong> kéo qua lại để dạy cây đung đưa: lắc rộng/hẹp, nhanh/chậm thế nào cây lặp lại đúng như vậy.</li>
+          <li>Kéo <strong>chấm vuông</strong> để sửa dáng · kéo <strong>thân xương</strong> để dời · nhấp đúp để thêm/xoá điểm.</li>
+          <li>Click gần một xương để chọn · Alt / chuột giữa để dời khung.</li>
+        </ul>
       </div>
       <div className="lw-plant-section-label">Gắn xương mới vào</div>
       <div className="lw-plant-chips">
-        <button type="button" className={`lw-plant-chip${editor.target === 'selected' ? ' active' : ''}`} onClick={() => setPlantSpineEditorState({ target: 'selected' })}>
-          Layer đang chọn ({selectedIds.length})
-        </button>
-        <button type="button" className={`lw-plant-chip${editor.target === 'all' ? ' active' : ''}`} onClick={() => setPlantSpineEditorState({ target: 'all' })}>
-          Toàn bộ layer
-        </button>
+        {TARGETS.map(([id, title, hint]) => (
+          <button key={id} type="button" title={hint} className={`lw-plant-chip${editor.target === id ? ' active' : ''}`} onClick={() => setPlantSpineEditorState({ target: id })}>
+            {id === 'selected' ? `${title} (${selectedIds.length})` : title}
+          </button>
+        ))}
       </div>
       <div className="lw-plant-section-label">Kiểu cây cho xương mới</div>
       <div className="lw-plant-chips">
@@ -139,6 +148,10 @@ export function WorkshopPlantPanel({ composite, setComposite, selectedIds, isPla
           </button>
         ))}
       </div>
+      <label className="lw-plant-live" title="Cây tự đung đưa ngay trong tab này mà không cần bấm phát timeline">
+        <input type="checkbox" checked={editor.live} onChange={(e) => setPlantSpineEditorState({ live: e.target.checked })} />
+        <span>🌬️ Xem gió trực tiếp khi chỉnh</span>
+      </label>
       <div className="lw-plant-actions">
         <button type="button" className="btn sm primary" onClick={onTogglePlay}>{isPlaying ? '⏸ Dừng xem thử' : '▶ Phát xem thử'}</button>
         {spines.length > 0 && <button type="button" className="btn sm" onClick={() => run({ action: 'clear' })}>Xoá tất cả xương</button>}

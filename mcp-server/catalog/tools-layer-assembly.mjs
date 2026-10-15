@@ -385,6 +385,25 @@ export const LAYER_ASSEMBLY_TOOLS = [
     example: '{"action":"add","points":[[0,180],[4,90],[-6,0],[2,-90]],"apply_to":"all","preset":"sapling"}'
   },
   {
+    name: 'layer_assembly_motion_sketch',
+    cat: 'layer_assembly',
+    doc: L(
+      'Motion Sketch in the open 2.5D Layer Assembly workshop: turn a drawn path (where the bone TIP travels) into smooth keyframes for one bone. mode "rotate" aims the bone at each point (FK swing); mode "move" drags the bone joint along the path. Timing "hand" keeps the speed of [x,y,t] samples, "even" spreads them over duration. Replaces old keys inside the sketched range, extends the clip if needed and supports undo (Ctrl+Z).',
+      'Vẽ động tác trong Xưởng Lắp Ráp Layer 2.5D đang mở: biến một đường vẽ (đường đi của NGỌN xương) thành chuỗi keyframe mượt cho một xương. mode "rotate" xoay xương hướng theo từng điểm (vung tay kiểu FK); mode "move" dời khớp xương chạy theo đường vẽ. Nhịp "hand" giữ tốc độ theo mẫu [x,y,t], "even" rải đều trong duration. Thay keyframe cũ trong đoạn vẽ, tự nới thời lượng clip khi cần và hỗ trợ hoàn tác (Ctrl+Z).'
+    ),
+    shape: (d) => ({
+      bone_id: z.string().describe(d('Bone to animate.', 'ID xương cần tạo động tác.')),
+      points: z.array(z.array(z.number()).min(2).max(3)).min(2).describe(d('Path samples [[x,y],...] or [[x,y,t],...] in composite coordinates (X right, Y down, origin at frame center); t = seconds since the stroke started (non-decreasing). The first point is where the bone currently is.', 'Các mẫu đường vẽ [[x,y],...] hoặc [[x,y,t],...] theo toạ độ cụm (X sang phải, Y xuống, gốc ở tâm khung); t = số giây kể từ lúc bắt đầu nét (không giảm). Điểm đầu là vị trí hiện tại của xương.')),
+      mode: z.enum(['rotate', 'move']).optional().describe(d('"rotate" (default) aims the bone at the path · "move" translates the bone joint.', '"rotate" (mặc định) xoay xương theo đường vẽ · "move" dời khớp xương.')),
+      timing: z.enum(['hand', 'even']).optional().describe(d('"hand" follows t of each sample (default when t is given) · "even" spreads motion evenly.', '"hand" theo t của từng mẫu (mặc định khi có t) · "even" rải đều động tác.')),
+      duration: z.number().min(0.1).max(20).optional().describe(d('Motion length in seconds (default 1).', 'Thời lượng động tác (giây, mặc định 1).')),
+      start_time: z.number().optional().describe(d('Clip time where the motion starts; defaults to the playhead.', 'Thời điểm bắt đầu trong clip; mặc định là vị trí đầu phát.')),
+      loop_back: z.boolean().optional().describe(d('Mirror the motion back to the start pose (doubles length).', 'Đi rồi quay về tư thế ban đầu (gấp đôi thời lượng).')),
+      play: z.boolean().optional().describe(d('Play the clip from start_time afterwards.', 'Phát thử từ start_time sau khi tạo.'))
+    }),
+    example: '{"bone_id":"arm-left","points":[[100,0,0],[70,70,0.3],[0,100,0.6]],"duration":1,"play":true}'
+  },
+  {
     name: 'add_layer_assembly_layer',
     cat: 'layer_assembly',
     doc: L(

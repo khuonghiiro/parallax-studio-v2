@@ -45,13 +45,18 @@ export function resamplePolyline(points: PlantSpinePoint[], count = SAMPLES): Pl
   return out
 }
 
+/** Hệ số phân bố độ uốn dọc thân (0 ở gốc → 1 ở ngọn); thân càng cứng thì chỉ phần ngọn cong. */
+export function plantEnvelope(stiffness: number, u: number): number {
+  const s = Math.min(1, Math.max(0, stiffness))
+  return Math.pow(Math.min(1, Math.max(0, u)), 1 + s * 3)
+}
+
 /**
  * Góc uốn (độ) tại vị trí u ∈ [0,1] dọc theo xương (0 = gốc, 1 = ngọn) ở thời điểm t.
  * Bằng 0 tại t = 0 (khi chưa có lệch pha / độ nghiêng) để bố cục lúc chỉnh sửa luôn ở tư thế nghỉ.
  */
 export function plantBendAngle(spine: PlantSpine, u: number, time: number): number {
-  const stiffness = Math.min(1, Math.max(0, spine.stiffness))
-  const envelope = Math.pow(Math.min(1, Math.max(0, u)), 1 + stiffness * 3)
+  const envelope = plantEnvelope(spine.stiffness, u)
   const t = time + (spine.phaseOffset ?? 0)
   const w = Math.PI * 2 * Math.max(0, spine.speed)
   const turbulence = Math.min(1, Math.max(0, spine.turbulence))
@@ -74,21 +79,59 @@ function restSamples(spine: PlantSpine): PlantSpinePoint[] {
   return rest
 }
 
-export function evaluatePlantSpine(spine: PlantSpine, time: number): SpineFrame {
-  const rest = restSamples(spine)
+/** Tích phân tiếp tuyến nghỉ đã xoay theo góc uốn từng mẫu → đường xương đã uốn. */
+function integrateBend(rest: PlantSpinePoint[], rot: number[]): PlantSpinePoint[] {
   const n = rest.length
-  const rot: number[] = new Array(n)
   const bent: PlantSpinePoint[] = new Array(n)
-  let length = 0
-  for (let i = 1; i < n; i++) length += Math.hypot(rest[i].x - rest[i - 1].x, rest[i].y - rest[i - 1].y)
-  for (let i = 0; i < n; i++) rot[i] = n > 1 ? plantBendAngle(spine, i / (n - 1), time) : 0
+  if (!n) return bent
   bent[0] = { ...rest[0] }
   for (let i = 1; i < n; i++) {
     const avg = (rot[i - 1] + rot[i]) / 2
     const d = rotate(rest[i].x - rest[i - 1].x, rest[i].y - rest[i - 1].y, avg)
     bent[i] = { x: bent[i - 1].x + d.x, y: bent[i - 1].y + d.y }
   }
-  return { rest, bent, rot, length }
+  return bent
+}
+
+export function evaluatePlantSpine(spine: PlantSpine, time: number): SpineFrame {
+  const rest = restSamples(spine)
+  const n = rest.length
+  const rot: number[] = new Array(n)
+  let length = 0
+  for (let i = 1; i < n; i++) length += Math.hypot(rest[i].x - rest[i - 1].x, rest[i].y - rest[i - 1].y)
+  for (let i = 0; i < n; i++) rot[i] = n > 1 ? plantBendAngle(spine, i / (n - 1), time) : 0
+  return { rest, bent: integrateBend(rest, rot), rot, length }
+}
+
+/** Dáng uốn tĩnh khi góc uốn tại ngọn = tipAngle (độ): dùng cho tay nắm kéo ngọn và bóng biên độ. */
+export function plantStaticPose(spine: PlantSpine, tipAngle: number): PlantSpinePoint[] {
+  const rest = restSamples(spine)
+  const n = rest.length
+  const rot = rest.map((_, i) => (n > 1 ? plantEnvelope(spine.stiffness, i / (n - 1)) * tipAngle : 0))
+  return integrateBend(rest, rot)
+}
+
+const normDeg = (deg: number) => ((deg + 180) % 360 + 360) % 360 - 180
+const angleOf = (from: PlantSpinePoint, to: PlantSpinePoint) => (Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI
+
+/** Tỉ lệ góc quay của dây cung gốc→ngọn so với góc uốn tại ngọn (gần tuyến tính với góc nhỏ). */
+export function plantChordGain(spine: PlantSpine): number {
+  const rest = restSamples(spine)
+  if (rest.length < 2) return 1
+  const probe = 10
+  const bent = plantStaticPose(spine, probe)
+  const root = rest[0]
+  const delta = normDeg(angleOf(root, bent[bent.length - 1]) - angleOf(root, rest[rest.length - 1]))
+  return Math.abs(delta) > 1e-3 ? delta / probe : 1
+}
+
+/** Góc uốn tại ngọn (độ) để dây cung gốc→ngọn hướng về điểm target (khi người dùng nắm ngọn kéo). */
+export function plantTipAngleToward(spine: PlantSpine, target: PlantSpinePoint): number {
+  const rest = restSamples(spine)
+  if (rest.length < 2) return 0
+  const root = rest[0]
+  const delta = normDeg(angleOf(root, target) - angleOf(root, rest[rest.length - 1]))
+  return delta / plantChordGain(spine)
 }
 
 interface Projection {

@@ -2,8 +2,8 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import type { LayerComposite, AssembledLayerItem } from './types'
 import { WorkshopBoneOverlay, type BoneOverlayProps } from './WorkshopBoneOverlay'
 import { PlantSpineOverlay, type PlantSpineOverlayProps } from './PlantSpineOverlay'
-import { MotionSketchOverlay } from './MotionSketchOverlay'
-import type { MotionSketchState } from './workshopMotionSketch'
+import { MotionSketchOverlay, type MotionSketchOverlayProps } from './MotionSketchOverlay'
+import { MotionSketchToggleChip } from './WorkshopMotionSketchCard'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
 import { IconLayers, IconImage } from '../icons'
 import { useView } from '../../store/view'
@@ -50,7 +50,8 @@ export interface LayerAssemblyViewportProps {
   onToggleShowBones?: () => void
   showMesh?: boolean
   onToggleShowMesh?: () => void
-  onApplyMotionSketch?: (sketch: MotionSketchState) => void
+  /** Lớp Vẽ động tác (tab Animation): nhấn gần xương rồi vẽ đường đi của ngọn xương. */
+  sketchOverlay?: MotionSketchOverlayProps
 }
 
 export function LayerAssemblyViewport({
@@ -79,7 +80,7 @@ export function LayerAssemblyViewport({
   onToggleShowBones,
   showMesh = false,
   onToggleShowMesh,
-  onApplyMotionSketch
+  sketchOverlay
 }: LayerAssemblyViewportProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [zoom, setZoom] = useState(1.0)
@@ -707,18 +708,8 @@ export function LayerAssemblyViewport({
         {/* Xương thực vật: hiển thị đường uốn & vẽ tay xương mới khi ở tab Thực vật */}
         {plantOverlay && <PlantSpineOverlay {...plantOverlay} />}
 
-        {/* Lớp vẽ chuyển động hoạt ảnh (Motion Sketch) khi ở tab Animation: Alt (xương đỏ) + Shift (nét blue) */}
-        {tab === 'animation' && (
-          <MotionSketchOverlay
-            composite={composite}
-            time={time}
-            active={tab === 'animation'}
-            isPlaying={isPlaying}
-            onTogglePlay={onTogglePlay}
-            selectBone={(id) => boneOverlay?.selectBone?.(id)}
-            onApplySketch={(sk) => onApplyMotionSketch?.(sk)}
-          />
-        )}
+        {/* Lớp Vẽ động tác (tab Animation): bật bút (D) rồi nhấn gần xương và vẽ đường đi của ngọn xương */}
+        {tab === 'animation' && sketchOverlay && <MotionSketchOverlay {...sketchOverlay} />}
 
         {composite.layers.length === 0 && (
           <div
@@ -790,6 +781,9 @@ export function LayerAssemblyViewport({
         atmosphereIcon={atmosphere.icon}
       />
 
+      {/* Nút nổi bật/tắt bút Vẽ động tác */}
+      {tab === 'animation' && sketchOverlay && brush.activeTool !== 'eraser' && <MotionSketchToggleChip />}
+
       {/* Floating 2D Hint */}
       {brush.activeTool !== 'eraser' && (
         <div
@@ -808,10 +802,12 @@ export function LayerAssemblyViewport({
           }}
         >
           {tab === 'animation'
-            ? '🎭 Hoạt ảnh Moho: Kéo trực tiếp xương trên màn hình để tạo dáng · Space: phát thử · Alt / chuột giữa: dời khung · Cuộn: zoom'
+            ? '🎭 Hoạt ảnh: Kéo xương để tạo dáng · D: bật bút vẽ động tác (vẽ đường đi ngọn xương) · Space: phát thử · Alt / chuột giữa: dời khung · Cuộn: zoom'
             : tab === 'bones'
               ? '🦴 Khung xương: Kéo khớp đầu/đuôi để chỉnh độ dài & góc · Kéo thân để dời vị trí · Delete: xóa xương'
-              : 'Kéo layer / Mũi tên: dời 2D · +/-: độ sâu Z · Alt / chuột giữa: dời khung · Cuộn: zoom'}
+              : tab === 'plant'
+                ? '🌿 Thực vật: Kéo từ GỐC lên NGỌN để vẽ xương · Nắm tay nắm ở ngọn lắc qua lại để dạy cây đung đưa · Kéo chấm để sửa dáng'
+                : 'Kéo layer / Mũi tên: dời 2D · +/-: độ sâu Z · Alt / chuột giữa: dời khung · Cuộn: zoom'}
         </div>
       )}
 

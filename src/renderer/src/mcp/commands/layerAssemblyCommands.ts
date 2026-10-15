@@ -21,6 +21,7 @@ import { captureCompositeThumbnail } from '../../ui/layerAssembly/layerAssemblyT
 import { applyWorkshopAction, type WorkshopAction } from '../../ui/layerAssembly/workshopActions'
 import { layerWorkshopRigCommands } from './layerWorkshopRigCommands'
 import { layerPlantSpineCommands } from './layerPlantSpineCommands'
+import { layerMotionSketchCommands } from './layerMotionSketchCommands'
 import { layerWorkshopEditCommands } from './layerWorkshopEditCommands'
 import { validateWorkshop } from '../../ui/layerAssembly/workshopEdits'
 
@@ -63,6 +64,7 @@ function resolveTargetComposite(p: Params): LayerComposite {
 export const layerAssemblyCommands: Record<string, Handler> = {
   ...layerWorkshopRigCommands,
   ...layerPlantSpineCommands,
+  ...layerMotionSketchCommands,
   ...layerWorkshopEditCommands,
   layer_assembly_action: (p) => {
     const session = workshopSession()

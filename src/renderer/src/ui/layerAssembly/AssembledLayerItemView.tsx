@@ -105,6 +105,7 @@ export function AssembledLayerItemView({
     >
       <div
         ref={boxRef}
+        data-layer-id={layer.id}
         style={{
           position: 'relative',
           display: 'inline-block',

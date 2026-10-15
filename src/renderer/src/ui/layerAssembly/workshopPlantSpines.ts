@@ -6,7 +6,8 @@ import {
 } from '@shared/plantSpine'
 import type { LayerComposite } from './types'
 
-export type PlantSpineTarget = 'selected' | 'all'
+/** auto = layer nằm dưới nét vẽ · selected = layer đang chọn · all = toàn bộ layer. */
+export type PlantSpineTarget = 'auto' | 'selected' | 'all'
 
 export type PlantSpineAction =
   | { action: 'add'; spine: PlantSpine }
@@ -49,15 +50,24 @@ export function strokeLength(points: PlantSpinePoint[]): number {
   return total
 }
 
-/** Chọn layer gắn vào xương: layer đang chọn, hoặc toàn bộ layer (kể cả biến thể đang ẩn để bật lên vẫn đung đưa). */
+/**
+ * Chọn layer gắn vào xương: layer dưới nét vẽ (auto), layer đang chọn, hoặc toàn bộ layer
+ * (kể cả biến thể đang ẩn để bật lên vẫn đung đưa). Không trúng gì thì rơi về lựa chọn kế tiếp.
+ */
 export function resolveSpineLayerIds(
   composite: LayerComposite,
   target: PlantSpineTarget,
-  selectedIds: string[]
+  selectedIds: string[],
+  hitIds: string[] = []
 ): string[] {
   const all = composite.layers.map((l) => l.id)
   if (target === 'all') return all
-  const picked = selectedIds.filter((id) => composite.layers.some((l) => l.id === id))
+  const known = (ids: string[]) => ids.filter((id) => composite.layers.some((l) => l.id === id))
+  if (target === 'auto') {
+    const hits = known(hitIds)
+    if (hits.length) return hits
+  }
+  const picked = known(selectedIds)
   return picked.length ? picked : all
 }
 

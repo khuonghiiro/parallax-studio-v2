@@ -7,14 +7,16 @@ import { LayerAssembly3DViewport } from './LayerAssembly3DViewport'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
 import { IconCube, IconImage } from '../icons'
 import { evaluateRig, transformRigLayer } from '../../engine/layerRig'
-import { ensureRigClips, applyRigAction } from './workshopRig'
-import { applyPlantSpineAction } from './workshopPlantSpines'
-import { applySketchToComposite, type MotionSketchState } from './workshopMotionSketch'
+import { ensureRigClips } from './workshopRig'
 import type { WorkshopTab } from './WorkshopRightPanel'
 import { loadLayerWorkshopViewPrefs, saveLayerWorkshopViewPrefs } from './layerAssemblyViewPrefs'
 import type { BrushPreview } from './useLayerBrushEraser'
 import { spinesForLayer } from '../../engine/plantSpine'
-import { usePlantClockOffset } from './usePlantClock'
+import { usePlantClockOffset, usePlantLiveClock } from './usePlantClock'
+import { usePlantSpineEditor } from './plantSpineEditorStore'
+import { grabbedSpine } from './plantSpineEdit'
+import { toggleMotionSketchArmed } from './motionSketchStore'
+import type { BoneOverlayProps } from './WorkshopBoneOverlay'
 
 export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, boneId, selectBone, onBrushModeChange }: {
   state: ReturnType<typeof useLayerWorkshop>; playback: ReturnType<typeof useWorkshopPlayback>; view: AssemblyWorkspaceView
@@ -54,6 +56,8 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
       if ((tab === 'bones' || tab === 'animation') && !showBones) {
         setShowBones(true)
       }
+      // Rời tab Animation thì tắt bút vẽ động tác để chuột trái trở lại thao tác bình thường
+      if (prevTabRef.current === 'animation') toggleMotionSketchArmed(false)
       prevTabRef.current = tab
     }
   }, [tab, showBones])
@@ -76,9 +80,16 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
   const normalizedRig = state.composite.rig ? ensureRigClips(state.composite.rig).rig : undefined
   // Bù thời gian khi thanh phát lặp lại để xương thực vật chuyển động liên tục, không giật về 0
   const plantOffset = usePlantClockOffset(playback.time, playback.isPlaying, normalizedRig?.duration ?? 4)
-  const shiftedSpines = (state.composite.plantSpines ?? []).map((s) =>
-    plantOffset ? { ...s, phaseOffset: (s.phaseOffset ?? 0) + plantOffset } : s
-  )
+  // Gió trực tiếp ở tab Thực vật: cây tự đung đưa khi vẽ/chỉnh mà không cần bấm phát
+  const plantEditor = usePlantSpineEditor()
+  const hasSpines = (state.composite.plantSpines?.length ?? 0) > 0
+  const liveEnabled = tab === 'plant' && plantEditor.live && hasSpines && !playback.isPlaying
+  const plantLive = usePlantLiveClock(liveEnabled, !plantEditor.dragging && !plantEditor.grab)
+  const plantTime = plantOffset + plantLive
+  const shiftedSpines = (state.composite.plantSpines ?? []).map((s) => {
+    const grabbed = plantEditor.grab?.spineId === s.id ? grabbedSpine(s, plantEditor.grab.angle) : s
+    return plantTime ? { ...grabbed, phaseOffset: (grabbed.phaseOffset ?? 0) + plantTime } : grabbed
+  })
   const rig = normalizedRig ? { ...normalizedRig, loop: playback.isPlaying && normalizedRig.loop } : undefined
   const isErasing = brushEditing && tab === 'layers' && !playback.isPlaying
   const animated = !isErasing && (tab === 'animation' || playback.isPlaying || playback.time > 0) && rig
@@ -100,22 +111,17 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
       }
     })
   }
-  const handleApplyMotionSketch = (sketch: MotionSketchState) => {
-    state.setComposite((prev) => {
-      let draft = { ...prev }
-      applySketchToComposite(
-        draft,
-        sketch,
-        playback.time,
-        (rigAction) => {
-          draft = applyRigAction(draft, rigAction)
-        },
-        (plantAction) => {
-          draft = applyPlantSpineAction(draft, plantAction)
-        }
-      )
-      return draft
-    })
+  const boneOverlay: BoneOverlayProps = {
+    composite: { ...state.composite, rig: normalizedRig ?? state.composite.rig },
+    boneId,
+    selectBone,
+    setComposite: state.setComposite,
+    stopPlayback: () => playback.setIsPlaying(false),
+    cancelGesture: state.cancelGesture,
+    beginGesture: () => state.history.begin(),
+    endGesture: () => state.history.end(),
+    time: playback.time,
+    editing: tab === 'bones'
   }
 
   const props = {
@@ -144,25 +150,19 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
           onToggleShowBones={toggleBones}
           showMesh={showMesh}
           onToggleShowMesh={toggleMesh}
-          onApplyMotionSketch={handleApplyMotionSketch}
-          boneOverlay={isErasing ? undefined : {
-            composite: { ...state.composite, rig: normalizedRig ?? state.composite.rig },
-            boneId,
-            selectBone,
-            setComposite: state.setComposite,
-            stopPlayback: () => playback.setIsPlaying(false),
-            cancelGesture: state.cancelGesture,
-            beginGesture: () => state.history.begin(),
-            endGesture: () => state.history.end(),
-            time: playback.time,
-            editing: tab === 'bones'
+          sketchOverlay={isErasing ? undefined : {
+            ...boneOverlay,
+            playFrom: (t: number) => { playback.setTime(t); playback.setIsPlaying(true) }
           }}
+          boneOverlay={isErasing ? undefined : boneOverlay}
           plantOverlay={isErasing ? undefined : {
             composite: state.composite,
             setComposite: state.setComposite,
             selectedIds: state.selection,
-            time: playback.time + plantOffset,
-            drawing: tab === 'plant'
+            time: playback.time + plantTime,
+            drawing: tab === 'plant',
+            beginGesture: () => state.history.begin(),
+            endGesture: () => state.history.end()
           }}
           onChangeComposite={state.setComposite}
           isPlaying={playback.isPlaying}

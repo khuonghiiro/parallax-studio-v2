@@ -1,385 +1,218 @@
-import { useState, useRef, useEffect, type PointerEvent } from 'react'
-import type { LayerComposite } from './types'
+import { useEffect, useRef, useState, type PointerEvent } from 'react'
+import type { BoneOverlayProps } from './WorkshopBoneOverlay'
+import { applyRigAction } from './workshopRig'
 import {
+  applyMotionSketch,
+  boneSegments,
+  createSketchAnchor,
+  pickSketchBone,
+  sketchPoseAt,
+  type MotionSketchMode,
   type Point2D,
-  type MotionSketchState,
-  simplifyStrokePoints,
-  findClosestRigBone,
-  computeTargetGrayBone,
-  normalizeAngle
+  type SketchAnchor,
+  type SketchSample
 } from './workshopMotionSketch'
-import { useMotionSketch, setMotionSketchState, resetMotionSketchState } from './motionSketchStore'
+import { getMotionSketchState, setMotionSketchState, toggleMotionSketchArmed, useMotionSketch } from './motionSketchStore'
 import '../../styles/layerWorkshopMotionSketch.css'
 
-export interface MotionSketchOverlayProps {
-  composite: LayerComposite
-  time: number
-  active: boolean // true khi ở tab 'animation'
-  onApplySketch: (sketch: MotionSketchState) => void
-  isPlaying: boolean
-  onTogglePlay: () => void
-  selectBone: (id: string | null) => void
+export interface MotionSketchOverlayProps extends BoneOverlayProps {
+  /** Tua về thời điểm t rồi phát thử. */
+  playFrom?: (time: number) => void
 }
 
-const toPathData = (pts: Point2D[]): string =>
-  pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+interface SketchDrag {
+  anchor: SketchAnchor
+  mode: MotionSketchMode
+  startTime: number
+  t0: number
+  samples: SketchSample[]
+  ghost: { head: Point2D; tail: Point2D }
+  lastRotation?: number
+}
 
-export function MotionSketchOverlay({
-  composite,
-  time,
-  active,
-  onApplySketch,
-  isPlaying,
-  onTogglePlay,
-  selectBone
-}: MotionSketchOverlayProps) {
+type Segment = { id: string; name: string; head: Point2D; tail: Point2D }
+
+const toPath = (pts: Point2D[]) => pts.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+const isTyping = (t: EventTarget | null) => {
+  const el = t as HTMLElement | null
+  return !!el && (['input', 'textarea', 'select'].includes(el.tagName?.toLowerCase()) || el.isContentEditable)
+}
+
+/** Phím tắt: D bật/tắt bút vẽ động tác · Esc huỷ nét đang vẽ hoặc tắt bút. */
+function useSketchKeys(onCancelDrag: () => boolean) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (isTyping(e.target) || e.ctrlKey || e.metaKey || e.altKey) return
+      if (e.key === 'd' || e.key === 'D') {
+        e.preventDefault()
+        toggleMotionSketchArmed()
+      } else if (e.key === 'Escape') {
+        if (onCancelDrag()) return
+        if (getMotionSketchState().armed) toggleMotionSketchArmed(false)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCancelDrag])
+}
+
+/** Lớp vẽ động tác trên Bố cục 2D (tab Animation): nhấn gần xương rồi vẽ đường đi của ngọn xương. */
+export function MotionSketchOverlay(props: MotionSketchOverlayProps) {
+  const { composite, time } = props
   const sketch = useMotionSketch()
   const svgRef = useRef<SVGSVGElement>(null)
-  const [dragMode, setDragMode] = useState<'redBone' | 'blueStroke' | null>(null)
-  const [isAltHeld, setIsAltHeld] = useState(false)
-  const [isShiftHeld, setIsShiftHeld] = useState(false)
-  const liveStrokeRef = useRef<Point2D[]>([])
-  const [liveStroke, setLiveStroke] = useState<Point2D[] | null>(null)
+  const dragRef = useRef<SketchDrag | null>(null)
+  const [stroke, setStroke] = useState<Point2D[] | null>(null)
+  const [hover, setHover] = useState<Segment | null>(null)
+  const [label, setLabel] = useState<{ x: number; y: number; text: string } | null>(null)
+  const rig = composite.rig
 
-  // Lắng nghe phím Alt / Shift để cập nhật con trỏ chuột và kích hoạt lớp vẽ
-  useEffect(() => {
-    if (!active) return
-    const handleKeys = (e: KeyboardEvent) => {
-      setIsAltHeld(e.altKey)
-      setIsShiftHeld(e.shiftKey)
-      if (e.key === 'Escape' && (sketch.redBone || sketch.blueStroke)) {
-        resetMotionSketchState()
-      }
-    }
-    window.addEventListener('keydown', handleKeys)
-    window.addEventListener('keyup', handleKeys)
-    return () => {
-      window.removeEventListener('keydown', handleKeys)
-      window.removeEventListener('keyup', handleKeys)
-    }
-  }, [active, sketch.redBone, sketch.blueStroke])
+  const cancelDragRef = useRef<() => boolean>(() => false)
+  cancelDragRef.current = () => {
+    if (!dragRef.current) return false
+    dragRef.current = null
+    props.cancelGesture?.()
+    setStroke(null)
+    setLabel(null)
+    setMotionSketchState({ status: 'Đã huỷ nét vẽ' })
+    return true
+  }
+  const [cancelDrag] = useState(() => () => cancelDragRef.current())
+  useSketchKeys(cancelDrag)
 
-  if (!active) return null
+  if (!sketch.armed) return null
 
-  const toLocalPoint = (e: PointerEvent): Point2D | null => {
-    const matrix = svgRef.current?.getScreenCTM()
-    if (!matrix) return null
-    const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(matrix.inverse())
-    return { x: pt.x, y: pt.y }
+  const toLocal = (e: PointerEvent): Point2D | null => {
+    const m = svgRef.current?.getScreenCTM()
+    if (!m) return null
+    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse())
+    return { x: p.x, y: p.y }
+  }
+  const segmentOf = (id: string): Segment | null => {
+    const seg = rig ? boneSegments(rig, time).find((s) => s.bone.id === id) : undefined
+    return seg ? { id, name: seg.bone.name, head: seg.head, tail: seg.tail } : null
   }
 
-  const handlePointerDown = (e: PointerEvent) => {
-    if (e.button !== 0) return
-    const pt = toLocalPoint(e)
-    if (!pt) return
-
-    // 1. Giữ phím Alt: Vẽ xương màu đỏ (Root → Tip)
-    if (e.altKey) {
-      e.stopPropagation()
-      setDragMode('redBone')
-      liveStrokeRef.current = [pt, pt]
-      setLiveStroke([pt, pt])
-      try {
-        svgRef.current?.setPointerCapture(e.pointerId)
-      } catch {
-        /* bỏ qua nếu capture không khả dụng */
-      }
+  const handleDown = (e: PointerEvent) => {
+    if (e.button !== 0 || e.altKey) return // Alt / chuột giữa: để khung 2D tự dời
+    e.stopPropagation()
+    const p = toLocal(e)
+    if (!p) return
+    if (!rig?.bones.length) {
+      setMotionSketchState({ status: 'Chưa có khung xương — sang tab "Tạo xương" để dựng xương trước' })
       return
     }
-
-    // 2. Giữ phím Shift: Vẽ nét chuyển động Blue (Quỹ đạo uốn cong)
-    if (e.shiftKey) {
-      e.stopPropagation()
-      setDragMode('blueStroke')
-      const startPt = sketch.redBone ? sketch.redBone.tip : pt
-      liveStrokeRef.current = [startPt, pt]
-      setLiveStroke([startPt, pt])
-      try {
-        svgRef.current?.setPointerCapture(e.pointerId)
-      } catch {
-        /* bỏ qua */
-      }
+    const boneId = pickSketchBone(rig, p, time)?.bone.id ?? props.boneId
+    if (!boneId || !rig.bones.some((b) => b.id === boneId)) {
+      setMotionSketchState({ status: 'Hãy nhấn gần một xương (hoặc chọn xương trước) rồi vẽ' })
+      return
     }
+    const startTime = Math.min(rig.duration, Math.max(0, time))
+    const anchor = createSketchAnchor(rig, boneId, startTime, p)
+    const ghost = segmentOf(boneId)
+    const { settings } = getMotionSketchState()
+    const mode: MotionSketchMode = e.shiftKey ? (settings.mode === 'rotate' ? 'move' : 'rotate') : settings.mode
+    props.stopPlayback?.()
+    props.selectBone(boneId)
+    props.beginGesture?.()
+    dragRef.current = { anchor, mode, startTime, t0: performance.now(), samples: [{ ...p, t: 0 }], ghost: ghost ?? { head: anchor.pivot, tail: p } }
+    setStroke([p])
+    setHover(null)
+    try { svgRef.current?.setPointerCapture(e.pointerId) } catch { /* pointer đã kết thúc */ }
   }
 
-  const handlePointerMove = (e: PointerEvent) => {
-    const pt = toLocalPoint(e)
-    if (!pt || !dragMode) return
-
-    if (dragMode === 'redBone') {
-      const root = liveStrokeRef.current[0]
-      liveStrokeRef.current = [root, pt]
-      setLiveStroke([root, pt])
-    } else if (dragMode === 'blueStroke') {
-      const pts = liveStrokeRef.current
-      const last = pts[pts.length - 1]
-      if (Math.hypot(pt.x - last.x, pt.y - last.y) >= 2) {
-        pts.push(pt)
-        setLiveStroke([...pts])
-      }
+  const handleMove = (e: PointerEvent) => {
+    const p = toLocal(e)
+    if (!p) return
+    const drag = dragRef.current
+    if (!drag) {
+      const pick = rig ? pickSketchBone(rig, p, time) : null
+      if ((pick?.bone.id ?? null) !== (hover?.id ?? null)) setHover(pick ? segmentOf(pick.bone.id) : null)
+      return
     }
+    const last = drag.samples[drag.samples.length - 1]
+    if (Math.hypot(p.x - last.x, p.y - last.y) < 1.5) return
+    drag.samples.push({ ...p, t: (performance.now() - drag.t0) / 1000 })
+    setStroke(drag.samples.map(({ x, y }) => ({ x, y })))
+    const pose = sketchPoseAt(drag.anchor, p, drag.mode, drag.lastRotation)
+    drag.lastRotation = pose.rotation ?? drag.lastRotation
+    // Xem trước trực tiếp: xương + layer bám theo ngọn bút (huỷ lại khi thả để ghi cả chuỗi keyframe)
+    props.setComposite((c) => applyRigAction(c, { action: 'set-key', boneId: drag.anchor.boneId, key: { time: drag.startTime, ...pose } }))
+    const delta = pose.rotation !== undefined ? pose.rotation - drag.anchor.base.rotation : 0
+    const text = drag.mode === 'rotate'
+      ? `${drag.anchor.boneName} · ${delta > 0 ? '+' : ''}${delta.toFixed(0)}°`
+      : `${drag.anchor.boneName} · ${(p.x - drag.anchor.start.x).toFixed(0)}, ${(p.y - drag.anchor.start.y).toFixed(0)} px`
+    setLabel({ x: p.x, y: p.y, text })
   }
 
-  const handlePointerUp = () => {
-    if (!dragMode) return
-    const pts = liveStrokeRef.current
-    setDragMode(null)
-    setLiveStroke(null)
-
-    if (dragMode === 'redBone' && pts.length >= 2) {
-      const root = pts[0]
-      const tip = pts[pts.length - 1]
-      const len = Math.hypot(tip.x - root.x, tip.y - root.y)
-      if (len > 12) {
-        const angle = Math.atan2(tip.y - root.y, tip.x - root.x) * (180 / Math.PI)
-        const match = findClosestRigBone(composite.rig, root, tip, time)
-        if (match) {
-          selectBone(match.bone.id)
-        }
-        setMotionSketchState((prev) => ({
-          ...prev,
-          redBone: {
-            root,
-            tip,
-            length: len,
-            angle,
-            matchedBoneId: match?.bone.id,
-            matchedBoneName: match?.bone.name
-          },
-          statusMessage: match
-            ? `Khớp nhận diện: ${match.bone.name} · Giữ Shift và kéo chuột để vẽ quỹ đạo Blue`
-            : `Đã xác định xương đỏ · Giữ Shift và kéo chuột để vẽ quỹ đạo Blue`
-        }))
-      }
-    } else if (dragMode === 'blueStroke' && pts.length >= 2 && sketch.redBone) {
-      const simplified = simplifyStrokePoints(pts)
-      const strokeEnd = simplified[simplified.length - 1]
-      const gray = computeTargetGrayBone(sketch.redBone.root, sketch.redBone.length, strokeEnd)
-      const delta = normalizeAngle(gray.angle - sketch.redBone.angle)
-
-      const nextSketch: MotionSketchState = {
-        ...sketch,
-        blueStroke: simplified,
-        grayBone: gray,
-        deltaAngle: delta,
-        statusMessage: `Quỹ đạo xoay: ${delta > 0 ? '+' : ''}${delta.toFixed(1)}° · Sẵn sàng phát thử hoặc ghi keyframe`
-      }
-      setMotionSketchState(nextSketch)
-      // Tự động áp dụng ngay vào khung xương và uốn mesh
-      onApplySketch(nextSketch)
+  const handleUp = () => {
+    const drag = dragRef.current
+    if (!drag) return
+    dragRef.current = null
+    setStroke(null)
+    setLabel(null)
+    props.cancelGesture?.() // bỏ khung xem trước, commit một lần duy nhất bên dưới
+    const len = drag.samples.reduce((sum, s, i) => (i ? sum + Math.hypot(s.x - drag.samples[i - 1].x, s.y - drag.samples[i - 1].y) : 0), 0)
+    if (drag.samples.length < 3 || len < 6) {
+      setMotionSketchState({ status: 'Nét quá ngắn — giữ chuột và vẽ dài hơn' })
+      return
     }
+    const { settings } = getMotionSketchState()
+    let summary: { keyCount: number; endTime: number } | null = null
+    try {
+      props.setComposite((c) => {
+        const result = applyMotionSketch(c, drag.anchor, drag.samples, { ...settings, mode: drag.mode }, drag.startTime)
+        summary = { keyCount: result.keys.length, endTime: result.endTime }
+        return result.composite
+      })
+    } catch (err) {
+      setMotionSketchState({ status: `Lỗi: ${err instanceof Error ? err.message : String(err)}` })
+      return
+    }
+    const done = summary as { keyCount: number; endTime: number } | null
+    if (!done) return
+    setMotionSketchState({
+      last: { boneId: drag.anchor.boneId, boneName: drag.anchor.boneName, keyCount: done.keyCount, startTime: drag.startTime, endTime: done.endTime, stroke: drag.samples.map(({ x, y }) => ({ x, y })) },
+      status: `✓ ${drag.anchor.boneName}: ${done.keyCount} keyframe · ${drag.startTime.toFixed(2)}s → ${done.endTime.toFixed(2)}s · Ctrl+Z để vẽ lại`
+    })
+    if (settings.autoPlay) props.playFrom?.(drag.startTime)
   }
 
-  const isInteractive = isAltHeld || isShiftHeld || Boolean(dragMode)
-  const red = sketch.redBone
-  const blue = sketch.blueStroke
-  const gray = sketch.grayBone
-
+  const drag = dragRef.current
+  const last = !drag ? sketch.last : null
   return (
     <svg
       ref={svgRef}
-      className={`lw-motion-sketch-overlay ${isInteractive ? 'interactive' : ''} ${isAltHeld ? 'alt-held' : ''} ${isShiftHeld ? 'shift-held' : ''}`}
+      className={`lw-motion-sketch-overlay armed${hover ? ' hovering' : ''}${drag ? ' dragging' : ''}`}
       viewBox={`${-composite.width / 2} ${-composite.height / 2} ${composite.width} ${composite.height}`}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      aria-label="Lớp vẽ chuyển động hoạt ảnh"
+      onPointerDown={handleDown}
+      onPointerMove={handleMove}
+      onPointerUp={handleUp}
+      onPointerCancel={() => cancelDragRef.current()}
+      onPointerLeave={() => !dragRef.current && setHover(null)}
+      aria-label="Lớp vẽ động tác hoạt ảnh"
     >
       <defs>
-        {/* Mũi tên định hướng cho nét vẽ chuyển động blue */}
-        <marker
-          id="lw-sketch-arrow-blue"
-          markerWidth="9"
-          markerHeight="9"
-          refX="6.5"
-          refY="4.5"
-          orient="auto"
-        >
-          <polygon points="1,2 8,4.5 1,7 3,4.5" fill="var(--accent-cyan, #00e5ff)" />
+        <marker id="lw-sketch-arrow" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 L2,4 Z" className="lw-sketch-arrow-head" />
         </marker>
-        <filter id="lw-glow-red" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="3.5" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-        <filter id="lw-glow-blue" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="4" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
       </defs>
-
-      {/* 1. XƯƠNG MÀU ĐỎ (Alt + kéo chuột): Thể hiện xương nguồn */}
-      {red && (
-        <g className="lw-sketch-red-group" filter="url(#lw-glow-red)">
-          <line
-            x1={red.root.x}
-            y1={red.root.y}
-            x2={red.tip.x}
-            y2={red.tip.y}
-            className="lw-sketch-red-line"
-          />
-          {/* Khớp gốc (Pivot) */}
-          <circle cx={red.root.x} cy={red.root.y} r={7.5} className="lw-sketch-root-joint" />
-          <circle cx={red.root.x} cy={red.root.y} r={3} fill="#ffffff" />
-          {/* Khớp ngọn (Tip) */}
-          <circle cx={red.tip.x} cy={red.tip.y} r={5.5} className="lw-sketch-tip-joint" />
-          <text
-            x={(red.root.x + red.tip.x) / 2 + 10}
-            y={(red.root.y + red.tip.y) / 2}
-            className="lw-sketch-label red"
-          >
-            {red.matchedBoneName ? `🦴 ${red.matchedBoneName}` : '🦴 Xương đỏ'}
-          </text>
+      {last && last.stroke.length > 1 && <path d={toPath(last.stroke)} className="lw-sketch-path faded" markerEnd="url(#lw-sketch-arrow)" />}
+      {hover && (
+        <g className="lw-sketch-hover" pointerEvents="none">
+          <line x1={hover.head.x} y1={hover.head.y} x2={hover.tail.x} y2={hover.tail.y} className="lw-sketch-hover-bone" />
+          <circle cx={hover.head.x} cy={hover.head.y} r={5} className="lw-sketch-pivot" />
+          <text x={(hover.head.x + hover.tail.x) / 2 + 10} y={(hover.head.y + hover.tail.y) / 2} className="lw-sketch-label">{hover.name}</text>
         </g>
       )}
-
-      {/* Khi đang kéo chuột vẽ xương đỏ realtime */}
-      {dragMode === 'redBone' && liveStroke && liveStroke.length >= 2 && (
-        <g className="lw-sketch-live-red" filter="url(#lw-glow-red)">
-          <line
-            x1={liveStroke[0].x}
-            y1={liveStroke[0].y}
-            x2={liveStroke[1].x}
-            y2={liveStroke[1].y}
-            className="lw-sketch-red-line live"
-          />
-          <circle cx={liveStroke[0].x} cy={liveStroke[0].y} r={7.5} className="lw-sketch-root-joint" />
-          <circle cx={liveStroke[1].x} cy={liveStroke[1].y} r={5.5} className="lw-sketch-tip-joint" />
+      {drag && (
+        <g pointerEvents="none">
+          <line x1={drag.ghost.head.x} y1={drag.ghost.head.y} x2={drag.ghost.tail.x} y2={drag.ghost.tail.y} className="lw-sketch-ghost" />
+          <circle cx={drag.anchor.pivot.x} cy={drag.anchor.pivot.y} r={6} className="lw-sketch-pivot" />
         </g>
       )}
-
-      {/* 2. ĐƯỜNG KẺ XÁM (Tư thế đích đến): Từ gốc xương đỏ vươn tới hướng kết thúc của nét vẽ blue */}
-      {gray && red && (
-        <g className="lw-sketch-gray-group">
-          <line
-            x1={gray.root.x}
-            y1={gray.root.y}
-            x2={gray.tip.x}
-            y2={gray.tip.y}
-            className="lw-sketch-gray-line"
-          />
-          <circle cx={gray.tip.x} cy={gray.tip.y} r={5.5} className="lw-sketch-gray-joint" />
-          <text x={gray.tip.x + 8} y={gray.tip.y + 4} className="lw-sketch-label gray">
-            Kẻ xám (Đích đến)
-          </text>
-        </g>
-      )}
-
-      {/* 3. NÉT VẼ CHUYỂN ĐỘNG BLUE (Shift + kéo chuột): Quỹ đạo cong với mũi tên định hướng */}
-      {blue && blue.length >= 2 && (
-        <g className="lw-sketch-blue-group" filter="url(#lw-glow-blue)">
-          <path
-            d={toPathData(blue)}
-            className="lw-sketch-blue-path"
-            markerEnd="url(#lw-sketch-arrow-blue)"
-          />
-          {sketch.deltaAngle !== 0 && blue.length > 0 && (
-            <text
-              x={blue[Math.floor(blue.length / 2)].x + 12}
-              y={blue[Math.floor(blue.length / 2)].y - 12}
-              className="lw-sketch-label blue"
-            >
-              {`⟳ ${sketch.deltaAngle > 0 ? '+' : ''}${sketch.deltaAngle.toFixed(1)}°`}
-            </text>
-          )}
-        </g>
-      )}
-
-      {/* Khi đang kéo chuột vẽ nét blue realtime */}
-      {dragMode === 'blueStroke' && liveStroke && liveStroke.length >= 2 && (
-        <g className="lw-sketch-live-blue" filter="url(#lw-glow-blue)">
-          <path
-            d={toPathData(liveStroke)}
-            className="lw-sketch-blue-path live"
-            markerEnd="url(#lw-sketch-arrow-blue)"
-          />
-        </g>
-      )}
-
-      {/* HUD Toolbar điều khiển nhanh ngay trên màn hình khi đã vẽ xong */}
-      {red && gray && (
-        <foreignObject
-          x={-composite.width / 2 + 16}
-          y={composite.height / 2 - 58}
-          width={composite.width - 32}
-          height={50}
-          className="lw-sketch-hud-wrapper"
-        >
-          <div className="lw-sketch-hud-bar">
-            <span className="lw-sketch-badge">
-              {red.matchedBoneName ? `🦴 ${red.matchedBoneName}` : 'Động tác'}: {sketch.deltaAngle > 0 ? '+' : ''}{sketch.deltaAngle.toFixed(1)}°
-            </span>
-            <button
-              type="button"
-              className="btn xs primary lw-sketch-play-btn"
-              onClick={onTogglePlay}
-              title="Phát thử động tác (Phím Space)"
-            >
-              {isPlaying ? '⏸ Dừng' : '▶ Phát thử'}
-            </button>
-            <label className="lw-sketch-check" title="Uốn cong layer bằng lưới Mesh 2D mềm mại">
-              <input
-                type="checkbox"
-                checked={sketch.enableMeshBend}
-                onChange={(e) => {
-                  const updated = { ...sketch, enableMeshBend: e.target.checked }
-                  setMotionSketchState(updated)
-                  onApplySketch(updated)
-                }}
-              />
-              <span>Uốn Mesh 2D</span>
-            </label>
-            <label className="lw-sketch-check" title="Động tác khứ hồi (vung tới kẻ xám rồi thu về dáng cũ)">
-              <input
-                type="checkbox"
-                checked={sketch.loopBack}
-                onChange={(e) => {
-                  const updated = { ...sketch, loopBack: e.target.checked }
-                  setMotionSketchState(updated)
-                  onApplySketch(updated)
-                }}
-              />
-              <span>Khứ hồi</span>
-            </label>
-            <button
-              type="button"
-              className="btn xs lw-sketch-clear-btn"
-              onClick={resetMotionSketchState}
-              title="Xoá nét vẽ này"
-            >
-              ✕ Xoá nét
-            </button>
-          </div>
-        </foreignObject>
-      )}
-
-      {/* Gợi ý tương tác khi người dùng giữ Alt hoặc Shift */}
-      {isAltHeld && !red && (
-        <text
-          x={0}
-          y={composite.height / 2 - 20}
-          textAnchor="middle"
-          className="lw-sketch-hint red"
-        >
-          Kéo chuột từ GỐC đến NGỌN để vẽ xương màu đỏ
-        </text>
-      )}
-      {isShiftHeld && red && (
-        <text
-          x={0}
-          y={composite.height / 2 - 20}
-          textAnchor="middle"
-          className="lw-sketch-hint blue"
-        >
-          Kéo chuột từ ngọn xương để vẽ nét quỹ đạo Blue đến chỗ kẻ xám
-        </text>
-      )}
+      {stroke && stroke.length > 1 && <path d={toPath(stroke)} className="lw-sketch-path" markerEnd="url(#lw-sketch-arrow)" />}
+      {label && <text x={label.x + 14} y={label.y - 12} className="lw-sketch-label live">{label.text}</text>}
     </svg>
   )
 }

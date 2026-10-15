@@ -1,7 +1,7 @@
-import { useRef, useState, type PointerEvent } from 'react'
-import type { PlantSpinePoint } from '@shared/plantSpine'
+import { useEffect, useRef, useState, type PointerEvent, type MouseEvent } from 'react'
+import type { PlantSpine, PlantSpinePoint } from '@shared/plantSpine'
 import type { LayerComposite } from './types'
-import { evaluatePlantSpine } from '../../engine/plantSpine'
+import { plantTipAngleToward } from '../../engine/plantSpine'
 import {
   applyPlantSpineAction,
   createPlantSpine,
@@ -9,88 +9,191 @@ import {
   simplifyStroke,
   strokeLength
 } from './workshopPlantSpines'
-import { setPlantSpineEditorState, usePlantSpineEditor } from './plantSpineEditorStore'
+import {
+  PLANT_AMPLITUDE_MAX,
+  PLANT_LEAN_MAX,
+  distanceToPolyline,
+  insertPlantSpinePoint,
+  learnSwayFromGesture,
+  movePlantSpinePoint,
+  removePlantSpinePoint,
+  translatePlantSpine,
+  type SwaySample
+} from './plantSpineEdit'
+import { layersUnderClientStroke } from './plantStrokeHitTest'
+import { PlantSpineShape, SelectedSpineHandles, toPlantPath } from './PlantSpineShapes'
+import { getPlantSpineEditorState, setPlantSpineEditorState, usePlantSpineEditor } from './plantSpineEditorStore'
 
 export interface PlantSpineOverlayProps {
   composite: LayerComposite
   setComposite: (update: (prev: LayerComposite) => LayerComposite, key?: string) => void
   selectedIds: string[]
   time: number
-  /** Đang ở tab Thực vật: kéo chuột để vẽ xương mới, click để chọn xương. */
+  /** Đang ở tab Thực vật: vẽ xương mới, chọn & sửa xương bằng tay nắm. */
   drawing: boolean
+  beginGesture?: () => void
+  endGesture?: () => void
   onError?: (message: string) => void
 }
 
-const toPath = (pts: PlantSpinePoint[]) => pts.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+type Drag =
+  | { kind: 'draw'; pts: PlantSpinePoint[]; client: Array<{ x: number; y: number }> }
+  | { kind: 'point'; spineId: string; index: number }
+  | { kind: 'move'; spineId: string; start: PlantSpinePoint; origin: PlantSpinePoint[] }
+  | { kind: 'grab'; spine: PlantSpine; start: number; t0: number; samples: SwaySample[] }
 
-function distanceToPolyline(p: PlantSpinePoint, pts: PlantSpinePoint[]): number {
-  let best = Infinity
-  for (let i = 1; i < pts.length; i++) {
-    const a = pts[i - 1], b = pts[i]
-    const dx = b.x - a.x, dy = b.y - a.y
-    const len2 = dx * dx + dy * dy || 1
-    const t = Math.min(1, Math.max(0, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2))
-    best = Math.min(best, Math.hypot(p.x - a.x - dx * t, p.y - a.y - dy * t))
-  }
-  return best
-}
+const GRAB_LIMIT = PLANT_AMPLITUDE_MAX + PLANT_LEAN_MAX
 
-/** Lớp SVG trên Bố cục 2D: hiển thị xương thực vật (nghỉ + đang uốn) và cho phép vẽ tay xương mới. */
-export function PlantSpineOverlay({ composite, setComposite, selectedIds, time, drawing, onError }: PlantSpineOverlayProps) {
+/** Lớp SVG trên Bố cục 2D: hiển thị xương thực vật, vẽ tay xương mới và chỉnh trực tiếp bằng tay nắm. */
+export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
+  const { composite, setComposite, time, drawing } = props
   const svgRef = useRef<SVGSVGElement>(null)
-  const strokeRef = useRef<PlantSpinePoint[] | null>(null)
+  const dragRef = useRef<Drag | null>(null)
   const [stroke, setStroke] = useState<PlantSpinePoint[] | null>(null)
+  const [flash, setFlash] = useState<string | null>(null)
   const editor = usePlantSpineEditor()
   const spines = composite.plantSpines ?? []
+  const selected = drawing ? spines.find((s) => s.id === editor.selectedSpineId) ?? null : null
+
+  useEffect(() => {
+    if (!flash) return
+    const id = window.setTimeout(() => setFlash(null), 2200)
+    return () => window.clearTimeout(id)
+  }, [flash])
+
   if (!drawing && !spines.length) return null
 
-  const toLocal = (e: PointerEvent): PlantSpinePoint | null => {
+  const toLocal = (e: { clientX: number; clientY: number }): PlantSpinePoint | null => {
     const m = svgRef.current?.getScreenCTM()
     if (!m) return null
     const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse())
     return { x: p.x, y: p.y }
+  }
+  const capture = (e: PointerEvent) => {
+    e.stopPropagation()
+    try { svgRef.current?.setPointerCapture(e.pointerId) } catch { /* pointer không còn hoạt động */ }
+  }
+  const patchSpine = (id: string, patch: Partial<PlantSpine>, key?: string) => {
+    try {
+      setComposite((c) => applyPlantSpineAction(c, { action: 'update', id, patch }), key)
+    } catch (err) {
+      props.onError?.(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  const startHandleDrag = (e: PointerEvent, drag: Drag) => {
+    if (e.button !== 0 || e.altKey) return
+    capture(e)
+    props.beginGesture?.()
+    dragRef.current = drag
+    if (drag.kind !== 'grab') setPlantSpineEditorState({ dragging: true })
   }
 
   const onDown = (e: PointerEvent) => {
     if (!drawing || e.button !== 0 || e.altKey) return
     const p = toLocal(e)
     if (!p) return
-    e.stopPropagation()
-    strokeRef.current = [p]
+    capture(e)
+    dragRef.current = { kind: 'draw', pts: [p], client: [{ x: e.clientX, y: e.clientY }] }
     setStroke([p])
-    try { svgRef.current?.setPointerCapture(e.pointerId) } catch { /* pointer không còn hoạt động */ }
   }
 
   const onMove = (e: PointerEvent) => {
-    const current = strokeRef.current
-    const p = toLocal(e)
-    if (!current || !p) return
-    const last = current[current.length - 1]
-    if (Math.hypot(p.x - last.x, p.y - last.y) < 2) return
-    current.push(p)
-    setStroke([...current])
+    const drag = dragRef.current
+    const p = drag ? toLocal(e) : null
+    if (!drag || !p) return
+    if (drag.kind === 'draw') {
+      const last = drag.pts[drag.pts.length - 1]
+      if (Math.hypot(p.x - last.x, p.y - last.y) < 2) return
+      drag.pts.push(p)
+      drag.client.push({ x: e.clientX, y: e.clientY })
+      setStroke([...drag.pts])
+    } else if (drag.kind === 'point') {
+      const spine = spines.find((s) => s.id === drag.spineId)
+      if (spine) patchSpine(spine.id, { points: movePlantSpinePoint(spine.points, drag.index, p) })
+    } else if (drag.kind === 'move') {
+      patchSpine(drag.spineId, { points: translatePlantSpine(drag.origin, p.x - drag.start.x, p.y - drag.start.y) })
+    } else {
+      const raw = plantTipAngleToward(drag.spine, p) - drag.start
+      const angle = Math.max(-GRAB_LIMIT, Math.min(GRAB_LIMIT, raw))
+      drag.samples.push({ angle, t: (performance.now() - drag.t0) / 1000 })
+      setPlantSpineEditorState({ grab: { spineId: drag.spine.id, angle } })
+    }
   }
 
-  const finish = () => {
-    const pts = strokeRef.current
-    strokeRef.current = null
-    setStroke(null)
-    if (!pts) return
+  const finishDraw = (pts: PlantSpinePoint[], client: Array<{ x: number; y: number }>) => {
     if (strokeLength(pts) < 8) {
-      // Click: chọn xương gần nhất
+      // Click: chọn xương gần nhất (hoặc bỏ chọn khi bấm ra ngoài)
       const hit = spines
         .map((s) => ({ id: s.id, d: distanceToPolyline(pts[0], s.points) }))
         .sort((a, b) => a.d - b.d)[0]
-      setPlantSpineEditorState({ selectedSpineId: hit && hit.d < 14 ? hit.id : null })
+      setPlantSpineEditorState({ selectedSpineId: hit && hit.d < 16 ? hit.id : null })
       return
     }
     try {
-      const layerIds = resolveSpineLayerIds(composite, editor.target, selectedIds)
+      const order = composite.layers.map((l) => l.id)
+      const hits = editor.target === 'auto' ? layersUnderClientStroke(svgRef.current, client, order) : []
+      const layerIds = resolveSpineLayerIds(composite, editor.target, props.selectedIds, hits)
       const spine = createPlantSpine({ points: simplifyStroke(pts), layerIds, preset: editor.preset })
       setComposite((c) => applyPlantSpineAction(c, { action: 'add', spine }))
       setPlantSpineEditorState({ selectedSpineId: spine.id })
+      const names = composite.layers.filter((l) => layerIds.includes(l.id)).map((l) => l.name)
+      setFlash(`Gắn vào: ${names.slice(0, 3).join(', ')}${names.length > 3 ? ` +${names.length - 3}` : ''}`)
     } catch (err) {
-      onError?.(err instanceof Error ? err.message : String(err))
+      props.onError?.(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  const finishGrab = (drag: Extract<Drag, { kind: 'grab' }>) => {
+    setPlantSpineEditorState({ grab: null })
+    const learned = learnSwayFromGesture(drag.samples, drag.spine)
+    if (!learned) return
+    patchSpine(drag.spine.id, learned)
+    const parts = [`±${learned.amplitude ?? drag.spine.amplitude}°`]
+    if (learned.lean !== undefined) parts.push(`nghiêng ${learned.lean}°`)
+    if (learned.speed !== undefined) parts.push(`${learned.speed} nhịp/s`)
+    setFlash(`Đã học nhịp đung đưa: ${parts.join(' · ')}`)
+  }
+
+  const finish = () => {
+    const drag = dragRef.current
+    dragRef.current = null
+    setStroke(null)
+    if (!drag) return
+    if (drag.kind === 'draw') return finishDraw(drag.pts, drag.client)
+    if (drag.kind === 'grab') finishGrab(drag)
+    if (getPlantSpineEditorState().dragging) setPlantSpineEditorState({ dragging: false })
+    props.endGesture?.()
+  }
+
+  const cancel = () => {
+    const drag = dragRef.current
+    dragRef.current = null
+    setStroke(null)
+    if (drag && drag.kind !== 'draw') {
+      setPlantSpineEditorState({ grab: null, dragging: false })
+      props.endGesture?.()
+    }
+  }
+
+  const handleProps = selected && {
+    spine: selected,
+    grabbing: editor.grab?.spineId === selected.id,
+    onBodyDown: (e: PointerEvent) => {
+      const p = toLocal(e)
+      if (p) startHandleDrag(e, { kind: 'move', spineId: selected.id, start: p, origin: selected.points })
+    },
+    onBodyDoubleClick: (e: MouseEvent) => {
+      const p = toLocal(e)
+      if (p) patchSpine(selected.id, { points: insertPlantSpinePoint(selected.points, p) })
+    },
+    onPointDown: (e: PointerEvent, index: number) => startHandleDrag(e, { kind: 'point', spineId: selected.id, index }),
+    onPointDoubleClick: (_e: MouseEvent, index: number) =>
+      patchSpine(selected.id, { points: removePlantSpinePoint(selected.points, index) }),
+    onGrabDown: (e: PointerEvent) => {
+      const p = toLocal(e)
+      if (!p) return
+      startHandleDrag(e, { kind: 'grab', spine: selected, start: plantTipAngleToward(selected, p), t0: performance.now(), samples: [] })
     }
   }
 
@@ -103,27 +206,23 @@ export function PlantSpineOverlay({ composite, setComposite, selectedIds, time, 
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={finish}
-      onPointerCancel={() => { strokeRef.current = null; setStroke(null) }}
+      onPointerCancel={cancel}
     >
-      {spines.map((s) => {
-        const frame = evaluatePlantSpine(s, time)
-        const selected = editor.selectedSpineId === s.id
-        const root = frame.rest[0]
-        const tip = frame.bent[frame.bent.length - 1]
-        return (
-          <g key={s.id} className={`lw-plant-spine${selected ? ' selected' : ''}${s.enabled === false ? ' disabled' : ''}`}>
-            <path d={toPath(frame.rest)} className="lw-plant-rest" />
-            <path d={toPath(frame.bent)} className="lw-plant-bent" />
-            <circle cx={root.x} cy={root.y} r={5} className="lw-plant-root" />
-            <circle cx={tip.x} cy={tip.y} r={3.5} className="lw-plant-tip" />
-            {selected && (
-              <text x={root.x + 8} y={root.y + 4} className="lw-plant-label">{s.name}</text>
-            )}
-          </g>
-        )
-      })}
-      {stroke && stroke.length > 1 && <path d={toPath(stroke)} className="lw-plant-stroke" />}
+      {spines.map((s) => (
+        <PlantSpineShape
+          key={s.id}
+          spine={s}
+          time={time}
+          selected={selected?.id === s.id}
+          grabAngle={editor.grab?.spineId === s.id ? editor.grab.angle : undefined}
+        />
+      ))}
+      {handleProps && <SelectedSpineHandles {...handleProps} />}
+      {stroke && stroke.length > 1 && <path d={toPlantPath(stroke)} className="lw-plant-stroke" />}
       {stroke && <circle cx={stroke[0].x} cy={stroke[0].y} r={5} className="lw-plant-root" />}
+      {flash && (
+        <text x={0} y={composite.height / 2 - 18} textAnchor="middle" className="lw-plant-flash">{flash}</text>
+      )}
     </svg>
   )
 }

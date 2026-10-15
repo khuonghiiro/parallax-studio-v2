@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /**
  * Đồng hồ liên tục cho Xương thực vật: thanh phát lặp lại (vd 4s) sẽ nhảy thời gian về 0,
@@ -15,4 +15,30 @@ export function usePlantClockOffset(time: number, isPlaying: boolean, duration: 
   }
   state.prev = time
   return state.offset
+}
+
+/**
+ * Đồng hồ "gió trực tiếp" cho tab Thực vật: cây tự đung đưa ngay khi vẽ/chỉnh mà không cần bấm phát.
+ * enabled = false → về 0 (trả cây về đúng thời gian timeline); running = false → đứng hình tại chỗ (khi đang kéo tay nắm).
+ */
+export function usePlantLiveClock(enabled: boolean, running: boolean): number {
+  const [elapsed, setElapsed] = useState(0)
+  useEffect(() => {
+    if (!enabled) {
+      setElapsed(0)
+      return
+    }
+    if (!running) return
+    let frame = 0
+    let last = performance.now()
+    const tick = (now: number) => {
+      const delta = Math.min(0.1, (now - last) / 1000)
+      last = now
+      setElapsed((e) => e + delta)
+      frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [enabled, running])
+  return enabled ? elapsed : 0
 }
