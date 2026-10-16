@@ -1,14 +1,12 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 
 export interface UndoSnapshot {
-  imageData: ImageData
   alphaOverride: Int16Array
 }
 
 export interface UseCutterUndoRedoOptions {
-  procCanvasRef: React.RefObject<HTMLCanvasElement | null>
   userAlphaOverrideRef: React.MutableRefObject<Int16Array | null>
-  onRescanAfterManualEdit: (pctx: CanvasRenderingContext2D, w: number, h: number) => void
+  onRestoreSnapshot: () => void
   onCopyPiece?: () => void
   hasSelectedPiece?: boolean
   isEyedropperActive?: boolean
@@ -16,9 +14,8 @@ export interface UseCutterUndoRedoOptions {
 }
 
 export function useCutterUndoRedo({
-  procCanvasRef,
   userAlphaOverrideRef,
-  onRescanAfterManualEdit,
+  onRestoreSnapshot,
   onCopyPiece,
   hasSelectedPiece,
   isEyedropperActive,
@@ -37,12 +34,11 @@ export function useCutterUndoRedo({
   }, [])
 
   const pushUndoSnapshot = useCallback(
-    (pctx: CanvasRenderingContext2D, w: number, h: number) => {
-      const snapImg = pctx.getImageData(0, 0, w, h)
+    (w: number, h: number) => {
       const snapAlpha = userAlphaOverrideRef.current
         ? new Int16Array(userAlphaOverrideRef.current)
         : new Int16Array(w * h).fill(-1)
-      undoStackRef.current.push({ imageData: snapImg, alphaOverride: snapAlpha })
+      undoStackRef.current.push({ alphaOverride: snapAlpha })
       if (undoStackRef.current.length > 20) undoStackRef.current.shift()
       redoStackRef.current = []
       setCanUndo(true)
@@ -52,44 +48,34 @@ export function useCutterUndoRedo({
   )
 
   const handleUndo = useCallback(() => {
-    const proc = procCanvasRef.current
-    if (!proc || undoStackRef.current.length === 0) return
-    const pctx = proc.getContext('2d', { willReadFrequently: true })
-    if (!pctx) return
+    if (undoStackRef.current.length === 0) return
+    const currentAlpha = userAlphaOverrideRef.current
+    if (!currentAlpha) return
     const currentSnap: UndoSnapshot = {
-      imageData: pctx.getImageData(0, 0, proc.width, proc.height),
-      alphaOverride: userAlphaOverrideRef.current
-        ? new Int16Array(userAlphaOverrideRef.current)
-        : new Int16Array(proc.width * proc.height).fill(-1)
+      alphaOverride: new Int16Array(currentAlpha)
     }
     redoStackRef.current.push(currentSnap)
     const prevSnap = undoStackRef.current.pop()!
-    pctx.putImageData(prevSnap.imageData, 0, 0)
     userAlphaOverrideRef.current = new Int16Array(prevSnap.alphaOverride)
     setCanUndo(undoStackRef.current.length > 0)
     setCanRedo(true)
-    onRescanAfterManualEdit(pctx, proc.width, proc.height)
-  }, [procCanvasRef, userAlphaOverrideRef, onRescanAfterManualEdit])
+    onRestoreSnapshot()
+  }, [userAlphaOverrideRef, onRestoreSnapshot])
 
   const handleRedo = useCallback(() => {
-    const proc = procCanvasRef.current
-    if (!proc || redoStackRef.current.length === 0) return
-    const pctx = proc.getContext('2d', { willReadFrequently: true })
-    if (!pctx) return
+    if (redoStackRef.current.length === 0) return
+    const currentAlpha = userAlphaOverrideRef.current
+    if (!currentAlpha) return
     const currentSnap: UndoSnapshot = {
-      imageData: pctx.getImageData(0, 0, proc.width, proc.height),
-      alphaOverride: userAlphaOverrideRef.current
-        ? new Int16Array(userAlphaOverrideRef.current)
-        : new Int16Array(proc.width * proc.height).fill(-1)
+      alphaOverride: new Int16Array(currentAlpha)
     }
     undoStackRef.current.push(currentSnap)
     const nextSnap = redoStackRef.current.pop()!
-    pctx.putImageData(nextSnap.imageData, 0, 0)
     userAlphaOverrideRef.current = new Int16Array(nextSnap.alphaOverride)
     setCanUndo(true)
     setCanRedo(redoStackRef.current.length > 0)
-    onRescanAfterManualEdit(pctx, proc.width, proc.height)
-  }, [procCanvasRef, userAlphaOverrideRef, onRescanAfterManualEdit])
+    onRestoreSnapshot()
+  }, [userAlphaOverrideRef, onRestoreSnapshot])
 
   // Phím tắt ESC huỷ hút màu, Ctrl+Z / Ctrl+Y / Ctrl+C
   useEffect(() => {

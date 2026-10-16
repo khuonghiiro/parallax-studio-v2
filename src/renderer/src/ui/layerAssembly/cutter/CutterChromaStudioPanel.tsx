@@ -84,6 +84,15 @@ export function CutterChromaStudioPanel({
               </button>
               <button
                 type="button"
+                className={`cutter-color-pill ${keyType === 'chroma_blue' ? 'active blue' : ''}`}
+                onClick={() => handleSelectKeyPreset('chroma_blue', '#005CE6')}
+                title="Tách phông xanh dương chuẩn Studio (#005CE6)"
+              >
+                <span className="pill-dot" style={{ background: '#005CE6' }} />
+                <span>Lam</span>
+              </button>
+              <button
+                type="button"
                 className={`cutter-color-pill ${keyType === 'pure_white' ? 'active white' : ''}`}
                 onClick={() => handleSelectKeyPreset('pure_white', '#FFFFFF')}
                 title="Tách phông nền trắng (#FFFFFF)"
@@ -146,6 +155,15 @@ export function CutterChromaStudioPanel({
                   onChangeChroma({ fringeColorType: 'chroma_green', fringeColorHex: '#00DB4E' })
                 }
                 title="Khử viền ám xanh lá"
+              />
+              <button
+                type="button"
+                className={`mini-color-dot ${fringeType === 'chroma_blue' ? 'active' : ''}`}
+                style={{ background: '#005CE6' }}
+                onClick={() =>
+                  onChangeChroma({ fringeColorType: 'chroma_blue', fringeColorHex: '#005CE6' })
+                }
+                title="Khử viền ám xanh dương"
               />
               <button
                 type="button"

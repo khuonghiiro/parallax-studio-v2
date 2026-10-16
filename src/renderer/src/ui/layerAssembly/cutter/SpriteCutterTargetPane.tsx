@@ -18,7 +18,6 @@ import { LayerAssemblyCalloutOverlay } from '../LayerAssemblyCalloutOverlay'
 interface CutterPlacedLayerItemProps {
   layer: AssembledLayerItem
   assets?: LayerComposite['assets']
-  fallbackUrl?: string
   isSelected: boolean
   onPointerDown: (e: React.PointerEvent, layer: AssembledLayerItem) => void
   onPointerMove: (e: React.PointerEvent) => void
@@ -28,7 +27,6 @@ interface CutterPlacedLayerItemProps {
 function CutterPlacedLayerItem({
   layer,
   assets,
-  fallbackUrl,
   isSelected,
   onPointerDown,
   onPointerMove,
@@ -36,7 +34,7 @@ function CutterPlacedLayerItem({
 }: CutterPlacedLayerItemProps) {
   const resolvedUrl = useLayerAssetImage(
     layer.asset || layer.assetPath,
-    layer.imageUrl || fallbackUrl,
+    layer.imageUrl,
     assets
   )
   const currentScaleX = layer.scale * (layer.scaleX ?? 1)
@@ -84,7 +82,6 @@ function CutterPlacedLayerItem({
 
 export interface SpriteCutterTargetPaneProps {
   composite: LayerComposite
-  assetUrls?: Record<string, string>
   selectedLayerId: string | null
   selectedPiece: CutPiece | null
   onSelectLayer: (id: string | null, additive?: boolean) => void
@@ -96,7 +93,6 @@ export interface SpriteCutterTargetPaneProps {
 
 export function SpriteCutterTargetPane({
   composite,
-  assetUrls,
   selectedLayerId,
   selectedPiece,
   onSelectLayer,
@@ -636,14 +632,11 @@ export function SpriteCutterTargetPane({
 
             {/* Render Placed Layers in 2D Assembly */}
             {composite.layers.map((layer) => {
-              const fallbackUrl =
-                layer.assetPath && assetUrls?.[layer.assetPath] ? assetUrls[layer.assetPath] : ''
               return (
                 <CutterPlacedLayerItem
                   key={layer.id}
                   layer={layer}
                   assets={composite.assets}
-                  fallbackUrl={fallbackUrl}
                   isSelected={selectedLayerId === layer.id}
                   onPointerDown={handleLayerPointerDown}
                   onPointerMove={handleLayerPointerMove}

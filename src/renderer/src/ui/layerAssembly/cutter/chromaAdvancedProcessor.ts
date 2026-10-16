@@ -39,9 +39,69 @@ function resolveEffectiveKeyRgb(settings: ChromaKeySettings): { r: number; g: nu
     }
     return { r: 0, g: 219, b: 78 }
   }
+  if (keyType === 'chroma_blue') {
+    if (parsed.b > parsed.r + 25 && parsed.b > parsed.g + 15) return parsed
+    return { r: 0, g: 92, b: 230 }
+  }
   if (keyType === 'pure_white') return { r: 255, g: 255, b: 255 }
   if (keyType === 'pure_black') return { r: 0, g: 0, b: 0 }
   return parsed
+}
+
+function smoothstep(value: number): number {
+  const t = Math.max(0, Math.min(1, value))
+  return t * t * (3 - 2 * t)
+}
+
+/**
+ * Tạo matte alpha liên tục thay vì quyết định nhị phân. Khoảng chuyển tiếp mềm giúp giữ
+ * tóc, lông và pixel anti-alias trong khi ngưỡng cứng vẫn xoá sạch phông đồng màu.
+ */
+export function computeChromaMatteAlpha(
+  r: number,
+  g: number,
+  b: number,
+  sourceAlpha: number,
+  settings: ChromaKeySettings
+): number {
+  if (sourceAlpha <= 0) return 0
+  const keyType = settings.keyColorType || 'custom'
+  const key = resolveEffectiveKeyRgb(settings)
+  const tolerance = Math.max(0, Math.min(100, settings.tolerance))
+  const feather = Math.max(0, Math.min(30, settings.smoothness ?? 0))
+  let distance: number
+
+  if (keyType === 'chroma_green' || keyType === 'chroma_blue') {
+    const keyed = keyType === 'chroma_green' ? g : b
+    const keyChannel = keyType === 'chroma_green' ? key.g : key.b
+    const otherA = r
+    const otherB = keyType === 'chroma_green' ? b : g
+    const keyOtherA = key.r
+    const keyOtherB = keyType === 'chroma_green' ? key.b : key.g
+    const channelDelta = keyed - keyChannel
+    const otherDeltaA = otherA - keyOtherA
+    const otherDeltaB = otherB - keyOtherB
+    const rawDistance = Math.sqrt(
+      channelDelta * channelDelta * 0.48 +
+        otherDeltaA * otherDeltaA * 0.28 +
+        otherDeltaB * otherDeltaB * 0.24
+    )
+    const dominance = keyed - Math.max(otherA, otherB)
+    const keyDominance = keyChannel - Math.max(keyOtherA, keyOtherB)
+    const dominanceMatch = Math.max(0, Math.min(dominance, keyDominance) - 8)
+    distance = Math.max(0, rawDistance - dominanceMatch * 0.22)
+  } else {
+    const dr = r - key.r
+    const dg = g - key.g
+    const db = b - key.b
+    distance = Math.sqrt(dr * dr + dg * dg + db * db)
+  }
+
+  const hardThreshold = 5 + tolerance * 1.08
+  const transitionWidth = 8 + feather * 1.6 + tolerance * 0.18
+  if (distance <= hardThreshold) return 0
+  if (distance >= hardThreshold + transitionWidth) return sourceAlpha
+  return Math.round(sourceAlpha * smoothstep((distance - hardThreshold) / transitionWidth))
 }
 
 function classifyBackgroundPixels(
@@ -54,19 +114,7 @@ function classifyBackgroundPixels(
   shadowAlpha.fill(255)
 
   const keyType = settings.keyColorType || 'custom'
-  const tol = Math.max(0, Math.min(100, settings.tolerance)) / 100
-  const maxDist = tol * 255
   const shadowRet = Math.max(0, Math.min(100, settings.shadowRetention ?? 0)) / 100
-  const targetRgb = resolveEffectiveKeyRgb(settings)
-  const kr = targetRgb.r
-  const kg = targetRgb.g
-  const kb = targetRgb.b
-  const isTargetGreen =
-    keyType === 'chroma_green' || (kg > kr + 30 && kg > kb + 20 && kg > 70)
-
-  // Khoảng cách cơ sở tối thiểu để ngay cả khi kéo Tolerance về 0% vẫn bắt được đúng màu nền đã hút
-  const baseGreenDist = Math.max(26, maxDist * 1.22)
-  const baseCustomDist = Math.max(14, maxDist * 1.25)
 
   for (let p = 0; p < totalPixels; p++) {
     const idx = p * 4
@@ -81,58 +129,18 @@ function classifyBackgroundPixels(
     const g = data[idx + 1]
     const b = data[idx + 2]
 
-    if (isTargetGreen) {
-      const dr = r - kr
-      const dg = g - kg
-      const db = b - kb
-      const distToKey = Math.sqrt(0.32 * dr * dr + 0.46 * dg * dg + 0.22 * db * db)
-      const rbMax = r > b ? r : b
-      const greenDiff = g - rbMax
-      // Ngưỡng trội màu xanh lá linh hoạt theo màu nền thực tế (tránh ăn lẹm vào chi tiết áo màu vàng/kim)
-      const minGreenExcess = Math.max(14, Math.min(62, (kg - Math.max(kr, kb)) * 0.42 - maxDist * 0.28))
-      const isStrongGreen = g > 65 && greenDiff > minGreenExcess && Math.abs(r - b) < 85 + maxDist * 0.4
-
-      if (distToKey <= baseGreenDist || (isStrongGreen && distToKey <= baseGreenDist + 52)) {
-        isBg[p] = 1
-        shadowAlpha[p] = 0
-      } else if (distToKey <= baseGreenDist + 24 && greenDiff > 8) {
-        // Vùng chuyển tiếp nửa trong suốt sát biên: gán alpha mượt để giảm viền răng cưa
-        isBg[p] = 1
-        const ratio = (distToKey - baseGreenDist) / 24
-        shadowAlpha[p] = Math.round(Math.max(0, Math.min(1, ratio)) * a * 0.55)
-      }
-    } else if (keyType === 'pure_white') {
-      const dr = 255 - r
-      const dg = 255 - g
-      const db = 255 - b
-      const distToWhite = Math.sqrt(dr * dr + dg * dg + db * db)
-      const maxC = r > g ? (r > b ? r : b) : g > b ? g : b
-      const minC = r < g ? (r < b ? r : b) : g < b ? g : b
-      const colorSpread = maxC - minC
-      const whiteThresh = Math.max(10, maxDist)
-      if (distToWhite < whiteThresh) {
-        isBg[p] = 1
-        shadowAlpha[p] = 0
-      } else if (shadowRet > 0 && colorSpread < 30 && distToWhite < whiteThresh + shadowRet * 180) {
-        isBg[p] = 1
+    let matteAlpha = computeChromaMatteAlpha(r, g, b, a, settings)
+    if (keyType === 'pure_white' && shadowRet > 0 && matteAlpha < a) {
+      const maxC = Math.max(r, g, b)
+      const minC = Math.min(r, g, b)
+      if (maxC - minC < 32) {
         const darkness = Math.min(1, (255 - (r + g + b) / 3) / 180)
-        shadowAlpha[p] = Math.round(darkness * shadowRet * 220)
+        matteAlpha = Math.max(matteAlpha, Math.round(darkness * shadowRet * 220))
       }
-    } else if (keyType === 'pure_black') {
-      const distToBlack = Math.sqrt(r * r + g * g + b * b)
-      if (distToBlack < Math.max(10, maxDist)) {
-        isBg[p] = 1
-        shadowAlpha[p] = 0
-      }
-    } else {
-      const dr = r - kr
-      const dg = g - kg
-      const db = b - kb
-      const dist = Math.sqrt(dr * dr + dg * dg + db * db)
-      if (dist < baseCustomDist) {
-        isBg[p] = 1
-        shadowAlpha[p] = 0
-      }
+    }
+    if (matteAlpha < a) {
+      isBg[p] = 1
+      shadowAlpha[p] = matteAlpha
     }
   }
 
@@ -326,6 +334,8 @@ function applyDefringeAndDespill(
   const fringeRgb =
     fringeType === 'chroma_green'
       ? resolveEffectiveKeyRgb({ ...settings, keyColorType: 'chroma_green' })
+      : fringeType === 'chroma_blue'
+      ? resolveEffectiveKeyRgb({ ...settings, keyColorType: 'chroma_blue' })
       : fringeType === 'pure_white'
       ? { r: 255, g: 255, b: 255 }
       : fringeType === 'pure_black'
@@ -334,6 +344,8 @@ function applyDefringeAndDespill(
 
   const isGreenFringe =
     fringeType === 'chroma_green' || (fringeRgb.g > fringeRgb.r + 25 && fringeRgb.g > fringeRgb.b + 15)
+  const isBlueFringe =
+    fringeType === 'chroma_blue' || (fringeRgb.b > fringeRgb.r + 25 && fringeRgb.b > fringeRgb.g + 15)
 
   const boundary = collectBoundaryIndices(data, w, h, alphaSnap)
   const maxFringeDistSq = (45 + strength * 165) ** 2
@@ -356,6 +368,19 @@ function applyDefringeAndDespill(
         g = Math.round(g - (g - targetG) * Math.min(1, strength * 1.3))
         data[idx + 1] = g
         const spill = data[idx + 1] - rbMax
+        if (spill > 10) {
+          a = Math.max(0, Math.round(a - spill * strength * 1.6))
+          data[idx + 3] = a
+        }
+      }
+    } else if (isBlueFringe) {
+      const rgMax = r > g ? r : g
+      const rgAvg = (r + g) * 0.5
+      if (b > rgAvg) {
+        const targetB = rgMax * (1 - strength * 0.45) + rgAvg * (strength * 0.45)
+        b = Math.round(b - (b - targetB) * Math.min(1, strength * 1.3))
+        data[idx + 2] = b
+        const spill = data[idx + 2] - rgMax
         if (spill > 10) {
           a = Math.max(0, Math.round(a - spill * strength * 1.6))
           data[idx + 3] = a
@@ -664,6 +689,28 @@ export function processAdvancedChromaPixelData(
 /**
  * Công cụ Đũa thần (Magic Wand): Click 1 điểm để xoá (hoặc khôi phục) vùng màu liên thông đồng nhất.
  */
+function queueWandNeighbor(
+  pixel: number,
+  visited: Uint8Array,
+  queue: Int32Array,
+  tail: number,
+  refData: Uint8ClampedArray,
+  targetData: Uint8ClampedArray,
+  seed: { r: number; g: number; b: number },
+  maxDistSq: number,
+  isRestore: boolean
+): number {
+  if (visited[pixel]) return tail
+  visited[pixel] = 1
+  const i = pixel * 4
+  if (!isRestore && targetData[i + 3] === 0) return tail
+  const dr = refData[i] - seed.r
+  const dg = refData[i + 1] - seed.g
+  const db = refData[i + 2] - seed.b
+  if (dr * dr + dg * dg + db * db <= maxDistSq) queue[tail++] = pixel
+  return tail
+}
+
 export function applyMagicWandFlood(
   targetData: Uint8ClampedArray,
   rawData: Uint8ClampedArray | null,
@@ -684,6 +731,7 @@ export function applyMagicWandFlood(
   const sr = refData[seedIdx]
   const sg = refData[seedIdx + 1]
   const sb = refData[seedIdx + 2]
+  const seed = { r: sr, g: sg, b: sb }
 
   const maxDistSq = Math.max(8, (tolerance / 100) * 255 * 1.45) ** 2
   const visited = new Uint8Array(totalPixels)
@@ -715,23 +763,25 @@ export function applyMagicWandFlood(
       changedCount++
     }
 
-    const neighbors = [
-      cx > 0 ? p - 1 : -1,
-      cx < w - 1 ? p + 1 : -1,
-      cy > 0 ? p - w : -1,
-      cy < h - 1 ? p + w : -1
-    ]
-    for (const n of neighbors) {
-      if (n < 0 || visited[n]) continue
-      visited[n] = 1
-      const ni = n * 4
-      if (!isRestore && targetData[ni + 3] === 0) continue
-      const dr = refData[ni] - sr
-      const dg = refData[ni + 1] - sg
-      const db = refData[ni + 2] - sb
-      if (dr * dr + dg * dg + db * db <= maxDistSq) {
-        queue[tail++] = n
-      }
+    if (cx > 0) {
+      tail = queueWandNeighbor(
+        p - 1, visited, queue, tail, refData, targetData, seed, maxDistSq, isRestore
+      )
+    }
+    if (cx < w - 1) {
+      tail = queueWandNeighbor(
+        p + 1, visited, queue, tail, refData, targetData, seed, maxDistSq, isRestore
+      )
+    }
+    if (cy > 0) {
+      tail = queueWandNeighbor(
+        p - w, visited, queue, tail, refData, targetData, seed, maxDistSq, isRestore
+      )
+    }
+    if (cy < h - 1) {
+      tail = queueWandNeighbor(
+        p + w, visited, queue, tail, refData, targetData, seed, maxDistSq, isRestore
+      )
     }
   }
 

@@ -11,8 +11,6 @@ import type {
 } from './types'
 import { DEFAULT_CHROMA_SETTINGS } from './types'
 import {
-  applyChromaKey,
-  scanRawIslandsFromData,
   clusterAndFilterIslands,
   extractRegionDataUrl,
   createCutterStroke,
@@ -39,6 +37,8 @@ import { SpriteCutterHeader } from './SpriteCutterHeader'
 import { SpriteCutterFooter } from './SpriteCutterFooter'
 import { SpriteCutterOverlays } from './SpriteCutterOverlays'
 import { useCutterUndoRedo } from './useCutterUndoRedo'
+import { useChromaPreviewWorker } from './useChromaPreviewWorker'
+import { extractHighResRegionDataUrl } from './highResCutterExport'
 import { SAMPLE_ANIME_SPRITESHEET_URL } from './sampleSpriteSheet'
 
 /** Độ phân giải buffer tương tác tối đa để đảm bảo 60fps trên cả ảnh 4K/8K (vẫn giữ ảnh gốc 4K/8K khi cắt xuất mảnh) */
@@ -82,6 +82,7 @@ export function SpriteCutterSourcePane({
   const activeStrokeRef = useRef<CutterStrokeSession | null>(null)
   const lastPointRef = useRef<{ x: number; y: number } | null>(null)
   const brushCursorElRef = useRef<HTMLDivElement | null>(null)
+  const isManualEditingRef = useRef(false)
 
   const [marquee, setMarquee] = useState<{
     startX: number
@@ -112,7 +113,17 @@ export function SpriteCutterSourcePane({
   const procCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const viewportWrapRef = useRef<HTMLDivElement | null>(null)
-  const rafIdRef = useRef<number | null>(null)
+
+  const { requestProcessing: requestChromaProcessing } = useChromaPreviewWorker({
+    chroma,
+    imageRevision: imageDecodeRev,
+    rawDataRef: workRawDataRef,
+    procCanvasRef,
+    alphaOverrideRef: userAlphaOverrideRef,
+    workScaleRef,
+    pausedRef: isManualEditingRef,
+    onIslands: setRawIslands
+  })
 
   useEffect(() => {
     const el = viewportWrapRef.current
@@ -147,13 +158,8 @@ export function SpriteCutterSourcePane({
 
   // Tái quét mảnh cắt sau khi chỉnh sửa thủ công
   const rescanAfterManualEdit = useCallback(
-    (pctx: CanvasRenderingContext2D, w: number, h: number) => {
-      if (chroma.enabled && chroma.previewMode !== 'original') {
-        const pData = pctx.getImageData(0, 0, w, h).data
-        setRawIslands(scanRawIslandsFromData(pData, w, h, 1 / workScaleRef.current))
-      }
-    },
-    [chroma.enabled, chroma.previewMode]
+    () => requestChromaProcessing(),
+    [requestChromaProcessing]
   )
 
   const handleCopyPiece = useCallback(() => {
@@ -174,9 +180,8 @@ export function SpriteCutterSourcePane({
     handleUndo,
     handleRedo
   } = useCutterUndoRedo({
-    procCanvasRef,
     userAlphaOverrideRef,
-    onRescanAfterManualEdit: rescanAfterManualEdit,
+    onRestoreSnapshot: requestChromaProcessing,
     onCopyPiece: handleCopyPiece,
     hasSelectedPiece: Boolean(selectedPiece),
     isEyedropperActive: Boolean(eyedropperTarget),
@@ -205,7 +210,8 @@ export function SpriteCutterSourcePane({
       }
       full.width = natW
       full.height = natH
-      const fctx = full.getContext('2d', { willReadFrequently: true })
+      // Canvas gốc chỉ dùng draw/crop; không ép CPU backing store để tránh khựng khi nạp 8K.
+      const fctx = full.getContext('2d')
       if (fctx) {
         fctx.clearRect(0, 0, natW, natH)
         fctx.drawImage(img, 0, 0)
@@ -227,6 +233,8 @@ export function SpriteCutterSourcePane({
       workRaw.height = workH
       const rctx = workRaw.getContext('2d', { willReadFrequently: true })
       if (!rctx) return
+      rctx.imageSmoothingEnabled = true
+      rctx.imageSmoothingQuality = 'high'
       rctx.clearRect(0, 0, workW, workH)
       rctx.drawImage(img, 0, 0, workW, workH)
 
@@ -250,66 +258,7 @@ export function SpriteCutterSourcePane({
     }
   }, [imageUrl, detectCornerBgPreset, clearStacks])
 
-  // Bước 2: Chạy bộ lọc Chroma Key trên working buffer qua requestAnimationFrame (60fps, <5ms/frame)
-  const runChromaAndScan = useCallback(() => {
-    const workRaw = workRawCanvasRef.current
-    const proc = procCanvasRef.current
-    const cachedRawData = workRawDataRef.current
-    if (!workRaw || !proc || !cachedRawData) return
-
-    const rctx = workRaw.getContext('2d', { willReadFrequently: true })
-    const pctx = proc.getContext('2d', { willReadFrequently: true })
-    if (!rctx || !pctx) return
-
-    const workW = workRaw.width
-    const workH = workRaw.height
-    const wScale = workScaleRef.current
-
-    // Quy đổi các bán kính sang tỷ lệ working buffer để viền hiển thị khớp với ảnh gốc
-    const scaledChroma: ChromaKeySettings =
-      wScale < 1
-        ? {
-            ...chroma,
-            smoothness: Number(((chroma.smoothness ?? 2) * wScale).toFixed(2)),
-            edgeChoke: Number(((chroma.edgeChoke ?? 0) * wScale).toFixed(2)),
-            strokeWidth: (chroma.strokeWidth ?? 0) > 0 ? Math.max(1, Math.round((chroma.strokeWidth ?? 0) * wScale)) : 0,
-            despeckleSize: Math.max(0, Math.round((chroma.despeckleSize ?? 16) * wScale * wScale))
-          }
-        : chroma
-
-    applyChromaKey(
-      rctx,
-      pctx,
-      workW,
-      workH,
-      scaledChroma,
-      cachedRawData,
-      userAlphaOverrideRef.current
-    )
-
-    if (chroma.enabled && chroma.previewMode !== 'original') {
-      const pData = pctx.getImageData(0, 0, workW, workH).data
-      const scanned = scanRawIslandsFromData(pData, workW, workH, 1 / wScale)
-      setRawIslands(scanned)
-    } else {
-      setRawIslands([])
-    }
-  }, [chroma])
-
-  useEffect(() => {
-    if (rafIdRef.current !== null) {
-      cancelAnimationFrame(rafIdRef.current)
-    }
-    rafIdRef.current = requestAnimationFrame(() => {
-      rafIdRef.current = null
-      runChromaAndScan()
-    })
-    return () => {
-      if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current)
-    }
-  }, [runChromaAndScan, imageDecodeRev])
-
-  // Bước 3: Gom cụm & lọc mảnh cắt trong <0.1ms khi kéo thanh trượt Lọc vụn / Gom nét gần
+  // Bước 2: Worker tách nền + quét đảo ngoài main thread; UI chỉ gom cụm kết quả.
   const islands = useMemo(() => {
     if (!chroma.enabled || chroma.previewMode === 'original' || rawIslands.length === 0) {
       return []
@@ -339,21 +288,35 @@ export function SpriteCutterSourcePane({
   }, [])
 
   const extractPieceFromBox = useCallback(
-    (box: { x: number; y: number; width: number; height: number }, polygon?: CutPoint[]) => {
+    async (box: { x: number; y: number; width: number; height: number }, polygon?: CutPoint[]) => {
       const proc = procCanvasRef.current
       if (!proc) return ''
-      return extractRegionDataUrl(proc, box, polygon, fullRawCanvasRef.current, chroma)
+      const hasManualEdits = Boolean(
+        userAlphaOverrideRef.current?.some((alpha) => alpha >= 0)
+      )
+      try {
+        return await extractHighResRegionDataUrl(
+          proc,
+          box,
+          polygon,
+          fullRawCanvasRef.current,
+          chroma,
+          hasManualEdits
+        )
+      } catch {
+        return extractRegionDataUrl(proc, box, polygon, fullRawCanvasRef.current, chroma)
+      }
     },
     [chroma]
   )
 
   const handleSelectIsland = useCallback(
-    (isl: DetectedIsland) => {
+    async (isl: DetectedIsland) => {
       setSelectedIslandId(isl.id)
       setMarquee(null)
       setLassoPoints([])
 
-      const dataUrl = extractPieceFromBox(isl)
+      const dataUrl = await extractPieceFromBox(isl)
       if (!dataUrl) return
       const piece: CutPiece = {
         id: isl.id,
@@ -372,8 +335,8 @@ export function SpriteCutterSourcePane({
   )
 
   const handleQuickAddIsland = useCallback(
-    (isl: DetectedIsland) => {
-      const dataUrl = extractPieceFromBox(isl)
+    async (isl: DetectedIsland) => {
+      const dataUrl = await extractPieceFromBox(isl)
       if (!dataUrl) return
       const piece: CutPiece = {
         id: isl.id,
@@ -389,14 +352,14 @@ export function SpriteCutterSourcePane({
     [extractPieceFromBox, onSelectPiece, onTransferToTarget]
   )
 
-  const handleSendAllToBoard = useCallback(() => {
+  const handleSendAllToBoard = useCallback(async () => {
     if (activeIslands.length === 0) return
     const centerX = imgNaturalSize.w / 2
     const centerY = imgNaturalSize.h / 2
     const scaleToBoard = Math.min(1, 460 / Math.max(imgNaturalSize.w, imgNaturalSize.h))
 
     for (const isl of activeIslands) {
-      const dataUrl = extractPieceFromBox(isl)
+      const dataUrl = await extractPieceFromBox(isl)
       if (!dataUrl) continue
       const relX = Math.round((isl.x + isl.width / 2 - centerX) * scaleToBoard)
       const relY = Math.round((isl.y + isl.height / 2 - centerY) * scaleToBoard)
@@ -484,7 +447,7 @@ export function SpriteCutterSourcePane({
       if (workRaw && proc && rawData) {
         const pctx = proc.getContext('2d', { willReadFrequently: true })
         if (pctx) {
-          pushUndoSnapshot(pctx, proc.width, proc.height)
+          pushUndoSnapshot(proc.width, proc.height)
           const pImg = pctx.getImageData(0, 0, proc.width, proc.height)
           const changed = applyMagicWandFlood(
             pImg.data,
@@ -499,7 +462,7 @@ export function SpriteCutterSourcePane({
           )
           if (changed > 0) {
             pctx.putImageData(pImg, 0, 0)
-            rescanAfterManualEdit(pctx, proc.width, proc.height)
+            rescanAfterManualEdit()
           }
         }
       }
@@ -507,6 +470,7 @@ export function SpriteCutterSourcePane({
     }
 
     if (tool === 'eraser' || tool === 'restore') {
+      isManualEditingRef.current = true
       setIsDrawing(true)
       const workRaw = workRawCanvasRef.current
       const proc = procCanvasRef.current
@@ -514,7 +478,7 @@ export function SpriteCutterSourcePane({
         const rctx = workRaw.getContext('2d', { willReadFrequently: true })
         const pctx = proc.getContext('2d', { willReadFrequently: true })
         if (rctx && pctx) {
-          pushUndoSnapshot(pctx, proc.width, proc.height)
+          pushUndoSnapshot(proc.width, proc.height)
           const scaledRadius = Math.max(1, brushRadius * workScaleRef.current)
           const stroke = createCutterStroke(
             pctx,
@@ -527,7 +491,8 @@ export function SpriteCutterSourcePane({
               opacity: brushOpacity,
               isEraser: tool === 'eraser'
             },
-            userAlphaOverrideRef.current
+            userAlphaOverrideRef.current,
+            workRawDataRef.current
           )
           stroke.segment({ x: workX, y: workY }, { x: workX, y: workY })
           stroke.commit()
@@ -627,9 +592,10 @@ export function SpriteCutterSourcePane({
     }
   }
 
-  const handleCanvasPointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+  const handleCanvasPointerUp = async (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return
     setIsDrawing(false)
+    if (tool === 'eraser' || tool === 'restore') isManualEditingRef.current = false
     try {
       e.currentTarget.releasePointerCapture(e.pointerId)
     } catch {}
@@ -644,7 +610,7 @@ export function SpriteCutterSourcePane({
       }
       lastPointRef.current = null
       const pctx = proc.getContext('2d', { willReadFrequently: true })
-      if (pctx) rescanAfterManualEdit(pctx, proc.width, proc.height)
+      if (pctx) rescanAfterManualEdit()
       return
     }
 
@@ -655,7 +621,7 @@ export function SpriteCutterSourcePane({
       const h = Math.abs(marquee.currentY - marquee.startY)
       if (w >= 10 && h >= 10) {
         const box = { x: minX, y: minY, width: w, height: h }
-        const dataUrl = extractPieceFromBox(box)
+        const dataUrl = await extractPieceFromBox(box)
         const piece: CutPiece = {
           id: `box-${Date.now()}`,
           dataUrl,
@@ -684,7 +650,7 @@ export function SpriteCutterSourcePane({
       const h = maxY - minY
       if (w >= 10 && h >= 10) {
         const box = { x: minX, y: minY, width: w, height: h }
-        const dataUrl = extractPieceFromBox(box, lassoPoints)
+        const dataUrl = await extractPieceFromBox(box, lassoPoints)
         const piece: CutPiece = {
           id: `lasso-${Date.now()}`,
           dataUrl,
@@ -884,6 +850,7 @@ export function SpriteCutterSourcePane({
             onPointerDown={handleCanvasPointerDown}
             onPointerMove={handleCanvasPointerMove}
             onPointerUp={handleCanvasPointerUp}
+            onPointerCancel={handleCanvasPointerUp}
             onPointerLeave={() => {
               if (brushCursorElRef.current) {
                 brushCursorElRef.current.style.display = 'none'

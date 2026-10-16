@@ -15,7 +15,12 @@ export type CutToolMode = CutterToolMode
 
 export type EyedropperTarget = 'key' | 'fringe' | 'smooth'
 
-export type ChromaKeyColorType = 'chroma_green' | 'pure_white' | 'pure_black' | 'custom'
+export type ChromaKeyColorType =
+  | 'chroma_green'
+  | 'chroma_blue'
+  | 'pure_white'
+  | 'pure_black'
+  | 'custom'
 
 export type ChromaIsolationMode = 'all' | 'outer_only'
 
@@ -140,12 +145,17 @@ export interface TemplateSlotDef {
   height: number
   /** Suggested Z order */
   z?: number
+  role?: string
+  scale?: number
+  rotation?: number
 }
 
 export interface TemplateSlotPreset {
   id: string
   name: string
   description: string
+  category?: 'character' | 'nature' | 'architecture' | 'custom'
   isCustom?: boolean
+  createdAt?: string
   slots: TemplateSlotDef[]
 }

@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { hexToRgb, computeColorDist, extractRegionDataUrl, createCutterStroke } from './chromaKey'
+import {
+  hexToRgb,
+  computeColorDist,
+  extractRegionDataUrl,
+  createCutterStroke,
+  scanRawIslandsFromData
+} from './chromaKey'
+import { computeChromaMatteAlpha } from './chromaAdvancedProcessor'
+import { DEFAULT_CHROMA_SETTINGS } from './types'
 
 describe('chromaKey algorithms', () => {
   it('correctly converts hex colors to rgb', () => {
@@ -17,6 +25,43 @@ describe('chromaKey algorithms', () => {
     // Small variation
     const nearGreen = computeColorDist(10, 245, 10, 0, 255, 0)
     expect(nearGreen).toBeLessThan(10)
+  })
+
+  it('builds a soft chroma matte while preserving non-key subject colors', () => {
+    const settings = {
+      ...DEFAULT_CHROMA_SETTINGS,
+      keyColorType: 'chroma_green' as const,
+      keyColorHex: '#00DB4E',
+      tolerance: 36,
+      smoothness: 8
+    }
+    expect(computeChromaMatteAlpha(0, 219, 78, 255, settings)).toBe(0)
+    const edgeAlpha = computeChromaMatteAlpha(120, 180, 100, 255, settings)
+    expect(edgeAlpha).toBeGreaterThan(0)
+    expect(edgeAlpha).toBeLessThan(255)
+    expect(computeChromaMatteAlpha(220, 45, 35, 255, settings)).toBe(255)
+  })
+
+  it('supports blue-screen matte extraction', () => {
+    const settings = {
+      ...DEFAULT_CHROMA_SETTINGS,
+      keyColorType: 'chroma_blue' as const,
+      keyColorHex: '#005CE6'
+    }
+    expect(computeChromaMatteAlpha(0, 92, 230, 255, settings)).toBe(0)
+    expect(computeChromaMatteAlpha(230, 70, 30, 255, settings)).toBe(255)
+  })
+
+  it('maps proxy island bounds back to natural 8K coordinates', () => {
+    const width = 20
+    const height = 20
+    const pixels = new Uint8ClampedArray(width * height * 4)
+    for (let y = 4; y < 8; y++) {
+      for (let x = 5; x < 9; x++) pixels[(y * width + x) * 4 + 3] = 255
+    }
+    const islands = scanRawIslandsFromData(pixels, width, height, 4)
+    expect(islands).toHaveLength(1)
+    expect(islands[0]).toMatchObject({ x: 12, y: 8, width: 32, height: 32, area: 256 })
   })
 
   it('handles extractRegionDataUrl with mock canvas', () => {

@@ -172,8 +172,8 @@ export function scanRawIslandsFromData(
   const queue = new Int32Array(total)
   const rawIslands: DetectedIsland[] = []
   const step = 2
-  const invScale = coordScale > 0 ? 1 / coordScale : 1
-  const areaScale = invScale * invScale
+  const outputScale = coordScale > 0 ? coordScale : 1
+  const areaScale = outputScale * outputScale
 
   for (let sy = 0; sy < height; sy += step) {
     const rowOff = sy * width
@@ -239,10 +239,10 @@ export function scanRawIslandsFromData(
         const padMaxX = Math.min(width - 1, maxX + 2)
         const padMaxY = Math.min(height - 1, maxY + 2)
 
-        const rx = Math.round(padMinX * invScale)
-        const ry = Math.round(padMinY * invScale)
-        const rw = Math.max(4, Math.round((padMaxX - padMinX + 1) * invScale))
-        const rh = Math.max(4, Math.round((padMaxY - padMinY + 1) * invScale))
+        const rx = Math.round(padMinX * outputScale)
+        const ry = Math.round(padMinY * outputScale)
+        const rw = Math.max(4, Math.round((padMaxX - padMinX + 1) * outputScale))
+        const rh = Math.max(4, Math.round((padMaxY - padMinY + 1) * outputScale))
 
         rawIslands.push({
           id: `raw-${rawIslands.length + 1}`,
@@ -384,13 +384,20 @@ export function createCutterStroke(
   width: number,
   height: number,
   settings: CutterStrokeSettings,
-  userAlphaOverride?: Int16Array | null
+  userAlphaOverride?: Int16Array | null,
+  cachedRawData?: ImageData | null
 ): CutterStrokeSession {
   const targetImg = targetCtx.getImageData(0, 0, width, height)
   const tdata = targetImg.data
-  const rdata = !settings.isEraser && rawCtx ? rawCtx.getImageData(0, 0, width, height).data : null
+  const rdata =
+    !settings.isEraser && cachedRawData?.width === width && cachedRawData.height === height
+      ? cachedRawData.data
+      : !settings.isEraser && rawCtx
+        ? rawCtx.getImageData(0, 0, width, height).data
+        : null
 
-  const coverage = new Float32Array(width * height)
+  // Uint8 đủ chính xác cho độ phủ cọ và dùng ít hơn 75% bộ nhớ so với Float32Array.
+  const coverage = new Uint8Array(width * height)
   const initialAlpha = new Uint8Array(width * height)
   for (let i = 0; i < width * height; i++) {
     initialAlpha[i] = tdata[i * 4 + 3]
@@ -431,8 +438,9 @@ export function createCutterStroke(
         const fade = Math.max(0, Math.min(1, (1 - dist) / feather))
         const amount = fade * fade * (3 - 2 * fade)
         const i = y * width + x
-        if (amount <= coverage[i]) continue
-        coverage[i] = amount
+        const amountByte = Math.round(amount * 255)
+        if (amountByte <= coverage[i]) continue
+        coverage[i] = amountByte
 
         const idx = i * 4
         if (isEraser) {

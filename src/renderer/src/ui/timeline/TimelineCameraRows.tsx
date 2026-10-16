@@ -116,7 +116,7 @@ export function TimelineCameraRows({
                     width: spanW,
                     ['--cam-span-color' as string]: shotColor
                   }}
-                  title={`Đoạn #${idx + 1} → #${idx + 2}: ${next.actionLabel} (${(next.time - wp.time).toFixed(2)}s)`}
+                  title={`Đoạn #${idx + 1} → #${idx + 2}: ${next.tagLabel} (${(next.time - wp.time).toFixed(2)}s)`}
                 >
                   {spanW > 52 && (
                     <span className="tl-cam-tween-label">
@@ -140,7 +140,7 @@ export function TimelineCameraRows({
                     left: x(wp.time),
                     ['--wp-color' as string]: shotColor
                   }}
-                  title={`${wp.isFirstOfShot ? `⚑ MỐC MỞ ĐẦU CẢNH: ${wp.shotName}\n` : ''}Mốc Camera #${idx + 1} @ ${wp.time.toFixed(2)}s · ${wp.shotName} · ${wp.actionLabel}\n💡 Click để chọn & mở Lộ trình, kéo ngang để dời thời gian mốc`}
+                  title={`${wp.isFirstOfShot ? `⚑ MỐC MỞ ĐẦU CẢNH: ${wp.shotName}\n` : ''}Mốc Camera #${idx + 1} @ ${wp.time.toFixed(2)}s · ${wp.shotName} · ${wp.tagLabel}\n💡 Click để chọn & mở Lộ trình, kéo ngang để dời thời gian mốc`}
                   onPointerDown={(e) => onStartCameraWaypointDrag(e, wp.time, wp.shotId)}
                 >
                   {wp.isFirstOfShot && <span className="tl-cam-wp-flag">⚑</span>}

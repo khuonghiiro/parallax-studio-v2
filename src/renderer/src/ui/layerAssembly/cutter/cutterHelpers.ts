@@ -6,22 +6,55 @@ export interface DetectedCornerPreset {
   hex: string
 }
 
-/** Tự động phát hiện màu phông nền ở 4 góc ảnh */
-export function detectCornerBackground(rctx: CanvasRenderingContext2D): DetectedCornerPreset | null {
-  const p = rctx.getImageData(2, 2, 1, 1).data
-  const [r, g, b, a] = [p[0], p[1], p[2], p[3]]
-  if (a < 30) return null
+function classifyCornerColor(r: number, g: number, b: number): DetectedCornerPreset {
   const hex = rgbToHex(r, g, b)
-  if (g > 130 && g > r + 40 && g > b + 40) {
-    return { type: 'chroma_green', hex }
-  } else if (b > 130 && b > r + 30 && b > g + 30) {
-    return { type: 'chroma_blue', hex }
-  } else if (r < 25 && g < 25 && b < 25) {
-    return { type: 'pure_black', hex: '#000000' }
-  } else if (r > 235 && g > 235 && b > 235) {
-    return { type: 'pure_white', hex: '#FFFFFF' }
-  }
+  if (g > 110 && g > r + 32 && g > b + 28) return { type: 'chroma_green', hex }
+  if (b > 110 && b > r + 28 && b > g + 24) return { type: 'chroma_blue', hex }
+  if (r < 30 && g < 30 && b < 30) return { type: 'pure_black', hex: '#000000' }
+  if (r > 228 && g > 228 && b > 228) return { type: 'pure_white', hex: '#FFFFFF' }
   return { type: 'custom', hex }
+}
+
+/** Tự động phát hiện màu phông bằng cụm màu ổn định nhất trong bốn góc ảnh. */
+export function detectCornerBackground(rctx: CanvasRenderingContext2D): DetectedCornerPreset | null {
+  const w = Math.max(1, rctx.canvas.width)
+  const h = Math.max(1, rctx.canvas.height)
+  const size = Math.max(1, Math.min(7, Math.floor(Math.min(w, h) / 12)))
+  const inset = Math.max(0, Math.floor(Math.min(w, h) * 0.012))
+  const points = [
+    [inset, inset],
+    [Math.max(0, w - inset - size), inset],
+    [inset, Math.max(0, h - inset - size)],
+    [Math.max(0, w - inset - size), Math.max(0, h - inset - size)]
+  ]
+  const samples: Array<{ r: number; g: number; b: number }> = []
+  for (const [x, y] of points) {
+    const data = rctx.getImageData(x, y, size, size).data
+    let rr = 0
+    let gg = 0
+    let bb = 0
+    let count = 0
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 30) continue
+      rr += data[i]
+      gg += data[i + 1]
+      bb += data[i + 2]
+      count++
+    }
+    if (count > 0) samples.push({ r: rr / count, g: gg / count, b: bb / count })
+  }
+  if (samples.length === 0) return null
+
+  const selected = samples.reduce((best, sample) => {
+    const distances = samples
+      .filter((other) => other !== sample)
+      .map((other) => Math.hypot(sample.r - other.r, sample.g - other.g, sample.b - other.b))
+      .sort((a, b) => a - b)
+    const score = (distances[0] ?? 0) + (distances[1] ?? 0)
+    return score < best.score ? { sample, score } : best
+  }, { sample: samples[0], score: Number.POSITIVE_INFINITY }).sample
+
+  return classifyCornerColor(Math.round(selected.r), Math.round(selected.g), Math.round(selected.b))
 }
 
 export interface CanvasPointerCoords {
