@@ -53,17 +53,40 @@ export function applyChromaKey(
   targetCtx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  settings: ChromaKeySettings
+  settings: ChromaKeySettings,
+  cachedRawData?: ImageData | null,
+  userAlphaOverride?: Int16Array | null
 ): void {
-  const imgData = sourceCtx.getImageData(0, 0, width, height)
+  // Ưu tiên dùng cached raw data (đã decode 1 lần) thay vì getImageData lại ảnh 4K/8K
+  let imgData: ImageData
+  if (cachedRawData && cachedRawData.width === width && cachedRawData.height === height) {
+    imgData = new ImageData(new Uint8ClampedArray(cachedRawData.data), width, height)
+  } else {
+    imgData = sourceCtx.getImageData(0, 0, width, height)
+  }
+
   if (!settings.enabled || settings.previewMode === 'original') {
     targetCtx.putImageData(imgData, 0, 0)
     return
   }
 
   processAdvancedChromaPixelData(imgData.data, width, height, settings)
+
+  // Áp dụng các thao tác thủ công (Cọ tẩy/Khôi phục) lên trên kết quả tách nền
+  if (userAlphaOverride) {
+    const data = imgData.data
+    const total = width * height
+    for (let p = 0; p < total; p++) {
+      const override = userAlphaOverride[p]
+      if (override >= 0) {
+        data[p * 4 + 3] = Math.max(0, Math.min(255, override))
+      }
+    }
+  }
+
   targetCtx.putImageData(imgData, 0, 0)
 }
+
 
 /**
  * Lấy mẫu màu pixel kèm lưới lân cận 9x9 để hiển thị kính lúp & vòng đối chiếu kiểu Adobe Photoshop

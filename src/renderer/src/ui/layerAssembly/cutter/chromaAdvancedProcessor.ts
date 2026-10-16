@@ -672,13 +672,15 @@ export function applyMagicWandFlood(
   startX: number,
   startY: number,
   tolerance = 32,
-  restore = false
-): { changed: boolean; minX: number; minY: number; maxX: number; maxY: number } {
+  mode: 'erase' | 'restore' | boolean = false,
+  userAlphaOverride?: Int16Array | null
+): number {
+  const isRestore = mode === 'restore' || mode === true
   const sx = Math.max(0, Math.min(w - 1, Math.round(startX)))
   const sy = Math.max(0, Math.min(h - 1, Math.round(startY)))
   const totalPixels = w * h
   const seedIdx = (sy * w + sx) * 4
-  const refData = restore && rawData ? rawData : targetData
+  const refData = isRestore && rawData ? rawData : targetData
   const sr = refData[seedIdx]
   const sg = refData[seedIdx + 1]
   const sb = refData[seedIdx + 2]
@@ -692,11 +694,7 @@ export function applyMagicWandFlood(
   visited[startP] = 1
   queue[tail++] = startP
 
-  let minX = sx
-  let maxX = sx
-  let minY = sy
-  let maxY = sy
-  let changed = false
+  let changedCount = 0
 
   while (head < tail) {
     const p = queue[head++]
@@ -704,21 +702,18 @@ export function applyMagicWandFlood(
     const cy = (p - cx) / w
     const idx = p * 4
 
-    if (restore && rawData) {
+    if (isRestore && rawData) {
       targetData[idx] = rawData[idx]
       targetData[idx + 1] = rawData[idx + 1]
       targetData[idx + 2] = rawData[idx + 2]
       targetData[idx + 3] = rawData[idx + 3]
-      changed = true
+      if (userAlphaOverride) userAlphaOverride[p] = -1
+      changedCount++
     } else if (targetData[idx + 3] > 0) {
       targetData[idx + 3] = 0
-      changed = true
+      if (userAlphaOverride) userAlphaOverride[p] = 0
+      changedCount++
     }
-
-    if (cx < minX) minX = cx
-    if (cx > maxX) maxX = cx
-    if (cy < minY) minY = cy
-    if (cy > maxY) maxY = cy
 
     const neighbors = [
       cx > 0 ? p - 1 : -1,
@@ -730,7 +725,7 @@ export function applyMagicWandFlood(
       if (n < 0 || visited[n]) continue
       visited[n] = 1
       const ni = n * 4
-      if (!restore && targetData[ni + 3] === 0) continue
+      if (!isRestore && targetData[ni + 3] === 0) continue
       const dr = refData[ni] - sr
       const dg = refData[ni + 1] - sg
       const db = refData[ni + 2] - sb
@@ -740,8 +735,9 @@ export function applyMagicWandFlood(
     }
   }
 
-  return { changed, minX, minY, maxX, maxY }
+  return changedCount
 }
+
 
 export function computeGridIslands(
   w: number,
