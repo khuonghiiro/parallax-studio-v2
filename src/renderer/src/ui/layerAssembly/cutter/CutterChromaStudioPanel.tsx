@@ -44,8 +44,9 @@ export function CutterChromaStudioPanel({
 
   return (
     <div className="cutter-studio-panel">
-      {/* Hàng 1: Chuyển đổi 2 Sub-tabs + Chọn màu nền / Hút màu / Phạm vi tách ngay trên cùng 1 hàng gọn gàng */}
+      {/* Hàng 1: Tab chuyển đổi + Mẫu màu / Hút màu / Phạm vi (Cao chỉ 28px, căn thẳng hàng hoàn hảo) */}
       <div className="cutter-studio-panel-header">
+        {/* 2 Sub-tabs gọn gàng */}
         <div className="cutter-studio-subtabs">
           <button
             id="btn-cutter-subtab-chroma"
@@ -53,7 +54,7 @@ export function CutterChromaStudioPanel({
             className={`cutter-studio-subtab ${activeSubTab === 'chroma' ? 'active' : ''}`}
             onClick={() => setActiveSubTab('chroma')}
           >
-            1. Tách màu &amp; Viền (Chroma Key)
+            Tách màu
           </button>
           <button
             id="btn-cutter-subtab-cleanup"
@@ -61,30 +62,34 @@ export function CutterChromaStudioPanel({
             className={`cutter-studio-subtab ${activeSubTab === 'cleanup' ? 'active' : ''}`}
             onClick={() => setActiveSubTab('cleanup')}
           >
-            2. Khử viền &amp; Lọc rác (Defringe)
+            Khử viền
           </button>
         </div>
 
+        <div className="cutter-studio-divider-v" />
+
+        {/* Nội dung thanh Preset & Lựa chọn theo Sub-tab */}
         {activeSubTab === 'chroma' ? (
           <div className="cutter-studio-inline-bar">
+            {/* Presets màu phổ biến */}
             <div className="cutter-color-preset-pills">
               <button
                 type="button"
                 className={`cutter-color-pill ${keyType === 'chroma_green' ? 'active green' : ''}`}
                 onClick={() => handleSelectKeyPreset('chroma_green', '#00DB4E')}
-                title="Tách phông xanh lá chuẩn Studio"
+                title="Tách phông xanh lá chuẩn Studio (#00DB4E)"
               >
-                <span className="pill-dot" style={{ background: '#00ff00' }} />
-                Xanh lá
+                <span className="pill-dot" style={{ background: '#00DB4E' }} />
+                <span>Xanh</span>
               </button>
               <button
                 type="button"
                 className={`cutter-color-pill ${keyType === 'pure_white' ? 'active white' : ''}`}
                 onClick={() => handleSelectKeyPreset('pure_white', '#FFFFFF')}
-                title="Tách phông nền trắng tinh (#FFFFFF)"
+                title="Tách phông nền trắng (#FFFFFF)"
               >
-                <span className="pill-dot" style={{ background: '#ffffff', border: '1px solid #888' }} />
-                Trắng
+                <span className="pill-dot" style={{ background: '#ffffff', border: '1px solid #777' }} />
+                <span>Trắng</span>
               </button>
               <button
                 type="button"
@@ -92,70 +97,60 @@ export function CutterChromaStudioPanel({
                 onClick={() => handleSelectKeyPreset('pure_black', '#000000')}
                 title="Tách phông nền đen (#000000)"
               >
-                <span className="pill-dot" style={{ background: '#000000', border: '1px solid #666' }} />
-                Đen
+                <span className="pill-dot" style={{ background: '#000000', border: '1px solid #555' }} />
+                <span>Đen</span>
               </button>
             </div>
 
+            {/* Kính lúp Hút Màu Photoshop */}
             <PhotoshopEyedropperButton
               id="btn-cutter-eyedropper"
               active={eyedropperTarget === 'key'}
               currentHex={chroma.keyColorHex}
               hoveredHex={eyedropperTarget === 'key' ? eyedropperSample?.hex : null}
               label="Hút màu"
-              title="Bấm để bật Kính lúp Hút màu nền kiểu Adobe Photoshop (hiển thị vòng đối chiếu màu Mới/Cũ, lưới pixel 9x9 và mã #HEX)"
+              title="Bấm để bật Kính lúp Pixel hút màu nền trực tiếp trên ảnh (ESC để huỷ)"
               onToggle={() => onToggleEyedropper('key')}
             />
 
-            <ColorInput
-              compact
-              showText={false}
-              value={chroma.keyColorHex}
-              onChange={(hex) =>
-                onChangeChroma({
-                  enabled: true,
-                  keyColorType: 'custom',
-                  keyColorHex: hex.toUpperCase()
-                })
-              }
-            />
-
+            {/* Chế độ Bảo vệ ruột (BFS Flood Fill từ ngoài vào) */}
             <div className="cutter-isolation-group" style={{ marginLeft: 'auto' }}>
               <button
                 type="button"
                 className={`cutter-iso-btn ${isolationMode === 'outer_only' ? 'active' : ''}`}
                 onClick={() => onChangeChroma({ isolationMode: 'outer_only' })}
-                title="Bảo vệ ruột (BFS Flood-Fill từ 4 cạnh ngoài): Giữ nguyên lòng trắng mắt, răng, họa tiết áo bên trong nhân vật"
+                title="Bảo vệ ruột (BFS): Giữ nguyên lòng trắng mắt, răng, hoạ tiết áo bên trong"
               >
-                Bảo vệ ruột (BFS)
+                Giữ ruột (BFS)
               </button>
               <button
                 type="button"
                 className={`cutter-iso-btn ${isolationMode === 'all' ? 'active' : ''}`}
                 onClick={() => onChangeChroma({ isolationMode: 'all' })}
-                title="Toàn bộ ảnh: Xóa tất cả các vùng trùng màu nền kể cả các khe hở kín bên trong"
+                title="Toàn bộ ảnh: Xoá tất cả các vùng trùng màu nền kể cả khe hở kín bên trong"
               >
-                Toàn bộ ảnh
+                Toàn bộ
               </button>
             </div>
           </div>
         ) : (
           <div className="cutter-studio-inline-bar">
+            {/* Màu viền cần khử */}
             <span className="cutter-field-label">Màu viền:</span>
             <div className="cutter-mini-color-bar">
               <button
                 type="button"
                 className={`mini-color-dot ${fringeType === 'chroma_green' ? 'active' : ''}`}
-                style={{ background: '#00ff00' }}
+                style={{ background: '#00DB4E' }}
                 onClick={() =>
-                  onChangeChroma({ fringeColorType: 'chroma_green', fringeColorHex: '#00FF00' })
+                  onChangeChroma({ fringeColorType: 'chroma_green', fringeColorHex: '#00DB4E' })
                 }
                 title="Khử viền ám xanh lá"
               />
               <button
                 type="button"
                 className={`mini-color-dot ${fringeType === 'pure_white' ? 'active' : ''}`}
-                style={{ background: '#ffffff' }}
+                style={{ background: '#ffffff', border: '1px solid #777' }}
                 onClick={() =>
                   onChangeChroma({ fringeColorType: 'pure_white', fringeColorHex: '#FFFFFF' })
                 }
@@ -164,7 +159,7 @@ export function CutterChromaStudioPanel({
               <button
                 type="button"
                 className={`mini-color-dot ${fringeType === 'pure_black' ? 'active' : ''}`}
-                style={{ background: '#000000' }}
+                style={{ background: '#000000', border: '1px solid #555' }}
                 onClick={() =>
                   onChangeChroma({ fringeColorType: 'pure_black', fringeColorHex: '#000000' })
                 }
@@ -179,7 +174,8 @@ export function CutterChromaStudioPanel({
               />
             </div>
 
-            <span className="cutter-field-label" style={{ marginLeft: 4 }}>
+            {/* Tông màu mịn viền */}
+            <span className="cutter-field-label" style={{ marginLeft: 6 }}>
               Mịn viền:
             </span>
             <div className="cutter-isolation-group">
@@ -201,10 +197,11 @@ export function CutterChromaStudioPanel({
               ))}
             </div>
 
+            {/* Chỉ giữ cụm lớn nhất */}
             <label
               className="layer-cutter-check-pill"
-              style={{ marginLeft: 'auto', height: 24 }}
-              title="Tự động loại bỏ toàn bộ các đốm/mảnh vụn trôi nổi bên ngoài, chỉ giữ lại cụm nhân vật/đạo cụ lớn nhất"
+              style={{ marginLeft: 'auto', height: 23 }}
+              title="Tự động lọc sạch toàn bộ các đốm rác trôi nổi bên ngoài, chỉ giữ lại nhân vật chính"
             >
               <input
                 type="checkbox"
@@ -217,14 +214,11 @@ export function CutterChromaStudioPanel({
         )}
       </div>
 
-      {/* Hàng 2: Lưới 4 Thanh trượt thông số đồng bộ cho cả 2 Sub-tabs */}
+      {/* Hàng 2: Lưới 4 Thanh Trượt Inline Siêu Gọn (Chỉ cao 26px, phẳng phiu, chuẩn Studio) */}
       {activeSubTab === 'chroma' ? (
         <div className="cutter-studio-sliders-grid">
-          <div className="cutter-slider-card">
-            <div className="cutter-slider-head">
-              <span>Độ nhạy xóa nền (Tolerance)</span>
-              <strong>{chroma.tolerance}%</strong>
-            </div>
+          <div className="cutter-slider-inline" title="Độ nhạy xóa nền (Tolerance)">
+            <span className="slider-label">Độ nhạy</span>
             <input
               type="range"
               min={0}
@@ -232,13 +226,11 @@ export function CutterChromaStudioPanel({
               value={chroma.tolerance}
               onChange={(e) => onChangeChroma({ tolerance: Number(e.target.value) })}
             />
+            <span className="slider-val">{chroma.tolerance}%</span>
           </div>
 
-          <div className="cutter-slider-card">
-            <div className="cutter-slider-head">
-              <span>Làm mềm biên (Feather)</span>
-              <strong>{chroma.smoothness}px</strong>
-            </div>
+          <div className="cutter-slider-inline" title="Làm mềm biên (Feather / Smoothness)">
+            <span className="slider-label">Mềm biên</span>
             <input
               type="range"
               min={0}
@@ -246,13 +238,11 @@ export function CutterChromaStudioPanel({
               value={chroma.smoothness}
               onChange={(e) => onChangeChroma({ smoothness: Number(e.target.value) })}
             />
+            <span className="slider-val">{chroma.smoothness}px</span>
           </div>
 
-          <div className="cutter-slider-card">
-            <div className="cutter-slider-head">
-              <span>Gọt lùi viền ám (Choke)</span>
-              <strong>{chroma.edgeChoke ?? 0}px</strong>
-            </div>
+          <div className="cutter-slider-inline" title="Gọt lùi viền ám (Choke)">
+            <span className="slider-label">Gọt viền</span>
             <input
               type="range"
               min={0}
@@ -260,21 +250,17 @@ export function CutterChromaStudioPanel({
               value={chroma.edgeChoke ?? 0}
               onChange={(e) => onChangeChroma({ edgeChoke: Number(e.target.value) })}
             />
+            <span className="slider-val">{chroma.edgeChoke ?? 0}px</span>
           </div>
 
-          <div className="cutter-slider-card">
-            <div className="cutter-slider-head">
-              <span>Viền nét Anime (Stroke)</span>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                <ColorInput
-                  compact
-                  showText={false}
-                  value={chroma.strokeColorHex || '#ffffff'}
-                  onChange={(hex) => onChangeChroma({ strokeColorHex: hex })}
-                />
-                <strong>{chroma.strokeWidth ?? 0}px</strong>
-              </div>
-            </div>
+          <div className="cutter-slider-inline" title="Viền nét Anime (Stroke)">
+            <span className="slider-label">Viền nét</span>
+            <ColorInput
+              compact
+              showText={false}
+              value={chroma.strokeColorHex || '#ffffff'}
+              onChange={(hex) => onChangeChroma({ strokeColorHex: hex })}
+            />
             <input
               type="range"
               min={0}
@@ -282,15 +268,13 @@ export function CutterChromaStudioPanel({
               value={chroma.strokeWidth ?? 0}
               onChange={(e) => onChangeChroma({ strokeWidth: Number(e.target.value) })}
             />
+            <span className="slider-val">{chroma.strokeWidth ?? 0}px</span>
           </div>
         </div>
       ) : (
         <div className="cutter-studio-sliders-grid">
-          <div className="cutter-slider-card">
-            <div className="cutter-slider-head">
-              <span>Khử màu viền (Defringe)</span>
-              <strong>{chroma.defringeStrength ?? 45}%</strong>
-            </div>
+          <div className="cutter-slider-inline" title="Khử màu viền (Defringe)">
+            <span className="slider-label">Khử màu viền</span>
             <input
               type="range"
               min={0}
@@ -298,13 +282,11 @@ export function CutterChromaStudioPanel({
               value={chroma.defringeStrength ?? 45}
               onChange={(e) => onChangeChroma({ defringeStrength: Number(e.target.value) })}
             />
+            <span className="slider-val">{chroma.defringeStrength ?? 45}%</span>
           </div>
 
-          <div className="cutter-slider-card">
-            <div className="cutter-slider-head">
-              <span>Khử răng cưa (Smooth)</span>
-              <strong>{chroma.edgeSmooth ?? 2}px</strong>
-            </div>
+          <div className="cutter-slider-inline" title="Khử răng cưa viền (Edge Smooth)">
+            <span className="slider-label">Lọc răng cưa</span>
             <input
               type="range"
               min={0}
@@ -312,13 +294,11 @@ export function CutterChromaStudioPanel({
               value={chroma.edgeSmooth ?? 2}
               onChange={(e) => onChangeChroma({ edgeSmooth: Number(e.target.value) })}
             />
+            <span className="slider-val">{chroma.edgeSmooth ?? 2}px</span>
           </div>
 
-          <div className="cutter-slider-card">
-            <div className="cutter-slider-head">
-              <span>Xoá đốm rác nhỏ (Despeckle)</span>
-              <strong>{chroma.despeckleSize ?? 16}px</strong>
-            </div>
+          <div className="cutter-slider-inline" title="Xoá các đốm rác nhỏ (Despeckle)">
+            <span className="slider-label">Xoá đốm rác</span>
             <input
               type="range"
               min={0}
@@ -326,13 +306,11 @@ export function CutterChromaStudioPanel({
               value={chroma.despeckleSize ?? 16}
               onChange={(e) => onChangeChroma({ despeckleSize: Number(e.target.value) })}
             />
+            <span className="slider-val">{chroma.despeckleSize ?? 16}px</span>
           </div>
 
-          <div className="cutter-slider-card">
-            <div className="cutter-slider-head">
-              <span>Khử hạt bụi sáng</span>
-              <strong>{chroma.whiteSpeckleSensitivity ?? 0}%</strong>
-            </div>
+          <div className="cutter-slider-inline" title="Khử hạt bụi sáng bên trong">
+            <span className="slider-label">Lọc bụi sáng</span>
             <input
               type="range"
               min={0}
@@ -342,6 +320,7 @@ export function CutterChromaStudioPanel({
                 onChangeChroma({ whiteSpeckleSensitivity: Number(e.target.value) })
               }
             />
+            <span className="slider-val">{chroma.whiteSpeckleSensitivity ?? 0}%</span>
           </div>
         </div>
       )}

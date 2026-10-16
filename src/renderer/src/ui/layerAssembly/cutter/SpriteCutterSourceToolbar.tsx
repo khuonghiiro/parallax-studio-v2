@@ -60,15 +60,16 @@ export function SpriteCutterSourceToolbar({
 
   return (
     <>
-      {/* Hàng Ribbon chính: 7 Công cụ cắt & chỉnh sửa (SVG đồng bộ) + Điều khiển Tách nền */}
+      {/* Hàng Ribbon chính: Luôn nằm trên 1 hàng phẳng lì 34px, không bao giờ rớt dòng so le */}
       <div className="layer-cutter-toolbar layer-cutter-ribbon">
+        {/* Nhóm công cụ Cắt & Khoanh Vùng */}
         <div className="layer-cutter-tool-group" role="tablist" aria-label="Chế độ cắt tách sprite">
           <button
             id="btn-cutter-tool-auto"
             type="button"
             className={`layer-cutter-tool-btn ${tool === 'auto' ? 'active' : ''}`}
             onClick={() => onChangeTool('auto')}
-            title="Quét tự động (Auto Islands): Tự động nhận diện các mảnh bộ phận rời trên ảnh đã tách nền"
+            title="Quét tự động (Auto Islands): Tự động nhận diện các mảnh bộ phận rời trên ảnh"
           >
             <IconSparkles width={12} height={12} />
             <span className="lc-tool-label">Tự động</span>
@@ -80,7 +81,7 @@ export function SpriteCutterSourceToolbar({
             type="button"
             className={`layer-cutter-tool-btn ${tool === 'grid' ? 'active' : ''}`}
             onClick={() => onChangeTool('grid')}
-            title="Cắt lưới ma trận (Grid Slicer): Chia đều tấm ảnh theo Số Hàng × Số Cột để cắt nhanh"
+            title="Cắt lưới ma trận (Grid Slicer): Chia đều tấm ảnh theo Số Hàng × Số Cột"
           >
             <IconGrid3D width={12} height={12} />
             <span className="lc-tool-label">Lưới</span>
@@ -105,21 +106,23 @@ export function SpriteCutterSourceToolbar({
             type="button"
             className={`layer-cutter-tool-btn ${tool === 'lasso' ? 'active' : ''}`}
             onClick={() => onChangeTool('lasso')}
-            title="Khoanh vùng tự do (Lasso): Vẽ đường viền tự do để tách bộ phận nằm sát nhau"
+            title="Khoanh vùng tự do (Lasso): Vẽ đường bao tự do để tách chi tiết sát nhau"
           >
             <IconLasso width={12} height={12} />
             <span className="lc-tool-label">Lasso</span>
           </button>
+
+          <div className="lc-tool-separator" />
 
           <button
             id="btn-cutter-tool-wand"
             type="button"
             className={`layer-cutter-tool-btn ${tool === 'wand' ? 'active' : ''}`}
             onClick={() => onChangeTool('wand')}
-            title="Đũa thần (Magic Wand): Click 1 điểm để xoá nhanh vùng nền kẹt giữa các lọn tóc/ngón tay (Giữ Alt + Click để khôi phục)"
+            title="Đũa thần (Magic Wand): Click 1 điểm để đục thủng vùng nền kẹt kín (Alt + Click để khôi phục)"
           >
             <IconWand width={12} height={12} />
-            <span className="lc-tool-label">Đũa thần</span>
+            <span className="lc-tool-label">Đũa</span>
           </button>
 
           <button
@@ -130,7 +133,7 @@ export function SpriteCutterSourceToolbar({
             title="Cọ tẩy (Eraser): Xóa thủ công chi tiết thừa hoặc tách rời 2 bộ phận dính nhau"
           >
             <IconEraser width={12} height={12} />
-            <span className="lc-tool-label">Cọ tẩy</span>
+            <span className="lc-tool-label">Tẩy</span>
           </button>
 
           <button
@@ -138,15 +141,16 @@ export function SpriteCutterSourceToolbar({
             type="button"
             className={`layer-cutter-tool-btn ${tool === 'restore' ? 'active' : ''}`}
             onClick={() => onChangeTool('restore')}
-            title="Cọ khôi phục (Restore): Vẽ lấy lại phần chi tiết bị xóa nhầm"
+            title="Cọ khôi phục (Restore): Vẽ lấy lại pixel gốc bị xóa nhầm"
           >
             <IconBrush width={12} height={12} />
             <span className="lc-tool-label">Khôi phục</span>
           </button>
         </div>
 
-        {/* Nhóm điều khiển Tách nền bên phải (gọn gàng, không bị tràn hay cắt cụt) */}
+        {/* Nhóm điều khiển Tách nền bên phải (Căn thẳng hàng, phẳng phiu) */}
         <div className="layer-cutter-toolbar-right">
+          {/* Nút bật/tắt Tách nền */}
           <label
             className="layer-cutter-switch-pill"
             title="Bật/tắt thuật toán tách nền tự động"
@@ -160,7 +164,7 @@ export function SpriteCutterSourceToolbar({
             <span>Tách nền</span>
           </label>
 
-          {/* Khi thu gọn bảng Studio thì mới hiện nút Hút màu nhanh trên thanh công cụ */}
+          {/* Kính lúp hút màu nhanh khi chưa mở Studio */}
           {(!showChromaStudio || !chroma.enabled) && (
             <PhotoshopEyedropperButton
               id="btn-toolbar-eyedropper"
@@ -168,11 +172,12 @@ export function SpriteCutterSourceToolbar({
               currentHex={chroma.keyColorHex}
               hoveredHex={eyedropperTarget === 'key' ? eyedropperSample?.hex : null}
               label="Hút màu"
-              title="Hút màu nền trực tiếp trên ảnh với Kính lúp Pixel & Vòng đối chiếu màu kiểu Adobe Photoshop"
+              title="Hút màu nền trực tiếp trên ảnh với Kính lúp Pixel kiểu Adobe Photoshop"
               onToggle={() => onToggleEyedropper('key')}
             />
           )}
 
+          {/* Chế độ đối chiếu: Đã tách vs Ảnh gốc */}
           <div
             className="cutter-preview-mode-group"
             title="Đối chiếu kết quả đã tách nền với ảnh gốc ban đầu"
@@ -195,30 +200,33 @@ export function SpriteCutterSourceToolbar({
             </button>
           </div>
 
+          {/* Nút gạt mở/đóng Bảng tinh chỉnh Bộ lọc */}
           <button
             id="btn-toggle-chroma-studio"
             type="button"
-            className={`cutter-studio-toggle-btn ${showChromaStudio ? 'active' : ''}`}
+            className={`cutter-studio-toggle-btn ${showChromaStudio && chroma.enabled ? 'active' : ''}`}
             onClick={onToggleChromaStudio}
-            title="Đóng/mở bảng thiết lập Tách nền & Khử viền chuyên sâu"
+            disabled={!chroma.enabled}
+            title={chroma.enabled ? 'Đóng/mở bảng tinh chỉnh thông số Tách nền & Khử viền' : 'Hãy bật Tách nền để mở Bộ lọc'}
           >
             <IconSliders width={12} height={12} />
             <span>Bộ lọc</span>
-            <span className="caret">{showChromaStudio ? '▴' : '▾'}</span>
+            <span className="caret">{showChromaStudio && chroma.enabled ? '▴' : '▾'}</span>
           </button>
 
+          {/* Nút reset thông số về chuẩn */}
           <button
             type="button"
             className="cutter-studio-reset-btn"
             onClick={onResetChroma}
-            title="Khôi phục toàn bộ thông số tách nền & lọc rác về mặc định chuẩn"
+            title="Khôi phục toàn bộ thông số tách nền về mặc định"
           >
             <IconRefresh width={11} height={11} />
           </button>
         </div>
       </div>
 
-      {/* Bảng Studio Tách Nền & Khử Viền Sượng Chuyên Sâu (gọn 2 hàng: Header + 4 Sliders) */}
+      {/* Bảng Studio Tách Nền & Khử Viền Gọn Gàng (Siêu mỏng 56px, tiết kiệm tối đa không gian Canvas) */}
       {showChromaStudio && chroma.enabled && (
         <CutterChromaStudioPanel
           chroma={chroma}

@@ -8,23 +8,29 @@
 .layer-cutter-toolbar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  min-height: 38px;
+  gap: 4px;
+  padding: 4px 8px;
+  height: 36px;
+  min-height: 36px;
   box-sizing: border-box;
   background: var(--bg-1);
   border-bottom: 1px solid var(--line-soft);
   font-size: 11px;
   color: var(--text-dim);
   flex-shrink: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-/* Hàng ribbon cột 1: tự cân đối khoảng cách, không bao giờ cắt khuất control */
+.layer-cutter-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hàng ribbon cột 1: luôn trên 1 hàng phẳng, co giãn tự nhiên */
 .layer-cutter-ribbon {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   min-width: 0;
-  row-gap: 4px;
 }
 
 .layer-cutter-toolbar-row {
@@ -38,7 +44,7 @@
 .layer-cutter-toolbar-right {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   margin-left: auto;
   min-width: 0;
   flex-shrink: 0;
@@ -49,27 +55,35 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  height: 28px;
+  height: 26px;
   padding: 2px;
   box-sizing: border-box;
   background: var(--bg-2);
   border: 1px solid var(--line-soft);
-  border-radius: 7px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.lc-tool-separator {
+  width: 1px;
+  height: 16px;
+  background: var(--line-soft);
+  margin: 0 2px;
   flex-shrink: 0;
 }
 
 .layer-cutter-tool-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   height: 22px;
-  padding: 0 7px;
+  padding: 0 5px;
   font-size: 11px;
   font-weight: 500;
   color: var(--text-dim);
   background: transparent;
   border: none;
-  border-radius: 5px;
+  border-radius: 4px;
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.12s ease, color 0.12s ease;
@@ -87,13 +101,13 @@
 }
 
 .lc-count-badge {
-  min-width: 16px;
-  height: 15px;
-  padding: 0 4px;
-  border-radius: 8px;
-  font-size: 9.5px;
+  min-width: 15px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  font-size: 9px;
   font-weight: 700;
-  line-height: 15px;
+  line-height: 14px;
   text-align: center;
   background: var(--bg-4);
   color: var(--text);
@@ -111,9 +125,9 @@
 .layer-cutter-switch-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   height: 26px;
-  padding: 0 8px;
+  padding: 0 6px;
   box-sizing: border-box;
   background: var(--bg-2);
   border: 1px solid var(--line-soft);
@@ -243,29 +257,29 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  height: 26px;
-  padding: 0 3px 0 7px;
+  height: 24px;
+  padding: 0 2px 0 5px;
   box-sizing: border-box;
   background: var(--bg-2);
   border: 1px solid var(--line-soft);
-  border-radius: 6px;
+  border-radius: 5px;
   flex-shrink: 0;
 }
 
 .layer-cutter-seg-mini .seg-label {
-  font-size: 10.5px;
+  font-size: 10px;
   color: var(--text-dim);
-  margin-right: 3px;
+  margin-right: 2px;
 }
 
 .layer-cutter-seg-mini .seg-btn {
-  height: 20px;
-  padding: 0 7px;
+  height: 18px;
+  padding: 0 5px;
   border: none;
-  border-radius: 4px;
+  border-radius: 3px;
   background: transparent;
   color: var(--text-dim);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.12s ease, color 0.12s ease;
@@ -287,22 +301,22 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  height: 26px;
-  padding: 0 3px;
+  height: 24px;
+  padding: 0 2px;
   box-sizing: border-box;
   background: var(--bg-2);
   border: 1px solid var(--line-soft);
-  border-radius: 6px;
+  border-radius: 5px;
 }
 
 .layer-cutter-zoom-mode-btn {
-  height: 20px;
-  padding: 0 7px;
+  height: 18px;
+  padding: 0 5px;
   border: none;
-  border-radius: 4px;
+  border-radius: 3px;
   background: transparent;
   color: var(--text-dim);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
