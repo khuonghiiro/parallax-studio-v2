@@ -29,6 +29,21 @@ export function rgbToHex(r: number, g: number, b: number): string {
   )
 }
 
+function resolveEffectiveKeyRgb(settings: ChromaKeySettings): { r: number; g: number; b: number } {
+  const keyType = settings.keyColorType || 'custom'
+  const parsed = parseHexRgb(settings.keyColorHex || settings.keyColor || '#00DB4E')
+  if (keyType === 'chroma_green') {
+    // Nếu mã HEX hiện tại đã là tông xanh lá (ví dụ #02AD47 tự nhận diện từ góc ảnh), ưu tiên dùng chính xác màu đó
+    if (parsed.g > parsed.r + 25 && parsed.g > parsed.b + 15) {
+      return parsed
+    }
+    return { r: 0, g: 219, b: 78 }
+  }
+  if (keyType === 'pure_white') return { r: 255, g: 255, b: 255 }
+  if (keyType === 'pure_black') return { r: 0, g: 0, b: 0 }
+  return parsed
+}
+
 function classifyBackgroundPixels(
   data: Uint8ClampedArray,
   totalPixels: number,
@@ -42,20 +57,19 @@ function classifyBackgroundPixels(
   const tol = Math.max(0, Math.min(100, settings.tolerance)) / 100
   const maxDist = tol * 255
   const shadowRet = Math.max(0, Math.min(100, settings.shadowRetention ?? 0)) / 100
-  const targetRgb =
-    keyType === 'chroma_green'
-      ? { r: 0, g: 255, b: 0 }
-      : keyType === 'pure_white'
-      ? { r: 255, g: 255, b: 255 }
-      : keyType === 'pure_black'
-      ? { r: 0, g: 0, b: 0 }
-      : parseHexRgb(settings.keyColorHex || settings.keyColor || '#00DB4E')
+  const targetRgb = resolveEffectiveKeyRgb(settings)
+  const kr = targetRgb.r
+  const kg = targetRgb.g
+  const kb = targetRgb.b
+  const isTargetGreen =
+    keyType === 'chroma_green' || (kg > kr + 30 && kg > kb + 20 && kg > 70)
+
+  // Khoảng cách cơ sở tối thiểu để ngay cả khi kéo Tolerance về 0% vẫn bắt được đúng màu nền đã hút
+  const baseGreenDist = Math.max(26, maxDist * 1.22)
+  const baseCustomDist = Math.max(14, maxDist * 1.25)
 
   for (let p = 0; p < totalPixels; p++) {
     const idx = p * 4
-    const r = data[idx]
-    const g = data[idx + 1]
-    const b = data[idx + 2]
     const a = data[idx + 3]
     if (a < 15) {
       isBg[p] = 1
@@ -63,35 +77,59 @@ function classifyBackgroundPixels(
       continue
     }
 
-    if (keyType === 'chroma_green') {
-      const greenDiff = g - Math.max(r, b)
-      const distToGreen = Math.sqrt(r * r + (255 - g) * (255 - g) + b * b)
-      if ((g > 90 && greenDiff > Math.max(12, 85 - maxDist * 0.45)) || distToGreen < maxDist * 1.15) {
+    const r = data[idx]
+    const g = data[idx + 1]
+    const b = data[idx + 2]
+
+    if (isTargetGreen) {
+      const dr = r - kr
+      const dg = g - kg
+      const db = b - kb
+      const distToKey = Math.sqrt(0.32 * dr * dr + 0.46 * dg * dg + 0.22 * db * db)
+      const rbMax = r > b ? r : b
+      const greenDiff = g - rbMax
+      // Ngưỡng trội màu xanh lá linh hoạt theo màu nền thực tế (tránh ăn lẹm vào chi tiết áo màu vàng/kim)
+      const minGreenExcess = Math.max(14, Math.min(62, (kg - Math.max(kr, kb)) * 0.42 - maxDist * 0.28))
+      const isStrongGreen = g > 65 && greenDiff > minGreenExcess && Math.abs(r - b) < 85 + maxDist * 0.4
+
+      if (distToKey <= baseGreenDist || (isStrongGreen && distToKey <= baseGreenDist + 52)) {
         isBg[p] = 1
         shadowAlpha[p] = 0
+      } else if (distToKey <= baseGreenDist + 24 && greenDiff > 8) {
+        // Vùng chuyển tiếp nửa trong suốt sát biên: gán alpha mượt để giảm viền răng cưa
+        isBg[p] = 1
+        const ratio = (distToKey - baseGreenDist) / 24
+        shadowAlpha[p] = Math.round(Math.max(0, Math.min(1, ratio)) * a * 0.55)
       }
     } else if (keyType === 'pure_white') {
-      const distToWhite = Math.sqrt((255 - r) ** 2 + (255 - g) ** 2 + (255 - b) ** 2)
-      const colorSpread = Math.max(Math.abs(r - g), Math.abs(g - b), Math.abs(r - b))
-      if (distToWhite < maxDist) {
+      const dr = 255 - r
+      const dg = 255 - g
+      const db = 255 - b
+      const distToWhite = Math.sqrt(dr * dr + dg * dg + db * db)
+      const maxC = r > g ? (r > b ? r : b) : g > b ? g : b
+      const minC = r < g ? (r < b ? r : b) : g < b ? g : b
+      const colorSpread = maxC - minC
+      const whiteThresh = Math.max(10, maxDist)
+      if (distToWhite < whiteThresh) {
         isBg[p] = 1
         shadowAlpha[p] = 0
-      } else if (shadowRet > 0 && colorSpread < 30 && distToWhite < maxDist + shadowRet * 180) {
+      } else if (shadowRet > 0 && colorSpread < 30 && distToWhite < whiteThresh + shadowRet * 180) {
         isBg[p] = 1
         const darkness = Math.min(1, (255 - (r + g + b) / 3) / 180)
         shadowAlpha[p] = Math.round(darkness * shadowRet * 220)
       }
     } else if (keyType === 'pure_black') {
       const distToBlack = Math.sqrt(r * r + g * g + b * b)
-      if (distToBlack < maxDist) {
+      if (distToBlack < Math.max(10, maxDist)) {
         isBg[p] = 1
         shadowAlpha[p] = 0
       }
     } else {
-      const dist = Math.sqrt((r - targetRgb.r) ** 2 + (g - targetRgb.g) ** 2 + (b - targetRgb.b) ** 2)
-      const isTargetGreenish = targetRgb.g > targetRgb.r + 35 && targetRgb.g > targetRgb.b + 35
-      const greenDominance = isTargetGreenish ? g - Math.max(r, b) : -999
-      if (dist < maxDist * 1.25 || (isTargetGreenish && g > 75 && greenDominance > Math.max(12, 80 - maxDist * 0.45))) {
+      const dr = r - kr
+      const dg = g - kg
+      const db = b - kb
+      const dist = Math.sqrt(dr * dr + dg * dg + db * db)
+      if (dist < baseCustomDist) {
         isBg[p] = 1
         shadowAlpha[p] = 0
       }
@@ -101,11 +139,7 @@ function classifyBackgroundPixels(
   return { isBg, shadowAlpha }
 }
 
-function isolateOuterConnectedBg(
-  isBg: Uint8Array,
-  w: number,
-  h: number
-): Uint8Array {
+function isolateOuterConnectedBg(isBg: Uint8Array, w: number, h: number): Uint8Array {
   const totalPixels = w * h
   const activeBg = new Uint8Array(totalPixels)
   const queue = new Int32Array(totalPixels)
@@ -173,63 +207,105 @@ function isolateOuterConnectedBg(
   return activeBg
 }
 
+/**
+ * Thu thập nhanh danh sách chỉ số các pixel nằm sát biên trong suốt (O(N) 1 lượt),
+ * giúp Feather, Choke, Defringe và Smooth chỉ chạy trên ~2% pixel viền thay vì toàn bộ ảnh 4K/8K.
+ */
+function collectBoundaryIndices(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  alphaSnap: Uint8Array
+): Int32Array {
+  const totalPixels = w * h
+  for (let p = 0; p < totalPixels; p++) {
+    alphaSnap[p] = data[p * 4 + 3]
+  }
+  const boundary = new Int32Array(Math.min(totalPixels, Math.max(4096, (w + h) * 32)))
+  let count = 0
+  let buf = boundary
+
+  for (let y = 1; y < h - 1; y++) {
+    const rowOff = y * w
+    for (let x = 1; x < w - 1; x++) {
+      const p = rowOff + x
+      const a = alphaSnap[p]
+      if (a === 0) continue
+      if (
+        a < 250 ||
+        alphaSnap[p - 1] < 80 ||
+        alphaSnap[p + 1] < 80 ||
+        alphaSnap[p - w] < 80 ||
+        alphaSnap[p + w] < 80
+      ) {
+        if (count >= buf.length) {
+          const next = new Int32Array(buf.length * 2)
+          next.set(buf)
+          buf = next
+        }
+        buf[count++] = p
+      }
+    }
+  }
+  return buf.subarray(0, count)
+}
+
 function applyFeatherAndChoke(
   data: Uint8ClampedArray,
   w: number,
   h: number,
   feather: number,
-  edgeChoke: number
+  edgeChoke: number,
+  alphaSnap: Uint8Array
 ): void {
-  const totalPixels = w * h
-  if (feather > 0) {
-    const alphaCopy = new Uint8Array(totalPixels)
-    for (let p = 0; p < totalPixels; p++) alphaCopy[p] = data[p * 4 + 3]
-    const radius = Math.min(8, Math.ceil(feather / 2))
-    for (let y = radius; y < h - radius; y++) {
-      for (let x = radius; x < w - radius; x++) {
-        const p = y * w + x
-        if (alphaCopy[p] === 0) continue
-        let hasZeroNeighbor = false
-        for (let dy = -radius; dy <= radius && !hasZeroNeighbor; dy++) {
-          for (let dx = -radius; dx <= radius; dx++) {
-            if (alphaCopy[(y + dy) * w + (x + dx)] === 0) {
-              hasZeroNeighbor = true
-              break
-            }
-          }
-        }
-        if (hasZeroNeighbor) {
-          data[p * 4 + 3] = Math.round(alphaCopy[p] * Math.max(0.15, 1 - feather / 28))
+  if (edgeChoke > 0) {
+    const chokeSteps = Math.min(8, Math.round(edgeChoke))
+    for (let step = 0; step < chokeSteps; step++) {
+      const boundary = collectBoundaryIndices(data, w, h, alphaSnap)
+      for (let i = 0; i < boundary.length; i++) {
+        const p = boundary[i]
+        if (
+          alphaSnap[p - 1] < 20 ||
+          alphaSnap[p + 1] < 20 ||
+          alphaSnap[p - w] < 20 ||
+          alphaSnap[p + w] < 20
+        ) {
+          data[p * 4 + 3] = 0
+        } else if (
+          alphaSnap[p - w - 1] < 20 ||
+          alphaSnap[p - w + 1] < 20 ||
+          alphaSnap[p + w - 1] < 20 ||
+          alphaSnap[p + w + 1] < 20
+        ) {
+          data[p * 4 + 3] = Math.round(alphaSnap[p] * 0.35)
         }
       }
     }
   }
 
-  if (edgeChoke > 0) {
-    const chokeSteps = Math.min(10, Math.round(edgeChoke))
-    const alphaBuf = new Uint8Array(totalPixels)
-    for (let step = 0; step < chokeSteps; step++) {
-      for (let p = 0; p < totalPixels; p++) alphaBuf[p] = data[p * 4 + 3]
-      for (let y = 1; y < h - 1; y++) {
-        for (let x = 1; x < w - 1; x++) {
-          const p = y * w + x
-          if (alphaBuf[p] === 0) continue
-          if (
-            alphaBuf[p - 1] < 20 ||
-            alphaBuf[p + 1] < 20 ||
-            alphaBuf[p - w] < 20 ||
-            alphaBuf[p + w] < 20
-          ) {
-            data[p * 4 + 3] = 0
-          } else if (
-            alphaBuf[p - w - 1] < 20 ||
-            alphaBuf[p - w + 1] < 20 ||
-            alphaBuf[p + w - 1] < 20 ||
-            alphaBuf[p + w + 1] < 20
-          ) {
-            data[p * 4 + 3] = Math.round(alphaBuf[p] * 0.35)
+  if (feather > 0) {
+    const boundary = collectBoundaryIndices(data, w, h, alphaSnap)
+    const radius = Math.min(6, Math.max(1, Math.ceil(feather / 2)))
+    const atten = Math.max(0.18, 1 - feather / 26)
+    for (let i = 0; i < boundary.length; i++) {
+      const p = boundary[i]
+      const cx = p % w
+      const cy = (p - cx) / w
+      if (cx < radius || cx >= w - radius || cy < radius || cy >= h - radius) continue
+      let minNeighborA = 255
+      for (let dy = -radius; dy <= radius; dy++) {
+        const row = (cy + dy) * w
+        for (let dx = -radius; dx <= radius; dx++) {
+          const na = alphaSnap[row + cx + dx]
+          if (na < minNeighborA) {
+            minNeighborA = na
+            if (na === 0) break
           }
         }
+        if (minNeighborA === 0) break
+      }
+      if (minNeighborA < 40) {
+        data[p * 4 + 3] = Math.round(alphaSnap[p] * atten)
       }
     }
   }
@@ -239,112 +315,102 @@ function applyDefringeAndDespill(
   data: Uint8ClampedArray,
   w: number,
   h: number,
-  settings: ChromaKeySettings
+  settings: ChromaKeySettings,
+  alphaSnap: Uint8Array
 ): void {
-  const totalPixels = w * h
-  const strength = Math.max(0, Math.min(100, settings.defringeStrength ?? (settings.despill ? 50 : 0))) / 100
+  const strength =
+    Math.max(0, Math.min(100, settings.defringeStrength ?? (settings.despill ? 50 : 0))) / 100
   if (strength <= 0) return
 
   const fringeType = settings.fringeColorType || settings.keyColorType || 'custom'
   const fringeRgb =
     fringeType === 'chroma_green'
-      ? { r: 0, g: 255, b: 0 }
+      ? resolveEffectiveKeyRgb({ ...settings, keyColorType: 'chroma_green' })
       : fringeType === 'pure_white'
       ? { r: 255, g: 255, b: 255 }
       : fringeType === 'pure_black'
       ? { r: 0, g: 0, b: 0 }
       : parseHexRgb(settings.fringeColorHex || settings.keyColorHex)
 
-  const snapR = new Uint8Array(totalPixels)
-  const snapG = new Uint8Array(totalPixels)
-  const snapB = new Uint8Array(totalPixels)
-  const snapA = new Uint8Array(totalPixels)
-  for (let p = 0; p < totalPixels; p++) {
-    const i = p * 4
-    snapR[p] = data[i]
-    snapG[p] = data[i + 1]
-    snapB[p] = data[i + 2]
-    snapA[p] = data[i + 3]
-  }
+  const isGreenFringe =
+    fringeType === 'chroma_green' || (fringeRgb.g > fringeRgb.r + 25 && fringeRgb.g > fringeRgb.b + 15)
 
-  for (let y = 1; y < h - 1; y++) {
-    for (let x = 1; x < w - 1; x++) {
-      const p = y * w + x
-      const a = snapA[p]
-      if (a === 0) continue
+  const boundary = collectBoundaryIndices(data, w, h, alphaSnap)
+  const maxFringeDistSq = (45 + strength * 165) ** 2
 
-      let nearTrans = a < 250
-      if (!nearTrans) {
-        for (let dy = -2; dy <= 2 && !nearTrans; dy++) {
-          const ny = y + dy
-          if (ny < 0 || ny >= h) continue
-          for (let dx = -2; dx <= 2; dx++) {
-            const nx = x + dx
-            if (nx < 0 || nx >= w) continue
-            if (snapA[ny * w + nx] < 60) {
-              nearTrans = true
-              break
-            }
+  for (let i = 0; i < boundary.length; i++) {
+    const p = boundary[i]
+    const idx = p * 4
+    let r = data[idx]
+    let g = data[idx + 1]
+    let b = data[idx + 2]
+    let a = data[idx + 3]
+    if (a === 0) continue
+
+    // 1. Khử ám xanh lá trực tiếp (Color Unmixing & Green Clamp O(1))
+    if (isGreenFringe) {
+      const rbMax = r > b ? r : b
+      const rbAvg = (r + b) * 0.5
+      if (g > rbAvg) {
+        const targetG = rbMax * (1 - strength * 0.45) + rbAvg * (strength * 0.45)
+        g = Math.round(g - (g - targetG) * Math.min(1, strength * 1.3))
+        data[idx + 1] = g
+        const spill = data[idx + 1] - rbMax
+        if (spill > 10) {
+          a = Math.max(0, Math.round(a - spill * strength * 1.6))
+          data[idx + 3] = a
+        }
+      }
+    }
+
+    if (a === 0) continue
+
+    // 2. Kéo màu từ pixel đặc bên trong ra viền để xoá halo trắng/đen/xanh
+    const dr = r - fringeRgb.r
+    const dg = g - fringeRgb.g
+    const db = b - fringeRgb.b
+    const distSq = dr * dr + dg * dg + db * db
+    if (distSq < maxFringeDistSq) {
+      const cx = p % w
+      const cy = (p - cx) / w
+      let bestR = r
+      let bestG = g
+      let bestB = b
+      let bestScore = distSq
+
+      const y0 = Math.max(0, cy - 2)
+      const y1 = Math.min(h - 1, cy + 2)
+      const x0 = Math.max(0, cx - 2)
+      const x1 = Math.min(w - 1, cx + 2)
+      for (let ny = y0; ny <= y1; ny++) {
+        const row = ny * w
+        for (let nx = x0; nx <= x1; nx++) {
+          const np = row + nx
+          if (alphaSnap[np] < 215) continue
+          const nIdx = np * 4
+          const nr = data[nIdx]
+          const ng = data[nIdx + 1]
+          const nb = data[nIdx + 2]
+          const ndSq =
+            (nr - fringeRgb.r) ** 2 + (ng - fringeRgb.g) ** 2 + (nb - fringeRgb.b) ** 2
+          if (ndSq > bestScore) {
+            bestScore = ndSq
+            bestR = nr
+            bestG = ng
+            bestB = nb
           }
         }
       }
-      if (!nearTrans) continue
 
-      const idx = p * 4
-      const r = snapR[p]
-      const g = snapG[p]
-      const b = snapB[p]
-
-      if (fringeType === 'chroma_green') {
-        const rbMax = Math.max(r, b)
-        const rbAvg = (r + b) * 0.5
-        if (g > rbAvg) {
-          data[idx + 1] = Math.round(g - (g - (rbMax * (1 - strength * 0.45) + rbAvg * (strength * 0.45))) * Math.min(1, strength * 1.25))
-          const spill = g - rbMax
-          if (spill > 18) {
-            data[idx + 3] = Math.max(0, Math.round(a - spill * strength * 1.4))
-          }
-        }
+      const closeness = 1 - Math.sqrt(distSq / maxFringeDistSq)
+      const pull = Math.min(1, closeness * strength * 1.35)
+      if (bestScore > distSq + 200) {
+        data[idx] = Math.round(r + (bestR - r) * pull)
+        data[idx + 1] = Math.round(g + (bestG - g) * pull)
+        data[idx + 2] = Math.round(b + (bestB - b) * pull)
       }
-
-      const distToFringe = Math.sqrt((r - fringeRgb.r) ** 2 + (g - fringeRgb.g) ** 2 + (b - fringeRgb.b) ** 2)
-      const maxFringeDist = 45 + strength * 165
-      if (distToFringe < maxFringeDist) {
-        let bestR = r
-        let bestG = g
-        let bestB = b
-        let bestScore = -1
-        for (let dy = -3; dy <= 3; dy++) {
-          const ny = y + dy
-          if (ny < 0 || ny >= h) continue
-          for (let dx = -3; dx <= 3; dx++) {
-            const nx = x + dx
-            if (nx < 0 || nx >= w) continue
-            const np = ny * w + nx
-            if (snapA[np] < 210) continue
-            const nd = Math.sqrt(
-              (snapR[np] - fringeRgb.r) ** 2 +
-                (snapG[np] - fringeRgb.g) ** 2 +
-                (snapB[np] - fringeRgb.b) ** 2
-            )
-            if (nd > bestScore) {
-              bestScore = nd
-              bestR = snapR[np]
-              bestG = snapG[np]
-              bestB = snapB[np]
-            }
-          }
-        }
-        const closeness = 1 - distToFringe / maxFringeDist
-        const pull = Math.min(1, closeness * strength * 1.35)
-        if (bestScore > distToFringe + 12) {
-          data[idx] = Math.round(r + (bestR - r) * pull)
-          data[idx + 1] = Math.round(data[idx + 1] + (bestG - data[idx + 1]) * pull)
-          data[idx + 2] = Math.round(b + (bestB - b) * pull)
-        }
-        if (closeness > 0.3) {
-          data[idx + 3] = Math.round(data[idx + 3] * Math.max(0, 1 - closeness * strength * 1.2))
-        }
+      if (closeness > 0.28) {
+        data[idx + 3] = Math.round(a * Math.max(0, 1 - closeness * strength * 1.25))
       }
     }
   }
@@ -354,7 +420,8 @@ function applyDespeckleAndWhiteCrumbs(
   data: Uint8ClampedArray,
   w: number,
   h: number,
-  settings: ChromaKeySettings
+  settings: ChromaKeySettings,
+  alphaSnap: Uint8Array
 ): void {
   const totalPixels = w * h
   const whiteSens = settings.whiteSpeckleSensitivity ?? 0
@@ -362,25 +429,19 @@ function applyDespeckleAndWhiteCrumbs(
     const sens = whiteSens / 100
     const minLum = Math.max(105, 235 - sens * 115)
     const maxSpread = 16 + sens * 58
-    const snapA = new Uint8Array(totalPixels)
-    for (let p = 0; p < totalPixels; p++) snapA[p] = data[p * 4 + 3]
-
-    for (let y = 1; y < h - 1; y++) {
-      for (let x = 1; x < w - 1; x++) {
-        const p = y * w + x
-        if (snapA[p] === 0) continue
-        const idx = p * 4
-        const r = data[idx]
-        const g = data[idx + 1]
-        const b = data[idx + 2]
-        const lum = r * 0.299 + g * 0.587 + b * 0.114
-        if (lum < 85) continue
-        const spread = Math.max(r, g, b) - Math.min(r, g, b)
-        if (lum >= minLum && spread <= maxSpread) {
-          const isEdge =
-            snapA[p - 1] < 60 || snapA[p + 1] < 60 || snapA[p - w] < 60 || snapA[p + w] < 60
-          if (isEdge) data[idx + 3] = 0
-        }
+    const boundary = collectBoundaryIndices(data, w, h, alphaSnap)
+    for (let i = 0; i < boundary.length; i++) {
+      const p = boundary[i]
+      const idx = p * 4
+      const r = data[idx]
+      const g = data[idx + 1]
+      const b = data[idx + 2]
+      const lum = r * 0.299 + g * 0.587 + b * 0.114
+      if (lum < 85) continue
+      const maxC = r > g ? (r > b ? r : b) : g > b ? g : b
+      const minC = r < g ? (r < b ? r : b) : g < b ? g : b
+      if (lum >= minLum && maxC - minC <= maxSpread) {
+        data[idx + 3] = 0
       }
     }
   }
@@ -389,61 +450,86 @@ function applyDespeckleAndWhiteCrumbs(
   const keepLargest = Boolean(settings.keepLargestIslandOnly)
   if (despeckleSize <= 0 && !keepLargest) return
 
+  // Sử dụng mảng phẳng Int32Array không cấp phát Array JS con (nhanh gấp 50 lần trên ảnh 4K)
   const visited = new Uint8Array(totalPixels)
   const queue = new Int32Array(totalPixels)
-  const islands: { pixels: number[]; darkCount: number }[] = []
+  const starts: number[] = []
+  const ends: number[] = []
+  const darkCounts: number[] = []
+  let globalWrite = 0
   let maxIslandLen = 0
   let maxIslandIdx = -1
 
   for (let p = 0; p < totalPixels; p++) {
     if (visited[p] || data[p * 4 + 3] <= 20) continue
-    let head = 0
-    let tail = 0
-    queue[tail++] = p
+    const startIdx = globalWrite
+    let head = startIdx
+    queue[globalWrite++] = p
     visited[p] = 1
     let darkCount = 0
 
-    while (head < tail) {
+    while (head < globalWrite) {
       const curr = queue[head++]
       const ci = curr * 4
       const lum = data[ci] * 0.299 + data[ci + 1] * 0.587 + data[ci + 2] * 0.114
       if (lum < 95 && data[ci + 3] > 90) darkCount++
       const cx = curr % w
       const cy = (curr - cx) / w
-      const neighbors = [
-        cx > 0 ? curr - 1 : -1,
-        cx < w - 1 ? curr + 1 : -1,
-        cy > 0 ? curr - w : -1,
-        cy < h - 1 ? curr + w : -1
-      ]
-      for (const n of neighbors) {
-        if (n >= 0 && !visited[n] && data[n * 4 + 3] > 20) {
+      if (cx > 0) {
+        const n = curr - 1
+        if (!visited[n] && data[n * 4 + 3] > 20) {
           visited[n] = 1
-          queue[tail++] = n
+          queue[globalWrite++] = n
+        }
+      }
+      if (cx < w - 1) {
+        const n = curr + 1
+        if (!visited[n] && data[n * 4 + 3] > 20) {
+          visited[n] = 1
+          queue[globalWrite++] = n
+        }
+      }
+      if (cy > 0) {
+        const n = curr - w
+        if (!visited[n] && data[n * 4 + 3] > 20) {
+          visited[n] = 1
+          queue[globalWrite++] = n
+        }
+      }
+      if (cy < h - 1) {
+        const n = curr + w
+        if (!visited[n] && data[n * 4 + 3] > 20) {
+          visited[n] = 1
+          queue[globalWrite++] = n
         }
       }
     }
 
-    const pixels = Array.from(queue.subarray(0, tail))
-    const idx = islands.length
-    islands.push({ pixels, darkCount })
-    if (tail > maxIslandLen) {
-      maxIslandLen = tail
-      maxIslandIdx = idx
+    const endIdx = globalWrite
+    const len = endIdx - startIdx
+    const islandIdx = starts.length
+    starts.push(startIdx)
+    ends.push(endIdx)
+    darkCounts.push(darkCount)
+    if (len > maxIslandLen) {
+      maxIslandLen = len
+      maxIslandIdx = islandIdx
     }
   }
 
   const minPixelArea = despeckleSize * 4
-  for (let i = 0; i < islands.length; i++) {
-    const isl = islands[i]
+  for (let i = 0; i < starts.length; i++) {
+    const s = starts[i]
+    const e = ends[i]
+    const len = e - s
     if (keepLargest && i !== maxIslandIdx) {
-      for (const p of isl.pixels) data[p * 4 + 3] = 0
+      for (let k = s; k < e; k++) data[queue[k] * 4 + 3] = 0
       continue
     }
-    if (despeckleSize > 0 && isl.pixels.length <= minPixelArea) {
-      const isDarkLine = isl.darkCount >= Math.max(3, isl.pixels.length * 0.25)
+    if (despeckleSize > 0 && len <= minPixelArea) {
+      const isDarkLine = darkCounts[i] >= Math.max(3, len * 0.25)
       if (!isDarkLine) {
-        for (const p of isl.pixels) data[p * 4 + 3] = 0
+        for (let k = s; k < e; k++) data[queue[k] * 4 + 3] = 0
       }
     }
   }
@@ -453,9 +539,9 @@ function applyEdgeSmoothAndStroke(
   data: Uint8ClampedArray,
   w: number,
   h: number,
-  settings: ChromaKeySettings
+  settings: ChromaKeySettings,
+  alphaSnap: Uint8Array
 ): void {
-  const totalPixels = w * h
   const edgeSmooth = settings.edgeSmooth ?? 0
   if (edgeSmooth > 0) {
     const smoothStrength = Math.min(1, edgeSmooth / 10)
@@ -469,29 +555,26 @@ function applyEdgeSmoothAndStroke(
         ? parseHexRgb(settings.smoothColorHex || '#000000')
         : null
 
-    const snapA = new Uint8Array(totalPixels)
-    for (let p = 0; p < totalPixels; p++) snapA[p] = data[p * 4 + 3]
-
-    for (let y = 1; y < h - 1; y++) {
-      for (let x = 1; x < w - 1; x++) {
-        const p = y * w + x
-        const a = snapA[p]
-        if (a === 0 || a === 255) continue
-        const avgA =
-          (snapA[p] * 2 +
-            snapA[p - 1] +
-            snapA[p + 1] +
-            snapA[p - w] +
-            snapA[p + w]) /
-          6
-        const idx = p * 4
-        data[idx + 3] = Math.round(a * (1 - smoothStrength) + avgA * smoothStrength)
-        if (tintRgb) {
-          const blend = (1 - data[idx + 3] / 255) * smoothStrength * 0.75
-          data[idx] = Math.round(data[idx] * (1 - blend) + tintRgb.r * blend)
-          data[idx + 1] = Math.round(data[idx + 1] * (1 - blend) + tintRgb.g * blend)
-          data[idx + 2] = Math.round(data[idx + 2] * (1 - blend) + tintRgb.b * blend)
-        }
+    const boundary = collectBoundaryIndices(data, w, h, alphaSnap)
+    for (let i = 0; i < boundary.length; i++) {
+      const p = boundary[i]
+      const a = alphaSnap[p]
+      if (a === 0 || a === 255) continue
+      const avgA =
+        (alphaSnap[p] * 2 +
+          alphaSnap[p - 1] +
+          alphaSnap[p + 1] +
+          alphaSnap[p - w] +
+          alphaSnap[p + w]) /
+        6
+      const idx = p * 4
+      const newA = Math.round(a * (1 - smoothStrength) + avgA * smoothStrength)
+      data[idx + 3] = newA
+      if (tintRgb) {
+        const blend = (1 - newA / 255) * smoothStrength * 0.75
+        data[idx] = Math.round(data[idx] * (1 - blend) + tintRgb.r * blend)
+        data[idx + 1] = Math.round(data[idx + 1] * (1 - blend) + tintRgb.g * blend)
+        data[idx + 2] = Math.round(data[idx + 2] * (1 - blend) + tintRgb.b * blend)
       }
     }
   }
@@ -499,37 +582,41 @@ function applyEdgeSmoothAndStroke(
   const strokeWidth = Math.max(0, Math.min(10, Math.round(settings.strokeWidth ?? 0)))
   if (strokeWidth > 0) {
     const strokeRgb = parseHexRgb(settings.strokeColorHex || '#ffffff')
-    const origAlpha = new Uint8Array(totalPixels)
-    for (let p = 0; p < totalPixels; p++) origAlpha[p] = data[p * 4 + 3]
+    const boundary = collectBoundaryIndices(data, w, h, alphaSnap)
+    const strokeMask = new Uint8Array(w * h)
     const rSq = strokeWidth * strokeWidth
 
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const p = y * w + x
-        if (origAlpha[p] > 200) continue
-        let found = false
-        for (let dy = -strokeWidth; dy <= strokeWidth && !found; dy++) {
-          const ny = y + dy
-          if (ny < 0 || ny >= h) continue
-          for (let dx = -strokeWidth; dx <= strokeWidth; dx++) {
-            if (dx * dx + dy * dy > rSq) continue
-            const nx = x + dx
-            if (nx < 0 || nx >= w) continue
-            if (origAlpha[ny * w + nx] > 180) {
-              found = true
-              break
-            }
+    for (let i = 0; i < boundary.length; i++) {
+      const p = boundary[i]
+      if (alphaSnap[p] <= 180) continue
+      const cx = p % w
+      const cy = (p - cx) / w
+      const y0 = Math.max(0, cy - strokeWidth)
+      const y1 = Math.min(h - 1, cy + strokeWidth)
+      const x0 = Math.max(0, cx - strokeWidth)
+      const x1 = Math.min(w - 1, cx + strokeWidth)
+      for (let ny = y0; ny <= y1; ny++) {
+        const dy = ny - cy
+        const row = ny * w
+        for (let nx = x0; nx <= x1; nx++) {
+          const dx = nx - cx
+          if (dx * dx + dy * dy > rSq) continue
+          const np = row + nx
+          if (alphaSnap[np] <= 200) {
+            strokeMask[np] = 1
           }
         }
-        if (found) {
-          const idx = p * 4
-          const oa = origAlpha[p] / 255
-          data[idx] = Math.round(data[idx] * oa + strokeRgb.r * (1 - oa))
-          data[idx + 1] = Math.round(data[idx + 1] * oa + strokeRgb.g * (1 - oa))
-          data[idx + 2] = Math.round(data[idx + 2] * oa + strokeRgb.b * (1 - oa))
-          data[idx + 3] = 255
-        }
       }
+    }
+
+    for (let p = 0; p < w * h; p++) {
+      if (!strokeMask[p]) continue
+      const idx = p * 4
+      const oa = alphaSnap[p] / 255
+      data[idx] = Math.round(data[idx] * oa + strokeRgb.r * (1 - oa))
+      data[idx + 1] = Math.round(data[idx + 1] * oa + strokeRgb.g * (1 - oa))
+      data[idx + 2] = Math.round(data[idx + 2] * oa + strokeRgb.b * (1 - oa))
+      data[idx + 3] = 255
     }
   }
 }
@@ -545,8 +632,7 @@ export function processAdvancedChromaPixelData(
   const { isBg, shadowAlpha } = classifyBackgroundPixels(data, totalPixels, settings)
 
   const isolationMode = settings.isolationMode || 'all'
-  const activeBg =
-    isolationMode === 'outer_only' ? isolateOuterConnectedBg(isBg, w, h) : isBg
+  const activeBg = isolationMode === 'outer_only' ? isolateOuterConnectedBg(isBg, w, h) : isBg
 
   for (let p = 0; p < totalPixels; p++) {
     if (activeBg[p]) {
@@ -554,24 +640,107 @@ export function processAdvancedChromaPixelData(
     }
   }
 
+  const alphaSnap = new Uint8Array(totalPixels)
   const cleanupMode = settings.cleanupMode || 'all'
   const edgeChoke =
     cleanupMode === 'all' || cleanupMode === 'smooth' ? settings.edgeChoke ?? 0 : 0
-  applyFeatherAndChoke(data, w, h, settings.smoothness, edgeChoke)
+  applyFeatherAndChoke(data, w, h, settings.smoothness, edgeChoke, alphaSnap)
 
   if (cleanupMode === 'all' || cleanupMode === 'defringe') {
-    applyDefringeAndDespill(data, w, h, settings)
+    applyDefringeAndDespill(data, w, h, settings, alphaSnap)
   }
 
   if (cleanupMode === 'all' || cleanupMode === 'despeckle') {
-    applyDespeckleAndWhiteCrumbs(data, w, h, settings)
+    applyDespeckleAndWhiteCrumbs(data, w, h, settings, alphaSnap)
   }
 
   if (cleanupMode === 'all' || cleanupMode === 'smooth') {
-    applyEdgeSmoothAndStroke(data, w, h, settings)
+    applyEdgeSmoothAndStroke(data, w, h, settings, alphaSnap)
   } else if ((settings.strokeWidth ?? 0) > 0) {
-    applyEdgeSmoothAndStroke(data, w, h, { ...settings, edgeSmooth: 0 })
+    applyEdgeSmoothAndStroke(data, w, h, { ...settings, edgeSmooth: 0 }, alphaSnap)
   }
+}
+
+/**
+ * Công cụ Đũa thần (Magic Wand): Click 1 điểm để xoá (hoặc khôi phục) vùng màu liên thông đồng nhất.
+ */
+export function applyMagicWandFlood(
+  targetData: Uint8ClampedArray,
+  rawData: Uint8ClampedArray | null,
+  w: number,
+  h: number,
+  startX: number,
+  startY: number,
+  tolerance = 32,
+  restore = false
+): { changed: boolean; minX: number; minY: number; maxX: number; maxY: number } {
+  const sx = Math.max(0, Math.min(w - 1, Math.round(startX)))
+  const sy = Math.max(0, Math.min(h - 1, Math.round(startY)))
+  const totalPixels = w * h
+  const seedIdx = (sy * w + sx) * 4
+  const refData = restore && rawData ? rawData : targetData
+  const sr = refData[seedIdx]
+  const sg = refData[seedIdx + 1]
+  const sb = refData[seedIdx + 2]
+
+  const maxDistSq = Math.max(8, (tolerance / 100) * 255 * 1.45) ** 2
+  const visited = new Uint8Array(totalPixels)
+  const queue = new Int32Array(totalPixels)
+  let head = 0
+  let tail = 0
+  const startP = sy * w + sx
+  visited[startP] = 1
+  queue[tail++] = startP
+
+  let minX = sx
+  let maxX = sx
+  let minY = sy
+  let maxY = sy
+  let changed = false
+
+  while (head < tail) {
+    const p = queue[head++]
+    const cx = p % w
+    const cy = (p - cx) / w
+    const idx = p * 4
+
+    if (restore && rawData) {
+      targetData[idx] = rawData[idx]
+      targetData[idx + 1] = rawData[idx + 1]
+      targetData[idx + 2] = rawData[idx + 2]
+      targetData[idx + 3] = rawData[idx + 3]
+      changed = true
+    } else if (targetData[idx + 3] > 0) {
+      targetData[idx + 3] = 0
+      changed = true
+    }
+
+    if (cx < minX) minX = cx
+    if (cx > maxX) maxX = cx
+    if (cy < minY) minY = cy
+    if (cy > maxY) maxY = cy
+
+    const neighbors = [
+      cx > 0 ? p - 1 : -1,
+      cx < w - 1 ? p + 1 : -1,
+      cy > 0 ? p - w : -1,
+      cy < h - 1 ? p + w : -1
+    ]
+    for (const n of neighbors) {
+      if (n < 0 || visited[n]) continue
+      visited[n] = 1
+      const ni = n * 4
+      if (!restore && targetData[ni + 3] === 0) continue
+      const dr = refData[ni] - sr
+      const dg = refData[ni + 1] - sg
+      const db = refData[ni + 2] - sb
+      if (dr * dr + dg * dg + db * db <= maxDistSq) {
+        queue[tail++] = n
+      }
+    }
+  }
+
+  return { changed, minX, minY, maxX, maxY }
 }
 
 export function computeGridIslands(

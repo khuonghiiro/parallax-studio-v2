@@ -11,7 +11,11 @@ import {
   IconCrop,
   IconEraser,
   IconBrush,
-  IconGrid3D
+  IconGrid3D,
+  IconLasso,
+  IconWand,
+  IconSliders,
+  IconRefresh
 } from '../../icons'
 import { CutterChromaStudioPanel } from './CutterChromaStudioPanel'
 import { PhotoshopEyedropperButton } from './PhotoshopEyedropperOverlay'
@@ -42,23 +46,21 @@ export function SpriteCutterSourceToolbar({
   tool,
   islandsCount,
   gridSettings,
-  tagDisplayMode,
-  canvasBg,
   chroma,
   showChromaStudio,
   eyedropperTarget,
   eyedropperSample,
   onChangeTool,
-  onChangeTagDisplayMode,
-  onChangeCanvasBg,
   onChangeChroma,
   onToggleChromaStudio,
   onToggleEyedropper,
   onResetChroma
 }: SpriteCutterSourceToolbarProps) {
+  const isOriginalPreview = chroma.previewMode === 'original'
+
   return (
     <>
-      {/* Hàng 1: Nhóm Công Cụ Cắt Tách + Nút Hút Màu Nhanh + Nút Mở Bộ Lọc Studio + Nền Canvas */}
+      {/* Hàng Ribbon chính: 7 Công cụ cắt & chỉnh sửa (SVG đồng bộ) + Điều khiển Tách nền */}
       <div className="layer-cutter-toolbar layer-cutter-ribbon">
         <div className="layer-cutter-tool-group" role="tablist" aria-label="Chế độ cắt tách sprite">
           <button
@@ -81,7 +83,7 @@ export function SpriteCutterSourceToolbar({
             title="Cắt lưới ma trận (Grid Slicer): Chia đều tấm ảnh theo Số Hàng × Số Cột để cắt nhanh"
           >
             <IconGrid3D width={12} height={12} />
-            <span className="lc-tool-label">Cắt lưới</span>
+            <span className="lc-tool-label">Lưới</span>
             <span className="lc-count-badge">
               {gridSettings.rows}×{gridSettings.cols}
             </span>
@@ -105,8 +107,19 @@ export function SpriteCutterSourceToolbar({
             onClick={() => onChangeTool('lasso')}
             title="Khoanh vùng tự do (Lasso): Vẽ đường viền tự do để tách bộ phận nằm sát nhau"
           >
-            <span>✂️</span>
+            <IconLasso width={12} height={12} />
             <span className="lc-tool-label">Lasso</span>
+          </button>
+
+          <button
+            id="btn-cutter-tool-wand"
+            type="button"
+            className={`layer-cutter-tool-btn ${tool === 'wand' ? 'active' : ''}`}
+            onClick={() => onChangeTool('wand')}
+            title="Đũa thần (Magic Wand): Click 1 điểm để xoá nhanh vùng nền kẹt giữa các lọn tóc/ngón tay (Giữ Alt + Click để khôi phục)"
+          >
+            <IconWand width={12} height={12} />
+            <span className="lc-tool-label">Đũa thần</span>
           </button>
 
           <button
@@ -132,75 +145,80 @@ export function SpriteCutterSourceToolbar({
           </button>
         </div>
 
-        {/* Công tắc bật/tắt Tách nền + Nút mở Bảng Studio Tách Nền Chuyên Sâu */}
-        <label
-          className="layer-cutter-switch-pill"
-          title="Bật/tắt thuật toán tách nền tự động"
-        >
-          <input
-            type="checkbox"
-            className="lc-switch"
-            checked={chroma.enabled}
-            onChange={(e) => onChangeChroma({ enabled: e.target.checked })}
-          />
-          <span>Tách nền</span>
-        </label>
-
-        {/* Nút Hút màu kiểu Adobe Photoshop ngay trên thanh công cụ chính */}
-        <PhotoshopEyedropperButton
-          id="btn-toolbar-eyedropper"
-          active={eyedropperTarget === 'key'}
-          currentHex={chroma.keyColorHex}
-          hoveredHex={eyedropperTarget === 'key' ? eyedropperSample?.hex : null}
-          label="Hút màu"
-          title="Hút màu nền trực tiếp trên ảnh với Kính lúp Pixel & Vòng đối chiếu màu kiểu Adobe Photoshop"
-          onToggle={() => onToggleEyedropper('key')}
-        />
-
-        <button
-          id="btn-toggle-chroma-studio"
-          type="button"
-          className={`cutter-studio-toggle-btn ${showChromaStudio ? 'active' : ''}`}
-          onClick={onToggleChromaStudio}
-          title="Đóng/mở bảng thiết lập Tách nền & Khử viền rác chuyên sâu"
-        >
-          <span>🧪 Bộ lọc Tách & Khử viền</span>
-          <span className="caret">{showChromaStudio ? '▴' : '▾'}</span>
-        </button>
-
-        {/* Nhóm hiển thị bên phải: Nhãn & Nền Canvas */}
+        {/* Nhóm điều khiển Tách nền bên phải (gọn gàng, không bị tràn hay cắt cụt) */}
         <div className="layer-cutter-toolbar-right">
-          <div className="layer-cutter-seg-mini" title="Chế độ hiển thị nhãn tên mảnh cắt">
-            <span className="seg-label">Nhãn:</span>
-            {(['hover', 'always', 'hidden'] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                className={`seg-btn ${tagDisplayMode === m ? 'active' : ''}`}
-                onClick={() => onChangeTagDisplayMode(m)}
-              >
-                {m === 'hover' ? 'Trỏ' : m === 'always' ? 'Luôn' : 'Ẩn'}
-              </button>
-            ))}
+          <label
+            className="layer-cutter-switch-pill"
+            title="Bật/tắt thuật toán tách nền tự động"
+          >
+            <input
+              type="checkbox"
+              className="lc-switch"
+              checked={chroma.enabled}
+              onChange={(e) => onChangeChroma({ enabled: e.target.checked })}
+            />
+            <span>Tách nền</span>
+          </label>
+
+          {/* Khi thu gọn bảng Studio thì mới hiện nút Hút màu nhanh trên thanh công cụ */}
+          {(!showChromaStudio || !chroma.enabled) && (
+            <PhotoshopEyedropperButton
+              id="btn-toolbar-eyedropper"
+              active={eyedropperTarget === 'key'}
+              currentHex={chroma.keyColorHex}
+              hoveredHex={eyedropperTarget === 'key' ? eyedropperSample?.hex : null}
+              label="Hút màu"
+              title="Hút màu nền trực tiếp trên ảnh với Kính lúp Pixel & Vòng đối chiếu màu kiểu Adobe Photoshop"
+              onToggle={() => onToggleEyedropper('key')}
+            />
+          )}
+
+          <div
+            className="cutter-preview-mode-group"
+            title="Đối chiếu kết quả đã tách nền với ảnh gốc ban đầu"
+          >
+            <button
+              type="button"
+              className={`cutter-preview-mode-btn ${!isOriginalPreview && chroma.enabled ? 'active' : ''}`}
+              onClick={() => onChangeChroma({ enabled: true, previewMode: 'transparent' })}
+            >
+              Đã tách
+            </button>
+            <button
+              type="button"
+              className={`cutter-preview-mode-btn ${isOriginalPreview || !chroma.enabled ? 'active' : ''}`}
+              onClick={() =>
+                onChangeChroma({ previewMode: isOriginalPreview ? 'transparent' : 'original' })
+              }
+            >
+              Ảnh gốc
+            </button>
           </div>
 
-          <div className="layer-cutter-seg-mini" title="Màu nền vùng xem để kiểm tra viền rác">
-            <span className="seg-label">Nền:</span>
-            {(['checker', 'dark', 'light'] as const).map((bg) => (
-              <button
-                key={bg}
-                type="button"
-                className={`seg-btn ${canvasBg === bg ? 'active' : ''}`}
-                onClick={() => onChangeCanvasBg(bg)}
-              >
-                {bg === 'checker' ? 'Caro' : bg === 'dark' ? 'Tối' : 'Sáng'}
-              </button>
-            ))}
-          </div>
+          <button
+            id="btn-toggle-chroma-studio"
+            type="button"
+            className={`cutter-studio-toggle-btn ${showChromaStudio ? 'active' : ''}`}
+            onClick={onToggleChromaStudio}
+            title="Đóng/mở bảng thiết lập Tách nền & Khử viền chuyên sâu"
+          >
+            <IconSliders width={12} height={12} />
+            <span>Bộ lọc</span>
+            <span className="caret">{showChromaStudio ? '▴' : '▾'}</span>
+          </button>
+
+          <button
+            type="button"
+            className="cutter-studio-reset-btn"
+            onClick={onResetChroma}
+            title="Khôi phục toàn bộ thông số tách nền & lọc rác về mặc định chuẩn"
+          >
+            <IconRefresh width={11} height={11} />
+          </button>
         </div>
       </div>
 
-      {/* Bảng Studio Tách Nền & Khử Viền Sượng Chuyên Sâu (2 Sub-tabs giống Xưởng Lắp Ráp 2D) */}
+      {/* Bảng Studio Tách Nền & Khử Viền Sượng Chuyên Sâu (gọn 2 hàng: Header + 4 Sliders) */}
       {showChromaStudio && chroma.enabled && (
         <CutterChromaStudioPanel
           chroma={chroma}

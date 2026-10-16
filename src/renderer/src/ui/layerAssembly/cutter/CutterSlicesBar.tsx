@@ -27,7 +27,7 @@ export function CutterGridSubBar({
   return (
     <div className="cutter-grid-subbar">
       <div className="cutter-grid-badge">
-        <span>🔲 Cắt Lưới Ma Trận (Grid Slicer)</span>
+        <span>Cắt Lưới Ma Trận</span>
       </div>
 
       {/* Chọn nhanh tỷ lệ lưới */}
@@ -95,7 +95,10 @@ export function CutterGridSubBar({
       </div>
 
       {/* Thu viền ô (Padding Inset) */}
-      <div className="layer-cutter-control-row" title="Co lùi viền mỗi ô lưới vào trong để không dính vạch kẻ khung">
+      <div
+        className="layer-cutter-control-row"
+        title="Co lùi viền mỗi ô lưới vào trong để không dính vạch kẻ khung"
+      >
         <span className="subbar-label">Thu viền ô:</span>
         <input
           type="range"
@@ -115,7 +118,7 @@ export function CutterGridSubBar({
         onClick={onSendAllToBoard}
         title="Cắt toàn bộ các ô trong lưới và đưa sang Bố cục lắp ráp 2D"
       >
-        ⚡ Đưa cả {totalCells} ô sang 2D
+        Đưa cả {totalCells} ô sang 2D
       </button>
     </div>
   )
@@ -126,7 +129,9 @@ export interface CutterQuickPartsStripProps {
   islands: DetectedIsland[]
   selectedIslandId: string | null
   minIslandArea: number
+  mergeGap?: number
   onChangeMinIslandArea: (area: number) => void
+  onChangeMergeGap?: (gap: number) => void
   onSelectIsland: (island: DetectedIsland) => void
   onQuickAddIsland: (island: DetectedIsland) => void
   onSendAllToBoard: () => void
@@ -137,7 +142,9 @@ export function CutterQuickPartsStrip({
   islands,
   selectedIslandId,
   minIslandArea,
+  mergeGap = 18,
   onChangeMinIslandArea,
+  onChangeMergeGap,
   onSelectIsland,
   onQuickAddIsland,
   onSendAllToBoard
@@ -158,21 +165,41 @@ export function CutterQuickPartsStrip({
           </button>
 
           {mode === 'auto' && (
-            <div
-              className="cutter-min-area-pill"
-              title="Lọc diện tích mảnh nhỏ nhất: kéo thấp xuống để bắt cả chi tiết nhỏ (mắt, phụ kiện), kéo cao lên để bỏ qua vụn nhỏ"
-            >
-              <span>Lọc mảnh nhỏ:</span>
-              <input
-                type="range"
-                min={16}
-                max={600}
-                step={8}
-                value={minIslandArea}
-                onChange={(e) => onChangeMinIslandArea(Number(e.target.value))}
-              />
-              <strong>{minIslandArea}px²</strong>
-            </div>
+            <>
+              <div
+                className="cutter-min-area-pill"
+                title="Lọc diện tích mảnh nhỏ nhất (không quét lại ảnh, phản hồi tức thì): kéo thấp để lấy chi tiết nhỏ (mắt, lông mày), kéo cao để bỏ qua vụn rác"
+              >
+                <span>Lọc mảnh nhỏ:</span>
+                <input
+                  type="range"
+                  min={16}
+                  max={600}
+                  step={8}
+                  value={minIslandArea}
+                  onChange={(e) => onChangeMinIslandArea(Number(e.target.value))}
+                />
+                <strong>{minIslandArea}px²</strong>
+              </div>
+
+              {onChangeMergeGap && (
+                <div
+                  className="cutter-min-area-pill"
+                  title="Khoảng cách gom các nét rời gần nhau: đặt 0px để tách riêng từng lông mày/mắt/miệng, tăng lên để gom thành 1 cụm biểu cảm"
+                >
+                  <span>Gom nét gần:</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={48}
+                    step={2}
+                    value={mergeGap}
+                    onChange={(e) => onChangeMergeGap(Number(e.target.value))}
+                  />
+                  <strong>{mergeGap}px</strong>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -185,7 +212,7 @@ export function CutterQuickPartsStrip({
               onClick={onSendAllToBoard}
               title="Tự động cắt toàn bộ các mảnh đã nhận diện và xếp vào Bố cục lắp ráp 2D"
             >
-              ⚡ Đưa tất cả ({islands.length}) vào Bố cục 2D
+              Đưa tất cả ({islands.length}) vào Bố cục 2D
             </button>
           )}
         </div>
@@ -195,16 +222,19 @@ export function CutterQuickPartsStrip({
         <div className="cutter-parts-chips-scroll">
           {islands.map((isl, idx) => {
             const isSelected = selectedIslandId === isl.id
-            const label = isl.label || `Mảnh #${idx + 1}`
+            const shortName =
+              isl.label && !isl.label.startsWith('Mảnh #')
+                ? isl.label
+                : `Mảnh #${idx + 1}`
             return (
               <div
                 key={isl.id}
                 className={`cutter-part-chip ${isSelected ? 'selected' : ''}`}
                 onClick={() => onSelectIsland(isl)}
-                title={`Click để chọn "${label}" (${isl.width}×${isl.height}px) trên ảnh`}
+                onDoubleClick={() => onQuickAddIsland(isl)}
+                title={`Click để chọn "${shortName}" (${isl.width}×${isl.height}px) · Nhấp đúp để đưa ngay sang Bố cục 2D`}
               >
                 <span className="cutter-part-chip-idx">#{idx + 1}</span>
-                <span className="cutter-part-chip-name">{label}</span>
                 <span className="cutter-part-chip-dim">
                   {isl.width}×{isl.height}
                 </span>
@@ -215,7 +245,7 @@ export function CutterQuickPartsStrip({
                     e.stopPropagation()
                     onQuickAddIsland(isl)
                   }}
-                  title={`Đưa ngay "${label}" sang Bố cục lắp ráp 2D`}
+                  title={`Đưa ngay "${shortName}" sang Bố cục lắp ráp 2D`}
                 >
                   <IconPlus width={10} height={10} />
                 </button>

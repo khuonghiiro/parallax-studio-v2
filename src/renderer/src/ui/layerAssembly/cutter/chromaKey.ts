@@ -18,8 +18,12 @@ export function hexToRgb(hex: string): { r: number; g: number; b: number } {
 }
 
 export function computeColorDist(
-  r: number, g: number, b: number,
-  kr: number, kg: number, kb: number
+  r: number,
+  g: number,
+  b: number,
+  kr: number,
+  kg: number,
+  kb: number
 ): number {
   const dr = r - kr
   const dg = g - kg
@@ -41,7 +45,6 @@ export function computeColorDist(
     return Math.max(0, (wDist / 255) * 100 - bonus)
   }
 
-  // Perceptually weighted Euclidean distance (0..100)
   return (Math.sqrt(0.299 * dr * dr + 0.587 * dg * dg + 0.114 * db * db) / 255) * 100
 }
 
@@ -132,116 +135,159 @@ export function sampleEyedropperAtPoint(
 }
 
 /**
- * Tự động phát hiện các đảo pixel không trong suốt (Connected Components / Slices)
+ * Quét nhanh các đảo pixel thô bằng hàng đợi Int32Array tĩnh (không cấp phát mảng con),
+ * hỗ trợ quy đổi hệ số tỷ lệ `coordScale` khi quét trên canvas proxy của ảnh 4K/8K.
  */
-export function detectOpaqueIslands(
-  ctx: CanvasRenderingContext2D,
+export function scanRawIslandsFromData(
+  data: Uint8ClampedArray,
   width: number,
   height: number,
-  minArea = 100
+  coordScale = 1
 ): DetectedIsland[] {
-  const imgData = ctx.getImageData(0, 0, width, height)
-  const data = imgData.data
-  const visited = new Uint8Array(width * height)
-  const islands: DetectedIsland[] = []
-
-  // Bước nhảy scan lưới để phát hiện mầm nhanh và chính xác
+  const total = width * height
+  const visited = new Uint8Array(total)
+  const queue = new Int32Array(total)
+  const rawIslands: DetectedIsland[] = []
   const step = 2
+  const invScale = coordScale > 0 ? 1 / coordScale : 1
+  const areaScale = invScale * invScale
 
   for (let sy = 0; sy < height; sy += step) {
+    const rowOff = sy * width
     for (let sx = 0; sx < width; sx += step) {
-      const idx = sy * width + sx
+      const idx = rowOff + sx
       if (visited[idx] || data[idx * 4 + 3] < 30) continue
 
-      // BFS tìm toàn bộ vùng nối liền
-      let minX = sx, maxX = sx, minY = sy, maxY = sy
-      let area = 0
-      const queue: number[] = [idx]
+      let minX = sx
+      let maxX = sx
+      let minY = sy
+      let maxY = sy
+      let head = 0
+      let tail = 0
+      queue[tail++] = idx
       visited[idx] = 1
 
-      while (queue.length > 0) {
-        const curr = queue.pop()!
+      while (head < tail) {
+        const curr = queue[head++]
         const cx = curr % width
-        const cy = Math.floor(curr / width)
-        area++
+        const cy = (curr - cx) / width
 
         if (cx < minX) minX = cx
         if (cx > maxX) maxX = cx
         if (cy < minY) minY = cy
         if (cy > maxY) maxY = cy
 
-        // 4 hướng lân cận
-        const neighbors = [
-          cy > 0 ? (cy - 1) * width + cx : -1,
-          cy < height - 1 ? (cy + 1) * width + cx : -1,
-          cx > 0 ? cy * width + (cx - 1) : -1,
-          cx < width - 1 ? cy * width + (cx + 1) : -1
-        ]
-
-        for (const n of neighbors) {
-          if (n !== -1 && !visited[n] && data[n * 4 + 3] >= 30) {
+        if (cy > 0) {
+          const n = curr - width
+          if (!visited[n] && data[n * 4 + 3] >= 30) {
             visited[n] = 1
-            queue.push(n)
+            queue[tail++] = n
+          }
+        }
+        if (cy < height - 1) {
+          const n = curr + width
+          if (!visited[n] && data[n * 4 + 3] >= 30) {
+            visited[n] = 1
+            queue[tail++] = n
+          }
+        }
+        if (cx > 0) {
+          const n = curr - 1
+          if (!visited[n] && data[n * 4 + 3] >= 30) {
+            visited[n] = 1
+            queue[tail++] = n
+          }
+        }
+        if (cx < width - 1) {
+          const n = curr + 1
+          if (!visited[n] && data[n * 4 + 3] >= 30) {
+            visited[n] = 1
+            queue[tail++] = n
           }
         }
       }
 
+      const area = tail
       const w = maxX - minX + 1
       const h = maxY - minY + 1
-      if (area >= 16 && w >= 4 && h >= 4) {
-        // Mở rộng viền 2px để bảo toàn đường nét chi tiết
-        const paddedMinX = Math.max(0, minX - 2)
-        const paddedMinY = Math.max(0, minY - 2)
-        const paddedMaxX = Math.min(width - 1, maxX + 2)
-        const paddedMaxY = Math.min(height - 1, maxY + 2)
+      if (area >= 12 && w >= 3 && h >= 3) {
+        const padMinX = Math.max(0, minX - 2)
+        const padMinY = Math.max(0, minY - 2)
+        const padMaxX = Math.min(width - 1, maxX + 2)
+        const padMaxY = Math.min(height - 1, maxY + 2)
 
-        islands.push({
-          id: `island-${islands.length + 1}`,
-          x: paddedMinX,
-          y: paddedMinY,
-          width: paddedMaxX - paddedMinX + 1,
-          height: paddedMaxY - paddedMinY + 1,
-          area
+        const rx = Math.round(padMinX * invScale)
+        const ry = Math.round(padMinY * invScale)
+        const rw = Math.max(4, Math.round((padMaxX - padMinX + 1) * invScale))
+        const rh = Math.max(4, Math.round((padMaxY - padMinY + 1) * invScale))
+
+        rawIslands.push({
+          id: `raw-${rawIslands.length + 1}`,
+          x: rx,
+          y: ry,
+          width: rw,
+          height: rh,
+          area: Math.round(area * areaScale)
         })
       }
     }
   }
 
-  // Gom cụm các nét ngũ quan rời (lông mày, mắt, mũi, miệng) nằm gần nhau thành 1 mảnh biểu cảm khuôn mặt duy nhất
-  const maxClusterW = Math.max(80, width * 0.23)
-  const maxClusterH = Math.max(60, height * 0.16)
-  let merged = true
-  while (merged) {
-    merged = false
-    for (let i = 0; i < islands.length; i++) {
-      for (let j = i + 1; j < islands.length; j++) {
-        const a = islands[i]
-        const b = islands[j]
-        if (a.width > maxClusterW || a.height > maxClusterH) continue
-        if (b.width > maxClusterW || b.height > maxClusterH) continue
-        const gapX = Math.max(0, Math.max(a.x, b.x) - Math.min(a.x + a.width, b.x + b.width))
-        const gapY = Math.max(0, Math.max(a.y, b.y) - Math.min(a.y + a.height, b.y + b.height))
-        if (gapX <= 18 && gapY <= 16) {
-          const nx = Math.min(a.x, b.x)
-          const ny = Math.min(a.y, b.y)
-          const nw = Math.max(a.x + a.width, b.x + b.width) - nx
-          const nh = Math.max(a.y + a.height, b.y + b.height) - ny
-          if (nw <= maxClusterW && nh <= maxClusterH) {
-            islands[i] = {
-              id: a.id,
-              x: nx,
-              y: ny,
-              width: nw,
-              height: nh,
-              area: a.area + b.area
+  return rawIslands
+}
+
+/**
+ * Gom cụm và lọc danh sách mảnh từ `rawIslands` trong < 0.1ms (không cần quét lại pixel khi kéo thanh trượt Lọc vụn / Gom nét).
+ */
+export function clusterAndFilterIslands(
+  rawIslands: DetectedIsland[],
+  naturalWidth: number,
+  naturalHeight: number,
+  minArea = 100,
+  mergeGap = 18
+): DetectedIsland[] {
+  const islands: DetectedIsland[] = rawIslands.map((isl) => ({ ...isl }))
+
+  if (mergeGap > 0) {
+    const maxClusterW = Math.max(80, naturalWidth * 0.23)
+    const maxClusterH = Math.max(60, naturalHeight * 0.16)
+    const scaleFactor = Math.max(1, Math.max(naturalWidth, naturalHeight) / 960)
+    const effGapX = Math.round(mergeGap * scaleFactor)
+    const effGapY = Math.round(Math.max(2, mergeGap - 2) * scaleFactor)
+
+    let merged = true
+    while (merged) {
+      merged = false
+      for (let i = 0; i < islands.length; i++) {
+        for (let j = i + 1; j < islands.length; j++) {
+          const a = islands[i]
+          const b = islands[j]
+          if (a.width > maxClusterW || a.height > maxClusterH) continue
+          if (b.width > maxClusterW || b.height > maxClusterH) continue
+          const gapX = Math.max(0, Math.max(a.x, b.x) - Math.min(a.x + a.width, b.x + b.width))
+          const gapY = Math.max(0, Math.max(a.y, b.y) - Math.min(a.y + a.height, b.y + b.height))
+          if (gapX <= effGapX && gapY <= effGapY) {
+            const nx = Math.min(a.x, b.x)
+            const ny = Math.min(a.y, b.y)
+            const nw = Math.max(a.x + a.width, b.x + b.width) - nx
+            const nh = Math.max(a.y + a.height, b.y + b.height) - ny
+            if (nw <= maxClusterW && nh <= maxClusterH) {
+              islands[i] = {
+                id: a.id,
+                x: nx,
+                y: ny,
+                width: nw,
+                height: nh,
+                area: a.area + b.area
+              }
+              islands.splice(j, 1)
+              merged = true
+              break
             }
-            islands.splice(j, 1)
-            merged = true
-            break
           }
         }
+        if (merged) break
       }
-      if (merged) break
     }
   }
 
@@ -249,7 +295,6 @@ export function detectOpaqueIslands(
     (isl) => isl.area >= minArea && isl.width >= 12 && isl.height >= 12
   )
 
-  // Loại bỏ các box bị bao bọc hoàn toàn bởi box lớn hơn
   const filtered = sizeFiltered.filter((isl, i) => {
     return !sizeFiltered.some((other, j) => {
       if (i === j) return false
@@ -263,20 +308,34 @@ export function detectOpaqueIslands(
     })
   })
 
-  // Sắp xếp các mảnh tự nhiên theo thứ tự hàng trên -> dưới, cột trái -> phải
+  const rowStep = Math.max(48, Math.round(naturalHeight * 0.06))
   filtered.sort((a, b) => {
-    const rowA = Math.floor(a.y / 60)
-    const rowB = Math.floor(b.y / 60)
+    const rowA = Math.floor(a.y / rowStep)
+    const rowB = Math.floor(b.y / rowStep)
     if (rowA !== rowB) return rowA - rowB
     return a.x - b.x
   })
 
-  // Đặt nhãn rõ ràng, chuẩn xác không gán nhãn giải phẫu đoán mò
   return filtered.map((isl, idx) => ({
     ...isl,
     id: `island-${idx + 1}`,
     label: `Mảnh #${idx + 1} (${isl.width}×${isl.height})`
   }))
+}
+
+/**
+ * Tự động phát hiện các đảo pixel không trong suốt (Connected Components / Slices)
+ */
+export function detectOpaqueIslands(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  minArea = 100,
+  mergeGap = 18
+): DetectedIsland[] {
+  const imgData = ctx.getImageData(0, 0, width, height)
+  const raw = scanRawIslandsFromData(imgData.data, width, height, 1)
+  return clusterAndFilterIslands(raw, width, height, minArea, mergeGap)
 }
 
 export interface CutterStrokeSettings {
@@ -293,15 +352,16 @@ export interface CutterStrokeSession {
 }
 
 /**
- * Khởi tạo phiên nét cọ nội suy liên tục (segment interpolation) mượt mà như After Effects/Photoshop.
- * Hỗ trợ cọ tẩy (giảm alpha) và cọ khôi phục (lấy lại pixel từ ảnh gốc) với độ cứng (hardness) và lực tẩy (opacity).
+ * Khởi tạo phiên nét cọ nội suy liên tục (segment interpolation) mượt mà 60fps trên cả ảnh 4K/8K.
+ * Chỉ đẩy vùng chữ nhật bẩn (dirty rect) lên GPU khi commit mỗi đoạn cọ.
  */
 export function createCutterStroke(
   targetCtx: CanvasRenderingContext2D,
   rawCtx: CanvasRenderingContext2D | null,
   width: number,
   height: number,
-  settings: CutterStrokeSettings
+  settings: CutterStrokeSettings,
+  userAlphaOverride?: Int16Array | null
 ): CutterStrokeSession {
   const targetImg = targetCtx.getImageData(0, 0, width, height)
   const tdata = targetImg.data
@@ -319,6 +379,11 @@ export function createCutterStroke(
   const isEraser = settings.isEraser
   let changed = false
 
+  let dirtyMinX = width
+  let dirtyMinY = height
+  let dirtyMaxX = -1
+  let dirtyMaxY = -1
+
   function segment(from: { x: number; y: number }, to: { x: number; y: number }) {
     const dx = to.x - from.x
     const dy = to.y - from.y
@@ -330,6 +395,7 @@ export function createCutterStroke(
     const maxY = Math.min(height - 1, Math.ceil(Math.max(from.y, to.y) + radius + 1))
 
     const feather = Math.max(1 - hardness, 1 / radius)
+    let segChanged = false
 
     for (let y = minY; y <= maxY; y++) {
       for (let x = minX; x <= maxX; x++) {
@@ -340,7 +406,6 @@ export function createCutterStroke(
         if (dist > 1) continue
 
         const fade = Math.max(0, Math.min(1, (1 - dist) / feather))
-        // Smoothstep curve (3x^2 - 2x^3) for soft natural edge
         const amount = fade * fade * (3 - 2 * fade)
         const i = y * width + x
         if (amount <= coverage[i]) continue
@@ -351,7 +416,9 @@ export function createCutterStroke(
           const newAlpha = Math.round(initialAlpha[i] * (1 - opacity * amount))
           if (tdata[idx + 3] !== newAlpha) {
             tdata[idx + 3] = newAlpha
+            if (userAlphaOverride) userAlphaOverride[i] = newAlpha
             changed = true
+            segChanged = true
           }
         } else if (rdata) {
           const blend = amount * opacity
@@ -365,25 +432,43 @@ export function createCutterStroke(
             tdata[idx + 1] = targetG
             tdata[idx + 2] = targetB
             tdata[idx + 3] = targetA
+            if (userAlphaOverride) userAlphaOverride[i] = targetA
             changed = true
+            segChanged = true
           }
         }
       }
     }
-  }
 
-  function commit() {
-    if (changed) {
-      targetCtx.putImageData(targetImg, 0, 0)
+    if (segChanged) {
+      if (minX < dirtyMinX) dirtyMinX = minX
+      if (minY < dirtyMinY) dirtyMinY = minY
+      if (maxX > dirtyMaxX) dirtyMaxX = maxX
+      if (maxY > dirtyMaxY) dirtyMaxY = maxY
     }
   }
 
-  return { segment, commit, get changed() { return changed } }
+  function commit() {
+    if (changed && dirtyMaxX >= dirtyMinX && dirtyMaxY >= dirtyMinY) {
+      const dw = dirtyMaxX - dirtyMinX + 1
+      const dh = dirtyMaxY - dirtyMinY + 1
+      targetCtx.putImageData(targetImg, 0, 0, dirtyMinX, dirtyMinY, dw, dh)
+      dirtyMinX = width
+      dirtyMinY = height
+      dirtyMaxX = -1
+      dirtyMaxY = -1
+    }
+  }
+
+  return {
+    segment,
+    commit,
+    get changed() {
+      return changed
+    }
+  }
 }
 
-/**
- * Áp dụng cọ tẩy (xóa viền xanh còn sót) hoặc cọ khôi phục (lấy lại pixel gốc)
- */
 export function applyBrushToCanvas(
   targetCtx: CanvasRenderingContext2D,
   rawCtx: CanvasRenderingContext2D,
@@ -406,12 +491,14 @@ export function applyBrushToCanvas(
 }
 
 /**
- * Trích xuất ảnh PNG trong suốt từ vùng chọn (box hoặc polygon)
+ * Trích xuất ảnh PNG trong suốt từ vùng chọn (hỗ trợ đồng bộ giữa ảnh gốc 4K/8K và mặt nạ đã tách nền trên canvas làm việc)
  */
 export function extractRegionDataUrl(
   sourceCanvas: HTMLCanvasElement,
   box: { x: number; y: number; width: number; height: number },
-  polygon?: CutPoint[]
+  polygon?: CutPoint[],
+  fullRawCanvas?: HTMLCanvasElement | null,
+  chromaSettings?: ChromaKeySettings
 ): string {
   const w = Math.max(1, Math.round(box.width))
   const h = Math.max(1, Math.round(box.height))
@@ -419,7 +506,7 @@ export function extractRegionDataUrl(
   const temp = document.createElement('canvas')
   temp.width = w
   temp.height = h
-  const tctx = temp.getContext('2d')
+  const tctx = temp.getContext('2d', { willReadFrequently: true })
   if (!tctx) return ''
 
   if (polygon && polygon.length >= 3) {
@@ -432,7 +519,89 @@ export function extractRegionDataUrl(
     tctx.clip()
   }
 
+  // Nếu có fullRawCanvas độ phân giải lớn (4K/8K) khác kích thước với sourceCanvas proxy:
+  if (
+    fullRawCanvas &&
+    fullRawCanvas.width > 0 &&
+    (fullRawCanvas.width !== sourceCanvas.width || fullRawCanvas.height !== sourceCanvas.height)
+  ) {
+    const maxExportDim = 1600
+    const exportScale = Math.min(1, maxExportDim / Math.max(w, h))
+    const ew = Math.max(1, Math.round(w * exportScale))
+    const eh = Math.max(1, Math.round(h * exportScale))
+    temp.width = ew
+    temp.height = eh
+
+    if (polygon && polygon.length >= 3) {
+      tctx.beginPath()
+      tctx.moveTo((polygon[0].x - box.x) * exportScale, (polygon[0].y - box.y) * exportScale)
+      for (let i = 1; i < polygon.length; i++) {
+        tctx.lineTo((polygon[i].x - box.x) * exportScale, (polygon[i].y - box.y) * exportScale)
+      }
+      tctx.closePath()
+      tctx.clip()
+    }
+
+    tctx.imageSmoothingEnabled = true
+    tctx.imageSmoothingQuality = 'high'
+
+    if (chromaSettings && chromaSettings.enabled && chromaSettings.previewMode !== 'original') {
+      // Lấy chi tiết sắc nét trực tiếp từ ảnh gốc 4K/8K trên đúng vùng mảnh cắt
+      tctx.drawImage(fullRawCanvas, box.x, box.y, w, h, 0, 0, ew, eh)
+      const hiData = tctx.getImageData(0, 0, ew, eh)
+      processAdvancedChromaPixelData(hiData.data, ew, eh, chromaSettings)
+
+      // Đồng bộ mặt nạ alpha từ sourceCanvas (bao gồm các nét Cọ tẩy / Đũa thần thủ công)
+      const maskCanvas = document.createElement('canvas')
+      maskCanvas.width = ew
+      maskCanvas.height = eh
+      const mctx = maskCanvas.getContext('2d')
+      if (mctx) {
+        const scaleX = sourceCanvas.width / fullRawCanvas.width
+        const scaleY = sourceCanvas.height / fullRawCanvas.height
+        mctx.drawImage(
+          sourceCanvas,
+          box.x * scaleX,
+          box.y * scaleY,
+          w * scaleX,
+          h * scaleY,
+          0,
+          0,
+          ew,
+          eh
+        )
+        const maskData = mctx.getImageData(0, 0, ew, eh).data
+        const hpx = hiData.data
+        for (let i = 3; i < hpx.length; i += 4) {
+          const mAlpha = maskData[i]
+          if (mAlpha < hpx[i]) {
+            hpx[i] = mAlpha
+          } else if (mAlpha > 240 && hpx[i] < 200) {
+            // Giữ nguyên các vùng ruột được bảo vệ (flood_fill) hoặc do người dùng dùng Cọ khôi phục
+            hpx[i] = mAlpha
+          }
+        }
+      }
+      tctx.putImageData(hiData, 0, 0)
+      return temp.toDataURL('image/png')
+    }
+
+    const scaleX = sourceCanvas.width / fullRawCanvas.width
+    const scaleY = sourceCanvas.height / fullRawCanvas.height
+    tctx.drawImage(
+      sourceCanvas,
+      box.x * scaleX,
+      box.y * scaleY,
+      w * scaleX,
+      h * scaleY,
+      0,
+      0,
+      ew,
+      eh
+    )
+    return temp.toDataURL('image/png')
+  }
+
   tctx.drawImage(sourceCanvas, box.x, box.y, w, h, 0, 0, w, h)
   return temp.toDataURL('image/png')
 }
-

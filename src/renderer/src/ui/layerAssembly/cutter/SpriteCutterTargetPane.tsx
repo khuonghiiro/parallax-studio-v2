@@ -10,9 +10,77 @@ import {
 import { SaveTemplateDialog } from './SaveTemplateDialog'
 import { AssembledPartsDrawer } from './AssembledPartsDrawer'
 import { computeNextLayerZ } from '../useLayerWorkshop'
-import { IconLayers, IconTrash, IconPlus, IconCheck, IconFlipHorizontal, IconPen } from '../../icons'
+import { useLayerAssetImage } from '../useLayerAssetImage'
+import { IconLayers, IconTrash, IconPlus, IconFlipHorizontal, IconPen } from '../../icons'
 import { CustomSelect } from '../../controls/CustomSelect'
 import { LayerAssemblyCalloutOverlay } from '../LayerAssemblyCalloutOverlay'
+
+interface CutterPlacedLayerItemProps {
+  layer: AssembledLayerItem
+  assets?: LayerComposite['assets']
+  fallbackUrl?: string
+  isSelected: boolean
+  onPointerDown: (e: React.PointerEvent, layer: AssembledLayerItem) => void
+  onPointerMove: (e: React.PointerEvent) => void
+  onPointerUp: (e: React.PointerEvent) => void
+}
+
+function CutterPlacedLayerItem({
+  layer,
+  assets,
+  fallbackUrl,
+  isSelected,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp
+}: CutterPlacedLayerItemProps) {
+  const resolvedUrl = useLayerAssetImage(
+    layer.asset || layer.assetPath,
+    layer.imageUrl || fallbackUrl,
+    assets
+  )
+  const currentScaleX = layer.scale * (layer.scaleX ?? 1)
+  const currentScaleY = layer.scale * (layer.scaleY ?? 1)
+
+  return (
+    <div
+      className={`layer-cutter-placed-layer ${isSelected ? 'selected' : ''}`}
+      style={{
+        left: `calc(50% + ${layer.x}px)`,
+        top: `calc(50% + ${layer.y}px)`,
+        transform: `translate(-50%, -50%) rotate(${layer.rotation}deg) scale(${currentScaleX}, ${currentScaleY})`,
+        zIndex: Math.round(layer.z ?? 10)
+      }}
+      onPointerDown={(e) => onPointerDown(e, layer)}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+    >
+      {isSelected && (
+        <div
+          className="layer-cutter-layer-zbadge"
+          title={`Thứ tự lớp Z: ${layer.z ?? 10} (Phím + để tăng, - để giảm)`}
+        >
+          Z: {layer.z ?? 10}
+        </div>
+      )}
+      {resolvedUrl ? (
+        <img src={resolvedUrl} alt={layer.name} draggable={false} />
+      ) : (
+        <div
+          style={{
+            padding: 8,
+            background: 'var(--bg-2)',
+            border: '1px solid var(--line)',
+            borderRadius: 4,
+            fontSize: 10
+          }}
+        >
+          {layer.name}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export interface SpriteCutterTargetPaneProps {
   composite: LayerComposite
@@ -568,53 +636,19 @@ export function SpriteCutterTargetPane({
 
             {/* Render Placed Layers in 2D Assembly */}
             {composite.layers.map((layer) => {
-              const isSelected = selectedLayerId === layer.id
-              const imgUrl =
-                layer.imageUrl ||
-                (layer.assetPath ? assetUrls?.[layer.assetPath] || composite.assets?.[layer.assetPath] : '') ||
-                ''
-              const currentScaleX = layer.scale * (layer.scaleX ?? 1)
-              const currentScaleY = layer.scale * (layer.scaleY ?? 1)
-
+              const fallbackUrl =
+                layer.assetPath && assetUrls?.[layer.assetPath] ? assetUrls[layer.assetPath] : ''
               return (
-                <div
+                <CutterPlacedLayerItem
                   key={layer.id}
-                  className={`layer-cutter-placed-layer ${isSelected ? 'selected' : ''}`}
-                  style={{
-                    left: `calc(50% + ${layer.x}px)`,
-                    top: `calc(50% + ${layer.y}px)`,
-                    transform: `translate(-50%, -50%) rotate(${layer.rotation}deg) scale(${currentScaleX}, ${currentScaleY})`,
-                    zIndex: Math.round(layer.z ?? 10)
-                  }}
-                  onPointerDown={(e) => handleLayerPointerDown(e, layer)}
+                  layer={layer}
+                  assets={composite.assets}
+                  fallbackUrl={fallbackUrl}
+                  isSelected={selectedLayerId === layer.id}
+                  onPointerDown={handleLayerPointerDown}
                   onPointerMove={handleLayerPointerMove}
                   onPointerUp={handleLayerPointerUp}
-                >
-                  {/* Badge hiển thị Z-index khi được chọn */}
-                  {isSelected && (
-                    <div
-                      className="layer-cutter-layer-zbadge"
-                      title={`Thứ tự lớp Z: ${layer.z ?? 10} (Phím + để tăng, - để giảm)`}
-                    >
-                      Z: {layer.z ?? 10}
-                    </div>
-                  )}
-                  {imgUrl ? (
-                    <img src={imgUrl} alt={layer.name} draggable={false} />
-                  ) : (
-                    <div
-                      style={{
-                        padding: 8,
-                        background: 'var(--bg-2)',
-                        border: '1px solid var(--line)',
-                        borderRadius: 4,
-                        fontSize: 10
-                      }}
-                    >
-                      {layer.name}
-                    </div>
-                  )}
-                </div>
+                />
               )
             })}
           </div>
@@ -640,6 +674,7 @@ export function SpriteCutterTargetPane({
         {!useTemplate ? (
           <AssembledPartsDrawer
             layers={composite.layers}
+            assets={composite.assets}
             selectedLayerId={selectedLayerId}
             onSelectLayer={onSelectLayer}
             onUpdateLayer={onUpdateLayer}

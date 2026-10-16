@@ -10,7 +10,7 @@ export interface BoundingBox {
   height: number
 }
 
-export type CutterToolMode = 'auto' | 'grid' | 'box' | 'lasso' | 'eraser' | 'restore'
+export type CutterToolMode = 'auto' | 'grid' | 'box' | 'lasso' | 'wand' | 'eraser' | 'restore'
 export type CutToolMode = CutterToolMode
 
 export type EyedropperTarget = 'key' | 'fringe' | 'smooth'

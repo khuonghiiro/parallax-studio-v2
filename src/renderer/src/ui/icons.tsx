@@ -895,3 +895,31 @@ export const IconLayout2D3D = (p: P) => (
   </svg>
 )
 
+export const IconLasso = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M7 22a5 5 0 0 1-2-4" />
+    <path d="M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1" />
+    <circle cx="7" cy="18" r="2" />
+  </svg>
+)
+
+export const IconWand = (p: P) => (
+  <svg {...base(p)}>
+    <path d="m15 4-1 1 6 6 1-1a2.83 2.83 0 1 0-4-4l-2-2Z" />
+    <path d="m14 5-9.5 9.5a2.12 2.12 0 1 0 3 3L17 8" />
+    <path d="M19 2v2M21 4h2M11 2v2M9 4h2" />
+  </svg>
+)
+
+export const IconSliders = (p: P) => (
+  <svg {...base(p)}>
+    <line x1="4" y1="6" x2="20" y2="6" />
+    <line x1="4" y1="12" x2="20" y2="12" />
+    <line x1="4" y1="18" x2="20" y2="18" />
+    <circle cx="9" cy="6" r="2" fill="currentColor" />
+    <circle cx="15" cy="12" r="2" fill="currentColor" />
+    <circle cx="11" cy="18" r="2" fill="currentColor" />
+  </svg>
+)
+
+
