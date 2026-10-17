@@ -23,8 +23,7 @@ import {
 } from './chromaAdvancedProcessor'
 import {
   detectCornerBackground,
-  computeCanvasPointerCoords,
-  computeCursorAnchoredZoom
+  computeCanvasPointerCoords
 } from './cutterHelpers'
 import { CutterBrushSubBar } from './CutterBrushSubBar'
 import { CutterGridSubBar, CutterQuickPartsStrip } from './CutterSlicesBar'
@@ -40,6 +39,7 @@ import { SpriteCutterFooter } from './SpriteCutterFooter'
 import { SpriteCutterOverlays } from './SpriteCutterOverlays'
 import { useCutterUndoRedo } from './useCutterUndoRedo'
 import { useChromaPreviewWorker } from './useChromaPreviewWorker'
+import { useCutterViewportZoom } from './useCutterViewportZoom'
 import { extractHighResRegionDataUrl } from './highResCutterExport'
 import { SAMPLE_ANIME_SPRITESHEET_URL } from './sampleSpriteSheet'
 
@@ -99,9 +99,6 @@ export function SpriteCutterSourcePane({
   const [copiedBadge, setCopiedBadge] = useState(false)
 
   const [imgNaturalSize, setImgNaturalSize] = useState<{ w: number; h: number }>({ w: 665, h: 702 })
-  const [viewportSize, setViewportSize] = useState<{ w: number; h: number }>({ w: 560, h: 460 })
-  const [zoomMode, setZoomMode] = useState<'fit' | number>('fit')
-  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [imageDecodeRev, setImageDecodeRev] = useState<number>(0)
 
   // Buffer gốc 4K/8K (dùng khi trích xuất mảnh cắt sắc nét) & Buffer làm việc 60fps
@@ -119,6 +116,23 @@ export function SpriteCutterSourcePane({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const viewportWrapRef = useRef<HTMLDivElement | null>(null)
 
+  const {
+    zoomMode,
+    panOffset,
+    effectiveScale,
+    displayW,
+    displayH,
+    scaleX,
+    scaleY,
+    stepZoom,
+    handleSetZoomMode,
+    resetZoomToFit
+  } = useCutterViewportZoom({
+    viewportRef: viewportWrapRef,
+    naturalWidth: imgNaturalSize.w,
+    naturalHeight: imgNaturalSize.h
+  })
+
   const { requestProcessing: requestChromaProcessing } = useChromaPreviewWorker({
     chroma,
     imageRevision: imageDecodeRev,
@@ -129,21 +143,6 @@ export function SpriteCutterSourcePane({
     pausedRef: isManualEditingRef,
     onIslands: setRawIslands
   })
-
-  useEffect(() => {
-    const el = viewportWrapRef.current
-    if (!el) return
-    const updateSize = () => {
-      const rect = el.getBoundingClientRect()
-      if (rect.width > 0 && rect.height > 0) {
-        setViewportSize({ w: Math.round(rect.width), h: Math.round(rect.height) })
-      }
-    }
-    updateSize()
-    const ro = new ResizeObserver(updateSize)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
 
   // Tự động phát hiện màu góc ảnh khi nạp ảnh mới
   const detectCornerBgPreset = useCallback((rctx: CanvasRenderingContext2D) => {
@@ -747,19 +746,6 @@ export function SpriteCutterSourcePane({
     })
   }, [])
 
-  const availW = Math.max(180, viewportSize.w - 28)
-  const availH = Math.max(180, viewportSize.h - 28)
-  const fitScale = Math.min(
-    1,
-    availW / Math.max(1, imgNaturalSize.w),
-    availH / Math.max(1, imgNaturalSize.h)
-  )
-  const effectiveScale = zoomMode === 'fit' ? fitScale : zoomMode
-  const displayW = Math.max(1, Math.round(imgNaturalSize.w * effectiveScale))
-  const displayH = Math.max(1, Math.round(imgNaturalSize.h * effectiveScale))
-  const scaleX = displayW / Math.max(1, imgNaturalSize.w)
-  const scaleY = displayH / Math.max(1, imgNaturalSize.h)
-
   const handleSelectTool = (next: CutterToolMode) => {
     setTool(next)
     setEyedropperTarget(null)
@@ -778,45 +764,6 @@ export function SpriteCutterSourcePane({
       return next
     })
   }
-
-  const stepZoom = (delta: number) => {
-    const next = Math.min(4.0, Math.max(0.15, Number((effectiveScale + delta).toFixed(2))))
-    setZoomMode(next)
-  }
-
-  const handleSetZoomMode = (mode: 'fit' | number) => {
-    setZoomMode(mode)
-    setPanOffset({ x: 0, y: 0 })
-  }
-
-  useEffect(() => {
-    const el = viewportWrapRef.current
-    if (!el) return
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault()
-      const rect = el.getBoundingClientRect()
-      const vpCenterX = rect.left + rect.width / 2
-      const vpCenterY = rect.top + rect.height / 2
-      const zoomFactor = e.deltaY < 0 ? 1.15 : 1 / 1.15
-      const rawNextScale = effectiveScale * zoomFactor
-      const anchored = computeCursorAnchoredZoom({
-        cursorClientX: e.clientX,
-        cursorClientY: e.clientY,
-        viewportCenterX: vpCenterX,
-        viewportCenterY: vpCenterY,
-        currentPanX: panOffset.x,
-        currentPanY: panOffset.y,
-        oldScale: effectiveScale,
-        newScale: rawNextScale,
-        minScale: Math.min(0.15, fitScale * 0.5),
-        maxScale: 4.0
-      })
-      setZoomMode(anchored.scale)
-      setPanOffset({ x: anchored.panX, y: anchored.panY })
-    }
-    el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
-  }, [effectiveScale, fitScale, panOffset.x, panOffset.y])
 
   const bgCssClass = resolveCanvasBgState(canvasBg).cssClass
 
@@ -837,13 +784,11 @@ export function SpriteCutterSourcePane({
         onSetZoomMode={handleSetZoomMode}
         onFileUpload={(e) => {
           handleFileUpload(e)
-          setZoomMode('fit')
-          setPanOffset({ x: 0, y: 0 })
+          resetZoomToFit()
         }}
         onResetSample={() => {
           setImageUrl(SAMPLE_ANIME_SPRITESHEET_URL)
-          setZoomMode('fit')
-          setPanOffset({ x: 0, y: 0 })
+          resetZoomToFit()
         }}
       />
 
