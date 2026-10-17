@@ -272,6 +272,14 @@
   margin-right: 2px;
 }
 
+.layer-cutter-seg-mini .seg-divider {
+  width: 1px;
+  height: 12px;
+  background: var(--line);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
 .layer-cutter-seg-mini .seg-btn {
   height: 18px;
   padding: 0 5px;
@@ -296,6 +304,37 @@
   font-weight: 600;
 }
 
+/* ---------- Nút Toggle Khung BBox Resize trên Toolbar 2D ---------- */
+.layer-cutter-bbox-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.layer-cutter-bbox-toggle-btn:hover {
+  color: var(--text);
+  background: var(--bg-3);
+  border-color: var(--line-focus);
+}
+
+.layer-cutter-bbox-toggle-btn.active {
+  color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 14%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--accent-cyan) 50%, var(--line));
+}
+
 /* ---------- Thu phóng ảnh nguồn trên header ---------- */
 .layer-cutter-zoom-pill {
   display: inline-flex;
@@ -307,6 +346,7 @@
   background: var(--bg-2);
   border: 1px solid var(--line-soft);
   border-radius: 5px;
+  flex-shrink: 0;
 }
 
 .layer-cutter-zoom-mode-btn {

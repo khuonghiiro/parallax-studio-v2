@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { computeNextLayerZ, computeFrontLayerZ } from '../useLayerWorkshop'
 import { computeAutoFitPieceScale, computeSlotFitPieceScale } from './cutterHelpers'
+import { resolveCanvasBgState } from './CutterCanvasBgToggle'
+import { calculateAnchorPinnedResize } from '../layerAssembly2DBbox'
 
 describe('2D Layer Cutter Stacking & Z-Index Ordering Rules', () => {
   it('assigns z = 11 (10 + 1) to the first added layer in an empty composite', () => {
@@ -96,6 +98,46 @@ describe('2D Layer Cutter Stacking & Z-Index Ordering Rules', () => {
     )
     expect(slotScale).toBeGreaterThanOrEqual(0.15)
     expect(slotScale).toBeLessThanOrEqual(0.25)
+  })
+
+  it('resolves Caro + Sáng/Tối background state accurately for both panes', () => {
+    expect(resolveCanvasBgState('checker-dark')).toEqual({
+      isChecker: true,
+      tone: 'dark',
+      cssClass: 'bg-checker-dark'
+    })
+    expect(resolveCanvasBgState('checker-light')).toEqual({
+      isChecker: true,
+      tone: 'light',
+      cssClass: 'bg-checker-light'
+    })
+    expect(resolveCanvasBgState('solid-dark')).toEqual({
+      isChecker: false,
+      tone: 'dark',
+      cssClass: 'bg-solid-dark'
+    })
+    expect(resolveCanvasBgState('solid-light')).toEqual({
+      isChecker: false,
+      tone: 'light',
+      cssClass: 'bg-solid-light'
+    })
+  })
+
+  it('resizes placed 4K layer non-destructively via Bbox handles while pinning opposite corner', () => {
+    const res = calculateAnchorPinnedResize({
+      handle: 'se',
+      dx: -120,
+      dy: -200,
+      startX: 0,
+      startY: 0,
+      startScale: 0.5,
+      baseWidth: 500,
+      baseHeight: 800
+    })
+    expect(res.scale).toBeLessThan(0.5)
+    expect(res.scale).toBeGreaterThanOrEqual(0.05)
+    expect(res.x).toBeLessThan(0)
+    expect(res.y).toBeLessThan(0)
   })
 })
 

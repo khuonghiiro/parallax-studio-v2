@@ -1,6 +1,11 @@
 import React, { useRef } from 'react'
 import type { CutterToolMode } from './types'
-import type { CanvasBgMode, TagDisplayMode } from './SpriteCutterSourceToolbar'
+import type { TagDisplayMode } from './SpriteCutterSourceToolbar'
+import {
+  CutterCanvasBgControl,
+  CutterZoomControl,
+  type CanvasBgMode
+} from './CutterCanvasBgToggle'
 import { IconScissors, IconUpload, IconRefresh } from '../../icons'
 
 export interface SpriteCutterHeaderProps {
@@ -52,7 +57,7 @@ export function SpriteCutterHeader({
         </span>
       </div>
 
-      {/* Cụm Thao Tác: Nhãn + Nền + Zoom + Tải ảnh */}
+      {/* Cụm Thao Tác: Nhãn + Nền (Caro + Tối/Sáng) + Zoom + Tải ảnh */}
       <div className="layer-cutter-actions">
         {/* Chế độ hiển thị nhãn */}
         {(tool === 'auto' || tool === 'grid') && (
@@ -85,70 +90,17 @@ export function SpriteCutterHeader({
           </div>
         )}
 
-        {/* Chế độ phông nền Canvas */}
-        <div className="layer-cutter-seg-mini" title="Phông nền vùng làm việc để kiểm tra viền ảnh">
-          <span className="seg-label">Nền:</span>
-          <button
-            type="button"
-            className={`seg-btn ${canvasBg === 'checker' ? 'active' : ''}`}
-            onClick={() => onChangeCanvasBg('checker')}
-            title="Nền bàn cờ caro trong suốt"
-          >
-            Caro
-          </button>
-          <button
-            type="button"
-            className={`seg-btn ${canvasBg === 'dark' ? 'active' : ''}`}
-            onClick={() => onChangeCanvasBg('dark')}
-            title="Nền tối để soi viền trắng"
-          >
-            Tối
-          </button>
-          <button
-            type="button"
-            className={`seg-btn ${canvasBg === 'light' ? 'active' : ''}`}
-            onClick={() => onChangeCanvasBg('light')}
-            title="Nền sáng để soi viền đen"
-          >
-            Sáng
-          </button>
-        </div>
+        {/* Chế độ phông nền Canvas: Caro bật/tắt kết hợp Tối/Sáng */}
+        <CutterCanvasBgControl value={canvasBg} onChange={onChangeCanvasBg} />
 
         {/* Cụm Zoom Stepper */}
-        <div className="layer-cutter-zoom-pill" title="Thu phóng khung nhìn ảnh nguồn">
-          <button
-            type="button"
-            className="stepper-btn"
-            onClick={() => onStepZoom(-0.15)}
-            title="Thu nhỏ"
-          >
-            −
-          </button>
-          <button
-            type="button"
-            className={`layer-cutter-zoom-mode-btn ${zoomMode === 'fit' ? 'active' : ''}`}
-            onClick={() => onSetZoomMode('fit')}
-            title={`Tự động thu phóng vừa khung nhìn (${Math.round(effectiveScale * 100)}%)`}
-          >
-            Vừa
-          </button>
-          <button
-            type="button"
-            className={`layer-cutter-zoom-mode-btn ${zoomMode === 1 ? 'active' : ''}`}
-            onClick={() => onSetZoomMode(1)}
-            title="Kích thước thực 100%"
-          >
-            100%
-          </button>
-          <button
-            type="button"
-            className="stepper-btn"
-            onClick={() => onStepZoom(0.15)}
-            title="Phóng to"
-          >
-            +
-          </button>
-        </div>
+        <CutterZoomControl
+          zoomMode={zoomMode}
+          effectiveScale={effectiveScale}
+          onStepZoom={onStepZoom}
+          onSetZoomMode={onSetZoomMode}
+          title="Thu phóng khung nhìn ảnh nguồn (Lăn chuột trên ảnh để zoom nhanh)"
+        />
 
         {/* Nạp ảnh & Nạp mẫu */}
         <input

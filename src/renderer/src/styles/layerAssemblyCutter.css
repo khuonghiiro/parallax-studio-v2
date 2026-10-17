@@ -95,10 +95,58 @@
 .lc-upload-btn,
 .lc-sample-btn {
   height: 24px !important;
-  padding: 0 8px !important;
+  padding: 0 10px !important;
   font-size: 10.5px !important;
   font-weight: 600 !important;
-  gap: 4px !important;
+  gap: 5px !important;
+  white-space: nowrap !important;
+  width: auto !important;
+  min-width: max-content !important;
+}
+
+.lc-upload-btn {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-cyan) 100%) !important;
+  color: var(--on-accent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 65%, var(--accent)) !important;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent-cyan) 28%, transparent) !important;
+  font-weight: 700 !important;
+  transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.15s ease !important;
+}
+
+.lc-upload-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-cyan) 42%, transparent) !important;
+}
+
+.lc-upload-btn:active {
+  transform: translateY(0);
+}
+
+.lc-danger-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-width: max-content !important;
+  height: 24px !important;
+  padding: 0 10px !important;
+  gap: 5px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  color: #f87171 !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+  border: 1px solid rgba(239, 68, 68, 0.38) !important;
+  border-radius: 5px !important;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease !important;
+}
+
+.lc-danger-btn:hover {
+  color: #ffffff !important;
+  background: #dc2626 !important;
+  border-color: #ef4444 !important;
 }
 
 /* Toolbar & ribbon styles: xem layerAssemblyCutterToolbar.css */
@@ -113,12 +161,12 @@
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background-color: var(--bg-0);
+  background-color: #14161a;
   background-image:
-    linear-gradient(45deg, var(--bg-2) 25%, transparent 25%),
-    linear-gradient(-45deg, var(--bg-2) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, var(--bg-2) 75%),
-    linear-gradient(-45deg, transparent 75%, var(--bg-2) 75%);
+    linear-gradient(45deg, #1f232b 25%, transparent 25%),
+    linear-gradient(-45deg, #1f232b 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1f232b 75%),
+    linear-gradient(-45deg, transparent 75%, #1f232b 75%);
   background-size: 16px 16px;
   background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
   user-select: none;
@@ -130,14 +178,38 @@
   justify-content: flex-start;
 }
 
-.layer-cutter-canvas-wrap.bg-dark {
-  background-image: none;
-  background-color: #121316;
+.layer-cutter-canvas-wrap.bg-checker-dark {
+  background-color: #14161a;
+  background-image:
+    linear-gradient(45deg, #1f232b 25%, transparent 25%),
+    linear-gradient(-45deg, #1f232b 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1f232b 75%),
+    linear-gradient(-45deg, transparent 75%, #1f232b 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
 }
 
+.layer-cutter-canvas-wrap.bg-checker-light {
+  background-color: #f8fafc;
+  background-image:
+    linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
+    linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
+    linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+}
+
+.layer-cutter-canvas-wrap.bg-solid-dark,
+.layer-cutter-canvas-wrap.bg-dark {
+  background-image: none;
+  background-color: #0e1014;
+}
+
+.layer-cutter-canvas-wrap.bg-solid-light,
 .layer-cutter-canvas-wrap.bg-light {
   background-image: none;
-  background-color: #f4f4f5;
+  background-color: #ffffff;
 }
 
 .layer-cutter-source-canvas-box {
@@ -309,20 +381,79 @@
   display: flex; align-items: center; justify-content: center;
   overflow: hidden; background: var(--bg-0);
 }
+.layer-cutter-target-viewport.bg-checker-light,
+.layer-cutter-target-viewport.bg-solid-light {
+  background: #e2e8f0;
+}
+
 .layer-cutter-target-board {
   position: absolute; left: 50%; top: 50%; width: 600px; height: 600px; flex-shrink: 0;
-  background: var(--bg-1);
+  background-color: #14161a;
   background-image:
-    linear-gradient(45deg, rgba(255, 255, 255, 0.035) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(255, 255, 255, 0.035) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.035) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.035) 75%);
+    linear-gradient(45deg, #1f232b 25%, transparent 25%),
+    linear-gradient(-45deg, #1f232b 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1f232b 75%),
+    linear-gradient(-45deg, transparent 75%, #1f232b 75%);
   background-size: 16px 16px;
   background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
   border: 2px solid var(--accent);
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--line-focus);
   border-radius: 6px; overflow: hidden;
   perspective: 1400px; perspective-origin: 50% 50%; transform-style: preserve-3d;
+}
+
+.layer-cutter-target-board.bg-checker-dark {
+  background-color: #14161a;
+  background-image:
+    linear-gradient(45deg, #1f232b 25%, transparent 25%),
+    linear-gradient(-45deg, #1f232b 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1f232b 75%),
+    linear-gradient(-45deg, transparent 75%, #1f232b 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+}
+
+.layer-cutter-target-board.bg-checker-light {
+  background-color: #f8fafc;
+  background-image:
+    linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
+    linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
+    linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+}
+
+.layer-cutter-target-board.bg-solid-dark {
+  background-image: none;
+  background-color: #0e1014;
+}
+
+.layer-cutter-target-board.bg-solid-light {
+  background-image: none;
+  background-color: #ffffff;
+}
+
+.layer-cutter-board-axis-v {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1px;
+  height: 100%;
+  background: rgba(148, 163, 184, 0.14);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.layer-cutter-board-axis-h {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  height: 1px;
+  background: rgba(148, 163, 184, 0.14);
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 /* Template Slots Wireframe Boxes */
@@ -344,7 +475,42 @@
 /* Placed Layer Item in 2D Assembly */
 .layer-cutter-placed-layer { position: absolute; width: max-content; transform-origin: 50% 50%; cursor: move; user-select: none; z-index: 15; }
 .layer-cutter-placed-layer img { display: block; max-width: none; pointer-events: none; image-rendering: -webkit-optimize-contrast; }
-.layer-cutter-placed-layer.selected .layer-cutter-placed-inner { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; box-shadow: 0 0 12px rgba(56, 189, 248, 0.5); }
+.layer-cutter-placed-layer.selected.bbox-enabled .layer-cutter-placed-inner {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 1px;
+  border-radius: 2px;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.45);
+}
+.layer-cutter-placed-layer.selected.bbox-hidden .layer-cutter-placed-inner {
+  outline: 1.5px dashed rgba(56, 189, 248, 0.55);
+  outline-offset: 1px;
+}
+
+/* 8-Point Interactive BBox Resize Handles */
+.layer-cutter-bbox-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+}
+
+.layer-cutter-bbox-handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #ffffff;
+  border: 2px solid var(--accent);
+  border-radius: 2px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);
+  pointer-events: auto;
+  box-sizing: border-box;
+  transition: background 0.1s ease, border-color 0.1s ease;
+}
+
+.layer-cutter-bbox-handle:hover {
+  background: var(--key);
+  border-color: #000000;
+}
 
 /* Side Slot Drawer / Deck */
 .layer-cutter-slot-drawer {

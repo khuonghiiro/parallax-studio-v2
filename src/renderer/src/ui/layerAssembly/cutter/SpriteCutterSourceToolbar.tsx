@@ -18,10 +18,11 @@ import {
   IconRefresh
 } from '../../icons'
 import { CutterChromaStudioPanel } from './CutterChromaStudioPanel'
-import { PhotoshopEyedropperButton } from './PhotoshopEyedropperOverlay'
+import { PhotoshopEyedropperOverlay, PhotoshopEyedropperButton } from './PhotoshopEyedropperOverlay'
+import type { CanvasBgMode } from './CutterCanvasBgToggle'
 
+export type { CanvasBgMode }
 export type TagDisplayMode = 'hover' | 'always' | 'hidden'
-export type CanvasBgMode = 'checker' | 'dark' | 'light'
 
 export interface SpriteCutterSourceToolbarProps {
   tool: CutterToolMode

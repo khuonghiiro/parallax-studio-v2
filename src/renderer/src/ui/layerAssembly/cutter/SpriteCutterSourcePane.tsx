@@ -33,6 +33,7 @@ import {
   type CanvasBgMode,
   type TagDisplayMode
 } from './SpriteCutterSourceToolbar'
+import { resolveCanvasBgState } from './CutterCanvasBgToggle'
 import { SpriteCutterHeader } from './SpriteCutterHeader'
 import { SpriteCutterFooter } from './SpriteCutterFooter'
 import { SpriteCutterOverlays } from './SpriteCutterOverlays'
@@ -79,7 +80,7 @@ export function SpriteCutterSourcePane({
   const [brushOpacity, setBrushOpacity] = useState<number>(1.0)
   const [wandTolerance, setWandTolerance] = useState<number>(38)
   const [tagDisplayMode, setTagDisplayMode] = useState<TagDisplayMode>('hover')
-  const [canvasBg, setCanvasBg] = useState<CanvasBgMode>('checker')
+  const [canvasBg, setCanvasBg] = useState<CanvasBgMode>('checker-dark')
 
   const activeStrokeRef = useRef<CutterStrokeSession | null>(null)
   const lastPointRef = useRef<{ x: number; y: number } | null>(null)
@@ -777,9 +778,18 @@ export function SpriteCutterSourcePane({
   }
 
   const stepZoom = (delta: number) => {
-    const next = Math.min(2.5, Math.max(0.15, Number((effectiveScale + delta).toFixed(2))))
+    const next = Math.min(3.0, Math.max(0.15, Number((effectiveScale + delta).toFixed(2))))
     setZoomMode(next)
   }
+
+  const handleCanvasWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.ctrlKey || e.metaKey || zoomMode === 'fit' || effectiveScale <= fitScale) {
+      e.preventDefault()
+      stepZoom(e.deltaY < 0 ? 0.12 : -0.12)
+    }
+  }
+
+  const bgCssClass = resolveCanvasBgState(canvasBg).cssClass
 
   return (
     <div className="layer-cutter-pane left-pane" ref={containerRef}>
@@ -855,7 +865,8 @@ export function SpriteCutterSourcePane({
       {/* Vùng hiển thị Canvas Ảnh Nguồn + Kính lúp Hút màu Photoshop */}
       <div
         ref={viewportWrapRef}
-        className={`layer-cutter-canvas-wrap bg-${canvasBg} ${
+        onWheel={handleCanvasWheel}
+        className={`layer-cutter-canvas-wrap ${bgCssClass} ${
           zoomMode !== 'fit' && effectiveScale > fitScale ? 'is-scrollable' : ''
         }`}
       >
