@@ -129,6 +129,8 @@ export interface CutPiece {
   width: number
   height: number
   sourceBox?: BoundingBox
+  /** Kích thước gốc của ảnh sprite sheet nguồn (dùng để tự động co tỷ lệ mảnh cắt 4K/8K vừa khung 2D) */
+  sourceImageSize?: { width: number; height: number }
 }
 
 export interface TemplateSlotDef {

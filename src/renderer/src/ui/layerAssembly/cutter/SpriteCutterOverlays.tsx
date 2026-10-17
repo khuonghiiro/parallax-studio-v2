@@ -23,6 +23,7 @@ export interface SpriteCutterOverlaysProps {
   onSelectIsland: (isl: DetectedIsland) => void
   onQuickAddIsland: (isl: DetectedIsland) => void
   onDragStart: (e: React.DragEvent, piece: CutPiece) => void
+  onIslandDragStart?: (e: React.DragEvent, isl: DetectedIsland) => void
   onTransferToTarget: (piece: CutPiece) => void
   onCopyPiece: () => void
 }
@@ -42,6 +43,7 @@ export function SpriteCutterOverlays({
   onSelectIsland,
   onQuickAddIsland,
   onDragStart,
+  onIslandDragStart,
   onTransferToTarget,
   onCopyPiece
 }: SpriteCutterOverlaysProps) {
@@ -67,8 +69,14 @@ export function SpriteCutterOverlays({
             <div
               key={isl.id}
               className={`layer-cutter-island-box ${isSelected ? 'selected' : ''}`}
-              draggable={isSelected}
-              onDragStart={(e) => selectedPiece && onDragStart(e, selectedPiece)}
+              draggable={true}
+              onDragStart={(e) => {
+                if (onIslandDragStart) {
+                  onIslandDragStart(e, isl)
+                } else if (selectedPiece) {
+                  onDragStart(e, selectedPiece)
+                }
+              }}
               onClick={(e) => {
                 e.stopPropagation()
                 onSelectIsland(isl)

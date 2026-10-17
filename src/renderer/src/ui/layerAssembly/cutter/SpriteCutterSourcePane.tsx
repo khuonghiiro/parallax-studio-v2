@@ -48,12 +48,14 @@ export interface SpriteCutterSourcePaneProps {
   onSelectPiece: (piece: CutPiece | null) => void
   onTransferToTarget: (piece: CutPiece, pos?: { x: number; y: number }) => void
   selectedPiece: CutPiece | null
+  targetBoardSize?: { width: number; height: number }
 }
 
 export function SpriteCutterSourcePane({
   onSelectPiece,
   onTransferToTarget,
-  selectedPiece
+  selectedPiece,
+  targetBoardSize
 }: SpriteCutterSourcePaneProps) {
   const [imageUrl, setImageUrl] = useState<string>(SAMPLE_ANIME_SPRITESHEET_URL)
   const [chroma, setChroma] = useState<ChromaKeySettings>(DEFAULT_CHROMA_SETTINGS)
@@ -324,14 +326,15 @@ export function SpriteCutterSourcePane({
         width: isl.width,
         height: isl.height,
         label: isl.label || 'Mảnh cắt',
-        sourceBox: isl
+        sourceBox: isl,
+        sourceImageSize: { width: imgNaturalSize.w, height: imgNaturalSize.h }
       }
       try {
         ;(window as unknown as { __parallax_cut_part?: CutPiece }).__parallax_cut_part = piece
       } catch {}
       onSelectPiece(piece)
     },
-    [extractPieceFromBox, onSelectPiece]
+    [extractPieceFromBox, imgNaturalSize.w, imgNaturalSize.h, onSelectPiece]
   )
 
   const handleQuickAddIsland = useCallback(
@@ -344,19 +347,21 @@ export function SpriteCutterSourcePane({
         width: isl.width,
         height: isl.height,
         label: isl.label || 'Mảnh cắt',
-        sourceBox: isl
+        sourceBox: isl,
+        sourceImageSize: { width: imgNaturalSize.w, height: imgNaturalSize.h }
       }
       onSelectPiece(piece)
       onTransferToTarget(piece, { x: 0, y: 0 })
     },
-    [extractPieceFromBox, onSelectPiece, onTransferToTarget]
+    [extractPieceFromBox, imgNaturalSize.w, imgNaturalSize.h, onSelectPiece, onTransferToTarget]
   )
 
   const handleSendAllToBoard = useCallback(async () => {
     if (activeIslands.length === 0) return
     const centerX = imgNaturalSize.w / 2
     const centerY = imgNaturalSize.h / 2
-    const scaleToBoard = Math.min(1, 460 / Math.max(imgNaturalSize.w, imgNaturalSize.h))
+    const boardMin = Math.min(targetBoardSize?.width || 600, targetBoardSize?.height || 600)
+    const scaleToBoard = Math.min(1, (boardMin * 0.76) / Math.max(imgNaturalSize.w, imgNaturalSize.h))
 
     for (const isl of activeIslands) {
       const dataUrl = await extractPieceFromBox(isl)
@@ -370,12 +375,13 @@ export function SpriteCutterSourcePane({
           width: isl.width,
           height: isl.height,
           label: isl.label || 'Mảnh cắt',
-          sourceBox: isl
+          sourceBox: isl,
+          sourceImageSize: { width: imgNaturalSize.w, height: imgNaturalSize.h }
         },
         { x: relX, y: relY }
       )
     }
-  }, [activeIslands, extractPieceFromBox, imgNaturalSize.w, imgNaturalSize.h, onTransferToTarget])
+  }, [activeIslands, extractPieceFromBox, imgNaturalSize.w, imgNaturalSize.h, onTransferToTarget, targetBoardSize])
 
   const getCurrentTargetHex = useCallback(
     (t: EyedropperTarget | null) => {
@@ -628,7 +634,8 @@ export function SpriteCutterSourcePane({
           width: w,
           height: h,
           label: `Vùng ${w}×${h}px`,
-          sourceBox: box
+          sourceBox: box,
+          sourceImageSize: { width: imgNaturalSize.w, height: imgNaturalSize.h }
         }
         try {
           ;(window as unknown as { __parallax_cut_part?: CutPiece }).__parallax_cut_part = piece
@@ -657,7 +664,8 @@ export function SpriteCutterSourcePane({
           width: w,
           height: h,
           label: 'Vùng tự do',
-          sourceBox: box
+          sourceBox: box,
+          sourceImageSize: { width: imgNaturalSize.w, height: imgNaturalSize.h }
         }
         try {
           ;(window as unknown as { __parallax_cut_part?: CutPiece }).__parallax_cut_part = piece
@@ -668,10 +676,42 @@ export function SpriteCutterSourcePane({
   }
 
   const handleDragStart = (e: React.DragEvent, piece: CutPiece) => {
-    e.dataTransfer.setData('application/json', JSON.stringify(piece))
-    e.dataTransfer.setData('text/plain', piece.dataUrl)
+    const enriched: CutPiece = piece.sourceImageSize
+      ? piece
+      : { ...piece, sourceImageSize: { width: imgNaturalSize.w, height: imgNaturalSize.h } }
+    e.dataTransfer.setData('application/json', JSON.stringify(enriched))
+    e.dataTransfer.setData('text/plain', enriched.dataUrl)
     e.dataTransfer.effectAllowed = 'copyMove'
-    ;(window as unknown as { __parallax_cut_part?: CutPiece }).__parallax_cut_part = piece
+    ;(window as unknown as { __parallax_cut_part?: CutPiece }).__parallax_cut_part = enriched
+  }
+
+  const handleIslandDragStart = (e: React.DragEvent, isl: DetectedIsland) => {
+    setSelectedIslandId(isl.id)
+    if (selectedPiece && selectedPiece.id === isl.id && selectedPiece.dataUrl) {
+      handleDragStart(e, selectedPiece)
+      return
+    }
+    const proc = procCanvasRef.current
+    if (!proc) return
+    const syncDataUrl = extractRegionDataUrl(
+      proc,
+      isl,
+      undefined,
+      fullRawCanvasRef.current,
+      chroma
+    )
+    if (!syncDataUrl) return
+    const syncPiece: CutPiece = {
+      id: isl.id,
+      dataUrl: syncDataUrl,
+      width: isl.width,
+      height: isl.height,
+      label: isl.label || 'Mảnh cắt',
+      sourceBox: isl,
+      sourceImageSize: { width: imgNaturalSize.w, height: imgNaturalSize.h }
+    }
+    handleDragStart(e, syncPiece)
+    onSelectPiece(syncPiece)
   }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -887,6 +927,7 @@ export function SpriteCutterSourcePane({
             onSelectIsland={handleSelectIsland}
             onQuickAddIsland={handleQuickAddIsland}
             onDragStart={handleDragStart}
+            onIslandDragStart={handleIslandDragStart}
             onTransferToTarget={onTransferToTarget}
             onCopyPiece={handleCopyPiece}
           />
@@ -905,6 +946,7 @@ export function SpriteCutterSourcePane({
           onChangeMergeGap={setMergeGap}
           onSelectIsland={handleSelectIsland}
           onQuickAddIsland={handleQuickAddIsland}
+          onIslandDragStart={handleIslandDragStart}
           onSendAllToBoard={handleSendAllToBoard}
         />
       )}

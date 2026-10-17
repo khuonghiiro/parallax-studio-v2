@@ -32,7 +32,7 @@ function AssembledPartCard({
   onDeleteLayer
 }: AssembledPartCardProps) {
   const resolvedImg = useLayerAssetImage(layer.asset || layer.assetPath, layer.imageUrl, assets)
-  const zVal = layer.z ?? 10
+  const zVal = layer.z ?? 0
 
   const handleStepZ = (delta: number) => {
     onUpdateLayer(layer.id, { z: zVal + delta })
@@ -101,7 +101,7 @@ function AssembledPartCard({
                 padding: '1px 5px',
                 borderRadius: 3
               }}
-              title="Thứ tự lớp (z-index): Càng cao càng nằm đè lên trên"
+              title="Chiều sâu Z: Càng nhỏ (âm) càng nổi lên phía trước camera, càng lớn (dương) càng lùi ra sau"
             >
               z: {zVal}
             </span>
@@ -115,10 +115,10 @@ function AssembledPartCard({
               type="button"
               className="btn sm icon"
               style={{ width: 20, height: 20, padding: 0 }}
-              title="Tăng z (+1): Đưa nổi lên trên"
+              title="Đưa nổi lên trước (Z - 1)"
               onClick={(e) => {
                 e.stopPropagation()
-                handleStepZ(1)
+                handleStepZ(-1)
               }}
             >
               <IconArrowUp width={10} height={10} />
@@ -127,10 +127,10 @@ function AssembledPartCard({
               type="button"
               className="btn sm icon"
               style={{ width: 20, height: 20, padding: 0 }}
-              title="Giảm z (-1): Đưa chìm xuống dưới"
+              title="Đưa chìm ra sau (Z + 1)"
               onClick={(e) => {
                 e.stopPropagation()
-                handleStepZ(-1)
+                handleStepZ(1)
               }}
             >
               <IconArrowDown width={10} height={10} />

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
-import type { useLayerWorkshop } from '../useLayerWorkshop'
+import { computeFrontLayerZ, type useLayerWorkshop } from '../useLayerWorkshop'
 import type { CutPiece } from './types'
+import { computeAutoFitPieceScale } from './cutterHelpers'
 import { SpriteCutterSourcePane } from './SpriteCutterSourcePane'
 import { SpriteCutterTargetPane } from './SpriteCutterTargetPane'
 import '../../../styles/layerAssemblyCutter.css'
@@ -15,7 +16,20 @@ export function LayerAssemblyCutterWorkspace({ state }: LayerAssemblyCutterWorks
   const [selectedPiece, setSelectedPiece] = useState<CutPiece | null>(null)
 
   const handleTransferToTarget = (piece: CutPiece, pos?: { x: number; y: number }) => {
-    state.add(piece.label || 'Mảnh cắt', '', piece.dataUrl, pos || { x: 0, y: 0 })
+    const fitScale = computeAutoFitPieceScale(
+      piece,
+      state.composite.width,
+      state.composite.height
+    )
+    const frontZ = computeFrontLayerZ(state.composite.layers)
+    state.add(
+      piece.label || 'Mảnh cắt',
+      '',
+      piece.dataUrl,
+      pos || { x: 0, y: 0 },
+      frontZ,
+      fitScale
+    )
   }
 
   const handleClearAllLayers = () => {
@@ -28,6 +42,7 @@ export function LayerAssemblyCutterWorkspace({ state }: LayerAssemblyCutterWorks
         selectedPiece={selectedPiece}
         onSelectPiece={setSelectedPiece}
         onTransferToTarget={handleTransferToTarget}
+        targetBoardSize={{ width: state.composite.width || 600, height: state.composite.height || 600 }}
       />
       <SpriteCutterTargetPane
         composite={state.composite}

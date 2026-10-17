@@ -134,6 +134,7 @@ export interface CutterQuickPartsStripProps {
   onChangeMergeGap?: (gap: number) => void
   onSelectIsland: (island: DetectedIsland) => void
   onQuickAddIsland: (island: DetectedIsland) => void
+  onIslandDragStart?: (e: React.DragEvent, island: DetectedIsland) => void
   onSendAllToBoard: () => void
 }
 
@@ -147,6 +148,7 @@ export function CutterQuickPartsStrip({
   onChangeMergeGap,
   onSelectIsland,
   onQuickAddIsland,
+  onIslandDragStart,
   onSendAllToBoard
 }: CutterQuickPartsStripProps) {
   const [expanded, setExpanded] = useState<boolean>(true)
@@ -230,9 +232,11 @@ export function CutterQuickPartsStrip({
               <div
                 key={isl.id}
                 className={`cutter-part-chip ${isSelected ? 'selected' : ''}`}
+                draggable={true}
+                onDragStart={(e) => onIslandDragStart?.(e, isl)}
                 onClick={() => onSelectIsland(isl)}
                 onDoubleClick={() => onQuickAddIsland(isl)}
-                title={`Click để chọn "${shortName}" (${isl.width}×${isl.height}px) · Nhấp đúp để đưa ngay sang Bố cục 2D`}
+                title={`Click để chọn "${shortName}" (${isl.width}×${isl.height}px) · Kéo thả hoặc nhấp đúp để đưa ngay sang Bố cục 2D`}
               >
                 <span className="cutter-part-chip-idx">#{idx + 1}</span>
                 <span className="cutter-part-chip-dim">

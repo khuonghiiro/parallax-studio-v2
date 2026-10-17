@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import type { AssembledLayerItem, LayerComposite } from '../types'
 import type { CutPiece, TemplateSlotDef, TemplateSlotPreset } from './types'
 import {
@@ -9,7 +9,8 @@ import {
 } from './slotPresets'
 import { SaveTemplateDialog } from './SaveTemplateDialog'
 import { AssembledPartsDrawer } from './AssembledPartsDrawer'
-import { computeNextLayerZ } from '../useLayerWorkshop'
+import { computeFrontLayerZ } from '../useLayerWorkshop'
+import { computeAutoFitPieceScale, computeSlotFitPieceScale } from './cutterHelpers'
 import { useLayerAssetImage } from '../useLayerAssetImage'
 import { IconLayers, IconTrash, IconPlus, IconFlipHorizontal, IconPen } from '../../icons'
 import { CustomSelect } from '../../controls/CustomSelect'
@@ -37,45 +38,75 @@ function CutterPlacedLayerItem({
     layer.imageUrl,
     assets
   )
-  const currentScaleX = layer.scale * (layer.scaleX ?? 1)
-  const currentScaleY = layer.scale * (layer.scaleY ?? 1)
+  const baseScale = Math.max(0.05, layer.scale || 1)
+  const squashScaleX = layer.scaleX ?? 1
+  const squashScaleY = layer.scaleY ?? 1
+  const anchor = layer.boneId ? 'center' : layer.motion?.anchor || 'center'
+  const anchorOrigin =
+    anchor === 'bottom'
+      ? '50% 100%'
+      : anchor === 'top'
+        ? '50% 0%'
+        : anchor === 'left'
+          ? '0% 50%'
+          : anchor === 'right'
+            ? '100% 50%'
+            : '50% 50%'
+  const rotX = layer.rotationX || 0
+  const rotY = layer.rotationY || 0
+  const rotZ = layer.rotation || 0
+  const zVal = layer.z ?? 0
 
   return (
     <div
       className={`layer-cutter-placed-layer ${isSelected ? 'selected' : ''}`}
       style={{
-        left: `calc(50% + ${layer.x}px)`,
-        top: `calc(50% + ${layer.y}px)`,
-        transform: `translate(-50%, -50%) rotate(${layer.rotation}deg) scale(${currentScaleX}, ${currentScaleY})`,
-        zIndex: Math.round(layer.z ?? 10)
+        left: '50%',
+        top: '50%',
+        transform: `translate(-50%, -50%) translate3d(${layer.x}px, ${layer.y}px, 0px) scale(${baseScale})`,
+        transformOrigin: '50% 50%',
+        transformStyle: 'preserve-3d',
+        zIndex: Math.round(1000 - zVal)
       }}
       onPointerDown={(e) => onPointerDown(e, layer)}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
     >
-      {isSelected && (
-        <div
-          className="layer-cutter-layer-zbadge"
-          title={`Thứ tự lớp Z: ${layer.z ?? 10} (Phím + để tăng, - để giảm)`}
-        >
-          Z: {layer.z ?? 10}
-        </div>
-      )}
-      {resolvedUrl ? (
-        <img src={resolvedUrl} alt={layer.name} draggable={false} />
-      ) : (
-        <div
-          style={{
-            padding: 8,
-            background: 'var(--bg-2)',
-            border: '1px solid var(--line)',
-            borderRadius: 4,
-            fontSize: 10
-          }}
-        >
-          {layer.name}
-        </div>
-      )}
+      <div
+        className="layer-cutter-placed-inner"
+        style={{
+          position: 'relative',
+          display: 'inline-block',
+          transform: `rotateY(${-rotY}deg) rotateX(${rotX}deg) rotateZ(${rotZ}deg) scale(${squashScaleX}, ${squashScaleY})`,
+          transformOrigin: anchorOrigin,
+          transformStyle: 'preserve-3d',
+          opacity: layer.opacity ?? 1
+        }}
+      >
+        {isSelected && (
+          <div
+            className="layer-cutter-layer-zbadge"
+            title={`Chiều sâu Z: ${zVal} (Z nhỏ/âm nổi lên trước, Z lớn lùi ra sau · Phím - / +)`}
+          >
+            Z: {zVal}
+          </div>
+        )}
+        {resolvedUrl ? (
+          <img src={resolvedUrl} alt={layer.name} draggable={false} />
+        ) : (
+          <div
+            style={{
+              padding: 8,
+              background: 'var(--bg-2)',
+              border: '1px solid var(--line)',
+              borderRadius: 4,
+              fontSize: 10
+            }}
+          >
+            {layer.name}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -85,7 +116,14 @@ export interface SpriteCutterTargetPaneProps {
   selectedLayerId: string | null
   selectedPiece: CutPiece | null
   onSelectLayer: (id: string | null, additive?: boolean) => void
-  onAddLayer: (name: string, assetPath: string, imageUrl?: string, pos?: { x: number; y: number }, customZ?: number) => void
+  onAddLayer: (
+    name: string,
+    assetPath: string,
+    imageUrl?: string,
+    pos?: { x: number; y: number },
+    customZ?: number,
+    initialScale?: number
+  ) => void
   onUpdateLayer: (id: string, patch: Partial<AssembledLayerItem>) => void
   onDeleteLayer: (id: string) => void
   onClearAllLayers?: () => void
@@ -101,7 +139,6 @@ export function SpriteCutterTargetPane({
   onDeleteLayer,
   onClearAllLayers
 }: SpriteCutterTargetPaneProps) {
-  // Freeform mode by default per user request
   const [useTemplate, setUseTemplate] = useState<boolean>(false)
   const [activePresetId, setActivePresetId] = useState<string>('humanoid_anime')
   const [showSlots, setShowSlots] = useState<boolean>(true)
@@ -117,13 +154,27 @@ export function SpriteCutterTargetPane({
   const targetViewportRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
+  const boardW = Math.max(200, composite.width || 600)
+  const boardH = Math.max(200, composite.height || 600)
+
+  const sortedVisibleLayers = useMemo(
+    () =>
+      composite.layers
+        .filter((l) => !l.hidden)
+        .sort((a, b) => (b.z ?? 0) - (a.z ?? 0)),
+    [composite.layers]
+  )
+
   useEffect(() => {
     const el = targetViewportRef.current
     if (!el) return
     const updateScale = () => {
       const rect = el.getBoundingClientRect()
       if (rect.width > 0 && rect.height > 0) {
-        const s = Math.min(1, Math.max(0.4, Math.min((rect.width - 96) / 600, (rect.height - 68) / 600)))
+        const s = Math.min(
+          1.25,
+          Math.max(0.15, Math.min((rect.width - 104) / boardW, (rect.height - 64) / boardH))
+        )
         setBoardScale(Number(s.toFixed(3)))
       }
     }
@@ -131,34 +182,30 @@ export function SpriteCutterTargetPane({
     const ro = new ResizeObserver(updateScale)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [])
+  }, [boardW, boardH])
 
-  // Active slot preset
   const activePreset: TemplateSlotPreset =
     presetsList.find((p) => p.id === activePresetId) || presetsList[0]
 
-  // Currently selected layer
   const currentSelectedLayer = composite.layers.find((l) => l.id === selectedLayerId) || null
 
-  // Convert client pointer event to board coordinates (center is 0,0)
-  const getBoardCoords = useCallback((clientX: number, clientY: number) => {
-    const board = boardRef.current
-    if (!board) return { x: 0, y: 0 }
-    const rect = board.getBoundingClientRect()
-    const cx = rect.left + rect.width / 2
-    const cy = rect.top + rect.height / 2
-    const sx = 600 / Math.max(1, rect.width)
-    const sy = 600 / Math.max(1, rect.height)
-    return {
-      x: Math.round((clientX - cx) * sx),
-      y: Math.round((clientY - cy) * sy)
-    }
-  }, [])
+  const getBoardCoords = useCallback(
+    (clientX: number, clientY: number) => {
+      const board = boardRef.current
+      if (!board) return { x: 0, y: 0 }
+      const rect = board.getBoundingClientRect()
+      const cx = rect.left + rect.width / 2
+      const cy = rect.top + rect.height / 2
+      const sx = boardW / Math.max(1, rect.width)
+      const sy = boardH / Math.max(1, rect.height)
+      return {
+        x: Math.round((clientX - cx) * sx),
+        y: Math.round((clientY - cy) * sy)
+      }
+    },
+    [boardW, boardH]
+  )
 
-  // Global Keyboard Shortcuts for Target Pane:
-  // - Ctrl + V: Dán mảnh cắt tại vị trí chuột
-  // - Phím '+' / '=' / NumpadAdd: Tăng Z-index của layer đang chọn (+1)
-  // - Phím '-' / '_' / NumpadSubtract: Giảm Z-index của layer đang chọn (-1)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null
@@ -168,35 +215,33 @@ export function SpriteCutterTargetPane({
         const cutPart = (window as unknown as { __parallax_cut_part?: CutPiece }).__parallax_cut_part
         if (cutPart) {
           e.preventDefault()
-          const nextZ = computeNextLayerZ(composite.layers)
-          onAddLayer(cutPart.label || 'Mảnh cắt', '', cutPart.dataUrl, mouseCanvasPos, nextZ)
+          const nextZ = computeFrontLayerZ(composite.layers)
+          const fitScale = computeAutoFitPieceScale(cutPart, boardW, boardH)
+          onAddLayer(cutPart.label || 'Mảnh cắt', '', cutPart.dataUrl, mouseCanvasPos, nextZ, fitScale)
         }
         return
       }
 
-      // Phím + / - điều khiển Z-index layer đang chọn (layer Z cao hơn sẽ che layer Z thấp hơn)
       if (currentSelectedLayer) {
         if (e.key === '+' || e.key === '=' || e.code === 'NumpadAdd') {
           e.preventDefault()
-          const curZ = currentSelectedLayer.z ?? 10
+          const curZ = currentSelectedLayer.z ?? 0
           onUpdateLayer(currentSelectedLayer.id, { z: curZ + 1 })
         } else if (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract') {
           e.preventDefault()
-          const curZ = currentSelectedLayer.z ?? 10
-          onUpdateLayer(currentSelectedLayer.id, { z: Math.max(1, curZ - 1) })
+          const curZ = currentSelectedLayer.z ?? 0
+          onUpdateLayer(currentSelectedLayer.id, { z: curZ - 1 })
         }
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [composite.layers, currentSelectedLayer, mouseCanvasPos, onAddLayer, onUpdateLayer])
+  }, [boardW, boardH, composite.layers, currentSelectedLayer, mouseCanvasPos, onAddLayer, onUpdateLayer])
 
-  // Track mouse coordinates for pasting
   const handleBoardPointerMove = (e: React.PointerEvent) => {
     setMouseCanvasPos(getBoardCoords(e.clientX, e.clientY))
   }
 
-  // Handle Drag Over & Drop onto the Canvas Board
   const handleBoardDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'copy'
@@ -225,12 +270,12 @@ export function SpriteCutterTargetPane({
 
     if (piece) {
       const pos = getBoardCoords(e.clientX, e.clientY)
-      const nextZ = computeNextLayerZ(composite.layers)
-      onAddLayer(piece.label || 'Mảnh cắt', '', piece.dataUrl, pos, nextZ)
+      const nextZ = computeFrontLayerZ(composite.layers)
+      const fitScale = computeAutoFitPieceScale(piece, boardW, boardH)
+      onAddLayer(piece.label || 'Mảnh cắt', '', piece.dataUrl, pos, nextZ, fitScale)
     }
   }
 
-  // Handle Drop onto a specific Template Slot Box
   const handleSlotDrop = (e: React.DragEvent, slot: TemplateSlotDef) => {
     e.preventDefault()
     e.stopPropagation()
@@ -251,37 +296,40 @@ export function SpriteCutterTargetPane({
     const existing = composite.layers.find(
       (l) => l.name.toLowerCase().includes(slot.name.toLowerCase()) || l.id === slot.id
     )
+    const slotScale = computeSlotFitPieceScale(piece, slot, boardW, boardH)
 
     if (existing) {
       onUpdateLayer(existing.id, {
         imageUrl: piece.dataUrl,
         x: slot.x,
         y: slot.y,
-        z: slot.z ?? existing.z
+        z: slot.z ?? existing.z,
+        scale: slotScale
       })
       onSelectLayer(existing.id)
     } else {
-      onAddLayer(slot.name, '', piece.dataUrl, { x: slot.x, y: slot.y })
+      onAddLayer(slot.name, '', piece.dataUrl, { x: slot.x, y: slot.y }, slot.z, slotScale)
     }
   }
 
-  // Assign currently selected piece directly to slot
   const handleAssignToSlot = (slot: TemplateSlotDef) => {
     if (!selectedPiece) return
     const existing = composite.layers.find(
       (l) => l.name.toLowerCase().includes(slot.name.toLowerCase()) || l.id === slot.id
     )
+    const slotScale = computeSlotFitPieceScale(selectedPiece, slot, boardW, boardH)
 
     if (existing) {
       onUpdateLayer(existing.id, {
         imageUrl: selectedPiece.dataUrl,
         x: slot.x,
         y: slot.y,
-        z: slot.z ?? existing.z
+        z: slot.z ?? existing.z,
+        scale: slotScale
       })
       onSelectLayer(existing.id)
     } else {
-      onAddLayer(slot.name, '', selectedPiece.dataUrl, { x: slot.x, y: slot.y })
+      onAddLayer(slot.name, '', selectedPiece.dataUrl, { x: slot.x, y: slot.y }, slot.z, slotScale)
     }
   }
 
@@ -509,43 +557,43 @@ export function SpriteCutterTargetPane({
         {currentSelectedLayer && (
           <div
             className="layer-cutter-z-controls"
-            title="Thứ tự lớp (Z-index): Layer có Z lớn hơn sẽ che layer có Z nhỏ hơn. Nhấn phím '+' hoặc '-' để thay đổi nhanh"
+            title="Chiều sâu Z: Z càng nhỏ (âm) càng nổi lên phía trước camera, Z càng lớn (dương) càng lùi ra sau. Nhấn phím '-' hoặc '+' để thay đổi nhanh"
           >
             <span className="subbar-label">Thứ tự Z:</span>
             <button
               id="btn-cutter-z-minus"
               type="button"
               className="stepper-btn"
-              title="Giảm Z (-1, phím '-')"
+              title="Đưa nổi lên trước (Z - 1, phím '-')"
               onClick={() =>
                 onUpdateLayer(currentSelectedLayer.id, {
-                  z: Math.max(1, (currentSelectedLayer.z ?? 10) - 1)
+                  z: (currentSelectedLayer.z ?? 0) - 1
                 })
               }
             >
               -
             </button>
-            <span className="layer-cutter-z-val">{currentSelectedLayer.z ?? 10}</span>
+            <span className="layer-cutter-z-val">{currentSelectedLayer.z ?? 0}</span>
             <button
               id="btn-cutter-z-plus"
               type="button"
               className="stepper-btn"
-              title="Tăng Z (+1, phím '+')"
+              title="Đưa chìm ra sau (Z + 1, phím '+')"
               onClick={() =>
                 onUpdateLayer(currentSelectedLayer.id, {
-                  z: (currentSelectedLayer.z ?? 10) + 1
+                  z: (currentSelectedLayer.z ?? 0) + 1
                 })
               }
             >
               +
             </button>
-            <span className="layer-cutter-z-hint">(Phím + / -)</span>
+            <span className="layer-cutter-z-hint">(Phím - / +)</span>
           </div>
         )}
 
         <div className="layer-cutter-toolbar-right">
-          <span className="layer-cutter-coord-pill" title="Tọa độ con trỏ chuột trên bảng lắp ráp 2D">
-            XY: ({mouseCanvasPos.x}, {mouseCanvasPos.y})
+          <span className="layer-cutter-coord-pill" title="Kích thước khung bố cục & tọa độ con trỏ chuột">
+            {boardW}×{boardH} · XY: ({mouseCanvasPos.x}, {mouseCanvasPos.y})
           </span>
         </div>
       </div>
@@ -558,7 +606,9 @@ export function SpriteCutterTargetPane({
             ref={boardRef}
             className={`layer-cutter-target-board ${isDragOverCanvas ? 'drag-over' : ''}`}
             style={{
-              transform: boardScale < 1 ? `scale(${boardScale})` : undefined,
+              width: `${boardW}px`,
+              height: `${boardH}px`,
+              transform: `translate(-50%, -50%) scale(${boardScale})`,
               transformOrigin: 'center center'
             }}
             onPointerMove={handleBoardPointerMove}
@@ -630,8 +680,8 @@ export function SpriteCutterTargetPane({
                 )
               })}
 
-            {/* Render Placed Layers in 2D Assembly */}
-            {composite.layers.map((layer) => {
+            {/* Render Placed Layers in 2D Assembly (sorted & filtered identically to Tab 1) */}
+            {sortedVisibleLayers.map((layer) => {
               return (
                 <CutterPlacedLayerItem
                   key={layer.id}
@@ -650,8 +700,8 @@ export function SpriteCutterTargetPane({
           <LayerAssemblyCalloutOverlay
             layers={composite.layers}
             selectedLayerId={selectedLayerId}
-            canvasWidth={600}
-            canvasHeight={600}
+            canvasWidth={boardW}
+            canvasHeight={boardH}
             zoom={boardScale}
             containerRef={targetViewportRef}
             onSelectLayer={(id) => onSelectLayer(id)}
@@ -777,10 +827,10 @@ export function SpriteCutterTargetPane({
                 type="button"
                 className="btn sm icon"
                 style={{ width: 18, height: 18, padding: 0 }}
-                title="Giảm kích thước (-10%)"
+                title="Giảm kích thước (-5%)"
                 onClick={() =>
                   onUpdateLayer(currentSelectedLayer.id, {
-                    scale: Math.max(0.1, Number((currentSelectedLayer.scale - 0.1).toFixed(2)))
+                    scale: Math.max(0.05, Number((currentSelectedLayer.scale - 0.05).toFixed(2)))
                   })
                 }
               >
@@ -788,9 +838,9 @@ export function SpriteCutterTargetPane({
               </button>
               <input
                 type="range"
-                min={0.1}
+                min={0.05}
                 max={3.0}
-                step={0.05}
+                step={0.01}
                 value={currentSelectedLayer.scale}
                 onChange={(e) =>
                   onUpdateLayer(currentSelectedLayer.id, { scale: Number(e.target.value) })
@@ -800,10 +850,10 @@ export function SpriteCutterTargetPane({
                 type="button"
                 className="btn sm icon"
                 style={{ width: 18, height: 18, padding: 0 }}
-                title="Tăng kích thước (+10%)"
+                title="Tăng kích thước (+5%)"
                 onClick={() =>
                   onUpdateLayer(currentSelectedLayer.id, {
-                    scale: Math.min(4.0, Number((currentSelectedLayer.scale + 0.1).toFixed(2)))
+                    scale: Math.min(4.0, Number((currentSelectedLayer.scale + 0.05).toFixed(2)))
                   })
                 }
               >
@@ -845,17 +895,17 @@ export function SpriteCutterTargetPane({
             {/* Z-Depth (Layer Stacking) control */}
             <div
               className="layer-cutter-footer-group"
-              title="Thứ tự lớp (Z-index): Layer có Z lớn hơn sẽ che layer có Z nhỏ hơn. Nhấn phím '+' để tăng, '-' để giảm"
+              title="Chiều sâu Z: Z càng nhỏ (âm) càng nổi lên phía trước camera, Z càng lớn (dương) càng lùi ra sau. Nhấn phím '-' / '+' để thay đổi"
             >
               <span style={{ fontWeight: 600, color: 'var(--accent-cyan)' }}>Z:</span>
               <button
                 type="button"
                 className="btn sm icon"
                 style={{ width: 18, height: 18, padding: 0 }}
-                title="Giảm Z (-1, phím '-')"
+                title="Đưa nổi lên trước (Z - 1, phím '-')"
                 onClick={() => {
-                  const cur = currentSelectedLayer.z ?? 10
-                  onUpdateLayer(currentSelectedLayer.id, { z: Math.max(1, cur - 1) })
+                  const cur = currentSelectedLayer.z ?? 0
+                  onUpdateLayer(currentSelectedLayer.id, { z: cur - 1 })
                 }}
               >
                 -
@@ -869,15 +919,15 @@ export function SpriteCutterTargetPane({
                   textAlign: 'center'
                 }}
               >
-                {currentSelectedLayer.z ?? 10}
+                {currentSelectedLayer.z ?? 0}
               </span>
               <button
                 type="button"
                 className="btn sm icon"
                 style={{ width: 18, height: 18, padding: 0 }}
-                title="Tăng Z (+1, phím '+')"
+                title="Đưa chìm ra sau (Z + 1, phím '+')"
                 onClick={() => {
-                  const cur = currentSelectedLayer.z ?? 10
+                  const cur = currentSelectedLayer.z ?? 0
                   onUpdateLayer(currentSelectedLayer.id, { z: cur + 1 })
                 }}
               >

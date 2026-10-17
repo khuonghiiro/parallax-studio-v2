@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { computeNextLayerZ } from '../useLayerWorkshop'
+import { computeNextLayerZ, computeFrontLayerZ } from '../useLayerWorkshop'
+import { computeAutoFitPieceScale, computeSlotFitPieceScale } from './cutterHelpers'
 
 describe('2D Layer Cutter Stacking & Z-Index Ordering Rules', () => {
   it('assigns z = 11 (10 + 1) to the first added layer in an empty composite', () => {
@@ -44,47 +45,57 @@ describe('2D Layer Cutter Stacking & Z-Index Ordering Rules', () => {
     expect(customZ).toBe(30)
   })
 
-  it('allows increasing z-index with key "+" and decreasing with key "-"', () => {
-    let currentZ = 12
-
-    // Nhấn phím '+' tăng Z lên 13
-    currentZ = currentZ + 1
-    expect(currentZ).toBe(13)
-
-    // Nhấn tiếp phím '+' tăng Z lên 14
-    currentZ = currentZ + 1
-    expect(currentZ).toBe(14)
-
-    // Nhấn phím '-' giảm Z về 13
-    currentZ = Math.max(1, currentZ - 1)
-    expect(currentZ).toBe(13)
-
-    // Giảm liên tục không nhỏ hơn 1
-    for (let i = 0; i < 20; i++) {
-      currentZ = Math.max(1, currentZ - 1)
-    }
-    expect(currentZ).toBe(1)
-  })
-
-  it('compares z-indexes properly without forcing selected layer to 1000', () => {
-    // Giả lập 2 layers: Tay (z=11) và Áo (z=12)
-    const layers = [
-      { id: 'layer-tay', name: 'Tay', z: 11 },
-      { id: 'layer-ao', name: 'Áo', z: 12 }
+  it('computes front-most Z (computeFrontLayerZ) and renders zIndex = 1000 - z identically between Tab 1 and Tab 2', () => {
+    // Nam Sinh Kính Cận layers: glasses (-42), face-normal (-30), head (-20), torso (0), arm-left (35)
+    const animeLayers = [
+      { id: 'head', z: -20 },
+      { id: 'glasses', z: -42 },
+      { id: 'face-normal', z: -30 },
+      { id: 'torso', z: 0 },
+      { id: 'arm-left', z: 35 }
     ]
 
-    // Áo (z=12) có z cao hơn Tay (z=11) nên Áo che Tay
-    expect(layers[1].z).toBeGreaterThan(layers[0].z)
+    const zIndexOf = (z: number) => Math.round(1000 - z)
+    expect(zIndexOf(-42)).toBeGreaterThan(zIndexOf(-30)) // Kính nổi trên biểu cảm mặt
+    expect(zIndexOf(-30)).toBeGreaterThan(zIndexOf(-20)) // Biểu cảm mặt nổi trên đầu trơn
+    expect(zIndexOf(-20)).toBeGreaterThan(zIndexOf(0))   // Đầu nổi trên thân áo
+    expect(zIndexOf(0)).toBeGreaterThan(zIndexOf(35))    // Thân áo nổi trên bắp tay sau
 
-    // Khi chọn layer Tay, z của Tay vẫn giữ nguyên là 11 (không bị gán cứng 1000 làm đảo lộn thứ tự che)
-    const selectedLayerId = 'layer-tay'
-    const renderedTayZ = Math.round(layers[0].z ?? 10)
-    const renderedAoZ = Math.round(layers[1].z ?? 10)
-    expect(selectedLayerId).toBe('layer-tay')
-    expect(renderedTayZ).toBe(11)
-    expect(renderedAoZ).toBe(12)
-    // Áo vẫn nằm trên Tay
-    expect(renderedAoZ).toBeGreaterThan(renderedTayZ)
+    // Khi kéo mảnh mới vào, mảnh mới nhận z = -43 để nổi lên trước toàn bộ nhân vật
+    const droppedZ = computeFrontLayerZ(animeLayers)
+    expect(droppedZ).toBe(-43)
+    expect(zIndexOf(droppedZ)).toBeGreaterThan(zIndexOf(-42))
+  })
+
+  it('auto-scales 4K/8K cut pieces proportionally to composite board so they do not cover other details', () => {
+    // Mảnh #5 (cánh tay 259x446) cắt từ ảnh 4K (4800x3584) kéo vào khung Nam Sinh Kính Cận (750x1050)
+    const scale4kArm = computeAutoFitPieceScale(
+      { width: 259, height: 446, sourceImageSize: { width: 4800, height: 3584 } },
+      750,
+      1050
+    )
+    expect(scale4kArm).toBeGreaterThanOrEqual(0.2)
+    expect(scale4kArm).toBeLessThanOrEqual(0.32)
+    expect(Math.round(259 * scale4kArm)).toBeLessThan(90)
+    expect(Math.round(446 * scale4kArm)).toBeLessThan(140)
+
+    // Mảnh cắt từ sprite sheet chuẩn (665x702) giữ nguyên scale = 1
+    const scaleStandard = computeAutoFitPieceScale(
+      { width: 113, height: 184, sourceImageSize: { width: 665, height: 702 } },
+      600,
+      600
+    )
+    expect(scaleStandard).toBe(1)
+
+    // Gán mảnh 4K vào ô khuôn mẫu (slot 45x94) tự động co vừa khít ô
+    const slotScale = computeSlotFitPieceScale(
+      { width: 259, height: 446, sourceImageSize: { width: 4800, height: 3584 } },
+      { width: 45, height: 94, scale: 0.52 },
+      750,
+      1050
+    )
+    expect(slotScale).toBeGreaterThanOrEqual(0.15)
+    expect(slotScale).toBeLessThanOrEqual(0.25)
   })
 })
 
@@ -96,13 +107,11 @@ describe('2D Layer Cutter Smart Tag Placement Rules', () => {
   }
 
   it('places tag inside-top-left when box is tall and wide enough, preventing overlap with box above', () => {
-    // Like Mảnh #3 (145x51) in user screenshot
     const placement = getTagPlacement(145, 51, 80)
     expect(placement).toBe('inside-top-left')
   })
 
   it('places tag outside-top when box is shallow and not near top edge', () => {
-    // Like Mảnh #4 (77x24) in user screenshot
     const placement = getTagPlacement(77, 24, 50)
     expect(placement).toBe('outside-top')
   })

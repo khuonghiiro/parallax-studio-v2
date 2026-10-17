@@ -11,6 +11,17 @@ export function computeNextLayerZ(layers: { z?: number }[], customZ?: number): n
   return maxZ + 1 // layer vào sau tăng thêm 1 (như tay 10+1, áo 10+1+1)
 }
 
+/**
+ * Tính chiều sâu Z cho layer mới sao cho luôn nằm ở phía trước (tiền cảnh, Z nhỏ hơn)
+ * đồng bộ 100% với quy ước zIndex = 1000 - z của Bố cục 2D và Chiều sâu 3D.
+ */
+export function computeFrontLayerZ(layers: { z?: number }[], customZ?: number): number {
+  if (typeof customZ === 'number') return customZ
+  if (layers.length === 0) return 0
+  const minZ = Math.min(0, ...layers.map((l) => l.z ?? 0))
+  return minZ - 1
+}
+
 export function useLayerWorkshop(initial?: LayerComposite | null) {
   const state = useWorkshopHistory(() => initial ? structuredClone(initial) : {
     id: `comp-${crypto.randomUUID()}`, name: 'Chi tiết Layer Mới', category: 'nature', width: 600, height: 600, layers: []
@@ -39,12 +50,20 @@ export function useLayerWorkshop(initial?: LayerComposite | null) {
     setComposite((prev) => ({ ...prev, layers: [...prev.layers, ...added] }))
     setIds(added.map((l) => l.id))
   }
-  const add = (name: string, assetPath: string, imageUrl?: string, pos?: { x: number; y: number }, customZ?: number) => {
-    const nextZ = computeNextLayerZ(composite.layers, customZ)
+  const add = (
+    name: string,
+    assetPath: string,
+    imageUrl?: string,
+    pos?: { x: number; y: number },
+    customZ?: number,
+    initialScale = 1
+  ) => {
+    const nextZ = computeFrontLayerZ(composite.layers, customZ)
+    const safeScale = Number.isFinite(initialScale) && initialScale > 0 ? initialScale : 1
     return append([{
       id: '', name, assetPath, imageUrl, x: pos?.x ?? 0, y: pos?.y ?? 0,
       z: nextZ,
-      scale: 1, rotation: 0, opacity: 1, motion: { type: 'none', speed: 1, amplitude: 15, anchor: 'bottom' }
+      scale: safeScale, rotation: 0, opacity: 1, motion: { type: 'none', speed: 1, amplitude: 15, anchor: 'bottom' }
     }])
   }
   const move = (id: string, direction: 'up' | 'down') => setComposite((prev) => {
