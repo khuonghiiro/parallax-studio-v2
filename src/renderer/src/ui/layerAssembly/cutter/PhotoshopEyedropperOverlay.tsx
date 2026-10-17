@@ -137,8 +137,8 @@ export function PhotoshopEyedropperOverlay({
         <div
           className="ps-eyedropper-loupe-container"
           style={{
-            left: `${sample.canvasX}px`,
-            top: `${sample.canvasY}px`
+            left: `${sample.clientX}px`,
+            top: `${sample.clientY}px`
           }}
         >
           {/* Vòng tròn Photoshop Sample Ring + Lưới Pixel 9x9 ở tâm */}

@@ -31,7 +31,7 @@ export function CutterTargetFooter({
                 placeholder="Tên bộ phận..."
               />
             </div>
-            <span className="layer-cutter-badge" style={{ fontSize: 9, padding: '1px 5px' }}>
+            <span className="layer-cutter-badge footer-coord-badge">
               ({Math.round(selectedLayer.x)}, {Math.round(selectedLayer.y)})
             </span>
           </div>
@@ -77,7 +77,7 @@ export function CutterTargetFooter({
             </button>
             <button
               type="button"
-              className="layer-cutter-footer-mini-btn"
+              className="layer-cutter-footer-mini-btn footer-scale-btn"
               title="Đặt lại tỉ lệ chuẩn 100%"
               onClick={() => onUpdateLayer(selectedLayer.id, { scale: 1 })}
             >
@@ -100,7 +100,7 @@ export function CutterTargetFooter({
             />
             <button
               type="button"
-              className="layer-cutter-footer-mini-btn"
+              className="layer-cutter-footer-mini-btn footer-rot-btn"
               title="Đặt lại góc xoay 0°"
               onClick={() => onUpdateLayer(selectedLayer.id, { rotation: 0 })}
             >
@@ -129,9 +129,10 @@ export function CutterTargetFooter({
             <span
               style={{
                 fontFamily: 'monospace',
+                fontVariantNumeric: 'tabular-nums',
                 fontWeight: 700,
                 color: 'var(--accent-cyan)',
-                minWidth: 20,
+                minWidth: 22,
                 textAlign: 'center'
               }}
             >
@@ -155,7 +156,7 @@ export function CutterTargetFooter({
           <button
             type="button"
             className={`btn sm ${(selectedLayer.scaleX ?? 1) < 0 ? 'primary' : ''}`}
-            style={{ height: 22, padding: '0 8px', fontSize: 10 }}
+            style={{ height: 22, padding: '0 7px', fontSize: 10, flexShrink: 0 }}
             title="Lật ảnh nằm ngang (Flip Horizontal)"
             onClick={() =>
               onUpdateLayer(selectedLayer.id, {
@@ -170,7 +171,7 @@ export function CutterTargetFooter({
           <button
             type="button"
             className="btn sm"
-            style={{ height: 22, padding: '0 8px', fontSize: 10 }}
+            style={{ height: 22, padding: '0 7px', fontSize: 10, flexShrink: 0 }}
             title="Đặt bộ phận về ngay chính giữa (0, 0)"
             onClick={() => onUpdateLayer(selectedLayer.id, { x: 0, y: 0 })}
           >
@@ -178,7 +179,17 @@ export function CutterTargetFooter({
           </button>
         </div>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-faint)' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            color: 'var(--text-faint)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}
+        >
           <span>💡 Click chọn lớp để chỉnh sửa hoặc kéo khung Bbox · Kéo từ trái sang hoặc</span>
           <kbd
             style={{
@@ -196,7 +207,7 @@ export function CutterTargetFooter({
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginLeft: 'auto' }}>
+      <div className="layer-cutter-footer-actions">
         {selectedLayer && (
           <button
             type="button"

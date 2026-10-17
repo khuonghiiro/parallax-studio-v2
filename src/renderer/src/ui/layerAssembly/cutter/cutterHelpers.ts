@@ -149,3 +149,53 @@ export function computeSlotFitPieceScale(
   const chosen = Number.isFinite(fitScale) && fitScale > 0 ? fitScale : fallbackScale
   return Number(Math.max(0.05, Math.min(2, chosen)).toFixed(2))
 }
+
+export interface CursorAnchoredZoomParams {
+  cursorClientX: number
+  cursorClientY: number
+  viewportCenterX: number
+  viewportCenterY: number
+  currentPanX: number
+  currentPanY: number
+  oldScale: number
+  newScale: number
+  minScale?: number
+  maxScale?: number
+}
+
+export interface CursorAnchoredZoomResult {
+  scale: number
+  panX: number
+  panY: number
+}
+
+/**
+ * Tính toán thu phóng ghim cố định điểm ảnh ngay dưới mũi trỏ chuột (Cursor-anchored zoom).
+ * Đảm bảo khi người dùng nhấn Ctrl + lăn chuột (hoặc lăn chuột) tại bất kỳ chi tiết nào trên ảnh,
+ * chi tiết đó luôn đứng yên ngay dưới con trỏ chuột.
+ */
+export function computeCursorAnchoredZoom({
+  cursorClientX,
+  cursorClientY,
+  viewportCenterX,
+  viewportCenterY,
+  currentPanX,
+  currentPanY,
+  oldScale,
+  newScale,
+  minScale = 0.15,
+  maxScale = 4.0
+}: CursorAnchoredZoomParams): CursorAnchoredZoomResult {
+  const safeOld = Math.max(0.05, oldScale)
+  const safeNew = Math.max(minScale, Math.min(maxScale, Number(newScale.toFixed(3))))
+  const ratio = safeNew / safeOld
+  const ux = cursorClientX - viewportCenterX
+  const uy = cursorClientY - viewportCenterY
+  const panX = Math.round(ux - (ux - currentPanX) * ratio)
+  const panY = Math.round(uy - (uy - currentPanY) * ratio)
+  return {
+    scale: safeNew,
+    panX,
+    panY
+  }
+}

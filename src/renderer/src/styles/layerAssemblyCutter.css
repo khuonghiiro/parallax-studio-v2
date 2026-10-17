@@ -535,25 +535,72 @@
 .layer-cutter-slot-name { font-size: 11px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .layer-cutter-slot-state { font-size: 10px; color: var(--text-faint); }
 
-/* Footer Info Bar */
+/* Footer Info Bar — Khoá cứng chiều cao 38px 1 hàng để không bao giờ nhảy khung khi resize Bbox */
 .layer-cutter-footer {
-  min-height: 38px; background: var(--bg-2); border-top: 1px solid var(--line-soft);
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 4px 12px; font-size: 11px; color: var(--text-dim);
-  flex-shrink: 0; gap: 8px; flex-wrap: wrap;
+  height: 38px;
+  min-height: 38px;
+  max-height: 38px;
+  box-sizing: border-box;
+  background: var(--bg-2);
+  border-top: 1px solid var(--line-soft);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
-.layer-cutter-footer-controls { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+.layer-cutter-footer-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: nowrap;
+  flex: 1 1 0%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.layer-cutter-footer-controls::-webkit-scrollbar {
+  display: none;
+}
+.layer-cutter-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
 .layer-cutter-footer-group {
-  display: inline-flex; align-items: center; gap: 5px; background: var(--bg-1);
-  padding: 3px 6px; border-radius: 6px; border: 1px solid var(--line-soft);
+  display: inline-flex; align-items: center; gap: 4px; background: var(--bg-1);
+  padding: 2px 5px; border-radius: 6px; border: 1px solid var(--line-soft);
   font-size: 11px; flex-shrink: 0;
 }
-.layer-cutter-footer-group span { font-size: 10px; color: var(--text-dim); }
-.layer-cutter-footer-group input[type='range'] { width: 50px; height: 4px; accent-color: var(--accent); cursor: pointer; }
+.layer-cutter-footer-group span { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+.layer-cutter-footer-group input[type='range'] { width: 44px; height: 4px; accent-color: var(--accent); cursor: pointer; }
+.footer-coord-badge {
+  font-size: 9px !important;
+  padding: 1px 4px !important;
+  min-width: 68px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
 .layer-cutter-footer-mini-btn {
   background: var(--bg-3); border: 1px solid var(--line); color: var(--text);
-  font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 4px;
+  font-size: 10px; font-weight: 600; padding: 1px 4px; border-radius: 4px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
   cursor: pointer; transition: all 0.15s ease;
+}
+.footer-scale-btn {
+  min-width: 40px;
+}
+.footer-rot-btn {
+  min-width: 34px;
 }
 .layer-cutter-footer-mini-btn:hover { background: var(--bg-4); border-color: var(--line-focus); }
 .layer-cutter-footer-hint { display: inline-flex; align-items: center; gap: 4px; color: var(--text-faint); }

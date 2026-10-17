@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { computeNextLayerZ, computeFrontLayerZ } from '../useLayerWorkshop'
-import { computeAutoFitPieceScale, computeSlotFitPieceScale } from './cutterHelpers'
+import {
+  computeAutoFitPieceScale,
+  computeSlotFitPieceScale,
+  computeCursorAnchoredZoom
+} from './cutterHelpers'
 import { resolveCanvasBgState } from './CutterCanvasBgToggle'
 import { calculateAnchorPinnedResize } from '../layerAssembly2DBbox'
 
@@ -138,6 +142,28 @@ describe('2D Layer Cutter Stacking & Z-Index Ordering Rules', () => {
     expect(res.scale).toBeGreaterThanOrEqual(0.05)
     expect(res.x).toBeLessThan(0)
     expect(res.y).toBeLessThan(0)
+  })
+
+  it('zooms anchored at the mouse cursor position when pressing Ctrl + Wheel', () => {
+    const vpCenterX = 400
+    const vpCenterY = 300
+    const cursorClientX = 520 // +120px right of viewport center
+    const cursorClientY = 210 // -90px above viewport center
+
+    const res = computeCursorAnchoredZoom({
+      cursorClientX,
+      cursorClientY,
+      viewportCenterX: vpCenterX,
+      viewportCenterY: vpCenterY,
+      currentPanX: 0,
+      currentPanY: 0,
+      oldScale: 0.66,
+      newScale: 1.32 // 2x zoom
+    })
+
+    expect(res.scale).toBe(1.32)
+    expect(res.panX).toBe(-120)
+    expect(res.panY).toBe(90)
   })
 })
 

@@ -10,7 +10,11 @@ import {
 import { SaveTemplateDialog } from './SaveTemplateDialog'
 import { AssembledPartsDrawer } from './AssembledPartsDrawer'
 import { computeFrontLayerZ } from '../useLayerWorkshop'
-import { computeAutoFitPieceScale, computeSlotFitPieceScale } from './cutterHelpers'
+import {
+  computeAutoFitPieceScale,
+  computeSlotFitPieceScale,
+  computeCursorAnchoredZoom
+} from './cutterHelpers'
 import { IconLayers, IconTrash, IconPlus, IconCrop } from '../../icons'
 import { CustomSelect } from '../../controls/CustomSelect'
 import { LayerAssemblyCalloutOverlay } from '../LayerAssemblyCalloutOverlay'
@@ -58,6 +62,7 @@ export function SpriteCutterTargetPane({
   const [showBbox, setShowBbox] = useState<boolean>(true)
   const [targetCanvasBg, setTargetCanvasBg] = useState<CanvasBgMode>('checker-dark')
   const [targetZoomMode, setTargetZoomMode] = useState<'fit' | number>('fit')
+  const [targetPan, setTargetPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [presetsList, setPresetsList] = useState<TemplateSlotPreset[]>(() => getAllPresets())
   const [showSaveDialog, setShowSaveDialog] = useState<boolean>(false)
 
@@ -104,14 +109,43 @@ export function SpriteCutterTargetPane({
   const targetBgCssClass = resolveCanvasBgState(targetCanvasBg).cssClass
 
   const stepTargetZoom = (delta: number) => {
-    const next = Math.min(3.0, Math.max(0.15, Number((effectiveBoardScale + delta).toFixed(2))))
+    const next = Math.min(4.0, Math.max(0.15, Number((effectiveBoardScale + delta).toFixed(2))))
     setTargetZoomMode(next)
   }
 
-  const handleViewportWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    stepTargetZoom(e.deltaY < 0 ? 0.12 : -0.12)
+  const handleSetTargetZoomMode = (mode: 'fit' | number) => {
+    setTargetZoomMode(mode)
+    setTargetPan({ x: 0, y: 0 })
   }
+
+  useEffect(() => {
+    const el = targetViewportRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const rect = el.getBoundingClientRect()
+      const vpCenterX = rect.left + rect.width / 2
+      const vpCenterY = rect.top + rect.height / 2
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 1 / 1.15
+      const rawNextScale = effectiveBoardScale * zoomFactor
+      const anchored = computeCursorAnchoredZoom({
+        cursorClientX: e.clientX,
+        cursorClientY: e.clientY,
+        viewportCenterX: vpCenterX,
+        viewportCenterY: vpCenterY,
+        currentPanX: targetPan.x,
+        currentPanY: targetPan.y,
+        oldScale: effectiveBoardScale,
+        newScale: rawNextScale,
+        minScale: Math.min(0.15, fitBoardScale * 0.5),
+        maxScale: 4.0
+      })
+      setTargetZoomMode(anchored.scale)
+      setTargetPan({ x: anchored.panX, y: anchored.panY })
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [effectiveBoardScale, fitBoardScale, targetPan.x, targetPan.y])
 
   const activePreset: TemplateSlotPreset =
     presetsList.find((p) => p.id === activePresetId) || presetsList[0]
@@ -458,8 +492,8 @@ export function SpriteCutterTargetPane({
             zoomMode={targetZoomMode}
             effectiveScale={effectiveBoardScale}
             onStepZoom={stepTargetZoom}
-            onSetZoomMode={setTargetZoomMode}
-            title="Thu phóng khung Bố cục lắp ráp 2D (Lăn chuột trên bảng để zoom nhanh)"
+            onSetZoomMode={handleSetTargetZoomMode}
+            title="Thu phóng khung Bố cục lắp ráp 2D (Lăn chuột trên bảng để zoom theo vị trí chuột)"
           />
 
           <button
@@ -636,7 +670,6 @@ export function SpriteCutterTargetPane({
         <div
           className={`layer-cutter-target-viewport ${targetBgCssClass}`}
           ref={targetViewportRef}
-          onWheel={handleViewportWheel}
         >
           <div
             ref={boardRef}
@@ -646,7 +679,7 @@ export function SpriteCutterTargetPane({
             style={{
               width: `${boardW}px`,
               height: `${boardH}px`,
-              transform: `translate(-50%, -50%) scale(${effectiveBoardScale})`,
+              transform: `translate(calc(-50% + ${targetPan.x}px), calc(-50% + ${targetPan.y}px)) scale(${effectiveBoardScale})`,
               transformOrigin: 'center center'
             }}
             onPointerMove={handleBoardPointerMove}

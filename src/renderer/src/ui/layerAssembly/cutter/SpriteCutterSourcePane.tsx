@@ -23,7 +23,8 @@ import {
 } from './chromaAdvancedProcessor'
 import {
   detectCornerBackground,
-  computeCanvasPointerCoords
+  computeCanvasPointerCoords,
+  computeCursorAnchoredZoom
 } from './cutterHelpers'
 import { CutterBrushSubBar } from './CutterBrushSubBar'
 import { CutterGridSubBar, CutterQuickPartsStrip } from './CutterSlicesBar'
@@ -100,6 +101,7 @@ export function SpriteCutterSourcePane({
   const [imgNaturalSize, setImgNaturalSize] = useState<{ w: number; h: number }>({ w: 665, h: 702 })
   const [viewportSize, setViewportSize] = useState<{ w: number; h: number }>({ w: 560, h: 460 })
   const [zoomMode, setZoomMode] = useState<'fit' | number>('fit')
+  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [imageDecodeRev, setImageDecodeRev] = useState<number>(0)
 
   // Buffer gốc 4K/8K (dùng khi trích xuất mảnh cắt sắc nét) & Buffer làm việc 60fps
@@ -778,16 +780,43 @@ export function SpriteCutterSourcePane({
   }
 
   const stepZoom = (delta: number) => {
-    const next = Math.min(3.0, Math.max(0.15, Number((effectiveScale + delta).toFixed(2))))
+    const next = Math.min(4.0, Math.max(0.15, Number((effectiveScale + delta).toFixed(2))))
     setZoomMode(next)
   }
 
-  const handleCanvasWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    if (e.ctrlKey || e.metaKey || zoomMode === 'fit' || effectiveScale <= fitScale) {
-      e.preventDefault()
-      stepZoom(e.deltaY < 0 ? 0.12 : -0.12)
-    }
+  const handleSetZoomMode = (mode: 'fit' | number) => {
+    setZoomMode(mode)
+    setPanOffset({ x: 0, y: 0 })
   }
+
+  useEffect(() => {
+    const el = viewportWrapRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const rect = el.getBoundingClientRect()
+      const vpCenterX = rect.left + rect.width / 2
+      const vpCenterY = rect.top + rect.height / 2
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 1 / 1.15
+      const rawNextScale = effectiveScale * zoomFactor
+      const anchored = computeCursorAnchoredZoom({
+        cursorClientX: e.clientX,
+        cursorClientY: e.clientY,
+        viewportCenterX: vpCenterX,
+        viewportCenterY: vpCenterY,
+        currentPanX: panOffset.x,
+        currentPanY: panOffset.y,
+        oldScale: effectiveScale,
+        newScale: rawNextScale,
+        minScale: Math.min(0.15, fitScale * 0.5),
+        maxScale: 4.0
+      })
+      setZoomMode(anchored.scale)
+      setPanOffset({ x: anchored.panX, y: anchored.panY })
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [effectiveScale, fitScale, panOffset.x, panOffset.y])
 
   const bgCssClass = resolveCanvasBgState(canvasBg).cssClass
 
@@ -805,11 +834,16 @@ export function SpriteCutterSourcePane({
         onChangeTagDisplayMode={setTagDisplayMode}
         onChangeCanvasBg={setCanvasBg}
         onStepZoom={stepZoom}
-        onSetZoomMode={setZoomMode}
-        onFileUpload={handleFileUpload}
+        onSetZoomMode={handleSetZoomMode}
+        onFileUpload={(e) => {
+          handleFileUpload(e)
+          setZoomMode('fit')
+          setPanOffset({ x: 0, y: 0 })
+        }}
         onResetSample={() => {
           setImageUrl(SAMPLE_ANIME_SPRITESHEET_URL)
           setZoomMode('fit')
+          setPanOffset({ x: 0, y: 0 })
         }}
       />
 
@@ -865,10 +899,7 @@ export function SpriteCutterSourcePane({
       {/* Vùng hiển thị Canvas Ảnh Nguồn + Kính lúp Hút màu Photoshop */}
       <div
         ref={viewportWrapRef}
-        onWheel={handleCanvasWheel}
-        className={`layer-cutter-canvas-wrap ${bgCssClass} ${
-          zoomMode !== 'fit' && effectiveScale > fitScale ? 'is-scrollable' : ''
-        }`}
+        className={`layer-cutter-canvas-wrap ${bgCssClass}`}
       >
         <PhotoshopEyedropperOverlay
           target={eyedropperTarget}
@@ -882,7 +913,11 @@ export function SpriteCutterSourcePane({
 
         <div
           className={`layer-cutter-source-canvas-box tag-mode-${tagDisplayMode}`}
-          style={{ width: `${displayW}px`, height: `${displayH}px` }}
+          style={{
+            width: `${displayW}px`,
+            height: `${displayH}px`,
+            transform: `translate3d(${panOffset.x}px, ${panOffset.y}px, 0)`
+          }}
         >
           <canvas
             ref={procCanvasRef}

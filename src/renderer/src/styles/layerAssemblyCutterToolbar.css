@@ -411,8 +411,25 @@
   flex-shrink: 0;
 }
 
-/* ---------- Co giãn theo bề rộng cột 1 (không bao giờ xuống dòng) ---------- */
-@container cutter-src (max-width: 760px) {
+/* ---------- Co giãn theo bề rộng cột 1 (không bao giờ xuống dòng hoặc khuất nút bên phải) ---------- */
+.layer-cutter-ribbon .ps-eyedropper-btn {
+  height: 24px;
+  padding: 0 6px 0 5px;
+  gap: 4px;
+}
+
+@container cutter-src (max-width: 910px) {
+  .layer-cutter-ribbon .ps-eyedropper-hex {
+    display: none;
+  }
+  .layer-cutter-ribbon .layer-cutter-tool-btn {
+    padding: 0 4px;
+    gap: 2.5px;
+    font-size: 10.5px;
+  }
+}
+
+@container cutter-src (max-width: 820px) {
   .layer-cutter-ribbon .layer-cutter-tool-btn:not(.active) .lc-tool-label {
     display: none;
   }
