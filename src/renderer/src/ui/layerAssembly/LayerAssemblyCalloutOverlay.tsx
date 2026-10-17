@@ -30,6 +30,10 @@ export interface LayerAssemblyCalloutOverlayProps {
   safeTop?: number
   safeBottom?: number
   storageKey?: string
+  enabled?: boolean
+  lineStyle?: CameraLineStyle
+  onToggleEnabled?: () => void
+  onChangeLineStyle?: (style: CameraLineStyle) => void
 }
 
 interface ComputedLayerBubble {
@@ -43,7 +47,7 @@ interface ComputedLayerBubble {
   isCustomMoved: boolean
 }
 
-function readStoredPrefs(key: string): { enabled: boolean; lineStyle: CameraLineStyle } {
+export function readStoredCalloutPrefs(key: string): { enabled: boolean; lineStyle: CameraLineStyle } {
   try {
     const raw = localStorage.getItem(key)
     if (raw) {
@@ -57,10 +61,38 @@ function readStoredPrefs(key: string): { enabled: boolean; lineStyle: CameraLine
   return { enabled: true, lineStyle: 'bezier' }
 }
 
-function writeStoredPrefs(key: string, prefs: { enabled: boolean; lineStyle: CameraLineStyle }): void {
+export function writeStoredCalloutPrefs(
+  key: string,
+  prefs: { enabled: boolean; lineStyle: CameraLineStyle }
+): void {
   try {
     localStorage.setItem(key, JSON.stringify(prefs))
   } catch {}
+}
+
+export function useLayerAssemblyCalloutPrefs(storageKey: string = 'parallax.layerAssembly.callouts.v1') {
+  const initialPrefs = useMemo(() => readStoredCalloutPrefs(storageKey), [storageKey])
+  const [enabled, setEnabled] = useState<boolean>(initialPrefs.enabled)
+  const [lineStyle, setLineStyle] = useState<CameraLineStyle>(initialPrefs.lineStyle)
+
+  const toggleEnabled = useCallback(() => {
+    setEnabled((prev) => {
+      const next = !prev
+      writeStoredCalloutPrefs(storageKey, { enabled: next, lineStyle })
+      return next
+    })
+  }, [lineStyle, storageKey])
+
+  const changeLineStyle = useCallback(
+    (style: CameraLineStyle) => {
+      setLineStyle(style)
+      writeStoredCalloutPrefs(storageKey, { enabled: true, lineStyle: style })
+      setEnabled(true)
+    },
+    [storageKey]
+  )
+
+  return { enabled, lineStyle, toggleEnabled, changeLineStyle }
 }
 
 export function LayerAssemblyCalloutOverlay({
@@ -79,11 +111,22 @@ export function LayerAssemblyCalloutOverlay({
   safeRight = 14,
   safeTop = 44,
   safeBottom = 52,
-  storageKey = 'parallax.layerAssembly.callouts.v1'
+  storageKey = 'parallax.layerAssembly.callouts.v1',
+  enabled: controlledEnabled,
+  lineStyle: controlledLineStyle,
+  onToggleEnabled: controlledToggleEnabled,
+  onChangeLineStyle: controlledChangeLineStyle
 }: LayerAssemblyCalloutOverlayProps) {
-  const initialPrefs = useMemo(() => readStoredPrefs(storageKey), [storageKey])
-  const [enabled, setEnabled] = useState<boolean>(initialPrefs.enabled)
-  const [lineStyle, setLineStyle] = useState<CameraLineStyle>(initialPrefs.lineStyle)
+  const initialPrefs = useMemo(() => readStoredCalloutPrefs(storageKey), [storageKey])
+  const [internalEnabled, setInternalEnabled] = useState<boolean>(initialPrefs.enabled)
+  const [internalLineStyle, setInternalLineStyle] = useState<CameraLineStyle>(initialPrefs.lineStyle)
+
+  const isControlledEnabled = controlledEnabled !== undefined
+  const isControlledLineStyle = controlledLineStyle !== undefined
+
+  const enabled = isControlledEnabled ? controlledEnabled : internalEnabled
+  const lineStyle = isControlledLineStyle ? controlledLineStyle : internalLineStyle
+
   const [hoveredLayerId, setHoveredLayerId] = useState<string | null>(null)
   const [customOffsets, setCustomOffsets] = useState<Record<string, LayerCalloutOffset>>({})
   const [draggingId, setDraggingId] = useState<string | null>(null)
@@ -116,20 +159,28 @@ export function LayerAssemblyCalloutOverlay({
   }, [containerRef])
 
   const handleToggleEnabled = useCallback(() => {
-    setEnabled((prev) => {
+    if (controlledToggleEnabled) {
+      controlledToggleEnabled()
+      return
+    }
+    setInternalEnabled((prev) => {
       const next = !prev
-      writeStoredPrefs(storageKey, { enabled: next, lineStyle })
+      writeStoredCalloutPrefs(storageKey, { enabled: next, lineStyle })
       return next
     })
-  }, [storageKey, lineStyle])
+  }, [controlledToggleEnabled, storageKey, lineStyle])
 
   const handleChangeLineStyle = useCallback(
     (nextStyle: CameraLineStyle) => {
-      setLineStyle(nextStyle)
-      writeStoredPrefs(storageKey, { enabled: true, lineStyle: nextStyle })
-      if (!enabled) setEnabled(true)
+      if (controlledChangeLineStyle) {
+        controlledChangeLineStyle(nextStyle)
+        return
+      }
+      setInternalLineStyle(nextStyle)
+      writeStoredCalloutPrefs(storageKey, { enabled: true, lineStyle: nextStyle })
+      if (!enabled) setInternalEnabled(true)
     },
-    [storageKey, enabled]
+    [controlledChangeLineStyle, storageKey, enabled]
   )
 
   const visibleEntries = useMemo(() => {
@@ -400,7 +451,7 @@ export function LayerAssemblyCalloutOverlay({
 
   const hasCustomOffsets = Object.keys(customOffsets).length > 0
 
-  if (visibleEntries.length === 0) return null
+  if (visibleEntries.length === 0 || (!enabled && !showHud)) return null
 
   return (
     <div className="lw-callout-layer-root">

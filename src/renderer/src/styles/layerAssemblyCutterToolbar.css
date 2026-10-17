@@ -118,6 +118,19 @@
   color: var(--on-accent);
 }
 
+/* Nhóm điều khiển Bóng Layer & Kiểu dây nối ReactFlow trên Toolbar Bố cục 2D */
+.layer-cutter-callout-toolbar-group {
+  margin-left: 2px;
+}
+
+.layer-cutter-callout-toolbar-group .layer-cutter-tool-btn.active {
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-2));
+  border: 1px solid var(--accent);
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+
 /* ---------- Ô điều khiển dạng viên (slider, màu, checkbox) ---------- */
 .layer-cutter-control-row,
 .layer-cutter-control-pill,

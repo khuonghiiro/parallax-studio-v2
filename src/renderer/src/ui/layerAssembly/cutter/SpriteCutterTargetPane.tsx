@@ -16,8 +16,10 @@ import {
   computeCursorAnchoredZoom
 } from './cutterHelpers'
 import { IconLayers, IconTrash, IconPlus, IconCrop } from '../../icons'
-import { CustomSelect } from '../../controls/CustomSelect'
-import { LayerAssemblyCalloutOverlay } from '../LayerAssemblyCalloutOverlay'
+import {
+  LayerAssemblyCalloutOverlay,
+  useLayerAssemblyCalloutPrefs
+} from '../LayerAssemblyCalloutOverlay'
 import { calculateAnchorPinnedResize, type Bbox2DHandle } from '../layerAssembly2DBbox'
 import {
   CutterCanvasBgControl,
@@ -85,6 +87,13 @@ export function SpriteCutterTargetPane({
     panOffset: targetPan,
     setPanOffset: setTargetPan
   })
+
+  const {
+    enabled: calloutEnabled,
+    lineStyle: calloutLineStyle,
+    toggleEnabled: toggleCalloutEnabled,
+    changeLineStyle: changeCalloutLineStyle
+  } = useLayerAssemblyCalloutPrefs('parallax.cutterTarget.callouts.v1')
 
   const boardW = Math.max(200, composite.width || 600)
   const boardH = Math.max(200, composite.height || 600)
@@ -668,6 +677,43 @@ export function SpriteCutterTargetPane({
           </div>
         )}
 
+        {/* Nhóm điều khiển Bóng chọn Layer & Kiểu dây nối ReactFlow (nằm bên phải Thứ tự Z) */}
+        {composite.layers.length > 0 && (
+          <div className="layer-cutter-tool-group layer-cutter-callout-toolbar-group">
+            <button
+              id="btn-cutter-toggle-callout"
+              type="button"
+              className={`layer-cutter-tool-btn ${calloutEnabled ? 'active' : ''}`}
+              onClick={toggleCalloutEnabled}
+              title="Bật/tắt các bóng tròn chọn nhanh Layer nằm ngoài khung caro (giúp chọn dễ dàng khi nhiều layer đè lên nhau)"
+            >
+              <span>🫧 Bóng Layer ({composite.layers.length})</span>
+            </button>
+            {calloutEnabled && (
+              <>
+                <button
+                  id="btn-cutter-callout-bezier"
+                  type="button"
+                  className={`layer-cutter-tool-btn ${calloutLineStyle === 'bezier' ? 'active' : ''}`}
+                  onClick={() => changeCalloutLineStyle('bezier')}
+                  title="Kiểu dây nối Vòng cung mềm mại (ReactFlow Bezier)"
+                >
+                  〜 Cung tròn
+                </button>
+                <button
+                  id="btn-cutter-callout-smoothstep"
+                  type="button"
+                  className={`layer-cutter-tool-btn ${calloutLineStyle === 'smoothstep' ? 'active' : ''}`}
+                  onClick={() => changeCalloutLineStyle('smoothstep')}
+                  title="Kiểu dây nối Vuông góc bo tròn (ReactFlow SmoothStep)"
+                >
+                  ∟ Vuông bo
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
         <div className="layer-cutter-toolbar-right">
           <span className="layer-cutter-coord-pill" title="Kích thước khung bố cục & tọa độ con trỏ chuột">
             {boardW}×{boardH} · XY: ({mouseCanvasPos.x}, {mouseCanvasPos.y})
@@ -782,6 +828,11 @@ export function SpriteCutterTargetPane({
             safeTop={40}
             safeBottom={16}
             storageKey="parallax.cutterTarget.callouts.v1"
+            showHud={false}
+            enabled={calloutEnabled}
+            lineStyle={calloutLineStyle}
+            onToggleEnabled={toggleCalloutEnabled}
+            onChangeLineStyle={changeCalloutLineStyle}
           />
         </div>
 
