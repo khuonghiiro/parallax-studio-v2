@@ -1,6 +1,7 @@
 import type { PlantSpine, PlantSpinePoint } from '@shared/plantSpine'
 import type { SkinBinding } from './layerSkinning'
 import { samplePlantMotion } from './plantMotion'
+import { computeMeshCorridor } from './meshCorridor'
 
 /** Số mẫu chia đều theo chiều dài xương — đủ mượt cho uốn cong mà vẫn rẻ mỗi khung hình. */
 const SAMPLES = 32
@@ -155,10 +156,12 @@ interface Projection {
   dist: number
 }
 
-function projectOnRest(rest: PlantSpinePoint[], x: number, y: number): Projection {
+function projectOnRest(rest: PlantSpinePoint[], x: number, y: number, loSeg = 0, hiSeg = rest.length - 2): Projection {
   let best: Projection = { seg: 0, t: 0, dist: Infinity }
   const last = rest.length - 2
-  for (let i = 0; i <= last; i++) {
+  const from = Math.max(0, Math.min(last, loSeg))
+  const to = Math.max(from, Math.min(last, hiSeg))
+  for (let i = from; i <= to; i++) {
     const a = rest[i]
     const b = rest[i + 1]
     const dx = b.x - a.x
@@ -176,17 +179,83 @@ function projectOnRest(rest: PlantSpinePoint[], x: number, y: number): Projectio
   return best
 }
 
-/** Mỗi đỉnh 5 số: [đoạn (-1 = dưới gốc, đứng yên), t, lệchX, lệchY, trọng số bán kính]. */
+/** Mỗi đỉnh 5 số: [đoạn (-1 = dưới gốc/ngoài vùng, đứng yên), t, lệchX, lệchY, trọng số bán kính]. */
 const STRIDE = 5
 interface LayerProjection { key: string; world: Float32Array; perSpine: Float32Array[] }
 const projectionCache = new WeakMap<Float32Array, LayerProjection>()
 
-function projectionKey(binding: SkinBinding, spines: PlantSpine[]): string {
-  const b = `${binding.x},${binding.y},${binding.rotation},${binding.scale},${binding.scaleX ?? 1},${binding.scaleY ?? 1}`
+function projectionKey(binding: SkinBinding, spines: PlantSpine[], indices?: ArrayLike<number>): string {
+  const b = `${binding.x},${binding.y},${binding.rotation},${binding.scale},${binding.scaleX ?? 1},${binding.scaleY ?? 1}:${indices?.length ?? 0}`
   return b + '|' + spines.map((s) => `${s.reach ?? 0}:${s.points.map((p) => `${p.x},${p.y}`).join(';')}`).join('|')
 }
 
-function buildProjection(positions: Float32Array, binding: SkinBinding, spines: PlantSpine[], key: string): LayerProjection {
+function buildSpineProjectionData(
+  world: Float32Array,
+  spine: PlantSpine,
+  indices?: ArrayLike<number>
+): Float32Array {
+  const count = world.length >> 1
+  const rest = restSamples(spine)
+  const data = new Float32Array(count * STRIDE)
+  const reach = spine.reach ?? 0
+  const useCorridor = Boolean(indices && indices.length >= 3 && count > 3)
+  const corridor = useCorridor ? computeMeshCorridor(world, indices!, rest, reach) : null
+
+  for (let i = 0; i < count; i++) {
+    const o = i * STRIDE
+    if (rest.length < 2) {
+      data[o] = -1
+      continue
+    }
+    if (useCorridor) {
+      // Nếu có hành lang mesh (hoặc người dùng đặt reach > 0), đỉnh ngoài hành lang sẽ đứng yên 100%
+      if (corridor) {
+        if (corridor.weights[i] <= 1e-4) {
+          data[o] = -1
+          continue
+        }
+      } else if (reach > 0) {
+        data[o] = -1
+        continue
+      }
+    }
+    const x = world[i * 2]
+    const y = world[i * 2 + 1]
+    const { seg, t: rawT, dist } = corridor
+      ? projectOnRest(rest, x, y, corridor.segMin[i] - 3, corridor.segMax[i] + 3)
+      : projectOnRest(rest, x, y)
+    if (rawT < 0 && seg === 0) {
+      data[o] = -1
+      continue
+    }
+    const t = corridor && rawT > 1 ? Math.min(1.35, rawT) : rawT
+    let w = corridor ? corridor.weights[i] : 1
+    if (!corridor && reach > 0) {
+      const k = Math.min(1, Math.max(0, (reach - dist) / (reach * 0.5)))
+      w = k * k * (3 - 2 * k)
+    }
+    if (w <= 1e-4) {
+      data[o] = -1
+      continue
+    }
+    const a = rest[seg]
+    const b = rest[seg + 1]
+    data[o] = seg
+    data[o + 1] = t
+    data[o + 2] = x - (a.x + (b.x - a.x) * t)
+    data[o + 3] = y - (a.y + (b.y - a.y) * t)
+    data[o + 4] = w
+  }
+  return data
+}
+
+function buildProjection(
+  positions: Float32Array,
+  binding: SkinBinding,
+  spines: PlantSpine[],
+  key: string,
+  indices?: ArrayLike<number>
+): LayerProjection {
   const count = positions.length / 3
   const scale = binding.scale ?? 1
   const sx = scale * (binding.scaleX ?? 1)
@@ -198,34 +267,21 @@ function buildProjection(positions: Float32Array, binding: SkinBinding, spines: 
     world[i * 2] = p.x + (binding.x ?? 0)
     world[i * 2 + 1] = p.y + (binding.y ?? 0)
   }
-  const perSpine = spines.map((spine) => {
-    const rest = restSamples(spine)
-    const data = new Float32Array(count * STRIDE)
-    const reach = spine.reach ?? 0
+  const perSpine = spines.map((spine) => buildSpineProjectionData(world, spine, indices))
+  if (perSpine.length > 1) {
     for (let i = 0; i < count; i++) {
-      const x = world[i * 2]
-      const y = world[i * 2 + 1]
       const o = i * STRIDE
-      const { seg, t, dist } = projectOnRest(rest, x, y)
-      if (rest.length < 2 || (t < 0 && seg === 0)) {
-        data[o] = -1
-        continue
+      let sumW = 0
+      for (let k = 0; k < perSpine.length; k++) {
+        if (perSpine[k][o] >= 0) sumW += perSpine[k][o + 4]
       }
-      const a = rest[seg]
-      const b = rest[seg + 1]
-      let w = 1
-      if (reach > 0) {
-        const k = Math.min(1, Math.max(0, (reach - dist) / (reach * 0.5)))
-        w = k * k * (3 - 2 * k)
+      if (sumW > 1) {
+        for (let k = 0; k < perSpine.length; k++) {
+          if (perSpine[k][o] >= 0) perSpine[k][o + 4] /= sumW
+        }
       }
-      data[o] = seg
-      data[o + 1] = t
-      data[o + 2] = x - (a.x + (b.x - a.x) * t)
-      data[o + 3] = y - (a.y + (b.y - a.y) * t)
-      data[o + 4] = w
     }
-    return data
-  })
+  }
   return { key, world, perSpine }
 }
 
@@ -242,7 +298,8 @@ export function deformPlantSpines(
   positions: Float32Array,
   binding: SkinBinding,
   spines: PlantSpine[],
-  time: number
+  time: number,
+  indices?: ArrayLike<number>
 ): Float32Array {
   if (!spines.length) return positions
   const output = positions.slice()
@@ -250,10 +307,10 @@ export function deformPlantSpines(
   const sx = scale * (binding.scaleX ?? 1)
   const sy = scale * (binding.scaleY ?? 1)
   if (Math.abs(sx * sy) < 1e-10) return output
-  const key = projectionKey(binding, spines)
+  const key = projectionKey(binding, spines, indices)
   let proj = projectionCache.get(positions)
   if (!proj || proj.key !== key) {
-    proj = buildProjection(positions, binding, spines, key)
+    proj = buildProjection(positions, binding, spines, key, indices)
     projectionCache.set(positions, proj)
   }
   const frames = spines.map((s) => evaluatePlantSpine(s, time))

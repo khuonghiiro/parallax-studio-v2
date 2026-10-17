@@ -323,3 +323,83 @@ export function applyMotionSketch(
   const times = Object.values(tracks).flat().map((k) => k.time)
   return { composite: next, keys: tracks[anchor.boneId] ?? [], tracks, startTime, endTime: times.length ? Math.max(...times) : startTime }
 }
+
+/**
+ * Tự động tạo xương dọc theo nét vẽ trên nhánh/đường kẻ chưa có xương, gắn uốn mềm (soft mesh)
+ * và tạo chuyển động đung đưa cho đúng hành lang mesh của nhánh đó.
+ */
+export function applyAutoBoneMotionSketch(
+  composite: LayerComposite,
+  samples: SketchSample[],
+  settings: MotionSketchSettings,
+  startTime: number,
+  targetLayerId?: string | null
+): MotionSketchResult & { boneId: string; boneName: string } {
+  const head = samples[0]
+  const endPt = samples[samples.length - 1]
+  const cum = [0]
+  for (let i = 1; i < samples.length; i++) {
+    cum.push(cum[i - 1] + Math.hypot(samples[i].x - samples[i - 1].x, samples[i].y - samples[i - 1].y))
+  }
+  const totalLen = cum[cum.length - 1]
+  let initIdx = samples.findIndex((_, i) => cum[i] >= Math.max(12, totalLen * 0.3))
+  if (initIdx < 1) initIdx = samples.length - 1
+  const initAngle = angleTo(head, samples[initIdx])
+  const chordAngle = angleTo(head, endPt)
+  let maxSweep = 0
+  for (let i = 1; i < samples.length; i++) {
+    if (cum[i] < 10) continue
+    const sweep = Math.abs(normalizeAngle(angleTo(head, samples[i]) - initAngle))
+    if (sweep > maxSweep) maxSweep = sweep
+  }
+
+  const nextIdx = (composite.rig?.bones.length ?? 0) + 1
+  const newBone: LayerBone = {
+    id: `bone-${crypto.randomUUID()}`,
+    name: `Xương nhánh ${nextIdx}`,
+    x: Math.round(head.x),
+    y: Math.round(head.y),
+    length: Math.max(24, Math.round(Math.hypot(endPt.x - head.x, endPt.y - head.y))),
+    angle: Math.round(maxSweep >= 10 ? initAngle : chordAngle)
+  }
+
+  let next = applyRigAction(composite, { action: 'add-bone', bone: newBone })
+  const targetLayer = next.layers.find((l) => l.id === targetLayerId) ?? next.layers[0]
+  if (targetLayer && !targetLayer.locked && (targetLayer.bindingMode !== 'soft' || !targetLayer.boneId)) {
+    next = applyRigAction(next, {
+      action: 'bind',
+      boneId: newBone.id,
+      layerIds: [targetLayer.id],
+      mode: 'soft'
+    })
+  }
+
+  if (maxSweep >= 10) {
+    const rig = ensureRigClips(next.rig ?? emptyRig()).rig
+    const anchor = createSketchAnchor(rig, newBone.id, startTime, samples[initIdx], 1)
+    const res = applyMotionSketch(next, anchor, samples, { ...settings, loopBack: true }, startTime)
+    return { ...res, boneId: newBone.id, boneName: newBone.name }
+  }
+
+  const rig = ensureRigClips(next.rig ?? emptyRig()).rig
+  const dur = Math.max(1.2, Math.min(rig.duration - startTime, Math.max(settings.duration * 2, 2)))
+  const swayAmp = 10
+  const keys: KeyPatch[] = [
+    { time: round(startTime, 4), rotation: 0, easing: 'smooth' },
+    { time: round(startTime + dur * 0.25, 4), rotation: swayAmp, easing: 'smooth' },
+    { time: round(startTime + dur * 0.5, 4), rotation: 0, easing: 'smooth' },
+    { time: round(startTime + dur * 0.75, 4), rotation: -swayAmp, easing: 'smooth' },
+    { time: round(startTime + dur, 4), rotation: 0, easing: 'smooth' }
+  ]
+  const tracks: Record<string, KeyPatch[]> = { [newBone.id]: keys }
+  next = sketchToRigActions(rig, tracks).reduce((c, action) => applyRigAction(c, action), next)
+  return {
+    composite: next,
+    keys,
+    tracks,
+    startTime,
+    endTime: round(startTime + dur, 4),
+    boneId: newBone.id,
+    boneName: newBone.name
+  }
+}

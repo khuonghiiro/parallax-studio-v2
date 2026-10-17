@@ -69,4 +69,75 @@ describe('plantSpine engine', () => {
     const list = [spine(), spine({ id: 's2', enabled: false }), spine({ id: 's3', layerIds: ['grass'] })]
     expect(spinesForLayer(list, 'tree').map((s) => s.id)).toEqual(['s1'])
   })
+
+  it('isolates deformation to only the drawn mesh strip among 3 parallel lines', () => {
+    // 3 dải mesh song song tại x = -60, x = 0, x = +60 (mỗi dải gồm 4 đỉnh / 2 tam giác từ y_local=-50 đến +50)
+    const xs = [-60, 0, 60]
+    const verts: number[] = []
+    const indices: number[] = []
+    for (let s = 0; s < 3; s++) {
+      const cx = xs[s]
+      const base = s * 4
+      verts.push(
+        cx - 4, -50, 0,
+        cx + 4, -50, 0,
+        cx - 4, 50, 0,
+        cx + 4, 50, 0
+      )
+      indices.push(base, base + 1, base + 2, base + 1, base + 3, base + 2)
+    }
+    const pos = new Float32Array(verts)
+    // Chỉ vẽ xương thực vật dọc theo đường kẻ 1 (x = -60, từ y_comp = 50 lên -50)
+    const line1Spine = spine({
+      id: 'line-1',
+      points: [{ x: -60, y: 50 }, { x: -60, y: 0 }, { x: -60, y: -50 }],
+      reach: 0
+    })
+    const out = deformPlantSpines(pos, binding, [line1Spine], 0.25, indices)
+
+    // Ngọn đường kẻ 1 (đỉnh 2 & 3) phải chuyển động rõ rệt
+    expect(Math.abs(out[2 * 3] - pos[2 * 3])).toBeGreaterThan(5)
+    expect(Math.abs(out[3 * 3] - pos[3 * 3])).toBeGreaterThan(5)
+
+    // Đường kẻ 2 (đỉnh 4..7) và đường kẻ 3 (đỉnh 8..11) không đụng tới → hoàn toàn đứng yên 100%
+    for (let v = 4; v < 12; v++) {
+      expect(out[v * 3]).toBeCloseTo(pos[v * 3], 6)
+      expect(out[v * 3 + 1]).toBeCloseTo(pos[v * 3 + 1], 6)
+    }
+  })
+
+  it('isolates deformation to a single branch of a connected multi-branch tree mesh', () => {
+    // Thân cây (0..3) nối chạc vào Nhánh trái (4..7) và Nhánh phải (8..11)
+    const pos = new Float32Array([
+      // Thân dưới: y_local từ -100 đến 0 (y_comp từ 100 lên 0)
+      -5, -100, 0, 5, -100, 0, -5, 0, 0, 5, 0, 0,
+      // Nhánh trái: từ chạc (-5,0)..(0,0) vươn lên (-80, 80) local = (-80, -80) comp
+      -40, 40, 0, -32, 40, 0, -80, 80, 0, -72, 80, 0,
+      // Nhánh phải: từ chạc (0,0)..(5,0) vươn lên (+80, 80) local = (+80, -80) comp
+      32, 40, 0, 40, 40, 0, 72, 80, 0, 80, 80, 0
+    ])
+    const indices = [
+      // Thân
+      0, 1, 2, 1, 3, 2,
+      // Nhánh trái nối từ đỉnh 2, 3 của thân
+      2, 3, 4, 3, 5, 4, 4, 5, 6, 5, 7, 6,
+      // Nhánh phải nối từ đỉnh 2, 3 của thân
+      2, 3, 8, 3, 9, 8, 8, 9, 10, 9, 11, 10
+    ]
+    // Vẽ nét theo hướng Nhánh trái: từ (-4, 0) lên (-76, -80) trong toạ độ composite (Y-down)
+    const leftBranchSpine = spine({
+      id: 'branch-left',
+      points: [{ x: -4, y: 0 }, { x: -36, y: -40 }, { x: -76, y: -80 }],
+      reach: 0
+    })
+    const out = deformPlantSpines(pos, binding, [leftBranchSpine], 0.25, indices)
+
+    // Ngọn nhánh trái (đỉnh 6, 7) đung đưa
+    expect(Math.hypot(out[6 * 3] - pos[6 * 3], out[6 * 3 + 1] - pos[6 * 3 + 1])).toBeGreaterThan(5)
+    // Nhánh phải (đỉnh 8..11) và gốc thân cây (đỉnh 0, 1) không bị kéo theo
+    for (const v of [0, 1, 8, 9, 10, 11]) {
+      expect(out[v * 3]).toBeCloseTo(pos[v * 3], 5)
+      expect(out[v * 3 + 1]).toBeCloseTo(pos[v * 3 + 1], 5)
+    }
+  })
 })

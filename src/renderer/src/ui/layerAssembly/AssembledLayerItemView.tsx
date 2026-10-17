@@ -59,7 +59,7 @@ export function AssembledLayerItemView({
     animTranslateX,
     animTranslateY
   } = computeLayerMotion(layer.motion, time)
-  const usesMeshCanvas = Boolean((layer.bindingMode === 'soft' && layer.boneId) || layer.previewPlantSpines?.length)
+  const usesMeshCanvas = Boolean((layer.bindingMode === 'soft' && (layer.boneId || layer.extraBoneIds?.length)) || layer.previewPlantSpines?.length)
   const anchor = layer.boneId ? 'center' : layer.motion.anchor
 
   const anchorOrigin =

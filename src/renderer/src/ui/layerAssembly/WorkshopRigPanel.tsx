@@ -88,6 +88,10 @@ export function WorkshopRigPanel({
       angle: -90
     }
     run({ action: 'add-bone', bone: next })
+    const unboundTargets = targetIds.filter((id) => !composite.layers.find((l) => l.id === id)?.boneId)
+    if (unboundTargets.length > 0) {
+      run({ action: 'bind', boneId: next.id, layerIds: unboundTargets, mode: 'soft' })
+    }
     selectBone(next.id)
   }
 

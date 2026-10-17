@@ -1,10 +1,12 @@
 import type { BufferGeometry } from 'three'
 import { deformSkin } from '../../engine/layerSkinning'
+import { deformPlantSpines, spinesForLayer } from '../../engine/plantSpine'
 import { createLayerAlphaTrimmedGeometry } from './layerAssemblyAlphaMesh'
 import { drawSkinTriangles } from './SoftLayerImage'
 import type { LayerComposite, AssembledLayerItem } from './types'
 import { resolveLayerImageUrlAsync } from './useLayerAssetImage'
 import { evaluateRig, transformRigLayer, rotatePoint } from '../../engine/layerRig'
+import { extraSoftBoneIdsForLayer } from './workshopRig'
 import { computeLayerMotion } from './layerAssemblyMotion'
 import { computeLayer2DLighting } from './layerAssembly2DLighting'
 
@@ -168,8 +170,19 @@ export async function captureCompositeThumbnail(
       const transforms = evaluateRig(composite.rig, time)
       effectiveLayers = composite.layers.map((l) => {
         const bindPose = { x: l.x, y: l.y, rotation: l.rotation }
-        const transformed = transformRigLayer(l, transforms)
-        return { ...transformed, bindPose }
+        const implicitSingleSoft = !l.boneId && composite.layers.length === 1
+        const effectiveSoft = l.bindingMode === 'soft' || implicitSingleSoft
+        const effectiveBoneId = l.boneId ?? (implicitSingleSoft ? composite.rig!.bones[0]?.id : undefined)
+        const extraBoneIds = effectiveSoft
+          ? extraSoftBoneIdsForLayer(composite.layers, composite.rig, l.id, effectiveBoneId)
+          : undefined
+        const transformed = effectiveSoft ? l : transformRigLayer(l, transforms)
+        return {
+          ...transformed,
+          ...(implicitSingleSoft ? { bindingMode: 'soft' as const, boneId: effectiveBoneId } : {}),
+          ...(extraBoneIds?.length ? { extraBoneIds } : {}),
+          bindPose
+        }
       })
     } catch (err) {
       console.warn('[captureCompositeThumbnail] Failed to evaluate rig:', err)
@@ -208,10 +221,15 @@ export async function captureCompositeThumbnail(
 
   for (const pair of validPairs) {
     const item = prepareLayerItem(pair.layer, pair.img, time)
-    if (pair.layer.bindingMode === 'soft' && pair.layer.boneId && composite.rig) {
+    const hasSkin = pair.layer.bindingMode === 'soft' && Boolean(pair.layer.boneId || pair.layer.extraBoneIds?.length) && Boolean(composite.rig)
+    const spines = spinesForLayer(composite.plantSpines, pair.layer.id)
+    if (hasSkin || spines.length) {
       const width = pair.img.naturalWidth, height = pair.img.naturalHeight
       const geometry = createLayerAlphaTrimmedGeometry(width, height, pair.img)
-      const positions = deformSkin(geometry.userData.basePositions, pair.layer, composite.rig, time)
+      const indices = geometry.getIndex()?.array
+      const rest = geometry.userData.basePositions as Float32Array
+      const skinned = hasSkin ? deformSkin(rest, pair.layer, composite.rig!, time, indices) : rest
+      const positions = spines.length ? deformPlantSpines(skinned, pair.layer, spines, time, indices) : skinned
       item.skin = { geometry, positions, width, height }
     }
     prepared.push(item)

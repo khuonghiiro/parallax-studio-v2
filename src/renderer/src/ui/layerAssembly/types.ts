@@ -14,6 +14,7 @@ export type { AssetTable }
 
 export interface AssembledLayerItem {
   boneId?: string
+  extraBoneIds?: string[]
   bindingMode?: 'rigid' | 'soft'
   /** Transient preview rig, never persisted by workshop actions. */
   previewRig?: import('@shared/layerRig').LayerRig

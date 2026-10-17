@@ -136,10 +136,11 @@ export function SoftLayerImage({ url, layer, time, showMesh, filter }: Props) {
     const canvas = ref.current, ctx = canvas?.getContext('2d')
     if (!canvas || !ctx || !data) return
     const rest = data.geometry.userData.basePositions as Float32Array
-    const skinned = layer.previewRig && layer.bindingMode === 'soft' && layer.boneId
-      ? deformSkin(rest, layer, layer.previewRig, time) : rest
+    const indices = data.geometry.getIndex()?.array
+    const skinned = layer.previewRig && layer.bindingMode === 'soft' && (layer.boneId || layer.extraBoneIds?.length)
+      ? deformSkin(rest, layer, layer.previewRig, time, indices) : rest
     const positions = layer.previewPlantSpines?.length
-      ? deformPlantSpines(skinned, layer, layer.previewPlantSpines, time) : skinned
+      ? deformPlantSpines(skinned, layer, layer.previewPlantSpines, time, indices) : skinned
     let minX = -data.width / 2, minY = -data.height / 2, maxX = data.width / 2, maxY = data.height / 2
     for (let i = 0; i < positions.length; i += 3) {
       minX = Math.min(minX, positions[i]); maxX = Math.max(maxX, positions[i])
@@ -163,7 +164,7 @@ export function SoftLayerImage({ url, layer, time, showMesh, filter }: Props) {
     ctx.setTransform(ratio, 0, 0, ratio, -alloc.minX * ratio, -alloc.minY * ratio)
     if (!drawnByGL) drawSkinTriangles(ctx, data.image, data.geometry, positions)
     if (showMesh) strokeMeshWireframe(ctx, data.geometry, positions, '#00e5ff')
-  }, [data, layer.x, layer.y, layer.rotation, layer.scale, layer.scaleX, layer.scaleY, layer.bindingMode, layer.boneId, layer.previewRig, layer.previewPlantSpines, time, showMesh])
+  }, [data, layer.x, layer.y, layer.rotation, layer.scale, layer.scaleX, layer.scaleY, layer.bindingMode, layer.boneId, layer.extraBoneIds, layer.previewRig, layer.previewPlantSpines, time, showMesh])
 
   if (loadFailed || !data) {
     return (

@@ -12,7 +12,7 @@ import { WorkshopInterpolation } from './WorkshopInterpolation'
 import { WorkshopMotionSketchCard } from './WorkshopMotionSketchCard'
 import { WorkshopAnimAssistCard, WorkshopSecondaryMotionCard } from './WorkshopAnimAssistCards'
 import { setAnimAssist, useAnimAssist } from './animAssistStore'
-import { useMotionSketch } from './motionSketchStore'
+import { toggleMotionSketchArmed, useMotionSketch } from './motionSketchStore'
 import type { LayerComposite } from './types'
 
 type Props = RigPanelProps & {
@@ -126,7 +126,10 @@ export function WorkshopAnimationPanel({
           role="tab"
           aria-selected={subTab === 'pose'}
           className={`lw-anim-subtab${subTab === 'pose' ? ' active' : ''}`}
-          onClick={() => setSubTab('pose')}
+          onClick={() => {
+            setSubTab('pose')
+            if (sketch.armed) toggleMotionSketchArmed(false)
+          }}
           title="Chỉnh tư thế xương, ghi keyframe và nội suy chuyển động"
         >
           🎯 Tạo dáng
@@ -136,7 +139,10 @@ export function WorkshopAnimationPanel({
           role="tab"
           aria-selected={subTab === 'sketch'}
           className={`lw-anim-subtab${subTab === 'sketch' ? ' active' : ''}`}
-          onClick={() => setSubTab('sketch')}
+          onClick={() => {
+            setSubTab('sketch')
+            if (!sketch.armed) toggleMotionSketchArmed(true)
+          }}
           title="Bật bút vẽ động tác trực tiếp bằng chuột (Phím D)"
         >
           ✏️ Vẽ động tác{sketch.armed ? ' ●' : ''}
@@ -146,7 +152,10 @@ export function WorkshopAnimationPanel({
           role="tab"
           aria-selected={subTab === 'physics'}
           className={`lw-anim-subtab${subTab === 'physics' ? ' active' : ''}`}
-          onClick={() => setSubTab('physics')}
+          onClick={() => {
+            setSubTab('physics')
+            if (sketch.armed) toggleMotionSketchArmed(false)
+          }}
           title="Nướng chuyển động vật lý thứ cấp (tóc, tà áo, đuôi) và cấu hình IK / Onion Skin"
         >
           🌊 Vật lý & IK

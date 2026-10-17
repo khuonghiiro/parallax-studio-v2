@@ -3,6 +3,7 @@ import type { BoneOverlayProps } from './WorkshopBoneOverlay'
 import { applyRigAction } from './workshopRig'
 import {
   SKETCH_MAX_DURATION,
+  applyAutoBoneMotionSketch,
   applyMotionSketch,
   boneSegments,
   createSketchAnchor,
@@ -26,7 +27,7 @@ export interface MotionSketchOverlayProps extends BoneOverlayProps {
 }
 
 interface SketchDrag {
-  anchor: SketchAnchor
+  anchor?: SketchAnchor
   mode: MotionSketchMode
   live: boolean
   startTime: number
@@ -63,14 +64,14 @@ function useSketchKeys(onCancelDrag: () => boolean) {
   }, [onCancelDrag])
 }
 
-function liveLabel(drag: SketchDrag, p: Point2D, values: number[]): string {
-  if (drag.anchor.ik) return `${drag.anchor.boneName} · IK ${drag.anchor.ik.chain.boneIds.length} xương`
-  if (drag.mode === 'move') return `${drag.anchor.boneName} · ${(p.x - drag.anchor.start.x).toFixed(0)}, ${(p.y - drag.anchor.start.y).toFixed(0)} px`
-  const delta = values[0] - drag.anchor.base.rotation
-  return `${drag.anchor.boneName} · ${delta > 0 ? '+' : ''}${delta.toFixed(0)}°`
+function liveLabel(anchor: SketchAnchor, mode: MotionSketchMode, p: Point2D, values: number[]): string {
+  if (anchor.ik) return `${anchor.boneName} · IK ${anchor.ik.chain.boneIds.length} xương`
+  if (mode === 'move') return `${anchor.boneName} · ${(p.x - anchor.start.x).toFixed(0)}, ${(p.y - anchor.start.y).toFixed(0)} px`
+  const delta = values[0] - anchor.base.rotation
+  return `${anchor.boneName} · ${delta > 0 ? '+' : ''}${delta.toFixed(0)}°`
 }
 
-/** Lớp vẽ động tác trên Bố cục 2D (tab Animation): nhấn gần xương rồi vẽ đường đi của ngọn xương. */
+/** Lớp vẽ động tác trên Bố cục 2D (tab Animation): nhấn gần xương hoặc vẽ dọc theo nhánh mesh để tạo chuyển động. */
 export function MotionSketchOverlay(props: MotionSketchOverlayProps) {
   const { composite, time } = props
   const sketch = useMotionSketch()
@@ -115,28 +116,28 @@ export function MotionSketchOverlay(props: MotionSketchOverlayProps) {
     e.stopPropagation()
     const p = toLocal(e)
     if (!p) return
-    if (!rig?.bones.length) {
-      setMotionSketchState({ status: 'Chưa có khung xương — sang tab "Tạo xương" để dựng xương trước' })
-      return
-    }
-    const boneId = pickSketchBone(rig, p, time)?.bone.id ?? props.boneId
-    if (!boneId || !rig.bones.some((b) => b.id === boneId)) {
-      setMotionSketchState({ status: 'Hãy nhấn gần một xương (hoặc chọn xương trước) rồi vẽ' })
-      return
-    }
+    const pickedBoneId = rig?.bones.length ? pickSketchBone(rig, p, time)?.bone.id : undefined
     const { settings } = getMotionSketchState()
     const mode: MotionSketchMode = e.shiftKey ? (settings.mode === 'rotate' ? 'move' : 'rotate') : settings.mode
-    const startTime = Math.min(rig.duration, Math.max(0, time))
+    const clipDuration = rig?.duration ?? 4
+    const startTime = Math.min(clipDuration, Math.max(0, time))
     // Ctrl khi bắt đầu: chỉ xoay riêng xương được chọn (bỏ IK) cho lần vẽ này
     const chain = e.ctrlKey || e.metaKey || mode === 'move' ? 1 : settings.chain
-    const anchor = createSketchAnchor(rig, boneId, startTime, p, chain)
-    const ghost = segmentOf(boneId)
+    const anchor = pickedBoneId && rig ? createSketchAnchor(rig, pickedBoneId, startTime, p, chain) : undefined
+    const ghost = pickedBoneId ? segmentOf(pickedBoneId) : null
     props.stopPlayback?.()
-    props.selectBone(boneId)
+    if (pickedBoneId) props.selectBone(pickedBoneId)
     props.beginGesture?.()
     dragRef.current = {
-      anchor, mode, startTime, live: settings.timing === 'live' && !!props.seek, clipDuration: rig.duration,
-      t0: performance.now(), samples: [{ ...p, t: 0 }], ghost: ghost ?? { head: anchor.pivot, tail: p }, solve: {}
+      anchor,
+      mode,
+      startTime,
+      live: Boolean(anchor && settings.timing === 'live' && props.seek),
+      clipDuration,
+      t0: performance.now(),
+      samples: [{ ...p, t: 0 }],
+      ghost: ghost ?? { head: anchor?.pivot ?? p, tail: p },
+      solve: {}
     }
     setStroke([p])
     setHover(null)
@@ -158,13 +159,18 @@ export function MotionSketchOverlay(props: MotionSketchOverlayProps) {
     const elapsed = Math.min(SKETCH_MAX_DURATION, (performance.now() - drag.t0) / 1000)
     drag.samples.push({ x: p.x, y: p.y, t: elapsed })
     setStroke(drag.samples.map(({ x, y }) => ({ x, y })))
+    if (!drag.anchor) {
+      drag.ghost = { head: drag.samples[0], tail: p }
+      const dist = Math.hypot(p.x - drag.samples[0].x, p.y - drag.samples[0].y)
+      setLabel({ x: p.x, y: p.y, text: `Vẽ xương nhánh · ${dist.toFixed(0)} px` })
+      return
+    }
     const { columns, values } = sketchValuesAt(drag.anchor, p, drag.mode, drag.solve)
     // Xem trước trực tiếp (huỷ lại khi thả để ghi cả chuỗi keyframe trong một bước hoàn tác).
-    // Nhịp live: đầu phát chạy theo thời gian thật nên các xương khác cũng chuyển động cùng lúc.
     const previewTime = drag.live ? Math.min(drag.clipDuration, drag.startTime + elapsed) : drag.startTime
     if (drag.live) props.seek?.(previewTime)
     props.setComposite((c) => applyRigAction(c, { action: 'batch', operations: sketchPreviewOps(columns, values, previewTime) }))
-    setLabel({ x: p.x, y: p.y, text: `${liveLabel(drag, p, values)}${drag.live ? ` · ● ${elapsed.toFixed(1)}s` : ''}` })
+    setLabel({ x: p.x, y: p.y, text: `${liveLabel(drag.anchor, drag.mode, p, values)}${drag.live ? ` · ● ${elapsed.toFixed(1)}s` : ''}` })
   }
   advanceRef.current = advance
 
@@ -196,29 +202,37 @@ export function MotionSketchOverlay(props: MotionSketchOverlayProps) {
       return
     }
     const { settings } = getMotionSketchState()
-    let summary: { keyCount: number; endTime: number; bones: number } | null = null
+    let summary: { boneId: string; boneName: string; keyCount: number; endTime: number; bones: number } | null = null
     try {
       props.setComposite((c) => {
+        if (!drag.anchor) {
+          const result = applyAutoBoneMotionSketch(c, drag.samples, settings, drag.startTime)
+          const keyCount = Object.values(result.tracks).reduce((n, k) => n + k.length, 0)
+          summary = { boneId: result.boneId, boneName: result.boneName, keyCount, endTime: result.endTime, bones: 1 }
+          return result.composite
+        }
         const result = applyMotionSketch(c, drag.anchor, drag.samples, { ...settings, mode: drag.mode, timing: drag.live ? 'live' : settings.timing === 'live' ? 'hand' : settings.timing }, drag.startTime)
         const keyCount = Object.values(result.tracks).reduce((n, k) => n + k.length, 0)
-        summary = { keyCount, endTime: result.endTime, bones: Object.keys(result.tracks).length }
+        summary = { boneId: drag.anchor.boneId, boneName: drag.anchor.boneName, keyCount, endTime: result.endTime, bones: Object.keys(result.tracks).length }
         return result.composite
       })
     } catch (err) {
       setMotionSketchState({ status: `Lỗi: ${err instanceof Error ? err.message : String(err)}` })
       return
     }
-    const done = summary as { keyCount: number; endTime: number; bones: number } | null
+    const done = summary as { boneId: string; boneName: string; keyCount: number; endTime: number; bones: number } | null
     if (!done) return
+    props.selectBone(done.boneId)
     setMotionSketchState({
-      last: { boneId: drag.anchor.boneId, boneName: drag.anchor.boneName, keyCount: done.keyCount, startTime: drag.startTime, endTime: done.endTime, stroke: drag.samples.map(({ x, y }) => ({ x, y })) },
-      status: `✓ ${drag.anchor.boneName}${done.bones > 1 ? ` (+${done.bones - 1} xương IK)` : ''}: ${done.keyCount} keyframe · ${drag.startTime.toFixed(2)}s → ${done.endTime.toFixed(2)}s · Ctrl+Z để vẽ lại`
+      last: { boneId: done.boneId, boneName: done.boneName, keyCount: done.keyCount, startTime: drag.startTime, endTime: done.endTime, stroke: drag.samples.map(({ x, y }) => ({ x, y })) },
+      status: `✓ ${done.boneName}${done.bones > 1 ? ` (+${done.bones - 1} xương IK)` : ''}: ${done.keyCount} keyframe · ${drag.startTime.toFixed(2)}s → ${done.endTime.toFixed(2)}s · Ctrl+Z để vẽ lại`
     })
     if (settings.autoPlay) props.playFrom?.(drag.startTime)
   }
 
   const drag = dragRef.current
   const last = !drag ? sketch.last : null
+  const pivotPt = drag ? (drag.anchor?.ik?.chain.points[0] ?? drag.anchor?.pivot ?? drag.ghost.head) : null
   return (
     <svg
       ref={svgRef}
@@ -244,10 +258,10 @@ export function MotionSketchOverlay(props: MotionSketchOverlayProps) {
           <text x={(hover.head.x + hover.tail.x) / 2 + 10} y={(hover.head.y + hover.tail.y) / 2} className="lw-sketch-label">{hover.name}</text>
         </g>
       )}
-      {drag && (
+      {drag && pivotPt && (
         <g pointerEvents="none">
           <line x1={drag.ghost.head.x} y1={drag.ghost.head.y} x2={drag.ghost.tail.x} y2={drag.ghost.tail.y} className="lw-sketch-ghost" />
-          <circle cx={(drag.anchor.ik?.chain.points[0] ?? drag.anchor.pivot).x} cy={(drag.anchor.ik?.chain.points[0] ?? drag.anchor.pivot).y} r={6} className="lw-sketch-pivot" />
+          <circle cx={pivotPt.x} cy={pivotPt.y} r={6} className="lw-sketch-pivot" />
         </g>
       )}
       {stroke && stroke.length > 1 && <path d={toPath(stroke)} className="lw-sketch-path" markerEnd="url(#lw-sketch-arrow)" />}

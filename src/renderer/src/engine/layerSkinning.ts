@@ -1,8 +1,11 @@
 import type { LayerRig } from '@shared/layerRig'
 import { evaluateRig, rotatePoint } from './layerRig'
+import { computeMeshCorridor } from './meshCorridor'
 
 export interface SkinBinding {
   boneId?: string
+  /** Các xương phụ cùng gắn uốn mềm trên một layer (nhiều nhánh cây / nhiều đường kẻ độc lập). */
+  extraBoneIds?: string[]
   x: number
   y: number
   rotation: number
@@ -14,34 +17,114 @@ export interface SkinBinding {
 export interface SkinInfluence { id: string; weight: number }
 const weightCache = new WeakMap<Float32Array, { key: string; weights: SkinInfluence[][] }>()
 
-function cachedWeights(positions: Float32Array, binding: SkinBinding, bones: LayerRig['bones']) {
+function buildCorridorWeights(
+  world: Float32Array,
+  bones: LayerRig['bones'],
+  indices: ArrayLike<number>
+): SkinInfluence[][] | null {
+  const vCount = world.length >> 1
+  const boneMeta = bones.map((b) => {
+    const end = rotatePoint(b.length, 0, b.angle)
+    const head = { x: b.x, y: b.y }
+    const tail = { x: b.x + end.x, y: b.y + end.y }
+    const corridor = computeMeshCorridor(world, indices, [head, tail])
+    return { b, end, corridor }
+  })
+  if (boneMeta.every((m) => m.corridor === null)) return null
+
+  const out: SkinInfluence[][] = new Array(vCount)
+  for (let i = 0; i < vCount; i++) {
+    const x = world[i * 2]
+    const y = world[i * 2 + 1]
+    const active: Array<{ id: string; raw: number; cw: number }> = []
+    for (const { b, end, corridor } of boneMeta) {
+      if (!corridor) continue
+      let cw = corridor.weights[i]
+      if (cw <= 1e-4) continue
+      const len2 = b.length * b.length || 1
+      const rawT = ((x - b.x) * end.x + (y - b.y) * end.y) / len2
+      // Nếu là xương gốc độc lập trên nhánh, giảm dần trọng số phía sau khớp gốc để thân cây đứng yên
+      if (!b.parentId && rawT < 0) {
+        const behindDist = -rawT * b.length
+        const fade = Math.max(0, 1 - behindDist / Math.max(8, corridor.avgCoreEdge * 0.65))
+        cw *= fade * fade * (3 - 2 * fade)
+        if (cw <= 1e-4) continue
+      }
+      const t = Math.max(0, Math.min(1, rawT))
+      const distance = Math.hypot(x - b.x - t * end.x, y - b.y - t * end.y)
+      const radius = Math.max(1, b.length * 0.15)
+      const affinity = 1 / (distance * distance + radius * radius) ** 2
+      active.push({ id: b.id, raw: cw * affinity, cw })
+    }
+    if (!active.length) {
+      out[i] = []
+      continue
+    }
+    active.sort((a, b) => b.raw - a.raw)
+    const top = active.slice(0, 4)
+    const rawSum = top.reduce((s, w) => s + w.raw, 0) || 1
+    const envelope = Math.min(1, top.reduce((s, w) => s + w.cw, 0))
+    out[i] = top.map((w) => ({ id: w.id, weight: (w.raw / rawSum) * envelope }))
+  }
+  return out
+}
+
+function cachedWeights(
+  positions: Float32Array,
+  binding: SkinBinding,
+  bones: LayerRig['bones'],
+  indices?: ArrayLike<number>
+): SkinInfluence[][] {
   const scale = binding.scale ?? 1
   const rot = binding.bindPose?.rotation ?? binding.rotation ?? 0
   const bx = binding.bindPose?.x ?? binding.x ?? 0
   const by = binding.bindPose?.y ?? binding.y ?? 0
-  const key = JSON.stringify([bx, by, rot, scale,
-    binding.scaleX ?? 1, binding.scaleY ?? 1, bones])
+  const vCount = positions.length / 3
+  const useCorridor = Boolean(indices && indices.length >= 3 && vCount > 3)
+  const key = JSON.stringify([
+    bx, by, rot, scale,
+    binding.scaleX ?? 1, binding.scaleY ?? 1,
+    useCorridor ? indices!.length : 0,
+    bones
+  ])
   const cached = weightCache.get(positions)
   if (cached?.key === key) return cached.weights
-  const weights: SkinInfluence[][] = []
-  for (let i = 0; i < positions.length; i += 3) {
-    const p = rotatePoint(positions[i] * scale * (binding.scaleX ?? 1),
-      -positions[i + 1] * scale * (binding.scaleY ?? 1), rot)
-    weights.push(skinWeights(p.x + bx, p.y + by, bones))
+
+  const sx = scale * (binding.scaleX ?? 1)
+  const sy = scale * (binding.scaleY ?? 1)
+  const world = new Float32Array(vCount * 2)
+  for (let i = 0; i < vCount; i++) {
+    const p = rotatePoint(positions[i * 3] * sx, -positions[i * 3 + 1] * sy, rot)
+    world[i * 2] = p.x + bx
+    world[i * 2 + 1] = p.y + by
+  }
+
+  let weights: SkinInfluence[][] | null = null
+  if (useCorridor) {
+    weights = buildCorridorWeights(world, bones, indices!)
+  }
+  if (!weights) {
+    weights = []
+    for (let i = 0; i < vCount; i++) {
+      weights.push(skinWeights(world[i * 2], world[i * 2 + 1], bones))
+    }
   }
   weightCache.set(positions, { key, weights })
   return weights
 }
 
-/** Only the selected branch and immediate parent influence a layer (e.g. elbow joint bends seamlessly). */
-export function skinBones(rig: LayerRig, root?: string) {
-  if (!root) return rig.bones
-  const ids = new Set([root])
-  const current = rig.bones.find((b) => b.id === root)
+/** Lấy nhánh xương được gắn cho layer (hỗ trợ cả xương chính lẫn danh sách xương phụ độc lập trên cùng layer). */
+export function skinBones(rig: LayerRig, root?: string, extraRoots?: string[]) {
+  if (!root && (!extraRoots || !extraRoots.length)) return rig.bones
+  const seeds = [root, ...(extraRoots ?? [])].filter((id): id is string => Boolean(id))
+  const ids = new Set(seeds)
   for (let i = 0; i < rig.bones.length; i++) {
     for (const b of rig.bones) if (b.parentId && ids.has(b.parentId)) ids.add(b.id)
   }
-  if (current?.parentId) ids.add(current.parentId)
+  for (const seed of seeds) {
+    const current = rig.bones.find((b) => b.id === seed)
+    if (current?.parentId) ids.add(current.parentId)
+  }
   return rig.bones.filter((b) => ids.has(b.id))
 }
 
@@ -58,12 +141,18 @@ export function skinWeights(x: number, y: number, bones: LayerRig['bones']): Ski
 }
 
 /** Returns local Y-up mesh positions; bind coordinates and bone transforms are Y-down. */
-export function deformSkin(positions: Float32Array, binding: SkinBinding, rig: LayerRig, time: number): Float32Array {
+export function deformSkin(
+  positions: Float32Array,
+  binding: SkinBinding,
+  rig: LayerRig,
+  time: number,
+  indices?: ArrayLike<number>
+): Float32Array {
   const output = positions.slice()
-  const bones = skinBones(rig, binding.boneId)
+  const bones = skinBones(rig, binding.boneId, binding.extraBoneIds)
   if (!bones.length) return output
   const transforms = evaluateRig(rig, time)
-  const weights = cachedWeights(positions, binding, bones)
+  const weights = cachedWeights(positions, binding, bones, indices)
   const boneById = new Map(bones.map((b) => [b.id, b]))
   const scale = binding.scale ?? 1
   const restRot = binding.bindPose?.rotation ?? binding.rotation ?? 0
@@ -77,10 +166,12 @@ export function deformSkin(positions: Float32Array, binding: SkinBinding, rig: L
   if (Math.abs(sx * sy) < 1e-10) return output
 
   for (let i = 0; i < positions.length; i += 3) {
+    const influences = weights[i / 3]
+    if (!influences || !influences.length) continue
     const p = rotatePoint(positions[i] * sx, -positions[i + 1] * sy, restRot)
     const wx = p.x + restBx, wy = p.y + restBy
-    let x = 0, y = 0
-    for (const influence of weights[i / 3]) {
+    let x = 0, y = 0, totalW = 0
+    for (const influence of influences) {
       const transform = transforms.get(influence.id)
       const bone = boneById.get(influence.id)
       if (!transform || !bone) continue
@@ -88,6 +179,12 @@ export function deformSkin(positions: Float32Array, binding: SkinBinding, rig: L
         (wy - bone.y) * (transform.scaleY ?? 1), transform.rotation)
       x += (transform.x + delta.x) * influence.weight
       y += (transform.y + delta.y) * influence.weight
+      totalW += influence.weight
+    }
+    if (totalW <= 1e-6) continue
+    if (totalW < 1) {
+      x += wx * (1 - totalW)
+      y += wy * (1 - totalW)
     }
     const local = rotatePoint(x - curBx, y - curBy, -curRot)
     output[i] = local.x / sx

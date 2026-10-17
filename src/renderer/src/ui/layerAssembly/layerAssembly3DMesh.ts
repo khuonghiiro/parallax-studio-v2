@@ -448,13 +448,14 @@ export function updateLayer3DInstance(
   const geometry = mesh.geometry
   const rest = geometry.userData.basePositions as Float32Array | undefined
   if (rest) {
-    const hasSkin = Boolean(layer.previewRig && layer.bindingMode === 'soft')
+    const hasSkin = Boolean(layer.previewRig && layer.bindingMode === 'soft' && (layer.boneId || layer.extraBoneIds?.length))
     const hasSpines = Boolean(layer.previewPlantSpines?.length)
     if (hasSkin || hasSpines || geometry.userData.wasDeformed) {
+      const indices = geometry.getIndex()?.array
       const skinned = hasSkin
-        ? deformSkin(rest, layer, layer.previewRig!, time) : rest
+        ? deformSkin(rest, layer, layer.previewRig!, time, indices) : rest
       const positions = hasSpines
-        ? deformPlantSpines(skinned, layer, layer.previewPlantSpines!, time) : skinned
+        ? deformPlantSpines(skinned, layer, layer.previewPlantSpines!, time, indices) : skinned
       const attribute = geometry.getAttribute('position') as THREE.BufferAttribute
       attribute.copyArray(positions)
       attribute.needsUpdate = true

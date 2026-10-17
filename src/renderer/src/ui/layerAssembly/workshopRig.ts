@@ -69,6 +69,28 @@ export function ensureRigClips(rig: LayerRig): { rig: LayerRig; activeClip: Anim
   return { rig: nextRig, activeClip }
 }
 
+/** Lấy danh sách các xương độc lập khác trên cùng layer uốn mềm (không bị gắn vào layer khác). */
+export function extraSoftBoneIdsForLayer(
+  layers: LayerComposite['layers'],
+  rig: LayerRig | undefined,
+  layerId: string,
+  primaryBoneId?: string
+): string[] {
+  if (!rig?.bones.length) return []
+  const otherBound = new Set<string>()
+  for (const other of layers) {
+    if (other.id === layerId || !other.boneId) continue
+    let cur: string | undefined = other.boneId
+    while (cur && !otherBound.has(cur)) {
+      otherBound.add(cur)
+      cur = rig.bones.find((b) => b.id === cur)?.parentId
+    }
+  }
+  return rig.bones
+    .filter((b) => b.id !== primaryBoneId && !otherBound.has(b.id))
+    .map((b) => b.id)
+}
+
 export type RigAction = AnimationAction | AnimationBatch
   | { action: 'add-bone'; bone: LayerBone }
   | { action: 'update-bone'; boneId: string; patch: Partial<Omit<LayerBone, 'id'>> }

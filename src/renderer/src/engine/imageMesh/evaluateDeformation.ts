@@ -84,9 +84,9 @@ export function evaluateMeshGeometry(
     positions: new Float32Array(def.skin.positions), uvs: new Float32Array(def.skin.uvs),
     indices: new Uint32Array(def.skin.indices), vertexCount: def.skin.positions.length / 3
   } : buildBaseGridMesh(surface, silhouettePolygon)
-  const skinned = def.skin ? deformSkin(base.positions, def.skin.binding, def.skin.rig, time) : base.positions.slice() // Clone for modifier mutations
+  const skinned = def.skin ? deformSkin(base.positions, def.skin.binding, def.skin.rig, time, base.indices) : base.positions.slice() // Clone for modifier mutations
   const pos = def.skin?.plantSpines?.length
-    ? deformPlantSpines(skinned, def.skin.binding, def.skin.plantSpines, time) : skinned
+    ? deformPlantSpines(skinned, def.skin.binding, def.skin.plantSpines, time, base.indices) : skinned
   const uvs = base.uvs
   const count = base.vertexCount
 

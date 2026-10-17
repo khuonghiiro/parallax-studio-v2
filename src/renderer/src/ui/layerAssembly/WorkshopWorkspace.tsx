@@ -7,7 +7,7 @@ import { LayerAssembly3DViewport } from './LayerAssembly3DViewport'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
 import { IconCube, IconImage } from '../icons'
 import { evaluateRig, transformRigLayer } from '../../engine/layerRig'
-import { ensureRigClips } from './workshopRig'
+import { ensureRigClips, extraSoftBoneIdsForLayer } from './workshopRig'
 import type { WorkshopTab } from './WorkshopRightPanel'
 import { loadLayerWorkshopViewPrefs, saveLayerWorkshopViewPrefs } from './layerAssemblyViewPrefs'
 import type { BrushPreview } from './useLayerBrushEraser'
@@ -99,10 +99,18 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
     rig: rig ?? state.composite.rig,
     layers: state.composite.layers.map((l) => {
       const bindPose = { x: l.x, y: l.y, rotation: l.rotation }
-      const transformed = transforms ? transformRigLayer(l, transforms) : l
+      const implicitSingleSoft = !l.boneId && state.composite.layers.length === 1 && Boolean(rig?.bones.length)
+      const effectiveSoft = l.bindingMode === 'soft' || implicitSingleSoft
+      const effectiveBoneId = l.boneId ?? (implicitSingleSoft ? rig!.bones[0]?.id : undefined)
+      const extraBoneIds = effectiveSoft && rig
+        ? extraSoftBoneIdsForLayer(state.composite.layers, rig, l.id, effectiveBoneId)
+        : undefined
+      const transformed = transforms && !effectiveSoft ? transformRigLayer(l, transforms) : l
       const layerSpines = !isErasing && !l.hidden ? spinesForLayer(shiftedSpines, l.id) : undefined
       return {
         ...transformed,
+        ...(implicitSingleSoft ? { bindingMode: 'soft' as const, boneId: effectiveBoneId } : {}),
+        ...(extraBoneIds?.length ? { extraBoneIds } : {}),
         ...(brushPreview?.id === l.id ? { imageUrl: brushPreview.imageUrl } : {}),
         ...(rig && !isErasing ? { previewRig: rig, bindPose } : {}),
         ...(layerSpines?.length ? { previewPlantSpines: layerSpines } : {}),

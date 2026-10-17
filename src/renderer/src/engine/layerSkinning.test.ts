@@ -84,4 +84,43 @@ describe('2D mesh skinning', () => {
     expect(Math.abs(deformed[0])).toBeLessThan(25)
     expect(Math.abs(deformed[6])).toBeGreaterThan(10)
   })
+
+  it('deforms only the targeted mesh line among 3 parallel lines when triangle indices are provided', () => {
+    const xs = [-60, 0, 60]
+    const verts: number[] = []
+    const indices: number[] = []
+    for (let s = 0; s < 3; s++) {
+      const cx = xs[s]
+      const base = s * 4
+      verts.push(
+        cx - 4, -50, 0,
+        cx + 4, -50, 0,
+        cx - 4, 50, 0,
+        cx + 4, 50, 0
+      )
+      indices.push(base, base + 1, base + 2, base + 1, base + 3, base + 2)
+    }
+    const pos = new Float32Array(verts)
+    // Xương chỉ đặt trên đường kẻ 1 (x = -60, từ y_comp = 50 hướng lên -90° dài 100px)
+    const lineRig: LayerRig = {
+      duration: 1,
+      loop: false,
+      bones: [{ id: 'b-line1', name: 'Line 1', x: -60, y: 50, length: 100, angle: -90 }],
+      tracks: { 'b-line1': [{ time: 0.5, x: 0, y: 0, rotation: 25, easing: 'linear' }] }
+    }
+    const out = deformSkin(
+      pos,
+      { boneId: 'b-line1', x: 0, y: 0, rotation: 0, scale: 1 },
+      lineRig,
+      0.5,
+      indices
+    )
+    // Ngọn đường kẻ 1 (đỉnh 2, 3) xoay theo xương
+    expect(Math.abs(out[2 * 3] - pos[2 * 3])).toBeGreaterThan(10)
+    // Đường kẻ 2 (đỉnh 4..7) và đường kẻ 3 (đỉnh 8..11) không hề bị ảnh hưởng
+    for (let v = 4; v < 12; v++) {
+      expect(out[v * 3]).toBeCloseTo(pos[v * 3], 5)
+      expect(out[v * 3 + 1]).toBeCloseTo(pos[v * 3 + 1], 5)
+    }
+  })
 })

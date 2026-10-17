@@ -4,6 +4,7 @@ import type { LayerComposite } from './types'
 import { sampleBonePose } from '../../engine/layerRig'
 import {
   DEFAULT_SKETCH_SETTINGS,
+  applyAutoBoneMotionSketch,
   applyMotionSketch,
   buildSketchKeyframes,
   createSketchAnchor,
@@ -108,5 +109,38 @@ describe('workshopMotionSketch', () => {
     expect(keys[0]).toMatchObject({ x: 0, y: 0 })
     expect(keys[keys.length - 1]).toMatchObject({ x: 40, y: 20 })
     expect(keys.every((k) => k.rotation === undefined)).toBe(true)
+  })
+
+  it('tự động tạo xương nhánh và gắn uốn mềm khi vẽ trực tiếp lên nhánh chưa có xương', () => {
+    const emptyComp: LayerComposite = {
+      id: 'tree-comp',
+      name: 'Cây nhiều nhánh',
+      category: 'nature',
+      width: 600,
+      height: 600,
+      layers: [
+        {
+          id: 'layer-tree',
+          name: 'tree_trunk_branches',
+          x: 0,
+          y: 0,
+          z: 0,
+          scale: 1,
+          rotation: 0,
+          opacity: 1,
+          motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+        }
+      ]
+    }
+    const branchSamples: SketchSample[] = [
+      { x: 10, y: -20, t: 0 },
+      { x: 50, y: -60, t: 0.2 },
+      { x: 90, y: -100, t: 0.4 }
+    ]
+    const res = applyAutoBoneMotionSketch(emptyComp, branchSamples, settings(), 0, 'layer-tree')
+    expect(res.composite.rig?.bones).toHaveLength(1)
+    expect(res.composite.layers[0].bindingMode).toBe('soft')
+    expect(res.composite.layers[0].boneId).toBe(res.boneId)
+    expect(res.keys.length).toBeGreaterThanOrEqual(3)
   })
 })
