@@ -1,5 +1,170 @@
-import { useState, useEffect, useCallback, type RefObject } from 'react'
-import { computeCursorAnchoredZoom } from './cutterHelpers'
+import { useState, useEffect, useCallback, useRef, type RefObject } from 'react'
+import {
+  computeCursorAnchoredZoom,
+  computeSpacePanOffset,
+  isEditableElementForSpacePan
+} from './cutterHelpers'
+
+export interface UseViewportSpacePanOptions {
+  viewportRef: RefObject<HTMLElement | null>
+  panOffset: { x: number; y: number }
+  setPanOffset: React.Dispatch<React.SetStateAction<{ x: number; y: number }>>
+}
+
+export function useViewportSpacePan({
+  viewportRef,
+  panOffset,
+  setPanOffset
+}: UseViewportSpacePanOptions) {
+  const [isSpacePressed, setIsSpacePressed] = useState(false)
+  const [isSpacePanning, setIsSpacePanning] = useState(false)
+
+  const isSpacePressedRef = useRef(false)
+  const isSpacePanningRef = useRef(false)
+  const panOffsetRef = useRef(panOffset)
+  panOffsetRef.current = panOffset
+
+  const panSessionRef = useRef<{
+    startX: number
+    startY: number
+    origPanX: number
+    origPanY: number
+    pointerId: number
+  } | null>(null)
+
+  const stopSpacePanSession = useCallback(() => {
+    if (isSpacePanningRef.current) {
+      isSpacePanningRef.current = false
+      setIsSpacePanning(false)
+    }
+    const session = panSessionRef.current
+    if (session && viewportRef.current) {
+      try {
+        viewportRef.current.releasePointerCapture(session.pointerId)
+      } catch {}
+    }
+    panSessionRef.current = null
+  }, [viewportRef])
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space') return
+      if (isEditableElementForSpacePan(e.target)) return
+      e.preventDefault()
+      if (!isSpacePressedRef.current) {
+        isSpacePressedRef.current = true
+        setIsSpacePressed(true)
+      }
+    }
+
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code !== 'Space') return
+      if (!isEditableElementForSpacePan(e.target)) {
+        e.preventDefault()
+      }
+      if (isSpacePressedRef.current) {
+        isSpacePressedRef.current = false
+        setIsSpacePressed(false)
+      }
+      stopSpacePanSession()
+    }
+
+    const onWindowBlur = () => {
+      if (isSpacePressedRef.current) {
+        isSpacePressedRef.current = false
+        setIsSpacePressed(false)
+      }
+      stopSpacePanSession()
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('blur', onWindowBlur)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('blur', onWindowBlur)
+    }
+  }, [stopSpacePanSession])
+
+  useEffect(() => {
+    const el = viewportRef.current
+    if (!el) return
+
+    const onPointerDownCapture = (e: PointerEvent) => {
+      if (!isSpacePressedRef.current || e.button !== 0) return
+      e.preventDefault()
+      e.stopPropagation()
+      isSpacePanningRef.current = true
+      setIsSpacePanning(true)
+      panSessionRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        origPanX: panOffsetRef.current.x,
+        origPanY: panOffsetRef.current.y,
+        pointerId: e.pointerId
+      }
+      try {
+        el.setPointerCapture(e.pointerId)
+      } catch {}
+    }
+
+    const onPointerMoveCapture = (e: PointerEvent) => {
+      if (!isSpacePanningRef.current || !panSessionRef.current) return
+      if (!isSpacePressedRef.current) {
+        stopSpacePanSession()
+        return
+      }
+      e.preventDefault()
+      e.stopPropagation()
+      const s = panSessionRef.current
+      setPanOffset(
+        computeSpacePanOffset(s.origPanX, s.origPanY, s.startX, s.startY, e.clientX, e.clientY)
+      )
+    }
+
+    const onPointerUpCapture = (e: PointerEvent) => {
+      if (!isSpacePanningRef.current) return
+      e.preventDefault()
+      e.stopPropagation()
+      stopSpacePanSession()
+    }
+
+    const onSuppressWhenSpace = (e: Event) => {
+      if (!isSpacePressedRef.current) return
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
+    el.addEventListener('pointerdown', onPointerDownCapture, { capture: true })
+    el.addEventListener('pointermove', onPointerMoveCapture, { capture: true })
+    el.addEventListener('pointerup', onPointerUpCapture, { capture: true })
+    el.addEventListener('pointercancel', onPointerUpCapture, { capture: true })
+    el.addEventListener('click', onSuppressWhenSpace, { capture: true })
+    el.addEventListener('dragstart', onSuppressWhenSpace, { capture: true })
+
+    return () => {
+      el.removeEventListener('pointerdown', onPointerDownCapture, { capture: true })
+      el.removeEventListener('pointermove', onPointerMoveCapture, { capture: true })
+      el.removeEventListener('pointerup', onPointerUpCapture, { capture: true })
+      el.removeEventListener('pointercancel', onPointerUpCapture, { capture: true })
+      el.removeEventListener('click', onSuppressWhenSpace, { capture: true })
+      el.removeEventListener('dragstart', onSuppressWhenSpace, { capture: true })
+    }
+  }, [viewportRef, setPanOffset, stopSpacePanSession])
+
+  const spacePanClassName = isSpacePanning
+    ? 'is-space-panning'
+    : isSpacePressed
+      ? 'is-space-pan-ready'
+      : ''
+
+  return {
+    isSpacePressed,
+    isSpacePanning,
+    spacePanClassName
+  }
+}
 
 export interface UseCutterViewportZoomOptions {
   viewportRef: RefObject<HTMLElement | null>
@@ -23,6 +188,12 @@ export function useCutterViewportZoom({
   const [viewportSize, setViewportSize] = useState<{ w: number; h: number }>(defaultViewportSize)
   const [zoomMode, setZoomMode] = useState<'fit' | number>('fit')
   const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
+
+  const { isSpacePressed, isSpacePanning, spacePanClassName } = useViewportSpacePan({
+    viewportRef,
+    panOffset,
+    setPanOffset
+  })
 
   useEffect(() => {
     const el = viewportRef.current
@@ -109,6 +280,9 @@ export function useCutterViewportZoom({
     displayH,
     scaleX,
     scaleY,
+    isSpacePressed,
+    isSpacePanning,
+    spacePanClassName,
     stepZoom,
     handleSetZoomMode,
     resetZoomToFit,

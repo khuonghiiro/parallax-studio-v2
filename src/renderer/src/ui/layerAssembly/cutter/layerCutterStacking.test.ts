@@ -3,7 +3,9 @@ import { computeNextLayerZ, computeFrontLayerZ } from '../useLayerWorkshop'
 import {
   computeAutoFitPieceScale,
   computeSlotFitPieceScale,
-  computeCursorAnchoredZoom
+  computeCursorAnchoredZoom,
+  computeSpacePanOffset,
+  isEditableElementForSpacePan
 } from './cutterHelpers'
 import { resolveCanvasBgState } from './CutterCanvasBgToggle'
 import { calculateAnchorPinnedResize } from '../layerAssembly2DBbox'
@@ -164,6 +166,12 @@ describe('2D Layer Cutter Stacking & Z-Index Ordering Rules', () => {
     expect(res.scale).toBe(1.32)
     expect(res.panX).toBe(-120)
     expect(res.panY).toBe(90)
+  })
+
+  it('computes Space + Left-Click drag pan offset accurately', () => {
+    const p1 = computeSpacePanOffset(-120, 90, 500, 300, 640, 220)
+    expect(p1).toEqual({ x: 20, y: 10 })
+    expect(isEditableElementForSpacePan(null)).toBe(false)
   })
 })
 

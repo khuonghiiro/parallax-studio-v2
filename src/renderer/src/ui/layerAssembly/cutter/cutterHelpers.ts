@@ -199,3 +199,36 @@ export function computeCursorAnchoredZoom({
     panY
   }
 }
+
+const TEXT_INPUT_TYPES = new Set(['text', 'search', 'number', 'password', 'email', 'url', 'tel'])
+
+/** Kiểm tra phần tử đang focus có phải ô nhập văn bản/số cần dùng phím Space hay không */
+export function isEditableElementForSpacePan(target: EventTarget | null): boolean {
+  if (!target || typeof HTMLElement === 'undefined' || !(target instanceof HTMLElement)) {
+    return false
+  }
+  if (target.isContentEditable) return true
+  const tag = target.tagName
+  if (tag === 'TEXTAREA') return true
+  if (tag === 'INPUT') {
+    const type = ((target as HTMLInputElement).type || 'text').toLowerCase()
+    return TEXT_INPUT_TYPES.has(type)
+  }
+  return false
+}
+
+/** Tính toạ độ dịch chuyển khung nhìn (pan) khi giữ Space + kéo chuột trái */
+export function computeSpacePanOffset(
+  origPanX: number,
+  origPanY: number,
+  startClientX: number,
+  startClientY: number,
+  currentClientX: number,
+  currentClientY: number
+): { x: number; y: number } {
+  return {
+    x: Math.round(origPanX + (currentClientX - startClientX)),
+    y: Math.round(origPanY + (currentClientY - startClientY))
+  }
+}
+

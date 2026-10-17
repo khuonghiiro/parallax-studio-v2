@@ -27,6 +27,7 @@ import {
 } from './CutterCanvasBgToggle'
 import { CutterPlacedLayerItem } from './CutterPlacedLayerItem'
 import { CutterTargetFooter } from './CutterTargetFooter'
+import { useViewportSpacePan } from './useCutterViewportZoom'
 
 export interface SpriteCutterTargetPaneProps {
   composite: LayerComposite
@@ -74,6 +75,16 @@ export function SpriteCutterTargetPane({
   const boardRef = useRef<HTMLDivElement | null>(null)
   const targetViewportRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const {
+    isSpacePressed: isTargetSpacePressed,
+    isSpacePanning: isTargetSpacePanning,
+    spacePanClassName: targetSpacePanClassName
+  } = useViewportSpacePan({
+    viewportRef: targetViewportRef,
+    panOffset: targetPan,
+    setPanOffset: setTargetPan
+  })
 
   const boardW = Math.max(200, composite.width || 600)
   const boardH = Math.max(200, composite.height || 600)
@@ -668,9 +679,16 @@ export function SpriteCutterTargetPane({
       <div className="layer-cutter-target-container">
         {/* 2D Canvas Viewport */}
         <div
-          className={`layer-cutter-target-viewport ${targetBgCssClass}`}
+          className={`layer-cutter-target-viewport ${targetBgCssClass} ${targetSpacePanClassName}`}
           ref={targetViewportRef}
         >
+          {isTargetSpacePressed && (
+            <div className="cutter-space-pan-hud">
+              <span>
+                ✋ {isTargetSpacePanning ? 'Đang kéo khung nhìn… (nhả Space để dừng)' : 'Giữ chuột trái + kéo để di chuyển khung'}
+              </span>
+            </div>
+          )}
           <div
             ref={boardRef}
             className={`layer-cutter-target-board ${targetBgCssClass} ${

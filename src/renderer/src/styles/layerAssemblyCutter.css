@@ -676,3 +676,42 @@
   from { transform: scale(0.85); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+/* Chế độ giữ Space + Chuột trái kéo di chuyển khung nhìn (Hand Tool Pan) */
+.layer-cutter-canvas-wrap.is-space-pan-ready,
+.layer-cutter-target-viewport.is-space-pan-ready,
+.layer-cutter-canvas-wrap.is-space-pan-ready *,
+.layer-cutter-target-viewport.is-space-pan-ready * {
+  cursor: grab !important;
+  user-select: none !important;
+}
+
+.layer-cutter-canvas-wrap.is-space-panning,
+.layer-cutter-target-viewport.is-space-panning,
+.layer-cutter-canvas-wrap.is-space-panning *,
+.layer-cutter-target-viewport.is-space-panning * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+.cutter-space-pan-hud {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 420;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--bg-2);
+  border: 1px solid var(--accent-cyan);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+}
+

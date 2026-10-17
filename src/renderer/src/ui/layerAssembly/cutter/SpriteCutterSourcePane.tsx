@@ -124,6 +124,9 @@ export function SpriteCutterSourcePane({
     displayH,
     scaleX,
     scaleY,
+    isSpacePressed,
+    isSpacePanning,
+    spacePanClassName,
     stepZoom,
     handleSetZoomMode,
     resetZoomToFit
@@ -844,8 +847,16 @@ export function SpriteCutterSourcePane({
       {/* Vùng hiển thị Canvas Ảnh Nguồn + Kính lúp Hút màu Photoshop */}
       <div
         ref={viewportWrapRef}
-        className={`layer-cutter-canvas-wrap ${bgCssClass}`}
+        className={`layer-cutter-canvas-wrap ${bgCssClass} ${spacePanClassName}`}
       >
+        {isSpacePressed && (
+          <div className="cutter-space-pan-hud">
+            <span>
+              ✋ {isSpacePanning ? 'Đang kéo khung nhìn… (nhả Space để dừng)' : 'Giữ chuột trái + kéo để di chuyển hình'}
+            </span>
+          </div>
+        )}
+
         <PhotoshopEyedropperOverlay
           target={eyedropperTarget}
           currentHex={getCurrentTargetHex(eyedropperTarget)}
@@ -870,13 +881,17 @@ export function SpriteCutterSourcePane({
             style={{
               width: '100%',
               height: '100%',
-              cursor: eyedropperTarget
-                ? 'crosshair'
-                : tool === 'eraser' || tool === 'restore'
-                  ? 'none'
-                  : tool === 'wand' || tool === 'box' || tool === 'lasso'
+              cursor: isSpacePanning
+                ? 'grabbing'
+                : isSpacePressed
+                  ? 'grab'
+                  : eyedropperTarget
                     ? 'crosshair'
-                    : 'default'
+                    : tool === 'eraser' || tool === 'restore'
+                      ? 'none'
+                      : tool === 'wand' || tool === 'box' || tool === 'lasso'
+                        ? 'crosshair'
+                        : 'default'
             }}
             onPointerDown={handleCanvasPointerDown}
             onPointerMove={handleCanvasPointerMove}
@@ -890,7 +905,7 @@ export function SpriteCutterSourcePane({
             }}
           />
 
-          {(tool === 'eraser' || tool === 'restore') && !eyedropperTarget && (
+          {(tool === 'eraser' || tool === 'restore') && !eyedropperTarget && !isSpacePressed && (
             <div
               ref={brushCursorElRef}
               className="layer-cutter-brush-cursor"

@@ -117,7 +117,7 @@ export function CutterZoomControl({
   effectiveScale,
   onStepZoom,
   onSetZoomMode,
-  title = 'Thu phóng khung nhìn (Có thể lăn chuột trên vùng vẽ để zoom nhanh)'
+  title = 'Thu phóng khung nhìn (Lăn chuột để zoom theo con trỏ, giữ Space + kéo chuột trái để di chuyển)'
 }: CutterZoomControlProps) {
   const pct = Math.max(10, Math.round(effectiveScale * 100))
 
