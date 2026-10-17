@@ -868,7 +868,7 @@ export function SpriteCutterSourcePane({
         />
 
         <div
-          className={`layer-cutter-source-canvas-box tag-mode-${tagDisplayMode}`}
+          className={`layer-cutter-source-canvas-box ${bgCssClass} tag-mode-${tagDisplayMode}`}
           style={{
             width: `${displayW}px`,
             height: `${displayH}px`,

@@ -151,7 +151,7 @@
 
 /* Toolbar & ribbon styles: xem layerAssemblyCutterToolbar.css */
 
-/* Canvas Viewport */
+/* Canvas Viewport (Pasteboard giống Adobe Photoshop & đồng bộ với cột Bố cục 2D) */
 .layer-cutter-canvas-wrap {
   flex: 1 1 0%;
   min-height: 0;
@@ -161,15 +161,14 @@
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background-color: #14161a;
-  background-image:
-    linear-gradient(45deg, #1f232b 25%, transparent 25%),
-    linear-gradient(-45deg, #1f232b 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #1f232b 75%),
-    linear-gradient(-45deg, transparent 75%, #1f232b 75%);
-  background-size: 16px 16px;
-  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  background: var(--bg-0);
   user-select: none;
+}
+
+.layer-cutter-canvas-wrap.bg-checker-light,
+.layer-cutter-canvas-wrap.bg-solid-light,
+.layer-cutter-canvas-wrap.bg-light {
+  background: #e2e8f0;
 }
 
 .layer-cutter-canvas-wrap.is-scrollable {
@@ -178,7 +177,24 @@
   justify-content: flex-start;
 }
 
-.layer-cutter-canvas-wrap.bg-checker-dark {
+.layer-cutter-source-canvas-box {
+  position: relative;
+  flex-shrink: 0;
+  background-color: #14161a;
+  background-image:
+    linear-gradient(45deg, #1f232b 25%, transparent 25%),
+    linear-gradient(-45deg, #1f232b 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1f232b 75%),
+    linear-gradient(-45deg, transparent 75%, #1f232b 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  border: 2px solid var(--accent);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--line-focus);
+  border-radius: 6px;
+  overflow: visible;
+}
+
+.layer-cutter-source-canvas-box.bg-checker-dark {
   background-color: #14161a;
   background-image:
     linear-gradient(45deg, #1f232b 25%, transparent 25%),
@@ -189,7 +205,7 @@
   background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
 }
 
-.layer-cutter-canvas-wrap.bg-checker-light {
+.layer-cutter-source-canvas-box.bg-checker-light {
   background-color: #f8fafc;
   background-image:
     linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
@@ -200,25 +216,16 @@
   background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
 }
 
-.layer-cutter-canvas-wrap.bg-solid-dark,
-.layer-cutter-canvas-wrap.bg-dark {
+.layer-cutter-source-canvas-box.bg-solid-dark,
+.layer-cutter-source-canvas-box.bg-dark {
   background-image: none;
   background-color: #0e1014;
 }
 
-.layer-cutter-canvas-wrap.bg-solid-light,
-.layer-cutter-canvas-wrap.bg-light {
+.layer-cutter-source-canvas-box.bg-solid-light,
+.layer-cutter-source-canvas-box.bg-light {
   background-image: none;
   background-color: #ffffff;
-}
-
-.layer-cutter-source-canvas-box {
-  position: relative;
-  flex-shrink: 0;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-  border: 1px solid var(--line-soft);
-  border-radius: 6px;
-  overflow: visible;
 }
 
 .layer-cutter-canvas {
@@ -677,20 +684,22 @@
   to { transform: scale(1); opacity: 1; }
 }
 
-/* Chế độ giữ Space + Chuột trái kéo di chuyển khung nhìn (Hand Tool Pan) */
+/* Chế độ giữ Space + Chuột trái kéo di chuyển khung nhìn (Hand Tool Pan kiểu Adobe Photoshop) */
+body.cutter-space-pan-ready,
 .layer-cutter-canvas-wrap.is-space-pan-ready,
 .layer-cutter-target-viewport.is-space-pan-ready,
 .layer-cutter-canvas-wrap.is-space-pan-ready *,
 .layer-cutter-target-viewport.is-space-pan-ready * {
-  cursor: grab !important;
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' stroke='%230f172a' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round' d='M18 11V6a1.5 1.5 0 0 0-3 0v4M15 10V4.5a1.5 1.5 0 0 0-3 0V10m0-5.5a1.5 1.5 0 0 0-3 0V11m0-5.5a1.5 1.5 0 0 0-3 0v8l-1.7-1.7a1.6 1.6 0 0 0-2.3 2.3l4.6 4.6A5 5 0 0 0 11.2 20H15a4 4 0 0 0 4-4v-5a1.5 1.5 0 0 0-1 0Z'/%3E%3C/svg%3E") 10 10, grab !important;
   user-select: none !important;
 }
 
+body.cutter-space-panning,
 .layer-cutter-canvas-wrap.is-space-panning,
 .layer-cutter-target-viewport.is-space-panning,
 .layer-cutter-canvas-wrap.is-space-panning *,
 .layer-cutter-target-viewport.is-space-panning * {
-  cursor: grabbing !important;
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%2338bdf8' stroke='%230f172a' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round' d='M18 11.5V10a1.5 1.5 0 0 0-3 0v1m0-1.5a1.5 1.5 0 0 0-3 0v1m0-1.5a1.5 1.5 0 0 0-3 0V12m0-2a1.5 1.5 0 0 0-3 0v3.5l-1.1-.8a1.5 1.5 0 0 0-2 2.2l3.8 3.8A5 5 0 0 0 11.2 20H15a4 4 0 0 0 4-4v-4.5a1.5 1.5 0 0 0-1 0Z'/%3E%3C/svg%3E") 10 10, grabbing !important;
   user-select: none !important;
 }
 

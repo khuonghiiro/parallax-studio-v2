@@ -86,6 +86,7 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
   }
 
   useWorkshopShortcuts(state, playback.toggle, close, {
+    primaryMode,
     tab,
     boneId,
     selectBone,

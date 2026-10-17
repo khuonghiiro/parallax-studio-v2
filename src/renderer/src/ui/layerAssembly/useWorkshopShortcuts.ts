@@ -3,6 +3,7 @@ import type { useLayerWorkshop } from './useLayerWorkshop'
 import { applyRigAction } from './workshopRig'
 
 export interface WorkshopBoneContext {
+  primaryMode?: 'assembly' | 'cutter'
   tab?: string
   boneId?: string | null
   selectBone?: (id: string | null) => void
@@ -20,6 +21,7 @@ export function useWorkshopShortcuts(
 
   useEffect(() => {
     const handle = (e: KeyboardEvent) => {
+      if (boneCtxRef.current?.primaryMode === 'cutter') return
       if (e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable="true"]')) { e.stopPropagation(); return }
       // Timeline owns key deletion and drag cancellation; never delete a bone here.
       if ((e.target as Element)?.closest?.('.lw-animation-timeline') && ['Escape', 'Delete', 'Backspace'].includes(e.key)) return

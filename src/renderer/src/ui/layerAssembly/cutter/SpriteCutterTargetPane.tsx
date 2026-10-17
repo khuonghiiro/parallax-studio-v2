@@ -773,6 +773,8 @@ export function SpriteCutterTargetPane({
             canvasWidth={boardW}
             canvasHeight={boardH}
             zoom={effectiveBoardScale}
+            panX={targetPan.x}
+            panY={targetPan.y}
             containerRef={targetViewportRef}
             onSelectLayer={(id) => onSelectLayer(id)}
             safeLeft={12}

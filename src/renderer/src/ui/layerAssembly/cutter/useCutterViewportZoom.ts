@@ -32,6 +32,20 @@ export function useViewportSpacePan({
     pointerId: number
   } | null>(null)
 
+  const syncDomCursor = useCallback(
+    (spaceActive: boolean, panningActive: boolean) => {
+      if (typeof document !== 'undefined') {
+        document.body.classList.toggle('cutter-space-pan-ready', spaceActive && !panningActive)
+        document.body.classList.toggle('cutter-space-panning', panningActive)
+      }
+      const el = viewportRef.current
+      if (el) {
+        el.style.cursor = panningActive ? 'grabbing' : spaceActive ? 'grab' : ''
+      }
+    },
+    [viewportRef]
+  )
+
   const stopSpacePanSession = useCallback(() => {
     if (isSpacePanningRef.current) {
       isSpacePanningRef.current = false
@@ -44,22 +58,31 @@ export function useViewportSpacePan({
       } catch {}
     }
     panSessionRef.current = null
-  }, [viewportRef])
+    syncDomCursor(isSpacePressedRef.current, false)
+  }, [viewportRef, syncDomCursor])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code !== 'Space') return
-      if (isEditableElementForSpacePan(e.target)) return
+      const activeEl = typeof document !== 'undefined' ? document.activeElement : null
+      if (isEditableElementForSpacePan(e.target) || isEditableElementForSpacePan(activeEl)) return
+      if (activeEl instanceof HTMLElement && (activeEl.tagName === 'BUTTON' || activeEl.tagName === 'INPUT')) {
+        try {
+          activeEl.blur()
+        } catch {}
+      }
       e.preventDefault()
       if (!isSpacePressedRef.current) {
         isSpacePressedRef.current = true
         setIsSpacePressed(true)
+        syncDomCursor(true, isSpacePanningRef.current)
       }
     }
 
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.code !== 'Space') return
-      if (!isEditableElementForSpacePan(e.target)) {
+      const activeEl = typeof document !== 'undefined' ? document.activeElement : null
+      if (!isEditableElementForSpacePan(e.target) && !isEditableElementForSpacePan(activeEl)) {
         e.preventDefault()
       }
       if (isSpacePressedRef.current) {
@@ -67,6 +90,7 @@ export function useViewportSpacePan({
         setIsSpacePressed(false)
       }
       stopSpacePanSession()
+      syncDomCursor(false, false)
     }
 
     const onWindowBlur = () => {
@@ -75,17 +99,19 @@ export function useViewportSpacePan({
         setIsSpacePressed(false)
       }
       stopSpacePanSession()
+      syncDomCursor(false, false)
     }
 
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('keydown', onKeyDown, true)
+    window.addEventListener('keyup', onKeyUp, true)
     window.addEventListener('blur', onWindowBlur)
     return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('keydown', onKeyDown, true)
+      window.removeEventListener('keyup', onKeyUp, true)
       window.removeEventListener('blur', onWindowBlur)
+      syncDomCursor(false, false)
     }
-  }, [stopSpacePanSession])
+  }, [stopSpacePanSession, syncDomCursor])
 
   useEffect(() => {
     const el = viewportRef.current
@@ -97,6 +123,7 @@ export function useViewportSpacePan({
       e.stopPropagation()
       isSpacePanningRef.current = true
       setIsSpacePanning(true)
+      syncDomCursor(true, true)
       panSessionRef.current = {
         startX: e.clientX,
         startY: e.clientY,
@@ -151,7 +178,7 @@ export function useViewportSpacePan({
       el.removeEventListener('click', onSuppressWhenSpace, { capture: true })
       el.removeEventListener('dragstart', onSuppressWhenSpace, { capture: true })
     }
-  }, [viewportRef, setPanOffset, stopSpacePanSession])
+  }, [viewportRef, setPanOffset, stopSpacePanSession, syncDomCursor])
 
   const spacePanClassName = isSpacePanning
     ? 'is-space-panning'

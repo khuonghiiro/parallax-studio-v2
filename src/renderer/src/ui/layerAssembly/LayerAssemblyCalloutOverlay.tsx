@@ -157,16 +157,13 @@ export function LayerAssemblyCalloutOverlay({
     const boxTop = cy - boxH / 2
     const boxBottom = cy + boxH / 2
 
-    const minSpacing = 33
-    const railMinY = Math.max(safeTop, boxTop - 8)
-    const railMaxY = Math.min(vh - safeBottom, boxBottom + 8)
-    const availH = Math.max(120, railMaxY - railMinY)
-    const maxPerVerticalRail = Math.max(4, Math.floor(availH / minSpacing))
+    const minSpacing = 32
+    const maxPerVerticalRail = 12
 
-    const leftRailX = Math.max(safeLeft + 16, boxLeft - 24)
-    const rightRailX = Math.min(vw - safeRight - 16, boxRight + 24)
-    const topRailY = Math.max(safeTop + 14, boxTop - 24)
-    const bottomRailY = Math.min(vh - safeBottom - 14, boxBottom + 24)
+    const leftRailX = boxLeft - 26
+    const rightRailX = boxRight + 26
+    const topRailY = boxTop - 26
+    const bottomRailY = boxBottom + 26
 
     const items = visibleEntries.map(({ layer, orderNum }) => {
       const anchorX = cx + layer.x * zoom
@@ -183,7 +180,7 @@ export function LayerAssemblyCalloutOverlay({
     const leftCandidate: typeof items = []
     const rightCandidate: typeof items = []
 
-    items.forEach((item, i) => {
+    items.forEach((item) => {
       if (item.layer.x < -6) {
         leftCandidate.push(item)
       } else if (item.layer.x > 6) {
@@ -232,9 +229,12 @@ export function LayerAssemblyCalloutOverlay({
       side: 'left' | 'right'
     ): ComputedLayerBubble[] => {
       if (group.length === 0) return []
-      const ys = group.map((g) => Math.max(railMinY, Math.min(railMaxY, g.anchorY)))
-      // Khử va chạm theo chiều dọc
-      for (let pass = 0; pass < 4; pass++) {
+      const halfSpan = Math.max((boxH - 16) / 2, ((group.length - 1) * minSpacing) / 2)
+      const groupMinY = cy - halfSpan
+      const groupMaxY = cy + halfSpan
+      const ys = group.map((g) => Math.max(groupMinY, Math.min(groupMaxY, g.anchorY)))
+      // Khử va chạm theo chiều dọc quanh tâm cy của khung caro
+      for (let pass = 0; pass < 6; pass++) {
         for (let i = 1; i < ys.length; i++) {
           if (ys[i] < ys[i - 1] + minSpacing) {
             const mid = (ys[i] + ys[i - 1]) / 2
@@ -242,12 +242,12 @@ export function LayerAssemblyCalloutOverlay({
             ys[i] = mid + minSpacing / 2
           }
         }
-        if (ys[0] < railMinY) {
-          const shift = railMinY - ys[0]
+        if (ys[0] < groupMinY) {
+          const shift = groupMinY - ys[0]
           for (let i = 0; i < ys.length; i++) ys[i] += shift
         }
-        if (ys[ys.length - 1] > railMaxY) {
-          const shift = ys[ys.length - 1] - railMaxY
+        if (ys[ys.length - 1] > groupMaxY) {
+          const shift = ys[ys.length - 1] - groupMaxY
           for (let i = 0; i < ys.length; i++) ys[i] -= shift
         }
       }
@@ -262,7 +262,7 @@ export function LayerAssemblyCalloutOverlay({
         anchorX: g.anchorX,
         anchorY: g.anchorY,
         bubbleX: Math.round(railX),
-        bubbleY: Math.round(Math.max(safeTop, Math.min(vh - safeBottom, ys[i]))),
+        bubbleY: Math.round(ys[i]),
         railSide: side,
         isCustomMoved: false
       }))
@@ -275,9 +275,10 @@ export function LayerAssemblyCalloutOverlay({
     ): ComputedLayerBubble[] => {
       if (group.length === 0) return []
       group.sort((a, b) => a.anchorX - b.anchorX || a.orderNum - b.orderNum)
-      const minX = Math.max(safeLeft + 24, boxLeft)
-      const maxX = Math.min(vw - safeRight - 24, boxRight)
-      const xs = group.map((g) => Math.max(minX, Math.min(maxX, g.anchorX)))
+      const halfSpanX = Math.max((boxW - 16) / 2, ((group.length - 1) * (minSpacing + 4)) / 2)
+      const groupMinX = cx - halfSpanX
+      const groupMaxX = cx + halfSpanX
+      const xs = group.map((g) => Math.max(groupMinX, Math.min(groupMaxX, g.anchorX)))
       for (let i = 1; i < xs.length; i++) {
         if (xs[i] < xs[i - 1] + minSpacing + 4) {
           xs[i] = xs[i - 1] + minSpacing + 4
@@ -288,7 +289,7 @@ export function LayerAssemblyCalloutOverlay({
         orderNum: g.orderNum,
         anchorX: g.anchorX,
         anchorY: g.anchorY,
-        bubbleX: Math.round(Math.max(safeLeft + 18, Math.min(vw - safeRight - 18, xs[i]))),
+        bubbleX: Math.round(xs[i]),
         bubbleY: Math.round(railY),
         railSide: side,
         isCustomMoved: false
@@ -306,12 +307,8 @@ export function LayerAssemblyCalloutOverlay({
     for (const node of allNodes) {
       const off = customOffsets[node.layer.id]
       if (off && (Math.abs(off.dx) > 0.5 || Math.abs(off.dy) > 0.5)) {
-        node.bubbleX = Math.round(
-          Math.max(20, Math.min(vw - 20, node.bubbleX + off.dx * zoom))
-        )
-        node.bubbleY = Math.round(
-          Math.max(20, Math.min(vh - 20, node.bubbleY + off.dy * zoom))
-        )
+        node.bubbleX = Math.round(node.bubbleX + off.dx * zoom)
+        node.bubbleY = Math.round(node.bubbleY + off.dy * zoom)
         node.isCustomMoved = true
       }
     }
