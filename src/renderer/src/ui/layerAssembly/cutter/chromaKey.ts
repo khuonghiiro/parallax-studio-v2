@@ -179,7 +179,7 @@ export function scanRawIslandsFromData(
     const rowOff = sy * width
     for (let sx = 0; sx < width; sx += step) {
       const idx = rowOff + sx
-      if (visited[idx] || data[idx * 4 + 3] < 30) continue
+      if (visited[idx] || data[idx * 4 + 3] < 12) continue
 
       let minX = sx
       let maxX = sx
@@ -202,28 +202,28 @@ export function scanRawIslandsFromData(
 
         if (cy > 0) {
           const n = curr - width
-          if (!visited[n] && data[n * 4 + 3] >= 30) {
+          if (!visited[n] && data[n * 4 + 3] >= 12) {
             visited[n] = 1
             queue[tail++] = n
           }
         }
         if (cy < height - 1) {
           const n = curr + width
-          if (!visited[n] && data[n * 4 + 3] >= 30) {
+          if (!visited[n] && data[n * 4 + 3] >= 12) {
             visited[n] = 1
             queue[tail++] = n
           }
         }
         if (cx > 0) {
           const n = curr - 1
-          if (!visited[n] && data[n * 4 + 3] >= 30) {
+          if (!visited[n] && data[n * 4 + 3] >= 12) {
             visited[n] = 1
             queue[tail++] = n
           }
         }
         if (cx < width - 1) {
           const n = curr + 1
-          if (!visited[n] && data[n * 4 + 3] >= 30) {
+          if (!visited[n] && data[n * 4 + 3] >= 12) {
             visited[n] = 1
             queue[tail++] = n
           }

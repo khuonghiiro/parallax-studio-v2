@@ -1,4 +1,8 @@
 import type { ChromaKeySettings, DetectedIsland, GridSlicerSettings } from './types'
+import {
+  applyShadowAndMistExtraction,
+  resolveImageEffectiveKeyRgb
+} from './chromaShadowExtractor'
 
 export function parseHexRgb(hex: string): { r: number; g: number; b: number } {
   const clean = (hex || '#ffffff').replace('#', '').trim()
@@ -62,11 +66,12 @@ export function computeChromaMatteAlpha(
   g: number,
   b: number,
   sourceAlpha: number,
-  settings: ChromaKeySettings
+  settings: ChromaKeySettings,
+  overrideKeyRgb?: { r: number; g: number; b: number }
 ): number {
   if (sourceAlpha <= 0) return 0
   const keyType = settings.keyColorType || 'custom'
-  const key = resolveEffectiveKeyRgb(settings)
+  const key = overrideKeyRgb || resolveEffectiveKeyRgb(settings)
   const tolerance = Math.max(0, Math.min(100, settings.tolerance))
   const feather = Math.max(0, Math.min(30, settings.smoothness ?? 0))
   let distance: number
@@ -107,14 +112,12 @@ export function computeChromaMatteAlpha(
 function classifyBackgroundPixels(
   data: Uint8ClampedArray,
   totalPixels: number,
-  settings: ChromaKeySettings
+  settings: ChromaKeySettings,
+  effectiveKeyRgb: { r: number; g: number; b: number }
 ): { isBg: Uint8Array; shadowAlpha: Uint8Array } {
   const isBg = new Uint8Array(totalPixels)
   const shadowAlpha = new Uint8Array(totalPixels)
   shadowAlpha.fill(255)
-
-  const keyType = settings.keyColorType || 'custom'
-  const shadowRet = Math.max(0, Math.min(100, settings.shadowRetention ?? 0)) / 100
 
   for (let p = 0; p < totalPixels; p++) {
     const idx = p * 4
@@ -129,15 +132,7 @@ function classifyBackgroundPixels(
     const g = data[idx + 1]
     const b = data[idx + 2]
 
-    let matteAlpha = computeChromaMatteAlpha(r, g, b, a, settings)
-    if (keyType === 'pure_white' && shadowRet > 0 && matteAlpha < a) {
-      const maxC = Math.max(r, g, b)
-      const minC = Math.min(r, g, b)
-      if (maxC - minC < 32) {
-        const darkness = Math.min(1, (255 - (r + g + b) / 3) / 180)
-        matteAlpha = Math.max(matteAlpha, Math.round(darkness * shadowRet * 220))
-      }
-    }
+    const matteAlpha = computeChromaMatteAlpha(r, g, b, a, settings, effectiveKeyRgb)
     if (matteAlpha < a) {
       isBg[p] = 1
       shadowAlpha[p] = matteAlpha
@@ -147,7 +142,13 @@ function classifyBackgroundPixels(
   return { isBg, shadowAlpha }
 }
 
-function isolateOuterConnectedBg(isBg: Uint8Array, w: number, h: number): Uint8Array {
+function isolateOuterConnectedBg(
+  isBg: Uint8Array,
+  w: number,
+  h: number,
+  data?: Uint8ClampedArray,
+  keyColorType?: string
+): Uint8Array {
   const totalPixels = w * h
   const activeBg = new Uint8Array(totalPixels)
   const queue = new Int32Array(totalPixels)
@@ -176,6 +177,24 @@ function isolateOuterConnectedBg(isBg: Uint8Array, w: number, h: number): Uint8A
     if (isBg[right] && !activeBg[right]) {
       activeBg[right] = 1
       queue[tail++] = right
+    }
+  }
+
+  // Trên phông xanh lá / xanh dương chuyên dụng, các khe hở kín giữa sợi tóc hoặc lông mày
+  // có sắc độ xanh/lam thuần khiết (dominance >= 50) cũng là phông nền cần thông suốt
+  if (data && (keyColorType === 'chroma_green' || keyColorType === 'chroma_blue')) {
+    const isGreen = keyColorType === 'chroma_green'
+    for (let p = 0; p < totalPixels; p++) {
+      if (!isBg[p] || activeBg[p]) continue
+      const idx = p * 4
+      const r = data[idx]
+      const g = data[idx + 1]
+      const b = data[idx + 2]
+      const dom = isGreen ? g - (r > b ? r : b) : b - (r > g ? r : g)
+      if (dom >= 50) {
+        activeBg[p] = 1
+        queue[tail++] = p
+      }
     }
   }
 
@@ -223,7 +242,8 @@ function collectBoundaryIndices(
   data: Uint8ClampedArray,
   w: number,
   h: number,
-  alphaSnap: Uint8Array
+  alphaSnap: Uint8Array,
+  excludeShadowMask?: Uint8Array | null
 ): Int32Array {
   const totalPixels = w * h
   for (let p = 0; p < totalPixels; p++) {
@@ -238,7 +258,7 @@ function collectBoundaryIndices(
     for (let x = 1; x < w - 1; x++) {
       const p = rowOff + x
       const a = alphaSnap[p]
-      if (a === 0) continue
+      if (a === 0 || (excludeShadowMask && excludeShadowMask[p])) continue
       if (
         a < 250 ||
         alphaSnap[p - 1] < 80 ||
@@ -264,12 +284,13 @@ function applyFeatherAndChoke(
   h: number,
   feather: number,
   edgeChoke: number,
-  alphaSnap: Uint8Array
+  alphaSnap: Uint8Array,
+  excludeShadowMask?: Uint8Array | null
 ): void {
   if (edgeChoke > 0) {
     const chokeSteps = Math.min(8, Math.round(edgeChoke))
     for (let step = 0; step < chokeSteps; step++) {
-      const boundary = collectBoundaryIndices(data, w, h, alphaSnap)
+      const boundary = collectBoundaryIndices(data, w, h, alphaSnap, excludeShadowMask)
       for (let i = 0; i < boundary.length; i++) {
         const p = boundary[i]
         if (
@@ -292,7 +313,7 @@ function applyFeatherAndChoke(
   }
 
   if (feather > 0) {
-    const boundary = collectBoundaryIndices(data, w, h, alphaSnap)
+    const boundary = collectBoundaryIndices(data, w, h, alphaSnap, excludeShadowMask)
     const radius = Math.min(6, Math.max(1, Math.ceil(feather / 2)))
     const atten = Math.max(0.18, 1 - feather / 26)
     for (let i = 0; i < boundary.length; i++) {
@@ -324,7 +345,8 @@ function applyDefringeAndDespill(
   w: number,
   h: number,
   settings: ChromaKeySettings,
-  alphaSnap: Uint8Array
+  alphaSnap: Uint8Array,
+  excludeShadowMask?: Uint8Array | null
 ): void {
   const strength =
     Math.max(0, Math.min(100, settings.defringeStrength ?? (settings.despill ? 50 : 0))) / 100
@@ -347,7 +369,7 @@ function applyDefringeAndDespill(
   const isBlueFringe =
     fringeType === 'chroma_blue' || (fringeRgb.b > fringeRgb.r + 25 && fringeRgb.b > fringeRgb.g + 15)
 
-  const boundary = collectBoundaryIndices(data, w, h, alphaSnap)
+  const boundary = collectBoundaryIndices(data, w, h, alphaSnap, excludeShadowMask)
   const maxFringeDistSq = (45 + strength * 165) ** 2
 
   for (let i = 0; i < boundary.length; i++) {
@@ -446,7 +468,8 @@ function applyDespeckleAndWhiteCrumbs(
   w: number,
   h: number,
   settings: ChromaKeySettings,
-  alphaSnap: Uint8Array
+  alphaSnap: Uint8Array,
+  excludeShadowMask?: Uint8Array | null
 ): void {
   const totalPixels = w * h
   const whiteSens = settings.whiteSpeckleSensitivity ?? 0
@@ -454,7 +477,7 @@ function applyDespeckleAndWhiteCrumbs(
     const sens = whiteSens / 100
     const minLum = Math.max(105, 235 - sens * 115)
     const maxSpread = 16 + sens * 58
-    const boundary = collectBoundaryIndices(data, w, h, alphaSnap)
+    const boundary = collectBoundaryIndices(data, w, h, alphaSnap, excludeShadowMask)
     for (let i = 0; i < boundary.length; i++) {
       const p = boundary[i]
       const idx = p * 4
@@ -475,6 +498,7 @@ function applyDespeckleAndWhiteCrumbs(
   const keepLargest = Boolean(settings.keepLargestIslandOnly)
   if (despeckleSize <= 0 && !keepLargest) return
 
+  const minAlpha = excludeShadowMask ? 10 : 20
   // Sử dụng mảng phẳng Int32Array không cấp phát Array JS con (nhanh gấp 50 lần trên ảnh 4K)
   const visited = new Uint8Array(totalPixels)
   const queue = new Int32Array(totalPixels)
@@ -486,7 +510,7 @@ function applyDespeckleAndWhiteCrumbs(
   let maxIslandIdx = -1
 
   for (let p = 0; p < totalPixels; p++) {
-    if (visited[p] || data[p * 4 + 3] <= 20) continue
+    if (visited[p] || data[p * 4 + 3] <= minAlpha) continue
     const startIdx = globalWrite
     let head = startIdx
     queue[globalWrite++] = p
@@ -502,28 +526,28 @@ function applyDespeckleAndWhiteCrumbs(
       const cy = (curr - cx) / w
       if (cx > 0) {
         const n = curr - 1
-        if (!visited[n] && data[n * 4 + 3] > 20) {
+        if (!visited[n] && data[n * 4 + 3] > minAlpha) {
           visited[n] = 1
           queue[globalWrite++] = n
         }
       }
       if (cx < w - 1) {
         const n = curr + 1
-        if (!visited[n] && data[n * 4 + 3] > 20) {
+        if (!visited[n] && data[n * 4 + 3] > minAlpha) {
           visited[n] = 1
           queue[globalWrite++] = n
         }
       }
       if (cy > 0) {
         const n = curr - w
-        if (!visited[n] && data[n * 4 + 3] > 20) {
+        if (!visited[n] && data[n * 4 + 3] > minAlpha) {
           visited[n] = 1
           queue[globalWrite++] = n
         }
       }
       if (cy < h - 1) {
         const n = curr + w
-        if (!visited[n] && data[n * 4 + 3] > 20) {
+        if (!visited[n] && data[n * 4 + 3] > minAlpha) {
           visited[n] = 1
           queue[globalWrite++] = n
         }
@@ -565,7 +589,8 @@ function applyEdgeSmoothAndStroke(
   w: number,
   h: number,
   settings: ChromaKeySettings,
-  alphaSnap: Uint8Array
+  alphaSnap: Uint8Array,
+  excludeShadowMask?: Uint8Array | null
 ): void {
   const edgeSmooth = settings.edgeSmooth ?? 0
   if (edgeSmooth > 0) {
@@ -580,7 +605,7 @@ function applyEdgeSmoothAndStroke(
         ? parseHexRgb(settings.smoothColorHex || '#000000')
         : null
 
-    const boundary = collectBoundaryIndices(data, w, h, alphaSnap)
+    const boundary = collectBoundaryIndices(data, w, h, alphaSnap, excludeShadowMask)
     for (let i = 0; i < boundary.length; i++) {
       const p = boundary[i]
       const a = alphaSnap[p]
@@ -607,7 +632,7 @@ function applyEdgeSmoothAndStroke(
   const strokeWidth = Math.max(0, Math.min(10, Math.round(settings.strokeWidth ?? 0)))
   if (strokeWidth > 0) {
     const strokeRgb = parseHexRgb(settings.strokeColorHex || '#ffffff')
-    const boundary = collectBoundaryIndices(data, w, h, alphaSnap)
+    const boundary = collectBoundaryIndices(data, w, h, alphaSnap, excludeShadowMask)
     const strokeMask = new Uint8Array(w * h)
     const rSq = strokeWidth * strokeWidth
 
@@ -654,14 +679,37 @@ export function processAdvancedChromaPixelData(
 ): void {
   if (!settings.enabled || settings.previewMode === 'original') return
   const totalPixels = w * h
-  const { isBg, shadowAlpha } = classifyBackgroundPixels(data, totalPixels, settings)
+  const baseKeyRgb = resolveEffectiveKeyRgb(settings)
+  const effectiveKeyRgb = resolveImageEffectiveKeyRgb(data, w, h, settings, baseKeyRgb)
+
+  const { isBg, shadowAlpha } = classifyBackgroundPixels(
+    data,
+    totalPixels,
+    settings,
+    effectiveKeyRgb
+  )
 
   const isolationMode = settings.isolationMode || 'all'
-  const activeBg = isolationMode === 'outer_only' ? isolateOuterConnectedBg(isBg, w, h) : isBg
+  const activeBg =
+    isolationMode === 'outer_only'
+      ? isolateOuterConnectedBg(isBg, w, h, data, settings.keyColorType)
+      : isBg
 
-  for (let p = 0; p < totalPixels; p++) {
-    if (activeBg[p]) {
-      data[p * 4 + 3] = shadowAlpha[p]
+  const isShadowPixel = applyShadowAndMistExtraction(
+    data,
+    w,
+    h,
+    settings,
+    effectiveKeyRgb,
+    activeBg,
+    shadowAlpha
+  )
+
+  if (!isShadowPixel) {
+    for (let p = 0; p < totalPixels; p++) {
+      if (activeBg[p]) {
+        data[p * 4 + 3] = shadowAlpha[p]
+      }
     }
   }
 
@@ -669,20 +717,27 @@ export function processAdvancedChromaPixelData(
   const cleanupMode = settings.cleanupMode || 'all'
   const edgeChoke =
     cleanupMode === 'all' || cleanupMode === 'smooth' ? settings.edgeChoke ?? 0 : 0
-  applyFeatherAndChoke(data, w, h, settings.smoothness, edgeChoke, alphaSnap)
+  applyFeatherAndChoke(data, w, h, settings.smoothness, edgeChoke, alphaSnap, isShadowPixel)
 
   if (cleanupMode === 'all' || cleanupMode === 'defringe') {
-    applyDefringeAndDespill(data, w, h, settings, alphaSnap)
+    applyDefringeAndDespill(data, w, h, settings, alphaSnap, effectiveKeyRgb, isShadowPixel)
   }
 
   if (cleanupMode === 'all' || cleanupMode === 'despeckle') {
-    applyDespeckleAndWhiteCrumbs(data, w, h, settings, alphaSnap)
+    applyDespeckleAndWhiteCrumbs(data, w, h, settings, alphaSnap, isShadowPixel)
   }
 
   if (cleanupMode === 'all' || cleanupMode === 'smooth') {
-    applyEdgeSmoothAndStroke(data, w, h, settings, alphaSnap)
+    applyEdgeSmoothAndStroke(data, w, h, settings, alphaSnap, isShadowPixel)
   } else if ((settings.strokeWidth ?? 0) > 0) {
-    applyEdgeSmoothAndStroke(data, w, h, { ...settings, edgeSmooth: 0 }, alphaSnap)
+    applyEdgeSmoothAndStroke(
+      data,
+      w,
+      h,
+      { ...settings, edgeSmooth: 0 },
+      alphaSnap,
+      isShadowPixel
+    )
   }
 }
 

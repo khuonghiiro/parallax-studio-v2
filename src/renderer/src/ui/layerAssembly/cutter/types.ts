@@ -30,6 +30,10 @@ export type ChromaSmoothColorType = 'none' | 'black' | 'white' | 'custom'
 
 export type ChromaPreviewMode = 'transparent' | 'original'
 
+export type ChromaShadowMode = 'off' | 'include' | 'only'
+
+export type ChromaShadowType = 'auto' | 'light' | 'dark'
+
 export interface ChromaKeySettings {
   enabled: boolean
   keyColorHex: string
@@ -41,7 +45,15 @@ export interface ChromaKeySettings {
   smoothness: number // Feather: 0 to 30
   despill: boolean
   previewBackground?: 'checkerboard' | 'dark' | 'light'
+  /** Chế độ xử lý bóng mờ / mây khói bán trong suốt: 'off' (xoá bóng), 'include' (lấy cả bóng), 'only' (chỉ tách riêng bóng) */
+  shadowMode?: ChromaShadowMode
+  /** Loại bóng cần tách: 'auto' (cả bóng sáng/mây mờ và bóng tối), 'light' (mây/khói/hào quang sáng), 'dark' (bóng đổ tối) */
+  shadowType?: ChromaShadowType
   shadowRetention?: number // 0 to 100
+  /** Ngưỡng phân tách giữa vật thể đặc và vùng bóng mờ (30..90, mặc định 62) */
+  shadowSolidThreshold?: number
+  /** Tự động khử màu nền pha lẫn trong bóng mờ (Color Unmixing) */
+  shadowUnmixColor?: boolean
   strokeWidth?: number // 0 to 10
   strokeColorHex?: string
 
@@ -72,7 +84,11 @@ export const DEFAULT_CHROMA_SETTINGS: ChromaKeySettings = {
   smoothness: 2,
   despill: true,
   previewBackground: 'checkerboard',
+  shadowMode: 'off',
+  shadowType: 'auto',
   shadowRetention: 0,
+  shadowSolidThreshold: 62,
+  shadowUnmixColor: true,
   strokeWidth: 0,
   strokeColorHex: '#FFFFFF',
   cleanupMode: 'all',

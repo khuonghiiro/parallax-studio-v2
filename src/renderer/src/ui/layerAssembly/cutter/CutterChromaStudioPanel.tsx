@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import type {
   ChromaKeyColorType,
   ChromaKeySettings,
+  ChromaShadowMode,
+  ChromaShadowType,
   EyedropperSample,
   EyedropperTarget
 } from './types'
@@ -31,6 +33,38 @@ export function CutterChromaStudioPanel({
   const isolationMode = chroma.isolationMode || 'outer_only'
   const fringeType: ChromaKeyColorType = chroma.fringeColorType || 'pure_white'
   const smoothColorType = chroma.smoothColorType || 'none'
+  const shadowMode: ChromaShadowMode =
+    chroma.shadowMode && chroma.shadowMode !== 'off'
+      ? chroma.shadowMode
+      : chroma.keepShadows
+        ? 'include'
+        : 'off'
+  const shadowType: ChromaShadowType = chroma.shadowType || 'auto'
+  const shadowRetention =
+    chroma.shadowRetention && chroma.shadowRetention > 0 ? chroma.shadowRetention : 68
+  const shadowSolidThreshold = chroma.shadowSolidThreshold ?? 62
+  const shadowUnmixColor = chroma.shadowUnmixColor ?? true
+
+  const handleSelectShadowMode = (mode: ChromaShadowMode) => {
+    onChangeChroma({
+      enabled: true,
+      shadowMode: mode,
+      keepShadows: mode !== 'off',
+      ...(mode !== 'off' && (!chroma.shadowRetention || chroma.shadowRetention <= 0)
+        ? { shadowRetention: 68 }
+        : {})
+    })
+  }
+
+  const handleSelectShadowType = (type: ChromaShadowType) => {
+    onChangeChroma({
+      enabled: true,
+      shadowType: type,
+      shadowMode: shadowMode === 'off' ? 'include' : shadowMode,
+      keepShadows: true,
+      ...(!chroma.shadowRetention || chroma.shadowRetention <= 0 ? { shadowRetention: 68 } : {})
+    })
+  }
 
   const handleSelectKeyPreset = (type: ChromaKeyColorType, hex: string) => {
     onChangeChroma({
@@ -342,8 +376,127 @@ export function CutterChromaStudioPanel({
           </div>
         </div>
       )}
+
+      {/* Hàng 3: Tách Bóng Mờ / Mây Khói Bán Trong Suốt (Color Unmixing trên phông xanh & mọi màu nền) */}
+      <div className="cutter-shadow-extraction-bar">
+        <div className="cutter-shadow-mode-section">
+          <span className="cutter-field-label">Bóng mờ:</span>
+          <div className="cutter-shadow-mode-group" role="group" aria-label="Chế độ tách bóng mờ">
+            <button
+              id="btn-cutter-shadow-off"
+              type="button"
+              className={`cutter-shadow-mode-btn ${shadowMode === 'off' ? 'active' : ''}`}
+              onClick={() => handleSelectShadowMode('off')}
+              title="Xoá bóng mờ / mây mờ cùng với màu nền như thông thường"
+            >
+              Xoá bóng
+            </button>
+            <button
+              id="btn-cutter-shadow-include"
+              type="button"
+              className={`cutter-shadow-mode-btn ${shadowMode === 'include' ? 'active include' : ''}`}
+              onClick={() => handleSelectShadowMode('include')}
+              title="Giữ lại cả vật thể đặc lẫn bóng mờ / mây khói bán trong suốt và tự động khử màu nền pha trộn"
+            >
+              ☁️ Lấy cả bóng
+            </button>
+            <button
+              id="btn-cutter-shadow-only"
+              type="button"
+              className={`cutter-shadow-mode-btn ${shadowMode === 'only' ? 'active only' : ''}`}
+              onClick={() => handleSelectShadowMode('only')}
+              title="Chỉ tách riêng lớp bóng mờ / mây khói bán trong suốt (loại bỏ nhân vật/vật thể đặc) để làm layer độc lập"
+            >
+              👻 Chỉ lấy bóng
+            </button>
+          </div>
+
+          <div className="cutter-studio-divider-v" />
+
+          <span className="cutter-field-label">Loại:</span>
+          <div className="cutter-isolation-group">
+            {(
+              [
+                {
+                  id: 'auto',
+                  label: 'Tự động',
+                  title: 'Tự động nhận diện cả bóng sáng (mây, sương, hào quang) lẫn bóng đổ tối'
+                },
+                {
+                  id: 'light',
+                  label: 'Mây/Sáng',
+                  title: 'Chỉ lọc lấy mây mờ, khói sương, hào quang sáng pha trên nền'
+                },
+                {
+                  id: 'dark',
+                  label: 'Bóng tối',
+                  title: 'Chỉ lọc lấy bóng đổ tối (drop shadow / ambient shadow) trên nền'
+                }
+              ] as const
+            ).map((st) => (
+              <button
+                key={st.id}
+                id={`btn-cutter-shadow-type-${st.id}`}
+                type="button"
+                className={`cutter-iso-btn ${shadowMode !== 'off' && shadowType === st.id ? 'active' : ''}`}
+                onClick={() => handleSelectShadowType(st.id)}
+                title={st.title}
+              >
+                {st.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {shadowMode !== 'off' && (
+          <div className="cutter-shadow-tuning-section">
+            <div
+              className="cutter-slider-inline cutter-shadow-slider"
+              title="Độ đậm và độ nhạy giữ lại bóng mờ / mây khói (Shadow Retention)"
+            >
+              <span className="slider-label">Độ đậm</span>
+              <input
+                type="range"
+                min={5}
+                max={100}
+                value={shadowRetention}
+                onChange={(e) => onChangeChroma({ shadowRetention: Number(e.target.value) })}
+              />
+              <span className="slider-val">{shadowRetention}%</span>
+            </div>
+
+            <div
+              className="cutter-slider-inline cutter-shadow-slider"
+              title="Ngưỡng phân tách giữa vật thể đặc và bóng bán trong suốt (Solid Cutoff)"
+            >
+              <span className="slider-label">Độ đặc</span>
+              <input
+                type="range"
+                min={30}
+                max={90}
+                value={shadowSolidThreshold}
+                onChange={(e) => onChangeChroma({ shadowSolidThreshold: Number(e.target.value) })}
+              />
+              <span className="slider-val">{shadowSolidThreshold}%</span>
+            </div>
+
+            <label
+              className="layer-cutter-check-pill cutter-shadow-unmix-pill"
+              title="Tự động giải phương trình pha màu (Color Unmixing) để khử sạch màu xanh/màu nền khỏi đám mây hoặc bóng tối"
+            >
+              <input
+                type="checkbox"
+                checked={shadowUnmixColor}
+                onChange={(e) => onChangeChroma({ shadowUnmixColor: e.target.checked })}
+              />
+              <span>Khử ám nền</span>
+            </label>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
 export { DEFAULT_CHROMA_SETTINGS }
+

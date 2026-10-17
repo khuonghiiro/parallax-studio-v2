@@ -298,4 +298,98 @@ describe('chromaKey algorithms', () => {
     expect(sample.pixelGrid[4]).toHaveLength(9)
     expect(sample.pixelGrid[4][4]).toBe('#12D25F')
   })
+
+  it('extracts semi-transparent clouds and shadows with Color Unmixing in include and only modes', async () => {
+    const { processAdvancedChromaPixelData } = await import('./chromaAdvancedProcessor')
+    const w = 40
+    const h = 40
+    const makeTestScene = () => {
+      const buf = new Uint8ClampedArray(w * h * 4)
+      // Fill with realistic green screen background [0, 164, 42]
+      for (let i = 0; i < w * h; i++) {
+        buf[i * 4] = 0
+        buf[i * 4 + 1] = 164
+        buf[i * 4 + 2] = 42
+        buf[i * 4 + 3] = 255
+      }
+      // Solid character block at (6..14, 6..14): dark hair [30, 32, 38]
+      for (let y = 6; y <= 14; y++) {
+        for (let x = 6; x <= 14; x++) {
+          const idx = (y * w + x) * 4
+          buf[idx] = 30
+          buf[idx + 1] = 32
+          buf[idx + 2] = 38
+          buf[idx + 3] = 255
+        }
+      }
+      // Semi-transparent white cloud at (24..33, 24..33): ~28% white blended over [0, 164, 42] -> [67, 185, 98]
+      for (let y = 24; y <= 33; y++) {
+        for (let x = 24; x <= 33; x++) {
+          const idx = (y * w + x) * 4
+          buf[idx] = 67
+          buf[idx + 1] = 185
+          buf[idx + 2] = 98
+          buf[idx + 3] = 255
+        }
+      }
+      return buf
+    }
+
+    // 1. Mode 'off': cloud is removed, solid character remains
+    const bufOff = makeTestScene()
+    processAdvancedChromaPixelData(bufOff, w, h, {
+      ...DEFAULT_CHROMA_SETTINGS,
+      enabled: true,
+      shadowMode: 'off',
+      keepShadows: false
+    })
+    const charIdx = (10 * w + 10) * 4
+    const cloudIdx = (28 * w + 28) * 4
+    const bgIdx = (2 * w + 2) * 4
+    expect(bufOff[bgIdx + 3]).toBe(0)
+    expect(bufOff[charIdx + 3]).toBe(255)
+    expect(bufOff[cloudIdx + 3]).toBe(0)
+
+    // 2. Mode 'include': both solid character AND unmixed white cloud remain
+    const bufInclude = makeTestScene()
+    processAdvancedChromaPixelData(bufInclude, w, h, {
+      ...DEFAULT_CHROMA_SETTINGS,
+      enabled: true,
+      shadowMode: 'include',
+      keepShadows: true,
+      shadowType: 'auto',
+      shadowRetention: 68,
+      shadowSolidThreshold: 62,
+      shadowUnmixColor: true
+    })
+    expect(bufInclude[bgIdx + 3]).toBe(0)
+    expect(bufInclude[charIdx + 3]).toBe(255)
+    expect(bufInclude[cloudIdx + 3]).toBeGreaterThan(40)
+    expect(bufInclude[cloudIdx + 3]).toBeLessThan(200)
+    // Cloud color should be unmixed from green [67, 185, 98] to neutral bright white
+    expect(bufInclude[cloudIdx]).toBeGreaterThanOrEqual(210)
+    expect(bufInclude[cloudIdx + 1]).toBeGreaterThanOrEqual(210)
+    expect(bufInclude[cloudIdx + 2]).toBeGreaterThanOrEqual(210)
+
+    // 3. Mode 'only': solid character is removed (alpha = 0), only the cloud remains as a standalone island
+    const bufOnly = makeTestScene()
+    processAdvancedChromaPixelData(bufOnly, w, h, {
+      ...DEFAULT_CHROMA_SETTINGS,
+      enabled: true,
+      shadowMode: 'only',
+      keepShadows: true,
+      shadowType: 'auto',
+      shadowRetention: 68,
+      shadowSolidThreshold: 62,
+      shadowUnmixColor: true
+    })
+    expect(bufOnly[bgIdx + 3]).toBe(0)
+    expect(bufOnly[charIdx + 3]).toBe(0)
+    expect(bufOnly[cloudIdx + 3]).toBeGreaterThan(40)
+    const shadowIslands = scanRawIslandsFromData(bufOnly, w, h, 1)
+    expect(shadowIslands.length).toBe(1)
+    expect(shadowIslands[0].x).toBeGreaterThanOrEqual(20)
+    expect(shadowIslands[0].y).toBeGreaterThanOrEqual(20)
+  })
 })
+
