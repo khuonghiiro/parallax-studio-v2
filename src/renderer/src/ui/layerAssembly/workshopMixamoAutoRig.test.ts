@@ -199,26 +199,46 @@ describe('workshopMixamoAutoRig & clip deletion', () => {
     expect(bound[1].boneId).toBe('bone-torso')
   })
 
-  it('định nghĩa đúng 5 nhóm màu Mixamo (CHIN, WRISTS, ELBOWS, KNEES, GROIN) với 8 vòng tròn chính và tự suy ra 6 khớp phụ', () => {
-    expect(MIXAMO_RING_GROUPS.map((g) => g.title)).toEqual(['CHIN', 'WRISTS', 'ELBOWS', 'KNEES', 'GROIN'])
-    expect(MIXAMO_CORE_LANDMARK_IDS).toHaveLength(8)
+  it('định nghĩa đúng 7 nhóm giải phẫu Mixamo (có đủ Hai Vai & Cổ chân) với 12 vòng tròn chính và không ghi đè Vai/Cổ chân khi kéo khớp khác', () => {
+    expect(MIXAMO_RING_GROUPS.map((g) => g.title)).toEqual([
+      'CHIN',
+      'SHOULDERS',
+      'ELBOWS',
+      'WRISTS',
+      'GROIN',
+      'KNEES',
+      'ANKLES'
+    ])
+    expect(MIXAMO_CORE_LANDMARK_IDS).toHaveLength(12)
 
     const lm = createScaledLandmarks(1.0)
-    // Di chuyển Đầu gối trái (kneeL) xuống sâu hơn -> Cổ chân trái & phải (ankleL/R) tự động cập nhật theo
-    const moved = moveLandmarkPoint(lm, 'kneeL', { x: -30, y: 120 }, true, true)
-    expect(moved.kneeL).toEqual({ x: -30, y: 120 })
-    expect(moved.kneeR).toEqual({ x: 30, y: 120 })
-    expect(moved.ankleL.x).toBe(-30)
-    expect(moved.ankleR.x).toBe(30)
-    expect(moved.ankleL.y).toBeGreaterThan(175)
+    // Kéo Vai trái (shoulderL) rộng ra và Cổ chân trái (ankleL) dài xuống
+    const withCustomShoulder = moveLandmarkPoint(lm, 'shoulderL', { x: -55, y: -68 }, true, true)
+    expect(withCustomShoulder.shoulderL).toEqual({ x: -55, y: -68 })
+    expect(withCustomShoulder.shoulderR).toEqual({ x: 55, y: -68 })
+
+    const withCustomAnkle = moveLandmarkPoint(withCustomShoulder, 'ankleL', { x: -28, y: 195 }, true, true)
+    expect(withCustomAnkle.ankleL).toEqual({ x: -28, y: 195 })
+    expect(withCustomAnkle.ankleR).toEqual({ x: 28, y: 195 })
+
+    // Khi kéo Đầu gối (kneeL) hoặc Khuỷu tay (elbowL), tuyệt đối KHÔNG ghi đè lại Vai hay Cổ chân đã chỉnh
+    const afterKneeMove = moveLandmarkPoint(withCustomAnkle, 'kneeL', { x: -30, y: 118 }, true, true)
+    expect(afterKneeMove.shoulderL).toEqual({ x: -55, y: -68 })
+    expect(afterKneeMove.ankleL).toEqual({ x: -28, y: 195 })
 
     // Di chuyển Cằm (neck) lên cao -> Đỉnh đầu (headTop) và Ngực (chest) tự động dời theo
-    const movedChin = syncDerivedLandmarksFromCore8({ ...lm, neck: { x: 0, y: -110 } })
+    const movedChin = moveLandmarkPoint(afterKneeMove, 'neck', { x: 0, y: -110 }, true, true)
     expect(movedChin.headTop.y).toBeLessThan(lm.headTop.y)
     expect(movedChin.chest.y).toBeLessThan(lm.chest.y)
+    expect(movedChin.shoulderL).toEqual({ x: -55, y: -68 })
+    expect(movedChin.ankleL).toEqual({ x: -28, y: 195 })
+
+    // Hàm syncDerivedLandmarksFromCore8 vẫn hoạt động cho khởi tạo nhanh
+    const synced8 = syncDerivedLandmarksFromCore8({ ...lm, neck: { x: 0, y: -110 } })
+    expect(synced8.headTop.y).toBeLessThan(lm.headTop.y)
   })
 
-  it('sinh trọn bộ 7 động tác mẫu chuẩn khi gắn xương tự động từ 8 điểm Mixamo', () => {
+  it('sinh trọn bộ 7 động tác mẫu chuẩn khi gắn xương tự động từ 12 điểm giải phẫu Mixamo', () => {
     let comp = createSampleComposite()
     const bones = buildHumanoidBonesFromLandmarks(createScaledLandmarks(0.75))
     const clips = buildStarterPresetClipsForBones(bones, 'front')
@@ -236,4 +256,5 @@ describe('workshopMixamoAutoRig & clip deletion', () => {
     expect(comp.rig!.activeClipId).toBe(clips[0].id)
   })
 })
+
 

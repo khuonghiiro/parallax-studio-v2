@@ -80,17 +80,17 @@ export function WorkshopMixamoRigCard({ composite, run }: WorkshopMixamoRigCardP
 
   return (
     <div className="lw-card-section lw-mixamo-rig-card">
-      <div className="lw-card-header" style={{ marginBottom: '6px' }}>
-        <span className="lw-card-title">
-          <span>🎯 Gắn Điểm Tự Động Mixamo</span>
-          <span className="lw-card-badge">8 điểm → 15 khớp</span>
+      <div className="lw-card-header" style={{ marginBottom: '6px', flexWrap: 'nowrap' }}>
+        <span className="lw-card-title" style={{ minWidth: 0 }}>
+          <span style={{ whiteSpace: 'nowrap' }}>🎯 Gắn Điểm Mixamo</span>
+          <span className="lw-card-badge" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>12 điểm</span>
         </span>
         <button
           type="button"
           className="btn xs primary"
           onClick={() => setIsStudioOpen(true)}
-          title="Mở cửa sổ lớn xem mẫu xương chuyển động & đặt 8 vòng tròn Mixamo"
-          style={{ fontSize: '10px', padding: '2px 7px' }}
+          title="Mở cửa sổ lớn Studio Mixamo để đặt 12 điểm khớp (Cằm, Vai, Khuỷu, Cổ tay, Háng, Gối, Cổ chân) và xem thử chuyển động"
+          style={{ fontSize: '10px', padding: '2px 7px', whiteSpace: 'nowrap', flexShrink: 0 }}
         >
           🎬 Mở Studio Mixamo
         </button>
@@ -128,14 +128,14 @@ export function WorkshopMixamoRigCard({ composite, run }: WorkshopMixamoRigCardP
             onChange={(e) => setLiveSync(e.target.checked)}
             style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
           />
-          <span>⚡ Tự động cập nhật khung xương trực tiếp khi kéo 8 vòng tròn</span>
+          <span>⚡ Tự động cập nhật khung xương trực tiếp khi kéo 12 vòng tròn</span>
         </label>
 
         <button
           type="button"
           className="btn sm primary"
           onClick={handleApplyAutoRigAndStarterPack}
-          title="Tự động tạo 15 khớp xương từ 8 điểm (Cằm, Cổ tay, Khuỷu tay, Đầu gối, Háng), liên kết layer và nạp sẵn bộ 7 động tác mẫu (Đi bộ, Đứng thở, Chạy, Vẫy tay, Nhảy, Vung đòn, Cúi chào)"
+          title="Tự động tạo 15 khớp xương từ 12 điểm (Cằm, 2 Vai, 2 Khuỷu tay, 2 Cổ tay, Háng, 2 Đầu gối, 2 Cổ chân), liên kết layer và nạp sẵn bộ 7 động tác mẫu"
           style={{
             width: '100%',
             justifyContent: 'center',

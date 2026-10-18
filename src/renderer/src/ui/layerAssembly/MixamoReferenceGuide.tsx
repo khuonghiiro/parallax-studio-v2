@@ -1,5 +1,6 @@
 import type React from 'react'
 import {
+  MIXAMO_LANDMARK_META,
   MIXAMO_RING_GROUPS,
   type MixamoLandmarkId,
   type MixamoRingGroupMeta
@@ -9,12 +10,13 @@ export interface MixamoMarkerDockProps {
   activeLandmarkId: MixamoLandmarkId | null
   onSelectLandmark: (id: MixamoLandmarkId) => void
   onStartDockDrag: (id: MixamoLandmarkId, e: React.PointerEvent) => void
+  landmarks?: Record<MixamoLandmarkId, { x: number; y: number }>
 }
 
 /** Biểu tượng vòng tròn tâm rỗng chuẩn Mixamo (Hollow Ring + Center Dot) */
 export function MixamoHollowRingIcon({
   color,
-  size = 24,
+  size = 22,
   active = false,
   title
 }: {
@@ -24,7 +26,7 @@ export function MixamoHollowRingIcon({
   title?: string
 }) {
   const half = size / 2
-  const ringR = half - 3.5
+  const ringR = half - 3.2
   return (
     <svg
       width={size}
@@ -41,9 +43,9 @@ export function MixamoHollowRingIcon({
         cx={half}
         cy={half}
         r={ringR}
-        fill="rgba(15, 23, 42, 0.55)"
+        fill="rgba(15, 23, 42, 0.45)"
         stroke="rgba(0, 0, 0, 0.85)"
-        strokeWidth={4.6}
+        strokeWidth={4.2}
       />
       <circle
         cx={half}
@@ -51,28 +53,28 @@ export function MixamoHollowRingIcon({
         r={ringR}
         fill="none"
         stroke={color}
-        strokeWidth={3.2}
+        strokeWidth={2.8}
       />
       <line
-        x1={half - 4}
+        x1={half - 3.5}
         y1={half}
-        x2={half + 4}
+        x2={half + 3.5}
         y2={half}
         stroke="rgba(255,255,255,0.45)"
         strokeWidth={1}
       />
       <line
         x1={half}
-        y1={half - 4}
+        y1={half - 3.5}
         x2={half}
-        y2={half + 4}
+        y2={half + 3.5}
         stroke="rgba(255,255,255,0.45)"
         strokeWidth={1}
       />
       <circle
         cx={half}
         cy={half}
-        r={2.2}
+        r={2}
         fill="#ffffff"
         stroke="rgba(0,0,0,0.8)"
         strokeWidth={0.8}
@@ -82,32 +84,36 @@ export function MixamoHollowRingIcon({
 }
 
 /**
- * Khay dọc bên trái chứa 5 nhóm vòng tròn Mixamo (CHIN, WRISTS, ELBOWS, KNEES, GROIN)
- * giống hệt giao diện Adobe Mixamo Auto-Rigger: hỗ trợ kéo thả từ khay vào nhân vật hoặc click chọn.
+ * Khay dọc bên trái chứa 7 nhóm vòng tròn giải phẫu Mixamo
+ * (Cằm, Hai Vai, Khuỷu tay, Cổ tay, Háng, Đầu gối, Cổ chân):
+ * hỗ trợ kéo thả từ khay vào nhân vật hoặc click chọn từng bên Trái/Phải.
  */
 export function MixamoMarkerDock({
   activeLandmarkId,
   onSelectLandmark,
-  onStartDockDrag
+  onStartDockDrag,
+  landmarks
 }: MixamoMarkerDockProps) {
   return (
     <div
       className="lw-mixamo-marker-dock"
       style={{
-        width: '88px',
+        width: '154px',
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        gap: '3px',
-        padding: '4px 4px',
+        gap: '4px',
+        padding: '6px',
         background: 'var(--bg-2)',
         borderRight: '1px solid var(--line-soft)',
-        userSelect: 'none'
+        userSelect: 'none',
+        overflowY: 'auto'
       }}
     >
       {MIXAMO_RING_GROUPS.map((group: MixamoRingGroupMeta) => {
         const isGroupActive = group.landmarkIds.includes(activeLandmarkId as MixamoLandmarkId)
+        const primaryPt = landmarks?.[group.landmarkIds[0]]
         return (
           <div
             key={group.groupId}
@@ -115,33 +121,45 @@ export function MixamoMarkerDock({
             title={`${group.title} (${group.viTitle}): ${group.hint}. Kéo vòng tròn thả vào nhân vật hoặc click để chọn.`}
             style={{
               display: 'flex',
-              flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center',
-              flex: 1,
-              minHeight: 0,
-              padding: '2px 2px',
-              borderRadius: '5px',
+              justifyContent: 'space-between',
+              gap: '6px',
+              padding: '5px 7px',
+              borderRadius: '6px',
               border: `1px solid ${isGroupActive ? group.color : 'var(--line)'}`,
               background: isGroupActive
                 ? `color-mix(in srgb, ${group.color} 15%, var(--bg-1))`
                 : 'var(--bg-1)',
-              cursor: 'grab',
+              cursor: 'pointer',
               transition: 'border-color 0.15s ease, background 0.15s ease'
             }}
           >
-            <div
-              style={{
-                fontSize: '8.5px',
-                fontWeight: 800,
-                letterSpacing: '0.03em',
-                color: group.color,
-                lineHeight: 1.05
-              }}
-            >
-              {group.title} · {group.viTitle}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  color: group.color,
+                  lineHeight: 1.2,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+              >
+                {group.viTitle}
+              </div>
+              <div
+                style={{
+                  fontSize: '8.5px',
+                  color: 'var(--text-dim)',
+                  lineHeight: 1.15,
+                  marginTop: '1px'
+                }}
+              >
+                {primaryPt ? `(${primaryPt.x}, ${primaryPt.y})` : group.title}
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
               {group.landmarkIds.map((lmId, idx) => (
                 <div
                   key={lmId}
@@ -149,11 +167,15 @@ export function MixamoMarkerDock({
                     e.stopPropagation()
                     onStartDockDrag(lmId, e)
                   }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSelectLandmark(lmId)
+                  }}
                   style={{ cursor: 'grab', display: 'flex', alignItems: 'center' }}
                   title={
                     group.landmarkIds.length > 1
-                      ? `Kéo vòng ${group.viTitle} (${idx === 0 ? 'Trái' : 'Phải'}) thả vào nhân vật`
-                      : `Kéo vòng ${group.viTitle} thả vào nhân vật`
+                      ? `Kéo hoặc chọn vòng ${group.viTitle} (${idx === 0 ? 'Trái' : 'Phải'})`
+                      : `Kéo hoặc chọn vòng ${group.viTitle}`
                   }
                 >
                   <MixamoHollowRingIcon
@@ -172,42 +194,44 @@ export function MixamoMarkerDock({
 }
 
 /**
- * Sơ đồ hình nhân mẫu hướng dẫn vị trí đặt 5 nhóm vòng tròn Mixamo (CHIN, WRISTS, ELBOWS, KNEES, GROIN)
- * trực quan giống hệt bảng hướng dẫn bên phải của Adobe Mixamo.
+ * Sơ đồ hình nhân mẫu hướng dẫn vị trí đặt 7 nhóm vòng tròn giải phẫu Mixamo
+ * (Cằm, Hai Vai, Khuỷu tay, Cổ tay, Háng, Đầu gối, Cổ chân).
  */
 export function MixamoBodyReferenceGuide() {
   const markers = [
-    { label: 'CHIN (Cằm)', color: '#00d4e5', y: 40, pts: [{ x: 48, y: 40 }] },
-    { label: 'WRISTS (Cổ tay)', color: '#8bc34a', y: 74, pts: [{ x: 14, y: 78 }, { x: 82, y: 78 }] },
-    { label: 'ELBOWS (Khuỷu)', color: '#e6d74c', y: 60, pts: [{ x: 26, y: 63 }, { x: 70, y: 63 }] },
-    { label: 'KNEES (Đầu gối)', color: '#e88e2d', y: 122, pts: [{ x: 37, y: 122 }, { x: 59, y: 122 }] },
-    { label: 'GROIN (Háng)', color: '#e06287', y: 92, pts: [{ x: 48, y: 92 }] }
+    { label: 'CHIN (Cằm)', color: '#00d4e5', pts: [{ x: 48, y: 39 }] },
+    { label: 'SHOULDERS (Vai)', color: '#38bdf8', pts: [{ x: 33, y: 47 }, { x: 63, y: 47 }] },
+    { label: 'ELBOWS (Khuỷu)', color: '#facc15', pts: [{ x: 24, y: 63 }, { x: 72, y: 63 }] },
+    { label: 'WRISTS (Cổ tay)', color: '#84cc16', pts: [{ x: 14, y: 78 }, { x: 82, y: 78 }] },
+    { label: 'GROIN (Háng)', color: '#ec4899', pts: [{ x: 48, y: 92 }] },
+    { label: 'KNEES (Đầu gối)', color: '#fb923c', pts: [{ x: 38, y: 121 }, { x: 58, y: 121 }] },
+    { label: 'ANKLES (Cổ chân)', color: '#f43f5e', pts: [{ x: 38, y: 150 }, { x: 58, y: 150 }] }
   ]
 
   return (
     <div
       className="lw-mixamo-reference-guide"
       style={{
-        width: '124px',
+        width: '132px',
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '6px 6px',
+        padding: '6px',
         background: 'var(--bg-2)',
         borderLeft: '1px solid var(--line-soft)',
         userSelect: 'none'
       }}
-      title="Sơ đồ mẫu vị trí đặt 8 vòng tròn định vị xương tự động (Mixamo Auto-Rigger)"
+      title="Sơ đồ mẫu vị trí đặt 12 vòng tròn giải phẫu (Cằm, 2 Vai, 2 Khuỷu tay, 2 Cổ tay, Háng, 2 Đầu gối, 2 Cổ chân)"
     >
       <div style={{ fontSize: '9.5px', fontWeight: 700, color: 'var(--text)', textAlign: 'center' }}>
-        📖 Mẫu Đặt 8 Điểm
+        📖 Sơ Đồ 7 Nhóm Khớp
       </div>
       <svg
-        width="108"
-        height="168"
-        viewBox="0 0 96 168"
+        width="104"
+        height="156"
+        viewBox="0 0 96 164"
         style={{ display: 'block', overflow: 'visible' }}
       >
         {/* Trục đối xứng giữa */}
@@ -215,18 +239,18 @@ export function MixamoBodyReferenceGuide() {
           x1={48}
           y1={8}
           x2={48}
-          y2={162}
+          y2={158}
           stroke="rgba(255,255,255,0.22)"
           strokeWidth={1}
           strokeDasharray="3 3"
         />
 
         {/* Hình bóng nhân vật mẫu (Mannequin Silhouette) */}
-        <g fill="rgba(148, 163, 184, 0.28)" stroke="rgba(148, 163, 184, 0.55)" strokeWidth={1.2}>
+        <g fill="rgba(148, 163, 184, 0.26)" stroke="rgba(148, 163, 184, 0.52)" strokeWidth={1.2}>
           {/* Đầu */}
-          <ellipse cx={48} cy={25} rx={12} ry={14} />
+          <ellipse cx={48} cy={24} rx={11.5} ry={13.5} />
           {/* Cổ */}
-          <rect x={44} y={37} width={8} height={7} rx={2} />
+          <rect x={44} y={36} width={8} height={7} rx={2} />
           {/* Thân trên & Hông */}
           <path d="M33 44 Q48 42 63 44 L59 92 Q48 96 37 92 Z" />
           {/* Tay trái */}
@@ -239,19 +263,19 @@ export function MixamoBodyReferenceGuide() {
           <path d="M59 92 L62 122 L62 152 L54 152 L53 122 L49 94 Z" />
         </g>
 
-        {/* 8 vòng tròn màu chuẩn Mixamo trên hình mẫu */}
+        {/* 12 vòng tròn màu chuẩn giải phẫu trên hình mẫu */}
         {markers.map((m) =>
           m.pts.map((pt, i) => (
             <g key={`${m.label}-${i}`} transform={`translate(${pt.x}, ${pt.y})`}>
-              <circle r={6.2} fill="rgba(15, 23, 42, 0.7)" stroke="#000" strokeWidth={2.4} />
-              <circle r={6.2} fill="none" stroke={m.color} strokeWidth={1.8} />
-              <circle r={1.4} fill="#fff" />
+              <circle r={5.2} fill="rgba(15, 23, 42, 0.72)" stroke="#000" strokeWidth={2} />
+              <circle r={5.2} fill="none" stroke={m.color} strokeWidth={1.6} />
+              <circle r={1.2} fill="#fff" />
             </g>
           ))
         )}
       </svg>
 
-      {/* Chú thích 5 màu */}
+      {/* Chú thích 7 nhóm màu */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%' }}>
         {MIXAMO_RING_GROUPS.map((g) => (
           <div
@@ -275,8 +299,8 @@ export function MixamoBodyReferenceGuide() {
                 flexShrink: 0
               }}
             />
-            <strong style={{ color: g.color, fontSize: '8.5px' }}>{g.title}:</strong>
-            <span>{g.viTitle}</span>
+            <strong style={{ color: g.color, fontSize: '8.5px' }}>{g.viTitle}</strong>
+            <span style={{ opacity: 0.75, fontSize: '8px' }}>({g.landmarkIds.length})</span>
           </div>
         ))}
       </div>
@@ -285,8 +309,8 @@ export function MixamoBodyReferenceGuide() {
 }
 
 /**
- * Hiển thị 8 vòng tròn màu chuẩn Mixamo (CHIN, WRISTS, ELBOWS, KNEES, GROIN) + trục đối xứng
- * ngay trên màn hình 2D chính khi đang ở tab Tạo xương để người dùng kéo thả 8 điểm trực tiếp.
+ * Hiển thị 12 vòng tròn giải phẫu Mixamo (Cằm, 2 Vai, 2 Khuỷu tay, 2 Cổ tay, Háng, 2 Đầu gối, 2 Cổ chân)
+ * + trục đối xứng ngay trên màn hình 2D chính khi đang ở tab Tạo xương để người dùng kéo thả trực tiếp.
  */
 export function MixamoViewportRingsOverlay({
   landmarks,
@@ -300,16 +324,7 @@ export function MixamoViewportRingsOverlay({
   onStartDragLandmark: (e: React.PointerEvent, id: MixamoLandmarkId, label: string, color: string) => void
 }) {
   const halfH = canvasHeight / 2
-  const ringList: Array<{ id: MixamoLandmarkId; label: string; tag: string; color: string }> = [
-    { id: 'neck', label: 'CHIN · Cằm', tag: 'CHIN', color: '#00d4e5' },
-    { id: 'wristL', label: 'WRISTS · Cổ tay T', tag: 'WRIST', color: '#8bc34a' },
-    { id: 'wristR', label: 'WRISTS · Cổ tay P', tag: 'WRIST', color: '#8bc34a' },
-    { id: 'elbowL', label: 'ELBOWS · Khuỷu T', tag: 'ELBOW', color: '#e6d74c' },
-    { id: 'elbowR', label: 'ELBOWS · Khuỷu P', tag: 'ELBOW', color: '#e6d74c' },
-    { id: 'kneeL', label: 'KNEES · Đầu gối T', tag: 'KNEE', color: '#e88e2d' },
-    { id: 'kneeR', label: 'KNEES · Đầu gối P', tag: 'KNEE', color: '#e88e2d' },
-    { id: 'pelvis', label: 'GROIN · Háng (Gốc)', tag: 'GROIN', color: '#e06287' }
-  ]
+  const coreMeta = MIXAMO_LANDMARK_META.filter((m) => m.isCoreMixamo !== false)
 
   return (
     <g className="lw-mixamo-viewport-rings">
@@ -319,45 +334,46 @@ export function MixamoViewportRingsOverlay({
         y1={-halfH}
         x2={landmarks.pelvis.x}
         y2={halfH}
-        stroke="rgba(255, 255, 255, 0.45)"
-        strokeWidth={1.5}
+        stroke="rgba(255, 255, 255, 0.38)"
+        strokeWidth={1.2}
         strokeDasharray="6 4"
         pointerEvents="none"
       />
-      {ringList.map((r) => {
-        const pt = landmarks[r.id]
-        const isActive = activeLandmarkId === r.id
-        const radius = isActive ? 15 : 12.5
+      {coreMeta.map((m) => {
+        const pt = landmarks[m.id]
+        const isActive = activeLandmarkId === m.id
+        const radius = isActive ? 13 : 10.5
         return (
           <g
-            key={r.id}
+            key={m.id}
             transform={`translate(${pt.x}, ${pt.y})`}
             style={{ cursor: 'grab' }}
-            onPointerDown={(e) => onStartDragLandmark(e, r.id, r.label, r.color)}
+            onPointerDown={(e) => onStartDragLandmark(e, m.id, m.label, m.color)}
           >
             <title>
-              {`${r.label}: Kéo vòng tròn để tự động căn chỉnh khung xương (Giữ Alt để tắt đối xứng 2 bên)`}
+              {`${m.label} (${pt.x}, ${pt.y}): Kéo vòng tròn để định vị khớp xương (Giữ Alt để tắt đối xứng 2 bên)`}
             </title>
             <circle r={radius + 4} fill="transparent" />
             <circle
               r={radius}
-              fill="rgba(15, 23, 42, 0.2)"
-              stroke="rgba(0, 0, 0, 0.85)"
-              strokeWidth={6}
+              fill="rgba(15, 23, 42, 0.14)"
+              stroke="rgba(0, 0, 0, 0.82)"
+              strokeWidth={4.8}
             />
             <circle
               r={radius}
               fill="none"
-              stroke={r.color}
-              strokeWidth={isActive ? 4.4 : 3.6}
+              stroke={m.color}
+              strokeWidth={isActive ? 3.8 : 3}
             />
-            <line x1={-4.5} y1={0} x2={4.5} y2={0} stroke="rgba(255,255,255,0.6)" strokeWidth={1} />
-            <line x1={0} y1={-4.5} x2={0} y2={4.5} stroke="rgba(255,255,255,0.6)" strokeWidth={1} />
-            <circle r={2.4} fill="#ffffff" stroke="rgba(0,0,0,0.85)" strokeWidth={1} />
+            <line x1={-4} y1={0} x2={4} y2={0} stroke="rgba(255,255,255,0.55)" strokeWidth={0.9} />
+            <line x1={0} y1={-4} x2={0} y2={4} stroke="rgba(255,255,255,0.55)" strokeWidth={0.9} />
+            <circle r={2} fill="#ffffff" stroke="rgba(0,0,0,0.85)" strokeWidth={0.9} />
           </g>
         )
       })}
     </g>
   )
 }
+
 

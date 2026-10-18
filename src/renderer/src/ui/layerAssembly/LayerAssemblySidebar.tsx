@@ -29,6 +29,7 @@ export interface LayerAssemblySidebarProps {
   onDeleteLayer?: (layerId: string) => void
   onDuplicateLayer?: (layerId: string) => void
   onLoadComposite?: (composite: LayerComposite) => void
+  width?: number
 }
 
 interface CustomAssetItem {
@@ -56,7 +57,8 @@ export function LayerAssemblySidebar({
   onAppendPresetLayers,
   onDeleteLayer,
   onDuplicateLayer,
-  onLoadComposite
+  onLoadComposite,
+  width = 260
 }: LayerAssemblySidebarProps) {
   const [activeTab, setActiveTab] = useState<'builtin' | 'presets' | 'project'>('project')
   const [searchTerm, setSearchTerm] = useState('')
@@ -235,8 +237,8 @@ export function LayerAssemblySidebar({
     <div
       className="layer-workshop-sidebar"
       style={{
-        width: '260px',
-        minWidth: '250px',
+        width: `${width}px`,
+        minWidth: '190px',
         background: 'var(--bg-2)',
         borderRight: '1px solid var(--line-soft)',
         display: 'flex',

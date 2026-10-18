@@ -32,7 +32,14 @@ export interface LandmarkPoint {
 
 export type MixamoLandmarks = Record<MixamoLandmarkId, LandmarkPoint>
 
-export type MixamoRingGroupId = 'chin' | 'wrists' | 'elbows' | 'knees' | 'groin'
+export type MixamoRingGroupId =
+  | 'chin'
+  | 'shoulders'
+  | 'elbows'
+  | 'wrists'
+  | 'groin'
+  | 'knees'
+  | 'ankles'
 
 export interface MixamoRingGroupMeta {
   groupId: MixamoRingGroupId
@@ -44,65 +51,87 @@ export interface MixamoRingGroupMeta {
 }
 
 /**
- * 5 nhóm vòng tròn định vị chuẩn Mixamo Auto-Rigger (tổng cộng 8 vòng tròn tâm rỗng):
+ * 7 nhóm vòng tròn định vị chuẩn giải phẫu Mixamo 2.5D (tổng cộng 12 vòng tròn tâm rỗng):
  * - CHIN (Cằm): 1 vòng màu Xanh Cyan (#00d4e5)
- * - WRISTS (Cổ tay): 2 vòng màu Xanh Lá (#8bc34a)
- * - ELBOWS (Khuỷu tay): 2 vòng màu Vàng (#e6d74c)
- * - KNEES (Đầu gối): 2 vòng màu Cam (#e88e2d)
- * - GROIN (Háng / Tâm hông): 1 vòng màu Hồng (#e06287)
+ * - SHOULDERS (Hai Vai): 2 vòng màu Xanh Dương Sáng (#38bdf8)
+ * - ELBOWS (Khuỷu tay): 2 vòng màu Vàng (#facc15)
+ * - WRISTS (Cổ tay): 2 vòng màu Xanh Lá (#84cc16)
+ * - GROIN (Háng / Tâm hông): 1 vòng màu Hồng (#ec4899)
+ * - KNEES (Đầu gối): 2 vòng màu Cam (#fb923c)
+ * - ANKLES (Cổ chân): 2 vòng màu Đỏ San Hô (#f43f5e)
  */
 export const MIXAMO_RING_GROUPS: MixamoRingGroupMeta[] = [
   {
     groupId: 'chin',
     title: 'CHIN',
-    viTitle: 'Cằm',
-    hint: 'Đặt vào dưới cằm (khớp cổ/đầu)',
+    viTitle: 'Cằm / Cổ',
+    hint: 'Đặt vào dưới cằm (khớp cổ & đầu)',
     color: '#00d4e5',
     landmarkIds: ['neck']
   },
   {
-    groupId: 'wrists',
-    title: 'WRISTS',
-    viTitle: 'Cổ tay',
-    hint: 'Đặt vào 2 cổ tay trái & phải',
-    color: '#8bc34a',
-    landmarkIds: ['wristL', 'wristR']
+    groupId: 'shoulders',
+    title: 'SHOULDERS',
+    viTitle: 'Hai Vai',
+    hint: 'Đặt vào 2 khớp vai trái & phải theo độ rộng vai nhân vật',
+    color: '#38bdf8',
+    landmarkIds: ['shoulderL', 'shoulderR']
   },
   {
     groupId: 'elbows',
     title: 'ELBOWS',
     viTitle: 'Khuỷu tay',
     hint: 'Đặt vào 2 khuỷu tay trái & phải',
-    color: '#e6d74c',
+    color: '#facc15',
     landmarkIds: ['elbowL', 'elbowR']
+  },
+  {
+    groupId: 'wrists',
+    title: 'WRISTS',
+    viTitle: 'Cổ tay',
+    hint: 'Đặt vào 2 cổ tay trái & phải',
+    color: '#84cc16',
+    landmarkIds: ['wristL', 'wristR']
+  },
+  {
+    groupId: 'groin',
+    title: 'GROIN',
+    viTitle: 'Háng / Hông',
+    hint: 'Đặt vào giữa háng (gốc hông & trục đối xứng)',
+    color: '#ec4899',
+    landmarkIds: ['pelvis']
   },
   {
     groupId: 'knees',
     title: 'KNEES',
     viTitle: 'Đầu gối',
     hint: 'Đặt vào 2 đầu gối trái & phải',
-    color: '#e88e2d',
+    color: '#fb923c',
     landmarkIds: ['kneeL', 'kneeR']
   },
   {
-    groupId: 'groin',
-    title: 'GROIN',
-    viTitle: 'Háng',
-    hint: 'Đặt vào giữa háng (gốc hông & trục đối xứng)',
-    color: '#e06287',
-    landmarkIds: ['pelvis']
+    groupId: 'ankles',
+    title: 'ANKLES',
+    viTitle: 'Cổ chân',
+    hint: 'Đặt vào 2 cổ chân / mắt cá chân trái & phải',
+    color: '#f43f5e',
+    landmarkIds: ['ankleL', 'ankleR']
   }
 ]
 
 export const MIXAMO_CORE_LANDMARK_IDS: MixamoLandmarkId[] = [
   'neck',
-  'wristL',
-  'wristR',
+  'shoulderL',
+  'shoulderR',
   'elbowL',
   'elbowR',
+  'wristL',
+  'wristR',
+  'pelvis',
   'kneeL',
   'kneeR',
-  'pelvis'
+  'ankleL',
+  'ankleR'
 ]
 
 export interface LandmarkMeta {
@@ -117,22 +146,22 @@ export interface LandmarkMeta {
 }
 
 export const MIXAMO_LANDMARK_META: LandmarkMeta[] = [
-  // 8 vòng tròn chính chuẩn Mixamo (5 nhóm màu)
-  { id: 'neck', label: 'CHIN · Cằm / Cổ', shortLabel: 'Cằm', mixamoTag: 'CHIN', color: '#00d4e5', radius: 7.5, isCoreMixamo: true },
-  { id: 'wristL', label: 'WRISTS · Cổ tay trái', shortLabel: 'Cổ tay T', mixamoTag: 'WRISTS', color: '#8bc34a', mirrorId: 'wristR', radius: 7, isCoreMixamo: true },
-  { id: 'wristR', label: 'WRISTS · Cổ tay phải', shortLabel: 'Cổ tay P', mixamoTag: 'WRISTS', color: '#8bc34a', mirrorId: 'wristL', radius: 7, isCoreMixamo: true },
-  { id: 'elbowL', label: 'ELBOWS · Khuỷu tay trái', shortLabel: 'Khuỷu T', mixamoTag: 'ELBOWS', color: '#e6d74c', mirrorId: 'elbowR', radius: 7, isCoreMixamo: true },
-  { id: 'elbowR', label: 'ELBOWS · Khuỷu tay phải', shortLabel: 'Khuỷu P', mixamoTag: 'ELBOWS', color: '#e6d74c', mirrorId: 'elbowL', radius: 7, isCoreMixamo: true },
-  { id: 'kneeL', label: 'KNEES · Đầu gối trái', shortLabel: 'Gối T', mixamoTag: 'KNEES', color: '#e88e2d', mirrorId: 'kneeR', radius: 7, isCoreMixamo: true },
-  { id: 'kneeR', label: 'KNEES · Đầu gối phải', shortLabel: 'Gối P', mixamoTag: 'KNEES', color: '#e88e2d', mirrorId: 'kneeL', radius: 7, isCoreMixamo: true },
-  { id: 'pelvis', label: 'GROIN · Háng (Tâm gốc)', shortLabel: 'Háng', mixamoTag: 'GROIN', color: '#e06287', radius: 8, isCoreMixamo: true },
-  // 6 khớp phụ tự động suy ra từ 8 vòng tròn chính (có thể bật tinh chỉnh nâng cao)
-  { id: 'headTop', label: 'Đỉnh đầu (Tự động)', shortLabel: 'Đầu', color: '#c084fc', radius: 5, isCoreMixamo: false },
-  { id: 'chest', label: 'Ngực / Thân trên (Tự động)', shortLabel: 'Ngực', color: '#60a5fa', radius: 5, isCoreMixamo: false },
-  { id: 'shoulderL', label: 'Vai trái (Tự động)', shortLabel: 'Vai T', color: '#34d399', mirrorId: 'shoulderR', radius: 5, isCoreMixamo: false },
-  { id: 'shoulderR', label: 'Vai phải (Tự động)', shortLabel: 'Vai P', color: '#34d399', mirrorId: 'shoulderL', radius: 5, isCoreMixamo: false },
-  { id: 'ankleL', label: 'Cổ chân trái (Tự động)', shortLabel: 'Chân T', color: '#f87171', mirrorId: 'ankleR', radius: 5, isCoreMixamo: false },
-  { id: 'ankleR', label: 'Cổ chân phải (Tự động)', shortLabel: 'Chân P', color: '#f87171', mirrorId: 'ankleL', radius: 5, isCoreMixamo: false }
+  // 12 vòng tròn chính chuẩn giải phẫu (7 nhóm màu)
+  { id: 'neck', label: 'CHIN · Cằm / Cổ', shortLabel: 'Cằm', mixamoTag: 'CHIN', color: '#00d4e5', radius: 7, isCoreMixamo: true },
+  { id: 'shoulderL', label: 'SHOULDERS · Vai trái', shortLabel: 'Vai T', mixamoTag: 'SHOULDERS', color: '#38bdf8', mirrorId: 'shoulderR', radius: 6.5, isCoreMixamo: true },
+  { id: 'shoulderR', label: 'SHOULDERS · Vai phải', shortLabel: 'Vai P', mixamoTag: 'SHOULDERS', color: '#38bdf8', mirrorId: 'shoulderL', radius: 6.5, isCoreMixamo: true },
+  { id: 'elbowL', label: 'ELBOWS · Khuỷu tay trái', shortLabel: 'Khuỷu T', mixamoTag: 'ELBOWS', color: '#facc15', mirrorId: 'elbowR', radius: 6.5, isCoreMixamo: true },
+  { id: 'elbowR', label: 'ELBOWS · Khuỷu tay phải', shortLabel: 'Khuỷu P', mixamoTag: 'ELBOWS', color: '#facc15', mirrorId: 'elbowL', radius: 6.5, isCoreMixamo: true },
+  { id: 'wristL', label: 'WRISTS · Cổ tay trái', shortLabel: 'Cổ tay T', mixamoTag: 'WRISTS', color: '#84cc16', mirrorId: 'wristR', radius: 6.5, isCoreMixamo: true },
+  { id: 'wristR', label: 'WRISTS · Cổ tay phải', shortLabel: 'Cổ tay P', mixamoTag: 'WRISTS', color: '#84cc16', mirrorId: 'wristL', radius: 6.5, isCoreMixamo: true },
+  { id: 'pelvis', label: 'GROIN · Háng (Tâm gốc)', shortLabel: 'Háng', mixamoTag: 'GROIN', color: '#ec4899', radius: 7.5, isCoreMixamo: true },
+  { id: 'kneeL', label: 'KNEES · Đầu gối trái', shortLabel: 'Gối T', mixamoTag: 'KNEES', color: '#fb923c', mirrorId: 'kneeR', radius: 6.5, isCoreMixamo: true },
+  { id: 'kneeR', label: 'KNEES · Đầu gối phải', shortLabel: 'Gối P', mixamoTag: 'KNEES', color: '#fb923c', mirrorId: 'kneeL', radius: 6.5, isCoreMixamo: true },
+  { id: 'ankleL', label: 'ANKLES · Cổ chân trái', shortLabel: 'Chân T', mixamoTag: 'ANKLES', color: '#f43f5e', mirrorId: 'ankleR', radius: 6.5, isCoreMixamo: true },
+  { id: 'ankleR', label: 'ANKLES · Cổ chân phải', shortLabel: 'Chân P', mixamoTag: 'ANKLES', color: '#f43f5e', mirrorId: 'ankleL', radius: 6.5, isCoreMixamo: true },
+  // 2 khớp trục phụ (Đỉnh đầu & Ngực) tự động suy từ Cằm và Háng
+  { id: 'headTop', label: 'Đỉnh đầu (Trục đầu)', shortLabel: 'Đầu', color: '#c084fc', radius: 5, isCoreMixamo: false },
+  { id: 'chest', label: 'Ngực (Trục thân)', shortLabel: 'Ngực', color: '#60a5fa', radius: 5, isCoreMixamo: false }
 ]
 
 /** Toạ độ chuẩn (scale = 1.0) khớp với bộ xương createHumanoidBones mặc định */
@@ -378,8 +407,37 @@ export function syncDerivedLandmarksFromCore8(lm: MixamoLandmarks): MixamoLandma
 }
 
 /**
- * Di chuyển một điểm nhấn, hỗ trợ đối xứng gương Trái ⇄ Phải qua trục X của Hông (pelvis.x)
- * và tự động cập nhật các khớp phụ khi di chuyển 1 trong 8 vòng tròn chính của Mixamo.
+ * Tự động cập nhật 2 khớp trục thân (Đỉnh đầu & Ngực) từ Cằm (neck) và Háng (pelvis),
+ * giữ nguyên 100% vị trí Vai (shoulderL/R) và Cổ chân (ankleL/R) do người dùng đặt.
+ */
+export function syncSpineLandmarks(lm: MixamoLandmarks): MixamoLandmarks {
+  const chin = lm.neck
+  const groin = lm.pelvis
+  const torsoDx = chin.x - groin.x
+  const torsoDy = chin.y - groin.y
+  const torsoLen = Math.max(20, Math.hypot(torsoDx, torsoDy))
+
+  const chest: LandmarkPoint = {
+    x: Math.round(groin.x + torsoDx * 0.435),
+    y: Math.round(groin.y + torsoDy * 0.435)
+  }
+
+  const headLen = Math.max(24, Math.round(torsoLen * 0.522))
+  const headTop: LandmarkPoint = {
+    x: chin.x,
+    y: Math.round(chin.y - headLen)
+  }
+
+  return {
+    ...lm,
+    headTop,
+    chest
+  }
+}
+
+/**
+ * Di chuyển một điểm nhấn, hỗ trợ đối xứng gương Trái ⇄ Phải qua trục X của Hông (pelvis.x).
+ * Khi kéo Cằm hoặc Háng thì tự động cập nhật trục Ngực & Đỉnh đầu, tuyệt đối không ghi đè Vai hoặc Cổ chân.
  */
 export function moveLandmarkPoint(
   landmarks: MixamoLandmarks,
@@ -401,8 +459,8 @@ export function moveLandmarkPoint(
     }
   }
 
-  if (syncDerived && meta?.isCoreMixamo) {
-    return syncDerivedLandmarksFromCore8(next)
+  if (syncDerived && (id === 'neck' || id === 'pelvis')) {
+    return syncSpineLandmarks(next)
   }
   return next
 }

@@ -1,4 +1,4 @@
-import { useState, useId, useEffect } from 'react'
+import { useState, useId, useEffect, useMemo } from 'react'
 import type { AnimationClip, LayerBone, MotionViewAngle } from '@shared/layerRig'
 import type { LayerComposite } from './types'
 import type { ProceduralMotionPreset } from './workshopRigPresets'
@@ -60,21 +60,24 @@ export function WorkshopNewMotionModal({
   const [isCustomName, setIsCustomName] = useState<boolean>(false)
   const [autoBindSoft, setAutoBindSoft] = useState<boolean>(true)
   const [landmarks, setLandmarks] = useState<MixamoLandmarks>(() =>
-    composite
-      ? autoDetectLandmarksFromComposite(composite)
-      : extractLandmarksFromBones(bones) ?? createScaledLandmarks(1)
+    extractLandmarksFromBones(bones) ??
+    (composite ? autoDetectLandmarksFromComposite(composite) : createScaledLandmarks(1))
   )
 
   useEffect(() => {
     if (isOpen) {
-      if (composite && composite.layers.length > 0) {
+      const fromBones = extractLandmarksFromBones(bones)
+      if (fromBones) {
+        setLandmarks(fromBones)
+      } else if (composite && composite.layers.length > 0) {
         setLandmarks(autoDetectLandmarksFromComposite(composite))
       } else {
-        const fromBones = extractLandmarksFromBones(bones)
-        setLandmarks(fromBones ?? createScaledLandmarks(1))
+        setLandmarks(createScaledLandmarks(1))
       }
     }
   }, [isOpen, bones, composite])
+
+  const previewBones = useMemo(() => buildHumanoidBonesFromLandmarks(landmarks), [landmarks])
 
   const nameInputId = useId()
   const durationInputId = useId()
@@ -119,7 +122,7 @@ export function WorkshopNewMotionModal({
   /** Chỉ thêm clip vào bộ xương hiện có (không đổi xương) */
   const handleCreateClipOnly = () => {
     const finalName = name.trim() || getAutoName(selectedPreset, selectedAngle)
-    const activeBones = bones.length > 0 ? bones : buildHumanoidBonesFromLandmarks(landmarks)
+    const activeBones = bones.length > 0 ? bones : previewBones
     let clip: AnimationClip
 
     if (selectedPreset === 'blank') {
@@ -144,10 +147,10 @@ export function WorkshopNewMotionModal({
     onClose()
   }
 
-  /** Gắn xương mới theo tọa độ điểm nhấn Mixamo + tự động co giãn động tác theo kích thước xương */
+  /** Gắn xương mới theo tọa độ 12 điểm giải phẫu Mixamo + tự động co giãn động tác theo kích thước xương */
   const handleApplyMixamoRigAndMotion = () => {
     const finalName = name.trim() || getAutoName(selectedPreset, selectedAngle)
-    const generatedBones = buildHumanoidBonesFromLandmarks(landmarks)
+    const generatedBones = previewBones
     const clip = buildMixamoClipForBones({
       preset: selectedPreset,
       bones: generatedBones,
@@ -170,9 +173,9 @@ export function WorkshopNewMotionModal({
     }
   }
 
-  /** Gắn 15 xương theo 8 vòng tròn Mixamo + nạp sẵn trọn bộ 7 động tác mẫu theo góc đang chọn */
+  /** Gắn 15 xương theo 12 vòng tròn giải phẫu Mixamo + nạp sẵn trọn bộ 7 động tác mẫu theo góc đang chọn */
   const handleApplyMixamoStarterPack = () => {
-    const generatedBones = buildHumanoidBonesFromLandmarks(landmarks)
+    const generatedBones = previewBones
     const starterClips = buildStarterPresetClipsForBones(generatedBones, selectedAngle)
     if (onApplyMixamoRigMotion) {
       onApplyMixamoRigMotion({
@@ -197,13 +200,13 @@ export function WorkshopNewMotionModal({
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.68)',
-        backdropFilter: 'blur(3px)',
+        backgroundColor: 'rgba(0, 0, 0, 0.72)',
+        backdropFilter: 'blur(4px)',
         zIndex: 60000,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '14px'
+        padding: '12px'
       }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
@@ -211,13 +214,14 @@ export function WorkshopNewMotionModal({
     >
       <div
         style={{
-          width: '960px',
+          width: '1220px',
           maxWidth: '96vw',
-          maxHeight: '92vh',
+          height: '86vh',
+          maxHeight: '840px',
           backgroundColor: 'var(--bg-1)',
           border: '1px solid var(--line-focus)',
           borderRadius: '10px',
-          boxShadow: '0 18px 42px rgba(0, 0, 0, 0.5)',
+          boxShadow: '0 20px 48px rgba(0, 0, 0, 0.55)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden'
@@ -231,17 +235,21 @@ export function WorkshopNewMotionModal({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: 'var(--bg-2)'
+            background: 'var(--bg-2)',
+            flexShrink: 0
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '16px' }}>🎬</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '18px' }}>🎬</span>
             <div>
-              <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text)' }}>
-                Thư Viện Động Tác Mẫu & Gắn Điểm Khung Xương (Mixamo Auto-Rig)
+              <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>Studio Mixamo 2.5D — Gắn 12 Điểm Giải Phẫu & Thư Viện Động Tác Mẫu</span>
+                <span className="lw-card-badge" style={{ fontSize: '10px' }}>
+                  Cằm · 2 Vai · 2 Khuỷu · 2 Cổ tay · Háng · 2 Gối · 2 Cổ chân
+                </span>
               </div>
-              <div style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}>
-                Xem mẫu người với xương chuyển động sẵn, đặt điểm khớp theo kích cỡ nhân vật để tự động nhận xương và gắn động tác
+              <div style={{ fontSize: '10.5px', color: 'var(--text-dim)', marginTop: '1px' }}>
+                Đặt 12 vòng tròn theo đúng vai, tay, háng, đầu gối và cổ chân của nhân vật (trái) — Xem thử chuyển động & chọn mẫu (phải)
               </div>
             </div>
           </div>
@@ -249,39 +257,70 @@ export function WorkshopNewMotionModal({
             type="button"
             className="btn xs icon"
             onClick={onClose}
-            title="Đóng hộp thoại"
-            style={{ width: '24px', height: '24px' }}
+            title="Đóng Studio Mixamo"
+            style={{ width: '26px', height: '26px' }}
           >
-            <IconX width={12} height={12} />
+            <IconX width={13} height={13} />
           </button>
         </div>
 
-        {/* Body 2-column grid */}
+        {/* Body 2-pane Studio Layout: [Sân Khấu Đặt 12 Điểm Khớp Lớn (58%)] | [Bảng Xem Thử & Chọn Động Tác (42%)] */}
         <div
           style={{
-            padding: '14px 16px',
-            overflowY: 'auto',
+            padding: '12px 14px',
+            flex: 1,
+            minHeight: 0,
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '16px'
+            gridTemplateColumns: '1.38fr 1fr',
+            gap: '14px',
+            overflow: 'hidden'
           }}
         >
-          {/* CỘT TRÁI: Demo Người & Xương + Chọn Góc Nhìn + Chọn Mẫu Động Tác */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {/* CỘT TRÁI (RỘNG): Sân khấu đặt 12 vòng tròn giải phẫu trên nhân vật (Full Height, Có Zoom/Pan, Không đè chữ) */}
+          <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' }}>
+            <MixamoLandmarkPlacer
+              composite={composite}
+              landmarks={landmarks}
+              onChange={setLandmarks}
+              fullHeight
+            />
+          </div>
+
+          {/* CỘT PHẢI: Xem Thử Khung Xương Động Tác + Chọn Góc Nhìn + 12 Mẫu Chuyển Động + Thông Số */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              minHeight: 0,
+              height: '100%',
+              overflowY: 'auto',
+              paddingRight: '2px'
+            }}
+          >
             <MixamoMannequinPreview
               preset={selectedPreset}
               viewAngle={selectedAngle}
               duration={duration}
+              customBones={previewBones}
+              height={175}
             />
 
             {/* 1. Chọn Góc nhìn nhân vật */}
-            <div>
+            <div
+              style={{
+                padding: '8px 10px',
+                background: 'var(--bg-0)',
+                border: '1px solid var(--line-soft)',
+                borderRadius: '8px'
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                 <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text)' }}>
                   1. Chọn Góc nhìn nhân vật
                 </span>
                 <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>
-                  Biên độ vung chân tay theo góc
+                  Tự động đổi biên độ sải tay & chân
                 </span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
@@ -296,7 +335,7 @@ export function WorkshopNewMotionModal({
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        padding: '6px 4px',
+                        padding: '5px 4px',
                         borderRadius: '6px',
                         border: `1.5px solid ${isSelected ? 'var(--accent)' : 'var(--line)'}`,
                         backgroundColor: isSelected ? 'color-mix(in srgb, var(--accent) 14%, var(--bg-1))' : 'var(--bg-2)',
@@ -304,8 +343,8 @@ export function WorkshopNewMotionModal({
                         cursor: 'pointer'
                       }}
                     >
-                      <span style={{ fontSize: '14px' }}>{ang.icon}</span>
-                      <strong style={{ fontSize: '10.5px', marginTop: '2px' }}>{ang.label}</strong>
+                      <span style={{ fontSize: '13px' }}>{ang.icon}</span>
+                      <strong style={{ fontSize: '10px', marginTop: '1px' }}>{ang.label}</strong>
                       <span style={{ fontSize: '9px', opacity: 0.75 }}>{ang.degrees}</span>
                     </button>
                   )
@@ -314,21 +353,31 @@ export function WorkshopNewMotionModal({
             </div>
 
             {/* 2. Chọn Mẫu chuyển động */}
-            <div>
+            <div
+              style={{
+                padding: '8px 10px',
+                background: 'var(--bg-0)',
+                border: '1px solid var(--line-soft)',
+                borderRadius: '8px',
+                flex: 1,
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                 <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text)' }}>
                   2. Chọn Mẫu động tác có sẵn
                 </span>
                 <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>
-                  {MOTION_PRESETS.length} mẫu chuẩn
+                  {MOTION_PRESETS.length} mẫu chuẩn Mixamo
                 </span>
               </div>
               <div
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '6px',
-                  maxHeight: '175px',
+                  gap: '5px',
                   overflowY: 'auto',
                   paddingRight: '2px'
                 }}
@@ -344,21 +393,21 @@ export function WorkshopNewMotionModal({
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
-                        padding: '6px 8px',
+                        padding: '5px 7px',
                         borderRadius: '6px',
                         border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--line)'}`,
-                        backgroundColor: isSelected ? 'color-mix(in srgb, var(--accent) 12%, var(--bg-1))' : 'var(--bg-2)',
+                        backgroundColor: isSelected ? 'color-mix(in srgb, var(--accent) 14%, var(--bg-1))' : 'var(--bg-2)',
                         color: isSelected ? 'var(--accent)' : 'var(--text)',
                         cursor: 'pointer',
                         textAlign: 'left'
                       }}
                     >
-                      <span style={{ fontSize: '14px' }}>{p.icon}</span>
+                      <span style={{ fontSize: '13px' }}>{p.icon}</span>
                       <div style={{ overflow: 'hidden' }}>
-                        <div style={{ fontSize: '10.5px', fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                           {p.name.split(' (')[0]}
                         </div>
-                        <div style={{ fontSize: '9px', color: 'var(--text-dim)' }}>
+                        <div style={{ fontSize: '8.5px', color: 'var(--text-dim)' }}>
                           {p.duration}s
                         </div>
                       </div>
@@ -372,66 +421,57 @@ export function WorkshopNewMotionModal({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    padding: '6px 8px',
+                    padding: '5px 7px',
                     borderRadius: '6px',
                     border: `1px dashed ${selectedPreset === 'blank' ? 'var(--accent)' : 'var(--line)'}`,
-                    backgroundColor: selectedPreset === 'blank' ? 'color-mix(in srgb, var(--accent) 12%, var(--bg-1))' : 'var(--bg-2)',
+                    backgroundColor: selectedPreset === 'blank' ? 'color-mix(in srgb, var(--accent) 14%, var(--bg-1))' : 'var(--bg-2)',
                     color: selectedPreset === 'blank' ? 'var(--accent)' : 'var(--text)',
                     cursor: 'pointer',
                     textAlign: 'left'
                   }}
                 >
-                  <span style={{ fontSize: '14px' }}>➕</span>
+                  <span style={{ fontSize: '13px' }}>➕</span>
                   <div>
-                    <div style={{ fontSize: '10.5px', fontWeight: 600 }}>Tạo trống</div>
-                    <div style={{ fontSize: '9px', color: 'var(--text-dim)' }}>Tự diễn hoạt</div>
+                    <div style={{ fontSize: '10px', fontWeight: 600 }}>Tạo trống</div>
+                    <div style={{ fontSize: '8.5px', color: 'var(--text-dim)' }}>Tự diễn hoạt</div>
                   </div>
                 </button>
               </div>
             </div>
-          </div>
-
-          {/* CỘT PHẢI: Gắn Điểm Nhấn Mixamo Trên Nhân Vật + Cấu Hình */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <MixamoLandmarkPlacer
-              composite={composite}
-              landmarks={landmarks}
-              onChange={setLandmarks}
-            />
 
             {/* 3. Cấu hình tên, thời lượng & tự động gắn lưới */}
             <div
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '8px',
-                padding: '10px 12px',
+                gap: '6px',
+                padding: '8px 10px',
                 backgroundColor: 'var(--bg-0)',
                 borderRadius: '8px',
-                border: '1px solid var(--line-soft)'
+                border: '1px solid var(--line-soft)',
+                flexShrink: 0
               }}
             >
-              <div>
-                <label htmlFor={nameInputId} style={{ display: 'block', fontSize: '10.5px', color: 'var(--text-dim)', marginBottom: '3px' }}>
-                  Tên động tác:
-                </label>
-                <input
-                  id={nameInputId}
-                  type="text"
-                  className="input-text sm"
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value)
-                    setIsCustomName(true)
-                  }}
-                  style={{ width: '100%', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', alignItems: 'center' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.9fr', gap: '8px', alignItems: 'center' }}>
                 <div>
-                  <label htmlFor={durationInputId} style={{ display: 'block', fontSize: '10.5px', color: 'var(--text-dim)', marginBottom: '3px' }}>
-                    Thời lượng chu kỳ (giây):
+                  <label htmlFor={nameInputId} style={{ display: 'block', fontSize: '10px', color: 'var(--text-dim)', marginBottom: '2px' }}>
+                    Tên động tác:
+                  </label>
+                  <input
+                    id={nameInputId}
+                    type="text"
+                    className="input-text sm"
+                    value={name}
+                    onChange={(e) => {
+                      setName(e.target.value)
+                      setIsCustomName(true)
+                    }}
+                    style={{ width: '100%', boxSizing: 'border-box', height: '25px', fontSize: '11px' }}
+                  />
+                </div>
+                <div>
+                  <label htmlFor={durationInputId} style={{ display: 'block', fontSize: '10px', color: 'var(--text-dim)', marginBottom: '2px' }}>
+                    Thời lượng (giây):
                   </label>
                   <input
                     id={durationInputId}
@@ -442,34 +482,32 @@ export function WorkshopNewMotionModal({
                     className="input-text sm"
                     value={duration}
                     onChange={(e) => setDuration(Number(e.target.value))}
-                    style={{ width: '100%', boxSizing: 'border-box' }}
+                    style={{ width: '100%', boxSizing: 'border-box', height: '25px', fontSize: '11px' }}
                   />
                 </div>
+              </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingTop: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                <label htmlFor={loopInputId} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '10.5px', color: 'var(--text)', cursor: 'pointer' }}>
                   <input
                     id={loopInputId}
                     type="checkbox"
                     checked={isLoop}
                     onChange={(e) => setIsLoop(e.target.checked)}
-                    style={{ accentColor: 'var(--accent)', cursor: 'pointer', width: '14px', height: '14px' }}
+                    style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
                   />
-                  <label htmlFor={loopInputId} style={{ fontSize: '11px', color: 'var(--text)', cursor: 'pointer' }}>
-                    Lặp chu kỳ chuyển động
-                  </label>
-                </div>
-              </div>
+                  <span>🔄 Lặp chu kỳ</span>
+                </label>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingTop: '2px' }}>
-                <input
-                  id={bindInputId}
-                  type="checkbox"
-                  checked={autoBindSoft}
-                  onChange={(e) => setAutoBindSoft(e.target.checked)}
-                  style={{ accentColor: 'var(--accent)', cursor: 'pointer', width: '14px', height: '14px' }}
-                />
-                <label htmlFor={bindInputId} style={{ fontSize: '10.5px', color: 'var(--text-dim)', cursor: 'pointer' }}>
-                  🔗 Tự động gắn lưới Uốn mềm (Mesh 2D) của nhân vật vào khung xương mới
+                <label htmlFor={bindInputId} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '10.5px', color: 'var(--text-dim)', cursor: 'pointer' }}>
+                  <input
+                    id={bindInputId}
+                    type="checkbox"
+                    checked={autoBindSoft}
+                    onChange={(e) => setAutoBindSoft(e.target.checked)}
+                    style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
+                  />
+                  <span>🔗 Tự gắn lưới Uốn mềm (Mesh 2D)</span>
                 </label>
               </div>
             </div>
@@ -485,7 +523,8 @@ export function WorkshopNewMotionModal({
             justifyContent: 'space-between',
             alignItems: 'center',
             gap: '8px',
-            background: 'var(--bg-2)'
+            background: 'var(--bg-2)',
+            flexShrink: 0
           }}
         >
           <button type="button" className="btn sm" onClick={onClose}>
@@ -507,7 +546,7 @@ export function WorkshopNewMotionModal({
                 type="button"
                 className="btn sm"
                 onClick={handleApplyMixamoStarterPack}
-                title="Tạo 15 khớp xương từ 8 vòng tròn Mixamo và nạp sẵn trọn bộ 7 động tác chuẩn (Đi bộ, Đứng thở, Chạy, Vẫy tay, Nhảy, Vung đòn, Cúi chào)"
+                title="Tạo 15 khớp xương từ 12 vòng tròn giải phẫu và nạp sẵn trọn bộ 7 động tác chuẩn (Đi bộ, Đứng thở, Chạy, Vẫy tay, Nhảy, Vung đòn, Cúi chào)"
               >
                 📦 Gắn Xương & Nạp Trọn Bộ 7 Động Tác
               </button>
@@ -516,9 +555,9 @@ export function WorkshopNewMotionModal({
               type="button"
               className="btn sm primary"
               onClick={onApplyMixamoRigMotion ? handleApplyMixamoRigAndMotion : handleCreateClipOnly}
-              title="Tự động tạo 15 xương khớp theo 8 vòng tròn Mixamo đã đặt và gắn động tác vừa chọn lên nhân vật"
+              title="Tự động tạo 15 xương khớp theo 12 điểm giải phẫu đã đặt và gắn động tác vừa chọn lên nhân vật"
             >
-              <span>✨ Gắn Xương Theo 8 Điểm & Áp Động Tác</span>
+              <span>✨ Gắn Xương Theo 12 Điểm & Áp Động Tác</span>
             </button>
           </div>
         </div>
@@ -526,3 +565,4 @@ export function WorkshopNewMotionModal({
     </div>
   )
 }
+

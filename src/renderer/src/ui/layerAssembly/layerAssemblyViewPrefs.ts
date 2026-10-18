@@ -95,3 +95,95 @@ export function resetLayerWorkshopViewPrefs(): LayerWorkshopViewPrefs {
   }
   return { ...DEFAULT_LAYER_WORKSHOP_VIEW_PREFS }
 }
+
+export interface LayerWorkshopColumnPrefs {
+  leftSidebarWidth: number
+  centerSplitRatio: number
+  rightPanelWidth: number
+}
+
+export const DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS: LayerWorkshopColumnPrefs = {
+  leftSidebarWidth: 260,
+  centerSplitRatio: 0.5,
+  rightPanelWidth: 330
+}
+
+export const LAYER_WORKSHOP_COLUMN_PREFS_KEY = 'pxs.layerWorkshopColumnPrefs'
+
+export function clampLeftSidebarWidth(w: number): number {
+  return Math.max(190, Math.min(540, Math.round(w)))
+}
+
+export function clampCenterSplitRatio(r: number): number {
+  return Math.max(0.2, Math.min(0.8, Number(r.toFixed(3))))
+}
+
+export function clampRightPanelWidth(w: number): number {
+  return Math.max(250, Math.min(640, Math.round(w)))
+}
+
+export function isDefaultLayerWorkshopColumnPrefs(prefs: LayerWorkshopColumnPrefs): boolean {
+  return (
+    Math.abs(prefs.leftSidebarWidth - DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS.leftSidebarWidth) <= 1 &&
+    Math.abs(prefs.centerSplitRatio - DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS.centerSplitRatio) <= 0.005 &&
+    Math.abs(prefs.rightPanelWidth - DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS.rightPanelWidth) <= 1
+  )
+}
+
+export function loadLayerWorkshopColumnPrefs(): LayerWorkshopColumnPrefs {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return { ...DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS }
+  }
+  try {
+    const raw = localStorage.getItem(LAYER_WORKSHOP_COLUMN_PREFS_KEY)
+    if (!raw) return { ...DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS }
+    const parsed = JSON.parse(raw)
+    return {
+      leftSidebarWidth: Number.isFinite(parsed.leftSidebarWidth)
+        ? clampLeftSidebarWidth(parsed.leftSidebarWidth)
+        : DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS.leftSidebarWidth,
+      centerSplitRatio: Number.isFinite(parsed.centerSplitRatio)
+        ? clampCenterSplitRatio(parsed.centerSplitRatio)
+        : DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS.centerSplitRatio,
+      rightPanelWidth: Number.isFinite(parsed.rightPanelWidth)
+        ? clampRightPanelWidth(parsed.rightPanelWidth)
+        : DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS.rightPanelWidth
+    }
+  } catch {
+    return { ...DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS }
+  }
+}
+
+export function saveLayerWorkshopColumnPrefs(patch: Partial<LayerWorkshopColumnPrefs>): LayerWorkshopColumnPrefs {
+  const current = loadLayerWorkshopColumnPrefs()
+  const next: LayerWorkshopColumnPrefs = {
+    leftSidebarWidth:
+      patch.leftSidebarWidth !== undefined
+        ? clampLeftSidebarWidth(patch.leftSidebarWidth)
+        : current.leftSidebarWidth,
+    centerSplitRatio:
+      patch.centerSplitRatio !== undefined
+        ? clampCenterSplitRatio(patch.centerSplitRatio)
+        : current.centerSplitRatio,
+    rightPanelWidth:
+      patch.rightPanelWidth !== undefined
+        ? clampRightPanelWidth(patch.rightPanelWidth)
+        : current.rightPanelWidth
+  }
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      localStorage.setItem(LAYER_WORKSHOP_COLUMN_PREFS_KEY, JSON.stringify(next))
+    } catch {}
+  }
+  return next
+}
+
+export function resetLayerWorkshopColumnPrefs(): LayerWorkshopColumnPrefs {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      localStorage.removeItem(LAYER_WORKSHOP_COLUMN_PREFS_KEY)
+    } catch {}
+  }
+  return { ...DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS }
+}
+

@@ -8,7 +8,9 @@ import {
   IconFit,
   IconAxisMove,
   IconAxisRotate,
-  IconSun
+  IconSun,
+  IconBone,
+  IconMeshWireframe
 } from '../icons'
 import { CameraControlPopover } from './CameraControlPopover'
 import { LightingControlPopover } from './LightingControlPopover'
@@ -636,7 +638,7 @@ export function LayerAssembly3DToolbar({
             onMouseLeave={hideTooltip}
             aria-label="Bật/Tắt hiển thị khung xương 3D"
           >
-            <span style={{ fontSize: '13px' }}>🦴</span>
+            <IconBone width={15} height={15} />
           </button>
         )}
 
@@ -652,7 +654,7 @@ export function LayerAssembly3DToolbar({
             onMouseLeave={hideTooltip}
             aria-label="Bật/Tắt hiển thị lưới đa giác Mesh 3D"
           >
-            <span style={{ fontSize: '13px' }}>🕸️</span>
+            <IconMeshWireframe width={15} height={15} />
           </button>
         )}
 

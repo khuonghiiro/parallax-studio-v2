@@ -19,6 +19,16 @@ import '../../styles/layerWorkshopRig.css'
 import { WorkshopRightPanel, type WorkshopTab } from './WorkshopRightPanel'
 import { ensureRigClips } from './workshopRig'
 import { CreateLayerAssemblyModal } from './CreateLayerAssemblyModal'
+import {
+  DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS,
+  clampLeftSidebarWidth,
+  clampRightPanelWidth,
+  isDefaultLayerWorkshopColumnPrefs,
+  loadLayerWorkshopColumnPrefs,
+  resetLayerWorkshopColumnPrefs,
+  saveLayerWorkshopColumnPrefs,
+  type LayerWorkshopColumnPrefs
+} from './layerAssemblyViewPrefs'
 
 export type AssemblyWorkspaceView = '2d' | '3d' | 'split'
 export interface LayerAssemblyDialogProps { initialComposite?: LayerComposite | null; onClose: () => void }
@@ -47,6 +57,58 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
   const [showNewConfirm, setShowNewConfirm] = useState(false)
   const [isBrushActive, setIsBrushActive] = useState(false)
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
+  const [colPrefs, setColPrefs] = useState<LayerWorkshopColumnPrefs>(() => loadLayerWorkshopColumnPrefs())
+  const [draggingCol, setDraggingCol] = useState<'left' | 'right' | null>(null)
+
+  const updateColPrefs = (patch: Partial<LayerWorkshopColumnPrefs>) => {
+    setColPrefs((prev) => {
+      const next = { ...prev, ...patch }
+      saveLayerWorkshopColumnPrefs(next)
+      return next
+    })
+  }
+
+  const handleResetColumns = () => {
+    setColPrefs(resetLayerWorkshopColumnPrefs())
+  }
+
+  const startLeftColResize = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const startX = e.clientX
+    const startW = colPrefs.leftSidebarWidth
+    setDraggingCol('left')
+    const onMove = (ev: PointerEvent) => {
+      const nextW = clampLeftSidebarWidth(startW + (ev.clientX - startX))
+      updateColPrefs({ leftSidebarWidth: nextW })
+    }
+    const onUp = () => {
+      setDraggingCol(null)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+
+  const startRightColResize = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const startX = e.clientX
+    const startW = colPrefs.rightPanelWidth
+    setDraggingCol('right')
+    const onMove = (ev: PointerEvent) => {
+      const nextW = clampRightPanelWidth(startW - (ev.clientX - startX))
+      updateColPrefs({ rightPanelWidth: nextW })
+    }
+    const onUp = () => {
+      setDraggingCol(null)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
 
   // Kiểm tra xem composite hiện tại có thay đổi chưa lưu hay không
   const hasUnsavedChanges = (): boolean => {
@@ -107,7 +169,9 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
     <div className="layer-workshop-dialog" role="dialog" aria-modal="true" aria-label="Xưởng Lắp Ráp Layer" onPointerDownCapture={() => history.begin()}>
       <WorkshopHeader composite={composite} setComposite={setComposite} primaryMode={primaryMode} setPrimaryMode={setPrimaryMode} view={view} setView={setView}
         busy={saving.busy} save={() => void saving.save()} insert={() => void saving.insert()} close={close}
-        onNewModel={handleRequestNewModel} />
+        onNewModel={handleRequestNewModel}
+        hasCustomColumns={!isDefaultLayerWorkshopColumnPrefs(colPrefs)}
+        onResetColumns={handleResetColumns} />
       {primaryMode === 'assembly' ? (
         <>
           <WorkshopTools
@@ -140,7 +204,19 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
                   state.select(loaded.layers[0].id)
                 }
               }}
+              width={colPrefs.leftSidebarWidth}
             />
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Co dãn độ rộng cột Tài nguyên bên trái"
+              className={`lw-col-splitter${draggingCol === 'left' ? ' active' : ''}`}
+              onPointerDown={startLeftColResize}
+              onDoubleClick={() => updateColPrefs({ leftSidebarWidth: DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS.leftSidebarWidth })}
+              title="Kéo trái/phải để co dãn cột Tài nguyên (Nháy đúp để về 260px)"
+            >
+              <span className="lw-col-splitter-grip" />
+            </div>
             <div className="lw-workspace-column">
               <WorkshopWorkspace
                 state={state}
@@ -151,10 +227,24 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
                 boneId={boneId}
                 selectBone={selectBone}
                 onBrushModeChange={setIsBrushActive}
+                centerSplitRatio={colPrefs.centerSplitRatio}
+                onChangeCenterSplitRatio={(r) => updateColPrefs({ centerSplitRatio: r })}
+                onResetCenterSplitRatio={() => updateColPrefs({ centerSplitRatio: DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS.centerSplitRatio })}
               />
               {tab === 'animation' && <WorkshopAnimationTimeline state={state} playback={playback} boneId={boneId} selectBone={selectBone} />}
             </div>
-            <WorkshopRightPanel state={state} playback={playback} tab={tab} setTab={setTab} boneId={boneId} selectBone={selectBone}>
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Co dãn độ rộng cột Công cụ bên phải"
+              className={`lw-col-splitter${draggingCol === 'right' ? ' active' : ''}`}
+              onPointerDown={startRightColResize}
+              onDoubleClick={() => updateColPrefs({ rightPanelWidth: DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS.rightPanelWidth })}
+              title="Kéo trái/phải để co dãn cột Công cụ bên phải (Nháy đúp để về 330px)"
+            >
+              <span className="lw-col-splitter-grip" />
+            </div>
+            <WorkshopRightPanel state={state} playback={playback} tab={tab} setTab={setTab} boneId={boneId} selectBone={selectBone} width={colPrefs.rightPanelWidth}>
             <LayerAssemblyInspector composite={composite} selectedLayerId={state.selectedLayerId} selectedIds={state.selection}
               onSelectLayer={state.select} onUpdateLayer={state.update} onAddLayer={() => state.add(`Lớp ${composite.layers.length + 1}`, '')}
               onDeleteLayer={(id) => state.run('delete', undefined, [id])} onDuplicateLayer={(id) => state.run('duplicate', undefined, [id])}

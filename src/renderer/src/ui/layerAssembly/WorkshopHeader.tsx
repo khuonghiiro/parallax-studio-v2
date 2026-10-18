@@ -1,6 +1,6 @@
 import type { LayerComposite } from './types'
 import type { AssemblyWorkspaceView } from './LayerAssemblyDialog'
-import { IconLayers, IconPlus, IconX, IconDownload, IconUpload, IconScissors } from '../icons'
+import { IconLayers, IconPlus, IconX, IconDownload, IconUpload, IconScissors, IconColumns4 } from '../icons'
 import { exportCompositeToGitProject, importCompositeFromGitProject } from './layerAssemblyGitExport'
 
 export type WorkshopPrimaryMode = 'assembly' | 'cutter'
@@ -16,7 +16,9 @@ export function WorkshopHeader({
   save,
   insert,
   close,
-  onNewModel
+  onNewModel,
+  hasCustomColumns = false,
+  onResetColumns
 }: {
   composite: LayerComposite
   setComposite: (update: LayerComposite) => void
@@ -29,6 +31,8 @@ export function WorkshopHeader({
   insert: () => void
   close: () => void
   onNewModel: () => void
+  hasCustomColumns?: boolean
+  onResetColumns?: () => void
 }) {
   const hasBase64Images = composite.layers.some((l) => typeof l.imageUrl === 'string' && l.imageUrl.startsWith('data:image/'))
 
@@ -76,6 +80,16 @@ export function WorkshopHeader({
             {mode === 'split' ? '2D & 3D' : mode.toUpperCase()}
           </button>
         ))}
+        {onResetColumns && (
+          <button
+            type="button"
+            className={`view-mode-tab-btn lw-reset-cols-btn${hasCustomColumns ? ' modified' : ''}`}
+            onClick={onResetColumns}
+            title="Đặt lại độ rộng 4 cột về mặc định (260px · 50/50 · 330px). Bạn có thể kéo các vách ngăn giữa 4 cột để tuỳ chỉnh rộng/hẹp."
+          >
+            <IconColumns4 width={12} height={12} /> Mặc định 4 cột
+          </button>
+        )}
       </div>
     )}
     <div className="layer-workshop-header-actions">

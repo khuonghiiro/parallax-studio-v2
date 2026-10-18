@@ -7,10 +7,10 @@ import { WorkshopPlantPanel } from './WorkshopPlantPanel'
 import { applyRigAction, type RigAction } from './workshopRig'
 
 export type WorkshopTab = 'layers' | 'bones' | 'animation' | 'plant'
-export function WorkshopRightPanel({ state, playback, tab, setTab, boneId, selectBone, children }: {
+export function WorkshopRightPanel({ state, playback, tab, setTab, boneId, selectBone, width = 330, children }: {
   state: ReturnType<typeof useLayerWorkshop>; playback: ReturnType<typeof useWorkshopPlayback>
   tab: WorkshopTab; setTab: (tab: WorkshopTab) => void; boneId: string | null
-  selectBone: (id: string | null) => void; children: ReactNode
+  selectBone: (id: string | null) => void; width?: number; children: ReactNode
 }) {
   const [error, setError] = useState('')
   const run = (action: RigAction) => {
@@ -26,7 +26,7 @@ export function WorkshopRightPanel({ state, playback, tab, setTab, boneId, selec
     selectBone,
     run
   }
-  return <aside className="lw-right-column">
+  return <aside className="lw-right-column" style={{ width: `${width}px`, minWidth: '250px' }}>
     <div className="lw-right-tabs" role="tablist" aria-label="Công cụ lắp ráp">
       {([['layers', 'Layer'], ['bones', 'Tạo xương'], ['animation', 'Animation'], ['plant', 'Thực vật']] as const).map(([id, title]) =>
         <button key={id} role="tab" id={`lw-tab-${id}`} aria-controls={`lw-panel-${id}`} aria-selected={tab === id}

@@ -4,31 +4,41 @@ import { useLayerAssetImage } from './useLayerAssetImage'
 import {
   MIXAMO_CORE_LANDMARK_IDS,
   MIXAMO_LANDMARK_META,
+  MIXAMO_RING_GROUPS,
   autoDetectLandmarksFromComposite,
   buildHumanoidBonesFromLandmarks,
   createScaledLandmarks,
   moveLandmarkPoint,
-  syncDerivedLandmarksFromCore8,
+  syncSpineLandmarks,
   type MixamoLandmarkId,
   type MixamoLandmarks
 } from './workshopMixamoAutoRig'
-import { MixamoBodyReferenceGuide, MixamoMarkerDock } from './MixamoReferenceGuide'
+import { MixamoBodyReferenceGuide, MixamoHollowRingIcon, MixamoMarkerDock } from './MixamoReferenceGuide'
 
 export interface MixamoLandmarkPlacerProps {
   composite?: LayerComposite
   landmarks: MixamoLandmarks
   onChange: (next: MixamoLandmarks) => void
   compact?: boolean
+  fullHeight?: boolean
 }
 
 const SIZE_PRESETS = [
-  { label: '👶 Nhỏ (60%)', scale: 0.6, title: 'Khung xương nhỏ cho nhân vật Chibi / Trẻ em' },
-  { label: '🧒 Vừa (80%)', scale: 0.8, title: 'Khung xương cỡ vừa (80%)' },
-  { label: '🧍 Chuẩn (100%)', scale: 1.0, title: 'Khung xương tỉ lệ người chuẩn (100%)' },
-  { label: '🦸 Lớn (130%)', scale: 1.3, title: 'Khung xương lớn cho nhân vật cao to (130%)' }
+  { label: '60%', scale: 0.6, title: 'Khung xương nhỏ (60%) cho nhân vật Chibi / Trẻ em' },
+  { label: '80%', scale: 0.8, title: 'Khung xương cỡ vừa (80%)' },
+  { label: '100%', scale: 1.0, title: 'Khung xương tỉ lệ chuẩn (100%)' },
+  { label: '125%', scale: 1.25, title: 'Khung xương lớn (125%) cho nhân vật cao lớn' }
 ]
 
-const PLACE_SEQUENCE: MixamoLandmarkId[] = ['neck', 'wristL', 'elbowL', 'kneeL', 'pelvis']
+const PLACE_SEQUENCE: MixamoLandmarkId[] = [
+  'neck',
+  'shoulderL',
+  'elbowL',
+  'wristL',
+  'pelvis',
+  'kneeL',
+  'ankleL'
+]
 
 function LandmarkLayerImg({
   layer,
@@ -52,7 +62,7 @@ function LandmarkLayerImg({
         top: '50%',
         transform: `translate(-50%, -50%) translate(${layer.x}px, ${layer.y}px) rotate(${rot}deg) scale(${scale})`,
         transformOrigin: '50% 50%',
-        opacity: Math.min(0.92, layer.opacity ?? 1),
+        opacity: Math.min(0.95, layer.opacity ?? 1),
         pointerEvents: 'none',
         userSelect: 'none',
         maxWidth: 'none'
@@ -65,23 +75,31 @@ export function MixamoLandmarkPlacer({
   composite,
   landmarks,
   onChange,
-  compact = false
+  compact = false,
+  fullHeight = false
 }: MixamoLandmarkPlacerProps) {
   const svgRef = useRef<SVGSVGElement | null>(null)
   const [draggingId, setDraggingId] = useState<MixamoLandmarkId | null>(null)
   const [hoveredId, setHoveredId] = useState<MixamoLandmarkId | null>(null)
-  const [selectedDockId, setSelectedDockId] = useState<MixamoLandmarkId | null>('neck')
+  const [selectedDockId, setSelectedDockId] = useState<MixamoLandmarkId>('neck')
   const [symmetry, setSymmetry] = useState<boolean>(true)
-  const [showBonesPreview, setShowBonesPreview] = useState<boolean>(false)
+  const [showBonesPreview, setShowBonesPreview] = useState<boolean>(true)
   const [showExtraJoints, setShowExtraJoints] = useState<boolean>(false)
   const [showGuide, setShowGuide] = useState<boolean>(!compact)
   const [uniformScale, setUniformScale] = useState<number>(100)
+  const [zoom, setZoom] = useState<number>(1)
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
+  const [isPanning, setIsPanning] = useState<boolean>(false)
 
   const compW = Math.max(320, composite?.width || 550)
   const compH = Math.max(360, composite?.height || 600)
   const halfW = compW / 2
   const halfH = compH / 2
-  const pinScale = Math.max(1, Math.min(2.2, Math.max(compW, compH) / 480))
+  const viewW = compW / zoom
+  const viewH = compH / zoom
+  const viewX = -viewW / 2 - pan.x
+  const viewY = -viewH / 2 - pan.y
+  const pinScale = Math.max(0.85, Math.min(1.85, Math.max(compW, compH) / 520)) / Math.sqrt(zoom)
 
   const previewBones = useMemo(() => buildHumanoidBonesFromLandmarks(landmarks), [landmarks])
 
@@ -101,21 +119,21 @@ export function MixamoLandmarkPlacer({
     if (ctm) {
       const pt = new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse())
       return {
-        x: Math.max(-halfW + 10, Math.min(halfW - 10, Math.round(pt.x))),
-        y: Math.max(-halfH + 10, Math.min(halfH - 10, Math.round(pt.y)))
+        x: Math.max(-halfW + 6, Math.min(halfW - 6, Math.round(pt.x))),
+        y: Math.max(-halfH + 6, Math.min(halfH - 6, Math.round(pt.y)))
       }
     }
     const rect = svg.getBoundingClientRect()
     if (rect.width <= 0 || rect.height <= 0) return null
-    const x = -halfW + ((clientX - rect.left) / rect.width) * compW
-    const y = -halfH + ((clientY - rect.top) / rect.height) * compH
+    const x = viewX + ((clientX - rect.left) / rect.width) * viewW
+    const y = viewY + ((clientY - rect.top) / rect.height) * viewH
     return {
-      x: Math.max(-halfW + 10, Math.min(halfW - 10, Math.round(x))),
-      y: Math.max(-halfH + 10, Math.min(halfH - 10, Math.round(y)))
+      x: Math.max(-halfW + 6, Math.min(halfW - 6, Math.round(x))),
+      y: Math.max(-halfH + 6, Math.min(halfH - 6, Math.round(y)))
     }
   }
 
-  // Hỗ trợ kéo vòng tròn trực tiếp từ Khay bên trái (Dock) sang vùng nhân vật
+  // Hỗ trợ kéo vòng tròn trực tiếp từ Khay bên trái hoặc trên nhân vật
   useEffect(() => {
     if (!draggingId) return
     const handleWinMove = (e: PointerEvent) => {
@@ -123,14 +141,14 @@ export function MixamoLandmarkPlacer({
       if (!svg) return
       const rect = svg.getBoundingClientRect()
       if (
-        e.clientX >= rect.left - 20 &&
-        e.clientX <= rect.right + 20 &&
-        e.clientY >= rect.top - 20 &&
-        e.clientY <= rect.bottom + 20
+        e.clientX >= rect.left - 24 &&
+        e.clientX <= rect.right + 24 &&
+        e.clientY >= rect.top - 24 &&
+        e.clientY <= rect.bottom + 24
       ) {
         const pt = clientToSvgPoint(e.clientX, e.clientY)
         if (pt) {
-          onChange(moveLandmarkPoint(landmarks, draggingId, pt, symmetry, true))
+          onChange(moveLandmarkPoint(landmarks, draggingId, pt, symmetry && !e.altKey, true))
         }
       }
     }
@@ -143,17 +161,47 @@ export function MixamoLandmarkPlacer({
       window.removeEventListener('pointermove', handleWinMove)
       window.removeEventListener('pointerup', handleWinUp)
     }
-  }, [draggingId, landmarks, symmetry, onChange])
+  }, [draggingId, landmarks, symmetry, onChange, zoom, pan])
 
-  const handleCanvasClick = (e: React.PointerEvent<SVGSVGElement>) => {
+  const handleCanvasPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (e.button === 1 || e.shiftKey) {
+      e.preventDefault()
+      setIsPanning(true)
+      const startX = e.clientX
+      const startY = e.clientY
+      const startPan = { ...pan }
+      const rect = e.currentTarget.getBoundingClientRect()
+      const factorX = rect.width > 0 ? viewW / rect.width : 1
+      const factorY = rect.height > 0 ? viewH / rect.height : 1
+      const onMove = (ev: PointerEvent) => {
+        setPan({
+          x: Math.round(startPan.x + (ev.clientX - startX) * factorX),
+          y: Math.round(startPan.y + (ev.clientY - startY) * factorY)
+        })
+      }
+      const onUp = () => {
+        setIsPanning(false)
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+      }
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+      return
+    }
     if (draggingId || !selectedDockId) return
     const pt = clientToSvgPoint(e.clientX, e.clientY)
     if (!pt) return
-    onChange(moveLandmarkPoint(landmarks, selectedDockId, pt, symmetry, true))
+    onChange(moveLandmarkPoint(landmarks, selectedDockId, pt, symmetry && !e.altKey, true))
     const idx = PLACE_SEQUENCE.indexOf(selectedDockId)
     if (idx >= 0 && idx < PLACE_SEQUENCE.length - 1) {
       setSelectedDockId(PLACE_SEQUENCE[idx + 1])
     }
+  }
+
+  const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
+    e.preventDefault()
+    const delta = e.deltaY < 0 ? 0.15 : -0.15
+    setZoom((z) => Math.max(0.6, Math.min(2.8, Number((z + delta).toFixed(2)))))
   }
 
   const baseLandmarks = useMemo(
@@ -171,7 +219,7 @@ export function MixamoLandmarkPlacer({
         y: Math.round(cy + (pt.y - cy) * ratio)
       }
     }
-    return syncDerivedLandmarksFromCore8(next)
+    return syncSpineLandmarks(next)
   }
 
   const handleApplyScalePreset = (scale: number) => {
@@ -181,7 +229,9 @@ export function MixamoLandmarkPlacer({
 
   const handleAutoFit = () => {
     setUniformScale(100)
-    onChange(syncDerivedLandmarksFromCore8(baseLandmarks))
+    setZoom(1)
+    setPan({ x: 0, y: 0 })
+    onChange(syncSpineLandmarks(baseLandmarks))
   }
 
   const visibleMetaList = useMemo(
@@ -192,9 +242,19 @@ export function MixamoLandmarkPlacer({
     [showExtraJoints]
   )
 
-  const activeMeta = MIXAMO_LANDMARK_META.find(
-    (m) => m.id === (draggingId || hoveredId || selectedDockId)
-  )
+  const activeId: MixamoLandmarkId = draggingId || hoveredId || selectedDockId || 'neck'
+  const activeMeta =
+    MIXAMO_LANDMARK_META.find((m) => m.id === activeId) ?? MIXAMO_LANDMARK_META[0]
+  const activePt = landmarks[activeMeta.id]
+
+  const updateActiveCoord = (axis: 'x' | 'y', val: number) => {
+    if (!Number.isFinite(val)) return
+    const nextPt = {
+      x: axis === 'x' ? Math.round(val) : activePt.x,
+      y: axis === 'y' ? Math.round(val) : activePt.y
+    }
+    onChange(moveLandmarkPoint(landmarks, activeMeta.id, nextPt, symmetry, true))
+  }
 
   return (
     <div
@@ -202,13 +262,16 @@ export function MixamoLandmarkPlacer({
       style={{
         display: 'flex',
         flexDirection: 'column',
+        flex: fullHeight ? 1 : undefined,
+        minHeight: fullHeight ? 0 : undefined,
+        height: fullHeight ? '100%' : undefined,
         background: 'var(--bg-0)',
         border: '1px solid var(--line)',
         borderRadius: '8px',
         overflow: 'hidden'
       }}
     >
-      {/* Header + Toggles */}
+      {/* Thanh công cụ trên cùng: gọn gàng, không che nhân vật */}
       <div
         style={{
           display: 'flex',
@@ -219,12 +282,59 @@ export function MixamoLandmarkPlacer({
           padding: '6px 10px',
           background: 'var(--bg-2)',
           borderBottom: '1px solid var(--line-soft)',
-          fontSize: '11px'
+          fontSize: '11px',
+          flexShrink: 0
         }}
       >
-        <span style={{ fontWeight: 700, color: 'var(--text)' }}>
-          🎯 Đặt 8 Vòng Tròn Định Vị Xương (Mixamo Auto-Rigger)
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn xs primary"
+            onClick={handleAutoFit}
+            title="Tự động đo kích thước layer nhân vật để đặt 12 vòng tròn giải phẫu vừa khít"
+            style={{ fontSize: '10px', padding: '2px 8px', fontWeight: 600 }}
+          >
+            🎯 Tự khớp nhân vật
+          </button>
+          {SIZE_PRESETS.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              className={`btn xs${uniformScale === Math.round(p.scale * 100) ? ' active' : ''}`}
+              onClick={() => handleApplyScalePreset(p.scale)}
+              title={p.title}
+              style={{ fontSize: '10px', padding: '2px 6px' }}
+            >
+              {p.label}
+            </button>
+          ))}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '10px',
+              color: 'var(--text-dim)'
+            }}
+          >
+            <span>Tỉ lệ:</span>
+            <input
+              type="range"
+              min={35}
+              max={160}
+              step={5}
+              value={uniformScale}
+              onChange={(e) => {
+                const val = Number(e.target.value)
+                setUniformScale(val)
+                onChange(scaleFromBase(val / 100))
+              }}
+              style={{ width: '54px', accentColor: 'var(--accent)', cursor: 'pointer' }}
+            />
+            <strong style={{ minWidth: '30px', color: 'var(--text)' }}>{uniformScale}%</strong>
+          </div>
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <label
             style={{
@@ -235,7 +345,7 @@ export function MixamoLandmarkPlacer({
               color: 'var(--text-dim)',
               cursor: 'pointer'
             }}
-            title="Khi kéo vòng Cổ tay / Khuỷu tay / Đầu gối 1 bên, bên kia tự động đối xứng qua trục Háng (GROIN)"
+            title="Khi kéo vòng Vai / Khuỷu tay / Cổ tay / Đầu gối / Cổ chân 1 bên, bên kia tự động đối xứng qua trục Háng (Giữ phím Alt khi kéo để chỉnh 1 bên riêng lẻ)"
           >
             <input
               type="checkbox"
@@ -254,7 +364,7 @@ export function MixamoLandmarkPlacer({
               color: 'var(--text-dim)',
               cursor: 'pointer'
             }}
-            title="Hiện bộ 15 xương tự động nối từ 8 vòng tròn Mixamo"
+            title="Hiển thị đường nối 15 đoạn xương tự động giữa các vòng tròn"
           >
             <input
               type="checkbox"
@@ -262,7 +372,7 @@ export function MixamoLandmarkPlacer({
               onChange={(e) => setShowBonesPreview(e.target.checked)}
               style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
             />
-            <span>🦴 Xương</span>
+            <span>🦴 Nối xương</span>
           </label>
           <label
             style={{
@@ -273,7 +383,7 @@ export function MixamoLandmarkPlacer({
               color: 'var(--text-dim)',
               cursor: 'pointer'
             }}
-            title="Hiện thêm 6 khớp phụ (Đỉnh đầu, Ngực, 2 Vai, 2 Cổ chân) để tinh chỉnh thủ công nếu cần"
+            title="Hiện thêm 2 điểm trục Đỉnh đầu & Ngực"
           >
             <input
               type="checkbox"
@@ -281,102 +391,96 @@ export function MixamoLandmarkPlacer({
               onChange={(e) => setShowExtraJoints(e.target.checked)}
               style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
             />
-            <span>+6 khớp phụ</span>
+            <span>+Đầu/Ngực</span>
           </label>
-          <button
-            type="button"
-            className={`btn xs ${showGuide ? 'primary' : 'ghost'}`}
-            onClick={() => setShowGuide((v) => !v)}
-            style={{ fontSize: '9.5px', padding: '1px 6px' }}
-            title="Ẩn/hiện sơ đồ hình nhân hướng dẫn đặt 5 màu vòng tròn Mixamo"
-          >
-            📖 Mẫu
-          </button>
+          {!compact && (
+            <button
+              type="button"
+              className={`btn xs ${showGuide ? 'primary' : ''}`}
+              onClick={() => setShowGuide((v) => !v)}
+              style={{ fontSize: '9.5px', padding: '1px 6px' }}
+              title="Ẩn/hiện sơ đồ hình nhân mẫu 7 nhóm khớp"
+            >
+              📖 Sơ đồ mẫu
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Thanh chọn nhanh kích cỡ nhân vật */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: '4px',
-          padding: '5px 8px',
-          background: 'var(--bg-1)',
-          borderBottom: '1px solid var(--line-soft)'
-        }}
-      >
-        <button
-          type="button"
-          className="btn xs primary"
-          onClick={handleAutoFit}
-          title="Tự động đo kích thước layer nhân vật để đặt 8 vòng tròn Mixamo vừa khít"
-          style={{ fontSize: '10px', padding: '2px 7px' }}
-        >
-          🎯 Tự khớp ảnh
-        </button>
-        {SIZE_PRESETS.map((p) => (
-          <button
-            key={p.label}
-            type="button"
-            className="btn xs"
-            onClick={() => handleApplyScalePreset(p.scale)}
-            title={p.title}
-            style={{ fontSize: '10px', padding: '2px 6px' }}
-          >
-            {p.label}
-          </button>
-        ))}
+      {/* Nếu ở chế độ compact (trong cột phải Tạo xương): hiển thị dải 7 nút chọn nhóm khớp nhanh thay vì nhồi 3 cột chật hẹp */}
+      {compact && (
         <div
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            marginLeft: 'auto',
-            fontSize: '10px',
-            color: 'var(--text-dim)'
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '3px',
+            padding: '5px 6px',
+            background: 'var(--bg-1)',
+            borderBottom: '1px solid var(--line-soft)',
+            flexShrink: 0
           }}
         >
-          <span>Cỡ:</span>
-          <input
-            type="range"
-            min={35}
-            max={160}
-            step={5}
-            value={uniformScale}
-            onChange={(e) => {
-              const val = Number(e.target.value)
-              setUniformScale(val)
-              onChange(scaleFromBase(val / 100))
-            }}
-            style={{ width: '56px', accentColor: 'var(--accent)', cursor: 'pointer' }}
-          />
-          <strong style={{ minWidth: '28px', color: 'var(--text)' }}>{uniformScale}%</strong>
+          {MIXAMO_RING_GROUPS.map((g) => {
+            const isGroupActive = g.landmarkIds.includes(activeId)
+            return (
+              <button
+                key={g.groupId}
+                type="button"
+                onClick={() => setSelectedDockId(g.landmarkIds[0])}
+                title={`${g.viTitle}: ${g.hint}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '3px 5px',
+                  borderRadius: '4px',
+                  border: `1px solid ${isGroupActive ? g.color : 'var(--line)'}`,
+                  background: isGroupActive
+                    ? `color-mix(in srgb, ${g.color} 16%, var(--bg-1))`
+                    : 'var(--bg-2)',
+                  color: 'var(--text)',
+                  cursor: 'pointer',
+                  fontSize: '9.5px',
+                  fontWeight: 600,
+                  textAlign: 'left',
+                  overflow: 'hidden'
+                }}
+              >
+                <MixamoHollowRingIcon color={g.color} size={14} active={isGroupActive} />
+                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: g.color }}>
+                  {g.viTitle.split(' /')[0]}
+                </span>
+              </button>
+            )
+          })}
         </div>
-      </div>
+      )}
 
-      {/* Bố cục 3 cột giống hệt Mixamo Auto-Rigger: [Khay 5 nhóm vòng tròn] | [Khung nhân vật + Trục đối xứng] | [Sơ đồ mẫu] */}
+      {/* Bố cục chính: [Khay 7 nhóm khớp (khi không compact)] | [Sân khấu nhân vật phóng to/thu nhỏ] | [Sơ đồ mẫu] */}
       <div
         style={{
           display: 'flex',
           alignItems: 'stretch',
-          height: compact ? '255px' : '285px',
+          flex: fullHeight ? 1 : undefined,
+          minHeight: fullHeight ? '360px' : undefined,
+          height: fullHeight ? '100%' : compact ? '270px' : '380px',
           width: '100%',
           overflow: 'hidden'
         }}
       >
-        {/* Cột 1: Khay 5 nhóm vòng tròn Mixamo (CHIN, WRISTS, ELBOWS, KNEES, GROIN) */}
-        <MixamoMarkerDock
-          activeLandmarkId={draggingId || hoveredId || selectedDockId}
-          onSelectLandmark={(id) => setSelectedDockId(id)}
-          onStartDockDrag={(id) => {
-            setSelectedDockId(id)
-            setDraggingId(id)
-          }}
-        />
+        {!compact && (
+          <MixamoMarkerDock
+            activeLandmarkId={activeId}
+            onSelectLandmark={(id) => setSelectedDockId(id)}
+            onStartDockDrag={(id) => {
+              setSelectedDockId(id)
+              setDraggingId(id)
+            }}
+            landmarks={landmarks}
+          />
+        )}
 
-        {/* Cột 2: Sân khấu nhân vật + 8 Vòng tròn rỗng Mixamo */}
+        {/* Sân khấu nhân vật trung tâm — hoàn toàn sạch, không có chữ hay thanh trạng thái đè lên nhân vật */}
         <div
           style={{
             position: 'relative',
@@ -389,20 +493,70 @@ export function MixamoLandmarkPlacer({
             justifyContent: 'center',
             overflow: 'hidden',
             background:
-              'radial-gradient(circle at 50% 45%, rgba(30, 41, 59, 0.55), rgba(15, 23, 42, 0.92))'
+              'radial-gradient(circle at 50% 45%, rgba(30, 41, 59, 0.52), rgba(15, 23, 42, 0.94))'
           }}
         >
+          {/* Cụm nút Phóng to / Thu nhỏ gọn ở góc trên bên phải */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '6px',
+              right: '6px',
+              zIndex: 5,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '2px',
+              padding: '2px 4px',
+              borderRadius: '5px',
+              background: 'rgba(15, 23, 42, 0.72)',
+              border: '1px solid rgba(148, 163, 184, 0.22)',
+              backdropFilter: 'blur(4px)'
+            }}
+          >
+            <button
+              type="button"
+              className="btn xs ghost"
+              onClick={() => setZoom((z) => Math.max(0.6, Number((z - 0.2).toFixed(2))))}
+              title="Thu nhỏ khung nhìn (Lăn chuột xuống)"
+              style={{ padding: '0 5px', height: '18px', fontSize: '10px', color: '#e2e8f0' }}
+            >
+              −
+            </button>
+            <button
+              type="button"
+              className="btn xs ghost"
+              onClick={() => {
+                setZoom(1)
+                setPan({ x: 0, y: 0 })
+              }}
+              title="Đặt lại phóng đại 100% và căn giữa (Giữ Shift + kéo chuột để dịch chuyển khung nhìn)"
+              style={{ padding: '0 5px', height: '18px', fontSize: '9.5px', color: '#e2e8f0' }}
+            >
+              {Math.round(zoom * 100)}%
+            </button>
+            <button
+              type="button"
+              className="btn xs ghost"
+              onClick={() => setZoom((z) => Math.min(2.8, Number((z + 0.2).toFixed(2))))}
+              title="Phóng to khung nhìn để đặt khớp thật chuẩn (Lăn chuột lên)"
+              style={{ padding: '0 5px', height: '18px', fontSize: '10px', color: '#e2e8f0' }}
+            >
+              +
+            </button>
+          </div>
+
           <svg
             ref={svgRef}
-            viewBox={`${-halfW} ${-halfH} ${compW} ${compH}`}
+            viewBox={`${viewX} ${viewY} ${viewW} ${viewH}`}
             preserveAspectRatio="xMidYMid meet"
             style={{
               width: '100%',
               height: '100%',
               display: 'block',
-              cursor: draggingId ? 'grabbing' : 'crosshair'
+              cursor: isPanning ? 'grabbing' : draggingId ? 'grabbing' : 'crosshair'
             }}
-            onPointerDown={handleCanvasClick}
+            onPointerDown={handleCanvasPointerDown}
+            onWheel={handleWheel}
           >
             {/* Hiển thị toàn bộ các layer của nhân vật */}
             {visibleLayers.length > 0 && (
@@ -433,40 +587,41 @@ export function MixamoLandmarkPlacer({
               </foreignObject>
             )}
 
-            {/* Đường trục đối xứng dọc đi qua tâm Háng (GROIN) giống hệt Mixamo */}
+            {/* Đường trục đối xứng dọc qua tâm Háng (GROIN) */}
             <line
               x1={landmarks.pelvis.x}
               y1={-halfH}
               x2={landmarks.pelvis.x}
               y2={halfH}
-              stroke="rgba(255, 255, 255, 0.65)"
-              strokeWidth={1.6 * pinScale}
+              stroke="rgba(255, 255, 255, 0.42)"
+              strokeWidth={1.2 * pinScale}
+              strokeDasharray={`${5 * pinScale} ${4 * pinScale}`}
             />
             <line
               x1={-halfW}
               y1={landmarks.pelvis.y}
               x2={halfW}
               y2={landmarks.pelvis.y}
-              stroke="rgba(224, 98, 135, 0.28)"
-              strokeWidth={1.2 * pinScale}
-              strokeDasharray="4 4"
+              stroke="rgba(236, 72, 153, 0.25)"
+              strokeWidth={1 * pinScale}
+              strokeDasharray={`${4 * pinScale} ${4 * pinScale}`}
             />
 
-            {/* Vẽ 15 đoạn xương tự động được nội suy từ 8 vòng tròn */}
+            {/* Vẽ 15 đoạn xương tự động nối từ 12 vòng tròn giải phẫu */}
             {showBonesPreview &&
               previewBones.map((b) => {
                 const rad = (b.angle * Math.PI) / 180
                 const tx = b.x + Math.cos(rad) * b.length
                 const ty = b.y + Math.sin(rad) * b.length
                 return (
-                  <g key={b.id} style={{ pointerEvents: 'none', opacity: 0.65 }}>
+                  <g key={b.id} style={{ pointerEvents: 'none', opacity: 0.62 }}>
                     <line
                       x1={b.x}
                       y1={b.y}
                       x2={tx}
                       y2={ty}
-                      stroke="rgba(15, 23, 42, 0.85)"
-                      strokeWidth={4.2 * pinScale}
+                      stroke="rgba(15, 23, 42, 0.8)"
+                      strokeWidth={3.2 * pinScale}
                       strokeLinecap="round"
                     />
                     <line
@@ -475,21 +630,22 @@ export function MixamoLandmarkPlacer({
                       x2={tx}
                       y2={ty}
                       stroke="#38bdf8"
-                      strokeWidth={2 * pinScale}
-                      strokeDasharray={`${4 * pinScale} ${2.5 * pinScale}`}
+                      strokeWidth={1.6 * pinScale}
+                      strokeDasharray={`${3.5 * pinScale} ${2.2 * pinScale}`}
                       strokeLinecap="round"
                     />
                   </g>
                 )
               })}
 
-            {/* Vẽ 8 Vòng Tròn Rỗng Chuẩn Mixamo (CHIN, WRISTS, ELBOWS, KNEES, GROIN) */}
+            {/* Vẽ 12 Vòng Tròn Rỗng Giải Phẫu (Cằm, 2 Vai, 2 Khuỷu tay, 2 Cổ tay, Háng, 2 Đầu gối, 2 Cổ chân) */}
             {visibleMetaList.map((meta) => {
               const pt = landmarks[meta.id]
+              const isDraggingThis = draggingId === meta.id
               const isActive =
-                draggingId === meta.id || hoveredId === meta.id || selectedDockId === meta.id
+                isDraggingThis || hoveredId === meta.id || selectedDockId === meta.id
               const isCore = meta.isCoreMixamo !== false
-              const ringR = (isCore ? (isActive ? 15.5 : 13) : isActive ? 9 : 7) * pinScale
+              const ringR = (isCore ? (isActive ? 11.5 : 9.5) : isActive ? 7.5 : 6) * pinScale
               return (
                 <g
                   key={meta.id}
@@ -503,103 +659,108 @@ export function MixamoLandmarkPlacer({
                   onPointerEnter={() => setHoveredId(meta.id)}
                   onPointerLeave={() => setHoveredId((prev) => (prev === meta.id ? null : prev))}
                 >
+                  <title>{`${meta.label} (${pt.x}, ${pt.y})`}</title>
+                  {/* Vùng bắt chuột rộng rãi nhưng trong suốt */}
+                  <circle r={ringR + 4 * pinScale} fill="transparent" />
                   {/* Vòng viền đen tương phản bên ngoài */}
                   <circle
                     r={ringR}
-                    fill="rgba(15, 23, 42, 0.22)"
-                    stroke="rgba(0, 0, 0, 0.85)"
-                    strokeWidth={(isCore ? 6.4 : 4) * pinScale}
+                    fill={isDraggingThis ? 'transparent' : 'rgba(15, 23, 42, 0.14)'}
+                    stroke="rgba(0, 0, 0, 0.82)"
+                    strokeWidth={(isCore ? 4.4 : 3.2) * pinScale}
                   />
                   {/* Vòng màu rỗng đặc trưng của Mixamo */}
                   <circle
                     r={ringR}
                     fill="none"
                     stroke={meta.color}
-                    strokeWidth={(isCore ? (isActive ? 4.6 : 3.8) : 2.4) * pinScale}
+                    strokeWidth={(isCore ? (isActive ? 3.2 : 2.6) : 2) * pinScale}
                   />
-                  {/* Chữ thập ngắm tâm bên trong vòng tròn */}
-                  {isCore && (
-                    <>
-                      <line
-                        x1={-5 * pinScale}
-                        y1={0}
-                        x2={5 * pinScale}
-                        y2={0}
-                        stroke="rgba(255,255,255,0.55)"
-                        strokeWidth={1.1 * pinScale}
-                      />
-                      <line
-                        x1={0}
-                        y1={-5 * pinScale}
-                        x2={0}
-                        y2={5 * pinScale}
-                        stroke="rgba(255,255,255,0.55)"
-                        strokeWidth={1.1 * pinScale}
-                      />
-                    </>
-                  )}
-                  {/* Chấm tâm chính xác */}
+                  {/* Chữ thập ngắm tâm mảnh giúp nhìn xuyên thấu chi tiết nhân vật bên dưới */}
+                  <line
+                    x1={-4 * pinScale}
+                    y1={0}
+                    x2={4 * pinScale}
+                    y2={0}
+                    stroke="rgba(255,255,255,0.65)"
+                    strokeWidth={0.9 * pinScale}
+                  />
+                  <line
+                    x1={0}
+                    y1={-4 * pinScale}
+                    x2={0}
+                    y2={4 * pinScale}
+                    stroke="rgba(255,255,255,0.65)"
+                    strokeWidth={0.9 * pinScale}
+                  />
                   <circle
-                    r={(isCore ? 2.6 : 2) * pinScale}
+                    r={(isCore ? 1.8 : 1.5) * pinScale}
                     fill="#ffffff"
                     stroke="rgba(0,0,0,0.85)"
-                    strokeWidth={1.1 * pinScale}
+                    strokeWidth={0.8 * pinScale}
                   />
-
-                  {/* Nhãn hiển thị khi rê chuột hoặc đang chọn */}
-                  {isActive && (
-                    <text
-                      x={0}
-                      y={-ringR - 6 * pinScale}
-                      textAnchor="middle"
-                      fill="#ffffff"
-                      stroke="rgba(0,0,0,0.9)"
-                      strokeWidth={3.5 * pinScale}
-                      paintOrder="stroke"
-                      fontSize={11.5 * pinScale}
-                      fontWeight="700"
-                      style={{ pointerEvents: 'none' }}
-                    >
-                      {meta.label} ({pt.x}, {pt.y})
-                    </text>
-                  )}
                 </g>
               )
             })}
           </svg>
-
-          {/* Thanh trạng thái hướng dẫn phía dưới sân khấu */}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '4px',
-              left: '6px',
-              right: '6px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              fontSize: '9.5px',
-              color: '#f8fafc',
-              background: 'rgba(15, 23, 42, 0.78)',
-              padding: '2px 7px',
-              borderRadius: '4px',
-              pointerEvents: 'none'
-            }}
-          >
-            {activeMeta ? (
-              <span style={{ color: activeMeta.color, fontWeight: 700 }}>
-                🎯 {activeMeta.label}: ({landmarks[activeMeta.id].x}, {landmarks[activeMeta.id].y})
-              </span>
-            ) : (
-              <span>💡 Kéo 8 vòng tròn đặt vào Cằm, Cổ tay, Khuỷu tay, Đầu gối, Háng</span>
-            )}
-            <span>8 điểm → 15 xương</span>
-          </div>
         </div>
 
-        {/* Cột 3: Sơ đồ hình nhân mẫu 5 màu (giống Ảnh 1 của Mixamo) */}
-        {showGuide && <MixamoBodyReferenceGuide />}
+        {/* Cột 3: Sơ đồ hình nhân mẫu 7 nhóm khớp (khi bật) */}
+        {!compact && showGuide && <MixamoBodyReferenceGuide />}
+      </div>
+
+      {/* Thanh thông tin & vi chỉnh toạ độ nằm BÊN DƯỚI sân khấu (tuyệt đối không đè lên nhân vật) */}
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '8px',
+          padding: '5px 10px',
+          background: 'var(--bg-2)',
+          borderTop: '1px solid var(--line-soft)',
+          fontSize: '10.5px',
+          flexShrink: 0
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+          <MixamoHollowRingIcon color={activeMeta.color} size={16} active />
+          <strong style={{ color: activeMeta.color, whiteSpace: 'nowrap' }}>
+            {activeMeta.label}
+          </strong>
+          <span style={{ color: 'var(--text-dim)', fontSize: '9.5px' }}>
+            (Giữ Alt khi kéo để chỉnh 1 bên)
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: 'var(--text-dim)', fontSize: '10px' }}>
+            <span>X:</span>
+            <input
+              type="number"
+              className="input-text xs"
+              value={activePt.x}
+              onChange={(e) => updateActiveCoord('x', Number(e.target.value))}
+              style={{ width: '52px', height: '20px', padding: '1px 4px', fontSize: '10px' }}
+            />
+          </label>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: 'var(--text-dim)', fontSize: '10px' }}>
+            <span>Y:</span>
+            <input
+              type="number"
+              className="input-text xs"
+              value={activePt.y}
+              onChange={(e) => updateActiveCoord('y', Number(e.target.value))}
+              style={{ width: '52px', height: '20px', padding: '1px 4px', fontSize: '10px' }}
+            />
+          </label>
+          <span style={{ fontSize: '9.5px', color: 'var(--text-faint)' }}>
+            12 điểm → 15 xương
+          </span>
+        </div>
       </div>
     </div>
   )
 }
+

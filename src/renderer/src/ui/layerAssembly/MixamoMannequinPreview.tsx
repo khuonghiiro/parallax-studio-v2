@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { LayerRig, MotionViewAngle } from '@shared/layerRig'
+import type { LayerBone, LayerRig, MotionViewAngle } from '@shared/layerRig'
 import { evaluateRig } from '../../engine/layerRig'
 import {
   createHumanoidBones,
@@ -11,6 +11,8 @@ export interface MixamoMannequinPreviewProps {
   preset: ProceduralMotionPreset | 'blank'
   viewAngle: MotionViewAngle
   duration: number
+  customBones?: LayerBone[]
+  height?: number
 }
 
 interface RenderedBoneSegment {
@@ -25,14 +27,16 @@ interface RenderedBoneSegment {
 export function MixamoMannequinPreview({
   preset,
   viewAngle,
-  duration
+  duration,
+  customBones,
+  height = 185
 }: MixamoMannequinPreviewProps) {
   const [isPlaying, setIsPlaying] = useState(true)
   const [speed, setSpeed] = useState<number>(1)
   const [time, setTime] = useState<number>(0)
 
   const demoRig = useMemo<LayerRig>(() => {
-    const bones = createHumanoidBones()
+    const bones = customBones && customBones.length > 0 ? customBones : createHumanoidBones()
     if (preset === 'blank') {
       return {
         bones,
@@ -48,7 +52,7 @@ export function MixamoMannequinPreview({
       loop: true,
       tracks: clip.tracks
     }
-  }, [preset, viewAngle, duration])
+  }, [preset, viewAngle, duration, customBones])
 
   useEffect(() => {
     if (!isPlaying) return
@@ -83,13 +87,46 @@ export function MixamoMannequinPreview({
 
   const getBone = (id: string): RenderedBoneSegment | undefined => segments.get(id)
 
+  const restMetrics = useMemo(() => {
+    let minY = Infinity
+    let maxY = -Infinity
+    let sumX = 0
+    for (const b of demoRig.bones) {
+      const rad = (b.angle * Math.PI) / 180
+      const tx = b.x + Math.cos(rad) * b.length
+      const ty = b.y + Math.sin(rad) * b.length
+      if (b.y < minY) minY = b.y
+      if (ty < minY) minY = ty
+      if (b.y > maxY) maxY = b.y
+      if (ty > maxY) maxY = ty
+      sumX += b.x
+    }
+    if (!Number.isFinite(minY) || !Number.isFinite(maxY)) {
+      minY = -145
+      maxY = 175
+    }
+    const pelvisBone = demoRig.bones.find((b) => b.id === 'bone-pelvis')
+    const centerX = pelvisBone ? pelvisBone.x : demoRig.bones.length ? sumX / demoRig.bones.length : 0
+    const spanH = Math.max(180, maxY - minY)
+    const s = Math.max(0.45, Math.min(3.2, spanH / 320))
+    const vbH = Math.round(spanH * 1.28)
+    const vbW = Math.round(vbH * 0.95)
+    const vbX = Math.round(centerX - vbW / 2)
+    const vbY = Math.round(minY - spanH * 0.14)
+    const floorY = Math.round(maxY + 6 * s)
+    return { centerX, minY, maxY, spanH, s, vbX, vbY, vbW, vbH, floorY }
+  }, [demoRig.bones])
+
+  const { s, vbX, vbY, vbW, vbH, floorY, centerX } = restMetrics
+
   const renderLimbCapsule = (
     bone: RenderedBoneSegment | undefined,
-    width: number,
+    baseWidth: number,
     fill: string,
     stroke: string
   ) => {
     if (!bone) return null
+    const width = baseWidth * s
     return (
       <g key={`limb-${bone.id}`}>
         <line
@@ -98,7 +135,7 @@ export function MixamoMannequinPreview({
           x2={bone.tailX}
           y2={bone.tailY}
           stroke={stroke}
-          strokeWidth={width + 2.5}
+          strokeWidth={width + 2.5 * s}
           strokeLinecap="round"
         />
         <line
@@ -130,10 +167,10 @@ export function MixamoMannequinPreview({
   const shinR = getBone('bone-shin-r')
   const footR = getBone('bone-foot-r')
 
-  const headCenterX = head ? (head.headX + head.tailX) * 0.5 : 0
-  const headCenterY = head ? (head.headY + head.tailY) * 0.5 : -115
+  const headCenterX = head ? (head.headX + head.tailX) * 0.5 : centerX
+  const headCenterY = head ? (head.headY + head.tailY) * 0.5 : -115 * s
   const faceOffsetX =
-    viewAngle === 'side' ? 9 : viewAngle === 'diagonal' ? 5 : 0
+    (viewAngle === 'side' ? 9 : viewAngle === 'diagonal' ? 5 : 0) * s
 
   return (
     <div
@@ -144,7 +181,8 @@ export function MixamoMannequinPreview({
         background: 'var(--bg-0)',
         border: '1px solid var(--line)',
         borderRadius: '8px',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        flexShrink: 0
       }}
     >
       <div
@@ -165,7 +203,7 @@ export function MixamoMannequinPreview({
           <button
             type="button"
             className="btn xs"
-            onClick={() => setSpeed((s) => (s === 1 ? 0.5 : 1))}
+            onClick={() => setSpeed((sp) => (sp === 1 ? 0.5 : 1))}
             title="Đổi tốc độ xem thử"
             style={{ fontSize: '10px', padding: '1px 5px' }}
           >
@@ -185,13 +223,14 @@ export function MixamoMannequinPreview({
       <div
         style={{
           position: 'relative',
-          height: '220px',
+          height: `${height}px`,
           width: '100%',
-          background: 'radial-gradient(circle at 50% 45%, rgba(30, 41, 59, 0.14), transparent 75%)'
+          background: 'radial-gradient(circle at 50% 45%, rgba(30, 41, 59, 0.22), transparent 78%)'
         }}
       >
         <svg
-          viewBox="-145 -170 290 380"
+          viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
+          preserveAspectRatio="xMidYMid meet"
           style={{ width: '100%', height: '100%', display: 'block' }}
         >
           <defs>
@@ -202,12 +241,20 @@ export function MixamoMannequinPreview({
           </defs>
 
           {/* Lưới nền & mặt đất */}
-          <line x1="-125" y1="180" x2="125" y2="180" stroke="var(--line)" strokeWidth="1.5" strokeDasharray="4 4" />
+          <line
+            x1={centerX - 125 * s}
+            y1={floorY}
+            x2={centerX + 125 * s}
+            y2={floorY}
+            stroke="var(--line)"
+            strokeWidth={1.5 * s}
+            strokeDasharray={`${4 * s} ${4 * s}`}
+          />
           <ellipse
-            cx={pelvis?.headX ?? 0}
-            cy={182}
-            rx={52}
-            ry={10}
+            cx={pelvis?.headX ?? centerX}
+            cy={floorY + 2 * s}
+            rx={52 * s}
+            ry={10 * s}
             fill="url(#mannequinFloorGrad)"
           />
 
@@ -229,21 +276,21 @@ export function MixamoMannequinPreview({
               <circle
                 cx={headCenterX}
                 cy={headCenterY}
-                r={24}
+                r={24 * s}
                 fill="#3b82f6"
                 stroke="#1d4ed8"
-                strokeWidth={2.2}
+                strokeWidth={2.2 * s}
               />
               {viewAngle !== 'back' && (
                 <rect
-                  x={headCenterX - 12 + faceOffsetX}
-                  y={headCenterY - 6}
-                  width={24}
-                  height={8}
-                  rx={4}
+                  x={headCenterX - 12 * s + faceOffsetX}
+                  y={headCenterY - 6 * s}
+                  width={24 * s}
+                  height={8 * s}
+                  rx={4 * s}
                   fill="#e0f2fe"
                   stroke="#0284c7"
-                  strokeWidth={1}
+                  strokeWidth={1 * s}
                 />
               )}
             </g>
@@ -266,41 +313,40 @@ export function MixamoMannequinPreview({
                 x2={b.tailX}
                 y2={b.tailY}
                 stroke="#fef08a"
-                strokeWidth={2.4}
+                strokeWidth={2.4 * s}
                 strokeLinecap="round"
               />
               <circle
                 cx={b.headX}
                 cy={b.headY}
-                r={b.id === 'bone-pelvis' ? 5.5 : 3.8}
+                r={(b.id === 'bone-pelvis' ? 5.5 : 3.8) * s}
                 fill={b.id === 'bone-pelvis' ? '#facc15' : '#ffffff'}
                 stroke="#0f172a"
-                strokeWidth={1.6}
+                strokeWidth={1.6 * s}
               />
             </g>
           ))}
         </svg>
+      </div>
 
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '5px',
-            left: '8px',
-            right: '8px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            fontSize: '10px',
-            color: 'var(--text-dim)',
-            pointerEvents: 'none'
-          }}
-        >
-          <span>
-            Góc: {viewAngle === 'front' ? '0° Chính diện' : viewAngle === 'diagonal' ? '45° Chéo' : viewAngle === 'side' ? '90° Ngang' : '180° Sau lưng'}
-          </span>
-          <span>
-            {time.toFixed(1)}s / {demoRig.duration.toFixed(1)}s
-          </span>
-        </div>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '4px 10px',
+          background: 'var(--bg-2)',
+          borderTop: '1px solid var(--line-soft)',
+          fontSize: '10px',
+          color: 'var(--text-dim)'
+        }}
+      >
+        <span>
+          Góc nhìn: <strong style={{ color: 'var(--text)' }}>{viewAngle === 'front' ? '0° Chính diện' : viewAngle === 'diagonal' ? '45° Chéo' : viewAngle === 'side' ? '90° Ngang' : '180° Sau lưng'}</strong>
+        </span>
+        <span>
+          {time.toFixed(1)}s / {demoRig.duration.toFixed(1)}s
+        </span>
       </div>
     </div>
   )

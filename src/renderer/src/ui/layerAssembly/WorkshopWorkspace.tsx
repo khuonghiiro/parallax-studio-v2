@@ -19,15 +19,20 @@ import { toggleMotionSketchArmed } from './motionSketchStore'
 import type { BoneOverlayProps } from './WorkshopBoneOverlay'
 import { confirmPoseAndStep } from './workshopStepRecord'
 
-export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, boneId, selectBone, onBrushModeChange }: {
+export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, boneId, selectBone, onBrushModeChange, centerSplitRatio = 0.5, onChangeCenterSplitRatio, onResetCenterSplitRatio }: {
   state: ReturnType<typeof useLayerWorkshop>; playback: ReturnType<typeof useWorkshopPlayback>; view: AssemblyWorkspaceView
   tab: WorkshopTab; onSelectTab?: (tab: WorkshopTab) => void; boneId: string | null; selectBone: (id: string | null) => void
   onBrushModeChange?: (active: boolean) => void
+  centerSplitRatio?: number
+  onChangeCenterSplitRatio?: (ratio: number) => void
+  onResetCenterSplitRatio?: () => void
 }) {
   const [showBones, setShowBones] = useState(() => loadLayerWorkshopViewPrefs().showBones)
   const [showMesh, setShowMesh] = useState(() => loadLayerWorkshopViewPrefs().showMesh)
   const [brushEditing, setBrushEditing] = useState(false)
   const [brushPreview, setBrushPreview] = useState<BrushPreview | null>(null)
+  const [resizingSplit, setResizingSplit] = useState(false)
+  const splitContainerRef = useRef<HTMLDivElement | null>(null)
   const prevTabRef = useRef(tab)
 
   const brushMode = useCallback((editing: boolean) => {
@@ -171,9 +176,38 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
     tab,
     onSelectTab
   }
+  const handleStartSplitDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!onChangeCenterSplitRatio) return
+    e.preventDefault()
+    e.stopPropagation()
+    setResizingSplit(true)
+    const onMove = (ev: PointerEvent) => {
+      const container = splitContainerRef.current
+      if (!container) return
+      const rect = container.getBoundingClientRect()
+      if (rect.width <= 100) return
+      const raw = (ev.clientX - rect.left) / rect.width
+      onChangeCenterSplitRatio(Math.max(0.2, Math.min(0.8, Number(raw.toFixed(3)))))
+    }
+    const onUp = () => {
+      setResizingSplit(false)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+
   return <div className="layer-workshop-center-area">
-    <div className="layer-workshop-split-container">
-      {view !== '3d' && <div className="layer-workshop-split-pane left-pane">
+    <div ref={splitContainerRef} className="layer-workshop-split-container">
+      {view !== '3d' && <div
+        className="layer-workshop-split-pane left-pane"
+        style={
+          view === 'split'
+            ? { flex: `0 0 calc(${(centerSplitRatio * 100).toFixed(2)}% - 3px)` }
+            : undefined
+        }
+      >
         <div className="pane-header-tab"><span className="pane-title"><IconImage width={13} height={13} /> Bố cục 2D</span><span>Di chuyển & căn chỉnh</span></div>
         <LayerAssemblyViewport
           {...props}
@@ -208,7 +242,20 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
           view={view}
         />
       </div>}
-      {view !== '2d' && <div className="layer-workshop-split-pane">
+      {view === 'split' && (
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Co dãn tỷ lệ khung 2D và 3D"
+          className={`lw-col-splitter${resizingSplit ? ' active' : ''}`}
+          onPointerDown={handleStartSplitDrag}
+          onDoubleClick={() => onResetCenterSplitRatio?.()}
+          title="Kéo trái/phải để co dãn khung 2D và 3D (Nháy đúp để về 50/50)"
+        >
+          <span className="lw-col-splitter-grip" />
+        </div>
+      )}
+      {view !== '2d' && <div className="layer-workshop-split-pane right-pane">
         <div className="pane-header-tab"><span className="pane-title"><IconCube width={13} height={13} /> Chiều sâu 3D</span><span>Xoay để kiểm tra lớp</span></div>
         <LayerAssembly3DViewport
           {...props}
