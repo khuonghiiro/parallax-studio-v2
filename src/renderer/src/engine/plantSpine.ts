@@ -50,7 +50,7 @@ export function resamplePolyline(points: PlantSpinePoint[], count = SAMPLES): Pl
 /** Hệ số phân bố độ uốn dọc thân (0 ở gốc → 1 ở ngọn); thân càng cứng thì chỉ phần ngọn cong. */
 export function plantEnvelope(stiffness: number, u: number): number {
   const s = Math.min(1, Math.max(0, stiffness))
-  return Math.pow(Math.min(1, Math.max(0, u)), 1 + s * 3)
+  return Math.pow(Math.min(1, Math.max(0, u)), 0.65 + s * 1.15)
 }
 
 /**
@@ -185,7 +185,7 @@ interface LayerProjection { key: string; world: Float32Array; perSpine: Float32A
 const projectionCache = new WeakMap<Float32Array, LayerProjection>()
 
 function projectionKey(binding: SkinBinding, spines: PlantSpine[], indices?: ArrayLike<number>): string {
-  const b = `v2:${binding.x},${binding.y},${binding.rotation},${binding.scale},${binding.scaleX ?? 1},${binding.scaleY ?? 1}:${indices?.length ?? 0}`
+  const b = `v5:${binding.x},${binding.y},${binding.rotation},${binding.scale},${binding.scaleX ?? 1},${binding.scaleY ?? 1}:${indices?.length ?? 0}`
   return b + '|' + spines.map((s) => `${s.reach ?? 0}:${s.points.map((p) => `${p.x},${p.y}`).join(';')}`).join('|')
 }
 
@@ -221,7 +221,7 @@ function buildSpineProjectionData(
     }
     const x = world[i * 2]
     const y = world[i * 2 + 1]
-    const pad = corridor && corridor.geoDist[i] === 0 ? 1 : 0
+    const pad = corridor && corridor.geoDist[i] <= corridor.avgCoreEdge * 2 ? 2 : 0
     const { seg, t: rawT, dist } = corridor
       ? projectOnRest(rest, x, y, corridor.segMin[i] - pad, corridor.segMax[i] + pad)
       : projectOnRest(rest, x, y)

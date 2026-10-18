@@ -192,4 +192,141 @@ describe('plantSpine engine', () => {
       expect(out[v * 3 + 1]).toBeCloseTo(pos[v * 3 + 1], 5)
     }
   })
+
+  it('verifies full contourMesh + deformPlantSpines on transparent multi-branch tree image', async () => {
+    const { silhouetteFromMask } = await import('../ui/assets/models3d/silhouette')
+    const { computeContourCells } = await import('../ui/assets/models3d/contourMesh')
+    const { geometryFromLayerCells } = await import('../ui/layerAssembly/layerAssemblyAlphaMesh')
+    const { computeMeshCorridor } = await import('./meshCorridor')
+
+    // Dựng ảnh mask 420x460 quy về lưới 105x115 (4x downsample như silhouetteFromImage)
+    const imgW = 420
+    const imgH = 460
+    const maskW = 105
+    const maskH = 115
+    const maskData = new Uint8Array(maskW * maskH)
+    const drawCapsuleWorld = (x0: number, y0: number, x1: number, y1: number, radius: number): void => {
+      const px0 = x0 + imgW / 2
+      const py0 = y0 + imgH / 2
+      const px1 = x1 + imgW / 2
+      const py1 = y1 + imgH / 2
+      const vx = px1 - px0
+      const vy = py1 - py0
+      const lenSq = vx * vx + vy * vy
+      for (let my = 0; my < maskH; my++) {
+        const py = (my + 0.5) * 4
+        for (let mx = 0; mx < maskW; mx++) {
+          const px = (mx + 0.5) * 4
+          const t = lenSq > 0 ? Math.max(0, Math.min(1, ((px - px0) * vx + (py - py0) * vy) / lenSq)) : 0
+          const d = Math.hypot(px - (px0 + t * vx), py - (py0 + t * vy))
+          if (d <= radius) maskData[my * maskW + mx] = 1
+        }
+      }
+    }
+
+    // Thân cây chính + 2 cành lớn độc lập hai bên (kèm nhánh con riêng, không giao cắt với nhánh xanh phía trên)
+    drawCapsuleWorld(0, 190, 0, 30, 11)
+    drawCapsuleWorld(0, 30, -135, -55, 7.5)
+    drawCapsuleWorld(-75, -12, -115, 0, 4.5)
+    drawCapsuleWorld(0, 30, 145, -70, 7.5)
+    drawCapsuleWorld(80, -20, 128, -8, 4.5)
+
+    // Cành chính mục tiêu (nét vẽ xương sống) + 4 cành nhánh con + nhánh cháu
+    drawCapsuleWorld(0, 30, -10, -35, 8.5)
+    drawCapsuleWorld(-10, -35, -25, -100, 7.5)
+    drawCapsuleWorld(-25, -100, -42, -160, 6.5)
+    drawCapsuleWorld(-42, -160, -55, -198, 5.5)
+    // Nhánh con 1 + nhánh cháu
+    drawCapsuleWorld(-8, -22, 52, -110, 4.5)
+    drawCapsuleWorld(22, -66, 58, -75, 3.5)
+    // Nhánh con 2 + 2 nhánh cháu
+    drawCapsuleWorld(-18, -70, -98, -135, 4.5)
+    drawCapsuleWorld(-58, -102, -62, -148, 3.5)
+    drawCapsuleWorld(-68, -110, -100, -100, 3.5)
+    // Nhánh con 3 + nhánh cháu
+    drawCapsuleWorld(-28, -112, 22, -188, 4.5)
+    drawCapsuleWorld(-3, -150, 32, -162, 3.5)
+    // Nhánh con 4
+    drawCapsuleWorld(-38, -148, -80, -182, 4.5)
+
+    const sil = silhouetteFromMask({ w: maskW, h: maskH, data: maskData }, true)
+    const cells = computeContourCells(16, 20, sil, 0, true)
+    const geom = geometryFromLayerCells(imgW, imgH, cells)
+    const pos = geom.userData.basePositions as Float32Array
+    const indices = geom.getIndex()!.array
+    const vCount = pos.length / 3
+    const world = new Float32Array(vCount * 2)
+    for (let i = 0; i < vCount; i++) {
+      world[i * 2] = pos[i * 3]
+      world[i * 2 + 1] = -pos[i * 3 + 1]
+    }
+    const strokePts = [
+      { x: 0, y: 30 },
+      { x: -10, y: -35 },
+      { x: -25, y: -100 },
+      { x: -42, y: -160 },
+      { x: -55, y: -198 }
+    ]
+    const pts = resamplePolyline(strokePts)
+    const corr = computeMeshCorridor(world, indices, pts, 0)!
+    const testSpine = spine({
+      id: 's-red-branch',
+      points: strokePts,
+      amplitude: 0,
+      lean: 28,
+      stiffness: 0.35,
+      reach: 0
+    })
+    const deformed = deformPlantSpines(pos, binding, [testSpine], 0, indices)
+
+    // 1. Toàn bộ 8 ngọn cành nhánh & nhánh cháu mọc ra từ cành chính phải có weight = 1 và di chuyển theo cành chính
+    for (const subTip of [
+      { x: 52, y: -110 },
+      { x: 58, y: -75 },
+      { x: -98, y: -135 },
+      { x: -100, y: -100 },
+      { x: -65, y: -148 },
+      { x: 22, y: -188 },
+      { x: 32, y: -162 },
+      { x: -80, y: -182 }
+    ]) {
+      let bestV = -1
+      let bestD = Infinity
+      for (let i = 0; i < vCount; i++) {
+        const d = Math.hypot(world[i * 2] - subTip.x, world[i * 2 + 1] - subTip.y)
+        if (d < bestD) {
+          bestD = d
+          bestV = i
+        }
+      }
+      const dx = deformed[bestV * 3] - pos[bestV * 3]
+      const dy = -(deformed[bestV * 3 + 1] - pos[bestV * 3 + 1])
+      expect(corr.weights[bestV]).toBeCloseTo(1, 3)
+      expect(Math.hypot(dx, dy)).toBeGreaterThan(8)
+    }
+
+    // 2. Thân cây và 2 cành lớn hai bên (cùng nhánh con của chúng) phải có weight = 0 và đứng yên 100%
+    for (const stillPt of [
+      { x: 0, y: 180 },
+      { x: -125, y: -65 },
+      { x: -115, y: 5 },
+      { x: 145, y: -85 },
+      { x: 135, y: -10 }
+    ]) {
+      let bestV = -1
+      let bestD = Infinity
+      for (let i = 0; i < vCount; i++) {
+        const d = Math.hypot(world[i * 2] - stillPt.x, world[i * 2 + 1] - stillPt.y)
+        if (d < bestD) {
+          bestD = d
+          bestV = i
+        }
+      }
+      const dx = deformed[bestV * 3] - pos[bestV * 3]
+      const dy = -(deformed[bestV * 3 + 1] - pos[bestV * 3 + 1])
+      expect(corr.weights[bestV]).toBe(0)
+      expect(Math.hypot(dx, dy)).toBeCloseTo(0, 5)
+    }
+  })
 })
+

@@ -72,9 +72,8 @@ function buildCorridorWeights(
       const cw = corridor.weights[i]
       if (cw <= 1e-4) continue
       const lastIdx = chain.length - 1
-      const pad = corridor.geoDist[i] === 0 ? 1 : 0
-      const lo = Math.max(0, Math.min(lastIdx, corridor.segMin[i] - pad))
-      const hi = Math.max(lo, Math.min(lastIdx, corridor.segMax[i] + pad))
+      const lo = Math.max(0, Math.min(lastIdx, corridor.segMin[i] - 1))
+      const hi = lastIdx
       for (let s = lo; s <= hi; s++) {
         const b = chain[s]
         const end = ends[s]
