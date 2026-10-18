@@ -15,6 +15,10 @@ export type PlantSpineAction =
   | { action: 'update'; id: string; patch: Partial<Omit<PlantSpine, 'id'>> }
   | { action: 'delete'; id: string }
   | { action: 'clear' }
+  /** So le nhịp (lệch pha theo tỉ lệ vàng trong khoảng `spread` giây) hoặc đồng bộ toàn bộ xương về pha 0. */
+  | { action: 'phase'; mode: 'stagger' | 'sync'; spread?: number }
+  /** Sao chép nhịp (motion riêng hoặc thông số gió) của xương `id` sang các xương khác, tuỳ chọn lệch pha `stagger` giây. */
+  | { action: 'copy-motion'; id: string; targetIds?: string[]; stagger?: number }
 
 function perpendicularDistance(p: PlantSpinePoint, a: PlantSpinePoint, b: PlantSpinePoint): number {
   const dx = b.x - a.x
@@ -282,9 +286,34 @@ function muteLegacyMotion(composite: LayerComposite, layerIds: string[]): LayerC
   )
 }
 
+const WIND_KEYS = ['amplitude', 'speed', 'stiffness', 'flexibility', 'turbulence', 'lean', 'verticalBob'] as const
+const GOLDEN = 0.6180339887
+const round2 = (v: number) => Math.round(v * 100) / 100
+
+function applyPhase(spines: PlantSpine[], mode: 'stagger' | 'sync', spread = 1.2): PlantSpine[] {
+  const s = Math.max(0, Math.min(3, spread))
+  return spines.map((sp, i) => ({ ...sp, phaseOffset: mode === 'sync' ? 0 : round2(((i * GOLDEN) % 1) * s) }))
+}
+
+function copyMotion(spines: PlantSpine[], id: string, targetIds?: string[], stagger = 0): PlantSpine[] {
+  const source = spines.find((s) => s.id === id)
+  if (!source) throw new Error(`Không tìm thấy xương thực vật "${id}"`)
+  const targets = spines.filter((s) => s.id !== id && (!targetIds?.length || targetIds.includes(s.id)))
+  if (!targets.length) throw new Error('Cần ít nhất 1 xương thực vật khác để áp nhịp')
+  const wind = Object.fromEntries(WIND_KEYS.map((k) => [k, source[k]]))
+  return spines.map((s) => {
+    const order = targets.findIndex((t) => t.id === s.id)
+    if (order < 0) return s
+    const phase = stagger > 0 ? { phaseOffset: round2(((source.phaseOffset ?? 0) + (order + 1) * stagger) % 3) } : {}
+    return { ...s, ...wind, motion: source.motion ? structuredClone(source.motion) : undefined, ...phase }
+  })
+}
+
 export function applyPlantSpineAction(composite: LayerComposite, action: PlantSpineAction): LayerComposite {
   const spines = composite.plantSpines ?? []
   if (action.action === 'clear') return { ...composite, plantSpines: [] }
+  if (action.action === 'phase') return { ...composite, plantSpines: applyPhase(spines, action.mode, action.spread) }
+  if (action.action === 'copy-motion') return { ...composite, plantSpines: copyMotion(spines, action.id, action.targetIds, action.stagger) }
   if (action.action === 'delete') {
     if (!spines.some((s) => s.id === action.id)) throw new Error(`Không tìm thấy xương thực vật "${action.id}"`)
     return { ...composite, plantSpines: spines.filter((s) => s.id !== action.id) }

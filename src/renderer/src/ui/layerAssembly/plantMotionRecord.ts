@@ -230,10 +230,10 @@ export const PLANT_CUSTOM_PATTERNS: Array<{
   label: string
   desc: string
 }> = [
-  { id: 'sine', label: '🌊 Đung đưa nhịp nhàng', desc: 'Lắc qua trái - phải mượt mà theo chu kỳ chuẩn' },
-  { id: 'bounce', label: '🪀 Nhún nảy lên xuống', desc: 'Nhún co giãn lên xuống theo trục thân kết hợp lắc nhẹ' },
+  { id: 'sine', label: '🌊 Đung đưa mềm', desc: 'Lắc qua trái - phải mượt mà theo chu kỳ chuẩn' },
+  { id: 'bounce', label: '🪀 Nhún nảy đều', desc: 'Nhún co giãn lên xuống theo trục thân kết hợp lắc nhẹ' },
   { id: 'double', label: '🍃 Nhịp đôi lá rủ', desc: 'Nghiêng lớn kèm một nhịp phất phụ ở ngọn' },
-  { id: 'gust', label: '💨 Gió thổi dồn rồi nhả', desc: 'Gió đẩy nghiêng nhanh về một phía rồi từ từ hồi về' },
+  { id: 'gust', label: '💨 Gió thổi dồn', desc: 'Gió đẩy nghiêng nhanh về một phía rồi từ từ hồi về' },
   { id: 'spring', label: '🪀 Bật nảy lò xo', desc: 'Uốn căng rồi bật nảy tắt dần theo quán tính' },
   { id: 'flutter', label: '⚡ Rung lá liên hồi', desc: 'Dao động tần số cao cho tán lá hoặc ngọn cỏ trước gió mạnh' }
 ]

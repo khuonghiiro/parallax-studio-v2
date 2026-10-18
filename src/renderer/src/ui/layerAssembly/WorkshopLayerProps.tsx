@@ -2,7 +2,9 @@ import type { AssembledLayerItem, LayerComposite } from './types'
 import { Select } from '../controls'
 import { PartThumb } from './PartThumb'
 import { IconAnchor, IconBone, IconCopy, IconFaceSwap, IconLayersStack, IconPuzzle, IconReplace, IconSliders, IconTrash } from '../icons'
-import { activateVariant, assignToGroup, layerAssetPath, setLayerSlot, slotVariants, updatePartGroup } from './workshopParts'
+import { activateVariant, assignToGroup, layerAssetPath, updatePartGroup } from './workshopParts'
+import { addLayersToVariant, createVariantSet, removeFromSlot, renameVariant, slotNames, slotVariantGroups } from './workshopPartSets'
+import { PartEditableTitle } from './PartEditableTitle'
 
 export interface WorkshopLayerPropsProps {
   composite: LayerComposite
@@ -34,31 +36,46 @@ function NumField({ label, value, step = 1, axis, onChange }: { label: string; v
   )
 }
 
+const NEW_SLOT = '__new_slot__'
+
 function PartSection({ composite, layer, setComposite, onSelectLayer, onOpenSwap }: Pick<WorkshopLayerPropsProps, 'composite' | 'layer' | 'setComposite' | 'onSelectLayer' | 'onOpenSwap'>) {
   const groups = composite.partGroups ?? []
   const group = groups.find((g) => g.id === layer.partGroupId)
-  const variants = slotVariants(composite, layer.slot)
+  const variants = layer.slot ? slotVariantGroups(composite, layer.slot) : []
+  const pickSlot = (v: string) => {
+    if (!v) setComposite(removeFromSlot(composite, layer.id))
+    else if (v === NEW_SLOT) setComposite(createVariantSet(composite, [layer.id], layer.name).composite)
+    else setComposite(addLayersToVariant(composite, [layer.id], v))
+  }
   return (
     <section className="lw-prop-section">
       <div className="lw-prop-head">
-        <span className="lw-prop-title"><IconPuzzle width={13} height={13} /> Bộ phận & Thay thế</span>
+        <span className="lw-prop-title"><IconPuzzle width={13} height={13} /> Bộ phận &amp; Thay thế</span>
         <button type="button" className="lw-btn sm primary" onClick={() => onOpenSwap(layer.id, 'replace')} title="Thay ảnh bộ phận này, giữ nguyên vị trí / xương / nhóm">
           <IconReplace width={12} height={12} /> Thay thế…
         </button>
       </div>
       <div className="lw-prop-grid">
         <div className="lw-field">
-          <span className="lw-field-label">Nhóm bộ phận</span>
+          <span className="lw-field-label">Nhóm liên kết</span>
           <Select size="sm" value={layer.partGroupId ?? ''}
             options={[{ value: '', label: 'Không thuộc nhóm' }, ...groups.map((g) => ({ value: g.id, label: g.name }))]}
             onChange={(v) => setComposite(assignToGroup(composite, [layer.id], String(v) || null))} />
         </div>
-        <label className="lw-field">
-          <span className="lw-field-label">Khe biến thể</span>
-          <input className="lw-input" placeholder="VD: face, mouth" value={layer.slot ?? ''}
-            onChange={(e) => setComposite(setLayerSlot(composite, layer.id, e.target.value || null))} />
-        </label>
+        <div className="lw-field">
+          <span className="lw-field-label">Bộ biến thể</span>
+          <Select size="sm" value={layer.slot ?? ''}
+            options={[{ value: '', label: 'Không thuộc bộ' }, ...slotNames(composite).map((s) => ({ value: s, label: s })), { value: NEW_SLOT, label: '＋ Tạo bộ mới từ layer này' }]}
+            onChange={(v) => pickSlot(String(v))} />
+        </div>
       </div>
+      {layer.slot && (
+        <div className="lw-field">
+          <span className="lw-field-label">Tên biến thể của layer này</span>
+          <PartEditableTitle value={layer.variant || layer.name} ariaLabel="Tên biến thể"
+            onCommit={(name) => setComposite(renameVariant(composite, layer.slot!, layer.variant || layer.name, name))} />
+        </div>
+      )}
       {group && (
         <div className="lw-chip-row">
           <button type="button" className={`lw-chip${group.anchorLayerId === layer.id ? ' active' : ''}`}
@@ -71,22 +88,28 @@ function PartSection({ composite, layer, setComposite, onSelectLayer, onOpenSwap
           </button>
         </div>
       )}
-      {variants.length > 0 && (
-        <div className="lw-variant-strip" aria-label="Biến thể cùng khe">
-          {variants.map((v) => (
-            <button key={v.id} type="button" className={`lw-variant${!v.hidden ? ' active' : ''}`} title={`Dùng biến thể "${v.variant || v.name}"`}
-              onClick={() => { setComposite(activateVariant(composite, v.id)); onSelectLayer(v.id) }}>
-              <PartThumb path={layerAssetPath(composite, v)} previewUrl={v.imageUrl} assets={composite.assets} />
-              <span className="lw-variant-name">{v.variant || v.name}</span>
-            </button>
-          ))}
-          <button type="button" className="lw-variant add" onClick={() => onOpenSwap(layer.id, 'variant')} title="Thêm biến thể mới vào khe">
-            <span className="lw-variant-plus"><IconFaceSwap width={16} height={16} /></span>
-            <span className="lw-variant-name">Thêm</span>
-          </button>
-        </div>
-      )}
+      {variants.length > 0 && <PartVariantStrip composite={composite} layerId={layer.id} variants={variants} setComposite={setComposite} onSelectLayer={onSelectLayer} onOpenSwap={onOpenSwap} />}
     </section>
+  )
+}
+
+function PartVariantStrip({ composite, layerId, variants, setComposite, onSelectLayer, onOpenSwap }: Pick<WorkshopLayerPropsProps, 'composite' | 'setComposite' | 'onSelectLayer' | 'onOpenSwap'> & {
+  layerId: string; variants: ReturnType<typeof slotVariantGroups>
+}) {
+  return (
+    <div className="lw-variant-strip" aria-label="Biến thể cùng bộ">
+      {variants.map((v) => (
+        <button key={v.variant} type="button" className={`lw-variant${v.active ? ' active' : ''}`} title={`Dùng biến thể "${v.variant}" (${v.layers.length} lớp)`}
+          onClick={() => { setComposite(activateVariant(composite, v.layers[0].id)); onSelectLayer(v.layers[0].id) }}>
+          <PartThumb path={layerAssetPath(composite, v.layers[0])} previewUrl={v.layers[0].imageUrl} assets={composite.assets} />
+          <span className="lw-variant-name">{v.variant}</span>
+        </button>
+      ))}
+      <button type="button" className="lw-variant add" onClick={() => onOpenSwap(layerId, 'variant')} title="Thêm biến thể mới vào bộ">
+        <span className="lw-variant-plus"><IconFaceSwap width={16} height={16} /></span>
+        <span className="lw-variant-name">Thêm</span>
+      </button>
+    </div>
   )
 }
 

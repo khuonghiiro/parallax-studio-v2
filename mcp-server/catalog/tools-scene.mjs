@@ -86,7 +86,7 @@ export const SCENE_TOOLS = [
         'layer_assembly_animation_panel', 'layer_assembly_retarget', 'layer_assembly_create', 'layer_assembly_confirm',
         'layer_assembly_cutter', 'layer_assembly_source', 'layer_assembly_target', 'layer_assembly_motion_sketch',
         'layer_assembly_anim_tools', 'layer_assembly_anim_chips', 'layer_assembly_anim_assist', 'layer_assembly_anim_secondary',
-        'layer_assembly_plant_motion', 'layer_assembly_plant_chips', 'layer_assembly_plant_panel',
+        'layer_assembly_plant_motion', 'layer_assembly_plant_chips', 'layer_assembly_plant_panel', 'layer_assembly_pose_tools', 'layer_assembly_plant_graph',
         'audio_studio', 'audio_studio_sidebar', 'audio_studio_editor', 'audio_studio_waveform', 'audio_studio_tone', 'audio_studio_mixer', 'audio_studio_console',
         'perf_dialog', 'perf_hardware', 'perf_meter', 'perf_settings',
         'export', 'export_dialog', 'export_preview',

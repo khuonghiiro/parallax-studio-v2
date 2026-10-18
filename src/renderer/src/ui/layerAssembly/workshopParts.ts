@@ -1,5 +1,7 @@
 import type { AssembledLayerItem, LayerComposite, LayerPartGroup, LayerPartKind } from './types'
 import { newLayerId } from './workshopActions'
+import { inferSlot } from './workshopPartDetect'
+export { autoDetectParts, inferPartKind, inferSide, inferSlot } from './workshopPartDetect'
 
 /**
  * Nhóm bộ phận & khe biến thể (Part groups & swap slots) — lấy cảm hứng từ Spine (slot/attachment),
@@ -15,43 +17,6 @@ export const PART_KIND_LABEL: Record<LayerPartKind, string> = {
   leg: 'Chân',
   accessory: 'Phụ kiện',
   custom: 'Tuỳ chỉnh'
-}
-
-const HEAD_RE = /(head|face|eye|mouth|nose|brow|hair|glass|(?<![a-z])ear|lip|cheek|bang|đầu|mặt|mắt|miệng|mũi|mày|tóc|kính|tai|môi|má)/i
-const TORSO_RE = /(torso|body|chest|neck|belly|pelvis|hip|thân|ngực|bụng|hông|cổ(?!\s*(tay|chân)))/i
-const ARM_RE = /(arm|hand|forearm|elbow|wrist|finger|tay|bàn tay|khuỷu)/i
-const LEG_RE = /(thigh|shin|leg|foot|feet|knee|ankle|calf|shoe|đùi|ống chân|bàn chân|chân|gối)/i
-const LEFT_RE = /(^|[\s_\-.])(left|l|trái)($|[\s_\-.])/i
-const RIGHT_RE = /(^|[\s_\-.])(right|r|phải)($|[\s_\-.])/i
-
-/** Các từ chỉ trạng thái / biểu cảm: hậu tố này cho biết layer là một biến thể của khe. */
-const VARIANT_WORDS = new Set([
-  'normal', 'neutral', 'default', 'idle', 'happy', 'smile', 'laugh', 'sad', 'cry', 'crying', 'tear', 'angry', 'mad',
-  'surprise', 'surprised', 'shock', 'blink', 'closed', 'close', 'open', 'half', 'talk', 'wink', 'sleep', 'sleepy',
-  'fear', 'scared', 'shy', 'blush', 'pout', 'grin', 'confused', 'love', 'a', 'e', 'i', 'o', 'u',
-  'vui', 'buon', 'buồn', 'khoc', 'khóc', 'gian', 'giận', 'cuoi', 'cười', 'ngac', 'ngạc', 'nham', 'nhắm', 'mo', 'mở', 'thuong', 'thường'
-])
-
-export function inferPartKind(name: string): LayerPartKind | null {
-  if (ARM_RE.test(name)) return 'arm'
-  if (LEG_RE.test(name)) return 'leg'
-  if (HEAD_RE.test(name)) return 'head'
-  if (TORSO_RE.test(name)) return 'torso'
-  return null
-}
-
-export function inferSide(name: string): 'left' | 'right' | null {
-  if (LEFT_RE.test(name)) return 'left'
-  if (RIGHT_RE.test(name)) return 'right'
-  return null
-}
-
-/** 'face-happy' → { slot: 'face', variant: 'happy' }; 'arm-left' → null (không phải biến thể). */
-export function inferSlot(name: string): { slot: string; variant: string } | null {
-  const clean = name.trim().toLowerCase().replace(/\.[a-z0-9]+$/, '')
-  const m = clean.match(/^(.+?)[\s_\-.]+([\p{L}\d]+)$/u)
-  if (!m || !VARIANT_WORDS.has(m[2])) return null
-  return { slot: m[1].replace(/[\s_.]+/g, '-'), variant: m[2] }
 }
 
 export function groupMembers(composite: LayerComposite, groupId: string): AssembledLayerItem[] {
@@ -87,53 +52,6 @@ export function moveLinked(composite: LayerComposite, id: string, x: number, y: 
   }
 }
 
-function groupKey(kind: LayerPartKind, side: 'left' | 'right' | null): string {
-  return side && (kind === 'arm' || kind === 'leg') ? `${kind}-${side}` : kind
-}
-
-function groupLabel(kind: LayerPartKind, side: 'left' | 'right' | null): string {
-  if (kind === 'arm') return side === 'left' ? 'Tay trái' : side === 'right' ? 'Tay phải' : 'Tay'
-  if (kind === 'leg') return side === 'left' ? 'Chân trái' : side === 'right' ? 'Chân phải' : 'Chân'
-  return kind === 'head' ? 'Đầu' : PART_KIND_LABEL[kind]
-}
-
-function pickAnchor(members: AssembledLayerItem[], kind: LayerPartKind): string | undefined {
-  const byName = (re: RegExp) => members.find((m) => re.test(m.name))?.id
-  if (kind === 'head') return byName(/^(head|đầu)/i) ?? byName(/head|đầu/i) ?? members[0]?.id
-  if (kind === 'torso') return byName(/torso|thân|body/i) ?? members[0]?.id
-  return members.slice().sort((a, b) => a.y - b.y)[0]?.id
-}
-
-/**
- * Tự nhận diện nhóm bộ phận và khe biến thể từ tên layer. Giữ nguyên các gán nhóm/khe người dùng đã đặt.
- */
-export function autoDetectParts(composite: LayerComposite): LayerComposite {
-  const groups = new Map((composite.partGroups ?? []).map((g) => [g.id, { ...g }]))
-  const layers = composite.layers.map((layer) => {
-    const next = { ...layer }
-    if (!next.slot) {
-      const s = inferSlot(next.name)
-      if (s) Object.assign(next, { slot: s.slot, variant: s.variant })
-    }
-    if (!next.partGroupId) {
-      const kind = inferPartKind(next.name)
-      if (kind) {
-        const side = inferSide(next.name)
-        const id = `part-${groupKey(kind, side)}`
-        if (!groups.has(id)) groups.set(id, { id, name: groupLabel(kind, side), kind, locked: true })
-        next.partGroupId = id
-      }
-    }
-    return next
-  })
-  for (const g of groups.values()) {
-    if (!g.anchorLayerId || !layers.some((l) => l.id === g.anchorLayerId)) {
-      g.anchorLayerId = pickAnchor(layers.filter((l) => l.partGroupId === g.id), g.kind)
-    }
-  }
-  return { ...composite, layers, partGroups: [...groups.values()].filter((g) => layers.some((l) => l.partGroupId === g.id)) }
-}
-
 export function createPartGroup(composite: LayerComposite, name: string, layerIds: string[], kind: LayerPartKind = 'custom'): LayerComposite {
   const id = `part-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
   const group: LayerPartGroup = { id, name: name.trim() || 'Nhóm mới', kind, locked: true, anchorLayerId: layerIds[0] }
@@ -144,10 +62,13 @@ export function createPartGroup(composite: LayerComposite, name: string, layerId
   }
 }
 
+/** Gán layer vào nhóm (null = gỡ khỏi nhóm). Nhóm trống tự bị gỡ; neo bị gỡ thì chuyển cho thành viên đầu tiên. */
 export function assignToGroup(composite: LayerComposite, layerIds: string[], groupId: string | null): LayerComposite {
   if (groupId && !findGroup(composite, groupId)) throw new Error(`Unknown part group: ${groupId}`)
   const layers = composite.layers.map((l) => (layerIds.includes(l.id) ? { ...l, partGroupId: groupId ?? undefined } : l))
-  const partGroups = (composite.partGroups ?? []).filter((g) => layers.some((l) => l.partGroupId === g.id))
+  const partGroups = (composite.partGroups ?? [])
+    .filter((g) => layers.some((l) => l.partGroupId === g.id))
+    .map((g) => (layers.some((l) => l.id === g.anchorLayerId && l.partGroupId === g.id) ? g : { ...g, anchorLayerId: layers.find((l) => l.partGroupId === g.id)?.id }))
   return { ...composite, layers, partGroups }
 }
 
@@ -185,20 +106,37 @@ function copyAnchor(from: AssembledLayerItem): Partial<AssembledLayerItem> {
   return out
 }
 
+/** Vai trò của layer trong biến thể (VD 'eyes-cry' → 'eyes') để căn neo đúng cặp khi đổi biến thể nhiều lớp. */
+function roleOf(layer: AssembledLayerItem): string {
+  return inferSlot(layer.name)?.slot || layer.name.trim().toLowerCase()
+}
+
 /**
- * Kích hoạt một biến thể trong khe: hiện layer đó, ẩn các biến thể còn lại. `snap` = căn trùng vị trí neo
- * (x/y/z/scale/góc/xương) của biến thể đang hiển thị để thay biểu cảm không bị lệch.
+ * Kích hoạt một biến thể trong khe: hiện TOÀN BỘ layer cùng tên biến thể (biến thể có thể gồm nhiều lớp như
+ * mắt + miệng + lông mày), ẩn các biến thể còn lại. `snap` = căn trùng vị trí neo (x/y/z/scale/góc/xương) của
+ * layer đang hiển thị cùng vai trò để thay biểu cảm không bị lệch.
  */
 export function activateVariant(composite: LayerComposite, layerId: string, snap = true): LayerComposite {
   const target = composite.layers.find((l) => l.id === layerId)
   if (!target) throw new Error(`Unknown layer: ${layerId}`)
   if (!target.slot) return { ...composite, layers: composite.layers.map((l) => (l.id === layerId ? { ...l, hidden: false } : l)) }
-  const current = composite.layers.find((l) => l.slot === target.slot && !l.hidden && l.id !== layerId)
-  const anchor = snap && current ? copyAnchor(current) : {}
+  const key = target.variant || target.name
+  const inSlot = composite.layers.filter((l) => l.slot === target.slot)
+  const incoming = inSlot.filter((l) => (l.variant || l.name) === key)
+  const current = inSlot.filter((l) => !l.hidden && (l.variant || l.name) !== key)
+  const anchors = new Map<string, Partial<AssembledLayerItem>>()
+  if (snap && current.length) {
+    if (incoming.length === 1 && current.length === 1) anchors.set(incoming[0].id, copyAnchor(current[0]))
+    else for (const inc of incoming) {
+      const match = current.find((c) => roleOf(c) === roleOf(inc))
+      if (match) anchors.set(inc.id, copyAnchor(match))
+    }
+  }
+  const incomingIds = new Set(incoming.map((l) => l.id))
   return {
     ...composite,
     layers: composite.layers.map((l) => {
-      if (l.id === layerId) return { ...l, ...anchor, hidden: false }
+      if (incomingIds.has(l.id)) return { ...l, ...(anchors.get(l.id) ?? {}), hidden: false }
       if (l.slot === target.slot) return { ...l, hidden: true }
       return l
     })

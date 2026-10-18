@@ -1,6 +1,6 @@
 {
   "$comment": "Single source for the AI guide (MCP server instructions, get_ai_guide, CLI help, McpDialog prompt). Every section MUST keep the same number of lines in en and vi - catalog.test.mjs enforces it.",
-  "toolCount": 135,
+  "toolCount": 136,
   "sections": [
     {
       "id": "overview",
@@ -125,7 +125,7 @@
           "Attach layers with layer_assembly_rig; bind with binding_mode=soft to bend the alpha mesh along the selected bone branch (hair, tails, limbs), or rigid for cutouts; animate with keyframes or procedural motions.",
           "List character and animal cutout templates with list_layer_assembly_templates, query generation prompts with get_layer_assembly_template, and instantiate into the workshop with apply_layer_assembly_template.",
           "Draw motion fast: layer_assembly_motion_sketch {bone_id, points:[[x,y,t],...]} turns the path of a bone tip into smooth keyframes (mode rotate/move, chain_length 2-4 = IK chain, timing live/hand/even, loop_back); layer_assembly_plant_spine draws root→tip plant spines that bend grass/trees in the wind.",
-          "Pro animation: layer_assembly_ik_pose {bone_id, target:[x,y], chain_length} poses a limb by its tip; layer_assembly_secondary_motion {bone_id, preset: hair|tail|cloth|antenna} bakes lagging/bouncing physics onto a bone branch after the main motion; plant spines accept a recorded hand-drawn motion (motion_samples or motion_keys, motion_end loop|spring) instead of procedural wind."
+          "Pro animation: layer_assembly_ik_pose {bone_id, target:[x,y], chain_length} poses a limb by its tip; layer_assembly_secondary_motion {bone_id, preset: hair|tail|cloth|antenna} bakes lagging/bouncing physics onto a bone branch after the main motion; plant spines accept a recorded hand-drawn motion (motion_samples or motion_keys, motion_end loop|spring) instead of procedural wind; layer_assembly_pose_tools {op: breakdown|close_loop|overlap|retime|reverse|shift_time|next_key|prev_key} gives pose-to-pose timing (in-betweens, seamless loops, follow-through); layer_assembly_plant_spine action phase / copy_motion staggers or reuses plant motions; layer_assembly_parts manages user-named part groups (drop new images right at the group anchor) and multi-layer variant sets (one variant = several layers)."
         ],
         "vi": [
           "Xưởng Lắp Ráp Layer 2.5D tạo các cụm chi tiết xếp chồng nhiều tầng (như cây bonsai, bụi hoa, đèn treo) kèm phân lớp chiều sâu và chuyển động gió êm ái.",
@@ -136,7 +136,7 @@
           "Gắn layer bằng layer_assembly_rig; bind với binding_mode=soft để uốn mesh alpha theo nhánh xương đã chọn (tóc, đuôi, chi), hoặc rigid cho mảnh rời; tạo animation bằng keyframe hoặc chuyển động mẫu.",
           "Tra cứu các mẫu khung nhân vật và con vật bằng list_layer_assembly_templates, lấy prompt tạo ảnh AI với get_layer_assembly_template, và nạp vào xưởng bằng apply_layer_assembly_template.",
           "Vẽ động tác nhanh: layer_assembly_motion_sketch {bone_id, points:[[x,y,t],...]} biến đường đi của ngọn xương thành chuỗi keyframe mượt (mode rotate/move, chain_length 2-4 = chuỗi IK, timing live/hand/even, loop_back); layer_assembly_plant_spine vẽ xương thực vật gốc→ngọn để cây cỏ uốn theo gió.",
-          "Hoạt hoạ chuyên nghiệp: layer_assembly_ik_pose {bone_id, target:[x,y], chain_length} tạo dáng tay chân bằng cách kéo ngọn; layer_assembly_secondary_motion {bone_id, preset: hair|tail|cloth|antenna} nướng vật lý trễ nhịp/nảy cho nhánh xương sau động tác chính; xương thực vật nhận chuyển động vẽ tay đã ghi (motion_samples hoặc motion_keys, motion_end loop|spring) thay cho gió tự động."
+          "Hoạt hoạ chuyên nghiệp: layer_assembly_ik_pose {bone_id, target:[x,y], chain_length} tạo dáng tay chân bằng cách kéo ngọn; layer_assembly_secondary_motion {bone_id, preset: hair|tail|cloth|antenna} nướng vật lý trễ nhịp/nảy cho nhánh xương sau động tác chính; xương thực vật nhận chuyển động vẽ tay đã ghi (motion_samples hoặc motion_keys, motion_end loop|spring) thay cho gió tự động; layer_assembly_pose_tools {op: breakdown|close_loop|overlap|retime|reverse|shift_time|next_key|prev_key} cho nhịp pose-to-pose (dáng trung gian, vòng lặp liền mạch, lệch pha follow-through); layer_assembly_plant_spine action phase / copy_motion so le hoặc dùng lại nhịp cây; layer_assembly_parts quản lý nhóm bộ phận do người dùng đặt tên (thả ảnh mới đúng vào neo nhóm) và bộ biến thể nhiều lớp (một biến thể = nhiều layer)."
         ]
       }
     }

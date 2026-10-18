@@ -20,7 +20,15 @@ function argValue(flag) {
 }
 
 const lang = argValue('--lang') ? normalizeLang(argValue('--lang')) : resolveDocsLang()
-const outDir = argValue('--out') ?? join(homedir(), '.gemini', 'antigravity-ide', 'mcp', 'parallax-studio')
+const explicitOut = argValue('--out')
+const outDirs = explicitOut
+  ? [explicitOut]
+  : [
+      join(homedir(), '.gemini', 'antigravity-ide', 'mcp', 'parallax-studio'),
+      ...(existsSync(join(homedir(), '.gemini', 'antigravity'))
+        ? [join(homedir(), '.gemini', 'antigravity', 'mcp', 'parallax-studio')]
+        : [])
+    ]
 const checkOnly = process.argv.includes('--check')
 
 /** Expected file name → content. */
@@ -35,20 +43,23 @@ function expectedFiles() {
 }
 
 const read = (p) => (existsSync(p) ? readFileSync(p, 'utf8') : null)
-
 const files = expectedFiles()
 const known = new Set(files.keys())
-const stale = existsSync(outDir) ? readdirSync(outDir).filter((f) => f.endsWith('.json') && !known.has(f)) : []
-const changed = [...files].filter(([name, body]) => read(join(outDir, name)) !== body).map(([name]) => name)
 
-if (checkOnly) {
-  for (const f of changed) console.log(`outdated/missing: ${f}`)
-  for (const f of stale) console.log(`stale: ${f}`)
-  console.log(`${files.size} expected · ${changed.length} outdated · ${stale.length} stale · lang ${lang} · ${outDir}`)
-  process.exit(changed.length || stale.length ? 1 : 0)
+let anyFail = false
+for (const outDir of outDirs) {
+  const stale = existsSync(outDir) ? readdirSync(outDir).filter((f) => f.endsWith('.json') && !known.has(f)) : []
+  const changed = [...files].filter(([name, body]) => read(join(outDir, name)) !== body).map(([name]) => name)
+  if (checkOnly) {
+    for (const f of changed) console.log(`outdated/missing: ${f}`)
+    for (const f of stale) console.log(`stale: ${f}`)
+    console.log(`${files.size} expected · ${changed.length} outdated · ${stale.length} stale · lang ${lang} · ${outDir}`)
+    if (changed.length || stale.length) anyFail = true
+    continue
+  }
+  mkdirSync(outDir, { recursive: true })
+  for (const name of changed) writeFileSync(join(outDir, name), files.get(name), 'utf8')
+  for (const f of stale) unlinkSync(join(outDir, f))
+  console.log(`wrote ${changed.length} file(s), removed ${stale.length} stale · ${TOOLS.length} tools · lang ${lang} · ${outDir}`)
 }
-
-mkdirSync(outDir, { recursive: true })
-for (const name of changed) writeFileSync(join(outDir, name), files.get(name), 'utf8')
-for (const f of stale) unlinkSync(join(outDir, f))
-console.log(`wrote ${changed.length} file(s), removed ${stale.length} stale · ${TOOLS.length} tools · lang ${lang} · ${outDir}`)
+if (checkOnly) process.exit(anyFail ? 1 : 0)

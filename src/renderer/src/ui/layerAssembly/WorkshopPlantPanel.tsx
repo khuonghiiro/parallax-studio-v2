@@ -1,19 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { PLANT_SPINE_PRESETS, type PlantSpine } from '@shared/plantSpine'
 import type { LayerComposite } from './types'
 import {
   applyPlantSpineAction,
   buildAutoPlantSpinePoints,
   createPlantSpine,
-  resamplePlantSpinePoints,
   resolveSpineLayerIds,
-  setPlantSpineJointCount,
-  subdividePlantSpine,
   type PlantSpineAction,
   type PlantSpineTarget
 } from './workshopPlantSpines'
 import { setPlantSpineEditorState, usePlantSpineEditor } from './plantSpineEditorStore'
-import { PlantMotionSection } from './PlantMotionSection'
+import { PlantSpineCard } from './PlantSpineCard'
 import { generateCustomPlantMotion, type PlantCustomPatternId, PLANT_CUSTOM_PATTERNS } from './plantMotionRecord'
 import '../../styles/layerWorkshopPlant.css'
 import '../../styles/layerWorkshopPlantMotion.css'
@@ -26,364 +23,11 @@ interface PanelProps {
   onTogglePlay: () => void
 }
 
-type NumKey =
-  | 'amplitude'
-  | 'speed'
-  | 'stiffness'
-  | 'flexibility'
-  | 'turbulence'
-  | 'lean'
-  | 'phaseOffset'
-  | 'reach'
-  | 'verticalBob'
-
-const PRIMARY_SLIDERS: Array<{
-  key: NumKey
-  label: string
-  min: number
-  max: number
-  step: number
-  unit?: string
-  hint: string
-}> = [
-  { key: 'amplitude', label: 'Biên độ uốn (cung)', min: 0, max: 40, step: 0.5, unit: '°', hint: 'Góc uốn tối đa tại ngọn khi đung đưa vòng cung' },
-  { key: 'verticalBob', label: 'Nhún lên xuống', min: 0, max: 0.6, step: 0.02, unit: '', hint: 'Độ co giãn & nhún lên xuống theo chiều dọc thân cây (squash & stretch)' },
-  { key: 'speed', label: 'Tốc độ nhịp', min: 0.05, max: 3, step: 0.05, unit: '/s', hint: 'Số nhịp đung đưa mỗi giây' },
-  { key: 'lean', label: 'Nghiêng theo gió', min: -30, max: 30, step: 0.5, unit: '°', hint: 'Độ nghiêng cố định (dương = sang phải)' },
-  { key: 'phaseOffset', label: 'Độ lệch pha', min: 0, max: 3, step: 0.05, unit: 's', hint: 'Cho nhiều cây đung đưa so le tự nhiên' }
-]
-
-const SECONDARY_SLIDERS: Array<{
-  key: NumKey
-  label: string
-  min: number
-  max: number
-  step: number
-  unit?: string
-  hint: string
-}> = [
-  { key: 'stiffness', label: 'Độ cứng thân', min: 0, max: 1, step: 0.05, hint: '0 = cả thân cong mềm · 1 = chỉ ngọn cong' },
-  { key: 'flexibility', label: 'Rung ngọn phụ', min: 0, max: 1, step: 0.05, hint: 'Ngọn/lá phất thêm nhịp phụ' },
-  { key: 'turbulence', label: 'Gió giật', min: 0, max: 1, step: 0.05, hint: 'Gió thổi thất thường, lúc mạnh lúc nhẹ' },
-  { key: 'reach', label: 'Bán kính uốn', min: 0, max: 400, step: 5, unit: 'px', hint: '0 = toàn bộ layer uốn theo xương' }
-]
-
 const TARGETS: Array<[PlantSpineTarget, string, string]> = [
   ['selected', '🎯 Layer đang chọn', 'Gắn vào các layer đang chọn ở tab Layer'],
   ['all', '🌳 Toàn bộ cây', 'Gắn vào mọi layer trong cụm thực vật'],
   ['auto', '✏️ Tự nhận khi vẽ', 'Khi kéo chuột vẽ xương trên khung 2D, tự gắn vào layer mà nét vẽ đi qua']
 ]
-
-function SpineCard({
-  spine,
-  index,
-  composite,
-  selected,
-  run
-}: {
-  spine: PlantSpine
-  index: number
-  composite: LayerComposite
-  selected: boolean
-  run: (action: PlantSpineAction, key?: string) => void
-}) {
-  const [subTab, setSubTab] = useState<'wind' | 'custom'>(spine.motion ? 'custom' : 'wind')
-  const [jointInput, setJointInput] = useState<string>(String(spine.points.length))
-
-  useEffect(() => {
-    setJointInput(String(spine.points.length))
-  }, [spine.points.length, spine.id])
-
-  const patch = (p: Partial<PlantSpine>, key?: string) =>
-    run({ action: 'update', id: spine.id, patch: p }, key)
-
-  const commitJointCount = (target: number) => {
-    const clamped = Math.max(2, Math.min(32, Math.round(target)))
-    if (clamped !== spine.points.length) {
-      patch({ points: setPlantSpineJointCount(spine.points, clamped) })
-    }
-    setJointInput(String(clamped))
-  }
-
-  const toggleLayer = (id: string) => {
-    const has = spine.layerIds.includes(id)
-    const next = has ? spine.layerIds.filter((l) => l !== id) : [...spine.layerIds, id]
-    if (next.length) patch({ layerIds: next })
-  }
-
-  return (
-    <div
-      className={`lw-plant-card${selected ? ' selected' : ''}`}
-      onClick={() => setPlantSpineEditorState({ selectedSpineId: spine.id })}
-    >
-      <div className="lw-plant-card-head">
-        <span className="lw-plant-index-badge">#{index + 1}</span>
-        <input
-          className="lw-plant-name"
-          value={spine.name}
-          onChange={(e) => patch({ name: e.target.value }, `plant:${spine.id}:name`)}
-          aria-label="Tên xương thực vật"
-        />
-        <label className="lw-plant-toggle" title="Bật/tắt chuyển động của xương này">
-          <input
-            type="checkbox"
-            checked={spine.enabled !== false}
-            onChange={(e) => patch({ enabled: e.target.checked })}
-          />
-          <span>Bật</span>
-        </label>
-        <button
-          type="button"
-          className="btn xs lw-plant-del-btn"
-          title="Xoá xương chuyển động này"
-          onClick={(e) => {
-            e.stopPropagation()
-            run({ action: 'delete', id: spine.id })
-          }}
-        >
-          Xoá
-        </button>
-      </div>
-
-      {!selected && (
-        <div className="lw-plant-card-summary">
-          <span>{spine.motion ? `✨ Nhịp riêng (${spine.motion.duration}s)` : `🌬️ ±${spine.amplitude}°${(spine.verticalBob ?? 0) > 0 ? ` · nhún ${(spine.verticalBob! * 100).toFixed(0)}%` : ''} · ${spine.speed}/s`}</span>
-          <span>• {spine.layerIds.length} layer</span>
-          <span className="lw-plant-expand-hint">Bấm để chỉnh ▾</span>
-        </div>
-      )}
-
-      {selected && (
-        <div className="lw-plant-card-body" onClick={(e) => e.stopPropagation()}>
-          {/* 2 Sub-tabs trong thẻ xương: Thông số Gió vs Tạo Nhịp & Quỹ đạo riêng */}
-          <div className="lw-plant-card-tabs">
-            <button
-              type="button"
-              className={`lw-plant-card-tab${subTab === 'wind' ? ' active' : ''}`}
-              onClick={() => setSubTab('wind')}
-            >
-              🎛️ Gió & Độ uốn
-            </button>
-            <button
-              type="button"
-              className={`lw-plant-card-tab${subTab === 'custom' ? ' active' : ''}`}
-              onClick={() => setSubTab('custom')}
-            >
-              🎬 Nhịp & Quỹ đạo {spine.motion ? '●' : ''}
-            </button>
-          </div>
-
-          {/* Quản lý số lượng & độ mịn khớp uốn (có thể nhập trực tiếp, tăng giảm, nhân đôi, giảm nửa) */}
-          <div className="lw-plant-group-box">
-            <div className="lw-plant-row-between">
-              <span className="lw-plant-section-label">📍 Khớp uốn thân cây</span>
-              <div className="lw-plant-joint-stepper">
-                <button
-                  type="button"
-                  className="lw-plant-stepper-btn"
-                  onClick={() => commitJointCount(spine.points.length - 1)}
-                  disabled={spine.points.length <= 2}
-                  title="Giảm 1 khớp uốn (tối thiểu 2)"
-                >
-                  −
-                </button>
-                <input
-                  type="number"
-                  min={2}
-                  max={32}
-                  className="lw-plant-joint-input"
-                  value={jointInput}
-                  onChange={(e) => setJointInput(e.target.value)}
-                  onBlur={() => commitJointCount(Number(jointInput) || spine.points.length)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      commitJointCount(Number(jointInput) || spine.points.length)
-                      e.currentTarget.blur()
-                    }
-                  }}
-                  title="Nhập trực tiếp số lượng khớp uốn (2 - 32 khớp) rồi nhấn Enter"
-                  aria-label="Số lượng khớp uốn"
-                />
-                <span className="lw-plant-joint-unit">khớp</span>
-                <button
-                  type="button"
-                  className="lw-plant-stepper-btn"
-                  onClick={() => commitJointCount(spine.points.length + 1)}
-                  disabled={spine.points.length >= 32}
-                  title="Tăng 1 khớp uốn (tối đa 32)"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            {/* Các mức khớp mẫu nhanh */}
-            <div className="lw-plant-joint-presets">
-              <span className="lw-plant-joint-presets-label">Mẫu nhanh:</span>
-              {[3, 5, 8, 12, 16].map((cnt) => (
-                <button
-                  key={cnt}
-                  type="button"
-                  className={`lw-plant-joint-preset-chip${spine.points.length === cnt ? ' active' : ''}`}
-                  onClick={() => commitJointCount(cnt)}
-                  title={`Chia đều thành ${cnt} khớp`}
-                >
-                  {cnt}
-                </button>
-              ))}
-            </div>
-
-            {/* Thao tác nâng cao: nhân đôi, giảm nửa, chia đều */}
-            <div className="lw-plant-joint-bar">
-              <button
-                type="button"
-                className="lw-plant-subdivide-btn"
-                onClick={() => patch({ points: subdividePlantSpine(spine.points) })}
-                title="Nhân đôi số khớp uốn (chèn trung điểm) để uốn nắn thân cây mượt mà hơn"
-              >
-                ➕ x2 khớp
-              </button>
-              <button
-                type="button"
-                className="lw-plant-subdivide-btn"
-                onClick={() => commitJointCount(Math.max(2, Math.round(spine.points.length / 2)))}
-                disabled={spine.points.length <= 2}
-                title="Giảm nửa số khớp uốn để uốn nhanh đơn giản"
-              >
-                ➖ Giảm nửa
-              </button>
-              <button
-                type="button"
-                className="lw-plant-resample-btn"
-                onClick={() => patch({ points: resamplePlantSpinePoints(spine.points, 55) })}
-                title="Chia lại các khớp uốn cách đều nhau dọc thân cành cây (~55px/khớp)"
-              >
-                📏 Chia đều
-              </button>
-            </div>
-            <div className="lw-plant-joint-hint">
-              💡 Nhập số hoặc bấm <b>+ / −</b> để điều chỉnh số lượng khớp · Rê chuột trên kẻ nhấn <b>+</b> để thêm · Hover điểm đỏ nhấn <b>−</b> hoặc <b>Del</b> để xoá
-            </div>
-          </div>
-
-          {subTab === 'wind' ? (
-            <>
-              <div className="lw-plant-group-box">
-                <div className="lw-plant-section-label">
-                  🌬️ Nhịp & Biên độ đung đưa{spine.motion ? ' (dùng khi Hoà trộn gió > 0)' : ''}
-                </div>
-                <div className="lw-plant-sliders">
-                  {PRIMARY_SLIDERS.map((s) => {
-                    const value = (spine[s.key] as number | undefined) ?? 0
-                    return (
-                      <label key={s.key} className="lw-plant-slider" title={s.hint}>
-                        <span className="lw-plant-slider-label">{s.label}</span>
-                        <input
-                          type="range"
-                          min={s.min}
-                          max={s.max}
-                          step={s.step}
-                          value={value}
-                          onChange={(e) =>
-                            patch({ [s.key]: Number(e.target.value) }, `plant:${spine.id}:${s.key}`)
-                          }
-                        />
-                        <span className="lw-plant-slider-val">
-                          {value}
-                          {s.unit ?? ''}
-                        </span>
-                      </label>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div className="lw-plant-group-box">
-                <div className="lw-plant-section-label">🌿 Độ dẻo thân & Gió giật</div>
-                <div className="lw-plant-sliders">
-                  {SECONDARY_SLIDERS.map((s) => {
-                    const value = (spine[s.key] as number | undefined) ?? 0
-                    return (
-                      <label key={s.key} className="lw-plant-slider" title={s.hint}>
-                        <span className="lw-plant-slider-label">{s.label}</span>
-                        <input
-                          type="range"
-                          min={s.min}
-                          max={s.max}
-                          step={s.step}
-                          value={value}
-                          onChange={(e) =>
-                            patch({ [s.key]: Number(e.target.value) }, `plant:${spine.id}:${s.key}`)
-                          }
-                        />
-                        <span className="lw-plant-slider-val">
-                          {value}
-                          {s.unit ?? ''}
-                        </span>
-                      </label>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div className="lw-plant-group-box">
-                <div className="lw-plant-section-label">Áp nhanh thông số mẫu</div>
-                <div className="lw-plant-chips">
-                  {PLANT_SPINE_PRESETS.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      className="lw-plant-chip"
-                      onClick={() => patch(p.params)}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="lw-plant-group-box">
-                <div className="lw-plant-row-between">
-                  <span className="lw-plant-section-label">
-                    Layer uốn theo xương ({spine.layerIds.length}/{composite.layers.length})
-                  </span>
-                  {spine.layerIds.length < composite.layers.length && (
-                    <button
-                      type="button"
-                      className="lw-plant-mini-link"
-                      onClick={() => patch({ layerIds: composite.layers.map((l) => l.id) })}
-                    >
-                      Gắn tất cả
-                    </button>
-                  )}
-                </div>
-                <div className="lw-plant-chips">
-                  {composite.layers.map((l, idx) => (
-                    <button
-                      key={l.id}
-                      type="button"
-                      className={`lw-plant-chip${spine.layerIds.includes(l.id) ? ' active' : ''}`}
-                      onClick={() => toggleLayer(l.id)}
-                      title={
-                        spine.layerIds.includes(l.id)
-                          ? 'Bỏ gắn layer này'
-                          : 'Gắn layer này vào xương'
-                      }
-                    >
-                      #{idx + 1} {l.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </>
-          ) : (
-            <PlantMotionSection spine={spine} patch={patch} />
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
 
 /** Tab "Thực vật": tạo mới chuyển động cây cỏ nhanh hoặc vẽ xương cong + chỉnh nhịp đung đưa. */
 export function WorkshopPlantPanel({
@@ -706,13 +350,23 @@ export function WorkshopPlantPanel({
           🌿 Danh sách chuyển động thực vật ({spines.length})
         </span>
         {spines.length > 0 && (
-          <button
-            type="button"
-            className="btn xs lw-plant-clear-btn"
-            onClick={() => run({ action: 'clear' })}
-          >
-            Xoá tất cả
-          </button>
+          <span className="lw-plant-list-tools">
+            {spines.length > 1 && (
+              <>
+                <button type="button" className="btn xs" onClick={() => run({ action: 'phase', mode: 'stagger' })}
+                  title="So le nhịp: mỗi xương lệch pha khác nhau (tỉ lệ vàng) để cả bụi cỏ / hàng cây không lắc đồng loạt như rô-bốt">
+                  🌾 So le nhịp
+                </button>
+                <button type="button" className="btn xs" onClick={() => run({ action: 'phase', mode: 'sync' })}
+                  title="Đồng bộ: mọi xương lắc cùng pha (lệch pha = 0)">
+                  ⏸ Đồng bộ
+                </button>
+              </>
+            )}
+            <button type="button" className="btn xs lw-plant-clear-btn" onClick={() => run({ action: 'clear' })}>
+              Xoá tất cả
+            </button>
+          </span>
         )}
       </div>
 
@@ -723,7 +377,7 @@ export function WorkshopPlantPanel({
           </div>
         )}
         {spines.map((s, idx) => (
-          <SpineCard
+          <PlantSpineCard
             key={s.id}
             spine={s}
             index={idx}

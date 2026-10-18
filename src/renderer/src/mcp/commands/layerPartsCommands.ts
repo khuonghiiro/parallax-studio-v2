@@ -15,6 +15,16 @@ import {
   setLayerSlot,
   updatePartGroup
 } from '../../ui/layerAssembly/workshopParts'
+import {
+  addAssetToGroup,
+  addAssetToVariant,
+  addLayersToVariant,
+  createVariantSet,
+  dissolveSlot,
+  removeFromSlot,
+  renameSlot,
+  renameVariant
+} from '../../ui/layerAssembly/workshopPartSets'
 import { useEditor } from '../../store/editor'
 import { findCompositeTemplate, listSceneVariants, swapScenePart } from '../../ui/layerAssembly/scenePartSwap'
 
@@ -57,12 +67,20 @@ function groupId(p: Params, c: LayerComposite): string {
   return id
 }
 
-function runPartAction(action: string, p: Params, c: LayerComposite): unknown {
+function assetCand(p: Params) {
+  const path = str(p, 'asset_path', true)
+  return { path, name: str(p, 'name') ?? path.split('/').pop() ?? path }
+}
+
+function slotName(p: Params, c: LayerComposite): string {
+  const slot = str(p, 'slot', true)
+  if (!c.layers.some((l) => l.slot === slot)) throw new ParamError(`Unknown variant set (slot): ${slot}`)
+  return slot
+}
+
+/** Nhóm liên kết: tạo / gán / khoá / đổi tên / xoá / dời / thêm ảnh tại vị trí neo. */
+function runGroupAction(action: string, p: Params, c: LayerComposite): unknown {
   switch (action) {
-    case 'list':
-      return { ok: true, parts: toPlain(summarizeParts(c)) }
-    case 'auto_detect':
-      return commit(autoDetectParts(c))
     case 'create_group': {
       const kind = (str(p, 'kind') ?? 'custom') as LayerPartKind
       if (!KINDS.includes(kind)) throw new ParamError(`kind must be one of ${KINDS.join(', ')}`)
@@ -75,24 +93,69 @@ function runPartAction(action: string, p: Params, c: LayerComposite): unknown {
       return commit(updatePartGroup(c, groupId(p, c), { locked: bool(p, 'locked') ?? true }))
     case 'rename_group':
       return commit(updatePartGroup(c, groupId(p, c), { name: str(p, 'name', true) }))
+    case 'set_anchor':
+      return commit(updatePartGroup(c, groupId(p, c), { anchorLayerId: layerId(p, c) }))
     case 'delete_group':
       return commit(deletePartGroup(c, groupId(p, c)))
-    case 'set_slot':
-      return commit(setLayerSlot(c, layerId(p, c), str(p, 'slot') ?? null, str(p, 'variant')))
-    case 'activate_variant':
-      return commit(activateVariant(c, layerId(p, c), bool(p, 'snap') ?? true))
     case 'move':
       return commit(moveLinked(c, layerId(p, c), num(p, 'x', true), num(p, 'y', true)))
-    case 'replace_asset': {
-      const mode = str(p, 'mode') ?? 'replace'
-      if (mode !== 'replace' && mode !== 'variant') throw new ParamError('mode must be replace or variant')
-      const path = str(p, 'asset_path', true)
-      const res = replacePartAsset(c, layerId(p, c), { path, name: str(p, 'name') ?? path.split('/').pop() ?? path }, mode)
+    case 'add_asset_to_group': {
+      const res = addAssetToGroup(c, groupId(p, c), assetCand(p))
       return commit(res.composite, { layerId: res.layerId })
     }
     default:
-      throw new ParamError('action must be list, auto_detect, create_group, assign, lock_group, rename_group, delete_group, set_slot, activate_variant, move or replace_asset')
+      return undefined
   }
+}
+
+/** Bộ biến thể (nhiều lớp): tạo / đổi tên / thêm layer / gỡ / giải tán / kích hoạt / thay ảnh. */
+function runSlotAction(action: string, p: Params, c: LayerComposite): unknown {
+  switch (action) {
+    case 'set_slot':
+      return commit(setLayerSlot(c, layerId(p, c), str(p, 'slot') ?? null, str(p, 'variant')))
+    case 'create_variant_set': {
+      const res = createVariantSet(c, ids(p, c), str(p, 'name'))
+      return commit(res.composite, { slot: res.slot })
+    }
+    case 'rename_slot':
+      return commit(renameSlot(c, slotName(p, c), str(p, 'name', true)))
+    case 'rename_variant':
+      return commit(renameVariant(c, slotName(p, c), str(p, 'variant', true), str(p, 'name', true)))
+    case 'add_to_variant':
+      return commit(addLayersToVariant(c, ids(p, c), str(p, 'slot', true), str(p, 'variant')))
+    case 'remove_from_slot':
+      return commit(removeFromSlot(c, layerId(p, c)))
+    case 'dissolve_slot':
+      return commit(dissolveSlot(c, slotName(p, c)))
+    case 'activate_variant':
+      return commit(activateVariant(c, layerId(p, c), bool(p, 'snap') ?? true))
+    case 'add_asset_to_variant': {
+      const res = addAssetToVariant(c, slotName(p, c), str(p, 'variant', true), assetCand(p))
+      return commit(res.composite, { layerId: res.layerId })
+    }
+    case 'replace_asset': {
+      const mode = str(p, 'mode') ?? 'replace'
+      if (mode !== 'replace' && mode !== 'variant') throw new ParamError('mode must be replace or variant')
+      const res = replacePartAsset(c, layerId(p, c), assetCand(p), mode)
+      return commit(res.composite, { layerId: res.layerId })
+    }
+    default:
+      return undefined
+  }
+}
+
+const PART_ACTIONS = [
+  'list', 'auto_detect', 'create_group', 'assign', 'lock_group', 'rename_group', 'set_anchor', 'delete_group', 'move', 'add_asset_to_group',
+  'set_slot', 'create_variant_set', 'rename_slot', 'rename_variant', 'add_to_variant', 'remove_from_slot', 'dissolve_slot',
+  'activate_variant', 'add_asset_to_variant', 'replace_asset'
+]
+
+function runPartAction(action: string, p: Params, c: LayerComposite): unknown {
+  if (action === 'list') return { ok: true, parts: toPlain(summarizeParts(c)) }
+  if (action === 'auto_detect') return commit(autoDetectParts(c))
+  const res = runGroupAction(action, p, c) ?? runSlotAction(action, p, c)
+  if (res === undefined) throw new ParamError(`action must be one of: ${PART_ACTIONS.join(', ')}`)
+  return res
 }
 
 export const layerPartsCommands: Record<string, Handler> = {

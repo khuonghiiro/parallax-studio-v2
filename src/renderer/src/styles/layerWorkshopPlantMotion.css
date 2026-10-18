@@ -117,19 +117,53 @@
   fill: var(--key);
   stroke: var(--bg-0);
   stroke-width: 1.5;
-  cursor: ns-resize;
+  cursor: move;
 }
 .lw-plant-graph-key:hover,
 .lw-plant-graph-key.active { fill: var(--accent-cyan); }
+.lw-plant-motion-graph svg:focus-visible { outline: 1px solid var(--line-focus); outline-offset: 1px; border-radius: 4px; }
+.lw-plant-graph-stretch {
+  fill: none;
+  stroke: var(--text-faint);
+  stroke-width: 1.2;
+  stroke-dasharray: 4 3;
+  opacity: 0.8;
+}
+.lw-plant-graph-cursor { stroke: var(--accent-cyan); stroke-width: 1; stroke-dasharray: 2 2; opacity: 0.7; pointer-events: none; }
 
 .lw-plant-graph-meta {
   display: flex;
   justify-content: space-between;
+  gap: 6px;
   font-size: 10px;
   color: var(--text-faint);
   padding: 2px 2px 0;
 }
-.lw-plant-graph-meta span:nth-child(2) { color: var(--accent-cyan); font-weight: 600; }
+.lw-plant-graph-meta span:nth-child(2) { min-width: 0; overflow: hidden; text-align: center; white-space: nowrap; text-overflow: ellipsis; color: var(--accent-cyan); font-weight: 600; }
+
+.lw-plant-graph-tools { display: flex; flex-direction: column; gap: 6px; padding: 6px 2px 2px; border-top: 1px dashed var(--line-soft); margin-top: 4px; }
+.lw-plant-graph-hint { margin: 0; font-size: 10px; line-height: 1.45; color: var(--text-faint); }
+.lw-plant-key-row { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 6px; }
+.lw-plant-key-badge { font-size: 10.5px; font-weight: 700; color: var(--key); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lw-plant-key-field { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px; min-width: 0; font-size: 10px; color: var(--text-dim); }
+.lw-plant-key-field input {
+  width: 100%;
+  min-width: 0;
+  height: 22px;
+  padding: 0 4px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg-0);
+  color: var(--text);
+  font: inherit;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+.lw-plant-key-field input:focus { outline: none; border-color: var(--line-focus); }
+.lw-plant-key-field em { font-style: normal; color: var(--text-faint); }
+.lw-plant-graph-actions { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 4px; }
+.lw-plant-graph-actions .btn { min-width: 0; justify-content: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.lw-plant-list-tools { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
 
 /* Bóng biên độ khi có bản ghi vẽ tay: tông vàng (key) để phân biệt với gió (xanh lá) */
 .lw-plant-range.recorded .lw-plant-range-arc { stroke: var(--key); }

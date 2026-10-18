@@ -10,6 +10,7 @@ import {
   bakeSecondaryMotion,
   type SecondaryMotionSettings
 } from '../../ui/layerAssembly/workshopSecondaryMotion'
+import { keyTimes, neighborKeyTime, type AnimToolOp } from '../../ui/layerAssembly/workshopAnimTools'
 
 function parseTarget(p: Params): { x: number; y: number } {
   const t = p.target
@@ -83,5 +84,45 @@ export const layerAnimProCommands: Record<string, Handler> = {
       session.setIsPlaying(true)
     }
     return { ok: true, bone_ids: result.boneIds, key_count: result.keyCount, settings }
+  },
+
+  /** Công cụ pose-to-pose: điều hướng key, dáng trung gian, khép vòng lặp, lệch pha nhánh, co giãn / đảo / chèn thời gian. */
+  layer_assembly_pose_tools: (p) => {
+    const { session, composite, rig } = requireRig()
+    const op = str(p, 'op', true)
+    const time = Math.min(rig.duration, Math.max(0, num(p, 'time') ?? session.getTime()))
+    if (op === 'next_key' || op === 'prev_key') {
+      const boneId = str(p, 'bone_id')
+      if (boneId && !rig.bones.some((b) => b.id === boneId)) throw new ParamError(`Unknown bone_id "${boneId}"`)
+      const target = neighborKeyTime(rig, time, op === 'next_key' ? 1 : -1, boneId)
+      if (target !== null) { session.setIsPlaying(false); session.setTime(target) }
+      return { ok: true, time: target ?? time, moved: target !== null, key_times: keyTimes(rig, boneId) }
+    }
+    const tool = poseToolOp(op, p, time, rig.bones.map((b) => b.id))
+    const next = applyRigAction(composite, { action: 'anim-tool', tool })
+    session.setComposite(next)
+    session.setIsPlaying(false)
+    return { ok: true, op, duration: next.rig?.duration, loop: next.rig?.loop, key_times: keyTimes(next.rig ?? rig) }
+  }
+}
+
+function poseToolOp(op: string, p: Params, time: number, boneIds: string[]): AnimToolOp {
+  switch (op) {
+    case 'breakdown': return { op: 'breakdown', time, favor: num(p, 'favor') ?? 0.5 }
+    case 'close_loop': return { op: 'close-loop' }
+    case 'overlap': {
+      const rootBoneId = str(p, 'bone_id', true)
+      if (!boneIds.includes(rootBoneId)) throw new ParamError(`Unknown bone_id "${rootBoneId}"`)
+      return { op: 'overlap', rootBoneId, delay: num(p, 'delay') ?? 0.08 }
+    }
+    case 'retime': {
+      const factor = num(p, 'factor', true)
+      if (factor < 0.05 || factor > 20) throw new ParamError('factor must be between 0.05 and 20')
+      return { op: 'retime', factor }
+    }
+    case 'reverse': return { op: 'reverse' }
+    case 'shift_time': return { op: 'shift-time', from: time, delta: num(p, 'delta', true) }
+    default:
+      throw new ParamError('op must be next_key, prev_key, breakdown, close_loop, overlap, retime, reverse or shift_time')
   }
 }

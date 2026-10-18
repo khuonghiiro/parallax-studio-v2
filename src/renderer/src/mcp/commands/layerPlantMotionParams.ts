@@ -3,6 +3,7 @@ import type { Params } from '../types'
 import { ParamError } from '../types'
 import { bool, num, str } from '../params'
 import { buildPlantMotion, mirrorPlantMotion, scalePlantMotion, type PlantRecordEnd } from '../../ui/layerAssembly/plantMotionRecord'
+import { balancePlantMotion, simplifyPlantMotion, smoothPlantMotion } from '../../ui/layerAssembly/plantMotionEdit'
 
 /** Đọc mảng [[t, angle, stretch?], ...] số hữu hạn. */
 function parsePairs(p: Params, key: string): Array<[number, number, number?]> | undefined {
@@ -60,16 +61,25 @@ export function parsePlantMotionPatch(p: Params, current?: PlantSpine['motion'])
   const verticalBob = num(p, 'motion_vertical_bob')
   const scale = num(p, 'scale_motion')
   const mirror = bool(p, 'mirror_motion')
-  const tweaks = speed !== undefined || lag !== undefined || windMix !== undefined || verticalBob !== undefined || scale !== undefined || mirror !== undefined
+  const simplify = num(p, 'simplify_motion')
+  const smooth = bool(p, 'smooth_motion')
+  const balance = bool(p, 'balance_motion')
+  const tweaks = [speed, lag, windMix, verticalBob, scale, mirror, simplify, smooth, balance].some((v) => v !== undefined)
   if (!motion && !tweaks) return undefined
   motion = motion ?? current
-  if (!motion) throw new ParamError('motion_speed / motion_lag / motion_wind_mix / motion_vertical_bob / scale_motion / mirror_motion need an existing or new motion')
+  if (!motion) throw new ParamError('motion_speed / motion_lag / motion_wind_mix / motion_vertical_bob / scale_motion / mirror_motion / simplify_motion / smooth_motion / balance_motion need an existing or new motion')
   if (scale !== undefined && scale > 0) {
     motion = scalePlantMotion(motion, scale)
   }
   if (mirror) {
     motion = mirrorPlantMotion(motion)
   }
+  if (simplify !== undefined) {
+    if (simplify < 2 || simplify > 600) throw new ParamError('simplify_motion must be between 2 and 600 keys')
+    motion = simplifyPlantMotion(motion, Math.round(simplify))
+  }
+  if (smooth) motion = smoothPlantMotion(motion)
+  if (balance) motion = balancePlantMotion(motion)
   return {
     motion: {
       ...motion,

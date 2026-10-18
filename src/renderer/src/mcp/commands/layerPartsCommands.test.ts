@@ -65,6 +65,23 @@ describe('layer_assembly_parts', () => {
     await expect(run('layer_assembly_parts', { action: 'nope' })).rejects.toThrow()
     await expect(run('layer_assembly_parts', { action: 'lock_group', group_id: 'missing' })).rejects.toThrow()
     await expect(run('layer_assembly_parts', { action: 'create_group', layer_ids: ['ghost'] })).rejects.toThrow()
+    await expect(run('layer_assembly_parts', { action: 'rename_slot', slot: 'ghost', name: 'x' })).rejects.toThrow()
+  })
+
+  it('creates a user-named multi-layer variant set and drops an image at the group anchor', async () => {
+    const ws = openWorkshop()
+    const set = await run('layer_assembly_parts', { action: 'create_variant_set', layer_ids: ['face-normal', 'face-happy'], name: 'Biểu cảm' })
+    expect(set.slot).toBe('Biểu cảm')
+    await run('layer_assembly_parts', { action: 'add_to_variant', layer_ids: ['arm-left'], slot: 'Biểu cảm', variant: 'happy' })
+    await run('layer_assembly_parts', { action: 'rename_slot', slot: 'Biểu cảm', name: 'Cảm xúc' })
+    const parts = (await run('layer_assembly_parts', { action: 'list' })).parts as { slots: Array<{ slot: string; variants: unknown[] }> }
+    expect(parts.slots.map((s) => s.slot)).toEqual(['Cảm xúc'])
+    expect(parts.slots[0].variants).toHaveLength(3)
+    const group = await run('layer_assembly_parts', { action: 'create_group', layer_ids: ['head'], name: 'Đầu rồng' })
+    const added = await run('layer_assembly_parts', { action: 'add_asset_to_group', group_id: group.groupId, asset_path: 'dragon/horn.png' })
+    expect(ws.get().layers.find((l) => l.id === added.layerId)).toMatchObject({ y: -300, partGroupId: group.groupId, name: 'horn' })
+    await run('layer_assembly_parts', { action: 'dissolve_slot', slot: 'Cảm xúc' })
+    expect(ws.get().layers.some((l) => l.slot)).toBe(false)
   })
 })
 

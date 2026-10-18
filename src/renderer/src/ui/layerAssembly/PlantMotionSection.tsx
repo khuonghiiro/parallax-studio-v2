@@ -98,10 +98,13 @@ function MotionSlider({
 /** Mục "Chuyển động tùy chỉnh & Quỹ đạo" của xương thực vật: tạo mới bằng bộ tạo nhịp hoặc vẽ tay. */
 export function PlantMotionSection({
   spine,
-  patch
+  patch,
+  onApplyToOthers
 }: {
   spine: PlantSpine
   patch: (p: Partial<PlantSpine>, key?: string) => void
+  /** Sao chép nhịp hiện tại sang mọi xương khác, mỗi xương lệch pha thêm `stagger` giây. */
+  onApplyToOthers?: (stagger: number) => void
 }) {
   const editor = usePlantSpineEditor()
   const motion = spine.motion
@@ -149,14 +152,14 @@ export function PlantMotionSection({
           className={`lw-plant-submode-btn${createMode === 'builder' ? ' active' : ''}`}
           onClick={() => setCreateMode('builder')}
         >
-          ⚡ Tạo bằng bộ thiết kế nhịp
+          ⚡ Bộ thiết kế nhịp
         </button>
         <button
           type="button"
           className={`lw-plant-submode-btn${createMode === 'draw' ? ' active' : ''}`}
           onClick={() => setCreateMode('draw')}
         >
-          ✍️ Vẽ tay trên khung 2D
+          ✍️ Vẽ tay khung 2D
         </button>
       </div>
 
@@ -266,7 +269,7 @@ export function PlantMotionSection({
       {motion && (
         <div className="lw-plant-recorded-box">
           <div className="lw-plant-section-label">
-            📈 Đồ thị mốc nhịp (Kéo chấm vàng lên/xuống để sửa từng mốc)
+            📈 Đồ thị mốc nhịp — nhấp đúp thêm mốc, kéo chấm vàng theo mọi hướng
           </div>
           <PlantMotionGraph
             motion={motion}
@@ -350,6 +353,16 @@ export function PlantMotionSection({
             >
               ↺ Về gió tự nhiên
             </button>
+            {onApplyToOthers && (
+              <button
+                type="button"
+                className="btn sm"
+                title="Sao chép nhịp này sang mọi xương thực vật khác, mỗi xương lệch pha thêm 0.35s để cả bụi cây chuyển động tự nhiên"
+                onClick={() => onApplyToOthers(0.35)}
+              >
+                🌿 Áp cho xương khác
+              </button>
+            )}
           </div>
         </div>
       )}

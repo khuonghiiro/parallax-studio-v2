@@ -104,3 +104,25 @@ describe('layer_assembly_motion_sketch + chain_length', () => {
     await expect(run('layer_assembly_motion_sketch', { bone_id: 'lower', points: [[0, 0], [10, 10]], timing: 'live' })).rejects.toThrow()
   })
 })
+
+describe('layer_assembly_pose_tools', () => {
+  it('điều hướng key, chèn dáng trung gian và khép vòng lặp', async () => {
+    const ws = openWorkshop()
+    const nav = (await run('layer_assembly_pose_tools', { op: 'next_key' })) as { time: number; moved: boolean }
+    expect(nav).toMatchObject({ time: 0.5, moved: true })
+    expect(ws.state.time).toBe(0.5)
+    await run('layer_assembly_pose_tools', { op: 'breakdown', time: 0.25, favor: 0.5 })
+    expect(ws.get().rig!.tracks.body.find((k) => k.time === 0.25)!.rotation).toBeCloseTo(15)
+    const loop = (await run('layer_assembly_pose_tools', { op: 'close_loop' })) as { loop: boolean }
+    expect(loop.loop).toBe(true)
+    const re = (await run('layer_assembly_pose_tools', { op: 'retime', factor: 2 })) as { duration: number }
+    expect(re.duration).toBe(2)
+  })
+
+  it('kiểm tra tham số', async () => {
+    openWorkshop()
+    await expect(run('layer_assembly_pose_tools', { op: 'nope' })).rejects.toThrow()
+    await expect(run('layer_assembly_pose_tools', { op: 'overlap', bone_id: 'ghost' })).rejects.toThrow()
+    await expect(run('layer_assembly_pose_tools', { op: 'retime', factor: 99 })).rejects.toThrow()
+  })
+})

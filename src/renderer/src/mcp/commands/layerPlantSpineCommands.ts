@@ -119,8 +119,17 @@ export const layerPlantSpineCommands: Record<string, Handler> = {
       next = applyPlantSpineAction(composite, { action: 'delete', id: spineId })
     } else if (action === 'clear') {
       next = applyPlantSpineAction(composite, { action: 'clear' })
+    } else if (action === 'phase') {
+      const mode = str(p, 'mode') ?? 'stagger'
+      if (mode !== 'stagger' && mode !== 'sync') throw new ParamError('mode must be stagger or sync')
+      next = applyPlantSpineAction(composite, { action: 'phase', mode, spread: num(p, 'spread') })
+    } else if (action === 'copy_motion') {
+      spineId = str(p, 'spine_id', true)
+      const targets = p.target_spine_ids
+      if (targets !== undefined && (!Array.isArray(targets) || targets.some((t) => typeof t !== 'string'))) throw new ParamError('target_spine_ids must be a string array')
+      next = applyPlantSpineAction(composite, { action: 'copy-motion', id: spineId, targetIds: targets as string[] | undefined, stagger: num(p, 'stagger') })
     } else {
-      throw new ParamError('action must be list, add, update, delete or clear')
+      throw new ParamError('action must be list, add, update, delete, clear, phase or copy_motion')
     }
     session.setComposite(next)
     return { ok: true, spineId, spines: summarize(next.plantSpines), composite: toPlain(next) }

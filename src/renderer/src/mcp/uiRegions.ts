@@ -149,6 +149,8 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   layer_assembly_plant_motion: ['.lw-plant-motion', '.lw-plant-panel', '.lw-plant-motion-chips'],
   layer_assembly_plant_chips: ['.lw-plant-motion-chips'],
   layer_assembly_plant_panel: ['.lw-plant-panel'],
+  layer_assembly_pose_tools: region('layer_assembly_pose_tools', '.lw-pose-tools'),
+  layer_assembly_plant_graph: region('layer_assembly_plant_graph', '.lw-plant-motion-graph'),
 
   // 3. Audio Studio (Phòng thu Âm thanh)
   audio_studio: ['.audio-studio-modal', '.audio-studio-dialog'],

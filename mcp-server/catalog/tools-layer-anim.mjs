@@ -38,5 +38,23 @@ export const LAYER_ANIM_TOOLS = [
       play: z.boolean().optional().describe(d('Play the clip from 0 afterwards (default true).', 'Phát thử clip từ 0 sau khi nướng (mặc định true).'))
     }),
     example: '{"bone_id":"bone-hair-1","preset":"hair"}'
+  },
+  {
+    name: 'layer_assembly_pose_tools',
+    cat: 'layer_assembly',
+    doc: L(
+      'Pose-to-pose timing tools of the Animation tab (same as the "Pose-to-pose & Timing" card). op: next_key / prev_key (move the playhead to the neighbouring keyframe, optionally of bone_id only), breakdown (insert an in-between pose at `time` for every bone sitting between two keys; favor 0 = previous key, 1 = next key — Tween Machine), close_loop (last frame = first pose, loop on), overlap (children of bone_id lag `delay` s per level → follow-through for arms/hair/tails), retime (scale all key times by `factor`), reverse, shift_time (insert (+) or remove (−) `delta` seconds at `time`). Undoable (Ctrl+Z).',
+      'Công cụ nhịp pose-to-pose của tab Animation (giống thẻ "Pose-to-pose & Nhịp"). op: next_key / prev_key (đưa đầu phát tới keyframe kế bên, tuỳ chọn chỉ của bone_id), breakdown (chèn dáng trung gian tại `time` cho mọi xương nằm giữa 2 key; favor 0 = key trước, 1 = key sau — Tween Machine), close_loop (khung cuối = dáng đầu, bật lặp), overlap (xương con của bone_id trễ `delay` giây mỗi cấp → follow-through cho tay/tóc/đuôi), retime (nhân thời điểm mọi key với `factor`), reverse (đảo ngược), shift_time (chèn (+) hoặc bớt (−) `delta` giây tại `time`). Hỗ trợ hoàn tác (Ctrl+Z).'
+    ),
+    shape: (d) => ({
+      op: z.enum(['next_key', 'prev_key', 'breakdown', 'close_loop', 'overlap', 'retime', 'reverse', 'shift_time']).describe(d('Tool to run.', 'Công cụ cần chạy.')),
+      time: z.number().optional().describe(d('Clip time in seconds (breakdown / shift_time / navigation start); defaults to the playhead.', 'Thời điểm trong clip (giây) cho breakdown / shift_time / điểm bắt đầu điều hướng; mặc định = đầu phát.')),
+      favor: z.number().min(-0.5).max(1.5).optional().describe(d('breakdown: 0 = previous key, 0.5 = middle (default), 1 = next key.', 'breakdown: 0 = key trước, 0.5 = chính giữa (mặc định), 1 = key sau.')),
+      bone_id: z.string().optional().describe(d('overlap: root bone of the branch (required) · next_key/prev_key: only this bone\'s keys.', 'overlap: xương gốc của nhánh (bắt buộc) · next_key/prev_key: chỉ xét key của xương này.')),
+      delay: z.number().min(-1).max(1).optional().describe(d('overlap: lag per child level in seconds (default 0.08).', 'overlap: độ trễ mỗi cấp xương con (giây, mặc định 0.08).')),
+      factor: z.number().min(0.05).max(20).optional().describe(d('retime: >1 slower, <1 faster (duration is scaled too).', 'retime: >1 chậm hơn, <1 nhanh hơn (thời lượng co giãn theo).')),
+      delta: z.number().optional().describe(d('shift_time: seconds to insert (positive) or remove (negative) right after `time`.', 'shift_time: số giây chèn (dương) hoặc bớt (âm) ngay sau `time`.'))
+    }),
+    example: '{"op":"breakdown","time":0.5,"favor":0.33}'
   }
 ]

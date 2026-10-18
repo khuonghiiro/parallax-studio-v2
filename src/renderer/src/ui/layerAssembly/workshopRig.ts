@@ -15,6 +15,7 @@ import { applyAnimationAction, isAnimationAction, validateCurve, type AnimationA
 export type { BonePoseEntry } from './workshopAnimation'
 import { retargetAnimationClip } from './workshopRetarget'
 import { autoBindLayersToMixamoBones } from './workshopMixamoAutoRig'
+import { applyAnimTool, type AnimToolOp } from './workshopAnimTools'
 
 export type RigTemplateType = 'humanoid' | 'humanoid-full' | 'hand-detailed' | 'foot-detailed' | 'simple-chain'
 
@@ -103,6 +104,7 @@ export type RigAction = AnimationAction | AnimationBatch
   | { action: 'apply-preset-animation'; preset: ProceduralMotionPreset; asNewClip?: boolean; clipName?: string; viewAngle?: MotionViewAngle }
   | { action: 'clear-animation' }
   | { action: 'clear-bone-track'; boneId: string }
+  | { action: 'anim-tool'; tool: AnimToolOp }
   | { action: 'add-clip'; clip: AnimationClip }
   | { action: 'switch-clip'; clipId: string }
   | { action: 'rename-clip'; clipId: string; name: string }
@@ -371,6 +373,8 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
       })
     }
   }
+
+  if (action.action === 'anim-tool') applyAnimTool(rig, action.tool)
 
   // --- Quản lý Clips Động Tác ---
   if (action.action === 'add-clip') {
