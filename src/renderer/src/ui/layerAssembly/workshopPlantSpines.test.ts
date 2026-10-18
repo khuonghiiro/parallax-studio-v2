@@ -5,8 +5,10 @@ import {
   buildAutoPlantSpinePoints,
   createPlantSpine,
   prunePlantSpines,
+  resamplePlantSpinePoints,
   resolveSpineLayerIds,
-  simplifyStroke
+  simplifyStroke,
+  subdividePlantSpine
 } from './workshopPlantSpines'
 
 const layer = (id: string, hidden = false) => ({
@@ -28,6 +30,35 @@ describe('workshop plant spines', () => {
     expect(out.length).toBeLessThan(6)
     expect(out[0]).toEqual({ x: 0, y: 150 })
     expect(out.at(-1)!.y).toBe(150 - 49 * 4)
+  })
+
+  it('tự động chia đều các khớp uốn khi vẽ đường thẳng dài', () => {
+    // Đoạn thẳng dài 240px: không có điểm uốn cong, nhưng cần tự sinh ~4-5 khớp uốn cách nhau ~60px
+    const straight = Array.from({ length: 25 }, (_, i) => ({ x: 0, y: 240 - i * 10 }))
+    const out = simplifyStroke(straight)
+    expect(out.length).toBeGreaterThanOrEqual(4)
+    expect(out[0]).toEqual({ x: 0, y: 240 })
+    expect(out.at(-1)!).toEqual({ x: 0, y: 0 })
+    for (let i = 1; i < out.length; i++) {
+      const dist = Math.hypot(out[i].x - out[i - 1].x, out[i].y - out[i - 1].y)
+      expect(dist).toBeLessThanOrEqual(65)
+    }
+  })
+
+  it('subdividePlantSpine nhân đôi số khớp uốn đều đặn', () => {
+    const pts = [{ x: 0, y: 100 }, { x: 0, y: 0 }, { x: 0, y: -100 }]
+    const subdivided = subdividePlantSpine(pts)
+    expect(subdivided).toHaveLength(5)
+    expect(subdivided[1]).toEqual({ x: 0, y: 50 })
+    expect(subdivided[3]).toEqual({ x: 0, y: -50 })
+  })
+
+  it('resamplePlantSpinePoints phân bố lại các khớp uốn cách đều nhau', () => {
+    const pts = [{ x: 0, y: 200 }, { x: 0, y: 150 }, { x: 0, y: 0 }]
+    const resampled = resamplePlantSpinePoints(pts, 50)
+    expect(resampled.length).toBeGreaterThanOrEqual(4)
+    expect(resampled[0]).toEqual({ x: 0, y: 200 })
+    expect(resampled.at(-1)!).toEqual({ x: 0, y: 0 })
   })
 
   it('builds a valid 4-point vertical spine from root to tip automatically', () => {

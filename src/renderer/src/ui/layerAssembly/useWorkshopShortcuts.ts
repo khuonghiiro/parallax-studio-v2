@@ -39,7 +39,7 @@ export function useWorkshopShortcuts(
           const targetBoneId = ctx.boneId
           state.setComposite((c) => applyRigAction(c, { action: 'delete-bone', boneId: targetBoneId }))
           ctx.selectBone?.(null)
-        } else if (state.selection.length && ctx?.tab !== 'animation') {
+        } else if (state.selection.length && ctx?.tab !== 'animation' && ctx?.tab !== 'plant') {
           state.run('delete')
         }
       }
@@ -74,6 +74,7 @@ export function useWorkshopShortcuts(
       else if (
         !mod &&
         state.selection.length &&
+        boneCtxRef.current?.tab !== 'plant' &&
         (key === '+' || key === '=' || e.code === 'NumpadAdd' || key === '-' || key === '_' || e.code === 'NumpadSubtract')
       ) {
         const isPlus = key === '+' || key === '=' || e.code === 'NumpadAdd'

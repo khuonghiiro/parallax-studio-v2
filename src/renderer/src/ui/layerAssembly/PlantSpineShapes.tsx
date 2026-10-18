@@ -77,6 +77,9 @@ function swayLimits(spine: PlantSpine): { lo: number; hi: number; center: number
 export interface SelectedHandlesProps {
   spine: PlantSpine
   grabbing: boolean
+  hoveredPointIndex?: number | null
+  hoverCurvePoint?: PlantSpinePoint | null
+  onPointHover?: (index: number | null) => void
   onBodyDown: (e: PointerEvent) => void
   onBodyDoubleClick: (e: MouseEvent) => void
   onPointDown: (e: PointerEvent, index: number) => void
@@ -88,7 +91,7 @@ export interface SelectedHandlesProps {
 
 /** Tay nắm của xương đang chọn: thân (dời cả xương), chấm điểm (sửa dáng), tay nắm ngọn 4 chiều (uốn vòng cung & nhún lên xuống). */
 export function SelectedSpineHandles(props: SelectedHandlesProps) {
-  const { spine, grabbing } = props
+  const { spine, grabbing, hoveredPointIndex, hoverCurvePoint, onPointHover } = props
   const tip = spine.points[spine.points.length - 1]
   const grab = plantGrabHandle(spine.points)
   const amp = Math.abs(spine.amplitude)
@@ -106,23 +109,62 @@ export function SelectedSpineHandles(props: SelectedHandlesProps) {
         onPointerDown={props.onBodyDown}
         onDoubleClick={props.onBodyDoubleClick}
       >
-        <title>Kéo để dời cả xương · Nhấp đúp để thêm điểm uốn</title>
+        <title>Kéo để dời cả xương · Nhấn phím '+' tại vị trí chuột để thêm điểm uốn</title>
       </path>
-      {spine.points.map((p, i) => (
-        <rect
-          key={i}
-          x={p.x - 4.5}
-          y={p.y - 4.5}
-          width={9}
-          height={9}
-          rx={2}
-          className={`lw-plant-point${i === 0 ? ' root' : ''}`}
-          onPointerDown={(e) => props.onPointDown(e, i)}
-          onDoubleClick={(e) => props.onPointDoubleClick(e, i)}
-        >
-          <title>{i === 0 ? 'Gốc xương — kéo để dời' : 'Kéo để sửa dáng · Nhấp đúp để xoá điểm'}</title>
-        </rect>
-      ))}
+      {/* Vị trí preview thêm điểm uốn mới khi rê chuột dọc theo thân xương */}
+      {hoverCurvePoint && !grabbing && (
+        <g className="lw-plant-insert-preview" pointerEvents="none">
+          <circle cx={hoverCurvePoint.x} cy={hoverCurvePoint.y} r={7.5} className="lw-plant-insert-ring" />
+          <path
+            d={`M${hoverCurvePoint.x - 3.5},${hoverCurvePoint.y} h7 M${hoverCurvePoint.x},${hoverCurvePoint.y - 3.5} v7`}
+            className="lw-plant-insert-plus"
+          />
+          <text
+            x={hoverCurvePoint.x + 10}
+            y={hoverCurvePoint.y + 3.5}
+            className="lw-plant-insert-hint"
+          >
+            Nhấn '+' thêm điểm
+          </text>
+        </g>
+      )}
+      {spine.points.map((p, i) => {
+        const isHoverDelete = i === hoveredPointIndex && i > 0
+        const isRoot = i === 0
+        const size = isHoverDelete ? 11 : 9
+        const half = size / 2
+        return (
+          <g key={i}>
+            <rect
+              x={p.x - half}
+              y={p.y - half}
+              width={size}
+              height={size}
+              rx={2}
+              className={`lw-plant-point${isRoot ? ' root' : ''}${isHoverDelete ? ' hover-delete' : ''}`}
+              onPointerDown={(e) => props.onPointDown(e, i)}
+              onDoubleClick={(e) => props.onPointDoubleClick(e, i)}
+              onPointerEnter={() => onPointHover?.(i)}
+              onPointerLeave={() => onPointHover?.(null)}
+            >
+              <title>
+                {isRoot
+                  ? 'Gốc xương — kéo để dời cả thân cây'
+                  : isHoverDelete
+                    ? 'Điểm đỏ — Nhấn phím \'-\' hoặc \'Del\' để xoá điểm này'
+                    : 'Kéo để sửa dáng · Nhấn \'-\' hoặc \'Del\' khi hover để xoá'}
+              </title>
+            </rect>
+            {isHoverDelete && (
+              <path
+                d={`M${p.x - 3},${p.y} h6`}
+                className="lw-plant-point-del-minus"
+                pointerEvents="none"
+              />
+            )}
+          </g>
+        )
+      })}
       <line x1={tip.x} y1={tip.y} x2={grab.x} y2={grab.y} className="lw-plant-grab-stem" />
       <g className={`lw-plant-grab${grabbing ? ' active' : ''}`} onPointerDown={props.onGrabDown}>
         <circle cx={grab.x} cy={grab.y} r={12} className="lw-plant-grab-ring" />

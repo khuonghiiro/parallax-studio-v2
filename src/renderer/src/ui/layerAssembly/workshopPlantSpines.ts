@@ -24,8 +24,7 @@ function perpendicularDistance(p: PlantSpinePoint, a: PlantSpinePoint, b: PlantS
   return Math.abs(dy * p.x - dx * p.y + b.x * a.y - b.y * a.x) / len
 }
 
-/** Ramer–Douglas–Peucker: giữ dáng nét vẽ tay nhưng bỏ điểm thừa do rung chuột. */
-export function simplifyStroke(points: PlantSpinePoint[], tolerance = 2.5): PlantSpinePoint[] {
+function rdpSimplify(points: PlantSpinePoint[], tolerance: number): PlantSpinePoint[] {
   if (points.length <= 2) return points.map((p) => ({ x: Math.round(p.x), y: Math.round(p.y) }))
   let maxDist = 0
   let index = 0
@@ -40,9 +39,93 @@ export function simplifyStroke(points: PlantSpinePoint[], tolerance = 2.5): Plan
   if (maxDist <= tolerance) {
     return [points[0], points[last]].map((p) => ({ x: Math.round(p.x), y: Math.round(p.y) }))
   }
-  const left = simplifyStroke(points.slice(0, index + 1), tolerance)
-  const right = simplifyStroke(points.slice(index), tolerance)
+  const left = rdpSimplify(points.slice(0, index + 1), tolerance)
+  const right = rdpSimplify(points.slice(index), tolerance)
   return [...left.slice(0, -1), ...right]
+}
+
+/**
+ * Đảm bảo khoảng cách giữa các khớp uốn không quá dài (mặc định tối đa 65px).
+ * Nếu người dùng vẽ một đường thẳng dài, tự động chia đều đoạn đó thành các khớp ô vuông
+ * để người dùng có đầy đủ các điểm căn chỉnh uốn nắn thân cây.
+ */
+export function ensureJointSpacing(points: PlantSpinePoint[], maxSegmentLength = 65): PlantSpinePoint[] {
+  if (points.length < 2) return points
+  const out: PlantSpinePoint[] = [points[0]]
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]
+    const b = points[i]
+    const dist = Math.hypot(b.x - a.x, b.y - a.y)
+    if (dist > maxSegmentLength) {
+      const segments = Math.ceil(dist / maxSegmentLength)
+      for (let s = 1; s < segments; s++) {
+        const t = s / segments
+        out.push({
+          x: Math.round(a.x + (b.x - a.x) * t),
+          y: Math.round(a.y + (b.y - a.y) * t)
+        })
+      }
+    }
+    out.push(b)
+  }
+  return out
+}
+
+/** Ramer–Douglas–Peucker + phân bổ đều khớp uốn: vừa khử rung tay vừa tự tạo các điểm ô vuông đều đặn theo chiều dài cành. */
+export function simplifyStroke(
+  points: PlantSpinePoint[],
+  tolerance = 2.5,
+  maxSegmentLength = 65
+): PlantSpinePoint[] {
+  const simplified = rdpSimplify(points, tolerance)
+  return ensureJointSpacing(simplified, maxSegmentLength)
+}
+
+/**
+ * Nhân đôi số khớp uốn của xương (chèn trung điểm vào giữa mỗi đoạn).
+ * Giúp xương có nhiều khớp hơn để uốn cong mượt mà theo ý muốn.
+ */
+export function subdividePlantSpine(points: PlantSpinePoint[]): PlantSpinePoint[] {
+  if (points.length < 2) return points
+  const out: PlantSpinePoint[] = []
+  for (let i = 0; i < points.length; i++) {
+    out.push(points[i])
+    if (i < points.length - 1) {
+      const next = points[i + 1]
+      out.push({
+        x: Math.round((points[i].x + next.x) / 2),
+        y: Math.round((points[i].y + next.y) / 2)
+      })
+    }
+  }
+  return out
+}
+
+/**
+ * Phân bố lại các khớp uốn cách đều nhau dọc theo tổng chiều dài xương.
+ */
+export function resamplePlantSpinePoints(points: PlantSpinePoint[], targetSpacing = 55): PlantSpinePoint[] {
+  if (points.length < 2) return points
+  const total = strokeLength(points)
+  if (total < 10) return points
+  const count = Math.max(3, Math.min(16, Math.round(total / targetSpacing) + 1))
+  const cum = [0]
+  for (let i = 1; i < points.length; i++) {
+    cum.push(cum[i - 1] + Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y))
+  }
+  const out: PlantSpinePoint[] = []
+  let j = 1
+  for (let k = 0; k < count; k++) {
+    const s = (total * k) / (count - 1)
+    while (j < points.length - 1 && cum[j] < s) j++
+    const seg = cum[j] - cum[j - 1] || 1
+    const t = Math.min(1, Math.max(0, (s - cum[j - 1]) / seg))
+    out.push({
+      x: Math.round(points[j - 1].x + (points[j].x - points[j - 1].x) * t),
+      y: Math.round(points[j - 1].y + (points[j].y - points[j - 1].y) * t)
+    })
+  }
+  return out
 }
 
 export function strokeLength(points: PlantSpinePoint[]): number {

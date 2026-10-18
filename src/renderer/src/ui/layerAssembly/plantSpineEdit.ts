@@ -55,6 +55,40 @@ export function distanceToPolyline(p: PlantSpinePoint, pts: PlantSpinePoint[]): 
   return best
 }
 
+export interface PolylineProjection {
+  point: PlantSpinePoint
+  seg: number
+  dist: number
+  t: number
+}
+
+/**
+ * Tìm điểm hình chiếu vuông góc gần nhất của p lên polyline của xương.
+ * Trả về toạ độ điểm nằm trên đường xương, chỉ số đoạn seg, khoảng cách dist và tham số t ∈ [0, 1].
+ */
+export function projectPointOnPolyline(p: PlantSpinePoint, pts: PlantSpinePoint[]): PolylineProjection | null {
+  if (pts.length < 2) return null
+  let best: PolylineProjection = { point: pts[0], seg: 1, dist: Infinity, t: 0 }
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i]
+    const dx = b.x - a.x, dy = b.y - a.y
+    const len2 = dx * dx + dy * dy || 1
+    const t = clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / len2, 0, 1)
+    const projX = a.x + dx * t
+    const projY = a.y + dy * t
+    const dist = Math.hypot(p.x - projX, p.y - projY)
+    if (dist < best.dist) {
+      best = {
+        point: roundPoint({ x: projX, y: projY }),
+        seg: i,
+        dist,
+        t
+      }
+    }
+  }
+  return best
+}
+
 /** Vị trí tay nắm "kéo ngọn": nằm nhô ra ngoài ngọn một đoạn theo hướng ngọn để không đè lên chấm sửa điểm. */
 export function plantGrabHandle(points: PlantSpinePoint[], offset = 26): PlantSpinePoint {
   const tip = points[points.length - 1]

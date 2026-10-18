@@ -15,6 +15,7 @@ import {
   distanceToPolyline,
   insertPlantSpinePoint,
   movePlantSpinePoint,
+  projectPointOnPolyline,
   removePlantSpinePoint,
   translatePlantSpine,
   type SwaySample
@@ -52,15 +53,66 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
   const dragRef = useRef<Drag | null>(null)
   const [stroke, setStroke] = useState<PlantSpinePoint[] | null>(null)
   const [flash, setFlash] = useState<string | null>(null)
+  const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null)
+  const [hoverCurvePoint, setHoverCurvePoint] = useState<PlantSpinePoint | null>(null)
+  const hoveredPointRef = useRef<number | null>(null)
+  const hoverCurvePointRef = useRef<PlantSpinePoint | null>(null)
+  const selectedRef = useRef<PlantSpine | null>(null)
+
   const editor = usePlantSpineEditor()
   const spines = composite.plantSpines ?? []
   const selected = drawing ? spines.find((s) => s.id === editor.selectedSpineId) ?? null : null
+
+  hoveredPointRef.current = hoveredPointIndex
+  hoverCurvePointRef.current = hoverCurvePoint
+  selectedRef.current = selected
 
   useEffect(() => {
     if (!flash) return
     const id = window.setTimeout(() => setFlash(null), 2200)
     return () => window.clearTimeout(id)
   }, [flash])
+
+  useEffect(() => {
+    if (!drawing) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      if (target?.closest?.('input, textarea, select, [contenteditable="true"]')) return
+      const curSelected = selectedRef.current
+      if (!curSelected) return
+      const isPlus = e.key === '+' || e.key === '=' || e.code === 'NumpadAdd'
+      const isMinus = e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract'
+      const isDel = e.key === 'Delete' || e.key === 'Backspace'
+
+      if (isPlus) {
+        const pt = hoverCurvePointRef.current
+        if (pt) {
+          e.preventDefault()
+          e.stopImmediatePropagation()
+          const nextPts = insertPlantSpinePoint(curSelected.points, pt)
+          patchSpine(curSelected.id, { points: nextPts })
+          setHoverCurvePoint(null)
+          setFlash(`➕ Đã thêm điểm uốn (${nextPts.length} khớp)`)
+        }
+      } else if (isMinus || isDel) {
+        const idx = hoveredPointRef.current
+        if (idx !== null && idx !== undefined && idx > 0) {
+          e.preventDefault()
+          e.stopImmediatePropagation()
+          if (curSelected.points.length <= 2) {
+            setFlash('⚠️ Cần giữ tối thiểu 2 điểm (gốc và ngọn)')
+            return
+          }
+          const nextPts = removePlantSpinePoint(curSelected.points, idx)
+          patchSpine(curSelected.id, { points: nextPts })
+          setHoveredPointIndex(null)
+          setFlash(`🗑️ Đã xoá điểm đỏ (${nextPts.length} khớp còn lại)`)
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => window.removeEventListener('keydown', handleKeyDown, true)
+  }, [drawing])
 
   if (!drawing && !spines.length) return null
 
@@ -108,8 +160,25 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
 
   const onMove = (e: PointerEvent) => {
     const drag = dragRef.current
-    const p = drag ? toLocal(e) : null
-    if (!drag || !p) return
+    const p = toLocal(e)
+    if (!drag) {
+      if (drawing && selected && p) {
+        if (hoveredPointRef.current !== null) {
+          if (hoverCurvePointRef.current) setHoverCurvePoint(null)
+        } else {
+          const proj = projectPointOnPolyline(p, selected.points)
+          if (proj && proj.dist <= 24) {
+            const tooClose = selected.points.some((pt) => Math.hypot(pt.x - proj.point.x, pt.y - proj.point.y) < 14)
+            if (!tooClose) setHoverCurvePoint(proj.point)
+            else if (hoverCurvePointRef.current) setHoverCurvePoint(null)
+          } else if (hoverCurvePointRef.current) {
+            setHoverCurvePoint(null)
+          }
+        }
+      }
+      return
+    }
+    if (!p) return
     if (drag.kind === 'draw') {
       const last = drag.pts[drag.pts.length - 1]
       if (Math.hypot(p.x - last.x, p.y - last.y) < 2) return
@@ -188,10 +257,23 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
     }
   }
 
+  const onLeave = () => {
+    if (!dragRef.current) {
+      setHoverCurvePoint(null)
+      setHoveredPointIndex(null)
+    }
+  }
+
   const handleProps = selected && {
     spine: selected,
     grabMode: editor.grabMode,
     grabbing: editor.grab?.spineId === selected.id,
+    hoveredPointIndex,
+    hoverCurvePoint,
+    onPointHover: (idx: number | null) => {
+      setHoveredPointIndex(idx)
+      if (idx !== null) setHoverCurvePoint(null)
+    },
     onBodyDown: (e: PointerEvent) => {
       const p = toLocal(e)
       if (p) startHandleDrag(e, { kind: 'move', spineId: selected.id, start: p, origin: selected.points })
@@ -229,6 +311,7 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
       onPointerMove={onMove}
       onPointerUp={finish}
       onPointerCancel={cancel}
+      onPointerLeave={onLeave}
     >
       {spines.map((s) => (
         <PlantSpineShape

@@ -152,7 +152,7 @@ describe('useWorkshopShortcuts', () => {
           const targetBoneId = boneContext.boneId
           state.setComposite((c: any) => c)
           boneContext.selectBone?.(null)
-        } else if (state.selection.length) {
+        } else if (state.selection.length && boneContext?.tab !== 'animation' && boneContext?.tab !== 'plant') {
           state.run('delete')
         }
       }
@@ -183,6 +183,7 @@ describe('useWorkshopShortcuts', () => {
       } else if (
         !mod &&
         state.selection.length &&
+        boneContext?.tab !== 'plant' &&
         (key === '+' || key === '=' || e.code === 'NumpadAdd' || key === '-' || key === '_' || e.code === 'NumpadSubtract')
       ) {
         const isPlus = key === '+' || key === '=' || e.code === 'NumpadAdd'
@@ -346,5 +347,20 @@ describe('useWorkshopShortcuts', () => {
     expect(togglePlay).toHaveBeenCalledTimes(1)
     expect(ev.defaultPrevented).toBe(true)
     expect(ev.propagationStopped).toBe(true)
+  })
+
+  it('không xoá layer và không chỉnh Z khi đang ở tab plant', () => {
+    const { state, updateFn } = setupHook({
+      selection: ['layer-1'],
+      boneContext: {
+        tab: 'plant'
+      }
+    })
+    fireKey({ key: 'Delete' })
+    expect(state.run).not.toHaveBeenCalledWith('delete')
+    fireKey({ key: '+' })
+    expect(updateFn).not.toHaveBeenCalled()
+    fireKey({ key: '-' })
+    expect(updateFn).not.toHaveBeenCalled()
   })
 })

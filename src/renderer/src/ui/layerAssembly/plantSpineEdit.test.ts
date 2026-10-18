@@ -5,6 +5,7 @@ import {
   learnSwayFromGesture,
   movePlantSpinePoint,
   pickLayersUnderStroke,
+  projectPointOnPolyline,
   removePlantSpinePoint,
   translatePlantSpine
 } from './plantSpineEdit'
@@ -32,6 +33,15 @@ describe('plantSpineEdit', () => {
     expect(removePlantSpinePoint(inserted, 1)).toEqual(pts)
     expect(removePlantSpinePoint([pts[0], pts[2]], 0)).toHaveLength(2)
     expect(translatePlantSpine(pts, 10, -5)[0]).toEqual({ x: 10, y: 95 })
+  })
+
+  it('xác định hình chiếu vuông góc lên đường polyline', () => {
+    const pts = spine().points // [{x:0, y:100}, {x:0, y:0}, {x:0, y:-100}]
+    const proj = projectPointOnPolyline({ x: 15, y: 40 }, pts)
+    expect(proj).not.toBeNull()
+    expect(proj?.dist).toBeCloseTo(15, 1)
+    expect(proj?.point).toEqual({ x: 0, y: 40 })
+    expect(proj?.seg).toBe(1)
   })
 
   it('kéo ngọn một phía rồi thả → chỉ đổi biên độ', () => {

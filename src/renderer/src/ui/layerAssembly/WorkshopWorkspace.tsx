@@ -87,7 +87,10 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
   const plantLive = usePlantLiveClock(liveEnabled, !plantEditor.dragging && !plantEditor.grab)
   const plantTime = plantOffset + plantLive
   const shiftedSpines = (state.composite.plantSpines ?? []).map((s) => {
-    const grabbed = plantEditor.grab?.spineId === s.id ? grabbedSpine(s, plantEditor.grab.angle) : s
+    const grabbed =
+      plantEditor.grab?.spineId === s.id
+        ? grabbedSpine(s, plantEditor.grab.angle, plantEditor.grab.stretch ?? 0)
+        : s
     return plantTime ? { ...grabbed, phaseOffset: (grabbed.phaseOffset ?? 0) + plantTime } : grabbed
   })
   const rig = normalizedRig ? { ...normalizedRig, loop: playback.isPlaying && normalizedRig.loop } : undefined

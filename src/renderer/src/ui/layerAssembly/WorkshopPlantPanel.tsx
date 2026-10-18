@@ -5,7 +5,9 @@ import {
   applyPlantSpineAction,
   buildAutoPlantSpinePoints,
   createPlantSpine,
+  resamplePlantSpinePoints,
   resolveSpineLayerIds,
+  subdividePlantSpine,
   type PlantSpineAction,
   type PlantSpineTarget
 } from './workshopPlantSpines'
@@ -154,6 +156,35 @@ function SpineCard({
             >
               🎬 Nhịp & Quỹ đạo {spine.motion ? '●' : ''}
             </button>
+          </div>
+
+          {/* Quản lý số lượng & độ mịn khớp uốn (càng nhiều khớp càng dễ uốn lượn) */}
+          <div className="lw-plant-group-box">
+            <div className="lw-plant-row-between">
+              <span className="lw-plant-section-label">📍 Khớp uốn thân cây</span>
+              <span className="lw-plant-joint-badge">{spine.points.length} khớp</span>
+            </div>
+            <div className="lw-plant-joint-bar">
+              <button
+                type="button"
+                className="lw-plant-subdivide-btn"
+                onClick={() => patch({ points: subdividePlantSpine(spine.points) })}
+                title="Nhân đôi số khớp uốn (chèn trung điểm) để uốn nắn thân cây mượt mà hơn"
+              >
+                ➕ Nhân đôi khớp
+              </button>
+              <button
+                type="button"
+                className="lw-plant-resample-btn"
+                onClick={() => patch({ points: resamplePlantSpinePoints(spine.points, 55) })}
+                title="Chia lại các khớp uốn cách đều nhau dọc thân cành cây (~55px/khớp)"
+              >
+                📏 Chia đều khớp
+              </button>
+            </div>
+            <div className="lw-plant-joint-hint">
+              💡 Rê chuột trên kẻ nhấn <b>+</b> để thêm khớp · Hover điểm (hiện đỏ) nhấn <b>-</b> hoặc <b>Del</b> để xoá
+            </div>
           </div>
 
           {subTab === 'wind' ? (
@@ -399,10 +430,13 @@ export function WorkshopPlantPanel({
               <strong>Tạo bằng 1-Click:</strong> Dùng hộp <em>Tạo mới chuyển động</em> bên dưới để tự sinh trục xương từ gốc lên ngọn ngay lập tức.
             </li>
             <li>
-              <strong>Hoặc tự vẽ tay:</strong> Kéo chuột trên <em>Bố cục 2D</em> từ <strong>GỐC</strong> lên <strong>NGỌN</strong> của cây/cành.
+              <strong>Hoặc tự vẽ tay:</strong> Kéo chuột trên <em>Bố cục 2D</em> từ <strong>GỐC</strong> lên <strong>NGỌN</strong> của cây/cành. Đường vẽ dài sẽ tự sinh đủ các khớp ô vuông đều đặn (~60px/khớp).
             </li>
             <li>
-              <strong>Sửa dáng & Ghi nhịp:</strong> Kéo <strong>chấm vuông</strong> để uốn trục xương · nắm <strong>vòng tròn ở ngọn</strong> lắc theo nhịp tay hoặc bấm <kbd>R</kbd> để vẽ quỹ đạo.
+              <strong>Thêm & Xoá khớp uốn:</strong> Rê chuột trên đường kẻ nhấn <kbd>+</kbd> để thêm khớp; hover vào khớp (hiện <strong>đỏ</strong>) nhấn <kbd>-</kbd> hoặc <kbd>Del</kbd> để xoá điểm uốn. Càng nhiều khớp thì uốn cong càng mượt.
+            </li>
+            <li>
+              <strong>Sửa dáng & Ghi nhịp:</strong> Kéo <strong>chấm vuông</strong> để uốn trục xương · nắm <strong>vòng tròn 4 chiều ở ngọn</strong> lắc uốn cong và nhún lên xuống.
             </li>
           </ul>
         </div>
