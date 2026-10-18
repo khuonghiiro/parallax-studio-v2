@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { AnimationClip, LayerRig, MotionViewAngle } from '@shared/layerRig'
+import type { LayerComposite } from './types'
 import type { RigAction } from './workshopRig'
 import { IconCopy, IconPen, IconPlus, IconTrash } from '../icons'
 import { WorkshopNewMotionModal } from './WorkshopNewMotionModal'
@@ -7,11 +8,18 @@ import { WorkshopNewMotionModal } from './WorkshopNewMotionModal'
 export interface WorkshopClipBarProps {
   rig: LayerRig
   activeClip: AnimationClip
+  composite?: LayerComposite
   run: (action: RigAction) => void
   onOpenRetarget: () => void
 }
 
-export function WorkshopClipBar({ rig, activeClip, run, onOpenRetarget }: WorkshopClipBarProps) {
+export function WorkshopClipBar({
+  rig,
+  activeClip,
+  composite,
+  run,
+  onOpenRetarget
+}: WorkshopClipBarProps) {
   const clips = rig.clips ?? [activeClip]
   const [isNewMotionModalOpen, setIsNewMotionModalOpen] = useState(false)
   const [angleFilter, setAngleFilter] = useState<MotionViewAngle | 'all'>('all')
@@ -46,12 +54,17 @@ export function WorkshopClipBar({ rig, activeClip, run, onOpenRetarget }: Worksh
   }
 
   const handleDelete = () => {
-    if (clips.length <= 1) return
-    if (window.confirm(`Bạn có chắc muốn xóa động tác "${activeClip.name}" không?`)) {
-      run({ action: 'delete-clip', clipId: activeClip.id })
-      setIsRenaming(false)
-    }
+    run({ action: 'delete-clip', clipId: activeClip.id })
+    setIsRenaming(false)
   }
+
+  const handleDeleteAll = () => {
+    run({ action: 'delete-all-clips' })
+    setIsRenaming(false)
+  }
+
+  const hasAnyKeyframes =
+    clips.length > 1 || Object.keys(activeClip.tracks || {}).length > 0
 
   const filteredClips = clips.filter((c) => {
     if (angleFilter === 'all') return true
@@ -78,20 +91,36 @@ export function WorkshopClipBar({ rig, activeClip, run, onOpenRetarget }: Worksh
     return null
   }
 
-
   return (
     <div className="lw-clip-section">
       <div className="lw-clip-header">
         <span>🎬 Động tác hoạt ảnh ({clips.length})</span>
-        <button
-          type="button"
-          className="btn xs primary"
-          onClick={() => setIsNewMotionModalOpen(true)}
-          title="Tạo động tác mới kèm lựa chọn hướng nhìn nhân vật (0° chính diện, 45° chéo, 90° ngang)"
-          style={{ fontSize: '11px', padding: '3px 8px' }}
-        >
-          <IconPlus width={10} height={10} /> Thêm động tác
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          {hasAnyKeyframes && (
+            <button
+              type="button"
+              className="btn xs"
+              onClick={handleDeleteAll}
+              title="Xoá hết toàn bộ các động tác hoạt ảnh để đưa nhân vật về tư thế tĩnh (Ctrl+Z để hoàn tác)"
+              style={{
+                fontSize: '10.5px',
+                padding: '3px 7px',
+                color: 'var(--danger, #ef4444)'
+              }}
+            >
+              <IconTrash width={10} height={10} /> Xoá hết
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn xs primary"
+            onClick={() => setIsNewMotionModalOpen(true)}
+            title="Mở thư viện mẫu người & xương Mixamo để gắn điểm khớp và áp động tác"
+            style={{ fontSize: '11px', padding: '3px 8px' }}
+          >
+            <IconPlus width={10} height={10} /> Thêm động tác
+          </button>
+        </div>
       </div>
 
       {/* Thanh lọc nhanh theo góc nhìn */}
@@ -153,12 +182,22 @@ export function WorkshopClipBar({ rig, activeClip, run, onOpenRetarget }: Worksh
         )}
       </div>
 
-      {/* Modal Tạo động tác mới */}
+      {/* Modal Tạo động tác mới + Gắn điểm xương Mixamo */}
       <WorkshopNewMotionModal
         isOpen={isNewMotionModalOpen}
         onClose={() => setIsNewMotionModalOpen(false)}
         bones={rig.bones}
+        composite={composite}
         onCreated={handleCreatedClip}
+        onApplyMixamoRigMotion={(payload) =>
+          run({
+            action: 'apply-mixamo-rig-motion',
+            bones: payload.bones,
+            clip: payload.clip,
+            replaceClips: payload.replaceClips,
+            autoBindSoft: payload.autoBindSoft
+          })
+        }
       />
 
       {/* Thanh công cụ quản lý clip đang active */}
@@ -201,17 +240,19 @@ export function WorkshopClipBar({ rig, activeClip, run, onOpenRetarget }: Worksh
             >
               <IconCopy width={10} height={10} /> Nhân bản
             </button>
-            {clips.length > 1 && (
-              <button
-                type="button"
-                className="btn xs icon"
-                onClick={handleDelete}
-                title="Xóa động tác này"
-                style={{ width: '22px', height: '22px', color: 'var(--text-faint)' }}
-              >
-                <IconTrash width={10} height={10} />
-              </button>
-            )}
+            <button
+              type="button"
+              className="btn xs"
+              onClick={handleDelete}
+              title="Xóa động tác đang chọn (nếu chỉ còn 1 động tác sẽ xoá sạch keyframe về tư thế tĩnh)"
+              style={{
+                fontSize: '10.5px',
+                padding: '2px 6px',
+                color: 'var(--danger, #ef4444)'
+              }}
+            >
+              <IconTrash width={10} height={10} /> Xoá
+            </button>
             <button
               type="button"
               className="btn xs secondary"
@@ -227,5 +268,3 @@ export function WorkshopClipBar({ rig, activeClip, run, onOpenRetarget }: Worksh
     </div>
   )
 }
-
-

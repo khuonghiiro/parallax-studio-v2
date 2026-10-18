@@ -14,6 +14,7 @@ import {
 import { applyAnimationAction, isAnimationAction, validateCurve, type AnimationAction, type AnimationBatch } from './workshopAnimation'
 export type { BonePoseEntry } from './workshopAnimation'
 import { retargetAnimationClip } from './workshopRetarget'
+import { autoBindLayersToMixamoBones } from './workshopMixamoAutoRig'
 
 export type RigTemplateType = 'humanoid' | 'humanoid-full' | 'hand-detailed' | 'foot-detailed' | 'simple-chain'
 
@@ -106,8 +107,10 @@ export type RigAction = AnimationAction | AnimationBatch
   | { action: 'switch-clip'; clipId: string }
   | { action: 'rename-clip'; clipId: string; name: string }
   | { action: 'delete-clip'; clipId: string }
+  | { action: 'delete-all-clips' }
   | { action: 'duplicate-clip'; clipId: string }
   | { action: 'inherit-clip'; sourceClip: AnimationClip; sourceBones: LayerBone[]; clipName?: string }
+  | { action: 'apply-mixamo-rig-motion'; bones: LayerBone[]; clip: AnimationClip; replaceClips?: boolean; autoBindSoft?: boolean }
 
 export function validateRig(composite: LayerComposite): void {
   if (composite.layers.some((l) => l.bindingMode !== undefined && !['rigid', 'soft'].includes(l.bindingMode))) {
@@ -364,7 +367,13 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
 
   // --- Quản lý Clips Động Tác ---
   if (action.action === 'add-clip') {
-    rig.clips = [...(rig.clips ?? []), action.clip]
+    const existing = rig.clips ?? []
+    const isOnlyEmptyDefault =
+      existing.length === 1 &&
+      existing[0].id === 'clip-default' &&
+      Object.keys(existing[0].tracks || {}).length === 0
+
+    rig.clips = isOnlyEmptyDefault ? [action.clip] : [...existing, action.clip]
     rig.activeClipId = action.clip.id
     rig.tracks = structuredClone(action.clip.tracks)
     rig.duration = action.clip.duration
@@ -393,8 +402,8 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
     }
   }
   if (action.action === 'delete-clip') {
-    if (rig.clips && rig.clips.length > 1) {
-      const remaining = rig.clips.filter((c) => c.id !== action.clipId)
+    const remaining = (rig.clips ?? []).filter((c) => c.id !== action.clipId)
+    if (remaining.length > 0) {
       rig.clips = remaining
       if (rig.activeClipId === action.clipId) {
         const nextActive = remaining[0]
@@ -403,7 +412,34 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
         rig.duration = nextActive.duration
         rig.loop = nextActive.loop
       }
+    } else {
+      const emptyClip: AnimationClip = {
+        id: 'clip-default',
+        name: 'Tư thế tĩnh',
+        duration: 2.0,
+        loop: true,
+        tracks: {}
+      }
+      rig.clips = [emptyClip]
+      rig.activeClipId = emptyClip.id
+      rig.tracks = {}
+      rig.duration = emptyClip.duration
+      rig.loop = emptyClip.loop
     }
+  }
+  if (action.action === 'delete-all-clips') {
+    const emptyClip: AnimationClip = {
+      id: 'clip-default',
+      name: 'Tư thế tĩnh',
+      duration: 2.0,
+      loop: true,
+      tracks: {}
+    }
+    rig.clips = [emptyClip]
+    rig.activeClipId = emptyClip.id
+    rig.tracks = {}
+    rig.duration = emptyClip.duration
+    rig.loop = emptyClip.loop
   }
   if (action.action === 'duplicate-clip') {
     const source = rig.clips?.find((c) => c.id === action.clipId)
@@ -440,6 +476,30 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
     rig.tracks = structuredClone(retargeted.tracks)
     rig.duration = retargeted.duration
     rig.loop = retargeted.loop
+  }
+  if (action.action === 'apply-mixamo-rig-motion') {
+    rig.bones = action.bones.map((b) => ({ ...b }))
+    if (action.autoBindSoft !== false) {
+      layers = autoBindLayersToMixamoBones(layers, rig.bones)
+    } else {
+      const validIds = new Set(rig.bones.map((b) => b.id))
+      layers = layers.map((l) => (l.boneId && !validIds.has(l.boneId) ? { ...l, boneId: undefined } : l))
+    }
+
+    const existing = rig.clips ?? []
+    const isOnlyEmptyDefault =
+      existing.length === 1 &&
+      Object.keys(existing[0].tracks || {}).length === 0
+
+    if (action.replaceClips || isOnlyEmptyDefault || existing.length === 0) {
+      rig.clips = [action.clip]
+    } else {
+      rig.clips = [...existing, action.clip]
+    }
+    rig.activeClipId = action.clip.id
+    rig.tracks = structuredClone(action.clip.tracks)
+    rig.duration = action.clip.duration
+    rig.loop = action.clip.loop
   }
 
   // Đồng bộ tracks/duration/loop thay đổi vào activeClip trong clips

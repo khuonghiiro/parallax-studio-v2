@@ -8,6 +8,12 @@ import { parseWorkshopAnimation } from './layerWorkshopAnimationParams'
 import { getStoredComposites } from '../../ui/layerAssembly/layerAssemblyStorage'
 import { setPlantSpineEditorState, getPlantSpineEditorState } from '../../ui/layerAssembly/plantSpineEditorStore'
 import { setAnimAssist, getAnimAssist } from '../../ui/layerAssembly/animAssistStore'
+import {
+  autoDetectLandmarksFromComposite,
+  buildHumanoidBonesFromLandmarks,
+  buildMixamoClipForBones,
+  createScaledLandmarks
+} from '../../ui/layerAssembly/workshopMixamoAutoRig'
 
 export function activeWorkshop() {
   const session = getActiveLayerAssemblySession()
@@ -38,7 +44,7 @@ function rigAction(p: Params): RigAction {
   }
   if (action === 'apply-preset-animation') {
     const preset = (str(p, 'preset') ?? 'walk') as any
-    const validPresets = ['walk', 'idle', 'wave', 'bow', 'run', 'jump', 'action', 'sway', 'hand-clench', 'foot-roll']
+    const validPresets = ['walk', 'idle', 'wave', 'bow', 'run', 'jump', 'fall', 'land', 'action', 'sway', 'hand-clench', 'foot-roll']
     if (!validPresets.includes(preset)) throw new ParamError(`preset must be one of: ${validPresets.join(', ')}`)
     return {
       action,
@@ -48,6 +54,38 @@ function rigAction(p: Params): RigAction {
     }
   }
   if (action === 'clear-animation') return { action }
+  if (action === 'delete-all-clips') return { action }
+  if (action === 'apply-mixamo-rig-motion') {
+    const preset = (str(p, 'preset') ?? 'walk') as any
+    const viewAngle = (str(p, 'view_angle') ?? 'front') as any
+    const scale = num(p, 'scale')
+    const baseLm =
+      scale !== undefined
+        ? createScaledLandmarks(scale)
+        : getActiveLayerAssemblySession()
+          ? autoDetectLandmarksFromComposite(getActiveLayerAssemblySession()!.getComposite())
+          : createScaledLandmarks(1)
+    const landmarks = p.landmarks && typeof p.landmarks === 'object' ? { ...baseLm, ...(p.landmarks as any) } : baseLm
+    const bones = Array.isArray(p.bones) ? (p.bones as LayerBone[]) : buildHumanoidBonesFromLandmarks(landmarks)
+    const clip =
+      p.clip && typeof p.clip === 'object'
+        ? (p.clip as any)
+        : buildMixamoClipForBones({
+            preset,
+            bones,
+            name: str(p, 'clip_name') || str(p, 'name') || `Mixamo ${preset}`,
+            viewAngle,
+            duration: num(p, 'duration') ?? 1.6,
+            loop: bool(p, 'loop') ?? true
+          })
+    return {
+      action,
+      bones,
+      clip,
+      replaceClips: bool(p, 'replace_clips'),
+      autoBindSoft: bool(p, 'auto_bind_soft') ?? true
+    }
+  }
   if (action === 'add-clip') {
     const clip = p.clip && typeof p.clip === 'object'
       ? (p.clip as any)

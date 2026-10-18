@@ -99,9 +99,24 @@ export function WorkshopAnimationPanel({
       <WorkshopClipBar
         rig={rig}
         activeClip={activeClip}
+        composite={composite}
         run={(action) => {
+          if (action.action === 'apply-mixamo-rig-motion') {
+            playback.setTime(0)
+            run(action)
+            playback.setIsPlaying(true)
+            return
+          }
           playback.setIsPlaying(false)
-          if (['switch-clip', 'add-clip', 'duplicate-clip', 'delete-clip'].includes(action.action)) {
+          if (
+            [
+              'switch-clip',
+              'add-clip',
+              'duplicate-clip',
+              'delete-clip',
+              'delete-all-clips'
+            ].includes(action.action)
+          ) {
             playback.setTime(0)
           }
           run(action)
