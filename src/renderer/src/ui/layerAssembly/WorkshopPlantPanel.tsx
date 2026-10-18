@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { PLANT_SPINE_PRESETS, type PlantSpine } from '@shared/plantSpine'
 import type { LayerComposite } from './types'
 import {
@@ -7,6 +7,7 @@ import {
   createPlantSpine,
   resamplePlantSpinePoints,
   resolveSpineLayerIds,
+  setPlantSpineJointCount,
   subdividePlantSpine,
   type PlantSpineAction,
   type PlantSpineTarget
@@ -87,8 +88,22 @@ function SpineCard({
   run: (action: PlantSpineAction, key?: string) => void
 }) {
   const [subTab, setSubTab] = useState<'wind' | 'custom'>(spine.motion ? 'custom' : 'wind')
+  const [jointInput, setJointInput] = useState<string>(String(spine.points.length))
+
+  useEffect(() => {
+    setJointInput(String(spine.points.length))
+  }, [spine.points.length, spine.id])
+
   const patch = (p: Partial<PlantSpine>, key?: string) =>
     run({ action: 'update', id: spine.id, patch: p }, key)
+
+  const commitJointCount = (target: number) => {
+    const clamped = Math.max(2, Math.min(32, Math.round(target)))
+    if (clamped !== spine.points.length) {
+      patch({ points: setPlantSpineJointCount(spine.points, clamped) })
+    }
+    setJointInput(String(clamped))
+  }
 
   const toggleLayer = (id: string) => {
     const has = spine.layerIds.includes(id)
@@ -158,12 +173,67 @@ function SpineCard({
             </button>
           </div>
 
-          {/* Quản lý số lượng & độ mịn khớp uốn (càng nhiều khớp càng dễ uốn lượn) */}
+          {/* Quản lý số lượng & độ mịn khớp uốn (có thể nhập trực tiếp, tăng giảm, nhân đôi, giảm nửa) */}
           <div className="lw-plant-group-box">
             <div className="lw-plant-row-between">
               <span className="lw-plant-section-label">📍 Khớp uốn thân cây</span>
-              <span className="lw-plant-joint-badge">{spine.points.length} khớp</span>
+              <div className="lw-plant-joint-stepper">
+                <button
+                  type="button"
+                  className="lw-plant-stepper-btn"
+                  onClick={() => commitJointCount(spine.points.length - 1)}
+                  disabled={spine.points.length <= 2}
+                  title="Giảm 1 khớp uốn (tối thiểu 2)"
+                >
+                  −
+                </button>
+                <input
+                  type="number"
+                  min={2}
+                  max={32}
+                  className="lw-plant-joint-input"
+                  value={jointInput}
+                  onChange={(e) => setJointInput(e.target.value)}
+                  onBlur={() => commitJointCount(Number(jointInput) || spine.points.length)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      commitJointCount(Number(jointInput) || spine.points.length)
+                      e.currentTarget.blur()
+                    }
+                  }}
+                  title="Nhập trực tiếp số lượng khớp uốn (2 - 32 khớp) rồi nhấn Enter"
+                  aria-label="Số lượng khớp uốn"
+                />
+                <span className="lw-plant-joint-unit">khớp</span>
+                <button
+                  type="button"
+                  className="lw-plant-stepper-btn"
+                  onClick={() => commitJointCount(spine.points.length + 1)}
+                  disabled={spine.points.length >= 32}
+                  title="Tăng 1 khớp uốn (tối đa 32)"
+                >
+                  +
+                </button>
+              </div>
             </div>
+
+            {/* Các mức khớp mẫu nhanh */}
+            <div className="lw-plant-joint-presets">
+              <span className="lw-plant-joint-presets-label">Mẫu nhanh:</span>
+              {[3, 5, 8, 12, 16].map((cnt) => (
+                <button
+                  key={cnt}
+                  type="button"
+                  className={`lw-plant-joint-preset-chip${spine.points.length === cnt ? ' active' : ''}`}
+                  onClick={() => commitJointCount(cnt)}
+                  title={`Chia đều thành ${cnt} khớp`}
+                >
+                  {cnt}
+                </button>
+              ))}
+            </div>
+
+            {/* Thao tác nâng cao: nhân đôi, giảm nửa, chia đều */}
             <div className="lw-plant-joint-bar">
               <button
                 type="button"
@@ -171,7 +241,16 @@ function SpineCard({
                 onClick={() => patch({ points: subdividePlantSpine(spine.points) })}
                 title="Nhân đôi số khớp uốn (chèn trung điểm) để uốn nắn thân cây mượt mà hơn"
               >
-                ➕ Nhân đôi khớp
+                ➕ x2 khớp
+              </button>
+              <button
+                type="button"
+                className="lw-plant-subdivide-btn"
+                onClick={() => commitJointCount(Math.max(2, Math.round(spine.points.length / 2)))}
+                disabled={spine.points.length <= 2}
+                title="Giảm nửa số khớp uốn để uốn nhanh đơn giản"
+              >
+                ➖ Giảm nửa
               </button>
               <button
                 type="button"
@@ -179,11 +258,11 @@ function SpineCard({
                 onClick={() => patch({ points: resamplePlantSpinePoints(spine.points, 55) })}
                 title="Chia lại các khớp uốn cách đều nhau dọc thân cành cây (~55px/khớp)"
               >
-                📏 Chia đều khớp
+                📏 Chia đều
               </button>
             </div>
             <div className="lw-plant-joint-hint">
-              💡 Rê chuột trên kẻ nhấn <b>+</b> để thêm khớp · Hover điểm (hiện đỏ) nhấn <b>-</b> hoặc <b>Del</b> để xoá
+              💡 Nhập số hoặc bấm <b>+ / −</b> để điều chỉnh số lượng khớp · Rê chuột trên kẻ nhấn <b>+</b> để thêm · Hover điểm đỏ nhấn <b>−</b> hoặc <b>Del</b> để xoá
             </div>
           </div>
 

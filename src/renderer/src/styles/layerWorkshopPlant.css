@@ -673,8 +673,8 @@
 .lw-plant-joint-bar {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 8px;
+  gap: 6px;
+  padding: 4px 6px;
   border-radius: 6px;
   background: var(--bg-2);
   border: 1px solid var(--line-soft);
@@ -685,6 +685,119 @@
   color: var(--accent-cyan);
   font-size: 10.5px;
   white-space: nowrap;
+}
+
+/* Bộ điều khiển số lượng khớp uốn (Stepper / Direct input) */
+.lw-plant-joint-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1px 3px;
+}
+
+.lw-plant-stepper-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.lw-plant-stepper-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 24%, var(--bg-2));
+  border-color: var(--accent);
+  color: var(--accent-cyan);
+}
+
+.lw-plant-stepper-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.lw-plant-joint-input {
+  width: 32px;
+  height: 20px;
+  padding: 0 2px;
+  text-align: center;
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+  background: transparent;
+  border: none;
+  color: var(--accent-cyan);
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.lw-plant-joint-input::-webkit-outer-spin-button,
+.lw-plant-joint-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.lw-plant-joint-input:focus {
+  background: var(--bg-1);
+  border-radius: 3px;
+}
+
+.lw-plant-joint-unit {
+  font-size: 10px;
+  color: var(--text-faint);
+  margin-right: 2px;
+}
+
+/* Các chip chọn nhanh số khớp uốn */
+.lw-plant-joint-presets {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 2px 0;
+}
+
+.lw-plant-joint-presets-label {
+  font-size: 9.5px;
+  color: var(--text-faint);
+  margin-right: 2px;
+}
+
+.lw-plant-joint-preset-chip {
+  height: 18px;
+  padding: 0 7px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: monospace;
+  border-radius: 4px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.lw-plant-joint-preset-chip:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.lw-plant-joint-preset-chip.active {
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-2));
+  border-color: var(--accent);
+  color: var(--accent-cyan);
+  font-weight: 700;
 }
 
 .lw-plant-subdivide-btn,
@@ -700,11 +813,16 @@
   transition: all 0.12s ease;
 }
 
-.lw-plant-subdivide-btn:hover,
-.lw-plant-resample-btn:hover {
+.lw-plant-subdivide-btn:hover:not(:disabled),
+.lw-plant-resample-btn:hover:not(:disabled) {
   background: color-mix(in srgb, var(--accent) 22%, var(--bg-3));
   border-color: var(--accent);
   color: var(--accent-cyan);
+}
+
+.lw-plant-subdivide-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .lw-plant-joint-hint {

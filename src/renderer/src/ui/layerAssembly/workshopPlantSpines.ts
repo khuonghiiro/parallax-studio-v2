@@ -128,6 +128,38 @@ export function resamplePlantSpinePoints(points: PlantSpinePoint[], targetSpacin
   return out
 }
 
+/**
+ * Đặt chính xác số lượng khớp uốn cho xương thực vật (tối thiểu 2 điểm, tối đa 32 điểm).
+ * Dù tăng hay giảm số điểm, hàm sẽ phân bố lại các khớp cách đều nhau dọc theo đường cong hiện tại,
+ * bảo toàn vị trí gốc và ngọn cũng như dáng uốn cong tổng thể của thân cây.
+ */
+export function setPlantSpineJointCount(points: PlantSpinePoint[], targetCount: number): PlantSpinePoint[] {
+  if (points.length < 2) return points
+  const count = Math.max(2, Math.min(32, Math.round(targetCount)))
+  if (count === points.length) return points
+  const total = strokeLength(points)
+  if (total < 1e-4) {
+    return Array.from({ length: count }, () => ({ ...points[0] }))
+  }
+  const cum = [0]
+  for (let i = 1; i < points.length; i++) {
+    cum.push(cum[i - 1] + Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y))
+  }
+  const out: PlantSpinePoint[] = []
+  let j = 1
+  for (let k = 0; k < count; k++) {
+    const s = (total * k) / (count - 1)
+    while (j < points.length - 1 && cum[j] < s) j++
+    const seg = cum[j] - cum[j - 1] || 1
+    const t = Math.min(1, Math.max(0, (s - cum[j - 1]) / seg))
+    out.push({
+      x: Math.round(points[j - 1].x + (points[j].x - points[j - 1].x) * t),
+      y: Math.round(points[j - 1].y + (points[j].y - points[j - 1].y) * t)
+    })
+  }
+  return out
+}
+
 export function strokeLength(points: PlantSpinePoint[]): number {
   let total = 0
   for (let i = 1; i < points.length; i++) total += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y)

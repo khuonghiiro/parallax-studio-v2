@@ -7,6 +7,7 @@ import {
   prunePlantSpines,
   resamplePlantSpinePoints,
   resolveSpineLayerIds,
+  setPlantSpineJointCount,
   simplifyStroke,
   subdividePlantSpine
 } from './workshopPlantSpines'
@@ -59,6 +60,33 @@ describe('workshop plant spines', () => {
     expect(resampled.length).toBeGreaterThanOrEqual(4)
     expect(resampled[0]).toEqual({ x: 0, y: 200 })
     expect(resampled.at(-1)!).toEqual({ x: 0, y: 0 })
+  })
+
+  it('setPlantSpineJointCount tăng hoặc giảm chính xác số lượng khớp uốn', () => {
+    const pts = [
+      { x: 0, y: 150 },
+      { x: 0, y: 100 },
+      { x: 0, y: 50 },
+      { x: 0, y: 0 },
+      { x: 0, y: -50 },
+      { x: 0, y: -100 }
+    ] // 6 khớp
+    // Giảm xuống 3 khớp
+    const reduced = setPlantSpineJointCount(pts, 3)
+    expect(reduced).toHaveLength(3)
+    expect(reduced[0]).toEqual({ x: 0, y: 150 })
+    expect(reduced[1]).toEqual({ x: 0, y: 25 })
+    expect(reduced[2]).toEqual({ x: 0, y: -100 })
+
+    // Tăng lên 8 khớp
+    const increased = setPlantSpineJointCount(pts, 8)
+    expect(increased).toHaveLength(8)
+    expect(increased[0]).toEqual({ x: 0, y: 150 })
+    expect(increased[7]).toEqual({ x: 0, y: -100 })
+
+    // Tối thiểu 2 khớp
+    const minClamped = setPlantSpineJointCount(pts, 1)
+    expect(minClamped).toHaveLength(2)
   })
 
   it('builds a valid 4-point vertical spine from root to tip automatically', () => {
