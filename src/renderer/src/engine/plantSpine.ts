@@ -185,7 +185,7 @@ interface LayerProjection { key: string; world: Float32Array; perSpine: Float32A
 const projectionCache = new WeakMap<Float32Array, LayerProjection>()
 
 function projectionKey(binding: SkinBinding, spines: PlantSpine[], indices?: ArrayLike<number>): string {
-  const b = `${binding.x},${binding.y},${binding.rotation},${binding.scale},${binding.scaleX ?? 1},${binding.scaleY ?? 1}:${indices?.length ?? 0}`
+  const b = `v2:${binding.x},${binding.y},${binding.rotation},${binding.scale},${binding.scaleX ?? 1},${binding.scaleY ?? 1}:${indices?.length ?? 0}`
   return b + '|' + spines.map((s) => `${s.reach ?? 0}:${s.points.map((p) => `${p.x},${p.y}`).join(';')}`).join('|')
 }
 
@@ -221,14 +221,15 @@ function buildSpineProjectionData(
     }
     const x = world[i * 2]
     const y = world[i * 2 + 1]
+    const pad = corridor && corridor.geoDist[i] === 0 ? 1 : 0
     const { seg, t: rawT, dist } = corridor
-      ? projectOnRest(rest, x, y, corridor.segMin[i] - 3, corridor.segMax[i] + 3)
+      ? projectOnRest(rest, x, y, corridor.segMin[i] - pad, corridor.segMax[i] + pad)
       : projectOnRest(rest, x, y)
-    if (rawT < 0 && seg === 0) {
+    if (!corridor && rawT < 0 && seg === 0) {
       data[o] = -1
       continue
     }
-    const t = corridor && rawT > 1 ? Math.min(1.35, rawT) : rawT
+    const t = corridor ? Math.max(0, Math.min(1, rawT)) : rawT
     let w = corridor ? corridor.weights[i] : 1
     if (!corridor && reach > 0) {
       const k = Math.min(1, Math.max(0, (reach - dist) / (reach * 0.5)))
@@ -272,12 +273,30 @@ function buildProjection(
     for (let i = 0; i < count; i++) {
       const o = i * STRIDE
       let sumW = 0
+      let activeCount = 0
       for (let k = 0; k < perSpine.length; k++) {
-        if (perSpine[k][o] >= 0) sumW += perSpine[k][o + 4]
+        if (perSpine[k][o] >= 0 && perSpine[k][o + 4] > 0) {
+          sumW += perSpine[k][o + 4]
+          activeCount++
+        }
       }
-      if (sumW > 1) {
+      if (activeCount > 1 && sumW > 1) {
+        const env = Math.min(1, sumW)
+        let rawSum = 0
+        const raws = new Float32Array(perSpine.length)
         for (let k = 0; k < perSpine.length; k++) {
-          if (perSpine[k][o] >= 0) perSpine[k][o + 4] /= sumW
+          const d = perSpine[k]
+          if (d[o] >= 0 && d[o + 4] > 0) {
+            const dist2 = d[o + 2] * d[o + 2] + d[o + 3] * d[o + 3]
+            const aff = 1 / (144 + dist2) ** 2
+            raws[k] = d[o + 4] * aff
+            rawSum += raws[k]
+          }
+        }
+        if (rawSum > 0) {
+          for (let k = 0; k < perSpine.length; k++) {
+            if (perSpine[k][o] >= 0) perSpine[k][o + 4] = (raws[k] / rawSum) * env
+          }
         }
       }
     }

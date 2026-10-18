@@ -4,13 +4,13 @@ export interface Point2D {
 }
 
 export interface MeshCorridorResult {
-  /** Trọng số hành lang mesh [0..1] cho từng đỉnh (0 = ngoài vùng mesh được vẽ). */
+  /** Trọng số hành lang mesh [0..1] cho từng đỉnh (0 = ngoài vùng nhánh/đường kẻ được vẽ). */
   weights: Float32Array
-  /** Khoảng cách trắc địa (geodesic) dọc theo cạnh tam giác từ vùng nét vẽ. */
+  /** Khoảng cách trắc địa (geodesic) dọc theo cạnh tam giác từ thân nét vẽ chính. */
   geoDist: Float32Array
-  /** Đoạn polyline nhỏ nhất gần đỉnh này (dùng để giới hạn chiếu cục bộ trên nhánh). */
+  /** Đoạn polyline nhỏ nhất tại điểm gắn cành nhánh (dùng để uốn các nhánh con theo cành chính). */
   segMin: Int16Array
-  /** Đoạn polyline lớn nhất gần đỉnh này. */
+  /** Đoạn polyline lớn nhất tại điểm gắn cành nhánh. */
   segMax: Int16Array
   /** Độ dài cạnh trung bình của các tam giác bị nét vẽ đi qua. */
   avgCoreEdge: number
@@ -23,7 +23,7 @@ interface MeshTopology {
   avgEdge: number
 }
 
-const topologyCache = new WeakMap< object, { worldKey: number; topo: MeshTopology } >()
+const topologyCache = new WeakMap<object, { worldKey: number; topo: MeshTopology }>()
 
 function cross2D(ax: number, ay: number, bx: number, by: number, cx: number, cy: number): number {
   return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
@@ -118,12 +118,9 @@ function getMeshTopology(world: Float32Array, indices: ArrayLike<number>): MeshT
     edgeCount++
   }
   for (let i = 0; i + 2 < indices.length; i += 3) {
-    const a = indices[i]
-    const b = indices[i + 1]
-    const c = indices[i + 2]
-    addEdge(a, b)
-    addEdge(b, c)
-    addEdge(c, a)
+    addEdge(indices[i], indices[i + 1])
+    addEdge(indices[i + 1], indices[i + 2])
+    addEdge(indices[i + 2], indices[i])
   }
   const topo: MeshTopology = {
     vCount,
@@ -135,34 +132,75 @@ function getMeshTopology(world: Float32Array, indices: ArrayLike<number>): MeshT
   return topo
 }
 
-interface CoreTrianglesHit {
-  coreVerts: Set<number>
+interface PolylineMetrics {
+  cum: number[]
+  totalLen: number
+  dirX: number
+  dirY: number
+}
+
+function buildPolylineMetrics(polyline: ReadonlyArray<Point2D>): PolylineMetrics {
+  const cum = [0]
+  for (let i = 1; i < polyline.length; i++) {
+    cum.push(cum[i - 1] + Math.hypot(polyline[i].x - polyline[i - 1].x, polyline[i].y - polyline[i - 1].y))
+  }
+  const totalLen = cum[cum.length - 1] || 1
+  const target = Math.min(24, totalLen * 0.25)
+  let lookIdx = 1
+  while (lookIdx < polyline.length - 1 && cum[lookIdx] < target) lookIdx++
+  const dx = polyline[lookIdx].x - polyline[0].x
+  const dy = polyline[lookIdx].y - polyline[0].y
+  const dLen = Math.hypot(dx, dy) || 1
+  return { cum, totalLen, dirX: dx / dLen, dirY: dy / dLen }
+}
+
+function projectOnPolyline(
+  px: number,
+  py: number,
+  polyline: ReadonlyArray<Point2D>,
+  metrics: PolylineMetrics
+): { dist: number; seg: number; u: number } {
+  let bestDist = Infinity
+  let bestSeg = 0
+  let bestU = 0
+  for (let s = 0; s < polyline.length - 1; s++) {
+    const a = polyline[s], b = polyline[s + 1]
+    const dx = b.x - a.x, dy = b.y - a.y
+    const len2 = dx * dx + dy * dy
+    const t = len2 > 1e-10 ? Math.min(1, Math.max(0, ((px - a.x) * dx + (py - a.y) * dy) / len2)) : 0
+    const d = Math.hypot(px - (a.x + dx * t), py - (a.y + dy * t))
+    if (d < bestDist) {
+      bestDist = d
+      bestSeg = s
+      const segLen = metrics.cum[s + 1] - metrics.cum[s]
+      bestU = (metrics.cum[s] + t * segLen) / metrics.totalLen
+    }
+  }
+  return { dist: bestDist, seg: bestSeg, u: bestU }
+}
+
+interface SubtreeSeeds {
+  activeVerts: Set<number>
+  barrierVerts: Set<number>
+  strokeVerts: Set<number>
   segMin: Int16Array
   segMax: Int16Array
   avgCoreEdge: number
 }
 
-function polylinePointDist(px: number, py: number, polyline: ReadonlyArray<Point2D>): number {
-  let best = Infinity
-  for (let s = 0; s < polyline.length - 1; s++) {
-    const d = pointToSegmentDist(px, py, polyline[s].x, polyline[s].y, polyline[s + 1].x, polyline[s + 1].y)
-    if (d < best) best = d
-  }
-  return best
-}
-
-function findCoreHitTriangles(
+function findSubtreeSeeds(
   world: Float32Array,
   indices: ArrayLike<number>,
   polyline: ReadonlyArray<Point2D>,
-  avgMeshEdge: number
-): CoreTrianglesHit | null {
-  const vCount = world.length >> 1
+  topo: MeshTopology,
+  metrics: PolylineMetrics
+): SubtreeSeeds | null {
+  const vCount = topo.vCount
   const segCount = polyline.length - 1
-  const hitEps = Math.max(3, avgMeshEdge * 0.16)
+  const hitEps = Math.max(3, topo.avgEdge * 0.16)
   const segMin = new Int16Array(vCount).fill(32767)
   const segMax = new Int16Array(vCount).fill(-1)
-  const coreVerts = new Set<number>()
+  const strokeVerts = new Set<number>()
   let coreEdgeSum = 0
   let coreEdgeCount = 0
   let bestTri = -1
@@ -174,7 +212,6 @@ function findCoreHitTriangles(
     const ax = world[a * 2], ay = world[a * 2 + 1]
     const bx = world[b * 2], by = world[b * 2 + 1]
     const cx = world[c * 2], cy = world[c * 2 + 1]
-    const mx = (ax + bx + cx) / 3, my = (ay + by + cy) / 3
     const triPerim =
       Math.hypot(ax - bx, ay - by) +
       Math.hypot(bx - cx, by - cy) +
@@ -185,27 +222,26 @@ function findCoreHitTriangles(
     let tMaxSeg = -1
     for (let s = 0; s < segCount; s++) {
       const p = polyline[s], q = polyline[s + 1]
-      // Dịch nhẹ điểm xuất phát ở gốc chạc cây (s=0) theo hướng vẽ để không bắt nhầm tam giác thân/nhánh kế bên chung cạnh gốc
-      const px = s === 0 ? p.x + (q.x - p.x) * 0.08 : p.x
-      const py = s === 0 ? p.y + (q.y - p.y) * 0.08 : p.y
+      const px = s === 0 ? p.x + (q.x - p.x) * 0.05 : p.x
+      const py = s === 0 ? p.y + (q.y - p.y) * 0.05 : p.y
       const d = segmentTriangleDistance(px, py, q.x, q.y, ax, ay, bx, by, cx, cy)
       if (d < bestDist) {
         bestDist = d
         bestTri = t
         bestSeg = s
       }
-      const centroidDist = pointToSegmentDist(mx, my, px, py, q.x, q.y)
-      if (d <= hitEps && centroidDist <= Math.max(12, triAvgEdge * 0.65)) {
+      if (d <= hitEps) {
         triHit = true
         if (s < tMinSeg) tMinSeg = s
         if (s > tMaxSeg) tMaxSeg = s
       }
     }
     if (triHit) {
-      const maxVertDist = Math.max(14, triAvgEdge * 0.85)
+      const maxVertDist = Math.max(22, triAvgEdge * 1.05)
       for (const v of [a, b, c]) {
-        if (polylinePointDist(world[v * 2], world[v * 2 + 1], polyline) <= maxVertDist) {
-          coreVerts.add(v)
+        const proj = projectOnPolyline(world[v * 2], world[v * 2 + 1], polyline, metrics)
+        if (proj.dist <= maxVertDist) {
+          strokeVerts.add(v)
           if (tMinSeg < segMin[v]) segMin[v] = tMinSeg
           if (tMaxSeg > segMax[v]) segMax[v] = tMaxSeg
         }
@@ -215,28 +251,52 @@ function findCoreHitTriangles(
     }
   }
 
-  if (coreVerts.size === 0) {
-    if (bestTri < 0 || bestDist > Math.max(28, avgMeshEdge * 1.25)) return null
+  if (strokeVerts.size === 0) {
+    if (bestTri < 0 || bestDist > Math.max(28, topo.avgEdge * 1.25)) return null
     const a = indices[bestTri], b = indices[bestTri + 1], c = indices[bestTri + 2]
     for (const v of [a, b, c]) {
-      coreVerts.add(v)
+      strokeVerts.add(v)
       segMin[v] = bestSeg
       segMax[v] = bestSeg
     }
   }
 
-  return {
-    coreVerts,
-    segMin,
-    segMax,
-    avgCoreEdge: coreEdgeCount > 0 ? coreEdgeSum / coreEdgeCount : avgMeshEdge
+  const avgCoreEdge = coreEdgeCount > 0 ? coreEdgeSum / coreEdgeCount : topo.avgEdge
+  const activeVerts = new Set<number>()
+  const barrierVerts = new Set<number>()
+  const p0 = polyline[0]
+  const rootCutU = 0.14
+
+  for (const v of strokeVerts) {
+    const vx = world[v * 2], vy = world[v * 2 + 1]
+    const proj = projectOnPolyline(vx, vy, polyline, metrics)
+    const along0 = (vx - p0.x) * metrics.dirX + (vy - p0.y) * metrics.dirY
+    if (proj.u <= rootCutU || along0 <= 1) {
+      barrierVerts.add(v)
+    } else {
+      activeVerts.add(v)
+    }
   }
+
+  // Nếu mọi đỉnh chạm đều sát gốc (nét vẽ cực ngắn), coi các đỉnh có along0 > 0 là active
+  if (activeVerts.size === 0) {
+    for (const v of strokeVerts) {
+      const vx = world[v * 2], vy = world[v * 2 + 1]
+      const along0 = (vx - p0.x) * metrics.dirX + (vy - p0.y) * metrics.dirY
+      if (along0 > 0) {
+        activeVerts.add(v)
+        barrierVerts.delete(v)
+      }
+    }
+  }
+
+  return { activeVerts, barrierVerts, strokeVerts, segMin, segMax, avgCoreEdge }
 }
 
 /**
- * Tính vùng hành lang mesh (Mesh Corridor) dọc theo đường vẽ / xương trên lưới tam giác.
- * Chỉ tác động đúng các tam giác có nét vẽ đi qua (hoặc lan truyền dọc cạnh tam giác khi reach > 0),
- * tuyệt đối không nhảy qua khoảng trống sang nhánh hoặc đường kẻ khác.
+ * Tính vùng hành lang & nhánh con (Subtree Mesh Corridor) dọc theo nét vẽ / xương trên lưới tam giác:
+ * - Cành được vẽ (nét đỏ) và toàn bộ các cành nhánh con (nét xanh) mọc ra từ cành đó đều nhận trọng số chuyển động để đi theo cành.
+ * - Thân cây phía dưới điểm bắt đầu và các cành lớn khác tách từ chạc gốc hoặc các đường kẻ rời hoàn toàn đứng yên (weight = 0).
  */
 export function computeMeshCorridor(
   world: Float32Array,
@@ -247,27 +307,37 @@ export function computeMeshCorridor(
   const vCount = world.length >> 1
   if (vCount === 0 || indices.length < 3 || polyline.length < 2) return null
   const topo = getMeshTopology(world, indices)
-  const hit = findCoreHitTriangles(world, indices, polyline, topo.avgEdge)
-  if (!hit) return null
+  const metrics = buildPolylineMetrics(polyline)
+  const seeds = findSubtreeSeeds(world, indices, polyline, topo, metrics)
+  if (!seeds || seeds.activeVerts.size === 0) return null
 
-  const { coreVerts, segMin, segMax, avgCoreEdge } = hit
+  const { activeVerts, barrierVerts, strokeVerts, segMin, segMax, avgCoreEdge } = seeds
   const geoDist = new Float32Array(vCount).fill(Infinity)
-  const weights = new Float32Array(vCount)
-
-  for (const v of coreVerts) {
-    geoDist[v] = 0
-    weights[v] = 1
-  }
-
-  const maxGeoDist = reach && reach > 0 ? reach : 0
-  if (maxGeoDist <= 0) {
-    return { weights, geoDist, segMin, segMax, avgCoreEdge }
-  }
-
+  /** 1 = thuộc cành đang vẽ & nhánh con của nó; -1 = thuộc thân/cành gốc bị chặn; 0 = chưa thăm */
+  const owner = new Int8Array(vCount)
   const visited = new Uint8Array(vCount)
-  const queue: number[] = [...coreVerts]
+  const queue: number[] = []
+  const p0 = polyline[0]
 
-  // Dijkstra dọc theo cạnh tam giác khi người dùng mở rộng bán kính reach > 0
+  // Hàng rào tĩnh tại gốc P0: khóa visited = 1 để chặn đường lùi về thân nhưng KHÔNG lan truyền
+  // ngược lên làm mất trọng số của các cành nhánh mọc ở rìa cành chính
+  for (const v of barrierVerts) {
+    geoDist[v] = 0
+    owner[v] = -1
+    visited[v] = 1
+  }
+  for (const v of activeVerts) {
+    geoDist[v] = 0
+    owner[v] = 1
+    queue.push(v)
+  }
+
+  const hasExplicitReach = Boolean(reach && reach > 0)
+  const maxGeoDist = hasExplicitReach
+    ? reach!
+    : Math.max(avgCoreEdge * 4.5, metrics.totalLen * 0.75)
+
+  // Lan truyền Dijkstra từ thân cành đang vẽ (activeVerts) ra toàn bộ các cành nhánh con (cành xanh)
   while (queue.length > 0) {
     let bestIdx = 0
     for (let i = 1; i < queue.length; i++) {
@@ -283,23 +353,64 @@ export function computeMeshCorridor(
 
     const neighbors = topo.adjVertices[u]
     const lengths = topo.adjLengths[u]
+    const ux = world[u * 2], uy = world[u * 2 + 1]
+    const uAlong = (ux - p0.x) * metrics.dirX + (uy - p0.y) * metrics.dirY
+
     for (let i = 0; i < neighbors.length; i++) {
       const v = neighbors[i]
-      const nd = du + lengths[i]
-      if (nd <= maxGeoDist && nd < geoDist[v]) {
+      if (visited[v]) continue
+      const vx = world[v * 2], vy = world[v * 2 + 1]
+      const vAlong = (vx - p0.x) * metrics.dirX + (vy - p0.y) * metrics.dirY
+      if (vAlong <= 1) continue
+
+      const projV = projectOnPolyline(vx, vy, polyline, metrics)
+      // Không tràn ngược về vùng chạc gốc (u <= 0.14), và trong đoạn tách chạc đầu cành (u <= 0.22)
+      // không lan ngang ra ngoài phạm vi thân cành sang thân chính hoặc cành lớn kế bên
+      if (projV.u <= 0.14) continue
+      if (projV.u <= 0.22 && !strokeVerts.has(v) && projV.dist > Math.max(18, avgCoreEdge * 0.75)) {
+        continue
+      }
+
+      const stepFactor = vAlong < uAlong ? 1.25 : 1.0
+      const nd = du + lengths[i] * stepFactor
+      if (nd > maxGeoDist) continue
+
+      if (nd < geoDist[v]) {
         const wasInf = !Number.isFinite(geoDist[v])
         geoDist[v] = nd
-        if (segMin[u] < segMin[v]) segMin[v] = segMin[u]
-        if (segMax[u] > segMax[v]) segMax[v] = segMax[u]
+        owner[v] = 1
+        segMin[v] = segMin[u]
+        segMax[v] = segMax[u]
         if (wasInf) queue.push(v)
       }
     }
   }
 
+  const weights = new Float32Array(vCount)
   const lastSeg = polyline.length - 2
   for (let i = 0; i < vCount; i++) {
+    if (owner[i] !== 1) {
+      // Đỉnh nằm trực tiếp trên đoạn gốc của nét vẽ (0 < u <= 0.14): tăng mượt từ 0 tại P0 lên 1
+      if (strokeVerts.has(i)) {
+        const vx = world[i * 2], vy = world[i * 2 + 1]
+        const along0 = (vx - p0.x) * metrics.dirX + (vy - p0.y) * metrics.dirY
+        const proj = projectOnPolyline(vx, vy, polyline, metrics)
+        if (along0 > 0 && proj.u > 0 && proj.dist <= Math.max(18, avgCoreEdge * 0.75)) {
+          const t = Math.min(1, proj.u / 0.14)
+          weights[i] = t * t * (3 - 2 * t)
+        }
+      }
+      continue
+    }
     const gd = geoDist[i]
-    if (!Number.isFinite(gd) || gd === 0) continue
+    if (!hasExplicitReach) {
+      weights[i] = 1
+      continue
+    }
+    if (gd === 0) {
+      weights[i] = 1
+      continue
+    }
     const x = world[i * 2], y = world[i * 2 + 1]
     const lo = Math.max(0, segMin[i] - 2)
     const hi = Math.min(lastSeg, segMax[i] + 2)

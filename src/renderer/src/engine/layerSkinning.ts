@@ -17,44 +17,75 @@ export interface SkinBinding {
 export interface SkinInfluence { id: string; weight: number }
 const weightCache = new WeakMap<Float32Array, { key: string; weights: SkinInfluence[][] }>()
 
+function buildBoneChains(bones: LayerRig['bones']): Array<LayerRig['bones']> {
+  const byId = new Map(bones.map((b) => [b.id, b]))
+  const children = new Map<string, LayerRig['bones']>()
+  for (const b of bones) {
+    if (b.parentId && byId.has(b.parentId)) {
+      const list = children.get(b.parentId) ?? []
+      list.push(b)
+      children.set(b.parentId, list)
+    }
+  }
+  const chains: Array<LayerRig['bones']> = []
+  for (const b of bones) {
+    const isStart = !b.parentId || !byId.has(b.parentId) || (children.get(b.parentId)?.length ?? 0) > 1
+    if (!isStart) continue
+    const chain: LayerRig['bones'] = [b]
+    let cur = b
+    while (true) {
+      const kids = children.get(cur.id)
+      if (!kids || kids.length !== 1) break
+      cur = kids[0]
+      chain.push(cur)
+    }
+    chains.push(chain)
+  }
+  return chains.length ? chains : bones.map((b) => [b])
+}
+
 function buildCorridorWeights(
   world: Float32Array,
   bones: LayerRig['bones'],
   indices: ArrayLike<number>
 ): SkinInfluence[][] | null {
   const vCount = world.length >> 1
-  const boneMeta = bones.map((b) => {
-    const end = rotatePoint(b.length, 0, b.angle)
-    const head = { x: b.x, y: b.y }
-    const tail = { x: b.x + end.x, y: b.y + end.y }
-    const corridor = computeMeshCorridor(world, indices, [head, tail])
-    return { b, end, corridor }
+  const chains = buildBoneChains(bones)
+  const chainMeta = chains.map((chain) => {
+    const ends = chain.map((b) => rotatePoint(b.length, 0, b.angle))
+    const points = [
+      { x: chain[0].x, y: chain[0].y },
+      ...chain.map((b, idx) => ({ x: b.x + ends[idx].x, y: b.y + ends[idx].y }))
+    ]
+    const corridor = computeMeshCorridor(world, indices, points)
+    return { chain, ends, corridor }
   })
-  if (boneMeta.every((m) => m.corridor === null)) return null
+  if (chainMeta.every((m) => m.corridor === null)) return null
 
   const out: SkinInfluence[][] = new Array(vCount)
   for (let i = 0; i < vCount; i++) {
     const x = world[i * 2]
     const y = world[i * 2 + 1]
     const active: Array<{ id: string; raw: number; cw: number }> = []
-    for (const { b, end, corridor } of boneMeta) {
+    for (const { chain, ends, corridor } of chainMeta) {
       if (!corridor) continue
-      let cw = corridor.weights[i]
+      const cw = corridor.weights[i]
       if (cw <= 1e-4) continue
-      const len2 = b.length * b.length || 1
-      const rawT = ((x - b.x) * end.x + (y - b.y) * end.y) / len2
-      // Nếu là xương gốc độc lập trên nhánh, giảm dần trọng số phía sau khớp gốc để thân cây đứng yên
-      if (!b.parentId && rawT < 0) {
-        const behindDist = -rawT * b.length
-        const fade = Math.max(0, 1 - behindDist / Math.max(8, corridor.avgCoreEdge * 0.65))
-        cw *= fade * fade * (3 - 2 * fade)
-        if (cw <= 1e-4) continue
+      const lastIdx = chain.length - 1
+      const pad = corridor.geoDist[i] === 0 ? 1 : 0
+      const lo = Math.max(0, Math.min(lastIdx, corridor.segMin[i] - pad))
+      const hi = Math.max(lo, Math.min(lastIdx, corridor.segMax[i] + pad))
+      for (let s = lo; s <= hi; s++) {
+        const b = chain[s]
+        const end = ends[s]
+        const len2 = b.length * b.length || 1
+        const rawT = ((x - b.x) * end.x + (y - b.y) * end.y) / len2
+        const t = Math.max(0, Math.min(1, rawT))
+        const distance = Math.hypot(x - b.x - t * end.x, y - b.y - t * end.y)
+        const radius = Math.max(1, b.length * 0.15)
+        const affinity = 1 / (distance * distance + radius * radius) ** 2
+        active.push({ id: b.id, raw: cw * affinity, cw })
       }
-      const t = Math.max(0, Math.min(1, rawT))
-      const distance = Math.hypot(x - b.x - t * end.x, y - b.y - t * end.y)
-      const radius = Math.max(1, b.length * 0.15)
-      const affinity = 1 / (distance * distance + radius * radius) ** 2
-      active.push({ id: b.id, raw: cw * affinity, cw })
     }
     if (!active.length) {
       out[i] = []

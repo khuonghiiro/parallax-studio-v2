@@ -123,4 +123,48 @@ describe('2D mesh skinning', () => {
       expect(out[v * 3 + 1]).toBeCloseTo(pos[v * 3 + 1], 5)
     }
   })
+
+  it('carries attached child sub-branches (cành nhánh) along with the rigged branch while keeping trunk and sibling branches still', () => {
+    const pos = new Float32Array([
+      // 0..3: Thân đen
+      -5, -100, 0, 5, -100, 0, -5, 0, 0, 5, 0, 0,
+      // 4..5: Giữa cành đỏ, 6..7: Ngọn cành đỏ
+      -20, 50, 0, -14, 50, 0, -40, 100, 0, -34, 100, 0,
+      // 8..11: Cành đen bên phải (tách ra tại chạc gốc 2, 3)
+      35, 30, 0, 42, 30, 0, 75, 60, 0, 82, 60, 0,
+      // 12..13: Cành nhánh xanh 1 (mọc ra từ cành đỏ)
+      -65, 72, 0, -60, 78, 0,
+      // 14..15: Cành nhánh xanh 2 (mọc ra từ cành đỏ)
+      20, 76, 0, 25, 82, 0
+    ])
+    const indices = [
+      0, 1, 2, 1, 3, 2,
+      2, 3, 4, 3, 5, 4, 4, 5, 6, 5, 7, 6,
+      2, 3, 8, 3, 9, 8, 8, 9, 10, 9, 11, 10,
+      4, 6, 12, 6, 13, 12,
+      5, 7, 14, 7, 15, 14
+    ]
+    const branchRig: LayerRig = {
+      duration: 1,
+      loop: false,
+      bones: [{ id: 'b-red', name: 'Red Branch', x: 0, y: 0, length: 106, angle: -110 }],
+      tracks: { 'b-red': [{ time: 0.5, x: 0, y: 0, rotation: 20, easing: 'linear' }] }
+    }
+    const out = deformSkin(
+      pos,
+      { boneId: 'b-red', x: 0, y: 0, rotation: 0, scale: 1 },
+      branchRig,
+      0.5,
+      indices
+    )
+    // Cành đỏ (6, 7) và các cành nhánh xanh (12..15) đều xoay theo xương
+    for (const v of [6, 7, 12, 13, 14, 15]) {
+      expect(Math.hypot(out[v * 3] - pos[v * 3], out[v * 3 + 1] - pos[v * 3 + 1])).toBeGreaterThan(5)
+    }
+    // Thân đen (0, 1) và cành đen bên phải (8..11) đứng yên
+    for (const v of [0, 1, 8, 9, 10, 11]) {
+      expect(out[v * 3]).toBeCloseTo(pos[v * 3], 5)
+      expect(out[v * 3 + 1]).toBeCloseTo(pos[v * 3 + 1], 5)
+    }
+  })
 })

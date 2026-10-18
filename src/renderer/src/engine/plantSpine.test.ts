@@ -140,4 +140,56 @@ describe('plantSpine engine', () => {
       expect(out[v * 3 + 1]).toBeCloseTo(pos[v * 3 + 1], 5)
     }
   })
+
+  it('carries attached child sub-branches (cành nhánh) along with the drawn main branch while keeping trunk and sibling branches still', () => {
+    // Mô phỏng đúng sơ đồ cây của người dùng:
+    // - Thân đen (0..3): từ y_local = -100 lên chạc gốc (0, 0)
+    // - Cành đen bên phải tách từ chạc gốc (8..11): từ (0, 0) vươn sang phải lên (80, 60)
+    // - Cành chính vẽ nét đỏ (4..7): từ chạc gốc (0, 0) vươn lên (-20, 50) rồi (-40, 100)
+    // - Cành nhánh xanh 1 (12..13): mọc ra từ giữa cành đỏ (-20, 50) sang trái lên (-65, 75)
+    // - Cành nhánh xanh 2 (14..15): mọc ra từ giữa cành đỏ (-14, 50) sang phải lên (20, 80)
+    const pos = new Float32Array([
+      // 0..3: Thân đen
+      -5, -100, 0, 5, -100, 0, -5, 0, 0, 5, 0, 0,
+      // 4..5: Giữa cành đỏ, 6..7: Ngọn cành đỏ
+      -20, 50, 0, -14, 50, 0, -40, 100, 0, -34, 100, 0,
+      // 8..11: Cành đen bên phải (tách ra ngay tại chạc gốc 2, 3)
+      35, 30, 0, 42, 30, 0, 75, 60, 0, 82, 60, 0,
+      // 12..13: Cành nhánh xanh 1 (mọc ra từ đỉnh 4, 6 của cành đỏ)
+      -65, 72, 0, -60, 78, 0,
+      // 14..15: Cành nhánh xanh 2 (mọc ra từ đỉnh 5, 7 của cành đỏ)
+      20, 76, 0, 25, 82, 0
+    ])
+    const indices = [
+      // Thân đen
+      0, 1, 2, 1, 3, 2,
+      // Cành chính đỏ nối từ chạc 2, 3 -> 4, 5 -> 6, 7
+      2, 3, 4, 3, 5, 4, 4, 5, 6, 5, 7, 6,
+      // Cành đen bên phải nối từ chạc 2, 3 -> 8, 9 -> 10, 11
+      2, 3, 8, 3, 9, 8, 8, 9, 10, 9, 11, 10,
+      // Cành nhánh xanh 1 mọc từ giữa cành đỏ (đỉnh 4, 6)
+      4, 6, 12, 6, 13, 12,
+      // Cành nhánh xanh 2 mọc từ giữa cành đỏ (đỉnh 5, 7)
+      5, 7, 14, 7, 15, 14
+    ]
+    // Chỉ vẽ nét đỏ dọc theo cành chính (từ chạc (0,0) lên (-17, -50) rồi (-37, -100) trong toạ độ Y-down)
+    const redBranchSpine = spine({
+      id: 'red-main-branch',
+      points: [{ x: 0, y: 0 }, { x: -17, y: -50 }, { x: -37, y: -100 }],
+      reach: 0
+    })
+    const out = deformPlantSpines(pos, binding, [redBranchSpine], 0.25, indices)
+
+    // 1. Cành chính đỏ (đỉnh 6, 7) đung đưa
+    expect(Math.hypot(out[6 * 3] - pos[6 * 3], out[6 * 3 + 1] - pos[6 * 3 + 1])).toBeGreaterThan(5)
+    // 2. Cả 2 cành nhánh xanh (12..13 và 14..15) mọc ra từ cành đỏ PHẢI đi theo cành đỏ
+    for (const v of [12, 13, 14, 15]) {
+      expect(Math.hypot(out[v * 3] - pos[v * 3], out[v * 3 + 1] - pos[v * 3 + 1])).toBeGreaterThan(4)
+    }
+    // 3. Thân đen (0, 1) và cành đen bên phải (8..11) hoàn toàn đứng yên
+    for (const v of [0, 1, 8, 9, 10, 11]) {
+      expect(out[v * 3]).toBeCloseTo(pos[v * 3], 5)
+      expect(out[v * 3 + 1]).toBeCloseTo(pos[v * 3 + 1], 5)
+    }
+  })
 })
