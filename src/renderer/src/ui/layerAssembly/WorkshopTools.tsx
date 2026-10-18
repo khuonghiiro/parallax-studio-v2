@@ -42,7 +42,7 @@ export function WorkshopTools({
   }
 
   return (
-    <div className="lw-tools" aria-label="Công cụ lắp ráp">
+    <div className="lw-tools" aria-label="Công cụ lắp ráp" data-mcp-region="layer_assembly_toolbar">
       {/* 1. Lịch sử hoàn tác */}
       <div className="lw-tool-group">
         <button className="btn sm" disabled={!canUndo} onClick={undo} title="Hoàn tác (Ctrl+Z)">

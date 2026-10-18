@@ -1,0 +1,58 @@
+/* ==========================================================================
+   Layer Assembly Workshop — Chrome & Panel Polish (Dual-Theme: Dark & Light)
+   ========================================================================== */
+
+/* Đảm bảo các nút, badge và tiêu đề trong thẻ thanh tra không bị ép nghẹt hay cắt chữ */
+.lw-rig-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.lw-rig-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.lw-rig-card-title svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+/* Cải thiện hiển thị các hàng thuộc tính và nút trong cột phải */
+.lw-inspector-body .lw-rig-card {
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  padding: 10px;
+  gap: 8px;
+}
+
+.lw-inspector-body .btn.xs {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+/* Hộp thoại kế thừa động tác (Retarget Modal) */
+.lw-retarget-modal h3 svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* Không để các nút trong thanh công cụ viewport 2D/3D bị khuất icon */
+.lw-viewport-tools .btn.xs,
+.lw-3d-toolbar .btn.xs {
+  flex-shrink: 0;
+  white-space: nowrap;
+}

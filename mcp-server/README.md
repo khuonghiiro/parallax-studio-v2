@@ -130,18 +130,20 @@ Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC**
 - `get_app_screenshot`: Chụp toàn bộ cửa sổ app hoặc chụp theo vùng UI chuyên biệt giúp AI tiết kiệm 70% – 95% token so với chụp toàn màn hình:
   - Cột trái & tài nguyên: `left_panel`, `assets`, `asset_grid` (lưới card tài nguyên), `asset_bar` (thanh icon danh mục), `music` (bảng quản lý audio), `shots` (danh sách cảnh), `topview` (sơ đồ độ sâu 2.5D).
   - Khung nhìn trung tâm: `viewer`, `viewer_canvas` / `viewport`, `camera_frame` (khung viền render), `viewer_hud` (thông số FPS/VRAM), `viewer_tools` (chế độ camera/3D).
-  - Thuộc tính bên phải: `inspector`, `inspector_tabs`, `inspector_body` (form chỉnh sửa chi tiết).
+  - Thuộc tính bên phải: `inspector`, `inspector_tabs`, `inspector_body` (form chỉnh sửa chi tiết), `inspector_composite` (mục `Cụm Layer Chồng`), `composite_swap` (bộ đổi nhanh biểu cảm/bộ phận).
   - Dòng thời gian: `timeline`, `timeline_toolbar` (cụm nút phát/timecode), `timeline_ruler` (thước đo), `timeline_tracks` (các hàng track layer & keyframe).
   - Thanh tiêu đề: `toolbar`, `studio_menu` (menu Studio & Đạo diễn), `mcp_chip` (chỉ báo AI), `ai_hud` (badge viền neon).
-  - Hộp thoại tổng thể: `dialog` (bất kỳ modal nổi nào).
+  - Hộp thoại: `active` (tự chọn dialog/modal **nổi trên cùng** đang hiển thị — ví dụ Studio Mixamo mở trên Xưởng Lắp Ráp Layer thì chỉ chụp Studio Mixamo; nên dùng ngay sau khi mở bất kỳ hộp thoại nào), `dialog` (cũng chọn dialog trên cùng thay vì phần tử khớp đầu tiên).
   - Xưởng 3D & từng cột: `assembly_3d` (toàn bộ), `assembly_sidebar` (cột trái tài nguyên/mặt), `assembly_viewport` (cột giữa 3D/2D), `assembly_inspector` (cột phải thuộc tính), `assembly_header`, `assembly_footer`, `assembly_hud`.
-  - Xưởng Layer 2.5D & từng cột: `layer_assembly` (toàn bộ), `layer_assembly_sidebar` (cột trái kho mẫu/layer), `layer_assembly_workspace` (cột giữa canvas), `layer_assembly_inspector` (cột phải rig/xương/thực vật), `layer_assembly_tools`, `layer_assembly_header`, `layer_assembly_cutter`, `layer_assembly_motion_sketch`, `layer_assembly_anim_tools`, `layer_assembly_anim_chips`, `layer_assembly_anim_assist`, `layer_assembly_anim_secondary`, `layer_assembly_plant_motion`, `layer_assembly_plant_chips`, `layer_assembly_plant_panel`.
+  - Xưởng Layer 2.5D & từng cột: `layer_assembly` (toàn bộ), `layer_assembly_sidebar` (cột trái kho mẫu/layer), `layer_assembly_workspace` (cột giữa canvas), `layer_assembly_inspector` (cột phải rig/xương/thực vật), `layer_assembly_tools`, `layer_assembly_header`, `layer_assembly_toolbar`, `layer_assembly_viewport_2d`, `layer_assembly_viewport_3d`, `layer_assembly_layers`, `layer_assembly_parts` (nhóm bộ phận), `layer_assembly_properties`, `layer_assembly_swap` (slot hoán đổi), `layer_assembly_rig_panel`, `layer_assembly_animation_panel`, `layer_assembly_retarget`, `layer_assembly_create`, `layer_assembly_confirm`, `layer_assembly_cutter`, `layer_assembly_source`, `layer_assembly_target`, `layer_assembly_motion_sketch`, `layer_assembly_anim_tools`, `layer_assembly_anim_chips`, `layer_assembly_anim_assist`, `layer_assembly_anim_secondary`, `layer_assembly_plant_motion`, `layer_assembly_plant_chips`, `layer_assembly_plant_panel`.
+  - Studio Mixamo (modal lồng trong Xưởng Layer): `layer_assembly_mixamo_card`, `layer_assembly_mixamo_studio`, `layer_assembly_mixamo_stage`, `layer_assembly_mixamo_sidebar`.
   - Audio Studio & từng cột: `audio_studio` (toàn bộ), `audio_studio_sidebar` (cột trái danh sách luồng âm), `audio_studio_editor` (cột phải trình biên tập), `audio_studio_waveform` (biểu đồ sóng âm), `audio_studio_tone` (âm điệu & EQ), `audio_studio_mixer` (bộ trộn âm lượng), `audio_studio_console` (bàn trộn đa luồng).
   - Hiệu năng & bộ nhớ: `perf_dialog` (toàn bộ), `perf_hardware` (khối CPU/GPU/RAM), `perf_meter` (thước đo VRAM thời gian thực), `perf_settings` (cấu hình VRAM).
   - Xuất video MP4: `export` / `export_dialog`, `export_preview` (khung hình render).
   - Lộ trình & đường vẽ Camera: `camera_path`, `camera_path_presets`, `camera_path_steps`, `camera_sketch`, `camera_sketch_canvas`, `camera_sketch_sidebar`, `camera_sketch_waypoints`.
   - Bảng điều khiển MCP: `mcp_dialog`, `mcp_status`, `mcp_config`, `mcp_guide`.
-  - Hỗ trợ `selector` CSS tuỳ chỉnh và `padding` đệm viền. Dùng CLI: `pnpm pxs review --view app --region <name>`.
+  - Hỗ trợ `selector` CSS tuỳ chỉnh và `padding` đệm viền. Dùng CLI: `pnpm pxs review --view app --region <name>`. Quy trình gợi ý: `active` ngay sau khi mở dialog → sub-region chính xác khi soi một control.
+  - **Đăng ký vùng mới (bắt buộc):** phần tử gốc gắn class ngữ nghĩa + `data-mcp-region="<ten>"` (modal lồng thêm `data-mcp-dialog`); thêm vào `UI_REGION_SELECTORS` trong [`uiRegions.ts`](../src/renderer/src/mcp/uiRegions.ts) và enum `region` ở [`catalog/tools-scene.mjs`](./catalog/tools-scene.mjs); chạy `pnpm mcp:schemas` và `pnpm test` (test parity [`uiRegions.test.ts`](../src/renderer/src/mcp/uiRegions.test.ts) FAIL nếu thiếu). Chi tiết: [skill `mcp-ui-region`](../.agents/skills/mcp-ui-region/SKILL.md).
 - `get_ui_state`: Tra cứu trạng thái giao diện hiện tại (`theme`, `dialog`, `audio_dialog_mode`, `left_tab`, `primary_view`, `split_view`, `top_view_mode`, `assembly_workshop_open`, `layer_assembly_open`, `ai_active`, `ai_locked`).
 - `set_ui_dialog`: Mở, chuyển đổi hoặc đóng bất kỳ hộp thoại/xưởng UI nào (`dialog`: `'none' | 'path' | 'sketch' | 'performance' | 'mcp' | 'audio' | 'export' | 'layer_assembly' | 'layer_assembly_create'`), chuyển chế độ Audio Studio (`audio_mode`: `'waveform' | 'levels' | 'mixer'`), chuyển tab cột trái (`left_tab`: `'shots' | 'assets' | 'topview'`), hoặc đổi giao diện Sáng/Tối (`theme`: `'dark' | 'light'`).
 - `set_ai_lock`: Bật/tắt trạng thái khoá tương tác an toàn (`locked: boolean`, `reason`, `timeout_ms`) ngăn người dùng vô tình bấm làm lệch UI khi AI đang tự động thao tác. App sẽ hiển thị viền neon cyberpunk xung quanh và badge HUD kèm nút mở khoá khẩn cấp (`Esc`).
@@ -362,6 +364,16 @@ Right panel features 3 tabs: Layer (`layers`), Bone Rigging (`bones`), Animation
 
 Cột phải gồm 3 tab: Layer (`layers`), Tạo xương (`bones`), Animation (`animation`). Xương bát diện trực quan theo chuẩn Blender (khớp gốc Head, khớp đuôi Tail, thân khối 3D đổ bóng, phân cấp cha-con). Tab Tạo xương cho phép kéo Head dời vị trí, kéo Tail đổi góc xoay và chiều dài. Tab Animation hỗ trợ kéo xoay xương trực quan trên màn hình 2D (Pose Mode) và tự động sinh chuyển động đi bộ (walk cycle), đứng thở (idle breathe), vẫy tay (wave), uốn lượn (sway). Khi chèn vào phân cảnh, toàn bộ chuyển động xương được bake thành keyframe chuẩn của dự án.
 MCP: `layer_assembly_rig`, `set_layer_assembly_playback`, `set_layer_assembly_panel`, `add_layer_assembly_layer`, `update_layer_assembly_layer`, `reorder_layer_assembly_layer`, `update_layer_assembly`, `load_layer_assembly`.
+
+### Part groups & swap slots / Nhóm bộ phận & slot hoán đổi
+
+Layers can belong to a part group (e.g. `Đầu` = face, eyes, mouth, glasses, hair); a locked group moves as one when any member is dragged. Layers sharing a `slot` (e.g. `face`) are interchangeable variants (face-normal / face-happy / face-cry): activating one shows it, hides the others and snaps it to the same anchor transform; replacing a part image keeps its position.
+
+Layer có thể thuộc nhóm bộ phận (ví dụ `Đầu` gồm mặt/mắt/miệng/kính/tóc); khoá nhóm thì kéo một thành viên sẽ dời cả nhóm. Các layer chung `slot` là biến thể thay thế nhau; kích hoạt biến thể sẽ hiện nó, ẩn biến thể khác và khớp đúng transform neo. Trong inspector cảnh (mục `Cụm Layer Chồng`) có thể đổi nhanh biểu cảm/bộ phận của nhân vật 2.5D đã đặt từ biến thể slot của mẫu hoặc tài nguyên cùng thư mục.
+
+- `layer_assembly_parts`: `action` = `list` | `auto_detect` | `create_group` | `assign` | `lock_group` | `set_slot` | `activate_variant` | `replace_asset` (có hoàn tác trong lịch sử bản nháp xưởng).
+- `swap_composite_part {layer_id, variant_layer_id | asset_path}`: đổi bộ phận/biểu cảm của cụm layer đã đặt trong cảnh (Undo/Redo dự án).
+- Vùng chụp: `layer_assembly_parts`, `layer_assembly_swap`, `inspector_composite`, `composite_swap`.
 
 
 ### Layer workshop pixel editor

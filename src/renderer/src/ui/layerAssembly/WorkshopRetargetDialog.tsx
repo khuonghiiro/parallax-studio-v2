@@ -82,6 +82,7 @@ export function WorkshopRetargetDialog({
 
   return (
     <div
+      className="lw-retarget-backdrop"
       style={{
         position: 'fixed',
         inset: 0,
@@ -95,14 +96,17 @@ export function WorkshopRetargetDialog({
       onPointerDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
+        className="lw-retarget-modal"
+        data-mcp-region="layer_assembly_retarget"
+        data-mcp-dialog
         style={{
-          width: '420px',
+          width: '440px',
           maxWidth: '92vw',
           background: 'var(--bg-1)',
           border: '1px solid var(--line-focus)',
-          borderRadius: '8px',
+          borderRadius: '10px',
           padding: '16px',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+          boxShadow: 'var(--shadow-popup)',
           color: 'var(--text)',
           fontSize: '12px',
           display: 'flex',

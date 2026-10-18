@@ -215,6 +215,14 @@ export interface LayerCompositeRef {
   centerPosition?: Vec3
   /** Offset relative to the root layer */
   rootOffset?: Vec3
+  /** ID of the source layer inside the composite template (used for quick part / expression swaps). */
+  sourceLayerId?: string
+  /** Swap slot of the source layer (e.g. 'face'); layers of the template sharing it are interchangeable variants. */
+  slot?: string
+  /** Variant name currently shown in the slot (e.g. 'happy'). */
+  variant?: string
+  /** Part group of the source layer (e.g. 'part-head'). */
+  partGroupId?: string
 }
 
 interface LayerBase<T extends LayerType, P> {

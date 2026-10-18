@@ -16,6 +16,8 @@ import { getStoredComposites } from './layerAssemblyStorage'
 import '../../styles/layerAssembly.css'
 import '../../styles/layerWorkshopTools.css'
 import '../../styles/layerWorkshopRig.css'
+import '../../styles/layerWorkshopPanels.css'
+import '../../styles/layerWorkshopChrome.css'
 import { WorkshopRightPanel, type WorkshopTab } from './WorkshopRightPanel'
 import { ensureRigClips } from './workshopRig'
 import { CreateLayerAssemblyModal } from './CreateLayerAssemblyModal'
@@ -245,8 +247,9 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
               <span className="lw-col-splitter-grip" />
             </div>
             <WorkshopRightPanel state={state} playback={playback} tab={tab} setTab={setTab} boneId={boneId} selectBone={selectBone} width={colPrefs.rightPanelWidth}>
-            <LayerAssemblyInspector composite={composite} selectedLayerId={state.selectedLayerId} selectedIds={state.selection}
-              onSelectLayer={state.select} onUpdateLayer={state.update} onAddLayer={() => state.add(`Lớp ${composite.layers.length + 1}`, '')}
+            <LayerAssemblyInspector composite={composite} setComposite={setComposite} selectedLayerId={state.selectedLayerId} selectedIds={state.selection}
+              onSelectLayer={state.select} onSetIds={state.setIds} onUpdateLayer={state.update} onMoveLayer={state.moveLayer}
+              onAddLayer={() => state.add(`Lớp ${composite.layers.length + 1}`, '')}
               onDeleteLayer={(id) => state.run('delete', undefined, [id])} onDuplicateLayer={(id) => state.run('duplicate', undefined, [id])}
               onMoveLayerOrder={state.move} onBatchAction={state.run}
               onAllAction={(action) => state.run(action, undefined, composite.layers.map((l) => l.id))} />
@@ -263,7 +266,8 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
     </div>
     {showNewConfirm && (
       <div className="lw-confirm-backdrop" onClick={handleCancelNew}>
-        <div className="lw-confirm-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="lw-confirm-modal" role="dialog" aria-modal="true" aria-label="Lưu thay đổi trước khi tạo mẫu mới"
+          data-mcp-region="layer_assembly_confirm" data-mcp-dialog onClick={(e) => e.stopPropagation()}>
           <div className="lw-confirm-title">
             <IconAlert />
             <span>Lưu thay đổi trước khi tạo mẫu mới?</span>

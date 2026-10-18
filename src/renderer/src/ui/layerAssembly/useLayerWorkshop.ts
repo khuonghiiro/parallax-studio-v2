@@ -3,6 +3,7 @@ import type { AssembledLayerItem, LayerComposite } from './types'
 import { useWorkshopHistory } from './useWorkshopHistory'
 import { applyWorkshopAction, newLayerId, type WorkshopAction } from './workshopActions'
 import { invalidateLayerMeshCache } from './layerAssemblyAlphaMesh'
+import { moveLinked } from './workshopParts'
 
 export function computeNextLayerZ(layers: { z?: number }[], customZ?: number): number {
   if (typeof customZ === 'number') return customZ
@@ -42,6 +43,10 @@ export function useLayerWorkshop(initial?: LayerComposite | null) {
     setComposite((prev) => ({ ...prev,
       layers: prev.layers.map((l) => l.id === id && (!l.locked || Object.keys(patch).every((key) => key === 'locked')) ? { ...l, ...patch } : l)
     }), `${id}:${Object.keys(patch).sort().join(',')}`)
+  }
+  /** Dời X/Y một layer; nếu layer thuộc nhóm bộ phận đang khoá liên kết thì cả nhóm dời theo. */
+  const moveLayer = (id: string, x: number, y: number) => {
+    setComposite((prev) => moveLinked(prev, id, x, y), `${id}:x,y`)
   }
   const append = (layers: AssembledLayerItem[], offset?: { x: number; y: number }) => {
     const ox = offset?.x ?? 0
@@ -87,5 +92,5 @@ export function useLayerWorkshop(initial?: LayerComposite | null) {
     state.resetComposite(next)
     setIds(next.layers[0] ? [next.layers[0].id] : [])
   }
-  return { ...state, selection, selectedLayerId, select, setIds, run, update, append, add, move, createNew }
+  return { ...state, selection, selectedLayerId, select, setIds, run, update, moveLayer, append, add, move, createNew }
 }

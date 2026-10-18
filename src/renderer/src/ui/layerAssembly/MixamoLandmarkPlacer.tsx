@@ -4,7 +4,6 @@ import { useLayerAssetImage } from './useLayerAssetImage'
 import {
   MIXAMO_CORE_LANDMARK_IDS,
   MIXAMO_LANDMARK_META,
-  MIXAMO_RING_GROUPS,
   autoDetectLandmarksFromComposite,
   buildHumanoidBonesFromLandmarks,
   createScaledLandmarks,
@@ -14,6 +13,7 @@ import {
   type MixamoLandmarks
 } from './workshopMixamoAutoRig'
 import { MixamoBodyReferenceGuide, MixamoHollowRingIcon, MixamoMarkerDock } from './MixamoReferenceGuide'
+import { MixamoPlacerToolbar, MixamoRingChips } from './MixamoPlacerToolbar'
 
 export interface MixamoLandmarkPlacerProps {
   composite?: LayerComposite
@@ -22,13 +22,6 @@ export interface MixamoLandmarkPlacerProps {
   compact?: boolean
   fullHeight?: boolean
 }
-
-const SIZE_PRESETS = [
-  { label: '60%', scale: 0.6, title: 'Khung xương nhỏ (60%) cho nhân vật Chibi / Trẻ em' },
-  { label: '80%', scale: 0.8, title: 'Khung xương cỡ vừa (80%)' },
-  { label: '100%', scale: 1.0, title: 'Khung xương tỉ lệ chuẩn (100%)' },
-  { label: '125%', scale: 1.25, title: 'Khung xương lớn (125%) cho nhân vật cao lớn' }
-]
 
 const PLACE_SEQUENCE: MixamoLandmarkId[] = [
   'neck',
@@ -271,190 +264,26 @@ export function MixamoLandmarkPlacer({
         overflow: 'hidden'
       }}
     >
-      {/* Thanh công cụ trên cùng: gọn gàng, không che nhân vật */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '6px',
-          padding: '6px 10px',
-          background: 'var(--bg-2)',
-          borderBottom: '1px solid var(--line-soft)',
-          fontSize: '11px',
-          flexShrink: 0
+      <MixamoPlacerToolbar
+        compact={compact}
+        scale={uniformScale}
+        onAutoFit={handleAutoFit}
+        onScalePreset={handleApplyScalePreset}
+        onScaleSlider={(val) => {
+          setUniformScale(val)
+          onChange(scaleFromBase(val / 100))
         }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            className="btn xs primary"
-            onClick={handleAutoFit}
-            title="Tự động đo kích thước layer nhân vật để đặt 12 vòng tròn giải phẫu vừa khít"
-            style={{ fontSize: '10px', padding: '2px 8px', fontWeight: 600 }}
-          >
-            🎯 Tự khớp nhân vật
-          </button>
-          {SIZE_PRESETS.map((p) => (
-            <button
-              key={p.label}
-              type="button"
-              className={`btn xs${uniformScale === Math.round(p.scale * 100) ? ' active' : ''}`}
-              onClick={() => handleApplyScalePreset(p.scale)}
-              title={p.title}
-              style={{ fontSize: '10px', padding: '2px 6px' }}
-            >
-              {p.label}
-            </button>
-          ))}
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '10px',
-              color: 'var(--text-dim)'
-            }}
-          >
-            <span>Tỉ lệ:</span>
-            <input
-              type="range"
-              min={35}
-              max={160}
-              step={5}
-              value={uniformScale}
-              onChange={(e) => {
-                const val = Number(e.target.value)
-                setUniformScale(val)
-                onChange(scaleFromBase(val / 100))
-              }}
-              style={{ width: '54px', accentColor: 'var(--accent)', cursor: 'pointer' }}
-            />
-            <strong style={{ minWidth: '30px', color: 'var(--text)' }}>{uniformScale}%</strong>
-          </div>
-        </div>
+        symmetry={symmetry}
+        setSymmetry={setSymmetry}
+        showBones={showBonesPreview}
+        setShowBones={setShowBonesPreview}
+        showExtra={showExtraJoints}
+        setShowExtra={setShowExtraJoints}
+        showGuide={showGuide}
+        setShowGuide={setShowGuide}
+      />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <label
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '3px',
-              fontSize: '10px',
-              color: 'var(--text-dim)',
-              cursor: 'pointer'
-            }}
-            title="Khi kéo vòng Vai / Khuỷu tay / Cổ tay / Đầu gối / Cổ chân 1 bên, bên kia tự động đối xứng qua trục Háng (Giữ phím Alt khi kéo để chỉnh 1 bên riêng lẻ)"
-          >
-            <input
-              type="checkbox"
-              checked={symmetry}
-              onChange={(e) => setSymmetry(e.target.checked)}
-              style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
-            />
-            <span>🪞 Đối xứng</span>
-          </label>
-          <label
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '3px',
-              fontSize: '10px',
-              color: 'var(--text-dim)',
-              cursor: 'pointer'
-            }}
-            title="Hiển thị đường nối 15 đoạn xương tự động giữa các vòng tròn"
-          >
-            <input
-              type="checkbox"
-              checked={showBonesPreview}
-              onChange={(e) => setShowBonesPreview(e.target.checked)}
-              style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
-            />
-            <span>🦴 Nối xương</span>
-          </label>
-          <label
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '3px',
-              fontSize: '10px',
-              color: 'var(--text-dim)',
-              cursor: 'pointer'
-            }}
-            title="Hiện thêm 2 điểm trục Đỉnh đầu & Ngực"
-          >
-            <input
-              type="checkbox"
-              checked={showExtraJoints}
-              onChange={(e) => setShowExtraJoints(e.target.checked)}
-              style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
-            />
-            <span>+Đầu/Ngực</span>
-          </label>
-          {!compact && (
-            <button
-              type="button"
-              className={`btn xs ${showGuide ? 'primary' : ''}`}
-              onClick={() => setShowGuide((v) => !v)}
-              style={{ fontSize: '9.5px', padding: '1px 6px' }}
-              title="Ẩn/hiện sơ đồ hình nhân mẫu 7 nhóm khớp"
-            >
-              📖 Sơ đồ mẫu
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Nếu ở chế độ compact (trong cột phải Tạo xương): hiển thị dải 7 nút chọn nhóm khớp nhanh thay vì nhồi 3 cột chật hẹp */}
-      {compact && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '3px',
-            padding: '5px 6px',
-            background: 'var(--bg-1)',
-            borderBottom: '1px solid var(--line-soft)',
-            flexShrink: 0
-          }}
-        >
-          {MIXAMO_RING_GROUPS.map((g) => {
-            const isGroupActive = g.landmarkIds.includes(activeId)
-            return (
-              <button
-                key={g.groupId}
-                type="button"
-                onClick={() => setSelectedDockId(g.landmarkIds[0])}
-                title={`${g.viTitle}: ${g.hint}`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '3px 5px',
-                  borderRadius: '4px',
-                  border: `1px solid ${isGroupActive ? g.color : 'var(--line)'}`,
-                  background: isGroupActive
-                    ? `color-mix(in srgb, ${g.color} 16%, var(--bg-1))`
-                    : 'var(--bg-2)',
-                  color: 'var(--text)',
-                  cursor: 'pointer',
-                  fontSize: '9.5px',
-                  fontWeight: 600,
-                  textAlign: 'left',
-                  overflow: 'hidden'
-                }}
-              >
-                <MixamoHollowRingIcon color={g.color} size={14} active={isGroupActive} />
-                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: g.color }}>
-                  {g.viTitle.split(' /')[0]}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      )}
+      {compact && <MixamoRingChips activeId={activeId} onSelect={(id) => setSelectedDockId(id)} />}
 
       {/* Bố cục chính: [Khay 7 nhóm khớp (khi không compact)] | [Sân khấu nhân vật phóng to/thu nhỏ] | [Sơ đồ mẫu] */}
       <div

@@ -1,6 +1,6 @@
 .lw-right-column { width: 330px; min-width: 290px; flex-shrink: 0; display: flex; flex-direction: column; background: var(--bg-2); border-left: 1px solid var(--line-soft); overflow: hidden; }
-.lw-right-tabs { display: flex; padding: 5px; gap: 4px; border-bottom: 1px solid var(--line-soft); background: var(--bg-1); }
-.lw-right-tabs button { flex: 1; border: 1px solid transparent; border-radius: 5px; padding: 9px 5px; background: transparent; color: var(--text-dim); cursor: pointer; font: inherit; font-size: 12px; transition: background 0.15s, color 0.15s; }
+.lw-right-tabs { display: flex; padding: 6px; gap: 3px; border-bottom: 1px solid var(--line-soft); background: var(--bg-1); flex-shrink: 0; }
+.lw-right-tabs button { flex: 1 1 0; min-width: 0; height: 32px; border: 1px solid transparent; border-radius: var(--radius-sm); padding: 0 4px; background: transparent; color: var(--text-dim); cursor: pointer; font: inherit; font-size: 11.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background 0.15s, color 0.15s; }
 .lw-right-tabs button:hover { background: var(--bg-2); color: var(--text); }
 .lw-right-tabs button[aria-selected='true'] { color: var(--accent); background: var(--bg-3); border-color: var(--line-focus); font-weight: 600; }
 .lw-right-tabs button:focus-visible, .lw-bone-list button:focus-visible { outline: 2px solid var(--line-focus); }

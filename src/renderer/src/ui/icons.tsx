@@ -912,4 +912,32 @@ export const IconColumns4 = (p: P) => (
   </svg>
 )
 
+/** Gỡ liên kết nhóm bộ phận (mắt xích đứt) */
+export const IconUnlink = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M9 17H7a5 5 0 0 1 0-10h2" />
+    <path d="M15 7h2a5 5 0 0 1 4 8" />
+    <line x1="8" y1="12" x2="11" y2="12" />
+    <line x1="3" y1="3" x2="21" y2="21" />
+  </svg>
+)
+
+/** Bộ phận lắp ghép (mảnh ghép puzzle) */
+export const IconPuzzle = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4 7h3a2 2 0 1 1 4 0h3v3a2 2 0 1 1 0 4v3h-3a2 2 0 1 0-4 0H4v-3a2 2 0 1 0 0-4z" />
+    <path d="M18 10h2v10h-8v-2" />
+  </svg>
+)
+
+/** Biến thể khuôn mặt / đổi biểu cảm (2 khuôn mặt chồng nhau) */
+export const IconFaceSwap = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="9" cy="10" r="6" />
+    <path d="M7 9h.01M11 9h.01M7 12.5a2.6 2.6 0 0 0 4 0" />
+    <path d="M15.5 6.2A6 6 0 1 1 13 19.6" />
+    <path d="M17 15.5a2.6 2.6 0 0 0-2-1" />
+  </svg>
+)
+
 

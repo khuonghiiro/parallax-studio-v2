@@ -27,6 +27,7 @@ import { EraserIsolatedCanvas } from './LayerAssemblyEraser'
 import { LayerAssemblyCalloutOverlay } from './LayerAssemblyCalloutOverlay'
 import type { WorkshopTab } from './WorkshopRightPanel'
 import type { AssemblyWorkspaceView } from './LayerAssemblyDialog'
+import { expandLinkedSelection } from './workshopParts'
 
 export interface LayerAssemblyViewportProps {
   view?: AssemblyWorkspaceView
@@ -436,7 +437,7 @@ export function LayerAssemblyViewport({
     if (layer.locked) return
 
     setIsDraggingLayer(true)
-    const activeSelection = selectedIds && selectedIds.includes(layer.id) ? selectedIds : [layer.id]
+    const activeSelection = expandLinkedSelection(composite, selectedIds && selectedIds.includes(layer.id) ? selectedIds : [layer.id])
     const initPositions = new Map<string, { x: number; y: number }>()
     composite.layers.forEach((l) => {
       if (activeSelection.includes(l.id) && !l.locked) {

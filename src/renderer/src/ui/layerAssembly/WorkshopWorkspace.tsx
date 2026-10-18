@@ -202,6 +202,7 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
     <div ref={splitContainerRef} className="layer-workshop-split-container">
       {view !== '3d' && <div
         className="layer-workshop-split-pane left-pane"
+        data-mcp-region="layer_assembly_viewport_2d"
         style={
           view === 'split'
             ? { flex: `0 0 calc(${(centerSplitRatio * 100).toFixed(2)}% - 3px)` }
@@ -255,7 +256,7 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
           <span className="lw-col-splitter-grip" />
         </div>
       )}
-      {view !== '2d' && <div className="layer-workshop-split-pane right-pane">
+      {view !== '2d' && <div className="layer-workshop-split-pane right-pane" data-mcp-region="layer_assembly_viewport_3d">
         <div className="pane-header-tab"><span className="pane-title"><IconCube width={13} height={13} /> Chiều sâu 3D</span><span>Xoay để kiểm tra lớp</span></div>
         <LayerAssembly3DViewport
           {...props}

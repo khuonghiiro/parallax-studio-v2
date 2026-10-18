@@ -113,7 +113,7 @@ Claude Desktop, Cursor và các client MCP khác dùng cùng cấu hình `comman
 
 | Nhóm | Tool |
 | --- | --- |
-| Xem | `get_project_info`, `get_shot_info`, `get_layer_info`, `get_camera_info`, `get_memory_stats`, `get_viewport_screenshot` (view `camera` hoặc `3d`), `get_app_screenshot` (toàn cửa sổ hoặc theo `region`), `get_ui_state`, `set_ui_dialog`, `ui_click`, `ui_type`, `get_ai_guide`, `list_commands` |
+| Xem | `get_project_info`, `get_shot_info`, `get_layer_info`, `get_camera_info`, `get_memory_stats`, `get_viewport_screenshot` (view `camera` hoặc `3d`), `get_app_screenshot` (toàn cửa sổ hoặc theo `region`; `active` = dialog nổi trên cùng), `get_ui_state`, `set_ui_dialog`, `ui_click`, `ui_type`, `get_ai_guide`, `list_commands` |
 | Dự án | `new_project`, `set_composition`, `save_project`, `open_project`, `import_project_json`, `export_project_json`, `import_shot_json`, `export_shot_json`, `undo`, `redo` |
 | Cảnh | `add_shot`, `update_shot`, `delete_shot` |
 | Layer | `add_image_layer` (file_path / base64 / repeat), `add_text_layer`, `add_solid_layer`, `add_ground_layer` (sàn 3D), `add_particles`, `update_layer`, `delete_layer`, `move_layer`, `split_layer`, `apply_layer_fx`, `toggle_layer_fx`, `remove_layer_fx`, `set_layer_glow`, `replace_layer_asset` |
@@ -153,6 +153,8 @@ Selecting an unlocked, visible layer in Camera (2D preview), 3D, orthographic or
 AI parity: `update_layer` edits the same `position`, `rotation` (degrees), and `scale` (scalar or `[x,y,z]` multipliers); `at_time` creates a keyframe explicitly. Example: `pnpm pxs call update_layer '{"layer_id":"layer-1","rotation":[0,0,30],"scale":[1.5,0.8,1]}'`.
 
 **Xưởng Lắp Ráp Layer:** thanh công cụ chọn nhiều lớp (Ctrl/Shift + bấm), kéo nhóm trong 2D, căn tâm/chia đều X–Y, tách Z theo bước tùy chỉnh, khóa/ẩn/nhân bản/xóa và so le pha. Undo/Redo riêng cho bản nháp, một bước mỗi gesture hoặc lệnh hàng loạt. MCP: `select_layer_assembly_layers`, `layer_assembly_action`, `layer_assembly_history`. [Hướng dẫn](docs/layer-workshop-tools.md).
+
+**Nhóm bộ phận & slot hoán đổi:** gom layer thành nhóm (ví dụ `Đầu` gồm mặt/mắt/miệng/kính/tóc), khoá nhóm để kéo một thành viên là dời cả nhóm; các layer chung `slot` (ví dụ `face`) là biến thể biểu cảm thay thế nhau, kích hoạt biến thể sẽ hiện nó, ẩn biến thể khác và khớp đúng vị trí neo. Trong inspector cảnh (mục `Cụm Layer Chồng`) đổi nhanh biểu cảm/bộ phận của nhân vật 2.5D đã đặt. MCP: `layer_assembly_parts`, `swap_composite_part`.
 
 ### Layer workshop pixel editor
 - Cọ tẩy chỉ hoạt động trong khung chỉnh pixel góc dưới trái; bố cục lớn dùng để xem và chọn layer. Thanh dọc gồm cọ mềm, tẩy nét cứng, bàn tay, vừa khung và khôi phục ảnh gốc. Cuộn để zoom quanh con trỏ; Space + kéo hoặc chuột giữa để dời ảnh. Escape hủy nét, mỗi nét hoàn tất là một bước hoàn tác.

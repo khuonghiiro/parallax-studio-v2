@@ -123,7 +123,7 @@ export function WorkshopRigPanel({
   ]
 
   return (
-    <div className="lw-rig-panel">
+    <div className="lw-rig-panel" data-mcp-region="layer_assembly_rig_panel">
       {/* 0. Gắn Điểm Tự Động Mixamo (8 vòng tròn -> 15 khớp xương & trọn bộ động tác mẫu) */}
       <WorkshopMixamoRigCard composite={composite} run={run} />
 

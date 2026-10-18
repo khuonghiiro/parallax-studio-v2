@@ -106,7 +106,7 @@ export function WorkshopAnimationPanel({
   }
 
   return (
-    <div className="lw-rig-panel lw-animation-panel">
+    <div className="lw-rig-panel lw-animation-panel" data-mcp-region="layer_assembly_animation_panel">
       {/* 1. Quản lý danh sách Động tác (Clips) */}
       <WorkshopClipBar
         rig={rig}

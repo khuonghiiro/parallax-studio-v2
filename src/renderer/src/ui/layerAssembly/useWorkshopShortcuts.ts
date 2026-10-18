@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { useLayerWorkshop } from './useLayerWorkshop'
 import { applyRigAction } from './workshopRig'
+import { expandLinkedSelection } from './workshopParts'
 
 export interface WorkshopBoneContext {
   primaryMode?: 'assembly' | 'cutter'
@@ -64,7 +65,7 @@ export function useWorkshopShortcuts(
         else if (key === 'arrowdown') dy = step
         else if (key === 'arrowleft') dx = -step
         else if (key === 'arrowright') dx = step
-        state.selection.forEach((id) => {
+        expandLinkedSelection(state.composite, state.selection).forEach((id) => {
           const l = state.composite.layers.find((layer) => layer.id === id)
           if (l && !l.locked) {
             state.update(id, { x: l.x + dx, y: l.y + dy })

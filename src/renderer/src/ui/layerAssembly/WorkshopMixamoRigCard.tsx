@@ -12,6 +12,8 @@ import {
 import { MixamoLandmarkPlacer } from './MixamoLandmarkPlacer'
 import { WorkshopNewMotionModal } from './WorkshopNewMotionModal'
 import { MOTION_PRESETS, type ProceduralMotionPreset } from './workshopRigPresets'
+import { IconBone, IconFitWidth, IconWand } from '../icons'
+import '../../styles/layerWorkshopMixamo.css'
 
 export interface WorkshopMixamoRigCardProps {
   composite: LayerComposite
@@ -79,92 +81,30 @@ export function WorkshopMixamoRigCard({ composite, run }: WorkshopMixamoRigCardP
   }
 
   return (
-    <div className="lw-card-section lw-mixamo-rig-card">
-      <div className="lw-card-header" style={{ marginBottom: '6px', flexWrap: 'nowrap' }}>
-        <span className="lw-card-title" style={{ minWidth: 0 }}>
-          <span style={{ whiteSpace: 'nowrap' }}>🎯 Gắn Điểm Mixamo</span>
-          <span className="lw-card-badge" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>12 điểm</span>
-        </span>
-        <button
-          type="button"
-          className="btn xs primary"
-          onClick={() => setIsStudioOpen(true)}
-          title="Mở cửa sổ lớn Studio Mixamo để đặt 12 điểm khớp (Cằm, Vai, Khuỷu, Cổ tay, Háng, Gối, Cổ chân) và xem thử chuyển động"
-          style={{ fontSize: '10px', padding: '2px 7px', whiteSpace: 'nowrap', flexShrink: 0 }}
-        >
-          🎬 Mở Studio Mixamo
+    <div className="lw-card-section lw-mixamo-rig-card lw-mixamo-card" data-mcp-region="layer_assembly_mixamo_card">
+      <div className="lw-mx-card-head">
+        <span className="lw-mx-card-title"><IconBone width={14} height={14} /> Gắn điểm Mixamo <span className="lw-count">12 điểm</span></span>
+        <button type="button" className="lw-btn sm" onClick={() => setIsStudioOpen(true)}
+          title="Mở cửa sổ lớn Studio Mixamo để đặt 12 điểm khớp (Cằm, Vai, Khuỷu, Cổ tay, Háng, Gối, Cổ chân) và xem thử chuyển động">
+          <IconFitWidth width={12} height={12} /> Mở Studio
         </button>
       </div>
 
-      <MixamoLandmarkPlacer
-        composite={composite}
-        landmarks={landmarks}
-        onChange={handleLandmarksChange}
-        compact
-      />
+      <MixamoLandmarkPlacer composite={composite} landmarks={landmarks} onChange={handleLandmarksChange} compact />
 
-      {/* Tuỳ chọn cập nhật trực tiếp & Nút xác nhận gắn xương + nạp sẵn các animate */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '6px',
-          marginTop: '8px'
-        }}
-      >
-        <label
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '5px',
-            fontSize: '10.5px',
-            color: 'var(--text-dim)',
-            cursor: 'pointer'
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={liveSync}
-            onChange={(e) => setLiveSync(e.target.checked)}
-            style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
-          />
-          <span>⚡ Tự động cập nhật khung xương trực tiếp khi kéo 12 vòng tròn</span>
+      <div className="lw-mx-card-actions">
+        <label className="mx-check">
+          <input type="checkbox" checked={liveSync} onChange={(e) => setLiveSync(e.target.checked)} />
+          Cập nhật xương trực tiếp khi kéo vòng mốc
         </label>
-
-        <button
-          type="button"
-          className="btn sm primary"
-          onClick={handleApplyAutoRigAndStarterPack}
-          title="Tự động tạo 15 khớp xương từ 12 điểm (Cằm, 2 Vai, 2 Khuỷu tay, 2 Cổ tay, Háng, 2 Đầu gối, 2 Cổ chân), liên kết layer và nạp sẵn bộ 7 động tác mẫu"
-          style={{
-            width: '100%',
-            justifyContent: 'center',
-            fontWeight: 700,
-            padding: '6px 10px'
-          }}
-        >
-          ✨ Gắn Xương Tự Động & Nạp Sẵn Bộ Động Tác Mẫu
+        <button type="button" className="lw-btn primary block" onClick={handleApplyAutoRigAndStarterPack}
+          title="Tự động tạo 15 khớp xương từ 12 điểm (Cằm, 2 Vai, 2 Khuỷu tay, 2 Cổ tay, Háng, 2 Đầu gối, 2 Cổ chân), liên kết layer và nạp sẵn bộ 7 động tác mẫu">
+          <IconWand width={13} height={13} /> Gắn xương & nạp 7 động tác mẫu
         </button>
-
-        {/* Thanh chọn nhanh động tác tạo sẵn sau khi gắn điểm */}
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '4px',
-            paddingTop: '2px'
-          }}
-        >
+        <div className="lw-mx-quick-grid" aria-label="Áp nhanh động tác mẫu">
           {MOTION_PRESETS.slice(0, 6).map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className="btn xs"
-              onClick={() => handleQuickPreset(p.id)}
-              title={`Gắn xương theo 8 điểm và chạy ngay động tác: ${p.name}`}
-              style={{ fontSize: '9.5px', padding: '2px 6px', flex: '1 1 auto' }}
-            >
-              {p.icon} {p.name.split(' (')[0]}
+            <button key={p.id} type="button" className="lw-chip" onClick={() => handleQuickPreset(p.id)} title={`Gắn xương theo 12 điểm và chạy ngay: ${p.name}`}>
+              <span aria-hidden="true">{p.icon}</span> {p.name.split(' (')[0]}
             </button>
           ))}
         </div>

@@ -39,7 +39,25 @@ export interface AssembledLayerItem {
   opacity: number // Độ trong suốt 0..1
   locked?: boolean
   hidden?: boolean
+  /** Nhóm bộ phận (VD 'Đầu' gồm mặt/mắt/miệng/kính/tóc) — khi nhóm khoá, kéo 1 bộ phận sẽ kéo cả nhóm. */
+  partGroupId?: string
+  /** Khe biến thể (VD 'face'): các layer cùng khe là các phương án thay thế nhau, chỉ 1 layer hiển thị. */
+  slot?: string
+  /** Tên biến thể trong khe (VD 'happy', 'cry'). */
+  variant?: string
   motion: LayerMotionSettings
+}
+
+export type LayerPartKind = 'head' | 'torso' | 'arm' | 'leg' | 'accessory' | 'custom'
+
+export interface LayerPartGroup {
+  id: string
+  name: string
+  kind: LayerPartKind
+  /** Khoá liên kết: di chuyển một bộ phận sẽ dịch chuyển đồng bộ toàn bộ bộ phận trong nhóm. */
+  locked: boolean
+  /** Layer neo của nhóm (VD layer 'head'). */
+  anchorLayerId?: string
 }
 
 import type { AssemblyLighting } from '../assets/models3d/types'
@@ -59,6 +77,8 @@ export interface LayerComposite {
   /** Bảng tài nguyên ánh xạ nhãn -> đường dẫn (Asset Aliases Table), giúp dễ dàng thay thế tài nguyên linh hoạt */
   assets?: AssetTable
   layers: AssembledLayerItem[]
+  /** Nhóm bộ phận & liên kết (Đầu, Thân, Tay trái…) */
+  partGroups?: LayerPartGroup[]
   lighting?: AssemblyLighting
   createdAt?: number
   updatedAt?: number

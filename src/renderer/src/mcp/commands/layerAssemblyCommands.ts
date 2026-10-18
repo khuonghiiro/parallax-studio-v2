@@ -26,6 +26,7 @@ import { layerAnimProCommands } from './layerAnimProCommands'
 import { getPlantSpineEditorState } from '../../ui/layerAssembly/plantSpineEditorStore'
 import { getAnimAssist } from '../../ui/layerAssembly/animAssistStore'
 import { layerWorkshopEditCommands } from './layerWorkshopEditCommands'
+import { layerPartsCommands } from './layerPartsCommands'
 import { validateWorkshop } from '../../ui/layerAssembly/workshopEdits'
 
 function workshopSession() {
@@ -70,6 +71,7 @@ export const layerAssemblyCommands: Record<string, Handler> = {
   ...layerMotionSketchCommands,
   ...layerAnimProCommands,
   ...layerWorkshopEditCommands,
+  ...layerPartsCommands,
   layer_assembly_action: (p) => {
     const session = workshopSession()
     const before = session.getComposite()

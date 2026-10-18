@@ -15,11 +15,12 @@ import { FX_TOOLS } from './tools-motion.mjs'
 import { ASSEMBLY_TOOLS } from './tools-assembly.mjs'
 import { LAYER_ASSEMBLY_TOOLS } from './tools-layer-assembly.mjs'
 import { LAYER_ANIM_TOOLS } from './tools-layer-anim.mjs'
+import { LAYER_PARTS_TOOLS } from './tools-layer-parts.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
 export const GUIDE = JSON.parse(readFileSync(join(here, 'guide.json'), 'utf8'))
-export const TOOLS = [...SCENE_TOOLS, ...FX_TOOLS, ...ASSEMBLY_TOOLS, ...LAYER_ASSEMBLY_TOOLS, ...LAYER_ANIM_TOOLS]
+export const TOOLS = [...SCENE_TOOLS, ...FX_TOOLS, ...ASSEMBLY_TOOLS, ...LAYER_ASSEMBLY_TOOLS, ...LAYER_ANIM_TOOLS, ...LAYER_PARTS_TOOLS]
 export const LANGS = ['en', 'vi']
 export const GUIDE_TOPICS = ['all', ...GUIDE.sections.map((s) => s.id)]
 

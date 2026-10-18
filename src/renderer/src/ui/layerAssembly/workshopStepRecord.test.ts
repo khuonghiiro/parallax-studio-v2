@@ -14,7 +14,6 @@ function makeCharacterComposite(): LayerComposite {
     id: 'comp-test',
     name: 'Nhân vật Test',
     category: 'character',
-    icon: '🧑',
     width: 600,
     height: 600,
     layers: [
@@ -26,15 +25,9 @@ function makeCharacterComposite(): LayerComposite {
         scale: 1,
         x: 0,
         y: 0,
-        width: 300,
-        height: 450,
         opacity: 1,
         rotation: 0,
-        tiltX: 0,
-        tiltY: 0,
-        blur: 0,
-        colorGrade: { brightness: 0, contrast: 0, saturation: 0, tint: '#ffffff', tintStrength: 0 },
-        motion: { type: 'none', speed: 1, amplitude: 1, phase: 0, frequency: 1 },
+        motion: { type: 'none', speed: 1, amplitude: 1, anchor: 'bottom', phaseOffset: 0 },
         bindingMode: 'soft',
         boneId: 'bone-pelvis'
       }

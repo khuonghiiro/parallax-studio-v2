@@ -3,19 +3,80 @@ import type { LayerComposite, AssembledLayerItem } from './types'
 import { useEditor } from '../../store/editor'
 import { assetStore } from '../../project/assets'
 import { createImageLayer } from '../../project/factory'
-import type { AssetMeta, ImageLayer } from '@shared/types'
-import { resolveFaceTexture } from '../assets/models3d/textureResolver'
+import type { AssetMeta, Composition, ImageLayer, LayerMotion } from '@shared/types'
 import { toast } from '../../actions'
 import { exportWorkshopSkin } from './exportWorkshopSkin'
 import { bakeWorkshopRig } from './bakeWorkshopRig'
 import { validateRig } from './workshopRig'
-import { resolveAssetAlias } from '../../project/json/assetTable'
+import { resolveCompositeItemAsset } from './compositeAssetLoader'
 
 export interface InsertCompositeOptions {
   composite: LayerComposite
   targetShotId?: string | null
   positionOffset?: [number, number, number]
   globalScale?: number
+}
+
+/** Quy đổi chuyển động lắc lư của Xưởng sang motion 2.5D của cảnh. */
+export function toSceneMotion(item: AssembledLayerItem): LayerMotion | undefined {
+  if (!item.motion || item.motion.type === 'none') return undefined
+  const map: Record<string, LayerMotion['type']> = { sway: 'sway', breathe: 'pulse', float: 'float' }
+  return {
+    type: map[item.motion.type] ?? 'wiggle',
+    speed: item.motion.speed,
+    amplitude: [item.motion.amplitude, item.motion.amplitude, 0],
+    phase: item.motion.phaseOffset ?? 0
+  }
+}
+
+interface BuildLayerArgs {
+  item: AssembledLayerItem
+  asset: AssetMeta
+  composite: LayerComposite
+  comp: Composition
+  shotId: string
+  instanceId: string
+  isRoot: boolean
+  globalScale: number
+  positionOffset: [number, number, number]
+}
+
+/** Tạo ImageLayer của cảnh từ 1 layer trong mẫu (vị trí, tỉ lệ, góc, liên kết cụm & thông tin bộ phận). */
+function buildSceneLayer({ item, asset, composite, comp, shotId, instanceId, isRoot, globalScale, positionOffset }: BuildLayerArgs): ImageLayer {
+  const pos: [number, number, number] = [
+    item.x * globalScale + positionOffset[0],
+    -item.y * globalScale + positionOffset[1],
+    item.z * globalScale + positionOffset[2]
+  ]
+  const layer = createImageLayer(asset, comp, pos[2])
+  layer.id = 'layer-' + nanoid(8)
+  layer.name = `[${composite.name}] ${item.name}`
+  layer.shotId = shotId
+  layer.autoScale = false
+  if (asset.width && asset.height) {
+    layer.props.width = asset.width
+    layer.props.height = asset.height
+  }
+  layer.transform.position.value = pos
+  layer.transform.scale.value = [item.scale * (item.scaleX ?? 1) * globalScale, item.scale * (item.scaleY ?? 1) * globalScale, 1]
+  layer.transform.rotation.value = [item.rotationX || 0, item.rotationY || 0, item.rotation || 0]
+  layer.transform.opacity.value = item.opacity
+  // Liên kết cụm (khoá cụm, di chuyển đồng bộ) + thông tin bộ phận để đổi biểu cảm / bộ phận nhanh trong cảnh
+  layer.composite = {
+    instanceId,
+    compositeId: composite.id,
+    compositeName: composite.name,
+    isRoot,
+    lockedGroup: true,
+    centerPosition: [...positionOffset],
+    rootOffset: [item.x * globalScale, -item.y * globalScale, item.z * globalScale],
+    sourceLayerId: item.id,
+    ...(item.slot ? { slot: item.slot, variant: item.variant } : {}),
+    ...(item.partGroupId ? { partGroupId: item.partGroupId } : {})
+  }
+  const motion = toSceneMotion(item)
+  if (motion) layer.motion = motion
+  return layer
 }
 
 /**
@@ -30,200 +91,35 @@ export async function insertLayerCompositeToScene({
   validateRig(composite)
   const state = useEditor.getState()
   const shotId = targetShotId ?? state.selectedShotId ?? state.project.shots[0]?.id ?? null
-  if (!shotId) return []
-
-  const shot = state.project.shots.find((s) => s.id === shotId)
-  if (!shot) return []
+  if (!shotId || !state.project.shots.some((s) => s.id === shotId)) return []
 
   const comp = state.project.comp
-  const createdLayerIds: string[] = []
-  const layersToAdd: ImageLayer[] = []
-  const newAssetsToAdd: AssetMeta[] = []
   const projectAssets = state.project.assets
-
+  const layersToAdd: ImageLayer[] = []
+  const newAssets: AssetMeta[] = []
   const instanceId = 'comp-inst-' + nanoid(8)
   const activeItems = composite.layers.filter((item) => !item.hidden)
 
-  // Duyệt qua các layer theo thứ tự
   for (let idx = 0; idx < activeItems.length; idx++) {
     const item = activeItems[idx]
-    const hasEditedImage = Boolean(item.imageUrl)
-    const resolvedAssetPath = resolveAssetAlias(item.asset || item.assetPath, composite.assets)
-
-    // 1. Tìm asset trong project nếu đã có
-    let asset: AssetMeta | undefined = hasEditedImage ? undefined : projectAssets.find(
-      (a) =>
-        (resolvedAssetPath && (a.path?.endsWith(resolvedAssetPath) || a.assetPath === resolvedAssetPath)) ||
-        a.id === resolvedAssetPath
-    )
-
-    // Kiểm tra trong assetStore runtime
-    if (!asset && resolvedAssetPath && !hasEditedImage) {
-      const existingRt = assetStore.get(resolvedAssetPath)
-      if (existingRt) {
-        asset = existingRt.meta
-      }
-    }
-
-    // 2. Nếu chưa có trong assetStore hoặc projectAssets -> Nạp dữ liệu ảnh và đăng ký vào assetStore
-    if (!asset) {
-      try {
-        let loadedData: Uint8Array | Blob | null = null
-        let mime = 'image/png'
-        if (hasEditedImage) {
-          const response = await fetch(item.imageUrl!)
-          if (!response.ok) throw new Error('Không tải được ảnh đã tẩy')
-          loadedData = await response.blob()
-          mime = loadedData.type || mime
-        }
-
-        // Nạp từ built-in assets hoặc asset-3ds
-        if (resolvedAssetPath && !hasEditedImage) {
-          if (window.api?.loadBuiltInAssetBytes) {
-            try {
-              const file =
-                (await window.api.loadBuiltInAssetBytes(resolvedAssetPath)) ||
-                (await window.api.loadBuiltInAssetBytes(`assembly_3d/${resolvedAssetPath.replace(/^assembly_3d[\\/]/, '')}`))
-              if (file?.data && file.data.length > 0) {
-                loadedData = file.data
-                mime = file.mime || 'image/png'
-              }
-            } catch {}
-          }
-          if (!loadedData && window.api?.asset3ds?.loadBytes) {
-            try {
-              const cleanPath = resolvedAssetPath.replace(/^asset-3ds[\\/]/, '')
-              const file = await window.api.asset3ds.loadBytes(cleanPath)
-              if (file?.data && file.data.length > 0) {
-                loadedData = file.data
-                mime = file.mime || 'image/png'
-              }
-            } catch {}
-          }
-          if (!loadedData) {
-            const resolved = await resolveFaceTexture(resolvedAssetPath)
-            if (resolved?.url) {
-              const res = await fetch(resolved.url)
-              loadedData = await res.blob()
-              mime = (loadedData as Blob).type || 'image/png'
-            }
-          }
-        }
-
-        // Nạp từ direct imageUrl nếu có
-        if (!loadedData && item.imageUrl && (item.imageUrl.startsWith('data:') || item.imageUrl.startsWith('blob:') || item.imageUrl.startsWith('http'))) {
-          const res = await fetch(item.imageUrl)
-          loadedData = await res.blob()
-          mime = (loadedData as Blob).type || 'image/png'
-        }
-
-        if (loadedData) {
-          const fileName = (item.assetPath || item.name || 'layer').split('/').pop() || 'layer.png'
-          const added = await assetStore.add(fileName, mime, loadedData, 'image')
-          if (item.assetPath && !hasEditedImage) {
-            added.meta.assetPath = item.assetPath
-            added.meta.path = item.assetPath
-          }
-          asset = added.meta
-          if (!projectAssets.some((a) => a.id === asset!.id) && !newAssetsToAdd.some((a) => a.id === asset!.id)) {
-            newAssetsToAdd.push(added.meta)
-          }
-        }
-      } catch (err) {
-        console.warn('[insertLayerCompositeToScene] Failed to load asset bytes for item:', item.name, err)
-        if (hasEditedImage) throw err
-      }
-    }
-
-    const targetAsset: AssetMeta = asset || {
-      id: item.assetPath || `asset-auto-${nanoid(6)}`,
-      name: item.name,
-      kind: 'image',
-      mime: 'image/png',
-      width: composite.width,
-      height: composite.height
-    }
-
-    if (asset && !projectAssets.some((a) => a.id === asset!.id) && !newAssetsToAdd.some((a) => a.id === asset!.id)) {
-      newAssetsToAdd.push(asset)
-    }
-
-    const layerName = `[${composite.name}] ${item.name}`
-    const posX = item.x * globalScale + positionOffset[0]
-    const posY = -item.y * globalScale + positionOffset[1]
-    const posZ = item.z * globalScale + positionOffset[2]
-
-    const newLayer = createImageLayer(targetAsset, comp, posZ)
-    newLayer.id = 'layer-' + nanoid(8)
-    newLayer.name = layerName
-    newLayer.shotId = shotId
-    newLayer.autoScale = false
-    if (targetAsset.width && targetAsset.height) {
-      newLayer.props.width = targetAsset.width
-      newLayer.props.height = targetAsset.height
-    }
-    newLayer.transform.position.value = [posX, posY, posZ]
-    newLayer.transform.scale.value = [
-      item.scale * (item.scaleX ?? 1) * globalScale,
-      item.scale * (item.scaleY ?? 1) * globalScale,
-      1
-    ]
-    newLayer.transform.rotation.value = [item.rotationX || 0, item.rotationY || 0, item.rotation || 0]
-    newLayer.transform.opacity.value = item.opacity
-
-    // Gắn thông tin liên kết cụm composite (hỗ trợ khóa cụm, di chuyển đồng bộ, đổi layer con)
-    newLayer.composite = {
-      instanceId,
-      compositeId: composite.id,
-      compositeName: composite.name,
-      isRoot: idx === 0,
-      lockedGroup: true,
-      centerPosition: [positionOffset[0], positionOffset[1], positionOffset[2]],
-      rootOffset: [item.x * globalScale, -item.y * globalScale, item.z * globalScale]
-    }
-
-    // Gắn thông số hoạt ảnh lắc lư/đung đưa (motion) chuẩn 2.5D
-    if (item.motion && item.motion.type !== 'none') {
-      const motionType =
-        item.motion.type === 'sway'
-          ? 'sway'
-          : item.motion.type === 'breathe'
-            ? 'pulse'
-            : item.motion.type === 'float'
-              ? 'float'
-              : 'wiggle'
-
-      newLayer.motion = {
-        type: motionType,
-        speed: item.motion.speed,
-        amplitude: [item.motion.amplitude, item.motion.amplitude, 0],
-        phase: item.motion.phaseOffset ?? 0
-      }
-    }
-
-    await exportWorkshopSkin(newLayer, item, composite, assetStore.get(targetAsset.id)?.url ?? item.imageUrl)
-    bakeWorkshopRig(newLayer, item, composite, comp.duration, comp.fps, globalScale, positionOffset)
-    layersToAdd.push(newLayer)
-    createdLayerIds.push(newLayer.id)
+    const { asset, isNew } = await resolveCompositeItemAsset(item, composite, [...projectAssets, ...newAssets])
+    if (isNew && !newAssets.some((a) => a.id === asset.id)) newAssets.push(asset)
+    const layer = buildSceneLayer({ item, asset, composite, comp, shotId, instanceId, isRoot: idx === 0, globalScale, positionOffset })
+    await exportWorkshopSkin(layer, item, composite, assetStore.get(asset.id)?.url ?? item.imageUrl)
+    bakeWorkshopRig(layer, item, composite, comp.duration, comp.fps, globalScale, positionOffset)
+    layersToAdd.push(layer)
   }
 
   if (layersToAdd.length > 0) {
     useEditor.getState().update((p) => {
-      if (newAssetsToAdd.length > 0) {
-        p.assets.push(...newAssetsToAdd)
-      }
+      if (newAssets.length > 0) p.assets.push(...newAssets.filter((a) => !p.assets.some((x) => x.id === a.id)))
       // Chèn layer lên trên cùng của shot hiện tại để hiển thị ngay trước mắt người xem
       const firstShotIdx = p.layers.findIndex((l) => l.shotId === shotId)
-      if (firstShotIdx < 0) {
-        p.layers.unshift(...layersToAdd)
-      } else {
-        p.layers.splice(firstShotIdx, 0, ...layersToAdd)
-      }
+      if (firstShotIdx < 0) p.layers.unshift(...layersToAdd)
+      else p.layers.splice(firstShotIdx, 0, ...layersToAdd)
     }, `Thêm cụm layer: ${composite.name}`)
-
-    useEditor.getState().selectLayer(createdLayerIds[0])
+    useEditor.getState().selectLayer(layersToAdd[0].id)
     toast(`Đã thêm cụm layer "${composite.name}" vào cảnh`)
   }
-
-  return createdLayerIds
+  return layersToAdd.map((l) => l.id)
 }

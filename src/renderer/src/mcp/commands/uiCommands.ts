@@ -8,6 +8,8 @@ import {
   requestOpenLayerAssembly
 } from '../../ui/layerAssembly/layerAssemblyBridge'
 import type { McpRect } from '@shared/ipc'
+import { describeElement, isVisible, resolveTargetElement } from '../uiRegions'
+export { UI_REGION_SELECTORS, findActiveDialog, isVisible, resolveTargetElement } from '../uiRegions'
 
 /**
  * UI-level commands: let an AI see and drive the real app UI (dialogs, tabs, workshop),
@@ -63,11 +65,6 @@ export function pickByText(candidates: UiCandidate[], query: string, index = 0):
 
 const CLICKABLE = 'button, [role="button"], [role="tab"], [role="menuitem"], a, summary, label, .c3d-card'
 
-export function isVisible(el: HTMLElement): boolean {
-  const r = el.getBoundingClientRect()
-  return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'
-}
-
 function findTarget(p: Params): HTMLElement {
   const selector = str(p, 'selector')
   const text = str(p, 'text')
@@ -87,170 +84,6 @@ function findTarget(p: Params): HTMLElement {
   const i = pickByText(candidates, text!, index)
   if (i < 0) throw new Error(`No visible clickable element with text "${text}"`)
   return pool[i]
-}
-
-export const UI_REGION_SELECTORS: Record<string, string[]> = {
-  // Left Sidebar and sub-sections
-  left_panel: ['aside.left', '.left', '.panel-left'],
-  assets: ['.asset-panel-wrapper', '.asset-main-layout', 'aside.left'],
-  asset_grid: [
-    '.builtin-grid-wrap',
-    '.builtin-asset-grid',
-    '.project-asset-grid',
-    '.music-list-scroll',
-    '.model3d-grid-wrap',
-    '.lw-template-grid'
-  ],
-  asset_bar: ['.asset-vertical-strip', '.builtin-asset-bar', '.music-category-bar', '.model3d-category-bar', '.lw-category-bar'],
-  music: ['.music-panel-layout', '.music-panel-container', '.music-panel-main'],
-  shots: ['.shots', '.shots-panel', 'aside.left .panel-body'],
-  topview: ['.topview', '.topview-canvas-wrap', '.top-view', '#viewport-topview', '.topview-toolbar'],
-
-  // Center Viewer and sub-sections
-  viewer: ['.viewer-wrap', '.viewer', '#viewport-container'],
-  viewer_canvas: ['#viewer-canvas', '.viewer canvas'],
-  viewport: ['#viewer-canvas', '.viewer canvas'],
-  camera_frame: ['#camera-frame', '.camera-frame'],
-  viewer_hud: ['.viewer-hud'],
-  viewer_tools: ['.viewer-tools'],
-  animate_camera_stage: ['#animate-camera-stage', '.anim2d-stage', '.anim2d-pane-host'],
-  animate_camera_toolbar: ['.anim2d-toolbar'],
-  animate_camera_route: ['#camera-route-inspector', '.camera-route-inspector', '#tab-route'],
-  animate_camera_inspector: ['#camera-route-inspector', '.camera-route-inspector .active-wp-section'],
-
-  // Right Inspector and sub-sections
-  inspector: ['aside.right', '.right', '.inspector'],
-  inspector_tabs: ['aside.right .tabs'],
-  inspector_body: ['aside.right .panel-body'],
-  effect_stack: ['.layer-effects-section'],
-  effect_editor: ['.effect-editor'],
-  timeline_effects: ['.timeline-effect-row'],
-  fx_presets: ['.tl-fx-popover'],
-  motion: ['.motion-controls'],
-  motion_preview: ['.motion-preview'],
-  motion_parameters: ['.motion-parameters'],
-  motion_timing: ['.motion-timing'],
-
-  // Bottom Timeline and sub-sections
-  timeline: ['section.panel.timeline', 'section.timeline', '.timeline'],
-  timeline_toolbar: ['.timeline-toolbar', '.tl-toolbar'],
-  timeline_ruler: ['.tl-header', '.tl-ruler-wrap'],
-  timeline_tracks: ['.tl-scroll', '.tl-body', '.tl-rows-scroll'],
-
-  // Top Toolbar & Responsive Workspace Dock
-  toolbar: ['header.toolbar', '.toolbar'],
-  studio_menu: ['#menu-studio', '.toolbar'],
-  mcp_chip: ['#mcp-chip', '.mcp-chip'],
-  responsive_dock: ['#responsive-dock', '.responsive-dock'],
-
-  // Floating Modals & Workshops (Never include full-screen backdrop/overlay here)
-  dialog: [
-    '.tpm-modal',
-    '.layer-workshop-dialog',
-    '.lat-dialog',
-    '.assembly-modal-content',
-    '.audio-studio-modal',
-    '.audio-studio-dialog',
-    '.export-modal',
-    '.perf-modal',
-    '.mcp-modal',
-    '.camera-path-modal',
-    '.camera-sketch-modal',
-    '.modal[role="dialog"]',
-    '.modal',
-    '[role="dialog"]'
-  ],
-
-  // 1. Xưởng 3D (Assembly 3D Workshop) - Toàn bộ & Từng cột
-  assembly_3d: ['.assembly-modal-content'],
-  assembly_sidebar: ['.assembly-asset-sidebar', '.assembly-modal-body > aside'],
-  assembly_viewport: ['.assembly-viewport-panel', '.assembly-split-container'],
-  assembly_inspector: ['.assembly-inspector-panel'],
-  assembly_header: ['.assembly-modal-header'],
-  assembly_footer: ['.assembly-modal-footer'],
-  assembly_hud: ['.assembly-3d-hud-container'],
-
-  // 2. Xưởng Layer 2.5D (Layer Assembly Workshop) - Toàn bộ & Từng cột
-  layer_assembly: ['.tpm-modal', '.layer-workshop-dialog', '.lat-dialog'],
-  layer_assembly_sidebar: ['.layer-workshop-sidebar'],
-  layer_assembly_workspace: ['.lw-workspace-column'],
-  layer_assembly_inspector: ['.lw-right-panel'],
-  layer_assembly_tools: ['.workshop-tools'],
-  layer_assembly_header: ['.workshop-header'],
-  layer_assembly_cutter: ['.layer-cutter-split-container'],
-  layer_assembly_source: ['.layer-cutter-pane.left-pane'],
-  layer_assembly_target: ['.layer-cutter-target-container'],
-  layer_assembly_motion_sketch: ['.lw-motion-sketch-card', '.lw-motion-sketch-overlay'],
-  layer_assembly_anim_tools: ['.lw-anim-assist-card', '.lw-secondary-card', '.lw-anim-chips'],
-  layer_assembly_anim_chips: ['.lw-anim-chips'],
-  layer_assembly_anim_assist: ['.lw-anim-assist-card'],
-  layer_assembly_anim_secondary: ['.lw-secondary-card'],
-  layer_assembly_plant_motion: ['.lw-plant-motion', '.lw-plant-panel', '.lw-plant-motion-chips'],
-  layer_assembly_plant_chips: ['.lw-plant-motion-chips'],
-  layer_assembly_plant_panel: ['.lw-plant-panel'],
-
-  // 3. Audio Studio (Phòng thu Âm thanh) - Toàn bộ & Từng cột
-  audio_studio: ['.audio-studio-modal', '.audio-studio-dialog'],
-  audio_studio_sidebar: ['.audio-track-list', '.audio-studio-track-list'],
-  audio_studio_editor: ['.audio-track-editor'],
-  audio_studio_waveform: ['.audio-waveform-panel'],
-  audio_studio_tone: ['.audio-tone-panel'],
-  audio_studio_mixer: ['.audio-levels-panel'],
-  audio_studio_console: ['.audio-multitrack-console', '.audio-levels-panel'],
-
-  // 4. Hộp thoại Hiệu năng (Performance Dialog) - Khối chi tiết
-  perf_dialog: ['.perf-modal', '.modal:has(.hw-grid)'],
-  perf_hardware: ['.hw-grid'],
-  perf_meter: ['.perf-meter'],
-  perf_settings: ['.perf-auto-box', '.perf-preset-grid'],
-
-  // 5. Hộp thoại Xuất video (Export Dialog) - Khối chi tiết
-  export: ['.export-modal', '.modal:has(#export-start)', '.modal[aria-labelledby="export-title"]'],
-  export_dialog: ['.export-modal', '.modal:has(#export-start)', '.modal[aria-labelledby="export-title"]'],
-  export_preview: ['.export-preview'],
-
-  // 6. Hộp thoại Vẽ đường bay Camera (Camera Sketch Dialog) - Khối chi tiết
-  camera_sketch: ['.camera-sketch-modal'],
-  camera_sketch_canvas: ['.camera-sketch-canvas'],
-  camera_sketch_sidebar: ['.camera-sketch-sidebar'],
-  camera_sketch_waypoints: ['.camera-sketch-shot-pills', '.camera-sketch-modal'],
-
-  // 7. Hộp thoại Lộ trình Camera (Camera Path Dialog) - Khối chi tiết
-  camera_path: ['.camera-path-modal', '.modal[aria-labelledby="path-title"]'],
-  camera_path_presets: ['.path-preset-bar', '.camera-path-modal'],
-  camera_path_steps: ['.path-steps'],
-
-  // 8. Hộp thoại MCP (MCP & AI Guide Dialog) - Khối chi tiết
-  mcp_dialog: ['.mcp-modal', '.modal:has(#mcp-chip)'],
-  mcp_status: ['.mcp-status-card'],
-  mcp_config: ['.mcp-ide-config'],
-  mcp_guide: ['.mcp-ai-guide-card'],
-
-  // AI Neon HUD
-  ai_hud: ['.ai-neon-hud-badge']
-}
-
-export function resolveTargetElement(region?: string, selector?: string): HTMLElement | null {
-  if (selector) {
-    try {
-      const el = document.querySelector<HTMLElement>(selector)
-      if (el && isVisible(el)) return el
-    } catch {
-      /* invalid selector */
-    }
-  }
-  if (region && region !== 'window') {
-    const candidates = UI_REGION_SELECTORS[region] || [`.${region}`, `#${region}`]
-    for (const sel of candidates) {
-      try {
-        const el = document.querySelector<HTMLElement>(sel)
-        if (el && isVisible(el)) return el
-      } catch {
-        /* continue */
-      }
-    }
-  }
-  return null
 }
 
 async function cropImageBase64(
@@ -345,6 +178,7 @@ export const uiCommands: Record<string, Handler> = {
       // để buộc GPU compositor kết xuất frame mới nhất khi cửa sổ đang nằm ở nền, sau đó crop vùng chọn.
       const res = await capture({ width: rect ? undefined : (width ?? undefined), format })
 
+      const matched = targetEl ? describeElement(targetEl) : undefined
       if (rect && typeof document !== 'undefined') {
         const cropped = await cropImageBase64(res.data, res.mime, rect, format, width ?? undefined)
         if (cropped) {
@@ -353,6 +187,7 @@ export const uiCommands: Record<string, Handler> = {
             target: 'region',
             region: region ?? undefined,
             selector: selector ?? undefined,
+            matched,
             rect
           }
         }
@@ -363,6 +198,7 @@ export const uiCommands: Record<string, Handler> = {
         target: rect ? 'region' : 'app-window',
         region: region ?? undefined,
         selector: selector ?? undefined,
+        matched,
         rect
       }
     } finally {

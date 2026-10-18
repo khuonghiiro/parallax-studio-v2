@@ -133,7 +133,7 @@ export function CreateLayerAssemblyModal({
       aria-label="Tạo lắp ráp layer mới"
       onPointerDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="lat-dialog">
+      <div className="lat-dialog" data-mcp-region="layer_assembly_create" data-mcp-dialog>
         {/* Header */}
         <div className="lat-header">
           <div className="lat-title-wrap">

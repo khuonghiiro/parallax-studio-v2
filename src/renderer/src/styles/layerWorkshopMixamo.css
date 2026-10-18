@@ -1,0 +1,94 @@
+/* ==========================================================================
+   Studio Mixamo 2.5D (dialog lồng trong Xưởng Lắp Ráp Layer) — Dual-theme, chỉ dùng design token
+   ========================================================================== */
+
+.mx-backdrop { position: fixed; inset: 0; z-index: 30000; display: flex; align-items: center; justify-content: center; padding: 16px; background: var(--backdrop); backdrop-filter: blur(4px); }
+.mx-modal { display: flex; flex-direction: column; width: min(1320px, 97vw); height: min(900px, 92vh); overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--bg-1); box-shadow: var(--shadow-popup); color: var(--text); }
+
+.mx-header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--bg-1); flex-shrink: 0; }
+.mx-header-icon { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: var(--radius); background: color-mix(in srgb, var(--accent) 14%, var(--bg-2)); color: var(--accent); flex-shrink: 0; }
+.mx-header-text { flex: 1; min-width: 0; }
+.mx-header-text h2 { margin: 0; font-size: 14.5px; font-weight: 700; line-height: 1.3; }
+.mx-header-text p { margin: 2px 0 0; overflow: hidden; font-size: 11px; line-height: 1.4; color: var(--text-dim); white-space: nowrap; text-overflow: ellipsis; }
+.mx-header-chip { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--bg-2); color: var(--text-dim); font-size: 10.5px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+
+.mx-body { display: grid; grid-template-columns: minmax(0, 1fr) clamp(340px, 30vw, 420px); flex: 1; min-height: 0; }
+.mx-stage { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 12px; border-right: 1px solid var(--line-soft); background: var(--bg-2); }
+.mx-stage > * { flex: 1; min-height: 0; }
+
+.mx-side { display: flex; flex-direction: column; gap: 8px; min-height: 0; padding: 10px 12px; overflow-y: auto; background: var(--bg-1); }
+.mx-preview-card { flex-shrink: 0; overflow: hidden; border: 1px solid var(--line-soft); border-radius: var(--radius); background: var(--bg-0); }
+.mx-preview-card svg { max-height: 138px; }
+.mx-card { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; padding: 8px 10px; border: 1px solid var(--line-soft); border-radius: var(--radius); background: var(--bg-2); }
+.mx-card-grow { flex: 0 0 auto; }
+.mx-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mx-card-title { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: var(--text); white-space: nowrap; }
+.mx-card-title svg { color: var(--text-dim); }
+.mx-card-hint { overflow: hidden; font-size: 10px; color: var(--text-faint); white-space: nowrap; text-overflow: ellipsis; }
+
+.mx-angle-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+.mx-angle { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; padding: 4px 4px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg-1); color: var(--text-dim); font: inherit; cursor: pointer; transition: border-color 0.12s, background 0.12s, color 0.12s; }
+.mx-angle:hover { color: var(--text); border-color: var(--line-focus); }
+.mx-angle.active { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--bg-1)); }
+.mx-angle-deg { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mx-angle-label { max-width: 100%; overflow: hidden; font-size: 9.5px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
+
+.mx-preset-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; max-height: 235px; overflow-y: auto; padding-right: 2px; }
+.mx-preset { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: center; gap: 6px; min-height: 32px; padding: 3px 6px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg-1); color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: border-color 0.12s, background 0.12s; }
+.mx-preset:hover { border-color: var(--line-focus); }
+.mx-preset.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--bg-1)); }
+.mx-preset.blank { border-style: dashed; }
+.mx-preset-icon { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: var(--radius-sm); background: var(--bg-2); font-size: 13px; color: var(--text-dim); }
+.mx-preset.active .mx-preset-icon { background: color-mix(in srgb, var(--accent) 18%, var(--bg-2)); color: var(--accent); }
+.mx-preset-text { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.mx-preset-name { overflow: hidden; font-size: 10.5px; font-weight: 600; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; }
+.mx-preset.active .mx-preset-name { color: var(--accent); }
+.mx-preset-meta { font-size: 9px; line-height: 1.15; color: var(--text-faint); }
+
+.mx-form-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 8px; }
+.mx-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 10.5px; color: var(--text-dim); }
+.mx-checks { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.mx-check { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text); cursor: pointer; }
+.mx-check input { accent-color: var(--accent); cursor: pointer; }
+
+.mx-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 16px; border-top: 1px solid var(--line); background: var(--bg-1); flex-shrink: 0; }
+.mx-footer-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.mx-footer .lw-btn { height: 30px; padding: 0 14px; font-size: 11.5px; }
+
+@media (max-width: 1100px) {
+  .mx-body { grid-template-columns: minmax(0, 1fr) 320px; }
+  .mx-header-chip { display: none; }
+}
+
+/* ==========================================================================
+   Thẻ Gắn Điểm Mixamo (cột Tạo xương) + Thanh công cụ đặt vòng mốc
+   ========================================================================== */
+
+.lw-mx-card { display: flex; flex-direction: column; gap: 8px; }
+.lw-mx-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; }
+.lw-mx-card-title { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; color: var(--text); }
+.lw-mx-card-title svg { color: var(--accent); flex-shrink: 0; }
+.lw-mx-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.lw-mx-quick { display: flex; flex-direction: column; gap: 5px; padding-top: 6px; border-top: 1px dashed var(--line-soft); }
+.lw-mx-quick-label { font-size: 10px; font-weight: 600; color: var(--text-dim); }
+.lw-mx-quick-grid { display: flex; flex-wrap: wrap; gap: 4px; }
+
+.mx-placer-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; padding: 6px 10px; background: var(--bg-2); border-bottom: 1px solid var(--line-soft); flex-shrink: 0; }
+.mx-placer-toolbar.compact { flex-direction: column; align-items: stretch; gap: 5px; padding: 6px 8px; }
+.mx-placer-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.mx-seg { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg-1); }
+.mx-seg button { height: 22px; padding: 0 7px; border: 0; border-right: 1px solid var(--line-soft); background: transparent; color: var(--text-dim); font: inherit; font-size: 10px; font-weight: 600; cursor: pointer; }
+.mx-seg button:last-child { border-right: 0; }
+.mx-seg button:hover { color: var(--text); background: var(--bg-2); }
+.mx-seg button.active { background: var(--accent); color: #fff; }
+.mx-scale { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; font-size: 10px; color: var(--text-dim); }
+.mx-scale input[type='range'] { width: 58px; accent-color: var(--accent); cursor: pointer; }
+.mx-scale b { min-width: 30px; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
+
+.mx-ring-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px 8px; background: var(--bg-1); border-bottom: 1px solid var(--line-soft); flex-shrink: 0; }
+.mx-ring-chip { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg-2); color: var(--text); font: inherit; font-size: 10.5px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: border-color 0.12s, background 0.12s; }
+.mx-ring-chip:hover { border-color: var(--ring-color, var(--line-focus)); }
+.mx-ring-chip.active { border-color: var(--ring-color, var(--accent)); background: color-mix(in srgb, var(--ring-color, var(--accent)) 16%, var(--bg-1)); }
+.mx-ring-chip span { color: var(--ring-color, var(--text)); }
+.mx-ring-chips-hint { display: inline-flex; align-items: center; gap: 3px; margin-left: auto; font-size: 9.5px; color: var(--text-faint); white-space: nowrap; }
+

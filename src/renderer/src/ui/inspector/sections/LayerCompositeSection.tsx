@@ -19,6 +19,7 @@ import {
   batchKeyframeCompositeTransform
 } from '../../layerAssembly/compositeOps'
 import { Row, Select } from '../../controls'
+import { CompositePartSwapSection } from './CompositePartSwapSection'
 
 export function LayerCompositeSection({ layer }: { layer: Layer }) {
   const composite = layer.composite
@@ -75,7 +76,8 @@ export function LayerCompositeSection({ layer }: { layer: Layer }) {
 
   return (
     <div
-      className="section"
+      className="section composite-section"
+      data-mcp-region="inspector_composite"
       style={{
         borderLeft: isLocked ? '3px solid var(--key)' : '3px solid var(--accent-cyan)',
         paddingLeft: '8px',
@@ -169,6 +171,8 @@ export function LayerCompositeSection({ layer }: { layer: Layer }) {
             : '💡 Đang chỉnh sửa riêng: Bạn có thể chọn layer con bên dưới để thay ảnh, chỉnh vị trí Z hoặc tạo hoạt ảnh riêng.'}
         </p>
       </div>
+
+      <CompositePartSwapSection layer={layer} compLayers={compLayers} />
 
       {/* Thông tin Layer Gốc (Root) */}
       <div

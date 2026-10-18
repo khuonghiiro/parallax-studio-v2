@@ -70,14 +70,18 @@ export const SCENE_TOOLS = [
     ),
     shape: (d) => ({
       region: z.enum([
+        'active',
         'left_panel', 'assets', 'asset_grid', 'asset_bar', 'music', 'shots', 'topview',
         'viewer', 'viewer_canvas', 'viewport', 'camera_frame', 'viewer_hud', 'viewer_tools', 'animate_camera_stage', 'animate_camera_toolbar', 'animate_camera_route', 'animate_camera_inspector',
-        'inspector', 'inspector_tabs', 'inspector_body', 'effect_stack', 'effect_editor', 'timeline_effects', 'fx_presets', 'motion', 'motion_preview', 'motion_parameters', 'motion_timing',
+        'inspector', 'inspector_tabs', 'inspector_body', 'inspector_composite', 'composite_swap', 'effect_stack', 'effect_editor', 'timeline_effects', 'fx_presets', 'motion', 'motion_preview', 'motion_parameters', 'motion_timing',
         'timeline', 'timeline_toolbar', 'timeline_ruler', 'timeline_tracks',
         'toolbar', 'studio_menu', 'mcp_chip', 'responsive_dock',
         'dialog',
         'assembly_3d', 'assembly_sidebar', 'assembly_viewport', 'assembly_inspector', 'assembly_header', 'assembly_footer', 'assembly_hud',
         'layer_assembly', 'layer_assembly_sidebar', 'layer_assembly_workspace', 'layer_assembly_inspector', 'layer_assembly_tools', 'layer_assembly_header',
+        'layer_assembly_toolbar', 'layer_assembly_viewport_2d', 'layer_assembly_viewport_3d', 'layer_assembly_layers', 'layer_assembly_parts',
+        'layer_assembly_properties', 'layer_assembly_swap', 'layer_assembly_rig_panel', 'layer_assembly_mixamo_card', 'layer_assembly_mixamo_studio',
+        'layer_assembly_mixamo_stage', 'layer_assembly_mixamo_sidebar', 'layer_assembly_animation_panel', 'layer_assembly_retarget', 'layer_assembly_create', 'layer_assembly_confirm',
         'layer_assembly_cutter', 'layer_assembly_source', 'layer_assembly_target', 'layer_assembly_motion_sketch',
         'layer_assembly_anim_tools', 'layer_assembly_anim_chips', 'layer_assembly_anim_assist', 'layer_assembly_anim_secondary',
         'layer_assembly_plant_motion', 'layer_assembly_plant_chips', 'layer_assembly_plant_panel',
@@ -88,7 +92,7 @@ export const SCENE_TOOLS = [
         'camera_path', 'camera_path_presets', 'camera_path_steps',
         'mcp_dialog', 'mcp_status', 'mcp_config', 'mcp_guide',
         'ai_hud', 'window'
-      ]).optional().describe(d('Predefined UI region to capture (e.g. left_panel, asset_grid, audio_studio_waveform, assembly_sidebar, layer_assembly_inspector). Saves tokens by cropping to only the relevant area.', 'Vùng UI định sẵn cần chụp (ví dụ left_panel, asset_grid, audio_studio_waveform, assembly_sidebar, layer_assembly_inspector). Tiết kiệm token bằng cách cắt đúng khu vực quan trọng.')),
+      ]).optional().describe(d('Predefined UI region to capture. Use "active" to capture the TOPMOST open dialog automatically (e.g. Studio Mixamo opened inside the Layer Workshop) instead of the whole window; "dialog" also picks the topmost dialog. Sub-regions (e.g. layer_assembly_mixamo_stage, layer_assembly_parts, audio_studio_waveform) crop a single control to save tokens. Any element with data-mcp-region="<name>" is matched automatically.', 'Vùng UI định sẵn cần chụp. Dùng "active" để tự chụp đúng dialog đang mở TRÊN CÙNG (VD Studio Mixamo mở bên trong Xưởng Layer) thay vì cả cửa sổ; "dialog" cũng chọn dialog trên cùng. Vùng con (VD layer_assembly_mixamo_stage, layer_assembly_parts, audio_studio_waveform) chỉ cắt đúng một control để tiết kiệm token. Mọi phần tử có data-mcp-region="<tên>" đều tự khớp.')),
       selector: z.string().optional().describe(d('CSS selector of a specific element to capture (e.g. ".music-panel-layout", "#music-tab-add-btn"). Falls back to whole window if not found.', 'CSS selector của phần tử cụ thể cần chụp. Tự động chụp toàn bộ app nếu không tìm thấy selector.')),
       padding: z.number().int().min(0).max(200).optional().describe(d('Padding in pixels around the targeted element/region (default: 8).', 'Khoảng cách viền đệm xung quanh vùng cần chụp (mặc định: 8px).')),
       width: z.number().int().min(64).max(3840).optional().describe(d('Downscale to this width (default: native).', 'Thu nhỏ về bề rộng này (mặc định: kích thước gốc).')),
