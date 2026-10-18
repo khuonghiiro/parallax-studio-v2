@@ -44,6 +44,8 @@
   top: 10px;
   left: 50%;
   transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 64px);
   z-index: 5300;
   display: flex;
   flex-direction: column;
@@ -53,16 +55,15 @@
 }
 .lw-anim-chips-row {
   display: flex;
+  align-items: center;
   gap: 2px;
-  padding: 3px;
+  padding: 3px 5px;
   border-radius: 999px;
   background: var(--bg-1);
   border: 1px solid var(--line);
   box-shadow: 0 4px 14px color-mix(in srgb, var(--bg-0) 55%, transparent);
   pointer-events: auto;
-  max-width: calc(100% - 24px);
-  overflow-x: auto;
-  scrollbar-width: none;
+  white-space: nowrap;
 }
 .lw-anim-chip {
   display: inline-flex;
@@ -91,6 +92,36 @@
   border: 1px solid currentColor;
   opacity: 0.75;
   font-family: inherit;
+}
+
+/* Nhóm 2 kiểu dây nối: Cung tròn & Vuông bo khi bật bóng layer */
+.lw-callout-style-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-2) 75%, transparent);
+  border: 1px solid var(--line-soft);
+  margin-left: 2px;
+}
+.lw-anim-chip.style-sub {
+  height: 20px;
+  padding: 0 7px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 999px;
+  color: var(--text-dim);
+}
+.lw-anim-chip.style-sub:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+.lw-anim-chip.style-sub.active {
+  background: color-mix(in srgb, var(--accent-cyan) 22%, var(--bg-2));
+  color: var(--accent-cyan);
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 60%, transparent);
+  font-weight: 700;
 }
 .lw-anim-chip-status {
   max-width: 460px;

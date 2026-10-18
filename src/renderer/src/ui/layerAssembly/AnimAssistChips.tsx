@@ -49,21 +49,31 @@ export function AnimAssistChips() {
         <button
           type="button"
           className={`lw-anim-chip${callouts.enabled ? ' active' : ''}`}
-          title={`Bóng chọn nhanh Layer (L) · Click: ${callouts.enabled ? 'Tắt' : 'Bật'} · Chuột phải / Nhấp đúp: Đổi kiểu dây (${callouts.lineStyle === 'smoothstep' ? 'Vuông bo → Cung tròn' : 'Cung tròn → Vuông bo'})`}
+          title="Bật/tắt bóng tròn chọn nhanh layer (phím L)"
           onClick={callouts.toggleEnabled}
-          onDoubleClick={(e) => {
-            e.stopPropagation()
-            callouts.changeLineStyle(callouts.lineStyle === 'smoothstep' ? 'bezier' : 'smoothstep')
-          }}
-          onContextMenu={(e) => {
-            e.preventDefault()
-            callouts.changeLineStyle(callouts.lineStyle === 'smoothstep' ? 'bezier' : 'smoothstep')
-          }}
         >
-          {callouts.enabled
-            ? `🫧 Bóng (${callouts.lineStyle === 'smoothstep' ? '∟' : '〜'})`
-            : '🫧 Bóng'} <kbd>L</kbd>
+          🫧 Bóng <kbd>L</kbd>
         </button>
+        {callouts.enabled && (
+          <div className="lw-callout-style-group" role="group" aria-label="Kiểu dây nối bóng layer">
+            <button
+              type="button"
+              className={`lw-anim-chip style-sub${callouts.lineStyle === 'bezier' ? ' active' : ''}`}
+              title="Kiểu dây nối Vòng cung mềm mại (ReactFlow Bezier)"
+              onClick={() => callouts.changeLineStyle('bezier')}
+            >
+              〜 Cung
+            </button>
+            <button
+              type="button"
+              className={`lw-anim-chip style-sub${callouts.lineStyle === 'smoothstep' ? ' active' : ''}`}
+              title="Kiểu dây nối Vuông góc bo tròn (ReactFlow SmoothStep)"
+              onClick={() => callouts.changeLineStyle('smoothstep')}
+            >
+              ∟ Vuông
+            </button>
+          </div>
+        )}
       </div>
       {sketch.armed && sketch.status && <span className="lw-anim-chip-status">{sketch.status}</span>}
     </div>
