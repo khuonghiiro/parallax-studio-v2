@@ -47,6 +47,8 @@ export interface ChromaKeySettings {
   previewBackground?: 'checkerboard' | 'dark' | 'light'
   /** Chế độ xử lý bóng mờ / mây khói bán trong suốt: 'off' (xoá bóng), 'include' (lấy cả bóng), 'only' (chỉ tách riêng bóng) */
   shadowMode?: ChromaShadowMode
+  /** Giữ lại bóng mờ (tương thích ngược) */
+  keepShadows?: boolean
   /** Loại bóng cần tách: 'auto' (cả bóng sáng/mây mờ và bóng tối), 'light' (mây/khói/hào quang sáng), 'dark' (bóng đổ tối) */
   shadowType?: ChromaShadowType
   shadowRetention?: number // 0 to 100

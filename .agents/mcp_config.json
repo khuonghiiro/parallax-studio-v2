@@ -2,7 +2,9 @@
   "mcpServers": {
     "parallax-studio": {
       "command": "node",
-      "args": ["./mcp-server/index.mjs"]
+      "args": [
+        "./mcp-server/index.mjs"
+      ]
     }
   }
 }

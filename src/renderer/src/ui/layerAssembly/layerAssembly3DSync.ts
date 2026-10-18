@@ -82,8 +82,16 @@ export function syncLayersGroupMeshes({
         }
       : layer
 
-    // Thiết lập renderOrder đồng bộ 100% với zIndex của 2D (1000 - layer.z)
-    inst.mesh.renderOrder = Math.round(1000 - visualLayer.z) * 100 + idx
+    // Thiết lập renderOrder:
+    // - Khi nhìn chính diện phẳng 2D (zExaggeration <= 0): tất cả layer đều ở Z=0,
+    //   dùng painter order cố định theo layer.z và layerIndex để vẽ đúng thứ tự xếp chồng 2D.
+    // - Khi ở không gian 3D (zExaggeration > 0): layer đã có tọa độ Z thực tế,
+    //   BẮT BUỘC đặt renderOrder = 0 để Three.js tự sắp xếp theo khoảng cách thực tế tới camera
+    //   kết hợp Z-buffer hardware (depthTest/depthWrite). Nhờ vậy khi người dùng xoay camera ra phía sau,
+    //   layer phía sau (nằm gần camera hơn) sẽ che khuất layer phía trước đúng vật lý 3D,
+    //   chỉ để lộ các phần layer không bị che khuất, triệt tiêu hoàn toàn hiện tượng "lật chính diện ngược lại"!
+    const isFlatFrontView = zExaggeration <= 0
+    inst.mesh.renderOrder = isFlatFrontView ? Math.round(1000 - visualLayer.z) * 100 + idx : 0
     if (inst.wireframeMesh) {
       inst.wireframeMesh.renderOrder = 190000 + idx
     }

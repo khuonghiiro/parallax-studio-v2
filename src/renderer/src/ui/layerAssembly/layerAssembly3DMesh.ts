@@ -540,7 +540,9 @@ export function updateLayer3DInstance(
   const op = Math.max(0, Math.min(1, layer.opacity ?? 1))
   material.opacity = op
   material.depthTest = !isFlatFrontView
-  material.depthWrite = false
+  // Trong không gian 3D, layer có độ mờ cao (>= 0.95) phải ghi vào Z-buffer (depthWrite = true)
+  // để phần cứng GPU che khuất chuẩn xác các layer nằm sâu hơn phía sau từ bất kỳ góc nhìn camera nào
+  material.depthWrite = !isFlatFrontView && op >= 0.95
   if (clippingPlanes) {
     material.clippingPlanes = clippingPlanes
   } else {

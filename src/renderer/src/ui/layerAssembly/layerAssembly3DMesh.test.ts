@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import * as THREE from 'three'
 import {
   computeLayer3DMotion,
   createRectOutline,
@@ -6,8 +7,10 @@ import {
   createLayer3DInstance,
   updateLayer3DInstance,
   createCameraFrustumHelper,
-  createCameraClippingPlanes
+  createCameraClippingPlanes,
+  type Layer3DMeshInstance
 } from './layerAssembly3DMesh'
+import { syncLayersGroupMeshes } from './layerAssembly3DSync'
 import type { AssembledLayerItem } from './types'
 
 describe('layerAssembly3DMesh', () => {
@@ -168,5 +171,87 @@ describe('layerAssembly3DMesh', () => {
     updateLayer3DInstance(inst, layer, 0, 1, false, 0, planes)
 
     expect(inst.material.clippingPlanes).toBe(planes)
+  })
+
+  it('guarantees 3D camera distance occlusion and removes fixed renderOrder in 3D', () => {
+    const backLayer: AssembledLayerItem = {
+      id: 'back-layer',
+      name: 'Lưng / Lớp sau',
+      x: 0,
+      y: 0,
+      z: 50,
+      scale: 1,
+      rotation: 0,
+      opacity: 1,
+      motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+    }
+    const frontLayer: AssembledLayerItem = {
+      id: 'front-layer',
+      name: 'Ngực / Lớp trước',
+      x: 0,
+      y: 0,
+      z: -50,
+      scale: 1,
+      rotation: 0,
+      opacity: 1,
+      motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+    }
+
+    const group = new THREE.Group()
+    const instances = new Map<string, Layer3DMeshInstance>()
+
+    // 1. Khi ở chế độ 3D (zExaggeration = 1.5 > 0):
+    syncLayersGroupMeshes({
+      layers: [backLayer, frontLayer],
+      layersGroup: group,
+      meshInstances: instances,
+      selectedLayerId: null,
+      time: 0,
+      zExaggeration: 1.5,
+      cameraClippingPlanes: [],
+      requestRender: () => {}
+    })
+
+    const backInst = instances.get('back-layer')!
+    const frontInst = instances.get('front-layer')!
+
+    // BẮT BUỘC: renderOrder của mesh phải bằng 0 để Three.js tự sắp xếp theo khoảng cách camera
+    expect(backInst.mesh.renderOrder).toBe(0)
+    expect(frontInst.mesh.renderOrder).toBe(0)
+
+    // BẮT BUỘC: depthWrite phải = true để ghi Z-buffer che khuất vật lý chuẩn xác
+    expect(backInst.material.depthWrite).toBe(true)
+    expect(frontInst.material.depthWrite).toBe(true)
+
+    // Tọa độ Z: frontInst nằm ở +75 (gần camera phía trước), backInst ở -75 (gần camera phía sau)
+    expect(frontInst.group.position.z).toBeCloseTo(75.05)
+    expect(backInst.group.position.z).toBeCloseTo(-75)
+
+    // Kiểm tra khoảng cách từ Camera phía TRƯỚC (0, 0, 1000):
+    const frontCam = new THREE.Vector3(0, 0, 1000)
+    expect(frontCam.distanceTo(frontInst.group.position)).toBeLessThan(
+      frontCam.distanceTo(backInst.group.position)
+    )
+
+    // Kiểm tra khoảng cách từ Camera xoay ra phía SAU (0, 0, -1000):
+    const backCam = new THREE.Vector3(0, 0, -1000)
+    expect(backCam.distanceTo(backInst.group.position)).toBeLessThan(
+      backCam.distanceTo(frontInst.group.position)
+    )
+
+    // 2. Khi ở chế độ 2D phẳng (zExaggeration = 0):
+    syncLayersGroupMeshes({
+      layers: [backLayer, frontLayer],
+      layersGroup: group,
+      meshInstances: instances,
+      selectedLayerId: null,
+      time: 0,
+      zExaggeration: 0,
+      cameraClippingPlanes: [],
+      requestRender: () => {}
+    })
+    // 2D phẳng: renderOrder dùng painter order cố định
+    expect(frontInst.mesh.renderOrder).toBeGreaterThan(backInst.mesh.renderOrder)
+    expect(frontInst.material.depthWrite).toBe(false)
   })
 })

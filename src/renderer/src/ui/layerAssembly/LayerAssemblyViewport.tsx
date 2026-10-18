@@ -747,7 +747,7 @@ export function LayerAssemblyViewport({
       </div>
 
       {/* Bóng tròn chọn nhanh Layer nằm ngoài khung caro (kèm dây nối Cung tròn / Vuông bo giống Cam 2D) */}
-      {brush.activeTool !== 'eraser' && (!tab || tab === 'layers') && (
+      {brush.activeTool !== 'eraser' && (
         <LayerAssemblyCalloutOverlay
           layers={composite.layers}
           selectedLayerId={selectedLayerId}

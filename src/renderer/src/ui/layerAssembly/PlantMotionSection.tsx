@@ -15,6 +15,7 @@ import {
   type PlantRecordEnd
 } from './plantMotionRecord'
 import { PlantMotionGraph } from './PlantMotionGraph'
+import { useLayerAssemblyCalloutPrefs, toggleCalloutEnabled } from './LayerAssemblyCalloutOverlay'
 
 function Seg<T extends string>({
   value,
@@ -338,15 +339,21 @@ const isTyping = (t: EventTarget | null) => {
   )
 }
 
-/** Thanh nổi trên Bố cục 2D (tab Thực vật): chế độ tay nắm, vẽ quỹ đạo ngọn (R), kiểu kết thúc. */
+/** Thanh nổi trên Bố cục 2D (tab Thực vật): chế độ tay nắm, vẽ quỹ đạo ngọn (R), kiểu kết thúc, bóng layer (L). */
 export function PlantMotionChips() {
   const editor = usePlantSpineEditor()
+  const callouts = useLayerAssemblyCalloutPrefs()
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (isTyping(e.target) || e.ctrlKey || e.metaKey || e.altKey || e.key.toLowerCase() !== 'r')
-        return
-      e.preventDefault()
-      setPlantSpineEditorState({ pathRecord: !getPlantSpineEditorState().pathRecord })
+      if (isTyping(e.target) || e.ctrlKey || e.metaKey || e.altKey) return
+      const k = e.key.toLowerCase()
+      if (k === 'r') {
+        e.preventDefault()
+        setPlantSpineEditorState({ pathRecord: !getPlantSpineEditorState().pathRecord })
+      } else if (k === 'l') {
+        e.preventDefault()
+        toggleCalloutEnabled()
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -399,6 +406,12 @@ export function PlantMotionChips() {
             setPlantSpineEditorState({
               recordEnd: editor.recordEnd === 'spring' ? 'loop' : 'spring'
             })
+        )}
+        {chip(
+          callouts.enabled,
+          '🫧 Bóng layer  L',
+          'Bật/tắt bóng tròn chọn nhanh layer (L) giúp chọn layer dễ dàng',
+          callouts.toggleEnabled
         )}
       </div>
       {status && <span className="lw-anim-chip-status">{status}</span>}

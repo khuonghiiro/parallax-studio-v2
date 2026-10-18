@@ -793,7 +793,8 @@ export function LayerAssembly3DToolbar({
               { label: '+30° Nghiêng phải', az: 30, el: 0 },
               { label: '+22° Từ trên cao', az: 0, el: 22 },
               { label: '-15° Từ dưới thấp', az: 0, el: -15 },
-              { label: '75° Từ đỉnh xuống', az: 0, el: 75 }
+              { label: '75° Từ đỉnh xuống', az: 0, el: 75 },
+              { label: '180° Nhìn từ phía sau', az: 180, el: 0 }
             ].map((a) => (
               <button
                 key={a.label}

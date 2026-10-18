@@ -47,6 +47,11 @@ interface ComputedLayerBubble {
   isCustomMoved: boolean
 }
 
+export const DEFAULT_CALLOUT_STORAGE_KEY = 'parallax.layerAssembly.callouts.v1'
+
+let cachedCalloutPrefs = readStoredCalloutPrefs(DEFAULT_CALLOUT_STORAGE_KEY)
+const calloutListeners = new Set<() => void>()
+
 export function readStoredCalloutPrefs(key: string): { enabled: boolean; lineStyle: CameraLineStyle } {
   try {
     const raw = localStorage.getItem(key)
@@ -70,29 +75,58 @@ export function writeStoredCalloutPrefs(
   } catch {}
 }
 
-export function useLayerAssemblyCalloutPrefs(storageKey: string = 'parallax.layerAssembly.callouts.v1') {
-  const initialPrefs = useMemo(() => readStoredCalloutPrefs(storageKey), [storageKey])
-  const [enabled, setEnabled] = useState<boolean>(initialPrefs.enabled)
-  const [lineStyle, setLineStyle] = useState<CameraLineStyle>(initialPrefs.lineStyle)
+export function getStoredCalloutPrefs(key: string = DEFAULT_CALLOUT_STORAGE_KEY): {
+  enabled: boolean
+  lineStyle: CameraLineStyle
+} {
+  if (key === DEFAULT_CALLOUT_STORAGE_KEY) return cachedCalloutPrefs
+  return readStoredCalloutPrefs(key)
+}
+
+export function setStoredCalloutPrefs(
+  patch: Partial<{ enabled: boolean; lineStyle: CameraLineStyle }>,
+  key: string = DEFAULT_CALLOUT_STORAGE_KEY
+): void {
+  const current = getStoredCalloutPrefs(key)
+  const next = { ...current, ...patch }
+  writeStoredCalloutPrefs(key, next)
+  if (key === DEFAULT_CALLOUT_STORAGE_KEY) {
+    cachedCalloutPrefs = next
+    calloutListeners.forEach((l) => l())
+  }
+}
+
+export function toggleCalloutEnabled(key: string = DEFAULT_CALLOUT_STORAGE_KEY): boolean {
+  const current = getStoredCalloutPrefs(key)
+  const next = !current.enabled
+  setStoredCalloutPrefs({ enabled: next }, key)
+  return next
+}
+
+export function useLayerAssemblyCalloutPrefs(storageKey: string = DEFAULT_CALLOUT_STORAGE_KEY) {
+  const [prefs, setPrefs] = useState(() => getStoredCalloutPrefs(storageKey))
+
+  useEffect(() => {
+    if (storageKey !== DEFAULT_CALLOUT_STORAGE_KEY) return
+    const update = () => setPrefs(cachedCalloutPrefs)
+    calloutListeners.add(update)
+    return () => {
+      calloutListeners.delete(update)
+    }
+  }, [storageKey])
 
   const toggleEnabled = useCallback(() => {
-    setEnabled((prev) => {
-      const next = !prev
-      writeStoredCalloutPrefs(storageKey, { enabled: next, lineStyle })
-      return next
-    })
-  }, [lineStyle, storageKey])
+    toggleCalloutEnabled(storageKey)
+  }, [storageKey])
 
   const changeLineStyle = useCallback(
     (style: CameraLineStyle) => {
-      setLineStyle(style)
-      writeStoredCalloutPrefs(storageKey, { enabled: true, lineStyle: style })
-      setEnabled(true)
+      setStoredCalloutPrefs({ enabled: true, lineStyle: style }, storageKey)
     },
     [storageKey]
   )
 
-  return { enabled, lineStyle, toggleEnabled, changeLineStyle }
+  return { enabled: prefs.enabled, lineStyle: prefs.lineStyle, toggleEnabled, changeLineStyle }
 }
 
 export function LayerAssemblyCalloutOverlay({
@@ -117,15 +151,12 @@ export function LayerAssemblyCalloutOverlay({
   onToggleEnabled: controlledToggleEnabled,
   onChangeLineStyle: controlledChangeLineStyle
 }: LayerAssemblyCalloutOverlayProps) {
-  const initialPrefs = useMemo(() => readStoredCalloutPrefs(storageKey), [storageKey])
-  const [internalEnabled, setInternalEnabled] = useState<boolean>(initialPrefs.enabled)
-  const [internalLineStyle, setInternalLineStyle] = useState<CameraLineStyle>(initialPrefs.lineStyle)
-
+  const sharedPrefs = useLayerAssemblyCalloutPrefs(storageKey)
   const isControlledEnabled = controlledEnabled !== undefined
   const isControlledLineStyle = controlledLineStyle !== undefined
 
-  const enabled = isControlledEnabled ? controlledEnabled : internalEnabled
-  const lineStyle = isControlledLineStyle ? controlledLineStyle : internalLineStyle
+  const enabled = isControlledEnabled ? controlledEnabled : sharedPrefs.enabled
+  const lineStyle = isControlledLineStyle ? controlledLineStyle : sharedPrefs.lineStyle
 
   const [hoveredLayerId, setHoveredLayerId] = useState<string | null>(null)
   const [customOffsets, setCustomOffsets] = useState<Record<string, LayerCalloutOffset>>({})
@@ -163,12 +194,8 @@ export function LayerAssemblyCalloutOverlay({
       controlledToggleEnabled()
       return
     }
-    setInternalEnabled((prev) => {
-      const next = !prev
-      writeStoredCalloutPrefs(storageKey, { enabled: next, lineStyle })
-      return next
-    })
-  }, [controlledToggleEnabled, storageKey, lineStyle])
+    sharedPrefs.toggleEnabled()
+  }, [controlledToggleEnabled, sharedPrefs])
 
   const handleChangeLineStyle = useCallback(
     (nextStyle: CameraLineStyle) => {
@@ -176,12 +203,26 @@ export function LayerAssemblyCalloutOverlay({
         controlledChangeLineStyle(nextStyle)
         return
       }
-      setInternalLineStyle(nextStyle)
-      writeStoredCalloutPrefs(storageKey, { enabled: true, lineStyle: nextStyle })
-      if (!enabled) setInternalEnabled(true)
+      sharedPrefs.changeLineStyle(nextStyle)
     },
-    [controlledChangeLineStyle, storageKey, enabled]
+    [controlledChangeLineStyle, sharedPrefs]
   )
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || (e.target as HTMLElement)?.isContentEditable) {
+        return
+      }
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+      if (e.key === 'l' || e.key === 'L') {
+        e.preventDefault()
+        handleToggleEnabled()
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [handleToggleEnabled])
 
   const visibleEntries = useMemo(() => {
     const out: { layer: AssembledLayerItem; orderNum: number }[] = []

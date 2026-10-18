@@ -720,7 +720,7 @@ export function processAdvancedChromaPixelData(
   applyFeatherAndChoke(data, w, h, settings.smoothness, edgeChoke, alphaSnap, isShadowPixel)
 
   if (cleanupMode === 'all' || cleanupMode === 'defringe') {
-    applyDefringeAndDespill(data, w, h, settings, alphaSnap, effectiveKeyRgb, isShadowPixel)
+    applyDefringeAndDespill(data, w, h, settings, alphaSnap, isShadowPixel)
   }
 
   if (cleanupMode === 'all' || cleanupMode === 'despeckle') {

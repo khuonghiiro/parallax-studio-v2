@@ -16,6 +16,7 @@ import {
   computeCursorAnchoredZoom
 } from './cutterHelpers'
 import { IconLayers, IconTrash, IconPlus, IconCrop } from '../../icons'
+import { CustomSelect } from '../../controls/CustomSelect'
 import {
   LayerAssemblyCalloutOverlay,
   useLayerAssemblyCalloutPrefs

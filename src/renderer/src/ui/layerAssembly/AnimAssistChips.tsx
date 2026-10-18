@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { toggleMotionSketchArmed, useMotionSketch } from './motionSketchStore'
 import { getAnimAssist, setAnimAssist, useAnimAssist } from './animAssistStore'
+import { useLayerAssemblyCalloutPrefs, toggleCalloutEnabled } from './LayerAssemblyCalloutOverlay'
 import '../../styles/layerWorkshopAnimAssist.css'
 
 const isTyping = (t: EventTarget | null) => {
@@ -8,7 +9,7 @@ const isTyping = (t: EventTarget | null) => {
   return !!el && (['input', 'textarea', 'select'].includes(el.tagName?.toLowerCase()) || el.isContentEditable)
 }
 
-/** Phím tắt tab Animation: I = IK · O = Onion skin · P = Quỹ đạo (D = bút vẽ do lớp vẽ động tác xử lý). */
+/** Phím tắt tab Animation: I = IK · O = Onion skin · P = Quỹ đạo · L = Bóng layer (D = bút vẽ do lớp vẽ động tác xử lý). */
 function useAssistKeys() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -18,6 +19,7 @@ function useAssistKeys() {
       if (key === 'i') setAnimAssist({ ik: !s.ik })
       else if (key === 'o') setAnimAssist({ onion: !s.onion })
       else if (key === 'p') setAnimAssist({ path: !s.path })
+      else if (key === 'l') toggleCalloutEnabled()
       else return
       e.preventDefault()
     }
@@ -26,10 +28,11 @@ function useAssistKeys() {
   }, [])
 }
 
-/** Thanh công cụ nổi trên Bố cục 2D (tab Animation): bút vẽ động tác, IK, Onion skin, Quỹ đạo. */
+/** Thanh công cụ nổi trên Bố cục 2D (tab Animation): bút vẽ động tác, IK, Onion skin, Quỹ đạo, Bóng layer. */
 export function AnimAssistChips() {
   const sketch = useMotionSketch()
   const assist = useAnimAssist()
+  const callouts = useLayerAssemblyCalloutPrefs()
   useAssistKeys()
   const chip = (active: boolean, label: string, kbd: string, title: string, onClick: () => void, extra = '') => (
     <button type="button" className={`lw-anim-chip${active ? ` active${extra}` : ''}`} title={title} onClick={onClick}>
@@ -43,6 +46,7 @@ export function AnimAssistChips() {
         {chip(assist.ik, `🦾 IK ${assist.ikChain}`, 'I', 'Kéo ngọn xương thì cả chuỗi xương cha xoay theo (Ctrl khi kéo = đảo tạm)', () => setAnimAssist({ ik: !assist.ik }))}
         {chip(assist.onion, '👻 Onion', 'O', 'Hiện bóng mờ khung xương ở các thời điểm trước (vàng) và sau (xanh)', () => setAnimAssist({ onion: !assist.onion }))}
         {chip(assist.path, '〰 Quỹ đạo', 'P', 'Hiện đường đi của ngọn xương đang chọn trong cả clip', () => setAnimAssist({ path: !assist.path }))}
+        {chip(callouts.enabled, '🫧 Bóng layer', 'L', 'Bật/tắt bóng tròn chọn nhanh layer (L) giúp chọn layer dễ dàng', callouts.toggleEnabled)}
       </div>
       {sketch.armed && sketch.status && <span className="lw-anim-chip-status">{sketch.status}</span>}
     </div>
