@@ -60,13 +60,16 @@
   border: 1px solid var(--line);
   box-shadow: 0 4px 14px color-mix(in srgb, var(--bg-0) 55%, transparent);
   pointer-events: auto;
+  max-width: calc(100% - 24px);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 .lw-anim-chip {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   height: 24px;
-  padding: 0 10px;
+  padding: 0 8px;
   border: 0;
   border-radius: 999px;
   background: transparent;

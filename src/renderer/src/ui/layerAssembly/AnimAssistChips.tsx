@@ -42,11 +42,28 @@ export function AnimAssistChips() {
   return (
     <div className="lw-anim-chips">
       <div className="lw-anim-chips-row" role="toolbar" aria-label="Công cụ hoạt họa">
-        {chip(sketch.armed, sketch.armed ? '● Đang vẽ động tác' : '✏️ Vẽ động tác', 'D', 'Bật/tắt bút vẽ động tác: diễn động tác bằng chuột, app ghi thành keyframe', () => toggleMotionSketchArmed(), ' recording')}
+        {chip(sketch.armed, sketch.armed ? '● Đang vẽ' : '✏️ Bút vẽ', 'D', 'Bật/tắt bút vẽ động tác: diễn động tác bằng chuột, app ghi thành keyframe', () => toggleMotionSketchArmed(), ' recording')}
         {chip(assist.ik, `🦾 IK ${assist.ikChain}`, 'I', 'Kéo ngọn xương thì cả chuỗi xương cha xoay theo (Ctrl khi kéo = đảo tạm)', () => setAnimAssist({ ik: !assist.ik }))}
         {chip(assist.onion, '👻 Onion', 'O', 'Hiện bóng mờ khung xương ở các thời điểm trước (vàng) và sau (xanh)', () => setAnimAssist({ onion: !assist.onion }))}
         {chip(assist.path, '〰 Quỹ đạo', 'P', 'Hiện đường đi của ngọn xương đang chọn trong cả clip', () => setAnimAssist({ path: !assist.path }))}
-        {chip(callouts.enabled, '🫧 Bóng layer', 'L', 'Bật/tắt bóng tròn chọn nhanh layer (L) giúp chọn layer dễ dàng', callouts.toggleEnabled)}
+        <button
+          type="button"
+          className={`lw-anim-chip${callouts.enabled ? ' active' : ''}`}
+          title={`Bóng chọn nhanh Layer (L) · Click: ${callouts.enabled ? 'Tắt' : 'Bật'} · Chuột phải / Nhấp đúp: Đổi kiểu dây (${callouts.lineStyle === 'smoothstep' ? 'Vuông bo → Cung tròn' : 'Cung tròn → Vuông bo'})`}
+          onClick={callouts.toggleEnabled}
+          onDoubleClick={(e) => {
+            e.stopPropagation()
+            callouts.changeLineStyle(callouts.lineStyle === 'smoothstep' ? 'bezier' : 'smoothstep')
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault()
+            callouts.changeLineStyle(callouts.lineStyle === 'smoothstep' ? 'bezier' : 'smoothstep')
+          }}
+        >
+          {callouts.enabled
+            ? `🫧 Bóng (${callouts.lineStyle === 'smoothstep' ? '∟' : '〜'})`
+            : '🫧 Bóng'} <kbd>L</kbd>
+        </button>
       </div>
       {sketch.armed && sketch.status && <span className="lw-anim-chip-status">{sketch.status}</span>}
     </div>

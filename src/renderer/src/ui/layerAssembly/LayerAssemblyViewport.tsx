@@ -759,6 +759,7 @@ export function LayerAssemblyViewport({
           panY={pan.y}
           containerRef={containerRef}
           onSelectLayer={onSelectLayer}
+          showHud={tab !== 'animation' && tab !== 'plant'}
           safeLeft={54}
           safeRight={14}
           safeTop={42}

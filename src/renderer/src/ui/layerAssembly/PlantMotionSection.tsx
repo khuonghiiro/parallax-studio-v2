@@ -363,7 +363,8 @@ export function PlantMotionChips() {
     label: string,
     title: string,
     onClick: () => void,
-    extra = ''
+    extra = '',
+    kbd = ''
   ) => (
     <button
       type="button"
@@ -371,7 +372,7 @@ export function PlantMotionChips() {
       title={title}
       onClick={onClick}
     >
-      {label}
+      {label} {kbd && <kbd>{kbd}</kbd>}
     </button>
   )
   const status = editor.pathRecord
@@ -384,14 +385,15 @@ export function PlantMotionChips() {
       <div className="lw-anim-chips-row" role="toolbar" aria-label="Công cụ chuyển động thực vật">
         {chip(
           editor.pathRecord,
-          editor.pathRecord ? '● Đang ghi quỹ đạo  R' : '● Vẽ quỹ đạo ngọn  R',
-          'Bật/tắt vẽ quỹ đạo: ngọn cây bám theo bút và ghi thành chuyển động',
+          editor.pathRecord ? '● Đang vẽ' : '● Quỹ đạo',
+          'Bật/tắt vẽ quỹ đạo: ngọn cây bám theo bút và ghi thành chuyển động (R)',
           () => setPlantSpineEditorState({ pathRecord: !editor.pathRecord }),
-          ' recording'
+          ' recording',
+          'R'
         )}
         {chip(
           editor.grabMode === 'record',
-          editor.grabMode === 'record' ? '✍️ Tay nắm: ghi' : '🌬️ Tay nắm: học gió',
+          editor.grabMode === 'record' ? '✍️ Ghi nhịp' : '🌬️ Nhịp gió',
           'Đổi hành vi của vòng tròn ở ngọn: ghi chuyển động vẽ tay ↔ học nhịp gió',
           () =>
             setPlantSpineEditorState({
@@ -400,19 +402,31 @@ export function PlantMotionChips() {
         )}
         {chip(
           editor.recordEnd === 'spring',
-          editor.recordEnd === 'spring' ? '🪀 Thả: nảy về' : '🔁 Thả: lặp lại',
+          editor.recordEnd === 'spring' ? '🪀 Nảy về' : '🔁 Lặp lại',
           'Kết thúc bản ghi: lặp đúng cử chỉ ↔ bật nảy tắt dần về nghỉ',
           () =>
             setPlantSpineEditorState({
               recordEnd: editor.recordEnd === 'spring' ? 'loop' : 'spring'
             })
         )}
-        {chip(
-          callouts.enabled,
-          '🫧 Bóng layer  L',
-          'Bật/tắt bóng tròn chọn nhanh layer (L) giúp chọn layer dễ dàng',
-          callouts.toggleEnabled
-        )}
+        <button
+          type="button"
+          className={`lw-anim-chip${callouts.enabled ? ' active' : ''}`}
+          title={`Bóng chọn nhanh Layer (L) · Click: ${callouts.enabled ? 'Tắt' : 'Bật'} · Chuột phải / Nhấp đúp: Đổi kiểu dây (${callouts.lineStyle === 'smoothstep' ? 'Vuông bo → Cung tròn' : 'Cung tròn → Vuông bo'})`}
+          onClick={callouts.toggleEnabled}
+          onDoubleClick={(e) => {
+            e.stopPropagation()
+            callouts.changeLineStyle(callouts.lineStyle === 'smoothstep' ? 'bezier' : 'smoothstep')
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault()
+            callouts.changeLineStyle(callouts.lineStyle === 'smoothstep' ? 'bezier' : 'smoothstep')
+          }}
+        >
+          {callouts.enabled
+            ? `🫧 Bóng (${callouts.lineStyle === 'smoothstep' ? '∟' : '〜'})`
+            : '🫧 Bóng'} <kbd>L</kbd>
+        </button>
       </div>
       {status && <span className="lw-anim-chip-status">{status}</span>}
     </div>
