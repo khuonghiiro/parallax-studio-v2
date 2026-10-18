@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import {
+  MIXAMO_CORE_LANDMARK_IDS,
+  MIXAMO_RING_GROUPS,
   autoBindLayersToMixamoBones,
   autoDetectLandmarksFromComposite,
   buildHumanoidBonesFromLandmarks,
   buildMixamoClipForBones,
+  buildStarterPresetClipsForBones,
   createScaledLandmarks,
   extractLandmarksFromBones,
-  moveLandmarkPoint
+  moveLandmarkPoint,
+  syncDerivedLandmarksFromCore8
 } from './workshopMixamoAutoRig'
 import { applyRigAction, emptyRig } from './workshopRig'
 import type { LayerComposite } from './types'
@@ -194,4 +198,42 @@ describe('workshopMixamoAutoRig & clip deletion', () => {
     expect(bound[0].boneId).toBe('bone-head')
     expect(bound[1].boneId).toBe('bone-torso')
   })
+
+  it('định nghĩa đúng 5 nhóm màu Mixamo (CHIN, WRISTS, ELBOWS, KNEES, GROIN) với 8 vòng tròn chính và tự suy ra 6 khớp phụ', () => {
+    expect(MIXAMO_RING_GROUPS.map((g) => g.title)).toEqual(['CHIN', 'WRISTS', 'ELBOWS', 'KNEES', 'GROIN'])
+    expect(MIXAMO_CORE_LANDMARK_IDS).toHaveLength(8)
+
+    const lm = createScaledLandmarks(1.0)
+    // Di chuyển Đầu gối trái (kneeL) xuống sâu hơn -> Cổ chân trái & phải (ankleL/R) tự động cập nhật theo
+    const moved = moveLandmarkPoint(lm, 'kneeL', { x: -30, y: 120 }, true, true)
+    expect(moved.kneeL).toEqual({ x: -30, y: 120 })
+    expect(moved.kneeR).toEqual({ x: 30, y: 120 })
+    expect(moved.ankleL.x).toBe(-30)
+    expect(moved.ankleR.x).toBe(30)
+    expect(moved.ankleL.y).toBeGreaterThan(175)
+
+    // Di chuyển Cằm (neck) lên cao -> Đỉnh đầu (headTop) và Ngực (chest) tự động dời theo
+    const movedChin = syncDerivedLandmarksFromCore8({ ...lm, neck: { x: 0, y: -110 } })
+    expect(movedChin.headTop.y).toBeLessThan(lm.headTop.y)
+    expect(movedChin.chest.y).toBeLessThan(lm.chest.y)
+  })
+
+  it('sinh trọn bộ 7 động tác mẫu chuẩn khi gắn xương tự động từ 8 điểm Mixamo', () => {
+    let comp = createSampleComposite()
+    const bones = buildHumanoidBonesFromLandmarks(createScaledLandmarks(0.75))
+    const clips = buildStarterPresetClipsForBones(bones, 'front')
+    expect(clips).toHaveLength(7)
+
+    comp = applyRigAction(comp, {
+      action: 'apply-mixamo-rig-motion',
+      bones,
+      clips,
+      replaceClips: true,
+      autoBindSoft: true
+    })
+    expect(comp.rig!.bones).toHaveLength(15)
+    expect(comp.rig!.clips).toHaveLength(7)
+    expect(comp.rig!.activeClipId).toBe(clips[0].id)
+  })
 })
+

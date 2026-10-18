@@ -194,6 +194,7 @@ export function WorkshopClipBar({
             action: 'apply-mixamo-rig-motion',
             bones: payload.bones,
             clip: payload.clip,
+            clips: payload.clips,
             replaceClips: payload.replaceClips,
             autoBindSoft: payload.autoBindSoft
           })

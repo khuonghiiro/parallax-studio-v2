@@ -7,6 +7,7 @@ import {
   autoDetectLandmarksFromComposite,
   buildHumanoidBonesFromLandmarks,
   buildMixamoClipForBones,
+  buildStarterPresetClipsForBones,
   createScaledLandmarks,
   extractLandmarksFromBones,
   type MixamoLandmarks
@@ -23,7 +24,8 @@ export interface WorkshopNewMotionModalProps {
   onCreated: (clip: AnimationClip) => void
   onApplyMixamoRigMotion?: (payload: {
     bones: LayerBone[]
-    clip: AnimationClip
+    clip?: AnimationClip
+    clips?: AnimationClip[]
     replaceClips?: boolean
     autoBindSoft?: boolean
   }) => void
@@ -168,12 +170,30 @@ export function WorkshopNewMotionModal({
     }
   }
 
+  /** Gắn 15 xương theo 8 vòng tròn Mixamo + nạp sẵn trọn bộ 7 động tác mẫu theo góc đang chọn */
+  const handleApplyMixamoStarterPack = () => {
+    const generatedBones = buildHumanoidBonesFromLandmarks(landmarks)
+    const starterClips = buildStarterPresetClipsForBones(generatedBones, selectedAngle)
+    if (onApplyMixamoRigMotion) {
+      onApplyMixamoRigMotion({
+        bones: generatedBones,
+        clips: starterClips,
+        replaceClips: true,
+        autoBindSoft
+      })
+      onClose()
+    } else if (starterClips[0]) {
+      onCreated(starterClips[0])
+      onClose()
+    }
+  }
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label="Tạo động tác mới & Gắn điểm xương Mixamo"
-      className="lw-mixamo-motion-modal"
+      className="lw-mixamo-motion-modal lw-new-motion-backdrop"
       style={{
         position: 'fixed',
         inset: 0,
@@ -191,7 +211,7 @@ export function WorkshopNewMotionModal({
     >
       <div
         style={{
-          width: '880px',
+          width: '960px',
           maxWidth: '96vw',
           maxHeight: '92vh',
           backgroundColor: 'var(--bg-1)',
@@ -471,7 +491,7 @@ export function WorkshopNewMotionModal({
           <button type="button" className="btn sm" onClick={onClose}>
             Hủy bỏ
           </button>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             {bones.length > 0 && onApplyMixamoRigMotion && (
               <button
                 type="button"
@@ -482,13 +502,23 @@ export function WorkshopNewMotionModal({
                 ➕ Chỉ thêm động tác (Giữ xương cũ)
               </button>
             )}
+            {onApplyMixamoRigMotion && (
+              <button
+                type="button"
+                className="btn sm"
+                onClick={handleApplyMixamoStarterPack}
+                title="Tạo 15 khớp xương từ 8 vòng tròn Mixamo và nạp sẵn trọn bộ 7 động tác chuẩn (Đi bộ, Đứng thở, Chạy, Vẫy tay, Nhảy, Vung đòn, Cúi chào)"
+              >
+                📦 Gắn Xương & Nạp Trọn Bộ 7 Động Tác
+              </button>
+            )}
             <button
               type="button"
               className="btn sm primary"
               onClick={onApplyMixamoRigMotion ? handleApplyMixamoRigAndMotion : handleCreateClipOnly}
-              title="Tự động tạo 15 xương khớp theo các điểm nhấn đã đặt và gắn động tác vừa chọn lên nhân vật"
+              title="Tự động tạo 15 xương khớp theo 8 vòng tròn Mixamo đã đặt và gắn động tác vừa chọn lên nhân vật"
             >
-              <span>✨ Gắn Xương Theo Điểm & Áp Động Tác</span>
+              <span>✨ Gắn Xương Theo 8 Điểm & Áp Động Tác</span>
             </button>
           </div>
         </div>

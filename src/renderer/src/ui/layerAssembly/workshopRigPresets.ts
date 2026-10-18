@@ -666,6 +666,25 @@ export function createClipFromPreset(
       break
   }
 
+  // Tự động co giãn biên độ dịch chuyển (x, y) theo tỉ lệ chiều dài chân thực tế của nhân vật
+  const thigh = bones.find((b) => b.id === 'bone-thigh-l')
+  const shin = bones.find((b) => b.id === 'bone-shin-l')
+  if (thigh || shin) {
+    const legLen = (thigh?.length ?? 70) + (shin?.length ?? 70)
+    const scaleRatio = Math.max(0.25, Math.min(2.5, legLen / 140))
+    if (Math.abs(scaleRatio - 1) > 0.05) {
+      const scaledTracks: Record<string, BoneKeyframe[]> = {}
+      for (const [boneId, keys] of Object.entries(tracks)) {
+        scaledTracks[boneId] = keys.map((k) => ({
+          ...k,
+          x: Number((k.x * scaleRatio).toFixed(2)),
+          y: Number((k.y * scaleRatio).toFixed(2))
+        }))
+      }
+      tracks = scaledTracks
+    }
+  }
+
   const name = customName || meta?.name || `Động tác ${preset}`
   return {
     id: `clip-${preset}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,

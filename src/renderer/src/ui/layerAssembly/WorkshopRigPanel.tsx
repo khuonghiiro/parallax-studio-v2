@@ -4,6 +4,7 @@ import type { LayerComposite } from './types'
 import type { RigAction } from './workshopRig'
 import { Select } from '../controls'
 import { IconTrash, IconPlus, IconLayers } from '../icons'
+import { WorkshopMixamoRigCard } from './WorkshopMixamoRigCard'
 
 export interface RigPanelProps {
   composite: LayerComposite
@@ -123,6 +124,9 @@ export function WorkshopRigPanel({
 
   return (
     <div className="lw-rig-panel">
+      {/* 0. Gắn Điểm Tự Động Mixamo (8 vòng tròn -> 15 khớp xương & trọn bộ động tác mẫu) */}
+      <WorkshopMixamoRigCard composite={composite} run={run} />
+
       {/* 1. Mẫu khung xương dựng sẵn */}
       <div className="lw-card-section">
         <div className="lw-card-header">

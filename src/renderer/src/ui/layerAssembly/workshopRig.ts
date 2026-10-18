@@ -110,7 +110,14 @@ export type RigAction = AnimationAction | AnimationBatch
   | { action: 'delete-all-clips' }
   | { action: 'duplicate-clip'; clipId: string }
   | { action: 'inherit-clip'; sourceClip: AnimationClip; sourceBones: LayerBone[]; clipName?: string }
-  | { action: 'apply-mixamo-rig-motion'; bones: LayerBone[]; clip: AnimationClip; replaceClips?: boolean; autoBindSoft?: boolean }
+  | {
+      action: 'apply-mixamo-rig-motion'
+      bones: LayerBone[]
+      clip?: AnimationClip
+      clips?: AnimationClip[]
+      replaceClips?: boolean
+      autoBindSoft?: boolean
+    }
 
 export function validateRig(composite: LayerComposite): void {
   if (composite.layers.some((l) => l.bindingMode !== undefined && !['rigid', 'soft'].includes(l.bindingMode))) {
@@ -491,15 +498,25 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
       existing.length === 1 &&
       Object.keys(existing[0].tracks || {}).length === 0
 
-    if (action.replaceClips || isOnlyEmptyDefault || existing.length === 0) {
-      rig.clips = [action.clip]
-    } else {
-      rig.clips = [...existing, action.clip]
+    if (action.clips && action.clips.length > 0) {
+      const incoming = action.clips.map((c) => structuredClone(c))
+      rig.clips = action.replaceClips || isOnlyEmptyDefault || existing.length === 0 ? incoming : [...existing, ...incoming]
+      const first = incoming[0]
+      rig.activeClipId = first.id
+      rig.tracks = structuredClone(first.tracks)
+      rig.duration = first.duration
+      rig.loop = first.loop
+    } else if (action.clip) {
+      if (action.replaceClips || isOnlyEmptyDefault || existing.length === 0) {
+        rig.clips = [action.clip]
+      } else {
+        rig.clips = [...existing, action.clip]
+      }
+      rig.activeClipId = action.clip.id
+      rig.tracks = structuredClone(action.clip.tracks)
+      rig.duration = action.clip.duration
+      rig.loop = action.clip.loop
     }
-    rig.activeClipId = action.clip.id
-    rig.tracks = structuredClone(action.clip.tracks)
-    rig.duration = action.clip.duration
-    rig.loop = action.clip.loop
   }
 
   // Đồng bộ tracks/duration/loop thay đổi vào activeClip trong clips

@@ -18,6 +18,14 @@ import {
 } from './workshopMotionSketch'
 import { setMotionSketchState } from './motionSketchStore'
 import { markBoneAdjusted, setStepRecordState } from './workshopStepRecord'
+import {
+  buildHumanoidBonesFromLandmarks,
+  extractLandmarksFromBones,
+  moveLandmarkPoint,
+  type MixamoLandmarkId,
+  type MixamoLandmarks
+} from './workshopMixamoAutoRig'
+import { MixamoViewportRingsOverlay } from './MixamoReferenceGuide'
 
 export interface BoneOverlayProps {
   composite: LayerComposite
@@ -63,8 +71,14 @@ export function WorkshopBoneOverlay({
   const svgRef = useRef<SVGSVGElement>(null)
   const dragRef = useRef<ReturnType<typeof startBoneDrag> | null>(null)
   const liveDragRef = useRef<LiveBoneRecordDrag | null>(null)
+  const mixamoDragRef = useRef<{
+    id: MixamoLandmarkId
+    label: string
+    landmarks: MixamoLandmarks
+  } | null>(null)
   const movedRef = useRef(false)
   const [activeDrag, setActiveDrag] = useState<string | null>(null)
+  const [activeMixamoId, setActiveMixamoId] = useState<MixamoLandmarkId | null>(null)
   const [hoveredBoneId, setHoveredBoneId] = useState<string | null>(null)
   const [dragAngle, setDragAngle] = useState<{ x: number; y: number; text: string; isLive?: boolean } | null>(null)
   const [liveStroke, setLiveStroke] = useState<Point2D[] | null>(null)
@@ -75,6 +89,7 @@ export function WorkshopBoneOverlay({
   if (!rig || !rig.bones.length) return null
 
   const transforms = evaluateRig({ ...rig, loop: false }, time, editing)
+  const mixamoLandmarks = editing ? extractLandmarksFromBones(rig.bones) : null
 
   const toLocalPoint = (event: PointerEvent) => {
     const matrix = svgRef.current?.getScreenCTM()
@@ -189,9 +204,54 @@ export function WorkshopBoneOverlay({
     svgRef.current?.focus()
   }
 
+  const handleStartDragMixamoRing = (
+    e: PointerEvent,
+    id: MixamoLandmarkId,
+    label: string
+  ) => {
+    if (e.button !== 0 || !mixamoLandmarks) return
+    e.stopPropagation()
+    stopPlayback?.()
+    beginGesture?.()
+    movedRef.current = false
+    mixamoDragRef.current = { id, label, landmarks: mixamoLandmarks }
+    setActiveMixamoId(id)
+    try {
+      svgRef.current?.setPointerCapture(e.pointerId)
+    } catch {}
+    svgRef.current?.focus()
+  }
+
   const handlePointerMove = (e: PointerEvent) => {
     const point = toLocalPoint(e)
     if (!point) return
+
+    if (mixamoDragRef.current) {
+      const mDrag = mixamoDragRef.current
+      movedRef.current = true
+      const nextLandmarks = moveLandmarkPoint(
+        mDrag.landmarks,
+        mDrag.id,
+        { x: point.x, y: point.y },
+        !e.altKey,
+        true
+      )
+      mDrag.landmarks = nextLandmarks
+      const nextBones = buildHumanoidBonesFromLandmarks(nextLandmarks)
+      setComposite((c) =>
+        applyRigAction(c, {
+          action: 'apply-mixamo-rig-motion',
+          bones: nextBones,
+          autoBindSoft: true
+        })
+      )
+      setDragAngle({
+        x: point.x,
+        y: point.y,
+        text: `🎯 ${mDrag.label} (${Math.round(point.x)}, ${Math.round(point.y)})${e.altKey ? '' : ' · 🪞 Đối xứng'}`
+      })
+      return
+    }
 
     if (liveDragRef.current) {
       const liveDrag = liveDragRef.current
@@ -223,7 +283,10 @@ export function WorkshopBoneOverlay({
   }
 
   const cancelAllDrag = () => {
-    if (liveDragRef.current) {
+    if (mixamoDragRef.current) {
+      mixamoDragRef.current = null
+      cancelGesture?.()
+    } else if (liveDragRef.current) {
       const startTime = liveDragRef.current.startTime
       liveDragRef.current = null
       cancelGesture?.()
@@ -233,12 +296,20 @@ export function WorkshopBoneOverlay({
       cancelGesture?.()
     }
     setActiveDrag(null)
+    setActiveMixamoId(null)
     setChainIds([])
     setDragAngle(null)
     setLiveStroke(null)
   }
 
   const endDrag = () => {
+    if (mixamoDragRef.current) {
+      mixamoDragRef.current = null
+      setActiveMixamoId(null)
+      setDragAngle(null)
+      endGesture?.()
+      return
+    }
     if (liveDragRef.current) {
       const liveDrag = liveDragRef.current
       liveDragRef.current = null
@@ -381,7 +452,7 @@ export function WorkshopBoneOverlay({
         const isSelected = bone.id === boneId
         const isDragging = activeDrag === bone.id || chainIds.includes(bone.id)
         const isHovered = hoveredBoneId === bone.id
-        const showLabel = editing || isSelected || isDragging || isHovered
+        const showLabel = (editing && !mixamoLandmarks) || isSelected || isDragging || isHovered
         const angle = bone.angle + tf.rotation
         const rad = (angle * Math.PI) / 180
         const ux = Math.cos(rad)
@@ -461,8 +532,9 @@ export function WorkshopBoneOverlay({
             <circle
               cx={tx}
               cy={ty}
-              r={isSelected ? 6.5 : 5}
+              r={isSelected ? 6.5 : editing && mixamoLandmarks && !isHovered ? 3 : 5}
               className={`lw-bone-tail-joint${!editing && assist.ik ? ' ik' : ''}`}
+              style={editing && mixamoLandmarks && !isSelected && !isHovered ? { opacity: 0.45 } : undefined}
               onPointerDown={(e) => handlePointerDown(e, bone.id, tailMode(e))}
             >
               <title>
@@ -486,8 +558,9 @@ export function WorkshopBoneOverlay({
             <circle
               cx={hx}
               cy={hy}
-              r={isSelected ? 8.5 : 7}
+              r={isSelected ? 8.5 : editing && mixamoLandmarks && !isHovered ? 3.5 : 7}
               className="lw-bone-head-joint"
+              style={editing && mixamoLandmarks && !isSelected && !isHovered ? { opacity: 0.45 } : undefined}
               onPointerDown={(e) => handlePointerDown(e, bone.id, 'head')}
             >
               <title>Khớp gốc (Pivot): Kéo để dời vị trí (Giữ Shift + Kéo để ghi dời vị trí Realtime)</title>
@@ -502,6 +575,16 @@ export function WorkshopBoneOverlay({
           </g>
         )
       })}
+
+      {/* 8 vòng tròn màu chuẩn Mixamo (CHIN, WRISTS, ELBOWS, KNEES, GROIN) trên màn hình 2D khi ở tab Tạo xương */}
+      {editing && mixamoLandmarks && (
+        <MixamoViewportRingsOverlay
+          landmarks={mixamoLandmarks}
+          canvasHeight={composite.height}
+          activeLandmarkId={activeMixamoId}
+          onStartDragLandmark={handleStartDragMixamoRing}
+        />
+      )}
 
       {/* Live Dragging Tooltip HUD Badge */}
       {dragAngle && (() => {
