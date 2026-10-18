@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { toggleMotionSketchArmed, useMotionSketch } from './motionSketchStore'
 import { getAnimAssist, setAnimAssist, useAnimAssist } from './animAssistStore'
 import { useLayerAssemblyCalloutPrefs, toggleCalloutEnabled } from './LayerAssemblyCalloutOverlay'
+import { useStepRecord } from './workshopStepRecord'
 import '../../styles/layerWorkshopAnimAssist.css'
 
 const isTyping = (t: EventTarget | null) => {
@@ -28,24 +29,64 @@ function useAssistKeys() {
   }, [])
 }
 
-/** Thanh công cụ nổi trên Bố cục 2D (tab Animation): bút vẽ động tác, IK, Onion skin, Quỹ đạo, Bóng layer. */
-export function AnimAssistChips() {
+/** Thanh công cụ nổi trên Bố cục 2D (tab Animation): Xác nhận vị trí (Enter), Bút vẽ động tác, IK, Onion skin, Quỹ đạo, Bóng layer. */
+export function AnimAssistChips({ onConfirmStep }: { onConfirmStep?: () => void }) {
   const sketch = useMotionSketch()
   const assist = useAnimAssist()
   const callouts = useLayerAssemblyCalloutPrefs()
+  const stepRecord = useStepRecord()
   useAssistKeys()
+
   const chip = (active: boolean, label: string, kbd: string, title: string, onClick: () => void, extra = '') => (
     <button type="button" className={`lw-anim-chip${active ? ` active${extra}` : ''}`} title={title} onClick={onClick}>
       {label} <kbd>{kbd}</kbd>
     </button>
   )
+
+  const statusText = stepRecord.status || (sketch.armed ? sketch.status : '')
+
   return (
     <div className="lw-anim-chips">
       <div className="lw-anim-chips-row" role="toolbar" aria-label="Công cụ hoạt họa">
-        {chip(sketch.armed, sketch.armed ? '● Đang vẽ' : '✏️ Bút vẽ', 'D', 'Bật/tắt bút vẽ động tác: diễn động tác bằng chuột, app ghi thành keyframe', () => toggleMotionSketchArmed(), ' recording')}
-        {chip(assist.ik, `🦾 IK ${assist.ikChain}`, 'I', 'Kéo ngọn xương thì cả chuỗi xương cha xoay theo (Ctrl khi kéo = đảo tạm)', () => setAnimAssist({ ik: !assist.ik }))}
-        {chip(assist.onion, '👻 Onion', 'O', 'Hiện bóng mờ khung xương ở các thời điểm trước (vàng) và sau (xanh)', () => setAnimAssist({ onion: !assist.onion }))}
-        {chip(assist.path, '〰 Quỹ đạo', 'P', 'Hiện đường đi của ngọn xương đang chọn trong cả clip', () => setAnimAssist({ path: !assist.path }))}
+        {onConfirmStep && (
+          <button
+            type="button"
+            className={`lw-anim-chip lw-anim-chip-confirm${stepRecord.pendingConfirm ? ' pending' : ''}`}
+            title={`Xác nhận tư thế xương hiện tại và tự nhảy sang mốc tiếp theo (+${stepRecord.stepDuration}s) · Phím tắt: Enter`}
+            onClick={onConfirmStep}
+          >
+            ✓ Xác nhận <kbd>Enter ⏎</kbd>
+          </button>
+        )}
+        {chip(
+          sketch.armed,
+          sketch.armed ? '● Đang vẽ' : '✏️ Bút vẽ',
+          'D',
+          'Bật/tắt bút vẽ tự do (Hoặc giữ trực tiếp Shift + Chuột trái trên xương để ghi Realtime ngay)',
+          () => toggleMotionSketchArmed(),
+          ' recording'
+        )}
+        {chip(
+          assist.ik,
+          `🦾 IK ${assist.ikChain}`,
+          'I',
+          'Kéo ngọn xương thì chuỗi xương chi xoay theo (Ctrl khi kéo = đảo tạm)',
+          () => setAnimAssist({ ik: !assist.ik })
+        )}
+        {chip(
+          assist.onion,
+          '👻 Onion',
+          'O',
+          'Hiện bóng mờ khung xương ở các thời điểm trước (vàng) và sau (xanh)',
+          () => setAnimAssist({ onion: !assist.onion })
+        )}
+        {chip(
+          assist.path,
+          '〰 Quỹ đạo',
+          'P',
+          'Hiện đường đi của ngọn xương đang chọn trong cả clip',
+          () => setAnimAssist({ path: !assist.path })
+        )}
         <button
           type="button"
           className={`lw-anim-chip${callouts.enabled ? ' active' : ''}`}
@@ -75,7 +116,7 @@ export function AnimAssistChips() {
           </div>
         )}
       </div>
-      {sketch.armed && sketch.status && <span className="lw-anim-chip-status">{sketch.status}</span>}
+      {statusText && <span className="lw-anim-chip-status">{statusText}</span>}
     </div>
   )
 }

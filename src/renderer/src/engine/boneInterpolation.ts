@@ -37,10 +37,12 @@ function interpolate(keys: BoneKeyframe[], time: number): BonePose {
     } else if (easing === 'ease-in-out') {
       const et = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
       result[field] = v1 + (v2 - v1) * et
+    } else if (Math.abs(v2 - v1) < 1e-6) {
+      result[field] = v1
     } else {
-      // 'smooth': Hermite spline with continuous first derivative
-      const m1 = (v2 - v0) / (c.time - a.time) * span
-      const m2 = (v3 - v1) / (d.time - b.time) * span
+      // 'smooth': Hermite spline with continuous first derivative (auto-clamped on flat neighbors)
+      const m1 = Math.abs(v1 - v0) < 1e-6 ? 0 : (v2 - v0) / (c.time - a.time) * span
+      const m2 = Math.abs(v3 - v2) < 1e-6 ? 0 : (v3 - v1) / (d.time - b.time) * span
       const t2 = t * t, t3 = t2 * t
       result[field] = (2 * t3 - 3 * t2 + 1) * v1 + (t3 - 2 * t2 + t) * m1
         + (-2 * t3 + 3 * t2) * v2 + (t3 - t2) * m2

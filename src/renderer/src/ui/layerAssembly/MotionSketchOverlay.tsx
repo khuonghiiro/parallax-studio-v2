@@ -30,6 +30,7 @@ interface SketchDrag {
   anchor?: SketchAnchor
   mode: MotionSketchMode
   live: boolean
+  shiftSequential: boolean
   startTime: number
   clipDuration: number
   t0: number
@@ -118,13 +119,14 @@ export function MotionSketchOverlay(props: MotionSketchOverlayProps) {
     if (!p) return
     const pickedBoneId = rig?.bones.length ? pickSketchBone(rig, p, time)?.bone.id : undefined
     const { settings } = getMotionSketchState()
-    const mode: MotionSketchMode = e.shiftKey ? (settings.mode === 'rotate' ? 'move' : 'rotate') : settings.mode
+    const mode: MotionSketchMode = settings.mode
     const clipDuration = rig?.duration ?? 4
-    const startTime = Math.min(clipDuration, Math.max(0, time))
+    const startTime = Math.max(0, time)
     // Ctrl khi bắt đầu: chỉ xoay riêng xương được chọn (bỏ IK) cho lần vẽ này
     const chain = e.ctrlKey || e.metaKey || mode === 'move' ? 1 : settings.chain
     const anchor = pickedBoneId && rig ? createSketchAnchor(rig, pickedBoneId, startTime, p, chain) : undefined
     const ghost = pickedBoneId ? segmentOf(pickedBoneId) : null
+    const isLive = Boolean(anchor && (e.shiftKey || settings.timing === 'live') && props.seek)
     props.stopPlayback?.()
     if (pickedBoneId) props.selectBone(pickedBoneId)
     props.beginGesture?.()
@@ -132,7 +134,8 @@ export function MotionSketchOverlay(props: MotionSketchOverlayProps) {
       anchor,
       mode,
       startTime,
-      live: Boolean(anchor && settings.timing === 'live' && props.seek),
+      live: isLive,
+      shiftSequential: e.shiftKey,
       clipDuration,
       t0: performance.now(),
       samples: [{ ...p, t: 0 }],
@@ -167,10 +170,19 @@ export function MotionSketchOverlay(props: MotionSketchOverlayProps) {
     }
     const { columns, values } = sketchValuesAt(drag.anchor, p, drag.mode, drag.solve)
     // Xem trước trực tiếp (huỷ lại khi thả để ghi cả chuỗi keyframe trong một bước hoàn tác).
-    const previewTime = drag.live ? Math.min(drag.clipDuration, drag.startTime + elapsed) : drag.startTime
+    const previewTime = drag.live ? Math.min(120, Number((drag.startTime + elapsed).toFixed(3))) : drag.startTime
     if (drag.live) props.seek?.(previewTime)
-    props.setComposite((c) => applyRigAction(c, { action: 'batch', operations: sketchPreviewOps(columns, values, previewTime) }))
-    setLabel({ x: p.x, y: p.y, text: `${liveLabel(drag.anchor, drag.mode, p, values)}${drag.live ? ` · ● ${elapsed.toFixed(1)}s` : ''}` })
+    props.setComposite((c) => {
+      let next = c
+      if (drag.live && c.rig && previewTime > c.rig.duration - 0.05) {
+        next = applyRigAction(next, {
+          action: 'settings',
+          duration: Math.min(120, Math.ceil((previewTime + 0.5) * 10) / 10)
+        })
+      }
+      return applyRigAction(next, { action: 'batch', operations: sketchPreviewOps(columns, values, previewTime) })
+    })
+    setLabel({ x: p.x, y: p.y, text: `${liveLabel(drag.anchor, drag.mode, p, values)}${drag.live ? ` · 🔴 +${elapsed.toFixed(1)}s` : ''}` })
   }
   advanceRef.current = advance
 
@@ -195,9 +207,9 @@ export function MotionSketchOverlay(props: MotionSketchOverlayProps) {
     setStroke(null)
     setLabel(null)
     props.cancelGesture?.() // bỏ khung xem trước, commit một lần duy nhất bên dưới
-    if (drag.live) props.seek?.(drag.startTime)
     const len = drag.samples.reduce((sum, s, i) => (i ? sum + Math.hypot(s.x - drag.samples[i - 1].x, s.y - drag.samples[i - 1].y) : 0), 0)
     if (drag.samples.length < 3 || len < 6) {
+      if (drag.live) props.seek?.(drag.startTime)
       setMotionSketchState({ status: 'Nét quá ngắn — giữ chuột và vẽ dài hơn' })
       return
     }
@@ -227,7 +239,11 @@ export function MotionSketchOverlay(props: MotionSketchOverlayProps) {
       last: { boneId: done.boneId, boneName: done.boneName, keyCount: done.keyCount, startTime: drag.startTime, endTime: done.endTime, stroke: drag.samples.map(({ x, y }) => ({ x, y })) },
       status: `✓ ${done.boneName}${done.bones > 1 ? ` (+${done.bones - 1} xương IK)` : ''}: ${done.keyCount} keyframe · ${drag.startTime.toFixed(2)}s → ${done.endTime.toFixed(2)}s · Ctrl+Z để vẽ lại`
     })
-    if (settings.autoPlay) props.playFrom?.(drag.startTime)
+    if (drag.shiftSequential || !settings.autoPlay) {
+      props.seek?.(done.endTime)
+    } else {
+      props.playFrom?.(drag.startTime)
+    }
   }
 
   const drag = dragRef.current

@@ -4,6 +4,7 @@ import { WorkshopBoneOverlay, type BoneOverlayProps } from './WorkshopBoneOverla
 import { PlantSpineOverlay, type PlantSpineOverlayProps } from './PlantSpineOverlay'
 import { MotionSketchOverlay, type MotionSketchOverlayProps } from './MotionSketchOverlay'
 import { AnimAssistChips } from './AnimAssistChips'
+import { confirmPoseAndStep } from './workshopStepRecord'
 import { PlantMotionChips } from './PlantMotionSection'
 import { RigGhostOverlay } from './RigGhostOverlay'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
@@ -817,8 +818,21 @@ export function LayerAssemblyViewport({
         atmosphereIcon={atmosphere.icon}
       />
 
-      {/* Thanh công cụ hoạt họa nổi: bút vẽ động tác, IK, Onion skin, Quỹ đạo */}
-      {tab === 'animation' && sketchOverlay && brush.activeTool !== 'eraser' && <AnimAssistChips />}
+      {/* Thanh công cụ hoạt họa nổi: Xác nhận vị trí (Enter), Bút vẽ động tác, IK, Onion skin, Quỹ đạo */}
+      {tab === 'animation' && sketchOverlay && brush.activeTool !== 'eraser' && (
+        <AnimAssistChips
+          onConfirmStep={() => {
+            sketchOverlay.stopPlayback?.()
+            let nextTime = sketchOverlay.time
+            sketchOverlay.setComposite((c) => {
+              const res = confirmPoseAndStep(c, sketchOverlay.time)
+              nextTime = res.nextTime
+              return res.composite
+            })
+            sketchOverlay.seek?.(nextTime)
+          }}
+        />
+      )}
       {tab === 'plant' && plantOverlay && brush.activeTool !== 'eraser' && <PlantMotionChips />}
 
       {/* Floating 2D Hint */}
@@ -828,6 +842,11 @@ export function LayerAssemblyViewport({
             position: 'absolute',
             bottom: '12px',
             left: '14px',
+            right: '14px',
+            maxWidth: 'calc(100% - 28px)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
             fontSize: '10px',
             color: 'var(--text-dim)',
             background: 'var(--bg-1)',
@@ -839,7 +858,7 @@ export function LayerAssemblyViewport({
           }}
         >
           {tab === 'animation'
-            ? '🎭 Hoạt ảnh: Kéo ngọn xương = IK (Ctrl: chỉ 1 xương) · D: diễn động tác bằng chuột · O: onion skin · P: quỹ đạo · Space: phát thử · Alt / chuột giữa: dời khung'
+            ? '🎭 Hoạt ảnh: Chuột trái chỉnh xương → nhấn Enter ⏎ xác nhận vị trí · Giữ Shift + Chuột trái: ghi động tác Realtime · D: bút vẽ · Space: phát thử'
             : tab === 'bones'
               ? '🦴 Khung xương: Kéo khớp đầu/đuôi để chỉnh độ dài & góc · Kéo thân để dời vị trí · Delete: xóa xương'
               : tab === 'plant'

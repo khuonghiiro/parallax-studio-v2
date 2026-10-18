@@ -23,13 +23,20 @@ export interface IkChain {
 
 export const IK_CHAIN_MAX = 4
 
-/** Lấy chuỗi xương từ xương ngọn đi ngược lên cha, tối đa length xương. */
+/** Lấy chuỗi xương từ xương ngọn đi ngược lên cha, tối đa length xương. Dừng trước các khớp rẽ nhánh thân chính (như Hông/Ngực có nhiều nhánh con) để kéo tay/chân không làm nghiêng cả thân người. */
 export function ikChainIds(rig: LayerRig, endBoneId: string, length: number): string[] {
   const byId = new Map(rig.bones.map((b) => [b.id, b]))
+  const childCount = new Map<string, number>()
+  for (const b of rig.bones) {
+    if (b.parentId) childCount.set(b.parentId, (childCount.get(b.parentId) ?? 0) + 1)
+  }
   const ids: string[] = []
   let current = byId.get(endBoneId)
-  while (current && ids.length < Math.max(1, Math.min(IK_CHAIN_MAX, length))) {
+  const maxLen = Math.max(1, Math.min(IK_CHAIN_MAX, length))
+  while (current && ids.length < maxLen) {
     if (ids.includes(current.id)) break
+    // Nếu đã có ít nhất 1 xương chi trong chuỗi và xương cha tiếp theo là khớp phân nhánh (ví dụ ngực chia ra đầu + 2 tay, hoặc hông chia ra bụng + 2 chân) thì dừng lại để không xoay cả thân
+    if (ids.length > 0 && (childCount.get(current.id) ?? 0) > 1) break
     ids.unshift(current.id)
     current = current.parentId ? byId.get(current.parentId) : undefined
   }

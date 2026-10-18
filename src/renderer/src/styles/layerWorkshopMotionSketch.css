@@ -98,7 +98,7 @@
 .lw-motion-sketch-card {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 5px;
 }
 
 .lw-sketch-badge-on {
@@ -106,8 +106,54 @@
 }
 
 .lw-sketch-arm-btn {
-  width: 100%;
+  flex: 1 1 auto;
   justify-content: center;
+}
+
+.lw-sketch-workflow-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+
+.lw-sketch-workflow-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px 7px;
+  border-radius: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+}
+
+.lw-sketch-workflow-item.realtime {
+  border-left: 3px solid var(--key);
+}
+
+.lw-sketch-workflow-item.step {
+  border-left: 3px solid var(--accent);
+}
+
+.lw-sketch-wf-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.lw-sketch-wf-desc {
+  font-size: 9.5px;
+  line-height: 1.35;
+  color: var(--text-dim);
+}
+
+.lw-sketch-wf-desc kbd {
+  padding: 0 4px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text);
+  font-size: 9.5px;
+  font-family: inherit;
 }
 
 .lw-sketch-steps {

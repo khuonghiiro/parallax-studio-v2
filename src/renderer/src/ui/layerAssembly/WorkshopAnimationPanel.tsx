@@ -13,6 +13,7 @@ import { WorkshopMotionSketchCard } from './WorkshopMotionSketchCard'
 import { WorkshopAnimAssistCard, WorkshopSecondaryMotionCard } from './WorkshopAnimAssistCards'
 import { setAnimAssist, useAnimAssist } from './animAssistStore'
 import { toggleMotionSketchArmed, useMotionSketch } from './motionSketchStore'
+import { confirmPoseAndStep, setStepRecordState, useStepRecord } from './workshopStepRecord'
 import type { LayerComposite } from './types'
 
 type Props = RigPanelProps & {
@@ -51,6 +52,17 @@ export function WorkshopAnimationPanel({
   const [subTab, setSubTab] = useState<AnimInspectorSubTab>('pose')
   const assist = useAnimAssist()
   const sketch = useMotionSketch()
+
+  const handleConfirmStep = () => {
+    playback.setIsPlaying(false)
+    let nextTime = playback.time
+    setComposite((c) => {
+      const res = confirmPoseAndStep(c, playback.time)
+      nextTime = res.nextTime
+      return res.composite
+    })
+    playback.setTime(nextTime)
+  }
 
   useEffect(() => {
     if (!boneId && rig.bones.length > 0) {
@@ -131,10 +143,15 @@ export function WorkshopAnimationPanel({
         onInherit={inherit}
       />
 
-      {/* 2. Thanh Thời gian & Phát thử gọn nhẹ ngay trên đầu */}
-      <AnimationTransportCard rig={rig} playback={playback} run={run} />
+      {/* 2. Thanh Thời gian, Phát thử & Xác nhận vị trí (Enter) */}
+      <AnimationTransportCard
+        rig={rig}
+        playback={playback}
+        run={run}
+        onConfirmStep={handleConfirmStep}
+      />
 
-      {/* 3. Thanh chuyển 3 chế độ chuyên sâu trong Tab Animation (tránh nhồi nhét dài dòng) */}
+      {/* 3. Thanh chuyển 3 chế độ chuyên sâu trong Tab Animation */}
       <div className="lw-anim-subtabs" role="tablist" aria-label="Chế độ diễn hoạt">
         <button
           type="button"
@@ -145,7 +162,7 @@ export function WorkshopAnimationPanel({
             setSubTab('pose')
             if (sketch.armed) toggleMotionSketchArmed(false)
           }}
-          title="Chỉnh tư thế xương, ghi keyframe và nội suy chuyển động"
+          title="Chỉnh tư thế xương, nhấn Enter xác nhận vị trí hoặc giữ Shift+Chuột trái ghi Realtime"
         >
           🎯 Tạo dáng
         </button>
@@ -154,11 +171,8 @@ export function WorkshopAnimationPanel({
           role="tab"
           aria-selected={subTab === 'sketch'}
           className={`lw-anim-subtab${subTab === 'sketch' ? ' active' : ''}`}
-          onClick={() => {
-            setSubTab('sketch')
-            if (!sketch.armed) toggleMotionSketchArmed(true)
-          }}
-          title="Bật bút vẽ động tác trực tiếp bằng chuột (Phím D)"
+          onClick={() => setSubTab('sketch')}
+          title="Ghi động tác Realtime (Shift+Chuột trái) hoặc bật Bút vẽ tự do (Phím D)"
         >
           ✏️ Vẽ động tác{sketch.armed ? ' ●' : ''}
         </button>
@@ -292,6 +306,7 @@ export function WorkshopAnimationPanel({
         <WorkshopMotionSketchCard
           isPlaying={playback.isPlaying}
           onTogglePlay={playback.toggle}
+          onConfirmStep={handleConfirmStep}
         />
       )}
 
@@ -316,12 +331,15 @@ export function WorkshopAnimationPanel({
 function AnimationTransportCard({
   rig,
   playback,
-  run
+  run,
+  onConfirmStep
 }: {
   rig: LayerRig
   playback: Props['playback']
   run: Props['run']
+  onConfirmStep: () => void
 }) {
+  const stepRecord = useStepRecord()
   return (
     <div className="lw-card-section lw-anim-transport-card">
       <div className="lw-anim-transport-row">
@@ -347,9 +365,46 @@ function AnimationTransportCard({
           <span>🔁 Lặp</span>
         </label>
       </div>
+
+      {/* Thanh xác nhận vị trí từng bước (Enter) & hướng dẫn ghi Realtime (Shift + Chuột trái) */}
+      <div className="lw-step-record-bar">
+        <div className="lw-step-record-main">
+          <button
+            type="button"
+            className={`btn xs lw-confirm-step-btn${stepRecord.pendingConfirm ? ' pending' : ''}`}
+            onClick={onConfirmStep}
+            title="Chốt tư thế toàn bộ xương tại mốc hiện tại và tự động đẩy thời gian sang bước kế tiếp (Phím tắt: Enter)"
+          >
+            ✓ Xác nhận vị trí <kbd>Enter ⏎</kbd>
+          </button>
+          <div className="lw-step-duration-group" role="group" aria-label="Bước nhảy thời gian mỗi lần nhấn Enter">
+            {[0.15, 0.3, 0.5, 1.0].map((d) => (
+              <button
+                key={d}
+                type="button"
+                className={`lw-step-dur-pill${Math.abs(stepRecord.stepDuration - d) < 0.01 ? ' active' : ''}`}
+                onClick={() => setStepRecordState({ stepDuration: d })}
+                title={`Mỗi lần nhấn Enter sẽ nhảy tiếp +${d}s`}
+              >
+                +{d}s
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="lw-step-record-hints">
+          <span><strong>Từng bước:</strong> Chuột trái + <kbd>Enter</kbd></span>
+          <span><strong>Realtime:</strong> <kbd>Shift</kbd> + Chuột trái</span>
+        </div>
+        {stepRecord.status && (
+          <div className="lw-step-record-status" role="status">
+            {stepRecord.status}
+          </div>
+        )}
+      </div>
+
       <div className="lw-rig-grid lw-anim-time-grid">
         <RigNumber
-          label="Thời điểm đang đứng (s)"
+          label="Đang đứng (s)"
           value={Number(playback.time.toFixed(2))}
           min={0}
           max={rig.duration}
@@ -360,7 +415,7 @@ function AnimationTransportCard({
           }}
         />
         <RigNumber
-          label="Thời lượng động tác (s)"
+          label="Thời lượng (s)"
           value={rig.duration}
           min={0.1}
           max={120}

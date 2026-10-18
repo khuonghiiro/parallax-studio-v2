@@ -26,5 +26,13 @@ export function useWorkshopPlayback(duration = 4, loop = true) {
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
   }, [isPlaying, duration, loop])
-  return { isPlaying, setIsPlaying, time, setTime, toggle: () => setIsPlaying((p) => !p) }
+  const toggle = () => {
+    setIsPlaying((p) => {
+      if (!p) {
+        setTime((t) => (t >= duration - 0.05 ? 0 : t))
+      }
+      return !p
+    })
+  }
+  return { isPlaying, setIsPlaying, time, setTime, toggle }
 }

@@ -8,7 +8,7 @@ const MODES: Array<[MotionSketchMode, string, string]> = [
   ['move', '✥ Dời theo nét', 'Khớp gốc dời theo đường vẽ (nhún hông, nhảy, lắc người…)']
 ]
 const TIMINGS: Array<[MotionSketchTiming, string, string]> = [
-  ['live', '● Thời gian thực', 'Ghi đúng tốc độ tay như quay phim: đầu phát chạy theo nên các xương khác chuyển động cùng lúc (ghi chồng từng phần)'],
+  ['live', '● Thời gian thực', 'Ghi đúng tốc độ tay như quay phim: đầu phát chạy theo nên các xương khác chuyển động cùng lúc (ghi nối tiếp từng bước)'],
   ['hand', 'Theo nhịp tay', 'Giữ nhịp nhanh/chậm của tay nhưng co giãn vừa đúng thời lượng bên dưới'],
   ['even', 'Đều nhau', 'Chia đều tốc độ theo độ dài nét vẽ']
 ]
@@ -18,72 +18,89 @@ const CHAINS: Array<[number, string, string]> = [
   [3, 'IK 3 xương', 'Thêm một cấp nữa (bàn tay kéo cả cẳng tay và bắp tay)']
 ]
 
-/** Thẻ "Vẽ động tác" trong tab Animation: bật bút, chọn kiểu chuyển động, chuỗi IK, nhịp và thời lượng. */
-export function WorkshopMotionSketchCard({ isPlaying, onTogglePlay }: { isPlaying: boolean; onTogglePlay: () => void }) {
+/** Thẻ "Vẽ động tác" trong tab Animation: hỗ trợ Shift+Chuột trái ghi Realtime, Chuột trái + Enter chốt từng bước, hoặc Bút vẽ tự do (D). */
+export function WorkshopMotionSketchCard({
+  isPlaying,
+  onTogglePlay,
+  onConfirmStep
+}: {
+  isPlaying: boolean
+  onTogglePlay: () => void
+  onConfirmStep?: () => void
+}) {
   const { armed, settings, last, status } = useMotionSketch()
   const [showHelp, setShowHelp] = useState(false)
 
   return (
     <div className="lw-card-section lw-motion-sketch-card">
       <div className="lw-card-header">
-        <span className="lw-card-title">✏️ Bút vẽ động tác trực tiếp</span>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-          <span className={`lw-card-badge${armed ? ' lw-sketch-badge-on' : ''}`}>
-            {armed ? '● Đang bật' : 'Tắt'}
+        <span className="lw-card-title">✏️ Vẽ &amp; Ghi động tác</span>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+          <span className={`lw-card-badge${armed ? ' lw-sketch-badge-on' : ''}`} style={{ whiteSpace: 'nowrap' }}>
+            {armed ? '● Bút vẽ: Bật' : 'Sẵn sàng'}
           </span>
           <button
             type="button"
             className={`btn xs${showHelp ? ' primary' : ''}`}
-            style={{ height: 20, padding: '0 6px', fontSize: 10 }}
+            style={{ height: 20, padding: '0 6px', fontSize: 10, whiteSpace: 'nowrap' }}
             onClick={() => setShowHelp((v) => !v)}
-            title="Xem hướng dẫn 3 bước vẽ động tác bằng chuột"
+            title="Xem hướng dẫn chi tiết 3 cách ghi động tác"
           >
-            ? Cách vẽ
+            ? Cách dùng
           </button>
+        </div>
+      </div>
+
+      {/* Thẻ tóm tắt 2 cách thao tác chính gọn gàng */}
+      <div className="lw-sketch-workflow-grid">
+        <div className="lw-sketch-workflow-item realtime">
+          <div className="lw-sketch-wf-badge">🔴 Ghi Realtime</div>
+          <div className="lw-sketch-wf-desc">
+            Giữ <kbd>Shift</kbd> + <strong>Chuột trái</strong> kéo xương để ghi trực tiếp theo thứ tự.
+          </div>
+        </div>
+        <div className="lw-sketch-workflow-item step">
+          <div className="lw-sketch-wf-badge">✓ Ghi từng bước</div>
+          <div className="lw-sketch-wf-desc">
+            <strong>Chuột trái</strong> chỉnh xương vừa ý → nhấn <kbd>Enter ⏎</kbd> chốt vị trí.
+          </div>
         </div>
       </div>
 
       <button
         type="button"
-        className={`btn sm ${armed ? 'primary' : ''} lw-sketch-arm-btn`}
-        style={{ width: '100%', justifyContent: 'center', height: 28, fontWeight: 700, marginBottom: 8 }}
+        className={`btn xs ${armed ? 'primary' : ''} lw-sketch-arm-btn`}
+        style={{ height: 26, fontWeight: 700, width: '100%' }}
         onClick={() => toggleMotionSketchArmed()}
-        title="Phím tắt: D"
+        title="Bật chế độ bút vẽ tự do không cần giữ phím Shift (Phím tắt: D)"
       >
-        {armed ? '■ Đang bật bút vẽ — Bấm để tắt (Phím D)' : '✏️ Bật bút vẽ động tác trên khung 2D (Phím D)'}
+        {armed ? '■ Đang bật Bút vẽ tự do — Tắt (Phím D)' : '✏️ Bật Bút vẽ tự do trên khung 2D (Phím D)'}
       </button>
 
       {showHelp && (
-        <ol className="lw-sketch-steps" style={{ marginBottom: 8 }}>
-          <li>Nhấn <strong>gần ngọn một xương</strong> trên Bố cục 2D (xương sáng lên khi rê chuột tới).</li>
-          <li>Giữ chuột và <strong>diễn động tác</strong> — xương chạy theo tay, đầu phát chạy theo thời gian thật.</li>
-          <li>Thả chuột: tự ghi keyframe và phát thử. Vẽ tiếp xương khác để ghi chồng. <kbd>Ctrl+Z</kbd> để hoàn tác.</li>
+        <ol className="lw-sketch-steps">
+          <li><strong>Realtime (<kbd>Shift</kbd> + Chuột trái):</strong> Kéo xương theo nhịp tay, thả chuột tự đậu ở cuối để kéo tiếp xương sau.</li>
+          <li><strong>Từng bước (Chuột trái + <kbd>Enter</kbd>):</strong> Chỉnh các xương đến khi chuẩn dáng rồi nhấn <kbd>Enter</kbd> để chốt mốc.</li>
+          <li><strong>Bút vẽ tự do (<kbd>D</kbd>):</strong> Mọi nét kéo chuột trên khung 2D đều tự vẽ chuyển động mà không cần giữ Shift.</li>
         </ol>
       )}
 
-      <div className="lw-sketch-label-row">Kiểu chuyển động <span>(Shift khi vẽ để đổi tạm)</span></div>
+      <div className="lw-sketch-label-row">Kiểu chuyển động &amp; Chuỗi IK <span>(Ctrl = 1 xương)</span></div>
       <div className="lw-sketch-chips">
         {MODES.map(([id, title, hint]) => (
           <button key={id} type="button" title={hint} className={`lw-sketch-option${settings.mode === id ? ' active' : ''}`} onClick={() => setMotionSketchSettings({ mode: id })}>
             {title}
           </button>
         ))}
+        {settings.mode === 'rotate' &&
+          CHAINS.map(([n, title, hint]) => (
+            <button key={n} type="button" title={hint} className={`lw-sketch-option${settings.chain === n ? ' active' : ''}`} onClick={() => setMotionSketchSettings({ chain: n })}>
+              {title}
+            </button>
+          ))}
       </div>
 
-      {settings.mode === 'rotate' && (
-        <>
-          <div className="lw-sketch-label-row">Chuỗi xương liên kết <span>(Ctrl = 1 xương)</span></div>
-          <div className="lw-sketch-chips">
-            {CHAINS.map(([n, title, hint]) => (
-              <button key={n} type="button" title={hint} className={`lw-sketch-option${settings.chain === n ? ' active' : ''}`} onClick={() => setMotionSketchSettings({ chain: n })}>
-                {title}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-
-      <div className="lw-sketch-label-row">Nhịp ghi động tác</div>
+      <div className="lw-sketch-label-row">Nhịp ghi của Bút vẽ tự do (D)</div>
       <div className="lw-sketch-chips">
         {TIMINGS.map(([id, title, hint]) => (
           <button key={id} type="button" title={hint} className={`lw-sketch-option${settings.timing === id ? ' active' : ''}`} onClick={() => setMotionSketchSettings({ timing: id })}>
@@ -101,9 +118,9 @@ export function WorkshopMotionSketchCard({ isPlaying, onTogglePlay }: { isPlayin
       <div className="lw-sketch-checks-row">
         <label className="lw-rig-check" title="Đi hết nét vẽ rồi quay ngược về tư thế ban đầu (gấp đôi thời lượng)">
           <input type="checkbox" checked={settings.loopBack} onChange={(e) => setMotionSketchSettings({ loopBack: e.target.checked })} />
-          <span>Khứ hồi (đi & về)</span>
+          <span>Khứ hồi (đi &amp; về)</span>
         </label>
-        <label className="lw-rig-check" title="Tự tua về điểm bắt đầu và phát thử ngay khi thả chuột">
+        <label className="lw-rig-check" title="Tự tua về điểm bắt đầu và phát thử ngay khi thả chuột (khi dùng Bút vẽ D)">
           <input type="checkbox" checked={settings.autoPlay} onChange={(e) => setMotionSketchSettings({ autoPlay: e.target.checked })} />
           <span>Tự phát sau khi vẽ</span>
         </label>
@@ -116,7 +133,7 @@ export function WorkshopMotionSketchCard({ isPlaying, onTogglePlay }: { isPlayin
       )}
 
       <div className="lw-rig-actions" style={{ marginBottom: 0 }}>
-        <button type="button" className="btn sm" onClick={onTogglePlay} title="Phát thử (Space)">
+        <button type="button" className="btn xs" style={{ width: '100%', justifyContent: 'center', height: 24 }} onClick={onTogglePlay} title="Phát thử (Space)">
           {isPlaying ? '⏸ Tạm dừng phát' : '▶ Phát thử động tác'}
         </button>
       </div>

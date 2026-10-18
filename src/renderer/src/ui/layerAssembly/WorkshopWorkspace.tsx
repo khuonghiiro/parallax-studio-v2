@@ -17,6 +17,7 @@ import { usePlantSpineEditor } from './plantSpineEditorStore'
 import { grabbedSpine } from './plantSpineEdit'
 import { toggleMotionSketchArmed } from './motionSketchStore'
 import type { BoneOverlayProps } from './WorkshopBoneOverlay'
+import { confirmPoseAndStep } from './workshopStepRecord'
 
 export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, boneId, selectBone, onBrushModeChange }: {
   state: ReturnType<typeof useLayerWorkshop>; playback: ReturnType<typeof useWorkshopPlayback>; view: AssemblyWorkspaceView
@@ -51,6 +52,17 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
     })
   }, [])
 
+  const handleConfirmStep = useCallback(() => {
+    playback.setIsPlaying(false)
+    let nextTime = playback.time
+    state.setComposite((c) => {
+      const res = confirmPoseAndStep(c, playback.time)
+      nextTime = res.nextTime
+      return res.composite
+    })
+    playback.setTime(nextTime)
+  }, [playback, state])
+
   useEffect(() => {
     if (prevTabRef.current !== tab) {
       if ((tab === 'bones' || tab === 'animation') && !showBones) {
@@ -64,8 +76,18 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
-      if (tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable) return
+      const el = e.target as HTMLElement | null
+      const tag = el?.tagName?.toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || el?.isContentEditable) return
+      // Nếu đang mở modal con (ví dụ dialog tạo động tác mẫu hoặc kế thừa) thì không bắt phím Enter của khung 2D
+      if (document.querySelector('.lw-new-motion-backdrop, .lw-retarget-backdrop')) return
+
+      if (e.key === 'Enter' && tab === 'animation' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (tag === 'button') return
+        e.preventDefault()
+        handleConfirmStep()
+        return
+      }
       // Shift+B hoặc B (chỉ khi ở tab bones) để bật/tắt hiển thị xương
       if ((e.shiftKey && (e.key === 'b' || e.key === 'B')) || ((e.key === 'b' || e.key === 'B') && tab === 'bones')) {
         toggleBones()
@@ -75,7 +97,7 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [toggleBones, toggleMesh, tab])
+  }, [toggleBones, toggleMesh, tab, handleConfirmStep])
 
   const normalizedRig = state.composite.rig ? ensureRigClips(state.composite.rig).rig : undefined
   // Bù thời gian khi thanh phát lặp lại để xương thực vật chuyển động liên tục, không giật về 0
@@ -131,6 +153,8 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
     cancelGesture: state.cancelGesture,
     beginGesture: () => state.history.begin(),
     endGesture: () => state.history.end(),
+    seek: playback.setTime,
+    playFrom: (t: number) => { playback.setTime(t); playback.setIsPlaying(true) },
     time: playback.time,
     editing: tab === 'bones'
   }

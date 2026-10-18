@@ -85,6 +85,22 @@
 .lw-anim-chip:hover { background: var(--bg-3); color: var(--text); }
 .lw-anim-chip.active { background: var(--accent); color: var(--bg-0); }
 .lw-anim-chip.recording { background: var(--key); color: var(--bg-0); }
+.lw-anim-chip.lw-anim-chip-confirm {
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-2));
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  font-weight: 700;
+}
+.lw-anim-chip.lw-anim-chip-confirm:hover {
+  background: var(--accent);
+  color: var(--bg-0);
+}
+.lw-anim-chip.lw-anim-chip-confirm.pending {
+  background: var(--key);
+  color: var(--bg-0);
+  border-color: var(--key);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--key) 55%, transparent);
+}
 .lw-anim-chip kbd {
   font-size: 9px;
   padding: 0 4px;
@@ -92,6 +108,109 @@
   border: 1px solid currentColor;
   opacity: 0.75;
   font-family: inherit;
+}
+
+/* Thanh xác nhận vị trí từng bước (Enter) & hướng dẫn ghi Realtime trong bảng Animation */
+.lw-step-record-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 8px;
+  margin: 6px 0;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--bg-2) 85%, transparent);
+  border: 1px solid var(--line-soft);
+}
+.lw-step-record-main {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.lw-confirm-step-btn {
+  flex: 1 1 auto;
+  justify-content: center;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-1));
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+}
+.lw-confirm-step-btn:hover {
+  background: var(--accent);
+  color: var(--bg-0);
+}
+.lw-confirm-step-btn.pending {
+  background: var(--key);
+  color: var(--bg-0);
+  border-color: var(--key);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--key) 50%, transparent);
+}
+.lw-confirm-step-btn kbd {
+  margin-left: 4px;
+  padding: 0 4px;
+  font-size: 9.5px;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  font-family: inherit;
+}
+.lw-step-duration-group {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--bg-1);
+}
+.lw-step-dur-pill {
+  height: 22px;
+  padding: 0 6px;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lw-step-dur-pill + .lw-step-dur-pill {
+  border-left: 1px solid var(--line-soft);
+}
+.lw-step-dur-pill:hover {
+  color: var(--text);
+  background: var(--bg-3);
+}
+.lw-step-dur-pill.active {
+  background: var(--accent);
+  color: var(--bg-0);
+}
+.lw-step-record-hints {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.lw-step-record-hints strong {
+  color: var(--text);
+}
+.lw-step-record-hints kbd {
+  padding: 0 4px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text);
+  font-size: 9.5px;
+  font-family: inherit;
+}
+.lw-step-record-status {
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: var(--bg-1);
+  border-left: 3px solid var(--accent-cyan);
+  color: var(--text);
+  font-size: 10.5px;
+  line-height: 1.35;
 }
 
 /* Nhóm 2 kiểu dây nối: Cung tròn & Vuông bo khi bật bóng layer */
@@ -124,13 +243,14 @@
   font-weight: 700;
 }
 .lw-anim-chip-status {
-  max-width: 460px;
+  max-width: 520px;
   padding: 2px 10px;
   border-radius: 6px;
   background: var(--bg-1);
   border: 1px solid var(--line-soft);
-  color: var(--text-dim);
+  color: var(--text);
   font-size: 10.5px;
+  font-weight: 600;
   text-align: center;
   pointer-events: none;
 }

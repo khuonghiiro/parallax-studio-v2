@@ -4,6 +4,20 @@ import type { LayerComposite } from './types'
 import { startBoneDrag, boneDragAction, type BoneDragMode } from './workshopBoneDrag'
 import { applyRigAction } from './workshopRig'
 import { useAnimAssist } from './animAssistStore'
+import {
+  SKETCH_MAX_DURATION,
+  applyMotionSketch,
+  createSketchAnchor,
+  sketchPreviewOps,
+  sketchValuesAt,
+  type MotionSketchMode,
+  type Point2D,
+  type SketchAnchor,
+  type SketchSample,
+  type SketchSolveState
+} from './workshopMotionSketch'
+import { setMotionSketchState } from './motionSketchStore'
+import { markBoneAdjusted, setStepRecordState } from './workshopStepRecord'
 
 export interface BoneOverlayProps {
   composite: LayerComposite
@@ -16,13 +30,44 @@ export interface BoneOverlayProps {
   cancelGesture?: () => void
   beginGesture?: () => void
   endGesture?: () => void
+  seek?: (time: number) => void
+  playFrom?: (time: number) => void
 }
 
-export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposite, time, editing, stopPlayback, cancelGesture, beginGesture, endGesture }: BoneOverlayProps) {
+interface LiveBoneRecordDrag {
+  anchor: SketchAnchor
+  mode: MotionSketchMode
+  chain: number
+  startTime: number
+  t0: number
+  samples: SketchSample[]
+  solve: SketchSolveState
+}
+
+const toPath = (pts: Point2D[]) =>
+  pts.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+
+export function WorkshopBoneOverlay({
+  composite,
+  boneId,
+  selectBone,
+  setComposite,
+  time,
+  editing,
+  stopPlayback,
+  cancelGesture,
+  beginGesture,
+  endGesture,
+  seek
+}: BoneOverlayProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const dragRef = useRef<ReturnType<typeof startBoneDrag> | null>(null)
+  const liveDragRef = useRef<LiveBoneRecordDrag | null>(null)
+  const movedRef = useRef(false)
   const [activeDrag, setActiveDrag] = useState<string | null>(null)
-  const [dragAngle, setDragAngle] = useState<{ x: number; y: number; text: string } | null>(null)
+  const [hoveredBoneId, setHoveredBoneId] = useState<string | null>(null)
+  const [dragAngle, setDragAngle] = useState<{ x: number; y: number; text: string; isLive?: boolean } | null>(null)
+  const [liveStroke, setLiveStroke] = useState<Point2D[] | null>(null)
   const [chainIds, setChainIds] = useState<string[]>([])
   const assist = useAnimAssist()
 
@@ -44,6 +89,42 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
     return useIk ? 'ik' : 'rotate'
   }
 
+  const advanceLiveRecord = (liveDrag: LiveBoneRecordDrag, p: Point2D) => {
+    const elapsed = Math.min(SKETCH_MAX_DURATION, (performance.now() - liveDrag.t0) / 1000)
+    liveDrag.samples.push({ x: p.x, y: p.y, t: elapsed })
+    setLiveStroke(liveDrag.samples.map(({ x, y }) => ({ x, y })))
+    const { columns, values } = sketchValuesAt(liveDrag.anchor, p, liveDrag.mode, liveDrag.solve)
+    const previewTime = Math.min(120, Number((liveDrag.startTime + elapsed).toFixed(3)))
+    seek?.(previewTime)
+    setComposite((c) => {
+      let next = c
+      if (c.rig && previewTime > c.rig.duration - 0.05) {
+        next = applyRigAction(next, {
+          action: 'settings',
+          duration: Math.min(120, Math.ceil((previewTime + 0.5) * 10) / 10)
+        })
+      }
+      return applyRigAction(next, {
+        action: 'batch',
+        operations: sketchPreviewOps(columns, values, previewTime)
+      })
+    })
+    const delta = values[0] - liveDrag.anchor.base.rotation
+    const valueLabel =
+      liveDrag.mode === 'move'
+        ? `${(p.x - liveDrag.anchor.start.x).toFixed(0)}, ${(p.y - liveDrag.anchor.start.y).toFixed(0)}px`
+        : `${delta >= 0 ? '+' : ''}${delta.toFixed(0)}°`
+    setDragAngle({
+      x: p.x,
+      y: p.y,
+      text: `🔴 GHI REALTIME · ${liveDrag.anchor.boneName} (${valueLabel}) · +${elapsed.toFixed(1)}s`,
+      isLive: true
+    })
+  }
+
+  const advanceLiveRef = useRef(advanceLiveRecord)
+  advanceLiveRef.current = advanceLiveRecord
+
   const handlePointerDown = (e: PointerEvent, id: string, mode: BoneDragMode) => {
     if (e.button !== 0) return
     e.stopPropagation()
@@ -52,30 +133,182 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
     stopPlayback?.()
     selectBone(id)
     beginGesture?.()
+    movedRef.current = false
+
+    // Chế độ 1: Giữ phím Shift + Chuột trái trên xương ở tab Animation => Ghi động tác Realtime theo thứ tự
+    if (!editing && e.shiftKey) {
+      const sketchMode: MotionSketchMode = mode === 'head' ? 'move' : 'rotate'
+      const useIk = sketchMode === 'rotate' && (mode === 'ik' || assist.ik) && !e.ctrlKey && !e.metaKey
+      const chain = useIk ? Math.max(1, assist.ikChain) : 1
+      const startTime = Math.max(0, time)
+      const anchor = createSketchAnchor(rig, id, startTime, { x: point.x, y: point.y }, chain)
+      const liveDrag: LiveBoneRecordDrag = {
+        anchor,
+        mode: sketchMode,
+        chain,
+        startTime,
+        t0: performance.now(),
+        samples: [{ x: point.x, y: point.y, t: 0 }],
+        solve: {}
+      }
+      liveDragRef.current = liveDrag
+      setActiveDrag(id)
+      setChainIds(anchor.ik?.chain.boneIds ?? [id])
+      setLiveStroke([{ x: point.x, y: point.y }])
+      setDragAngle({
+        x: point.x,
+        y: point.y,
+        text: `🔴 GHI REALTIME · ${anchor.boneName} · Kéo chuột để diễn hoạt...`,
+        isLive: true
+      })
+      try {
+        svgRef.current?.setPointerCapture(e.pointerId)
+      } catch {}
+      svgRef.current?.focus()
+
+      // Cho phép giữ chuột đứng yên mà đầu phát vẫn trôi theo thời gian thực
+      const tick = () => {
+        if (liveDragRef.current !== liveDrag) return
+        const lastSample = liveDrag.samples[liveDrag.samples.length - 1]
+        if (performance.now() - liveDrag.t0 - lastSample.t * 1000 > 60) {
+          advanceLiveRef.current(liveDrag, lastSample)
+        }
+        requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+      return
+    }
+
+    // Chế độ 2: Chuột trái bình thường => Xoay/chỉnh xương tự do, sau đó nhấn Enter để xác nhận vị trí
     dragRef.current = startBoneDrag(rig, id, time, editing, mode, point, assist.ikChain)
     setActiveDrag(id)
     setChainIds(dragRef.current.ik?.chain.boneIds ?? [])
-    svgRef.current?.setPointerCapture(e.pointerId)
+    try {
+      svgRef.current?.setPointerCapture(e.pointerId)
+    } catch {}
     svgRef.current?.focus()
   }
 
   const handlePointerMove = (e: PointerEvent) => {
-    const drag = dragRef.current
     const point = toLocalPoint(e)
-    if (!drag || !point) return
+    if (!point) return
+
+    if (liveDragRef.current) {
+      const liveDrag = liveDragRef.current
+      const last = liveDrag.samples[liveDrag.samples.length - 1]
+      if (Math.hypot(point.x - last.x, point.y - last.y) < 1.2) return
+      movedRef.current = true
+      advanceLiveRecord(liveDrag, { x: point.x, y: point.y })
+      return
+    }
+
+    const drag = dragRef.current
+    if (!drag) return
+    movedRef.current = true
     const action = boneDragAction(drag, point, e.shiftKey)
     setComposite((c) => applyRigAction(c, action))
-    const text = action.action === 'batch'
-      ? `IK · ${action.operations.length} xương`
-      : action.action === 'set-key'
-        ? action.key.rotation !== undefined ? `${action.key.rotation.toFixed(1)}°` : `${action.key.x?.toFixed(0)}, ${action.key.y?.toFixed(0)}`
-        : action.action === 'update-bone' ? `${action.patch.angle?.toFixed(0) ?? ''}°` : ''
-    setDragAngle({ ...point, text })
+    const text =
+      action.action === 'batch'
+        ? drag.ik
+          ? `IK · ${drag.ik.chain.boneIds.length} xương · Enter ⏎ chốt`
+          : `${drag.bone.name} · Enter ⏎ chốt`
+        : action.action === 'set-key'
+          ? action.key.rotation !== undefined
+            ? `${action.key.rotation.toFixed(1)}° · Enter ⏎ chốt`
+            : `${action.key.x?.toFixed(0)}, ${action.key.y?.toFixed(0)} · Enter ⏎ chốt`
+          : action.action === 'update-bone'
+            ? `${action.patch.angle?.toFixed(0) ?? ''}°`
+            : ''
+    setDragAngle({ x: point.x, y: point.y, text })
+  }
+
+  const cancelAllDrag = () => {
+    if (liveDragRef.current) {
+      const startTime = liveDragRef.current.startTime
+      liveDragRef.current = null
+      cancelGesture?.()
+      seek?.(startTime)
+    } else if (dragRef.current) {
+      dragRef.current = null
+      cancelGesture?.()
+    }
+    setActiveDrag(null)
+    setChainIds([])
+    setDragAngle(null)
+    setLiveStroke(null)
   }
 
   const endDrag = () => {
+    if (liveDragRef.current) {
+      const liveDrag = liveDragRef.current
+      liveDragRef.current = null
+      setLiveStroke(null)
+      setActiveDrag(null)
+      setChainIds([])
+      setDragAngle(null)
+      // Hoàn tác các frame preview tạm để commit 1 lần duy nhất vào lịch sử Undo
+      cancelGesture?.()
+
+      if (liveDrag.samples.length < 2) {
+        seek?.(liveDrag.startTime)
+        return
+      }
+
+      let doneSummary: { boneName: string; keyCount: number; endTime: number; bones: number } | null = null
+      setComposite((c) => {
+        const res = applyMotionSketch(
+          c,
+          liveDrag.anchor,
+          liveDrag.samples,
+          {
+            mode: liveDrag.mode,
+            timing: 'live',
+            duration: Math.max(0.2, liveDrag.samples[liveDrag.samples.length - 1].t),
+            loopBack: false,
+            autoPlay: false,
+            chain: liveDrag.chain
+          },
+          liveDrag.startTime
+        )
+        const keyCount = Object.values(res.tracks).reduce((n, k) => n + k.length, 0)
+        doneSummary = {
+          boneName: liveDrag.anchor.boneName,
+          keyCount,
+          endTime: res.endTime,
+          bones: Object.keys(res.tracks).length
+        }
+        return res.composite
+      })
+
+      const done = doneSummary as { boneName: string; keyCount: number; endTime: number; bones: number } | null
+      if (done) {
+        // Đậu đầu phát tại đúng điểm kết thúc để người dùng giữ Shift + Chuột trái ghi tiếp động tác kế tiếp theo thứ tự
+        seek?.(done.endTime)
+        const msg = `✓ Đã ghi Realtime "${done.boneName}" (${liveDrag.startTime.toFixed(2)}s → ${done.endTime.toFixed(2)}s · ${done.keyCount} key) — Giữ Shift + Chuột trái để ghi tiếp từ ${done.endTime.toFixed(2)}s`
+        setStepRecordState({ pendingConfirm: false, status: msg })
+        setMotionSketchState({
+          last: {
+            boneId: liveDrag.anchor.boneId,
+            boneName: done.boneName,
+            keyCount: done.keyCount,
+            startTime: liveDrag.startTime,
+            endTime: done.endTime,
+            stroke: liveDrag.samples.map(({ x, y }) => ({ x, y }))
+          },
+          status: msg
+        })
+      }
+      return
+    }
+
     if (dragRef.current) {
+      const draggedBone = dragRef.current.bone
+      const draggedTime = dragRef.current.time
+      const wasEditing = dragRef.current.editing
       endGesture?.()
+      if (!wasEditing && movedRef.current) {
+        markBoneAdjusted(draggedBone.name, draggedTime)
+      }
     }
     dragRef.current = null
     setActiveDrag(null)
@@ -92,13 +325,14 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
       aria-label="Khung xương Blender trên màn hình 2D"
       onPointerMove={handlePointerMove}
       onPointerUp={endDrag}
-      onPointerCancel={() => { cancelGesture?.(); endDrag() }}
-      onLostPointerCapture={() => { if (dragRef.current) { cancelGesture?.(); endDrag() } }}
+      onPointerCancel={cancelAllDrag}
+      onLostPointerCapture={() => {
+        if (dragRef.current || liveDragRef.current) endDrag()
+      }}
       onKeyDown={(e) => {
-        if (e.key === 'Escape' && dragRef.current) {
+        if (e.key === 'Escape' && (dragRef.current || liveDragRef.current)) {
           e.stopPropagation()
-          cancelGesture?.()
-          endDrag()
+          cancelAllDrag()
         }
       }}
     >
@@ -108,6 +342,11 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
           <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
         </radialGradient>
       </defs>
+
+      {/* Đường vẽ quỹ đạo khi giữ Shift + Chuột trái ghi Realtime trên xương */}
+      {liveStroke && liveStroke.length > 1 && (
+        <path d={toPath(liveStroke)} className="lw-sketch-path" pointerEvents="none" />
+      )}
 
       {/* Relationship lines connecting child bone head to parent bone tail */}
       {rig.bones.map((bone) => {
@@ -120,7 +359,6 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
         const parentTail = rotatePoint(parent.length, 0, parent.angle + parentTf.rotation)
         const ptx = parentTf.x + parentTail.x
         const pty = parentTf.y + parentTail.y
-        // Only draw dashed relationship line if head is detached from parent tail
         if (Math.hypot(ptx - childTf.x, pty - childTf.y) > 4) {
           return (
             <line
@@ -142,6 +380,8 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
         if (!tf) return null
         const isSelected = bone.id === boneId
         const isDragging = activeDrag === bone.id || chainIds.includes(bone.id)
+        const isHovered = hoveredBoneId === bone.id
+        const showLabel = editing || isSelected || isDragging || isHovered
         const angle = bone.angle + tf.rotation
         const rad = (angle * Math.PI) / 180
         const ux = Math.cos(rad)
@@ -155,7 +395,6 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
         const tx = hx + ux * L
         const ty = hy + uy * L
 
-        // Octahedral waist point (around 20% down bone length)
         const waistFraction = 0.22
         const waistW = Math.max(6, Math.min(20, L * 0.16))
         const wx = hx + ux * (L * waistFraction)
@@ -169,6 +408,8 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
           <g
             key={bone.id}
             className={`lw-blender-bone ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''}`}
+            onPointerEnter={() => setHoveredBoneId(bone.id)}
+            onPointerLeave={() => setHoveredBoneId((prev) => (prev === bone.id ? null : prev))}
           >
             {/* Invisible forgiving hitbox line along the bone body for easy grabbing */}
             <line
@@ -189,7 +430,11 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
               className="lw-bone-facet lw-bone-facet-top"
               onPointerDown={(e) => handlePointerDown(e, bone.id, editing ? 'head' : 'rotate')}
             >
-              <title>{`${bone.name} (${editing ? 'Chế độ tạo xương' : 'Chế độ Animation'})`}</title>
+              <title>
+                {editing
+                  ? `${bone.name} (Chế độ tạo xương)`
+                  : `${bone.name} · Chuột trái: chỉnh xương (nhấn Enter ⏎ để chốt) · Giữ Shift + Chuột trái: ghi động tác Realtime`}
+              </title>
             </polygon>
 
             {/* Shaded Bottom Half of Octahedral Bone */}
@@ -220,7 +465,11 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
               className={`lw-bone-tail-joint${!editing && assist.ik ? ' ik' : ''}`}
               onPointerDown={(e) => handlePointerDown(e, bone.id, tailMode(e))}
             >
-              <title>{editing ? 'Kéo để đổi hướng và chiều dài xương' : assist.ik ? `IK: kéo ngọn, ${assist.ikChain} xương trong chuỗi xoay theo (Ctrl = chỉ xoay xương này)` : 'Kéo để xoay xương (Ctrl = IK)'}</title>
+              <title>
+                {editing
+                  ? 'Kéo để đổi hướng và chiều dài xương'
+                  : 'Kéo ngọn: xoay IK · Giữ Shift + Kéo: ghi động tác Realtime · Sau khi chỉnh nhấn Enter ⏎ để chốt vị trí'}
+              </title>
             </circle>
 
             {/* Invisible forgiving hitbox for Head Joint (Pivot) */}
@@ -241,39 +490,41 @@ export function WorkshopBoneOverlay({ composite, boneId, selectBone, setComposit
               className="lw-bone-head-joint"
               onPointerDown={(e) => handlePointerDown(e, bone.id, 'head')}
             >
-              <title>Khớp gốc (Pivot): Kéo để dời vị trí</title>
+              <title>Khớp gốc (Pivot): Kéo để dời vị trí (Giữ Shift + Kéo để ghi dời vị trí Realtime)</title>
             </circle>
 
-            {/* Bone Label */}
-            <text x={wx + nx * (waistW + 8)} y={wy + ny * (waistW + 8)} className="lw-bone-name">
-              {bone.name}
-            </text>
+            {/* Bone Label — chỉ hiện cho xương đang chọn/hover/kéo khi ở tab Animation để không che khuất nhân vật */}
+            {showLabel && (
+              <text x={wx + nx * (waistW + 8)} y={wy + ny * (waistW + 8)} className="lw-bone-name">
+                {bone.name}
+              </text>
+            )}
           </g>
         )
       })}
 
       {/* Live Dragging Tooltip HUD Badge */}
       {dragAngle && (() => {
-        const badgeW = Math.max(76, dragAngle.text.length * 8 + 18)
+        const badgeW = Math.max(92, dragAngle.text.length * 7.2 + 22)
         return (
-          <g transform={`translate(${dragAngle.x + 14}, ${dragAngle.y - 12})`} pointerEvents="none">
+          <g transform={`translate(${dragAngle.x + 14}, ${dragAngle.y - 14})`} pointerEvents="none">
             <rect
               x={-6}
-              y={-14}
+              y={-15}
               width={badgeW}
-              height={20}
-              rx={5}
+              height={22}
+              rx={6}
               fill="var(--bg-1)"
-              stroke="var(--accent-cyan)"
-              strokeWidth={1.2}
+              stroke={dragAngle.isLive ? 'var(--key)' : 'var(--accent-cyan)'}
+              strokeWidth={1.5}
             />
             <text
               x={(badgeW - 12) / 2}
               y={0}
               textAnchor="middle"
-              fill="var(--text)"
+              fill={dragAngle.isLive ? 'var(--key)' : 'var(--text)'}
               fontSize={11}
-              fontWeight={600}
+              fontWeight={700}
               fontFamily="system-ui, sans-serif"
             >
               {dragAngle.text}

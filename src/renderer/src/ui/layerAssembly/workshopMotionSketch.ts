@@ -290,7 +290,15 @@ export function sketchToRigActions(rig: LayerRig, tracks: Record<string, KeyPatc
     if (!keys.length) continue
     const from = keys[0].time
     const to = keys[keys.length - 1].time
-    for (const k of rig.tracks[boneId] ?? []) {
+    const existing = rig.tracks[boneId] ?? []
+    if (from > 0.01 && !existing.some((k) => k.time < from - 1e-4)) {
+      ops.push({
+        action: 'set-key',
+        boneId,
+        key: { time: 0, x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, easing: 'linear' }
+      })
+    }
+    for (const k of existing) {
       if (k.time > from && k.time <= to + 1e-4 && !keys.some((n) => sameKeyTime(n.time, k.time))) ops.push({ action: 'delete-key', boneId, time: k.time })
     }
     for (const key of keys) ops.push({ action: 'set-key', boneId, key })
