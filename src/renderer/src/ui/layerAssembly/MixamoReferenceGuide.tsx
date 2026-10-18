@@ -210,7 +210,8 @@ export function MixamoBodyReferenceGuide() {
 
   return (
     <div
-      className="lw-mixamo-reference-guide"
+      className="lw-mixamo-reference-guide mx-reference-guide"
+      data-mcp-region="layer_assembly_mixamo_guide"
       style={{
         width: '132px',
         flexShrink: 0,

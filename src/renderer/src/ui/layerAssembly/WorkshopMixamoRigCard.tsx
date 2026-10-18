@@ -85,8 +85,9 @@ export function WorkshopMixamoRigCard({ composite, run }: WorkshopMixamoRigCardP
       <div className="lw-mx-card-head">
         <span className="lw-mx-card-title"><IconBone width={14} height={14} /> Gắn điểm Mixamo <span className="lw-count">12 điểm</span></span>
         <button type="button" className="lw-btn sm" onClick={() => setIsStudioOpen(true)}
-          title="Mở cửa sổ lớn Studio Mixamo để đặt 12 điểm khớp (Cằm, Vai, Khuỷu, Cổ tay, Háng, Gối, Cổ chân) và xem thử chuyển động">
-          <IconFitWidth width={12} height={12} /> Mở Studio
+          title="Mở Studio Mixamo toàn màn hình (12 vòng mốc, góc nhìn & động tác mẫu)"
+          aria-label="Studio Mixamo">
+          <IconFitWidth width={12} height={12} /> Studio Mixamo
         </button>
       </div>
 

@@ -30,7 +30,7 @@ export interface MixamoStudioSidebarProps {
 
 function AnglePicker({ angle, onAngle }: Pick<MixamoStudioSidebarProps, 'angle' | 'onAngle'>) {
   return (
-    <section className="mx-card">
+    <section className="mx-card" data-mcp-region="layer_assembly_mixamo_angles">
       <header className="mx-card-head">
         <span className="mx-card-title"><IconCamera width={13} height={13} /> Góc nhìn nhân vật</span>
         <span className="mx-card-hint">Tự đổi biên độ sải tay & chân</span>
@@ -50,7 +50,7 @@ function AnglePicker({ angle, onAngle }: Pick<MixamoStudioSidebarProps, 'angle' 
 
 function PresetPicker({ preset, onPreset }: Pick<MixamoStudioSidebarProps, 'preset' | 'onPreset'>) {
   return (
-    <section className="mx-card mx-card-grow">
+    <section className="mx-card mx-card-grow" data-mcp-region="layer_assembly_mixamo_presets">
       <header className="mx-card-head">
         <span className="mx-card-title"><IconPlay width={12} height={12} /> Thư viện động tác</span>
         <span className="mx-card-hint">{MOTION_PRESETS.length} mẫu chuẩn</span>
@@ -81,7 +81,7 @@ function ClipSettings(props: MixamoStudioSidebarProps) {
   const nameId = useId()
   const durationId = useId()
   return (
-    <section className="mx-card">
+    <section className="mx-card" data-mcp-region="layer_assembly_mixamo_settings">
       <header className="mx-card-head">
         <span className="mx-card-title"><IconSettings width={13} height={13} /> Thông số clip</span>
       </header>
@@ -108,7 +108,7 @@ function ClipSettings(props: MixamoStudioSidebarProps) {
 export function MixamoStudioSidebar(props: MixamoStudioSidebarProps) {
   return (
     <aside className="mx-side" data-mcp-region="layer_assembly_mixamo_sidebar" aria-label="Xem thử và chọn động tác">
-      <div className="mx-preview-card">
+      <div className="mx-preview-card" data-mcp-region="layer_assembly_mixamo_preview">
         <MixamoMannequinPreview preset={props.preset} viewAngle={props.angle} duration={props.duration} customBones={props.previewBones} height={190} />
       </div>
       <AnglePicker angle={props.angle} onAngle={props.onAngle} />

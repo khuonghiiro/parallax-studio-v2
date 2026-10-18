@@ -180,7 +180,7 @@ export function WorkshopNewMotionModal({
     <div className="mx-backdrop lw-new-motion-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="lw-mixamo-motion-modal mx-modal" role="dialog" aria-modal="true" aria-label="Studio Mixamo 2.5D"
         data-mcp-region="layer_assembly_mixamo_studio" data-mcp-dialog>
-        <header className="mx-header">
+        <header className="mx-header" data-mcp-region="layer_assembly_mixamo_header">
           <span className="mx-header-icon"><IconBone width={18} height={18} /></span>
           <div className="mx-header-text">
             <h2>Studio Mixamo 2.5D</h2>
@@ -211,7 +211,7 @@ export function WorkshopNewMotionModal({
             onAutoBindSoft={setAutoBindSoft}
           />
         </div>
-        <footer className="mx-footer">
+        <footer className="mx-footer" data-mcp-region="layer_assembly_mixamo_footer">
           <button type="button" className="lw-btn" onClick={onClose}>Huỷ</button>
           <div className="mx-footer-actions">
             {bones.length > 0 && onApplyMixamoRigMotion && (

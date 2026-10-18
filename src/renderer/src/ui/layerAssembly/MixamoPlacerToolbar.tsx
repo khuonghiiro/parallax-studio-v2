@@ -28,7 +28,7 @@ export interface MixamoPlacerToolbarProps {
 /** Thanh công cụ của sân khấu đặt vòng mốc: tự khớp, tỉ lệ khung xương, tuỳ chọn hiển thị. */
 export function MixamoPlacerToolbar(p: MixamoPlacerToolbarProps) {
   return (
-    <div className={`mx-placer-toolbar${p.compact ? ' compact' : ''}`}>
+    <div className={`mx-placer-toolbar${p.compact ? ' compact' : ''}`} data-mcp-region="layer_assembly_mixamo_toolbar">
       <div className="mx-placer-row">
         <button type="button" className="lw-btn sm primary" onClick={p.onAutoFit} title="Tự động đo kích thước layer nhân vật để đặt 12 vòng mốc vừa khít">
           <IconWand width={12} height={12} /> Tự khớp

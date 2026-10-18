@@ -311,6 +311,8 @@ export function MixamoLandmarkPlacer({
 
         {/* Sân khấu nhân vật trung tâm — hoàn toàn sạch, không có chữ hay thanh trạng thái đè lên nhân vật */}
         <div
+          className="mx-character-stage"
+          data-mcp-region="layer_assembly_mixamo_canvas"
           style={{
             position: 'relative',
             flex: 1,
@@ -540,6 +542,8 @@ export function MixamoLandmarkPlacer({
 
       {/* Thanh thông tin & vi chỉnh toạ độ nằm BÊN DƯỚI sân khấu (tuyệt đối không đè lên nhân vật) */}
       <div
+        className="mx-placer-coords"
+        data-mcp-region="layer_assembly_mixamo_coords"
         style={{
           display: 'flex',
           flexWrap: 'wrap',

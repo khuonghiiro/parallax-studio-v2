@@ -40,30 +40,131 @@ const nextPaint = (): Promise<void> =>
 
 export interface UiCandidate {
   text: string
+  title?: string
+  ariaLabel?: string
+  placeholder?: string
+  region?: string
   visible: boolean
 }
 
 /**
- * Pick the element whose visible text matches `query` (case-insensitive).
- * Exact matches win over partial ones; `index` selects among equal matches.
- * Returns -1 when nothing matches.
+ * Chuẩn hóa chuỗi văn bản UI để so khớp:
+ * - Thay thế dấu 3 chấm unicode … (\u2026) thành 3 dấu chấm ascii ...
+ * - Lược bỏ biểu tượng cảm xúc (emojis) ở đầu/cuối nút (🎯, 🪞, 🦴, 📖, ✨, v.v.)
+ * - Gom khoảng trắng, chuyển về chữ thường
+ */
+export function normalizeUiText(raw: string): string {
+  if (!raw) return ''
+  return raw
+    .replace(/\u2026/g, '...')
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F2FF}]/gu, ' ')
+    .replace(/[·•|/\-_]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+}
+
+/**
+ * Từ điển đồng nghĩa / ánh xạ tiêu đề & nhãn nút bấm phổ biến.
+ * Giúp AI gọi tên gần đúng (VD: "Studio Mixamo", "Tự phân nhóm", "Thay thế...") vẫn tìm trúng phần tử.
+ */
+export const UI_TEXT_SYNONYMS: Record<string, string[]> = {
+  // Studio Mixamo & Tạo xương
+  'studio mixamo': ['mở studio', 'mở studio mixamo', 'studio mixamo 2.5d', 'mixamo', 'gắn điểm mixamo', 'khung xương mixamo'],
+  'mở studio': ['studio mixamo', 'mở studio mixamo'],
+  'mở studio mixamo': ['studio mixamo', 'mở studio'],
+  'đóng studio mixamo': ['đóng', 'x', 'huỷ', 'close'],
+  'gắn điểm mixamo': ['gắn xương mixamo', 'tạo xương mixamo', 'khung xương mixamo', 'gắn điểm'],
+  'gắn xương & áp động tác': ['áp động tác', 'gắn xương', 'áp dụng động tác', 'gắn xương và áp động tác'],
+  'gắn xương + nạp 7 động tác': ['nạp 7 động tác', 'gắn xương và nạp 7 động tác', 'nạp 7 động tác mẫu'],
+  'chỉ thêm động tác': ['thêm động tác', 'tạo clip mới', 'thêm clip'],
+  'tự khớp': ['tự khớp nhân vật', 'tự căn chỉnh', 'khớp nhân vật', 'auto fit'],
+  'tự khớp nhân vật': ['tự khớp', 'tự căn chỉnh', 'khớp nhân vật'],
+  'đối xứng': ['đối xứng hai bên', 'symmetry'],
+  'nối xương': ['hiện xương', 'đường nối xương'],
+  'sơ đồ mẫu': ['sơ đồ 7 nhóm khớp', 'hình mẫu'],
+
+  // Bộ phận & Khe biến thể
+  'thay thế': ['thay thế...', 'thay thế…', 'thay ảnh tại chỗ', 'đổi ảnh', 'đổi ảnh bộ phận…'],
+  'thay thế...': ['thay thế', 'thay thế…', 'đổi ảnh bộ phận…'],
+  'thay thế…': ['thay thế', 'thay thế...', 'đổi ảnh bộ phận…'],
+  'tự nhận diện': ['tự phân nhóm', 'tự nhận diện bộ phận', 'nhận diện tự động', 'phân nhóm tự động'],
+  'tự phân nhóm': ['tự nhận diện', 'tự nhận diện bộ phận', 'nhận diện tự động', 'phân nhóm tự động'],
+  'thêm biến thể': ['+ thêm', 'thêm', 'thêm làm biến thể mới'],
+  '+ thêm': ['thêm biến thể', 'thêm', 'thêm làm biến thể mới'],
+  'liên kết': ['khoá liên kết', 'liên kết bộ phận', 'đang liên kết'],
+  'bộ phận': ['nhóm bộ phận', 'bộ phận & biến thể', 'bộ phận & thay thế'],
+
+  // Xưởng & Tab
+  'tạo xương': ['bones', 'khung xương', 'xương'],
+  'animation': ['hoạt ảnh', 'chuyển động', 'diễn hoạt'],
+  'thực vật': ['plant', 'cây cối', 'uốn thân cây', 'khớp uốn'],
+  'xếp lớp': ['layers', 'danh sách layer', 'lớp'],
+  'tạo lắp ráp': ['mở xưởng', 'xưởng lắp ráp', 'tạo mới lắp ráp']
+}
+
+/**
+ * Chọn phần tử khớp văn bản (case-insensitive + hỗ trợ chuẩn hóa & từ điển đồng nghĩa).
+ * Exact matches > Prefix/Suffix matches > Substring matches; `index` chọn thứ tự khi có nhiều kết quả.
  */
 export function pickByText(candidates: UiCandidate[], query: string, index = 0): number {
-  const q = query.trim().toLowerCase()
-  if (!q) return -1
-  const norm = candidates.map((c) => c.text.replace(/\s+/g, ' ').trim().toLowerCase())
+  const cleanQ = normalizeUiText(query)
+  if (!cleanQ) return -1
+
+  // Tập hợp các biến thể truy vấn (từ điển đồng nghĩa)
+  const synonyms = UI_TEXT_SYNONYMS[cleanQ] ?? []
+  const queries = [cleanQ, ...synonyms.map(normalizeUiText).filter(Boolean)]
+
   const exact: number[] = []
+  const affix: number[] = []
   const partial: number[] = []
-  norm.forEach((t, i) => {
-    if (!candidates[i].visible) return
-    if (t === q) exact.push(i)
-    else if (t.includes(q)) partial.push(i)
+
+  candidates.forEach((c, i) => {
+    if (!c.visible) return
+
+    // Tập hợp toàn bộ nhãn của phần tử
+    const labels = [
+      c.text,
+      c.ariaLabel,
+      c.title,
+      c.placeholder,
+      c.region
+    ]
+      .filter((v): v is string => Boolean(v))
+      .map(normalizeUiText)
+      .filter(Boolean)
+
+    if (!labels.length) return
+
+    let matchedExact = false
+    let matchedAffix = false
+    let matchedPartial = false
+
+    for (const q of queries) {
+      for (const lbl of labels) {
+        if (lbl === q) {
+          matchedExact = true
+          break
+        }
+        if (lbl.startsWith(q) || lbl.endsWith(q) || q.startsWith(lbl) || q.endsWith(lbl)) {
+          matchedAffix = true
+        } else if (lbl.includes(q) || q.includes(lbl)) {
+          matchedPartial = true
+        }
+      }
+      if (matchedExact) break
+    }
+
+    if (matchedExact) exact.push(i)
+    else if (matchedAffix) affix.push(i)
+    else if (matchedPartial) partial.push(i)
   })
-  const pool = exact.length > 0 ? exact : partial
+
+  const pool = exact.length > 0 ? exact : affix.length > 0 ? affix : partial
   return pool[Math.max(0, Math.min(pool.length - 1, index))] ?? -1
 }
 
-const CLICKABLE = 'button, [role="button"], [role="tab"], [role="menuitem"], a, summary, label, .c3d-card'
+const CLICKABLE = 'button, [role="button"], [role="tab"], [role="menuitem"], a, summary, label, .c3d-card, [data-mcp-region]'
 
 function findTarget(p: Params): HTMLElement {
   const selector = str(p, 'selector')
@@ -77,8 +178,12 @@ function findTarget(p: Params): HTMLElement {
   }
   const scope = selector ? Array.from(document.querySelectorAll<HTMLElement>(selector)) : null
   const pool = scope ?? Array.from(document.querySelectorAll<HTMLElement>(CLICKABLE))
-  const candidates = pool.map((el) => ({
-    text: el.innerText || el.getAttribute('aria-label') || el.title || '',
+  const candidates: UiCandidate[] = pool.map((el) => ({
+    text: el.innerText || '',
+    ariaLabel: el.getAttribute('aria-label') || undefined,
+    title: el.getAttribute('title') || undefined,
+    placeholder: el.getAttribute('placeholder') || undefined,
+    region: el.getAttribute('data-mcp-region') || undefined,
     visible: isVisible(el)
   }))
   const i = pickByText(candidates, text!, index)
@@ -228,8 +333,44 @@ export const uiCommands: Record<string, Handler> = {
   },
 
   ui_type: async (p) => {
-    const el = findTarget({ ...p, text: undefined }) as HTMLInputElement
-    if (!('value' in el)) throw new Error('Target is not an input/textarea')
+    let el: HTMLInputElement | HTMLTextAreaElement | null = null
+    const selector = str(p, 'selector')
+    const query = str(p, 'text') || str(p, 'label') || str(p, 'placeholder') || str(p, 'name')
+
+    if (selector) {
+      el = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(selector)
+    }
+
+    if (!el && query) {
+      // 1. Thử tìm input trực tiếp theo placeholder, aria-label, name hoặc id
+      const direct = Array.from(document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+        'input, textarea'
+      )).find((inp) => {
+        if (!isVisible(inp)) return false
+        const attrs = [inp.placeholder, inp.getAttribute('aria-label'), inp.name, inp.id].filter(Boolean)
+        return attrs.some((a) => normalizeUiText(a!).includes(normalizeUiText(query)))
+      })
+      if (direct) {
+        el = direct
+      } else {
+        // 2. Tìm thẻ label hoặc container trường nhập chứa văn bản query
+        const labels = Array.from(document.querySelectorAll<HTMLElement>('label, .mx-field, .lw-field')).filter(isVisible)
+        const cands = labels.map((l) => ({ text: l.innerText || l.title || '', visible: true }))
+        const idx = pickByText(cands, query)
+        if (idx >= 0) {
+          const parent = labels[idx]
+          const inp = parent.querySelector<HTMLInputElement | HTMLTextAreaElement>('input, textarea') ||
+            (parent.getAttribute('for') ? document.getElementById(parent.getAttribute('for')!) as HTMLInputElement : null)
+          if (inp && isVisible(inp)) el = inp
+        }
+      }
+    }
+
+    if (!el) {
+      el = findTarget(p) as HTMLInputElement
+    }
+
+    if (!el || !('value' in el)) throw new Error(`Target is not a visible input/textarea: "${selector || query || ''}"`)
     const value = str(p, 'value') ?? ''
     const proto = Object.getPrototypeOf(el) as object
     const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set
@@ -237,7 +378,7 @@ export const uiCommands: Record<string, Handler> = {
     el.dispatchEvent(new Event('input', { bubbles: true }))
     el.dispatchEvent(new Event('change', { bubbles: true }))
     await nextPaint()
-    return { ok: true, value }
+    return { ok: true, value, tag: el.tagName.toLowerCase(), name: el.name || el.id || el.placeholder || undefined }
   },
 
   get_ui_state: () => {

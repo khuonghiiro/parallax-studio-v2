@@ -122,8 +122,18 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   layer_assembly_rig_panel: region('layer_assembly_rig_panel', '.lw-rig-panel'),
   layer_assembly_mixamo_card: region('layer_assembly_mixamo_card', '.lw-mixamo-card'),
   layer_assembly_mixamo_studio: region('layer_assembly_mixamo_studio', '.lw-mixamo-motion-modal'),
+  layer_assembly_mixamo_header: region('layer_assembly_mixamo_header', '.mx-header'),
   layer_assembly_mixamo_stage: region('layer_assembly_mixamo_stage', '.mx-stage'),
+  layer_assembly_mixamo_toolbar: region('layer_assembly_mixamo_toolbar', '.mx-placer-toolbar'),
+  layer_assembly_mixamo_canvas: region('layer_assembly_mixamo_canvas', '.mx-character-stage'),
+  layer_assembly_mixamo_coords: region('layer_assembly_mixamo_coords', '.mx-placer-coords'),
+  layer_assembly_mixamo_guide: region('layer_assembly_mixamo_guide', '.lw-mixamo-reference-guide', '.mx-reference-guide'),
   layer_assembly_mixamo_sidebar: region('layer_assembly_mixamo_sidebar', '.mx-side'),
+  layer_assembly_mixamo_preview: region('layer_assembly_mixamo_preview', '.mx-preview-card'),
+  layer_assembly_mixamo_angles: region('layer_assembly_mixamo_angles', '.mx-card:has(.mx-angle-grid)', '.mx-angle-grid'),
+  layer_assembly_mixamo_presets: region('layer_assembly_mixamo_presets', '.mx-card:has(.mx-preset-grid)', '.mx-preset-grid'),
+  layer_assembly_mixamo_settings: region('layer_assembly_mixamo_settings', '.mx-card:has(.mx-form-grid)', '.mx-form-grid'),
+  layer_assembly_mixamo_footer: region('layer_assembly_mixamo_footer', '.mx-footer'),
   layer_assembly_animation_panel: region('layer_assembly_animation_panel'),
   layer_assembly_retarget: region('layer_assembly_retarget'),
   layer_assembly_create: region('layer_assembly_create'),
@@ -226,18 +236,38 @@ function firstVisible(sel: string): HTMLElement | null {
   }
 }
 
+export const REGION_ALIASES: Record<string, string> = {
+  mixamo: 'layer_assembly_mixamo_studio',
+  mixamo_studio: 'layer_assembly_mixamo_studio',
+  mixamo_header: 'layer_assembly_mixamo_header',
+  mixamo_stage: 'layer_assembly_mixamo_stage',
+  mixamo_toolbar: 'layer_assembly_mixamo_toolbar',
+  mixamo_canvas: 'layer_assembly_mixamo_canvas',
+  mixamo_coords: 'layer_assembly_mixamo_coords',
+  mixamo_guide: 'layer_assembly_mixamo_guide',
+  mixamo_sidebar: 'layer_assembly_mixamo_sidebar',
+  mixamo_preview: 'layer_assembly_mixamo_preview',
+  mixamo_angles: 'layer_assembly_mixamo_angles',
+  mixamo_presets: 'layer_assembly_mixamo_presets',
+  mixamo_settings: 'layer_assembly_mixamo_settings',
+  mixamo_footer: 'layer_assembly_mixamo_footer',
+  parts: 'layer_assembly_parts',
+  swap: 'layer_assembly_swap'
+}
+
 export function resolveTargetElement(regionName?: string, selector?: string): HTMLElement | null {
   if (selector) {
     const el = firstVisible(selector)
     if (el) return el
   }
   if (!regionName || regionName === 'window') return null
-  if (regionName === ACTIVE_REGION || regionName === 'dialog') {
+  const targetRegion = REGION_ALIASES[regionName] || regionName
+  if (targetRegion === ACTIVE_REGION || targetRegion === 'dialog') {
     const top = findActiveDialog()
     if (top) return top
   }
-  const candidates = UI_REGION_SELECTORS[regionName] || [`.${regionName}`, `#${regionName}`]
-  for (const sel of [...candidates, `[data-mcp-region="${regionName}"]`]) {
+  const candidates = UI_REGION_SELECTORS[targetRegion] || [`.${targetRegion}`, `#${targetRegion}`]
+  for (const sel of [...candidates, `[data-mcp-region="${targetRegion}"]`]) {
     const el = firstVisible(sel)
     if (el) return el
   }

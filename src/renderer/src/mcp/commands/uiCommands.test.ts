@@ -138,6 +138,64 @@ describe('get_app_screenshot', () => {
       left_tab: 'shots'
     })
   })
+
+  it('normalizes typographic ellipsis, emojis, and whitespace in text queries', () => {
+    const list = [
+      { text: 'Thay thế…', visible: true },
+      { text: '🎯 Tự khớp nhân vật', visible: true },
+      { text: 'Tự nhận diện', visible: true },
+      { text: '+ Thêm', visible: true },
+      { text: 'Mở Studio', title: 'Mở Studio Mixamo toàn màn hình', visible: true }
+    ]
+
+    // Typographic ellipsis … matched by ascii ...
+    expect(pickByText(list, 'Thay thế...')).toBe(0)
+    expect(pickByText(list, 'thay thế')).toBe(0)
+
+    // Emoji stripped
+    expect(pickByText(list, 'Tự khớp')).toBe(1)
+    expect(pickByText(list, 'Tự khớp nhân vật')).toBe(1)
+    expect(pickByText(list, '🎯 Tự khớp')).toBe(1)
+
+    // Synonyms
+    expect(pickByText(list, 'Tự phân nhóm')).toBe(2)
+    expect(pickByText(list, 'Thêm biến thể')).toBe(3)
+    expect(pickByText(list, 'Studio Mixamo')).toBe(4)
+  })
+
+  it('matches element attributes (title, aria-label, placeholder) alongside innerText', () => {
+    const list = [
+      { text: '', title: 'Đóng Studio Mixamo', visible: true },
+      { text: '', ariaLabel: 'Góc nhìn nhân vật', visible: true },
+      { text: '', placeholder: 'VD: face, mouth', visible: true }
+    ]
+
+    expect(pickByText(list, 'Đóng Studio Mixamo')).toBe(0)
+    expect(pickByText(list, 'Góc nhìn')).toBe(1)
+    expect(pickByText(list, 'face, mouth')).toBe(2)
+  })
+
+  it('resolves Studio Mixamo sub-regions and aliases', () => {
+    const rect = () => ({ x: 0, y: 0, width: 400, height: 400, left: 0, top: 0, right: 400, bottom: 400 })
+    const mockStage = { className: 'mx-stage', getBoundingClientRect: rect } as unknown as HTMLElement
+    const mockPreview = { className: 'mx-preview-card', getBoundingClientRect: rect } as unknown as HTMLElement
+    vi.stubGlobal('document', {
+      querySelector: (sel: string) => {
+        if (sel.includes('layer_assembly_mixamo_stage') || sel === '.mx-stage') return mockStage
+        if (sel.includes('layer_assembly_mixamo_preview') || sel === '.mx-preview-card') return mockPreview
+        return null
+      }
+    })
+    vi.stubGlobal('getComputedStyle', () => ({ visibility: 'visible' }))
+
+    // Canonical names
+    expect(resolveTargetElement('layer_assembly_mixamo_stage')).toBe(mockStage)
+    expect(resolveTargetElement('layer_assembly_mixamo_preview')).toBe(mockPreview)
+
+    // Short aliases
+    expect(resolveTargetElement('mixamo_stage')).toBe(mockStage)
+    expect(resolveTargetElement('mixamo_preview')).toBe(mockPreview)
+  })
 })
 
 
