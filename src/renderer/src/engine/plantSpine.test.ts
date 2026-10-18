@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { PlantSpine } from '@shared/plantSpine'
-import { deformPlantSpines, evaluatePlantSpine, plantBendAngle, resamplePolyline, spinesForLayer } from './plantSpine'
+import {
+  deformPlantSpines,
+  evaluatePlantSpine,
+  plantBendAngle,
+  plantTipTransformToward,
+  resamplePolyline,
+  spinesForLayer
+} from './plantSpine'
 
 const spine = (patch: Partial<PlantSpine> = {}): PlantSpine => ({
   id: 's1',
@@ -328,5 +335,44 @@ describe('plantSpine engine', () => {
       expect(Math.hypot(dx, dy)).toBeCloseTo(0, 5)
     }
   })
+
+  it('supports vertical bobbing (squash & stretch) up and down along the stem', () => {
+    const s = spine({ verticalBob: 0.25 })
+    // Tại t=0: nghỉ
+    const frame0 = evaluatePlantSpine(s, 0)
+    expect(frame0.bent[frame0.bent.length - 1].y).toBeCloseTo(-100, 3)
+
+    // Khảo sát các thời điểm trong chu kỳ: phải có lúc dãn cao lên (y < -100) và nén lùn xuống (y > -100)
+    let minTipY = Infinity
+    let maxTipY = -Infinity
+    for (let step = 0; step < 20; step++) {
+      const f = evaluatePlantSpine(s, step * 0.05)
+      const tipY = f.bent[f.bent.length - 1].y
+      if (tipY < minTipY) minTipY = tipY
+      if (tipY > maxTipY) maxTipY = tipY
+    }
+    // minTipY vươn lên cao hơn -100 (tức y âm hơn)
+    expect(minTipY).toBeLessThan(-105)
+    // maxTipY nhún thấp xuống (y > -100)
+    expect(maxTipY).toBeGreaterThan(-95)
+  })
+
+  it('computes both rotation angle and vertical stretch with plantTipTransformToward', () => {
+    const s = spine()
+    // Kéo thẳng lên trên (kéo dài thêm 50px so với chiều dài nghỉ 200px)
+    const stretchUp = plantTipTransformToward(s, { x: 0, y: -150 })
+    expect(stretchUp.angle).toBeCloseTo(0, 2)
+    expect(stretchUp.stretch).toBeGreaterThan(0.2) // dãn dài lên
+
+    // Kéo thẳng xuống dưới (nén lùn 40px)
+    const squashDown = plantTipTransformToward(s, { x: 0, y: -60 })
+    expect(squashDown.angle).toBeCloseTo(0, 2)
+    expect(squashDown.stretch).toBeLessThan(-0.15) // nén lùn xuống
+
+    // Kéo vòng cung sang phải
+    const arcRight = plantTipTransformToward(s, { x: 60, y: -100 })
+    expect(arcRight.angle).toBeGreaterThan(10) // xoay vòng cung
+  })
 })
+
 

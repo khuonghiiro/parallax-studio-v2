@@ -1,6 +1,6 @@
 import type { PlantSpine, PlantSpinePoint } from '@shared/plantSpine'
 import type { SkinBinding } from './layerSkinning'
-import { samplePlantMotion } from './plantMotion'
+import { samplePlantMotion, samplePlantMotionStretch } from './plantMotion'
 import { computeMeshCorridor } from './meshCorridor'
 
 /** Số mẫu chia đều theo chiều dài xương — đủ mượt cho uốn cong mà vẫn rẻ mỗi khung hình. */
@@ -13,6 +13,8 @@ interface SpineFrame {
   bent: PlantSpinePoint[]
   /** Góc xoay tích luỹ (độ) tại từng mẫu. */
   rot: number[]
+  /** Hệ số co giãn dọc thân (-0.5..1) tại từng mẫu. */
+  stretch?: number[]
   length: number
 }
 
@@ -70,6 +72,39 @@ export function plantBendAngle(spine: PlantSpine, u: number, time: number): numb
   return envelope * (spine.amplitude * windWave(spine, u, t) + (spine.lean ?? 0))
 }
 
+/**
+ * Hệ số co giãn dọc thân (-0.5..1) tại vị trí u ∈ [0,1] ở thời điểm t.
+ * 0 = chiều dài tự nhiên, > 0 = dãn dài lên, < 0 = co nhún xuống.
+ */
+export function plantStretchFactor(spine: PlantSpine, u: number, time: number, bendAngle = 0): number {
+  const envelope = plantEnvelope(spine.stiffness, u)
+  const t = time + (spine.phaseOffset ?? 0)
+  const motion = spine.motion
+  if (motion && motion.keys.length) {
+    const local = t * (motion.speed ?? 1) - (motion.lag ?? 0) * u
+    const mix = Math.min(1, Math.max(0, motion.windMix ?? 0))
+    const sample = samplePlantMotionStretch(motion, local)
+    const wind = mix > 0 ? mix * windStretch(spine, u, t, bendAngle) : 0
+    return envelope * (sample + wind)
+  }
+  return envelope * windStretch(spine, u, t, bendAngle)
+}
+
+/** Sóng nhún lên xuống tự nhiên theo gió: 2nd harmonic của nhịp lắc + nhịp thở dọc. */
+function windStretch(spine: PlantSpine, u: number, t: number, bendAngle = 0): number {
+  const bob = spine.verticalBob ?? 0
+  if (Math.abs(bob) <= 1e-4) return 0
+  if (spine.amplitude === 0 && spine.motion === undefined) {
+    // Đang nắm tay kéo trực tiếp hoặc tư thế tĩnh: dùng trực tiếp giá trị kéo
+    return bob
+  }
+  const w = Math.PI * 2 * Math.max(0, spine.speed)
+  const rad = (bendAngle * Math.PI) / 180
+  const bendDip = -(1 - Math.cos(rad)) * 0.4
+  const bounce = Math.sin(2 * w * t) * 0.7 + Math.sin(w * 0.5 * t) * 0.3
+  return bob * (bounce + bendDip)
+}
+
 /** Sóng gió tự nhiên chuẩn hoá (≈ -1..1): nhịp chính + phất ngọn + gió giật. */
 function windWave(spine: PlantSpine, u: number, t: number): number {
   const w = Math.PI * 2 * Math.max(0, spine.speed)
@@ -92,16 +127,18 @@ function restSamples(spine: PlantSpine): PlantSpinePoint[] {
   return rest
 }
 
-/** Tích phân tiếp tuyến nghỉ đã xoay theo góc uốn từng mẫu → đường xương đã uốn. */
-function integrateBend(rest: PlantSpinePoint[], rot: number[]): PlantSpinePoint[] {
+/** Tích phân tiếp tuyến nghỉ đã xoay theo góc uốn từng mẫu và co dãn dọc → đường xương đã uốn. */
+function integrateBend(rest: PlantSpinePoint[], rot: number[], stretch?: number[]): PlantSpinePoint[] {
   const n = rest.length
   const bent: PlantSpinePoint[] = new Array(n)
   if (!n) return bent
   bent[0] = { ...rest[0] }
   for (let i = 1; i < n; i++) {
-    const avg = (rot[i - 1] + rot[i]) / 2
-    const d = rotate(rest[i].x - rest[i - 1].x, rest[i].y - rest[i - 1].y, avg)
-    bent[i] = { x: bent[i - 1].x + d.x, y: bent[i - 1].y + d.y }
+    const avgRot = (rot[i - 1] + rot[i]) / 2
+    const avgStretch = stretch ? (stretch[i - 1] + stretch[i]) / 2 : 0
+    const factor = Math.max(0.1, 1 + avgStretch)
+    const d = rotate(rest[i].x - rest[i - 1].x, rest[i].y - rest[i - 1].y, avgRot)
+    bent[i] = { x: bent[i - 1].x + d.x * factor, y: bent[i - 1].y + d.y * factor }
   }
   return bent
 }
@@ -110,18 +147,24 @@ export function evaluatePlantSpine(spine: PlantSpine, time: number): SpineFrame 
   const rest = restSamples(spine)
   const n = rest.length
   const rot: number[] = new Array(n)
+  const stretch: number[] = new Array(n)
   let length = 0
   for (let i = 1; i < n; i++) length += Math.hypot(rest[i].x - rest[i - 1].x, rest[i].y - rest[i - 1].y)
-  for (let i = 0; i < n; i++) rot[i] = n > 1 ? plantBendAngle(spine, i / (n - 1), time) : 0
-  return { rest, bent: integrateBend(rest, rot), rot, length }
+  for (let i = 0; i < n; i++) {
+    const u = n > 1 ? i / (n - 1) : 0
+    rot[i] = plantBendAngle(spine, u, time)
+    stretch[i] = plantStretchFactor(spine, u, time, rot[i])
+  }
+  return { rest, bent: integrateBend(rest, rot, stretch), rot, stretch, length }
 }
 
-/** Dáng uốn tĩnh khi góc uốn tại ngọn = tipAngle (độ): dùng cho tay nắm kéo ngọn và bóng biên độ. */
-export function plantStaticPose(spine: PlantSpine, tipAngle: number): PlantSpinePoint[] {
+/** Dáng uốn tĩnh khi góc uốn tại ngọn = tipAngle (độ) và co dãn dọc = tipStretch: dùng cho tay nắm kéo ngọn và bóng biên độ. */
+export function plantStaticPose(spine: PlantSpine, tipAngle: number, tipStretch = 0): PlantSpinePoint[] {
   const rest = restSamples(spine)
   const n = rest.length
   const rot = rest.map((_, i) => (n > 1 ? plantEnvelope(spine.stiffness, i / (n - 1)) * tipAngle : 0))
-  return integrateBend(rest, rot)
+  const stretch = rest.map((_, i) => (n > 1 ? plantEnvelope(spine.stiffness, i / (n - 1)) * tipStretch : 0))
+  return integrateBend(rest, rot, stretch)
 }
 
 const normDeg = (deg: number) => ((deg + 180) % 360 + 360) % 360 - 180
@@ -146,6 +189,21 @@ export function plantTipAngleToward(spine: PlantSpine, target: PlantSpinePoint):
   const delta = normDeg(angleOf(root, target) - angleOf(root, rest[rest.length - 1]))
   return delta / plantChordGain(spine)
 }
+
+/** Tính cả góc uốn ngọn (độ) và tỷ lệ co dãn dọc thân (lên xuống) khi kéo ngọn tới target. */
+export function plantTipTransformToward(spine: PlantSpine, target: PlantSpinePoint): { angle: number; stretch: number } {
+  const rest = restSamples(spine)
+  if (rest.length < 2) return { angle: 0, stretch: 0 }
+  const root = rest[0]
+  const restTip = rest[rest.length - 1]
+  const restChord = Math.hypot(restTip.x - root.x, restTip.y - root.y) || 1
+  const targetDist = Math.hypot(target.x - root.x, target.y - root.y)
+  const angle = plantTipAngleToward(spine, target)
+  const rawStretch = (targetDist - restChord) / restChord
+  const stretch = Math.max(-0.45, Math.min(0.65, rawStretch))
+  return { angle, stretch }
+}
+
 
 interface Projection {
   /** Chỉ số đoạn gần nhất. */
@@ -346,7 +404,7 @@ export function deformPlantSpines(
       const data = proj.perSpine[k]
       const o = i * STRIDE
       if (data[o] < 0) continue
-      const { rest, bent, rot: angles } = frames[k]
+      const { rest, bent, rot: angles, stretch: stretches } = frames[k]
       const seg = data[o]
       const t = data[o + 1]
       const tc = t < 0 ? 0 : t > 1 ? 1 : t
@@ -356,12 +414,17 @@ export function deformPlantSpines(
       let baseX = bent[seg].x + (bent[seg + 1].x - bent[seg].x) * tc
       let baseY = bent[seg].y + (bent[seg + 1].y - bent[seg].y) * tc
       if (t > 1) {
-        // Vượt quá ngọn (tán lá phía trên): kéo dài theo hướng ngọn đã xoay
-        const ext = rotate((b.x - a.x) * (t - 1), (b.y - a.y) * (t - 1), angle)
+        // Vượt quá ngọn (tán lá phía trên): kéo dài theo hướng ngọn đã xoay và dãn theo stretch ngọn
+        const tipStretch = stretches ? stretches[stretches.length - 1] : 0
+        const tipScale = Math.max(0.1, 1 + tipStretch)
+        const ext = rotate((b.x - a.x) * (t - 1) * tipScale, (b.y - a.y) * (t - 1) * tipScale, angle)
         baseX += ext.x
         baseY += ext.y
       }
-      const off = rotate(data[o + 2], data[o + 3], angle)
+      // Giữ thể tích squash & stretch: dãn dài thì hơi thắt bề ngang, nén lùn thì hơi phình ngang
+      const segStretch = stretches ? (stretches[seg] + stretches[Math.min(stretches.length - 1, seg + 1)]) / 2 : 0
+      const lateralScale = Math.max(0.4, Math.min(1.8, 1 - segStretch * 0.35))
+      const off = rotate(data[o + 2] * lateralScale, data[o + 3] * lateralScale, angle)
       const w = data[o + 4]
       dx += (baseX + off.x - wx) * w
       dy += (baseY + off.y - wy) * w

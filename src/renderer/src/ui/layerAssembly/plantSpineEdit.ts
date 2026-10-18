@@ -63,14 +63,24 @@ export function plantGrabHandle(points: PlantSpinePoint[], offset = 26): PlantSp
   return { x: tip.x + ((tip.x - prev.x) / len) * offset, y: tip.y + ((tip.y - prev.y) / len) * offset }
 }
 
-/** Ghi đè tạm thời khi đang nắm ngọn: cây uốn tĩnh đúng theo góc tay kéo (không sóng gió). */
-export function grabbedSpine(spine: PlantSpine, tipAngle: number): PlantSpine {
-  return { ...spine, amplitude: 0, lean: tipAngle, turbulence: 0, flexibility: 0, motion: undefined }
+/** Ghi đè tạm thời khi đang nắm ngọn: cây uốn tĩnh đúng theo góc tay kéo và độ co dãn dọc (không sóng gió). */
+export function grabbedSpine(spine: PlantSpine, tipAngle: number, tipStretch = 0): PlantSpine {
+  return {
+    ...spine,
+    amplitude: 0,
+    lean: tipAngle,
+    verticalBob: tipStretch,
+    turbulence: 0,
+    flexibility: 0,
+    motion: undefined
+  }
 }
 
 export interface SwaySample {
   /** Góc uốn tại ngọn (độ) do tay kéo. */
   angle: number
+  /** Hệ số co giãn dọc thân (-0.5..1) do tay kéo. */
+  stretch?: number
   /** Thời điểm (giây). */
   t: number
 }
@@ -102,30 +112,42 @@ function findReversals(samples: SwaySample[], hysteresis: number): number[] {
  * Học thông số đung đưa từ cử chỉ nắm ngọn:
  * - Kéo ra một phía rồi thả → biên độ = độ lệch xa nhất so với độ nghiêng hiện tại.
  * - Lắc qua lại ≥ 2 nhịp → biên độ = nửa khoảng lắc, độ nghiêng = tâm khoảng lắc, tốc độ = nhịp tay lắc.
+ * - Kéo lên/xuống (nhún dọc) → học độ nhún dọc verticalBob.
  */
 export function learnSwayFromGesture(
   samples: SwaySample[],
-  current: Pick<PlantSpine, 'amplitude' | 'lean' | 'speed'>
-): Partial<Pick<PlantSpine, 'amplitude' | 'lean' | 'speed'>> | null {
+  current: Pick<PlantSpine, 'amplitude' | 'lean' | 'speed'> & { verticalBob?: number }
+): Partial<Pick<PlantSpine, 'amplitude' | 'lean' | 'speed' | 'verticalBob'>> | null {
   if (samples.length < 2) return null
   const angles = samples.map((s) => s.angle)
   const min = Math.min(...angles)
   const max = Math.max(...angles)
-  if (max - min < 0.5) return null
+  const stretches = samples.map((s) => s.stretch ?? 0)
+  const stretchSpan = Math.max(...stretches) - Math.min(...stretches)
+
+  if (max - min < 0.5 && stretchSpan < 0.05) return null
   const reversals = findReversals(samples, 1.5)
+  let patch: Partial<Pick<PlantSpine, 'amplitude' | 'lean' | 'speed' | 'verticalBob'>> = {}
+
   if (reversals.length < 2) {
     const lean = current.lean ?? 0
     const reach = Math.max(Math.abs(max - lean), Math.abs(min - lean))
-    return { amplitude: round(clamp(reach, 0, PLANT_AMPLITUDE_MAX), 0.5) }
+    patch = { amplitude: round(clamp(reach, 0, PLANT_AMPLITUDE_MAX), 0.5) }
+  } else {
+    patch = {
+      amplitude: round(clamp((max - min) / 2, 0, PLANT_AMPLITUDE_MAX), 0.5),
+      lean: round(clamp((max + min) / 2, -PLANT_LEAN_MAX, PLANT_LEAN_MAX), 0.5)
+    }
+    const halfPeriod = (reversals[reversals.length - 1] - reversals[0]) / (reversals.length - 1)
+    if (halfPeriod > 0.02) patch.speed = round(clamp(1 / (2 * halfPeriod), 0.05, 3), 0.05)
   }
-  const patch: Partial<Pick<PlantSpine, 'amplitude' | 'lean' | 'speed'>> = {
-    amplitude: round(clamp((max - min) / 2, 0, PLANT_AMPLITUDE_MAX), 0.5),
-    lean: round(clamp((max + min) / 2, -PLANT_LEAN_MAX, PLANT_LEAN_MAX), 0.5)
+
+  if (stretchSpan >= 0.04) {
+    patch.verticalBob = round(clamp(stretchSpan / 2, 0, 0.6), 0.02)
   }
-  const halfPeriod = (reversals[reversals.length - 1] - reversals[0]) / (reversals.length - 1)
-  if (halfPeriod > 0.02) patch.speed = round(clamp(1 / (2 * halfPeriod), 0.05, 3), 0.05)
   return patch
 }
+
 
 /**
  * Chọn layer "dưới nét vẽ": mỗi mẫu dọc nét vẽ cho danh sách layer trúng; giữ layer chứa ≥ minRatio số mẫu.

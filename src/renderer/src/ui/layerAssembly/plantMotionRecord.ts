@@ -116,30 +116,62 @@ export function reducePlantKeys(keys: PlantMotionKey[], tolerance: number): Plan
 }
 
 /**
- * Dựng chuyển động vẽ tay từ mẫu góc-ngọn đã ghi. Trả về null khi cử chỉ quá ngắn hoặc gần như không chuyển động.
+ * Dựng chuyển động vẽ tay từ mẫu góc-ngọn đã ghi (cả uốn vòng cung lẫn nhún lên/xuống).
+ * Trả về null khi cử chỉ quá ngắn hoặc gần như không chuyển động.
  */
 export function buildPlantMotion(samples: SwaySample[], options: PlantRecordOptions): PlantSpineMotion | null {
   const clean = cleanSwaySamples(samples)
   if (clean.length < 2) return null
   const angles = clean.map((s) => s.angle)
-  if (Math.max(...angles) - Math.min(...angles) < 0.5) return null
+  const stretches = clean.map((s) => s.stretch ?? 0)
+  const angleSpan = Math.max(...angles) - Math.min(...angles)
+  const stretchSpan = Math.max(...stretches) - Math.min(...stretches)
+
+  if (angleSpan < 0.5 && stretchSpan < 0.04) return null
   if (clean[clean.length - 1].t - clean[0].t < 0.15) return null
+
   let values = smooth(resampleSway(clean))
   if (options.end === 'spring') values = [...values, ...springTail(values[values.length - 1], options.springHz)]
   values = closeLoop(values).map(clampAngle)
+
+  // Xử lý song song chuỗi mẫu độ nhún lên/xuống (nếu có)
+  const hasStretch = stretchSpan >= 0.02
+  let stretchValues: number[] | null = null
+  if (hasStretch) {
+    const rawStretchSamples: SwaySample[] = clean.map((s) => ({ angle: (s.stretch ?? 0) * 100, t: s.t }))
+    let sRes = smooth(resampleSway(rawStretchSamples))
+    if (options.end === 'spring') sRes = [...sRes, ...springTail(sRes[sRes.length - 1], (options.springHz ?? 1.2) * 1.5)]
+    stretchValues = closeLoop(sRes).map((v) => Math.max(-0.5, Math.min(0.8, v / 100)))
+  }
+
   // Mẫu cuối trùng mẫu đầu của chu kỳ sau → bỏ để vòng lặp liền mạch
   const body = values.slice(0, -1)
   const duration = Math.min(PLANT_MOTION_LIMITS.maxDuration, Math.max(PLANT_MOTION_LIMITS.minDuration, body.length / FPS))
-  const dense = body.map((angle, i) => ({ t: i / FPS, angle })).filter((k) => k.t < duration)
+  const dense = body
+    .map((angle, i) => ({
+      t: i / FPS,
+      angle,
+      stretch: stretchValues && i < stretchValues.length ? stretchValues[i] : undefined
+    }))
+    .filter((k) => k.t < duration)
+
   let tolerance = 0.25
   let keys = reducePlantKeys(dense, tolerance)
   while (keys.length > PLANT_MOTION_LIMITS.maxKeys) keys = reducePlantKeys(dense, (tolerance *= 1.6))
+
+  const maxRecordedBob = stretchValues ? Math.max(...stretchValues.map(Math.abs)) : 0
+
   return {
-    keys: keys.map((k) => ({ t: round(k.t, 3), angle: round(k.angle, 2) })),
+    keys: keys.map((k) => ({
+      t: round(k.t, 3),
+      angle: round(k.angle, 2),
+      ...(k.stretch !== undefined ? { stretch: round(k.stretch, 3) } : {})
+    })),
     duration: round(duration, 3),
     ...(options.keep?.speed !== undefined ? { speed: options.keep.speed } : {}),
     lag: options.keep?.lag ?? 0.08,
-    ...(options.keep?.windMix !== undefined ? { windMix: options.keep.windMix } : {})
+    ...(options.keep?.windMix !== undefined ? { windMix: options.keep.windMix } : {}),
+    ...(maxRecordedBob > 0.02 ? { verticalBob: round(maxRecordedBob, 2) } : {})
   }
 }
 
@@ -151,7 +183,14 @@ export function setPlantMotionKeyAngle(motion: PlantSpineMotion, index: number, 
 
 /** Phóng to / thu nhỏ biên độ toàn bộ bản ghi. */
 export function scalePlantMotion(motion: PlantSpineMotion, factor: number): PlantSpineMotion {
-  return { ...motion, keys: motion.keys.map((k) => ({ ...k, angle: round(clampAngle(k.angle * factor), 2) })) }
+  return {
+    ...motion,
+    keys: motion.keys.map((k) => ({
+      ...k,
+      angle: round(clampAngle(k.angle * factor), 2),
+      ...(k.stretch !== undefined ? { stretch: round(k.stretch * factor, 3) } : {})
+    }))
+  }
 }
 
 /** Lật chiều chuyển động (trái ↔ phải). */
@@ -169,17 +208,22 @@ export function resolvePlantGrab(
     const motion = buildPlantMotion(samples, { end: options.end, keep: spine.motion })
     if (!motion) return null
     const tail = options.end === 'spring' ? ' · nảy về khi thả' : ' · lặp liền mạch'
-    return { patch: { motion }, message: `✍️ Đã ghi chuyển động vẽ tay: ${motion.duration.toFixed(2)}s · ${motion.keys.length} mốc${tail}` }
+    const bobNote = motion.verticalBob ? ` · nhún ${(motion.verticalBob * 100).toFixed(0)}%` : ''
+    return {
+      patch: { motion },
+      message: `✍️ Đã ghi chuyển động vẽ tay: ${motion.duration.toFixed(2)}s · ${motion.keys.length} mốc${bobNote}${tail}`
+    }
   }
   const learned = learnSwayFromGesture(samples, spine)
   if (!learned) return null
   const parts = [`±${learned.amplitude ?? spine.amplitude}°`]
+  if (learned.verticalBob !== undefined) parts.push(`nhún ${(learned.verticalBob * 100).toFixed(0)}%`)
   if (learned.lean !== undefined) parts.push(`nghiêng ${learned.lean}°`)
   if (learned.speed !== undefined) parts.push(`${learned.speed} nhịp/s`)
   return { patch: { ...learned, motion: undefined }, message: `🌬️ Đã học nhịp gió: ${parts.join(' · ')}` }
 }
 
-export type PlantCustomPatternId = 'sine' | 'double' | 'gust' | 'spring' | 'flutter'
+export type PlantCustomPatternId = 'sine' | 'double' | 'gust' | 'spring' | 'flutter' | 'bounce'
 
 export const PLANT_CUSTOM_PATTERNS: Array<{
   id: PlantCustomPatternId
@@ -187,6 +231,7 @@ export const PLANT_CUSTOM_PATTERNS: Array<{
   desc: string
 }> = [
   { id: 'sine', label: '🌊 Đung đưa nhịp nhàng', desc: 'Lắc qua trái - phải mượt mà theo chu kỳ chuẩn' },
+  { id: 'bounce', label: '🪀 Nhún nảy lên xuống', desc: 'Nhún co giãn lên xuống theo trục thân kết hợp lắc nhẹ' },
   { id: 'double', label: '🍃 Nhịp đôi lá rủ', desc: 'Nghiêng lớn kèm một nhịp phất phụ ở ngọn' },
   { id: 'gust', label: '💨 Gió thổi dồn rồi nhả', desc: 'Gió đẩy nghiêng nhanh về một phía rồi từ từ hồi về' },
   { id: 'spring', label: '🪀 Bật nảy lò xo', desc: 'Uốn căng rồi bật nảy tắt dần theo quán tính' },
@@ -201,6 +246,7 @@ export function generateCustomPlantMotion(options: {
   pattern: PlantCustomPatternId
   leftAngle?: number
   rightAngle?: number
+  verticalBob?: number
   duration?: number
   lag?: number
   windMix?: number
@@ -212,68 +258,80 @@ export function generateCustomPlantMotion(options: {
   )
   const left = clampAngle(options.leftAngle ?? -14)
   const right = clampAngle(options.rightAngle ?? 16)
+  const bob = Math.max(0, Math.min(0.6, options.verticalBob ?? (options.pattern === 'bounce' ? 0.22 : 0.08)))
   const mid = (left + right) / 2
   const amp = Math.max(1, (right - left) / 2)
 
-  let ratios: Array<[number, number]> = []
+  let ratios: Array<[number, number, number?]> = []
   switch (options.pattern) {
+    case 'bounce':
+      // Chuyển động nhún lên xuống (squash & stretch) nhịp nhàng
+      ratios = [
+        [0, 0, bob * 0.7],
+        [0.25, right * 0.45, -bob * 0.85],
+        [0.5, 0, bob],
+        [0.75, left * 0.45, -bob * 0.85],
+        [0.96, 0, bob * 0.7]
+      ]
+      break
     case 'sine':
       ratios = [
-        [0, 0],
-        [0.25, right],
-        [0.5, 0],
-        [0.75, left],
-        [0.95, 0]
+        [0, 0, bob * 0.3],
+        [0.25, right, -bob * 0.6],
+        [0.5, 0, bob * 0.5],
+        [0.75, left, -bob * 0.6],
+        [0.95, 0, bob * 0.3]
       ]
       break
     case 'double':
       ratios = [
-        [0, 0],
-        [0.2, right],
-        [0.36, right * 0.35],
-        [0.52, right * 0.78],
-        [0.76, left],
-        [0.95, 0]
+        [0, 0, 0],
+        [0.2, right, -bob * 0.7],
+        [0.36, right * 0.35, bob * 0.2],
+        [0.52, right * 0.78, -bob * 0.5],
+        [0.76, left, -bob * 0.6],
+        [0.95, 0, 0]
       ]
       break
     case 'gust':
       ratios = [
-        [0, 0],
-        [0.16, right],
-        [0.32, right * 0.68],
-        [0.48, right * 0.88],
-        [0.72, left * 0.35],
-        [0.95, 0]
+        [0, 0, 0],
+        [0.16, right, -bob * 0.9],
+        [0.32, right * 0.68, -bob * 0.3],
+        [0.48, right * 0.88, -bob * 0.6],
+        [0.72, left * 0.35, -bob * 0.2],
+        [0.95, 0, 0]
       ]
       break
     case 'spring':
       ratios = [
-        [0, 0],
-        [0.18, right],
-        [0.36, left * 0.65],
-        [0.54, right * 0.4],
-        [0.72, left * 0.2],
-        [0.88, right * 0.08],
-        [0.96, 0]
+        [0, 0, 0],
+        [0.18, right, -bob],
+        [0.36, left * 0.65, bob * 0.7],
+        [0.54, right * 0.4, -bob * 0.4],
+        [0.72, left * 0.2, bob * 0.2],
+        [0.88, right * 0.08, -bob * 0.08],
+        [0.96, 0, 0]
       ]
       break
     case 'flutter':
       ratios = [
-        [0, mid],
-        [0.14, mid + amp],
-        [0.28, mid - amp * 0.7],
-        [0.42, mid + amp * 0.85],
-        [0.56, mid - amp],
-        [0.7, mid + amp * 0.65],
-        [0.84, mid - amp * 0.45],
-        [0.96, mid]
+        [0, mid, 0],
+        [0.14, mid + amp, -bob * 0.5],
+        [0.28, mid - amp * 0.7, bob * 0.4],
+        [0.42, mid + amp * 0.85, -bob * 0.5],
+        [0.56, mid - amp, bob * 0.4],
+        [0.7, mid + amp * 0.65, -bob * 0.3],
+        [0.84, mid - amp * 0.45, bob * 0.2],
+        [0.96, mid, 0]
       ]
       break
   }
 
-  const keys: PlantMotionKey[] = ratios.map(([r, angle]) => ({
+  const keys: PlantMotionKey[] = ratios.map(([r, angle, stretch]) => ({
     t: round(Math.min(dur - 0.02, Math.max(0, r * dur)), 3),
-    angle: round(clampAngle(angle), 2)
+    angle: round(clampAngle(angle), 2),
+    ...(stretch !== undefined && Math.abs(stretch) > 1e-4 ? { stretch: round(stretch, 3) } : {})
   }))
 
   return {
@@ -281,7 +339,9 @@ export function generateCustomPlantMotion(options: {
     duration: round(dur, 2),
     speed: options.speed ?? 1,
     lag: options.lag ?? 0.1,
-    windMix: options.windMix ?? 0.15
+    windMix: options.windMix ?? 0.15,
+    ...(bob > 0.01 ? { verticalBob: round(bob, 2) } : {})
   }
 }
+
 

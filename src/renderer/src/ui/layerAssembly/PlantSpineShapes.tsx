@@ -8,13 +8,17 @@ export const toPlantPath = (pts: PlantSpinePoint[]) =>
   pts.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
 
 /** Một xương thực vật: đường nghỉ (nét đứt) + đường đang uốn + gốc / ngọn. */
-export function PlantSpineShape({ spine, time, selected, grabAngle }: {
+export function PlantSpineShape({ spine, time, selected, grabAngle, grabStretch }: {
   spine: PlantSpine
   time: number
   selected: boolean
   grabAngle?: number
+  grabStretch?: number
 }) {
-  const frame = evaluatePlantSpine(grabAngle !== undefined ? grabbedSpine(spine, grabAngle) : spine, time)
+  const frame = evaluatePlantSpine(
+    grabAngle !== undefined ? grabbedSpine(spine, grabAngle, grabStretch ?? 0) : spine,
+    time
+  )
   const root = frame.rest[0]
   const tip = frame.bent[frame.bent.length - 1]
   return (
@@ -27,25 +31,30 @@ export function PlantSpineShape({ spine, time, selected, grabAngle }: {
   )
 }
 
-/** Bóng biên độ: 2 dáng cực trái/phải + cung quỹ đạo ngọn, giúp thấy ngay cây sẽ đung đưa rộng tới đâu. */
+/** Bóng biên độ: 2 dáng cực trái/phải + cung quỹ đạo ngọn + độ nhún lên xuống, giúp thấy ngay cây sẽ đung đưa rộng tới đâu. */
 function SwayRange({ spine }: { spine: PlantSpine }) {
   const range = swayLimits(spine)
   if (!range) return null
   const { lo, hi, center } = range
-  const left = plantStaticPose(spine, lo)
-  const right = plantStaticPose(spine, hi)
+  const bob = spine.verticalBob ?? 0
+  const left = plantStaticPose(spine, lo, -bob * 0.4)
+  const right = plantStaticPose(spine, hi, -bob * 0.4)
   const arc: PlantSpinePoint[] = []
   for (let k = 0; k <= 12; k++) {
-    const pose = plantStaticPose(spine, lo + ((hi - lo) * k) / 12)
+    const a = lo + ((hi - lo) * k) / 12
+    const u = k / 12
+    const s = bob > 0 ? bob * Math.sin(u * Math.PI) * 0.5 - bob * 0.25 : 0
+    const pose = plantStaticPose(spine, a, s)
     arc.push(pose[pose.length - 1])
   }
   const lean = center
-  const centerPose = plantStaticPose(spine, center)
+  const centerPose = plantStaticPose(spine, center, bob * 0.5)
   return (
     <g className={`lw-plant-range${spine.motion ? ' recorded' : ''}`} pointerEvents="none">
       <path d={toPlantPath(left)} className="lw-plant-range-ghost" />
       <path d={toPlantPath(right)} className="lw-plant-range-ghost" />
-      {Math.abs(lean) >= 0.25 && <path d={toPlantPath(centerPose)} className="lw-plant-range-lean" />}
+      {bob > 0.04 && <path d={toPlantPath(centerPose)} className="lw-plant-range-ghost bob" />}
+      {Math.abs(lean) >= 0.25 && <path d={toPlantPath(plantStaticPose(spine, center))} className="lw-plant-range-lean" />}
       <path d={toPlantPath(arc)} className="lw-plant-range-arc" />
     </g>
   )
@@ -77,16 +86,17 @@ export interface SelectedHandlesProps {
   grabMode?: 'record' | 'learn'
 }
 
-/** Tay nắm của xương đang chọn: thân (dời cả xương), chấm điểm (sửa dáng), tay nắm ngọn (dạy cây đung đưa). */
+/** Tay nắm của xương đang chọn: thân (dời cả xương), chấm điểm (sửa dáng), tay nắm ngọn 4 chiều (uốn vòng cung & nhún lên xuống). */
 export function SelectedSpineHandles(props: SelectedHandlesProps) {
   const { spine, grabbing } = props
   const tip = spine.points[spine.points.length - 1]
   const grab = plantGrabHandle(spine.points)
   const amp = Math.abs(spine.amplitude)
   const lean = spine.lean ?? 0
+  const bob = spine.verticalBob ?? 0
   const grabTitle = props.grabMode === 'learn'
-    ? 'Nắm ngọn lắc qua lại để học nhịp gió (biên độ / nghiêng / tốc độ)'
-    : 'Nắm ngọn kéo theo nhịp bạn muốn — app ghi lại đúng chuyển động và lặp lại khi thả chuột'
+    ? 'Nắm ngọn lắc vòng cung (trái/phải) hoặc kéo lên/xuống (nhún co dãn) để học nhịp đung đưa'
+    : 'Nắm ngọn kéo vòng cung hoặc lên/xuống — app ghi lại đúng chuyển động 2D và lặp lại khi thả chuột'
   return (
     <g className="lw-plant-handles">
       {!grabbing && <SwayRange spine={spine} />}
@@ -115,14 +125,18 @@ export function SelectedSpineHandles(props: SelectedHandlesProps) {
       ))}
       <line x1={tip.x} y1={tip.y} x2={grab.x} y2={grab.y} className="lw-plant-grab-stem" />
       <g className={`lw-plant-grab${grabbing ? ' active' : ''}`} onPointerDown={props.onGrabDown}>
-        <circle cx={grab.x} cy={grab.y} r={11} className="lw-plant-grab-ring" />
-        <path d={`M${grab.x - 5},${grab.y} l3,-3 m-3,3 l3,3 M${grab.x + 5},${grab.y} l-3,-3 m3,3 l-3,3`} className="lw-plant-grab-arrows" />
+        <circle cx={grab.x} cy={grab.y} r={12} className="lw-plant-grab-ring" />
+        {/* Biểu tượng 4 hướng: uốn vòng cung (trái-phải) và nhún co dãn (lên-xuống) */}
+        <path
+          d={`M${grab.x - 6},${grab.y} l3.5,-3.5 m-3.5,3.5 l3.5,3.5 M${grab.x + 6},${grab.y} l-3.5,-3.5 m3.5,3.5 l-3.5,3.5 M${grab.x},${grab.y - 6} l-3.5,3.5 m3.5,-3.5 l3.5,3.5 M${grab.x},${grab.y + 6} l-3.5,-3.5 m3.5,3.5 l-3.5,-3.5`}
+          className="lw-plant-grab-arrows"
+        />
         <title>{grabTitle}</title>
       </g>
       <text x={spine.points[0].x + 9} y={spine.points[0].y + 16} className="lw-plant-label">
         {spine.motion
           ? `${spine.name} · ✍️ vẽ tay ${spine.motion.duration.toFixed(1)}s · ${spine.motion.keys.length} mốc`
-          : `${spine.name} · ±${amp.toFixed(1)}°${Math.abs(lean) >= 0.25 ? ` · nghiêng ${lean.toFixed(1)}°` : ''}`}
+          : `${spine.name} · ±${amp.toFixed(1)}°${bob > 0 ? ` · nhún ${(bob * 100).toFixed(0)}%` : ''}${Math.abs(lean) >= 0.25 ? ` · nghiêng ${lean.toFixed(1)}°` : ''}`}
       </text>
     </g>
   )

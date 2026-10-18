@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent, type MouseEvent } from 'react'
 import type { PlantSpine, PlantSpinePoint } from '@shared/plantSpine'
 import type { LayerComposite } from './types'
-import { plantTipAngleToward } from '../../engine/plantSpine'
+import { plantTipAngleToward, plantTipTransformToward } from '../../engine/plantSpine'
 import {
   applyPlantSpineAction,
   createPlantSpine,
@@ -40,7 +40,7 @@ type Drag =
   | { kind: 'draw'; pts: PlantSpinePoint[]; client: Array<{ x: number; y: number }> }
   | { kind: 'point'; spineId: string; index: number }
   | { kind: 'move'; spineId: string; start: PlantSpinePoint; origin: PlantSpinePoint[] }
-  | { kind: 'grab'; spine: PlantSpine; start: number; t0: number; samples: SwaySample[]; record: boolean }
+  | { kind: 'grab'; spine: PlantSpine; startAngle: number; startStretch: number; t0: number; samples: SwaySample[]; record: boolean }
 
 const GRAB_LIMIT = PLANT_AMPLITUDE_MAX + PLANT_LEAN_MAX
 const RECORD_LIMIT = 85
@@ -96,9 +96,9 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
     if (!p) return
     capture(e)
     if (editor.pathRecord && selected) {
-      // Vẽ quỹ đạo ngọn: ngọn bám theo hướng bút (tuyệt đối so với gốc), ghi theo thời gian thật
+      // Vẽ quỹ đạo ngọn: ngọn bám theo hướng bút (cả uốn vòng cung lẫn co dãn lên xuống)
       props.beginGesture?.()
-      dragRef.current = { kind: 'grab', spine: selected, start: 0, t0: performance.now(), samples: [], record: true }
+      dragRef.current = { kind: 'grab', spine: selected, startAngle: 0, startStretch: 0, t0: performance.now(), samples: [], record: true }
       onMove(e)
       return
     }
@@ -123,11 +123,13 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
       patchSpine(drag.spineId, { points: translatePlantSpine(drag.origin, p.x - drag.start.x, p.y - drag.start.y) })
     } else {
       const limit = drag.record ? RECORD_LIMIT : GRAB_LIMIT
-      const raw = plantTipAngleToward(drag.spine, p) - drag.start
+      const { angle: rawAngle, stretch: rawStretch } = plantTipTransformToward(drag.spine, p)
+      const raw = rawAngle - drag.startAngle
       const angle = Math.max(-limit, Math.min(limit, raw))
+      const stretch = Math.max(-0.45, Math.min(0.65, rawStretch - drag.startStretch))
       const elapsed = (performance.now() - drag.t0) / 1000
-      drag.samples.push({ angle, t: elapsed })
-      setPlantSpineEditorState({ grab: { spineId: drag.spine.id, angle, elapsed, recording: drag.record } })
+      drag.samples.push({ angle, stretch, t: elapsed })
+      setPlantSpineEditorState({ grab: { spineId: drag.spine.id, angle, stretch, elapsed, recording: drag.record } })
     }
   }
 
@@ -204,8 +206,14 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
     onGrabDown: (e: PointerEvent) => {
       const p = toLocal(e)
       if (!p) return
+      const target = plantTipTransformToward(selected, p)
       startHandleDrag(e, {
-        kind: 'grab', spine: selected, start: plantTipAngleToward(selected, p), t0: performance.now(), samples: [],
+        kind: 'grab',
+        spine: selected,
+        startAngle: target.angle,
+        startStretch: target.stretch,
+        t0: performance.now(),
+        samples: [],
         record: editor.grabMode === 'record'
       })
     }
@@ -229,6 +237,7 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
           time={time}
           selected={selected?.id === s.id}
           grabAngle={editor.grab?.spineId === s.id ? editor.grab.angle : undefined}
+          grabStretch={editor.grab?.spineId === s.id ? editor.grab.stretch : undefined}
         />
       ))}
       {handleProps && <SelectedSpineHandles {...handleProps} />}
@@ -239,7 +248,7 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
       )}
       {editor.grab?.recording && (
         <text x={0} y={composite.height / 2 - 44} textAnchor="middle" className="lw-plant-rec">
-          {`● REC ${(editor.grab.elapsed ?? 0).toFixed(1)}s · ${editor.grab.angle.toFixed(0)}° — thả chuột để lưu`}
+          {`● REC ${(editor.grab.elapsed ?? 0).toFixed(1)}s · ${editor.grab.angle.toFixed(0)}°${Math.abs(editor.grab.stretch ?? 0) >= 0.02 ? ` · nhún ${(((editor.grab.stretch ?? 0)) * 100).toFixed(0)}%` : ''} — thả chuột để lưu`}
         </text>
       )}
     </svg>

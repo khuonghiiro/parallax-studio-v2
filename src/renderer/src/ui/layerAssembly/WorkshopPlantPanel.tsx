@@ -32,6 +32,7 @@ type NumKey =
   | 'lean'
   | 'phaseOffset'
   | 'reach'
+  | 'verticalBob'
 
 const PRIMARY_SLIDERS: Array<{
   key: NumKey
@@ -42,7 +43,8 @@ const PRIMARY_SLIDERS: Array<{
   unit?: string
   hint: string
 }> = [
-  { key: 'amplitude', label: 'Biên độ uốn', min: 0, max: 40, step: 0.5, unit: '°', hint: 'Góc uốn tối đa tại ngọn' },
+  { key: 'amplitude', label: 'Biên độ uốn (cung)', min: 0, max: 40, step: 0.5, unit: '°', hint: 'Góc uốn tối đa tại ngọn khi đung đưa vòng cung' },
+  { key: 'verticalBob', label: 'Nhún lên xuống', min: 0, max: 0.6, step: 0.02, unit: '', hint: 'Độ co giãn & nhún lên xuống theo chiều dọc thân cây (squash & stretch)' },
   { key: 'speed', label: 'Tốc độ nhịp', min: 0.05, max: 3, step: 0.05, unit: '/s', hint: 'Số nhịp đung đưa mỗi giây' },
   { key: 'lean', label: 'Nghiêng theo gió', min: -30, max: 30, step: 0.5, unit: '°', hint: 'Độ nghiêng cố định (dương = sang phải)' },
   { key: 'phaseOffset', label: 'Độ lệch pha', min: 0, max: 3, step: 0.05, unit: 's', hint: 'Cho nhiều cây đung đưa so le tự nhiên' }
@@ -128,7 +130,7 @@ function SpineCard({
 
       {!selected && (
         <div className="lw-plant-card-summary">
-          <span>{spine.motion ? `✨ Nhịp riêng (${spine.motion.duration}s)` : `🌬️ ±${spine.amplitude}° · ${spine.speed}/s`}</span>
+          <span>{spine.motion ? `✨ Nhịp riêng (${spine.motion.duration}s)` : `🌬️ ±${spine.amplitude}°${(spine.verticalBob ?? 0) > 0 ? ` · nhún ${(spine.verticalBob! * 100).toFixed(0)}%` : ''} · ${spine.speed}/s`}</span>
           <span>• {spine.layerIds.length} layer</span>
           <span className="lw-plant-expand-hint">Bấm để chỉnh ▾</span>
         </div>

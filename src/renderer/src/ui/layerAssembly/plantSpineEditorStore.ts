@@ -14,7 +14,7 @@ export interface PlantSpineEditorState {
   /** Xem gió trực tiếp: cây tự đung đưa ngay trong tab Thực vật dù chưa bấm phát. */
   live: boolean
   /** Đang nắm ngọn kéo: cây uốn tĩnh theo tay (ghi đè tạm thời). elapsed = giây đã ghi khi đang ghi chuyển động. */
-  grab: { spineId: string; angle: number; elapsed?: number; recording?: boolean } | null
+  grab: { spineId: string; angle: number; stretch?: number; elapsed?: number; recording?: boolean } | null
   /** Đang kéo chấm/xương: tạm dừng gió trực tiếp để dễ căn chỉnh. */
   dragging: boolean
   /** Hành vi của tay nắm ngọn. */

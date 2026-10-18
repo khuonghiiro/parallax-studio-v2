@@ -108,6 +108,9 @@ export function PlantMotionSection({
   const [pattern, setPattern] = useState<PlantCustomPatternId>('sine')
   const [leftAngle, setLeftAngle] = useState<number>(-Math.round(spine.amplitude || 14))
   const [rightAngle, setRightAngle] = useState<number>(Math.round(spine.amplitude || 16))
+  const [verticalBob, setVerticalBob] = useState<number>(
+    motion?.verticalBob ?? (spine.verticalBob ?? 0.12)
+  )
   const [cycleDuration, setCycleDuration] = useState<number>(
     motion?.duration ?? Number((1 / Math.max(0.2, spine.speed || 0.7)).toFixed(1))
   )
@@ -120,6 +123,7 @@ export function PlantMotionSection({
       pattern,
       leftAngle,
       rightAngle,
+      verticalBob,
       duration: cycleDuration,
       lag: motion?.lag ?? 0.1,
       windMix: motion?.windMix ?? 0.15,
@@ -173,7 +177,7 @@ export function PlantMotionSection({
             ))}
           </div>
 
-          <div className="lw-plant-section-label">2. Chỉnh biên độ trái/phải & chu kỳ lặp</div>
+          <div className="lw-plant-section-label">2. Chỉnh biên độ uốn & nhún lên xuống</div>
           <div className="lw-plant-sliders">
             <MotionSlider
               label="Uốn sang trái"
@@ -182,7 +186,7 @@ export function PlantMotionSection({
               max={0}
               step={1}
               unit="°"
-              hint="Góc nghiêng tối đa về phía bên trái"
+              hint="Góc uốn tối đa về phía bên trái"
               onChange={setLeftAngle}
             />
             <MotionSlider
@@ -192,8 +196,18 @@ export function PlantMotionSection({
               max={42}
               step={1}
               unit="°"
-              hint="Góc nghiêng tối đa về phía bên phải"
+              hint="Góc uốn tối đa về phía bên phải"
               onChange={setRightAngle}
+            />
+            <MotionSlider
+              label="Nhún lên xuống"
+              value={Math.round(verticalBob * 100)}
+              min={0}
+              max={50}
+              step={2}
+              unit="%"
+              hint="Độ co giãn & nhún nhảy lên xuống theo chiều dọc thân cây (squash & stretch)"
+              onChange={(v) => setVerticalBob(v / 100)}
             />
             <MotionSlider
               label="Chu kỳ 1 vòng"
@@ -236,7 +250,7 @@ export function PlantMotionSection({
           <button
             type="button"
             className={`btn sm lw-plant-record-btn${editor.pathRecord ? ' armed' : ''}`}
-            title="Bật rồi nhấn giữ chuột ở bất kỳ đâu trên Bố cục 2D: ngọn cây bám theo bút, thả chuột để lưu (phím R)"
+            title="Bật rồi nhấn giữ chuột ở bất kỳ đâu trên Bố cục 2D: ngọn cây bám theo bút (cả vòng cung lẫn lên xuống), thả chuột để lưu (phím R)"
             onClick={() => setPlantSpineEditorState({ pathRecord: !editor.pathRecord })}
           >
             {editor.pathRecord
@@ -244,7 +258,7 @@ export function PlantMotionSection({
               : '✍️ Bật bút vẽ quỹ đạo ngọn trên khung 2D (Phím R)'}
           </button>
           <p className="lw-plant-motion-hint">
-            Mẹo: Bạn cũng có thể nắm trực tiếp <strong>vòng tròn xanh ở ngọn xương</strong> trên Bố cục 2D và lắc theo nhịp tay mong muốn.
+            Mẹo: Bạn cũng có thể nắm trực tiếp <strong>vòng tròn xanh 4 chiều ở ngọn xương</strong> trên Bố cục 2D và kéo vòng cung (trái/phải) hoặc lên/xuống (nhún dọc) theo nhịp tay mong muốn.
           </p>
         </div>
       )}
@@ -288,6 +302,18 @@ export function PlantMotionSection({
               hint="Chồng thêm gió tự nhiên lên chuyển động này"
               onChange={(windMix) =>
                 setMotion({ ...motion, windMix }, `plant:${spine.id}:motion-wind`)
+              }
+            />
+            <MotionSlider
+              label="Nhún lên xuống"
+              value={Math.round((motion.verticalBob ?? (spine.verticalBob ?? 0)) * 100)}
+              min={0}
+              max={60}
+              step={2}
+              unit="%"
+              hint="Độ co giãn & nhún nhảy lên xuống theo chiều dọc thân cây"
+              onChange={(v) =>
+                setMotion({ ...motion, verticalBob: v / 100 }, `plant:${spine.id}:motion-bob`)
               }
             />
           </div>

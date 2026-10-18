@@ -47,7 +47,8 @@ function parsePatch(p: Params): Partial<PlantSpine> {
   const patch: Partial<PlantSpine> = {}
   const fields: Array<[string, keyof PlantSpine]> = [
     ['amplitude', 'amplitude'], ['speed', 'speed'], ['stiffness', 'stiffness'], ['flexibility', 'flexibility'],
-    ['turbulence', 'turbulence'], ['lean', 'lean'], ['phase_offset', 'phaseOffset'], ['reach', 'reach']
+    ['turbulence', 'turbulence'], ['lean', 'lean'], ['phase_offset', 'phaseOffset'], ['reach', 'reach'],
+    ['vertical_bob', 'verticalBob']
   ]
   for (const [param, field] of fields) {
     const value = num(p, param)
