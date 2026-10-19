@@ -19,7 +19,7 @@ import {
   getActionVerbLabel,
   getWaypointTimingMeta,
   inferWaypointActionClassification,
-  moveExplicitActionMode,
+  moveAndShiftWaypointMeta,
   recordExplicitActionMode,
   setWaypointTimingMeta,
   shiftExplicitActionModes,
@@ -34,6 +34,7 @@ export {
   getActionModeMeta,
   getActionVerbLabel,
   getWaypointTimingMeta,
+  recordExplicitActionMode,
   setWaypointTimingMeta,
   type CameraActionCategory,
   type CameraActionMode,
@@ -99,8 +100,12 @@ export function enrichCameraWaypoints(frames: CameraFrame2D[]): CameraWaypointIt
     const timingMeta = getWaypointTimingMeta(f.time, rawStepDur ?? 2.5)
     const stepDuration = rawStepDur ?? timingMeta.stepDuration
     const endTime = Math.round((f.time + stepDuration) * 100) / 100
-    const delaySec = Math.min(Math.max(0, Math.round((stepDuration - 0.2) * 100) / 100), timingMeta.delaySec)
-    const actionDurationSec = Math.max(0.2, Math.round((stepDuration - delaySec) * 100) / 100)
+    const delaySec = timingMeta.hasCustomActionTiming
+      ? timingMeta.delaySec
+      : Math.min(Math.max(0, Math.round((stepDuration - 0.2) * 100) / 100), timingMeta.delaySec)
+    const actionDurationSec = timingMeta.hasCustomActionTiming
+      ? timingMeta.actionDurationSec
+      : Math.max(0.2, Math.round((stepDuration - delaySec) * 100) / 100)
     const zoomPct = Math.round((1 / Math.max(0.045, f.scale)) * 100)
 
     const { tag, tagLabel, actionMode } = inferWaypointActionClassification(
@@ -322,9 +327,8 @@ export function updateCameraWaypoint(
       shiftSubsequentKeyframes(draft.camera.target, oldTime, deltaT, tol)
       shiftSubsequentKeyframes(draft.camera.focusDistance, oldTime, deltaT, tol)
       shiftSubsequentKeyframes(draft.camera.roll, oldTime, deltaT, tol)
-      shiftExplicitActionModes(oldTime, deltaT)
     }
-    moveExplicitActionMode(oldTime, newTime)
+    moveAndShiftWaypointMeta(oldTime, newTime, Boolean(updates.ripple))
   }
 
   const nextStageX = updates.stageX !== undefined ? Math.round(updates.stageX) : baseStageX
@@ -342,6 +346,7 @@ export function updateCameraWaypoint(
     ease: nextEase
   })
   setKeyframeEaseAtTime(draft, newTime, nextEase)
+  draft.camera.position.keyframes = draft.camera.position.keyframes.map((k) => ({ ...k }))
 
   const maxKeyT = Math.max(
     newTime,
@@ -420,6 +425,9 @@ export function applyWaypointActionMode(
       const targetScale = clampFrameScale(prev ? Math.min(0.68, prev.scale * 0.68) : 0.68)
       updateCameraWaypoint(draft, layout, cur.time, {
         scale: targetScale,
+        yaw: 0,
+        pitch: 0,
+        roll: 0,
         ease: 'easeInOut'
       })
       break
@@ -438,6 +446,9 @@ export function applyWaypointActionMode(
       const targetScale = clampFrameScale(prev ? Math.max(1.25, prev.scale * 1.32) : 1.32)
       updateCameraWaypoint(draft, layout, cur.time, {
         scale: targetScale,
+        yaw: 0,
+        pitch: 0,
+        roll: 0,
         ease: 'easeInOut'
       })
       break
@@ -473,6 +484,8 @@ export function applyWaypointActionMode(
         : cur.stageX
       updateCameraWaypoint(draft, layout, cur.time, {
         stageX: nextX,
+        yaw: 0,
+        pitch: 0,
         roll: cur.roll >= 0 ? -4 : 4,
         ease: 'easeInOutStrong'
       })
@@ -596,6 +609,8 @@ export function applyWaypointActionMode(
     case 'dutch-tilt': {
       const nextRoll = cur.roll >= 8 ? -12 : 12
       updateCameraWaypoint(draft, layout, cur.time, {
+        yaw: 0,
+        pitch: 0,
         roll: nextRoll,
         scale: Math.min(cur.scale, 0.85),
         ease: 'easeInOut'
@@ -892,15 +907,7 @@ export function updateWaypointStepDuration(
       nextActionDur = Math.max(0.2, Math.round((nextStepDur - nextDelay) * 100) / 100)
     }
   } else {
-    if (options.delaySec !== undefined && options.actionDurationSec === undefined) {
-      if (nextDelay + nextActionDur > currentMeta.stepDuration) {
-        nextActionDur = Math.max(0.2, Math.round((currentMeta.stepDuration - nextDelay) * 100) / 100)
-      }
-    }
-    nextStepDur = Math.max(
-      currentMeta.stepDuration,
-      Math.round((nextDelay + nextActionDur) * 100) / 100
-    )
+    nextStepDur = Math.max(0.2, Math.round((nextDelay + nextActionDur) * 100) / 100)
   }
 
   const isCustomActionTiming =
@@ -924,7 +931,17 @@ export function updateWaypointStepDuration(
       time: newNextTime,
       ripple: true
     })
+  } else if (draft.camera.position.keyframes.length === 0) {
+    applyStageFrameToDraft(draft, layout, cur.time, cur.stageX, cur.stageY, cur.scale, true, {
+      yaw: cur.yaw,
+      pitch: cur.pitch,
+      roll: cur.roll,
+      ease: cur.ease
+    })
   }
+
+  // Bảo đảm Immer luôn sinh ra tham chiếu project mới để React/Zustand re-render tức thì
+  draft.camera.position.keyframes = draft.camera.position.keyframes.map((k) => ({ ...k }))
 
   const maxEnd = Math.max(
     cur.time + nextStepDur,

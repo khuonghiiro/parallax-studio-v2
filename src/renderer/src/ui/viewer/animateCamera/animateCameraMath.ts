@@ -474,7 +474,7 @@ export function stageFrameTo3DCamera(
   const shotBox = findNearestShotByStage2D(layout, stageX, stageY)
   const localDx = Math.round(stageX - shotBox.stageX)
   const localDy = Math.round(-(stageY - shotBox.stageY))
-  const dist = Math.round(clampedScale * refD)
+  const dist = Math.round(clampedScale * refD * 100) / 100
 
   const target: Vec3 = [
     Math.round(shotBox.worldOrigin[0] + localDx),
@@ -490,15 +490,15 @@ export function stageFrameTo3DCamera(
   const vz = dist * Math.cos(pitchRad) * Math.cos(yawRad)
 
   const position: Vec3 = [
-    Math.round(target[0] + vx),
-    Math.round(target[1] + vy),
-    Math.round(target[2] - vz)
+    Math.round((target[0] + vx) * 100) / 100,
+    Math.round((target[1] + vy) * 100) / 100,
+    Math.round((target[2] - vz) * 100) / 100
   ]
 
   return {
     position,
     target,
-    focusDistance: dist,
+    focusDistance: Math.round(dist),
     shotId: shotBox.shotId
   }
 }
@@ -517,7 +517,7 @@ export function applyStageFrameToDraft(
   forceKeyframe = false,
   opts?: StageFramePoseOptions
 ): void {
-  const tol = frameTolerance(draft)
+  const tol = Math.max(frameTolerance(draft), 0.02)
   const ease: EaseName = opts?.ease ?? 'easeInOut'
   const { position, target, focusDistance } = stageFrameTo3DCamera(draft, layout, stageX, stageY, scale, {
     yaw: opts?.yaw,
@@ -535,12 +535,18 @@ export function applyStageFrameToDraft(
     draft.camera.roll.keyframes.length > 0
 
   if (forceKeyframe || hasKeys) {
-    addKeyframe(draft.camera.position, time, position, ease)
-    addKeyframe(draft.camera.target, time, target, ease)
-    addKeyframe(draft.camera.focusDistance, time, focusDistance, ease)
-    if (opts?.roll !== undefined || draft.camera.roll.keyframes.length > 0) {
-      addKeyframe(draft.camera.roll, time, rollVal, ease)
+    if (draft.camera.roll.keyframes.length === 0 && draft.camera.position.keyframes.length > 0) {
+      const baseRoll = draft.camera.roll.value ?? 0
+      for (const pk of draft.camera.position.keyframes) {
+        if (Math.abs(pk.t - time) > tol) {
+          addKeyframe(draft.camera.roll, pk.t, baseRoll, pk.ease, tol)
+        }
+      }
     }
+    addKeyframe(draft.camera.position, time, position, ease, tol)
+    addKeyframe(draft.camera.target, time, target, ease, tol)
+    addKeyframe(draft.camera.focusDistance, time, focusDistance, ease, tol)
+    addKeyframe(draft.camera.roll, time, rollVal, ease, tol)
   } else {
     setValueAt(draft.camera.position, time, position, tol)
     setValueAt(draft.camera.target, time, target, tol)

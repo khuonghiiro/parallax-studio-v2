@@ -6,6 +6,8 @@ import '../../styles/cameraActionTuning.css'
 
 interface CameraActionTuningBoxProps {
   activeWaypoint: CameraWaypointItem
+  shotStageX?: number
+  shotStageY?: number
   onUpdateStepTiming: (
     waypointIndex: number,
     options: {
@@ -16,6 +18,8 @@ interface CameraActionTuningBoxProps {
   ) => void
   onUpdatePose: (
     updates: {
+      stageX?: number
+      stageY?: number
       scale?: number
       yaw?: number
       pitch?: number
@@ -64,6 +68,13 @@ const ACCEL_CHIPS: { ease: EaseName; label: string; title: string }[] = [
   }
 ]
 
+const ZOOM_PRESETS = [70, 100, 140, 180, 240, 300]
+const PAN_X_PRESETS = [-380, -200, 0, 200, 380]
+const PAN_Y_PRESETS = [-240, -120, 0, 120, 240]
+const PITCH_PRESETS = [-24, -12, 0, 12, 24]
+const YAW_PRESETS = [-28, -14, 0, 14, 28]
+const ROLL_PRESETS = [-18, -10, 0, 10, 18]
+
 function getSpeedBadge(sec: number): { text: string; tone: 'fast' | 'normal' | 'slow' } {
   if (sec <= 0.8) return { text: '⚡ Nhịp nhanh', tone: 'fast' }
   if (sec <= 2.4) return { text: '🎬 Nhịp vừa', tone: 'normal' }
@@ -72,6 +83,8 @@ function getSpeedBadge(sec: number): { text: string; tone: 'fast' | 'normal' | '
 
 export function CameraActionTuningBox({
   activeWaypoint,
+  shotStageX = 0,
+  shotStageY = 0,
   onUpdateStepTiming,
   onUpdatePose
 }: CameraActionTuningBoxProps) {
@@ -82,6 +95,16 @@ export function CameraActionTuningBox({
   const actionDurSec = activeWaypoint.actionDurationSec
   const speedBadge = getSpeedBadge(actionDurSec)
 
+  const localDx = Math.round(activeWaypoint.stageX - shotStageX)
+  const localDy = Math.round(activeWaypoint.stageY - shotStageY)
+  const pitchDeg = Math.round(activeWaypoint.pitch)
+  const yawDeg = Math.round(activeWaypoint.yaw)
+  const rollDeg = Math.round(activeWaypoint.roll)
+
+  const isPanXAction =
+    mode === 'pan' || mode === 'whip-pan' || mode === 'sweep-left' || mode === 'sweep-right'
+  const isPanYAction =
+    mode === 'crane-up' || mode === 'crane-down' || mode === 'tilt-sky' || mode === 'aerial-dive'
   const isPitchAction =
     mode === 'crane-up' ||
     mode === 'crane-down' ||
@@ -263,7 +286,23 @@ export function CameraActionTuningBox({
           <label htmlFor="wp-action-zoom-slider" className="tuning-slider-label">
             🔍 Cự ly khung ngắm (Độ cận / rộng)
           </label>
-          <span className="tuning-val-badge">{activeWaypoint.zoomPct}%</span>
+          <div className="tuning-num-wrap">
+            <input
+              id="wp-action-zoom-input"
+              type="number"
+              min={35}
+              max={2000}
+              step={5}
+              value={activeWaypoint.zoomPct}
+              onChange={(e) => {
+                const pct = parseFloat(e.target.value)
+                if (!isNaN(pct) && pct >= 35) {
+                  onUpdatePose({ scale: clampFrameScale(100 / pct) }, 'wp-action-zoom')
+                }
+              }}
+            />
+            <span>%</span>
+          </div>
         </div>
         <input
           id="wp-action-zoom-slider"
@@ -283,7 +322,130 @@ export function CameraActionTuningBox({
           <span>100% (Chuẩn)</span>
           <span>350% (Đẩy cận sâu)</span>
         </div>
+        <div className="tuning-quick-chips">
+          {ZOOM_PRESETS.map((pct) => (
+            <button
+              key={pct}
+              type="button"
+              className={`tuning-chip${Math.abs(activeWaypoint.zoomPct - pct) <= 3 ? ' active' : ''}`}
+              onClick={() => onUpdatePose({ scale: clampFrameScale(100 / pct) })}
+              title={`Đặt cự ly khung ngắm thành ${pct}%`}
+            >
+              {pct}%
+            </button>
+          ))}
+        </div>
       </div>
+
+      {isPanXAction && (
+        <div className="tuning-slider-block">
+          <div className="tuning-slider-top">
+            <label htmlFor="wp-action-panx-slider" className="tuning-slider-label">
+              ↔ Biên độ lia ngang trong cảnh (ΔX)
+            </label>
+            <div className="tuning-num-wrap">
+              <input
+                id="wp-action-panx-input"
+                type="number"
+                min={-1500}
+                max={1500}
+                step={10}
+                value={localDx}
+                onChange={(e) => {
+                  const dx = parseFloat(e.target.value)
+                  if (!isNaN(dx)) {
+                    onUpdatePose({ stageX: Math.round(shotStageX + dx) }, 'wp-action-panx')
+                  }
+                }}
+              />
+              <span>px</span>
+            </div>
+          </div>
+          <input
+            id="wp-action-panx-slider"
+            type="range"
+            className="route-zoom-slider"
+            min={-600}
+            max={600}
+            step={10}
+            value={Math.max(-600, Math.min(600, localDx))}
+            onChange={(e) =>
+              onUpdatePose(
+                { stageX: Math.round(shotStageX + parseFloat(e.target.value)) },
+                'wp-action-panx'
+              )
+            }
+          />
+          <div className="tuning-quick-chips">
+            {PAN_X_PRESETS.map((dx) => (
+              <button
+                key={dx}
+                type="button"
+                className={`tuning-chip${Math.abs(localDx - dx) <= 12 ? ' active' : ''}`}
+                onClick={() => onUpdatePose({ stageX: Math.round(shotStageX + dx) })}
+                title={dx === 0 ? 'Căn tâm ngang giữa cảnh (0px)' : `Lia ngang ${dx > 0 ? `+${dx}` : dx}px`}
+              >
+                {dx === 0 ? '0px (Giữa)' : dx > 0 ? `+${dx}px` : `${dx}px`}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isPanYAction && (
+        <div className="tuning-slider-block">
+          <div className="tuning-slider-top">
+            <label htmlFor="wp-action-pany-slider" className="tuning-slider-label">
+              ↕ Biên độ nâng / hạ máy trong cảnh (ΔY)
+            </label>
+            <div className="tuning-num-wrap">
+              <input
+                id="wp-action-pany-input"
+                type="number"
+                min={-1000}
+                max={1000}
+                step={10}
+                value={localDy}
+                onChange={(e) => {
+                  const dy = parseFloat(e.target.value)
+                  if (!isNaN(dy)) {
+                    onUpdatePose({ stageY: Math.round(shotStageY + dy) }, 'wp-action-pany')
+                  }
+                }}
+              />
+              <span>px</span>
+            </div>
+          </div>
+          <input
+            id="wp-action-pany-slider"
+            type="range"
+            className="route-zoom-slider"
+            min={-400}
+            max={400}
+            step={10}
+            value={Math.max(-400, Math.min(400, localDy))}
+            onChange={(e) =>
+              onUpdatePose(
+                { stageY: Math.round(shotStageY + parseFloat(e.target.value)) },
+                'wp-action-pany'
+              )
+            }
+          />
+          <div className="tuning-quick-chips">
+            {PAN_Y_PRESETS.map((dy) => (
+              <button
+                key={dy}
+                type="button"
+                className={`tuning-chip${Math.abs(localDy - dy) <= 12 ? ' active' : ''}`}
+                onClick={() => onUpdatePose({ stageY: Math.round(shotStageY + dy) })}
+                title={dy === 0 ? 'Căn tâm dọc giữa cảnh (0px)' : `Dịch dọc ${dy > 0 ? `+${dy}` : dy}px`}
+              >
+                {dy === 0 ? '0px (Giữa)' : dy > 0 ? `+${dy}px` : `${dy}px`}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {isPitchAction && (
         <div className="tuning-slider-block">
@@ -291,9 +453,23 @@ export function CameraActionTuningBox({
             <label htmlFor="wp-action-pitch-slider" className="tuning-slider-label">
               ↕ Biên độ góc Cần cẩu / Ngước - Cúi (Pitch)
             </label>
-            <span className="tuning-val-badge">
-              {activeWaypoint.pitch > 0 ? `+${activeWaypoint.pitch}°` : `${activeWaypoint.pitch}°`}
-            </span>
+            <div className="tuning-num-wrap">
+              <input
+                id="wp-action-pitch-input"
+                type="number"
+                min={-75}
+                max={75}
+                step={1}
+                value={pitchDeg}
+                onChange={(e) => {
+                  const deg = parseFloat(e.target.value)
+                  if (!isNaN(deg)) {
+                    onUpdatePose({ pitch: deg }, 'wp-action-pitch')
+                  }
+                }}
+              />
+              <span>°</span>
+            </div>
           </div>
           <input
             id="wp-action-pitch-slider"
@@ -302,11 +478,24 @@ export function CameraActionTuningBox({
             min={-45}
             max={45}
             step={1}
-            value={Math.max(-45, Math.min(45, activeWaypoint.pitch))}
+            value={Math.max(-45, Math.min(45, pitchDeg))}
             onChange={(e) =>
               onUpdatePose({ pitch: parseFloat(e.target.value) }, 'wp-action-pitch')
             }
           />
+          <div className="tuning-quick-chips">
+            {PITCH_PRESETS.map((deg) => (
+              <button
+                key={deg}
+                type="button"
+                className={`tuning-chip${Math.abs(pitchDeg - deg) <= 1 ? ' active' : ''}`}
+                onClick={() => onUpdatePose({ pitch: deg })}
+                title={`Đặt góc Pitch thành ${deg > 0 ? `+${deg}` : deg}°`}
+              >
+                {deg > 0 ? `+${deg}°` : `${deg}°`}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -316,9 +505,23 @@ export function CameraActionTuningBox({
             <label htmlFor="wp-action-yaw-slider" className="tuning-slider-label">
               🌐 Biên độ xoay vòng 3D (Yaw)
             </label>
-            <span className="tuning-val-badge">
-              {activeWaypoint.yaw > 0 ? `+${activeWaypoint.yaw}°` : `${activeWaypoint.yaw}°`}
-            </span>
+            <div className="tuning-num-wrap">
+              <input
+                id="wp-action-yaw-input"
+                type="number"
+                min={-85}
+                max={85}
+                step={1}
+                value={yawDeg}
+                onChange={(e) => {
+                  const deg = parseFloat(e.target.value)
+                  if (!isNaN(deg)) {
+                    onUpdatePose({ yaw: deg }, 'wp-action-yaw')
+                  }
+                }}
+              />
+              <span>°</span>
+            </div>
           </div>
           <input
             id="wp-action-yaw-slider"
@@ -327,11 +530,24 @@ export function CameraActionTuningBox({
             min={-60}
             max={60}
             step={1}
-            value={Math.max(-60, Math.min(60, activeWaypoint.yaw))}
+            value={Math.max(-60, Math.min(60, yawDeg))}
             onChange={(e) =>
               onUpdatePose({ yaw: parseFloat(e.target.value) }, 'wp-action-yaw')
             }
           />
+          <div className="tuning-quick-chips">
+            {YAW_PRESETS.map((deg) => (
+              <button
+                key={deg}
+                type="button"
+                className={`tuning-chip${Math.abs(yawDeg - deg) <= 1 ? ' active' : ''}`}
+                onClick={() => onUpdatePose({ yaw: deg })}
+                title={`Đặt góc xoay 3D Yaw thành ${deg > 0 ? `+${deg}` : deg}°`}
+              >
+                {deg > 0 ? `+${deg}°` : `${deg}°`}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -341,9 +557,23 @@ export function CameraActionTuningBox({
             <label htmlFor="wp-action-roll-slider" className="tuning-slider-label">
               ⟳ Biên độ nghiêng máy (Roll / Dutch Tilt)
             </label>
-            <span className="tuning-val-badge">
-              {activeWaypoint.roll > 0 ? `+${activeWaypoint.roll}°` : `${activeWaypoint.roll}°`}
-            </span>
+            <div className="tuning-num-wrap">
+              <input
+                id="wp-action-roll-input"
+                type="number"
+                min={-180}
+                max={180}
+                step={1}
+                value={rollDeg}
+                onChange={(e) => {
+                  const deg = parseFloat(e.target.value)
+                  if (!isNaN(deg)) {
+                    onUpdatePose({ roll: deg }, 'wp-action-roll')
+                  }
+                }}
+              />
+              <span>°</span>
+            </div>
           </div>
           <input
             id="wp-action-roll-slider"
@@ -352,13 +582,27 @@ export function CameraActionTuningBox({
             min={-45}
             max={45}
             step={1}
-            value={Math.max(-45, Math.min(45, activeWaypoint.roll))}
+            value={Math.max(-45, Math.min(45, rollDeg))}
             onChange={(e) =>
               onUpdatePose({ roll: parseFloat(e.target.value) }, 'wp-action-roll')
             }
           />
+          <div className="tuning-quick-chips">
+            {ROLL_PRESETS.map((deg) => (
+              <button
+                key={deg}
+                type="button"
+                className={`tuning-chip${Math.abs(rollDeg - deg) <= 1 ? ' active' : ''}`}
+                onClick={() => onUpdatePose({ roll: deg })}
+                title={`Đặt góc nghiêng máy Roll thành ${deg > 0 ? `+${deg}` : deg}°`}
+              >
+                {deg > 0 ? `+${deg}°` : `${deg}°`}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
   )
 }
+

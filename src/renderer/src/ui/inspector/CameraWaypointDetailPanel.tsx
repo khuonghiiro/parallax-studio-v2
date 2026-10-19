@@ -279,6 +279,8 @@ export function CameraWaypointDetailPanel({
         {/* Hộp thanh trượt tinh chỉnh Đệm chờ, Tốc độ (Nhanh ⇄ Chậm) & Tăng tốc riêng cho động tác đang chọn */}
         <CameraActionTuningBox
           activeWaypoint={activeWaypoint}
+          shotStageX={currentShotBox ? currentShotBox.stageX : 0}
+          shotStageY={currentShotBox ? currentShotBox.stageY : 0}
           onUpdateStepTiming={onUpdateStepTiming}
           onUpdatePose={onUpdate}
         />
@@ -296,10 +298,9 @@ export function CameraWaypointDetailPanel({
               className="zoom-number-input"
               title="Nhập trực tiếp độ phóng từ 35% đến 2000%"
               onChange={(e) => {
-                const zoomVal = parseInt(e.target.value, 10)
+                const zoomVal = parseFloat(e.target.value)
                 if (!isNaN(zoomVal) && zoomVal >= 35 && zoomVal <= 2000) {
-                  const nextScale = Math.round((1 / (zoomVal / 100)) * 1000) / 1000
-                  onUpdate({ scale: nextScale }, 'wp-zoom')
+                  onUpdate({ scale: 100 / zoomVal }, 'wp-zoom')
                 }
               }}
             />
@@ -318,10 +319,9 @@ export function CameraWaypointDetailPanel({
             className="zoom-range"
             title={`Kéo thanh trượt độ phóng: ${activeWaypoint.zoomPct}% (tối đa 2000%)`}
             onChange={(e) => {
-              const zoomVal = parseInt(e.target.value, 10)
+              const zoomVal = parseFloat(e.target.value)
               if (!isNaN(zoomVal) && zoomVal > 0) {
-                const nextScale = Math.round((1 / (zoomVal / 100)) * 1000) / 1000
-                onUpdate({ scale: nextScale }, 'wp-zoom')
+                onUpdate({ scale: 100 / zoomVal }, 'wp-zoom')
               }
             }}
           />
@@ -331,7 +331,7 @@ export function CameraWaypointDetailPanel({
           <button
             type="button"
             className={`btn xs${activeWaypoint.zoomPct <= 80 ? ' active' : ''}`}
-            onClick={() => onUpdate({ scale: 1.43 })}
+            onClick={() => onUpdate({ scale: 100 / 70 })}
             title="Toàn cảnh rộng (Zoom 70%)"
           >
             Toàn 70%
@@ -347,7 +347,7 @@ export function CameraWaypointDetailPanel({
           <button
             type="button"
             className={`btn xs${activeWaypoint.zoomPct >= 130 && activeWaypoint.zoomPct <= 160 ? ' active' : ''}`}
-            onClick={() => onUpdate({ scale: 0.71 })}
+            onClick={() => onUpdate({ scale: 100 / 140 })}
             title="Trung cảnh (Zoom 140%)"
           >
             Trung 140%
@@ -355,7 +355,7 @@ export function CameraWaypointDetailPanel({
           <button
             type="button"
             className={`btn xs${activeWaypoint.zoomPct >= 230 && activeWaypoint.zoomPct <= 300 ? ' active' : ''}`}
-            onClick={() => onUpdate({ scale: 0.4 })}
+            onClick={() => onUpdate({ scale: 100 / 250 })}
             title="Đặc tả chi tiết (Zoom 250%)"
           >
             Cận 250%
@@ -363,7 +363,7 @@ export function CameraWaypointDetailPanel({
           <button
             type="button"
             className={`btn xs${activeWaypoint.zoomPct >= 450 && activeWaypoint.zoomPct <= 650 ? ' active' : ''}`}
-            onClick={() => onUpdate({ scale: 0.2 })}
+            onClick={() => onUpdate({ scale: 100 / 500 })}
             title="Siêu cận cảnh (Zoom 500%)"
           >
             Siêu 500%
@@ -371,7 +371,7 @@ export function CameraWaypointDetailPanel({
           <button
             type="button"
             className={`btn xs${activeWaypoint.zoomPct >= 1800 ? ' active' : ''}`}
-            onClick={() => onUpdate({ scale: 0.05 })}
+            onClick={() => onUpdate({ scale: 100 / 2000 })}
             title="Độ phóng cực đại (Zoom 2000%)"
           >
             Max 2000%

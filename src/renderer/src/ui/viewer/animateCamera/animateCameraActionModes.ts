@@ -288,32 +288,24 @@ export function getWaypointTimingMeta(
   hasCustomActionTiming: boolean
 } {
   const raw = waypointTimingMetaByTimeKey.get(timeToKey(time))
-  const stepDuration = Math.max(
+  const hasCustom = Boolean(raw?.hasCustomActionTiming)
+  const delaySec = Math.max(0, Math.round((raw?.delaySec ?? 0) * 100) / 100)
+  const baseStep = Math.max(
     0.2,
     Math.round(((raw?.stepDuration ?? fallbackStepDuration) || 2.0) * 100) / 100
   )
-  const maxSpan = Math.max(stepDuration, fallbackStepDuration)
-  const delaySec = Math.max(
-    0,
-    Math.min(
-      Math.max(0, Math.round((maxSpan - 0.2) * 100) / 100),
-      Math.round((raw?.delaySec ?? 0) * 100) / 100
-    )
-  )
-  const defaultActionDur = Math.max(0.2, Math.round((stepDuration - delaySec) * 100) / 100)
-  const maxActionDur = Math.max(0.2, Math.round((maxSpan - delaySec) * 100) / 100)
   const actionDurationSec =
     raw?.actionDurationSec !== undefined
-      ? Math.max(
-          0.2,
-          Math.min(maxActionDur, Math.round(raw.actionDurationSec * 100) / 100)
-        )
-      : defaultActionDur
+      ? Math.max(0.2, Math.round(raw.actionDurationSec * 100) / 100)
+      : Math.max(0.2, Math.round((baseStep - delaySec) * 100) / 100)
+  const stepDuration = hasCustom
+    ? Math.max(0.2, Math.round((delaySec + actionDurationSec) * 100) / 100)
+    : baseStep
   return {
     stepDuration,
     delaySec,
     actionDurationSec,
-    hasCustomActionTiming: Boolean(raw?.hasCustomActionTiming)
+    hasCustomActionTiming: hasCustom
   }
 }
 
@@ -400,6 +392,38 @@ export function shiftExplicitActionModes(afterTime: number, delta: number): void
     }
   }
 }
+
+/**
+ * Safely moves `oldTime`'s action mode and timing metadata to `newTime` while optionally
+ * shifting all subsequent entries by `newTime - oldTime` without colliding on `oldTime`.
+ */
+export function moveAndShiftWaypointMeta(
+  oldTime: number,
+  newTime: number,
+  ripple: boolean
+): void {
+  const oldKey = timeToKey(oldTime)
+  const newKey = timeToKey(newTime)
+  const delta = newTime - oldTime
+  if (oldKey === newKey && Math.abs(delta) < 0.001) return
+
+  const savedMode = explicitActionModesByTimeKey.get(oldKey)
+  const savedTiming = waypointTimingMetaByTimeKey.get(oldKey)
+  explicitActionModesByTimeKey.delete(oldKey)
+  waypointTimingMetaByTimeKey.delete(oldKey)
+
+  if (ripple && Math.abs(delta) >= 0.001) {
+    shiftExplicitActionModes(oldTime, delta)
+  }
+
+  if (savedMode !== undefined) {
+    explicitActionModesByTimeKey.set(newKey, savedMode)
+  }
+  if (savedTiming !== undefined) {
+    waypointTimingMetaByTimeKey.set(newKey, savedTiming)
+  }
+}
+
 
 export function clearExplicitActionModes(): void {
   explicitActionModesByTimeKey.clear()

@@ -426,6 +426,9 @@ export function AnimateCameraStage() {
     toast(`🎥 Đã tạo Mốc Camera tại ${nextTime.toFixed(1)}s (${label})`)
   }
 
+  const selectedShotHasNoWaypoints =
+    selectedShotId !== null && !waypoints.some((w) => w.shotId === selectedShotId)
+
   const handleAddHold = (): void => {
     if (!activeFrame) return
     let targetHoldTime = Math.round((activeFrame.time + 2.0) * 100) / 100
@@ -434,7 +437,7 @@ export function AnimateCameraStage() {
         applyStageFrameToDraft(d, stageLayout, 0, activeFrame.stageX, activeFrame.stageY, activeFrame.scale, true)
       }
       const baseTime =
-        selectedShotId && activeFrame.shotId !== selectedShotId
+        selectedShotHasNoWaypoints && selectedShotId
           ? ensureShotWaypointTime(d, stageLayout, selectedShotId, activeFrame.time, true)
           : activeFrame.time
       const curFrames = extractCameraFrames2D(d, stageLayout)
@@ -451,7 +454,7 @@ export function AnimateCameraStage() {
     if (!activeFrame) return
     let targetTime = activeFrame.time
     update((d) => {
-      if (selectedShotId && activeFrame.shotId !== selectedShotId) {
+      if (selectedShotHasNoWaypoints && selectedShotId) {
         targetTime = ensureShotWaypointTime(d, stageLayout, selectedShotId, activeFrame.time, true)
       }
       applyWaypointActionMode(d, stageLayout, targetTime, mode)

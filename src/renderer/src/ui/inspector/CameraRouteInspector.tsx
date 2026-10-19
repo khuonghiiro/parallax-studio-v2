@@ -35,6 +35,7 @@ import {
   findActiveWaypointIndexAtTime,
   panCameraToLayer2D,
   panCameraToShot,
+  recordExplicitActionMode,
   removeCameraWaypoint,
   reverseCameraRoute,
   shiftSubsequentCameraKeyframes,
@@ -222,6 +223,9 @@ export function CameraRouteInspector() {
     toast(`🎥 Đã tạo mốc lộ trình camera tại ${nextTime.toFixed(1)}s`)
   }
 
+  const selectedShotHasNoWaypoints =
+    selectedShotId !== null && !waypoints.some((w) => w.shotId === selectedShotId)
+
   const handleUpdate = (
     updates: {
       time?: number
@@ -238,11 +242,14 @@ export function CameraRouteInspector() {
   ): void => {
     if (!activeWaypoint) return
     let targetTime = activeWaypoint.time
+    const pinnedMode = activeWaypoint.actionMode
     update((draft) => {
-      if (selectedShotId && activeWaypoint.shotId !== selectedShotId && updates.time === undefined) {
+      if (selectedShotHasNoWaypoints && selectedShotId && updates.time === undefined) {
         targetTime = ensureShotWaypointTime(draft, stageLayout, selectedShotId, activeWaypoint.time, true)
       }
       updateCameraWaypoint(draft, stageLayout, targetTime, updates)
+      const finalT = updates.time !== undefined ? updates.time : targetTime
+      recordExplicitActionMode(finalT, updates.ease === 'hold' ? 'cut' : pinnedMode)
     }, mergeKey)
     const finalTime = updates.time !== undefined ? updates.time : targetTime
     if (Math.abs(finalTime - time) > 0.001) {
@@ -259,9 +266,13 @@ export function CameraRouteInspector() {
       actionDurationSec?: number
     }
   ): void => {
-    let updatedStartTime = waypoints[waypointIndex]?.time ?? 0
+    const wp = waypoints[waypointIndex]
+    let updatedStartTime = wp?.time ?? 0
     update((draft) => {
       updatedStartTime = updateWaypointStepDuration(draft, stageLayout, waypointIndex, options)
+      if (wp) {
+        recordExplicitActionMode(updatedStartTime, wp.actionMode)
+      }
     }, 'wp-step-timing')
     if (waypointIndex === activeFrameIndex && Math.abs(updatedStartTime - time) > 0.01) {
       setPlaying(false)
@@ -273,7 +284,7 @@ export function CameraRouteInspector() {
     if (!activeWaypoint) return
     let targetTime = activeWaypoint.time
     update((draft) => {
-      if (selectedShotId && activeWaypoint.shotId !== selectedShotId) {
+      if (selectedShotHasNoWaypoints && selectedShotId) {
         targetTime = ensureShotWaypointTime(draft, stageLayout, selectedShotId, activeWaypoint.time, true)
       }
       applyWaypointActionMode(draft, stageLayout, targetTime, mode)
@@ -296,7 +307,7 @@ export function CameraRouteInspector() {
     if (!activeWaypoint) return
     let targetTime = activeWaypoint.time
     update((draft) => {
-      if (selectedShotId && activeWaypoint.shotId !== selectedShotId) {
+      if (selectedShotHasNoWaypoints && selectedShotId) {
         targetTime = ensureShotWaypointTime(draft, stageLayout, selectedShotId, activeWaypoint.time, true)
       }
       alignWaypointInShot(draft, stageLayout, targetTime, align)

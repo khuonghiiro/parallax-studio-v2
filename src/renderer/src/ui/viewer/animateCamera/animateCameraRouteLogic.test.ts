@@ -498,5 +498,57 @@ describe('animateCameraRouteLogic — Camera 2D Route Management & Parameter Tun
       }
     }
   })
+
+  it('updates delaySec, actionDurationSec, and pose sliders/buttons across all camera action modes without sticking or leaking roll', () => {
+    const p = createProject({ width: 1920, height: 1080, duration: 12 })
+    const s1 = createShot('Cảnh 1', [0, 0, 0], 0)
+    const s2 = createShot('Cảnh 2', [10560, 0, 0], 1)
+    p.shots.push(s1, s2)
+    const layout = computeShotStageLayout(p, 0)
+
+    applyStageFrameToDraft(p, layout, 0.0, layout[0].stageX, layout[0].stageY, 1.0, true)
+    applyStageFrameToDraft(p, layout, 4.0, layout[0].stageX, layout[0].stageY, 0.58, true)
+    applyStageFrameToDraft(p, layout, 6.0, layout[1].stageX, layout[1].stageY, 1.0, true)
+
+    // 1. Shrink actionDurationSec on #1 to 0.5s (Rất nhanh) and delaySec to 0.5s
+    updateWaypointStepDuration(p, layout, 0, { delaySec: 0.5 })
+    updateWaypointStepDuration(p, layout, 0, { actionDurationSec: 0.5 })
+
+    let wps = enrichCameraWaypoints(extractCameraFrames2D(p, layout))
+    expect(wps[0].delaySec).toBe(0.5)
+    expect(wps[0].actionDurationSec).toBe(0.5)
+    expect(wps[0].stepDuration).toBe(1.0)
+    expect(wps[1].time).toBe(1.0)
+
+    // 2. Increase actionDurationSec to 4.5s (Rất chậm), then back to 1.0s (Nhanh), and delaySec back to 0s
+    updateWaypointStepDuration(p, layout, 0, { actionDurationSec: 4.5 })
+    wps = enrichCameraWaypoints(extractCameraFrames2D(p, layout))
+    expect(wps[0].actionDurationSec).toBe(4.5)
+    expect(wps[0].stepDuration).toBe(5.0)
+
+    updateWaypointStepDuration(p, layout, 0, { delaySec: 0, actionDurationSec: 1.0 })
+    wps = enrichCameraWaypoints(extractCameraFrames2D(p, layout))
+    expect(wps[0].delaySec).toBe(0)
+    expect(wps[0].actionDurationSec).toBe(1.0)
+    expect(wps[0].stepDuration).toBe(1.0)
+
+    // 3. Apply dutch-tilt on #2 (1.0s) and verify #1 (0.0s) and #3 (3.0s) do NOT inherit roll
+    applyWaypointActionMode(p, layout, wps[1].time, 'dutch-tilt')
+    wps = enrichCameraWaypoints(extractCameraFrames2D(p, layout))
+    expect(wps[1].actionMode).toBe('dutch-tilt')
+    expect(Math.abs(wps[1].roll)).toBeGreaterThanOrEqual(8)
+    expect(wps[0].roll).toBe(0)
+    expect(wps[2].roll).toBe(0)
+
+    // 4. Switch #2 to push-in and verify roll/yaw/pitch reset to 0 and zoomPct updates cleanly
+    applyWaypointActionMode(p, layout, wps[1].time, 'push-in')
+    updateCameraWaypoint(p, layout, wps[1].time, { scale: 100 / 180 })
+    wps = enrichCameraWaypoints(extractCameraFrames2D(p, layout))
+    expect(wps[1].actionMode).toBe('push-in')
+    expect(wps[1].roll).toBe(0)
+    expect(wps[1].yaw).toBe(0)
+    expect(wps[1].pitch).toBe(0)
+    expect(wps[1].zoomPct).toBe(180)
+  })
 })
 
