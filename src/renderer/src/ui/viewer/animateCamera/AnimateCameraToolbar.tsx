@@ -66,7 +66,6 @@ export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
   onFitStage
 }: AnimateCameraToolbarProps) {
   return (
-  return (
     <div className="anim2d-toolbar single-row">
       <div className="anim2d-toolbar-left">
         {/* 1. Bố cục 2D & 3D / Chỉ 2D */}
