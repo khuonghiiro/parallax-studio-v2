@@ -12,18 +12,27 @@ import {
   type CameraFrame2D,
   type ShotStageBox
 } from './animateCameraMath'
+import {
+  CAMERA_ACTION_CATEGORIES,
+  CAMERA_ACTION_MODES,
+  getActionModeMeta,
+  inferWaypointActionClassification,
+  moveExplicitActionMode,
+  recordExplicitActionMode,
+  shiftExplicitActionModes,
+  type CameraActionCategory,
+  type CameraActionMode,
+  type CameraActionModeMeta
+} from './animateCameraActionModes'
 
-export type CameraActionMode =
-  | 'hold'
-  | 'pan'
-  | 'push-in'
-  | 'pull-out'
-  | 'orbit-left'
-  | 'orbit-right'
-  | 'high-angle'
-  | 'low-angle'
-  | 'dutch-tilt'
-  | 'cut'
+export {
+  CAMERA_ACTION_CATEGORIES,
+  CAMERA_ACTION_MODES,
+  getActionModeMeta,
+  type CameraActionCategory,
+  type CameraActionMode,
+  type CameraActionModeMeta
+}
 
 export interface CameraWaypointItem extends CameraFrame2D {
   tag: 'start' | 'pan' | 'zoom-in' | 'zoom-out' | 'hold'
@@ -40,7 +49,6 @@ export interface CameraWaypointItem extends CameraFrame2D {
  * durations, zoom percentages, and first-of-shot flags for intuitive list display and editing.
  */
 export function enrichCameraWaypoints(frames: CameraFrame2D[]): CameraWaypointItem[] {
-  // Xác định mốc đầu tiên của mỗi Cảnh (dựa trên mốc xuất hiện đầu tiên của từng shotId theo trục thời gian)
   const firstIdxByShot = new Map<string, number>()
   frames.forEach((f, idx) => {
     const shotKey = f.shotId ?? 'global'
@@ -55,59 +63,13 @@ export function enrichCameraWaypoints(frames: CameraFrame2D[]): CameraWaypointIt
     const durationFromPrev = prev ? Math.max(0, Math.round((f.time - prev.time) * 100) / 100) : 0
     const zoomPct = Math.round((1 / Math.max(0.1, f.scale)) * 100)
 
-    let tag: CameraWaypointItem['tag'] = 'hold'
-    let tagLabel = durationFromPrev > 0 ? `Dừng ngắm (+${durationFromPrev.toFixed(1)}s)` : 'Điểm dừng'
-    let actionMode: CameraActionMode = 'hold'
-
-    const hasYawLeft = f.yaw <= -10
-    const hasYawRight = f.yaw >= 10
-    const hasPitchHigh = f.pitch >= 10
-    const hasPitchLow = f.pitch <= -10
-    const hasRoll = Math.abs(f.roll) >= 4
-    const isJumpCut = prev?.ease === 'hold'
-
-    if (idx === 0) {
-      tag = 'start'
-      tagLabel = 'Khung gốc (Bắt đầu)'
-      actionMode = 'pan'
-    } else if (prev) {
-      const scaleDiff = f.scale - prev.scale
-      const dist = Math.hypot(f.stageX - prev.stageX, f.stageY - prev.stageY)
-      const angleDiff = Math.hypot(f.yaw - prev.yaw, f.pitch - prev.pitch, f.roll - prev.roll)
-
-      if (dist <= 60 && Math.abs(scaleDiff) <= 0.12 && f.shotId === prev.shotId && angleDiff <= 5) {
-        tag = 'hold'
-        tagLabel = `Dừng ngắm (+${durationFromPrev.toFixed(1)}s)`
-        actionMode = 'hold'
-      } else if (scaleDiff < -0.04) {
-        tag = 'zoom-in'
-        tagLabel = `Phóng to (${zoomPct}%)`
-        actionMode = 'push-in'
-      } else if (scaleDiff > 0.04) {
-        tag = 'zoom-out'
-        tagLabel = `Thu nhỏ (${zoomPct}%)`
-        actionMode = 'pull-out'
-      } else if (f.shotId && prev.shotId && f.shotId !== prev.shotId) {
-        tag = 'pan'
-        tagLabel = isJumpCut ? `Cắt tới ${f.shotName}` : `Lia tới ${f.shotName}`
-        actionMode = isJumpCut ? 'cut' : 'pan'
-      } else if (dist > 60 || angleDiff > 5) {
-        tag = 'pan'
-        tagLabel = angleDiff > 8 ? `Xoay góc 3D (${Math.round(f.yaw)}°)` : 'Lia góc nhìn'
-        actionMode = 'pan'
-      } else {
-        tag = 'hold'
-        tagLabel = `Dừng ngắm (+${durationFromPrev.toFixed(1)}s)`
-        actionMode = 'hold'
-      }
-    }
-
-    if (isJumpCut) actionMode = 'cut'
-    else if (hasRoll) actionMode = 'dutch-tilt'
-    else if (hasYawLeft) actionMode = 'orbit-left'
-    else if (hasYawRight) actionMode = 'orbit-right'
-    else if (hasPitchHigh) actionMode = 'high-angle'
-    else if (hasPitchLow) actionMode = 'low-angle'
+    const { tag, tagLabel, actionMode } = inferWaypointActionClassification(
+      f,
+      idx,
+      prev,
+      durationFromPrev,
+      zoomPct
+    )
 
     const angleParts: string[] = []
     if (Math.abs(f.yaw) >= 1) angleParts.push(`Yaw ${f.yaw > 0 ? '+' : ''}${Math.round(f.yaw)}°`)
@@ -316,7 +278,9 @@ export function updateCameraWaypoint(
       shiftSubsequentKeyframes(draft.camera.target, oldTime, deltaT, tol)
       shiftSubsequentKeyframes(draft.camera.focusDistance, oldTime, deltaT, tol)
       shiftSubsequentKeyframes(draft.camera.roll, oldTime, deltaT, tol)
+      shiftExplicitActionModes(oldTime, deltaT)
     }
+    moveExplicitActionMode(oldTime, newTime)
   }
 
   const nextStageX = updates.stageX !== undefined ? Math.round(updates.stageX) : baseStageX
@@ -345,7 +309,8 @@ export function updateCameraWaypoint(
 }
 
 /**
- * Applies a high-level professional Camera Action Mode to the waypoint at `waypointTime`.
+ * Applies a high-level professional Camera Action Mode (20 cinematography & animation techniques)
+ * to the waypoint at `waypointTime`.
  */
 export function applyWaypointActionMode(
   draft: Project,
@@ -369,6 +334,16 @@ export function applyWaypointActionMode(
   const cur = idx >= 0 ? frames[idx] : null
   if (!cur) return
   const prev = idx > 0 ? frames[idx - 1] : null
+  const box =
+    (cur.shotId ? layout.find((b) => b.shotId === cur.shotId) : null) ??
+    findNearestShotByStage2D(layout, cur.stageX, cur.stageY) ??
+    layout[0]
+
+  if (mode !== 'cut' && prev && prev.ease === 'hold') {
+    setKeyframeEaseAtTime(draft, prev.time, 'easeInOut')
+  }
+
+  recordExplicitActionMode(cur.time, mode)
 
   switch (mode) {
     case 'hold': {
@@ -405,11 +380,128 @@ export function applyWaypointActionMode(
       })
       break
     }
+    case 'extreme-closeup': {
+      updateCameraWaypoint(draft, layout, cur.time, {
+        scale: 0.42,
+        yaw: 0,
+        pitch: -4,
+        roll: 0,
+        ease: 'easeInOutStrong'
+      })
+      break
+    }
     case 'pull-out': {
       const targetScale = clampFrameScale(prev ? Math.max(1.25, prev.scale * 1.32) : 1.32)
       updateCameraWaypoint(draft, layout, cur.time, {
         scale: targetScale,
         ease: 'easeInOut'
+      })
+      break
+    }
+    case 'establishing': {
+      updateCameraWaypoint(draft, layout, cur.time, {
+        stageX: box ? box.stageX : cur.stageX,
+        stageY: box ? box.stageY : cur.stageY,
+        scale: 1.0,
+        yaw: 0,
+        pitch: 0,
+        roll: 0,
+        ease: 'easeInOut'
+      })
+      break
+    }
+    case 'cut': {
+      if (prev) {
+        setKeyframeEaseAtTime(draft, prev.time, 'hold')
+      } else {
+        setKeyframeEaseAtTime(draft, cur.time, 'hold')
+      }
+      updateCameraWaypoint(draft, layout, cur.time, {
+        ease: 'hold'
+      })
+      break
+    }
+    case 'whip-pan': {
+      const nextX = box
+        ? Math.abs(cur.stageX - box.stageX) < 40
+          ? Math.round(box.stageX + box.width * 0.2)
+          : cur.stageX
+        : cur.stageX
+      updateCameraWaypoint(draft, layout, cur.time, {
+        stageX: nextX,
+        roll: cur.roll >= 0 ? -4 : 4,
+        ease: 'easeInOutStrong'
+      })
+      if (prev) setKeyframeEaseAtTime(draft, prev.time, 'easeInOutStrong')
+      break
+    }
+    case 'crane-up': {
+      const targetY = box ? Math.round(box.stageY - box.height * 0.2) : Math.round(cur.stageY - 180)
+      updateCameraWaypoint(draft, layout, cur.time, {
+        stageY: targetY,
+        scale: clampFrameScale(Math.max(0.92, cur.scale)),
+        yaw: 0,
+        pitch: -10,
+        roll: 0,
+        ease: 'easeInOut'
+      })
+      break
+    }
+    case 'crane-down': {
+      const targetY = box ? Math.round(box.stageY + box.height * 0.16) : Math.round(cur.stageY + 150)
+      updateCameraWaypoint(draft, layout, cur.time, {
+        stageY: targetY,
+        scale: clampFrameScale(Math.min(0.85, cur.scale)),
+        yaw: 0,
+        pitch: 8,
+        roll: 0,
+        ease: 'easeInOut'
+      })
+      break
+    }
+    case 'sweep-left': {
+      const targetX = box ? Math.round(box.stageX - box.width * 0.22) : Math.round(cur.stageX - 320)
+      updateCameraWaypoint(draft, layout, cur.time, {
+        stageX: targetX,
+        yaw: -8,
+        pitch: 0,
+        roll: 0,
+        ease: 'easeInOut'
+      })
+      break
+    }
+    case 'sweep-right': {
+      const targetX = box ? Math.round(box.stageX + box.width * 0.22) : Math.round(cur.stageX + 320)
+      updateCameraWaypoint(draft, layout, cur.time, {
+        stageX: targetX,
+        yaw: 8,
+        pitch: 0,
+        roll: 0,
+        ease: 'easeInOut'
+      })
+      break
+    }
+    case 'tilt-sky': {
+      const targetY = box ? Math.round(box.stageY - box.height * 0.24) : Math.round(cur.stageY - 220)
+      updateCameraWaypoint(draft, layout, cur.time, {
+        stageY: targetY,
+        yaw: 0,
+        pitch: -24,
+        roll: 0,
+        ease: 'easeOut'
+      })
+      break
+    }
+    case 'aerial-dive': {
+      const targetY = box ? Math.round(box.stageY + box.height * 0.06) : cur.stageY
+      updateCameraWaypoint(draft, layout, cur.time, {
+        stageX: box ? box.stageX : cur.stageX,
+        stageY: targetY,
+        scale: 0.56,
+        yaw: 0,
+        pitch: 14,
+        roll: 0,
+        ease: 'easeInOutStrong'
       })
       break
     }
@@ -431,27 +523,34 @@ export function applyWaypointActionMode(
       })
       break
     }
-    case 'high-angle': {
+    case 'hero-low':
+    case 'low-angle': {
+      const targetY = box ? Math.round(box.stageY + box.height * 0.08) : cur.stageY
       updateCameraWaypoint(draft, layout, cur.time, {
+        stageY: targetY,
         yaw: 0,
-        pitch: 22,
+        pitch: -18,
+        scale: Math.min(cur.scale, 0.78),
         roll: 0,
         ease: 'easeInOut'
       })
       break
     }
-    case 'low-angle': {
+    case 'bird-eye':
+    case 'high-angle': {
+      const targetY = box ? Math.round(box.stageY - box.height * 0.12) : cur.stageY
       updateCameraWaypoint(draft, layout, cur.time, {
+        stageY: targetY,
         yaw: 0,
-        pitch: -16,
-        scale: Math.min(cur.scale, 0.82),
+        pitch: 24,
+        scale: Math.max(cur.scale, 1.15),
         roll: 0,
         ease: 'easeInOut'
       })
       break
     }
     case 'dutch-tilt': {
-      const nextRoll = cur.roll >= 8 ? -12 : 12
+      const nextRoll = cur.roll >= 8 ? -14 : 14
       updateCameraWaypoint(draft, layout, cur.time, {
         roll: nextRoll,
         scale: Math.min(cur.scale, 0.85),
@@ -459,16 +558,20 @@ export function applyWaypointActionMode(
       })
       break
     }
-    case 'cut': {
-      // Jump Cut: previous keyframe holds pose until this waypoint's timestamp
-      if (prev) {
-        setKeyframeEaseAtTime(draft, prev.time, 'hold')
-      } else {
-        setKeyframeEaseAtTime(draft, cur.time, 'hold')
-      }
+    case 'corkscrew': {
+      const nextRoll = cur.roll >= 10 ? -18 : 18
+      const nextYaw = cur.yaw >= 8 ? -16 : 16
+      updateCameraWaypoint(draft, layout, cur.time, {
+        scale: 0.58,
+        yaw: nextYaw,
+        pitch: -6,
+        roll: nextRoll,
+        ease: 'easeInOutStrong'
+      })
       break
     }
   }
+  recordExplicitActionMode(cur.time, mode)
 }
 
 /**
@@ -547,6 +650,7 @@ export function shiftSubsequentCameraKeyframes(draft: Project, afterTime: number
   shiftSubsequentKeyframes(draft.camera.target, afterTime, delta, tol)
   shiftSubsequentKeyframes(draft.camera.focusDistance, afterTime, delta, tol)
   shiftSubsequentKeyframes(draft.camera.roll, afterTime, delta, tol)
+  shiftExplicitActionModes(afterTime, delta)
   const maxKeyT = Math.max(0, ...draft.camera.position.keyframes.map((k) => k.t))
   if (maxKeyT > draft.comp.duration) {
     setCompDuration(draft, Math.ceil(maxKeyT + 1))

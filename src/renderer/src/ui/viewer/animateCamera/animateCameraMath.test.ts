@@ -7,7 +7,13 @@ import {
   extractCameraFrames2D,
   pose3DToStageFrame
 } from './animateCameraMath'
-import { shiftSubsequentCameraKeyframes } from './animateCameraRouteLogic'
+import {
+  applyCameraRoutePreset,
+  applyWaypointActionMode,
+  CAMERA_ACTION_MODES,
+  enrichCameraWaypoints,
+  shiftSubsequentCameraKeyframes
+} from './animateCameraRouteLogic'
 
 function makeThreeShotProject() {
   const project = createProject({ duration: 16 })
@@ -65,5 +71,38 @@ describe('animateCameraMath inter-shot transition & route ordering', () => {
     shiftSubsequentCameraKeyframes(project, 0, 2.0)
     expect(project.camera.position.keyframes.map((k) => k.t)).toEqual([0, 6])
     expect(project.camera.target.keyframes.map((k) => k.t)).toEqual([0, 6])
+  })
+
+  it('supports all 20 professional camera action modes and preserves their classification', () => {
+    const project = makeThreeShotProject()
+    const layout = computeShotStageLayout(project, 0)
+    applyStageFrameToDraft(project, layout, 0, layout[0].stageX, layout[0].stageY, 1.0, true)
+    applyStageFrameToDraft(project, layout, 2, layout[0].stageX, layout[0].stageY, 1.0, true)
+
+    expect(CAMERA_ACTION_MODES.length).toBe(20)
+    for (const def of CAMERA_ACTION_MODES) {
+      applyWaypointActionMode(project, layout, 2, def.id)
+      const waypoints = enrichCameraWaypoints(extractCameraFrames2D(project, layout))
+      const wp = waypoints.find((w) => Math.abs(w.time - 2) < 0.05)
+      expect(wp).toBeDefined()
+      expect(wp?.actionMode).toBe(def.id)
+      expect(wp?.tagLabel).toBe(def.badgeLabel)
+    }
+  })
+
+  it('applies the 4 new professional full-route presets across shots cleanly', () => {
+    const project = makeThreeShotProject()
+    const layout = computeShotStageLayout(project, 0)
+
+    for (const preset of [
+      'hero-crane-epic',
+      'whip-action-rush',
+      'aerial-drone-sweep',
+      'dramatic-story-reveal'
+    ] as const) {
+      applyCameraRoutePreset(project, layout, preset)
+      const waypoints = enrichCameraWaypoints(extractCameraFrames2D(project, layout))
+      expect(waypoints.length).toBeGreaterThanOrEqual(6)
+    }
   })
 })

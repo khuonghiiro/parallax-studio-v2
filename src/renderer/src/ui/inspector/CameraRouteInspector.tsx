@@ -27,6 +27,7 @@ import {
   alignWaypointInShot,
   applyCameraRoutePreset,
   applyWaypointActionMode,
+  CAMERA_ACTION_MODES,
   duplicateCameraWaypoint,
   enrichCameraWaypoints,
   panCameraToLayer2D,
@@ -223,7 +224,12 @@ export function CameraRouteInspector() {
     update((draft) => {
       applyWaypointActionMode(draft, stageLayout, activeWaypoint.time, mode)
     })
-    toast('Đã cập nhật chế độ động tác quay cho mốc hiện tại')
+    const def = CAMERA_ACTION_MODES.find((m) => m.id === mode)
+    toast(
+      def
+        ? `🎬 Mốc #${activeWaypoint.index + 1}: ${def.badgeLabel}`
+        : 'Đã cập nhật động tác quay cho mốc hiện tại'
+    )
   }
 
   const handleAlignInShot = (
@@ -370,6 +376,34 @@ export function CameraRouteInspector() {
                     onClick={() => handlePreset('tour-hold-and-pan')}
                   >
                     🎬 Điện ảnh: Lia &amp; Dừng ngắm
+                  </button>
+                  <button
+                    type="button"
+                    className="popover-item"
+                    onClick={() => handlePreset('hero-crane-epic')}
+                  >
+                    🦸 Anh hùng &amp; Cần cẩu 3D (Hero Crane)
+                  </button>
+                  <button
+                    type="button"
+                    className="popover-item"
+                    onClick={() => handlePreset('whip-action-rush')}
+                  >
+                    💨 Nhịp nhanh: Lia vút &amp; Đặc tả (Whip Rush)
+                  </button>
+                  <button
+                    type="button"
+                    className="popover-item"
+                    onClick={() => handlePreset('aerial-drone-sweep')}
+                  >
+                    🦅 Flycam Toàn không &amp; Lao xuống (Drone)
+                  </button>
+                  <button
+                    type="button"
+                    className="popover-item"
+                    onClick={() => handlePreset('dramatic-story-reveal')}
+                  >
+                    🎭 Kể chuyện: Đặc tả ➔ Mở cảnh ➔ Ngước trời
                   </button>
                   <button
                     type="button"

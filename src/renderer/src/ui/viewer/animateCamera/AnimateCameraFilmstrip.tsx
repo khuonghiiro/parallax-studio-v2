@@ -346,6 +346,38 @@ export function AnimateCameraProFooterBar({
         >
           ⚡ Cắt cảnh
         </button>
+        <button
+          type="button"
+          className={`mode-chip${activeFrame.actionMode === 'whip-pan' ? ' active' : ''}`}
+          onClick={() => onQuickActionMode('whip-pan')}
+          title="Lia vút tốc độ cao (Whip Pan): Lia máy cực nhanh tạo nhịp chuyển cảnh hành động"
+        >
+          💨 Lia vút
+        </button>
+        <button
+          type="button"
+          className={`mode-chip${activeFrame.actionMode === 'crane-up' ? ' active' : ''}`}
+          onClick={() => onQuickActionMode('crane-up')}
+          title="Cần cẩu nâng lên (Crane Up): Nâng máy cao dần lên kết hợp ngước nhẹ mở rộng không gian"
+        >
+          ⤴ Cần cẩu
+        </button>
+        <button
+          type="button"
+          className={`mode-chip${activeFrame.actionMode === 'hero-low' ? ' active' : ''}`}
+          onClick={() => onQuickActionMode('hero-low')}
+          title="Góc thấp Anh hùng (Hero Low Angle): Hạ thấp máy ngước lên tôn dáng nhân vật uy lực"
+        >
+          🦸 Góc Hùng vĩ
+        </button>
+        <button
+          type="button"
+          className={`mode-chip${activeFrame.actionMode === 'corkscrew' ? ' active' : ''}`}
+          onClick={() => onQuickActionMode('corkscrew')}
+          title="Xoáy cận 3D (Corkscrew): Đẩy cận cảnh kết hợp xoay nghiêng Roll + Yaw 3D kịch tính"
+        >
+          🌀 Xoáy 3D
+        </button>
       </div>
     </div>
   )

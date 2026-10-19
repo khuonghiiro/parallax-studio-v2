@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { EaseName } from '@shared/types'
 import { CustomSelect } from '../controls/CustomSelect'
 import {
@@ -5,9 +6,12 @@ import {
   type ProjectedLayer2D,
   type ShotStageBox
 } from '../viewer/animateCamera/animateCameraMath'
-import type {
-  CameraActionMode,
-  CameraWaypointItem
+import {
+  CAMERA_ACTION_CATEGORIES,
+  CAMERA_ACTION_MODES,
+  type CameraActionCategory,
+  type CameraActionMode,
+  type CameraWaypointItem
 } from '../viewer/animateCamera/animateCameraRouteLogic'
 
 const EASING_OPTIONS: { value: EaseName; label: string }[] = [
@@ -17,18 +21,6 @@ const EASING_OPTIONS: { value: EaseName; label: string }[] = [
   { value: 'easeIn', label: '🚀 Tăng tốc dần (easeIn)' },
   { value: 'linear', label: '📏 Đều tốc (linear)' },
   { value: 'hold', label: '⚡ Cắt cảnh tức thì (Jump Cut)' }
-]
-
-// Sắp xếp ưu tiên các động tác quay phim & hoạt hình chuyên nghiệp dùng nhiều nhất lên hàng đầu
-const ACTION_MODES: { id: CameraActionMode; icon: string; label: string; hint: string }[] = [
-  { id: 'pan', icon: '↔', label: 'Lia cân bằng', hint: 'Lia máy mượt mà với góc nhìn thẳng 0° cân bằng (dùng nhiều nhất)' },
-  { id: 'push-in', icon: '🔍+', label: 'Đẩy cận', hint: 'Thu nhỏ khung camera để đẩy cận cảnh vào chủ thể (Dolly In)' },
-  { id: 'pull-out', icon: '🔍-', label: 'Kéo rộng', hint: 'Mở rộng khung camera để lấy toàn cảnh không gian (Dolly Out)' },
-  { id: 'hold', icon: '⏸', label: 'Dừng ngắm', hint: 'Giữ nguyên khung hình của mốc trước để dừng ngắm cảnh' },
-  { id: 'cut', icon: '⚡', label: 'Cắt cảnh', hint: 'Chuyển thẳng sang khung hình này không lia giữa chừng (Jump Cut)' },
-  { id: 'orbit-left', icon: '↺', label: '3D Trái', hint: 'Xoay góc máy 3D sang trái (-25°) tạo chiều sâu Parallax 2.5D' },
-  { id: 'orbit-right', icon: '↻', label: '3D Phải', hint: 'Xoay góc máy 3D sang phải (+25°) tạo chiều sâu Parallax 2.5D' },
-  { id: 'dutch-tilt', icon: '📐', label: 'Nghiêng máy', hint: 'Xoay nghiêng máy kịch tính (Dutch Angle Roll ±12°)' }
 ]
 
 const QUICK_DURATIONS = [1, 2, 3, 4, 5]
@@ -79,6 +71,12 @@ export function CameraWaypointDetailPanel({
   onSpawnNext,
   onAddHold
 }: CameraWaypointDetailPanelProps) {
+  const [actionCategory, setActionCategory] = useState<'all' | CameraActionCategory>('all')
+  const filteredActionModes =
+    actionCategory === 'all'
+      ? CAMERA_ACTION_MODES
+      : CAMERA_ACTION_MODES.filter((m) => m.category === actionCategory)
+
   const prevWp = activeWaypoint.index > 0 ? waypoints[activeWaypoint.index - 1] : null
   const nextWp =
     activeWaypoint.index + 1 < waypoints.length ? waypoints[activeWaypoint.index + 1] : null
@@ -239,20 +237,38 @@ export function CameraWaypointDetailPanel({
         </div>
       </div>
 
-      {/* 2. Động tác Quay Chuyên Nghiệp & Cỡ Khung (Zoom %) */}
+      {/* 2. Động tác Quay Chuyên Nghiệp (20 Kỹ thuật Điện ảnh & Hoạt hình 2.5D) */}
       <div className="row-group">
         <div className="field-header">
           <label>🎬 Động tác Quay tại Mốc #{activeWaypoint.index + 1}</label>
           <span className="wp-mode-current">{activeWaypoint.tagLabel}</span>
         </div>
+
+        {/* Bộ lọc phân nhóm kỹ thuật quay chuyên nghiệp */}
+        <div className="cam-action-cat-tabs" role="tablist" aria-label="Nhóm động tác quay chuyên nghiệp">
+          {CAMERA_ACTION_CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              role="tab"
+              aria-selected={actionCategory === cat.id}
+              className={`cam-action-cat-btn${actionCategory === cat.id ? ' active' : ''}`}
+              onClick={() => setActionCategory(cat.id)}
+              title={cat.hint}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
         <div className="cam-action-mode-grid">
-          {ACTION_MODES.map((m) => (
+          {filteredActionModes.map((m) => (
             <button
               key={m.id}
               type="button"
               className={`cam-mode-btn${activeWaypoint.actionMode === m.id ? ' active' : ''}`}
               onClick={() => onApplyActionMode(m.id)}
-              title={m.hint}
+              title={`${m.badgeLabel}: ${m.hint}`}
             >
               <span className="mode-ico">{m.icon}</span>
               <span className="mode-lbl">{m.label}</span>
