@@ -152,7 +152,7 @@ export const useEditor = create<EditorState>((set, get) => ({
       selectedLayerId: null,
       selectedAudioTrackId: null,
       selectedKey: null,
-      inspectorTab: id ? 'layer' : s.inspectorTab
+      inspectorTab: s.inspectorTab === 'route' ? 'route' : id ? 'layer' : s.inspectorTab
     }))
   },
   selectAudioTrack(id) {

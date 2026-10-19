@@ -32,12 +32,14 @@ import {
   duplicateCameraWaypoint,
   enrichCameraWaypoints,
   ensureShotWaypointTime,
+  findActiveWaypointIndexAtTime,
   panCameraToLayer2D,
   panCameraToShot,
   removeCameraWaypoint,
   reverseCameraRoute,
   shiftSubsequentCameraKeyframes,
   updateCameraWaypoint,
+  updateWaypointStepDuration,
   type CameraActionMode,
   type CameraRoutePresetType,
   type CameraWaypointItem
@@ -68,20 +70,10 @@ export function CameraRouteInspector() {
   const waypoints = useMemo(() => enrichCameraWaypoints(frames), [frames])
 
   const tol = frameTolerance(project)
-  const activeFrameIndex = useMemo(() => {
-    const exact = waypoints.findIndex((f) => Math.abs(f.time - time) <= Math.max(tol, 0.04))
-    if (exact >= 0) return exact
-    let best = 0
-    let bestDiff = Infinity
-    waypoints.forEach((f, idx) => {
-      const diff = Math.abs(f.time - time)
-      if (diff < bestDiff) {
-        bestDiff = diff
-        best = idx
-      }
-    })
-    return best
-  }, [waypoints, time, tol])
+  const activeFrameIndex = useMemo(
+    () => findActiveWaypointIndexAtTime(waypoints, time, Math.max(tol, 0.015)),
+    [waypoints, time, tol]
+  )
 
   const activeWaypoint: CameraWaypointItem | undefined = waypoints[activeFrameIndex] ?? waypoints[0]
 
@@ -165,7 +157,6 @@ export function CameraRouteInspector() {
         : activeWaypoint) ?? waypoints[waypoints.length - 1]
     if (!base) return
 
-    const stepDur = 2.0
     let anchor = base
     let nextStageX = base.stageX
     let nextStageY = base.stageY
@@ -202,6 +193,7 @@ export function CameraRouteInspector() {
       }
     }
 
+    const stepDur = anchor.stepDuration > 0 ? anchor.stepDuration : 2.0
     const nextTime = !anchor.isKeyframed
       ? stepDur
       : Math.round((anchor.time + stepDur) * 100) / 100
@@ -259,24 +251,21 @@ export function CameraRouteInspector() {
     }
   }
 
-  const handleUpdateSegmentDuration = (targetWaypointIndex: number, newDurationSec: number): void => {
-    const targetWp = waypoints[targetWaypointIndex]
-    const prevWp = targetWaypointIndex > 0 ? waypoints[targetWaypointIndex - 1] : null
-    if (!targetWp || !prevWp) return
-    const newTime = Math.max(
-      prevWp.time + 0.1,
-      Math.round((prevWp.time + newDurationSec) * 100) / 100
-    )
-    const oldTime = targetWp.time
+  const handleUpdateStepTiming = (
+    waypointIndex: number,
+    options: {
+      stepDuration?: number
+      delaySec?: number
+      actionDurationSec?: number
+    }
+  ): void => {
+    let updatedStartTime = waypoints[waypointIndex]?.time ?? 0
     update((draft) => {
-      updateCameraWaypoint(draft, stageLayout, oldTime, {
-        time: newTime,
-        ripple: true
-      })
-    })
-    if (targetWaypointIndex === activeFrameIndex) {
+      updatedStartTime = updateWaypointStepDuration(draft, stageLayout, waypointIndex, options)
+    }, 'wp-step-timing')
+    if (waypointIndex === activeFrameIndex && Math.abs(updatedStartTime - time) > 0.01) {
       setPlaying(false)
-      setTime(newTime)
+      setTime(updatedStartTime)
     }
   }
 
@@ -608,7 +597,7 @@ export function CameraRouteInspector() {
                 id={`route-wp-item-${idx + 1}`}
                 className={`route-wp-card${wp.isFirstOfShot ? ' first-of-shot' : ''}${isActive ? ' active' : ''}`}
                 onClick={() => handleSelectWaypoint(wp)}
-                title={`${wp.isFirstOfShot ? `⚑ MỐC MỞ MÀN CẢNH: ${wp.shotName}\n` : ''}Mốc #${idx + 1} tại ${wp.time.toFixed(1)}s · ${wp.shotName}`}
+                title={`${wp.isFirstOfShot ? `⚑ MỐC MỞ MÀN CẢNH: ${wp.shotName}\n` : ''}Mốc #${idx + 1} (${wp.time.toFixed(1)}s ➔ ${wp.endTime.toFixed(1)}s · Thời lượng: ${wp.stepDuration.toFixed(1)}s) · ${wp.shotName}`}
               >
                 <div className="wp-card-head">
                   <div className="wp-card-title">
@@ -620,8 +609,12 @@ export function CameraRouteInspector() {
                         ⚑ Đầu cảnh
                       </span>
                     )}
-                    <span className="wp-card-time">{wp.time.toFixed(1)}s</span>
-                    {idx > 0 && <span className="wp-card-dur">+{wp.durationFromPrev.toFixed(1)}s</span>}
+                    <span className="wp-card-time" title={`Khung giờ: ${wp.time.toFixed(2)}s ➔ ${wp.endTime.toFixed(2)}s`}>
+                      {wp.time.toFixed(1)}s ➔ {wp.endTime.toFixed(1)}s
+                    </span>
+                    <span className="wp-card-dur" title={`Thời lượng riêng của Mốc #${idx + 1}: ${wp.stepDuration.toFixed(1)}s`}>
+                      {wp.stepDuration.toFixed(1)}s
+                    </span>
                     <span className={`wp-type-badge ${wp.tag}`}>{wp.tagLabel}</span>
                     {isActive && <span className="wp-editing-pill">● Đang sửa</span>}
                   </div>
@@ -653,6 +646,7 @@ export function CameraRouteInspector() {
                     ● {wp.shotName}
                   </span>
                   <span>Zoom {wp.zoomPct}%</span>
+                  {wp.delaySec > 0.01 && <span className="wp-meta-3d">⏳ Đệm +{wp.delaySec.toFixed(1)}s</span>}
                   {has3D && <span className="wp-meta-3d">{wp.angleSummary}</span>}
                   <span className="wp-card-ease">{wp.ease === 'hold' ? '⚡ cut' : wp.ease}</span>
                 </div>
@@ -681,7 +675,7 @@ export function CameraRouteInspector() {
             }
           }}
           onUpdate={handleUpdate}
-          onUpdateSegmentDuration={handleUpdateSegmentDuration}
+          onUpdateStepTiming={handleUpdateStepTiming}
           onApplyActionMode={handleApplyActionMode}
           onAlignInShot={handleAlignInShot}
           onTargetShot={handleTargetShot}

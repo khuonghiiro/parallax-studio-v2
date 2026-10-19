@@ -16,9 +16,12 @@ import {
   CAMERA_ACTION_CATEGORIES,
   CAMERA_ACTION_MODES,
   getActionModeMeta,
+  getActionVerbLabel,
+  getWaypointTimingMeta,
   inferWaypointActionClassification,
   moveExplicitActionMode,
   recordExplicitActionMode,
+  setWaypointTimingMeta,
   shiftExplicitActionModes,
   type CameraActionCategory,
   type CameraActionMode,
@@ -29,6 +32,9 @@ export {
   CAMERA_ACTION_CATEGORIES,
   CAMERA_ACTION_MODES,
   getActionModeMeta,
+  getActionVerbLabel,
+  getWaypointTimingMeta,
+  setWaypointTimingMeta,
   type CameraActionCategory,
   type CameraActionMode,
   type CameraActionModeMeta
@@ -40,13 +46,40 @@ export interface CameraWaypointItem extends CameraFrame2D {
   actionMode: CameraActionMode
   angleSummary: string
   durationFromPrev: number
+  /** Thời lượng riêng của Mốc này (giây: Mốc #1 có 2s -> 0..2s, Mốc #2 có 3s -> 2..5s) */
+  stepDuration: number
+  /** Thời điểm kết thúc Mốc này (= time + stepDuration) */
+  endTime: number
+  /** Đệm chờ tĩnh ở đầu mốc trước khi bắt đầu động tác quay (giây) */
+  delaySec: number
+  /** Thời gian thực hiện động tác quay (giây: càng ít càng nhanh, càng lâu càng chậm) */
+  actionDurationSec: number
   zoomPct: number
   isFirstOfShot: boolean
 }
 
 /**
+ * Xác định chính xác Mốc Lộ Trình đang hoạt động tại thời điểm `time`:
+ * - Mốc #1 (2.0s: 0.0s ➔ 2.0s) hoạt động trong [0.00s, 2.00s)
+ * - Ngay khi tới 2.00s / 2.01s ➔ 5.00s, chuyển sang Mốc #2 (3.0s)
+ */
+export function findActiveWaypointIndexAtTime(
+  waypoints: CameraWaypointItem[],
+  time: number,
+  tol = 0.008
+): number {
+  if (waypoints.length === 0) return 0
+  for (let i = waypoints.length - 1; i >= 0; i--) {
+    if (time >= waypoints[i].time - tol) {
+      return i
+    }
+  }
+  return 0
+}
+
+/**
  * Enriches extracted 2D camera frames with waypoint tags, action modes, 3D angle badges,
- * durations, zoom percentages, and first-of-shot flags for intuitive list display and editing.
+ * own step durations, delay/action timing, zoom percentages, and first-of-shot flags.
  */
 export function enrichCameraWaypoints(frames: CameraFrame2D[]): CameraWaypointItem[] {
   const firstIdxByShot = new Map<string, number>()
@@ -60,14 +93,21 @@ export function enrichCameraWaypoints(frames: CameraFrame2D[]): CameraWaypointIt
   return frames.map((f, idx) => {
     const isFirstOfShot = firstIdxByShot.get(f.shotId ?? 'global') === idx
     const prev = idx > 0 ? frames[idx - 1] : null
+    const next = idx + 1 < frames.length ? frames[idx + 1] : null
     const durationFromPrev = prev ? Math.max(0, Math.round((f.time - prev.time) * 100) / 100) : 0
+    const rawStepDur = next ? Math.max(0.2, Math.round((next.time - f.time) * 100) / 100) : undefined
+    const timingMeta = getWaypointTimingMeta(f.time, rawStepDur ?? 2.5)
+    const stepDuration = rawStepDur ?? timingMeta.stepDuration
+    const endTime = Math.round((f.time + stepDuration) * 100) / 100
+    const delaySec = Math.min(Math.max(0, Math.round((stepDuration - 0.2) * 100) / 100), timingMeta.delaySec)
+    const actionDurationSec = Math.max(0.2, Math.round((stepDuration - delaySec) * 100) / 100)
     const zoomPct = Math.round((1 / Math.max(0.045, f.scale)) * 100)
 
     const { tag, tagLabel, actionMode } = inferWaypointActionClassification(
       f,
       idx,
       prev,
-      durationFromPrev,
+      stepDuration,
       zoomPct
     )
 
@@ -84,6 +124,10 @@ export function enrichCameraWaypoints(frames: CameraFrame2D[]): CameraWaypointIt
       actionMode,
       angleSummary,
       durationFromPrev,
+      stepDuration,
+      endTime,
+      delaySec,
+      actionDurationSec,
       zoomPct,
       isFirstOfShot
     }
@@ -748,10 +792,11 @@ export function appendShotCameraWaypoint(
     })
   }
 
+  const lastDur = last ? getWaypointTimingMeta(last.time, stepSec).stepDuration : stepSec
   const nextTime =
     !last || (!hasKeyframes && last.shotId === shotId)
       ? 0
-      : Math.round(((last?.time ?? 0) + stepSec) * 100) / 100
+      : Math.round(((last?.time ?? 0) + lastDur) * 100) / 100
 
   if (nextTime > draft.comp.duration) {
     setCompDuration(draft, Math.ceil(nextTime + 1))
@@ -786,6 +831,110 @@ export function ensureShotWaypointTime(
   }
   const spawned = appendShotCameraWaypoint(draft, layout, shotId, 2.0)
   return spawned ?? fallbackTime
+}
+
+/**
+ * Cập nhật Thời lượng riêng (`stepDuration`), Đệm chờ (`delaySec`) và Thời gian thực hiện động tác (`actionDurationSec`)
+ * cho Mốc `#(waypointIndex + 1)`:
+ * - Giữ nguyên thời điểm bắt đầu của Mốc `#(waypointIndex + 1)` (với Mốc #1 luôn neo chuẩn tại 0.0s).
+ * - Tự động dời Mốc `#(waypointIndex + 2)` và các mốc phía sau để Mốc `#(waypointIndex + 1)` kéo dài đúng `stepDuration` giây
+ *   (ví dụ: Mốc #1 có 2s [0.0s ➔ 2.0s], ngay tới 2.01s sang Mốc #2 có 3s [2.0s ➔ 5.0s]).
+ */
+export function updateWaypointStepDuration(
+  draft: Project,
+  layout: ShotStageBox[],
+  waypointIndex: number,
+  options: {
+    stepDuration?: number
+    delaySec?: number
+    actionDurationSec?: number
+  }
+): number {
+  const frames = extractCameraFrames2D(draft, layout)
+  const cur = frames[waypointIndex]
+  if (!cur) return 0
+
+  // Nếu chỉnh Mốc #1 mà Mốc #1 đang bị lệch khỏi 0.0s, tự động neo Mốc #1 về 0.0s trước
+  if (waypointIndex === 0 && cur.time > 0.001) {
+    const offsetToZero = -cur.time
+    updateCameraWaypoint(draft, layout, cur.time, {
+      time: 0,
+      ripple: true
+    })
+    cur.time = 0
+    for (let i = 1; i < frames.length; i++) {
+      frames[i].time = Math.max(0, Math.round((frames[i].time + offsetToZero) * 100) / 100)
+    }
+  }
+
+  const next = waypointIndex + 1 < frames.length ? frames[waypointIndex + 1] : null
+  const currentRawStepDur = next
+    ? Math.max(0.2, Math.round((next.time - cur.time) * 100) / 100)
+    : getWaypointTimingMeta(cur.time, 2.5).stepDuration
+  const currentMeta = getWaypointTimingMeta(cur.time, currentRawStepDur)
+
+  let nextDelay =
+    options.delaySec !== undefined
+      ? Math.max(0, Math.round(options.delaySec * 100) / 100)
+      : currentMeta.delaySec
+  let nextActionDur =
+    options.actionDurationSec !== undefined
+      ? Math.max(0.2, Math.round(options.actionDurationSec * 100) / 100)
+      : currentMeta.actionDurationSec
+  let nextStepDur: number
+
+  if (options.stepDuration !== undefined) {
+    nextStepDur = Math.max(0.2, Math.round(options.stepDuration * 100) / 100)
+    if (nextDelay > nextStepDur - 0.2) {
+      nextDelay = Math.max(0, Math.round((nextStepDur - 0.2) * 100) / 100)
+    }
+    if (options.actionDurationSec === undefined) {
+      nextActionDur = Math.max(0.2, Math.round((nextStepDur - nextDelay) * 100) / 100)
+    }
+  } else {
+    if (options.delaySec !== undefined && options.actionDurationSec === undefined) {
+      if (nextDelay + nextActionDur > currentMeta.stepDuration) {
+        nextActionDur = Math.max(0.2, Math.round((currentMeta.stepDuration - nextDelay) * 100) / 100)
+      }
+    }
+    nextStepDur = Math.max(
+      currentMeta.stepDuration,
+      Math.round((nextDelay + nextActionDur) * 100) / 100
+    )
+  }
+
+  const isCustomActionTiming =
+    options.delaySec !== undefined ||
+    options.actionDurationSec !== undefined ||
+    currentMeta.hasCustomActionTiming
+
+  setWaypointTimingMeta(cur.time, {
+    stepDuration: nextStepDur,
+    delaySec: nextDelay,
+    actionDurationSec: nextActionDur,
+    hasCustomActionTiming: isCustomActionTiming
+  })
+
+  if (next) {
+    const newNextTime = Math.max(
+      cur.time + 0.2,
+      Math.round((cur.time + nextStepDur) * 100) / 100
+    )
+    updateCameraWaypoint(draft, layout, next.time, {
+      time: newNextTime,
+      ripple: true
+    })
+  }
+
+  const maxEnd = Math.max(
+    cur.time + nextStepDur,
+    ...draft.camera.position.keyframes.map((k) => k.t + 1)
+  )
+  if (maxEnd > draft.comp.duration) {
+    setCompDuration(draft, Math.ceil(maxEnd))
+  }
+
+  return cur.time
 }
 
 export {

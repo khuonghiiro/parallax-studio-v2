@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { createProject, createShot } from '../../../project/factory'
+import { evaluateCamera } from '../../../engine/evaluateScene'
 import {
   computeShotStageLayout,
+  evaluateLiveCameraFrame2D,
   extractCameraFrames2D,
   applyStageFrameToDraft
 } from './animateCameraMath'
@@ -10,6 +12,7 @@ import {
   buildReactFlowSmoothStepPath,
   computeBubbleAnchorAttachment
 } from './animateCameraEdgePaths'
+import { computeCalloutBubbleNodes } from './calloutBubbleLayout'
 import {
   alignWaypointInShot,
   appendShotCameraWaypoint,
@@ -18,11 +21,13 @@ import {
   duplicateCameraWaypoint,
   enrichCameraWaypoints,
   ensureShotWaypointTime,
+  findActiveWaypointIndexAtTime,
   panCameraToLayer2D,
   panCameraToShot,
   removeCameraWaypoint,
   reverseCameraRoute,
   updateCameraWaypoint,
+  updateWaypointStepDuration,
   zoomCameraAtPoint
 } from './animateCameraRouteLogic'
 
@@ -361,6 +366,137 @@ describe('animateCameraRouteLogic — Camera 2D Route Management & Parameter Tun
     const layout4 = computeShotStageLayout(p, 0)
     const t4 = appendShotCameraWaypoint(p, layout4, s4.id, 2.0)
     expect(t4).toBeCloseTo(tNew + 2.0, 2)
+  })
+
+  it('tracks stepDuration intervals accurately: #1 lasts 2s [0..2.0s], at 2.01s switches to #2 lasting 3s [2.0..5.0s]', () => {
+    const p = createProject({ width: 1920, height: 1080, duration: 10 })
+    const s1 = createShot('Cảnh 1', [0, 0, 0], 0)
+    const s2 = createShot('Cảnh 2', [10560, 0, 0], 1)
+    const s3 = createShot('Cảnh 3', [21120, 0, 0], 2)
+    p.shots.push(s1, s2, s3)
+    const layout = computeShotStageLayout(p, 0)
+
+    // Create 3 waypoints initially at 0s, 1.5s, 4.0s
+    applyStageFrameToDraft(p, layout, 0.0, layout[0].stageX, layout[0].stageY, 1.0, true)
+    applyStageFrameToDraft(p, layout, 1.5, layout[1].stageX, layout[1].stageY, 0.8, true)
+    applyStageFrameToDraft(p, layout, 4.0, layout[2].stageX, layout[2].stageY, 0.6, true)
+
+    // User sets #1 duration to 2.0s and #2 duration to 3.0s
+    updateWaypointStepDuration(p, layout, 0, { stepDuration: 2.0 })
+    updateWaypointStepDuration(p, layout, 1, { stepDuration: 3.0 })
+
+    const frames = extractCameraFrames2D(p, layout)
+    const waypoints = enrichCameraWaypoints(frames, p.comp.duration)
+
+    expect(waypoints[0].time).toBeCloseTo(0.0, 2)
+    expect(waypoints[0].stepDuration).toBeCloseTo(2.0, 2)
+    expect(waypoints[0].endTime).toBeCloseTo(2.0, 2)
+
+    expect(waypoints[1].time).toBeCloseTo(2.0, 2)
+    expect(waypoints[1].stepDuration).toBeCloseTo(3.0, 2)
+    expect(waypoints[1].endTime).toBeCloseTo(5.0, 2)
+
+    expect(waypoints[2].time).toBeCloseTo(5.0, 2)
+
+    // Verify active waypoint interval selection:
+    // During [0.0s .. 1.99s], #1 (index 0) is active
+    expect(findActiveWaypointIndexAtTime(waypoints, 0.0)).toBe(0)
+    expect(findActiveWaypointIndexAtTime(waypoints, 1.2)).toBe(0)
+    expect(findActiveWaypointIndexAtTime(waypoints, 1.99)).toBe(0)
+
+    // At 2.00s and 2.01s, #2 (index 1) becomes active and stays active for 3s until 5.0s
+    expect(findActiveWaypointIndexAtTime(waypoints, 2.0)).toBe(1)
+    expect(findActiveWaypointIndexAtTime(waypoints, 2.01)).toBe(1)
+    expect(findActiveWaypointIndexAtTime(waypoints, 3.5)).toBe(1)
+    expect(findActiveWaypointIndexAtTime(waypoints, 4.99)).toBe(1)
+
+    // At 5.01s, #3 (index 2) becomes active
+    expect(findActiveWaypointIndexAtTime(waypoints, 5.01)).toBe(2)
+  })
+
+  it('honors per-waypoint delaySec (buffer before action) and actionDurationSec (fewer seconds = faster, more seconds = slower)', () => {
+    const p = createProject({ width: 1920, height: 1080, duration: 8 })
+    const s1 = createShot('Cảnh 1', [0, 0, 0], 0)
+    p.shots.push(s1)
+    const layout = computeShotStageLayout(p, 0)
+
+    // #1 at 0.0s: scale 1.0 (100%)
+    applyStageFrameToDraft(p, layout, 0.0, layout[0].stageX, layout[0].stageY, 1.0, true)
+    // #2 at 4.0s: push-in to scale 0.5 (200%), linear easing for exact math check
+    applyStageFrameToDraft(p, layout, 4.0, layout[0].stageX, layout[0].stageY, 0.5, true, {
+      ease: 'linear'
+    })
+
+    // Configure #2: wait 1.0s buffer (delaySec = 1.0), then push-in fast over 1.0s (actionDurationSec = 1.0)
+    updateWaypointStepDuration(p, layout, 1, {
+      delaySec: 1.0,
+      actionDurationSec: 1.0
+    })
+
+    const frames = extractCameraFrames2D(p, layout)
+    // During buffer [0.0s .. 1.0s], camera holds at scale 1.0
+    const liveAt0_8 = evaluateLiveCameraFrame2D(p, layout, frames, 0.8)
+    expect(liveAt0_8.scale).toBeCloseTo(1.0, 2)
+
+    // Halfway through the 1.0s fast action (at t = 1.5s), camera is halfway to 0.5 (scale = 0.75)
+    const liveAt1_5 = evaluateLiveCameraFrame2D(p, layout, frames, 1.5)
+    expect(liveAt1_5.scale).toBeCloseTo(0.75, 2)
+
+    // After the fast 1.0s action finishes (at t = 2.5s), camera has already reached scale 0.5 and holds
+    const liveAt2_5 = evaluateLiveCameraFrame2D(p, layout, frames, 2.5)
+    expect(liveAt2_5.scale).toBeCloseTo(0.5, 2)
+
+    // 3D evaluateCamera also matches the buffer and fast action timing
+    const camAt0_8 = evaluateCamera(p, 0.8)
+    const camAt2_5 = evaluateCamera(p, 2.5)
+    expect(camAt2_5.focusDistance).toBeLessThan(camAt0_8.focusDistance)
+  })
+
+  it('positions callout bubbles without overlapping any shot canvas, shot header, or neighboring bubble', () => {
+    const p = createProject({ width: 1920, height: 1080, duration: 12 })
+    // 2-row layout matching user scenario: Shot 3 at [21120, 0, 0] and Shot 4 directly below at [21120, -14200, 0]
+    const s1 = createShot('Cảnh 1', [0, 0, 0], 0)
+    const s2 = createShot('Cảnh 2', [10560, 0, 0], 1)
+    const s3 = createShot('Cảnh 3', [21120, 0, 0], 2)
+    const s4 = createShot('Cảnh 4', [21120, -14200, 0], 3)
+    p.shots.push(s1, s2, s3, s4)
+    const layout = computeShotStageLayout(p, 0)
+
+    applyStageFrameToDraft(p, layout, 0.0, layout[0].stageX, layout[0].stageY, 1.0, true)
+    applyStageFrameToDraft(p, layout, 2.0, layout[1].stageX, layout[1].stageY, 0.8, true)
+    applyStageFrameToDraft(p, layout, 4.0, layout[2].stageX, layout[2].stageY, 1.0, true)
+    applyStageFrameToDraft(p, layout, 6.0, layout[2].stageX + 40, layout[2].stageY, 0.6, true)
+    applyStageFrameToDraft(p, layout, 8.0, layout[3].stageX, layout[3].stageY, 0.9, true)
+
+    const frames = extractCameraFrames2D(p, layout)
+    const waypoints = enrichCameraWaypoints(frames, p.comp.duration)
+    const stageToScreen = (sx: number, sy: number) => ({ x: sx, y: sy })
+    const bubbles = computeCalloutBubbleNodes(layout, waypoints, 1.0, stageToScreen, {})
+    expect(bubbles).toHaveLength(5)
+
+    // Every bubble must stay outside every shot box + header margin
+    for (const b of bubbles) {
+      for (const box of layout) {
+        const left = box.stageX - box.width / 2 - 20
+        const right = box.stageX + box.width / 2 + 20
+        const top = box.stageY - box.height / 2 - 42
+        const bottom = box.stageY + box.height / 2 + 20
+        const insideObstacle =
+          b.bubbleX > left && b.bubbleX < right && b.bubbleY > top && b.bubbleY < bottom
+        expect(insideObstacle).toBe(false)
+      }
+    }
+
+    // No two bubbles may collide with each other
+    for (let i = 0; i < bubbles.length; i++) {
+      for (let j = i + 1; j < bubbles.length; j++) {
+        const dist = Math.hypot(
+          bubbles[i].bubbleX - bubbles[j].bubbleX,
+          bubbles[i].bubbleY - bubbles[j].bubbleY
+        )
+        expect(dist).toBeGreaterThanOrEqual(48)
+      }
+    }
   })
 })
 

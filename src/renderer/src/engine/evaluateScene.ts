@@ -56,6 +56,8 @@ export interface EvaluatedLayer {
   uvOffset?: [number, number]
 }
 
+import { getWaypointTimingMeta } from '../ui/viewer/animateCamera/animateCameraActionModes'
+
 export { parseDirectionAngle } from '../animation/proceduralMotion'
 
 export interface EvaluatedScene {
@@ -65,11 +67,46 @@ export interface EvaluatedScene {
   layers: EvaluatedLayer[]
 }
 
+function remapCameraSegmentTime(project: Project, t: number): number {
+  const keys = project.camera.position.keyframes
+  if (keys.length < 2 || t <= keys[0].t || t >= keys[keys.length - 1].t) return t
+
+  let lo = 0
+  let hi = keys.length - 1
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1
+    if (keys[mid].t <= t) lo = mid
+    else hi = mid
+  }
+  const k0 = keys[lo]
+  const k1 = keys[hi]
+  const span = k1.t - k0.t
+  if (span <= 0.05) return t
+
+  const meta0 = getWaypointTimingMeta(k0.t, span)
+  const meta1 = getWaypointTimingMeta(k1.t, span)
+  const activeMeta = meta0.hasCustomActionTiming
+    ? meta0
+    : meta1.hasCustomActionTiming
+      ? meta1
+      : meta0
+  if (!activeMeta.hasCustomActionTiming) {
+    return t
+  }
+
+  const elapsed = Math.max(0, t - k0.t)
+  const delay = Math.min(Math.max(0, span - 0.05), activeMeta.delaySec)
+  const actDur = Math.max(0.05, Math.min(span - delay, activeMeta.actionDurationSec))
+  const uLinear = elapsed <= delay ? 0 : Math.max(0, Math.min(1, (elapsed - delay) / actDur))
+  return k0.t + uLinear * span
+}
+
 export function evaluateCamera(project: Project, t: number): EvaluatedCamera {
   const cam = project.camera
-  const position = [...evaluate(cam.position, t)] as Vec3
-  const target = [...evaluate(cam.target, t)] as Vec3
-  let roll = cam.roll ? evaluate(cam.roll, t) : 0
+  const camT = remapCameraSegmentTime(project, t)
+  const position = [...evaluate(cam.position, camT)] as Vec3
+  const target = [...evaluate(cam.target, camT)] as Vec3
+  let roll = cam.roll ? evaluate(cam.roll, camT) : 0
 
   if (cam.shakeAmount > 0) {
     const s = t * cam.shakeSpeed * Math.PI * 2
@@ -85,11 +122,11 @@ export function evaluateCamera(project: Project, t: number): EvaluatedCamera {
   return {
     position,
     target,
-    fov: evaluate(cam.fov, t),
+    fov: evaluate(cam.fov, camT),
     roll,
     dof: cam.dofEnabled,
-    focusDistance: evaluate(cam.focusDistance, t),
-    aperture: evaluate(cam.aperture, t),
+    focusDistance: evaluate(cam.focusDistance, camT),
+    aperture: evaluate(cam.aperture, camT),
     fade: Math.max(0, Math.min(1, cam.fade ? evaluate(cam.fade, t) : 0)),
     refDistance: referenceDistance(project.comp)
   }

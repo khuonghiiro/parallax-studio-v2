@@ -4,6 +4,7 @@ import { addKeyframe, anim, evaluate, setValueAt } from '../../../animation/keyf
 import { referenceDistance, smoothNoise } from '../../../animation/math'
 import { type EvaluatedScene } from '../../../engine/evaluateScene'
 import { frameTolerance } from '../../../store/editor'
+import { getWaypointTimingMeta } from './animateCameraActionModes'
 
 export interface ShotStageBox {
   shotId: string | null
@@ -295,49 +296,42 @@ function map3DTargetToStageXY(
 ): { stageX: number; stageY: number } {
   const W = project.comp.width
   const H = project.comp.height
-  const halfW = W * 0.5
-  const halfH = H * 0.5
   const localDx = target3D[0] - primaryBox.worldOrigin[0]
   const localDy = target3D[1] - primaryBox.worldOrigin[1]
 
-  let stageX = Math.round(primaryBox.stageX + localDx)
-  let stageY = Math.round(primaryBox.stageY - localDy)
+  if (
+    layout.length <= 1 ||
+    (Math.abs(localDx) <= W * 0.8 && Math.abs(localDy) <= H * 0.8)
+  ) {
+    return {
+      stageX: Math.round(primaryBox.stageX + localDx),
+      stageY: Math.round(primaryBox.stageY - localDy)
+    }
+  }
 
-  if (layout.length >= 2 && Math.abs(localDx) > halfW) {
-    const sortedX = [...layout].sort((a, b) => a.worldOrigin[0] - b.worldOrigin[0])
-    for (let i = 0; i < sortedX.length - 1; i++) {
-      const boxA = sortedX[i]
-      const boxB = sortedX[i + 1]
-      const edge3DA = boxA.worldOrigin[0] + halfW
-      const edge3DB = boxB.worldOrigin[0] - halfW
-      if (edge3DB > edge3DA && target3D[0] > edge3DA && target3D[0] < edge3DB) {
-        const u = (target3D[0] - edge3DA) / (edge3DB - edge3DA)
-        const edgeStageA = boxA.stageX + halfW
-        const edgeStageB = boxB.stageX - halfW
-        stageX = Math.round(edgeStageA + (edgeStageB - edgeStageA) * u)
+  // Interpolate X across shots in the same horizontal band so multi-row shots never cross-contaminate
+  const rowShots = layout
+    .filter((b) => Math.abs(b.worldOrigin[1] - primaryBox.worldOrigin[1]) <= H * 2.5)
+    .sort((a, b) => a.worldOrigin[0] - b.worldOrigin[0])
+
+  let mappedX = Math.round(primaryBox.stageX + localDx)
+  if (rowShots.length >= 2) {
+    for (let i = 0; i < rowShots.length - 1; i++) {
+      const a = rowShots[i]
+      const b = rowShots[i + 1]
+      const span3DX = b.worldOrigin[0] - a.worldOrigin[0]
+      if (span3DX > W && target3D[0] >= a.worldOrigin[0] && target3D[0] <= b.worldOrigin[0]) {
+        const u = (target3D[0] - a.worldOrigin[0]) / span3DX
+        mappedX = Math.round(a.stageX + (b.stageX - a.stageX) * u)
         break
       }
     }
   }
 
-  if (layout.length >= 2 && Math.abs(localDy) > halfH) {
-    const sortedY = [...layout].sort((a, b) => a.worldOrigin[1] - b.worldOrigin[1])
-    for (let i = 0; i < sortedY.length - 1; i++) {
-      const boxA = sortedY[i]
-      const boxB = sortedY[i + 1]
-      const edge3DA = boxA.worldOrigin[1] + halfH
-      const edge3DB = boxB.worldOrigin[1] - halfH
-      if (edge3DB > edge3DA && target3D[1] > edge3DA && target3D[1] < edge3DB) {
-        const u = (target3D[1] - edge3DA) / (edge3DB - edge3DA)
-        const edgeStageA = boxA.stageY - halfH
-        const edgeStageB = boxB.stageY + halfH
-        stageY = Math.round(edgeStageA + (edgeStageB - edgeStageA) * u)
-        break
-      }
-    }
+  return {
+    stageX: mappedX,
+    stageY: Math.round(primaryBox.stageY - localDy)
   }
-
-  return { stageX, stageY }
 }
 
 export function pose3DToStageFrame(
@@ -568,6 +562,7 @@ export function evaluateLiveCameraFrame2D(
   frames: CameraFrame2D[],
   time: number
 ): {
+  time: number
   stageX: number
   stageY: number
   scale: number
@@ -579,6 +574,7 @@ export function evaluateLiveCameraFrame2D(
 } {
   if (frames.length === 0) {
     return {
+      time,
       stageX: 0,
       stageY: 0,
       scale: 1,
@@ -592,6 +588,7 @@ export function evaluateLiveCameraFrame2D(
   if (frames.length === 1 || time <= frames[0].time) {
     const f = frames[0]
     return {
+      time,
       stageX: f.stageX,
       stageY: f.stageY,
       scale: f.scale,
@@ -605,6 +602,7 @@ export function evaluateLiveCameraFrame2D(
   const last = frames[frames.length - 1]
   if (time >= last.time) {
     return {
+      time,
       stageX: last.stageX,
       stageY: last.stageY,
       scale: last.scale,
@@ -625,9 +623,29 @@ export function evaluateLiveCameraFrame2D(
   }
   const f0 = frames[lo]
   const f1 = frames[hi]
-  const span = f1.time - f0.time
-  const rawU = span <= 0 ? 1 : Math.max(0, Math.min(1, (time - f0.time) / span))
-  const u = ease(f0.ease, rawU)
+  const span = Math.max(0.05, f1.time - f0.time)
+
+  // Support per-waypoint buffer delay (delaySec) and action speed/duration (actionDurationSec)
+  const meta0 = getWaypointTimingMeta(f0.time, span)
+  const meta1 = getWaypointTimingMeta(f1.time, span)
+  const activeMeta = meta0.hasCustomActionTiming
+    ? meta0
+    : meta1.hasCustomActionTiming
+      ? meta1
+      : meta0
+
+  const elapsed = Math.max(0, time - f0.time)
+  const delay = Math.min(Math.max(0, span - 0.05), activeMeta.delaySec)
+  const actDur = Math.max(0.05, Math.min(span - delay, activeMeta.actionDurationSec))
+  const rawU = elapsed <= delay ? 0 : Math.max(0, Math.min(1, (elapsed - delay) / actDur))
+
+  const segEase: EaseName =
+    f0.ease === 'hold' || f1.ease === 'hold'
+      ? 'hold'
+      : f0.ease !== 'easeInOut'
+        ? f0.ease
+        : f1.ease
+  const u = ease(segEase, rawU)
 
   let stageX = f0.stageX + (f1.stageX - f0.stageX) * u
   let stageY = f0.stageY + (f1.stageY - f0.stageY) * u
@@ -644,6 +662,7 @@ export function evaluateLiveCameraFrame2D(
   }
 
   return {
+    time,
     stageX: Math.round(stageX),
     stageY: Math.round(stageY),
     scale,

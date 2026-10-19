@@ -91,11 +91,11 @@ export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVertica
               {idx > 0 && (
                 <div
                   className="anim2d-film-connector"
-                  title={`Thời lượng di chuyển từ Mốc #${idx} sang Mốc #${idx + 1}: +${wp.durationFromPrev.toFixed(1)}s (${wp.ease})`}
+                  title={`Chuyển sang Mốc #${idx + 1} tại ${wp.time.toFixed(1)}s (${wp.ease})`}
                 >
                   <span className="connector-line" />
                   <span className="connector-dur">
-                    {wp.actionMode === 'cut' ? '⚡ Cắt tức thì' : `↓ +${wp.durationFromPrev.toFixed(1)}s`}
+                    {wp.actionMode === 'cut' ? '⚡ Cắt tức thì' : `↓ @${wp.time.toFixed(1)}s`}
                   </span>
                 </div>
               )}
@@ -104,7 +104,7 @@ export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVertica
                 id={`anim2d-film-card-${idx + 1}`}
                 className={`anim2d-film-card${wp.isFirstOfShot ? ' first-of-shot' : ''}${isActive ? ' active' : ''}`}
                 onClick={() => onSelectWaypoint(wp)}
-                title={`${wp.isFirstOfShot ? `⚑ MỐC MỞ MÀN CẢNH: ${wp.shotName}\n` : ''}Mốc #${idx + 1} tại ${wp.time.toFixed(1)}s ${idx > 0 ? `(+${wp.durationFromPrev.toFixed(1)}s)` : '(Bắt đầu)'}\nCảnh: ${wp.shotName} · Zoom ${wp.zoomPct}% · ${wp.tagLabel}\n👉 Bấm để chọn mốc này và mở tab Lộ trình chỉnh sửa`}
+                title={`${wp.isFirstOfShot ? `⚑ MỐC MỞ MÀN CẢNH: ${wp.shotName}\n` : ''}Mốc #${idx + 1} (${wp.time.toFixed(1)}s ➔ ${wp.endTime.toFixed(1)}s · Thời lượng: ${wp.stepDuration.toFixed(1)}s)\nCảnh: ${wp.shotName} · Zoom ${wp.zoomPct}% · ${wp.tagLabel}\n👉 Bấm để chọn mốc này và mở tab Lộ trình chỉnh sửa`}
               >
                 {/* Dải tiêu đề trên cùng của thẻ phim (Căn chỉnh chuẩn 1 dòng gọn gàng) */}
                 <div className="film-card-top">
@@ -117,9 +117,7 @@ export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVertica
                     </span>
                   )}
                   <span className="film-card-time">{wp.time.toFixed(1)}s</span>
-                  {idx > 0 && !wp.isFirstOfShot && (
-                    <span className="film-card-dur">+{wp.durationFromPrev.toFixed(1)}s</span>
-                  )}
+                  <span className="film-card-dur">{wp.stepDuration.toFixed(1)}s</span>
                   <span className="film-card-zoom">{wp.zoomPct}%</span>
                 </div>
 
@@ -277,13 +275,11 @@ export const AnimateCameraProFooterBar = memo(function AnimateCameraProFooterBar
         </button>
         <div
           className="footer-active-pill"
-          title={`Mốc #${activeFrame.index + 1} (${activeFrame.time.toFixed(1)}s) · Cảnh: ${activeFrame.shotName}`}
+          title={`Mốc #${activeFrame.index + 1} (${activeFrame.time.toFixed(1)}s ➔ ${activeFrame.endTime.toFixed(1)}s) · Cảnh: ${activeFrame.shotName}`}
         >
           <span className="pill-idx">Mốc #{activeFrame.index + 1}</span>
           <span className="pill-time">{activeFrame.time.toFixed(1)}s</span>
-          {activeFrame.index > 0 && (
-            <span className="pill-dur">+{activeFrame.durationFromPrev.toFixed(1)}s</span>
-          )}
+          <span className="pill-dur">{activeFrame.stepDuration.toFixed(1)}s</span>
         </div>
         <button
           type="button"

@@ -36,6 +36,7 @@ import {
   applyWaypointActionMode,
   enrichCameraWaypoints,
   ensureShotWaypointTime,
+  findActiveWaypointIndexAtTime,
   panCameraToLayer2D,
   panCameraToShot,
   shiftSubsequentCameraKeyframes,
@@ -74,7 +75,7 @@ export function AnimateCameraStage() {
   const [, setAssetTick] = useState(0)
 
   useEffect(() => {
-    return assetStore.subscribe(() => setAssetTick((n) => n + 1))
+    return assetStore.subscribe(() => setAssetTick((n) => !n ? 1 : n + 1))
   }, [])
 
   const hasAnimatedShots = useMemo(
@@ -94,20 +95,10 @@ export function AnimateCameraStage() {
   )
 
   const tol = frameTolerance(project)
-  const activeFrameIndex = useMemo(() => {
-    const exact = waypoints.findIndex((f) => Math.abs(f.time - time) <= Math.max(tol, 0.04))
-    if (exact >= 0) return exact
-    let best = 0
-    let bestDiff = Infinity
-    waypoints.forEach((f, idx) => {
-      const diff = Math.abs(f.time - time)
-      if (diff < bestDiff) {
-        bestDiff = diff
-        best = idx
-      }
-    })
-    return best
-  }, [waypoints, time, tol])
+  const activeFrameIndex = useMemo(
+    () => findActiveWaypointIndexAtTime(waypoints, time, Math.max(tol, 0.015)),
+    [waypoints, time, tol]
+  )
 
   const activeFrame = waypoints[activeFrameIndex] ?? waypoints[0]
 
@@ -349,7 +340,6 @@ export function AnimateCameraStage() {
         : activeFrame) ?? waypoints[waypoints.length - 1]
     if (!base) return
 
-    const stepDur = 2.0
     let anchor = base
     let nextStageX = base.stageX
     let nextStageY = base.stageY
@@ -393,6 +383,7 @@ export function AnimateCameraStage() {
       }
     }
 
+    const stepDur = anchor.stepDuration > 0 ? anchor.stepDuration : 2.0
     const nextTime = !anchor.isKeyframed
       ? stepDur
       : Math.round((anchor.time + stepDur) * 100) / 100

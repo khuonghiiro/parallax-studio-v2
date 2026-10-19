@@ -1,0 +1,288 @@
+/* ==========================================================================
+   Camera Action Timing & Speed Tuning Controls (Lộ trình Camera 2D)
+   Supports Dark & Light Themes via CSS Design Tokens (variables.css)
+   ========================================================================== */
+
+.wp-card-time,
+.wp-card-dur {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.route-waypoints-stack {
+  max-height: 116px !important;
+}
+
+.cam-action-mode-grid {
+  max-height: 106px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.timing-window-readout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 7px;
+  border-radius: 3px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.timing-window-readout .win-start {
+  color: var(--accent-cyan);
+}
+
+.timing-window-readout .win-arrow {
+  color: var(--text-faint);
+  font-size: 9px;
+}
+
+.timing-window-readout .win-end {
+  color: var(--key);
+}
+
+/* ------------------------------------------------------------------ Action Tuning Box */
+
+.cam-action-tuning-box {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 5px;
+  padding: 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-2));
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 42%, var(--line));
+  box-sizing: border-box;
+}
+
+[data-theme='light'] .cam-action-tuning-box {
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg-1));
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+.tuning-box-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-bottom: 5px;
+  border-bottom: 1px dashed var(--line-soft);
+}
+
+.tuning-box-title {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tuning-speed-pill {
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-family: var(--mono);
+  white-space: nowrap;
+  border: 1px solid var(--line);
+}
+
+.tuning-speed-pill.fast {
+  background: color-mix(in srgb, var(--key) 22%, var(--bg-1));
+  border-color: color-mix(in srgb, var(--key) 55%, var(--line));
+  color: var(--key);
+}
+
+.tuning-speed-pill.normal {
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-1));
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+.tuning-speed-pill.slow {
+  background: var(--bg-3);
+  border-color: var(--line-focus);
+  color: var(--text);
+}
+
+.tuning-cut-note {
+  font-size: 9.5px;
+  line-height: 1.45;
+  color: var(--text-dim);
+  padding: 2px 0;
+}
+
+.tuning-cut-note b {
+  color: var(--accent-cyan);
+}
+
+.tuning-slider-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 7px;
+  border-radius: 5px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+}
+
+.tuning-slider-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.tuning-slider-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.25;
+  min-width: 0;
+  flex: 1;
+}
+
+.tuning-slider-label small {
+  font-weight: 500;
+  font-size: 8.5px;
+  color: var(--text-dim);
+  margin-left: 2px;
+}
+
+.tuning-num-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 21px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.tuning-num-wrap:focus-within {
+  border-color: var(--accent-cyan);
+}
+
+.tuning-num-wrap input {
+  width: 36px;
+  height: 19px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--accent-cyan);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-align: right;
+  padding: 0;
+  -moz-appearance: textfield;
+}
+
+.tuning-num-wrap input::-webkit-outer-spin-button,
+.tuning-num-wrap input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.tuning-num-wrap span {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.route-zoom-slider {
+  width: 100%;
+  height: 5px;
+  margin: 2px 0;
+  accent-color: var(--accent-cyan);
+  cursor: pointer;
+}
+
+.tuning-scale-ends {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: 8.5px;
+  color: var(--text-faint);
+  line-height: 1.1;
+}
+
+.tuning-quick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.tuning-accel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
+  margin-top: 1px;
+}
+
+.tuning-chip {
+  flex: 1 1 auto;
+  min-height: 21px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 8.5px;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tuning-chip:hover:not(.active) {
+  background: var(--bg-3);
+  border-color: var(--line-focus);
+  color: var(--text);
+}
+
+.tuning-chip.active {
+  background: color-mix(in srgb, var(--accent) 28%, var(--bg-2));
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  font-weight: 700;
+}
+
+[data-theme='light'] .tuning-chip.active {
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-1));
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.tuning-val-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}

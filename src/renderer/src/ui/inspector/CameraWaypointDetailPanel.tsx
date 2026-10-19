@@ -13,6 +13,7 @@ import {
   type CameraActionMode,
   type CameraWaypointItem
 } from '../viewer/animateCamera/animateCameraRouteLogic'
+import { CameraActionTuningBox } from './CameraActionTuningBox'
 
 const EASING_OPTIONS: { value: EaseName; label: string }[] = [
   { value: 'easeInOut', label: '🌊 Mượt tự nhiên (easeInOut)' },
@@ -46,7 +47,14 @@ interface CameraWaypointDetailPanelProps {
     },
     mergeKey?: string
   ) => void
-  onUpdateSegmentDuration: (targetWaypointIndex: number, newDurationSec: number) => void
+  onUpdateStepTiming: (
+    waypointIndex: number,
+    options: {
+      stepDuration?: number
+      delaySec?: number
+      actionDurationSec?: number
+    }
+  ) => void
   onApplyActionMode: (mode: CameraActionMode) => void
   onAlignInShot: (align: 'left' | 'center' | 'right' | 'top' | 'bottom' | 'reset-angles') => void
   onTargetShot: (shotId: string) => void
@@ -60,10 +68,10 @@ export function CameraWaypointDetailPanel({
   waypoints,
   stageLayout,
   activeShotLayers,
-  compDuration,
+  compDuration: _compDuration,
   onSelectTime,
   onUpdate,
-  onUpdateSegmentDuration,
+  onUpdateStepTiming,
   onApplyActionMode,
   onAlignInShot,
   onTargetShot,
@@ -97,18 +105,8 @@ export function CameraWaypointDetailPanel({
     activeWaypoint.stageY - (currentShotBox ? currentShotBox.stageY : 0)
   )
 
-  // Cho phép chỉnh thời lượng ngay cả khi đang chọn Mốc #1 (chỉnh đoạn #1 -> #2)
-  // hoặc khi chọn Mốc #N (chỉnh đoạn #(N-1) -> #N)
-  const isFirstWaypoint = activeWaypoint.index === 0
-  const editableDurationWpIndex = isFirstWaypoint ? (nextWp ? 1 : -1) : activeWaypoint.index
-  const currentSegmentDuration = isFirstWaypoint
-    ? (nextWp ? nextWp.durationFromPrev : 0)
-    : activeWaypoint.durationFromPrev
-  const durationLabel = isFirstWaypoint
-    ? nextWp
-      ? 'Thời lượng đoạn (#1 ➔ #2)'
-      : 'Thời lượng đoạn (s)'
-    : `Thời lượng đoạn (#${activeWaypoint.index} ➔ #${activeWaypoint.index + 1})`
+  const currentStepDuration = activeWaypoint.stepDuration
+  const nextWpLabel = nextWp ? ` ➔ sang #${nextWp.index + 1} lúc ${activeWaypoint.endTime.toFixed(2)}s` : ''
 
   return (
     <div id="camera-waypoint-detail-panel" className="section active-wp-section">
@@ -123,7 +121,9 @@ export function CameraWaypointDetailPanel({
               ⚑ MỞ CẢNH
             </span>
           )}
-          <span className="wp-banner-time">{activeWaypoint.time.toFixed(1)}s</span>
+          <span className="wp-banner-time">
+            {activeWaypoint.time.toFixed(1)}s ➔ {activeWaypoint.endTime.toFixed(1)}s ({currentStepDuration.toFixed(1)}s)
+          </span>
           <span className="wp-active-shot" style={{ borderColor: activeWaypoint.shotColor }}>
             {activeWaypoint.shotName}
           </span>
@@ -151,28 +151,37 @@ export function CameraWaypointDetailPanel({
         </div>
       </div>
 
-      {/* 1. QUAN TRỌNG NHẤT (ĐƯA LÊN ĐẦU): Thời điểm, Thời lượng đoạn & Kiểu chuyển tiếp */}
+      {/* 1. QUAN TRỌNG NHẤT (ĐƯA LÊN ĐẦU): Thời lượng của Mốc #k & Khung giờ trên Timeline */}
       <div className="row-group priority-timing-box">
         <div className="field-header">
-          <label>⏱ Thời gian &amp; Thời lượng đoạn</label>
-          <span className="timing-hint-tag">Tự dồn mốc sau</span>
+          <label>⏱ Thời lượng của Mốc #{activeWaypoint.index + 1}</label>
+          <span className="timing-hint-tag">Tự nối tiếp mốc sau</span>
         </div>
 
         <div className="field-row timing-main-row">
           <div className="timing-field-card">
-            <label htmlFor="wp-input-timestamp">Thời điểm mốc (Giây)</label>
+            <label
+              htmlFor="wp-input-duration"
+              title={`Thời lượng duy trì của Mốc #${activeWaypoint.index + 1}. Thay đổi số giây sẽ tự động nối mốc tiếp theo ngay sau khi hết thời lượng này.`}
+            >
+              Thời lượng Mốc #{activeWaypoint.index + 1} (Giây)
+            </label>
             <div className="input-prefix-box highlight">
               <span className="prefix">⏱</span>
               <input
-                id="wp-input-timestamp"
+                id="wp-input-duration"
                 type="number"
                 step="0.1"
-                min="0"
-                max={compDuration + 30}
-                value={activeWaypoint.time}
+                min="0.2"
+                max="60"
+                value={currentStepDuration}
                 onChange={(e) => {
-                  const val = parseFloat(e.target.value)
-                  if (!isNaN(val)) onUpdate({ time: Math.max(0, val) })
+                  const dur = parseFloat(e.target.value)
+                  if (!isNaN(dur)) {
+                    onUpdateStepTiming(activeWaypoint.index, {
+                      stepDuration: Math.max(0.2, dur)
+                    })
+                  }
                 }}
               />
               <span className="suffix">s</span>
@@ -181,49 +190,40 @@ export function CameraWaypointDetailPanel({
 
           <div className="timing-field-card">
             <label
-              htmlFor="wp-input-duration"
-              title="Thay đổi thời lượng đoạn này sẽ tự động đẩy lùi/kéo gọn các mốc phía sau tương ứng"
+              htmlFor="wp-input-timestamp"
+              title={`Khung giờ thực tế của Mốc #${activeWaypoint.index + 1} trên thanh Timeline${nextWpLabel}`}
             >
-              {durationLabel}
+              Khung giờ trên Timeline
             </label>
-            <div className="input-prefix-box highlight">
-              <span className="prefix">+</span>
-              <input
-                id="wp-input-duration"
-                type="number"
-                step="0.1"
-                min="0.1"
-                disabled={editableDurationWpIndex < 0}
-                value={currentSegmentDuration}
-                onChange={(e) => {
-                  const dur = parseFloat(e.target.value)
-                  if (!isNaN(dur) && editableDurationWpIndex > 0) {
-                    onUpdateSegmentDuration(editableDurationWpIndex, Math.max(0.1, dur))
-                  }
-                }}
-              />
-              <span className="suffix">s</span>
+            <div
+              id="wp-input-timestamp"
+              className="timing-window-readout"
+              title={`Mốc #${activeWaypoint.index + 1} bắt đầu lúc ${activeWaypoint.time.toFixed(2)}s, kéo dài ${currentStepDuration.toFixed(1)}s đến ${activeWaypoint.endTime.toFixed(2)}s${nextWp ? ` (từ ${(activeWaypoint.endTime + 0.01).toFixed(2)}s là Mốc #${nextWp.index + 1})` : ''}`}
+            >
+              <span className="win-start">{activeWaypoint.time.toFixed(2)}s</span>
+              <span className="win-arrow">➔</span>
+              <span className="win-end">{activeWaypoint.endTime.toFixed(2)}s</span>
             </div>
           </div>
         </div>
 
-        {/* Nút chọn nhanh Thời lượng đoạn (1s, 2s, 3s, 4s, 5s) */}
-        {editableDurationWpIndex > 0 && (
-          <div className="quick-duration-bar">
-            <span className="quick-dur-lbl">Nhịp nhanh:</span>
-            {QUICK_DURATIONS.map((sec) => (
-              <button
-                key={sec}
-                type="button"
-                className={`dur-chip${Math.abs(currentSegmentDuration - sec) < 0.08 ? ' active' : ''}`}
-                onClick={() => onUpdateSegmentDuration(editableDurationWpIndex, sec)}
-                title={`Đặt thời lượng đoạn này thành +${sec}.0 giây`}
-              >
-                +{sec}s
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Nút chọn nhanh Thời lượng của Mốc (1s, 2s, 3s, 4s, 5s) */}
+        <div className="quick-duration-bar">
+          <span className="quick-dur-lbl">Chọn nhanh:</span>
+          {QUICK_DURATIONS.map((sec) => (
+            <button
+              key={sec}
+              type="button"
+              className={`dur-chip${Math.abs(currentStepDuration - sec) < 0.08 ? ' active' : ''}`}
+              onClick={() =>
+                onUpdateStepTiming(activeWaypoint.index, { stepDuration: sec })
+              }
+              title={`Đặt thời lượng của Mốc #${activeWaypoint.index + 1} thành ${sec}.0 giây (${activeWaypoint.time.toFixed(1)}s ➔ ${(activeWaypoint.time + sec).toFixed(1)}s)`}
+            >
+              {sec}s
+            </button>
+          ))}
+        </div>
 
         <div className="field-select-mt">
           <CustomSelect<EaseName>
@@ -275,6 +275,13 @@ export function CameraWaypointDetailPanel({
             </button>
           ))}
         </div>
+
+        {/* Hộp thanh trượt tinh chỉnh Đệm chờ, Tốc độ (Nhanh ⇄ Chậm) & Tăng tốc riêng cho động tác đang chọn */}
+        <CameraActionTuningBox
+          activeWaypoint={activeWaypoint}
+          onUpdateStepTiming={onUpdateStepTiming}
+          onUpdatePose={onUpdate}
+        />
 
         <div className="field-header" style={{ marginTop: 6 }}>
           <label htmlFor="wp-zoom-number-input">🔍 Cỡ Cảnh &amp; Độ Phóng (Zoom)</label>

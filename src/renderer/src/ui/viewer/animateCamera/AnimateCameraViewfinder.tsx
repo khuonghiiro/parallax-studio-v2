@@ -6,8 +6,15 @@ import {
   computeBubbleAnchorAttachment,
   type CameraLineStyle
 } from './animateCameraEdgePaths'
-import { findNearestShotByStage2D, type CameraFrame2D, type ShotStageBox } from './animateCameraMath'
+import { type CameraFrame2D, type ShotStageBox } from './animateCameraMath'
 import type { CameraWaypointItem } from './animateCameraRouteLogic'
+import {
+  computeCalloutBubbleNodes,
+  type BubbleStageOffset,
+  type CalloutBubbleNode
+} from './calloutBubbleLayout'
+
+export type { BubbleStageOffset }
 
 const RESIZE_HANDLES: { id: string; sx: number; sy: number; cursor: string }[] = [
   { id: 'nw', sx: -1, sy: -1, cursor: 'nwse-resize' },
@@ -22,31 +29,12 @@ const RESIZE_HANDLES: { id: string; sx: number; sy: number; cursor: string }[] =
 
 export type StageToolMode = 'pan-scale' | 'orbit-3d' | 'aim-target'
 
-export interface BubbleStageOffset {
-  dx: number
-  dy: number
-}
-
-interface CalloutBubbleNode {
-  idx: number
-  wp: CameraWaypointItem
-  bubbleX: number
-  bubbleY: number
-  anchorX: number
-  anchorY: number
-  frameLeft: number
-  frameTop: number
-  frameW: number
-  frameH: number
-  isCustomMoved: boolean
-  isFirstOfShot: boolean
-}
-
 interface AnimateCameraViewfinderProps {
   stageLayout: ShotStageBox[]
   waypoints: CameraWaypointItem[]
   activeFrameIndex: number
   liveFrame: {
+    time: number
     stageX: number
     stageY: number
     scale: number
@@ -111,135 +99,11 @@ export function AnimateCameraViewfinder({
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
   const activeWp = waypoints[activeFrameIndex] ?? waypoints[0]
 
-  // Tính toán vị trí các Bóng tròn điều khiển (Callout Bubbles) nằm NGOÀI khung cảnh
-  // Hỗ trợ người dùng kéo thả tự do từng bóng tròn sang vị trí bất kỳ (bubbleOffsets)
-  const calloutNodes = useMemo<CalloutBubbleNode[]>(() => {
-    if (waypoints.length === 0) return []
-
-    const byShot = new Map<string, { box: ShotStageBox; items: { idx: number; wp: CameraWaypointItem }[] }>()
-    waypoints.forEach((wp, idx) => {
-      const box =
-        stageLayout.find((b) => b.shotId === wp.shotId) ??
-        findNearestShotByStage2D(stageLayout, wp.stageX, wp.stageY)
-      const key = box?.shotId ?? 'global'
-      if (!byShot.has(key)) {
-        byShot.set(key, {
-          box: box ?? {
-            shotId: null,
-            name: 'Cảnh',
-            color: '#3b82f6',
-            index: 0,
-            visible: true,
-            worldOrigin: [0, 0, 0],
-            stageX: 0,
-            stageY: 0,
-            width: 1920,
-            height: 1080
-          },
-          items: []
-        })
-      }
-      byShot.get(key)!.items.push({ idx, wp })
-    })
-
-    const result: CalloutBubbleNode[] = []
-    const minSpacing = 54
-
-    for (const { box, items } of byShot.values()) {
-      const shotTL = stageToScreen(box.stageX - box.width / 2, box.stageY - box.height / 2)
-      const shotBR = stageToScreen(box.stageX + box.width / 2, box.stageY + box.height / 2)
-      const shotScreenW = Math.max(80, shotBR.x - shotTL.x)
-      const shotCenterX = (shotTL.x + shotBR.x) / 2
-
-      let maxBottomY = shotBR.y
-      for (const { wp } of items) {
-        const fBottom = stageToScreen(wp.stageX, wp.stageY + wp.height / 2).y
-        if (fBottom > maxBottomY) maxBottomY = fBottom
-      }
-
-      const useTwoRows = items.length >= 3 && items.length * minSpacing > shotScreenW + 16
-
-      const prepared = items.map(({ idx, wp }, localIdx) => {
-        const anchor = stageToScreen(wp.stageX, wp.stageY)
-        const tl = stageToScreen(wp.stageX - wp.width / 2, wp.stageY - wp.height / 2)
-        const row = useTwoRows ? localIdx % 2 : 0
-        const bubbleY = Math.round(maxBottomY + 46 + row * 48)
-        return {
-          idx,
-          wp,
-          row,
-          anchorX: anchor.x,
-          anchorY: anchor.y,
-          desiredX: anchor.x,
-          bubbleX: anchor.x,
-          bubbleY,
-          frameLeft: tl.x,
-          frameTop: tl.y,
-          frameW: Math.max(8, wp.width * zoom),
-          frameH: Math.max(6, wp.height * zoom),
-          isCustomMoved: false,
-          isFirstOfShot: wp.isFirstOfShot ?? localIdx === 0
-        }
-      })
-
-      for (const r of [0, 1]) {
-        const rowItems = prepared.filter((p) => p.row === r)
-        if (rowItems.length === 0) continue
-
-        rowItems.sort((a, b) => {
-          if (Math.abs(a.desiredX - b.desiredX) > 25) return a.desiredX - b.desiredX
-          return a.idx - b.idx
-        })
-
-        const step = useTwoRows ? minSpacing + 6 : minSpacing
-        const totalW = (rowItems.length - 1) * step
-        const rowOffset = r === 1 ? step * 0.42 : -step * 0.15
-        const startX = shotCenterX - totalW / 2 + rowOffset
-
-        rowItems.forEach((item, i) => {
-          item.bubbleX = Math.round(startX + i * step)
-        })
-      }
-
-      result.push(...prepared)
-    }
-
-    // Khử va chạm cho các bóng ở vị trí mặc định
-    const byYBand = new Map<number, CalloutBubbleNode[]>()
-    for (const node of result) {
-      let foundBand: number | null = null
-      for (const yKey of byYBand.keys()) {
-        if (Math.abs(yKey - node.bubbleY) < 36) {
-          foundBand = yKey
-          break
-        }
-      }
-      const bandKey = foundBand ?? node.bubbleY
-      if (!byYBand.has(bandKey)) byYBand.set(bandKey, [])
-      byYBand.get(bandKey)!.push(node)
-    }
-
-    for (const bandNodes of byYBand.values()) {
-      bandNodes.sort((a, b) => a.bubbleX - b.bubbleX || a.idx - b.idx)
-      for (let i = 1; i < bandNodes.length; i++) {
-        if (bandNodes[i].bubbleX < bandNodes[i - 1].bubbleX + minSpacing) {
-          bandNodes[i].bubbleX = bandNodes[i - 1].bubbleX + minSpacing
-        }
-      }
-    }
-
-    // Áp dụng độ lệch kéo thả tự do (custom user drag offset) theo không gian sân khấu
-    for (const node of result) {
-      const custom = bubbleOffsets[node.idx]
-      if (custom && (Math.abs(custom.dx) > 0.5 || Math.abs(custom.dy) > 0.5)) {
-        node.bubbleX = Math.round(node.bubbleX + custom.dx * zoom)
-        node.bubbleY = Math.round(node.bubbleY + custom.dy * zoom)
-        node.isCustomMoved = true
-      }
-    }
-
-    return result.sort((a, b) => a.idx - b.idx)
-  }, [waypoints, stageLayout, stageToScreen, zoom, bubbleOffsets])
+  // Tính toán vị trí các Bóng tròn điều khiển (Callout Bubbles) tự động né khung cảnh, tiêu đề cảnh và không đè lên nhau
+  const calloutNodes = useMemo<CalloutBubbleNode[]>(
+    () => computeCalloutBubbleNodes(stageLayout, waypoints, zoom, stageToScreen, bubbleOffsets),
+    [waypoints, stageLayout, stageToScreen, zoom, bubbleOffsets]
+  )
 
   return (
     <>
@@ -494,7 +358,7 @@ export function AnimateCameraViewfinder({
               e.stopPropagation()
               onResetBubbleOffset(idx)
             }}
-            title={`${isFirstOfShot ? `⚑ MỐC MỞ MÀN CẢNH: ${wp.shotName}\n` : ''}Bóng điều khiển Mốc #${idx + 1} (${wp.time.toFixed(1)}s) · ${wp.tagLabel}\nCỡ khung: Zoom ${wp.zoomPct}% · ${wp.angleSummary}\n👉 Click: Chọn khung #${idx + 1} & mở tab Lộ trình để sửa\n✋ Kéo thả: Di chuyển bóng ra chỗ thoáng tùy ý\n↺ Đúp chuột: Đặt lại vị trí mặc định`}
+            title={`${isFirstOfShot ? `⚑ MỐC MỞ MÀN CẢNH: ${wp.shotName}\n` : ''}Bóng điều khiển Mốc #${idx + 1} (${wp.time.toFixed(1)}s ➔ ${wp.endTime.toFixed(1)}s · Thời lượng ${wp.stepDuration.toFixed(1)}s) · ${wp.tagLabel}\nCỡ khung: Zoom ${wp.zoomPct}% · ${wp.angleSummary}\n👉 Click: Chọn khung #${idx + 1} & mở tab Lộ trình để sửa\n✋ Kéo thả: Di chuyển bóng ra chỗ thoáng tùy ý\n↺ Đúp chuột: Đặt lại vị trí mặc định`}
           >
             <div className="bubble-circle">
               {isFirstOfShot && (
@@ -505,7 +369,9 @@ export function AnimateCameraViewfinder({
               <span className="bubble-num">#{idx + 1}</span>
             </div>
             <div className="bubble-meta">
-              <span className="bubble-time">{wp.time.toFixed(1)}s</span>
+              <span className="bubble-time" title={`Từ ${wp.time.toFixed(1)}s đến ${wp.endTime.toFixed(1)}s`}>
+                {wp.stepDuration.toFixed(1)}s
+              </span>
               <span className="bubble-zoom">{wp.zoomPct}%</span>
             </div>
           </div>
@@ -536,7 +402,9 @@ export function AnimateCameraViewfinder({
             onPointerDown={(e) => e.stopPropagation()}
           >
             <span className="anim2d-cam-num">Mốc #{activeWp.index + 1}</span>
-            <span className="anim2d-cam-time">{activeWp.time.toFixed(1)}s</span>
+            <span className="anim2d-cam-time">
+              {activeWp.time.toFixed(1)}s ➔ {activeWp.endTime.toFixed(1)}s ({activeWp.stepDuration.toFixed(1)}s)
+            </span>
             <span className="anim2d-cam-scale">Zoom {activeWp.zoomPct}%</span>
             <span className="anim2d-cam-shot-tag">{activeWp.shotName}</span>
             {hasAngles && (

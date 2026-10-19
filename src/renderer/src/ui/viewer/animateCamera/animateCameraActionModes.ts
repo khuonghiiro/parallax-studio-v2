@@ -242,8 +242,20 @@ export function getActionModeMeta(mode: CameraActionMode): CameraActionModeMeta 
   return MODE_META_MAP.get(mode)
 }
 
-// Lưu vết động tác quay chuyên nghiệp vừa được người dùng chọn tại từng mốc thời gian
+export interface WaypointTimingMeta {
+  /** Tổng thời lượng của riêng mốc này (giây) */
+  stepDuration?: number
+  /** Đệm chờ tĩnh ở đầu mốc trước khi bắt đầu động tác quay (giây) */
+  delaySec?: number
+  /** Thời gian thực hiện động tác quay (giây: càng ít càng nhanh, càng lâu càng chậm) */
+  actionDurationSec?: number
+  /** Đánh dấu người dùng đã chỉnh riêng Đệm giây hoặc Thời gian động tác */
+  hasCustomActionTiming?: boolean
+}
+
+// Lưu vết động tác quay chuyên nghiệp & thông số nhịp động tác tại từng mốc thời gian
 const explicitActionModesByTimeKey = new Map<number, CameraActionMode>()
+const waypointTimingMetaByTimeKey = new Map<number, WaypointTimingMeta>()
 
 function timeToKey(time: number): number {
   return Math.round(time * 100)
@@ -257,12 +269,110 @@ export function getExplicitActionMode(time: number): CameraActionMode | undefine
   return explicitActionModesByTimeKey.get(timeToKey(time))
 }
 
+export function setWaypointTimingMeta(time: number, patch: Partial<WaypointTimingMeta>): void {
+  const key = timeToKey(time)
+  const prev = waypointTimingMetaByTimeKey.get(key) ?? {}
+  waypointTimingMetaByTimeKey.set(key, {
+    ...prev,
+    ...patch
+  })
+}
+
+export function getWaypointTimingMeta(
+  time: number,
+  fallbackStepDuration = 2.0
+): {
+  stepDuration: number
+  delaySec: number
+  actionDurationSec: number
+  hasCustomActionTiming: boolean
+} {
+  const raw = waypointTimingMetaByTimeKey.get(timeToKey(time))
+  const stepDuration = Math.max(
+    0.2,
+    Math.round(((raw?.stepDuration ?? fallbackStepDuration) || 2.0) * 100) / 100
+  )
+  const maxSpan = Math.max(stepDuration, fallbackStepDuration)
+  const delaySec = Math.max(
+    0,
+    Math.min(
+      Math.max(0, Math.round((maxSpan - 0.2) * 100) / 100),
+      Math.round((raw?.delaySec ?? 0) * 100) / 100
+    )
+  )
+  const defaultActionDur = Math.max(0.2, Math.round((stepDuration - delaySec) * 100) / 100)
+  const maxActionDur = Math.max(0.2, Math.round((maxSpan - delaySec) * 100) / 100)
+  const actionDurationSec =
+    raw?.actionDurationSec !== undefined
+      ? Math.max(
+          0.2,
+          Math.min(maxActionDur, Math.round(raw.actionDurationSec * 100) / 100)
+        )
+      : defaultActionDur
+  return {
+    stepDuration,
+    delaySec,
+    actionDurationSec,
+    hasCustomActionTiming: Boolean(raw?.hasCustomActionTiming)
+  }
+}
+
+export function getActionVerbLabel(mode: CameraActionMode): string {
+  switch (mode) {
+    case 'push-in':
+    case 'extreme-closeup':
+      return 'đẩy cận'
+    case 'pull-out':
+    case 'establishing':
+      return 'kéo rộng'
+    case 'whip-pan':
+      return 'lia vút'
+    case 'crane-up':
+      return 'nâng cẩu'
+    case 'crane-down':
+      return 'hạ cẩu'
+    case 'sweep-left':
+    case 'sweep-right':
+      return 'quét máy'
+    case 'tilt-sky':
+      return 'ngước máy'
+    case 'aerial-dive':
+      return 'lao xuống'
+    case 'orbit-left':
+    case 'orbit-right':
+      return 'xoay 3D'
+    case 'hero-low':
+    case 'low-angle':
+    case 'bird-eye':
+    case 'high-angle':
+      return 'chuyển góc'
+    case 'dutch-tilt':
+      return 'nghiêng máy'
+    case 'corkscrew':
+      return 'xoáy cận 3D'
+    case 'hold':
+      return 'dừng ngắm'
+    case 'cut':
+      return 'cắt cảnh'
+    case 'pan':
+    default:
+      return 'lia máy'
+  }
+}
+
 export function moveExplicitActionMode(oldTime: number, newTime: number): void {
   const oldKey = timeToKey(oldTime)
+  const newKey = timeToKey(newTime)
+  if (oldKey === newKey) return
   const existing = explicitActionModesByTimeKey.get(oldKey)
-  if (existing !== undefined && oldKey !== timeToKey(newTime)) {
+  if (existing !== undefined) {
     explicitActionModesByTimeKey.delete(oldKey)
-    explicitActionModesByTimeKey.set(timeToKey(newTime), existing)
+    explicitActionModesByTimeKey.set(newKey, existing)
+  }
+  const existingTiming = waypointTimingMetaByTimeKey.get(oldKey)
+  if (existingTiming !== undefined) {
+    waypointTimingMetaByTimeKey.delete(oldKey)
+    waypointTimingMetaByTimeKey.set(newKey, existingTiming)
   }
 }
 
@@ -279,10 +389,21 @@ export function shiftExplicitActionModes(afterTime: number, delta: number): void
       explicitActionModesByTimeKey.set(timeToKey(nextT), mode)
     }
   }
+  const timingEntries = [...waypointTimingMetaByTimeKey.entries()].sort((a, b) =>
+    delta > 0 ? b[0] - a[0] : a[0] - b[0]
+  )
+  for (const [k, meta] of timingEntries) {
+    if (k > thresholdKey + 2) {
+      waypointTimingMetaByTimeKey.delete(k)
+      const nextT = Math.max(0, k / 100 + delta)
+      waypointTimingMetaByTimeKey.set(timeToKey(nextT), meta)
+    }
+  }
 }
 
 export function clearExplicitActionModes(): void {
   explicitActionModesByTimeKey.clear()
+  waypointTimingMetaByTimeKey.clear()
 }
 
 /**

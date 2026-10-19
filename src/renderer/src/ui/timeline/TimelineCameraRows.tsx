@@ -7,7 +7,10 @@ import {
   computeShotStageLayout,
   extractCameraFrames2D
 } from '../viewer/animateCamera/animateCameraMath'
-import { enrichCameraWaypoints } from '../viewer/animateCamera/animateCameraRouteLogic'
+import {
+  enrichCameraWaypoints,
+  findActiveWaypointIndexAtTime
+} from '../viewer/animateCamera/animateCameraRouteLogic'
 import { TimelineRow } from './TimelineRow'
 import { CAMERA_PROPS, shotSegments } from './timelineTypes'
 
@@ -36,20 +39,14 @@ export const TimelineCameraRows = memo(function TimelineCameraRows({
 }: TimelineCameraRowsProps) {
   const inspectorTab = useEditor((s) => s.inspectorTab)
   const { setTime, selectShot, setInspectorTab } = useEditor.getState()
-  const tol = Math.max(frameTolerance(project), 0.04)
+  const tol = Math.max(frameTolerance(project), 0.015)
 
   const stageLayout = useMemo(() => computeShotStageLayout(project, 0), [project])
   const waypoints = useMemo(
     () => enrichCameraWaypoints(extractCameraFrames2D(project, stageLayout)),
     [project, stageLayout]
   )
-  const activeWpIdx = useEditor((s) => {
-    const t = s.time
-    for (let i = 0; i < waypoints.length; i++) {
-      if (Math.abs(waypoints[i].time - t) <= tol) return i
-    }
-    return -1
-  })
+  const activeWpIdx = useEditor((s) => findActiveWaypointIndexAtTime(waypoints, s.time, tol))
   const segments = useMemo(
     () => (project.shots.length ? shotSegments(project) : []),
     [project]
@@ -102,15 +99,14 @@ export const TimelineCameraRows = memo(function TimelineCameraRows({
         }
         track={
           <div className="tl-cam-track-strip">
-            {/* Tween Spans connecting consecutive Camera Waypoints (Adobe Animate Classic/Motion Tween style) */}
+            {/* Tween Spans showing each Camera Waypoint's [time, endTime] duration */}
             {waypoints.map((wp, idx) => {
               const next = waypoints[idx + 1]
-              if (!next) return null
               const x0 = x(wp.time)
-              const x1 = x(next.time)
+              const x1 = x(wp.endTime)
               const spanW = Math.max(2, x1 - x0)
-              const isHold = next.actionMode === 'hold' || wp.ease === 'hold'
-              const isCut = next.actionMode === 'cut'
+              const isHold = (next?.actionMode ?? wp.actionMode) === 'hold' || wp.ease === 'hold'
+              const isCut = (next?.actionMode ?? wp.actionMode) === 'cut'
               const shotColor =
                 (wp.shotId ? shotById.get(wp.shotId)?.color : undefined) ?? 'var(--accent-cyan)'
               return (
@@ -122,11 +118,11 @@ export const TimelineCameraRows = memo(function TimelineCameraRows({
                     width: spanW,
                     ['--cam-span-color' as string]: shotColor
                   }}
-                  title={`Đoạn #${idx + 1} → #${idx + 2}: ${next.tagLabel} (${(next.time - wp.time).toFixed(2)}s)`}
+                  title={`Mốc #${idx + 1} (${wp.time.toFixed(2)}s ➔ ${wp.endTime.toFixed(2)}s · ${wp.stepDuration.toFixed(1)}s): ${wp.tagLabel}`}
                 >
                   {spanW > 52 && (
                     <span className="tl-cam-tween-label">
-                      {isHold ? '⏸ Giữ khung' : isCut ? '⚡ Cắt' : '━━▶ Lia'}
+                      {isHold ? `⏸ #${idx + 1} (${wp.stepDuration.toFixed(1)}s)` : isCut ? `⚡ #${idx + 1}` : `#${idx + 1} · ${wp.stepDuration.toFixed(1)}s`}
                     </span>
                   )}
                 </div>
