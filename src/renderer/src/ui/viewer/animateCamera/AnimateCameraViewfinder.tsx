@@ -392,68 +392,7 @@ export function AnimateCameraViewfinder({
         />
       )}
 
-      {/* 5. Thanh HUD nổi cố định ở góc trên-trái bàn dựng 2D */}
-      {activeWp && (() => {
-        const hasAngles =
-          Math.abs(activeWp.yaw) >= 1 || Math.abs(activeWp.pitch) >= 1 || Math.abs(activeWp.roll) >= 1
-        return (
-          <div
-            className="anim2d-cam-badge active-hud"
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            <span className="anim2d-cam-num">Mốc #{activeWp.index + 1}</span>
-            <span className="anim2d-cam-time">
-              {activeWp.time.toFixed(1)}s ➔ {activeWp.endTime.toFixed(1)}s ({activeWp.stepDuration.toFixed(1)}s)
-            </span>
-            <span className="anim2d-cam-scale">Zoom {activeWp.zoomPct}%</span>
-            <span className="anim2d-cam-shot-tag">{activeWp.shotName}</span>
-            {hasAngles && (
-              <span className="anim2d-cam-angle" title="Góc quay 3D & Nghiêng máy">
-                {activeWp.angleSummary}
-              </span>
-            )}
-
-            <span className="anim2d-cam-quick-btns">
-              <button
-                type="button"
-                title="Tạo mốc Dừng ngắm (+2.0s) giữ nguyên khung hình này"
-                onClick={onAddHold}
-              >
-                ⏸ Dừng
-              </button>
-              <button
-                type="button"
-                className="primary-mini"
-                title="Tạo mốc Camera tiếp theo từ vị trí này"
-                onClick={onSpawnNextPan}
-              >
-                <IconPlus width={9} height={9} /> Tiếp
-              </button>
-              {hasAngles && (
-                <button
-                  type="button"
-                  title="Đặt lại góc xoay 3D & nghiêng máy về 0°"
-                  onClick={() => onResetAngles(activeWp)}
-                >
-                  0°
-                </button>
-              )}
-              {waypoints.length > 1 && (
-                <button
-                  type="button"
-                  className="danger"
-                  title="Xoá mốc Camera này"
-                  onClick={() => onDeleteFrame(activeWp)}
-                >
-                  <IconTrash width={9} height={9} />
-                </button>
-              )}
-            </span>
-          </div>
-        )
-      })()}
-
-      {/* 6. Viền Khung Ngắm Camera Đang Active Trên Cảnh (Active Camera Viewfinder) */}
+      {/* 5. Viền Khung Ngắm Camera Đang Active Trên Cảnh (Active Camera Viewfinder) */}
       {activeWp && (() => {
         const isScrubbingBetween = Math.abs(liveFrame.time - activeWp.time) > 0.05
         const useLive = playing || isScrubbingBetween

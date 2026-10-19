@@ -25,22 +25,18 @@ import {
   IconGround,
   IconImage,
   IconMusic,
-  IconPen,
   IconPlus,
   IconRedo,
-  IconRoute,
   IconSave,
   IconSparkles,
   IconSquare,
   IconText,
   IconUndo,
   IconWand,
-  IconPlug,
   IconSun,
   IconMoon,
   IconSettings,
-  IconLayerAssembly,
-  IconCameraStage
+  IconLayerAssembly
 } from './icons'
 import { requestOpenLayerAssembly } from './layerAssembly/layerAssemblyBridge'
 
@@ -273,43 +269,6 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
         </button>
         <button id="add-assembly-workshop" className="menu-item" onClick={() => requestOpenLayerAssembly()}>
           <IconLayerAssembly width={15} /> Xưởng Lắp Ráp Layer & Rigging 2.5D…
-        </button>
-      </Menu>
-
-      <Menu id="menu-studio" label="Studio & Đạo diễn" icon={<IconWand />}>
-        <div className="menu-label">Đạo diễn Camera 3D &amp; 2D (Animate / AE)</div>
-        <button
-          id="studio-cam-animate2d"
-          className="menu-item"
-          onClick={() => {
-            useView.getState().set({ split: false, primary: 'animate2d', animate2dSplit: true })
-            useEditor.getState().setInspectorTab('route')
-          }}
-        >
-          <IconCameraStage width={15} /> Bàn dựng Khung Camera 2D &amp; 3D (Adobe Animate)
-        </button>
-        <button id="studio-cam-path" className="menu-item" onClick={() => useView.getState().openDialog('path')}>
-          <IconRoute width={15} /> Lộ trình Camera qua các Cảnh…
-        </button>
-        <button id="studio-cam-sketch" className="menu-item" onClick={() => useView.getState().openDialog('sketch')}>
-          <IconPen width={15} /> Vẽ đường bay Camera 2D (Top-Down)…
-        </button>
-        <div className="menu-label">Xưởng Hoạt Ảnh & Âm Thanh (Animate)</div>
-        <button id="studio-layer-assembly" className="menu-item" onClick={() => requestOpenLayerAssembly()}>
-          <IconLayerAssembly width={15} /> Xưởng Lắp Ráp Nhân Vật & Gắn Xương 2.5D…
-        </button>
-        <button id="studio-audio" className="menu-item" onClick={() => useView.getState().openAudioDialog('waveform')}>
-          <IconMusic width={15} /> Studio Âm Thanh, Sóng Âm & Mixer… <span className="hint">LL</span>
-        </button>
-        <div className="menu-label">Hệ thống & Kết xuất</div>
-        <button id="studio-perf" className="menu-item" onClick={() => useView.getState().openDialog('performance')}>
-          <IconSettings width={15} /> Cấu hình Hiệu năng, RAM & VRAM GPU…
-        </button>
-        <button id="studio-mcp" className="menu-item" onClick={() => useView.getState().openDialog('mcp')}>
-          <IconPlug width={15} /> Kết nối AI Agent (MCP Controller)…
-        </button>
-        <button id="studio-export" className="menu-item" onClick={onExport}>
-          <IconExport width={15} /> Xuất video MP4 (Render Queue)… <span className="hint">Ctrl+M</span>
         </button>
       </Menu>
 

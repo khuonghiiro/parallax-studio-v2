@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { EaseName } from '@shared/types'
 import { setCompDuration, toast } from '../../actions'
 import { evaluateScene } from '../../engine/evaluateScene'
@@ -59,7 +60,48 @@ export function CameraRouteInspector() {
   const primaryView = useView((s) => s.primary)
 
   const [showPresetsMenu, setShowPresetsMenu] = useState(false)
+  const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null)
+  const btnPresetsRef = useRef<HTMLButtonElement>(null)
   const stackRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!showPresetsMenu) {
+      setPopoverPos(null)
+      return
+    }
+    const updatePos = (): void => {
+      if (!btnPresetsRef.current) return
+      const rect = btnPresetsRef.current.getBoundingClientRect()
+      const popoverWidth = 240
+      let left = rect.right - popoverWidth
+      if (left < 10) left = 10
+      if (left + popoverWidth > window.innerWidth - 10) {
+        left = Math.max(10, window.innerWidth - popoverWidth - 10)
+      }
+      setPopoverPos({ top: rect.bottom + 4, left })
+    }
+    updatePos()
+
+    const onPointerDown = (e: PointerEvent): void => {
+      if (btnPresetsRef.current && !btnPresetsRef.current.contains(e.target as Node)) {
+        const popoverEl = document.querySelector('.route-presets-popover')
+        if (popoverEl && !popoverEl.contains(e.target as Node)) {
+          setShowPresetsMenu(false)
+        }
+      }
+    }
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') setShowPresetsMenu(false)
+    }
+    window.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('resize', updatePos)
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('resize', updatePos)
+    }
+  }, [showPresetsMenu])
 
   const hasAnimatedShots = useMemo(
     () => project.shots.some((s) => s.position.keyframes.length > 0),
@@ -441,99 +483,112 @@ export function CameraRouteInspector() {
             )}
             <div className="presets-dropdown-rel">
               <button
+                ref={btnPresetsRef}
                 id="route-presets-btn"
                 type="button"
-                className="btn xs"
+                className={`btn xs${showPresetsMenu ? ' active' : ''}`}
                 onClick={() => setShowPresetsMenu((v) => !v)}
                 title="Chọn kịch bản lộ trình camera mẫu chuyên nghiệp cho toàn video"
               >
                 <IconWand width={11} height={11} /> Mẫu ▾
               </button>
-              {showPresetsMenu && (
-                <div className="route-presets-popover">
-                  <button
-                    type="button"
-                    className="popover-item"
-                    onClick={() => handlePreset('tour-hold-and-pan')}
+              {showPresetsMenu &&
+                popoverPos &&
+                createPortal(
+                  <div
+                    className="route-presets-popover"
+                    style={{
+                      position: 'fixed',
+                      top: popoverPos.top,
+                      left: popoverPos.left,
+                      zIndex: 65000
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
                   >
-                    🎬 Điện ảnh: Lia &amp; Dừng ngắm
-                  </button>
-                  <button
-                    type="button"
-                    className="popover-item"
-                    onClick={() => handlePreset('hero-crane-epic')}
-                  >
-                    🦸 Anh hùng &amp; Cần cẩu 3D (Hero Crane)
-                  </button>
-                  <button
-                    type="button"
-                    className="popover-item"
-                    onClick={() => handlePreset('whip-action-rush')}
-                  >
-                    💨 Nhịp nhanh: Lia vút &amp; Đặc tả (Whip Rush)
-                  </button>
-                  <button
-                    type="button"
-                    className="popover-item"
-                    onClick={() => handlePreset('aerial-drone-sweep')}
-                  >
-                    🦅 Flycam Toàn không &amp; Lao xuống (Drone)
-                  </button>
-                  <button
-                    type="button"
-                    className="popover-item"
-                    onClick={() => handlePreset('dramatic-story-reveal')}
-                  >
-                    🎭 Kể chuyện: Đặc tả ➔ Mở cảnh ➔ Ngước trời
-                  </button>
-                  <button
-                    type="button"
-                    className="popover-item"
-                    onClick={() => handlePreset('parallax-orbit')}
-                  >
-                    🌐 Lượn sóng 2.5D Parallax (Xoay 3D)
-                  </button>
-                  <button
-                    type="button"
-                    className="popover-item"
-                    onClick={() => handlePreset('tour-all-shots')}
-                  >
-                    🗺️ Lia lướt qua {stageLayout.length} Cảnh
-                  </button>
-                  <button
-                    type="button"
-                    className="popover-item"
-                    onClick={() => handlePreset('cinematic-zoom')}
-                  >
-                    🔍 Đẩy cận &amp; Kéo rộng (Push-in)
-                  </button>
-                  <button
-                    type="button"
-                    className="popover-item"
-                    onClick={() => handlePreset('dolly-vertigo')}
-                  >
-                    🌀 Hiệu ứng Dolly Zoom (Vertigo)
-                  </button>
-                  <button
-                    type="button"
-                    className="popover-item"
-                    onClick={() => handlePreset('action-dutch-cut')}
-                  >
-                    ⚡ Hành động: Nghiêng máy &amp; Cắt cảnh
-                  </button>
-                  <button
-                    type="button"
-                    className="popover-item"
-                    onClick={() => handlePreset('dramatic-pan')}
-                  >
-                    📐 Lia ngang góc rộng (Dramatic Pan)
-                  </button>
-                  <div className="popover-sep" />
-                  <button type="button" className="popover-item" onClick={handleReverse}>
-                    <IconUndo width={11} height={11} /> Đảo ngược hướng lộ trình
-                  </button>
-                </div>
-              )}
+                    <button
+                      type="button"
+                      className="popover-item"
+                      onClick={() => handlePreset('tour-hold-and-pan')}
+                    >
+                      🎬 Điện ảnh: Lia &amp; Dừng ngắm
+                    </button>
+                    <button
+                      type="button"
+                      className="popover-item"
+                      onClick={() => handlePreset('hero-crane-epic')}
+                    >
+                      🦸 Anh hùng &amp; Cần cẩu 3D (Hero Crane)
+                    </button>
+                    <button
+                      type="button"
+                      className="popover-item"
+                      onClick={() => handlePreset('whip-action-rush')}
+                    >
+                      💨 Nhịp nhanh: Lia vút &amp; Đặc tả (Whip Rush)
+                    </button>
+                    <button
+                      type="button"
+                      className="popover-item"
+                      onClick={() => handlePreset('aerial-drone-sweep')}
+                    >
+                      🦅 Flycam Toàn không &amp; Lao xuống (Drone)
+                    </button>
+                    <button
+                      type="button"
+                      className="popover-item"
+                      onClick={() => handlePreset('dramatic-story-reveal')}
+                    >
+                      🎭 Kể chuyện: Đặc tả ➔ Mở cảnh ➔ Ngước trời
+                    </button>
+                    <button
+                      type="button"
+                      className="popover-item"
+                      onClick={() => handlePreset('parallax-orbit')}
+                    >
+                      🌐 Lượn sóng 2.5D Parallax (Xoay 3D)
+                    </button>
+                    <button
+                      type="button"
+                      className="popover-item"
+                      onClick={() => handlePreset('tour-all-shots')}
+                    >
+                      🗺️ Lia lướt qua {stageLayout.length} Cảnh
+                    </button>
+                    <button
+                      type="button"
+                      className="popover-item"
+                      onClick={() => handlePreset('cinematic-zoom')}
+                    >
+                      🔍 Đẩy cận &amp; Kéo rộng (Push-in)
+                    </button>
+                    <button
+                      type="button"
+                      className="popover-item"
+                      onClick={() => handlePreset('dolly-vertigo')}
+                    >
+                      🌀 Hiệu ứng Dolly Zoom (Vertigo)
+                    </button>
+                    <button
+                      type="button"
+                      className="popover-item"
+                      onClick={() => handlePreset('action-dutch-cut')}
+                    >
+                      ⚡ Hành động: Nghiêng máy &amp; Cắt cảnh
+                    </button>
+                    <button
+                      type="button"
+                      className="popover-item"
+                      onClick={() => handlePreset('dramatic-pan')}
+                    >
+                      📐 Lia ngang góc rộng (Dramatic Pan)
+                    </button>
+                    <div className="popover-sep" />
+                    <button type="button" className="popover-item" onClick={handleReverse}>
+                      <IconUndo width={11} height={11} /> Đảo ngược hướng lộ trình
+                    </button>
+                  </div>,
+                  document.body
+                )}
             </div>
 
             <button
@@ -602,13 +657,23 @@ export function CameraRouteInspector() {
           {waypoints.map((wp, idx) => {
             const isActive = idx === activeFrameIndex
             const has3D = Math.abs(wp.yaw) >= 1 || Math.abs(wp.pitch) >= 1 || Math.abs(wp.roll) >= 1
+            const prev = idx > 0 ? waypoints[idx - 1] : null
+            const isStart = idx === 0
+            const timeLabel = isStart
+              ? '0.00s'
+              : `${prev ? prev.time.toFixed(1) : '0.0'}s ➔ ${wp.time.toFixed(1)}s`
+            const durLabel = isStart ? 'Khung đầu' : `${wp.stepDuration.toFixed(1)}s`
+            const cardTooltip = isStart
+              ? `🎯 MỐC #1: Khung hình khởi đầu tại 0.00s · Cảnh: ${wp.shotName}`
+              : `🎬 MỐC #${idx + 1}: Chuyển từ Mốc #${idx} (${prev?.time.toFixed(1)}s) ➔ Mốc #${idx + 1} (${wp.time.toFixed(1)}s) · Thời lượng: ${wp.stepDuration.toFixed(1)}s · Cảnh: ${wp.shotName}`
+
             return (
               <div
                 key={`wp-card-${wp.time}-${idx}`}
                 id={`route-wp-item-${idx + 1}`}
                 className={`route-wp-card${wp.isFirstOfShot ? ' first-of-shot' : ''}${isActive ? ' active' : ''}`}
                 onClick={() => handleSelectWaypoint(wp)}
-                title={`${wp.isFirstOfShot ? `⚑ MỐC MỞ MÀN CẢNH: ${wp.shotName}\n` : ''}Mốc #${idx + 1} (${wp.time.toFixed(1)}s ➔ ${wp.endTime.toFixed(1)}s · Thời lượng: ${wp.stepDuration.toFixed(1)}s) · ${wp.shotName}`}
+                title={cardTooltip}
               >
                 <div className="wp-card-head">
                   <div className="wp-card-title">
@@ -620,13 +685,15 @@ export function CameraRouteInspector() {
                         ⚑ Đầu cảnh
                       </span>
                     )}
-                    <span className="wp-card-time" title={`Khung giờ: ${wp.time.toFixed(2)}s ➔ ${wp.endTime.toFixed(2)}s`}>
-                      {wp.time.toFixed(1)}s ➔ {wp.endTime.toFixed(1)}s
+                    <span className="wp-card-time" title={cardTooltip}>
+                      {timeLabel}
                     </span>
-                    <span className="wp-card-dur" title={`Thời lượng riêng của Mốc #${idx + 1}: ${wp.stepDuration.toFixed(1)}s`}>
-                      {wp.stepDuration.toFixed(1)}s
+                    <span className="wp-card-dur" title={isStart ? 'Khung hình khởi đầu của cảnh' : `Thời lượng chuyển động: ${wp.stepDuration.toFixed(1)}s`}>
+                      {durLabel}
                     </span>
-                    <span className={`wp-type-badge ${wp.tag}`}>{wp.tagLabel}</span>
+                    <span className={`wp-type-badge ${isStart ? 'start' : wp.tag}`}>
+                      {isStart ? 'Khởi đầu' : wp.tagLabel}
+                    </span>
                     {isActive && <span className="wp-editing-pill">● Đang sửa</span>}
                   </div>
 
@@ -657,9 +724,13 @@ export function CameraRouteInspector() {
                     ● {wp.shotName}
                   </span>
                   <span>Zoom {wp.zoomPct}%</span>
-                  {wp.delaySec > 0.01 && <span className="wp-meta-3d">⏳ Đệm +{wp.delaySec.toFixed(1)}s</span>}
+                  {!isStart && wp.delaySec > 0.01 && (
+                    <span className="wp-meta-3d">⏳ Đệm +{wp.delaySec.toFixed(1)}s</span>
+                  )}
                   {has3D && <span className="wp-meta-3d">{wp.angleSummary}</span>}
-                  <span className="wp-card-ease">{wp.ease === 'hold' ? '⚡ cut' : wp.ease}</span>
+                  {!isStart && (
+                    <span className="wp-card-ease">{wp.ease === 'hold' ? '⚡ cut' : wp.ease}</span>
+                  )}
                 </div>
               </div>
             )

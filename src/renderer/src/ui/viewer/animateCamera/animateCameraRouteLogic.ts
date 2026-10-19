@@ -906,8 +906,18 @@ export function updateWaypointStepDuration(
     if (options.actionDurationSec === undefined) {
       nextActionDur = Math.max(0.2, Math.round((nextStepDur - nextDelay) * 100) / 100)
     }
-  } else {
+  } else if (options.actionDurationSec !== undefined) {
     nextStepDur = Math.max(0.2, Math.round((nextDelay + nextActionDur) * 100) / 100)
+  } else {
+    if (options.delaySec !== undefined) {
+      if (nextDelay + nextActionDur > currentMeta.stepDuration) {
+        nextActionDur = Math.max(0.2, Math.round((currentMeta.stepDuration - nextDelay) * 100) / 100)
+      }
+    }
+    nextStepDur = Math.max(
+      currentMeta.stepDuration,
+      Math.round((nextDelay + nextActionDur) * 100) / 100
+    )
   }
 
   const isCustomActionTiming =
@@ -930,13 +940,6 @@ export function updateWaypointStepDuration(
     updateCameraWaypoint(draft, layout, next.time, {
       time: newNextTime,
       ripple: true
-    })
-  } else if (draft.camera.position.keyframes.length === 0) {
-    applyStageFrameToDraft(draft, layout, cur.time, cur.stageX, cur.stageY, cur.scale, true, {
-      yaw: cur.yaw,
-      pitch: cur.pitch,
-      roll: cur.roll,
-      ease: cur.ease
     })
   }
 

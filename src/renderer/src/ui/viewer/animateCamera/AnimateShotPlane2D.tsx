@@ -66,7 +66,7 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
       {/* Header gọn gàng của Cảnh 2D (Nhấn giữ để kéo dời Cảnh đồng bộ 2D & 3D) */}
       <div
         className="anim2d-shot-header"
-        title={`✥ Nhấn giữ tiêu đề để kéo dời vị trí "${box.name}" (Trái/Phải/Trên/Dưới — đồng bộ 2D & 3D, giữ Shift khóa trục, giữ Alt chỉ dời Cảnh)`}
+        title={box.name}
         onPointerDown={(e) => onStartShotDrag(e, box)}
       >
         <span className="anim2d-shot-grip" aria-hidden="true">

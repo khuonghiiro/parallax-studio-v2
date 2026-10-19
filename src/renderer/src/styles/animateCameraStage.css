@@ -30,43 +30,45 @@
   position: relative;
 }
 
-/* Unified 2-Row Top Toolbar for Camera Stage (Row 1 leaves right side clear for .viewer-tools) */
-.anim2d-toolbar {
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-2);
-  border-bottom: 1px solid var(--line);
-  z-index: 14;
-}
-
-.anim2d-toolbar-row1 {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 36px;
-  padding: 4px 290px 4px 6px;
-  border-bottom: 1px solid var(--line-soft);
-  flex-wrap: wrap;
-}
-
-.anim2d-toolbar-row1 .seg-btn {
-  padding: 0 6px;
-}
-
-.anim2d-stage.single-2d .anim2d-toolbar-row1 {
-  padding-left: 124px;
-}
-
-.anim2d-toolbar-row2 {
+/* Unified Single-Row Compact Top Toolbar for Camera Stage */
+.anim2d-toolbar.single-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  min-height: 30px;
-  padding: 3px 8px;
-  background: color-mix(in srgb, var(--bg-1) 60%, var(--bg-2));
-  flex-wrap: nowrap;
+  gap: 8px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 8px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  z-index: 14;
   overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+}
+
+.anim2d-stage.single-2d .anim2d-toolbar.single-row {
+  padding-left: 8px;
+}
+
+.anim2d-toolbar-left,
+.anim2d-toolbar-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.anim2d-actions-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.anim2d-toolbar.single-row .seg-btn {
+  padding: 0 6px;
+  height: 22px;
+  font-size: 10.5px;
 }
 
 .anim2d-frames-strip {
@@ -217,9 +219,9 @@
 }
 
 .anim2d-shot-card:hover .anim2d-shot-header {
-  max-width: 360px;
+  max-width: 100%;
   z-index: 48;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
 }
 
 .anim2d-shot-grip {

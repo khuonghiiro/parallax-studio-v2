@@ -301,63 +301,63 @@ export const AnimateCameraProFooterBar = memo(function AnimateCameraProFooterBar
           type="button"
           className={`mode-chip${activeFrame.actionMode === 'pan' ? ' active' : ''}`}
           onClick={() => onQuickActionMode('pan')}
-          title="Lia cân bằng (Smooth Pan / Tracking): Lia máy mượt mà theo phương ngang/dọc, giữ đường chân trời thẳng 0°"
+          title="Lia cân bằng (Smooth Pan / Tracking): Giữ đường chân trời thẳng 0°"
         >
-          ↔ Lia cân bằng
+          ↔ Lia
         </button>
         <button
           type="button"
           className={`mode-chip${activeFrame.actionMode === 'push-in' ? ' active' : ''}`}
           onClick={() => onQuickActionMode('push-in')}
-          title="Đẩy cận (Push-in / Dolly In): Thu hẹp khung ngắm đẩy cận vào chủ thể để nhấn mạnh cảm xúc"
+          title="Đẩy cận (Push-in / Dolly In)"
         >
-          🔍+ Đẩy cận
+          🔍+ Cận
         </button>
         <button
           type="button"
           className={`mode-chip${activeFrame.actionMode === 'pull-out' ? ' active' : ''}`}
           onClick={() => onQuickActionMode('pull-out')}
-          title="Kéo rộng (Pull-out / Reveal): Mở rộng khung ngắm để hé lộ toàn cảnh không gian xung quanh"
+          title="Kéo rộng (Pull-out / Reveal)"
         >
-          🔍- Kéo rộng
+          🔍- Rộng
         </button>
         <button
           type="button"
           className={`mode-chip${activeFrame.actionMode === 'hold' ? ' active' : ''}`}
           onClick={() => onQuickActionMode('hold')}
-          title="Dừng ngắm (Camera Hold): Giữ nguyên khung hình của mốc trước để khán giả kịp cảm nhận bối cảnh"
+          title="Dừng ngắm (Camera Hold)"
         >
-          ⏸ Dừng ngắm
+          ⏸ Dừng
         </button>
         <button
           type="button"
           className="mode-chip"
           onClick={onEstablishCenter100}
-          title="Khung chuẩn Toàn cảnh (Establishing Shot 100%): Căn máy về chính giữa cảnh hiện tại với cỡ chuẩn 100%"
+          title="Khung chuẩn Toàn cảnh (100%)"
         >
-          ⊡ Chuẩn 100%
+          ⊡ 100%
         </button>
         <button
           type="button"
           className={`mode-chip${activeFrame.actionMode === 'cut' ? ' active' : ''}`}
           onClick={() => onQuickActionMode('cut')}
-          title="Cắt cảnh tức thì (Jump Cut): Đổi thẳng sang góc máy mới mà không lia máy ở giữa"
+          title="Cắt cảnh tức thì (Jump Cut)"
         >
-          ⚡ Cắt cảnh
+          ⚡ Cắt
         </button>
         <button
           type="button"
           className={`mode-chip${activeFrame.actionMode === 'whip-pan' ? ' active' : ''}`}
           onClick={() => onQuickActionMode('whip-pan')}
-          title="Lia vút tốc độ cao (Whip Pan): Lia máy cực nhanh tạo nhịp chuyển cảnh hành động"
+          title="Lia vút tốc độ cao (Whip Pan)"
         >
-          💨 Lia vút
+          💨 Vút
         </button>
         <button
           type="button"
           className={`mode-chip${activeFrame.actionMode === 'crane-up' ? ' active' : ''}`}
           onClick={() => onQuickActionMode('crane-up')}
-          title="Cần cẩu nâng lên (Crane Up): Nâng máy cao dần lên kết hợp ngước nhẹ mở rộng không gian"
+          title="Cần cẩu nâng lên (Crane Up)"
         >
           ⤴ Cần cẩu
         </button>
@@ -365,15 +365,15 @@ export const AnimateCameraProFooterBar = memo(function AnimateCameraProFooterBar
           type="button"
           className={`mode-chip${activeFrame.actionMode === 'hero-low' ? ' active' : ''}`}
           onClick={() => onQuickActionMode('hero-low')}
-          title="Góc thấp Anh hùng (Hero Low Angle): Hạ thấp máy ngước lên tôn dáng nhân vật uy lực"
+          title="Góc thấp Anh hùng (Hero Low Angle)"
         >
-          🦸 Góc Hùng vĩ
+          🦸 Hùng vĩ
         </button>
         <button
           type="button"
           className={`mode-chip${activeFrame.actionMode === 'corkscrew' ? ' active' : ''}`}
           onClick={() => onQuickActionMode('corkscrew')}
-          title="Xoáy cận 3D (Corkscrew): Đẩy cận cảnh kết hợp xoay nghiêng Roll + Yaw 3D kịch tính"
+          title="Xoáy cận 3D (Corkscrew)"
         >
           🌀 Xoáy 3D
         </button>

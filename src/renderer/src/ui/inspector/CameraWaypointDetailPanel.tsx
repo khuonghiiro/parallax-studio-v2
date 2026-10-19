@@ -14,6 +14,7 @@ import {
   type CameraWaypointItem
 } from '../viewer/animateCamera/animateCameraRouteLogic'
 import { CameraActionTuningBox } from './CameraActionTuningBox'
+import { CameraPoseControls } from './CameraPoseControls'
 
 const EASING_OPTIONS: { value: EaseName; label: string }[] = [
   { value: 'easeInOut', label: '🌊 Mượt tự nhiên (easeInOut)' },
@@ -85,6 +86,7 @@ export function CameraWaypointDetailPanel({
       ? CAMERA_ACTION_MODES
       : CAMERA_ACTION_MODES.filter((m) => m.category === actionCategory)
 
+  const isStartFrame = activeWaypoint.index === 0
   const prevWp = activeWaypoint.index > 0 ? waypoints[activeWaypoint.index - 1] : null
   const nextWp =
     activeWaypoint.index + 1 < waypoints.length ? waypoints[activeWaypoint.index + 1] : null
@@ -105,25 +107,33 @@ export function CameraWaypointDetailPanel({
     activeWaypoint.stageY - (currentShotBox ? currentShotBox.stageY : 0)
   )
 
-  const currentStepDuration = activeWaypoint.stepDuration
-  const nextWpLabel = nextWp ? ` ➔ sang #${nextWp.index + 1} lúc ${activeWaypoint.endTime.toFixed(2)}s` : ''
+  const transitionIndex = activeWaypoint.index > 0 ? activeWaypoint.index - 1 : 0
+  const currentStepDuration = prevWp
+    ? Math.max(0.2, Math.round((activeWaypoint.time - prevWp.time) * 100) / 100)
+    : activeWaypoint.stepDuration
 
   return (
     <div id="camera-waypoint-detail-panel" className="section active-wp-section">
-      {/* Header phân biệt rõ đây là thông số RIÊNG của Mốc đang chọn */}
+      {/* 1. Header Banner phân biệt rõ ràng: Mốc #1 (Khung khởi đầu) vs Mốc #k (Chuyển động từ #k-1 ➔ #k) */}
       <div className="wp-detail-banner">
         <div className="wp-banner-left">
-          <span className="scope-badge per-waypoint">
-            🎯 RIÊNG MỐC #{activeWaypoint.index + 1}
-          </span>
-          {activeWaypoint.isFirstOfShot && (
-            <span className="scope-badge first-of-shot" title="Mốc camera lộ trình đầu tiên của cảnh này">
-              ⚑ MỞ CẢNH
-            </span>
+          {isStartFrame ? (
+            <>
+              <span className="scope-badge first-of-shot">
+                🎯 MỐC #1: KHUNG KHỞI ĐẦU
+              </span>
+              <span className="wp-banner-time">0.00s</span>
+            </>
+          ) : (
+            <>
+              <span className="scope-badge per-waypoint">
+                🎬 MỐC #{activeWaypoint.index + 1}: TỪ #{activeWaypoint.index} ➔ #{activeWaypoint.index + 1}
+              </span>
+              <span className="wp-banner-time">
+                {prevWp ? prevWp.time.toFixed(1) : '0.0'}s ➔ {activeWaypoint.time.toFixed(1)}s ({currentStepDuration.toFixed(1)}s)
+              </span>
+            </>
           )}
-          <span className="wp-banner-time">
-            {activeWaypoint.time.toFixed(1)}s ➔ {activeWaypoint.endTime.toFixed(1)}s ({currentStepDuration.toFixed(1)}s)
-          </span>
           <span className="wp-active-shot" style={{ borderColor: activeWaypoint.shotColor }}>
             {activeWaypoint.shotName}
           </span>
@@ -151,450 +161,295 @@ export function CameraWaypointDetailPanel({
         </div>
       </div>
 
-      {/* 1. QUAN TRỌNG NHẤT (ĐƯA LÊN ĐẦU): Thời lượng của Mốc #k & Khung giờ trên Timeline */}
-      <div className="row-group priority-timing-box">
-        <div className="field-header">
-          <label>⏱ Thời lượng của Mốc #{activeWaypoint.index + 1}</label>
-          <span className="timing-hint-tag">Tự nối tiếp mốc sau</span>
-        </div>
-
-        <div className="field-row timing-main-row">
-          <div className="timing-field-card">
-            <label
-              htmlFor="wp-input-duration"
-              title={`Thời lượng duy trì của Mốc #${activeWaypoint.index + 1}. Thay đổi số giây sẽ tự động nối mốc tiếp theo ngay sau khi hết thời lượng này.`}
-            >
-              Thời lượng Mốc #{activeWaypoint.index + 1} (Giây)
-            </label>
-            <div className="input-prefix-box highlight">
-              <span className="prefix">⏱</span>
-              <input
-                id="wp-input-duration"
-                type="number"
-                step="0.1"
-                min="0.2"
-                max="60"
-                value={currentStepDuration}
-                onChange={(e) => {
-                  const dur = parseFloat(e.target.value)
-                  if (!isNaN(dur)) {
-                    onUpdateStepTiming(activeWaypoint.index, {
-                      stepDuration: Math.max(0.2, dur)
-                    })
-                  }
-                }}
-              />
-              <span className="suffix">s</span>
-            </div>
+      {/* =========================================================================
+          TRƯỜNG HỢP A: MỐC #1 (KHUNG HÌNH KHỞI ĐẦU - STARTING FRAME TẠI 0.0s)
+          - Định hình cỡ cảnh (Zoom), vị trí trong cảnh và góc xoay 3D ban đầu.
+          - Không hiển thị động tác quay hay slider đệm chờ (vì chưa có chuyển động vào).
+         ========================================================================= */}
+      {isStartFrame ? (
+        <>
+          <div className="wp-start-frame-card">
+            <div className="start-frame-badge">📍 Khung hình bắt đầu cảnh (0.0s)</div>
+            <p className="start-frame-desc">
+              Đây là vị trí, cỡ cảnh (Zoom) và góc nhìn ban đầu trước khi bắt đầu chuyển động camera.
+            </p>
           </div>
 
-          <div className="timing-field-card">
-            <label
-              htmlFor="wp-input-timestamp"
-              title={`Khung giờ thực tế của Mốc #${activeWaypoint.index + 1} trên thanh Timeline${nextWpLabel}`}
-            >
-              Khung giờ trên Timeline
-            </label>
-            <div
-              id="wp-input-timestamp"
-              className="timing-window-readout"
-              title={`Mốc #${activeWaypoint.index + 1} bắt đầu lúc ${activeWaypoint.time.toFixed(2)}s, kéo dài ${currentStepDuration.toFixed(1)}s đến ${activeWaypoint.endTime.toFixed(2)}s${nextWp ? ` (từ ${(activeWaypoint.endTime + 0.01).toFixed(2)}s là Mốc #${nextWp.index + 1})` : ''}`}
-            >
-              <span className="win-start">{activeWaypoint.time.toFixed(2)}s</span>
-              <span className="win-arrow">➔</span>
-              <span className="win-end">{activeWaypoint.endTime.toFixed(2)}s</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Nút chọn nhanh Thời lượng của Mốc (1s, 2s, 3s, 4s, 5s) */}
-        <div className="quick-duration-bar">
-          <span className="quick-dur-lbl">Chọn nhanh:</span>
-          {QUICK_DURATIONS.map((sec) => (
-            <button
-              key={sec}
-              type="button"
-              className={`dur-chip${Math.abs(currentStepDuration - sec) < 0.08 ? ' active' : ''}`}
-              onClick={() =>
-                onUpdateStepTiming(activeWaypoint.index, { stepDuration: sec })
-              }
-              title={`Đặt thời lượng của Mốc #${activeWaypoint.index + 1} thành ${sec}.0 giây (${activeWaypoint.time.toFixed(1)}s ➔ ${(activeWaypoint.time + sec).toFixed(1)}s)`}
-            >
-              {sec}s
-            </button>
-          ))}
-        </div>
-
-        <div className="field-select-mt">
-          <CustomSelect<EaseName>
-            id="route-insp-ease-select"
-            value={activeWaypoint.ease}
-            onChange={(val) => onUpdate({ ease: val })}
-            options={EASING_OPTIONS}
-            size="sm"
-            title="Chọn kiểu gia tốc chuyển động riêng cho mốc này"
+          <CameraPoseControls
+            activeWaypoint={activeWaypoint}
+            stageLayout={stageLayout}
+            activeShotLayers={activeShotLayers}
+            currentShotBox={currentShotBox}
+            localOffsetX={localOffsetX}
+            localOffsetY={localOffsetY}
+            has3DAngle={has3DAngle}
+            sectionTitlePrefix="Khởi đầu"
+            onUpdate={onUpdate}
+            onAlignInShot={onAlignInShot}
+            onTargetShot={onTargetShot}
+            onTargetLayer={onTargetLayer}
           />
-        </div>
-      </div>
 
-      {/* 2. Động tác Quay Chuyên Nghiệp (20 Kỹ thuật Điện ảnh & Hoạt hình 2.5D) */}
-      <div className="row-group">
-        <div className="field-header">
-          <label>🎬 Động tác Quay tại Mốc #{activeWaypoint.index + 1}</label>
-          <span className="wp-mode-current">{activeWaypoint.tagLabel}</span>
-        </div>
-
-        {/* Bộ lọc phân nhóm kỹ thuật quay chuyên nghiệp */}
-        <div className="cam-action-cat-tabs" role="tablist" aria-label="Nhóm động tác quay chuyên nghiệp">
-          {CAMERA_ACTION_CATEGORIES.map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              role="tab"
-              aria-selected={actionCategory === cat.id}
-              className={`cam-action-cat-btn${actionCategory === cat.id ? ' active' : ''}`}
-              onClick={() => setActionCategory(cat.id)}
-              title={cat.hint}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="cam-action-mode-grid">
-          {filteredActionModes.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              className={`cam-mode-btn${activeWaypoint.actionMode === m.id ? ' active' : ''}`}
-              onClick={() => onApplyActionMode(m.id)}
-              title={`${m.badgeLabel}: ${m.hint}`}
-            >
-              <span className="mode-ico">{m.icon}</span>
-              <span className="mode-lbl">{m.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Hộp thanh trượt tinh chỉnh Đệm chờ, Tốc độ (Nhanh ⇄ Chậm) & Tăng tốc riêng cho động tác đang chọn */}
-        <CameraActionTuningBox
-          activeWaypoint={activeWaypoint}
-          shotStageX={currentShotBox ? currentShotBox.stageX : 0}
-          shotStageY={currentShotBox ? currentShotBox.stageY : 0}
-          onUpdateStepTiming={onUpdateStepTiming}
-          onUpdatePose={onUpdate}
-        />
-
-        <div className="field-header" style={{ marginTop: 6 }}>
-          <label htmlFor="wp-zoom-number-input">🔍 Cỡ Cảnh &amp; Độ Phóng (Zoom)</label>
-          <div className="zoom-val-box">
-            <input
-              id="wp-zoom-number-input"
-              type="number"
-              min="35"
-              max="2000"
-              step="5"
-              value={activeWaypoint.zoomPct}
-              className="zoom-number-input"
-              title="Nhập trực tiếp độ phóng từ 35% đến 2000%"
-              onChange={(e) => {
-                const zoomVal = parseFloat(e.target.value)
-                if (!isNaN(zoomVal) && zoomVal >= 35 && zoomVal <= 2000) {
-                  onUpdate({ scale: 100 / zoomVal }, 'wp-zoom')
-                }
-              }}
-            />
-            <span className="suffix">%</span>
-          </div>
-        </div>
-
-        <div className="field-slider">
-          <input
-            id="wp-zoom-slider"
-            type="range"
-            min="35"
-            max="2000"
-            step="5"
-            value={activeWaypoint.zoomPct}
-            className="zoom-range"
-            title={`Kéo thanh trượt độ phóng: ${activeWaypoint.zoomPct}% (tối đa 2000%)`}
-            onChange={(e) => {
-              const zoomVal = parseFloat(e.target.value)
-              if (!isNaN(zoomVal) && zoomVal > 0) {
-                onUpdate({ scale: 100 / zoomVal }, 'wp-zoom')
-              }
-            }}
-          />
-        </div>
-
-        <div className="preset-row zoom-presets-6">
-          <button
-            type="button"
-            className={`btn xs${activeWaypoint.zoomPct <= 80 ? ' active' : ''}`}
-            onClick={() => onUpdate({ scale: 100 / 70 })}
-            title="Toàn cảnh rộng (Zoom 70%)"
-          >
-            Toàn 70%
-          </button>
-          <button
-            type="button"
-            className={`btn xs${activeWaypoint.zoomPct >= 95 && activeWaypoint.zoomPct <= 105 ? ' active' : ''}`}
-            onClick={() => onUpdate({ scale: 1.0 })}
-            title="Khung chuẩn 1:1 (Zoom 100%)"
-          >
-            Chuẩn 100%
-          </button>
-          <button
-            type="button"
-            className={`btn xs${activeWaypoint.zoomPct >= 130 && activeWaypoint.zoomPct <= 160 ? ' active' : ''}`}
-            onClick={() => onUpdate({ scale: 100 / 140 })}
-            title="Trung cảnh (Zoom 140%)"
-          >
-            Trung 140%
-          </button>
-          <button
-            type="button"
-            className={`btn xs${activeWaypoint.zoomPct >= 230 && activeWaypoint.zoomPct <= 300 ? ' active' : ''}`}
-            onClick={() => onUpdate({ scale: 100 / 250 })}
-            title="Đặc tả chi tiết (Zoom 250%)"
-          >
-            Cận 250%
-          </button>
-          <button
-            type="button"
-            className={`btn xs${activeWaypoint.zoomPct >= 450 && activeWaypoint.zoomPct <= 650 ? ' active' : ''}`}
-            onClick={() => onUpdate({ scale: 100 / 500 })}
-            title="Siêu cận cảnh (Zoom 500%)"
-          >
-            Siêu 500%
-          </button>
-          <button
-            type="button"
-            className={`btn xs${activeWaypoint.zoomPct >= 1800 ? ' active' : ''}`}
-            onClick={() => onUpdate({ scale: 100 / 2000 })}
-            title="Độ phóng cực đại (Zoom 2000%)"
-          >
-            Max 2000%
-          </button>
-        </div>
-      </div>
-
-      {/* 3. Điểm nhìn (Cảnh đích, Layer lấy nét) & Vị trí Lia 2D trong Cảnh */}
-      <div className="row-group">
-        <div className="field-header">
-          <label>📍 Cảnh đích &amp; Vị trí trong Cảnh (ΔX, ΔY)</label>
-          <div className="quick-align-strip">
-            <button
-              type="button"
-              className="mini-chip-btn"
-              onClick={() => onAlignInShot('left')}
-              title={`Lia lệch sang phần bên trái của cảnh “${currentShotBox?.name}”`}
-            >
-              ↤
-            </button>
-            <button
-              type="button"
-              className="mini-chip-btn"
-              onClick={() => onAlignInShot('center')}
-              title={`Căn tâm Camera về chính giữa cảnh “${currentShotBox?.name}”`}
-            >
-              ⊡
-            </button>
-            <button
-              type="button"
-              className="mini-chip-btn"
-              onClick={() => onAlignInShot('right')}
-              title={`Lia lệch sang phần bên phải của cảnh “${currentShotBox?.name}”`}
-            >
-              ↦
-            </button>
-          </div>
-        </div>
-
-        <div className="target-selects-grid">
-          {stageLayout.length > 1 && (
-            <CustomSelect<string>
-              id="route-insp-target-shot"
-              value={activeWaypoint.shotId ?? 'global'}
-              onChange={(val) => onTargetShot(val)}
-              options={stageLayout.map((b) => ({
-                value: b.shotId ?? 'global',
-                label: `🎬 Cảnh: ${b.name}`
-              }))}
-              size="sm"
-              title="Chọn Cảnh để chuyển Mốc Camera này tới"
-            />
-          )}
-
-          {activeShotLayers.length > 0 && (
-            <CustomSelect<string>
-              id="route-insp-target-layer"
-              value=""
-              placeholder="🎯 Ngắm & Lấy nét vào Layer..."
-              onChange={(val) => onTargetLayer(val)}
-              options={activeShotLayers.map((l) => ({
-                value: l.id,
-                label: `🎯 ${l.name}`
-              }))}
-              size="sm"
-              title="Căn Camera tập trung và lấy nét DOF vào một Layer cụ thể trong cảnh"
-            />
-          )}
-        </div>
-
-        <div className="field-row" style={{ marginTop: 4 }}>
-          <div
-            className="input-prefix-box"
-            title={`Độ lệch ngang so với tâm cảnh “${currentShotBox?.name}” (0px = chính giữa)`}
-          >
-            <span className="prefix">ΔX</span>
-            <input
-              type="number"
-              step="10"
-              value={localOffsetX}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10)
-                if (!isNaN(val)) {
-                  const nextStageX = (currentShotBox ? currentShotBox.stageX : 0) + val
-                  onUpdate({ stageX: nextStageX }, 'wp-pan-x')
-                }
-              }}
-            />
-          </div>
-          <div
-            className="input-prefix-box"
-            title={`Độ lệch dọc so với tâm cảnh “${currentShotBox?.name}” (0px = chính giữa)`}
-          >
-            <span className="prefix">ΔY</span>
-            <input
-              type="number"
-              step="10"
-              value={localOffsetY}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10)
-                if (!isNaN(val)) {
-                  const nextStageY = (currentShotBox ? currentShotBox.stageY : 0) + val
-                  onUpdate({ stageY: nextStageY }, 'wp-pan-y')
-                }
-              }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* 4. Góc Quay 3D & Nghiêng Máy Nâng Cao (Parallax Yaw, Pitch & Dutch Roll) */}
-      <div className="row-group">
-        <div className="field-header">
-          <label>🌐 Góc Xoay 3D &amp; Nghiêng Máy (Nâng cao)</label>
-          {has3DAngle ? (
-            <button
-              type="button"
-              className="link-btn"
-              onClick={() => onAlignInShot('reset-angles')}
-              title="Đặt lại toàn bộ góc Xoay 3D & Nghiêng máy về 0°"
-            >
-              ↺ Đặt về 0°
-            </button>
+          {nextWp ? (
+            <div className="next-wp-transition-card">
+              <div className="next-card-head">
+                <span className="next-icon">🎬</span>
+                <div className="next-info">
+                  <span className="next-title">Chuyển tiếp sang Mốc #2</span>
+                  <span className="next-time">
+                    Thời lượng {nextWp.stepDuration.toFixed(1)}s (đến {nextWp.time.toFixed(1)}s)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="btn xs primary"
+                  onClick={() => onSelectTime(nextWp.time)}
+                  title="Chuyển sang Mốc #2 để cấu hình kiểu chuyển động, đệm chờ và cỡ cảnh đích"
+                >
+                  Sửa Mốc #2 ➔
+                </button>
+              </div>
+            </div>
           ) : (
-            <span className="angle-neutral-tag">Thẳng 0°</span>
+            <div className="next-wp-create-card">
+              <div className="create-prompt-head">
+                <span>✨ Tạo chuyển động đầu tiên sang Mốc #2:</span>
+              </div>
+              <div className="route-insp-actions">
+                <button
+                  type="button"
+                  className="btn xs primary"
+                  onClick={() => onSpawnNext('zoom-in')}
+                  title="Tạo Mốc #2 đẩy cận cảnh vào đối tượng"
+                >
+                  🔍+ Đẩy cận Mốc #2
+                </button>
+                <button
+                  type="button"
+                  className="btn xs"
+                  onClick={() => onSpawnNext('pan')}
+                  title="Tạo Mốc #2 lia ngang sang vị trí khác"
+                >
+                  ↔ Lia sang Mốc #2
+                </button>
+                <button
+                  type="button"
+                  className="btn xs"
+                  onClick={() => onSpawnNext('zoom-out')}
+                  title="Tạo Mốc #2 kéo toàn cảnh rộng"
+                >
+                  🔍- Kéo rộng Mốc #2
+                </button>
+                <button
+                  type="button"
+                  className="btn xs"
+                  onClick={onAddHold}
+                  title="Giữ nguyên khung nhìn trong 2 giây"
+                >
+                  ⏸ Dừng ngắm (2s)
+                </button>
+              </div>
+            </div>
           )}
-        </div>
+        </>
+      ) : (
+        /* =========================================================================
+            TRƯỜNG HỢP B: MỐC #k (k >= 2) - CẤU HÌNH ĐOẠN CHUYỂN ĐỘNG TỪ #k-1 ➔ #k
+            - Thời lượng chuyển đoạn (duration), Easing, đệm chờ (delay), tốc độ (speed).
+            - Động tác quay và Khung hình đích đến tại Mốc #k.
+           ========================================================================= */
+        <>
+          {/* 1. Thời lượng chuyển động từ Mốc #(k-1) sang Mốc #k & Easing */}
+          <div className="row-group priority-timing-box">
+            <div className="field-header">
+              <label>⏱ Thời lượng chuyển từ #{activeWaypoint.index} ➔ #{activeWaypoint.index + 1}</label>
+              <span className="timing-hint-tag">Tự nối tiếp timeline</span>
+            </div>
 
-        <div className="angle-sliders-stack">
-          <div className="angle-slider-row">
-            <span className="angle-lbl" title="Xoay ngang 3D quanh điểm nhìn (Trái / Phải)">
-              Xoay 3D (Yaw)
-            </span>
-            <input
-              type="range"
-              min="-65"
-              max="65"
-              step="1"
-              value={Math.round(activeWaypoint.yaw)}
-              className="zoom-range"
-              onChange={(e) => onUpdate({ yaw: parseFloat(e.target.value) }, 'wp-yaw')}
-            />
-            <span className="angle-num">
-              {activeWaypoint.yaw > 0 ? '+' : ''}
-              {Math.round(activeWaypoint.yaw)}°
-            </span>
+            <div className="field-row timing-main-row">
+              <div className="timing-field-card">
+                <label
+                  htmlFor="wp-input-duration"
+                  title={`Thời lượng chuyển động từ Mốc #${activeWaypoint.index} sang Mốc #${activeWaypoint.index + 1}. Thay đổi số giây sẽ tự động tính lại mốc thời gian trên Timeline.`}
+                >
+                  Thời lượng chuyển (Giây)
+                </label>
+                <div className="input-prefix-box highlight">
+                  <span className="prefix">⏱</span>
+                  <input
+                    id="wp-input-duration"
+                    type="number"
+                    step="0.1"
+                    min="0.2"
+                    max="60"
+                    value={currentStepDuration}
+                    onChange={(e) => {
+                      const dur = parseFloat(e.target.value)
+                      if (!isNaN(dur)) {
+                        onUpdateStepTiming(transitionIndex, {
+                          stepDuration: Math.max(0.2, dur)
+                        })
+                      }
+                    }}
+                  />
+                  <span className="suffix">s</span>
+                </div>
+              </div>
+
+              <div className="timing-field-card">
+                <label
+                  htmlFor="wp-input-timestamp"
+                  title={`Khung giờ chuyển động thực tế trên thanh Timeline`}
+                >
+                  Khung giờ trên Timeline
+                </label>
+                <div
+                  id="wp-input-timestamp"
+                  className="timing-window-readout"
+                  title={`Mốc #${activeWaypoint.index + 1} chuyển từ ${prevWp ? prevWp.time.toFixed(2) : '0.00'}s đến ${activeWaypoint.time.toFixed(2)}s (kéo dài ${currentStepDuration.toFixed(1)}s)`}
+                >
+                  <span className="win-start">{prevWp ? prevWp.time.toFixed(2) : '0.00'}s</span>
+                  <span className="win-arrow">➔</span>
+                  <span className="win-end">{activeWaypoint.time.toFixed(2)}s</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Nút chọn nhanh Thời lượng (1s, 2s, 3s, 4s, 5s) */}
+            <div className="quick-duration-bar">
+              <span className="quick-dur-lbl">Chọn nhanh:</span>
+              {QUICK_DURATIONS.map((sec) => (
+                <button
+                  key={sec}
+                  type="button"
+                  className={`dur-chip${Math.abs(currentStepDuration - sec) < 0.08 ? ' active' : ''}`}
+                  onClick={() =>
+                    onUpdateStepTiming(transitionIndex, { stepDuration: sec })
+                  }
+                  title={`Đặt thời lượng chuyển động thành ${sec}.0 giây`}
+                >
+                  {sec}s
+                </button>
+              ))}
+            </div>
+
+            <div className="field-select-mt">
+              <CustomSelect<EaseName>
+                id="route-insp-ease-select"
+                value={activeWaypoint.ease}
+                onChange={(val) => onUpdate({ ease: val })}
+                options={EASING_OPTIONS}
+                size="sm"
+                title="Chọn kiểu gia tốc chuyển động cho đoạn chuyển này"
+              />
+            </div>
           </div>
 
-          <div className="angle-slider-row">
-            <span className="angle-lbl" title="Góc ngẩng từ dưới lên (-) hoặc nhìn từ trên xuống (+)">
-              Cao/Thấp (Pitch)
-            </span>
-            <input
-              type="range"
-              min="-50"
-              max="50"
-              step="1"
-              value={Math.round(activeWaypoint.pitch)}
-              className="zoom-range"
-              onChange={(e) => onUpdate({ pitch: parseFloat(e.target.value) }, 'wp-pitch')}
+          {/* 2. Động tác Quay Chuyên Nghiệp & Hộp tinh chỉnh Đệm chờ / Tốc độ */}
+          <div className="row-group">
+            <div className="field-header">
+              <label>🎬 Động tác chuyển động sang Mốc #{activeWaypoint.index + 1}</label>
+              <span className="wp-mode-current">{activeWaypoint.tagLabel}</span>
+            </div>
+
+            {/* Bộ lọc phân nhóm kỹ thuật quay chuyên nghiệp */}
+            <div className="cam-action-cat-tabs" role="tablist" aria-label="Nhóm động tác quay chuyên nghiệp">
+              {CAMERA_ACTION_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={actionCategory === cat.id}
+                  className={`cam-action-cat-btn${actionCategory === cat.id ? ' active' : ''}`}
+                  onClick={() => setActionCategory(cat.id)}
+                  title={cat.hint}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="cam-action-mode-grid">
+              {filteredActionModes.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  className={`cam-mode-btn${activeWaypoint.actionMode === m.id ? ' active' : ''}`}
+                  onClick={() => onApplyActionMode(m.id)}
+                  title={`${m.badgeLabel}: ${m.hint}`}
+                >
+                  <span className="mode-ico">{m.icon}</span>
+                  <span className="mode-lbl">{m.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Hộp thanh trượt tinh chỉnh Đệm chờ, Tốc độ (Nhanh ⇄ Chậm) & Tăng tốc riêng */}
+            <CameraActionTuningBox
+              activeWaypoint={{
+                ...activeWaypoint,
+                stepDuration: currentStepDuration
+              }}
+              shotStageX={currentShotBox ? currentShotBox.stageX : 0}
+              shotStageY={currentShotBox ? currentShotBox.stageY : 0}
+              onUpdateStepTiming={(_idx, opts) => onUpdateStepTiming(transitionIndex, opts)}
+              onUpdatePose={onUpdate}
             />
-            <span className="angle-num">
-              {activeWaypoint.pitch > 0 ? '+' : ''}
-              {Math.round(activeWaypoint.pitch)}°
-            </span>
           </div>
 
-          <div className="angle-slider-row">
-            <span className="angle-lbl" title="Xoay nghiêng đường chân trời (Dutch Angle Roll)">
-              Nghiêng (Roll)
-            </span>
-            <input
-              type="range"
-              min="-45"
-              max="45"
-              step="1"
-              value={Math.round(activeWaypoint.roll)}
-              className="zoom-range"
-              onChange={(e) => onUpdate({ roll: parseFloat(e.target.value) }, 'wp-roll')}
-            />
-            <span className="angle-num">
-              {activeWaypoint.roll > 0 ? '+' : ''}
-              {Math.round(activeWaypoint.roll)}°
-            </span>
-          </div>
-        </div>
-      </div>
+          {/* 3. Khung hình đích đến tại Mốc #k (Zoom, Pan, 3D) */}
+          <CameraPoseControls
+            activeWaypoint={activeWaypoint}
+            stageLayout={stageLayout}
+            activeShotLayers={activeShotLayers}
+            currentShotBox={currentShotBox}
+            localOffsetX={localOffsetX}
+            localOffsetY={localOffsetY}
+            has3DAngle={has3DAngle}
+            sectionTitlePrefix="Khung đích"
+            onUpdate={onUpdate}
+            onAlignInShot={onAlignInShot}
+            onTargetShot={onTargetShot}
+            onTargetLayer={onTargetLayer}
+          />
 
-      {/* 5. Nút nối tiếp tạo nhanh mốc kế tiếp từ mốc này */}
-      <div className="route-insp-actions">
-        <button
-          type="button"
-          className="btn xs primary"
-          onClick={() => onSpawnNext('pan')}
-          title="Tạo mốc tiếp theo lia sang vị trí hoặc cảnh kế tiếp"
-        >
-          + Lia tiếp
-        </button>
-        <button
-          type="button"
-          className="btn xs"
-          onClick={onAddHold}
-          title="Tạo mốc dừng ngắm cảnh giữ nguyên vị trí trong 2 giây"
-        >
-          ⏸ Dừng ngắm (2s)
-        </button>
-        <button
-          type="button"
-          className="btn xs"
-          onClick={() => onSpawnNext('zoom-in')}
-          title="Tạo mốc tiếp theo đẩy cận cảnh"
-        >
-          🔍+ Đẩy cận
-        </button>
-        <button
-          type="button"
-          className="btn xs"
-          onClick={() => onSpawnNext('zoom-out')}
-          title="Tạo mốc tiếp theo kéo toàn cảnh"
-        >
-          🔍- Kéo rộng
-        </button>
-      </div>
+          {/* 4. Thao tác tạo nhanh mốc tiếp theo */}
+          <div className="route-insp-actions">
+            <button
+              type="button"
+              className="btn xs primary"
+              onClick={() => onSpawnNext('pan')}
+              title="Tạo mốc tiếp theo lia sang vị trí hoặc cảnh kế tiếp"
+            >
+              + Lia tiếp
+            </button>
+            <button
+              type="button"
+              className="btn xs"
+              onClick={onAddHold}
+              title="Tạo mốc dừng ngắm cảnh giữ nguyên vị trí trong 2 giây"
+            >
+              ⏸ Dừng ngắm (2s)
+            </button>
+            <button
+              type="button"
+              className="btn xs"
+              onClick={() => onSpawnNext('zoom-in')}
+              title="Tạo mốc tiếp theo đẩy cận cảnh"
+            >
+              🔍+ Đẩy cận
+            </button>
+            <button
+              type="button"
+              className="btn xs"
+              onClick={() => onSpawnNext('zoom-out')}
+              title="Tạo mốc tiếp theo kéo toàn cảnh"
+            >
+              🔍- Kéo rộng
+            </button>
+          </div>
+        </>
+      )}
     </div>
   )
 }

@@ -30,9 +30,9 @@ interface ScreenRect {
 
 const BUBBLE_HALF_W = 43
 const BUBBLE_HALF_H = 28
-const MIN_SPACING_X = 88
-const MIN_SPACING_Y = 58
-const HEADER_HEIGHT_PX = 32
+const MIN_SPACING_X = 92
+const MIN_SPACING_Y = 62
+const HEADER_HEIGHT_PX = 36
 
 function rectsOverlap(a: ScreenRect, b: ScreenRect): boolean {
   return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
@@ -65,10 +65,10 @@ function pushOutOfObstacles(
       const br = bubbleRect(x, y)
       if (!rectsOverlap(br, obs)) continue
 
-      const pushUpY = obs.top - BUBBLE_HALF_H - 8
-      const pushDownY = obs.bottom + BUBBLE_HALF_H + 8
-      const pushLeftX = obs.left - BUBBLE_HALF_W - 10
-      const pushRightX = obs.right + BUBBLE_HALF_W + 10
+      const pushUpY = obs.top - BUBBLE_HALF_H - 12
+      const pushDownY = obs.bottom + BUBBLE_HALF_H + 12
+      const pushLeftX = obs.left - BUBBLE_HALF_W - 14
+      const pushRightX = obs.right + BUBBLE_HALF_W + 14
 
       const dyUp = Math.abs(y - pushUpY)
       const dyDown = Math.abs(pushDownY - y)
@@ -118,10 +118,10 @@ export function computeCalloutBubbleNodes(
     const tl = stageToScreen(b.stageX - b.width / 2, b.stageY - b.height / 2)
     const br = stageToScreen(b.stageX + b.width / 2, b.stageY + b.height / 2)
     return {
-      left: Math.min(tl.x, br.x) - 6,
-      top: Math.min(tl.y, br.y) - HEADER_HEIGHT_PX,
-      right: Math.max(tl.x, br.x) + 6,
-      bottom: Math.max(tl.y, br.y) + 6
+      left: Math.min(tl.x, br.x) - 8,
+      top: Math.min(tl.y, br.y) - HEADER_HEIGHT_PX - 12,
+      right: Math.max(tl.x, br.x) + 8,
+      bottom: Math.max(tl.y, br.y) + 8
     }
   })
 
@@ -182,7 +182,7 @@ export function computeCalloutBubbleNodes(
     const dockAbove = hasShotBelow && !hasShotAbove
 
     let maxBottomY = shotBR.y
-    let minTopY = shotTL.y - HEADER_HEIGHT_PX
+    let minTopY = shotTL.y - HEADER_HEIGHT_PX - 12
     for (const { wp } of items) {
       const fBottom = stageToScreen(wp.stageX, wp.stageY + wp.height / 2).y
       const fTop = stageToScreen(wp.stageX, wp.stageY - wp.height / 2).y
@@ -197,8 +197,8 @@ export function computeCalloutBubbleNodes(
       const tl = stageToScreen(wp.stageX - wp.width / 2, wp.stageY - wp.height / 2)
       const row = useTwoRows ? localIdx % 2 : 0
       const bubbleY = dockAbove
-        ? Math.round(minTopY - 38 - row * MIN_SPACING_Y)
-        : Math.round(maxBottomY + 42 + row * MIN_SPACING_Y)
+        ? Math.round(minTopY - 44 - row * MIN_SPACING_Y)
+        : Math.round(maxBottomY + 46 + row * MIN_SPACING_Y)
 
       return {
         idx,

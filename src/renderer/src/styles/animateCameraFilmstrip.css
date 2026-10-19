@@ -316,12 +316,16 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  min-height: 32px;
-  padding: 3px 10px;
+  height: 28px;
+  min-height: 28px;
+  padding: 2px 8px;
   background: var(--bg-2);
   border-top: 1px solid var(--line);
   z-index: 25;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
 }
 
 .anim2d-footer-current {
@@ -394,7 +398,8 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
 }
 
 .footer-modes-label {

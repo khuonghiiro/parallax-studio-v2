@@ -82,20 +82,20 @@
 }
 
 .route-presets-popover {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 4px;
-  width: 235px;
+  position: fixed;
+  width: 240px;
+  max-width: calc(100vw - 20px);
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
   background: var(--bg-2);
   border: 1px solid var(--line-focus);
-  border-radius: 4px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
   padding: 4px;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  z-index: 60000;
+  z-index: 65000;
 }
 
 .route-presets-popover .popover-item {
@@ -918,3 +918,88 @@
   font-size: 9.5px;
   justify-content: center;
 }
+
+/* Starting Frame Info Card for Mốc #1 */
+.wp-start-frame-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--key) 10%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--key) 35%, var(--line));
+  margin-top: 2px;
+}
+
+.start-frame-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--key);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.start-frame-desc {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Transition to next waypoint card */
+.next-wp-transition-card {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 40%, var(--line));
+  margin-top: 6px;
+}
+
+.next-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.next-card-head .next-icon {
+  font-size: 16px;
+}
+
+.next-card-head .next-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.next-card-head .next-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.next-card-head .next-time {
+  font-size: 9.5px;
+  color: var(--accent-cyan);
+  font-family: var(--mono);
+}
+
+.next-wp-create-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--bg-1);
+  border: 1px dashed var(--line);
+  margin-top: 6px;
+}
+
+.create-prompt-head {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
