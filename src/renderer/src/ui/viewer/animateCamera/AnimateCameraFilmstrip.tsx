@@ -81,7 +81,8 @@ export function AnimateCameraVerticalFilmstrip({
           const shotLayers = layersByShot.get(box?.shotId ?? null) ?? []
           const camRelX = box ? wp.stageX - box.stageX : wp.stageX
           const camRelY = box ? wp.stageY - box.stageY : wp.stageY
-          const frameScaleToThumb = THUMB_W / Math.max(8, wp.width)
+          const frameScaleX = THUMB_W / Math.max(1, wp.width)
+          const frameScaleY = THUMB_H / Math.max(1, wp.height)
 
           return (
             <div key={`film-wp-${idx}-${wp.time}`} className="anim2d-film-step-wrap">
@@ -140,10 +141,11 @@ export function AnimateCameraVerticalFilmstrip({
                       }}
                     >
                       {shotLayers.map((layer) => {
-                        const lw = layer.width * frameScaleToThumb
-                        const lh = layer.height * frameScaleToThumb
-                        const lx = THUMB_W / 2 + (layer.offsetX - camRelX) * frameScaleToThumb - lw / 2
-                        const ly = THUMB_H / 2 + (layer.offsetY - camRelY) * frameScaleToThumb - lh / 2
+                        const pFactor = 1483.64 / Math.max(80, 1483.64 + layer.zDepth)
+                        const lw = layer.width * frameScaleX
+                        const lh = layer.height * frameScaleY
+                        const lx = THUMB_W / 2 + (layer.offsetX - camRelX * pFactor) * frameScaleX - lw / 2
+                        const ly = THUMB_H / 2 + (layer.offsetY - camRelY * pFactor) * frameScaleY - lh / 2
 
                         const itemStyle: React.CSSProperties = {
                           position: 'absolute',

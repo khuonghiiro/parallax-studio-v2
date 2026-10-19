@@ -16,6 +16,8 @@ export interface EvaluatedCamera {
   aperture: number
   /** 0 = clear, 1 = black. */
   fade: number
+  /** Reference distance where a 1:1 layer fills the composition frame at default FOV. */
+  refDistance?: number
 }
 
 export interface EvaluatedShot {
@@ -88,7 +90,8 @@ export function evaluateCamera(project: Project, t: number): EvaluatedCamera {
     dof: cam.dofEnabled,
     focusDistance: evaluate(cam.focusDistance, t),
     aperture: evaluate(cam.aperture, t),
-    fade: Math.max(0, Math.min(1, cam.fade ? evaluate(cam.fade, t) : 0))
+    fade: Math.max(0, Math.min(1, cam.fade ? evaluate(cam.fade, t) : 0)),
+    refDistance: referenceDistance(project.comp)
   }
 }
 

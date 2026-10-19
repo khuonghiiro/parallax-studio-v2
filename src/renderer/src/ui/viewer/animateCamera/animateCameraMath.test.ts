@@ -1,4 +1,7 @@
+import * as THREE from 'three'
 import { describe, expect, it } from 'vitest'
+import { evaluateCamera } from '../../../engine/evaluateScene'
+import { applyEvaluatedCamera } from '../../../engine/renderTypes'
 import { createProject, createShot, shotSpacing } from '../../../project/factory'
 import {
   applyStageFrameToDraft,
@@ -106,12 +109,22 @@ describe('animateCameraMath inter-shot transition & route ordering', () => {
     }
   })
 
-  it('supports extreme zoom magnification up to 2000% (scale = 0.05)', () => {
+  it('supports extreme zoom magnification up to 2000% (scale = 0.05) and synchronizes 3D optical FOV with 2D filmstrip', () => {
     const project = makeThreeShotProject()
     const layout = computeShotStageLayout(project, 0)
-    applyStageFrameToDraft(project, layout, 0, layout[0].stageX, layout[0].stageY, 0.05, true)
+    applyStageFrameToDraft(project, layout, 0, layout[2].stageX, layout[2].stageY, 0.05, true)
     const waypoints = enrichCameraWaypoints(extractCameraFrames2D(project, layout))
     expect(waypoints[0].scale).toBeCloseTo(0.05, 2)
     expect(waypoints[0].zoomPct).toBe(2000)
+
+    const evCam = evaluateCamera(project, 0)
+    const cam3d = new THREE.PerspectiveCamera()
+    applyEvaluatedCamera(cam3d, evCam, 16 / 9)
+
+    // Physical camera remains at reference distance (~1483.64) in front of z=0 so multi-depth layers (z=-130..+1650)
+    // are never clipped and all scale uniformly by ~20x via optical FOV narrowing.
+    expect(cam3d.position.z).toBeCloseTo(evCam.refDistance!, 1)
+    const tanRatio = Math.tan((cam3d.fov * Math.PI) / 360) / Math.tan((40 * Math.PI) / 360)
+    expect(tanRatio).toBeCloseTo(waypoints[0].scale, 3)
   })
 })

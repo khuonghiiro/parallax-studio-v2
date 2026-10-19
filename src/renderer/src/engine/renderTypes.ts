@@ -121,9 +121,22 @@ export const TYPE_COLORS: Record<Layer['type'], string> = {
 
 /** Pose a perspective camera from an evaluated camera (depth space → three.js). */
 export function applyEvaluatedCamera(cam: THREE.PerspectiveCamera, ev: EvaluatedCamera, aspect: number): void {
-  cam.fov = ev.fov
+  const refD = Math.max(100, ev.refDistance ?? 1483.6378)
+  const dx = ev.position[0] - ev.target[0]
+  const dy = ev.position[1] - ev.target[1]
+  const dz = ev.position[2] - ev.target[2]
+  const rawDist = Math.hypot(dx, dy, dz)
+  const scale = rawDist > 1e-3 ? rawDist / refD : 1
+  const r = rawDist > 1e-3 ? refD / rawDist : 1
+
+  const halfFovRad = Math.atan(Math.tan((ev.fov * Math.PI) / 360) * scale)
+  cam.fov = Math.max(0.5, Math.min(150, (halfFovRad * 360) / Math.PI))
   cam.aspect = aspect
-  cam.position.set(ev.position[0], ev.position[1], -ev.position[2])
+  cam.position.set(
+    ev.target[0] + dx * r,
+    ev.target[1] + dy * r,
+    -(ev.target[2] + dz * r)
+  )
   cam.up.set(0, 1, 0)
   cam.lookAt(ev.target[0], ev.target[1], -ev.target[2])
   if (ev.roll && Math.abs(ev.roll) > 0.01) {
