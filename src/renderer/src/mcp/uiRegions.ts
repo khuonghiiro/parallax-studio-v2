@@ -71,6 +71,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   inspector_tabs: ['aside.right .tabs'],
   inspector_body: ['aside.right .panel-body'],
   inspector_composite: region('inspector_composite', '.composite-section'),
+  inspector_physics: region('inspector_physics', '.layer-physics-section'),
   composite_swap: region('composite_swap', '.composite-swap-modal'),
   effect_stack: ['.layer-effects-section'],
   effect_editor: ['.effect-editor'],

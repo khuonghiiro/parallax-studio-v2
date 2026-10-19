@@ -1,5 +1,16 @@
 import { listLayerEffects } from '../../animation/motionEffects'
-import type { Animatable, GlowAnimation, GlowSide, Layer, LayerGlow, Project, Vec3 } from '@shared/types'
+import type {
+  Animatable,
+  GlowAnimation,
+  GlowSide,
+  Layer,
+  LayerGlow,
+  LayerPhysicsConfig,
+  LayerPhysicsMaterial,
+  LayerPhysicsRole,
+  Project,
+  Vec3
+} from '@shared/types'
 import type { Draft } from 'immer'
 import { evaluate } from '../../animation/keyframes'
 import { moveLayer, replaceLayerAsset } from '../../actions'
@@ -7,6 +18,7 @@ import { splitSelectedLayer } from '../../ui/timeline/timelineActions'
 import { applyFxPresetToSelectedLayer, deleteLayerEffect, toggleLayerEffect, type FxPresetId } from '../../ui/timeline/timelineEffects'
 import { assetStore } from '../../project/assets'
 import * as factory from '../../project/factory'
+import { createDefaultLayerPhysics, triggerLayerPhysicsInteraction } from '../../engine/layerPhysics'
 import { ParamError, ed, proj, type Handler, type Params } from '../types'
 import { blendOf, bool, has, num, requireLayer, round, scale3, setAnim, shotIdParam, str, toPlain, vec3 } from '../params'
 import { layerSummary } from '../summaries'
@@ -248,6 +260,26 @@ export const layerCommands: Record<string, Handler> = {
           animated: (str(p, 'glow_animated') as GlowAnimation) ?? cur.animated ?? 'none',
           speed: num(p, 'glow_speed') ?? cur.speed ?? 2.0,
           minIntensity: num(p, 'glow_min_intensity') ?? cur.minIntensity ?? 0.15
+        }
+      }
+      if (has(p, 'physics') && typeof p.physics === 'object' && p.physics !== null) {
+        const base = l.physics ?? createDefaultLayerPhysics('wood_tree')
+        l.physics = { ...base, ...(p.physics as Partial<LayerPhysicsConfig>) }
+      }
+      if (has(p, 'physics_enabled') || has(p, 'physics_material') || has(p, 'physics_role')) {
+        const mat = (str(p, 'physics_material') as LayerPhysicsMaterial | undefined) ?? l.physics?.material ?? 'wood_tree'
+        const base = l.physics ?? createDefaultLayerPhysics(mat)
+        l.physics = {
+          ...base,
+          enabled: bool(p, 'physics_enabled') ?? base.enabled ?? true,
+          material: mat,
+          role: (str(p, 'physics_role') as LayerPhysicsRole | undefined) ?? base.role ?? 'auto'
+        }
+      }
+      if (has(p, 'physics_action')) {
+        const act = str(p, 'physics_action') as 'punch_light' | 'punch_heavy' | 'jelly_press' | 'wall_vault' | undefined
+        if (act) {
+          triggerLayerPhysicsInteraction(d as unknown as Project, id, num(p, 'at_time') ?? ed().time, act)
         }
       }
       if (newShot !== undefined && newShot !== l.shotId) {

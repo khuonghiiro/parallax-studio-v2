@@ -191,6 +191,47 @@ export function enrichCameraWaypoints(frames: CameraFrame2D[]): CameraWaypointIt
 }
 
 /**
+ * Đồng bộ thời lượng dự án (`comp.duration`) khớp chính xác 1:1 với mốc kết thúc của lộ trình Camera 2D
+ * (ví dụ: tổng các bước trên Cam 2D là 16.5s thì Timeline hiển thị đúng 16.5s, không cộng dư +1s thành 18s
+ * và không để thừa khoảng trống ở cuối Timeline).
+ */
+export function syncCompDurationToCameraRoute(draft: Project, minDuration?: number): void {
+  const keys = draft.camera.position.keyframes
+  let targetDuration = minDuration ?? draft.comp.duration
+
+  if (keys.length >= 2) {
+    const maxKeyT = Math.max(...keys.map((k) => k.t))
+    targetDuration = Math.max(0.5, Math.round(maxKeyT * 100) / 100)
+    if (minDuration !== undefined && minDuration > targetDuration) {
+      targetDuration = Math.round(minDuration * 100) / 100
+    }
+  } else if (keys.length === 1) {
+    const k0 = keys[0]
+    const dur0 = getWaypointTimingMeta(k0.t, 2.0).stepDuration
+    targetDuration = Math.max(minDuration ?? 0.5, Math.round((k0.t + dur0) * 100) / 100)
+  } else if (minDuration !== undefined) {
+    targetDuration = Math.max(0.5, Math.round(minDuration * 100) / 100)
+  }
+
+  // Bảo toàn nếu có audio track kéo dài hơn lộ trình camera
+  const maxAudioEnd = (draft.audioTracks ?? []).reduce((acc, tr) => {
+    const end = (tr.offset ?? 0) + (tr.duration ?? 0)
+    return end > acc ? end : acc
+  }, 0)
+  const finalDuration = Math.max(targetDuration, Math.round(maxAudioEnd * 100) / 100)
+
+  const oldDuration = draft.comp.duration
+  setCompDuration(draft, finalDuration)
+
+  // Kéo khít các layer nền/cảnh chạy từ đầu (inPoint == 0) bị hụt nhẹ do các lần cộng dư trước đó
+  for (const l of draft.layers) {
+    if (l.inPoint <= 0.05 && l.outPoint >= Math.min(oldDuration, finalDuration) - 2.6) {
+      l.outPoint = draft.comp.duration
+    }
+  }
+}
+
+/**
  * Creates a camera waypoint that pans to the exact center of a target shot.
  */
 export function panCameraToShot(
@@ -207,10 +248,6 @@ export function panCameraToShot(
       : null) ?? layout[0]
   if (!box) return
 
-  if (time > draft.comp.duration) {
-    setCompDuration(draft, Math.ceil(time + 1))
-  }
-
   const existing = extractCameraFrames2D(draft, layout).find((f) => Math.abs(f.time - time) <= 0.05)
   applyStageFrameToDraft(draft, layout, time, box.stageX, box.stageY, scale, true, {
     yaw: existing?.yaw ?? 0,
@@ -219,6 +256,9 @@ export function panCameraToShot(
     ease
   })
   setKeyframeEaseAtTime(draft, time, ease)
+  if (time > draft.comp.duration) {
+    syncCompDurationToCameraRoute(draft, time)
+  }
 }
 
 /**
@@ -242,10 +282,6 @@ export function panCameraToLayer2D(
 
   const targetStageX = Math.round(box.stageX + layerOffsetX)
   const targetStageY = Math.round(box.stageY + layerOffsetY)
-
-  if (time > draft.comp.duration) {
-    setCompDuration(draft, Math.ceil(time + 1))
-  }
 
   const existing = extractCameraFrames2D(draft, layout).find((f) => Math.abs(f.time - time) <= 0.05)
   applyStageFrameToDraft(draft, layout, time, targetStageX, targetStageY, scale, true, {
@@ -278,13 +314,12 @@ export function zoomCameraAtPoint(
   targetScale: number,
   ease: EaseName = 'easeInOut'
 ): void {
-  if (time > draft.comp.duration) {
-    setCompDuration(draft, Math.ceil(time + 1))
-  }
-
   const clampedScale = clampFrameScale(targetScale)
   applyStageFrameToDraft(draft, layout, time, stageX, stageY, clampedScale, true, { ease })
   setKeyframeEaseAtTime(draft, time, ease)
+  if (time > draft.comp.duration) {
+    syncCompDurationToCameraRoute(draft, time)
+  }
 }
 
 function removeKeyframeAtTime<T>(track: Animatable<T> | undefined, time: number, tol: number): void {
@@ -382,12 +417,8 @@ export function updateCameraWaypoint(
   setKeyframeEaseAtTime(draft, newTime, nextEase)
   draft.camera.position.keyframes = draft.camera.position.keyframes.map((k) => ({ ...k }))
 
-  const maxKeyT = Math.max(
-    newTime,
-    ...draft.camera.position.keyframes.map((k) => k.t)
-  )
-  if (maxKeyT > draft.comp.duration) {
-    setCompDuration(draft, Math.ceil(maxKeyT + 1))
+  if (updates.ripple || newTime > draft.comp.duration) {
+    syncCompDurationToCameraRoute(draft)
   }
 }
 
@@ -404,6 +435,7 @@ export function removeCameraWaypoint(draft: Project, time: number): boolean {
   removeKeyframeAtTime(draft.camera.focusDistance, time, tol)
   removeKeyframeAtTime(draft.camera.roll, time, tol)
   removeWaypointMetaAtTime(time)
+  syncCompDurationToCameraRoute(draft)
   return true
 }
 
@@ -416,10 +448,7 @@ export function shiftSubsequentCameraKeyframes(draft: Project, afterTime: number
   shiftSubsequentKeyframes(draft.camera.focusDistance, afterTime, delta, tol)
   shiftSubsequentKeyframes(draft.camera.roll, afterTime, delta, tol)
   shiftExplicitActionModes(afterTime, delta)
-  const maxKeyT = Math.max(0, ...draft.camera.position.keyframes.map((k) => k.t))
-  if (maxKeyT > draft.comp.duration) {
-    setCompDuration(draft, Math.ceil(maxKeyT + 1))
-  }
+  syncCompDurationToCameraRoute(draft)
 }
 
 /**
@@ -437,9 +466,6 @@ export function duplicateCameraWaypoint(
   const shouldBeSub = hasAfter || isSubWaypointAtTime(sourceFrame.time)
   const delta = Math.max(0.1, targetTime - sourceFrame.time)
   shiftSubsequentCameraKeyframes(draft, sourceFrame.time, delta)
-  if (targetTime > draft.comp.duration) {
-    setCompDuration(draft, Math.ceil(targetTime + 1))
-  }
   applyStageFrameToDraft(
     draft,
     layout,
@@ -459,6 +485,7 @@ export function duplicateCameraWaypoint(
   if (shouldBeSub) {
     setSubWaypointAtTime(targetTime, true)
   }
+  syncCompDurationToCameraRoute(draft)
 }
 
 /**
@@ -476,9 +503,6 @@ export function addCameraHoldWaypoint(
   const shouldBeSub = hasAfter || isSubWaypointAtTime(sourceFrame.time)
   const targetTime = Math.round((sourceFrame.time + holdSec) * 100) / 100
   shiftSubsequentCameraKeyframes(draft, sourceFrame.time, holdSec)
-  if (targetTime > draft.comp.duration) {
-    setCompDuration(draft, Math.ceil(targetTime + 1))
-  }
   applyStageFrameToDraft(
     draft,
     layout,
@@ -499,6 +523,7 @@ export function addCameraHoldWaypoint(
   if (shouldBeSub) {
     setSubWaypointAtTime(targetTime, true)
   }
+  syncCompDurationToCameraRoute(draft)
 }
 
 /**
@@ -533,10 +558,6 @@ export function appendShotCameraWaypoint(
       ? 0
       : Math.round(((last?.time ?? 0) + lastDur) * 100) / 100
 
-  if (nextTime > draft.comp.duration) {
-    setCompDuration(draft, Math.ceil(nextTime + 1))
-  }
-
   applyStageFrameToDraft(draft, layout, nextTime, box.stageX, box.stageY, 1.0, true, {
     yaw: 0,
     pitch: 0,
@@ -544,6 +565,7 @@ export function appendShotCameraWaypoint(
     ease: 'easeInOut'
   })
   setKeyframeEaseAtTime(draft, nextTime, 'easeInOut')
+  syncCompDurationToCameraRoute(draft)
   return nextTime
 }
 
@@ -712,9 +734,6 @@ export function spawnNextCameraWaypoint(
     : Math.round((anchor.time + stepDur) * 100) / 100
 
   shiftSubsequentCameraKeyframes(draft, anchor.time, stepDur)
-  if (nextTime > draft.comp.duration) {
-    setCompDuration(draft, Math.ceil(nextTime + 1))
-  }
 
   const nextYaw = isNewShotAppend ? 0 : anchor.yaw
   const nextPitch = isNewShotAppend ? 0 : anchor.pitch
@@ -743,6 +762,7 @@ export function spawnNextCameraWaypoint(
           ? 'hold'
           : 'pan'
   recordExplicitActionMode(nextTime, explicitMode)
+  syncCompDurationToCameraRoute(draft)
 
   const afterWps = enrichCameraWaypoints(extractCameraFrames2D(draft, layout))
   const spawned =
@@ -844,14 +864,7 @@ export function updateWaypointStepDuration(
 
   // Bảo đảm Immer luôn sinh ra tham chiếu project mới để React/Zustand re-render tức thì
   draft.camera.position.keyframes = draft.camera.position.keyframes.map((k) => ({ ...k }))
-
-  const maxEnd = Math.max(
-    cur.time + nextStepDur,
-    ...draft.camera.position.keyframes.map((k) => k.t + 1)
-  )
-  if (maxEnd > draft.comp.duration) {
-    setCompDuration(draft, Math.ceil(maxEnd))
-  }
+  syncCompDurationToCameraRoute(draft)
 
   return cur.time
 }

@@ -53,7 +53,12 @@ export function makeLayerMaterial(): THREE.ShaderMaterial {
 
 export function buildPlaneNode(layer: Layer, scene: THREE.Scene): LayerNode {
   const meshDef = layer.mesh ?? layer.model3d?.mesh
-  const geometry = meshDef ? evaluateMeshGeometry(meshDef, { unitSpace: true }) : UNIT_PLANE
+  const hasPhysics = Boolean(layer.physics?.enabled && layer.physics.material !== 'none')
+  const geometry = meshDef
+    ? evaluateMeshGeometry(meshDef, { unitSpace: true })
+    : hasPhysics
+      ? new THREE.PlaneGeometry(1, 1, 12, 12)
+      : UNIT_PLANE
   const mesh = new THREE.Mesh(geometry, makeLayerMaterial())
   mesh.frustumCulled = false
   mesh.matrixAutoUpdate = false

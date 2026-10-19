@@ -225,6 +225,67 @@ export interface LayerCompositeRef {
   partGroupId?: string
 }
 
+export type LayerPhysicsMaterial =
+  | 'none'
+  | 'wood_tree'
+  | 'foliage_bush'
+  | 'jelly_slime'
+  | 'stone_wall'
+  | 'metal_armor'
+  | 'cloth_rope'
+  | 'flesh_body'
+
+export type LayerPhysicsRole = 'auto' | 'prop_target' | 'striker' | 'vault_jumper' | 'both'
+
+export type LayerPhysicsColliderZone =
+  | 'full'
+  | 'fist_hand'
+  | 'foot_bottom'
+  | 'top_surface'
+  | 'trunk_center'
+
+export interface PhysicsImpactPulse {
+  id: string
+  /** Thời điểm xảy ra va chạm / tác động (giây) */
+  time: number
+  /** Loại tác động: 'punch' (đấm/đá), 'vault' (chống tay nhảy qua), 'press' (nhấn lún như thạch), 'land' (tiếp đất) */
+  type: 'punch' | 'vault' | 'press' | 'land'
+  /** Vận tốc tác động [vx, vy, vz] (px/giây: độ lớn càng cao rung/lún càng mạnh) */
+  velocity: Vec3
+  /** Tọa độ điểm chạm chuẩn hóa trên mesh [u, v] trong khoảng [0..1] (u: trái->phải, v: gốc->đỉnh) */
+  contactUV?: [number, number]
+  /** ID layer gây ra tác động (nếu có) */
+  sourceLayerId?: string
+  /** Thời lượng hiệu lực / hồi phục (giây, mặc định 1.2s) */
+  duration?: number
+}
+
+export interface LayerPhysicsConfig {
+  enabled: boolean
+  /** Chất liệu vật lý của layer quyết định phản ứng của mesh khi va chạm */
+  material: LayerPhysicsMaterial
+  /** Vai trò tương tác: vật thể môi trường nhận lực, tác nhân đấm/đá, nhân vật nhảy vượt tường, hoặc cả hai */
+  role?: LayerPhysicsRole
+  /** Vùng mesh dùng để xét va chạm (ví dụ cạnh nắm đấm, mũi chân, mặt trên bờ tường/thạch, thân cây) */
+  colliderZone?: LayerPhysicsColliderZone
+  /** Khối lượng tương đối (0.1 .. 50, mặc định theo chất liệu) */
+  mass?: number
+  /** Hệ số trọng lực (0 = gắn cố định, 1 = trọng lực chuẩn cho nhảy/rơi parabol) */
+  gravityScale?: number
+  /** Cao độ mặt đất/sàn cục bộ (Y) để chặn rơi và tạo nảy khi tiếp đất */
+  groundY?: number
+  /** Độ cứng lò xo đàn hồi của chất liệu (0.1 .. 2.5) */
+  stiffness?: number
+  /** Hệ số giảm chấn tắt dần (0.05 .. 1.0: càng nhỏ rung/nảy càng lâu như thạch) */
+  damping?: number
+  /** Độ nảy đàn hồi / Jiggle biên độ (0.1 .. 2.5) */
+  bounciness?: number
+  /** Độ nhạy nhận lực theo vận tốc va chạm (0.2 .. 3.0, mặc định 1.0) */
+  hitSensitivity?: number
+  /** Các xung lực combat / tương tác vật lý được kích hoạt hoặc ghi nhận trên layer */
+  impacts?: PhysicsImpactPulse[]
+}
+
 interface LayerBase<T extends LayerType, P> {
   id: string
   name: string
@@ -260,6 +321,8 @@ interface LayerBase<T extends LayerType, P> {
   glow?: LayerGlow
   /** List of individual fx presets applied to this layer with distinct icons and parameters. */
   appliedEffects?: AppliedLayerEffect[]
+  /** Cấu hình giả lập vật lý chất liệu, trọng lực và tương tác va chạm mesh 2.5D */
+  physics?: LayerPhysicsConfig
   props: P
 }
 

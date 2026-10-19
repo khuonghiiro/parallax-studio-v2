@@ -668,6 +668,34 @@ describe('animateCameraRouteLogic — Camera 2D Route Management & Parameter Tun
     expect(wps[idx5].actionDurationSec).toBeCloseTo(initialActionDur, 2)
     expect(wps[idx5].stepDuration).toBeCloseTo(0.5 + initialActionDur, 2)
   })
+
+  it('syncs comp.duration to the exact last camera waypoint time (e.g. 16.5s instead of 18.0s) without trailing gap', () => {
+    const p = createProject({ width: 1920, height: 1080, duration: 10 })
+    const s1 = createShot('Cảnh 1', [0, 0, 0], 0)
+    const s2 = createShot('Cảnh 2', [6000, 0, 0], 1)
+    p.shots.push(s1, s2)
+    const layout = computeShotStageLayout(p, 0)
+
+    applyStageFrameToDraft(p, layout, 0, layout[0].stageX, layout[0].stageY, 1.0, true)
+    applyStageFrameToDraft(p, layout, 3.0, layout[0].stageX + 120, layout[0].stageY, 0.85, true)
+    applyStageFrameToDraft(p, layout, 5.5, layout[0].stageX - 100, layout[0].stageY, 0.7, true)
+    applyStageFrameToDraft(p, layout, 8.0, layout[1].stageX, layout[1].stageY, 1.0, true)
+    applyStageFrameToDraft(p, layout, 14.0, layout[1].stageX + 180, layout[1].stageY, 0.75, true)
+    // Spawn #6 at 16.5s (14.0s + 2.5s)
+    spawnNextCameraWaypoint(p, layout, {
+      mode: 'pan',
+      activeTime: 14.0,
+      selectedShotId: s2.id,
+      fromWaypointTime: 14.0,
+      stepSec: 2.5
+    })
+
+    const wps = enrichCameraWaypoints(extractCameraFrames2D(p, layout))
+    expect(wps[wps.length - 1].time).toBeCloseTo(16.5, 2)
+    // comp.duration must be 16.5s (exact route total), NOT Math.ceil(16.5 + 1) = 18.0s
+    expect(p.comp.duration).toBeCloseTo(16.5, 2)
+  })
 })
+
 
 

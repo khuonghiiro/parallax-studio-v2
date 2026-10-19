@@ -13,6 +13,7 @@ import { LayerEffectsSection } from './sections/LayerEffectsSection'
 import { ParticleSection } from './sections/ParticleSection'
 import { Model3DSection } from './sections/Model3DSection'
 import { LayerCompositeSection } from './sections/LayerCompositeSection'
+import { LayerPhysicsSection } from './sections/LayerPhysicsSection'
 
 export function LayerInspector({ layer }: { layer: Layer }) {
   const set = useLayerUpdater(layer.id)
@@ -232,6 +233,8 @@ export function LayerInspector({ layer }: { layer: Layer }) {
 
       {layer.composite && <LayerCompositeSection layer={layer} />}
       {layer.model3d && <Model3DSection layer={layer} />}
+
+      {layer.type !== 'particles' && <LayerPhysicsSection layer={layer} set={set} />}
 
       <LayerEffectsSection layer={layer} set={set} />
 

@@ -5,6 +5,7 @@ import { evaluate } from '../animation/keyframes'
 import { autoScaleFactor, referenceDistance, smoothNoise } from '../animation/math'
 import { composeDepthMatrix, depthToThree, layerNominalSize, threeToDepth, transformedBox } from './spatial'
 import { evaluateCharacterLipSync } from '../project/lipSync'
+import { evaluateLayerPhysicsTransform } from './layerPhysics'
 
 export interface EvaluatedCamera {
   position: Vec3
@@ -180,7 +181,8 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
     const rot = [...evaluate(tr.rotation, t)] as Vec3
     const sc = [...evaluate(tr.scale, t)] as Vec3
 
-    const motion = sampleMotionEffects(layer, t, layerNominalSize(layer))
+    const size = layerNominalSize(layer)
+    const motion = sampleMotionEffects(layer, t, size)
     const uvOffset = motion.uvOffset
     for (let axis = 0; axis < 3; axis++) {
       pos[axis] += motion.position[axis]
@@ -196,10 +198,23 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
       pos[1] += lipSync.offsetY
     }
 
+    // Đánh giá Vật lý 2.5D, Trọng lực & Va chạm chất liệu (Tree Shake, Jelly Squash, Wall Vault...)
+    if (layer.physics?.enabled && layer.physics.material !== 'none') {
+      const phys = evaluateLayerPhysicsTransform(project, layer, t, size)
+      pos[0] += phys.positionDelta[0]
+      pos[1] += phys.positionDelta[1]
+      pos[2] += phys.positionDelta[2]
+      rot[0] += phys.rotationDelta[0]
+      rot[1] += phys.rotationDelta[1]
+      rot[2] += phys.rotationDelta[2]
+      sc[0] *= phys.scaleMultiplier[0]
+      sc[1] *= phys.scaleMultiplier[1]
+      sc[2] *= phys.scaleMultiplier[2]
+    }
+
     const k = layer.autoScale ? autoScaleFactor(pos[2], comp) : 1
     const scale: Vec3 = [sc[0] * k, sc[1] * k, sc[2]]
     const shot = layer.shotId ? (shotById.get(layer.shotId) ?? null) : null
-    const size = layerNominalSize(layer)
     const anchorVal = tr.anchor ? evaluate(tr.anchor, t) : [0, 0, 0]
     const anchor: Vec3 = [anchorVal[0] ?? 0, anchorVal[1] ?? 0, anchorVal[2] ?? 0]
 

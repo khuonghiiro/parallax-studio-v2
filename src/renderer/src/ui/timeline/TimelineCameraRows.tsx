@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react'
+import React, { memo, useEffect, useMemo } from 'react'
 import type { Animatable, AnimValue, Project, Shot } from '@shared/types'
 import { snapToFrame } from '../../animation/math'
 import { frameTolerance, useEditor, type PropRef } from '../../store/editor'
@@ -9,7 +9,8 @@ import {
 } from '../viewer/animateCamera/animateCameraMath'
 import {
   enrichCameraWaypoints,
-  findActiveWaypointIndexAtTime
+  findActiveWaypointIndexAtTime,
+  syncCompDurationToCameraRoute
 } from '../viewer/animateCamera/animateCameraRouteLogic'
 import { TimelineRow } from './TimelineRow'
 import { CAMERA_PROPS, shotSegments } from './timelineTypes'
@@ -52,6 +53,25 @@ export const TimelineCameraRows = memo(function TimelineCameraRows({
     [project]
   )
 
+  const lastWpTime = waypoints.length >= 2 ? waypoints[waypoints.length - 1].time : null
+
+  // Tự động đồng bộ nếu dự án đang có comp.duration lệch/thừa khoảng trống so với mốc cuối của lộ trình Camera 2D
+  useEffect(() => {
+    if (lastWpTime === null || lastWpTime < 0.5) return
+    const diff = project.comp.duration - lastWpTime
+    if (diff > 0.05 && diff <= 3.0) {
+      const maxAudioEnd = (project.audioTracks ?? []).reduce((acc, tr) => {
+        const end = (tr.offset ?? 0) + (tr.duration ?? 0)
+        return end > acc ? end : acc
+      }, 0)
+      if (maxAudioEnd <= lastWpTime + 0.05) {
+        useEditor.getState().update((d) => {
+          syncCompDurationToCameraRoute(d)
+        }, 'sync-cam-route-duration')
+      }
+    }
+  }, [lastWpTime, project.comp.duration, project.audioTracks])
+
   return (
     <>
       {/* 1. Adobe Animate / After Effects Camera Waypoint & Motion Tween Track */}
@@ -81,8 +101,11 @@ export const TimelineCameraRows = memo(function TimelineCameraRows({
               <IconCamera width={11} height={11} strokeWidth={2.2} />
             </span>
             <span className="label">Camera · Lộ trình</span>
-            <span className="tl-cam-wp-count" title="Tổng số mốc lộ trình Camera">
-              {waypoints.length} mốc
+            <span
+              className="tl-cam-wp-count"
+              title={`Tổng số mốc lộ trình Camera · Tổng thời gian: ${(lastWpTime ?? project.comp.duration).toFixed(1)}s`}
+            >
+              {waypoints.length} mốc · {(lastWpTime ?? project.comp.duration).toFixed(1)}s
             </span>
             <button
               type="button"
@@ -99,16 +122,23 @@ export const TimelineCameraRows = memo(function TimelineCameraRows({
         }
         track={
           <div className="tl-cam-track-strip">
-            {/* Tween Spans showing each Camera Waypoint's [time, endTime] duration */}
+            {/* Tween Spans chỉ vẽ cho các đoạn chuyển thực tế giữa 2 mốc [wp.time ➔ next.time], tuyệt đối không vẽ thừa sau mốc cuối */}
             {waypoints.map((wp, idx) => {
               const next = waypoints[idx + 1]
+              if (!next && waypoints.length > 1) return null
+              const endT = next ? next.time : Math.min(project.comp.duration, wp.endTime)
+              const segDur = next
+                ? Math.max(0.1, Math.round((next.time - wp.time) * 100) / 100)
+                : wp.stepDuration
+              const targetLabel = next ? next.displayLabel : wp.displayLabel
               const x0 = x(wp.time)
-              const x1 = x(wp.endTime)
+              const x1 = x(endT)
               const spanW = Math.max(2, x1 - x0)
               const isHold = (next?.actionMode ?? wp.actionMode) === 'hold' || wp.ease === 'hold'
               const isCut = (next?.actionMode ?? wp.actionMode) === 'cut'
+              const shotIdForColor = next?.shotId ?? wp.shotId
               const shotColor =
-                (wp.shotId ? shotById.get(wp.shotId)?.color : undefined) ?? 'var(--accent-cyan)'
+                (shotIdForColor ? shotById.get(shotIdForColor)?.color : undefined) ?? 'var(--accent-cyan)'
               return (
                 <div
                   key={`cam-span-${idx}`}
@@ -118,20 +148,30 @@ export const TimelineCameraRows = memo(function TimelineCameraRows({
                     width: spanW,
                     ['--cam-span-color' as string]: shotColor
                   }}
-                  title={`Mốc #${idx + 1} (${wp.time.toFixed(2)}s ➔ ${wp.endTime.toFixed(2)}s · ${wp.stepDuration.toFixed(1)}s): ${wp.tagLabel}`}
+                  title={
+                    next
+                      ? `Chuyển từ #${wp.displayLabel} ➔ #${next.displayLabel} (${wp.time.toFixed(2)}s ➔ ${next.time.toFixed(2)}s · ${segDur.toFixed(1)}s): ${next.tagLabel}`
+                      : `Mốc #${wp.displayLabel} (${wp.time.toFixed(2)}s ➔ ${endT.toFixed(2)}s · ${segDur.toFixed(1)}s): ${wp.tagLabel}`
+                  }
                 >
                   {spanW > 52 && (
                     <span className="tl-cam-tween-label">
-                      {isHold ? `⏸ #${idx + 1} (${wp.stepDuration.toFixed(1)}s)` : isCut ? `⚡ #${idx + 1}` : `#${idx + 1} · ${wp.stepDuration.toFixed(1)}s`}
+                      {isHold
+                        ? `⏸ #${targetLabel} (${segDur.toFixed(1)}s)`
+                        : isCut
+                          ? `⚡ #${targetLabel}`
+                          : `#${targetLabel} · ${segDur.toFixed(1)}s`}
                     </span>
                   )}
                 </div>
               )
             })}
 
-            {/* Numbered Camera Waypoint Nodes (#1, #2, #3...) */}
+            {/* Numbered Camera Waypoint Nodes (#1, #2, #5.1...) */}
             {waypoints.map((wp, idx) => {
               const isAtPlayhead = idx === activeWpIdx
+              const prev = idx > 0 ? waypoints[idx - 1] : null
+              const dispDur = prev ? prev.stepDuration : wp.stepDuration
               const shotColor =
                 (wp.shotId ? shotById.get(wp.shotId)?.color : undefined) ?? '#38bdf8'
               return (
@@ -142,11 +182,11 @@ export const TimelineCameraRows = memo(function TimelineCameraRows({
                     left: x(wp.time),
                     ['--wp-color' as string]: shotColor
                   }}
-                  title={`${wp.isFirstOfShot ? `⚑ MỐC MỞ ĐẦU CẢNH: ${wp.shotName}\n` : ''}Mốc Camera #${idx + 1} @ ${wp.time.toFixed(2)}s · ${wp.shotName} · ${wp.tagLabel}\n💡 Click để chọn & mở Lộ trình, kéo ngang để dời thời gian mốc`}
+                  title={`${wp.isFirstOfShot ? `⚑ MỐC MỞ ĐẦU CẢNH: ${wp.shotName}\n` : ''}Mốc Camera #${wp.displayLabel} @ ${wp.time.toFixed(2)}s (${prev ? `Chuyển ${dispDur.toFixed(1)}s` : 'Mốc gốc 0.0s'}) · ${wp.shotName} · ${wp.tagLabel}\n💡 Click để chọn & mở Lộ trình, kéo ngang để dời thời gian mốc`}
                   onPointerDown={(e) => onStartCameraWaypointDrag(e, wp.time, wp.shotId)}
                 >
                   {wp.isFirstOfShot && <span className="tl-cam-wp-flag">⚑</span>}
-                  <span className="tl-cam-wp-num">#{idx + 1}</span>
+                  <span className="tl-cam-wp-num">#{wp.displayLabel}</span>
                 </div>
               )
             })}

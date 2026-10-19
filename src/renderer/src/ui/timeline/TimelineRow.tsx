@@ -51,9 +51,11 @@ export function TimelineRow({
         style={{
           width: trackWidth,
           minWidth: trackWidth,
+          maxWidth: trackWidth,
           flex: trackWidth ? 'none' : 1,
           position: 'relative',
-          height: '100%'
+          height: '100%',
+          overflow: 'hidden'
         }}
         onPointerDown={onTrackPointerDown}
         onContextMenu={onTrackContextMenu}

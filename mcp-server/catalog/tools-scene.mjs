@@ -73,7 +73,7 @@ export const SCENE_TOOLS = [
         'active',
         'left_panel', 'assets', 'asset_grid', 'asset_bar', 'music', 'shots', 'topview',
         'viewer', 'viewer_canvas', 'viewport', 'camera_frame', 'viewer_hud', 'viewer_tools', 'animate_camera_stage', 'animate_camera_toolbar', 'animate_camera_route', 'animate_camera_inspector',
-        'inspector', 'inspector_tabs', 'inspector_body', 'inspector_composite', 'composite_swap', 'effect_stack', 'effect_editor', 'timeline_effects', 'fx_presets', 'motion', 'motion_preview', 'motion_parameters', 'motion_timing',
+        'inspector', 'inspector_tabs', 'inspector_body', 'inspector_composite', 'inspector_physics', 'composite_swap', 'effect_stack', 'effect_editor', 'timeline_effects', 'fx_presets', 'motion', 'motion_preview', 'motion_parameters', 'motion_timing',
         'timeline', 'timeline_toolbar', 'timeline_ruler', 'timeline_tracks',
         'toolbar', 'studio_menu', 'mcp_chip', 'responsive_dock',
         'dialog',

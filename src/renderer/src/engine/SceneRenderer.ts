@@ -1,4 +1,4 @@
-import { updateSkinGeometry } from './imageMesh/updateSkinGeometry'
+import { updatePhysicsPlaneGeometry, updateSkinGeometry } from './imageMesh/updateSkinGeometry'
 import * as THREE from 'three'
 import type { LookSettings, Project } from '@shared/types'
 import { assetStore } from '../project/assets'
@@ -244,7 +244,17 @@ export class SceneRenderer {
       let node = this.nodes.get(layer.id)
       const meshDef = layer.mesh ?? layer.model3d?.mesh
       const meshKey = this.getMeshKey(meshDef)
-      const rebuild = !node || node.type !== layer.type || (layer.type === 'particles' && node.builtFrom !== layer.props) || (meshKey !== null && node.builtFrom !== meshKey)
+      const needsPhysicsSubdiv =
+        !meshDef &&
+        layer.type !== 'particles' &&
+        Boolean(layer.physics?.enabled && layer.physics.material !== 'none') &&
+        node?.object.geometry === UNIT_PLANE
+      const rebuild =
+        !node ||
+        node.type !== layer.type ||
+        (layer.type === 'particles' && node.builtFrom !== layer.props) ||
+        (meshKey !== null && node.builtFrom !== meshKey) ||
+        needsPhysicsSubdiv
       if (rebuild) {
         if (node) disposeNode(node, this.scene, (k) => this.pool.dropTexture(k))
         node = layer.type === 'particles' ? buildParticles(layer as any, this.scene) : buildPlaneNode(layer, this.scene)
@@ -306,6 +316,7 @@ export class SceneRenderer {
    * uniforms. `lodCam` is the camera used for LOD (active camera unless editor view).
    */
   private layoutLayers(
+    project: Project,
     ev: EvaluatedScene,
     look: LookSettings,
     cam: THREE.Camera,
@@ -337,7 +348,11 @@ export class SceneRenderer {
         obj.visible = false
         continue
       }
-      if (node.meshDef?.skin) updateSkinGeometry(obj.geometry, node.meshDef, ev.t)
+      if (node.meshDef?.skin) {
+        updateSkinGeometry(obj.geometry, node.meshDef, ev.t, el.layer, project)
+      } else if (!node.meshDef && obj.geometry !== UNIT_PLANE && node.type !== 'particles') {
+        updatePhysicsPlaneGeometry(obj.geometry, el.layer, project, ev.t)
+      }
 
       const mat = obj.material as THREE.ShaderMaterial
       const u = mat.uniforms
@@ -470,7 +485,7 @@ export class SceneRenderer {
     const { comp, look } = project
 
     applyEvaluatedCamera(this.camera, ev.camera, comp.width / comp.height)
-    this.layoutLayers(ev, look, this.camera, vp.h, { editor: false })
+    this.layoutLayers(project, ev, look, this.camera, vp.h, { editor: false })
     this.updateOutline(opts.selectedId)
 
     const r = this.renderer
@@ -505,7 +520,7 @@ export class SceneRenderer {
     const ev = evaluateScene(project, t)
     this.lastScene = ev
     applyEvaluatedCamera(this.camera, ev.camera, project.comp.width / project.comp.height)
-    this.layoutLayers(ev, project.look, cam, vp.h, { editor: true, cullCam: opts.cameraOnly ? this.camera : undefined })
+    this.layoutLayers(project, ev, project.look, cam, vp.h, { editor: true, cullCam: opts.cameraOnly ? this.camera : undefined })
     this.updateOutline(opts.selectedId)
 
     this.helpers ??= new EditorHelpers()
@@ -560,7 +575,7 @@ export class SceneRenderer {
     const ev = evaluateScene(project, t)
     this.lastScene = ev
     applyEvaluatedCamera(this.camera, ev.camera, project.comp.width / project.comp.height)
-    this.layoutLayers(ev, project.look, cam ?? this.camera, viewportH, { editor: !!cam })
+    this.layoutLayers(project, ev, project.look, cam ?? this.camera, viewportH, { editor: !!cam })
   }
 
   /** Request textures for layers the camera will see shortly (does not wait). */
