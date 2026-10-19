@@ -12,10 +12,12 @@ import {
 } from './animateCameraEdgePaths'
 import {
   alignWaypointInShot,
+  appendShotCameraWaypoint,
   applyCameraRoutePreset,
   applyWaypointActionMode,
   duplicateCameraWaypoint,
   enrichCameraWaypoints,
+  ensureShotWaypointTime,
   panCameraToLayer2D,
   panCameraToShot,
   removeCameraWaypoint,
@@ -329,6 +331,36 @@ describe('animateCameraRouteLogic — Camera 2D Route Management & Parameter Tun
     expect(attachRight.flowMode).toBe('horizontal')
     expect(attachRight.startX).toBeLessThan(450)
   })
-})
 
+  it('spawns and targets a new waypoint on a newly created shot instead of modifying an old shot active circle', () => {
+    const p = createProject({ width: 1920, height: 1080, duration: 8 })
+    const s1 = createShot('Cảnh 1', [0, 0, 0], 0)
+    const s2 = createShot('Cảnh 2', [10560, 0, 0], 1)
+    const s3 = createShot('Cảnh 3', [21120, 0, 0], 2)
+    p.shots.push(s1, s2, s3)
+    const layout = computeShotStageLayout(p, 0)
+
+    applyStageFrameToDraft(p, layout, 0, layout[0].stageX, layout[0].stageY, 1.0, true)
+    applyStageFrameToDraft(p, layout, 3.0, layout[1].stageX, layout[1].stageY, 1.0, true)
+
+    // User creates/activates Cảnh 3 while playhead is at 3.0s (Cảnh 2)
+    const tNew = ensureShotWaypointTime(p, layout, s3.id, 3.0, true)
+    expect(tNew).toBeGreaterThan(3.0)
+
+    const frames = extractCameraFrames2D(p, layout)
+    expect(frames).toHaveLength(3)
+    // Old waypoint on Cảnh 2 at 3.0s must remain untouched on Cảnh 2
+    expect(frames[1].shotId).toBe(s2.id)
+    // New waypoint at tNew must belong to Cảnh 3
+    expect(frames[2].shotId).toBe(s3.id)
+    expect(frames[2].time).toBeCloseTo(tNew, 2)
+
+    // Calling appendShotCameraWaypoint on a 4th shot appends after the last waypoint
+    const s4 = createShot('Cảnh 4', [31680, 0, 0], 3)
+    p.shots.push(s4)
+    const layout4 = computeShotStageLayout(p, 0)
+    const t4 = appendShotCameraWaypoint(p, layout4, s4.id, 2.0)
+    expect(t4).toBeCloseTo(tNew + 2.0, 2)
+  })
+})
 

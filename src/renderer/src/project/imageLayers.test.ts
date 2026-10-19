@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AssetMeta } from '@shared/types'
-import { createProject, createImageLayer } from './factory'
+import { createProject, createImageLayer, createShot, resolveNewLayerPlacement } from './factory'
 import { evaluateScene } from '../engine/evaluateScene'
 import { autoScaleFactor, referenceDistance } from '../animation/math'
 
@@ -86,4 +86,40 @@ describe('Image Layer Creation and Sliced Layers Alignment', () => {
       expect(projectedHeight).toBeCloseTo(asset.height!, 2)
     }
   })
+
+  it('reuses depth Z, Y and scale when adding an existing shot asset to a newly created shot so 3D size matches', () => {
+    const project = createProject({ width: 1920, height: 1080 })
+    const s1 = createShot('Cảnh 1', [0, 0, 0], 0)
+    const s2 = createShot('Cảnh 2', [10560, 0, 0], 1)
+    project.shots.push(s1, s2)
+
+    const mountainAsset: AssetMeta = {
+      id: 'mountain_bg',
+      name: 'Dãy núi sương mù xa xăm (Viễn cảnh)',
+      kind: 'image',
+      mime: 'image/png',
+      width: 1920,
+      height: 1080,
+      assetPath: 'backgrounds/mountain-mist.png'
+    }
+    project.assets.push(mountainAsset)
+
+    const s1Layer = createImageLayer(mountainAsset, project.comp, 3200, s1.id)
+    s1Layer.transform.position.value = [0, 20, 3200]
+    s1Layer.transform.scale.value = [1.06, 1.06, 1]
+    project.layers.push(s1Layer)
+
+    const placement = resolveNewLayerPlacement(project, s2.id, mountainAsset)
+    expect(placement.z).toBe(3200)
+    expect(placement.y).toBe(20)
+    expect(placement.scale).toBe(1.06)
+
+    const ev = evaluateScene(project, 0)
+    const size1 = ev.shots[0].bounds.getSize(ev.shots[0].bounds.min.clone())
+    const size2 = ev.shots[1].bounds.getSize(ev.shots[1].bounds.min.clone())
+    expect(size2.x).toBeCloseTo(size1.x, 1)
+    expect(size2.y).toBeCloseTo(size1.y, 1)
+    expect(size2.z).toBeCloseTo(size1.z, 1)
+  })
 })
+

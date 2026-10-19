@@ -130,14 +130,14 @@ export function ViewerOverlays({
             top: rects.ed!.y + rects.ed!.h - 30,
             maxWidth: Math.max(120, rects.ed!.w - 16)
           }}
-          title={`Không gian 3D (${kindLabel})\n• Chuột trái: Xoay tự do (Orbit)\n• Shift + Chuột trái / Chuột phải: Di chuyển mặt phẳng (Pan)\n• Cuộn chuột: Phóng to / Thu nhỏ (Zoom)\n• Phím F: Tiêu điểm (Focus vào layer hoặc cảnh đang chọn)\n• Nhấp đúp chuột vào cảnh: Bay camera tới cảnh đó`}
+          title={`Không gian 3D (${kindLabel})\n• Giữ chuột trái: Di chuyển mặt phẳng (Pan)\n• Giữ con lăn chuột (hoặc Alt + Chuột trái): Xoay 360° (Orbit)\n• Cuộn chuột: Phóng to / Thu nhỏ (Zoom)\n• Phím F: Tiêu điểm (Focus vào layer hoặc cảnh đang chọn)\n• Nhấp đúp chuột vào cảnh: Bay camera tới cảnh đó`}
         >
           <span className="pane-tag-badge">
             <IconCube /> 3D · {kindLabel}
           </span>
           {!isAnimateSplit && (
             <span className="pane-hint">
-              Kéo: xoay · Shift: pan · Lăn: zoom · F: focus
+              Chuột trái: di chuyển · Giữ con lăn: xoay 360° · Lăn: zoom · F: focus
             </span>
           )}
         </span>

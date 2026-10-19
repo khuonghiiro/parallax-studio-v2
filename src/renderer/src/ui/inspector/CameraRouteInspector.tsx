@@ -25,11 +25,13 @@ import {
 import {
   addCameraHoldWaypoint,
   alignWaypointInShot,
+  appendShotCameraWaypoint,
   applyCameraRoutePreset,
   applyWaypointActionMode,
   CAMERA_ACTION_MODES,
   duplicateCameraWaypoint,
   enrichCameraWaypoints,
+  ensureShotWaypointTime,
   panCameraToLayer2D,
   panCameraToShot,
   removeCameraWaypoint,
@@ -45,6 +47,8 @@ import { CameraWaypointDetailPanel } from './CameraWaypointDetailPanel'
 export function CameraRouteInspector() {
   const project = useEditor((s) => s.project)
   const time = useEditor((s) => s.time)
+  const playing = useEditor((s) => s.playing)
+  const selectedShotId = useEditor((s) => s.selectedShotId)
   const setTime = useEditor((s) => s.setTime)
   const update = useEditor((s) => s.update)
   const setPlaying = useEditor((s) => s.setPlaying)
@@ -54,8 +58,12 @@ export function CameraRouteInspector() {
   const [showPresetsMenu, setShowPresetsMenu] = useState(false)
   const stackRef = useRef<HTMLDivElement>(null)
 
-  const stageLayout = useMemo(() => computeShotStageLayout(project, time), [project, time])
-  const ev = useMemo(() => evaluateScene(project, time), [project, time])
+  const hasAnimatedShots = useMemo(
+    () => project.shots.some((s) => s.position.keyframes.length > 0),
+    [project.shots]
+  )
+  const layoutTime = hasAnimatedShots ? time : 0
+  const stageLayout = useMemo(() => computeShotStageLayout(project, layoutTime), [project, layoutTime])
   const frames = useMemo(() => extractCameraFrames2D(project, stageLayout), [project, stageLayout])
   const waypoints = useMemo(() => enrichCameraWaypoints(frames), [frames])
 
@@ -77,6 +85,39 @@ export function CameraRouteInspector() {
 
   const activeWaypoint: CameraWaypointItem | undefined = waypoints[activeFrameIndex] ?? waypoints[0]
 
+  const stageSampleTime = playing ? (activeWaypoint?.time ?? 0) : time
+  const ev = useMemo(() => evaluateScene(project, stageSampleTime), [project, stageSampleTime])
+
+  const lastSyncedShotRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (playing || !selectedShotId) {
+      lastSyncedShotRef.current = selectedShotId
+      return
+    }
+    if (lastSyncedShotRef.current === selectedShotId) return
+    lastSyncedShotRef.current = selectedShotId
+
+    const box = stageLayout.find((b) => b.shotId === selectedShotId)
+    if (!box) return
+
+    const shotWps = waypoints.filter((w) => w.shotId === selectedShotId)
+    if (shotWps.length > 0) {
+      if (activeWaypoint?.shotId !== selectedShotId) {
+        setTime(shotWps[0].time)
+      }
+      return
+    }
+
+    let spawnedTime: number | null = null
+    update((d) => {
+      spawnedTime = appendShotCameraWaypoint(d, stageLayout, selectedShotId, 2.0)
+    })
+    if (spawnedTime !== null) {
+      setTime(spawnedTime)
+      toast(`🎥 Đã tạo mốc lộ trình mới cho "${box.name}" tại ${(spawnedTime as number).toFixed(1)}s`)
+    }
+  }, [selectedShotId, playing, stageLayout, waypoints, activeWaypoint?.shotId, setTime, update])
+
   // Tự động cuộn danh sách mốc để mốc đang chọn (từ bóng tròn 2D hoặc kẻ phim) luôn nổi bật trong tầm mắt
   useEffect(() => {
     const container = stackRef.current
@@ -94,6 +135,7 @@ export function CameraRouteInspector() {
       const targetShot =
         wp.shotId ?? findNearestShotByStage2D(stageLayout, wp.stageX, wp.stageY)?.shotId ?? null
       if (targetShot) {
+        lastSyncedShotRef.current = targetShot
         selectShot(targetShot)
       }
     },
@@ -110,12 +152,17 @@ export function CameraRouteInspector() {
   }, [stageLayout, project, ev])
 
   const activeShotLayers = useMemo(() => {
-    if (!activeWaypoint?.shotId) return layersByShot.get(null) ?? []
-    return layersByShot.get(activeWaypoint.shotId) ?? []
-  }, [activeWaypoint?.shotId, layersByShot])
+    const targetShotId = selectedShotId ?? activeWaypoint?.shotId ?? null
+    if (!targetShotId) return layersByShot.get(null) ?? []
+    return layersByShot.get(targetShotId) ?? []
+  }, [selectedShotId, activeWaypoint?.shotId, layersByShot])
 
   const spawnNextFrame = (mode: 'pan' | 'zoom-in' | 'zoom-out'): void => {
-    const base = activeWaypoint ?? waypoints[waypoints.length - 1]
+    const selectedWps = selectedShotId ? waypoints.filter((w) => w.shotId === selectedShotId) : []
+    const base =
+      (selectedShotId && activeWaypoint?.shotId !== selectedShotId && selectedWps.length > 0
+        ? selectedWps[selectedWps.length - 1]
+        : activeWaypoint) ?? waypoints[waypoints.length - 1]
     if (!base) return
 
     const stepDur = 2.0
@@ -123,8 +170,18 @@ export function CameraRouteInspector() {
     let nextStageX = base.stageX
     let nextStageY = base.stageY
     let nextScale = base.scale
+    const selectedBox =
+      selectedShotId && activeWaypoint?.shotId !== selectedShotId && selectedWps.length === 0
+        ? stageLayout.find((b) => b.shotId === selectedShotId)
+        : undefined
 
-    if (mode === 'zoom-in') {
+    if (selectedBox) {
+      anchor = waypoints[waypoints.length - 1] ?? base
+      nextStageX = selectedBox.stageX
+      nextStageY = selectedBox.stageY
+      nextScale =
+        mode === 'zoom-in' ? clampFrameScale(0.65) : mode === 'zoom-out' ? clampFrameScale(1.38) : 1.0
+    } else if (mode === 'zoom-in') {
       nextScale = clampFrameScale(base.scale * 0.65)
     } else if (mode === 'zoom-out') {
       nextScale = clampFrameScale(base.scale * 1.38)
@@ -188,13 +245,17 @@ export function CameraRouteInspector() {
     mergeKey?: string
   ): void => {
     if (!activeWaypoint) return
-    const oldTime = activeWaypoint.time
+    let targetTime = activeWaypoint.time
     update((draft) => {
-      updateCameraWaypoint(draft, stageLayout, oldTime, updates)
+      if (selectedShotId && activeWaypoint.shotId !== selectedShotId && updates.time === undefined) {
+        targetTime = ensureShotWaypointTime(draft, stageLayout, selectedShotId, activeWaypoint.time, true)
+      }
+      updateCameraWaypoint(draft, stageLayout, targetTime, updates)
     }, mergeKey)
-    if (updates.time !== undefined && Math.abs(updates.time - oldTime) > 0.001) {
+    const finalTime = updates.time !== undefined ? updates.time : targetTime
+    if (Math.abs(finalTime - time) > 0.001) {
       setPlaying(false)
-      setTime(updates.time)
+      setTime(finalTime)
     }
   }
 
@@ -221,13 +282,21 @@ export function CameraRouteInspector() {
 
   const handleApplyActionMode = (mode: CameraActionMode): void => {
     if (!activeWaypoint) return
+    let targetTime = activeWaypoint.time
     update((draft) => {
-      applyWaypointActionMode(draft, stageLayout, activeWaypoint.time, mode)
+      if (selectedShotId && activeWaypoint.shotId !== selectedShotId) {
+        targetTime = ensureShotWaypointTime(draft, stageLayout, selectedShotId, activeWaypoint.time, true)
+      }
+      applyWaypointActionMode(draft, stageLayout, targetTime, mode)
     })
+    if (Math.abs(targetTime - time) > 0.01) {
+      setPlaying(false)
+      setTime(targetTime)
+    }
     const def = CAMERA_ACTION_MODES.find((m) => m.id === mode)
     toast(
       def
-        ? `🎬 Mốc #${activeWaypoint.index + 1}: ${def.badgeLabel}`
+        ? `🎬 Đã áp dụng động tác quay: ${def.badgeLabel}`
         : 'Đã cập nhật động tác quay cho mốc hiện tại'
     )
   }
@@ -236,9 +305,17 @@ export function CameraRouteInspector() {
     align: 'left' | 'center' | 'right' | 'top' | 'bottom' | 'reset-angles'
   ): void => {
     if (!activeWaypoint) return
+    let targetTime = activeWaypoint.time
     update((draft) => {
-      alignWaypointInShot(draft, stageLayout, activeWaypoint.time, align)
+      if (selectedShotId && activeWaypoint.shotId !== selectedShotId) {
+        targetTime = ensureShotWaypointTime(draft, stageLayout, selectedShotId, activeWaypoint.time, true)
+      }
+      alignWaypointInShot(draft, stageLayout, targetTime, align)
     })
+    if (Math.abs(targetTime - time) > 0.01) {
+      setPlaying(false)
+      setTime(targetTime)
+    }
   }
 
   const handleDelete = (wp: CameraWaypointItem): void => {
@@ -251,6 +328,10 @@ export function CameraRouteInspector() {
     })
     const prev = waypoints[Math.max(0, wp.index - 1)]
     if (prev) {
+      if (prev.shotId) {
+        lastSyncedShotRef.current = prev.shotId
+        selectShot(prev.shotId)
+      }
       setPlaying(false)
       setTime(prev.time)
     }

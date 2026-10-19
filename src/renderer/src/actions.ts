@@ -14,6 +14,7 @@ import {
   createSolidLayer,
   createTextLayer,
   duplicateLayer,
+  resolveNewLayerPlacement,
   shotSpacing
 } from './project/factory'
 import { exportProjectToJson, importProjectFromJson, parseDataUrl } from './project/jsonFormat'
@@ -159,17 +160,6 @@ export async function saveProject(saveAs = false): Promise<void> {
 
 // ------------------------------------------------------------------ assets & layers
 
-function nextDepthForNewLayer(project: Project, shotId: string | null = activeShotId()): number {
-  // Place new images with depth spacing so the scene has 3D depth, clamped safely in front of camera
-  const zs = project.layers
-    .filter((l) => l.type === 'image' && l.shotId === shotId)
-    .map((l) => l.transform.position.value[2])
-  if (!zs.length) return 0
-  const d = referenceDistance(project.comp)
-  const minAllowed = -Math.round(d * 0.7)
-  return Math.max(minAllowed, Math.min(...zs) - 200)
-}
-
 /** Shot that receives newly created layers (null = global). */
 function activeShotId(): string | null {
   const { selectedShotId, project } = editor()
@@ -190,6 +180,17 @@ function insertLayerBottom(d: Project, layer: Project['layers'][number]): void {
   })
   if (last < 0) d.layers.push(layer)
   else d.layers.splice(last + 1, 0, layer)
+}
+
+function applyPlacedImageLayer(d: Project, shotId: string | null, meta: import('@shared/types').AssetMeta): string {
+  const placement = resolveNewLayerPlacement(d, shotId, meta)
+  const layer = createImageLayer(meta, d.comp, placement.z)
+  if (placement.y !== 0) layer.transform.position.value = [0, placement.y, placement.z]
+  if (placement.scale !== 1) layer.transform.scale.value = [placement.scale, placement.scale, 1]
+  layer.shotId = shotId
+  if (placement.z >= 1400) insertLayerBottom(d, layer)
+  else insertLayerTop(d, layer)
+  return layer.id
 }
 
 async function registerImages(files: { name: string; mime: string; data: Uint8Array }[], addLayers: boolean): Promise<void> {
@@ -238,11 +239,7 @@ async function registerImages(files: { name: string; mime: string; data: Uint8Ar
         }
         d.assets.push(asset.meta)
         if (addLayers) {
-          const depth = nextDepthForNewLayer(d as Project, shotId)
-          const layer = createImageLayer(asset.meta, d.comp as Project['comp'], depth)
-          layer.shotId = shotId
-          insertLayerTop(d as Project, layer)
-          lastId = layer.id
+          lastId = applyPlacedImageLayer(d as Project, shotId, asset.meta)
         }
       })
     } catch (err) {
@@ -463,11 +460,7 @@ export async function importBuiltInAsset(
       }
       d.assets.push(asset.meta)
       if (addLayer) {
-        const depth = nextDepthForNewLayer(d as Project, shotId)
-        const layer = createImageLayer(asset.meta, d.comp as Project['comp'], depth)
-        layer.shotId = shotId
-        insertLayerTop(d as Project, layer)
-        layerId = layer.id
+        layerId = applyPlacedImageLayer(d as Project, shotId, asset.meta)
       }
     })
     if (layerId) {
@@ -486,13 +479,12 @@ export async function importBuiltInAsset(
 export function addLayerFromAsset(assetId: string): void {
   const meta = editor().project.assets.find((a) => a.id === assetId)
   if (!meta || meta.kind !== 'image') return
-  const depth = nextDepthForNewLayer(editor().project, activeShotId())
-  const layer = createImageLayer(meta, editor().project.comp, depth)
-  layer.shotId = activeShotId()
+  const shotId = activeShotId()
+  let layerId = ''
   editor().update((d) => {
-    insertLayerTop(d as Project, layer)
+    layerId = applyPlacedImageLayer(d as Project, shotId, meta)
   })
-  editor().selectLayer(layer.id)
+  if (layerId) editor().selectLayer(layerId)
 }
 
 export function removeAsset(assetId: string): void {

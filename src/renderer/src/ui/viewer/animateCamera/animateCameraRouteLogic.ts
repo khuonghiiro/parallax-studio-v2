@@ -722,6 +722,72 @@ export function addCameraHoldWaypoint(
   setKeyframeEaseAtTime(draft, targetTime, 'easeInOut')
 }
 
+/**
+ * Appends a new camera waypoint centered on `shotId` at the end of the current camera route
+ * (or at 0s if no keyframes exist yet), returning the new waypoint's timestamp.
+ */
+export function appendShotCameraWaypoint(
+  draft: Project,
+  layout: ShotStageBox[],
+  shotId: string,
+  stepSec = 2.0
+): number | null {
+  const box = layout.find((b) => b.shotId === shotId)
+  if (!box) return null
+
+  const frames = extractCameraFrames2D(draft, layout)
+  const last = frames[frames.length - 1]
+  const hasKeyframes =
+    draft.camera.position.keyframes.length > 0 || draft.camera.target.keyframes.length > 0
+
+  if (!hasKeyframes && last) {
+    applyStageFrameToDraft(draft, layout, 0, last.stageX, last.stageY, last.scale, true, {
+      yaw: last.yaw,
+      pitch: last.pitch,
+      roll: last.roll
+    })
+  }
+
+  const nextTime =
+    !last || (!hasKeyframes && last.shotId === shotId)
+      ? 0
+      : Math.round(((last?.time ?? 0) + stepSec) * 100) / 100
+
+  if (nextTime > draft.comp.duration) {
+    setCompDuration(draft, Math.ceil(nextTime + 1))
+  }
+
+  applyStageFrameToDraft(draft, layout, nextTime, box.stageX, box.stageY, 1.0, true, {
+    yaw: 0,
+    pitch: 0,
+    roll: 0,
+    ease: 'easeInOut'
+  })
+  setKeyframeEaseAtTime(draft, nextTime, 'easeInOut')
+  return nextTime
+}
+
+/**
+ * Ensures `shotId` has a waypoint in `draft` (returning the existing waypoint time for `shotId`
+ * if `preferExisting` is true, or appending a new waypoint at the end of the route if `shotId`
+ * has no waypoint yet).
+ */
+export function ensureShotWaypointTime(
+  draft: Project,
+  layout: ShotStageBox[],
+  shotId: string,
+  fallbackTime: number,
+  preferLast = false
+): number {
+  const frames = extractCameraFrames2D(draft, layout)
+  const inShot = frames.filter((f) => f.shotId === shotId)
+  if (inShot.length > 0) {
+    return (preferLast ? inShot[inShot.length - 1] : inShot[0]).time
+  }
+  const spawned = appendShotCameraWaypoint(draft, layout, shotId, 2.0)
+  return spawned ?? fallbackTime
+}
+
 export {
   applyCameraRoutePreset,
   reverseCameraRoute,

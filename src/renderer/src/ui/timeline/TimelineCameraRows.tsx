@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { memo, useMemo } from 'react'
 import type { Animatable, AnimValue, Project, Shot } from '@shared/types'
 import { snapToFrame } from '../../animation/math'
 import { frameTolerance, useEditor, type PropRef } from '../../store/editor'
@@ -23,7 +23,7 @@ interface TimelineCameraRowsProps {
   renderKeys: (a: Animatable<AnimValue>, ref: PropRef) => React.ReactNode
 }
 
-export function TimelineCameraRows({
+export const TimelineCameraRows = memo(function TimelineCameraRows({
   project,
   camOpen,
   contentW,
@@ -34,7 +34,6 @@ export function TimelineCameraRows({
   onStartCameraWaypointDrag,
   renderKeys
 }: TimelineCameraRowsProps) {
-  const time = useEditor((s) => s.time)
   const inspectorTab = useEditor((s) => s.inspectorTab)
   const { setTime, selectShot, setInspectorTab } = useEditor.getState()
   const tol = Math.max(frameTolerance(project), 0.04)
@@ -44,6 +43,13 @@ export function TimelineCameraRows({
     () => enrichCameraWaypoints(extractCameraFrames2D(project, stageLayout)),
     [project, stageLayout]
   )
+  const activeWpIdx = useEditor((s) => {
+    const t = s.time
+    for (let i = 0; i < waypoints.length; i++) {
+      if (Math.abs(waypoints[i].time - t) <= tol) return i
+    }
+    return -1
+  })
   const segments = useMemo(
     () => (project.shots.length ? shotSegments(project) : []),
     [project]
@@ -129,7 +135,7 @@ export function TimelineCameraRows({
 
             {/* Numbered Camera Waypoint Nodes (#1, #2, #3...) */}
             {waypoints.map((wp, idx) => {
-              const isAtPlayhead = Math.abs(wp.time - time) <= tol
+              const isAtPlayhead = idx === activeWpIdx
               const shotColor =
                 (wp.shotId ? shotById.get(wp.shotId)?.color : undefined) ?? '#38bdf8'
               return (
@@ -223,4 +229,4 @@ export function TimelineCameraRows({
       )}
     </>
   )
-}
+})

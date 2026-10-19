@@ -121,7 +121,8 @@ export function handle3DPointerDown(e: React.PointerEvent, deps: PointerHandlerD
     }
   }
 
-  deps.dragModeRef.current = e.button === 2 || e.button === 1 || e.shiftKey ? 'pan' : 'orbit'
+  if (e.button === 1) e.preventDefault()
+  deps.dragModeRef.current = e.button === 1 || (e.button === 0 && e.altKey) ? 'orbit' : 'pan'
   deps.isDraggingRef.current = true
   deps.dragStartRef.current = { mouseX: e.clientX, mouseY: e.clientY, moved: false }
   ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
@@ -223,7 +224,7 @@ export function handle3DPointerUp(e: React.PointerEvent, deps: PointerHandlerDep
 
   if (deps.dragModeRef.current === 'layer') {
     deps.layerDragStateRef.current = null
-    deps.dragModeRef.current = 'orbit'
+    deps.dragModeRef.current = 'pan'
     return
   }
 
@@ -239,7 +240,7 @@ export function handle3DPointerUp(e: React.PointerEvent, deps: PointerHandlerDep
   deps.setCameraPitch(Math.round((o.elevation * 180) / Math.PI))
   deps.setCameraTarget({ x: Math.round(o.target.x), y: Math.round(o.target.y), z: Math.round(o.target.z) })
 
-  if (!deps.dragStartRef.current.moved && deps.dragModeRef.current === 'orbit') {
+  if (!deps.dragStartRef.current.moved && e.button === 0) {
     handle3DRaycastSelect(e, deps)
   }
 }

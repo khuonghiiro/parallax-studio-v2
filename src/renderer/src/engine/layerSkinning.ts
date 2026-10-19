@@ -176,11 +176,19 @@ export function deformSkin(
   binding: SkinBinding,
   rig: LayerRig,
   time: number,
-  indices?: ArrayLike<number>
+  indices?: ArrayLike<number>,
+  out?: Float32Array
 ): Float32Array {
-  const output = positions.slice()
   const bones = skinBones(rig, binding.boneId, binding.extraBoneIds)
-  if (!bones.length) return output
+  if (!bones.length) {
+    if (out && out !== positions) {
+      out.set(positions)
+      return out
+    }
+    return positions
+  }
+  const output = out && out.length === positions.length ? out : positions.slice()
+  if (output !== positions) output.set(positions)
   const transforms = evaluateRig(rig, time)
   const weights = cachedWeights(positions, binding, bones, indices)
   const boneById = new Map(bones.map((b) => [b.id, b]))
@@ -195,18 +203,33 @@ export function deformSkin(
   const sx = scale * (binding.scaleX ?? 1), sy = scale * (binding.scaleY ?? 1)
   if (Math.abs(sx * sy) < 1e-10) return output
 
+  const restRad = (restRot * Math.PI) / 180
+  const restCos = Math.cos(restRad)
+  const restSin = Math.sin(restRad)
+  const invCurRad = (-curRot * Math.PI) / 180
+  const invCurCos = Math.cos(invCurRad)
+  const invCurSin = Math.sin(invCurRad)
+  const invSx = 1 / sx
+  const invSy = 1 / sy
+
   for (let i = 0; i < positions.length; i += 3) {
     const influences = weights[i / 3]
     if (!influences || !influences.length) continue
-    const p = rotatePoint(positions[i] * sx, -positions[i + 1] * sy, restRot)
-    const wx = p.x + restBx, wy = p.y + restBy
+    const px = positions[i] * sx
+    const py = -positions[i + 1] * sy
+    const wx = px * restCos - py * restSin + restBx
+    const wy = px * restSin + py * restCos + restBy
     let x = 0, y = 0, totalW = 0
-    for (const influence of influences) {
+    for (let j = 0; j < influences.length; j++) {
+      const influence = influences[j]
       const transform = transforms.get(influence.id)
       const bone = boneById.get(influence.id)
       if (!transform || !bone) continue
-      const delta = rotatePoint((wx - bone.x) * (transform.scaleX ?? 1),
-        (wy - bone.y) * (transform.scaleY ?? 1), transform.rotation)
+      const delta = rotatePoint(
+        (wx - bone.x) * (transform.scaleX ?? 1),
+        (wy - bone.y) * (transform.scaleY ?? 1),
+        transform.rotation
+      )
       x += (transform.x + delta.x) * influence.weight
       y += (transform.y + delta.y) * influence.weight
       totalW += influence.weight
@@ -216,9 +239,10 @@ export function deformSkin(
       x += wx * (1 - totalW)
       y += wy * (1 - totalW)
     }
-    const local = rotatePoint(x - curBx, y - curBy, -curRot)
-    output[i] = local.x / sx
-    output[i + 1] = -local.y / sy
+    const dx = x - curBx
+    const dy = y - curBy
+    output[i] = (dx * invCurCos - dy * invCurSin) * invSx
+    output[i + 1] = -(dx * invCurSin + dy * invCurCos) * invSy
   }
   return output
 }

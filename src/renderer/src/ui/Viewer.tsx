@@ -391,11 +391,11 @@ export function Viewer() {
       }
     }
 
-    const pan = e.button === 1 || e.button === 2 || (e.button === 0 && e.shiftKey)
-    const orbit = e.button === 0 && e.altKey
+    if (e.button === 1) e.preventDefault()
+    const orbit = e.button === 1 || (e.button === 0 && e.altKey)
 
-    // Empty space: orbit or pan
-    const doPan = pan || (!orbit && edCam.isOrtho)
+    // Empty space: chuột trái = di chuyển (pan), nhấn giữ con lăn chuột (hoặc Alt+chuột trái) = xoay 360° (orbit)
+    const doPan = !orbit
     let lastX = e.clientX
     let lastY = e.clientY
     capture(

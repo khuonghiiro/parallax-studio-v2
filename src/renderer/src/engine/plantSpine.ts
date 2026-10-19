@@ -376,63 +376,93 @@ export function deformPlantSpines(
   binding: SkinBinding,
   spines: PlantSpine[],
   time: number,
-  indices?: ArrayLike<number>
+  indices?: ArrayLike<number>,
+  cacheOwner?: Float32Array,
+  out?: Float32Array
 ): Float32Array {
   if (!spines.length) return positions
-  const output = positions.slice()
+  const output = out && out.length === positions.length ? out : positions.slice()
+  if (output !== positions) output.set(positions)
   const scale = binding.scale ?? 1
   const sx = scale * (binding.scaleX ?? 1)
   const sy = scale * (binding.scaleY ?? 1)
   if (Math.abs(sx * sy) < 1e-10) return output
+  const owner = cacheOwner ?? positions
   const key = projectionKey(binding, spines, indices)
-  let proj = projectionCache.get(positions)
+  let proj = projectionCache.get(owner)
   if (!proj || proj.key !== key) {
-    proj = buildProjection(positions, binding, spines, key, indices)
-    projectionCache.set(positions, proj)
+    proj = buildProjection(owner, binding, spines, key, indices)
+    projectionCache.set(owner, proj)
   }
   const frames = spines.map((s) => evaluatePlantSpine(s, time))
   const count = positions.length / 3
   const rot = binding.rotation ?? 0
   const bx = binding.x ?? 0
   const by = binding.y ?? 0
+  const rad = (rot * Math.PI) / 180
+  const rotCos = Math.cos(rad)
+  const rotSin = Math.sin(rad)
+  const invCos = rotCos
+  const invSin = -rotSin
+  const invSx = 1 / sx
+  const invSy = 1 / sy
+  const useCachedWorld = owner === positions
+  const DEG_TO_RAD = Math.PI / 180
+
   for (let i = 0; i < count; i++) {
-    const wx = proj.world[i * 2]
-    const wy = proj.world[i * 2 + 1]
+    const i3 = i * 3
+    let wx: number
+    let wy: number
+    if (useCachedWorld) {
+      wx = proj.world[i * 2]
+      wy = proj.world[i * 2 + 1]
+    } else {
+      const px = positions[i3] * sx
+      const py = -positions[i3 + 1] * sy
+      wx = px * rotCos - py * rotSin + bx
+      wy = px * rotSin + py * rotCos + by
+    }
     let dx = 0
     let dy = 0
+    const o = i * STRIDE
     for (let k = 0; k < spines.length; k++) {
       const data = proj.perSpine[k]
-      const o = i * STRIDE
-      if (data[o] < 0) continue
-      const { rest, bent, rot: angles, stretch: stretches } = frames[k]
       const seg = data[o]
+      if (seg < 0) continue
+      const { rest, bent, rot: angles, stretch: stretches } = frames[k]
       const t = data[o + 1]
       const tc = t < 0 ? 0 : t > 1 ? 1 : t
       const a = rest[seg]
       const b = rest[seg + 1]
       const angle = angles[seg] + (angles[seg + 1] - angles[seg]) * tc
+      const angleRad = angle * DEG_TO_RAD
+      const aCos = Math.cos(angleRad)
+      const aSin = Math.sin(angleRad)
       let baseX = bent[seg].x + (bent[seg + 1].x - bent[seg].x) * tc
       let baseY = bent[seg].y + (bent[seg + 1].y - bent[seg].y) * tc
       if (t > 1) {
-        // Vượt quá ngọn (tán lá phía trên): kéo dài theo hướng ngọn đã xoay và dãn theo stretch ngọn
         const tipStretch = stretches ? stretches[stretches.length - 1] : 0
         const tipScale = Math.max(0.1, 1 + tipStretch)
-        const ext = rotate((b.x - a.x) * (t - 1) * tipScale, (b.y - a.y) * (t - 1) * tipScale, angle)
-        baseX += ext.x
-        baseY += ext.y
+        const ex = (b.x - a.x) * (t - 1) * tipScale
+        const ey = (b.y - a.y) * (t - 1) * tipScale
+        baseX += ex * aCos - ey * aSin
+        baseY += ex * aSin + ey * aCos
       }
-      // Giữ thể tích squash & stretch: dãn dài thì hơi thắt bề ngang, nén lùn thì hơi phình ngang
       const segStretch = stretches ? (stretches[seg] + stretches[Math.min(stretches.length - 1, seg + 1)]) / 2 : 0
       const lateralScale = Math.max(0.4, Math.min(1.8, 1 - segStretch * 0.35))
-      const off = rotate(data[o + 2] * lateralScale, data[o + 3] * lateralScale, angle)
+      const ox = data[o + 2] * lateralScale
+      const oy = data[o + 3] * lateralScale
+      const offX = ox * aCos - oy * aSin
+      const offY = ox * aSin + oy * aCos
       const w = data[o + 4]
-      dx += (baseX + off.x - wx) * w
-      dy += (baseY + off.y - wy) * w
+      dx += (baseX + offX - wx) * w
+      dy += (baseY + offY - wy) * w
     }
     if (dx === 0 && dy === 0) continue
-    const local = rotate(wx + dx - bx, wy + dy - by, -rot)
-    output[i * 3] = local.x / sx
-    output[i * 3 + 1] = -local.y / sy
+    const lx = wx + dx - bx
+    const ly = wy + dy - by
+    output[i3] = (lx * invCos - ly * invSin) * invSx
+    output[i3 + 1] = -(lx * invSin + ly * invCos) * invSy
   }
   return output
 }

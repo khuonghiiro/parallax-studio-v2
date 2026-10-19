@@ -148,6 +148,81 @@ function base(comp: Composition, name: string, z: number, scale = 1) {
   }
 }
 
+const PARALLAX_BG_TIERS = [3200, 1800, 950, 580, 260, 0, -120]
+const PARALLAX_PROP_TIERS = [620, 380, 180, 0, -120]
+
+function normalizeAssetKey(nameOrPath?: string): string {
+  if (!nameOrPath) return ''
+  return nameOrPath
+    .replace(/\\/g, '/')
+    .split('/')
+    .pop()!
+    .replace(/\.[^.]+$/, '')
+    .trim()
+    .toLowerCase()
+}
+
+export function resolveNewLayerPlacement(
+  project: Project,
+  shotId: string | null,
+  meta?: AssetMeta
+): { z: number; y: number; scale: number } {
+  const shotImageLayers = project.layers.filter(
+    (l): l is ImageLayer => l.type === 'image' && l.shotId === shotId && !l.composite && !l.model3d
+  )
+  const usedZs = shotImageLayers.map((l) => l.transform.position.value[2])
+  const hasFarBg = usedZs.some((z) => z >= 2400)
+
+  if (meta) {
+    const assetById = new Map(project.assets.map((a) => [a.id, a]))
+    const metaPathKey = normalizeAssetKey(meta.assetPath || meta.path)
+    const metaNameKey = normalizeAssetKey(meta.name)
+
+    const templateLayers = project.layers.filter((l): l is ImageLayer => {
+      if (l.type !== 'image' || l.shotId === shotId || l.composite || l.model3d) return false
+      if (l.props.assetId === meta.id) return true
+      const otherMeta = assetById.get(l.props.assetId)
+      if (!otherMeta) return false
+      const otherPathKey = normalizeAssetKey(otherMeta.assetPath || otherMeta.path)
+      if (metaPathKey && otherPathKey && metaPathKey === otherPathKey) return true
+      const otherNameKey = normalizeAssetKey(otherMeta.name)
+      return Boolean(metaNameKey && otherNameKey && metaNameKey === otherNameKey)
+    })
+
+    if (templateLayers.length > 0) {
+      const tpl =
+        templateLayers.find(
+          (l) => !usedZs.some((z) => Math.abs(z - l.transform.position.value[2]) < 100)
+        ) ?? templateLayers[0]
+      let z = tpl.transform.position.value[2]
+      if (z >= 1400 && !hasFarBg) {
+        z = 3200
+      } else if (usedZs.some((uz) => Math.abs(uz - z) < 80)) {
+        const freeTier = PARALLAX_BG_TIERS.find((t) => !usedZs.some((uz) => Math.abs(uz - t) < 120))
+        if (freeTier !== undefined) z = freeTier
+      }
+      const scale = tpl.transform.scale.value[0] || 1
+      const y = tpl.transform.position.value[1] || 0
+      return { z, y, scale }
+    }
+  }
+
+  const isFullPlate =
+    !meta ||
+    ((meta.width ?? project.comp.width) >= project.comp.width * 0.75 &&
+      (meta.height ?? project.comp.height) >= project.comp.height * 0.75)
+  const tiers = isFullPlate ? PARALLAX_BG_TIERS : PARALLAX_PROP_TIERS
+  const freeTier = tiers.find((t) => !usedZs.some((z) => Math.abs(z - t) < 140))
+  if (freeTier !== undefined) {
+    return { z: freeTier, y: 0, scale: isFullPlate ? 1.06 : 1 }
+  }
+
+  if (!usedZs.length) return { z: isFullPlate ? 3200 : 620, y: 0, scale: isFullPlate ? 1.06 : 1 }
+  const d = referenceDistance(project.comp)
+  const minAllowed = -Math.round(d * 0.7)
+  return { z: Math.max(minAllowed, Math.min(...usedZs) - 200), y: 0, scale: 1 }
+}
+
 export function createImageLayer(asset: AssetMeta, comp: Composition, z = 0): ImageLayer {
   const w = asset.width ?? comp.width
   const h = asset.height ?? comp.height

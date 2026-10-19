@@ -225,13 +225,25 @@ export class SceneRenderer {
 
   // ---------------------------------------------------------------- nodes
 
+  private meshKeyCache = new WeakMap<object, string>()
+
+  private getMeshKey(meshDef: object | undefined): string | null {
+    if (!meshDef) return null
+    let key = this.meshKeyCache.get(meshDef)
+    if (key === undefined) {
+      key = JSON.stringify(meshDef)
+      this.meshKeyCache.set(meshDef, key)
+    }
+    return key
+  }
+
   private syncNodes(project: Project): void {
     const alive = new Set<string>()
     for (const layer of project.layers) {
       alive.add(layer.id)
       let node = this.nodes.get(layer.id)
       const meshDef = layer.mesh ?? layer.model3d?.mesh
-      const meshKey = meshDef ? JSON.stringify(meshDef) : null
+      const meshKey = this.getMeshKey(meshDef)
       const rebuild = !node || node.type !== layer.type || (layer.type === 'particles' && node.builtFrom !== layer.props) || (meshKey !== null && node.builtFrom !== meshKey)
       if (rebuild) {
         if (node) disposeNode(node, this.scene, (k) => this.pool.dropTexture(k))
@@ -313,19 +325,19 @@ export class SceneRenderer {
       const node = this.nodes.get(el.layer.id)
       if (!node) continue
       const obj = node.object
-      if (node.meshDef?.skin) updateSkinGeometry(obj.geometry, node.meshDef, ev.t)
       // Matrices are kept current for every layer so picking works even when culled.
       if (node.type === 'particles') obj.matrix.copy(el.world)
       else obj.matrix.copy(el.world).multiply(_m2.makeScale(node.planeW, node.planeH, 1))
       obj.matrixWorldNeedsUpdate = true
       obj.updateMatrixWorld(true)
 
-      const inView = el.active && el.opacity > 0.001 && (!!node.meshDef?.skin || frustum.intersectsBox(el.bounds))
+      const inView = el.active && el.opacity > 0.001 && frustum.intersectsBox(el.bounds)
       node.resident = node.type === 'particles' || (!!node.texKey && this.pool.has(node.texKey))
       if (!inView) {
         obj.visible = false
         continue
       }
+      if (node.meshDef?.skin) updateSkinGeometry(obj.geometry, node.meshDef, ev.t)
 
       const mat = obj.material as THREE.ShaderMaterial
       const u = mat.uniforms
@@ -562,11 +574,11 @@ export class SceneRenderer {
       cam.near = this.camera.near
       cam.far = this.camera.far
       cam.updateProjectionMatrix()
-      const frustum = this.cullFrustum(cam, new THREE.Frustum())
+      const frustum = this.cullFrustum(cam, _frustum)
       for (const el of ev.layers) {
         if (el.layer.type !== 'image' || !el.active || el.opacity <= 0.001) continue
         const node = this.nodes.get(el.layer.id)
-        if (!node || !(!!node.meshDef?.skin || frustum.intersectsBox(el.bounds))) continue
+        if (!node || !frustum.intersectsBox(el.bounds)) continue
         const level = this.pool.desiredLevel(el, node.planeW, node.planeH, cam, viewportH, 0)
         const e = this.pool.get(node.texKey!)
         if (e) this.pool.touch(node.texKey!)
@@ -587,12 +599,12 @@ export class SceneRenderer {
     cam.near = this.camera.near
     cam.far = this.camera.far
     cam.updateProjectionMatrix()
-    const frustum = this.cullFrustum(cam, new THREE.Frustum())
+    const frustum = this.cullFrustum(cam, _frustum)
     const waits: Promise<void>[] = []
     for (const el of ev.layers) {
       if (el.layer.type !== 'image' || !el.active || el.opacity <= 0.001) continue
       const node = this.nodes.get(el.layer.id)
-      if (!node || !(!!node.meshDef?.skin || frustum.intersectsBox(el.bounds))) continue
+      if (!node || !frustum.intersectsBox(el.bounds)) continue
       const level = this.pool.desiredLevel(el, node.planeW, node.planeH, cam, viewportH, 0)
       const e = this.pool.get(node.texKey!)
       if (e) this.pool.touch(node.texKey!)

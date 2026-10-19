@@ -1,24 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { addShot, autoBuildCameraTour, deleteShot, flyToShot, SHOT_DIRECTIONS, updateShot, type ShotDirection } from '../actions'
+import { addShot, autoBuildCameraTour, deleteShot, flyToShot, SHOT_DIRECTIONS, toast, updateShot, type ShotDirection } from '../actions'
 import { shotAtTime } from '../animation/cameraPath'
-import { useEditor } from '../store/editor'
+import { frameTolerance, useEditor } from '../store/editor'
 import { useView } from '../store/view'
 import { ColorInput } from './controls'
 import { IconCamera, IconEye, IconFocus, IconPen, IconPlane, IconPlus, IconRoute, IconTrash } from './icons'
+import { computeShotStageLayout, extractCameraFrames2D } from './viewer/animateCamera/animateCameraMath'
+import { appendShotCameraWaypoint } from './viewer/animateCamera/animateCameraRouteLogic'
 
 /** List of shots (scenes placed in 3D space) — AE-style "comp regions" the camera flies between. */
 export function ShotsPanel() {
   const shots = useEditor((s) => s.project.shots)
   const layers = useEditor((s) => s.project.layers)
-  const project = useEditor((s) => s.project)
-  const time = useEditor((s) => s.time)
+  const live = useEditor((s) => shotAtTime(s.project, s.time))
   const selectedShotId = useEditor((s) => s.selectedShotId)
   const selectShot = useEditor((s) => s.selectShot)
   const [menu, setMenu] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
-
-  const live = useMemo(() => shotAtTime(project, time), [project, time])
   const counts = useMemo(() => {
     const m = new Map<string | null, number>()
     for (const l of layers) m.set(l.shotId, (m.get(l.shotId) ?? 0) + 1)
@@ -34,9 +33,48 @@ export function ShotsPanel() {
     return () => window.removeEventListener('pointerdown', close)
   }, [menu])
 
+  const handleActivateShot = (shotId: string): void => {
+    selectShot(shotId)
+    const st = useEditor.getState()
+    const hasRoute =
+      st.project.camera.position.keyframes.length > 0 ||
+      st.project.camera.target.keyframes.length > 0 ||
+      useView.getState().primary === 'animate2d' ||
+      st.inspectorTab === 'route'
+    if (!hasRoute) return
+
+    const layout = computeShotStageLayout(st.project, st.time)
+    const frames = extractCameraFrames2D(st.project, layout)
+    const inShot = frames.filter((f) => f.shotId === shotId)
+    if (inShot.length > 0) {
+      const tol = Math.max(frameTolerance(st.project), 0.04)
+      const isAlreadyOnShotWp = inShot.some((f) => Math.abs(f.time - st.time) <= tol)
+      if (!isAlreadyOnShotWp) {
+        st.setPlaying(false)
+        st.setTime(inShot[0].time)
+      }
+      return
+    }
+
+    let spawnedTime: number | null = null
+    st.update((d) => {
+      const nextLayout = computeShotStageLayout(d, st.time)
+      spawnedTime = appendShotCameraWaypoint(d, nextLayout, shotId, 2.0)
+    })
+    if (spawnedTime !== null) {
+      st.setPlaying(false)
+      st.setTime(spawnedTime)
+      const shotObj = st.project.shots.find((x) => x.id === shotId)
+      if (shotObj) {
+        toast(`🎥 Đã tạo mốc lộ trình mới cho "${shotObj.name}" tại ${(spawnedTime as number).toFixed(1)}s`)
+      }
+    }
+  }
+
   const add = (dir: ShotDirection): void => {
     setMenu(false)
     const s = addShot(dir)
+    handleActivateShot(s.id)
     useView.getState().requestFocus('shot', s.id)
   }
 
@@ -110,7 +148,7 @@ export function ShotsPanel() {
               id={`shot-${s.id}`}
               className={`shot-row${selectedShotId === s.id ? ' selected' : ''}${s.visible ? '' : ' hidden'}`}
               style={{ ['--c' as string]: s.color }}
-              onClick={() => selectShot(s.id)}
+              onClick={() => handleActivateShot(s.id)}
               onDoubleClick={() => setEditing(s.id)}
             >
               <span className="shot-dot-wrap" onClick={(e) => e.stopPropagation()}>

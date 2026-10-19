@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { memo, useEffect, useRef } from 'react'
 import { assetStore } from '../../../project/assets'
 import type { ProjectedLayer2D, ShotStageBox } from './animateCameraMath'
 import type { CameraActionMode, CameraWaypointItem } from './animateCameraRouteLogic'
@@ -23,7 +23,7 @@ const THUMB_H = 76
  * thời điểm (s), thời lượng đoạn (+s) và độ phóng (Zoom %).
  * Có nút Bật/Tắt render ảnh Preview dành cho máy cấu hình yếu.
  */
-export function AnimateCameraVerticalFilmstrip({
+export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVerticalFilmstrip({
   waypoints,
   activeFrameIndex,
   stageLayout,
@@ -234,7 +234,7 @@ export function AnimateCameraVerticalFilmstrip({
       </div>
     </aside>
   )
-}
+})
 
 interface AnimateCameraProFooterBarProps {
   activeFrame: CameraWaypointItem | undefined
@@ -249,7 +249,7 @@ interface AnimateCameraProFooterBarProps {
  * Gọn gàng, đồng nhất, tập trung vào các kỹ thuật quay phim & hoạt hình dùng nhiều nhất
  * (Lia cân bằng, Đẩy cận, Kéo rộng, Dừng ngắm, Toàn cảnh chuẩn 100%, Cắt cảnh).
  */
-export function AnimateCameraProFooterBar({
+export const AnimateCameraProFooterBar = memo(function AnimateCameraProFooterBar({
   activeFrame,
   waypoints,
   onSelectWaypoint,
@@ -384,4 +384,4 @@ export function AnimateCameraProFooterBar({
       </div>
     </div>
   )
-}
+})

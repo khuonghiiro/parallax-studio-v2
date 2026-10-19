@@ -132,6 +132,10 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
   const _tempScale = new THREE.Vector3()
   const _tempRot = new THREE.Matrix4()
   const _upY = new THREE.Vector3(0, 1, 0)
+  let refHalfW = comp.width / 2
+  let refHalfH = comp.height / 2
+  let refMinLocalZ = -25
+  let refMaxLocalZ = 25
 
   const layers = project.layers.map((layer, index): EvaluatedLayer => {
     const tr = layer.transform
@@ -190,6 +194,18 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
     if (shot) {
       shot.bounds.union(bounds)
       shot.layerCount++
+      if (!layer.parentId) {
+        const halfW = (size[0] * Math.abs(scale[0])) / 2
+        const halfH = (size[1] * Math.abs(scale[1])) / 2
+        refHalfW = Math.max(refHalfW, Math.abs(pos[0] - halfW), Math.abs(pos[0] + halfW))
+        refHalfH = Math.max(refHalfH, Math.abs(pos[1] - halfH), Math.abs(pos[1] + halfH))
+        const lz = -pos[2]
+        refMinLocalZ = Math.min(refMinLocalZ, lz)
+        refMaxLocalZ = Math.max(refMaxLocalZ, lz)
+      }
+    }
+    if (layer.type === 'image' && layer.mesh?.skin) {
+      bounds.expandByScalar(Math.max(size[0], size[1]) * 0.25 + 150)
     }
 
     let opacity = Math.max(0, Math.min(1, evaluate(tr.opacity, t)))
@@ -217,9 +233,21 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
     }
   })
 
-  // Empty shots still get a visible frame-sized box so they can be seen and picked.
+  // Empty or sparse shots get a consistent stage box matching the project's reference shot volume.
+  const refBox = new THREE.Box3()
+  const refCorner = new THREE.Vector3()
   for (const s of shots) {
-    if (s.layerCount === 0) transformedBox(comp.width, comp.height, 50, s.matrix, s.bounds)
+    if (s.layerCount === 0 || shots.length > 1) {
+      refBox.makeEmpty()
+      for (const x of [-refHalfW, refHalfW]) {
+        for (const y of [-refHalfH, refHalfH]) {
+          for (const z of [refMinLocalZ, refMaxLocalZ]) {
+            refBox.expandByPoint(refCorner.set(x, y, z).applyMatrix4(s.matrix))
+          }
+        }
+      }
+      s.bounds.union(refBox)
+    }
   }
 
   return { t, camera, shots, layers }

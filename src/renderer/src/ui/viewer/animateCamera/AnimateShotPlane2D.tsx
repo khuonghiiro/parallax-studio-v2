@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { assetStore } from '../../../project/assets'
 import type { ProjectedLayer2D, ShotStageBox } from './animateCameraMath'
 
@@ -19,7 +20,7 @@ interface AnimateShotPlane2DProps {
   onDoubleClickSpot: (stageX: number, stageY: number) => void
 }
 
-export function AnimateShotPlane2D({
+export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
   box,
   layers,
   background,
@@ -243,4 +244,4 @@ export function AnimateShotPlane2D({
       </div>
     </div>
   )
-}
+})
