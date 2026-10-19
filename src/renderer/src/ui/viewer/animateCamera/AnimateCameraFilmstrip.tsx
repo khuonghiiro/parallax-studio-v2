@@ -83,6 +83,7 @@ export function AnimateCameraVerticalFilmstrip({
           const camRelY = box ? wp.stageY - box.stageY : wp.stageY
           const frameScaleX = THUMB_W / Math.max(1, wp.width)
           const frameScaleY = THUMB_H / Math.max(1, wp.height)
+          const frameScaleToThumb = frameScaleY
 
           return (
             <div key={`film-wp-${idx}-${wp.time}`} className="anim2d-film-step-wrap">
