@@ -77,7 +77,7 @@ export interface StageFramePoseOptions {
   ease?: EaseName
 }
 
-const MIN_FRAME_SCALE = 0.15
+const MIN_FRAME_SCALE = 0.05
 const MAX_FRAME_SCALE = 3.0
 const DEG = 180 / Math.PI
 const RAD = Math.PI / 180
@@ -364,7 +364,7 @@ export function pose3DToStageFrame(
   const vx = position3D[0] - target3D[0]
   const vy = position3D[1] - target3D[1]
   const vz = target3D[2] - position3D[2]
-  const dist = Math.max(80, Math.hypot(vx, vy, vz))
+  const dist = Math.max(20, Math.hypot(vx, vy, vz))
 
   const pitch = clampCameraAngle(Math.asin(Math.max(-1, Math.min(1, vy / dist))) * DEG, -75, 75)
   const yaw = clampCameraAngle(Math.atan2(vx, vz) * DEG, -85, 85)

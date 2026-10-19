@@ -61,7 +61,7 @@ export function enrichCameraWaypoints(frames: CameraFrame2D[]): CameraWaypointIt
     const isFirstOfShot = firstIdxByShot.get(f.shotId ?? 'global') === idx
     const prev = idx > 0 ? frames[idx - 1] : null
     const durationFromPrev = prev ? Math.max(0, Math.round((f.time - prev.time) * 100) / 100) : 0
-    const zoomPct = Math.round((1 / Math.max(0.1, f.scale)) * 100)
+    const zoomPct = Math.round((1 / Math.max(0.045, f.scale)) * 100)
 
     const { tag, tagLabel, actionMode } = inferWaypointActionClassification(
       f,
@@ -550,7 +550,7 @@ export function applyWaypointActionMode(
       break
     }
     case 'dutch-tilt': {
-      const nextRoll = cur.roll >= 8 ? -14 : 14
+      const nextRoll = cur.roll >= 8 ? -12 : 12
       updateCameraWaypoint(draft, layout, cur.time, {
         roll: nextRoll,
         scale: Math.min(cur.scale, 0.85),

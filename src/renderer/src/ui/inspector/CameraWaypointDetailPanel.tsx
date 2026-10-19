@@ -277,29 +277,50 @@ export function CameraWaypointDetailPanel({
         </div>
 
         <div className="field-header" style={{ marginTop: 6 }}>
-          <label>🔍 Cỡ Cảnh &amp; Độ Phóng (Zoom)</label>
-          <span className="zoom-val">{activeWaypoint.zoomPct}%</span>
+          <label htmlFor="wp-zoom-number-input">🔍 Cỡ Cảnh &amp; Độ Phóng (Zoom)</label>
+          <div className="zoom-val-box">
+            <input
+              id="wp-zoom-number-input"
+              type="number"
+              min="35"
+              max="2000"
+              step="5"
+              value={activeWaypoint.zoomPct}
+              className="zoom-number-input"
+              title="Nhập trực tiếp độ phóng từ 35% đến 2000%"
+              onChange={(e) => {
+                const zoomVal = parseInt(e.target.value, 10)
+                if (!isNaN(zoomVal) && zoomVal >= 35 && zoomVal <= 2000) {
+                  const nextScale = Math.round((1 / (zoomVal / 100)) * 1000) / 1000
+                  onUpdate({ scale: nextScale }, 'wp-zoom')
+                }
+              }}
+            />
+            <span className="suffix">%</span>
+          </div>
         </div>
 
         <div className="field-slider">
           <input
+            id="wp-zoom-slider"
             type="range"
             min="35"
-            max="320"
+            max="2000"
             step="5"
             value={activeWaypoint.zoomPct}
             className="zoom-range"
+            title={`Kéo thanh trượt độ phóng: ${activeWaypoint.zoomPct}% (tối đa 2000%)`}
             onChange={(e) => {
               const zoomVal = parseInt(e.target.value, 10)
               if (!isNaN(zoomVal) && zoomVal > 0) {
-                const nextScale = Math.round((1 / (zoomVal / 100)) * 100) / 100
+                const nextScale = Math.round((1 / (zoomVal / 100)) * 1000) / 1000
                 onUpdate({ scale: nextScale }, 'wp-zoom')
               }
             }}
           />
         </div>
 
-        <div className="preset-row zoom-presets-5">
+        <div className="preset-row zoom-presets-6">
           <button
             type="button"
             className={`btn xs${activeWaypoint.zoomPct <= 80 ? ' active' : ''}`}
@@ -318,7 +339,7 @@ export function CameraWaypointDetailPanel({
           </button>
           <button
             type="button"
-            className={`btn xs${activeWaypoint.zoomPct >= 130 && activeWaypoint.zoomPct <= 155 ? ' active' : ''}`}
+            className={`btn xs${activeWaypoint.zoomPct >= 130 && activeWaypoint.zoomPct <= 160 ? ' active' : ''}`}
             onClick={() => onUpdate({ scale: 0.71 })}
             title="Trung cảnh (Zoom 140%)"
           >
@@ -326,19 +347,27 @@ export function CameraWaypointDetailPanel({
           </button>
           <button
             type="button"
-            className={`btn xs${activeWaypoint.zoomPct >= 170 && activeWaypoint.zoomPct <= 210 ? ' active' : ''}`}
-            onClick={() => onUpdate({ scale: 0.55 })}
-            title="Cận cảnh (Zoom 180%)"
-          >
-            Cận 180%
-          </button>
-          <button
-            type="button"
-            className={`btn xs${activeWaypoint.zoomPct >= 235 ? ' active' : ''}`}
+            className={`btn xs${activeWaypoint.zoomPct >= 230 && activeWaypoint.zoomPct <= 300 ? ' active' : ''}`}
             onClick={() => onUpdate({ scale: 0.4 })}
             title="Đặc tả chi tiết (Zoom 250%)"
           >
-            Đặc tả 250%
+            Cận 250%
+          </button>
+          <button
+            type="button"
+            className={`btn xs${activeWaypoint.zoomPct >= 450 && activeWaypoint.zoomPct <= 650 ? ' active' : ''}`}
+            onClick={() => onUpdate({ scale: 0.2 })}
+            title="Siêu cận cảnh (Zoom 500%)"
+          >
+            Siêu 500%
+          </button>
+          <button
+            type="button"
+            className={`btn xs${activeWaypoint.zoomPct >= 1800 ? ' active' : ''}`}
+            onClick={() => onUpdate({ scale: 0.05 })}
+            title="Độ phóng cực đại (Zoom 2000%)"
+          >
+            Max 2000%
           </button>
         </div>
       </div>

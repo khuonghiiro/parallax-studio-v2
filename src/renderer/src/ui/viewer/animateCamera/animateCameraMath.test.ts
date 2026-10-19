@@ -105,4 +105,13 @@ describe('animateCameraMath inter-shot transition & route ordering', () => {
       expect(waypoints.length).toBeGreaterThanOrEqual(6)
     }
   })
+
+  it('supports extreme zoom magnification up to 2000% (scale = 0.05)', () => {
+    const project = makeThreeShotProject()
+    const layout = computeShotStageLayout(project, 0)
+    applyStageFrameToDraft(project, layout, 0, layout[0].stageX, layout[0].stageY, 0.05, true)
+    const waypoints = enrichCameraWaypoints(extractCameraFrames2D(project, layout))
+    expect(waypoints[0].scale).toBeCloseTo(0.05, 2)
+    expect(waypoints[0].zoomPct).toBe(2000)
+  })
 })

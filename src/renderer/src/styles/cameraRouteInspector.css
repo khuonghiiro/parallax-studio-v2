@@ -692,6 +692,42 @@
   font-family: var(--mono);
 }
 
+.zoom-val-box {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 1px 4px;
+  height: 20px;
+  transition: border-color 0.12s ease;
+}
+
+.zoom-val-box:focus-within {
+  border-color: var(--accent-cyan);
+}
+
+.zoom-number-input {
+  width: 44px;
+  height: 18px;
+  border: none;
+  background: transparent;
+  color: var(--accent-cyan);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-align: right;
+  padding: 0;
+  outline: none;
+}
+
+.zoom-val-box .suffix {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  margin-left: 1px;
+}
+
 .angle-neutral-tag {
   font-size: 9.5px;
   color: var(--text-faint);
@@ -814,6 +850,17 @@
   flex-wrap: wrap;
   gap: 3px;
   margin-top: 2px;
+}
+
+.preset-row.zoom-presets-6 {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
+}
+
+.preset-row.zoom-presets-6 .btn {
+  padding: 2px 1px;
+  font-size: 8.5px;
 }
 
 .preset-row.zoom-presets-5 {

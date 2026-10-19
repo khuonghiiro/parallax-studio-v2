@@ -305,7 +305,7 @@ export function inferWaypointActionClassification(
     const meta = getActionModeMeta(explicit)
     if (meta) {
       return {
-        tag: idx === 0 && explicit === 'pan' ? 'start' : meta.tag,
+        tag: idx === 0 ? 'start' : meta.tag,
         tagLabel: meta.badgeLabel,
         actionMode: explicit
       }
