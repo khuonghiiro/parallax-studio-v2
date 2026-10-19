@@ -708,7 +708,7 @@
 }
 
 .zoom-number-input {
-  width: 44px;
+  width: 48px;
   height: 18px;
   border: none;
   background: transparent;
@@ -719,6 +719,13 @@
   text-align: right;
   padding: 0;
   outline: none;
+  -moz-appearance: textfield;
+}
+
+.zoom-number-input::-webkit-outer-spin-button,
+.zoom-number-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .zoom-val-box .suffix {
@@ -854,13 +861,17 @@
 
 .preset-row.zoom-presets-6 {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 2px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
 }
 
 .preset-row.zoom-presets-6 .btn {
-  padding: 2px 1px;
-  font-size: 8.5px;
+  padding: 4px 6px;
+  font-size: 9.5px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .preset-row.zoom-presets-5 {

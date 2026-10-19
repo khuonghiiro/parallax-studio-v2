@@ -175,8 +175,8 @@ export function AnimateCameraViewfinder({
           bubbleY,
           frameLeft: tl.x,
           frameTop: tl.y,
-          frameW: Math.max(20, wp.width * zoom),
-          frameH: Math.max(14, wp.height * zoom),
+          frameW: Math.max(8, wp.width * zoom),
+          frameH: Math.max(6, wp.height * zoom),
           isCustomMoved: false,
           isFirstOfShot: wp.isFirstOfShot ?? localIdx === 0
         }
@@ -598,8 +598,8 @@ export function AnimateCameraViewfinder({
         const dispPitch = useLive ? liveFrame.pitch : activeWp.pitch
 
         const tl = stageToScreen(dispX - dispW / 2, dispY - dispH / 2)
-        const w = Math.max(36, dispW * zoom)
-        const h = Math.max(24, dispH * zoom)
+        const w = Math.max(8, dispW * zoom)
+        const h = Math.max(6, dispH * zoom)
         const hasAngles =
           Math.abs(dispYaw) >= 1 || Math.abs(dispPitch) >= 1 || Math.abs(dispRoll) >= 1
 
