@@ -42,11 +42,15 @@
 .anim2d-toolbar-row1 {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   min-height: 36px;
-  padding: 4px 270px 4px 8px;
+  padding: 4px 290px 4px 6px;
   border-bottom: 1px solid var(--line-soft);
   flex-wrap: wrap;
+}
+
+.anim2d-toolbar-row1 .seg-btn {
+  padding: 0 6px;
 }
 
 .anim2d-stage.single-2d .anim2d-toolbar-row1 {
@@ -61,7 +65,8 @@
   min-height: 30px;
   padding: 3px 8px;
   background: color-mix(in srgb, var(--bg-1) 60%, var(--bg-2));
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
 }
 
 .anim2d-frames-strip {
@@ -848,4 +853,3 @@
     0 0 0 2px color-mix(in srgb, var(--key) 42%, transparent),
     0 4px 12px rgba(0, 0, 0, 0.4);
 }
-

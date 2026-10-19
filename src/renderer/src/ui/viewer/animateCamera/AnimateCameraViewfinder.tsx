@@ -512,8 +512,8 @@ export function AnimateCameraViewfinder({
         )
       })}
 
-      {/* 4. Khung Camera đang nội suy trực tiếp khi phát (Live Interpolated Camera Box) */}
-      {playing && (
+      {/* 4. Khung Camera đang nội suy trực tiếp khi phát hoặc kéo thanh thời gian giữa 2 mốc */}
+      {(playing || (activeWp && Math.abs(liveFrame.time - activeWp.time) > 0.05)) && (
         <div
           className="anim2d-live-cam playing"
           style={{
@@ -587,28 +587,49 @@ export function AnimateCameraViewfinder({
 
       {/* 6. Viền Khung Ngắm Camera Đang Active Trên Cảnh (Active Camera Viewfinder) */}
       {activeWp && (() => {
-        const tl = stageToScreen(
-          activeWp.stageX - activeWp.width / 2,
-          activeWp.stageY - activeWp.height / 2
-        )
-        const w = Math.max(36, activeWp.width * zoom)
-        const h = Math.max(24, activeWp.height * zoom)
+        const isScrubbingBetween = Math.abs(liveFrame.time - activeWp.time) > 0.05
+        const useLive = playing || isScrubbingBetween
+        const dispX = useLive ? liveFrame.stageX : activeWp.stageX
+        const dispY = useLive ? liveFrame.stageY : activeWp.stageY
+        const dispW = useLive ? liveFrame.width : activeWp.width
+        const dispH = useLive ? liveFrame.height : activeWp.height
+        const dispRoll = useLive ? liveFrame.roll : activeWp.roll
+        const dispYaw = useLive ? liveFrame.yaw : activeWp.yaw
+        const dispPitch = useLive ? liveFrame.pitch : activeWp.pitch
+
+        const tl = stageToScreen(dispX - dispW / 2, dispY - dispH / 2)
+        const w = Math.max(36, dispW * zoom)
+        const h = Math.max(24, dispH * zoom)
         const hasAngles =
-          Math.abs(activeWp.yaw) >= 1 || Math.abs(activeWp.pitch) >= 1 || Math.abs(activeWp.roll) >= 1
+          Math.abs(dispYaw) >= 1 || Math.abs(dispPitch) >= 1 || Math.abs(dispRoll) >= 1
+
+        const transforms: string[] = []
+        if (toolMode === 'orbit-3d' || hasAngles) {
+          const tiltX = Math.max(-24, Math.min(24, dispPitch * 0.35))
+          const tiltY = Math.max(-28, Math.min(28, -dispYaw * 0.35))
+          if (Math.abs(tiltX) >= 0.5 || Math.abs(tiltY) >= 0.5) {
+            transforms.push(`perspective(900px) rotateX(${tiltX.toFixed(1)}deg) rotateY(${tiltY.toFixed(1)}deg)`)
+          }
+        }
+        if (dispRoll) {
+          transforms.push(`rotate(${dispRoll}deg)`)
+        }
 
         return (
           <div
             id="anim2d-active-viewfinder"
-            className={`anim2d-cam-frame active mode-${toolMode}`}
+            className={`anim2d-cam-frame active mode-${toolMode}${playing ? ' is-playing' : ''}`}
             style={{
               left: tl.x,
               top: tl.y,
               width: w,
               height: h,
-              transform: activeWp.roll ? `rotate(${activeWp.roll}deg)` : undefined,
-              zIndex: 35
+              transform: transforms.length > 0 ? transforms.join(' ') : undefined,
+              pointerEvents: toolMode === 'aim-target' ? 'none' : 'auto',
+              zIndex: toolMode === 'aim-target' ? 18 : 35
             }}
             onPointerDown={(e) => {
+              if (toolMode === 'aim-target') return
               if (toolMode === 'orbit-3d' || e.altKey) {
                 onStartOrbit3DDrag(e, activeWp)
               } else {
@@ -633,13 +654,49 @@ export function AnimateCameraViewfinder({
             <span className="vf-corner br" />
 
             {/* Tay nắm Xoay nghiêng máy (Camera Roll / Dutch Angle Handle) phía trên đỉnh khung */}
-            <div
-              className="anim2d-rot-stem"
-              onPointerDown={(e) => onStartRotateDrag(e, activeWp)}
-              title={`Kéo để xoay nghiêng máy (Roll / Dutch Angle: ${Math.round(activeWp.roll)}°)\nGiữ Shift để bắt dính góc 15°`}
-            >
-              <span className="anim2d-rot-knob">↻</span>
-            </div>
+            {toolMode !== 'aim-target' && (
+              <div
+                className="anim2d-rot-stem"
+                onPointerDown={(e) => onStartRotateDrag(e, activeWp)}
+                title={`Kéo để xoay nghiêng máy (Roll / Dutch Angle: ${Math.round(activeWp.roll)}°)\nGiữ Shift để bắt dính góc 15°`}
+              >
+                <span className="anim2d-rot-knob">↻</span>
+              </div>
+            )}
+
+            {/* Vòng Con Quay Xoay Góc 3D (Interactive 3D Orbit Gyroscope) khi ở chế độ Xoay 3D */}
+            {toolMode === 'orbit-3d' && (
+              <div
+                className="anim2d-orbit-gizmo"
+                title="Kéo chuột Trái/Phải để xoay ngang 3D (Yaw) · Kéo Lên/Xuống để xoay dọc 3D (Pitch)"
+              >
+                <div className="orbit-ring ring-h" />
+                <div className="orbit-ring ring-v" />
+                <div
+                  className="orbit-puck"
+                  style={{
+                    transform: `translate(${Math.max(-24, Math.min(24, Math.round(dispYaw * 0.45)))}px, ${Math.max(-24, Math.min(24, Math.round(-dispPitch * 0.45)))}px)`
+                  }}
+                />
+                <div className="orbit-readout-pill">
+                  <span>3D Yaw {Math.round(dispYaw)}° · Pitch {Math.round(dispPitch)}°</span>
+                  {hasAngles && (
+                    <button
+                      type="button"
+                      className="orbit-reset-mini"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onResetAngles(activeWp)
+                      }}
+                      title="Đặt lại góc 3D về 0°"
+                    >
+                      0°
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Tâm ngắm chính giữa kèm vector hiển thị hướng nghiêng 3D */}
             <div className="anim2d-cam-crosshair">
@@ -647,22 +704,23 @@ export function AnimateCameraViewfinder({
                 <span
                   className="anim2d-3d-tilt-vector"
                   style={{
-                    transform: `translate(${Math.round(activeWp.yaw * 0.35)}px, ${Math.round(-activeWp.pitch * 0.35)}px)`
+                    transform: `translate(${Math.round(dispYaw * 0.35)}px, ${Math.round(-dispPitch * 0.35)}px)`
                   }}
                 />
               )}
             </div>
 
-            {/* 8 Điểm Kéo Co Dãn Khung (Resize Handles) bám chuột 1:1 */}
-            {RESIZE_HANDLES.map((h) => (
-              <div
-                key={h.id}
-                className={`anim2d-cam-handle handle-${h.id}`}
-                style={{ cursor: h.cursor }}
-                onPointerDown={(e) => onStartResizeDrag(e, activeWp, h.sx, h.sy)}
-                title="Kéo góc/cạnh để Phóng to (khung nhỏ lại) hoặc Thu nhỏ (khung rộng ra)"
-              />
-            ))}
+            {/* 8 Điểm Kéo Co Dãn Khung (Resize Handles) bám chuột 1:1 — chỉ hiện ở chế độ Lia & Zoom */}
+            {toolMode === 'pan-scale' &&
+              RESIZE_HANDLES.map((h) => (
+                <div
+                  key={h.id}
+                  className={`anim2d-cam-handle handle-${h.id}`}
+                  style={{ cursor: h.cursor }}
+                  onPointerDown={(e) => onStartResizeDrag(e, activeWp, h.sx, h.sy)}
+                  title="Kéo góc/cạnh để Phóng to (khung nhỏ lại) hoặc Thu nhỏ (khung rộng ra)"
+                />
+              ))}
           </div>
         )
       })()}

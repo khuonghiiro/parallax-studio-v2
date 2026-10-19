@@ -539,6 +539,20 @@ export function removeCameraWaypoint(draft: Project, time: number): boolean {
   return true
 }
 
+export function shiftSubsequentCameraKeyframes(draft: Project, afterTime: number, delta: number): void {
+  const tol = Math.max(frameTolerance(draft), 0.02)
+  const hasAfter = draft.camera.position.keyframes.some((k) => k.t > afterTime + tol)
+  if (!hasAfter || Math.abs(delta) < 0.001) return
+  shiftSubsequentKeyframes(draft.camera.position, afterTime, delta, tol)
+  shiftSubsequentKeyframes(draft.camera.target, afterTime, delta, tol)
+  shiftSubsequentKeyframes(draft.camera.focusDistance, afterTime, delta, tol)
+  shiftSubsequentKeyframes(draft.camera.roll, afterTime, delta, tol)
+  const maxKeyT = Math.max(0, ...draft.camera.position.keyframes.map((k) => k.t))
+  if (maxKeyT > draft.comp.duration) {
+    setCompDuration(draft, Math.ceil(maxKeyT + 1))
+  }
+}
+
 /**
  * Duplicates a camera waypoint to a new timestamp `targetTime`.
  */
@@ -548,6 +562,8 @@ export function duplicateCameraWaypoint(
   sourceFrame: CameraFrame2D,
   targetTime: number
 ): void {
+  const delta = Math.max(0.1, targetTime - sourceFrame.time)
+  shiftSubsequentCameraKeyframes(draft, sourceFrame.time, delta)
   if (targetTime > draft.comp.duration) {
     setCompDuration(draft, Math.ceil(targetTime + 1))
   }
@@ -580,6 +596,7 @@ export function addCameraHoldWaypoint(
   holdSec = 2.0
 ): void {
   const targetTime = Math.round((sourceFrame.time + holdSec) * 100) / 100
+  shiftSubsequentCameraKeyframes(draft, sourceFrame.time, holdSec)
   if (targetTime > draft.comp.duration) {
     setCompDuration(draft, Math.ceil(targetTime + 1))
   }

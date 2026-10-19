@@ -33,6 +33,7 @@ import {
   panCameraToShot,
   removeCameraWaypoint,
   reverseCameraRoute,
+  shiftSubsequentCameraKeyframes,
   updateCameraWaypoint,
   type CameraActionMode,
   type CameraRoutePresetType,
@@ -117,17 +118,7 @@ export function CameraRouteInspector() {
     if (!base) return
 
     const stepDur = 2.0
-    const isAtKeyframe = waypoints.some((f) => Math.abs(f.time - time) <= Math.max(tol, 0.04))
-    let nextTime = time
-    if (!base.isKeyframed) {
-      nextTime = stepDur
-    } else if (isAtKeyframe) {
-      const nextExisting = waypoints.find((f) => f.time > base.time + 0.05)
-      nextTime = nextExisting
-        ? Math.round(((base.time + nextExisting.time) / 2) * 100) / 100
-        : Math.round((base.time + stepDur) * 100) / 100
-    }
-
+    let anchor = base
     let nextStageX = base.stageX
     let nextStageY = base.stageY
     let nextScale = base.scale
@@ -137,17 +128,25 @@ export function CameraRouteInspector() {
     } else if (mode === 'zoom-out') {
       nextScale = clampFrameScale(base.scale * 1.38)
     } else {
-      const curShotIdx = stageLayout.findIndex((b) => b.shotId === base.shotId)
+      for (let i = base.index + 1; i < waypoints.length; i++) {
+        if (waypoints[i].shotId === base.shotId) anchor = waypoints[i]
+        else break
+      }
+      const curShotIdx = stageLayout.findIndex((b) => b.shotId === anchor.shotId)
       const nextShot =
         curShotIdx >= 0 && curShotIdx + 1 < stageLayout.length ? stageLayout[curShotIdx + 1] : null
-      if (nextShot && Math.hypot(base.stageX - nextShot.stageX, base.stageY - nextShot.stageY) > 100) {
+      if (nextShot && Math.hypot(anchor.stageX - nextShot.stageX, anchor.stageY - nextShot.stageY) > 100) {
         nextStageX = nextShot.stageX
         nextStageY = nextShot.stageY
       } else {
-        nextStageX = Math.round(base.stageX + project.comp.width * 0.22)
-        nextStageY = Math.round(base.stageY - project.comp.height * 0.06)
+        nextStageX = Math.round(anchor.stageX + project.comp.width * 0.22)
+        nextStageY = Math.round(anchor.stageY - project.comp.height * 0.06)
       }
     }
+
+    const nextTime = !anchor.isKeyframed
+      ? stepDur
+      : Math.round((anchor.time + stepDur) * 100) / 100
 
     update((d) => {
       if (d.camera.position.keyframes.length === 0 && d.camera.target.keyframes.length === 0) {
@@ -157,13 +156,14 @@ export function CameraRouteInspector() {
           roll: base.roll
         })
       }
+      shiftSubsequentCameraKeyframes(d, anchor.time, stepDur)
       if (nextTime > d.comp.duration) {
         setCompDuration(d, Math.ceil(nextTime + 1))
       }
       applyStageFrameToDraft(d, stageLayout, nextTime, nextStageX, nextStageY, nextScale, true, {
-        yaw: base.yaw,
-        pitch: base.pitch,
-        roll: base.roll
+        yaw: anchor.yaw,
+        pitch: anchor.pitch,
+        roll: anchor.roll
       })
     })
 
@@ -498,7 +498,7 @@ export function CameraRouteInspector() {
                 <div className="wp-card-head">
                   <div className="wp-card-title">
                     <span className={`wp-card-idx${wp.isFirstOfShot ? ' first-of-shot' : ''}`}>
-                      {wp.isFirstOfShot ? '⚑ ' : ''}#{idx + 1}
+                      #{idx + 1}
                     </span>
                     {wp.isFirstOfShot && (
                       <span className="wp-first-of-shot-badge" title="Mốc camera lộ trình đầu tiên của cảnh này">

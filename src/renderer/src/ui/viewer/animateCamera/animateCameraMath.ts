@@ -1,7 +1,8 @@
 import type { EaseName, Layer, Project, Vec3 } from '@shared/types'
+import { ease } from '../../../animation/easing'
 import { addKeyframe, anim, evaluate, setValueAt } from '../../../animation/keyframes'
-import { referenceDistance } from '../../../animation/math'
-import { evaluateScene, type EvaluatedScene } from '../../../engine/evaluateScene'
+import { referenceDistance, smoothNoise } from '../../../animation/math'
+import { type EvaluatedScene } from '../../../engine/evaluateScene'
 import { frameTolerance } from '../../../store/editor'
 
 export interface ShotStageBox {
@@ -188,9 +189,12 @@ export function projectShotLayers2D(
   project: Project,
   ev: EvaluatedScene,
   shotId: string | null,
-  includeGlobals = false
+  includeGlobals = false,
+  cameraAngles?: { yaw?: number; pitch?: number }
 ): ProjectedLayer2D[] {
   const refD = Math.max(100, referenceDistance(project.comp))
+  const yawRad = clampCameraAngle(cameraAngles?.yaw ?? 0, -85, 85) * RAD
+  const pitchRad = clampCameraAngle(cameraAngles?.pitch ?? 0, -75, 75) * RAD
   const matching = ev.layers.filter((el) => {
     if (!el.layer.visible || el.opacity <= 0.01) return false
     if (el.layer.shotId === shotId) return true
@@ -210,8 +214,11 @@ export function projectShotLayers2D(
     const pFactor = refD / Math.max(80, refD + lz)
     const width = Math.max(4, el.size[0] * el.scale[0] * pFactor)
     const height = Math.max(4, el.size[1] * el.scale[1] * pFactor)
-    const offsetX = el.position[0] * pFactor
-    const offsetY = -el.position[1] * pFactor
+    // Apply 2.5D parallax depth shift when 3D camera Yaw / Pitch is non-zero
+    const parallaxDx = -Math.tan(yawRad) * lz * 0.35
+    const parallaxDy = Math.tan(pitchRad) * lz * 0.35
+    const offsetX = (el.position[0] + parallaxDx) * pFactor
+    const offsetY = -(el.position[1] + parallaxDy) * pFactor
     const rotation = -el.rotation[2]
 
     const base: ProjectedLayer2D = {
@@ -274,6 +281,65 @@ export function findNearestShotByStage2D(layout: ShotStageBox[], stageX: number,
   return best
 }
 
+/**
+ * Maps a 3D world coordinate continuously onto the 2D Stage plane:
+ * - Inside a shot's local framing zone (|dx| <= W*0.5, |dy| <= H*0.5), preserves 1:1 pixel accuracy.
+ * - Across the inter-shot 3D gap between two shots, interpolates monotonically across the 2D stage gap
+ *   so camera motion between shots never overshoots or loops back.
+ */
+function map3DTargetToStageXY(
+  project: Project,
+  layout: ShotStageBox[],
+  target3D: Vec3,
+  primaryBox: ShotStageBox
+): { stageX: number; stageY: number } {
+  const W = project.comp.width
+  const H = project.comp.height
+  const halfW = W * 0.5
+  const halfH = H * 0.5
+  const localDx = target3D[0] - primaryBox.worldOrigin[0]
+  const localDy = target3D[1] - primaryBox.worldOrigin[1]
+
+  let stageX = Math.round(primaryBox.stageX + localDx)
+  let stageY = Math.round(primaryBox.stageY - localDy)
+
+  if (layout.length >= 2 && Math.abs(localDx) > halfW) {
+    const sortedX = [...layout].sort((a, b) => a.worldOrigin[0] - b.worldOrigin[0])
+    for (let i = 0; i < sortedX.length - 1; i++) {
+      const boxA = sortedX[i]
+      const boxB = sortedX[i + 1]
+      const edge3DA = boxA.worldOrigin[0] + halfW
+      const edge3DB = boxB.worldOrigin[0] - halfW
+      if (edge3DB > edge3DA && target3D[0] > edge3DA && target3D[0] < edge3DB) {
+        const u = (target3D[0] - edge3DA) / (edge3DB - edge3DA)
+        const edgeStageA = boxA.stageX + halfW
+        const edgeStageB = boxB.stageX - halfW
+        stageX = Math.round(edgeStageA + (edgeStageB - edgeStageA) * u)
+        break
+      }
+    }
+  }
+
+  if (layout.length >= 2 && Math.abs(localDy) > halfH) {
+    const sortedY = [...layout].sort((a, b) => a.worldOrigin[1] - b.worldOrigin[1])
+    for (let i = 0; i < sortedY.length - 1; i++) {
+      const boxA = sortedY[i]
+      const boxB = sortedY[i + 1]
+      const edge3DA = boxA.worldOrigin[1] + halfH
+      const edge3DB = boxB.worldOrigin[1] - halfH
+      if (edge3DB > edge3DA && target3D[1] > edge3DA && target3D[1] < edge3DB) {
+        const u = (target3D[1] - edge3DA) / (edge3DB - edge3DA)
+        const edgeStageA = boxA.stageY - halfH
+        const edgeStageB = boxB.stageY + halfH
+        stageY = Math.round(edgeStageA + (edgeStageB - edgeStageA) * u)
+        break
+      }
+    }
+  }
+
+  return { stageX, stageY }
+}
+
 export function pose3DToStageFrame(
   project: Project,
   layout: ShotStageBox[],
@@ -293,8 +359,6 @@ export function pose3DToStageFrame(
 } {
   const refD = Math.max(100, referenceDistance(project.comp))
   const shotBox = findNearestShotBy3D(layout, target3D)
-  const localDx = target3D[0] - shotBox.worldOrigin[0]
-  const localDy = target3D[1] - shotBox.worldOrigin[1]
 
   // Vector from target to camera in Three.js space (where camera in front of shot has vz > 0)
   const vx = position3D[0] - target3D[0]
@@ -307,8 +371,7 @@ export function pose3DToStageFrame(
   const roll = clampCameraAngle(rollDeg, -180, 180)
 
   const scale = clampFrameScale(dist / refD)
-  const stageX = Math.round(shotBox.stageX + localDx)
-  const stageY = Math.round(shotBox.stageY - localDy)
+  const { stageX, stageY } = map3DTargetToStageXY(project, layout, target3D, shotBox)
   return {
     shotBox,
     stageX,
@@ -496,11 +559,12 @@ export function applyStageFrameToDraft(
 
 /**
  * Evaluates the live interpolated 2D Camera Frame at arbitrary time `t`
- * so the active viewport frame glides and rotates smoothly between keyframes during playback.
+ * directly across the 2D Stage keyframes so the active viewport frame glides
+ * smoothly along the trajectory between shots without overshooting or looping.
  */
 export function evaluateLiveCameraFrame2D(
   project: Project,
-  layout: ShotStageBox[],
+  _layout: ShotStageBox[],
   frames: CameraFrame2D[],
   time: number
 ): {
@@ -552,16 +616,41 @@ export function evaluateLiveCameraFrame2D(
     }
   }
 
-  const ev = evaluateScene(project, time)
-  const mapped = pose3DToStageFrame(project, layout, ev.camera.position, ev.camera.target, ev.camera.roll ?? 0)
+  let lo = 0
+  let hi = frames.length - 1
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1
+    if (frames[mid].time <= time) lo = mid
+    else hi = mid
+  }
+  const f0 = frames[lo]
+  const f1 = frames[hi]
+  const span = f1.time - f0.time
+  const rawU = span <= 0 ? 1 : Math.max(0, Math.min(1, (time - f0.time) / span))
+  const u = ease(f0.ease, rawU)
+
+  let stageX = f0.stageX + (f1.stageX - f0.stageX) * u
+  let stageY = f0.stageY + (f1.stageY - f0.stageY) * u
+  const scale = clampFrameScale(f0.scale + (f1.scale - f0.scale) * u)
+  const yaw = clampCameraAngle(f0.yaw + (f1.yaw - f0.yaw) * u, -85, 85)
+  const pitch = clampCameraAngle(f0.pitch + (f1.pitch - f0.pitch) * u, -75, 75)
+  let roll = clampCameraAngle(f0.roll + (f1.roll - f0.roll) * u, -180, 180)
+
+  if (project.camera.shakeAmount > 0) {
+    const s = time * project.camera.shakeSpeed * Math.PI * 2
+    stageX += smoothNoise(s, 1.3) * project.camera.shakeAmount * 0.3
+    stageY -= smoothNoise(s, 7.1) * project.camera.shakeAmount * 0.3
+    roll += smoothNoise(s * 0.7, 3.7) * (project.camera.shakeAmount * 0.05)
+  }
+
   return {
-    stageX: mapped.stageX,
-    stageY: mapped.stageY,
-    scale: mapped.scale,
-    width: mapped.width,
-    height: mapped.height,
-    yaw: mapped.yaw,
-    pitch: mapped.pitch,
-    roll: mapped.roll
+    stageX: Math.round(stageX),
+    stageY: Math.round(stageY),
+    scale,
+    width: Math.round(project.comp.width * scale),
+    height: Math.round(project.comp.height * scale),
+    yaw,
+    pitch,
+    roll
   }
 }

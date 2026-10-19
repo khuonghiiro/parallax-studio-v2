@@ -9,6 +9,7 @@
 @import './styles/toolbar.css';
 @import './styles/viewer.css';
 @import './styles/animateCameraStage.css';
+@import './styles/animateCameraFilmstrip.css';
 @import './styles/cameraRouteInspector.css';
 @import './styles/inspector.css';
 @import './styles/timelineToolbar.css';

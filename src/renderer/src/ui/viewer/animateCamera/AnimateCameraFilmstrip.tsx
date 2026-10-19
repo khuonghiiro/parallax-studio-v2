@@ -104,10 +104,10 @@ export function AnimateCameraVerticalFilmstrip({
                 onClick={() => onSelectWaypoint(wp)}
                 title={`${wp.isFirstOfShot ? `⚑ MỐC MỞ MÀN CẢNH: ${wp.shotName}\n` : ''}Mốc #${idx + 1} tại ${wp.time.toFixed(1)}s ${idx > 0 ? `(+${wp.durationFromPrev.toFixed(1)}s)` : '(Bắt đầu)'}\nCảnh: ${wp.shotName} · Zoom ${wp.zoomPct}% · ${wp.tagLabel}\n👉 Bấm để chọn mốc này và mở tab Lộ trình chỉnh sửa`}
               >
-                {/* Dải lỗ phim điện ảnh 2 bên (Sprocket Holes) */}
+                {/* Dải tiêu đề trên cùng của thẻ phim (Căn chỉnh chuẩn 1 dòng gọn gàng) */}
                 <div className="film-card-top">
                   <span className={`film-card-num${wp.isFirstOfShot ? ' first-of-shot' : ''}`}>
-                    {wp.isFirstOfShot ? '⚑ ' : ''}#{idx + 1}
+                    #{idx + 1}
                   </span>
                   {wp.isFirstOfShot && (
                     <span className="film-card-first-tag" title="Mốc camera lộ trình đầu tiên của cảnh này">
@@ -115,7 +115,7 @@ export function AnimateCameraVerticalFilmstrip({
                     </span>
                   )}
                   <span className="film-card-time">{wp.time.toFixed(1)}s</span>
-                  {idx > 0 && (
+                  {idx > 0 && !wp.isFirstOfShot && (
                     <span className="film-card-dur">+{wp.durationFromPrev.toFixed(1)}s</span>
                   )}
                   <span className="film-card-zoom">{wp.zoomPct}%</span>

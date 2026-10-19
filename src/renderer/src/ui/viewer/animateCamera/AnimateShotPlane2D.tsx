@@ -200,6 +200,46 @@ export function AnimateShotPlane2D({
 
           return null
         })}
+
+        {/* Khi bật chế độ 🎯 Ngắm Layer: hiển thị lưới chọn nhanh Layer 2 cột gọn gàng không đè chữ */}
+        {aimMode && layers.length > 0 && (
+          <div className="anim2d-aim-pins-overlay">
+            {isSelectedShot || isActiveCameraShot ? (
+              <div className="anim2d-aim-pins-grid">
+                {[...layers].reverse().map((layer) => (
+                  <button
+                    key={`aim-pin-${layer.id}`}
+                    type="button"
+                    className="anim2d-layer-pin"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onAimAtLayer(box, layer)
+                    }}
+                    title={`🎯 Bấm để ngắm & lấy nét Camera vào "${layer.name}" (Chiều sâu Z = ${Math.round(layer.zDepth)})`}
+                  >
+                    <span className="pin-dot">🎯</span>
+                    <span className="pin-name">{layer.name}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="anim2d-layer-pin shot-aim-switch"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSelectShot(box.shotId)
+                  onAimCurrentAtShot(box)
+                }}
+                title={`🎯 Bấm để chuyển Camera sang "${box.name}" và chọn các Layer trong cảnh này`}
+              >
+                🎯 Ngắm {box.name} ({layers.length} lớp)
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

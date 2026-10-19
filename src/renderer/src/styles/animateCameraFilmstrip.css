@@ -1,0 +1,609 @@
+/* ==========================================================================
+   Vertical Filmstrip Preview & Pro Action Footer for 2D Camera Stage
+   Supports Dark & Light Themes via CSS Design Tokens (variables.css)
+   ========================================================================== */
+
+.anim2d-workspace-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.anim2d-filmstrip {
+  display: flex;
+  flex-direction: column;
+  width: 172px;
+  min-width: 172px;
+  background: var(--bg-1);
+  border-left: 1px solid var(--line);
+  z-index: 22;
+  user-select: none;
+  transition: width 0.15s ease;
+}
+
+.anim2d-filmstrip.compact-only {
+  width: 154px;
+  min-width: 154px;
+}
+
+.anim2d-filmstrip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 5px 7px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.filmstrip-title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.filmstrip-ico {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.filmstrip-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.filmstrip-preview-toggle {
+  height: 19px;
+  padding: 0 6px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  font-size: 9px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+}
+
+.filmstrip-preview-toggle.on {
+  border-color: color-mix(in srgb, var(--accent-cyan) 65%, var(--line));
+  color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-2));
+}
+
+.filmstrip-preview-toggle:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.anim2d-filmstrip-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 7px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background-image: radial-gradient(var(--line-soft) 1.5px, transparent 1.5px);
+  background-size: 8px 14px;
+  background-position: 2px 0;
+  background-repeat: repeat-y;
+}
+
+.anim2d-film-step-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.anim2d-film-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 16px;
+  font-size: 9px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+}
+
+.anim2d-film-connector .connector-dur {
+  padding: 0 5px;
+  border-radius: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  color: var(--accent-cyan);
+  font-size: 8.5px;
+  line-height: 13px;
+}
+
+.anim2d-film-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px 6px;
+  border-radius: 5px;
+  background: var(--bg-2);
+  border: 1.5px solid var(--line);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  box-sizing: border-box;
+}
+
+.anim2d-film-card:hover {
+  border-color: var(--accent-cyan);
+  background: var(--bg-3);
+}
+
+.anim2d-film-card.active {
+  border-color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-2));
+  box-shadow:
+    0 0 0 1px var(--accent-cyan),
+    0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.anim2d-film-card.first-of-shot {
+  border-top: 2.5px solid var(--key);
+}
+
+.film-card-top {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--mono);
+  font-size: 9px;
+  line-height: 15px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.film-card-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 15px;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-1));
+  padding: 0 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.film-card-num.first-of-shot {
+  color: var(--key);
+  background: color-mix(in srgb, var(--key) 18%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--key) 45%, transparent);
+}
+
+.film-card-first-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 15px;
+  font-size: 8px;
+  font-family: var(--sans);
+  font-weight: 700;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--key) 20%, transparent);
+  color: var(--key);
+  border: 1px solid color-mix(in srgb, var(--key) 45%, transparent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.anim2d-film-card.active .film-card-num {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.film-card-time {
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.film-card-dur {
+  color: var(--text-dim);
+  font-size: 8.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.film-card-zoom {
+  margin-left: auto;
+  color: var(--key);
+  font-weight: 700;
+  font-size: 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.anim2d-film-thumb {
+  position: relative;
+  overflow: hidden;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  align-self: center;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.35);
+}
+
+.anim2d-film-card.active .anim2d-film-thumb {
+  border-color: var(--accent-cyan);
+}
+
+.anim2d-film-thumb-world {
+  position: relative;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.film-thumb-guides {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 33.33% 33.33%;
+}
+
+.film-thumb-mode-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  padding: 0 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--bg-0) 84%, transparent);
+  color: var(--text);
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 13px;
+  max-width: 126px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.film-card-bottom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9.5px;
+  color: var(--text-dim);
+  min-width: 0;
+}
+
+.film-shot-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.film-shot-name {
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.film-compact-tag {
+  font-size: 8.5px;
+  color: var(--accent-cyan);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ Unified Pro Camera Moves Footer Bar */
+
+.anim2d-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 32px;
+  padding: 3px 10px;
+  background: var(--bg-2);
+  border-top: 1px solid var(--line);
+  z-index: 25;
+  flex-wrap: wrap;
+}
+
+.anim2d-footer-current {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.footer-nav-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  font-size: 9px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.footer-nav-btn:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.footer-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.footer-active-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 4px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  font-size: 10px;
+  font-family: var(--mono);
+}
+
+.footer-active-pill .pill-idx {
+  font-weight: 800;
+  color: var(--accent-cyan);
+}
+
+.footer-active-pill .pill-time {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.footer-active-pill .pill-dur {
+  color: var(--text-dim);
+  font-size: 9.5px;
+}
+
+.footer-active-pill .pill-shot {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 9.5px;
+}
+
+.anim2d-footer-modes {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.footer-modes-label {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-right: 2px;
+}
+
+.anim2d-footer-modes .mode-chip,
+.anim2d-footer-right .mode-chip {
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+}
+
+.anim2d-footer-modes .mode-chip:hover,
+.anim2d-footer-right .mode-chip:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line-focus);
+}
+
+.anim2d-footer-modes .mode-chip.active,
+.anim2d-footer-right .mode-chip.active {
+  background: var(--accent);
+  border-color: color-mix(in srgb, var(--accent-cyan) 50%, var(--accent));
+  color: var(--on-accent);
+}
+
+.anim2d-footer-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Contextual Mode Pills & Chips in Row 2 Toolbar */
+.anim2d-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+
+.anim2d-mode-pill.orbit {
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-1));
+  border: 1px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+.anim2d-mode-pill.aim {
+  background: color-mix(in srgb, var(--key) 18%, var(--bg-1));
+  border: 1px solid var(--key);
+  color: var(--key);
+  font-family: var(--sans);
+}
+
+.aim-layer-chip {
+  border-color: color-mix(in srgb, var(--key) 55%, var(--line)) !important;
+}
+
+.aim-layer-chip:hover {
+  background: var(--key) !important;
+  color: #111827 !important;
+  border-color: var(--key) !important;
+}
+
+/* Interactive 3D Orbit Gyroscope inside Active Camera Frame */
+.anim2d-orbit-gizmo {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.anim2d-orbit-gizmo .orbit-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px dashed color-mix(in srgb, var(--accent-cyan) 75%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-cyan) 22%, transparent);
+}
+
+.anim2d-orbit-gizmo .orbit-ring.ring-h {
+  width: min(64%, 130px);
+  height: min(36%, 64px);
+}
+
+.anim2d-orbit-gizmo .orbit-ring.ring-v {
+  width: min(36%, 64px);
+  height: min(64%, 130px);
+}
+
+.anim2d-orbit-gizmo .orbit-puck {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--key);
+  border: 2px solid var(--bg-0);
+  box-shadow: 0 0 10px var(--key);
+  transition: transform 0.05s linear;
+}
+
+.anim2d-orbit-gizmo .orbit-readout-pill {
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--hud-bg);
+  border: 1px solid var(--accent-cyan);
+  color: var(--text);
+  font-size: 9px;
+  font-family: var(--mono);
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.anim2d-orbit-gizmo .orbit-reset-mini {
+  height: 15px;
+  padding: 0 5px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 8.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Interactive Layer Target Pins Overlay in Aim-Target Mode */
+.anim2d-aim-pins-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.anim2d-aim-pins-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px;
+  width: 100%;
+  max-height: 100%;
+  align-content: center;
+}
+
+.anim2d-layer-pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--hud-bg);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--key);
+  color: var(--text);
+  font-size: 8.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+
+.anim2d-layer-pin .pin-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.anim2d-layer-pin.shot-aim-switch {
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 9.5px;
+}
+
+.anim2d-layer-pin:hover {
+  transform: scale(1.04);
+  background: var(--key);
+  color: #111827;
+}
