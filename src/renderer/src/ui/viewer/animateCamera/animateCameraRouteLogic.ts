@@ -1,6 +1,6 @@
 import type { Animatable, EaseName, Project } from '@shared/types'
 import { setCompDuration } from '../../../actions'
-import { addKeyframe, evaluate, keyAt } from '../../../animation/keyframes'
+import { addKeyframe, evaluate } from '../../../animation/keyframes'
 import { frameTolerance } from '../../../store/editor'
 import {
   applyStageFrameToDraft,
@@ -19,22 +19,34 @@ import {
   getActionVerbLabel,
   getWaypointTimingMeta,
   inferWaypointActionClassification,
+  isSubWaypointAtTime,
   moveAndShiftWaypointMeta,
   recordExplicitActionMode,
+  removeWaypointMetaAtTime,
+  setSubWaypointAtTime,
   setWaypointTimingMeta,
   shiftExplicitActionModes,
   type CameraActionCategory,
   type CameraActionMode,
   type CameraActionModeMeta
 } from './animateCameraActionModes'
+import {
+  alignWaypointInShot,
+  applyWaypointActionMode,
+  setKeyframeEaseAtTime
+} from './animateCameraActionApplier'
 
 export {
+  alignWaypointInShot,
+  applyWaypointActionMode,
   CAMERA_ACTION_CATEGORIES,
   CAMERA_ACTION_MODES,
   getActionModeMeta,
   getActionVerbLabel,
   getWaypointTimingMeta,
+  isSubWaypointAtTime,
   recordExplicitActionMode,
+  setSubWaypointAtTime,
   setWaypointTimingMeta,
   type CameraActionCategory,
   type CameraActionMode,
@@ -42,16 +54,24 @@ export {
 }
 
 export interface CameraWaypointItem extends CameraFrame2D {
+  /** Nhãn thứ tự hiển thị (ví dụ '1', '5', '5.1', '5.2') */
+  displayLabel: string
+  /** True nếu đây là mốc phụ bổ sung vào bước/cảnh cũ (ví dụ #5.1, #5.2) */
+  isSubWaypoint: boolean
+  /** Nhãn của mốc liền trước trên lộ trình (ví dụ '4', '5', '5.1') */
+  prevDisplayLabel: string | null
+  /** Nhãn dự kiến của mốc tiếp theo nếu bấm thêm từ mốc này (ví dụ '5.1', '5.2' hoặc '10') */
+  nextSpawnLabel: string
   tag: 'start' | 'pan' | 'zoom-in' | 'zoom-out' | 'hold'
   tagLabel: string
   actionMode: CameraActionMode
   angleSummary: string
   durationFromPrev: number
-  /** Thời lượng riêng của Mốc này (giây: Mốc #1 có 2s -> 0..2s, Mốc #2 có 3s -> 2..5s) */
+  /** Thời lượng riêng của đoạn xuất phát từ Mốc này (giây: Mốc #1 có 2s -> 0..2s, Mốc #2 có 3s -> 2..5s) */
   stepDuration: number
-  /** Thời điểm kết thúc Mốc này (= time + stepDuration) */
+  /** Thời điểm kết thúc đoạn xuất phát từ Mốc này (= time + stepDuration) */
   endTime: number
-  /** Đệm chờ tĩnh ở đầu mốc trước khi bắt đầu động tác quay (giây) */
+  /** Đệm chờ tĩnh ở đầu đoạn trước khi bắt đầu động tác quay (giây) */
   delaySec: number
   /** Thời gian thực hiện động tác quay (giây: càng ít càng nhanh, càng lâu càng chậm) */
   actionDurationSec: number
@@ -80,14 +100,34 @@ export function findActiveWaypointIndexAtTime(
 
 /**
  * Enriches extracted 2D camera frames with waypoint tags, action modes, 3D angle badges,
- * own step durations, delay/action timing, zoom percentages, and first-of-shot flags.
+ * sub-waypoint labels (#5.1, #5.2), step durations, delay/action timing, zoom percentages, and first-of-shot flags.
  */
 export function enrichCameraWaypoints(frames: CameraFrame2D[]): CameraWaypointItem[] {
   const firstIdxByShot = new Map<string, number>()
+  const labels: string[] = []
+  const subFlags: boolean[] = []
+  const mainNums: number[] = []
+  const subCountsByMain = new Map<number, number>()
+  let mainCounter = 0
+
   frames.forEach((f, idx) => {
     const shotKey = f.shotId ?? 'global'
     if (!firstIdxByShot.has(shotKey)) {
       firstIdxByShot.set(shotKey, idx)
+    }
+
+    const isSub = idx > 0 && isSubWaypointAtTime(f.time)
+    subFlags.push(isSub)
+    if (!isSub) {
+      mainCounter += 1
+      mainNums.push(mainCounter)
+      subCountsByMain.set(mainCounter, 0)
+      labels.push(`${mainCounter}`)
+    } else {
+      const nextSub = (subCountsByMain.get(mainCounter) ?? 0) + 1
+      subCountsByMain.set(mainCounter, nextSub)
+      mainNums.push(mainCounter)
+      labels.push(`${mainCounter}.${nextSub}`)
     }
   })
 
@@ -122,8 +162,19 @@ export function enrichCameraWaypoints(frames: CameraFrame2D[]): CameraWaypointIt
     if (Math.abs(f.roll) >= 1) angleParts.push(`Roll ${f.roll > 0 ? '+' : ''}${Math.round(f.roll)}°`)
     const angleSummary = angleParts.length > 0 ? angleParts.join(' · ') : 'Thẳng 0°'
 
+    const isLastMain = idx === frames.length - 1 && !subFlags[idx]
+    const parentMain = mainNums[idx] ?? idx + 1
+    const existingSubs = subCountsByMain.get(parentMain) ?? 0
+    const nextSpawnLabel = isLastMain
+      ? `${mainCounter + 1}`
+      : `${parentMain}.${existingSubs + 1}`
+
     return {
       ...f,
+      displayLabel: labels[idx] ?? `${idx + 1}`,
+      isSubWaypoint: subFlags[idx] ?? false,
+      prevDisplayLabel: idx > 0 ? (labels[idx - 1] ?? `${idx}`) : null,
+      nextSpawnLabel,
       tag,
       tagLabel,
       actionMode,
@@ -137,22 +188,6 @@ export function enrichCameraWaypoints(frames: CameraFrame2D[]): CameraWaypointIt
       isFirstOfShot
     }
   })
-}
-
-/**
- * Sets easing curve across all camera transform tracks at given timestamp.
- */
-function setKeyframeEaseAtTime(draft: Project, time: number, ease: EaseName): void {
-  const tol = frameTolerance(draft)
-  const setEase = (track?: Animatable<unknown>) => {
-    if (!track) return
-    const k = keyAt(track, time, tol)
-    if (k) k.ease = ease
-  }
-  setEase(draft.camera.position)
-  setEase(draft.camera.target)
-  setEase(draft.camera.focusDistance)
-  setEase(draft.camera.roll)
 }
 
 /**
@@ -315,7 +350,6 @@ export function updateCameraWaypoint(
   const newTime = updates.time !== undefined ? Math.max(0, Math.round(updates.time * 100) / 100) : oldTime
   const deltaT = newTime - oldTime
 
-  // If ripple is requested and time changed, shift later keyframes first (or after)
   if (Math.abs(deltaT) > 0.001) {
     removeKeyframeAtTime(draft.camera.position, oldTime, tol)
     removeKeyframeAtTime(draft.camera.target, oldTime, tol)
@@ -358,335 +392,6 @@ export function updateCameraWaypoint(
 }
 
 /**
- * Applies a high-level professional Camera Action Mode (20 cinematography & animation techniques)
- * to the waypoint at `waypointTime`.
- */
-export function applyWaypointActionMode(
-  draft: Project,
-  layout: ShotStageBox[],
-  waypointTime: number,
-  mode: CameraActionMode
-): void {
-  const frames = extractCameraFrames2D(draft, layout)
-  const tol = Math.max(frameTolerance(draft), 0.04)
-  let idx = frames.findIndex((f) => Math.abs(f.time - waypointTime) <= tol)
-  if (idx < 0 && frames.length > 0) {
-    let bestDist = Infinity
-    for (let i = 0; i < frames.length; i++) {
-      const d = Math.abs(frames[i].time - waypointTime)
-      if (d < bestDist) {
-        bestDist = d
-        idx = i
-      }
-    }
-  }
-  const cur = idx >= 0 ? frames[idx] : null
-  if (!cur) return
-  const prev = idx > 0 ? frames[idx - 1] : null
-  const box =
-    (cur.shotId ? layout.find((b) => b.shotId === cur.shotId) : null) ??
-    findNearestShotByStage2D(layout, cur.stageX, cur.stageY) ??
-    layout[0]
-
-  if (mode !== 'cut' && prev && prev.ease === 'hold') {
-    setKeyframeEaseAtTime(draft, prev.time, 'easeInOut')
-  }
-
-  recordExplicitActionMode(cur.time, mode)
-
-  switch (mode) {
-    case 'hold': {
-      if (prev) {
-        updateCameraWaypoint(draft, layout, cur.time, {
-          stageX: prev.stageX,
-          stageY: prev.stageY,
-          scale: prev.scale,
-          yaw: prev.yaw,
-          pitch: prev.pitch,
-          roll: prev.roll,
-          ease: 'easeInOut'
-        })
-      } else {
-        addCameraHoldWaypoint(draft, layout, cur, 2.0)
-      }
-      break
-    }
-    case 'pan': {
-      updateCameraWaypoint(draft, layout, cur.time, {
-        yaw: 0,
-        pitch: 0,
-        roll: 0,
-        ease: 'easeInOut'
-      })
-      if (prev) setKeyframeEaseAtTime(draft, prev.time, 'easeInOut')
-      break
-    }
-    case 'push-in': {
-      const targetScale = clampFrameScale(prev ? Math.min(0.68, prev.scale * 0.68) : 0.68)
-      updateCameraWaypoint(draft, layout, cur.time, {
-        scale: targetScale,
-        yaw: 0,
-        pitch: 0,
-        roll: 0,
-        ease: 'easeInOut'
-      })
-      break
-    }
-    case 'extreme-closeup': {
-      updateCameraWaypoint(draft, layout, cur.time, {
-        scale: 0.42,
-        yaw: 0,
-        pitch: -4,
-        roll: 0,
-        ease: 'easeInOutStrong'
-      })
-      break
-    }
-    case 'pull-out': {
-      const targetScale = clampFrameScale(prev ? Math.max(1.25, prev.scale * 1.32) : 1.32)
-      updateCameraWaypoint(draft, layout, cur.time, {
-        scale: targetScale,
-        yaw: 0,
-        pitch: 0,
-        roll: 0,
-        ease: 'easeInOut'
-      })
-      break
-    }
-    case 'establishing': {
-      updateCameraWaypoint(draft, layout, cur.time, {
-        stageX: box ? box.stageX : cur.stageX,
-        stageY: box ? box.stageY : cur.stageY,
-        scale: 1.0,
-        yaw: 0,
-        pitch: 0,
-        roll: 0,
-        ease: 'easeInOut'
-      })
-      break
-    }
-    case 'cut': {
-      if (prev) {
-        setKeyframeEaseAtTime(draft, prev.time, 'hold')
-      } else {
-        setKeyframeEaseAtTime(draft, cur.time, 'hold')
-      }
-      updateCameraWaypoint(draft, layout, cur.time, {
-        ease: 'hold'
-      })
-      break
-    }
-    case 'whip-pan': {
-      const nextX = box
-        ? Math.abs(cur.stageX - box.stageX) < 40
-          ? Math.round(box.stageX + box.width * 0.2)
-          : cur.stageX
-        : cur.stageX
-      updateCameraWaypoint(draft, layout, cur.time, {
-        stageX: nextX,
-        yaw: 0,
-        pitch: 0,
-        roll: cur.roll >= 0 ? -4 : 4,
-        ease: 'easeInOutStrong'
-      })
-      if (prev) setKeyframeEaseAtTime(draft, prev.time, 'easeInOutStrong')
-      break
-    }
-    case 'crane-up': {
-      const targetY = box ? Math.round(box.stageY - box.height * 0.2) : Math.round(cur.stageY - 180)
-      updateCameraWaypoint(draft, layout, cur.time, {
-        stageY: targetY,
-        scale: clampFrameScale(Math.max(0.92, cur.scale)),
-        yaw: 0,
-        pitch: -10,
-        roll: 0,
-        ease: 'easeInOut'
-      })
-      break
-    }
-    case 'crane-down': {
-      const targetY = box ? Math.round(box.stageY + box.height * 0.16) : Math.round(cur.stageY + 150)
-      updateCameraWaypoint(draft, layout, cur.time, {
-        stageY: targetY,
-        scale: clampFrameScale(Math.min(0.85, cur.scale)),
-        yaw: 0,
-        pitch: 8,
-        roll: 0,
-        ease: 'easeInOut'
-      })
-      break
-    }
-    case 'sweep-left': {
-      const targetX = box ? Math.round(box.stageX - box.width * 0.22) : Math.round(cur.stageX - 320)
-      updateCameraWaypoint(draft, layout, cur.time, {
-        stageX: targetX,
-        yaw: -8,
-        pitch: 0,
-        roll: 0,
-        ease: 'easeInOut'
-      })
-      break
-    }
-    case 'sweep-right': {
-      const targetX = box ? Math.round(box.stageX + box.width * 0.22) : Math.round(cur.stageX + 320)
-      updateCameraWaypoint(draft, layout, cur.time, {
-        stageX: targetX,
-        yaw: 8,
-        pitch: 0,
-        roll: 0,
-        ease: 'easeInOut'
-      })
-      break
-    }
-    case 'tilt-sky': {
-      const targetY = box ? Math.round(box.stageY - box.height * 0.24) : Math.round(cur.stageY - 220)
-      updateCameraWaypoint(draft, layout, cur.time, {
-        stageY: targetY,
-        yaw: 0,
-        pitch: -24,
-        roll: 0,
-        ease: 'easeOut'
-      })
-      break
-    }
-    case 'aerial-dive': {
-      const targetY = box ? Math.round(box.stageY + box.height * 0.06) : cur.stageY
-      updateCameraWaypoint(draft, layout, cur.time, {
-        stageX: box ? box.stageX : cur.stageX,
-        stageY: targetY,
-        scale: 0.56,
-        yaw: 0,
-        pitch: 14,
-        roll: 0,
-        ease: 'easeInOutStrong'
-      })
-      break
-    }
-    case 'orbit-left': {
-      updateCameraWaypoint(draft, layout, cur.time, {
-        yaw: -25,
-        pitch: 4,
-        roll: 0,
-        ease: 'easeInOut'
-      })
-      break
-    }
-    case 'orbit-right': {
-      updateCameraWaypoint(draft, layout, cur.time, {
-        yaw: 25,
-        pitch: 4,
-        roll: 0,
-        ease: 'easeInOut'
-      })
-      break
-    }
-    case 'hero-low':
-    case 'low-angle': {
-      const targetY = box ? Math.round(box.stageY + box.height * 0.08) : cur.stageY
-      updateCameraWaypoint(draft, layout, cur.time, {
-        stageY: targetY,
-        yaw: 0,
-        pitch: -18,
-        scale: Math.min(cur.scale, 0.78),
-        roll: 0,
-        ease: 'easeInOut'
-      })
-      break
-    }
-    case 'bird-eye':
-    case 'high-angle': {
-      const targetY = box ? Math.round(box.stageY - box.height * 0.12) : cur.stageY
-      updateCameraWaypoint(draft, layout, cur.time, {
-        stageY: targetY,
-        yaw: 0,
-        pitch: 24,
-        scale: Math.max(cur.scale, 1.15),
-        roll: 0,
-        ease: 'easeInOut'
-      })
-      break
-    }
-    case 'dutch-tilt': {
-      const nextRoll = cur.roll >= 8 ? -12 : 12
-      updateCameraWaypoint(draft, layout, cur.time, {
-        yaw: 0,
-        pitch: 0,
-        roll: nextRoll,
-        scale: Math.min(cur.scale, 0.85),
-        ease: 'easeInOut'
-      })
-      break
-    }
-    case 'corkscrew': {
-      const nextRoll = cur.roll >= 10 ? -18 : 18
-      const nextYaw = cur.yaw >= 8 ? -16 : 16
-      updateCameraWaypoint(draft, layout, cur.time, {
-        scale: 0.58,
-        yaw: nextYaw,
-        pitch: -6,
-        roll: nextRoll,
-        ease: 'easeInOutStrong'
-      })
-      break
-    }
-  }
-  recordExplicitActionMode(cur.time, mode)
-}
-
-/**
- * Aligns a waypoint within its active shot (Left, Center, Right, Top, Bottom, or Reset 3D angles).
- */
-export function alignWaypointInShot(
-  draft: Project,
-  layout: ShotStageBox[],
-  waypointTime: number,
-  align: 'left' | 'center' | 'right' | 'top' | 'bottom' | 'reset-angles'
-): void {
-  const frames = extractCameraFrames2D(draft, layout)
-  const tol = Math.max(frameTolerance(draft), 0.04)
-  let cur = frames.find((f) => Math.abs(f.time - waypointTime) <= tol)
-  if (!cur && frames.length > 0) {
-    let bestDist = Infinity
-    for (const f of frames) {
-      const d = Math.abs(f.time - waypointTime)
-      if (d < bestDist) {
-        bestDist = d
-        cur = f
-      }
-    }
-  }
-  if (!cur) return
-
-  const box =
-    (cur.shotId ? layout.find((b) => b.shotId === cur.shotId) : null) ??
-    findNearestShotByStage2D(layout, cur.stageX, cur.stageY) ??
-    layout[0]
-  if (!box) return
-
-  if (align === 'reset-angles') {
-    updateCameraWaypoint(draft, layout, cur.time, { yaw: 0, pitch: 0, roll: 0 })
-    return
-  }
-
-  let sx = cur.stageX
-  let sy = cur.stageY
-  if (align === 'center') {
-    sx = box.stageX
-    sy = box.stageY
-  } else if (align === 'left') {
-    sx = Math.round(box.stageX - box.width * 0.2)
-  } else if (align === 'right') {
-    sx = Math.round(box.stageX + box.width * 0.2)
-  } else if (align === 'top') {
-    sy = Math.round(box.stageY - box.height * 0.18)
-  } else if (align === 'bottom') {
-    sy = Math.round(box.stageY + box.height * 0.18)
-  }
-
-  updateCameraWaypoint(draft, layout, cur.time, { stageX: sx, stageY: sy })
-}
-
-/**
  * Removes a camera waypoint at time `t`. Keeps at least 1 keyframe if any were set.
  */
 export function removeCameraWaypoint(draft: Project, time: number): boolean {
@@ -698,6 +403,7 @@ export function removeCameraWaypoint(draft: Project, time: number): boolean {
   removeKeyframeAtTime(draft.camera.target, time, tol)
   removeKeyframeAtTime(draft.camera.focusDistance, time, tol)
   removeKeyframeAtTime(draft.camera.roll, time, tol)
+  removeWaypointMetaAtTime(time)
   return true
 }
 
@@ -718,6 +424,7 @@ export function shiftSubsequentCameraKeyframes(draft: Project, afterTime: number
 
 /**
  * Duplicates a camera waypoint to a new timestamp `targetTime`.
+ * If subsequent waypoints exist, marks the duplicated waypoint as a sub-waypoint (#5.1, #5.2).
  */
 export function duplicateCameraWaypoint(
   draft: Project,
@@ -725,6 +432,9 @@ export function duplicateCameraWaypoint(
   sourceFrame: CameraFrame2D,
   targetTime: number
 ): void {
+  const tol = Math.max(frameTolerance(draft), 0.02)
+  const hasAfter = draft.camera.position.keyframes.some((k) => k.t > sourceFrame.time + tol)
+  const shouldBeSub = hasAfter || isSubWaypointAtTime(sourceFrame.time)
   const delta = Math.max(0.1, targetTime - sourceFrame.time)
   shiftSubsequentCameraKeyframes(draft, sourceFrame.time, delta)
   if (targetTime > draft.comp.duration) {
@@ -746,6 +456,9 @@ export function duplicateCameraWaypoint(
     }
   )
   setKeyframeEaseAtTime(draft, targetTime, sourceFrame.ease)
+  if (shouldBeSub) {
+    setSubWaypointAtTime(targetTime, true)
+  }
 }
 
 /**
@@ -758,6 +471,9 @@ export function addCameraHoldWaypoint(
   sourceFrame: CameraFrame2D,
   holdSec = 2.0
 ): void {
+  const tol = Math.max(frameTolerance(draft), 0.02)
+  const hasAfter = draft.camera.position.keyframes.some((k) => k.t > sourceFrame.time + tol)
+  const shouldBeSub = hasAfter || isSubWaypointAtTime(sourceFrame.time)
   const targetTime = Math.round((sourceFrame.time + holdSec) * 100) / 100
   shiftSubsequentCameraKeyframes(draft, sourceFrame.time, holdSec)
   if (targetTime > draft.comp.duration) {
@@ -779,6 +495,10 @@ export function addCameraHoldWaypoint(
     }
   )
   setKeyframeEaseAtTime(draft, targetTime, 'easeInOut')
+  recordExplicitActionMode(targetTime, 'hold')
+  if (shouldBeSub) {
+    setSubWaypointAtTime(targetTime, true)
+  }
 }
 
 /**
@@ -849,11 +569,199 @@ export function ensureShotWaypointTime(
 }
 
 /**
+ * Tạo mốc lộ trình tiếp theo hoặc chèn bổ sung nhánh phụ (#5.1, #5.2...) vào bước/cảnh cũ đang chọn:
+ * - Giữ nguyên cảnh đang chọn (tuyệt đối không nhảy sang cảnh kế tiếp làm lạc cảnh).
+ * - Nếu sau bước đang chọn đã có các mốc khác (ví dụ Cảnh 2 có #4/#5/#6, Cảnh 3 có #7/#8/#9 và đang chọn #5 ở Cảnh 2),
+ *   mốc mới sẽ chèn ngay sau chuỗi nhánh của #5 và đánh số #5.1, #5.2... đồng thời giữ nguyên #6, #7, #8, #9.
+ */
+export function spawnNextCameraWaypoint(
+  draft: Project,
+  layout: ShotStageBox[],
+  options: {
+    mode: 'pan' | 'zoom-in' | 'zoom-out' | 'hold' | 'shot'
+    activeTime: number
+    selectedShotId?: string | null
+    targetShot?: ShotStageBox
+    fromWaypointTime?: number
+    stepSec?: number
+  }
+): {
+  nextTime: number
+  displayLabel: string
+  shotId: string | null
+  shotName: string
+  isSubWaypoint: boolean
+} | null {
+  const frames = extractCameraFrames2D(draft, layout)
+  const waypoints = enrichCameraWaypoints(frames)
+  if (waypoints.length === 0) return null
+
+  const tol = Math.max(frameTolerance(draft), 0.02)
+  const activeIdx = findActiveWaypointIndexAtTime(waypoints, options.activeTime, tol)
+  const activeWp = waypoints[activeIdx] ?? waypoints[waypoints.length - 1]
+
+  let base: CameraWaypointItem = activeWp
+  let isNewShotAppend = false
+  let targetShotBox: ShotStageBox | undefined
+
+  if (options.fromWaypointTime !== undefined) {
+    const found = waypoints.find((w) => Math.abs(w.time - options.fromWaypointTime!) <= tol)
+    if (found) base = found
+  } else if (options.mode === 'shot' && options.targetShot) {
+    targetShotBox = options.targetShot
+    const inTargetShot = waypoints.filter((w) => w.shotId === options.targetShot!.shotId)
+    if (activeWp.shotId === options.targetShot.shotId) {
+      base = activeWp
+    } else if (inTargetShot.length > 0) {
+      base = inTargetShot[inTargetShot.length - 1]
+    } else {
+      base = waypoints[waypoints.length - 1]
+      isNewShotAppend = true
+    }
+  } else if (options.selectedShotId && activeWp.shotId !== options.selectedShotId) {
+    const inSelectedShot = waypoints.filter((w) => w.shotId === options.selectedShotId)
+    if (inSelectedShot.length > 0) {
+      base = inSelectedShot[inSelectedShot.length - 1]
+    } else {
+      targetShotBox = layout.find((b) => b.shotId === options.selectedShotId)
+      base = waypoints[waypoints.length - 1]
+      if (targetShotBox) isNewShotAppend = true
+    }
+  }
+
+  // Nếu bước gốc (#5) đã có sẵn các nhánh phụ (#5.1, #5.2...) ngay sau nó trong cùng cảnh,
+  // tự động nối tiếp vào cuối chuỗi nhánh phụ đó để sinh ra #5.2, #5.3 đúng thứ tự thời gian.
+  let anchor = base
+  if (!isNewShotAppend) {
+    for (let i = base.index + 1; i < waypoints.length; i++) {
+      if (waypoints[i].isSubWaypoint && waypoints[i].shotId === base.shotId) {
+        anchor = waypoints[i]
+      } else {
+        break
+      }
+    }
+  }
+
+  const box =
+    targetShotBox ??
+    (anchor.shotId ? layout.find((b) => b.shotId === anchor.shotId) : null) ??
+    findNearestShotByStage2D(layout, anchor.stageX, anchor.stageY) ??
+    layout[0]
+
+  let nextStageX = anchor.stageX
+  let nextStageY = anchor.stageY
+  let nextScale = anchor.scale
+
+  if (isNewShotAppend && box) {
+    nextStageX = box.stageX
+    nextStageY = box.stageY
+    nextScale =
+      options.mode === 'zoom-in'
+        ? clampFrameScale(0.65)
+        : options.mode === 'zoom-out'
+          ? clampFrameScale(1.38)
+          : 1.0
+  } else if (options.mode === 'hold') {
+    nextStageX = anchor.stageX
+    nextStageY = anchor.stageY
+    nextScale = anchor.scale
+  } else if (options.mode === 'zoom-in') {
+    nextStageX = anchor.stageX
+    nextStageY = anchor.stageY
+    nextScale = clampFrameScale(anchor.scale * 0.68)
+  } else if (options.mode === 'zoom-out') {
+    nextStageX = anchor.stageX
+    nextStageY = anchor.stageY
+    nextScale = clampFrameScale(anchor.scale * 1.35)
+  } else if (box) {
+    // Lia máy bên trong phạm vi của cảnh hiện tại (tuyệt đối không nhảy sang cảnh kế tiếp!)
+    const maxOffsetX = Math.round(box.width * 0.28)
+    const maxOffsetY = Math.round(box.height * 0.2)
+    const relX = anchor.stageX - box.stageX
+    const relY = anchor.stageY - box.stageY
+    const stepX = Math.round(box.width * 0.18)
+    const stepY = Math.round(box.height * 0.05)
+
+    let nextRelX = relX + stepX
+    if (nextRelX > maxOffsetX) {
+      nextRelX = relX - stepX >= -maxOffsetX ? relX - stepX : 0
+    }
+    let nextRelY = relY - stepY
+    if (Math.abs(nextRelY) > maxOffsetY) {
+      nextRelY = Math.round(relY * 0.5)
+    }
+    nextStageX = Math.round(box.stageX + nextRelX)
+    nextStageY = Math.round(box.stageY + nextRelY)
+    nextScale = anchor.scale
+  }
+
+  const hasKeyframes =
+    draft.camera.position.keyframes.length > 0 || draft.camera.target.keyframes.length > 0
+  if (!hasKeyframes) {
+    applyStageFrameToDraft(draft, layout, 0, base.stageX, base.stageY, base.scale, true, {
+      yaw: base.yaw,
+      pitch: base.pitch,
+      roll: base.roll
+    })
+  }
+
+  const hasSubsequentWaypoints = !isNewShotAppend && (anchor.index < waypoints.length - 1 || anchor.isSubWaypoint)
+  const stepDur = options.stepSec ?? 2.0
+  const nextTime = !hasKeyframes
+    ? stepDur
+    : Math.round((anchor.time + stepDur) * 100) / 100
+
+  shiftSubsequentCameraKeyframes(draft, anchor.time, stepDur)
+  if (nextTime > draft.comp.duration) {
+    setCompDuration(draft, Math.ceil(nextTime + 1))
+  }
+
+  const nextYaw = isNewShotAppend ? 0 : anchor.yaw
+  const nextPitch = isNewShotAppend ? 0 : anchor.pitch
+  const nextRoll = isNewShotAppend ? 0 : anchor.roll
+
+  applyStageFrameToDraft(draft, layout, nextTime, nextStageX, nextStageY, nextScale, true, {
+    yaw: nextYaw,
+    pitch: nextPitch,
+    roll: nextRoll,
+    ease: 'easeInOut'
+  })
+  setKeyframeEaseAtTime(draft, nextTime, 'easeInOut')
+
+  if (hasSubsequentWaypoints) {
+    setSubWaypointAtTime(nextTime, true)
+  } else {
+    setSubWaypointAtTime(nextTime, false)
+  }
+
+  const explicitMode: CameraActionMode =
+    options.mode === 'zoom-in'
+      ? 'push-in'
+      : options.mode === 'zoom-out'
+        ? 'pull-out'
+        : options.mode === 'hold'
+          ? 'hold'
+          : 'pan'
+  recordExplicitActionMode(nextTime, explicitMode)
+
+  const afterWps = enrichCameraWaypoints(extractCameraFrames2D(draft, layout))
+  const spawned =
+    afterWps.find((w) => Math.abs(w.time - nextTime) <= 0.05) ?? afterWps[afterWps.length - 1]
+
+  return {
+    nextTime: spawned?.time ?? nextTime,
+    displayLabel: spawned?.displayLabel ?? `${afterWps.length}`,
+    shotId: spawned?.shotId ?? box?.shotId ?? null,
+    shotName: spawned?.shotName ?? box?.name ?? 'Cảnh',
+    isSubWaypoint: Boolean(spawned?.isSubWaypoint)
+  }
+}
+
+/**
  * Cập nhật Thời lượng riêng (`stepDuration`), Đệm chờ (`delaySec`) và Thời gian thực hiện động tác (`actionDurationSec`)
- * cho Mốc `#(waypointIndex + 1)`:
- * - Giữ nguyên thời điểm bắt đầu của Mốc `#(waypointIndex + 1)` (với Mốc #1 luôn neo chuẩn tại 0.0s).
- * - Tự động dời Mốc `#(waypointIndex + 2)` và các mốc phía sau để Mốc `#(waypointIndex + 1)` kéo dài đúng `stepDuration` giây
- *   (ví dụ: Mốc #1 có 2s [0.0s ➔ 2.0s], ngay tới 2.01s sang Mốc #2 có 3s [2.0s ➔ 5.0s]).
+ * cho đoạn chuyển xuất phát từ Mốc `waypointIndex` (`#(waypointIndex + 1) ➔ #(waypointIndex + 2)`):
+ * - Giữ nguyên thời điểm bắt đầu của Mốc `waypointIndex` (với Mốc #1 luôn neo chuẩn tại 0.0s).
+ * - Tự động dời Mốc kế tiếp và các mốc phía sau để đoạn chuyển kéo dài đúng `stepDuration` giây.
  */
 export function updateWaypointStepDuration(
   draft: Project,
@@ -869,7 +777,6 @@ export function updateWaypointStepDuration(
   const cur = frames[waypointIndex]
   if (!cur) return 0
 
-  // Nếu chỉnh Mốc #1 mà Mốc #1 đang bị lệch khỏi 0.0s, tự động neo Mốc #1 về 0.0s trước
   if (waypointIndex === 0 && cur.time > 0.001) {
     const offsetToZero = -cur.time
     updateCameraWaypoint(draft, layout, cur.time, {
@@ -906,31 +813,16 @@ export function updateWaypointStepDuration(
     if (options.actionDurationSec === undefined) {
       nextActionDur = Math.max(0.2, Math.round((nextStepDur - nextDelay) * 100) / 100)
     }
-  } else if (options.actionDurationSec !== undefined) {
+  } else if (options.actionDurationSec !== undefined || options.delaySec !== undefined) {
     nextStepDur = Math.max(0.2, Math.round((nextDelay + nextActionDur) * 100) / 100)
   } else {
-    if (options.delaySec !== undefined) {
-      if (nextDelay + nextActionDur > currentMeta.stepDuration) {
-        nextActionDur = Math.max(0.2, Math.round((currentMeta.stepDuration - nextDelay) * 100) / 100)
-      }
-    }
-    nextStepDur = Math.max(
-      currentMeta.stepDuration,
-      Math.round((nextDelay + nextActionDur) * 100) / 100
-    )
+    nextStepDur = currentMeta.stepDuration
   }
 
   const isCustomActionTiming =
     options.delaySec !== undefined ||
     options.actionDurationSec !== undefined ||
     currentMeta.hasCustomActionTiming
-
-  setWaypointTimingMeta(cur.time, {
-    stepDuration: nextStepDur,
-    delaySec: nextDelay,
-    actionDurationSec: nextActionDur,
-    hasCustomActionTiming: isCustomActionTiming
-  })
 
   if (next) {
     const newNextTime = Math.max(
@@ -942,6 +834,13 @@ export function updateWaypointStepDuration(
       ripple: true
     })
   }
+
+  setWaypointTimingMeta(cur.time, {
+    stepDuration: nextStepDur,
+    delaySec: nextDelay,
+    actionDurationSec: nextActionDur,
+    hasCustomActionTiming: isCustomActionTiming
+  })
 
   // Bảo đảm Immer luôn sinh ra tham chiếu project mới để React/Zustand re-render tức thì
   draft.camera.position.keyframes = draft.camera.position.keyframes.map((k) => ({ ...k }))
@@ -962,4 +861,3 @@ export {
   reverseCameraRoute,
   type CameraRoutePresetType
 } from './animateCameraRoutePresets'
-

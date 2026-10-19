@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { EaseName } from '@shared/types'
-import { setCompDuration, toast } from '../../actions'
+import { toast } from '../../actions'
 import { evaluateScene } from '../../engine/evaluateScene'
 import { frameTolerance, useEditor } from '../../store/editor'
 import { useView } from '../../store/view'
@@ -15,8 +15,6 @@ import {
   IconWand
 } from '../icons'
 import {
-  applyStageFrameToDraft,
-  clampFrameScale,
   computeShotStageLayout,
   extractCameraFrames2D,
   findNearestShotByStage2D,
@@ -24,7 +22,6 @@ import {
   type ProjectedLayer2D
 } from '../viewer/animateCamera/animateCameraMath'
 import {
-  addCameraHoldWaypoint,
   alignWaypointInShot,
   appendShotCameraWaypoint,
   applyCameraRoutePreset,
@@ -32,14 +29,13 @@ import {
   CAMERA_ACTION_MODES,
   duplicateCameraWaypoint,
   enrichCameraWaypoints,
-  ensureShotWaypointTime,
   findActiveWaypointIndexAtTime,
   panCameraToLayer2D,
   panCameraToShot,
   recordExplicitActionMode,
   removeCameraWaypoint,
   reverseCameraRoute,
-  shiftSubsequentCameraKeyframes,
+  spawnNextCameraWaypoint,
   updateCameraWaypoint,
   updateWaypointStepDuration,
   type CameraActionMode,
@@ -138,7 +134,7 @@ export function CameraRouteInspector() {
     const shotWps = waypoints.filter((w) => w.shotId === selectedShotId)
     if (shotWps.length > 0) {
       if (activeWaypoint?.shotId !== selectedShotId) {
-        setTime(shotWps[0].time)
+        setTime(shotWps[shotWps.length - 1].time)
       }
       return
     }
@@ -187,86 +183,36 @@ export function CameraRouteInspector() {
   }, [stageLayout, project, ev])
 
   const activeShotLayers = useMemo(() => {
-    const targetShotId = selectedShotId ?? activeWaypoint?.shotId ?? null
+    const targetShotId = activeWaypoint?.shotId ?? selectedShotId ?? null
     if (!targetShotId) return layersByShot.get(null) ?? []
     return layersByShot.get(targetShotId) ?? []
-  }, [selectedShotId, activeWaypoint?.shotId, layersByShot])
+  }, [activeWaypoint?.shotId, selectedShotId, layersByShot])
 
-  const spawnNextFrame = (mode: 'pan' | 'zoom-in' | 'zoom-out'): void => {
-    const selectedWps = selectedShotId ? waypoints.filter((w) => w.shotId === selectedShotId) : []
-    const base =
-      (selectedShotId && activeWaypoint?.shotId !== selectedShotId && selectedWps.length > 0
-        ? selectedWps[selectedWps.length - 1]
-        : activeWaypoint) ?? waypoints[waypoints.length - 1]
-    if (!base) return
-
-    let anchor = base
-    let nextStageX = base.stageX
-    let nextStageY = base.stageY
-    let nextScale = base.scale
-    const selectedBox =
-      selectedShotId && activeWaypoint?.shotId !== selectedShotId && selectedWps.length === 0
-        ? stageLayout.find((b) => b.shotId === selectedShotId)
-        : undefined
-
-    if (selectedBox) {
-      anchor = waypoints[waypoints.length - 1] ?? base
-      nextStageX = selectedBox.stageX
-      nextStageY = selectedBox.stageY
-      nextScale =
-        mode === 'zoom-in' ? clampFrameScale(0.65) : mode === 'zoom-out' ? clampFrameScale(1.38) : 1.0
-    } else if (mode === 'zoom-in') {
-      nextScale = clampFrameScale(base.scale * 0.65)
-    } else if (mode === 'zoom-out') {
-      nextScale = clampFrameScale(base.scale * 1.38)
-    } else {
-      for (let i = base.index + 1; i < waypoints.length; i++) {
-        if (waypoints[i].shotId === base.shotId) anchor = waypoints[i]
-        else break
-      }
-      const curShotIdx = stageLayout.findIndex((b) => b.shotId === anchor.shotId)
-      const nextShot =
-        curShotIdx >= 0 && curShotIdx + 1 < stageLayout.length ? stageLayout[curShotIdx + 1] : null
-      if (nextShot && Math.hypot(anchor.stageX - nextShot.stageX, anchor.stageY - nextShot.stageY) > 100) {
-        nextStageX = nextShot.stageX
-        nextStageY = nextShot.stageY
-      } else {
-        nextStageX = Math.round(anchor.stageX + project.comp.width * 0.22)
-        nextStageY = Math.round(anchor.stageY - project.comp.height * 0.06)
-      }
-    }
-
-    const stepDur = anchor.stepDuration > 0 ? anchor.stepDuration : 2.0
-    const nextTime = !anchor.isKeyframed
-      ? stepDur
-      : Math.round((anchor.time + stepDur) * 100) / 100
-
+  const spawnNextFrame = (
+    mode: 'pan' | 'zoom-in' | 'zoom-out',
+    fromWaypointTime?: number
+  ): void => {
+    let result: ReturnType<typeof spawnNextCameraWaypoint> = null
     update((d) => {
-      if (d.camera.position.keyframes.length === 0 && d.camera.target.keyframes.length === 0) {
-        applyStageFrameToDraft(d, stageLayout, 0, base.stageX, base.stageY, base.scale, true, {
-          yaw: base.yaw,
-          pitch: base.pitch,
-          roll: base.roll
-        })
-      }
-      shiftSubsequentCameraKeyframes(d, anchor.time, stepDur)
-      if (nextTime > d.comp.duration) {
-        setCompDuration(d, Math.ceil(nextTime + 1))
-      }
-      applyStageFrameToDraft(d, stageLayout, nextTime, nextStageX, nextStageY, nextScale, true, {
-        yaw: anchor.yaw,
-        pitch: anchor.pitch,
-        roll: anchor.roll
+      result = spawnNextCameraWaypoint(d, stageLayout, {
+        mode,
+        activeTime: time,
+        selectedShotId,
+        fromWaypointTime
       })
     })
-
+    if (!result) return
+    const spawned = result as NonNullable<ReturnType<typeof spawnNextCameraWaypoint>>
+    if (spawned.shotId) {
+      lastSyncedShotRef.current = spawned.shotId
+      selectShot(spawned.shotId)
+    }
     setPlaying(false)
-    setTime(nextTime)
-    toast(`🎥 Đã tạo mốc lộ trình camera tại ${nextTime.toFixed(1)}s`)
+    setTime(spawned.nextTime)
+    toast(
+      `🎥 Đã tạo Mốc #${spawned.displayLabel} trong "${spawned.shotName}" tại ${spawned.nextTime.toFixed(1)}s`
+    )
   }
-
-  const selectedShotHasNoWaypoints =
-    selectedShotId !== null && !waypoints.some((w) => w.shotId === selectedShotId)
 
   const handleUpdate = (
     updates: {
@@ -283,12 +229,9 @@ export function CameraRouteInspector() {
     mergeKey?: string
   ): void => {
     if (!activeWaypoint) return
-    let targetTime = activeWaypoint.time
+    const targetTime = activeWaypoint.time
     const pinnedMode = activeWaypoint.actionMode
     update((draft) => {
-      if (selectedShotHasNoWaypoints && selectedShotId && updates.time === undefined) {
-        targetTime = ensureShotWaypointTime(draft, stageLayout, selectedShotId, activeWaypoint.time, true)
-      }
       updateCameraWaypoint(draft, stageLayout, targetTime, updates)
       const finalT = updates.time !== undefined ? updates.time : targetTime
       recordExplicitActionMode(finalT, updates.ease === 'hold' ? 'cut' : pinnedMode)
@@ -308,27 +251,29 @@ export function CameraRouteInspector() {
       actionDurationSec?: number
     }
   ): void => {
-    const wp = waypoints[waypointIndex]
-    let updatedStartTime = wp?.time ?? 0
+    const pinnedActionMode = activeWaypoint?.actionMode
+    let nextActiveTime = time
     update((draft) => {
-      updatedStartTime = updateWaypointStepDuration(draft, stageLayout, waypointIndex, options)
-      if (wp) {
-        recordExplicitActionMode(updatedStartTime, wp.actionMode)
+      updateWaypointStepDuration(draft, stageLayout, waypointIndex, options)
+      const afterFrames = extractCameraFrames2D(draft, stageLayout)
+      const targetFrame = afterFrames[activeFrameIndex] ?? afterFrames[waypointIndex]
+      if (targetFrame) {
+        nextActiveTime = targetFrame.time
+        if (pinnedActionMode) {
+          recordExplicitActionMode(targetFrame.time, pinnedActionMode)
+        }
       }
     }, 'wp-step-timing')
-    if (waypointIndex === activeFrameIndex && Math.abs(updatedStartTime - time) > 0.01) {
-      setPlaying(false)
-      setTime(updatedStartTime)
+    setPlaying(false)
+    if (Math.abs(nextActiveTime - time) > 0.001) {
+      setTime(nextActiveTime)
     }
   }
 
   const handleApplyActionMode = (mode: CameraActionMode): void => {
     if (!activeWaypoint) return
-    let targetTime = activeWaypoint.time
+    const targetTime = activeWaypoint.time
     update((draft) => {
-      if (selectedShotHasNoWaypoints && selectedShotId) {
-        targetTime = ensureShotWaypointTime(draft, stageLayout, selectedShotId, activeWaypoint.time, true)
-      }
       applyWaypointActionMode(draft, stageLayout, targetTime, mode)
     })
     if (Math.abs(targetTime - time) > 0.01) {
@@ -347,11 +292,8 @@ export function CameraRouteInspector() {
     align: 'left' | 'center' | 'right' | 'top' | 'bottom' | 'reset-angles'
   ): void => {
     if (!activeWaypoint) return
-    let targetTime = activeWaypoint.time
+    const targetTime = activeWaypoint.time
     update((draft) => {
-      if (selectedShotHasNoWaypoints && selectedShotId) {
-        targetTime = ensureShotWaypointTime(draft, stageLayout, selectedShotId, activeWaypoint.time, true)
-      }
       alignWaypointInShot(draft, stageLayout, targetTime, align)
     })
     if (Math.abs(targetTime - time) > 0.01) {
@@ -377,7 +319,7 @@ export function CameraRouteInspector() {
       setPlaying(false)
       setTime(prev.time)
     }
-    toast(`Đã xoá mốc camera #${wp.index + 1}`)
+    toast(`Đã xoá mốc camera #${wp.displayLabel}`)
   }
 
   const handleDuplicate = (wp: CameraWaypointItem): void => {
@@ -387,7 +329,7 @@ export function CameraRouteInspector() {
     })
     setPlaying(false)
     setTime(nextTime)
-    toast(`Đã nhân bản mốc camera #${wp.index + 1} tại ${nextTime.toFixed(1)}s`)
+    toast(`Đã nhân bản mốc camera #${wp.displayLabel} ➔ #${wp.nextSpawnLabel} tại ${nextTime.toFixed(1)}s`)
   }
 
   const handlePreset = (preset: CameraRoutePresetType): void => {
@@ -401,14 +343,23 @@ export function CameraRouteInspector() {
   }
 
   const handleHold = (): void => {
-    if (!activeWaypoint) return
-    const nextTime = Math.round((activeWaypoint.time + 2.0) * 100) / 100
+    let result: ReturnType<typeof spawnNextCameraWaypoint> = null
     update((draft) => {
-      addCameraHoldWaypoint(draft, stageLayout, activeWaypoint, 2.0)
+      result = spawnNextCameraWaypoint(draft, stageLayout, {
+        mode: 'hold',
+        activeTime: time,
+        selectedShotId
+      })
     })
+    if (!result) return
+    const spawned = result as NonNullable<ReturnType<typeof spawnNextCameraWaypoint>>
+    if (spawned.shotId) {
+      lastSyncedShotRef.current = spawned.shotId
+      selectShot(spawned.shotId)
+    }
     setPlaying(false)
-    setTime(nextTime)
-    toast('⏸ Đã thêm mốc dừng ngắm cảnh (+2.0s)')
+    setTime(spawned.nextTime)
+    toast(`⏸ Đã thêm mốc dừng ngắm #${spawned.displayLabel} (+2.0s)`)
   }
 
   const setShake = (amount: number, speed: number): void => {
@@ -659,13 +610,15 @@ export function CameraRouteInspector() {
             const has3D = Math.abs(wp.yaw) >= 1 || Math.abs(wp.pitch) >= 1 || Math.abs(wp.roll) >= 1
             const prev = idx > 0 ? waypoints[idx - 1] : null
             const isStart = idx === 0
+            const segDur = prev ? prev.stepDuration : wp.stepDuration
+            const segDelay = prev ? prev.delaySec : wp.delaySec
             const timeLabel = isStart
               ? '0.00s'
               : `${prev ? prev.time.toFixed(1) : '0.0'}s ➔ ${wp.time.toFixed(1)}s`
-            const durLabel = isStart ? 'Khung đầu' : `${wp.stepDuration.toFixed(1)}s`
+            const durLabel = isStart ? 'Khung đầu' : `${segDur.toFixed(1)}s`
             const cardTooltip = isStart
-              ? `🎯 MỐC #1: Khung hình khởi đầu tại 0.00s · Cảnh: ${wp.shotName}`
-              : `🎬 MỐC #${idx + 1}: Chuyển từ Mốc #${idx} (${prev?.time.toFixed(1)}s) ➔ Mốc #${idx + 1} (${wp.time.toFixed(1)}s) · Thời lượng: ${wp.stepDuration.toFixed(1)}s · Cảnh: ${wp.shotName}`
+              ? `🎯 MỐC #${wp.displayLabel}: Khung hình khởi đầu tại 0.00s · Cảnh: ${wp.shotName}`
+              : `🎬 MỐC #${wp.displayLabel}: Chuyển từ Mốc #${wp.prevDisplayLabel ?? idx} (${prev?.time.toFixed(1)}s) ➔ Mốc #${wp.displayLabel} (${wp.time.toFixed(1)}s) · Thời lượng: ${segDur.toFixed(1)}s · Cảnh: ${wp.shotName}`
 
             return (
               <div
@@ -678,7 +631,7 @@ export function CameraRouteInspector() {
                 <div className="wp-card-head">
                   <div className="wp-card-title">
                     <span className={`wp-card-idx${wp.isFirstOfShot ? ' first-of-shot' : ''}`}>
-                      #{idx + 1}
+                      #{wp.displayLabel}
                     </span>
                     {wp.isFirstOfShot && (
                       <span className="wp-first-of-shot-badge" title="Mốc camera lộ trình đầu tiên của cảnh này">
@@ -688,7 +641,7 @@ export function CameraRouteInspector() {
                     <span className="wp-card-time" title={cardTooltip}>
                       {timeLabel}
                     </span>
-                    <span className="wp-card-dur" title={isStart ? 'Khung hình khởi đầu của cảnh' : `Thời lượng chuyển động: ${wp.stepDuration.toFixed(1)}s`}>
+                    <span className="wp-card-dur" title={isStart ? 'Khung hình khởi đầu của cảnh' : `Thời lượng chuyển động: ${segDur.toFixed(1)}s`}>
                       {durLabel}
                     </span>
                     <span className={`wp-type-badge ${isStart ? 'start' : wp.tag}`}>
@@ -701,8 +654,16 @@ export function CameraRouteInspector() {
                     <button
                       type="button"
                       className="wp-mini-icon-btn"
+                      onClick={() => spawnNextFrame('pan', wp.time)}
+                      title={`Bổ sung Mốc #${wp.nextSpawnLabel} tiếp theo từ bước #${wp.displayLabel} trong "${wp.shotName}"`}
+                    >
+                      <IconPlus width={10} height={10} />
+                    </button>
+                    <button
+                      type="button"
+                      className="wp-mini-icon-btn"
                       onClick={() => handleDuplicate(wp)}
-                      title="Nhân bản mốc này"
+                      title={`Nhân bản mốc #${wp.displayLabel} ➔ #${wp.nextSpawnLabel}`}
                     >
                       <IconCopy width={10} height={10} />
                     </button>
@@ -711,7 +672,7 @@ export function CameraRouteInspector() {
                         type="button"
                         className="wp-mini-icon-btn danger"
                         onClick={() => handleDelete(wp)}
-                        title="Xoá mốc này"
+                        title={`Xoá mốc #${wp.displayLabel}`}
                       >
                         <IconTrash width={10} height={10} />
                       </button>
@@ -724,8 +685,8 @@ export function CameraRouteInspector() {
                     ● {wp.shotName}
                   </span>
                   <span>Zoom {wp.zoomPct}%</span>
-                  {!isStart && wp.delaySec > 0.01 && (
-                    <span className="wp-meta-3d">⏳ Đệm +{wp.delaySec.toFixed(1)}s</span>
+                  {!isStart && segDelay > 0.01 && (
+                    <span className="wp-meta-3d">⏳ Đệm +{segDelay.toFixed(1)}s</span>
                   )}
                   {has3D && <span className="wp-meta-3d">{wp.angleSummary}</span>}
                   {!isStart && (

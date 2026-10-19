@@ -91,6 +91,7 @@ export function CameraActionTuningBox({
   const mode = activeWaypoint.actionMode
   const verb = getActionVerbLabel(mode)
   const wpIdx = activeWaypoint.index
+  const wpLabel = activeWaypoint.displayLabel ?? `${wpIdx + 1}`
   const delaySec = activeWaypoint.delaySec
   const actionDurSec = activeWaypoint.actionDurationSec
   const speedBadge = getSpeedBadge(actionDurSec)
@@ -130,7 +131,7 @@ export function CameraActionTuningBox({
           <span className="tuning-speed-pill fast">Chuyển tức thì (0s)</span>
         </div>
         <div className="tuning-cut-note">
-          Chế độ <b>Cắt cảnh tức thì (Jump Cut)</b> nhảy thẳng sang góc máy của Mốc #{wpIdx + 1}{' '}
+          Chế độ <b>Cắt cảnh tức thì (Jump Cut)</b> nhảy thẳng sang góc máy của Mốc #{wpLabel}{' '}
           ngay tại <b>{activeWaypoint.time.toFixed(2)}s</b> và giữ khung hình trong{' '}
           <b>{activeWaypoint.stepDuration.toFixed(1)}s</b>.
         </div>
@@ -192,7 +193,7 @@ export function CameraActionTuningBox({
               onClick={() => onUpdateStepTiming(wpIdx, { delaySec: d })}
               title={
                 d === 0
-                  ? `Thực hiện ${verb} ngay khi vào Mốc #${wpIdx + 1}`
+                  ? `Thực hiện ${verb} ngay khi vào Mốc #${wpLabel}`
                   : `Đợi ${d.toFixed(1)} giây rồi mới bắt đầu ${verb}`
               }
             >

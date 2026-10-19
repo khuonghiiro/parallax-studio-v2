@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { Animatable } from '@shared/types'
-import { setCompDuration, toast } from '../../../actions'
+import { toast } from '../../../actions'
 import { evaluateScene } from '../../../engine/evaluateScene'
 import { assetStore } from '../../../project/assets'
 import { frameTolerance, useEditor } from '../../../store/editor'
@@ -18,8 +17,6 @@ import {
 } from './AnimateCameraViewfinder'
 import type { CameraLineStyle } from './animateCameraEdgePaths'
 import {
-  applyStageFrameToDraft,
-  clampFrameScale,
   computeShotStageLayout,
   evaluateLiveCameraFrame2D,
   extractCameraFrames2D,
@@ -30,7 +27,6 @@ import {
   type ShotStageBox
 } from './animateCameraMath'
 import {
-  addCameraHoldWaypoint,
   alignWaypointInShot,
   appendShotCameraWaypoint,
   applyWaypointActionMode,
@@ -39,7 +35,8 @@ import {
   findActiveWaypointIndexAtTime,
   panCameraToLayer2D,
   panCameraToShot,
-  shiftSubsequentCameraKeyframes,
+  removeCameraWaypoint,
+  spawnNextCameraWaypoint,
   updateCameraWaypoint,
   type CameraActionMode,
   type CameraWaypointItem
@@ -330,133 +327,52 @@ export function AnimateCameraStage() {
     mode: 'pan' | 'zoom-in' | 'zoom-out' | 'shot',
     targetShot?: ShotStageBox
   ): void => {
-    const selectedWps =
-      selectedShotId && mode !== 'shot'
-        ? waypoints.filter((w) => w.shotId === selectedShotId)
-        : []
-    const base =
-      (selectedShotId && activeFrame?.shotId !== selectedShotId && selectedWps.length > 0
-        ? selectedWps[selectedWps.length - 1]
-        : activeFrame) ?? waypoints[waypoints.length - 1]
-    if (!base) return
-
-    let anchor = base
-    let nextStageX = base.stageX
-    let nextStageY = base.stageY
-    let nextScale = base.scale
-    const selectedBox =
-      selectedShotId && activeFrame?.shotId !== selectedShotId && selectedWps.length === 0
-        ? stageLayout.find((b) => b.shotId === selectedShotId)
-        : undefined
-
-    if (mode === 'shot' && targetShot) {
-      nextStageX = targetShot.stageX
-      nextStageY = targetShot.stageY
-      nextScale = 1.0
-      if (targetShot.shotId !== base.shotId) {
-        anchor = waypoints[waypoints.length - 1] ?? base
-      }
-    } else if (selectedBox) {
-      anchor = waypoints[waypoints.length - 1] ?? base
-      nextStageX = selectedBox.stageX
-      nextStageY = selectedBox.stageY
-      nextScale =
-        mode === 'zoom-in' ? clampFrameScale(0.65) : mode === 'zoom-out' ? clampFrameScale(1.38) : 1.0
-    } else if (mode === 'zoom-in') {
-      nextScale = clampFrameScale(base.scale * 0.65)
-    } else if (mode === 'zoom-out') {
-      nextScale = clampFrameScale(base.scale * 1.38)
-    } else {
-      for (let i = base.index + 1; i < waypoints.length; i++) {
-        if (waypoints[i].shotId === base.shotId) anchor = waypoints[i]
-        else break
-      }
-      const curShotIdx = stageLayout.findIndex((b) => b.shotId === anchor.shotId)
-      const nextShot =
-        curShotIdx >= 0 && curShotIdx + 1 < stageLayout.length ? stageLayout[curShotIdx + 1] : null
-      if (nextShot && Math.hypot(anchor.stageX - nextShot.stageX, anchor.stageY - nextShot.stageY) > 100) {
-        nextStageX = nextShot.stageX
-        nextStageY = nextShot.stageY
-      } else {
-        nextStageX = Math.round(anchor.stageX + project.comp.width * 0.22)
-        nextStageY = Math.round(anchor.stageY - project.comp.height * 0.06)
-      }
-    }
-
-    const stepDur = anchor.stepDuration > 0 ? anchor.stepDuration : 2.0
-    const nextTime = !anchor.isKeyframed
-      ? stepDur
-      : Math.round((anchor.time + stepDur) * 100) / 100
-
+    let result: ReturnType<typeof spawnNextCameraWaypoint> = null
     update((d) => {
-      if (d.camera.position.keyframes.length === 0 && d.camera.target.keyframes.length === 0) {
-        applyStageFrameToDraft(d, stageLayout, 0, base.stageX, base.stageY, base.scale, true, {
-          yaw: base.yaw,
-          pitch: base.pitch,
-          roll: base.roll
-        })
-      }
-      shiftSubsequentCameraKeyframes(d, anchor.time, stepDur)
-      if (nextTime > d.comp.duration) {
-        setCompDuration(d, Math.ceil(nextTime + 1))
-      }
-      applyStageFrameToDraft(d, stageLayout, nextTime, nextStageX, nextStageY, nextScale, true, {
-        yaw: anchor.yaw,
-        pitch: anchor.pitch,
-        roll: anchor.roll
+      result = spawnNextCameraWaypoint(d, stageLayout, {
+        mode,
+        activeTime: time,
+        selectedShotId,
+        targetShot
       })
     })
-
-    if (mode === 'shot' && targetShot?.shotId) {
-      lastSyncedShotRef.current = targetShot.shotId
-      selectShot(targetShot.shotId)
+    if (!result) return
+    const spawned = result as NonNullable<ReturnType<typeof spawnNextCameraWaypoint>>
+    if (spawned.shotId) {
+      lastSyncedShotRef.current = spawned.shotId
+      selectShot(spawned.shotId)
     }
     setPlaying(false)
-    setTime(nextTime)
-    const label =
-      mode === 'zoom-in'
-        ? 'phóng to cận cảnh'
-        : mode === 'zoom-out'
-          ? 'thu nhỏ toàn cảnh'
-          : targetShot
-            ? `lia tới ${targetShot.name}`
-            : selectedBox
-              ? `lia tới ${selectedBox.name}`
-              : 'lia tiếp'
-    toast(`🎥 Đã tạo Mốc Camera tại ${nextTime.toFixed(1)}s (${label})`)
+    setTime(spawned.nextTime)
+    toast(
+      `🎥 Đã tạo Mốc #${spawned.displayLabel} trong "${spawned.shotName}" tại ${spawned.nextTime.toFixed(1)}s`
+    )
   }
 
-  const selectedShotHasNoWaypoints =
-    selectedShotId !== null && !waypoints.some((w) => w.shotId === selectedShotId)
-
   const handleAddHold = (): void => {
-    if (!activeFrame) return
-    let targetHoldTime = Math.round((activeFrame.time + 2.0) * 100) / 100
+    let result: ReturnType<typeof spawnNextCameraWaypoint> = null
     update((d) => {
-      if (d.camera.position.keyframes.length === 0) {
-        applyStageFrameToDraft(d, stageLayout, 0, activeFrame.stageX, activeFrame.stageY, activeFrame.scale, true)
-      }
-      const baseTime =
-        selectedShotHasNoWaypoints && selectedShotId
-          ? ensureShotWaypointTime(d, stageLayout, selectedShotId, activeFrame.time, true)
-          : activeFrame.time
-      const curFrames = extractCameraFrames2D(d, stageLayout)
-      const srcFrame = curFrames.find((f) => Math.abs(f.time - baseTime) <= 0.05) ?? activeFrame
-      targetHoldTime = Math.round((srcFrame.time + 2.0) * 100) / 100
-      addCameraHoldWaypoint(d, stageLayout, srcFrame, 2.0)
+      result = spawnNextCameraWaypoint(d, stageLayout, {
+        mode: 'hold',
+        activeTime: time,
+        selectedShotId
+      })
     })
+    if (!result) return
+    const spawned = result as NonNullable<ReturnType<typeof spawnNextCameraWaypoint>>
+    if (spawned.shotId) {
+      lastSyncedShotRef.current = spawned.shotId
+      selectShot(spawned.shotId)
+    }
     setPlaying(false)
-    setTime(targetHoldTime)
-    toast(`⏸ Đã tạo mốc Dừng ngắm tại ${targetHoldTime.toFixed(1)}s`)
+    setTime(spawned.nextTime)
+    toast(`⏸ Đã tạo mốc Dừng ngắm #${spawned.displayLabel} tại ${spawned.nextTime.toFixed(1)}s`)
   }
 
   const handleQuickActionMode = (mode: CameraActionMode): void => {
     if (!activeFrame) return
-    let targetTime = activeFrame.time
+    const targetTime = activeFrame.time
     update((d) => {
-      if (selectedShotHasNoWaypoints && selectedShotId) {
-        targetTime = ensureShotWaypointTime(d, stageLayout, selectedShotId, activeFrame.time, true)
-      }
       applyWaypointActionMode(d, stageLayout, targetTime, mode)
     })
     if (Math.abs(targetTime - time) > 0.01) {
@@ -467,18 +383,13 @@ export function AnimateCameraStage() {
 
   const handleEstablishCenter100 = (): void => {
     if (!activeFrame) return
-    const preferredShotId =
-      selectedShotId && activeFrame.shotId !== selectedShotId ? selectedShotId : activeFrame.shotId
     const box =
-      (preferredShotId ? stageLayout.find((b) => b.shotId === preferredShotId) : null) ??
+      (activeFrame.shotId ? stageLayout.find((b) => b.shotId === activeFrame.shotId) : null) ??
       findNearestShotByStage2D(stageLayout, activeFrame.stageX, activeFrame.stageY) ??
       stageLayout[0]
     if (!box) return
-    let targetTime = activeFrame.time
+    const targetTime = activeFrame.time
     update((d) => {
-      if (box.shotId && activeFrame.shotId !== box.shotId) {
-        targetTime = ensureShotWaypointTime(d, stageLayout, box.shotId, activeFrame.time, true)
-      }
       updateCameraWaypoint(d, stageLayout, targetTime, {
         stageX: box.stageX,
         stageY: box.stageY,
@@ -497,11 +408,8 @@ export function AnimateCameraStage() {
 
   const handleQuickAnglePreset = (yaw: number, pitch: number, roll = 0, label = ''): void => {
     if (!activeFrame) return
-    let targetTime = activeFrame.time
+    const targetTime = activeFrame.time
     update((d) => {
-      if (selectedShotId && activeFrame.shotId !== selectedShotId) {
-        targetTime = ensureShotWaypointTime(d, stageLayout, selectedShotId, activeFrame.time, true)
-      }
       updateCameraWaypoint(d, stageLayout, targetTime, { yaw, pitch, roll })
     })
     if (Math.abs(targetTime - time) > 0.01) {
@@ -517,14 +425,7 @@ export function AnimateCameraStage() {
       return
     }
     update((d) => {
-      const del = (a?: Animatable<unknown>) => {
-        if (!a) return
-        a.keyframes = a.keyframes.filter((k) => Math.abs(k.t - frame.time) > Math.max(tol, 0.04))
-      }
-      del(d.camera.position)
-      del(d.camera.target)
-      del(d.camera.focusDistance)
-      del(d.camera.roll)
+      removeCameraWaypoint(d, frame.time)
     })
     const prev = frames[Math.max(0, frame.index - 1)]
     if (prev) {

@@ -108,9 +108,16 @@ export function CameraWaypointDetailPanel({
   )
 
   const transitionIndex = activeWaypoint.index > 0 ? activeWaypoint.index - 1 : 0
+  const transitionWp = prevWp ?? activeWaypoint
   const currentStepDuration = prevWp
     ? Math.max(0.2, Math.round((activeWaypoint.time - prevWp.time) * 100) / 100)
     : activeWaypoint.stepDuration
+  const currentDelaySec = transitionWp.delaySec
+  const currentActionDurationSec = transitionWp.actionDurationSec
+
+  const curLabel = activeWaypoint.displayLabel
+  const prevLabel = activeWaypoint.prevDisplayLabel ?? `${activeWaypoint.index}`
+  const nextSpawnLabel = activeWaypoint.nextSpawnLabel
 
   return (
     <div id="camera-waypoint-detail-panel" className="section active-wp-section">
@@ -120,14 +127,14 @@ export function CameraWaypointDetailPanel({
           {isStartFrame ? (
             <>
               <span className="scope-badge first-of-shot">
-                🎯 MỐC #1: KHUNG KHỞI ĐẦU
+                🎯 MỐC #{curLabel}: KHUNG KHỞI ĐẦU
               </span>
               <span className="wp-banner-time">0.00s</span>
             </>
           ) : (
             <>
               <span className="scope-badge per-waypoint">
-                🎬 MỐC #{activeWaypoint.index + 1}: TỪ #{activeWaypoint.index} ➔ #{activeWaypoint.index + 1}
+                🎬 MỐC #{curLabel}: TỪ #{prevLabel} ➔ #{curLabel}
               </span>
               <span className="wp-banner-time">
                 {prevWp ? prevWp.time.toFixed(1) : '0.0'}s ➔ {activeWaypoint.time.toFixed(1)}s ({currentStepDuration.toFixed(1)}s)
@@ -190,67 +197,71 @@ export function CameraWaypointDetailPanel({
             onTargetLayer={onTargetLayer}
           />
 
-          {nextWp ? (
+          {nextWp && (
             <div className="next-wp-transition-card">
               <div className="next-card-head">
                 <span className="next-icon">🎬</span>
                 <div className="next-info">
-                  <span className="next-title">Chuyển tiếp sang Mốc #2</span>
+                  <span className="next-title">Chuyển tiếp sang Mốc #{nextWp.displayLabel}</span>
                   <span className="next-time">
-                    Thời lượng {nextWp.stepDuration.toFixed(1)}s (đến {nextWp.time.toFixed(1)}s)
+                    Thời lượng {activeWaypoint.stepDuration.toFixed(1)}s (đến {nextWp.time.toFixed(1)}s)
                   </span>
                 </div>
                 <button
                   type="button"
                   className="btn xs primary"
                   onClick={() => onSelectTime(nextWp.time)}
-                  title="Chuyển sang Mốc #2 để cấu hình kiểu chuyển động, đệm chờ và cỡ cảnh đích"
+                  title={`Chuyển sang Mốc #${nextWp.displayLabel} để cấu hình kiểu chuyển động, đệm chờ và cỡ cảnh đích`}
                 >
-                  Sửa Mốc #2 ➔
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="next-wp-create-card">
-              <div className="create-prompt-head">
-                <span>✨ Tạo chuyển động đầu tiên sang Mốc #2:</span>
-              </div>
-              <div className="route-insp-actions">
-                <button
-                  type="button"
-                  className="btn xs primary"
-                  onClick={() => onSpawnNext('zoom-in')}
-                  title="Tạo Mốc #2 đẩy cận cảnh vào đối tượng"
-                >
-                  🔍+ Đẩy cận Mốc #2
-                </button>
-                <button
-                  type="button"
-                  className="btn xs"
-                  onClick={() => onSpawnNext('pan')}
-                  title="Tạo Mốc #2 lia ngang sang vị trí khác"
-                >
-                  ↔ Lia sang Mốc #2
-                </button>
-                <button
-                  type="button"
-                  className="btn xs"
-                  onClick={() => onSpawnNext('zoom-out')}
-                  title="Tạo Mốc #2 kéo toàn cảnh rộng"
-                >
-                  🔍- Kéo rộng Mốc #2
-                </button>
-                <button
-                  type="button"
-                  className="btn xs"
-                  onClick={onAddHold}
-                  title="Giữ nguyên khung nhìn trong 2 giây"
-                >
-                  ⏸ Dừng ngắm (2s)
+                  Sửa Mốc #{nextWp.displayLabel} ➔
                 </button>
               </div>
             </div>
           )}
+
+          <div className="next-wp-create-card">
+            <div className="create-prompt-head">
+              <span>
+                {nextWp
+                  ? `✨ Bổ sung lộ trình vào "${activeWaypoint.shotName}" (Mốc #${nextSpawnLabel}):`
+                  : `✨ Tạo chuyển động đầu tiên sang Mốc #${nextSpawnLabel}:`}
+              </span>
+            </div>
+            <div className="route-insp-actions">
+              <button
+                type="button"
+                className="btn xs primary"
+                onClick={() => onSpawnNext('zoom-in')}
+                title={`Tạo Mốc #${nextSpawnLabel} đẩy cận cảnh trong "${activeWaypoint.shotName}"`}
+              >
+                🔍+ Đẩy cận (#{nextSpawnLabel})
+              </button>
+              <button
+                type="button"
+                className="btn xs"
+                onClick={() => onSpawnNext('pan')}
+                title={`Tạo Mốc #${nextSpawnLabel} lia ngang trong "${activeWaypoint.shotName}"`}
+              >
+                ↔ Lia tiếp (#{nextSpawnLabel})
+              </button>
+              <button
+                type="button"
+                className="btn xs"
+                onClick={() => onSpawnNext('zoom-out')}
+                title={`Tạo Mốc #${nextSpawnLabel} kéo toàn cảnh rộng trong "${activeWaypoint.shotName}"`}
+              >
+                🔍- Kéo rộng (#{nextSpawnLabel})
+              </button>
+              <button
+                type="button"
+                className="btn xs"
+                onClick={onAddHold}
+                title={`Tạo Mốc #${nextSpawnLabel} giữ nguyên khung nhìn trong 2 giây`}
+              >
+                ⏸ Dừng (#{nextSpawnLabel})
+              </button>
+            </div>
+          </div>
         </>
       ) : (
         /* =========================================================================
@@ -262,7 +273,7 @@ export function CameraWaypointDetailPanel({
           {/* 1. Thời lượng chuyển động từ Mốc #(k-1) sang Mốc #k & Easing */}
           <div className="row-group priority-timing-box">
             <div className="field-header">
-              <label>⏱ Thời lượng chuyển từ #{activeWaypoint.index} ➔ #{activeWaypoint.index + 1}</label>
+              <label>⏱ Thời lượng chuyển từ #{prevLabel} ➔ #{curLabel}</label>
               <span className="timing-hint-tag">Tự nối tiếp timeline</span>
             </div>
 
@@ -270,7 +281,7 @@ export function CameraWaypointDetailPanel({
               <div className="timing-field-card">
                 <label
                   htmlFor="wp-input-duration"
-                  title={`Thời lượng chuyển động từ Mốc #${activeWaypoint.index} sang Mốc #${activeWaypoint.index + 1}. Thay đổi số giây sẽ tự động tính lại mốc thời gian trên Timeline.`}
+                  title={`Thời lượng chuyển động từ Mốc #${prevLabel} sang Mốc #${curLabel}. Thay đổi số giây sẽ tự động tính lại mốc thời gian trên Timeline.`}
                 >
                   Thời lượng chuyển (Giây)
                 </label>
@@ -299,14 +310,14 @@ export function CameraWaypointDetailPanel({
               <div className="timing-field-card">
                 <label
                   htmlFor="wp-input-timestamp"
-                  title={`Khung giờ chuyển động thực tế trên thanh Timeline`}
+                  title="Khung giờ chuyển động thực tế trên thanh Timeline"
                 >
                   Khung giờ trên Timeline
                 </label>
                 <div
                   id="wp-input-timestamp"
                   className="timing-window-readout"
-                  title={`Mốc #${activeWaypoint.index + 1} chuyển từ ${prevWp ? prevWp.time.toFixed(2) : '0.00'}s đến ${activeWaypoint.time.toFixed(2)}s (kéo dài ${currentStepDuration.toFixed(1)}s)`}
+                  title={`Mốc #${curLabel} chuyển từ ${prevWp ? prevWp.time.toFixed(2) : '0.00'}s đến ${activeWaypoint.time.toFixed(2)}s (kéo dài ${currentStepDuration.toFixed(1)}s)`}
                 >
                   <span className="win-start">{prevWp ? prevWp.time.toFixed(2) : '0.00'}s</span>
                   <span className="win-arrow">➔</span>
@@ -348,7 +359,7 @@ export function CameraWaypointDetailPanel({
           {/* 2. Động tác Quay Chuyên Nghiệp & Hộp tinh chỉnh Đệm chờ / Tốc độ */}
           <div className="row-group">
             <div className="field-header">
-              <label>🎬 Động tác chuyển động sang Mốc #{activeWaypoint.index + 1}</label>
+              <label>🎬 Động tác chuyển động sang Mốc #{curLabel}</label>
               <span className="wp-mode-current">{activeWaypoint.tagLabel}</span>
             </div>
 
@@ -388,7 +399,9 @@ export function CameraWaypointDetailPanel({
             <CameraActionTuningBox
               activeWaypoint={{
                 ...activeWaypoint,
-                stepDuration: currentStepDuration
+                stepDuration: currentStepDuration,
+                delaySec: currentDelaySec,
+                actionDurationSec: currentActionDurationSec
               }}
               shotStageX={currentShotBox ? currentShotBox.stageX : 0}
               shotStageY={currentShotBox ? currentShotBox.stageY : 0}
@@ -413,40 +426,49 @@ export function CameraWaypointDetailPanel({
             onTargetLayer={onTargetLayer}
           />
 
-          {/* 4. Thao tác tạo nhanh mốc tiếp theo */}
-          <div className="route-insp-actions">
-            <button
-              type="button"
-              className="btn xs primary"
-              onClick={() => onSpawnNext('pan')}
-              title="Tạo mốc tiếp theo lia sang vị trí hoặc cảnh kế tiếp"
-            >
-              + Lia tiếp
-            </button>
-            <button
-              type="button"
-              className="btn xs"
-              onClick={onAddHold}
-              title="Tạo mốc dừng ngắm cảnh giữ nguyên vị trí trong 2 giây"
-            >
-              ⏸ Dừng ngắm (2s)
-            </button>
-            <button
-              type="button"
-              className="btn xs"
-              onClick={() => onSpawnNext('zoom-in')}
-              title="Tạo mốc tiếp theo đẩy cận cảnh"
-            >
-              🔍+ Đẩy cận
-            </button>
-            <button
-              type="button"
-              className="btn xs"
-              onClick={() => onSpawnNext('zoom-out')}
-              title="Tạo mốc tiếp theo kéo toàn cảnh"
-            >
-              🔍- Kéo rộng
-            </button>
+          {/* 4. Thao tác tạo nhanh mốc tiếp theo hoặc bổ sung nhánh phụ (#5.1, #5.2) vào cảnh hiện tại */}
+          <div className="next-wp-create-card">
+            <div className="create-prompt-head">
+              <span>
+                {nextSpawnLabel.includes('.')
+                  ? `✨ Bổ sung tiếp cho "${activeWaypoint.shotName}" từ #${curLabel} (Sẽ tạo #${nextSpawnLabel}):`
+                  : `✨ Thêm bước tiếp theo cho "${activeWaypoint.shotName}" (Mốc #${nextSpawnLabel}):`}
+              </span>
+            </div>
+            <div className="route-insp-actions">
+              <button
+                type="button"
+                className="btn xs primary"
+                onClick={() => onSpawnNext('pan')}
+                title={`Tạo Mốc #${nextSpawnLabel} lia tiếp ngay trong "${activeWaypoint.shotName}"`}
+              >
+                + Lia tiếp (#{nextSpawnLabel})
+              </button>
+              <button
+                type="button"
+                className="btn xs"
+                onClick={onAddHold}
+                title={`Tạo Mốc #${nextSpawnLabel} dừng ngắm cảnh giữ nguyên vị trí trong 2 giây`}
+              >
+                ⏸ Dừng (#{nextSpawnLabel})
+              </button>
+              <button
+                type="button"
+                className="btn xs"
+                onClick={() => onSpawnNext('zoom-in')}
+                title={`Tạo Mốc #${nextSpawnLabel} đẩy cận cảnh trong "${activeWaypoint.shotName}"`}
+              >
+                🔍+ Đẩy cận (#{nextSpawnLabel})
+              </button>
+              <button
+                type="button"
+                className="btn xs"
+                onClick={() => onSpawnNext('zoom-out')}
+                title={`Tạo Mốc #${nextSpawnLabel} kéo toàn cảnh rộng trong "${activeWaypoint.shotName}"`}
+              >
+                🔍- Kéo rộng (#{nextSpawnLabel})
+              </button>
+            </div>
           </div>
         </>
       )}

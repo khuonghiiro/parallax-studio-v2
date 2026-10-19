@@ -253,9 +253,10 @@ export interface WaypointTimingMeta {
   hasCustomActionTiming?: boolean
 }
 
-// Lưu vết động tác quay chuyên nghiệp & thông số nhịp động tác tại từng mốc thời gian
+// Lưu vết động tác quay chuyên nghiệp, thông số nhịp động tác & cờ nhánh phụ (#5.1, #5.2) tại từng mốc thời gian
 const explicitActionModesByTimeKey = new Map<number, CameraActionMode>()
 const waypointTimingMetaByTimeKey = new Map<number, WaypointTimingMeta>()
+const subWaypointTimeKeys = new Set<number>()
 
 function timeToKey(time: number): number {
   return Math.round(time * 100)
@@ -267,6 +268,26 @@ export function recordExplicitActionMode(time: number, mode: CameraActionMode): 
 
 export function getExplicitActionMode(time: number): CameraActionMode | undefined {
   return explicitActionModesByTimeKey.get(timeToKey(time))
+}
+
+export function setSubWaypointAtTime(time: number, isSub = true): void {
+  const key = timeToKey(time)
+  if (isSub) {
+    subWaypointTimeKeys.add(key)
+  } else {
+    subWaypointTimeKeys.delete(key)
+  }
+}
+
+export function isSubWaypointAtTime(time: number): boolean {
+  return subWaypointTimeKeys.has(timeToKey(time))
+}
+
+export function removeWaypointMetaAtTime(time: number): void {
+  const key = timeToKey(time)
+  explicitActionModesByTimeKey.delete(key)
+  waypointTimingMetaByTimeKey.delete(key)
+  subWaypointTimeKeys.delete(key)
 }
 
 export function setWaypointTimingMeta(time: number, patch: Partial<WaypointTimingMeta>): void {
@@ -366,6 +387,10 @@ export function moveExplicitActionMode(oldTime: number, newTime: number): void {
     waypointTimingMetaByTimeKey.delete(oldKey)
     waypointTimingMetaByTimeKey.set(newKey, existingTiming)
   }
+  if (subWaypointTimeKeys.has(oldKey)) {
+    subWaypointTimeKeys.delete(oldKey)
+    subWaypointTimeKeys.add(newKey)
+  }
 }
 
 export function shiftExplicitActionModes(afterTime: number, delta: number): void {
@@ -391,11 +416,21 @@ export function shiftExplicitActionModes(afterTime: number, delta: number): void
       waypointTimingMetaByTimeKey.set(timeToKey(nextT), meta)
     }
   }
+  const subEntries = [...subWaypointTimeKeys.values()].sort((a, b) =>
+    delta > 0 ? b - a : a - b
+  )
+  for (const k of subEntries) {
+    if (k > thresholdKey + 2) {
+      subWaypointTimeKeys.delete(k)
+      const nextT = Math.max(0, k / 100 + delta)
+      subWaypointTimeKeys.add(timeToKey(nextT))
+    }
+  }
 }
 
 /**
- * Safely moves `oldTime`'s action mode and timing metadata to `newTime` while optionally
- * shifting all subsequent entries by `newTime - oldTime` without colliding on `oldTime`.
+ * Safely moves `oldTime`'s action mode, timing metadata, and sub-waypoint flag to `newTime`
+ * while optionally shifting all subsequent entries by `newTime - oldTime` without colliding on `oldTime`.
  */
 export function moveAndShiftWaypointMeta(
   oldTime: number,
@@ -409,8 +444,10 @@ export function moveAndShiftWaypointMeta(
 
   const savedMode = explicitActionModesByTimeKey.get(oldKey)
   const savedTiming = waypointTimingMetaByTimeKey.get(oldKey)
+  const savedSub = subWaypointTimeKeys.has(oldKey)
   explicitActionModesByTimeKey.delete(oldKey)
   waypointTimingMetaByTimeKey.delete(oldKey)
+  subWaypointTimeKeys.delete(oldKey)
 
   if (ripple && Math.abs(delta) >= 0.001) {
     shiftExplicitActionModes(oldTime, delta)
@@ -422,12 +459,15 @@ export function moveAndShiftWaypointMeta(
   if (savedTiming !== undefined) {
     waypointTimingMetaByTimeKey.set(newKey, savedTiming)
   }
+  if (savedSub) {
+    subWaypointTimeKeys.add(newKey)
+  }
 }
-
 
 export function clearExplicitActionModes(): void {
   explicitActionModesByTimeKey.clear()
   waypointTimingMetaByTimeKey.clear()
+  subWaypointTimeKeys.clear()
 }
 
 /**

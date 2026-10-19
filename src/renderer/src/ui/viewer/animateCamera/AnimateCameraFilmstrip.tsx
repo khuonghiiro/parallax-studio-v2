@@ -84,6 +84,8 @@ export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVertica
           const frameScaleX = THUMB_W / Math.max(1, wp.width)
           const frameScaleY = THUMB_H / Math.max(1, wp.height)
           const frameScaleToThumb = frameScaleY
+          const prevWp = idx > 0 ? waypoints[idx - 1] : null
+          const dispDur = prevWp ? prevWp.stepDuration : wp.stepDuration
 
           return (
             <div key={`film-wp-${idx}-${wp.time}`} className="anim2d-film-step-wrap">
@@ -91,11 +93,13 @@ export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVertica
               {idx > 0 && (
                 <div
                   className="anim2d-film-connector"
-                  title={`Chuyển sang Mốc #${idx + 1} tại ${wp.time.toFixed(1)}s (${wp.ease})`}
+                  title={`Chuyển sang Mốc #${wp.displayLabel} tại ${wp.time.toFixed(1)}s (${wp.ease})`}
                 >
                   <span className="connector-line" />
                   <span className="connector-dur">
-                    {wp.actionMode === 'cut' ? '⚡ Cắt tức thì' : `↓ @${wp.time.toFixed(1)}s`}
+                    {wp.actionMode === 'cut'
+                      ? '⚡ Cắt tức thì'
+                      : `↓ ${dispDur.toFixed(1)}s (@${wp.time.toFixed(1)}s)`}
                   </span>
                 </div>
               )}
@@ -104,12 +108,12 @@ export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVertica
                 id={`anim2d-film-card-${idx + 1}`}
                 className={`anim2d-film-card${wp.isFirstOfShot ? ' first-of-shot' : ''}${isActive ? ' active' : ''}`}
                 onClick={() => onSelectWaypoint(wp)}
-                title={`${wp.isFirstOfShot ? `⚑ MỐC MỞ MÀN CẢNH: ${wp.shotName}\n` : ''}Mốc #${idx + 1} (${wp.time.toFixed(1)}s ➔ ${wp.endTime.toFixed(1)}s · Thời lượng: ${wp.stepDuration.toFixed(1)}s)\nCảnh: ${wp.shotName} · Zoom ${wp.zoomPct}% · ${wp.tagLabel}\n👉 Bấm để chọn mốc này và mở tab Lộ trình chỉnh sửa`}
+                title={`${wp.isFirstOfShot ? `⚑ MỐC MỞ MÀN CẢNH: ${wp.shotName}\n` : ''}Mốc #${wp.displayLabel} (@${wp.time.toFixed(1)}s · Thời lượng chuyển: ${dispDur.toFixed(1)}s)\nCảnh: ${wp.shotName} · Zoom ${wp.zoomPct}% · ${wp.tagLabel}\n👉 Bấm để chọn mốc này và mở tab Lộ trình chỉnh sửa`}
               >
                 {/* Dải tiêu đề trên cùng của thẻ phim (Căn chỉnh chuẩn 1 dòng gọn gàng) */}
                 <div className="film-card-top">
                   <span className={`film-card-num${wp.isFirstOfShot ? ' first-of-shot' : ''}`}>
-                    #{idx + 1}
+                    #{wp.displayLabel}
                   </span>
                   {wp.isFirstOfShot && (
                     <span className="film-card-first-tag" title="Mốc camera lộ trình đầu tiên của cảnh này">
@@ -117,7 +121,7 @@ export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVertica
                     </span>
                   )}
                   <span className="film-card-time">{wp.time.toFixed(1)}s</span>
-                  <span className="film-card-dur">{wp.stepDuration.toFixed(1)}s</span>
+                  <span className="film-card-dur">{idx === 0 ? 'Gốc' : `${dispDur.toFixed(1)}s`}</span>
                   <span className="film-card-zoom">{wp.zoomPct}%</span>
                 </div>
 
@@ -259,6 +263,7 @@ export const AnimateCameraProFooterBar = memo(function AnimateCameraProFooterBar
   const prevWp = activeFrame.index > 0 ? waypoints[activeFrame.index - 1] : null
   const nextWp =
     activeFrame.index + 1 < waypoints.length ? waypoints[activeFrame.index + 1] : null
+  const activeDispDur = prevWp ? prevWp.stepDuration : activeFrame.stepDuration
 
   return (
     <div className="anim2d-footer">
@@ -275,11 +280,11 @@ export const AnimateCameraProFooterBar = memo(function AnimateCameraProFooterBar
         </button>
         <div
           className="footer-active-pill"
-          title={`Mốc #${activeFrame.index + 1} (${activeFrame.time.toFixed(1)}s ➔ ${activeFrame.endTime.toFixed(1)}s) · Cảnh: ${activeFrame.shotName}`}
+          title={`Mốc #${activeFrame.displayLabel} (@${activeFrame.time.toFixed(1)}s · Thời lượng chuyển: ${activeDispDur.toFixed(1)}s) · Cảnh: ${activeFrame.shotName}`}
         >
-          <span className="pill-idx">Mốc #{activeFrame.index + 1}</span>
+          <span className="pill-idx">Mốc #{activeFrame.displayLabel}</span>
           <span className="pill-time">{activeFrame.time.toFixed(1)}s</span>
-          <span className="pill-dur">{activeFrame.stepDuration.toFixed(1)}s</span>
+          <span className="pill-dur">{prevWp ? `${activeDispDur.toFixed(1)}s` : 'Gốc'}</span>
         </div>
         <button
           type="button"

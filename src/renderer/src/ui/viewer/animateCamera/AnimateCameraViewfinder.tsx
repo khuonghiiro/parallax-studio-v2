@@ -319,7 +319,7 @@ export function AnimateCameraViewfinder({
           >
             {isHovered && (
               <span className="anim2d-ghost-tag">
-                #{node.idx + 1} · {wp.zoomPct}%
+                #{wp.displayLabel} · {wp.zoomPct}%
               </span>
             )}
           </div>
@@ -332,6 +332,8 @@ export function AnimateCameraViewfinder({
         const isActive = idx === activeFrameIndex
         const isHovered = idx === hoveredIdx
         const isSmallFrame = wp.zoomPct >= 135
+        const prevWp = idx > 0 ? waypoints[idx - 1] : null
+        const dispDur = prevWp ? prevWp.stepDuration : wp.stepDuration
 
         return (
           <div
@@ -358,7 +360,7 @@ export function AnimateCameraViewfinder({
               e.stopPropagation()
               onResetBubbleOffset(idx)
             }}
-            title={`${isFirstOfShot ? `⚑ MỐC MỞ MÀN CẢNH: ${wp.shotName}\n` : ''}Bóng điều khiển Mốc #${idx + 1} (${wp.time.toFixed(1)}s ➔ ${wp.endTime.toFixed(1)}s · Thời lượng ${wp.stepDuration.toFixed(1)}s) · ${wp.tagLabel}\nCỡ khung: Zoom ${wp.zoomPct}% · ${wp.angleSummary}\n👉 Click: Chọn khung #${idx + 1} & mở tab Lộ trình để sửa\n✋ Kéo thả: Di chuyển bóng ra chỗ thoáng tùy ý\n↺ Đúp chuột: Đặt lại vị trí mặc định`}
+            title={`${isFirstOfShot ? `⚑ MỐC MỞ MÀN CẢNH: ${wp.shotName}\n` : ''}Bóng điều khiển Mốc #${wp.displayLabel} (${wp.time.toFixed(1)}s ➔ ${wp.endTime.toFixed(1)}s · Thời lượng ${dispDur.toFixed(1)}s) · ${wp.tagLabel}\nCỡ khung: Zoom ${wp.zoomPct}% · ${wp.angleSummary}\n👉 Click: Chọn khung #${wp.displayLabel} & mở tab Lộ trình để sửa\n✋ Kéo thả: Di chuyển bóng ra chỗ thoáng tùy ý\n↺ Đúp chuột: Đặt lại vị trí mặc định`}
           >
             <div className="bubble-circle">
               {isFirstOfShot && (
@@ -366,11 +368,18 @@ export function AnimateCameraViewfinder({
                   ⚑
                 </span>
               )}
-              <span className="bubble-num">#{idx + 1}</span>
+              <span className="bubble-num">#{wp.displayLabel}</span>
             </div>
             <div className="bubble-meta">
-              <span className="bubble-time" title={`Từ ${wp.time.toFixed(1)}s đến ${wp.endTime.toFixed(1)}s`}>
-                {wp.stepDuration.toFixed(1)}s
+              <span
+                className="bubble-time"
+                title={
+                  prevWp
+                    ? `Chuyển từ #${wp.prevDisplayLabel} ➔ #${wp.displayLabel} (${prevWp.time.toFixed(1)}s ➔ ${wp.time.toFixed(1)}s)`
+                    : `Từ ${wp.time.toFixed(1)}s đến ${wp.endTime.toFixed(1)}s`
+                }
+              >
+                {idx === 0 ? 'Gốc' : `${dispDur.toFixed(1)}s`}
               </span>
               <span className="bubble-zoom">{wp.zoomPct}%</span>
             </div>

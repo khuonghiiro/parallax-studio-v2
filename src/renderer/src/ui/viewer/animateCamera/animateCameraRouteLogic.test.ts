@@ -26,6 +26,7 @@ import {
   panCameraToShot,
   removeCameraWaypoint,
   reverseCameraRoute,
+  spawnNextCameraWaypoint,
   updateCameraWaypoint,
   updateWaypointStepDuration,
   zoomCameraAtPoint
@@ -550,5 +551,123 @@ describe('animateCameraRouteLogic — Camera 2D Route Management & Parameter Tun
     expect(wps[1].pitch).toBe(0)
     expect(wps[1].zoomPct).toBe(180)
   })
+
+  it('inserts supplementary waypoints (#5.1, #5.2, #6.1) into an earlier shot without renumbering subsequent shots to #10, and updates delaySec independently', () => {
+    const p = createProject({ width: 1920, height: 1080, duration: 24 })
+    const s1 = createShot('Cảnh 1', [0, 0, 0], 0)
+    const s2 = createShot('Cảnh 2', [10560, 0, 0], 1)
+    const s3 = createShot('Cảnh 3', [21120, 0, 0], 2)
+    p.shots.push(s1, s2, s3)
+    const layout = computeShotStageLayout(p, 0)
+
+    // Cảnh 1: #1 (0s), #2 (2s), #3 (4s)
+    applyStageFrameToDraft(p, layout, 0, layout[0].stageX, layout[0].stageY, 1.0, true)
+    applyStageFrameToDraft(p, layout, 2, layout[0].stageX + 100, layout[0].stageY, 0.85, true)
+    applyStageFrameToDraft(p, layout, 4, layout[0].stageX - 100, layout[0].stageY, 0.75, true)
+    // Cảnh 2: #4 (6s), #5 (8s), #6 (10s)
+    applyStageFrameToDraft(p, layout, 6, layout[1].stageX, layout[1].stageY, 1.0, true)
+    applyStageFrameToDraft(p, layout, 8, layout[1].stageX + 120, layout[1].stageY, 0.8, true)
+    applyStageFrameToDraft(p, layout, 10, layout[1].stageX - 120, layout[1].stageY, 0.7, true)
+    // Cảnh 3: #7 (12s), #8 (14s), #9 (16s)
+    applyStageFrameToDraft(p, layout, 12, layout[2].stageX, layout[2].stageY, 1.0, true)
+    applyStageFrameToDraft(p, layout, 14, layout[2].stageX + 150, layout[2].stageY, 0.8, true)
+    applyStageFrameToDraft(p, layout, 16, layout[2].stageX - 150, layout[2].stageY, 0.65, true)
+
+    let wps = enrichCameraWaypoints(extractCameraFrames2D(p, layout))
+    expect(wps.map((w) => w.displayLabel)).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9'])
+
+    // User selects #5 (index 4 in Cảnh 2) and spawns two supplementary steps (#5.1, #5.2)
+    const wp5 = wps.find((w) => w.displayLabel === '5')!
+    expect(wp5.nextSpawnLabel).toBe('5.1')
+
+    const res5_1 = spawnNextCameraWaypoint(p, layout, {
+      mode: 'zoom-in',
+      activeTime: wp5.time,
+      selectedShotId: s2.id,
+      fromWaypointTime: wp5.time
+    })!
+    expect(res5_1.displayLabel).toBe('5.1')
+    wps = enrichCameraWaypoints(extractCameraFrames2D(p, layout))
+    const wp5_1 = wps.find((w) => Math.abs(w.time - res5_1.nextTime) < 0.01)!
+    expect(wp5_1.displayLabel).toBe('5.1')
+    expect(wp5_1.shotId).toBe(s2.id)
+    expect(wp5_1.nextSpawnLabel).toBe('5.2')
+
+    // Spawn second supplementary step (#5.2) either from #5 or from #5.1
+    const wp5After = wps.find((w) => w.displayLabel === '5')!
+    expect(wp5After.nextSpawnLabel).toBe('5.2')
+    const res5_2 = spawnNextCameraWaypoint(p, layout, {
+      mode: 'pan',
+      activeTime: wp5After.time,
+      selectedShotId: s2.id,
+      fromWaypointTime: wp5After.time
+    })!
+    expect(res5_2.displayLabel).toBe('5.2')
+    wps = enrichCameraWaypoints(extractCameraFrames2D(p, layout))
+    const wp5_2 = wps.find((w) => Math.abs(w.time - res5_2.nextTime) < 0.01)!
+    expect(wp5_2.displayLabel).toBe('5.2')
+    expect(wp5_2.shotId).toBe(s2.id)
+
+    // Verify all labels: #6 in Cảnh 2 and #7, #8, #9 in Cảnh 3 remain intact (no #10!)
+    expect(wps.map((w) => w.displayLabel)).toEqual([
+      '1',
+      '2',
+      '3',
+      '4',
+      '5',
+      '5.1',
+      '5.2',
+      '6',
+      '7',
+      '8',
+      '9'
+    ])
+
+    // Even at #6 (last waypoint of Cảnh 2 right before Cảnh 3's #7), spawning stays inside Cảnh 2 as #6.1
+    const wp6 = wps.find((w) => w.displayLabel === '6')!
+    expect(wp6.nextSpawnLabel).toBe('6.1')
+    const res6_1 = spawnNextCameraWaypoint(p, layout, {
+      mode: 'zoom-out',
+      activeTime: wp6.time,
+      selectedShotId: s2.id,
+      fromWaypointTime: wp6.time
+    })!
+    expect(res6_1.displayLabel).toBe('6.1')
+    wps = enrichCameraWaypoints(extractCameraFrames2D(p, layout))
+    const wp6_1 = wps.find((w) => Math.abs(w.time - res6_1.nextTime) < 0.01)!
+    expect(wp6_1.displayLabel).toBe('6.1')
+    expect(wp6_1.shotId).toBe(s2.id)
+    expect(wps.map((w) => w.displayLabel)).toEqual([
+      '1',
+      '2',
+      '3',
+      '4',
+      '5',
+      '5.1',
+      '5.2',
+      '6',
+      '6.1',
+      '7',
+      '8',
+      '9'
+    ])
+
+    // Verify independent delaySec slider/button adjustments on transition #5 -> #5.1
+    const idx5 = wps.findIndex((w) => w.displayLabel === '5')
+    const initialActionDur = wps[idx5].actionDurationSec
+    updateWaypointStepDuration(p, layout, idx5, { delaySec: 1.5 })
+    wps = enrichCameraWaypoints(extractCameraFrames2D(p, layout))
+    expect(wps[idx5].delaySec).toBeCloseTo(1.5, 2)
+    expect(wps[idx5].actionDurationSec).toBeCloseTo(initialActionDur, 2)
+    expect(wps[idx5].stepDuration).toBeCloseTo(1.5 + initialActionDur, 2)
+
+    // Reduce delaySec to 0.5s — stepDuration must shrink accordingly while keeping actionDurationSec intact
+    updateWaypointStepDuration(p, layout, idx5, { delaySec: 0.5 })
+    wps = enrichCameraWaypoints(extractCameraFrames2D(p, layout))
+    expect(wps[idx5].delaySec).toBeCloseTo(0.5, 2)
+    expect(wps[idx5].actionDurationSec).toBeCloseTo(initialActionDur, 2)
+    expect(wps[idx5].stepDuration).toBeCloseTo(0.5 + initialActionDur, 2)
+  })
 })
+
 
