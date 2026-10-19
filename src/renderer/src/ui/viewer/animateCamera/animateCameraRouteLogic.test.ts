@@ -386,7 +386,7 @@ describe('animateCameraRouteLogic — Camera 2D Route Management & Parameter Tun
     updateWaypointStepDuration(p, layout, 1, { stepDuration: 3.0 })
 
     const frames = extractCameraFrames2D(p, layout)
-    const waypoints = enrichCameraWaypoints(frames, p.comp.duration)
+    const waypoints = enrichCameraWaypoints(frames)
 
     expect(waypoints[0].time).toBeCloseTo(0.0, 2)
     expect(waypoints[0].stepDuration).toBeCloseTo(2.0, 2)
@@ -469,7 +469,7 @@ describe('animateCameraRouteLogic — Camera 2D Route Management & Parameter Tun
     applyStageFrameToDraft(p, layout, 8.0, layout[3].stageX, layout[3].stageY, 0.9, true)
 
     const frames = extractCameraFrames2D(p, layout)
-    const waypoints = enrichCameraWaypoints(frames, p.comp.duration)
+    const waypoints = enrichCameraWaypoints(frames)
     const stageToScreen = (sx: number, sy: number) => ({ x: sx, y: sy })
     const bubbles = computeCalloutBubbleNodes(layout, waypoints, 1.0, stageToScreen, {})
     expect(bubbles).toHaveLength(5)

@@ -104,7 +104,8 @@ describe('Image Layer Creation and Sliced Layers Alignment', () => {
     }
     project.assets.push(mountainAsset)
 
-    const s1Layer = createImageLayer(mountainAsset, project.comp, 3200, s1.id)
+    const s1Layer = createImageLayer(mountainAsset, project.comp, 3200)
+    s1Layer.shotId = s1.id
     s1Layer.transform.position.value = [0, 20, 3200]
     s1Layer.transform.scale.value = [1.06, 1.06, 1]
     project.layers.push(s1Layer)
@@ -113,6 +114,11 @@ describe('Image Layer Creation and Sliced Layers Alignment', () => {
     expect(placement.z).toBe(3200)
     expect(placement.y).toBe(20)
     expect(placement.scale).toBe(1.06)
+
+    const s2Layer = createImageLayer(mountainAsset, project.comp, placement.z, s2.id)
+    s2Layer.transform.position.value = [0, placement.y, placement.z]
+    s2Layer.transform.scale.value = [placement.scale, placement.scale, 1]
+    project.layers.push(s2Layer)
 
     const ev = evaluateScene(project, 0)
     const size1 = ev.shots[0].bounds.getSize(ev.shots[0].bounds.min.clone())

@@ -223,15 +223,22 @@ export function resolveNewLayerPlacement(
   return { z: Math.max(minAllowed, Math.min(...usedZs) - 200), y: 0, scale: 1 }
 }
 
-export function createImageLayer(asset: AssetMeta, comp: Composition, z = 0): ImageLayer {
+export function createImageLayer(
+  asset: AssetMeta,
+  comp: Composition,
+  z = 0,
+  shotId?: string
+): ImageLayer {
   const w = asset.width ?? comp.width
   const h = asset.height ?? comp.height
-  return {
+  const layer: ImageLayer = {
     ...base(comp, asset.name.replace(/\.[^.]+$/, ''), z, 1),
     autoScale: true,
     type: 'image',
     props: { assetId: asset.id, width: w, height: h }
   }
+  if (shotId) layer.shotId = shotId
+  return layer
 }
 
 export function createTextLayer(comp: Composition, text = 'Tiêu đề'): TextLayer {

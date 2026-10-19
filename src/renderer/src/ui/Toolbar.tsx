@@ -36,7 +36,8 @@ import {
   IconSun,
   IconMoon,
   IconSettings,
-  IconLayerAssembly
+  IconLayerAssembly,
+  IconPlug
 } from './icons'
 import { requestOpenLayerAssembly } from './layerAssembly/layerAssemblyBridge'
 
