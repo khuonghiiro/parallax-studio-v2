@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Parallax Studio - Timeline Mode Tabs & Node-Port Workflow Studio
+   Parallax Studio - Timeline Mode Tabs, Workflow Shell, Canvas & SVG Wires
    Dual-Theme (Dark & Light) Compliant via variables.css Design Tokens
    ========================================================================== */
 
@@ -30,22 +30,15 @@
   font-weight: 700;
   letter-spacing: 0.01em;
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
   white-space: nowrap;
 }
-
-.tl-mode-tab:hover {
-  color: var(--text);
-  background: var(--bg-2);
-}
-
+.tl-mode-tab:hover { color: var(--text); background: var(--bg-2); }
 .tl-mode-tab.active {
   background: var(--bg-2);
   color: var(--text);
   border-color: var(--accent);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2), inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16), inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
 }
-
 .tl-mode-tab.wf-tab.active {
   border-color: var(--accent-cyan);
   color: var(--accent-cyan);
@@ -64,13 +57,11 @@
   color: var(--text-dim);
   border: 1px solid var(--line-soft);
 }
-
 .tl-mode-tab.active .tl-mode-tab-badge {
   background: color-mix(in srgb, var(--accent) 22%, var(--bg-2));
   color: var(--text);
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
 }
-
 .tl-mode-tab.wf-tab.active .tl-mode-tab-badge.wf {
   background: color-mix(in srgb, var(--accent-cyan) 22%, var(--bg-2));
   color: var(--accent-cyan);
@@ -87,6 +78,12 @@
   background: var(--bg-0);
   overflow: hidden;
 }
+.wf-studio-panel .custom-select-trigger {
+  background: var(--bg-2);
+  color: var(--text);
+  border-color: var(--line);
+  transition: none;
+}
 
 .wf-toolbar {
   position: relative;
@@ -94,14 +91,12 @@
   overflow: visible;
   gap: 6px;
 }
-
 .wf-toolbar-template-group {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
 }
-
 .wf-toolbar-label {
   font-size: 11px;
   font-weight: 600;
@@ -124,7 +119,6 @@
   max-width: 440px;
   overflow: hidden;
 }
-
 .wf-flow-dot {
   width: 6px;
   height: 6px;
@@ -133,7 +127,6 @@
   box-shadow: 0 0 6px var(--ok);
   flex-shrink: 0;
 }
-
 .wf-flow-text {
   white-space: nowrap;
   overflow: hidden;
@@ -154,7 +147,7 @@
   flex-shrink: 0;
 }
 
-/* ------------------------------------------------------------------ Split Body: Canvas + Side Panel */
+/* ------------------------------------------------------------------ Infinite Zoom/Pan Canvas */
 
 .wf-workspace-body {
   flex: 1;
@@ -168,18 +161,31 @@
   flex: 1;
   min-width: 0;
   position: relative;
-  overflow: auto;
+  overflow: hidden;
+  cursor: grab;
   background-color: var(--bg-0);
-  background-image: radial-gradient(color-mix(in srgb, var(--line) 85%, transparent) 1px, transparent 1px);
+  background-image: radial-gradient(color-mix(in srgb, var(--line) 90%, transparent) 1.2px, transparent 1.2px);
   background-size: 18px 18px;
+  user-select: none;
+}
+.wf-canvas-viewport.panning { cursor: grabbing; }
+
+.wf-canvas-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2000px;
+  height: 1000px;
+  transform-origin: 0 0;
+  will-change: transform;
+  pointer-events: none;
 }
 
 .wf-connecting-banner {
-  position: sticky;
-  top: 6px;
-  left: 10px;
-  right: 10px;
-  margin: 6px 10px 0;
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  right: 12px;
   padding: 4px 10px;
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--accent-cyan) 16%, var(--bg-2));
@@ -190,620 +196,92 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  z-index: 40;
+  z-index: 60;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
-.wf-canvas-stage {
-  position: relative;
-  min-width: 100%;
-  min-height: 100%;
-}
+/* ------------------------------------------------------------------ Floating Canvas HUD Bar */
 
-/* ------------------------------------------------------------------ SVG Port Wires */
-
-.wf-edges-svg {
+.wf-canvas-hud {
   position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.wf-edge-group {
-  pointer-events: stroke;
-  cursor: pointer;
-}
-
-.wf-edge-hit {
-  fill: none;
-  stroke: transparent;
-  stroke-width: 12px;
-  pointer-events: stroke;
-}
-
-.wf-edge-line {
-  fill: none;
-  stroke-width: 2.2px;
-  stroke-linecap: round;
-  transition: stroke-width 0.12s ease, opacity 0.12s ease;
-}
-
-.wf-edge-group.muted .wf-edge-line {
-  stroke-dasharray: 4 4;
-  opacity: 0.35;
-}
-
-.wf-edge-group:hover .wf-edge-line {
-  stroke-width: 3.4px;
-}
-
-.wf-edge-badge {
-  pointer-events: all;
-  cursor: pointer;
-  opacity: 0.94;
-}
-
-.wf-edge-badge-ring {
-  fill: var(--bg-1);
-  stroke-width: 1.5px;
-}
-
-.wf-edge-badge-x {
-  fill: var(--danger);
-  font-size: 8px;
-  font-weight: 800;
-  font-family: var(--font);
-  opacity: 0;
-}
-
-.wf-edge-group:hover .wf-edge-badge-ring {
-  stroke: var(--danger) !important;
-  fill: var(--bg-2);
-}
-
-.wf-edge-group:hover .wf-edge-badge-dot {
-  opacity: 0;
-}
-
-.wf-edge-group:hover .wf-edge-badge-x {
-  opacity: 1;
-}
-
-.wf-studio-panel .custom-select-trigger {
-  background: var(--bg-2);
-  color: var(--text);
-  border-color: var(--line);
-  transition: none;
-}
-
-.wf-edge-preview {
-  fill: none;
-  stroke-width: 2.2px;
-  stroke-dasharray: 5 4;
-  pointer-events: none;
-}
-
-/* ------------------------------------------------------------------ Functional Node Cards */
-
-.wf-node-card {
-  position: absolute;
-  background: var(--bg-1);
-  border: 1px solid var(--line);
-  border-top: 2.5px solid var(--wf-node-color, var(--accent));
-  border-radius: 6px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
-  display: flex;
-  flex-direction: column;
-  z-index: 5;
-  user-select: none;
-  transition: border-color 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
-}
-
-.wf-node-card:hover {
-  border-color: color-mix(in srgb, var(--wf-node-color, var(--accent)) 65%, var(--line));
-}
-
-.wf-node-card.selected {
-  border-color: var(--accent-cyan);
-  border-top-color: var(--wf-node-color, var(--accent-cyan));
-  box-shadow: 0 0 0 1.5px var(--accent-cyan), 0 6px 18px rgba(0, 0, 0, 0.32);
-  z-index: 8;
-}
-
-.wf-node-card.disabled {
-  opacity: 0.52;
-  filter: grayscale(0.45);
-}
-
-.wf-node-header {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 7px;
-  background: var(--bg-2);
-  border-bottom: 1px solid var(--line-soft);
-  border-radius: 4px 4px 0 0;
-  cursor: grab;
-}
-
-.wf-node-header:active {
-  cursor: grabbing;
-}
-
-.wf-node-icon {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  display: grid;
-  place-items: center;
-  color: var(--on-accent);
-  flex-shrink: 0;
-}
-
-.wf-node-title {
-  flex: 1;
-  min-width: 0;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.wf-node-status-pill {
-  font-family: var(--mono);
-  font-size: 9px;
-  font-weight: 700;
-  padding: 1px 4px;
-  border-radius: 3px;
-  background: var(--bg-3);
-  color: var(--text-faint);
-  border: 1px solid var(--line-soft);
-}
-
-.wf-node-status-pill.on {
-  background: color-mix(in srgb, var(--ok) 18%, var(--bg-2));
-  color: var(--ok);
-  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
-}
-
-.wf-node-toggle {
-  height: 16px;
-  padding: 0 5px;
-  border-radius: 3px;
-  font-family: var(--mono);
-  font-size: 8.5px;
-  font-weight: 700;
-  border: 1px solid var(--line);
-  background: var(--bg-3);
-  color: var(--text-faint);
-  cursor: pointer;
-}
-
-.wf-node-toggle.on {
-  background: color-mix(in srgb, var(--accent) 22%, var(--bg-2));
-  color: var(--text);
-  border-color: var(--accent);
-}
-
-.wf-node-body {
-  padding: 6px 7px 5px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.wf-node-summary {
-  font-size: 9.5px;
-  color: var(--text-dim);
-  line-height: 1.25;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.wf-node-ports-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 4px;
-  padding: 4px 4px 6px;
-  border-top: 1px dashed var(--line-soft);
-  background: color-mix(in srgb, var(--bg-2) 60%, var(--bg-1));
-  border-radius: 0 0 5px 5px;
-}
-
-.wf-ports-col {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.wf-ports-col.out {
-  align-items: flex-end;
-  margin-left: auto;
-}
-
-.wf-port-pill {
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--bg-2);
-  color: var(--text-dim);
-  font-size: 9px;
-  font-weight: 600;
+  left: 10px;
+  bottom: 8px;
+  z-index: 45;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  white-space: nowrap;
+  gap: 3px;
+  padding: 3px 5px;
+  background: color-mix(in srgb, var(--bg-1) 92%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(8px);
 }
-
-.wf-port-pill:hover {
-  border-color: var(--port-c, var(--accent-cyan));
-  color: var(--text);
-  background: var(--bg-3);
-}
-
-.wf-port-pill.wired {
-  border-color: color-mix(in srgb, var(--port-c, var(--accent-cyan)) 65%, var(--line));
-  color: var(--text);
-}
-
-.wf-port-pill.pending,
-.wf-port-pill.highlight {
-  border-color: var(--port-c, var(--accent-cyan));
-  background: color-mix(in srgb, var(--port-c, var(--accent-cyan)) 22%, var(--bg-2));
-  color: var(--text);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--port-c, var(--accent-cyan)) 55%, transparent);
-}
-
-.wf-port-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--port-c, var(--accent-cyan));
-  flex-shrink: 0;
-}
-
-/* ------------------------------------------------------------------ Side Panel: Inspector & JSON */
-
-.wf-side-panel {
-  width: 320px;
-  flex-shrink: 0;
-  border-left: 1px solid var(--line);
-  background: var(--bg-1);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.wf-side-header {
-  display: flex;
-  height: 30px;
-  border-bottom: 1px solid var(--line);
+.wf-hud-btn {
+  height: 21px;
+  padding: 0 7px;
+  border-radius: 4px;
+  border: 1px solid transparent;
   background: var(--bg-2);
-  flex-shrink: 0;
-}
-
-.wf-side-tab {
-  flex: 1;
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: transparent;
   color: var(--text-dim);
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
   cursor: pointer;
   white-space: nowrap;
 }
-
-.wf-side-tab:hover {
-  color: var(--text);
-  background: var(--bg-3);
-}
-
-.wf-side-tab.active {
+.wf-hud-btn.icon { width: 21px; padding: 0; font-size: 12px; font-weight: 700; }
+.wf-hud-btn:hover { color: var(--text); background: var(--bg-3); border-color: var(--line); }
+.wf-hud-btn.active {
+  background: color-mix(in srgb, var(--accent-cyan) 18%, var(--bg-2));
   color: var(--accent-cyan);
-  border-bottom-color: var(--accent-cyan);
-  background: var(--bg-1);
-}
-
-.wf-side-body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.wf-inspector-card {
-  padding: 7px 9px;
-  background: var(--bg-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-}
-
-.wf-inspector-title-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-bottom: 4px;
-}
-
-.wf-inspector-title-text {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.wf-inspector-title-text strong {
-  font-size: 11.5px;
-  color: var(--text);
-}
-
-.wf-agent-role-badge {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  color: var(--accent-cyan);
-  font-weight: 600;
-}
-
-.wf-inspector-desc {
-  margin: 0;
-  font-size: 10px;
-  color: var(--text-dim);
-  line-height: 1.35;
-}
-
-.wf-field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.wf-field-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.wf-field-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.wf-range {
-  width: 110px;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
-.wf-quick-switches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.wf-check-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 7px;
-  background: var(--bg-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  font-size: 10.5px;
-  color: var(--text);
-  cursor: pointer;
-}
-
-.wf-directive-input {
-  width: 100%;
-  box-sizing: border-box;
-  background: var(--bg-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-family: var(--font);
-  font-size: 10.5px;
-  padding: 5px 7px;
-  resize: vertical;
-  line-height: 1.35;
-}
-
-.wf-directive-input:focus {
-  outline: none;
-  border-color: var(--line-focus);
-}
-
-.wf-port-links-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.wf-quick-link-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--line);
-  background: var(--bg-2);
-  color: var(--text-dim);
-  font-size: 10.5px;
-  cursor: pointer;
-  text-align: left;
-}
-
-.wf-quick-link-btn:hover {
   border-color: var(--accent-cyan);
-  color: var(--text);
-  background: var(--bg-3);
 }
-
-.wf-quick-link-btn.connected {
-  border-color: color-mix(in srgb, var(--ok) 55%, var(--line));
-  background: color-mix(in srgb, var(--ok) 10%, var(--bg-2));
-  color: var(--text);
-}
-
-.wf-quick-link-text {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.wf-quick-link-state {
+.wf-hud-sep { width: 1px; height: 14px; background: var(--line); margin: 0 2px; }
+.wf-hud-zoom-val {
+  min-width: 36px;
+  text-align: center;
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 700;
-  color: var(--accent-cyan);
-}
-
-.wf-quick-link-btn.connected .wf-quick-link-state {
-  color: var(--ok);
-}
-
-/* ------------------------------------------------------------------ JSON & AI Blueprint View */
-
-.wf-json-panel {
-  gap: 6px;
-}
-
-.wf-json-subtabs {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.wf-json-subtab {
-  height: 22px;
-  padding: 0 7px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--line);
-  background: var(--bg-2);
-  color: var(--text-dim);
-  font-size: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.wf-json-subtab.active {
-  background: color-mix(in srgb, var(--accent) 20%, var(--bg-2));
-  border-color: var(--accent);
   color: var(--text);
 }
 
-.wf-json-error {
-  padding: 4px 7px;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--danger) 15%, var(--bg-2));
-  border: 1px solid var(--danger);
-  color: var(--danger);
-  font-size: 10px;
-}
+/* ------------------------------------------------------------------ SVG Port Wires & Animated Data Flow */
 
-.wf-json-textarea {
-  flex: 1;
-  min-height: 120px;
-  width: 100%;
-  box-sizing: border-box;
-  background: var(--bg-0);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 10px;
-  line-height: 1.4;
-  padding: 6px 8px;
-  resize: none;
+.wf-edges-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 2;
 }
+.wf-edge-group { pointer-events: stroke; cursor: pointer; }
+.wf-edge-hit { fill: none; stroke: transparent; stroke-width: 14px; pointer-events: stroke; }
+.wf-edge-glow-bg { fill: none; stroke-width: 5.5px; stroke-linecap: round; opacity: 0.14; }
+.wf-edge-line { fill: none; stroke-width: 2.2px; stroke-linecap: round; }
+.wf-edge-flow {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 1.4px;
+  stroke-dasharray: 4 14;
+  stroke-linecap: round;
+  opacity: 0.65;
+  animation: wf-wire-dash 1.1s linear infinite;
+}
+@keyframes wf-wire-dash { to { stroke-dashoffset: -18; } }
+.wf-edge-group.muted .wf-edge-line { stroke-dasharray: 4 4; opacity: 0.32; }
+.wf-edge-group.muted .wf-edge-glow-bg { opacity: 0; }
+.wf-edge-group:hover .wf-edge-line { stroke-width: 3.2px; }
 
-.wf-json-textarea:focus {
-  outline: none;
-  border-color: var(--line-focus);
-}
-
-.wf-agents-blueprint-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.wf-agent-step-card {
-  padding: 6px 8px;
-  background: var(--bg-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.wf-agent-step-head {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10.5px;
-  color: var(--text);
-}
-
-.wf-agent-step-idx {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  font-weight: 700;
-  color: var(--accent-cyan);
-  background: var(--bg-3);
-  padding: 0 4px;
-  border-radius: 3px;
-}
-
-.wf-agent-preset-tag {
-  margin-left: auto;
-  font-family: var(--mono);
-  font-size: 9px;
-  color: var(--text-dim);
-}
-
-.wf-agent-directive {
-  font-size: 10px;
-  color: var(--text-dim);
-  line-height: 1.3;
-}
-
-.wf-agent-tools {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-  font-size: 9px;
-  color: var(--text-faint);
-}
-
-.wf-agent-tools code {
-  font-family: var(--mono);
-  font-size: 9px;
-  padding: 1px 4px;
-  border-radius: 3px;
-  background: var(--bg-0);
-  color: var(--accent-cyan);
-  border: 1px solid var(--line-soft);
-}
+.wf-edge-badge { pointer-events: all; cursor: pointer; opacity: 0.95; }
+.wf-edge-badge-ring { fill: var(--bg-1); stroke-width: 1.6px; }
+.wf-edge-badge-x { fill: var(--danger); font-size: 8px; font-weight: 800; font-family: var(--font); opacity: 0; }
+.wf-edge-group:hover .wf-edge-badge-ring { stroke: var(--danger) !important; fill: var(--bg-2); }
+.wf-edge-group:hover .wf-edge-badge-dot { opacity: 0; }
+.wf-edge-group:hover .wf-edge-badge-x { opacity: 1; }
+.wf-edge-preview { fill: none; stroke-width: 2.5px; stroke-dasharray: 5 4; pointer-events: none; }

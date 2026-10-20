@@ -92,7 +92,9 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   timeline_workflow: region('timeline_workflow', '.wf-studio-panel'),
   workflow_toolbar: region('workflow_toolbar', '.wf-toolbar'),
   workflow_canvas: region('workflow_canvas', '.wf-canvas-viewport'),
+  workflow_canvas_hud: region('workflow_canvas_hud', '.wf-canvas-hud'),
   workflow_inspector: region('workflow_inspector', '.wf-side-panel'),
+  workflow_preview: region('workflow_preview', '.wf-inspector-preview-box'),
   workflow_json_panel: region('workflow_json_panel', '.wf-json-panel'),
 
   // Top Toolbar & Responsive Workspace Dock

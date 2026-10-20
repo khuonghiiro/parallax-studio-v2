@@ -2,13 +2,19 @@ import React, { useCallback, useMemo, useState } from 'react'
 import type {
   Project,
   WorkflowGraph,
+  WorkflowNode,
   WorkflowNodeParams,
   WorkflowPortKind
 } from '@shared/types'
 import { useEditor } from '../../store/editor'
+import { useView } from '../../store/view'
 import { useToast } from '../../actions'
 import { CustomSelect } from '../controls/CustomSelect'
-import { WORKFLOW_NODE_SPECS, WORKFLOW_TEMPLATES } from '../../project/workflowCatalog'
+import {
+  DEFAULT_NODE_POSITIONS,
+  WORKFLOW_NODE_SPECS,
+  WORKFLOW_TEMPLATES
+} from '../../project/workflowCatalog'
 import {
   applyWorkflowToProject,
   autoWireWorkflowNodes,
@@ -75,18 +81,30 @@ export const WorkflowStudioPanel: React.FC = () => {
     showToast('Đã tự động kết nối chuẩn toàn bộ cổng chức năng!')
   }, [workflow, commitWorkflow, showToast])
 
-  const handleMoveNode = useCallback(
-    (nodeId: string, x: number, y: number) => {
+  const handleMoveNodes = useCallback(
+    (positions: Record<string, { x: number; y: number }>, mergeKey?: string) => {
       const next: WorkflowGraph = {
         ...workflow,
         nodes: workflow.nodes.map((n) =>
-          n.id === nodeId ? { ...n, position: { x, y } } : n
+          positions[n.id] ? { ...n, position: { ...positions[n.id] } } : n
         )
       }
-      commitWorkflow(next, `wf-move-${nodeId}`)
+      commitWorkflow(next, mergeKey ?? 'wf-move')
     },
     [workflow, commitWorkflow]
   )
+
+  const handleAutoLayout = useCallback(() => {
+    const next: WorkflowGraph = {
+      ...workflow,
+      nodes: workflow.nodes.map((n) => ({
+        ...n,
+        position: { ...(DEFAULT_NODE_POSITIONS[n.type] ?? n.position) }
+      }))
+    }
+    commitWorkflow(next, 'wf-autolayout')
+    showToast('Đã sắp xếp gọn gàng vị trí 7 khối chức năng!')
+  }, [workflow, commitWorkflow, showToast])
 
   const handleToggleNode = useCallback(
     (nodeId: string) => {
@@ -177,6 +195,37 @@ export const WorkflowStudioPanel: React.FC = () => {
         : 'Chưa có khối chức năng nào được bật và nối Port!'
     )
   }, [workflow, showToast])
+
+  const handlePreviewNode = useCallback(
+    (node: WorkflowNode) => {
+      const singleNodeGraph: WorkflowGraph = {
+        ...workflow,
+        nodes: workflow.nodes.map((n) => ({
+          ...n,
+          enabled: n.id === node.id || n.type === 'scene_shot'
+        })),
+        edges:
+          node.type === 'scene_shot'
+            ? []
+            : [
+                {
+                  id: `preview-edge-${node.id}`,
+                  fromNode: 'wf-scene_shot',
+                  fromPort: 'scene_ctx',
+                  toNode: node.id,
+                  toPort: WORKFLOW_NODE_SPECS[node.type]?.inputs[0] ?? 'scene_ctx'
+                }
+              ]
+      }
+      useEditor.getState().update((draft) => {
+        applyWorkflowToProject(draft as Project, singleNodeGraph)
+        draft.workflow = workflow
+      })
+      useView.getState().setPlaying(true)
+      showToast(`▶ Đang chạy thử hiệu ứng khối "${node.title}" trên Cảnh 3D!`)
+    },
+    [workflow, showToast]
+  )
 
   const templateOptions = useMemo(
     () =>
@@ -271,11 +320,13 @@ export const WorkflowStudioPanel: React.FC = () => {
           onSelectNode={(id) => {
             setSelectedNodeId(id)
           }}
-          onMoveNode={handleMoveNode}
+          onMoveNodes={handleMoveNodes}
+          onAutoLayout={handleAutoLayout}
           onToggleNode={handleToggleNode}
           onChangeNodePreset={handleChangeNodePreset}
           onConnectPorts={handleConnectPorts}
           onDisconnectEdge={handleDisconnectEdge}
+          onPreviewNode={handlePreviewNode}
         />
 
         <WorkflowSidePanel
@@ -291,6 +342,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           onDisconnectEdge={handleDisconnectEdge}
           onApplyJsonGraph={(next) => commitWorkflow(next)}
           onShowToast={showToast}
+          onPreviewNode={handlePreviewNode}
         />
       </div>
     </div>

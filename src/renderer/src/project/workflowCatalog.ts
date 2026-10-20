@@ -392,15 +392,15 @@ export const CANONICAL_NODE_ORDER: WorkflowNodeType[] = [
   'look_output'
 ]
 
-/** Vị trí tọa độ mặc định gọn đẹp trên mặt phẳng Workflow Canvas */
+/** Vị trí tọa độ mặc định gọn đẹp trên mặt phẳng Workflow Canvas (100% dây chảy thuận chiều Trái -> Phải) */
 export const DEFAULT_NODE_POSITIONS: Record<WorkflowNodeType, { x: number; y: number }> = {
-  scene_shot: { x: 14, y: 76 },
-  layer_assembly: { x: 232, y: 12 },
-  motion_choreography: { x: 450, y: 12 },
-  physics_fx: { x: 668, y: 12 },
-  camera_director: { x: 450, y: 144 },
-  audio_lipsync: { x: 668, y: 144 },
-  look_output: { x: 886, y: 66 }
+  scene_shot: { x: 18, y: 70 },
+  layer_assembly: { x: 270, y: 8 },
+  motion_choreography: { x: 522, y: 8 },
+  audio_lipsync: { x: 522, y: 138 },
+  physics_fx: { x: 774, y: 8 },
+  camera_director: { x: 774, y: 138 },
+  look_output: { x: 1026, y: 58 }
 }
 
 /** Danh sách kết nối cổng (Port Edges) chuẩn mực giữa 7 khâu sản xuất video */

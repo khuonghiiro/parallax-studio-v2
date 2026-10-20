@@ -11,6 +11,7 @@ import { WORKFLOW_NODE_SPECS, WORKFLOW_PORT_SPECS } from '../../project/workflow
 import { validateAndNormalizeWorkflowJson } from '../../project/workflowEngine'
 import { IconCopy, IconSparkles } from '../icons'
 import { IconWfJsonCode, renderWorkflowNodeIcon } from './workflowIcons'
+import { WorkflowNodePreview } from './WorkflowNodePreview'
 
 export interface WorkflowSidePanelProps {
   workflow: WorkflowGraph
@@ -25,6 +26,7 @@ export interface WorkflowSidePanelProps {
   onDisconnectEdge: (edgeId: string) => void
   onApplyJsonGraph: (nextGraph: WorkflowGraph) => void
   onShowToast: (msg: string) => void
+  onPreviewNode?: (node: WorkflowNode) => void
 }
 
 export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
@@ -39,7 +41,8 @@ export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
   onConnectPorts,
   onDisconnectEdge,
   onApplyJsonGraph,
-  onShowToast
+  onShowToast,
+  onPreviewNode
 }) => {
   const [jsonSubTab, setJsonSubTab] = useState<'raw' | 'agents'>('raw')
   const [jsonText, setJsonText] = useState('')
@@ -131,6 +134,13 @@ export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
                 </div>
                 <p className="wf-inspector-desc">{nodeSpec.description}</p>
               </div>
+
+              {/* Mô phỏng trực quan chức năng & Nút xem thử trên Cảnh 3D */}
+              <WorkflowNodePreview
+                node={selectedNode}
+                mode="inspector"
+                onPreviewInViewport={onPreviewNode}
+              />
 
               {/* Preset & Intensity */}
               <div className="wf-field-group">
