@@ -43,7 +43,11 @@ import {
 } from './animateCameraRouteLogic'
 import { useCameraStageDrag } from './useCameraStageDrag'
 
-export function AnimateCameraStage() {
+interface AnimateCameraStageProps {
+  splitLeftWidth?: number
+}
+
+export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStageProps) {
   const project = useEditor((s) => s.project)
   const time = useEditor((s) => s.time)
   const playing = useEditor((s) => s.playing)
@@ -550,39 +554,55 @@ export function AnimateCameraStage() {
   }, [activeShotBox, layersByShot])
 
   return (
-    <div id="animate-camera-stage" className={`anim2d-stage ${theme}${!animate2dSplit ? ' single-2d' : ''}`}>
-      {/* Thanh công cụ 2 dòng siêu gọn */}
-      <AnimateCameraToolbar
-        animate2dSplit={animate2dSplit}
-        toolMode={toolMode}
-        lineStyle={lineStyle}
-        activeFrame={activeFrame}
-        activeShotBox={activeShotBox}
-        activeShotLayers={activeShotLayers}
-        hasMovedBubbles={hasMovedBubbles}
-        playing={playing}
-        showAllFrames={showAllFrames}
-        showGrid={showGrid}
-        inspectorTab={inspectorTab}
-        onSetAnimate2dSplit={(split) => setView({ animate2dSplit: split })}
-        onSetToolMode={setToolMode}
-        onSetLineStyle={setLineStyle}
-        onSpawnNextFrame={(mode) => spawnNextCameraFrame(mode)}
-        onAddHold={handleAddHold}
-        onQuickAnglePreset={handleQuickAnglePreset}
-        onAimAtLayer={handleAimAtLayer}
-        onResetAllBubbles={() => {
-          setBubbleOffsets({})
-          toast('Đã đặt lại vị trí tất cả bóng tròn về mặc định')
-        }}
-        onTogglePlaying={() => setPlaying(!playing)}
-        onToggleShowAllFrames={() => setShowAllFrames((v) => !v)}
-        onToggleShowGrid={() => setShowGrid((v) => !v)}
-        onFitStage={() => fitStage()}
-      />
+    <div
+      id="animate-camera-stage"
+      className={`anim2d-stage ${theme}${!animate2dSplit ? ' single-2d' : ''}`}
+      style={{
+        pointerEvents: 'none',
+        background: 'transparent'
+      }}
+    >
+      {/* 0. Thanh công cụ Top đồng nhất — trải rộng toàn màn hình từ x = 0 đến x = W */}
+      <div style={{ pointerEvents: 'auto', width: '100%' }}>
+        <AnimateCameraToolbar
+          animate2dSplit={animate2dSplit}
+          toolMode={toolMode}
+          lineStyle={lineStyle}
+          activeFrame={activeFrame}
+          activeShotBox={activeShotBox}
+          activeShotLayers={activeShotLayers}
+          hasMovedBubbles={hasMovedBubbles}
+          playing={playing}
+          showAllFrames={showAllFrames}
+          showGrid={showGrid}
+          inspectorTab={inspectorTab}
+          onSetAnimate2dSplit={(split) => setView({ animate2dSplit: split })}
+          onSetToolMode={setToolMode}
+          onSetLineStyle={setLineStyle}
+          onSpawnNextFrame={(mode) => spawnNextCameraFrame(mode)}
+          onAddHold={handleAddHold}
+          onQuickAnglePreset={handleQuickAnglePreset}
+          onAimAtLayer={handleAimAtLayer}
+          onResetAllBubbles={() => {
+            setBubbleOffsets({})
+            toast('Đã đặt lại vị trí tất cả bóng tròn về mặc định')
+          }}
+          onTogglePlaying={() => setPlaying(!playing)}
+          onToggleShowAllFrames={() => setShowAllFrames((v) => !v)}
+          onToggleShowGrid={() => setShowGrid((v) => !v)}
+          onFitStage={() => fitStage()}
+        />
+      </div>
 
       {/* Khu vực chính: Bàn dựng 2D bên trái + Kẻ phim dọc (Vertical Filmstrip Preview) bên phải */}
-      <div className="anim2d-workspace-row">
+      <div
+        className="anim2d-workspace-row"
+        style={{
+          marginLeft: splitLeftWidth,
+          pointerEvents: 'auto',
+          background: 'var(--bg-0)'
+        }}
+      >
         <div
           ref={stageRef}
           className={`anim2d-canvas mode-${toolMode}`}
@@ -664,13 +684,15 @@ export function AnimateCameraStage() {
       </div>
 
       {/* 4. Thanh công cụ Động tác Quay Chuyên Nghiệp dưới chân (Gọn gàng, đồng nhất) */}
-      <AnimateCameraProFooterBar
-        activeFrame={activeFrame}
-        waypoints={waypoints}
-        onSelectWaypoint={(wp) => handleSelectFrame(wp, true)}
-        onQuickActionMode={handleQuickActionMode}
-        onEstablishCenter100={handleEstablishCenter100}
-      />
+      <div style={{ marginLeft: splitLeftWidth, pointerEvents: 'auto' }}>
+        <AnimateCameraProFooterBar
+          activeFrame={activeFrame}
+          waypoints={waypoints}
+          onSelectWaypoint={(wp) => handleSelectFrame(wp, true)}
+          onQuickActionMode={handleQuickActionMode}
+          onEstablishCenter100={handleEstablishCenter100}
+        />
+      </div>
     </div>
   )
 }

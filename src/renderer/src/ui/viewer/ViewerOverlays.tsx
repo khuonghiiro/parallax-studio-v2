@@ -69,7 +69,14 @@ export function ViewerOverlays({
       {/* Vách ngăn chế độ 2D & 3D (Cột 1 chia 2 hàng: Hàng 1 Camera + Hàng 2 3D | Cột 2: Mặt phẳng 2D) */}
       {isAnimateSplit && rects.ed && rects.stage2d && (
         <>
-          <div className="pane-divider" style={{ left: rects.stage2d.x - 1 }} />
+          <div
+            className="pane-divider"
+            style={{
+              left: rects.stage2d.x - 1,
+              top: 32,
+              height: 'calc(100% - 32px)'
+            }}
+          />
           <div
             className="pane-divider-h"
             style={{ top: rects.ed.y - 1, left: 0, width: rects.ed.w }}
@@ -78,34 +85,36 @@ export function ViewerOverlays({
       )}
 
       {/* Dock trạng thái thông số & bộ nhớ gọn nhẹ, không lặp lại kích thước/fps đã có trên thanh tiêu đề */}
-      <div className="viewer-hud">
-        {playing && (
-          <>
-            <span className="hud-item" title="Tốc độ khung hình phát thực tế">
-              <span className="dot live" /> {fps} fps
+      {!isAnimate2D && (
+        <div className="viewer-hud">
+          {playing && (
+            <>
+              <span className="hud-item" title="Tốc độ khung hình phát thực tế">
+                <span className="dot live" /> {fps} fps
+              </span>
+              <span className="hud-sep" />
+            </>
+          )}
+          {rects.cam && (
+            <span className="hud-item" title={`Góc mở ống kính camera: ${currentFov.toFixed(1)}°`}>
+              FOV {currentFov.toFixed(0)}°
             </span>
-            <span className="hud-sep" />
-          </>
-        )}
-        {rects.cam && (
-          <span className="hud-item" title={`Góc mở ống kính camera: ${currentFov.toFixed(1)}°`}>
-            FOV {currentFov.toFixed(0)}°
-          </span>
-        )}
-        {stats && (
-          <>
-            {rects.cam && <span className="hud-sep" />}
-            <span
-              id="memory-chip"
-              className={`hud-item mem${stats.textureMB > stats.budgetMB * 0.85 ? ' warn' : ''}`}
-              onClick={() => useView.getState().openDialog('performance')}
-              title={`⚡ Texture GPU đang giữ: ${stats.textures} (${stats.pending} đang giải mã)\nNgân sách VRAM: ${stats.budgetMB} MB · LOD bias ${stats.lodBias}\nLayer đang vẽ trong camera: ${stats.visibleLayers}/${stats.totalLayers}\n\n👉 Bấm vào đây để mở Cấu hình Hiệu năng, RAM & VRAM GPU.`}
-            >
-              ⚡ {stats.textureMB.toFixed(0)}/{stats.budgetMB} MB
-            </span>
-          </>
-        )}
-      </div>
+          )}
+          {stats && (
+            <>
+              {rects.cam && <span className="hud-sep" />}
+              <span
+                id="memory-chip"
+                className={`hud-item mem${stats.textureMB > stats.budgetMB * 0.85 ? ' warn' : ''}`}
+                onClick={() => useView.getState().openDialog('performance')}
+                title={`⚡ Texture GPU đang giữ: ${stats.textures} (${stats.pending} đang giải mã)\nNgân sách VRAM: ${stats.budgetMB} MB · LOD bias ${stats.lodBias}\nLayer đang vẽ trong camera: ${stats.visibleLayers}/${stats.totalLayers}\n\n👉 Bấm vào đây để mở Cấu hình Hiệu năng, RAM & VRAM GPU.`}
+              >
+                ⚡ {stats.textureMB.toFixed(0)}/{stats.budgetMB} MB
+              </span>
+            </>
+          )}
+        </div>
+      )}
 
       {(isStandardSplit || isAnimateSplit) && rects.cam && (
         <span

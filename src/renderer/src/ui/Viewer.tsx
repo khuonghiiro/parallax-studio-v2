@@ -506,14 +506,17 @@ export function Viewer() {
           className="anim2d-pane-host"
           style={{
             position: 'absolute',
-            left: rects.stage2d.x,
-            top: rects.stage2d.y,
-            width: rects.stage2d.w,
-            height: rects.stage2d.h,
-            zIndex: 8
+            left: 0,
+            top: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 8,
+            pointerEvents: 'none'
           }}
         >
-          <AnimateCameraStage />
+          <AnimateCameraStage
+            splitLeftWidth={view.animate2dSplit && !narrowViewer && rects.cam ? (rects.stage2d?.x ?? 0) : 0}
+          />
         </div>
       )}
 
