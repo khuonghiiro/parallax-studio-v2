@@ -21,6 +21,7 @@ import {
   connectWorkflowPort,
   disconnectWorkflowEdge,
   ensureProjectWorkflow,
+  getDefaultPartsForNode,
   getWorkflowFromTemplate,
   resolveConnectedWorkflowNodes
 } from '../../project/workflowEngine'
@@ -130,7 +131,11 @@ export const WorkflowStudioPanel: React.FC = () => {
             ...n,
             preset: presetId,
             aiDirective: pSpec?.defaultDirective ?? n.aiDirective,
-            params: { ...(pSpec?.defaultParams ?? {}), ...(n.params ?? {}) }
+            params: {
+              ...(n.params ?? {}),
+              ...(pSpec?.defaultParams ?? {}),
+              targetParts: getDefaultPartsForNode({ type: n.type, preset: presetId })
+            }
           }
         })
       }
@@ -313,6 +318,7 @@ export const WorkflowStudioPanel: React.FC = () => {
       <div className="wf-workspace-body">
         <WorkflowCanvas
           workflow={workflow}
+          project={project}
           activeNodeIds={activeNodeIds}
           executionStepMap={executionStepMap}
           selectedNodeId={selectedNode?.id ?? null}
@@ -330,6 +336,7 @@ export const WorkflowStudioPanel: React.FC = () => {
 
         <WorkflowSidePanel
           workflow={workflow}
+          project={project}
           blueprint={blueprint}
           selectedNode={selectedNode}
           sideMode={sideMode}

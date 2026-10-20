@@ -436,7 +436,7 @@ export function WorkshopPhysicsLightSection({
               <span className="lw-field-label">Gió thổi lửa</span>
               <Select
                 size="sm"
-                value={vlight.windPreset}
+                value={vlight.windPreset ?? 'gentle'}
                 options={WIND_OPTIONS}
                 onChange={(v) => patchLight({ windPreset: v as WindStrengthPreset })}
               />

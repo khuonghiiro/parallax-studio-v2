@@ -137,4 +137,30 @@ describe('MCP workflowCommands & Workflow Engine', () => {
     expect(hero?.motion?.type).not.toBe('none')
     expect(hero?.physics?.enabled).toBe(true)
   })
+
+  it('binds explicit 2.5D composite/layers and sub-parts to a workflow node and reflects in AI Blueprint', async () => {
+    const initial = (await runCommand('get_workflow')) as any
+    expect(initial.bindableTargets.length).toBeGreaterThanOrEqual(3)
+    const compositeTarget = initial.bindableTargets.find((t: any) => t.kind === 'composite_25d')
+    expect(compositeTarget).toBeDefined()
+
+    const updated = (await runCommand('set_workflow', {
+      node_id: 'wf-motion_choreography',
+      target_mode: 'custom',
+      target_layer_ids: [compositeTarget.id],
+      target_parts: ['torso_breathe', 'hair_cloth_sway']
+    })) as any
+
+    expect(updated.ok).toBe(true)
+    const motionAgent = updated.aiBlueprint.agents.find(
+      (a: any) => a.nodeType === 'motion_choreography'
+    )
+    expect(motionAgent).toBeDefined()
+    expect(motionAgent.boundTargets.map((t: any) => t.id)).toEqual([compositeTarget.id])
+    expect(motionAgent.activeParts.map((p: any) => p.id)).toEqual([
+      'torso_breathe',
+      'hair_cloth_sway'
+    ])
+  })
 })
+

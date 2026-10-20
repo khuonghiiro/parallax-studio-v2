@@ -36,6 +36,53 @@ export type WorkflowAgentRole =
   | 'AudioLipSyncAgent'
   | 'ColorGradingRenderAgent'
 
+export type WorkflowTargetKind =
+  | 'composite_25d'
+  | 'model_3d'
+  | 'image_25d'
+  | 'particles'
+  | 'ground_3d'
+  | 'shot'
+  | 'audio_track'
+  | 'camera_3d'
+  | 'look_post'
+
+export interface WorkflowBoundTarget {
+  /** ID của Layer, Composite instanceId, Model3D instanceId, Shot hoặc AudioTrack */
+  id: string
+  /** Tên hiển thị thực tế trong Project (ví dụ: 'Cây Sồi 2.5D', 'Hiệp Sĩ', 'Bầu trời đêm') */
+  name: string
+  /** Phân loại thực thể trong không gian 2.5D/3D */
+  kind: WorkflowTargetKind
+  /** Nhãn vai trò (ví dụ: 'Cụm 2.5D (4 lớp)', 'Layer Z:3200', 'Mô hình 3D') */
+  roleLabel: string
+  /** Tọa độ chiều sâu Z (nếu là Layer/Composite) */
+  zDepth?: number
+  /** Số lượng lớp con (nếu là Cụm 2.5D Composite hoặc Mô hình 3D) */
+  subLayerCount?: number
+  /** Danh sách bộ phận con phát hiện được trong cụm */
+  partNames?: string[]
+  /** True nếu do người dùng chủ động tích chọn thủ công */
+  isExplicit?: boolean
+}
+
+export interface WorkflowSubPartItem {
+  id: string
+  label: string
+  shortLabel: string
+  icon: string
+  category:
+    | 'bone_25d'
+    | 'mesh_physics'
+    | 'space_z'
+    | 'light_fx'
+    | 'camera_rig'
+    | 'voice_mouth'
+    | 'color_out'
+  description: string
+  active: boolean
+}
+
 export interface WorkflowNodeParams {
   /** Cường độ tổng thể của khâu xử lý (0.1 .. 2.5, mặc định 1.0) */
   intensity?: number
@@ -51,6 +98,12 @@ export interface WorkflowNodeParams {
   autoLipSync?: boolean
   /** Bật làm mờ chiều sâu trường ảnh (DOF) cho Camera */
   enableDof?: boolean
+  /** Chế độ gắn Layer/Thực thể 2.5D: 'auto' (tự nhận diện thông minh) hoặc 'custom' (chỉ định đích danh) */
+  targetMode?: 'auto' | 'custom'
+  /** Danh sách ID của Layer hoặc Composite instanceId được gắn trực tiếp vào Node */
+  targetLayerIds?: string[]
+  /** Danh sách mã Bộ phận 2.5D / Khớp xương / Kênh tác động đang bật trên Node */
+  targetParts?: string[]
 }
 
 export interface WorkflowNode {
@@ -100,6 +153,10 @@ export interface WorkflowAiAgentStep {
   aiDirective: string
   inputsFrom: { nodeId: string; nodeTitle: string; port: WorkflowPortKind }[]
   outputsTo: { nodeId: string; nodeTitle: string; port: WorkflowPortKind }[]
+  /** Danh sách thực thể Layer / Cụm 2.5D / Mô hình 3D thực tế được Node này tác động */
+  boundTargets: WorkflowBoundTarget[]
+  /** Danh sách các Bộ phận 2.5D / Khớp xương / Kênh cụ thể được Node này điều khiển */
+  activeParts: { id: string; label: string; shortLabel: string; category: string }[]
   recommendedMcpTools: string[]
   mcpActionHint: Record<string, unknown>
 }

@@ -170,15 +170,25 @@
 }
 .wf-canvas-viewport.panning { cursor: grabbing; }
 
+.wf-canvas-pan {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
 .wf-canvas-world {
   position: absolute;
   top: 0;
   left: 0;
-  width: 2000px;
+  width: 2200px;
   height: 1000px;
-  transform-origin: 0 0;
-  will-change: transform;
   pointer-events: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
 }
 
 .wf-connecting-banner {

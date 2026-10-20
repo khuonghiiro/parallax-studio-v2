@@ -1,87 +1,35 @@
-import React from 'react'
-import type { WorkflowNode, WorkflowNodeType } from '@shared/types'
+import React, { useMemo } from 'react'
+import type { Project, WorkflowBoundTarget, WorkflowNode, WorkflowNodeType } from '@shared/types'
 import { WORKFLOW_NODE_SPECS } from '../../project/workflowCatalog'
+import { resolveNodeTargetBinding } from '../../project/workflowEngine'
 
 export interface WorkflowNodePreviewProps {
   node: WorkflowNode
+  project?: Project
   mode?: 'card' | 'inspector'
   onPreviewInViewport?: (node: WorkflowNode) => void
 }
 
-/** Danh sách thẻ thông số trực quan mô tả chính xác chức năng sẽ áp dụng */
-function getEffectHighlights(node: WorkflowNode): string[] {
-  const intensity = Math.round((node.params?.intensity ?? 1) * 100)
-  switch (node.type) {
-    case 'scene_shot':
-      if (node.preset === 'intimate_closeup_stage') {
-        return ['3 tầng Z cận cảnh (900 → -60)', 'Tập trung biểu cảm', `Biên độ ${intensity}%`]
-      }
-      if (node.preset === 'open_world_3d_stage') {
-        return ['Không gian 3D rộng (Z 4200)', 'Tự tạo Mặt đất 3D', `Biên độ ${intensity}%`]
-      }
-      return ['5 tầng Z Parallax (3200 → -120)', 'Giãn chiều sâu tự động', `Biên độ ${intensity}%`]
-
-    case 'layer_assembly':
-      if (node.preset === 'composite_puppet_rig') {
-        return ['Khớp xương Puppet 2.5D', 'Gắn tâm xoay [0, -0.5]', 'Tự động hướng Camera']
-      }
-      if (node.preset === 'hybrid_2d_3d_stage') {
-        return ['Kết hợp Mô hình 3D + 2.5D', 'Đồng bộ ánh sáng 3D', 'Neo chân mặt đất']
-      }
-      return ['Neo gốc chân [0, -0.5]', 'Cây cối đa lớp 2.5D', 'Tự hướng mặt về Camera']
-
-    case 'motion_choreography':
-      if (node.preset === 'heroic_action_choreography') {
-        return ['Nhân vật chạy (Run)', 'Gió mạnh 1.35x', 'Cây đung đưa nhịp nhanh']
-      }
-      if (node.preset === 'calm_cinematic_float') {
-        return ['Trôi lơ lửng (Float)', 'Nhịp thở 0.75x êm dịu', 'Chuyển động mượt 60fps']
-      }
-      return ['Mây trôi (Drift)', 'Cây đung đưa theo gió (Wind)', `Cường độ ${intensity}%`]
-
-    case 'physics_fx':
-      if (node.preset === 'mystic_torch_cave') {
-        return ['Đuốc lửa ấm nhạy gió', 'Bụi sáng huyền ảo', 'Đổ bóng rim-light 2.5D']
-      }
-      if (node.preset === 'storm_rain_wind_fx') {
-        return ['Gió bão (Strong Wind)', 'Hạt mưa & sương rơi', 'Ánh sáng chớp động']
-      }
-      return [
-        'Nguồn sáng ảo nhạy gió',
-        node.params?.spawnParticles === false ? 'Tắt sinh hạt mới' : 'Hạt đom đóm lơ lửng',
-        `Cường độ sáng ${intensity}%`
-      ]
-
-    case 'camera_director':
-      if (node.preset === 'dramatic_orbit_push') {
-        return ['Quỹ đạo vòng cung (Arc)', 'Dolly Push-in 0.28x', 'Rung máy Handheld nhẹ']
-      }
-      if (node.preset === 'smooth_pan_story') {
-        return ['Lia máy ngang mượt (Ease)', 'Giữ tiêu cự ổn định', 'Chuyển cảnh tự nhiên']
-      }
-      return [
-        'Đường bay 3D xuyên cảnh',
-        'Dolly Push-in +0.15x',
-        node.params?.enableDof === false ? 'Tắt xóa phông DOF' : 'Xóa phông chiều sâu DOF'
-      ]
-
-    case 'audio_lipsync':
-      if (node.preset === 'dialogue_auto_lipsync') {
-        return ['Tách âm thoại nhân vật', 'Tự động nhép môi Lip-Sync', 'Nén Ducking nhạc nền']
-      }
-      if (node.preset === 'sfx_spatial_impact') {
-        return ['Âm thanh vòm 3D theo Shot', 'Điểm nhấn SFX chuyển cảnh', 'Cân bằng âm lượng']
-      }
-      return ['EQ Tone ấm điện ảnh', 'Fade-in 0.8s / Fade-out 1.2s', 'Hòa âm đa luồng']
-
-    case 'look_output':
-      if (node.preset === 'warm_golden_hour_grade') {
-        return ['Tone Hoàng hôn Ấm (+0.18)', 'Sương mù vàng dịu', 'Tương phản 1.10']
-      }
-      if (node.preset === 'clean_vibrant_anime') {
-        return ['Màu Anime rực rỡ (Sat 1.16)', 'Tắt sương mù 3D', 'Khung hình sắc nét']
-      }
-      return ['Sương mù 3D theo trục Z', 'Viền tối Vignette 0.28', 'Tương phản điện ảnh 1.08']
+export function getTargetKindIcon(kind: WorkflowBoundTarget['kind']): string {
+  switch (kind) {
+    case 'composite_25d':
+      return '🧩'
+    case 'model_3d':
+      return '🏛️'
+    case 'image_25d':
+      return '🖼️'
+    case 'particles':
+      return '🪄'
+    case 'ground_3d':
+      return '🟫'
+    case 'shot':
+      return '🎬'
+    case 'audio_track':
+      return '🎙️'
+    case 'camera_3d':
+      return '🎥'
+    case 'look_post':
+      return '🎞️'
   }
 }
 
@@ -90,153 +38,141 @@ function renderSchematicSvg(type: WorkflowNodeType, preset: string, color: strin
   switch (type) {
     case 'scene_shot':
       return (
-        <svg viewBox="0 0 180 42" className="wf-preview-svg">
-          {/* 3D Perspective Floor Grid */}
+        <svg viewBox="0 0 180 40" className="wf-preview-svg">
           <path
-            d="M 10 38 L 45 24 L 135 24 L 170 38 Z"
+            d="M 10 36 L 45 23 L 135 23 L 170 36 Z"
             fill={color}
-            fillOpacity="0.12"
+            fillOpacity="0.14"
             stroke={color}
-            strokeOpacity="0.35"
-            strokeWidth="0.8"
+            strokeOpacity="0.4"
+            strokeWidth="0.9"
           />
-          {/* Z-Depth Planes */}
-          <rect x="26" y="6" width="34" height="22" rx="2" fill={color} fillOpacity="0.18" stroke={color} strokeWidth="1" />
-          <text x="43" y="19" textAnchor="middle" className="wf-svg-tag">Z:3200</text>
-          <rect x="72" y="8" width="36" height="24" rx="2" fill={color} fillOpacity="0.32" stroke={color} strokeWidth="1.2" />
-          <text x="90" y="22" textAnchor="middle" className="wf-svg-tag">Z:600</text>
-          <rect x="120" y="10" width="36" height="26" rx="2" fill={color} fillOpacity="0.52" stroke={color} strokeWidth="1.4" />
-          <text x="138" y="25" textAnchor="middle" className="wf-svg-tag">Z:0</text>
-          <path d="M 62 18 L 70 18 M 110 20 L 118 20" stroke={color} strokeWidth="1.2" strokeDasharray="2 2" />
+          <rect x="22" y="5" width="36" height="21" rx="2" fill={color} fillOpacity="0.18" stroke={color} strokeWidth="1" />
+          <text x="40" y="18" textAnchor="middle" className="wf-svg-tag">Z:3200</text>
+          <rect x="70" y="7" width="38" height="23" rx="2" fill={color} fillOpacity="0.32" stroke={color} strokeWidth="1.2" />
+          <text x="89" y="21" textAnchor="middle" className="wf-svg-tag">Z:600</text>
+          <rect x="120" y="9" width="38" height="25" rx="2" fill={color} fillOpacity="0.52" stroke={color} strokeWidth="1.4" />
+          <text x="139" y="24" textAnchor="middle" className="wf-svg-tag">Z:0</text>
+          <path d="M 60 17 L 68 17 M 110 19 L 118 19" stroke={color} strokeWidth="1.2" strokeDasharray="2 2" />
         </svg>
       )
 
     case 'layer_assembly':
       return (
-        <svg viewBox="0 0 180 42" className="wf-preview-svg">
-          {/* Character Puppet Skeleton + Foliage */}
-          <line x1="20" y1="36" x2="160" y2="36" stroke={color} strokeOpacity="0.4" strokeWidth="1" strokeDasharray="3 2" />
-          {/* Character Rig */}
-          <circle cx="56" cy="11" r="4.5" fill={color} fillOpacity="0.35" stroke={color} strokeWidth="1.3" />
-          <line x1="56" y1="15.5" x2="56" y2="27" stroke={color} strokeWidth="1.5" />
-          <line x1="46" y1="19" x2="66" y2="19" stroke={color} strokeWidth="1.3" />
-          <line x1="56" y1="27" x2="49" y2="36" stroke={color} strokeWidth="1.3" />
-          <line x1="56" y1="27" x2="63" y2="36" stroke={color} strokeWidth="1.3" />
-          {/* Root Pivot [0, -0.5] */}
-          <circle cx="56" cy="36" r="3" fill="#22c55e" stroke="#fff" strokeWidth="0.8" />
-          {/* 3D Box / Tree */}
-          <polygon points="118,8 106,26 130,26" fill={color} fillOpacity="0.28" stroke={color} strokeWidth="1.2" />
-          <line x1="118" y1="26" x2="118" y2="36" stroke={color} strokeWidth="1.6" />
-          <circle cx="118" cy="36" r="2.8" fill="#22c55e" />
-          <text x="148" y="23" textAnchor="middle" className="wf-svg-tag">2.5D+3D</text>
+        <svg viewBox="0 0 180 40" className="wf-preview-svg">
+          <line x1="16" y1="35" x2="164" y2="35" stroke={color} strokeOpacity="0.45" strokeWidth="1" strokeDasharray="3 2" />
+          {/* 2.5D Character Rig Skeleton */}
+          <circle cx="48" cy="10" r="4.5" fill={color} fillOpacity="0.35" stroke={color} strokeWidth="1.3" />
+          <line x1="48" y1="14.5" x2="48" y2="26" stroke={color} strokeWidth="1.5" />
+          <line x1="38" y1="18" x2="58" y2="18" stroke={color} strokeWidth="1.3" />
+          <line x1="48" y1="26" x2="41" y2="35" stroke={color} strokeWidth="1.3" />
+          <line x1="48" y1="26" x2="55" y2="35" stroke={color} strokeWidth="1.3" />
+          <circle cx="48" cy="35" r="2.8" fill="#22c55e" stroke="#fff" strokeWidth="0.8" />
+          {/* Multi-layer Tree 2.5D */}
+          <polygon points="104,7 92,25 116,25" fill={color} fillOpacity="0.3" stroke={color} strokeWidth="1.2" />
+          <line x1="104" y1="25" x2="104" y2="35" stroke={color} strokeWidth="1.6" />
+          <circle cx="104" cy="35" r="2.6" fill="#22c55e" />
+          <text x="145" y="22" textAnchor="middle" className="wf-svg-tag">RIG 2.5D</text>
         </svg>
       )
 
     case 'motion_choreography':
       return (
-        <svg viewBox="0 0 180 42" className="wf-preview-svg">
-          {/* Smooth Sine Wave & Motion Vectors */}
+        <svg viewBox="0 0 180 40" className="wf-preview-svg">
           <path
-            d="M 12 26 Q 34 8, 56 22 T 100 20 T 144 18 T 168 22"
+            d="M 12 25 Q 34 8, 56 21 T 100 19 T 144 17 T 168 21"
             fill="none"
             stroke={color}
             strokeWidth="1.8"
             className="wf-svg-anim-wave"
           />
           <path
-            d="M 12 32 Q 38 18, 64 28 T 116 26 T 168 29"
+            d="M 12 31 Q 38 18, 64 27 T 116 25 T 168 28"
             fill="none"
             stroke={color}
             strokeOpacity="0.45"
             strokeWidth="1.2"
             strokeDasharray="3 3"
           />
-          <circle cx="56" cy="22" r="3.2" fill={color} />
-          <circle cx="100" cy="20" r="3.2" fill={color} />
-          <circle cx="144" cy="18" r="3.2" fill={color} />
-          <text x="90" y="11" textAnchor="middle" className="wf-svg-tag">
-            {preset === 'heroic_action_choreography' ? 'RUN + WIND 1.35x' : 'WIND + FLOAT 60FPS'}
-          </text>
+          <circle cx="56" cy="21" r="3" fill={color} />
+          <circle cx="100" cy="19" r="3" fill={color} />
+          <circle cx="144" cy="17" r="3" fill={color} />
+          <text x="90" y="11" textAnchor="middle" className="wf-svg-tag">WIND · BREATHE · IK</text>
         </svg>
       )
 
     case 'physics_fx':
       return (
-        <svg viewBox="0 0 180 42" className="wf-preview-svg">
+        <svg viewBox="0 0 180 40" className="wf-preview-svg">
           <defs>
             <radialGradient id={`wf-light-${preset}`} cx="35%" cy="50%" r="50%">
               <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.75" />
-              <stop offset="65%" stopColor={color} stopOpacity="0.22" />
+              <stop offset="65%" stopColor={color} stopOpacity="0.24" />
               <stop offset="100%" stopColor={color} stopOpacity="0" />
             </radialGradient>
           </defs>
-          <ellipse cx="62" cy="21" rx="46" ry="18" fill={`url(#wf-light-${preset})`} />
-          <circle cx="48" cy="21" r="5" fill="#fde047" stroke={color} strokeWidth="1.2" />
-          {/* Floating Firefly Particles */}
-          <circle cx="88" cy="12" r="2.2" fill="#fde047" className="wf-svg-pulse" />
-          <circle cx="108" cy="26" r="1.8" fill={color} className="wf-svg-pulse" />
-          <circle cx="128" cy="15" r="2.5" fill="#fde047" className="wf-svg-pulse" />
-          <circle cx="148" cy="28" r="1.9" fill={color} />
-          <circle cx="158" cy="14" r="2.1" fill="#fde047" />
-          <text x="132" y="37" textAnchor="middle" className="wf-svg-tag">LIGHT + PARTICLES</text>
+          <ellipse cx="58" cy="20" rx="44" ry="17" fill={`url(#wf-light-${preset})`} />
+          <circle cx="44" cy="20" r="4.8" fill="#fde047" stroke={color} strokeWidth="1.2" />
+          <circle cx="86" cy="11" r="2.2" fill="#fde047" className="wf-svg-pulse" />
+          <circle cx="106" cy="25" r="1.8" fill={color} className="wf-svg-pulse" />
+          <circle cx="126" cy="14" r="2.4" fill="#fde047" className="wf-svg-pulse" />
+          <circle cx="150" cy="26" r="2" fill={color} />
+          <text x="128" y="35" textAnchor="middle" className="wf-svg-tag">MESH + LIGHT 2.5D</text>
         </svg>
       )
 
     case 'camera_director':
       return (
-        <svg viewBox="0 0 180 42" className="wf-preview-svg">
-          {/* Camera Frustum + Curved Spline Trajectory */}
+        <svg viewBox="0 0 180 40" className="wf-preview-svg">
           <polygon
-            points="16,24 34,12 34,34"
+            points="16,23 34,11 34,33"
             fill={color}
             fillOpacity="0.28"
             stroke={color}
             strokeWidth="1.2"
           />
-          <rect x="10" y="19" width="9" height="10" rx="1.5" fill={color} />
+          <rect x="10" y="18" width="9" height="10" rx="1.5" fill={color} />
           <path
-            d="M 36 23 C 66 8, 108 36, 156 16"
+            d="M 36 22 C 66 7, 108 35, 156 15"
             fill="none"
             stroke={color}
             strokeWidth="1.8"
             strokeDasharray="4 2"
           />
-          <circle cx="78" cy="19" r="3" fill={color} />
-          <circle cx="118" cy="25" r="3" fill={color} />
-          <circle cx="156" cy="16" r="3.8" fill="#fff" stroke={color} strokeWidth="1.5" />
-          <text x="115" y="12" textAnchor="middle" className="wf-svg-tag">FLY PATH + DOF</text>
+          <circle cx="78" cy="18" r="2.8" fill={color} />
+          <circle cx="118" cy="24" r="2.8" fill={color} />
+          <circle cx="156" cy="15" r="3.6" fill="#fff" stroke={color} strokeWidth="1.5" />
+          <text x="115" y="11" textAnchor="middle" className="wf-svg-tag">SPLINE 3D + DOF</text>
         </svg>
       )
 
     case 'audio_lipsync':
       return (
-        <svg viewBox="0 0 180 42" className="wf-preview-svg">
-          {/* Audio Waveform Bars */}
-          {[18, 26, 34, 42, 50, 58, 66, 74, 82, 90, 98, 106].map((x, i) => {
-            const h = [8, 16, 24, 14, 28, 20, 12, 26, 18, 22, 14, 8][i % 12]
+        <svg viewBox="0 0 180 40" className="wf-preview-svg">
+          {[16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104].map((x, i) => {
+            const h = [8, 16, 24, 14, 26, 20, 12, 24, 18, 22, 14, 8][i % 12]
             return (
               <rect
                 key={x}
                 x={x}
-                y={21 - h / 2}
+                y={20 - h / 2}
                 width="4"
                 height={h}
                 rx="1.5"
                 fill={color}
-                fillOpacity={0.45 + (i % 3) * 0.18}
+                fillOpacity={0.48 + (i % 3) * 0.16}
               />
             )
           })}
-          {/* Lip-Sync Mouth Curve */}
-          <ellipse cx="144" cy="21" rx="16" ry="7" fill={color} fillOpacity="0.22" stroke={color} strokeWidth="1.3" />
-          <path d="M 132 21 Q 144 26, 156 21" fill="none" stroke={color} strokeWidth="1.2" />
-          <text x="144" y="37" textAnchor="middle" className="wf-svg-tag">LIP-SYNC</text>
+          <ellipse cx="144" cy="20" rx="16" ry="6.5" fill={color} fillOpacity="0.24" stroke={color} strokeWidth="1.3" />
+          <path d="M 132 20 Q 144 25, 156 20" fill="none" stroke={color} strokeWidth="1.2" />
+          <text x="144" y="35" textAnchor="middle" className="wf-svg-tag">LIP-SYNC 2.5D</text>
         </svg>
       )
 
     case 'look_output':
       return (
-        <svg viewBox="0 0 180 42" className="wf-preview-svg">
+        <svg viewBox="0 0 180 40" className="wf-preview-svg">
           <defs>
             <linearGradient id={`wf-grade-${preset}`} x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.38" />
@@ -248,15 +184,15 @@ function renderSchematicSvg(type: WorkflowNodeType, preset: string, color: strin
             x="14"
             y="6"
             width="152"
-            height="30"
+            height="28"
             rx="4"
             fill={`url(#wf-grade-${preset})`}
             stroke={color}
             strokeWidth="1.2"
           />
-          <line x1="90" y1="6" x2="90" y2="36" stroke="#fff" strokeOpacity="0.6" strokeWidth="1" strokeDasharray="2 2" />
-          <text x="52" y="24" textAnchor="middle" className="wf-svg-tag">FOG 3D</text>
-          <text x="128" y="24" textAnchor="middle" className="wf-svg-tag">GRADE MP4</text>
+          <line x1="90" y1="6" x2="90" y2="34" stroke="#fff" strokeOpacity="0.6" strokeWidth="1" strokeDasharray="2 2" />
+          <text x="52" y="23" textAnchor="middle" className="wf-svg-tag">Z-FOG 3D</text>
+          <text x="128" y="23" textAnchor="middle" className="wf-svg-tag">MASTER MP4</text>
         </svg>
       )
   }
@@ -264,24 +200,72 @@ function renderSchematicSvg(type: WorkflowNodeType, preset: string, color: strin
 
 export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
   node,
+  project,
   mode = 'card',
   onPreviewInViewport
 }) => {
   const spec = WORKFLOW_NODE_SPECS[node.type]
   const presetSpec = spec?.presets.find((p) => p.id === node.preset) ?? spec?.presets[0]
   const color = spec?.color ?? '#38bdf8'
-  const highlights = getEffectHighlights(node)
+
+  const binding = useMemo(() => resolveNodeTargetBinding(node, project), [node, project])
+  const visibleTargets = binding.boundTargets.slice(0, 1)
+  const extraTargetsCount = Math.max(0, binding.boundTargets.length - visibleTargets.length)
+
+  const visibleParts = binding.activeParts.slice(0, 3)
+  const extraPartsCount = Math.max(0, binding.activeParts.length - visibleParts.length)
+
+  const targetsTooltip = binding.boundTargets
+    .map((t) => `${getTargetKindIcon(t.kind)} ${t.name} (${t.roleLabel})`)
+    .join('\n')
+
+  const partsTooltip = binding.activeParts
+    .map((p) => `${p.icon} ${p.label}: ${p.description}`)
+    .join('\n')
 
   if (mode === 'card') {
     return (
-      <div className="wf-node-mini-preview" title={presetSpec?.summary}>
-        {renderSchematicSvg(node.type, node.preset, color)}
-        <div className="wf-node-mini-tags">
-          {highlights.slice(0, 2).map((tag) => (
-            <span key={tag} className="wf-node-mini-tag">
-              {tag}
-            </span>
-          ))}
+      <div className="wf-node-binding-box">
+        {/* Dòng 1: Gắn Layer / Cụm 2.5D nào */}
+        <div
+          className="wf-binding-row"
+          title={`Thực thể gắn với khối này (${binding.mode === 'custom' ? 'Chỉ định' : 'Tự động'}):\n${targetsTooltip}`}
+        >
+          <span className="wf-binding-label">
+            {binding.mode === 'custom' ? '🎯 Gắn:' : '🔄 Gắn:'}
+          </span>
+          <div className="wf-binding-chips">
+            {visibleTargets.map((t) => (
+              <span key={t.id} className={`wf-target-chip primary kind-${t.kind}`}>
+                <span className="wf-chip-ic">{getTargetKindIcon(t.kind)}</span>
+                <span className="wf-chip-txt">{t.name}</span>
+                {t.subLayerCount ? (
+                  <span className="wf-chip-meta">{t.subLayerCount}L</span>
+                ) : typeof t.zDepth === 'number' ? (
+                  <span className="wf-chip-meta">Z:{t.zDepth}</span>
+                ) : null}
+              </span>
+            ))}
+            {extraTargetsCount > 0 && (
+              <span className="wf-target-chip more">+{extraTargetsCount} lớp</span>
+            )}
+          </div>
+        </div>
+
+        {/* Dòng 2: Bộ phận 2.5D / Kênh nào bị tác động */}
+        <div className="wf-binding-row" title={`Bộ phận 2.5D / Kênh tác động:\n${partsTooltip}`}>
+          <span className="wf-binding-label">🦴 Lên:</span>
+          <div className="wf-binding-chips">
+            {visibleParts.slice(0, 2).map((p) => (
+              <span key={p.id} className="wf-part-chip">
+                <span className="wf-chip-ic">{p.icon}</span>
+                <span className="wf-chip-txt">{p.shortLabel}</span>
+              </span>
+            ))}
+            {binding.activeParts.length > 2 && (
+              <span className="wf-part-chip more">+{binding.activeParts.length - 2}</span>
+            )}
+          </div>
         </div>
       </div>
     )
@@ -310,9 +294,9 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
       </div>
 
       <div className="wf-inspector-preview-pills">
-        {highlights.map((item) => (
-          <span key={item} className="wf-inspector-preview-pill">
-            ✓ {item}
+        {binding.activeParts.map((part) => (
+          <span key={part.id} className="wf-inspector-preview-pill" title={part.description}>
+            {part.icon} {part.shortLabel}
           </span>
         ))}
       </div>

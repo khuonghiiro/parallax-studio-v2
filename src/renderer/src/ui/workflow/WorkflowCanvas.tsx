@@ -1,20 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowPortKind } from '@shared/types'
+import type { Project, WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowPortKind } from '@shared/types'
 import { CustomSelect } from '../controls/CustomSelect'
 import { WORKFLOW_NODE_SPECS, WORKFLOW_PORT_SPECS } from '../../project/workflowCatalog'
 import { renderWorkflowNodeIcon } from './workflowIcons'
 import { WorkflowNodePreview } from './WorkflowNodePreview'
 
-const NODE_W = 204
+const NODE_W = 248
 const HEADER_H = 24
 const SOCKET_PAD_TOP = 3
-const SOCKET_ROW_H = 20
+const SOCKET_ROW_H = 18
 const SNAP_RADIUS = 28
-const MIN_ZOOM = 0.45
+const MIN_ZOOM = 0.5
 const MAX_ZOOM = 1.75
 
 export interface WorkflowCanvasProps {
   workflow: WorkflowGraph
+  project?: Project
   activeNodeIds: Set<string>
   executionStepMap: Map<string, number>
   selectedNodeId: string | null
@@ -55,6 +56,7 @@ function buildBezierPath(x1: number, y1: number, x2: number, y2: number): string
 
 export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   workflow,
+  project,
   activeNodeIds,
   executionStepMap,
   selectedNodeId,
@@ -68,8 +70,8 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   onPreviewNode
 }) => {
   const viewportRef = useRef<HTMLDivElement>(null)
-  const [zoom, setZoom] = useState<number>(0.92)
-  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 18, y: 6 })
+  const [zoom, setZoom] = useState<number>(1)
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 14, y: 6 })
   const [isPanning, setIsPanning] = useState(false)
   const [clusterMoveMode, setClusterMoveMode] = useState(false)
 
@@ -96,7 +98,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       const list = customNodes ?? workflow.nodes
       if (!el || list.length === 0) return
       const vw = el.clientWidth || 1200
-      const vh = el.clientHeight || 268
+      const vh = el.clientHeight || 280
 
       let minX = Infinity
       let minY = Infinity
@@ -106,22 +108,22 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         const spec = WORKFLOW_NODE_SPECS[n.type]
         const rows = Math.max(spec?.inputs.length ?? 1, spec?.outputs.length ?? 1, 1)
         const cardH = HEADER_H + SOCKET_PAD_TOP * 2 + rows * SOCKET_ROW_H + 66
-        minX = Math.min(minX, n.position.x - 12)
-        minY = Math.min(minY, n.position.y - 6)
-        maxX = Math.max(maxX, n.position.x + NODE_W + 12)
-        maxY = Math.max(maxY, n.position.y + cardH + 6)
+        minX = Math.min(minX, n.position.x - 8)
+        minY = Math.min(minY, n.position.y - 4)
+        maxX = Math.max(maxX, n.position.x + NODE_W + 8)
+        maxY = Math.max(maxY, n.position.y + cardH + 4)
       }
 
       const graphW = Math.max(400, maxX - minX)
-      const graphH = Math.max(180, maxY - minY)
+      const graphH = Math.max(200, maxY - minY)
       const fitZ = Math.min(
         1.05,
-        Math.max(MIN_ZOOM, Math.min((vw - 20) / graphW, (vh - 8) / graphH))
+        Math.max(MIN_ZOOM, Math.min((vw - 16) / graphW, (vh - 6) / graphH))
       )
       const nx = Math.round((vw - graphW * fitZ) / 2 - minX * fitZ)
       const ny = Math.round((vh - graphH * fitZ) / 2 - minY * fitZ)
-      setZoom(Number(fitZ.toFixed(3)))
-      setPan({ x: nx, y: Math.max(4, ny) })
+      setZoom(Number(fitZ.toFixed(2)))
+      setPan({ x: Math.max(6, nx), y: Math.max(4, ny) })
     },
     [workflow.nodes]
   )
@@ -416,267 +418,275 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         </div>
       )}
 
-      {/* Mặt phẳng thế giới biến đổi theo Pan & Zoom */}
+      {/* Mặt phẳng thế giới biến đổi theo Pan & Zoom Sắc Nét Vector (Không dùng GPU Bitmap Blur) */}
       <div
-        className="wf-canvas-world"
+        className="wf-canvas-pan"
         style={{
-          transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`
+          left: `${Math.round(pan.x)}px`,
+          top: `${Math.round(pan.y)}px`
         }}
       >
-        {/* Lớp dây nối SVG Bezier + Hạt truyền dữ liệu */}
-        <svg className="wf-edges-svg" width={2000} height={1000}>
-          <defs>
-            <filter id="wf-wire-glow" x="-25%" y="-25%" width="150%" height="150%">
-              <feGaussianBlur stdDeviation="2.5" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
+        <div
+          className="wf-canvas-world"
+          style={{
+            zoom
+          }}
+        >
+          {/* Lớp dây nối SVG Bezier + Hạt truyền dữ liệu */}
+          <svg className="wf-edges-svg" width={2200} height={1000} viewBox="0 0 2200 1000">
+            <defs>
+              <filter id="wf-wire-glow" x="-25%" y="-25%" width="150%" height="150%">
+                <feGaussianBlur stdDeviation="2.5" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
 
-          {renderedEdges.map(({ edge, p1, p2, path, midX, midY, color, label, isActive }) => (
-            <g
-              key={edge.id}
-              className={`wf-edge-group${isActive ? ' active' : ' muted'}`}
-              onClick={(e) => {
-                e.stopPropagation()
-                onDisconnectEdge(edge.id)
-              }}
-            >
-              <title>{`Cổng ${label} — Bấm để ngắt kết nối`}</title>
-              <path d={path} className="wf-edge-hit" />
-              <path d={path} className="wf-edge-glow-bg" stroke={color} />
-              <path
-                d={path}
-                className="wf-edge-line"
-                stroke={color}
-                filter={isActive ? 'url(#wf-wire-glow)' : undefined}
-              />
-              {isActive && <path d={path} className="wf-edge-flow" />}
-              {/* Điểm đầu & cuối cắm khít vào tâm chân Port */}
-              <circle cx={p1.x} cy={p1.y} r="3.2" fill={color} />
-              <circle cx={p2.x} cy={p2.y} r="3.2" fill={color} />
+            {renderedEdges.map(({ edge, p1, p2, path, midX, midY, color, label, isActive }) => (
+              <g
+                key={edge.id}
+                className={`wf-edge-group${isActive ? ' active' : ' muted'}`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDisconnectEdge(edge.id)
+                }}
+              >
+                <title>{`Cổng ${label} — Bấm để ngắt kết nối`}</title>
+                <path d={path} className="wf-edge-hit" />
+                <path d={path} className="wf-edge-glow-bg" stroke={color} />
+                <path
+                  d={path}
+                  className="wf-edge-line"
+                  stroke={color}
+                  filter={isActive ? 'url(#wf-wire-glow)' : undefined}
+                />
+                {isActive && <path d={path} className="wf-edge-flow" />}
+                {/* Điểm đầu & cuối cắm khít vào tâm chân Port */}
+                <circle cx={p1.x} cy={p1.y} r="3.2" fill={color} />
+                <circle cx={p2.x} cy={p2.y} r="3.2" fill={color} />
 
-              {/* Nút ngắt dây gọn ở tâm đường cong */}
-              <g transform={`translate(${midX}, ${midY})`} className="wf-edge-badge">
-                <circle r="6.5" className="wf-edge-badge-ring" style={{ stroke: color }} />
-                <circle r="2.4" className="wf-edge-badge-dot" style={{ fill: color }} />
-                <text x="0" y="3" textAnchor="middle" className="wf-edge-badge-x">
-                  ✕
-                </text>
+                {/* Nút ngắt dây gọn ở tâm đường cong */}
+                <g transform={`translate(${midX}, ${midY})`} className="wf-edge-badge">
+                  <circle r="6.5" className="wf-edge-badge-ring" style={{ stroke: color }} />
+                  <circle r="2.4" className="wf-edge-badge-dot" style={{ fill: color }} />
+                  <text x="0" y="3" textAnchor="middle" className="wf-edge-badge-x">
+                    ✕
+                  </text>
+                </g>
               </g>
-            </g>
-          ))}
+            ))}
 
-          {/* Dây đang kéo trực tiếp kèm vòng nam châm bắt điểm */}
-          {pendingSource && previewTarget && (
-            <g className="wf-edge-preview-group">
-              <path
-                d={buildBezierPath(
-                  pendingSource.x,
-                  pendingSource.y,
-                  previewTarget.x,
-                  previewTarget.y
-                )}
-                className="wf-edge-preview"
-                stroke={WORKFLOW_PORT_SPECS[pendingSource.port]?.color ?? '#38bdf8'}
-              />
-              <circle
-                cx={previewTarget.x}
-                cy={previewTarget.y}
-                r={snappedTarget ? 8 : 4.5}
-                fill="none"
-                stroke={WORKFLOW_PORT_SPECS[pendingSource.port]?.color ?? '#38bdf8'}
-                strokeWidth="2"
-              />
-            </g>
-          )}
-        </svg>
+            {/* Dây đang kéo trực tiếp kèm vòng nam châm bắt điểm */}
+            {pendingSource && previewTarget && (
+              <g className="wf-edge-preview-group">
+                <path
+                  d={buildBezierPath(
+                    pendingSource.x,
+                    pendingSource.y,
+                    previewTarget.x,
+                    previewTarget.y
+                  )}
+                  className="wf-edge-preview"
+                  stroke={WORKFLOW_PORT_SPECS[pendingSource.port]?.color ?? '#38bdf8'}
+                />
+                <circle
+                  cx={previewTarget.x}
+                  cy={previewTarget.y}
+                  r={snappedTarget ? 8 : 4.5}
+                  fill="none"
+                  stroke={WORKFLOW_PORT_SPECS[pendingSource.port]?.color ?? '#38bdf8'}
+                  strokeWidth="2"
+                />
+              </g>
+            )}
+          </svg>
 
-        {/* Các Khối Chức Năng (Functional Nodes) */}
-        {workflow.nodes.map((node) => {
-          const spec = WORKFLOW_NODE_SPECS[node.type]
-          const isSelected = node.id === selectedNodeId
-          const isConnected = activeNodeIds.has(node.id)
-          const stepNum = executionStepMap.get(node.id)
-          const inputs = spec?.inputs ?? []
-          const outputs = spec?.outputs ?? []
-          const socketRowCount = Math.max(inputs.length, outputs.length, 1)
+          {/* Các Khối Chức Năng (Functional Nodes) */}
+          {workflow.nodes.map((node) => {
+            const spec = WORKFLOW_NODE_SPECS[node.type]
+            const isSelected = node.id === selectedNodeId
+            const isConnected = activeNodeIds.has(node.id)
+            const stepNum = executionStepMap.get(node.id)
+            const inputs = spec?.inputs ?? []
+            const outputs = spec?.outputs ?? []
+            const socketRowCount = Math.max(inputs.length, outputs.length, 1)
 
-          const presetOptions = (spec?.presets ?? []).map((p) => ({
-            value: p.id,
-            label: p.label
-          }))
+            const presetOptions = (spec?.presets ?? []).map((p) => ({
+              value: p.id,
+              label: p.label
+            }))
 
-          return (
-            <div
-              key={node.id}
-              id={`wf-node-${node.type}`}
-              className={`wf-node-card${isSelected ? ' selected' : ''}${isConnected ? ' connected' : ' disconnected'}${!node.enabled ? ' disabled' : ''}`}
-              style={{
-                left: node.position.x,
-                top: node.position.y,
-                width: NODE_W,
-                ['--wf-node-color' as string]: spec?.color ?? '#38bdf8'
-              }}
-              onPointerDown={(e) => startNodeDrag(e, node)}
-              onClick={(e) => {
-                e.stopPropagation()
-                onSelectNode(node.id)
-              }}
-            >
-              {/* 1. Thanh tiêu đề Khối */}
-              <div className="wf-node-header">
-                <span className="wf-node-icon" style={{ background: spec?.color }}>
-                  {renderWorkflowNodeIcon(node.type, { width: 12, height: 12 })}
-                </span>
-                <span className="wf-node-title" title={node.title}>
-                  {spec?.shortTitle ?? node.title}
-                </span>
-                {onPreviewNode && (
+            return (
+              <div
+                key={node.id}
+                id={`wf-node-${node.type}`}
+                className={`wf-node-card${isSelected ? ' selected' : ''}${isConnected ? ' connected' : ' disconnected'}${!node.enabled ? ' disabled' : ''}`}
+                style={{
+                  left: node.position.x,
+                  top: node.position.y,
+                  width: NODE_W,
+                  ['--wf-node-color' as string]: spec?.color ?? '#38bdf8'
+                }}
+                onPointerDown={(e) => startNodeDrag(e, node)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSelectNode(node.id)
+                }}
+              >
+                {/* 1. Thanh tiêu đề Khối */}
+                <div className="wf-node-header">
+                  <span className="wf-node-icon" style={{ background: spec?.color }}>
+                    {renderWorkflowNodeIcon(node.type, { width: 12, height: 12 })}
+                  </span>
+                  <span className="wf-node-title" title={node.title}>
+                    {spec?.shortTitle ?? node.title}
+                  </span>
+                  {onPreviewNode && (
+                    <button
+                      type="button"
+                      className="wf-node-eye-btn"
+                      title="Áp dụng & Xem thử hiệu ứng khối này trên Cảnh 3D"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onSelectNode(node.id)
+                        onPreviewNode(node)
+                      }}
+                    >
+                      👁
+                    </button>
+                  )}
+                  <span
+                    className={`wf-node-status-pill${isConnected ? ' on' : ''}`}
+                    title={
+                      !node.enabled
+                        ? 'Khối đang tắt'
+                        : isConnected
+                          ? `Bước thực thi #${stepNum} (${node.aiAgentRole})`
+                          : 'Chưa nối Port vào luồng thực thi'
+                    }
+                  >
+                    {!node.enabled ? 'Tắt' : isConnected ? `#${stepNum}` : 'Rời'}
+                  </span>
                   <button
                     type="button"
-                    className="wf-node-eye-btn"
-                    title="Áp dụng & Xem thử hiệu ứng khối này trên Cảnh 3D"
+                    className={`wf-node-toggle${node.enabled ? ' on' : ''}`}
+                    title={node.enabled ? 'Đang bật (Bấm để tắt khối này)' : 'Đang tắt (Bấm để bật)'}
                     onClick={(e) => {
                       e.stopPropagation()
-                      onSelectNode(node.id)
-                      onPreviewNode(node)
+                      onToggleNode(node.id)
                     }}
                   >
-                    👁
+                    {node.enabled ? 'ON' : 'OFF'}
                   </button>
-                )}
-                <span
-                  className={`wf-node-status-pill${isConnected ? ' on' : ''}`}
-                  title={
-                    !node.enabled
-                      ? 'Khối đang tắt'
-                      : isConnected
-                        ? `Bước thực thi #${stepNum} (${node.aiAgentRole})`
-                        : 'Chưa nối Port vào luồng thực thi'
-                  }
+                </div>
+
+                {/* 2. Khu vực Chân cắm Port (Protruding Socket Pins trên mép trái & phải) */}
+                <div
+                  className="wf-socket-matrix"
+                  style={{ height: SOCKET_PAD_TOP * 2 + socketRowCount * SOCKET_ROW_H }}
                 >
-                  {!node.enabled ? 'Tắt' : isConnected ? `#${stepNum}` : 'Rời'}
-                </span>
-                <button
-                  type="button"
-                  className={`wf-node-toggle${node.enabled ? ' on' : ''}`}
-                  title={node.enabled ? 'Đang bật (Bấm để tắt khối này)' : 'Đang tắt (Bấm để bật)'}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onToggleNode(node.id)
-                  }}
-                >
-                  {node.enabled ? 'ON' : 'OFF'}
-                </button>
+                  {Array.from({ length: socketRowCount }).map((_, rowIdx) => {
+                    const inPort = inputs[rowIdx]
+                    const outPort = outputs[rowIdx]
+                    const inSpec = inPort ? WORKFLOW_PORT_SPECS[inPort] : null
+                    const outSpec = outPort ? WORKFLOW_PORT_SPECS[outPort] : null
+
+                    const inWired = inPort
+                      ? workflow.edges.some((e) => e.toNode === node.id && e.toPort === inPort)
+                      : false
+                    const outWired = outPort
+                      ? workflow.edges.some((e) => e.fromNode === node.id && e.fromPort === outPort)
+                      : false
+
+                    const isCompatibleTarget = Boolean(
+                      inPort &&
+                        pendingSource &&
+                        pendingSource.nodeId !== node.id &&
+                        pendingSource.port === inPort
+                    )
+                    const isSnapped = Boolean(
+                      inPort &&
+                        snappedTarget &&
+                        snappedTarget.nodeId === node.id &&
+                        snappedTarget.port === inPort
+                    )
+                    const isInDimmed = Boolean(inPort && pendingSource && !isCompatibleTarget)
+                    const isOutPending = Boolean(
+                      outPort &&
+                        pendingSource?.nodeId === node.id &&
+                        pendingSource?.port === outPort
+                    )
+
+                    return (
+                      <div
+                        key={`row-${rowIdx}`}
+                        className="wf-socket-row"
+                        style={{ height: SOCKET_ROW_H }}
+                      >
+                        {/* Cổng Đầu Vào (Mép Trái) */}
+                        {inPort && inSpec ? (
+                          <button
+                            type="button"
+                            className={`wf-socket-hit in${inWired ? ' wired' : ''}${isCompatibleTarget ? ' compatible' : ''}${isSnapped ? ' snapped' : ''}${isInDimmed ? ' dimmed' : ''}`}
+                            style={{ ['--port-c' as string]: inSpec.color }}
+                            title={
+                              isCompatibleTarget
+                                ? `Thả hoặc bấm vào đây để nối cổng "${inSpec.label}"`
+                                : inWired
+                                  ? `Cổng vào: ${inSpec.label} (Đang nối — Bấm để ngắt dây)`
+                                  : `Cổng vào: ${inSpec.label} (Chưa nối)`
+                            }
+                            onClick={(e) => handleInputSocketClick(e, node, inPort)}
+                          >
+                            <span className="wf-socket-pin in">
+                              <span className="wf-socket-pin-core" />
+                            </span>
+                            <span className="wf-socket-label">{inSpec.shortLabel}</span>
+                          </button>
+                        ) : (
+                          <span />
+                        )}
+
+                        {/* Cổng Đầu Ra (Mép Phải) */}
+                        {outPort && outSpec ? (
+                          <button
+                            type="button"
+                            className={`wf-socket-hit out${outWired ? ' wired' : ''}${isOutPending ? ' pending' : ''}`}
+                            style={{ ['--port-c' as string]: outSpec.color }}
+                            title={`Cổng ra: ${outSpec.label} — Nắm kéo hoặc bấm để nối sang khối tiếp theo`}
+                            onPointerDown={(e) => handleOutputSocketPointerDown(e, node, outPort)}
+                          >
+                            <span className="wf-socket-label">{outSpec.shortLabel}</span>
+                            <span className="wf-socket-pin out">
+                              <span className="wf-socket-pin-core" />
+                            </span>
+                          </button>
+                        ) : (
+                          <span />
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* 3. Chọn Preset, Preview Chức năng & Gắn Layer / Bộ phận 2.5D */}
+                <div className="wf-node-body">
+                  <CustomSelect
+                    size="sm"
+                    value={node.preset}
+                    options={presetOptions}
+                    dropdownWidth={260}
+                    onChange={(val) => onChangeNodePreset(node.id, String(val))}
+                    title="Chọn chế độ xử lý cho khối chức năng này"
+                  />
+                  <WorkflowNodePreview node={node} project={project} mode="card" />
+                </div>
               </div>
-
-              {/* 2. Khu vực Chân cắm Port (Protruding Socket Pins trên mép trái & phải) */}
-              <div
-                className="wf-socket-matrix"
-                style={{ height: SOCKET_PAD_TOP * 2 + socketRowCount * SOCKET_ROW_H }}
-              >
-                {Array.from({ length: socketRowCount }).map((_, rowIdx) => {
-                  const inPort = inputs[rowIdx]
-                  const outPort = outputs[rowIdx]
-                  const inSpec = inPort ? WORKFLOW_PORT_SPECS[inPort] : null
-                  const outSpec = outPort ? WORKFLOW_PORT_SPECS[outPort] : null
-
-                  const inWired = inPort
-                    ? workflow.edges.some((e) => e.toNode === node.id && e.toPort === inPort)
-                    : false
-                  const outWired = outPort
-                    ? workflow.edges.some((e) => e.fromNode === node.id && e.fromPort === outPort)
-                    : false
-
-                  const isCompatibleTarget = Boolean(
-                    inPort &&
-                      pendingSource &&
-                      pendingSource.nodeId !== node.id &&
-                      pendingSource.port === inPort
-                  )
-                  const isSnapped = Boolean(
-                    inPort &&
-                      snappedTarget &&
-                      snappedTarget.nodeId === node.id &&
-                      snappedTarget.port === inPort
-                  )
-                  const isInDimmed = Boolean(inPort && pendingSource && !isCompatibleTarget)
-                  const isOutPending = Boolean(
-                    outPort &&
-                      pendingSource?.nodeId === node.id &&
-                      pendingSource?.port === outPort
-                  )
-
-                  return (
-                    <div
-                      key={`row-${rowIdx}`}
-                      className="wf-socket-row"
-                      style={{ height: SOCKET_ROW_H }}
-                    >
-                      {/* Cổng Đầu Vào (Mép Trái) */}
-                      {inPort && inSpec ? (
-                        <button
-                          type="button"
-                          className={`wf-socket-hit in${inWired ? ' wired' : ''}${isCompatibleTarget ? ' compatible' : ''}${isSnapped ? ' snapped' : ''}${isInDimmed ? ' dimmed' : ''}`}
-                          style={{ ['--port-c' as string]: inSpec.color }}
-                          title={
-                            isCompatibleTarget
-                              ? `Thả hoặc bấm vào đây để nối cổng "${inSpec.label}"`
-                              : inWired
-                                ? `Cổng vào: ${inSpec.label} (Đang nối — Bấm để ngắt dây)`
-                                : `Cổng vào: ${inSpec.label} (Chưa nối)`
-                          }
-                          onClick={(e) => handleInputSocketClick(e, node, inPort)}
-                        >
-                          <span className="wf-socket-pin in">
-                            <span className="wf-socket-pin-core" />
-                          </span>
-                          <span className="wf-socket-label">{inSpec.shortLabel}</span>
-                        </button>
-                      ) : (
-                        <span />
-                      )}
-
-                      {/* Cổng Đầu Ra (Mép Phải) */}
-                      {outPort && outSpec ? (
-                        <button
-                          type="button"
-                          className={`wf-socket-hit out${outWired ? ' wired' : ''}${isOutPending ? ' pending' : ''}`}
-                          style={{ ['--port-c' as string]: outSpec.color }}
-                          title={`Cổng ra: ${outSpec.label} — Nắm kéo hoặc bấm để nối sang khối tiếp theo`}
-                          onPointerDown={(e) => handleOutputSocketPointerDown(e, node, outPort)}
-                        >
-                          <span className="wf-socket-label">{outSpec.shortLabel}</span>
-                          <span className="wf-socket-pin out">
-                            <span className="wf-socket-pin-core" />
-                          </span>
-                        </button>
-                      ) : (
-                        <span />
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-
-              {/* 3. Chọn Preset & Preview Chức năng Trực quan */}
-              <div className="wf-node-body">
-                <CustomSelect
-                  size="sm"
-                  value={node.preset}
-                  options={presetOptions}
-                  dropdownWidth={260}
-                  onChange={(val) => onChangeNodePreset(node.id, String(val))}
-                  title="Chọn chế độ xử lý cho khối chức năng này"
-                />
-                <WorkflowNodePreview node={node} mode="card" />
-              </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
 
       {/* Thanh Điều Khiển Nổi Trên Mặt Phẳng (Canvas HUD: Di chuyển cả cụm, Căn gọn, Zoom theo chuột) */}
@@ -736,9 +746,18 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         >
           −
         </button>
-        <span className="wf-hud-zoom-val" title="Lăn chuột tại vị trí bất kỳ để Zoom theo con trỏ">
+        <button
+          type="button"
+          className="wf-hud-btn wf-hud-zoom-val"
+          title="Bấm để đặt về tỷ lệ chuẩn 100% (1:1 Sắc nét tuyệt đối) · Lăn chuột để Zoom theo con trỏ"
+          onClick={(e) => {
+            e.stopPropagation()
+            setZoom(1)
+            setPan({ x: 14, y: 6 })
+          }}
+        >
           {Math.round(zoom * 100)}%
-        </span>
+        </button>
         <button
           type="button"
           className="wf-hud-btn icon"

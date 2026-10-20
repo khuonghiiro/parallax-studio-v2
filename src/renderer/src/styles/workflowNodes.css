@@ -205,23 +205,29 @@
 /* ------------------------------------------------------------------ Node Body & Mini Visual Preview */
 
 .wf-node-body {
-  padding: 5px 6px;
+  padding: 4px 6px 5px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
+.wf-node-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
 .wf-node-mini-preview {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 3px 4px;
+  padding: 2px 4px;
   border-radius: 4px;
   background: var(--bg-0);
   border: 1px solid var(--line-soft);
 }
 .wf-node-mini-preview .wf-preview-svg {
   width: 78px;
-  height: 26px;
+  height: 24px;
   flex-shrink: 0;
   display: block;
 }
@@ -240,7 +246,7 @@
   overflow: hidden;
 }
 .wf-node-mini-tag {
-  font-size: 8px;
+  font-size: 8.5px;
   font-weight: 600;
   color: var(--text-dim);
   background: var(--bg-2);
@@ -250,6 +256,253 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.wf-node-mini-tag.accent {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--wf-node-color, var(--accent)) 45%, var(--line-soft));
+}
+
+/* ------------------------------------------------------------------ Node 2.5D Target & Sub-Part Binding Matrix */
+
+.wf-node-binding-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5px;
+  padding: 3px 5px;
+  border-radius: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+}
+.wf-binding-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.wf-binding-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  min-width: 36px;
+}
+.wf-binding-chips {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 3.5px;
+  overflow: hidden;
+}
+.wf-target-chip,
+.wf-part-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2.5px;
+  height: 16px;
+  padding: 0 4.5px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  color: var(--text);
+  min-width: 0;
+  max-width: 100px;
+  white-space: nowrap;
+}
+.wf-target-chip.primary {
+  max-width: 162px;
+  flex: 1;
+}
+.wf-target-chip.kind-composite_25d {
+  border-color: color-mix(in srgb, var(--accent-cyan) 50%, var(--line));
+  background: color-mix(in srgb, var(--accent-cyan) 10%, var(--bg-1));
+}
+.wf-part-chip {
+  max-width: none;
+  padding: 0 4px;
+  background: color-mix(in srgb, var(--wf-node-color, var(--accent)) 12%, var(--bg-1));
+  border-color: color-mix(in srgb, var(--wf-node-color, var(--accent)) 42%, var(--line));
+}
+.wf-part-chip:first-child {
+  flex-shrink: 0;
+}
+.wf-chip-ic { font-size: 9px; line-height: 1; flex-shrink: 0; }
+.wf-chip-txt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wf-chip-meta {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--accent-cyan);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.wf-target-chip.more,
+.wf-part-chip.more {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  padding: 0 3.5px;
+  flex-shrink: 0;
+}
+
+/* ------------------------------------------------------------------ Inspector Layer & 2.5D Sub-Part Binders */
+
+.wf-binder-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px 6px;
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
+.wf-binder-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.wf-binder-mode-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px;
+  border-radius: 4px;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+}
+.wf-binder-mode-btn {
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 9.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wf-binder-mode-btn:hover { color: var(--text); background: var(--bg-2); }
+.wf-binder-mode-btn.active {
+  background: color-mix(in srgb, var(--accent-cyan) 18%, var(--bg-2));
+  color: var(--accent-cyan);
+  border-color: color-mix(in srgb, var(--accent-cyan) 50%, transparent);
+}
+
+.wf-target-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5px;
+  max-height: 72px;
+  overflow-y: auto;
+}
+.wf-target-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  text-align: left;
+  cursor: pointer;
+}
+.wf-target-row:hover { border-color: var(--line); background: var(--bg-3); color: var(--text); }
+.wf-target-row.bound {
+  border-color: color-mix(in srgb, var(--accent-cyan) 50%, var(--line));
+  background: color-mix(in srgb, var(--accent-cyan) 9%, var(--bg-1));
+  color: var(--text);
+}
+.wf-target-check {
+  width: 13px;
+  height: 13px;
+  margin-top: 1px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--bg-0);
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--on-accent);
+  flex-shrink: 0;
+}
+.wf-target-check.on {
+  background: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+  color: #041016;
+}
+.wf-target-kind-ic { font-size: 11px; line-height: 1.2; flex-shrink: 0; }
+.wf-target-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.wf-target-name-line { display: flex; align-items: center; justify-content: space-between; gap: 5px; }
+.wf-target-name-line strong {
+  font-size: 10px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wf-target-role-tag {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  color: var(--accent-cyan);
+  flex-shrink: 0;
+}
+.wf-target-subparts-hint {
+  font-size: 8.5px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wf-target-empty { display: flex; flex-wrap: wrap; gap: 4px; }
+
+.wf-subparts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.wf-subpart-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  font-size: 9.5px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+.wf-subpart-btn:hover { border-color: var(--line); color: var(--text); background: var(--bg-3); }
+.wf-subpart-btn.active {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-1));
+  color: var(--text);
+}
+.wf-subpart-check {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  flex-shrink: 0;
+}
+.wf-subpart-ic { font-size: 10px; line-height: 1; flex-shrink: 0; }
+.wf-subpart-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ------------------------------------------------------------------ Inspector Live Preview Box */

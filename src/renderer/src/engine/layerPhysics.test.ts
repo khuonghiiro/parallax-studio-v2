@@ -317,7 +317,7 @@ describe('layerPhysics — 2.5D Material Physics, Gravity & Combat Impact Simula
     const litCaveEval = evaluateLayerPhysicsTransform(project, hero, 1.0, [180, 360])
     expect(litCaveEval.scaleMultiplier[0]).toBeLessThan(0.5)
     expect(litCaveEval.lightIllumination).toBeGreaterThan(0.4)
-    expect(litCaveEval.caveDarkness).toBeLessThan(darkCaveEval.caveDarkness * 0.65)
+    expect(litCaveEval.caveDarkness).toBeLessThan((darkCaveEval.caveDarkness ?? 1) * 0.65)
 
     // Verify evaluateScene passes caveDarkness, lightIllumination, and wind-swayed candle vlight uniforms
     const scene = evaluateScene(project, 1.15)
@@ -325,7 +325,7 @@ describe('layerPhysics — 2.5D Material Physics, Gravity & Combat Impact Simula
     const evalCandle = scene.layers.find((l) => l.layer.id === candleLayer.id)!
     expect(evalHero.lightIllumination).toBeGreaterThan(0.4)
     expect(evalCandle.vlightEnabled).toBe(true)
-    expect(Math.abs(evalCandle.vlightOffsetUV[0])).toBeGreaterThan(0.01) // Strong wind leans the candle flame
+    expect(Math.abs(evalCandle.vlightOffsetUV?.[0] ?? 0)).toBeGreaterThan(0.01) // Strong wind leans the candle flame
   })
 })
 

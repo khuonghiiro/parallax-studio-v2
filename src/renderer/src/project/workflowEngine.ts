@@ -26,6 +26,23 @@ import {
   WORKFLOW_TEMPLATES,
   buildStandardEdges
 } from './workflowCatalog'
+import {
+  WORKFLOW_SUBPART_CATALOG,
+  classifyLayerRole,
+  getDefaultPartsForNode,
+  getNodeSubParts,
+  listProjectBindableTargets,
+  resolveNodeTargetBinding
+} from './workflowTargets'
+
+export {
+  WORKFLOW_SUBPART_CATALOG,
+  classifyLayerRole,
+  getDefaultPartsForNode,
+  getNodeSubParts,
+  listProjectBindableTargets,
+  resolveNodeTargetBinding
+}
 
 export function createDefaultWorkflow(): WorkflowGraph {
   return WORKFLOW_TEMPLATES[0].buildGraph()
@@ -211,6 +228,7 @@ export function compileWorkflowBlueprint(workflow: WorkflowGraph, project?: Proj
   const agents: WorkflowAiAgentStep[] = activeNodes.map((node, idx) => {
     const spec = WORKFLOW_NODE_SPECS[node.type]
     const presetSpec = spec?.presets.find((p) => p.id === node.preset) ?? spec?.presets[0]
+    const binding = resolveNodeTargetBinding(node, project)
 
     const inputsFrom = workflow.edges
       .filter((e) => e.toNode === node.id && activeSet.has(e.fromNode))
@@ -228,6 +246,13 @@ export function compileWorkflowBlueprint(workflow: WorkflowGraph, project?: Proj
         port: e.toPort
       }))
 
+    const activeParts = binding.activeParts.map((p) => ({
+      id: p.id,
+      label: p.label,
+      shortLabel: p.shortLabel,
+      category: p.category
+    }))
+
     return {
       step: idx + 1,
       nodeId: node.id,
@@ -240,10 +265,15 @@ export function compileWorkflowBlueprint(workflow: WorkflowGraph, project?: Proj
       aiDirective: node.aiDirective || presetSpec?.defaultDirective || '',
       inputsFrom,
       outputsTo,
+      boundTargets: binding.boundTargets,
+      activeParts,
       recommendedMcpTools: presetSpec?.recommendedMcpTools ?? [],
       mcpActionHint: {
         ...(presetSpec?.mcpHint ?? {}),
         ...(node.params ?? {}),
+        targetMode: binding.mode,
+        boundEntities: binding.boundTargets.map((t) => `${t.name} [${t.roleLabel}]`),
+        activeSubParts: activeParts.map((p) => p.shortLabel),
         ...(project
           ? {
               projectShots: project.shots.length,
@@ -294,6 +324,7 @@ export function validateAndNormalizeWorkflowJson(raw: unknown): WorkflowGraph {
     const type = (validTypes.has(n.type) ? n.type : CANONICAL_NODE_ORDER[i % CANONICAL_NODE_ORDER.length]) as WorkflowNodeType
     const spec = WORKFLOW_NODE_SPECS[type]
     const presetObj = spec.presets.find((p) => p.id === n.preset) ?? spec.presets[0]
+    const defaultParts = getDefaultPartsForNode({ type, preset: presetObj.id })
     return {
       id: typeof n.id === 'string' && n.id.trim() ? n.id.trim() : `wf-${type}`,
       type,
@@ -309,7 +340,12 @@ export function validateAndNormalizeWorkflowJson(raw: unknown): WorkflowGraph {
         typeof n.aiDirective === 'string' && n.aiDirective.trim()
           ? n.aiDirective.trim()
           : presetObj.defaultDirective,
-      params: { ...presetObj.defaultParams, ...(n.params ?? {}) }
+      params: {
+        targetMode: 'auto',
+        targetParts: defaultParts,
+        ...presetObj.defaultParams,
+        ...(n.params ?? {})
+      }
     }
   })
 
@@ -348,48 +384,6 @@ export function validateAndNormalizeWorkflowJson(raw: unknown): WorkflowGraph {
   }
 }
 
-function classifyLayerRole(layer: Layer): 'sky' | 'foliage' | 'character' | 'ground' | 'prop' {
-  const n = (layer.name || '').toLowerCase()
-  if (layer.transform.rotation.value[0] <= -65) return 'ground'
-  if (
-    n.includes('sky') ||
-    n.includes('trời') ||
-    n.includes('cloud') ||
-    n.includes('mây') ||
-    n.includes('fog') ||
-    n.includes('sương') ||
-    layer.transform.position.value[2] >= 2200
-  ) {
-    return 'sky'
-  }
-  if (
-    layer.composite ||
-    n.includes('hero') ||
-    n.includes('nhân vật') ||
-    n.includes('character') ||
-    n.includes('knight') ||
-    n.includes('girl') ||
-    n.includes('boy')
-  ) {
-    return 'character'
-  }
-  if (
-    n.includes('tree') ||
-    n.includes('cây') ||
-    n.includes('bush') ||
-    n.includes('bụi') ||
-    n.includes('leaf') ||
-    n.includes('lá') ||
-    n.includes('flower') ||
-    n.includes('hoa') ||
-    n.includes('grass') ||
-    n.includes('cỏ')
-  ) {
-    return 'foliage'
-  }
-  return 'prop'
-}
-
 /**
  * Thực thi trực tiếp chuỗi Node đã kết nối trong Workflow lên dữ liệu Project.
  */
@@ -403,6 +397,9 @@ export function applyWorkflowToProject(
 
   for (const node of activeNodes) {
     const intensity = Math.max(0.2, Math.min(2.5, node.params?.intensity ?? 1.0))
+    const binding = resolveNodeTargetBinding(node, project)
+    const activePartIds = new Set(binding.activeParts.map((p) => p.id))
+    const partNamesSummary = binding.activeParts.map((p) => p.shortLabel).slice(0, 3).join(', ')
 
     if (node.type === 'scene_shot') {
       let affected = 0
@@ -423,9 +420,14 @@ export function applyWorkflowToProject(
       if (node.params?.autoArrangeZ !== false) {
         for (const shot of project.shots) {
           const standalone = project.layers.filter(
-            (l) => l.shotId === shot.id && l.type === 'image' && !l.composite && !l.model3d && !l.locked
+            (l) =>
+              l.shotId === shot.id &&
+              l.type === 'image' &&
+              !l.composite &&
+              !l.model3d &&
+              !l.locked &&
+              binding.matchesLayer(l)
           )
-          // Chỉ tự động giãn Z nếu các layer đang bị trùng độ sâu Z (chưa phân tầng)
           const uniqueZs = new Set(standalone.map((l) => Math.round(l.transform.position.value[2] / 50)))
           if (standalone.length > 1 && uniqueZs.size <= 1) {
             standalone.forEach((l, idx) => {
@@ -439,9 +441,13 @@ export function applyWorkflowToProject(
         }
       }
 
-      if (node.params?.ensureGround || node.preset === 'grounded_3d_stage') {
+      if (
+        node.params?.ensureGround ||
+        node.preset === 'grounded_3d_stage' ||
+        activePartIds.has('ground_plane')
+      ) {
         const hasGround = project.layers.some((l) => l.transform.rotation.value[0] <= -65)
-        if (!hasGround) {
+        if (!hasGround && (node.params?.ensureGround || node.preset === 'grounded_3d_stage')) {
           const g = createGroundLayer(project.comp, 'Mặt đất 3D (Workflow)')
           g.shotId = project.shots[0]?.id ?? null
           project.layers.push(g)
@@ -455,16 +461,16 @@ export function applyWorkflowToProject(
         title: node.title,
         aiAgentRole: node.aiAgentRole,
         preset: node.preset,
-        appliedSummary: `Chuẩn hóa ${project.shots.length} phân cảnh & phân tầng độ sâu Z (${node.preset}).`,
+        appliedSummary: `Chuẩn hóa ${project.shots.length} phân cảnh · Bộ phận: ${partNamesSummary || node.preset}.`,
         affectedCount: affected
       })
     } else if (node.type === 'layer_assembly') {
       let affected = 0
       for (const l of project.layers) {
-        if (l.locked) continue
+        if (l.locked || !binding.matchesLayer(l)) continue
         if (l.composite) {
           l.composite.lockedGroup = true
-          if (l.composite.isRoot && node.preset !== 'arch3d_and_props') {
+          if (l.composite.isRoot && node.preset !== 'arch3d_and_props' && activePartIds.has('root_anchor')) {
             l.autoOrient = 'camera-y'
             if (l.transform.anchor) l.transform.anchor.value = [0, -0.5, 0]
           }
@@ -472,7 +478,9 @@ export function applyWorkflowToProject(
         } else if (l.model3d) {
           affected++
         } else if (classifyLayerRole(l) === 'character' || classifyLayerRole(l) === 'foliage') {
-          if (l.transform.anchor) l.transform.anchor.value = [0, -0.5, 0]
+          if (l.transform.anchor && activePartIds.has('root_anchor')) {
+            l.transform.anchor.value = [0, -0.5, 0]
+          }
           affected++
         }
       }
@@ -482,15 +490,15 @@ export function applyWorkflowToProject(
         title: node.title,
         aiAgentRole: node.aiAgentRole,
         preset: node.preset,
-        appliedSummary: `Đồng bộ neo gốc & hướng camera cho ${affected} lớp lắp ráp 2.5D/3D.`,
+        appliedSummary: `Đồng bộ ${affected} lớp 2.5D/3D · Bộ phận: ${partNamesSummary}.`,
         affectedCount: affected
       })
     } else if (node.type === 'motion_choreography') {
       let affected = 0
       for (const l of project.layers) {
-        if (l.locked || l.type === 'solid') continue
+        if (l.locked || l.type === 'solid' || !binding.matchesLayer(l)) continue
         const role = classifyLayerRole(l)
-        if (role === 'sky') {
+        if (role === 'sky' && activePartIds.has('sky_cloud_drift')) {
           l.motion = {
             enabled: true,
             type: 'drift',
@@ -500,7 +508,7 @@ export function applyWorkflowToProject(
             amount: 0.85
           }
           affected++
-        } else if (role === 'foliage') {
+        } else if (role === 'foliage' && activePartIds.has('canopy_wind')) {
           l.motion = {
             enabled: true,
             type: 'wind',
@@ -509,7 +517,11 @@ export function applyWorkflowToProject(
             amount: 0.9
           }
           affected++
-        } else if (role === 'character' && (!l.motion || l.motion.type === 'none')) {
+        } else if (
+          role === 'character' &&
+          (activePartIds.has('torso_breathe') || activePartIds.has('hair_cloth_sway')) &&
+          (!l.motion || l.motion.type === 'none')
+        ) {
           l.motion = {
             enabled: true,
             type: 'float',
@@ -521,10 +533,13 @@ export function applyWorkflowToProject(
         }
       }
 
-      if (node.preset === 'character_walk_depth' || node.preset === 'dynamic_action_arc') {
+      if (
+        (node.preset === 'character_walk_depth' || node.preset === 'dynamic_action_arc') &&
+        activePartIds.has('legs_stride')
+      ) {
         const focal =
-          project.layers.find((l) => l.composite?.isRoot) ??
-          project.layers.find((l) => classifyLayerRole(l) === 'character')
+          project.layers.find((l) => l.composite?.isRoot && binding.matchesLayer(l)) ??
+          project.layers.find((l) => classifyLayerRole(l) === 'character' && binding.matchesLayer(l))
         if (focal) {
           const targetId = focal.composite?.instanceId || focal.id
           const group = findMotionTargetGroup(project, targetId)
@@ -555,33 +570,35 @@ export function applyWorkflowToProject(
         title: node.title,
         aiAgentRole: node.aiAgentRole,
         preset: node.preset,
-        appliedSummary: `Kích hoạt chuyển động tự nhiên & hoạt họa cho ${affected} layer.`,
+        appliedSummary: `Kích hoạt hoạt họa cho ${affected} layer · Bộ phận: ${partNamesSummary}.`,
         affectedCount: affected
       })
     } else if (node.type === 'physics_fx') {
       let affected = 0
       const focalLayer =
-        project.layers.find((l) => l.composite?.isRoot) ??
-        project.layers.find((l) => classifyLayerRole(l) === 'character') ??
-        project.layers.find((l) => l.type === 'image' && !l.locked)
+        project.layers.find((l) => l.composite?.isRoot && binding.matchesLayer(l)) ??
+        project.layers.find((l) => classifyLayerRole(l) === 'character' && binding.matchesLayer(l)) ??
+        project.layers.find((l) => l.type === 'image' && !l.locked && binding.matchesLayer(l))
 
       if (node.preset === 'combat_elastic_glow') {
-        for (const l of project.layers) {
-          if (l.locked || l.type !== 'image') continue
-          const role = classifyLayerRole(l)
-          if (role === 'foliage' || role === 'prop' || role === 'character') {
-            l.physics = {
-              enabled: true,
-              material: role === 'foliage' ? 'foliage_bush' : role === 'character' ? 'flesh_body' : 'wood_tree',
-              role: role === 'character' ? 'striker' : 'prop_target',
-              stiffness: 1.2,
-              damping: 0.25,
-              bounciness: Number((1.15 * intensity).toFixed(2))
+        if (activePartIds.has('soft_mesh_jiggle') || activePartIds.has('collider_zone')) {
+          for (const l of project.layers) {
+            if (l.locked || l.type !== 'image' || !binding.matchesLayer(l)) continue
+            const role = classifyLayerRole(l)
+            if (role === 'foliage' || role === 'prop' || role === 'character') {
+              l.physics = {
+                enabled: true,
+                material: role === 'foliage' ? 'foliage_bush' : role === 'character' ? 'flesh_body' : 'wood_tree',
+                role: role === 'character' ? 'striker' : 'prop_target',
+                stiffness: 1.2,
+                damping: 0.25,
+                bounciness: Number((1.15 * intensity).toFixed(2))
+              }
+              affected++
             }
-            affected++
           }
         }
-        if (focalLayer) {
+        if (focalLayer && activePartIds.has('rim_glow_silhouette')) {
           focalLayer.glow = {
             enabled: true,
             side: 'outer',
@@ -595,9 +612,9 @@ export function applyWorkflowToProject(
         }
       } else if (node.preset === 'cave_portal_flashlight') {
         const bgLayer = project.layers.find(
-          (l) => l.type === 'image' && l.transform.position.value[2] >= 600 && !l.locked
+          (l) => l.type === 'image' && l.transform.position.value[2] >= 600 && !l.locked && binding.matchesLayer(l)
         )
-        if (bgLayer) {
+        if (bgLayer && activePartIds.has('cave_depth_portal')) {
           bgLayer.physics = {
             ...(bgLayer.physics ?? { enabled: true, material: 'stone_wall' }),
             enabled: true,
@@ -613,7 +630,7 @@ export function applyWorkflowToProject(
           }
           affected++
         }
-        if (focalLayer) {
+        if (focalLayer && activePartIds.has('virtual_light_core')) {
           focalLayer.virtualLight = {
             enabled: true,
             kind: 'flashlight',
@@ -628,7 +645,7 @@ export function applyWorkflowToProject(
           affected++
         }
       } else {
-        if (focalLayer) {
+        if (focalLayer && activePartIds.has('virtual_light_core')) {
           focalLayer.virtualLight = {
             enabled: true,
             kind: 'candle',
@@ -645,7 +662,11 @@ export function applyWorkflowToProject(
         }
       }
 
-      if (node.params?.spawnParticles && !project.layers.some((l) => l.type === 'particles')) {
+      if (
+        (node.params?.spawnParticles || activePartIds.has('firefly_particles')) &&
+        node.params?.spawnParticles !== false &&
+        !project.layers.some((l) => l.type === 'particles')
+      ) {
         const pLayer = createParticleLayer(project.comp)
         pLayer.name = 'Hạt Đom Đóm Khí Quyển (Workflow)'
         pLayer.shotId = project.shots[0]?.id ?? null
@@ -659,7 +680,7 @@ export function applyWorkflowToProject(
         title: node.title,
         aiAgentRole: node.aiAgentRole,
         preset: node.preset,
-        appliedSummary: `Thiết lập Vật lý 2.5D, Ánh sáng ảo & Hạt FX (${affected} hạng mục).`,
+        appliedSummary: `Thiết lập Vật lý 2.5D & FX (${affected} hạng mục) · Bộ phận: ${partNamesSummary}.`,
         affectedCount: affected
       })
     } else if (node.type === 'camera_director') {
@@ -691,9 +712,14 @@ export function applyWorkflowToProject(
         )
       }
 
-      project.camera.dofEnabled = Boolean(node.params?.enableDof ?? true)
-      project.camera.shakeAmount =
-        node.preset === 'dramatic_handheld_action' ? Math.round(6 * intensity) : Math.round(1.2 * intensity)
+      project.camera.dofEnabled = Boolean(
+        node.params?.enableDof ?? activePartIds.has('dof_aperture')
+      )
+      project.camera.shakeAmount = activePartIds.has('handheld_rig')
+        ? node.preset === 'dramatic_handheld_action'
+          ? Math.round(6 * intensity)
+          : Math.round(1.5 * intensity)
+        : Math.round(0.8 * intensity)
       project.camera.shakeSpeed = node.preset === 'dramatic_handheld_action' ? 1.2 : 0.6
 
       executedStages.push({
@@ -702,19 +728,23 @@ export function applyWorkflowToProject(
         title: node.title,
         aiAgentRole: node.aiAgentRole,
         preset: node.preset,
-        appliedSummary: `Tạo đường bay Camera 3D (${node.preset}) · DOF ${project.camera.dofEnabled ? 'Bật' : 'Tắt'}.`,
+        appliedSummary: `Tạo đường bay Camera 3D · Bộ phận: ${partNamesSummary}.`,
         affectedCount: Math.max(1, project.shots.length)
       })
     } else if (node.type === 'audio_lipsync') {
       let affected = 0
       const tracks = project.audioTracks ?? []
-      const charComposite = project.layers.find((l) => l.composite?.instanceId)
-      const mouthLayer = project.layers.find((l) => isMouthLayer(l))
+      const charComposite = project.layers.find((l) => l.composite?.instanceId && binding.matchesLayer(l))
+      const mouthLayer = project.layers.find((l) => isMouthLayer(l) && binding.matchesLayer(l))
 
       for (const tr of tracks) {
         tr.fadeIn = tr.fadeIn || 0.6
         tr.fadeOut = tr.fadeOut || 1.0
-        if (node.preset === 'voice_lipsync_bgm' || node.params?.autoLipSync) {
+        if (
+          node.preset === 'voice_lipsync_bgm' ||
+          node.params?.autoLipSync ||
+          activePartIds.has('mouth_viseme_25d')
+        ) {
           tr.tone = tr.characterRole === 'voice' ? 'vocal' : 'warm'
           if (tr.characterRole === 'voice' || tracks.length === 1) {
             tr.lipSyncEnabled = true
@@ -742,15 +772,16 @@ export function applyWorkflowToProject(
         preset: node.preset,
         appliedSummary:
           affected > 0
-            ? `Cấu hình âm thanh & đồng bộ Lip-Sync cho ${affected} track.`
-            : 'Đã sẵn sàng cấu hình Lip-Sync & EQ khi thêm track âm thanh.',
+            ? `Cấu hình âm thanh & Lip-Sync (${affected} track) · Bộ phận: ${partNamesSummary}.`
+            : `Đã sẵn sàng Lip-Sync (${partNamesSummary}) khi thêm track âm thanh.`,
         affectedCount: affected
       })
     } else if (node.type === 'look_output') {
+      const wantFog = activePartIds.has('z_depth_fog') && node.preset !== 'vibrant_anime_clean'
       if (node.preset === 'mystic_night_glow') {
         project.look = {
           ...project.look,
-          fogEnabled: true,
+          fogEnabled: wantFog,
           fogColor: '#161936',
           fogNear: 1200,
           fogFar: 5200,
@@ -773,7 +804,7 @@ export function applyWorkflowToProject(
       } else {
         project.look = {
           ...project.look,
-          fogEnabled: true,
+          fogEnabled: wantFog,
           fogColor: '#2a2140',
           fogNear: 1400,
           fogFar: 5800,
@@ -791,7 +822,7 @@ export function applyWorkflowToProject(
         title: node.title,
         aiAgentRole: node.aiAgentRole,
         preset: node.preset,
-        appliedSummary: `Hoàn thiện màu sắc điện ảnh (${node.preset}) & sẵn sàng xuất bản.`,
+        appliedSummary: `Hoàn thiện màu sắc (${partNamesSummary}) & sẵn sàng xuất bản.`,
         affectedCount: 1
       })
     }

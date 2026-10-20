@@ -70,7 +70,7 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
   }
 
   const isFlame = vlight.kind === 'candle' || vlight.kind === 'campfire'
-  const isCone = vlight.kind === 'flashlight' || vlight.coneAngleDeg < 350
+  const isCone = vlight.kind === 'flashlight' || (vlight.coneAngleDeg ?? 360) < 350
 
   return (
     <div className="section layer-virtual-light-section" data-mcp-region="inspector_virtual_light">
@@ -284,7 +284,7 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
               <Row label="Gió thổi lửa" title="Cường độ gió tác động lên ngọn nến / lửa trại (nghiêng ngọn lửa & chập chờn)">
                 <Select
                   id="layer-virtual-light-wind"
-                  value={vlight.windPreset}
+                  value={vlight.windPreset ?? 'gentle'}
                   options={WIND_PRESET_OPTIONS}
                   onChange={(val) => patchLight({ windPreset: val as WindStrengthPreset })}
                 />
@@ -302,7 +302,7 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
                 />
                 <NumberInput
                   axis="hz"
-                  value={vlight.flickerSpeed}
+                  value={vlight.flickerSpeed ?? 1.8}
                   step={0.2}
                   precision={1}
                   min={0.2}
@@ -478,7 +478,7 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
             />
             <NumberInput
               axis="z±"
-              value={vlight.zReach}
+              value={vlight.zReach ?? 350}
               step={10}
               precision={0}
               min={20}

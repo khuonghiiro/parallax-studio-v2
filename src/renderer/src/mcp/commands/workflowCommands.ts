@@ -11,13 +11,16 @@ import {
   WORKFLOW_TEMPLATES
 } from '../../project/workflowCatalog'
 import {
+  WORKFLOW_SUBPART_CATALOG,
   applyWorkflowToProject,
   autoWireWorkflowNodes,
   compileWorkflowBlueprint,
   connectWorkflowPort,
   disconnectWorkflowEdge,
   ensureProjectWorkflow,
+  getDefaultPartsForNode,
   getWorkflowFromTemplate,
+  listProjectBindableTargets,
   validateAndNormalizeWorkflowJson
 } from '../../project/workflowEngine'
 import { bool, has, num, str } from '../params'
@@ -42,6 +45,7 @@ export const workflowCommands: Record<string, Handler> = {
       ai_agent_role: n.aiAgentRole,
       inputs: n.inputs,
       outputs: n.outputs,
+      sub_parts: WORKFLOW_SUBPART_CATALOG[n.type] ?? [],
       presets: n.presets.map((p) => ({
         id: p.id,
         label: p.label,
@@ -63,9 +67,12 @@ export const workflowCommands: Record<string, Handler> = {
     const project = proj()
     const workflow = ensureProjectWorkflow(project)
     const blueprint = compileWorkflowBlueprint(workflow, project)
+    const bindableTargets = listProjectBindableTargets(project)
     return {
       timeline_tab: useView.getState().timelineTab,
       workflow,
+      bindable_targets: bindableTargets,
+      bindableTargets,
       ai_blueprint: blueprint,
       aiBlueprint: blueprint
     }
@@ -123,11 +130,33 @@ export const workflowCommands: Record<string, Handler> = {
         }
         target.preset = foundPreset.id
         if (!has(p, 'ai_directive')) target.aiDirective = foundPreset.defaultDirective
+        target.params = {
+          ...(target.params ?? {}),
+          targetParts: getDefaultPartsForNode({ type: target.type, preset: foundPreset.id })
+        }
       }
       if (has(p, 'enabled')) target.enabled = bool(p, 'enabled')!
       if (has(p, 'ai_directive')) target.aiDirective = str(p, 'ai_directive')!
       if (has(p, 'intensity')) {
         target.params = { ...(target.params ?? {}), intensity: num(p, 'intensity')! }
+      }
+      if (has(p, 'target_mode')) {
+        const mode = str(p, 'target_mode') === 'custom' ? 'custom' : 'auto'
+        target.params = { ...(target.params ?? {}), targetMode: mode }
+      }
+      if (Array.isArray(p.target_layer_ids)) {
+        const ids = p.target_layer_ids.map(String).filter(Boolean)
+        target.params = {
+          ...(target.params ?? {}),
+          targetMode: ids.length > 0 ? 'custom' : 'auto',
+          targetLayerIds: ids
+        }
+      }
+      if (Array.isArray(p.target_parts)) {
+        const parts = p.target_parts.map(String).filter(Boolean)
+        if (parts.length > 0) {
+          target.params = { ...(target.params ?? {}), targetParts: parts }
+        }
       }
     }
 

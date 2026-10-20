@@ -7,6 +7,7 @@ import type {
   WorkflowNodeType,
   WorkflowPortKind
 } from '@shared/types'
+import { DEFAULT_PRESET_SUBPARTS } from './workflowTargets'
 
 export interface WorkflowPortSpec {
   id: WorkflowPortKind
@@ -392,15 +393,15 @@ export const CANONICAL_NODE_ORDER: WorkflowNodeType[] = [
   'look_output'
 ]
 
-/** Vị trí tọa độ mặc định gọn đẹp trên mặt phẳng Workflow Canvas (100% dây chảy thuận chiều Trái -> Phải) */
+/** Vị trí tọa độ mặc định gọn đẹp trên mặt phẳng Workflow Canvas (Hiển thị chuẩn 100% 1:1 sắc nét) */
 export const DEFAULT_NODE_POSITIONS: Record<WorkflowNodeType, { x: number; y: number }> = {
-  scene_shot: { x: 18, y: 70 },
-  layer_assembly: { x: 270, y: 8 },
-  motion_choreography: { x: 522, y: 8 },
-  audio_lipsync: { x: 522, y: 138 },
-  physics_fx: { x: 774, y: 8 },
-  camera_director: { x: 774, y: 138 },
-  look_output: { x: 1026, y: 58 }
+  scene_shot: { x: 14, y: 48 },
+  layer_assembly: { x: 294, y: 48 },
+  motion_choreography: { x: 574, y: 2 },
+  audio_lipsync: { x: 574, y: 122 },
+  physics_fx: { x: 854, y: 2 },
+  camera_director: { x: 854, y: 122 },
+  look_output: { x: 1134, y: 38 }
 }
 
 /** Danh sách kết nối cổng (Port Edges) chuẩn mực giữa 7 khâu sản xuất video */
@@ -444,6 +445,7 @@ function makeNode(
 ): WorkflowNode {
   const spec = WORKFLOW_NODE_SPECS[type]
   const preset = spec.presets.find((p) => p.id === presetId) ?? spec.presets[0]
+  const defaultParts = DEFAULT_PRESET_SUBPARTS[preset.id] ?? []
   return {
     id: `wf-${type}`,
     type,
@@ -453,7 +455,12 @@ function makeNode(
     preset: preset.id,
     aiAgentRole: spec.aiAgentRole,
     aiDirective: customDirective ?? preset.defaultDirective,
-    params: { ...preset.defaultParams, ...(customParams ?? {}) }
+    params: {
+      targetMode: 'auto',
+      targetParts: [...defaultParts],
+      ...preset.defaultParams,
+      ...(customParams ?? {})
+    }
   }
 }
 
