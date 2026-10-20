@@ -7,7 +7,6 @@ import type {
   WorkflowPortKind
 } from '@shared/types'
 import { useEditor } from '../../store/editor'
-import { useView } from '../../store/view'
 import { useToast } from '../../actions'
 import { CustomSelect } from '../controls/CustomSelect'
 import {
@@ -221,7 +220,7 @@ export const WorkflowStudioPanel: React.FC = () => {
         applyWorkflowToProject(draft as Project, singleNodeGraph)
         draft.workflow = workflow
       })
-      useView.getState().setPlaying(true)
+      useEditor.getState().setPlaying(true)
       showToast(`▶ Đang chạy thử hiệu ứng khối "${node.title}" trên Cảnh 3D!`)
     },
     [workflow, showToast]
