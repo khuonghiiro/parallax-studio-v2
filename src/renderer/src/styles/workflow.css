@@ -104,20 +104,54 @@
   white-space: nowrap;
 }
 
+.wf-play-flow-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-color: var(--line);
+  background: var(--bg-2);
+  color: var(--text);
+  font-weight: 700;
+}
+.wf-play-flow-btn.playing {
+  border-color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 15%, var(--bg-2));
+  color: var(--ok);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--ok) 25%, transparent);
+}
+.wf-play-time-tag {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--bg-0);
+  color: var(--text-dim);
+  border: 1px solid var(--line-soft);
+}
+.wf-play-flow-btn.playing .wf-play-time-tag {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--line));
+}
+
 .wf-pipeline-flow-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 9px;
-  height: 23px;
+  gap: 5px;
+  padding: 2px 7px;
+  height: 24px;
   background: var(--bg-2);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  font-size: 10.5px;
+  font-size: 10px;
   color: var(--text-dim);
   min-width: 0;
-  max-width: 440px;
+  max-width: 620px;
   overflow: hidden;
+}
+.wf-pipeline-flow-pill.playing {
+  border-color: color-mix(in srgb, var(--ok) 55%, var(--line));
+  background: color-mix(in srgb, var(--ok) 8%, var(--bg-2));
 }
 .wf-flow-dot {
   width: 6px;
@@ -126,6 +160,49 @@
   background: var(--ok);
   box-shadow: 0 0 6px var(--ok);
   flex-shrink: 0;
+}
+.wf-flow-dot.pulsing {
+  animation: wf-dot-pulse 0.85s ease-in-out infinite alternate;
+}
+@keyframes wf-dot-pulse {
+  from { transform: scale(0.85); opacity: 0.65; }
+  to { transform: scale(1.35); opacity: 1; }
+}
+.wf-flow-steps {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  overflow: hidden;
+}
+.wf-flow-arrow {
+  font-size: 9px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.wf-flow-step-chip {
+  height: 17px;
+  padding: 0 5px;
+  border-radius: 3px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  font-size: 9.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wf-flow-step-chip:hover,
+.wf-flow-step-chip.selected {
+  color: var(--text);
+  border-color: var(--step-c, var(--accent-cyan));
+  background: color-mix(in srgb, var(--step-c, var(--accent-cyan)) 14%, var(--bg-1));
+}
+.wf-flow-step-chip.pulsing {
+  color: var(--text);
+  border-color: var(--step-c, var(--ok));
+  background: color-mix(in srgb, var(--step-c, var(--ok)) 26%, var(--bg-1));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--step-c, var(--ok)) 45%, transparent);
 }
 .wf-flow-text {
   white-space: nowrap;
@@ -272,17 +349,31 @@
 }
 .wf-edge-group { pointer-events: stroke; cursor: pointer; }
 .wf-edge-hit { fill: none; stroke: transparent; stroke-width: 14px; pointer-events: stroke; }
-.wf-edge-glow-bg { fill: none; stroke-width: 5.5px; stroke-linecap: round; opacity: 0.14; }
-.wf-edge-line { fill: none; stroke-width: 2.2px; stroke-linecap: round; }
+.wf-edge-glow-bg { fill: none; stroke-width: 6px; stroke-linecap: round; opacity: 0.16; }
+.wf-edge-group.playing .wf-edge-glow-bg { stroke-width: 8px; opacity: 0.28; }
+.wf-edge-line { fill: none; stroke-width: 2.4px; stroke-linecap: round; }
+.wf-edge-group.playing .wf-edge-line { stroke-width: 2.8px; }
 .wf-edge-flow {
   fill: none;
-  stroke: #ffffff;
-  stroke-width: 1.4px;
+  stroke: var(--bg-0);
+  stroke-width: 1.5px;
   stroke-dasharray: 4 14;
   stroke-linecap: round;
-  opacity: 0.65;
+  opacity: 0.72;
   animation: wf-wire-dash 1.1s linear infinite;
 }
+.wf-edge-flow.playing {
+  stroke: var(--text);
+  stroke-width: 2px;
+  stroke-dasharray: 6 12;
+  opacity: 0.9;
+  animation: wf-wire-dash 0.55s linear infinite;
+}
+.wf-edge-packet {
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.35));
+}
+.wf-edge-packet.trail { opacity: 0.75; }
 @keyframes wf-wire-dash { to { stroke-dashoffset: -18; } }
 .wf-edge-group.muted .wf-edge-line { stroke-dasharray: 4 4; opacity: 0.32; }
 .wf-edge-group.muted .wf-edge-glow-bg { opacity: 0; }

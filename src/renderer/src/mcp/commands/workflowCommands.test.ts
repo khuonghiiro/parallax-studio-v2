@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createProject, createImageLayer, createShot } from '../../project/factory'
+import { DEFAULT_NODE_POSITIONS } from '../../project/workflowCatalog'
+import { ensureProjectWorkflow } from '../../project/workflowEngine'
+import {
+  NODE_W,
+  buildSmartEdgeGeometry,
+  evaluateNodeRuntimeTelemetry
+} from '../../ui/workflow/workflowLayoutAndFlow'
 import { useEditor } from '../../store/editor'
 import { runCommand } from '../commands'
 
@@ -161,6 +168,26 @@ describe('MCP workflowCommands & Workflow Engine', () => {
       'torso_breathe',
       'hair_cloth_sway'
     ])
+  })
+
+  it('maintains spacious node layout, smart corridor wire routing, and live playback telemetry', () => {
+    // Check horizontal column gaps >= 100px and vertical row separation >= 220px
+    expect(DEFAULT_NODE_POSITIONS.layer_assembly.x - (DEFAULT_NODE_POSITIONS.scene_shot.x + NODE_W)).toBeGreaterThanOrEqual(100)
+    expect(DEFAULT_NODE_POSITIONS.audio_lipsync.y - DEFAULT_NODE_POSITIONS.motion_choreography.y).toBeGreaterThanOrEqual(220)
+
+    // Auto-upgrades legacy cramped positions
+    const proj = useEditor.getState().project
+    const wf = ensureProjectWorkflow(proj)
+    const sceneNode = wf.nodes.find((n) => n.type === 'scene_shot')!
+    const camNode = wf.nodes.find((n) => n.type === 'camera_director')!
+    const geom = buildSmartEdgeGeometry(sceneNode, 'scene_ctx', camNode, 'scene_ctx', wf.nodes)
+    expect(geom.path).toContain('L ')
+    expect(geom.midY).toBeGreaterThan(170)
+    expect(geom.midY).toBeLessThan(256)
+
+    const telemetryRunning = evaluateNodeRuntimeTelemetry(sceneNode, proj, 2.5, true, true, 1, 7)
+    expect(telemetryRunning.state).toBe('running')
+    expect(telemetryRunning.liveSummary).toContain('lớp hiển thị')
   })
 })
 

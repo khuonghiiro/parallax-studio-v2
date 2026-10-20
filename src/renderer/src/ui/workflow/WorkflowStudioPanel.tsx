@@ -25,7 +25,7 @@ import {
   getWorkflowFromTemplate,
   resolveConnectedWorkflowNodes
 } from '../../project/workflowEngine'
-import { IconSparkles } from '../icons'
+import { IconPause, IconPlay, IconSparkles } from '../icons'
 import { TimelineModeTabs } from './TimelineModeTabs'
 import { WorkflowCanvas } from './WorkflowCanvas'
 import { WorkflowSidePanel } from './WorkflowSidePanel'
@@ -33,6 +33,11 @@ import { IconWfAutoWire, IconWfJsonCode } from './workflowIcons'
 
 export const WorkflowStudioPanel: React.FC = () => {
   const project = useEditor((s) => s.project)
+  const playing = useEditor((s) => s.playing)
+  const liveTime = useEditor((s) =>
+    s.playing ? Math.floor(s.time * 8) / 8 : Math.round(s.time * 10) / 10
+  )
+  const setPlaying = useEditor((s) => s.setPlaying)
   const showToast = useToast((s) => s.show)
 
   const workflow = useMemo(() => ensureProjectWorkflow(project), [project])
@@ -276,16 +281,59 @@ export const WorkflowStudioPanel: React.FC = () => {
           <span>Tự nối Port</span>
         </button>
 
-        {/* Active Pipeline Flow Pill */}
-        <div className="wf-pipeline-flow-pill" title={blueprint.pipelineSummary}>
-          <span className="wf-flow-dot" />
-          <span className="wf-flow-text">
-            {activeNodes.length > 0
-              ? activeNodes
-                  .map((n) => WORKFLOW_NODE_SPECS[n.type]?.shortTitle ?? n.title)
-                  .join(' ➔ ')
-              : 'Chưa nối cổng — Bấm "Tự nối Port" hoặc nối dây giữa các khối'}
+        {/* Nút Phát / Dừng Video trực tiếp trên Workflow để quan sát luồng chạy */}
+        <button
+          id="wf-btn-play-flow"
+          type="button"
+          className={`btn ghost sm tl-action-btn wf-play-flow-btn${playing ? ' playing' : ''}`}
+          title={
+            playing
+              ? 'Đang phát video & mô phỏng luồng xử lý thời gian thực (Bấm hoặc nhấn Space để tạm dừng)'
+              : 'Phát video để quan sát luồng tín hiệu xử lý trực tiếp qua từng khối chức năng'
+          }
+          onClick={() => setPlaying(!playing)}
+        >
+          {playing ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
+          <span>{playing ? 'Đang chạy' : 'Chạy luồng'}</span>
+          <span className="wf-play-time-tag">
+            {liveTime.toFixed(1)}s/{project.comp.duration}s
           </span>
+        </button>
+
+        {/* Active Pipeline Flow Pill (Hiển thị bước đang xử lý khi chạy video) */}
+        <div
+          className={`wf-pipeline-flow-pill${playing ? ' playing' : ''}`}
+          title={blueprint.pipelineSummary}
+        >
+          <span className={`wf-flow-dot${playing ? ' pulsing' : ''}`} />
+          {activeNodes.length > 0 ? (
+            <div className="wf-flow-steps">
+              {activeNodes.map((n, idx) => {
+                const spec = WORKFLOW_NODE_SPECS[n.type]
+                const cycleIdx = Math.floor((liveTime * 2.2) % Math.max(1, activeNodes.length))
+                const isStepPulse = playing && cycleIdx === idx
+                const isNodeSel = selectedNode?.id === n.id
+                return (
+                  <React.Fragment key={n.id}>
+                    {idx > 0 && <span className="wf-flow-arrow">➔</span>}
+                    <button
+                      type="button"
+                      className={`wf-flow-step-chip${isStepPulse ? ' pulsing' : ''}${isNodeSel ? ' selected' : ''}`}
+                      style={{ ['--step-c' as string]: spec?.color ?? '#38bdf8' }}
+                      onClick={() => setSelectedNodeId(n.id)}
+                      title={`Bước #${idx + 1}: ${spec?.title} — Bấm để chọn khối`}
+                    >
+                      {spec?.shortTitle ?? n.title}
+                    </button>
+                  </React.Fragment>
+                )
+              })}
+            </div>
+          ) : (
+            <span className="wf-flow-text">
+              Chưa nối cổng — Bấm &quot;Tự nối Port&quot; hoặc nối dây giữa các khối
+            </span>
+          )}
         </div>
 
         <div style={{ flex: 1 }} />
@@ -319,6 +367,8 @@ export const WorkflowStudioPanel: React.FC = () => {
         <WorkflowCanvas
           workflow={workflow}
           project={project}
+          playing={playing}
+          time={liveTime}
           activeNodeIds={activeNodeIds}
           executionStepMap={executionStepMap}
           selectedNodeId={selectedNode?.id ?? null}
@@ -337,6 +387,8 @@ export const WorkflowStudioPanel: React.FC = () => {
         <WorkflowSidePanel
           workflow={workflow}
           project={project}
+          playing={playing}
+          time={liveTime}
           blueprint={blueprint}
           selectedNode={selectedNode}
           sideMode={sideMode}

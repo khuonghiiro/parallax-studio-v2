@@ -1,21 +1,35 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Project, WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowPortKind } from '@shared/types'
 import { CustomSelect } from '../controls/CustomSelect'
-import { WORKFLOW_NODE_SPECS, WORKFLOW_PORT_SPECS } from '../../project/workflowCatalog'
+import {
+  DEFAULT_NODE_POSITIONS,
+  WORKFLOW_NODE_SPECS,
+  WORKFLOW_PORT_SPECS
+} from '../../project/workflowCatalog'
 import { renderWorkflowNodeIcon } from './workflowIcons'
 import { WorkflowNodePreview } from './WorkflowNodePreview'
+import {
+  HEADER_H,
+  NODE_W,
+  SOCKET_PAD_TOP,
+  SOCKET_ROW_H,
+  buildBezierPath,
+  buildSmartEdgeGeometry,
+  estimateNodeCardHeight,
+  evaluateNodeRuntimeTelemetry,
+  getInputSocketCoords,
+  getOutputSocketCoords
+} from './workflowLayoutAndFlow'
 
-const NODE_W = 248
-const HEADER_H = 24
-const SOCKET_PAD_TOP = 3
-const SOCKET_ROW_H = 18
 const SNAP_RADIUS = 28
-const MIN_ZOOM = 0.5
+const MIN_ZOOM = 0.42
 const MAX_ZOOM = 1.75
 
 export interface WorkflowCanvasProps {
   workflow: WorkflowGraph
   project?: Project
+  playing?: boolean
+  time?: number
   activeNodeIds: Set<string>
   executionStepMap: Map<string, number>
   selectedNodeId: string | null
@@ -29,34 +43,11 @@ export interface WorkflowCanvasProps {
   onPreviewNode?: (node: WorkflowNode) => void
 }
 
-/** Tọa độ tâm chính xác tuyệt đối của chân cắm Port Đầu Ra (nằm đúng trên mép phải khối) */
-function getOutputSocketCoords(node: WorkflowNode, port: WorkflowPortKind): { x: number; y: number } {
-  const spec = WORKFLOW_NODE_SPECS[node.type]
-  const idx = Math.max(0, spec?.outputs.indexOf(port) ?? 0)
-  return {
-    x: node.position.x + NODE_W,
-    y: node.position.y + HEADER_H + SOCKET_PAD_TOP + idx * SOCKET_ROW_H + SOCKET_ROW_H / 2
-  }
-}
-
-/** Tọa độ tâm chính xác tuyệt đối của chân cắm Port Đầu Vào (nằm đúng trên mép trái khối) */
-function getInputSocketCoords(node: WorkflowNode, port: WorkflowPortKind): { x: number; y: number } {
-  const spec = WORKFLOW_NODE_SPECS[node.type]
-  const idx = Math.max(0, spec?.inputs.indexOf(port) ?? 0)
-  return {
-    x: node.position.x,
-    y: node.position.y + HEADER_H + SOCKET_PAD_TOP + idx * SOCKET_ROW_H + SOCKET_ROW_H / 2
-  }
-}
-
-function buildBezierPath(x1: number, y1: number, x2: number, y2: number): string {
-  const dx = Math.max(36, Math.abs(x2 - x1) * 0.48)
-  return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`
-}
-
 export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   workflow,
   project,
+  playing = false,
+  time = 0,
   activeNodeIds,
   executionStepMap,
   selectedNodeId,
@@ -105,25 +96,23 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       let maxX = -Infinity
       let maxY = -Infinity
       for (const n of list) {
-        const spec = WORKFLOW_NODE_SPECS[n.type]
-        const rows = Math.max(spec?.inputs.length ?? 1, spec?.outputs.length ?? 1, 1)
-        const cardH = HEADER_H + SOCKET_PAD_TOP * 2 + rows * SOCKET_ROW_H + 66
-        minX = Math.min(minX, n.position.x - 8)
-        minY = Math.min(minY, n.position.y - 4)
-        maxX = Math.max(maxX, n.position.x + NODE_W + 8)
-        maxY = Math.max(maxY, n.position.y + cardH + 4)
+        const cardH = estimateNodeCardHeight(n)
+        minX = Math.min(minX, n.position.x - 16)
+        minY = Math.min(minY, n.position.y - 10)
+        maxX = Math.max(maxX, n.position.x + NODE_W + 16)
+        maxY = Math.max(maxY, n.position.y + cardH + 14)
       }
 
       const graphW = Math.max(400, maxX - minX)
       const graphH = Math.max(200, maxY - minY)
       const fitZ = Math.min(
-        1.05,
-        Math.max(MIN_ZOOM, Math.min((vw - 16) / graphW, (vh - 6) / graphH))
+        1.0,
+        Math.max(MIN_ZOOM, Math.min((vw - 24) / graphW, (vh - 14) / graphH))
       )
       const nx = Math.round((vw - graphW * fitZ) / 2 - minX * fitZ)
       const ny = Math.round((vh - graphH * fitZ) / 2 - minY * fitZ)
       setZoom(Number(fitZ.toFixed(2)))
-      setPan({ x: Math.max(6, nx), y: Math.max(4, ny) })
+      setPan({ x: Math.max(8, nx), y: Math.max(6, ny) })
     },
     [workflow.nodes]
   )
@@ -357,9 +346,13 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       const fromNode = nodeById.get(edge.fromNode)
       const toNode = nodeById.get(edge.toNode)
       if (!fromNode || !toNode) continue
-      const p1 = getOutputSocketCoords(fromNode, edge.fromPort)
-      const p2 = getInputSocketCoords(toNode, edge.toPort)
-      const portSpec = WORKFLOW_PORT_SPECS[edge.fromPort]
+      const geom = buildSmartEdgeGeometry(
+        fromNode,
+        edge.fromPort,
+        toNode,
+        edge.toPort,
+        workflow.nodes
+      )
       const isActive =
         fromNode.enabled &&
         toNode.enabled &&
@@ -368,18 +361,18 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 
       out.push({
         edge,
-        p1,
-        p2,
-        path: buildBezierPath(p1.x, p1.y, p2.x, p2.y),
-        midX: (p1.x + p2.x) / 2,
-        midY: (p1.y + p2.y) / 2,
-        color: portSpec?.color ?? '#38bdf8',
-        label: portSpec?.shortLabel ?? edge.fromPort,
+        p1: geom.p1,
+        p2: geom.p2,
+        path: geom.path,
+        midX: geom.midX,
+        midY: geom.midY,
+        color: geom.color,
+        label: geom.label,
         isActive
       })
     }
     return out
-  }, [workflow.edges, nodeById, activeNodeIds])
+  }, [workflow.edges, workflow.nodes, nodeById, activeNodeIds])
 
   const previewTarget = snappedTarget ?? cursorWorld
 
@@ -447,7 +440,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
             {renderedEdges.map(({ edge, p1, p2, path, midX, midY, color, label, isActive }) => (
               <g
                 key={edge.id}
-                className={`wf-edge-group${isActive ? ' active' : ' muted'}`}
+                className={`wf-edge-group${isActive ? ' active' : ' muted'}${isActive && playing ? ' playing' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation()
                   onDisconnectEdge(edge.id)
@@ -462,15 +455,30 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
                   stroke={color}
                   filter={isActive ? 'url(#wf-wire-glow)' : undefined}
                 />
-                {isActive && <path d={path} className="wf-edge-flow" />}
+                {isActive && (
+                  <path d={path} className={`wf-edge-flow${playing ? ' playing' : ''}`} />
+                )}
+
+                {/* Hạt xung tín hiệu (Signal Packets) bay dọc theo dây nối khi chạy Video */}
+                {isActive && playing && (
+                  <>
+                    <circle r="4.2" fill="#ffffff" stroke={color} strokeWidth="2" className="wf-edge-packet">
+                      <animateMotion dur="1.25s" repeatCount="indefinite" path={path} />
+                    </circle>
+                    <circle r="3.4" fill={color} className="wf-edge-packet trail">
+                      <animateMotion dur="1.25s" begin="0.62s" repeatCount="indefinite" path={path} />
+                    </circle>
+                  </>
+                )}
+
                 {/* Điểm đầu & cuối cắm khít vào tâm chân Port */}
-                <circle cx={p1.x} cy={p1.y} r="3.2" fill={color} />
-                <circle cx={p2.x} cy={p2.y} r="3.2" fill={color} />
+                <circle cx={p1.x} cy={p1.y} r="3.4" fill={color} />
+                <circle cx={p2.x} cy={p2.y} r="3.4" fill={color} />
 
                 {/* Nút ngắt dây gọn ở tâm đường cong */}
                 <g transform={`translate(${midX}, ${midY})`} className="wf-edge-badge">
-                  <circle r="6.5" className="wf-edge-badge-ring" style={{ stroke: color }} />
-                  <circle r="2.4" className="wf-edge-badge-dot" style={{ fill: color }} />
+                  <circle r="7" className="wf-edge-badge-ring" style={{ stroke: color }} />
+                  <circle r="2.6" className="wf-edge-badge-dot" style={{ fill: color }} />
                   <text x="0" y="3" textAnchor="middle" className="wf-edge-badge-x">
                     ✕
                   </text>
@@ -512,6 +520,15 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
             const inputs = spec?.inputs ?? []
             const outputs = spec?.outputs ?? []
             const socketRowCount = Math.max(inputs.length, outputs.length, 1)
+            const telemetry = evaluateNodeRuntimeTelemetry(
+              node,
+              project,
+              time,
+              playing,
+              isConnected,
+              stepNum,
+              Math.max(1, activeNodeIds.size)
+            )
 
             const presetOptions = (spec?.presets ?? []).map((p) => ({
               value: p.id,
@@ -522,7 +539,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
               <div
                 key={node.id}
                 id={`wf-node-${node.type}`}
-                className={`wf-node-card${isSelected ? ' selected' : ''}${isConnected ? ' connected' : ' disconnected'}${!node.enabled ? ' disabled' : ''}`}
+                className={`wf-node-card${isSelected ? ' selected' : ''}${isConnected ? ' connected' : ' disconnected'}${!node.enabled ? ' disabled' : ''}${playing && isConnected ? ' running' : ''}${telemetry.isStageHighlight ? ' stage-highlight' : ''}`}
                 style={{
                   left: node.position.x,
                   top: node.position.y,
@@ -558,16 +575,22 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
                     </button>
                   )}
                   <span
-                    className={`wf-node-status-pill${isConnected ? ' on' : ''}`}
+                    className={`wf-node-status-pill${isConnected ? ' on' : ''}${playing && isConnected ? ' running' : ''}`}
                     title={
                       !node.enabled
                         ? 'Khối đang tắt'
                         : isConnected
-                          ? `Bước thực thi #${stepNum} (${node.aiAgentRole})`
+                          ? `Bước thực thi #${stepNum} (${node.aiAgentRole}) — ${telemetry.liveSummary}`
                           : 'Chưa nối Port vào luồng thực thi'
                     }
                   >
-                    {!node.enabled ? 'Tắt' : isConnected ? `#${stepNum}` : 'Rời'}
+                    {!node.enabled
+                      ? 'Tắt'
+                      : isConnected
+                        ? playing
+                          ? `⚡ #${stepNum}`
+                          : `#${stepNum}`
+                        : 'Rời'}
                   </span>
                   <button
                     type="button"
@@ -681,7 +704,12 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
                     onChange={(val) => onChangeNodePreset(node.id, String(val))}
                     title="Chọn chế độ xử lý cho khối chức năng này"
                   />
-                  <WorkflowNodePreview node={node} project={project} mode="card" />
+                  <WorkflowNodePreview
+                    node={node}
+                    project={project}
+                    mode="card"
+                    runtimeTelemetry={telemetry}
+                  />
                 </div>
               </div>
             )
@@ -710,11 +738,15 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
           id="wf-btn-autolayout"
           type="button"
           className="wf-hud-btn"
-          title="Tự động sắp xếp gọn gàng vị trí 7 khối và căn vừa khít khung nhìn"
+          title="Tự động dàn thoáng vị trí 7 khối và căn vừa khít khung nhìn"
           onClick={(e) => {
             e.stopPropagation()
+            const resetNodes = workflow.nodes.map((n) => ({
+              ...n,
+              position: { ...(DEFAULT_NODE_POSITIONS[n.type] ?? n.position) }
+            }))
             onAutoLayout()
-            window.setTimeout(() => fitClusterToView(), 30)
+            fitClusterToView(resetNodes)
           }}
         >
           <span>⊞ Căn gọn cụm</span>

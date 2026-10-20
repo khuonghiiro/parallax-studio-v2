@@ -17,10 +17,13 @@ import {
 import { IconCopy, IconSparkles } from '../icons'
 import { IconWfJsonCode, renderWorkflowNodeIcon } from './workflowIcons'
 import { WorkflowNodePreview, getTargetKindIcon } from './WorkflowNodePreview'
+import { evaluateNodeRuntimeTelemetry } from './workflowLayoutAndFlow'
 
 export interface WorkflowSidePanelProps {
   workflow: WorkflowGraph
   project?: Project
+  playing?: boolean
+  time?: number
   blueprint: WorkflowAiBlueprint
   selectedNode: WorkflowNode | null
   sideMode: 'node' | 'json'
@@ -43,6 +46,8 @@ export interface WorkflowSidePanelProps {
 export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
   workflow,
   project,
+  playing = false,
+  time = 0,
   blueprint,
   selectedNode,
   sideMode,
@@ -325,6 +330,15 @@ export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
                 node={selectedNode}
                 project={project}
                 mode="inspector"
+                runtimeTelemetry={evaluateNodeRuntimeTelemetry(
+                  selectedNode,
+                  project,
+                  time,
+                  playing,
+                  blueprint.agents.some((a) => a.nodeId === selectedNode.id),
+                  blueprint.agents.find((a) => a.nodeId === selectedNode.id)?.step,
+                  Math.max(1, blueprint.agents.length)
+                )}
                 onPreviewInViewport={onPreviewNode}
               />
 

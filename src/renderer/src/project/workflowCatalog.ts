@@ -349,7 +349,7 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     aiAgentRole: 'ColorGradingRenderAgent',
     color: '#eab308',
     description: 'Tổng hợp toàn bộ luồng dữ liệu, áp dụng Sương mù chiều sâu (3D Fog), Vignette, Film Grain và kết xuất.',
-    inputs: ['vfx_stage', 'camera_cut', 'audio_mix'],
+    inputs: ['vfx_stage', 'audio_mix', 'camera_cut'],
     outputs: [],
     presets: [
       {
@@ -395,13 +395,37 @@ export const CANONICAL_NODE_ORDER: WorkflowNodeType[] = [
 
 /** Vị trí tọa độ mặc định gọn đẹp trên mặt phẳng Workflow Canvas (Hiển thị chuẩn 100% 1:1 sắc nét) */
 export const DEFAULT_NODE_POSITIONS: Record<WorkflowNodeType, { x: number; y: number }> = {
-  scene_shot: { x: 14, y: 48 },
-  layer_assembly: { x: 294, y: 48 },
-  motion_choreography: { x: 574, y: 2 },
-  audio_lipsync: { x: 574, y: 122 },
-  physics_fx: { x: 854, y: 2 },
-  camera_director: { x: 854, y: 122 },
-  look_output: { x: 1134, y: 38 }
+  scene_shot: { x: 24, y: 136 },
+  layer_assembly: { x: 380, y: 16 },
+  motion_choreography: { x: 736, y: 16 },
+  audio_lipsync: { x: 736, y: 256 },
+  physics_fx: { x: 1092, y: 16 },
+  camera_director: { x: 1092, y: 256 },
+  look_output: { x: 1448, y: 128 }
+}
+
+/** Phát hiện bố cục cũ bị dày đặc / chồng lấn để tự động nâng cấp sang bố cục thoáng chuẩn mới */
+export function isLegacyCrampedWorkflowLayout(nodes: WorkflowNode[]): boolean {
+  if (!nodes || nodes.length < 2) return false
+  const byType = new Map<WorkflowNodeType, WorkflowNode>(nodes.map((n) => [n.type, n]))
+  const assembly = byType.get('layer_assembly')
+  const motion = byType.get('motion_choreography')
+  const audio = byType.get('audio_lipsync')
+  const physics = byType.get('physics_fx')
+  const camera = byType.get('camera_director')
+
+  if (assembly && assembly.position.x <= 310) return true
+  if (motion && audio && Math.abs(audio.position.y - motion.position.y) < 175) return true
+  if (physics && camera && Math.abs(camera.position.y - physics.position.y) < 175) return true
+  return false
+}
+
+export function upgradeCrampedNodePositions(nodes: WorkflowNode[]): WorkflowNode[] {
+  if (!isLegacyCrampedWorkflowLayout(nodes)) return nodes
+  return nodes.map((n) => ({
+    ...n,
+    position: { ...(DEFAULT_NODE_POSITIONS[n.type] ?? n.position) }
+  }))
 }
 
 /** Danh sách kết nối cổng (Port Edges) chuẩn mực giữa 7 khâu sản xuất video */

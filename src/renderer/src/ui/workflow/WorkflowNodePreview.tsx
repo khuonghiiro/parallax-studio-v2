@@ -2,11 +2,13 @@ import React, { useMemo } from 'react'
 import type { Project, WorkflowBoundTarget, WorkflowNode, WorkflowNodeType } from '@shared/types'
 import { WORKFLOW_NODE_SPECS } from '../../project/workflowCatalog'
 import { resolveNodeTargetBinding } from '../../project/workflowEngine'
+import type { NodeRuntimeTelemetry } from './workflowLayoutAndFlow'
 
 export interface WorkflowNodePreviewProps {
   node: WorkflowNode
   project?: Project
   mode?: 'card' | 'inspector'
+  runtimeTelemetry?: NodeRuntimeTelemetry
   onPreviewInViewport?: (node: WorkflowNode) => void
 }
 
@@ -202,6 +204,7 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
   node,
   project,
   mode = 'card',
+  runtimeTelemetry,
   onPreviewInViewport
 }) => {
   const spec = WORKFLOW_NODE_SPECS[node.type]
@@ -267,6 +270,27 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
             )}
           </div>
         </div>
+
+        {/* Dòng 3: Trạng thái Luồng Xử lý Thời gian thực khi chạy Video */}
+        {runtimeTelemetry && (
+          <div
+            className={`wf-node-runtime-bar state-${runtimeTelemetry.state}${runtimeTelemetry.isStageHighlight ? ' stage-pulse' : ''}`}
+            title={`Luồng xử lý thời gian thực (${runtimeTelemetry.badgeText}):\n${runtimeTelemetry.liveSummary}`}
+          >
+            <div className="wf-runtime-content">
+              <span className={`wf-runtime-dot state-${runtimeTelemetry.state}`} />
+              <span className="wf-runtime-text">{runtimeTelemetry.liveSummary}</span>
+            </div>
+            {runtimeTelemetry.state === 'running' && (
+              <div className="wf-runtime-progress-track">
+                <div
+                  className="wf-runtime-progress-fill"
+                  style={{ width: `${runtimeTelemetry.progressPct}%`, background: color }}
+                />
+              </div>
+            )}
+          </div>
+        )}
       </div>
     )
   }
@@ -292,6 +316,16 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
       <div className="wf-inspector-preview-stage">
         {renderSchematicSvg(node.type, node.preset, color)}
       </div>
+
+      {runtimeTelemetry && (
+        <div className={`wf-node-runtime-bar inspector state-${runtimeTelemetry.state}`}>
+          <div className="wf-runtime-content">
+            <span className={`wf-runtime-dot state-${runtimeTelemetry.state}`} />
+            <strong className="wf-runtime-badge-lbl">{runtimeTelemetry.badgeText}:</strong>
+            <span className="wf-runtime-text">{runtimeTelemetry.liveSummary}</span>
+          </div>
+        </div>
+      )}
 
       <div className="wf-inspector-preview-pills">
         {binding.activeParts.map((part) => (

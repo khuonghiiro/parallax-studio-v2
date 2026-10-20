@@ -24,7 +24,9 @@ import {
   WORKFLOW_NODE_SPECS,
   WORKFLOW_PORT_SPECS,
   WORKFLOW_TEMPLATES,
-  buildStandardEdges
+  buildStandardEdges,
+  isLegacyCrampedWorkflowLayout,
+  upgradeCrampedNodePositions
 } from './workflowCatalog'
 import {
   WORKFLOW_SUBPART_CATALOG,
@@ -60,6 +62,12 @@ export function getWorkflowFromTemplate(presetId: string): WorkflowGraph {
 
 export function ensureProjectWorkflow(project: Project): WorkflowGraph {
   if (project.workflow && Array.isArray(project.workflow.nodes) && project.workflow.nodes.length > 0) {
+    if (isLegacyCrampedWorkflowLayout(project.workflow.nodes)) {
+      return {
+        ...project.workflow,
+        nodes: upgradeCrampedNodePositions(project.workflow.nodes)
+      }
+    }
     return project.workflow
   }
   return createDefaultWorkflow()
