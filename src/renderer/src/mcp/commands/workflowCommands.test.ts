@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createProject, createImageLayer, createShot } from '../../project/factory'
 import { DEFAULT_NODE_POSITIONS } from '../../project/workflowCatalog'
-import { ensureProjectWorkflow } from '../../project/workflowEngine'
+import {
+  applyWorkflowToProject,
+  ensureProjectWorkflow,
+  resolveConnectedWorkflowNodes
+} from '../../project/workflowEngine'
 import {
   NODE_W,
   buildSmartEdgeGeometry,
@@ -188,6 +192,91 @@ describe('MCP workflowCommands & Workflow Engine', () => {
     const telemetryRunning = evaluateNodeRuntimeTelemetry(sceneNode, proj, 2.5, true, true, 1, 7)
     expect(telemetryRunning.state).toBe('running')
     expect(telemetryRunning.liveSummary).toContain('lớp hiển thị')
+
+    // Verify orphan subgraphs disconnected from scene_shot are rejected
+    applyWorkflowToProject(proj, wf)
+    const treeLayer = proj.layers.find((l) => l.name.includes('Cây tiền cảnh'))!
+    expect(treeLayer.motion?.type).toBeDefined()
+
+    const orphanGraph = {
+      ...wf,
+      edges: [
+        {
+          id: 'orphan-1',
+          fromNode: 'wf-layer_assembly',
+          fromPort: 'actors_rig' as const,
+          toNode: 'wf-motion_choreography',
+          toPort: 'actors_rig' as const
+        },
+        {
+          id: 'orphan-2',
+          fromNode: 'wf-audio_lipsync',
+          fromPort: 'audio_mix' as const,
+          toNode: 'wf-look_output',
+          toPort: 'audio_mix' as const
+        }
+      ]
+    }
+    const { activeNodes, disconnectedNodes } = resolveConnectedWorkflowNodes(orphanGraph)
+    expect(activeNodes.length).toBe(0)
+    expect(disconnectedNodes.length).toBe(7)
+
+    // Disconnected stages immediately deactivate motions & camera path
+    applyWorkflowToProject(proj, orphanGraph)
+    expect(treeLayer.motion?.enabled).toBe(false)
+    expect(proj.camera.position.keyframes.length).toBe(0)
+
+    // Custom rules on an active stage apply directly to target layers
+    const partialConnected = {
+      ...wf,
+      nodes: wf.nodes.map((n) =>
+        n.type === 'motion_choreography'
+          ? {
+              ...n,
+              params: {
+                ...(n.params ?? {}),
+                customRules: [
+                  {
+                    id: 'rule-test-candle',
+                    label: 'Đèn nến 2.5D',
+                    actionKind: 'virtual_light_candle' as const,
+                    targetId: treeLayer.id,
+                    targetName: treeLayer.name,
+                    speed: 1.4,
+                    amount: 0.9,
+                    enabled: true
+                  }
+                ]
+              }
+            }
+          : n
+      ),
+      edges: [
+        {
+          id: 'e1',
+          fromNode: 'wf-scene_shot',
+          fromPort: 'scene_ctx' as const,
+          toNode: 'wf-layer_assembly',
+          toPort: 'scene_ctx' as const
+        },
+        {
+          id: 'e2',
+          fromNode: 'wf-layer_assembly',
+          fromPort: 'actors_rig' as const,
+          toNode: 'wf-motion_choreography',
+          toPort: 'actors_rig' as const
+        }
+      ]
+    }
+    const partialResolved = resolveConnectedWorkflowNodes(partialConnected)
+    expect(partialResolved.activeNodes.map((n) => n.type)).toEqual([
+      'scene_shot',
+      'layer_assembly',
+      'motion_choreography'
+    ])
+    applyWorkflowToProject(proj, partialConnected)
+    expect(treeLayer.virtualLight?.enabled).toBe(true)
+    expect(treeLayer.virtualLight?.kind).toBe('candle')
   })
 })
 

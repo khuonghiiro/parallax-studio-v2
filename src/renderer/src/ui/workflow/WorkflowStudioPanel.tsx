@@ -25,7 +25,7 @@ import {
   getWorkflowFromTemplate,
   resolveConnectedWorkflowNodes
 } from '../../project/workflowEngine'
-import { IconPause, IconPlay, IconSparkles } from '../icons'
+import { IconPause, IconPlay, IconPlus, IconSparkles } from '../icons'
 import { TimelineModeTabs } from './TimelineModeTabs'
 import { WorkflowCanvas } from './WorkflowCanvas'
 import { WorkflowSidePanel } from './WorkflowSidePanel'
@@ -41,7 +41,10 @@ export const WorkflowStudioPanel: React.FC = () => {
   const showToast = useToast((s) => s.show)
 
   const workflow = useMemo(() => ensureProjectWorkflow(project), [project])
-  const { activeNodes } = useMemo(() => resolveConnectedWorkflowNodes(workflow), [workflow])
+  const { activeNodes, disconnectedNodes } = useMemo(
+    () => resolveConnectedWorkflowNodes(workflow),
+    [workflow]
+  )
   const blueprint = useMemo(
     () => compileWorkflowBlueprint(workflow, project),
     [workflow, project]
@@ -64,26 +67,36 @@ export const WorkflowStudioPanel: React.FC = () => {
     [workflow.nodes, selectedNodeId]
   )
 
-  const commitWorkflow = useCallback((next: WorkflowGraph, mergeKey?: string) => {
-    useEditor.getState().update((draft) => {
-      draft.workflow = next
-    }, mergeKey)
-  }, [])
+  /**
+   * Ghi nhận thay đổi Workflow và đồng bộ ngay lập tức lên Cảnh 3D
+   * (khi ngắt dây / tắt khối thì tắt ngay chuyển động/hiệu ứng của khâu đó).
+   */
+  const commitWorkflow = useCallback(
+    (next: WorkflowGraph, mergeKey?: string, syncScene = true) => {
+      useEditor.getState().update((draft) => {
+        draft.workflow = next
+        if (syncScene) {
+          applyWorkflowToProject(draft as Project, next)
+        }
+      }, mergeKey)
+    },
+    []
+  )
 
   const handleSelectTemplate = useCallback(
     (presetId: string) => {
       const next = getWorkflowFromTemplate(presetId)
-      commitWorkflow(next)
+      commitWorkflow(next, undefined, true)
       setSelectedNodeId(next.nodes[0]?.id ?? null)
-      showToast(`Đã nạp mẫu quy trình: ${next.name}`)
+      showToast(`Đã nạp & áp dụng mẫu quy trình: ${next.name}`)
     },
     [commitWorkflow, showToast]
   )
 
   const handleAutoWire = useCallback(() => {
     const next = autoWireWorkflowNodes(workflow)
-    commitWorkflow(next)
-    showToast('Đã tự động kết nối chuẩn toàn bộ cổng chức năng!')
+    commitWorkflow(next, undefined, true)
+    showToast('Đã tự động nối chuẩn toàn bộ cổng chức năng và đồng bộ lên Cảnh 3D!')
   }, [workflow, commitWorkflow, showToast])
 
   const handleMoveNodes = useCallback(
@@ -94,7 +107,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           positions[n.id] ? { ...n, position: { ...positions[n.id] } } : n
         )
       }
-      commitWorkflow(next, mergeKey ?? 'wf-move')
+      commitWorkflow(next, mergeKey ?? 'wf-move', false)
     },
     [workflow, commitWorkflow]
   )
@@ -107,21 +120,34 @@ export const WorkflowStudioPanel: React.FC = () => {
         position: { ...(DEFAULT_NODE_POSITIONS[n.type] ?? n.position) }
       }))
     }
-    commitWorkflow(next, 'wf-autolayout')
+    commitWorkflow(next, 'wf-autolayout', false)
     showToast('Đã sắp xếp gọn gàng vị trí 7 khối chức năng!')
   }, [workflow, commitWorkflow, showToast])
 
   const handleToggleNode = useCallback(
     (nodeId: string) => {
+      const target = workflow.nodes.find((n) => n.id === nodeId)
+      const nextEnabled = target ? !target.enabled : true
       const next: WorkflowGraph = {
         ...workflow,
         nodes: workflow.nodes.map((n) =>
           n.id === nodeId ? { ...n, enabled: !n.enabled } : n
         )
       }
-      commitWorkflow(next)
+      commitWorkflow(next, undefined, true)
+      const { activeNodes: nextActive } = resolveConnectedWorkflowNodes(next)
+      if (nextActive.length === 0 && playing) {
+        setPlaying(false)
+      }
+      if (target) {
+        showToast(
+          nextEnabled
+            ? `✓ Đã BẬT khối "${target.title}"`
+            : `⛔ Đã TẮT khối "${target.title}" — Đã ngắt hiệu ứng khâu này trên Cảnh 3D`
+        )
+      }
     },
-    [workflow, commitWorkflow]
+    [workflow, commitWorkflow, playing, setPlaying, showToast]
   )
 
   const handleChangeNodePreset = useCallback(
@@ -144,7 +170,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           }
         })
       }
-      commitWorkflow(next)
+      commitWorkflow(next, undefined, true)
     },
     [workflow, commitWorkflow]
   )
@@ -157,7 +183,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           n.id === nodeId ? { ...n, aiDirective: directive } : n
         )
       }
-      commitWorkflow(next, `wf-dir-${nodeId}`)
+      commitWorkflow(next, `wf-dir-${nodeId}`, false)
     },
     [workflow, commitWorkflow]
   )
@@ -170,7 +196,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           n.id === nodeId ? { ...n, params: { ...(n.params ?? {}), ...patch } } : n
         )
       }
-      commitWorkflow(next, `wf-param-${nodeId}`)
+      commitWorkflow(next, `wf-param-${nodeId}`, true)
     },
     [workflow, commitWorkflow]
   )
@@ -178,8 +204,9 @@ export const WorkflowStudioPanel: React.FC = () => {
   const handleConnectPorts = useCallback(
     (fromNode: string, fromPort: WorkflowPortKind, toNode: string, toPort: WorkflowPortKind) => {
       const next = connectWorkflowPort(workflow, fromNode, fromPort, toNode, toPort)
-      commitWorkflow(next)
-      showToast('Đã kết nối cổng chức năng!')
+      commitWorkflow(next, undefined, true)
+      const { activeNodes: nextActive } = resolveConnectedWorkflowNodes(next)
+      showToast(`🔗 Đã nối dây thành công (${nextActive.length}/7 khối thông mạch)!`)
     },
     [workflow, commitWorkflow, showToast]
   )
@@ -187,9 +214,20 @@ export const WorkflowStudioPanel: React.FC = () => {
   const handleDisconnectEdge = useCallback(
     (edgeId: string) => {
       const next = disconnectWorkflowEdge(workflow, { edgeId })
-      commitWorkflow(next)
+      commitWorkflow(next, undefined, true)
+      const { activeNodes: nextActive } = resolveConnectedWorkflowNodes(next)
+      if (nextActive.length === 0 && playing) {
+        setPlaying(false)
+        showToast(
+          '⛔ Đã ngắt nguồn Phân cảnh #1 — Đã dừng phát và tắt hiệu ứng các khối bị đứt luồng!'
+        )
+      } else {
+        showToast(
+          `⛔ Đã ngắt dây kết nối (${nextActive.length}/7 khối còn thông mạch — các khối đứt luồng đã dừng hiệu ứng)!`
+        )
+      }
     },
-    [workflow, commitWorkflow]
+    [workflow, commitWorkflow, playing, setPlaying, showToast]
   )
 
   const handleExecuteWorkflow = useCallback(() => {
@@ -200,10 +238,41 @@ export const WorkflowStudioPanel: React.FC = () => {
     })
     showToast(
       stageCount > 0
-        ? `⚡ Đã áp dụng Workflow (${stageCount} khâu kết nối) vào phân cảnh!`
-        : 'Chưa có khối chức năng nào được bật và nối Port!'
+        ? `⚡ Đã áp dụng Workflow (${stageCount}/7 khâu kết nối) vào phân cảnh!`
+        : '⛔ Luồng đang đứt — Đã tắt hiệu ứng của các khối chưa nối dây!'
     )
   }, [workflow, showToast])
+
+  const handleTogglePlayFlow = useCallback(() => {
+    if (playing) {
+      setPlaying(false)
+      return
+    }
+    if (activeNodes.length === 0) {
+      showToast(
+        '⛔ Chưa có lộ trình thông mạch từ Khối #1 Phân cảnh! Hãy nối dây hoặc bấm "Tự nối Port" để chạy.'
+      )
+      return
+    }
+    useEditor.getState().update((draft) => {
+      applyWorkflowToProject(draft as Project, workflow)
+    }, 'wf-sync-before-play')
+    setPlaying(true)
+  }, [playing, activeNodes.length, workflow, setPlaying, showToast])
+
+  const handleQuickFocusAddMotion = useCallback(() => {
+    const motionNode =
+      workflow.nodes.find((n) => n.type === 'motion_choreography') ?? workflow.nodes[0]
+    if (motionNode) {
+      setSelectedNodeId(motionNode.id)
+    }
+    setSideMode('node')
+    window.setTimeout(() => {
+      const btn = document.getElementById('wf-btn-add-custom-action')
+      btn?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 50)
+    showToast('➕ Chọn Chức năng chuyển động / 2.5D FX ở bảng bên phải rồi bấm "+ Gắn vào Khối"!')
+  }, [workflow.nodes, showToast])
 
   const handlePreviewNode = useCallback(
     (node: WorkflowNode) => {
@@ -281,17 +350,31 @@ export const WorkflowStudioPanel: React.FC = () => {
           <span>Tự nối Port</span>
         </button>
 
+        {/* Nút mở nhanh bộ thêm Chuyển động / Tính năng mới */}
+        <button
+          id="wf-btn-quick-add-motion"
+          type="button"
+          className="btn ghost sm tl-action-btn wf-quick-add-btn"
+          title="Thêm chức năng chuyển động mới (Wind, Drift, Bước đi, Nhảy, Đèn 2.5D, Glow...) cho Layer bất kỳ"
+          onClick={handleQuickFocusAddMotion}
+        >
+          <IconPlus width={12} height={12} />
+          <span>Thêm chuyển động</span>
+        </button>
+
         {/* Nút Phát / Dừng Video trực tiếp trên Workflow để quan sát luồng chạy */}
         <button
           id="wf-btn-play-flow"
           type="button"
-          className={`btn ghost sm tl-action-btn wf-play-flow-btn${playing ? ' playing' : ''}`}
+          className={`btn ghost sm tl-action-btn wf-play-flow-btn${playing ? ' playing' : ''}${activeNodes.length === 0 ? ' broken' : ''}`}
           title={
-            playing
-              ? 'Đang phát video & mô phỏng luồng xử lý thời gian thực (Bấm hoặc nhấn Space để tạm dừng)'
-              : 'Phát video để quan sát luồng tín hiệu xử lý trực tiếp qua từng khối chức năng'
+            activeNodes.length === 0
+              ? 'Luồng đang đứt từ Phân cảnh #1 — Bấm "Tự nối Port" trước khi chạy'
+              : playing
+                ? 'Đang phát video & mô phỏng lộ trình xử lý theo từng bước (Bấm để tạm dừng)'
+                : 'Phát video để quan sát lộ trình xử lý tuần tự qua từng khối chức năng'
           }
-          onClick={() => setPlaying(!playing)}
+          onClick={handleTogglePlayFlow}
         >
           {playing ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
           <span>{playing ? 'Đang chạy' : 'Chạy luồng'}</span>
@@ -300,12 +383,14 @@ export const WorkflowStudioPanel: React.FC = () => {
           </span>
         </button>
 
-        {/* Active Pipeline Flow Pill (Hiển thị bước đang xử lý khi chạy video) */}
+        {/* Active Pipeline Flow Pill (Hiển thị lộ trình tuần tự #1 ➔ #2 ➔ ... và cảnh báo khối đứt) */}
         <div
-          className={`wf-pipeline-flow-pill${playing ? ' playing' : ''}`}
+          className={`wf-pipeline-flow-pill${playing && activeNodes.length > 0 ? ' playing' : ''}${activeNodes.length === 0 ? ' broken' : ''}`}
           title={blueprint.pipelineSummary}
         >
-          <span className={`wf-flow-dot${playing ? ' pulsing' : ''}`} />
+          <span
+            className={`wf-flow-dot${playing && activeNodes.length > 0 ? ' pulsing' : ''}${activeNodes.length === 0 ? ' broken' : ''}`}
+          />
           {activeNodes.length > 0 ? (
             <div className="wf-flow-steps">
               {activeNodes.map((n, idx) => {
@@ -321,17 +406,25 @@ export const WorkflowStudioPanel: React.FC = () => {
                       className={`wf-flow-step-chip${isStepPulse ? ' pulsing' : ''}${isNodeSel ? ' selected' : ''}`}
                       style={{ ['--step-c' as string]: spec?.color ?? '#38bdf8' }}
                       onClick={() => setSelectedNodeId(n.id)}
-                      title={`Bước #${idx + 1}: ${spec?.title} — Bấm để chọn khối`}
+                      title={`Bước #${idx + 1}: ${spec?.title} — Bấm để xem Layer & Cấu hình chuyển động`}
                     >
-                      {spec?.shortTitle ?? n.title}
+                      #{idx + 1} {spec?.shortTitle ?? n.title}
                     </button>
                   </React.Fragment>
                 )
               })}
+              {disconnectedNodes.length > 0 && (
+                <span
+                  className="wf-flow-broken-tag"
+                  title={`Các khối đang đứt dây / tắt (không chạy): ${disconnectedNodes.map((d) => WORKFLOW_NODE_SPECS[d.type]?.shortTitle ?? d.title).join(', ')}`}
+                >
+                  ⛔ {disconnectedNodes.length} đứt
+                </span>
+              )}
             </div>
           ) : (
-            <span className="wf-flow-text">
-              Chưa nối cổng — Bấm &quot;Tự nối Port&quot; hoặc nối dây giữa các khối
+            <span className="wf-flow-text broken">
+              ⛔ Luồng đứt từ Phân cảnh #1 — Bấm &quot;Tự nối Port&quot; để khôi phục lộ trình
             </span>
           )}
         </div>
@@ -353,12 +446,11 @@ export const WorkflowStudioPanel: React.FC = () => {
           id="wf-btn-apply"
           type="button"
           className="btn primary sm wf-apply-btn"
-          disabled={activeNodes.length === 0}
-          title="Thực thi ngay chuỗi khối chức năng đã nối Port lên phân cảnh hiện tại (Hỗ trợ Ctrl+Z)"
+          title="Thực thi & đồng bộ lại chuỗi khối chức năng lên phân cảnh hiện tại (Hỗ trợ Ctrl+Z)"
           onClick={handleExecuteWorkflow}
         >
           <IconSparkles width={13} height={13} />
-          <span>Áp dụng Workflow ({activeNodes.length})</span>
+          <span>Áp dụng ({activeNodes.length}/7)</span>
         </button>
       </div>
 
@@ -398,7 +490,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           onUpdateNodeParams={handleUpdateNodeParams}
           onConnectPorts={handleConnectPorts}
           onDisconnectEdge={handleDisconnectEdge}
-          onApplyJsonGraph={(next) => commitWorkflow(next)}
+          onApplyJsonGraph={(next) => commitWorkflow(next, undefined, true)}
           onShowToast={showToast}
           onPreviewNode={handlePreviewNode}
         />

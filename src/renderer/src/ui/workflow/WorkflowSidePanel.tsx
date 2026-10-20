@@ -17,6 +17,7 @@ import {
 import { IconCopy, IconSparkles } from '../icons'
 import { IconWfJsonCode, renderWorkflowNodeIcon } from './workflowIcons'
 import { WorkflowNodePreview, getTargetKindIcon } from './WorkflowNodePreview'
+import { WorkflowActionBuilder } from './WorkflowActionBuilder'
 import { evaluateNodeRuntimeTelemetry } from './workflowLayoutAndFlow'
 
 export interface WorkflowSidePanelProps {
@@ -64,6 +65,10 @@ export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
   const [jsonSubTab, setJsonSubTab] = useState<'raw' | 'agents'>('raw')
   const [jsonText, setJsonText] = useState('')
   const [jsonError, setJsonError] = useState<string | null>(null)
+  const activeNodeIds = useMemo(
+    () => new Set(blueprint.agents.map((a) => a.nodeId)),
+    [blueprint.agents]
+  )
 
   const binding = useMemo(
     () => (selectedNode ? resolveNodeTargetBinding(selectedNode, project) : null),
@@ -288,6 +293,14 @@ export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
                 )}
               </div>
 
+              {/* MỤC 1.5: THÊM CHUYỂN ĐỘNG / TÍNH NĂNG MỚI CHO LAYER */}
+              <WorkflowActionBuilder
+                node={selectedNode}
+                bindableTargets={binding.allBindableTargets}
+                onUpdateNodeParams={onUpdateNodeParams}
+                onShowToast={onShowToast}
+              />
+
               {/* MỤC 2: BỘ PHẬN 2.5D / KHỚP XƯƠNG / KÊNH TÁC ĐỘNG */}
               <div className="wf-binder-section">
                 <div className="wf-binder-head">
@@ -337,7 +350,7 @@ export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
                   playing,
                   blueprint.agents.some((a) => a.nodeId === selectedNode.id),
                   blueprint.agents.find((a) => a.nodeId === selectedNode.id)?.step,
-                  Math.max(1, blueprint.agents.length)
+                  Math.max(1, blueprint.agents.length), workflow, activeNodeIds
                 )}
                 onPreviewInViewport={onPreviewNode}
               />

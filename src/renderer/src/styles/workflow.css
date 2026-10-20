@@ -386,3 +386,225 @@
 .wf-edge-group:hover .wf-edge-badge-dot { opacity: 0; }
 .wf-edge-group:hover .wf-edge-badge-x { opacity: 1; }
 .wf-edge-preview { fill: none; stroke-width: 2.5px; stroke-dasharray: 5 4; pointer-events: none; }
+
+
+/* ------------------------------------------------------------------ Concrete Motion Config, Disconnected Diagnostics & Action Builder */
+
+.wf-quick-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-color: color-mix(in srgb, var(--accent-cyan) 45%, var(--line)) !important;
+  color: var(--accent-cyan) !important;
+}
+.wf-quick-add-btn:hover {
+  background: color-mix(in srgb, var(--accent-cyan) 14%, var(--bg-2)) !important;
+  color: var(--text) !important;
+}
+
+.wf-play-flow-btn.broken {
+  border-color: color-mix(in srgb, var(--warn) 60%, var(--line)) !important;
+  color: var(--warn) !important;
+}
+
+.wf-pipeline-flow-pill.broken {
+  border-color: color-mix(in srgb, var(--warn) 65%, var(--line));
+  background: color-mix(in srgb, var(--warn) 10%, var(--bg-2));
+}
+.wf-flow-dot.broken {
+  background: var(--warn);
+  box-shadow: 0 0 6px var(--warn);
+}
+.wf-flow-text.broken {
+  color: var(--warn);
+}
+.wf-flow-broken-tag {
+  margin-left: 4px;
+  padding: 0 5px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 14%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--line));
+  flex-shrink: 0;
+}
+
+.wf-node-status-pill.disconnected {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 55%, var(--line));
+  background: color-mix(in srgb, var(--warn) 12%, var(--bg-1));
+}
+
+.wf-config-summary-row {
+  padding: 1px 0;
+}
+.wf-config-summary-text {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wf-custom-rule-badge {
+  flex-shrink: 0;
+  padding: 0 4px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 15%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 48%, var(--line));
+}
+
+.wf-node-runtime-bar.state-disconnected {
+  background: color-mix(in srgb, var(--warn) 10%, var(--bg-1));
+  border-color: color-mix(in srgb, var(--warn) 48%, var(--line));
+}
+.wf-node-runtime-bar.state-disconnected .wf-runtime-text {
+  color: var(--warn);
+}
+.wf-runtime-dot.state-disconnected {
+  background: var(--warn);
+}
+
+.wf-inspector-preview-pill.config {
+  border-color: color-mix(in srgb, var(--accent-cyan) 45%, var(--line));
+  color: var(--text);
+}
+
+/* Action Builder in Side Panel */
+.wf-action-builder {
+  border-color: color-mix(in srgb, var(--accent-cyan) 38%, var(--line));
+  background: color-mix(in srgb, var(--accent-cyan) 4%, var(--bg-2));
+}
+.wf-action-builder-form {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.wf-action-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.wf-action-lbl {
+  width: 68px;
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.wf-action-ctrl {
+  flex: 1;
+  min-width: 0;
+}
+.wf-action-sliders {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 2px 0;
+}
+.wf-action-slider-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 9.5px;
+  color: var(--text-dim);
+}
+.wf-action-slider-col strong {
+  font-family: var(--mono);
+  color: var(--text);
+}
+.wf-add-action-btn {
+  width: 100%;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.wf-custom-rules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+  padding-top: 5px;
+  border-top: 1px dashed var(--line);
+}
+.wf-custom-rule-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+}
+.wf-custom-rule-item.disabled {
+  opacity: 0.55;
+}
+.wf-rule-ic {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.wf-rule-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.wf-rule-title-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text);
+}
+.wf-rule-param-pill {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  color: var(--accent-cyan);
+  background: var(--bg-2);
+  padding: 0 4px;
+  border-radius: 3px;
+  border: 1px solid var(--line-soft);
+}
+.wf-rule-target-line {
+  font-size: 9px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wf-rule-del-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.wf-rule-del-btn:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, var(--bg-2));
+}

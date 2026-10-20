@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import type { Project, WorkflowBoundTarget, WorkflowNode, WorkflowNodeType } from '@shared/types'
 import { WORKFLOW_NODE_SPECS } from '../../project/workflowCatalog'
 import { resolveNodeTargetBinding } from '../../project/workflowEngine'
-import type { NodeRuntimeTelemetry } from './workflowLayoutAndFlow'
+import { describeNodeConcreteConfig, type NodeRuntimeTelemetry } from './workflowLayoutAndFlow'
 
 export interface WorkflowNodePreviewProps {
   node: WorkflowNode
@@ -215,8 +215,14 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
   const visibleTargets = binding.boundTargets.slice(0, 1)
   const extraTargetsCount = Math.max(0, binding.boundTargets.length - visibleTargets.length)
 
-  const visibleParts = binding.activeParts.slice(0, 3)
-  const extraPartsCount = Math.max(0, binding.activeParts.length - visibleParts.length)
+  const customRuleCount = useMemo(
+    () => (node.params?.customRules ?? []).filter((r) => r.enabled).length,
+    [node.params?.customRules]
+  )
+  const configSummary = useMemo(
+    () => runtimeTelemetry?.configSummary ?? describeNodeConcreteConfig(node, project),
+    [runtimeTelemetry?.configSummary, node, project]
+  )
 
   const targetsTooltip = binding.boundTargets
     .map((t) => `${getTargetKindIcon(t.kind)} ${t.name} (${t.roleLabel})`)
@@ -229,13 +235,13 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
   if (mode === 'card') {
     return (
       <div className="wf-node-binding-box">
-        {/* Dòng 1: Gắn Layer / Cụm 2.5D nào */}
+        {/* Dòng 1: Layer tác động + Bộ phận 2.5D */}
         <div
           className="wf-binding-row"
-          title={`Thực thể gắn với khối này (${binding.mode === 'custom' ? 'Chỉ định' : 'Tự động'}):\n${targetsTooltip}`}
+          title={`Layer / Thực thể tác động (${binding.mode === 'custom' ? 'Chỉ định' : 'Tự động'}):\n${targetsTooltip}\n\nBộ phận 2.5D:\n${partsTooltip}`}
         >
           <span className="wf-binding-label">
-            {binding.mode === 'custom' ? '🎯 Gắn:' : '🔄 Gắn:'}
+            {binding.mode === 'custom' ? '🎯 Layer:' : '🔄 Layer:'}
           </span>
           <div className="wf-binding-chips">
             {visibleTargets.map((t) => (
@@ -250,32 +256,36 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
               </span>
             ))}
             {extraTargetsCount > 0 && (
-              <span className="wf-target-chip more">+{extraTargetsCount} lớp</span>
+              <span className="wf-target-chip more">+{extraTargetsCount}</span>
             )}
-          </div>
-        </div>
-
-        {/* Dòng 2: Bộ phận 2.5D / Kênh nào bị tác động */}
-        <div className="wf-binding-row" title={`Bộ phận 2.5D / Kênh tác động:\n${partsTooltip}`}>
-          <span className="wf-binding-label">🦴 Lên:</span>
-          <div className="wf-binding-chips">
-            {visibleParts.slice(0, 2).map((p) => (
-              <span key={p.id} className="wf-part-chip">
-                <span className="wf-chip-ic">{p.icon}</span>
-                <span className="wf-chip-txt">{p.shortLabel}</span>
+            {binding.activeParts.length > 0 && (
+              <span className="wf-part-chip" title={partsTooltip}>
+                <span className="wf-chip-ic">{binding.activeParts[0].icon}</span>
+                <span className="wf-chip-txt">{binding.activeParts.length}p</span>
               </span>
-            ))}
-            {binding.activeParts.length > 2 && (
-              <span className="wf-part-chip more">+{binding.activeParts.length - 2}</span>
             )}
           </div>
         </div>
 
-        {/* Dòng 3: Trạng thái Luồng Xử lý Thời gian thực khi chạy Video */}
+        {/* Dòng 2: Cấu hình chuyển động / Thông số xử lý cụ thể */}
+        <div
+          className="wf-binding-row wf-config-summary-row"
+          title={`Cấu hình xử lý & thông số chuyển động:\n${configSummary}`}
+        >
+          <span className="wf-binding-label">⚙️ Xử lý:</span>
+          <span className="wf-config-summary-text">{configSummary}</span>
+          {customRuleCount > 0 && (
+            <span className="wf-custom-rule-badge" title={`Đã gắn thêm ${customRuleCount} lệnh chuyển động / tính năng riêng`}>
+              +{customRuleCount} lệnh
+            </span>
+          )}
+        </div>
+
+        {/* Dòng 3: Lộ trình & Trạng thái Luồng Xử lý Thời gian thực */}
         {runtimeTelemetry && (
           <div
             className={`wf-node-runtime-bar state-${runtimeTelemetry.state}${runtimeTelemetry.isStageHighlight ? ' stage-pulse' : ''}`}
-            title={`Luồng xử lý thời gian thực (${runtimeTelemetry.badgeText}):\n${runtimeTelemetry.liveSummary}`}
+            title={`${runtimeTelemetry.routeText}\n${runtimeTelemetry.liveSummary}`}
           >
             <div className="wf-runtime-content">
               <span className={`wf-runtime-dot state-${runtimeTelemetry.state}`} />
@@ -321,13 +331,16 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
         <div className={`wf-node-runtime-bar inspector state-${runtimeTelemetry.state}`}>
           <div className="wf-runtime-content">
             <span className={`wf-runtime-dot state-${runtimeTelemetry.state}`} />
-            <strong className="wf-runtime-badge-lbl">{runtimeTelemetry.badgeText}:</strong>
+            <strong className="wf-runtime-badge-lbl">{runtimeTelemetry.routeText}:</strong>
             <span className="wf-runtime-text">{runtimeTelemetry.liveSummary}</span>
           </div>
         </div>
       )}
 
       <div className="wf-inspector-preview-pills">
+        <span className="wf-inspector-preview-pill config" title="Thông số cấu hình hiện tại">
+          ⚙️ {configSummary}
+        </span>
         {binding.activeParts.map((part) => (
           <span key={part.id} className="wf-inspector-preview-pill" title={part.description}>
             {part.icon} {part.shortLabel}

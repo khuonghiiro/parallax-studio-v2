@@ -527,7 +527,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
               playing,
               isConnected,
               stepNum,
-              Math.max(1, activeNodeIds.size)
+              Math.max(1, activeNodeIds.size), workflow, activeNodeIds
             )
 
             const presetOptions = (spec?.presets ?? []).map((p) => ({
@@ -539,7 +539,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
               <div
                 key={node.id}
                 id={`wf-node-${node.type}`}
-                className={`wf-node-card${isSelected ? ' selected' : ''}${isConnected ? ' connected' : ' disconnected'}${!node.enabled ? ' disabled' : ''}${playing && isConnected ? ' running' : ''}${telemetry.isStageHighlight ? ' stage-highlight' : ''}`}
+                className={`wf-node-card${isSelected ? ' selected' : ''}${isConnected ? ' connected' : ' disconnected'}${!node.enabled ? ' disabled' : ''}${telemetry.isStageHighlight ? ' running stage-highlight' : ''}`}
                 style={{
                   left: node.position.x,
                   top: node.position.y,
@@ -575,22 +575,22 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
                     </button>
                   )}
                   <span
-                    className={`wf-node-status-pill${isConnected ? ' on' : ''}${playing && isConnected ? ' running' : ''}`}
+                    className={`wf-node-status-pill${isConnected ? ' on' : ' disconnected'}${telemetry.isStageHighlight ? ' running' : ''}`}
                     title={
                       !node.enabled
                         ? 'Khối đang tắt'
                         : isConnected
                           ? `Bước thực thi #${stepNum} (${node.aiAgentRole}) — ${telemetry.liveSummary}`
-                          : 'Chưa nối Port vào luồng thực thi'
+                          : telemetry.liveSummary
                     }
                   >
                     {!node.enabled
                       ? 'Tắt'
                       : isConnected
-                        ? playing
+                        ? telemetry.isStageHighlight
                           ? `⚡ #${stepNum}`
-                          : `#${stepNum}`
-                        : 'Rời'}
+                          : `✓ #${stepNum}`
+                        : '⛔ Đứt'}
                   </span>
                   <button
                     type="button"

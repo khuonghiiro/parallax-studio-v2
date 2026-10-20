@@ -36,6 +36,10 @@ import {
   listProjectBindableTargets,
   resolveNodeTargetBinding
 } from './workflowTargets'
+import {
+  applyCustomNodeRulesToProject,
+  deactivateDisconnectedWorkflowStages
+} from './workflowStageEffects'
 
 export {
   WORKFLOW_SUBPART_CATALOG,
@@ -98,24 +102,29 @@ export function resolveConnectedWorkflowNodes(workflow: WorkflowGraph): {
     return { activeNodes: enabledNodes, disconnectedNodes: disabledNodes }
   }
 
-  const connectedNodeIds = new Set<string>()
-  for (const e of validEdges) {
-    connectedNodeIds.add(e.fromNode)
-    connectedNodeIds.add(e.toNode)
+  // Duyệt BFS có hướng bắt đầu từ khối gốc đầu vào (Phân cảnh #1 - inputs rỗng)
+  // Một khối có cổng đầu vào (inputs > 0) CHỈ được kích hoạt khi có đường truyền tín hiệu liên tục từ gốc!
+  const rootNodes = enabledNodes.filter(
+    (n) => (WORKFLOW_NODE_SPECS[n.type]?.inputs.length ?? 0) === 0
+  )
+  const activeRootNodes = rootNodes.filter((r) =>
+    validEdges.some((e) => e.fromNode === r.id)
+  )
+
+  const reachableNodeIds = new Set<string>()
+  const queue: string[] = activeRootNodes.map((r) => r.id)
+  for (const id of queue) {
+    reachableNodeIds.add(id)
   }
 
-  // BFS từ các node nguồn (hoặc các node có cạnh nối ra) để đảm bảo tính liên thông của chuỗi
-  const adj = new Map<string, string[]>()
-  const inDegree = new Map<string, number>()
-  for (const n of enabledNodes) {
-    if (connectedNodeIds.has(n.id)) {
-      adj.set(n.id, [])
-      inDegree.set(n.id, 0)
+  while (queue.length > 0) {
+    const curr = queue.shift()!
+    for (const e of validEdges) {
+      if (e.fromNode === curr && !reachableNodeIds.has(e.toNode)) {
+        reachableNodeIds.add(e.toNode)
+        queue.push(e.toNode)
+      }
     }
-  }
-  for (const e of validEdges) {
-    adj.get(e.fromNode)?.push(e.toNode)
-    inDegree.set(e.toNode, (inDegree.get(e.toNode) ?? 0) + 1)
   }
 
   const orderIndex = (n: WorkflowNode): number => {
@@ -124,12 +133,12 @@ export function resolveConnectedWorkflowNodes(workflow: WorkflowGraph): {
   }
 
   const activeNodes = enabledNodes
-    .filter((n) => connectedNodeIds.has(n.id))
+    .filter((n) => reachableNodeIds.has(n.id))
     .sort((a, b) => orderIndex(a) - orderIndex(b))
 
   const disconnectedNodes = [
     ...disabledNodes,
-    ...enabledNodes.filter((n) => !connectedNodeIds.has(n.id))
+    ...enabledNodes.filter((n) => !reachableNodeIds.has(n.id))
   ]
 
   return { activeNodes, disconnectedNodes }
@@ -402,6 +411,9 @@ export function applyWorkflowToProject(
   const workflow = workflowInput ? structuredClone(workflowInput) : structuredClone(ensureProjectWorkflow(project))
   const { activeNodes, disconnectedNodes } = resolveConnectedWorkflowNodes(workflow)
   const executedStages: WorkflowExecutionStageResult[] = []
+
+  const connectedStageTypes = new Set(activeNodes.map((n) => n.type))
+  deactivateDisconnectedWorkflowStages(project, connectedStageTypes)
 
   for (const node of activeNodes) {
     const intensity = Math.max(0.2, Math.min(2.5, node.params?.intensity ?? 1.0))
@@ -834,7 +846,14 @@ export function applyWorkflowToProject(
         affectedCount: 1
       })
     }
+
+    // Áp dụng các quy tắc Chuyển động / Tính năng tùy chỉnh (customRules) gắn trên khối này
+    applyCustomNodeRulesToProject(project, node, binding.matchesLayer)
   }
+
+
+
+
 
   workflow.lastAppliedAt = new Date().toISOString()
   project.workflow = workflow

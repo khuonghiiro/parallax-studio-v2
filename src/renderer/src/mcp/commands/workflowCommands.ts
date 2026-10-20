@@ -222,6 +222,7 @@ export const workflowCommands: Record<string, Handler> = {
 
     ed().update((d) => {
       d.workflow = next
+      applyWorkflowToProject(d as Project, next)
     }, 'mcp-wf-ports')
 
     const blueprint = compileWorkflowBlueprint(next, proj())

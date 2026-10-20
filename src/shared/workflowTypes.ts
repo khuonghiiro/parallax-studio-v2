@@ -83,6 +83,33 @@ export interface WorkflowSubPartItem {
   active: boolean
 }
 
+export type WorkflowCustomActionKind =
+  | 'wind'
+  | 'drift'
+  | 'float'
+  | 'sway'
+  | 'pulse'
+  | 'spin'
+  | 'walk_into_depth'
+  | 'jump_arc'
+  | 'cross_screen'
+  | 'emerge_from_depth'
+  | 'virtual_light_candle'
+  | 'virtual_light_flashlight'
+  | 'rim_glow'
+  | 'mesh_elastic'
+
+export interface WorkflowCustomActionRule {
+  id: string
+  label: string
+  targetId: string
+  targetName: string
+  actionKind: WorkflowCustomActionKind
+  speed?: number
+  amount?: number
+  enabled: boolean
+}
+
 export interface WorkflowNodeParams {
   /** Cường độ tổng thể của khâu xử lý (0.1 .. 2.5, mặc định 1.0) */
   intensity?: number
@@ -104,6 +131,8 @@ export interface WorkflowNodeParams {
   targetLayerIds?: string[]
   /** Danh sách mã Bộ phận 2.5D / Khớp xương / Kênh tác động đang bật trên Node */
   targetParts?: string[]
+  /** Danh sách quy tắc Chuyển động / Tính năng bổ sung do người dùng thêm trực tiếp vào Khối */
+  customRules?: WorkflowCustomActionRule[]
 }
 
 export interface WorkflowNode {

@@ -1,5 +1,7 @@
 import type {
   Project,
+  WorkflowEdge,
+  WorkflowGraph,
   WorkflowNode,
   WorkflowNodeType,
   WorkflowPortKind
@@ -9,6 +11,7 @@ import {
   WORKFLOW_NODE_SPECS,
   WORKFLOW_PORT_SPECS
 } from '../../project/workflowCatalog'
+import { formatRuleBadge } from '../../project/workflowStageEffects'
 import { classifyLayerRole, resolveNodeTargetBinding } from '../../project/workflowTargets'
 
 export const NODE_W = 248
@@ -19,7 +22,7 @@ export const SOCKET_ROW_H = 18
 export function estimateNodeCardHeight(node: WorkflowNode): number {
   const spec = WORKFLOW_NODE_SPECS[node.type]
   const rows = Math.max(spec?.inputs.length ?? 1, spec?.outputs.length ?? 1, 1)
-  return HEADER_H + SOCKET_PAD_TOP * 2 + rows * SOCKET_ROW_H + 108
+  return HEADER_H + SOCKET_PAD_TOP * 2 + rows * SOCKET_ROW_H + 124
 }
 
 /** Tọa độ tâm chính xác tuyệt đối của chân cắm Port Đầu Ra (nằm đúng trên mép phải khối) */
@@ -51,34 +54,6 @@ export function getInputSocketCoords(
 export function buildBezierPath(x1: number, y1: number, x2: number, y2: number): string {
   const dx = Math.max(42, Math.abs(x2 - x1) * 0.48)
   return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`
-}
-
-/**
- * Phát hiện bố cục cũ bị dày đặc / chồng lấn (khoảng cách ngang < 60px hoặc dọc < 170px)
- * để tự động nâng cấp sang bố cục thoáng chuẩn mới.
- */
-export function isLegacyCrampedWorkflowLayout(nodes: WorkflowNode[]): boolean {
-  if (!nodes || nodes.length < 2) return false
-  const byType = new Map<WorkflowNodeType, WorkflowNode>(nodes.map((n) => [n.type, n]))
-  const assembly = byType.get('layer_assembly')
-  const motion = byType.get('motion_choreography')
-  const audio = byType.get('audio_lipsync')
-  const physics = byType.get('physics_fx')
-  const camera = byType.get('camera_director')
-
-  // Bố cục mặc định cũ có layer_assembly.x = 294 hoặc khoảng cách dọc giữa motion và audio <= 165
-  if (assembly && assembly.position.x <= 310) return true
-  if (motion && audio && Math.abs(audio.position.y - motion.position.y) < 175) return true
-  if (physics && camera && Math.abs(camera.position.y - physics.position.y) < 175) return true
-  return false
-}
-
-export function upgradeCrampedNodePositions(nodes: WorkflowNode[]): WorkflowNode[] {
-  if (!isLegacyCrampedWorkflowLayout(nodes)) return nodes
-  return nodes.map((n) => ({
-    ...n,
-    position: { ...(DEFAULT_NODE_POSITIONS[n.type] ?? n.position) }
-  }))
 }
 
 export interface SmartEdgeGeometry {
@@ -119,7 +94,6 @@ export function buildSmartEdgeGeometry(
   )
 
   if (spanX > NODE_W + 60 && intermediateNodes.length > 0) {
-    // Tìm hành lang ngang thông thoáng giữa hàng khối trên và hàng khối dưới
     const topRowBottoms: number[] = []
     const bottomRowTops: number[] = []
     for (const n of allNodes) {
@@ -133,13 +107,13 @@ export function buildSmartEdgeGeometry(
     const corridorTop = topRowBottoms.length > 0 ? Math.max(...topRowBottoms) : 174
     const corridorBottom = bottomRowTops.length > 0 ? Math.min(...bottomRowTops) : 256
 
-    if (corridorBottom - corridorTop >= 36) {
+    if (corridorBottom - corridorTop >= 28) {
       const laneOffset = fromPort === 'scene_ctx' ? 0.36 : 0.66
       const corridorY = Math.round(corridorTop + (corridorBottom - corridorTop) * laneOffset)
       const entryX = Math.min(p1.x + 96, (p1.x + p2.x) / 2 - 20)
       const exitX = Math.max(p2.x - 96, (p1.x + p2.x) / 2 + 20)
       const c1 = Math.max(36, (entryX - p1.x) * 0.55)
-      const c2 = Math.max(36, ( p2.x - exitX) * 0.55)
+      const c2 = Math.max(36, (p2.x - exitX) * 0.55)
 
       const path = [
         `M ${p1.x} ${p1.y}`,
@@ -171,17 +145,137 @@ export function buildSmartEdgeGeometry(
   }
 }
 
+/**
+ * Mô tả tường minh cấu hình kỹ thuật / thông số chuyển động của từng Khối
+ * để người dùng nhìn vào biết ngay khối đó cấu hình ra sao.
+ */
+export function describeNodeConcreteConfig(node: WorkflowNode, project?: Project): string {
+  const intensity = node.params?.intensity ?? 1.0
+  const pct = `${Math.round(intensity * 100)}%`
+  const customRules = (node.params?.customRules ?? []).filter((r) => r.enabled)
+
+  if (customRules.length > 0) {
+    const ruleSummary = customRules.map((r) => formatRuleBadge(r)).join(' · ')
+    return `${ruleSummary}`
+  }
+
+  switch (node.type) {
+    case 'scene_shot':
+      if (node.preset === 'intimate_portrait_stage') {
+        return `Tầng Z cận: 1400 ➔ 750 ➔ 320 ➔ 0 ➔ -60 (${pct})`
+      }
+      if (node.preset === 'grounded_3d_stage') {
+        return `Sàn 3D (-90°) + Giãn 5 tầng Z (3200 ➔ -120)`
+      }
+      return `Giãn 5 tầng Z: 3200 ➔ 1800 ➔ 850 ➔ 0 ➔ -120 (${pct})`
+
+    case 'layer_assembly':
+      if (node.preset === 'arch3d_and_props') {
+        return `Giữ khối 3D kiến trúc · Khóa nhóm Composite`
+      }
+      if (node.preset === 'expr_variant_actors') {
+        return `Nhóm bộ phận 2.5D · Đổi biểu cảm Mắt/Miệng`
+      }
+      return `Neo chân [0, -0.5] · Tự hướng Camera (Billboard Y)`
+
+    case 'motion_choreography':
+      if (node.preset === 'character_walk_depth') {
+        return `Bước đi trục Z (${node.params?.duration ?? 6}s) + Gió cây (${pct})`
+      }
+      if (node.preset === 'dynamic_action_arc') {
+        return `Bật nhảy Parabol (${node.params?.duration ?? 5}s) + Tà áo bay (${pct})`
+      }
+      return `Cây: Gió ${(0.85 * intensity).toFixed(2)}Hz · Mây: Trôi ${Math.round(18 * intensity)}px/s · Thở ${(0.7 * intensity).toFixed(2)}Hz`
+
+    case 'physics_fx':
+      if (node.preset === 'combat_elastic_glow') {
+        return `Mesh đàn hồi (Nảy ${(1.15 * intensity).toFixed(2)}) + Viền Glow 8px`
+      }
+      if (node.preset === 'cave_portal_flashlight') {
+        return `Cửa hang UV (Tối 82%) + Đèn pin 54° (R:520)`
+      }
+      return `Đèn nến 2.5D (R:440, Gió nhẹ) + Hạt đom đóm`
+
+    case 'camera_director': {
+      const shots = project?.shots.length ?? 1
+      const dof = node.params?.enableDof !== false ? 'DOF Xóa phông' : 'Nét toàn cảnh'
+      if (node.preset === 'cinematic_fly_push') {
+        return `Bay qua ${shots} cảnh (Push-in ${Math.round(14 * intensity)}%) · ${dof}`
+      }
+      if (node.preset === 'orbit_showcase_3d') {
+        return `Quỹ đạo xoay vòng 3D Orbit · Rung máy nhẹ`
+      }
+      if (node.preset === 'dramatic_handheld_action') {
+        return `Dolly Zoom kịch tính · Rung Handheld (${Math.round(6 * intensity)})`
+      }
+      return `Đẩy cận Slow Dolly-In (${node.params?.duration ?? 8}s) · ${dof}`
+    }
+
+    case 'audio_lipsync':
+      if (node.preset === 'voice_lipsync_bgm' || node.params?.autoLipSync) {
+        return `Nhép môi 2.5D theo sóng âm + EQ Thoại & Fade`
+      }
+      return `Nhạc nền EQ Ấm (Warm) · Fade vào 0.6s / ra 1.0s`
+
+    case 'look_output':
+      if (node.preset === 'mystic_night_glow') {
+        return `Sương đêm #161936 (Z:1200→5200) · Vignette 0.38`
+      }
+      if (node.preset === 'vibrant_anime_clean') {
+        return `Tắt sương · Tăng rực màu 116% · Phơi sáng +0.08`
+      }
+      return `Sương mù 3D (Z:1400→5800) · Tương phản 1.08 · Vignette 0.28`
+  }
+}
+
+/**
+ * Chẩn đoán lý do vì sao một Khối bị ngắt khỏi luồng thực thi (Disconnected / Unpowered).
+ */
+export function diagnoseNodeDisconnectReason(
+  node: WorkflowNode,
+  workflow: WorkflowGraph | undefined,
+  activeNodeIds: Set<string>
+): string {
+  if (!node.enabled) {
+    return '○ Khối đang TẮT (OFF) — Bấm ON để kích hoạt'
+  }
+  const spec = WORKFLOW_NODE_SPECS[node.type]
+  if (!workflow || !spec) {
+    return '⛔ Chưa nối cổng Port vào luồng thực thi'
+  }
+  if (spec.inputs.length === 0) {
+    return '⛔ Đứt luồng: Hãy nối cổng [Cảnh 3D] sang Lắp ráp hoặc Camera 3D'
+  }
+
+  const incomingEdges: WorkflowEdge[] = workflow.edges.filter((e) => e.toNode === node.id)
+  if (incomingEdges.length === 0) {
+    const portNames = spec.inputs.map((p) => WORKFLOW_PORT_SPECS[p]?.shortLabel ?? p).join(' / ')
+    return `⛔ Đứt luồng: Chưa nối dây vào cổng [${portNames}]`
+  }
+
+  const upstreamNodeIds = incomingEdges.map((e) => e.fromNode)
+  const anyActiveUpstream = upstreamNodeIds.some((id) => activeNodeIds.has(id))
+  if (!anyActiveUpstream) {
+    const firstUp = workflow.nodes.find((n) => n.id === upstreamNodeIds[0])
+    const upName = firstUp ? (WORKFLOW_NODE_SPECS[firstUp.type]?.shortTitle ?? firstUp.title) : 'Khối trước'
+    return `⚠️ Mất nguồn: "${upName}" chưa được nối từ Phân cảnh #1`
+  }
+
+  return '⛔ Chưa nối vào lộ trình thực thi'
+}
+
 export interface NodeRuntimeTelemetry {
   state: 'running' | 'ready' | 'disconnected' | 'disabled'
   badgeText: string
+  routeText: string
+  configSummary: string
   liveSummary: string
   progressPct: number
   isStageHighlight: boolean
 }
 
 /**
- * Tính toán thông số luồng xử lý thời gian thực (Live Runtime Telemetry) của từng Khối
- * khi chạy video (playing) hoặc tua thời gian (time) trên Timeline.
+ * Tính toán thông số lộ trình, cấu hình chuyển động và luồng xử lý thời gian thực của từng Khối.
  */
 export function evaluateNodeRuntimeTelemetry(
   node: WorkflowNode,
@@ -190,42 +284,58 @@ export function evaluateNodeRuntimeTelemetry(
   playing: boolean,
   isConnected: boolean,
   stepNum?: number,
-  totalSteps = 7
+  totalSteps = 7,
+  workflow?: WorkflowGraph,
+  activeNodeIds?: Set<string>
 ): NodeRuntimeTelemetry {
+  const configSummary = describeNodeConcreteConfig(node, project)
+
   if (!node.enabled) {
     return {
       state: 'disabled',
       badgeText: 'Đã tắt',
-      liveSummary: 'Khối này đang tắt — bỏ qua trong luồng xử lý.',
+      routeText: 'Đã tắt (OFF)',
+      configSummary,
+      liveSummary: '○ Khối đang TẮT (OFF) — Đã ngắt hiệu ứng khỏi cảnh.',
       progressPct: 0,
       isStageHighlight: false
     }
   }
 
   if (!isConnected) {
+    const reason = diagnoseNodeDisconnectReason(
+      node,
+      workflow,
+      activeNodeIds ?? new Set<string>()
+    )
     return {
       state: 'disconnected',
-      badgeText: 'Chưa nối',
-      liveSummary: 'Chưa nối cổng Port vào chuỗi thực thi.',
+      badgeText: 'Đứt luồng',
+      routeText: 'Ngắt kết nối',
+      configSummary,
+      liveSummary: reason,
       progressPct: 0,
       isStageHighlight: false
     }
   }
 
   const duration = Math.max(1, project?.comp.duration ?? 10)
-  const fps = project?.comp.fps ?? 30
   const timelinePct = Math.max(0, Math.min(100, Math.round((time / duration) * 100)))
 
-  // Hiệu ứng sóng luồng chạy tuần tự qua các bước #1 -> #7 khi video đang phát
+  // Sóng lộ trình tuần tự đi qua từng Bước #1 -> #N để người dùng nhìn rõ thứ tự xử lý
   const stepIndex = Math.max(0, (stepNum ?? 1) - 1)
-  const cyclePos = (time * 2.2) % Math.max(1, totalSteps)
-  const isStageHighlight = playing && Math.abs(cyclePos - stepIndex) < 0.85
+  const activeStepCursor = Math.floor((time * 1.8) % Math.max(1, totalSteps))
+  const isStageHighlight = playing && activeStepCursor === stepIndex
+
+  const routeText = `Lộ trình Bước #${stepNum ?? 1}/${totalSteps}`
 
   if (!project) {
     return {
       state: playing ? 'running' : 'ready',
-      badgeText: playing ? '⚡ Đang chạy' : '● Sẵn sàng',
-      liveSummary: `Bước #${stepNum ?? 1} · Sẵn sàng xử lý cảnh`,
+      badgeText: isStageHighlight ? `⚡ Đang xử lý #${stepNum}` : `✓ Bước #${stepNum}`,
+      routeText,
+      configSummary,
+      liveSummary: `${routeText} · Sẵn sàng xử lý`,
       progressPct: playing ? timelinePct : 100,
       isStageHighlight
     }
@@ -244,7 +354,7 @@ export function evaluateNodeRuntimeTelemetry(
         project.shots.find((s) => time >= s.start && time <= s.start + s.duration) ??
         project.shots[0]
       const shotName = activeShot?.name ?? 'Cảnh 1'
-      liveSummary = `${shotName} · ${visibleAtTime.length}/${matchedLayers.length} lớp hiển thị @ ${time.toFixed(1)}s`
+      liveSummary = `Bước #${stepNum}: Đang nạp "${shotName}" (${visibleAtTime.length}/${matchedLayers.length} lớp hiển thị)`
       break
     }
     case 'layer_assembly': {
@@ -257,22 +367,22 @@ export function evaluateNodeRuntimeTelemetry(
       const rigCount = compIds.size + modelIds.size
       liveSummary =
         rigCount > 0
-          ? `Đang đồng bộ ${rigCount} cụm 2.5D/3D (${visibleAtTime.length} lớp) · Neo Billboard`
-          : `Đồng bộ ${visibleAtTime.length} lớp cảnh 2.5D · Gốc xoay chuẩn`
+          ? `Bước #${stepNum}: Khóa gốc xoay ${rigCount} cụm (${visibleAtTime.length} lớp)`
+          : `Bước #${stepNum}: Đồng bộ gốc neo cho ${visibleAtTime.length} lớp 2.5D`
       break
     }
     case 'motion_choreography': {
-      const movingCount = visibleAtTime.filter(
+      const movingLayers = visibleAtTime.filter(
         (l) =>
           (l.motion && l.motion.enabled && l.motion.type !== 'none') ||
           l.transform.position.keyframes.length > 0 ||
           l.transform.rotation.keyframes.length > 0
-      ).length
-      const waveVal = Math.round(Math.sin(time * 2.4) * 100)
+      )
+      const customCount = (node.params?.customRules ?? []).filter((r) => r.enabled).length
       liveSummary =
-        movingCount > 0
-          ? `${movingCount} lớp đang diễn hoạt (Gió/Thở) · Nhịp ${waveVal >= 0 ? `+${waveVal}` : waveVal}%`
-          : `Nội suy chuyển động cho ${visibleAtTime.length} lớp (${ binding.activeParts.length} kênh)`
+        movingLayers.length > 0
+          ? `Bước #${stepNum}: Đang chạy chuyển động trên ${movingLayers.length} lớp${customCount > 0 ? ` (+${customCount} quy tắc riêng)` : ''}`
+          : `Bước #${stepNum}: Sẵn sàng tác động lên ${visibleAtTime.length} lớp`
       break
     }
     case 'physics_fx': {
@@ -282,21 +392,16 @@ export function evaluateNodeRuntimeTelemetry(
       const ptCount = project.layers.filter(
         (l) => l.type === 'particles' && l.visible && l.inPoint <= time && time <= l.outPoint
       ).length
-      const totalFx = physCount + lightCount + glowCount + ptCount
-      liveSummary =
-        totalFx > 0
-          ? `Mesh: ${physCount} · Đèn ảo: ${lightCount} · Hạt/Glow: ${ptCount + glowCount} đang phát`
-          : `Mô phỏng Vật lý 2.5D & Ánh sáng theo gió @ ${time.toFixed(1)}s`
+      liveSummary = `Bước #${stepNum}: Đèn ảo (${lightCount}) · Mesh (${physCount}) · Hạt/Glow (${ptCount + glowCount})`
       break
     }
     case 'camera_director': {
       const kfCount = project.camera.position.keyframes.length
       const zNow = Math.round(project.camera.position.value[2] ?? 1000)
-      const dofTag = project.camera.dofEnabled ? 'DOF Bật' : 'Phối cảnh 3D'
       liveSummary =
         kfCount > 0
-          ? `Bay Spline (${kfCount} mốc · ${timelinePct}%) · Z:${zNow} · ${dofTag}`
-          : `Máy quay 3D Z:${zNow} · FOV ${project.camera.fov.value}° · ${dofTag}`
+          ? `Bước #${stepNum}: Đang bay Camera (${kfCount} mốc · Tiến độ ${timelinePct}% · Z:${zNow})`
+          : `Bước #${stepNum}: Giữ góc máy tĩnh Z:${zNow} · FOV ${project.camera.fov.value}°`
       break
     }
     case 'audio_lipsync': {
@@ -308,25 +413,26 @@ export function evaluateNodeRuntimeTelemetry(
         return time >= start && time <= end
       })
       const lipSyncActive = activeTracks.some((tr) => tr.lipSyncEnabled)
-      const mouthCount = visibleAtTime.filter((l) => classifyLayerRole(l) === 'character').length
       liveSummary =
         tracks.length > 0
-          ? `Phát ${activeTracks.length}/${tracks.length} kênh âm thanh${lipSyncActive ? ' · Đang nhép môi 2.5D' : ''}`
-          : `Sẵn sàng bộ lọc thoại & Lip-Sync (${mouthCount} lớp nhân vật)`
+          ? `Bước #${stepNum}: Phát ${activeTracks.length}/${tracks.length} kênh${lipSyncActive ? ' · Đang nhép môi 2.5D' : ''}`
+          : `Bước #${stepNum}: Chờ gắn track âm thanh (${visibleAtTime.filter((l) => classifyLayerRole(l) === 'character').length} nhân vật)`
       break
     }
     case 'look_output': {
+      const fps = project.comp.fps ?? 30
       const curFrame = Math.min(Math.floor(duration * fps), Math.floor(time * fps))
       const totalFrames = Math.floor(duration * fps)
-      const fogTag = project.look.fogEnabled ? 'Fog 3D' : 'Màu trong'
-      liveSummary = `Khung #${curFrame}/${totalFrames} (${timelinePct}%) · ${fogTag} + Vignette`
+      liveSummary = `Bước #${stepNum}: Kết xuất Khung #${curFrame}/${totalFrames} (${timelinePct}%)`
       break
     }
   }
 
   return {
     state: playing ? 'running' : 'ready',
-    badgeText: playing ? `⚡ Đang xử lý` : `● Sẵn sàng`,
+    badgeText: isStageHighlight ? `⚡ Đang xử lý` : `✓ Bước #${stepNum}`,
+    routeText,
+    configSummary,
     liveSummary,
     progressPct: timelinePct,
     isStageHighlight
