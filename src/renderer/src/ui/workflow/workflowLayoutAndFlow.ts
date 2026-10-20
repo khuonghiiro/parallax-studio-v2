@@ -280,7 +280,7 @@ export interface NodeRuntimeTelemetry {
 export function evaluateNodeRuntimeTelemetry(
   node: WorkflowNode,
   project: Project | undefined,
-  time: number,
+  rawTime: number,
   playing: boolean,
   isConnected: boolean,
   stepNum?: number,
@@ -288,6 +288,7 @@ export function evaluateNodeRuntimeTelemetry(
   workflow?: WorkflowGraph,
   activeNodeIds?: Set<string>
 ): NodeRuntimeTelemetry {
+  const time = Number.isFinite(rawTime) ? rawTime : 0
   const configSummary = describeNodeConcreteConfig(node, project)
 
   if (!node.enabled) {

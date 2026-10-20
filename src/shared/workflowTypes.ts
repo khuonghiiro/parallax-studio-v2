@@ -167,6 +167,7 @@ export interface WorkflowGraph {
   description: string
   nodes: WorkflowNode[]
   edges: WorkflowEdge[]
+  targetShotId?: string
   lastAppliedAt?: string
 }
 

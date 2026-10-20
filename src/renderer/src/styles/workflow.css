@@ -68,7 +68,7 @@
   border-color: color-mix(in srgb, var(--accent-cyan) 45%, transparent);
 }
 
-/* ------------------------------------------------------------------ Workflow Studio Panel */
+/* ------------------------------------------------------------------ Workflow Studio Panel & Direct Pill Toolbar */
 
 .wf-studio-panel {
   flex: 1;
@@ -78,30 +78,61 @@
   background: var(--bg-0);
   overflow: hidden;
 }
-.wf-studio-panel .custom-select-trigger {
-  background: var(--bg-2);
-  color: var(--text);
-  border-color: var(--line);
-  transition: none;
-}
 
 .wf-toolbar {
   position: relative;
   z-index: 5000;
   overflow: visible;
-  gap: 6px;
+  gap: 5px;
 }
-.wf-toolbar-template-group {
+
+.wf-toolbar-pill-group {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  gap: 3px;
+  padding: 2px 4px;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 .wf-toolbar-label {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   color: var(--text-dim);
+  padding: 0 3px;
   white-space: nowrap;
+}
+.wf-toolbar-pill-btn {
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wf-toolbar-pill-btn:hover {
+  color: var(--text);
+  background: var(--bg-2);
+}
+.wf-toolbar-pill-btn.active {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent-cyan) 18%, var(--bg-2));
+  border-color: var(--accent-cyan);
+  font-weight: 700;
+}
+.wf-toolbar-pill-group.shots .wf-toolbar-pill-btn.active {
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-2));
+  border-color: var(--accent);
 }
 
 .wf-play-flow-btn {
@@ -146,7 +177,7 @@
   font-size: 10px;
   color: var(--text-dim);
   min-width: 0;
-  max-width: 620px;
+  max-width: 480px;
   overflow: hidden;
 }
 .wf-pipeline-flow-pill.playing {
@@ -261,8 +292,9 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 2200px;
-  height: 1000px;
+  width: 4000px;
+  height: 2500px;
+  overflow: visible;
   pointer-events: none;
   -webkit-font-smoothing: antialiased;
   text-rendering: geometricPrecision;
@@ -271,7 +303,7 @@
 .wf-connecting-banner {
   position: absolute;
   top: 8px;
-  left: 12px;
+  left: 46px;
   right: 12px;
   padding: 4px 10px;
   border-radius: var(--radius);
@@ -287,54 +319,103 @@
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
-/* ------------------------------------------------------------------ Floating Canvas HUD Bar */
+/* ------------------------------------------------------------------ Vertical Icon-Only Canvas HUD Dock */
 
 .wf-canvas-hud {
   position: absolute;
-  left: 10px;
-  bottom: 8px;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 45;
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 3px;
-  padding: 3px 5px;
-  background: color-mix(in srgb, var(--bg-1) 92%, transparent);
+  padding: 4px;
+  background: color-mix(in srgb, var(--bg-1) 94%, transparent);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 7px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
   backdrop-filter: blur(8px);
 }
 .wf-hud-btn {
-  height: 21px;
-  padding: 0 7px;
+  width: 26px;
+  height: 24px;
+  padding: 0;
   border-radius: 4px;
   border: 1px solid transparent;
   background: var(--bg-2);
   color: var(--text-dim);
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
   cursor: pointer;
-  white-space: nowrap;
 }
-.wf-hud-btn.icon { width: 21px; padding: 0; font-size: 12px; font-weight: 700; }
 .wf-hud-btn:hover { color: var(--text); background: var(--bg-3); border-color: var(--line); }
 .wf-hud-btn.active {
-  background: color-mix(in srgb, var(--accent-cyan) 18%, var(--bg-2));
+  background: color-mix(in srgb, var(--accent-cyan) 20%, var(--bg-2));
   color: var(--accent-cyan);
   border-color: var(--accent-cyan);
 }
-.wf-hud-sep { width: 1px; height: 14px; background: var(--line); margin: 0 2px; }
+.wf-hud-sep.horizontal {
+  width: 18px;
+  height: 1px;
+  background: var(--line);
+  margin: 2px 0;
+}
 .wf-hud-zoom-val {
-  min-width: 36px;
-  text-align: center;
+  height: 18px;
+  width: 26px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 8.5px;
   font-weight: 700;
   color: var(--text);
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+}
+
+/* ------------------------------------------------------------------ Direct Segmented Preset Pills on Node Card (No Combobox) */
+
+.wf-preset-pills-bar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  padding: 2px;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.wf-preset-pill {
+  height: 19px;
+  padding: 0 4px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 8.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+.wf-preset-pill:hover {
+  color: var(--text);
+  background: var(--bg-2);
+}
+.wf-preset-pill.active {
+  color: var(--text);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--wf-node-color, var(--accent-cyan)) 22%, var(--bg-2));
+  border-color: var(--wf-node-color, var(--accent-cyan));
+}
+
+.wf-node-card.snap-target {
+  border-color: var(--accent-cyan) !important;
+  box-shadow: 0 0 0 2px var(--accent-cyan), 0 8px 20px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* ------------------------------------------------------------------ SVG Port Wires & Animated Data Flow */
@@ -387,8 +468,7 @@
 .wf-edge-group:hover .wf-edge-badge-x { opacity: 1; }
 .wf-edge-preview { fill: none; stroke-width: 2.5px; stroke-dasharray: 5 4; pointer-events: none; }
 
-
-/* ------------------------------------------------------------------ Concrete Motion Config, Disconnected Diagnostics & Action Builder */
+/* ------------------------------------------------------------------ Concrete Motion Config & Disconnected Diagnostics */
 
 .wf-quick-add-btn {
   display: inline-flex;
@@ -485,43 +565,211 @@
   color: var(--text);
 }
 
-/* Action Builder in Side Panel */
+/* ------------------------------------------------------------------ 3-Tab Clean Inspector & 1-Click Action Chip Grid */
+
+.wf-inspector-subtabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  padding: 2px;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+.wf-inspector-subtab {
+  height: 23px;
+  padding: 0 4px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wf-inspector-subtab:hover {
+  color: var(--text);
+  background: var(--bg-2);
+}
+.wf-inspector-subtab.active {
+  color: var(--text);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--accent-cyan) 16%, var(--bg-2));
+  border-color: var(--accent-cyan);
+}
+
+.wf-subtab-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.wf-side-body {
+  overflow-x: hidden;
+}
+
+.wf-preset-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.wf-preset-option-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  text-align: left;
+  cursor: pointer;
+}
+.wf-preset-option-card:hover {
+  border-color: var(--node-c, var(--accent-cyan));
+  background: var(--bg-3);
+}
+.wf-preset-option-card.active {
+  border-color: var(--node-c, var(--accent-cyan));
+  background: color-mix(in srgb, var(--node-c, var(--accent-cyan)) 14%, var(--bg-2));
+}
+.wf-preset-option-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  color: var(--text);
+}
+.wf-preset-radio {
+  font-size: 10px;
+  color: var(--text-faint);
+}
+.wf-preset-radio.on {
+  color: var(--node-c, var(--accent-cyan));
+}
+.wf-preset-option-desc {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  padding-left: 15px;
+  line-height: 1.25;
+}
+
+.wf-compact-controls-box {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+/* Action Builder 1-Click Icon Grid */
 .wf-action-builder {
   border-color: color-mix(in srgb, var(--accent-cyan) 38%, var(--line));
   background: color-mix(in srgb, var(--accent-cyan) 4%, var(--bg-2));
 }
-.wf-action-builder-form {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+.wf-action-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
 }
-.wf-action-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.wf-action-lbl {
-  width: 68px;
-  flex-shrink: 0;
-  font-size: 10px;
-  font-weight: 600;
+.wf-action-chip-btn {
+  height: 24px;
+  padding: 0 5px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
   color: var(--text-dim);
-}
-.wf-action-ctrl {
-  flex: 1;
+  font-size: 9.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
   min-width: 0;
 }
-.wf-action-sliders {
+.wf-action-chip-btn:hover {
+  color: var(--text);
+  border-color: var(--accent-cyan);
+  background: var(--bg-2);
+}
+.wf-action-chip-btn.active {
+  color: var(--text);
+  font-weight: 700;
+  border-color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 20%, var(--bg-1));
+}
+.wf-action-chip-ic {
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.wf-action-chip-txt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wf-action-section-lbl {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.wf-action-target-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 54px;
+  overflow-y: auto;
+}
+.wf-target-select-pill {
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  font-size: 9.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  max-width: 155px;
+}
+.wf-target-select-pill:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.wf-target-select-pill.active {
+  color: var(--text);
+  font-weight: 700;
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-1));
+}
+.wf-pill-trunc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wf-action-bottom-bar {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  padding: 2px 0;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: center;
+  gap: 7px;
+  padding-top: 2px;
 }
 .wf-action-slider-col {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 9.5px;
+  font-size: 9px;
   color: var(--text-dim);
 }
 .wf-action-slider-col strong {
@@ -529,9 +777,10 @@
   color: var(--text);
 }
 .wf-add-action-btn {
-  width: 100%;
-  justify-content: center;
+  height: 26px;
+  padding: 0 8px !important;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .wf-custom-rules-list {
@@ -551,13 +800,8 @@
   background: var(--bg-1);
   border: 1px solid var(--line);
 }
-.wf-custom-rule-item.disabled {
-  opacity: 0.55;
-}
-.wf-rule-ic {
-  font-size: 12px;
-  flex-shrink: 0;
-}
+.wf-custom-rule-item.disabled { opacity: 0.55; }
+.wf-rule-ic { font-size: 12px; flex-shrink: 0; }
 .wf-rule-info {
   flex: 1;
   min-width: 0;

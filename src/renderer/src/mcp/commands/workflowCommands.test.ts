@@ -277,6 +277,19 @@ describe('MCP workflowCommands & Workflow Engine', () => {
     applyWorkflowToProject(proj, partialConnected)
     expect(treeLayer.virtualLight?.enabled).toBe(true)
     expect(treeLayer.virtualLight?.kind).toBe('candle')
+
+    // Preserves 4-directional user-dragged node coordinates (including x < 0, y < 0, x <= 310)
+    proj.workflow = {
+      ...wf,
+      nodes: wf.nodes.map((n) => {
+        if (n.type === 'scene_shot') return { ...n, position: { x: -140, y: -60 } }
+        if (n.type === 'layer_assembly') return { ...n, position: { x: 180, y: 40 } }
+        return n
+      })
+    }
+    const afterDragWf = ensureProjectWorkflow(proj)
+    expect(afterDragWf.nodes.find((n) => n.type === 'scene_shot')?.position).toEqual({ x: -140, y: -60 })
+    expect(afterDragWf.nodes.find((n) => n.type === 'layer_assembly')?.position).toEqual({ x: 180, y: 40 })
   })
 })
 

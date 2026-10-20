@@ -7,7 +7,6 @@ import type {
   WorkflowNodeParams,
   WorkflowPortKind
 } from '@shared/types'
-import { CustomSelect } from '../controls/CustomSelect'
 import { WORKFLOW_NODE_SPECS, WORKFLOW_PORT_SPECS } from '../../project/workflowCatalog'
 import {
   getDefaultPartsForNode,
@@ -20,6 +19,8 @@ import { WorkflowNodePreview, getTargetKindIcon } from './WorkflowNodePreview'
 import { WorkflowActionBuilder } from './WorkflowActionBuilder'
 import { evaluateNodeRuntimeTelemetry } from './workflowLayoutAndFlow'
 
+export type WorkflowInspectorSubTab = 'preset' | 'targets' | 'actions'
+
 export interface WorkflowSidePanelProps {
   workflow: WorkflowGraph
   project?: Project
@@ -28,7 +29,9 @@ export interface WorkflowSidePanelProps {
   blueprint: WorkflowAiBlueprint
   selectedNode: WorkflowNode | null
   sideMode: 'node' | 'json'
+  inspectorSubTab?: WorkflowInspectorSubTab
   onChangeSideMode: (mode: 'node' | 'json') => void
+  onChangeInspectorSubTab?: (tab: WorkflowInspectorSubTab) => void
   onChangeNodePreset: (nodeId: string, presetId: string) => void
   onUpdateNodeDirective: (nodeId: string, directive: string) => void
   onUpdateNodeParams: (nodeId: string, patch: Partial<WorkflowNodeParams>) => void
@@ -52,7 +55,9 @@ export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
   blueprint,
   selectedNode,
   sideMode,
+  inspectorSubTab: externalSubTab,
   onChangeSideMode,
+  onChangeInspectorSubTab,
   onChangeNodePreset,
   onUpdateNodeDirective,
   onUpdateNodeParams,
@@ -62,9 +67,17 @@ export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
   onShowToast,
   onPreviewNode
 }) => {
+  const [localSubTab, setLocalSubTab] = useState<WorkflowInspectorSubTab>('preset')
+  const activeSubTab = externalSubTab ?? localSubTab
+  const setSubTab = (tab: WorkflowInspectorSubTab) => {
+    setLocalSubTab(tab)
+    onChangeInspectorSubTab?.(tab)
+  }
+
   const [jsonSubTab, setJsonSubTab] = useState<'raw' | 'agents'>('raw')
   const [jsonText, setJsonText] = useState('')
   const [jsonError, setJsonError] = useState<string | null>(null)
+
   const activeNodeIds = useMemo(
     () => new Set(blueprint.agents.map((a) => a.nodeId)),
     [blueprint.agents]
@@ -159,6 +172,7 @@ export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
   }
 
   const nodeSpec = selectedNode ? WORKFLOW_NODE_SPECS[selectedNode.type] : null
+  const customRuleCount = (selectedNode?.params?.customRules ?? []).filter((r) => r.enabled).length
 
   return (
     <aside className="wf-side-panel" data-mcp-region="workflow_inspector">
@@ -187,6 +201,7 @@ export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
         <div className="wf-side-body">
           {selectedNode && nodeSpec && binding ? (
             <>
+              {/* 1. Thanh tiêu đề Khối đang chọn */}
               <div className="wf-inspector-card compact">
                 <div className="wf-inspector-title-row">
                   <span className="wf-node-icon" style={{ background: nodeSpec.color }}>
@@ -209,304 +224,351 @@ export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
                 </div>
               </div>
 
-              {/* MỤC 1: GẮN LAYER / CỤM 2.5D COMPOSITE TRONG CẢNH */}
-              <div className="wf-binder-section">
-                <div className="wf-binder-head">
-                  <span className="wf-field-label">
-                    🎯 Gắn Layer / Cụm 2.5D ({binding.boundTargets.length})
-                  </span>
-                  <div className="wf-binder-mode-tabs">
-                    <button
-                      type="button"
-                      className={`wf-binder-mode-btn${binding.mode === 'auto' ? ' active' : ''}`}
-                      title="Tự động nhận diện Layer, Cụm 2.5D và Mô hình 3D theo đúng vai trò"
-                      onClick={() =>
-                        onUpdateNodeParams(selectedNode.id, {
-                          targetMode: 'auto',
-                          targetLayerIds: []
-                        })
-                      }
-                    >
-                      🔄 Tự động
-                    </button>
-                    <button
-                      type="button"
-                      className={`wf-binder-mode-btn${binding.mode === 'custom' ? ' active' : ''}`}
-                      title="Chỉ định đích danh Layer hoặc Cụm 2.5D được khối này xử lý"
-                      onClick={() => {
-                        const seedIds = binding.boundTargets
-                          .filter((t) => binding.allBindableTargets.some((b) => b.id === t.id))
-                          .map((t) => t.id)
-                        onUpdateNodeParams(selectedNode.id, {
-                          targetMode: 'custom',
-                          targetLayerIds:
-                            seedIds.length > 0
-                              ? seedIds
-                              : binding.allBindableTargets.slice(0, 2).map((b) => b.id)
-                        })
-                      }}
-                    >
-                      🎯 Chỉ định
-                    </button>
-                  </div>
-                </div>
+              {/* 2. Thanh 3 Tab con gọn gàng (Không cần cuộn dài rối mắt) */}
+              <div className="wf-inspector-subtabs" role="tablist">
+                <button
+                  id="wf-subtab-preset"
+                  type="button"
+                  role="tab"
+                  aria-selected={activeSubTab === 'preset'}
+                  className={`wf-inspector-subtab${activeSubTab === 'preset' ? ' active' : ''}`}
+                  onClick={() => setSubTab('preset')}
+                  title="Chọn kịch bản xử lý mẫu, thanh trượt cường độ và cổng kết nối"
+                >
+                  ⚙️ Chế độ
+                </button>
+                <button
+                  id="wf-subtab-targets"
+                  type="button"
+                  role="tab"
+                  aria-selected={activeSubTab === 'targets'}
+                  className={`wf-inspector-subtab${activeSubTab === 'targets' ? ' active' : ''}`}
+                  onClick={() => setSubTab('targets')}
+                  title="Gán Layer 2.5D và chọn bộ phận con chịu tác động"
+                >
+                  🎯 Layer ({binding.boundTargets.length})
+                </button>
+                <button
+                  id="wf-subtab-actions"
+                  type="button"
+                  role="tab"
+                  aria-selected={activeSubTab === 'actions'}
+                  className={`wf-inspector-subtab${activeSubTab === 'actions' ? ' active' : ''}`}
+                  onClick={() => setSubTab('actions')}
+                  title="Thêm hiệu ứng chuyển động & ánh sáng 2.5D mới cho Layer bất kỳ"
+                >
+                  ➕ Thêm FX ({customRuleCount})
+                </button>
+              </div>
 
-                {binding.allBindableTargets.length > 0 ? (
-                  <div className="wf-target-checklist">
-                    {binding.allBindableTargets.map((item) => {
-                      const isBound = binding.boundTargets.some((b) => b.id === item.id)
+              {/* TAB 1: CHẾ ĐỘ XỬ LÝ (PRESET CARDS 1 CHẠM - KHÔNG COMBOBOX), CƯỜNG ĐỘ & CỔNG */}
+              {activeSubTab === 'preset' && (
+                <div className="wf-subtab-pane">
+                  <div className="wf-preset-cards-list" role="radiogroup" aria-label="Chọn kịch bản xử lý mẫu">
+                    {nodeSpec.presets.map((p) => {
+                      const isCurrent = selectedNode.preset === p.id
                       return (
                         <button
-                          key={item.id}
+                          key={p.id}
                           type="button"
-                          className={`wf-target-row${isBound ? ' bound' : ''}`}
-                          onClick={() => handleToggleTargetLayer(item.id)}
-                          title={`Bấm để ${isBound ? 'bỏ gắn' : 'gắn'} "${item.name}" vào khối ${nodeSpec.shortTitle}`}
+                          className={`wf-preset-option-card${isCurrent ? ' active' : ''}`}
+                          style={{ ['--node-c' as string]: nodeSpec.color }}
+                          onClick={() => onChangeNodePreset(selectedNode.id, p.id)}
                         >
-                          <span className={`wf-target-check${isBound ? ' on' : ''}`}>
-                            {isBound ? '✓' : ''}
-                          </span>
-                          <span className="wf-target-kind-ic">{getTargetKindIcon(item.kind)}</span>
-                          <div className="wf-target-info">
-                            <div className="wf-target-name-line">
-                              <strong>{item.name}</strong>
-                              <span className="wf-target-role-tag">{item.roleLabel}</span>
-                            </div>
-                            {item.partNames && item.partNames.length > 0 && (
-                              <div className="wf-target-subparts-hint">
-                                Bộ phận: {item.partNames.join(' · ')}
-                              </div>
-                            )}
+                          <div className="wf-preset-option-head">
+                            <span className={`wf-preset-radio${isCurrent ? ' on' : ''}`}>
+                              {isCurrent ? '●' : '○'}
+                            </span>
+                            <strong>{p.label}</strong>
                           </div>
+                          <div className="wf-preset-option-desc">{p.summary}</div>
                         </button>
                       )
                     })}
                   </div>
-                ) : (
-                  <div className="wf-target-empty">
-                    {binding.boundTargets.map((t) => (
-                      <span key={t.id} className="wf-target-chip">
-                        {getTargetKindIcon(t.kind)} {t.name} ({t.roleLabel})
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
 
-              {/* MỤC 1.5: THÊM CHUYỂN ĐỘNG / TÍNH NĂNG MỚI CHO LAYER */}
-              <WorkflowActionBuilder
-                node={selectedNode}
-                bindableTargets={binding.allBindableTargets}
-                onUpdateNodeParams={onUpdateNodeParams}
-                onShowToast={onShowToast}
-              />
-
-              {/* MỤC 2: BỘ PHẬN 2.5D / KHỚP XƯƠNG / KÊNH TÁC ĐỘNG */}
-              <div className="wf-binder-section">
-                <div className="wf-binder-head">
-                  <span className="wf-field-label">
-                    🦴 Bộ phận 2.5D Tác động ({binding.activeParts.length}/{binding.subParts.length})
-                  </span>
-                  <button
-                    type="button"
-                    className="wf-binder-mode-btn"
-                    title="Khôi phục các bộ phận mặc định của Preset hiện tại"
-                    onClick={() =>
-                      onUpdateNodeParams(selectedNode.id, {
-                        targetParts: getDefaultPartsForNode(selectedNode)
-                      })
-                    }
-                  >
-                    ↺ Mặc định
-                  </button>
-                </div>
-
-                <div className="wf-subparts-grid">
-                  {binding.subParts.map((part) => (
-                    <button
-                      key={part.id}
-                      type="button"
-                      className={`wf-subpart-btn${part.active ? ' active' : ''}`}
-                      title={part.description}
-                      onClick={() => handleToggleSubPart(part.id)}
-                    >
-                      <span className="wf-subpart-check">{part.active ? '✓' : '+'}</span>
-                      <span className="wf-subpart-ic">{part.icon}</span>
-                      <span className="wf-subpart-text">{part.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Mô phỏng trực quan chức năng & Nút xem thử trên Cảnh 3D */}
-              <WorkflowNodePreview
-                node={selectedNode}
-                project={project}
-                mode="inspector"
-                runtimeTelemetry={evaluateNodeRuntimeTelemetry(
-                  selectedNode,
-                  project,
-                  time,
-                  playing,
-                  blueprint.agents.some((a) => a.nodeId === selectedNode.id),
-                  blueprint.agents.find((a) => a.nodeId === selectedNode.id)?.step,
-                  Math.max(1, blueprint.agents.length), workflow, activeNodeIds
-                )}
-                onPreviewInViewport={onPreviewNode}
-              />
-
-              {/* Preset & Intensity */}
-              <div className="wf-field-group">
-                <label className="wf-field-label">Kịch bản xử lý mẫu (Preset)</label>
-                <CustomSelect
-                  size="sm"
-                  value={selectedNode.preset}
-                  options={nodeSpec.presets.map((p) => ({ value: p.id, label: p.label }))}
-                  dropdownWidth={290}
-                  onChange={(v) => onChangeNodePreset(selectedNode.id, String(v))}
-                />
-              </div>
-
-              <div className="wf-field-row">
-                <label className="wf-field-label">
-                  Cường độ tác động:{' '}
-                  <strong>{((selectedNode.params?.intensity ?? 1.0) * 100).toFixed(0)}%</strong>
-                </label>
-                <input
-                  type="range"
-                  className="wf-range"
-                  min={0.3}
-                  max={2.0}
-                  step={0.05}
-                  value={selectedNode.params?.intensity ?? 1.0}
-                  onChange={(e) =>
-                    onUpdateNodeParams(selectedNode.id, { intensity: parseFloat(e.target.value) })
-                  }
-                />
-              </div>
-
-              {/* Quick contextual toggles */}
-              <div className="wf-quick-switches">
-                {selectedNode.type === 'scene_shot' && (
-                  <>
-                    <label className="wf-check-pill">
+                  {/* Thanh trượt Cường độ + Công tắc nhanh trên cùng 1 khung gọn */}
+                  <div className="wf-compact-controls-box">
+                    <div className="wf-field-row">
+                      <label className="wf-field-label">
+                        Cường độ tác động:{' '}
+                        <strong>{((selectedNode.params?.intensity ?? 1.0) * 100).toFixed(0)}%</strong>
+                      </label>
                       <input
-                        type="checkbox"
-                        checked={selectedNode.params?.autoArrangeZ !== false}
+                        type="range"
+                        className="wf-range"
+                        min={0.3}
+                        max={2.0}
+                        step={0.05}
+                        value={selectedNode.params?.intensity ?? 1.0}
                         onChange={(e) =>
-                          onUpdateNodeParams(selectedNode.id, { autoArrangeZ: e.target.checked })
+                          onUpdateNodeParams(selectedNode.id, { intensity: parseFloat(e.target.value) })
                         }
                       />
-                      <span>Tự giãn tầng Z</span>
-                    </label>
-                    <label className="wf-check-pill">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(selectedNode.params?.ensureGround)}
-                        onChange={(e) =>
-                          onUpdateNodeParams(selectedNode.id, { ensureGround: e.target.checked })
-                        }
-                      />
-                      <span>Tạo mặt đất 3D</span>
-                    </label>
-                  </>
-                )}
-                {selectedNode.type === 'physics_fx' && (
-                  <label className="wf-check-pill">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(selectedNode.params?.spawnParticles)}
-                      onChange={(e) =>
-                        onUpdateNodeParams(selectedNode.id, { spawnParticles: e.target.checked })
-                      }
-                    />
-                    <span>Tự thêm lớp Hạt FX</span>
-                  </label>
-                )}
-                {selectedNode.type === 'camera_director' && (
-                  <label className="wf-check-pill">
-                    <input
-                      type="checkbox"
-                      checked={selectedNode.params?.enableDof !== false}
-                      onChange={(e) =>
-                        onUpdateNodeParams(selectedNode.id, { enableDof: e.target.checked })
-                      }
-                    />
-                    <span>Xóa phông chiều sâu (DOF)</span>
-                  </label>
-                )}
-                {selectedNode.type === 'audio_lipsync' && (
-                  <label className="wf-check-pill">
-                    <input
-                      type="checkbox"
-                      checked={selectedNode.params?.autoLipSync !== false}
-                      onChange={(e) =>
-                        onUpdateNodeParams(selectedNode.id, { autoLipSync: e.target.checked })
-                      }
-                    />
-                    <span>Tự động Lip-Sync miệng</span>
-                  </label>
-                )}
-              </div>
+                    </div>
 
-              {/* AI Directive */}
-              <div className="wf-field-group">
-                <label className="wf-field-label">Chỉ dẫn logic cho AI / MCP (aiDirective)</label>
-                <textarea
-                  className="wf-directive-input"
-                  rows={2}
-                  value={selectedNode.aiDirective}
-                  placeholder="Mô tả ngắn gọn yêu cầu cho Tác nhân AI ở khâu này..."
-                  onChange={(e) => onUpdateNodeDirective(selectedNode.id, e.target.value)}
-                />
-              </div>
-
-              {/* Quick Port Wiring Matrix */}
-              {nodeSpec.outputs.length > 0 && (
-                <div className="wf-field-group">
-                  <label className="wf-field-label">Kết nối Cổng đầu ra (Quick Port Links)</label>
-                  <div className="wf-port-links-list">
-                    {nodeSpec.outputs.map((outPort) => {
-                      const pSpec = WORKFLOW_PORT_SPECS[outPort]
-                      const compatibleTargets = workflow.nodes.filter(
-                        (t) =>
-                          t.id !== selectedNode.id &&
-                          WORKFLOW_NODE_SPECS[t.type]?.inputs.includes(outPort)
-                      )
-                      return compatibleTargets.map((target) => {
-                        const existingEdge = workflow.edges.find(
-                          (e) =>
-                            e.fromNode === selectedNode.id &&
-                            e.fromPort === outPort &&
-                            e.toNode === target.id &&
-                            e.toPort === outPort
-                        )
-                        return (
-                          <button
-                            key={`${outPort}-${target.id}`}
-                            type="button"
-                            className={`wf-quick-link-btn${existingEdge ? ' connected' : ''}`}
-                            onClick={() => {
-                              if (existingEdge) onDisconnectEdge(existingEdge.id)
-                              else onConnectPorts(selectedNode.id, outPort, target.id, outPort)
-                            }}
-                          >
-                            <span
-                              className="wf-port-dot"
-                              style={{ background: pSpec?.color ?? '#38bdf8' }}
+                    <div className="wf-quick-switches">
+                      {selectedNode.type === 'scene_shot' && (
+                        <>
+                          <label className="wf-check-pill">
+                            <input
+                              type="checkbox"
+                              checked={selectedNode.params?.autoArrangeZ !== false}
+                              onChange={(e) =>
+                                onUpdateNodeParams(selectedNode.id, { autoArrangeZ: e.target.checked })
+                              }
                             />
-                            <span className="wf-quick-link-text">
-                              {pSpec?.shortLabel} ➔{' '}
-                              <strong>{WORKFLOW_NODE_SPECS[target.type]?.shortTitle}</strong>
-                            </span>
-                            <span className="wf-quick-link-state">
-                              {existingEdge ? 'Đang nối ✓' : '+ Nối cổng'}
-                            </span>
-                          </button>
-                        )
-                      })
-                    })}
+                            <span>Tự giãn tầng Z</span>
+                          </label>
+                          <label className="wf-check-pill">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(selectedNode.params?.ensureGround)}
+                              onChange={(e) =>
+                                onUpdateNodeParams(selectedNode.id, { ensureGround: e.target.checked })
+                              }
+                            />
+                            <span>Tạo mặt đất 3D</span>
+                          </label>
+                        </>
+                      )}
+                      {selectedNode.type === 'physics_fx' && (
+                        <label className="wf-check-pill">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(selectedNode.params?.spawnParticles)}
+                            onChange={(e) =>
+                              onUpdateNodeParams(selectedNode.id, { spawnParticles: e.target.checked })
+                            }
+                          />
+                          <span>Tự thêm lớp Hạt FX</span>
+                        </label>
+                      )}
+                      {selectedNode.type === 'camera_director' && (
+                        <label className="wf-check-pill">
+                          <input
+                            type="checkbox"
+                            checked={selectedNode.params?.enableDof !== false}
+                            onChange={(e) =>
+                              onUpdateNodeParams(selectedNode.id, { enableDof: e.target.checked })
+                            }
+                          />
+                          <span>Xóa phông chiều sâu (DOF)</span>
+                        </label>
+                      )}
+                      {selectedNode.type === 'audio_lipsync' && (
+                        <label className="wf-check-pill">
+                          <input
+                            type="checkbox"
+                            checked={selectedNode.params?.autoLipSync !== false}
+                            onChange={(e) =>
+                              onUpdateNodeParams(selectedNode.id, { autoLipSync: e.target.checked })
+                            }
+                          />
+                          <span>Tự động Lip-Sync miệng</span>
+                        </label>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Quick Port Wiring Matrix */}
+                  {nodeSpec.outputs.length > 0 && (
+                    <div className="wf-field-group">
+                      <label className="wf-field-label">Kết nối Cổng đầu ra (Bấm 1 chạm để Nối / Ngắt)</label>
+                      <div className="wf-port-links-list">
+                        {nodeSpec.outputs.map((outPort) => {
+                          const pSpec = WORKFLOW_PORT_SPECS[outPort]
+                          const compatibleTargets = workflow.nodes.filter(
+                            (t) =>
+                              t.id !== selectedNode.id &&
+                              WORKFLOW_NODE_SPECS[t.type]?.inputs.includes(outPort)
+                          )
+                          return compatibleTargets.map((target) => {
+                            const existingEdge = workflow.edges.find(
+                              (e) =>
+                                e.fromNode === selectedNode.id &&
+                                e.fromPort === outPort &&
+                                e.toNode === target.id &&
+                                e.toPort === outPort
+                            )
+                            return (
+                              <button
+                                key={`${outPort}-${target.id}`}
+                                type="button"
+                                className={`wf-quick-link-btn${existingEdge ? ' connected' : ''}`}
+                                onClick={() => {
+                                  if (existingEdge) onDisconnectEdge(existingEdge.id)
+                                  else onConnectPorts(selectedNode.id, outPort, target.id, outPort)
+                                }}
+                              >
+                                <span
+                                  className="wf-port-dot"
+                                  style={{ background: pSpec?.color ?? '#38bdf8' }}
+                                />
+                                <span className="wf-quick-link-text">
+                                  {pSpec?.shortLabel} ➔{' '}
+                                  <strong>{WORKFLOW_NODE_SPECS[target.type]?.shortTitle}</strong>
+                                </span>
+                                <span className="wf-quick-link-state">
+                                  {existingEdge ? 'Đang nối ✓' : '+ Nối cổng'}
+                                </span>
+                              </button>
+                            )
+                          })
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Mô phỏng trực quan chức năng */}
+                  <WorkflowNodePreview
+                    node={selectedNode}
+                    project={project}
+                    mode="inspector"
+                    runtimeTelemetry={evaluateNodeRuntimeTelemetry(
+                      selectedNode,
+                      project,
+                      time,
+                      playing,
+                      activeNodeIds.has(selectedNode.id),
+                      blueprint.agents.find((a) => a.nodeId === selectedNode.id)?.step,
+                      Math.max(1, blueprint.agents.length),
+                      workflow,
+                      activeNodeIds
+                    )}
+                    onPreviewInViewport={onPreviewNode}
+                  />
+                </div>
+              )}
+
+              {/* TAB 2: GẮN LAYER / CỤM 2.5D & BỘ PHẬN TÁC ĐỘNG */}
+              {activeSubTab === 'targets' && (
+                <div className="wf-subtab-pane" data-mcp-region="workflow_target_binder">
+                  <div className="wf-binder-section">
+                    <div className="wf-binder-head">
+                      <span className="wf-field-label">
+                        🎯 Layer / Cụm 2.5D ({binding.boundTargets.length})
+                      </span>
+                      <div className="wf-binder-mode-tabs">
+                        <button
+                          type="button"
+                          className={`wf-binder-mode-btn${binding.mode === 'auto' ? ' active' : ''}`}
+                          title="Tự động nhận diện Layer, Cụm 2.5D và Mô hình 3D theo đúng vai trò"
+                          onClick={() =>
+                            onUpdateNodeParams(selectedNode.id, {
+                              targetMode: 'auto',
+                              targetLayerIds: []
+                            })
+                          }
+                        >
+                          🔄 Tự động
+                        </button>
+                        <button
+                          type="button"
+                          className={`wf-binder-mode-btn${binding.mode === 'custom' ? ' active' : ''}`}
+                          title="Chỉ định đích danh Layer hoặc Cụm 2.5D được khối này xử lý"
+                          onClick={() => {
+                            const seedIds = binding.boundTargets
+                              .filter((t) => binding.allBindableTargets.some((b) => b.id === t.id))
+                              .map((t) => t.id)
+                            onUpdateNodeParams(selectedNode.id, {
+                              targetMode: 'custom',
+                              targetLayerIds:
+                                seedIds.length > 0
+                                  ? seedIds
+                                  : binding.allBindableTargets.slice(0, 2).map((b) => b.id)
+                            })
+                          }}
+                        >
+                          🎯 Chỉ định
+                        </button>
+                      </div>
+                    </div>
+
+                    {binding.allBindableTargets.length > 0 ? (
+                      <div className="wf-target-checklist">
+                        {binding.allBindableTargets.map((item) => {
+                          const isBound = binding.boundTargets.some((b) => b.id === item.id)
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              className={`wf-target-row${isBound ? ' bound' : ''}`}
+                              onClick={() => handleToggleTargetLayer(item.id)}
+                              title={`Bấm để ${isBound ? 'bỏ gắn' : 'gắn'} "${item.name}" vào khối ${nodeSpec.shortTitle}`}
+                            >
+                              <span className={`wf-target-check${isBound ? ' on' : ''}`}>
+                                {isBound ? '✓' : ''}
+                              </span>
+                              <span className="wf-target-kind-ic">{getTargetKindIcon(item.kind)}</span>
+                              <div className="wf-target-info">
+                                <div className="wf-target-name-line">
+                                  <strong>{item.name}</strong>
+                                  <span className="wf-target-role-tag">{item.roleLabel}</span>
+                                </div>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="wf-target-empty">
+                        {binding.boundTargets.map((t) => (
+                          <span key={t.id} className="wf-target-chip">
+                            {getTargetKindIcon(t.kind)} {t.name} ({t.roleLabel})
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="wf-binder-section">
+                    <div className="wf-binder-head">
+                      <span className="wf-field-label">
+                        🦴 Bộ phận 2.5D ({binding.activeParts.length}/{binding.subParts.length})
+                      </span>
+                      <button
+                        type="button"
+                        className="wf-binder-mode-btn"
+                        title="Khôi phục các bộ phận mặc định của Preset hiện tại"
+                        onClick={() =>
+                          onUpdateNodeParams(selectedNode.id, {
+                            targetParts: getDefaultPartsForNode(selectedNode)
+                          })
+                        }
+                      >
+                        ↺ Mặc định
+                      </button>
+                    </div>
+
+                    <div className="wf-subparts-grid">
+                      {binding.subParts.map((part) => (
+                        <button
+                          key={part.id}
+                          type="button"
+                          className={`wf-subpart-btn${part.active ? ' active' : ''}`}
+                          title={part.description}
+                          onClick={() => handleToggleSubPart(part.id)}
+                        >
+                          <span className="wf-subpart-check">{part.active ? '✓' : '+'}</span>
+                          <span className="wf-subpart-ic">{part.icon}</span>
+                          <span className="wf-subpart-text">{part.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: THÊM CHUYỂN ĐỘNG / TÍNH NĂNG MỚI (1 CHẠM - KHÔNG COMBOBOX) */}
+              {activeSubTab === 'actions' && (
+                <div className="wf-subtab-pane">
+                  <WorkflowActionBuilder
+                    node={selectedNode}
+                    bindableTargets={binding.allBindableTargets}
+                    onUpdateNodeParams={onUpdateNodeParams}
+                    onShowToast={onShowToast}
+                  />
                 </div>
               )}
             </>

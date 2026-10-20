@@ -94,6 +94,8 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   workflow_canvas: region('workflow_canvas', '.wf-canvas-viewport'),
   workflow_canvas_hud: region('workflow_canvas_hud', '.wf-canvas-hud'),
   workflow_inspector: region('workflow_inspector', '.wf-side-panel'),
+  workflow_target_binder: region('workflow_target_binder', '.wf-tab-pane'),
+  workflow_action_builder: region('workflow_action_builder', '.wf-action-builder-box'),
   workflow_preview: region('workflow_preview', '.wf-inspector-preview-box'),
   workflow_json_panel: region('workflow_json_panel', '.wf-json-panel'),
 

@@ -75,7 +75,7 @@ export const SCENE_TOOLS = [
         'viewer', 'viewer_canvas', 'viewport', 'camera_frame', 'viewer_hud', 'viewer_tools', 'animate_camera_stage', 'animate_camera_toolbar', 'animate_camera_route', 'animate_camera_inspector',
         'inspector', 'inspector_tabs', 'inspector_body', 'inspector_composite', 'inspector_physics', 'inspector_virtual_light', 'composite_swap', 'effect_stack', 'effect_editor', 'timeline_effects', 'fx_presets', 'motion', 'motion_preview', 'motion_parameters', 'motion_timing',
         'timeline', 'timeline_toolbar', 'timeline_tabs', 'timeline_ruler', 'timeline_tracks',
-        'timeline_workflow', 'workflow_toolbar', 'workflow_canvas', 'workflow_canvas_hud', 'workflow_inspector', 'workflow_preview', 'workflow_json_panel',
+        'timeline_workflow', 'workflow_toolbar', 'workflow_canvas', 'workflow_canvas_hud', 'workflow_inspector', 'workflow_target_binder', 'workflow_action_builder', 'workflow_preview', 'workflow_json_panel',
         'toolbar', 'studio_menu', 'mcp_chip', 'responsive_dock',
         'dialog',
         'assembly_3d', 'assembly_sidebar', 'assembly_viewport', 'assembly_inspector', 'assembly_header', 'assembly_footer', 'assembly_hud',

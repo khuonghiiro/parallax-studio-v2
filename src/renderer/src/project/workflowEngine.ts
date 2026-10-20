@@ -245,7 +245,14 @@ export function compileWorkflowBlueprint(workflow: WorkflowGraph, project?: Proj
   const agents: WorkflowAiAgentStep[] = activeNodes.map((node, idx) => {
     const spec = WORKFLOW_NODE_SPECS[node.type]
     const presetSpec = spec?.presets.find((p) => p.id === node.preset) ?? spec?.presets[0]
-    const binding = resolveNodeTargetBinding(node, project)
+    const rawBinding = resolveNodeTargetBinding(node, project)
+    const targetShotFilter =
+      workflow.targetShotId && workflow.targetShotId !== 'all' ? workflow.targetShotId : null
+    const binding = {
+      ...rawBinding,
+      matchesLayer: (l: Layer) =>
+        rawBinding.matchesLayer(l) && (!targetShotFilter || !l.shotId || l.shotId === targetShotFilter)
+    }
 
     const inputsFrom = workflow.edges
       .filter((e) => e.toNode === node.id && activeSet.has(e.fromNode))
@@ -417,7 +424,14 @@ export function applyWorkflowToProject(
 
   for (const node of activeNodes) {
     const intensity = Math.max(0.2, Math.min(2.5, node.params?.intensity ?? 1.0))
-    const binding = resolveNodeTargetBinding(node, project)
+    const rawBinding = resolveNodeTargetBinding(node, project)
+    const targetShotFilter =
+      workflow.targetShotId && workflow.targetShotId !== 'all' ? workflow.targetShotId : null
+    const binding = {
+      ...rawBinding,
+      matchesLayer: (l: Layer) =>
+        rawBinding.matchesLayer(l) && (!targetShotFilter || !l.shotId || l.shotId === targetShotFilter)
+    }
     const activePartIds = new Set(binding.activeParts.map((p) => p.id))
     const partNamesSummary = binding.activeParts.map((p) => p.shortLabel).slice(0, 3).join(', ')
 

@@ -6,7 +6,6 @@ import type {
   WorkflowNode,
   WorkflowNodeParams
 } from '@shared/types'
-import { CustomSelect } from '../controls/CustomSelect'
 import {
   WORKFLOW_CUSTOM_ACTION_CATALOG,
   getCustomActionSpec
@@ -43,31 +42,6 @@ export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
     [actionKind]
   )
   const customRules = node.params?.customRules ?? []
-
-  const actionOptions = useMemo(
-    () =>
-      WORKFLOW_CUSTOM_ACTION_CATALOG.map((item) => ({
-        value: item.kind,
-        label: `${item.icon} ${item.label}`
-      })),
-    []
-  )
-
-  const targetOptions = useMemo(() => {
-    const base = [
-      {
-        value: 'all',
-        label: '✨ Tất cả Layer gắn với khối này'
-      }
-    ]
-    for (const t of bindableTargets) {
-      base.push({
-        value: t.id,
-        label: `${getTargetKindIcon(t.kind)} ${t.name} (${t.roleLabel})`
-      })
-    }
-    return base
-  }, [bindableTargets])
 
   const handleSelectAction = (nextKind: WorkflowCustomActionKind) => {
     setActionKind(nextKind)
@@ -110,10 +84,13 @@ export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
   }
 
   return (
-    <div className="wf-binder-section wf-action-builder">
+    <div
+      className="wf-binder-section wf-action-builder"
+      data-mcp-region="workflow_action_builder"
+    >
       <div className="wf-binder-head">
         <span className="wf-field-label">
-          ➕ Thêm Chuyển động / Tính năng Mới ({customRules.length})
+          1. Chọn hiệu ứng chuyển động / 2.5D FX (1 chạm)
         </span>
         {customRules.length > 0 && (
           <button
@@ -122,71 +99,85 @@ export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
             title="Xóa toàn bộ lệnh chuyển động riêng đã thêm vào khối này"
             onClick={() => onUpdateNodeParams(node.id, { customRules: [] })}
           >
-            ✕ Xóa hết
+            ✕ Xóa hết ({customRules.length})
           </button>
         )}
       </div>
 
-      <div className="wf-action-builder-form">
-        <div className="wf-action-row">
-          <span className="wf-action-lbl">Chức năng:</span>
-          <div className="wf-action-ctrl">
-            <CustomSelect
-              size="sm"
-              value={actionKind}
-              options={actionOptions}
-              dropdownWidth={310}
-              onChange={(v) => handleSelectAction(v as WorkflowCustomActionKind)}
-              title="Chọn hiệu ứng chuyển động hoặc tính năng 2.5D muốn gắn thêm"
-            />
-          </div>
-        </div>
+      {/* Lưới Nút Bấm Trực Tiếp (Không dùng Combobox) */}
+      <div className="wf-action-chip-grid" role="radiogroup" aria-label="Chọn chức năng chuyển động">
+        {WORKFLOW_CUSTOM_ACTION_CATALOG.map((item) => {
+          const active = item.kind === actionKind
+          return (
+            <button
+              key={item.kind}
+              type="button"
+              className={`wf-action-chip-btn${active ? ' active' : ''}`}
+              title={`${item.label}\n${item.description}`}
+              onClick={() => handleSelectAction(item.kind)}
+            >
+              <span className="wf-action-chip-ic">{item.icon}</span>
+              <span className="wf-action-chip-txt">{item.shortLabel}</span>
+            </button>
+          )
+        })}
+      </div>
 
-        <div className="wf-action-row">
-          <span className="wf-action-lbl">Áp dụng lên:</span>
-          <div className="wf-action-ctrl">
-            <CustomSelect
-              size="sm"
-              value={targetId}
-              options={targetOptions}
-              dropdownWidth={310}
-              onChange={(v) => setTargetId(String(v))}
-              title="Chọn Layer hoặc Cụm 2.5D nhận chuyển động này"
-            />
-          </div>
-        </div>
+      {/* Chọn đối tượng Layer bằng Pill trực tiếp */}
+      <div className="wf-action-section-lbl">2. Áp dụng lên đối tượng:</div>
+      <div className="wf-action-target-pills" role="radiogroup" aria-label="Chọn Layer áp dụng">
+        <button
+          type="button"
+          className={`wf-target-select-pill${targetId === 'all' ? ' active' : ''}`}
+          onClick={() => setTargetId('all')}
+          title="Áp dụng cho tất cả Layer gắn với khối này"
+        >
+          ✨ Tất cả Layer ({bindableTargets.length})
+        </button>
+        {bindableTargets.slice(0, 8).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className={`wf-target-select-pill${targetId === t.id ? ' active' : ''}`}
+            onClick={() => setTargetId(t.id)}
+            title={`${t.name} (${t.roleLabel})`}
+          >
+            <span>{getTargetKindIcon(t.kind)}</span>
+            <span className="wf-pill-trunc">{t.name}</span>
+          </button>
+        ))}
+      </div>
 
-        <div className="wf-action-sliders">
-          <label className="wf-action-slider-col" title="Tốc độ dao động hoặc di chuyển">
-            <span>
-              Tốc độ: <strong>{speed.toFixed(2)}x</strong>
-            </span>
-            <input
-              type="range"
-              className="wf-range"
-              min={0.2}
-              max={2.5}
-              step={0.05}
-              value={speed}
-              onChange={(e) => setSpeed(parseFloat(e.target.value))}
-            />
-          </label>
-          <label className="wf-action-slider-col" title="Biên độ chuyển động hoặc cường độ hiệu ứng">
-            <span>
-              Biên độ: <strong>{amount.toFixed(2)}</strong>
-            </span>
-            <input
-              type="range"
-              className="wf-range"
-              min={0.2}
-              max={2.0}
-              step={0.05}
-              value={amount}
-              onChange={(e) => setAmount(parseFloat(e.target.value))}
-            />
-          </label>
-        </div>
-
+      {/* Thanh trượt Tốc độ & Biên độ + Nút Thêm */}
+      <div className="wf-action-bottom-bar">
+        <label className="wf-action-slider-col" title="Tốc độ dao động hoặc di chuyển">
+          <span>
+            Tốc độ: <strong>{speed.toFixed(2)}x</strong>
+          </span>
+          <input
+            type="range"
+            className="wf-range"
+            min={0.2}
+            max={2.5}
+            step={0.05}
+            value={speed}
+            onChange={(e) => setSpeed(parseFloat(e.target.value))}
+          />
+        </label>
+        <label className="wf-action-slider-col" title="Biên độ chuyển động hoặc cường độ hiệu ứng">
+          <span>
+            Biên độ: <strong>{amount.toFixed(2)}</strong>
+          </span>
+          <input
+            type="range"
+            className="wf-range"
+            min={0.2}
+            max={2.0}
+            step={0.05}
+            value={amount}
+            onChange={(e) => setAmount(parseFloat(e.target.value))}
+          />
+        </label>
         <button
           id="wf-btn-add-custom-action"
           type="button"
@@ -195,7 +186,7 @@ export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
           title={actionSpec.description}
         >
           <span>
-            {actionSpec.icon} + Gắn &quot;{actionSpec.shortLabel}&quot; vào Khối
+            {actionSpec.icon} + Gắn &quot;{actionSpec.shortLabel}&quot;
           </span>
         </button>
       </div>

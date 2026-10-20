@@ -8,7 +8,6 @@ import type {
 } from '@shared/types'
 import { useEditor } from '../../store/editor'
 import { useToast } from '../../actions'
-import { CustomSelect } from '../controls/CustomSelect'
 import {
   DEFAULT_NODE_POSITIONS,
   WORKFLOW_NODE_SPECS,
@@ -28,15 +27,24 @@ import {
 import { IconPause, IconPlay, IconPlus, IconSparkles } from '../icons'
 import { TimelineModeTabs } from './TimelineModeTabs'
 import { WorkflowCanvas } from './WorkflowCanvas'
-import { WorkflowSidePanel } from './WorkflowSidePanel'
+import { WorkflowSidePanel, type WorkflowInspectorSubTab } from './WorkflowSidePanel'
 import { IconWfAutoWire, IconWfJsonCode } from './workflowIcons'
+
+const TEMPLATE_SHORT_PILLS: Record<string, string> = {
+  cinematic_parallax_intro: 'Điện ảnh',
+  character_action_physics: 'Hành động',
+  cave_virtual_light_explore: 'Hang động',
+  story_dialogue_lipsync: 'Hội thoại',
+  arch3d_flythrough: 'Kiến trúc 3D'
+}
 
 export const WorkflowStudioPanel: React.FC = () => {
   const project = useEditor((s) => s.project)
   const playing = useEditor((s) => s.playing)
-  const liveTime = useEditor((s) =>
-    s.playing ? Math.floor(s.time * 8) / 8 : Math.round(s.time * 10) / 10
-  )
+  const liveTime = useEditor((s) => {
+    const raw = Number.isFinite(s.time) ? s.time : 0
+    return s.playing ? Math.floor(raw * 8) / 8 : Math.round(raw * 10) / 10
+  })
   const setPlaying = useEditor((s) => s.setPlaying)
   const showToast = useToast((s) => s.show)
 
@@ -54,6 +62,7 @@ export const WorkflowStudioPanel: React.FC = () => {
     () => workflow.nodes[0]?.id ?? null
   )
   const [sideMode, setSideMode] = useState<'node' | 'json'>('node')
+  const [inspectorSubTab, setInspectorSubTab] = useState<WorkflowInspectorSubTab>('preset')
 
   const activeNodeIds = useMemo(() => new Set(activeNodes.map((n) => n.id)), [activeNodes])
   const executionStepMap = useMemo(() => {
@@ -86,11 +95,37 @@ export const WorkflowStudioPanel: React.FC = () => {
   const handleSelectTemplate = useCallback(
     (presetId: string) => {
       const next = getWorkflowFromTemplate(presetId)
+      next.targetShotId = workflow.targetShotId ?? 'all'
       commitWorkflow(next, undefined, true)
       setSelectedNodeId(next.nodes[0]?.id ?? null)
-      showToast(`Đã nạp & áp dụng mẫu quy trình: ${next.name}`)
+      showToast(`🎬 Đã áp dụng kịch bản mẫu: ${next.name}`)
     },
-    [commitWorkflow, showToast]
+    [workflow.targetShotId, commitWorkflow, showToast]
+  )
+
+  const handleSelectShotScope = useCallback(
+    (shotId: string) => {
+      const next: WorkflowGraph = {
+        ...workflow,
+        targetShotId: shotId
+      }
+      commitWorkflow(next, 'wf-shot-scope', true)
+      if (shotId === 'all') {
+        showToast(
+          `⇄ Đã đồng bộ & áp dụng quy trình xử lý cho toàn bộ ${project.shots.length} phân cảnh!`
+        )
+      } else {
+        const shotObj = project.shots.find((s) => s.id === shotId)
+        const idx = project.shots.findIndex((s) => s.id === shotId)
+        if (shotObj) {
+          useEditor.getState().setTime(shotObj.start)
+          showToast(
+            `🎯 Đang áp dụng quy trình cho Phân cảnh #${idx + 1}: ${shotObj.name}`
+          )
+        }
+      }
+    },
+    [workflow, project.shots, commitWorkflow, showToast]
   )
 
   const handleAutoWire = useCallback(() => {
@@ -267,11 +302,8 @@ export const WorkflowStudioPanel: React.FC = () => {
       setSelectedNodeId(motionNode.id)
     }
     setSideMode('node')
-    window.setTimeout(() => {
-      const btn = document.getElementById('wf-btn-add-custom-action')
-      btn?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }, 50)
-    showToast('➕ Chọn Chức năng chuyển động / 2.5D FX ở bảng bên phải rồi bấm "+ Gắn vào Khối"!')
+    setInspectorSubTab('actions')
+    showToast('➕ Chọn hiệu ứng ở tab "➕ Chuyển động" bên phải rồi bấm "+ Gắn"!')
   }, [workflow.nodes, showToast])
 
   const handlePreviewNode = useCallback(
@@ -305,18 +337,11 @@ export const WorkflowStudioPanel: React.FC = () => {
     [workflow, showToast]
   )
 
-  const templateOptions = useMemo(
-    () =>
-      WORKFLOW_TEMPLATES.map((t) => ({
-        value: t.id,
-        label: `${t.badge} ${t.name}`
-      })),
-    []
-  )
+  const currentShotScope = workflow.targetShotId ?? 'all'
 
   return (
     <div className="wf-studio-panel" data-mcp-region="timeline_workflow">
-      {/* Workflow Top Toolbar */}
+      {/* Workflow Top Toolbar (Hoàn toàn bằng Nút bấm trực tiếp - Không dùng Combobox) */}
       <div className="timeline-toolbar wf-toolbar" data-mcp-region="workflow_toolbar">
         <TimelineModeTabs
           layerCount={project.layers.length}
@@ -326,18 +351,59 @@ export const WorkflowStudioPanel: React.FC = () => {
 
         <div className="tl-toolbar-divider" />
 
-        {/* Template Selector */}
-        <div className="wf-toolbar-template-group">
-          <span className="wf-toolbar-label">Mẫu quy trình:</span>
-          <CustomSelect
-            size="sm"
-            value={workflow.presetId ?? 'cinematic_parallax_intro'}
-            options={templateOptions}
-            dropdownWidth={310}
-            onChange={(val) => handleSelectTemplate(String(val))}
-            title="Chọn mẫu quy trình tạo video chuyên nghiệp"
-          />
+        {/* Chọn nhanh Kịch bản mẫu bằng Nút Bấm Trực Tiếp (Thay thế Combobox Mẫu quy trình) */}
+        <div
+          className="wf-toolbar-pill-group"
+          role="radiogroup"
+          aria-label="Kịch bản quy trình mẫu"
+        >
+          <span className="wf-toolbar-label">Mẫu:</span>
+          {WORKFLOW_TEMPLATES.map((t) => {
+            const active = (workflow.presetId ?? 'cinematic_parallax_intro') === t.id
+            return (
+              <button
+                key={t.id}
+                type="button"
+                className={`wf-toolbar-pill-btn${active ? ' active' : ''}`}
+                title={`${t.badge} ${t.name}\n${t.description}`}
+                onClick={() => handleSelectTemplate(t.id)}
+              >
+                <span>{t.badge}</span>
+                <span>{TEMPLATE_SHORT_PILLS[t.id] ?? t.name}</span>
+              </button>
+            )
+          })}
         </div>
+
+        {/* Phạm vi Phân cảnh áp dụng (Tất cả phân cảnh hoặc từng Phân cảnh #1, #2, #3) */}
+        {project.shots.length > 1 && (
+          <div
+            className="wf-toolbar-pill-group wf-shot-scope-group"
+            role="radiogroup"
+            aria-label="Phạm vi Phân cảnh áp dụng"
+          >
+            <span className="wf-toolbar-label">Cảnh:</span>
+            <button
+              type="button"
+              className={`wf-toolbar-pill-btn${currentShotScope === 'all' ? ' active' : ''}`}
+              title="Đồng bộ & áp dụng quy trình xử lý xuyên suốt tất cả các phân cảnh"
+              onClick={() => handleSelectShotScope('all')}
+            >
+              ⇄ Tất cả ({project.shots.length})
+            </button>
+            {project.shots.map((s, idx) => (
+              <button
+                key={s.id}
+                type="button"
+                className={`wf-toolbar-pill-btn${currentShotScope === s.id ? ' active' : ''}`}
+                title={`Chỉ áp dụng & xem thử trên Phân cảnh #${idx + 1}: ${s.name}`}
+                onClick={() => handleSelectShotScope(s.id)}
+              >
+                #{idx + 1}
+              </button>
+            ))}
+          </div>
+        )}
 
         <button
           id="wf-btn-autowire"
@@ -383,7 +449,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           </span>
         </button>
 
-        {/* Active Pipeline Flow Pill (Hiển thị lộ trình tuần tự #1 ➔ #2 ➔ ... và cảnh báo khối đứt) */}
+        {/* Active Pipeline Flow Pill (Hiển thị lộ trình tuần tự #1 ➔ #2 ➔ ...) */}
         <div
           className={`wf-pipeline-flow-pill${playing && activeNodes.length > 0 ? ' playing' : ''}${activeNodes.length === 0 ? ' broken' : ''}`}
           title={blueprint.pipelineSummary}
@@ -484,7 +550,9 @@ export const WorkflowStudioPanel: React.FC = () => {
           blueprint={blueprint}
           selectedNode={selectedNode}
           sideMode={sideMode}
+          inspectorSubTab={inspectorSubTab}
           onChangeSideMode={setSideMode}
+          onChangeInspectorSubTab={setInspectorSubTab}
           onChangeNodePreset={handleChangeNodePreset}
           onUpdateNodeDirective={handleUpdateNodeDirective}
           onUpdateNodeParams={handleUpdateNodeParams}

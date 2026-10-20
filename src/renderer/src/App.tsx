@@ -25,7 +25,15 @@ import { usePerformance } from './store/performance'
 export default function App() {
   const [ready, setReady] = useState(false)
   const [dragOver, setDragOver] = useState(false)
-  const [timelineH, setTimelineH] = useState(300)
+  const [timelineH, setTimelineH] = useState<number>(() => {
+    try {
+      const saved = Number(window.localStorage.getItem('pxs:timeline-dock-height'))
+      if (Number.isFinite(saved) && saved >= 120 && saved <= 760) return Math.round(saved)
+    } catch {
+      /* ignore */
+    }
+    return 320
+  })
   const toast = useToast((s) => s.message)
   const dialog = useView((s) => s.dialog)
   const assemblyModalModel = useView((s) => s.assemblyModalModel)
@@ -84,7 +92,13 @@ export default function App() {
     el.setPointerCapture(e.pointerId)
     const move = (ev: PointerEvent): void => {
       const maxH = Math.max(160, Math.floor(window.innerHeight * 0.65))
-      setTimelineH(Math.max(120, Math.min(maxH, startH - (ev.clientY - startY))))
+      const nextH = Math.max(120, Math.min(maxH, Math.round(startH - (ev.clientY - startY))))
+      setTimelineH(nextH)
+      try {
+        window.localStorage.setItem('pxs:timeline-dock-height', String(nextH))
+      } catch {
+        /* ignore */
+      }
     }
     const up = (): void => {
       el.removeEventListener('pointermove', move)

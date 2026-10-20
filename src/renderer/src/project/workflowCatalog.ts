@@ -404,6 +404,30 @@ export const DEFAULT_NODE_POSITIONS: Record<WorkflowNodeType, { x: number; y: nu
   look_output: { x: 1448, y: 128 }
 }
 
+export const PRESET_SHORT_LABELS: Record<string, string> = {
+  deep_parallax_stage: 'Sâu Z 3200',
+  grounded_3d_stage: 'Mặt đất 3D',
+  intimate_portrait_stage: 'Cận cảnh',
+  character_and_foliage_rig: 'Nhân vật+Cây',
+  arch3d_and_props: 'Kiến trúc 3D',
+  expr_variant_actors: 'Đa bộ phận',
+  organic_wind_breathe: 'Gió + Thở',
+  character_walk_depth: 'Bước đi Z',
+  dynamic_action_arc: 'Nhảy Arc',
+  candle_wind_particles: 'Đèn + Hạt',
+  combat_elastic_glow: 'Mesh + Glow',
+  cave_portal_flashlight: 'Cửa hang',
+  cinematic_fly_push: 'Bay qua cảnh',
+  dolly_push_focus: 'Dolly In',
+  orbit_showcase_3d: 'Orbit 3D',
+  dramatic_handheld_action: 'Rung Action',
+  voice_lipsync_bgm: 'Lip-Sync',
+  cinematic_bgm_ambience: 'Nhạc BGM',
+  cinematic_atmospheric_fog: 'Sương 3D',
+  mystic_night_glow: 'Đêm huyền ảo',
+  vibrant_anime_clean: 'Anime sáng'
+}
+
 /** Phát hiện bố cục cũ bị dày đặc / chồng lấn để tự động nâng cấp sang bố cục thoáng chuẩn mới */
 export function isLegacyCrampedWorkflowLayout(nodes: WorkflowNode[]): boolean {
   if (!nodes || nodes.length < 2) return false
@@ -414,10 +438,18 @@ export function isLegacyCrampedWorkflowLayout(nodes: WorkflowNode[]): boolean {
   const physics = byType.get('physics_fx')
   const camera = byType.get('camera_director')
 
-  if (assembly && assembly.position.x <= 310) return true
-  if (motion && audio && Math.abs(audio.position.y - motion.position.y) < 175) return true
-  if (physics && camera && Math.abs(camera.position.y - physics.position.y) < 175) return true
-  return false
+  const scene = byType.get('scene_shot')
+  return Boolean(
+    scene?.position.x === 18 &&
+      assembly?.position.x === 290 &&
+      motion?.position.x === 562 &&
+      physics?.position.x === 834 &&
+      audio?.position.y === 162 &&
+      camera?.position.y === 162
+  )
+
+
+
 }
 
 export function upgradeCrampedNodePositions(nodes: WorkflowNode[]): WorkflowNode[] {

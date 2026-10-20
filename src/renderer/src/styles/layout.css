@@ -61,7 +61,7 @@ textarea:focus {
 /* Master Grid Layout */
 .app {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) 5px clamp(110px, var(--timeline-h, 280px), 46vh);
+  grid-template-rows: auto minmax(0, 1fr) 5px clamp(120px, var(--timeline-h, 320px), 68vh);
   grid-template-columns: clamp(220px, 22vw, 340px) minmax(0, 1fr) clamp(230px, 23vw, 350px);
   grid-template-areas:
     'top top top'

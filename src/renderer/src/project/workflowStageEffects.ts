@@ -44,7 +44,7 @@ export const WORKFLOW_CUSTOM_ACTION_CATALOG: CustomActionCatalogItem[] = [
   {
     kind: 'float',
     label: 'Nhịp thở phập phồng (Float/Breathe)',
-    shortLabel: 'Nhịp thở Float',
+    shortLabel: 'Nhịp thở',
     icon: '🫁',
     nodeTypes: ['motion_choreography'],
     defaultSpeed: 0.75,
@@ -54,7 +54,7 @@ export const WORKFLOW_CUSTOM_ACTION_CATALOG: CustomActionCatalogItem[] = [
   {
     kind: 'sway',
     label: 'Lắc lư mềm mại (Pendulum Sway)',
-    shortLabel: 'Lắc lư Sway',
+    shortLabel: 'Lắc lư',
     icon: '🌬️',
     nodeTypes: ['motion_choreography'],
     defaultSpeed: 0.8,
@@ -64,7 +64,7 @@ export const WORKFLOW_CUSTOM_ACTION_CATALOG: CustomActionCatalogItem[] = [
   {
     kind: 'pulse',
     label: 'Đập nhịp co giãn (Scale Pulse)',
-    shortLabel: 'Đập nhịp Pulse',
+    shortLabel: 'Đập nhịp',
     icon: '💓',
     nodeTypes: ['motion_choreography'],
     defaultSpeed: 1.1,
@@ -84,7 +84,7 @@ export const WORKFLOW_CUSTOM_ACTION_CATALOG: CustomActionCatalogItem[] = [
   {
     kind: 'walk_into_depth',
     label: 'Bước đi tiến vào chiều sâu Z (Walk Depth)',
-    shortLabel: 'Bước đi trục Z',
+    shortLabel: 'Bước đi Z',
     icon: '🚶',
     nodeTypes: ['motion_choreography'],
     defaultSpeed: 1.0,
@@ -94,7 +94,7 @@ export const WORKFLOW_CUSTOM_ACTION_CATALOG: CustomActionCatalogItem[] = [
   {
     kind: 'jump_arc',
     label: 'Bật nhảy quỹ đạo Parabol (Jump Arc)',
-    shortLabel: 'Bật nhảy Parabol',
+    shortLabel: 'Nhảy Arc',
     icon: '⚡',
     nodeTypes: ['motion_choreography'],
     defaultSpeed: 1.2,
@@ -104,7 +104,7 @@ export const WORKFLOW_CUSTOM_ACTION_CATALOG: CustomActionCatalogItem[] = [
   {
     kind: 'cross_screen',
     label: 'Di chuyển ngang khung hình (Cross Screen)',
-    shortLabel: 'Đi ngang cảnh',
+    shortLabel: 'Đi ngang',
     icon: '🏃',
     nodeTypes: ['motion_choreography'],
     defaultSpeed: 1.0,
@@ -114,7 +114,7 @@ export const WORKFLOW_CUSTOM_ACTION_CATALOG: CustomActionCatalogItem[] = [
   {
     kind: 'emerge_from_depth',
     label: 'Lao từ xa tới cận cảnh (Emerge Depth)',
-    shortLabel: 'Lao tới cận cảnh',
+    shortLabel: 'Lao tới Z',
     icon: '🦅',
     nodeTypes: ['motion_choreography'],
     defaultSpeed: 1.1,
@@ -124,7 +124,7 @@ export const WORKFLOW_CUSTOM_ACTION_CATALOG: CustomActionCatalogItem[] = [
   {
     kind: 'virtual_light_candle',
     label: 'Đèn nến / Lửa trại nhạy gió (Virtual Candle)',
-    shortLabel: 'Đèn nến 2.5D',
+    shortLabel: 'Đèn nến',
     icon: '🕯️',
     nodeTypes: ['physics_fx', 'motion_choreography'],
     defaultSpeed: 1.4,
@@ -134,7 +134,7 @@ export const WORKFLOW_CUSTOM_ACTION_CATALOG: CustomActionCatalogItem[] = [
   {
     kind: 'virtual_light_flashlight',
     label: 'Đèn pin chiếu góc hình nón (Flashlight)',
-    shortLabel: 'Đèn pin 2.5D',
+    shortLabel: 'Đèn pin',
     icon: '🔦',
     nodeTypes: ['physics_fx', 'motion_choreography'],
     defaultSpeed: 0.6,
@@ -144,7 +144,7 @@ export const WORKFLOW_CUSTOM_ACTION_CATALOG: CustomActionCatalogItem[] = [
   {
     kind: 'rim_glow',
     label: 'Phát sáng viền Alpha (Silhouette Glow)',
-    shortLabel: 'Viền sáng Glow',
+    shortLabel: 'Viền Glow',
     icon: '✨',
     nodeTypes: ['physics_fx', 'motion_choreography'],
     defaultSpeed: 1.6,
@@ -154,7 +154,7 @@ export const WORKFLOW_CUSTOM_ACTION_CATALOG: CustomActionCatalogItem[] = [
   {
     kind: 'mesh_elastic',
     label: 'Lưới Mesh 2.5D đàn hồi va chạm (Elastic Mesh)',
-    shortLabel: 'Mesh đàn hồi',
+    shortLabel: 'Đàn hồi',
     icon: '🧬',
     nodeTypes: ['physics_fx', 'motion_choreography'],
     defaultSpeed: 1.2,
