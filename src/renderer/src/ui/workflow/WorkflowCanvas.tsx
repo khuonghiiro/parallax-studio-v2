@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { Project, WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowPortKind } from '@shared/types'
+import type { Project, WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowNodeParams, WorkflowPortKind } from '@shared/types'
 import {
   DEFAULT_NODE_POSITIONS,
   WORKFLOW_NODE_SPECS,
@@ -36,6 +36,7 @@ export interface WorkflowCanvasProps {
   onToggleNode: (nodeId: string) => void
   onDeleteNode?: (nodeId: string) => void
   onChangeNodePreset: (nodeId: string, presetId: string) => void
+  onUpdateNodeParams?: (nodeId: string, patch: Partial<WorkflowNodeParams>) => void
   onConnectPorts: (fromNode: string, fromPort: WorkflowPortKind, toNode: string, toPort: WorkflowPortKind) => void
   onDisconnectEdge: (edgeId: string) => void
   onPreviewNode?: (node: WorkflowNode) => void
@@ -55,6 +56,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   onToggleNode,
   onDeleteNode,
   onChangeNodePreset,
+  onUpdateNodeParams,
   onConnectPorts,
   onDisconnectEdge,
   onPreviewNode
@@ -714,6 +716,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
               onToggleNode={onToggleNode}
               onDeleteNode={onDeleteNode}
               onChangeNodePreset={onChangeNodePreset}
+              onUpdateNodeParams={onUpdateNodeParams}
               onPreviewNode={onPreviewNode}
               onStartConnecting={startConnecting}
               onInputSocketClick={handleInputSocketClick}

@@ -49,6 +49,7 @@ import {
   WORKFLOW_LOGIC_NODE_CATALOG,
   WORKFLOW_LOGIC_NODE_CATEGORIES,
   resolveNodeShotScope,
+  applyConnectedLogicEdgesToLayers,
   spawnLogicNodeIntoWorkflow,
   validateAndNormalizeWorkflowJson,
   type WorkflowLogicNodeCatalogItem
@@ -965,6 +966,9 @@ export function applyWorkflowToProject(
     // Áp dụng các quy tắc Chuyển động / Tính năng tùy chỉnh (customRules) gắn trên khối này
     applyCustomNodeRulesToProject(project, node, binding.matchesLayer)
   }
+
+  // Nối logic trực tiếp từ Node Logic sang từng Layer con (Blender-like Routing)
+  applyConnectedLogicEdgesToLayers(project, workflow, activeNodes)
 
   // Nếu có Node Logic độc lập bị ngắt dây hoặc tắt, đảm bảo tắt ngay quy tắc của Node Logic đó
   for (const dn of disconnectedNodes) {

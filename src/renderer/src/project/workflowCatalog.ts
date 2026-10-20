@@ -53,42 +53,42 @@ export const WORKFLOW_PORT_SPECS: Record<WorkflowPortKind, WorkflowPortSpec> = {
   scene_ctx: {
     id: 'scene_ctx',
     label: 'Ngữ cảnh Phân cảnh (Scene & Z-Depth)',
-    shortLabel: 'Cảnh 3D',
+    shortLabel: '🎬 Cảnh 3D',
     color: '#38bdf8',
     description: 'Truyền thông tin phân cảnh, kích thước khung hình và các tầng độ sâu Z sang các khâu tiếp theo.'
   },
   actors_rig: {
     id: 'actors_rig',
     label: 'Thực thể & Khung xương (Actors & Rig)',
-    shortLabel: 'Thực thể',
+    shortLabel: '🧩 Layer 2.5D',
     color: '#a855f7',
     description: 'Truyền danh sách nhân vật 2.5D, đạo cụ composite và mô hình 3D sang khâu chuyển động và âm thanh.'
   },
   motion_stream: {
     id: 'motion_stream',
     label: 'Luồng Chuyển động (Motion Stream)',
-    shortLabel: 'Chuyển động',
+    shortLabel: '🍃 Chuyển động',
     color: '#f59e0b',
     description: 'Truyền quỹ đạo di chuyển, động tác xương và gió tự nhiên sang khâu Vật lý/FX và Camera.'
   },
   vfx_stage: {
     id: 'vfx_stage',
     label: 'Vật lý & Ánh sáng FX (Physics & Light)',
-    shortLabel: 'Vật lý/FX',
+    shortLabel: '💡 Vật lý/FX',
     color: '#ec4899',
     description: 'Truyền hiệu ứng vật lý đàn hồi, ánh sáng ảo theo gió và hạt môi trường tới khâu hoàn thiện.'
   },
   camera_cut: {
     id: 'camera_cut',
     label: 'Đường bay Camera 3D (Camera Trajectory)',
-    shortLabel: 'Camera 3D',
+    shortLabel: '🛣️ Lộ trình Cam',
     color: '#22c55e',
     description: 'Truyền lộ trình bay camera, góc nhìn FOV và hiệu ứng xóa phông DOF tới khâu xuất bản.'
   },
   audio_mix: {
     id: 'audio_mix',
     label: 'Bản phối Âm thanh & Lip-Sync (Audio Mix)',
-    shortLabel: 'Âm thanh',
+    shortLabel: '🎙️ Thoại/Audio',
     color: '#06b6d4',
     description: 'Truyền nhạc nền, hiệu ứng âm thanh và đồng bộ khẩu hình miệng tới khâu xuất bản.'
   }
@@ -144,7 +144,7 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     aiAgentRole: 'AssemblyRigAgent',
     color: '#a855f7',
     description: 'Quản lý cụm nhân vật 2.5D, cây cối đa lớp, mô hình 3D kiến trúc và neo gốc xoay (Anchor/Billboard).',
-    inputs: ['scene_ctx'],
+    inputs: ['scene_ctx', 'motion_stream', 'vfx_stage', 'audio_mix'],
     outputs: ['actors_rig', 'scene_ctx'],
     presets: [
       {
@@ -349,7 +349,7 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     aiAgentRole: 'ColorGradingRenderAgent',
     color: '#eab308',
     description: 'Tổng hợp toàn bộ luồng dữ liệu, áp dụng Sương mù chiều sâu (3D Fog), Vignette, Film Grain và kết xuất.',
-    inputs: ['vfx_stage', 'camera_cut', 'audio_mix', 'scene_ctx', 'motion_stream'],
+    inputs: ['vfx_stage', 'camera_cut', 'audio_mix', 'scene_ctx', 'motion_stream', 'actors_rig'],
     outputs: [],
     presets: [
       {

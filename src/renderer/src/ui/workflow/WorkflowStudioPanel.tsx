@@ -31,6 +31,7 @@ import { IconPause, IconPlay, IconPlus, IconSparkles } from '../icons'
 import { TimelineModeTabs } from './TimelineModeTabs'
 import { WorkflowCanvas } from './WorkflowCanvas'
 import { WorkflowSidePanel, type WorkflowInspectorSubTab } from './WorkflowSidePanel'
+import { WorkflowAddNodeMenu } from './WorkflowAddNodeMenu'
 import { IconWfAutoWire, IconWfJsonCode } from './workflowIcons'
 
 export const WorkflowStudioPanel: React.FC = () => {
@@ -579,16 +580,10 @@ export const WorkflowStudioPanel: React.FC = () => {
           <span>Tự nối Port</span>
         </button>
 
-        <button
-          id="wf-btn-quick-add-motion"
-          type="button"
-          className="btn ghost sm tl-action-btn wf-quick-add-btn"
-          title="Mở Kho Node Logic (Gió, Mây, Đèn 2.5D, Glow, DOF, Lắp ráp...) để thả khối vào sơ đồ"
-          onClick={handleQuickFocusAddMotion}
-        >
-          <IconPlus width={12} height={12} />
-          <span>+ Node Logic</span>
-        </button>
+        <WorkflowAddNodeMenu
+          onSpawnLogicNode={handleSpawnLogicNode}
+          onSpawnSceneLayers={handleSpawnSceneLayers}
+        />
 
         <button
           id="wf-btn-reset-canonical"
@@ -776,6 +771,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           onToggleNode={handleToggleNode}
           onDeleteNode={handleDeleteNode}
           onChangeNodePreset={handleChangeNodePreset}
+          onUpdateNodeParams={handleUpdateNodeParams}
           onConnectPorts={handleConnectPorts}
           onDisconnectEdge={handleDisconnectEdge}
           onPreviewNode={handlePreviewNode}

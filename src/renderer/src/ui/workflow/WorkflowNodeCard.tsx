@@ -3,6 +3,7 @@ import type {
   Project,
   WorkflowGraph,
   WorkflowNode,
+  WorkflowNodeParams,
   WorkflowPortKind
 } from '@shared/types'
 import {
@@ -10,6 +11,7 @@ import {
   WORKFLOW_NODE_SPECS,
   WORKFLOW_PORT_SPECS
 } from '../../project/workflowCatalog'
+import { WORKFLOW_LOGIC_NODE_CATALOG } from '../../project/workflowLogicCatalog'
 import { renderWorkflowNodeIcon } from './workflowIcons'
 import { WorkflowNodePreview } from './WorkflowNodePreview'
 import {
@@ -51,6 +53,7 @@ export interface WorkflowNodeCardProps {
   onToggleNode: (nodeId: string) => void
   onDeleteNode?: (nodeId: string) => void
   onChangeNodePreset: (nodeId: string, presetId: string) => void
+  onUpdateNodeParams?: (nodeId: string, patch: Partial<WorkflowNodeParams>) => void
   onPreviewNode?: (node: WorkflowNode) => void
   onStartConnecting: (
     e: React.PointerEvent,
@@ -94,6 +97,7 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = ({
   onToggleNode,
   onDeleteNode,
   onChangeNodePreset,
+  onUpdateNodeParams,
   onPreviewNode,
   onStartConnecting,
   onInputSocketClick,
@@ -101,20 +105,85 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = ({
   onConnectPorts,
   onClearPendingWire
 }) => {
-  const spec = WORKFLOW_NODE_SPECS[node.type]
-  const inputs = spec?.inputs ?? []
-  const outputs = spec?.outputs ?? []
-  const socketRowCount = Math.max(inputs.length, outputs.length, 1)
+  const logicItem = React.useMemo(() => {
+    if (!node.params?.logicId) return null
+    return WORKFLOW_LOGIC_NODE_CATALOG.find((x) => x.id === node.params?.logicId) ?? null
+  }, [node.params?.logicId])
 
   const boundLayer = React.useMemo(() => {
     if (!project || !node.params?.targetLayerIds?.[0]) return null
     return project.layers.find((l) => l.id === node.params?.targetLayerIds?.[0]) ?? null
   }, [project, node.params?.targetLayerIds])
 
-  const compositePartCount = React.useMemo(() => {
-    if (!project || !boundLayer?.composite?.instanceId) return 0
-    return project.layers.filter((l) => l.composite?.instanceId === boundLayer.composite?.instanceId).length
-  }, [project, boundLayer])
+  const spec = WORKFLOW_NODE_SPECS[node.type]
+
+  const inputs = React.useMemo(() => {
+    if (boundLayer) {
+      return ['scene_ctx', 'motion_stream', 'vfx_stage', 'audio_mix'] as WorkflowPortKind[]
+    }
+    return spec?.inputs ?? []
+  }, [boundLayer, spec])
+
+  const outputs = React.useMemo(() => {
+    if (boundLayer) {
+      return ['actors_rig', 'scene_ctx'] as WorkflowPortKind[]
+    }
+    return spec?.outputs ?? []
+  }, [boundLayer, spec])
+
+  const socketRowCount = Math.max(inputs.length, outputs.length, 1)
+
+  const nodeColor = React.useMemo(() => {
+    if (logicItem) {
+      switch (logicItem.category) {
+        case 'camera':
+          return '#22c55e'
+        case 'audio':
+          return '#06b6d4'
+        case 'physics':
+          return '#10b981'
+        case 'light_fx':
+          return '#ec4899'
+        case 'motion':
+          return '#f59e0b'
+        case 'scene':
+          return '#38bdf8'
+        case 'assembly':
+          return '#8b5cf6'
+        case 'look':
+          return '#eab308'
+        default:
+          return '#38bdf8'
+      }
+    }
+    if (boundLayer) return '#8b5cf6'
+    return spec?.color ?? '#38bdf8'
+  }, [logicItem, boundLayer, spec])
+
+  const cardTitle = React.useMemo(() => {
+    if (boundLayer) return boundLayer.name
+    if (logicItem) return logicItem.title
+    return spec?.shortTitle ?? node.title
+  }, [boundLayer, logicItem, spec, node.title])
+
+  const cardCategoryBadge = React.useMemo(() => {
+    if (boundLayer) {
+      const zVal = Math.round(boundLayer.transform.position.value[2] ?? 0)
+      const zTag =
+        zVal > 2000
+          ? 'Bầu trời'
+          : zVal > 1000
+            ? 'Núi xa'
+            : zVal > 200
+              ? 'Trung cảnh'
+              : zVal >= 0
+                ? 'Tiêu điểm'
+                : 'Tiền cảnh'
+      return `${zTag} · Z:${zVal}`
+    }
+    if (logicItem) return logicItem.categoryLabel
+    return spec?.shortTitle ?? 'Khối'
+  }, [boundLayer, logicItem, spec])
 
   const telemetry = evaluateNodeRuntimeTelemetry(
     node,
@@ -165,7 +234,7 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = ({
         left: node.position.x,
         top: node.position.y,
         width: NODE_W,
-        ['--wf-node-color' as string]: spec?.color ?? '#38bdf8'
+        ['--wf-node-color' as string]: nodeColor
       }}
       onPointerDown={(e) => onStartNodeDrag(e, node)}
       onClick={handleCardClick}
@@ -178,22 +247,30 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = ({
       )}
 
       {/* 1. Thanh tiêu đề Khối (Nắm kéo tự do 4 hướng) */}
-      <div className="wf-node-header">
-        <span className="wf-node-icon" style={{ background: spec?.color }}>
-          {renderWorkflowNodeIcon(node.type, { width: 12, height: 12 })}
+      <div className="wf-node-header" style={{ ['--wf-node-color' as string]: nodeColor }}>
+        <span className="wf-node-icon" style={{ background: nodeColor }}>
+          {logicItem ? (
+            <span style={{ fontSize: 13, lineHeight: '14px' }}>{logicItem.icon}</span>
+          ) : boundLayer ? (
+            <span style={{ fontSize: 13, lineHeight: '14px' }}>
+              {boundLayer.type === 'text'
+                ? '🔤'
+                : boundLayer.type === 'particles'
+                  ? '✨'
+                  : boundLayer.composite
+                    ? '🎭'
+                    : '🖼️'}
+            </span>
+          ) : (
+            renderWorkflowNodeIcon(node.type, { width: 12, height: 12 })
+          )}
         </span>
         <span
           className="wf-node-title"
-          title={`${node.title} — Nắm kéo để di chuyển tự do Trái / Phải / Lên / Xuống`}
+          title={`${cardTitle} — Nắm kéo để di chuyển tự do Trái / Phải / Lên / Xuống`}
         >
-          {node.params?.logicId ? node.title.replace(/^Node:\s*/i, '') : (spec?.shortTitle ?? node.title)}
-          {boundLayer && (
-            <span className="wf-node-sub-tag">
-              {boundLayer.composite
-                ? `2.5D (${compositePartCount}p)`
-                : `Z:${Math.round(boundLayer.transform.position.value[2])}`}
-            </span>
-          )}
+          {cardTitle}
+          <span className="wf-node-sub-tag">{cardCategoryBadge}</span>
         </span>
         {onPreviewNode && (
           <button
@@ -242,7 +319,7 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = ({
           <button
             type="button"
             className="wf-node-del-btn"
-            title={`Xóa "${node.title}" khỏi sơ đồ`}
+            title={`Xóa "${cardTitle}" khỏi sơ đồ`}
             onClick={(e) => {
               e.stopPropagation()
               onDeleteNode(node.id)
@@ -359,39 +436,76 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = ({
         })}
       </div>
 
-      {/* 3. Chọn nhanh Chế độ bằng Nút Bấm Trực Tiếp (Không dùng Combobox) & Preview 2.5D */}
+      {/* 3. Thân Thẻ Node Kiểu Blender (Inline Controls & Preview) */}
       <div className="wf-node-body">
-        <div
-          className="wf-preset-pills-bar"
-          role="radiogroup"
-          aria-label={`Chế độ xử lý của ${node.title}`}
-        >
-          {(spec?.presets ?? []).slice(0, 3).map((p) => {
-            const active = node.preset === p.id
-            return (
-              <button
-                key={p.id}
-                type="button"
-                className={`wf-preset-pill${active ? ' active' : ''}`}
-                title={`${p.label}\n${p.summary}`}
-                onClick={(e) => {
+        {logicItem ? (
+          <div className="wf-node-logic-body">
+            <div className="wf-node-inline-slider">
+              <div className="wf-node-inline-slider-label">
+                <span>Cường độ / Tốc độ:</span>
+                <strong>{Math.round((node.params?.intensity ?? 1.0) * 100)}%</strong>
+              </div>
+              <input
+                type="range"
+                className="wf-range sm"
+                min={0.2}
+                max={2.0}
+                step={0.05}
+                value={node.params?.intensity ?? 1.0}
+                onChange={(e) => {
                   e.stopPropagation()
-                  onSelectNode(node.id)
-                  onChangeNodePreset(node.id, p.id)
+                  onUpdateNodeParams?.(node.id, { intensity: parseFloat(e.target.value) })
                 }}
-              >
-                {PRESET_SHORT_LABELS[p.id] ?? p.label}
-              </button>
-            )
-          })}
-        </div>
+                onClick={(e) => e.stopPropagation()}
+                title="Kéo trượt để tăng giảm cường độ / tốc độ tác động của logic này"
+              />
+            </div>
+            <div className="wf-node-logic-desc" title={logicItem.description}>
+              {logicItem.description}
+            </div>
+          </div>
+        ) : boundLayer ? (
+          <WorkflowNodePreview
+            node={node}
+            project={project}
+            mode="card"
+            runtimeTelemetry={telemetry}
+          />
+        ) : (
+          <>
+            <div
+              className="wf-preset-pills-bar"
+              role="radiogroup"
+              aria-label={`Chế độ xử lý của ${cardTitle}`}
+            >
+              {(spec?.presets ?? []).slice(0, 3).map((p) => {
+                const active = node.preset === p.id
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={`wf-preset-pill${active ? ' active' : ''}`}
+                    title={`${p.label}\n${p.summary}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onSelectNode(node.id)
+                      onChangeNodePreset(node.id, p.id)
+                    }}
+                  >
+                    {PRESET_SHORT_LABELS[p.id] ?? p.label}
+                  </button>
+                )
+              })}
+            </div>
 
-        <WorkflowNodePreview
-          node={node}
-          project={project}
-          mode="card"
-          runtimeTelemetry={telemetry}
-        />
+            <WorkflowNodePreview
+              node={node}
+              project={project}
+              mode="card"
+              runtimeTelemetry={telemetry}
+            />
+          </>
+        )}
       </div>
     </div>
   )
