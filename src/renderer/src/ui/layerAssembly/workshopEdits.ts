@@ -5,7 +5,7 @@ import { newLayerId } from './workshopActions'
 const finite = (v: unknown) => typeof v === 'number' && Number.isFinite(v)
 export function validateWorkshop(composite: LayerComposite): void {
   if (!composite.id || typeof composite.name !== 'string' || !composite.name.trim()) throw new Error('Composite needs an ID and name')
-  if (!['nature', 'prop', 'character', 'architecture', 'custom'].includes(composite.category)) throw new Error('Invalid category')
+  if (!['nature', 'prop', 'character', 'architecture', 'scene', 'custom'].includes(composite.category)) throw new Error('Invalid category')
   if (![composite.width, composite.height].every((v) => finite(v) && v >= 1 && v <= 8000)) throw new Error('Frame dimensions must be 1–8000')
   if (!Array.isArray(composite.layers) || new Set(composite.layers.map((l) => l.id)).size !== composite.layers.length) throw new Error('Duplicate layer ID')
   composite.layers.forEach(validateWorkshopLayer)

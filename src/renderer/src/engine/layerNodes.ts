@@ -46,6 +46,18 @@ export function makeLayerMaterial(): THREE.ShaderMaterial {
       glowIntensity: { value: 1.2 },
       isModel3D: { value: 0 },
       alphaCutoff: { value: 0.25 },
+      shadeDarkness: { value: 0 },
+      shadeTint: { value: new THREE.Color('#060812') },
+      lightBoost: { value: 0 },
+      lightTint: { value: new THREE.Color('#ffe8b5') },
+      portalOn: { value: 0 },
+      portalParams: { value: new THREE.Vector3(0.5, 0.45, 0.35) },
+      portalDarkness: { value: 0 },
+      vlightOn: { value: 0 },
+      vlightUv: { value: new THREE.Vector2(0.5, 0.5) },
+      vlightColor: { value: new THREE.Color('#ff9d3b') },
+      vlightParams: { value: new THREE.Vector3(0, 300, -1) },
+      vlightBeam: { value: new THREE.Vector2(1, 0) },
       ...sharedUniforms()
     }
   })

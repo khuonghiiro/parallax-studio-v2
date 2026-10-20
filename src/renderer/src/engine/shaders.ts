@@ -32,6 +32,18 @@ uniform float glowRadius;
 uniform float glowIntensity;
 uniform float isModel3D;
 uniform float alphaCutoff;
+uniform float shadeDarkness;
+uniform vec3 shadeTint;
+uniform float lightBoost;
+uniform vec3 lightTint;
+uniform float portalOn;
+uniform vec3 portalParams;
+uniform float portalDarkness;
+uniform float vlightOn;
+uniform vec2 vlightUv;
+uniform vec3 vlightColor;
+uniform vec3 vlightParams;
+uniform vec2 vlightBeam;
 varying vec2 vUv;
 varying float vDepth;
 
@@ -105,6 +117,26 @@ void main() {
     }
   }
 
+  // Nguồn sáng ảo 2.5D trực tiếp trên layer (Ánh nến đung đưa theo gió, Chùm tia đèn pin hình nón, Bóng đèn, Tinh thể)
+  float localLightHalo = 0.0;
+  if (vlightOn > 0.5 && vlightParams.x > 0.005) {
+    vec2 dUv = (vUv - vlightUv) * planeSize;
+    float distPx = length(dUv);
+    float radPx = max(20.0, vlightParams.y);
+    if (distPx < radPx) {
+      float radial = pow(clamp(1.0 - distPx / radPx, 0.0, 1.0), 1.65);
+      float coneFactor = 1.0;
+      if (vlightParams.z > -0.98 && distPx > 2.0) {
+        vec2 dir = dUv / distPx;
+        float d = dot(dir, vlightBeam);
+        coneFactor = smoothstep(vlightParams.z, min(1.0, vlightParams.z + 0.18), d);
+      }
+      localLightHalo = radial * coneFactor * vlightParams.x;
+      c.rgb += vlightColor * localLightHalo * 0.55;
+      c.a = max(c.a, clamp(localLightHalo * 0.42, 0.0, 0.88));
+    }
+  }
+
   if (isModel3D > 0.5) {
     if (c.a < alphaCutoff) discard;
     if (opacity >= 0.999) c.a = 1.0;
@@ -112,6 +144,28 @@ void main() {
     if (c.a < 0.004) discard;
   }
   vec3 rgb = c.rgb / max(0.0001, c.a);
+
+  // Vùng Độ Sâu / Lối vào Hang động trên chính tấm ảnh nền/đất (Tạo hốc tối chiều sâu tự nhiên)
+  if (portalOn > 0.5 && portalDarkness > 0.01) {
+    vec2 pDiff = vUv - portalParams.xy;
+    float pDist = length(pDiff) / max(0.05, portalParams.z);
+    if (pDist < 1.0) {
+      float caveDepth = pow(1.0 - pDist, 1.5) * portalDarkness;
+      float rescue = min(caveDepth, (lightBoost + localLightHalo) * 0.55);
+      rgb = mix(rgb, shadeTint, max(0.0, caveDepth - rescue));
+    }
+  }
+
+  // Bóng tối hang động che phủ dần nhân vật khi đi sâu vào cửa hang
+  if (shadeDarkness > 0.005) {
+    rgb = mix(rgb, shadeTint, clamp(shadeDarkness, 0.0, 0.96));
+  }
+
+  // Ánh sáng ảo 2.5D từ các layer lân cận chiếu sáng nhân vật / vách hang
+  if (lightBoost > 0.01) {
+    rgb = rgb * (1.0 + lightBoost * 0.45) + lightTint * (lightBoost * 0.28);
+  }
+
   if (fogOn > 0.5) {
     float f = smoothstep(fogNear, fogFar, vDepth);
     rgb = mix(rgb, fogColor, f);

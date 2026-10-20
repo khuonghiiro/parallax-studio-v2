@@ -1,9 +1,19 @@
 import type { LayerComposite } from './types'
 import type { AssemblyWorkspaceView } from './LayerAssemblyDialog'
+import { Select } from '../controls'
 import { IconLayers, IconPlus, IconX, IconDownload, IconUpload, IconScissors, IconColumns4 } from '../icons'
 import { exportCompositeToGitProject, importCompositeFromGitProject } from './layerAssemblyGitExport'
 
 export type WorkshopPrimaryMode = 'assembly' | 'cutter'
+
+const COMPOSITE_CATEGORY_OPTIONS: { value: LayerComposite['category']; label: string }[] = [
+  { value: 'scene', label: '🏞️ Cảnh lắp sẵn (Scene Prefab)' },
+  { value: 'nature', label: '🌳 Thiên nhiên & Địa hình' },
+  { value: 'character', label: '🧑 Nhân vật 2.5D' },
+  { value: 'prop', label: '🏮 Đạo cụ & Vật phẩm' },
+  { value: 'architecture', label: '🏛️ Kiến trúc & Hang động' },
+  { value: 'custom', label: '✨ Tuỳ chỉnh' }
+]
 
 export function WorkshopHeader({
   composite,
@@ -45,8 +55,16 @@ export function WorkshopHeader({
   }
 
   return <header className="layer-workshop-header">
-    <div className="lw-brand"><IconLayers width={20} height={20} /><div><strong>Xưởng Lắp Ráp Layer</strong><small>Bố cục · Chiều sâu · Chuyển động</small></div></div>
-    <input aria-label="Tên cụm layer" className="input-text sm lw-name" value={composite.name} onChange={(e) => setComposite({ ...composite, name: e.target.value })} />
+    <div className="lw-brand" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}><IconLayers width={18} height={18} /><div><strong>Xưởng Layer & Cảnh</strong><small>2.5D · Vật lý · Ánh sáng</small></div></div>
+    <input aria-label="Tên cụm layer" className="input-text sm lw-name" style={{ width: 145, minWidth: 110 }} value={composite.name} onChange={(e) => setComposite({ ...composite, name: e.target.value })} />
+    <div style={{ width: 132, flexShrink: 0 }} title="Phân loại mẫu lắp ráp (chọn 'Cảnh lắp sẵn' để lắp nguyên phân cảnh có mặt đất, hang động & ánh sáng rồi lấy ra dùng ngay)">
+      <Select
+        size="sm"
+        value={composite.category}
+        options={COMPOSITE_CATEGORY_OPTIONS}
+        onChange={(val) => setComposite({ ...composite, category: val as LayerComposite['category'] })}
+      />
+    </div>
     <div className="view-mode-tabs" aria-label="Chế độ xưởng">
       <button
         type="button"

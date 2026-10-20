@@ -6,15 +6,16 @@ export { BUILTIN_COMPOSITES }
 
 export const COMPOSITE_CATEGORIES: LayerCompositeCategory[] = [
   { id: 'all', title: 'Tất cả chi tiết', icon: 'layers', order: 0 },
-  { id: 'nature', title: 'Cây cối & Thiên nhiên', icon: 'tree', order: 1 },
-  { id: 'prop', title: 'Đạo cụ & Trang trí', icon: 'prop', order: 2 },
-  { id: 'character', title: 'Nhân vật & Sinh vật', icon: 'user', order: 3 },
-  { id: 'architecture', title: 'Kiến trúc & Cửa nẻo', icon: 'home', order: 4 },
-  { id: 'custom', title: 'Tự tạo & Đã lưu', icon: 'folder', order: 5 }
+  { id: 'scene', title: 'Cảnh lắp sẵn 2.5D', icon: 'grid3d', order: 1 },
+  { id: 'nature', title: 'Cây cối & Thiên nhiên', icon: 'tree', order: 2 },
+  { id: 'prop', title: 'Đạo cụ & Trang trí', icon: 'prop', order: 3 },
+  { id: 'character', title: 'Nhân vật & Sinh vật', icon: 'user', order: 4 },
+  { id: 'architecture', title: 'Kiến trúc & Cửa nẻo', icon: 'home', order: 5 },
+  { id: 'custom', title: 'Tự tạo & Đã lưu', icon: 'folder', order: 6 }
 ]
 
 const STORAGE_KEY = 'pxs.layerComposites'
-const SEED_VERSION = 'v27_fitted_glasses_student_body_frame'
+const SEED_VERSION = 'v28_scene_cave_portal_physics_light'
 const SEED_KEY = 'pxs.layerComposites.seeded_version'
 const DELETED_KEY = 'pxs.layerComposites.deleted'
 

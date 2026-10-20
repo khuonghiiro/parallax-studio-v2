@@ -19,6 +19,8 @@ import { applyFxPresetToSelectedLayer, deleteLayerEffect, toggleLayerEffect, typ
 import { assetStore } from '../../project/assets'
 import * as factory from '../../project/factory'
 import { createDefaultLayerPhysics, triggerLayerPhysicsInteraction } from '../../engine/layerPhysics'
+import { createDefaultDepthPortal, createDefaultVirtualLight, VIRTUAL_LIGHT_PRESETS } from '../../engine/virtualLight'
+import type { DepthPortalConfig, LayerVirtualLight, VirtualLightKind, WindStrengthPreset } from '@shared/types'
 import { ParamError, ed, proj, type Handler, type Params } from '../types'
 import { blendOf, bool, has, num, requireLayer, round, scale3, setAnim, shotIdParam, str, toPlain, vec3 } from '../params'
 import { layerSummary } from '../summaries'
@@ -277,10 +279,35 @@ export const layerCommands: Record<string, Handler> = {
         }
       }
       if (has(p, 'physics_action')) {
-        const act = str(p, 'physics_action') as 'punch_light' | 'punch_heavy' | 'jelly_press' | 'wall_vault' | undefined
+        const act = str(p, 'physics_action') as 'punch_light' | 'punch_heavy' | 'jelly_press' | 'wall_vault' | 'arrow_shot' | undefined
         if (act) {
           triggerLayerPhysicsInteraction(d as unknown as Project, id, num(p, 'at_time') ?? ed().time, act)
         }
+      }
+      const rawPortal = (p.depth_portal ?? p.depthPortal) as Partial<DepthPortalConfig> | undefined
+      if (rawPortal && typeof rawPortal === 'object') {
+        if (!l.physics) l.physics = { ...createDefaultLayerPhysics('ground_terrain'), enabled: true }
+        l.physics.depthPortal = { ...(l.physics.depthPortal ?? createDefaultDepthPortal()), ...rawPortal }
+      }
+      const rawVLight = (p.virtual_light ?? p.virtualLight) as Partial<LayerVirtualLight> | undefined
+      if (rawVLight && typeof rawVLight === 'object') {
+        const kind = (rawVLight.kind as VirtualLightKind | undefined) ?? l.virtualLight?.kind ?? 'candle'
+        const base = l.virtualLight ?? createDefaultVirtualLight(kind)
+        const next: LayerVirtualLight = { ...base, ...rawVLight }
+        if (rawVLight.kind && rawVLight.kind !== base.kind && VIRTUAL_LIGHT_PRESETS[rawVLight.kind]) {
+          const preset = VIRTUAL_LIGHT_PRESETS[rawVLight.kind]
+          if (rawVLight.color === undefined) next.color = preset.color
+          if (rawVLight.intensity === undefined) next.intensity = preset.intensity
+          if (rawVLight.radius === undefined) next.radius = preset.radius
+          if (rawVLight.zReach === undefined) next.zReach = preset.zReach
+          if (rawVLight.coneAngleDeg === undefined) next.coneAngleDeg = preset.coneAngleDeg
+          if (rawVLight.flickerSpeed === undefined) next.flickerSpeed = preset.flickerSpeed
+          if (rawVLight.windSensitivity === undefined) next.windSensitivity = preset.windSensitivity
+        }
+        if (rawVLight.windPreset) {
+          next.windPreset = rawVLight.windPreset as WindStrengthPreset
+        }
+        l.virtualLight = next
       }
       if (newShot !== undefined && newShot !== l.shotId) {
         d.layers.splice(i, 1)

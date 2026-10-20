@@ -46,6 +46,10 @@ export interface AssembledLayerItem {
   /** Tên biến thể trong khe (VD 'happy', 'cry'). */
   variant?: string
   motion: LayerMotionSettings
+  /** Nhãn chất liệu vật lý, mặt đất đỡ, vùng Sub-Mesh UV & cổng chiều sâu hang động gắn sẵn tại Xưởng */
+  physics?: import('@shared/types').LayerPhysicsConfig
+  /** Nguồn sáng ảo 2.5D (Ánh nến phản ứng gió, Đèn pin, Tinh thể hang động...) gắn sẵn tại Xưởng */
+  virtualLight?: import('@shared/types').LayerVirtualLight
 }
 
 export type LayerPartKind = 'head' | 'torso' | 'arm' | 'leg' | 'accessory' | 'custom'
@@ -69,7 +73,7 @@ export interface LayerComposite {
   plantSpines?: import('@shared/plantSpine').PlantSpine[]
   id: string
   name: string
-  category: 'nature' | 'prop' | 'character' | 'architecture' | 'custom'
+  category: 'nature' | 'prop' | 'character' | 'architecture' | 'scene' | 'custom'
   description?: string
   thumbnail?: string
   width: number

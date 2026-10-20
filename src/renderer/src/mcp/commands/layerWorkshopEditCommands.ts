@@ -15,7 +15,7 @@ function fields(p: Params, allowed: string[]): Params {
 
 function layerPatch(p: Params): Partial<AssembledLayerItem> {
   if (!p.patch || typeof p.patch !== 'object' || Array.isArray(p.patch)) throw new ParamError('patch must be an object')
-  return fields(p.patch as Params, ['name', 'assetPath', 'imageUrl', 'x', 'y', 'z', 'scale', 'rotation', 'rotationX', 'rotationY', 'opacity', 'hidden', 'locked', 'motion'])
+  return fields(p.patch as Params, ['name', 'assetPath', 'imageUrl', 'x', 'y', 'z', 'scale', 'rotation', 'rotationX', 'rotationY', 'opacity', 'hidden', 'locked', 'motion', 'physics', 'virtualLight'])
 }
 
 function commit(next: LayerComposite) {

@@ -4,15 +4,18 @@ import type {
   LayerPhysicsColliderZone,
   LayerPhysicsConfig,
   LayerPhysicsMaterial,
-  LayerPhysicsRole
+  LayerPhysicsRole,
+  PhysicsSubMeshRegion
 } from '@shared/types'
 import { useEditor } from '../../../store/editor'
 import { NumberInput, Row, Select, Switch } from '../../controls'
 import type { Setter } from '../types'
 import {
   createDefaultLayerPhysics,
+  DEFAULT_Z_TOLERANCE,
   evaluateLayerPhysicsTransform,
   MATERIAL_PHYSICS_PRESETS,
+  SUB_MESH_REGION_PRESETS,
   triggerLayerPhysicsInteraction
 } from '../../../engine/layerPhysics'
 
@@ -21,7 +24,8 @@ const MATERIAL_OPTIONS: { value: LayerPhysicsMaterial; label: string }[] = [
   { value: 'foliage_bush', label: '🍃 Tán lá / Bụi cỏ mềm (Lắc lư & Rung lá)' },
   { value: 'jelly_slime', label: '🍮 Thạch nhún / Đệm lún (Nhấn lún & Bật nảy)' },
   { value: 'stone_wall', label: '🧱 Bờ tường / Đá cứng (Điểm tựa nhảy vượt tường)' },
-  { value: 'metal_armor', label: '🛡️ Giáp kim loại (Rung chấn tần số cao)' },
+  { value: 'ground_terrain', label: '⛰️ Mặt đất / Nền địa hình (Đỡ trọng lực cùng Z)' },
+  { value: 'metal_armor', label: '🛡️ Giáp kim loại / Mũi tên (Rung chấn tần số cao)' },
   { value: 'cloth_rope', label: '🚩 Vải / Dây treo (Uốn lượn mềm)' },
   { value: 'flesh_body', label: '🥊 Cơ thể Nhân vật Combat (Đấm / Nhảy qua tường)' }
 ]
@@ -29,7 +33,9 @@ const MATERIAL_OPTIONS: { value: LayerPhysicsMaterial; label: string }[] = [
 const ROLE_OPTIONS: { value: LayerPhysicsRole; label: string }[] = [
   { value: 'auto', label: '✨ Tự động theo chất liệu' },
   { value: 'prop_target', label: '🎯 Vật thể nhận lực (Cây / Thạch / Tường)' },
-  { value: 'striker', label: '🥊 Tác nhân va chạm (Nắm đấm / Vũ khí)' },
+  { value: 'striker', label: '🥊 Tác nhân va chạm cùng Z (Nắm đấm / Vũ khí)' },
+  { value: 'projectile', label: '🏹 Vật phóng xuyên Z (Mũi tên / Đạn bay qua Z mục tiêu)' },
+  { value: 'ground_surface', label: '⛰️ Mặt đất đỡ (Tự đỡ các layer cùng Z có trọng lực)' },
   { value: 'vault_jumper', label: '🤸 Nhân vật nhảy vượt tường (Parkour)' },
   { value: 'both', label: '🔄 Cả hai (Vừa tác động vừa nhận lực)' }
 ]
@@ -37,9 +43,20 @@ const ROLE_OPTIONS: { value: LayerPhysicsRole; label: string }[] = [
 const COLLIDER_ZONE_OPTIONS: { value: LayerPhysicsColliderZone; label: string }[] = [
   { value: 'full', label: '📦 Toàn bộ khung Mesh Layer' },
   { value: 'fist_hand', label: '🤜 Cạnh nắm đấm / Bàn tay trước' },
+  { value: 'arrow_tip', label: '🏹 Đầu nhọn mũi tên / Vật phóng' },
   { value: 'foot_bottom', label: '🦶 Mũi chân / Đáy tiếp đất' },
-  { value: 'top_surface', label: '⬆️ Mặt đỉnh trên (Bờ tường / Đỉnh thạch)' },
-  { value: 'trunk_center', label: '🌲 Thân trục giữa (Thân cây / Cột)' }
+  { value: 'top_surface', label: '⬆️ Mặt đỉnh trên (Mặt đất / Bờ tường / Đỉnh thạch)' },
+  { value: 'trunk_center', label: '🌲 Thân trục giữa (Thân cây / Cột)' },
+  { value: 'custom_uv', label: '🎯 Vùng Sub-Mesh UV tùy chỉnh (Chọn 1 phần Mesh)' }
+]
+
+const SUB_MESH_PRESET_OPTIONS = [
+  { value: '', label: '— Toàn bộ hoặc theo Vùng va chạm —' },
+  ...Object.entries(SUB_MESH_REGION_PRESETS).map(([key, p]) => ({
+    value: key,
+    label: `🎯 ${p.label} (${Math.round(p.minU * 100)}-${Math.round(p.maxU * 100)}% U, ${Math.round(p.minV * 100)}-${Math.round(p.maxV * 100)}% V)`
+  })),
+  { value: 'custom', label: '✏️ Tự nhập toạ độ Sub-Mesh UV (minU..maxU, minV..maxV)' }
 ]
 
 export function LayerPhysicsSection({ layer, set }: { layer: Layer; set: Setter }) {
@@ -65,10 +82,31 @@ export function LayerPhysicsSection({ layer, set }: { layer: Layer; set: Setter 
           next.bounciness = p.bounciness
           next.mass = p.mass
           next.gravityScale = p.gravityScale
+          if (patch.role === undefined) {
+            next.role = p.defaultRole
+          }
+          if (patch.colliderZone === undefined) {
+            next.colliderZone = p.defaultZone
+          }
         }
       }
       l.physics = next
     }, mergeKey)
+  }
+
+  const patchMeshRegion = (patch: Partial<PhysicsSubMeshRegion> | undefined, mergeKey = 'mesh-region'): void => {
+    if (!patch) {
+      patchPhysics({ meshRegion: undefined }, mergeKey)
+      return
+    }
+    const cur = physics.meshRegion ?? {
+      label: 'Vùng Sub-Mesh',
+      minU: 0.2,
+      maxU: 0.8,
+      minV: 0.2,
+      maxV: 0.8
+    }
+    patchPhysics({ meshRegion: { ...cur, ...patch }, colliderZone: 'custom_uv' }, mergeKey)
   }
 
   const toggleEnabled = (on: boolean): void => {
@@ -84,7 +122,7 @@ export function LayerPhysicsSection({ layer, set }: { layer: Layer; set: Setter 
   }
 
   const handleTriggerAction = (
-    action: 'punch_light' | 'punch_heavy' | 'jelly_press' | 'wall_vault'
+    action: 'punch_light' | 'punch_heavy' | 'jelly_press' | 'wall_vault' | 'arrow_shot'
   ): void => {
     updateProject((draft) => {
       triggerLayerPhysicsInteraction(draft, layer.id, time, action)
@@ -101,6 +139,8 @@ export function LayerPhysicsSection({ layer, set }: { layer: Layer; set: Setter 
 
   const liveEval = isEnabled ? evaluateLayerPhysicsTransform(project, layer, time) : null
   const impactCount = layer.physics?.impacts?.length ?? 0
+  const isProjectile = physics.role === 'projectile'
+  const isGround = physics.role === 'ground_surface' || physics.material === 'ground_terrain'
 
   return (
     <div className="section layer-physics-section" data-mcp-region="inspector_physics">
@@ -108,7 +148,7 @@ export function LayerPhysicsSection({ layer, set }: { layer: Layer; set: Setter 
         className="section-title"
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}
       >
-        <span>⚡ Vật lý Chất liệu & Tương tác Combat</span>
+        <span>⚡ Vật lý Chất liệu & Tương tác 2.5D</span>
         <Switch id="layer-physics-enabled" on={isEnabled} onChange={toggleEnabled} />
       </div>
 
@@ -124,7 +164,7 @@ export function LayerPhysicsSection({ layer, set }: { layer: Layer; set: Setter 
           }}
         >
           <span>
-            Gắn nhãn chất liệu vật lý cho Mesh (Thân cây, Thạch nhún, Bờ tường, Nhân vật Combat) để tự động tính rung chấn theo vận tốc đấm, lún nảy thạch hoặc chống tay nhảy qua tường.
+            Gắn nhãn chất liệu & vùng Sub-Mesh (chỉ tương tác khi cùng mặt phẳng Z hoặc mũi tên bay xuyên qua Z mục tiêu; mặt đất tự đỡ các layer cùng Z).
           </span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
             <button
@@ -132,14 +172,14 @@ export function LayerPhysicsSection({ layer, set }: { layer: Layer; set: Setter 
               className="btn sm ghost"
               onClick={() => patchPhysics({ enabled: true, material: 'wood_tree', role: 'prop_target' })}
             >
-              🌳 Gán Thân cây
+              🌳 Thân cây
             </button>
             <button
               type="button"
               className="btn sm ghost"
               onClick={() => patchPhysics({ enabled: true, material: 'jelly_slime', role: 'prop_target' })}
             >
-              🍮 Gán Thạch nhún
+              🍮 Thạch nhún
             </button>
             <button
               type="button"
@@ -147,13 +187,29 @@ export function LayerPhysicsSection({ layer, set }: { layer: Layer; set: Setter 
               onClick={() =>
                 patchPhysics({
                   enabled: true,
-                  material: 'stone_wall',
-                  role: 'prop_target',
-                  colliderZone: 'top_surface'
+                  material: 'ground_terrain',
+                  role: 'ground_surface',
+                  colliderZone: 'top_surface',
+                  meshRegion: { ...SUB_MESH_REGION_PRESETS.ground_strip }
                 })
               }
             >
-              🧱 Gán Bờ tường
+              ⛰️ Mặt đất đỡ
+            </button>
+            <button
+              type="button"
+              className="btn sm ghost"
+              onClick={() =>
+                patchPhysics({
+                  enabled: true,
+                  material: 'metal_armor',
+                  role: 'projectile',
+                  colliderZone: 'arrow_tip',
+                  stickOnHit: true
+                })
+              }
+            >
+              🏹 Mũi tên xuyên Z
             </button>
             <button
               type="button"
@@ -167,13 +223,13 @@ export function LayerPhysicsSection({ layer, set }: { layer: Layer; set: Setter 
                 })
               }
             >
-              🥊 Gán Nhân vật Combat
+              🥊 Nhân vật Combat
             </button>
           </div>
         </div>
       ) : (
         <>
-          <Row label="Chất liệu Mesh" title={preset.description}>
+          <Row label="Chất liệu" title={preset.description}>
             <Select
               id="layer-physics-material"
               value={physics.material === 'none' ? 'wood_tree' : physics.material}
@@ -182,7 +238,7 @@ export function LayerPhysicsSection({ layer, set }: { layer: Layer; set: Setter 
             />
           </Row>
 
-          <Row label="Vai trò tương tác" title="Chọn vai trò của layer trong va chạm vật lý 2.5D">
+          <Row label="Vai trò 2.5D" title="Chọn vai trò của layer trong va chạm vật lý 2.5D">
             <Select
               id="layer-physics-role"
               value={physics.role ?? 'auto'}
@@ -191,7 +247,30 @@ export function LayerPhysicsSection({ layer, set }: { layer: Layer; set: Setter 
             />
           </Row>
 
-          <Row label="Vùng va chạm" title="Vùng sub-mesh dùng để tính toán tiếp xúc (cạnh nắm đấm, mặt tường, thân cây...)">
+          <Row label="Độ lệch Z" title="Hai layer chỉ va chạm khi |zA - zB| <= Độ lệch Z, hoặc khi Mũi tên bay cắt qua mặt phẳng Z của mục tiêu">
+            <NumberInput
+              axis="z±"
+              value={physics.zTolerance ?? DEFAULT_Z_TOLERANCE}
+              step={5}
+              precision={0}
+              min={5}
+              max={600}
+              suffix="px"
+              onChange={(v, k) => patchPhysics({ zTolerance: v }, k)}
+            />
+            {isProjectile && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, color: 'var(--text-dim)' }}>
+                <span>Ghim trúng:</span>
+                <Switch
+                  id="layer-physics-stick"
+                  on={physics.stickOnHit ?? true}
+                  onChange={(on) => patchPhysics({ stickOnHit: on })}
+                />
+              </div>
+            )}
+          </Row>
+
+          <Row label="Vùng chạm" title="Vùng sub-mesh dùng để tính toán tiếp xúc (cạnh nắm đấm, đầu mũi tên, mặt đất...)">
             <Select
               id="layer-physics-zone"
               value={physics.colliderZone ?? 'full'}
@@ -200,7 +279,80 @@ export function LayerPhysicsSection({ layer, set }: { layer: Layer; set: Setter 
             />
           </Row>
 
-          <Row label="Độ cứng / Đàn hồi" title="Độ cứng (Stiffness) và Độ nảy đàn hồi (Bounciness) của chất liệu">
+          <Row label="Nhãn Mesh" title="Chọn nhanh 1 phần vùng ảnh (UV 0..1) để gắn nhãn va chạm hoặc mặt đất">
+            <Select
+              id="layer-physics-submesh-preset"
+              value={
+                physics.meshRegion
+                  ? Object.entries(SUB_MESH_REGION_PRESETS).find(
+                      ([, p]) =>
+                        Math.abs(p.minU - physics.meshRegion!.minU) < 0.01 &&
+                        Math.abs(p.maxU - physics.meshRegion!.maxU) < 0.01 &&
+                        Math.abs(p.minV - physics.meshRegion!.minV) < 0.01 &&
+                        Math.abs(p.maxV - physics.meshRegion!.maxV) < 0.01
+                    )?.[0] ?? 'custom'
+                  : ''
+              }
+              options={SUB_MESH_PRESET_OPTIONS}
+              onChange={(val) => {
+                if (!val) {
+                  patchMeshRegion(undefined)
+                } else if (val === 'custom') {
+                  patchMeshRegion({})
+                } else {
+                  const p = SUB_MESH_REGION_PRESETS[val]
+                  if (p) patchMeshRegion({ ...p })
+                }
+              }}
+            />
+          </Row>
+
+          {physics.meshRegion && (
+            <>
+              <Row label="Ngang U1/U2" title="Giới hạn ngang từ trái (0) sang phải (1) của vùng Mesh được gắn nhãn">
+                <NumberInput
+                  axis="u1"
+                  value={physics.meshRegion.minU}
+                  step={0.05}
+                  precision={2}
+                  min={0}
+                  max={0.95}
+                  onChange={(v, k) => patchMeshRegion({ minU: Math.min(v, physics.meshRegion!.maxU - 0.05) }, k)}
+                />
+                <NumberInput
+                  axis="u2"
+                  value={physics.meshRegion.maxU}
+                  step={0.05}
+                  precision={2}
+                  min={0.05}
+                  max={1}
+                  onChange={(v, k) => patchMeshRegion({ maxU: Math.max(v, physics.meshRegion!.minU + 0.05) }, k)}
+                />
+              </Row>
+              <Row label="Dọc V1/V2" title="Giới hạn dọc từ đáy (0) lên đỉnh (1) của vùng Mesh được gắn nhãn">
+                <NumberInput
+                  axis="v1"
+                  value={physics.meshRegion.minV}
+                  step={0.05}
+                  precision={2}
+                  min={0}
+                  max={0.95}
+                  onChange={(v, k) => patchMeshRegion({ minV: Math.min(v, physics.meshRegion!.maxV - 0.05) }, k)}
+                />
+                <NumberInput
+                  axis="v2"
+                  value={physics.meshRegion.maxV}
+                  step={0.05}
+                  precision={2}
+                  min={0.05}
+                  max={1}
+                  onChange={(v, k) => patchMeshRegion({ maxV: Math.max(v, physics.meshRegion!.minV + 0.05) }, k)}
+                />
+              </Row>
+            </>
+          )}
+
+          <Row label="Cứng / Nảy" title="Độ cứng (Stiffness) và Độ nảy đàn hồi (Bounciness) của chất liệu">
             <NumberInput
               axis="k"
               value={physics.stiffness ?? preset.stiffness}
@@ -221,7 +373,7 @@ export function LayerPhysicsSection({ layer, set }: { layer: Layer; set: Setter 
             />
           </Row>
 
-          <Row label="Giảm chấn / Nhạy lực" title="Giảm chấn tắt dần (Damping) và Độ nhạy theo vận tốc đấm (Hit Sensitivity)">
+          <Row label="Giảm / Nhạy" title="Giảm chấn tắt dần (Damping) và Độ nhạy theo vận tốc đấm (Hit Sensitivity)">
             <NumberInput
               axis="d"
               value={physics.damping ?? preset.damping}
@@ -242,25 +394,40 @@ export function LayerPhysicsSection({ layer, set }: { layer: Layer; set: Setter 
             />
           </Row>
 
-          <Row label="Trọng lực / Mặt đất Y" title="Hệ số trọng lực (Gravity Scale) và cao độ mặt đất Y để tính rơi & nảy">
-            <NumberInput
-              axis="g"
-              value={physics.gravityScale ?? preset.gravityScale}
-              step={0.1}
-              precision={2}
-              min={0}
-              max={3.0}
-              onChange={(v, k) => patchPhysics({ gravityScale: v }, k)}
-            />
-            <NumberInput
-              axis="y"
-              value={physics.groundY ?? -360}
-              step={10}
-              precision={0}
-              min={-2000}
-              max={2000}
-              onChange={(v, k) => patchPhysics({ groundY: v }, k)}
-            />
+          <Row label={isGround ? 'Độ dốc đất' : 'Trọng lực / Y'} title="Hệ số trọng lực (tự động dò layer Mặt đất cùng Z) hoặc cao độ mặt đất Y dự phòng">
+            {isGround ? (
+              <NumberInput
+                axis="∠"
+                value={physics.groundSlopeDeg ?? 0}
+                step={1}
+                precision={1}
+                min={-45}
+                max={45}
+                suffix="°"
+                onChange={(v, k) => patchPhysics({ groundSlopeDeg: v }, k)}
+              />
+            ) : (
+              <>
+                <NumberInput
+                  axis="g"
+                  value={physics.gravityScale ?? preset.gravityScale}
+                  step={0.1}
+                  precision={2}
+                  min={0}
+                  max={3.0}
+                  onChange={(v, k) => patchPhysics({ gravityScale: v }, k)}
+                />
+                <NumberInput
+                  axis="y"
+                  value={physics.groundY ?? -360}
+                  step={10}
+                  precision={0}
+                  min={-2000}
+                  max={2000}
+                  onChange={(v, k) => patchPhysics({ groundY: v }, k)}
+                />
+              </>
+            )}
           </Row>
 
           <div
@@ -287,9 +454,11 @@ export function LayerPhysicsSection({ layer, set }: { layer: Layer; set: Setter 
             >
               <span>⚡ Tạo tác động tại {time.toFixed(2)}s</span>
               <span style={{ fontSize: 10, color: 'var(--accent-cyan)', fontWeight: 500 }}>
-                {liveEval && liveEval.lastImpactSpeed > 0
-                  ? `Vận tốc: ${liveEval.lastImpactSpeed} px/s`
-                  : `${impactCount} xung lực`}
+                {liveEval && liveEval.projectileStuck
+                  ? '🏹 Đã ghim trúng đích'
+                  : liveEval && liveEval.lastImpactSpeed > 0
+                    ? `Vận tốc: ${liveEval.lastImpactSpeed} px/s`
+                    : `${impactCount} xung lực`}
               </span>
             </div>
 
@@ -326,6 +495,15 @@ export function LayerPhysicsSection({ layer, set }: { layer: Layer; set: Setter 
               >
                 🤸 Nhảy vượt tường
               </button>
+              <button
+                type="button"
+                className="btn sm ghost"
+                style={{ gridColumn: '1 / -1' }}
+                onClick={() => handleTriggerAction('arrow_shot')}
+                title="Mô phỏng mũi tên bay xuyên từ layer Z khác cắt đúng vào vùng Mesh của layer này (880 px/s)"
+              >
+                🏹 Bắn tên xuyên Z (Ghim & Rung chấn)
+              </button>
             </div>
 
             {impactCount > 0 && (
@@ -357,3 +535,4 @@ export function LayerPhysicsSection({ layer, set }: { layer: Layer; set: Setter 
     </div>
   )
 }
+

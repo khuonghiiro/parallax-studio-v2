@@ -234,8 +234,16 @@ export type LayerPhysicsMaterial =
   | 'metal_armor'
   | 'cloth_rope'
   | 'flesh_body'
+  | 'ground_terrain'
 
-export type LayerPhysicsRole = 'auto' | 'prop_target' | 'striker' | 'vault_jumper' | 'both'
+export type LayerPhysicsRole =
+  | 'auto'
+  | 'prop_target'
+  | 'striker'
+  | 'projectile'
+  | 'vault_jumper'
+  | 'ground_surface'
+  | 'both'
 
 export type LayerPhysicsColliderZone =
   | 'full'
@@ -243,13 +251,94 @@ export type LayerPhysicsColliderZone =
   | 'foot_bottom'
   | 'top_surface'
   | 'trunk_center'
+  | 'arrow_tip'
+  | 'cave_portal'
+  | 'custom_uv'
+
+/** Vùng 1 phần Mesh (Sub-Mesh UV Region) được khoanh chọn để gắn nhãn vật lý / mặt đất / điểm chạm */
+export interface PhysicsSubMeshRegion {
+  /** Nhãn hiển thị của vùng Sub-Mesh (tùy chọn) */
+  label?: string
+  /** Giới hạn ngang u từ trái (0) sang phải (1) */
+  minU: number
+  maxU: number
+  /** Giới hạn dọc v từ đáy (0) lên đỉnh (1) */
+  minV: number
+  maxV: number
+}
+
+/**
+ * Cấu hình Vùng Độ Sâu / Lối Vào Hang Động (Cave Depth Portal) trên ảnh layer 2D:
+ * Khi nhân vật đi vào vùng cửa hang sẽ tự động thu nhỏ dần theo phối cảnh,
+ * bị bóng tối hang động che phủ dần, và được chiếu sáng lại nếu có Nguồn sáng ảo trong hang.
+ */
+export interface DepthPortalConfig {
+  enabled: boolean
+  /** Tâm lối vào hang động / đường hầm trên chuẩn UV [u, v] (0..1, mặc định [0.5, 0.45]) */
+  centerUV: [number, number]
+  /** Bán kính vùng cửa hang tính theo tỉ lệ kích thước ảnh ([rx, ry] hoặc bán kính đơn, mặc định [0.35, 0.35]) */
+  radiusUV: [number, number] | number
+  /** Tỉ lệ thu nhỏ tối đa khi nhân vật đi sâu vào tâm hang (0.15 .. 0.9, mặc định 0.38) */
+  minScale: number
+  /** Độ tối bóng đêm trong lòng hang che phủ dần nhân vật (0 .. 1, mặc định 0.82) */
+  darkness: number
+  /** Màu bóng tối trong hang (mặc định '#060812') */
+  shadowTint?: string
+  /** Độ lùi chiều sâu Z giả lập khi đi sâu vào tâm cửa hang (px, mặc định 120) */
+  depthPullZ?: number
+}
+
+export type VirtualLightKind =
+  | 'none'
+  | 'candle'
+  | 'flashlight'
+  | 'bulb'
+  | 'campfire'
+  | 'cave_crystal'
+  | 'magic_orb'
+
+export type WindStrengthPreset = 'none' | 'gentle' | 'strong' | 'storm'
+
+/**
+ * Công cụ Ánh Sáng Ảo 2.5D (Virtual Light):
+ * Thay thế nguồn sáng tĩnh bằng ánh nến nhạy theo gió (không gió / gió nhẹ / gió mạnh / bão),
+ * đèn pin chiếu góc hình nón, bóng đèn điện, lửa trại hoặc tinh thể phát sáng trong hang động.
+ */
+export interface LayerVirtualLight {
+  enabled: boolean
+  kind: VirtualLightKind
+  /** Màu ánh sáng (hex) */
+  color: string
+  /** Cường độ sáng cơ bản (0.1 .. 4.0, mặc định 1.35) */
+  intensity: number
+  /** Bán kính vùng chiếu sáng (world units / px, mặc định 420) */
+  radius: number
+  /** Vị trí tương đối của nguồn sáng trên layer UV [u, v] (0..1, mặc định [0.5, 0.5]) */
+  originUV?: [number, number]
+  /** Góc chiếu (độ, 0 = sang phải, 90 = lên trên, -90 = xuống dưới) dành cho Đèn pin / Spotlight */
+  beamAngleDeg?: number
+  /** Độ mở chùm sáng hình nón (độ, 15..360, mặc định 52 cho đèn pin, 360 cho nến/bóng đèn) */
+  coneAngleDeg?: number
+  /** Mức gió thổi tác động lên ánh nến / ngọn lửa */
+  windPreset?: WindStrengthPreset
+  /** Cường độ gió chi tiết (0 .. 1.5) */
+  windStrength?: number
+  /** Độ nhạy phản ứng gió (0 .. 2.0) */
+  windSensitivity?: number
+  /** Hướng gió thổi (độ, mặc định 0 = thổi sang phải) */
+  windDirectionDeg?: number
+  /** Tốc độ chập chờn / nhấp nháy (Hz, mặc định 1.0) */
+  flickerSpeed?: number
+  /** Khoảng cách chiều sâu Z tối đa mà ánh sáng chiếu tới các layer lân cận (px, mặc định 280) */
+  zReach?: number
+}
 
 export interface PhysicsImpactPulse {
   id: string
   /** Thời điểm xảy ra va chạm / tác động (giây) */
   time: number
-  /** Loại tác động: 'punch' (đấm/đá), 'vault' (chống tay nhảy qua), 'press' (nhấn lún như thạch), 'land' (tiếp đất) */
-  type: 'punch' | 'vault' | 'press' | 'land'
+  /** Loại tác động: 'punch' (đấm/đá), 'vault' (chống tay nhảy qua), 'press' (nhấn lún như thạch), 'land' (tiếp đất), 'arrow' (mũi tên/đạn cắm vào) */
+  type: 'punch' | 'vault' | 'press' | 'land' | 'arrow'
   /** Vận tốc tác động [vx, vy, vz] (px/giây: độ lớn càng cao rung/lún càng mạnh) */
   velocity: Vec3
   /** Tọa độ điểm chạm chuẩn hóa trên mesh [u, v] trong khoảng [0..1] (u: trái->phải, v: gốc->đỉnh) */
@@ -264,10 +353,20 @@ export interface LayerPhysicsConfig {
   enabled: boolean
   /** Chất liệu vật lý của layer quyết định phản ứng của mesh khi va chạm */
   material: LayerPhysicsMaterial
-  /** Vai trò tương tác: vật thể môi trường nhận lực, tác nhân đấm/đá, nhân vật nhảy vượt tường, hoặc cả hai */
+  /** Vai trò tương tác: vật thể môi trường nhận lực, tác nhân đấm/đá, mũi tên bay xuyên Z, mặt đất đỡ, nhân vật nhảy vượt tường, hoặc cả hai */
   role?: LayerPhysicsRole
-  /** Vùng mesh dùng để xét va chạm (ví dụ cạnh nắm đấm, mũi chân, mặt trên bờ tường/thạch, thân cây) */
+  /** Vùng mesh dùng để xét va chạm (ví dụ cạnh nắm đấm, mũi chân, mặt trên bờ tường/thạch, thân cây, mũi tên, vùng khoanh UV) */
   colliderZone?: LayerPhysicsColliderZone
+  /** Khoảng cách lệch Z-Depth tối đa để 2 layer được phép tương tác va chạm (mặc định 55px: phải cùng lớp Z mới chạm được nhau) */
+  zTolerance?: number
+  /** Dành cho mũi tên / đạn bay ('projectile'): tự động ghim dừng lại trên mesh mục tiêu khi bay tới đúng Z và chạm mesh */
+  stickOnHit?: boolean
+  /** Vùng 1 phần Mesh [minU..maxU, minV..maxV] được khoanh chọn để gắn nhãn */
+  meshRegion?: PhysicsSubMeshRegion
+  /** Cấu hình lối vào hang động / vùng độ sâu trên layer nền/đất */
+  depthPortal?: DepthPortalConfig
+  /** Độ dốc mặt đất (độ, -45..45) khi layer đóng vai trò mặt đất nghiêng */
+  groundSlopeDeg?: number
   /** Khối lượng tương đối (0.1 .. 50, mặc định theo chất liệu) */
   mass?: number
   /** Hệ số trọng lực (0 = gắn cố định, 1 = trọng lực chuẩn cho nhảy/rơi parabol) */
@@ -321,8 +420,10 @@ interface LayerBase<T extends LayerType, P> {
   glow?: LayerGlow
   /** List of individual fx presets applied to this layer with distinct icons and parameters. */
   appliedEffects?: AppliedLayerEffect[]
-  /** Cấu hình giả lập vật lý chất liệu, trọng lực và tương tác va chạm mesh 2.5D */
+  /** Cấu hình giả lập vật lý chất liệu, trọng lực, vùng hang động và tương tác va chạm mesh 2.5D */
   physics?: LayerPhysicsConfig
+  /** Nguồn sáng ảo 2.5D gắn trên layer (Ánh nến theo gió, Đèn pin chiếu góc, Bóng đèn, Lửa trại, Tinh thể) */
+  virtualLight?: LayerVirtualLight
   props: P
 }
 

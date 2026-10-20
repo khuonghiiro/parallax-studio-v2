@@ -273,7 +273,7 @@ export function LayerAssemblySidebar({
           onClick={() => setActiveTab('builtin')}
           title="Kho ảnh & vật liệu có sẵn"
         >
-          <IconImage width={12} height={12} /> Tất cả ({allAvailableAssets.length})
+          <IconGlobe width={12} height={12} /> Tất cả ({allAvailableAssets.length})
         </button>
 
         <button

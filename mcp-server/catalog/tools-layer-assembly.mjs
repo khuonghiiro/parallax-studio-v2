@@ -3,7 +3,7 @@
  */
 import { L, z } from './shared.mjs'
 
-export const LAYER_COMPOSITE_CATEGORIES = ['nature', 'prop', 'character', 'architecture', 'custom']
+export const LAYER_COMPOSITE_CATEGORIES = ['nature', 'prop', 'character', 'architecture', 'scene', 'custom']
 
 export const LAYER_ASSEMBLY_TOOLS = [
   {
@@ -69,7 +69,7 @@ export const LAYER_ASSEMBLY_TOOLS = [
       id: z.string().optional().describe(d('Unique ID for the composite.', 'ID duy nhất của chi tiết.')),
       name: z.string().describe(d('Descriptive name of the composite.', 'Tên mô tả của chi tiết lắp ráp.')),
       category: z
-        .enum(['nature', 'prop', 'character', 'architecture', 'custom'])
+        .enum(['nature', 'prop', 'character', 'architecture', 'scene', 'custom'])
         .optional()
         .describe(d('Category of the composite.', 'Danh mục của chi tiết.')),
       description: z.string().optional().describe(d('Short description of the composite.', 'Mô tả ngắn về chi tiết.')),

@@ -76,6 +76,12 @@ function buildSceneLayer({ item, asset, composite, comp, shotId, instanceId, isR
   }
   const motion = toSceneMotion(item)
   if (motion) layer.motion = motion
+  if (item.physics) {
+    layer.physics = structuredClone(item.physics)
+  }
+  if (item.virtualLight) {
+    layer.virtualLight = structuredClone(item.virtualLight)
+  }
   return layer
 }
 

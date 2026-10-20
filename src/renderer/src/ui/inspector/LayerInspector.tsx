@@ -14,6 +14,7 @@ import { ParticleSection } from './sections/ParticleSection'
 import { Model3DSection } from './sections/Model3DSection'
 import { LayerCompositeSection } from './sections/LayerCompositeSection'
 import { LayerPhysicsSection } from './sections/LayerPhysicsSection'
+import { LayerVirtualLightSection } from './sections/LayerVirtualLightSection'
 
 export function LayerInspector({ layer }: { layer: Layer }) {
   const set = useLayerUpdater(layer.id)
@@ -235,6 +236,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
       {layer.model3d && <Model3DSection layer={layer} />}
 
       {layer.type !== 'particles' && <LayerPhysicsSection layer={layer} set={set} />}
+      {layer.type !== 'particles' && <LayerVirtualLightSection layer={layer} set={set} />}
 
       <LayerEffectsSection layer={layer} set={set} />
 

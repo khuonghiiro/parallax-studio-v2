@@ -22,6 +22,7 @@ import {
 import { buildParticles, buildPlaneNode, disposeNode, type LayerNode } from './layerNodes'
 import { TexturePool } from './TexturePool'
 import { evaluateLayerGlow } from './layerGlow'
+import { evaluateVirtualLightAtTime } from './virtualLight'
 
 export type { Rect, RenderOptions, EditorRenderOptions, ResidencyStats }
 export { applyEvaluatedCamera }
@@ -397,6 +398,58 @@ export class SceneRenderer {
         } else {
           u.glowOn.value = 0
           u.glowIntensity.value = 0
+        }
+
+        // Bóng tối cửa hang & Ánh sáng ảo 2.5D chiếu lên layer
+        u.shadeDarkness.value = el.caveDarkness ?? 0
+        if (el.shadowTintRgb) {
+          u.shadeTint.value.setRGB(el.shadowTintRgb[0], el.shadowTintRgb[1], el.shadowTintRgb[2])
+        } else {
+          u.shadeTint.value.set('#060812')
+        }
+        u.lightBoost.value = el.lightIllumination ?? 0
+        if (el.lightTintRgb) {
+          u.lightTint.value.setRGB(el.lightTintRgb[0], el.lightTintRgb[1], el.lightTintRgb[2])
+        }
+
+        const portal = el.layer.physics?.depthPortal
+        if (portal?.enabled) {
+          u.portalOn.value = 1
+          const radUV = Array.isArray(portal.radiusUV)
+            ? (portal.radiusUV[0] + portal.radiusUV[1]) * 0.5
+            : (portal.radiusUV ?? 0.35)
+          u.portalParams.value.set(
+            portal.centerUV?.[0] ?? 0.5,
+            portal.centerUV?.[1] ?? 0.45,
+            radUV
+          )
+          u.portalDarkness.value = portal.darkness ?? 0.82
+          if (portal.shadowTint) u.shadeTint.value.set(portal.shadowTint)
+        } else {
+          u.portalOn.value = 0
+          u.portalDarkness.value = 0
+        }
+
+        const evVLight = evaluateVirtualLightAtTime(el.layer, ev.t, el.position, [node.planeW, node.planeH], el.scale)
+        if (evVLight) {
+          u.vlightOn.value = 1
+          const origU = el.layer.virtualLight?.originUV?.[0] ?? 0.5
+          const origV = el.layer.virtualLight?.originUV?.[1] ?? 0.5
+          const shiftU = evVLight.windOffset[0] / Math.max(32, node.planeW)
+          const shiftV = evVLight.windOffset[1] / Math.max(32, node.planeH)
+          u.vlightUv.value.set(
+            Math.max(0.02, Math.min(0.98, origU + shiftU)),
+            Math.max(0.02, Math.min(0.98, origV + shiftV))
+          )
+          u.vlightColor.value.set(evVLight.color)
+          u.vlightParams.value.set(
+            evVLight.effectiveIntensity,
+            evVLight.effectiveRadius,
+            evVLight.coneCos
+          )
+          u.vlightBeam.value.set(evVLight.beamDir[0], evVLight.beamDir[1])
+        } else {
+          u.vlightOn.value = 0
         }
       } else {
         u.time.value = ev.t

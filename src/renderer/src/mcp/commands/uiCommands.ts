@@ -246,7 +246,7 @@ export const uiCommands: Record<string, Handler> = {
       const targetEl = resolveTargetElement(region, selector)
       if (targetEl) {
         try {
-          targetEl.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+          targetEl.scrollIntoView({ block: 'center', inline: 'nearest' })
         } catch {
           /* ignore scroll errors */
         }

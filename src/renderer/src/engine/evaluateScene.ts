@@ -6,6 +6,7 @@ import { autoScaleFactor, referenceDistance, smoothNoise } from '../animation/ma
 import { composeDepthMatrix, depthToThree, layerNominalSize, threeToDepth, transformedBox } from './spatial'
 import { evaluateCharacterLipSync } from '../project/lipSync'
 import { evaluateLayerPhysicsTransform } from './layerPhysics'
+import { evaluateVirtualLightAtTime } from './virtualLight'
 
 export interface EvaluatedCamera {
   position: Vec3
@@ -55,6 +56,18 @@ export interface EvaluatedLayer {
   bounds: THREE.Box3
   /** Optional texture UV offset for seamless looping drift. */
   uvOffset?: [number, number]
+  /** Độ tối bóng đêm khi đi vào vùng cửa hang động (0..1) */
+  caveDarkness?: number
+  /** Cường độ nguồn sáng ảo 2.5D chiếu lên layer (0..2) */
+  lightIllumination?: number
+  /** Màu ánh sáng ảo chiếu lên layer [r, g, b] */
+  lightTintRgb?: [number, number, number]
+  /** Màu bóng tối hang động [r, g, b] */
+  shadowTintRgb?: [number, number, number]
+  /** Đánh dấu layer đang phát sáng ảo 2.5D */
+  vlightEnabled?: boolean
+  /** Độ lệch tâm sáng UV trên layer (ví dụ ánh nến nghiêng theo gió) */
+  vlightOffsetUV?: [number, number]
 }
 
 import { getWaypointTimingMeta } from '../ui/viewer/animateCamera/animateCameraActionModes'
@@ -175,6 +188,13 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
   let refMinLocalZ = -25
   let refMaxLocalZ = 25
 
+  const hasPortalOrLight = project.layers.some(
+    (l) =>
+      l.visible &&
+      (Boolean(l.physics?.depthPortal?.enabled) ||
+        Boolean(l.virtualLight?.enabled && l.virtualLight.kind !== 'none'))
+  )
+
   const layers = project.layers.map((layer, index): EvaluatedLayer => {
     const tr = layer.transform
     const pos = [...evaluate(tr.position, t)] as Vec3
@@ -198,8 +218,14 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
       pos[1] += lipSync.offsetY
     }
 
-    // Đánh giá Vật lý 2.5D, Trọng lực & Va chạm chất liệu (Tree Shake, Jelly Squash, Wall Vault...)
-    if (layer.physics?.enabled && layer.physics.material !== 'none') {
+    let caveDarkness: number | undefined
+    let lightIllumination: number | undefined
+    let lightTintRgb: [number, number, number] | undefined
+    let shadowTintRgb: [number, number, number] | undefined
+
+    // Đánh giá Vật lý 2.5D, Trọng lực, Vùng Độ Sâu Hang Động & Nguồn sáng ảo
+    const hasLayerPhys = Boolean(layer.physics?.enabled && layer.physics.material !== 'none')
+    if (hasLayerPhys || hasPortalOrLight) {
       const phys = evaluateLayerPhysicsTransform(project, layer, t, size)
       pos[0] += phys.positionDelta[0]
       pos[1] += phys.positionDelta[1]
@@ -210,6 +236,10 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
       sc[0] *= phys.scaleMultiplier[0]
       sc[1] *= phys.scaleMultiplier[1]
       sc[2] *= phys.scaleMultiplier[2]
+      caveDarkness = phys.caveDarkness
+      lightIllumination = phys.lightIllumination
+      lightTintRgb = phys.lightTintRgb
+      shadowTintRgb = phys.shadowTintRgb
     }
 
     const k = layer.autoScale ? autoScaleFactor(pos[2], comp) : 1
@@ -268,6 +298,18 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
       opacity *= Math.max(0, (layer.outPoint - t) / layer.fadeOut)
     }
 
+    let vlightEnabled: boolean | undefined
+    let vlightOffsetUV: [number, number] | undefined
+    if (layer.virtualLight?.enabled && layer.virtualLight.kind !== 'none') {
+      const evLight = evaluateVirtualLightAtTime(layer, t, pos, size, sc)
+      if (evLight) {
+        vlightEnabled = true
+        const refW = Math.max(32, Math.min(480, size[0] * Math.abs(sc[0])))
+        const refH = Math.max(32, Math.min(480, size[1] * Math.abs(sc[1])))
+        vlightOffsetUV = [evLight.windOffset[0] / refW, evLight.windOffset[1] / refH]
+      }
+    }
+
     return {
       layer,
       index,
@@ -281,7 +323,13 @@ export function evaluateScene(project: Project, t: number): EvaluatedScene {
       worldPosition: threeToDepth(new THREE.Vector3().setFromMatrixPosition(world)),
       size,
       bounds,
-      uvOffset
+      uvOffset,
+      caveDarkness,
+      lightIllumination,
+      lightTintRgb,
+      shadowTintRgb,
+      vlightEnabled,
+      vlightOffsetUV
     }
   })
 

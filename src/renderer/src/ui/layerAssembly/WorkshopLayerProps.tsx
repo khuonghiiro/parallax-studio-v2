@@ -5,6 +5,7 @@ import { IconAnchor, IconBone, IconCopy, IconFaceSwap, IconLayersStack, IconPuzz
 import { activateVariant, assignToGroup, layerAssetPath, updatePartGroup } from './workshopParts'
 import { addLayersToVariant, createVariantSet, removeFromSlot, renameVariant, slotNames, slotVariantGroups } from './workshopPartSets'
 import { PartEditableTitle } from './PartEditableTitle'
+import { WorkshopPhysicsLightSection } from './WorkshopPhysicsLightSection'
 
 export interface WorkshopLayerPropsProps {
   composite: LayerComposite
@@ -207,6 +208,7 @@ export function WorkshopLayerProps(props: WorkshopLayerPropsProps) {
       <PartSection {...props} />
       <TransformSection {...props} />
       <DepthSection {...props} />
+      <WorkshopPhysicsLightSection layer={layer} onUpdateLayer={onUpdateLayer} />
       <RigSection {...props} />
     </div>
   )
