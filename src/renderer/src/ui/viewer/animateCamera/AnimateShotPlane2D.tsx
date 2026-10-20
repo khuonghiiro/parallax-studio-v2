@@ -1,32 +1,6 @@
 import { memo } from 'react'
 import { assetStore } from '../../../project/assets'
-import type { ProjectedLayer2D, ShotStageBox } from './animateCameraMath'
-
-export function getLayer2DFilterStyle(layer: ProjectedLayer2D, scalePx = 1): string | undefined {
-  const filters: string[] = []
-  let brightness = 1
-  if (layer.caveDarkness && layer.caveDarkness > 0.01) {
-    brightness *= Math.max(0.08, 1 - layer.caveDarkness * 0.85)
-  }
-  if (layer.lightBoost && layer.lightBoost > 0.01) {
-    brightness *= 1 + Math.min(0.65, layer.lightBoost * 0.34)
-  }
-  if (layer.vlight && layer.vlight.intensity > 0.01) {
-    brightness *= 1 + Math.min(0.85, layer.vlight.intensity * 0.42)
-  }
-  if (Math.abs(brightness - 1) > 0.02) {
-    filters.push(`brightness(${brightness.toFixed(2)})`)
-  }
-  if (layer.vlight && layer.vlight.intensity > 0.02) {
-    const r = Math.max(3, Math.min(26, Math.round(13 * scalePx * Math.min(1.8, layer.vlight.intensity))))
-    filters.push(`drop-shadow(0 0 ${r}px ${layer.vlight.color})`)
-  }
-  if (layer.glow && layer.glow.intensity > 0.05) {
-    const r = Math.max(2, Math.min(20, Math.round(layer.glow.thickness * scalePx)))
-    filters.push(`drop-shadow(0 0 ${r}px ${layer.glow.color})`)
-  }
-  return filters.length > 0 ? filters.join(' ') : undefined
-}
+import { getLayer2DFilterStyle, type ProjectedLayer2D, type ShotStageBox } from './animateCameraMath'
 
 export function Layer2DLightOverlay({
   layer,
@@ -42,81 +16,118 @@ export function Layer2DLightOverlay({
   const uPct = layer.vlight ? Math.round(layer.vlight.originU * 100) : 50
   const vPct = layer.vlight ? Math.round((1 - layer.vlight.originV) * 100) : 50
   const intensity = layer.vlight?.intensity ?? 0
-  const surfOpacity = Math.max(0.22, Math.min(0.88, intensity * 0.64))
-  const haloOpacity = Math.max(0.20, Math.min(0.90, intensity * 0.68))
-  const reachPct = layer.vlight
-    ? Math.max(52, Math.min(98, Math.round(layer.vlight.radiusRatio * 78)))
-    : 74
+  const intensityReach = Math.max(0.5, Math.min(1.6, 0.58 + Math.pow(intensity, 0.72) * 0.42))
+
+  const isReceived = Boolean(layer.vlight?.isReceived)
+  const surfOpacity = Math.max(0.28, Math.min(0.95, Math.pow(intensity, 0.78) * (isReceived ? 0.82 : 0.72)))
+  const haloOpacity = Math.max(0.32, Math.min(0.95, Math.pow(intensity, 0.75) * 0.82))
+
+  const haloDiamPct = layer.vlight
+    ? Math.max(96, Math.min(220, Math.round(layer.vlight.radiusRatio * 135 * intensityReach)))
+    : 125
+  const surfRadPct = layer.vlight
+    ? Math.max(30, Math.min(98, Math.round(layer.vlight.radiusRatio * 74 * intensityReach)))
+    : 58
 
   const coneDeg = layer.vlight?.coneAngleDeg ?? 360
   const beamDeg = layer.vlight?.beamAngleDeg ?? 0
   const isCone = coneDeg < 350
-  const halfCone = Math.max(12, Math.min(170, coneDeg * 0.5))
-  // Engine 0° = Right (+X), 90° = Up (+Y); CSS conic-gradient 0deg = Up (+Y), 90deg = Right (+X)
-  const cssBeamDeg = 90 - beamDeg
-  const startDeg = Math.round(cssBeamDeg - halfCone)
+  const spreadRatio = Math.max(0.22, Math.min(0.96, coneDeg / 180))
+  const plumeRyPct = Math.max(14, Math.min(45, Math.round(43 * spreadRatio)))
 
   const pUPct = layer.portal ? Math.round(layer.portal.centerU * 100) : 50
   const pVPct = layer.portal ? Math.round((1 - layer.portal.centerV) * 100) : 55
   const pRxPct = layer.portal ? Math.max(15, Math.min(85, Math.round(layer.portal.rxU * 100))) : 35
   const pRyPct = layer.portal ? Math.max(15, Math.min(85, Math.round(layer.portal.ryV * 100))) : 35
   const portalRescue = layer.portal
-    ? Math.min(layer.portal.darkness, ((layer.lightBoost ?? 0) + intensity * 0.55) * 0.72)
+    ? Math.min(layer.portal.darkness, ((layer.lightBoost ?? 0) + intensity * 0.65) * 0.78)
     : 0
   const effectivePortalDarkness = layer.portal
     ? Math.max(0, layer.portal.darkness - portalRescue)
     : 0
 
   const color = layer.vlight?.color ?? '#ff9d3b'
-  const radialBg = `radial-gradient(circle at ${uPct}% ${vPct}%, #fffbeb 0%, ${color} 32%, ${color}99 ${Math.round(reachPct * 0.72)}%, transparent ${reachPct}%)`
-  const radialCoreBg = `radial-gradient(circle at ${uPct}% ${vPct}%, #fffdf2 0%, ${color}dd 26%, ${color}77 ${Math.round(reachPct * 0.52)}%, transparent ${Math.round(reachPct * 0.68)}%)`
-  const coneBg = `conic-gradient(from ${startDeg}deg at ${uPct}% ${vPct}%, transparent 0deg, ${color}cc ${Math.round(halfCone * 0.45)}deg, #fffdf2 ${Math.round(halfCone)}deg, ${color}cc ${Math.round(halfCone * 1.55)}deg, transparent ${Math.round(coneDeg)}deg)`
-  const coneMask = `radial-gradient(circle at ${uPct}% ${vPct}%, #000 0%, rgba(0,0,0,0.88) ${Math.round(reachPct * 0.68)}%, transparent ${reachPct}%)`
+  // Phân bố Gaussian + Smoothstep đa tầng: tâm trắng ấm đậm đặc (0..14%), sáng rõ vùng giữa (30..50%) và tan mượt về 0 trước khi chạm biên (100%)
+  const omniHaloBg = `radial-gradient(50% 50% at 50% 50%, #ffffff 0%, #fffbe8 14%, ${color}f2 30%, ${color}a8 50%, ${color}42 70%, ${color}0d 86%, transparent 100%)`
+  const conePlumeBg = `radial-gradient(74% ${plumeRyPct}% at 22% 50%, #ffffff 0%, #fffbe8 14%, ${color}f5 30%, ${color}ad 50%, ${color}45 70%, ${color}0d 88%, transparent 100%)`
+  const conePlumeMask = 'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.32) 11%, #000 22%, #000 100%)'
+  const surfDiamPct = Math.max(72, Math.min(230, surfRadPct * 2))
+
+  const plumeBoxStyle: React.CSSProperties = {
+    position: 'absolute',
+    left: `${uPct}%`,
+    top: `${vPct}%`,
+    width: `${isCone ? Math.round(haloDiamPct * 1.28) : haloDiamPct}%`,
+    height: `${isCone ? Math.round(haloDiamPct * 1.28) : haloDiamPct}%`,
+    transformOrigin: isCone ? '22% 50%' : '50% 50%',
+    transform: isCone
+      ? `translate(-22%, -50%) rotate(${-beamDeg}deg)`
+      : 'translate(-50%, -50%)',
+    borderRadius: isCone ? undefined : '50%',
+    pointerEvents: 'none',
+    backgroundImage: isCone ? conePlumeBg : omniHaloBg,
+    WebkitMaskImage: isCone ? conePlumeMask : undefined,
+    maskImage: isCone ? conePlumeMask : undefined
+  }
 
   return (
     <>
+      {/* Quầng sáng khí quyển đặt phía sau tấm ảnh (zIndex: 0) để tâm sáng rực từ trong ra ngoài mà không làm đục chi tiết gốc */}
+      {hasVLight && layer.vlight && !isReceived && (
+        <div
+          style={{
+            ...plumeBoxStyle,
+            mixBlendMode: 'screen',
+            opacity: haloOpacity,
+            zIndex: 0
+          }}
+        />
+      )}
+      {/* Bóng tối cửa hang bám sát alpha PNG của vách đá, tuyệt đối không vẽ hình tròn vào vùng trong suốt */}
       {hasPortal && layer.portal && effectivePortalDarkness > 0.03 && (
         <div
           style={{
             position: 'absolute',
             inset: 0,
             pointerEvents: 'none',
-            background: `radial-gradient(${pRxPct}% ${pRyPct}% at ${pUPct}% ${pVPct}%, ${layer.portal.shadowTint} 0%, ${layer.portal.shadowTint}dd 56%, transparent 96%)`,
-            opacity: Math.max(0.08, Math.min(0.92, effectivePortalDarkness))
+            background: `radial-gradient(${pRxPct}% ${pRyPct}% at ${pUPct}% ${pVPct}%, ${layer.portal.shadowTint} 0%, ${layer.portal.shadowTint}e6 28%, ${layer.portal.shadowTint}80 56%, ${layer.portal.shadowTint}1f 80%, transparent 100%)`,
+            WebkitMaskImage: imgUrl ? `url("${imgUrl}")` : undefined,
+            maskImage: imgUrl ? `url("${imgUrl}")` : undefined,
+            WebkitMaskSize: imgUrl ? '100% 100%' : undefined,
+            maskSize: imgUrl ? '100% 100%' : undefined,
+            WebkitMaskRepeat: imgUrl ? 'no-repeat' : undefined,
+            maskRepeat: imgUrl ? 'no-repeat' : undefined,
+            opacity: Math.max(0.08, Math.min(0.92, effectivePortalDarkness)),
+            zIndex: 2
           }}
         />
       )}
-      {/* Pass 1: Chiếu sáng bề mặt vật thể bám sát alpha PNG (Đồng bộ 1:1 với WebGL Camera) */}
+      {/* Chiếu sáng bề mặt vật thể bám sát alpha PNG bằng chế độ hòa trộn screen giữ nguyên vân đá/tinh thể */}
       {hasVLight && layer.vlight && imgUrl && (
         <div
           style={{
             position: 'absolute',
             inset: 0,
             pointerEvents: 'none',
-            backgroundImage: isCone ? `${radialCoreBg}, ${coneBg}` : radialBg,
             WebkitMaskImage: `url("${imgUrl}")`,
             maskImage: `url("${imgUrl}")`,
             WebkitMaskSize: '100% 100%',
             maskSize: '100% 100%',
             WebkitMaskRepeat: 'no-repeat',
             maskRepeat: 'no-repeat',
-            opacity: surfOpacity
+            mixBlendMode: 'screen',
+            opacity: surfOpacity,
+            zIndex: 2
           }}
-        />
-      )}
-      {/* Pass 2: Quầng sáng / Chùm tia định hướng toả ra không gian xung quanh nguồn sáng */}
-      {hasVLight && layer.vlight && !layer.vlight.isReceived && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: isCone ? '-55%' : '-38%',
-            pointerEvents: 'none',
-            backgroundImage: isCone ? `${radialCoreBg}, ${coneBg}` : radialBg,
-            WebkitMaskImage: isCone ? coneMask : undefined,
-            maskImage: isCone ? coneMask : undefined,
-            opacity: haloOpacity
-          }}
-        />
+        >
+          <div
+            style={{
+              ...plumeBoxStyle,
+              width: `${isCone ? Math.round(surfDiamPct * 1.25) : surfDiamPct}%`,
+              height: `${isCone ? Math.round(surfDiamPct * 1.25) : surfDiamPct}%`
+            }}
+          />
+        </div>
       )}
     </>
   )
@@ -264,6 +275,8 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
                   alt={layer.name}
                   draggable={false}
                   style={{
+                    position: 'relative',
+                    zIndex: 1,
                     width: '100%',
                     height: '100%',
                     objectFit: 'fill',

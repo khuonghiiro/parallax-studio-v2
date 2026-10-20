@@ -4,7 +4,7 @@ import { addKeyframe, anim, evaluate, setValueAt } from '../../../animation/keyf
 import { referenceDistance, smoothNoise } from '../../../animation/math'
 import { type EvaluatedScene } from '../../../engine/evaluateScene'
 import { evaluateLayerGlow } from '../../../engine/layerGlow'
-import { collectActiveVirtualLights, evaluateVirtualLightAtTime } from '../../../engine/virtualLight'
+import { collectEvaluatedVirtualLights, evaluateVirtualLightAtTime } from '../../../engine/virtualLight'
 import { frameTolerance } from '../../../store/editor'
 import { getWaypointTimingMeta } from './animateCameraActionModes'
 
@@ -70,6 +70,32 @@ export interface ProjectedLayer2D {
     intensity: number
     thickness: number
   }
+}
+
+export function getLayer2DFilterStyle(layer: ProjectedLayer2D, scalePx = 1): string | undefined {
+  const filters: string[] = []
+  let brightness = 1
+  if (layer.caveDarkness && layer.caveDarkness > 0.01) {
+    brightness *= Math.max(0.08, 1 - layer.caveDarkness * 0.85)
+  }
+  if (layer.lightBoost && layer.lightBoost > 0.01) {
+    brightness *= 1 + Math.min(0.45, layer.lightBoost * 0.25)
+  }
+  if (layer.vlight && !layer.vlight.isReceived && layer.vlight.intensity > 0.01) {
+    brightness *= 1 + Math.min(0.42, layer.vlight.intensity * 0.24)
+  }
+  if (Math.abs(brightness - 1) > 0.02) {
+    filters.push(`brightness(${brightness.toFixed(2)})`)
+  }
+  if (layer.vlight && !layer.vlight.isReceived && layer.vlight.intensity > 0.02) {
+    const r = Math.max(2, Math.min(14, Math.round(7 * scalePx * Math.min(1.5, layer.vlight.intensity))))
+    filters.push(`drop-shadow(0 0 ${r}px ${layer.vlight.color})`)
+  }
+  if (layer.glow && layer.glow.intensity > 0.05) {
+    const r = Math.max(2, Math.min(20, Math.round(layer.glow.thickness * scalePx)))
+    filters.push(`drop-shadow(0 0 ${r}px ${layer.glow.color})`)
+  }
+  return filters.length > 0 ? filters.join(' ') : undefined
 }
 
 export interface CameraFrame2D {
@@ -240,7 +266,7 @@ export function projectShotLayers2D(
     return b.index - a.index
   })
 
-  const shotLights = collectActiveVirtualLights(project, shotId, ev.t)
+  const shotLights = collectEvaluatedVirtualLights(ev.layers, shotId, ev.t)
 
   return matching.map((el): ProjectedLayer2D => {
     const lz = el.position[2]
@@ -280,21 +306,28 @@ export function projectShotLayers2D(
       base.solidColor2 = el.layer.props.color2
     }
 
+    const worldW = Math.max(32, el.size[0] * Math.abs(el.scale[0]))
+    const worldH = Math.max(32, el.size[1] * Math.abs(el.scale[1]))
     const evVLight = evaluateVirtualLightAtTime(el.layer, ev.t, el.position, el.size, el.scale)
     if (evVLight && evVLight.effectiveIntensity > 0.01) {
       const origU = el.layer.virtualLight?.originUV?.[0] ?? 0.5
       const origV = el.layer.virtualLight?.originUV?.[1] ?? 0.5
-      const shiftU = evVLight.windOffset[0] / Math.max(32, el.size[0])
-      const shiftV = evVLight.windOffset[1] / Math.max(32, el.size[1])
+      const shiftU = evVLight.windOffset[0] / worldW
+      const shiftV = evVLight.windOffset[1] / worldH
+      const beamDeg = (Math.atan2(evVLight.beamDir[1], evVLight.beamDir[0]) * 180) / Math.PI
+      const coneDeg =
+        evVLight.coneCos <= -0.98
+          ? 360
+          : Math.round(((Math.acos(Math.max(-1, Math.min(1, evVLight.coneCos))) * 180) / Math.PI) * 2)
       base.vlight = {
         kind: evVLight.kind,
         color: evVLight.color,
         intensity: evVLight.effectiveIntensity,
-        radiusRatio: Math.max(0.25, Math.min(2.2, evVLight.effectiveRadius / Math.max(48, Math.max(el.size[0], el.size[1])))),
+        radiusRatio: Math.max(0.25, Math.min(2.2, evVLight.effectiveRadius / Math.max(48, Math.max(worldW, worldH)))),
         originU: Math.max(0.05, Math.min(0.95, origU + shiftU)),
         originV: Math.max(0.05, Math.min(0.95, origV + shiftV)),
-        coneAngleDeg: el.layer.virtualLight?.coneAngleDeg ?? 360,
-        beamAngleDeg: (el.layer.virtualLight?.beamAngleDeg ?? 0) + (el.rotation[2] || 0),
+        coneAngleDeg: coneDeg,
+        beamAngleDeg: beamDeg,
         isReceived: false
       }
     } else if (shotLights.length > 0) {
@@ -312,10 +345,12 @@ export function projectShotLayers2D(
         }
       }
       if (bestLight && bestScore > 0.04) {
-        const worldW = Math.max(32, el.size[0] * Math.abs(el.scale[0]))
-        const worldH = Math.max(32, el.size[1] * Math.abs(el.scale[1]))
-        const relU = 0.5 + (bestLight.position[0] - el.position[0]) / worldW
-        const relV = 0.5 + (bestLight.position[1] - el.position[1]) / worldH
+        const perspRatio = Math.max(80, refD + el.position[2]) / Math.max(80, refD + bestLight.position[2])
+        const projLightX = bestLight.position[0] * perspRatio
+        const projLightY = bestLight.position[1] * perspRatio
+        const projRadius = bestLight.effectiveRadius * perspRatio
+        const relU = 0.5 + (projLightX - el.position[0]) / worldW
+        const relV = 0.5 + (projLightY - el.position[1]) / worldH
         if (relU > -0.8 && relU < 1.8 && relV > -0.8 && relV < 1.8) {
           const beamDeg = (Math.atan2(bestLight.beamDir[1], bestLight.beamDir[0]) * 180) / Math.PI
           const coneDeg =
@@ -326,7 +361,7 @@ export function projectShotLayers2D(
             kind: bestLight.kind,
             color: bestLight.color,
             intensity: bestScore * 0.85,
-            radiusRatio: Math.max(0.25, Math.min(2.2, bestLight.effectiveRadius / Math.max(64, Math.max(worldW, worldH)))),
+            radiusRatio: Math.max(0.25, Math.min(2.2, projRadius / Math.max(64, Math.max(worldW, worldH)))),
             originU: relU,
             originV: relV,
             coneAngleDeg: coneDeg,

@@ -315,10 +315,10 @@ export function evaluateVirtualLightAtTime(
     effectiveRadius = baseRadius * (1 + pulse * 0.3)
   }
 
-  const beamRad = (effectiveBeamDeg * Math.PI) / 180
-  const beamDir: [number, number] = [Math.cos(beamRad), Math.sin(beamRad)]
+  const effectiveBeamRad = (effectiveBeamDeg * Math.PI) / 180
   const coneCos =
     effectiveConeDeg >= 350 ? -1.0 : Math.cos(((effectiveConeDeg * 0.5) * Math.PI) / 180)
+  const beamDir: [number, number] = [Math.cos(effectiveBeamRad), Math.sin(effectiveBeamRad)]
 
   return {
     sourceLayerId: layer.id,
@@ -350,6 +350,32 @@ export function collectActiveVirtualLights(
     if ((layer.shotId ?? null) !== (shotId ?? null)) continue
     if (!layer.virtualLight?.enabled || layer.virtualLight.kind === 'none') continue
     const evLight = evaluateVirtualLightAtTime(layer, t)
+    if (evLight) lights.push(evLight)
+  }
+  return lights
+}
+
+/**
+ * Thu thập các nguồn sáng ảo từ danh sách `ev.layers` đã tính toán đầy đủ vị trí vật lý, motion và autoScale
+ * để đồng bộ tuyệt đối 1:1 giữa WebGL Camera 3D và Cam 2D.
+ */
+export function collectEvaluatedVirtualLights(
+  evLayers: ReadonlyArray<{
+    layer: Layer
+    active: boolean
+    position: Vec3
+    size: [number, number]
+    scale: Vec3
+  }>,
+  shotId: string | null,
+  t: number
+): EvaluatedVirtualLight[] {
+  const lights: EvaluatedVirtualLight[] = []
+  for (const el of evLayers) {
+    if (!el.active) continue
+    if ((el.layer.shotId ?? null) !== (shotId ?? null)) continue
+    if (!el.layer.virtualLight?.enabled || el.layer.virtualLight.kind === 'none') continue
+    const evLight = evaluateVirtualLightAtTime(el.layer, t, el.position, el.size, el.scale)
     if (evLight) lights.push(evLight)
   }
   return lights

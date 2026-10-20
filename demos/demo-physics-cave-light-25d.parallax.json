@@ -215,18 +215,18 @@
       "props": { "assetId": "2pj-Vxn9l2", "width": 280, "height": 280 },
       "virtualLight": {
         "enabled": true,
-        "kind": "flashlight",
-        "color": "#fff3b0",
+        "kind": "candle",
+        "color": "#ff9d3b",
         "intensity": 1.35,
-        "radius": 680,
+        "radius": 480,
         "originUV": [0.55, 0.5],
-        "beamAngleDeg": 15,
-        "coneAngleDeg": 68,
-        "windPreset": "none",
-        "windStrength": 0,
-        "windDirectionDeg": 0,
-        "flickerSpeed": 0.3,
-        "zReach": 380
+        "beamAngleDeg": 160,
+        "coneAngleDeg": 95,
+        "windPreset": "gentle",
+        "windStrength": 0.38,
+        "windDirectionDeg": 160,
+        "flickerSpeed": 1.2,
+        "zReach": 320
       },
       "physics": {
         "enabled": true,
@@ -258,7 +258,7 @@
       "parentId": null,
       "shotId": "y2VN6hZA__",
       "transform": {
-        "position": { "value": [140, -20, 450], "keyframes": [] },
+        "position": { "value": [-570, 35, 450], "keyframes": [] },
         "rotation": { "value": [0, 0, 0], "keyframes": [] },
         "scale": { "value": [1, 1, 1], "keyframes": [] },
         "opacity": { "value": 1, "keyframes": [] },

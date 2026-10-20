@@ -1,8 +1,8 @@
 import { memo, useEffect, useRef } from 'react'
 import { assetStore } from '../../../project/assets'
-import type { ProjectedLayer2D, ShotStageBox } from './animateCameraMath'
+import { getLayer2DFilterStyle, type ProjectedLayer2D, type ShotStageBox } from './animateCameraMath'
 import type { CameraActionMode, CameraWaypointItem } from './animateCameraRouteLogic'
-import { getLayer2DFilterStyle, Layer2DLightOverlay } from './AnimateShotPlane2D'
+import { Layer2DLightOverlay } from './AnimateShotPlane2D'
 
 interface AnimateCameraFilmstripProps {
   waypoints: CameraWaypointItem[]
