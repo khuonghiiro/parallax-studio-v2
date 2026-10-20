@@ -1,6 +1,10 @@
 import { memo } from 'react'
 import { useEditor } from '../../../store/editor'
+import { useView } from '../../../store/view'
 import {
+  IconCamera,
+  IconCameraStage,
+  IconCube,
   IconFocus,
   IconLayout2D3D,
   IconPause,
@@ -288,6 +292,47 @@ export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
         >
           <IconRoute width={12} height={12} /> Lộ trình
         </button>
+
+        <span className="viewer-tool-sep" />
+
+        {/* Chuyển đổi góc nhìn nhanh ngay trong dòng công cụ chuẩn, không bị trôi nổi đè lên UI */}
+        <div className="viewer-mode-seg" title="Chuyển đổi góc nhìn hiển thị">
+          <button
+            id="view-camera"
+            type="button"
+            className="seg-btn"
+            title="Góc nhìn Camera (kết quả render)"
+            onClick={() => useView.getState().set({ split: false, primary: 'camera' })}
+          >
+            <IconCamera width={12} height={12} /> Camera
+          </button>
+          <button
+            id="view-3d"
+            type="button"
+            className="seg-btn"
+            title="Không gian 3D: xem các layer xếp chồng, các cảnh và đường bay camera"
+            onClick={() => useView.getState().set({ split: false, primary: 'editor' })}
+          >
+            <IconCube width={12} height={12} /> 3D
+          </button>
+          <button
+            id="view-topview"
+            type="button"
+            className="seg-btn"
+            title="Sơ đồ độ sâu 2.5D: nhìn từ trên xuống để dàn dựng bố cục cảnh nhanh chóng"
+            onClick={() => useView.getState().set({ split: false, primary: 'topview' })}
+          >
+            <IconRoute width={12} height={12} /> 2.5D
+          </button>
+          <button
+            id="view-animate2d"
+            type="button"
+            className="seg-btn active"
+            title="Đang ở Bàn dựng Cam 2D"
+          >
+            <IconCameraStage width={12} height={12} /> Cam 2D
+          </button>
+        </div>
       </div>
     </div>
   )
