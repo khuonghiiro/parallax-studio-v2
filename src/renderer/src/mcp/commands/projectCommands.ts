@@ -41,7 +41,16 @@ export const projectCommands: Record<string, Handler> = {
         muted: !!t.muted,
         loop: !!t.loop
       })),
-      assets: project.assets.map((a) => ({ id: a.id, name: a.name, kind: a.kind, width: a.width, height: a.height, duration: a.duration }))
+      assets: project.assets.map((a) => ({ id: a.id, name: a.name, kind: a.kind, width: a.width, height: a.height, duration: a.duration })),
+      workflow: project.workflow
+        ? {
+            id: project.workflow.id,
+            name: project.workflow.name,
+            presetId: project.workflow.presetId,
+            nodes: project.workflow.nodes.length,
+            edges: project.workflow.edges.length
+          }
+        : undefined
     }
   },
 

@@ -83,11 +83,17 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   motion_parameters: ['.motion-parameters'],
   motion_timing: ['.motion-timing'],
 
-  // Bottom Timeline and sub-sections
+  // Bottom Timeline & Workflow Studio and sub-sections
   timeline: ['section.panel.timeline', 'section.timeline', '.timeline'],
+  timeline_tabs: region('timeline_tabs', '.tl-mode-tabs'),
   timeline_toolbar: ['.timeline-toolbar', '.tl-toolbar'],
   timeline_ruler: ['.tl-header', '.tl-ruler-wrap'],
   timeline_tracks: ['.tl-scroll', '.tl-body', '.tl-rows-scroll'],
+  timeline_workflow: region('timeline_workflow', '.wf-studio-panel'),
+  workflow_toolbar: region('workflow_toolbar', '.wf-toolbar'),
+  workflow_canvas: region('workflow_canvas', '.wf-canvas-viewport'),
+  workflow_inspector: region('workflow_inspector', '.wf-side-panel'),
+  workflow_json_panel: region('workflow_json_panel', '.wf-json-panel'),
 
   // Top Toolbar & Responsive Workspace Dock
   toolbar: ['header.toolbar', '.toolbar'],

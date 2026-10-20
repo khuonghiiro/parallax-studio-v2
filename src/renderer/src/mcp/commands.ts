@@ -14,6 +14,7 @@ import { layerAssemblyTemplateCommands } from './commands/layerAssemblyTemplateC
 import { motionCommands } from './commands/motionCommands'
 import { systemCommands } from './commands/systemCommands'
 import { uiCommands } from './commands/uiCommands'
+import { workflowCommands } from './commands/workflowCommands'
 
 /**
  * Commands an external AI can run through the MCP bridge.
@@ -35,6 +36,7 @@ const commands: Record<string, Handler> = {
   ...motionCommands,
   ...proceduralMotionCommands,
   ...effectStackCommands,
+  ...workflowCommands,
   ...systemCommands,
   ...uiCommands
 }
@@ -44,6 +46,7 @@ function getHandler(canonical: string): Handler | undefined {
     return () => Array.from(new Set([
       ...Object.keys(commands),
       ...Object.keys(uiCommands),
+      ...Object.keys(workflowCommands),
       ...Object.keys(layerAssemblyCommands),
       ...Object.keys(layerAssemblyTemplateCommands),
       ...Object.keys(assemblyCommands),
@@ -60,6 +63,7 @@ function getHandler(canonical: string): Handler | undefined {
   }
   return (
     uiCommands[canonical] ??
+    workflowCommands[canonical] ??
     layerAssemblyCommands[canonical] ??
     layerAssemblyTemplateCommands[canonical] ??
     assemblyCommands[canonical] ??
@@ -140,6 +144,8 @@ const SILENT_MCP_COMMANDS = new Set([
   'get_assembly_template',
   'get_ai_guide',
   'get_ui_state',
+  'list_workflow_presets',
+  'get_workflow',
   'export_project_json',
   'export_shot_json'
 ])

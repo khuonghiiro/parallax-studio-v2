@@ -173,6 +173,7 @@ export async function exportProjectToDeclarativeJson(project: Project, pretty = 
       background: project.comp.background
     },
     look: project.look,
+    ...(project.workflow ? { workflow: project.workflow } : {}),
     assets: assetTable,
     shots
   }

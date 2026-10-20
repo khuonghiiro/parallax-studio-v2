@@ -147,5 +147,8 @@ export interface DeclarativeProjectSpec {
   assets?: AssetTable | (AssetMeta & { dataUrl?: string })[]
   /** Explicit alias dictionary for easy lookup */
   assetTable?: AssetTable
+  /** Optional node-port video production workflow graph */
+  workflow?: import('@shared/types').WorkflowGraph
 }
+
 

@@ -402,6 +402,70 @@ export const FX_TOOLS = [
       show_path: z.boolean().optional()
     })
   },
+  {
+    name: 'list_workflow_presets', cat: 'timeline',
+    doc: L(
+      'List all built-in professional video production workflow templates, functional node types, and typed data ports.',
+      'Liệt kê toàn bộ mẫu quy trình tạo video chuyên nghiệp (Workflow Templates), các khối chức năng (Nodes) và cổng kết nối (Ports).'
+    ),
+    shape: () => ({}),
+    example: '{}'
+  },
+  {
+    name: 'get_workflow', cat: 'timeline',
+    doc: L(
+      'Get the current project Workflow graph JSON along with the compiled AI Logical Agent Blueprint (`aiBlueprint`) describing each connected functional agent, data flow ports, and MCP tool execution plan.',
+      'Lấy sơ đồ Workflow JSON hiện tại của dự án kèm Bản thiết kế Tác nhân Logic AI (`aiBlueprint`) mô tả rõ vai trò từng tác nhân, luồng kết nối cổng và kế hoạch công cụ MCP.'
+    ),
+    shape: () => ({}),
+    example: '{}'
+  },
+  {
+    name: 'set_workflow', cat: 'timeline',
+    doc: L(
+      'Configure the project video production workflow from a preset template (`preset_id`), a JSON workflow graph (`workflow`), or update a specific functional node preset/enabled state.',
+      'Cấu hình quy trình tạo video cho dự án từ mẫu có sẵn (`preset_id`), từ chuỗi/đối tượng JSON (`workflow`), hoặc cập nhật preset/trạng thái bật tắt của một khối chức năng.'
+    ),
+    shape: (d) => ({
+      preset_id: z.string().optional().describe(d('Built-in workflow template ID (e.g. "cinematic_parallax_intro", "character_action_physics", "cave_virtual_light_explore", "story_dialogue_lipsync", "arch3d_flythrough").', 'ID mẫu workflow có sẵn (VD: "cinematic_parallax_intro", "character_action_physics", "cave_virtual_light_explore", "story_dialogue_lipsync", "arch3d_flythrough").')),
+      workflow: z.string().optional().describe(d('JSON string of a WorkflowGraph object.', 'Chuỗi JSON của đối tượng WorkflowGraph.')),
+      node_id: z.string().optional().describe(d('Target node ID (or node type) to update.', 'ID khối node (hoặc loại node) cần cập nhật.')),
+      node_preset: z.string().optional().describe(d('Preset ID to assign to the target node.', 'Mã preset cần gán cho khối node.')),
+      enabled: z.boolean().optional().describe(d('Enable or bypass the target node.', 'Bật hoặc bỏ qua khối node mục tiêu.')),
+      auto_wire: z.boolean().optional().describe(d('Automatically wire compatible ports across all enabled nodes in stage order.', 'Tự động nối dây các cổng tương thích giữa mọi khối đang bật theo thứ tự quy trình.')),
+      switch_to_tab: z.boolean().optional().describe(d('Switch the bottom Timeline area to the Workflow tab so the user sees the graph.', 'Chuyển vùng Timeline sang tab Workflow để hiển thị sơ đồ trực quan.'))
+    }),
+    example: '{"preset_id":"character_action_physics","switch_to_tab":true}'
+  },
+  {
+    name: 'connect_workflow_ports', cat: 'timeline',
+    doc: L(
+      'Connect or disconnect functional ports between two workflow nodes (e.g. `scene_ctx`, `actors_rig`, `motion_stream`, `vfx_stage`, `camera_cut`, `audio_mix`), or auto-wire the entire pipeline.',
+      'Kết nối hoặc ngắt kết nối cổng chức năng giữa 2 khối workflow (`scene_ctx`, `actors_rig`, `motion_stream`, `vfx_stage`, `camera_cut`, `audio_mix`), hoặc tự động nối dây toàn tuyến.'
+    ),
+    shape: (d) => ({
+      action: z.enum(['connect', 'disconnect', 'auto_wire']).optional().describe(d('Action: "connect" (default), "disconnect", or "auto_wire".', 'Thao tác: "connect" (mặc định), "disconnect", hoặc "auto_wire".')),
+      from_node: z.string().optional().describe(d('Source node ID or node type (e.g. "node-assembly" or "layer_assembly").', 'ID hoặc loại khối nguồn (VD: "node-assembly" hoặc "layer_assembly").')),
+      to_node: z.string().optional().describe(d('Target node ID or node type (e.g. "node-motion" or "motion_choreography").', 'ID hoặc loại khối đích (VD: "node-motion" hoặc "motion_choreography").')),
+      port: z.enum(['scene_ctx', 'actors_rig', 'motion_stream', 'vfx_stage', 'camera_cut', 'audio_mix']).optional().describe(d('Port type to connect (auto-detected if omitted).', 'Loại cổng cần nối (bỏ trống sẽ tự động nhận diện cổng tương thích).')),
+      edge_id: z.string().optional().describe(d('Edge ID to remove when action="disconnect".', 'ID dây nối cần gỡ khi action="disconnect".'))
+    }),
+    example: '{"action":"connect","from_node":"node-assembly","to_node":"node-motion","port":"actors_rig"}'
+  },
+  {
+    name: 'apply_workflow', cat: 'timeline',
+    doc: L(
+      'Execute the connected video production workflow onto the current project (or a specific shot): configures depth layout, 2.5D/3D assembly rigs, motion choreography, physics/virtual lighting FX, camera flight path, audio lip-sync, and atmospheric color grading in one step.',
+      'Thực thi ngay quy trình tạo video đã kết nối lên dự án hiện tại (hoặc một phân cảnh): tự động thiết lập bố cục chiều sâu, lắp ráp 2.5D/3D, nhịp chuyển động, vật lý/ánh sáng ảo, đường bay camera, âm thanh lip-sync và chỉnh màu hậu kỳ trong một bước.'
+    ),
+    shape: (d) => ({
+      preset_id: z.string().optional().describe(d('Optional workflow template ID to load and apply immediately.', 'ID mẫu workflow tùy chọn để nạp và áp dụng ngay.')),
+      workflow: z.string().optional().describe(d('Optional custom WorkflowGraph JSON string to apply.', 'Chuỗi JSON WorkflowGraph tùy chỉnh cần áp dụng.')),
+      shot_id: z.string().optional().describe(d('Target shot ID (defaults to selected or first shot).', 'ID phân cảnh mục tiêu (mặc định: cảnh đang chọn hoặc cảnh đầu tiên).')),
+      switch_to_tab: z.boolean().optional().describe(d('Switch bottom panel to the Workflow tab to show the applied pipeline.', 'Chuyển khu vực dưới sang tab Workflow để hiển thị quy trình vừa áp dụng.'))
+    }),
+    example: '{"preset_id":"cinematic_parallax_intro"}'
+  },
 
   // ---- export & scripting
   {

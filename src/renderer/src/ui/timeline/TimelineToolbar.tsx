@@ -27,6 +27,8 @@ import {
 import { FxPresetMenu } from './FxPresetMenu'
 import { deleteSelectedAudioTrack, deleteSelectedLayer, duplicateSelectedLayer } from '../../actions'
 import { useEditor } from '../../store/editor'
+import { ensureProjectWorkflow, resolveConnectedWorkflowNodes } from '../../project/workflowEngine'
+import { TimelineModeTabs } from '../workflow/TimelineModeTabs'
 
 export interface TimelineToolbarProps {
   time?: number
@@ -56,12 +58,22 @@ export function TimelineToolbar({
   setZoom
 }: TimelineToolbarProps) {
   const storeTime = useEditor((s) => s.time)
+  const project = useEditor((s) => s.project)
   const time = propTime !== undefined ? propTime : storeTime
   const selectedAudioTrackId = useEditor((s) => s.selectedAudioTrackId)
   const canDelete = hasSelectedLayer || !!selectedAudioTrackId
+  const wf = ensureProjectWorkflow(project)
+  const { activeNodes } = resolveConnectedWorkflowNodes(wf)
 
   return (
-    <div className="timeline-toolbar">
+    <div className="timeline-toolbar" data-mcp-region="timeline_toolbar">
+      <TimelineModeTabs
+        layerCount={project.layers.length}
+        connectedNodeCount={activeNodes.length}
+        totalNodeCount={wf.nodes.length}
+      />
+      <div className="tl-toolbar-divider" />
+
       {/* 1. Playback Transport Group */}
       <div className="tl-tool-group">
         <button

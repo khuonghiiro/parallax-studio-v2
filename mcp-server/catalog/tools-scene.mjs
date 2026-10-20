@@ -74,7 +74,8 @@ export const SCENE_TOOLS = [
         'left_panel', 'assets', 'asset_grid', 'asset_bar', 'music', 'shots', 'topview',
         'viewer', 'viewer_canvas', 'viewport', 'camera_frame', 'viewer_hud', 'viewer_tools', 'animate_camera_stage', 'animate_camera_toolbar', 'animate_camera_route', 'animate_camera_inspector',
         'inspector', 'inspector_tabs', 'inspector_body', 'inspector_composite', 'inspector_physics', 'inspector_virtual_light', 'composite_swap', 'effect_stack', 'effect_editor', 'timeline_effects', 'fx_presets', 'motion', 'motion_preview', 'motion_parameters', 'motion_timing',
-        'timeline', 'timeline_toolbar', 'timeline_ruler', 'timeline_tracks',
+        'timeline', 'timeline_toolbar', 'timeline_tabs', 'timeline_ruler', 'timeline_tracks',
+        'timeline_workflow', 'workflow_toolbar', 'workflow_canvas', 'workflow_inspector', 'workflow_json_panel',
         'toolbar', 'studio_menu', 'mcp_chip', 'responsive_dock',
         'dialog',
         'assembly_3d', 'assembly_sidebar', 'assembly_viewport', 'assembly_inspector', 'assembly_header', 'assembly_footer', 'assembly_hud',
@@ -106,8 +107,8 @@ export const SCENE_TOOLS = [
   {
     name: 'get_ui_state', cat: 'inspect',
     doc: L(
-      'Inspect current UI state: active dialog/modal, Audio Studio mode, left sidebar tab, right inspector tab, viewer split/mode, open workshops, and active theme (dark/light).',
-      'Tra cứu trạng thái giao diện hiện tại: hộp thoại/modal đang mở, tab Phòng thu âm thanh, tab thanh bên trái, tab thanh tra bên phải, chế độ khung xem, các xưởng đang mở và giao diện sáng/tối.'
+      'Inspect current UI state: active dialog/modal, Audio Studio mode, left sidebar tab, right inspector tab, timeline/workflow tab, viewer split/mode, open workshops, and active theme (dark/light).',
+      'Tra cứu trạng thái giao diện hiện tại: hộp thoại/modal đang mở, tab Phòng thu âm thanh, tab thanh bên trái, tab thanh tra bên phải, tab Timeline/Workflow, chế độ khung xem, các xưởng đang mở và giao diện sáng/tối.'
     ),
     shape: () => ({}),
     example: '{}'
@@ -115,8 +116,8 @@ export const SCENE_TOOLS = [
   {
     name: 'set_ui_dialog', cat: 'inspect',
     doc: L(
-      'Open, switch, or close any UI dialog/workshop (Camera Path, Camera Sketch, Audio Studio, Performance, Export, MCP, 3D Assembly, 2.5D Layer Assembly), switch sidebar/inspector tabs, or toggle dark/light theme.',
-      'Mở, chuyển đổi hoặc đóng bất kỳ hộp thoại/xưởng UI nào (Lộ trình Camera, Vẽ đường bay, Phòng thu Âm thanh, Hiệu năng, Xuất MP4, MCP, Xưởng 3D, Xưởng 2.5D), chuyển tab trái/phải hoặc đổi giao diện Tối/Sáng.'
+      'Open, switch, or close any UI dialog/workshop (Camera Path, Camera Sketch, Audio Studio, Performance, Export, MCP, 3D Assembly, 2.5D Layer Assembly), switch sidebar/inspector/timeline tabs, or toggle dark/light theme.',
+      'Mở, chuyển đổi hoặc đóng bất kỳ hộp thoại/xưởng UI nào (Lộ trình Camera, Vẽ đường bay, Phòng thu Âm thanh, Hiệu năng, Xuất MP4, MCP, Xưởng 3D, Xưởng 2.5D), chuyển tab trái/phải/timeline-workflow hoặc đổi giao diện Tối/Sáng.'
     ),
     shape: (d) => ({
       dialog: z.enum([
@@ -127,6 +128,7 @@ export const SCENE_TOOLS = [
       model_id: z.string().optional().describe(d('3D model ID when opening assembly_3d.', 'ID mô hình 3D khi mở xưởng assembly_3d.')),
       composite_id: z.string().optional().describe(d('2.5D composite ID when opening layer_assembly.', 'ID cụm 2.5D khi mở xưởng layer_assembly.')),
       left_tab: z.enum(['shots', 'assets', 'topview']).optional().describe(d('Switch Left Sidebar tab.', 'Chuyển tab thanh bên trái.')),
+      timeline_tab: z.enum(['timeline', 'workflow']).optional().describe(d('Switch bottom panel between Timeline and Workflow Studio tab.', 'Chuyển tab khu vực dưới cùng giữa Timeline và Workflow Studio.')),
       inspector_tab: z.enum(['scene', 'layer', 'camera']).optional().describe(d('Switch Right Inspector tab.', 'Chuyển tab bảng thuộc tính bên phải.')),
       mobile_tab: z.enum(['timeline', 'left', 'right']).optional().describe(d('Switch active workspace dock tab on Tablet/Phone.', 'Chuyển tab vùng làm việc đang mở trên Máy tính bảng/Điện thoại.')),
       theme: z.enum(['dark', 'light']).optional().describe(d('Switch UI theme ("dark" or "light").', 'Đổi giao diện Sáng ("light") hoặc Tối ("dark").'))

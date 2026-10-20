@@ -100,7 +100,9 @@ export const UI_TEXT_SYNONYMS: Record<string, string[]> = {
   'animation': ['hoạt ảnh', 'chuyển động', 'diễn hoạt'],
   'thực vật': ['plant', 'cây cối', 'uốn thân cây', 'khớp uốn'],
   'xếp lớp': ['layers', 'danh sách layer', 'lớp'],
-  'tạo lắp ráp': ['mở xưởng', 'xưởng lắp ráp', 'tạo mới lắp ráp']
+  'tạo lắp ráp': ['mở xưởng', 'xưởng lắp ráp', 'tạo mới lắp ráp'],
+  'workflow': ['quy trình', 'tab workflow', 'luồng tạo video', 'sơ đồ workflow'],
+  'áp dụng workflow': ['chạy workflow', 'thực thi workflow', 'apply workflow']
 }
 
 /**
@@ -389,6 +391,7 @@ export const uiCommands: Record<string, Handler> = {
       dialog: v.dialog,
       audio_dialog_mode: v.audioDialogMode,
       left_tab: v.leftTab,
+      timeline_tab: v.timelineTab,
       mobile_tab: v.mobileTab,
       tablet_tab: v.tabletTab,
       primary_view: v.primary,
@@ -408,12 +411,17 @@ export const uiCommands: Record<string, Handler> = {
     const dialog = str(p, 'dialog')
     const audioMode = str(p, 'audio_mode')
     const leftTab = str(p, 'left_tab')
+    const timelineTab = str(p, 'timeline_tab')
     const inspectorTab = str(p, 'inspector_tab')
     const mobileTab = str(p, 'mobile_tab')
     const theme = str(p, 'theme')
 
     if (theme === 'dark' || theme === 'light') {
       v.set({ theme })
+    }
+
+    if (timelineTab === 'timeline' || timelineTab === 'workflow') {
+      v.setTimelineTab(timelineTab)
     }
 
     if (leftTab === 'shots' || leftTab === 'assets' || leftTab === 'topview') {
@@ -485,6 +493,7 @@ export const uiCommands: Record<string, Handler> = {
       dialog: s.dialog,
       audio_dialog_mode: s.audioDialogMode,
       left_tab: s.leftTab,
+      timeline_tab: s.timelineTab,
       mobile_tab: s.mobileTab,
       tablet_tab: s.tabletTab,
       assembly_workshop_open: !!s.assemblyModalModel,

@@ -1,6 +1,6 @@
 {
   "$comment": "Single source for the AI guide (MCP server instructions, get_ai_guide, CLI help, McpDialog prompt). Every section MUST keep the same number of lines in en and vi - catalog.test.mjs enforces it.",
-  "toolCount": 136,
+  "toolCount": 141,
   "sections": [
     {
       "id": "overview",
@@ -49,16 +49,18 @@
           "2. add_shot for each scene.",
           "3. add_image_layer / add_text_layer / add_particles per shot, spread in depth (z).",
           "4. build_camera_path to fly between shots (or camera_fly_to_shot / set_keyframe for fine control).",
-          "5. get_viewport_screenshot (view \"camera\" or \"3d\") to check the result visually.",
-          "6. export_video to render the MP4."
+          "5. Use list_workflow_presets / get_workflow / set_workflow / connect_workflow_ports / apply_workflow to wire and execute node-port video production pipelines via JSON and AI logical agent blueprints.",
+          "6. get_viewport_screenshot (view \"camera\" or \"3d\") to check the result visually.",
+          "7. export_video to render the MP4."
         ],
         "vi": [
           "1. get_project_info → kích thước composition, các shot và layer.",
           "2. add_shot cho mỗi phân cảnh.",
           "3. add_image_layer / add_text_layer / add_particles cho từng shot, trải theo chiều sâu (z).",
           "4. build_camera_path để bay giữa các shot (hoặc camera_fly_to_shot / set_keyframe để chỉnh chi tiết).",
-          "5. get_viewport_screenshot (view \"camera\" hoặc \"3d\") để kiểm tra bằng hình ảnh.",
-          "6. export_video để render MP4."
+          "5. Dùng list_workflow_presets / get_workflow / set_workflow / connect_workflow_ports / apply_workflow để kết nối cổng và thực thi quy trình tạo video chuyên nghiệp dạng JSON kèm bản thiết kế tác nhân AI.",
+          "6. get_viewport_screenshot (view \"camera\" hoặc \"3d\") để kiểm tra bằng hình ảnh.",
+          "7. export_video để render MP4."
         ]
       }
     },

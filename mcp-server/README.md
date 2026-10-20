@@ -131,7 +131,7 @@ Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC**
   - Cột trái & tài nguyên: `left_panel`, `assets`, `asset_grid` (lưới card tài nguyên), `asset_bar` (thanh icon danh mục), `music` (bảng quản lý audio), `shots` (danh sách cảnh), `topview` (sơ đồ độ sâu 2.5D).
   - Khung nhìn trung tâm: `viewer`, `viewer_canvas` / `viewport`, `camera_frame` (khung viền render), `viewer_hud` (thông số FPS/VRAM), `viewer_tools` (chế độ camera/3D).
   - Thuộc tính bên phải: `inspector`, `inspector_tabs`, `inspector_body` (form chỉnh sửa chi tiết), `inspector_composite` (mục `Cụm Layer Chồng`), `inspector_physics` (mục `Vật lý Chất liệu & Tương tác 2.5D`), `inspector_virtual_light` (mục `Lối Vào Hang Động & Công Cụ Ánh Sáng Ảo 2.5D`), `composite_swap` (bộ đổi nhanh biểu cảm/bộ phận).
-  - Dòng thời gian: `timeline`, `timeline_toolbar` (cụm nút phát/timecode), `timeline_ruler` (thước đo), `timeline_tracks` (các hàng track layer & keyframe).
+  - Dòng thời gian & Workflow Studio: `timeline`, `timeline_toolbar` (cụm nút phát/timecode), `timeline_tabs` (công tắc 2 tab Timeline / Workflow), `timeline_ruler` (thước đo), `timeline_tracks` (các hàng track layer & keyframe), `timeline_workflow` (toàn bộ tab Workflow), `workflow_toolbar` (thanh mẫu quy trình & nút Áp dụng Workflow), `workflow_canvas` (bàn kết nối cổng Node-Port), `workflow_inspector` (panel cấu hình tác nhân logic AI), `workflow_json_panel` (trình biên tập JSON Workflow & AI Blueprint).
   - Thanh tiêu đề: `toolbar`, `studio_menu` (menu Studio & Đạo diễn), `mcp_chip` (chỉ báo AI), `ai_hud` (badge viền neon).
   - Hộp thoại: `active` (tự chọn dialog/modal **nổi trên cùng** đang hiển thị — ví dụ Studio Mixamo mở trên Xưởng Lắp Ráp Layer thì chỉ chụp Studio Mixamo; nên dùng ngay sau khi mở bất kỳ hộp thoại nào), `dialog` (cũng chọn dialog trên cùng thay vì phần tử khớp đầu tiên).
   - Xưởng 3D & từng cột: `assembly_3d` (toàn bộ), `assembly_sidebar` (cột trái tài nguyên/mặt), `assembly_viewport` (cột giữa 3D/2D), `assembly_inspector` (cột phải thuộc tính), `assembly_header`, `assembly_footer`, `assembly_hud`.
@@ -144,8 +144,8 @@ Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC**
   - Bảng điều khiển MCP: `mcp_dialog`, `mcp_status`, `mcp_config`, `mcp_guide`.
   - Hỗ trợ `selector` CSS tuỳ chỉnh và `padding` đệm viền. Dùng CLI: `pnpm pxs review --view app --region <name>`. Quy trình gợi ý: `active` ngay sau khi mở dialog → sub-region chính xác khi soi một control.
   - **Đăng ký vùng mới (bắt buộc):** phần tử gốc gắn class ngữ nghĩa + `data-mcp-region="<ten>"` (modal lồng thêm `data-mcp-dialog`); thêm vào `UI_REGION_SELECTORS` trong [`uiRegions.ts`](../src/renderer/src/mcp/uiRegions.ts) và enum `region` ở [`catalog/tools-scene.mjs`](./catalog/tools-scene.mjs); chạy `pnpm mcp:schemas` và `pnpm test` (test parity [`uiRegions.test.ts`](../src/renderer/src/mcp/uiRegions.test.ts) FAIL nếu thiếu). Chi tiết: [skill `mcp-ui-region`](../.agents/skills/mcp-ui-region/SKILL.md).
-- `get_ui_state`: Tra cứu trạng thái giao diện hiện tại (`theme`, `dialog`, `audio_dialog_mode`, `left_tab`, `primary_view`, `split_view`, `top_view_mode`, `assembly_workshop_open`, `layer_assembly_open`, `ai_active`, `ai_locked`).
-- `set_ui_dialog`: Mở, chuyển đổi hoặc đóng bất kỳ hộp thoại/xưởng UI nào (`dialog`: `'none' | 'path' | 'sketch' | 'performance' | 'mcp' | 'audio' | 'export' | 'layer_assembly' | 'layer_assembly_create'`), chuyển chế độ Audio Studio (`audio_mode`: `'waveform' | 'levels' | 'mixer'`), chuyển tab cột trái (`left_tab`: `'shots' | 'assets' | 'topview'`), hoặc đổi giao diện Sáng/Tối (`theme`: `'dark' | 'light'`).
+- `get_ui_state`: Tra cứu trạng thái giao diện hiện tại (`theme`, `dialog`, `audio_dialog_mode`, `left_tab`, `timeline_tab`, `primary_view`, `split_view`, `top_view_mode`, `assembly_workshop_open`, `layer_assembly_open`, `ai_active`, `ai_locked`).
+- `set_ui_dialog`: Mở, chuyển đổi hoặc đóng bất kỳ hộp thoại/xưởng UI nào (`dialog`: `'none' | 'path' | 'sketch' | 'performance' | 'mcp' | 'audio' | 'export' | 'layer_assembly' | 'layer_assembly_create'`), chuyển chế độ Audio Studio (`audio_mode`: `'waveform' | 'levels' | 'mixer'`), chuyển tab cột trái (`left_tab`: `'shots' | 'assets' | 'topview'`), chuyển tab dưới cùng (`timeline_tab`: `'timeline' | 'workflow'`), hoặc đổi giao diện Sáng/Tối (`theme`: `'dark' | 'light'`).
 - `set_ai_lock`: Bật/tắt trạng thái khoá tương tác an toàn (`locked: boolean`, `reason`, `timeout_ms`) ngăn người dùng vô tình bấm làm lệch UI khi AI đang tự động thao tác. App sẽ hiển thị viền neon cyberpunk xung quanh và badge HUD kèm nút mở khoá khẩn cấp (`Esc`).
 - `ui_click` / `ui_type`: Bấm phần tử UI theo chữ hoặc CSS selector, nhập ô input – để AI tự mở dialog, chuyển tab rồi chụp kiểm tra.
 - `get_ai_guide`: Đọc hướng dẫn AI theo ngôn ngữ tài liệu đang chọn (`topic`: overview, coordinates, workflow, assembly, tips). Trả lời tại chỗ, không cần app.
@@ -176,11 +176,16 @@ Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC**
 - `set_keyframe`: Đặt keyframe hoạt ảnh tại giây `time` với curve easing (`linear`, `easeInOut`, `hold`...).
 - `remove_keyframe` / `clear_keyframes`: Xóa keyframe hoặc làm sạch toàn bộ timeline của thuộc tính.
 
-### 4.5. Nhóm Camera & Đường Bay 3D (Camera Path & Flythrough)
+### 4.5. Nhóm Camera, Đường Bay 3D & Quy Trình Tạo Video (Camera Path & Workflow Studio)
 - `set_camera`: Đặt vị trí camera (`position`), điểm ngắm (`target`), góc nhìn (`fov`).
 - `apply_camera_preset`: Áp dụng chuyển động mẫu (`dollyIn`, `dollyOut`, `truckLeft`, `truckRight`, `craneUp`, `craneDown`, `orbitLeft`, `orbitRight`, `zoomIn`, `dollyZoom`, `reset`).
 - `camera_fly_to_shot`: Hướng camera bay trực tiếp tới bao quát phân cảnh chỉ định.
 - `build_camera_path`: Tự động sinh đường bay Bezier mượt mà kết nối liên tục tất cả các shot.
+- `list_workflow_presets`: Liệt kê 5 mẫu quy trình tạo video chuyên nghiệp, 7 khối tác nhân chức năng và 6 cổng kết nối.
+- `get_workflow`: Lấy sơ đồ Workflow JSON hiện tại kèm bản thiết kế tác nhân logic AI (`aiBlueprint`) mô tả vai trò từng tác nhân (`SceneLayoutAgent`, `AssemblyRigAgent`, `MotionChoreographyAgent`, `PhysicsLightFxAgent`, `CameraDirectorAgent`, `AudioLipSyncAgent`, `ColorGradingRenderAgent`), các cổng kết nối và chuỗi lệnh MCP tương ứng.
+- `set_workflow`: Cấu hình quy trình từ mẫu (`preset_id`), từ chuỗi/đối tượng JSON (`workflow`), hoặc cập nhật preset từng khối chức năng.
+- `connect_workflow_ports`: Kết nối, ngắt kết nối hoặc tự động nối dây toàn tuyến (`auto_wire`) các cổng dữ liệu giữa các khối chức năng.
+- `apply_workflow`: Thực thi ngay quy trình tạo video đã kết nối lên dự án hiện tại (tự động dàn chiều sâu Z, lắp ráp 2.5D/3D, gán chuyển động, vật lý/ánh sáng ảo, tạo đường bay camera, gắn lip-sync âm thanh và chỉnh màu hậu kỳ trong một bước).
 
 ### 4.6. Nhóm Xử Lý & Dàn Dựng Âm Thanh Đa Luồng (Audio Tracks)
 - `set_audio`: Đặt hoặc xóa nhạc nền chính (`file_path`, `offset`, `volume`, `remove`).

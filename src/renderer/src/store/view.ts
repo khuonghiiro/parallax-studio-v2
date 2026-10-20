@@ -7,6 +7,7 @@ export type PrimaryView = 'camera' | 'editor' | 'topview' | 'animate2d'
 export type TopViewMode = 'top' | 'side'
 export type Theme = 'dark' | 'light'
 export type LeftTab = 'shots' | 'assets' | 'topview'
+export type TimelineMainTab = 'timeline' | 'workflow'
 export type MobileWorkspaceTab = 'timeline' | 'left' | 'right'
 export type TabletSideTab = 'left' | 'right'
 export type DialogKind = 'path' | 'sketch' | 'performance' | 'mcp' | 'audio' | 'export' | null
@@ -48,6 +49,8 @@ export interface ViewState extends ViewPrefs {
   assemblyModalModel: Model3D | null
   leftTab: LeftTab
   setLeftTab(tab: LeftTab): void
+  timelineTab: TimelineMainTab
+  setTimelineTab(tab: TimelineMainTab): void
   mobileTab: MobileWorkspaceTab
   setMobileTab(tab: MobileWorkspaceTab): void
   tabletTab: TabletSideTab
@@ -155,6 +158,10 @@ export const useView = create<ViewState>((set, get) => ({
     } catch {
       /* ignore */
     }
+  },
+  timelineTab: 'timeline',
+  setTimelineTab(timelineTab) {
+    set({ timelineTab, mobileTab: 'timeline' })
   },
   mobileTab: 'timeline',
   setMobileTab(mobileTab) {

@@ -555,6 +555,10 @@ export interface AssetMeta {
   category?: string
 }
 
+import type { WorkflowGraph } from './workflowTypes'
+export * from './workflowTypes'
+export type LayerVirtualLightConfig = LayerVirtualLight
+
 export interface Project {
   version: 2
   comp: Composition
@@ -566,4 +570,7 @@ export interface Project {
   assets: AssetMeta[]
   audio: AudioTrack | null
   audioTracks?: AudioTrackItem[]
+  /** Quy trình Node-Port cấu hình kịch bản tạo video và chỉ dẫn Tác nhân Logic cho AI/MCP */
+  workflow?: WorkflowGraph
 }
+

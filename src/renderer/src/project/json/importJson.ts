@@ -152,6 +152,10 @@ export async function buildProjectFromDeclarativeSpec(spec: DeclarativeProjectSp
     project.look = { ...project.look, ...spec.look }
   }
 
+  if (spec.workflow) {
+    project.workflow = spec.workflow
+  }
+
   if (spec.camera) {
     if (spec.camera.fov !== undefined) project.camera.fov.value = spec.camera.fov
     if (spec.camera.shakeAmount !== undefined) project.camera.shakeAmount = spec.camera.shakeAmount

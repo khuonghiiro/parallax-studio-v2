@@ -1,6 +1,7 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Animatable, AnimValue, AudioTrackItem, Layer, Shot } from '@shared/types'
 import { useEditor, type PropRef } from '../store/editor'
+import { useView } from '../store/view'
 import { IconCaret, IconFilm } from './icons'
 import { PAD, SHOT_PROPS, NAME_W } from './timeline/timelineTypes'
 import { TimelineRow } from './timeline/TimelineRow'
@@ -14,6 +15,7 @@ import { TimelineClusterRow } from './timeline/TimelineClusterRow'
 import { buildTimelineClusters, type TimelineClusterGroup } from './timeline/timelineClusters'
 import { TimelineCameraRows } from './timeline/TimelineCameraRows'
 import { useTimelineInteractions } from './timeline/useTimelineInteractions'
+import { WorkflowStudioPanel } from './workflow/WorkflowStudioPanel'
 
 const TimelineRulerPlayhead = memo(function TimelineRulerPlayhead({
   x
@@ -39,6 +41,7 @@ export function Timeline() {
   const loop = useEditor((s) => s.loop)
   const selectedLayerId = useEditor((s) => s.selectedLayerId)
   const selectedShotId = useEditor((s) => s.selectedShotId)
+  const timelineTab = useView((s) => s.timelineTab)
   const { setTime, setPlaying, setLoop, selectLayer, selectShot } = useEditor.getState()
   const { comp } = project
 
@@ -72,7 +75,7 @@ export function Timeline() {
     const ro = new ResizeObserver(update)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [])
+  }, [timelineTab])
 
   const contentW = Math.max(trackW, Math.round((trackW - PAD * 2) * zoom + PAD * 2))
   const x = useCallback(
@@ -384,8 +387,24 @@ export function Timeline() {
       return n
     })
 
+  if (timelineTab === 'workflow') {
+    return (
+      <section
+        className="panel timeline wf-mode-active"
+        data-mcp-region="timeline"
+        style={{ ['--tl-name-w' as string]: `${nameW}px` }}
+      >
+        <WorkflowStudioPanel />
+      </section>
+    )
+  }
+
   return (
-    <section className="panel timeline" style={{ ['--tl-name-w' as string]: `${nameW}px` }}>
+    <section
+      className="panel timeline"
+      data-mcp-region="timeline"
+      style={{ ['--tl-name-w' as string]: `${nameW}px` }}
+    >
       <TimelineToolbar
         fps={comp.fps}
         duration={comp.duration}
