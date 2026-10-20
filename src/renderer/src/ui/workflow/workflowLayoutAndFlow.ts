@@ -25,7 +25,7 @@ export function estimateNodeCardHeight(node: WorkflowNode): number {
   return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 116
 }
 
-/** Tọa độ tâm chính xác tuyệt đối của chân cắm Port Đầu Ra (nằm đúng trên mép phải khối) */
+/** Tọa độ tâm chính xác tuyệt đối của chân cắm Port Đầu Ra (nằm đúng trên tâm vòng tròn pin) */
 export function getOutputSocketCoords(
   node: WorkflowNode,
   port: WorkflowPortKind
@@ -33,12 +33,12 @@ export function getOutputSocketCoords(
   const spec = WORKFLOW_NODE_SPECS[node.type]
   const idx = Math.max(0, spec?.outputs.indexOf(port) ?? 0)
   return {
-    x: node.position.x + NODE_W,
+    x: node.position.x + NODE_W + 9,
     y: node.position.y + HEADER_H + SOCKET_PAD_TOP + idx * SOCKET_ROW_H + SOCKET_ROW_H / 2
   }
 }
 
-/** Tọa độ tâm chính xác tuyệt đối của chân cắm Port Đầu Vào (nằm đúng trên mép trái khối) */
+/** Tọa độ tâm chính xác tuyệt đối của chân cắm Port Đầu Vào (nằm đúng trên tâm vòng tròn pin) */
 export function getInputSocketCoords(
   node: WorkflowNode,
   port: WorkflowPortKind
@@ -46,9 +46,72 @@ export function getInputSocketCoords(
   const spec = WORKFLOW_NODE_SPECS[node.type]
   const idx = Math.max(0, spec?.inputs.indexOf(port) ?? 0)
   return {
-    x: node.position.x,
+    x: node.position.x - 9,
     y: node.position.y + HEADER_H + SOCKET_PAD_TOP + idx * SOCKET_ROW_H + SOCKET_ROW_H / 2
   }
+}
+
+/**
+ * Tìm cổng Input phù hợp nhất trên targetNode khi nối từ cổng fromPort của sourceNode
+ */
+export function getBestMatchingInputPort(
+  fromPort: WorkflowPortKind,
+  targetNode: WorkflowNode
+): WorkflowPortKind | null {
+  const spec = WORKFLOW_NODE_SPECS[targetNode.type]
+  if (!spec || spec.inputs.length === 0) return null
+
+  // 1. Cùng tên cổng chuẩn (ưu tiên tuyệt đối)
+  if (spec.inputs.includes(fromPort)) return fromPort
+
+  // 2. Tương thích ngữ nghĩa giữa các khâu
+  const compatibilityMap: Record<WorkflowPortKind, WorkflowPortKind[]> = {
+    scene_ctx: ['scene_ctx'],
+    actors_rig: ['actors_rig', 'scene_ctx'],
+    motion_stream: ['motion_stream', 'actors_rig', 'scene_ctx'],
+    vfx_stage: ['vfx_stage', 'motion_stream', 'scene_ctx'],
+    camera_cut: ['camera_cut', 'scene_ctx'],
+    audio_mix: ['audio_mix']
+  }
+
+  const candidates = compatibilityMap[fromPort] ?? []
+  for (const cand of candidates) {
+    if (spec.inputs.includes(cand)) return cand
+  }
+
+  // 3. Fallback: cổng vào đầu tiên có sẵn
+  return spec.inputs[0]
+}
+
+/**
+ * Tìm cổng Output phù hợp nhất trên sourceNode khi nối tới cổng toPort của targetNode
+ */
+export function getBestMatchingOutputPort(
+  toPort: WorkflowPortKind,
+  sourceNode: WorkflowNode
+): WorkflowPortKind | null {
+  const spec = WORKFLOW_NODE_SPECS[sourceNode.type]
+  if (!spec || spec.outputs.length === 0) return null
+
+  // 1. Cùng tên cổng chuẩn
+  if (spec.outputs.includes(toPort)) return toPort
+
+  // 2. Tương thích ngữ nghĩa ngược
+  const reverseMap: Record<WorkflowPortKind, WorkflowPortKind[]> = {
+    scene_ctx: ['scene_ctx'],
+    actors_rig: ['actors_rig'],
+    motion_stream: ['motion_stream', 'actors_rig'],
+    vfx_stage: ['vfx_stage', 'motion_stream'],
+    camera_cut: ['camera_cut'],
+    audio_mix: ['audio_mix']
+  }
+
+  const candidates = reverseMap[toPort] ?? []
+  for (const cand of candidates) {
+    if (spec.outputs.includes(cand)) return cand
+  }
+
+  return spec.outputs[0]
 }
 
 export function buildBezierPath(x1: number, y1: number, x2: number, y2: number): string {

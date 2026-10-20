@@ -2,25 +2,23 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Project, WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowPortKind } from '@shared/types'
 import {
   DEFAULT_NODE_POSITIONS,
-  PRESET_SHORT_LABELS,
   WORKFLOW_NODE_SPECS,
   WORKFLOW_PORT_SPECS
 } from '../../project/workflowCatalog'
-import { renderWorkflowNodeIcon } from './workflowIcons'
-import { WorkflowNodePreview } from './WorkflowNodePreview'
+import { WorkflowNodeCard } from './WorkflowNodeCard'
+import { WorkflowCanvasHUD } from './WorkflowCanvasHUD'
 import {
   NODE_W,
-  SOCKET_PAD_TOP,
-  SOCKET_ROW_H,
   buildBezierPath,
   buildSmartEdgeGeometry,
   estimateNodeCardHeight,
-  evaluateNodeRuntimeTelemetry,
+  getBestMatchingInputPort,
+  getBestMatchingOutputPort,
   getInputSocketCoords,
   getOutputSocketCoords
 } from './workflowLayoutAndFlow'
 
-const SNAP_RADIUS = 38
+const SNAP_RADIUS = 60
 const MIN_ZOOM = 0.42
 const MAX_ZOOM = 1.75
 
@@ -70,6 +68,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   const [pendingSource, setPendingSource] = useState<{
     nodeId: string
     port: WorkflowPortKind
+    isOutput: boolean
     x: number
     y: number
   } | null>(null)
@@ -77,8 +76,10 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   const [snappedTarget, setSnappedTarget] = useState<{
     nodeId: string
     port: WorkflowPortKind
+    isInput: boolean
     x: number
     y: number
+    targetCardOnly?: boolean
   } | null>(null)
 
   const nodeById = useMemo(() => new Map(workflow.nodes.map((n) => [n.id, n])), [workflow.nodes])
@@ -256,32 +257,51 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   )
 
   /**
-   * Tìm chân cắm Input hoặc Thẻ khối đích gần nhất để hút nam châm (Magnetic Snap).
-   * Hỗ trợ cả nối đúng cổng chuẩn lẫn nối trực tiếp khi thả dây lên bất kỳ vị trí nào trên thẻ khối đích!
+   * Tìm chân cắm mục tiêu hoặc Thẻ khối đích gần nhất để hút nam châm (Magnetic Snap).
+   * Hỗ trợ 2 chiều: Kéo từ Output ➔ hút Input; Kéo từ Input ➔ hút Output.
+   * Đồng thời hỗ trợ thả dây trực tiếp lên bất kỳ vị trí nào trên thẻ khối đích (Whole Card Drop)!
    */
   const findMagneticTarget = useCallback(
-    (worldX: number, worldY: number, sourceNodeId: string, sourcePort: WorkflowPortKind) => {
+    (
+      worldX: number,
+      worldY: number,
+      sourceNodeId: string,
+      sourcePort: WorkflowPortKind,
+      isSourceOutput: boolean
+    ) => {
       let bestSocket: {
         nodeId: string
         port: WorkflowPortKind
+        isInput: boolean
         x: number
         y: number
         dist: number
       } | null = null
 
-      // 1. Ưu tiên kiểm tra khoảng cách tới tất cả các chân cắm Input của các khối khác
+      // 1. Kiểm tra khoảng cách tới tất cả các chân cắm phù hợp của các khối khác
       for (const n of workflow.nodes) {
         if (n.id === sourceNodeId) continue
         const spec = WORKFLOW_NODE_SPECS[n.type]
-        if (!spec || spec.inputs.length === 0) continue
+        if (!spec) continue
 
-        for (const inPort of spec.inputs) {
-          const coords = getInputSocketCoords(n, inPort)
+        const targetPorts = isSourceOutput ? spec.inputs : spec.outputs
+        if (targetPorts.length === 0) continue
+
+        for (const targetPort of targetPorts) {
+          const coords = isSourceOutput
+            ? getInputSocketCoords(n, targetPort)
+            : getOutputSocketCoords(n, targetPort)
           const dist = Math.hypot(coords.x - worldX, coords.y - worldY)
-          // Ưu tiên cổng cùng loại bằng cách giảm nhẹ khoảng cách ảo
-          const effectiveDist = inPort === sourcePort ? dist * 0.75 : dist
+          const effectiveDist = targetPort === sourcePort ? dist * 0.7 : dist
           if (dist <= SNAP_RADIUS && (!bestSocket || effectiveDist < bestSocket.dist)) {
-            bestSocket = { nodeId: n.id, port: inPort, x: coords.x, y: coords.y, dist: effectiveDist }
+            bestSocket = {
+              nodeId: n.id,
+              port: targetPort,
+              isInput: isSourceOutput,
+              x: coords.x,
+              y: coords.y,
+              dist: effectiveDist
+            }
           }
         }
       }
@@ -289,26 +309,37 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         return {
           nodeId: bestSocket.nodeId,
           port: bestSocket.port,
+          isInput: bestSocket.isInput,
           x: bestSocket.x,
           y: bestSocket.y
         }
       }
 
-      // 2. Nếu người dùng kéo thả dây vào ngay trong thân Thẻ Khối đích (Node Card Drop) -> tự chọn cổng vào tốt nhất!
+      // 2. Thả dây vào BẤT KỲ ĐÂU trên thẻ Khối đích (Whole Card Drop Hitbox)
       for (const n of workflow.nodes) {
         if (n.id === sourceNodeId) continue
         const spec = WORKFLOW_NODE_SPECS[n.type]
-        if (!spec || spec.inputs.length === 0) continue
+        if (!spec) continue
         const cardH = estimateNodeCardHeight(n)
         if (
-          worldX >= n.position.x - 16 &&
-          worldX <= n.position.x + NODE_W + 16 &&
-          worldY >= n.position.y - 10 &&
-          worldY <= n.position.y + cardH + 10
+          worldX >= n.position.x - 24 &&
+          worldX <= n.position.x + NODE_W + 24 &&
+          worldY >= n.position.y - 16 &&
+          worldY <= n.position.y + cardH + 24
         ) {
-          const preferredPort = spec.inputs.includes(sourcePort) ? sourcePort : spec.inputs[0]
-          const coords = getInputSocketCoords(n, preferredPort)
-          return { nodeId: n.id, port: preferredPort, x: coords.x, y: coords.y }
+          if (isSourceOutput) {
+            const bestPort = getBestMatchingInputPort(sourcePort, n)
+            if (bestPort) {
+              const coords = getInputSocketCoords(n, bestPort)
+              return { nodeId: n.id, port: bestPort, isInput: true, x: coords.x, y: coords.y, targetCardOnly: true }
+            }
+          } else {
+            const bestPort = getBestMatchingOutputPort(sourcePort, n)
+            if (bestPort) {
+              const coords = getOutputSocketCoords(n, bestPort)
+              return { nodeId: n.id, port: bestPort, isInput: false, x: coords.x, y: coords.y, targetCardOnly: true }
+            }
+          }
         }
       }
 
@@ -317,67 +348,146 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     [workflow.nodes]
   )
 
-  /** Bắt đầu kéo dây hoặc bấm chọn từ chân cắm Output */
-  const handleOutputSocketPointerDown = (
-    e: React.PointerEvent,
-    node: WorkflowNode,
-    port: WorkflowPortKind
-  ) => {
-    e.stopPropagation()
-    e.preventDefault()
-    const startCoords = getOutputSocketCoords(node, port)
-    setPendingSource({ nodeId: node.id, port, x: startCoords.x, y: startCoords.y })
-    setCursorWorld(startCoords)
-    setSnappedTarget(null)
+  /** Theo dõi chuột toàn màn hình và phím ESC khi đang ở chế độ nối dây Click-to-Connect */
+  useEffect(() => {
+    if (!pendingSource) return
 
-    const onMove = (ev: PointerEvent) => {
+    const handleGlobalPointerMove = (ev: PointerEvent) => {
       const w = clientToWorld(ev.clientX, ev.clientY)
       setCursorWorld(w)
-      setSnappedTarget(findMagneticTarget(w.x, w.y, node.id, port))
+      setSnappedTarget(
+        findMagneticTarget(
+          w.x,
+          w.y,
+          pendingSource.nodeId,
+          pendingSource.port,
+          pendingSource.isOutput
+        )
+      )
     }
 
-    const onUp = (ev: PointerEvent) => {
-      window.removeEventListener('pointermove', onMove)
-      window.removeEventListener('pointerup', onUp)
-      const w = clientToWorld(ev.clientX, ev.clientY)
-      const snap = findMagneticTarget(w.x, w.y, node.id, port)
-      if (snap) {
-        onConnectPorts(node.id, port, snap.nodeId, snap.port)
+    const handleGlobalKeyDown = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape') {
         setPendingSource(null)
         setCursorWorld(null)
         setSnappedTarget(null)
       }
-      // Nếu chỉ click 1 cái vào cổng ra, giữ pendingSource để bấm vào khối đích kết nối
     }
 
-    window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerup', onUp)
-  }
+    window.addEventListener('pointermove', handleGlobalPointerMove)
+    window.addEventListener('keydown', handleGlobalKeyDown)
+    return () => {
+      window.removeEventListener('pointermove', handleGlobalPointerMove)
+      window.removeEventListener('keydown', handleGlobalKeyDown)
+    }
+  }, [pendingSource, clientToWorld, findMagneticTarget])
 
-  /** Bấm vào chân cắm Input để hoàn tất nối dây hoặc ngắt dây hiện có */
-  const handleInputSocketClick = (e: React.MouseEvent, node: WorkflowNode, port: WorkflowPortKind) => {
-    e.stopPropagation()
-    if (pendingSource) {
-      if (pendingSource.nodeId !== node.id) {
-        onConnectPorts(pendingSource.nodeId, pendingSource.port, node.id, port)
-      }
-      setPendingSource(null)
-      setCursorWorld(null)
+  /**
+   * Bắt đầu kéo dây hoặc bấm chọn từ chân cắm (Hỗ trợ 2 chiều: Output ➔ Input hoặc Input ➔ Output).
+   * Phân biệt chuẩn xác giữa Drag & Drop (kéo thả) và Click-to-Connect (bấm chọn).
+   */
+  const startConnecting = useCallback(
+    (
+      startEv: React.PointerEvent,
+      node: WorkflowNode,
+      port: WorkflowPortKind,
+      isOutput: boolean
+    ) => {
+      startEv.stopPropagation()
+      startEv.preventDefault()
+
+      const startCoords = isOutput
+        ? getOutputSocketCoords(node, port)
+        : getInputSocketCoords(node, port)
+
+      const startClientPos = { x: startEv.clientX, y: startEv.clientY }
+      let hasDragged = false
+
+      setPendingSource({
+        nodeId: node.id,
+        port,
+        isOutput,
+        x: startCoords.x,
+        y: startCoords.y
+      })
+      setCursorWorld(startCoords)
       setSnappedTarget(null)
-      return
-    }
-    const existingEdge = workflow.edges.find((ed) => ed.toNode === node.id && ed.toPort === port)
-    if (existingEdge) {
-      onDisconnectEdge(existingEdge.id)
-    }
-  }
 
-  const handleViewportPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!pendingSource) return
-    const w = clientToWorld(e.clientX, e.clientY)
-    setCursorWorld(w)
-    setSnappedTarget(findMagneticTarget(w.x, w.y, pendingSource.nodeId, pendingSource.port))
-  }
+      const onMove = (ev: PointerEvent) => {
+        if (
+          !hasDragged &&
+          Math.hypot(ev.clientX - startClientPos.x, ev.clientY - startClientPos.y) > 5
+        ) {
+          hasDragged = true
+        }
+        const w = clientToWorld(ev.clientX, ev.clientY)
+        setCursorWorld(w)
+        setSnappedTarget(findMagneticTarget(w.x, w.y, node.id, port, isOutput))
+      }
+
+      const onUp = (ev: PointerEvent) => {
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+
+        if (hasDragged) {
+          const w = clientToWorld(ev.clientX, ev.clientY)
+          const snap = findMagneticTarget(w.x, w.y, node.id, port, isOutput)
+          if (snap) {
+            if (isOutput) {
+              onConnectPorts(node.id, port, snap.nodeId, snap.port)
+            } else {
+              onConnectPorts(snap.nodeId, snap.port, node.id, port)
+            }
+          }
+          setPendingSource(null)
+          setCursorWorld(null)
+          setSnappedTarget(null)
+        }
+      }
+
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+    },
+    [clientToWorld, findMagneticTarget, onConnectPorts]
+  )
+
+  /** Bấm vào chân cắm Input */
+  const handleInputSocketClick = useCallback(
+    (e: React.MouseEvent, node: WorkflowNode, port: WorkflowPortKind) => {
+      e.stopPropagation()
+      if (pendingSource) {
+        if (pendingSource.nodeId !== node.id && pendingSource.isOutput) {
+          onConnectPorts(pendingSource.nodeId, pendingSource.port, node.id, port)
+        }
+        setPendingSource(null)
+        setCursorWorld(null)
+        setSnappedTarget(null)
+        return
+      }
+      const existingEdge = workflow.edges.find((ed) => ed.toNode === node.id && ed.toPort === port)
+      if (existingEdge) {
+        onDisconnectEdge(existingEdge.id)
+      }
+    },
+    [pendingSource, workflow.edges, onConnectPorts, onDisconnectEdge]
+  )
+
+  /** Bấm vào chân cắm Output */
+  const handleOutputSocketClick = useCallback(
+    (e: React.MouseEvent, node: WorkflowNode, port: WorkflowPortKind) => {
+      e.stopPropagation()
+      if (pendingSource) {
+        if (pendingSource.nodeId !== node.id && !pendingSource.isOutput) {
+          onConnectPorts(node.id, port, pendingSource.nodeId, pendingSource.port)
+        }
+        setPendingSource(null)
+        setCursorWorld(null)
+        setSnappedTarget(null)
+        return
+      }
+    },
+    [pendingSource, onConnectPorts]
+  )
 
   const renderedEdges = useMemo(() => {
     const out: {
@@ -437,7 +547,14 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       }}
       onWheel={handleWheel}
       onPointerDown={handleViewportPointerDown}
-      onPointerMove={handleViewportPointerMove}
+      onContextMenu={(e) => {
+        if (pendingSource) {
+          e.preventDefault()
+          setPendingSource(null)
+          setCursorWorld(null)
+          setSnappedTarget(null)
+        }
+      }}
     >
       {/* Hướng dẫn nổi khi đang kéo nối dây Port */}
       {pendingSource && (
@@ -542,376 +659,96 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
               </g>
             ))}
 
-            {/* Dây đang kéo trực tiếp kèm vòng nam châm bắt điểm */}
+            {/* Dây đang kéo trực tiếp kèm vòng nam châm bắt điểm (Hỗ trợ 2 chiều mượt mà) */}
             {pendingSource && previewTarget && (
               <g className="wf-edge-preview-group">
                 <path
-                  d={buildBezierPath(
-                    pendingSource.x,
-                    pendingSource.y,
-                    previewTarget.x,
-                    previewTarget.y
-                  )}
+                  d={
+                    pendingSource.isOutput
+                      ? buildBezierPath(
+                          pendingSource.x,
+                          pendingSource.y,
+                          previewTarget.x,
+                          previewTarget.y
+                        )
+                      : buildBezierPath(
+                          previewTarget.x,
+                          previewTarget.y,
+                          pendingSource.x,
+                          pendingSource.y
+                        )
+                  }
                   className="wf-edge-preview"
                   stroke={WORKFLOW_PORT_SPECS[pendingSource.port]?.color ?? '#38bdf8'}
                 />
                 <circle
                   cx={previewTarget.x}
                   cy={previewTarget.y}
-                  r={snappedTarget ? 8 : 4.5}
-                  fill="none"
+                  r={snappedTarget ? 9 : 5}
+                  fill={snappedTarget ? (WORKFLOW_PORT_SPECS[pendingSource.port]?.color ?? '#38bdf8') : 'none'}
+                  fillOpacity={snappedTarget ? 0.35 : 0}
                   stroke={WORKFLOW_PORT_SPECS[pendingSource.port]?.color ?? '#38bdf8'}
-                  strokeWidth="2"
+                  strokeWidth={snappedTarget ? 3 : 2}
                 />
               </g>
             )}
           </svg>
 
           {/* Các Khối Chức Năng (Functional Nodes) */}
-          {workflow.nodes.map((node) => {
-            const spec = WORKFLOW_NODE_SPECS[node.type]
-            const isSelected = node.id === selectedNodeId
-            const isConnected = activeNodeIds.has(node.id)
-            const stepNum = executionStepMap.get(node.id)
-            const inputs = spec?.inputs ?? []
-            const outputs = spec?.outputs ?? []
-            const socketRowCount = Math.max(inputs.length, outputs.length, 1)
-            const telemetry = evaluateNodeRuntimeTelemetry(
-              node,
-              project,
-              time,
-              playing,
-              isConnected,
-              stepNum,
-              Math.max(1, activeNodeIds.size),
-              workflow,
-              activeNodeIds
-            )
-
-            const isSnapNode = Boolean(snappedTarget && snappedTarget.nodeId === node.id)
-
-            return (
-              <div
-                key={node.id}
-                id={`wf-node-${node.type}`}
-                className={`wf-node-card${isSelected ? ' selected' : ''}${isConnected ? ' connected' : ' disconnected'}${!node.enabled ? ' disabled' : ''}${telemetry.isStageHighlight ? ' running stage-highlight' : ''}${isSnapNode ? ' snap-target' : ''}`}
-                style={{
-                  left: node.position.x,
-                  top: node.position.y,
-                  width: NODE_W,
-                  ['--wf-node-color' as string]: spec?.color ?? '#38bdf8'
-                }}
-                onPointerDown={(e) => startNodeDrag(e, node)}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (pendingSource && pendingSource.nodeId !== node.id && inputs.length > 0) {
-                    const preferred = inputs.includes(pendingSource.port)
-                      ? pendingSource.port
-                      : inputs[0]
-                    onConnectPorts(pendingSource.nodeId, pendingSource.port, node.id, preferred)
-                    setPendingSource(null)
-                    setCursorWorld(null)
-                    setSnappedTarget(null)
-                    return
-                  }
-                  onSelectNode(node.id)
-                }}
-              >
-                {/* 1. Thanh tiêu đề Khối (Nắm kéo tự do 4 hướng) */}
-                <div className="wf-node-header">
-                  <span className="wf-node-icon" style={{ background: spec?.color }}>
-                    {renderWorkflowNodeIcon(node.type, { width: 12, height: 12 })}
-                  </span>
-                  <span
-                    className="wf-node-title"
-                    title={`${node.title} — Nắm kéo để di chuyển tự do Trái / Phải / Lên / Xuống`}
-                  >
-                    {node.params?.logicId ? node.title.replace(/^Node:\s*/i, '') : (spec?.shortTitle ?? node.title)}
-                  </span>
-                  {onPreviewNode && (
-                    <button
-                      type="button"
-                      className="wf-node-eye-btn"
-                      title="Áp dụng & Xem thử hiệu ứng khối này trên Cảnh 3D"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onSelectNode(node.id)
-                        onPreviewNode(node)
-                      }}
-                    >
-                      👁
-                    </button>
-                  )}
-                  <span
-                    className={`wf-node-status-pill${isConnected ? ' on' : ' disconnected'}${telemetry.isStageHighlight ? ' running' : ''}`}
-                    title={
-                      !node.enabled
-                        ? 'Khối đang tắt (OFF)'
-                        : isConnected
-                          ? `${telemetry.routeText} (${node.aiAgentRole}) — ${telemetry.liveSummary}`
-                          : telemetry.liveSummary
-                    }
-                  >
-                    {!node.enabled
-                      ? 'Tắt'
-                      : isConnected
-                        ? telemetry.isStageHighlight
-                          ? `⚡ #${stepNum}`
-                          : `✓ #${stepNum}`
-                        : '⛔ Đứt'}
-                  </span>
-                  <button
-                    type="button"
-                    className={`wf-node-toggle${node.enabled ? ' on' : ''}`}
-                    title={node.enabled ? 'Đang bật (Bấm để tắt khối này)' : 'Đang tắt (Bấm để bật)'}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onToggleNode(node.id)
-                    }}
-                  >
-                    {node.enabled ? 'ON' : 'OFF'}
-                  </button>
-                  {onDeleteNode && workflow.nodes.length > 1 && (
-                    <button
-                      type="button"
-                      className="wf-node-del-btn"
-                      title={`Xóa "${node.title}" khỏi sơ đồ`}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onDeleteNode(node.id)
-                      }}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-
-                {/* 2. Khu vực Chân cắm Port (Protruding Socket Pins trên mép trái & phải) */}
-                <div
-                  className="wf-socket-matrix"
-                  style={{ height: SOCKET_PAD_TOP * 2 + socketRowCount * SOCKET_ROW_H }}
-                >
-                  {Array.from({ length: socketRowCount }).map((_, rowIdx) => {
-                    const inPort = inputs[rowIdx]
-                    const outPort = outputs[rowIdx]
-                    const inSpec = inPort ? WORKFLOW_PORT_SPECS[inPort] : null
-                    const outSpec = outPort ? WORKFLOW_PORT_SPECS[outPort] : null
-
-                    const inWired = inPort
-                      ? workflow.edges.some((e) => e.toNode === node.id && e.toPort === inPort)
-                      : false
-                    const outWired = outPort
-                      ? workflow.edges.some((e) => e.fromNode === node.id && e.fromPort === outPort)
-                      : false
-
-                    const isCompatibleTarget = Boolean(
-                      inPort && pendingSource && pendingSource.nodeId !== node.id
-                    )
-                    const isSnapped = Boolean(
-                      inPort &&
-                        snappedTarget &&
-                        snappedTarget.nodeId === node.id &&
-                        snappedTarget.port === inPort
-                    )
-                    const isOutPending = Boolean(
-                      outPort &&
-                        pendingSource?.nodeId === node.id &&
-                        pendingSource?.port === outPort
-                    )
-
-                    return (
-                      <div
-                        key={`row-${rowIdx}`}
-                        className="wf-socket-row"
-                        style={{ height: SOCKET_ROW_H }}
-                      >
-                        {/* Cổng Đầu Vào (Mép Trái) */}
-                        {inPort && inSpec ? (
-                          <button
-                            type="button"
-                            className={`wf-socket-hit in${inWired ? ' wired' : ''}${isCompatibleTarget ? ' compatible' : ''}${isSnapped ? ' snapped' : ''}`}
-                            style={{ ['--port-c' as string]: inSpec.color }}
-                            title={
-                              isCompatibleTarget
-                                ? `Thả hoặc bấm vào đây để nối vào cổng "${inSpec.label}"`
-                                : inWired
-                                  ? `Cổng vào: ${inSpec.label} (Đang nối — Bấm để ngắt dây)`
-                                  : `Cổng vào: ${inSpec.label} (Chưa nối)`
-                            }
-                            onClick={(e) => handleInputSocketClick(e, node, inPort)}
-                          >
-                            <span className="wf-socket-pin in">
-                              <span className="wf-socket-pin-core" />
-                            </span>
-                            <span className="wf-socket-label">{inSpec.shortLabel}</span>
-                          </button>
-                        ) : (
-                          <span />
-                        )}
-
-                        {/* Cổng Đầu Ra (Mép Phải) */}
-                        {outPort && outSpec ? (
-                          <button
-                            type="button"
-                            className={`wf-socket-hit out${outWired ? ' wired' : ''}${isOutPending ? ' pending' : ''}`}
-                            style={{ ['--port-c' as string]: outSpec.color }}
-                            title={`Cổng ra: ${outSpec.label} — Nắm kéo hoặc bấm để nối sang khối tiếp theo`}
-                            onPointerDown={(e) => handleOutputSocketPointerDown(e, node, outPort)}
-                          >
-                            <span className="wf-socket-label">{outSpec.shortLabel}</span>
-                            <span className="wf-socket-pin out">
-                              <span className="wf-socket-pin-core" />
-                            </span>
-                          </button>
-                        ) : (
-                          <span />
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* 3. Chọn nhanh Chế độ bằng Nút Bấm Trực Tiếp (Không dùng Combobox) & Preview 2.5D */}
-                <div className="wf-node-body">
-                  <div
-                    className="wf-preset-pills-bar"
-                    role="radiogroup"
-                    aria-label={`Chế độ xử lý của ${node.title}`}
-                  >
-                    {(spec?.presets ?? []).slice(0, 3).map((p) => {
-                      const active = node.preset === p.id
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          className={`wf-preset-pill${active ? ' active' : ''}`}
-                          title={`${p.label}\n${p.summary}`}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onSelectNode(node.id)
-                            onChangeNodePreset(node.id, p.id)
-                          }}
-                        >
-                          {PRESET_SHORT_LABELS[p.id] ?? p.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  <WorkflowNodePreview
-                    node={node}
-                    project={project}
-                    mode="card"
-                    runtimeTelemetry={telemetry}
-                  />
-                </div>
-              </div>
-            )
-          })}
+          {workflow.nodes.map((node) => (
+            <WorkflowNodeCard
+              key={node.id}
+              node={node}
+              project={project}
+              workflow={workflow}
+              playing={playing}
+              time={time}
+              isSelected={node.id === selectedNodeId}
+              isConnected={activeNodeIds.has(node.id)}
+              stepNum={executionStepMap.get(node.id)}
+              activeNodeIds={activeNodeIds}
+              pendingSource={pendingSource}
+              snappedTarget={snappedTarget}
+              onSelectNode={onSelectNode}
+              onStartNodeDrag={startNodeDrag}
+              onToggleNode={onToggleNode}
+              onDeleteNode={onDeleteNode}
+              onChangeNodePreset={onChangeNodePreset}
+              onPreviewNode={onPreviewNode}
+              onStartConnecting={startConnecting}
+              onInputSocketClick={handleInputSocketClick}
+              onOutputSocketClick={handleOutputSocketClick}
+              onConnectPorts={onConnectPorts}
+              onClearPendingWire={() => {
+                setPendingSource(null)
+                setCursorWorld(null)
+                setSnappedTarget(null)
+              }}
+            />
+          ))}
         </div>
       </div>
 
       {/* Thanh Công Cụ Dọc Dạng Icon (Vertical Icon HUD Dock ở mép trái Canvas) */}
-      <div className="wf-canvas-hud vertical" data-mcp-region="workflow_canvas_hud">
-        <button
-          id="wf-btn-cluster-drag"
-          type="button"
-          className={`wf-hud-btn icon${clusterMoveMode ? ' active' : ''}`}
-          title={`Kéo cả cụm 7 khối: ${clusterMoveMode ? 'ĐANG BẬT' : 'ĐANG TẮT'} (Hoặc giữ phím Shift khi kéo khối)`}
-          aria-label="Kéo cả cụm"
-          onClick={(e) => {
-            e.stopPropagation()
-            setClusterMoveMode((v) => !v)
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="7" height="7" rx="1.5" />
-            <rect x="14" y="3" width="7" height="7" rx="1.5" />
-            <rect x="8.5" y="14" width="7" height="7" rx="1.5" />
-            <path d="M10 6.5h4M6.5 10l3.5 4M17.5 10l-3.5 4" />
-          </svg>
-        </button>
-
-        <button
-          id="wf-btn-autolayout"
-          type="button"
-          className="wf-hud-btn icon"
-          title="Căn gọn cụm: Sắp xếp tự động vị trí 7 khối chức năng thoáng đẹp"
-          aria-label="Căn gọn cụm"
-          onClick={(e) => {
-            e.stopPropagation()
-            const resetNodes = workflow.nodes.map((n) => ({
-              ...n,
-              position: { ...(DEFAULT_NODE_POSITIONS[n.type] ?? n.position) }
-            }))
-            onAutoLayout()
-            fitClusterToView(resetNodes)
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="7" height="7" rx="1" />
-            <rect x="14" y="3" width="7" height="7" rx="1" />
-            <rect x="14" y="14" width="7" height="7" rx="1" />
-            <rect x="3" y="14" width="7" height="7" rx="1" />
-          </svg>
-        </button>
-
-        <button
-          id="wf-btn-fit-view"
-          type="button"
-          className="wf-hud-btn icon"
-          title="Khớp khung nhìn: Đưa toàn bộ sơ đồ về chính giữa màn hình"
-          aria-label="Khớp khung nhìn"
-          onClick={(e) => {
-            e.stopPropagation()
-            fitClusterToView()
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4" />
-            <circle cx="12" cy="12" r="2.5" />
-          </svg>
-        </button>
-
-        <div className="wf-hud-sep horizontal" />
-
-        <button
-          type="button"
-          className="wf-hud-btn icon"
-          title="Phóng to sơ đồ (Hoặc lăn con lăn chuột)"
-          aria-label="Phóng to"
-          onClick={(e) => {
-            e.stopPropagation()
-            zoomByStep(0.1)
-          }}
-        >
-          +
-        </button>
-        <button
-          type="button"
-          className="wf-hud-btn wf-hud-zoom-val"
-          title="Tỷ lệ hiển thị (Bấm để đặt về chuẩn 100% 1:1)"
-          onClick={(e) => {
-            e.stopPropagation()
-            setZoom(1)
-            setPan({ x: 44, y: 8 })
-          }}
-        >
-          {Math.round(zoom * 100)}%
-        </button>
-        <button
-          type="button"
-          className="wf-hud-btn icon"
-          title="Thu nhỏ sơ đồ (Hoặc lăn con lăn chuột)"
-          aria-label="Thu nhỏ"
-          onClick={(e) => {
-            e.stopPropagation()
-            zoomByStep(-0.1)
-          }}
-        >
-          −
-        </button>
-      </div>
+      <WorkflowCanvasHUD
+        clusterMoveMode={clusterMoveMode}
+        zoom={zoom}
+        onToggleClusterMove={() => setClusterMoveMode((v) => !v)}
+        onAutoLayout={() => {
+          const resetNodes = workflow.nodes.map((n) => ({
+            ...n,
+            position: { ...(DEFAULT_NODE_POSITIONS[n.type] ?? n.position) }
+          }))
+          onAutoLayout()
+          fitClusterToView(resetNodes)
+        }}
+        onFitView={fitClusterToView}
+        onZoomByStep={zoomByStep}
+        onResetZoom={() => {
+          setZoom(1)
+          setPan({ x: 44, y: 8 })
+        }}
+      />
     </div>
   )
 }

@@ -182,6 +182,8 @@ export const WorkflowStudioPanel: React.FC = () => {
   }, [currentShotScope, activeShotLabel, commitWorkflow, showToast])
 
   const handleClearCanvas = useCallback(() => {
+    useEditor.getState().setPlaying(false)
+    useEditor.getState().setTime(0)
     const rootNode = makeNode('scene_shot', 'deep_parallax_stage', true)
     rootNode.params = { ...rootNode.params, shotId: currentShotScope }
     const next: WorkflowGraph = {
@@ -195,7 +197,7 @@ export const WorkflowStudioPanel: React.FC = () => {
     }
     commitWorkflow(next, undefined, true)
     setSelectedNodeId(rootNode.id)
-    showToast('🧹 Đã xóa trắng sơ đồ! Bấm "+ Node Logic" để tự xây dựng luồng xử lý theo ý muốn.')
+    showToast('🧹 Đã xóa trắng sơ đồ và đặt lại thời gian về 0.0s! Bấm "+ Node Logic" để tự xây dựng luồng xử lý theo ý muốn.')
   }, [currentShotScope, commitWorkflow, showToast])
 
   const handleSelectShotScope = useCallback(
@@ -394,11 +396,22 @@ export const WorkflowStudioPanel: React.FC = () => {
       )
       return
     }
+    const st = useEditor.getState()
+    // Nếu thời gian đã chạy đến cuối comp (hoặc gần hết), tự động tua về 0s trước khi phát
+    if (st.time >= st.project.comp.duration - 0.05) {
+      st.setTime(0)
+    }
     useEditor.getState().update((draft) => {
       applyWorkflowToProject(draft as Project, workflow)
     }, 'wf-sync-before-play')
     setPlaying(true)
   }, [playing, activeNodes.length, workflow, setPlaying, showToast])
+
+  const handleRewindToZero = useCallback(() => {
+    useEditor.getState().setPlaying(false)
+    useEditor.getState().setTime(0)
+    showToast('⏮ Đã tua về 0.0s')
+  }, [showToast])
 
   const handleQuickFocusAddMotion = useCallback(() => {
     const motionNode =
@@ -599,27 +612,15 @@ export const WorkflowStudioPanel: React.FC = () => {
           </div>
         )}
 
+        {/* Nút Tua về 0s */}
         <button
-          id="wf-btn-autowire"
+          id="wf-btn-rewind-zero"
           type="button"
-          className="btn ghost sm tl-action-btn"
-          title="Tự động nối chuẩn tất cả cổng (Port) giữa các khối chức năng đang bật"
-          onClick={handleAutoWire}
+          className="btn ghost sm tl-action-btn wf-rewind-btn"
+          title="Tua playhead về 0.0s (Bắt đầu phân cảnh)"
+          onClick={handleRewindToZero}
         >
-          <IconWfAutoWire width={13} height={13} />
-          <span>Tự nối Port</span>
-        </button>
-
-        {/* Nút mở nhanh Kho Node Logic / Chuyển động & FX mới */}
-        <button
-          id="wf-btn-quick-add-motion"
-          type="button"
-          className="btn ghost sm tl-action-btn wf-quick-add-btn"
-          title="Mở Kho Node Logic (Gió Lay, Mây Trôi, Đèn 2.5D, Glow, Đẩy Cận, Ảnh Nét Căng...) để thả khối vào sơ đồ kết nối theo luồng"
-          onClick={handleQuickFocusAddMotion}
-        >
-          <IconPlus width={12} height={12} />
-          <span>+ Node Logic</span>
+          <span>⏮ 0s</span>
         </button>
 
         {/* Nút Phát / Dừng Video trực tiếp trên Workflow để quan sát luồng chạy */}
@@ -638,7 +639,14 @@ export const WorkflowStudioPanel: React.FC = () => {
         >
           {playing ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
           <span>{playing ? 'Đang chạy' : 'Chạy luồng'}</span>
-          <span className="wf-play-time-tag">
+          <span
+            className="wf-play-time-tag clickable"
+            title="Bấm để tua về 0.0s"
+            onClick={(e) => {
+              e.stopPropagation()
+              handleRewindToZero()
+            }}
+          >
             {liveTime.toFixed(1)}s/{project.comp.duration}s
           </span>
         </button>

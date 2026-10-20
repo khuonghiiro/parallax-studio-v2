@@ -413,9 +413,29 @@
   border-color: var(--wf-node-color, var(--accent-cyan));
 }
 
-.wf-node-card.snap-target {
-  border-color: var(--accent-cyan) !important;
-  box-shadow: 0 0 0 2px var(--accent-cyan), 0 8px 20px rgba(0, 0, 0, 0.3) !important;
+.wf-node-card.wire-connectable {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--accent-cyan) 60%, var(--line));
+}
+
+.wf-play-time-tag.clickable {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+.wf-play-time-tag.clickable:hover {
+  background: color-mix(in srgb, var(--accent) 30%, var(--bg-2));
+  color: var(--accent-cyan);
+  transform: scale(1.05);
+}
+
+.wf-rewind-btn {
+  font-family: var(--mono);
+  font-weight: 700;
+}
+.wf-rewind-btn:hover {
+  color: var(--accent-cyan);
+  border-color: var(--accent-cyan);
 }
 
 /* ------------------------------------------------------------------ SVG Port Wires & Animated Data Flow */
