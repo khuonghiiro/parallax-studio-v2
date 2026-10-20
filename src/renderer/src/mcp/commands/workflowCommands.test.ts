@@ -290,6 +290,12 @@ describe('MCP workflowCommands & Workflow Engine', () => {
     const afterDragWf = ensureProjectWorkflow(proj)
     expect(afterDragWf.nodes.find((n) => n.type === 'scene_shot')?.position).toEqual({ x: -140, y: -60 })
     expect(afterDragWf.nodes.find((n) => n.type === 'layer_assembly')?.position).toEqual({ x: 180, y: 40 })
+
+    // Regression guard: setTime(NaN / undefined) never poisons editor time or scene evaluation
+    useEditor.getState().setTime(2.5)
+    useEditor.getState().setTime(NaN)
+    expect(Number.isFinite(useEditor.getState().time)).toBe(true)
+    expect(useEditor.getState().time).toBe(2.5)
   })
 })
 

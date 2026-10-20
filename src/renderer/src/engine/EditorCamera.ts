@@ -29,6 +29,18 @@ export class EditorCamera {
 
   /** Returns the camera updated for the given viewport aspect. */
   get(aspect: number): THREE.PerspectiveCamera | THREE.OrthographicCamera {
+    if (
+      !Number.isFinite(this.target.x) ||
+      !Number.isFinite(this.target.y) ||
+      !Number.isFinite(this.target.z)
+    ) {
+      this.target.set(0, 0, 0)
+    }
+    if (!Number.isFinite(this.distance) || this.distance <= 0) {
+      this.distance = 9000
+    }
+    if (!Number.isFinite(this.yaw)) this.yaw = -35 * DEG
+    if (!Number.isFinite(this.pitch)) this.pitch = 22 * DEG
     const dir = new THREE.Vector3()
     const up = new THREE.Vector3(0, 1, 0)
     switch (this.kind) {
@@ -123,6 +135,18 @@ export class EditorCamera {
     const center = box.getCenter(new THREE.Vector3())
     const size = box.getSize(new THREE.Vector3())
     this.target.copy(center)
+    if (
+      !Number.isFinite(center.x) ||
+      !Number.isFinite(center.y) ||
+      !Number.isFinite(center.z) ||
+      !Number.isFinite(size.x) ||
+      !Number.isFinite(size.y) ||
+      !Number.isFinite(size.z)
+    ) {
+      this.target.set(0, 0, 0)
+      this.distance = 9000
+      return
+    }
     const radius = Math.max(size.length() / 2, 100)
     const fit = radius / Math.tan(22.5 * DEG) / Math.min(1, aspect)
     this.distance = fit * 1.05

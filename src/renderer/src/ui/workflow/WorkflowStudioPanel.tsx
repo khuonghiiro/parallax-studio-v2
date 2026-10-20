@@ -116,11 +116,20 @@ export const WorkflowStudioPanel: React.FC = () => {
         )
       } else {
         const shotObj = project.shots.find((s) => s.id === shotId)
-        const idx = project.shots.findIndex((s) => s.id === shotId)
+        const idx = Math.max(0, project.shots.findIndex((s) => s.id === shotId))
         if (shotObj) {
-          useEditor.getState().setTime(shotObj.start)
+          const st = useEditor.getState()
+          const shotPos = shotObj.position.value
+          const matchingKf = st.project.camera.target.keyframes.find(
+            (k) => Math.hypot(k.value[0] - shotPos[0], k.value[1] - shotPos[1]) < 600
+          )
+          const jumpTime = matchingKf
+            ? matchingKf.t
+            : Math.round((idx / Math.max(1, project.shots.length)) * project.comp.duration * 10) / 10
+          st.selectShot(shotId)
+          st.setTime(jumpTime)
           showToast(
-            `🎯 Đang áp dụng quy trình cho Phân cảnh #${idx + 1}: ${shotObj.name}`
+            `🎯 Đang áp dụng quy trình cho Phân cảnh #${idx + 1}: ${shotObj.name} (${jumpTime.toFixed(1)}s)`
           )
         }
       }

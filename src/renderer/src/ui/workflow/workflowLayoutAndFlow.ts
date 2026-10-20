@@ -351,9 +351,15 @@ export function evaluateNodeRuntimeTelemetry(
   let liveSummary = ''
   switch (node.type) {
     case 'scene_shot': {
+      const camTarget = project.camera.target.keyframes.length
+        ? project.camera.target.keyframes.reduce((best, k) =>
+            Math.abs(k.t - time) < Math.abs(best.t - time) ? k : best
+          ).value
+        : project.camera.target.value
       const activeShot =
-        project.shots.find((s) => time >= s.start && time <= s.start + s.duration) ??
-        project.shots[0]
+        project.shots.find(
+          (s) => Math.hypot(s.position.value[0] - camTarget[0], s.position.value[1] - camTarget[1]) < 1200
+        ) ?? project.shots[0]
       const shotName = activeShot?.name ?? 'Cảnh 1'
       liveSummary = `Bước #${stepNum}: Đang nạp "${shotName}" (${visibleAtTime.length}/${matchedLayers.length} lớp hiển thị)`
       break

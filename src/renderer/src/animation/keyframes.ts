@@ -18,7 +18,8 @@ function lerpValue<T extends AnimValue>(a: T, b: T, u: number): T {
 }
 
 /** Evaluate an animatable property at time t (seconds). Pure function. */
-export function evaluate<T extends AnimValue>(a: Animatable<T>, t: number): T {
+export function evaluate<T extends AnimValue>(a: Animatable<T>, rawT: number): T {
+  const t = Number.isFinite(rawT) ? rawT : 0
   const ks = a.keyframes
   if (ks.length === 0) return a.value
   if (t <= ks[0].t) return ks[0].value

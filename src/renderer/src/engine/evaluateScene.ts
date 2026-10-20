@@ -115,7 +115,8 @@ function remapCameraSegmentTime(project: Project, t: number): number {
   return k0.t + uLinear * span
 }
 
-export function evaluateCamera(project: Project, t: number): EvaluatedCamera {
+export function evaluateCamera(project: Project, rawT: number): EvaluatedCamera {
+  const t = Number.isFinite(rawT) ? rawT : 0
   const cam = project.camera
   const camT = remapCameraSegmentTime(project, t)
   const position = [...evaluate(cam.position, camT)] as Vec3
@@ -160,7 +161,8 @@ export function shotLocalToWorld(shot: Shot | null | undefined, t: number): (p: 
 }
 
 /** Evaluate the entire scene at time t. Pure: same input → same output. */
-export function evaluateScene(project: Project, t: number): EvaluatedScene {
+export function evaluateScene(project: Project, rawT: number): EvaluatedScene {
+  const t = Number.isFinite(rawT) ? rawT : 0
   const camera = evaluateCamera(project, t)
   const { comp } = project
 

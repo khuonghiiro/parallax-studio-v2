@@ -77,6 +77,14 @@ export function Viewer() {
     const L = layoutRef.current
     if (!r || (!L.cam && !L.ed)) return
     const s = useEditor.getState()
+    if (!Number.isFinite(s.time)) {
+      s.setTime(0)
+    }
+    if (!Number.isFinite(edCam.target.x) || !Number.isFinite(edCam.distance)) {
+      edCam.target.set(0, 0, 0)
+      edCam.distance = 9000
+      needsFrame.current = true
+    }
     const v = useView.getState()
     const gizmoFrames: GizmoFrame[] = []
     const clearCol = v.theme === 'light' ? '#e2e5eb' : CLEAR
@@ -199,6 +207,14 @@ export function Viewer() {
       animId = requestAnimationFrame(checkAndLoop)
 
       const s = useEditor.getState()
+    if (!Number.isFinite(s.time)) {
+      s.setTime(0)
+    }
+    if (!Number.isFinite(edCam.target.x) || !Number.isFinite(edCam.distance)) {
+      edCam.target.set(0, 0, 0)
+      edCam.distance = 9000
+      needsFrame.current = true
+    }
       if (s.playing) return
 
       // Check if project has any animated GIF layers with autoPlay enabled
@@ -312,6 +328,14 @@ export function Viewer() {
 
   function applyFocus(kind: 'shot' | 'layer' | 'all' | 'selection', id?: string): void {
     const s = useEditor.getState()
+    if (!Number.isFinite(s.time)) {
+      s.setTime(0)
+    }
+    if (!Number.isFinite(edCam.target.x) || !Number.isFinite(edCam.distance)) {
+      edCam.target.set(0, 0, 0)
+      edCam.distance = 9000
+      needsFrame.current = true
+    }
     const ev = evaluateScene(s.project, s.time)
     let box: THREE.Box3 | null = null
     if (kind === 'selection') {

@@ -124,8 +124,11 @@ export const useEditor = create<EditorState>((set, get) => ({
   },
 
   setTime(t) {
-    const d = get().project.comp.duration
-    set({ time: Math.max(0, Math.min(d, t)) })
+    const cur = get().time
+    const rawDur = get().project.comp.duration
+    const d = Number.isFinite(rawDur) && rawDur > 0 ? rawDur : 10
+    const safeT = Number.isFinite(t) ? t : Number.isFinite(cur) ? cur : 0
+    set({ time: Math.max(0, Math.min(d, safeT)) })
   },
   setPlaying(p) {
     set({ playing: p })

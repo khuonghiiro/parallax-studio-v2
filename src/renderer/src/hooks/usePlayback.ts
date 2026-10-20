@@ -53,7 +53,8 @@ export function usePlayback(): void {
       const st = useEditor.getState()
       const dt = Math.min(0.1, (now - last) / 1000)
       last = now
-      let t = st.time + dt
+      const baseTime = Number.isFinite(st.time) ? st.time : 0
+      let t = baseTime + dt
       const dur = st.project.comp.duration
       if (t >= dur) {
         if (st.loop) {
