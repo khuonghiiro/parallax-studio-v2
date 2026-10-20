@@ -1,6 +1,12 @@
 import { memo, useEffect, useRef } from 'react'
+import type { LookSettings } from '@shared/types'
 import { assetStore } from '../../../project/assets'
-import { getLayer2DFilterStyle, type ProjectedLayer2D, type ShotStageBox } from './animateCameraMath'
+import {
+  getLayer2DFilterStyle,
+  getLook2DCssFilter,
+  type ProjectedLayer2D,
+  type ShotStageBox
+} from './animateCameraMath'
 import type { CameraActionMode, CameraWaypointItem } from './animateCameraRouteLogic'
 import { Layer2DLightOverlay } from './AnimateShotPlane2D'
 
@@ -11,6 +17,7 @@ interface AnimateCameraFilmstripProps {
   layersByShot: Map<string | null, ProjectedLayer2D[]>
   layersByWaypoint?: ProjectedLayer2D[][]
   background: string
+  look?: LookSettings
   showPreview: boolean
   onTogglePreview: () => void
   onSelectWaypoint: (wp: CameraWaypointItem) => void
@@ -32,11 +39,14 @@ export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVertica
   layersByShot,
   layersByWaypoint,
   background,
+  look,
   showPreview,
   onTogglePreview,
   onSelectWaypoint
 }: AnimateCameraFilmstripProps) {
   const listRef = useRef<HTMLDivElement>(null)
+  const lookFilter = getLook2DCssFilter(look)
+  const vignetteAlpha = look && (look.vignette ?? 0) > 0.02 ? Math.min(0.75, (look.vignette ?? 0) * 0.65) : 0
 
   useEffect(() => {
     const el = listRef.current
@@ -136,7 +146,8 @@ export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVertica
                     style={{
                       width: THUMB_W,
                       height: THUMB_H,
-                      background
+                      background,
+                      filter: lookFilter
                     }}
                   >
                     <div
@@ -225,6 +236,17 @@ export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVertica
                     </div>
 
                     {/* Khung ngắm cinema mảnh bên trong ảnh preview */}
+                    {vignetteAlpha > 0 && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          pointerEvents: 'none',
+                          background: `radial-gradient(circle, transparent 48%, rgba(0,0,0,${vignetteAlpha.toFixed(2)}) 100%)`,
+                          zIndex: 4
+                        }}
+                      />
+                    )}
                     <div className="film-thumb-guides" />
                     <span className={`film-thumb-mode-badge ${wp.tag}`}>{wp.tagLabel}</span>
                   </div>

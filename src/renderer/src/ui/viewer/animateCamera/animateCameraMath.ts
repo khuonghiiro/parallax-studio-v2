@@ -70,6 +70,26 @@ export interface ProjectedLayer2D {
     intensity: number
     thickness: number
   }
+  fogAmount?: number
+  fogColor?: string
+}
+
+export function getLook2DCssFilter(look?: Project['look']): string | undefined {
+  if (!look) return undefined
+  const parts: string[] = []
+  const exp = look.exposure ?? 0
+  if (Math.abs(exp) > 0.01) {
+    parts.push(`brightness(${Math.pow(2, exp).toFixed(3)})`)
+  }
+  const con = look.contrast ?? 1
+  if (Math.abs(con - 1) > 0.01) {
+    parts.push(`contrast(${con.toFixed(3)})`)
+  }
+  const sat = look.saturation ?? 1
+  if (Math.abs(sat - 1) > 0.01) {
+    parts.push(`saturate(${sat.toFixed(3)})`)
+  }
+  return parts.length > 0 ? parts.join(' ') : undefined
 }
 
 export function getLayer2DFilterStyle(layer: ProjectedLayer2D, scalePx = 1): string | undefined {
@@ -94,6 +114,11 @@ export function getLayer2DFilterStyle(layer: ProjectedLayer2D, scalePx = 1): str
   if (layer.glow && layer.glow.intensity > 0.05) {
     const r = Math.max(2, Math.min(20, Math.round(layer.glow.thickness * scalePx)))
     filters.push(`drop-shadow(0 0 ${r}px ${layer.glow.color})`)
+  }
+  if (layer.fogAmount && layer.fogAmount > 0.03) {
+    const fogCon = Math.max(0.72, 1 - layer.fogAmount * 0.26)
+    const fogSat = Math.max(0.7, 1 - layer.fogAmount * 0.28)
+    filters.push(`contrast(${fogCon.toFixed(2)}) saturate(${fogSat.toFixed(2)})`)
   }
   return filters.length > 0 ? filters.join(' ') : undefined
 }
@@ -401,6 +426,18 @@ export function projectShotLayers2D(
         color: activeGlow.color,
         intensity: activeGlow.intensity,
         thickness: activeGlow.thickness
+      }
+    }
+
+    if (project.look?.fogEnabled) {
+      const fNear = project.look.fogNear ?? 1200
+      const fFar = Math.max(fNear + 1, project.look.fogFar ?? 5200)
+      const vDepth = Math.max(80, refD + lz)
+      const t = Math.max(0, Math.min(1, (vDepth - fNear) / (fFar - fNear)))
+      const smoothFog = t * t * (3 - 2 * t)
+      if (smoothFog > 0.015) {
+        base.fogAmount = Number(smoothFog.toFixed(3))
+        base.fogColor = project.look.fogColor || '#161936'
       }
     }
 

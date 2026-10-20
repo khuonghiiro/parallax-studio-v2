@@ -1,6 +1,12 @@
 import { memo } from 'react'
+import type { LookSettings } from '@shared/types'
 import { assetStore } from '../../../project/assets'
-import { getLayer2DFilterStyle, type ProjectedLayer2D, type ShotStageBox } from './animateCameraMath'
+import {
+  getLayer2DFilterStyle,
+  getLook2DCssFilter,
+  type ProjectedLayer2D,
+  type ShotStageBox
+} from './animateCameraMath'
 
 export function Layer2DLightOverlay({
   layer,
@@ -137,6 +143,7 @@ interface AnimateShotPlane2DProps {
   box: ShotStageBox
   layers: ProjectedLayer2D[]
   background: string
+  look?: LookSettings
   isSelectedShot: boolean
   isActiveCameraShot: boolean
   aimMode: boolean
@@ -155,6 +162,7 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
   box,
   layers,
   background,
+  look,
   isSelectedShot,
   isActiveCameraShot,
   aimMode,
@@ -170,6 +178,8 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
 }: AnimateShotPlane2DProps) {
   const screenW = Math.max(8, box.width * zoom)
   const screenH = Math.max(6, box.height * zoom)
+  const lookFilter = getLook2DCssFilter(look)
+  const vignetteAlpha = look && (look.vignette ?? 0) > 0.02 ? Math.min(0.75, (look.vignette ?? 0) * 0.65) : 0
 
   const handleSurfaceDoubleClick = (e: React.MouseEvent<HTMLDivElement>): void => {
     e.stopPropagation()
@@ -233,7 +243,21 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
       </div>
 
       {/* Mặt phẳng 2D hiển thị đầy đủ các layer xếp chồng của Cảnh */}
-      <div className="anim2d-shot-surface" style={{ background }}>
+      <div
+        className="anim2d-shot-surface"
+        style={{ background, filter: lookFilter }}
+      >
+        {vignetteAlpha > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              background: `radial-gradient(circle, transparent 48%, rgba(0,0,0,${vignetteAlpha.toFixed(2)}) 100%)`,
+              zIndex: 8
+            }}
+          />
+        )}
         {layers.map((layer) => {
           const lw = layer.width * zoom
           const lh = layer.height * zoom

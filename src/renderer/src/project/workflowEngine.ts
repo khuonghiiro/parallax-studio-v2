@@ -38,16 +38,22 @@ import {
 } from './workflowTargets'
 import {
   applyCustomNodeRulesToProject,
-  deactivateDisconnectedWorkflowStages
+  applyRuleMutationToProjectLayer,
+  deactivateDisconnectedWorkflowStages,
+  isForegroundFrameBorderLayer,
+  pickShotFocalLayer,
+  syncWorkflowFromProject
 } from './workflowStageEffects'
 
 export {
   WORKFLOW_SUBPART_CATALOG,
+  applyRuleMutationToProjectLayer,
   classifyLayerRole,
   getDefaultPartsForNode,
   getNodeSubParts,
   listProjectBindableTargets,
-  resolveNodeTargetBinding
+  resolveNodeTargetBinding,
+  syncWorkflowFromProject
 }
 
 export function createDefaultWorkflow(): WorkflowGraph {
@@ -65,16 +71,16 @@ export function getWorkflowFromTemplate(presetId: string): WorkflowGraph {
 }
 
 export function ensureProjectWorkflow(project: Project): WorkflowGraph {
-  if (project.workflow && Array.isArray(project.workflow.nodes) && project.workflow.nodes.length > 0) {
-    if (isLegacyCrampedWorkflowLayout(project.workflow.nodes)) {
-      return {
-        ...project.workflow,
-        nodes: upgradeCrampedNodePositions(project.workflow.nodes)
-      }
-    }
-    return project.workflow
-  }
-  return createDefaultWorkflow()
+  const raw =
+    project.workflow && Array.isArray(project.workflow.nodes) && project.workflow.nodes.length > 0
+      ? isLegacyCrampedWorkflowLayout(project.workflow.nodes)
+        ? {
+            ...project.workflow,
+            nodes: upgradeCrampedNodePositions(project.workflow.nodes)
+          }
+        : project.workflow
+      : createDefaultWorkflow()
+  return syncWorkflowFromProject(project, raw)
 }
 
 /**
@@ -413,16 +419,20 @@ export function validateAndNormalizeWorkflowJson(raw: unknown): WorkflowGraph {
  */
 export function applyWorkflowToProject(
   project: Project,
-  workflowInput?: WorkflowGraph
+  workflowInput?: WorkflowGraph,
+  opts?: { onlyNodeIds?: Set<string> }
 ): WorkflowExecutionReport {
   const workflow = workflowInput ? structuredClone(workflowInput) : structuredClone(ensureProjectWorkflow(project))
   const { activeNodes, disconnectedNodes } = resolveConnectedWorkflowNodes(workflow)
   const executedStages: WorkflowExecutionStageResult[] = []
 
   const connectedStageTypes = new Set(activeNodes.map((n) => n.type))
-  deactivateDisconnectedWorkflowStages(project, connectedStageTypes)
+  if (!opts?.onlyNodeIds) {
+    deactivateDisconnectedWorkflowStages(project, connectedStageTypes)
+  }
 
   for (const node of activeNodes) {
+    if (opts?.onlyNodeIds && !opts.onlyNodeIds.has(node.id)) continue
     const intensity = Math.max(0.2, Math.min(2.5, node.params?.intensity ?? 1.0))
     const rawBinding = resolveNodeTargetBinding(node, project)
     const targetShotFilter =
@@ -609,10 +619,31 @@ export function applyWorkflowToProject(
       })
     } else if (node.type === 'physics_fx') {
       let affected = 0
-      const focalLayer =
-        project.layers.find((l) => l.composite?.isRoot && binding.matchesLayer(l)) ??
-        project.layers.find((l) => classifyLayerRole(l) === 'character' && binding.matchesLayer(l)) ??
-        project.layers.find((l) => l.type === 'image' && !l.locked && binding.matchesLayer(l))
+      const scopedShots = targetShotFilter
+        ? project.shots.filter((s) => s.id === targetShotFilter)
+        : project.shots
+      const shotIdsToProcess: (string | null)[] =
+        scopedShots.length > 0 ? scopedShots.map((s) => s.id) : [null]
+
+      const explicitLightTargetIds = new Set(
+        (node.params?.customRules ?? [])
+          .filter((r) => r.enabled && !r.id.startsWith('inspector-'))
+          .map((r) => r.targetId)
+      )
+      for (const l of project.layers) {
+        if (
+          !l.locked &&
+          isForegroundFrameBorderLayer(l) &&
+          l.virtualLight?.enabled &&
+          !explicitLightTargetIds.has(l.id)
+        ) {
+          l.virtualLight.enabled = false
+        }
+      }
+
+      const focalLayers = shotIdsToProcess
+        .map((sid) => pickShotFocalLayer(project, sid, binding.matchesLayer))
+        .filter((l): l is Layer => Boolean(l))
 
       if (node.preset === 'combat_elastic_glow') {
         if (activePartIds.has('soft_mesh_jiggle') || activePartIds.has('collider_zone')) {
@@ -632,67 +663,82 @@ export function applyWorkflowToProject(
             }
           }
         }
-        if (focalLayer && activePartIds.has('rim_glow_silhouette')) {
-          focalLayer.glow = {
-            enabled: true,
-            side: 'outer',
-            color: '#38bdf8',
-            thickness: 8,
-            intensity: Number((1.35 * intensity).toFixed(2)),
-            animated: 'breathe',
-            speed: 1.8
+        if (activePartIds.has('rim_glow_silhouette')) {
+          for (const fl of focalLayers) {
+            fl.glow = {
+              enabled: true,
+              side: 'outer',
+              color: '#38bdf8',
+              thickness: 8,
+              intensity: Number((1.35 * intensity).toFixed(2)),
+              animated: 'breathe',
+              speed: 1.8
+            }
+            affected++
           }
-          affected++
         }
       } else if (node.preset === 'cave_portal_flashlight') {
-        const bgLayer = project.layers.find(
-          (l) => l.type === 'image' && l.transform.position.value[2] >= 600 && !l.locked && binding.matchesLayer(l)
-        )
-        if (bgLayer && activePartIds.has('cave_depth_portal')) {
-          bgLayer.physics = {
-            ...(bgLayer.physics ?? { enabled: true, material: 'stone_wall' }),
-            enabled: true,
-            depthPortal: {
-              enabled: true,
-              centerUV: [0.5, 0.45],
-              radiusUV: [0.35, 0.35],
-              minScale: 0.4,
-              darkness: 0.82,
-              shadowTint: '#060814',
-              depthPullZ: 140
+        if (activePartIds.has('cave_depth_portal')) {
+          for (const sid of shotIdsToProcess) {
+            const bgLayer = project.layers.find(
+              (l) =>
+                l.type === 'image' &&
+                (!sid || l.shotId === sid) &&
+                l.transform.position.value[2] >= 600 &&
+                !l.locked &&
+                binding.matchesLayer(l)
+            )
+            if (bgLayer) {
+              bgLayer.physics = {
+                ...(bgLayer.physics ?? { enabled: true, material: 'stone_wall' }),
+                enabled: true,
+                depthPortal: {
+                  enabled: true,
+                  centerUV: [0.5, 0.45],
+                  radiusUV: [0.35, 0.35],
+                  minScale: 0.4,
+                  darkness: 0.82,
+                  shadowTint: '#060814',
+                  depthPullZ: 140
+                }
+              }
+              affected++
             }
           }
-          affected++
         }
-        if (focalLayer && activePartIds.has('virtual_light_core')) {
-          focalLayer.virtualLight = {
-            enabled: true,
-            kind: 'flashlight',
-            color: '#fef08a',
-            intensity: Number((1.6 * intensity).toFixed(2)),
-            radius: 520,
-            beamAngleDeg: 0,
-            coneAngleDeg: 54,
-            flickerSpeed: 0.6,
-            zReach: 340
+        if (activePartIds.has('virtual_light_core')) {
+          for (const fl of focalLayers) {
+            fl.virtualLight = {
+              enabled: true,
+              kind: 'flashlight',
+              color: '#fef08a',
+              intensity: Number((1.55 * intensity).toFixed(2)),
+              radius: 520,
+              beamAngleDeg: 0,
+              coneAngleDeg: 54,
+              flickerSpeed: 0.6,
+              zReach: 340
+            }
+            affected++
           }
-          affected++
         }
       } else {
-        if (focalLayer && activePartIds.has('virtual_light_core')) {
-          focalLayer.virtualLight = {
-            enabled: true,
-            kind: 'candle',
-            color: '#ffbe6b',
-            intensity: Number((1.35 * intensity).toFixed(2)),
-            radius: 440,
-            windPreset: 'gentle',
-            windStrength: 0.45,
-            windSensitivity: 1.0,
-            flickerSpeed: 1.4,
-            zReach: 300
+        if (activePartIds.has('virtual_light_core')) {
+          for (const fl of focalLayers) {
+            fl.virtualLight = {
+              enabled: true,
+              kind: 'candle',
+              color: '#ffbe6b',
+              intensity: Number((1.35 * intensity).toFixed(2)),
+              radius: 440,
+              windPreset: 'gentle',
+              windStrength: 0.45,
+              windSensitivity: 1.0,
+              flickerSpeed: 1.4,
+              zReach: 300
+            }
+            affected++
           }
-          affected++
         }
       }
 
@@ -703,7 +749,7 @@ export function applyWorkflowToProject(
       ) {
         const pLayer = createParticleLayer(project.comp)
         pLayer.name = 'Hạt Đom Đóm Khí Quyển (Workflow)'
-        pLayer.shotId = project.shots[0]?.id ?? null
+        pLayer.shotId = scopedShots[0]?.id ?? project.shots[0]?.id ?? null
         project.layers.unshift(pLayer)
         affected++
       }
@@ -718,16 +764,45 @@ export function applyWorkflowToProject(
         affectedCount: affected
       })
     } else if (node.type === 'camera_director') {
-      const targetShot = project.shots[0] ?? null
-      if (node.preset === 'cinematic_fly_push' && project.shots.length > 1) {
-        const holdPerShot = Math.max(2, Number(((project.comp.duration / project.shots.length) * 0.65).toFixed(1)))
-        const steps: PathStep[] = project.shots.map((s) => ({
+      const cameraShots = project.shots
+      const targetShot =
+        (targetShotFilter ? project.shots.find((s) => s.id === targetShotFilter) : null) ??
+        project.shots[0] ??
+        null
+
+      if (cameraShots.length > 1) {
+        const totalDur = Math.max(4, project.comp.duration || 10)
+        const transDur = Number(
+          Math.max(1.0, Math.min(2.2, (totalDur / cameraShots.length) * 0.34)).toFixed(1)
+        )
+        const holdPerShot = Number(
+          Math.max(
+            1.5,
+            (totalDur - transDur * (cameraShots.length - 1)) / cameraShots.length
+          ).toFixed(1)
+        )
+        const stepMotion = node.preset === 'orbit_showcase_3d' ? 'orbit-right' : 'push'
+        const stepTrans = node.preset === 'orbit_showcase_3d' ? 'arc' : 'fly'
+        const pushAmount =
+          node.preset === 'dolly_push_focus'
+            ? 0.24 * intensity
+            : node.preset === 'dramatic_handheld_action'
+              ? 0.28 * intensity
+              : node.preset === 'orbit_showcase_3d'
+                ? 0.12 * intensity
+                : 0.16 * intensity
+
+        const steps: PathStep[] = cameraShots.map((s) => ({
           shotId: s.id,
           hold: holdPerShot,
-          type: 'fly',
-          transition: 1.8
+          type: stepTrans,
+          transition: transDur,
+          motion: stepMotion
         }))
-        buildCameraPath(project, steps, { pushIn: Number((0.14 * intensity).toFixed(2)), startAt: 0 })
+        buildCameraPath(project, steps, {
+          pushIn: Number(Math.min(0.45, pushAmount).toFixed(2)),
+          startAt: 0
+        })
       } else {
         const camPreset =
           node.preset === 'orbit_showcase_3d'

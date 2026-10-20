@@ -198,7 +198,23 @@ export function describeNodeConcreteConfig(node: WorkflowNode, project?: Project
 
     case 'camera_director': {
       const shots = project?.shots.length ?? 1
-      const dof = node.params?.enableDof !== false ? 'DOF Xóa phông' : 'Nét toàn cảnh'
+      const dofOn = project ? project.camera.dofEnabled : node.params?.enableDof !== false
+      const dof = dofOn ? 'DOF Xóa phông' : 'Nét toàn cảnh'
+      if (project && project.camera.position.keyframes.length > 0) {
+        const kfCount = project.camera.position.keyframes.length
+        const visitedShotIds = new Set<string>()
+        for (const k of project.camera.target.keyframes) {
+          const s = project.shots.find(
+            (sh) =>
+              Math.hypot(sh.position.value[0] - k.value[0], sh.position.value[1] - k.value[1]) <
+              1200
+          )
+          if (s) visitedShotIds.add(s.id)
+        }
+        const shakeVal = project.camera.shakeAmount ?? 0
+        const shakeTag = shakeVal > 0.2 ? ` · Rung ${shakeVal}` : ''
+        return `Lộ trình ${kfCount} mốc (${Math.max(1, visitedShotIds.size || shots)} cảnh) · ${dof}${shakeTag}`
+      }
       if (node.preset === 'cinematic_fly_push') {
         return `Bay qua ${shots} cảnh (Push-in ${Math.round(14 * intensity)}%) · ${dof}`
       }
@@ -218,6 +234,15 @@ export function describeNodeConcreteConfig(node: WorkflowNode, project?: Project
       return `Nhạc nền EQ Ấm (Warm) · Fade vào 0.6s / ra 1.0s`
 
     case 'look_output':
+      if (project?.look) {
+        const lk = project.look
+        const satPct = Math.round((lk.saturation ?? 1) * 100)
+        if (lk.fogEnabled) {
+          return `Sương ${lk.fogColor} (Z:${lk.fogNear}→${lk.fogFar}) · Tương phản ${(lk.contrast ?? 1).toFixed(2)} · Rực ${satPct}%`
+        }
+        const exp = lk.exposure ?? 0
+        return `Tắt sương · Phơi sáng ${exp >= 0 ? '+' : ''}${exp.toFixed(2)} · Tương phản ${(lk.contrast ?? 1).toFixed(2)} · Rực ${satPct}%`
+      }
       if (node.preset === 'mystic_night_glow') {
         return `Sương đêm #161936 (Z:1200→5200) · Vignette 0.38`
       }

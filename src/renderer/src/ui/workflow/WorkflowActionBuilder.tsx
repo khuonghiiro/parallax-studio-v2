@@ -1,13 +1,16 @@
 import React, { useMemo, useState } from 'react'
 import type {
+  Project,
   WorkflowBoundTarget,
   WorkflowCustomActionKind,
   WorkflowCustomActionRule,
   WorkflowNode,
   WorkflowNodeParams
 } from '@shared/types'
+import { useEditor } from '../../store/editor'
 import {
   WORKFLOW_CUSTOM_ACTION_CATALOG,
+  applyRuleMutationToProjectLayer,
   getCustomActionSpec
 } from '../../project/workflowStageEffects'
 import { getTargetKindIcon } from './WorkflowNodePreview'
@@ -71,6 +74,13 @@ export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
   }
 
   const handleToggleRule = (ruleId: string) => {
+    const targetRule = customRules.find((r) => r.id === ruleId)
+    if (targetRule) {
+      const nextEnabled = !targetRule.enabled
+      useEditor.getState().update((draft) => {
+        applyRuleMutationToProjectLayer(draft as Project, targetRule, nextEnabled)
+      })
+    }
     const nextRules = customRules.map((r) =>
       r.id === ruleId ? { ...r, enabled: !r.enabled } : r
     )
@@ -78,9 +88,15 @@ export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
   }
 
   const handleDeleteRule = (ruleId: string) => {
+    const targetRule = customRules.find((r) => r.id === ruleId)
+    if (targetRule) {
+      useEditor.getState().update((draft) => {
+        applyRuleMutationToProjectLayer(draft as Project, targetRule, false)
+      })
+    }
     const nextRules = customRules.filter((r) => r.id !== ruleId)
     onUpdateNodeParams(node.id, { customRules: nextRules })
-    onShowToast('Đã xóa lệnh chuyển động / tính năng khỏi khối!')
+    onShowToast('Đã xóa lệnh chuyển động / tính năng và đồng bộ tắt trên Layer!')
   }
 
   return (
@@ -97,7 +113,14 @@ export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
             type="button"
             className="wf-binder-mode-btn"
             title="Xóa toàn bộ lệnh chuyển động riêng đã thêm vào khối này"
-            onClick={() => onUpdateNodeParams(node.id, { customRules: [] })}
+            onClick={() => {
+              useEditor.getState().update((draft) => {
+                for (const r of customRules) {
+                  applyRuleMutationToProjectLayer(draft as Project, r, false)
+                }
+              })
+              onUpdateNodeParams(node.id, { customRules: [] })
+            }}
           >
             ✕ Xóa hết ({customRules.length})
           </button>
@@ -214,7 +237,7 @@ export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
                   <div className="wf-rule-title-line">
                     <strong>{spec.shortLabel}</strong>
                     <span className="wf-rule-param-pill">
-                      Tốc {rule.speed ?? 1}x · Biên {rule.amount ?? 1}
+                      {rule.id.startsWith('inspector-') ? '⇄ Inspector · ' : ''}Tốc {rule.speed ?? 1}x · Biên {rule.amount ?? 1}
                     </span>
                   </div>
                   <div className="wf-rule-target-line">🎯 {rule.targetName}</div>

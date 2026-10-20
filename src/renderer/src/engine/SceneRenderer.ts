@@ -516,7 +516,7 @@ export class SceneRenderer {
       u.dofOn.value = !mode.editor && ev.camera.dof ? 1 : 0
       u.focusDistance.value = ev.camera.focusDistance
       u.aperture.value = ev.camera.aperture
-      u.fogOn.value = !mode.editor && look.fogEnabled ? 1 : 0
+      u.fogOn.value = look.fogEnabled ? (mode.editor ? 0.65 : 1) : 0
       u.fogColor.value.set(look.fogColor)
       u.fogNear.value = look.fogNear
       u.fogFar.value = Math.max(look.fogNear + 1, look.fogFar)

@@ -35,7 +35,7 @@ describe('Layer Assembly Workshop Storage System', () => {
 
   it('loads built-in composites with the 2 anime characters and 3 approved nature presets (modular tree, modular rock, bonsai)', () => {
     const list = getStoredComposites()
-    expect(list.length).toBe(5)
+    expect(list.length).toBe(BUILTIN_COMPOSITES.length)
 
     const bonsai = list.find((c) => c.id === 'comp-bonsai-zen')
     expect(bonsai).toBeDefined()

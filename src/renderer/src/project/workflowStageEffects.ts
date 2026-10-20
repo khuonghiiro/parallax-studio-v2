@@ -3,11 +3,13 @@ import type {
   Project,
   WorkflowCustomActionKind,
   WorkflowCustomActionRule,
+  WorkflowGraph,
   WorkflowNode,
   WorkflowNodeType
 } from '@shared/types'
 import { generatePresetSpatialTracks, type MotionPresetId } from '../animation/motionPresets'
 import { applyMotionTracksToGroup, findMotionTargetGroup } from '../animation/motionEngine'
+import { classifyLayerRole, getDefaultPartsForNode } from './workflowTargets'
 
 export interface CustomActionCatalogItem {
   kind: WorkflowCustomActionKind
@@ -177,7 +179,9 @@ export function applyCustomNodeRulesToProject(
   node: WorkflowNode,
   matchesNodeBinding: (layer: Layer) => boolean
 ): number {
-  const rules = (node.params?.customRules ?? []).filter((r) => r.enabled)
+  const rules = (node.params?.customRules ?? []).filter(
+    (r) => r.enabled && !r.id.startsWith('inspector-')
+  )
   if (rules.length === 0) return 0
 
   let affected = 0
@@ -287,7 +291,8 @@ export function applyCustomNodeRulesToProject(
       rule.actionKind === 'virtual_light_candle' ||
       rule.actionKind === 'virtual_light_flashlight'
     ) {
-      const focal = targetLayers[0]
+      const focal =
+        targetLayers.find((l) => !isForegroundFrameBorderLayer(l)) ?? targetLayers[0]
       if (focal) {
         focal.virtualLight =
           rule.actionKind === 'virtual_light_flashlight'
@@ -437,4 +442,292 @@ export function formatRuleBadge(rule: WorkflowCustomActionRule): string {
   const spec = getCustomActionSpec(rule.actionKind)
   const spd = rule.speed ?? spec?.defaultSpeed ?? 1
   return `${spec?.icon ?? '⚡'} ${rule.targetName}: ${spec?.shortLabel ?? rule.actionKind} (${spd}x)`
+}
+
+/**
+ * Kiểm tra xem Layer có phải là khung viền tiền cảnh rỗng giữa (dây leo, vòm đá, khung viền)
+ * để tránh gắn nhầm tâm đèn ảo 2.5D vào lỗ rỗng giữa khung hình.
+ */
+export function isForegroundFrameBorderLayer(layer: Layer): boolean {
+  const n = (layer.name || '').toLowerCase()
+  const z = layer.transform.position.value[2] ?? 0
+  if (z <= -80) return true
+  if (
+    n.includes('dây leo') ||
+    n.includes('tiền cảnh') ||
+    n.includes('khung') ||
+    n.includes('vòm') ||
+    n.includes('cổng di tích') ||
+    n.includes('frame') ||
+    n.includes('border') ||
+    n.includes('vine')
+  ) {
+    return true
+  }
+  return false
+}
+
+/**
+ * Chọn Layer chủ thể trung tâm tốt nhất trong một Phân cảnh để nhận Đèn ảo 2.5D hoặc Viền Glow.
+ * Ưu tiên: Cụm Composite 2.5D -> Nhân vật -> Chủ thể/Trung cảnh (không phải viền tiền cảnh rỗng giữa hay bầu trời).
+ */
+export function pickShotFocalLayer(
+  project: Project,
+  shotId: string | null,
+  matchesLayer: (l: Layer) => boolean
+): Layer | undefined {
+  const inShot = (l: Layer): boolean =>
+    !l.locked &&
+    (shotId ? l.shotId === shotId : true) &&
+    matchesLayer(l)
+
+  const compRoot = project.layers.find((l) => l.composite?.isRoot && inShot(l))
+  if (compRoot) return compRoot
+
+  const charLayer = project.layers.find(
+    (l) => l.type === 'image' && classifyLayerRole(l) === 'character' && inShot(l)
+  )
+  if (charLayer) return charLayer
+
+  const midSubject = project.layers.find((l) => {
+    if (l.type !== 'image' || !inShot(l)) return false
+    if (isForegroundFrameBorderLayer(l)) return false
+    const role = classifyLayerRole(l)
+    if (role === 'sky' || role === 'ground') return false
+    const z = l.transform.position.value[2] ?? 0
+    return z > -80 && z <= 1200
+  })
+  if (midSubject) return midSubject
+
+  return project.layers.find(
+    (l) => l.type === 'image' && !isForegroundFrameBorderLayer(l) && inShot(l)
+  )
+}
+
+/**
+ * Đồng bộ ngược (Bi-directional Sync) từ các chỉnh sửa trên Cột Thuộc Tính Phải
+ * (Tab Layer | Camera | Lộ trình | Dự án) vào Đồ thị Workflow để hiển thị và giữ nguyên logic.
+ */
+export function syncWorkflowFromProject(
+  project: Project,
+  baseWorkflow: WorkflowGraph
+): WorkflowGraph {
+  const nodes = baseWorkflow.nodes.map((node): WorkflowNode => {
+    const baseParts = new Set(
+      node.params?.targetParts && node.params.targetParts.length > 0
+        ? node.params.targetParts
+        : getDefaultPartsForNode(node)
+    )
+    const manualRules = (node.params?.customRules ?? []).filter(
+      (r) => !r.id.startsWith('inspector-')
+    )
+
+    if (node.type === 'motion_choreography') {
+      const syncedRules: WorkflowCustomActionRule[] = []
+      for (const l of project.layers) {
+        if (l.locked || l.type === 'solid') continue
+        const m = l.motion
+        if (m && m.enabled && m.type && m.type !== 'none') {
+          const kind = m.type as WorkflowCustomActionKind
+          const spec = getCustomActionSpec(kind)
+          if (!spec) continue
+          const alreadyManual = manualRules.some(
+            (r) =>
+              (r.targetId === l.id || r.targetId === 'all') && r.actionKind === kind
+          )
+          if (!alreadyManual) {
+            syncedRules.push({
+              id: `inspector-motion-${l.id}`,
+              label: `${spec.shortLabel} (${l.name})`,
+              targetId: l.id,
+              targetName: l.name,
+              actionKind: kind,
+              speed: Number((m.speed ?? spec.defaultSpeed).toFixed(2)),
+              amount: Number((m.amount ?? spec.defaultAmount).toFixed(2)),
+              enabled: true
+            })
+          }
+          if (kind === 'wind') baseParts.add('canopy_wind')
+          if (kind === 'drift') baseParts.add('sky_cloud_drift')
+          if (kind === 'float' || kind === 'pulse') baseParts.add('torso_breathe')
+          if (kind === 'sway') baseParts.add('hair_cloth_sway')
+        }
+      }
+      return {
+        ...node,
+        params: {
+          ...(node.params ?? {}),
+          targetParts: Array.from(baseParts),
+          customRules: [...manualRules, ...syncedRules]
+        }
+      }
+    }
+
+    if (node.type === 'physics_fx') {
+      const syncedRules: WorkflowCustomActionRule[] = []
+      const hasParticles = project.layers.some((l) => l.type === 'particles' && l.visible)
+      if (hasParticles) baseParts.add('firefly_particles')
+      else baseParts.delete('firefly_particles')
+
+      for (const l of project.layers) {
+        if (l.locked) continue
+        if (l.virtualLight?.enabled) {
+          baseParts.add('virtual_light_core')
+          const kind: WorkflowCustomActionKind =
+            l.virtualLight.kind === 'flashlight' || l.virtualLight.kind === 'sunbeam'
+              ? 'virtual_light_flashlight'
+              : 'virtual_light_candle'
+          const spec = getCustomActionSpec(kind)
+          const alreadyManual = manualRules.some(
+            (r) =>
+              (r.targetId === l.id || r.targetId === 'all') &&
+              (r.actionKind === 'virtual_light_candle' ||
+                r.actionKind === 'virtual_light_flashlight')
+          )
+          if (!alreadyManual && spec) {
+            syncedRules.push({
+              id: `inspector-vlight-${l.id}`,
+              label: `${spec.shortLabel} (${l.name})`,
+              targetId: l.id,
+              targetName: l.name,
+              actionKind: kind,
+              speed: Number((l.virtualLight.flickerSpeed ?? spec.defaultSpeed).toFixed(2)),
+              amount: Number((l.virtualLight.intensity ?? spec.defaultAmount).toFixed(2)),
+              enabled: true
+            })
+          }
+        }
+        if (l.glow?.enabled) {
+          baseParts.add('rim_glow_silhouette')
+          const alreadyManual = manualRules.some(
+            (r) => (r.targetId === l.id || r.targetId === 'all') && r.actionKind === 'rim_glow'
+          )
+          if (!alreadyManual) {
+            syncedRules.push({
+              id: `inspector-glow-${l.id}`,
+              label: `Viền Glow (${l.name})`,
+              targetId: l.id,
+              targetName: l.name,
+              actionKind: 'rim_glow',
+              speed: Number((l.glow.speed ?? 1.6).toFixed(2)),
+              amount: Number((l.glow.intensity ?? 1.2).toFixed(2)),
+              enabled: true
+            })
+          }
+        }
+        if (l.physics?.enabled) {
+          baseParts.add('soft_mesh_jiggle')
+          if (l.physics.depthPortal?.enabled) {
+            baseParts.add('cave_depth_portal')
+          }
+        }
+      }
+
+      return {
+        ...node,
+        params: {
+          ...(node.params ?? {}),
+          spawnParticles: hasParticles,
+          targetParts: Array.from(baseParts),
+          customRules: [...manualRules, ...syncedRules]
+        }
+      }
+    }
+
+    if (node.type === 'camera_director') {
+      const dofOn = Boolean(project.camera.dofEnabled)
+      const shakeOn = (project.camera.shakeAmount ?? 0) > 0.2
+      if (dofOn) baseParts.add('dof_aperture')
+      else baseParts.delete('dof_aperture')
+      if (shakeOn) baseParts.add('handheld_rig')
+      else baseParts.delete('handheld_rig')
+      if (project.camera.position.keyframes.length > 1) {
+        baseParts.add('spline_eye_path')
+      }
+      return {
+        ...node,
+        params: {
+          ...(node.params ?? {}),
+          enableDof: dofOn,
+          targetParts: Array.from(baseParts)
+        }
+      }
+    }
+
+    if (node.type === 'audio_lipsync') {
+      const hasLipSync = (project.audioTracks ?? []).some((t) => t.lipSyncEnabled)
+      if (hasLipSync) baseParts.add('mouth_viseme_25d')
+      return {
+        ...node,
+        params: {
+          ...(node.params ?? {}),
+          autoLipSync: hasLipSync || Boolean(node.params?.autoLipSync),
+          targetParts: Array.from(baseParts)
+        }
+      }
+    }
+
+    if (node.type === 'look_output') {
+      if (project.look.fogEnabled) baseParts.add('z_depth_fog')
+      else baseParts.delete('z_depth_fog')
+      if ((project.look.vignette ?? 0) > 0.02 || (project.look.grain ?? 0) > 0.01) {
+        baseParts.add('lens_vignette_grain')
+      } else {
+        baseParts.delete('lens_vignette_grain')
+      }
+      return {
+        ...node,
+        params: {
+          ...(node.params ?? {}),
+          targetParts: Array.from(baseParts)
+        }
+      }
+    }
+
+    return node
+  })
+
+  return {
+    ...baseWorkflow,
+    nodes
+  }
+}
+
+/**
+ * Khi người dùng tắt hoặc xóa một quy tắc chuyển động/FX trong bảng Workflow (tab ➕ Thêm FX),
+ * đồng bộ tắt hiệu ứng tương ứng trực tiếp trên Layer trong Project (Inspector).
+ */
+export function applyRuleMutationToProjectLayer(
+  project: Project,
+  rule: WorkflowCustomActionRule,
+  enabled: boolean
+): void {
+  const targets = project.layers.filter(
+    (l) =>
+      rule.targetId === 'all' ||
+      l.id === rule.targetId ||
+      l.composite?.instanceId === rule.targetId ||
+      l.model3d?.instanceId === rule.targetId
+  )
+  for (const l of targets) {
+    if (
+      rule.actionKind === 'wind' ||
+      rule.actionKind === 'drift' ||
+      rule.actionKind === 'float' ||
+      rule.actionKind === 'sway' ||
+      rule.actionKind === 'pulse' ||
+      rule.actionKind === 'spin'
+    ) {
+      if (l.motion) l.motion.enabled = enabled
+    } else if (
+      rule.actionKind === 'virtual_light_candle' ||
+      rule.actionKind === 'virtual_light_flashlight'
+    ) {
+      if (l.virtualLight) l.virtualLight.enabled = enabled
+    } else if (rule.actionKind === 'rim_glow') {
+      if (l.glow) l.glow.enabled = enabled
+    } else if (rule.actionKind === 'mesh_elastic') {
+      if (l.physics) l.physics.enabled = enabled
+    }
+  }
 }

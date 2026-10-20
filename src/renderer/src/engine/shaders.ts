@@ -184,11 +184,14 @@ void main() {
 
     if (vlightOn < 1.5 && rHalo < 1.0) {
       float sHalo = 1.0 - smoothstep(0.0, 1.0, rHalo);
-      float bloomHalo = pow(sHalo, 1.85);
-      float cHalo = exp(-7.5 * rHalo * rHalo);
-      float rawHalo = (bloomHalo * 0.68 + cHalo * 0.52) * axisBoost;
-      haloAlpha = clamp(rawHalo * min(1.20, intensity * 0.78), 0.0, 0.88);
-      coreHotness = max(coreHotness, clamp(cHalo * min(1.35, intensity * 0.88), 0.0, 0.94));
+      float bloomHalo = pow(sHalo, 2.25);
+      float cHalo = exp(-10.5 * rHalo * rHalo);
+      float rawHalo = (bloomHalo * 0.34 + cHalo * 0.44) * axisBoost;
+      // Trên vùng trong suốt (texAlpha ~ 0), chỉ giữ quầng khí quyển bán trong suốt dịu nhẹ (tối đa 0.24) để đồng nhất với Cam 2D và không tạo mảng trắng đục che cảnh sau
+      float surfaceMask = smoothstep(0.02, 0.35, clamp(c.a, 0.0, 1.0));
+      float emptySpaceAtten = mix(0.22, 1.0, surfaceMask);
+      haloAlpha = clamp(rawHalo * min(1.0, intensity * 0.62) * emptySpaceAtten, 0.0, mix(0.24, 0.78, surfaceMask));
+      coreHotness = max(coreHotness, clamp(cHalo * min(1.25, intensity * 0.82) * emptySpaceAtten, 0.0, 0.90));
     }
   }
 
@@ -237,8 +240,8 @@ void main() {
   }
 
   c.a = finalAlpha;
-  if (fogOn > 0.5) {
-    float f = smoothstep(fogNear, fogFar, vDepth);
+  if (fogOn > 0.01) {
+    float f = smoothstep(fogNear, fogFar, vDepth) * clamp(fogOn, 0.0, 1.0);
     rgb = mix(rgb, fogColor, f);
   }
   gl_FragColor = vec4(rgb, c.a * opacity);

@@ -158,6 +158,14 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
     const box = stageLayout.find((b) => b.shotId === selectedShotId)
     if (!box) return
 
+    const curZoom = zoomRef.current
+    const nextPan = {
+      x: Math.round(-box.stageX * curZoom),
+      y: Math.round(-box.stageY * curZoom - 14)
+    }
+    panRef.current = nextPan
+    setPan(nextPan)
+
     const shotWps = waypoints.filter((w) => w.shotId === selectedShotId)
     if (shotWps.length > 0) {
       if (activeFrame?.shotId !== selectedShotId) {
@@ -275,6 +283,16 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
       const targetShot =
         f.shotId ?? findNearestShotByStage2D(stageLayout, f.stageX, f.stageY)?.shotId ?? null
       if (targetShot) {
+        const box = stageLayout.find((b) => b.shotId === targetShot)
+        if (box) {
+          const curZoom = zoomRef.current
+          const nextPan = {
+            x: Math.round(-box.stageX * curZoom),
+            y: Math.round(-box.stageY * curZoom - 14)
+          }
+          panRef.current = nextPan
+          setPan(nextPan)
+        }
         selectShot(targetShot)
       }
       if (activateRouteTab) {
@@ -673,6 +691,7 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
                 box={box}
                 layers={layers2D}
                 background={project.comp.background}
+                look={project.look}
                 isSelectedShot={selectedShotId === box.shotId}
                 isActiveCameraShot={activeFrame?.shotId === box.shotId}
                 aimMode={toolMode === 'aim-target'}
@@ -731,6 +750,7 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
           layersByShot={layersByShot}
           layersByWaypoint={layersByWaypoint}
           background={project.comp.background}
+          look={project.look}
           showPreview={showFilmstripPreview}
           onTogglePreview={() => setShowFilmstripPreview((v) => !v)}
           onSelectWaypoint={(wp) => handleSelectFrame(wp, true)}

@@ -296,6 +296,31 @@ describe('MCP workflowCommands & Workflow Engine', () => {
     useEditor.getState().setTime(NaN)
     expect(Number.isFinite(useEditor.getState().time)).toBe(true)
     expect(useEditor.getState().time).toBe(2.5)
+
+    // Bi-directional sync: edits in Right Inspector (Layer, Camera, Look) sync into Workflow
+    treeLayer.glow = {
+      enabled: true,
+      side: 'outer',
+      color: '#38bdf8',
+      thickness: 8,
+      intensity: 1.5,
+      animated: 'breathe',
+      speed: 1.8
+    }
+    proj.camera.dofEnabled = false
+    proj.look.fogEnabled = false
+    const syncedWf = ensureProjectWorkflow(proj)
+    const fxNode = syncedWf.nodes.find((n) => n.type === 'physics_fx')!
+    expect(fxNode.params?.targetParts).toContain('rim_glow_silhouette')
+    expect(
+      fxNode.params?.customRules?.some(
+        (r) => r.id === `inspector-glow-${treeLayer.id}` && r.enabled
+      )
+    ).toBe(true)
+    const camNodeSynced = syncedWf.nodes.find((n) => n.type === 'camera_director')!
+    expect(camNodeSynced.params?.enableDof).toBe(false)
+    const lookNodeSynced = syncedWf.nodes.find((n) => n.type === 'look_output')!
+    expect(lookNodeSynced.params?.targetParts).not.toContain('z_depth_fog')
   })
 })
 

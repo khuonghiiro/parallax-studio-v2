@@ -76,16 +76,54 @@ export const WorkflowStudioPanel: React.FC = () => {
     [workflow.nodes, selectedNodeId]
   )
 
+  const handleSelectNode = useCallback(
+    (nodeId: string) => {
+      setSelectedNodeId(nodeId)
+      const n = workflow.nodes.find((item) => item.id === nodeId)
+      if (!n) return
+      const st = useEditor.getState()
+      if (n.type === 'camera_director') {
+        st.setInspectorTab('route')
+      } else if (n.type === 'look_output' || n.type === 'scene_shot') {
+        st.setInspectorTab('scene')
+      } else if (
+        n.type === 'layer_assembly' ||
+        n.type === 'motion_choreography' ||
+        n.type === 'physics_fx'
+      ) {
+        if (!st.selectedLayerId) {
+          const activeShot = st.selectedShotId ?? st.project.shots[0]?.id ?? null
+          const candidate =
+            st.project.layers.find((l) => l.shotId === activeShot && l.type === 'image') ??
+            st.project.layers.find((l) => l.type === 'image')
+          if (candidate) st.selectLayer(candidate.id)
+        } else {
+          st.setInspectorTab('layer')
+        }
+      }
+    },
+    [workflow.nodes]
+  )
+
   /**
    * Ghi nhận thay đổi Workflow và đồng bộ ngay lập tức lên Cảnh 3D
    * (khi ngắt dây / tắt khối thì tắt ngay chuyển động/hiệu ứng của khâu đó).
    */
   const commitWorkflow = useCallback(
-    (next: WorkflowGraph, mergeKey?: string, syncScene = true) => {
+    (
+      next: WorkflowGraph,
+      mergeKey?: string,
+      syncScene = true,
+      onlyNodeIds?: Set<string>
+    ) => {
       useEditor.getState().update((draft) => {
         draft.workflow = next
         if (syncScene) {
-          applyWorkflowToProject(draft as Project, next)
+          applyWorkflowToProject(
+            draft as Project,
+            next,
+            onlyNodeIds ? { onlyNodeIds } : undefined
+          )
         }
       }, mergeKey)
     },
@@ -97,6 +135,12 @@ export const WorkflowStudioPanel: React.FC = () => {
       const next = getWorkflowFromTemplate(presetId)
       next.targetShotId = workflow.targetShotId ?? 'all'
       commitWorkflow(next, undefined, true)
+      const st = useEditor.getState()
+      const firstShotId = st.project.shots[0]?.id ?? null
+      if (firstShotId && next.targetShotId === 'all') {
+        st.selectShot(firstShotId)
+        st.setTime(0)
+      }
       setSelectedNodeId(next.nodes[0]?.id ?? null)
       showToast(`🎬 Đã áp dụng kịch bản mẫu: ${next.name}`)
     },
@@ -111,6 +155,12 @@ export const WorkflowStudioPanel: React.FC = () => {
       }
       commitWorkflow(next, 'wf-shot-scope', true)
       if (shotId === 'all') {
+        const st = useEditor.getState()
+        const firstShotId = st.project.shots[0]?.id ?? null
+        if (firstShotId) {
+          st.selectShot(firstShotId)
+          st.setTime(0)
+        }
         showToast(
           `⇄ Đã đồng bộ & áp dụng quy trình xử lý cho toàn bộ ${project.shots.length} phân cảnh!`
         )
@@ -214,7 +264,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           }
         })
       }
-      commitWorkflow(next, undefined, true)
+      commitWorkflow(next, undefined, true, new Set([nodeId]))
     },
     [workflow, commitWorkflow]
   )
@@ -240,7 +290,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           n.id === nodeId ? { ...n, params: { ...(n.params ?? {}), ...patch } } : n
         )
       }
-      commitWorkflow(next, `wf-param-${nodeId}`, true)
+      commitWorkflow(next, `wf-param-${nodeId}`, true, new Set([nodeId]))
     },
     [workflow, commitWorkflow]
   )
@@ -480,7 +530,7 @@ export const WorkflowStudioPanel: React.FC = () => {
                       type="button"
                       className={`wf-flow-step-chip${isStepPulse ? ' pulsing' : ''}${isNodeSel ? ' selected' : ''}`}
                       style={{ ['--step-c' as string]: spec?.color ?? '#38bdf8' }}
-                      onClick={() => setSelectedNodeId(n.id)}
+                      onClick={() => handleSelectNode(n.id)}
                       title={`Bước #${idx + 1}: ${spec?.title} — Bấm để xem Layer & Cấu hình chuyển động`}
                     >
                       #{idx + 1} {spec?.shortTitle ?? n.title}
@@ -539,9 +589,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           activeNodeIds={activeNodeIds}
           executionStepMap={executionStepMap}
           selectedNodeId={selectedNode?.id ?? null}
-          onSelectNode={(id) => {
-            setSelectedNodeId(id)
-          }}
+          onSelectNode={handleSelectNode}
           onMoveNodes={handleMoveNodes}
           onAutoLayout={handleAutoLayout}
           onToggleNode={handleToggleNode}
