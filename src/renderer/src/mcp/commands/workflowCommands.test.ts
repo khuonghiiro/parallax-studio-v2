@@ -185,7 +185,7 @@ describe('MCP workflowCommands & Workflow Engine', () => {
     const geom = buildSmartEdgeGeometry(sceneNode, 'scene_ctx', camNode, 'scene_ctx', wf.nodes)
     expect(geom.path).toContain('L ')
     expect(geom.midY).toBeGreaterThan(170)
-    expect(geom.midY).toBeLessThan(256)
+    expect(geom.midY).toBeLessThan(350)
 
     const telemetryRunning = evaluateNodeRuntimeTelemetry(sceneNode, proj, 2.5, true, true, 1, 7)
     expect(telemetryRunning.state).toBe('running')

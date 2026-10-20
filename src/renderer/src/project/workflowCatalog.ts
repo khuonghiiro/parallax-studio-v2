@@ -395,13 +395,13 @@ export const CANONICAL_NODE_ORDER: WorkflowNodeType[] = [
 
 /** Vị trí tọa độ mặc định gọn đẹp trên mặt phẳng Workflow Canvas (Hiển thị chuẩn 100% 1:1 sắc nét) */
 export const DEFAULT_NODE_POSITIONS: Record<WorkflowNodeType, { x: number; y: number }> = {
-  scene_shot: { x: 24, y: 136 },
-  layer_assembly: { x: 380, y: 16 },
-  motion_choreography: { x: 736, y: 16 },
-  audio_lipsync: { x: 736, y: 256 },
-  physics_fx: { x: 1092, y: 16 },
-  camera_director: { x: 1092, y: 256 },
-  look_output: { x: 1448, y: 128 }
+  scene_shot: { x: 80, y: 220 },
+  layer_assembly: { x: 500, y: 60 },
+  motion_choreography: { x: 920, y: 60 },
+  audio_lipsync: { x: 920, y: 380 },
+  physics_fx: { x: 1340, y: 60 },
+  camera_director: { x: 1340, y: 380 },
+  look_output: { x: 1760, y: 220 }
 }
 
 export const PRESET_SHORT_LABELS: Record<string, string> = {

@@ -159,16 +159,16 @@ export function buildSmartEdgeGeometry(
   if (spanX > NODE_W + 60 && intermediateNodes.length > 0) {
     const topRowBottoms: number[] = []
     const bottomRowTops: number[] = []
-    for (const n of allNodes) {
+    for (const n of intermediateNodes) {
       const h = estimateNodeCardHeight(n)
-      if (n.position.y < 100) {
+      if (n.position.y < 160) {
         topRowBottoms.push(n.position.y + h)
-      } else if (n.position.y >= 190) {
+      } else if (n.position.y >= 240) {
         bottomRowTops.push(n.position.y)
       }
     }
-    const corridorTop = topRowBottoms.length > 0 ? Math.max(...topRowBottoms) : 174
-    const corridorBottom = bottomRowTops.length > 0 ? Math.min(...bottomRowTops) : 256
+    const corridorTop = topRowBottoms.length > 0 ? Math.max(...topRowBottoms) : 210
+    const corridorBottom = bottomRowTops.length > 0 ? Math.min(...bottomRowTops) : 360
 
     if (corridorBottom - corridorTop >= 12) {
       const laneOffset = fromPort === 'scene_ctx' ? 0.36 : 0.66

@@ -3,6 +3,7 @@ import type { Project, WorkflowBoundTarget, WorkflowNode, WorkflowNodeType } fro
 import { WORKFLOW_NODE_SPECS } from '../../project/workflowCatalog'
 import { resolveNodeTargetBinding } from '../../project/workflowEngine'
 import { describeNodeConcreteConfig, type NodeRuntimeTelemetry } from './workflowLayoutAndFlow'
+import { assetStore } from '../../project/assets'
 
 export interface WorkflowNodePreviewProps {
   node: WorkflowNode
@@ -200,6 +201,80 @@ function renderSchematicSvg(type: WorkflowNodeType, preset: string, color: strin
   }
 }
 
+
+export interface NodeThumbInfo {
+  thumbUrl?: string
+  solidColor?: string
+  isParticles?: boolean
+  textSample?: string
+  label?: string
+}
+
+export function resolveNodeLayerThumbUrl(
+  node: WorkflowNode,
+  project?: Project
+): NodeThumbInfo {
+  if (!project) return {}
+
+  // 1. Nếu node có targetLayerIds chỉ định
+  const targetId = node.params?.targetLayerIds?.[0]
+  let layer = targetId ? project.layers.find((l) => l.id === targetId) : undefined
+
+  // 2. Nếu node là scene_shot mà không có layer cụ thể, tìm layer chính của cảnh đó
+  if (!layer && node.type === 'scene_shot') {
+    const shotId = node.params?.shotId
+    const shotLayers = project.layers.filter(
+      (l) => !l.locked && (project.shots.length <= 1 || l.shotId === shotId)
+    )
+    layer =
+      shotLayers.find((l) => l.composite?.isRoot) ??
+      shotLayers.find((l) => l.type === 'image' && Math.abs(l.transform?.position?.value[2] ?? 0) < 1000) ??
+      shotLayers[0]
+  }
+
+  // 3. Nếu là layer_assembly nhưng chưa có targetLayerId, lấy layer đầu tiên
+  if (!layer && node.type === 'layer_assembly') {
+    layer = project.layers.find((l) => l.composite?.isRoot) ?? project.layers.find((l) => l.type === 'image')
+  }
+
+  if (!layer) return {}
+
+  if (layer.type === 'solid') {
+    return { solidColor: (layer.props as any)?.color ?? '#334155', label: layer.name }
+  }
+  if (layer.type === 'text') {
+    return { textSample: (layer.props as any)?.text ?? layer.name, label: layer.name }
+  }
+  if (layer.type === 'particles') {
+    return { isParticles: true, label: layer.name }
+  }
+
+  // Layer ảnh hoặc composite
+  let assetId = (layer.props as any)?.assetId
+  if (!assetId && layer.composite?.instanceId) {
+    const compLayers = project.layers.filter(
+      (l) => l.composite?.instanceId === layer?.composite?.instanceId
+    )
+    for (const cl of compLayers) {
+      if ((cl.props as any)?.assetId) {
+        assetId = (cl.props as any).assetId
+        break
+      }
+    }
+  }
+
+  if (assetId) {
+    const runtime = assetStore.get(assetId)
+    if (runtime?.thumbUrl) return { thumbUrl: runtime.thumbUrl, label: layer.name }
+    if (runtime?.url) return { thumbUrl: runtime.url, label: layer.name }
+    const meta = project.assets?.find((a) => a.id === assetId)
+    if (meta?.dataUrl) return { thumbUrl: meta.dataUrl, label: layer.name }
+    if (meta?.assetPath) return { thumbUrl: `assets/${meta.assetPath}`, label: layer.name }
+  }
+
+  return { label: layer.name }
+}
+
 export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
   node,
   project,
@@ -210,6 +285,7 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
   const spec = WORKFLOW_NODE_SPECS[node.type]
   const presetSpec = spec?.presets.find((p) => p.id === node.preset) ?? spec?.presets[0]
   const color = spec?.color ?? '#38bdf8'
+  const thumbInfo = useMemo(() => resolveNodeLayerThumbUrl(node, project), [node, project])
 
   const binding = useMemo(() => resolveNodeTargetBinding(node, project), [node, project])
   const visibleTargets = binding.boundTargets.slice(0, 1)
@@ -235,6 +311,38 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
   if (mode === 'card') {
     return (
       <div className="wf-node-binding-box">
+        {/* Khung Thumbnail Hiển Thị Ảnh Thực Tế Của Layer / Cảnh */}
+        <div className="wf-node-thumb-container">
+          {thumbInfo.thumbUrl ? (
+            <img
+              src={thumbInfo.thumbUrl}
+              alt={thumbInfo.label ?? node.title}
+              className="wf-node-thumb-img"
+              loading="lazy"
+            />
+          ) : thumbInfo.solidColor ? (
+            <div
+              className="wf-node-thumb-solid"
+              style={{ background: thumbInfo.solidColor }}
+            />
+          ) : thumbInfo.textSample ? (
+            <div className="wf-node-thumb-text">
+              "{thumbInfo.textSample.slice(0, 16)}"
+            </div>
+          ) : thumbInfo.isParticles ? (
+            <div className="wf-node-thumb-particles">
+              ✨ 🪄 ✨
+            </div>
+          ) : (
+            renderSchematicSvg(node.type, node.preset, color)
+          )}
+          {thumbInfo.label && (
+            <span className="wf-node-thumb-badge" title={thumbInfo.label}>
+              {thumbInfo.label}
+            </span>
+          )}
+        </div>
+
         {/* Dòng 1: Layer tác động + Bộ phận 2.5D */}
         <div
           className="wf-binding-row"
@@ -324,6 +432,15 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
       </div>
 
       <div className="wf-inspector-preview-stage">
+        {thumbInfo.thumbUrl && (
+          <div className="wf-inspector-thumb-box">
+            <img
+              src={thumbInfo.thumbUrl}
+              alt={thumbInfo.label ?? node.title}
+              className="wf-inspector-thumb-img"
+            />
+          </div>
+        )}
         {renderSchematicSvg(node.type, node.preset, color)}
       </div>
 

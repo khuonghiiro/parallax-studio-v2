@@ -212,14 +212,20 @@ export function spawnSceneWithChildLayers(
   const shotDuration = getShotDuration(project, shot.id)
   const uniqueKey = Date.now().toString(36).slice(-4)
 
-  // 1. Tạo Node Cảnh (Scene Shot Node) ở cột 1
+  // Khoảng cách bố cục rộng rãi, triệt tiêu hoàn toàn hiện tượng chồng đè
+  const ROW_GAP = 310
+  const COL_1_X = 80
+  const COL_2_X = 500
+  const sceneY = Math.max(80, 80 + Math.round(((Math.max(1, rootLayers.length) - 1) * ROW_GAP) / 2))
+
+  // 1. Tạo Node Cảnh (Scene Shot Node) ở cột 1 (căn giữa theo chiều dọc danh sách Layer con)
   const sceneNodeId = `wf-scene-${shot.id}-${uniqueKey}`
   const sceneNode: WorkflowNode = {
     id: sceneNodeId,
     type: 'scene_shot',
     title: `🎬 Cảnh: ${shot.name} (${shotDuration.toFixed(1)}s)`,
     enabled: true,
-    position: { x: 60, y: Math.max(120, 80 + Math.floor((rootLayers.length * 168) / 4)) },
+    position: { x: COL_1_X, y: sceneY },
     preset: 'deep_parallax_stage',
     aiAgentRole: 'SceneLayoutAgent',
     aiDirective: `Phân cảnh gốc "${shot.name}" (${shotDuration.toFixed(1)}s) điều phối ${rootLayers.length} layer con và không gian Z.`,
@@ -252,7 +258,7 @@ export function spawnSceneWithChildLayers(
       type: 'layer_assembly',
       title: meta.title,
       enabled: true,
-      position: { x: 440, y: 100 + idx * 168 },
+      position: { x: COL_2_X, y: 80 + idx * ROW_GAP },
       preset: layer.composite ? 'character_and_foliage_rig' : 'character_and_foliage_rig',
       aiAgentRole: 'AssemblyRigAgent',
       aiDirective: `Cấu hình logic chuyên biệt cho layer "${layer.name}" (Z: ${meta.zDepth}) trong cảnh ${shot.name}.`,

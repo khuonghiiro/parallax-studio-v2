@@ -46,7 +46,7 @@ export function spawnLogicNodeIntoWorkflow(
 
   const newPos = {
     x: basePos.x + (sameTypeNodes.length % 2 === 1 ? 26 : 0),
-    y: basePos.y + sameTypeNodes.length * 168
+    y: basePos.y + sameTypeNodes.length * 310
   }
 
   const uniqueSuffix = Math.random().toString(36).slice(2, 6)
