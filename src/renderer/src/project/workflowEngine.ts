@@ -65,6 +65,7 @@ export {
   WORKFLOW_LOGIC_NODE_CATALOG,
   WORKFLOW_LOGIC_NODE_CATEGORIES,
   spawnLogicNodeIntoWorkflow,
+  validateAndNormalizeWorkflowJson,
   type WorkflowLogicNodeCatalogItem
 }
 
