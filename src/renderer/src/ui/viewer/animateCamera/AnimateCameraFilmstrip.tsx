@@ -9,6 +9,7 @@ interface AnimateCameraFilmstripProps {
   activeFrameIndex: number
   stageLayout: ShotStageBox[]
   layersByShot: Map<string | null, ProjectedLayer2D[]>
+  layersByWaypoint?: ProjectedLayer2D[][]
   background: string
   showPreview: boolean
   onTogglePreview: () => void
@@ -29,6 +30,7 @@ export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVertica
   activeFrameIndex,
   stageLayout,
   layersByShot,
+  layersByWaypoint,
   background,
   showPreview,
   onTogglePreview,
@@ -79,7 +81,8 @@ export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVertica
           const isActive = idx === activeFrameIndex
           const box =
             (wp.shotId ? stageLayout.find((b) => b.shotId === wp.shotId) : null) ?? stageLayout[0]
-          const shotLayers = layersByShot.get(box?.shotId ?? null) ?? []
+          const shotLayers =
+            layersByWaypoint?.[idx] ?? layersByShot.get(box?.shotId ?? null) ?? []
           const camRelX = box ? wp.stageX - box.stageX : wp.stageX
           const camRelY = box ? wp.stageY - box.stageY : wp.stageY
           const frameScaleX = THUMB_W / Math.max(1, wp.width)
@@ -182,7 +185,7 @@ export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVertica
                                   filter: filterCss
                                 }}
                               />
-                              <Layer2DLightOverlay layer={layer} />
+                              <Layer2DLightOverlay layer={layer} imgUrl={imgUrl} />
                             </div>
                           )
                         }

@@ -313,30 +313,103 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
             </>
           )}
 
-          {isCone && (
-            <Row label="Góc / Chóp" title="Góc xoay tia đèn pin (°) và độ mở chóp nón ánh sáng (°)">
-              <NumberInput
-                axis="∠"
-                value={vlight.beamAngleDeg}
-                step={5}
-                precision={0}
-                min={-180}
-                max={180}
-                suffix="°"
-                onChange={(v, k) => patchLight({ beamAngleDeg: v }, k)}
-              />
-              <NumberInput
-                axis="Δ"
-                value={vlight.coneAngleDeg}
-                step={5}
-                precision={0}
-                min={12}
-                max={360}
-                suffix="°"
-                onChange={(v, k) => patchLight({ coneAngleDeg: v }, k)}
-              />
-            </Row>
-          )}
+          <Row label="Hướng chiếu" title="Chọn nhanh toả tròn 360° hoặc định hướng chùm sáng chiếu theo hướng cụ thể">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 3, width: '100%' }}>
+              {[
+                {
+                  label: '☀️ 360°',
+                  title: 'Tỏa sáng tròn đều 360° mọi hướng',
+                  cone: 360,
+                  beam: 0,
+                  active: !isCone
+                },
+                {
+                  label: '→ Phải',
+                  title: 'Chiếu sang phải (0°)',
+                  cone: 75,
+                  beam: 0,
+                  active: isCone && (vlight.beamAngleDeg ?? 0) > -22 && (vlight.beamAngleDeg ?? 0) <= 22
+                },
+                {
+                  label: '↗ Chéo',
+                  title: 'Chiếu chéo lên phải (35°)',
+                  cone: 75,
+                  beam: 35,
+                  active: isCone && (vlight.beamAngleDeg ?? 0) > 22 && (vlight.beamAngleDeg ?? 0) <= 65
+                },
+                {
+                  label: '↑ Lên',
+                  title: 'Chiếu thẳng lên trên (90°)',
+                  cone: 85,
+                  beam: 90,
+                  active: isCone && (vlight.beamAngleDeg ?? 0) > 65 && (vlight.beamAngleDeg ?? 0) <= 135
+                },
+                {
+                  label: '← Trái',
+                  title: 'Chiếu sang trái (180°)',
+                  cone: 75,
+                  beam: 180,
+                  active:
+                    isCone &&
+                    ((vlight.beamAngleDeg ?? 0) > 135 || (vlight.beamAngleDeg ?? 0) <= -135)
+                },
+                {
+                  label: '↓ Xuống',
+                  title: 'Chiếu xuống dưới (-90°)',
+                  cone: 85,
+                  beam: -90,
+                  active: isCone && (vlight.beamAngleDeg ?? 0) > -135 && (vlight.beamAngleDeg ?? 0) <= -22
+                }
+              ].map((dir) => (
+                <button
+                  key={dir.label}
+                  type="button"
+                  title={dir.title}
+                  className={`btn sm ${dir.active ? 'primary' : 'ghost'}`}
+                  style={{ padding: '2px 2px', fontSize: 10, whiteSpace: 'nowrap', justifyContent: 'center' }}
+                  onClick={() =>
+                    patchLight({
+                      beamAngleDeg: dir.beam,
+                      coneAngleDeg: dir.cone
+                    })
+                  }
+                >
+                  {dir.label}
+                </button>
+              ))}
+            </div>
+          </Row>
+
+          <Row label="Góc / Mở chóp" title="Góc hướng chiếu sáng (∠: 0°=phải, 90°=lên, 180°=trái, -90°=xuống) và độ mở chóp nón ánh sáng (Δ: 15°..360°)">
+            <NumberInput
+              axis="∠"
+              value={vlight.beamAngleDeg ?? 0}
+              step={5}
+              precision={0}
+              min={-180}
+              max={180}
+              suffix="°"
+              onChange={(v, k) =>
+                patchLight(
+                  {
+                    beamAngleDeg: v,
+                    coneAngleDeg: (vlight.coneAngleDeg ?? 360) >= 350 ? 85 : vlight.coneAngleDeg
+                  },
+                  k
+                )
+              }
+            />
+            <NumberInput
+              axis="Δ"
+              value={vlight.coneAngleDeg ?? 360}
+              step={5}
+              precision={0}
+              min={15}
+              max={360}
+              suffix="°"
+              onChange={(v, k) => patchLight({ coneAngleDeg: v }, k)}
+            />
+          </Row>
 
           <Row label="Cường độ sáng" title="Kéo thanh trượt hoặc nhập số để chỉnh độ mạnh yếu của ánh sáng (0.05 = dịu mờ, 0.85 = tự nhiên, 1.5+ = rực sáng)">
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>

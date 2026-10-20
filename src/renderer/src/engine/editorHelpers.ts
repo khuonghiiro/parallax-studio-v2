@@ -110,22 +110,48 @@ export class EditorHelpers {
         lp.push(...pts[i], ...pts[(i + 1) % 4])
         lc.push(col.r, col.g, col.b, col.r, col.g, col.b)
       }
-      // Draw 3D virtual light radius ring on layers with active virtualLight
+      // Draw 3D virtual light radius ring or directional cone gizmo on layers with active virtualLight
       const vl = el.layer.virtualLight
       if (vl?.enabled && vl.kind !== 'none' && (vl.intensity ?? 0) > 0.01) {
         const lCol = new THREE.Color(vl.color || '#ff9d3b')
         const u0 = (vl.originUV?.[0] ?? 0.5) - 0.5
         const v0 = (vl.originUV?.[1] ?? 0.5) - 0.5
-        const rNormX = Math.min(1.2, Math.max(0.15, (vl.radius || 320) / Math.max(64, el.size[0] * Math.abs(el.scale[0]))))
-        const rNormY = Math.min(1.2, Math.max(0.15, (vl.radius || 320) / Math.max(64, el.size[1] * Math.abs(el.scale[1]))))
-        const segs = 16
-        for (let s = 0; s < segs; s++) {
-          const a0 = (s / segs) * Math.PI * 2
-          const a1 = ((s + 1) / segs) * Math.PI * 2
-          const p0 = tmp.set(u0 + Math.cos(a0) * rNormX * 0.45, v0 + Math.sin(a0) * rNormY * 0.45, 0.01).applyMatrix4(info.matrix).toArray()
-          const p1 = tmp.set(u0 + Math.cos(a1) * rNormX * 0.45, v0 + Math.sin(a1) * rNormY * 0.45, 0.01).applyMatrix4(info.matrix).toArray()
-          lp.push(...p0, ...p1)
-          lc.push(lCol.r, lCol.g, lCol.b, lCol.r, lCol.g, lCol.b)
+        const rNormX = Math.min(1.4, Math.max(0.18, (vl.radius || 320) / Math.max(64, el.size[0] * Math.abs(el.scale[0])))) * 0.5
+        const rNormY = Math.min(1.4, Math.max(0.18, (vl.radius || 320) / Math.max(64, el.size[1] * Math.abs(el.scale[1])))) * 0.5
+        const coneDeg = vl.coneAngleDeg ?? 360
+        const beamRad = ((vl.beamAngleDeg ?? 0) * Math.PI) / 180
+        const origPt = tmp.set(u0, v0, 0.01).applyMatrix4(info.matrix).toArray()
+        if (coneDeg < 350) {
+          const halfRad = (Math.max(12, coneDeg) * 0.5 * Math.PI) / 180
+          const startA = beamRad - halfRad
+          const endA = beamRad + halfRad
+          const segs = 12
+          const rStart = tmp.set(u0 + Math.cos(startA) * rNormX, v0 + Math.sin(startA) * rNormY, 0.01).applyMatrix4(info.matrix).toArray()
+          const rEnd = tmp.set(u0 + Math.cos(endA) * rNormX, v0 + Math.sin(endA) * rNormY, 0.01).applyMatrix4(info.matrix).toArray()
+          lp.push(...origPt, ...rStart, ...origPt, ...rEnd)
+          lc.push(lCol.r, lCol.g, lCol.b, lCol.r, lCol.g, lCol.b, lCol.r, lCol.g, lCol.b, lCol.r, lCol.g, lCol.b)
+          for (let s = 0; s < segs; s++) {
+            const a0 = startA + ((endA - startA) * s) / segs
+            const a1 = startA + ((endA - startA) * (s + 1)) / segs
+            const p0 = tmp.set(u0 + Math.cos(a0) * rNormX, v0 + Math.sin(a0) * rNormY, 0.01).applyMatrix4(info.matrix).toArray()
+            const p1 = tmp.set(u0 + Math.cos(a1) * rNormX, v0 + Math.sin(a1) * rNormY, 0.01).applyMatrix4(info.matrix).toArray()
+            lp.push(...p0, ...p1)
+            lc.push(lCol.r, lCol.g, lCol.b, lCol.r, lCol.g, lCol.b)
+          }
+          // Central beam direction arrow
+          const tip = tmp.set(u0 + Math.cos(beamRad) * rNormX * 1.08, v0 + Math.sin(beamRad) * rNormY * 1.08, 0.01).applyMatrix4(info.matrix).toArray()
+          lp.push(...origPt, ...tip)
+          lc.push(1, 0.96, 0.8, 1, 0.96, 0.8)
+        } else {
+          const segs = 16
+          for (let s = 0; s < segs; s++) {
+            const a0 = (s / segs) * Math.PI * 2
+            const a1 = ((s + 1) / segs) * Math.PI * 2
+            const p0 = tmp.set(u0 + Math.cos(a0) * rNormX, v0 + Math.sin(a0) * rNormY, 0.01).applyMatrix4(info.matrix).toArray()
+            const p1 = tmp.set(u0 + Math.cos(a1) * rNormX, v0 + Math.sin(a1) * rNormY, 0.01).applyMatrix4(info.matrix).toArray()
+            lp.push(...p0, ...p1)
+            lc.push(lCol.r, lCol.g, lCol.b, lCol.r, lCol.g, lCol.b)
+          }
         }
       }
     }

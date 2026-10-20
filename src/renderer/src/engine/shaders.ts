@@ -117,7 +117,7 @@ void main() {
     }
   }
 
-  // Nguồn sáng ảo 2.5D trực tiếp trên layer (Ánh nến đung đưa theo gió, Chùm tia đèn pin hình nón, Bóng đèn, Tinh thể)
+  // Nguồn sáng ảo 2.5D trực tiếp trên layer (vlightOn=1) hoặc chiếu sang layer lân cận cùng cảnh (vlightOn=2)
   float localLightHalo = 0.0;
   float haloAlpha = 0.0;
   float coreGlow = 0.0;
@@ -126,41 +126,57 @@ void main() {
     float distPx = length(dUv);
     float radPx = max(24.0, vlightParams.y);
     if (distPx < radPx) {
-      float radial = pow(clamp(1.0 - distPx / radPx, 0.0, 1.0), 1.6);
+      float radial = pow(clamp(1.0 - distPx / radPx, 0.0, 1.0), 1.45);
       float coneFactor = 1.0;
       if (vlightParams.z > -0.98 && distPx > 2.0) {
         vec2 dir = dUv / distPx;
         float d = dot(dir, vlightBeam);
-        coneFactor = smoothstep(vlightParams.z, min(1.0, vlightParams.z + 0.18), d);
+        float edge0 = vlightParams.z - 0.12;
+        float edge1 = max(edge0 + 0.08, min(0.995, vlightParams.z + 0.26));
+        float beamCone = smoothstep(edge0, edge1, d);
+        float sourceCore = pow(clamp(1.0 - distPx / max(44.0, radPx * 0.56), 0.0, 1.0), 1.45) * 0.72;
+        coneFactor = max(beamCone, sourceCore);
       }
       localLightHalo = radial * coneFactor * vlightParams.x;
-      haloAlpha = pow(radial, 1.75) * coneFactor * clamp(vlightParams.x * 0.46, 0.0, 0.78);
-      float coreRad = max(14.0, min(radPx * 0.18, 48.0));
-      if (distPx < coreRad) {
-        coreGlow = pow(clamp(1.0 - distPx / coreRad, 0.0, 1.0), 2.0) * coneFactor * clamp(vlightParams.x * 0.62, 0.0, 0.92);
+      if (vlightOn < 1.5) {
+        haloAlpha = pow(radial, 1.65) * coneFactor * clamp(vlightParams.x * 0.52, 0.0, 0.84);
+        float coreRad = max(16.0, min(radPx * 0.22, 54.0));
+        if (distPx < coreRad) {
+          coreGlow = pow(clamp(1.0 - distPx / coreRad, 0.0, 1.0), 1.85) * max(coneFactor, 0.65) * clamp(vlightParams.x * 0.68, 0.0, 0.94);
+        }
+      }
+    }
+  }
+
+  // Vùng Độ Sâu / Lối vào Hang động trên tấm ảnh nền/cổng đá (Tạo hốc tối chiều sâu tự nhiên cả trên vòm đá lẫn lòng hang)
+  float portalHoleAlpha = 0.0;
+  float caveDepth = 0.0;
+  if (portalOn > 0.5 && portalDarkness > 0.01) {
+    vec2 pDiff = vUv - portalParams.xy;
+    float pDist = length(pDiff) / max(0.05, portalParams.z);
+    if (pDist < 1.0) {
+      caveDepth = pow(clamp(1.0 - pDist, 0.0, 1.0), 1.45) * portalDarkness;
+      if (pDist < 0.88) {
+        float holeFalloff = pow(clamp(1.0 - pDist / 0.88, 0.0, 1.0), 1.55);
+        portalHoleAlpha = holeFalloff * portalDarkness * 0.92;
       }
     }
   }
 
   float texAlpha = clamp(c.a, 0.0, 1.0);
-  float finalAlpha = max(texAlpha, haloAlpha);
+  float surfaceOrPortalAlpha = max(texAlpha, portalHoleAlpha);
+  float finalAlpha = max(surfaceOrPortalAlpha, haloAlpha);
   if (isModel3D > 0.5) {
     if (finalAlpha < alphaCutoff) discard;
     if (opacity >= 0.999 && texAlpha >= alphaCutoff) finalAlpha = 1.0;
   } else {
     if (finalAlpha < 0.004) discard;
   }
-  vec3 rgb = texAlpha > 0.003 ? (c.rgb / texAlpha) : vlightColor;
+  vec3 rgb = texAlpha > 0.003 ? (c.rgb / texAlpha) : (portalHoleAlpha > 0.003 ? shadeTint : vlightColor);
 
-  // Vùng Độ Sâu / Lối vào Hang động trên chính tấm ảnh nền/đất (Tạo hốc tối chiều sâu tự nhiên)
-  if (portalOn > 0.5 && portalDarkness > 0.01 && texAlpha > 0.01) {
-    vec2 pDiff = vUv - portalParams.xy;
-    float pDist = length(pDiff) / max(0.05, portalParams.z);
-    if (pDist < 1.0) {
-      float caveDepth = pow(1.0 - pDist, 1.5) * portalDarkness;
-      float rescue = min(caveDepth, (lightBoost + localLightHalo) * 0.55);
-      rgb = mix(rgb, shadeTint, max(0.0, caveDepth - rescue));
-    }
+  if (caveDepth > 0.005 && surfaceOrPortalAlpha > 0.01) {
+    float rescue = min(caveDepth, (lightBoost + localLightHalo) * 0.82);
+    rgb = mix(rgb, shadeTint, max(0.0, caveDepth - rescue));
   }
 
   // Bóng tối hang động che phủ dần nhân vật khi đi sâu vào cửa hang
@@ -168,21 +184,21 @@ void main() {
     rgb = mix(rgb, shadeTint, clamp(shadeDarkness, 0.0, 0.96));
   }
 
-  // Chiếu sáng bề mặt vật thể mềm mại từ nguồn sáng nội tại, giữ nguyên chi tiết vân đá/nhân vật, không cháy trắng
+  // Chiếu sáng bề mặt vật thể / lòng hang từ nguồn sáng 2.5D, giữ nguyên chi tiết vân đá/nhân vật
   if (localLightHalo > 0.005) {
-    float surfStrength = clamp(localLightHalo * 0.75, 0.0, 1.65);
-    vec3 litRgb = rgb * (1.0 + vlightColor * surfStrength * 0.85) + vlightColor * (surfStrength * 0.34);
+    float surfStrength = clamp(localLightHalo * 0.88, 0.0, 1.75);
+    vec3 litRgb = rgb * (1.0 + vlightColor * surfStrength * 0.92) + vlightColor * (surfStrength * 0.38);
     if (coreGlow > 0.005) {
-      vec3 coreColor = mix(vlightColor, vec3(1.0, 0.97, 0.88), 0.45);
+      vec3 coreColor = mix(vlightColor, vec3(1.0, 0.97, 0.88), 0.48);
       litRgb = mix(litRgb, coreColor, coreGlow);
     }
-    rgb = mix(vlightColor, litRgb, texAlpha);
+    rgb = mix(vlightColor, litRgb, clamp(surfaceOrPortalAlpha, 0.0, 1.0));
   }
 
   // Ánh sáng ảo 2.5D từ các layer lân cận chiếu sáng nhân vật / vách hang
-  if (lightBoost > 0.01 && texAlpha > 0.01) {
-    float boostStrength = clamp(lightBoost * 0.42, 0.0, 1.25);
-    rgb = rgb * (1.0 + lightTint * boostStrength * 0.48) + lightTint * (boostStrength * 0.18);
+  if (lightBoost > 0.01 && surfaceOrPortalAlpha > 0.01) {
+    float boostStrength = clamp(lightBoost * 0.65, 0.0, 1.35);
+    rgb = rgb * (1.0 + lightTint * boostStrength * 0.62) + lightTint * (boostStrength * 0.25);
   }
 
   c.a = finalAlpha;

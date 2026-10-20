@@ -494,6 +494,38 @@ export function WorkshopPhysicsLightSection({
               />
             </label>
           </div>
+
+          <div className="lw-prop-grid">
+            <label className="lw-field" title="Hướng chiếu sáng (0°=phải, 90°=lên, 180°=trái, -90°=xuống)">
+              <span className="lw-field-label">Hướng chiếu ∠ (°)</span>
+              <input
+                className="lw-input"
+                type="number"
+                step={10}
+                min={-180}
+                max={180}
+                value={vlight.beamAngleDeg ?? 0}
+                onChange={(e) =>
+                  patchLight({
+                    beamAngleDeg: Number(e.target.value),
+                    coneAngleDeg: (vlight.coneAngleDeg ?? 360) >= 350 ? 85 : vlight.coneAngleDeg
+                  })
+                }
+              />
+            </label>
+            <label className="lw-field" title="Góc mở chùm sáng (360° = toả tròn, <350° = chiếu chùm nón định hướng)">
+              <span className="lw-field-label">Góc mở chóp Δ (°)</span>
+              <input
+                className="lw-input"
+                type="number"
+                step={10}
+                min={15}
+                max={360}
+                value={vlight.coneAngleDeg ?? 360}
+                onChange={(e) => patchLight({ coneAngleDeg: Number(e.target.value) })}
+              />
+            </label>
+          </div>
         </div>
       )}
     </section>

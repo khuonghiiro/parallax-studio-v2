@@ -28,46 +28,92 @@ export function getLayer2DFilterStyle(layer: ProjectedLayer2D, scalePx = 1): str
   return filters.length > 0 ? filters.join(' ') : undefined
 }
 
-export function Layer2DLightOverlay({ layer }: { layer: ProjectedLayer2D }) {
+export function Layer2DLightOverlay({
+  layer,
+  imgUrl
+}: {
+  layer: ProjectedLayer2D
+  imgUrl?: string
+}) {
   const hasPortal = Boolean(layer.portal && layer.portal.darkness > 0.02)
   const hasVLight = Boolean(layer.vlight && layer.vlight.intensity > 0.01)
   if (!hasPortal && !hasVLight) return null
 
   const uPct = layer.vlight ? Math.round(layer.vlight.originU * 100) : 50
   const vPct = layer.vlight ? Math.round((1 - layer.vlight.originV) * 100) : 50
-  const haloOpacity = layer.vlight
-    ? Math.max(0.14, Math.min(0.92, layer.vlight.intensity * 0.68))
-    : 0
+  const intensity = layer.vlight?.intensity ?? 0
+  const surfOpacity = Math.max(0.22, Math.min(0.88, intensity * 0.64))
+  const haloOpacity = Math.max(0.20, Math.min(0.90, intensity * 0.68))
   const reachPct = layer.vlight
-    ? Math.max(48, Math.min(96, Math.round(layer.vlight.radiusRatio * 76)))
-    : 72
+    ? Math.max(52, Math.min(98, Math.round(layer.vlight.radiusRatio * 78)))
+    : 74
+
+  const coneDeg = layer.vlight?.coneAngleDeg ?? 360
+  const beamDeg = layer.vlight?.beamAngleDeg ?? 0
+  const isCone = coneDeg < 350
+  const halfCone = Math.max(12, Math.min(170, coneDeg * 0.5))
+  // Engine 0° = Right (+X), 90° = Up (+Y); CSS conic-gradient 0deg = Up (+Y), 90deg = Right (+X)
+  const cssBeamDeg = 90 - beamDeg
+  const startDeg = Math.round(cssBeamDeg - halfCone)
 
   const pUPct = layer.portal ? Math.round(layer.portal.centerU * 100) : 50
   const pVPct = layer.portal ? Math.round((1 - layer.portal.centerV) * 100) : 55
   const pRxPct = layer.portal ? Math.max(15, Math.min(85, Math.round(layer.portal.rxU * 100))) : 35
   const pRyPct = layer.portal ? Math.max(15, Math.min(85, Math.round(layer.portal.ryV * 100))) : 35
+  const portalRescue = layer.portal
+    ? Math.min(layer.portal.darkness, ((layer.lightBoost ?? 0) + intensity * 0.55) * 0.72)
+    : 0
+  const effectivePortalDarkness = layer.portal
+    ? Math.max(0, layer.portal.darkness - portalRescue)
+    : 0
+
+  const color = layer.vlight?.color ?? '#ff9d3b'
+  const radialBg = `radial-gradient(circle at ${uPct}% ${vPct}%, #fffbeb 0%, ${color} 32%, ${color}99 ${Math.round(reachPct * 0.72)}%, transparent ${reachPct}%)`
+  const radialCoreBg = `radial-gradient(circle at ${uPct}% ${vPct}%, #fffdf2 0%, ${color}dd 26%, ${color}77 ${Math.round(reachPct * 0.52)}%, transparent ${Math.round(reachPct * 0.68)}%)`
+  const coneBg = `conic-gradient(from ${startDeg}deg at ${uPct}% ${vPct}%, transparent 0deg, ${color}cc ${Math.round(halfCone * 0.45)}deg, #fffdf2 ${Math.round(halfCone)}deg, ${color}cc ${Math.round(halfCone * 1.55)}deg, transparent ${Math.round(coneDeg)}deg)`
+  const coneMask = `radial-gradient(circle at ${uPct}% ${vPct}%, #000 0%, rgba(0,0,0,0.88) ${Math.round(reachPct * 0.68)}%, transparent ${reachPct}%)`
 
   return (
     <>
-      {hasPortal && layer.portal && (
+      {hasPortal && layer.portal && effectivePortalDarkness > 0.03 && (
         <div
           style={{
             position: 'absolute',
             inset: 0,
             pointerEvents: 'none',
-            background: `radial-gradient(${pRxPct}% ${pRyPct}% at ${pUPct}% ${pVPct}%, ${layer.portal.shadowTint} 0%, ${layer.portal.shadowTint}cc 52%, transparent 100%)`,
-            opacity: Math.max(0.1, Math.min(0.92, layer.portal.darkness))
+            background: `radial-gradient(${pRxPct}% ${pRyPct}% at ${pUPct}% ${pVPct}%, ${layer.portal.shadowTint} 0%, ${layer.portal.shadowTint}dd 56%, transparent 96%)`,
+            opacity: Math.max(0.08, Math.min(0.92, effectivePortalDarkness))
           }}
         />
       )}
-      {hasVLight && layer.vlight && (
+      {/* Pass 1: Chiếu sáng bề mặt vật thể bám sát alpha PNG (Đồng bộ 1:1 với WebGL Camera) */}
+      {hasVLight && layer.vlight && imgUrl && (
         <div
           style={{
             position: 'absolute',
-            inset: '-36%',
+            inset: 0,
             pointerEvents: 'none',
-            mixBlendMode: 'screen',
-            background: `radial-gradient(circle at ${uPct}% ${vPct}%, #fff9eb 0%, ${layer.vlight.color} 28%, ${layer.vlight.color}99 ${Math.round(reachPct * 0.68)}%, transparent ${reachPct}%)`,
+            backgroundImage: isCone ? `${radialCoreBg}, ${coneBg}` : radialBg,
+            WebkitMaskImage: `url("${imgUrl}")`,
+            maskImage: `url("${imgUrl}")`,
+            WebkitMaskSize: '100% 100%',
+            maskSize: '100% 100%',
+            WebkitMaskRepeat: 'no-repeat',
+            maskRepeat: 'no-repeat',
+            opacity: surfOpacity
+          }}
+        />
+      )}
+      {/* Pass 2: Quầng sáng / Chùm tia định hướng toả ra không gian xung quanh nguồn sáng */}
+      {hasVLight && layer.vlight && !layer.vlight.isReceived && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: isCone ? '-55%' : '-38%',
+            pointerEvents: 'none',
+            backgroundImage: isCone ? `${radialCoreBg}, ${coneBg}` : radialBg,
+            WebkitMaskImage: isCone ? coneMask : undefined,
+            maskImage: isCone ? coneMask : undefined,
             opacity: haloOpacity
           }}
         />
@@ -226,7 +272,7 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
                     filter: filterCss
                   }}
                 />
-                <Layer2DLightOverlay layer={layer} />
+                <Layer2DLightOverlay layer={layer} imgUrl={imgUrl} />
                 {aimMode && <span className="anim2d-layer-aim-tag">🎯 {layer.name}</span>}
               </div>
             )

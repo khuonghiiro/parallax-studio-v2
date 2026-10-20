@@ -4,7 +4,7 @@ import { addKeyframe, anim, evaluate, setValueAt } from '../../../animation/keyf
 import { referenceDistance, smoothNoise } from '../../../animation/math'
 import { type EvaluatedScene } from '../../../engine/evaluateScene'
 import { evaluateLayerGlow } from '../../../engine/layerGlow'
-import { evaluateVirtualLightAtTime } from '../../../engine/virtualLight'
+import { collectActiveVirtualLights, evaluateVirtualLightAtTime } from '../../../engine/virtualLight'
 import { frameTolerance } from '../../../store/editor'
 import { getWaypointTimingMeta } from './animateCameraActionModes'
 
@@ -51,6 +51,7 @@ export interface ProjectedLayer2D {
     originV: number
     coneAngleDeg: number
     beamAngleDeg: number
+    isReceived?: boolean
   }
   portal?: {
     centerU: number
@@ -239,6 +240,8 @@ export function projectShotLayers2D(
     return b.index - a.index
   })
 
+  const shotLights = collectActiveVirtualLights(project, shotId, ev.t)
+
   return matching.map((el): ProjectedLayer2D => {
     const lz = el.position[2]
     const pFactor = refD / Math.max(80, refD + lz)
@@ -291,7 +294,46 @@ export function projectShotLayers2D(
         originU: Math.max(0.05, Math.min(0.95, origU + shiftU)),
         originV: Math.max(0.05, Math.min(0.95, origV + shiftV)),
         coneAngleDeg: el.layer.virtualLight?.coneAngleDeg ?? 360,
-        beamAngleDeg: el.layer.virtualLight?.beamAngleDeg ?? 0
+        beamAngleDeg: (el.layer.virtualLight?.beamAngleDeg ?? 0) + (el.rotation[2] || 0),
+        isReceived: false
+      }
+    } else if (shotLights.length > 0) {
+      let bestLight: (typeof shotLights)[number] | null = null
+      let bestScore = 0
+      for (const sl of shotLights) {
+        if (sl.sourceLayerId === el.layer.id) continue
+        const dz = Math.abs(el.position[2] - sl.position[2])
+        if (dz > sl.zReach) continue
+        const zAtten = 1 - Math.pow(dz / Math.max(1, sl.zReach), 1.6)
+        const score = sl.effectiveIntensity * zAtten
+        if (score > bestScore) {
+          bestScore = score
+          bestLight = sl
+        }
+      }
+      if (bestLight && bestScore > 0.04) {
+        const worldW = Math.max(32, el.size[0] * Math.abs(el.scale[0]))
+        const worldH = Math.max(32, el.size[1] * Math.abs(el.scale[1]))
+        const relU = 0.5 + (bestLight.position[0] - el.position[0]) / worldW
+        const relV = 0.5 + (bestLight.position[1] - el.position[1]) / worldH
+        if (relU > -0.8 && relU < 1.8 && relV > -0.8 && relV < 1.8) {
+          const beamDeg = (Math.atan2(bestLight.beamDir[1], bestLight.beamDir[0]) * 180) / Math.PI
+          const coneDeg =
+            bestLight.coneCos <= -0.98
+              ? 360
+              : Math.round(((Math.acos(Math.max(-1, Math.min(1, bestLight.coneCos))) * 180) / Math.PI) * 2)
+          base.vlight = {
+            kind: bestLight.kind,
+            color: bestLight.color,
+            intensity: bestScore * 0.85,
+            radiusRatio: Math.max(0.25, Math.min(2.2, bestLight.effectiveRadius / Math.max(64, Math.max(worldW, worldH)))),
+            originU: relU,
+            originV: relV,
+            coneAngleDeg: coneDeg,
+            beamAngleDeg: beamDeg,
+            isReceived: true
+          }
+        }
       }
     }
 

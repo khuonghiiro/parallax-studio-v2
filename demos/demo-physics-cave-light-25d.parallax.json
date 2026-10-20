@@ -1,0 +1,1133 @@
+{
+  "version": 2,
+  "comp": {
+    "name": "Demo 2.5D: Hang Động Độ Sâu, Vật Lý Chất Liệu & Ánh Sáng Định Hướng",
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "duration": 16,
+    "background": "#05060a"
+  },
+  "camera": {
+    "position": {
+      "value": [0, 0, -1483.6378065054962],
+      "keyframes": [
+        {
+          "id": "wp-shot1-start",
+          "t": 0,
+          "value": [0, 0, -1483.6378065054962],
+          "ease": "easeInOut"
+        },
+        {
+          "id": "wp-shot1-push",
+          "t": 4,
+          "value": [80, -20, -880],
+          "ease": "easeInOut"
+        },
+        {
+          "id": "wp-shot2-start",
+          "t": 6,
+          "value": [10560, 0, -1483.6378065054962],
+          "ease": "easeInOut"
+        },
+        {
+          "id": "wp-shot2-push",
+          "t": 10,
+          "value": [10560, 0, -860.5099277731879],
+          "ease": "easeInOut"
+        },
+        {
+          "id": "wp-shot3-start",
+          "t": 12,
+          "value": [21120, 0, -1483.6378065054962],
+          "ease": "easeInOut"
+        },
+        {
+          "id": "wp-shot3-push",
+          "t": 16,
+          "value": [21120, -20, -860.5099277731879],
+          "ease": "easeInOut"
+        }
+      ]
+    },
+    "target": {
+      "value": [0, 0, 0],
+      "keyframes": [
+        {
+          "id": "tg-shot1-start",
+          "t": 0,
+          "value": [0, 0, 0],
+          "ease": "easeInOut"
+        },
+        {
+          "id": "tg-shot1-push",
+          "t": 4,
+          "value": [80, -20, 0],
+          "ease": "easeInOut"
+        },
+        {
+          "id": "tg-shot2-start",
+          "t": 6,
+          "value": [10560, 0, 0],
+          "ease": "easeInOut"
+        },
+        {
+          "id": "tg-shot2-push",
+          "t": 10,
+          "value": [10560, 0, 0],
+          "ease": "easeInOut"
+        },
+        {
+          "id": "tg-shot3-start",
+          "t": 12,
+          "value": [21120, 0, 0],
+          "ease": "easeInOut"
+        },
+        {
+          "id": "tg-shot3-push",
+          "t": 16,
+          "value": [21120, -20, 0],
+          "ease": "easeInOut"
+        }
+      ]
+    },
+    "fov": {
+      "value": 40,
+      "keyframes": []
+    },
+    "roll": {
+      "value": 0,
+      "keyframes": []
+    },
+    "dofEnabled": false,
+    "focusDistance": {
+      "value": 1484,
+      "keyframes": [
+        { "id": "fd-1", "t": 0, "value": 1484, "ease": "easeInOut" },
+        { "id": "fd-2", "t": 4, "value": 880, "ease": "easeInOut" },
+        { "id": "fd-3", "t": 6, "value": 1484, "ease": "easeInOut" },
+        { "id": "fd-4", "t": 10, "value": 861, "ease": "easeInOut" },
+        { "id": "fd-5", "t": 12, "value": 1484, "ease": "easeInOut" },
+        { "id": "fd-6", "t": 16, "value": 861, "ease": "easeInOut" }
+      ]
+    },
+    "aperture": {
+      "value": 0.6,
+      "keyframes": []
+    },
+    "shakeAmount": 1.2,
+    "shakeSpeed": 0.25,
+    "fade": {
+      "value": 0,
+      "keyframes": []
+    }
+  },
+  "look": {
+    "fogEnabled": false,
+    "fogColor": "#2a2140",
+    "fogNear": 1500,
+    "fogFar": 6000,
+    "vignette": 0.15,
+    "grain": 0,
+    "exposure": 0,
+    "contrast": 1.05,
+    "saturation": 1.08
+  },
+  "shots": [
+    {
+      "id": "y2VN6hZA__",
+      "name": "Cửa Hang Động & Đèn Pin 2.5D",
+      "color": "#8b7bff",
+      "visible": true,
+      "position": { "value": [0, 0, 0], "keyframes": [] },
+      "rotation": { "value": [0, 0, 0], "keyframes": [] }
+    },
+    {
+      "id": "5ls_UsQhD7",
+      "name": "Rừng Cổ Thụ: Vật Lý & Mũi Tên",
+      "color": "#3dd6f5",
+      "visible": true,
+      "position": { "value": [10560, 0, 0], "keyframes": [] },
+      "rotation": { "value": [0, 0, 0], "keyframes": [] }
+    },
+    {
+      "id": "o6loxGnydI",
+      "name": "Đỉnh Đá: Ánh Nến Gió & Hướng Sáng",
+      "color": "#f59e6b",
+      "visible": true,
+      "position": { "value": [21120, 0, 0], "keyframes": [] },
+      "rotation": { "value": [0, 0, 0], "keyframes": [] }
+    }
+  ],
+  "layers": [
+    {
+      "id": "GNWcxOHEpG",
+      "name": "Dây leo tiền cảnh",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "y2VN6hZA__",
+      "transform": {
+        "position": { "value": [0, 0, -120], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "YN4IUMaKbg", "width": 1920, "height": 1080 }
+    },
+    {
+      "id": "flashlight_explorer_s1",
+      "name": "Đèn pin soi cửa hang (Chiếu hướng 15°)",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "y2VN6hZA__",
+      "transform": {
+        "position": {
+          "value": [-180, -45, 310],
+          "keyframes": [
+            { "id": "fl-p0", "t": 0, "value": [-210, -55, 310], "ease": "easeInOut" },
+            { "id": "fl-p1", "t": 4, "value": [110, -25, 355], "ease": "easeInOut" }
+          ]
+        },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [0.85, 0.85, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "2pj-Vxn9l2", "width": 280, "height": 280 },
+      "virtualLight": {
+        "enabled": true,
+        "kind": "flashlight",
+        "color": "#fff3b0",
+        "intensity": 1.35,
+        "radius": 680,
+        "originUV": [0.55, 0.5],
+        "beamAngleDeg": 15,
+        "coneAngleDeg": 68,
+        "windPreset": "none",
+        "windStrength": 0,
+        "windDirectionDeg": 0,
+        "flickerSpeed": 0.3,
+        "zReach": 380
+      },
+      "physics": {
+        "enabled": true,
+        "material": "flesh_body",
+        "role": "vault_jumper",
+        "colliderZone": "bottom_ground",
+        "zTolerance": 85,
+        "mass": 12,
+        "gravityScale": 0.5,
+        "stiffness": 2.4,
+        "damping": 0.45,
+        "bounciness": 0.35,
+        "hitSensitivity": 1,
+        "impacts": []
+      }
+    },
+    {
+      "id": "d3etCns-Jh",
+      "name": "Cổng hang động cổ đại (Cổng Độ Sâu 2.5D)",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "y2VN6hZA__",
+      "transform": {
+        "position": { "value": [140, -20, 450], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "grmQcwO6m_", "width": 960, "height": 900 },
+      "physics": {
+        "enabled": true,
+        "material": "stone_wall",
+        "role": "ground_surface",
+        "colliderZone": "custom_uv",
+        "meshRegion": {
+          "label": "Bậc đá cửa hang",
+          "minU": 0.15,
+          "maxU": 0.85,
+          "minV": 0.72,
+          "maxV": 0.98
+        },
+        "zTolerance": 95,
+        "mass": 50,
+        "gravityScale": 0,
+        "stiffness": 4.2,
+        "damping": 0.75,
+        "bounciness": 0.2,
+        "hitSensitivity": 0.5,
+        "impacts": [],
+        "depthPortal": {
+          "enabled": true,
+          "centerUV": [0.5, 0.46],
+          "radiusUV": [0.35, 0.38],
+          "minScale": 0.4,
+          "darkness": 0.88,
+          "shadowTint": "#050712",
+          "depthPullZ": 70
+        }
+      }
+    },
+    {
+      "id": "lUSYEZNZI7",
+      "name": "Đom đóm ánh sáng",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "add",
+      "autoScale": false,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "y2VN6hZA__",
+      "transform": {
+        "position": { "value": [0, 0, 300], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "particles",
+      "props": {
+        "count": 70,
+        "seed": 101,
+        "size": 4,
+        "color": "#ffe066",
+        "area": [4224, 2376, 2373.8],
+        "velocity": [0, -10, 0],
+        "sway": 25,
+        "twinkle": true,
+        "glow": true
+      }
+    },
+    {
+      "id": "xxDpBJroHR",
+      "name": "Đảo đá bay kỳ ảo",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "y2VN6hZA__",
+      "transform": {
+        "position": { "value": [-60, 20, 950], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "oUOGDpuA0D", "width": 1920, "height": 1080 }
+    },
+    {
+      "id": "ltU1QMWtAo",
+      "name": "Dãy núi xa",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "y2VN6hZA__",
+      "transform": {
+        "position": { "value": [0, 0, 1800], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "SZjQcib7TE", "width": 1920, "height": 1080 }
+    },
+    {
+      "id": "Nlm9RJTmQv",
+      "name": "Bầu trời hoàng hôn",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "y2VN6hZA__",
+      "transform": {
+        "position": { "value": [0, 0, 3200], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "Qt_OnhfRCU", "width": 1920, "height": 1080 }
+    },
+    {
+      "id": "z9HGrq9MyG",
+      "name": "Cụm hoa tiền cảnh",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "5ls_UsQhD7",
+      "transform": {
+        "position": { "value": [160, 110, -110], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "M2FY05tPB4", "width": 380, "height": 270 }
+    },
+    {
+      "id": "arrow_projectile_s2",
+      "name": "Mũi tên năng lượng (Bay xuyên Z cắm vào thân cây)",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "5ls_UsQhD7",
+      "transform": {
+        "position": {
+          "value": [-420, -25, 220],
+          "keyframes": [
+            { "id": "ar-p0", "t": 6, "value": [-460, -10, 180], "ease": "linear" },
+            { "id": "ar-p1", "t": 7.6, "value": [-18, -35, 620], "ease": "easeOut" },
+            { "id": "ar-p2", "t": 10, "value": [-18, -35, 620], "ease": "linear" }
+          ]
+        },
+        "rotation": { "value": [0, 0, -12], "keyframes": [] },
+        "scale": { "value": [0.42, 0.22, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "ZBU3xozdsz", "width": 340, "height": 160 },
+      "virtualLight": {
+        "enabled": true,
+        "kind": "magic_orb",
+        "color": "#38bdf8",
+        "intensity": 0.9,
+        "radius": 320,
+        "originUV": [0.75, 0.5],
+        "beamAngleDeg": 0,
+        "coneAngleDeg": 80,
+        "windPreset": "none",
+        "windStrength": 0,
+        "windDirectionDeg": 0,
+        "flickerSpeed": 1.1,
+        "zReach": 240
+      },
+      "physics": {
+        "enabled": true,
+        "material": "metal_armor",
+        "role": "projectile",
+        "colliderZone": "arrow_tip",
+        "zTolerance": 75,
+        "stickOnHit": true,
+        "mass": 6,
+        "gravityScale": 0.15,
+        "stiffness": 3.5,
+        "damping": 0.5,
+        "bounciness": 0.25,
+        "hitSensitivity": 1,
+        "impacts": []
+      }
+    },
+    {
+      "id": "pJsorNFkY8",
+      "name": "Cánh hoa đào bay",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "add",
+      "autoScale": false,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "5ls_UsQhD7",
+      "transform": {
+        "position": { "value": [0, 0, 240], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "particles",
+      "props": {
+        "count": 85,
+        "seed": 101,
+        "size": 5,
+        "color": "#ffb3d9",
+        "area": [4224, 2376, 2373.8],
+        "velocity": [-12, -14, 0],
+        "sway": 32,
+        "twinkle": true,
+        "glow": true
+      }
+    },
+    {
+      "id": "rLpLvEjF7D",
+      "name": "Tán hoa Anh Đào Sakura (Chất liệu Tán lá đàn hồi)",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "5ls_UsQhD7",
+      "transform": {
+        "position": { "value": [20, 90, 420], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "45n62P3Zbe", "width": 380, "height": 270 },
+      "physics": {
+        "enabled": true,
+        "material": "foliage_bush",
+        "role": "prop_target",
+        "colliderZone": "custom_uv",
+        "meshRegion": {
+          "label": "Vòm tán lá Sakura",
+          "minU": 0.1,
+          "maxU": 0.9,
+          "minV": 0.25,
+          "maxV": 0.95
+        },
+        "zTolerance": 90,
+        "mass": 4,
+        "gravityScale": 0.05,
+        "stiffness": 1.85,
+        "damping": 0.26,
+        "bounciness": 0.78,
+        "hitSensitivity": 1.25,
+        "impacts": [
+          {
+            "id": "sakura-hit-1",
+            "time": 7.65,
+            "direction": 1,
+            "force": 1.15,
+            "contactUV": [0.48, 0.55]
+          }
+        ]
+      }
+    },
+    {
+      "id": "VS62J9MhsG",
+      "name": "Thân cây cổ thụ (Chất liệu Gỗ đàn hồi cùng Z=620)",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "5ls_UsQhD7",
+      "transform": {
+        "position": { "value": [0, -40, 620], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "9GMgTrPmyl", "width": 380, "height": 420 },
+      "physics": {
+        "enabled": true,
+        "material": "wood_tree",
+        "role": "prop_target",
+        "colliderZone": "custom_uv",
+        "meshRegion": {
+          "label": "Thân gỗ trung tâm",
+          "minU": 0.3,
+          "maxU": 0.7,
+          "minV": 0.08,
+          "maxV": 0.75
+        },
+        "zTolerance": 75,
+        "mass": 18,
+        "gravityScale": 0,
+        "stiffness": 3.2,
+        "damping": 0.3,
+        "bounciness": 0.68,
+        "hitSensitivity": 1.35,
+        "impacts": [
+          {
+            "id": "trunk-arrow-hit",
+            "time": 7.6,
+            "direction": 1,
+            "force": 1.5,
+            "contactUV": [0.48, 0.45]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground_forest_s2",
+      "name": "Nền đá đỡ trọng lực (Cùng Z=620 đỡ Thân cây)",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "5ls_UsQhD7",
+      "transform": {
+        "position": { "value": [0, -210, 620], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1.3, 1.1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "VAsUre9-li", "width": 444, "height": 150 },
+      "physics": {
+        "enabled": true,
+        "material": "ground_terrain",
+        "role": "ground_surface",
+        "colliderZone": "top_surface",
+        "meshRegion": {
+          "label": "Dải mặt đất đỡ",
+          "minU": 0.05,
+          "maxU": 0.95,
+          "minV": 0.55,
+          "maxV": 0.98
+        },
+        "zTolerance": 80,
+        "mass": 100,
+        "gravityScale": 0,
+        "stiffness": 4.5,
+        "damping": 0.85,
+        "bounciness": 0.2,
+        "hitSensitivity": 0.4,
+        "impacts": []
+      }
+    },
+    {
+      "id": "JeiDDhhieG",
+      "name": "Tán lá hậu cảnh vàng",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "5ls_UsQhD7",
+      "transform": {
+        "position": { "value": [-80, 60, 980], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "s-c9x3LSI4", "width": 380, "height": 270 }
+    },
+    {
+      "id": "eDsCG0HPGV",
+      "name": "Dãy núi sương mù",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "5ls_UsQhD7",
+      "transform": {
+        "position": { "value": [0, 0, 1900], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "SZjQcib7TE", "width": 1920, "height": 1080 }
+    },
+    {
+      "id": "-WLTRzIPZi",
+      "name": "Bầu trời chiều tím",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "5ls_UsQhD7",
+      "transform": {
+        "position": { "value": [0, 0, 3200], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "Qt_OnhfRCU", "width": 1920, "height": 1080 }
+    },
+    {
+      "id": "1wFHPhqgoH",
+      "name": "Đá tiền cảnh & Hoa dại",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "o6loxGnydI",
+      "transform": {
+        "position": { "value": [0, -190, -130], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "ZBU3xozdsz", "width": 340, "height": 160 }
+    },
+    {
+      "id": "ui4asUjJvX",
+      "name": "Hạt năng lượng tinh thể",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "add",
+      "autoScale": false,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "o6loxGnydI",
+      "transform": {
+        "position": { "value": [0, 0, 210], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "particles",
+      "props": {
+        "count": 90,
+        "seed": 101,
+        "size": 4.5,
+        "color": "#67e8f9",
+        "area": [4224, 2376, 2373.8],
+        "velocity": [0, 16, 0],
+        "sway": 28,
+        "twinkle": true,
+        "glow": true
+      }
+    },
+    {
+      "id": "Z5-rZYrTEM",
+      "name": "Tinh thể năng lượng (Phát quang lam ngọc)",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "o6loxGnydI",
+      "transform": {
+        "position": { "value": [95, -5, 480], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "2pj-Vxn9l2", "width": 280, "height": 280 },
+      "virtualLight": {
+        "enabled": true,
+        "kind": "cave_crystal",
+        "color": "#38bdf8",
+        "intensity": 0.85,
+        "radius": 380,
+        "originUV": [0.5, 0.55],
+        "beamAngleDeg": 90,
+        "coneAngleDeg": 360,
+        "windPreset": "none",
+        "windStrength": 0,
+        "windDirectionDeg": 0,
+        "flickerSpeed": 0.75,
+        "zReach": 260
+      },
+      "physics": {
+        "enabled": true,
+        "material": "jelly_slime",
+        "role": "prop_target",
+        "colliderZone": "full",
+        "zTolerance": 85,
+        "mass": 8,
+        "gravityScale": 0.25,
+        "stiffness": 2.4,
+        "damping": 0.22,
+        "bounciness": 0.85,
+        "hitSensitivity": 1.2,
+        "impacts": []
+      }
+    },
+    {
+      "id": "5ClqhDDK6m",
+      "name": "Khối đá rêu phong (Ánh nến phản ứng gió & Chiếu chéo 35°)",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "o6loxGnydI",
+      "transform": {
+        "position": { "value": [-75, -60, 420], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1.08, 1.08, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "I4sZM-Efzh", "width": 360, "height": 290 },
+      "virtualLight": {
+        "enabled": true,
+        "kind": "candle",
+        "color": "#ff9d3b",
+        "intensity": 1.25,
+        "radius": 480,
+        "originUV": [0.46, 0.55],
+        "beamAngleDeg": 35,
+        "coneAngleDeg": 95,
+        "windPreset": "strong",
+        "windStrength": 0.82,
+        "windDirectionDeg": 20,
+        "flickerSpeed": 1.35,
+        "zReach": 340
+      },
+      "physics": {
+        "enabled": true,
+        "material": "stone_wall",
+        "role": "ground_surface",
+        "colliderZone": "top_surface",
+        "zTolerance": 85,
+        "mass": 45,
+        "gravityScale": 0,
+        "stiffness": 3.8,
+        "damping": 0.8,
+        "bounciness": 0.22,
+        "hitSensitivity": 0.6,
+        "impacts": []
+      }
+    },
+    {
+      "id": "Vaw524D0Lp",
+      "name": "Nền đá cổ đại (Mặt đất đỡ trọng lực)",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "o6loxGnydI",
+      "transform": {
+        "position": { "value": [0, -180, 900], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "VAsUre9-li", "width": 444, "height": 150 },
+      "physics": {
+        "enabled": true,
+        "material": "ground_terrain",
+        "role": "ground_surface",
+        "colliderZone": "top_surface",
+        "zTolerance": 90,
+        "mass": 80,
+        "gravityScale": 0,
+        "stiffness": 4.2,
+        "damping": 0.85,
+        "bounciness": 0.2,
+        "hitSensitivity": 0.5,
+        "impacts": []
+      }
+    },
+    {
+      "id": "AQ7ToSQwzE",
+      "name": "Đảo nổi chân trời",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "o6loxGnydI",
+      "transform": {
+        "position": { "value": [220, 80, 1650], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "oUOGDpuA0D", "width": 1920, "height": 1080 }
+    },
+    {
+      "id": "e7wl0HKyIw",
+      "name": "Bầu trời đêm huyền bí",
+      "visible": true,
+      "locked": false,
+      "inPoint": 0,
+      "outPoint": 16,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "blendMode": "normal",
+      "autoScale": true,
+      "autoOrient": "none",
+      "parentId": null,
+      "shotId": "o6loxGnydI",
+      "transform": {
+        "position": { "value": [0, 0, 3200], "keyframes": [] },
+        "rotation": { "value": [0, 0, 0], "keyframes": [] },
+        "scale": { "value": [1, 1, 1], "keyframes": [] },
+        "opacity": { "value": 1, "keyframes": [] },
+        "anchor": { "value": [0, 0, 0], "keyframes": [] }
+      },
+      "type": "image",
+      "props": { "assetId": "Qt_OnhfRCU", "width": 1920, "height": 1080 }
+    }
+  ],
+  "assets": [
+    {
+      "id": "Qt_OnhfRCU",
+      "name": "Bầu trời hoàng hôn",
+      "kind": "image",
+      "mime": "image/png",
+      "width": 1920,
+      "height": 1080,
+      "assetPath": "demo_transparent/layer1_sky.png",
+      "path": "assets/demo_transparent/layer1_sky.png"
+    },
+    {
+      "id": "SZjQcib7TE",
+      "name": "Dãy núi xa",
+      "kind": "image",
+      "mime": "image/png",
+      "width": 1920,
+      "height": 1080,
+      "assetPath": "demo_transparent/layer2_distant_mountains.png",
+      "path": "assets/demo_transparent/layer2_distant_mountains.png"
+    },
+    {
+      "id": "oUOGDpuA0D",
+      "name": "Đảo đá bay kỳ ảo",
+      "kind": "image",
+      "mime": "image/png",
+      "width": 1920,
+      "height": 1080,
+      "assetPath": "demo_transparent/layer3_floating_island.png",
+      "path": "assets/demo_transparent/layer3_floating_island.png"
+    },
+    {
+      "id": "grmQcwO6m_",
+      "name": "Cổng di tích cổ",
+      "kind": "image",
+      "mime": "image/png",
+      "width": 960,
+      "height": 900,
+      "assetPath": "demo_transparent/layer4_ancient_ruins.png",
+      "path": "assets/demo_transparent/layer4_ancient_ruins.png"
+    },
+    {
+      "id": "YN4IUMaKbg",
+      "name": "Dây leo tiền cảnh",
+      "kind": "image",
+      "mime": "image/png",
+      "width": 1920,
+      "height": 1080,
+      "assetPath": "demo_transparent/layer5_foreground_vines.png",
+      "path": "assets/demo_transparent/layer5_foreground_vines.png"
+    },
+    {
+      "id": "s-c9x3LSI4",
+      "name": "Tán lá hậu cảnh vàng",
+      "kind": "image",
+      "mime": "image/png",
+      "width": 380,
+      "height": 270,
+      "assetPath": "nature_modular/tree_foliage_back_gold.png",
+      "path": "assets/nature_modular/tree_foliage_back_gold.png"
+    },
+    {
+      "id": "9GMgTrPmyl",
+      "name": "Thân cây cổ thụ",
+      "kind": "image",
+      "mime": "image/png",
+      "width": 380,
+      "height": 420,
+      "assetPath": "nature_modular/tree_trunk_branches.png",
+      "path": "assets/nature_modular/tree_trunk_branches.png"
+    },
+    {
+      "id": "45n62P3Zbe",
+      "name": "Tán hoa Anh Đào Sakura",
+      "kind": "image",
+      "mime": "image/png",
+      "width": 380,
+      "height": 270,
+      "assetPath": "nature_modular/tree_foliage_mid_sakura.png",
+      "path": "assets/nature_modular/tree_foliage_mid_sakura.png"
+    },
+    {
+      "id": "M2FY05tPB4",
+      "name": "Cụm hoa tiền cảnh",
+      "kind": "image",
+      "mime": "image/png",
+      "width": 380,
+      "height": 270,
+      "assetPath": "nature_modular/tree_blossoms_cluster.png",
+      "path": "assets/nature_modular/tree_blossoms_cluster.png"
+    },
+    {
+      "id": "VAsUre9-li",
+      "name": "Nền đá cổ đại",
+      "kind": "image",
+      "mime": "image/png",
+      "width": 444,
+      "height": 150,
+      "assetPath": "nature_modular/rock_base_ground.png",
+      "path": "assets/nature_modular/rock_base_ground.png"
+    },
+    {
+      "id": "I4sZM-Efzh",
+      "name": "Khối đá rêu phong",
+      "kind": "image",
+      "mime": "image/png",
+      "width": 360,
+      "height": 290,
+      "assetPath": "nature_modular/rock_boulder_main.png",
+      "path": "assets/nature_modular/rock_boulder_main.png"
+    },
+    {
+      "id": "2pj-Vxn9l2",
+      "name": "Tinh thể năng lượng",
+      "kind": "image",
+      "mime": "image/png",
+      "width": 280,
+      "height": 280,
+      "assetPath": "nature_modular/rock_crystal_glow.png",
+      "path": "assets/nature_modular/rock_crystal_glow.png"
+    },
+    {
+      "id": "ZBU3xozdsz",
+      "name": "Đá tiền cảnh & Hoa dại",
+      "kind": "image",
+      "mime": "image/png",
+      "width": 340,
+      "height": 160,
+      "assetPath": "nature_modular/rock_stones_front.png",
+      "path": "assets/nature_modular/rock_stones_front.png"
+    }
+  ],
+  "audio": null,
+  "audioTracks": []
+}

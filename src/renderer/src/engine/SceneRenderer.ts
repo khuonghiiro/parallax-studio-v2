@@ -23,7 +23,7 @@ import {
 import { buildParticles, buildPlaneNode, disposeNode, type LayerNode } from './layerNodes'
 import { TexturePool } from './TexturePool'
 import { evaluateLayerGlow } from './layerGlow'
-import { evaluateVirtualLightAtTime } from './virtualLight'
+import { collectActiveVirtualLights, evaluateVirtualLightAtTime } from './virtualLight'
 
 export type { Rect, RenderOptions, EditorRenderOptions, ResidencyStats }
 export { applyEvaluatedCamera }
@@ -463,7 +463,37 @@ export class SceneRenderer {
           )
           u.vlightBeam.value.set(evVLight.beamDir[0], evVLight.beamDir[1])
         } else {
-          u.vlightOn.value = 0
+          const shotLights = collectActiveVirtualLights(project, el.layer.shotId ?? null, ev.t)
+          let bestLight: ReturnType<typeof evaluateVirtualLightAtTime> = null
+          let bestScore = 0
+          for (const sl of shotLights) {
+            if (sl.sourceLayerId === el.layer.id) continue
+            const dz = Math.abs(el.position[2] - sl.position[2])
+            if (dz > sl.zReach) continue
+            const zAtten = 1 - Math.pow(dz / Math.max(1, sl.zReach), 1.6)
+            const score = sl.effectiveIntensity * zAtten
+            if (score > bestScore) {
+              bestScore = score
+              bestLight = sl
+            }
+          }
+          if (bestLight && bestScore > 0.04) {
+            const worldW = Math.max(32, node.planeW * Math.abs(el.scale[0]))
+            const worldH = Math.max(32, node.planeH * Math.abs(el.scale[1]))
+            const relU = 0.5 + (bestLight.position[0] - el.position[0]) / worldW
+            const relV = 0.5 + (bestLight.position[1] - el.position[1]) / worldH
+            u.vlightOn.value = 2
+            u.vlightUv.value.set(relU, relV)
+            u.vlightColor.value.set(bestLight.color)
+            u.vlightParams.value.set(
+              bestScore * 0.85,
+              bestLight.effectiveRadius / Math.max(0.25, Math.abs(el.scale[0])),
+              bestLight.coneCos
+            )
+            u.vlightBeam.value.set(bestLight.beamDir[0], bestLight.beamDir[1])
+          } else {
+            u.vlightOn.value = 0
+          }
         }
         if (!el.layer.model3d && (evVLight || activeGlow)) {
           mat.depthWrite = false

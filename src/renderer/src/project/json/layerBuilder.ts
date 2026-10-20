@@ -318,6 +318,8 @@ export function applyCommonLayerProps(layer: Layer, spec: DeclarativeLayerSpec, 
   if (spec.outPoint !== undefined) layer.outPoint = spec.outPoint
 
   if (spec.appliedEffects) layer.appliedEffects = structuredClone(spec.appliedEffects)
+  if (spec.physics) layer.physics = structuredClone(spec.physics)
+  if (spec.virtualLight) layer.virtualLight = structuredClone(spec.virtualLight)
 
   if (spec.motion) {
     layer.motion = { ...spec.motion }

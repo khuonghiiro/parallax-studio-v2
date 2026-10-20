@@ -118,12 +118,33 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
     const map = new Map<string | null, ProjectedLayer2D[]>()
     for (let idx = 0; idx < stageLayout.length; idx++) {
       const box = stageLayout[idx]
-      const angles =
-        box.shotId === activeShotIdFor2D ? { yaw: activeYaw, pitch: activePitch } : undefined
-      map.set(box.shotId, projectShotLayers2D(project, ev, box.shotId, idx === 0, angles))
+      const isCurrentShot = box.shotId === activeShotIdFor2D
+      const angles = isCurrentShot ? { yaw: activeYaw, pitch: activePitch } : undefined
+      let shotEv = ev
+      if (!isCurrentShot && box.shotId) {
+        const wpForShot = waypoints.find((w) => w.shotId === box.shotId)
+        if (wpForShot && Math.abs(wpForShot.time - stageSampleTime) > 0.05) {
+          shotEv = evaluateScene(project, wpForShot.time)
+        }
+      }
+      map.set(box.shotId, projectShotLayers2D(project, shotEv, box.shotId, idx === 0, angles))
     }
     return map
-  }, [stageLayout, project, ev, activeShotIdFor2D, activeYaw, activePitch])
+  }, [stageLayout, project, ev, waypoints, stageSampleTime, activeShotIdFor2D, activeYaw, activePitch])
+
+  const layersByWaypoint = useMemo(() => {
+    return waypoints.map((wp) => {
+      const box =
+        (wp.shotId ? stageLayout.find((b) => b.shotId === wp.shotId) : null) ?? stageLayout[0]
+      const wpEv =
+        Math.abs(wp.time - stageSampleTime) < 0.02 ? ev : evaluateScene(project, wp.time)
+      const isFirstBox = box ? stageLayout[0]?.shotId === box.shotId : true
+      return projectShotLayers2D(project, wpEv, box?.shotId ?? null, isFirstBox, {
+        yaw: wp.yaw,
+        pitch: wp.pitch
+      })
+    })
+  }, [waypoints, stageLayout, project, ev, stageSampleTime])
 
   const lastSyncedShotRef = useRef<string | null>(null)
   useEffect(() => {
@@ -708,6 +729,7 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
           activeFrameIndex={activeFrameIndex}
           stageLayout={stageLayout}
           layersByShot={layersByShot}
+          layersByWaypoint={layersByWaypoint}
           background={project.comp.background}
           showPreview={showFilmstripPreview}
           onTogglePreview={() => setShowFilmstripPreview((v) => !v)}
