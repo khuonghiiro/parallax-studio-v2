@@ -15,7 +15,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--bg-1);
+  background: transparent;
 }
 
 .anim2d-stage {
@@ -23,7 +23,7 @@
   flex-direction: column;
   width: 100%;
   height: 100%;
-  background: var(--bg-0);
+  background: transparent;
   color: var(--text);
   user-select: none;
   overflow: hidden;
@@ -35,16 +35,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  height: 32px;
-  min-height: 32px;
+  gap: 6px;
+  height: 34px;
+  min-height: 34px;
   padding: 0 8px;
   background: var(--bg-2);
   border-bottom: 1px solid var(--line);
   z-index: 14;
   overflow-x: auto;
   overflow-y: hidden;
+  scrollbar-width: none;
   white-space: nowrap;
+}
+
+.anim2d-toolbar.single-row::-webkit-scrollbar {
+  display: none;
 }
 
 .anim2d-stage.single-2d .anim2d-toolbar.single-row {
@@ -55,7 +60,7 @@
 .anim2d-toolbar-right {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
@@ -65,10 +70,38 @@
   gap: 4px;
 }
 
+.anim2d-toolbar.single-row .viewer-tool-sep {
+  margin: 0 1px;
+  height: 14px;
+}
+
+.anim2d-toolbar.single-row .viewer-mode-seg {
+  padding: 2px;
+  gap: 1px;
+  border-radius: 5px;
+  background: var(--bg-1);
+}
+
 .anim2d-toolbar.single-row .seg-btn {
+  padding: 0 5px;
+  height: 21px;
+  font-size: 10px;
+  gap: 3px;
+  border-radius: 3.5px;
+}
+
+.anim2d-toolbar.single-row .btn.xs {
+  height: 23px;
   padding: 0 6px;
-  height: 22px;
-  font-size: 10.5px;
+  font-size: 10px;
+  border-radius: 4px;
+}
+
+.anim2d-toolbar.single-row .btn.xs.icon {
+  width: 23px;
+  height: 23px;
+  padding: 0;
+  justify-content: center;
 }
 
 .anim2d-frames-strip {

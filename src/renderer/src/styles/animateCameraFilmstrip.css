@@ -7,7 +7,7 @@
   display: flex;
   flex: 1;
   min-height: 0;
-  width: 100%;
+  min-width: 0;
   overflow: hidden;
   position: relative;
 }
@@ -325,7 +325,12 @@
   flex-wrap: nowrap;
   overflow-x: auto;
   overflow-y: hidden;
+  scrollbar-width: none;
   white-space: nowrap;
+}
+
+.anim2d-footer::-webkit-scrollbar {
+  display: none;
 }
 
 .anim2d-footer-current {
@@ -397,9 +402,14 @@
 .anim2d-footer-modes {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   flex-wrap: nowrap;
   overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.anim2d-footer-modes::-webkit-scrollbar {
+  display: none;
 }
 
 .footer-modes-label {
@@ -411,13 +421,13 @@
 
 .anim2d-footer-modes .mode-chip,
 .anim2d-footer-right .mode-chip {
-  height: 22px;
-  padding: 0 7px;
+  height: 20px;
+  padding: 0 5px;
   border-radius: 3px;
   border: 1px solid var(--line);
   background: var(--bg-1);
   color: var(--text-dim);
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
