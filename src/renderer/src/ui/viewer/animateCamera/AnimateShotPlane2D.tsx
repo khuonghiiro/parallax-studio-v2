@@ -265,6 +265,7 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
           const ly = screenH / 2 + layer.offsetY * zoom - lh / 2
           const baseStyle: React.CSSProperties = {
             position: 'absolute',
+            isolation: 'isolate',
             left: lx,
             top: ly,
             width: lw,

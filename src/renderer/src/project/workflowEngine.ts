@@ -44,6 +44,14 @@ import {
   pickShotFocalLayer,
   syncWorkflowFromProject
 } from './workflowStageEffects'
+import {
+  WORKFLOW_LOGIC_NODE_CATALOG,
+  WORKFLOW_LOGIC_NODE_CATEGORIES,
+  resolveNodeShotScope,
+  spawnLogicNodeIntoWorkflow,
+  validateAndNormalizeWorkflowJson,
+  type WorkflowLogicNodeCatalogItem
+} from './workflowLogicNodes'
 
 export {
   WORKFLOW_SUBPART_CATALOG,
@@ -53,7 +61,11 @@ export {
   getNodeSubParts,
   listProjectBindableTargets,
   resolveNodeTargetBinding,
-  syncWorkflowFromProject
+  syncWorkflowFromProject,
+  WORKFLOW_LOGIC_NODE_CATALOG,
+  WORKFLOW_LOGIC_NODE_CATEGORIES,
+  spawnLogicNodeIntoWorkflow,
+  type WorkflowLogicNodeCatalogItem
 }
 
 export function createDefaultWorkflow(): WorkflowGraph {
@@ -252,8 +264,7 @@ export function compileWorkflowBlueprint(workflow: WorkflowGraph, project?: Proj
     const spec = WORKFLOW_NODE_SPECS[node.type]
     const presetSpec = spec?.presets.find((p) => p.id === node.preset) ?? spec?.presets[0]
     const rawBinding = resolveNodeTargetBinding(node, project)
-    const targetShotFilter =
-      workflow.targetShotId && workflow.targetShotId !== 'all' ? workflow.targetShotId : null
+    const targetShotFilter = resolveNodeShotScope(node, workflow)
     const binding = {
       ...rawBinding,
       matchesLayer: (l: Layer) =>
@@ -335,86 +346,6 @@ export function compileWorkflowBlueprint(workflow: WorkflowGraph, project?: Proj
 }
 
 /**
- * Kiểm tra và chuẩn hóa dữ liệu JSON Workflow từ người dùng hoặc AI MCP.
- */
-export function validateAndNormalizeWorkflowJson(raw: unknown): WorkflowGraph {
-  const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
-  if (!parsed || typeof parsed !== 'object') {
-    throw new Error('Dữ liệu Workflow JSON phải là một Object hợp lệ.')
-  }
-  const obj = parsed as Partial<WorkflowGraph>
-  if (!Array.isArray(obj.nodes) || obj.nodes.length === 0) {
-    throw new Error('Workflow JSON phải chứa mảng "nodes" không rỗng.')
-  }
-
-  const validTypes = new Set<string>(CANONICAL_NODE_ORDER)
-  const validPorts = new Set<string>(Object.keys(WORKFLOW_PORT_SPECS))
-
-  const nodes: WorkflowNode[] = obj.nodes.map((n, i) => {
-    const type = (validTypes.has(n.type) ? n.type : CANONICAL_NODE_ORDER[i % CANONICAL_NODE_ORDER.length]) as WorkflowNodeType
-    const spec = WORKFLOW_NODE_SPECS[type]
-    const presetObj = spec.presets.find((p) => p.id === n.preset) ?? spec.presets[0]
-    const defaultParts = getDefaultPartsForNode({ type, preset: presetObj.id })
-    return {
-      id: typeof n.id === 'string' && n.id.trim() ? n.id.trim() : `wf-${type}`,
-      type,
-      title: typeof n.title === 'string' && n.title.trim() ? n.title.trim() : spec.title,
-      enabled: typeof n.enabled === 'boolean' ? n.enabled : true,
-      position:
-        n.position && typeof n.position.x === 'number' && typeof n.position.y === 'number'
-          ? { x: Math.round(n.position.x), y: Math.round(n.position.y) }
-          : { ...DEFAULT_NODE_POSITIONS[type] },
-      preset: presetObj.id,
-      aiAgentRole: spec.aiAgentRole,
-      aiDirective:
-        typeof n.aiDirective === 'string' && n.aiDirective.trim()
-          ? n.aiDirective.trim()
-          : presetObj.defaultDirective,
-      params: {
-        targetMode: 'auto',
-        targetParts: defaultParts,
-        ...presetObj.defaultParams,
-        ...(n.params ?? {})
-      }
-    }
-  })
-
-  const nodeIds = new Set(nodes.map((n) => n.id))
-  const edges: WorkflowEdge[] = Array.isArray(obj.edges)
-    ? obj.edges
-        .filter(
-          (e) =>
-            e &&
-            nodeIds.has(e.fromNode) &&
-            nodeIds.has(e.toNode) &&
-            validPorts.has(e.fromPort) &&
-            validPorts.has(e.toPort)
-        )
-        .map((e, idx) => ({
-          id: e.id || `edge-${e.fromNode}-${e.fromPort}-${e.toNode}-${idx}`,
-          fromNode: e.fromNode,
-          fromPort: e.fromPort as WorkflowPortKind,
-          toNode: e.toNode,
-          toPort: e.toPort as WorkflowPortKind
-        }))
-    : buildStandardEdges(nodes)
-
-  return {
-    version: 1,
-    id: typeof obj.id === 'string' && obj.id.trim() ? obj.id.trim() : 'wf-custom',
-    name: typeof obj.name === 'string' && obj.name.trim() ? obj.name.trim() : 'Quy trình Tạo Video Tùy chỉnh',
-    presetId: obj.presetId,
-    description:
-      typeof obj.description === 'string' && obj.description.trim()
-        ? obj.description.trim()
-        : 'Quy trình Node-Port cấu hình kịch bản dựng cảnh và chuyển động 2.5D.',
-    nodes,
-    edges,
-    lastAppliedAt: obj.lastAppliedAt
-  }
-}
-
-/**
  * Thực thi trực tiếp chuỗi Node đã kết nối trong Workflow lên dữ liệu Project.
  */
 export function applyWorkflowToProject(
@@ -435,8 +366,7 @@ export function applyWorkflowToProject(
     if (opts?.onlyNodeIds && !opts.onlyNodeIds.has(node.id)) continue
     const intensity = Math.max(0.2, Math.min(2.5, node.params?.intensity ?? 1.0))
     const rawBinding = resolveNodeTargetBinding(node, project)
-    const targetShotFilter =
-      workflow.targetShotId && workflow.targetShotId !== 'all' ? workflow.targetShotId : null
+    const targetShotFilter = resolveNodeShotScope(node, workflow)
     const binding = {
       ...rawBinding,
       matchesLayer: (l: Layer) =>
@@ -461,8 +391,11 @@ export function applyWorkflowToProject(
           ? [1400, 750, 320, 0, -60]
           : [3200, 1800, 850, 280, 0, -120]
 
+      const scopedSceneShots = targetShotFilter
+        ? project.shots.filter((s) => s.id === targetShotFilter)
+        : project.shots
       if (node.params?.autoArrangeZ !== false) {
-        for (const shot of project.shots) {
+        for (const shot of scopedSceneShots) {
           const standalone = project.layers.filter(
             (l) =>
               l.shotId === shot.id &&
@@ -485,18 +418,28 @@ export function applyWorkflowToProject(
         }
       }
 
-      if (
-        node.params?.ensureGround ||
+      const wantGround =
+        Boolean(node.params?.ensureGround) ||
         node.preset === 'grounded_3d_stage' ||
         activePartIds.has('ground_plane')
-      ) {
-        const hasGround = project.layers.some((l) => l.transform.rotation.value[0] <= -65)
-        if (!hasGround && (node.params?.ensureGround || node.preset === 'grounded_3d_stage')) {
+      const targetGroundShotId = targetShotFilter ?? project.shots[0]?.id ?? null
+      if (wantGround) {
+        const hasGround = project.layers.some(
+          (l) =>
+            (!targetShotFilter || l.shotId === targetShotFilter) &&
+            l.transform.rotation.value[0] <= -65
+        )
+        if (!hasGround) {
           const g = createGroundLayer(project.comp, 'Mặt đất 3D (Workflow)')
-          g.shotId = project.shots[0]?.id ?? null
+          g.shotId = targetGroundShotId
           project.layers.push(g)
           affected++
         }
+      } else {
+        project.layers = project.layers.filter(
+          (l) =>
+            !(l.name === 'Mặt đất 3D (Workflow)' && (!targetShotFilter || l.shotId === targetShotFilter))
+        )
       }
 
       executedStages.push({
@@ -630,10 +573,40 @@ export function applyWorkflowToProject(
           .filter((r) => r.enabled && !r.id.startsWith('inspector-'))
           .map((r) => r.targetId)
       )
+      const activeFxNodes = activeNodes.filter((n) => n.type === 'physics_fx')
+      const anyGlowActive = activeFxNodes.some((n) => {
+        const parts = n.params?.targetParts ?? getDefaultPartsForNode(n)
+        return (
+          (n.preset === 'combat_elastic_glow' && parts.includes('rim_glow_silhouette')) ||
+          (n.params?.customRules ?? []).some((r) => r.enabled && r.actionKind === 'rim_glow')
+        )
+      })
+      const anyPortalActive = activeFxNodes.some((n) => {
+        const parts = n.params?.targetParts ?? getDefaultPartsForNode(n)
+        return n.preset === 'cave_portal_flashlight' && parts.includes('cave_depth_portal')
+      })
+      const anyVLightActive = activeFxNodes.some((n) => {
+        const parts = n.params?.targetParts ?? getDefaultPartsForNode(n)
+        return (
+          parts.includes('virtual_light_core') ||
+          (n.params?.customRules ?? []).some(
+            (r) =>
+              r.enabled &&
+              (r.actionKind === 'virtual_light_candle' || r.actionKind === 'virtual_light_flashlight')
+          )
+        )
+      })
+
       for (const l of project.layers) {
+        if (l.locked || (targetShotFilter && l.shotId && l.shotId !== targetShotFilter)) continue
+        if (!anyGlowActive && l.glow?.enabled) {
+          l.glow.enabled = false
+        }
+        if (!anyPortalActive && l.physics?.depthPortal?.enabled) {
+          l.physics.depthPortal.enabled = false
+        }
         if (
-          !l.locked &&
-          isForegroundFrameBorderLayer(l) &&
+          (!anyVLightActive || isForegroundFrameBorderLayer(l)) &&
           l.virtualLight?.enabled &&
           !explicitLightTargetIds.has(l.id)
         ) {
@@ -821,8 +794,9 @@ export function applyWorkflowToProject(
         )
       }
 
-      project.camera.dofEnabled = Boolean(
-        node.params?.enableDof ?? activePartIds.has('dof_aperture')
+      const activeCamNodes = activeNodes.filter((n) => n.type === 'camera_director')
+      project.camera.dofEnabled = activeCamNodes.some(
+        (n) => n.params?.enableDof === true || n.params?.logicId === 'logic-cam-dof'
       )
       project.camera.shakeAmount = activePartIds.has('handheld_rig')
         ? node.preset === 'dramatic_handheld_action'
@@ -940,9 +914,14 @@ export function applyWorkflowToProject(
     applyCustomNodeRulesToProject(project, node, binding.matchesLayer)
   }
 
-
-
-
+  // Nếu có Node Logic độc lập bị ngắt dây hoặc tắt, đảm bảo tắt ngay quy tắc của Node Logic đó
+  for (const dn of disconnectedNodes) {
+    if (!dn.params?.logicId) continue
+    const dnShot = resolveNodeShotScope(dn, workflow)
+    for (const r of dn.params.customRules ?? []) {
+      applyRuleMutationToProjectLayer(project, r, false, dnShot)
+    }
+  }
 
   workflow.lastAppliedAt = new Date().toISOString()
   project.workflow = workflow

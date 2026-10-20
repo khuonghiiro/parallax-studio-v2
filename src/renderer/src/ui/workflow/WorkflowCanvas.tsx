@@ -36,6 +36,7 @@ export interface WorkflowCanvasProps {
   onMoveNodes: (positions: Record<string, { x: number; y: number }>, mergeKey?: string) => void
   onAutoLayout: () => void
   onToggleNode: (nodeId: string) => void
+  onDeleteNode?: (nodeId: string) => void
   onChangeNodePreset: (nodeId: string, presetId: string) => void
   onConnectPorts: (fromNode: string, fromPort: WorkflowPortKind, toNode: string, toPort: WorkflowPortKind) => void
   onDisconnectEdge: (edgeId: string) => void
@@ -54,6 +55,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   onMoveNodes,
   onAutoLayout,
   onToggleNode,
+  onDeleteNode,
   onChangeNodePreset,
   onConnectPorts,
   onDisconnectEdge,
@@ -624,7 +626,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
                     className="wf-node-title"
                     title={`${node.title} — Nắm kéo để di chuyển tự do Trái / Phải / Lên / Xuống`}
                   >
-                    {spec?.shortTitle ?? node.title}
+                    {node.params?.logicId ? node.title.replace(/^Node:\s*/i, '') : (spec?.shortTitle ?? node.title)}
                   </span>
                   {onPreviewNode && (
                     <button
@@ -669,6 +671,19 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
                   >
                     {node.enabled ? 'ON' : 'OFF'}
                   </button>
+                  {node.params?.logicId && onDeleteNode && (
+                    <button
+                      type="button"
+                      className="wf-node-del-btn"
+                      title="Xóa Node Logic này khỏi sơ đồ"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onDeleteNode(node.id)
+                      }}
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
 
                 {/* 2. Khu vực Chân cắm Port (Protruding Socket Pins trên mép trái & phải) */}

@@ -13,21 +13,31 @@ import {
   applyRuleMutationToProjectLayer,
   getCustomActionSpec
 } from '../../project/workflowStageEffects'
+import {
+  WORKFLOW_LOGIC_NODE_CATALOG,
+  WORKFLOW_LOGIC_NODE_CATEGORIES,
+  type WorkflowLogicNodeCategory
+} from '../../project/workflowLogicNodes'
 import { getTargetKindIcon } from './WorkflowNodePreview'
 
 export interface WorkflowActionBuilderProps {
   node: WorkflowNode
   bindableTargets: WorkflowBoundTarget[]
+  activeShotLabel?: string
   onUpdateNodeParams: (nodeId: string, patch: Partial<WorkflowNodeParams>) => void
+  onSpawnLogicNode?: (logicId: string) => void
   onShowToast: (msg: string) => void
 }
 
 export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
   node,
   bindableTargets,
+  activeShotLabel,
   onUpdateNodeParams,
+  onSpawnLogicNode,
   onShowToast
 }) => {
+  const [logicCategory, setLogicCategory] = useState<'all' | WorkflowLogicNodeCategory>('all')
   const defaultAction: WorkflowCustomActionKind =
     node.type === 'physics_fx'
       ? 'virtual_light_candle'
@@ -39,6 +49,14 @@ export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
   const [targetId, setTargetId] = useState<string>('all')
   const [speed, setSpeed] = useState<number>(1.0)
   const [amount, setAmount] = useState<number>(1.0)
+
+  const filteredLogicNodes = useMemo(
+    () =>
+      logicCategory === 'all'
+        ? WORKFLOW_LOGIC_NODE_CATALOG
+        : WORKFLOW_LOGIC_NODE_CATALOG.filter((item) => item.category === logicCategory),
+    [logicCategory]
+  )
 
   const actionSpec = useMemo(
     () => getCustomActionSpec(actionKind) ?? WORKFLOW_CUSTOM_ACTION_CATALOG[0],
@@ -104,9 +122,57 @@ export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
       className="wf-binder-section wf-action-builder"
       data-mcp-region="workflow_action_builder"
     >
+      {/* PHẦN A: KHO NODE LOGIC ĐỘC LẬP (MỖI NODE ĐẠI DIỆN 1 LOGIC — KẾT NỐI ĐỂ CHẠY THEO LUỒNG) */}
+      {onSpawnLogicNode && (
+        <div className="wf-logic-node-catalog">
+          <div className="wf-binder-head">
+            <span className="wf-field-label">
+              🧩 Kho Node Logic (Bấm để thả Node vào luồng {activeShotLabel ? `· ${activeShotLabel}` : ''})
+            </span>
+          </div>
+          <div className="wf-action-target-pills" role="tablist" aria-label="Danh mục Node Logic">
+            <button
+              type="button"
+              className={`wf-target-select-pill${logicCategory === 'all' ? ' active' : ''}`}
+              onClick={() => setLogicCategory('all')}
+            >
+              ✨ Tất cả ({WORKFLOW_LOGIC_NODE_CATALOG.length})
+            </button>
+            {WORKFLOW_LOGIC_NODE_CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                className={`wf-target-select-pill${logicCategory === cat.id ? ' active' : ''}`}
+                onClick={() => setLogicCategory(cat.id)}
+              >
+                <span>{cat.icon}</span>
+                <span>{cat.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="wf-action-chip-grid wf-logic-node-grid">
+            {filteredLogicNodes.map((item) => (
+              <button
+                key={item.id}
+                id={`wf-spawn-logic-${item.id}`}
+                type="button"
+                className="wf-action-chip-btn wf-logic-spawn-btn"
+                title={`${item.title}\n${item.description}\n➔ Bấm để thả Node Logic này vào sơ đồ và tự nối dây theo luồng!`}
+                onClick={() => onSpawnLogicNode(item.id)}
+              >
+                <span className="wf-action-chip-ic">{item.icon}</span>
+                <span className="wf-action-chip-txt">{item.shortLabel}</span>
+                <span className="wf-logic-plus-tag">+Node</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="wf-binder-head">
         <span className="wf-field-label">
-          1. Chọn hiệu ứng chuyển động / 2.5D FX (1 chạm)
+          ⚡ Gắn nhanh hiệu ứng vào khối đang chọn ({node.title})
         </span>
         {customRules.length > 0 && (
           <button

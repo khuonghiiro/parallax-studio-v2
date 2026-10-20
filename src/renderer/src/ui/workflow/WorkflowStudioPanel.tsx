@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   Project,
   WorkflowGraph,
@@ -24,6 +24,8 @@ import {
   getWorkflowFromTemplate,
   resolveConnectedWorkflowNodes
 } from '../../project/workflowEngine'
+import { spawnLogicNodeIntoWorkflow } from '../../project/workflowLogicNodes'
+import { applyRuleMutationToProjectLayer } from '../../project/workflowStageEffects'
 import { IconPause, IconPlay, IconPlus, IconSparkles } from '../icons'
 import { TimelineModeTabs } from './TimelineModeTabs'
 import { WorkflowCanvas } from './WorkflowCanvas'
@@ -40,6 +42,7 @@ const TEMPLATE_SHORT_PILLS: Record<string, string> = {
 
 export const WorkflowStudioPanel: React.FC = () => {
   const project = useEditor((s) => s.project)
+  const selectedShotId = useEditor((s) => s.selectedShotId)
   const playing = useEditor((s) => s.playing)
   const liveTime = useEditor((s) => {
     const raw = Number.isFinite(s.time) ? s.time : 0
@@ -47,15 +50,60 @@ export const WorkflowStudioPanel: React.FC = () => {
   })
   const setPlaying = useEditor((s) => s.setPlaying)
   const showToast = useToast((s) => s.show)
+  const explicitAllScopeRef = useRef(false)
 
-  const workflow = useMemo(() => ensureProjectWorkflow(project), [project])
+  useEffect(() => {
+    if (selectedShotId) {
+      explicitAllScopeRef.current = false
+    }
+  }, [selectedShotId])
+
+  const currentShotScope = useMemo(() => {
+    if (project.shots.length <= 1) return project.shots[0]?.id ?? 'all'
+    if (explicitAllScopeRef.current) return 'all'
+    if (selectedShotId && project.shots.some((s) => s.id === selectedShotId)) {
+      return selectedShotId
+    }
+    if (
+      project.workflow?.targetShotId &&
+      project.workflow.targetShotId !== 'all' &&
+      project.shots.some((s) => s.id === project.workflow?.targetShotId)
+    ) {
+      return project.workflow.targetShotId
+    }
+    return project.shots[0]?.id ?? 'all'
+  }, [project.shots, project.workflow?.targetShotId, selectedShotId])
+
+  const activeShotLabel = useMemo(() => {
+    if (currentShotScope === 'all') return `Tất cả (${project.shots.length} cảnh)`
+    const idx = project.shots.findIndex((s) => s.id === currentShotScope)
+    const shotObj = project.shots[idx]
+    return shotObj ? `Cảnh #${idx + 1}: ${shotObj.name}` : 'Cảnh #1'
+  }, [currentShotScope, project.shots])
+
+  const workflow = useMemo(() => {
+    const wf = ensureProjectWorkflow({
+      ...project,
+      workflow: project.workflow
+        ? { ...project.workflow, targetShotId: currentShotScope }
+        : undefined
+    })
+    return {
+      ...wf,
+      targetShotId: currentShotScope
+    }
+  }, [project, currentShotScope])
+  const scopedProject = useMemo(
+    () => ({ ...project, workflow }),
+    [project, workflow]
+  )
   const { activeNodes, disconnectedNodes } = useMemo(
     () => resolveConnectedWorkflowNodes(workflow),
     [workflow]
   )
   const blueprint = useMemo(
-    () => compileWorkflowBlueprint(workflow, project),
-    [workflow, project]
+    () => compileWorkflowBlueprint(workflow, scopedProject),
+    [workflow, scopedProject]
   )
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
@@ -116,53 +164,46 @@ export const WorkflowStudioPanel: React.FC = () => {
       syncScene = true,
       onlyNodeIds?: Set<string>
     ) => {
+      const scopedNext: WorkflowGraph = {
+        ...next,
+        targetShotId: next.targetShotId ?? currentShotScope
+      }
       useEditor.getState().update((draft) => {
-        draft.workflow = next
+        draft.workflow = scopedNext
         if (syncScene) {
           applyWorkflowToProject(
             draft as Project,
-            next,
+            scopedNext,
             onlyNodeIds ? { onlyNodeIds } : undefined
           )
         }
       }, mergeKey)
     },
-    []
+    [currentShotScope]
   )
 
   const handleSelectTemplate = useCallback(
     (presetId: string) => {
       const next = getWorkflowFromTemplate(presetId)
-      next.targetShotId = workflow.targetShotId ?? 'all'
+      next.targetShotId = currentShotScope
       commitWorkflow(next, undefined, true)
-      const st = useEditor.getState()
-      const firstShotId = st.project.shots[0]?.id ?? null
-      if (firstShotId && next.targetShotId === 'all') {
-        st.selectShot(firstShotId)
-        st.setTime(0)
-      }
       setSelectedNodeId(next.nodes[0]?.id ?? null)
-      showToast(`🎬 Đã áp dụng kịch bản mẫu: ${next.name}`)
+      showToast(`🎬 Đã áp dụng kịch bản mẫu "${next.name}" cho ${activeShotLabel}`)
     },
-    [workflow.targetShotId, commitWorkflow, showToast]
+    [currentShotScope, activeShotLabel, commitWorkflow, showToast]
   )
 
   const handleSelectShotScope = useCallback(
     (shotId: string) => {
+      explicitAllScopeRef.current = shotId === 'all'
       const next: WorkflowGraph = {
         ...workflow,
         targetShotId: shotId
       }
       commitWorkflow(next, 'wf-shot-scope', true)
       if (shotId === 'all') {
-        const st = useEditor.getState()
-        const firstShotId = st.project.shots[0]?.id ?? null
-        if (firstShotId) {
-          st.selectShot(firstShotId)
-          st.setTime(0)
-        }
         showToast(
-          `⇄ Đã đồng bộ & áp dụng quy trình xử lý cho toàn bộ ${project.shots.length} phân cảnh!`
+          `⇄ Đã chuyển sang chế độ đồng bộ toàn bộ ${project.shots.length} phân cảnh!`
         )
       } else {
         const shotObj = project.shots.find((s) => s.id === shotId)
@@ -179,12 +220,12 @@ export const WorkflowStudioPanel: React.FC = () => {
           st.selectShot(shotId)
           st.setTime(jumpTime)
           showToast(
-            `🎯 Đang áp dụng quy trình cho Phân cảnh #${idx + 1}: ${shotObj.name} (${jumpTime.toFixed(1)}s)`
+            `🎯 Đang cô lập xử lý riêng cho Phân cảnh #${idx + 1}: ${shotObj.name} (${jumpTime.toFixed(1)}s)`
           )
         }
       }
     },
-    [workflow, project.shots, commitWorkflow, showToast]
+    [workflow, project.shots, project.comp.duration, commitWorkflow, showToast]
   )
 
   const handleAutoWire = useCallback(() => {
@@ -362,8 +403,54 @@ export const WorkflowStudioPanel: React.FC = () => {
     }
     setSideMode('node')
     setInspectorSubTab('actions')
-    showToast('➕ Chọn hiệu ứng ở tab "➕ Chuyển động" bên phải rồi bấm "+ Gắn"!')
+    showToast('🧩 Chọn 1 Node Logic bên phải để thả vào sơ đồ và tự nối theo luồng!')
   }, [workflow.nodes, showToast])
+
+  const handleSpawnLogicNode = useCallback(
+    (logicId: string) => {
+      const { workflow: next, spawnedNode } = spawnLogicNodeIntoWorkflow(
+        workflow,
+        logicId,
+        currentShotScope
+      )
+      commitWorkflow(next, undefined, true, new Set([spawnedNode.id]))
+      setSelectedNodeId(spawnedNode.id)
+      showToast(
+        `🧩 Đã thả "${spawnedNode.title}" vào luồng (${activeShotLabel})! Ngắt dây nếu muốn dừng logic này.`
+      )
+    },
+    [workflow, currentShotScope, activeShotLabel, commitWorkflow, showToast]
+  )
+
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      const target = workflow.nodes.find((n) => n.id === nodeId)
+      if (!target || workflow.nodes.length <= 1) return
+      const shotFilter = currentShotScope !== 'all' ? currentShotScope : null
+      useEditor.getState().update((draft) => {
+        for (const r of target.params?.customRules ?? []) {
+          applyRuleMutationToProjectLayer(draft as Project, r, false, shotFilter)
+        }
+        const nextNodes = workflow.nodes.filter((n) => n.id !== nodeId)
+        const nextEdges = workflow.edges.filter(
+          (e) => e.fromNode !== nodeId && e.toNode !== nodeId
+        )
+        const nextWf: WorkflowGraph = {
+          ...workflow,
+          targetShotId: currentShotScope,
+          nodes: nextNodes,
+          edges: nextEdges
+        }
+        draft.workflow = nextWf
+        applyWorkflowToProject(draft as Project, nextWf)
+      })
+      if (selectedNodeId === nodeId) {
+        setSelectedNodeId(workflow.nodes[0]?.id ?? null)
+      }
+      showToast(`🗑️ Đã xóa "${target.title}" khỏi sơ đồ và ngắt hiệu ứng trên cảnh!`)
+    },
+    [workflow, currentShotScope, selectedNodeId, showToast]
+  )
 
   const handlePreviewNode = useCallback(
     (node: WorkflowNode) => {
@@ -395,8 +482,6 @@ export const WorkflowStudioPanel: React.FC = () => {
     },
     [workflow, showToast]
   )
-
-  const currentShotScope = workflow.targetShotId ?? 'all'
 
   return (
     <div className="wf-studio-panel" data-mcp-region="timeline_workflow">
@@ -475,16 +560,16 @@ export const WorkflowStudioPanel: React.FC = () => {
           <span>Tự nối Port</span>
         </button>
 
-        {/* Nút mở nhanh bộ thêm Chuyển động / Tính năng mới */}
+        {/* Nút mở nhanh Kho Node Logic / Chuyển động & FX mới */}
         <button
           id="wf-btn-quick-add-motion"
           type="button"
           className="btn ghost sm tl-action-btn wf-quick-add-btn"
-          title="Thêm chức năng chuyển động mới (Wind, Drift, Bước đi, Nhảy, Đèn 2.5D, Glow...) cho Layer bất kỳ"
+          title="Mở Kho Node Logic (Gió Lay, Mây Trôi, Đèn 2.5D, Glow, Đẩy Cận, Ảnh Nét Căng...) để thả khối vào sơ đồ kết nối theo luồng"
           onClick={handleQuickFocusAddMotion}
         >
           <IconPlus width={12} height={12} />
-          <span>Thêm chuyển động</span>
+          <span>+ Node Logic</span>
         </button>
 
         {/* Nút Phát / Dừng Video trực tiếp trên Workflow để quan sát luồng chạy */}
@@ -575,7 +660,9 @@ export const WorkflowStudioPanel: React.FC = () => {
           onClick={handleExecuteWorkflow}
         >
           <IconSparkles width={13} height={13} />
-          <span>Áp dụng ({activeNodes.length}/7)</span>
+          <span>
+            Áp dụng ({activeNodes.length}/{workflow.nodes.length})
+          </span>
         </button>
       </div>
 
@@ -583,7 +670,7 @@ export const WorkflowStudioPanel: React.FC = () => {
       <div className="wf-workspace-body">
         <WorkflowCanvas
           workflow={workflow}
-          project={project}
+          project={scopedProject}
           playing={playing}
           time={liveTime}
           activeNodeIds={activeNodeIds}
@@ -593,6 +680,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           onMoveNodes={handleMoveNodes}
           onAutoLayout={handleAutoLayout}
           onToggleNode={handleToggleNode}
+          onDeleteNode={handleDeleteNode}
           onChangeNodePreset={handleChangeNodePreset}
           onConnectPorts={handleConnectPorts}
           onDisconnectEdge={handleDisconnectEdge}
@@ -601,7 +689,7 @@ export const WorkflowStudioPanel: React.FC = () => {
 
         <WorkflowSidePanel
           workflow={workflow}
-          project={project}
+          project={scopedProject}
           playing={playing}
           time={liveTime}
           blueprint={blueprint}
@@ -616,6 +704,8 @@ export const WorkflowStudioPanel: React.FC = () => {
           onConnectPorts={handleConnectPorts}
           onDisconnectEdge={handleDisconnectEdge}
           onApplyJsonGraph={(next) => commitWorkflow(next, undefined, true)}
+          onSpawnLogicNode={handleSpawnLogicNode}
+          activeShotLabel={activeShotLabel}
           onShowToast={showToast}
           onPreviewNode={handlePreviewNode}
         />

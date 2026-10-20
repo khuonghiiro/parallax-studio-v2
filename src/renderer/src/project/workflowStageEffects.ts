@@ -358,12 +358,26 @@ export function applyCustomNodeRulesToProject(
  */
 export function deactivateDisconnectedWorkflowStages(
   project: Project,
-  activeTypes: Set<WorkflowNodeType>
+  activeTypes: Set<WorkflowNodeType>,
+  targetShotFilter?: string | null,
+  disconnectedNodes?: WorkflowNode[]
 ): void {
-  // 1. Nếu khối Chuyển động (#3) bị ngắt dây hoặc tắt -> Dừng các chuyển động layer
+  const inScope = (l: Layer): boolean =>
+    !l.locked && (!targetShotFilter || l.shotId === targetShotFilter)
+
+  // Tắt các customRules của những Node bị ngắt dây / tắt
+  if (disconnectedNodes && disconnectedNodes.length > 0) {
+    for (const dn of disconnectedNodes) {
+      for (const r of dn.params?.customRules ?? []) {
+        applyRuleMutationToProjectLayer(project, r, false, targetShotFilter)
+      }
+    }
+  }
+
+  // 1. Nếu khối Chuyển động (#3) bị ngắt dây hoặc tắt -> Dừng các chuyển động layer trong phạm vi cảnh
   if (!activeTypes.has('motion_choreography')) {
     for (const l of project.layers) {
-      if (l.locked) continue
+      if (!inScope(l)) continue
       if (l.motion && l.motion.enabled) {
         l.motion.enabled = false
       }
@@ -376,10 +390,10 @@ export function deactivateDisconnectedWorkflowStages(
     }
   }
 
-  // 2. Nếu khối Vật lý & FX (#4) bị ngắt dây hoặc tắt -> Tắt Vật lý, Đèn ảo, Glow và ẩn Hạt FX
+  // 2. Nếu khối Vật lý & FX (#4) bị ngắt dây hoặc tắt -> Tắt Vật lý, Đèn ảo, Glow và ẩn Hạt FX trong phạm vi cảnh
   if (!activeTypes.has('physics_fx')) {
     for (const l of project.layers) {
-      if (l.locked) continue
+      if (!inScope(l)) continue
       if (l.physics?.enabled) {
         l.physics.enabled = false
         if (l.physics.depthPortal) l.physics.depthPortal.enabled = false
@@ -395,9 +409,8 @@ export function deactivateDisconnectedWorkflowStages(
       }
     }
   } else {
-    // Đảm bảo lớp hạt hiển thị lại khi khối Vật lý & FX được nối lại
     for (const l of project.layers) {
-      if (l.type === 'particles' && !l.locked) {
+      if (inScope(l) && l.type === 'particles') {
         l.visible = true
       }
     }
@@ -405,9 +418,11 @@ export function deactivateDisconnectedWorkflowStages(
 
   // 3. Nếu khối Camera 3D (#5) bị ngắt dây hoặc tắt -> Dừng đường bay Camera, tắt DOF & Rung
   if (!activeTypes.has('camera_director')) {
-    project.camera.position.keyframes = []
-    project.camera.target.keyframes = []
-    project.camera.fov.keyframes = []
+    if (!targetShotFilter) {
+      project.camera.position.keyframes = []
+      project.camera.target.keyframes = []
+      project.camera.fov.keyframes = []
+    }
     project.camera.dofEnabled = false
     project.camera.shakeAmount = 0
   }
@@ -415,11 +430,13 @@ export function deactivateDisconnectedWorkflowStages(
   // 4. Nếu khối Âm thanh (#6) bị ngắt dây hoặc tắt -> Tắt Lip-Sync và tạm ngắt tiếng track
   if (!activeTypes.has('audio_lipsync')) {
     for (const tr of project.audioTracks ?? []) {
+      if (targetShotFilter && tr.targetShotId && tr.targetShotId !== targetShotFilter) continue
       tr.lipSyncEnabled = false
       tr.muted = true
     }
   } else {
     for (const tr of project.audioTracks ?? []) {
+      if (targetShotFilter && tr.targetShotId && tr.targetShotId !== targetShotFilter) continue
       if (tr.muted) tr.muted = false
     }
   }
@@ -457,7 +474,6 @@ export function isForegroundFrameBorderLayer(layer: Layer): boolean {
     n.includes('tiền cảnh') ||
     n.includes('khung') ||
     n.includes('vòm') ||
-    n.includes('cổng di tích') ||
     n.includes('frame') ||
     n.includes('border') ||
     n.includes('vine')
@@ -512,7 +528,12 @@ export function syncWorkflowFromProject(
   project: Project,
   baseWorkflow: WorkflowGraph
 ): WorkflowGraph {
+  const shotFilter =
+    baseWorkflow.targetShotId && baseWorkflow.targetShotId !== 'all'
+      ? baseWorkflow.targetShotId
+      : null
   const nodes = baseWorkflow.nodes.map((node): WorkflowNode => {
+    if (node.params?.logicId) return node
     const baseParts = new Set(
       node.params?.targetParts && node.params.targetParts.length > 0
         ? node.params.targetParts
@@ -526,6 +547,7 @@ export function syncWorkflowFromProject(
       const syncedRules: WorkflowCustomActionRule[] = []
       for (const l of project.layers) {
         if (l.locked || l.type === 'solid') continue
+        if (shotFilter && l.shotId && l.shotId !== shotFilter) continue
         const m = l.motion
         if (m && m.enabled && m.type && m.type !== 'none') {
           const kind = m.type as WorkflowCustomActionKind
@@ -571,6 +593,7 @@ export function syncWorkflowFromProject(
 
       for (const l of project.layers) {
         if (l.locked) continue
+        if (shotFilter && l.shotId && l.shotId !== shotFilter) continue
         if (l.virtualLight?.enabled) {
           baseParts.add('virtual_light_core')
           const kind: WorkflowCustomActionKind =
@@ -700,14 +723,16 @@ export function syncWorkflowFromProject(
 export function applyRuleMutationToProjectLayer(
   project: Project,
   rule: WorkflowCustomActionRule,
-  enabled: boolean
+  enabled: boolean,
+  shotFilter?: string | null
 ): void {
   const targets = project.layers.filter(
     (l) =>
-      rule.targetId === 'all' ||
+      (!shotFilter || !l.shotId || l.shotId === shotFilter) &&
+      (rule.targetId === 'all' ||
       l.id === rule.targetId ||
       l.composite?.instanceId === rule.targetId ||
-      l.model3d?.instanceId === rule.targetId
+      l.model3d?.instanceId === rule.targetId)
   )
   for (const l of targets) {
     if (

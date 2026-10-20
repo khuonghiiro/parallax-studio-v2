@@ -167,6 +167,7 @@ export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVertica
 
                         const itemStyle: React.CSSProperties = {
                           position: 'absolute',
+                          isolation: 'isolate',
                           left: lx,
                           top: ly,
                           width: lw,

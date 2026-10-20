@@ -852,3 +852,55 @@
   border-color: var(--danger);
   background: color-mix(in srgb, var(--danger) 12%, var(--bg-2));
 }
+
+.wf-logic-node-catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-bottom: 6px;
+  margin-bottom: 5px;
+  border-bottom: 1px dashed var(--line);
+}
+.wf-logic-node-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.wf-logic-spawn-btn {
+  justify-content: space-between;
+  border-color: color-mix(in srgb, var(--accent-cyan) 40%, var(--line));
+}
+.wf-logic-spawn-btn:hover {
+  border-color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 16%, var(--bg-1));
+}
+.wf-logic-plus-tag {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  background: var(--bg-2);
+  padding: 0 4px;
+  border-radius: 3px;
+  border: 1px solid var(--line-soft);
+  flex-shrink: 0;
+}
+.wf-node-del-btn {
+  width: 17px;
+  height: 17px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+}
+.wf-node-del-btn:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 15%, var(--bg-2));
+}

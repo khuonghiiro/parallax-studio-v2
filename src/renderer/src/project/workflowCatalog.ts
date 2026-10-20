@@ -275,18 +275,18 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
         label: 'Bay Xuyên Cảnh (Fly-through) + Push-in Mượt',
         summary: 'Dừng đẩy nhẹ ở mỗi Shot rồi bay mượt sang Shot kế · Bật DOF xóa phông',
         defaultDirective: 'Xây dựng lộ trình camera tự động bay mượt (fly/arc) qua tất cả các phân cảnh với độ đẩy push-in 0.15 và bật xóa phông DOF nhẹ.',
-        defaultParams: { intensity: 1.0, duration: 10, enableDof: true },
+        defaultParams: { intensity: 1.0, duration: 10, enableDof: false },
         recommendedMcpTools: ['build_camera_path', 'set_camera', 'camera_fly_to_shot'],
-        mcpHint: { transition: 'fly', push_in: 0.15, dof_enabled: true }
+        mcpHint: { transition: 'fly', push_in: 0.15, dof_enabled: false }
       },
       {
         id: 'dolly_push_focus',
         label: 'Đẩy Cận Điện Ảnh (Slow Dolly In)',
         summary: 'Tiến dần vào chủ thể trung tâm · Làm nổi bật chiều sâu Parallax',
         defaultDirective: 'Áp dụng chuyển động Dolly-In tiến chậm vào tâm cảnh từ đầu đến cuối thời lượng, tạo cảm giác chiều sâu không gian mạnh mẽ.',
-        defaultParams: { intensity: 1.1, duration: 8, enableDof: true },
+        defaultParams: { intensity: 1.1, duration: 8, enableDof: false },
         recommendedMcpTools: ['apply_camera_preset', 'set_camera'],
-        mcpHint: { preset: 'dollyIn', dof_enabled: true, shake_amount: 1.5 }
+        mcpHint: { preset: 'dollyIn', dof_enabled: false, shake_amount: 1.5 }
       },
       {
         id: 'orbit_showcase_3d',
@@ -302,7 +302,7 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
         label: 'Camera Hành động Rung Nhẹ + Dolly Zoom',
         summary: 'Hiệu ứng Vertigo / Căng thẳng · Rung máy Handheld chân thực',
         defaultDirective: 'Sử dụng chuyển động camera kịch tính với độ rung cầm tay (shakeAmount 6-10) để tăng nhịp độ hành động.',
-        defaultParams: { intensity: 1.4, duration: 6, enableDof: true },
+        defaultParams: { intensity: 1.4, duration: 6, enableDof: false },
         recommendedMcpTools: ['apply_camera_preset', 'set_camera'],
         mcpHint: { preset: 'dollyZoom', shake_amount: 7, shake_speed: 1.2 }
       }
@@ -462,7 +462,13 @@ export function upgradeCrampedNodePositions(nodes: WorkflowNode[]): WorkflowNode
 
 /** Danh sách kết nối cổng (Port Edges) chuẩn mực giữa 7 khâu sản xuất video */
 export function buildStandardEdges(nodes: WorkflowNode[]): WorkflowEdge[] {
-  const byType = new Map(nodes.filter((n) => n.enabled).map((n) => [n.type, n]))
+  const byType = new Map<WorkflowNodeType, WorkflowNode[]>()
+  for (const n of nodes) {
+    if (!n.enabled) continue
+    const list = byType.get(n.type) ?? []
+    list.push(n)
+    byType.set(n.type, list)
+  }
   const pairs: { from: WorkflowNodeType; port: WorkflowPortKind; to: WorkflowNodeType }[] = [
     { from: 'scene_shot', port: 'scene_ctx', to: 'layer_assembly' },
     { from: 'scene_shot', port: 'scene_ctx', to: 'camera_director' },
@@ -477,16 +483,18 @@ export function buildStandardEdges(nodes: WorkflowNode[]): WorkflowEdge[] {
 
   const edges: WorkflowEdge[] = []
   for (const p of pairs) {
-    const src = byType.get(p.from)
-    const dst = byType.get(p.to)
-    if (src && dst) {
-      edges.push({
-        id: `edge-${src.id}-${p.port}-${dst.id}`,
-        fromNode: src.id,
-        fromPort: p.port,
-        toNode: dst.id,
-        toPort: p.port
-      })
+    const srcs = byType.get(p.from) ?? []
+    const dsts = byType.get(p.to) ?? []
+    for (const src of srcs) {
+      for (const dst of dsts) {
+        edges.push({
+          id: `edge-${src.id}-${p.port}-${dst.id}`,
+          fromNode: src.id,
+          fromPort: p.port,
+          toNode: dst.id,
+          toPort: p.port
+        })
+      }
     }
   }
   return edges

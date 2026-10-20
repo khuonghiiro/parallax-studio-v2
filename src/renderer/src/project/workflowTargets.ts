@@ -406,11 +406,11 @@ export const DEFAULT_PRESET_SUBPARTS: Record<string, string[]> = {
   combat_elastic_glow: ['soft_mesh_jiggle', 'collider_zone', 'rim_glow_silhouette'],
   cave_portal_flashlight: ['cave_depth_portal', 'virtual_light_core', 'firefly_particles'],
 
-  // 5. camera_director
-  cinematic_fly_push: ['spline_eye_path', 'lookat_target', 'dof_aperture', 'fov_dolly_zoom'],
-  dolly_push_focus: ['fov_dolly_zoom', 'lookat_target', 'dof_aperture'],
+  // 5. camera_director (Tắt dof_aperture mặc định để ảnh Camera 3D sắc nét 100% đồng nhất với Cam 2D)
+  cinematic_fly_push: ['spline_eye_path', 'lookat_target', 'fov_dolly_zoom'],
+  dolly_push_focus: ['fov_dolly_zoom', 'lookat_target'],
   orbit_showcase_3d: ['spline_eye_path', 'lookat_target', 'handheld_rig'],
-  dramatic_handheld_action: ['fov_dolly_zoom', 'handheld_rig', 'dof_aperture'],
+  dramatic_handheld_action: ['fov_dolly_zoom', 'handheld_rig'],
 
   // 6. audio_lipsync
   voice_lipsync_bgm: ['mouth_viseme_25d', 'jaw_head_nod', 'vocal_eq_chain', 'bgm_envelope'],
@@ -445,14 +445,16 @@ export function getNodeSubParts(node: WorkflowNode): WorkflowSubPartItem[] {
  * Quét toàn bộ Project hiện tại và trích xuất danh sách các Thực thể (Cụm 2.5D Composite,
  * Mô hình 3D, Layer ảnh 2.5D đơn lẻ, Mặt đất 3D, Hạt FX) có thể gắn vào các Node Workflow.
  */
-export function listProjectBindableTargets(project?: Project): WorkflowBoundTarget[] {
+export function listProjectBindableTargets(project?: Project, shotFilter?: string | null): WorkflowBoundTarget[] {
   if (!project) return []
+  const activeShotFilter = shotFilter && shotFilter !== 'all' ? shotFilter : null
   const results: WorkflowBoundTarget[] = []
   const compositeGroups = new Map<string, Layer[]>()
   const model3dGroups = new Map<string, Layer[]>()
   const standaloneLayers: Layer[] = []
 
   for (const l of project.layers) {
+    if (activeShotFilter && l.shotId && l.shotId !== activeShotFilter) continue
     if (l.composite?.instanceId) {
       const list = compositeGroups.get(l.composite.instanceId) ?? []
       list.push(l)
@@ -578,13 +580,16 @@ export function resolveNodeTargetBinding(
 ): ResolvedNodeBinding {
   const subParts = getNodeSubParts(node)
   const activeParts = subParts.filter((p) => p.active)
-  const allBindable = listProjectBindableTargets(project)
+  const rawShotScope = node.params?.shotId || project?.workflow?.targetShotId
+  const shotFilter = rawShotScope && rawShotScope !== 'all' ? rawShotScope : null
+  const allBindable = listProjectBindableTargets(project, shotFilter)
 
   const customIds = node.params?.targetLayerIds ?? []
   const isCustom = node.params?.targetMode === 'custom' && customIds.length > 0
   const customSet = new Set(customIds)
 
   const matchesLayer = (layer: Layer): boolean => {
+    if (shotFilter && layer.shotId && layer.shotId !== shotFilter) return false
     if (!isCustom) return true
     if (customSet.has(layer.id)) return true
     if (layer.composite?.instanceId && customSet.has(layer.composite.instanceId)) return true
@@ -621,7 +626,8 @@ export function resolveNodeTargetBinding(
   let autoTargets: WorkflowBoundTarget[] = []
 
   if (node.type === 'scene_shot') {
-    const shotTargets: WorkflowBoundTarget[] = project.shots.map((s) => ({
+    const scopedShots = shotFilter ? project.shots.filter((s) => s.id === shotFilter) : project.shots
+    const shotTargets: WorkflowBoundTarget[] = scopedShots.map((s) => ({
       id: s.id,
       name: s.name,
       kind: 'shot',

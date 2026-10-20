@@ -91,6 +91,11 @@ export class TexturePool {
     if (el.layer.type !== 'image') return 0
     const meta = assetStore.get(el.layer.props.assetId)?.meta
     if (!meta?.width || !meta.height) return 0
+    if (minLevel === 0) {
+      let lv = 0
+      while (lv < MAX_LEVEL && Math.max(...this.levelSize(meta.width, meta.height, lv)) > this.maxTex) lv++
+      return lv
+    }
     const sx = _v1.setFromMatrixColumn(el.world, 0).length()
     const sy = _v1.setFromMatrixColumn(el.world, 1).length()
     let pxPerUnit: number

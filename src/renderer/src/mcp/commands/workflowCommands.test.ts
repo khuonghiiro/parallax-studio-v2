@@ -3,9 +3,14 @@ import { createProject, createImageLayer, createShot } from '../../project/facto
 import { DEFAULT_NODE_POSITIONS } from '../../project/workflowCatalog'
 import {
   applyWorkflowToProject,
+  disconnectWorkflowEdge,
   ensureProjectWorkflow,
   resolveConnectedWorkflowNodes
 } from '../../project/workflowEngine'
+import {
+  WORKFLOW_LOGIC_NODE_CATALOG,
+  spawnLogicNodeIntoWorkflow
+} from '../../project/workflowLogicNodes'
 import {
   NODE_W,
   buildSmartEdgeGeometry,
@@ -321,6 +326,58 @@ describe('MCP workflowCommands & Workflow Engine', () => {
     expect(camNodeSynced.params?.enableDof).toBe(false)
     const lookNodeSynced = syncedWf.nodes.find((n) => n.type === 'look_output')!
     expect(lookNodeSynced.params?.targetParts).not.toContain('z_depth_fog')
+  })
+
+  it('isolates workflow execution strictly per-shot and supports spawning/disconnecting Logic Nodes', () => {
+    const proj = useEditor.getState().project
+    const shot1 = proj.shots[0]
+    const shot2 = createShot('Cảnh 2 - Rừng Đom Đóm')
+    const shot3 = createShot('Cảnh 3 - Đỉnh Núi Mây')
+    proj.shots.push(shot2, shot3)
+
+    const layerShot3 = createImageLayer(
+      { id: 'asset-s3', name: 'Cây Cảnh 3.png', kind: 'image', mime: 'image/png', width: 800, height: 900 },
+      proj.comp,
+      400,
+      shot3.id
+    )
+    proj.layers.push(layerShot3)
+
+    // Scope workflow strictly to Shot 1
+    const baseWf = {
+      ...ensureProjectWorkflow(proj),
+      targetShotId: shot1.id
+    }
+
+    // Spawn a Logic Node ("Ánh Sáng Ấm") into Shot 1's workflow
+    expect(WORKFLOW_LOGIC_NODE_CATALOG.length).toBeGreaterThanOrEqual(8)
+    const { workflow: wfWithLogic, spawnedNode } = spawnLogicNodeIntoWorkflow(
+      baseWf,
+      'logic-fx-candle',
+      shot1.id
+    )
+    expect(spawnedNode.params?.logicId).toBe('logic-fx-candle')
+    expect(spawnedNode.params?.shotId).toBe(shot1.id)
+
+    applyWorkflowToProject(proj, wfWithLogic)
+
+    // Camera DOF must remain OFF by default so Camera viewport stays razor-sharp like Cam 2D
+    expect(proj.camera.dofEnabled).toBe(false)
+
+    // Shot 1 layers receive motion & candle virtual light
+    const shot1Layers = proj.layers.filter((l) => l.shotId === shot1.id)
+    expect(shot1Layers.some((l) => l.virtualLight?.enabled)).toBe(true)
+
+    // Shot 3 layer must remain 100% untouched (no motion, no virtualLight, no Z-shift)
+    expect(layerShot3.motion?.enabled ?? false).toBe(false)
+    expect(layerShot3.virtualLight?.enabled ?? false).toBe(false)
+    expect(layerShot3.transform.position.value[2]).toBe(400)
+
+    // Disconnecting the spawned Logic Node from the flow turns off its candle light on Shot 1
+    const inEdge = wfWithLogic.edges.find((e) => e.toNode === spawnedNode.id)!
+    const afterCut = disconnectWorkflowEdge(wfWithLogic, { edgeId: inEdge.id })
+    applyWorkflowToProject(proj, afterCut)
+    expect(shot1Layers.some((l) => l.virtualLight?.enabled)).toBe(false)
   })
 })
 

@@ -133,6 +133,10 @@ export interface WorkflowNodeParams {
   targetParts?: string[]
   /** Danh sách quy tắc Chuyển động / Tính năng bổ sung do người dùng thêm trực tiếp vào Khối */
   customRules?: WorkflowCustomActionRule[]
+  /** ID phân cảnh cụ thể mà Node này áp dụng (hoặc truyền xuống luồng nếu là Node Phân cảnh) */
+  shotId?: string
+  /** Mã định danh Node Logic cụ thể từ Kho Node Logic */
+  logicId?: string
 }
 
 export interface WorkflowNode {

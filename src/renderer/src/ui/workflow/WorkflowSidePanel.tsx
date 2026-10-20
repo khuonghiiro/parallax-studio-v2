@@ -43,6 +43,8 @@ export interface WorkflowSidePanelProps {
   ) => void
   onDisconnectEdge: (edgeId: string) => void
   onApplyJsonGraph: (nextGraph: WorkflowGraph) => void
+  onSpawnLogicNode?: (logicId: string) => void
+  activeShotLabel?: string
   onShowToast: (msg: string) => void
   onPreviewNode?: (node: WorkflowNode) => void
 }
@@ -64,6 +66,8 @@ export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
   onConnectPorts,
   onDisconnectEdge,
   onApplyJsonGraph,
+  onSpawnLogicNode,
+  activeShotLabel,
   onShowToast,
   onPreviewNode
 }) => {
@@ -208,7 +212,7 @@ export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
                     {renderWorkflowNodeIcon(selectedNode.type, { width: 13, height: 13 })}
                   </span>
                   <div className="wf-inspector-title-text">
-                    <strong>{nodeSpec.title}</strong>
+                    <strong>{selectedNode.params?.logicId ? selectedNode.title : nodeSpec.title}</strong>
                     <span className="wf-agent-role-badge" title="Tác nhân logic AI điều khiển qua MCP">
                       🤖 {selectedNode.aiAgentRole}
                     </span>
@@ -255,9 +259,9 @@ export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
                   aria-selected={activeSubTab === 'actions'}
                   className={`wf-inspector-subtab${activeSubTab === 'actions' ? ' active' : ''}`}
                   onClick={() => setSubTab('actions')}
-                  title="Thêm hiệu ứng chuyển động & ánh sáng 2.5D mới cho Layer bất kỳ"
+                  title="Kho Node Logic để thả vào sơ đồ kết nối theo luồng, hoặc gắn nhanh hiệu ứng chuyển động & ánh sáng 2.5D"
                 >
-                  ➕ Thêm FX ({customRuleCount})
+                  🧩 Kho Node & FX ({customRuleCount})
                 </button>
               </div>
 
@@ -560,13 +564,15 @@ export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
                 </div>
               )}
 
-              {/* TAB 3: THÊM CHUYỂN ĐỘNG / TÍNH NĂNG MỚI (1 CHẠM - KHÔNG COMBOBOX) */}
+              {/* TAB 3: KHO NODE LOGIC & THÊM CHUYỂN ĐỘNG / TÍNH NĂNG MỚI (1 CHẠM - KHÔNG COMBOBOX) */}
               {activeSubTab === 'actions' && (
                 <div className="wf-subtab-pane">
                   <WorkflowActionBuilder
                     node={selectedNode}
                     bindableTargets={binding.allBindableTargets}
+                    activeShotLabel={activeShotLabel}
                     onUpdateNodeParams={onUpdateNodeParams}
+                    onSpawnLogicNode={onSpawnLogicNode}
                     onShowToast={onShowToast}
                   />
                 </div>
