@@ -13,11 +13,11 @@ export interface Layout {
   stage2d?: Rect | null
 }
 
-export const EDITOR_KINDS: { id: EditorViewKind; label: string }[] = [
-  { id: 'custom', label: 'Tự do (orbit)' },
-  { id: 'top', label: 'Top' },
-  { id: 'front', label: 'Front' },
-  { id: 'left', label: 'Left' }
+export const EDITOR_KINDS: { id: EditorViewKind; label: string; shortLabel: string }[] = [
+  { id: 'custom', label: '3D tự do (Orbit)', shortLabel: 'Tự do' },
+  { id: 'front', label: 'Chính diện (Front)', shortLabel: 'Trước' },
+  { id: 'top', label: 'Từ trên (Top)', shortLabel: 'Trên' },
+  { id: 'left', label: 'Từ trái (Left)', shortLabel: 'Trái' }
 ]
 
 export const CLEAR = '#090a10'

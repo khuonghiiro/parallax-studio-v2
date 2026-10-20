@@ -91,6 +91,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   timeline_tracks: ['.tl-scroll', '.tl-body', '.tl-rows-scroll'],
   timeline_workflow: region('timeline_workflow', '.wf-studio-panel'),
   workflow_toolbar: region('workflow_toolbar', '.wf-toolbar'),
+  workflow_palette: region('workflow_palette', '.wf-node-palette'),
   workflow_canvas: region('workflow_canvas', '.wf-canvas-viewport'),
   workflow_canvas_hud: region('workflow_canvas_hud', '.wf-canvas-hud'),
   workflow_inspector: region('workflow_inspector', '.wf-side-panel'),

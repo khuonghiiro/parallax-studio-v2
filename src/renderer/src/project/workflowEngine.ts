@@ -11,13 +11,9 @@ import type {
   WorkflowNodeType,
   WorkflowPortKind
 } from '@shared/types'
-import { buildCameraPath, type PathStep } from '../animation/cameraPath'
-import { applyCameraPreset } from '../animation/presets'
 import { generatePresetSpatialTracks } from '../animation/motionPresets'
 import { applyMotionTracksToGroup, findMotionTargetGroup } from '../animation/motionEngine'
-import { shotLocalToWorld } from '../engine/evaluateScene'
 import { createGroundLayer, createParticleLayer, createShot } from './factory'
-import { isMouthLayer } from './lipSync'
 import {
   CANONICAL_NODE_ORDER,
   DEFAULT_NODE_POSITIONS,
@@ -43,8 +39,15 @@ import {
   deactivateDisconnectedWorkflowStages,
   isForegroundFrameBorderLayer,
   pickShotFocalLayer,
+  rebalanceChildLayerRigEdges,
   syncWorkflowFromProject
 } from './workflowStageEffects'
+import {
+  executeAudioLipSyncStage,
+  executeCameraDirectorStage,
+  executeLookOutputStage,
+  syncWorkflowEntityVisibility
+} from './workflowEntitySync'
 import {
   WORKFLOW_LOGIC_NODE_CATALOG,
   WORKFLOW_LOGIC_NODE_CATEGORIES,
@@ -406,14 +409,18 @@ export function applyWorkflowToProject(
   workflowInput?: WorkflowGraph,
   opts?: { onlyNodeIds?: Set<string> }
 ): WorkflowExecutionReport {
-  const workflow = workflowInput ? structuredClone(workflowInput) : structuredClone(ensureProjectWorkflow(project))
+  const workflow = rebalanceChildLayerRigEdges(
+    workflowInput ? structuredClone(workflowInput) : structuredClone(ensureProjectWorkflow(project))
+  )
   const { activeNodes, disconnectedNodes } = resolveConnectedWorkflowNodes(workflow)
   const executedStages: WorkflowExecutionStageResult[] = []
 
   const connectedStageTypes = new Set(activeNodes.map((n) => n.type))
+  const activeNodeIdSet = new Set(activeNodes.map((n) => n.id))
   if (!opts?.onlyNodeIds) {
     deactivateDisconnectedWorkflowStages(project, connectedStageTypes)
   }
+  syncWorkflowEntityVisibility(project, workflow, activeNodeIdSet)
 
   for (const node of activeNodes) {
     if (opts?.onlyNodeIds && !opts.onlyNodeIds.has(node.id)) continue
@@ -790,177 +797,32 @@ export function applyWorkflowToProject(
         affectedCount: affected
       })
     } else if (node.type === 'camera_director') {
-      const cameraShots = project.shots
-      const targetShot =
-        (targetShotFilter ? project.shots.find((s) => s.id === targetShotFilter) : null) ??
-        project.shots[0] ??
-        null
-
-      if (cameraShots.length > 1) {
-        const totalDur = Math.max(4, project.comp.duration || 10)
-        const transDur = Number(
-          Math.max(1.0, Math.min(2.2, (totalDur / cameraShots.length) * 0.34)).toFixed(1)
-        )
-        const holdPerShot = Number(
-          Math.max(
-            1.5,
-            (totalDur - transDur * (cameraShots.length - 1)) / cameraShots.length
-          ).toFixed(1)
-        )
-        const stepMotion = node.preset === 'orbit_showcase_3d' ? 'orbit-right' : 'push'
-        const stepTrans = node.preset === 'orbit_showcase_3d' ? 'arc' : 'fly'
-        const pushAmount =
-          node.preset === 'dolly_push_focus'
-            ? 0.24 * intensity
-            : node.preset === 'dramatic_handheld_action'
-              ? 0.28 * intensity
-              : node.preset === 'orbit_showcase_3d'
-                ? 0.12 * intensity
-                : 0.16 * intensity
-
-        const steps: PathStep[] = cameraShots.map((s) => ({
-          shotId: s.id,
-          hold: holdPerShot,
-          type: stepTrans,
-          transition: transDur,
-          motion: stepMotion
-        }))
-        buildCameraPath(project, steps, {
-          pushIn: Number(Math.min(0.45, pushAmount).toFixed(2)),
-          startAt: 0
-        })
-      } else {
-        const camPreset =
-          node.preset === 'orbit_showcase_3d'
-            ? 'orbitRight'
-            : node.preset === 'dramatic_handheld_action'
-              ? 'dollyZoom'
-              : 'dollyIn'
-        applyCameraPreset(
-          project.camera,
-          camPreset,
-          project.comp,
-          0,
-          project.comp.duration,
+      executedStages.push(
+        executeCameraDirectorStage(
+          project,
+          node,
+          activeNodes,
+          activePartIds,
+          partNamesSummary,
           intensity,
-          shotLocalToWorld(targetShot, 0)
+          targetShotFilter
         )
-      }
-
-      const activeCamNodes = activeNodes.filter((n) => n.type === 'camera_director')
-      project.camera.dofEnabled = activeCamNodes.some(
-        (n) => n.params?.enableDof === true || n.params?.logicId === 'logic-cam-dof'
       )
-      project.camera.shakeAmount = activePartIds.has('handheld_rig')
-        ? node.preset === 'dramatic_handheld_action'
-          ? Math.round(6 * intensity)
-          : Math.round(1.5 * intensity)
-        : Math.round(0.8 * intensity)
-      project.camera.shakeSpeed = node.preset === 'dramatic_handheld_action' ? 1.2 : 0.6
-
-      executedStages.push({
-        nodeId: node.id,
-        nodeType: node.type,
-        title: node.title,
-        aiAgentRole: node.aiAgentRole,
-        preset: node.preset,
-        appliedSummary: `Tạo đường bay Camera 3D · Bộ phận: ${partNamesSummary}.`,
-        affectedCount: Math.max(1, project.shots.length)
-      })
     } else if (node.type === 'audio_lipsync') {
-      let affected = 0
-      const tracks = project.audioTracks ?? []
-      const charComposite = project.layers.find((l) => l.composite?.instanceId && binding.matchesLayer(l))
-      const mouthLayer = project.layers.find((l) => isMouthLayer(l) && binding.matchesLayer(l))
-
-      for (const tr of tracks) {
-        tr.fadeIn = tr.fadeIn || 0.6
-        tr.fadeOut = tr.fadeOut || 1.0
-        if (
-          node.preset === 'voice_lipsync_bgm' ||
-          node.params?.autoLipSync ||
-          activePartIds.has('mouth_viseme_25d')
-        ) {
-          tr.tone = tr.characterRole === 'voice' ? 'vocal' : 'warm'
-          if (tr.characterRole === 'voice' || tracks.length === 1) {
-            tr.lipSyncEnabled = true
-            tr.lipSyncIntensity = Number((1.15 * intensity).toFixed(2))
-            if (!tr.targetId && charComposite?.composite) {
-              tr.targetType = 'character'
-              tr.targetId = charComposite.composite.instanceId
-              tr.targetName = charComposite.composite.compositeName
-            }
-            if (!tr.lipSyncLayerId && mouthLayer) {
-              tr.lipSyncLayerId = mouthLayer.id
-            }
-          }
-        } else {
-          tr.tone = 'warm'
-        }
-        affected++
-      }
-
-      executedStages.push({
-        nodeId: node.id,
-        nodeType: node.type,
-        title: node.title,
-        aiAgentRole: node.aiAgentRole,
-        preset: node.preset,
-        appliedSummary:
-          affected > 0
-            ? `Cấu hình âm thanh & Lip-Sync (${affected} track) · Bộ phận: ${partNamesSummary}.`
-            : `Đã sẵn sàng Lip-Sync (${partNamesSummary}) khi thêm track âm thanh.`,
-        affectedCount: affected
-      })
+      executedStages.push(
+        executeAudioLipSyncStage(
+          project,
+          node,
+          activePartIds,
+          partNamesSummary,
+          intensity,
+          binding.matchesLayer
+        )
+      )
     } else if (node.type === 'look_output') {
-      const wantFog = activePartIds.has('z_depth_fog') && node.preset !== 'vibrant_anime_clean'
-      if (node.preset === 'mystic_night_glow') {
-        project.look = {
-          ...project.look,
-          fogEnabled: wantFog,
-          fogColor: '#161936',
-          fogNear: 1200,
-          fogFar: 5200,
-          vignette: Number(Math.min(1, 0.38 * intensity).toFixed(2)),
-          grain: 0.06,
-          exposure: -0.08,
-          contrast: 1.12,
-          saturation: 1.08
-        }
-      } else if (node.preset === 'vibrant_anime_clean') {
-        project.look = {
-          ...project.look,
-          fogEnabled: false,
-          vignette: 0.1,
-          grain: 0,
-          exposure: 0.08,
-          contrast: 1.06,
-          saturation: Number(Math.min(2, 1.16 * intensity).toFixed(2))
-        }
-      } else {
-        project.look = {
-          ...project.look,
-          fogEnabled: wantFog,
-          fogColor: '#2a2140',
-          fogNear: 1400,
-          fogFar: 5800,
-          vignette: Number(Math.min(1, 0.28 * intensity).toFixed(2)),
-          grain: 0.04,
-          exposure: 0.02,
-          contrast: 1.08,
-          saturation: 1.06
-        }
-      }
-
-      executedStages.push({
-        nodeId: node.id,
-        nodeType: node.type,
-        title: node.title,
-        aiAgentRole: node.aiAgentRole,
-        preset: node.preset,
-        appliedSummary: `Hoàn thiện màu sắc (${partNamesSummary}) & sẵn sàng xuất bản.`,
-        affectedCount: 1
-      })
+      executedStages.push(
+        executeLookOutputStage(project, node, activePartIds, partNamesSummary, intensity)
+      )
     }
 
     // Áp dụng các quy tắc Chuyển động / Tính năng tùy chỉnh (customRules) gắn trên khối này
@@ -978,6 +840,9 @@ export function applyWorkflowToProject(
       applyRuleMutationToProjectLayer(project, r, false, dnShot)
     }
   }
+
+  // Đảm bảo đồng bộ trạng thái hiển thị (visible) của từng Layer con & Cảnh theo đúng trạng thái ON/OFF của Node
+  syncWorkflowEntityVisibility(project, workflow, activeNodeIdSet)
 
   workflow.lastAppliedAt = new Date().toISOString()
   project.workflow = workflow

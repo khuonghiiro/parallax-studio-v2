@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Project, WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowNodeParams, WorkflowPortKind } from '@shared/types'
 import {
-  DEFAULT_NODE_POSITIONS,
   WORKFLOW_NODE_SPECS,
   WORKFLOW_PORT_SPECS
 } from '../../project/workflowCatalog'
@@ -41,6 +40,7 @@ export interface WorkflowCanvasProps {
   onConnectPorts: (fromNode: string, fromPort: WorkflowPortKind, toNode: string, toPort: WorkflowPortKind) => void
   onDisconnectEdge: (edgeId: string) => void
   onPreviewNode?: (node: WorkflowNode) => void
+  onDropLogicNode?: (logicId: string, worldPos: { x: number; y: number }) => void
 }
 
 export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
@@ -60,13 +60,16 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   onUpdateNodeParams,
   onConnectPorts,
   onDisconnectEdge,
-  onPreviewNode
+  onPreviewNode,
+  onDropLogicNode
 }) => {
   const viewportRef = useRef<HTMLDivElement>(null)
   const [zoom, setZoom] = useState<number>(1)
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 44, y: 8 })
   const [isPanning, setIsPanning] = useState(false)
   const [clusterMoveMode, setClusterMoveMode] = useState(false)
+  const [dragPositions, setDragPositions] = useState<Record<string, { x: number; y: number }> | null>(null)
+  const [isDragOverPalette, setIsDragOverPalette] = useState(false)
 
   const [pendingSource, setPendingSource] = useState<{
     nodeId: string
@@ -85,7 +88,14 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     targetCardOnly?: boolean
   } | null>(null)
 
-  const nodeById = useMemo(() => new Map(workflow.nodes.map((n) => [n.id, n])), [workflow.nodes])
+  const effectiveNodes = useMemo(() => {
+    if (!dragPositions) return workflow.nodes
+    return workflow.nodes.map((n) =>
+      dragPositions[n.id] ? { ...n, position: dragPositions[n.id] } : n
+    )
+  }, [workflow.nodes, dragPositions])
+
+  const nodeById = useMemo(() => new Map(effectiveNodes.map((n) => [n.id, n])), [effectiveNodes])
 
   // Phím tắt Alt + L tự động sắp xếp gọn gàng toàn bộ sơ đồ
   useEffect(() => {
@@ -102,7 +112,6 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [onAutoLayout])
-
 
   /** Tự động tính toán Zoom & Pan để toàn bộ cụm khối nằm gọn giữa khung nhìn (chừa mép trái 38px cho thanh Icon dọc) */
   const fitClusterToView = useCallback(
@@ -194,7 +203,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     setZoom(nextZoom)
   }
 
-  /** Kéo mặt phẳng (Pan Canvas) khi nắm kéo vùng trống hoặc chuột giữa */
+  /** Kéo mặt phẳng (Pan Canvas) mượt 60fps khi nắm kéo vùng trống */
   const handleViewportPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest('.wf-node-card, .wf-canvas-hud, .wf-edge-badge')) return
     if (pendingSource) {
@@ -212,13 +221,17 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     const el = e.currentTarget
     el.setPointerCapture(e.pointerId)
 
+    let rafId = 0
     const onMove = (ev: PointerEvent) => {
-      setPan({
-        x: Math.round(origPanX + (ev.clientX - startX)),
-        y: Math.round(origPanY + (ev.clientY - startY))
+      const nx = Math.round(origPanX + (ev.clientX - startX))
+      const ny = Math.round(origPanY + (ev.clientY - startY))
+      if (rafId) cancelAnimationFrame(rafId)
+      rafId = requestAnimationFrame(() => {
+        setPan({ x: nx, y: ny })
       })
     }
     const onUp = () => {
+      if (rafId) cancelAnimationFrame(rafId)
       setIsPanning(false)
       el.removeEventListener('pointermove', onMove)
       el.removeEventListener('pointerup', onUp)
@@ -228,8 +241,8 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   }
 
   /**
-   * Kéo 1 khối hoặc Kéo cả cụm tự do 4 hướng (Trái / Phải / Lên / Xuống)
-   * không bị giới hạn tường cứng x>=8 hay y>=8.
+   * Kéo 1 khối hoặc Kéo cả cụm tự do 4 hướng (Trái / Phải / Lên / Xuống) mượt 60fps:
+   * Cập nhật tọa độ cục bộ qua requestAnimationFrame và chỉ commit vào store 1 lần khi thả chuột.
    */
   const startNodeDrag = useCallback(
     (e: React.PointerEvent, node: WorkflowNode) => {
@@ -254,6 +267,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       el.setPointerCapture(e.pointerId)
 
       let lastPatch: Record<string, { x: number; y: number }> | null = null
+      let rafId = 0
 
       const onMove = (ev: PointerEvent) => {
         const dx = Math.round((ev.clientX - startX) / zoom)
@@ -266,21 +280,28 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
           }
         }
         lastPatch = patch
-        onMoveNodes(patch, moveCluster ? 'wf-move-cluster' : `wf-move-${node.id}`)
+        if (rafId) cancelAnimationFrame(rafId)
+        rafId = requestAnimationFrame(() => {
+          setDragPositions(patch)
+        })
       }
 
       const onUp = () => {
+        if (rafId) cancelAnimationFrame(rafId)
         el.removeEventListener('pointermove', onMove)
         el.removeEventListener('pointerup', onUp)
+        setDragPositions(null)
+
+        if (!lastPatch) return
 
         // Logic tự động đẩy thẻ ra (Anti-Overlap Push) khi thả chuột nếu bị đè lên thẻ khác
-        if (!moveCluster && lastPatch && lastPatch[node.id]) {
+        if (!moveCluster && lastPatch[node.id]) {
           const currentPos = lastPatch[node.id]
           const otherNodes = workflow.nodes.filter((n) => n.id !== node.id)
           const resolved = resolveNodeCollisionPush(node, currentPos, otherNodes)
-          if (resolved.x !== currentPos.x || resolved.y !== currentPos.y) {
-            onMoveNodes({ [node.id]: resolved }, `wf-push-${node.id}`)
-          }
+          onMoveNodes({ [node.id]: resolved }, `wf-move-${node.id}`)
+        } else {
+          onMoveNodes(lastPatch, 'wf-move-cluster')
         }
       }
       el.addEventListener('pointermove', onMove)
@@ -312,7 +333,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       } | null = null
 
       // 1. Kiểm tra khoảng cách tới tất cả các chân cắm phù hợp của các khối khác
-      for (const n of workflow.nodes) {
+      for (const n of effectiveNodes) {
         if (n.id === sourceNodeId) continue
         const spec = WORKFLOW_NODE_SPECS[n.type]
         if (!spec) continue
@@ -349,7 +370,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       }
 
       // 2. Thả dây vào BẤT KỲ ĐÂU trên thẻ Khối đích (Whole Card Drop Hitbox)
-      for (const n of workflow.nodes) {
+      for (const n of effectiveNodes) {
         if (n.id === sourceNodeId) continue
         const spec = WORKFLOW_NODE_SPECS[n.type]
         if (!spec) continue
@@ -378,7 +399,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 
       return null
     },
-    [workflow.nodes]
+    [effectiveNodes]
   )
 
   /** Theo dõi chuột toàn màn hình và phím ESC khi đang ở chế độ nối dây Click-to-Connect */
@@ -544,7 +565,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         edge.fromPort,
         toNode,
         edge.toPort,
-        workflow.nodes
+        effectiveNodes
       )
       const isActive =
         fromNode.enabled &&
@@ -565,14 +586,14 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       })
     }
     return out
-  }, [workflow.edges, workflow.nodes, nodeById, activeNodeIds])
+  }, [workflow.edges, effectiveNodes, nodeById, activeNodeIds])
 
   const previewTarget = snappedTarget ?? cursorWorld
 
   return (
     <div
       ref={viewportRef}
-      className={`wf-canvas-viewport${isPanning ? ' panning' : ''}${clusterMoveMode ? ' cluster-mode' : ''}`}
+      className={`wf-canvas-viewport${isPanning ? ' panning' : ''}${clusterMoveMode ? ' cluster-mode' : ''}${isDragOverPalette ? ' palette-drag-over' : ''}`}
       data-mcp-region="workflow_canvas"
       style={{
         backgroundPosition: `${pan.x}px ${pan.y}px`,
@@ -580,6 +601,27 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       }}
       onWheel={handleWheel}
       onPointerDown={handleViewportPointerDown}
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes('application/x-pxs-logic-id')) {
+          e.preventDefault()
+          e.dataTransfer.dropEffect = 'copy'
+          if (!isDragOverPalette) setIsDragOverPalette(true)
+        }
+      }}
+      onDragLeave={() => {
+        if (isDragOverPalette) setIsDragOverPalette(false)
+      }}
+      onDrop={(e) => {
+        setIsDragOverPalette(false)
+        const logicId = e.dataTransfer.getData('application/x-pxs-logic-id')
+        if (!logicId || !onDropLogicNode) return
+        e.preventDefault()
+        const w = clientToWorld(e.clientX, e.clientY)
+        onDropLogicNode(logicId, {
+          x: Math.round(w.x - NODE_W / 2),
+          y: Math.round(w.y - 40)
+        })
+      }}
       onContextMenu={(e) => {
         if (pendingSource) {
           e.preventDefault()
@@ -625,7 +667,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
             zoom
           }}
         >
-          {/* Lớp dây nối SVG Bezier không giới hạn tọa độ âm/dương */}
+          {/* Lớp dây nối SVG Bezier không giới hạn tọa độ âm/dương (không dùng feGaussianBlur nặng GPU) */}
           <svg
             className="wf-edges-svg"
             width={6000}
@@ -633,16 +675,6 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
             viewBox="-1500 -1000 6000 4000"
             style={{ left: -1500, top: -1000 }}
           >
-            <defs>
-              <filter id="wf-wire-glow" x="-25%" y="-25%" width="150%" height="150%">
-                <feGaussianBlur stdDeviation="2.5" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-
             {renderedEdges.map(({ edge, p1, p2, path, midX, midY, color, label, isActive }) => (
               <g
                 key={edge.id}
@@ -659,7 +691,6 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
                   d={path}
                   className="wf-edge-line"
                   stroke={color}
-                  filter={isActive ? 'url(#wf-wire-glow)' : undefined}
                 />
                 {isActive && (
                   <path d={path} className={`wf-edge-flow${playing ? ' playing' : ''}`} />
@@ -728,7 +759,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
           </svg>
 
           {/* Các Khối Chức Năng (Functional Nodes) */}
-          {workflow.nodes.map((node) => (
+          {effectiveNodes.map((node) => (
             <WorkflowNodeCard
               key={node.id}
               node={node}

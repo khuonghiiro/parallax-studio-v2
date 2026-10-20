@@ -37,7 +37,7 @@ export function getTargetKindIcon(kind: WorkflowBoundTarget['kind']): string {
 }
 
 /** Minh họa đồ họa động (SVG Schematic) cho từng loại khối chức năng */
-function renderSchematicSvg(type: WorkflowNodeType, preset: string, color: string) {
+export function renderSchematicSvg(type: WorkflowNodeType, preset: string, color: string) {
   switch (type) {
     case 'scene_shot':
       return (
@@ -202,6 +202,160 @@ function renderSchematicSvg(type: WorkflowNodeType, preset: string, color: strin
 }
 
 
+export interface StackedSceneLayerItem {
+  id: string
+  name: string
+  type: 'image' | 'solid' | 'text' | 'particles'
+  imgUrl?: string
+  solidColor?: string
+  textSample?: string
+  textColor?: string
+  leftPct: number
+  topPct: number
+  widthPct: number
+  heightPct: number
+  opacity: number
+  zDepth: number
+}
+
+export interface SceneCompositePreviewData {
+  shotName: string
+  background: string
+  visibleCount: number
+  totalCount: number
+  items: StackedSceneLayerItem[]
+}
+
+function resolveLayerAssetThumbUrl(assetId: string | undefined, project: Project): string | undefined {
+  if (!assetId) return undefined
+  const runtime = assetStore.get(assetId)
+  if (runtime?.thumbUrl) return runtime.thumbUrl
+  if (runtime?.url) return runtime.url
+  const meta = project.assets?.find((a) => a.id === assetId)
+  if (meta?.dataUrl) return meta.dataUrl
+  if (meta?.assetPath) return `assets/${meta.assetPath}`
+  return undefined
+}
+
+export function resolveSceneCompositeStack(
+  node: WorkflowNode,
+  project?: Project
+): SceneCompositePreviewData | null {
+  if (node.type !== 'scene_shot' || !project) return null
+  const shotId = node.params?.shotId ?? project.shots[0]?.id ?? null
+  const shot =
+    (shotId ? project.shots.find((s) => s.id === shotId) : null) ??
+    project.shots[0] ??
+    null
+  const shotName = shot?.name ?? 'Cảnh 1'
+
+  const allShotLayers = project.layers
+    .map((layer, index) => ({ layer, index }))
+    .filter(({ layer }) => !layer.locked && (project.shots.length <= 1 || layer.shotId === shotId))
+
+  const visibleShotLayers = allShotLayers.filter(({ layer }) => layer.visible !== false)
+
+  // Sắp xếp từ xa tới gần (Painter's Order: Z lớn nhất ở đáy -> Z nhỏ nhất ở trên cùng)
+  visibleShotLayers.sort((a, b) => {
+    const za = a.layer.transform?.position?.value?.[2] ?? 0
+    const zb = b.layer.transform?.position?.value?.[2] ?? 0
+    const dz = zb - za
+    if (Math.abs(dz) > 0.5) return dz
+    return b.index - a.index
+  })
+
+  const compW = Math.max(100, project.comp.width || 1920)
+  const compH = Math.max(100, project.comp.height || 1080)
+  const refD = 1483.64
+
+  const items: StackedSceneLayerItem[] = []
+  for (const { layer } of visibleShotLayers) {
+    const pos = layer.transform?.position?.value ?? [0, 0, 0]
+    const sc = layer.transform?.scale?.value ?? [1, 1, 1]
+    const opacity = layer.transform?.opacity?.value ?? 1
+    if (opacity <= 0.01) continue
+
+    const z = pos[2] ?? 0
+    const pFactor = refD / Math.max(80, refD + z)
+    const autoK = layer.autoScale ? Math.max(80, refD + z) / refD : 1
+    const rawW = (layer.props as any)?.width ?? compW
+    const rawH = (layer.props as any)?.height ?? compH
+    const projW = rawW * (sc[0] ?? 1) * autoK * pFactor
+    const projH = rawH * (sc[1] ?? 1) * autoK * pFactor
+    const ox = (pos[0] ?? 0) * pFactor
+    const oy = -(pos[1] ?? 0) * pFactor
+
+    const widthPct = (projW / compW) * 100
+    const heightPct = (projH / compH) * 100
+    const leftPct = 50 + (ox / compW) * 100 - widthPct / 2
+    const topPct = 50 + (oy / compH) * 100 - heightPct / 2
+
+    if (layer.type === 'image') {
+      const imgUrl = resolveLayerAssetThumbUrl((layer.props as any)?.assetId, project)
+      if (!imgUrl) continue
+      items.push({
+        id: layer.id,
+        name: layer.name,
+        type: 'image',
+        imgUrl,
+        leftPct,
+        topPct,
+        widthPct,
+        heightPct,
+        opacity,
+        zDepth: z
+      })
+    } else if (layer.type === 'solid') {
+      items.push({
+        id: layer.id,
+        name: layer.name,
+        type: 'solid',
+        solidColor: (layer.props as any)?.color ?? '#334155',
+        leftPct,
+        topPct,
+        widthPct,
+        heightPct,
+        opacity,
+        zDepth: z
+      })
+    } else if (layer.type === 'text') {
+      items.push({
+        id: layer.id,
+        name: layer.name,
+        type: 'text',
+        textSample: (layer.props as any)?.text ?? layer.name,
+        textColor: (layer.props as any)?.color ?? '#ffffff',
+        leftPct,
+        topPct,
+        widthPct,
+        heightPct,
+        opacity,
+        zDepth: z
+      })
+    } else if (layer.type === 'particles') {
+      items.push({
+        id: layer.id,
+        name: layer.name,
+        type: 'particles',
+        leftPct: 0,
+        topPct: 0,
+        widthPct: 100,
+        heightPct: 100,
+        opacity,
+        zDepth: z
+      })
+    }
+  }
+
+  return {
+    shotName,
+    background: project.comp.background || '#0c0e14',
+    visibleCount: visibleShotLayers.length,
+    totalCount: allShotLayers.length,
+    items
+  }
+}
+
 export interface NodeThumbInfo {
   thumbUrl?: string
   solidColor?: string
@@ -216,8 +370,8 @@ export function resolveNodeLayerThumbUrl(
 ): NodeThumbInfo {
   if (!project) return {}
 
-  // 1. Nếu node có targetLayerIds chỉ định
-  const targetId = node.params?.targetLayerIds?.[0]
+  // 1. Nếu node có targetLayerIds chỉ định (và không phải scene_shot)
+  const targetId = node.type !== 'scene_shot' ? node.params?.targetLayerIds?.[0] : undefined
   let layer = targetId ? project.layers.find((l) => l.id === targetId) : undefined
 
   // 2. Nếu node là scene_shot mà không có layer cụ thể, tìm layer chính của cảnh đó
@@ -263,19 +417,121 @@ export function resolveNodeLayerThumbUrl(
     }
   }
 
-  if (assetId) {
-    const runtime = assetStore.get(assetId)
-    if (runtime?.thumbUrl) return { thumbUrl: runtime.thumbUrl, label: layer.name }
-    if (runtime?.url) return { thumbUrl: runtime.url, label: layer.name }
-    const meta = project.assets?.find((a) => a.id === assetId)
-    if (meta?.dataUrl) return { thumbUrl: meta.dataUrl, label: layer.name }
-    if (meta?.assetPath) return { thumbUrl: `assets/${meta.assetPath}`, label: layer.name }
+  const resolvedUrl = resolveLayerAssetThumbUrl(assetId, project)
+  if (resolvedUrl) {
+    return { thumbUrl: resolvedUrl, label: layer.name }
   }
 
   return { label: layer.name }
 }
 
-export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
+function renderSceneCompositeBox(sceneStack: SceneCompositePreviewData) {
+  return (
+    <div
+      className="wf-scene-composite-stack"
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+        background: sceneStack.background,
+        borderRadius: 5
+      }}
+      title={`Preview Tổng hợp Cảnh "${sceneStack.shotName}" (${sceneStack.visibleCount}/${sceneStack.totalCount} layer đang hiển thị)`}
+    >
+      {sceneStack.items.length === 0 ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+            fontSize: 10,
+            color: 'var(--text-dim)'
+          }}
+        >
+          Đã ẩn toàn bộ layer ({sceneStack.visibleCount}/{sceneStack.totalCount})
+        </div>
+      ) : (
+        sceneStack.items.map((item) => {
+          const itemStyle: React.CSSProperties = {
+            position: 'absolute',
+            left: `${item.leftPct.toFixed(2)}%`,
+            top: `${item.topPct.toFixed(2)}%`,
+            width: `${item.widthPct.toFixed(2)}%`,
+            height: `${item.heightPct.toFixed(2)}%`,
+            opacity: item.opacity,
+            pointerEvents: 'none'
+          }
+          if (item.type === 'image' && item.imgUrl) {
+            return (
+              <img
+                key={item.id}
+                src={item.imgUrl}
+                alt={item.name}
+                loading="lazy"
+                draggable={false}
+                style={{
+                  ...itemStyle,
+                  objectFit: 'fill',
+                  display: 'block'
+                }}
+              />
+            )
+          }
+          if (item.type === 'solid') {
+            return (
+              <div
+                key={item.id}
+                style={{
+                  ...itemStyle,
+                  background: item.solidColor ?? '#334155'
+                }}
+              />
+            )
+          }
+          if (item.type === 'text') {
+            return (
+              <div
+                key={item.id}
+                style={{
+                  ...itemStyle,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: item.textColor ?? '#ffffff',
+                  fontSize: 8,
+                  fontWeight: 800,
+                  textShadow: '0 1px 4px rgba(0,0,0,0.85)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden'
+                }}
+              >
+                {item.textSample?.split('\n')[0]}
+              </div>
+            )
+          }
+          if (item.type === 'particles') {
+            return (
+              <div
+                key={item.id}
+                style={{
+                  ...itemStyle,
+                  background:
+                    'radial-gradient(circle at 25% 35%, rgba(253,224,71,0.55) 0 1.5px, transparent 3px), radial-gradient(circle at 72% 45%, rgba(253,224,71,0.55) 0 1.5px, transparent 3px), radial-gradient(circle at 48% 68%, rgba(253,224,71,0.45) 0 1.5px, transparent 3px)'
+                }}
+              />
+            )
+          }
+          return null
+        })
+      )}
+    </div>
+  )
+}
+
+export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = React.memo(({
   node,
   project,
   mode = 'card',
@@ -285,6 +541,10 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
   const spec = WORKFLOW_NODE_SPECS[node.type]
   const presetSpec = spec?.presets.find((p) => p.id === node.preset) ?? spec?.presets[0]
   const color = spec?.color ?? '#38bdf8'
+  const sceneStack = useMemo(
+    () => (node.type === 'scene_shot' ? resolveSceneCompositeStack(node, project) : null),
+    [node, project]
+  )
   const thumbInfo = useMemo(() => resolveNodeLayerThumbUrl(node, project), [node, project])
 
   const binding = useMemo(() => resolveNodeTargetBinding(node, project), [node, project])
@@ -311,9 +571,19 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
   if (mode === 'card') {
     return (
       <div className="wf-node-binding-box">
-        {/* Khung Thumbnail Hiển Thị Ảnh Thực Tế Của Layer / Cảnh */}
+        {/* Khung Thumbnail Hiển Thị Ảnh Thực Tế Của Layer / Cảnh Xếp Chồng */}
         <div className="wf-node-thumb-container">
-          {thumbInfo.thumbUrl ? (
+          {sceneStack ? (
+            <>
+              {renderSceneCompositeBox(sceneStack)}
+              <span
+                className="wf-node-thumb-badge"
+                title={`Cảnh: ${sceneStack.shotName} (${sceneStack.visibleCount}/${sceneStack.totalCount} layer hiển thị)`}
+              >
+                🎬 {sceneStack.shotName} ({sceneStack.visibleCount}/{sceneStack.totalCount})
+              </span>
+            </>
+          ) : thumbInfo.thumbUrl ? (
             <img
               src={thumbInfo.thumbUrl}
               alt={thumbInfo.label ?? node.title}
@@ -336,7 +606,7 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
           ) : (
             renderSchematicSvg(node.type, node.preset, color)
           )}
-          {thumbInfo.label && (
+          {!sceneStack && thumbInfo.label && (
             <span className="wf-node-thumb-badge" title={thumbInfo.label}>
               {thumbInfo.label}
             </span>
@@ -349,22 +619,38 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
           title={`Layer / Thực thể tác động (${binding.mode === 'custom' ? 'Chỉ định' : 'Tự động'}):\n${targetsTooltip}\n\nBộ phận 2.5D:\n${partsTooltip}`}
         >
           <span className="wf-binding-label">
-            {binding.mode === 'custom' ? '🎯 Layer:' : '🔄 Layer:'}
+            {node.type === 'scene_shot'
+              ? '🎬 Cảnh:'
+              : binding.mode === 'custom'
+                ? '🎯 Layer:'
+                : '🔄 Layer:'}
           </span>
           <div className="wf-binding-chips">
-            {visibleTargets.map((t) => (
-              <span key={t.id} className={`wf-target-chip primary kind-${t.kind}`}>
-                <span className="wf-chip-ic">{getTargetKindIcon(t.kind)}</span>
-                <span className="wf-chip-txt">{t.name}</span>
-                {t.subLayerCount ? (
-                  <span className="wf-chip-meta">{t.subLayerCount}L</span>
-                ) : typeof t.zDepth === 'number' ? (
-                  <span className="wf-chip-meta">Z:{t.zDepth}</span>
-                ) : null}
+            {sceneStack ? (
+              <span className="wf-target-chip primary kind-shot">
+                <span className="wf-chip-ic">🎬</span>
+                <span className="wf-chip-txt">{sceneStack.shotName}</span>
+                <span className="wf-chip-meta">
+                  {sceneStack.visibleCount}/{sceneStack.totalCount}L
+                </span>
               </span>
-            ))}
-            {extraTargetsCount > 0 && (
-              <span className="wf-target-chip more">+{extraTargetsCount}</span>
+            ) : (
+              <>
+                {visibleTargets.map((t) => (
+                  <span key={t.id} className={`wf-target-chip primary kind-${t.kind}`}>
+                    <span className="wf-chip-ic">{getTargetKindIcon(t.kind)}</span>
+                    <span className="wf-chip-txt">{t.name}</span>
+                    {t.subLayerCount ? (
+                      <span className="wf-chip-meta">{t.subLayerCount}L</span>
+                    ) : typeof t.zDepth === 'number' ? (
+                      <span className="wf-chip-meta">Z:{t.zDepth}</span>
+                    ) : null}
+                  </span>
+                ))}
+                {extraTargetsCount > 0 && (
+                  <span className="wf-target-chip more">+{extraTargetsCount}</span>
+                )}
+              </>
             )}
             {binding.activeParts.length > 0 && (
               <span className="wf-part-chip" title={partsTooltip}>
@@ -432,7 +718,9 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
       </div>
 
       <div className="wf-inspector-preview-stage">
-        {thumbInfo.thumbUrl && (
+        {sceneStack ? (
+          <div className="wf-inspector-thumb-box">{renderSceneCompositeBox(sceneStack)}</div>
+        ) : thumbInfo.thumbUrl ? (
           <div className="wf-inspector-thumb-box">
             <img
               src={thumbInfo.thumbUrl}
@@ -440,7 +728,7 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
               className="wf-inspector-thumb-img"
             />
           </div>
-        )}
+        ) : null}
         {renderSchematicSvg(node.type, node.preset, color)}
       </div>
 
@@ -466,4 +754,4 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = ({
       </div>
     </div>
   )
-}
+})

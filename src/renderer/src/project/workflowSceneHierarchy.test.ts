@@ -7,7 +7,12 @@ import {
   getWorkflowEffectiveDuration,
   spawnSceneWithChildLayers
 } from './workflowSceneHierarchy'
-import { ensureProjectWorkflow } from './workflowEngine'
+import {
+  applyWorkflowToProject,
+  createDefaultWorkflow,
+  ensureProjectWorkflow,
+  resolveConnectedWorkflowNodes
+} from './workflowEngine'
 import {
   WORKFLOW_LOGIC_NODE_CATALOG,
   WORKFLOW_LOGIC_NODE_CATEGORIES,
@@ -16,13 +21,35 @@ import {
 
 function createMockProject(): Project {
   return ({
-
     version: 2,
     comp: {
       width: 1920,
       height: 1080,
       fps: 30,
-      duration: 16
+      duration: 16,
+      background: '#090a10'
+    },
+    camera: {
+      position: { value: [0, 0, 1200], keyframes: [] },
+      target: { value: [0, 0, 0], keyframes: [] },
+      fov: { value: 45, keyframes: [] },
+      focusDistance: { value: 1200, keyframes: [] },
+      aperture: { value: 0.02, keyframes: [] },
+      fade: { value: 0, keyframes: [] },
+      dofEnabled: false,
+      shakeAmount: 0,
+      shakeFreq: 2.5
+    },
+    look: {
+      exposure: 0,
+      contrast: 1,
+      saturation: 1,
+      vignette: 0,
+      grain: 0,
+      fogEnabled: false,
+      fogColor: '#1e293b',
+      fogNear: 500,
+      fogFar: 4000
     },
     shots: [
       {
@@ -30,16 +57,16 @@ function createMockProject(): Project {
         name: 'Rừng Đom Đóm',
         color: '#38bdf8',
         visible: true,
-        position: { value: [0, 0, 0] },
-        rotation: { value: [0, 0, 0] }
+        position: { value: [0, 0, 0], keyframes: [] },
+        rotation: { value: [0, 0, 0], keyframes: [] }
       },
       {
         id: 'shot-2',
         name: 'Lâu Đài Cổ',
         color: '#a855f7',
         visible: true,
-        position: { value: [0, 0, 0] },
-        rotation: { value: [0, 0, 0] }
+        position: { value: [0, 0, 0], keyframes: [] },
+        rotation: { value: [0, 0, 0], keyframes: [] }
       }
     ],
     layers: [
@@ -52,11 +79,13 @@ function createMockProject(): Project {
         locked: false,
         blendMode: 'normal',
         autoScale: false,
+        inPoint: 0,
+        outPoint: 16,
         transform: {
-          position: { value: [0, 0, 3200] },
-          rotation: { value: [0, 0, 0] },
-          scale: { value: [1, 1, 1] },
-          opacity: { value: 1 }
+          position: { value: [0, 0, 3200], keyframes: [] },
+          rotation: { value: [0, 0, 0], keyframes: [] },
+          scale: { value: [1, 1, 1], keyframes: [] },
+          opacity: { value: 1, keyframes: [] }
         },
         props: { assetId: 'sky.png' }
       },
@@ -69,6 +98,8 @@ function createMockProject(): Project {
         locked: false,
         blendMode: 'normal',
         autoScale: false,
+        inPoint: 0,
+        outPoint: 16,
         composite: {
           instanceId: 'comp-knight-inst',
           compositeId: 'comp-knight',
@@ -77,10 +108,10 @@ function createMockProject(): Project {
           lockedGroup: true
         },
         transform: {
-          position: { value: [0, 0, 200] },
-          rotation: { value: [0, 0, 0] },
-          scale: { value: [1, 1, 1] },
-          opacity: { value: 1 }
+          position: { value: [0, 0, 200], keyframes: [] },
+          rotation: { value: [0, 0, 0], keyframes: [] },
+          scale: { value: [1, 1, 1], keyframes: [] },
+          opacity: { value: 1, keyframes: [] }
         },
         props: { assetId: 'knight_body.png' }
       },
@@ -93,6 +124,8 @@ function createMockProject(): Project {
         locked: false,
         blendMode: 'normal',
         autoScale: false,
+        inPoint: 0,
+        outPoint: 16,
         composite: {
           instanceId: 'comp-knight-inst',
           compositeId: 'comp-knight',
@@ -101,10 +134,10 @@ function createMockProject(): Project {
           lockedGroup: true
         },
         transform: {
-          position: { value: [0, 50, 200] },
-          rotation: { value: [0, 0, 0] },
-          scale: { value: [1, 1, 1] },
-          opacity: { value: 1 }
+          position: { value: [0, 50, 200], keyframes: [] },
+          rotation: { value: [0, 0, 0], keyframes: [] },
+          scale: { value: [1, 1, 1], keyframes: [] },
+          opacity: { value: 1, keyframes: [] }
         },
         props: { assetId: 'knight_head.png' }
       },
@@ -117,11 +150,13 @@ function createMockProject(): Project {
         locked: false,
         blendMode: 'screen',
         autoScale: false,
+        inPoint: 0,
+        outPoint: 16,
         transform: {
-          position: { value: [0, 0, 50] },
-          rotation: { value: [0, 0, 0] },
-          scale: { value: [1, 1, 1] },
-          opacity: { value: 1 }
+          position: { value: [0, 0, 50], keyframes: [] },
+          rotation: { value: [0, 0, 0], keyframes: [] },
+          scale: { value: [1, 1, 1], keyframes: [] },
+          opacity: { value: 1, keyframes: [] }
         },
         props: { count: 40 }
       }
@@ -142,14 +177,10 @@ describe('workflowSceneHierarchy', () => {
       edges: []
     }
 
-    // 1. Khi bản vẽ trống (0 nodes), thời lượng luôn là 0s
     expect(getWorkflowEffectiveDuration(emptyWf, project)).toBe(0)
     expect(getWorkflowEffectiveDuration(emptyWf, project, 'shot-1')).toBe(0)
+    expect(getShotDuration(project, 'shot-1')).toBe(8)
 
-    // 2. Tính thời lượng mỗi cảnh
-    expect(getShotDuration(project, 'shot-1')).toBe(8) // 16s / 2 shots = 8s
-
-    // 3. Khi có node và chọn phân cảnh
     const wfWithNodes: WorkflowGraph = {
       ...emptyWf,
       nodes: [
@@ -189,11 +220,9 @@ describe('workflowSceneHierarchy', () => {
     const project = createMockProject()
     const rootLayers = getRootLayersForShot(project, 'shot-1')
 
-    // Phân cảnh 1 có: sky, char (gồm root + head -> chỉ lấy 1 root), fireflies -> tổng cộng 3 root layers
     expect(rootLayers).toHaveLength(3)
     expect(rootLayers.map((l) => l.name)).toEqual(['Bầu trời đêm', 'Nhân vật Hiệp sĩ', 'Đom đóm sáng'])
 
-    // Nhãn 2.5D composite chứa thông tin 2 bộ phận
     const charRoot = rootLayers.find((l) => l.name === 'Nhân vật Hiệp sĩ')!
     const meta = formatLayerNodeLabel(charRoot, project)
     expect(meta.icon).toBe('🧩')
@@ -218,22 +247,17 @@ describe('workflowSceneHierarchy', () => {
       'shot-1'
     )
 
-    // Node Cảnh
     expect(sceneNode.type).toBe('scene_shot')
     expect(sceneNode.title).toContain('Rừng Đom Đóm')
     expect(sceneNode.params?.shotId).toBe('shot-1')
 
-    // 3 Node Layer con
     expect(childNodes).toHaveLength(3)
     expect(childNodes[0].type).toBe('layer_assembly')
     expect(childNodes[0].title).toContain('Bầu trời đêm')
     expect(childNodes[1].title).toContain('Hiệp sĩ 2.5D')
     expect(childNodes[2].title).toContain('Đom đóm sáng')
 
-    // Tổng số node trên bản vẽ là 4
     expect(result.nodes).toHaveLength(4)
-
-    // Đã tự động tạo 3 đường nối scene_ctx từ Node Cảnh tới từng Node Layer con
     expect(result.edges).toHaveLength(3)
     for (const e of result.edges) {
       expect(e.fromNode).toBe(sceneNode.id)
@@ -254,7 +278,6 @@ describe('workflowSceneHierarchy', () => {
     expect(categories).toContain('assembly')
     expect(categories).toContain('look')
 
-    // Kiểm tra các node đại diện
     const camFly = WORKFLOW_LOGIC_NODE_CATALOG.find((n) => n.id === 'logic-cam-fly')
     expect(camFly?.category).toBe('camera')
     expect(camFly?.nodeType).toBe('camera_director')
@@ -287,31 +310,28 @@ describe('workflowSceneHierarchy', () => {
       'shot-1'
     )
 
-    // Thả 1 Node Vật lý Gió lay cây
     const { workflow: wfAfterPhys, spawnedNode: physNode } = spawnLogicNodeIntoWorkflow(
       seededWf,
       'logic-physics-wind',
       'shot-1'
     )
 
-    // Node Vật lý nhận actors_rig từ Layer con
     const edgeToPhys = wfAfterPhys.edges.find((e) => e.toNode === physNode.id)
     expect(edgeToPhys).toBeDefined()
     expect(edgeToPhys?.toPort).toBe('actors_rig')
     expect(childNodes.some((cn) => cn.id === edgeToPhys?.fromNode)).toBe(true)
 
-    // Thả 1 Node Lộ trình Camera
     const { workflow: wfAfterCam, spawnedNode: camNode } = spawnLogicNodeIntoWorkflow(
       wfAfterPhys,
       'logic-cam-fly',
       'shot-1'
     )
 
-    // Node Lộ trình nhận scene_ctx từ Cảnh
     const edgeToCam = wfAfterCam.edges.find((e) => e.toNode === camNode.id)
     expect(edgeToCam).toBeDefined()
     expect(edgeToCam?.toPort).toBe('scene_ctx')
   })
+
   it('chống nhân đôi (Idempotency): bấm Bung Cảnh nhiều lần không tạo thêm Cảnh trùng lặp', () => {
     const project = createMockProject()
     const emptyWf: WorkflowGraph = {
@@ -323,22 +343,53 @@ describe('workflowSceneHierarchy', () => {
       edges: []
     }
 
-    // Bung Cảnh lần 1
     const { workflow: wf1 } = spawnSceneWithChildLayers(project, emptyWf, 'shot-1')
     expect(wf1.nodes.filter((n) => n.type === 'scene_shot')).toHaveLength(1)
     expect(wf1.nodes.filter((n) => n.type === 'layer_assembly')).toHaveLength(3)
     expect(wf1.nodes).toHaveLength(4)
 
-    // Bấm Bung Cảnh lần 2 trên cùng luồng
     const { workflow: wf2 } = spawnSceneWithChildLayers(project, wf1, 'shot-1')
     expect(wf2.nodes.filter((n) => n.type === 'scene_shot')).toHaveLength(1)
     expect(wf2.nodes.filter((n) => n.type === 'layer_assembly')).toHaveLength(3)
     expect(wf2.nodes).toHaveLength(4)
 
-    // Bấm Bung Cảnh lần 3 trên cùng luồng
     const { workflow: wf3 } = spawnSceneWithChildLayers(project, wf2, 'shot-1')
     expect(wf3.nodes.filter((n) => n.type === 'scene_shot')).toHaveLength(1)
     expect(wf3.nodes.filter((n) => n.type === 'layer_assembly')).toHaveLength(3)
     expect(wf3.nodes).toHaveLength(4)
+  })
+
+  it('tắt Node Layer con (OFF) tự động ẩn Layer tương ứng trên Cảnh (visible = false) và chuyển dây actors_rig sang Layer đang bật', () => {
+    const project = createMockProject()
+    const baseWf = createDefaultWorkflow()
+    const { workflow: wf, childNodes } = spawnSceneWithChildLayers(project, baseWf, 'shot-1')
+
+    const skyNodeId = childNodes[0].id
+    const knightNodeId = childNodes[1].id
+    const disabledWf: WorkflowGraph = {
+      ...wf,
+      nodes: wf.nodes.map((n) =>
+        n.id === skyNodeId || n.id === knightNodeId ? { ...n, enabled: false } : n
+      )
+    }
+
+    applyWorkflowToProject(project, disabledWf)
+
+    expect(project.layers.find((l) => l.id === 'layer-sky')?.visible).toBe(false)
+    expect(project.layers.find((l) => l.id === 'layer-char-root')?.visible).toBe(false)
+    expect(project.layers.find((l) => l.id === 'layer-char-head')?.visible).toBe(false)
+    expect(project.layers.find((l) => l.id === 'layer-fireflies')?.visible).toBe(true)
+
+    const reEnabledWf: WorkflowGraph = {
+      ...disabledWf,
+      nodes: disabledWf.nodes.map((n) =>
+        n.id === skyNodeId ? { ...n, enabled: true } : n
+      )
+    }
+    applyWorkflowToProject(project, reEnabledWf)
+    expect(project.layers.find((l) => l.id === 'layer-sky')?.visible).toBe(true)
+    const synced = ensureProjectWorkflow({ ...project, workflow: reEnabledWf })
+    const { activeNodes } = resolveConnectedWorkflowNodes(synced)
+    expect(activeNodes.some((n) => n.type === 'motion_choreography')).toBe(true)
   })
 })

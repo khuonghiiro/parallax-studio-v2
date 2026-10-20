@@ -80,7 +80,7 @@ export interface WorkflowNodeCardProps {
   onClearPendingWire: () => void
 }
 
-export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = ({
+export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
   node,
   project,
   workflow,
@@ -111,9 +111,17 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = ({
   }, [node.params?.logicId])
 
   const boundLayer = React.useMemo(() => {
-    if (!project || !node.params?.targetLayerIds?.[0]) return null
+    if (node.type === 'scene_shot' || node.params?.logicId) return null
+    if (!project || !node.params?.targetLayerIds?.length) return null
+    if (node.params.targetLayerIds.length > 1 && !node.id.startsWith('wf-layer-')) return null
     return project.layers.find((l) => l.id === node.params?.targetLayerIds?.[0]) ?? null
-  }, [project, node.params?.targetLayerIds])
+  }, [node.id, node.type, node.params?.logicId, project, node.params?.targetLayerIds])
+
+  const boundShot = React.useMemo(() => {
+    if (node.type !== 'scene_shot' || !project) return null
+    const sid = node.params?.shotId
+    return (sid ? project.shots.find((s) => s.id === sid) : null) ?? project.shots[0] ?? null
+  }, [node.type, node.params?.shotId, project])
 
   const spec = WORKFLOW_NODE_SPECS[node.type]
 
@@ -161,12 +169,21 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = ({
   }, [logicItem, boundLayer, spec])
 
   const cardTitle = React.useMemo(() => {
+    if (boundShot) return `Cảnh: ${boundShot.name}`
     if (boundLayer) return boundLayer.name
     if (logicItem) return logicItem.title
     return spec?.shortTitle ?? node.title
-  }, [boundLayer, logicItem, spec, node.title])
+  }, [boundShot, boundLayer, logicItem, spec, node.title])
 
   const cardCategoryBadge = React.useMemo(() => {
+    if (boundShot && project) {
+      const shotLayers = project.layers.filter(
+        (l) => !l.locked && (project.shots.length <= 1 || l.shotId === boundShot.id)
+      )
+      const visCount = shotLayers.filter((l) => l.visible !== false).length
+      const dur = node.params?.duration ?? Math.round(((project.comp?.duration ?? 5) / Math.max(1, project.shots.length)) * 10) / 10
+      return `${visCount}/${shotLayers.length} lớp · ${dur.toFixed(1)}s`
+    }
     if (boundLayer) {
       const zVal = Math.round(boundLayer.transform.position.value[2] ?? 0)
       const zTag =
@@ -183,7 +200,7 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = ({
     }
     if (logicItem) return logicItem.categoryLabel
     return spec?.shortTitle ?? 'Khối'
-  }, [boundLayer, logicItem, spec])
+  }, [boundShot, project, node.params?.duration, boundLayer, logicItem, spec])
 
   const telemetry = evaluateNodeRuntimeTelemetry(
     node,
@@ -509,4 +526,4 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = ({
       </div>
     </div>
   )
-}
+})

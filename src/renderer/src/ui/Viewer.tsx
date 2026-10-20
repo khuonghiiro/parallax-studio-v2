@@ -37,6 +37,7 @@ export function Viewer() {
   const edCam = useRef(new EditorCamera()).current
   const needsFrame = useRef(true)
   const pendingFocus = useRef<THREE.Box3 | null>(null)
+  const pendingShotFocal = useRef<THREE.Vector3 | null>(null)
   const layoutRef = useRef<Layout>({ dpr: 1, cam: null, ed: null, stage2d: null })
   const rafRef = useRef(0)
   const frameTimes = useRef<number[]>([])
@@ -82,7 +83,7 @@ export function Viewer() {
     }
     if (!Number.isFinite(edCam.target.x) || !Number.isFinite(edCam.distance)) {
       edCam.target.set(0, 0, 0)
-      edCam.distance = 9000
+      edCam.distance = 1850
       needsFrame.current = true
     }
     const v = useView.getState()
@@ -100,17 +101,34 @@ export function Viewer() {
     }
     if (L.ed) {
       const aspect = L.ed.w / L.ed.h
-      if (pendingFocus.current) {
+      if (pendingShotFocal.current) {
+        edCam.frameShotFocal(pendingShotFocal.current, s.project.comp.width, s.project.comp.height, aspect)
+        pendingShotFocal.current = null
+        pendingFocus.current = null
+        needsFrame.current = false
+      } else if (pendingFocus.current) {
         edCam.frame(pendingFocus.current, aspect)
         pendingFocus.current = null
         needsFrame.current = false
-      } else if (needsFrame.current) {
+      } else if (needsFrame.current || (!edCam.touched && edCam.distance > 4000)) {
         needsFrame.current = false
         const evNow = evaluateScene(s.project, s.time)
-        const activeShotBox = s.selectedShotId
-          ? evNow.shots.find((x) => x.shot.id === s.selectedShotId)?.bounds
-          : null
-        edCam.frame(activeShotBox && !activeShotBox.isEmpty() ? activeShotBox : worldBox(evNow), aspect)
+        const activeShot =
+          (s.selectedShotId ? evNow.shots.find((x) => x.shot.id === s.selectedShotId) : null) ??
+          evNow.shots.find(
+            (x) => Math.hypot(x.position[0] - evNow.camera.target[0], x.position[1] - evNow.camera.target[1]) < 1200
+          ) ??
+          evNow.shots[0]
+        if (activeShot) {
+          edCam.frameShotFocal(
+            new THREE.Vector3(activeShot.position[0], activeShot.position[1], -activeShot.position[2]),
+            s.project.comp.width,
+            s.project.comp.height,
+            aspect
+          )
+        } else {
+          edCam.frame(worldBox(evNow), aspect)
+        }
       }
       const labels = r.renderEditor(s.project, s.time, edCam.get(aspect), {
         viewport: toDevice(L.ed, L.dpr),
@@ -174,6 +192,8 @@ export function Viewer() {
         requestRender()
       }
     })
+    // Tự động căn khung tiêu điểm 2.5D đồng bộ với Camera và Cam 2D
+    applyFocus('shot', useEditor.getState().selectedShotId ?? useEditor.getState().project.shots[0]?.id)
     requestRender()
     return () => {
       unsubStore()
@@ -207,17 +227,16 @@ export function Viewer() {
       animId = requestAnimationFrame(checkAndLoop)
 
       const s = useEditor.getState()
-    if (!Number.isFinite(s.time)) {
-      s.setTime(0)
-    }
-    if (!Number.isFinite(edCam.target.x) || !Number.isFinite(edCam.distance)) {
-      edCam.target.set(0, 0, 0)
-      edCam.distance = 9000
-      needsFrame.current = true
-    }
+      if (!Number.isFinite(s.time)) {
+        s.setTime(0)
+      }
+      if (!Number.isFinite(edCam.target.x) || !Number.isFinite(edCam.distance)) {
+        edCam.target.set(0, 0, 0)
+        edCam.distance = 1850
+        needsFrame.current = true
+      }
       if (s.playing) return
 
-      // Check if project has any animated GIF layers with autoPlay enabled
       const hasAnimatedGif = s.project.layers.some((l) => {
         if (l.type !== 'image' || l.props.autoPlayPaused === false) return false
         const a = assetStore.get(l.props.assetId)
@@ -226,7 +245,6 @@ export function Viewer() {
 
       if (!hasAnimatedGif) return
 
-      // Smooth ~30-40 fps rendering
       if (now - lastRender >= 24) {
         lastRender = now
         requestRender()
@@ -235,7 +253,7 @@ export function Viewer() {
 
     animId = requestAnimationFrame(checkAndLoop)
     return () => cancelAnimationFrame(animId)
-  }, [])
+  }, [edCam])
 
   // Size the canvas to the viewer and compute the view rectangles.
   useEffect(() => {
@@ -261,7 +279,6 @@ export function Viewer() {
 
       if (view.primary === 'animate2d') {
         if (view.animate2dSplit && !isNarrow) {
-          // Chế độ 2D & 3D: Cột 1 chia 2 hàng (Hàng 1: Camera, Hàng 2: 3D), Cột 2: Mặt phẳng 2D của Cảnh
           const col1W = Math.max(240, Math.floor(W * 0.40))
           const availH = Math.max(20, H - topHudH)
           const row1H = Math.max(10, Math.floor(availH * 0.48))
@@ -333,7 +350,7 @@ export function Viewer() {
     }
     if (!Number.isFinite(edCam.target.x) || !Number.isFinite(edCam.distance)) {
       edCam.target.set(0, 0, 0)
-      edCam.distance = 9000
+      edCam.distance = 1850
       needsFrame.current = true
     }
     const ev = evaluateScene(s.project, s.time)
@@ -345,12 +362,32 @@ export function Viewer() {
       } else if (s.selectedShotId) {
         kind = 'shot'
         id = s.selectedShotId
-      } else kind = 'all'
+      } else {
+        kind = 'shot'
+        id = s.project.shots[0]?.id
+      }
+    }
+    if (kind === 'shot' || kind === 'all') {
+      const shotObj =
+        (id ? ev.shots.find((x) => x.shot.id === id) : null) ??
+        ev.shots.find(
+          (x) => Math.hypot(x.position[0] - ev.camera.target[0], x.position[1] - ev.camera.target[1]) < 1200
+        ) ??
+        ev.shots[0]
+      if (shotObj) {
+        pendingShotFocal.current = new THREE.Vector3(
+          shotObj.position[0],
+          shotObj.position[1],
+          -shotObj.position[2]
+        )
+        pendingFocus.current = null
+        edCam.touched = true
+        requestRender()
+        return
+      }
     }
     if (kind === 'layer') box = ev.layers.find((l) => l.layer.id === id)?.bounds.clone() ?? null
-    else if (kind === 'shot') box = ev.shots.find((x) => x.shot.id === id)?.bounds.clone() ?? null
     if (!box || box.isEmpty()) box = worldBox(ev)
-    // The layout may still be switching to the 3D view: frame on the next draw that has it.
     pendingFocus.current = box
     edCam.touched = true
     requestRender()
@@ -381,7 +418,6 @@ export function Viewer() {
     const aspect = ed.w / ed.h
     const cam = edCam.get(aspect)
 
-    // Left mouse button interactions
     if (e.button === 0) {
       const labelEl = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>('[data-shot]')
       if (labelEl?.dataset.shot) {
@@ -392,7 +428,6 @@ export function Viewer() {
         return
       }
 
-      // Proximity check: within 36px of the shot's top header anchor
       const ev = evaluateScene(st.project, st.time)
       const tmpV = new THREE.Vector3()
       for (const s of ev.shots) {
@@ -411,7 +446,6 @@ export function Viewer() {
         }
       }
 
-      // Check clicking on layer in 3D
       const [nx, ny] = ndcIn(ed, x, y)
       r.layoutForPick(st.project, st.time, toDevice(ed, L.dpr).h, cam)
       const id = r.pick(nx, ny, st.project, cam, false)
@@ -426,7 +460,6 @@ export function Viewer() {
     if (e.button === 1) e.preventDefault()
     const orbit = e.button === 1 || (e.button === 0 && e.altKey)
 
-    // Empty space: chuột trái = di chuyển (pan), nhấn giữ con lăn chuột (hoặc Alt+chuột trái) = xoay 360° (orbit)
     const doPan = !orbit
     let lastX = e.clientX
     let lastY = e.clientY

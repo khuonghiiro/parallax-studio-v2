@@ -255,7 +255,7 @@ export function spawnSceneWithChildLayers(
       id: childNodeId,
       type: 'layer_assembly',
       title: meta.title,
-      enabled: true,
+      enabled: layer.visible !== false,
       position: { x: COL_2_X, y: 80 + idx * ROW_GAP },
       preset: layer.composite ? 'character_and_foliage_rig' : 'character_and_foliage_rig',
       aiAgentRole: 'AssemblyRigAgent',

@@ -521,6 +521,46 @@ export function pickShotFocalLayer(
 }
 
 /**
+ * Khi một Node Layer con (`wf-layer-*`) đang giữ dây `actors_rig` nối sang `motion_choreography` bị TẮT (OFF),
+ * tự động chuyển đầu dây `actors_rig` sang một Node Layer con khác đang BẬT (ON) thuộc cùng Phân cảnh
+ * để luồng Chuyển động / Vật lý / Camera phía sau không bị đứt mạch oan.
+ */
+export function rebalanceChildLayerRigEdges(workflow: WorkflowGraph): WorkflowGraph {
+  const childLayers = workflow.nodes.filter(
+    (n) => n.type === 'layer_assembly' && n.id.startsWith('wf-layer-')
+  )
+  if (childLayers.length <= 1) return workflow
+
+  const nodeById = new Map(workflow.nodes.map((n) => [n.id, n]))
+  let changed = false
+  const nextEdges = workflow.edges.map((e) => {
+    if (e.fromPort !== 'actors_rig') return e
+    const fromNode = nodeById.get(e.fromNode)
+    if (!fromNode || !fromNode.id.startsWith('wf-layer-') || fromNode.enabled) return e
+
+    const parentSceneEdge = workflow.edges.find(
+      (se) => se.toNode === fromNode.id && se.fromPort === 'scene_ctx'
+    )
+    const activeSibling = childLayers.find((sib) => {
+      if (!sib.enabled || sib.id === fromNode.id) return false
+      if (!parentSceneEdge) return true
+      return workflow.edges.some(
+        (se) => se.fromNode === parentSceneEdge.fromNode && se.toNode === sib.id
+      )
+    })
+    if (!activeSibling) return e
+    changed = true
+    return {
+      ...e,
+      id: `edge-${activeSibling.id}-${e.fromPort}-${e.toNode}-${e.toPort}`,
+      fromNode: activeSibling.id
+    }
+  })
+
+  return changed ? { ...workflow, edges: nextEdges } : workflow
+}
+
+/**
  * Đồng bộ ngược (Bi-directional Sync) từ các chỉnh sửa trên Cột Thuộc Tính Phải
  * (Tab Layer | Camera | Lộ trình | Dự án) vào Đồ thị Workflow để hiển thị và giữ nguyên logic.
  */
@@ -710,10 +750,10 @@ export function syncWorkflowFromProject(
     return node
   })
 
-  return {
+  return rebalanceChildLayerRigEdges({
     ...baseWorkflow,
     nodes
-  }
+  })
 }
 
 /**

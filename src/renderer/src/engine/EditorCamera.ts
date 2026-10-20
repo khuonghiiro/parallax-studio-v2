@@ -11,9 +11,9 @@ const DEG = Math.PI / 180
 export class EditorCamera {
   kind: EditorViewKind = 'custom'
   readonly target = new THREE.Vector3()
-  distance = 9000
-  yaw = -35 * DEG
-  pitch = 22 * DEG
+  distance = 1850
+  yaw = -16 * DEG
+  pitch = 10 * DEG
   private persp = new THREE.PerspectiveCamera(45, 1, 5, 4e6)
   private ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, -4e6, 4e6)
   /** Set once the user framed or moved the view, so auto-framing stops. */
@@ -24,7 +24,7 @@ export class EditorCamera {
   }
 
   get isOrtho(): boolean {
-    return this.kind !== 'custom'
+    return this.kind === 'top' || this.kind === 'left'
   }
 
   /** Returns the camera updated for the given viewport aspect. */
@@ -37,10 +37,10 @@ export class EditorCamera {
       this.target.set(0, 0, 0)
     }
     if (!Number.isFinite(this.distance) || this.distance <= 0) {
-      this.distance = 9000
+      this.distance = 1850
     }
-    if (!Number.isFinite(this.yaw)) this.yaw = -35 * DEG
-    if (!Number.isFinite(this.pitch)) this.pitch = 22 * DEG
+    if (!Number.isFinite(this.yaw)) this.yaw = -16 * DEG
+    if (!Number.isFinite(this.pitch)) this.pitch = 10 * DEG
     const dir = new THREE.Vector3()
     const up = new THREE.Vector3(0, 1, 0)
     switch (this.kind) {
@@ -55,9 +55,14 @@ export class EditorCamera {
         dir.set(-1, 0, 0)
         break
       default:
-        dir.set(Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), Math.cos(this.yaw) * Math.cos(this.pitch))
+        dir.set(
+          Math.sin(this.yaw) * Math.cos(this.pitch),
+          Math.sin(this.pitch),
+          Math.cos(this.yaw) * Math.cos(this.pitch)
+        )
     }
-    if (this.kind === 'custom') {
+    // Use PerspectiveCamera for both 'custom' (3D tự do) and 'front' (Trước) so 2.5D autoScale layers match Camera & Cam 2D proportions
+    if (this.kind === 'custom' || this.kind === 'front') {
       const c = this.persp
       c.aspect = aspect
       c.near = Math.max(1, this.distance / 2000)
@@ -85,7 +90,6 @@ export class EditorCamera {
 
   orbit(dxPx: number, dyPx: number): void {
     if (this.kind !== 'custom') {
-      // Leaving an orthographic view: continue from an equivalent angle.
       if (this.kind === 'top') {
         this.yaw = 0
         this.pitch = 89 * DEG
@@ -129,12 +133,27 @@ export class EditorCamera {
     this.touched = true
   }
 
-  /** Fit a world box in view. */
+  /**
+   * Căn khung chuẩn 2.5D lấy tâm tại mặt phẳng tiêu điểm (Z = 0) của Phân cảnh đang chọn
+   * để tỷ lệ phối cảnh của các layer autoScale trong 3D tự do khớp đồng bộ với Camera và Cam 2D.
+   */
+  frameShotFocal(focalCenter: THREE.Vector3, compWidth: number, compHeight: number, aspect: number): void {
+    this.target.copy(focalCenter)
+    const refD = compHeight / 2 / Math.tan(22.5 * DEG)
+    const compAspect = compWidth / Math.max(1, compHeight)
+    const aspectScale = aspect < compAspect ? compAspect / Math.max(0.45, aspect) : 1
+    this.distance = Math.round(refD * 1.28 * aspectScale)
+    if (this.kind === 'custom') {
+      this.yaw = -16 * DEG
+      this.pitch = 10 * DEG
+    }
+  }
+
+  /** Fit a world box in view with balanced 2.5D stage framing. */
   frame(box: THREE.Box3, aspect: number): void {
     if (box.isEmpty()) return
     const center = box.getCenter(new THREE.Vector3())
     const size = box.getSize(new THREE.Vector3())
-    this.target.copy(center)
     if (
       !Number.isFinite(center.x) ||
       !Number.isFinite(center.y) ||
@@ -144,11 +163,15 @@ export class EditorCamera {
       !Number.isFinite(size.z)
     ) {
       this.target.set(0, 0, 0)
-      this.distance = 9000
+      this.distance = 1850
       return
     }
-    const radius = Math.max(size.length() / 2, 100)
-    const fit = radius / Math.tan(22.5 * DEG) / Math.min(1, aspect)
-    this.distance = fit * 1.05
+    // Ưu tiên đặt tâm xoay gần mặt phẳng tiêu điểm (Z ~ 0..-200) thay vì bị kéo tuốt ra Z=-1600 bởi Bầu trời autoScale
+    this.target.set(center.x, center.y, Math.max(-240, box.max.z - Math.min(320, size.z * 0.15)))
+    const effectiveW = Math.min(size.x, 2200)
+    const effectiveH = Math.min(size.y, 1300)
+    const radius = Math.max(Math.hypot(effectiveW, effectiveH) / 2, 180)
+    const fit = radius / Math.tan(22.5 * DEG) / Math.min(1, Math.max(0.55, aspect))
+    this.distance = Math.min(2600, Math.max(900, fit * 0.92))
   }
 }

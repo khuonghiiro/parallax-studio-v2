@@ -45,9 +45,8 @@ const CAMERA_COLOR = new THREE.Color('#3dd6f5')
 const PATH_COLOR = new THREE.Color('#ffc24b')
 
 /**
- * Gizmos for the After-Effects-style 3D view: layer outlines, shot boxes, the active
+ * Gizmos for the After-Effects-style 3D view: layer outlines, shot frustum boxes, the active
  * camera (frustum pyramid + target line), its flight path with keyframe dots and a grid.
- * Geometry is rebuilt per frame (cheap: a few thousand vertices at most).
  */
 export class EditorHelpers {
   readonly scene = new THREE.Scene()
@@ -63,8 +62,8 @@ export class EditorHelpers {
     const lineMat = (depthTest: boolean, opacity: number): THREE.LineBasicMaterial =>
       new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity, depthTest, depthWrite: false })
     this.layerLines = new THREE.LineSegments(new THREE.BufferGeometry(), lineMat(true, 0.85))
-    this.shotLines = new THREE.LineSegments(new THREE.BufferGeometry(), lineMat(false, 0.75))
-    this.camLines = new THREE.LineSegments(new THREE.BufferGeometry(), lineMat(false, 1))
+    this.shotLines = new THREE.LineSegments(new THREE.BufferGeometry(), lineMat(false, 0.58))
+    this.camLines = new THREE.LineSegments(new THREE.BufferGeometry(), lineMat(false, 0.92))
     this.path = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: PATH_COLOR, transparent: true, opacity: 0.8, depthTest: false }))
     this.keyPoints = new THREE.Points(
       new THREE.BufferGeometry(),
@@ -138,7 +137,6 @@ export class EditorHelpers {
             lp.push(...p0, ...p1)
             lc.push(lCol.r, lCol.g, lCol.b, lCol.r, lCol.g, lCol.b)
           }
-          // Central beam direction arrow
           const tip = tmp.set(u0 + Math.cos(beamRad) * rNormX * 1.08, v0 + Math.sin(beamRad) * rNormY * 1.08, 0.01).applyMatrix4(info.matrix).toArray()
           lp.push(...origPt, ...tip)
           lc.push(1, 0.96, 0.8, 1, 0.96, 0.8)
@@ -157,19 +155,39 @@ export class EditorHelpers {
     }
     EditorHelpers.setGeometry(this.layerLines, lp, lc)
 
-    // ---- shot boxes
+    // ---- shot frustum boxes (ôm sát mặt phẳng tiền cảnh & hậu cảnh thực tế của phân cảnh 2.5D)
     const sp: number[] = []
     const sc: number[] = []
     for (const s of ev.shots) {
       if (!s.shot.visible || s.bounds.isEmpty()) continue
       const b = s.bounds
-      const corners = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => [
-        i & 1 ? b.max.x : b.min.x,
-        i & 2 ? b.max.y : b.min.y,
-        i & 4 ? b.max.z : b.min.z
-      ])
+      const shotLayers = ev.layers.filter(
+        (l) => l.active && l.shot?.shot.id === s.shot.id && l.layer.type !== 'particles' && l.rotation[0] > -60
+      )
+      const frontBox = new THREE.Box3()
+      const backBox = new THREE.Box3()
+      if (shotLayers.length >= 2) {
+        const sortedByZ = [...shotLayers].sort((a, c) => a.position[2] - c.position[2])
+        const frontCount = Math.max(1, Math.ceil(sortedByZ.length * 0.35))
+        for (let i = 0; i < frontCount; i++) frontBox.union(sortedByZ[i].bounds)
+        const backCount = Math.max(1, Math.ceil(sortedByZ.length * 0.35))
+        for (let i = sortedByZ.length - backCount; i < sortedByZ.length; i++) backBox.union(sortedByZ[i].bounds)
+      }
+      const fb = !frontBox.isEmpty() ? frontBox : b
+      const bb = !backBox.isEmpty() ? backBox : b
+
+      // Trong Three.js world space: b.max.z là mặt tiền cảnh (gần camera), b.min.z là mặt hậu cảnh (xa camera)
+      const corners = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+        const isFront = Boolean(i & 4)
+        const ref = isFront ? fb : bb
+        return [
+          i & 1 ? ref.max.x : ref.min.x,
+          i & 2 ? ref.max.y : ref.min.y,
+          isFront ? b.max.z : b.min.z
+        ]
+      })
       col.set(s.shot.color)
-      if (s.shot.id !== opts.selectedShotId) col.multiplyScalar(0.55)
+      if (s.shot.id !== opts.selectedShotId) col.multiplyScalar(0.5)
       for (const [a, c] of BOX_EDGES) {
         sp.push(...corners[a], ...corners[c])
         sc.push(col.r, col.g, col.b, col.r, col.g, col.b)
@@ -270,16 +288,52 @@ export class EditorHelpers {
       if (v.z < -1 || v.z > 1) return null
       return [((v.x + 1) / 2) * vpW, ((1 - v.y) / 2) * vpH]
     }
+    const placedShotLabels: ScreenLabel[] = []
     for (const s of ev.shots) {
       if (!s.shot.visible || s.bounds.isEmpty()) continue
-      const b = s.bounds
-      const s2 = toScreen(new THREE.Vector3((b.min.x + b.max.x) / 2, b.max.y, (b.min.z + b.max.z) / 2))
-      if (s2) out.push({ kind: 'shot', id: s.shot.id, text: s.shot.name, color: s.shot.color, x: s2[0], y: s2[1] })
+      const anchor3D = depthToThree([
+        s.position[0],
+        s.position[1] + 580,
+        s.position[2]
+      ])
+      const s2 = toScreen(anchor3D)
+      if (!s2 || s2[0] < 24 || s2[0] > vpW - 24 || s2[1] < 8 || s2[1] > vpH - 24) continue
+      if (placedShotLabels.some((p) => Math.abs(p.x - s2[0]) < 120 && Math.abs(p.y - s2[1]) < 26)) {
+        continue
+      }
+      const lbl: ScreenLabel = {
+        kind: 'shot',
+        id: s.shot.id,
+        text: s.shot.name,
+        color: s.shot.color,
+        x: s2[0],
+        y: Math.max(18, s2[1] - 6)
+      }
+      placedShotLabels.push(lbl)
+      out.push(lbl)
     }
     const c = toScreen(activeCam.position)
-    if (c) out.push({ kind: 'camera', id: 'camera', text: '📷 Camera', color: '#3dd6f5', x: c[0], y: c[1] })
+    if (c) {
+      out.push({
+        kind: 'camera',
+        id: 'camera',
+        text: '📷 Camera',
+        color: '#3dd6f5',
+        x: Math.max(48, c[0] - 42),
+        y: Math.max(24, c[1] - 28)
+      })
+    }
     const tg = toScreen(depthToThree(ev.camera.target, new THREE.Vector3()))
-    if (tg) out.push({ kind: 'cam-target', id: 'cam-target', text: '🎯 Điểm nhìn', color: '#f5a623', x: tg[0], y: tg[1] + 34 })
+    if (tg) {
+      out.push({
+        kind: 'cam-target',
+        id: 'cam-target',
+        text: '🎯 Điểm nhìn',
+        color: '#f5a623',
+        x: Math.min(vpW - 56, tg[0] + 44),
+        y: Math.min(vpH - 36, tg[1] + 54)
+      })
+    }
     return out
   }
 

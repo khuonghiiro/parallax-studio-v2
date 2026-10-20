@@ -7,12 +7,11 @@ import type {
   WorkflowPortKind
 } from '@shared/types'
 import { useEditor } from '../../store/editor'
+import { useView } from '../../store/view'
 import { useToast } from '../../actions'
 import {
-  DEFAULT_NODE_POSITIONS,
   WORKFLOW_NODE_SPECS,
-  createCanonicalWorkflow,
-  makeNode
+  createCanonicalWorkflow
 } from '../../project/workflowCatalog'
 import {
   applyWorkflowToProject,
@@ -22,14 +21,16 @@ import {
   disconnectWorkflowEdge,
   ensureProjectWorkflow,
   getDefaultPartsForNode,
-    resolveConnectedWorkflowNodes
+  resolveConnectedWorkflowNodes
 } from '../../project/workflowEngine'
+import { syncWorkflowEntityVisibility } from '../../project/workflowEntitySync'
 import { spawnLogicNodeIntoWorkflow } from '../../project/workflowLogicNodes'
 import { getWorkflowEffectiveDuration, spawnSceneWithChildLayers } from '../../project/workflowSceneHierarchy'
 import { applyRuleMutationToProjectLayer } from '../../project/workflowStageEffects'
-import { IconPause, IconPlay, IconPlus, IconSparkles } from '../icons'
+import { IconPause, IconPlay, IconSparkles } from '../icons'
 import { TimelineModeTabs } from './TimelineModeTabs'
 import { WorkflowCanvas } from './WorkflowCanvas'
+import { WorkflowNodePalette } from './WorkflowNodePalette'
 import { WorkflowSidePanel, type WorkflowInspectorSubTab } from './WorkflowSidePanel'
 import { WorkflowAddNodeMenu } from './WorkflowAddNodeMenu'
 import { resolveNodeCollisionPush, solveSpaciousWorkflowLayout } from './workflowLayoutAndFlow'
@@ -38,6 +39,7 @@ import { IconWfAutoWire, IconWfJsonCode } from './workflowIcons'
 export const WorkflowStudioPanel: React.FC = () => {
   const project = useEditor((s) => s.project)
   const selectedShotId = useEditor((s) => s.selectedShotId)
+  const selectedLayerId = useEditor((s) => s.selectedLayerId)
   const playing = useEditor((s) => s.playing)
   const liveTime = useEditor((s) => {
     const raw = Number.isFinite(s.time) ? s.time : 0
@@ -88,6 +90,7 @@ export const WorkflowStudioPanel: React.FC = () => {
       targetShotId: currentShotScope
     }
   }, [project, currentShotScope])
+
   const workflowDuration = useMemo(
     () => getWorkflowEffectiveDuration(workflow, project, currentShotScope),
     [workflow, project, currentShotScope]
@@ -124,15 +127,125 @@ export const WorkflowStudioPanel: React.FC = () => {
     [workflow.nodes, selectedNodeId]
   )
 
+  // Đồng bộ 2 chiều: Khi người dùng click chọn Layer bên Cam 2D / 3D / Timeline, tự highlight Node chứa Layer đó trên Workflow
+  useEffect(() => {
+    if (!selectedLayerId) return
+    const current = workflow.nodes.find((n) => n.id === selectedNodeId)
+    if (
+      current &&
+      current.type !== 'scene_shot' &&
+      current.params?.targetLayerIds?.includes(selectedLayerId)
+    ) {
+      return
+    }
+    const matchingLayerNode = workflow.nodes.find(
+      (n) =>
+        n.type === 'layer_assembly' &&
+        n.id.startsWith('wf-layer-') &&
+        n.params?.targetLayerIds?.includes(selectedLayerId)
+    )
+    if (matchingLayerNode) {
+      setSelectedNodeId(matchingLayerNode.id)
+    }
+  }, [selectedLayerId, workflow.nodes, selectedNodeId])
+
+  // Bảo đảm đồng bộ trạng thái ẩn/hiện (visible) của Layer theo trạng thái Bật/Tắt (ON/OFF) của Node Layer con
+  useEffect(() => {
+    const childLayerNodes = workflow.nodes.filter(
+      (n) => n.type === 'layer_assembly' && n.id.startsWith('wf-layer-')
+    )
+    if (childLayerNodes.length === 0) return
+
+    let needsSync = false
+    for (const ln of childLayerNodes) {
+      const targetIds = ln.params?.targetLayerIds ?? []
+      if (targetIds.length === 0) continue
+      const parentSceneEdge = workflow.edges.find(
+        (e) => e.toNode === ln.id && e.fromPort === 'scene_ctx'
+      )
+      const parentScene = parentSceneEdge
+        ? workflow.nodes.find((n) => n.id === parentSceneEdge.fromNode)
+        : undefined
+      const shouldBeVisible = Boolean(
+        ln.enabled && (!parentScene || parentScene.enabled) && Boolean(parentSceneEdge)
+      )
+      for (const lid of targetIds) {
+        const lObj = project.layers.find((l) => l.id === lid)
+        if (lObj && !lObj.locked && Boolean(lObj.visible) !== shouldBeVisible) {
+          needsSync = true
+          break
+        }
+      }
+      if (needsSync) break
+    }
+
+    if (needsSync) {
+      useEditor.getState().update((draft) => {
+        syncWorkflowEntityVisibility(draft as Project, workflow, activeNodeIds)
+      }, 'wf-sync-entity-visibility')
+    }
+  }, [workflow, project.layers, activeNodeIds])
+
   const handleSelectNode = useCallback(
     (nodeId: string) => {
       setSelectedNodeId(nodeId)
       const n = workflow.nodes.find((item) => item.id === nodeId)
       if (!n) return
       const st = useEditor.getState()
+      const vw = useView.getState()
+
+      if (n.type === 'scene_shot') {
+        const shotId =
+          (n.params?.shotId && n.params.shotId !== 'all' ? n.params.shotId : null) ??
+          st.selectedShotId ??
+          st.project.shots[0]?.id ??
+          null
+        if (shotId) {
+          st.selectShot(shotId)
+          if (vw.split || vw.primary === 'editor' || vw.primary === 'animate2d') {
+            useView.setState((s) => ({
+              focus: { kind: 'shot', id: shotId, n: (s.focus?.n ?? 0) + 1 }
+            }))
+          }
+        }
+        st.setInspectorTab('scene')
+        return
+      }
+
+      const targetIds = n.params?.targetLayerIds ?? []
+      if (targetIds.length > 0) {
+        const boundLayers = st.project.layers.filter((l) => targetIds.includes(l.id))
+        const targetLayer = boundLayers.find((l) => l.composite?.isRoot) ?? boundLayers[0]
+        if (targetLayer) {
+          st.selectLayer(targetLayer.id)
+          if (vw.split || vw.primary === 'editor' || vw.primary === 'animate2d') {
+            useView.setState((s) => ({
+              focus: { kind: 'layer', id: targetLayer.id, n: (s.focus?.n ?? 0) + 1 }
+            }))
+          }
+          return
+        }
+      }
+
+      const ruleTarget = (n.params?.customRules ?? []).find(
+        (r) => r.targetId && r.targetId !== 'all'
+      )
+      if (ruleTarget) {
+        const matched = st.project.layers.find(
+          (l) =>
+            l.id === ruleTarget.targetId ||
+            l.composite?.instanceId === ruleTarget.targetId ||
+            l.model3d?.instanceId === ruleTarget.targetId
+        )
+        if (matched) {
+          st.selectLayer(matched.id)
+          return
+        }
+      }
+
       if (n.type === 'camera_director') {
         st.setInspectorTab('route')
-      } else if (n.type === 'look_output' || n.type === 'scene_shot') {
+      } else if (n.type === 'look_output') {
         st.setInspectorTab('scene')
       } else if (
         n.type === 'layer_assembly' ||
@@ -155,7 +268,7 @@ export const WorkflowStudioPanel: React.FC = () => {
 
   /**
    * Ghi nhận thay đổi Workflow và đồng bộ ngay lập tức lên Cảnh 3D
-   * (khi ngắt dây / tắt khối thì tắt ngay chuyển động/hiệu ứng của khâu đó).
+   * (khi ngắt dây / tắt khối thì tắt ngay chuyển động/hiệu ứng và ẩn/hiện layer tương ứng).
    */
   const commitWorkflow = useCallback(
     (
@@ -203,7 +316,7 @@ export const WorkflowStudioPanel: React.FC = () => {
     }
     commitWorkflow(next, undefined, true)
     setSelectedNodeId(null)
-    showToast('🧹 Đã xóa sạch toàn bộ khối và đặt lại thời lượng luồng về 0.0s! Bấm "🎬 Bung Cảnh & Layer" hoặc "+ Node Logic" để tạo luồng mới.')
+    showToast('🧹 Đã xóa sạch toàn bộ khối và đặt lại thời lượng luồng về 0.0s! Bấm "🎬 Bung Cảnh & Layer" hoặc chọn Node bên cột trái để tạo luồng mới.')
   }, [currentShotScope, commitWorkflow, showToast])
 
   const handleSelectShotScope = useCallback(
@@ -289,10 +402,15 @@ export const WorkflowStudioPanel: React.FC = () => {
         setPlaying(false)
       }
       if (target) {
+        const isLayerChild = target.type === 'layer_assembly' && target.id.startsWith('wf-layer-')
         showToast(
           nextEnabled
-            ? `✓ Đã BẬT khối "${target.title}"`
-            : `⛔ Đã TẮT khối "${target.title}" — Đã ngắt hiệu ứng khâu này trên Cảnh 3D`
+            ? isLayerChild
+              ? `👁️ Đã BẬT & HIỆN "${target.title}" trên Cảnh 2D / 3D`
+              : `✓ Đã BẬT khối "${target.title}"`
+            : isLayerChild
+              ? `🙈 Đã TẮT & ẨN "${target.title}" trên Cảnh 2D / 3D`
+              : `⛔ Đã TẮT khối "${target.title}" — Đã ngắt hiệu ứng khâu này trên Cảnh 3D`
         )
       }
     },
@@ -355,7 +473,7 @@ export const WorkflowStudioPanel: React.FC = () => {
       const next = connectWorkflowPort(workflow, fromNode, fromPort, toNode, toPort)
       commitWorkflow(next, undefined, true)
       const { activeNodes: nextActive } = resolveConnectedWorkflowNodes(next)
-      showToast(`🔗 Đã nối dây thành công (${nextActive.length}/7 khối thông mạch)!`)
+      showToast(`🔗 Đã nối dây thành công (${nextActive.length}/${next.nodes.length} khối thông mạch)!`)
     },
     [workflow, commitWorkflow, showToast]
   )
@@ -372,7 +490,7 @@ export const WorkflowStudioPanel: React.FC = () => {
         )
       } else {
         showToast(
-          `⛔ Đã ngắt dây kết nối (${nextActive.length}/7 khối còn thông mạch — các khối đứt luồng đã dừng hiệu ứng)!`
+          `⛔ Đã ngắt dây kết nối (${nextActive.length}/${next.nodes.length} khối còn thông mạch — các khối đứt luồng đã dừng hiệu ứng)!`
         )
       }
     },
@@ -387,7 +505,7 @@ export const WorkflowStudioPanel: React.FC = () => {
     })
     showToast(
       stageCount > 0
-        ? `⚡ Đã áp dụng Workflow (${stageCount}/7 khâu kết nối) vào phân cảnh!`
+        ? `⚡ Đã áp dụng Workflow (${stageCount}/${workflow.nodes.length} khâu kết nối) vào phân cảnh!`
         : '⛔ Luồng đang đứt — Đã tắt hiệu ứng của các khối chưa nối dây!'
     )
   }, [workflow, showToast])
@@ -404,7 +522,6 @@ export const WorkflowStudioPanel: React.FC = () => {
       return
     }
     const st = useEditor.getState()
-    // Nếu thời gian đã chạy đến cuối comp (hoặc gần hết), tự động tua về 0s trước khi phát
     const maxDur = workflowDuration > 0 ? workflowDuration : st.project.comp.duration
     if (st.time >= maxDur - 0.05) {
       st.setTime(0)
@@ -413,24 +530,13 @@ export const WorkflowStudioPanel: React.FC = () => {
       applyWorkflowToProject(draft as Project, workflow)
     }, 'wf-sync-before-play')
     setPlaying(true)
-  }, [playing, activeNodes.length, workflow, setPlaying, showToast])
+  }, [playing, activeNodes.length, workflow, workflowDuration, setPlaying, showToast])
 
   const handleRewindToZero = useCallback(() => {
     useEditor.getState().setPlaying(false)
     useEditor.getState().setTime(0)
     showToast('⏮ Đã tua về 0.0s')
   }, [showToast])
-
-  const handleQuickFocusAddMotion = useCallback(() => {
-    const motionNode =
-      workflow.nodes.find((n) => n.type === 'motion_choreography') ?? workflow.nodes[0]
-    if (motionNode) {
-      setSelectedNodeId(motionNode.id)
-    }
-    setSideMode('node')
-    setInspectorSubTab('actions')
-    showToast('🧩 Chọn 1 Node Logic bên phải để thả vào sơ đồ và tự nối theo luồng!')
-  }, [workflow.nodes, showToast])
 
   const handleSpawnSceneLayers = useCallback(() => {
     const { workflow: nextWf, sceneNode, childNodes } = spawnSceneWithChildLayers(
@@ -454,14 +560,19 @@ export const WorkflowStudioPanel: React.FC = () => {
   }, [project, workflow, currentShotScope, commitWorkflow, showToast])
 
   const handleSpawnLogicNode = useCallback(
-    (logicId: string) => {
+    (logicId: string, customPos?: { x: number; y: number }) => {
+      if (logicId === '__SPAWN_SCENE_LAYERS__') {
+        handleSpawnSceneLayers()
+        return
+      }
       const { workflow: next, spawnedNode } = spawnLogicNodeIntoWorkflow(
         workflow,
         logicId,
         currentShotScope
       )
+      const desiredPos = customPos ?? spawnedNode.position
       const otherNodes = next.nodes.filter((n) => n.id !== spawnedNode.id)
-      const resolved = resolveNodeCollisionPush(spawnedNode, spawnedNode.position, otherNodes)
+      const resolved = resolveNodeCollisionPush(spawnedNode, desiredPos, otherNodes)
       const resolvedNodes = next.nodes.map((n) =>
         n.id === spawnedNode.id ? { ...n, position: resolved } : n
       )
@@ -473,7 +584,7 @@ export const WorkflowStudioPanel: React.FC = () => {
         `🧩 Đã thả "${spawnedNode.title}" vào luồng (${activeShotLabel})! Ngắt dây nếu muốn dừng logic này.`
       )
     },
-    [workflow, currentShotScope, activeShotLabel, commitWorkflow, showToast]
+    [workflow, currentShotScope, activeShotLabel, commitWorkflow, showToast, handleSpawnSceneLayers]
   )
 
   const handleDeleteNode = useCallback(
@@ -549,7 +660,7 @@ export const WorkflowStudioPanel: React.FC = () => {
 
         <div className="tl-toolbar-divider" />
 
-        {/* Trạng thái Luồng xử lý Trực quan (Thay thế hoàn toàn các mẫu có sẵn) */}
+        {/* Trạng thái Luồng xử lý Trực quan */}
         <div
           className={`wf-pipeline-health-badge${
             blueprint.isPipelineComplete && disconnectedNodes.length === 0
@@ -598,7 +709,7 @@ export const WorkflowStudioPanel: React.FC = () => {
         </button>
 
         <WorkflowAddNodeMenu
-          onSpawnLogicNode={handleSpawnLogicNode}
+          onSpawnLogicNode={(id) => handleSpawnLogicNode(id)}
           onSpawnSceneLayers={handleSpawnSceneLayers}
         />
 
@@ -633,7 +744,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           <span>✕ Xóa trắng</span>
         </button>
 
-        {/* Phạm vi Phân cảnh áp dụng (Tất cả phân cảnh hoặc từng Phân cảnh #1, #2, #3) */}
+        {/* Phạm vi Phân cảnh áp dụng */}
         {project.shots.length > 1 && (
           <div
             className="wf-toolbar-pill-group wf-shot-scope-group"
@@ -710,7 +821,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           </span>
         </button>
 
-        {/* Active Pipeline Flow Pill (Hiển thị lộ trình tuần tự #1 ➔ #2 ➔ ...) */}
+        {/* Active Pipeline Flow Pill */}
         <div
           className={`wf-pipeline-flow-pill${playing && activeNodes.length > 0 ? ' playing' : ''}${activeNodes.length === 0 ? ' broken' : ''}`}
           title={blueprint.pipelineSummary}
@@ -783,8 +894,15 @@ export const WorkflowStudioPanel: React.FC = () => {
         </button>
       </div>
 
-      {/* Main Split Workspace: Interactive Node-Port Canvas + Side Inspector/JSON */}
+      {/* Main 3-Column Workspace: Left Node Palette + Center Interactive Node Canvas + Right Inspector/JSON */}
       <div className="wf-workspace-body">
+        <WorkflowNodePalette
+          onAddLogicNode={(id: string) => handleSpawnLogicNode(id)}
+          onSpawnSceneLayers={handleSpawnSceneLayers}
+          shotCount={project.shots.length}
+          layerCount={project.layers.filter((l) => !l.locked).length}
+        />
+
         <WorkflowCanvas
           workflow={workflow}
           project={scopedProject}
@@ -803,6 +921,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           onConnectPorts={handleConnectPorts}
           onDisconnectEdge={handleDisconnectEdge}
           onPreviewNode={handlePreviewNode}
+          onDropLogicNode={(id, worldPos) => handleSpawnLogicNode(id, worldPos)}
         />
 
         <WorkflowSidePanel
@@ -822,7 +941,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           onConnectPorts={handleConnectPorts}
           onDisconnectEdge={handleDisconnectEdge}
           onApplyJsonGraph={(next) => commitWorkflow(next, undefined, true)}
-          onSpawnLogicNode={handleSpawnLogicNode}
+          onSpawnLogicNode={(id) => handleSpawnLogicNode(id)}
           activeShotLabel={activeShotLabel}
           onShowToast={showToast}
           onPreviewNode={handlePreviewNode}
