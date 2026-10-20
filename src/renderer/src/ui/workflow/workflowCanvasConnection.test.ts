@@ -9,7 +9,9 @@ import {
   getBestMatchingOutputPort,
   getInputSocketCoords,
   getOutputSocketCoords,
-  NODE_W
+  NODE_W,
+  resolveNodeCollisionPush,
+  solveSpaciousWorkflowLayout
 } from './workflowLayoutAndFlow'
 
 describe('Workflow Canvas Connection & Playback Reset', () => {
@@ -89,4 +91,58 @@ describe('Workflow Canvas Connection & Playback Reset', () => {
       expect(clearedWf.edges).toHaveLength(0)
     })
   })
+
+  describe('Collision Push & Auto-Layout (Anti-Overlap Guarantee)', () => {
+    it('automatically pushes overlapping nodes away to prevent UI occlusion', () => {
+      const fixedNode = { ...sceneNode, position: { x: 100, y: 100 } }
+      const incomingNode = { ...assemblyNode, position: { x: 120, y: 120 } }
+
+      // When dragging incomingNode directly onto fixedNode (collision)
+      const resolved = resolveNodeCollisionPush(incomingNode, { x: 120, y: 120 }, [fixedNode])
+
+      // Resolved position must be completely disjoint from fixedNode
+      const isOverlapping =
+        resolved.x < fixedNode.position.x + NODE_W + 20 &&
+        resolved.x + NODE_W + 20 > fixedNode.position.x &&
+        resolved.y < fixedNode.position.y + 120 &&
+        resolved.y + 120 > fixedNode.position.y
+
+      expect(isOverlapping).toBe(false)
+      expect(resolved.y).toBeGreaterThan(fixedNode.position.y)
+    })
+
+    it('arranges multi-layer workflow cleanly into columns with zero overlapping nodes', () => {
+      const complexNodes = [
+        { ...sceneNode, id: 'n-scene' },
+        { ...assemblyNode, id: 'n-layer-1', params: { targetLayerIds: ['l1'] } },
+        { ...assemblyNode, id: 'n-layer-2', params: { targetLayerIds: ['l2'] } },
+        { ...assemblyNode, id: 'n-layer-3', params: { targetLayerIds: ['l3'] } },
+        { ...motionNode, id: 'n-motion-1', params: { logicId: 'logic-physics-wind' } },
+        { ...motionNode, id: 'n-motion-2', params: { logicId: 'logic-motion-drift' } },
+        { ...fxNode, id: 'n-fx-1', params: { logicId: 'logic-fx-candle' } },
+        { ...camNode, id: 'n-cam' },
+        { ...lookNode, id: 'n-look' }
+      ]
+
+      const layout = solveSpaciousWorkflowLayout(complexNodes, [])
+
+      // Verify all nodes have assigned positions
+      for (const n of complexNodes) {
+        expect(layout[n.id]).toBeDefined()
+        expect(Number.isFinite(layout[n.id].x)).toBe(true)
+        expect(Number.isFinite(layout[n.id].y)).toBe(true)
+      }
+
+      // Check vertical separation between layers in column 1 (X: 440)
+      expect(layout['n-layer-2'].y).toBeGreaterThan(layout['n-layer-1'].y + 100)
+      expect(layout['n-layer-3'].y).toBeGreaterThan(layout['n-layer-2'].y + 100)
+
+      // Check horizontal progression between stages
+      expect(layout['n-layer-1'].x).toBeGreaterThan(layout['n-scene'].x)
+      expect(layout['n-motion-1'].x).toBeGreaterThan(layout['n-layer-1'].x)
+      expect(layout['n-fx-1'].x).toBeGreaterThan(layout['n-motion-1'].x)
+      expect(layout['n-look'].x).toBeGreaterThan(layout['n-cam'].x)
+    })
+  })
+
 })

@@ -533,3 +533,139 @@ export function evaluateNodeRuntimeTelemetry(
     isStageHighlight
   }
 }
+
+/**
+ * Logic Đẩy Node Ra (Collision Avoidance & Repulsion) khi kéo thả.
+ * Nếu vị trí thả của thẻ node bị giao cắt / đè lên bất kỳ node nào khác,
+ * thuật toán tự động đẩy thẻ ra khoảng trống an toàn gần nhất theo trục Y/X.
+ */
+export function resolveNodeCollisionPush(
+  targetNode: WorkflowNode,
+  proposedPos: { x: number; y: number },
+  allNodes: WorkflowNode[]
+): { x: number; y: number } {
+  let resolvedX = Math.round(proposedPos.x)
+  let resolvedY = Math.max(20, Math.round(proposedPos.y))
+  const targetH = estimateNodeCardHeight(targetNode)
+  const PAD_X = 28
+  const PAD_Y = 24
+
+  // Lặp tối đa 4 lượt để giải quyết va chạm liên hoàn (cascading collision)
+  for (let pass = 0; pass < 4; pass++) {
+    let collided = false
+
+    for (const other of allNodes) {
+      if (other.id === targetNode.id) continue
+
+      const otherH = estimateNodeCardHeight(other)
+      const isOverlapX =
+        resolvedX < other.position.x + NODE_W + PAD_X &&
+        resolvedX + NODE_W + PAD_X > other.position.x
+      const isOverlapY =
+        resolvedY < other.position.y + otherH + PAD_Y &&
+        resolvedY + targetH + PAD_Y > other.position.y
+
+      if (isOverlapX && isOverlapY) {
+        collided = true
+        const centerTargetY = resolvedY + targetH / 2
+        const centerOtherY = other.position.y + otherH / 2
+
+        if (centerTargetY >= centerOtherY) {
+          // Đẩy xuống dưới node bị đè
+          resolvedY = other.position.y + otherH + PAD_Y
+        } else {
+          // Đẩy lên trên nếu còn khoảng trống, ngược lại đẩy xuống
+          const candidateUp = other.position.y - targetH - PAD_Y
+          resolvedY = candidateUp >= 20 ? candidateUp : other.position.y + otherH + PAD_Y
+        }
+      }
+    }
+
+    if (!collided) break
+  }
+
+  return { x: resolvedX, y: resolvedY }
+}
+
+/**
+ * Thuật toán Tự Động Sắp Xếp Toàn Bộ Sơ Đồ Gọn Gàng (Smart Hierarchical Auto-Layout).
+ * Phân chia theo 6 cột logic chức năng, căn đều trục dọc và căn giữa theo Cảnh/Layer,
+ * triệt tiêu 100% hiện tượng chồng đè UI (0% overlap guarantee).
+ */
+export function solveSpaciousWorkflowLayout(
+  nodes: WorkflowNode[],
+  _edges: WorkflowEdge[],
+  _project?: Project
+): Record<string, { x: number; y: number }> {
+  if (!nodes || nodes.length === 0) return {}
+
+  // 1. Phân nhóm các Node vào 6 Cột Chức năng chuẩn mực
+  const columns: WorkflowNode[][] = [[], [], [], [], [], []]
+  const COL_X = [60, 440, 840, 1240, 1640, 2040]
+  const GAP_Y = 32
+
+  for (const n of nodes) {
+    const logicId = n.params?.logicId ?? ''
+    const isLayerNode = Boolean(n.params?.targetLayerIds && n.params.targetLayerIds.length > 0)
+
+    if (n.type === 'scene_shot') {
+      columns[0].push(n)
+    } else if (isLayerNode || n.type === 'layer_assembly') {
+      columns[1].push(n)
+    } else if (
+      n.type === 'motion_choreography' ||
+      logicId.includes('motion') ||
+      logicId.includes('wind') ||
+      logicId.includes('drift') ||
+      logicId.includes('breathe') ||
+      logicId.includes('walk') ||
+      logicId.includes('jump')
+    ) {
+      columns[2].push(n)
+    } else if (
+      n.type === 'physics_fx' ||
+      logicId.includes('fx') ||
+      logicId.includes('candle') ||
+      logicId.includes('elastic') ||
+      logicId.includes('sway') ||
+      logicId.includes('rimglow') ||
+      logicId.includes('flashlight') ||
+      logicId.includes('bounce')
+    ) {
+      columns[3].push(n)
+    } else if (n.type === 'camera_director' || n.type === 'audio_lipsync') {
+      columns[4].push(n)
+    } else {
+      // look_output hoặc các khối hoàn thiện
+      columns[5].push(n)
+    }
+  }
+
+  // 2. Tính chiều cao tối đa của cột trung tâm (thường là Cột 1: Layer con) để làm mốc căn giữa
+  const columnHeights = columns.map((col) => {
+    if (col.length === 0) return 0
+    return col.reduce((sum, node) => sum + estimateNodeCardHeight(node), 0) + (col.length - 1) * GAP_Y
+  })
+  const maxCenterH = Math.max(...columnHeights, 280)
+
+  // 3. Định vị toạ độ chính xác cho từng Node trong từng cột
+  const newPositions: Record<string, { x: number; y: number }> = {}
+
+  columns.forEach((col, colIdx) => {
+    if (col.length === 0) return
+
+    const colH = columnHeights[colIdx]
+    const startY = Math.max(60, Math.round((maxCenterH - colH) / 2))
+    let currentY = startY
+
+    for (const node of col) {
+      newPositions[node.id] = {
+        x: COL_X[colIdx] ?? (60 + colIdx * 400),
+        y: currentY
+      }
+      currentY += estimateNodeCardHeight(node) + GAP_Y
+    }
+  })
+
+  return newPositions
+}

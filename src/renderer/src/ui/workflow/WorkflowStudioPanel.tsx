@@ -32,6 +32,7 @@ import { TimelineModeTabs } from './TimelineModeTabs'
 import { WorkflowCanvas } from './WorkflowCanvas'
 import { WorkflowSidePanel, type WorkflowInspectorSubTab } from './WorkflowSidePanel'
 import { WorkflowAddNodeMenu } from './WorkflowAddNodeMenu'
+import { solveSpaciousWorkflowLayout } from './workflowLayoutAndFlow'
 import { IconWfAutoWire, IconWfJsonCode } from './workflowIcons'
 
 export const WorkflowStudioPanel: React.FC = () => {
@@ -584,6 +585,17 @@ export const WorkflowStudioPanel: React.FC = () => {
           onSpawnLogicNode={handleSpawnLogicNode}
           onSpawnSceneLayers={handleSpawnSceneLayers}
         />
+
+        <button
+          id="wf-btn-toolbar-autolayout"
+          type="button"
+          className="btn ghost sm tl-action-btn wf-autolayout-btn"
+          title="Tự động sắp xếp toàn bộ sơ đồ gọn gàng theo thứ tự luồng, chống đè lấn 100% (Phím tắt: Alt + L)"
+          onClick={handleAutoLayout}
+        >
+          <IconSparkles width={13} height={13} />
+          <span>✨ Tự sắp xếp</span>
+        </button>
 
         <button
           id="wf-btn-reset-canonical"

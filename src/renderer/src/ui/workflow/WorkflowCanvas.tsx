@@ -12,6 +12,7 @@ import {
   buildBezierPath,
   buildSmartEdgeGeometry,
   estimateNodeCardHeight,
+  resolveNodeCollisionPush,
   getBestMatchingInputPort,
   getBestMatchingOutputPort,
   getInputSocketCoords,
@@ -85,6 +86,23 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   } | null>(null)
 
   const nodeById = useMemo(() => new Map(workflow.nodes.map((n) => [n.id, n])), [workflow.nodes])
+
+  // Phím tắt Alt + L tự động sắp xếp gọn gàng toàn bộ sơ đồ
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (
+        e.altKey &&
+        (e.key === 'l' || e.key === 'L') &&
+        !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)
+      ) {
+        e.preventDefault()
+        onAutoLayout()
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [onAutoLayout])
+
 
   /** Tự động tính toán Zoom & Pan để toàn bộ cụm khối nằm gọn giữa khung nhìn (chừa mép trái 38px cho thanh Icon dọc) */
   const fitClusterToView = useCallback(
@@ -235,6 +253,8 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       const el = e.currentTarget as HTMLElement
       el.setPointerCapture(e.pointerId)
 
+      let lastPatch: Record<string, { x: number; y: number }> | null = null
+
       const onMove = (ev: PointerEvent) => {
         const dx = Math.round((ev.clientX - startX) / zoom)
         const dy = Math.round((ev.clientY - startY) / zoom)
@@ -245,12 +265,23 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
             y: Math.max(-900, Math.min(2400, orig.y + dy))
           }
         }
+        lastPatch = patch
         onMoveNodes(patch, moveCluster ? 'wf-move-cluster' : `wf-move-${node.id}`)
       }
 
       const onUp = () => {
         el.removeEventListener('pointermove', onMove)
         el.removeEventListener('pointerup', onUp)
+
+        // Logic tự động đẩy thẻ ra (Anti-Overlap Push) khi thả chuột nếu bị đè lên thẻ khác
+        if (!moveCluster && lastPatch && lastPatch[node.id]) {
+          const currentPos = lastPatch[node.id]
+          const otherNodes = workflow.nodes.filter((n) => n.id !== node.id)
+          const resolved = resolveNodeCollisionPush(node, currentPos, otherNodes)
+          if (resolved.x !== currentPos.x || resolved.y !== currentPos.y) {
+            onMoveNodes({ [node.id]: resolved }, `wf-push-${node.id}`)
+          }
+        }
       }
       el.addEventListener('pointermove', onMove)
       el.addEventListener('pointerup', onUp)
