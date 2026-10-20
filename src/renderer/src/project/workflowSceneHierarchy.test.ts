@@ -312,4 +312,33 @@ describe('workflowSceneHierarchy', () => {
     expect(edgeToCam).toBeDefined()
     expect(edgeToCam?.toPort).toBe('scene_ctx')
   })
+  it('chống nhân đôi (Idempotency): bấm Bung Cảnh nhiều lần không tạo thêm Cảnh trùng lặp', () => {
+    const project = createMockProject()
+    const emptyWf: WorkflowGraph = {
+      version: 1,
+      id: 'wf-empty',
+      name: 'Bản vẽ trống',
+      description: '',
+      nodes: [],
+      edges: []
+    }
+
+    // Bung Cảnh lần 1
+    const { workflow: wf1 } = spawnSceneWithChildLayers(project, emptyWf, 'shot-1')
+    expect(wf1.nodes.filter((n) => n.type === 'scene_shot')).toHaveLength(1)
+    expect(wf1.nodes.filter((n) => n.type === 'layer_assembly')).toHaveLength(3)
+    expect(wf1.nodes).toHaveLength(4)
+
+    // Bấm Bung Cảnh lần 2 trên cùng luồng
+    const { workflow: wf2 } = spawnSceneWithChildLayers(project, wf1, 'shot-1')
+    expect(wf2.nodes.filter((n) => n.type === 'scene_shot')).toHaveLength(1)
+    expect(wf2.nodes.filter((n) => n.type === 'layer_assembly')).toHaveLength(3)
+    expect(wf2.nodes).toHaveLength(4)
+
+    // Bấm Bung Cảnh lần 3 trên cùng luồng
+    const { workflow: wf3 } = spawnSceneWithChildLayers(project, wf2, 'shot-1')
+    expect(wf3.nodes.filter((n) => n.type === 'scene_shot')).toHaveLength(1)
+    expect(wf3.nodes.filter((n) => n.type === 'layer_assembly')).toHaveLength(3)
+    expect(wf3.nodes).toHaveLength(4)
+  })
 })

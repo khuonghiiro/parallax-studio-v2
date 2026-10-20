@@ -32,7 +32,7 @@ import { TimelineModeTabs } from './TimelineModeTabs'
 import { WorkflowCanvas } from './WorkflowCanvas'
 import { WorkflowSidePanel, type WorkflowInspectorSubTab } from './WorkflowSidePanel'
 import { WorkflowAddNodeMenu } from './WorkflowAddNodeMenu'
-import { solveSpaciousWorkflowLayout } from './workflowLayoutAndFlow'
+import { resolveNodeCollisionPush, solveSpaciousWorkflowLayout } from './workflowLayoutAndFlow'
 import { IconWfAutoWire, IconWfJsonCode } from './workflowIcons'
 
 export const WorkflowStudioPanel: React.FC = () => {
@@ -261,16 +261,17 @@ export const WorkflowStudioPanel: React.FC = () => {
   )
 
   const handleAutoLayout = useCallback(() => {
+    const newPositions = solveSpaciousWorkflowLayout(workflow.nodes, workflow.edges, project)
     const next: WorkflowGraph = {
       ...workflow,
       nodes: workflow.nodes.map((n) => ({
         ...n,
-        position: { ...(DEFAULT_NODE_POSITIONS[n.type] ?? n.position) }
+        position: newPositions[n.id] ? { ...newPositions[n.id] } : n.position
       }))
     }
     commitWorkflow(next, 'wf-autolayout', false)
-    showToast('Đã sắp xếp gọn gàng vị trí 7 khối chức năng!')
-  }, [workflow, commitWorkflow, showToast])
+    showToast('✨ Đã tự sắp xếp gọn gàng toàn bộ sơ đồ, triệt tiêu đè lấn!')
+  }, [workflow, project, commitWorkflow, showToast])
 
   const handleToggleNode = useCallback(
     (nodeId: string) => {
@@ -437,10 +438,18 @@ export const WorkflowStudioPanel: React.FC = () => {
       workflow,
       currentShotScope
     )
-    commitWorkflow(nextWf, undefined, true, new Set([sceneNode.id]))
+    const newPositions = solveSpaciousWorkflowLayout(nextWf.nodes, nextWf.edges, project)
+    const laidOutWf: WorkflowGraph = {
+      ...nextWf,
+      nodes: nextWf.nodes.map((n) => ({
+        ...n,
+        position: newPositions[n.id] ? { ...newPositions[n.id] } : n.position
+      }))
+    }
+    commitWorkflow(laidOutWf, undefined, true, new Set([sceneNode.id]))
     setSelectedNodeId(sceneNode.id)
     showToast(
-      `🎬 Đã tạo Cảnh "${sceneNode.title}" kèm ${childNodes.length} layer con nối dây sẵn!`
+      `🎬 Đã bung Cảnh "${sceneNode.title}" (${childNodes.length} layer) — Không trùng lặp, sơ đồ thoáng đẹp!`
     )
   }, [project, workflow, currentShotScope, commitWorkflow, showToast])
 
@@ -451,7 +460,14 @@ export const WorkflowStudioPanel: React.FC = () => {
         logicId,
         currentShotScope
       )
-      commitWorkflow(next, undefined, true, new Set([spawnedNode.id]))
+      const otherNodes = next.nodes.filter((n) => n.id !== spawnedNode.id)
+      const resolved = resolveNodeCollisionPush(spawnedNode, spawnedNode.position, otherNodes)
+      const resolvedNodes = next.nodes.map((n) =>
+        n.id === spawnedNode.id ? { ...n, position: resolved } : n
+      )
+      const finalWf = { ...next, nodes: resolvedNodes }
+
+      commitWorkflow(finalWf, undefined, true, new Set([spawnedNode.id]))
       setSelectedNodeId(spawnedNode.id)
       showToast(
         `🧩 Đã thả "${spawnedNode.title}" vào luồng (${activeShotLabel})! Ngắt dây nếu muốn dừng logic này.`

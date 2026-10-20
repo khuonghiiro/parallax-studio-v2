@@ -210,16 +210,14 @@ export function spawnSceneWithChildLayers(
 
   const rootLayers = getRootLayersForShot(project, shot.id)
   const shotDuration = getShotDuration(project, shot.id)
-  const uniqueKey = Date.now().toString(36).slice(-4)
-
   // Khoảng cách bố cục rộng rãi, triệt tiêu hoàn toàn hiện tượng chồng đè
-  const ROW_GAP = 310
-  const COL_1_X = 80
-  const COL_2_X = 500
+  const ROW_GAP = 340
+  const COL_1_X = 60
+  const COL_2_X = 440
   const sceneY = Math.max(80, 80 + Math.round(((Math.max(1, rootLayers.length) - 1) * ROW_GAP) / 2))
 
-  // 1. Tạo Node Cảnh (Scene Shot Node) ở cột 1 (căn giữa theo chiều dọc danh sách Layer con)
-  const sceneNodeId = `wf-scene-${shot.id}-${uniqueKey}`
+  // 1. Tạo Node Cảnh (Scene Shot Node) với ID cố định theo shot.id để không bao giờ bị nhân đôi
+  const sceneNodeId = `wf-scene-${shot.id}`
   const sceneNode: WorkflowNode = {
     id: sceneNodeId,
     type: 'scene_shot',
@@ -238,13 +236,13 @@ export function spawnSceneWithChildLayers(
     }
   }
 
-  // 2. Tạo các Node Layer con ở cột 2
+  // 2. Tạo các Node Layer con với ID cố định theo shot.id và layer.id
   const childNodes: WorkflowNode[] = []
   const childEdges: WorkflowEdge[] = []
 
   rootLayers.forEach((layer, idx) => {
     const meta = formatLayerNodeLabel(layer, project)
-    const childNodeId = `wf-layer-${layer.id.replace(/[^a-zA-Z0-9_-]/g, '_')}-${uniqueKey}-${idx}`
+    const childNodeId = `wf-layer-${shot.id}-${layer.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`
 
     // Gom tất cả ID của layer trong cụm composite (nếu có)
     const allLayerIdsInGroup = layer.composite?.instanceId
@@ -284,12 +282,76 @@ export function spawnSceneWithChildLayers(
     })
   })
 
-  // Nếu trước đó trống, thay thế hoàn toàn; nếu đã có node, nối thêm
-  const isPreviouslyEmpty = workflow.nodes.length === 0
-  const nextNodes = isPreviouslyEmpty
-    ? [sceneNode, ...childNodes]
-    : [...workflow.nodes, sceneNode, ...childNodes]
-  const nextEdges = isPreviouslyEmpty ? childEdges : [...workflow.edges, ...childEdges]
+  // 3. XỬ LÝ LỌC TRÙNG LẶP TRIỆT ĐỂ (Anti-Duplication Guarantee):
+  // Gỡ bỏ mọi Node Cảnh cũ cùng phân cảnh (hoặc generic placeholder) và mọi Node Layer cũ của phân cảnh này.
+  const isOldSceneForThisShot = (n: WorkflowNode) =>
+    n.type === 'scene_shot' &&
+    (n.params?.shotId === shot.id ||
+      n.id === sceneNodeId ||
+      n.id.startsWith(`wf-scene-${shot.id}`) ||
+      (n.id === 'wf-scene_shot' && (!n.params?.shotId || n.params.shotId === shot.id)))
+
+  const isOldLayerForThisShot = (n: WorkflowNode) =>
+    n.type === 'layer_assembly' &&
+    (n.params?.shotId === shot.id ||
+      n.id.startsWith(`wf-layer-${shot.id}`) ||
+      n.id === 'wf-layer_assembly')
+
+  const removedNodeIds = new Set(
+    workflow.nodes.filter((n) => isOldSceneForThisShot(n) || isOldLayerForThisShot(n)).map((n) => n.id)
+  )
+
+  const retainedNodes = workflow.nodes.filter((n) => !removedNodeIds.has(n.id))
+  const nextNodes = [sceneNode, ...childNodes, ...retainedNodes]
+
+  // Giữ lại các edge không dính tới node bị xóa
+  const retainedEdges = workflow.edges.filter(
+    (e) => !removedNodeIds.has(e.fromNode) && !removedNodeIds.has(e.toNode)
+  )
+
+  const nextEdges: WorkflowEdge[] = [...childEdges]
+  for (const e of retainedEdges) {
+    if (!nextEdges.some((x) => x.id === e.id)) {
+      nextEdges.push(e)
+    }
+  }
+
+  // Tự động nối dây bổ sung cho các khối chức năng hạ nguồn nếu còn thiếu mạch
+  const motionNode = nextNodes.find((n) => n.type === 'motion_choreography')
+  if (motionNode && !nextEdges.some((e) => e.toNode === motionNode.id && e.toPort === 'actors_rig')) {
+    const actorChild = childNodes.find((c) => c.title.includes('2.5D') || c.title.includes('Nhân vật')) ?? childNodes[0]
+    if (actorChild) {
+      nextEdges.push({
+        id: `edge-${actorChild.id}-actors_rig-${motionNode.id}-actors_rig`,
+        fromNode: actorChild.id,
+        fromPort: 'actors_rig',
+        toNode: motionNode.id,
+        toPort: 'actors_rig'
+      })
+    }
+  }
+
+  const camNode = nextNodes.find((n) => n.type === 'camera_director')
+  if (camNode && !nextEdges.some((e) => e.toNode === camNode.id && e.toPort === 'scene_ctx')) {
+    nextEdges.push({
+      id: `edge-${sceneNodeId}-scene_ctx-${camNode.id}-scene_ctx`,
+      fromNode: sceneNodeId,
+      fromPort: 'scene_ctx',
+      toNode: camNode.id,
+      toPort: 'scene_ctx'
+    })
+  }
+
+  const audioNode = nextNodes.find((n) => n.type === 'audio_lipsync')
+  if (audioNode && !nextEdges.some((e) => e.toNode === audioNode.id && e.toPort === 'scene_ctx')) {
+    nextEdges.push({
+      id: `edge-${sceneNodeId}-scene_ctx-${audioNode.id}-scene_ctx`,
+      fromNode: sceneNodeId,
+      fromPort: 'scene_ctx',
+      toNode: audioNode.id,
+      toPort: 'scene_ctx'
+    })
+  }
 
   return {
     workflow: {

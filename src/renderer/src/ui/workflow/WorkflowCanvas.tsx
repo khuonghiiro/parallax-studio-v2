@@ -769,12 +769,8 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         zoom={zoom}
         onToggleClusterMove={() => setClusterMoveMode((v) => !v)}
         onAutoLayout={() => {
-          const resetNodes = workflow.nodes.map((n) => ({
-            ...n,
-            position: { ...(DEFAULT_NODE_POSITIONS[n.type] ?? n.position) }
-          }))
           onAutoLayout()
-          fitClusterToView(resetNodes)
+          setTimeout(() => fitClusterToView(), 50)
         }}
         onFitView={fitClusterToView}
         onZoomByStep={zoomByStep}

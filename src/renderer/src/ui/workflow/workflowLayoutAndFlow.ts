@@ -22,7 +22,11 @@ export const SOCKET_ROW_H = 18
 export function estimateNodeCardHeight(node: WorkflowNode): number {
   const spec = WORKFLOW_NODE_SPECS[node.type]
   const rows = Math.max(spec?.inputs.length ?? 1, spec?.outputs.length ?? 1, 1)
-  return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 116
+  const isLogic = Boolean(node.params?.logicId)
+  if (isLogic) {
+    return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 85
+  }
+  return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 150
 }
 
 /** Tọa độ tâm chính xác tuyệt đối của chân cắm Port Đầu Ra (nằm đúng trên tâm vòng tròn pin) */
@@ -602,7 +606,7 @@ export function solveSpaciousWorkflowLayout(
   // 1. Phân nhóm các Node vào 6 Cột Chức năng chuẩn mực
   const columns: WorkflowNode[][] = [[], [], [], [], [], []]
   const COL_X = [60, 440, 840, 1240, 1640, 2040]
-  const GAP_Y = 32
+  const GAP_Y = 44
 
   for (const n of nodes) {
     const logicId = n.params?.logicId ?? ''
