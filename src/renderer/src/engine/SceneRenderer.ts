@@ -11,6 +11,7 @@ import {
   applyEvaluatedCamera,
   CULL_FOV_SCALE,
   EDITOR_MIN_LEVEL,
+  LAYER_COMPOSE_FRAG,
   LOOKAHEAD,
   TYPE_COLORS,
   UNIT_PLANE,
@@ -250,12 +251,17 @@ export class SceneRenderer {
         layer.type !== 'particles' &&
         Boolean(layer.physics?.enabled && layer.physics.material !== 'none') &&
         node?.object.geometry === UNIT_PLANE
+      const shaderStale =
+        Boolean(node) &&
+        layer.type !== 'particles' &&
+        (node!.object.material as THREE.ShaderMaterial).fragmentShader !== LAYER_COMPOSE_FRAG
       const rebuild =
         !node ||
         node.type !== layer.type ||
         (layer.type === 'particles' && node.builtFrom !== layer.props) ||
         (meshKey !== null && node.builtFrom !== meshKey) ||
-        needsPhysicsSubdiv
+        needsPhysicsSubdiv ||
+        shaderStale
       if (rebuild) {
         if (node) disposeNode(node, this.scene, (k) => this.pool.dropTexture(k))
         node = layer.type === 'particles' ? buildParticles(layer as any, this.scene) : buildPlaneNode(layer, this.scene)
@@ -329,7 +335,15 @@ export class SceneRenderer {
     const pxScale = isPersp ? viewportH / (2 * Math.tan(((cam as THREE.PerspectiveCamera).fov * DEG) / 2)) : viewportH / 1000
     const camPos = _v3.setFromMatrixPosition(cam.matrixWorld)
     const camDir = cam.getWorldDirection(_v4)
-    const ordering: { node: LayerNode; dist: number; index: number; particles: boolean }[] = []
+    const ordering: {
+      node: LayerNode
+      dist: number
+      localZ: number
+      shotId: string | null
+      isModel3D: boolean
+      index: number
+      particles: boolean
+    }[] = []
     let visibleLayers = 0
     const visibleShots = new Set<string>()
 
@@ -451,6 +465,9 @@ export class SceneRenderer {
         } else {
           u.vlightOn.value = 0
         }
+        if (!el.layer.model3d && (evVLight || activeGlow)) {
+          mat.depthWrite = false
+        }
       } else {
         u.time.value = ev.t
         u.pxScale.value = pxScale
@@ -470,12 +487,24 @@ export class SceneRenderer {
       u.fogFar.value = Math.max(look.fogNear + 1, look.fogFar)
 
       _v5.setFromMatrixPosition(el.world).sub(camPos)
-      ordering.push({ node, dist: _v5.dot(camDir), index: el.index, particles: node.type === 'particles' })
+      ordering.push({
+        node,
+        dist: _v5.dot(camDir),
+        localZ: el.position[2],
+        shotId: el.layer.shotId ?? null,
+        isModel3D: Boolean(el.layer.model3d),
+        index: el.index,
+        particles: node.type === 'particles'
+      })
     }
 
-    // Painter's order: far → near; ties broken by stack order (bottom first). Particles last.
+    // Painter's order: far → near; within the same shot, 2D planes sort by localZ so oblique 3D orbit angles never invert parallel planes.
     ordering.sort((a, b) => {
       if (a.particles !== b.particles) return a.particles ? 1 : -1
+      if (a.shotId === b.shotId && !a.isModel3D && !b.isModel3D) {
+        if (Math.abs(a.localZ - b.localZ) > 0.01) return b.localZ - a.localZ
+        return b.index - a.index
+      }
       if (Math.abs(a.dist - b.dist) > 0.01) return b.dist - a.dist
       return b.index - a.index
     })

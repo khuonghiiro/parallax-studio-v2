@@ -110,6 +110,24 @@ export class EditorHelpers {
         lp.push(...pts[i], ...pts[(i + 1) % 4])
         lc.push(col.r, col.g, col.b, col.r, col.g, col.b)
       }
+      // Draw 3D virtual light radius ring on layers with active virtualLight
+      const vl = el.layer.virtualLight
+      if (vl?.enabled && vl.kind !== 'none' && (vl.intensity ?? 0) > 0.01) {
+        const lCol = new THREE.Color(vl.color || '#ff9d3b')
+        const u0 = (vl.originUV?.[0] ?? 0.5) - 0.5
+        const v0 = (vl.originUV?.[1] ?? 0.5) - 0.5
+        const rNormX = Math.min(1.2, Math.max(0.15, (vl.radius || 320) / Math.max(64, el.size[0] * Math.abs(el.scale[0]))))
+        const rNormY = Math.min(1.2, Math.max(0.15, (vl.radius || 320) / Math.max(64, el.size[1] * Math.abs(el.scale[1]))))
+        const segs = 16
+        for (let s = 0; s < segs; s++) {
+          const a0 = (s / segs) * Math.PI * 2
+          const a1 = ((s + 1) / segs) * Math.PI * 2
+          const p0 = tmp.set(u0 + Math.cos(a0) * rNormX * 0.45, v0 + Math.sin(a0) * rNormY * 0.45, 0.01).applyMatrix4(info.matrix).toArray()
+          const p1 = tmp.set(u0 + Math.cos(a1) * rNormX * 0.45, v0 + Math.sin(a1) * rNormY * 0.45, 0.01).applyMatrix4(info.matrix).toArray()
+          lp.push(...p0, ...p1)
+          lc.push(lCol.r, lCol.g, lCol.b, lCol.r, lCol.g, lCol.b)
+        }
+      }
     }
     EditorHelpers.setGeometry(this.layerLines, lp, lc)
 
@@ -235,7 +253,7 @@ export class EditorHelpers {
     const c = toScreen(activeCam.position)
     if (c) out.push({ kind: 'camera', id: 'camera', text: '📷 Camera', color: '#3dd6f5', x: c[0], y: c[1] })
     const tg = toScreen(depthToThree(ev.camera.target, new THREE.Vector3()))
-    if (tg) out.push({ kind: 'cam-target', id: 'cam-target', text: '🎯 Điểm nhìn', color: '#f5a623', x: tg[0], y: tg[1] })
+    if (tg) out.push({ kind: 'cam-target', id: 'cam-target', text: '🎯 Điểm nhìn', color: '#f5a623', x: tg[0], y: tg[1] + 34 })
     return out
   }
 

@@ -2,6 +2,80 @@ import { memo } from 'react'
 import { assetStore } from '../../../project/assets'
 import type { ProjectedLayer2D, ShotStageBox } from './animateCameraMath'
 
+export function getLayer2DFilterStyle(layer: ProjectedLayer2D, scalePx = 1): string | undefined {
+  const filters: string[] = []
+  let brightness = 1
+  if (layer.caveDarkness && layer.caveDarkness > 0.01) {
+    brightness *= Math.max(0.08, 1 - layer.caveDarkness * 0.85)
+  }
+  if (layer.lightBoost && layer.lightBoost > 0.01) {
+    brightness *= 1 + Math.min(0.65, layer.lightBoost * 0.34)
+  }
+  if (layer.vlight && layer.vlight.intensity > 0.01) {
+    brightness *= 1 + Math.min(0.85, layer.vlight.intensity * 0.42)
+  }
+  if (Math.abs(brightness - 1) > 0.02) {
+    filters.push(`brightness(${brightness.toFixed(2)})`)
+  }
+  if (layer.vlight && layer.vlight.intensity > 0.02) {
+    const r = Math.max(3, Math.min(26, Math.round(13 * scalePx * Math.min(1.8, layer.vlight.intensity))))
+    filters.push(`drop-shadow(0 0 ${r}px ${layer.vlight.color})`)
+  }
+  if (layer.glow && layer.glow.intensity > 0.05) {
+    const r = Math.max(2, Math.min(20, Math.round(layer.glow.thickness * scalePx)))
+    filters.push(`drop-shadow(0 0 ${r}px ${layer.glow.color})`)
+  }
+  return filters.length > 0 ? filters.join(' ') : undefined
+}
+
+export function Layer2DLightOverlay({ layer }: { layer: ProjectedLayer2D }) {
+  const hasPortal = Boolean(layer.portal && layer.portal.darkness > 0.02)
+  const hasVLight = Boolean(layer.vlight && layer.vlight.intensity > 0.01)
+  if (!hasPortal && !hasVLight) return null
+
+  const uPct = layer.vlight ? Math.round(layer.vlight.originU * 100) : 50
+  const vPct = layer.vlight ? Math.round((1 - layer.vlight.originV) * 100) : 50
+  const haloOpacity = layer.vlight
+    ? Math.max(0.14, Math.min(0.92, layer.vlight.intensity * 0.68))
+    : 0
+  const reachPct = layer.vlight
+    ? Math.max(48, Math.min(96, Math.round(layer.vlight.radiusRatio * 76)))
+    : 72
+
+  const pUPct = layer.portal ? Math.round(layer.portal.centerU * 100) : 50
+  const pVPct = layer.portal ? Math.round((1 - layer.portal.centerV) * 100) : 55
+  const pRxPct = layer.portal ? Math.max(15, Math.min(85, Math.round(layer.portal.rxU * 100))) : 35
+  const pRyPct = layer.portal ? Math.max(15, Math.min(85, Math.round(layer.portal.ryV * 100))) : 35
+
+  return (
+    <>
+      {hasPortal && layer.portal && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            background: `radial-gradient(${pRxPct}% ${pRyPct}% at ${pUPct}% ${pVPct}%, ${layer.portal.shadowTint} 0%, ${layer.portal.shadowTint}cc 52%, transparent 100%)`,
+            opacity: Math.max(0.1, Math.min(0.92, layer.portal.darkness))
+          }}
+        />
+      )}
+      {hasVLight && layer.vlight && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: '-36%',
+            pointerEvents: 'none',
+            mixBlendMode: 'screen',
+            background: `radial-gradient(circle at ${uPct}% ${vPct}%, #fff9eb 0%, ${layer.vlight.color} 28%, ${layer.vlight.color}99 ${Math.round(reachPct * 0.68)}%, transparent ${reachPct}%)`,
+            opacity: haloOpacity
+          }}
+        />
+      )}
+    </>
+  )
+}
+
 interface AnimateShotPlane2DProps {
   box: ShotStageBox
   layers: ProjectedLayer2D[]
@@ -130,6 +204,7 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
             const runtimeAsset = assetStore.get(layer.assetId)
             const imgUrl = runtimeAsset?.url || runtimeAsset?.thumbUrl
             if (!imgUrl) return null
+            const filterCss = getLayer2DFilterStyle(layer, Math.max(0.35, zoom * 2.2))
             return (
               <div
                 key={layer.id}
@@ -147,9 +222,11 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
                     height: '100%',
                     objectFit: 'fill',
                     userSelect: 'none',
-                    display: 'block'
+                    display: 'block',
+                    filter: filterCss
                   }}
                 />
+                <Layer2DLightOverlay layer={layer} />
                 {aimMode && <span className="anim2d-layer-aim-tag">🎯 {layer.name}</span>}
               </div>
             )

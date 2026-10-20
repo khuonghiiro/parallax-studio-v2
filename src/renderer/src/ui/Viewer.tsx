@@ -4,6 +4,7 @@ import { flyToShot } from '../actions'
 import { EditorCamera } from '../engine/EditorCamera'
 import { evaluateScene } from '../engine/evaluateScene'
 import { SceneRenderer, type ResidencyStats } from '../engine/SceneRenderer'
+import { LAYER_COMPOSE_FRAG } from '../engine/renderTypes'
 import { setLiveRenderer } from '../engine/liveRenderer'
 import { assetStore } from '../project/assets'
 import { useEditor } from '../store/editor'
@@ -97,7 +98,11 @@ export function Viewer() {
         needsFrame.current = false
       } else if (needsFrame.current) {
         needsFrame.current = false
-        edCam.frame(worldBox(evaluateScene(s.project, s.time)), aspect)
+        const evNow = evaluateScene(s.project, s.time)
+        const activeShotBox = s.selectedShotId
+          ? evNow.shots.find((x) => x.shot.id === s.selectedShotId)?.bounds
+          : null
+        edCam.frame(activeShotBox && !activeShotBox.isEmpty() ? activeShotBox : worldBox(evNow), aspect)
       }
       const labels = r.renderEditor(s.project, s.time, edCam.get(aspect), {
         viewport: toDevice(L.ed, L.dpr),
@@ -132,6 +137,9 @@ export function Viewer() {
     r.onInvalidate = () => requestRender()
     const unsubStore = useEditor.subscribe((s, prev) => {
       if (s.epoch !== prev.epoch) needsFrame.current = true
+      if (s.selectedShotId !== prev.selectedShotId && s.selectedShotId) {
+        applyFocus('shot', s.selectedShotId)
+      }
       if (
         s.project !== prev.project ||
         s.time !== prev.time ||
@@ -171,7 +179,7 @@ export function Viewer() {
       rendererRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [SceneRenderer, LAYER_COMPOSE_FRAG])
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -429,7 +437,8 @@ export function Viewer() {
     const L = layoutRef.current
     const [x, y] = localXY(e)
     if (!inRect(L.ed, x, y)) return
-    edCam.zoom(e.deltaY)
+    const [nx, ny] = ndcIn(L.ed, x, y)
+    edCam.zoom(e.deltaY, nx, ny, L.ed.w / Math.max(1, L.ed.h))
     requestRender()
   }
 

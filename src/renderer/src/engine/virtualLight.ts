@@ -49,8 +49,8 @@ export const VIRTUAL_LIGHT_PRESETS: Record<VirtualLightKind, VirtualLightPreset>
     description:
       'Ánh sáng vàng cam ấm áp; đứng êm khi lặng gió, chao nghiêng mượt khi gió nhẹ và lập lòe bạt ngang dữ dội khi gió mạnh.',
     color: '#ff9d3b',
-    intensity: 1.45,
-    radius: 380,
+    intensity: 0.85,
+    radius: 360,
     coneAngleDeg: 360,
     beamAngleDeg: 0,
     windPreset: 'gentle',
@@ -64,8 +64,8 @@ export const VIRTUAL_LIGHT_PRESETS: Record<VirtualLightKind, VirtualLightPreset>
     description:
       'Chùm tia sáng định hướng hình nón sắc nét; xoay theo hướng ngắm để soi sáng hang động tối hoặc vật thể trong đêm.',
     color: '#e8f4ff',
-    intensity: 1.85,
-    radius: 680,
+    intensity: 1.05,
+    radius: 640,
     coneAngleDeg: 48,
     beamAngleDeg: 0,
     windPreset: 'none',
@@ -79,8 +79,8 @@ export const VIRTUAL_LIGHT_PRESETS: Record<VirtualLightKind, VirtualLightPreset>
     description:
       'Nguồn sáng điện tỏa đều 360°, có thể giữ ổn định hoặc bật nhấp nháy điện áp nhẹ.',
     color: '#ffe6a3',
-    intensity: 1.5,
-    radius: 520,
+    intensity: 0.9,
+    radius: 480,
     coneAngleDeg: 360,
     beamAngleDeg: 0,
     windPreset: 'none',
@@ -94,8 +94,8 @@ export const VIRTUAL_LIGHT_PRESETS: Record<VirtualLightKind, VirtualLightPreset>
     description:
       'Quầng lửa rộng cam đỏ rực rỡ, dao động bập bùng tự nhiên và bạt theo chiều gió.',
     color: '#ff7828',
-    intensity: 1.75,
-    radius: 580,
+    intensity: 1.0,
+    radius: 520,
     coneAngleDeg: 360,
     beamAngleDeg: 90,
     windPreset: 'gentle',
@@ -109,8 +109,8 @@ export const VIRTUAL_LIGHT_PRESETS: Record<VirtualLightKind, VirtualLightPreset>
     description:
       'Ánh sáng lam ngọc phát quang từ sâu trong lòng hang, giúp chiếu sáng nhân vật khi đi vào vùng tối cửa hang.',
     color: '#38bdf8',
-    intensity: 1.55,
-    radius: 440,
+    intensity: 0.9,
+    radius: 420,
     coneAngleDeg: 360,
     beamAngleDeg: 0,
     windPreset: 'none',
@@ -123,8 +123,8 @@ export const VIRTUAL_LIGHT_PRESETS: Record<VirtualLightKind, VirtualLightPreset>
     badge: '✨ Phép thuật',
     description: 'Quầng sáng tím hồng huyền bí trôi nhẹ và lan tỏa ánh sáng mềm.',
     color: '#c084fc',
-    intensity: 1.4,
-    radius: 360,
+    intensity: 0.85,
+    radius: 340,
     coneAngleDeg: 360,
     beamAngleDeg: 0,
     windPreset: 'none',
@@ -424,28 +424,34 @@ export function evaluateCaveDepthPortalForLayer(
   const shotId = targetLayer.shotId ?? null
   const lights = collectActiveVirtualLights(project, shotId, t)
 
-  let totalLight = 0
+  let externalLight = 0
+  let selfLight = 0
   let accR = 0
   let accG = 0
   let accB = 0
 
   for (const l of lights) {
-    // Nếu nguồn sáng gắn ngay trên chính layer nhân vật (ví dụ nhân vật cầm nến/đèn pin), nó luôn chiếu sáng bản thân
-    const contrib =
-      l.sourceLayerId === targetLayer.id
-        ? l.effectiveIntensity * 0.85
-        : computeLightContributionAtPoint(l, pos[0], pos[1], pos[2])
+    if (l.sourceLayerId === targetLayer.id) {
+      selfLight += l.effectiveIntensity * 0.85
+      accR += l.rgb[0] * l.effectiveIntensity * 0.5
+      accG += l.rgb[1] * l.effectiveIntensity * 0.5
+      accB += l.rgb[2] * l.effectiveIntensity * 0.5
+      continue
+    }
+    const contrib = computeLightContributionAtPoint(l, pos[0], pos[1], pos[2])
     if (contrib > 0.01) {
-      totalLight += contrib
+      externalLight += contrib
       accR += l.rgb[0] * contrib
       accG += l.rgb[1] * contrib
       accB += l.rgb[2] * contrib
     }
   }
 
+  const totalRescueLight = externalLight + selfLight
+  const weightSum = externalLight + selfLight * 0.5
   const lightTintRgb: [number, number, number] =
-    totalLight > 0.01
-      ? [accR / totalLight, accG / totalLight, accB / totalLight]
+    weightSum > 0.01
+      ? [accR / weightSum, accG / weightSum, accB / weightSum]
       : [1, 0.92, 0.78]
 
   // Bản thân layer mang cửa hang không tự thu nhỏ chính nó
@@ -456,7 +462,7 @@ export function evaluateCaveDepthPortalForLayer(
       zDelta: 0,
       effectiveDarkness: 0,
       rawCaveDarkness: 0,
-      lightIllumination: Math.min(2, totalLight),
+      lightIllumination: Math.min(2, externalLight),
       lightTintRgb,
       shadowTintRgb: [0.02, 0.03, 0.07]
     }
@@ -507,8 +513,10 @@ export function evaluateCaveDepthPortalForLayer(
   }
 
   // Nếu có ánh sáng ảo trong hang chiếu tới nhân vật, bóng tối bị đẩy lùi!
-  const lightRescue = Math.min(bestRawDarkness, totalLight * 0.62)
+  const lightRescue = Math.min(bestRawDarkness, totalRescueLight * 0.62)
   const effectiveDarkness = Math.max(0, bestRawDarkness - lightRescue)
+  const effectiveIllumination =
+    bestPenetration > 0.01 ? Math.min(2, externalLight + selfLight * 0.45) : Math.min(2, externalLight)
 
   return {
     penetration: bestPenetration,
@@ -516,7 +524,7 @@ export function evaluateCaveDepthPortalForLayer(
     zDelta: bestZDelta,
     effectiveDarkness,
     rawCaveDarkness: bestRawDarkness,
-    lightIllumination: Math.min(2, totalLight),
+    lightIllumination: effectiveIllumination,
     lightTintRgb,
     shadowTintRgb: bestShadowRgb
   }

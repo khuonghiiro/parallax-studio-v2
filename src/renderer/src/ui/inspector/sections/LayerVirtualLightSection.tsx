@@ -338,21 +338,58 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
             </Row>
           )}
 
-          <Row label="Màu / Sáng" title="Màu sắc nguồn sáng và cường độ chiếu sáng">
-            <ColorInput
-              value={vlight.color}
-              onChange={(val, k) => patchLight({ color: val }, k)}
-              title="Chọn màu nguồn sáng ảo"
-            />
-            <NumberInput
-              axis="I"
-              value={vlight.intensity}
-              step={0.1}
-              precision={2}
-              min={0.1}
-              max={4.0}
-              onChange={(v, k) => patchLight({ intensity: v }, k)}
-            />
+          <Row label="Cường độ sáng" title="Kéo thanh trượt hoặc nhập số để chỉnh độ mạnh yếu của ánh sáng (0.05 = dịu mờ, 0.85 = tự nhiên, 1.5+ = rực sáng)">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+              <input
+                id="layer-virtual-light-intensity-slider"
+                type="range"
+                min={0.05}
+                max={3.0}
+                step={0.05}
+                value={Math.min(3.0, Math.max(0.05, vlight.intensity))}
+                onChange={(e) => patchLight({ intensity: Number(e.target.value) }, 'virtual-light-intensity')}
+                style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
+              />
+              <div style={{ width: 68, flexShrink: 0 }}>
+                <NumberInput
+                  axis="I"
+                  value={vlight.intensity}
+                  step={0.05}
+                  precision={2}
+                  min={0.05}
+                  max={3.0}
+                  onChange={(v, k) => patchLight({ intensity: v }, k)}
+                />
+              </div>
+            </div>
+          </Row>
+
+          <Row label="Màu ánh sáng" title="Màu sắc nguồn sáng và các nút chọn nhanh mức cường độ sáng">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%', flexWrap: 'nowrap' }}>
+              <ColorInput
+                compact
+                value={vlight.color}
+                onChange={(val, k) => patchLight({ color: val }, k)}
+                title="Chọn màu nguồn sáng ảo"
+              />
+              <div style={{ display: 'flex', gap: 3, marginLeft: 'auto', flexShrink: 0 }}>
+                {[
+                  { label: 'Dịu 0.4', val: 0.4 },
+                  { label: 'Vừa 0.85', val: 0.85 },
+                  { label: 'Rực 1.4', val: 1.4 }
+                ].map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    className={`btn sm ${Math.abs(vlight.intensity - preset.val) < 0.06 ? 'primary' : 'ghost'}`}
+                    style={{ padding: '2px 5px', fontSize: 10 }}
+                    onClick={() => patchLight({ intensity: preset.val })}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </Row>
 
           <Row label="Bán kính / Z" title="Bán kính chiếu sáng XY (px) và độ lan toả theo chiều sâu Z (px)">

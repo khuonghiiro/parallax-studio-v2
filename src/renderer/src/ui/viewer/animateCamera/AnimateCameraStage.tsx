@@ -65,6 +65,10 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
   const [viewportSize, setViewportSize] = useState({ w: 680, h: 480 })
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(0.28)
+  const panRef = useRef(pan)
+  const zoomRef = useRef(zoom)
+  panRef.current = pan
+  zoomRef.current = zoom
   const [autoFitted, setAutoFitted] = useState(false)
   const [toolMode, setToolMode] = useState<StageToolMode>('pan-scale')
   const [lineStyle, setLineStyle] = useState<CameraLineStyle>('smoothstep')
@@ -178,8 +182,11 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
       const nextZoom = Math.max(0.04, Math.min(0.85, Math.min(availW / spanW, availH / spanH)))
       const cx = (minX + maxX) / 2
       const cy = (minY + maxY) / 2
+      const nextPan = { x: -cx * nextZoom, y: -cy * nextZoom - 14 }
+      zoomRef.current = nextZoom
+      panRef.current = nextPan
       setZoom(nextZoom)
-      setPan({ x: -cx * nextZoom, y: -cy * nextZoom - 14 })
+      setPan(nextPan)
     },
     [stageLayout, frames, project.comp.width, project.comp.height, viewportSize.w, viewportSize.h]
   )
@@ -449,12 +456,14 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
     }
     const startX = e.clientX
     const startY = e.clientY
-    const origPan = { ...pan }
+    const origPan = { ...panRef.current }
     const onMove = (pev: PointerEvent): void => {
-      setPan({
+      const nextPan = {
         x: origPan.x + (pev.clientX - startX),
         y: origPan.y + (pev.clientY - startY)
-      })
+      }
+      panRef.current = nextPan
+      setPan(nextPan)
     }
     const onUp = (): void => {
       window.removeEventListener('pointermove', onMove)
@@ -466,8 +475,31 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
 
   const onStageWheel = (e: React.WheelEvent): void => {
     e.stopPropagation()
+    const curZoom = zoomRef.current
+    const curPan = panRef.current
     const factor = e.deltaY < 0 ? 1.12 : 0.89
-    setZoom((z) => Math.max(0.05, Math.min(1.5, Math.round(z * factor * 1000) / 1000)))
+    const nextZoom = Math.max(0.05, Math.min(2.5, Math.round(curZoom * factor * 1000) / 1000))
+    if (Math.abs(nextZoom - curZoom) < 1e-4) return
+
+    const el = stageRef.current
+    if (el) {
+      const rect = el.getBoundingClientRect()
+      const mx = e.clientX - rect.left
+      const my = e.clientY - rect.top
+      const cx = (rect.width || viewportSize.w) / 2
+      const cy = (rect.height || viewportSize.h) / 2
+      const dx = mx - cx
+      const dy = my - cy
+      const scaleRatio = nextZoom / curZoom
+      const nextPan = {
+        x: Math.round((dx - (dx - curPan.x) * scaleRatio) * 10) / 10,
+        y: Math.round((dy - (dy - curPan.y) * scaleRatio) * 10) / 10
+      }
+      panRef.current = nextPan
+      setPan(nextPan)
+    }
+    zoomRef.current = nextZoom
+    setZoom(nextZoom)
   }
 
   const handleAimAtShot = (box: ShotStageBox): void => {

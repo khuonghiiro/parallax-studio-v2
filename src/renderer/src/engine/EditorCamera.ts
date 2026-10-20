@@ -101,8 +101,19 @@ export class EditorCamera {
     this.touched = true
   }
 
-  zoom(wheelDelta: number): void {
-    this.distance = Math.max(50, Math.min(1e6, this.distance * Math.exp(wheelDelta * 0.0012)))
+  zoom(wheelDelta: number, ndcX = 0, ndcY = 0, aspect = 1): void {
+    const prevDist = this.distance
+    const nextDist = Math.max(50, Math.min(1e6, prevDist * Math.exp(wheelDelta * 0.0012)))
+    if (Math.abs(nextDist - prevDist) > 1e-3 && (Math.abs(ndcX) > 1e-3 || Math.abs(ndcY) > 1e-3)) {
+      const cam = this.get(aspect)
+      const right = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 0)
+      const up = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 1)
+      const deltaH = (prevDist - nextDist) * Math.tan(22.5 * DEG)
+      this.target
+        .addScaledVector(right, ndcX * deltaH * aspect)
+        .addScaledVector(up, ndcY * deltaH)
+    }
+    this.distance = nextDist
     this.touched = true
   }
 

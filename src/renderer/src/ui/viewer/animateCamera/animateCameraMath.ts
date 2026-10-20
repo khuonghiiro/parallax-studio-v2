@@ -1,8 +1,10 @@
-import type { EaseName, Layer, Project, Vec3 } from '@shared/types'
+import type { EaseName, Layer, Project, Vec3, VirtualLightKind } from '@shared/types'
 import { ease } from '../../../animation/easing'
 import { addKeyframe, anim, evaluate, setValueAt } from '../../../animation/keyframes'
 import { referenceDistance, smoothNoise } from '../../../animation/math'
 import { type EvaluatedScene } from '../../../engine/evaluateScene'
+import { evaluateLayerGlow } from '../../../engine/layerGlow'
+import { evaluateVirtualLightAtTime } from '../../../engine/virtualLight'
 import { frameTolerance } from '../../../store/editor'
 import { getWaypointTimingMeta } from './animateCameraActionModes'
 
@@ -40,6 +42,33 @@ export interface ProjectedLayer2D {
   solidColor?: string
   solidColor2?: string
   gradientAngle?: number
+  vlight?: {
+    kind: VirtualLightKind
+    color: string
+    intensity: number
+    radiusRatio: number
+    originU: number
+    originV: number
+    coneAngleDeg: number
+    beamAngleDeg: number
+  }
+  portal?: {
+    centerU: number
+    centerV: number
+    rxU: number
+    ryV: number
+    darkness: number
+    shadowTint: string
+  }
+  caveDarkness?: number
+  shadowTintRgb?: [number, number, number]
+  lightBoost?: number
+  lightTintRgb?: [number, number, number]
+  glow?: {
+    color: string
+    intensity: number
+    thickness: number
+  }
 }
 
 export interface CameraFrame2D {
@@ -246,6 +275,56 @@ export function projectShotLayers2D(
     } else if (el.layer.type === 'solid') {
       base.solidColor = el.layer.props.color
       base.solidColor2 = el.layer.props.color2
+    }
+
+    const evVLight = evaluateVirtualLightAtTime(el.layer, ev.t, el.position, el.size, el.scale)
+    if (evVLight && evVLight.effectiveIntensity > 0.01) {
+      const origU = el.layer.virtualLight?.originUV?.[0] ?? 0.5
+      const origV = el.layer.virtualLight?.originUV?.[1] ?? 0.5
+      const shiftU = evVLight.windOffset[0] / Math.max(32, el.size[0])
+      const shiftV = evVLight.windOffset[1] / Math.max(32, el.size[1])
+      base.vlight = {
+        kind: evVLight.kind,
+        color: evVLight.color,
+        intensity: evVLight.effectiveIntensity,
+        radiusRatio: Math.max(0.25, Math.min(2.2, evVLight.effectiveRadius / Math.max(48, Math.max(el.size[0], el.size[1])))),
+        originU: Math.max(0.05, Math.min(0.95, origU + shiftU)),
+        originV: Math.max(0.05, Math.min(0.95, origV + shiftV)),
+        coneAngleDeg: el.layer.virtualLight?.coneAngleDeg ?? 360,
+        beamAngleDeg: el.layer.virtualLight?.beamAngleDeg ?? 0
+      }
+    }
+
+    const portal = el.layer.physics?.depthPortal
+    if (portal?.enabled && (portal.darkness ?? 0) > 0.02) {
+      const rxU = Array.isArray(portal.radiusUV) ? portal.radiusUV[0] : (portal.radiusUV ?? 0.35)
+      const ryV = Array.isArray(portal.radiusUV) ? portal.radiusUV[1] : (portal.radiusUV ?? 0.35)
+      base.portal = {
+        centerU: portal.centerUV?.[0] ?? 0.5,
+        centerV: portal.centerUV?.[1] ?? 0.45,
+        rxU,
+        ryV,
+        darkness: portal.darkness ?? 0.82,
+        shadowTint: portal.shadowTint ?? '#060812'
+      }
+    }
+
+    if (el.caveDarkness && el.caveDarkness > 0.01) {
+      base.caveDarkness = el.caveDarkness
+      base.shadowTintRgb = el.shadowTintRgb
+    }
+    if (el.lightIllumination && el.lightIllumination > 0.01) {
+      base.lightBoost = el.lightIllumination
+      base.lightTintRgb = el.lightTintRgb
+    }
+
+    const activeGlow = evaluateLayerGlow(el.layer, ev.t)
+    if (activeGlow && activeGlow.intensity > 0.05) {
+      base.glow = {
+        color: activeGlow.color,
+        intensity: activeGlow.intensity,
+        thickness: activeGlow.thickness
+      }
     }
 
     return base

@@ -2,6 +2,7 @@ import { memo, useEffect, useRef } from 'react'
 import { assetStore } from '../../../project/assets'
 import type { ProjectedLayer2D, ShotStageBox } from './animateCameraMath'
 import type { CameraActionMode, CameraWaypointItem } from './animateCameraRouteLogic'
+import { getLayer2DFilterStyle, Layer2DLightOverlay } from './AnimateShotPlane2D'
 
 interface AnimateCameraFilmstripProps {
   waypoints: CameraWaypointItem[]
@@ -165,19 +166,24 @@ export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVertica
                           const runtimeAsset = assetStore.get(layer.assetId)
                           const imgUrl = runtimeAsset?.thumbUrl || runtimeAsset?.url
                           if (!imgUrl) return null
+                          const filterCss = getLayer2DFilterStyle(layer, 0.45)
                           return (
-                            <img
-                              key={layer.id}
-                              src={imgUrl}
-                              alt=""
-                              draggable={false}
-                              loading="lazy"
-                              style={{
-                                ...itemStyle,
-                                objectFit: 'fill',
-                                display: 'block'
-                              }}
-                            />
+                            <div key={layer.id} style={itemStyle}>
+                              <img
+                                src={imgUrl}
+                                alt=""
+                                draggable={false}
+                                loading="lazy"
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'fill',
+                                  display: 'block',
+                                  filter: filterCss
+                                }}
+                              />
+                              <Layer2DLightOverlay layer={layer} />
+                            </div>
                           )
                         }
 

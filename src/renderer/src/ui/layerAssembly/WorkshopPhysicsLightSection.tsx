@@ -443,23 +443,41 @@ export function WorkshopPhysicsLightSection({
             </div>
           </div>
 
+          <div className="lw-field">
+            <span className="lw-field-label">
+              Cường độ sáng ({vlight.intensity.toFixed(2)})
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input
+                type="range"
+                min={0.05}
+                max={3.0}
+                step={0.05}
+                value={Math.min(3.0, Math.max(0.05, vlight.intensity))}
+                onChange={(e) => patchLight({ intensity: Number(e.target.value) })}
+                style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
+              />
+              <input
+                className="lw-input"
+                type="number"
+                step={0.05}
+                min={0.05}
+                max={3.0}
+                value={vlight.intensity}
+                onChange={(e) => patchLight({ intensity: Number(e.target.value) })}
+                style={{ width: 64 }}
+              />
+            </div>
+          </div>
+
           <div className="lw-prop-grid">
             <div className="lw-field">
-              <span className="lw-field-label">Màu &amp; Cường độ</span>
+              <span className="lw-field-label">Màu ánh sáng</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <ColorInput
                   value={vlight.color}
                   onChange={(val) => patchLight({ color: val })}
                   title="Màu nguồn sáng ảo"
-                />
-                <input
-                  className="lw-input"
-                  type="number"
-                  step={0.1}
-                  min={0.1}
-                  max={4}
-                  value={vlight.intensity}
-                  onChange={(e) => patchLight({ intensity: Number(e.target.value) })}
                 />
               </div>
             </div>
