@@ -969,3 +969,20 @@
 .wf-health-dot.pulsing {
   animation: wf-dot-pulse 0.9s ease-in-out infinite alternate;
 }
+.wf-spawn-scene-btn {
+  border-color: color-mix(in srgb, var(--accent-cyan) 45%, var(--line));
+  color: var(--accent-cyan);
+}
+.wf-spawn-scene-btn:hover {
+  border-color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 18%, var(--bg-1));
+}
+.wf-play-time-tag.empty {
+  opacity: 0.6;
+  border-style: dashed;
+}
+.wf-time-empty-hint {
+  font-size: 9px;
+  opacity: 0.75;
+  margin-left: 2px;
+}

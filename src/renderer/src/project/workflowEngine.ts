@@ -80,7 +80,7 @@ export function getWorkflowFromTemplate(_presetId?: string): WorkflowGraph {
 
 export function ensureProjectWorkflow(project: Project): WorkflowGraph {
   const raw =
-    project.workflow && Array.isArray(project.workflow.nodes) && project.workflow.nodes.length > 0
+    project.workflow && Array.isArray(project.workflow.nodes)
       ? isLegacyCrampedWorkflowLayout(project.workflow.nodes)
         ? {
             ...project.workflow,

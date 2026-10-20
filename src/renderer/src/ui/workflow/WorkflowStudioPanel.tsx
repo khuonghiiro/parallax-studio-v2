@@ -25,6 +25,7 @@ import {
     resolveConnectedWorkflowNodes
 } from '../../project/workflowEngine'
 import { spawnLogicNodeIntoWorkflow } from '../../project/workflowLogicNodes'
+import { getWorkflowEffectiveDuration, spawnSceneWithChildLayers } from '../../project/workflowSceneHierarchy'
 import { applyRuleMutationToProjectLayer } from '../../project/workflowStageEffects'
 import { IconPause, IconPlay, IconPlus, IconSparkles } from '../icons'
 import { TimelineModeTabs } from './TimelineModeTabs'
@@ -85,6 +86,11 @@ export const WorkflowStudioPanel: React.FC = () => {
       targetShotId: currentShotScope
     }
   }, [project, currentShotScope])
+  const workflowDuration = useMemo(
+    () => getWorkflowEffectiveDuration(workflow, project, currentShotScope),
+    [workflow, project, currentShotScope]
+  )
+
   const scopedProject = useMemo(
     () => ({ ...project, workflow }),
     [project, workflow]
@@ -184,20 +190,18 @@ export const WorkflowStudioPanel: React.FC = () => {
   const handleClearCanvas = useCallback(() => {
     useEditor.getState().setPlaying(false)
     useEditor.getState().setTime(0)
-    const rootNode = makeNode('scene_shot', 'deep_parallax_stage', true)
-    rootNode.params = { ...rootNode.params, shotId: currentShotScope }
     const next: WorkflowGraph = {
       version: 1,
       id: 'wf-custom',
       name: 'Quy trình Tự do',
       description: 'Quy trình tự do — Thả các Node Logic để tự thiết kế luồng xử lý.',
-      nodes: [rootNode],
+      nodes: [],
       edges: [],
       targetShotId: currentShotScope
     }
     commitWorkflow(next, undefined, true)
-    setSelectedNodeId(rootNode.id)
-    showToast('🧹 Đã xóa trắng sơ đồ và đặt lại thời gian về 0.0s! Bấm "+ Node Logic" để tự xây dựng luồng xử lý theo ý muốn.')
+    setSelectedNodeId(null)
+    showToast('🧹 Đã xóa sạch toàn bộ khối và đặt lại thời lượng luồng về 0.0s! Bấm "🎬 Bung Cảnh & Layer" hoặc "+ Node Logic" để tạo luồng mới.')
   }, [currentShotScope, commitWorkflow, showToast])
 
   const handleSelectShotScope = useCallback(
@@ -398,7 +402,8 @@ export const WorkflowStudioPanel: React.FC = () => {
     }
     const st = useEditor.getState()
     // Nếu thời gian đã chạy đến cuối comp (hoặc gần hết), tự động tua về 0s trước khi phát
-    if (st.time >= st.project.comp.duration - 0.05) {
+    const maxDur = workflowDuration > 0 ? workflowDuration : st.project.comp.duration
+    if (st.time >= maxDur - 0.05) {
       st.setTime(0)
     }
     useEditor.getState().update((draft) => {
@@ -424,6 +429,19 @@ export const WorkflowStudioPanel: React.FC = () => {
     showToast('🧩 Chọn 1 Node Logic bên phải để thả vào sơ đồ và tự nối theo luồng!')
   }, [workflow.nodes, showToast])
 
+  const handleSpawnSceneLayers = useCallback(() => {
+    const { workflow: nextWf, sceneNode, childNodes } = spawnSceneWithChildLayers(
+      project,
+      workflow,
+      currentShotScope
+    )
+    commitWorkflow(nextWf, undefined, true, new Set([sceneNode.id]))
+    setSelectedNodeId(sceneNode.id)
+    showToast(
+      `🎬 Đã tạo Cảnh "${sceneNode.title}" kèm ${childNodes.length} layer con nối dây sẵn!`
+    )
+  }, [project, workflow, currentShotScope, commitWorkflow, showToast])
+
   const handleSpawnLogicNode = useCallback(
     (logicId: string) => {
       const { workflow: next, spawnedNode } = spawnLogicNodeIntoWorkflow(
@@ -443,7 +461,7 @@ export const WorkflowStudioPanel: React.FC = () => {
   const handleDeleteNode = useCallback(
     (nodeId: string) => {
       const target = workflow.nodes.find((n) => n.id === nodeId)
-      if (!target || workflow.nodes.length <= 1) return
+      if (!target) return
       const shotFilter = currentShotScope !== 'all' ? currentShotScope : null
       useEditor.getState().update((draft) => {
         for (const r of target.params?.customRules ?? []) {
@@ -541,6 +559,16 @@ export const WorkflowStudioPanel: React.FC = () => {
         </div>
 
         <button
+          id="wf-btn-spawn-scene-layers"
+          type="button"
+          className="btn ghost sm tl-action-btn wf-spawn-scene-btn"
+          title={`Bung Cảnh "${activeShotLabel}" thành 1 Node Cảnh trung tâm kèm toàn bộ các Node Layer con được nối dây sẵn`}
+          onClick={handleSpawnSceneLayers}
+        >
+          <span>🎬 Bung Cảnh & Layer</span>
+        </button>
+
+        <button
           id="wf-btn-autowire"
           type="button"
           className="btn ghost sm tl-action-btn"
@@ -628,26 +656,34 @@ export const WorkflowStudioPanel: React.FC = () => {
           id="wf-btn-play-flow"
           type="button"
           className={`btn ghost sm tl-action-btn wf-play-flow-btn${playing ? ' playing' : ''}${activeNodes.length === 0 ? ' broken' : ''}`}
+          disabled={workflow.nodes.length === 0}
           title={
-            activeNodes.length === 0
-              ? 'Luồng đang đứt từ Phân cảnh #1 — Bấm "Tự nối Port" trước khi chạy'
-              : playing
-                ? 'Đang phát video & mô phỏng lộ trình xử lý theo từng bước (Bấm để tạm dừng)'
-                : 'Phát video để quan sát lộ trình xử lý tuần tự qua từng khối chức năng'
+            workflow.nodes.length === 0
+              ? 'Bản vẽ đang trống (0.0s) — Bấm "🎬 Bung Cảnh & Layer" hoặc thêm Node Logic trước khi chạy luồng'
+              : activeNodes.length === 0
+                ? 'Luồng đang đứt — Bấm "Tự nối Port" trước khi chạy'
+                : playing
+                  ? 'Đang phát video & mô phỏng lộ trình xử lý theo từng bước (Bấm để tạm dừng)'
+                  : 'Phát video để quan sát lộ trình xử lý tuần tự qua từng khối chức năng'
           }
           onClick={handleTogglePlayFlow}
         >
           {playing ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
           <span>{playing ? 'Đang chạy' : 'Chạy luồng'}</span>
           <span
-            className="wf-play-time-tag clickable"
-            title="Bấm để tua về 0.0s"
+            className={`wf-play-time-tag ${workflow.nodes.length > 0 ? 'clickable' : 'empty'}`}
+            title={
+              workflow.nodes.length === 0
+                ? 'Bản vẽ đang trống (0.0s). Bấm để tua về 0.0s'
+                : `Thời gian hiện tại / Thời lượng luồng (${workflowDuration.toFixed(1)}s). Bấm để tua về 0.0s`
+            }
             onClick={(e) => {
               e.stopPropagation()
               handleRewindToZero()
             }}
           >
-            {liveTime.toFixed(1)}s/{project.comp.duration}s
+            {workflow.nodes.length === 0 ? '0.0s / 0.0s' : `${liveTime.toFixed(1)}s / ${workflowDuration.toFixed(1)}s`}
+            {workflow.nodes.length === 0 && <span className="wf-time-empty-hint"> (Trống)</span>}
           </span>
         </button>
 

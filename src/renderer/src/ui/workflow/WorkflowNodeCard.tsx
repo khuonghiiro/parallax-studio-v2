@@ -106,6 +106,16 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = ({
   const outputs = spec?.outputs ?? []
   const socketRowCount = Math.max(inputs.length, outputs.length, 1)
 
+  const boundLayer = React.useMemo(() => {
+    if (!project || !node.params?.targetLayerIds?.[0]) return null
+    return project.layers.find((l) => l.id === node.params?.targetLayerIds?.[0]) ?? null
+  }, [project, node.params?.targetLayerIds])
+
+  const compositePartCount = React.useMemo(() => {
+    if (!project || !boundLayer?.composite?.instanceId) return 0
+    return project.layers.filter((l) => l.composite?.instanceId === boundLayer.composite?.instanceId).length
+  }, [project, boundLayer])
+
   const telemetry = evaluateNodeRuntimeTelemetry(
     node,
     project,
@@ -177,6 +187,13 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = ({
           title={`${node.title} — Nắm kéo để di chuyển tự do Trái / Phải / Lên / Xuống`}
         >
           {node.params?.logicId ? node.title.replace(/^Node:\s*/i, '') : (spec?.shortTitle ?? node.title)}
+          {boundLayer && (
+            <span className="wf-node-sub-tag">
+              {boundLayer.composite
+                ? `2.5D (${compositePartCount}p)`
+                : `Z:${Math.round(boundLayer.transform.position.value[2])}`}
+            </span>
+          )}
         </span>
         {onPreviewNode && (
           <button
@@ -221,7 +238,7 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = ({
         >
           {node.enabled ? 'ON' : 'OFF'}
         </button>
-        {onDeleteNode && workflow.nodes.length > 1 && (
+        {onDeleteNode && (
           <button
             type="button"
             className="wf-node-del-btn"

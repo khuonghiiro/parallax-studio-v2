@@ -890,3 +890,15 @@
   from { transform: translateX(-50%) translateY(0); }
   to { transform: translateX(-50%) translateY(-3px); }
 }
+.wf-node-sub-tag {
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  background: var(--bg-1);
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid var(--line-soft);
+  margin-left: 4px;
+  flex-shrink: 0;
+}
