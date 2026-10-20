@@ -597,7 +597,7 @@ export function syncWorkflowFromProject(
         if (l.virtualLight?.enabled) {
           baseParts.add('virtual_light_core')
           const kind: WorkflowCustomActionKind =
-            l.virtualLight.kind === 'flashlight' || l.virtualLight.kind === 'sunbeam'
+            l.virtualLight.kind === 'flashlight' || l.virtualLight.kind === 'bulb'
               ? 'virtual_light_flashlight'
               : 'virtual_light_candle'
           const spec = getCustomActionSpec(kind)

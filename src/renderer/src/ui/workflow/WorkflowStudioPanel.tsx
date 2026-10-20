@@ -11,7 +11,8 @@ import { useToast } from '../../actions'
 import {
   DEFAULT_NODE_POSITIONS,
   WORKFLOW_NODE_SPECS,
-  WORKFLOW_TEMPLATES
+  createCanonicalWorkflow,
+  makeNode
 } from '../../project/workflowCatalog'
 import {
   applyWorkflowToProject,
@@ -21,8 +22,7 @@ import {
   disconnectWorkflowEdge,
   ensureProjectWorkflow,
   getDefaultPartsForNode,
-  getWorkflowFromTemplate,
-  resolveConnectedWorkflowNodes
+    resolveConnectedWorkflowNodes
 } from '../../project/workflowEngine'
 import { spawnLogicNodeIntoWorkflow } from '../../project/workflowLogicNodes'
 import { applyRuleMutationToProjectLayer } from '../../project/workflowStageEffects'
@@ -31,14 +31,6 @@ import { TimelineModeTabs } from './TimelineModeTabs'
 import { WorkflowCanvas } from './WorkflowCanvas'
 import { WorkflowSidePanel, type WorkflowInspectorSubTab } from './WorkflowSidePanel'
 import { IconWfAutoWire, IconWfJsonCode } from './workflowIcons'
-
-const TEMPLATE_SHORT_PILLS: Record<string, string> = {
-  cinematic_parallax_intro: 'Điện ảnh',
-  character_action_physics: 'Hành động',
-  cave_virtual_light_explore: 'Hang động',
-  story_dialogue_lipsync: 'Hội thoại',
-  arch3d_flythrough: 'Kiến trúc 3D'
-}
 
 export const WorkflowStudioPanel: React.FC = () => {
   const project = useEditor((s) => s.project)
@@ -182,16 +174,29 @@ export const WorkflowStudioPanel: React.FC = () => {
     [currentShotScope]
   )
 
-  const handleSelectTemplate = useCallback(
-    (presetId: string) => {
-      const next = getWorkflowFromTemplate(presetId)
-      next.targetShotId = currentShotScope
-      commitWorkflow(next, undefined, true)
-      setSelectedNodeId(next.nodes[0]?.id ?? null)
-      showToast(`🎬 Đã áp dụng kịch bản mẫu "${next.name}" cho ${activeShotLabel}`)
-    },
-    [currentShotScope, activeShotLabel, commitWorkflow, showToast]
-  )
+  const handleResetCanonical = useCallback(() => {
+    const next = createCanonicalWorkflow(currentShotScope)
+    commitWorkflow(next, undefined, true)
+    setSelectedNodeId(next.nodes[0]?.id ?? null)
+    showToast(`✨ Đã phục hồi luồng chuẩn 7 khâu xử lý cho ${activeShotLabel}!`)
+  }, [currentShotScope, activeShotLabel, commitWorkflow, showToast])
+
+  const handleClearCanvas = useCallback(() => {
+    const rootNode = makeNode('scene_shot', 'deep_parallax_stage', true)
+    rootNode.params = { ...rootNode.params, shotId: currentShotScope }
+    const next: WorkflowGraph = {
+      version: 1,
+      id: 'wf-custom',
+      name: 'Quy trình Tự do',
+      description: 'Quy trình tự do — Thả các Node Logic để tự thiết kế luồng xử lý.',
+      nodes: [rootNode],
+      edges: [],
+      targetShotId: currentShotScope
+    }
+    commitWorkflow(next, undefined, true)
+    setSelectedNodeId(rootNode.id)
+    showToast('🧹 Đã xóa trắng sơ đồ! Bấm "+ Node Logic" để tự xây dựng luồng xử lý theo ý muốn.')
+  }, [currentShotScope, commitWorkflow, showToast])
 
   const handleSelectShotScope = useCallback(
     (shotId: string) => {
@@ -495,29 +500,74 @@ export const WorkflowStudioPanel: React.FC = () => {
 
         <div className="tl-toolbar-divider" />
 
-        {/* Chọn nhanh Kịch bản mẫu bằng Nút Bấm Trực Tiếp (Thay thế Combobox Mẫu quy trình) */}
+        {/* Trạng thái Luồng xử lý Trực quan (Thay thế hoàn toàn các mẫu có sẵn) */}
         <div
-          className="wf-toolbar-pill-group"
-          role="radiogroup"
-          aria-label="Kịch bản quy trình mẫu"
+          className={`wf-pipeline-health-badge${
+            blueprint.isPipelineComplete && disconnectedNodes.length === 0
+              ? ' complete'
+              : activeNodes.length > 0
+                ? ' building'
+                : ' broken'
+          }`}
+          title={blueprint.pipelineSummary}
         >
-          <span className="wf-toolbar-label">Mẫu:</span>
-          {WORKFLOW_TEMPLATES.map((t) => {
-            const active = (workflow.presetId ?? 'cinematic_parallax_intro') === t.id
-            return (
-              <button
-                key={t.id}
-                type="button"
-                className={`wf-toolbar-pill-btn${active ? ' active' : ''}`}
-                title={`${t.badge} ${t.name}\n${t.description}`}
-                onClick={() => handleSelectTemplate(t.id)}
-              >
-                <span>{t.badge}</span>
-                <span>{TEMPLATE_SHORT_PILLS[t.id] ?? t.name}</span>
-              </button>
-            )
-          })}
+          <span
+            className={`wf-health-dot${
+              blueprint.isPipelineComplete && disconnectedNodes.length === 0
+                ? ' pulsing'
+                : ''
+            }`}
+          />
+          <span className="wf-health-text">
+            {blueprint.isPipelineComplete && disconnectedNodes.length === 0
+              ? `✓ Luồng Hoàn Chỉnh (${activeNodes.length}/${workflow.nodes.length} khâu)`
+              : activeNodes.length > 0
+                ? `⚡ Đang xây dựng (${activeNodes.length}/${workflow.nodes.length} khâu · ${disconnectedNodes.length} đứt)`
+                : `⛔ Đứt luồng từ Cảnh 3D`}
+          </span>
         </div>
+
+        <button
+          id="wf-btn-autowire"
+          type="button"
+          className="btn ghost sm tl-action-btn"
+          title="Tự động nối chuẩn tất cả cổng (Port) giữa các khối chức năng đang bật"
+          onClick={handleAutoWire}
+        >
+          <IconWfAutoWire width={13} height={13} />
+          <span>Tự nối Port</span>
+        </button>
+
+        <button
+          id="wf-btn-quick-add-motion"
+          type="button"
+          className="btn ghost sm tl-action-btn wf-quick-add-btn"
+          title="Mở Kho Node Logic (Gió, Mây, Đèn 2.5D, Glow, DOF, Lắp ráp...) để thả khối vào sơ đồ"
+          onClick={handleQuickFocusAddMotion}
+        >
+          <IconPlus width={12} height={12} />
+          <span>+ Node Logic</span>
+        </button>
+
+        <button
+          id="wf-btn-reset-canonical"
+          type="button"
+          className="btn ghost sm tl-action-btn"
+          title="Đặt lại sơ đồ về luồng chuẩn 7 khâu xử lý hoàn chỉnh (Phân cảnh ➔ Lắp ráp ➔ Chuyển động ➔ Vật lý/FX ➔ Camera ➔ Âm thanh ➔ Màu & Xuất)"
+          onClick={handleResetCanonical}
+        >
+          <span>↺ Luồng chuẩn</span>
+        </button>
+
+        <button
+          id="wf-btn-clear-canvas"
+          type="button"
+          className="btn ghost sm tl-action-btn"
+          title="Xóa trắng sơ đồ để tự do thiết kế luồng xử lý từ đầu"
+          onClick={handleClearCanvas}
+        >
+          <span>✕ Xóa trắng</span>
+        </button>
 
         {/* Phạm vi Phân cảnh áp dụng (Tất cả phân cảnh hoặc từng Phân cảnh #1, #2, #3) */}
         {project.shots.length > 1 && (

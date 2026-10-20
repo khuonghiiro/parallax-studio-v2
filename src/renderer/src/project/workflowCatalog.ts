@@ -145,7 +145,7 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     color: '#a855f7',
     description: 'Quản lý cụm nhân vật 2.5D, cây cối đa lớp, mô hình 3D kiến trúc và neo gốc xoay (Anchor/Billboard).',
     inputs: ['scene_ctx'],
-    outputs: ['actors_rig'],
+    outputs: ['actors_rig', 'scene_ctx'],
     presets: [
       {
         id: 'character_and_foliage_rig',
@@ -185,8 +185,8 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     aiAgentRole: 'MotionChoreographyAgent',
     color: '#f59e0b',
     description: 'Điều phối động tác nhân vật, xương Mixamo/IK, gió thổi cây cối (Wind/Sway) và mây trôi (Drift).',
-    inputs: ['actors_rig'],
-    outputs: ['motion_stream'],
+    inputs: ['actors_rig', 'scene_ctx', 'motion_stream'],
+    outputs: ['motion_stream', 'actors_rig'],
     presets: [
       {
         id: 'organic_wind_breathe',
@@ -226,7 +226,7 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     aiAgentRole: 'PhysicsLightFxAgent',
     color: '#ec4899',
     description: 'Kích hoạt vật lý chất liệu Mesh 2.5D, lối vào hang động (Depth Portal), Ánh sáng ảo theo gió và Hạt.',
-    inputs: ['motion_stream'],
+    inputs: ['motion_stream', 'actors_rig', 'scene_ctx', 'vfx_stage'],
     outputs: ['vfx_stage'],
     presets: [
       {
@@ -267,7 +267,7 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     aiAgentRole: 'CameraDirectorAgent',
     color: '#22c55e',
     description: 'Tạo lộ trình đường bay Camera 3D qua các Shot, hiệu ứng đẩy cận (Dolly Push-in), xóa phông DOF và rung máy.',
-    inputs: ['scene_ctx', 'motion_stream'],
+    inputs: ['scene_ctx', 'motion_stream', 'actors_rig'],
     outputs: ['camera_cut'],
     presets: [
       {
@@ -317,7 +317,7 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     aiAgentRole: 'AudioLipSyncAgent',
     color: '#06b6d4',
     description: 'Phối nhạc nền (BGM), tiếng động môi trường (Ambience), gắn thoại nhân vật và tự động nhép môi (Lip-Sync).',
-    inputs: ['actors_rig'],
+    inputs: ['actors_rig', 'scene_ctx'],
     outputs: ['audio_mix'],
     presets: [
       {
@@ -349,7 +349,7 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     aiAgentRole: 'ColorGradingRenderAgent',
     color: '#eab308',
     description: 'Tổng hợp toàn bộ luồng dữ liệu, áp dụng Sương mù chiều sâu (3D Fog), Vignette, Film Grain và kết xuất.',
-    inputs: ['vfx_stage', 'audio_mix', 'camera_cut'],
+    inputs: ['vfx_stage', 'camera_cut', 'audio_mix', 'scene_ctx', 'motion_stream'],
     outputs: [],
     presets: [
       {
@@ -462,45 +462,117 @@ export function upgradeCrampedNodePositions(nodes: WorkflowNode[]): WorkflowNode
 
 /** Danh sách kết nối cổng (Port Edges) chuẩn mực giữa 7 khâu sản xuất video */
 export function buildStandardEdges(nodes: WorkflowNode[]): WorkflowEdge[] {
+  const enabledNodes = nodes.filter((n) => n.enabled)
+  if (enabledNodes.length <= 1) return []
+
   const byType = new Map<WorkflowNodeType, WorkflowNode[]>()
-  for (const n of nodes) {
-    if (!n.enabled) continue
+  for (const n of enabledNodes) {
     const list = byType.get(n.type) ?? []
     list.push(n)
     byType.set(n.type, list)
   }
-  const pairs: { from: WorkflowNodeType; port: WorkflowPortKind; to: WorkflowNodeType }[] = [
-    { from: 'scene_shot', port: 'scene_ctx', to: 'layer_assembly' },
-    { from: 'scene_shot', port: 'scene_ctx', to: 'camera_director' },
-    { from: 'layer_assembly', port: 'actors_rig', to: 'motion_choreography' },
-    { from: 'layer_assembly', port: 'actors_rig', to: 'audio_lipsync' },
-    { from: 'motion_choreography', port: 'motion_stream', to: 'physics_fx' },
-    { from: 'motion_choreography', port: 'motion_stream', to: 'camera_director' },
-    { from: 'physics_fx', port: 'vfx_stage', to: 'look_output' },
-    { from: 'camera_director', port: 'camera_cut', to: 'look_output' },
-    { from: 'audio_lipsync', port: 'audio_mix', to: 'look_output' }
-  ]
 
   const edges: WorkflowEdge[] = []
-  for (const p of pairs) {
-    const srcs = byType.get(p.from) ?? []
-    const dsts = byType.get(p.to) ?? []
-    for (const src of srcs) {
-      for (const dst of dsts) {
-        edges.push({
-          id: `edge-${src.id}-${p.port}-${dst.id}`,
-          fromNode: src.id,
-          fromPort: p.port,
-          toNode: dst.id,
-          toPort: p.port
-        })
-      }
+  const edgeKeySet = new Set<string>()
+
+  const addEdge = (
+    fromNode: WorkflowNode,
+    fromPort: WorkflowPortKind,
+    toNode: WorkflowNode,
+    toPort: WorkflowPortKind
+  ) => {
+    if (fromNode.id === toNode.id) return
+    const key = `${fromNode.id}:${fromPort}->${toNode.id}:${toPort}`
+    if (edgeKeySet.has(key)) return
+    edgeKeySet.add(key)
+    edges.push({
+      id: `edge-${fromNode.id}-${fromPort}-${toNode.id}-${toPort}`,
+      fromNode: fromNode.id,
+      fromPort,
+      toNode: toNode.id,
+      toPort
+    })
+  }
+
+  const scenes = byType.get('scene_shot') ?? []
+  const assemblies = byType.get('layer_assembly') ?? []
+  const motions = byType.get('motion_choreography') ?? []
+  const fxList = byType.get('physics_fx') ?? []
+  const cameras = byType.get('camera_director') ?? []
+  const audios = byType.get('audio_lipsync') ?? []
+  const looks = byType.get('look_output') ?? []
+
+  // 1. Phân cảnh & Z -> Lắp ráp Thực thể (hoặc trực tiếp Motion nếu không có Assembly)
+  for (const sc of scenes) {
+    if (assemblies.length > 0) {
+      for (const as of assemblies) addEdge(sc, 'scene_ctx', as, 'scene_ctx')
+    } else if (motions.length > 0) {
+      addEdge(sc, 'scene_ctx', motions[0], 'scene_ctx')
+    }
+    // Phân cảnh -> Camera 3D (truyền thông số chiều sâu Z và danh sách Shot)
+    for (const cam of cameras) {
+      addEdge(sc, 'scene_ctx', cam, 'scene_ctx')
     }
   }
+
+  // 2. Lắp ráp Thực thể -> Chuyển động & Âm thanh
+  for (const as of assemblies) {
+    if (motions.length > 0) {
+      addEdge(as, 'actors_rig', motions[0], 'actors_rig')
+    }
+    for (const au of audios) {
+      addEdge(as, 'actors_rig', au, 'actors_rig')
+    }
+  }
+
+  // 3. Chuyển động 2.5D: Nối tiếp các Motion node trong chuỗi (Chaining), hoặc sang FX / Camera
+  if (motions.length > 0) {
+    for (let i = 0; i < motions.length - 1; i++) {
+      addEdge(motions[i], 'motion_stream', motions[i + 1], 'motion_stream')
+    }
+    const lastMotion = motions[motions.length - 1]
+    if (fxList.length > 0) {
+      addEdge(lastMotion, 'motion_stream', fxList[0], 'motion_stream')
+    }
+    for (const cam of cameras) {
+      addEdge(lastMotion, 'motion_stream', cam, 'motion_stream')
+    }
+    if (fxList.length === 0 && looks.length > 0) {
+      for (const lk of looks) addEdge(lastMotion, 'motion_stream', lk, 'motion_stream')
+    }
+  } else if (assemblies.length > 0 && fxList.length > 0) {
+    for (const as of assemblies) addEdge(as, 'actors_rig', fxList[0], 'actors_rig')
+  }
+
+  // 4. Vật lý & FX: Nối tiếp các FX node trong chuỗi (Chaining), cuối cùng đổ về Look
+  if (fxList.length > 0) {
+    for (let i = 0; i < fxList.length - 1; i++) {
+      addEdge(fxList[i], 'vfx_stage', fxList[i + 1], 'vfx_stage')
+    }
+    const lastFx = fxList[fxList.length - 1]
+    for (const lk of looks) {
+      addEdge(lastFx, 'vfx_stage', lk, 'vfx_stage')
+    }
+  }
+
+  // 5. Đạo diễn Camera -> Màu & Xuất bản Master
+  for (const cam of cameras) {
+    for (const lk of looks) {
+      addEdge(cam, 'camera_cut', lk, 'camera_cut')
+    }
+  }
+
+  // 6. Âm thanh & Lip-Sync -> Màu & Xuất bản Master
+  for (const au of audios) {
+    for (const lk of looks) {
+      addEdge(au, 'audio_mix', lk, 'audio_mix')
+    }
+  }
+
   return edges
 }
 
-function makeNode(
+export function makeNode(
   type: WorkflowNodeType,
   presetId?: string,
   enabled = true,
@@ -528,150 +600,39 @@ function makeNode(
   }
 }
 
-export const WORKFLOW_TEMPLATES: WorkflowTemplateSpec[] = [
-  {
-    id: 'cinematic_parallax_intro',
-    name: 'Mở đầu Điện ảnh Parallax 2.5D',
-    badge: '🎬',
-    category: 'cinematic',
+/**
+ * Tạo quy trình chuẩn 7 khâu logic hoàn chỉnh (Canonical Flow).
+ * Không sử dụng các mẫu cứng nhắc; người dùng có thể tự do xóa, thêm node logic và nối dây theo ý muốn.
+ */
+export function createCanonicalWorkflow(targetShotId?: string): WorkflowGraph {
+  const nodes: WorkflowNode[] = [
+    makeNode('scene_shot', 'deep_parallax_stage', true),
+    makeNode('layer_assembly', 'character_and_foliage_rig', true),
+    makeNode('motion_choreography', 'organic_wind_breathe', true),
+    makeNode('physics_fx', 'candle_wind_particles', true),
+    makeNode('camera_director', 'cinematic_fly_push', true),
+    makeNode('audio_lipsync', 'voice_lipsync_bgm', true),
+    makeNode('look_output', 'cinematic_atmospheric_fog', true)
+  ]
+  return {
+    version: 1,
+    id: 'wf-canonical-pipeline',
+    name: 'Quy trình Xử lý Parallax 2.5D',
     description:
-      'Quy trình chuẩn dựng cảnh Parallax 2.5D: Trải tầng độ sâu Z -> Lắp ráp thực thể -> Gió tự nhiên & nhịp thở -> Ánh sáng & Hạt -> Camera bay xuyên cảnh -> Âm thanh -> Sương mù điện ảnh.',
-    buildGraph: () => {
-      const nodes: WorkflowNode[] = [
-        makeNode('scene_shot', 'deep_parallax_stage', true),
-        makeNode('layer_assembly', 'character_and_foliage_rig', true),
-        makeNode('motion_choreography', 'organic_wind_breathe', true),
-        makeNode('physics_fx', 'candle_wind_particles', true),
-        makeNode('camera_director', 'cinematic_fly_push', true),
-        makeNode('audio_lipsync', 'cinematic_bgm_ambience', true),
-        makeNode('look_output', 'cinematic_atmospheric_fog', true)
-      ]
-      return {
-        version: 1,
-        id: 'wf-cinematic-parallax',
-        name: 'Mở đầu Điện ảnh Parallax 2.5D',
-        presetId: 'cinematic_parallax_intro',
-        description:
-          'Quy trình dựng video Parallax 2.5D toàn diện: tự động phân tầng độ sâu, kích hoạt gió tự nhiên, thêm hạt đom đóm, tạo đường bay camera mượt và phủ sương mù chiều sâu.',
-        nodes,
-        edges: buildStandardEdges(nodes)
-      }
-    }
-  },
-  {
-    id: 'character_action_physics',
-    name: 'Hành động Nhân vật & Vật lý Va chạm',
-    badge: '⚔️',
-    category: 'action',
-    description:
-      'Tối ưu cho phân cảnh hành động / võ thuật: Sân khấu mặt đất -> Nhân vật gắn xương -> Bật nhảy Parabol & chuyển động thứ cấp -> Vật lý đàn hồi & Glow -> Camera rung nhẹ kịch tính.',
-    buildGraph: () => {
-      const nodes: WorkflowNode[] = [
-        makeNode('scene_shot', 'grounded_3d_stage', true),
-        makeNode('layer_assembly', 'character_and_foliage_rig', true),
-        makeNode('motion_choreography', 'dynamic_action_arc', true),
-        makeNode('physics_fx', 'combat_elastic_glow', true),
-        makeNode('camera_director', 'dramatic_handheld_action', true),
-        makeNode('audio_lipsync', 'cinematic_bgm_ambience', true),
-        makeNode('look_output', 'vibrant_anime_clean', true)
-      ]
-      return {
-        version: 1,
-        id: 'wf-character-action',
-        name: 'Hành động Nhân vật & Vật lý Va chạm',
-        presetId: 'character_action_physics',
-        description:
-          'Quy trình chuyên biệt cho cảnh hành động nhân vật: kích hoạt vật lý đàn hồi Mesh, chuyển động parabol, viền sáng Glow và camera rung cầm tay.',
-        nodes,
-        edges: buildStandardEdges(nodes)
-      }
-    }
-  },
-  {
-    id: 'cave_virtual_light_explore',
-    name: 'Thám hiểm Hang động & Ánh sáng Ảo',
-    badge: '🕯️',
-    category: 'atmosphere',
-    description:
-      'Dành cho cảnh đi vào hang tối hoặc rừng đêm: Cửa hang Depth Portal tự thu nhỏ & phủ bóng đêm -> Nhân vật cầm nến/đèn pin nhạy theo gió -> Hạt bụi sáng -> Màu đêm huyền ảo.',
-    buildGraph: () => {
-      const nodes: WorkflowNode[] = [
-        makeNode('scene_shot', 'deep_parallax_stage', true),
-        makeNode('layer_assembly', 'character_and_foliage_rig', true),
-        makeNode('motion_choreography', 'character_walk_depth', true),
-        makeNode('physics_fx', 'cave_portal_flashlight', true),
-        makeNode('camera_director', 'dolly_push_focus', true),
-        makeNode('audio_lipsync', 'cinematic_bgm_ambience', true),
-        makeNode('look_output', 'mystic_night_glow', true)
-      ]
-      return {
-        version: 1,
-        id: 'wf-cave-explore',
-        name: 'Thám hiểm Hang động & Ánh sáng Ảo',
-        presetId: 'cave_virtual_light_explore',
-        description:
-          'Kết hợp Vùng độ sâu cửa hang (Depth Portal) với Nguồn sáng ảo 2.5D (đèn pin/ánh nến theo gió) và bước đi chiều sâu Z.',
-        nodes,
-        edges: buildStandardEdges(nodes)
-      }
-    }
-  },
-  {
-    id: 'story_dialogue_lipsync',
-    name: 'Kể chuyện Hội thoại & Nhép môi Tự động',
-    badge: '🎙️',
-    category: 'story',
-    description:
-      'Tập trung vào nhân vật kể chuyện và đối thoại: Cận cảnh nhân vật -> Đa biến thể biểu cảm -> Nhịp thở tự nhiên -> Gắn thoại & Tự động Lip-Sync khẩu hình miệng -> Đẩy cận Dolly-In.',
-    buildGraph: () => {
-      const nodes: WorkflowNode[] = [
-        makeNode('scene_shot', 'intimate_portrait_stage', true),
-        makeNode('layer_assembly', 'expr_variant_actors', true),
-        makeNode('motion_choreography', 'organic_wind_breathe', true),
-        makeNode('physics_fx', 'candle_wind_particles', false),
-        makeNode('camera_director', 'dolly_push_focus', true),
-        makeNode('audio_lipsync', 'voice_lipsync_bgm', true),
-        makeNode('look_output', 'vibrant_anime_clean', true)
-      ]
-      return {
-        version: 1,
-        id: 'wf-story-dialogue',
-        name: 'Kể chuyện Hội thoại & Nhép môi Tự động',
-        presetId: 'story_dialogue_lipsync',
-        description:
-          'Tối ưu cho cảnh đối thoại nhân vật: tự động gắn track giọng nói, bật nhép môi Lip-Sync và giữ góc máy cận cảnh giàu cảm xúc.',
-        nodes,
-        edges: buildStandardEdges(nodes)
-      }
-    }
-  },
-  {
-    id: 'arch3d_flythrough',
-    name: 'Bay xuyên Kiến trúc 3D & Đạo cụ 2.5D',
-    badge: '🏛️',
-    category: 'architecture',
-    description:
-      'Phô diễn công trình 3D kết hợp cây cối 2.5D: Sân khấu mặt đất 3D -> Mô hình kiến trúc 3D -> Cây cối đung đưa -> Camera lượn vòng Orbit 3D -> Sương mù chiều sâu.',
-    buildGraph: () => {
-      const nodes: WorkflowNode[] = [
-        makeNode('scene_shot', 'grounded_3d_stage', true),
-        makeNode('layer_assembly', 'arch3d_and_props', true),
-        makeNode('motion_choreography', 'organic_wind_breathe', true),
-        makeNode('physics_fx', 'candle_wind_particles', true),
-        makeNode('camera_director', 'orbit_showcase_3d', true),
-        makeNode('audio_lipsync', 'cinematic_bgm_ambience', true),
-        makeNode('look_output', 'cinematic_atmospheric_fog', true)
-      ]
-      return {
-        version: 1,
-        id: 'wf-arch3d-flythrough',
-        name: 'Bay xuyên Kiến trúc 3D & Đạo cụ 2.5D',
-        presetId: 'arch3d_flythrough',
-        description:
-          'Quy trình trình diễn kiến trúc 3D và không gian nội/ngoại thất với quỹ đạo Camera Orbit 3D mượt mà.',
-        nodes,
-        edges: buildStandardEdges(nodes)
-      }
-    }
+      'Quy trình chuẩn 7 khâu xử lý hoàn chỉnh: Phân cảnh & Z ➔ Lắp ráp ➔ Chuyển động ➔ Vật lý/FX ➔ Camera 3D ➔ Âm thanh ➔ Màu & Xuất bản.',
+    nodes,
+    edges: buildStandardEdges(nodes),
+    targetShotId
   }
-]
+}
+
+export function createDefaultWorkflow(): WorkflowGraph {
+  return createCanonicalWorkflow()
+}
+
+export function getWorkflowFromTemplate(_presetId?: string): WorkflowGraph {
+  return createCanonicalWorkflow()
+}
+
+/** Đã xóa bỏ các mẫu quy trình có sẵn cứng nhắc theo yêu cầu; trả về mảng rỗng để tương thích backward */
+export const WORKFLOW_TEMPLATES: WorkflowTemplateSpec[] = []

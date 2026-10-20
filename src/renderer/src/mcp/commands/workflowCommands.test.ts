@@ -71,13 +71,11 @@ describe('MCP workflowCommands & Workflow Engine', () => {
     useEditor.getState().loadProject(proj, null)
   })
 
-  it('lists built-in workflow presets, node specs, and port specs', async () => {
+  it('lists node specs, port specs, and logic nodes via list_workflow_presets', async () => {
     const res = (await runCommand('list_workflow_presets')) as any
-    expect(res.templates.length).toBeGreaterThanOrEqual(5)
     expect(res.nodeTypes.length).toBe(7)
     expect(res.ports.length).toBe(6)
-    expect(res.templates.map((t: any) => t.id)).toContain('cinematic_parallax_intro')
-    expect(res.templates.map((t: any) => t.id)).toContain('character_action_physics')
+    expect(res.logicNodes.length).toBeGreaterThanOrEqual(10)
   })
 
   it('returns default workflow and compiled AI Logical Agent Blueprint via get_workflow', async () => {
@@ -92,15 +90,13 @@ describe('MCP workflowCommands & Workflow Engine', () => {
     ).toBe(true)
   })
 
-  it('updates workflow preset and individual node configuration via set_workflow', async () => {
+  it('updates individual node configuration via set_workflow', async () => {
     const res = (await runCommand('set_workflow', {
-      preset_id: 'cave_virtual_light_explore',
       node_id: 'wf-camera_director',
       node_preset: 'dolly_push_focus'
     })) as any
 
     expect(res.ok).toBe(true)
-    expect(res.workflow.presetId).toBe('cave_virtual_light_explore')
     const camNode = res.workflow.nodes.find((n: any) => n.id === 'wf-camera_director')
     expect(camNode.preset).toBe('dolly_push_focus')
   })
@@ -136,9 +132,7 @@ describe('MCP workflowCommands & Workflow Engine', () => {
   })
 
   it('executes connected workflow onto project via apply_workflow', async () => {
-    const res = (await runCommand('apply_workflow', {
-      preset_id: 'character_action_physics'
-    })) as any
+    const res = (await runCommand('apply_workflow', {})) as any
 
     expect(res.ok).toBe(true)
     expect(res.report).toBeDefined()
@@ -146,12 +140,11 @@ describe('MCP workflowCommands & Workflow Engine', () => {
     expect(res.executedStages.some((s: any) => s.affectedCount > 0)).toBe(true)
 
     const updatedProject = useEditor.getState().project
-    expect(updatedProject.workflow?.presetId).toBe('character_action_physics')
     expect(updatedProject.camera.position.keyframes.length).toBeGreaterThan(0)
     // Character layer should have motion or physics configured
     const hero = updatedProject.layers.find((l) => l.name.includes('Hero'))
     expect(hero?.motion?.type).not.toBe('none')
-    expect(hero?.physics?.enabled).toBe(true)
+    expect(hero?.virtualLight?.enabled).toBe(true)
   })
 
   it('binds explicit 2.5D composite/layers and sub-parts to a workflow node and reflects in AI Blueprint', async () => {

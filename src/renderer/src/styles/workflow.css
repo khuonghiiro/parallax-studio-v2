@@ -904,3 +904,48 @@
   border-color: var(--danger);
   background: color-mix(in srgb, var(--danger) 15%, var(--bg-2));
 }
+
+/* Trạng thái Luồng xử lý Trực quan (Pipeline Health Badge) */
+.wf-pipeline-health-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  font-size: 10.5px;
+  font-weight: 700;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  flex-shrink: 0;
+  white-space: nowrap;
+  user-select: none;
+}
+.wf-pipeline-health-badge.complete {
+  border-color: color-mix(in srgb, var(--ok) 65%, var(--line));
+  background: color-mix(in srgb, var(--ok) 14%, var(--bg-1));
+  color: var(--ok);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--ok) 25%, transparent);
+}
+.wf-pipeline-health-badge.building {
+  border-color: color-mix(in srgb, var(--warn) 60%, var(--line));
+  background: color-mix(in srgb, var(--warn) 12%, var(--bg-1));
+  color: var(--warn);
+}
+.wf-pipeline-health-badge.broken {
+  border-color: color-mix(in srgb, var(--err) 55%, var(--line));
+  background: color-mix(in srgb, var(--err) 12%, var(--bg-1));
+  color: var(--err);
+}
+.wf-health-dot {
+  width: 6.5px;
+  height: 6.5px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+  flex-shrink: 0;
+}
+.wf-health-dot.pulsing {
+  animation: wf-dot-pulse 0.9s ease-in-out infinite alternate;
+}

@@ -1,13 +1,13 @@
 import type { LayerMotion, LayerMotionType, Vec3 } from '@shared/types'
 import { smoothNoise } from './math'
 
-export const MOTION_TYPES: LayerMotionType[] = ['none', 'drift', 'wind', 'sway', 'float', 'wiggle', 'pulse']
+export const MOTION_TYPES: LayerMotionType[] = ['none', 'drift', 'wind', 'sway', 'float', 'wiggle', 'pulse', 'spin']
 
 export function defaultLayerMotion(type: LayerMotionType): LayerMotion {
   const values: Record<LayerMotionType, [number, Vec3]> = {
     none: [0, [0, 0, 0]], drift: [40, [1500, 12, 0]], wind: [0.6, [8, 2, 1.2]],
     sway: [0.6, [8, 2, 1.2]], float: [0.4, [4, 15, 0]],
-    wiggle: [1.5, [15, 15, 0]], pulse: [0.5, [0.05, 0.05, 0]]
+    wiggle: [1.5, [15, 15, 0]], pulse: [0.5, [0.05, 0.05, 0]], spin: [25, [0, 0, 360]]
   }
   return { type, enabled: true, speed: values[type][0], amplitude: [...values[type][1]],
     amount: 1, phase: 0, seed: 0, startTime: 0, duration: 0, fadeIn: 0, fadeOut: 0,

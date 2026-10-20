@@ -24,6 +24,7 @@ import {
   WORKFLOW_NODE_SPECS,
   WORKFLOW_PORT_SPECS,
   WORKFLOW_TEMPLATES,
+  createCanonicalWorkflow,
   buildStandardEdges,
   isLegacyCrampedWorkflowLayout,
   upgradeCrampedNodePositions
@@ -70,17 +71,11 @@ export {
 }
 
 export function createDefaultWorkflow(): WorkflowGraph {
-  return WORKFLOW_TEMPLATES[0].buildGraph()
+  return createCanonicalWorkflow()
 }
 
-export function getWorkflowFromTemplate(presetId: string): WorkflowGraph {
-  const found = WORKFLOW_TEMPLATES.find((t) => t.id === presetId)
-  if (!found) {
-    throw new Error(
-      `Unknown workflow preset "${presetId}". Available: ${WORKFLOW_TEMPLATES.map((t) => t.id).join(', ')}`
-    )
-  }
-  return found.buildGraph()
+export function getWorkflowFromTemplate(_presetId?: string): WorkflowGraph {
+  return createCanonicalWorkflow()
 }
 
 export function ensureProjectWorkflow(project: Project): WorkflowGraph {
@@ -121,17 +116,20 @@ export function resolveConnectedWorkflowNodes(workflow: WorkflowGraph): {
     return { activeNodes: enabledNodes, disconnectedNodes: disabledNodes }
   }
 
-  // Duyệt BFS có hướng bắt đầu từ khối gốc đầu vào (Phân cảnh #1 - inputs rỗng)
-  // Một khối có cổng đầu vào (inputs > 0) CHỈ được kích hoạt khi có đường truyền tín hiệu liên tục từ gốc!
-  const rootNodes = enabledNodes.filter(
+  // Duyệt BFS có hướng bắt đầu từ khối gốc đầu vào (Phân cảnh #1 - inputs rỗng hoặc không có cạnh vào)
+  const explicitRootNodes = enabledNodes.filter(
     (n) => (WORKFLOW_NODE_SPECS[n.type]?.inputs.length ?? 0) === 0
   )
-  const activeRootNodes = rootNodes.filter((r) =>
+  const rootCandidates =
+    explicitRootNodes.length > 0
+      ? explicitRootNodes
+      : enabledNodes.filter((n) => !validEdges.some((e) => e.toNode === n.id))
+
+  const activeRoots = rootCandidates.filter((r) =>
     validEdges.some((e) => e.fromNode === r.id)
   )
-
   const reachableNodeIds = new Set<string>()
-  const queue: string[] = activeRootNodes.map((r) => r.id)
+  const queue: string[] = (enabledNodes.length === 1 ? rootCandidates : activeRoots).map((r) => r.id)
   for (const id of queue) {
     reachableNodeIds.add(id)
   }
@@ -146,14 +144,60 @@ export function resolveConnectedWorkflowNodes(workflow: WorkflowGraph): {
     }
   }
 
+  // Sắp xếp thứ tự thực thi theo Topological Sort (Kahn's Algorithm) kết hợp Step Order
+  const inDegree = new Map<string, number>()
+  const adj = new Map<string, string[]>()
+  for (const id of reachableNodeIds) {
+    inDegree.set(id, 0)
+    adj.set(id, [])
+  }
+  for (const e of validEdges) {
+    if (reachableNodeIds.has(e.fromNode) && reachableNodeIds.has(e.toNode)) {
+      adj.get(e.fromNode)!.push(e.toNode)
+      inDegree.set(e.toNode, (inDegree.get(e.toNode) ?? 0) + 1)
+    }
+  }
+
   const orderIndex = (n: WorkflowNode): number => {
     const idx = CANONICAL_NODE_ORDER.indexOf(n.type)
     return idx >= 0 ? idx : 99
   }
 
-  const activeNodes = enabledNodes
-    .filter((n) => reachableNodeIds.has(n.id))
-    .sort((a, b) => orderIndex(a) - orderIndex(b))
+  const topoOrder: string[] = []
+  const zeroQueue = Array.from(reachableNodeIds)
+    .filter((id) => (inDegree.get(id) ?? 0) === 0)
+    .sort((a, b) => {
+      const na = enabledNodes.find((n) => n.id === a)!
+      const nb = enabledNodes.find((n) => n.id === b)!
+      return orderIndex(na) - orderIndex(nb)
+    })
+
+  while (zeroQueue.length > 0) {
+    const curr = zeroQueue.shift()!
+    topoOrder.push(curr)
+    for (const neighbor of adj.get(curr) ?? []) {
+      const nextDeg = (inDegree.get(neighbor) ?? 1) - 1
+      inDegree.set(neighbor, nextDeg)
+      if (nextDeg === 0) {
+        zeroQueue.push(neighbor)
+        zeroQueue.sort((a, b) => {
+          const na = enabledNodes.find((n) => n.id === a)!
+          const nb = enabledNodes.find((n) => n.id === b)!
+          return orderIndex(na) - orderIndex(nb)
+        })
+      }
+    }
+  }
+
+  for (const id of reachableNodeIds) {
+    if (!topoOrder.includes(id)) {
+      topoOrder.push(id)
+    }
+  }
+
+  const activeNodes = topoOrder
+    .map((id) => enabledNodes.find((n) => n.id === id)!)
+    .filter(Boolean)
 
   const disconnectedNodes = [
     ...disabledNodes,
@@ -257,7 +301,7 @@ export function disconnectWorkflowEdge(
  * để AI Agent (qua MCP) hiểu chính xác luồng xử lý, vai trò tác nhân và các lệnh MCP tương ứng.
  */
 export function compileWorkflowBlueprint(workflow: WorkflowGraph, project?: Project): WorkflowAiBlueprint {
-  const { activeNodes } = resolveConnectedWorkflowNodes(workflow)
+  const { activeNodes, disconnectedNodes } = resolveConnectedWorkflowNodes(workflow)
   const nodeById = new Map(workflow.nodes.map((n) => [n.id, n]))
   const activeSet = new Set(activeNodes.map((n) => n.id))
 
@@ -328,6 +372,11 @@ export function compileWorkflowBlueprint(workflow: WorkflowGraph, project?: Proj
 
   const hasScene = activeNodes.some((n) => n.type === 'scene_shot')
   const hasOutput = activeNodes.some((n) => n.type === 'look_output' || n.type === 'camera_director')
+  const isPipelineComplete =
+    hasScene &&
+    hasOutput &&
+    activeNodes.length >= 2 &&
+    disconnectedNodes.length === 0
 
   return {
     workflowId: workflow.id,
@@ -336,11 +385,13 @@ export function compileWorkflowBlueprint(workflow: WorkflowGraph, project?: Proj
     description: workflow.description,
     totalNodes: workflow.nodes.length,
     connectedNodesCount: activeNodes.length,
-    isPipelineComplete: hasScene && hasOutput && activeNodes.length >= 2,
+    isPipelineComplete,
     pipelineSummary:
       agents.length > 0
-        ? agents.map((a) => `[${a.step}. ${a.aiAgentRole}: ${a.presetLabel}]`).join(' ➔ ')
-        : 'Chưa có khối chức năng nào được nối Port kích hoạt.',
+        ? isPipelineComplete
+          ? `✓ Luồng hoàn chỉnh (${agents.length} khâu): ${agents.map((a) => a.presetLabel || a.title).join(' ➔ ')}`
+          : `Đang xử lý (${agents.length}/${workflow.nodes.length} khâu): ${agents.map((a) => a.presetLabel || a.title).join(' ➔ ')}`
+        : '⛔ Chưa có khối chức năng nào được nối Port kích hoạt.',
     executionOrder: activeNodes.map((n) => n.type),
     agents
   }

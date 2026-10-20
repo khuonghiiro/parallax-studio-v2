@@ -97,7 +97,7 @@ export interface ParticleProps {
   glow: boolean
 }
 
-export type LayerMotionType = 'none' | 'drift' | 'wind' | 'sway' | 'float' | 'pulse' | 'wiggle'
+export type LayerMotionType = 'none' | 'drift' | 'wind' | 'sway' | 'float' | 'pulse' | 'wiggle' | 'spin'
 
 export type DriftDirection =
   | 'right'

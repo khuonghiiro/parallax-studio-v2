@@ -11,6 +11,7 @@ import {
   WORKFLOW_TEMPLATES
 } from '../../project/workflowCatalog'
 import {
+  WORKFLOW_LOGIC_NODE_CATALOG,
   WORKFLOW_SUBPART_CATALOG,
   applyWorkflowToProject,
   autoWireWorkflowNodes,
@@ -31,13 +32,6 @@ const proj = () => ed().project
 
 export const workflowCommands: Record<string, Handler> = {
   list_workflow_presets: () => {
-    const presets = WORKFLOW_TEMPLATES.map((t) => ({
-      id: t.id,
-      name: t.name,
-      badge: t.badge,
-      category: t.category,
-      description: t.description
-    }))
     const nodeTypes = Object.values(WORKFLOW_NODE_SPECS).map((n) => ({
       type: n.type,
       step_order: n.stepOrder,
@@ -54,12 +48,25 @@ export const workflowCommands: Record<string, Handler> = {
       }))
     }))
     const ports = Object.values(WORKFLOW_PORT_SPECS)
+    const logicNodes = WORKFLOW_LOGIC_NODE_CATALOG.map((item) => ({
+      id: item.id,
+      category: item.category,
+      category_label: item.categoryLabel,
+      node_type: item.nodeType,
+      icon: item.icon,
+      title: item.title,
+      short_label: item.shortLabel,
+      preset: item.preset,
+      description: item.description
+    }))
     return {
-      presets,
-      templates: presets,
+      presets: [],
+      templates: [],
       node_types: nodeTypes,
       nodeTypes,
-      ports
+      ports,
+      logic_nodes: logicNodes,
+      logicNodes
     }
   },
 

@@ -22,7 +22,7 @@ export const SOCKET_ROW_H = 18
 export function estimateNodeCardHeight(node: WorkflowNode): number {
   const spec = WORKFLOW_NODE_SPECS[node.type]
   const rows = Math.max(spec?.inputs.length ?? 1, spec?.outputs.length ?? 1, 1)
-  return HEADER_H + SOCKET_PAD_TOP * 2 + rows * SOCKET_ROW_H + 124
+  return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 116
 }
 
 /** Tọa độ tâm chính xác tuyệt đối của chân cắm Port Đầu Ra (nằm đúng trên mép phải khối) */
@@ -107,7 +107,7 @@ export function buildSmartEdgeGeometry(
     const corridorTop = topRowBottoms.length > 0 ? Math.max(...topRowBottoms) : 174
     const corridorBottom = bottomRowTops.length > 0 ? Math.min(...bottomRowTops) : 256
 
-    if (corridorBottom - corridorTop >= 28) {
+    if (corridorBottom - corridorTop >= 12) {
       const laneOffset = fromPort === 'scene_ctx' ? 0.36 : 0.66
       const corridorY = Math.round(corridorTop + (corridorBottom - corridorTop) * laneOffset)
       const entryX = Math.min(p1.x + 96, (p1.x + p2.x) / 2 - 20)

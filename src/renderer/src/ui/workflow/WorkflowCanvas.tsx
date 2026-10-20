@@ -671,11 +671,11 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
                   >
                     {node.enabled ? 'ON' : 'OFF'}
                   </button>
-                  {node.params?.logicId && onDeleteNode && (
+                  {onDeleteNode && workflow.nodes.length > 1 && (
                     <button
                       type="button"
                       className="wf-node-del-btn"
-                      title="Xóa Node Logic này khỏi sơ đồ"
+                      title={`Xóa "${node.title}" khỏi sơ đồ`}
                       onClick={(e) => {
                         e.stopPropagation()
                         onDeleteNode(node.id)

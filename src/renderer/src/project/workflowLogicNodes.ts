@@ -15,11 +15,18 @@ import {
 import { getDefaultPartsForNode } from './workflowTargets'
 import type { WorkflowPortKind } from '@shared/types'
 
-export type WorkflowLogicNodeCategory = WorkflowLogicNodeCatalogItem['category']
+export type WorkflowLogicNodeCategory =
+  | 'scene'
+  | 'assembly'
+  | 'motion'
+  | 'light_fx'
+  | 'camera'
+  | 'audio'
+  | 'look'
 
 export interface WorkflowLogicNodeCatalogItem {
   id: string
-  category: 'scene' | 'motion' | 'light_fx' | 'camera' | 'look_audio'
+  category: WorkflowLogicNodeCategory
   categoryLabel: string
   nodeType: WorkflowNodeType
   icon: string
@@ -35,15 +42,17 @@ export interface WorkflowLogicNodeCatalogItem {
 }
 
 export const WORKFLOW_LOGIC_NODE_CATEGORIES: {
-  id: WorkflowLogicNodeCatalogItem['category']
+  id: WorkflowLogicNodeCategory
   label: string
   icon: string
 }[] = [
+  { id: 'scene', label: '🎬 Không gian Z', icon: '🎬' },
+  { id: 'assembly', label: '🧩 Lắp ráp Thực thể', icon: '🧩' },
   { id: 'motion', label: '🍃 Chuyển động', icon: '🍃' },
-  { id: 'light_fx', label: '🕯️ Ánh sáng & Vật lý', icon: '🕯️' },
+  { id: 'light_fx', label: '🕯️ Ánh sáng & FX', icon: '🕯️' },
   { id: 'camera', label: '🎥 Camera 3D', icon: '🎥' },
-  { id: 'look_audio', label: '🌅 Màu & Âm thanh', icon: '🌅' },
-  { id: 'scene', label: '🎬 Không gian Z', icon: '🎬' }
+  { id: 'audio', label: '🎙️ Âm thanh & Thoại', icon: '🎙️' },
+  { id: 'look', label: '🌅 Màu sắc & Xuất', icon: '🌅' }
 ]
 
 /**
@@ -367,11 +376,52 @@ export const WORKFLOW_LOGIC_NODE_CATALOG: WorkflowLogicNodeCatalogItem[] = [
     description: 'Bật làm mờ hậu cảnh xa mặt phẳng lấy nét (tắt Node này để ảnh Camera nét căng như Cam 2D).'
   },
 
-  // 4. Nhóm Màu sắc & Âm thanh
+  // 4. Nhóm Camera 3D mở rộng
+  {
+    id: 'logic-cam-shake',
+    category: 'camera',
+    categoryLabel: 'Đạo diễn Camera',
+    nodeType: 'camera_director',
+    icon: '⚡',
+    title: 'Logic Rung Máy Handheld Kịch Tính',
+    shortLabel: 'Rung Handheld',
+    preset: 'dramatic_handheld_action',
+    targetParts: ['fov_dolly_zoom', 'handheld_rig'],
+    enableDof: false,
+    description: 'Rung lắc cầm tay tăng nhịp độ hành động và phối cảnh Dolly Zoom kịch tính.'
+  },
+
+  // 5. Nhóm Âm thanh & Lip-Sync
+  {
+    id: 'logic-audio-lipsync',
+    category: 'audio',
+    categoryLabel: 'Âm thanh & Thoại',
+    nodeType: 'audio_lipsync',
+    icon: '🗣️',
+    title: 'Logic Nhép Môi Nhân Vật 2.5D',
+    shortLabel: 'Nhép Môi 2.5D',
+    preset: 'voice_lipsync_bgm',
+    targetParts: ['mouth_viseme_25d', 'vocal_eq_chain'],
+    description: 'Tự động đóng/mở layer Miệng nhân vật theo biên độ sóng âm giọng thoại.'
+  },
+  {
+    id: 'logic-audio-bgm',
+    category: 'audio',
+    categoryLabel: 'Âm thanh & Thoại',
+    nodeType: 'audio_lipsync',
+    icon: '🎵',
+    title: 'Logic Nhạc Nền BGM Điện Ảnh',
+    shortLabel: 'Nhạc Nền BGM',
+    preset: 'cinematic_bgm_ambience',
+    targetParts: ['vocal_eq_chain', 'mouth_viseme_25d'],
+    description: 'Cân bằng dải âm ấm (Warm EQ) và tự động Fade-in đầu cảnh, Fade-out cuối cảnh.'
+  },
+
+  // 6. Nhóm Màu sắc & Xuất bản Master
   {
     id: 'logic-look-sharp',
-    category: 'look_audio',
-    categoryLabel: 'Màu sắc & Âm thanh',
+    category: 'look',
+    categoryLabel: 'Màu sắc & Xuất',
     nodeType: 'look_output',
     icon: '💎',
     title: 'Logic Ảnh Trong Trẻo Sắc Nét',
@@ -382,8 +432,8 @@ export const WORKFLOW_LOGIC_NODE_CATALOG: WorkflowLogicNodeCatalogItem[] = [
   },
   {
     id: 'logic-look-warm',
-    category: 'look_audio',
-    categoryLabel: 'Màu sắc & Âm thanh',
+    category: 'look',
+    categoryLabel: 'Màu sắc & Xuất',
     nodeType: 'look_output',
     icon: '🌅',
     title: 'Logic Màu Điện Ảnh Hoàng Hôn',
@@ -394,8 +444,8 @@ export const WORKFLOW_LOGIC_NODE_CATALOG: WorkflowLogicNodeCatalogItem[] = [
   },
   {
     id: 'logic-look-fog',
-    category: 'look_audio',
-    categoryLabel: 'Màu sắc & Âm thanh',
+    category: 'look',
+    categoryLabel: 'Màu sắc & Xuất',
     nodeType: 'look_output',
     icon: '🌙',
     title: 'Logic Sương Mù Chiều Sâu Z',
@@ -404,20 +454,8 @@ export const WORKFLOW_LOGIC_NODE_CATALOG: WorkflowLogicNodeCatalogItem[] = [
     targetParts: ['z_depth_fog', 'color_grade_lut', 'mp4_master_out'],
     description: 'Phủ lớp sương mù chiều sâu Z cho các lớp núi và bầu trời ở xa.'
   },
-  {
-    id: 'logic-audio-lipsync',
-    category: 'look_audio',
-    categoryLabel: 'Màu sắc & Âm thanh',
-    nodeType: 'audio_lipsync',
-    icon: '🗣️',
-    title: 'Logic Nhép Môi Nhân Vật 2.5D',
-    shortLabel: 'Nhép Môi 2.5D',
-    preset: 'voice_lipsync_bgm',
-    targetParts: ['mouth_viseme_25d', 'vocal_eq_chain'],
-    description: 'Tự động đóng/mở layer Miệng nhân vật theo biên độ sóng âm giọng thoại.'
-  },
 
-  // 5. Nhóm Không gian Z
+  // 7. Nhóm Không gian Z & Sàn 3D
   {
     id: 'logic-scene-parallax',
     category: 'scene',
@@ -443,6 +481,57 @@ export const WORKFLOW_LOGIC_NODE_CATALOG: WorkflowLogicNodeCatalogItem[] = [
     targetParts: ['sky_horizon', 'mid_scenery', 'focal_plane', 'ground_plane'],
     ensureGround: true,
     description: 'Thêm mặt phẳng sàn 3D nằm ngang đỡ dưới chân nhân vật & đạo cụ.'
+  },
+  {
+    id: 'logic-scene-portrait',
+    category: 'scene',
+    categoryLabel: 'Không gian Z',
+    nodeType: 'scene_shot',
+    icon: '👤',
+    title: 'Logic Tiêu Cự Cận Chân Dung',
+    shortLabel: 'Cận Chân Dung',
+    preset: 'intimate_portrait_stage',
+    targetParts: ['sky_horizon', 'focal_plane', 'fg_frame'],
+    ensureGround: false,
+    description: 'Thu hẹp khoảng cách Z (1400 → -60) để tập trung ánh mắt vào nhân vật chính.'
+  },
+
+  // 8. Nhóm Lắp ráp Thực thể 2.5D & 3D
+  {
+    id: 'logic-assembly-billboard',
+    category: 'assembly',
+    categoryLabel: 'Lắp ráp Thực thể',
+    nodeType: 'layer_assembly',
+    icon: '🧍',
+    title: 'Logic Neo Chân & Billboard Y',
+    shortLabel: 'Neo Chân & Y',
+    preset: 'character_and_foliage_rig',
+    targetParts: ['root_anchor', 'limb_joint_fk'],
+    description: 'Đặt điểm neo ở chân [0, -0.5, 0], tự hướng thẳng đứng theo Camera khi xoay góc nhìn.'
+  },
+  {
+    id: 'logic-assembly-parts',
+    category: 'assembly',
+    categoryLabel: 'Lắp ráp Thực thể',
+    nodeType: 'layer_assembly',
+    icon: '🎭',
+    title: 'Logic Biến Thể Biểu Cảm & Parts',
+    shortLabel: 'Biến Thể Bộ Phận',
+    preset: 'expr_variant_actors',
+    targetParts: ['root_anchor', 'limb_joint_fk'],
+    description: 'Quản lý nhóm bộ phận (đầu, thân, tay, chân) và khe biến thể biểu cảm khuôn mặt.'
+  },
+  {
+    id: 'logic-assembly-arch3d',
+    category: 'assembly',
+    categoryLabel: 'Lắp ráp Thực thể',
+    nodeType: 'layer_assembly',
+    icon: '🏛️',
+    title: 'Logic Kiến Trúc 3D & Đạo Cụ',
+    shortLabel: 'Kiến Trúc 3D',
+    preset: 'arch3d_and_props',
+    targetParts: ['root_anchor'],
+    description: 'Bảo toàn hình học không gian 3 chiều và khóa cụm Composite cho mô hình kiến trúc.'
   }
 ]
 
@@ -518,59 +607,68 @@ export function spawnLogicNodeIntoWorkflow(
 
   const sceneNode = workflow.nodes.find((n) => n.type === 'scene_shot' && n.enabled) ?? workflow.nodes[0]
   const assemblyNode = workflow.nodes.find((n) => n.type === 'layer_assembly' && n.enabled)
-  const motionNode = workflow.nodes.find((n) => n.type === 'motion_choreography' && n.enabled)
+  const motionNodes = workflow.nodes.filter((n) => n.type === 'motion_choreography' && n.enabled)
+  const lastMotionNode = motionNodes.length > 0 ? motionNodes[motionNodes.length - 1] : null
+  const fxNodes = workflow.nodes.filter((n) => n.type === 'physics_fx' && n.enabled)
+  const lastFxNode = fxNodes.length > 0 ? fxNodes[fxNodes.length - 1] : null
+  const camNode = workflow.nodes.find((n) => n.type === 'camera_director' && n.enabled)
+  const audioNode = workflow.nodes.find((n) => n.type === 'audio_lipsync' && n.enabled)
   const lookNode = workflow.nodes.find((n) => n.type === 'look_output' && n.enabled)
 
-  if (item.nodeType === 'motion_choreography') {
-    if (assemblyNode) {
+  if (item.nodeType === 'scene_shot') {
+    if (assemblyNode) addEdgeIfMissing(newNode.id, 'scene_ctx', assemblyNode.id, 'scene_ctx')
+    else if (lastMotionNode) addEdgeIfMissing(newNode.id, 'scene_ctx', lastMotionNode.id, 'scene_ctx')
+    if (camNode) addEdgeIfMissing(newNode.id, 'scene_ctx', camNode.id, 'scene_ctx')
+  } else if (item.nodeType === 'layer_assembly') {
+    if (sceneNode) addEdgeIfMissing(sceneNode.id, 'scene_ctx', newNode.id, 'scene_ctx')
+    if (lastMotionNode) addEdgeIfMissing(newNode.id, 'actors_rig', lastMotionNode.id, 'actors_rig')
+    if (audioNode) addEdgeIfMissing(newNode.id, 'actors_rig', audioNode.id, 'actors_rig')
+  } else if (item.nodeType === 'motion_choreography') {
+    if (lastMotionNode) {
+      // Nối tiếp các Motion node trong chuỗi (Chaining)
+      addEdgeIfMissing(lastMotionNode.id, 'motion_stream', newNode.id, 'motion_stream')
+    } else if (assemblyNode) {
       addEdgeIfMissing(assemblyNode.id, 'actors_rig', newNode.id, 'actors_rig')
     } else if (sceneNode) {
-      addEdgeIfMissing(sceneNode.id, 'scene_ctx', newNode.id, 'actors_rig')
+      addEdgeIfMissing(sceneNode.id, 'scene_ctx', newNode.id, 'scene_ctx')
     }
-    const fxNode = workflow.nodes.find((n) => n.type === 'physics_fx' && n.enabled)
-    if (fxNode) {
-      addEdgeIfMissing(newNode.id, 'motion_stream', fxNode.id, 'motion_stream')
-    } else if (lookNode) {
-      addEdgeIfMissing(newNode.id, 'motion_stream', lookNode.id, 'vfx_stage')
+    if (lastFxNode) {
+      addEdgeIfMissing(newNode.id, 'motion_stream', lastFxNode.id, 'motion_stream')
+    }
+    if (camNode) {
+      addEdgeIfMissing(newNode.id, 'motion_stream', camNode.id, 'motion_stream')
+    }
+    if (!lastFxNode && lookNode) {
+      addEdgeIfMissing(newNode.id, 'motion_stream', lookNode.id, 'motion_stream')
     }
   } else if (item.nodeType === 'physics_fx') {
-    if (motionNode) {
-      addEdgeIfMissing(motionNode.id, 'motion_stream', newNode.id, 'motion_stream')
+    if (lastFxNode) {
+      // Nối tiếp các FX node trong chuỗi (Chaining)
+      addEdgeIfMissing(lastFxNode.id, 'vfx_stage', newNode.id, 'vfx_stage')
+    } else if (lastMotionNode) {
+      addEdgeIfMissing(lastMotionNode.id, 'motion_stream', newNode.id, 'motion_stream')
+    } else if (assemblyNode) {
+      addEdgeIfMissing(assemblyNode.id, 'actors_rig', newNode.id, 'actors_rig')
     } else if (sceneNode) {
-      addEdgeIfMissing(sceneNode.id, 'scene_ctx', newNode.id, 'motion_stream')
+      addEdgeIfMissing(sceneNode.id, 'scene_ctx', newNode.id, 'scene_ctx')
     }
     if (lookNode) {
       addEdgeIfMissing(newNode.id, 'vfx_stage', lookNode.id, 'vfx_stage')
     }
   } else if (item.nodeType === 'camera_director') {
-    if (sceneNode) {
-      addEdgeIfMissing(sceneNode.id, 'scene_ctx', newNode.id, 'scene_ctx')
-    }
-    if (motionNode) {
-      addEdgeIfMissing(motionNode.id, 'motion_stream', newNode.id, 'motion_stream')
-    }
-    if (lookNode) {
-      addEdgeIfMissing(newNode.id, 'camera_cut', lookNode.id, 'camera_cut')
-    }
+    if (sceneNode) addEdgeIfMissing(sceneNode.id, 'scene_ctx', newNode.id, 'scene_ctx')
+    if (lastMotionNode) addEdgeIfMissing(lastMotionNode.id, 'motion_stream', newNode.id, 'motion_stream')
+    if (lookNode) addEdgeIfMissing(newNode.id, 'camera_cut', lookNode.id, 'camera_cut')
   } else if (item.nodeType === 'audio_lipsync') {
-    if (assemblyNode) {
-      addEdgeIfMissing(assemblyNode.id, 'actors_rig', newNode.id, 'actors_rig')
-    } else if (sceneNode) {
-      addEdgeIfMissing(sceneNode.id, 'scene_ctx', newNode.id, 'actors_rig')
-    }
-    if (lookNode) {
-      addEdgeIfMissing(newNode.id, 'audio_mix', lookNode.id, 'audio_mix')
-    }
+    if (assemblyNode) addEdgeIfMissing(assemblyNode.id, 'actors_rig', newNode.id, 'actors_rig')
+    else if (sceneNode) addEdgeIfMissing(sceneNode.id, 'scene_ctx', newNode.id, 'scene_ctx')
+    if (lookNode) addEdgeIfMissing(newNode.id, 'audio_mix', lookNode.id, 'audio_mix')
   } else if (item.nodeType === 'look_output') {
-    const fxNode = workflow.nodes.find((n) => n.type === 'physics_fx' && n.enabled)
-    const camNode = workflow.nodes.find((n) => n.type === 'camera_director' && n.enabled)
-    if (fxNode) addEdgeIfMissing(fxNode.id, 'vfx_stage', newNode.id, 'vfx_stage')
+    if (lastFxNode) addEdgeIfMissing(lastFxNode.id, 'vfx_stage', newNode.id, 'vfx_stage')
     if (camNode) addEdgeIfMissing(camNode.id, 'camera_cut', newNode.id, 'camera_cut')
-    else if (sceneNode) addEdgeIfMissing(sceneNode.id, 'scene_ctx', newNode.id, 'vfx_stage')
-  } else if (item.nodeType === 'scene_shot') {
-    if (assemblyNode) addEdgeIfMissing(newNode.id, 'scene_ctx', assemblyNode.id, 'scene_ctx')
-    const camNode = workflow.nodes.find((n) => n.type === 'camera_director' && n.enabled)
-    if (camNode) addEdgeIfMissing(newNode.id, 'scene_ctx', camNode.id, 'scene_ctx')
+    if (audioNode) addEdgeIfMissing(audioNode.id, 'audio_mix', newNode.id, 'audio_mix')
+    if (!lastFxNode && lastMotionNode) addEdgeIfMissing(lastMotionNode.id, 'motion_stream', newNode.id, 'motion_stream')
+    if (!assemblyNode && !lastMotionNode && sceneNode) addEdgeIfMissing(sceneNode.id, 'scene_ctx', newNode.id, 'scene_ctx')
   }
 
   return {
