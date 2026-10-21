@@ -3,6 +3,10 @@ import type { Layer, Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } 
 import { importBuiltInAsset, replaceLayerAsset, toast } from '../../actions'
 import { assetStore } from '../../project/assets'
 import { WORKFLOW_LOGIC_NODE_CATALOG } from '../../project/workflowLogicCatalog'
+import { useEditor } from '../../store/editor'
+import { useView } from '../../store/view'
+import { getStoredModels3D } from '../assets/models3d/models3dStorage'
+import { requestOpenLayerAssembly } from '../layerAssembly/layerAssemblyBridge'
 import { resolveLayerAssetThumbUrl } from './WorkflowNodePreview'
 
 export interface WorkflowLayerBodyProps {
@@ -28,6 +32,48 @@ export const WorkflowLayerBody: React.FC<WorkflowLayerBodyProps> = React.memo(({
   onSelectNode
 }) => {
   const [isDragOver, setIsDragOver] = useState(false)
+  const selectedLayerId = useEditor((s) => s.selectedLayerId)
+
+  const isAssembly = useMemo(() => {
+    return Boolean(
+      node.params?.isAssemblyRoot ||
+      boundLayer.composite ||
+      boundLayer.model3d ||
+      (node.params?.targetLayerIds && node.params.targetLayerIds.length > 1)
+    )
+  }, [node.params?.isAssemblyRoot, node.params?.targetLayerIds, boundLayer.composite, boundLayer.model3d])
+
+  const assemblyKind = useMemo(() => {
+    if (boundLayer.model3d || node.params?.assemblyKind === 'model3d') return 'model3d'
+    if (boundLayer.composite || node.params?.assemblyKind === 'composite') return 'composite'
+    return null
+  }, [boundLayer.model3d, boundLayer.composite, node.params?.assemblyKind])
+
+  const assemblyLayers = useMemo(() => {
+    if (!isAssembly || !project) return []
+    const ids = node.params?.targetLayerIds ?? [boundLayer.id]
+    return project.layers.filter((l) => ids.includes(l.id))
+  }, [isAssembly, project, node.params?.targetLayerIds, boundLayer.id])
+
+  const handleOpenWorkshop = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      if (assemblyKind === 'model3d') {
+        const stored = getStoredModels3D()
+        const modelId = boundLayer.model3d?.modelId
+        const model = stored.find((m) => m.id === modelId) ?? stored[0]
+        if (model) {
+          useView.getState().openAssemblyWorkshop(model)
+        } else {
+          toast('Không tìm thấy dữ liệu mô hình 3D tương ứng')
+        }
+      } else {
+        const compId = boundLayer.composite?.compositeId || boundLayer.composite?.compositeName
+        requestOpenLayerAssembly(compId)
+      }
+    },
+    [assemblyKind, boundLayer.model3d, boundLayer.composite]
+  )
 
   const zVal = Math.round(boundLayer.transform.position.value[2] ?? 0)
 
@@ -248,6 +294,53 @@ export const WorkflowLayerBody: React.FC<WorkflowLayerBodyProps> = React.memo(({
           </button>
         </div>
       </div>
+
+      {/* 2b. Cụm Lắp Ráp 3D hoặc Layer 2.5D (Assembly Sub-Parts Chips & Workshop Launcher) */}
+      {isAssembly && (
+        <div className="wf-layer-assembly-section">
+          <div className="wf-layer-assembly-header">
+            <span className="wf-layer-assembly-badge">
+              {assemblyKind === 'model3d' ? '🏛️ Cụm 3D' : '🧩 Cụm 2.5D'} ({assemblyLayers.length} con)
+            </span>
+            <button
+              type="button"
+              className="wf-assembly-open-workshop-btn"
+              onClick={handleOpenWorkshop}
+              title={
+                assemblyKind === 'model3d'
+                  ? 'Mở Xưởng Lắp Ráp Mô Hình 3D'
+                  : 'Mở Xưởng Lắp Ráp Layer 2.5D'
+              }
+            >
+              {assemblyKind === 'model3d' ? '🛠️ Xưởng 3D' : '🎭 Xưởng Layer'}
+            </button>
+          </div>
+
+          {/* Danh sách các mảnh / layer con trong cụm */}
+          {assemblyLayers.length > 0 && (
+            <div className="wf-assembly-parts-list">
+              {assemblyLayers.map((partLayer) => {
+                const cleanPartName = partLayer.name
+                  .replace(/^\[.*?\]\s*/, '')
+                  .replace(/^.*[\\/]/, '')
+                const isSelected = selectedLayerId === partLayer.id
+                return (
+                  <button
+                    key={partLayer.id}
+                    type="button"
+                    className={`wf-assembly-part-chip${isSelected ? ' active' : ''}`}
+                    onClick={() => useEditor.getState().selectLayer(partLayer.id)}
+                    title={`Chọn mảnh: ${partLayer.name} trong cảnh`}
+                  >
+                    <span className="wf-assembly-part-dot" />
+                    <span className="wf-assembly-part-name">{cleanPartName || partLayer.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 3. Dải Huy hiệu Hiệu ứng Kết nối (Active Effect Badges) */}
       <div className="wf-layer-effects-row">

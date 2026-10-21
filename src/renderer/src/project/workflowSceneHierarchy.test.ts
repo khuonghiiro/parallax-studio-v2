@@ -243,7 +243,7 @@ describe('workflowSceneHierarchy', () => {
     const charRoot = rootLayers.find((l) => l.name === 'Nhân vật Hiệp sĩ')!
     const meta = formatLayerNodeLabel(charRoot, project)
     expect(meta.icon).toBe('🧩')
-    expect(meta.badgeLabel).toContain('2 bộ phận')
+    expect(meta.badgeLabel).toContain('2 layer con')
     expect(meta.partNames).toEqual(['Nhân vật Hiệp sĩ', 'Đầu hiệp sĩ'])
   })
 
@@ -584,11 +584,14 @@ describe('workflowSceneHierarchy', () => {
     const layerNodes = consolidatedWf.nodes.filter((n) => n.type === 'layer_assembly')
     expect(layerNodes.length).toBe(1)
     expect(layerNodes[0].params?.targetLayerIds).toEqual(['layer-char-root', 'layer-char-head'])
-    expect(layerNodes[0].title).toContain('🧩 Layer 2.5D: Hiệp sĩ 2.5D')
+    expect(layerNodes[0].params?.isAssemblyRoot).toBe(true)
+    expect(layerNodes[0].params?.assemblyKind).toBe('composite')
+    expect(layerNodes[0].title).toContain('🧩 Cụm Lắp Ráp 2.5D: Hiệp sĩ 2.5D')
 
     const transNodes = consolidatedWf.nodes.filter((n) => n.type === 'layer_transform')
     expect(transNodes.length).toBe(1)
     expect(transNodes[0].params?.targetLayerIds).toEqual(['layer-char-root', 'layer-char-head'])
+    expect(transNodes[0].params?.isAssemblyRoot).toBe(true)
 
     // Dây nối scene sang head bị loại bỏ, chỉ còn 1 dây scene sang root node
     const sceneEdges = consolidatedWf.edges.filter((e) => e.fromNode === 'wf-scene-shot-1')
@@ -687,13 +690,120 @@ describe('workflowSceneHierarchy', () => {
     )
     expect(treeLayerNodes.length).toBe(1)
     expect(treeLayerNodes[0].params?.targetLayerIds).toEqual(['tree-part-1', 'tree-part-2'])
-    expect(treeLayerNodes[0].title).toBe('🧩 Layer 2.5D: Cây Đại Thụ')
+    expect(treeLayerNodes[0].params?.isAssemblyRoot).toBe(true)
+    expect(treeLayerNodes[0].title).toBe('🧩 Cụm Lắp Ráp 2.5D: Cây Đại Thụ')
 
     // Chỉ có đúng 1 companion transform plate cho cụm cây
     const treeTransNodes = res.workflow.nodes.filter(
       (n) => n.type === 'layer_transform' && n.title.includes('Cây Đại Thụ')
     )
     expect(treeTransNodes.length).toBe(1)
+  })
+
+  it('hỗ trợ cụm Lắp ráp Mô hình 3D Modular: gom nhiều mặt/khối về 1 Node Root đại diện duy nhất', () => {
+    const project = createMockProject()
+    // Thêm 3 layer đại diện cho 3 mặt của cùng 1 mô hình nhà 3D (Tudor House)
+    const houseFront: Layer = {
+      id: 'house-front',
+      name: '[Nhà Cổ] Mặt trước',
+      type: 'image',
+      visible: true,
+      locked: false,
+      shotId: 'shot-1',
+      transform: {
+        position: { value: [0, 0, 400] },
+        rotation: { value: [0, 0, 0] },
+        scale: { value: [1, 1, 1] },
+        opacity: { value: 1 }
+      },
+      props: { assetId: 'wall-front-asset' },
+      model3d: {
+        instanceId: 'house-instance-1',
+        modelId: 'tudor-house',
+        modelName: 'Nhà Cổ Châu Âu',
+        faceId: 'front'
+      }
+    }
+    const houseSide: Layer = {
+      id: 'house-side',
+      name: '[Nhà Cổ] Mặt bên',
+      type: 'image',
+      visible: true,
+      locked: false,
+      shotId: 'shot-1',
+      transform: {
+        position: { value: [150, 0, 400] },
+        rotation: { value: [0, 90, 0] },
+        scale: { value: [1, 1, 1] },
+        opacity: { value: 1 }
+      },
+      props: { assetId: 'wall-side-asset' },
+      model3d: {
+        instanceId: 'house-instance-1',
+        modelId: 'tudor-house',
+        modelName: 'Nhà Cổ Châu Âu',
+        faceId: 'side'
+      }
+    }
+    const houseRoof: Layer = {
+      id: 'house-roof',
+      name: '[Nhà Cổ] Mái ngói',
+      type: 'image',
+      visible: true,
+      locked: false,
+      shotId: 'shot-1',
+      transform: {
+        position: { value: [0, -180, 400] },
+        rotation: { value: [45, 0, 0] },
+        scale: { value: [1, 1, 1] },
+        opacity: { value: 1 }
+      },
+      props: { assetId: 'roof-asset' },
+      model3d: {
+        instanceId: 'house-instance-1',
+        modelId: 'tudor-house',
+        modelName: 'Nhà Cổ Châu Âu',
+        faceId: 'roof'
+      }
+    }
+    project.layers.push(houseFront, houseSide, houseRoof)
+
+    const rootLayers = getRootLayersForShot(project, 'shot-1')
+    // rootLayers phải chỉ chứa đúng 1 đại diện cho mô hình nhà 3D
+    const houseRoots = rootLayers.filter((l) => l.model3d?.instanceId === 'house-instance-1')
+    expect(houseRoots).toHaveLength(1)
+
+    const meta = formatLayerNodeLabel(houseRoots[0], project)
+    expect(meta.icon).toBe('🏛️')
+    expect(meta.title).toContain('🏛️ Cụm Lắp Ráp 3D: Nhà Cổ Châu Âu')
+    expect(meta.badgeLabel).toContain('3D (3 mặt/khối con)')
+
+    // Bung cảnh: chỉ sinh đúng 1 node Root đại diện cho cả 3 mặt của ngôi nhà
+    const { workflow: spawnedWf, childNodes } = spawnSceneWithChildLayers(
+      project,
+      {
+        version: 1,
+        id: 'wf-test',
+        name: 'Test',
+        description: '',
+        nodes: [],
+        edges: []
+      },
+      'shot-1'
+    )
+
+    const houseNodes = childNodes.filter((n) => n.title.includes('Nhà Cổ Châu Âu'))
+    expect(houseNodes).toHaveLength(1)
+    expect(houseNodes[0].params?.isAssemblyRoot).toBe(true)
+    expect(houseNodes[0].params?.assemblyKind).toBe('model3d')
+    expect(houseNodes[0].params?.targetLayerIds).toEqual(['house-front', 'house-side', 'house-roof'])
+
+    // Chỉ có đúng 1 companion transform plate cho cả mô hình nhà 3D
+    const houseTrans = spawnedWf.nodes.filter(
+      (n) => n.type === 'layer_transform' && n.title.includes('Nhà Cổ Châu Âu')
+    )
+    expect(houseTrans).toHaveLength(1)
+    expect(houseTrans[0].params?.targetLayerIds).toEqual(['house-front', 'house-side', 'house-roof'])
   })
 
   it('relaxOverlappingPositions: triệt tiêu 100% hiện tượng chồng đè node', () => {

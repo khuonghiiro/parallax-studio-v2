@@ -31,10 +31,13 @@ export function estimateNodeCardHeight(node: WorkflowNode): number {
     return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 204
   }
   if (node.type === 'layer_transform') {
-    return 126
+    const isGroup = (node.params?.targetLayerIds?.length ?? 0) > 1 || Boolean(node.params?.isAssemblyRoot)
+    return isGroup ? 148 : 126
   }
   if (node.type === 'layer_assembly' || Boolean(node.params?.targetLayerIds?.length)) {
-    return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 205
+    const isAssembly = Boolean(node.params?.isAssemblyRoot || (node.params?.targetLayerIds?.length ?? 0) > 1)
+    const extraH = isAssembly ? 80 : 0
+    return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 205 + extraH
   }
   return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 150
 }

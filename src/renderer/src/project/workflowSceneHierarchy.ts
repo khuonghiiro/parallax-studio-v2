@@ -52,7 +52,7 @@ export function getWorkflowEffectiveDuration(
 
 /**
  * Lọc danh sách các Layer gốc (Root Layers) đại diện thuộc một Phân cảnh.
- * Tự động nhóm các layer con của Cụm Composite 2.5D về Layer gốc của cụm.
+ * Tự động nhóm các layer con của Cụm Composite 2.5D hoặc Mô hình Lắp ráp 3D về Layer gốc của cụm.
  */
 export function getRootLayersForShot(project: Project, shotId?: string): Layer[] {
   const scopedLayers = project.layers.filter((l) => {
@@ -62,19 +62,31 @@ export function getRootLayersForShot(project: Project, shotId?: string): Layer[]
     return l.shotId === shotId
   })
 
-  // Chỉ lấy layer không thuộc composite hoặc là layer gốc của composite (isRoot: true)
-  const seenComposites = new Set<string>()
+  // Chỉ lấy layer không thuộc cụm lắp ráp hoặc là layer gốc đại diện của cụm (Composite / Model3D)
+  const seenAssemblies = new Set<string>()
   const result: Layer[] = []
 
   for (const l of scopedLayers) {
     if (l.composite) {
       const instId = l.composite.instanceId || l.composite.compositeId
-      if (seenComposites.has(instId)) continue
-      seenComposites.add(instId)
+      if (seenAssemblies.has(instId)) continue
+      seenAssemblies.add(instId)
       // Ưu tiên layer isRoot, nếu không có thì lấy layer đầu tiên của cụm
       const rootLayer =
         scopedLayers.find((sub) => sub.composite?.instanceId === instId && sub.composite?.isRoot) ??
         l
+      result.push(rootLayer)
+    } else if (l.model3d) {
+      const instId = l.model3d.instanceId || l.model3d.modelId
+      if (seenAssemblies.has(instId)) continue
+      seenAssemblies.add(instId)
+      // Ưu tiên mặt chính (face-front / main) hoặc layer đầu tiên của mô hình 3D
+      const rootLayer =
+        scopedLayers.find(
+          (sub) =>
+            sub.model3d?.instanceId === instId &&
+            (sub.model3d?.faceId?.includes('front') || sub.model3d?.faceId?.includes('main'))
+        ) ?? l
       result.push(rootLayer)
     } else {
       result.push(l)
@@ -101,6 +113,21 @@ export function getCompositeSubPartNames(layer: Layer, project: Project): string
 }
 
 /**
+ * Lấy danh sách tên các mặt/bộ phận con của một Mô hình Lắp ráp 3D.
+ */
+export function getModel3dSubPartNames(layer: Layer, project: Project): string[] {
+  if (!layer.model3d?.instanceId && !layer.model3d?.modelId) return []
+  const instId = layer.model3d.instanceId || layer.model3d.modelId
+  return project.layers
+    .filter((l) => l.model3d?.instanceId === instId || l.model3d?.modelId === instId)
+    .map((l) => {
+      const cleanName = l.name.replace(/^\[.*?\]\s*/, '').trim()
+      const faceTag = l.model3d?.faceId ? `[${l.model3d.faceId}] ` : ''
+      return `${faceTag}${cleanName || l.name}`
+    })
+}
+
+/**
  * Xác định tiêu đề hiển thị và biểu tượng ngữ nghĩa cho một Node Layer con.
  */
 export function formatLayerNodeLabel(layer: Layer, project: Project): {
@@ -111,9 +138,9 @@ export function formatLayerNodeLabel(layer: Layer, project: Project): {
   partNames: string[]
 } {
   const zDepth = Math.round(layer.transform?.position?.value[2] ?? 0)
-  const partNames = getCompositeSubPartNames(layer, project)
 
   if (layer.composite) {
+    const partNames = getCompositeSubPartNames(layer, project)
     const bracketMatch = layer.name.match(/^\[(.*?)\]/)
     const compName =
       layer.composite.compositeName?.trim() ||
@@ -121,23 +148,25 @@ export function formatLayerNodeLabel(layer: Layer, project: Project): {
     const partCount = partNames.length > 0 ? partNames.length : 1
     return {
       icon: '🧩',
-      title: `🧩 Layer 2.5D: ${compName}`,
-      badgeLabel: `2.5D (${partCount} bộ phận)`,
+      title: `🧩 Cụm Lắp Ráp 2.5D: ${compName}`,
+      badgeLabel: `2.5D (${partCount} layer con)`,
       zDepth,
       partNames
     }
   }
   if (layer.model3d) {
+    const partNames = getModel3dSubPartNames(layer, project)
     const bracketMatch = layer.name.match(/^\[(.*?)\]/)
     const modelName =
       layer.model3d.modelName?.trim() ||
       (bracketMatch ? bracketMatch[1].trim() : layer.name)
+    const partCount = partNames.length > 0 ? partNames.length : 1
     return {
       icon: '🏛️',
-      title: `🏛️ Mô hình 3D: ${modelName}`,
-      badgeLabel: '3D Geometry',
+      title: `🏛️ Cụm Lắp Ráp 3D: ${modelName}`,
+      badgeLabel: `3D (${partCount} mặt/khối con)`,
       zDepth,
-      partNames: []
+      partNames
     }
   }
   if (layer.type === 'particles') {
@@ -304,12 +333,24 @@ export function spawnSceneWithChildLayers(
     // Tầng Z sâu hơn (normZ ~ 1) ở cao hơn tại Y=340, tiền cảnh (normZ ~ 0) ở thấp hơn tại Y=500 tạo dốc Z trực quan rõ nét
     const childY = 340 + Math.round((1 - normZ) * 160)
 
-    // Gom tất cả ID của layer trong cụm composite (nếu có)
-    const allLayerIdsInGroup = layer.composite?.instanceId
+    // Gom tất cả ID của layer trong cụm composite hoặc model3d (nếu có)
+    const isComp = Boolean(layer.composite?.instanceId)
+    const isModel3d = Boolean(layer.model3d?.instanceId || layer.model3d?.modelId)
+    const allLayerIdsInGroup = isComp
       ? project.layers
           .filter((l) => l.composite?.instanceId === layer.composite?.instanceId)
           .map((l) => l.id)
-      : [layer.id]
+      : isModel3d
+        ? project.layers
+            .filter((l) => {
+              const instId = layer.model3d?.instanceId || layer.model3d?.modelId
+              return l.model3d?.instanceId === instId || l.model3d?.modelId === instId
+            })
+            .map((l) => l.id)
+        : [layer.id]
+
+    const isAssemblyRoot = isComp || isModel3d || allLayerIdsInGroup.length > 1
+    const assemblyKind = isModel3d ? 'model3d' : isComp ? 'composite' : undefined
 
     const childNode: WorkflowNode = {
       id: childNodeId,
@@ -324,6 +365,9 @@ export function spawnSceneWithChildLayers(
         shotId: shot.id,
         targetMode: 'custom',
         targetLayerIds: allLayerIdsInGroup,
+        isAssemblyRoot,
+        assemblyKind,
+        childLayerCount: allLayerIdsInGroup.length,
         targetParts:
           meta.partNames.length > 0
             ? meta.partNames
@@ -342,10 +386,13 @@ export function spawnSceneWithChildLayers(
     })
 
     // 4. Tạo companion node layer_transform mặc định kết nối sẵn dưới đáy mỗi node layer (khoảng cách 54px thoáng mắt)
-    const transY = childY + 205 + 54
-    const transTitle = layer.composite
-      ? `🎯 Tọa độ: ${meta.title.replace('🧩 Layer 2.5D: ', '')}`
-      : `🎯 Tọa độ: ${layer.name}`
+    const childEstimatedHeight = 24 + 6 + 18 + 205 + (isAssemblyRoot ? 80 : 0)
+    const transY = childY + childEstimatedHeight + 54
+    const transTitle = isComp
+      ? `🎯 Tọa độ: ${meta.title.replace('🧩 Cụm Lắp Ráp 2.5D: ', '').replace('🧩 Layer 2.5D: ', '')}`
+      : isModel3d
+        ? `🎯 Tọa độ: ${meta.title.replace('🏛️ Cụm Lắp Ráp 3D: ', '').replace('🏛️ Mô hình 3D: ', '')}`
+        : `🎯 Tọa độ: ${layer.name}`
     const transformNode: WorkflowNode = {
       id: transNodeId,
       type: 'layer_transform',
@@ -359,6 +406,9 @@ export function spawnSceneWithChildLayers(
         shotId: shot.id,
         targetMode: 'custom',
         targetLayerIds: allLayerIdsInGroup,
+        isAssemblyRoot,
+        assemblyKind,
+        childLayerCount: allLayerIdsInGroup.length,
         transformX: Math.round(layer.transform?.position?.value[0] ?? 0),
         transformY: Math.round(layer.transform?.position?.value[1] ?? 0),
         transformZ: Math.round(layer.transform?.position?.value[2] ?? 0),
@@ -497,7 +547,8 @@ export function consolidateCompositeWorkflowNodes(
     const targetedLayers = project.layers.filter((l) => targetIds.includes(l.id))
     const compInstanceId =
       targetedLayers.find((l) => l.composite?.instanceId)?.composite?.instanceId ||
-      targetedLayers.find((l) => l.model3d?.instanceId)?.model3d?.instanceId
+      targetedLayers.find((l) => l.model3d?.instanceId)?.model3d?.instanceId ||
+      targetedLayers.find((l) => l.model3d?.modelId)?.model3d?.modelId
     if (compInstanceId) {
       const list = compositeNodeMap.get(compInstanceId) ?? []
       list.push(n)
@@ -512,13 +563,18 @@ export function consolidateCompositeWorkflowNodes(
   for (const [instId, layerNodes] of compositeNodeMap.entries()) {
     if (layerNodes.length <= 1) continue
 
-    // Có nhiều hơn 1 node cho cùng 1 cụm composite -> Gom cụm về 1 node duy nhất
+    // Có nhiều hơn 1 node cho cùng 1 cụm composite / model3d -> Gom cụm về 1 node duy nhất
     const allLayersInGroup = project.layers.filter(
-      (l) => l.composite?.instanceId === instId || l.model3d?.instanceId === instId
+      (l) =>
+        l.composite?.instanceId === instId ||
+        l.model3d?.instanceId === instId ||
+        l.model3d?.modelId === instId
     )
     const allLayerIds = allLayersInGroup.map((l) => l.id)
     const rootLayer = allLayersInGroup.find((l) => l.composite?.isRoot) ?? allLayersInGroup[0]
     const meta = formatLayerNodeLabel(rootLayer, project)
+    const isModel3d = allLayersInGroup.some((l) => Boolean(l.model3d))
+    const isComp = allLayersInGroup.some((l) => Boolean(l.composite))
 
     // Chọn primary node: ưu tiên node chứa rootLayer hoặc node đầu tiên
     const primaryNode =
@@ -536,6 +592,9 @@ export function consolidateCompositeWorkflowNodes(
           ...primaryNode.params,
           targetMode: 'custom',
           targetLayerIds: allLayerIds,
+          isAssemblyRoot: true,
+          assemblyKind: isModel3d ? 'model3d' : isComp ? 'composite' : undefined,
+          childLayerCount: allLayerIds.length,
           targetParts: meta.partNames
         }
       }
@@ -544,7 +603,7 @@ export function consolidateCompositeWorkflowNodes(
     redundantLayerNodes.forEach((n) => nodesToRemove.add(n.id))
     consolidatedCount += redundantLayerNodes.length
 
-    // Tìm tất cả các companion transform node liên quan tới bất kỳ layer nào trong cụm composite
+    // Tìm tất cả các companion transform node liên quan tới bất kỳ layer nào trong cụm
     const companionTransNodes = workflow.nodes.filter(
       (n) =>
         n.type === 'layer_transform' &&
@@ -560,14 +619,21 @@ export function consolidateCompositeWorkflowNodes(
       const primaryTrans = companionTransNodes[0]
       const transIdx = updatedNodes.findIndex((n) => n.id === primaryTrans.id)
       if (transIdx !== -1) {
-        const transTitle = `🎯 Tọa độ: ${meta.title.replace('🧩 Layer 2.5D: ', '').replace('🏛️ Mô hình 3D: ', '')}`
+        const transTitle = isComp
+          ? `🎯 Tọa độ: ${meta.title.replace('🧩 Cụm Lắp Ráp 2.5D: ', '').replace('🧩 Layer 2.5D: ', '')}`
+          : isModel3d
+            ? `🎯 Tọa độ: ${meta.title.replace('🏛️ Cụm Lắp Ráp 3D: ', '').replace('🏛️ Mô hình 3D: ', '')}`
+            : `🎯 Tọa độ: ${rootLayer.name}`
         updatedNodes[transIdx] = {
           ...primaryTrans,
           title: transTitle,
           params: {
             ...primaryTrans.params,
             targetMode: 'custom',
-            targetLayerIds: allLayerIds
+            targetLayerIds: allLayerIds,
+            isAssemblyRoot: true,
+            assemblyKind: isModel3d ? 'model3d' : isComp ? 'composite' : undefined,
+            childLayerCount: allLayerIds.length
           }
         }
       }
@@ -654,48 +720,70 @@ export function syncMissingLayersToWorkflow(
   const nextNodes = [...curWf.nodes]
   const nextEdges = [...curWf.edges]
 
-  // Gom các missing layer theo cụm composite 2.5D
+  // Gom các missing layer theo cụm composite 2.5D hoặc mô hình 3D
   const groupedMissing: {
     representative: Layer
     allLayerIds: string[]
     partNames: string[]
+    isAssembly?: boolean
+    assemblyKind?: 'composite' | 'model3d'
   }[] = []
   const processedLayerIds = new Set<string>()
 
   for (const ml of missingLayers) {
     if (processedLayerIds.has(ml.id)) continue
 
-    if (ml.composite?.instanceId) {
-      const instId = ml.composite.instanceId
-      // Kiểm tra xem đã có node layer_assembly nào trong sơ đồ bao hàm composite này chưa
+    const isComp = Boolean(ml.composite?.instanceId)
+    const isModel3d = Boolean(ml.model3d?.instanceId || ml.model3d?.modelId)
+
+    if (isComp || isModel3d) {
+      const instId = ml.composite?.instanceId || ml.model3d?.instanceId || ml.model3d?.modelId!
+      // Kiểm tra xem đã có node layer_assembly nào trong sơ đồ bao hàm cụm này chưa
       const existingClusterNode = nextNodes.find(
         (n) =>
           n.type === 'layer_assembly' &&
           project.layers.some(
-            (pl) => pl.composite?.instanceId === instId && n.params?.targetLayerIds?.includes(pl.id)
+            (pl) =>
+              (pl.composite?.instanceId === instId ||
+                pl.model3d?.instanceId === instId ||
+                pl.model3d?.modelId === instId) &&
+              n.params?.targetLayerIds?.includes(pl.id)
           )
       )
 
       if (existingClusterNode) {
         // Đã có node đại diện -> bổ sung ID vào danh sách targetLayerIds hiện có
         const currentTargetIds = existingClusterNode.params?.targetLayerIds ?? []
+        const mergedIds = Array.from(new Set([...currentTargetIds, ml.id]))
         existingClusterNode.params = {
           ...existingClusterNode.params,
-          targetLayerIds: Array.from(new Set([...currentTargetIds, ml.id]))
+          targetLayerIds: mergedIds,
+          isAssemblyRoot: true,
+          assemblyKind: isModel3d ? 'model3d' : 'composite',
+          childLayerCount: mergedIds.length
         }
         processedLayerIds.add(ml.id)
         continue
       }
 
-      // Chưa có node đại diện -> gom toàn bộ các layer của cụm composite này
-      const groupLayers = project.layers.filter((pl) => pl.composite?.instanceId === instId)
+      // Chưa có node đại diện -> gom toàn bộ các layer của cụm lắp ráp này
+      const groupLayers = project.layers.filter(
+        (pl) =>
+          pl.composite?.instanceId === instId ||
+          pl.model3d?.instanceId === instId ||
+          pl.model3d?.modelId === instId
+      )
       groupLayers.forEach((pl) => processedLayerIds.add(pl.id))
       const rootLayer = groupLayers.find((pl) => pl.composite?.isRoot) ?? ml
-      const subParts = getCompositeSubPartNames(rootLayer, project)
+      const subParts = isComp
+        ? getCompositeSubPartNames(rootLayer, project)
+        : getModel3dSubPartNames(rootLayer, project)
       groupedMissing.push({
         representative: rootLayer,
         allLayerIds: groupLayers.map((pl) => pl.id),
-        partNames: subParts
+        partNames: subParts,
+        isAssembly: true,
+        assemblyKind: isModel3d ? 'model3d' : 'composite'
       })
     } else {
       processedLayerIds.add(ml.id)
@@ -742,13 +830,16 @@ export function syncMissingLayersToWorkflow(
 
     const childX = rightmostX + (idx + 1) * (NODE_W + COL_GAP)
     const childY = 400
+    const isAssembly = item.isAssembly || item.allLayerIds.length > 1
+    const childEstimatedHeight = 24 + 6 + 18 + 205 + (isAssembly ? 80 : 0)
+    const transY = childY + childEstimatedHeight + 54
 
     nextNodes.push({
       id: layerNodeId,
       type: 'layer_assembly',
       title: meta.title,
       enabled: ml.visible !== false,
-      preset: ml.composite ? 'character_and_foliage_rig' : 'character_puppet_25d',
+      preset: isAssembly ? 'character_and_foliage_rig' : 'character_puppet_25d',
       aiAgentRole: 'AssemblyRigAgent',
       aiDirective: `Quản lý lắp ráp, cấu trúc và hiển thị layer "${ml.name}".`,
       position: { x: childX, y: childY },
@@ -756,13 +847,18 @@ export function syncMissingLayersToWorkflow(
         shotId: ml.shotId || currentShotScope,
         targetMode: 'custom',
         targetLayerIds: item.allLayerIds,
+        isAssemblyRoot: isAssembly,
+        assemblyKind: item.assemblyKind,
+        childLayerCount: item.allLayerIds.length,
         targetParts: item.partNames
       }
     })
 
-    const transTitle = ml.composite
-      ? `🎯 Tọa độ: ${meta.title.replace('🧩 Layer 2.5D: ', '')}`
-      : `🎯 Tọa độ: ${ml.name}`
+    const transTitle = item.assemblyKind === 'composite'
+      ? `🎯 Tọa độ: ${meta.title.replace('🧩 Cụm Lắp Ráp 2.5D: ', '').replace('🧩 Layer 2.5D: ', '')}`
+      : item.assemblyKind === 'model3d'
+        ? `🎯 Tọa độ: ${meta.title.replace('🏛️ Cụm Lắp Ráp 3D: ', '').replace('🏛️ Mô hình 3D: ', '')}`
+        : `🎯 Tọa độ: ${ml.name}`
 
     nextNodes.push({
       id: transNodeId,
@@ -772,11 +868,14 @@ export function syncMissingLayersToWorkflow(
       preset: 'layer_transform_controller',
       aiAgentRole: 'LayerTransformAgent',
       aiDirective: `Điều khiển trực tiếp trục X, Y, Z và góc xoay hướng cho layer "${ml.name}".`,
-      position: { x: childX, y: childY + 289 + 54 },
+      position: { x: childX, y: transY },
       params: {
         shotId: ml.shotId || currentShotScope,
         targetMode: 'custom',
         targetLayerIds: item.allLayerIds,
+        isAssemblyRoot: isAssembly,
+        assemblyKind: item.assemblyKind,
+        childLayerCount: item.allLayerIds.length,
         transformX: posX,
         transformY: posY,
         transformZ: posZ,
