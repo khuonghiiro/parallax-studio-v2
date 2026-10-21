@@ -910,3 +910,73 @@ export function syncMissingLayersToWorkflow(
   }
 }
 
+/**
+ * Làm sạch toàn bộ các dây nối và khối xử lý hạ nguồn,
+ * nhưng giữ lại các Node Root Cảnh (Scene Shot) để người dùng tiếp tục xây dựng quy trình mới.
+ */
+export function createClearedWorkflowWithSceneRoots(
+  workflow: WorkflowGraph,
+  project: Project,
+  currentShotScope?: string
+): WorkflowGraph {
+  const existingSceneNodes = workflow.nodes.filter((n) => n.type === 'scene_shot')
+  let rootNodes: WorkflowNode[] = []
+
+  if (existingSceneNodes.length > 0) {
+    // Đặt lại tọa độ gọn gàng cho các node root Cảnh ở đầu khung vẽ (Y=40)
+    rootNodes = existingSceneNodes.map((n, idx) => ({
+      ...n,
+      position: { x: 80 + idx * 320, y: 40 }
+    }))
+  } else {
+    // Nếu chưa có node Cảnh nào, tạo mới node root Cảnh theo shot hiện tại hoặc toàn bộ shot
+    const targetShots: Shot[] =
+      currentShotScope && currentShotScope !== 'all'
+        ? project.shots.filter((s) => s.id === currentShotScope)
+        : project.shots.length > 0
+          ? project.shots
+          : [
+              {
+                id: 'shot-1',
+                name: 'Cảnh 1',
+                color: '#38bdf8',
+                visible: true,
+                position: { value: [0, 0, 0] },
+                rotation: { value: [0, 0, 0] }
+              }
+            ]
+
+    rootNodes = targetShots.map((shot, idx) => {
+      const shotDuration = getShotDuration(project, shot.id)
+      const rootLayers = getRootLayersForShot(project, shot.id)
+      return {
+        id: `wf-scene-${shot.id}`,
+        type: 'scene_shot',
+        title: `🎬 Cảnh: ${shot.name} (${shotDuration.toFixed(1)}s)`,
+        enabled: true,
+        position: { x: 80 + idx * 320, y: 40 },
+        preset: 'deep_parallax_stage',
+        aiAgentRole: 'SceneLayoutAgent',
+        aiDirective: `Phân cảnh gốc "${shot.name}" (${shotDuration.toFixed(1)}s) điều phối ${rootLayers.length} layer con và không gian Z.`,
+        params: {
+          shotId: shot.id,
+          duration: shotDuration,
+          autoArrangeZ: true,
+          targetMode: 'custom',
+          targetLayerIds: rootLayers.map((l) => l.id)
+        }
+      }
+    })
+  }
+
+  return {
+    version: 1,
+    id: workflow.id || 'wf-custom',
+    name: workflow.name || 'Quy trình Tự do',
+    description: 'Quy trình tự do — Giữ lại Node Root Cảnh, sẵn sàng nối các Node Logic.',
+    nodes: rootNodes,
+    edges: [],
+    targetShotId: currentShotScope
+  }
+}
+

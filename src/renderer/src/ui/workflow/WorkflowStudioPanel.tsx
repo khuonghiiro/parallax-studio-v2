@@ -34,6 +34,7 @@ import {
 import { syncWorkflowEntityVisibility } from '../../project/workflowEntitySync'
 import {
   consolidateCompositeWorkflowNodes,
+  createClearedWorkflowWithSceneRoots,
   getWorkflowEffectiveDuration,
   spawnSceneWithChildLayers,
   syncMissingLayersToWorkflow
@@ -43,6 +44,7 @@ import { spawnLogicNodeIntoWorkflow } from '../../project/workflowLogicNodes'
 import { WorkflowCanvas } from './WorkflowCanvas'
 import { WorkflowNodePalette } from './WorkflowNodePalette'
 import { WorkflowSidePanel, type WorkflowInspectorSubTab } from './WorkflowSidePanel'
+import { WorkflowNodeConfigDialog } from './WorkflowNodeConfigDialog'
 import { WorkflowStudioToolbar } from './WorkflowStudioToolbar'
 import { resolveNodeCollisionPush, solveSpaciousWorkflowLayout } from './workflowLayoutAndFlow'
 
@@ -128,7 +130,8 @@ export const WorkflowStudioPanel: React.FC = () => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
     () => workflow.nodes[0]?.id ?? null
   )
-  const [sideMode, setSideMode] = useState<'node' | 'json'>('node')
+  const [configNodeId, setConfigNodeId] = useState<string | null>(null)
+  const [sideMode, setSideMode] = useState<'node' | 'json' | 'none'>('none')
   const [inspectorSubTab, setInspectorSubTab] = useState<WorkflowInspectorSubTab>('preset')
 
   const activeNodeIds = useMemo(() => new Set(activeNodes.map((n) => n.id)), [activeNodes])
@@ -142,6 +145,21 @@ export const WorkflowStudioPanel: React.FC = () => {
     () => workflow.nodes.find((n) => n.id === selectedNodeId) ?? workflow.nodes[0] ?? null,
     [workflow.nodes, selectedNodeId]
   )
+
+  const configNode = useMemo(
+    () => (configNodeId ? workflow.nodes.find((n) => n.id === configNodeId) ?? null : null),
+    [workflow.nodes, configNodeId]
+  )
+
+  const handleOpenNodeConfig = useCallback((node: WorkflowNode) => {
+    setSelectedNodeId(node.id)
+    setConfigNodeId(node.id)
+  }, [])
+
+  const handleOpenNodeConfigById = useCallback((nodeId: string) => {
+    setSelectedNodeId(nodeId)
+    setConfigNodeId(nodeId)
+  }, [])
 
   // Đồng bộ 2 chiều: Khi người dùng click chọn Layer bên Cam 2D / 3D / Timeline, tự highlight Node chứa Layer đó trên Workflow
   useEffect(() => {
@@ -201,8 +219,6 @@ export const WorkflowStudioPanel: React.FC = () => {
       }, 'wf-sync-entity-visibility')
     }
   }, [workflow, project.layers, activeNodeIds])
-
-
 
   const handleSelectNode = useCallback(
     (nodeId: string) => {
@@ -339,19 +355,14 @@ export const WorkflowStudioPanel: React.FC = () => {
   const handleClearCanvas = useCallback(() => {
     useEditor.getState().setPlaying(false)
     useEditor.getState().setTime(0)
-    const next: WorkflowGraph = {
-      version: 1,
-      id: 'wf-custom',
-      name: 'Quy trình Tự do',
-      description: 'Quy trình tự do — Thả các Node Logic để tự thiết kế luồng xử lý.',
-      nodes: [],
-      edges: [],
-      targetShotId: currentShotScope
-    }
+    const next = createClearedWorkflowWithSceneRoots(workflow, project, currentShotScope)
     commitWorkflow(next, undefined, true)
-    setSelectedNodeId(null)
-    showToast('🧹 Đã xóa sạch toàn bộ khối và đặt lại thời lượng luồng về 0.0s! Bấm "🎬 Bung Cảnh & Layer" hoặc chọn Node bên cột trái để tạo luồng mới.')
-  }, [currentShotScope, commitWorkflow, showToast])
+    setSelectedNodeId(next.nodes[0]?.id ?? null)
+    setConfigNodeId(null)
+    showToast(
+      `🧹 Đã làm sạch các dây nối và khối phụ, giữ lại ${next.nodes.length} Node Root Cảnh sẵn sàng kết nối!`
+    )
+  }, [workflow, project, currentShotScope, commitWorkflow, showToast])
 
   const handleSelectShotScope = useCallback(
     (shotId: string) => {
@@ -857,6 +868,7 @@ export const WorkflowStudioPanel: React.FC = () => {
         currentShotIndex={currentShotIndex}
         sideMode={sideMode}
         onSelectNode={handleSelectNode}
+        onOpenNodeConfig={handleOpenNodeConfigById}
         onSelectShotScope={handleSelectShotScope}
         onSpawnSceneLayers={handleSpawnSceneLayers}
         onSpawnLogicNode={handleSpawnLogicNode}
@@ -866,11 +878,11 @@ export const WorkflowStudioPanel: React.FC = () => {
         onClearCanvas={handleClearCanvas}
         onRewindToZero={handleRewindToZero}
         onTogglePlayFlow={handleTogglePlayFlow}
-        onToggleSideMode={() => setSideMode((m) => (m === 'json' ? 'node' : 'json'))}
+        onToggleSideMode={() => setSideMode((m) => (m === 'json' ? 'none' : 'json'))}
         onExecuteWorkflow={handleExecuteWorkflow}
       />
 
-      {/* Main 3-Column Workspace: Left Node Palette + Center Interactive Node Canvas + Right Inspector/JSON */}
+      {/* Main Workspace: Left Node Palette + Center Interactive Node Canvas (100% full width when sideMode !== 'json') + Optional Right JSON Panel */}
       <div className="wf-workspace-body">
         <WorkflowNodePalette
           onAddLogicNode={(id: string) => handleSpawnLogicNode(id)}
@@ -889,6 +901,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           executionStepMap={executionStepMap}
           selectedNodeId={selectedNode?.id ?? null}
           onSelectNode={handleSelectNode}
+          onOpenNodeConfig={handleOpenNodeConfig}
           onMoveNodes={handleMoveNodes}
           onAutoLayout={handleAutoLayout}
           onToggleNode={handleToggleNode}
@@ -905,29 +918,56 @@ export const WorkflowStudioPanel: React.FC = () => {
           onSpecialAction={handleSpecialAction}
         />
 
-        <WorkflowSidePanel
-          workflow={workflow}
+        {sideMode === 'json' && (
+          <WorkflowSidePanel
+            workflow={workflow}
+            project={scopedProject}
+            playing={playing}
+            time={liveTime}
+            blueprint={blueprint}
+            selectedNode={selectedNode}
+            sideMode="json"
+            inspectorSubTab={inspectorSubTab}
+            onChangeSideMode={setSideMode}
+            onChangeInspectorSubTab={setInspectorSubTab}
+            onChangeNodePreset={handleChangeNodePreset}
+            onUpdateNodeDirective={handleUpdateNodeDirective}
+            onUpdateNodeParams={handleUpdateNodeParams}
+            onConnectPorts={handleConnectPorts}
+            onDisconnectEdge={handleDisconnectEdge}
+            onApplyJsonGraph={(next) => commitWorkflow(next, undefined, true)}
+            onSpawnLogicNode={(id) => handleSpawnLogicNode(id)}
+            activeShotLabel={activeShotLabel}
+            onShowToast={showToast}
+            onPreviewNode={handlePreviewNode}
+          />
+        )}
+      </div>
+
+      {/* Hộp thoại Cấu hình Khối khi Chuột phải / Bấm đúp / Bấm ⚙ */}
+      {configNode && (
+        <WorkflowNodeConfigDialog
+          node={configNode}
           project={scopedProject}
-          playing={playing}
-          time={liveTime}
+          workflow={workflow}
           blueprint={blueprint}
-          selectedNode={selectedNode}
-          sideMode={sideMode}
-          inspectorSubTab={inspectorSubTab}
-          onChangeSideMode={setSideMode}
-          onChangeInspectorSubTab={setInspectorSubTab}
+          onClose={() => setConfigNodeId(null)}
           onChangeNodePreset={handleChangeNodePreset}
           onUpdateNodeDirective={handleUpdateNodeDirective}
           onUpdateNodeParams={handleUpdateNodeParams}
+          onToggleNode={handleToggleNode}
+          onDeleteNode={(id) => {
+            handleDeleteNode(id)
+            setConfigNodeId(null)
+          }}
+          onPreviewNode={handlePreviewNode}
           onConnectPorts={handleConnectPorts}
           onDisconnectEdge={handleDisconnectEdge}
-          onApplyJsonGraph={(next) => commitWorkflow(next, undefined, true)}
           onSpawnLogicNode={(id) => handleSpawnLogicNode(id)}
           activeShotLabel={activeShotLabel}
           onShowToast={showToast}
-          onPreviewNode={handlePreviewNode}
         />
-      </div>
+      )}
     </div>
   )
 }

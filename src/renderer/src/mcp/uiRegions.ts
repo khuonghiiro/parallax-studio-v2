@@ -26,6 +26,7 @@ export const DIALOG_SELECTORS = [
   '.mcp-modal',
   '.camera-path-modal',
   '.camera-sketch-modal',
+  '.wf-node-config-modal',
   '.modal[role="dialog"]',
   '.modal',
   '[role="dialog"]',
@@ -99,6 +100,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   workflow_action_builder: region('workflow_action_builder', '.wf-action-builder-box'),
   workflow_preview: region('workflow_preview', '.wf-inspector-preview-box'),
   workflow_json_panel: region('workflow_json_panel', '.wf-json-panel'),
+  workflow_node_config: region('workflow_node_config', '.wf-node-config-modal', '.wf-node-dialog-window'),
 
   // Top Toolbar & Responsive Workspace Dock
   toolbar: ['header.toolbar', '.toolbar'],

@@ -48,6 +48,7 @@ __pycache__/
 !.vscode/settings.json
 *.sublime-project
 *.sublime-workspace
+.kiro/
 
 # Large media outputs & user test export files
 *.mp4

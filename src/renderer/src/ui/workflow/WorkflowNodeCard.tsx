@@ -82,6 +82,7 @@ export interface WorkflowNodeCardProps {
     toPort: WorkflowPortKind
   ) => void
   onClearPendingWire: () => void
+  onOpenConfig?: (node: WorkflowNode) => void
 }
 
 export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
@@ -107,7 +108,8 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
   onInputSocketClick,
   onOutputSocketClick,
   onConnectPorts,
-  onClearPendingWire
+  onClearPendingWire,
+  onOpenConfig
 }) => {
   const logicItem = React.useMemo(() => {
     if (!node.params?.logicId) return null
@@ -286,6 +288,18 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
       }}
       onPointerDown={(e) => onStartNodeDrag(e, node)}
       onClick={handleCardClick}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        onSelectNode(node.id)
+        onOpenConfig?.(node)
+      }}
+      onDoubleClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        onSelectNode(node.id)
+        onOpenConfig?.(node)
+      }}
     >
       {/* Cổng Đỉnh Đầu (Top Port: layers_tree trên Layer hoặc transform_link trên Transform) */}
       {verticalInPort && (() => {
@@ -337,10 +351,24 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
           <span className="wf-node-icon" style={{ background: '#0284c7' }}>🎯</span>
           <span
             className="wf-node-title"
-            title={`${cardTitle} — Kéo slider chỉnh tọa độ 60fps`}
+            title={`${cardTitle} — Kéo slider chỉnh tọa độ 60fps (Chuột phải hoặc bấm đúp để cấu hình)`}
           >
             {cardTitle}
           </span>
+          {onOpenConfig && (
+            <button
+              type="button"
+              className="wf-node-gear-btn"
+              title="Cấu hình khối (Chuột phải hoặc bấm đúp)"
+              onClick={(e) => {
+                e.stopPropagation()
+                onSelectNode(node.id)
+                onOpenConfig(node)
+              }}
+            >
+              ⚙
+            </button>
+          )}
           <span className="wf-node-status-pill on">⚡ 60fps</span>
         </div>
       ) : (
@@ -364,7 +392,7 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
           </span>
           <span
             className="wf-node-title"
-            title={`${cardTitle} — Nắm kéo để di chuyển tự do Trái / Phải / Lên / Xuống`}
+            title={`${cardTitle} — Nắm kéo để di chuyển tự do Trái / Phải / Lên / Xuống (Chuột phải hoặc bấm đúp để cấu hình)`}
           >
             {cardTitle}
             <span className="wf-node-sub-tag">{cardCategoryBadge}</span>
@@ -374,6 +402,20 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
               </span>
             )}
           </span>
+          {onOpenConfig && (
+            <button
+              type="button"
+              className="wf-node-gear-btn"
+              title="Cấu hình khối (Chuột phải hoặc bấm đúp)"
+              onClick={(e) => {
+                e.stopPropagation()
+                onSelectNode(node.id)
+                onOpenConfig(node)
+              }}
+            >
+              ⚙
+            </button>
+          )}
           {onPreviewNode && (
             <button
               type="button"

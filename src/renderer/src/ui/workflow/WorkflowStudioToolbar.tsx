@@ -23,8 +23,9 @@ export interface WorkflowStudioToolbarProps {
   workflowDuration: number
   currentShotScope: string | undefined
   currentShotIndex: number
-  sideMode: 'node' | 'json'
+  sideMode?: 'node' | 'json' | 'none'
   onSelectNode: (nodeId: string) => void
+  onOpenNodeConfig?: (nodeId: string) => void
   onSelectShotScope: (shotId: string | 'all') => void
   onSpawnSceneLayers: () => void
   onSpawnLogicNode?: (logicId: string) => void
@@ -52,6 +53,7 @@ export const WorkflowStudioToolbar: React.FC<WorkflowStudioToolbarProps> = ({
   currentShotIndex,
   sideMode,
   onSelectNode,
+  onOpenNodeConfig,
   onSelectShotScope,
   onSpawnSceneLayers,
   onSpawnLogicNode,
@@ -267,7 +269,14 @@ export const WorkflowStudioToolbar: React.FC<WorkflowStudioToolbarProps> = ({
                       }`}
                       style={{ ['--step-c' as string]: spec?.color ?? '#38bdf8' }}
                       onClick={() => onSelectNode(n.id)}
-                      title={`Bước #${idx + 1}: ${spec?.title} — Bấm để xem Layer & Cấu hình`}
+                      onDoubleClick={() => onOpenNodeConfig?.(n.id)}
+                      onContextMenu={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        onSelectNode(n.id)
+                        onOpenNodeConfig?.(n.id)
+                      }}
+                      title={`Bước #${idx + 1}: ${spec?.title} — Bấm để xem, bấm đúp hoặc chuột phải để cấu hình`}
                     >
                       #{idx + 1} {spec?.shortTitle ?? n.title}
                     </button>

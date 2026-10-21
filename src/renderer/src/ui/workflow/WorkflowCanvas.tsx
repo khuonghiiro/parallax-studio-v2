@@ -65,6 +65,7 @@ export interface WorkflowCanvasProps {
       isOutput: boolean
     }
   ) => void
+  onOpenNodeConfig?: (node: WorkflowNode) => void
 }
 
 export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
@@ -90,7 +91,8 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   commitWorkflow,
   showToast,
   onSpawnAndConnectLogicNode,
-  onSpecialAction
+  onSpecialAction,
+  onOpenNodeConfig
 }) => {
   const viewportRef = useRef<HTMLDivElement>(null)
   const [zoom, setZoom] = useState<number>(1)
@@ -865,6 +867,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
               onOutputSocketClick={handleOutputSocketClick}
               onConnectPorts={onConnectPorts}
               onClearPendingWire={handleClearPendingWire}
+              onOpenConfig={onOpenNodeConfig}
             />
           ))}
         </div>

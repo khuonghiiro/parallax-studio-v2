@@ -18,6 +18,7 @@
 @import './styles/workflow.css';
 @import './styles/workflowNodes.css';
 @import './styles/workflowTransformCard.css';
+@import './styles/workflowNodeDialog.css';
 @import './styles/workflowThumbnail.css';
 @import './styles/workflowAddNode.css';
 @import './styles/workflowPalette.css';

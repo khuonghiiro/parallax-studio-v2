@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Project, WorkflowGraph, WorkflowNode } from '@shared/types'
 import {
   consolidateCompositeWorkflowNodes,
+  createClearedWorkflowWithSceneRoots,
   formatLayerNodeLabel,
   getRootLayersForShot,
   getShotDuration,
@@ -836,4 +837,45 @@ describe('workflowSceneHierarchy', () => {
     // Node B phải bị đẩy xuống cách xa Node A tối thiểu chiều cao Node A + padding
     expect(posB.y).toBeGreaterThanOrEqual(posA.y + 200)
   })
+
+  it('createClearedWorkflowWithSceneRoots: giữ lại node root Cảnh khi xóa sơ đồ', () => {
+    const project = createMockProject()
+    const populatedWf: WorkflowGraph = {
+      version: 1,
+      id: 'wf-demo',
+      name: 'Luồng thử nghiệm',
+      description: 'Test',
+      nodes: [
+        createMockNode({ id: 'wf-scene-shot-1', type: 'scene_shot', title: '🎬 Cảnh 1' }),
+        createMockNode({ id: 'wf-cam-shot-1', type: 'camera_director', title: '🎥 Camera' }),
+        createMockNode({ id: 'wf-layer-1', type: 'layer_assembly', title: 'Layer 1' })
+      ],
+      edges: [
+        { id: 'edge-1', fromNode: 'wf-scene-shot-1', fromPort: 'scene_ctx', toNode: 'wf-cam-shot-1', toPort: 'scene_ctx' }
+      ]
+    }
+
+    const cleared = createClearedWorkflowWithSceneRoots(populatedWf, project, 'shot-1')
+    expect(cleared.edges).toHaveLength(0)
+    expect(cleared.nodes).toHaveLength(1)
+    expect(cleared.nodes[0].id).toBe('wf-scene-shot-1')
+    expect(cleared.nodes[0].type).toBe('scene_shot')
+    expect(cleared.nodes[0].position).toEqual({ x: 80, y: 40 })
+
+    // Khi sơ đồ hoàn toàn trống, tự sinh node root Cảnh theo shot hiện tại
+    const emptyWf: WorkflowGraph = {
+      version: 1,
+      id: 'wf-empty',
+      name: 'Trống',
+      description: '',
+      nodes: [],
+      edges: []
+    }
+    const recreated = createClearedWorkflowWithSceneRoots(emptyWf, project, 'shot-1')
+    expect(recreated.nodes).toHaveLength(1)
+    expect(recreated.nodes[0].type).toBe('scene_shot')
+    expect(recreated.nodes[0].id).toBe('wf-scene-shot-1')
+    expect(recreated.edges).toHaveLength(0)
+  })
 })
+
