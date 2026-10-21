@@ -91,6 +91,20 @@ export const WORKFLOW_PORT_SPECS: Record<WorkflowPortKind, WorkflowPortSpec> = {
     shortLabel: '🎙️ Thoại/Audio',
     color: '#06b6d4',
     description: 'Truyền nhạc nền, hiệu ứng âm thanh và đồng bộ khẩu hình miệng tới khâu xuất bản.'
+  },
+  layers_tree: {
+    id: 'layers_tree',
+    label: 'Cây Phân Tầng Layer 2.5D (Layers Tree)',
+    shortLabel: '🌲 Tầng Layer',
+    color: '#8b5cf6',
+    description: 'Liên kết phân cấp chiều sâu từ Phân cảnh gốc xuống các Layer con theo thứ tự Z-index.'
+  },
+  transform_link: {
+    id: 'transform_link',
+    label: 'Liên kết Tọa độ Transform (X/Y/Z & Xoay)',
+    shortLabel: '🎯 Tọa độ 2.5D',
+    color: '#06b6d4',
+    description: 'Điều khiển trực tiếp trục X, Y, Z và góc xoay hướng của Layer theo thời gian thực.'
   }
 }
 
@@ -104,7 +118,7 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     color: '#38bdf8',
     description: 'Thiết lập bố cục Shot, giãn tầng chiều sâu Z (bầu trời, núi, trung cảnh, tiền cảnh) và mặt đất 3D.',
     inputs: [],
-    outputs: ['scene_ctx'],
+    outputs: ['scene_ctx', 'layers_tree'],
     presets: [
       {
         id: 'deep_parallax_stage',
@@ -144,8 +158,8 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     aiAgentRole: 'AssemblyRigAgent',
     color: '#a855f7',
     description: 'Quản lý cụm nhân vật 2.5D, cây cối đa lớp, mô hình 3D kiến trúc và neo gốc xoay (Anchor/Billboard).',
-    inputs: ['scene_ctx', 'motion_stream', 'vfx_stage', 'audio_mix', 'camera_cut'],
-    outputs: ['actors_rig', 'scene_ctx'],
+    inputs: ['layers_tree', 'scene_ctx', 'motion_stream', 'vfx_stage', 'audio_mix', 'camera_cut'],
+    outputs: ['transform_link', 'actors_rig', 'scene_ctx', 'motion_stream', 'vfx_stage'],
     presets: [
       {
         id: 'character_and_foliage_rig',
@@ -173,6 +187,29 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
         defaultParams: { intensity: 1.0 },
         recommendedMcpTools: ['layer_assembly_parts', 'insert_layer_composite', 'update_layer'],
         mcpHint: { enable_part_variants: true, anchor: [0, -0.5, 0] }
+      }
+    ]
+  },
+
+  layer_transform: {
+    type: 'layer_transform',
+    stepOrder: 2,
+    title: 'Tọa độ & Xoay 2.5D',
+    shortTitle: 'Tọa độ Z',
+    aiAgentRole: 'LayerTransformAgent',
+    color: '#06b6d4',
+    description: 'Bộ điều khiển tọa độ không gian 2.5D: Trục X, Trục Y, Chiều sâu Z và Góc xoay hướng.',
+    inputs: ['transform_link'],
+    outputs: [],
+    presets: [
+      {
+        id: 'layer_transform_controller',
+        label: 'Bộ điều khiển Tọa độ 2.5D',
+        summary: 'Trục X, Y, Z & Góc xoay · Đồng bộ trực tiếp 60fps',
+        defaultDirective: 'Điều chỉnh tọa độ X, Y, Z và góc xoay của Layer theo thời gian thực.',
+        defaultParams: { intensity: 1.0 },
+        recommendedMcpTools: ['update_layer'],
+        mcpHint: {}
       }
     ]
   },
@@ -270,6 +307,15 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     inputs: ['scene_ctx', 'motion_stream', 'actors_rig', 'camera_cut'],
     outputs: ['camera_cut'],
     presets: [
+      {
+        id: 'pan_and_dolly',
+        label: 'Lia Máy & Đẩy Cận (Pan then Dolly-In)',
+        summary: 'Lia camera tới vị trí mục tiêu rồi zoom to dần · Mượt mà & Tập trung',
+        defaultDirective: 'Lia ống kính từ toàn cảnh tới vị trí/layer mục tiêu trong nửa đầu thời lượng, sau đó đẩy zoom to dần vào chủ thể.',
+        defaultParams: { intensity: 1.15, duration: 6, camChoreography: 'pan_and_dolly', camPanDurationRatio: 0.45, enableDof: false },
+        recommendedMcpTools: ['apply_camera_preset', 'set_camera'],
+        mcpHint: { preset: 'pan_and_dolly', pan_ratio: 0.45, push_in: 0.3 }
+      },
       {
         id: 'cinematic_fly_push',
         label: 'Bay Xuyên Cảnh (Fly-through) + Push-in Mượt',
@@ -386,6 +432,7 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
 export const CANONICAL_NODE_ORDER: WorkflowNodeType[] = [
   'scene_shot',
   'layer_assembly',
+  'layer_transform',
   'motion_choreography',
   'physics_fx',
   'camera_director',
@@ -397,6 +444,7 @@ export const CANONICAL_NODE_ORDER: WorkflowNodeType[] = [
 export const DEFAULT_NODE_POSITIONS: Record<WorkflowNodeType, { x: number; y: number }> = {
   scene_shot: { x: 80, y: 220 },
   layer_assembly: { x: 500, y: 60 },
+  layer_transform: { x: 500, y: 380 },
   motion_choreography: { x: 920, y: 60 },
   audio_lipsync: { x: 920, y: 380 },
   physics_fx: { x: 1340, y: 60 },
@@ -411,12 +459,14 @@ export const PRESET_SHORT_LABELS: Record<string, string> = {
   character_and_foliage_rig: 'Nhân vật+Cây',
   arch3d_and_props: 'Kiến trúc 3D',
   expr_variant_actors: 'Đa bộ phận',
+  layer_transform_controller: 'Tọa độ 2.5D',
   organic_wind_breathe: 'Gió + Thở',
   character_walk_depth: 'Bước đi Z',
   dynamic_action_arc: 'Nhảy Arc',
   candle_wind_particles: 'Đèn + Hạt',
   combat_elastic_glow: 'Mesh + Glow',
   cave_portal_flashlight: 'Cửa hang',
+  pan_and_dolly: 'Lia & Zoom In',
   cinematic_fly_push: 'Bay qua cảnh',
   dolly_push_focus: 'Dolly In',
   orbit_showcase_3d: 'Orbit 3D',

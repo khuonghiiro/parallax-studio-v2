@@ -133,14 +133,14 @@ describe('Workflow Canvas Connection & Playback Reset', () => {
         expect(Number.isFinite(layout[n.id].y)).toBe(true)
       }
 
-      // Check vertical separation between layers in column 1 (X: 440)
-      expect(layout['n-layer-2'].y).toBeGreaterThan(layout['n-layer-1'].y + 100)
-      expect(layout['n-layer-3'].y).toBeGreaterThan(layout['n-layer-2'].y + 100)
+      // Check horizontal progression between layers from left to right
+      expect(layout['n-layer-2'].x).toBeGreaterThan(layout['n-layer-1'].x)
+      expect(layout['n-layer-3'].x).toBeGreaterThan(layout['n-layer-2'].x)
 
-      // Check horizontal progression between stages
-      expect(layout['n-layer-1'].x).toBeGreaterThan(layout['n-scene'].x)
-      expect(layout['n-motion-1'].x).toBeGreaterThan(layout['n-layer-1'].x)
-      expect(layout['n-fx-1'].x).toBeGreaterThan(layout['n-motion-1'].x)
+      // Check vertical stratum and downstream column placement
+      expect(layout['n-layer-1'].y).toBeGreaterThan(layout['n-scene'].y)
+      expect(layout['n-cam'].x).toBeGreaterThan(layout['n-scene'].x)
+      expect(layout['n-motion-1'].x).toBeGreaterThan(layout['n-layer-3'].x)
       expect(layout['n-look'].x).toBeGreaterThan(layout['n-cam'].x)
     })
   })

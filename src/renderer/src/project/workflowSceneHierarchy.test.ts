@@ -257,14 +257,25 @@ describe('workflowSceneHierarchy', () => {
     expect(childNodes[1].title).toContain('Hiệp sĩ 2.5D')
     expect(childNodes[2].title).toContain('Đom đóm sáng')
 
-    expect(result.nodes).toHaveLength(4)
-    expect(result.edges).toHaveLength(3)
-    for (const e of result.edges) {
+    expect(result.nodes).toHaveLength(8)
+    expect(result.edges).toHaveLength(7)
+
+    // Kiểm tra liên kết từ Node Cảnh tới Camera Director bên phải
+    const camEdge = result.edges.find((e) => e.fromPort === 'scene_ctx' && e.toPort === 'scene_ctx')
+    expect(camEdge).toBeDefined()
+    expect(camEdge?.fromNode).toBe(sceneNode.id)
+
+    // Kiểm tra liên kết phân cấp tầng cây Layer (layers_tree)
+    const layerTreeEdges = result.edges.filter((e) => e.fromPort === 'layers_tree' && e.toPort === 'layers_tree')
+    expect(layerTreeEdges).toHaveLength(3)
+    for (const e of layerTreeEdges) {
       expect(e.fromNode).toBe(sceneNode.id)
-      expect(e.fromPort).toBe('scene_ctx')
-      expect(e.toPort).toBe('scene_ctx')
       expect(childNodes.some((cn) => cn.id === e.toNode)).toBe(true)
     }
+
+    // Kiểm tra liên kết điều khiển Tọa độ Transform vĩnh viễn (transform_link)
+    const transformEdges = result.edges.filter((e) => e.fromPort === 'transform_link' && e.toPort === 'transform_link')
+    expect(transformEdges).toHaveLength(3)
   })
 
   it('kho Node Logic chứa đầy đủ các nhóm Lộ trình, Audio, Vật lý, Ánh sáng, Chuyển động', () => {
@@ -345,18 +356,24 @@ describe('workflowSceneHierarchy', () => {
 
     const { workflow: wf1 } = spawnSceneWithChildLayers(project, emptyWf, 'shot-1')
     expect(wf1.nodes.filter((n) => n.type === 'scene_shot')).toHaveLength(1)
+    expect(wf1.nodes.filter((n) => n.type === 'camera_director')).toHaveLength(1)
     expect(wf1.nodes.filter((n) => n.type === 'layer_assembly')).toHaveLength(3)
-    expect(wf1.nodes).toHaveLength(4)
+    expect(wf1.nodes.filter((n) => n.type === 'layer_transform')).toHaveLength(3)
+    expect(wf1.nodes).toHaveLength(8)
 
     const { workflow: wf2 } = spawnSceneWithChildLayers(project, wf1, 'shot-1')
     expect(wf2.nodes.filter((n) => n.type === 'scene_shot')).toHaveLength(1)
+    expect(wf2.nodes.filter((n) => n.type === 'camera_director')).toHaveLength(1)
     expect(wf2.nodes.filter((n) => n.type === 'layer_assembly')).toHaveLength(3)
-    expect(wf2.nodes).toHaveLength(4)
+    expect(wf2.nodes.filter((n) => n.type === 'layer_transform')).toHaveLength(3)
+    expect(wf2.nodes).toHaveLength(8)
 
     const { workflow: wf3 } = spawnSceneWithChildLayers(project, wf2, 'shot-1')
     expect(wf3.nodes.filter((n) => n.type === 'scene_shot')).toHaveLength(1)
+    expect(wf3.nodes.filter((n) => n.type === 'camera_director')).toHaveLength(1)
     expect(wf3.nodes.filter((n) => n.type === 'layer_assembly')).toHaveLength(3)
-    expect(wf3.nodes).toHaveLength(4)
+    expect(wf3.nodes.filter((n) => n.type === 'layer_transform')).toHaveLength(3)
+    expect(wf3.nodes).toHaveLength(8)
   })
 
   it('tắt Node Layer con (OFF) tự động ẩn Layer tương ứng trên Cảnh (visible = false) và chuyển dây actors_rig sang Layer đang bật', () => {
@@ -436,8 +453,8 @@ describe('workflowSceneHierarchy', () => {
 
     applyWorkflowToProject(project, connectedWf)
     expect(project.camera.dofEnabled).toBe(true)
-    // Camera Z = 1200, Character Z = 200 -> focus distance = 1000
-    expect(project.camera.focusDistance.value).toBe(1000)
+    // Camera Z = -1484 (từ camera director pan_and_dolly), Character Z = 200 -> focus distance = 1684
+    expect(project.camera.focusDistance.value).toBe(1684)
 
     // 2. Thêm Node Shake và kiểm tra rung lắc được áp dụng mà không làm mất DOF
     const { workflow: wfShake, spawnedNode: shakeNode } = spawnLogicNodeIntoWorkflow(

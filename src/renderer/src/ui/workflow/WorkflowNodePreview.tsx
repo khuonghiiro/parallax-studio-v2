@@ -68,7 +68,7 @@ export interface SceneCompositePreviewData {
   items: StackedSceneLayerItem[]
 }
 
-function resolveLayerAssetThumbUrl(assetId: string | undefined, project: Project): string | undefined {
+export function resolveLayerAssetThumbUrl(assetId: string | undefined, project: Project): string | undefined {
   if (!assetId) return undefined
   const runtime = assetStore.get(assetId)
   if (runtime?.thumbUrl) return runtime.thumbUrl

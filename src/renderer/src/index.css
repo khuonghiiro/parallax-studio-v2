@@ -17,6 +17,7 @@
 @import './styles/timelineKeys.css';
 @import './styles/workflow.css';
 @import './styles/workflowNodes.css';
+@import './styles/workflowTransformCard.css';
 @import './styles/workflowThumbnail.css';
 @import './styles/workflowAddNode.css';
 @import './styles/workflowPalette.css';

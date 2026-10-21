@@ -1,0 +1,354 @@
+/* ==========================================================================
+   Parallax Studio - Workflow Transform Card & Layer Node 2.5D Styles
+   Adhering to Dual-Theme (Dark & Light) and Code-Modularization standards
+   ========================================================================== */
+
+/* ------------------------------------------------------------------ Vertical Sockets (Top / Bottom Center) */
+
+.wf-socket-vertical {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+  touch-action: none;
+}
+.wf-socket-vertical.top {
+  top: -8px;
+}
+.wf-socket-vertical.bottom {
+  bottom: -8px;
+}
+.wf-socket-vertical-pin {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid var(--port-c, var(--accent-cyan));
+  background: var(--bg-1);
+  box-shadow: 0 0 0 2px var(--bg-1);
+  display: grid;
+  place-items: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  box-sizing: border-box;
+}
+.wf-socket-vertical-pin-core {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--port-c, var(--accent-cyan));
+  opacity: 0.45;
+  transition: opacity 0.15s ease;
+}
+.wf-socket-vertical.wired .wf-socket-vertical-pin {
+  background: color-mix(in srgb, var(--port-c, var(--accent-cyan)) 25%, var(--bg-1));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--port-c, var(--accent-cyan)) 60%, transparent);
+}
+.wf-socket-vertical.wired .wf-socket-vertical-pin-core {
+  opacity: 1;
+}
+.wf-socket-vertical:hover .wf-socket-vertical-pin,
+.wf-socket-vertical.compatible .wf-socket-vertical-pin,
+.wf-socket-vertical.snapped .wf-socket-vertical-pin {
+  transform: scale(1.3);
+  box-shadow: 0 0 12px var(--port-c, var(--accent-cyan));
+  background: color-mix(in srgb, var(--port-c, var(--accent-cyan)) 35%, var(--bg-1));
+}
+.wf-socket-vertical.compatible .wf-socket-vertical-pin-core,
+.wf-socket-vertical.snapped .wf-socket-vertical-pin-core {
+  opacity: 1;
+}
+
+.wf-socket-vertical-label {
+  position: absolute;
+  font-size: 8px;
+  font-weight: 700;
+  font-family: var(--mono);
+  color: var(--port-c, var(--accent-cyan));
+  background: var(--bg-0);
+  border: 1px solid color-mix(in srgb, var(--port-c, var(--accent-cyan)) 40%, var(--line));
+  padding: 1px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0.9;
+  letter-spacing: 0.2px;
+}
+.wf-socket-vertical.top .wf-socket-vertical-label {
+  bottom: 18px;
+}
+.wf-socket-vertical.bottom .wf-socket-vertical-label {
+  top: 18px;
+}
+
+/* ------------------------------------------------------------------ Companion Transform Node Body */
+
+.wf-transform-body {
+  padding: 6px 8px;
+  background: var(--bg-1);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.wf-transform-slider-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wf-transform-slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 9px;
+  font-family: var(--font-ui);
+  color: var(--text-dim);
+}
+
+.wf-transform-axis-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  font-size: 9px;
+}
+.wf-transform-axis-tag.axis-x { color: #f87171; }
+.wf-transform-axis-tag.axis-y { color: #4ade80; }
+.wf-transform-axis-tag.axis-z { color: #38bdf8; }
+.wf-transform-axis-tag.axis-rot { color: #fbbf24; }
+
+.wf-transform-val-display {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--bg-2);
+  padding: 0 4px;
+  border-radius: 2px;
+  border: 1px solid var(--line-soft);
+}
+
+.wf-transform-slider-input {
+  width: 100%;
+  height: 5px;
+  margin: 1px 0;
+  accent-color: var(--axis-c, var(--accent-cyan));
+  cursor: pointer;
+  background: var(--bg-2);
+  border-radius: 3px;
+}
+.wf-transform-slider-input.axis-x { --axis-c: #ef4444; }
+.wf-transform-slider-input.axis-y { --axis-c: #22c55e; }
+.wf-transform-slider-input.axis-z { --axis-c: #0284c7; }
+.wf-transform-slider-input.axis-rot { --axis-c: #f59e0b; }
+
+.wf-transform-quick-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding-top: 3px;
+  border-top: 1px dashed var(--line-soft);
+  margin-top: 2px;
+}
+
+.wf-transform-reset-btn {
+  font-size: 8.5px;
+  font-weight: 600;
+  padding: 1px 5px;
+  height: 17px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.wf-transform-reset-btn:hover {
+  color: var(--text);
+  background: var(--bg-3);
+  border-color: var(--line-focus);
+}
+
+.wf-transform-sync-hint {
+  font-size: 8px;
+  font-family: var(--mono);
+  color: var(--ok);
+  opacity: 0.85;
+}
+
+/* ------------------------------------------------------------------ Layer Node Card Body (Z-Depth & Asset Drop) */
+
+.wf-layer-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.wf-layer-z-ribbon {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  font-size: 9.5px;
+  font-weight: 600;
+}
+.wf-layer-z-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  color: var(--depth-c, var(--accent-cyan));
+}
+.wf-layer-z-val {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  color: var(--depth-c, var(--text));
+}
+
+.wf-layer-drop-zone {
+  position: relative;
+  border: 1px dashed var(--line);
+  border-radius: 5px;
+  padding: 4px;
+  background: var(--bg-1);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+.wf-layer-drop-zone:hover {
+  border-color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 6%, var(--bg-1));
+}
+.wf-layer-drop-zone.drag-over {
+  border-color: var(--accent-cyan);
+  border-style: solid;
+  background: color-mix(in srgb, var(--accent-cyan) 18%, var(--bg-1));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-cyan) 45%, transparent);
+}
+
+.wf-layer-thumb-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.wf-layer-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.wf-layer-thumb-fallback {
+  font-size: 16px;
+}
+
+.wf-layer-info-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.wf-layer-name-line {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wf-layer-drop-hint {
+  font-size: 8px;
+  color: var(--text-faint);
+  line-height: 1.2;
+}
+
+.wf-layer-replace-btn {
+  font-size: 8.5px;
+  font-weight: 600;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+.wf-layer-replace-btn:hover {
+  color: var(--text);
+  border-color: var(--accent-cyan);
+  background: var(--bg-3);
+}
+
+/* ------------------------------------------------------------------ Connected Effect Badges on Layer Node */
+
+.wf-layer-effects-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  padding-top: 3px;
+  border-top: 1px dashed var(--line-soft);
+}
+.wf-layer-effects-label {
+  font-size: 8.5px;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-right: 2px;
+}
+.wf-layer-effect-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 8.5px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--eff-c, var(--accent-cyan)) 16%, var(--bg-2));
+  border: 1px solid color-mix(in srgb, var(--eff-c, var(--accent-cyan)) 40%, var(--line));
+  color: var(--text);
+  white-space: nowrap;
+}
+.wf-layer-effect-pill .wf-eff-dot {
+  width: 4.5px;
+  height: 4.5px;
+  border-radius: 50%;
+  background: var(--eff-c, var(--accent-cyan));
+  box-shadow: 0 0 4px var(--eff-c, var(--accent-cyan));
+}
+.wf-layer-effects-none {
+  font-size: 8px;
+  font-style: italic;
+  color: var(--text-faint);
+}

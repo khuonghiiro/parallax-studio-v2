@@ -1,12 +1,15 @@
 import type {
   Layer,
   Project,
+  Vec3,
   WorkflowExecutionStageResult,
   WorkflowGraph,
   WorkflowNode
 } from '@shared/types'
 import { buildCameraPath, type PathStep } from '../animation/cameraPath'
 import { applyCameraPreset } from '../animation/presets'
+import { addKeyframe } from '../animation/keyframes'
+import { referenceDistance } from '../animation/math'
 import { shotLocalToWorld } from '../engine/evaluateScene'
 import { isMouthLayer } from './lipSync'
 
@@ -179,7 +182,41 @@ export function executeCameraDirectorStage(
     camPreset = 'dollyIn'
   }
 
-  if (cameraShots.length > 1 && !targetLayer) {
+  const isPanAndDolly =
+    node.preset === 'pan_and_dolly' || node.params?.camChoreography === 'pan_and_dolly'
+
+  if (isPanAndDolly) {
+    const totalDur = node.params?.duration ?? project.comp.duration ?? 6
+    const panRatio = node.params?.camPanDurationRatio ?? 0.45
+    const tMid = Number((totalDur * panRatio).toFixed(2))
+    const d = referenceDistance(project.comp)
+
+    const targetPos: Vec3 = targetLayer
+      ? targetLayer.transform.position.value
+      : targetShot
+        ? [targetShot.position.value[0], targetShot.position.value[1], targetShot.position.value[2]]
+        : [0, 0, 0]
+
+    project.camera.position.keyframes = []
+    project.camera.target.keyframes = []
+    project.camera.fov.keyframes = []
+
+    const startPos: Vec3 = [0, 0, -d]
+    const startTarget: Vec3 = [0, 0, 0]
+    const midPos: Vec3 = [targetPos[0], targetPos[1], -d]
+    const endPos: Vec3 = [targetPos[0], targetPos[1], -d + d * 0.48 * intensity]
+
+    addKeyframe(project.camera.position, 0, startPos, 'easeInOut')
+    addKeyframe(project.camera.position, tMid, midPos, 'easeInOut')
+    addKeyframe(project.camera.position, totalDur, endPos, 'easeInOut')
+
+    addKeyframe(project.camera.target, 0, startTarget, 'easeInOut')
+    addKeyframe(project.camera.target, tMid, targetPos, 'easeInOut')
+    addKeyframe(project.camera.target, totalDur, targetPos, 'easeInOut')
+
+    project.camera.position.value = startPos
+    project.camera.target.value = startTarget
+  } else if (cameraShots.length > 1 && !targetLayer) {
     const totalDur = Math.max(4, project.comp.duration || 10)
     const transDur = Number(
       Math.max(1.0, Math.min(2.2, (totalDur / cameraShots.length) * 0.34)).toFixed(1)
@@ -247,13 +284,17 @@ export function executeCameraDirectorStage(
     ? `khóa vào Layer "${targetLayer.name}"`
     : `áp dụng cho ${cameraShots.length} Phân cảnh`
 
+  const appliedSummary = isPanAndDolly
+    ? `Lia máy tới mục tiêu (${Math.round((node.params?.camPanDurationRatio ?? 0.45) * 100)}%) rồi zoom đẩy cận (${node.params?.duration ?? 6}s) · ${targetDesc}.`
+    : `Tạo lộ trình Camera 3D (${camPreset}) · ${targetDesc} · Bộ phận: ${partNamesSummary}.`
+
   return {
     nodeId: node.id,
     nodeType: node.type,
     title: node.title,
     aiAgentRole: node.aiAgentRole,
     preset: node.preset,
-    appliedSummary: `Tạo lộ trình Camera 3D (${camPreset}) · ${targetDesc} · Bộ phận: ${partNamesSummary}.`,
+    appliedSummary,
     affectedCount: Math.max(1, cameraShots.length)
   }
 }

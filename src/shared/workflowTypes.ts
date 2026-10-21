@@ -17,6 +17,8 @@ export type WorkflowPortKind =
   | 'vfx_stage'
   | 'camera_cut'
   | 'audio_mix'
+  | 'layers_tree'
+  | 'transform_link'
 
 export type WorkflowNodeType =
   | 'scene_shot'
@@ -26,6 +28,7 @@ export type WorkflowNodeType =
   | 'camera_director'
   | 'audio_lipsync'
   | 'look_output'
+  | 'layer_transform'
 
 export type WorkflowAgentRole =
   | 'SceneLayoutAgent'
@@ -35,6 +38,7 @@ export type WorkflowAgentRole =
   | 'CameraDirectorAgent'
   | 'AudioLipSyncAgent'
   | 'ColorGradingRenderAgent'
+  | 'LayerTransformAgent'
 
 export type WorkflowTargetKind =
   | 'composite_25d'
@@ -149,6 +153,18 @@ export interface WorkflowNodeParams {
   camAperture?: number
   /** ID layer chủ thể được camera khóa mục tiêu theo dõi */
   camTargetLayerId?: string
+  /** Kịch bản đạo diễn camera (ví dụ: 'pan_and_dolly' = Lia máy tới mục tiêu rồi Zoom đẩy cận) */
+  camChoreography?: 'pan_and_dolly' | 'orbit_zoom' | 'standard'
+  /** Tỷ lệ thời lượng dành cho bước lia máy (0.2 .. 0.8, mặc định 0.45) */
+  camPanDurationRatio?: number
+  /** Tọa độ tức thời trục X của layer controller */
+  transformX?: number
+  /** Tọa độ tức thời trục Y của layer controller */
+  transformY?: number
+  /** Chiều sâu Z của layer controller */
+  transformZ?: number
+  /** Góc xoay hướng (độ) của layer controller */
+  transformRotation?: number
 }
 
 export interface WorkflowNode {

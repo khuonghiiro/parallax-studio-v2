@@ -382,6 +382,25 @@ export const WORKFLOW_SUBPART_CATALOG: Record<
       category: 'color_out',
       description: 'Tổng hợp toàn bộ pipeline 2.5D/3D + Audio sẵn sàng render ra MP4.'
     }
+  ],
+
+  layer_transform: [
+    {
+      id: 'transform_pos_xyz',
+      label: 'Tọa độ Không gian 3D (X, Y, Z)',
+      shortLabel: 'Tọa độ XYZ',
+      icon: '📍',
+      category: 'mesh_physics',
+      description: 'Điều khiển vị trí 3 trục X, Y và Z của layer trong không gian 2.5D.'
+    },
+    {
+      id: 'transform_rotation',
+      label: 'Góc xoay Hướng (Roll / Yaw / Pitch)',
+      shortLabel: 'Góc xoay',
+      icon: '🔄',
+      category: 'mesh_physics',
+      description: 'Điều khiển góc xoay hướng của layer theo không gian 2.5D.'
+    }
   ]
 }
 
@@ -419,13 +438,16 @@ export const DEFAULT_PRESET_SUBPARTS: Record<string, string[]> = {
   // 7. look_output
   cinematic_atmospheric_fog: ['z_depth_fog', 'color_grade_lut', 'lens_vignette_grain', 'mp4_master_out'],
   mystic_night_glow: ['z_depth_fog', 'color_grade_lut', 'lens_vignette_grain', 'mp4_master_out'],
-  vibrant_anime_clean: ['color_grade_lut', 'lens_vignette_grain', 'mp4_master_out']
+  vibrant_anime_clean: ['color_grade_lut', 'lens_vignette_grain', 'mp4_master_out'],
+
+  // 8. layer_transform
+  layer_transform_controller: ['transform_pos_xyz', 'transform_rotation']
 }
 
 export function getDefaultPartsForNode(node: Pick<WorkflowNode, 'type' | 'preset'>): string[] {
   const fromPreset = DEFAULT_PRESET_SUBPARTS[node.preset]
   if (fromPreset && fromPreset.length > 0) return [...fromPreset]
-  return WORKFLOW_SUBPART_CATALOG[node.type].map((p) => p.id)
+  return WORKFLOW_SUBPART_CATALOG[node.type]?.map((p) => p.id) ?? []
 }
 
 export function getNodeSubParts(node: WorkflowNode): WorkflowSubPartItem[] {

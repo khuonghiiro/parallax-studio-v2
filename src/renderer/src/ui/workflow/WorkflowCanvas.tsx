@@ -736,22 +736,27 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
             viewBox="-1500 -1000 6000 4000"
             style={{ left: -1500, top: -1000 }}
           >
-            {renderedEdges.map(({ edge, p1, p2, path, midX, midY, color, label, isActive }) => (
+            {renderedEdges.map(({ edge, p1, p2, path, midX, midY, color, label, isActive }) => {
+              const isPermanent = edge.toPort === 'transform_link' || edge.fromPort === 'transform_link'
+              return (
               <g
                 key={edge.id}
-                className={`wf-edge-group${isActive ? ' active' : ' muted'}${isActive && playing ? ' playing' : ''}`}
+                className={`wf-edge-group${isActive ? ' active' : ' muted'}${isActive && playing ? ' playing' : ''}${isPermanent ? ' permanent' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation()
-                  onDisconnectEdge(edge.id)
+                  if (!isPermanent) {
+                    onDisconnectEdge(edge.id)
+                  }
                 }}
               >
-                <title>{`Cổng ${label} — Bấm để ngắt kết nối`}</title>
+                <title>{isPermanent ? `Liên kết Tọa độ Transform — Luôn đồng bộ trực tiếp 60fps` : `Cổng ${label} — Bấm để ngắt kết nối`}</title>
                 <path d={path} className="wf-edge-hit" />
                 <path d={path} className="wf-edge-glow-bg" stroke={color} />
                 <path
                   d={path}
                   className="wf-edge-line"
                   stroke={color}
+                  strokeDasharray={isPermanent ? 'none' : undefined}
                 />
                 {isActive && (
                   <path d={path} className={`wf-edge-flow${playing ? ' playing' : ''}`} />
@@ -773,16 +778,19 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
                 <circle cx={p1.x} cy={p1.y} r="3.4" fill={color} />
                 <circle cx={p2.x} cy={p2.y} r="3.4" fill={color} />
 
-                {/* Nút ngắt dây gọn ở tâm đường cong */}
-                <g transform={`translate(${midX}, ${midY})`} className="wf-edge-badge">
-                  <circle r="7" className="wf-edge-badge-ring" style={{ stroke: color }} />
-                  <circle r="2.6" className="wf-edge-badge-dot" style={{ fill: color }} />
-                  <text x="0" y="3" textAnchor="middle" className="wf-edge-badge-x">
-                    ✕
-                  </text>
-                </g>
+                {/* Nút ngắt dây gọn ở tâm đường cong (Ẩn với liên kết transform_link cố định) */}
+                {!isPermanent && (
+                  <g transform={`translate(${midX}, ${midY})`} className="wf-edge-badge">
+                    <circle r="7" className="wf-edge-badge-ring" style={{ stroke: color }} />
+                    <circle r="2.6" className="wf-edge-badge-dot" style={{ fill: color }} />
+                    <text x="0" y="3" textAnchor="middle" className="wf-edge-badge-x">
+                      ✕
+                    </text>
+                  </g>
+                )}
               </g>
-            ))}
+              )
+            })}
 
             {/* Dây đang kéo trực tiếp kèm vòng nam châm bắt điểm (Hỗ trợ 2 chiều mượt mà) */}
             {pendingSource && previewTarget && (

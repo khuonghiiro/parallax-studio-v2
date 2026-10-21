@@ -127,12 +127,25 @@ export const IconWfLookOutput = (p: WfIconProps) => (
   </svg>
 )
 
+/** Node: Tọa độ & Xoay 2.5D (Transform Controller) */
+export const IconWfLayerTransform = (p: WfIconProps) => (
+  <svg {...base(p)}>
+    <path d="M12 2v10m0 0l7 4m-7-4l-7 4" />
+    <path d="M12 2l-2 2m2-2l2 2" />
+    <path d="M19 16l-1-2.5m1 2.5l-2.5.5" />
+    <path d="M5 16l2.5.5m-2.5-.5l1-2.5" />
+    <path d="M17 7a7 7 0 0 1 1 7" strokeDasharray="1.5 1.5" />
+  </svg>
+)
+
 export function renderWorkflowNodeIcon(type: WorkflowNodeType, props?: WfIconProps) {
   switch (type) {
     case 'scene_shot':
       return <IconWfSceneShot {...props} />
     case 'layer_assembly':
       return <IconWfLayerAssembly {...props} />
+    case 'layer_transform':
+      return <IconWfLayerTransform {...props} />
     case 'motion_choreography':
       return <IconWfMotion {...props} />
     case 'physics_fx':

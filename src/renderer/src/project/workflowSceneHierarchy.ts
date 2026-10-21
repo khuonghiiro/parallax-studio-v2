@@ -210,11 +210,11 @@ export function spawnSceneWithChildLayers(
 
   const rootLayers = getRootLayersForShot(project, shot.id)
   const shotDuration = getShotDuration(project, shot.id)
-  // Khoảng cách bố cục rộng rãi, triệt tiêu hoàn toàn hiện tượng chồng đè
-  const ROW_GAP = 340
-  const COL_1_X = 60
-  const COL_2_X = 440
-  const sceneY = Math.max(80, 80 + Math.round(((Math.max(1, rootLayers.length) - 1) * ROW_GAP) / 2))
+
+  const NODE_W = 248
+  const COL_GAP = 54
+  const sceneX = 80
+  const sceneY = 60
 
   // 1. Tạo Node Cảnh (Scene Shot Node) với ID cố định theo shot.id để không bao giờ bị nhân đôi
   const sceneNodeId = `wf-scene-${shot.id}`
@@ -223,7 +223,7 @@ export function spawnSceneWithChildLayers(
     type: 'scene_shot',
     title: `🎬 Cảnh: ${shot.name} (${shotDuration.toFixed(1)}s)`,
     enabled: true,
-    position: { x: COL_1_X, y: sceneY },
+    position: { x: sceneX, y: sceneY },
     preset: 'deep_parallax_stage',
     aiAgentRole: 'SceneLayoutAgent',
     aiDirective: `Phân cảnh gốc "${shot.name}" (${shotDuration.toFixed(1)}s) điều phối ${rootLayers.length} layer con và không gian Z.`,
@@ -236,13 +236,57 @@ export function spawnSceneWithChildLayers(
     }
   }
 
-  // 2. Tạo các Node Layer con với ID cố định theo shot.id và layer.id
-  const childNodes: WorkflowNode[] = []
+  // 2. Tạo Node Lộ trình Camera 3D bên phải Node Cảnh (Pan lia máy rồi Zoom đẩy cận)
+  const camX = sceneX + NODE_W + 110
+  const camY = sceneY
+  const camNodeId = `wf-cam-${shot.id}`
+  const camNode: WorkflowNode = {
+    id: camNodeId,
+    type: 'camera_director',
+    title: `🎥 Camera: ${shot.name}`,
+    enabled: true,
+    position: { x: camX, y: camY },
+    preset: 'pan_and_dolly',
+    aiAgentRole: 'CameraDirectorAgent',
+    aiDirective: `Lia camera từ toàn cảnh tới vị trí/layer mục tiêu rồi zoom to dần vào chủ thể.`,
+    params: {
+      shotId: shot.id,
+      duration: shotDuration,
+      camChoreography: 'pan_and_dolly',
+      camPanDurationRatio: 0.45,
+      intensity: 1.15
+    }
+  }
+
+  const childLayerNodes: WorkflowNode[] = []
+  const childTransformNodes: WorkflowNode[] = []
   const childEdges: WorkflowEdge[] = []
+
+  // Nối cổng scene_ctx từ Node Cảnh sang Node Camera bên phải
+  childEdges.push({
+    id: `edge-${sceneNodeId}-scene_ctx-${camNodeId}-scene_ctx`,
+    fromNode: sceneNodeId,
+    fromPort: 'scene_ctx',
+    toNode: camNodeId,
+    toPort: 'scene_ctx'
+  })
+
+  // 3. Sắp xếp các Layer con từ trái sang phải theo Z-index (từ xa tới gần) kèm độ dốc chiều sâu Z
+  const zValues = rootLayers.map((l) => l.transform?.position?.value[2] ?? 0)
+  const zMax = zValues.length > 0 ? Math.max(...zValues) : 0
+  const zMin = zValues.length > 0 ? Math.min(...zValues) : 0
+  const zSpan = Math.max(1, zMax - zMin)
 
   rootLayers.forEach((layer, idx) => {
     const meta = formatLayerNodeLabel(layer, project)
     const childNodeId = `wf-layer-${shot.id}-${layer.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`
+    const transNodeId = `wf-trans-${shot.id}-${layer.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`
+
+    const layerZ = layer.transform?.position?.value[2] ?? 0
+    const normZ = (layerZ - zMin) / zSpan // 1.0 = sâu nhất (bầu trời), 0.0 = tiền cảnh
+    const childX = 80 + idx * (NODE_W + COL_GAP)
+    // Tầng Z sâu hơn (normZ ~ 1) ở cao hơn tại Y=340, tiền cảnh (normZ ~ 0) ở thấp hơn tại Y=450 tạo dốc Z trực quan
+    const childY = 340 + Math.round((1 - normZ) * 110)
 
     // Gom tất cả ID của layer trong cụm composite (nếu có)
     const allLayerIdsInGroup = layer.composite?.instanceId
@@ -256,7 +300,7 @@ export function spawnSceneWithChildLayers(
       type: 'layer_assembly',
       title: meta.title,
       enabled: layer.visible !== false,
-      position: { x: COL_2_X, y: 80 + idx * ROW_GAP },
+      position: { x: childX, y: childY },
       preset: layer.composite ? 'character_and_foliage_rig' : 'character_and_foliage_rig',
       aiAgentRole: 'AssemblyRigAgent',
       aiDirective: `Cấu hình logic chuyên biệt cho layer "${layer.name}" (Z: ${meta.zDepth}) trong cảnh ${shot.name}.`,
@@ -270,20 +314,51 @@ export function spawnSceneWithChildLayers(
             : getDefaultPartsForNode({ type: 'layer_assembly', preset: 'character_and_foliage_rig' })
       }
     }
-    childNodes.push(childNode)
+    childLayerNodes.push(childNode)
 
-    // Tạo dây nối từ Node Cảnh tới Node Layer con qua cổng scene_ctx
+    // Tạo dây nối từ bottom port layers_tree của Node Cảnh tới top port layers_tree của Node Layer con
     childEdges.push({
-      id: `edge-${sceneNodeId}-scene_ctx-${childNodeId}-scene_ctx`,
+      id: `edge-${sceneNodeId}-layers_tree-${childNodeId}-layers_tree`,
       fromNode: sceneNodeId,
-      fromPort: 'scene_ctx',
+      fromPort: 'layers_tree',
       toNode: childNodeId,
-      toPort: 'scene_ctx'
+      toPort: 'layers_tree'
+    })
+
+    // 4. Tạo companion node layer_transform mặc định kết nối sẵn dưới đáy mỗi node layer
+    const transY = childY + 205 + 32
+    const transformNode: WorkflowNode = {
+      id: transNodeId,
+      type: 'layer_transform',
+      title: `🎯 Tọa độ: ${layer.name}`,
+      enabled: layer.visible !== false,
+      position: { x: childX, y: transY },
+      preset: 'layer_transform_controller',
+      aiAgentRole: 'LayerTransformAgent',
+      aiDirective: `Điều khiển trực tiếp trục X, Y, Z và góc xoay hướng cho layer "${layer.name}".`,
+      params: {
+        shotId: shot.id,
+        targetMode: 'custom',
+        targetLayerIds: [layer.id],
+        transformX: Math.round(layer.transform?.position?.value[0] ?? 0),
+        transformY: Math.round(layer.transform?.position?.value[1] ?? 0),
+        transformZ: Math.round(layer.transform?.position?.value[2] ?? 0),
+        transformRotation: Math.round(layer.transform?.rotation?.value[2] ?? 0)
+      }
+    }
+    childTransformNodes.push(transformNode)
+
+    // Dây nối cố định vĩnh viễn (Permanent Wire) từ bottom port transform_link sang top port transform_link
+    childEdges.push({
+      id: `edge-${childNodeId}-transform_link-${transNodeId}-transform_link`,
+      fromNode: childNodeId,
+      fromPort: 'transform_link',
+      toNode: transNodeId,
+      toPort: 'transform_link'
     })
   })
 
-  // 3. XỬ LÝ LỌC TRÙNG LẶP TRIỆT ĐỂ (Anti-Duplication Guarantee):
-  // Gỡ bỏ mọi Node Cảnh cũ cùng phân cảnh (hoặc generic placeholder) và mọi Node Layer cũ của phân cảnh này.
+  // 5. XỬ LÝ LỌC TRÙNG LẶP TRIỆT ĐỂ (Anti-Duplication Guarantee):
   const isOldSceneForThisShot = (n: WorkflowNode) =>
     n.type === 'scene_shot' &&
     (n.params?.shotId === shot.id ||
@@ -297,12 +372,30 @@ export function spawnSceneWithChildLayers(
       n.id.startsWith(`wf-layer-${shot.id}`) ||
       n.id === 'wf-layer_assembly')
 
+  const isOldTransformForThisShot = (n: WorkflowNode) =>
+    n.type === 'layer_transform' &&
+    (n.params?.shotId === shot.id ||
+      n.id.startsWith(`wf-trans-${shot.id}`) ||
+      n.id.startsWith(`wf-transform-${shot.id}`))
+
+  const isOldCamForThisShot = (n: WorkflowNode) =>
+    n.type === 'camera_director' &&
+    (n.params?.shotId === shot.id || n.id === camNodeId || n.id === 'wf-camera_director')
+
   const removedNodeIds = new Set(
-    workflow.nodes.filter((n) => isOldSceneForThisShot(n) || isOldLayerForThisShot(n)).map((n) => n.id)
+    workflow.nodes
+      .filter(
+        (n) =>
+          isOldSceneForThisShot(n) ||
+          isOldLayerForThisShot(n) ||
+          isOldTransformForThisShot(n) ||
+          isOldCamForThisShot(n)
+      )
+      .map((n) => n.id)
   )
 
   const retainedNodes = workflow.nodes.filter((n) => !removedNodeIds.has(n.id))
-  const nextNodes = [sceneNode, ...childNodes, ...retainedNodes]
+  const nextNodes = [sceneNode, camNode, ...childLayerNodes, ...childTransformNodes, ...retainedNodes]
 
   // Giữ lại các edge không dính tới node bị xóa
   const retainedEdges = workflow.edges.filter(
@@ -319,7 +412,7 @@ export function spawnSceneWithChildLayers(
   // Tự động nối dây bổ sung cho các khối chức năng hạ nguồn nếu còn thiếu mạch
   const motionNode = nextNodes.find((n) => n.type === 'motion_choreography')
   if (motionNode && !nextEdges.some((e) => e.toNode === motionNode.id && e.toPort === 'actors_rig')) {
-    const actorChild = childNodes.find((c) => c.title.includes('2.5D') || c.title.includes('Nhân vật')) ?? childNodes[0]
+    const actorChild = childLayerNodes.find((c) => c.title.includes('2.5D') || c.title.includes('Nhân vật')) ?? childLayerNodes[0]
     if (actorChild) {
       nextEdges.push({
         id: `edge-${actorChild.id}-actors_rig-${motionNode.id}-actors_rig`,
@@ -329,17 +422,6 @@ export function spawnSceneWithChildLayers(
         toPort: 'actors_rig'
       })
     }
-  }
-
-  const camNode = nextNodes.find((n) => n.type === 'camera_director')
-  if (camNode && !nextEdges.some((e) => e.toNode === camNode.id && e.toPort === 'scene_ctx')) {
-    nextEdges.push({
-      id: `edge-${sceneNodeId}-scene_ctx-${camNode.id}-scene_ctx`,
-      fromNode: sceneNodeId,
-      fromPort: 'scene_ctx',
-      toNode: camNode.id,
-      toPort: 'scene_ctx'
-    })
   }
 
   const audioNode = nextNodes.find((n) => n.type === 'audio_lipsync')
@@ -361,6 +443,109 @@ export function spawnSceneWithChildLayers(
       edges: nextEdges
     },
     sceneNode,
-    childNodes
+    childNodes: childLayerNodes,
+    transformNodes: childTransformNodes
   }
 }
+
+/**
+ * Tự động phát hiện và bổ sung các Layer mới được thêm vào phân cảnh
+ * nếu sơ đồ Workflow hiện tại đã được bung các Layer con trước đó.
+ */
+export function syncMissingLayersToWorkflow(
+  workflow: WorkflowGraph,
+  project: Project,
+  currentShotScope?: string
+): { workflow: WorkflowGraph; addedCount: number } | null {
+  const sceneNode = workflow.nodes.find((n) => n.type === 'scene_shot')
+  const hasUnpackedLayers = workflow.nodes.some(
+    (n) => n.type === 'layer_assembly' && n.id.startsWith('wf-layer-')
+  )
+  if (!sceneNode || !hasUnpackedLayers) return null
+
+  const existingLayerIds = new Set(
+    workflow.nodes
+      .filter((n) => n.type === 'layer_assembly' && n.id.startsWith('wf-layer-'))
+      .flatMap((n) => n.params?.targetLayerIds ?? [])
+  )
+
+  const missingLayers = project.layers.filter(
+    (l) =>
+      !l.locked &&
+      (currentShotScope === 'all' || !l.shotId || l.shotId === currentShotScope) &&
+      !existingLayerIds.has(l.id)
+  )
+
+  if (missingLayers.length === 0) return null
+
+  const nextNodes = [...workflow.nodes]
+  const nextEdges = [...workflow.edges]
+
+  for (const ml of missingLayers) {
+    const layerNodeId = `wf-layer-${ml.id}`
+    const transNodeId = `wf-trans-${ml.id}`
+    if (nextNodes.some((n) => n.id === layerNodeId)) continue
+
+    const posX = ml.transform.position.value[0] ?? 0
+    const posY = ml.transform.position.value[1] ?? 0
+    const posZ = ml.transform.position.value[2] ?? 0
+    const rotZ = ml.transform.rotation.value[2] ?? 0
+
+    nextNodes.push({
+      id: layerNodeId,
+      type: 'layer_assembly',
+      title: ml.name,
+      enabled: true,
+      preset: 'character_puppet_25d',
+      aiAgentRole: 'LayerAssemblyAgent',
+      position: { x: 100, y: 340 },
+      params: {
+        targetLayerIds: [ml.id],
+        shotId: ml.shotId || currentShotScope
+      }
+    })
+
+    nextNodes.push({
+      id: transNodeId,
+      type: 'layer_transform',
+      title: `Tọa độ: ${ml.name}`,
+      enabled: true,
+      preset: 'layer_transform_controller',
+      aiAgentRole: 'LayerTransformAgent',
+      position: { x: 100, y: 580 },
+      params: {
+        targetLayerIds: [ml.id],
+        transformX: posX,
+        transformY: posY,
+        transformZ: posZ,
+        transformRotation: rotZ
+      }
+    })
+
+    nextEdges.push({
+      id: `edge-${sceneNode.id}-layers_tree-${layerNodeId}-layers_tree`,
+      fromNode: sceneNode.id,
+      fromPort: 'layers_tree',
+      toNode: layerNodeId,
+      toPort: 'layers_tree'
+    })
+
+    nextEdges.push({
+      id: `edge-${layerNodeId}-transform_link-${transNodeId}-transform_link`,
+      fromNode: layerNodeId,
+      fromPort: 'transform_link',
+      toNode: transNodeId,
+      toPort: 'transform_link'
+    })
+  }
+
+  return {
+    workflow: {
+      ...workflow,
+      nodes: nextNodes,
+      edges: nextEdges
+    },
+    addedCount: missingLayers.length
+  }
+}
+

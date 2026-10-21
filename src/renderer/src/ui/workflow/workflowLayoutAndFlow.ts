@@ -29,6 +29,12 @@ export function estimateNodeCardHeight(node: WorkflowNode): number {
   if (node.type === 'scene_shot') {
     return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 204
   }
+  if (node.type === 'layer_transform') {
+    return HEADER_H + SOCKET_PAD_TOP * 2 + 185
+  }
+  if (node.type === 'layer_assembly' || Boolean(node.params?.targetLayerIds?.length)) {
+    return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 205
+  }
   return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 150
 }
 
@@ -37,8 +43,17 @@ export function getOutputSocketCoords(
   node: WorkflowNode,
   port: WorkflowPortKind
 ): { x: number; y: number } {
+  // Cổng chân đáy (Bottom Port): layers_tree trên Scene hoặc transform_link trên Layer
+  if (port === 'layers_tree' || port === 'transform_link') {
+    return {
+      x: node.position.x + NODE_W / 2,
+      y: node.position.y + estimateNodeCardHeight(node) + 6
+    }
+  }
+
   const spec = WORKFLOW_NODE_SPECS[node.type]
-  const idx = Math.max(0, spec?.outputs.indexOf(port) ?? 0)
+  const horizOutputs = (spec?.outputs ?? []).filter((p) => p !== 'layers_tree' && p !== 'transform_link')
+  const idx = Math.max(0, horizOutputs.indexOf(port))
   return {
     x: node.position.x + NODE_W + 9,
     y: node.position.y + HEADER_H + SOCKET_PAD_TOP + idx * SOCKET_ROW_H + SOCKET_ROW_H / 2
@@ -50,8 +65,17 @@ export function getInputSocketCoords(
   node: WorkflowNode,
   port: WorkflowPortKind
 ): { x: number; y: number } {
+  // Cổng đỉnh đầu (Top Port): layers_tree trên Layer hoặc transform_link trên Transform
+  if (port === 'layers_tree' || port === 'transform_link') {
+    return {
+      x: node.position.x + NODE_W / 2,
+      y: node.position.y - 6
+    }
+  }
+
   const spec = WORKFLOW_NODE_SPECS[node.type]
-  const idx = Math.max(0, spec?.inputs.indexOf(port) ?? 0)
+  const horizInputs = (spec?.inputs ?? []).filter((p) => p !== 'layers_tree' && p !== 'transform_link')
+  const idx = Math.max(0, horizInputs.indexOf(port))
   return {
     x: node.position.x - 9,
     y: node.position.y + HEADER_H + SOCKET_PAD_TOP + idx * SOCKET_ROW_H + SOCKET_ROW_H / 2
@@ -68,17 +92,27 @@ export function getBestMatchingInputPort(
   const spec = WORKFLOW_NODE_SPECS[targetNode.type]
   if (!spec || spec.inputs.length === 0) return null
 
-  // 1. Cùng tên cổng chuẩn (ưu tiên tuyệt đối)
+  // 1. Phân loại cổng dọc đặc biệt (Vertical Hierarchical Ports)
+  if (fromPort === 'layers_tree') {
+    return spec.inputs.includes('layers_tree') ? 'layers_tree' : null
+  }
+  if (fromPort === 'transform_link') {
+    return spec.inputs.includes('transform_link') ? 'transform_link' : null
+  }
+
+  // 2. Cùng tên cổng chuẩn (ưu tiên tuyệt đối)
   if (spec.inputs.includes(fromPort)) return fromPort
 
-  // 2. Tương thích ngữ nghĩa giữa các khâu
+  // 3. Tương thích ngữ nghĩa giữa các khâu
   const compatibilityMap: Record<WorkflowPortKind, WorkflowPortKind[]> = {
     scene_ctx: ['scene_ctx'],
     actors_rig: ['actors_rig', 'scene_ctx'],
     motion_stream: ['motion_stream', 'actors_rig', 'scene_ctx'],
     vfx_stage: ['vfx_stage', 'motion_stream', 'scene_ctx'],
     camera_cut: ['camera_cut', 'scene_ctx'],
-    audio_mix: ['audio_mix']
+    audio_mix: ['audio_mix'],
+    layers_tree: ['layers_tree'],
+    transform_link: ['transform_link']
   }
 
   const candidates = compatibilityMap[fromPort] ?? []
@@ -86,8 +120,8 @@ export function getBestMatchingInputPort(
     if (spec.inputs.includes(cand)) return cand
   }
 
-  // 3. Fallback: cổng vào đầu tiên có sẵn
-  return spec.inputs[0]
+  // 4. Fallback: cổng vào đầu tiên có sẵn không phải là cổng dọc
+  return spec.inputs.find((p) => p !== 'layers_tree' && p !== 'transform_link') ?? spec.inputs[0]
 }
 
 /**
@@ -100,17 +134,27 @@ export function getBestMatchingOutputPort(
   const spec = WORKFLOW_NODE_SPECS[sourceNode.type]
   if (!spec || spec.outputs.length === 0) return null
 
-  // 1. Cùng tên cổng chuẩn
+  // 1. Phân loại cổng dọc đặc biệt
+  if (toPort === 'layers_tree') {
+    return spec.outputs.includes('layers_tree') ? 'layers_tree' : null
+  }
+  if (toPort === 'transform_link') {
+    return spec.outputs.includes('transform_link') ? 'transform_link' : null
+  }
+
+  // 2. Cùng tên cổng chuẩn
   if (spec.outputs.includes(toPort)) return toPort
 
-  // 2. Tương thích ngữ nghĩa ngược
+  // 3. Tương thích ngữ nghĩa ngược
   const reverseMap: Record<WorkflowPortKind, WorkflowPortKind[]> = {
     scene_ctx: ['scene_ctx'],
     actors_rig: ['actors_rig'],
     motion_stream: ['motion_stream', 'actors_rig'],
     vfx_stage: ['vfx_stage', 'motion_stream'],
     camera_cut: ['camera_cut'],
-    audio_mix: ['audio_mix']
+    audio_mix: ['audio_mix'],
+    layers_tree: ['layers_tree'],
+    transform_link: ['transform_link']
   }
 
   const candidates = reverseMap[toPort] ?? []
@@ -118,7 +162,7 @@ export function getBestMatchingOutputPort(
     if (spec.outputs.includes(cand)) return cand
   }
 
-  return spec.outputs[0]
+  return spec.outputs.find((p) => p !== 'layers_tree' && p !== 'transform_link') ?? spec.outputs[0]
 }
 
 export function buildBezierPath(x1: number, y1: number, x2: number, y2: number): string {
@@ -153,6 +197,26 @@ export function buildSmartEdgeGeometry(
   const portSpec = WORKFLOW_PORT_SPECS[fromPort]
   const color = portSpec?.color ?? '#38bdf8'
   const label = portSpec?.shortLabel ?? fromPort
+
+  const isVertical =
+    fromPort === 'layers_tree' ||
+    fromPort === 'transform_link' ||
+    toPort === 'layers_tree' ||
+    toPort === 'transform_link'
+
+  if (isVertical) {
+    const dy = Math.max(32, Math.abs(p2.y - p1.y) * 0.45)
+    const path = `M ${p1.x} ${p1.y} C ${p1.x} ${p1.y + dy}, ${p2.x} ${p2.y - dy}, ${p2.x} ${p2.y}`
+    return {
+      p1,
+      p2,
+      path,
+      midX: Math.round((p1.x + p2.x) / 2),
+      midY: Math.round((p1.y + p2.y) / 2),
+      color,
+      label
+    }
+  }
 
   const spanX = p2.x - p1.x
   const intermediateNodes = allNodes.filter(
@@ -248,6 +312,18 @@ export function describeNodeConcreteConfig(node: WorkflowNode, project?: Project
       }
       return `Neo chân [0, -0.5] · Tự hướng Camera (Billboard Y)`
 
+    case 'layer_transform': {
+      const boundLayer = project?.layers.find((l) => node.params?.targetLayerIds?.includes(l.id))
+      if (boundLayer) {
+        const x = Math.round(boundLayer.transform.position.value[0] ?? 0)
+        const y = Math.round(boundLayer.transform.position.value[1] ?? 0)
+        const z = Math.round(boundLayer.transform.position.value[2] ?? 0)
+        const rot = Math.round(boundLayer.transform.rotation.value[2] ?? 0)
+        return `X: ${x > 0 ? '+' : ''}${x}px · Y: ${y > 0 ? '+' : ''}${y}px · Z: ${z}px · Xoay: ${rot}°`
+      }
+      return 'Điều khiển trực tiếp X/Y/Z & Góc xoay 60fps'
+    }
+
     case 'motion_choreography':
       if (node.preset === 'character_walk_depth') {
         return `Bước đi trục Z (${node.params?.duration ?? 6}s) + Gió cây (${pct})`
@@ -284,6 +360,11 @@ export function describeNodeConcreteConfig(node: WorkflowNode, project?: Project
         const shakeVal = project.camera.shakeAmount ?? 0
         const shakeTag = shakeVal > 0.2 ? ` · Rung ${shakeVal}` : ''
         return `Lộ trình ${kfCount} mốc (${Math.max(1, visitedShotIds.size || shots)} cảnh) · ${dof}${shakeTag}`
+      }
+      if (node.preset === 'pan_and_dolly' || node.params?.camChoreography === 'pan_and_dolly') {
+        const dur = node.params?.duration ?? 6
+        const panPct = Math.round((node.params?.camPanDurationRatio ?? 0.45) * 100)
+        return `Lia máy (${panPct}%) ➔ Zoom to dần (${dur}s) · ${dof}`
       }
       if (node.preset === 'cinematic_fly_push') {
         return `Bay qua ${shots} cảnh (Push-in ${Math.round(14 * intensity)}%) · ${dof}`
@@ -602,11 +683,108 @@ export function resolveNodeCollisionPush(
 export function solveSpaciousWorkflowLayout(
   nodes: WorkflowNode[],
   _edges: WorkflowEdge[],
-  _project?: Project
+  project?: Project
 ): Record<string, { x: number; y: number }> {
   if (!nodes || nodes.length === 0) return {}
 
-  // 1. Phân nhóm các Node vào 6 Cột Chức năng chuẩn mực
+  const sceneNodes = nodes.filter((n) => n.type === 'scene_shot')
+  const layerNodes = nodes.filter(
+    (n) => n.type === 'layer_assembly' || Boolean(n.params?.targetLayerIds?.length && !n.params?.logicId)
+  )
+  const transformNodes = nodes.filter((n) => n.type === 'layer_transform')
+  const camNodes = nodes.filter((n) => n.type === 'camera_director')
+
+  // Bố cục phân cấp Thông minh (Smart Hierarchical Z-Depth Layout):
+  // Nếu có phân cảnh và các Layer con, bố trí theo cấu trúc:
+  // - Node Cảnh ở trên (Top-Left)
+  // - Node Camera ở bên phải Node Cảnh
+  // - Các Node Layer xếp hàng ngang từ trái sang phải theo Z-index (xa -> gần) kèm độ dốc chiều sâu Z
+  // - Dưới đáy mỗi Node Layer là Node Transform tương ứng
+  // - Các khâu chuyển động, FX, âm thanh, xuất bản xếp gọn sang bên phải
+  if (sceneNodes.length > 0 && layerNodes.length > 0) {
+    const newPositions: Record<string, { x: number; y: number }> = {}
+    const sceneNode = sceneNodes[0]
+    const sceneX = 80
+    const sceneY = 60
+    newPositions[sceneNode.id] = { x: sceneX, y: sceneY }
+
+    // Các scene nodes khác (nếu có nhiều cảnh)
+    sceneNodes.slice(1).forEach((sc, scIdx) => {
+      newPositions[sc.id] = { x: sceneX, y: sceneY + (scIdx + 1) * 260 }
+    })
+
+    // Node Camera nằm trực tiếp bên phải Node Cảnh gốc
+    if (camNodes.length > 0) {
+      const primaryCam = camNodes[0]
+      newPositions[primaryCam.id] = { x: sceneX + NODE_W + 110, y: sceneY }
+      camNodes.slice(1).forEach((c, cIdx) => {
+        newPositions[c.id] = { x: sceneX + NODE_W + 110, y: sceneY + (cIdx + 1) * 220 }
+      })
+    }
+
+    // Sắp xếp các Layer con từ trái sang phải theo Z-index (từ xa tới gần)
+    const sortedLayers = [...layerNodes].sort((a, b) => {
+      const za = project?.layers.find((l) => a.params?.targetLayerIds?.includes(l.id))?.transform?.position?.value[2] ?? 0
+      const zb = project?.layers.find((l) => b.params?.targetLayerIds?.includes(l.id))?.transform?.position?.value[2] ?? 0
+      return zb - za
+    })
+
+    const zVals = sortedLayers.map((n) => {
+      return project?.layers.find((l) => n.params?.targetLayerIds?.includes(l.id))?.transform?.position?.value[2] ?? 0
+    })
+    const zMax = zVals.length > 0 ? Math.max(...zVals) : 0
+    const zMin = zVals.length > 0 ? Math.min(...zVals) : 0
+    const zSpan = Math.max(1, zMax - zMin)
+
+    const COL_GAP = 54
+    sortedLayers.forEach((node, idx) => {
+      const layerZ = project?.layers.find((l) => node.params?.targetLayerIds?.includes(l.id))?.transform?.position?.value[2] ?? 0
+      const normZ = (layerZ - zMin) / zSpan
+      const childX = 80 + idx * (NODE_W + COL_GAP)
+      // Dốc chiều sâu Z: Layer ở xa (normZ = 1) ở cao hơn tại Y=340, Layer ở gần (normZ = 0) ở thấp hơn tại Y=450
+      const childY = 340 + Math.round((1 - normZ) * 110)
+      newPositions[node.id] = { x: childX, y: childY }
+
+      // Tìm companion transform node của layer này
+      const targetLayerId = node.params?.targetLayerIds?.[0]
+      const companionTrans = transformNodes.find(
+        (t) =>
+          (targetLayerId && t.params?.targetLayerIds?.includes(targetLayerId)) ||
+          t.id.endsWith(node.id.replace('wf-layer-', ''))
+      )
+      if (companionTrans) {
+        newPositions[companionTrans.id] = {
+          x: childX,
+          y: childY + estimateNodeCardHeight(node) + 32
+        }
+      }
+    })
+
+    // Các transform nodes còn lại chưa được gán
+    transformNodes.forEach((t) => {
+      if (!newPositions[t.id]) {
+        newPositions[t.id] = { x: 80, y: 720 }
+      }
+    })
+
+    // Các node hạ nguồn khác (motion, physics, audio, look)
+    const downstreamNodes = nodes.filter((n) => !newPositions[n.id])
+    let nextColX = Math.max(80 + sortedLayers.length * (NODE_W + COL_GAP) + 60, sceneX + (NODE_W + 110) * 2 + 60)
+    let curY = 60
+
+    downstreamNodes.forEach((n) => {
+      newPositions[n.id] = { x: nextColX, y: curY }
+      curY += estimateNodeCardHeight(n) + 36
+      if (curY > 580) {
+        curY = 60
+        nextColX += NODE_W + 54
+      }
+    })
+
+    return newPositions
+  }
+
+  // Fallback: 6 cột chuẩn nếu không có phân cảnh hoặc sơ đồ tự do
   const columns: WorkflowNode[][] = [[], [], [], [], [], []]
   const COL_X = [60, 440, 840, 1240, 1640, 2040]
   const GAP_Y = 44
@@ -617,7 +795,7 @@ export function solveSpaciousWorkflowLayout(
 
     if (n.type === 'scene_shot') {
       columns[0].push(n)
-    } else if (isLayerNode || n.type === 'layer_assembly') {
+    } else if (isLayerNode || n.type === 'layer_assembly' || n.type === 'layer_transform') {
       columns[1].push(n)
     } else if (
       n.type === 'motion_choreography' ||
@@ -648,7 +826,7 @@ export function solveSpaciousWorkflowLayout(
     }
   }
 
-  // 2. Tính chiều cao tối đa của cột trung tâm (thường là Cột 1: Layer con) để làm mốc căn giữa
+  // 2. Tính chiều cao tối đa của cột trung tâm để làm mốc căn giữa
   const columnHeights = columns.map((col) => {
     if (col.length === 0) return 0
     return col.reduce((sum, node) => sum + estimateNodeCardHeight(node), 0) + (col.length - 1) * GAP_Y

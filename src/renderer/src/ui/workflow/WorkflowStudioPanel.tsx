@@ -24,8 +24,11 @@ import {
   resolveConnectedWorkflowNodes
 } from '../../project/workflowEngine'
 import { syncWorkflowEntityVisibility } from '../../project/workflowEntitySync'
-import { spawnLogicNodeIntoWorkflow } from '../../project/workflowLogicNodes'
-import { getWorkflowEffectiveDuration, spawnSceneWithChildLayers } from '../../project/workflowSceneHierarchy'
+import {
+  getWorkflowEffectiveDuration,
+  spawnSceneWithChildLayers,
+  syncMissingLayersToWorkflow
+} from '../../project/workflowSceneHierarchy'
 import { applyRuleMutationToProjectLayer } from '../../project/workflowStageEffects'
 import { IconPause, IconPlay, IconSparkles } from '../icons'
 import { TimelineModeTabs } from './TimelineModeTabs'
@@ -161,7 +164,7 @@ export const WorkflowStudioPanel: React.FC = () => {
       const targetIds = ln.params?.targetLayerIds ?? []
       if (targetIds.length === 0) continue
       const parentSceneEdge = workflow.edges.find(
-        (e) => e.toNode === ln.id && e.fromPort === 'scene_ctx'
+        (e) => e.toNode === ln.id && (e.fromPort === 'scene_ctx' || e.fromPort === 'layers_tree')
       )
       const parentScene = parentSceneEdge
         ? workflow.nodes.find((n) => n.id === parentSceneEdge.fromNode)
@@ -185,6 +188,8 @@ export const WorkflowStudioPanel: React.FC = () => {
       }, 'wf-sync-entity-visibility')
     }
   }, [workflow, project.layers, activeNodeIds])
+
+
 
   const handleSelectNode = useCallback(
     (nodeId: string) => {
@@ -294,6 +299,22 @@ export const WorkflowStudioPanel: React.FC = () => {
     },
     [currentShotScope]
   )
+
+  // Tự động kết nối Layer mới vào Workflow nếu sơ đồ đã bung Cảnh
+  useEffect(() => {
+    const res = syncMissingLayersToWorkflow(workflow, project, currentShotScope)
+    if (!res || res.addedCount === 0) return
+    const newPositions = solveSpaciousWorkflowLayout(res.workflow.nodes, res.workflow.edges, project)
+    const laidOutWf: WorkflowGraph = {
+      ...res.workflow,
+      nodes: res.workflow.nodes.map((n) => ({
+        ...n,
+        position: newPositions[n.id] ? { ...newPositions[n.id] } : n.position
+      }))
+    }
+    commitWorkflow(laidOutWf, undefined, true)
+    showToast(`✨ Đã tự động kết nối ${res.addedCount} Layer mới vào Sơ đồ Cảnh!`)
+  }, [project.layers, currentShotScope, workflow, commitWorkflow, showToast, project])
 
   const handleResetCanonical = useCallback(() => {
     const next = createCanonicalWorkflow(currentShotScope)
@@ -480,6 +501,14 @@ export const WorkflowStudioPanel: React.FC = () => {
 
   const handleDisconnectEdge = useCallback(
     (edgeId: string) => {
+      const targetEdge = workflow.edges.find((e) => e.id === edgeId)
+      if (
+        targetEdge &&
+        (targetEdge.toPort === 'transform_link' || targetEdge.fromPort === 'transform_link')
+      ) {
+        showToast('🔒 Liên kết Tọa độ Transform là cố định, không thể ngắt kết nối!')
+        return
+      }
       const next = disconnectWorkflowEdge(workflow, { edgeId })
       commitWorkflow(next, undefined, true)
       const { activeNodes: nextActive } = resolveConnectedWorkflowNodes(next)
@@ -511,21 +540,14 @@ export const WorkflowStudioPanel: React.FC = () => {
   }, [workflow, showToast])
 
   const handleTogglePlayFlow = useCallback(() => {
-    if (playing) {
-      setPlaying(false)
-      return
-    }
+    if (playing) { setPlaying(false); return }
     if (activeNodes.length === 0) {
-      showToast(
-        '⛔ Chưa có lộ trình thông mạch từ Khối #1 Phân cảnh! Hãy nối dây hoặc bấm "Tự nối Port" để chạy.'
-      )
+      showToast('⛔ Chưa có lộ trình thông mạch từ Khối #1 Phân cảnh! Hãy nối dây hoặc bấm "Tự nối Port" để chạy.')
       return
     }
     const st = useEditor.getState()
     const maxDur = workflowDuration > 0 ? workflowDuration : st.project.comp.duration
-    if (st.time >= maxDur - 0.05) {
-      st.setTime(0)
-    }
+    if (st.time >= maxDur - 0.05) st.setTime(0)
     useEditor.getState().update((draft) => {
       applyWorkflowToProject(draft as Project, workflow)
     }, 'wf-sync-before-play')
@@ -592,14 +614,28 @@ export const WorkflowStudioPanel: React.FC = () => {
     (nodeId: string) => {
       const target = workflow.nodes.find((n) => n.id === nodeId)
       if (!target) return
+      if (target.type === 'layer_transform') {
+        showToast('🔒 Khối Tọa độ Transform là cố định đi kèm Layer, không thể xóa lẻ!')
+        return
+      }
+
+      // Khi xóa layer_assembly, đồng thời xóa luôn companion transform node đi kèm
+      const companionIds =
+        target.type === 'layer_assembly'
+          ? workflow.edges
+              .filter((e) => e.fromNode === nodeId && e.toPort === 'transform_link')
+              .map((e) => e.toNode)
+          : []
+      const allDeleteIds = new Set([nodeId, ...companionIds])
+
       const shotFilter = currentShotScope !== 'all' ? currentShotScope : null
       useEditor.getState().update((draft) => {
         for (const r of target.params?.customRules ?? []) {
           applyRuleMutationToProjectLayer(draft as Project, r, false, shotFilter)
         }
-        const nextNodes = workflow.nodes.filter((n) => n.id !== nodeId)
+        const nextNodes = workflow.nodes.filter((n) => !allDeleteIds.has(n.id))
         const nextEdges = workflow.edges.filter(
-          (e) => e.fromNode !== nodeId && e.toNode !== nodeId
+          (e) => !allDeleteIds.has(e.fromNode) && !allDeleteIds.has(e.toNode)
         )
         const nextWf: WorkflowGraph = {
           ...workflow,
@@ -610,7 +646,7 @@ export const WorkflowStudioPanel: React.FC = () => {
         draft.workflow = nextWf
         applyWorkflowToProject(draft as Project, nextWf)
       })
-      if (selectedNodeId === nodeId) {
+      if (allDeleteIds.has(selectedNodeId ?? '')) {
         setSelectedNodeId(workflow.nodes[0]?.id ?? null)
       }
       showToast(`🗑️ Đã xóa "${target.title}" khỏi sơ đồ và ngắt hiệu ứng trên cảnh!`)
@@ -630,14 +666,14 @@ export const WorkflowStudioPanel: React.FC = () => {
           node.type === 'scene_shot'
             ? []
             : [
-                {
-                  id: `preview-edge-${node.id}`,
-                  fromNode: 'wf-scene_shot',
-                  fromPort: 'scene_ctx',
-                  toNode: node.id,
-                  toPort: WORKFLOW_NODE_SPECS[node.type]?.inputs[0] ?? 'scene_ctx'
-                }
-              ]
+              {
+                id: `preview-edge-${node.id}`,
+                fromNode: 'wf-scene_shot',
+                fromPort: 'scene_ctx',
+                toNode: node.id,
+                toPort: WORKFLOW_NODE_SPECS[node.type]?.inputs[0] ?? 'scene_ctx'
+              }
+            ]
       }
       useEditor.getState().update((draft) => {
         applyWorkflowToProject(draft as Project, singleNodeGraph)
@@ -662,21 +698,19 @@ export const WorkflowStudioPanel: React.FC = () => {
           />
 
           <div
-            className={`wf-pipeline-health-badge${
-              blueprint.isPipelineComplete && disconnectedNodes.length === 0
+            className={`wf-pipeline-health-badge${blueprint.isPipelineComplete && disconnectedNodes.length === 0
                 ? ' complete'
                 : activeNodes.length > 0
                   ? ' building'
                   : ' broken'
-            }`}
+              }`}
             title={blueprint.pipelineSummary}
           >
             <span
-              className={`wf-health-dot${
-                blueprint.isPipelineComplete && disconnectedNodes.length === 0
+              className={`wf-health-dot${blueprint.isPipelineComplete && disconnectedNodes.length === 0
                   ? ' pulsing'
                   : ''
-              }`}
+                }`}
             />
             <span className="wf-health-text">
               {blueprint.isPipelineComplete && disconnectedNodes.length === 0
@@ -755,7 +789,7 @@ export const WorkflowStudioPanel: React.FC = () => {
             onClick={handleAutoLayout}
           >
             <IconSparkles width={13} height={13} />
-            <span>✨ Sắp xếp</span>
+            <span>Sắp xếp</span>
           </button>
 
           <button

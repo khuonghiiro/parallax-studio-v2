@@ -73,8 +73,8 @@ describe('MCP workflowCommands & Workflow Engine', () => {
 
   it('lists node specs, port specs, and logic nodes via list_workflow_presets', async () => {
     const res = (await runCommand('list_workflow_presets')) as any
-    expect(res.nodeTypes.length).toBe(7)
-    expect(res.ports.length).toBe(6)
+    expect(res.nodeTypes.length).toBe(8)
+    expect(res.ports.length).toBe(8)
     expect(res.logicNodes.length).toBeGreaterThanOrEqual(10)
   })
 
@@ -185,7 +185,7 @@ describe('MCP workflowCommands & Workflow Engine', () => {
     const geom = buildSmartEdgeGeometry(sceneNode, 'scene_ctx', camNode, 'scene_ctx', wf.nodes)
     expect(geom.path).toContain('L ')
     expect(geom.midY).toBeGreaterThan(170)
-    expect(geom.midY).toBeLessThan(350)
+    expect(geom.midY).toBeLessThan(390)
 
     const telemetryRunning = evaluateNodeRuntimeTelemetry(sceneNode, proj, 2.5, true, true, 1, 7)
     expect(telemetryRunning.state).toBe('running')

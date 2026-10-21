@@ -14,10 +14,13 @@ import {
 import { WORKFLOW_LOGIC_NODE_CATALOG } from '../../project/workflowLogicCatalog'
 import { renderWorkflowNodeIcon } from './workflowIcons'
 import { WorkflowNodePreview } from './WorkflowNodePreview'
+import { WorkflowTransformBody } from './WorkflowTransformBody'
+import { WorkflowLayerBody } from './WorkflowLayerBody'
 import {
   NODE_W,
   SOCKET_PAD_TOP,
   SOCKET_ROW_H,
+  estimateNodeCardHeight,
   evaluateNodeRuntimeTelemetry,
   getBestMatchingInputPort,
   getBestMatchingOutputPort
@@ -127,19 +130,35 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
 
   const inputs = React.useMemo(() => {
     if (boundLayer) {
-      return ['scene_ctx', 'motion_stream', 'vfx_stage', 'audio_mix'] as WorkflowPortKind[]
+      return ['layers_tree', 'scene_ctx', 'motion_stream', 'vfx_stage', 'audio_mix'] as WorkflowPortKind[]
     }
     return spec?.inputs ?? []
   }, [boundLayer, spec])
 
   const outputs = React.useMemo(() => {
     if (boundLayer) {
-      return ['actors_rig', 'scene_ctx'] as WorkflowPortKind[]
+      return ['transform_link', 'vfx_stage', 'motion_stream', 'actors_rig', 'scene_ctx'] as WorkflowPortKind[]
     }
     return spec?.outputs ?? []
   }, [boundLayer, spec])
 
-  const socketRowCount = Math.max(inputs.length, outputs.length, 1)
+  const verticalInPort = React.useMemo(
+    () => inputs.find((p) => p === 'layers_tree' || p === 'transform_link') ?? null,
+    [inputs]
+  )
+  const verticalOutPort = React.useMemo(
+    () => outputs.find((p) => p === 'layers_tree' || p === 'transform_link') ?? null,
+    [outputs]
+  )
+  const sideInputs = React.useMemo(
+    () => inputs.filter((p) => p !== 'layers_tree' && p !== 'transform_link'),
+    [inputs]
+  )
+  const sideOutputs = React.useMemo(
+    () => outputs.filter((p) => p !== 'layers_tree' && p !== 'transform_link'),
+    [outputs]
+  )
+  const socketRowCount = Math.max(sideInputs.length, sideOutputs.length)
 
   const nodeColor = React.useMemo(() => {
     if (logicItem) {
@@ -251,11 +270,42 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
         left: node.position.x,
         top: node.position.y,
         width: NODE_W,
+        minHeight: estimateNodeCardHeight(node),
         ['--wf-node-color' as string]: nodeColor
       }}
       onPointerDown={(e) => onStartNodeDrag(e, node)}
       onClick={handleCardClick}
     >
+      {/* Cổng Đỉnh Đầu (Top Port: layers_tree trên Layer hoặc transform_link trên Transform) */}
+      {verticalInPort && (() => {
+        const portSpec = WORKFLOW_PORT_SPECS[verticalInPort]
+        const inWired = workflow.edges.some((e) => e.toNode === node.id && e.toPort === verticalInPort)
+        const isCompatibleTarget = Boolean(
+          pendingSource && pendingSource.nodeId !== node.id && pendingSource.isOutput && pendingSource.port === verticalInPort
+        )
+        const isSnapped = Boolean(
+          snappedTarget && snappedTarget.nodeId === node.id && snappedTarget.port === verticalInPort && snappedTarget.isInput
+        )
+        const isInPending = Boolean(
+          pendingSource?.nodeId === node.id && pendingSource?.port === verticalInPort && !pendingSource.isOutput
+        )
+        return (
+          <button
+            type="button"
+            className={`wf-socket-vertical top${inWired ? ' wired' : ''}${isCompatibleTarget ? ' compatible' : ''}${isSnapped ? ' snapped' : ''}${isInPending ? ' pending' : ''}`}
+            style={{ ['--port-c' as string]: portSpec?.color ?? '#38bdf8' }}
+            title={`Cổng đỉnh: ${portSpec?.label ?? verticalInPort} (${inWired ? 'Đang nối — Bấm để chọn' : 'Chưa nối — Bấm hoặc kéo để nối'})`}
+            onPointerDown={(e) => onStartConnecting(e, node, verticalInPort, false)}
+            onClick={(e) => onInputSocketClick(e, node, verticalInPort)}
+          >
+            <span className="wf-socket-vertical-pin">
+              <span className="wf-socket-vertical-pin-core" />
+            </span>
+            <span className="wf-socket-vertical-label">{portSpec?.shortLabel ?? verticalInPort}</span>
+          </button>
+        )
+      })()}
+
       {/* Chỉ báo nổi bật khi thẻ được hút nam châm làm điểm kết nối */}
       {isSnapNode && (
         <div className="wf-node-snap-indicator">
@@ -332,7 +382,7 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
         >
           {node.enabled ? 'ON' : 'OFF'}
         </button>
-        {onDeleteNode && (
+        {onDeleteNode && node.type !== 'layer_transform' && (
           <button
             type="button"
             className="wf-node-del-btn"
@@ -348,15 +398,16 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
       </div>
 
       {/* 2. Khu vực Chân cắm Port (Protruding Socket Pins trên mép trái & phải) */}
-      <div
-        className="wf-socket-matrix"
-        style={{ height: SOCKET_PAD_TOP * 2 + socketRowCount * SOCKET_ROW_H }}
-      >
-        {Array.from({ length: socketRowCount }).map((_, rowIdx) => {
-          const inPort = inputs[rowIdx]
-          const outPort = outputs[rowIdx]
-          const inSpec = inPort ? WORKFLOW_PORT_SPECS[inPort] : null
-          const outSpec = outPort ? WORKFLOW_PORT_SPECS[outPort] : null
+      {socketRowCount > 0 && (
+        <div
+          className="wf-socket-matrix"
+          style={{ height: SOCKET_PAD_TOP * 2 + socketRowCount * SOCKET_ROW_H }}
+        >
+          {Array.from({ length: socketRowCount }).map((_, rowIdx) => {
+            const inPort = sideInputs[rowIdx]
+            const outPort = sideOutputs[rowIdx]
+            const inSpec = inPort ? WORKFLOW_PORT_SPECS[inPort] : null
+            const outSpec = outPort ? WORKFLOW_PORT_SPECS[outPort] : null
 
           const inWired = inPort
             ? workflow.edges.some((e) => e.toNode === node.id && e.toPort === inPort)
@@ -452,10 +503,26 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
           )
         })}
       </div>
+      )}
 
       {/* 3. Thân Thẻ Node Kiểu Blender (Inline Controls & Preview) */}
       <div className="wf-node-body">
-        {logicItem ? (
+        {node.type === 'layer_transform' ? (
+          <WorkflowTransformBody
+            node={node}
+            project={project}
+            onUpdateNodeParams={onUpdateNodeParams}
+          />
+        ) : boundLayer ? (
+          <WorkflowLayerBody
+            node={node}
+            project={project}
+            workflow={workflow}
+            boundLayer={boundLayer}
+            onSelectNode={onSelectNode}
+            onUpdateNodeParams={onUpdateNodeParams}
+          />
+        ) : logicItem ? (
           <div className="wf-node-logic-body">
             <div className="wf-node-inline-slider">
               <div className="wf-node-inline-slider-label">
@@ -481,13 +548,6 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
               {logicItem.description}
             </div>
           </div>
-        ) : boundLayer ? (
-          <WorkflowNodePreview
-            node={node}
-            project={project}
-            mode="card"
-            runtimeTelemetry={telemetry}
-          />
         ) : (
           <>
             <div
@@ -524,6 +584,36 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
           </>
         )}
       </div>
+
+      {/* Cổng Chân Đáy (Bottom Port: layers_tree trên Scene hoặc transform_link trên Layer) */}
+      {verticalOutPort && (() => {
+        const portSpec = WORKFLOW_PORT_SPECS[verticalOutPort]
+        const outWired = workflow.edges.some((e) => e.fromNode === node.id && e.fromPort === verticalOutPort)
+        const isOutPending = Boolean(
+          pendingSource?.nodeId === node.id && pendingSource?.port === verticalOutPort && pendingSource.isOutput
+        )
+        const isCompatibleOutput = Boolean(
+          pendingSource && pendingSource.nodeId !== node.id && !pendingSource.isOutput && pendingSource.port === verticalOutPort
+        )
+        const isSnappedOutput = Boolean(
+          snappedTarget && snappedTarget.nodeId === node.id && snappedTarget.port === verticalOutPort && !snappedTarget.isInput
+        )
+        return (
+          <button
+            type="button"
+            className={`wf-socket-vertical bottom${outWired ? ' wired' : ''}${isOutPending ? ' pending' : ''}${isCompatibleOutput ? ' compatible' : ''}${isSnappedOutput ? ' snapped' : ''}`}
+            style={{ ['--port-c' as string]: portSpec?.color ?? '#38bdf8' }}
+            title={`Cổng đáy: ${portSpec?.label ?? verticalOutPort} (${outWired ? 'Đang nối — Bấm để chọn' : 'Chưa nối — Bấm hoặc kéo để nối'})`}
+            onPointerDown={(e) => onStartConnecting(e, node, verticalOutPort, true)}
+            onClick={(e) => onOutputSocketClick(e, node, verticalOutPort)}
+          >
+            <span className="wf-socket-vertical-label">{portSpec?.shortLabel ?? verticalOutPort}</span>
+            <span className="wf-socket-vertical-pin">
+              <span className="wf-socket-vertical-pin-core" />
+            </span>
+          </button>
+        )
+      })()}
     </div>
   )
 })
