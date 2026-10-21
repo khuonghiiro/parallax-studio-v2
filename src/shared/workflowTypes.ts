@@ -137,6 +137,18 @@ export interface WorkflowNodeParams {
   shotId?: string
   /** Mã định danh Node Logic cụ thể từ Kho Node Logic */
   logicId?: string
+  /** Mẫu chuyển động camera tùy chọn ('dollyIn' | 'orbitRight' | 'truckRight' | 'fly') */
+  camPreset?: string
+  /** Độ rung máy quay cầm tay (0 .. 20) */
+  camShakeAmount?: number
+  /** Tốc độ rung máy quay (0.2 .. 3.0 Hz) */
+  camShakeSpeed?: number
+  /** Khoảng cách tiêu cự xóa phông DOF (world units) */
+  camFocusDistance?: number
+  /** Độ mở khẩu / độ nhòe bokeh DOF (0.005 .. 0.1) */
+  camAperture?: number
+  /** ID layer chủ thể được camera khóa mục tiêu theo dõi */
+  camTargetLayerId?: string
 }
 
 export interface WorkflowNode {

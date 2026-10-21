@@ -568,7 +568,8 @@ export const WorkflowStudioPanel: React.FC = () => {
       const { workflow: next, spawnedNode } = spawnLogicNodeIntoWorkflow(
         workflow,
         logicId,
-        currentShotScope
+        currentShotScope,
+        { autoConnect: false }
       )
       const desiredPos = customPos ?? spawnedNode.position
       const otherNodes = next.nodes.filter((n) => n.id !== spawnedNode.id)
@@ -581,7 +582,7 @@ export const WorkflowStudioPanel: React.FC = () => {
       commitWorkflow(finalWf, undefined, true, new Set([spawnedNode.id]))
       setSelectedNodeId(spawnedNode.id)
       showToast(
-        `🧩 Đã thả "${spawnedNode.title}" vào luồng (${activeShotLabel})! Ngắt dây nếu muốn dừng logic này.`
+        `🧩 Đã thêm "${spawnedNode.title}". Nối dây từ chân cắm để kích hoạt logic này!`
       )
     },
     [workflow, currentShotScope, activeShotLabel, commitWorkflow, showToast, handleSpawnSceneLayers]

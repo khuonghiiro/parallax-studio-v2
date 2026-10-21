@@ -718,17 +718,16 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         </div>
       )}
 
-      {/* Mặt phẳng thế giới biến đổi theo Pan & Zoom Sắc Nét Vector trên GPU Compositor */}
+      {/* Mặt phẳng thế giới: Tách biệt Pan (GPU translate3d 60-120fps) và Zoom (Vector Zoom sắc nét 100%, không mờ vỡ font) */}
       <div
         className="wf-canvas-pan"
         style={{
-          transform: `translate3d(${Math.round(pan.x)}px, ${Math.round(pan.y)}px, 0) scale(${zoom})`,
-          transformOrigin: '0 0',
-          willChange: 'transform'
+          transform: `translate3d(${Math.round(pan.x)}px, ${Math.round(pan.y)}px, 0)`
         }}
       >
-        <div className="wf-canvas-grid" />
-        <div className="wf-canvas-world">
+        <div className="wf-canvas-zoom" style={{ zoom }}>
+          <div className="wf-canvas-grid" />
+          <div className="wf-canvas-world">
           {/* Lớp dây nối SVG Bezier không giới hạn tọa độ âm/dương (không dùng feGaussianBlur nặng GPU) */}
           <svg
             className="wf-edges-svg"
@@ -849,6 +848,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
               onClearPendingWire={handleClearPendingWire}
             />
           ))}
+        </div>
         </div>
       </div>
 

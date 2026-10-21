@@ -36,170 +36,8 @@ export function getTargetKindIcon(kind: WorkflowBoundTarget['kind']): string {
   }
 }
 
-/** Minh họa đồ họa động (SVG Schematic) cho từng loại khối chức năng */
-export function renderSchematicSvg(type: WorkflowNodeType, preset: string, color: string) {
-  switch (type) {
-    case 'scene_shot':
-      return (
-        <svg viewBox="0 0 180 40" className="wf-preview-svg">
-          <path
-            d="M 10 36 L 45 23 L 135 23 L 170 36 Z"
-            fill={color}
-            fillOpacity="0.14"
-            stroke={color}
-            strokeOpacity="0.4"
-            strokeWidth="0.9"
-          />
-          <rect x="22" y="5" width="36" height="21" rx="2" fill={color} fillOpacity="0.18" stroke={color} strokeWidth="1" />
-          <text x="40" y="18" textAnchor="middle" className="wf-svg-tag">Z:3200</text>
-          <rect x="70" y="7" width="38" height="23" rx="2" fill={color} fillOpacity="0.32" stroke={color} strokeWidth="1.2" />
-          <text x="89" y="21" textAnchor="middle" className="wf-svg-tag">Z:600</text>
-          <rect x="120" y="9" width="38" height="25" rx="2" fill={color} fillOpacity="0.52" stroke={color} strokeWidth="1.4" />
-          <text x="139" y="24" textAnchor="middle" className="wf-svg-tag">Z:0</text>
-          <path d="M 60 17 L 68 17 M 110 19 L 118 19" stroke={color} strokeWidth="1.2" strokeDasharray="2 2" />
-        </svg>
-      )
-
-    case 'layer_assembly':
-      return (
-        <svg viewBox="0 0 180 40" className="wf-preview-svg">
-          <line x1="16" y1="35" x2="164" y2="35" stroke={color} strokeOpacity="0.45" strokeWidth="1" strokeDasharray="3 2" />
-          {/* 2.5D Character Rig Skeleton */}
-          <circle cx="48" cy="10" r="4.5" fill={color} fillOpacity="0.35" stroke={color} strokeWidth="1.3" />
-          <line x1="48" y1="14.5" x2="48" y2="26" stroke={color} strokeWidth="1.5" />
-          <line x1="38" y1="18" x2="58" y2="18" stroke={color} strokeWidth="1.3" />
-          <line x1="48" y1="26" x2="41" y2="35" stroke={color} strokeWidth="1.3" />
-          <line x1="48" y1="26" x2="55" y2="35" stroke={color} strokeWidth="1.3" />
-          <circle cx="48" cy="35" r="2.8" fill="#22c55e" stroke="#fff" strokeWidth="0.8" />
-          {/* Multi-layer Tree 2.5D */}
-          <polygon points="104,7 92,25 116,25" fill={color} fillOpacity="0.3" stroke={color} strokeWidth="1.2" />
-          <line x1="104" y1="25" x2="104" y2="35" stroke={color} strokeWidth="1.6" />
-          <circle cx="104" cy="35" r="2.6" fill="#22c55e" />
-          <text x="145" y="22" textAnchor="middle" className="wf-svg-tag">RIG 2.5D</text>
-        </svg>
-      )
-
-    case 'motion_choreography':
-      return (
-        <svg viewBox="0 0 180 40" className="wf-preview-svg">
-          <path
-            d="M 12 25 Q 34 8, 56 21 T 100 19 T 144 17 T 168 21"
-            fill="none"
-            stroke={color}
-            strokeWidth="1.8"
-            className="wf-svg-anim-wave"
-          />
-          <path
-            d="M 12 31 Q 38 18, 64 27 T 116 25 T 168 28"
-            fill="none"
-            stroke={color}
-            strokeOpacity="0.45"
-            strokeWidth="1.2"
-            strokeDasharray="3 3"
-          />
-          <circle cx="56" cy="21" r="3" fill={color} />
-          <circle cx="100" cy="19" r="3" fill={color} />
-          <circle cx="144" cy="17" r="3" fill={color} />
-          <text x="90" y="11" textAnchor="middle" className="wf-svg-tag">WIND · BREATHE · IK</text>
-        </svg>
-      )
-
-    case 'physics_fx':
-      return (
-        <svg viewBox="0 0 180 40" className="wf-preview-svg">
-          <defs>
-            <radialGradient id={`wf-light-${preset}`} cx="35%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.75" />
-              <stop offset="65%" stopColor={color} stopOpacity="0.24" />
-              <stop offset="100%" stopColor={color} stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          <ellipse cx="58" cy="20" rx="44" ry="17" fill={`url(#wf-light-${preset})`} />
-          <circle cx="44" cy="20" r="4.8" fill="#fde047" stroke={color} strokeWidth="1.2" />
-          <circle cx="86" cy="11" r="2.2" fill="#fde047" className="wf-svg-pulse" />
-          <circle cx="106" cy="25" r="1.8" fill={color} className="wf-svg-pulse" />
-          <circle cx="126" cy="14" r="2.4" fill="#fde047" className="wf-svg-pulse" />
-          <circle cx="150" cy="26" r="2" fill={color} />
-          <text x="128" y="35" textAnchor="middle" className="wf-svg-tag">MESH + LIGHT 2.5D</text>
-        </svg>
-      )
-
-    case 'camera_director':
-      return (
-        <svg viewBox="0 0 180 40" className="wf-preview-svg">
-          <polygon
-            points="16,23 34,11 34,33"
-            fill={color}
-            fillOpacity="0.28"
-            stroke={color}
-            strokeWidth="1.2"
-          />
-          <rect x="10" y="18" width="9" height="10" rx="1.5" fill={color} />
-          <path
-            d="M 36 22 C 66 7, 108 35, 156 15"
-            fill="none"
-            stroke={color}
-            strokeWidth="1.8"
-            strokeDasharray="4 2"
-          />
-          <circle cx="78" cy="18" r="2.8" fill={color} />
-          <circle cx="118" cy="24" r="2.8" fill={color} />
-          <circle cx="156" cy="15" r="3.6" fill="#fff" stroke={color} strokeWidth="1.5" />
-          <text x="115" y="11" textAnchor="middle" className="wf-svg-tag">SPLINE 3D + DOF</text>
-        </svg>
-      )
-
-    case 'audio_lipsync':
-      return (
-        <svg viewBox="0 0 180 40" className="wf-preview-svg">
-          {[16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104].map((x, i) => {
-            const h = [8, 16, 24, 14, 26, 20, 12, 24, 18, 22, 14, 8][i % 12]
-            return (
-              <rect
-                key={x}
-                x={x}
-                y={20 - h / 2}
-                width="4"
-                height={h}
-                rx="1.5"
-                fill={color}
-                fillOpacity={0.48 + (i % 3) * 0.16}
-              />
-            )
-          })}
-          <ellipse cx="144" cy="20" rx="16" ry="6.5" fill={color} fillOpacity="0.24" stroke={color} strokeWidth="1.3" />
-          <path d="M 132 20 Q 144 25, 156 20" fill="none" stroke={color} strokeWidth="1.2" />
-          <text x="144" y="35" textAnchor="middle" className="wf-svg-tag">LIP-SYNC 2.5D</text>
-        </svg>
-      )
-
-    case 'look_output':
-      return (
-        <svg viewBox="0 0 180 40" className="wf-preview-svg">
-          <defs>
-            <linearGradient id={`wf-grade-${preset}`} x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.38" />
-              <stop offset="50%" stopColor={color} stopOpacity="0.45" />
-              <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.55" />
-            </linearGradient>
-          </defs>
-          <rect
-            x="14"
-            y="6"
-            width="152"
-            height="28"
-            rx="4"
-            fill={`url(#wf-grade-${preset})`}
-            stroke={color}
-            strokeWidth="1.2"
-          />
-          <line x1="90" y1="6" x2="90" y2="34" stroke="#fff" strokeOpacity="0.6" strokeWidth="1" strokeDasharray="2 2" />
-          <text x="52" y="23" textAnchor="middle" className="wf-svg-tag">Z-FOG 3D</text>
-          <text x="128" y="23" textAnchor="middle" className="wf-svg-tag">MASTER MP4</text>
-        </svg>
-      )
-  }
-}
+import { renderSchematicSvg } from './workflowSchematics'
+export { renderSchematicSvg }
 
 
 export interface StackedSceneLayerItem {
@@ -246,16 +84,26 @@ export function resolveSceneCompositeStack(
   project?: Project
 ): SceneCompositePreviewData | null {
   if (node.type !== 'scene_shot' || !project) return null
-  const shotId = node.params?.shotId ?? project.shots[0]?.id ?? null
+  const rawShotId = node.params?.shotId
+  const effectiveShotId =
+    rawShotId && rawShotId !== 'all'
+      ? rawShotId
+      : project.shots[0]?.id ?? null
+
   const shot =
-    (shotId ? project.shots.find((s) => s.id === shotId) : null) ??
+    (effectiveShotId ? project.shots.find((s) => s.id === effectiveShotId) : null) ??
     project.shots[0] ??
     null
   const shotName = shot?.name ?? 'Cảnh 1'
 
   const allShotLayers = project.layers
     .map((layer, index) => ({ layer, index }))
-    .filter(({ layer }) => !layer.locked && (project.shots.length <= 1 || layer.shotId === shotId))
+    .filter(({ layer }) => {
+      if (layer.locked) return false
+      if (project.shots.length <= 1) return true
+      if (!layer.shotId && effectiveShotId === project.shots[0]?.id) return true
+      return layer.shotId === effectiveShotId
+    })
 
   const visibleShotLayers = allShotLayers.filter(({ layer }) => layer.visible !== false)
 
@@ -295,7 +143,19 @@ export function resolveSceneCompositeStack(
     const topPct = 50 + (oy / compH) * 100 - heightPct / 2
 
     if (layer.type === 'image') {
-      const imgUrl = resolveLayerAssetThumbUrl((layer.props as any)?.assetId, project)
+      let assetId = (layer.props as any)?.assetId
+      if (!assetId && layer.composite?.instanceId) {
+        const compLayers = project.layers.filter(
+          (l) => l.composite?.instanceId === layer?.composite?.instanceId
+        )
+        for (const cl of compLayers) {
+          if ((cl.props as any)?.assetId) {
+            assetId = (cl.props as any).assetId
+            break
+          }
+        }
+      }
+      const imgUrl = resolveLayerAssetThumbUrl(assetId, project)
       if (!imgUrl) continue
       items.push({
         id: layer.id,
@@ -448,6 +308,7 @@ export function resolveNodeLayerThumbUrl(
 }
 
 function renderSceneCompositeBox(sceneStack: SceneCompositePreviewData) {
+  const isUltrawide = sceneStack.compW >= sceneStack.compH * 2.2
   return (
     <div
       className="wf-scene-composite-viewport"
@@ -457,7 +318,9 @@ function renderSceneCompositeBox(sceneStack: SceneCompositePreviewData) {
         className="wf-scene-composite-screen"
         style={{
           aspectRatio: `${sceneStack.compW} / ${sceneStack.compH}`,
-          background: sceneStack.background
+          background: sceneStack.background,
+          width: isUltrawide ? '100%' : 'auto',
+          height: isUltrawide ? 'auto' : '100%'
         }}
       >
         {sceneStack.items.length === 0 ? (
@@ -616,7 +479,7 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = React.mem
               ✨ 🪄 ✨
             </div>
           ) : (
-            renderSchematicSvg(node.type, node.preset, color)
+            renderSchematicSvg(node.type, node.preset, color, node.params?.logicId)
           )}
           {!sceneStack && thumbInfo.label && (
             <span className="wf-node-thumb-badge" title={thumbInfo.label}>
@@ -741,7 +604,7 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = React.mem
             />
           </div>
         ) : null}
-        {renderSchematicSvg(node.type, node.preset, color)}
+        {renderSchematicSvg(node.type, node.preset, color, node.params?.logicId)}
       </div>
 
       {runtimeTelemetry && (

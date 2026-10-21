@@ -3,9 +3,9 @@
  * ============================================================================ */
 
 .wf-node-palette {
-  width: 248px;
-  min-width: 248px;
-  max-width: 248px;
+  width: 296px;
+  min-width: 280px;
+  max-width: 330px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -557,7 +557,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 68px;
+  max-width: 95px;
 }
 .wf-port-sum-in.root {
   color: var(--accent-cyan);

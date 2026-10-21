@@ -144,7 +144,7 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     aiAgentRole: 'AssemblyRigAgent',
     color: '#a855f7',
     description: 'Quản lý cụm nhân vật 2.5D, cây cối đa lớp, mô hình 3D kiến trúc và neo gốc xoay (Anchor/Billboard).',
-    inputs: ['scene_ctx', 'motion_stream', 'vfx_stage', 'audio_mix'],
+    inputs: ['scene_ctx', 'motion_stream', 'vfx_stage', 'audio_mix', 'camera_cut'],
     outputs: ['actors_rig', 'scene_ctx'],
     presets: [
       {
@@ -267,7 +267,7 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     aiAgentRole: 'CameraDirectorAgent',
     color: '#22c55e',
     description: 'Tạo lộ trình đường bay Camera 3D qua các Shot, hiệu ứng đẩy cận (Dolly Push-in), xóa phông DOF và rung máy.',
-    inputs: ['scene_ctx', 'motion_stream', 'actors_rig'],
+    inputs: ['scene_ctx', 'motion_stream', 'actors_rig', 'camera_cut'],
     outputs: ['camera_cut'],
     presets: [
       {

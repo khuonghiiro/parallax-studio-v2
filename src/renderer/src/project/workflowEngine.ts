@@ -805,7 +805,8 @@ export function applyWorkflowToProject(
           activePartIds,
           partNamesSummary,
           intensity,
-          targetShotFilter
+          targetShotFilter,
+          workflow
         )
       )
     } else if (node.type === 'audio_lipsync') {
@@ -827,6 +828,13 @@ export function applyWorkflowToProject(
 
     // Áp dụng các quy tắc Chuyển động / Tính năng tùy chỉnh (customRules) gắn trên khối này
     applyCustomNodeRulesToProject(project, node, binding.matchesLayer)
+  }
+
+  // Tự động reset DOF và Rung lắc nếu không còn node camera nào hoạt động
+  const hasActiveCameraNode = activeNodes.some((n) => n.type === 'camera_director')
+  if (!hasActiveCameraNode) {
+    project.camera.dofEnabled = false
+    project.camera.shakeAmount = 0
   }
 
   // Nối logic trực tiếp từ Node Logic sang từng Layer con (Blender-like Routing)

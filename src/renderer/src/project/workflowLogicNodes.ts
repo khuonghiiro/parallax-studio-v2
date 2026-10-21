@@ -13,6 +13,7 @@ import {
   WORKFLOW_PORT_SPECS,
   buildStandardEdges
 } from './workflowCatalog'
+import { applyCameraPreset } from '../animation/presets'
 import { getDefaultPartsForNode } from './workflowTargets'
 import {
   WORKFLOW_LOGIC_NODE_CATALOG,
@@ -35,7 +36,8 @@ export {
 export function spawnLogicNodeIntoWorkflow(
   workflow: WorkflowGraph,
   logicId: string,
-  targetShotId?: string
+  targetShotId?: string,
+  options?: { autoConnect?: boolean }
 ): { workflow: WorkflowGraph; spawnedNode: WorkflowNode } {
   const item = WORKFLOW_LOGIC_NODE_CATALOG.find((x) => x.id === logicId)
   if (!item) {
@@ -78,6 +80,19 @@ export function spawnLogicNodeIntoWorkflow(
   }
 
   const nextEdges: WorkflowEdge[] = [...workflow.edges]
+  const shouldAutoConnect = options?.autoConnect ?? true
+
+  if (!shouldAutoConnect) {
+    return {
+      workflow: {
+        ...workflow,
+        nodes: [...workflow.nodes, newNode],
+        edges: nextEdges
+      },
+      spawnedNode: newNode
+    }
+  }
+
   const addEdgeIfMissing = (fromNode: string, fromPort: any, toNode: string, toPort: any) => {
     if (fromNode === toNode) return
     const exists = nextEdges.some(
@@ -461,6 +476,43 @@ export function applyConnectedLogicEdgesToLayers(
           tr.lipSyncLayerId = layer.id
           tr.lipSyncIntensity = Number((1.0 * intensity).toFixed(2))
         }
+        affected++
+      }
+    }
+
+    // 4. Luồng Lộ trình Camera & Tiêu điểm (camera_cut hoặc actors_rig 2 chiều)
+    const camEdgeIn = incomingEdges.find((e) => e.toPort === 'camera_cut')
+    const camEdgeOut = workflow.edges.find(
+      (e) => e.fromNode === lNode.id && activeNodeMap.has(e.toNode)
+    )
+    const activeCamNode =
+      (camEdgeIn ? activeNodeMap.get(camEdgeIn.fromNode) : null) ??
+      (camEdgeOut ? activeNodeMap.get(camEdgeOut.toNode) : null)
+
+    if (activeCamNode && activeCamNode.type === 'camera_director') {
+      const intensity = activeCamNode.params?.intensity ?? 1.0
+      const logicId = activeCamNode.params?.logicId ?? ''
+      const [lx, ly, lz] = layer.transform.position.value
+
+      if (logicId === 'logic-cam-dof') {
+        const camZ = Array.isArray(project.camera.position.value)
+          ? project.camera.position.value[2]
+          : 1200
+        project.camera.dofEnabled = true
+        project.camera.focusDistance.value = Math.max(10, Math.round(Math.abs(camZ - lz)))
+        project.camera.aperture.value = Number(((activeCamNode.params?.camAperture ?? 0.028) * intensity).toFixed(3))
+        affected++
+      } else if (logicId === 'logic-cam-dolly') {
+        project.camera.target.value = [lx, ly, lz]
+        applyCameraPreset(project.camera, 'dollyIn', project.comp, 0, project.comp.duration, intensity, () => [lx, ly, lz])
+        affected++
+      } else if (logicId === 'logic-cam-orbit') {
+        project.camera.target.value = [lx, ly, lz]
+        applyCameraPreset(project.camera, 'orbitRight', project.comp, 0, project.comp.duration, intensity, () => [lx, ly, lz])
+        affected++
+      } else if (logicId === 'logic-cam-pan') {
+        project.camera.target.value = [lx, ly, lz]
+        applyCameraPreset(project.camera, 'truckRight', project.comp, 0, project.comp.duration, intensity, () => [lx, ly, lz])
         affected++
       }
     }

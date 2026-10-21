@@ -60,15 +60,126 @@ export function executeCameraDirectorStage(
   activePartIds: Set<string>,
   partNamesSummary: string,
   intensity: number,
-  targetShotFilter: string | null
+  targetShotFilter: string | null,
+  workflow?: WorkflowGraph
 ): WorkflowExecutionStageResult {
-  const cameraShots = project.shots
+  const logicId = node.params?.logicId ?? ''
+
+  // 1. Tìm Layer được nối dây trực tiếp vào Node Camera này (nếu có)
+  let targetLayer: Layer | undefined
+  if (workflow) {
+    const edges = workflow.edges.filter(
+      (e) => (e.fromNode === node.id || e.toNode === node.id)
+    )
+    for (const e of edges) {
+      const otherId = e.fromNode === node.id ? e.toNode : e.fromNode
+      const otherNode = workflow.nodes.find((n) => n.id === otherId)
+      if (otherNode?.type === 'layer_assembly' && otherNode.params?.targetLayerIds?.length) {
+        targetLayer = project.layers.find((l) => otherNode.params!.targetLayerIds!.includes(l.id))
+        if (targetLayer) break
+      }
+    }
+  }
+  if (!targetLayer && node.params?.camTargetLayerId) {
+    targetLayer = project.layers.find((l) => l.id === node.params?.camTargetLayerId)
+  }
+
+  // 2. Tìm Phân cảnh (Shot) được nối dây vào Node Camera này (nếu có)
+  const connectedShotIds: string[] = []
+  if (workflow) {
+    const edges = workflow.edges.filter(
+      (e) => (e.fromNode === node.id || e.toNode === node.id)
+    )
+    for (const e of edges) {
+      const otherId = e.fromNode === node.id ? e.toNode : e.fromNode
+      const otherNode = workflow.nodes.find((n) => n.id === otherId)
+      if (otherNode?.type === 'scene_shot' && otherNode.params?.shotId) {
+        connectedShotIds.push(otherNode.params.shotId)
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // KHỐI CHUYÊN BIỆT A: NODE XÓA PHÔNG DOF (Optical Focus Modifier)
+  // Không ghi đè hay xóa bỏ keyframes lộ trình camera hiện có
+  // -------------------------------------------------------------------------
+  if (logicId === 'logic-cam-dof') {
+    project.camera.dofEnabled = true
+    if (targetLayer) {
+      const camZ = Array.isArray(project.camera.position.value) ? project.camera.position.value[2] : 1200
+      const layerZ = targetLayer.transform.position.value[2] ?? 0
+      project.camera.focusDistance.value = Math.max(10, Math.round(Math.abs(camZ - layerZ)))
+    } else if (node.params?.camFocusDistance !== undefined) {
+      project.camera.focusDistance.value = node.params.camFocusDistance
+    } else {
+      project.camera.focusDistance.value = 1200
+    }
+    project.camera.aperture.value = Number(((node.params?.camAperture ?? 0.028) * intensity).toFixed(3))
+
+    return {
+      nodeId: node.id,
+      nodeType: node.type,
+      title: node.title,
+      aiAgentRole: node.aiAgentRole,
+      preset: node.preset,
+      appliedSummary: targetLayer
+        ? `Xóa phông DOF khóa tiêu cự vào layer "${targetLayer.name}" (Khoảng cách: ${project.camera.focusDistance.value}px).`
+        : `Bật xóa phông DOF tiêu cự cho Camera 3D (Khẩu độ: ${project.camera.aperture.value}).`,
+      affectedCount: 1
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // KHỐI CHUYÊN BIỆT B: NODE RUNG LẮC CẦM TAY (Handheld Shake Modifier)
+  // Không ghi đè hay xóa bỏ keyframes lộ trình camera hiện có
+  // -------------------------------------------------------------------------
+  if (logicId === 'logic-cam-shake') {
+    const baseShake = node.params?.camShakeAmount ?? (activePartIds.has('handheld_rig') ? 6 : 5)
+    const baseSpeed = node.params?.camShakeSpeed ?? 1.2
+    project.camera.shakeAmount = Math.max(1, Math.round(baseShake * intensity))
+    project.camera.shakeSpeed = Number((baseSpeed * intensity).toFixed(2))
+
+    return {
+      nodeId: node.id,
+      nodeType: node.type,
+      title: node.title,
+      aiAgentRole: node.aiAgentRole,
+      preset: node.preset,
+      appliedSummary: `Rung máy quay cầm tay Handheld (Độ rung: ${project.camera.shakeAmount}, Tốc độ: ${project.camera.shakeSpeed}Hz).`,
+      affectedCount: 1
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // KHỐI CHUYÊN BIỆT C: LỘ TRÌNH ĐƯỜNG BAY CAMERA (Trajectory & Presets)
+  // (Dolly In, Orbit 3D, Pan Lia Máy, Fly Xuyên Cảnh)
+  // -------------------------------------------------------------------------
+  const cameraShots = connectedShotIds.length > 0
+    ? project.shots.filter((s) => connectedShotIds.includes(s.id))
+    : project.shots
   const targetShot =
     (targetShotFilter ? project.shots.find((s) => s.id === targetShotFilter) : null) ??
+    cameraShots[0] ??
     project.shots[0] ??
     null
 
-  if (cameraShots.length > 1) {
+  if (targetLayer) {
+    const layerPos = targetLayer.transform.position.value
+    project.camera.target.value = [layerPos[0], layerPos[1], layerPos[2]]
+  }
+
+  let camPreset: 'dollyIn' | 'orbitRight' | 'truckRight' | 'dollyZoom' | 'fly' = 'dollyIn'
+  if (logicId === 'logic-cam-orbit' || node.preset === 'orbit_showcase_3d') {
+    camPreset = 'orbitRight'
+  } else if (logicId === 'logic-cam-pan') {
+    camPreset = 'truckRight'
+  } else if (node.preset === 'dramatic_handheld_action') {
+    camPreset = 'dollyZoom'
+  } else {
+    camPreset = 'dollyIn'
+  }
+
+  if (cameraShots.length > 1 && !targetLayer) {
     const totalDur = Math.max(4, project.comp.duration || 10)
     const transDur = Number(
       Math.max(1.0, Math.min(2.2, (totalDur / cameraShots.length) * 0.34)).toFixed(1)
@@ -79,16 +190,14 @@ export function executeCameraDirectorStage(
         (totalDur - transDur * (cameraShots.length - 1)) / cameraShots.length
       ).toFixed(1)
     )
-    const stepMotion = node.preset === 'orbit_showcase_3d' ? 'orbit-right' : 'push'
-    const stepTrans = node.preset === 'orbit_showcase_3d' ? 'arc' : 'fly'
+    const stepMotion = camPreset === 'orbitRight' ? 'orbit-right' : camPreset === 'truckRight' ? 'pan-right' : 'push'
+    const stepTrans = camPreset === 'orbitRight' ? 'arc' : 'fly'
     const pushAmount =
-      node.preset === 'dolly_push_focus'
-        ? 0.24 * intensity
-        : node.preset === 'dramatic_handheld_action'
-          ? 0.28 * intensity
-          : node.preset === 'orbit_showcase_3d'
-            ? 0.12 * intensity
-            : 0.16 * intensity
+      node.preset === 'dolly_push_focus' || logicId === 'logic-cam-dolly'
+        ? 0.32 * intensity
+        : node.preset === 'orbit_showcase_3d' || logicId === 'logic-cam-orbit'
+          ? 0.12 * intensity
+          : 0.18 * intensity
 
     const steps: PathStep[] = cameraShots.map((s) => ({
       shotId: s.id,
@@ -102,33 +211,41 @@ export function executeCameraDirectorStage(
       startAt: 0
     })
   } else {
-    const camPreset =
-      node.preset === 'orbit_showcase_3d'
-        ? 'orbitRight'
-        : node.preset === 'dramatic_handheld_action'
-          ? 'dollyZoom'
-          : 'dollyIn'
+    const toWorldFn = targetLayer
+      ? () => targetLayer!.transform.position.value
+      : shotLocalToWorld(targetShot, 0)
     applyCameraPreset(
       project.camera,
-      camPreset,
+      camPreset === 'fly' ? 'dollyIn' : camPreset,
       project.comp,
       0,
       project.comp.duration,
       intensity,
-      shotLocalToWorld(targetShot, 0)
+      toWorldFn
     )
   }
 
+  // Đồng bộ trạng thái DOF & Shake trên toàn thể active nodes
   const activeCamNodes = activeNodes.filter((n) => n.type === 'camera_director')
   project.camera.dofEnabled = activeCamNodes.some(
     (n) => n.params?.enableDof === true || n.params?.logicId === 'logic-cam-dof'
   )
-  project.camera.shakeAmount = activePartIds.has('handheld_rig')
-    ? node.preset === 'dramatic_handheld_action'
-      ? Math.round(6 * intensity)
-      : Math.round(1.5 * intensity)
-    : Math.round(0.8 * intensity)
-  project.camera.shakeSpeed = node.preset === 'dramatic_handheld_action' ? 1.2 : 0.6
+  const hasShake = activeCamNodes.some(
+    (n) =>
+      n.params?.logicId === 'logic-cam-shake' ||
+      n.preset === 'dramatic_handheld_action' ||
+      (n.params?.targetParts ?? []).includes('handheld_rig')
+  )
+  if (!hasShake) {
+    project.camera.shakeAmount = 0
+  } else if (project.camera.shakeAmount === 0) {
+    project.camera.shakeAmount = Math.max(1, Math.round(1.5 * intensity))
+    project.camera.shakeSpeed = 0.8
+  }
+
+  const targetDesc = targetLayer
+    ? `khóa vào Layer "${targetLayer.name}"`
+    : `áp dụng cho ${cameraShots.length} Phân cảnh`
 
   return {
     nodeId: node.id,
@@ -136,8 +253,8 @@ export function executeCameraDirectorStage(
     title: node.title,
     aiAgentRole: node.aiAgentRole,
     preset: node.preset,
-    appliedSummary: `Tạo đường bay Camera 3D · Bộ phận: ${partNamesSummary}.`,
-    affectedCount: Math.max(1, project.shots.length)
+    appliedSummary: `Tạo lộ trình Camera 3D (${camPreset}) · ${targetDesc} · Bộ phận: ${partNamesSummary}.`,
+    affectedCount: Math.max(1, cameraShots.length)
   }
 }
 

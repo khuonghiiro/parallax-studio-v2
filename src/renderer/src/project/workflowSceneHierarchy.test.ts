@@ -392,4 +392,75 @@ describe('workflowSceneHierarchy', () => {
     const { activeNodes } = resolveConnectedWorkflowNodes(synced)
     expect(activeNodes.some((n) => n.type === 'motion_choreography')).toBe(true)
   })
+
+  it('thả Node từ thư viện với autoConnect=false tạo node độc lập không bị tự động nối dây', () => {
+    const baseWf = createDefaultWorkflow()
+    const edgeCountBefore = baseWf.edges.length
+    const { workflow: nextWf, spawnedNode } = spawnLogicNodeIntoWorkflow(
+      baseWf,
+      'logic-cam-dolly',
+      'shot-1',
+      { autoConnect: false }
+    )
+    expect(nextWf.nodes.some((n) => n.id === spawnedNode.id)).toBe(true)
+    // Sợi dây không bị tự động thêm vào
+    expect(nextWf.edges.length).toBe(edgeCountBefore)
+  })
+
+  it('kết nối Node Camera DOF và Shake phản ánh chính xác lên camera mà không ghi đè lộ trình', () => {
+    const project = createMockProject()
+    const baseWf = createDefaultWorkflow()
+    const { workflow: wfWithLayers, childNodes } = spawnSceneWithChildLayers(project, baseWf, 'shot-1')
+    const charNode = childNodes[1] // layer-char-root, Z: 0
+
+    // 1. Thêm Node DOF và nối vào layer nhân vật
+    const { workflow: wfDof, spawnedNode: dofNode } = spawnLogicNodeIntoWorkflow(
+      wfWithLayers,
+      'logic-cam-dof',
+      'shot-1',
+      { autoConnect: false }
+    )
+    const connectedWf: WorkflowGraph = {
+      ...wfDof,
+      edges: [
+        ...wfDof.edges,
+        {
+          id: 'edge-char-dof',
+          fromNode: charNode.id,
+          fromPort: 'actors_rig',
+          toNode: dofNode.id,
+          toPort: 'actors_rig'
+        }
+      ]
+    }
+
+    applyWorkflowToProject(project, connectedWf)
+    expect(project.camera.dofEnabled).toBe(true)
+    // Camera Z = 1200, Character Z = 200 -> focus distance = 1000
+    expect(project.camera.focusDistance.value).toBe(1000)
+
+    // 2. Thêm Node Shake và kiểm tra rung lắc được áp dụng mà không làm mất DOF
+    const { workflow: wfShake, spawnedNode: shakeNode } = spawnLogicNodeIntoWorkflow(
+      connectedWf,
+      'logic-cam-shake',
+      'shot-1',
+      { autoConnect: false }
+    )
+    const connectedShakeWf: WorkflowGraph = {
+      ...wfShake,
+      edges: [
+        ...wfShake.edges,
+        {
+          id: 'edge-dof-shake',
+          fromNode: dofNode.id,
+          fromPort: 'camera_cut',
+          toNode: shakeNode.id,
+          toPort: 'camera_cut'
+        }
+      ]
+    }
+    applyWorkflowToProject(project, connectedShakeWf)
+    expect(project.camera.dofEnabled).toBe(true)
+    expect(project.camera.shakeAmount).toBeGreaterThan(0)
+  })
 })

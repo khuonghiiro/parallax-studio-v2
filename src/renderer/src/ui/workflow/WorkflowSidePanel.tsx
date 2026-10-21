@@ -349,16 +349,37 @@ export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
                         </label>
                       )}
                       {selectedNode.type === 'camera_director' && (
-                        <label className="wf-check-pill">
-                          <input
-                            type="checkbox"
-                            checked={selectedNode.params?.enableDof !== false}
-                            onChange={(e) =>
-                              onUpdateNodeParams(selectedNode.id, { enableDof: e.target.checked })
-                            }
-                          />
-                          <span>Xóa phông chiều sâu (DOF)</span>
-                        </label>
+                        <>
+                          <label className="wf-check-pill">
+                            <input
+                              type="checkbox"
+                              checked={
+                                selectedNode.params?.enableDof === true ||
+                                selectedNode.params?.logicId === 'logic-cam-dof'
+                              }
+                              onChange={(e) =>
+                                onUpdateNodeParams(selectedNode.id, { enableDof: e.target.checked })
+                              }
+                            />
+                            <span>Xóa phông (DOF)</span>
+                          </label>
+                          <label className="wf-check-pill">
+                            <input
+                              type="checkbox"
+                              checked={
+                                selectedNode.params?.logicId === 'logic-cam-shake' ||
+                                (selectedNode.params?.camShakeAmount ?? 0) > 0 ||
+                                selectedNode.preset === 'dramatic_handheld_action'
+                              }
+                              onChange={(e) =>
+                                onUpdateNodeParams(selectedNode.id, {
+                                  camShakeAmount: e.target.checked ? 6 : 0
+                                })
+                              }
+                            />
+                            <span>Rung Handheld</span>
+                          </label>
+                        </>
                       )}
                       {selectedNode.type === 'audio_lipsync' && (
                         <label className="wf-check-pill">
@@ -373,6 +394,50 @@ export const WorkflowSidePanel: React.FC<WorkflowSidePanelProps> = ({
                         </label>
                       )}
                     </div>
+
+                    {/* Điều khiển tinh chỉnh dành riêng cho Node Camera */}
+                    {selectedNode.type === 'camera_director' && (
+                      <div className="wf-node-fine-tuning" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {(selectedNode.params?.logicId === 'logic-cam-shake' ||
+                          (selectedNode.params?.camShakeAmount ?? 0) > 0) && (
+                          <div className="wf-field-row">
+                            <label className="wf-field-label" style={{ fontSize: 11 }}>
+                              Độ rung Handheld: <strong>{selectedNode.params?.camShakeAmount ?? 6}px</strong>
+                            </label>
+                            <input
+                              type="range"
+                              className="wf-range"
+                              min={1}
+                              max={16}
+                              step={1}
+                              value={selectedNode.params?.camShakeAmount ?? 6}
+                              onChange={(e) =>
+                                onUpdateNodeParams(selectedNode.id, { camShakeAmount: parseInt(e.target.value, 10) })
+                              }
+                            />
+                          </div>
+                        )}
+                        {(selectedNode.params?.logicId === 'logic-cam-dof' ||
+                          selectedNode.params?.enableDof) && (
+                          <div className="wf-field-row">
+                            <label className="wf-field-label" style={{ fontSize: 11 }}>
+                              Khoảng tiêu cự: <strong>{selectedNode.params?.camFocusDistance ?? 1200}px</strong>
+                            </label>
+                            <input
+                              type="range"
+                              className="wf-range"
+                              min={200}
+                              max={3200}
+                              step={50}
+                              value={selectedNode.params?.camFocusDistance ?? 1200}
+                              onChange={(e) =>
+                                onUpdateNodeParams(selectedNode.id, { camFocusDistance: parseInt(e.target.value, 10) })
+                              }
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Quick Port Wiring Matrix */}

@@ -145,4 +145,18 @@ describe('Workflow Canvas Connection & Playback Reset', () => {
     })
   })
 
+  describe('Camera Logic Node Separation & Per-Layer Reflection', () => {
+    it('allows camera_cut port in camera_director and layer_assembly inputs', () => {
+      expect(WORKFLOW_NODE_SPECS.camera_director.inputs).toContain('camera_cut')
+      expect(WORKFLOW_NODE_SPECS.layer_assembly.inputs).toContain('camera_cut')
+    })
+
+    it('matches camera_cut between camera modifier nodes and downstream nodes', () => {
+      // connecting camera_cut from camNode to another camNode (modifier chaining)
+      expect(getBestMatchingInputPort('camera_cut', camNode)).toBe('camera_cut')
+
+      // connecting camera_cut from camNode to layer_assembly (layer targeting)
+      expect(getBestMatchingInputPort('camera_cut', assemblyNode)).toBe('camera_cut')
+    })
+  })
 })

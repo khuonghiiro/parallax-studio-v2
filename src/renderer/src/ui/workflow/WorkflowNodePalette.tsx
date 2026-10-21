@@ -219,7 +219,7 @@ export const WorkflowNodePalette: React.FC<WorkflowNodePaletteProps> = React.mem
 
               {/* Minh họa sơ đồ trực quan của Node */}
               <div className="wf-palette-node-stage">
-                {renderSchematicSvg(item.nodeType, item.preset, itemColor)}
+                {renderSchematicSvg(item.nodeType, item.preset, itemColor, item.id)}
               </div>
 
               {/* Mô tả chức năng */}

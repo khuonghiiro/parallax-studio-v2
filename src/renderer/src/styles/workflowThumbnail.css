@@ -44,6 +44,8 @@
 }
 
 .wf-scene-composite-screen {
+  height: 100%;
+  width: auto;
   max-width: 100%;
   max-height: 100%;
   position: relative;
