@@ -183,9 +183,8 @@ describe('MCP workflowCommands & Workflow Engine', () => {
     const sceneNode = wf.nodes.find((n) => n.type === 'scene_shot')!
     const camNode = wf.nodes.find((n) => n.type === 'camera_director')!
     const geom = buildSmartEdgeGeometry(sceneNode, 'scene_ctx', camNode, 'scene_ctx', wf.nodes)
-    expect(geom.path).toContain('L ')
-    expect(geom.midY).toBeGreaterThan(170)
-    expect(geom.midY).toBeLessThan(390)
+    expect(geom.path).toContain('C ')
+    expect(geom.path).toMatch(/^M \d+ \d+ C /)
 
     const telemetryRunning = evaluateNodeRuntimeTelemetry(sceneNode, proj, 2.5, true, true, 1, 7)
     expect(telemetryRunning.state).toBe('running')

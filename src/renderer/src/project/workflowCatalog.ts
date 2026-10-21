@@ -555,7 +555,15 @@ export function buildStandardEdges(nodes: WorkflowNode[]): WorkflowEdge[] {
   // 1. Phân cảnh & Z -> Lắp ráp Thực thể (hoặc trực tiếp Motion nếu không có Assembly)
   for (const sc of scenes) {
     if (assemblies.length > 0) {
-      for (const as of assemblies) addEdge(sc, 'scene_ctx', as, 'scene_ctx')
+      // Chỉ nối scene_ctx nếu assembly là khối độc lập, không phải layer con đã có liên kết layers_tree
+      for (const as of assemblies) {
+        const isChildLayer = edges.some(
+          (e) => e.fromNode === sc.id && e.toNode === as.id && e.fromPort === 'layers_tree'
+        )
+        if (!isChildLayer) {
+          addEdge(sc, 'scene_ctx', as, 'scene_ctx')
+        }
+      }
     } else if (motions.length > 0) {
       addEdge(sc, 'scene_ctx', motions[0], 'scene_ctx')
     }
@@ -565,13 +573,20 @@ export function buildStandardEdges(nodes: WorkflowNode[]): WorkflowEdge[] {
     }
   }
 
-  // 2. Lắp ráp Thực thể -> Chuyển động & Âm thanh
-  for (const as of assemblies) {
-    if (motions.length > 0) {
-      addEdge(as, 'actors_rig', motions[0], 'actors_rig')
-    }
-    for (const au of audios) {
-      addEdge(as, 'actors_rig', au, 'actors_rig')
+  // 2. Lắp ráp Thực thể -> Chuyển động & Âm thanh (Ưu tiên layer nhân vật / composite 2.5D chính)
+  if (assemblies.length > 0) {
+    const primaryActor =
+      assemblies.find(
+        (as) => as.title.includes('2.5D') || as.title.includes('Nhân vật') || as.preset === 'character_and_foliage_rig'
+      ) ?? assemblies[assemblies.length - 1]
+
+    if (primaryActor) {
+      if (motions.length > 0) {
+        addEdge(primaryActor, 'actors_rig', motions[0], 'actors_rig')
+      }
+      for (const au of audios) {
+        addEdge(primaryActor, 'actors_rig', au, 'actors_rig')
+      }
     }
   }
 

@@ -213,7 +213,14 @@ export function spawnSceneWithChildLayers(
 
   const NODE_W = 248
   const COL_GAP = 72
-  const sceneX = 80
+  const layersStartX = 80
+  const layersCount = Math.max(1, rootLayers.length)
+  const layersTotalW = layersCount * NODE_W + Math.max(0, layersCount - 1) * COL_GAP
+  const layersCenterX = layersStartX + layersTotalW / 2
+  const CAM_GAP = 54
+
+  // Đặt Cảnh gốc và Camera 3D ở trên cao (Y=40), căn giữa cụm các Layer con
+  const sceneX = Math.max(layersStartX, Math.round(layersCenterX - NODE_W - CAM_GAP / 2))
   const sceneY = 40
 
   // 1. Tạo Node Cảnh (Scene Shot Node) với ID cố định theo shot.id để không bao giờ bị nhân đôi
@@ -237,7 +244,7 @@ export function spawnSceneWithChildLayers(
   }
 
   // 2. Tạo Node Lộ trình Camera 3D bên phải Node Cảnh (Pan lia máy rồi Zoom đẩy cận)
-  const camX = sceneX + NODE_W + 54
+  const camX = sceneX + NODE_W + CAM_GAP
   const camY = sceneY
   const camNodeId = `wf-cam-${shot.id}`
   const camNode: WorkflowNode = {
@@ -284,9 +291,9 @@ export function spawnSceneWithChildLayers(
 
     const layerZ = layer.transform?.position?.value[2] ?? 0
     const normZ = (layerZ - zMin) / zSpan // 1.0 = sâu nhất (bầu trời), 0.0 = tiền cảnh
-    const childX = 80 + idx * (NODE_W + COL_GAP)
-    // Tầng Z sâu hơn (normZ ~ 1) ở cao hơn tại Y=320, tiền cảnh (normZ ~ 0) ở thấp hơn tại Y=480 tạo dốc Z trực quan rõ nét
-    const childY = 320 + Math.round((1 - normZ) * 160)
+    const childX = layersStartX + idx * (NODE_W + COL_GAP)
+    // Tầng Z sâu hơn (normZ ~ 1) ở cao hơn tại Y=340, tiền cảnh (normZ ~ 0) ở thấp hơn tại Y=500 tạo dốc Z trực quan rõ nét
+    const childY = 340 + Math.round((1 - normZ) * 160)
 
     // Gom tất cả ID của layer trong cụm composite (nếu có)
     const allLayerIdsInGroup = layer.composite?.instanceId
@@ -412,7 +419,8 @@ export function spawnSceneWithChildLayers(
   // Tự động nối dây bổ sung cho các khối chức năng hạ nguồn nếu còn thiếu mạch
   const motionNode = nextNodes.find((n) => n.type === 'motion_choreography')
   if (motionNode && !nextEdges.some((e) => e.toNode === motionNode.id && e.toPort === 'actors_rig')) {
-    const actorChild = childLayerNodes.find((c) => c.title.includes('2.5D') || c.title.includes('Nhân vật')) ?? childLayerNodes[0]
+    // Ưu tiên layer nhân vật / composite 2.5D hoặc layer gần downstream nhất (layer cuối cùng)
+    const actorChild = childLayerNodes.find((c) => c.title.includes('2.5D') || c.title.includes('Nhân vật')) ?? childLayerNodes[childLayerNodes.length - 1]
     if (actorChild) {
       nextEdges.push({
         id: `edge-${actorChild.id}-actors_rig-${motionNode.id}-actors_rig`,
@@ -422,17 +430,6 @@ export function spawnSceneWithChildLayers(
         toPort: 'actors_rig'
       })
     }
-  }
-
-  const audioNode = nextNodes.find((n) => n.type === 'audio_lipsync')
-  if (audioNode && !nextEdges.some((e) => e.toNode === audioNode.id && e.toPort === 'scene_ctx')) {
-    nextEdges.push({
-      id: `edge-${sceneNodeId}-scene_ctx-${audioNode.id}-scene_ctx`,
-      fromNode: sceneNodeId,
-      fromPort: 'scene_ctx',
-      toNode: audioNode.id,
-      toPort: 'scene_ctx'
-    })
   }
 
   return {

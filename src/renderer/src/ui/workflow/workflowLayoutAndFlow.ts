@@ -138,7 +138,7 @@ export function getBestMatchingOutputPort(
 }
 
 export function buildBezierPath(x1: number, y1: number, x2: number, y2: number): string {
-  const dx = Math.max(42, Math.abs(x2 - x1) * 0.48)
+  const dx = Math.max(54, Math.min(280, Math.abs(x2 - x1) * 0.45))
   return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`
 }
 
@@ -153,16 +153,16 @@ export interface SmartEdgeGeometry {
 }
 
 /**
- * Tính toán đường cong Bezier thông minh cho dây nối Port.
- * Nếu dây nối bắc qua nhiều cột (multi-column span), tự động định tuyến mượt qua
- * hành lang trống ở giữa (Open Corridor) để dây không đè xuyên qua thân các khối khác.
+ * Tính toán đường cong Bezier thông minh chuẩn mực cho dây nối Port.
+ * Triệt tiêu hoàn toàn các đoạn gãy khúc ống nước (corridor L), tạo đường cong uốn lượn
+ * mềm mại chuẩn Unreal Engine / Blender / ComfyUI cho mọi khoảng cách ngang và dọc.
  */
 export function buildSmartEdgeGeometry(
   fromNode: WorkflowNode,
   fromPort: WorkflowPortKind,
   toNode: WorkflowNode,
   toPort: WorkflowPortKind,
-  allNodes: WorkflowNode[]
+  _allNodes?: WorkflowNode[]
 ): SmartEdgeGeometry {
   const p1 = getOutputSocketCoords(fromNode, fromPort)
   const p2 = getInputSocketCoords(toNode, toPort)
@@ -185,74 +185,28 @@ export function buildSmartEdgeGeometry(
   }
 
   if (fromPort === 'layers_tree' || toPort === 'layers_tree') {
-    // Định tuyến bus channel qua hành lang giữa 2 tầng, không đè xuyên thẻ
-    const channelY = Math.round(p1.y + Math.max(16, (p2.y - p1.y) * 0.48))
-    const path = `M ${p1.x} ${p1.y} C ${p1.x} ${channelY}, ${p2.x} ${channelY}, ${p2.x} ${p2.y}`
+    // Dây nối nan quạt dọc từ đáy Cảnh gốc tới đỉnh Layer con theo đường cong spline tự nhiên
+    const dy = Math.max(48, Math.min(240, Math.abs(p2.y - p1.y) * 0.5))
+    const path = `M ${p1.x} ${p1.y} C ${p1.x} ${p1.y + dy}, ${p2.x} ${p2.y - dy}, ${p2.x} ${p2.y}`
     return {
       p1,
       p2,
       path,
       midX: Math.round((p1.x + p2.x) / 2),
-      midY: channelY,
+      midY: Math.round((p1.y + p2.y) / 2),
       color: '#8b5cf6',
       label
     }
   }
 
-  const spanX = p2.x - p1.x
-  const intermediateNodes = allNodes.filter(
-    (n) =>
-      n.id !== fromNode.id &&
-      n.id !== toNode.id &&
-      n.position.x + NODE_W > p1.x + 20 &&
-      n.position.x < p2.x - 20
-  )
-
-  if (spanX > NODE_W + 60 && intermediateNodes.length > 0) {
-    const topRowBottoms: number[] = []
-    const bottomRowTops: number[] = []
-    for (const n of intermediateNodes) {
-      const h = estimateNodeCardHeight(n)
-      if (n.position.y < 160) {
-        topRowBottoms.push(n.position.y + h)
-      } else if (n.position.y >= 240) {
-        bottomRowTops.push(n.position.y)
-      }
-    }
-    const corridorTop = topRowBottoms.length > 0 ? Math.max(...topRowBottoms) : 210
-    const corridorBottom = bottomRowTops.length > 0 ? Math.min(...bottomRowTops) : 360
-
-    if (corridorBottom - corridorTop >= 12) {
-      const laneOffset = fromPort === 'scene_ctx' ? 0.36 : 0.66
-      const corridorY = Math.round(corridorTop + (corridorBottom - corridorTop) * laneOffset)
-      const entryX = Math.min(p1.x + 96, (p1.x + p2.x) / 2 - 20)
-      const exitX = Math.max(p2.x - 96, (p1.x + p2.x) / 2 + 20)
-      const c1 = Math.max(36, (entryX - p1.x) * 0.55)
-      const c2 = Math.max(36, (p2.x - exitX) * 0.55)
-
-      const path = [
-        `M ${p1.x} ${p1.y}`,
-        `C ${p1.x + c1} ${p1.y}, ${entryX - c1} ${corridorY}, ${entryX} ${corridorY}`,
-        `L ${exitX} ${corridorY}`,
-        `C ${exitX + c2} ${corridorY}, ${p2.x - c2} ${p2.y}, ${p2.x} ${p2.y}`
-      ].join(' ')
-
-      return {
-        p1,
-        p2,
-        path,
-        midX: Math.round((entryX + exitX) / 2),
-        midY: corridorY,
-        color,
-        label
-      }
-    }
-  }
+  // Dây nối ngang tiêu chuẩn giữa các cổng bên phải và bên trái (Smooth Horizontal Cubic Bezier)
+  const dx = Math.max(54, Math.min(280, Math.abs(p2.x - p1.x) * 0.45))
+  const path = `M ${p1.x} ${p1.y} C ${p1.x + dx} ${p1.y}, ${p2.x - dx} ${p2.y}, ${p2.x} ${p2.y}`
 
   return {
     p1,
     p2,
-    path: buildBezierPath(p1.x, p1.y, p2.x, p2.y),
+    path,
     midX: Math.round((p1.x + p2.x) / 2),
     midY: Math.round((p1.y + p2.y) / 2),
     color,
@@ -681,24 +635,6 @@ export function solveSpaciousWorkflowLayout(
   // - Hành lang giữa 2 hàng (Y: 270 -> 340): Dành riêng cho bus dây nối phân nhánh
   if (sceneNodes.length > 0 && layerNodes.length > 0) {
     const newPositions: Record<string, { x: number; y: number }> = {}
-    const sceneNode = sceneNodes[0]
-    const sceneX = 80
-    const sceneY = 40
-    newPositions[sceneNode.id] = { x: sceneX, y: sceneY }
-
-    // Các scene nodes khác (nếu có nhiều cảnh)
-    sceneNodes.slice(1).forEach((sc, scIdx) => {
-      newPositions[sc.id] = { x: sceneX, y: sceneY + (scIdx + 1) * 260 }
-    })
-
-    // Node Camera nằm trực tiếp bên phải Node Cảnh gốc trên Hàng 1
-    if (camNodes.length > 0) {
-      const primaryCam = camNodes[0]
-      newPositions[primaryCam.id] = { x: sceneX + NODE_W + 54, y: sceneY }
-      camNodes.slice(1).forEach((c, cIdx) => {
-        newPositions[c.id] = { x: sceneX + NODE_W + 54, y: sceneY + (cIdx + 1) * 220 }
-      })
-    }
 
     // Sắp xếp các Layer con từ trái sang phải theo Z-index (từ xa tới gần)
     const sortedLayers = [...layerNodes].sort((a, b) => {
@@ -716,12 +652,39 @@ export function solveSpaciousWorkflowLayout(
 
     // Khoảng cách cột rộng thoáng 72px để các khối không bị dính sát nhau
     const COL_GAP = 72
+    const layersStartX = 80
+    const layersCount = sortedLayers.length
+    const layersTotalW = layersCount * NODE_W + Math.max(0, layersCount - 1) * COL_GAP
+    const layersCenterX = layersStartX + layersTotalW / 2
+    const CAM_GAP = 54
+
+    // 1. Căn giữa cặp khối Cảnh gốc & Camera 3D trên cao (Y=40), đối xứng hoàn mỹ phía trên cụm Layer con
+    const sceneNode = sceneNodes[0]
+    const sceneX = Math.max(layersStartX, Math.round(layersCenterX - NODE_W - CAM_GAP / 2))
+    const sceneY = 40
+    newPositions[sceneNode.id] = { x: sceneX, y: sceneY }
+
+    // Các scene nodes khác (nếu có nhiều cảnh)
+    sceneNodes.slice(1).forEach((sc, scIdx) => {
+      newPositions[sc.id] = { x: sceneX, y: sceneY + (scIdx + 1) * 260 }
+    })
+
+    // Node Camera nằm trực tiếp bên phải Node Cảnh gốc trên Hàng 1
+    if (camNodes.length > 0) {
+      const primaryCam = camNodes[0]
+      newPositions[primaryCam.id] = { x: sceneX + NODE_W + CAM_GAP, y: sceneY }
+      camNodes.slice(1).forEach((c, cIdx) => {
+        newPositions[c.id] = { x: sceneX + NODE_W + CAM_GAP, y: sceneY + (cIdx + 1) * 220 }
+      })
+    }
+
+    // 2. Định vị các Layer con ở tầng dưới kèm dốc chiều sâu Z trực quan
     sortedLayers.forEach((node, idx) => {
       const layerZ = project?.layers.find((l) => node.params?.targetLayerIds?.includes(l.id))?.transform?.position?.value[2] ?? 0
       const normZ = (layerZ - zMin) / zSpan
-      const childX = 80 + idx * (NODE_W + COL_GAP)
-      // Dốc chiều sâu Z rõ nét: Layer ở xa (normZ = 1) ở cao hơn tại Y=320, Layer ở gần (normZ = 0) ở thấp hơn tại Y=480
-      const childY = 320 + Math.round((1 - normZ) * 160)
+      const childX = layersStartX + idx * (NODE_W + COL_GAP)
+      // Dốc chiều sâu Z rõ nét: Layer ở xa (normZ = 1) ở cao hơn tại Y=340, Layer ở gần (normZ = 0) ở thấp hơn tại Y=500
+      const childY = 340 + Math.round((1 - normZ) * 160)
       newPositions[node.id] = { x: childX, y: childY }
 
       // Tìm companion transform node của layer này
@@ -743,22 +706,42 @@ export function solveSpaciousWorkflowLayout(
     // Các transform nodes còn lại chưa được gán
     transformNodes.forEach((t) => {
       if (!newPositions[t.id]) {
-        newPositions[t.id] = { x: 80, y: 760 }
+        newPositions[t.id] = { x: layersStartX, y: 760 }
       }
     })
 
-    // Các node hạ nguồn khác (motion, physics, audio, look) xếp gọn theo lưới 2 tầng đối xứng
+    // 3. Các node hạ nguồn khác (motion, physics, audio, look) xếp gọn theo lưới 2 tầng đối xứng ở bên phải
     const downstreamNodes = nodes.filter((n) => !newPositions[n.id])
-    const layersEndX = 80 + sortedLayers.length * (NODE_W + COL_GAP)
-    const camEndX = sceneX + (NODE_W + 54) * 2
+    const layersEndX = layersStartX + layersTotalW
+    const camEndX = (newPositions[camNodes[0]?.id]?.x ?? sceneX) + NODE_W
     const nextColX = Math.max(layersEndX + 72, camEndX + 72)
 
-    downstreamNodes.forEach((n, idx) => {
-      const col = Math.floor(idx / 2)
+    // Sắp xếp thứ tự ưu tiên các khối hạ nguồn theo luồng sản xuất chuẩn:
+    // Cột 1: Chuyển động (trên, Y=60), Vật lý/FX (dưới, Y=380)
+    // Cột 2: Âm thanh (trên, Y=60), Màu & Xuất (dưới, Y=380)
+    const motionNode = downstreamNodes.find((n) => n.type === 'motion_choreography')
+    const physicsNode = downstreamNodes.find((n) => n.type === 'physics_fx')
+    const audioNode = downstreamNodes.find((n) => n.type === 'audio_lipsync')
+    const lookNode = downstreamNodes.find((n) => n.type === 'look_output')
+    const otherDownstream = downstreamNodes.filter(
+      (n) => n !== motionNode && n !== physicsNode && n !== audioNode && n !== lookNode
+    )
+
+    const col1X = nextColX
+    const col2X = nextColX + NODE_W + COL_GAP
+
+    if (motionNode) newPositions[motionNode.id] = { x: col1X, y: 60 }
+    if (physicsNode) newPositions[physicsNode.id] = { x: col1X, y: 380 }
+    if (audioNode) newPositions[audioNode.id] = { x: col2X, y: 60 }
+    if (lookNode) newPositions[lookNode.id] = { x: col2X, y: 380 }
+
+    otherDownstream.forEach((n, idx) => {
+      const extraCol = Math.floor(idx / 2) + 2
       const row = idx % 2
-      const posX = nextColX + col * (NODE_W + COL_GAP)
-      const posY = row === 0 ? 40 : 360
-      newPositions[n.id] = { x: posX, y: posY }
+      newPositions[n.id] = {
+        x: nextColX + extraCol * (NODE_W + COL_GAP),
+        y: row === 0 ? 60 : 380
+      }
     })
 
     return newPositions
