@@ -26,6 +26,9 @@ export function estimateNodeCardHeight(node: WorkflowNode): number {
   if (isLogic) {
     return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 85
   }
+  if (node.type === 'scene_shot') {
+    return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 204
+  }
   return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 150
 }
 

@@ -221,6 +221,10 @@ export interface StackedSceneLayerItem {
 export interface SceneCompositePreviewData {
   shotName: string
   background: string
+  compW: number
+  compH: number
+  aspectRatio: number
+  aspectRatioLabel: string
   visibleCount: number
   totalCount: number
   items: StackedSceneLayerItem[]
@@ -347,9 +351,27 @@ export function resolveSceneCompositeStack(
     }
   }
 
+  const ratioVal = compW / compH
+  let aspectRatioLabel = `${compW}×${compH}`
+  if (Math.abs(ratioVal - 16 / 9) < 0.04) {
+    aspectRatioLabel = '16:9'
+  } else if (Math.abs(ratioVal - 9 / 16) < 0.04) {
+    aspectRatioLabel = '9:16'
+  } else if (Math.abs(ratioVal - 1) < 0.04) {
+    aspectRatioLabel = '1:1'
+  } else if (Math.abs(ratioVal - 4 / 3) < 0.04) {
+    aspectRatioLabel = '4:3'
+  } else if (Math.abs(ratioVal - 21 / 9) < 0.05) {
+    aspectRatioLabel = '21:9'
+  }
+
   return {
     shotName,
     background: project.comp.background || '#0c0e14',
+    compW,
+    compH,
+    aspectRatio: ratioVal,
+    aspectRatioLabel,
     visibleCount: visibleShotLayers.length,
     totalCount: allShotLayers.length,
     items
@@ -428,105 +450,95 @@ export function resolveNodeLayerThumbUrl(
 function renderSceneCompositeBox(sceneStack: SceneCompositePreviewData) {
   return (
     <div
-      className="wf-scene-composite-stack"
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        overflow: 'hidden',
-        background: sceneStack.background,
-        borderRadius: 5
-      }}
-      title={`Preview Tổng hợp Cảnh "${sceneStack.shotName}" (${sceneStack.visibleCount}/${sceneStack.totalCount} layer đang hiển thị)`}
+      className="wf-scene-composite-viewport"
+      title={`Preview Tổng hợp Cảnh "${sceneStack.shotName}" (${sceneStack.aspectRatioLabel} · ${sceneStack.visibleCount}/${sceneStack.totalCount} layer đang hiển thị)`}
     >
-      {sceneStack.items.length === 0 ? (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '100%',
-            height: '100%',
-            fontSize: 10,
-            color: 'var(--text-dim)'
-          }}
-        >
-          Đã ẩn toàn bộ layer ({sceneStack.visibleCount}/{sceneStack.totalCount})
-        </div>
-      ) : (
-        sceneStack.items.map((item) => {
-          const itemStyle: React.CSSProperties = {
-            position: 'absolute',
-            left: `${item.leftPct.toFixed(2)}%`,
-            top: `${item.topPct.toFixed(2)}%`,
-            width: `${item.widthPct.toFixed(2)}%`,
-            height: `${item.heightPct.toFixed(2)}%`,
-            opacity: item.opacity,
-            pointerEvents: 'none'
-          }
-          if (item.type === 'image' && item.imgUrl) {
-            return (
-              <img
-                key={item.id}
-                src={item.imgUrl}
-                alt={item.name}
-                loading="lazy"
-                draggable={false}
-                style={{
-                  ...itemStyle,
-                  objectFit: 'fill',
-                  display: 'block'
-                }}
-              />
-            )
-          }
-          if (item.type === 'solid') {
-            return (
-              <div
-                key={item.id}
-                style={{
-                  ...itemStyle,
-                  background: item.solidColor ?? '#334155'
-                }}
-              />
-            )
-          }
-          if (item.type === 'text') {
-            return (
-              <div
-                key={item.id}
-                style={{
-                  ...itemStyle,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: item.textColor ?? '#ffffff',
-                  fontSize: 8,
-                  fontWeight: 800,
-                  textShadow: '0 1px 4px rgba(0,0,0,0.85)',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden'
-                }}
-              >
-                {item.textSample?.split('\n')[0]}
-              </div>
-            )
-          }
-          if (item.type === 'particles') {
-            return (
-              <div
-                key={item.id}
-                style={{
-                  ...itemStyle,
-                  background:
-                    'radial-gradient(circle at 25% 35%, rgba(253,224,71,0.55) 0 1.5px, transparent 3px), radial-gradient(circle at 72% 45%, rgba(253,224,71,0.55) 0 1.5px, transparent 3px), radial-gradient(circle at 48% 68%, rgba(253,224,71,0.45) 0 1.5px, transparent 3px)'
-                }}
-              />
-            )
-          }
-          return null
-        })
-      )}
+      <div
+        className="wf-scene-composite-screen"
+        style={{
+          aspectRatio: `${sceneStack.compW} / ${sceneStack.compH}`,
+          background: sceneStack.background
+        }}
+      >
+        {sceneStack.items.length === 0 ? (
+          <div className="wf-scene-composite-empty">
+            Đã ẩn toàn bộ layer ({sceneStack.visibleCount}/{sceneStack.totalCount})
+          </div>
+        ) : (
+          sceneStack.items.map((item) => {
+            const itemStyle: React.CSSProperties = {
+              position: 'absolute',
+              left: `${item.leftPct.toFixed(2)}%`,
+              top: `${item.topPct.toFixed(2)}%`,
+              width: `${item.widthPct.toFixed(2)}%`,
+              height: `${item.heightPct.toFixed(2)}%`,
+              opacity: item.opacity,
+              pointerEvents: 'none'
+            }
+            if (item.type === 'image' && item.imgUrl) {
+              return (
+                <img
+                  key={item.id}
+                  src={item.imgUrl}
+                  alt={item.name}
+                  loading="lazy"
+                  draggable={false}
+                  style={{
+                    ...itemStyle,
+                    objectFit: 'contain',
+                    display: 'block'
+                  }}
+                />
+              )
+            }
+            if (item.type === 'solid') {
+              return (
+                <div
+                  key={item.id}
+                  style={{
+                    ...itemStyle,
+                    background: item.solidColor ?? '#334155'
+                  }}
+                />
+              )
+            }
+            if (item.type === 'text') {
+              return (
+                <div
+                  key={item.id}
+                  style={{
+                    ...itemStyle,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: item.textColor ?? '#ffffff',
+                    fontSize: 8,
+                    fontWeight: 800,
+                    textShadow: '0 1px 4px rgba(0,0,0,0.85)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden'
+                  }}
+                >
+                  {item.textSample?.split('\n')[0]}
+                </div>
+              )
+            }
+            if (item.type === 'particles') {
+              return (
+                <div
+                  key={item.id}
+                  style={{
+                    ...itemStyle,
+                    background:
+                      'radial-gradient(circle at 25% 35%, rgba(253,224,71,0.55) 0 1.5px, transparent 3px), radial-gradient(circle at 72% 45%, rgba(253,224,71,0.55) 0 1.5px, transparent 3px), radial-gradient(circle at 48% 68%, rgba(253,224,71,0.45) 0 1.5px, transparent 3px)'
+                  }}
+                />
+              )
+            }
+            return null
+          })
+        )}
+      </div>
     </div>
   )
 }
@@ -572,15 +584,15 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = React.mem
     return (
       <div className="wf-node-binding-box">
         {/* Khung Thumbnail Hiển Thị Ảnh Thực Tế Của Layer / Cảnh Xếp Chồng */}
-        <div className="wf-node-thumb-container">
+        <div className={`wf-node-thumb-container${sceneStack ? ' is-scene' : ''}`}>
           {sceneStack ? (
             <>
               {renderSceneCompositeBox(sceneStack)}
               <span
-                className="wf-node-thumb-badge"
-                title={`Cảnh: ${sceneStack.shotName} (${sceneStack.visibleCount}/${sceneStack.totalCount} layer hiển thị)`}
+                className="wf-node-thumb-badge is-scene"
+                title={`Cảnh: ${sceneStack.shotName} (${sceneStack.aspectRatioLabel} · ${sceneStack.visibleCount}/${sceneStack.totalCount} layer hiển thị)`}
               >
-                🎬 {sceneStack.shotName} ({sceneStack.visibleCount}/{sceneStack.totalCount})
+                🎬 {sceneStack.shotName} · {sceneStack.aspectRatioLabel} ({sceneStack.visibleCount}/{sceneStack.totalCount})
               </span>
             </>
           ) : thumbInfo.thumbUrl ? (

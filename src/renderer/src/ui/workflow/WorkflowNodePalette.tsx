@@ -47,10 +47,6 @@ export const WorkflowNodePalette: React.FC<WorkflowNodePaletteProps> = React.mem
   const [collapsed, setCollapsed] = useState(false)
   const [search, setSearch] = useState('')
   const [activeCat, setActiveCat] = useState<WorkflowLogicNodeCategory | 'all'>('all')
-  const [previewItem, setPreviewItem] = useState<WorkflowLogicNodeCatalogItem>(
-    WORKFLOW_LOGIC_NODE_CATALOG[0]
-  )
-
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase()
     return WORKFLOW_LOGIC_NODE_CATALOG.filter((item) => {
@@ -64,18 +60,6 @@ export const WorkflowNodePalette: React.FC<WorkflowNodePaletteProps> = React.mem
       )
     })
   }, [activeCat, search])
-
-  const activePreview = useMemo(() => {
-    if (previewItem && filteredItems.some((x) => x.id === previewItem.id)) {
-      return previewItem
-    }
-    return filteredItems[0] ?? WORKFLOW_LOGIC_NODE_CATALOG[0]
-  }, [previewItem, filteredItems])
-
-  const previewColor = getLogicCategoryColor(activePreview.category)
-  const previewSpec = WORKFLOW_NODE_SPECS[activePreview.nodeType]
-  const previewInputs = (previewSpec?.inputs ?? []).map((p) => WORKFLOW_PORT_SPECS[p]).filter(Boolean)
-  const previewOutputs = (previewSpec?.outputs ?? []).map((p) => WORKFLOW_PORT_SPECS[p]).filter(Boolean)
 
   if (collapsed) {
     return (
@@ -145,14 +129,19 @@ export const WorkflowNodePalette: React.FC<WorkflowNodePaletteProps> = React.mem
         <button
           type="button"
           className="wf-palette-spawn-scene-btn"
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.setData('application/x-pxs-logic-id', '__SPAWN_SCENE_LAYERS__')
+            e.dataTransfer.effectAllowed = 'copy'
+          }}
           onClick={onSpawnSceneLayers}
-          title="Bung hoặc cập nhật Node Root Cảnh kèm toàn bộ các Node Layer con của cảnh hiện tại (tự động chống trùng lặp)"
+          title="Bấm hoặc kéo thả vào bản vẽ: Bung hoặc cập nhật Node Root Cảnh kèm toàn bộ các Node Layer con (tự động chống trùng lặp)"
         >
           <span className="spawn-ic">🎬</span>
           <span className="spawn-txt">
             <strong>Bung Cảnh & Layer Con</strong>
             <small>
-              {shotCount} cảnh · {layerCount} layer
+              {shotCount} cảnh · {layerCount} layer (Kéo hoặc Bấm)
             </small>
           </span>
           <span className="spawn-plus">↻</span>
@@ -182,111 +171,84 @@ export const WorkflowNodePalette: React.FC<WorkflowNodePaletteProps> = React.mem
         ))}
       </div>
 
-      {/* 4. Hộp Preview Chức Năng & Cổng Kết Nối (Hiển thị trực quan Node đang chọn/di chuột) */}
-      <div
-        className="wf-palette-preview-card"
-        style={{ ['--prev-c' as string]: previewColor }}
-      >
-        <div className="wf-palette-preview-head">
-          <span className="wf-palette-preview-ic" style={{ background: previewColor }}>
-            {activePreview.icon}
-          </span>
-          <div className="wf-palette-preview-titles">
-            <span className="wf-palette-preview-name">{activePreview.title}</span>
-            <span className="wf-palette-preview-cat" style={{ color: previewColor }}>
-              ● {activePreview.categoryLabel}
-            </span>
-          </div>
-          <button
-            type="button"
-            className="wf-palette-preview-add-btn"
-            onClick={() => onAddLogicNode(activePreview.id)}
-            title={`Thêm ngay "${activePreview.title}" vào sơ đồ Workflow`}
-          >
-            + Thêm
-          </button>
-        </div>
-
-        {/* Minh họa SVG trực quan cơ chế hoạt động của Node */}
-        <div className="wf-palette-preview-stage">
-          {renderSchematicSvg(activePreview.nodeType, activePreview.preset, previewColor)}
-        </div>
-
-        {/* Mô tả chi tiết chức năng của Node */}
-        <p className="wf-palette-preview-desc">{activePreview.description}</p>
-
-        {/* Sơ đồ Cổng Nhận -> Cổng Xuất để dễ hiểu cách nối dây */}
-        <div className="wf-palette-preview-ports">
-          <div className="wf-palette-port-col">
-            <span className="port-col-lbl">Nhận vào:</span>
-            <div className="port-col-chips">
-              {previewInputs.length === 0 ? (
-                <span className="wf-palette-port-chip root">🎬 Gốc khởi nguồn</span>
-              ) : (
-                previewInputs.map((p) => (
-                  <span
-                    key={`in-${p.id}`}
-                    className="wf-palette-port-chip"
-                    style={{ ['--p-c' as string]: p.color }}
-                  >
-                    ● {p.shortLabel}
-                  </span>
-                ))
-              )}
-            </div>
-          </div>
-          <span className="wf-palette-port-arrow">➔</span>
-          <div className="wf-palette-port-col">
-            <span className="port-col-lbl">Xuất ra:</span>
-            <div className="port-col-chips">
-              {previewOutputs.map((p) => (
-                <span
-                  key={`out-${p.id}`}
-                  className="wf-palette-port-chip"
-                  style={{ ['--p-c' as string]: p.color }}
-                >
-                  {p.shortLabel} ●
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 5. Danh sách các Node Logic để bấm chọn hoặc kéo thả vào Canvas */}
+      {/* 4. Danh sách các Node dạng Thẻ Mô Phỏng Trực Quan để bấm chọn hoặc kéo thả trực tiếp vào Canvas */}
       <div className="wf-palette-list">
         {filteredItems.map((item) => {
           const itemColor = getLogicCategoryColor(item.category)
-          const isPreviewing = activePreview.id === item.id
+          const spec = WORKFLOW_NODE_SPECS[item.nodeType]
+          const inputs = (spec?.inputs ?? []).map((p) => WORKFLOW_PORT_SPECS[p]?.shortLabel).filter(Boolean)
+          const outputs = (spec?.outputs ?? []).map((p) => WORKFLOW_PORT_SPECS[p]?.shortLabel).filter(Boolean)
+
           return (
             <div
               key={item.id}
-              className={`wf-palette-item${isPreviewing ? ' active' : ''}`}
+              className="wf-palette-item wf-palette-node-card"
               style={{ ['--item-c' as string]: itemColor }}
               draggable
               onDragStart={(e) => {
                 e.dataTransfer.setData('application/x-pxs-logic-id', item.id)
                 e.dataTransfer.effectAllowed = 'copy'
               }}
-              onMouseEnter={() => setPreviewItem(item)}
               onClick={() => {
-                setPreviewItem(item)
                 onAddLogicNode(item.id)
               }}
-              title={`${item.title}\n${item.description}\n\n👉 Bấm để thêm vào sơ đồ hoặc kéo thả vào vị trí bất kỳ trên Canvas`}
+              title={`${item.title}\n${item.description}\n\n👉 Bấm để thêm hoặc kéo thả vào bất kỳ vị trí nào trên bản vẽ sơ đồ`}
             >
-              <span className="wf-palette-item-ic" style={{ background: itemColor }}>
-                {item.icon}
-              </span>
-              <div className="wf-palette-item-info">
-                <div className="wf-palette-item-top">
-                  <span className="wf-palette-item-title">{item.title}</span>
+              <div className="wf-palette-node-head">
+                <span className="wf-palette-node-ic" style={{ background: itemColor }}>
+                  {item.icon}
+                </span>
+                <div className="wf-palette-node-title-group">
+                  <span className="wf-palette-node-title">{item.title}</span>
+                  <span className="wf-palette-node-cat" style={{ color: itemColor }}>
+                    ● {item.categoryLabel}
+                  </span>
                 </div>
-                <span className="wf-palette-item-sub">{item.description}</span>
+                <button
+                  type="button"
+                  className="wf-palette-node-add-btn"
+                  title="Thêm ngay vào sơ đồ"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onAddLogicNode(item.id)
+                  }}
+                >
+                  +
+                </button>
               </div>
-              <span className="wf-palette-item-plus" title="Bấm để thêm vào sơ đồ">
-                +
-              </span>
+
+              {/* Minh họa sơ đồ trực quan của Node */}
+              <div className="wf-palette-node-stage">
+                {renderSchematicSvg(item.nodeType, item.preset, itemColor)}
+              </div>
+
+              {/* Mô tả chức năng */}
+              <div className="wf-palette-node-desc">
+                {item.description}
+              </div>
+
+              {/* Cổng vào/ra & Nút kéo */}
+              <div className="wf-palette-node-footer">
+                <div className="wf-palette-node-ports-summary">
+                  {inputs.length > 0 ? (
+                    <span className="wf-port-sum-in" title={`Nhận: ${inputs.join(', ')}`}>
+                      ● {inputs[0]}
+                    </span>
+                  ) : (
+                    <span className="wf-port-sum-in root">🎬 Gốc</span>
+                  )}
+                  <span className="wf-port-sum-arr">➔</span>
+                  {outputs.length > 0 && (
+                    <span className="wf-port-sum-out" title={`Xuất: ${outputs.join(', ')}`}>
+                      {outputs[0]} ●
+                    </span>
+                  )}
+                </div>
+
+                <div className="wf-palette-drag-pill" title="Nắm kéo vào bản vẽ bất kỳ vị trí nào">
+                  <span>⋮⋮ Kéo dùng</span>
+                </div>
+              </div>
             </div>
           )
         })}

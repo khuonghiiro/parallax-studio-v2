@@ -66,6 +66,11 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   const viewportRef = useRef<HTMLDivElement>(null)
   const [zoom, setZoom] = useState<number>(1)
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 44, y: 8 })
+  const zoomRef = useRef(zoom)
+  zoomRef.current = zoom
+  const panRef = useRef(pan)
+  panRef.current = pan
+
   const [isPanning, setIsPanning] = useState(false)
   const [clusterMoveMode, setClusterMoveMode] = useState(false)
   const [dragPositions, setDragPositions] = useState<Record<string, { x: number; y: number }> | null>(null)
@@ -144,7 +149,10 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       )
       const nx = Math.round(leftDockW + (availW - graphW * fitZ) / 2 - minX * fitZ)
       const ny = Math.round((vh - graphH * fitZ) / 2 - minY * fitZ)
-      setZoom(Number(fitZ.toFixed(2)))
+      const roundedZ = Number(fitZ.toFixed(2))
+      zoomRef.current = roundedZ
+      panRef.current = { x: nx, y: ny }
+      setZoom(roundedZ)
       setPan({ x: nx, y: ny })
     },
     [workflow.nodes]
@@ -157,51 +165,92 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workflow.id, workflow.presetId])
 
-  /** Chuyển đổi tọa độ chuột màn hình sang tọa độ thế giới (World Space) trên mặt phẳng */
+  /** Chuyển đổi tọa độ chuột màn hình sang tọa độ thế giới (World Space) trên mặt phẳng — Luôn ổn định tham chiếu */
   const clientToWorld = useCallback(
     (clientX: number, clientY: number): { x: number; y: number } => {
       const rect = viewportRef.current?.getBoundingClientRect()
       if (!rect) return { x: 0, y: 0 }
+      const curPan = panRef.current
+      const curZoom = zoomRef.current
       return {
-        x: (clientX - rect.left - pan.x) / zoom,
-        y: (clientY - rect.top - pan.y) / zoom
+        x: (clientX - rect.left - curPan.x) / curZoom,
+        y: (clientY - rect.top - curPan.y) / curZoom
       }
     },
-    [pan.x, pan.y, zoom]
+    []
   )
 
-  /** Phóng to / thu nhỏ neo chính xác theo vị trí con trỏ chuột */
-  const handleWheel = useCallback(
-    (e: React.WheelEvent<HTMLDivElement>) => {
+  /** Phóng to / thu nhỏ neo chính xác theo vị trí con trỏ chuột mượt mà 60fps qua RAF (Native non-passive) */
+  useEffect(() => {
+    const el = viewportRef.current
+    if (!el) return
+
+    let pendingDeltaY = 0
+    let mouseClientX = 0
+    let mouseClientY = 0
+    let rafId = 0
+
+    const handleNativeWheel = (e: WheelEvent) => {
       e.preventDefault()
-      const rect = viewportRef.current?.getBoundingClientRect()
-      if (!rect) return
-      const mx = e.clientX - rect.left
-      const my = e.clientY - rect.top
-      const factor = Math.exp(-e.deltaY * 0.0014)
-      const nextZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number((zoom * factor).toFixed(3))))
-      const ratio = nextZoom / zoom
-      setPan({
-        x: Math.round(mx - (mx - pan.x) * ratio),
-        y: Math.round(my - (my - pan.y) * ratio)
-      })
-      setZoom(nextZoom)
-    },
-    [pan.x, pan.y, zoom]
-  )
+      pendingDeltaY += e.deltaY
+      mouseClientX = e.clientX
+      mouseClientY = e.clientY
 
-  const zoomByStep = (delta: number) => {
+      if (!rafId) {
+        rafId = requestAnimationFrame(() => {
+          rafId = 0
+          const rect = el.getBoundingClientRect()
+          if (!rect) return
+          const mx = mouseClientX - rect.left
+          const my = mouseClientY - rect.top
+
+          const curZoom = zoomRef.current
+          const curPan = panRef.current
+
+          const clampedDelta = Math.max(-240, Math.min(240, pendingDeltaY))
+          pendingDeltaY = 0
+
+          const factor = Math.exp(-clampedDelta * 0.0014)
+          const nextZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number((curZoom * factor).toFixed(3))))
+          if (Math.abs(nextZoom - curZoom) < 0.001) return
+
+          const ratio = nextZoom / curZoom
+          const nextPan = {
+            x: Math.round(mx - (mx - curPan.x) * ratio),
+            y: Math.round(my - (my - curPan.y) * ratio)
+          }
+          panRef.current = nextPan
+          zoomRef.current = nextZoom
+          setPan(nextPan)
+          setZoom(nextZoom)
+        })
+      }
+    }
+
+    el.addEventListener('wheel', handleNativeWheel, { passive: false })
+    return () => {
+      el.removeEventListener('wheel', handleNativeWheel)
+      if (rafId) cancelAnimationFrame(rafId)
+    }
+  }, [])
+
+  const zoomByStep = useCallback((delta: number) => {
     const rect = viewportRef.current?.getBoundingClientRect()
     const cx = rect ? rect.width / 2 : 540
     const cy = rect ? rect.height / 2 : 170
-    const nextZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number((zoom + delta).toFixed(2))))
-    const ratio = nextZoom / zoom
-    setPan({
-      x: Math.round(cx - (cx - pan.x) * ratio),
-      y: Math.round(cy - (cy - pan.y) * ratio)
-    })
+    const curZoom = zoomRef.current
+    const curPan = panRef.current
+    const nextZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number((curZoom + delta).toFixed(2))))
+    const ratio = nextZoom / curZoom
+    const nextPan = {
+      x: Math.round(cx - (cx - curPan.x) * ratio),
+      y: Math.round(cy - (cy - curPan.y) * ratio)
+    }
+    panRef.current = nextPan
+    zoomRef.current = nextZoom
+    setPan(nextPan)
     setZoom(nextZoom)
-  }
+  }, [])
 
   /** Kéo mặt phẳng (Pan Canvas) mượt 60fps khi nắm kéo vùng trống */
   const handleViewportPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -216,8 +265,8 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     setIsPanning(true)
     const startX = e.clientX
     const startY = e.clientY
-    const origPanX = pan.x
-    const origPanY = pan.y
+    const origPanX = panRef.current.x
+    const origPanY = panRef.current.y
     const el = e.currentTarget
     el.setPointerCapture(e.pointerId)
 
@@ -227,6 +276,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       const ny = Math.round(origPanY + (ev.clientY - startY))
       if (rafId) cancelAnimationFrame(rafId)
       rafId = requestAnimationFrame(() => {
+        panRef.current = { x: nx, y: ny }
         setPan({ x: nx, y: ny })
       })
     }
@@ -270,8 +320,9 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       let rafId = 0
 
       const onMove = (ev: PointerEvent) => {
-        const dx = Math.round((ev.clientX - startX) / zoom)
-        const dy = Math.round((ev.clientY - startY) / zoom)
+        const curZoom = zoomRef.current
+        const dx = Math.round((ev.clientX - startX) / curZoom)
+        const dy = Math.round((ev.clientY - startY) / curZoom)
         const patch: Record<string, { x: number; y: number }> = {}
         for (const [id, orig] of initialPositions.entries()) {
           patch[id] = {
@@ -307,7 +358,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       el.addEventListener('pointermove', onMove)
       el.addEventListener('pointerup', onUp)
     },
-    [clusterMoveMode, onMoveNodes, onSelectNode, pendingSource, workflow.nodes, zoom]
+    [clusterMoveMode, onMoveNodes, onSelectNode, pendingSource, workflow.nodes]
   )
 
   /**
@@ -543,6 +594,12 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     [pendingSource, onConnectPorts]
   )
 
+  const handleClearPendingWire = useCallback(() => {
+    setPendingSource(null)
+    setCursorWorld(null)
+    setSnappedTarget(null)
+  }, [])
+
   const renderedEdges = useMemo(() => {
     const out: {
       edge: WorkflowEdge
@@ -595,32 +652,33 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       ref={viewportRef}
       className={`wf-canvas-viewport${isPanning ? ' panning' : ''}${clusterMoveMode ? ' cluster-mode' : ''}${isDragOverPalette ? ' palette-drag-over' : ''}`}
       data-mcp-region="workflow_canvas"
-      style={{
-        backgroundPosition: `${pan.x}px ${pan.y}px`,
-        backgroundSize: `${Math.max(10, Math.round(18 * zoom))}px ${Math.max(10, Math.round(18 * zoom))}px`
-      }}
-      onWheel={handleWheel}
       onPointerDown={handleViewportPointerDown}
       onDragOver={(e) => {
-        if (e.dataTransfer.types.includes('application/x-pxs-logic-id')) {
+        if (
+          e.dataTransfer.types.includes('application/x-pxs-logic-id') ||
+          e.dataTransfer.types.includes('application/x-pxs-node-type')
+        ) {
           e.preventDefault()
           e.dataTransfer.dropEffect = 'copy'
           if (!isDragOverPalette) setIsDragOverPalette(true)
         }
       }}
-      onDragLeave={() => {
+      onDragLeave={(e) => {
+        if (e.currentTarget.contains(e.relatedTarget as Node)) return
         if (isDragOverPalette) setIsDragOverPalette(false)
       }}
       onDrop={(e) => {
         setIsDragOverPalette(false)
         const logicId = e.dataTransfer.getData('application/x-pxs-logic-id')
-        if (!logicId || !onDropLogicNode) return
-        e.preventDefault()
-        const w = clientToWorld(e.clientX, e.clientY)
-        onDropLogicNode(logicId, {
-          x: Math.round(w.x - NODE_W / 2),
-          y: Math.round(w.y - 40)
-        })
+        if (logicId && onDropLogicNode) {
+          e.preventDefault()
+          const w = clientToWorld(e.clientX, e.clientY)
+          onDropLogicNode(logicId, {
+            x: Math.round(w.x - NODE_W / 2),
+            y: Math.round(w.y - 40)
+          })
+          return
+        }
       }}
       onContextMenu={(e) => {
         if (pendingSource) {
@@ -631,6 +689,13 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         }
       }}
     >
+      {/* Hướng dẫn nổi khi kéo node từ thư viện vào bản vẽ */}
+      {isDragOverPalette && (
+        <div className="wf-connecting-banner" style={{ background: 'color-mix(in srgb, var(--accent) 24%, var(--bg-2))', borderColor: 'var(--accent)' }}>
+          <span>✨ Thả vào vị trí bất kỳ trên sơ đồ để tạo Node ngay lập tức!</span>
+        </div>
+      )}
+
       {/* Hướng dẫn nổi khi đang kéo nối dây Port */}
       {pendingSource && (
         <div className="wf-connecting-banner">
@@ -653,20 +718,17 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         </div>
       )}
 
-      {/* Mặt phẳng thế giới biến đổi theo Pan & Zoom Sắc Nét Vector */}
+      {/* Mặt phẳng thế giới biến đổi theo Pan & Zoom Sắc Nét Vector trên GPU Compositor */}
       <div
         className="wf-canvas-pan"
         style={{
-          left: `${Math.round(pan.x)}px`,
-          top: `${Math.round(pan.y)}px`
+          transform: `translate3d(${Math.round(pan.x)}px, ${Math.round(pan.y)}px, 0) scale(${zoom})`,
+          transformOrigin: '0 0',
+          willChange: 'transform'
         }}
       >
-        <div
-          className="wf-canvas-world"
-          style={{
-            zoom
-          }}
-        >
+        <div className="wf-canvas-grid" />
+        <div className="wf-canvas-world">
           {/* Lớp dây nối SVG Bezier không giới hạn tọa độ âm/dương (không dùng feGaussianBlur nặng GPU) */}
           <svg
             className="wf-edges-svg"
@@ -784,11 +846,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
               onInputSocketClick={handleInputSocketClick}
               onOutputSocketClick={handleOutputSocketClick}
               onConnectPorts={onConnectPorts}
-              onClearPendingWire={() => {
-                setPendingSource(null)
-                setCursorWorld(null)
-                setSnappedTarget(null)
-              }}
+              onClearPendingWire={handleClearPendingWire}
             />
           ))}
         </div>

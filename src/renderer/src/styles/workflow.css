@@ -272,8 +272,6 @@
   overflow: hidden;
   cursor: grab;
   background-color: var(--bg-0);
-  background-image: radial-gradient(color-mix(in srgb, var(--line) 90%, transparent) 1.2px, transparent 1.2px);
-  background-size: 18px 18px;
   user-select: none;
 }
 .wf-canvas-viewport.panning { cursor: grabbing; }
@@ -285,6 +283,19 @@
   width: 0;
   height: 0;
   overflow: visible;
+  pointer-events: none;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.wf-canvas-grid {
+  position: absolute;
+  left: -2500px;
+  top: -2000px;
+  width: 9000px;
+  height: 6000px;
+  background-image: radial-gradient(color-mix(in srgb, var(--line) 90%, transparent) 1.2px, transparent 1.2px);
+  background-size: 18px 18px;
   pointer-events: none;
 }
 
@@ -873,34 +884,21 @@
   background: color-mix(in srgb, var(--danger) 12%, var(--bg-2));
 }
 
-.wf-logic-node-catalog {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding-bottom: 6px;
-  margin-bottom: 5px;
-  border-bottom: 1px dashed var(--line);
-}
-.wf-logic-node-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-.wf-logic-spawn-btn {
-  justify-content: space-between;
-  border-color: color-mix(in srgb, var(--accent-cyan) 40%, var(--line));
-}
-.wf-logic-spawn-btn:hover {
-  border-color: var(--accent-cyan);
-  background: color-mix(in srgb, var(--accent-cyan) 16%, var(--bg-1));
-}
-.wf-logic-plus-tag {
-  font-family: var(--mono);
-  font-size: 8.5px;
-  font-weight: 700;
-  color: var(--accent-cyan);
-  background: var(--bg-2);
-  padding: 0 4px;
-  border-radius: 3px;
+.wf-toolbar-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  background: color-mix(in srgb, var(--bg-1) 85%, transparent);
   border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+.wf-toolbar-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--line);
+  margin: 0 1px;
   flex-shrink: 0;
 }
 .wf-node-del-btn {

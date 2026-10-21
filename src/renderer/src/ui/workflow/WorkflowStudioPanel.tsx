@@ -652,246 +652,255 @@ export const WorkflowStudioPanel: React.FC = () => {
     <div className="wf-studio-panel" data-mcp-region="timeline_workflow">
       {/* Workflow Top Toolbar (Hoàn toàn bằng Nút bấm trực tiếp - Không dùng Combobox) */}
       <div className="timeline-toolbar wf-toolbar" data-mcp-region="workflow_toolbar">
-        <TimelineModeTabs
-          layerCount={project.layers.length}
-          connectedNodeCount={activeNodes.length}
-          totalNodeCount={workflow.nodes.length}
-        />
-
-        <div className="tl-toolbar-divider" />
-
-        {/* Trạng thái Luồng xử lý Trực quan */}
-        <div
-          className={`wf-pipeline-health-badge${
-            blueprint.isPipelineComplete && disconnectedNodes.length === 0
-              ? ' complete'
-              : activeNodes.length > 0
-                ? ' building'
-                : ' broken'
-          }`}
-          title={blueprint.pipelineSummary}
-        >
-          <span
-            className={`wf-health-dot${
-              blueprint.isPipelineComplete && disconnectedNodes.length === 0
-                ? ' pulsing'
-                : ''
-            }`}
+        {/* Nhóm 1: Chế độ, Trạng thái luồng & Phạm vi Cảnh (Scope & Health) */}
+        <div className="wf-toolbar-cluster scope-health">
+          <TimelineModeTabs
+            layerCount={project.layers.length}
+            connectedNodeCount={activeNodes.length}
+            totalNodeCount={workflow.nodes.length}
           />
-          <span className="wf-health-text">
-            {blueprint.isPipelineComplete && disconnectedNodes.length === 0
-              ? `✓ Luồng Hoàn Chỉnh (${activeNodes.length}/${workflow.nodes.length} khâu)`
-              : activeNodes.length > 0
-                ? `⚡ Đang xây dựng (${activeNodes.length}/${workflow.nodes.length} khâu · ${disconnectedNodes.length} đứt)`
-                : `⛔ Đứt luồng từ Cảnh 3D`}
-          </span>
+
+          <div
+            className={`wf-pipeline-health-badge${
+              blueprint.isPipelineComplete && disconnectedNodes.length === 0
+                ? ' complete'
+                : activeNodes.length > 0
+                  ? ' building'
+                  : ' broken'
+            }`}
+            title={blueprint.pipelineSummary}
+          >
+            <span
+              className={`wf-health-dot${
+                blueprint.isPipelineComplete && disconnectedNodes.length === 0
+                  ? ' pulsing'
+                  : ''
+              }`}
+            />
+            <span className="wf-health-text">
+              {blueprint.isPipelineComplete && disconnectedNodes.length === 0
+                ? `✓ Thông mạch (${activeNodes.length}/${workflow.nodes.length})`
+                : activeNodes.length > 0
+                  ? `⚡ Luồng (${activeNodes.length}/${workflow.nodes.length})`
+                  : `⛔ Đứt luồng`}
+            </span>
+          </div>
+
+          {project.shots.length > 1 && (
+            <div
+              className="wf-toolbar-pill-group wf-shot-scope-group"
+              role="radiogroup"
+              aria-label="Phạm vi Phân cảnh áp dụng"
+            >
+              <span className="wf-toolbar-label">Cảnh:</span>
+              <button
+                type="button"
+                className={`wf-toolbar-pill-btn${currentShotScope === 'all' ? ' active' : ''}`}
+                title="Đồng bộ & áp dụng quy trình xử lý xuyên suốt tất cả các phân cảnh"
+                onClick={() => handleSelectShotScope('all')}
+              >
+                ⇄ Tất cả ({project.shots.length})
+              </button>
+              {project.shots.map((s, idx) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={`wf-toolbar-pill-btn${currentShotScope === s.id ? ' active' : ''}`}
+                  title={`Chỉ áp dụng & xem thử trên Phân cảnh #${idx + 1}: ${s.name}`}
+                  onClick={() => handleSelectShotScope(s.id)}
+                >
+                  #{idx + 1}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        <button
-          id="wf-btn-spawn-scene-layers"
-          type="button"
-          className="btn ghost sm tl-action-btn wf-spawn-scene-btn"
-          title={`Bung Cảnh "${activeShotLabel}" thành 1 Node Cảnh trung tâm kèm toàn bộ các Node Layer con được nối dây sẵn`}
-          onClick={handleSpawnSceneLayers}
-        >
-          <span>🎬 Bung Cảnh & Layer</span>
-        </button>
+        <div className="wf-toolbar-sep" />
 
-        <button
-          id="wf-btn-autowire"
-          type="button"
-          className="btn ghost sm tl-action-btn"
-          title="Tự động nối chuẩn tất cả cổng (Port) giữa các khối chức năng đang bật"
-          onClick={handleAutoWire}
-        >
-          <IconWfAutoWire width={13} height={13} />
-          <span>Tự nối Port</span>
-        </button>
+        {/* Nhóm 2: Thao tác & Thiết kế Sơ đồ (Graph Design & Operations) */}
+        <div className="wf-toolbar-cluster graph-ops">
+          <WorkflowAddNodeMenu
+            onSpawnLogicNode={(id) => handleSpawnLogicNode(id)}
+            onSpawnSceneLayers={handleSpawnSceneLayers}
+          />
 
-        <WorkflowAddNodeMenu
-          onSpawnLogicNode={(id) => handleSpawnLogicNode(id)}
-          onSpawnSceneLayers={handleSpawnSceneLayers}
-        />
-
-        <button
-          id="wf-btn-toolbar-autolayout"
-          type="button"
-          className="btn ghost sm tl-action-btn wf-autolayout-btn"
-          title="Tự động sắp xếp toàn bộ sơ đồ gọn gàng theo thứ tự luồng, chống đè lấn 100% (Phím tắt: Alt + L)"
-          onClick={handleAutoLayout}
-        >
-          <IconSparkles width={13} height={13} />
-          <span>✨ Tự sắp xếp</span>
-        </button>
-
-        <button
-          id="wf-btn-reset-canonical"
-          type="button"
-          className="btn ghost sm tl-action-btn"
-          title="Đặt lại sơ đồ về luồng chuẩn 7 khâu xử lý hoàn chỉnh (Phân cảnh ➔ Lắp ráp ➔ Chuyển động ➔ Vật lý/FX ➔ Camera ➔ Âm thanh ➔ Màu & Xuất)"
-          onClick={handleResetCanonical}
-        >
-          <span>↺ Luồng chuẩn</span>
-        </button>
-
-        <button
-          id="wf-btn-clear-canvas"
-          type="button"
-          className="btn ghost sm tl-action-btn"
-          title="Xóa trắng sơ đồ để tự do thiết kế luồng xử lý từ đầu"
-          onClick={handleClearCanvas}
-        >
-          <span>✕ Xóa trắng</span>
-        </button>
-
-        {/* Phạm vi Phân cảnh áp dụng */}
-        {project.shots.length > 1 && (
-          <div
-            className="wf-toolbar-pill-group wf-shot-scope-group"
-            role="radiogroup"
-            aria-label="Phạm vi Phân cảnh áp dụng"
+          <button
+            id="wf-btn-spawn-scene-layers"
+            type="button"
+            className="btn ghost sm tl-action-btn wf-spawn-scene-btn"
+            title={`Bung Cảnh "${activeShotLabel}" thành 1 Node Cảnh trung tâm kèm toàn bộ các Node Layer con được nối dây sẵn`}
+            onClick={handleSpawnSceneLayers}
           >
-            <span className="wf-toolbar-label">Cảnh:</span>
-            <button
-              type="button"
-              className={`wf-toolbar-pill-btn${currentShotScope === 'all' ? ' active' : ''}`}
-              title="Đồng bộ & áp dụng quy trình xử lý xuyên suốt tất cả các phân cảnh"
-              onClick={() => handleSelectShotScope('all')}
-            >
-              ⇄ Tất cả ({project.shots.length})
-            </button>
-            {project.shots.map((s, idx) => (
-              <button
-                key={s.id}
-                type="button"
-                className={`wf-toolbar-pill-btn${currentShotScope === s.id ? ' active' : ''}`}
-                title={`Chỉ áp dụng & xem thử trên Phân cảnh #${idx + 1}: ${s.name}`}
-                onClick={() => handleSelectShotScope(s.id)}
-              >
-                #{idx + 1}
-              </button>
-            ))}
-          </div>
-        )}
+            <span>🎬 Bung Cảnh & Layer</span>
+          </button>
 
-        {/* Nút Tua về 0s */}
-        <button
-          id="wf-btn-rewind-zero"
-          type="button"
-          className="btn ghost sm tl-action-btn wf-rewind-btn"
-          title="Tua playhead về 0.0s (Bắt đầu phân cảnh)"
-          onClick={handleRewindToZero}
-        >
-          <span>⏮ 0s</span>
-        </button>
+          <button
+            id="wf-btn-autowire"
+            type="button"
+            className="btn ghost sm tl-action-btn"
+            title="Tự động nối chuẩn tất cả cổng (Port) giữa các khối chức năng đang bật"
+            onClick={handleAutoWire}
+          >
+            <IconWfAutoWire width={13} height={13} />
+            <span>Tự nối</span>
+          </button>
 
-        {/* Nút Phát / Dừng Video trực tiếp trên Workflow để quan sát luồng chạy */}
-        <button
-          id="wf-btn-play-flow"
-          type="button"
-          className={`btn ghost sm tl-action-btn wf-play-flow-btn${playing ? ' playing' : ''}${activeNodes.length === 0 ? ' broken' : ''}`}
-          disabled={workflow.nodes.length === 0}
-          title={
-            workflow.nodes.length === 0
-              ? 'Bản vẽ đang trống (0.0s) — Bấm "🎬 Bung Cảnh & Layer" hoặc thêm Node Logic trước khi chạy luồng'
-              : activeNodes.length === 0
-                ? 'Luồng đang đứt — Bấm "Tự nối Port" trước khi chạy'
-                : playing
-                  ? 'Đang phát video & mô phỏng lộ trình xử lý theo từng bước (Bấm để tạm dừng)'
-                  : 'Phát video để quan sát lộ trình xử lý tuần tự qua từng khối chức năng'
-          }
-          onClick={handleTogglePlayFlow}
-        >
-          {playing ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
-          <span>{playing ? 'Đang chạy' : 'Chạy luồng'}</span>
-          <span
-            className={`wf-play-time-tag ${workflow.nodes.length > 0 ? 'clickable' : 'empty'}`}
+          <button
+            id="wf-btn-toolbar-autolayout"
+            type="button"
+            className="btn ghost sm tl-action-btn wf-autolayout-btn"
+            title="Tự động sắp xếp toàn bộ sơ đồ gọn gàng theo thứ tự luồng, chống đè lấn 100% (Phím tắt: Alt + L)"
+            onClick={handleAutoLayout}
+          >
+            <IconSparkles width={13} height={13} />
+            <span>✨ Sắp xếp</span>
+          </button>
+
+          <button
+            id="wf-btn-reset-canonical"
+            type="button"
+            className="btn ghost sm tl-action-btn"
+            title="Đặt lại sơ đồ về luồng chuẩn 7 khâu xử lý hoàn chỉnh"
+            onClick={handleResetCanonical}
+          >
+            <span>↺ Chuẩn</span>
+          </button>
+
+          <button
+            id="wf-btn-clear-canvas"
+            type="button"
+            className="btn ghost sm tl-action-btn"
+            title="Xóa trắng sơ đồ để tự do thiết kế luồng xử lý từ đầu"
+            onClick={handleClearCanvas}
+          >
+            <span>✕ Xóa</span>
+          </button>
+        </div>
+
+        <div className="wf-toolbar-sep" />
+
+        {/* Nhóm 3: Mô phỏng & Chạy Luồng (Simulation & Playback) */}
+        <div className="wf-toolbar-cluster flow-ops">
+          <button
+            id="wf-btn-rewind-zero"
+            type="button"
+            className="btn ghost sm tl-action-btn wf-rewind-btn"
+            title="Tua playhead về 0.0s (Bắt đầu phân cảnh)"
+            onClick={handleRewindToZero}
+          >
+            <span>⏮ 0s</span>
+          </button>
+
+          <button
+            id="wf-btn-play-flow"
+            type="button"
+            className={`btn ghost sm tl-action-btn wf-play-flow-btn${playing ? ' playing' : ''}${activeNodes.length === 0 ? ' broken' : ''}`}
+            disabled={workflow.nodes.length === 0}
             title={
               workflow.nodes.length === 0
-                ? 'Bản vẽ đang trống (0.0s). Bấm để tua về 0.0s'
-                : `Thời gian hiện tại / Thời lượng luồng (${workflowDuration.toFixed(1)}s). Bấm để tua về 0.0s`
+                ? 'Bản vẽ đang trống (0.0s) — Bấm "🎬 Bung Cảnh & Layer" hoặc thêm Node Logic trước khi chạy luồng'
+                : activeNodes.length === 0
+                  ? 'Luồng đang đứt — Bấm "Tự nối" trước khi chạy'
+                  : playing
+                    ? 'Đang phát video & mô phỏng lộ trình xử lý theo từng bước (Bấm để tạm dừng)'
+                    : 'Phát video để quan sát lộ trình xử lý tuần tự qua từng khối chức năng'
             }
-            onClick={(e) => {
-              e.stopPropagation()
-              handleRewindToZero()
-            }}
+            onClick={handleTogglePlayFlow}
           >
-            {workflow.nodes.length === 0 ? '0.0s / 0.0s' : `${liveTime.toFixed(1)}s / ${workflowDuration.toFixed(1)}s`}
-            {workflow.nodes.length === 0 && <span className="wf-time-empty-hint"> (Trống)</span>}
-          </span>
-        </button>
-
-        {/* Active Pipeline Flow Pill */}
-        <div
-          className={`wf-pipeline-flow-pill${playing && activeNodes.length > 0 ? ' playing' : ''}${activeNodes.length === 0 ? ' broken' : ''}`}
-          title={blueprint.pipelineSummary}
-        >
-          <span
-            className={`wf-flow-dot${playing && activeNodes.length > 0 ? ' pulsing' : ''}${activeNodes.length === 0 ? ' broken' : ''}`}
-          />
-          {activeNodes.length > 0 ? (
-            <div className="wf-flow-steps">
-              {activeNodes.map((n, idx) => {
-                const spec = WORKFLOW_NODE_SPECS[n.type]
-                const cycleIdx = Math.floor((liveTime * 2.2) % Math.max(1, activeNodes.length))
-                const isStepPulse = playing && cycleIdx === idx
-                const isNodeSel = selectedNode?.id === n.id
-                return (
-                  <React.Fragment key={n.id}>
-                    {idx > 0 && <span className="wf-flow-arrow">➔</span>}
-                    <button
-                      type="button"
-                      className={`wf-flow-step-chip${isStepPulse ? ' pulsing' : ''}${isNodeSel ? ' selected' : ''}`}
-                      style={{ ['--step-c' as string]: spec?.color ?? '#38bdf8' }}
-                      onClick={() => handleSelectNode(n.id)}
-                      title={`Bước #${idx + 1}: ${spec?.title} — Bấm để xem Layer & Cấu hình chuyển động`}
-                    >
-                      #{idx + 1} {spec?.shortTitle ?? n.title}
-                    </button>
-                  </React.Fragment>
-                )
-              })}
-              {disconnectedNodes.length > 0 && (
-                <span
-                  className="wf-flow-broken-tag"
-                  title={`Các khối đang đứt dây / tắt (không chạy): ${disconnectedNodes.map((d) => WORKFLOW_NODE_SPECS[d.type]?.shortTitle ?? d.title).join(', ')}`}
-                >
-                  ⛔ {disconnectedNodes.length} đứt
-                </span>
-              )}
-            </div>
-          ) : (
-            <span className="wf-flow-text broken">
-              ⛔ Luồng đứt từ Phân cảnh #1 — Bấm &quot;Tự nối Port&quot; để khôi phục lộ trình
+            {playing ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
+            <span>{playing ? 'Đang chạy' : 'Chạy luồng'}</span>
+            <span
+              className={`wf-play-time-tag ${workflow.nodes.length > 0 ? 'clickable' : 'empty'}`}
+              title={
+                workflow.nodes.length === 0
+                  ? 'Bản vẽ đang trống (0.0s). Bấm để tua về 0.0s'
+                  : `Thời gian hiện tại / Thời lượng luồng (${workflowDuration.toFixed(1)}s). Bấm để tua về 0.0s`
+              }
+              onClick={(e) => {
+                e.stopPropagation()
+                handleRewindToZero()
+              }}
+            >
+              {workflow.nodes.length === 0 ? '0.0s / 0.0s' : `${liveTime.toFixed(1)}s / ${workflowDuration.toFixed(1)}s`}
+              {workflow.nodes.length === 0 && <span className="wf-time-empty-hint"> (Trống)</span>}
             </span>
-          )}
+          </button>
+
+          <div
+            className={`wf-pipeline-flow-pill${playing && activeNodes.length > 0 ? ' playing' : ''}${activeNodes.length === 0 ? ' broken' : ''}`}
+            title={blueprint.pipelineSummary}
+          >
+            <span
+              className={`wf-flow-dot${playing && activeNodes.length > 0 ? ' pulsing' : ''}${activeNodes.length === 0 ? ' broken' : ''}`}
+            />
+            {activeNodes.length > 0 ? (
+              <div className="wf-flow-steps">
+                {activeNodes.map((n, idx) => {
+                  const spec = WORKFLOW_NODE_SPECS[n.type]
+                  const cycleIdx = Math.floor((liveTime * 2.2) % Math.max(1, activeNodes.length))
+                  const isStepPulse = playing && cycleIdx === idx
+                  const isNodeSel = selectedNode?.id === n.id
+                  return (
+                    <React.Fragment key={n.id}>
+                      {idx > 0 && <span className="wf-flow-arrow">➔</span>}
+                      <button
+                        type="button"
+                        className={`wf-flow-step-chip${isStepPulse ? ' pulsing' : ''}${isNodeSel ? ' selected' : ''}`}
+                        style={{ ['--step-c' as string]: spec?.color ?? '#38bdf8' }}
+                        onClick={() => handleSelectNode(n.id)}
+                        title={`Bước #${idx + 1}: ${spec?.title} — Bấm để xem Layer & Cấu hình`}
+                      >
+                        #{idx + 1} {spec?.shortTitle ?? n.title}
+                      </button>
+                    </React.Fragment>
+                  )
+                })}
+                {disconnectedNodes.length > 0 && (
+                  <span
+                    className="wf-flow-broken-tag"
+                    title={`Các khối đang đứt dây / tắt: ${disconnectedNodes.map((d) => WORKFLOW_NODE_SPECS[d.type]?.shortTitle ?? d.title).join(', ')}`}
+                  >
+                    ⛔ {disconnectedNodes.length} đứt
+                  </span>
+                )}
+              </div>
+            ) : (
+              <span className="wf-flow-text broken">
+                ⛔ Luồng đứt từ Phân cảnh #1 — Bấm &quot;Tự nối&quot;
+              </span>
+            )}
+          </div>
         </div>
 
         <div style={{ flex: 1 }} />
 
-        <button
-          id="wf-btn-toggle-json"
-          type="button"
-          className={`btn ghost sm tl-action-btn${sideMode === 'json' ? ' active' : ''}`}
-          title="Xem & chỉnh sửa cấu hình JSON và bản thiết kế Tác nhân AI (MCP Blueprint)"
-          onClick={() => setSideMode((m) => (m === 'json' ? 'node' : 'json'))}
-        >
-          <IconWfJsonCode width={13} height={13} />
-          <span>JSON & AI</span>
-        </button>
+        {/* Nhóm 4: Cấu hình JSON & Áp dụng thực thi (Deploy) */}
+        <div className="wf-toolbar-cluster deploy-ops">
+          <button
+            id="wf-btn-toggle-json"
+            type="button"
+            className={`btn ghost sm tl-action-btn${sideMode === 'json' ? ' active' : ''}`}
+            title="Xem & chỉnh sửa cấu hình JSON và bản thiết kế Tác nhân AI (MCP Blueprint)"
+            onClick={() => setSideMode((m) => (m === 'json' ? 'node' : 'json'))}
+          >
+            <IconWfJsonCode width={13} height={13} />
+            <span>JSON & AI</span>
+          </button>
 
-        <button
-          id="wf-btn-apply"
-          type="button"
-          className="btn primary sm wf-apply-btn"
-          title="Thực thi & đồng bộ lại chuỗi khối chức năng lên phân cảnh hiện tại (Hỗ trợ Ctrl+Z)"
-          onClick={handleExecuteWorkflow}
-        >
-          <IconSparkles width={13} height={13} />
-          <span>
-            Áp dụng ({activeNodes.length}/{workflow.nodes.length})
-          </span>
-        </button>
+          <button
+            id="wf-btn-apply"
+            type="button"
+            className="btn primary sm wf-apply-btn"
+            title="Thực thi & đồng bộ lại chuỗi khối chức năng lên phân cảnh hiện tại (Hỗ trợ Ctrl+Z)"
+            onClick={handleExecuteWorkflow}
+          >
+            <IconSparkles width={13} height={13} />
+            <span>
+              Áp dụng ({activeNodes.length}/{workflow.nodes.length})
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Main 3-Column Workspace: Left Node Palette + Center Interactive Node Canvas + Right Inspector/JSON */}
