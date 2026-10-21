@@ -718,6 +718,10 @@ export const WorkflowStudioPanel: React.FC = () => {
         }
       }
 
+      if (!edgeToAdd) {
+        showToast('Không tìm thấy cổng tương thích. Chưa tạo khối mới.')
+        return
+      }
       const finalNodes = nextWf.nodes.map((n) => (n.id === positionedNode.id ? positionedNode : n))
       const finalEdges = edgeToAdd ? [...nextWf.edges, edgeToAdd] : nextWf.edges
       const finalWf: WorkflowGraph = {

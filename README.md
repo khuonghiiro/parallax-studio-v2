@@ -162,3 +162,6 @@ AI parity: `update_layer` edits the same `position`, `rotation` (degrees), and `
 
 ### Motion Effect Controls
 Bảng Motion hỗ trợ bypass, reset, cường độ, seed Wiggle, thời gian và Ease In/Out; preview/viewport/MP4 dùng chung bộ tính. MCP: `set_layer_motion`, `get_layer_motion`. [Hướng dẫn](./docs/motion-controls.md).
+
+<!-- workflow-quick-connect -->
+Workflow: `workflow_quick_connect` chụp riêng menu chọn chức năng khi kéo port; tìm kiếm giữ bộ lọc tương thích theo chiều kết nối, cuộn độc lập với canvas.

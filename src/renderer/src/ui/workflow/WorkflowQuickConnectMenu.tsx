@@ -1,10 +1,13 @@
+import '../../styles/workflowQuickConnect.css'
 import React, { useMemo, useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import type { WorkflowNode, WorkflowPortKind } from '@shared/types'
 import {
-  WORKFLOW_LOGIC_NODE_CATALOG,
   type WorkflowLogicNodeCatalogItem
 } from '../../project/workflowLogicCatalog'
 import { WORKFLOW_PORT_SPECS } from '../../project/workflowCatalog'
+
+import { getQuickConnectItems } from './workflowQuickConnect'
 
 export interface WorkflowQuickConnectMenuProps {
   x: number
@@ -33,7 +36,12 @@ export const WorkflowQuickConnectMenu: React.FC<WorkflowQuickConnectMenuProps> =
 }) => {
   const [search, setSearch] = useState('')
   const menuRef = useRef<HTMLDivElement | null>(null)
+  const listRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    if (listRef.current) listRef.current.scrollTop = 0
+  }, [search])
 
   // Focus ô tìm kiếm ngay khi menu mở
   useEffect(() => {
@@ -54,9 +62,11 @@ export const WorkflowQuickConnectMenu: React.FC<WorkflowQuickConnectMenuProps> =
         onClose()
       }
     }
+    window.addEventListener('resize', onClose)
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('pointerdown', handlePointerDown)
     return () => {
+      window.removeEventListener('resize', onClose)
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('pointerdown', handlePointerDown)
     }
@@ -70,7 +80,7 @@ export const WorkflowQuickConnectMenu: React.FC<WorkflowQuickConnectMenuProps> =
 
     // 1. Kiểm tra các hành động đặc biệt cho cổng Phân cấp Scene
     const specials: { id: string; icon: string; label: string; desc: string }[] = []
-    if (sourcePort === 'layers_tree') {
+    if (sourcePort === 'layers_tree' && isOutput && sourceNode.type === 'scene_shot' && onSelectSpecialAction) {
       specials.push(
         { id: 'add_image_layer', icon: '🖼️', label: 'Thêm Layer Ảnh 2.5D', desc: 'Chọn ảnh từ máy tính hoặc thư viện làm layer mới' },
         { id: 'add_particles', icon: '✨', label: 'Thêm Lớp Hạt Khí Quyển', desc: 'Tạo lớp đom đóm, bụi sáng hoặc sương mù' },
@@ -79,62 +89,42 @@ export const WorkflowQuickConnectMenu: React.FC<WorkflowQuickConnectMenuProps> =
       )
     }
 
-    if (q) {
-      const filteredLogics = WORKFLOW_LOGIC_NODE_CATALOG.filter(
-        (it) =>
-          it.title.toLowerCase().includes(q) ||
-          it.description.toLowerCase().includes(q) ||
-          it.shortLabel.toLowerCase().includes(q)
-      )
-      const filteredSpecials = specials.filter(
-        (s) => s.label.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q)
-      )
-      return { suggestedItems: filteredLogics, specialActions: filteredSpecials }
+    return {
+      suggestedItems: getQuickConnectItems(sourceNode, sourcePort, isOutput, q),
+      specialActions: specials.filter((s) => !q || `${s.label} ${s.desc}`.toLowerCase().includes(q))
     }
-
-    // Lọc theo ngữ nghĩa cổng
-    let filtered: WorkflowLogicNodeCatalogItem[] = []
-    if (sourcePort === 'motion_stream') {
-      filtered = WORKFLOW_LOGIC_NODE_CATALOG.filter((it) => it.category === 'motion')
-    } else if (sourcePort === 'vfx_stage') {
-      filtered = WORKFLOW_LOGIC_NODE_CATALOG.filter(
-        (it) => it.category === 'physics' || it.category === 'light_fx'
-      )
-    } else if (sourcePort === 'scene_ctx') {
-      filtered = WORKFLOW_LOGIC_NODE_CATALOG.filter(
-        (it) => it.category === 'camera' || it.category === 'audio'
-      )
-    } else if (sourcePort === 'actors_rig') {
-      filtered = WORKFLOW_LOGIC_NODE_CATALOG.filter(
-        (it) => it.category === 'assembly' || it.category === 'motion'
-      )
-    } else {
-      filtered = WORKFLOW_LOGIC_NODE_CATALOG.slice(0, 8)
-    }
-
-    return { suggestedItems: filtered, specialActions: specials }
-  }, [search, sourcePort])
+  }, [search, sourceNode, sourcePort, isOutput, onSelectSpecialAction])
 
   // Điều chỉnh toạ độ menu tránh tràn màn hình
   const menuStyle = useMemo(() => {
-    const maxX = window.innerWidth - 300
-    const maxY = window.innerHeight - 380
+    const maxX = window.innerWidth - 372
+    const maxY = window.innerHeight - Math.min(480, window.innerHeight - 24) - 12
     return {
       left: Math.max(12, Math.min(x, maxX)),
       top: Math.max(12, Math.min(y, maxY))
     }
   }, [x, y])
 
-  return (
+  return createPortal(
     <div
       ref={menuRef}
       className="wf-quick-connect-menu"
       style={menuStyle}
+      data-mcp-region="workflow_quick_connect"
+      data-mcp-dialog
+      role="dialog"
+      aria-label="Chọn chức năng node"
+      onPointerDown={(e) => e.stopPropagation()}
+      onWheel={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        e.stopPropagation()
+        if (e.key === 'Escape') { e.preventDefault(); onClose() }
+      }}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="wf-quick-menu-header">
-        <span className="wf-quick-menu-badge" style={{ color: portSpec?.color ?? '#38bdf8' }}>
-          {isOutput ? '📤 Nối tiếp từ:' : '📥 Đưa vào:'} {portSpec?.shortLabel ?? sourcePort}
+        <span className="wf-quick-menu-badge" >
+          {isOutput ? 'Nối tiếp từ' : 'Đưa vào'} {portSpec?.shortLabel ?? sourcePort}
         </span>
         <button
           type="button"
@@ -146,18 +136,20 @@ export const WorkflowQuickConnectMenu: React.FC<WorkflowQuickConnectMenuProps> =
         </button>
       </div>
 
+      <div className="wf-quick-menu-context" title={sourceNode.title}>{sourceNode.title}</div>
       <div className="wf-quick-menu-search-wrap">
         <input
           ref={inputRef}
           type="text"
           className="wf-quick-menu-search-input"
+          aria-label="Tìm chức năng tương thích"
           placeholder="Tìm nhanh node kết nối..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
-      <div className="wf-quick-menu-list">
+      <div ref={listRef} className="wf-quick-menu-list">
         {specialActions.length > 0 && (
           <div className="wf-quick-menu-section">
             <span className="wf-quick-menu-section-title">Hành động Phân cảnh:</span>
@@ -183,7 +175,7 @@ export const WorkflowQuickConnectMenu: React.FC<WorkflowQuickConnectMenuProps> =
 
         {suggestedItems.length > 0 ? (
           <div className="wf-quick-menu-section">
-            <span className="wf-quick-menu-section-title">Khối Chức Năng Tương Thích:</span>
+            <span className="wf-quick-menu-section-title">Chức năng tương thích · {suggestedItems.length}</span>
             {suggestedItems.map((item) => (
               <button
                 key={item.id}
@@ -209,6 +201,7 @@ export const WorkflowQuickConnectMenu: React.FC<WorkflowQuickConnectMenuProps> =
           </div>
         ) : null}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

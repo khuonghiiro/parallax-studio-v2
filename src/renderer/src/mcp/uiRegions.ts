@@ -94,6 +94,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   workflow_toolbar: region('workflow_toolbar', '.wf-toolbar'),
   workflow_palette: region('workflow_palette', '.wf-node-palette'),
   workflow_canvas: region('workflow_canvas', '.wf-canvas-viewport'),
+  workflow_quick_connect: region('workflow_quick_connect', '.wf-quick-connect-menu'),
   workflow_canvas_hud: region('workflow_canvas_hud', '.wf-canvas-hud'),
   workflow_inspector: region('workflow_inspector', '.wf-side-panel'),
   workflow_target_binder: region('workflow_target_binder', '.wf-tab-pane'),

@@ -265,3 +265,6 @@ Khi thực hiện các nhiệm vụ chuyên biệt, AI cần tham chiếu các s
 ### Motion Effect Controls
 - Bộ tính procedural chung: `animation/proceduralMotion.ts`; viewport/export gọi qua `engine/evaluateScene.ts`, đồ thị UI lấy mẫu cùng bộ tính. Giữ quy ước pha cũ; giá trị 0 phải được tôn trọng.
 - UI: `ui/inspector/sections/MotionSection.tsx`, `MotionParameters.tsx`, `MotionPreview.tsx`; CSS `styles/motion.css`. MCP: `set_layer_motion`, `get_layer_motion` qua `mcp/commands/proceduralMotionCommands.ts`, có Undo/Redo. Regions: `motion`, `motion_preview`, `motion_parameters`, `motion_timing`. [Hướng dẫn](./docs/motion-controls.md).
+
+<!-- workflow-quick-connect -->
+Workflow: `workflow_quick_connect` chụp riêng menu chọn chức năng khi kéo port; tìm kiếm giữ bộ lọc tương thích theo chiều kết nối, cuộn độc lập với canvas.

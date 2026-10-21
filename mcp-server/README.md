@@ -400,3 +400,6 @@ Layer có thể thuộc nhóm bộ phận (nhân vật hoặc động vật: Đ�
 
 ### Procedural Motion Effect Controls
 `set_layer_motion` chỉnh Motion của layer qua Undo/Redo; `get_layer_motion` đọc cấu hình và offset tại thời gian yêu cầu. Hỗ trợ type, enabled, reset, speed, amplitude, amount, phase, seed, start_time, duration, fade_in, fade_out, direction, loop_mode, loop_width. Vùng chụp: `motion`, `motion_preview`, `motion_parameters`, `motion_timing`. [Thông số và ví dụ](../docs/motion-controls.md).
+
+<!-- workflow-quick-connect -->
+Workflow: `workflow_quick_connect` chụp riêng menu chọn chức năng khi kéo port; tìm kiếm giữ bộ lọc tương thích theo chiều kết nối, cuộn độc lập với canvas.
