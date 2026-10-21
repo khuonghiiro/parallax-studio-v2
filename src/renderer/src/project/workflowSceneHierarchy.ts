@@ -97,7 +97,7 @@ export function getCompositeSubPartNames(layer: Layer, project: Project): string
   const instId = layer.composite.instanceId
   return project.layers
     .filter((l) => l.composite?.instanceId === instId)
-    .map((l) => l.name.replace(/^.*[\\/]/, ''))
+    .map((l) => l.name.replace(/^\[.*?\]\s*/, '').replace(/^.*[\\/]/, ''))
 }
 
 /**
@@ -114,19 +114,27 @@ export function formatLayerNodeLabel(layer: Layer, project: Project): {
   const partNames = getCompositeSubPartNames(layer, project)
 
   if (layer.composite) {
-    const compName = layer.composite.compositeName || layer.name
+    const bracketMatch = layer.name.match(/^\[(.*?)\]/)
+    const compName =
+      layer.composite.compositeName?.trim() ||
+      (bracketMatch ? bracketMatch[1].trim() : layer.name)
+    const partCount = partNames.length > 0 ? partNames.length : 1
     return {
       icon: '🧩',
       title: `🧩 Layer 2.5D: ${compName}`,
-      badgeLabel: `2.5D (${partNames.length > 0 ? partNames.length : 1} bộ phận)`,
+      badgeLabel: `2.5D (${partCount} bộ phận)`,
       zDepth,
       partNames
     }
   }
   if (layer.model3d) {
+    const bracketMatch = layer.name.match(/^\[(.*?)\]/)
+    const modelName =
+      layer.model3d.modelName?.trim() ||
+      (bracketMatch ? bracketMatch[1].trim() : layer.name)
     return {
       icon: '🏛️',
-      title: `🏛️ Mô hình 3D: ${layer.name}`,
+      title: `🏛️ Mô hình 3D: ${modelName}`,
       badgeLabel: '3D Geometry',
       zDepth,
       partNames: []
@@ -334,10 +342,13 @@ export function spawnSceneWithChildLayers(
 
     // 4. Tạo companion node layer_transform mặc định kết nối sẵn dưới đáy mỗi node layer (khoảng cách 54px thoáng mắt)
     const transY = childY + 205 + 54
+    const transTitle = layer.composite
+      ? `🎯 Tọa độ: ${meta.title.replace('🧩 Layer 2.5D: ', '')}`
+      : `🎯 Tọa độ: ${layer.name}`
     const transformNode: WorkflowNode = {
       id: transNodeId,
       type: 'layer_transform',
-      title: `🎯 Tọa độ: ${layer.name}`,
+      title: transTitle,
       enabled: layer.visible !== false,
       position: { x: childX, y: transY },
       preset: 'layer_transform_controller',
@@ -346,7 +357,7 @@ export function spawnSceneWithChildLayers(
       params: {
         shotId: shot.id,
         targetMode: 'custom',
-        targetLayerIds: [layer.id],
+        targetLayerIds: allLayerIdsInGroup,
         transformX: Math.round(layer.transform?.position?.value[0] ?? 0),
         transformY: Math.round(layer.transform?.position?.value[1] ?? 0),
         transformZ: Math.round(layer.transform?.position?.value[2] ?? 0),
@@ -377,13 +388,22 @@ export function spawnSceneWithChildLayers(
     n.type === 'layer_assembly' &&
     (n.params?.shotId === shot.id ||
       n.id.startsWith(`wf-layer-${shot.id}`) ||
+      n.id.startsWith('wf-layer-') ||
       n.id === 'wf-layer_assembly')
 
   const isOldTransformForThisShot = (n: WorkflowNode) =>
     n.type === 'layer_transform' &&
-    (n.params?.shotId === shot.id ||
+    (!n.params?.shotId ||
+      n.params.shotId === shot.id ||
       n.id.startsWith(`wf-trans-${shot.id}`) ||
-      n.id.startsWith(`wf-transform-${shot.id}`))
+      n.id.startsWith('wf-trans-') ||
+      n.id.startsWith('wf-transform-') ||
+      n.id.startsWith(`wf-transform-${shot.id}`) ||
+      Boolean(
+        n.params?.targetLayerIds?.some((id: string) =>
+          project.layers.some((l) => l.id === id && (!l.shotId || l.shotId === shot.id))
+        )
+      ))
 
   const isOldCamForThisShot = (n: WorkflowNode) =>
     n.type === 'camera_director' &&
@@ -455,8 +475,144 @@ export function spawnSceneWithChildLayers(
 }
 
 /**
+ * Tự động gom cụm các Node Layer 2.5D Composite bị phân mảnh hoặc tách lẻ
+ * thành 1 Node duy nhất đại diện cho cả cụm (Single Assembly Node & Companion Transform Plate),
+ * triệt tiêu 100% tình trạng 1 Cây/Nhân vật 2.5D sinh ra 5-11 node và 11 dây nối rác.
+ */
+export function consolidateCompositeWorkflowNodes(
+  workflow: WorkflowGraph,
+  project: Project
+): { workflow: WorkflowGraph; consolidatedCount: number } {
+  if (!workflow.nodes || workflow.nodes.length === 0) {
+    return { workflow, consolidatedCount: 0 }
+  }
+
+  // 1. Nhóm các node layer_assembly theo composite.instanceId hoặc model3d.instanceId
+  const compositeNodeMap = new Map<string, WorkflowNode[]>()
+
+  for (const n of workflow.nodes) {
+    if (n.type !== 'layer_assembly') continue
+    const targetIds = n.params?.targetLayerIds ?? []
+    const targetedLayers = project.layers.filter((l) => targetIds.includes(l.id))
+    const compInstanceId =
+      targetedLayers.find((l) => l.composite?.instanceId)?.composite?.instanceId ||
+      targetedLayers.find((l) => l.model3d?.instanceId)?.model3d?.instanceId
+    if (compInstanceId) {
+      const list = compositeNodeMap.get(compInstanceId) ?? []
+      list.push(n)
+      compositeNodeMap.set(compInstanceId, list)
+    }
+  }
+
+  const nodesToRemove = new Set<string>()
+  const updatedNodes = [...workflow.nodes]
+  let consolidatedCount = 0
+
+  for (const [instId, layerNodes] of compositeNodeMap.entries()) {
+    if (layerNodes.length <= 1) continue
+
+    // Có nhiều hơn 1 node cho cùng 1 cụm composite -> Gom cụm về 1 node duy nhất
+    const allLayersInGroup = project.layers.filter(
+      (l) => l.composite?.instanceId === instId || l.model3d?.instanceId === instId
+    )
+    const allLayerIds = allLayersInGroup.map((l) => l.id)
+    const rootLayer = allLayersInGroup.find((l) => l.composite?.isRoot) ?? allLayersInGroup[0]
+    const meta = formatLayerNodeLabel(rootLayer, project)
+
+    // Chọn primary node: ưu tiên node chứa rootLayer hoặc node đầu tiên
+    const primaryNode =
+      layerNodes.find((n) => n.params?.targetLayerIds?.includes(rootLayer.id)) ?? layerNodes[0]
+    const redundantLayerNodes = layerNodes.filter((n) => n.id !== primaryNode.id)
+
+    // Cập nhật primary node
+    const primaryIdx = updatedNodes.findIndex((n) => n.id === primaryNode.id)
+    if (primaryIdx !== -1) {
+      updatedNodes[primaryIdx] = {
+        ...primaryNode,
+        title: meta.title,
+        preset: 'character_and_foliage_rig',
+        params: {
+          ...primaryNode.params,
+          targetMode: 'custom',
+          targetLayerIds: allLayerIds,
+          targetParts: meta.partNames
+        }
+      }
+    }
+
+    redundantLayerNodes.forEach((n) => nodesToRemove.add(n.id))
+    consolidatedCount += redundantLayerNodes.length
+
+    // Tìm tất cả các companion transform node liên quan tới bất kỳ layer nào trong cụm composite
+    const companionTransNodes = workflow.nodes.filter(
+      (n) =>
+        n.type === 'layer_transform' &&
+        (n.params?.targetLayerIds?.some((id: string) => allLayerIds.includes(id)) ||
+          layerNodes.some(
+            (ln) =>
+              n.params?.targetLayerIds?.some((id: string) => ln.params?.targetLayerIds?.includes(id)) ||
+              n.id.endsWith(ln.id.replace('wf-layer-', ''))
+          ))
+    )
+
+    if (companionTransNodes.length > 0) {
+      const primaryTrans = companionTransNodes[0]
+      const transIdx = updatedNodes.findIndex((n) => n.id === primaryTrans.id)
+      if (transIdx !== -1) {
+        const transTitle = `🎯 Tọa độ: ${meta.title.replace('🧩 Layer 2.5D: ', '').replace('🏛️ Mô hình 3D: ', '')}`
+        updatedNodes[transIdx] = {
+          ...primaryTrans,
+          title: transTitle,
+          params: {
+            ...primaryTrans.params,
+            targetMode: 'custom',
+            targetLayerIds: allLayerIds
+          }
+        }
+      }
+      companionTransNodes.slice(1).forEach((t) => nodesToRemove.add(t.id))
+    }
+  }
+
+  // Dọn dẹp các node transform mồ côi không gắn với bất kỳ node layer_assembly nào
+  const survivingLayerTargets = new Set(
+    updatedNodes
+      .filter((n) => n.type === 'layer_assembly' && !nodesToRemove.has(n.id))
+      .flatMap((n) => n.params?.targetLayerIds ?? [])
+  )
+  for (const n of updatedNodes) {
+    if (n.type === 'layer_transform' && !nodesToRemove.has(n.id)) {
+      const tIds = n.params?.targetLayerIds ?? []
+      if (tIds.length > 0 && !tIds.some((id: string) => survivingLayerTargets.has(id))) {
+        nodesToRemove.add(n.id)
+        consolidatedCount++
+      }
+    }
+  }
+
+  if (consolidatedCount === 0) {
+    return { workflow, consolidatedCount: 0 }
+  }
+
+  const finalNodes = updatedNodes.filter((n) => !nodesToRemove.has(n.id))
+  const finalEdges = workflow.edges.filter(
+    (e) => !nodesToRemove.has(e.fromNode) && !nodesToRemove.has(e.toNode)
+  )
+
+  return {
+    workflow: {
+      ...workflow,
+      nodes: finalNodes,
+      edges: finalEdges
+    },
+    consolidatedCount
+  }
+}
+
+/**
  * Tự động phát hiện và bổ sung các Layer mới được thêm vào phân cảnh
  * nếu sơ đồ Workflow hiện tại đã được bung các Layer con trước đó.
+ * Tự động gom cụm Layer 2.5D composite thành 1 node duy nhất, không tạo phân mảnh.
  */
 export function syncMissingLayersToWorkflow(
   workflow: WorkflowGraph,
@@ -469,9 +625,14 @@ export function syncMissingLayersToWorkflow(
   )
   if (!sceneNode || !hasUnpackedLayers) return null
 
+  // 1. Tự động gom cụm các node composite bị phân mảnh trước đó (nếu có)
+  const consolidation = consolidateCompositeWorkflowNodes(workflow, project)
+  const curWf = consolidation.workflow
+  const consolidatedTotal = consolidation.consolidatedCount
+
   const existingLayerIds = new Set(
-    workflow.nodes
-      .filter((n) => n.type === 'layer_assembly' && n.id.startsWith('wf-layer-'))
+    curWf.nodes
+      .filter((n) => n.type === 'layer_assembly')
       .flatMap((n) => n.params?.targetLayerIds ?? [])
   )
 
@@ -482,45 +643,137 @@ export function syncMissingLayersToWorkflow(
       !existingLayerIds.has(l.id)
   )
 
-  if (missingLayers.length === 0) return null
+  if (missingLayers.length === 0) {
+    if (consolidatedTotal > 0) {
+      return { workflow: curWf, addedCount: consolidatedTotal }
+    }
+    return null
+  }
 
-  const nextNodes = [...workflow.nodes]
-  const nextEdges = [...workflow.edges]
+  const nextNodes = [...curWf.nodes]
+  const nextEdges = [...curWf.edges]
+
+  // Gom các missing layer theo cụm composite 2.5D
+  const groupedMissing: {
+    representative: Layer
+    allLayerIds: string[]
+    partNames: string[]
+  }[] = []
+  const processedLayerIds = new Set<string>()
 
   for (const ml of missingLayers) {
-    const layerNodeId = `wf-layer-${ml.id}`
-    const transNodeId = `wf-trans-${ml.id}`
-    if (nextNodes.some((n) => n.id === layerNodeId)) continue
+    if (processedLayerIds.has(ml.id)) continue
 
-    const posX = ml.transform.position.value[0] ?? 0
-    const posY = ml.transform.position.value[1] ?? 0
-    const posZ = ml.transform.position.value[2] ?? 0
-    const rotZ = ml.transform.rotation.value[2] ?? 0
+    if (ml.composite?.instanceId) {
+      const instId = ml.composite.instanceId
+      // Kiểm tra xem đã có node layer_assembly nào trong sơ đồ bao hàm composite này chưa
+      const existingClusterNode = nextNodes.find(
+        (n) =>
+          n.type === 'layer_assembly' &&
+          project.layers.some(
+            (pl) => pl.composite?.instanceId === instId && n.params?.targetLayerIds?.includes(pl.id)
+          )
+      )
+
+      if (existingClusterNode) {
+        // Đã có node đại diện -> bổ sung ID vào danh sách targetLayerIds hiện có
+        const currentTargetIds = existingClusterNode.params?.targetLayerIds ?? []
+        existingClusterNode.params = {
+          ...existingClusterNode.params,
+          targetLayerIds: Array.from(new Set([...currentTargetIds, ml.id]))
+        }
+        processedLayerIds.add(ml.id)
+        continue
+      }
+
+      // Chưa có node đại diện -> gom toàn bộ các layer của cụm composite này
+      const groupLayers = project.layers.filter((pl) => pl.composite?.instanceId === instId)
+      groupLayers.forEach((pl) => processedLayerIds.add(pl.id))
+      const rootLayer = groupLayers.find((pl) => pl.composite?.isRoot) ?? ml
+      const subParts = getCompositeSubPartNames(rootLayer, project)
+      groupedMissing.push({
+        representative: rootLayer,
+        allLayerIds: groupLayers.map((pl) => pl.id),
+        partNames: subParts
+      })
+    } else {
+      processedLayerIds.add(ml.id)
+      groupedMissing.push({
+        representative: ml,
+        allLayerIds: [ml.id],
+        partNames: []
+      })
+    }
+  }
+
+  if (groupedMissing.length === 0) {
+    if (consolidatedTotal > 0) {
+      return {
+        workflow: { ...curWf, nodes: nextNodes, edges: nextEdges },
+        addedCount: consolidatedTotal
+      }
+    }
+    return null
+  }
+
+  const existingLayerNodes = nextNodes.filter((n) => n.type === 'layer_assembly')
+  const rightmostX =
+    existingLayerNodes.length > 0
+      ? Math.max(...existingLayerNodes.map((n) => n.position.x))
+      : 80
+  const NODE_W = 248
+  const COL_GAP = 72
+
+  groupedMissing.forEach((item, idx) => {
+    const ml = item.representative
+    const cleanId = ml.id.replace(/[^a-zA-Z0-9_-]/g, '_')
+    const shotPrefix = ml.shotId || currentShotScope || 'shot'
+    const layerNodeId = `wf-layer-${shotPrefix}-${cleanId}`
+    const transNodeId = `wf-trans-${shotPrefix}-${cleanId}`
+
+    if (nextNodes.some((n) => n.id === layerNodeId)) return
+
+    const meta = formatLayerNodeLabel(ml, project)
+    const posX = Math.round(ml.transform?.position?.value[0] ?? 0)
+    const posY = Math.round(ml.transform?.position?.value[1] ?? 0)
+    const posZ = Math.round(ml.transform?.position?.value[2] ?? 0)
+    const rotZ = Math.round(ml.transform?.rotation?.value[2] ?? 0)
+
+    const childX = rightmostX + (idx + 1) * (NODE_W + COL_GAP)
+    const childY = 400
 
     nextNodes.push({
       id: layerNodeId,
       type: 'layer_assembly',
-      title: ml.name,
-      enabled: true,
-      preset: 'character_puppet_25d',
+      title: meta.title,
+      enabled: ml.visible !== false,
+      preset: ml.composite ? 'character_and_foliage_rig' : 'character_puppet_25d',
       aiAgentRole: 'LayerAssemblyAgent',
-      position: { x: 100, y: 340 },
+      position: { x: childX, y: childY },
       params: {
-        targetLayerIds: [ml.id],
-        shotId: ml.shotId || currentShotScope
+        shotId: ml.shotId || currentShotScope,
+        targetMode: 'custom',
+        targetLayerIds: item.allLayerIds,
+        targetParts: item.partNames
       }
     })
+
+    const transTitle = ml.composite
+      ? `🎯 Tọa độ: ${meta.title.replace('🧩 Layer 2.5D: ', '')}`
+      : `🎯 Tọa độ: ${ml.name}`
 
     nextNodes.push({
       id: transNodeId,
       type: 'layer_transform',
-      title: `Tọa độ: ${ml.name}`,
-      enabled: true,
+      title: transTitle,
+      enabled: ml.visible !== false,
       preset: 'layer_transform_controller',
       aiAgentRole: 'LayerTransformAgent',
-      position: { x: 100, y: 580 },
+      position: { x: childX, y: childY + 289 + 54 },
       params: {
-        targetLayerIds: [ml.id],
+        shotId: ml.shotId || currentShotScope,
+        targetMode: 'custom',
+        targetLayerIds: item.allLayerIds,
         transformX: posX,
         transformY: posY,
         transformZ: posZ,
@@ -543,15 +796,15 @@ export function syncMissingLayersToWorkflow(
       toNode: transNodeId,
       toPort: 'transform_link'
     })
-  }
+  })
 
   return {
     workflow: {
-      ...workflow,
+      ...curWf,
       nodes: nextNodes,
       edges: nextEdges
     },
-    addedCount: missingLayers.length
+    addedCount: groupedMissing.length + consolidatedTotal
   }
 }
 

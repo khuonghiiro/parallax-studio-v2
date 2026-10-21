@@ -25,6 +25,7 @@ import {
 } from '../../project/workflowEngine'
 import { syncWorkflowEntityVisibility } from '../../project/workflowEntitySync'
 import {
+  consolidateCompositeWorkflowNodes,
   getWorkflowEffectiveDuration,
   spawnSceneWithChildLayers,
   syncMissingLayersToWorkflow
@@ -392,17 +393,23 @@ export const WorkflowStudioPanel: React.FC = () => {
   )
 
   const handleAutoLayout = useCallback(() => {
-    const newPositions = solveSpaciousWorkflowLayout(workflow.nodes, workflow.edges, project)
+    const consolidated = consolidateCompositeWorkflowNodes(workflow, project)
+    const baseWf = consolidated.workflow
+    const newPositions = solveSpaciousWorkflowLayout(baseWf.nodes, baseWf.edges, project)
     const next: WorkflowGraph = {
-      ...workflow,
-      nodes: workflow.nodes.map((n) => ({
+      ...baseWf,
+      nodes: baseWf.nodes.map((n) => ({
         ...n,
         position: newPositions[n.id] ? { ...newPositions[n.id] } : n.position
       }))
     }
     commitWorkflow(next, 'wf-autolayout', false)
     window.dispatchEvent(new CustomEvent('pxs:wf-fit-view'))
-    showToast('✨ Đã tự sắp xếp gọn gàng toàn bộ sơ đồ, triệt tiêu đè lấn!')
+    showToast(
+      consolidated.consolidatedCount > 0
+        ? `✨ Đã gom cụm ${consolidated.consolidatedCount} node con và sắp xếp sơ đồ gọn gàng, triệt tiêu đè lấn!`
+        : '✨ Đã tự sắp xếp gọn gàng toàn bộ sơ đồ, triệt tiêu đè lấn!'
+    )
   }, [workflow, project, commitWorkflow, showToast])
 
   const handleToggleNode = useCallback(

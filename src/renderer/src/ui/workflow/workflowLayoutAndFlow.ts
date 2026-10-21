@@ -658,6 +658,67 @@ export function resolveNodeCollisionPush(
 }
 
 /**
+ * Thuật toán Khử Chồng Đè Toàn Diện (Comprehensive Anti-Overlap Relaxation Pass):
+ * Kiểm tra tất cả các cặp node sau bố cục. Nếu có bất kỳ sự giao cắt bounding box nào,
+ * thuật toán tự động đẩy dãn khoảng cách đảm bảo triệt tiêu hoàn toàn hiện tượng chồng đè (0% overlap).
+ */
+export function relaxOverlappingPositions(
+  positions: Record<string, { x: number; y: number }>,
+  nodes: WorkflowNode[]
+): Record<string, { x: number; y: number }> {
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]))
+  const ids = Object.keys(positions)
+  const PAD_X = 28
+  const PAD_Y = 24
+
+  for (let pass = 0; pass < 5; pass++) {
+    let hadCollision = false
+    for (let i = 0; i < ids.length; i++) {
+      const idA = ids[i]
+      const posA = positions[idA]
+      const nodeA = nodeMap.get(idA)
+      if (!posA || !nodeA) continue
+      const hA = estimateNodeCardHeight(nodeA)
+
+      for (let j = i + 1; j < ids.length; j++) {
+        const idB = ids[j]
+        const posB = positions[idB]
+        const nodeB = nodeMap.get(idB)
+        if (!posB || !nodeB) continue
+        const hB = estimateNodeCardHeight(nodeB)
+
+        const overlapX =
+          posA.x < posB.x + NODE_W + PAD_X &&
+          posA.x + NODE_W + PAD_X > posB.x
+        const overlapY =
+          posA.y < posB.y + hB + PAD_Y &&
+          posA.y + hA + PAD_Y > posB.y
+
+        if (overlapX && overlapY) {
+          hadCollision = true
+          if (Math.abs(posA.x - posB.x) < NODE_W * 0.7) {
+            if (posB.y >= posA.y) {
+              posB.y = posA.y + hA + PAD_Y
+            } else {
+              posA.y = posB.y + hB + PAD_Y
+            }
+          } else {
+            if (posB.x >= posA.x) {
+              posB.x = posA.x + NODE_W + PAD_X
+            } else {
+              posA.x = posB.x + NODE_W + PAD_X
+            }
+          }
+        }
+      }
+    }
+    if (!hadCollision) break
+  }
+
+  return positions
+}
+
+/**
  * Thuật toán Tự Động Sắp Xếp Toàn Bộ Sơ Đồ Gọn Gàng (Smart Hierarchical Auto-Layout).
  * Phân chia theo 6 cột logic chức năng, căn đều trục dọc và căn giữa theo Cảnh/Layer,
  * triệt tiêu 100% hiện tượng chồng đè UI (0% overlap guarantee).
@@ -711,9 +772,9 @@ export function solveSpaciousWorkflowLayout(
     const sceneY = 40
     newPositions[sceneNode.id] = { x: sceneX, y: sceneY }
 
-    // Các scene nodes khác (nếu có nhiều cảnh)
+    // Các scene nodes khác (nếu có nhiều cảnh) - xếp sang trái hàng 1 để không đè lên layer bên dưới
     sceneNodes.slice(1).forEach((sc, scIdx) => {
-      newPositions[sc.id] = { x: sceneX, y: sceneY + (scIdx + 1) * 260 }
+      newPositions[sc.id] = { x: Math.max(20, sceneX - (scIdx + 1) * (NODE_W + CAM_GAP)), y: sceneY }
     })
 
     // Node Camera nằm trực tiếp bên phải Node Cảnh gốc trên Hàng 1
@@ -721,7 +782,7 @@ export function solveSpaciousWorkflowLayout(
       const primaryCam = camNodes[0]
       newPositions[primaryCam.id] = { x: sceneX + NODE_W + CAM_GAP, y: sceneY }
       camNodes.slice(1).forEach((c, cIdx) => {
-        newPositions[c.id] = { x: sceneX + NODE_W + CAM_GAP, y: sceneY + (cIdx + 1) * 220 }
+        newPositions[c.id] = { x: sceneX + (cIdx + 1) * (NODE_W + CAM_GAP) + NODE_W + CAM_GAP, y: sceneY }
       })
     }
 
@@ -750,10 +811,15 @@ export function solveSpaciousWorkflowLayout(
       }
     })
 
-    // Các transform nodes còn lại chưa được gán
+    // Các transform nodes còn lại chưa được gán (xếp dãn cách đều, không dồn cục)
+    let unassignedTransIdx = 0
     transformNodes.forEach((t) => {
       if (!newPositions[t.id]) {
-        newPositions[t.id] = { x: layersStartX, y: 760 }
+        newPositions[t.id] = {
+          x: layersStartX + unassignedTransIdx * (NODE_W + COL_GAP),
+          y: 760
+        }
+        unassignedTransIdx++
       }
     })
 
@@ -777,21 +843,28 @@ export function solveSpaciousWorkflowLayout(
     const col1X = nextColX
     const col2X = nextColX + NODE_W + COL_GAP
 
+    const row0MaxH = Math.max(
+      motionNode ? estimateNodeCardHeight(motionNode) : 0,
+      audioNode ? estimateNodeCardHeight(audioNode) : 0,
+      280
+    )
+    const row1Y = Math.max(420, 60 + row0MaxH + 54)
+
     if (motionNode) newPositions[motionNode.id] = { x: col1X, y: 60 }
-    if (physicsNode) newPositions[physicsNode.id] = { x: col1X, y: 380 }
+    if (physicsNode) newPositions[physicsNode.id] = { x: col1X, y: row1Y }
     if (audioNode) newPositions[audioNode.id] = { x: col2X, y: 60 }
-    if (lookNode) newPositions[lookNode.id] = { x: col2X, y: 380 }
+    if (lookNode) newPositions[lookNode.id] = { x: col2X, y: row1Y }
 
     otherDownstream.forEach((n, idx) => {
       const extraCol = Math.floor(idx / 2) + 2
       const row = idx % 2
       newPositions[n.id] = {
         x: nextColX + extraCol * (NODE_W + COL_GAP),
-        y: row === 0 ? 60 : 380
+        y: row === 0 ? 60 : row1Y
       }
     })
 
-    return newPositions
+    return relaxOverlappingPositions(newPositions, nodes)
   }
 
   // Fallback: 6 cột chuẩn nếu không có phân cảnh hoặc sơ đồ tự do
@@ -862,5 +935,5 @@ export function solveSpaciousWorkflowLayout(
     }
   })
 
-  return newPositions
+  return relaxOverlappingPositions(newPositions, nodes)
 }

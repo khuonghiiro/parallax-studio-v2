@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import type { Project, WorkflowGraph } from '@shared/types'
 import {
+  consolidateCompositeWorkflowNodes,
   formatLayerNodeLabel,
   getRootLayersForShot,
   getShotDuration,
   getWorkflowEffectiveDuration,
-  spawnSceneWithChildLayers
+  spawnSceneWithChildLayers,
+  syncMissingLayersToWorkflow
 } from './workflowSceneHierarchy'
+import {
+  relaxOverlappingPositions,
+  solveSpaciousWorkflowLayout
+} from '../ui/workflow/workflowLayoutAndFlow'
 import {
   applyWorkflowToProject,
   createDefaultWorkflow,
@@ -479,5 +485,241 @@ describe('workflowSceneHierarchy', () => {
     applyWorkflowToProject(project, connectedShakeWf)
     expect(project.camera.dofEnabled).toBe(true)
     expect(project.camera.shakeAmount).toBeGreaterThan(0)
+  })
+
+  it('gom cụm composite 2.5D: consolidateCompositeWorkflowNodes gom các node con về 1 node duy nhất', () => {
+    const project = createMockProject()
+    // Giả lập workflow có 2 node layer tách rời cho 2 bộ phận của Hiệp sĩ 2.5D
+    const fragmentedWf: WorkflowGraph = {
+      version: 1,
+      id: 'wf-frag',
+      name: 'Fragmented',
+      description: '',
+      nodes: [
+        {
+          id: 'wf-scene-shot-1',
+          type: 'scene_shot',
+          title: '🎬 Cảnh: Rừng Đom Đóm',
+          enabled: true,
+          position: { x: 80, y: 40 },
+          params: { shotId: 'shot-1' }
+        },
+        {
+          id: 'wf-layer-shot-1-layer-char-root',
+          type: 'layer_assembly',
+          title: 'Hiệp sĩ thân',
+          enabled: true,
+          position: { x: 80, y: 340 },
+          params: { targetLayerIds: ['layer-char-root'], shotId: 'shot-1' }
+        },
+        {
+          id: 'wf-trans-shot-1-layer-char-root',
+          type: 'layer_transform',
+          title: 'Tọa độ thân',
+          enabled: true,
+          position: { x: 80, y: 580 },
+          params: { targetLayerIds: ['layer-char-root'], shotId: 'shot-1' }
+        },
+        {
+          id: 'wf-layer-shot-1-layer-char-head',
+          type: 'layer_assembly',
+          title: 'Hiệp sĩ đầu',
+          enabled: true,
+          position: { x: 400, y: 340 },
+          params: { targetLayerIds: ['layer-char-head'], shotId: 'shot-1' }
+        },
+        {
+          id: 'wf-trans-shot-1-layer-char-head',
+          type: 'layer_transform',
+          title: 'Tọa độ đầu',
+          enabled: true,
+          position: { x: 400, y: 580 },
+          params: { targetLayerIds: ['layer-char-head'], shotId: 'shot-1' }
+        }
+      ],
+      edges: [
+        {
+          id: 'edge-sc-root',
+          fromNode: 'wf-scene-shot-1',
+          fromPort: 'layers_tree',
+          toNode: 'wf-layer-shot-1-layer-char-root',
+          toPort: 'layers_tree'
+        },
+        {
+          id: 'edge-root-trans',
+          fromNode: 'wf-layer-shot-1-layer-char-root',
+          fromPort: 'transform_link',
+          toNode: 'wf-trans-shot-1-layer-char-root',
+          toPort: 'transform_link'
+        },
+        {
+          id: 'edge-sc-head',
+          fromNode: 'wf-scene-shot-1',
+          fromPort: 'layers_tree',
+          toNode: 'wf-layer-shot-1-layer-char-head',
+          toPort: 'layers_tree'
+        },
+        {
+          id: 'edge-head-trans',
+          fromNode: 'wf-layer-shot-1-layer-char-head',
+          fromPort: 'transform_link',
+          toNode: 'wf-trans-shot-1-layer-char-head',
+          toPort: 'transform_link'
+        }
+      ]
+    }
+
+    const { workflow: consolidatedWf, consolidatedCount } = consolidateCompositeWorkflowNodes(
+      fragmentedWf,
+      project
+    )
+
+    expect(consolidatedCount).toBe(1)
+    const layerNodes = consolidatedWf.nodes.filter((n) => n.type === 'layer_assembly')
+    expect(layerNodes.length).toBe(1)
+    expect(layerNodes[0].params?.targetLayerIds).toEqual(['layer-char-root', 'layer-char-head'])
+    expect(layerNodes[0].title).toContain('🧩 Layer 2.5D: Hiệp sĩ 2.5D')
+
+    const transNodes = consolidatedWf.nodes.filter((n) => n.type === 'layer_transform')
+    expect(transNodes.length).toBe(1)
+    expect(transNodes[0].params?.targetLayerIds).toEqual(['layer-char-root', 'layer-char-head'])
+
+    // Dây nối scene sang head bị loại bỏ, chỉ còn 1 dây scene sang root node
+    const sceneEdges = consolidatedWf.edges.filter((e) => e.fromNode === 'wf-scene-shot-1')
+    expect(sceneEdges.length).toBe(1)
+  })
+
+  it('syncMissingLayersToWorkflow: tự động gom cụm khi thêm cả cụm composite mới vào cảnh', () => {
+    const project = createMockProject()
+    // Bổ sung cụm Cây gồm 3 bộ phận vào project
+    project.layers.push(
+      {
+        id: 'tree-part-1',
+        name: '[Cây Đại Thụ] 1. Thân cây',
+        type: 'image',
+        shotId: 'shot-1',
+        visible: true,
+        locked: false,
+        blendMode: 'normal',
+        autoScale: false,
+        inPoint: 0,
+        outPoint: 16,
+        composite: {
+          instanceId: 'comp-tree-inst',
+          compositeId: 'comp-tree',
+          compositeName: 'Cây Đại Thụ',
+          isRoot: true,
+          lockedGroup: true
+        },
+        transform: {
+          position: { value: [0, 0, 100], keyframes: [] },
+          rotation: { value: [0, 0, 0], keyframes: [] },
+          scale: { value: [1, 1, 1], keyframes: [] },
+          opacity: { value: 1, keyframes: [] }
+        },
+        props: { assetId: 'trunk.png' }
+      } as any,
+      {
+        id: 'tree-part-2',
+        name: '[Cây Đại Thụ] 2. Tán lá',
+        type: 'image',
+        shotId: 'shot-1',
+        visible: true,
+        locked: false,
+        blendMode: 'normal',
+        autoScale: false,
+        inPoint: 0,
+        outPoint: 16,
+        composite: {
+          instanceId: 'comp-tree-inst',
+          compositeId: 'comp-tree',
+          compositeName: 'Cây Đại Thụ',
+          isRoot: false,
+          lockedGroup: true
+        },
+        transform: {
+          position: { value: [0, 50, 120], keyframes: [] },
+          rotation: { value: [0, 0, 0], keyframes: [] },
+          scale: { value: [1, 1, 1], keyframes: [] },
+          opacity: { value: 1, keyframes: [] }
+        },
+        props: { assetId: 'foliage.png' }
+      } as any
+    )
+
+    const baseWf: WorkflowGraph = {
+      version: 1,
+      id: 'wf-base',
+      name: 'Base',
+      description: '',
+      nodes: [
+        {
+          id: 'wf-scene-shot-1',
+          type: 'scene_shot',
+          title: '🎬 Cảnh: Rừng Đom Đóm',
+          enabled: true,
+          position: { x: 80, y: 40 },
+          params: { shotId: 'shot-1' }
+        },
+        {
+          id: 'wf-layer-shot-1-sky',
+          type: 'layer_assembly',
+          title: 'Bầu trời',
+          enabled: true,
+          position: { x: 80, y: 340 },
+          params: { targetLayerIds: ['layer-sky'], shotId: 'shot-1' }
+        }
+      ],
+      edges: []
+    }
+
+    const res = syncMissingLayersToWorkflow(baseWf, project, 'shot-1')
+    expect(res).not.toBeNull()
+    if (!res) return
+
+    // Cây có 2 parts nhưng chỉ sinh ĐÚNG 1 node layer_assembly đại diện cho cả cụm!
+    const treeLayerNodes = res.workflow.nodes.filter(
+      (n) => n.type === 'layer_assembly' && n.title.includes('Cây Đại Thụ')
+    )
+    expect(treeLayerNodes.length).toBe(1)
+    expect(treeLayerNodes[0].params?.targetLayerIds).toEqual(['tree-part-1', 'tree-part-2'])
+    expect(treeLayerNodes[0].title).toBe('🧩 Layer 2.5D: Cây Đại Thụ')
+
+    // Chỉ có đúng 1 companion transform plate cho cụm cây
+    const treeTransNodes = res.workflow.nodes.filter(
+      (n) => n.type === 'layer_transform' && n.title.includes('Cây Đại Thụ')
+    )
+    expect(treeTransNodes.length).toBe(1)
+  })
+
+  it('relaxOverlappingPositions: triệt tiêu 100% hiện tượng chồng đè node', () => {
+    const nodes = [
+      {
+        id: 'node-A',
+        type: 'layer_assembly',
+        title: 'Node A',
+        enabled: true,
+        position: { x: 100, y: 100 }
+      },
+      {
+        id: 'node-B',
+        type: 'layer_assembly',
+        title: 'Node B',
+        enabled: true,
+        position: { x: 100, y: 120 } // Bị đè trực tiếp lên Node A
+      }
+    ] as any
+
+    const initialPos = {
+      'node-A': { x: 100, y: 100 },
+      'node-B': { x: 100, y: 120 }
+    }
+
+    const relaxed = relaxOverlappingPositions(initialPos, nodes)
+    const posA = relaxed['node-A']
+    const posB = relaxed['node-B']
+
+    // Node B phải bị đẩy xuống cách xa Node A tối thiểu chiều cao Node A + padding
+    expect(posB.y).toBeGreaterThanOrEqual(posA.y + 200)
   })
 })

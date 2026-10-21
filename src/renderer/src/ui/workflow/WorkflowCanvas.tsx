@@ -378,8 +378,24 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 
         if (!lastPatch) return
 
-        // Lưu chính xác vị trí người dùng đã kéo tới, không cưỡng ép đẩy thẻ hay kéo giật lại gần
-        onMoveNodes(lastPatch, moveCluster ? 'wf-move-cluster' : `wf-move-${node.id}`)
+        // Nếu kéo 1 node hoặc companion pair, tự động khử va chạm nếu bị thả đè lên node khác
+        const finalPatch: Record<string, { x: number; y: number }> = { ...lastPatch }
+        if (!moveCluster) {
+          const staticNodes = workflow.nodes.filter((n) => !finalPatch[n.id])
+          for (const targetId of Object.keys(finalPatch)) {
+            const targetNode = workflow.nodes.find((n) => n.id === targetId)
+            if (!targetNode) continue
+            const resolved = resolveNodeCollisionPush(
+              targetNode,
+              finalPatch[targetId],
+              staticNodes
+            )
+            finalPatch[targetId] = resolved
+          }
+        }
+
+        // Lưu chính xác vị trí người dùng đã kéo tới, triệt tiêu chồng đè
+        onMoveNodes(finalPatch, moveCluster ? 'wf-move-cluster' : `wf-move-${node.id}`)
       }
       el.addEventListener('pointermove', onMove)
       el.addEventListener('pointerup', onUp)
