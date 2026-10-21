@@ -194,7 +194,7 @@ export function validateWorkflowConnection(
   }
 
   // Khớp chính xác tên cổng chuẩn theo logic danh mục
-  if (fromPort === toPort) {
+  if ((fromPort as string) === (toPort as string)) {
     return { valid: true }
   }
 

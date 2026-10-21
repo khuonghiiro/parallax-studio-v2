@@ -31,6 +31,7 @@ import {
   syncMissingLayersToWorkflow
 } from '../../project/workflowSceneHierarchy'
 import { applyRuleMutationToProjectLayer } from '../../project/workflowStageEffects'
+import { spawnLogicNodeIntoWorkflow } from '../../project/workflowLogicNodes'
 import { WorkflowCanvas } from './WorkflowCanvas'
 import { WorkflowNodePalette } from './WorkflowNodePalette'
 import { WorkflowSidePanel, type WorkflowInspectorSubTab } from './WorkflowSidePanel'
@@ -77,6 +78,12 @@ export const WorkflowStudioPanel: React.FC = () => {
     const idx = project.shots.findIndex((s) => s.id === currentShotScope)
     const shotObj = project.shots[idx]
     return shotObj ? `Cảnh #${idx + 1}: ${shotObj.name}` : 'Cảnh #1'
+  }, [currentShotScope, project.shots])
+
+  const currentShotIndex = useMemo(() => {
+    if (!currentShotScope || currentShotScope === 'all') return 0
+    const idx = project.shots.findIndex((s) => s.id === currentShotScope)
+    return idx >= 0 ? idx : 0
   }, [currentShotScope, project.shots])
 
   const workflow = useMemo(() => {
@@ -621,9 +628,9 @@ export const WorkflowStudioPanel: React.FC = () => {
         { autoConnect: false }
       )
       const desiredPos = customPos ?? spawnedNode.position
-      const otherNodes = next.nodes.filter((n) => n.id !== spawnedNode.id)
+      const otherNodes = next.nodes.filter((n: WorkflowNode) => n.id !== spawnedNode.id)
       const resolved = resolveNodeCollisionPush(spawnedNode, desiredPos, otherNodes)
-      const resolvedNodes = next.nodes.map((n) =>
+      const resolvedNodes = next.nodes.map((n: WorkflowNode) =>
         n.id === spawnedNode.id ? { ...n, position: resolved } : n
       )
       const finalWf = { ...next, nodes: resolvedNodes }
@@ -730,6 +737,7 @@ export const WorkflowStudioPanel: React.FC = () => {
         onSelectNode={handleSelectNode}
         onSelectShotScope={handleSelectShotScope}
         onSpawnSceneLayers={handleSpawnSceneLayers}
+        onSpawnLogicNode={handleSpawnLogicNode}
         onAutoWire={handleAutoWire}
         onAutoLayout={handleAutoLayout}
         onResetCanonical={handleResetCanonical}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Project, WorkflowGraph } from '@shared/types'
+import type { Project, WorkflowGraph, WorkflowNode } from '@shared/types'
 import {
   consolidateCompositeWorkflowNodes,
   formatLayerNodeLabel,
@@ -24,6 +24,17 @@ import {
   WORKFLOW_LOGIC_NODE_CATEGORIES,
   spawnLogicNodeIntoWorkflow
 } from './workflowLogicNodes'
+
+function createMockNode(base: Partial<WorkflowNode> & { id: string; type: any; title: string }): WorkflowNode {
+  return {
+    enabled: true,
+    preset: 'default',
+    aiAgentRole: 'SceneLayoutAgent',
+    aiDirective: 'test',
+    position: { x: 0, y: 0 },
+    ...base
+  }
+}
 
 function createMockProject(): Project {
   return ({
@@ -496,46 +507,41 @@ describe('workflowSceneHierarchy', () => {
       name: 'Fragmented',
       description: '',
       nodes: [
-        {
+        createMockNode({
           id: 'wf-scene-shot-1',
           type: 'scene_shot',
           title: '🎬 Cảnh: Rừng Đom Đóm',
-          enabled: true,
           position: { x: 80, y: 40 },
           params: { shotId: 'shot-1' }
-        },
-        {
+        }),
+        createMockNode({
           id: 'wf-layer-shot-1-layer-char-root',
           type: 'layer_assembly',
           title: 'Hiệp sĩ thân',
-          enabled: true,
           position: { x: 80, y: 340 },
           params: { targetLayerIds: ['layer-char-root'], shotId: 'shot-1' }
-        },
-        {
+        }),
+        createMockNode({
           id: 'wf-trans-shot-1-layer-char-root',
           type: 'layer_transform',
           title: 'Tọa độ thân',
-          enabled: true,
           position: { x: 80, y: 580 },
           params: { targetLayerIds: ['layer-char-root'], shotId: 'shot-1' }
-        },
-        {
+        }),
+        createMockNode({
           id: 'wf-layer-shot-1-layer-char-head',
           type: 'layer_assembly',
           title: 'Hiệp sĩ đầu',
-          enabled: true,
           position: { x: 400, y: 340 },
           params: { targetLayerIds: ['layer-char-head'], shotId: 'shot-1' }
-        },
-        {
+        }),
+        createMockNode({
           id: 'wf-trans-shot-1-layer-char-head',
           type: 'layer_transform',
           title: 'Tọa độ đầu',
-          enabled: true,
           position: { x: 400, y: 580 },
           params: { targetLayerIds: ['layer-char-head'], shotId: 'shot-1' }
-        }
+        })
       ],
       edges: [
         {
@@ -653,22 +659,20 @@ describe('workflowSceneHierarchy', () => {
       name: 'Base',
       description: '',
       nodes: [
-        {
+        createMockNode({
           id: 'wf-scene-shot-1',
           type: 'scene_shot',
           title: '🎬 Cảnh: Rừng Đom Đóm',
-          enabled: true,
           position: { x: 80, y: 40 },
           params: { shotId: 'shot-1' }
-        },
-        {
+        }),
+        createMockNode({
           id: 'wf-layer-shot-1-sky',
           type: 'layer_assembly',
           title: 'Bầu trời',
-          enabled: true,
           position: { x: 80, y: 340 },
           params: { targetLayerIds: ['layer-sky'], shotId: 'shot-1' }
-        }
+        })
       ],
       edges: []
     }

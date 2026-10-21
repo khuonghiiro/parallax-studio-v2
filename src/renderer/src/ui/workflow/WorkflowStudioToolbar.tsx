@@ -27,6 +27,7 @@ export interface WorkflowStudioToolbarProps {
   onSelectNode: (nodeId: string) => void
   onSelectShotScope: (shotId: string | 'all') => void
   onSpawnSceneLayers: () => void
+  onSpawnLogicNode?: (logicId: string) => void
   onAutoWire: () => void
   onAutoLayout: () => void
   onResetCanonical: () => void
@@ -53,6 +54,7 @@ export const WorkflowStudioToolbar: React.FC<WorkflowStudioToolbarProps> = ({
   onSelectNode,
   onSelectShotScope,
   onSpawnSceneLayers,
+  onSpawnLogicNode,
   onAutoWire,
   onAutoLayout,
   onResetCanonical,
@@ -126,7 +128,10 @@ export const WorkflowStudioToolbar: React.FC<WorkflowStudioToolbarProps> = ({
 
       {/* Nhóm 2: Thao tác Bản vẽ (Canvas Operations) */}
       <div className="wf-toolbar-cluster canvas-ops">
-        <WorkflowAddNodeMenu onSpawnSceneLayers={onSpawnSceneLayers} />
+        <WorkflowAddNodeMenu
+          onSpawnLogicNode={onSpawnLogicNode ?? (() => {})}
+          onSpawnSceneLayers={onSpawnSceneLayers}
+        />
 
         <button
           id="wf-btn-spawn-scene-layers"

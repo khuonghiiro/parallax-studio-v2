@@ -91,7 +91,7 @@ export const WorkflowLayerBody: React.FC<WorkflowLayerBodyProps> = React.memo(({
       const logic = WORKFLOW_LOGIC_NODE_CATALOG.find((x) => x.id === otherNode.params?.logicId)
       list.push({
         id: otherNode.id,
-        icon: logic?.icon ?? (otherNode.type === 'physics_cloth' ? '🪂' : otherNode.type === 'light_fx' ? '💡' : '🍃'),
+        icon: logic?.icon ?? ((otherNode.type as string) === 'physics_cloth' ? '🪂' : (otherNode.type as string) === 'light_fx' ? '💡' : '🍃'),
         title: logic?.shortLabel ?? otherNode.title,
         color: logic ? '#38bdf8' : '#8b5cf6'
       })

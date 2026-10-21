@@ -2,74 +2,77 @@ import { describe, expect, it } from 'vitest'
 import type { WorkflowNode } from '@shared/types'
 import { validateWorkflowConnection } from './workflowConnectionRules'
 
+function mockNode(base: Partial<WorkflowNode> & { id: string; type: any; title: string }): WorkflowNode {
+  return {
+    enabled: true,
+    preset: 'default',
+    aiAgentRole: 'SceneLayoutAgent',
+    aiDirective: 'test',
+    position: { x: 0, y: 0 },
+    ...base
+  }
+}
+
 describe('validateWorkflowConnection', () => {
-  const sceneNode: WorkflowNode = {
+  const sceneNode = mockNode({
     id: 'wf-scene-1',
     type: 'scene_shot',
     title: 'Phân cảnh 1',
-    enabled: true,
     position: { x: 0, y: 0 }
-  }
+  })
 
-  const layerNodeA: WorkflowNode = {
+  const layerNodeA = mockNode({
     id: 'wf-layer-1',
     type: 'layer_assembly',
     title: 'Nhân vật chính',
-    enabled: true,
     position: { x: 300, y: 0 },
     params: { targetLayerIds: ['layer-1'] }
-  }
+  })
 
-  const layerNodeB: WorkflowNode = {
+  const layerNodeB = mockNode({
     id: 'wf-layer-2',
     type: 'layer_assembly',
     title: 'Cây cối',
-    enabled: true,
     position: { x: 300, y: 200 },
     params: { targetLayerIds: ['layer-2'] }
-  }
+  })
 
-  const transformNodeA: WorkflowNode = {
+  const transformNodeA = mockNode({
     id: 'wf-transform-1',
     type: 'layer_transform',
     title: 'Tọa độ Z',
-    enabled: true,
     position: { x: 300, y: 400 },
     params: { targetLayerIds: ['layer-1'] }
-  }
+  })
 
-  const transformNodeB: WorkflowNode = {
+  const transformNodeB = mockNode({
     id: 'wf-transform-2',
     type: 'layer_transform',
     title: 'Tọa độ Z (B)',
-    enabled: true,
     position: { x: 300, y: 600 },
     params: { targetLayerIds: ['layer-2'] }
-  }
+  })
 
-  const motionNode: WorkflowNode = {
+  const motionNode = mockNode({
     id: 'wf-motion-1',
     type: 'motion_choreography',
     title: 'Chuyển động',
-    enabled: true,
     position: { x: 600, y: 0 }
-  }
+  })
 
-  const fxNode: WorkflowNode = {
+  const fxNode = mockNode({
     id: 'wf-fx-1',
     type: 'physics_fx',
     title: 'Vật lý & FX',
-    enabled: true,
     position: { x: 900, y: 0 }
-  }
+  })
 
-  const camNode: WorkflowNode = {
+  const camNode = mockNode({
     id: 'wf-cam-1',
     type: 'camera_director',
     title: 'Camera',
-    enabled: true,
     position: { x: 600, y: 300 }
-  }
+  })
 
   it('từ chối kết nối một khối vào chính nó', () => {
     const res = validateWorkflowConnection(layerNodeA, 'actors_rig', layerNodeA, 'vfx_stage')

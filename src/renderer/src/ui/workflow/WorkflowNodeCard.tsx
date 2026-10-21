@@ -404,7 +404,7 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
           >
             {node.enabled ? 'ON' : 'OFF'}
           </button>
-          {onDeleteNode && node.type !== 'layer_transform' && (
+          {onDeleteNode && (
             <button
               type="button"
               className="wf-node-del-btn"

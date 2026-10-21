@@ -253,7 +253,7 @@ export function executeCameraDirectorStage(
       : shotLocalToWorld(targetShot, 0)
     applyCameraPreset(
       project.camera,
-      camPreset === 'fly' ? 'dollyIn' : camPreset,
+      (camPreset as string) === 'fly' ? 'dollyIn' : camPreset,
       project.comp,
       0,
       project.comp.duration,

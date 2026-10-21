@@ -202,6 +202,7 @@ export function spawnSceneWithChildLayers(
   workflow: WorkflowGraph
   sceneNode: WorkflowNode
   childNodes: WorkflowNode[]
+  transformNodes?: WorkflowNode[]
 } {
   const shot: Shot =
     (targetShotId && targetShotId !== 'all'
@@ -748,7 +749,8 @@ export function syncMissingLayersToWorkflow(
       title: meta.title,
       enabled: ml.visible !== false,
       preset: ml.composite ? 'character_and_foliage_rig' : 'character_puppet_25d',
-      aiAgentRole: 'LayerAssemblyAgent',
+      aiAgentRole: 'AssemblyRigAgent',
+      aiDirective: `Quản lý lắp ráp, cấu trúc và hiển thị layer "${ml.name}".`,
       position: { x: childX, y: childY },
       params: {
         shotId: ml.shotId || currentShotScope,
@@ -769,6 +771,7 @@ export function syncMissingLayersToWorkflow(
       enabled: ml.visible !== false,
       preset: 'layer_transform_controller',
       aiAgentRole: 'LayerTransformAgent',
+      aiDirective: `Điều khiển trực tiếp trục X, Y, Z và góc xoay hướng cho layer "${ml.name}".`,
       position: { x: childX, y: childY + 289 + 54 },
       params: {
         shotId: ml.shotId || currentShotScope,
