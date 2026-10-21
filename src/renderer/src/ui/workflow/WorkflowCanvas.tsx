@@ -6,6 +6,8 @@ import {
 } from '../../project/workflowCatalog'
 import { WorkflowNodeCard } from './WorkflowNodeCard'
 import { WorkflowCanvasHUD } from './WorkflowCanvasHUD'
+import { WorkflowQuickConnectMenu } from './WorkflowQuickConnectMenu'
+import { useWorkflowAssetDrop } from './useWorkflowAssetDrop'
 import {
   NODE_W,
   buildBezierPath,
@@ -17,9 +19,8 @@ import {
   getInputSocketCoords,
   getOutputSocketCoords
 } from './workflowLayoutAndFlow'
-import { validateWorkflowConnection } from '../../project/workflowConnectionRules'
+import { findMagneticTarget, type MagneticTargetResult } from './workflowMagneticSnap'
 
-const SNAP_RADIUS = 60
 const MIN_ZOOM = 0.42
 const MAX_ZOOM = 1.75
 
@@ -28,6 +29,7 @@ export interface WorkflowCanvasProps {
   project?: Project
   playing?: boolean
   time?: number
+  currentShotScope?: string
   activeNodeIds: Set<string>
   executionStepMap: Map<string, number>
   selectedNodeId: string | null
@@ -42,6 +44,27 @@ export interface WorkflowCanvasProps {
   onDisconnectEdge: (edgeId: string) => void
   onPreviewNode?: (node: WorkflowNode) => void
   onDropLogicNode?: (logicId: string, worldPos: { x: number; y: number }) => void
+  commitWorkflow?: (wf: WorkflowGraph, mergeKey?: string, syncScene?: boolean, selectIds?: Set<string>) => void
+  showToast?: (msg: string) => void
+  onSpawnAndConnectLogicNode?: (
+    logicId: string,
+    worldPos: { x: number; y: number },
+    sourceNodeId: string,
+    sourcePort: WorkflowPortKind,
+    isSourceOutput: boolean
+  ) => void
+  onSpecialAction?: (
+    actionId: string,
+    quickConnect: {
+      clientX: number
+      clientY: number
+      worldX: number
+      worldY: number
+      sourceNode: WorkflowNode
+      sourcePort: WorkflowPortKind
+      isOutput: boolean
+    }
+  ) => void
 }
 
 export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
@@ -49,6 +72,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   project,
   playing = false,
   time = 0,
+  currentShotScope,
   activeNodeIds,
   executionStepMap,
   selectedNodeId,
@@ -62,7 +86,11 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   onConnectPorts,
   onDisconnectEdge,
   onPreviewNode,
-  onDropLogicNode
+  onDropLogicNode,
+  commitWorkflow,
+  showToast,
+  onSpawnAndConnectLogicNode,
+  onSpecialAction
 }) => {
   const viewportRef = useRef<HTMLDivElement>(null)
   const [zoom, setZoom] = useState<number>(1)
@@ -75,7 +103,15 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   const [isPanning, setIsPanning] = useState(false)
   const [clusterMoveMode, setClusterMoveMode] = useState(false)
   const [dragPositions, setDragPositions] = useState<Record<string, { x: number; y: number }> | null>(null)
-  const [isDragOverPalette, setIsDragOverPalette] = useState(false)
+  const [quickConnectState, setQuickConnectState] = useState<{
+    clientX: number
+    clientY: number
+    worldX: number
+    worldY: number
+    sourceNode: WorkflowNode
+    sourcePort: WorkflowPortKind
+    isOutput: boolean
+  } | null>(null)
 
   const [pendingSource, setPendingSource] = useState<{
     nodeId: string
@@ -196,8 +232,23 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         y: (clientY - rect.top - curPan.y) / curZoom
       }
     },
-    []
+    [],
   )
+
+  const {
+    isDragOver,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop
+  } = useWorkflowAssetDrop({
+    project: project ?? ({ shots: [], layers: [] } as unknown as Project),
+    workflow,
+    currentShotScope,
+    clientToWorld,
+    commitWorkflow: commitWorkflow ?? (() => {}),
+    onDropLogicNode,
+    showToast: showToast ?? (() => {})
+  })
 
   /** Phóng to / thu nhỏ neo chính xác theo vị trí con trỏ chuột mượt mà 60fps qua RAF (Native non-passive) */
   useEffect(() => {
@@ -273,7 +324,10 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 
   /** Kéo mặt phẳng (Pan Canvas) mượt 60fps khi nắm kéo vùng trống */
   const handleViewportPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).closest('.wf-node-card, .wf-canvas-hud, .wf-edge-badge')) return
+    if ((e.target as HTMLElement).closest('.wf-node-card, .wf-canvas-hud, .wf-edge-badge, .wf-quick-connect-menu')) return
+    if (quickConnectState) {
+      setQuickConnectState(null)
+    }
     if (pendingSource) {
       setPendingSource(null)
       setCursorWorld(null)
@@ -403,104 +457,23 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     [clusterMoveMode, onMoveNodes, onSelectNode, pendingSource, workflow.nodes]
   )
 
-  /**
-   * Tìm chân cắm mục tiêu hoặc Thẻ khối đích gần nhất để hút nam châm (Magnetic Snap).
-   * Hỗ trợ 2 chiều: Kéo từ Output ➔ hút Input; Kéo từ Input ➔ hút Output.
-   * Đồng thời hỗ trợ thả dây trực tiếp lên bất kỳ vị trí nào trên thẻ khối đích (Whole Card Drop)!
-   */
-  const findMagneticTarget = useCallback(
+  /** Tìm chân cắm mục tiêu hoặc Thẻ khối đích gần nhất để hút nam châm (Magnetic Snap) */
+  const findSnapTarget = useCallback(
     (
       worldX: number,
       worldY: number,
       sourceNodeId: string,
       sourcePort: WorkflowPortKind,
       isSourceOutput: boolean
-    ) => {
-      const sourceNode = effectiveNodes.find((n) => n.id === sourceNodeId)
-      if (!sourceNode) return null
-
-      let bestSocket: {
-        nodeId: string
-        port: WorkflowPortKind
-        isInput: boolean
-        x: number
-        y: number
-        dist: number
-      } | null = null
-
-      // 1. Kiểm tra khoảng cách tới tất cả các chân cắm phù hợp của các khối khác
-      for (const n of effectiveNodes) {
-        if (n.id === sourceNodeId) continue
-        const spec = WORKFLOW_NODE_SPECS[n.type]
-        if (!spec) continue
-
-        const targetPorts = isSourceOutput ? spec.inputs : spec.outputs
-        if (targetPorts.length === 0) continue
-
-        for (const targetPort of targetPorts) {
-          // Thẩm định tính hợp lệ theo quy tắc logic nghiệp vụ trước khi bắt điểm
-          const validation = isSourceOutput
-            ? validateWorkflowConnection(sourceNode, sourcePort, n, targetPort)
-            : validateWorkflowConnection(n, targetPort, sourceNode, sourcePort)
-          if (!validation.valid) continue
-
-          const coords = isSourceOutput
-            ? getInputSocketCoords(n, targetPort)
-            : getOutputSocketCoords(n, targetPort)
-          const dist = Math.hypot(coords.x - worldX, coords.y - worldY)
-          const effectiveDist = targetPort === sourcePort ? dist * 0.7 : dist
-          if (dist <= SNAP_RADIUS && (!bestSocket || effectiveDist < bestSocket.dist)) {
-            bestSocket = {
-              nodeId: n.id,
-              port: targetPort,
-              isInput: isSourceOutput,
-              x: coords.x,
-              y: coords.y,
-              dist: effectiveDist
-            }
-          }
-        }
-      }
-      if (bestSocket) {
-        return {
-          nodeId: bestSocket.nodeId,
-          port: bestSocket.port,
-          isInput: bestSocket.isInput,
-          x: bestSocket.x,
-          y: bestSocket.y
-        }
-      }
-
-      // 2. Thả dây vào BẤT KỲ ĐÂU trên thẻ Khối đích (Whole Card Drop Hitbox)
-      for (const n of effectiveNodes) {
-        if (n.id === sourceNodeId) continue
-        const spec = WORKFLOW_NODE_SPECS[n.type]
-        if (!spec) continue
-        const cardH = estimateNodeCardHeight(n)
-        if (
-          worldX >= n.position.x - 24 &&
-          worldX <= n.position.x + NODE_W + 24 &&
-          worldY >= n.position.y - 16 &&
-          worldY <= n.position.y + cardH + 24
-        ) {
-          if (isSourceOutput) {
-            const bestPort = getBestMatchingInputPort(sourcePort, n, sourceNode)
-            if (bestPort) {
-              const coords = getInputSocketCoords(n, bestPort)
-              return { nodeId: n.id, port: bestPort, isInput: true, x: coords.x, y: coords.y, targetCardOnly: true }
-            }
-          } else {
-            const bestPort = getBestMatchingOutputPort(sourcePort, n, sourceNode)
-            if (bestPort) {
-              const coords = getOutputSocketCoords(n, bestPort)
-              return { nodeId: n.id, port: bestPort, isInput: false, x: coords.x, y: coords.y, targetCardOnly: true }
-            }
-          }
-        }
-      }
-
-      return null
-    },
+    ) =>
+      findMagneticTarget(
+        worldX,
+        worldY,
+        sourceNodeId,
+        sourcePort,
+        isSourceOutput,
+        effectiveNodes
+      ),
     [effectiveNodes]
   )
 
@@ -512,7 +485,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       const w = clientToWorld(ev.clientX, ev.clientY)
       setCursorWorld(w)
       setSnappedTarget(
-        findMagneticTarget(
+        findSnapTarget(
           w.x,
           w.y,
           pendingSource.nodeId,
@@ -536,7 +509,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       window.removeEventListener('pointermove', handleGlobalPointerMove)
       window.removeEventListener('keydown', handleGlobalKeyDown)
     }
-  }, [pendingSource, clientToWorld, findMagneticTarget])
+  }, [pendingSource, clientToWorld, findSnapTarget])
 
   /**
    * Bắt đầu kéo dây hoặc bấm chọn từ chân cắm (Hỗ trợ 2 chiều: Output ➔ Input hoặc Input ➔ Output).
@@ -578,7 +551,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         }
         const w = clientToWorld(ev.clientX, ev.clientY)
         setCursorWorld(w)
-        setSnappedTarget(findMagneticTarget(w.x, w.y, node.id, port, isOutput))
+        setSnappedTarget(findSnapTarget(w.x, w.y, node.id, port, isOutput))
       }
 
       const onUp = (ev: PointerEvent) => {
@@ -587,13 +560,24 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 
         if (hasDragged) {
           const w = clientToWorld(ev.clientX, ev.clientY)
-          const snap = findMagneticTarget(w.x, w.y, node.id, port, isOutput)
+          const snap = findSnapTarget(w.x, w.y, node.id, port, isOutput)
           if (snap) {
             if (isOutput) {
               onConnectPorts(node.id, port, snap.nodeId, snap.port)
             } else {
               onConnectPorts(snap.nodeId, snap.port, node.id, port)
             }
+          } else {
+            // Nhả dây trên khoảng trống: hiển thị Quick Connect Menu (Release-to-Spawn)
+            setQuickConnectState({
+              clientX: ev.clientX,
+              clientY: ev.clientY,
+              worldX: Math.round(w.x),
+              worldY: Math.round(w.y),
+              sourceNode: node,
+              sourcePort: port,
+              isOutput
+            })
           }
           setPendingSource(null)
           setCursorWorld(null)
@@ -604,7 +588,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       window.addEventListener('pointermove', onMove)
       window.addEventListener('pointerup', onUp)
     },
-    [clientToWorld, findMagneticTarget, onConnectPorts]
+    [clientToWorld, findSnapTarget, onConnectPorts]
   )
 
   /** Bấm vào chân cắm Input */
@@ -701,36 +685,12 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   return (
     <div
       ref={viewportRef}
-      className={`wf-canvas-viewport${isPanning ? ' panning' : ''}${clusterMoveMode ? ' cluster-mode' : ''}${isDragOverPalette ? ' palette-drag-over' : ''}`}
+      className={`wf-canvas-viewport${isPanning ? ' panning' : ''}${clusterMoveMode ? ' cluster-mode' : ''}${isDragOver ? ' palette-drag-over' : ''}`}
       data-mcp-region="workflow_canvas"
       onPointerDown={handleViewportPointerDown}
-      onDragOver={(e) => {
-        if (
-          e.dataTransfer.types.includes('application/x-pxs-logic-id') ||
-          e.dataTransfer.types.includes('application/x-pxs-node-type')
-        ) {
-          e.preventDefault()
-          e.dataTransfer.dropEffect = 'copy'
-          if (!isDragOverPalette) setIsDragOverPalette(true)
-        }
-      }}
-      onDragLeave={(e) => {
-        if (e.currentTarget.contains(e.relatedTarget as Node)) return
-        if (isDragOverPalette) setIsDragOverPalette(false)
-      }}
-      onDrop={(e) => {
-        setIsDragOverPalette(false)
-        const logicId = e.dataTransfer.getData('application/x-pxs-logic-id')
-        if (logicId && onDropLogicNode) {
-          e.preventDefault()
-          const w = clientToWorld(e.clientX, e.clientY)
-          onDropLogicNode(logicId, {
-            x: Math.round(w.x - NODE_W / 2),
-            y: Math.round(w.y - 40)
-          })
-          return
-        }
-      }}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
       onContextMenu={(e) => {
         if (pendingSource) {
           e.preventDefault()
@@ -740,10 +700,10 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         }
       }}
     >
-      {/* Hướng dẫn nổi khi kéo node từ thư viện vào bản vẽ */}
-      {isDragOverPalette && (
+      {/* Hướng dẫn nổi khi kéo node / tài nguyên từ thư viện hoặc desktop vào sơ đồ */}
+      {isDragOver && (
         <div className="wf-connecting-banner" style={{ background: 'color-mix(in srgb, var(--accent) 24%, var(--bg-2))', borderColor: 'var(--accent)' }}>
-          <span>✨ Thả vào vị trí bất kỳ trên sơ đồ để tạo Node ngay lập tức!</span>
+          <span>✨ Thả vào vị trí bất kỳ trên sơ đồ để tạo Node & Layer ngay lập tức!</span>
         </div>
       )}
 
@@ -927,6 +887,41 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
           setPan({ x: 44, y: 8 })
         }}
       />
+
+      {/* Menu Gợi Ý Kết Nối Nhanh khi Nhả Dây (Release-to-Spawn) */}
+      {quickConnectState && (
+        <WorkflowQuickConnectMenu
+          x={quickConnectState.clientX}
+          y={quickConnectState.clientY}
+          sourceNode={quickConnectState.sourceNode}
+          sourcePort={quickConnectState.sourcePort}
+          isOutput={quickConnectState.isOutput}
+          onSelectLogicItem={(item) => {
+            if (onSpawnAndConnectLogicNode) {
+              onSpawnAndConnectLogicNode(
+                item.id,
+                { x: quickConnectState.worldX, y: quickConnectState.worldY },
+                quickConnectState.sourceNode.id,
+                quickConnectState.sourcePort,
+                quickConnectState.isOutput
+              )
+            } else if (onDropLogicNode) {
+              onDropLogicNode(item.id, {
+                x: quickConnectState.worldX,
+                y: quickConnectState.worldY
+              })
+            }
+            setQuickConnectState(null)
+          }}
+          onSelectSpecialAction={(actionId) => {
+            if (onSpecialAction) {
+              onSpecialAction(actionId, quickConnectState)
+            }
+            setQuickConnectState(null)
+          }}
+          onClose={() => setQuickConnectState(null)}
+        />
+      )}
     </div>
   )
 }

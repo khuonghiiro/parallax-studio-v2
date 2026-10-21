@@ -25,6 +25,7 @@ import {
   getBestMatchingInputPort,
   getBestMatchingOutputPort
 } from './workflowLayoutAndFlow'
+import { validateWorkflowConnection } from '../../project/workflowConnectionRules'
 
 export interface WorkflowNodeCardProps {
   node: WorkflowNode
@@ -267,6 +268,11 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
     onSelectNode(node.id)
   }
 
+  const sourceNode = React.useMemo(() => {
+    if (!pendingSource) return null
+    return workflow.nodes.find((n) => n.id === pendingSource.nodeId) ?? null
+  }, [pendingSource, workflow.nodes])
+
   return (
     <div
       id={`wf-node-${node.type}`}
@@ -286,7 +292,14 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
         const portSpec = WORKFLOW_PORT_SPECS[verticalInPort]
         const inWired = workflow.edges.some((e) => e.toNode === node.id && e.toPort === verticalInPort)
         const isCompatibleTarget = Boolean(
-          pendingSource && pendingSource.nodeId !== node.id && pendingSource.isOutput && pendingSource.port === verticalInPort
+          pendingSource &&
+            sourceNode &&
+            pendingSource.nodeId !== node.id &&
+            pendingSource.isOutput &&
+            validateWorkflowConnection(sourceNode, pendingSource.port, node, verticalInPort).valid
+        )
+        const isIncompatible = Boolean(
+          pendingSource && pendingSource.nodeId !== node.id && !isCompatibleTarget
         )
         const isSnapped = Boolean(
           snappedTarget && snappedTarget.nodeId === node.id && snappedTarget.port === verticalInPort && snappedTarget.isInput
@@ -297,7 +310,7 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
         return (
           <button
             type="button"
-            className={`wf-socket-vertical top${inWired ? ' wired' : ''}${isCompatibleTarget ? ' compatible' : ''}${isSnapped ? ' snapped' : ''}${isInPending ? ' pending' : ''}`}
+            className={`wf-socket-vertical top${inWired ? ' wired' : ''}${isCompatibleTarget ? ' compatible' : ''}${isIncompatible ? ' incompatible' : ''}${isSnapped ? ' snapped' : ''}${isInPending ? ' pending' : ''}`}
             style={{ ['--port-c' as string]: portSpec?.color ?? '#38bdf8' }}
             title={`Cổng đỉnh: ${portSpec?.label ?? verticalInPort} (${inWired ? 'Đang nối — Bấm để chọn' : 'Chưa nối — Bấm hoặc kéo để nối'})`}
             onPointerDown={(e) => onStartConnecting(e, node, verticalInPort, false)}
@@ -440,7 +453,15 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
             : false
 
           const isCompatibleTarget = Boolean(
-            inPort && pendingSource && pendingSource.nodeId !== node.id && pendingSource.isOutput
+            inPort &&
+              pendingSource &&
+              sourceNode &&
+              pendingSource.nodeId !== node.id &&
+              pendingSource.isOutput &&
+              validateWorkflowConnection(sourceNode, pendingSource.port, node, inPort).valid
+          )
+          const isIncompatibleInput = Boolean(
+            inPort && pendingSource && pendingSource.nodeId !== node.id && !isCompatibleTarget
           )
           const isSnapped = Boolean(
             inPort &&
@@ -457,7 +478,15 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
           )
 
           const isCompatibleOutput = Boolean(
-            outPort && pendingSource && pendingSource.nodeId !== node.id && !pendingSource.isOutput
+            outPort &&
+              pendingSource &&
+              sourceNode &&
+              pendingSource.nodeId !== node.id &&
+              !pendingSource.isOutput &&
+              validateWorkflowConnection(node, outPort, sourceNode, pendingSource.port).valid
+          )
+          const isIncompatibleOutput = Boolean(
+            outPort && pendingSource && pendingSource.nodeId !== node.id && !isCompatibleOutput
           )
           const isSnappedOutput = Boolean(
             outPort &&
@@ -483,7 +512,7 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
               {inPort && inSpec ? (
                 <button
                   type="button"
-                  className={`wf-socket-hit in${inWired ? ' wired' : ''}${isCompatibleTarget ? ' compatible' : ''}${isSnapped ? ' snapped' : ''}${isInPending ? ' pending' : ''}`}
+                  className={`wf-socket-hit in${inWired ? ' wired' : ''}${isCompatibleTarget ? ' compatible' : ''}${isIncompatibleInput ? ' incompatible' : ''}${isSnapped ? ' snapped' : ''}${isInPending ? ' pending' : ''}`}
                   style={{ ['--port-c' as string]: inSpec.color }}
                   title={
                     isCompatibleTarget
@@ -508,7 +537,7 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
               {outPort && outSpec ? (
                 <button
                   type="button"
-                  className={`wf-socket-hit out${outWired ? ' wired' : ''}${isOutPending ? ' pending' : ''}${isCompatibleOutput ? ' compatible' : ''}${isSnappedOutput ? ' snapped' : ''}`}
+                  className={`wf-socket-hit out${outWired ? ' wired' : ''}${isOutPending ? ' pending' : ''}${isCompatibleOutput ? ' compatible' : ''}${isIncompatibleOutput ? ' incompatible' : ''}${isSnappedOutput ? ' snapped' : ''}`}
                   style={{ ['--port-c' as string]: outSpec.color }}
                   title={`Cổng ra: ${outSpec.label} — Nắm kéo sang khối tiếp theo hoặc bấm để nối`}
                   onPointerDown={(e) => onStartConnecting(e, node, outPort, true)}
@@ -616,7 +645,14 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
           pendingSource?.nodeId === node.id && pendingSource?.port === verticalOutPort && pendingSource.isOutput
         )
         const isCompatibleOutput = Boolean(
-          pendingSource && pendingSource.nodeId !== node.id && !pendingSource.isOutput && pendingSource.port === verticalOutPort
+          pendingSource &&
+            sourceNode &&
+            pendingSource.nodeId !== node.id &&
+            !pendingSource.isOutput &&
+            validateWorkflowConnection(node, verticalOutPort, sourceNode, pendingSource.port).valid
+        )
+        const isIncompatibleOut = Boolean(
+          pendingSource && pendingSource.nodeId !== node.id && !isCompatibleOutput
         )
         const isSnappedOutput = Boolean(
           snappedTarget && snappedTarget.nodeId === node.id && snappedTarget.port === verticalOutPort && !snappedTarget.isInput
@@ -624,7 +660,7 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
         return (
           <button
             type="button"
-            className={`wf-socket-vertical bottom${outWired ? ' wired' : ''}${isOutPending ? ' pending' : ''}${isCompatibleOutput ? ' compatible' : ''}${isSnappedOutput ? ' snapped' : ''}`}
+            className={`wf-socket-vertical bottom${outWired ? ' wired' : ''}${isOutPending ? ' pending' : ''}${isCompatibleOutput ? ' compatible' : ''}${isIncompatibleOut ? ' incompatible' : ''}${isSnappedOutput ? ' snapped' : ''}`}
             style={{ ['--port-c' as string]: portSpec?.color ?? '#38bdf8' }}
             title={`Cổng đáy: ${portSpec?.label ?? verticalOutPort} (${outWired ? 'Đang nối — Bấm để chọn' : 'Chưa nối — Bấm hoặc kéo để nối'})`}
             onPointerDown={(e) => onStartConnecting(e, node, verticalOutPort, true)}

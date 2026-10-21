@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   Project,
+  WorkflowEdge,
   WorkflowGraph,
   WorkflowNode,
   WorkflowNodeParams,
@@ -8,7 +9,14 @@ import type {
 } from '@shared/types'
 import { useEditor } from '../../store/editor'
 import { useView } from '../../store/view'
-import { useToast } from '../../actions'
+import {
+  useToast,
+  addParticleLayer,
+  addTextLayer,
+  addGroundLayer,
+  importDroppedFiles
+} from '../../actions'
+import { validateWorkflowConnection } from '../../project/workflowConnectionRules'
 import {
   WORKFLOW_NODE_SPECS,
   createCanonicalWorkflow
@@ -644,6 +652,120 @@ export const WorkflowStudioPanel: React.FC = () => {
     [workflow, currentShotScope, activeShotLabel, commitWorkflow, showToast, handleSpawnSceneLayers]
   )
 
+  const handleSpawnAndConnectLogicNode = useCallback(
+    (
+      logicId: string,
+      worldPos: { x: number; y: number },
+      sourceNodeId: string,
+      sourcePort: WorkflowPortKind,
+      isSourceOutput: boolean
+    ) => {
+      const sourceNode = workflow.nodes.find((n) => n.id === sourceNodeId)
+      if (!sourceNode) return
+
+      const { workflow: nextWf, spawnedNode } = spawnLogicNodeIntoWorkflow(
+        workflow,
+        logicId,
+        currentShotScope,
+        { autoConnect: false }
+      )
+      const otherNodes = nextWf.nodes.filter((n) => n.id !== spawnedNode.id)
+      const resolved = resolveNodeCollisionPush(spawnedNode, worldPos, otherNodes)
+      const positionedNode = { ...spawnedNode, position: resolved }
+
+      // Tìm chân cắm tương thích giữa sourceNode và spawnedNode
+      const nodeSpec = WORKFLOW_NODE_SPECS[spawnedNode.type]
+      let edgeToAdd: WorkflowEdge | null = null
+
+      if (isSourceOutput) {
+        const candidateInputs = nodeSpec?.inputs ?? []
+        const matchedInPort = candidateInputs.find(
+          (p) => validateWorkflowConnection(sourceNode, sourcePort, positionedNode, p).valid
+        )
+        if (matchedInPort) {
+          edgeToAdd = {
+            id: `edge-${sourceNode.id}-${sourcePort}-${positionedNode.id}-${matchedInPort}`,
+            fromNode: sourceNode.id,
+            fromPort: sourcePort,
+            toNode: positionedNode.id,
+            toPort: matchedInPort
+          }
+        }
+      } else {
+        const candidateOutputs = nodeSpec?.outputs ?? []
+        const matchedOutPort = candidateOutputs.find(
+          (p) => validateWorkflowConnection(positionedNode, p, sourceNode, sourcePort).valid
+        )
+        if (matchedOutPort) {
+          edgeToAdd = {
+            id: `edge-${positionedNode.id}-${matchedOutPort}-${sourceNode.id}-${sourcePort}`,
+            fromNode: positionedNode.id,
+            fromPort: matchedOutPort,
+            toNode: sourceNode.id,
+            toPort: sourcePort
+          }
+        }
+      }
+
+      const finalNodes = nextWf.nodes.map((n) => (n.id === positionedNode.id ? positionedNode : n))
+      const finalEdges = edgeToAdd ? [...nextWf.edges, edgeToAdd] : nextWf.edges
+      const finalWf: WorkflowGraph = {
+        ...nextWf,
+        nodes: finalNodes,
+        edges: finalEdges
+      }
+
+      commitWorkflow(finalWf, undefined, true, new Set([positionedNode.id]))
+      setSelectedNodeId(positionedNode.id)
+      showToast(
+        edgeToAdd
+          ? `✨ Đã tạo "${positionedNode.title}" và tự động nối dây vào "${sourceNode.title}"!`
+          : `🧩 Đã tạo "${positionedNode.title}" tại vị trí chuột!`
+      )
+    },
+    [workflow, currentShotScope, commitWorkflow, showToast]
+  )
+
+  const handleSpecialAction = useCallback(
+    async (
+      actionId: string,
+      _quickConnect: {
+        sourceNode: WorkflowNode
+        sourcePort: WorkflowPortKind
+      }
+    ) => {
+      if (actionId === 'add_image_layer') {
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.accept = 'image/*'
+        input.multiple = true
+        input.onchange = async () => {
+          if (input.files && input.files.length > 0) {
+            await importDroppedFiles(input.files)
+          }
+        }
+        input.click()
+        return
+      }
+      if (actionId === 'add_particles') {
+        addParticleLayer()
+        showToast('✨ Đã thêm Lớp Hạt Khí Quyển vào Phân cảnh & Sơ đồ!')
+        return
+      }
+      if (actionId === 'add_text_layer') {
+        addTextLayer()
+        showToast('🔤 Đã thêm Layer Chữ 2.5D vào Phân cảnh & Sơ đồ!')
+        return
+      }
+      if (actionId === 'add_ground_layer') {
+        addGroundLayer()
+        showToast('⛰️ Đã thêm Mặt Đất 3D vào Phân cảnh & Sơ đồ!')
+        return
+      }
+    },
+    [showToast]
+  )
+
   const handleDeleteNode = useCallback(
     (nodeId: string) => {
       const target = workflow.nodes.find((n) => n.id === nodeId)
@@ -762,6 +884,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           project={scopedProject}
           playing={playing}
           time={liveTime}
+          currentShotScope={currentShotScope}
           activeNodeIds={activeNodeIds}
           executionStepMap={executionStepMap}
           selectedNodeId={selectedNode?.id ?? null}
@@ -776,6 +899,10 @@ export const WorkflowStudioPanel: React.FC = () => {
           onDisconnectEdge={handleDisconnectEdge}
           onPreviewNode={handlePreviewNode}
           onDropLogicNode={(id, worldPos) => handleSpawnLogicNode(id, worldPos)}
+          commitWorkflow={commitWorkflow}
+          showToast={showToast}
+          onSpawnAndConnectLogicNode={handleSpawnAndConnectLogicNode}
+          onSpecialAction={handleSpecialAction}
         />
 
         <WorkflowSidePanel

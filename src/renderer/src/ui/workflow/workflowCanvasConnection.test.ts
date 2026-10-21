@@ -13,6 +13,7 @@ import {
   resolveNodeCollisionPush,
   solveSpaciousWorkflowLayout
 } from './workflowLayoutAndFlow'
+import { findMagneticTarget } from './workflowMagneticSnap'
 
 describe('Workflow Canvas Connection & Playback Reset', () => {
   const wf = createCanonicalWorkflow('shot-1')
@@ -160,6 +161,56 @@ describe('Workflow Canvas Connection & Playback Reset', () => {
 
       // layer_assembly does NOT accept camera cuts (semantically invalid)
       expect(getBestMatchingInputPort('camera_cut', assemblyNode)).toBeNull()
+    })
+  })
+
+  describe('Magnetic Snap & Connection Validation in findMagneticTarget', () => {
+    it('snaps to valid input socket when dragging from output port within range', () => {
+      // Dragging actors_rig from assemblyNode towards motionNode
+      const motionInputCoords = getInputSocketCoords(motionNode, 'actors_rig')
+      const result = findMagneticTarget(
+        motionInputCoords.x + 10,
+        motionInputCoords.y + 5,
+        assemblyNode.id,
+        'actors_rig',
+        true,
+        wf.nodes
+      )
+      expect(result).not.toBeNull()
+      expect(result?.nodeId).toBe(motionNode.id)
+      expect(result?.port).toBe('actors_rig')
+      expect(result?.isInput).toBe(true)
+    })
+
+    it('rejects snapping to incompatible socket even when in close proximity', () => {
+      // Dragging camera_cut from camNode near layer_assembly socket
+      const assemblyInputCoords = getInputSocketCoords(assemblyNode, 'layers_tree')
+      const result = findMagneticTarget(
+        assemblyInputCoords.x,
+        assemblyInputCoords.y,
+        camNode.id,
+        'camera_cut',
+        true,
+        wf.nodes
+      )
+      // camera_cut cannot connect to layer_assembly
+      expect(result).toBeNull()
+    })
+
+    it('supports card-level magnetic snap (whole card drop hitbox)', () => {
+      // Dragging motion_stream from motionNode and hovering near center/right of fxNode card (away from socket)
+      const result = findMagneticTarget(
+        fxNode.position.x + 140,
+        fxNode.position.y + 80,
+        motionNode.id,
+        'motion_stream',
+        true,
+        wf.nodes
+      )
+      expect(result).not.toBeNull()
+      expect(result?.nodeId).toBe(fxNode.id)
+      expect(result?.port).toBe('motion_stream')
+      expect(result?.targetCardOnly).toBe(true)
     })
   })
 })
