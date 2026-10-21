@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   Project,
   WorkflowAiBlueprint,
@@ -7,11 +7,17 @@ import type {
   WorkflowNodeParams,
   WorkflowPortKind
 } from '@shared/types'
-import { WORKFLOW_NODE_SPECS, WORKFLOW_PORT_SPECS } from '../../project/workflowCatalog'
+import { WORKFLOW_NODE_SPECS } from '../../project/workflowCatalog'
 import { resolveNodeTargetBinding } from '../../project/workflowEngine'
 import { renderWorkflowNodeIcon } from './workflowIcons'
 import { WorkflowActionBuilder } from './WorkflowActionBuilder'
-import { WorkflowNodePreview, getTargetKindIcon } from './WorkflowNodePreview'
+import { getTargetKindIcon } from './WorkflowNodePreview'
+
+import { createPortal } from 'react-dom'
+import { WorkflowCameraMonitor } from './WorkflowCameraMonitor'
+import { WorkflowTransformBody } from './WorkflowTransformBody'
+import { WorkflowNodeParameters } from './WorkflowNodeParameters'
+import { WorkflowNodeConnections } from './WorkflowNodeConnections'
 
 export interface WorkflowNodeConfigDialogProps {
   node: WorkflowNode
@@ -49,20 +55,14 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
   activeShotLabel,
   onShowToast
 }) => {
-  const [activeTab, setActiveTab] = useState<'preset' | 'targets' | 'actions'>('preset')
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const [activeTab, setActiveTab] = useState<'preset' | 'targets' | 'actions' | 'connections'>('preset')
 
-  // Đóng bằng phím Escape
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        e.stopPropagation()
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+    const previous = document.activeElement as HTMLElement | null
+    dialogRef.current?.focus()
+    return () => { if (previous?.isConnected) previous.focus() }
+  }, [])
 
   const nodeSpec = WORKFLOW_NODE_SPECS[node.type]
   const binding = useMemo(() => resolveNodeTargetBinding(node, project), [node, project])
@@ -103,14 +103,26 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
   const customRuleCount = (node.params?.customRules ?? []).filter((r) => r.enabled).length
   const isRootScene = node.type === 'scene_shot'
 
-  return (
+  return createPortal(
     <div
       className="wf-node-dialog-backdrop"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
+      onPointerDown={(e) => e.stopPropagation()}
+      onWheel={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        e.stopPropagation()
+        if (e.key === 'Escape') { e.preventDefault(); onClose() }
+        if (e.key === 'Tab') {
+          const controls = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea, [tabindex="0"]') ?? [])
+            .filter((element) => element.getClientRects().length > 0)
+          const first = controls[0], last = controls[controls.length - 1]
+          if (e.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) { e.preventDefault(); last?.focus() }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus() }
+        }
       }}
     >
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         className="wf-node-dialog-window wf-node-config-modal"
         data-mcp-region="workflow_node_config"
         data-mcp-dialog="true"
@@ -121,28 +133,18 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
       >
         {/* 1. Header */}
         <div className="wf-node-dialog-header">
-          <div className="wf-node-dialog-icon" style={{ background: nodeSpec?.color ?? '#38bdf8' }}>
+          <div className="wf-node-dialog-icon">
             {renderWorkflowNodeIcon(node.type, { width: 15, height: 15 })}
           </div>
           <div className="wf-node-dialog-title-group">
             <div className="wf-node-dialog-title-row">
               <span className="wf-node-dialog-title">{node.title}</span>
-              <span className="wf-node-dialog-tag">{nodeSpec?.category ?? node.type}</span>
+              <span className="wf-node-dialog-tag">{nodeSpec?.shortTitle ?? node.type}</span>
             </div>
-            <span className="wf-node-dialog-role">🤖 {node.aiAgentRole}</span>
+            <span className="wf-node-dialog-role">{activeShotLabel ?? 'Cấu hình node'}</span>
           </div>
 
           <div className="wf-node-dialog-actions">
-            {onPreviewNode && (
-              <button
-                type="button"
-                className="btn ghost sm"
-                title="Chạy thử hiệu ứng khối này trên Cảnh 3D"
-                onClick={() => onPreviewNode(node)}
-              >
-                👁 Xem thử 3D
-              </button>
-            )}
             <button
               type="button"
               className={`wf-node-dialog-toggle${node.enabled ? ' on' : ''}`}
@@ -154,7 +156,7 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
             <button
               type="button"
               className="wf-node-dialog-close"
-              title="Đóng (Escape)"
+              title="Đóng và giữ cấu hình (Escape)"
               onClick={onClose}
             >
               ✕
@@ -162,6 +164,9 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
           </div>
         </div>
 
+        <div className="wf-node-dialog-workspace">
+          {project && <WorkflowCameraMonitor key={node.id} project={project} node={node} />}
+          <section className="wf-node-dialog-settings" data-mcp-region="workflow_node_settings">
         {/* 2. Dải Tab Điều Khiển */}
         <div className="wf-node-dialog-tabs" role="tablist">
           <button
@@ -171,7 +176,7 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
             className={`wf-node-dialog-tab${activeTab === 'preset' ? ' active' : ''}`}
             onClick={() => setActiveTab('preset')}
           >
-            ⚙️ Chế độ & Cường độ
+            ⚙ Thông số
           </button>
           <button
             type="button"
@@ -180,7 +185,7 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
             className={`wf-node-dialog-tab${activeTab === 'targets' ? ' active' : ''}`}
             onClick={() => setActiveTab('targets')}
           >
-            🎯 Gán Layer 2.5D ({binding.boundTargets.length})
+            ◎ Đối tượng ({binding.boundTargets.length})
           </button>
           <button
             type="button"
@@ -189,236 +194,16 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
             className={`wf-node-dialog-tab${activeTab === 'actions' ? ' active' : ''}`}
             onClick={() => setActiveTab('actions')}
           >
-            🧩 Kho Node & FX ({customRuleCount})
+            ✦ Hiệu ứng ({customRuleCount})
           </button>
+          <button type="button" role="tab" aria-selected={activeTab === 'connections'} className={`wf-node-dialog-tab${activeTab === 'connections' ? ' active' : ''}`} onClick={() => setActiveTab('connections')}>⇄ Kết nối</button>
         </div>
 
         {/* 3. Thân Cuộn Nội Dung */}
         <div className="wf-node-dialog-body">
-          {activeTab === 'preset' && (
-            <div className="wf-subtab-pane">
-              {/* Presets 1-Click Cards */}
-              {nodeSpec && nodeSpec.presets.length > 0 && (
-                <div className="wf-preset-cards-list" role="radiogroup" aria-label="Chọn kịch bản xử lý mẫu">
-                  {nodeSpec.presets.map((p) => {
-                    const isCurrent = node.preset === p.id
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        className={`wf-preset-option-card${isCurrent ? ' active' : ''}`}
-                        style={{ ['--node-c' as string]: nodeSpec.color }}
-                        onClick={() => onChangeNodePreset(node.id, p.id)}
-                      >
-                        <div className="wf-preset-option-head">
-                          <span className={`wf-preset-radio${isCurrent ? ' on' : ''}`}>
-                            {isCurrent ? '●' : '○'}
-                          </span>
-                          <strong>{p.label}</strong>
-                        </div>
-                        <div className="wf-preset-option-desc">{p.summary}</div>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-
-              {/* Thanh trượt Cường độ & Tốc độ */}
-              <div className="wf-compact-controls-box">
-                <div className="wf-field-row">
-                  <label className="wf-field-label">
-                    Cường độ tác động:{' '}
-                    <strong>{((node.params?.intensity ?? 1.0) * 100).toFixed(0)}%</strong>
-                  </label>
-                  <input
-                    type="range"
-                    className="wf-range"
-                    min={0.1}
-                    max={2.0}
-                    step={0.05}
-                    value={node.params?.intensity ?? 1.0}
-                    onChange={(e) =>
-                      onUpdateNodeParams(node.id, { intensity: parseFloat(e.target.value) })
-                    }
-                  />
-                </div>
-
-                <div className="wf-field-row">
-                  <label className="wf-field-label">
-                    Tốc độ / Tần số:{' '}
-                    <strong>{(node.params?.speedMultiplier ?? 1.0).toFixed(2)}x</strong>
-                  </label>
-                  <input
-                    type="range"
-                    className="wf-range"
-                    min={0.25}
-                    max={3.0}
-                    step={0.05}
-                    value={node.params?.speedMultiplier ?? 1.0}
-                    onChange={(e) =>
-                      onUpdateNodeParams(node.id, { speedMultiplier: parseFloat(e.target.value) })
-                    }
-                  />
-                </div>
-
-                {/* Các công tắc chuyên biệt theo từng loại node */}
-                <div className="wf-check-pills-row">
-                  {node.type === 'scene_shot' && (
-                    <>
-                      <label className="wf-check-pill">
-                        <input
-                          type="checkbox"
-                          checked={node.params?.autoArrangeZ !== false}
-                          onChange={(e) =>
-                            onUpdateNodeParams(node.id, { autoArrangeZ: e.target.checked })
-                          }
-                        />
-                        <span>Tự xếp độ sâu Z</span>
-                      </label>
-                      <label className="wf-check-pill">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(node.params?.ensureGround)}
-                          onChange={(e) =>
-                            onUpdateNodeParams(node.id, { ensureGround: e.target.checked })
-                          }
-                        />
-                        <span>Tạo mặt đất 3D</span>
-                      </label>
-                    </>
-                  )}
-                  {node.type === 'physics_fx' && (
-                    <label className="wf-check-pill">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(node.params?.spawnParticles)}
-                        onChange={(e) =>
-                          onUpdateNodeParams(node.id, { spawnParticles: e.target.checked })
-                        }
-                      />
-                      <span>Tự thêm lớp Hạt FX</span>
-                    </label>
-                  )}
-                  {node.type === 'camera_director' && (
-                    <>
-                      <label className="wf-check-pill">
-                        <input
-                          type="checkbox"
-                          checked={
-                            node.params?.enableDof === true ||
-                            node.params?.logicId === 'logic-cam-dof'
-                          }
-                          onChange={(e) =>
-                            onUpdateNodeParams(node.id, { enableDof: e.target.checked })
-                          }
-                        />
-                        <span>Xóa phông (DOF)</span>
-                      </label>
-                      <label className="wf-check-pill">
-                        <input
-                          type="checkbox"
-                          checked={
-                            node.params?.logicId === 'logic-cam-shake' ||
-                            (node.params?.camShakeAmount ?? 0) > 0 ||
-                            node.preset === 'dramatic_handheld_action'
-                          }
-                          onChange={(e) =>
-                            onUpdateNodeParams(node.id, {
-                              camShakeAmount: e.target.checked ? 6 : 0
-                            })
-                          }
-                        />
-                        <span>Rung Handheld</span>
-                      </label>
-                    </>
-                  )}
-                  {node.type === 'audio_lipsync' && (
-                    <label className="wf-check-pill">
-                      <input
-                        type="checkbox"
-                        checked={node.params?.autoLipSync !== false}
-                        onChange={(e) =>
-                          onUpdateNodeParams(node.id, { autoLipSync: e.target.checked })
-                        }
-                      />
-                      <span>Tự động Lip-Sync miệng</span>
-                    </label>
-                  )}
-                </div>
-              </div>
-
-              {/* Chỉ thị AI Directive */}
-              <div className="wf-field-group">
-                <label className="wf-field-label">Chỉ thị cho AI & Lệnh xử lý:</label>
-                <textarea
-                  className="wf-textarea"
-                  rows={2}
-                  value={node.aiDirective}
-                  onChange={(e) => onUpdateNodeDirective(node.id, e.target.value)}
-                  placeholder="Ghi chú hoặc chỉ thị cho tác nhân AI khi điều khiển khối này..."
-                />
-              </div>
-
-              {/* Danh sách chân cắm Port và tình trạng kết nối */}
-              {nodeSpec && nodeSpec.outputs.length > 0 && onConnectPorts && onDisconnectEdge && (
-                <div className="wf-field-group">
-                  <label className="wf-field-label">Kết nối Cổng đầu ra (Bấm 1 chạm để Nối / Ngắt):</label>
-                  <div className="wf-port-links-list">
-                    {nodeSpec.outputs.map((outPort) => {
-                      const pSpec = WORKFLOW_PORT_SPECS[outPort]
-                      const compatibleTargets = workflow.nodes.filter(
-                        (n) => n.id !== node.id && WORKFLOW_NODE_SPECS[n.type]?.inputs.includes(outPort)
-                      )
-                      const existingEdges = workflow.edges.filter(
-                        (e) => e.fromNode === node.id && e.fromPort === outPort
-                      )
-                      return (
-                        <div key={outPort} className="wf-port-link-row">
-                          <span className="wf-port-chip" style={{ color: pSpec?.color }}>
-                            {pSpec?.shortLabel ?? outPort}
-                          </span>
-                          <span className="wf-port-arrow">➔</span>
-                          <div className="wf-port-target-chips">
-                            {compatibleTargets.length === 0 ? (
-                              <span className="wf-port-none">Chưa có khối đích nhận cổng này</span>
-                            ) : (
-                              compatibleTargets.map((tgt) => {
-                                const isWired = existingEdges.some((e) => e.toNode === tgt.id)
-                                const edge = existingEdges.find((e) => e.toNode === tgt.id)
-                                return (
-                                  <button
-                                    key={tgt.id}
-                                    type="button"
-                                    className={`wf-target-chip${isWired ? ' wired' : ''}`}
-                                    title={
-                                      isWired
-                                        ? `Đang nối tới "${tgt.title}". Bấm để NGẮT DÂY.`
-                                        : `Chưa nối tới "${tgt.title}". Bấm để NỐI DÂY NGAY.`
-                                    }
-                                    onClick={() => {
-                                      if (isWired && edge) {
-                                        onDisconnectEdge(edge.id)
-                                      } else {
-                                        onConnectPorts(node.id, outPort, tgt.id, outPort)
-                                      }
-                                    }}
-                                  >
-                                    <span className="wf-chip-dot">{isWired ? '●' : '○'}</span>
-                                    <span>{tgt.title}</span>
-                                  </button>
-                                )
-                              })
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
+          {activeTab === 'preset' && node.type === 'layer_transform' && <WorkflowTransformBody node={node} project={project} onUpdateNodeParams={onUpdateNodeParams} />}
+          {activeTab === 'preset' && node.type !== 'layer_transform' && <WorkflowNodeParameters node={node} onChangeNodePreset={onChangeNodePreset} onUpdateNodeParams={onUpdateNodeParams} onUpdateNodeDirective={onUpdateNodeDirective} />}
+          {activeTab === 'connections' && <WorkflowNodeConnections node={node} workflow={workflow} onConnectPorts={onConnectPorts} onDisconnectEdge={onDisconnectEdge} />}
           {activeTab === 'targets' && (
             <div className="wf-subtab-pane">
               {binding ? (
@@ -519,6 +304,8 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
           )}
         </div>
 
+          </section>
+        </div>
         {/* 4. Footer */}
         <div className="wf-node-dialog-footer">
           {!isRootScene && onDeleteNode ? (
@@ -537,15 +324,17 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
             <span />
           )}
 
+          <span className="wf-node-save-hint">Thay đổi cập nhật trực tiếp · Có thể hoàn tác bằng Ctrl+Z</span>
           <button
             type="button"
             className="btn primary sm"
             onClick={onClose}
           >
-            ✓ Đóng (Esc)
+            Xong · Lưu cấu hình
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

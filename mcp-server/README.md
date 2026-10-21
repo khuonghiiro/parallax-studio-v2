@@ -403,3 +403,5 @@ Layer có thể thuộc nhóm bộ phận (nhân vật hoặc động vật: Đ�
 
 <!-- workflow-quick-connect -->
 Workflow: `workflow_quick_connect` chụp riêng menu chọn chức năng khi kéo port; tìm kiếm giữ bộ lọc tương thích theo chiều kết nối, cuộn độc lập với canvas.
+
+Workflow node configuration: `workflow_node_camera_preview` chụp preview camera trực tiếp; `workflow_node_settings` chụp bảng cấu hình. Thay đổi dùng cùng workflow handlers và Undo/Redo; preview có thời gian phát/tua riêng, đóng hộp giữ cấu hình trong dự án.

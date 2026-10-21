@@ -1,3 +1,4 @@
+import { syncWorkflowCameraModifiers } from './workflowCameraModifiers'
 import type {
   Layer,
   Project,
@@ -850,6 +851,8 @@ export function applyWorkflowToProject(
     project.camera.dofEnabled = false
     project.camera.shakeAmount = 0
   }
+  syncWorkflowCameraModifiers(project, activeNodes)
+
 
   // Nối logic trực tiếp từ Node Logic sang từng Layer con (Blender-like Routing)
   applyConnectedLogicEdgesToLayers(project, workflow, activeNodes)

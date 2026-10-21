@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Project, WorkflowGraph, WorkflowNode } from '@shared/types'
+import type { Layer, Project, WorkflowGraph, WorkflowNode } from '@shared/types'
 import {
   consolidateCompositeWorkflowNodes,
   createClearedWorkflowWithSceneRoots,

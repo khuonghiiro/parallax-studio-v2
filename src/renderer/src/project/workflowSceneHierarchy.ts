@@ -242,8 +242,8 @@ export function spawnSceneWithChildLayers(
       name: 'Cảnh 1',
       color: '#38bdf8',
       visible: true,
-      position: { value: [0, 0, 0] },
-      rotation: { value: [0, 0, 0] }
+      position: { value: [0, 0, 0], keyframes: [] },
+      rotation: { value: [0, 0, 0], keyframes: [] }
     }
 
   const rootLayers = getRootLayersForShot(project, shot.id)
@@ -941,8 +941,8 @@ export function createClearedWorkflowWithSceneRoots(
                 name: 'Cảnh 1',
                 color: '#38bdf8',
                 visible: true,
-                position: { value: [0, 0, 0] },
-                rotation: { value: [0, 0, 0] }
+                position: { value: [0, 0, 0], keyframes: [] },
+                rotation: { value: [0, 0, 0], keyframes: [] }
               }
             ]
 

@@ -1,266 +1,75 @@
-/* ==========================================================================
-   Parallax Studio - Workflow Node Configuration Dialog (Right-Click Inspector)
-   Dual-Theme (Dark & Light) Compliant via variables.css Design Tokens
-   ========================================================================== */
-
-/* Lớp phủ mờ toàn màn hình (Modal Backdrop) */
 .wf-node-dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 20000;
-  background: rgba(0, 0, 0, 0.62);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  animation: wf-dialog-fade-in 0.14s ease-out;
+  position: fixed; inset: 0; z-index: 20000;
+  background: color-mix(in srgb, var(--bg-0) 72%, transparent);
+  backdrop-filter: blur(5px); display: grid; place-items: center; padding: 24px;
 }
-
-[data-theme='light'] .wf-node-dialog-backdrop {
-  background: rgba(15, 23, 42, 0.42);
-}
-
-@keyframes wf-dialog-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes wf-dialog-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.96) translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-/* Khung cửa sổ Hộp thoại Cấu hình Khối */
 .wf-node-dialog-window {
-  position: relative;
-  width: 640px;
-  max-width: 95vw;
-  max-height: 88vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-1);
-  border: 1px solid var(--line-focus);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
-  overflow: hidden;
-  animation: wf-dialog-pop 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  width: min(1180px, calc(100vw - 48px)); height: min(740px, calc(100vh - 48px));
+  display: flex; flex-direction: column; overflow: hidden; outline: none;
+  background: var(--bg-1); color: var(--text); border: 1px solid var(--line);
+  border-radius: 14px; box-shadow: 0 24px 80px color-mix(in srgb, var(--bg-0) 70%, transparent);
 }
-
-/* 1. Header Hộp thoại */
-.wf-node-dialog-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  background: var(--bg-2);
-  border-bottom: 1px solid var(--line);
-  user-select: none;
+.wf-node-dialog-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.wf-node-dialog-icon { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--bg-2)); flex-shrink: 0; }
+.wf-node-dialog-title-group { flex: 1; min-width: 0; }
+.wf-node-dialog-title-row { display: flex; align-items: center; gap: 10px; }
+.wf-node-dialog-title { font-size: 15px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wf-node-dialog-tag { color: var(--text-dim); font-size: 10px; border: 1px solid var(--line); border-radius: 5px; padding: 3px 6px; white-space: nowrap; }
+.wf-node-dialog-role { display: block; margin-top: 5px; color: var(--text-dim); font-size: 11px; }
+.wf-node-dialog-actions { display: flex; align-items: center; gap: 12px; }
+.wf-node-dialog-toggle, .wf-node-dialog-close { border: 1px solid var(--line); border-radius: 7px; color: var(--text-dim); background: var(--bg-2); height: 30px; cursor: pointer; }
+.wf-node-dialog-toggle { padding: 0 10px; font-size: 11px; }
+.wf-node-dialog-toggle.on { color: var(--accent); border-color: var(--line-focus); background: color-mix(in srgb, var(--accent) 10%, var(--bg-1)); }
+.wf-node-dialog-close { width: 30px; border-color: transparent; background: transparent; }
+.wf-node-dialog-close:hover { color: var(--text); background: var(--bg-3); }
+.wf-node-dialog-workspace { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(390px, 1fr); flex: 1; min-height: 0; }
+.wf-node-dialog-settings { display: flex; flex-direction: column; min-height: 0; min-width: 0; border-left: 1px solid var(--line); }
+.wf-node-dialog-tabs { display: flex; gap: 3px; padding: 12px; border-bottom: 1px solid var(--line-soft); flex-shrink: 0; }
+.wf-node-dialog-tab { flex: 1; min-width: 0; border: 1px solid transparent; border-radius: 7px; height: 34px; color: var(--text-dim); background: transparent; font-size: 11px; white-space: nowrap; cursor: pointer; }
+.wf-node-dialog-tab:hover { background: var(--bg-2); color: var(--text); }
+.wf-node-dialog-tab.active { background: color-mix(in srgb, var(--accent) 10%, var(--bg-2)); color: var(--accent); border-color: var(--line-focus); }
+.wf-node-dialog-body { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 18px; }
+.wf-node-dialog-body .wf-subtab-pane { display: flex; flex-direction: column; gap: 18px; }
+.wf-node-dialog-body .wf-preset-cards-list { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.wf-node-dialog-body .wf-preset-option-card { padding: 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg-2); text-align: left; color: var(--text); }
+.wf-node-dialog-body .wf-preset-option-card.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--bg-1)); }
+.wf-node-dialog-body .wf-preset-option-head { font-size: 12px; gap: 8px; }
+.wf-node-dialog-body .wf-preset-option-desc { font-size: 11px; line-height: 1.55; color: var(--text-dim); margin-top: 5px; }
+.wf-node-dialog-body .wf-compact-controls-box { display: grid; gap: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg-2); }
+.wf-node-dialog-body .wf-field-label { font-size: 11px; line-height: 1.5; color: var(--text-dim); }
+.wf-node-dialog-body .wf-range { width: 100%; accent-color: var(--accent); margin-top: 8px; }
+.wf-node-dialog-body .wf-check-pills-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.wf-node-dialog-body .wf-check-pill { padding: 7px 9px; font-size: 11px; background: var(--bg-1); border: 1px solid var(--line); border-radius: 6px; }
+.wf-node-dialog-body .wf-textarea { width: 100%; box-sizing: border-box; resize: vertical; min-height: 64px; padding: 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg-2); color: var(--text); font: inherit; font-size: 12px; line-height: 1.5; }
+.wf-node-dialog-body .wf-target-layers-grid { display: grid; grid-template-columns: 1fr; gap: 6px; max-height: none; }
+.wf-node-dialog-body .wf-target-layer-card { padding: 10px; border-radius: 7px; }
+.wf-node-dialog-footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 20px; border-top: 1px solid var(--line); flex-shrink: 0; }
+.wf-node-save-hint { margin-left: auto; color: var(--text-dim); font-size: 11px; }
+.wf-node-dialog-del-btn { background: transparent; color: var(--text-dim); font-size: 11px; border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; cursor: pointer; }
+.wf-node-dialog-del-btn:hover { color: var(--text); background: var(--bg-3); }
+.wf-camera-preview { min-width: 0; min-height: 0; padding: 20px; display: flex; flex-direction: column; background: var(--bg-0); }
+.wf-camera-preview-heading { display: flex; justify-content: space-between; gap: 10px; align-items: center; font-size: 12px; }
+.wf-camera-preview-heading span { font-size: 10px; color: var(--accent); }
+.wf-camera-preview-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; position: relative; margin: 16px 0; overflow: hidden; background: var(--bg-1); border: 1px solid var(--line); border-radius: 9px; }
+.wf-camera-preview-stage canvas { display: block; width: 100%; max-height: 100%; object-fit: contain; }
+.wf-camera-preview-transport { display: flex; align-items: center; gap: 10px; }
+.wf-camera-preview-transport input { flex: 1; min-width: 0; accent-color: var(--accent); }
+.wf-camera-preview-transport output { color: var(--text-dim); font-size: 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wf-camera-preview-caption { margin-top: 14px; display: flex; justify-content: space-between; gap: 8px; color: var(--text-dim); font-size: 11px; }
+.wf-camera-preview-note { color: var(--text-dim); font-size: 11px; line-height: 1.6; margin: 10px 0 0; }
+.wf-camera-preview-error { position: absolute; inset: 0; display: grid; place-items: center; padding: 20px; background: var(--bg-2); color: var(--text); font-size: 12px; }
+.wf-node-dialog-window button:focus-visible, .wf-node-dialog-window input:focus-visible, .wf-node-dialog-window textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wf-node-gear-btn { width: 17px; height: 15px; padding: 0; border: 1px solid transparent; border-radius: 3px; background: transparent; color: var(--text-dim); font-size: 10px; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+.wf-node-gear-btn:hover { background: var(--bg-3); border-color: var(--line); color: var(--accent); }
+@media (max-width: 860px) {
+  .wf-node-dialog-workspace { grid-template-columns: minmax(0, 1fr) minmax(330px, 1fr); }
+  .wf-node-dialog-tag, .wf-node-save-hint { display: none; }
+  .wf-camera-preview, .wf-node-dialog-body { padding: 12px; }
 }
-
-.wf-node-dialog-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 14px;
-  flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+@media (max-width: 660px) {
+  .wf-node-dialog-workspace { display: flex; flex-direction: column; overflow: auto; }
+  .wf-camera-preview { min-height: 260px; flex-shrink: 0; }
+  .wf-camera-preview-stage { min-height: 160px; }
+  .wf-node-dialog-settings { min-height: 260px; border-left: 0; }
+  .wf-node-dialog-header { padding: 12px; }
 }
-
-.wf-node-dialog-title-group {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.wf-node-dialog-title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.wf-node-dialog-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.wf-node-dialog-tag {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: var(--bg-3);
-  color: var(--text-dim);
-  border: 1px solid var(--line-soft);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.wf-node-dialog-role {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--text-faint);
-}
-
-.wf-node-dialog-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.wf-node-dialog-toggle {
-  height: 24px;
-  padding: 0 10px;
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--line);
-  background: var(--bg-3);
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-.wf-node-dialog-toggle.on {
-  background: color-mix(in srgb, #22c55e 20%, var(--bg-2));
-  color: #22c55e;
-  border-color: #22c55e;
-}
-
-.wf-node-dialog-close {
-  width: 26px;
-  height: 26px;
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text-dim);
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-.wf-node-dialog-close:hover {
-  background: var(--bg-3);
-  color: var(--text);
-  border-color: var(--line);
-}
-
-/* 2. Dải Tab Ngữ Cảnh */
-.wf-node-dialog-tabs {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 14px;
-  background: var(--bg-0);
-  border-bottom: 1px solid var(--line);
-}
-
-.wf-node-dialog-tab {
-  height: 28px;
-  padding: 0 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text-dim);
-  font-size: 11.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-.wf-node-dialog-tab:hover {
-  color: var(--text);
-  background: var(--bg-2);
-}
-.wf-node-dialog-tab.active {
-  background: var(--bg-2);
-  color: var(--text);
-  border-color: var(--line-focus);
-  font-weight: 700;
-}
-
-/* 3. Thân Cuộn Nội Dung */
-.wf-node-dialog-body {
-  flex: 1;
-  min-height: 280px;
-  max-height: calc(88vh - 125px);
-  overflow-y: auto;
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* 4. Footer Hộp Thoại */
-.wf-node-dialog-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  background: var(--bg-2);
-  border-top: 1px solid var(--line);
-}
-
-.wf-node-dialog-del-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 10px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--line);
-  background: var(--bg-3);
-  color: #ef4444;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-.wf-node-dialog-del-btn:hover {
-  background: color-mix(in srgb, #ef4444 15%, var(--bg-2));
-  border-color: #ef4444;
-}
-
-/* Nút Bánh Răng ⚙ trên Header Khối để mở Hộp thoại Cấu hình nhanh */
-.wf-node-gear-btn {
-  width: 17px;
-  height: 15px;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: 3px;
-  background: transparent;
-  color: var(--text-dim);
-  font-size: 10px;
-  line-height: 1;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  transition: all 0.12s ease;
-}
-.wf-node-gear-btn:hover {
-  background: var(--bg-3);
-  border-color: var(--line);
-  color: var(--accent);
-}
-

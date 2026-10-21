@@ -101,6 +101,8 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   workflow_action_builder: region('workflow_action_builder', '.wf-action-builder-box'),
   workflow_preview: region('workflow_preview', '.wf-inspector-preview-box'),
   workflow_json_panel: region('workflow_json_panel', '.wf-json-panel'),
+  workflow_node_camera_preview: region('workflow_node_camera_preview', '.wf-camera-preview'),
+  workflow_node_settings: region('workflow_node_settings', '.wf-node-dialog-settings'),
   workflow_node_config: region('workflow_node_config', '.wf-node-config-modal', '.wf-node-dialog-window'),
 
   // Top Toolbar & Responsive Workspace Dock

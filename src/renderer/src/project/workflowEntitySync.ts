@@ -265,7 +265,7 @@ export function executeCameraDirectorStage(
   // Đồng bộ trạng thái DOF & Shake trên toàn thể active nodes
   const activeCamNodes = activeNodes.filter((n) => n.type === 'camera_director')
   project.camera.dofEnabled = activeCamNodes.some(
-    (n) => n.params?.enableDof === true || n.params?.logicId === 'logic-cam-dof'
+    (n) => n.params?.enableDof ?? n.params?.logicId === 'logic-cam-dof'
   )
   const hasShake = activeCamNodes.some(
     (n) =>
