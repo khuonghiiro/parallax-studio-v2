@@ -138,7 +138,9 @@ export function getBestMatchingOutputPort(
 }
 
 export function buildBezierPath(x1: number, y1: number, x2: number, y2: number): string {
-  const dx = Math.max(54, Math.min(280, Math.abs(x2 - x1) * 0.45))
+  const distX = Math.abs(x2 - x1)
+  const distY = Math.abs(y2 - y1)
+  const dx = Math.max(72, Math.min(320, distX * 0.45 + distY * 0.16))
   return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`
 }
 
@@ -154,8 +156,8 @@ export interface SmartEdgeGeometry {
 
 /**
  * Tính toán đường cong Bezier thông minh chuẩn mực cho dây nối Port.
- * Triệt tiêu hoàn toàn các đoạn gãy khúc ống nước (corridor L), tạo đường cong uốn lượn
- * mềm mại chuẩn Unreal Engine / Blender / ComfyUI cho mọi khoảng cách ngang và dọc.
+ * Triệt tiêu hoàn toàn các đoạn gãy khúc, bảo đảm tiếp tuyến 2 đầu chân cắm luôn nằm ngang
+ * tuyệt đối (dy/dx = 0) và uốn lượn mềm mại chuẩn Unreal Engine / Blender / ComfyUI.
  */
 export function buildSmartEdgeGeometry(
   fromNode: WorkflowNode,
@@ -199,27 +201,11 @@ export function buildSmartEdgeGeometry(
     }
   }
 
-  // Nếu dây nối xuất phát từ Layer và vượt qua các cột Layer khác ở giữa để sang khối hạ nguồn:
-  // Tự động nâng cung uốn lên hành lang trên cao (Skyway Arc Y ~ 170px) để không bao giờ cắt ngang
-  // qua đỉnh đầu hoặc cổng ▲ Tầng Layer của các thẻ Layer trung gian
-  if (fromNode.type === 'layer_assembly' && p2.x > p1.x + NODE_W + 100) {
-    const skywayY = 170
-    const c1x = p1.x + 80
-    const c2x = p2.x - Math.max(120, Math.min(360, (p2.x - p1.x) * 0.3))
-    const path = `M ${p1.x} ${p1.y} C ${c1x} ${skywayY}, ${c2x} ${skywayY}, ${p2.x} ${p2.y}`
-    return {
-      p1,
-      p2,
-      path,
-      midX: Math.round((p1.x + p2.x) / 2),
-      midY: skywayY,
-      color,
-      label
-    }
-  }
-
-  // Dây nối ngang tiêu chuẩn giữa các cổng bên phải và bên trái (Smooth Horizontal Cubic Bezier)
-  const dx = Math.max(54, Math.min(280, Math.abs(p2.x - p1.x) * 0.45))
+  // Dây nối ngang chuẩn mực giữa các cổng bên phải và bên trái (Smooth Horizontal Cubic Bezier)
+  // Tiếp tuyến tại cổng ra luôn hướng ngang sang phải (+X), tại cổng vào luôn hướng ngang từ trái (+X)
+  const distX = Math.abs(p2.x - p1.x)
+  const distY = Math.abs(p2.y - p1.y)
+  const dx = Math.max(72, Math.min(320, distX * 0.45 + distY * 0.16))
   const path = `M ${p1.x} ${p1.y} C ${p1.x + dx} ${p1.y}, ${p2.x - dx} ${p2.y}, ${p2.x} ${p2.y}`
 
   return {
