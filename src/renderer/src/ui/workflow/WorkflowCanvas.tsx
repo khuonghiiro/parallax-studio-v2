@@ -17,6 +17,7 @@ import {
   getInputSocketCoords,
   getOutputSocketCoords
 } from './workflowLayoutAndFlow'
+import { validateWorkflowConnection } from '../../project/workflowConnectionRules'
 
 const SNAP_RADIUS = 60
 const MIN_ZOOM = 0.42
@@ -399,6 +400,9 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       sourcePort: WorkflowPortKind,
       isSourceOutput: boolean
     ) => {
+      const sourceNode = effectiveNodes.find((n) => n.id === sourceNodeId)
+      if (!sourceNode) return null
+
       let bestSocket: {
         nodeId: string
         port: WorkflowPortKind
@@ -418,6 +422,12 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         if (targetPorts.length === 0) continue
 
         for (const targetPort of targetPorts) {
+          // Thẩm định tính hợp lệ theo quy tắc logic nghiệp vụ trước khi bắt điểm
+          const validation = isSourceOutput
+            ? validateWorkflowConnection(sourceNode, sourcePort, n, targetPort)
+            : validateWorkflowConnection(n, targetPort, sourceNode, sourcePort)
+          if (!validation.valid) continue
+
           const coords = isSourceOutput
             ? getInputSocketCoords(n, targetPort)
             : getOutputSocketCoords(n, targetPort)
@@ -458,13 +468,13 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
           worldY <= n.position.y + cardH + 24
         ) {
           if (isSourceOutput) {
-            const bestPort = getBestMatchingInputPort(sourcePort, n)
+            const bestPort = getBestMatchingInputPort(sourcePort, n, sourceNode)
             if (bestPort) {
               const coords = getInputSocketCoords(n, bestPort)
               return { nodeId: n.id, port: bestPort, isInput: true, x: coords.x, y: coords.y, targetCardOnly: true }
             }
           } else {
-            const bestPort = getBestMatchingOutputPort(sourcePort, n)
+            const bestPort = getBestMatchingOutputPort(sourcePort, n, sourceNode)
             if (bestPort) {
               const coords = getOutputSocketCoords(n, bestPort)
               return { nodeId: n.id, port: bestPort, isInput: false, x: coords.x, y: coords.y, targetCardOnly: true }

@@ -13,6 +13,7 @@ import {
 } from '../../project/workflowCatalog'
 import { formatRuleBadge } from '../../project/workflowStageEffects'
 import { classifyLayerRole, resolveNodeTargetBinding } from '../../project/workflowTargets'
+import { validateWorkflowConnection } from '../../project/workflowConnectionRules'
 
 export const NODE_W = 248
 export const HEADER_H = 24
@@ -87,26 +88,45 @@ export function getInputSocketCoords(
  */
 export function getBestMatchingInputPort(
   fromPort: WorkflowPortKind,
-  targetNode: WorkflowNode
+  targetNode: WorkflowNode,
+  sourceNode?: WorkflowNode
 ): WorkflowPortKind | null {
   const spec = WORKFLOW_NODE_SPECS[targetNode.type]
   if (!spec || spec.inputs.length === 0) return null
 
   // 1. Phân loại cổng dọc đặc biệt (Vertical Hierarchical Ports)
   if (fromPort === 'layers_tree') {
+    if (sourceNode) {
+      const v = validateWorkflowConnection(sourceNode, fromPort, targetNode, 'layers_tree')
+      if (!v.valid) return null
+    }
     return spec.inputs.includes('layers_tree') ? 'layers_tree' : null
   }
   if (fromPort === 'transform_link') {
+    if (sourceNode) {
+      const v = validateWorkflowConnection(sourceNode, fromPort, targetNode, 'transform_link')
+      if (!v.valid) return null
+    }
     return spec.inputs.includes('transform_link') ? 'transform_link' : null
   }
 
-  // 2. Không cho phép nối chéo cổng ngang vào cổng dọc hoặc ngược lại
-  const validInputs = spec.inputs.filter((p) => p !== 'layers_tree' && p !== 'transform_link')
+  // 2. Nếu có sourceNode, kiểm tra toàn bộ danh sách inputs của targetNode theo ma trận logic
+  if (sourceNode) {
+    if (spec.inputs.includes(fromPort)) {
+      const v = validateWorkflowConnection(sourceNode, fromPort, targetNode, fromPort)
+      if (v.valid) return fromPort
+    }
+    for (const inPort of spec.inputs) {
+      const v = validateWorkflowConnection(sourceNode, fromPort, targetNode, inPort)
+      if (v.valid) return inPort
+    }
+    return null
+  }
 
-  // 3. Khớp chính xác tên cổng chuẩn theo logic nghiệp vụ
+  // 3. Không cho phép nối chéo cổng ngang vào cổng dọc hoặc ngược lại
+  const validInputs = spec.inputs.filter((p) => p !== 'layers_tree' && p !== 'transform_link')
   if (validInputs.includes(fromPort)) return fromPort
 
-  // 4. Nếu không có cổng phù hợp ngữ nghĩa, từ chối kết nối (tránh nối tùy tiện)
   return null
 }
 
@@ -115,23 +135,45 @@ export function getBestMatchingInputPort(
  */
 export function getBestMatchingOutputPort(
   toPort: WorkflowPortKind,
-  sourceNode: WorkflowNode
+  sourceNode: WorkflowNode,
+  targetNode?: WorkflowNode
 ): WorkflowPortKind | null {
   const spec = WORKFLOW_NODE_SPECS[sourceNode.type]
   if (!spec || spec.outputs.length === 0) return null
 
   // 1. Phân loại cổng dọc đặc biệt
   if (toPort === 'layers_tree') {
+    if (targetNode) {
+      const v = validateWorkflowConnection(sourceNode, 'layers_tree', targetNode, toPort)
+      if (v.valid) return 'layers_tree'
+      const vRig = validateWorkflowConnection(sourceNode, 'actors_rig', targetNode, toPort)
+      if (vRig.valid) return 'actors_rig'
+      return null
+    }
     return spec.outputs.includes('layers_tree') ? 'layers_tree' : null
   }
   if (toPort === 'transform_link') {
+    if (targetNode) {
+      const v = validateWorkflowConnection(sourceNode, 'transform_link', targetNode, toPort)
+      if (!v.valid) return null
+    }
     return spec.outputs.includes('transform_link') ? 'transform_link' : null
   }
 
-  // 2. Không cho phép nối chéo cổng ngang vào cổng dọc hoặc ngược lại
-  const validOutputs = spec.outputs.filter((p) => p !== 'layers_tree' && p !== 'transform_link')
+  // 2. Nếu có targetNode, kiểm tra danh sách outputs của sourceNode theo ma trận logic
+  if (targetNode) {
+    if (spec.outputs.includes(toPort)) {
+      const v = validateWorkflowConnection(sourceNode, toPort, targetNode, toPort)
+      if (v.valid) return toPort
+    }
+    for (const outPort of spec.outputs) {
+      const v = validateWorkflowConnection(sourceNode, outPort, targetNode, toPort)
+      if (v.valid) return outPort
+    }
+    return null
+  }
 
-  // 3. Khớp chính xác tên cổng chuẩn
+  const validOutputs = spec.outputs.filter((p) => p !== 'layers_tree' && p !== 'transform_link')
   if (validOutputs.includes(toPort)) return toPort
 
   return null

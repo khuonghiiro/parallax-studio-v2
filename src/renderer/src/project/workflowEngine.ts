@@ -57,6 +57,7 @@ import {
   validateAndNormalizeWorkflowJson,
   type WorkflowLogicNodeCatalogItem
 } from './workflowLogicNodes'
+import { validateWorkflowConnection } from './workflowConnectionRules'
 
 export {
   WORKFLOW_SUBPART_CATALOG,
@@ -223,6 +224,7 @@ export function autoWireWorkflowNodes(workflow: WorkflowGraph): WorkflowGraph {
 
 /**
  * Kết nối một cổng đầu ra (fromPort) của Node nguồn tới cổng đầu vào (toPort) của Node đích.
+ * Bắt buộc tuân thủ nghiêm ngặt Ma trận Kiểm tra Tương thích Ngữ nghĩa (Semantic Compatibility Matrix).
  */
 export function connectWorkflowPort(
   workflow: WorkflowGraph,
@@ -235,17 +237,29 @@ export function connectWorkflowPort(
   const fromNode = workflow.nodes.find((n) => n.id === fromNodeId || n.type === fromNodeId)
   const toNode = workflow.nodes.find((n) => n.id === toNodeId || n.type === toNodeId)
   if (!fromNode || !toNode) {
-    throw new Error(`Node not found when connecting ${fromNodeId}:${fromPort} -> ${toNodeId}:${toPort}`)
+    throw new Error(`Không tìm thấy Khối khi kết nối ${fromNodeId}:${fromPort} -> ${toNodeId}:${toPort}`)
   }
 
-  const exists = workflow.edges.some(
+  const validation = validateWorkflowConnection(fromNode, fromPort, toNode, toPort)
+  if (!validation.valid) {
+    throw new Error(validation.reason || `Kết nối không hợp lệ giữa "${fromNode.title}" và "${toNode.title}".`)
+  }
+
+  // Nếu cổng đích chỉ chấp nhận 1 dây vào duy nhất (ví dụ layers_tree hoặc transform_link):
+  // Tự động gỡ dây cũ trước khi cắm dây mới vào để tránh đa liên kết sai logic
+  let currentEdges = workflow.edges
+  if (toPort === 'layers_tree' || toPort === 'transform_link') {
+    currentEdges = currentEdges.filter((e) => !(e.toNode === toNode.id && e.toPort === toPort))
+  }
+
+  const exists = currentEdges.some(
     (e) =>
       e.fromNode === fromNode.id &&
       e.fromPort === fromPort &&
       e.toNode === toNode.id &&
       e.toPort === toPort
   )
-  if (exists) return workflow
+  if (exists) return { ...workflow, edges: currentEdges }
 
   const newEdge: WorkflowEdge = {
     id: `edge-${fromNode.id}-${fromPort}-${toNode.id}-${toPort}`,
@@ -257,7 +271,7 @@ export function connectWorkflowPort(
 
   return {
     ...workflow,
-    edges: [...workflow.edges, newEdge]
+    edges: [...currentEdges, newEdge]
   }
 }
 

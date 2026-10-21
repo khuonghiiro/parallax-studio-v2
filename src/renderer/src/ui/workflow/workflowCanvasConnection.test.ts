@@ -25,8 +25,8 @@ describe('Workflow Canvas Connection & Playback Reset', () => {
 
   describe('Port Matching & Fallbacks (getBestMatchingInputPort & getBestMatchingOutputPort)', () => {
     it('matches exact port types when target accepts it', () => {
-      // scene_shot (scene_ctx) -> layer_assembly (inputs: scene_ctx)
-      expect(getBestMatchingInputPort('scene_ctx', assemblyNode)).toBe('scene_ctx')
+      // scene_shot (layers_tree) -> layer_assembly (inputs: layers_tree)
+      expect(getBestMatchingInputPort('layers_tree', assemblyNode)).toBe('layers_tree')
 
       // layer_assembly (actors_rig) -> motion_choreography (inputs: actors_rig, scene_ctx, motion_stream)
       expect(getBestMatchingInputPort('actors_rig', motionNode)).toBe('actors_rig')
@@ -145,18 +145,21 @@ describe('Workflow Canvas Connection & Playback Reset', () => {
     })
   })
 
-  describe('Camera Logic Node Separation & Per-Layer Reflection', () => {
-    it('allows camera_cut port in camera_director and layer_assembly inputs', () => {
+  describe('Camera Logic Node Separation & Look Output Delivery', () => {
+    it('allows camera_cut port in camera_director and look_output inputs', () => {
       expect(WORKFLOW_NODE_SPECS.camera_director.inputs).toContain('camera_cut')
-      expect(WORKFLOW_NODE_SPECS.layer_assembly.inputs).toContain('camera_cut')
+      expect(WORKFLOW_NODE_SPECS.look_output.inputs).toContain('camera_cut')
     })
 
-    it('matches camera_cut between camera modifier nodes and downstream nodes', () => {
+    it('matches camera_cut between camera modifier nodes and downstream look node', () => {
       // connecting camera_cut from camNode to another camNode (modifier chaining)
       expect(getBestMatchingInputPort('camera_cut', camNode)).toBe('camera_cut')
 
-      // connecting camera_cut from camNode to layer_assembly (layer targeting)
-      expect(getBestMatchingInputPort('camera_cut', assemblyNode)).toBe('camera_cut')
+      // connecting camera_cut from camNode to look_output (final render delivery)
+      expect(getBestMatchingInputPort('camera_cut', lookNode)).toBe('camera_cut')
+
+      // layer_assembly does NOT accept camera cuts (semantically invalid)
+      expect(getBestMatchingInputPort('camera_cut', assemblyNode)).toBeNull()
     })
   })
 })

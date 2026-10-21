@@ -158,7 +158,7 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     aiAgentRole: 'AssemblyRigAgent',
     color: '#a855f7',
     description: 'Quản lý cụm nhân vật 2.5D, cây cối đa lớp, mô hình 3D kiến trúc và neo gốc xoay (Anchor/Billboard).',
-    inputs: ['layers_tree', 'scene_ctx', 'motion_stream', 'vfx_stage', 'audio_mix', 'camera_cut'],
+    inputs: ['layers_tree', 'scene_ctx', 'motion_stream', 'vfx_stage', 'audio_mix'],
     outputs: ['transform_link', 'actors_rig'],
     presets: [
       {

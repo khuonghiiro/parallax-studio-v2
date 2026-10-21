@@ -126,18 +126,23 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
     return (sid ? project.shots.find((s) => s.id === sid) : null) ?? project.shots[0] ?? null
   }, [node.type, node.params?.shotId, project])
 
+  const parentLayer = React.useMemo(() => {
+    if (!project || !boundLayer?.parentId) return null
+    return project.layers.find((l) => l.id === boundLayer.parentId) ?? null
+  }, [project, boundLayer?.parentId])
+
   const spec = WORKFLOW_NODE_SPECS[node.type]
 
   const inputs = React.useMemo(() => {
     if (boundLayer) {
-      return ['layers_tree', 'scene_ctx', 'motion_stream', 'vfx_stage', 'audio_mix'] as WorkflowPortKind[]
+      return ['layers_tree', 'motion_stream', 'vfx_stage', 'audio_mix'] as WorkflowPortKind[]
     }
     return spec?.inputs ?? []
   }, [boundLayer, spec])
 
   const outputs = React.useMemo(() => {
     if (boundLayer) {
-      return ['transform_link', 'vfx_stage', 'motion_stream', 'actors_rig', 'scene_ctx'] as WorkflowPortKind[]
+      return ['transform_link', 'actors_rig'] as WorkflowPortKind[]
     }
     return spec?.outputs ?? []
   }, [boundLayer, spec])
@@ -350,6 +355,11 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
           >
             {cardTitle}
             <span className="wf-node-sub-tag">{cardCategoryBadge}</span>
+            {parentLayer && (
+              <span className="wf-node-sub-tag parent-link" title={`Layer con bám theo Cha: "${parentLayer.name}" (Parent & Link)`}>
+                ↳ {parentLayer.name}
+              </span>
+            )}
           </span>
           {onPreviewNode && (
             <button

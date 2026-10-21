@@ -1,0 +1,133 @@
+import { describe, expect, it } from 'vitest'
+import type { WorkflowNode } from '@shared/types'
+import { validateWorkflowConnection } from './workflowConnectionRules'
+
+describe('validateWorkflowConnection', () => {
+  const sceneNode: WorkflowNode = {
+    id: 'wf-scene-1',
+    type: 'scene_shot',
+    title: 'Phân cảnh 1',
+    enabled: true,
+    position: { x: 0, y: 0 }
+  }
+
+  const layerNodeA: WorkflowNode = {
+    id: 'wf-layer-1',
+    type: 'layer_assembly',
+    title: 'Nhân vật chính',
+    enabled: true,
+    position: { x: 300, y: 0 },
+    params: { targetLayerIds: ['layer-1'] }
+  }
+
+  const layerNodeB: WorkflowNode = {
+    id: 'wf-layer-2',
+    type: 'layer_assembly',
+    title: 'Cây cối',
+    enabled: true,
+    position: { x: 300, y: 200 },
+    params: { targetLayerIds: ['layer-2'] }
+  }
+
+  const transformNodeA: WorkflowNode = {
+    id: 'wf-transform-1',
+    type: 'layer_transform',
+    title: 'Tọa độ Z',
+    enabled: true,
+    position: { x: 300, y: 400 },
+    params: { targetLayerIds: ['layer-1'] }
+  }
+
+  const transformNodeB: WorkflowNode = {
+    id: 'wf-transform-2',
+    type: 'layer_transform',
+    title: 'Tọa độ Z (B)',
+    enabled: true,
+    position: { x: 300, y: 600 },
+    params: { targetLayerIds: ['layer-2'] }
+  }
+
+  const motionNode: WorkflowNode = {
+    id: 'wf-motion-1',
+    type: 'motion_choreography',
+    title: 'Chuyển động',
+    enabled: true,
+    position: { x: 600, y: 0 }
+  }
+
+  const fxNode: WorkflowNode = {
+    id: 'wf-fx-1',
+    type: 'physics_fx',
+    title: 'Vật lý & FX',
+    enabled: true,
+    position: { x: 900, y: 0 }
+  }
+
+  const camNode: WorkflowNode = {
+    id: 'wf-cam-1',
+    type: 'camera_director',
+    title: 'Camera',
+    enabled: true,
+    position: { x: 600, y: 300 }
+  }
+
+  it('từ chối kết nối một khối vào chính nó', () => {
+    const res = validateWorkflowConnection(layerNodeA, 'actors_rig', layerNodeA, 'vfx_stage')
+    expect(res.valid).toBe(false)
+    expect(res.reason).toContain('chính nó')
+  })
+
+  it('CẤM Layer nối sang Layer bằng các cổng ngang thông thường (vfx_stage, motion_stream, scene_ctx)', () => {
+    const res1 = validateWorkflowConnection(layerNodeA, 'vfx_stage', layerNodeB, 'vfx_stage')
+    expect(res1.valid).toBe(false)
+    expect(res1.reason).toContain('Không thể nối trực tiếp giữa hai Layer qua cổng ngang')
+
+    const res2 = validateWorkflowConnection(layerNodeA, 'motion_stream', layerNodeB, 'motion_stream')
+    expect(res2.valid).toBe(false)
+
+    const res3 = validateWorkflowConnection(layerNodeA, 'actors_rig', layerNodeB, 'actors_rig')
+    expect(res3.valid).toBe(false)
+  })
+
+  it('CHO PHÉP Layer Cha nối vào cổng đỉnh [layers_tree] của Layer Con để tạo quan hệ Cha - Con (Parent & Link)', () => {
+    const res = validateWorkflowConnection(layerNodeA, 'actors_rig', layerNodeB, 'layers_tree')
+    expect(res.valid).toBe(true)
+    expect(res.isParentChildLink).toBe(true)
+  })
+
+  it('cho phép Scene phân phối xuống Layer qua layers_tree', () => {
+    const res = validateWorkflowConnection(sceneNode, 'layers_tree', layerNodeA, 'layers_tree')
+    expect(res.valid).toBe(true)
+  })
+
+  it('cho phép Layer nối xuống đúng Transform Plate của chính nó qua transform_link', () => {
+    const res = validateWorkflowConnection(layerNodeA, 'transform_link', transformNodeA, 'transform_link')
+    expect(res.valid).toBe(true)
+  })
+
+  it('từ chối Layer nối sang Transform Plate của Layer khác qua transform_link', () => {
+    const res = validateWorkflowConnection(layerNodeA, 'transform_link', transformNodeB, 'transform_link')
+    expect(res.valid).toBe(false)
+    expect(res.reason).toContain('chỉ được liên kết với đúng Layer chủ quản')
+  })
+
+  it('cho phép Layer xuất actors_rig sang Motion, FX, Camera', () => {
+    expect(validateWorkflowConnection(layerNodeA, 'actors_rig', motionNode, 'actors_rig').valid).toBe(true)
+    expect(validateWorkflowConnection(layerNodeA, 'actors_rig', fxNode, 'actors_rig').valid).toBe(true)
+    expect(validateWorkflowConnection(layerNodeA, 'actors_rig', camNode, 'actors_rig').valid).toBe(true)
+  })
+
+  it('cho phép Motion xuất motion_stream sang Layer hoặc FX', () => {
+    expect(validateWorkflowConnection(motionNode, 'motion_stream', layerNodeA, 'motion_stream').valid).toBe(true)
+    expect(validateWorkflowConnection(motionNode, 'motion_stream', fxNode, 'motion_stream').valid).toBe(true)
+  })
+
+  it('cho phép FX xuất vfx_stage sang Layer', () => {
+    expect(validateWorkflowConnection(fxNode, 'vfx_stage', layerNodeA, 'vfx_stage').valid).toBe(true)
+  })
+
+  it('từ chối nối chéo cổng ngang vào cổng dọc', () => {
+    const res = validateWorkflowConnection(motionNode, 'motion_stream', layerNodeA, 'transform_link')
+    expect(res.valid).toBe(false)
+  })
+})
