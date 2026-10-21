@@ -199,6 +199,25 @@ export function buildSmartEdgeGeometry(
     }
   }
 
+  // Nếu dây nối xuất phát từ Layer và vượt qua các cột Layer khác ở giữa để sang khối hạ nguồn:
+  // Tự động nâng cung uốn lên hành lang trên cao (Skyway Arc Y ~ 170px) để không bao giờ cắt ngang
+  // qua đỉnh đầu hoặc cổng ▲ Tầng Layer của các thẻ Layer trung gian
+  if (fromNode.type === 'layer_assembly' && p2.x > p1.x + NODE_W + 100) {
+    const skywayY = 170
+    const c1x = p1.x + 80
+    const c2x = p2.x - Math.max(120, Math.min(360, (p2.x - p1.x) * 0.3))
+    const path = `M ${p1.x} ${p1.y} C ${c1x} ${skywayY}, ${c2x} ${skywayY}, ${p2.x} ${p2.y}`
+    return {
+      p1,
+      p2,
+      path,
+      midX: Math.round((p1.x + p2.x) / 2),
+      midY: skywayY,
+      color,
+      label
+    }
+  }
+
   // Dây nối ngang tiêu chuẩn giữa các cổng bên phải và bên trái (Smooth Horizontal Cubic Bezier)
   const dx = Math.max(54, Math.min(280, Math.abs(p2.x - p1.x) * 0.45))
   const path = `M ${p1.x} ${p1.y} C ${p1.x + dx} ${p1.y}, ${p2.x - dx} ${p2.y}, ${p2.x} ${p2.y}`

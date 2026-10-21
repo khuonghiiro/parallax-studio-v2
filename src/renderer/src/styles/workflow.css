@@ -501,9 +501,18 @@
 .wf-edge-group.muted .wf-edge-glow-bg { opacity: 0; }
 .wf-edge-group:hover .wf-edge-line { stroke-width: 3.2px; }
 
-.wf-edge-badge { pointer-events: all; cursor: pointer; opacity: 0.95; }
+.wf-edge-badge {
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
 .wf-edge-badge-ring { fill: var(--bg-1); stroke-width: 1.6px; }
 .wf-edge-badge-x { fill: var(--danger); font-size: 8px; font-weight: 800; font-family: var(--font); opacity: 0; }
+.wf-edge-group:hover .wf-edge-badge {
+  pointer-events: all;
+  cursor: pointer;
+  opacity: 1;
+}
 .wf-edge-group:hover .wf-edge-badge-ring { stroke: var(--danger) !important; fill: var(--bg-2); }
 .wf-edge-group:hover .wf-edge-badge-dot { opacity: 0; }
 .wf-edge-group:hover .wf-edge-badge-x { opacity: 1; }
@@ -956,41 +965,11 @@
   color: var(--ok);
   box-shadow: 0 0 10px color-mix(in srgb, var(--ok) 25%, transparent);
 }
-.wf-pipeline-health-badge.building {
-  border-color: color-mix(in srgb, var(--warn) 60%, var(--line));
-  background: color-mix(in srgb, var(--warn) 12%, var(--bg-1));
-  color: var(--warn);
-}
-.wf-pipeline-health-badge.broken {
-  border-color: color-mix(in srgb, var(--err) 55%, var(--line));
-  background: color-mix(in srgb, var(--err) 12%, var(--bg-1));
-  color: var(--err);
-}
-.wf-health-dot {
-  width: 6.5px;
-  height: 6.5px;
-  border-radius: 50%;
-  background: currentColor;
-  box-shadow: 0 0 6px currentColor;
-  flex-shrink: 0;
-}
-.wf-health-dot.pulsing {
-  animation: wf-dot-pulse 0.9s ease-in-out infinite alternate;
-}
-.wf-spawn-scene-btn {
-  border-color: color-mix(in srgb, var(--accent-cyan) 45%, var(--line));
-  color: var(--accent-cyan);
-}
-.wf-spawn-scene-btn:hover {
-  border-color: var(--accent-cyan);
-  background: color-mix(in srgb, var(--accent-cyan) 18%, var(--bg-1));
-}
-.wf-play-time-tag.empty {
-  opacity: 0.6;
-  border-style: dashed;
-}
-.wf-time-empty-hint {
-  font-size: 9px;
-  opacity: 0.75;
-  margin-left: 2px;
-}
+.wf-pipeline-health-badge.building { border-color: color-mix(in srgb, var(--warn) 60%, var(--line)); background: color-mix(in srgb, var(--warn) 12%, var(--bg-1)); color: var(--warn); }
+.wf-pipeline-health-badge.broken { border-color: color-mix(in srgb, var(--err) 55%, var(--line)); background: color-mix(in srgb, var(--err) 12%, var(--bg-1)); color: var(--err); }
+.wf-health-dot { width: 6.5px; height: 6.5px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px currentColor; flex-shrink: 0; }
+.wf-health-dot.pulsing { animation: wf-dot-pulse 0.9s ease-in-out infinite alternate; }
+.wf-spawn-scene-btn { border-color: color-mix(in srgb, var(--accent-cyan) 45%, var(--line)); color: var(--accent-cyan); }
+.wf-spawn-scene-btn:hover { border-color: var(--accent-cyan); background: color-mix(in srgb, var(--accent-cyan) 18%, var(--bg-1)); }
+.wf-play-time-tag.empty { opacity: 0.6; border-style: dashed; }
+.wf-time-empty-hint { font-size: 9px; opacity: 0.75; margin-left: 2px; }

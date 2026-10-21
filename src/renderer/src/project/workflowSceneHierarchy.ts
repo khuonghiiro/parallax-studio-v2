@@ -409,26 +409,35 @@ export function spawnSceneWithChildLayers(
     (e) => !removedNodeIds.has(e.fromNode) && !removedNodeIds.has(e.toNode)
   )
 
-  const nextEdges: WorkflowEdge[] = [...childEdges]
+  // Tự động nối dây từ Layer gần downstream nhất (Layer cuối cùng) sang Chuyển động
+  // để đường nối đi trực tiếp ngắn nhất, không bắc ngang qua đỉnh các layer khác
+  const motionNode = nextNodes.find((n) => n.type === 'motion_choreography')
+  const defaultActorChild = childLayerNodes[childLayerNodes.length - 1]
+  if (motionNode && defaultActorChild) {
+    childEdges.push({
+      id: `edge-${defaultActorChild.id}-actors_rig-${motionNode.id}-actors_rig`,
+      fromNode: defaultActorChild.id,
+      fromPort: 'actors_rig',
+      toNode: motionNode.id,
+      toPort: 'actors_rig'
+    })
+  }
+
+  // Khử trùng lặp và đa liên kết vào cổng input đơn (Single-Input Ports) của các khối hạ nguồn
+  const edgeList: WorkflowEdge[] = [...childEdges]
   for (const e of retainedEdges) {
-    if (!nextEdges.some((x) => x.id === e.id)) {
-      nextEdges.push(e)
+    if (!edgeList.some((x) => x.id === e.id)) {
+      edgeList.push(e)
     }
   }
 
-  // Tự động nối dây bổ sung cho các khối chức năng hạ nguồn nếu còn thiếu mạch
-  const motionNode = nextNodes.find((n) => n.type === 'motion_choreography')
-  if (motionNode && !nextEdges.some((e) => e.toNode === motionNode.id && e.toPort === 'actors_rig')) {
-    // Ưu tiên layer nhân vật / composite 2.5D hoặc layer gần downstream nhất (layer cuối cùng)
-    const actorChild = childLayerNodes.find((c) => c.title.includes('2.5D') || c.title.includes('Nhân vật')) ?? childLayerNodes[childLayerNodes.length - 1]
-    if (actorChild) {
-      nextEdges.push({
-        id: `edge-${actorChild.id}-actors_rig-${motionNode.id}-actors_rig`,
-        fromNode: actorChild.id,
-        fromPort: 'actors_rig',
-        toNode: motionNode.id,
-        toPort: 'actors_rig'
-      })
+  const sanitizedEdges: WorkflowEdge[] = []
+  const inputOccupied = new Set<string>()
+  for (const e of edgeList) {
+    const targetKey = `${e.toNode}:${e.toPort}`
+    if (!inputOccupied.has(targetKey)) {
+      inputOccupied.add(targetKey)
+      sanitizedEdges.push(e)
     }
   }
 
@@ -437,7 +446,7 @@ export function spawnSceneWithChildLayers(
       ...workflow,
       targetShotId: shot.id,
       nodes: nextNodes,
-      edges: nextEdges
+      edges: sanitizedEdges
     },
     sceneNode,
     childNodes: childLayerNodes,
