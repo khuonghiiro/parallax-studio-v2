@@ -43,6 +43,15 @@
 .wf-node-dialog-body .wf-textarea { width: 100%; box-sizing: border-box; resize: vertical; min-height: 64px; padding: 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg-2); color: var(--text); font: inherit; font-size: 12px; line-height: 1.5; }
 .wf-node-dialog-body .wf-target-layers-grid { display: grid; grid-template-columns: 1fr; gap: 6px; max-height: none; }
 .wf-node-dialog-body .wf-target-layer-card { padding: 10px; border-radius: 7px; }
+.wf-node-dialog-body .wf-field-group { display: flex; flex-direction: column; gap: 8px; }
+.wf-node-dialog-body .wf-port-target-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.wf-node-dialog-body .wf-target-chip { padding: 7px 10px; font-size: 11px; background: var(--bg-1); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; transition: all 0.15s ease; }
+.wf-node-dialog-body .wf-target-chip:hover { background: var(--bg-3); border-color: var(--line-focus); }
+.wf-node-dialog-body .wf-target-chip.wired { background: color-mix(in srgb, var(--accent) 12%, var(--bg-1)); border-color: var(--accent); color: var(--accent); }
+.wf-node-dialog-body .wf-preset-pill { padding: 10px 14px; font-size: 11px; background: var(--bg-1); border: 1px solid var(--line); border-radius: 7px; cursor: pointer; transition: all 0.15s ease; text-align: center; }
+.wf-node-dialog-body .wf-preset-pill:hover { background: var(--bg-3); }
+.wf-node-dialog-body .wf-preset-pill.active { background: color-mix(in srgb, var(--accent) 12%, var(--bg-1)); border-color: var(--accent); color: var(--accent); }
+.wf-node-dialog-body .wf-target-mode-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .wf-node-dialog-footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 20px; border-top: 1px solid var(--line); flex-shrink: 0; }
 .wf-node-save-hint { margin-left: auto; color: var(--text-dim); font-size: 11px; }
 .wf-node-dialog-del-btn { background: transparent; color: var(--text-dim); font-size: 11px; border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; cursor: pointer; }

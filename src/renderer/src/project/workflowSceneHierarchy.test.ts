@@ -711,18 +711,29 @@ describe('workflowSceneHierarchy', () => {
       visible: true,
       locked: false,
       shotId: 'shot-1',
+      inPoint: 0,
+      outPoint: 10,
+      fadeIn: 0,
+      fadeOut: 0,
+      blendMode: 'normal',
+      autoScale: true,
+      autoOrient: 'none',
+      parentId: null,
       transform: {
-        position: { value: [0, 0, 400] },
-        rotation: { value: [0, 0, 0] },
-        scale: { value: [1, 1, 1] },
-        opacity: { value: 1 }
+        position: { value: [0, 0, 400], keyframes: [] },
+        rotation: { value: [0, 0, 0], keyframes: [] },
+        scale: { value: [1, 1, 1], keyframes: [] },
+        opacity: { value: 1, keyframes: [] }
       },
-      props: { assetId: 'wall-front-asset' },
+      props: { assetId: 'wall-front-asset', width: 800, height: 600 },
       model3d: {
         instanceId: 'house-instance-1',
         modelId: 'tudor-house',
         modelName: 'Nhà Cổ Châu Âu',
-        faceId: 'front'
+        faceId: 'front',
+        initialScale: 1,
+        globalScale: 1,
+        basePosition: [0, 0, 0]
       }
     }
     const houseSide: Layer = {
@@ -732,18 +743,29 @@ describe('workflowSceneHierarchy', () => {
       visible: true,
       locked: false,
       shotId: 'shot-1',
+      inPoint: 0,
+      outPoint: 10,
+      fadeIn: 0,
+      fadeOut: 0,
+      blendMode: 'normal',
+      autoScale: true,
+      autoOrient: 'none',
+      parentId: null,
       transform: {
-        position: { value: [150, 0, 400] },
-        rotation: { value: [0, 90, 0] },
-        scale: { value: [1, 1, 1] },
-        opacity: { value: 1 }
+        position: { value: [150, 0, 400], keyframes: [] },
+        rotation: { value: [0, 90, 0], keyframes: [] },
+        scale: { value: [1, 1, 1], keyframes: [] },
+        opacity: { value: 1, keyframes: [] }
       },
-      props: { assetId: 'wall-side-asset' },
+      props: { assetId: 'wall-side-asset', width: 800, height: 600 },
       model3d: {
         instanceId: 'house-instance-1',
         modelId: 'tudor-house',
         modelName: 'Nhà Cổ Châu Âu',
-        faceId: 'side'
+        faceId: 'side',
+        initialScale: 1,
+        globalScale: 1,
+        basePosition: [0, 0, 0]
       }
     }
     const houseRoof: Layer = {
@@ -753,18 +775,29 @@ describe('workflowSceneHierarchy', () => {
       visible: true,
       locked: false,
       shotId: 'shot-1',
+      inPoint: 0,
+      outPoint: 10,
+      fadeIn: 0,
+      fadeOut: 0,
+      blendMode: 'normal',
+      autoScale: true,
+      autoOrient: 'none',
+      parentId: null,
       transform: {
-        position: { value: [0, -180, 400] },
-        rotation: { value: [45, 0, 0] },
-        scale: { value: [1, 1, 1] },
-        opacity: { value: 1 }
+        position: { value: [0, -180, 400], keyframes: [] },
+        rotation: { value: [45, 0, 0], keyframes: [] },
+        scale: { value: [1, 1, 1], keyframes: [] },
+        opacity: { value: 1, keyframes: [] }
       },
-      props: { assetId: 'roof-asset' },
+      props: { assetId: 'roof-asset', width: 800, height: 600 },
       model3d: {
         instanceId: 'house-instance-1',
         modelId: 'tudor-house',
         modelName: 'Nhà Cổ Châu Âu',
-        faceId: 'roof'
+        faceId: 'roof',
+        initialScale: 1,
+        globalScale: 1,
+        basePosition: [0, 0, 0]
       }
     }
     project.layers.push(houseFront, houseSide, houseRoof)
