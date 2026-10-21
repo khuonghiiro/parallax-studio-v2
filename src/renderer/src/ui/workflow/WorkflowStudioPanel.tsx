@@ -404,6 +404,7 @@ export const WorkflowStudioPanel: React.FC = () => {
       }))
     }
     commitWorkflow(next, 'wf-autolayout', false)
+    window.dispatchEvent(new CustomEvent('pxs:wf-fit-view'))
     showToast('✨ Đã tự sắp xếp gọn gàng toàn bộ sơ đồ, triệt tiêu đè lấn!')
   }, [workflow, project, commitWorkflow, showToast])
 
@@ -561,11 +562,7 @@ export const WorkflowStudioPanel: React.FC = () => {
   }, [showToast])
 
   const handleSpawnSceneLayers = useCallback(() => {
-    const { workflow: nextWf, sceneNode, childNodes } = spawnSceneWithChildLayers(
-      project,
-      workflow,
-      currentShotScope
-    )
+    const { workflow: nextWf, sceneNode, childNodes } = spawnSceneWithChildLayers(project, workflow, currentShotScope)
     const newPositions = solveSpaciousWorkflowLayout(nextWf.nodes, nextWf.edges, project)
     const laidOutWf: WorkflowGraph = {
       ...nextWf,
@@ -576,6 +573,7 @@ export const WorkflowStudioPanel: React.FC = () => {
     }
     commitWorkflow(laidOutWf, undefined, true, new Set([sceneNode.id]))
     setSelectedNodeId(sceneNode.id)
+    window.dispatchEvent(new CustomEvent('pxs:wf-fit-view'))
     showToast(
       `🎬 Đã bung Cảnh "${sceneNode.title}" (${childNodes.length} layer) — Không trùng lặp, sơ đồ thoáng đẹp!`
     )

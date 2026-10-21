@@ -265,7 +265,7 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
   return (
     <div
       id={`wf-node-${node.type}`}
-      className={`wf-node-card${isSelected ? ' selected' : ''}${isConnected ? ' connected' : ' disconnected'}${!node.enabled ? ' disabled' : ''}${telemetry.isStageHighlight ? ' running stage-highlight' : ''}${isConnectable ? ' wire-connectable' : ''}${isSnapNode ? ' snap-target' : ''}`}
+      className={`wf-node-card${node.type === 'layer_transform' ? ' is-companion' : ''}${isSelected ? ' selected' : ''}${isConnected ? ' connected' : ' disconnected'}${!node.enabled ? ' disabled' : ''}${telemetry.isStageHighlight ? ' running stage-highlight' : ''}${isConnectable ? ' wire-connectable' : ''}${isSnapNode ? ' snap-target' : ''}`}
       style={{
         left: node.position.x,
         top: node.position.y,
@@ -314,88 +314,101 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
       )}
 
       {/* 1. Thanh tiêu đề Khối (Nắm kéo tự do 4 hướng) */}
-      <div className="wf-node-header" style={{ ['--wf-node-color' as string]: nodeColor }}>
-        <span className="wf-node-icon" style={{ background: nodeColor }}>
-          {logicItem ? (
-            <span style={{ fontSize: 13, lineHeight: '14px' }}>{logicItem.icon}</span>
-          ) : boundLayer ? (
-            <span style={{ fontSize: 13, lineHeight: '14px' }}>
-              {boundLayer.type === 'text'
-                ? '🔤'
-                : boundLayer.type === 'particles'
-                  ? '✨'
-                  : boundLayer.composite
-                    ? '🎭'
-                    : '🖼️'}
-            </span>
-          ) : (
-            renderWorkflowNodeIcon(node.type, { width: 12, height: 12 })
+      {node.type === 'layer_transform' ? (
+        <div className="wf-node-header companion" style={{ ['--wf-node-color' as string]: '#0284c7' }}>
+          <span className="wf-node-icon" style={{ background: '#0284c7' }}>🎯</span>
+          <span
+            className="wf-node-title"
+            title={`${cardTitle} — Kéo slider chỉnh tọa độ 60fps`}
+          >
+            {cardTitle}
+          </span>
+          <span className="wf-node-status-pill on">⚡ 60fps</span>
+        </div>
+      ) : (
+        <div className="wf-node-header" style={{ ['--wf-node-color' as string]: nodeColor }}>
+          <span className="wf-node-icon" style={{ background: nodeColor }}>
+            {logicItem ? (
+              <span style={{ fontSize: 13, lineHeight: '14px' }}>{logicItem.icon}</span>
+            ) : boundLayer ? (
+              <span style={{ fontSize: 13, lineHeight: '14px' }}>
+                {boundLayer.type === 'text'
+                  ? '🔤'
+                  : boundLayer.type === 'particles'
+                    ? '✨'
+                    : boundLayer.composite
+                      ? '🎭'
+                      : '🖼️'}
+              </span>
+            ) : (
+              renderWorkflowNodeIcon(node.type, { width: 12, height: 12 })
+            )}
+          </span>
+          <span
+            className="wf-node-title"
+            title={`${cardTitle} — Nắm kéo để di chuyển tự do Trái / Phải / Lên / Xuống`}
+          >
+            {cardTitle}
+            <span className="wf-node-sub-tag">{cardCategoryBadge}</span>
+          </span>
+          {onPreviewNode && (
+            <button
+              type="button"
+              className="wf-node-eye-btn"
+              title="Áp dụng & Xem thử hiệu ứng khối này trên Cảnh 3D"
+              onClick={(e) => {
+                e.stopPropagation()
+                onSelectNode(node.id)
+                onPreviewNode(node)
+              }}
+            >
+              👁
+            </button>
           )}
-        </span>
-        <span
-          className="wf-node-title"
-          title={`${cardTitle} — Nắm kéo để di chuyển tự do Trái / Phải / Lên / Xuống`}
-        >
-          {cardTitle}
-          <span className="wf-node-sub-tag">{cardCategoryBadge}</span>
-        </span>
-        {onPreviewNode && (
-          <button
-            type="button"
-            className="wf-node-eye-btn"
-            title="Áp dụng & Xem thử hiệu ứng khối này trên Cảnh 3D"
-            onClick={(e) => {
-              e.stopPropagation()
-              onSelectNode(node.id)
-              onPreviewNode(node)
-            }}
+          <span
+            className={`wf-node-status-pill${isConnected ? ' on' : ' disconnected'}${telemetry.isStageHighlight ? ' running' : ''}`}
+            title={
+              !node.enabled
+                ? 'Khối đang tắt (OFF)'
+                : isConnected
+                  ? `${telemetry.routeText} (${node.aiAgentRole}) — ${telemetry.liveSummary}`
+                  : telemetry.liveSummary
+            }
           >
-            👁
-          </button>
-        )}
-        <span
-          className={`wf-node-status-pill${isConnected ? ' on' : ' disconnected'}${telemetry.isStageHighlight ? ' running' : ''}`}
-          title={
-            !node.enabled
-              ? 'Khối đang tắt (OFF)'
+            {!node.enabled
+              ? 'Tắt'
               : isConnected
-                ? `${telemetry.routeText} (${node.aiAgentRole}) — ${telemetry.liveSummary}`
-                : telemetry.liveSummary
-          }
-        >
-          {!node.enabled
-            ? 'Tắt'
-            : isConnected
-              ? telemetry.isStageHighlight
-                ? `⚡ #${stepNum}`
-                : `✓ #${stepNum}`
-              : '⛔ Đứt'}
-        </span>
-        <button
-          type="button"
-          className={`wf-node-toggle${node.enabled ? ' on' : ''}`}
-          title={node.enabled ? 'Đang bật (Bấm để tắt khối này)' : 'Đang tắt (Bấm để bật)'}
-          onClick={(e) => {
-            e.stopPropagation()
-            onToggleNode(node.id)
-          }}
-        >
-          {node.enabled ? 'ON' : 'OFF'}
-        </button>
-        {onDeleteNode && node.type !== 'layer_transform' && (
+                ? telemetry.isStageHighlight
+                  ? `⚡ #${stepNum}`
+                  : `✓ #${stepNum}`
+                : '⛔ Đứt'}
+          </span>
           <button
             type="button"
-            className="wf-node-del-btn"
-            title={`Xóa "${cardTitle}" khỏi sơ đồ`}
+            className={`wf-node-toggle${node.enabled ? ' on' : ''}`}
+            title={node.enabled ? 'Đang bật (Bấm để tắt khối này)' : 'Đang tắt (Bấm để bật)'}
             onClick={(e) => {
               e.stopPropagation()
-              onDeleteNode(node.id)
+              onToggleNode(node.id)
             }}
           >
-            ✕
+            {node.enabled ? 'ON' : 'OFF'}
           </button>
-        )}
-      </div>
+          {onDeleteNode && node.type !== 'layer_transform' && (
+            <button
+              type="button"
+              className="wf-node-del-btn"
+              title={`Xóa "${cardTitle}" khỏi sơ đồ`}
+              onClick={(e) => {
+                e.stopPropagation()
+                onDeleteNode(node.id)
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      )}
 
       {/* 2. Khu vực Chân cắm Port (Protruding Socket Pins trên mép trái & phải) */}
       {socketRowCount > 0 && (

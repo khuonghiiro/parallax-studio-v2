@@ -48,6 +48,22 @@ export const WorkflowLayerBody: React.FC<WorkflowLayerBodyProps> = React.memo(({
     return { label: '🔍 Tiền cảnh (Cận máy)', color: '#fbbf24', icon: '🔍' }
   }, [zVal])
 
+  // Xếp hạng thứ tự Z-index của layer này trong cảnh (từ xa tới gần)
+  const { rankIndex, totalLayers, zPercent } = useMemo(() => {
+    if (!project || project.layers.length === 0) {
+      return { rankIndex: 0, totalLayers: 1, zPercent: 50 }
+    }
+    const allZ = project.layers
+      .map((l) => Math.round(l.transform.position.value[2] ?? 0))
+      .sort((a, b) => b - a)
+    const rank = Math.max(0, allZ.indexOf(zVal))
+    const max = allZ[0]
+    const min = allZ[allZ.length - 1]
+    const span = Math.max(1, max - min)
+    const pct = Math.max(0, Math.min(100, Math.round(((zVal - min) / span) * 100)))
+    return { rankIndex: rank, totalLayers: allZ.length, zPercent: pct }
+  }, [project, zVal])
+
   const assetId = boundLayer.type === 'image' ? boundLayer.props.assetId : undefined
   const thumbUrl = useMemo(() => {
     if (!project || !assetId) return undefined
@@ -162,14 +178,34 @@ export const WorkflowLayerBody: React.FC<WorkflowLayerBodyProps> = React.memo(({
 
   return (
     <div className="wf-layer-card-body" onClick={(e) => e.stopPropagation()}>
-      {/* 1. Dải ruy băng Chiều sâu Z (2.5D Depth Ribbon) */}
+      {/* 1. Dải ruy băng Chiều sâu Z & Thước đo Tầng bậc thang (2.5D Depth Ribbon & Ladder) */}
       <div
         className="wf-layer-z-ribbon"
         style={{ ['--depth-c' as string]: zInfo.color }}
-        title={`${zInfo.label}\nĐộ sâu: Z = ${zVal}px (Giá trị càng lớn thì layer càng nằm xa camera)`}
+        title={`${zInfo.label}\nTầng #${rankIndex + 1}/${totalLayers} · Độ sâu: Z = ${zVal}px (Giá trị càng lớn thì layer càng nằm xa camera)`}
       >
-        <span className="wf-layer-z-tag">{zInfo.label}</span>
-        <span className="wf-layer-z-val">Z: {zVal > 0 ? `+${zVal}` : zVal}</span>
+        <div className="wf-layer-z-top-row">
+          <span className="wf-layer-z-tag">
+            <span>{zInfo.icon}</span>
+            <span>{zInfo.label}</span>
+          </span>
+          <span className="wf-layer-z-rank-pill" title={`Tầng chiều sâu #${rankIndex + 1} trên ${totalLayers} layer trong cảnh`}>
+            #{rankIndex + 1}/{totalLayers}
+          </span>
+          <span className="wf-layer-z-val">Z:{zVal > 0 ? `+${zVal}` : zVal}</span>
+        </div>
+        <div className="wf-layer-z-meter-bar" title={`Vị trí trong không gian 2.5D: ${zPercent}% (Xa: 100%, Gần: 0%)`}>
+          <div className="wf-layer-z-meter-track">
+            <div
+              className="wf-layer-z-meter-pin"
+              style={{ left: `${zPercent}%`, background: zInfo.color }}
+            />
+          </div>
+          <div className="wf-layer-z-meter-labels">
+            <span>Gần (-300)</span>
+            <span>Xa (+3600)</span>
+          </div>
+        </div>
       </div>
 
       {/* 2. Khung Thả Tài Nguyên (Asset Drop Target & Preview) */}

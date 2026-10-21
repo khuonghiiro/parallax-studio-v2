@@ -198,14 +198,20 @@
 
 .wf-layer-z-ribbon {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 3px 6px;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 6px;
   border-radius: 4px;
   background: var(--bg-2);
   border: 1px solid var(--line);
   font-size: 9.5px;
   font-weight: 600;
+}
+.wf-layer-z-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 .wf-layer-z-tag {
   display: inline-flex;
@@ -213,6 +219,16 @@
   gap: 4px;
   font-weight: 700;
   color: var(--depth-c, var(--accent-cyan));
+}
+.wf-layer-z-rank-pill {
+  font-size: 8px;
+  font-family: var(--mono);
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--bg-1);
+  color: var(--depth-c, var(--accent-cyan));
+  border: 1px solid color-mix(in srgb, var(--depth-c, var(--accent-cyan)) 30%, var(--line));
 }
 .wf-layer-z-val {
   font-family: var(--mono);
@@ -223,6 +239,41 @@
   background: var(--bg-0);
   border: 1px solid var(--line-soft);
   color: var(--depth-c, var(--text));
+}
+
+.wf-layer-z-meter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 1px;
+  width: 100%;
+}
+.wf-layer-z-meter-track {
+  width: 100%;
+  height: 4px;
+  background: var(--bg-1);
+  border-radius: 2px;
+  position: relative;
+  overflow: visible;
+  border: 1px solid var(--line-soft);
+}
+.wf-layer-z-meter-pin {
+  position: absolute;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 0 6px var(--depth-c, var(--accent-cyan));
+  border: 1.5px solid var(--bg-0);
+  transition: left 0.2s ease;
+}
+.wf-layer-z-meter-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 7.5px;
+  color: var(--text-faint);
+  font-family: var(--font-ui);
 }
 
 .wf-layer-drop-zone {
@@ -351,4 +402,61 @@
   font-size: 8px;
   font-style: italic;
   color: var(--text-faint);
+}
+
+/* ------------------------------------------------------------------ Companion Transform Plate Styling */
+
+.wf-node-card.is-companion {
+  min-height: unset !important;
+  border: 1px dashed color-mix(in srgb, #0284c7 45%, var(--line)) !important;
+  background: color-mix(in srgb, var(--bg-1) 96%, #0284c7) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22) !important;
+  padding: 0 !important;
+}
+
+.wf-node-card.is-companion .wf-node-header.companion {
+  height: 22px;
+  min-height: 22px;
+  padding: 2px 6px;
+  background: color-mix(in srgb, #0284c7 15%, var(--bg-1));
+  border-bottom: 1px solid color-mix(in srgb, #0284c7 30%, var(--line));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wf-node-card.is-companion .wf-node-header.companion .wf-node-icon {
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  line-height: 16px;
+  border-radius: 3px;
+  display: grid;
+  place-items: center;
+}
+
+.wf-node-card.is-companion .wf-node-header.companion .wf-node-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wf-node-card.is-companion .wf-node-header.companion .wf-node-status-pill {
+  font-size: 8px;
+  padding: 0 4px;
+  height: 14px;
+  line-height: 14px;
+}
+
+.wf-node-card.is-companion .wf-transform-body {
+  border: none;
+  background: transparent;
+  padding: 4px 6px;
+  gap: 3px;
+  margin-top: 0;
 }

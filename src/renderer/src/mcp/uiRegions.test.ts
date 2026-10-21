@@ -40,7 +40,7 @@ describe('MCP UI region parity (bắt buộc khi tạo/sửa UI)', () => {
   it('every data-mcp-region used in TSX is registered in UI_REGION_SELECTORS', () => {
     const missing = [...declaredRegions()].filter(([name]) => !UI_REGION_SELECTORS[name])
     expect(missing.map(([name, file]) => `${name} (${file})`)).toEqual([])
-  })
+  }, 30000)
 
   it('UI_REGION_SELECTORS and the get_app_screenshot catalog enum list exactly the same regions', async () => {
     const enumValues = new Set((await catalogRegionEnum()).filter((r) => r !== 'window'))

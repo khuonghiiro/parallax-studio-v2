@@ -158,12 +158,30 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     [workflow.nodes]
   )
 
+  const prevCountRef = useRef(workflow.nodes.length)
+  useEffect(() => {
+    const countChanged = Math.abs(workflow.nodes.length - prevCountRef.current) >= 2
+    prevCountRef.current = workflow.nodes.length
+    if (countChanged) {
+      const timer = window.setTimeout(() => fitClusterToView(), 60)
+      return () => window.clearTimeout(timer)
+    }
+  }, [workflow.nodes.length, fitClusterToView])
+
   useEffect(() => {
     const timer = window.setTimeout(() => fitClusterToView(), 40)
     return () => window.clearTimeout(timer)
     // Chỉ tự căn khung khi đổi mẫu workflow hoặc lần đầu mở
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workflow.id, workflow.presetId])
+
+  useEffect(() => {
+    const handleFit = () => {
+      window.setTimeout(() => fitClusterToView(), 30)
+    }
+    window.addEventListener('pxs:wf-fit-view', handleFit)
+    return () => window.removeEventListener('pxs:wf-fit-view', handleFit)
+  }, [fitClusterToView])
 
   /** Chuyển đổi tọa độ chuột màn hình sang tọa độ thế giới (World Space) trên mặt phẳng — Luôn ổn định tham chiếu */
   const clientToWorld = useCallback(

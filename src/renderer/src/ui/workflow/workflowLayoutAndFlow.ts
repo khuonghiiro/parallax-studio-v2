@@ -30,7 +30,7 @@ export function estimateNodeCardHeight(node: WorkflowNode): number {
     return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 204
   }
   if (node.type === 'layer_transform') {
-    return HEADER_H + SOCKET_PAD_TOP * 2 + 185
+    return 126
   }
   if (node.type === 'layer_assembly' || Boolean(node.params?.targetLayerIds?.length)) {
     return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 205
@@ -198,22 +198,31 @@ export function buildSmartEdgeGeometry(
   const color = portSpec?.color ?? '#38bdf8'
   const label = portSpec?.shortLabel ?? fromPort
 
-  const isVertical =
-    fromPort === 'layers_tree' ||
-    fromPort === 'transform_link' ||
-    toPort === 'layers_tree' ||
-    toPort === 'transform_link'
-
-  if (isVertical) {
-    const dy = Math.max(32, Math.abs(p2.y - p1.y) * 0.45)
-    const path = `M ${p1.x} ${p1.y} C ${p1.x} ${p1.y + dy}, ${p2.x} ${p2.y - dy}, ${p2.x} ${p2.y}`
+  if (fromPort === 'transform_link' || toPort === 'transform_link') {
+    // Thước nối thẳng đứng (Laser tether) giữa Layer và Companion Transform Plate
+    const path = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`
     return {
       p1,
       p2,
       path,
       midX: Math.round((p1.x + p2.x) / 2),
       midY: Math.round((p1.y + p2.y) / 2),
-      color,
+      color: '#0284c7',
+      label
+    }
+  }
+
+  if (fromPort === 'layers_tree' || toPort === 'layers_tree') {
+    // Định tuyến bus channel qua hành lang giữa 2 tầng, không đè xuyên thẻ
+    const channelY = Math.round(p1.y + Math.max(16, (p2.y - p1.y) * 0.48))
+    const path = `M ${p1.x} ${p1.y} C ${p1.x} ${channelY}, ${p2.x} ${channelY}, ${p2.x} ${p2.y}`
+    return {
+      p1,
+      p2,
+      path,
+      midX: Math.round((p1.x + p2.x) / 2),
+      midY: channelY,
+      color: '#8b5cf6',
       label
     }
   }
@@ -688,24 +697,21 @@ export function solveSpaciousWorkflowLayout(
   if (!nodes || nodes.length === 0) return {}
 
   const sceneNodes = nodes.filter((n) => n.type === 'scene_shot')
-  const layerNodes = nodes.filter(
-    (n) => n.type === 'layer_assembly' || Boolean(n.params?.targetLayerIds?.length && !n.params?.logicId)
-  )
+  const layerNodes = nodes.filter((n) => n.type === 'layer_assembly')
   const transformNodes = nodes.filter((n) => n.type === 'layer_transform')
   const camNodes = nodes.filter((n) => n.type === 'camera_director')
 
   // Bố cục phân cấp Thông minh (Smart Hierarchical Z-Depth Layout):
-  // Nếu có phân cảnh và các Layer con, bố trí theo cấu trúc:
-  // - Node Cảnh ở trên (Top-Left)
-  // - Node Camera ở bên phải Node Cảnh
-  // - Các Node Layer xếp hàng ngang từ trái sang phải theo Z-index (xa -> gần) kèm độ dốc chiều sâu Z
-  // - Dưới đáy mỗi Node Layer là Node Transform tương ứng
-  // - Các khâu chuyển động, FX, âm thanh, xuất bản xếp gọn sang bên phải
+  // Nếu có phân cảnh và các Layer con, bố trí theo cấu trúc 2 tầng gọn gàng:
+  // - Hàng 1 (Y=40): Node Cảnh (X=60) -> Node Camera (X=356) -> Khối hạ nguồn Hàng 1
+  // - Hàng 2 (Y=350): Các Node Layer xếp hàng ngang từ trái sang phải theo Z-index (xa -> gần)
+  // - Dưới đáy mỗi Node Layer: Node Companion Transform plate tương ứng (cách 14px)
+  // - Hành lang giữa 2 hàng (Y: 270 -> 340): Dành riêng cho bus dây nối phân nhánh
   if (sceneNodes.length > 0 && layerNodes.length > 0) {
     const newPositions: Record<string, { x: number; y: number }> = {}
     const sceneNode = sceneNodes[0]
-    const sceneX = 80
-    const sceneY = 60
+    const sceneX = 60
+    const sceneY = 40
     newPositions[sceneNode.id] = { x: sceneX, y: sceneY }
 
     // Các scene nodes khác (nếu có nhiều cảnh)
@@ -713,12 +719,12 @@ export function solveSpaciousWorkflowLayout(
       newPositions[sc.id] = { x: sceneX, y: sceneY + (scIdx + 1) * 260 }
     })
 
-    // Node Camera nằm trực tiếp bên phải Node Cảnh gốc
+    // Node Camera nằm trực tiếp bên phải Node Cảnh gốc trên Hàng 1
     if (camNodes.length > 0) {
       const primaryCam = camNodes[0]
-      newPositions[primaryCam.id] = { x: sceneX + NODE_W + 110, y: sceneY }
+      newPositions[primaryCam.id] = { x: sceneX + NODE_W + 48, y: sceneY }
       camNodes.slice(1).forEach((c, cIdx) => {
-        newPositions[c.id] = { x: sceneX + NODE_W + 110, y: sceneY + (cIdx + 1) * 220 }
+        newPositions[c.id] = { x: sceneX + NODE_W + 48, y: sceneY + (cIdx + 1) * 220 }
       })
     }
 
@@ -736,13 +742,13 @@ export function solveSpaciousWorkflowLayout(
     const zMin = zVals.length > 0 ? Math.min(...zVals) : 0
     const zSpan = Math.max(1, zMax - zMin)
 
-    const COL_GAP = 54
+    const COL_GAP = 36
     sortedLayers.forEach((node, idx) => {
       const layerZ = project?.layers.find((l) => node.params?.targetLayerIds?.includes(l.id))?.transform?.position?.value[2] ?? 0
       const normZ = (layerZ - zMin) / zSpan
-      const childX = 80 + idx * (NODE_W + COL_GAP)
-      // Dốc chiều sâu Z: Layer ở xa (normZ = 1) ở cao hơn tại Y=340, Layer ở gần (normZ = 0) ở thấp hơn tại Y=450
-      const childY = 340 + Math.round((1 - normZ) * 110)
+      const childX = 60 + idx * (NODE_W + COL_GAP)
+      // Dốc chiều sâu Z nhẹ nhàng: normZ = 1 (sâu) tại Y=350, normZ = 0 (gần) tại Y=378
+      const childY = 350 + Math.round((1 - normZ) * 28)
       newPositions[node.id] = { x: childX, y: childY }
 
       // Tìm companion transform node của layer này
@@ -755,7 +761,7 @@ export function solveSpaciousWorkflowLayout(
       if (companionTrans) {
         newPositions[companionTrans.id] = {
           x: childX,
-          y: childY + estimateNodeCardHeight(node) + 32
+          y: childY + estimateNodeCardHeight(node) + 14
         }
       }
     })
@@ -763,22 +769,22 @@ export function solveSpaciousWorkflowLayout(
     // Các transform nodes còn lại chưa được gán
     transformNodes.forEach((t) => {
       if (!newPositions[t.id]) {
-        newPositions[t.id] = { x: 80, y: 720 }
+        newPositions[t.id] = { x: 60, y: 720 }
       }
     })
 
-    // Các node hạ nguồn khác (motion, physics, audio, look)
+    // Các node hạ nguồn khác (motion, physics, audio, look) xếp gọn theo lưới 2 tầng đối xứng
     const downstreamNodes = nodes.filter((n) => !newPositions[n.id])
-    let nextColX = Math.max(80 + sortedLayers.length * (NODE_W + COL_GAP) + 60, sceneX + (NODE_W + 110) * 2 + 60)
-    let curY = 60
+    const layersEndX = 60 + sortedLayers.length * (NODE_W + COL_GAP)
+    const camEndX = sceneX + (NODE_W + 48) * 2
+    const nextColX = Math.max(layersEndX + 48, camEndX + 48)
 
-    downstreamNodes.forEach((n) => {
-      newPositions[n.id] = { x: nextColX, y: curY }
-      curY += estimateNodeCardHeight(n) + 36
-      if (curY > 580) {
-        curY = 60
-        nextColX += NODE_W + 54
-      }
+    downstreamNodes.forEach((n, idx) => {
+      const col = Math.floor(idx / 2)
+      const row = idx % 2
+      const posX = nextColX + col * (NODE_W + COL_GAP)
+      const posY = row === 0 ? 40 : 350
+      newPositions[n.id] = { x: posX, y: posY }
     })
 
     return newPositions
