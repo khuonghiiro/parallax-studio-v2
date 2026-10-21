@@ -100,28 +100,14 @@ export function getBestMatchingInputPort(
     return spec.inputs.includes('transform_link') ? 'transform_link' : null
   }
 
-  // 2. Cùng tên cổng chuẩn (ưu tiên tuyệt đối)
-  if (spec.inputs.includes(fromPort)) return fromPort
+  // 2. Không cho phép nối chéo cổng ngang vào cổng dọc hoặc ngược lại
+  const validInputs = spec.inputs.filter((p) => p !== 'layers_tree' && p !== 'transform_link')
 
-  // 3. Tương thích ngữ nghĩa giữa các khâu
-  const compatibilityMap: Record<WorkflowPortKind, WorkflowPortKind[]> = {
-    scene_ctx: ['scene_ctx'],
-    actors_rig: ['actors_rig', 'scene_ctx'],
-    motion_stream: ['motion_stream', 'actors_rig', 'scene_ctx'],
-    vfx_stage: ['vfx_stage', 'motion_stream', 'scene_ctx'],
-    camera_cut: ['camera_cut', 'scene_ctx'],
-    audio_mix: ['audio_mix'],
-    layers_tree: ['layers_tree'],
-    transform_link: ['transform_link']
-  }
+  // 3. Khớp chính xác tên cổng chuẩn theo logic nghiệp vụ
+  if (validInputs.includes(fromPort)) return fromPort
 
-  const candidates = compatibilityMap[fromPort] ?? []
-  for (const cand of candidates) {
-    if (spec.inputs.includes(cand)) return cand
-  }
-
-  // 4. Fallback: cổng vào đầu tiên có sẵn không phải là cổng dọc
-  return spec.inputs.find((p) => p !== 'layers_tree' && p !== 'transform_link') ?? spec.inputs[0]
+  // 4. Nếu không có cổng phù hợp ngữ nghĩa, từ chối kết nối (tránh nối tùy tiện)
+  return null
 }
 
 /**
@@ -142,27 +128,13 @@ export function getBestMatchingOutputPort(
     return spec.outputs.includes('transform_link') ? 'transform_link' : null
   }
 
-  // 2. Cùng tên cổng chuẩn
-  if (spec.outputs.includes(toPort)) return toPort
+  // 2. Không cho phép nối chéo cổng ngang vào cổng dọc hoặc ngược lại
+  const validOutputs = spec.outputs.filter((p) => p !== 'layers_tree' && p !== 'transform_link')
 
-  // 3. Tương thích ngữ nghĩa ngược
-  const reverseMap: Record<WorkflowPortKind, WorkflowPortKind[]> = {
-    scene_ctx: ['scene_ctx'],
-    actors_rig: ['actors_rig'],
-    motion_stream: ['motion_stream', 'actors_rig'],
-    vfx_stage: ['vfx_stage', 'motion_stream'],
-    camera_cut: ['camera_cut'],
-    audio_mix: ['audio_mix'],
-    layers_tree: ['layers_tree'],
-    transform_link: ['transform_link']
-  }
+  // 3. Khớp chính xác tên cổng chuẩn
+  if (validOutputs.includes(toPort)) return toPort
 
-  const candidates = reverseMap[toPort] ?? []
-  for (const cand of candidates) {
-    if (spec.outputs.includes(cand)) return cand
-  }
-
-  return spec.outputs.find((p) => p !== 'layers_tree' && p !== 'transform_link') ?? spec.outputs[0]
+  return null
 }
 
 export function buildBezierPath(x1: number, y1: number, x2: number, y2: number): string {
@@ -710,7 +682,7 @@ export function solveSpaciousWorkflowLayout(
   if (sceneNodes.length > 0 && layerNodes.length > 0) {
     const newPositions: Record<string, { x: number; y: number }> = {}
     const sceneNode = sceneNodes[0]
-    const sceneX = 60
+    const sceneX = 80
     const sceneY = 40
     newPositions[sceneNode.id] = { x: sceneX, y: sceneY }
 
@@ -722,9 +694,9 @@ export function solveSpaciousWorkflowLayout(
     // Node Camera nằm trực tiếp bên phải Node Cảnh gốc trên Hàng 1
     if (camNodes.length > 0) {
       const primaryCam = camNodes[0]
-      newPositions[primaryCam.id] = { x: sceneX + NODE_W + 48, y: sceneY }
+      newPositions[primaryCam.id] = { x: sceneX + NODE_W + 54, y: sceneY }
       camNodes.slice(1).forEach((c, cIdx) => {
-        newPositions[c.id] = { x: sceneX + NODE_W + 48, y: sceneY + (cIdx + 1) * 220 }
+        newPositions[c.id] = { x: sceneX + NODE_W + 54, y: sceneY + (cIdx + 1) * 220 }
       })
     }
 
@@ -742,13 +714,14 @@ export function solveSpaciousWorkflowLayout(
     const zMin = zVals.length > 0 ? Math.min(...zVals) : 0
     const zSpan = Math.max(1, zMax - zMin)
 
-    const COL_GAP = 36
+    // Khoảng cách cột rộng thoáng 72px để các khối không bị dính sát nhau
+    const COL_GAP = 72
     sortedLayers.forEach((node, idx) => {
       const layerZ = project?.layers.find((l) => node.params?.targetLayerIds?.includes(l.id))?.transform?.position?.value[2] ?? 0
       const normZ = (layerZ - zMin) / zSpan
-      const childX = 60 + idx * (NODE_W + COL_GAP)
-      // Dốc chiều sâu Z nhẹ nhàng: normZ = 1 (sâu) tại Y=350, normZ = 0 (gần) tại Y=378
-      const childY = 350 + Math.round((1 - normZ) * 28)
+      const childX = 80 + idx * (NODE_W + COL_GAP)
+      // Dốc chiều sâu Z rõ nét: Layer ở xa (normZ = 1) ở cao hơn tại Y=320, Layer ở gần (normZ = 0) ở thấp hơn tại Y=480
+      const childY = 320 + Math.round((1 - normZ) * 160)
       newPositions[node.id] = { x: childX, y: childY }
 
       // Tìm companion transform node của layer này
@@ -759,9 +732,10 @@ export function solveSpaciousWorkflowLayout(
           t.id.endsWith(node.id.replace('wf-layer-', ''))
       )
       if (companionTrans) {
+        // Khoảng cách 54px thoáng mắt giữa Layer và Transform Plate, tạo khoảng trống rõ ràng
         newPositions[companionTrans.id] = {
           x: childX,
-          y: childY + estimateNodeCardHeight(node) + 14
+          y: childY + estimateNodeCardHeight(node) + 54
         }
       }
     })
@@ -769,21 +743,21 @@ export function solveSpaciousWorkflowLayout(
     // Các transform nodes còn lại chưa được gán
     transformNodes.forEach((t) => {
       if (!newPositions[t.id]) {
-        newPositions[t.id] = { x: 60, y: 720 }
+        newPositions[t.id] = { x: 80, y: 760 }
       }
     })
 
     // Các node hạ nguồn khác (motion, physics, audio, look) xếp gọn theo lưới 2 tầng đối xứng
     const downstreamNodes = nodes.filter((n) => !newPositions[n.id])
-    const layersEndX = 60 + sortedLayers.length * (NODE_W + COL_GAP)
-    const camEndX = sceneX + (NODE_W + 48) * 2
-    const nextColX = Math.max(layersEndX + 48, camEndX + 48)
+    const layersEndX = 80 + sortedLayers.length * (NODE_W + COL_GAP)
+    const camEndX = sceneX + (NODE_W + 54) * 2
+    const nextColX = Math.max(layersEndX + 72, camEndX + 72)
 
     downstreamNodes.forEach((n, idx) => {
       const col = Math.floor(idx / 2)
       const row = idx % 2
       const posX = nextColX + col * (NODE_W + COL_GAP)
-      const posY = row === 0 ? 40 : 350
+      const posY = row === 0 ? 40 : 360
       newPositions[n.id] = { x: posX, y: posY }
     })
 

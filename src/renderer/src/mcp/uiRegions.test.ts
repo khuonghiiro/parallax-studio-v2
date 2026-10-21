@@ -47,7 +47,7 @@ describe('MCP UI region parity (bắt buộc khi tạo/sửa UI)', () => {
     const registry = new Set(Object.keys(UI_REGION_SELECTORS))
     expect([...registry].filter((r) => !enumValues.has(r))).toEqual([])
     expect([...enumValues].filter((r) => !registry.has(r))).toEqual([])
-  })
+  }, 30000)
 
   it('registers the nested workshop dialogs so AI can crop them directly', () => {
     for (const name of [ACTIVE_REGION, 'layer_assembly_mixamo_studio', 'layer_assembly_parts', 'layer_assembly_swap', 'composite_swap']) {

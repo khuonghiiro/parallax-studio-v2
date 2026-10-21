@@ -159,7 +159,7 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     color: '#a855f7',
     description: 'Quản lý cụm nhân vật 2.5D, cây cối đa lớp, mô hình 3D kiến trúc và neo gốc xoay (Anchor/Billboard).',
     inputs: ['layers_tree', 'scene_ctx', 'motion_stream', 'vfx_stage', 'audio_mix', 'camera_cut'],
-    outputs: ['transform_link', 'actors_rig', 'scene_ctx', 'motion_stream', 'vfx_stage'],
+    outputs: ['transform_link', 'actors_rig'],
     presets: [
       {
         id: 'character_and_foliage_rig',
@@ -222,8 +222,8 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     aiAgentRole: 'MotionChoreographyAgent',
     color: '#f59e0b',
     description: 'Điều phối động tác nhân vật, xương Mixamo/IK, gió thổi cây cối (Wind/Sway) và mây trôi (Drift).',
-    inputs: ['actors_rig', 'scene_ctx', 'motion_stream'],
-    outputs: ['motion_stream', 'actors_rig'],
+    inputs: ['actors_rig', 'scene_ctx'],
+    outputs: ['motion_stream'],
     presets: [
       {
         id: 'organic_wind_breathe',
@@ -304,7 +304,7 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     aiAgentRole: 'CameraDirectorAgent',
     color: '#22c55e',
     description: 'Tạo lộ trình đường bay Camera 3D qua các Shot, hiệu ứng đẩy cận (Dolly Push-in), xóa phông DOF và rung máy.',
-    inputs: ['scene_ctx', 'motion_stream', 'actors_rig', 'camera_cut'],
+    inputs: ['scene_ctx', 'motion_stream', 'camera_cut'],
     outputs: ['camera_cut'],
     presets: [
       {
@@ -395,7 +395,7 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     aiAgentRole: 'ColorGradingRenderAgent',
     color: '#eab308',
     description: 'Tổng hợp toàn bộ luồng dữ liệu, áp dụng Sương mù chiều sâu (3D Fog), Vignette, Film Grain và kết xuất.',
-    inputs: ['vfx_stage', 'camera_cut', 'audio_mix', 'scene_ctx', 'motion_stream', 'actors_rig'],
+    inputs: ['camera_cut', 'vfx_stage', 'audio_mix', 'scene_ctx', 'motion_stream'],
     outputs: [],
     presets: [
       {

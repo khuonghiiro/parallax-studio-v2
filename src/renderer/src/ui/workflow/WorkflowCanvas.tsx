@@ -326,7 +326,21 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       onSelectNode(node.id)
 
       const moveCluster = clusterMoveMode || e.shiftKey || e.altKey
-      const targetNodes = moveCluster ? workflow.nodes : [node]
+      const targetLayerId = node.params?.targetLayerIds?.[0]
+      const companionTrans =
+        !moveCluster && node.type === 'layer_assembly'
+          ? workflow.nodes.find(
+              (t) =>
+                t.type === 'layer_transform' &&
+                ((targetLayerId && t.params?.targetLayerIds?.includes(targetLayerId)) ||
+                  t.id.endsWith(node.id.replace('wf-layer-', '')))
+            )
+          : null
+      const targetNodes = moveCluster
+        ? workflow.nodes
+        : companionTrans
+          ? [node, companionTrans]
+          : [node]
       const initialPositions = new Map(targetNodes.map((n) => [n.id, { ...n.position }]))
 
       const startX = e.clientX
@@ -344,8 +358,8 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         const patch: Record<string, { x: number; y: number }> = {}
         for (const [id, orig] of initialPositions.entries()) {
           patch[id] = {
-            x: Math.max(-1400, Math.min(3800, orig.x + dx)),
-            y: Math.max(-900, Math.min(2400, orig.y + dy))
+            x: Math.max(-5000, Math.min(10000, orig.x + dx)),
+            y: Math.max(-5000, Math.min(10000, orig.y + dy))
           }
         }
         lastPatch = patch
@@ -363,15 +377,8 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 
         if (!lastPatch) return
 
-        // Logic tự động đẩy thẻ ra (Anti-Overlap Push) khi thả chuột nếu bị đè lên thẻ khác
-        if (!moveCluster && lastPatch[node.id]) {
-          const currentPos = lastPatch[node.id]
-          const otherNodes = workflow.nodes.filter((n) => n.id !== node.id)
-          const resolved = resolveNodeCollisionPush(node, currentPos, otherNodes)
-          onMoveNodes({ [node.id]: resolved }, `wf-move-${node.id}`)
-        } else {
-          onMoveNodes(lastPatch, 'wf-move-cluster')
-        }
+        // Lưu chính xác vị trí người dùng đã kéo tới, không cưỡng ép đẩy thẻ hay kéo giật lại gần
+        onMoveNodes(lastPatch, moveCluster ? 'wf-move-cluster' : `wf-move-${node.id}`)
       }
       el.addEventListener('pointermove', onMove)
       el.addEventListener('pointerup', onUp)

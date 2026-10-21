@@ -212,8 +212,8 @@ export function spawnSceneWithChildLayers(
   const shotDuration = getShotDuration(project, shot.id)
 
   const NODE_W = 248
-  const COL_GAP = 36
-  const sceneX = 60
+  const COL_GAP = 72
+  const sceneX = 80
   const sceneY = 40
 
   // 1. Tạo Node Cảnh (Scene Shot Node) với ID cố định theo shot.id để không bao giờ bị nhân đôi
@@ -237,7 +237,7 @@ export function spawnSceneWithChildLayers(
   }
 
   // 2. Tạo Node Lộ trình Camera 3D bên phải Node Cảnh (Pan lia máy rồi Zoom đẩy cận)
-  const camX = sceneX + NODE_W + 48
+  const camX = sceneX + NODE_W + 54
   const camY = sceneY
   const camNodeId = `wf-cam-${shot.id}`
   const camNode: WorkflowNode = {
@@ -284,9 +284,9 @@ export function spawnSceneWithChildLayers(
 
     const layerZ = layer.transform?.position?.value[2] ?? 0
     const normZ = (layerZ - zMin) / zSpan // 1.0 = sâu nhất (bầu trời), 0.0 = tiền cảnh
-    const childX = 60 + idx * (NODE_W + COL_GAP)
-    // Tầng Z sâu hơn (normZ ~ 1) ở cao hơn tại Y=350, tiền cảnh (normZ ~ 0) ở thấp hơn tại Y=378 tạo dốc Z trực quan nhẹ
-    const childY = 350 + Math.round((1 - normZ) * 28)
+    const childX = 80 + idx * (NODE_W + COL_GAP)
+    // Tầng Z sâu hơn (normZ ~ 1) ở cao hơn tại Y=320, tiền cảnh (normZ ~ 0) ở thấp hơn tại Y=480 tạo dốc Z trực quan rõ nét
+    const childY = 320 + Math.round((1 - normZ) * 160)
 
     // Gom tất cả ID của layer trong cụm composite (nếu có)
     const allLayerIdsInGroup = layer.composite?.instanceId
@@ -325,8 +325,8 @@ export function spawnSceneWithChildLayers(
       toPort: 'layers_tree'
     })
 
-    // 4. Tạo companion node layer_transform mặc định kết nối sẵn dưới đáy mỗi node layer (cách 14px)
-    const transY = childY + 205 + 14
+    // 4. Tạo companion node layer_transform mặc định kết nối sẵn dưới đáy mỗi node layer (khoảng cách 54px thoáng mắt)
+    const transY = childY + 205 + 54
     const transformNode: WorkflowNode = {
       id: transNodeId,
       type: 'layer_transform',
