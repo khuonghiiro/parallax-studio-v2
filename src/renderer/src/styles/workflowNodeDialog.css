@@ -82,3 +82,7 @@
   .wf-node-dialog-settings { min-height: 260px; border-left: 0; }
   .wf-node-dialog-header { padding: 12px; }
 }
+
+.wf-node-purpose { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg-2); }
+.wf-node-purpose strong { color: var(--text); font-size: 13px; }
+.wf-node-purpose p { margin: 0; color: var(--text-dim); line-height: 1.6; font-size: 12px; }

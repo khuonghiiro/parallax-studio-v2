@@ -1,5 +1,6 @@
 import React from 'react'
 import type { WorkflowNode, WorkflowNodeParams } from '@shared/types'
+import { WORKFLOW_LOGIC_NODE_CATALOG } from '../../project/workflowLogicCatalog'
 import { WORKFLOW_NODE_SPECS } from '../../project/workflowCatalog'
 
 type Props = {
@@ -31,15 +32,17 @@ function NodeSwitches({ node, onUpdateNodeParams }: Pick<Props, 'node' | 'onUpda
 export function WorkflowNodeParameters(props: Props) {
   const { node, onChangeNodePreset, onUpdateNodeParams, onUpdateNodeDirective } = props
   const spec = WORKFLOW_NODE_SPECS[node.type]
+  const logic = WORKFLOW_LOGIC_NODE_CATALOG.find((item) => item.id === node.params?.logicId)
   return <div className="wf-subtab-pane">
-    <div className="wf-preset-cards-list" role="radiogroup" aria-label="Chọn kịch bản xử lý mẫu">
+    {logic && <div className="wf-node-purpose"><span className="wf-field-label">Nhiệm vụ của node</span><strong>{logic.title}</strong><p>{logic.description}</p></div>}
+    {!logic && <div className="wf-preset-cards-list" role="radiogroup" aria-label="Chọn kịch bản xử lý mẫu">
       {spec.presets.map((preset) => <button type="button" role="radio" aria-checked={node.preset === preset.id}
         key={preset.id} className={`wf-preset-option-card${node.preset === preset.id ? ' active' : ''}`}
         onClick={() => onChangeNodePreset(node.id, preset.id)}>
         <div className="wf-preset-option-head"><span>{node.preset === preset.id ? '●' : '○'}</span><strong>{preset.label}</strong></div>
         <div className="wf-preset-option-desc">{preset.summary}</div>
       </button>)}
-    </div>
+    </div>}
     <div className="wf-compact-controls-box">
       <label className="wf-field-label">Cường độ tác động <strong>{Math.round((node.params?.intensity ?? 1) * 100)}%</strong>
         <input type="range" className="wf-range" min={0.1} max={2} step={0.05} value={node.params?.intensity ?? 1}
