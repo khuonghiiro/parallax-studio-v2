@@ -1,32 +1,34 @@
 import React from 'react'
-import type { WorkflowNode, WorkflowNodeParams } from '@shared/types'
+import type { WorkflowBoundTarget, WorkflowNode, WorkflowNodeParams } from '@shared/types'
+import { editableNodeRules } from './workflowNodeEditing'
+import { WorkflowNumberField } from './WorkflowNumberField'
 
-type Props = { node: WorkflowNode; onUpdateNodeParams: (id: string, patch: Partial<WorkflowNodeParams>) => void }
+type Props = { node: WorkflowNode; onUpdateNodeParams: (id: string, patch: Partial<WorkflowNodeParams>) => void
+  selectedRuleId?: string; targets?: WorkflowBoundTarget[] }
 
-export function WorkflowNodeOperationFields({ node, onUpdateNodeParams }: Props) {
+export function WorkflowNodeOperationFields({ node, onUpdateNodeParams, selectedRuleId, targets = [] }: Props) {
   const p = node.params ?? {}
   const update = (patch: Partial<WorkflowNodeParams>) => onUpdateNodeParams(node.id, patch)
   const numberField = (label: string, key: keyof WorkflowNodeParams, value: number, min: number, max: number, step: number) =>
-    <label className="wf-operation-field" key={key}><span>{label}</span><input type="number" min={min} max={max} step={step}
-      value={Number(p[key] ?? value)} onChange={(event) => {
-        const next = event.target.valueAsNumber
-        if (Number.isFinite(next)) update({ [key]: Math.max(min, Math.min(max, next)) })
-      }} /></label>
+    <WorkflowNumberField key={key} label={label} min={min} max={max} step={step} value={Number(p[key] ?? value)} onChange={(next) => update({ [key]: next })} />
+  const rules = editableNodeRules(node)
+  const selected = rules.find((rule) => rule.id === selectedRuleId) ?? rules[0]
   return <div className="wf-operation-fields" data-mcp-region="workflow_node_operation">
-    {(p.customRules ?? []).map((rule, index) => <fieldset className="wf-operation-rule" key={rule.id}>
+    {selected && [selected].map((rule) => <fieldset className="wf-operation-rule" key={rule.id}>
       <legend>{rule.label}</legend>
       <label className="wf-check-pill"><input type="checkbox" checked={rule.enabled} onChange={(event) => update({
-        customRules: p.customRules!.map((item, i) => i === index ? { ...item, enabled: event.target.checked } : item)
+        customRules: p.customRules!.map((item) => item.id === rule.id ? { ...item, enabled: event.target.checked } : item)
       })} />Áp dụng thao tác này</label>
-      {(['speed', 'amount'] as const).map((key) => <label className="wf-operation-field" key={key}>
-        <span>{key === 'speed' ? 'Tốc độ' : 'Biên độ / Độ mạnh'}</span>
-        <input type="number" min={0.1} max={key === 'speed' ? 100 : 5} step={0.05} value={rule[key] ?? 1}
-          onChange={(event) => {
-            const value = event.target.valueAsNumber
-            if (Number.isFinite(value)) update({ customRules: p.customRules!.map((item, i) => i === index ? {
-              ...item, [key]: Math.max(0.1, Math.min(key === 'speed' ? 100 : 5, value)) } : item) })
-          }} />
-      </label>)}
+      {(['speed', 'amount'] as const).map((key) => <WorkflowNumberField key={key} label={key === 'speed' ? 'Tốc độ' : 'Biên độ / Độ mạnh'}
+        min={0.1} max={key === 'speed' ? 100 : 5} step={0.05} value={rule[key] ?? 1} onChange={(value) => update({
+          customRules: p.customRules!.map((item) => item.id === rule.id ? { ...item, [key]: value } : item) })} />)}
+      {!node.params?.logicId && <>
+        <span className="wf-field-label">Đối tượng của thao tác này</span>
+        <div className="wf-part-chips-wrap">{[{ id: 'all', name: 'Trong phạm vi node' }, ...targets].map((target) => <button type="button" key={target.id}
+          className={`wf-part-chip${rule.targetId === target.id ? ' active' : ''}`} aria-pressed={rule.targetId === target.id}
+          onClick={() => update({ customRules: p.customRules!.map((item) => item.id === rule.id ? { ...item, targetId: target.id, targetName: target.name } : item) })}>{target.name}</button>)}</div>
+        <button type="button" className="btn ghost sm" onClick={() => update({ customRules: p.customRules!.filter((item) => item.id !== rule.id) })}>Xóa thao tác này</button>
+      </>}
     </fieldset>)}
     {(node.type === 'motion_choreography' || (node.type === 'camera_director' && !['logic-cam-dof', 'logic-cam-shake'].includes(p.logicId ?? ''))) &&
       numberField('Thời lượng (giây)', 'duration', 6, 0.1, 600, 0.1)}

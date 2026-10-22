@@ -23,6 +23,7 @@ import { getTargetKindIcon } from './WorkflowNodePreview'
 export interface WorkflowActionBuilderProps {
   node: WorkflowNode
   draftMode?: boolean
+  hideRuleList?: boolean
   bindableTargets: WorkflowBoundTarget[]
   activeShotLabel?: string
   onUpdateNodeParams: (nodeId: string, patch: Partial<WorkflowNodeParams>) => void
@@ -33,6 +34,7 @@ export interface WorkflowActionBuilderProps {
 export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
   node,
   draftMode = false,
+  hideRuleList = false,
   bindableTargets,
   activeShotLabel,
   onUpdateNodeParams,
@@ -90,7 +92,7 @@ export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
     }
     const nextRules = [...customRules, newRule]
     onUpdateNodeParams(node.id, { customRules: nextRules })
-    onShowToast(`➕ Đã thêm "${actionSpec.shortLabel}" cho ${targetName} và áp dụng lên Cảnh 3D!`)
+    onShowToast(draftMode ? `Đã thêm ${actionSpec.shortLabel} vào bản nháp của node.` : `➕ Đã thêm "${actionSpec.shortLabel}" cho ${targetName} và áp dụng lên Cảnh 3D!`)
   }
 
   const handleToggleRule = (ruleId: string) => {
@@ -176,7 +178,7 @@ export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
         <span className="wf-field-label">
           ⚡ Gắn nhanh hiệu ứng vào khối đang chọn ({node.title})
         </span>
-        {customRules.length > 0 && (
+        {!hideRuleList && customRules.length > 0 && (
           <button
             type="button"
             className="wf-binder-mode-btn"
@@ -283,7 +285,7 @@ export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
       </div>
 
       {/* Danh sách các lệnh chuyển động / tính năng đã thêm */}
-      {customRules.length > 0 && (
+      {!hideRuleList && customRules.length > 0 && (
         <div className="wf-custom-rules-list">
           {customRules.map((rule) => {
             const spec = getCustomActionSpec(rule.actionKind) ?? WORKFLOW_CUSTOM_ACTION_CATALOG[0]

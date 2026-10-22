@@ -1,12 +1,18 @@
 # Cấu hình và thực thi node Workflow
 
-Chuột phải, bấm đúp hoặc bấm bánh răng trên node để mở dialog. Bố cục theo chiều **Đầu vào → Thông số → Đầu ra xem thử**. Mỗi node thư viện giữ chức năng của nó; ghi chú chỉ là mô tả, không được thực thi như mã lệnh.
+Chuột phải, bấm đúp hoặc bấm bánh răng trên node để mở dialog. Dialog có một vùng chỉnh sửa liên tục bên trái và hình xem thử bên phải; không chia thao tác sang các tab. Mỗi node thư viện giữ chức năng của nó; ghi chú chỉ là mô tả, không được thực thi như mã lệnh.
 
-- **Đầu vào:** hiển thị dây nguồn, trạng thái thực thi và đối tượng trong phạm vi xử lý.
+- **Đang chỉnh:** tên thao tác và đối tượng nhận luôn cố định ở đầu dialog. Khi có nhiều rule, chọn rule trực tiếp trong danh sách; mỗi lần chỉ sửa thông số của rule đang chọn.
+- **Phạm vi toàn node:** hiện các layer nhận tác động; mở “Đổi đối tượng” để đổi scope mà vẫn giữ thao tác đang chỉnh.
 - **Thông số:** thao tác riêng của node, tốc độ/độ mạnh của rule, thời lượng chuyển động, DOF hoặc rung camera. BGM xử lý track nhạc; SFX xử lý track âm thanh có sẵn; lip-sync xử lý thoại.
-- **Kết nối:** chọn Đầu vào hoặc Đầu ra, tìm node tương thích, nối hoặc ngắt dây. Cổng phân cấp và transform vẫn giữ quy tắc riêng của Parallax Studio.
-- **Đầu ra:** camera preview và danh sách thay đổi thực tế so với dự án trước khi mở dialog. Preview không phát âm thanh.
-- **Áp dụng:** ghi bản nháp trong một bước Undo. Hủy, Escape hoặc nút đóng bỏ bản nháp. Nối modifier từ dialog layer cũng tính lại modifier nguồn.
+- **Dây nối:** mở mục thu gọn, chọn Đầu vào hoặc Đầu ra, tìm node tương thích, nối hoặc ngắt dây. Cổng phân cấp và transform vẫn giữ quy tắc riêng của Parallax Studio.
+- **Xem thử toàn node:** mọi thao tác đang bật cùng được tính; đây không phải chế độ solo rule đang chọn. Bỏ “Tự cập nhật” để chỉnh nhiều giá trị rồi bấm “Xem thử” một lần. Badge báo rõ kết quả còn cũ hay đã cập nhật. Preview không phát âm thanh.
+- **Tùy chọn phụ:** thêm thao tác, dây nối, kênh tác động và ghi chú nằm trong các mục thu gọn; mở/đóng không bỏ lựa chọn đang nhập. Các rule phản chiếu từ Inspector không hiện thành rule chỉnh được vì chúng không được engine thực thi độc lập.
+- **Áp dụng toàn node:** ghi bản nháp trong một bước Undo. Hủy, Escape hoặc nút đóng bỏ bản nháp. Nối modifier từ dialog layer cũng tính lại modifier nguồn.
+
+## Hiệu năng preview
+
+Preview dùng copy-on-write qua Immer, giữ chung assets, dữ liệu mesh và các layer không thay đổi với project gốc. Chuỗi chỉnh liên tiếp được gộp sau 80ms ngừng nhập; ghi chú, tên và vị trí trên canvas không làm preview chạy lại. Kết quả chỉ so sánh các nhánh dữ liệu thay đổi, không serialize toàn bộ layer mỗi lần UI render. Khi project chưa đổi từ lúc mở dialog, Áp dụng tái sử dụng kết quả preview mới nhất; khi project bên ngoài đã thay đổi, engine tính lại từ dữ liệu mới để tránh ghi đè.
 
 ## Phạm vi và thứ tự xử lý
 
@@ -22,7 +28,7 @@ Node thư viện có `customRules` chạy duy nhất các thao tác đó; không
 - `list_workflow_presets`: `logic_nodes[].operations` mô tả action, speed và amount.
 - `set_workflow(node_id, node_params, apply_node: true)`: dùng cùng evaluator với dialog, hỗ trợ các thông số riêng và một bước Undo.
 - `connect_workflow_ports`: dùng cùng quy tắc nối/ngắt của UI.
-- Vùng chụp: `workflow_node_config`, `workflow_node_input`, `workflow_node_operation`, `workflow_node_connections`, `workflow_node_output`, `workflow_node_camera_preview`, `workflow_node_settings`.
+- Vùng chụp: `workflow_node_config`, `workflow_node_input`, `workflow_node_operation`, `workflow_node_connections`, `workflow_node_output`, `workflow_node_camera_preview`, `workflow_node_settings`, `workflow_node_scope_picker`, `workflow_node_edit_context`, `workflow_node_advanced`, `workflow_node_preview_controls`, `workflow_node_preset_picker`, `workflow_node_rule_picker`.
 
 Triển khai tại [routing](../src/renderer/src/project/workflowRouting.ts), [thứ tự thực thi](../src/renderer/src/project/workflowExecutionOrder.ts), [evaluator bản nháp](../src/renderer/src/project/workflowNodeDraft.ts) và [dialog](../src/renderer/src/ui/workflow/WorkflowNodeConfigDialog.tsx).
 

@@ -1,0 +1,55 @@
+/* One editor, with scope and the selected operation always visible. */
+.wf-node-config-simple { width: min(1280px, calc(100vw - 48px)); }
+.wf-node-config-simple .wf-node-dialog-workspace { grid-template-columns: minmax(400px, 1fr) minmax(340px, 1fr); }
+.wf-node-config-simple .wf-node-dialog-settings { border-left: 0; }
+.wf-node-edit-context { padding: 16px 18px 12px; background: var(--bg-1); border-bottom: 1px solid var(--line-soft); }
+.wf-node-edit-context > span { display: block; font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; margin-bottom: 5px; }
+.wf-node-edit-context > strong { font-size: 16px; color: var(--text); }
+.wf-node-edit-context > p { margin: 7px 0 0; font-size: 12px; color: var(--text-dim); line-height: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-node-edit-context > .wf-edit-disabled { color: var(--key); }
+.wf-node-config-simple .wf-node-scope { padding: 12px 18px; overflow: visible; flex-shrink: 0; max-height: none; border-bottom: 1px solid var(--line); background: var(--bg-2); }
+.wf-scope-heading { display: flex; align-items: center; justify-content: space-between; font-size: 12px; gap: 12px; }
+.wf-scope-heading span { color: var(--text-dim); }
+.wf-scope-names { font-size: 12px; color: var(--text-dim); margin: 5px 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 1.5; }
+.wf-scope-picker > summary { padding: 6px 0; color: var(--text); font-size: 12px; cursor: pointer; }
+.wf-scope-picker > summary span { float: right; color: var(--text-dim); }
+.wf-scope-picker-body { display: grid; gap: 10px; padding: 8px 0; }
+.wf-scope-target-list { display: grid; gap: 5px; max-height: 130px; overflow: auto; }
+.wf-scope-picker input { background: var(--bg-1); border: 1px solid var(--line); color: var(--text); padding: 8px; border-radius: 6px; }
+.wf-node-config-simple .wf-node-dialog-body { overflow: auto; display: flex; flex-direction: column; gap: 16px; padding: 16px 18px; }
+.wf-node-config-simple .wf-node-dialog-body > * { flex-shrink: 0; }
+.wf-node-preset-picker { border: 1px solid var(--line); border-radius: 8px; background: var(--bg-2); }
+.wf-node-preset-picker > summary { padding: 12px; font-size: 12px; cursor: pointer; color: var(--text-dim); }
+.wf-node-preset-picker > summary strong { display: block; margin: 5px 0 0 15px; font-size: 12px; color: var(--text); }
+.wf-node-preset-picker .wf-preset-cards-list { padding: 0 10px 10px; }
+.wf-node-config-simple .wf-compact-controls-box { padding: 14px; }
+.wf-node-rule-picker { display: grid; gap: 6px; }
+.wf-rule-choice { display: grid; gap: 5px; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg-2); color: var(--text); text-align: left; cursor: pointer; }
+.wf-rule-choice span { color: var(--text-dim); font-size: 11px; }
+.wf-rule-choice.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg-1)); }
+.wf-node-config-simple .wf-operation-fields { margin: 0; }
+.wf-node-config-simple .wf-operation-rule { gap: 14px; padding: 14px; }
+.wf-node-advanced { display: grid; gap: 8px; }
+.wf-node-advanced > details { border-top: 1px solid var(--line); padding-top: 4px; }
+.wf-node-advanced summary { padding: 11px 0; cursor: pointer; font-size: 12px; color: var(--text); }
+.wf-node-advanced summary span { color: var(--text-dim); float: right; }
+.wf-node-advanced > details > :not(summary) { margin-bottom: 10px; }
+.wf-node-config-simple .wf-node-connections { height: auto; max-height: 370px; }
+.wf-node-preview-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--bg-2); }
+.wf-node-preview-tools > div { display: grid; gap: 4px; flex: 1; min-width: 145px; }
+.wf-node-preview-tools strong { font-size: 12px; color: var(--text); }
+.wf-node-preview-tools span { font-size: 11px; color: var(--text-dim); }
+.wf-node-preview-tools label { display: flex; align-items: center; gap: 6px; color: var(--text); font-size: 12px; cursor: pointer; }
+.wf-node-config-simple .wf-node-output-summary { padding-top: 12px; }
+.wf-node-config-simple .wf-node-dialog-footer { justify-content: flex-end; }
+.wf-node-config-simple .wf-node-save-hint { margin-right: auto; }
+@media (max-width: 850px) {
+  .wf-node-config-simple .wf-node-dialog-workspace { grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr); }
+  .wf-node-preview-tools { gap: 8px; padding: 12px; }
+}
+@media (max-width: 680px) {
+  .wf-node-config-simple .wf-node-dialog-workspace { display: flex; }
+  .wf-node-config-simple .wf-node-dialog-settings { min-height: 450px; overflow: visible; }
+  .wf-node-config-simple .wf-node-dialog-body { overflow: visible; }
+  .wf-node-config-simple .wf-node-edit-context, .wf-node-config-simple .wf-node-scope { flex-shrink: 0; }
+}

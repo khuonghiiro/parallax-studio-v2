@@ -108,6 +108,12 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   workflow_node_output: region('workflow_node_output', '.wf-node-output-summary'),
   workflow_node_connections: region('workflow_node_connections', '.wf-node-connections'),
   workflow_node_operation: region('workflow_node_operation', '.wf-operation-fields'),
+  workflow_node_scope_picker: region('workflow_node_scope_picker', '.wf-scope-picker'),
+  workflow_node_edit_context: region('workflow_node_edit_context', '.wf-node-edit-context'),
+  workflow_node_advanced: region('workflow_node_advanced', '.wf-node-advanced'),
+  workflow_node_preview_controls: region('workflow_node_preview_controls', '.wf-node-preview-tools'),
+  workflow_node_preset_picker: region('workflow_node_preset_picker', '.wf-node-preset-picker'),
+  workflow_node_rule_picker: region('workflow_node_rule_picker', '.wf-node-rule-picker'),
 
   // Top Toolbar & Responsive Workspace Dock
   toolbar: ['header.toolbar', '.toolbar'],

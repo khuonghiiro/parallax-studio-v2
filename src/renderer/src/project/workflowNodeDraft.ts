@@ -3,6 +3,9 @@ import { applyWorkflowToProject, resolveNodeTargetBinding } from './workflowEngi
 import { getNodeSubParts } from './workflowTargets'
 import { applyRuleMutationToProjectLayer } from './workflowStageEffects'
 import { isWorkflowEntity } from './workflowRouting'
+import { Immer } from 'immer'
+
+const previewImmer = new Immer({ autoFreeze: false })
 
 export function initializeNodeDraft(node: WorkflowNode, project: Project): WorkflowNode {
   const result = structuredClone(node)
@@ -60,8 +63,7 @@ function resetRemovedEffects(project: Project, previous: WorkflowNode, node: Wor
 }
 
 /** Shared by the private preview and the single Undo transaction on Apply. */
-export function evaluateNodeDraft(base: Project, workflow: WorkflowGraph, node: WorkflowNode, previous: WorkflowNode): Project {
-  const project = structuredClone(base)
+function applyNodeDraftToProject(project: Project, base: Project, workflow: WorkflowGraph, node: WorkflowNode, previous: WorkflowNode): void {
   const next = { ...workflow, nodes: workflow.nodes.map((item) => item.id === node.id ? node : item) }
   resetRemovedEffects(project, previous, node)
   const entity = node.type === 'layer_transform' || (node.type === 'layer_assembly' && !node.params?.logicId && node.params?.targetLayerIds?.length)
@@ -90,5 +92,8 @@ export function evaluateNodeDraft(base: Project, workflow: WorkflowGraph, node: 
     }
   }
   applyWorkflowToProject(project, next, { onlyNodeIds: affected })
-  return project
+}
+
+export function evaluateNodeDraft(base: Project, workflow: WorkflowGraph, node: WorkflowNode, previous: WorkflowNode): Project {
+  return previewImmer.produce(base, (draft) => { applyNodeDraftToProject(draft as Project, base, workflow, node, previous) })
 }

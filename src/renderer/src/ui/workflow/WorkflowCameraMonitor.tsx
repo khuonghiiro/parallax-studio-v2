@@ -5,7 +5,7 @@ import { shotAtTime } from '../../animation/cameraPath'
 import { useWorkflowCameraPreview } from './useWorkflowCameraPreview'
 import { getNodePreviewTime } from './workflowPreviewTime'
 
-export const WorkflowCameraMonitor = React.memo(function WorkflowCameraMonitor({ project, node }: { project: Project; node: WorkflowNode }) {
+export const WorkflowCameraMonitor = React.memo(function WorkflowCameraMonitor({ project, node, stale }: { project: Project; node: WorkflowNode; stale?: boolean }) {
   const [time, setTime] = useState(() => getNodePreviewTime(project, node, useEditor.getState().time))
   const [playing, setPlaying] = useState(false)
   const duration = Math.max(0, project.comp.duration)
@@ -26,7 +26,7 @@ export const WorkflowCameraMonitor = React.memo(function WorkflowCameraMonitor({
   }, [playing, duration])
   return (
     <section className="wf-camera-preview" data-mcp-region="workflow_node_camera_preview" aria-label="Preview camera trực tiếp">
-      <div className="wf-camera-preview-heading"><strong>Camera preview</strong><span>● Trực tiếp</span></div>
+      <div className="wf-camera-preview-heading"><strong>Hình xem thử</strong><span>{stale ? '○ Chưa cập nhật' : '● Đã cập nhật'}</span></div>
       <div className="wf-camera-preview-stage">
         <div ref={mountRef} className="wf-camera-preview-surface" aria-label={`Camera: ${shotName}`} aria-busy={loading} />
         {loading && !error && <div className="wf-camera-preview-loading" role="status">Đang chuẩn bị camera…</div>}
@@ -38,7 +38,7 @@ export const WorkflowCameraMonitor = React.memo(function WorkflowCameraMonitor({
         <output>{time.toFixed(2)} / {duration.toFixed(2)}s</output>
       </div>
       <div className="wf-camera-preview-caption"><span>{shotName}</span><span>{project.comp.width} × {project.comp.height}</span></div>
-      <p className="wf-camera-preview-note">Chỉnh thông số bên phải để xem kết quả. Phát hoặc tua để kiểm tra chuyển động.</p>
+      <p className="wf-camera-preview-note">Chỉnh thông số bên trái. Phát hoặc tua để kiểm tra mọi thao tác đang bật trên node.</p>
       {!node.enabled && <p className="wf-camera-preview-note">Node đang tắt. Bật node để kiểm tra tác động trên cảnh.</p>}
       <p className="wf-camera-preview-note">Preview hình ảnh dùng camera của dự án; không phát âm thanh.</p>
     </section>
