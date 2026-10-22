@@ -1,6 +1,7 @@
+import { getWorkflowNodePorts } from '../../project/workflowNodePorts'
 import React from 'react'
 import type { WorkflowGraph, WorkflowNode, WorkflowPortKind } from '@shared/types'
-import { WORKFLOW_NODE_SPECS, WORKFLOW_PORT_SPECS } from '../../project/workflowCatalog'
+import { WORKFLOW_PORT_SPECS } from '../../project/workflowCatalog'
 import { validateWorkflowConnection } from '../../project/workflowConnectionRules'
 
 type Props = {
@@ -9,13 +10,13 @@ type Props = {
   onDisconnectEdge?: (id: string) => void
 }
 export function WorkflowNodeConnections({ node, workflow, onConnectPorts, onDisconnectEdge }: Props) {
-  const outputs = WORKFLOW_NODE_SPECS[node.type].outputs
+  const outputs = getWorkflowNodePorts(node).outputs
   return <div className="wf-subtab-pane">
     <p className="wf-field-label">Chọn cổng đích để nối hoặc ngắt. Chỉ hiển thị các kết nối tương thích.</p>
     {outputs.length === 0 && <p className="wf-field-label">Node này không có cổng đầu ra.</p>}
     {outputs.map((port) => {
       const targets = workflow.nodes.filter((target) => target.id !== node.id).flatMap((target) =>
-        WORKFLOW_NODE_SPECS[target.type].inputs.filter((input) => validateWorkflowConnection(node, port, target, input).valid)
+        getWorkflowNodePorts(target).inputs.filter((input) => validateWorkflowConnection(node, port, target, input).valid)
           .map((input) => ({ target, input })))
       return <div className="wf-field-group" key={port}>
         <strong className="wf-field-label">{WORKFLOW_PORT_SPECS[port].shortLabel}</strong>

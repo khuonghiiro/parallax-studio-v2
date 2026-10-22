@@ -304,7 +304,7 @@ export const WORKFLOW_NODE_SPECS: Record<WorkflowNodeType, WorkflowNodeTypeSpec>
     aiAgentRole: 'CameraDirectorAgent',
     color: '#22c55e',
     description: 'Tạo lộ trình đường bay Camera 3D qua các Shot, hiệu ứng đẩy cận (Dolly Push-in), xóa phông DOF và rung máy.',
-    inputs: ['scene_ctx', 'motion_stream', 'camera_cut'],
+    inputs: ['scene_ctx', 'actors_rig', 'motion_stream', 'camera_cut'],
     outputs: ['camera_cut'],
     presets: [
       {

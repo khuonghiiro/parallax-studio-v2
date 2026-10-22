@@ -1,3 +1,4 @@
+import { getWorkflowLayerVisibility } from './workflowVisibility'
 import type {
   Layer,
   Project,
@@ -34,25 +35,10 @@ export function syncWorkflowEntityVisibility(
     }
   }
 
-  // 2. Đồng bộ hiển thị cấp độ từng Node Layer con (layer_assembly có targetLayerIds riêng)
-  for (const node of workflow.nodes) {
-    if (node.type !== 'layer_assembly' || node.params?.logicId) continue
-    const targetIds = node.params?.targetLayerIds
-    if (!targetIds || targetIds.length === 0) continue
-    // Chỉ áp dụng cho các node đại diện cho Layer con cụ thể (hoặc cụm Composite 2.5D)
-    const isSpecificLayerNode =
-      node.id.startsWith('wf-layer-') ||
-      (node.params?.targetMode === 'custom' && targetIds.length <= 12)
-    if (!isSpecificLayerNode) continue
-
-    const isVisible = Boolean(node.enabled) && activeNodeIds.has(node.id)
-    const idSet = new Set(targetIds)
-
-    for (const layer of project.layers) {
-      if (idSet.has(layer.id) || (layer.parentId && idSet.has(layer.parentId))) {
-        layer.visible = isVisible
-      }
-    }
+  const visibility = getWorkflowLayerVisibility(project, workflow, activeNodeIds)
+  for (const layer of project.layers) {
+    const visible = visibility.get(layer.id)
+    if (visible !== undefined && !layer.locked) layer.visible = visible
   }
 }
 

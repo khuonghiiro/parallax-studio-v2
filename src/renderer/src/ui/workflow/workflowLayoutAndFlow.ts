@@ -1,3 +1,5 @@
+import { getWorkflowNodePorts } from '../../project/workflowNodePorts'
+import { layoutWorkflowTree } from './workflowTreeLayout'
 import type {
   Project,
   WorkflowEdge,
@@ -21,7 +23,7 @@ export const SOCKET_PAD_TOP = 3
 export const SOCKET_ROW_H = 18
 
 export function estimateNodeCardHeight(node: WorkflowNode): number {
-  const spec = WORKFLOW_NODE_SPECS[node.type]
+  const spec = getWorkflowNodePorts(node)
   const rows = Math.max(spec?.inputs.length ?? 1, spec?.outputs.length ?? 1, 1)
   const isLogic = Boolean(node.params?.logicId)
   if (isLogic) {
@@ -55,7 +57,7 @@ export function getOutputSocketCoords(
     }
   }
 
-  const spec = WORKFLOW_NODE_SPECS[node.type]
+  const spec = getWorkflowNodePorts(node)
   const horizOutputs = (spec?.outputs ?? []).filter((p) => p !== 'layers_tree' && p !== 'transform_link')
   const idx = Math.max(0, horizOutputs.indexOf(port))
   return {
@@ -77,7 +79,7 @@ export function getInputSocketCoords(
     }
   }
 
-  const spec = WORKFLOW_NODE_SPECS[node.type]
+  const spec = getWorkflowNodePorts(node)
   const horizInputs = (spec?.inputs ?? []).filter((p) => p !== 'layers_tree' && p !== 'transform_link')
   const idx = Math.max(0, horizInputs.indexOf(port))
   return {
@@ -732,6 +734,7 @@ export function solveSpaciousWorkflowLayout(
   project?: Project
 ): Record<string, { x: number; y: number }> {
   if (!nodes || nodes.length === 0) return {}
+  if (nodes.some((node) => node.params?.assemblyRootNodeId) || nodes.filter((node) => node.type === 'scene_shot').length > 1) return layoutWorkflowTree(nodes, _edges, estimateNodeCardHeight)
 
   const sceneNodes = nodes.filter((n) => n.type === 'scene_shot')
   const layerNodes = nodes.filter((n) => n.type === 'layer_assembly')

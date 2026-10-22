@@ -1,3 +1,4 @@
+import { getWorkflowNodePorts } from './workflowNodePorts'
 import type {
   WorkflowNode,
   WorkflowNodeType,
@@ -20,6 +21,11 @@ export function validateWorkflowConnection(
   toNode: WorkflowNode,
   toPort: WorkflowPortKind
 ): ConnectionValidationResult {
+  const fromShot = fromNode.params?.shotId
+  const toShot = toNode.params?.shotId
+  if (fromShot && toShot && fromShot !== 'all' && toShot !== 'all' && fromShot !== toShot) {
+    return { valid: false, reason: 'Hai node thuộc hai phân cảnh khác nhau.' }
+  }
   // 1. Không cho phép nối một Khối vào chính nó
   if (fromNode.id === toNode.id) {
     return {
@@ -64,13 +70,17 @@ export function validateWorkflowConnection(
     if (toPort === 'layers_tree') {
       return {
         valid: true,
-        isParentChildLink: true
+        isParentChildLink: !toNode.params?.assemblyRootNodeId
       }
     }
     return {
       valid: false,
       reason: 'Không thể nối trực tiếp giữa hai Layer qua cổng ngang. Hãy kéo từ cổng ra của Layer Cha vào cổng đỉnh [🌲 Tầng Layer] của Layer Con nếu muốn tạo quan hệ Cha - Con (Parent & Link).'
     }
+  }
+
+  if (!getWorkflowNodePorts(fromNode).outputs.includes(fromPort) || !getWorkflowNodePorts(toNode).inputs.includes(toPort)) {
+    return { valid: false, reason: 'Cổng không tồn tại trên node nguồn hoặc node đích.' }
   }
 
   // 5. Cổng Cây Phân Cấp (layers_tree)

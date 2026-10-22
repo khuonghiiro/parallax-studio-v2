@@ -432,7 +432,7 @@ export const FX_TOOLS = [
       node_id: z.string().optional().describe(d('Target node ID (or node type) to update.', 'ID khối node (hoặc loại node) cần cập nhật.')),
       node_preset: z.string().optional().describe(d('Preset ID to assign to the target node.', 'Mã preset cần gán cho khối node.')),
       enabled: z.boolean().optional().describe(d('Enable or bypass the target node.', 'Bật hoặc bỏ qua khối node mục tiêu.')),
-      auto_wire: z.boolean().optional().describe(d('Automatically wire compatible ports across all enabled nodes in stage order.', 'Tự động nối dây các cổng tương thích giữa mọi khối đang bật theo thứ tự quy trình.')),
+      auto_wire: z.boolean().optional().describe(d('Preserve valid wires and complete unambiguous connections within each shot and assembly hierarchy.', 'Giữ dây hợp lệ và bổ sung kết nối rõ mục tiêu trong từng cảnh và cây cụm layer.')),
       switch_to_tab: z.boolean().optional().describe(d('Switch the bottom Timeline area to the Workflow tab so the user sees the graph.', 'Chuyển vùng Timeline sang tab Workflow để hiển thị sơ đồ trực quan.'))
     }),
     example: '{"preset_id":"character_action_physics","switch_to_tab":true}'

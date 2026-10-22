@@ -54,7 +54,7 @@ export const WorkflowTransformBody: React.FC<WorkflowTransformBodyProps> = React
 
           for (const tid of targetLayerIds) {
             const l = draft.layers.find((item) => item.id === tid)
-            if (!l) continue
+            if (!l || l.locked || (l.parentId && targetLayerIds.includes(l.parentId))) continue
             if (targetLayerIds.length === 1) {
               if (axis === 'x') l.transform.position.value[0] = value
               else if (axis === 'y') l.transform.position.value[1] = value
@@ -91,7 +91,7 @@ export const WorkflowTransformBody: React.FC<WorkflowTransformBodyProps> = React
           const deltaRot = -rotZ
           for (const tid of targetLayerIds) {
             const l = draft.layers.find((item) => item.id === tid)
-            if (!l) continue
+            if (!l || l.locked || (l.parentId && targetLayerIds.includes(l.parentId))) continue
             if (targetLayerIds.length === 1) {
               l.transform.position.value[0] = 0
               l.transform.position.value[1] = 0

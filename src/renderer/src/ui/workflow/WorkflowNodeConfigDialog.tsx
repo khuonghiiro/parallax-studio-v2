@@ -102,6 +102,8 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
 
   const customRuleCount = (node.params?.customRules ?? []).filter((r) => r.enabled).length
   const isRootScene = node.type === 'scene_shot'
+  const isEntity = node.type === 'layer_transform' || (node.type === 'layer_assembly' && !node.params?.logicId && !!node.params?.targetLayerIds?.length)
+  const canAddActions = ['motion_choreography', 'physics_fx'].includes(node.type) && !node.params?.logicId
 
   return createPortal(
     <div
@@ -178,7 +180,7 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
           >
             ⚙ Thông số
           </button>
-          <button
+          {!isEntity && (<button
             type="button"
             role="tab"
             aria-selected={activeTab === 'targets'}
@@ -186,8 +188,8 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
             onClick={() => setActiveTab('targets')}
           >
             ◎ Đối tượng ({binding.boundTargets.length})
-          </button>
-          <button
+          </button>)}
+          {canAddActions && (<button
             type="button"
             role="tab"
             aria-selected={activeTab === 'actions'}
@@ -195,14 +197,14 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
             onClick={() => setActiveTab('actions')}
           >
             ✦ Hiệu ứng ({customRuleCount})
-          </button>
+          </button>)}
           <button type="button" role="tab" aria-selected={activeTab === 'connections'} className={`wf-node-dialog-tab${activeTab === 'connections' ? ' active' : ''}`} onClick={() => setActiveTab('connections')}>⇄ Kết nối</button>
         </div>
 
         {/* 3. Thân Cuộn Nội Dung */}
         <div className="wf-node-dialog-body">
-          {activeTab === 'preset' && node.type === 'layer_transform' && <WorkflowTransformBody node={node} project={project} onUpdateNodeParams={onUpdateNodeParams} />}
-          {activeTab === 'preset' && node.type !== 'layer_transform' && <WorkflowNodeParameters node={node} onChangeNodePreset={onChangeNodePreset} onUpdateNodeParams={onUpdateNodeParams} onUpdateNodeDirective={onUpdateNodeDirective} />}
+          {activeTab === 'preset' && isEntity && <WorkflowTransformBody node={node} project={project} onUpdateNodeParams={onUpdateNodeParams} />}
+          {activeTab === 'preset' && !isEntity && <WorkflowNodeParameters node={node} onChangeNodePreset={onChangeNodePreset} onUpdateNodeParams={onUpdateNodeParams} onUpdateNodeDirective={onUpdateNodeDirective} />}
           {activeTab === 'connections' && <WorkflowNodeConnections node={node} workflow={workflow} onConnectPorts={onConnectPorts} onDisconnectEdge={onDisconnectEdge} />}
           {activeTab === 'targets' && (
             <div className="wf-subtab-pane">

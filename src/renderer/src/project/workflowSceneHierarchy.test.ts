@@ -275,8 +275,8 @@ describe('workflowSceneHierarchy', () => {
     expect(childNodes[1].title).toContain('Hiệp sĩ 2.5D')
     expect(childNodes[2].title).toContain('Đom đóm sáng')
 
-    expect(result.nodes).toHaveLength(8)
-    expect(result.edges).toHaveLength(7)
+    expect(result.nodes).toHaveLength(10)
+    expect(result.edges).toHaveLength(9)
 
     // Kiểm tra liên kết từ Node Cảnh tới Camera Director bên phải
     const camEdge = result.edges.find((e) => e.fromPort === 'scene_ctx' && e.toPort === 'scene_ctx')
@@ -375,26 +375,26 @@ describe('workflowSceneHierarchy', () => {
     const { workflow: wf1 } = spawnSceneWithChildLayers(project, emptyWf, 'shot-1')
     expect(wf1.nodes.filter((n) => n.type === 'scene_shot')).toHaveLength(1)
     expect(wf1.nodes.filter((n) => n.type === 'camera_director')).toHaveLength(1)
-    expect(wf1.nodes.filter((n) => n.type === 'layer_assembly')).toHaveLength(3)
+    expect(wf1.nodes.filter((n) => n.type === 'layer_assembly')).toHaveLength(5)
     expect(wf1.nodes.filter((n) => n.type === 'layer_transform')).toHaveLength(3)
-    expect(wf1.nodes).toHaveLength(8)
+    expect(wf1.nodes).toHaveLength(10)
 
     const { workflow: wf2 } = spawnSceneWithChildLayers(project, wf1, 'shot-1')
     expect(wf2.nodes.filter((n) => n.type === 'scene_shot')).toHaveLength(1)
     expect(wf2.nodes.filter((n) => n.type === 'camera_director')).toHaveLength(1)
-    expect(wf2.nodes.filter((n) => n.type === 'layer_assembly')).toHaveLength(3)
+    expect(wf2.nodes.filter((n) => n.type === 'layer_assembly')).toHaveLength(5)
     expect(wf2.nodes.filter((n) => n.type === 'layer_transform')).toHaveLength(3)
-    expect(wf2.nodes).toHaveLength(8)
+    expect(wf2.nodes).toHaveLength(10)
 
     const { workflow: wf3 } = spawnSceneWithChildLayers(project, wf2, 'shot-1')
     expect(wf3.nodes.filter((n) => n.type === 'scene_shot')).toHaveLength(1)
     expect(wf3.nodes.filter((n) => n.type === 'camera_director')).toHaveLength(1)
-    expect(wf3.nodes.filter((n) => n.type === 'layer_assembly')).toHaveLength(3)
+    expect(wf3.nodes.filter((n) => n.type === 'layer_assembly')).toHaveLength(5)
     expect(wf3.nodes.filter((n) => n.type === 'layer_transform')).toHaveLength(3)
-    expect(wf3.nodes).toHaveLength(8)
+    expect(wf3.nodes).toHaveLength(10)
   })
 
-  it('tắt Node Layer con (OFF) tự động ẩn Layer tương ứng trên Cảnh (visible = false) và chuyển dây actors_rig sang Layer đang bật', () => {
+  it('tắt Node Layer con (OFF) tự động ẩn Layer tương ứng trên Cảnh (visible = false) và không tự chuyển hiệu ứng sang Layer khác', () => {
     const project = createMockProject()
     const baseWf = createDefaultWorkflow()
     const { workflow: wf, childNodes } = spawnSceneWithChildLayers(project, baseWf, 'shot-1')
@@ -425,7 +425,7 @@ describe('workflowSceneHierarchy', () => {
     expect(project.layers.find((l) => l.id === 'layer-sky')?.visible).toBe(true)
     const synced = ensureProjectWorkflow({ ...project, workflow: reEnabledWf })
     const { activeNodes } = resolveConnectedWorkflowNodes(synced)
-    expect(activeNodes.some((n) => n.type === 'motion_choreography')).toBe(true)
+    expect(activeNodes.some((n) => n.type === 'motion_choreography')).toBe(false)
   })
 
   it('thả Node từ thư viện với autoConnect=false tạo node độc lập không bị tự động nối dây', () => {
@@ -687,7 +687,7 @@ describe('workflowSceneHierarchy', () => {
 
     // Cây có 2 parts nhưng chỉ sinh ĐÚNG 1 node layer_assembly đại diện cho cả cụm!
     const treeLayerNodes = res.workflow.nodes.filter(
-      (n) => n.type === 'layer_assembly' && n.title.includes('Cây Đại Thụ')
+      (n) => n.type === 'layer_assembly' && !n.params?.assemblyRootNodeId && n.title.includes('Cây Đại Thụ')
     )
     expect(treeLayerNodes.length).toBe(1)
     expect(treeLayerNodes[0].params?.targetLayerIds).toEqual(['tree-part-1', 'tree-part-2'])
@@ -912,3 +912,23 @@ describe('workflowSceneHierarchy', () => {
   })
 })
 
+
+
+describe('expanded assembly regression', () => {
+  it('preserves part configuration, wires and other shots when expanding again', () => {
+    const project = createMockProject()
+    const first = spawnSceneWithChildLayers(project, { ...createDefaultWorkflow(), nodes: [], edges: [] }, 'shot-1').workflow
+    const part = first.nodes.find((node) => node.params?.assemblyRootNodeId)!
+    expect(part).toBeDefined()
+    part.enabled = false
+    part.position = { x: -240, y: -120 }
+    const second = spawnSceneWithChildLayers(project, first, 'shot-2').workflow
+    const third = spawnSceneWithChildLayers(project, second, 'shot-1').workflow
+    expect(third.nodes.find((node) => node.id === part.id)).toEqual(part)
+    for (const node of second.nodes.filter((node) => node.params?.shotId === 'shot-2')) {
+      expect(third.nodes.find((n) => n.id === node.id)).toEqual(node)
+    }
+    expect(new Set(third.nodes.map((node) => node.id)).size).toBe(third.nodes.length)
+    expect(third.edges.some((edge) => edge.toNode === part.id && edge.toPort === 'layers_tree')).toBe(true)
+  })
+})

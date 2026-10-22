@@ -1,3 +1,4 @@
+import { getWorkflowLayerVisibility } from '../../project/workflowVisibility'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   Project,
@@ -185,35 +186,8 @@ export const WorkflowStudioPanel: React.FC = () => {
 
   // Bảo đảm đồng bộ trạng thái ẩn/hiện (visible) của Layer theo trạng thái Bật/Tắt (ON/OFF) của Node Layer con
   useEffect(() => {
-    const childLayerNodes = workflow.nodes.filter(
-      (n) => n.type === 'layer_assembly' && n.id.startsWith('wf-layer-')
-    )
-    if (childLayerNodes.length === 0) return
-
-    let needsSync = false
-    for (const ln of childLayerNodes) {
-      const targetIds = ln.params?.targetLayerIds ?? []
-      if (targetIds.length === 0) continue
-      const parentSceneEdge = workflow.edges.find(
-        (e) => e.toNode === ln.id && (e.fromPort === 'scene_ctx' || e.fromPort === 'layers_tree')
-      )
-      const parentScene = parentSceneEdge
-        ? workflow.nodes.find((n) => n.id === parentSceneEdge.fromNode)
-        : undefined
-      const shouldBeVisible = Boolean(
-        ln.enabled && (!parentScene || parentScene.enabled) && Boolean(parentSceneEdge)
-      )
-      for (const lid of targetIds) {
-        const lObj = project.layers.find((l) => l.id === lid)
-        if (lObj && !lObj.locked && Boolean(lObj.visible) !== shouldBeVisible) {
-          needsSync = true
-          break
-        }
-      }
-      if (needsSync) break
-    }
-
-    if (needsSync) {
+    const visibility = getWorkflowLayerVisibility(project, workflow, activeNodeIds)
+    if (project.layers.some((layer) => !layer.locked && visibility.has(layer.id) && visibility.get(layer.id) !== layer.visible)) {
       useEditor.getState().update((draft) => {
         syncWorkflowEntityVisibility(draft as Project, workflow, activeNodeIds)
       }, 'wf-sync-entity-visibility')
@@ -526,7 +500,7 @@ export const WorkflowStudioPanel: React.FC = () => {
         const next = connectWorkflowPort(workflow, fromNode, fromPort, toNode, toPort)
         const sourceNode = workflow.nodes.find((n) => n.id === fromNode)
         const targetNode = workflow.nodes.find((n) => n.id === toNode)
-        if (sourceNode?.type === 'layer_assembly' && targetNode?.type === 'layer_assembly' && toPort === 'layers_tree') {
+        if (sourceNode?.type === 'layer_assembly' && targetNode?.type === 'layer_assembly' && !targetNode.params?.assemblyRootNodeId && toPort === 'layers_tree') {
           const parentLayerId = sourceNode.params?.targetLayerIds?.[0]
           const childLayerId = targetNode.params?.targetLayerIds?.[0]
           if (parentLayerId && childLayerId) {
@@ -626,7 +600,7 @@ export const WorkflowStudioPanel: React.FC = () => {
         position: newPositions[n.id] ? { ...newPositions[n.id] } : n.position
       }))
     }
-    commitWorkflow(laidOutWf, undefined, true, new Set([sceneNode.id]))
+    commitWorkflow(laidOutWf, undefined, false)
     setSelectedNodeId(sceneNode.id)
     window.dispatchEvent(new CustomEvent('pxs:wf-fit-view'))
     showToast(

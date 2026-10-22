@@ -197,10 +197,11 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
 
   const cardTitle = React.useMemo(() => {
     if (boundShot) return `Cảnh: ${boundShot.name}`
+    if (boundLayer && node.params?.isAssemblyRoot) return boundLayer.composite?.compositeName ?? boundLayer.model3d?.modelName ?? boundLayer.name
     if (boundLayer) return boundLayer.name
     if (logicItem) return logicItem.title
     return spec?.shortTitle ?? node.title
-  }, [boundShot, boundLayer, logicItem, spec, node.title])
+  }, [boundShot, boundLayer, logicItem, spec, node.title, node.params?.isAssemblyRoot])
 
   const cardCategoryBadge = React.useMemo(() => {
     if (boundShot && project) {

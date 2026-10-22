@@ -1,3 +1,4 @@
+import { autoWireScopedWorkflow } from './workflowAutoWire'
 import { syncWorkflowCameraModifiers } from './workflowCameraModifiers'
 import type {
   Layer,
@@ -217,10 +218,7 @@ export function resolveConnectedWorkflowNodes(workflow: WorkflowGraph): {
  * Tự động nối tất cả các Node đang bật theo chuẩn quy trình tạo video chuyên nghiệp.
  */
 export function autoWireWorkflowNodes(workflow: WorkflowGraph): WorkflowGraph {
-  return {
-    ...workflow,
-    edges: buildStandardEdges(workflow.nodes)
-  }
+  return autoWireScopedWorkflow(workflow)
 }
 
 /**
@@ -526,6 +524,8 @@ export function applyWorkflowToProject(
         appliedSummary: `Chuẩn hóa ${project.shots.length} phân cảnh · Bộ phận: ${partNamesSummary || node.preset}.`,
         affectedCount: affected
       })
+    } else if (node.type === 'layer_assembly' && node.id.startsWith('wf-layer-') && !node.params?.logicId) {
+      executedStages.push({ nodeId: node.id, nodeType: node.type, title: node.title, aiAgentRole: node.aiAgentRole, preset: node.preset, appliedSummary: 'Quản lý hiển thị và cấu trúc layer.', affectedCount: node.params?.targetLayerIds?.length ?? 0 })
     } else if (node.type === 'layer_assembly') {
       let affected = 0
       for (const l of project.layers) {

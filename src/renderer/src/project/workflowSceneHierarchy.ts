@@ -1,3 +1,4 @@
+import { expandWorkflowAssemblyParts } from './workflowAssemblyTree'
 import type {
   Layer,
   Project,
@@ -338,13 +339,13 @@ export function spawnSceneWithChildLayers(
     const isModel3d = Boolean(layer.model3d?.instanceId || layer.model3d?.modelId)
     const allLayerIdsInGroup = isComp
       ? project.layers
-          .filter((l) => l.composite?.instanceId === layer.composite?.instanceId)
+          .filter((l) => l.shotId === layer.shotId && l.composite?.instanceId === layer.composite?.instanceId)
           .map((l) => l.id)
       : isModel3d
         ? project.layers
             .filter((l) => {
               const instId = layer.model3d?.instanceId || layer.model3d?.modelId
-              return l.model3d?.instanceId === instId || l.model3d?.modelId === instId
+              return l.shotId === layer.shotId && (l.model3d?.instanceId === instId || l.model3d?.modelId === instId)
             })
             .map((l) => l.id)
         : [layer.id]
@@ -436,19 +437,16 @@ export function spawnSceneWithChildLayers(
       (n.id === 'wf-scene_shot' && (!n.params?.shotId || n.params.shotId === shot.id)))
 
   const isOldLayerForThisShot = (n: WorkflowNode) =>
-    n.type === 'layer_assembly' &&
+    n.type === 'layer_assembly' && !n.params?.logicId && !n.params?.assemblyRootNodeId &&
     (n.params?.shotId === shot.id ||
       n.id.startsWith(`wf-layer-${shot.id}`) ||
-      n.id.startsWith('wf-layer-') ||
-      n.id === 'wf-layer_assembly')
+      (n.id === 'wf-layer_assembly' && !n.params?.shotId))
 
   const isOldTransformForThisShot = (n: WorkflowNode) =>
     n.type === 'layer_transform' &&
     (!n.params?.shotId ||
       n.params.shotId === shot.id ||
       n.id.startsWith(`wf-trans-${shot.id}`) ||
-      n.id.startsWith('wf-trans-') ||
-      n.id.startsWith('wf-transform-') ||
       n.id.startsWith(`wf-transform-${shot.id}`) ||
       Boolean(
         n.params?.targetLayerIds?.some((id: string) =>
@@ -458,7 +456,7 @@ export function spawnSceneWithChildLayers(
 
   const isOldCamForThisShot = (n: WorkflowNode) =>
     n.type === 'camera_director' &&
-    (n.params?.shotId === shot.id || n.id === camNodeId || n.id === 'wf-camera_director')
+    !n.params?.logicId && (n.params?.shotId === shot.id || n.id === camNodeId || (n.id === 'wf-camera_director' && !n.params?.shotId))
 
   const removedNodeIds = new Set(
     workflow.nodes
@@ -473,30 +471,22 @@ export function spawnSceneWithChildLayers(
   )
 
   const retainedNodes = workflow.nodes.filter((n) => !removedNodeIds.has(n.id))
-  const nextNodes = [sceneNode, camNode, ...childLayerNodes, ...childTransformNodes, ...retainedNodes]
+  const previousById = new Map(workflow.nodes.map((n) => [n.id, n]))
+  const nextNodes = [sceneNode, camNode, ...childLayerNodes, ...childTransformNodes, ...retainedNodes].map((n) => {
+    const previous = previousById.get(n.id)
+    return previous ? { ...n, ...previous, params: { ...n.params, ...previous.params,
+      targetLayerIds: n.params?.targetLayerIds, childLayerCount: n.params?.childLayerCount } } : n
+  })
+  const nextIds = new Set(nextNodes.map((n) => n.id))
 
   // Giữ lại các edge không dính tới node bị xóa
   const retainedEdges = workflow.edges.filter(
-    (e) => !removedNodeIds.has(e.fromNode) && !removedNodeIds.has(e.toNode)
+    (e) => nextIds.has(e.fromNode) && nextIds.has(e.toNode)
   )
 
-  // Tự động nối dây từ Layer gần downstream nhất (Layer cuối cùng) sang Chuyển động
-  // để đường nối đi trực tiếp ngắn nhất, không bắc ngang qua đỉnh các layer khác
-  const motionNode = nextNodes.find((n) => n.type === 'motion_choreography')
-  const defaultActorChild = childLayerNodes[childLayerNodes.length - 1]
-  if (motionNode && defaultActorChild) {
-    childEdges.push({
-      id: `edge-${defaultActorChild.id}-actors_rig-${motionNode.id}-actors_rig`,
-      fromNode: defaultActorChild.id,
-      fromPort: 'actors_rig',
-      toNode: motionNode.id,
-      toPort: 'actors_rig'
-    })
-  }
-
   // Khử trùng lặp và đa liên kết vào cổng input đơn (Single-Input Ports) của các khối hạ nguồn
-  const edgeList: WorkflowEdge[] = [...childEdges]
-  for (const e of retainedEdges) {
+  const edgeList: WorkflowEdge[] = [...retainedEdges]
+  for (const e of childEdges) {
     if (!edgeList.some((x) => x.id === e.id)) {
       edgeList.push(e)
     }
@@ -506,19 +496,16 @@ export function spawnSceneWithChildLayers(
   const inputOccupied = new Set<string>()
   for (const e of edgeList) {
     const targetKey = `${e.toNode}:${e.toPort}`
-    if (!inputOccupied.has(targetKey)) {
+    if (!inputOccupied.has(targetKey) || !['layers_tree', 'transform_link'].includes(e.toPort)) {
       inputOccupied.add(targetKey)
       sanitizedEdges.push(e)
     }
   }
 
   return {
-    workflow: {
-      ...workflow,
-      targetShotId: shot.id,
-      nodes: nextNodes,
-      edges: sanitizedEdges
-    },
+    workflow: expandWorkflowAssemblyParts({
+      ...workflow, targetShotId: shot.id, nodes: nextNodes, edges: sanitizedEdges
+    }, project),
     sceneNode,
     childNodes: childLayerNodes,
     transformNodes: childTransformNodes
@@ -542,7 +529,7 @@ export function consolidateCompositeWorkflowNodes(
   const compositeNodeMap = new Map<string, WorkflowNode[]>()
 
   for (const n of workflow.nodes) {
-    if (n.type !== 'layer_assembly') continue
+    if (n.type !== 'layer_assembly' || n.params?.assemblyRootNodeId) continue
     const targetIds = n.params?.targetLayerIds ?? []
     const targetedLayers = project.layers.filter((l) => targetIds.includes(l.id))
     const compInstanceId =
@@ -686,7 +673,7 @@ export function syncMissingLayersToWorkflow(
   project: Project,
   currentShotScope?: string
 ): { workflow: WorkflowGraph; addedCount: number } | null {
-  const sceneNode = workflow.nodes.find((n) => n.type === 'scene_shot')
+  const sceneNode = workflow.nodes.find((n) => n.type === 'scene_shot' && (currentShotScope === 'all' || !n.params?.shotId || n.params.shotId === currentShotScope))
   const hasUnpackedLayers = workflow.nodes.some(
     (n) => n.type === 'layer_assembly' && n.id.startsWith('wf-layer-')
   )
@@ -694,8 +681,8 @@ export function syncMissingLayersToWorkflow(
 
   // 1. Tự động gom cụm các node composite bị phân mảnh trước đó (nếu có)
   const consolidation = consolidateCompositeWorkflowNodes(workflow, project)
-  const curWf = consolidation.workflow
-  const consolidatedTotal = consolidation.consolidatedCount
+  const curWf = expandWorkflowAssemblyParts(consolidation.workflow, project)
+  const consolidatedTotal = consolidation.consolidatedCount + curWf.nodes.length - consolidation.workflow.nodes.length
 
   const existingLayerIds = new Set(
     curWf.nodes
@@ -717,7 +704,7 @@ export function syncMissingLayersToWorkflow(
     return null
   }
 
-  const nextNodes = [...curWf.nodes]
+  const nextNodes = curWf.nodes.map((n) => ({ ...n, params: { ...n.params } }))
   const nextEdges = [...curWf.edges]
 
   // Gom các missing layer theo cụm composite 2.5D hoặc mô hình 3D
@@ -741,7 +728,7 @@ export function syncMissingLayersToWorkflow(
       // Kiểm tra xem đã có node layer_assembly nào trong sơ đồ bao hàm cụm này chưa
       const existingClusterNode = nextNodes.find(
         (n) =>
-          n.type === 'layer_assembly' &&
+          n.type === 'layer_assembly' && !n.params?.assemblyRootNodeId &&
           project.layers.some(
             (pl) =>
               (pl.composite?.instanceId === instId ||
@@ -796,10 +783,10 @@ export function syncMissingLayersToWorkflow(
   }
 
   if (groupedMissing.length === 0) {
-    if (consolidatedTotal > 0) {
+    if (consolidatedTotal > 0 || processedLayerIds.size > 0) {
       return {
-        workflow: { ...curWf, nodes: nextNodes, edges: nextEdges },
-        addedCount: consolidatedTotal
+        workflow: expandWorkflowAssemblyParts({ ...curWf, nodes: nextNodes, edges: nextEdges }, project),
+        addedCount: consolidatedTotal + processedLayerIds.size
       }
     }
     return null
@@ -901,11 +888,7 @@ export function syncMissingLayersToWorkflow(
   })
 
   return {
-    workflow: {
-      ...curWf,
-      nodes: nextNodes,
-      edges: nextEdges
-    },
+    workflow: expandWorkflowAssemblyParts({ ...curWf, nodes: nextNodes, edges: nextEdges }, project),
     addedCount: groupedMissing.length + consolidatedTotal
   }
 }

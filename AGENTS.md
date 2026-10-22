@@ -270,3 +270,5 @@ Khi thực hiện các nhiệm vụ chuyên biệt, AI cần tham chiếu các s
 Workflow: `workflow_quick_connect` chụp riêng menu chọn chức năng khi kéo port; tìm kiếm giữ bộ lọc tương thích theo chiều kết nối, cuộn độc lập với canvas.
 
 Workflow node configuration: `workflow_node_camera_preview` chụp preview camera trực tiếp; `workflow_node_settings` chụp bảng cấu hình. Thay đổi dùng cùng workflow handlers và Undo/Redo; preview có thời gian phát/tua riêng, đóng hộp giữ cấu hình trong dự án.
+
+- Workflow: bung cảnh giữ cấu hình và các cảnh khác; cụm 2.5D có node gốc và node bộ phận. Tự nối dây giữ kết nối hợp lệ, không đổi mục tiêu khi tắt layer và không nối chéo cảnh. `connect_workflow_ports(action: "auto_wire")` dùng cùng logic với UI.

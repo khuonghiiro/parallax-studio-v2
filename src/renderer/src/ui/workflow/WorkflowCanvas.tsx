@@ -21,7 +21,7 @@ import {
 } from './workflowLayoutAndFlow'
 import { findMagneticTarget, type MagneticTargetResult } from './workflowMagneticSnap'
 
-const MIN_ZOOM = 0.42
+const MIN_ZOOM = 0.08
 const MAX_ZOOM = 1.75
 
 export interface WorkflowCanvasProps {
@@ -371,7 +371,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
    */
   const startNodeDrag = useCallback(
     (e: React.PointerEvent, node: WorkflowNode) => {
-      if (pendingSource) return
+      if (pendingSource || e.button !== 0) return
       if (
         (e.target as HTMLElement).closest(
           'button, input, .wf-socket-hit, .wf-socket-pin, .wf-preset-pill'
@@ -430,6 +430,8 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         if (rafId) cancelAnimationFrame(rafId)
         el.removeEventListener('pointermove', onMove)
         el.removeEventListener('pointerup', onUp)
+        el.removeEventListener('pointercancel', onCancel)
+        window.removeEventListener('keydown', onKey)
         setDragPositions(null)
 
         if (!lastPatch) return
@@ -453,8 +455,16 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         // Lưu chính xác vị trí người dùng đã kéo tới, triệt tiêu chồng đè
         onMoveNodes(finalPatch, moveCluster ? 'wf-move-cluster' : `wf-move-${node.id}`)
       }
+      const onCancel = () => {
+        lastPatch = null
+        onUp()
+        if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId)
+      }
+      const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); onCancel() } }
       el.addEventListener('pointermove', onMove)
       el.addEventListener('pointerup', onUp)
+      el.addEventListener('pointercancel', onCancel)
+      window.addEventListener('keydown', onKey)
     },
     [clusterMoveMode, onMoveNodes, onSelectNode, pendingSource, workflow.nodes]
   )
@@ -682,6 +692,16 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     return out
   }, [workflow.edges, effectiveNodes, nodeById, activeNodeIds])
 
+  const cardHandlersRef = useRef({ startNodeDrag, startConnecting, handleInputSocketClick, handleOutputSocketClick, handleClearPendingWire })
+  cardHandlersRef.current = { startNodeDrag, startConnecting, handleInputSocketClick, handleOutputSocketClick, handleClearPendingWire }
+  const cardHandlers = useMemo(() => ({
+    drag: (...args: Parameters<typeof startNodeDrag>) => cardHandlersRef.current.startNodeDrag(...args),
+    connect: (...args: Parameters<typeof startConnecting>) => cardHandlersRef.current.startConnecting(...args),
+    input: (...args: Parameters<typeof handleInputSocketClick>) => cardHandlersRef.current.handleInputSocketClick(...args),
+    output: (...args: Parameters<typeof handleOutputSocketClick>) => cardHandlersRef.current.handleOutputSocketClick(...args),
+    clear: () => cardHandlersRef.current.handleClearPendingWire()
+  }), [])
+
   const previewTarget = snappedTarget ?? cursorWorld
 
   return (
@@ -738,7 +758,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
           transform: `translate3d(${Math.round(pan.x)}px, ${Math.round(pan.y)}px, 0)`
         }}
       >
-        <div className="wf-canvas-zoom" style={{ zoom }}>
+        <div className="wf-canvas-zoom" style={{ transform: `scale(${zoom})`, transformOrigin: '0 0' }}>
           <div className="wf-canvas-grid" />
           <div className="wf-canvas-world">
           {/* Lớp dây nối SVG Bezier không giới hạn tọa độ âm/dương (không dùng feGaussianBlur nặng GPU) */}
@@ -856,17 +876,17 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
               pendingSource={pendingSource}
               snappedTarget={snappedTarget}
               onSelectNode={onSelectNode}
-              onStartNodeDrag={startNodeDrag}
+              onStartNodeDrag={cardHandlers.drag}
               onToggleNode={onToggleNode}
               onDeleteNode={onDeleteNode}
               onChangeNodePreset={onChangeNodePreset}
               onUpdateNodeParams={onUpdateNodeParams}
               onPreviewNode={onPreviewNode}
-              onStartConnecting={startConnecting}
-              onInputSocketClick={handleInputSocketClick}
-              onOutputSocketClick={handleOutputSocketClick}
+              onStartConnecting={cardHandlers.connect}
+              onInputSocketClick={cardHandlers.input}
+              onOutputSocketClick={cardHandlers.output}
               onConnectPorts={onConnectPorts}
-              onClearPendingWire={handleClearPendingWire}
+              onClearPendingWire={cardHandlers.clear}
               onOpenConfig={onOpenNodeConfig}
             />
           ))}
