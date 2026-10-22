@@ -492,9 +492,7 @@ export function applyWorkflowToProject(
       }
 
       const wantGround =
-        Boolean(node.params?.ensureGround) ||
-        node.preset === 'grounded_3d_stage' ||
-        activePartIds.has('ground_plane')
+        node.params?.ensureGround ?? (node.preset === 'grounded_3d_stage' || activePartIds.has('ground_plane'))
       const targetGroundShotId = targetShotFilter ?? project.shots[0]?.id ?? null
       if (wantGround) {
         const hasGround = project.layers.some(
@@ -851,15 +849,17 @@ export function applyWorkflowToProject(
     project.camera.dofEnabled = false
     project.camera.shakeAmount = 0
   }
-  syncWorkflowCameraModifiers(project, activeNodes)
+  if (!opts?.onlyNodeIds || workflow.nodes.some((n) => opts.onlyNodeIds!.has(n.id) && n.type === 'camera_director')) {
+    syncWorkflowCameraModifiers(project, activeNodes)
+  }
 
 
   // Nối logic trực tiếp từ Node Logic sang từng Layer con (Blender-like Routing)
-  applyConnectedLogicEdgesToLayers(project, workflow, activeNodes)
+  applyConnectedLogicEdgesToLayers(project, workflow, opts?.onlyNodeIds ? activeNodes.filter((n) => opts.onlyNodeIds!.has(n.id)) : activeNodes)
 
   // Nếu có Node Logic độc lập bị ngắt dây hoặc tắt, đảm bảo tắt ngay quy tắc của Node Logic đó
   for (const dn of disconnectedNodes) {
-    if (!dn.params?.logicId) continue
+    if (!dn.params?.logicId || (opts?.onlyNodeIds && !opts.onlyNodeIds.has(dn.id))) continue
     const dnShot = resolveNodeShotScope(dn, workflow)
     for (const r of dn.params.customRules ?? []) {
       applyRuleMutationToProjectLayer(project, r, false, dnShot)

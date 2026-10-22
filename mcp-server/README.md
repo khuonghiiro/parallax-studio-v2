@@ -404,8 +404,11 @@ Layer có thể thuộc nhóm bộ phận (nhân vật hoặc động vật: Đ�
 <!-- workflow-quick-connect -->
 Workflow: `workflow_quick_connect` chụp riêng menu chọn chức năng khi kéo port; tìm kiếm giữ bộ lọc tương thích theo chiều kết nối, cuộn độc lập với canvas.
 
-Workflow node configuration: `workflow_node_camera_preview` chụp preview camera trực tiếp; `workflow_node_settings` chụp bảng cấu hình. Thay đổi dùng cùng workflow handlers và Undo/Redo; preview có thời gian phát/tua riêng, đóng hộp giữ cấu hình trong dự án.
+Workflow node configuration: `workflow_node_camera_preview` chụp preview camera trực tiếp; `workflow_node_settings` chụp bảng cấu hình. Dialog dùng bản nháp: preview tính ngay khi mở và debounce 200ms khi chỉnh. Áp dụng ghi một bước Undo; Hủy/Escape/nút đóng bỏ bản nháp.
 
 - Workflow: bung cảnh giữ cấu hình và các cảnh khác; cụm 2.5D có node gốc và node bộ phận. Tự nối dây giữ kết nối hợp lệ, không đổi mục tiêu khi tắt layer và không nối chéo cảnh. `connect_workflow_ports(action: "auto_wire")` dùng cùng logic với UI.
 
 - Dialog node: preview camera dựng sau khi giao diện hiện, tối đa 720px/20fps, tái sử dụng WebGL khi đổi node và giải phóng sau 15 giây đóng dialog. Viewport phía sau tạm ngừng dựng khi preview mở; các tab có vùng cuộn riêng và chữ tự xuống dòng theo theme.
+
+- Node configuration uses a private draft and shared preview/apply evaluator. MCP: `set_workflow(node_id, node_params: JSON, apply_node: true)` commits atomically; explicit false/empty selections are preserved.
+- Cấu hình node dùng bản nháp riêng; Áp dụng và preview dùng chung bộ xử lý. MCP `set_workflow` nhận `node_params` và `apply_node`; không ghi ngược trạng thái cảnh đè lên lựa chọn đã lưu.

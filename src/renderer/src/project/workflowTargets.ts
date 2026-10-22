@@ -453,7 +453,7 @@ export function getDefaultPartsForNode(node: Pick<WorkflowNode, 'type' | 'preset
 export function getNodeSubParts(node: WorkflowNode): WorkflowSubPartItem[] {
   const catalog = WORKFLOW_SUBPART_CATALOG[node.type] ?? []
   const activeIds = new Set(
-    node.params?.targetParts && node.params.targetParts.length > 0
+    node.params?.targetParts !== undefined
       ? node.params.targetParts
       : getDefaultPartsForNode(node)
   )
@@ -607,7 +607,7 @@ export function resolveNodeTargetBinding(
   const allBindable = listProjectBindableTargets(project, shotFilter)
 
   const customIds = node.params?.targetLayerIds ?? []
-  const isCustom = node.params?.targetMode === 'custom' && customIds.length > 0
+  const isCustom = node.params?.targetMode === 'custom'
   const customSet = new Set(customIds)
 
   const matchesLayer = (layer: Layer): boolean => {
@@ -636,7 +636,7 @@ export function resolveNodeTargetBinding(
       .map((t) => ({ ...t, isExplicit: true }))
     return {
       mode: 'custom',
-      boundTargets: explicit.length > 0 ? explicit : allBindable.slice(0, 3),
+      boundTargets: explicit,
       allBindableTargets: allBindable,
       subParts,
       activeParts,

@@ -1,3 +1,5 @@
+import type { WorkflowNode } from '@shared/types'
+import { evaluateNodeDraft, patchNodeDraft } from '../../project/workflowNodeDraft'
 import type {
   Project,
   WorkflowGraph,
@@ -103,6 +105,8 @@ export const workflowCommands: Record<string, Handler> = {
       throw new ParamError('Provide "preset_id", "workflow", "node_id", "auto_wire", or "tab"')
     }
 
+    let previousNode: WorkflowNode | undefined
+    let editedNode: WorkflowNode | undefined
     let current: WorkflowGraph
     if (presetId) {
       current = structuredClone(getWorkflowFromTemplate(presetId))
@@ -126,6 +130,9 @@ export const workflowCommands: Record<string, Handler> = {
           `Workflow node "${nodeId}" not found. Available: ${current.nodes.map((n) => `${n.id} (${n.type})`).join(', ')}`
         )
       }
+      previousNode = structuredClone(target)
+      editedNode = target
+      target.params = { ...target.params, configurationMode: 'explicit' }
       const nodePreset = str(p, 'node_preset') || str(p, 'preset')
       if (nodePreset) {
         const spec = WORKFLOW_NODE_SPECS[target.type]
@@ -139,6 +146,7 @@ export const workflowCommands: Record<string, Handler> = {
         if (!has(p, 'ai_directive')) target.aiDirective = foundPreset.defaultDirective
         target.params = {
           ...(target.params ?? {}),
+          ...foundPreset.defaultParams,
           targetParts: getDefaultPartsForNode({ type: target.type, preset: foundPreset.id })
         }
       }
@@ -155,25 +163,33 @@ export const workflowCommands: Record<string, Handler> = {
         const ids = p.target_layer_ids.map(String).filter(Boolean)
         target.params = {
           ...(target.params ?? {}),
-          targetMode: ids.length > 0 ? 'custom' : 'auto',
+          targetMode: 'custom',
           targetLayerIds: ids
         }
       }
       if (Array.isArray(p.target_parts)) {
         const parts = p.target_parts.map(String).filter(Boolean)
-        if (parts.length > 0) {
-          target.params = { ...(target.params ?? {}), targetParts: parts }
-        }
+        target.params = { ...(target.params ?? {}), targetParts: parts }
       }
     }
+
+    if (editedNode && p.node_params !== undefined) {
+      const params = typeof p.node_params === 'string' ? JSON.parse(p.node_params) : p.node_params
+      if (!params || typeof params !== 'object' || Array.isArray(params)) throw new ParamError('node_params must be a JSON object')
+      editedNode.params = patchNodeDraft(editedNode, params).params
+    }
+    if (bool(p, 'apply_node') && (!editedNode || !previousNode)) throw new ParamError('apply_node requires node_id')
 
     if (autoWire) {
       current = autoWireWorkflowNodes(current)
     }
 
-    ed().update((d) => {
-      d.workflow = current
-    }, 'mcp-set-workflow')
+    if (bool(p, 'apply_node') && editedNode && previousNode) {
+      const next = evaluateNodeDraft(proj(), current, editedNode, previousNode)
+      ed().update((d) => { Object.assign(d, next) })
+    } else {
+      ed().update((d) => { d.workflow = current }, 'mcp-set-workflow')
+    }
 
     const updated = ensureProjectWorkflow(proj())
     const blueprint = compileWorkflowBlueprint(updated, proj())

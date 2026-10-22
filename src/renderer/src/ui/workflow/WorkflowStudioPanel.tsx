@@ -45,7 +45,7 @@ import { spawnLogicNodeIntoWorkflow } from '../../project/workflowLogicNodes'
 import { WorkflowCanvas } from './WorkflowCanvas'
 import { WorkflowNodePalette } from './WorkflowNodePalette'
 import { WorkflowSidePanel, type WorkflowInspectorSubTab } from './WorkflowSidePanel'
-import { WorkflowNodeConfigDialog } from './WorkflowNodeConfigDialog'
+import { WorkflowNodeDraftDialog } from './WorkflowNodeDraftDialog'
 import { WorkflowStudioToolbar } from './WorkflowStudioToolbar'
 import { resolveNodeCollisionPush, solveSpaciousWorkflowLayout } from './workflowLayoutAndFlow'
 
@@ -924,9 +924,10 @@ export const WorkflowStudioPanel: React.FC = () => {
 
       {/* Hộp thoại Cấu hình Khối khi Chuột phải / Bấm đúp / Bấm ⚙ */}
       {configNode && (
-        <WorkflowNodeConfigDialog
+        <WorkflowNodeDraftDialog
+          key={configNode.id}
           node={configNode}
-          project={scopedProject}
+          project={project}
           workflow={workflow}
           blueprint={blueprint}
           onClose={() => setConfigNodeId(null)}

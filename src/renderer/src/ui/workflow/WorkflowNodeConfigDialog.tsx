@@ -23,6 +23,10 @@ import { WorkflowNodeConnections } from './WorkflowNodeConnections'
 export interface WorkflowNodeConfigDialogProps {
   node: WorkflowNode
   project?: Project
+  previewProject?: Project
+  previewPending?: boolean
+  draftError?: string
+  onApply?: () => void
   workflow: WorkflowGraph
   blueprint: WorkflowAiBlueprint
   onClose: () => void
@@ -44,6 +48,10 @@ type DialogTab = 'preset' | 'targets' | 'actions' | 'connections'
 export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> = ({
   node,
   project,
+  previewProject,
+  previewPending,
+  draftError,
+  onApply,
   workflow,
   onClose,
   onChangeNodePreset,
@@ -111,21 +119,13 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
 
     const exists = baseIds.includes(targetId)
     const nextIds = exists ? baseIds.filter((id) => id !== targetId) : [...baseIds, targetId]
-    if (nextIds.length === 0) {
-      onUpdateNodeParams(node.id, { targetMode: 'auto', targetLayerIds: [] })
-    } else {
-      onUpdateNodeParams(node.id, { targetMode: 'custom', targetLayerIds: nextIds })
-    }
+    onUpdateNodeParams(node.id, { targetMode: 'custom', targetLayerIds: nextIds })
   }
 
   const handleToggleSubPart = (partId: string) => {
     if (!binding) return
     const currentParts = (binding.activeParts ?? []).map((p) => p.id)
     const exists = currentParts.includes(partId)
-    if (exists && currentParts.length <= 1) {
-      onShowToast('Cần giữ ít nhất 1 bộ phận tác động cho khối chức năng!')
-      return
-    }
     const nextParts = exists
       ? currentParts.filter((id) => id !== partId)
       : [...currentParts, partId]
@@ -214,7 +214,7 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
 
         {/* ── 2. Workspace ──────────────────────────────────────────── */}
         <div className="wf-node-dialog-workspace">
-          {project && <WorkflowCameraMonitor key={node.id} project={project} node={node} />}
+          {project && <WorkflowCameraMonitor key={node.id} project={previewProject ?? project} node={node} />}
           <section className="wf-node-dialog-settings" data-mcp-region="workflow_node_settings">
             {/* Tab strip */}
             <div className="wf-node-dialog-tabs" role="tablist">
@@ -239,6 +239,7 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
             <div className="wf-node-dialog-body" role="tabpanel" aria-label={tabDefs.find((tab) => tab.id === activeTab)?.label}>
               {activeTab === 'preset' && isEntity && (
                 <WorkflowTransformBody
+                  draftMode={!!onApply}
                   node={node}
                   project={project}
                   onUpdateNodeParams={onUpdateNodeParams}
@@ -318,7 +319,7 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
                       </div>
 
                       {/* Sub-parts toggle */}
-                      {(binding.subParts ?? []).length > 0 && (
+                      {!node.params?.logicId && (binding.subParts ?? []).length > 0 && (
                         <div className="wf-field-group">
                           <label className="wf-field-label">Bộ phận con chịu tác động:</label>
                           <div className="wf-part-chips-wrap">
@@ -352,6 +353,7 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
               {activeTab === 'actions' && (
                 <div className="wf-subtab-pane">
                   <WorkflowActionBuilder
+                    draftMode={!!onApply}
                     node={node}
                     bindableTargets={binding?.allBindableTargets ?? []}
                     activeShotLabel={activeShotLabel}
@@ -377,10 +379,9 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
             </button>
           ) : <span className="wf-footer-spacer" />}
 
-          <span className="wf-node-save-hint">Thay đổi cập nhật trực tiếp · Ctrl+Z để hoàn tác</span>
-          <button type="button" className="btn primary sm" onClick={onClose}>
-            Đóng
-          </button>
+          <span className="wf-node-save-hint">{draftError || (previewPending ? 'Đang cập nhật bản xem thử…' : 'Bản nháp · Chưa thay đổi dự án')}</span>
+          <button type="button" className="btn ghost sm" onClick={onClose}>Hủy</button>
+          <button type="button" className="btn primary sm" disabled={!!draftError} onClick={onApply ?? onClose}>Áp dụng</button>
         </div>
       </div>
     </div>,

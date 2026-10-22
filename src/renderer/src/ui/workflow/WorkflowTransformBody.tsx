@@ -5,6 +5,7 @@ import { useEditor } from '../../store/editor'
 export interface WorkflowTransformBodyProps {
   node: WorkflowNode
   project?: Project
+  draftMode?: boolean
   onUpdateNodeParams?: (nodeId: string, patch: Partial<WorkflowNodeParams>) => void
 }
 
@@ -16,6 +17,7 @@ export interface WorkflowTransformBodyProps {
 export const WorkflowTransformBody: React.FC<WorkflowTransformBodyProps> = React.memo(({
   node,
   project,
+  draftMode = false,
   onUpdateNodeParams
 }) => {
   const targetLayerIds = useMemo(
@@ -31,22 +33,22 @@ export const WorkflowTransformBody: React.FC<WorkflowTransformBodyProps> = React
     return project.layers.find((l) => l.id === targetLayerId) ?? null
   }, [project, targetLayerId])
 
-  const posX = boundLayer
+  const posX = draftMode && node.params?.transformX !== undefined ? node.params.transformX : boundLayer
     ? Math.round(boundLayer.transform.position.value[0] ?? 0)
     : Math.round(node.params?.transformX ?? 0)
-  const posY = boundLayer
+  const posY = draftMode && node.params?.transformY !== undefined ? node.params.transformY : boundLayer
     ? Math.round(boundLayer.transform.position.value[1] ?? 0)
     : Math.round(node.params?.transformY ?? 0)
-  const posZ = boundLayer
+  const posZ = draftMode && node.params?.transformZ !== undefined ? node.params.transformZ : boundLayer
     ? Math.round(boundLayer.transform.position.value[2] ?? 0)
     : Math.round(node.params?.transformZ ?? 0)
-  const rotZ = boundLayer
+  const rotZ = draftMode && node.params?.transformRotation !== undefined ? node.params.transformRotation : boundLayer
     ? Math.round(boundLayer.transform.rotation.value[2] ?? 0)
     : Math.round(node.params?.transformRotation ?? 0)
 
   const handleSliderChange = useCallback(
     (axis: 'x' | 'y' | 'z' | 'rot', value: number) => {
-      if (targetLayerIds.length > 0) {
+      if (!draftMode && targetLayerIds.length > 0) {
         useEditor.getState().update((draft) => {
           const baseOldVal =
             axis === 'x' ? posX : axis === 'y' ? posY : axis === 'z' ? posZ : rotZ
@@ -78,13 +80,13 @@ export const WorkflowTransformBody: React.FC<WorkflowTransformBodyProps> = React
       else if (axis === 'rot') patch.transformRotation = value
       onUpdateNodeParams?.(node.id, patch)
     },
-    [targetLayerIds, posX, posY, posZ, rotZ, node.id, onUpdateNodeParams]
+    [draftMode, targetLayerIds, posX, posY, posZ, rotZ, node.id, onUpdateNodeParams]
   )
 
   const handleReset = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
-      if (targetLayerIds.length > 0) {
+      if (!draftMode && targetLayerIds.length > 0) {
         useEditor.getState().update((draft) => {
           const deltaX = -posX
           const deltaY = -posY
@@ -110,7 +112,7 @@ export const WorkflowTransformBody: React.FC<WorkflowTransformBodyProps> = React
         transformRotation: 0
       })
     },
-    [targetLayerIds, posX, posY, rotZ, node.id, onUpdateNodeParams]
+    [draftMode, targetLayerIds, posX, posY, rotZ, node.id, onUpdateNodeParams]
   )
 
   return (

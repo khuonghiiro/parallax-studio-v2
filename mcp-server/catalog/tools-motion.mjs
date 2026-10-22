@@ -430,6 +430,8 @@ export const FX_TOOLS = [
       preset_id: z.string().optional().describe(d('Built-in workflow template ID (e.g. "cinematic_parallax_intro", "character_action_physics", "cave_virtual_light_explore", "story_dialogue_lipsync", "arch3d_flythrough").', 'ID mẫu workflow có sẵn (VD: "cinematic_parallax_intro", "character_action_physics", "cave_virtual_light_explore", "story_dialogue_lipsync", "arch3d_flythrough").')),
       workflow: z.string().optional().describe(d('JSON string of a WorkflowGraph object.', 'Chuỗi JSON của đối tượng WorkflowGraph.')),
       node_id: z.string().optional().describe(d('Target node ID (or node type) to update.', 'ID khối node (hoặc loại node) cần cập nhật.')),
+      node_params: z.string().optional().describe(d('JSON object of explicit node parameters; false and empty target arrays remain explicit.', 'Đối tượng JSON thông số node; giữ nguyên giá trị false và danh sách mục tiêu rỗng.')),
+      apply_node: z.boolean().optional().describe(d('Apply this node configuration atomically in one Undo step, using the same evaluator as the dialog preview.', 'Áp dụng cấu hình node trong một bước Undo, dùng cùng bộ xử lý với preview dialog.')),
       node_preset: z.string().optional().describe(d('Preset ID to assign to the target node.', 'Mã preset cần gán cho khối node.')),
       enabled: z.boolean().optional().describe(d('Enable or bypass the target node.', 'Bật hoặc bỏ qua khối node mục tiêu.')),
       auto_wire: z.boolean().optional().describe(d('Preserve valid wires and complete unambiguous connections within each shot and assembly hierarchy.', 'Giữ dây hợp lệ và bổ sung kết nối rõ mục tiêu trong từng cảnh và cây cụm layer.')),

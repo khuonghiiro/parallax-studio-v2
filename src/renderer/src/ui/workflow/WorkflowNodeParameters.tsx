@@ -12,18 +12,21 @@ type Props = {
 
 function NodeSwitches({ node, onUpdateNodeParams }: Pick<Props, 'node' | 'onUpdateNodeParams'>) {
   const p = node.params ?? {}
+  const logic = p.logicId
+  const allows = (part: string) => !logic || !!p.targetParts?.includes(part)
   const controls: { label: string; checked: boolean; patch: (checked: boolean) => Partial<WorkflowNodeParams> }[] = []
   if (node.type === 'scene_shot') controls.push(
     { label: 'Tự xếp độ sâu Z', checked: p.autoArrangeZ !== false, patch: (autoArrangeZ) => ({ autoArrangeZ }) },
     { label: 'Tạo mặt đất 3D', checked: !!p.ensureGround, patch: (ensureGround) => ({ ensureGround }) }
   )
-  if (node.type === 'physics_fx') controls.push({ label: 'Thêm lớp hạt FX', checked: !!p.spawnParticles, patch: (spawnParticles) => ({ spawnParticles }) })
+  if (node.type === 'physics_fx' && allows('firefly_particles')) controls.push({ label: 'Thêm lớp hạt FX', checked: !!p.spawnParticles, patch: (spawnParticles) => ({ spawnParticles }) })
   if (node.type === 'camera_director') controls.push(
     { label: 'Xóa phông (DOF)', checked: p.enableDof ?? p.logicId === 'logic-cam-dof', patch: (enableDof) => ({ enableDof }) },
     { label: 'Rung handheld', checked: (p.camShakeAmount ?? (p.logicId === 'logic-cam-shake' || node.preset === 'dramatic_handheld_action' ? 6 : 0)) > 0, patch: (checked) => ({ camShakeAmount: checked ? 6 : 0 }) }
   )
   if (node.type === 'audio_lipsync') controls.push({ label: 'Tự động lip-sync', checked: p.autoLipSync !== false, patch: (autoLipSync) => ({ autoLipSync }) })
-  return <div className="wf-check-pills-row">{controls.map((control) => <label className="wf-check-pill" key={control.label}>
+  const relevant = controls.filter((c) => !logic || (c.label === 'Xóa phông (DOF)' ? allows('dof_aperture') : c.label === 'Rung handheld' ? allows('handheld_rig') : true))
+  return <div className="wf-check-pills-row">{relevant.map((control) => <label className="wf-check-pill" key={control.label}>
     <input type="checkbox" checked={control.checked} onChange={(event) => onUpdateNodeParams(node.id, control.patch(event.target.checked))} />
     <span>{control.label}</span>
   </label>)}</div>
@@ -34,6 +37,7 @@ export function WorkflowNodeParameters(props: Props) {
   const spec = WORKFLOW_NODE_SPECS[node.type]
   const logic = WORKFLOW_LOGIC_NODE_CATALOG.find((item) => item.id === node.params?.logicId)
   return <div className="wf-subtab-pane">
+    {!logic && <div className="wf-node-purpose"><strong>{spec.shortTitle}</strong><p>{spec.description}</p></div>}
     {logic && <div className="wf-node-purpose"><span className="wf-field-label">Nhiệm vụ của node</span><strong>{logic.title}</strong><p>{logic.description}</p></div>}
     {!logic && <div className="wf-preset-cards-list" role="radiogroup" aria-label="Chọn kịch bản xử lý mẫu">
       {spec.presets.map((preset) => <button type="button" role="radio" aria-checked={node.preset === preset.id}

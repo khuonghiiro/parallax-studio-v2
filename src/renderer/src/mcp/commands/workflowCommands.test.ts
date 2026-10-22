@@ -20,6 +20,16 @@ import { useEditor } from '../../store/editor'
 import { runCommand } from '../commands'
 
 describe('MCP workflowCommands & Workflow Engine', () => {
+  it('applies explicit node parameters in one undo transaction', async () => {
+    const before = useEditor.getState().project
+    const count = useEditor.getState().past.length
+    await runCommand('set_workflow', { node_id: 'camera_director', node_params: JSON.stringify({ enableDof: true }), apply_node: true })
+    expect(useEditor.getState().project.camera.dofEnabled).toBe(true)
+    expect(useEditor.getState().past.length).toBe(count + 1)
+    useEditor.getState().undo()
+    expect(useEditor.getState().project).toEqual(before)
+  })
+
   beforeEach(() => {
     const proj = createProject()
     const shot = createShot('Cảnh 1')

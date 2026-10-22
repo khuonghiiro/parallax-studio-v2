@@ -22,6 +22,7 @@ import { getTargetKindIcon } from './WorkflowNodePreview'
 
 export interface WorkflowActionBuilderProps {
   node: WorkflowNode
+  draftMode?: boolean
   bindableTargets: WorkflowBoundTarget[]
   activeShotLabel?: string
   onUpdateNodeParams: (nodeId: string, patch: Partial<WorkflowNodeParams>) => void
@@ -31,6 +32,7 @@ export interface WorkflowActionBuilderProps {
 
 export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
   node,
+  draftMode = false,
   bindableTargets,
   activeShotLabel,
   onUpdateNodeParams,
@@ -93,7 +95,7 @@ export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
 
   const handleToggleRule = (ruleId: string) => {
     const targetRule = customRules.find((r) => r.id === ruleId)
-    if (targetRule) {
+    if (targetRule && !draftMode) {
       const nextEnabled = !targetRule.enabled
       useEditor.getState().update((draft) => {
         applyRuleMutationToProjectLayer(draft as Project, targetRule, nextEnabled)
@@ -107,7 +109,7 @@ export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
 
   const handleDeleteRule = (ruleId: string) => {
     const targetRule = customRules.find((r) => r.id === ruleId)
-    if (targetRule) {
+    if (targetRule && !draftMode) {
       useEditor.getState().update((draft) => {
         applyRuleMutationToProjectLayer(draft as Project, targetRule, false)
       })
@@ -180,7 +182,7 @@ export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
             className="wf-binder-mode-btn"
             title="Xóa toàn bộ lệnh chuyển động riêng đã thêm vào khối này"
             onClick={() => {
-              useEditor.getState().update((draft) => {
+              if (!draftMode) useEditor.getState().update((draft) => {
                 for (const r of customRules) {
                   applyRuleMutationToProjectLayer(draft as Project, r, false)
                 }
@@ -195,7 +197,7 @@ export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
 
       {/* Lưới Nút Bấm Trực Tiếp (Không dùng Combobox) */}
       <div className="wf-action-chip-grid" role="radiogroup" aria-label="Chọn chức năng chuyển động">
-        {WORKFLOW_CUSTOM_ACTION_CATALOG.map((item) => {
+        {WORKFLOW_CUSTOM_ACTION_CATALOG.filter((item) => item.nodeTypes.includes(node.type)).map((item) => {
           const active = item.kind === actionKind
           return (
             <button

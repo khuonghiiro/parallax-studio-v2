@@ -168,6 +168,7 @@ export interface WorkflowNodeParams {
   /** Đánh dấu Node Root điều phối cụm Lắp Ráp 3D hoặc Layer 2.5D Composite */
   isAssemblyRoot?: boolean
   /** Organizational root of an expanded composite; does not change layer parenting. */
+  configurationMode?: 'explicit'
   assemblyRootNodeId?: string
   /** Parent node in the expanded layer tree. */
   hierarchyParentNodeId?: string

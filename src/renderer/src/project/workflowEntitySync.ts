@@ -302,9 +302,7 @@ export function executeAudioLipSyncStage(
     tr.fadeIn = tr.fadeIn || 0.6
     tr.fadeOut = tr.fadeOut || 1.0
     if (
-      node.preset === 'voice_lipsync_bgm' ||
-      node.params?.autoLipSync ||
-      activePartIds.has('mouth_viseme_25d')
+      node.params?.autoLipSync ?? (node.preset === 'voice_lipsync_bgm' || activePartIds.has('mouth_viseme_25d'))
     ) {
       tr.tone = tr.characterRole === 'voice' ? 'vocal' : 'warm'
       if (tr.characterRole === 'voice' || tracks.length === 1) {
@@ -320,6 +318,7 @@ export function executeAudioLipSyncStage(
         }
       }
     } else {
+      tr.lipSyncEnabled = false
       tr.tone = 'warm'
     }
     affected++

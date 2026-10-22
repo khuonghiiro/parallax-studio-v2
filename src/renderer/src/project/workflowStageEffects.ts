@@ -538,7 +538,7 @@ export function syncWorkflowFromProject(
       ? baseWorkflow.targetShotId
       : null
   const nodes = baseWorkflow.nodes.map((node): WorkflowNode => {
-    if (node.params?.logicId) return node
+    if (node.params?.logicId || node.params?.configurationMode === 'explicit') return node
     const baseParts = new Set(
       node.params?.targetParts && node.params.targetParts.length > 0
         ? node.params.targetParts
