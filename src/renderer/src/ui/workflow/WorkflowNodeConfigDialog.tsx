@@ -1,4 +1,5 @@
 import '../../styles/workflowNodeDialogTabs.css'
+import '../../styles/workflowNodeDataFlow.css'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   Project,
@@ -19,6 +20,7 @@ import { WorkflowCameraMonitor } from './WorkflowCameraMonitor'
 import { WorkflowTransformBody } from './WorkflowTransformBody'
 import { WorkflowNodeParameters } from './WorkflowNodeParameters'
 import { WorkflowNodeConnections } from './WorkflowNodeConnections'
+import { WorkflowNodeInput, WorkflowNodeOutput } from './WorkflowNodeDataPanel'
 
 export interface WorkflowNodeConfigDialogProps {
   node: WorkflowNode
@@ -65,7 +67,9 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
   onShowToast
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
   const [activeTab, setActiveTab] = useState<DialogTab>('preset')
+  useEffect(() => { bodyRef.current?.scrollTo(0, 0) }, [activeTab])
 
   // Restore focus on unmount
   useEffect(() => {
@@ -76,7 +80,7 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
 
   const nodeSpec = WORKFLOW_NODE_SPECS[node.type]
   const nodeColor = nodeSpec?.color ?? '#38bdf8'
-  const binding = useMemo(() => resolveNodeTargetBinding(node, project), [node, project])
+  const binding = useMemo(() => resolveNodeTargetBinding(node, project, workflow), [node, project, workflow])
 
   // --- Derived flags -------------------------------------------------------
   /** Entity nodes render the Transform slider body instead of preset/targets UI */
@@ -214,7 +218,7 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
 
         {/* ── 2. Workspace ──────────────────────────────────────────── */}
         <div className="wf-node-dialog-workspace">
-          {project && <WorkflowCameraMonitor key={node.id} project={previewProject ?? project} node={node} />}
+          <WorkflowNodeInput node={node} workflow={workflow} project={project} />
           <section className="wf-node-dialog-settings" data-mcp-region="workflow_node_settings">
             {/* Tab strip */}
             <div className="wf-node-dialog-tabs" role="tablist">
@@ -236,7 +240,7 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
             </div>
 
             {/* Scrollable body */}
-            <div className="wf-node-dialog-body" role="tabpanel" aria-label={tabDefs.find((tab) => tab.id === activeTab)?.label}>
+            <div ref={bodyRef} className="wf-node-dialog-body" role="tabpanel" aria-label={tabDefs.find((tab) => tab.id === activeTab)?.label}>
               {activeTab === 'preset' && isEntity && (
                 <WorkflowTransformBody
                   draftMode={!!onApply}
@@ -275,7 +279,7 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
                             onUpdateNodeParams(node.id, { targetMode: 'auto', targetLayerIds: [] })
                           }
                         >
-                          ⚡ Tự động theo vai trò
+                          ⚡ Theo dây nối & phân cảnh
                         </button>
                         <button
                           type="button"
@@ -364,6 +368,10 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
               )}
             </div>
           </section>
+          {project && <div className="wf-node-output-panel">
+            <WorkflowNodeOutput base={project} preview={previewProject} pending={previewPending} />
+            <WorkflowCameraMonitor key={node.id} project={previewProject ?? project} node={node} />
+          </div>}
         </div>
 
         {/* ── 3. Footer ────────────────────────────────────────────── */}

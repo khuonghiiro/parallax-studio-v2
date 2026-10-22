@@ -2,6 +2,7 @@ import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@
 import { applyWorkflowToProject, resolveNodeTargetBinding } from './workflowEngine'
 import { getNodeSubParts } from './workflowTargets'
 import { applyRuleMutationToProjectLayer } from './workflowStageEffects'
+import { isWorkflowEntity } from './workflowRouting'
 
 export function initializeNodeDraft(node: WorkflowNode, project: Project): WorkflowNode {
   const result = structuredClone(node)
@@ -42,7 +43,7 @@ function resetRemovedEffects(project: Project, previous: WorkflowNode, node: Wor
   const removed = new Set(oldParts.filter((id) => !parts.has(id)))
   const binding = resolveNodeTargetBinding(previous, project)
   for (const rule of previous.params?.customRules ?? []) {
-    applyRuleMutationToProjectLayer(project, rule, false, previous.params?.shotId === 'all' ? undefined : previous.params?.shotId)
+    if (rule.enabled) applyRuleMutationToProjectLayer(project, rule, false, previous.params?.shotId === 'all' ? undefined : previous.params?.shotId, binding.matchesLayer)
   }
   for (const layer of project.layers) {
     if (layer.locked || !binding.matchesLayer(layer)) continue
@@ -74,6 +75,20 @@ export function evaluateNodeDraft(base: Project, workflow: WorkflowGraph, node: 
       layer.transform.rotation.value[2] += (node.params?.transformRotation ?? root.transform.rotation.value[2]) - root.transform.rotation.value[2]
     }
   }
-  applyWorkflowToProject(project, next, { onlyNodeIds: new Set([node.id]) })
+  const affected = new Set([node.id])
+  const oldGraph = base.workflow
+  const before = oldGraph?.edges ?? []
+  const changed = [...before.filter((edge) => !next.edges.some((item) => item.id === edge.id)),
+    ...next.edges.filter((edge) => !before.some((item) => item.id === edge.id))]
+  for (const edge of changed.filter((edge) => edge.fromNode === node.id || edge.toNode === node.id)) {
+    for (const id of [edge.fromNode, edge.toNode]) {
+      const neighbor = next.nodes.find((item) => item.id === id)
+      if (!neighbor || isWorkflowEntity(neighbor) || neighbor.type === 'scene_shot') continue
+      affected.add(id)
+      const old = oldGraph?.nodes.find((item) => item.id === id)
+      if (old && id !== node.id) resetRemovedEffects(project, old, neighbor)
+    }
+  }
+  applyWorkflowToProject(project, next, { onlyNodeIds: affected })
   return project
 }

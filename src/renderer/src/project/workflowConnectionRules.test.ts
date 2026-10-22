@@ -128,6 +128,11 @@ describe('validateWorkflowConnection', () => {
   it('cho phép FX xuất vfx_stage sang Layer', () => {
     expect(validateWorkflowConnection(fxNode, 'vfx_stage', layerNodeA, 'vfx_stage').valid).toBe(true)
   })
+  it('không tráo ngữ cảnh cảnh sang cổng chuyển động hoặc tráo đối tượng sang camera', () => {
+    expect(validateWorkflowConnection(sceneNode, 'scene_ctx', fxNode, 'motion_stream').valid).toBe(false)
+    expect(validateWorkflowConnection(layerNodeA, 'actors_rig', camNode, 'camera_cut').valid).toBe(false)
+    expect(validateWorkflowConnection(camNode, 'camera_cut', { ...camNode, id: 'modifier' }, 'camera_cut').valid).toBe(true)
+  })
 
   it('từ chối nối chéo cổng ngang vào cổng dọc', () => {
     const res = validateWorkflowConnection(motionNode, 'motion_stream', layerNodeA, 'transform_link')

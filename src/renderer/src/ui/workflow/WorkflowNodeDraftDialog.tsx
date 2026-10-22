@@ -29,7 +29,9 @@ export function WorkflowNodeDraftDialog(props: Props) {
     try {
       const state = useEditor.getState()
       const current = state.project.workflow ?? props.workflow
-      const nextGraph: WorkflowGraph = { ...current, nodes: current.nodes.map((n) => n.id === node.id ? node : n),
+      const nextGraph: WorkflowGraph = { ...current, nodes: current.nodes.map((n) => n.id === node.id ? node
+        : workflow.nodes.find((item) => item.id === n.id)?.params?.requireLayerConnection
+          ? { ...n, params: { ...n.params, requireLayerConnection: true } } : n),
         edges: [...current.edges.filter((e) => e.fromNode !== node.id && e.toNode !== node.id),
           ...workflow.edges.filter((e) => e.fromNode === node.id || e.toNode === node.id)] }
       const next = evaluateNodeDraft(state.project, nextGraph, node, previous)
@@ -52,6 +54,12 @@ export function WorkflowNodeDraftDialog(props: Props) {
       try { setGraph(connectWorkflowPort(workflow, from, output, to, input)) }
       catch (cause) { props.onShowToast(String(cause)) }
     }}
-    onDisconnectEdge={(id) => setGraph(disconnectWorkflowEdge(workflow, { edgeId: id }))}
+    onDisconnectEdge={(id) => {
+      const next = disconnectWorkflowEdge(workflow, { edgeId: id })
+      setGraph(next)
+      if (next.nodes.find((item) => item.id === node.id)?.params?.requireLayerConnection) {
+        setNode((current) => patchNodeDraft(current, { requireLayerConnection: true }))
+      }
+    }}
   />
 }

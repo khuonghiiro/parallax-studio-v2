@@ -3,10 +3,12 @@ import type {
   Project,
   WorkflowBoundTarget,
   WorkflowNode,
+  WorkflowGraph,
   WorkflowNodeType,
   WorkflowSubPartItem
 } from '@shared/types'
 import { isMouthLayer } from './lipSync'
+import { getWorkflowRouting, isWorkflowEntity } from './workflowRouting'
 
 export type LayerSemanticRole = 'sky' | 'foliage' | 'character' | 'ground' | 'prop'
 
@@ -598,11 +600,21 @@ export interface ResolvedNodeBinding {
  */
 export function resolveNodeTargetBinding(
   node: WorkflowNode,
-  project?: Project
+  project?: Project,
+  workflow?: WorkflowGraph
 ): ResolvedNodeBinding {
+  const graph = workflow ?? project?.workflow
+  const routing = graph && !isWorkflowEntity(node) && node.type !== 'scene_shot'
+    ? getWorkflowRouting(node, graph) : undefined
+  const routedIds = isWorkflowEntity(node) ? node.params!.targetLayerIds : routing?.layerIds
+  if ((routedIds?.length || routing?.hasLayerRoute) && node.params?.targetMode !== 'custom') {
+    return resolveNodeTargetBinding({ ...node, params: { ...node.params, targetMode: 'custom',
+      targetLayerIds: routedIds ?? [] } }, project, workflow)
+  }
   const subParts = getNodeSubParts(node)
   const activeParts = subParts.filter((p) => p.active)
-  const rawShotScope = node.params?.shotId || project?.workflow?.targetShotId
+  const rawShotScope = (node.params?.shotId !== 'all' ? node.params?.shotId : undefined)
+    || (routing?.shotIds.length === 1 ? routing.shotIds[0] : undefined) || graph?.targetShotId
   const shotFilter = rawShotScope && rawShotScope !== 'all' ? rawShotScope : null
   const allBindable = listProjectBindableTargets(project, shotFilter)
 
@@ -632,7 +644,8 @@ export function resolveNodeTargetBinding(
 
   if (isCustom) {
     const explicit = allBindable
-      .filter((t) => customSet.has(t.id))
+      .filter((t) => customSet.has(t.id) || project.layers.some((layer) => matchesLayer(layer)
+        && (layer.composite?.instanceId === t.id || layer.model3d?.instanceId === t.id)))
       .map((t) => ({ ...t, isExplicit: true }))
     return {
       mode: 'custom',

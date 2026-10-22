@@ -54,12 +54,14 @@ import {
   WORKFLOW_LOGIC_NODE_CATALOG,
   WORKFLOW_LOGIC_NODE_CATEGORIES,
   resolveNodeShotScope,
-  applyConnectedLogicEdgesToLayers,
   spawnLogicNodeIntoWorkflow,
   validateAndNormalizeWorkflowJson,
   type WorkflowLogicNodeCatalogItem
 } from './workflowLogicNodes'
 import { validateWorkflowConnection } from './workflowConnectionRules'
+import { resolveConnectedWorkflowNodes } from './workflowExecutionOrder'
+import { getWorkflowRouting } from './workflowRouting'
+export { resolveConnectedWorkflowNodes } from './workflowExecutionOrder'
 
 export {
   WORKFLOW_SUBPART_CATALOG,
@@ -96,122 +98,6 @@ export function ensureProjectWorkflow(project: Project): WorkflowGraph {
         : project.workflow
       : createDefaultWorkflow()
   return syncWorkflowFromProject(project, raw)
-}
-
-/**
- * Xác định các Node đang BẬT và ĐƯỢC KẾT NỐI PORT hợp lệ trong đồ thị Workflow.
- * Sắp xếp theo thứ tự thực thi chuẩn (Topological / Step Order).
- */
-export function resolveConnectedWorkflowNodes(workflow: WorkflowGraph): {
-  activeNodes: WorkflowNode[]
-  disconnectedNodes: WorkflowNode[]
-} {
-  const enabledNodes = workflow.nodes.filter((n) => n.enabled)
-  const disabledNodes = workflow.nodes.filter((n) => !n.enabled)
-
-  if (enabledNodes.length === 0) {
-    return { activeNodes: [], disconnectedNodes: [...disabledNodes] }
-  }
-
-  const enabledIds = new Set(enabledNodes.map((n) => n.id))
-  const validEdges = workflow.edges.filter(
-    (e) => enabledIds.has(e.fromNode) && enabledIds.has(e.toNode) && e.fromNode !== e.toNode
-  )
-
-  // Nếu đồ thị chỉ có 1 node đang bật và chưa có cạnh nào, cho phép thực thi node đơn đó
-  if (enabledNodes.length === 1 && validEdges.length === 0) {
-    return { activeNodes: enabledNodes, disconnectedNodes: disabledNodes }
-  }
-
-  // Duyệt BFS có hướng bắt đầu từ khối gốc đầu vào (Phân cảnh #1 - inputs rỗng hoặc không có cạnh vào)
-  const explicitRootNodes = enabledNodes.filter(
-    (n) => (WORKFLOW_NODE_SPECS[n.type]?.inputs.length ?? 0) === 0
-  )
-  const rootCandidates =
-    explicitRootNodes.length > 0
-      ? explicitRootNodes
-      : enabledNodes.filter((n) => !validEdges.some((e) => e.toNode === n.id))
-
-  const activeRoots = rootCandidates.filter((r) =>
-    validEdges.some((e) => e.fromNode === r.id)
-  )
-  const reachableNodeIds = new Set<string>()
-  const queue: string[] = (enabledNodes.length === 1 ? rootCandidates : activeRoots).map((r) => r.id)
-  for (const id of queue) {
-    reachableNodeIds.add(id)
-  }
-
-  while (queue.length > 0) {
-    const curr = queue.shift()!
-    for (const e of validEdges) {
-      if (e.fromNode === curr && !reachableNodeIds.has(e.toNode)) {
-        reachableNodeIds.add(e.toNode)
-        queue.push(e.toNode)
-      }
-    }
-  }
-
-  // Sắp xếp thứ tự thực thi theo Topological Sort (Kahn's Algorithm) kết hợp Step Order
-  const inDegree = new Map<string, number>()
-  const adj = new Map<string, string[]>()
-  for (const id of reachableNodeIds) {
-    inDegree.set(id, 0)
-    adj.set(id, [])
-  }
-  for (const e of validEdges) {
-    if (reachableNodeIds.has(e.fromNode) && reachableNodeIds.has(e.toNode)) {
-      adj.get(e.fromNode)!.push(e.toNode)
-      inDegree.set(e.toNode, (inDegree.get(e.toNode) ?? 0) + 1)
-    }
-  }
-
-  const orderIndex = (n: WorkflowNode): number => {
-    const idx = CANONICAL_NODE_ORDER.indexOf(n.type)
-    return idx >= 0 ? idx : 99
-  }
-
-  const topoOrder: string[] = []
-  const zeroQueue = Array.from(reachableNodeIds)
-    .filter((id) => (inDegree.get(id) ?? 0) === 0)
-    .sort((a, b) => {
-      const na = enabledNodes.find((n) => n.id === a)!
-      const nb = enabledNodes.find((n) => n.id === b)!
-      return orderIndex(na) - orderIndex(nb)
-    })
-
-  while (zeroQueue.length > 0) {
-    const curr = zeroQueue.shift()!
-    topoOrder.push(curr)
-    for (const neighbor of adj.get(curr) ?? []) {
-      const nextDeg = (inDegree.get(neighbor) ?? 1) - 1
-      inDegree.set(neighbor, nextDeg)
-      if (nextDeg === 0) {
-        zeroQueue.push(neighbor)
-        zeroQueue.sort((a, b) => {
-          const na = enabledNodes.find((n) => n.id === a)!
-          const nb = enabledNodes.find((n) => n.id === b)!
-          return orderIndex(na) - orderIndex(nb)
-        })
-      }
-    }
-  }
-
-  for (const id of reachableNodeIds) {
-    if (!topoOrder.includes(id)) {
-      topoOrder.push(id)
-    }
-  }
-
-  const activeNodes = topoOrder
-    .map((id) => enabledNodes.find((n) => n.id === id)!)
-    .filter(Boolean)
-
-  const disconnectedNodes = [
-    ...disabledNodes,
-    ...enabledNodes.filter((n) => !reachableNodeIds.has(n.id))
-  ]
-
-  return { activeNodes, disconnectedNodes }
 }
 
 /**
@@ -309,6 +195,8 @@ export function disconnectWorkflowEdge(
 
   return {
     ...workflow,
+    nodes: workflow.nodes.map((node) => getWorkflowRouting(node, workflow).layerIds.length
+      ? { ...node, params: { ...node.params, requireLayerConnection: true } } : node),
     edges: nextEdges
   }
 }
@@ -325,7 +213,7 @@ export function compileWorkflowBlueprint(workflow: WorkflowGraph, project?: Proj
   const agents: WorkflowAiAgentStep[] = activeNodes.map((node, idx) => {
     const spec = WORKFLOW_NODE_SPECS[node.type]
     const presetSpec = spec?.presets.find((p) => p.id === node.preset) ?? spec?.presets[0]
-    const rawBinding = resolveNodeTargetBinding(node, project)
+    const rawBinding = resolveNodeTargetBinding(node, project, workflow)
     const targetShotFilter = resolveNodeShotScope(node, workflow)
     const binding = {
       ...rawBinding,
@@ -433,12 +321,23 @@ export function applyWorkflowToProject(
   if (!opts?.onlyNodeIds) {
     deactivateDisconnectedWorkflowStages(project, connectedStageTypes)
   }
-  syncWorkflowEntityVisibility(project, workflow, activeNodeIdSet)
+  const visibilityGraph = opts?.onlyNodeIds
+    ? { ...workflow, nodes: workflow.nodes.filter((node) => opts.onlyNodeIds!.has(node.id)) } : workflow
+  syncWorkflowEntityVisibility(project, visibilityGraph, activeNodeIdSet)
+
+  // Clean up first so a disconnected operation cannot disable a later active operation's output.
+  for (const dn of disconnectedNodes) {
+    if (!dn.params?.logicId || (opts?.onlyNodeIds && !opts.onlyNodeIds.has(dn.id))) continue
+    const binding = resolveNodeTargetBinding(dn, project, workflow)
+    for (const rule of dn.params.customRules ?? []) {
+      if (rule.enabled) applyRuleMutationToProjectLayer(project, rule, false, resolveNodeShotScope(dn, workflow), binding.matchesLayer)
+    }
+  }
 
   for (const node of activeNodes) {
     if (opts?.onlyNodeIds && !opts.onlyNodeIds.has(node.id)) continue
     const intensity = Math.max(0.2, Math.min(2.5, node.params?.intensity ?? 1.0))
-    const rawBinding = resolveNodeTargetBinding(node, project)
+    const rawBinding = resolveNodeTargetBinding(node, project, workflow)
     const targetShotFilter = resolveNodeShotScope(node, workflow)
     const binding = {
       ...rawBinding,
@@ -447,6 +346,17 @@ export function applyWorkflowToProject(
     }
     const activePartIds = new Set(binding.activeParts.map((p) => p.id))
     const partNamesSummary = binding.activeParts.map((p) => p.shortLabel).slice(0, 3).join(', ')
+
+    // A library operation owns its rules; never run the broad stage preset as well.
+    if (node.params?.logicId && node.params.customRules?.length) {
+      const operation = { ...node, params: { ...node.params, customRules: node.params.customRules.map((rule) =>
+        ({ ...rule, amount: (rule.amount ?? 1) * intensity })) } }
+      const affected = applyCustomNodeRulesToProject(project, operation, binding.matchesLayer)
+      executedStages.push({ nodeId: node.id, nodeType: node.type, title: node.title,
+        aiAgentRole: node.aiAgentRole, preset: node.preset,
+        appliedSummary: `${node.title} · ${affected} đối tượng theo kết nối.`, affectedCount: affected })
+      continue
+    }
 
     if (node.type === 'scene_shot') {
       let affected = 0
@@ -845,7 +755,7 @@ export function applyWorkflowToProject(
 
   // Tự động reset DOF và Rung lắc nếu không còn node camera nào hoạt động
   const hasActiveCameraNode = activeNodes.some((n) => n.type === 'camera_director')
-  if (!hasActiveCameraNode) {
+  if (!hasActiveCameraNode && (!opts?.onlyNodeIds || workflow.nodes.some((node) => opts.onlyNodeIds!.has(node.id) && node.type === 'camera_director'))) {
     project.camera.dofEnabled = false
     project.camera.shakeAmount = 0
   }
@@ -854,20 +764,8 @@ export function applyWorkflowToProject(
   }
 
 
-  // Nối logic trực tiếp từ Node Logic sang từng Layer con (Blender-like Routing)
-  applyConnectedLogicEdgesToLayers(project, workflow, opts?.onlyNodeIds ? activeNodes.filter((n) => opts.onlyNodeIds!.has(n.id)) : activeNodes)
-
-  // Nếu có Node Logic độc lập bị ngắt dây hoặc tắt, đảm bảo tắt ngay quy tắc của Node Logic đó
-  for (const dn of disconnectedNodes) {
-    if (!dn.params?.logicId || (opts?.onlyNodeIds && !opts.onlyNodeIds.has(dn.id))) continue
-    const dnShot = resolveNodeShotScope(dn, workflow)
-    for (const r of dn.params.customRules ?? []) {
-      applyRuleMutationToProjectLayer(project, r, false, dnShot)
-    }
-  }
-
   // Đảm bảo đồng bộ trạng thái hiển thị (visible) của từng Layer con & Cảnh theo đúng trạng thái ON/OFF của Node
-  syncWorkflowEntityVisibility(project, workflow, activeNodeIdSet)
+  syncWorkflowEntityVisibility(project, visibilityGraph, activeNodeIdSet)
 
   workflow.lastAppliedAt = new Date().toISOString()
   project.workflow = workflow

@@ -106,6 +106,9 @@ export function validateWorkflowConnection(
 
   // 6. Cổng Ngữ cảnh Phân cảnh (scene_ctx)
   if (fromPort === 'scene_ctx' || toPort === 'scene_ctx') {
+    if (fromPort !== 'scene_ctx' || toPort !== 'scene_ctx') {
+      return { valid: false, reason: 'Ngữ cảnh cảnh chỉ nối với cổng Ngữ cảnh cảnh; không thay thế luồng chuyển động hoặc hiệu ứng.' }
+    }
     if (fromNode.type !== 'scene_shot') {
       return {
         valid: false,
@@ -159,6 +162,7 @@ export function validateWorkflowConnection(
 
   // 9. Cổng Thực thể / Diễn viên (actors_rig)
   if (fromPort === 'actors_rig') {
+    if (toPort !== 'actors_rig') return { valid: false, reason: 'Luồng đối tượng chỉ nối vào cổng Đối tượng.' }
     if (fromNode.type !== 'layer_assembly') {
       return {
         valid: false,
@@ -194,10 +198,11 @@ export function validateWorkflowConnection(
 
   // 11. Cổng Lộ trình Camera (camera_cut)
   if (fromPort === 'camera_cut' || toPort === 'camera_cut') {
-    if (fromNode.type !== 'camera_director' || toNode.type !== 'look_output') {
+    if (fromPort !== 'camera_cut' || toPort !== 'camera_cut' || fromNode.type !== 'camera_director'
+      || !['look_output', 'camera_director'].includes(toNode.type)) {
       return {
         valid: false,
-        reason: 'Cổng [Lộ trình Cam] chỉ truyền từ Khối Camera sang Khối Xuất Bản.'
+        reason: 'Cổng [Lộ trình Cam] chỉ truyền từ Camera sang Camera modifier hoặc Khối Xuất Bản.'
       }
     }
     return { valid: true }

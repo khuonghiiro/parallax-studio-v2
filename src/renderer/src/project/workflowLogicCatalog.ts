@@ -140,7 +140,7 @@ export const WORKFLOW_LOGIC_NODE_CATALOG: WorkflowLogicNodeCatalogItem[] = [
     title: 'Nhạc Nền BGM Điện Ảnh',
     shortLabel: 'Nhạc Nền BGM',
     preset: 'cinematic_bgm_ambience',
-    targetParts: ['vocal_eq_chain', 'mouth_viseme_25d'],
+    targetParts: ['vocal_eq_chain', 'bgm_envelope'],
     description: 'Cân bằng dải âm ấm Warm EQ và tự động Fade-in đầu cảnh, Fade-out cuối cảnh.'
   },
   {
@@ -165,7 +165,7 @@ export const WORKFLOW_LOGIC_NODE_CATALOG: WorkflowLogicNodeCatalogItem[] = [
     shortLabel: 'Tiếng Động SFX',
     preset: 'cinematic_bgm_ambience',
     targetParts: ['vocal_eq_chain'],
-    description: 'Kích hoạt hiệu ứng âm thanh tiếng bước chân, tiếng gió hú và va chạm theo layer.'
+    description: 'Cân chỉnh EQ cho các track SFX, bước chân và foley đã có trong dự án theo layer; không sinh tệp âm thanh mới.'
   },
 
   // ------------------------------------------------------------------ 3. VẬT LÝ 2.5D

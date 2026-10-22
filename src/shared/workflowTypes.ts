@@ -133,6 +133,8 @@ export interface WorkflowNodeParams {
   targetMode?: 'auto' | 'custom'
   /** Danh sách ID của Layer hoặc Composite instanceId được gắn trực tiếp vào Node */
   targetLayerIds?: string[]
+  /** Once wired to layer data, losing the wire must not silently broaden to the whole scene. */
+  requireLayerConnection?: boolean
   /** Danh sách mã Bộ phận 2.5D / Khớp xương / Kênh tác động đang bật trên Node */
   targetParts?: string[]
   /** Danh sách quy tắc Chuyển động / Tính năng bổ sung do người dùng thêm trực tiếp vào Khối */

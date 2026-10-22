@@ -1,5 +1,7 @@
 import type { WorkflowNode } from '@shared/types'
 import { evaluateNodeDraft, patchNodeDraft } from '../../project/workflowNodeDraft'
+import { getWorkflowNodePorts } from '../../project/workflowNodePorts'
+import { getWorkflowRouting } from '../../project/workflowRouting'
 import type {
   Project,
   WorkflowGraph,
@@ -59,7 +61,8 @@ export const workflowCommands: Record<string, Handler> = {
       title: item.title,
       short_label: item.shortLabel,
       preset: item.preset,
-      description: item.description
+      description: item.description,
+      operations: item.buildRules?.().map((rule) => ({ action: rule.actionKind, speed: rule.speed, amount: rule.amount })) ?? []
     }))
     return {
       presets: [],
@@ -80,6 +83,9 @@ export const workflowCommands: Record<string, Handler> = {
     return {
       timeline_tab: useView.getState().timelineTab,
       workflow,
+      node_io: workflow.nodes.map((node) => ({ node_id: node.id, enabled: node.enabled,
+        executable: blueprint.agents.some((agent) => agent.nodeId === node.id),
+        ...getWorkflowNodePorts(node), routing: getWorkflowRouting(node, workflow) })),
       bindable_targets: bindableTargets,
       bindableTargets,
       ai_blueprint: blueprint,

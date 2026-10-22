@@ -190,7 +190,7 @@ export function applyCustomNodeRulesToProject(
     const amount = Math.max(0.1, rule.amount ?? 1.0)
 
     const targetLayers = project.layers.filter((l) => {
-      if (l.locked || l.type === 'solid') return false
+      if (l.locked || l.type === 'solid' || !matchesNodeBinding(l)) return false
       if (rule.targetId === 'all') return matchesNodeBinding(l)
       return (
         l.id === rule.targetId ||
@@ -729,10 +729,12 @@ export function applyRuleMutationToProjectLayer(
   project: Project,
   rule: WorkflowCustomActionRule,
   enabled: boolean,
-  shotFilter?: string | null
+  shotFilter?: string | null,
+  matchesBinding?: (layer: Layer) => boolean
 ): void {
   const targets = project.layers.filter(
     (l) =>
+      !l.locked && (!matchesBinding || matchesBinding(l)) &&
       (!shotFilter || !l.shotId || l.shotId === shotFilter) &&
       (rule.targetId === 'all' ||
       l.id === rule.targetId ||

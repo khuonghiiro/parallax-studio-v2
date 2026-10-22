@@ -104,6 +104,10 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   workflow_node_camera_preview: region('workflow_node_camera_preview', '.wf-camera-preview'),
   workflow_node_settings: region('workflow_node_settings', '.wf-node-dialog-settings'),
   workflow_node_config: region('workflow_node_config', '.wf-node-config-modal', '.wf-node-dialog-window'),
+  workflow_node_input: region('workflow_node_input', '.wf-node-input-panel'),
+  workflow_node_output: region('workflow_node_output', '.wf-node-output-summary'),
+  workflow_node_connections: region('workflow_node_connections', '.wf-node-connections'),
+  workflow_node_operation: region('workflow_node_operation', '.wf-operation-fields'),
 
   // Top Toolbar & Responsive Workspace Dock
   toolbar: ['header.toolbar', '.toolbar'],

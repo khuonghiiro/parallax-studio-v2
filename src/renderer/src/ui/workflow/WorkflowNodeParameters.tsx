@@ -2,6 +2,7 @@ import React from 'react'
 import type { WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { WORKFLOW_LOGIC_NODE_CATALOG } from '../../project/workflowLogicCatalog'
 import { WORKFLOW_NODE_SPECS } from '../../project/workflowCatalog'
+import { WorkflowNodeOperationFields } from './WorkflowNodeOperationFields'
 
 type Props = {
   node: WorkflowNode
@@ -13,7 +14,7 @@ type Props = {
 function NodeSwitches({ node, onUpdateNodeParams }: Pick<Props, 'node' | 'onUpdateNodeParams'>) {
   const p = node.params ?? {}
   const logic = p.logicId
-  const allows = (part: string) => !logic || !!p.targetParts?.includes(part)
+  const allows = (part: string) => !logic || !!WORKFLOW_LOGIC_NODE_CATALOG.find((item) => item.id === logic)?.targetParts.includes(part)
   const controls: { label: string; checked: boolean; patch: (checked: boolean) => Partial<WorkflowNodeParams> }[] = []
   if (node.type === 'scene_shot') controls.push(
     { label: 'Tự xếp độ sâu Z', checked: p.autoArrangeZ !== false, patch: (autoArrangeZ) => ({ autoArrangeZ }) },
@@ -24,7 +25,7 @@ function NodeSwitches({ node, onUpdateNodeParams }: Pick<Props, 'node' | 'onUpda
     { label: 'Xóa phông (DOF)', checked: p.enableDof ?? p.logicId === 'logic-cam-dof', patch: (enableDof) => ({ enableDof }) },
     { label: 'Rung handheld', checked: (p.camShakeAmount ?? (p.logicId === 'logic-cam-shake' || node.preset === 'dramatic_handheld_action' ? 6 : 0)) > 0, patch: (checked) => ({ camShakeAmount: checked ? 6 : 0 }) }
   )
-  if (node.type === 'audio_lipsync') controls.push({ label: 'Tự động lip-sync', checked: p.autoLipSync !== false, patch: (autoLipSync) => ({ autoLipSync }) })
+  if (node.type === 'audio_lipsync' && allows('mouth_viseme_25d')) controls.push({ label: 'Tự động lip-sync', checked: p.autoLipSync !== false, patch: (autoLipSync) => ({ autoLipSync }) })
   const relevant = controls.filter((c) => !logic || (c.label === 'Xóa phông (DOF)' ? allows('dof_aperture') : c.label === 'Rung handheld' ? allows('handheld_rig') : true))
   return <div className="wf-check-pills-row">{relevant.map((control) => <label className="wf-check-pill" key={control.label}>
     <input type="checkbox" checked={control.checked} onChange={(event) => onUpdateNodeParams(node.id, control.patch(event.target.checked))} />
@@ -53,8 +54,9 @@ export function WorkflowNodeParameters(props: Props) {
           onChange={(event) => onUpdateNodeParams(node.id, { intensity: Number(event.target.value) })} />
       </label>
       <NodeSwitches node={node} onUpdateNodeParams={onUpdateNodeParams} />
+      <WorkflowNodeOperationFields node={node} onUpdateNodeParams={onUpdateNodeParams} />
     </div>
-    <label className="wf-field-group"><span className="wf-field-label">Ghi chú cho node</span>
+    <label className="wf-field-group"><span className="wf-field-label">Ghi chú cho node · không thực thi như mã lệnh</span>
       <textarea className="wf-textarea" rows={3} value={node.aiDirective} onChange={(event) => onUpdateNodeDirective(node.id, event.target.value)} />
     </label>
   </div>

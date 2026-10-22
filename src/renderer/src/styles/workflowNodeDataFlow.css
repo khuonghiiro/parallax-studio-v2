@@ -1,0 +1,41 @@
+/* Input -> operation -> preview, using the editor's shared theme tokens. */
+.wf-node-config-modal { width: min(1440px, calc(100vw - 48px)); }
+.wf-node-config-modal .wf-node-dialog-workspace {
+  grid-template-columns: minmax(180px, 0.65fr) minmax(330px, 1.2fr) minmax(300px, 1.25fr);
+}
+.wf-node-input-panel { padding: 16px; overflow: auto; min-width: 0; background: var(--bg-2); }
+.wf-node-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; line-height: 1.5; }
+.wf-node-section-heading strong { color: var(--text); letter-spacing: 0.04em; }
+.wf-node-section-heading span { color: var(--text-dim); text-align: right; }
+.wf-node-run-state { border: 1px solid var(--line); border-radius: 7px; background: var(--bg-1); padding: 9px; color: var(--text-dim); font-size: 12px; }
+.wf-node-run-state.ready { color: var(--text); border-color: var(--accent); }
+.wf-node-input-list { display: grid; gap: 8px; margin: 12px 0 20px; }
+.wf-node-input-item { display: grid; gap: 5px; border: 1px solid var(--line); border-radius: 7px; padding: 10px; background: var(--bg-1); overflow-wrap: anywhere; }
+.wf-node-input-item strong { font-size: 12px; color: var(--text); line-height: 1.5; }
+.wf-node-input-item span, .wf-node-data-note { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+.wf-node-output-panel { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-left: 1px solid var(--line); }
+.wf-node-output-summary { padding: 16px 18px 0; }
+.wf-node-output-summary p { max-height: 60px; overflow: auto; margin-bottom: 0; }
+.wf-node-output-panel .wf-camera-preview { flex: 1; min-height: 0; }
+.wf-port-direction { display: flex; gap: 8px; }
+.wf-node-dialog-body:has(.wf-node-connections) { overflow: hidden; }
+.wf-node-connections { height: 100%; min-height: 0; overflow: auto; padding-right: 4px; }
+.wf-node-connections > * { flex-shrink: 0; }
+.wf-operation-fields { display: grid; gap: 12px; margin-top: 12px; }
+.wf-operation-rule { display: grid; gap: 10px; margin: 0; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 7px; }
+.wf-operation-rule legend { color: var(--text); font-size: 12px; padding: 0 4px; }
+.wf-operation-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--text-dim); font-size: 12px; }
+.wf-operation-field input { width: 100px; min-height: 32px; padding: 6px 8px; color: var(--text); background: var(--bg-1); border: 1px solid var(--line); border-radius: 6px; }
+.wf-node-connections input[type='search'] { width: 100%; min-height: 34px; padding: 8px; background: var(--bg-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; }
+@media (max-width: 1100px) {
+  .wf-node-config-modal .wf-node-dialog-workspace { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .wf-node-input-panel { grid-column: 1 / -1; max-height: 140px; border-bottom: 1px solid var(--line); }
+  .wf-node-input-panel .wf-node-input-list { display: flex; overflow: auto; margin: 8px 0; }
+  .wf-node-input-panel .wf-node-input-item { min-width: 170px; }
+}
+@media (max-width: 680px) {
+  .wf-node-config-modal .wf-node-dialog-workspace { display: flex; }
+  .wf-node-input-panel { flex-shrink: 0; }
+  .wf-node-output-panel { min-height: 300px; flex-shrink: 0; border-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .wf-node-dialog-backdrop { animation: none; } }

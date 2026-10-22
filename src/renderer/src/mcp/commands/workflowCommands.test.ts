@@ -81,6 +81,14 @@ describe('MCP workflowCommands & Workflow Engine', () => {
     useEditor.getState().loadProject(proj, null)
   })
 
+  it('exposes operation parameters and node input/output routing for MCP inspection', async () => {
+    const state = await runCommand('get_workflow') as any
+    expect(state.node_io).toHaveLength(state.workflow.nodes.length)
+    expect(state.node_io.find((node: any) => node.node_id === 'wf-scene_shot').executable).toBe(true)
+    const catalog = await runCommand('list_workflow_presets') as any
+    expect(catalog.logic_nodes.find((node: any) => node.id === 'logic-physics-wind').operations[0]).toMatchObject({ action: 'wind', speed: 0.9, amount: 1 })
+  })
+
   it('lists node specs, port specs, and logic nodes via list_workflow_presets', async () => {
     const res = (await runCommand('list_workflow_presets')) as any
     expect(res.nodeTypes.length).toBe(8)
@@ -350,6 +358,8 @@ describe('MCP workflowCommands & Workflow Engine', () => {
       ...ensureProjectWorkflow(proj),
       targetShotId: shot1.id
     }
+    const baseline = structuredClone(proj)
+    applyWorkflowToProject(baseline, baseWf)
 
     // Spawn a Logic Node ("Ánh Sáng Ấm") into Shot 1's workflow
     expect(WORKFLOW_LOGIC_NODE_CATALOG.length).toBeGreaterThanOrEqual(8)
@@ -375,11 +385,13 @@ describe('MCP workflowCommands & Workflow Engine', () => {
     expect(layerShot3.virtualLight?.enabled ?? false).toBe(false)
     expect(layerShot3.transform.position.value[2]).toBe(400)
 
-    // Disconnecting the spawned Logic Node from the flow turns off its candle light on Shot 1
+    // Disconnecting removes this operation, while preserving the connected base lighting stage.
     const inEdge = wfWithLogic.edges.find((e) => e.toNode === spawnedNode.id)!
     const afterCut = disconnectWorkflowEdge(wfWithLogic, { edgeId: inEdge.id })
-    applyWorkflowToProject(proj, afterCut)
-    expect(shot1Layers.some((l) => l.virtualLight?.enabled)).toBe(false)
+    const report = applyWorkflowToProject(proj, afterCut)
+    expect(report.skippedDisconnectedNodes).toContain(spawnedNode.id)
+    expect(shot1Layers.map((layer) => !!layer.virtualLight?.enabled)).toEqual(
+      baseline.layers.filter((layer) => layer.shotId === shot1.id).map((layer) => !!layer.virtualLight?.enabled))
   })
 })
 

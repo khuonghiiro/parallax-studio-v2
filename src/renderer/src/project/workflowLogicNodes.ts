@@ -1,6 +1,4 @@
 import type {
-  Layer,
-  Project,
   WorkflowEdge,
   WorkflowGraph,
   WorkflowNode,
@@ -13,8 +11,8 @@ import {
   WORKFLOW_PORT_SPECS,
   buildStandardEdges
 } from './workflowCatalog'
-import { applyCameraPreset } from '../animation/presets'
 import { getDefaultPartsForNode } from './workflowTargets'
+import { getWorkflowRouting } from './workflowRouting'
 import {
   WORKFLOW_LOGIC_NODE_CATALOG,
   WORKFLOW_LOGIC_NODE_CATEGORIES,
@@ -226,10 +224,8 @@ export function resolveNodeShotScope(
       }
     }
   }
-  const primaryScene = workflow.nodes.find((n) => n.type === 'scene_shot' && n.enabled)
-  if (primaryScene?.params?.shotId && primaryScene.params.shotId !== 'all') {
-    return primaryScene.params.shotId
-  }
+  const routed = getWorkflowRouting(node, workflow).shotIds
+  if (routed.length === 1) return routed[0]
   if (workflow.targetShotId && workflow.targetShotId !== 'all') {
     return workflow.targetShotId
   }
@@ -316,207 +312,4 @@ export function validateAndNormalizeWorkflowJson(raw: unknown): WorkflowGraph {
     edges,
     lastAppliedAt: obj.lastAppliedAt
   }
-}
-
-/**
- * Áp dụng trực tiếp các dây nối từ Node Logic vào từng Layer con đích (Blender-like Per-Layer Logic Routing).
- * Khi một Layer được nối dây từ Node Gió/Vật lý/Ánh sáng/LipSync, layer đó lập tức nhận hiệu ứng.
- */
-export function applyConnectedLogicEdgesToLayers(
-  project: Project,
-  workflow: WorkflowGraph,
-  activeNodes: WorkflowNode[]
-): number {
-  const activeNodeMap = new Map(activeNodes.map((n) => [n.id, n]))
-  let affected = 0
-
-  const layerNodes = workflow.nodes.filter(
-    (n) => n.params?.targetLayerIds && n.params.targetLayerIds.length > 0
-  )
-  if (layerNodes.length === 0) return 0
-
-  for (const lNode of layerNodes) {
-    const layerId = lNode.params?.targetLayerIds?.[0]
-    if (!layerId) continue
-    const layer = project.layers.find((l) => l.id === layerId)
-    if (!layer || layer.locked) continue
-
-    const incomingEdges = workflow.edges.filter(
-      (e) => e.toNode === lNode.id && activeNodeMap.has(e.fromNode)
-    )
-
-    // 1. Luồng Chuyển động (motion_stream)
-    const motionEdge = incomingEdges.find((e) => e.toPort === 'motion_stream')
-    if (motionEdge) {
-      const src = activeNodeMap.get(motionEdge.fromNode)
-      if (src) {
-        const intensity = src.params?.intensity ?? 1.0
-        const logicId = src.params?.logicId ?? ''
-        if (logicId.includes('wind') || src.preset === 'organic_wind_breathe') {
-          layer.motion = {
-            enabled: true,
-            type: 'wind',
-            speed: Number((0.85 * intensity).toFixed(2)),
-            amount: 0.9,
-            amplitude: [10, 4, 3]
-          }
-          affected++
-        } else if (logicId.includes('drift')) {
-          layer.motion = {
-            enabled: true,
-            type: 'drift',
-            speed: Math.round(18 * intensity),
-            direction: 'right',
-            loopMode: 'ping-pong',
-            amount: 0.85
-          }
-          affected++
-        } else if (logicId.includes('breathe') || logicId.includes('float')) {
-          layer.motion = {
-            enabled: true,
-            type: 'float',
-            speed: Number((0.7 * intensity).toFixed(2)),
-            amount: 0.75,
-            amplitude: [2, 6, 0]
-          }
-          affected++
-        } else if (logicId.includes('walk')) {
-          layer.motion = {
-            enabled: true,
-            type: 'pulse',
-            speed: Number((1.0 * intensity).toFixed(2)),
-            amount: 1.0
-          }
-          affected++
-        } else if (logicId.includes('jump')) {
-          layer.motion = {
-            enabled: true,
-            type: 'wiggle',
-            speed: Number((1.15 * intensity).toFixed(2)),
-            amount: 1.05
-          }
-          affected++
-        }
-      }
-    }
-
-    // 2. Luồng Vật lý & Ánh sáng FX (vfx_stage)
-    const vfxEdge = incomingEdges.find((e) => e.toPort === 'vfx_stage')
-    if (vfxEdge) {
-      const src = activeNodeMap.get(vfxEdge.fromNode)
-      if (src) {
-        const intensity = src.params?.intensity ?? 1.0
-        const logicId = src.params?.logicId ?? ''
-        if (logicId.includes('candle')) {
-          layer.virtualLight = {
-            enabled: true,
-            kind: 'candle',
-            color: '#ffaa33',
-            intensity: Number((1.25 * intensity).toFixed(2)),
-            radius: 450,
-            flickerSpeed: 1.4,
-            zReach: 300
-          }
-          affected++
-        } else if (logicId.includes('flashlight')) {
-          layer.virtualLight = {
-            enabled: true,
-            kind: 'flashlight',
-            color: '#fef08a',
-            intensity: Number((1.45 * intensity).toFixed(2)),
-            radius: 520,
-            beamAngleDeg: 0,
-            coneAngleDeg: 54,
-            flickerSpeed: 0.6,
-            zReach: 340
-          }
-          affected++
-        } else if (logicId.includes('rimglow')) {
-          layer.glow = {
-            enabled: true,
-            side: 'outer',
-            color: '#38bdf8',
-            thickness: 8,
-            intensity: Number((1.35 * intensity).toFixed(2)),
-            animated: 'breathe',
-            speed: 1.8
-          }
-          affected++
-        } else if (logicId.includes('elastic') || logicId.includes('bounce')) {
-          layer.physics = {
-            enabled: true,
-            material: 'foliage_bush',
-            stiffness: 1.2,
-            damping: 0.25,
-            bounciness: Number((1.15 * intensity).toFixed(2))
-          }
-          affected++
-        } else if (logicId.includes('sway')) {
-          layer.physics = {
-            enabled: true,
-            material: 'wood_tree',
-            stiffness: 0.8,
-            damping: 0.4,
-            bounciness: 0.9
-          }
-          affected++
-        }
-      }
-    }
-
-    // 3. Luồng Thoại & Âm thanh (audio_mix)
-    const audioEdge = incomingEdges.find((e) => e.toPort === 'audio_mix')
-    if (audioEdge) {
-      const src = activeNodeMap.get(audioEdge.fromNode)
-      if (src) {
-        const intensity = src.params?.intensity ?? 1.0
-        const tracks = project.audioTracks ?? []
-        for (const tr of tracks) {
-          tr.lipSyncEnabled = true
-          tr.lipSyncLayerId = layer.id
-          tr.lipSyncIntensity = Number((1.0 * intensity).toFixed(2))
-        }
-        affected++
-      }
-    }
-
-    // 4. Luồng Lộ trình Camera & Tiêu điểm (camera_cut hoặc actors_rig 2 chiều)
-    const camEdgeIn = incomingEdges.find((e) => e.toPort === 'camera_cut')
-    const camEdgeOut = workflow.edges.find(
-      (e) => e.fromNode === lNode.id && activeNodeMap.has(e.toNode)
-    )
-    const activeCamNode =
-      (camEdgeIn ? activeNodeMap.get(camEdgeIn.fromNode) : null) ??
-      (camEdgeOut ? activeNodeMap.get(camEdgeOut.toNode) : null)
-
-    if (activeCamNode && activeCamNode.type === 'camera_director') {
-      const intensity = activeCamNode.params?.intensity ?? 1.0
-      const logicId = activeCamNode.params?.logicId ?? ''
-      const [lx, ly, lz] = layer.transform.position.value
-
-      if (logicId === 'logic-cam-dof') {
-        const camZ = Array.isArray(project.camera.position.value)
-          ? project.camera.position.value[2]
-          : 1200
-        project.camera.dofEnabled = true
-        project.camera.focusDistance.value = Math.max(10, Math.round(Math.abs(camZ - lz)))
-        project.camera.aperture.value = Number(((activeCamNode.params?.camAperture ?? 0.028) * intensity).toFixed(3))
-        affected++
-      } else if (logicId === 'logic-cam-dolly') {
-        project.camera.target.value = [lx, ly, lz]
-        applyCameraPreset(project.camera, 'dollyIn', project.comp, 0, project.comp.duration, intensity, () => [lx, ly, lz])
-        affected++
-      } else if (logicId === 'logic-cam-orbit') {
-        project.camera.target.value = [lx, ly, lz]
-        applyCameraPreset(project.camera, 'orbitRight', project.comp, 0, project.comp.duration, intensity, () => [lx, ly, lz])
-        affected++
-      } else if (logicId === 'logic-cam-pan') {
-        project.camera.target.value = [lx, ly, lz]
-        applyCameraPreset(project.camera, 'truckRight', project.comp, 0, project.comp.duration, intensity, () => [lx, ly, lz])
-        affected++
-      }
-    }
-  }
-
-  return affected
 }

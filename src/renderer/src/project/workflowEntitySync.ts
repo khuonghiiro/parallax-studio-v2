@@ -203,7 +203,7 @@ export function executeCameraDirectorStage(
     project.camera.position.value = startPos
     project.camera.target.value = startTarget
   } else if (cameraShots.length > 1 && !targetLayer) {
-    const totalDur = Math.max(4, project.comp.duration || 10)
+    const totalDur = Math.max(4, Math.min(project.comp.duration || 10, node.params?.duration ?? project.comp.duration))
     const transDur = Number(
       Math.max(1.0, Math.min(2.2, (totalDur / cameraShots.length) * 0.34)).toFixed(1)
     )
@@ -242,7 +242,7 @@ export function executeCameraDirectorStage(
       (camPreset as string) === 'fly' ? 'dollyIn' : camPreset,
       project.comp,
       0,
-      project.comp.duration,
+      Math.min(project.comp.duration, node.params?.duration ?? project.comp.duration),
       intensity,
       toWorldFn
     )
@@ -299,6 +299,19 @@ export function executeAudioLipSyncStage(
   const mouthLayer = project.layers.find((l) => isMouthLayer(l) && matchesLayer(l))
 
   for (const tr of tracks) {
+    const logic = node.params?.logicId
+    const scope = node.params?.shotId
+    if (scope && scope !== 'all' && tr.targetShotId && tr.targetShotId !== scope) continue
+    if (logic === 'logic-audio-bgm' || logic === 'logic-audio-sfx') {
+      const relevant = logic === 'logic-audio-bgm' ? tr.characterRole === 'bgm' || (!tr.characterRole && tr.targetType === 'ambient')
+        : ['sfx', 'footstep', 'foley'].includes(tr.characterRole ?? '')
+      if (!relevant) continue
+      tr.tone = 'warm'
+      if (logic === 'logic-audio-bgm') { tr.fadeIn = tr.fadeIn ?? 0.6; tr.fadeOut = tr.fadeOut ?? 1 }
+      affected++
+      continue
+    }
+    if (logic === 'logic-audio-lipsync' && tr.characterRole && tr.characterRole !== 'voice') continue
     tr.fadeIn = tr.fadeIn || 0.6
     tr.fadeOut = tr.fadeOut || 1.0
     if (

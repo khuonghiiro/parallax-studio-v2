@@ -174,3 +174,6 @@ Workflow node configuration: `workflow_node_camera_preview` chụp preview camer
 
 - Node configuration uses a private draft and shared preview/apply evaluator. MCP: `set_workflow(node_id, node_params: JSON, apply_node: true)` commits atomically; explicit false/empty selections are preserved.
 - Cấu hình node dùng bản nháp riêng; Áp dụng và preview dùng chung bộ xử lý. MCP `set_workflow` nhận `node_params` và `apply_node`; không ghi ngược trạng thái cảnh đè lên lựa chọn đã lưu.
+
+
+- Workflow node dialog: Đầu vào → Thông số → Đầu ra; xử lý riêng theo dây layer, rule không chạy chồng preset. MCP `get_workflow.node_io` phản ánh cổng và phạm vi, `list_workflow_presets.logic_nodes[].operations` cung cấp thông số thao tác. Vùng chụp: `workflow_node_config`, `workflow_node_input`, `workflow_node_operation`, `workflow_node_connections`, `workflow_node_output`, `workflow_node_camera_preview`, `workflow_node_settings`. Xem [logic node và dialog](./docs/workflow-node-semantics.md).
