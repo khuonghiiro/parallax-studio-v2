@@ -223,7 +223,7 @@ export const WorkflowActionBuilder: React.FC<WorkflowActionBuilderProps> = ({
         >
           ✨ Tất cả Layer ({bindableTargets.length})
         </button>
-        {bindableTargets.slice(0, 8).map((t) => (
+        {bindableTargets.map((t) => (
           <button
             key={t.id}
             type="button"

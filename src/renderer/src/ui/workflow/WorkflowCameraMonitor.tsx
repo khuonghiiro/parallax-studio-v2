@@ -5,11 +5,11 @@ import { shotAtTime } from '../../animation/cameraPath'
 import { useWorkflowCameraPreview } from './useWorkflowCameraPreview'
 import { getNodePreviewTime } from './workflowPreviewTime'
 
-export function WorkflowCameraMonitor({ project, node }: { project: Project; node: WorkflowNode }) {
+export const WorkflowCameraMonitor = React.memo(function WorkflowCameraMonitor({ project, node }: { project: Project; node: WorkflowNode }) {
   const [time, setTime] = useState(() => getNodePreviewTime(project, node, useEditor.getState().time))
   const [playing, setPlaying] = useState(false)
   const duration = Math.max(0, project.comp.duration)
-  const { canvasRef, error } = useWorkflowCameraPreview(project, time, playing)
+  const { mountRef, error, loading } = useWorkflowCameraPreview(project, time, playing)
   const shotId = shotAtTime(project, time)
   const shotName = project.shots.find((shot) => shot.id === shotId)?.name ?? 'Toàn cảnh'
   useEffect(() => { setTime((value) => Math.min(value, duration)) }, [duration])
@@ -28,11 +28,12 @@ export function WorkflowCameraMonitor({ project, node }: { project: Project; nod
     <section className="wf-camera-preview" data-mcp-region="workflow_node_camera_preview" aria-label="Preview camera trực tiếp">
       <div className="wf-camera-preview-heading"><strong>Camera preview</strong><span>● Trực tiếp</span></div>
       <div className="wf-camera-preview-stage">
-        <canvas ref={canvasRef} style={{ aspectRatio: `${project.comp.width} / ${project.comp.height}` }} aria-label={`Camera: ${shotName}`} />
+        <div ref={mountRef} className="wf-camera-preview-surface" aria-label={`Camera: ${shotName}`} aria-busy={loading} />
+        {loading && !error && <div className="wf-camera-preview-loading" role="status">Đang chuẩn bị camera…</div>}
         {error && <div className="wf-camera-preview-error" role="alert">Không thể dựng preview: {error}</div>}
       </div>
       <div className="wf-camera-preview-transport">
-        <button type="button" className="btn ghost sm" onClick={() => setPlaying((value) => !value)} disabled={!duration || !!error} aria-label={playing ? 'Dừng preview' : 'Phát preview'}>{playing ? 'Ⅱ Dừng' : '▶ Phát'}</button>
+        <button type="button" className="btn ghost sm" onClick={() => setPlaying((value) => !value)} disabled={!duration || !!error || loading} aria-label={playing ? 'Dừng preview' : 'Phát preview'}>{playing ? 'Ⅱ Dừng' : '▶ Phát'}</button>
         <input type="range" min={0} max={duration} step={1 / Math.max(1, project.comp.fps)} value={time} aria-label="Thời gian preview camera" onChange={(event) => { setPlaying(false); setTime(Number(event.target.value)) }} />
         <output>{time.toFixed(2)} / {duration.toFixed(2)}s</output>
       </div>
@@ -42,5 +43,4 @@ export function WorkflowCameraMonitor({ project, node }: { project: Project; nod
       <p className="wf-camera-preview-note">Preview hình ảnh dùng camera của dự án; không phát âm thanh.</p>
     </section>
   )
-}
-
+})

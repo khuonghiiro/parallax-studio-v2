@@ -1,3 +1,4 @@
+import '../../styles/workflowNodeDialogTabs.css'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   Project,
@@ -52,7 +53,6 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
   onDeleteNode,
   onConnectPorts,
   onDisconnectEdge,
-  onSpawnLogicNode,
   activeShotLabel,
   onShowToast
 }) => {
@@ -179,13 +179,13 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
       >
         {/* ── 1. Header ─────────────────────────────────────────────── */}
         <div className="wf-node-dialog-header">
-          <div className="wf-node-dialog-icon" style={{ background: `color-mix(in srgb, ${nodeColor} 14%, var(--bg-2))`, color: nodeColor }}>
+          <div className="wf-node-dialog-icon" style={{ background: `color-mix(in srgb, ${nodeColor} 14%, var(--bg-2))`, color: 'var(--text)' }}>
             {renderWorkflowNodeIcon(node.type, { width: 18, height: 18 })}
           </div>
           <div className="wf-node-dialog-title-group">
             <div className="wf-node-dialog-title-row">
               <span className="wf-node-dialog-title">{node.title}</span>
-              <span className="wf-node-dialog-tag" style={{ borderColor: `color-mix(in srgb, ${nodeColor} 40%, var(--line))`, color: nodeColor }}>
+              <span className="wf-node-dialog-tag" style={{ borderColor: `color-mix(in srgb, ${nodeColor} 40%, var(--line))`, color: 'var(--text)' }}>
                 {nodeSpec?.shortTitle ?? node.type}
               </span>
             </div>
@@ -236,7 +236,7 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
             </div>
 
             {/* Scrollable body */}
-            <div className="wf-node-dialog-body">
+            <div className="wf-node-dialog-body" role="tabpanel" aria-label={tabDefs.find((tab) => tab.id === activeTab)?.label}>
               {activeTab === 'preset' && isEntity && (
                 <WorkflowTransformBody
                   node={node}
@@ -356,7 +356,6 @@ export const WorkflowNodeConfigDialog: React.FC<WorkflowNodeConfigDialogProps> =
                     bindableTargets={binding?.allBindableTargets ?? []}
                     activeShotLabel={activeShotLabel}
                     onUpdateNodeParams={onUpdateNodeParams}
-                    onSpawnLogicNode={onSpawnLogicNode}
                     onShowToast={onShowToast}
                   />
                 </div>

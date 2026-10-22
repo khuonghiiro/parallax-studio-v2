@@ -1,60 +1,73 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Project } from '@shared/types'
-import { SceneRenderer } from '../../engine/SceneRenderer'
+import { acquireWorkflowPreviewRenderer, releaseWorkflowPreviewRenderer } from './workflowPreviewRenderer'
 
-/** A private camera renderer: no edits to the editor playhead or playback state. */
+/** Paint the dialog first; render only on invalidation, with no idle RAF loop. */
 export function useWorkflowCameraPreview(project: Project, time: number, playing: boolean) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const mountRef = useRef<HTMLDivElement>(null)
   const latest = useRef({ project, time, playing })
-  const dirty = useRef(true)
+  const invalidateRef = useRef<() => void>(() => {})
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
   useEffect(() => {
     latest.current = { project, time, playing }
-    dirty.current = true
+    invalidateRef.current()
   }, [project, time, playing])
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    let renderer: SceneRenderer
-    try { renderer = new SceneRenderer(canvas, { budgetMB: 192 }) }
-    catch (cause) { setError(String(cause)); return }
-    let frame = 0
-    let lastDraw = 0
-    let disposed = false
-    let width = 0
-    let height = 0
-    renderer.onInvalidate = () => { dirty.current = true }
-    const observer = new ResizeObserver(() => { dirty.current = true })
-    observer.observe(canvas)
-    const draw = (now: number) => {
+    const host = mountRef.current
+    if (!host) return
+    let frame = 0, timer = 0, lastDraw = 0
+    let disposed = false, acquired = false
+    let observer: ResizeObserver | undefined
+    window.dispatchEvent(new CustomEvent('pxs:workflow-preview-active', { detail: true }))
+    const initialize = () => {
+      timer = 0
       if (disposed) return
-      frame = requestAnimationFrame(draw)
-      if (!dirty.current || now - lastDraw < 1000 / 30) return
-      const state = latest.current
-      const nextWidth = Math.max(64, Math.min(960, Math.round(canvas.clientWidth * devicePixelRatio)))
-      const nextHeight = Math.max(36, Math.round(nextWidth * state.project.comp.height / state.project.comp.width))
       try {
-        if (width !== nextWidth || height !== nextHeight) {
-          width = nextWidth; height = nextHeight
-          renderer.setSize(width, height)
+        const { canvas, renderer } = acquireWorkflowPreviewRenderer()
+        acquired = true
+        host.appendChild(canvas)
+        let width = 0, height = 0
+        const draw = () => {
+          timer = 0
+          if (disposed) return
+          const state = latest.current
+          const w = Math.max(64, Math.min(720, Math.round(host.clientWidth)))
+          const h = Math.max(36, Math.round(w * state.project.comp.height / state.project.comp.width))
+          try {
+            if (width !== w || height !== h) {
+              width = w; height = h
+              renderer.setSize(w, h)
+              canvas.style.aspectRatio = `${w} / ${h}`
+            }
+            renderer.render(state.project, state.time, { playing: state.playing, prefetch: false })
+            lastDraw = performance.now()
+            setLoading(false)
+          } catch (cause) { setError(String(cause)); setLoading(false) }
         }
-        dirty.current = false
-        renderer.render(state.project, state.time, { playing: state.playing, prefetch: state.playing })
-        lastDraw = now
-      } catch (cause) {
-        setError(String(cause))
-        cancelAnimationFrame(frame)
-      }
+        const invalidate = () => {
+          if (!disposed && !timer) timer = window.setTimeout(draw, Math.max(0, 50 - (performance.now() - lastDraw)))
+        }
+        invalidateRef.current = invalidate
+        renderer.onInvalidate = invalidate
+        observer = new ResizeObserver(invalidate)
+        observer.observe(host)
+        void document.fonts.ready.then(() => { if (!disposed) invalidate() })
+        invalidate()
+      } catch (cause) { setError(String(cause)); setLoading(false) }
     }
-    frame = requestAnimationFrame(draw)
-    void document.fonts.ready.then(() => { if (!disposed) dirty.current = true })
+    frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => { timer = window.setTimeout(initialize, 0) })
+    })
     return () => {
       disposed = true
       cancelAnimationFrame(frame)
-      observer.disconnect()
-      renderer.onInvalidate = () => {}
-      renderer.dispose()
+      clearTimeout(timer)
+      observer?.disconnect()
+      invalidateRef.current = () => {}
+      if (acquired) releaseWorkflowPreviewRenderer()
+      window.dispatchEvent(new CustomEvent('pxs:workflow-preview-active', { detail: false }))
     }
   }, [])
-  return { canvasRef, error }
+  return { mountRef, error, loading }
 }

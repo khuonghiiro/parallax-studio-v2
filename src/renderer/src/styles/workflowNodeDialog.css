@@ -6,7 +6,7 @@
 .wf-node-dialog-backdrop {
   position: fixed; inset: 0; z-index: 20000;
   background: color-mix(in srgb, var(--bg-0) 72%, transparent);
-  backdrop-filter: blur(6px);
+
   display: grid; place-items: center; padding: 24px;
   animation: wf-dialog-fade 0.16s ease-out;
 }
@@ -22,7 +22,7 @@
   border-radius: 14px;
   box-shadow: 0 24px 80px color-mix(in srgb, var(--bg-0) 70%, transparent),
               0 0 0 1px color-mix(in srgb, var(--wf-node-color, var(--accent)) 8%, transparent);
-  animation: wf-dialog-pop 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+
 }
 @keyframes wf-dialog-pop {
   from { transform: scale(0.96) translateY(8px); opacity: 0 }
@@ -272,7 +272,7 @@
 .wf-node-dialog-body .wf-target-check.on {
   background: var(--wf-node-color, var(--accent));
   border-color: var(--wf-node-color, var(--accent));
-  color: #fff;
+  color: var(--on-accent);
 }
 .wf-node-dialog-body .wf-target-kind { font-size: 14px; flex-shrink: 0 }
 .wf-node-dialog-body .wf-target-name {
@@ -339,7 +339,7 @@
   padding: 8px 12px; cursor: pointer; transition: all 0.15s ease;
   white-space: nowrap;
 }
-.wf-node-dialog-del-btn:hover { color: #f87171; border-color: #f8717144; background: color-mix(in srgb, #f87171 8%, transparent) }
+.wf-node-dialog-del-btn:hover { color: var(--danger); border-color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent) }
 
 /* ── Camera preview (left column) ──────────────────────────────────────────── */
 .wf-camera-preview {

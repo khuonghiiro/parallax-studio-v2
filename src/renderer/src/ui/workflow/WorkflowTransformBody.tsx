@@ -205,7 +205,7 @@ export const WorkflowTransformBody: React.FC<WorkflowTransformBodyProps> = React
         >
           ↺ Đặt lại tâm
         </button>
-        <span className="wf-transform-sync-hint">● 60fps Realtime</span>
+        <span className="wf-transform-sync-hint">● Cập nhật trực tiếp</span>
       </div>
     </div>
   )

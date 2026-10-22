@@ -63,6 +63,16 @@ export function Viewer() {
     edCam
   })
 
+  const workflowPreviewActive = useRef(false)
+  useEffect(() => {
+    const onPreviewActivity = (event: Event) => {
+      workflowPreviewActive.current = Boolean((event as CustomEvent<boolean>).detail)
+      if (!workflowPreviewActive.current) requestRender()
+    }
+    window.addEventListener('pxs:workflow-preview-active', onPreviewActivity)
+    return () => window.removeEventListener('pxs:workflow-preview-active', onPreviewActivity)
+  }, [])
+
   // ---------------------------------------------------------------- render loop
 
   function requestRender(): void {
@@ -74,6 +84,7 @@ export function Viewer() {
   }
 
   function draw(): void {
+    if (workflowPreviewActive.current) return
     const r = rendererRef.current
     const L = layoutRef.current
     if (!r || (!L.cam && !L.ed)) return
