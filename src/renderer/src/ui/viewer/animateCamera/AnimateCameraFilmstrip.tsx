@@ -55,11 +55,16 @@ export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVertica
     if (activeCard && typeof activeCard.scrollIntoView === 'function') {
       activeCard.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     }
-  }, [activeFrameIndex])
+  }, [activeFrameIndex, showPreview])
+
+  if (!showPreview) return <button id="anim2d-toggle-filmstrip-preview" type="button"
+    className="filmstrip-collapsed-toggle" data-mcp-region="viewer_route"
+    aria-expanded={false} onClick={onTogglePreview} title="Hiện danh sách mốc lộ trình camera">Lộ trình</button>
 
   return (
     <aside
       id="anim2d-filmstrip"
+      data-mcp-region="viewer_route"
       className={`anim2d-filmstrip${showPreview ? ' with-preview' : ' compact-only'}`}
       onPointerDown={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
@@ -75,13 +80,14 @@ export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVertica
           type="button"
           className={`filmstrip-preview-toggle${showPreview ? ' on' : ' off'}`}
           onClick={onTogglePreview}
+          aria-expanded={showPreview}
           title={
             showPreview
-              ? 'Đang BẬT ảnh Preview từng mốc · Bấm để TẮT ảnh nếu máy yếu'
+              ? 'Ẩn danh sách lộ trình để mở rộng bàn dựng'
               : 'Đang TẮT ảnh Preview (Chế độ tiết kiệm cho máy yếu) · Bấm để BẬT lại ảnh'
           }
         >
-          {showPreview ? '👁 Ảnh: Bật' : '⚡ Ảnh: Tắt'}
+          {showPreview ? 'Ẩn' : 'Lộ trình'}
         </button>
       </div>
 

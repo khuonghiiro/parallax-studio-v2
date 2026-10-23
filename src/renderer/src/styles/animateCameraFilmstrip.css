@@ -622,3 +622,6 @@
   background: var(--key);
   color: #111827;
 }
+
+.filmstrip-collapsed-toggle { position: absolute; top: 6px; right: 6px; z-index: 22; padding: 5px 9px; border: 1px solid var(--line-focus); border-radius: 4px; background: var(--bg-1); color: var(--accent); font-size: 11px; cursor: pointer; }
+.filmstrip-collapsed-toggle:hover { background: var(--bg-3); }

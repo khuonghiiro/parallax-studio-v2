@@ -27,3 +27,5 @@
 .timeline .tl-row:hover .row-actions, .timeline .tl-row:focus-within .row-actions { display: flex; }
 .timeline .tl-name.group { font-weight: 600; background: var(--bg-2); height: 100%; }
 .timeline .tl-layer-properties { border-left: 2px solid var(--line-focus); }
+.tl-property-controls .keynav .diamond { color: var(--accent); border: 1px solid var(--line-focus); border-radius: 3px; background: var(--bg-1); opacity: 1; }
+.tl-property-controls .keynav .diamond.on { color: var(--key); background: var(--bg-3); }

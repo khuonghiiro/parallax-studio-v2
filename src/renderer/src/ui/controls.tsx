@@ -194,6 +194,8 @@ interface AnimRowProps {
   max?: number
   suffix?: string
   linkable?: boolean
+  /** Show explicit keyframe controls even before animation is enabled. */
+  showKeyControls?: boolean
 }
 
 export function AnimRow({
@@ -206,7 +208,8 @@ export function AnimRow({
   min,
   max,
   suffix,
-  linkable
+  linkable,
+  showKeyControls = false
 }: AnimRowProps) {
   const project = useEditor((s) => s.project)
   const time = useEditor((s) => s.time)
@@ -310,7 +313,7 @@ export function AnimRow({
             />
           ))
         )}
-        {animated && (
+        {(animated || showKeyControls) && (
           <div className="keynav">
             <button title="Keyframe trước" disabled={!prevKey} onClick={() => prevKey && setTime(prevKey.t)}>
               ◀
