@@ -5,6 +5,7 @@ import { useEffectSelection } from '../../store/effectSelection'
 import React, { useEffect, useMemo, useState } from 'react'
 import type { Animatable, AnimValue, Layer } from '@shared/types'
 import { evaluate } from '../../animation/keyframes'
+import { timelineRangeAt } from '../../animation/timelineRange'
 import { deleteSelectedLayer, duplicateSelectedLayer, importBuiltInAsset, moveLayer, replaceLayerAsset } from '../../actions'
 import { assetStore } from '../../project/assets'
 import { useEditor, type PropRef } from '../../store/editor'
@@ -196,10 +197,15 @@ function TimelineLayerRowComponent({
           return (
             <div
               key={k.id}
-              className={`tl-key${k.ease === 'hold' ? ' hold' : ''}${isSelectedKey ? ' selected' : ''}`}
+              className={`tl-key ${timelineRangeAt(a, k.t).start?.id === k.id ? 'range-start' : 'range-end'}${k.ease === 'hold' ? ' hold' : ''}${isSelectedKey ? ' selected' : ''}`}
               style={{ left: x(k.t) }}
-              title={`${p.label}: ${k.t.toFixed(2)}s`}
-              onPointerDown={(e) => (startKeyDrag ? startKeyDrag(e, ref, k.id) : undefined)}
+              title={`${k.ease === 'hold' ? 'Cuối / Giữ' : 'Đầu'} · ${p.label}: ${k.t.toFixed(2)}s · Bấm để sửa, kéo để dời mốc`}
+              onPointerDown={(e) => {
+                useEditor.getState().setPlaying(false)
+                setTime(k.t)
+                useEditor.getState().selectKey({ ref, keyId: k.id })
+                startKeyDrag?.(e, ref, k.id)
+              }}
               onDoubleClick={() => setTime(k.t)}
             />
           )

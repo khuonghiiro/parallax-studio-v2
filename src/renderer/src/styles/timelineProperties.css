@@ -29,3 +29,16 @@
 .timeline .tl-layer-properties { border-left: 2px solid var(--line-focus); }
 .tl-property-controls .keynav .diamond { color: var(--accent); border: 1px solid var(--line-focus); border-radius: 3px; background: var(--bg-1); opacity: 1; }
 .tl-property-controls .keynav .diamond.on { color: var(--key); background: var(--bg-3); }
+.tl-layer-properties .tl-row.sub { height: 49px; }
+.tl-range-values { min-width: 0; margin: 0; padding: 0; border: 0; }
+.tl-range-values:disabled { opacity: .55; pointer-events: none; }
+.tl-property-controls .tl-range-values .row { grid-template-columns: 44px minmax(0, 1fr); }
+.tl-range-values .row > button[hidden] { display: none; }
+.tl-range-controls { display: flex; gap: 4px; align-items: center; height: 23px; }
+.tl-range-controls button { padding: 1px 5px; height: 20px; border: 1px solid var(--line); border-radius: 3px; background: var(--bg-1); color: var(--text-dim); font-size: 9px; cursor: pointer; }
+.tl-range-controls .tl-range-start { color: var(--accent-cyan); }
+.tl-range-controls .tl-range-end { color: var(--key); }
+.tl-range-controls button.active { border-color: currentColor; background: var(--bg-3); font-weight: 700; }
+.tl-range-controls button:disabled { opacity: .4; cursor: default; }
+.tl-layer-properties .tl-key.range-start { background: var(--accent-cyan); border-color: var(--accent-cyan); }
+.tl-layer-properties .tl-key.range-end { background: var(--key); border-color: var(--key); }

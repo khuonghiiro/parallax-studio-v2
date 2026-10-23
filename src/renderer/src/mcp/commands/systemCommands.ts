@@ -1,4 +1,5 @@
 import { VIEW_ORDER, selectedViews } from '../../ui/viewer/taggedLayout'
+import { startTimelineRange, endTimelineRange } from '../../animation/timelineRange'
 import * as THREE from 'three'
 import type { Animatable, AnimValue, Project, Vec3 } from '@shared/types'
 import type { Draft } from 'immer'
@@ -134,7 +135,12 @@ export const systemCommands: Record<string, Handler> = {
     let keyId = ''
     ed().update((d) => {
       const a = getDraftAnimatable(d, ref)!
-      keyId = addKeyframe(a as Animatable<AnimValue>, t, value, e, frameTolerance(proj())).id
+      const boundary = str(p, 'boundary')
+      if (boundary === 'start' || boundary === 'end') {
+        const k = (boundary === 'start' ? startTimelineRange : endTimelineRange)(a, t, frameTolerance(proj()))
+        k.value = value
+        keyId = k.id
+      } else keyId = addKeyframe(a as Animatable<AnimValue>, t, value, e, frameTolerance(proj())).id
     })
     return { key_id: keyId, time: t, value }
   },

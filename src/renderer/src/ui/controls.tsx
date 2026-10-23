@@ -4,6 +4,7 @@ import type { AnimValue, Vec3 } from '@shared/types'
 import { evaluate, keyAt, removeKeyframe, addKeyframe, setValueAt, toggleAnimated } from '../animation/keyframes'
 import { frameTolerance, getAnimatable, getDraftAnimatable, propRefKey, useEditor, type PropRef } from '../store/editor'
 import { IconStopwatch } from './icons'
+import { preserveTimelinePast } from '../animation/timelineRange'
 
 // ------------------------------------------------------------------ number
 
@@ -196,6 +197,7 @@ interface AnimRowProps {
   linkable?: boolean
   /** Show explicit keyframe controls even before animation is enabled. */
   showKeyControls?: boolean
+  timelineEditing?: boolean
 }
 
 export function AnimRow({
@@ -209,7 +211,8 @@ export function AnimRow({
   max,
   suffix,
   linkable,
-  showKeyControls = false
+  showKeyControls = false,
+  timelineEditing = false
 }: AnimRowProps) {
   const project = useEditor((s) => s.project)
   const time = useEditor((s) => s.time)
@@ -228,7 +231,11 @@ export function AnimRow({
   const write = (v: AnimValue, mergeKey: string): void => {
     update((d) => {
       const da = getDraftAnimatable(d, refp)
-      if (da) setValueAt(da, time, v as never, tol)
+      if (da) {
+        if (timelineEditing) preserveTimelinePast(da, time, tol)
+        if (timelineEditing && !keyAt(da, time, tol)) addKeyframe(da, time, v, 'hold', tol)
+        else setValueAt(da, time, v as never, tol)
+      }
     }, `${refKey}-${mergeKey}`)
   }
 
@@ -263,6 +270,7 @@ export function AnimRow({
   return (
     <div className="row">
       <button
+        hidden={timelineEditing}
         className={`stopwatch${animated ? ' on' : ''}`}
         title={animated ? 'Tắt animation (giữ giá trị hiện tại)' : 'Bật animation (tạo keyframe)'}
         onClick={() =>
@@ -313,7 +321,7 @@ export function AnimRow({
             />
           ))
         )}
-        {(animated || showKeyControls) && (
+        {!timelineEditing && (animated || showKeyControls) && (
           <div className="keynav">
             <button title="Keyframe trước" disabled={!prevKey} onClick={() => prevKey && setTime(prevKey.t)}>
               ◀
