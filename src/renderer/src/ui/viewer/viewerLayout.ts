@@ -10,6 +10,7 @@ export interface Layout {
   /** CSS px, relative to the canvas. */
   cam: Rect | null
   ed: Rect | null
+  depth?: Rect | null
   stage2d?: Rect | null
 }
 

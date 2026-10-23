@@ -36,6 +36,12 @@ export const DIALOG_SELECTORS = [
 const region = (name: string, ...classes: string[]): string[] => [`[data-mcp-region="${name}"]`, ...classes]
 
 export const UI_REGION_SELECTORS: Record<string, string[]> = {
+  viewer_stage2d_tools: ['.anim2d-toolbar'],
+  viewer_depth: ['.viewer-depth-pane'],
+  viewer_stage2d: ['.anim2d-pane-host'],
+  timeline_logic: ['.tl-logic-strip'],
+  timeline_logic_picker: ['.tl-logic-picker'],
+
   // Vùng đặc biệt: dialog trên cùng (được xử lý riêng bởi findActiveDialog)
   active: DIALOG_SELECTORS,
 

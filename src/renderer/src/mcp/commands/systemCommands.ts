@@ -1,3 +1,4 @@
+import { VIEW_ORDER, selectedViews } from '../../ui/viewer/taggedLayout'
 import * as THREE from 'three'
 import type { Animatable, AnimValue, Project, Vec3 } from '@shared/types'
 import type { Draft } from 'immer'
@@ -207,6 +208,12 @@ export const systemCommands: Record<string, Handler> = {
     else if (mode === '2d_only') v.set({ split: false, primary: 'animate2d', animate2dSplit: false })
     else if (mode === 'split') v.set({ split: true })
     else if (mode) throw new ParamError('"mode" must be camera, 3d, topview, animate2d, 2d_3d, 2d_only or split')
+    if (has(p, 'active_views')) {
+      if (!Array.isArray(p.active_views) || !p.active_views.length || p.active_views.some((id) => !VIEW_ORDER.includes(id as any))) {
+        throw new ParamError('active_views must contain camera, editor, animate2d or topview')
+      }
+      v.set({ activeViews: VIEW_ORDER.filter((id) => (p.active_views as unknown[]).includes(id)) })
+    }
     if (has(p, 'camera_only')) v.set({ cameraOnly: bool(p, 'camera_only')! })
     if (has(p, 'show_path')) v.set({ showPath: bool(p, 'show_path')! })
     const focus = str(p, 'focus')
@@ -217,6 +224,7 @@ export const systemCommands: Record<string, Handler> = {
       split: s.split,
       primary: s.primary,
       animate2d_split: s.animate2dSplit,
+      active_views: selectedViews(s),
       camera_only: s.cameraOnly,
       show_path: s.showPath
     }

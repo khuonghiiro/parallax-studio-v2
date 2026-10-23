@@ -1,3 +1,4 @@
+import { addTimelineLogic } from '../../project/timelineLogic'
 import type { WorkflowNode } from '@shared/types'
 import { evaluateNodeDraft, patchNodeDraft } from '../../project/workflowNodeDraft'
 import { getWorkflowNodePorts } from '../../project/workflowNodePorts'
@@ -94,6 +95,11 @@ export const workflowCommands: Record<string, Handler> = {
   },
 
   set_workflow: (p) => {
+    if (has(p, 'logic_id')) {
+      let nodeId = ''
+      ed().update((draft) => { nodeId = addTimelineLogic(draft, str(p, 'logic_id', true)!, str(p, 'layer_id'), str(p, 'shot_id')) })
+      return { ok: true, node_id: nodeId, workflow: ensureProjectWorkflow(proj()) }
+    }
     const tab = str(p, 'tab')
     const switchToTab = bool(p, 'switch_to_tab')
     if (tab === 'timeline' || tab === 'workflow') {

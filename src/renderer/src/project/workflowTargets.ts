@@ -613,8 +613,8 @@ export function resolveNodeTargetBinding(
   }
   const subParts = getNodeSubParts(node)
   const activeParts = subParts.filter((p) => p.active)
-  const rawShotScope = (node.params?.shotId !== 'all' ? node.params?.shotId : undefined)
-    || (routing?.shotIds.length === 1 ? routing.shotIds[0] : undefined) || graph?.targetShotId
+  const rawShotScope = node.params?.shotId
+    ?? (routing?.shotIds.length === 1 ? routing.shotIds[0] : undefined) ?? graph?.targetShotId
   const shotFilter = rawShotScope && rawShotScope !== 'all' ? rawShotScope : null
   const allBindable = listProjectBindableTargets(project, shotFilter)
 

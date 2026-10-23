@@ -636,7 +636,6 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
       {/* 0. Thanh công cụ Top đồng nhất — trải rộng toàn màn hình từ x = 0 đến x = W */}
       <div style={{ pointerEvents: 'auto', width: '100%' }}>
         <AnimateCameraToolbar
-          animate2dSplit={animate2dSplit}
           toolMode={toolMode}
           lineStyle={lineStyle}
           activeFrame={activeFrame}
@@ -647,7 +646,6 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
           showAllFrames={showAllFrames}
           showGrid={showGrid}
           inspectorTab={inspectorTab}
-          onSetAnimate2dSplit={(split) => setView({ animate2dSplit: split })}
           onSetToolMode={setToolMode}
           onSetLineStyle={setLineStyle}
           onSpawnNextFrame={(mode) => spawnNextCameraFrame(mode)}

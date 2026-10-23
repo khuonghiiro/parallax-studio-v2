@@ -1,3 +1,4 @@
+import { ViewTags } from './ViewTags'
 import type { ResidencyStats } from '../../engine/SceneRenderer'
 import type { EditorViewKind } from '../../engine/EditorCamera'
 import { useView, type ViewState } from '../../store/view'
@@ -8,14 +9,11 @@ import {
   IconAxisRotate,
   IconBoundingBox,
   IconCamera,
-  IconCameraStage,
   IconCube,
   IconEye,
   IconFocus,
   IconReadout,
   IconRoute,
-  IconSingle,
-  IconSplit
 } from '../icons'
 import { CustomSelect } from '../controls/CustomSelect'
 import { EDITOR_KINDS, type Layout } from './viewerLayout'
@@ -51,9 +49,9 @@ export function ViewerOverlays({
   })
   const currentFov = fov ?? evaluate(cameraFov, time)
   const showEd = !!rects.ed
-  const isAnimate2D = view.primary === 'animate2d'
+  const isAnimate2D = !!rects.stage2d
   const isAnimateSplit = Boolean(isAnimate2D && view.animate2dSplit && rects.cam && rects.ed && rects.stage2d)
-  const isStandardSplit = Boolean(!isAnimate2D && view.split && rects.cam && rects.ed)
+  const isStandardSplit = Boolean(!isAnimate2D && rects.cam && rects.ed)
   const kindLabel = EDITOR_KINDS.find((k) => k.id === view.editorKind)?.shortLabel ?? 'Tự do'
 
   const showBbox = view.showBbox ?? true
@@ -232,59 +230,10 @@ export function ViewerOverlays({
       )}
 
       {/* Dock công cụ Viewport & Thao tác Layer (Top-Right Tools) */}
-      {!isAnimate2D && (
-        <div className="viewer-tools">
-          {/* Nhóm 1: Chuyển đổi góc nhìn chính */}
-          <div className="viewer-mode-seg">
-            <button
-              id="view-camera"
-              className={`seg-btn${!view.split && view.primary === 'camera' ? ' active' : ''}`}
-              title="Góc nhìn Camera (kết quả render)"
-              onClick={() => view.set({ split: false, primary: 'camera' })}
-            >
-              <IconCamera width={12} height={12} /> Camera
-            </button>
-            <button
-              id="view-3d"
-              className={`seg-btn${!view.split && view.primary === 'editor' ? ' active' : ''}`}
-              title="Không gian 3D: xem các layer xếp chồng, các cảnh và đường bay camera"
-              onClick={() => view.set({ split: false, primary: 'editor' })}
-            >
-              <IconCube width={12} height={12} /> 3D
-            </button>
-            <button
-              id="view-topview"
-              className={`seg-btn${!view.split && view.primary === 'topview' ? ' active' : ''}`}
-              title="Sơ đồ độ sâu 2.5D: nhìn từ trên xuống để dàn dựng bố cục cảnh nhanh chóng"
-              onClick={() => view.set({ split: false, primary: 'topview' })}
-            >
-              <IconRoute width={12} height={12} /> 2.5D
-            </button>
-            <button
-              id="view-animate2d"
-              className={`seg-btn${view.primary === 'animate2d' ? ' active' : ''}`}
-              title="Lộ trình Camera 2D kiểu Adobe Animate: đóng khung camera, lia cảnh, phóng to/thu nhỏ dần trực quan trên mặt phẳng 2D"
-              onClick={() => {
-                view.set({ split: false, primary: 'animate2d' })
-                useEditor.getState().setInspectorTab('route')
-              }}
-            >
-              <IconCameraStage width={12} height={12} /> Cam 2D
-            </button>
-          </div>
-
+      {(
+        <div className="viewer-tools" data-mcp-region="viewer_tools">
+          <ViewTags />
           <span className="viewer-tool-sep" />
-
-          <button
-            id="view-split"
-            className={`viewer-tool-btn icon${view.split ? ' active' : ''}`}
-            title={view.split ? '1 view: Phóng to góc nhìn hiện tại' : '2 view: Camera + 3D song song'}
-            onClick={() => view.set({ split: !view.split })}
-          >
-            {view.split ? <IconSingle width={14} height={14} /> : <IconSplit width={14} height={14} />}
-          </button>
-          <span className="viewer-tool-sep" />
-
           {/* Nhóm 2: Kiểu nhìn 3D (CustomSelect chuẩn 60fps) */}
           {showEd && (
             <>

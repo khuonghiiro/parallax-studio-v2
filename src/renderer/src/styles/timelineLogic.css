@@ -1,0 +1,24 @@
+.tl-logic-strip { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--bg-1); border-bottom: 1px solid var(--line); min-width: 0; flex-shrink: 0; color: var(--text); font-size: 11px; }
+.tl-logic-target { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-dim); }
+.tl-logic-items { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; }
+.tl-logic-chip { border: 1px solid var(--line); border-radius: 14px; background: var(--bg-2); color: var(--text-dim); padding: 5px 10px; white-space: nowrap; cursor: pointer; }
+.tl-logic-chip.active { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg-1)); }
+.tl-logic-empty { color: var(--text-faint); white-space: nowrap; }
+.tl-logic-backdrop { position: fixed; inset: 0; z-index: 50000; display: grid; place-items: center; background: color-mix(in srgb, var(--bg-0) 65%, transparent); backdrop-filter: blur(4px); }
+.tl-logic-picker { width: min(720px, 90vw); max-height: 80vh; display: flex; flex-direction: column; gap: 14px; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg-1); color: var(--text); box-shadow: 0 16px 60px var(--bg-0); }
+.tl-logic-picker header { display: flex; justify-content: space-between; align-items: flex-start; }
+.tl-logic-picker header strong { font-size: 18px; }
+.tl-logic-picker p { color: var(--text-dim); margin: 6px 0 0; }
+.tl-logic-picker input { padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg-0); color: var(--text); }
+.tl-logic-catalog { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; overflow-y: auto; min-height: 0; }
+.tl-logic-catalog button { text-align: left; display: flex; flex-direction: column; gap: 7px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg-2); color: var(--text); cursor: pointer; }
+.tl-logic-catalog small { color: var(--accent); }
+.tl-logic-catalog span { color: var(--text-dim); line-height: 1.5; font-size: 11px; }
+.tl-logic-catalog button:hover, .tl-logic-chip:hover { border-color: var(--accent); background: var(--bg-3); }
+.tl-logic-picker :focus-visible, .tl-logic-strip :focus-visible { outline: 2px solid var(--line-focus); outline-offset: 2px; }
+.viewer-depth-pane, .anim2d-pane-host { border: 1px solid var(--line-soft); box-sizing: border-box; }
+.viewer-view-tags .seg-btn:disabled { opacity: 1; cursor: default; }
+.viewer > .viewer-tools { height: auto; min-height: 26px; flex-wrap: wrap; left: 8px; right: auto; max-width: calc(100% - 16px); }
+.viewer > .viewer-hud { top: auto; bottom: 8px; }
+.anim2d-toolbar.single-row { overflow: visible; flex-wrap: wrap; height: auto; min-height: 34px; }
+.anim2d-toolbar-left, .anim2d-toolbar-right { flex-wrap: wrap; flex-shrink: 1; }

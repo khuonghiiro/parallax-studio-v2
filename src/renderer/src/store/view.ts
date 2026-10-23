@@ -13,6 +13,7 @@ export type TabletSideTab = 'left' | 'right'
 export type DialogKind = 'path' | 'sketch' | 'performance' | 'mcp' | 'audio' | 'export' | null
 
 interface ViewPrefs {
+  activeViews?: PrimaryView[]
   /** Two views side by side: camera (left) + 3D editor view (right). */
   split: boolean
   /** Which view fills the viewer when not split. */
@@ -215,8 +216,15 @@ export const useView = create<ViewState>((set, get) => ({
   },
   set(p) {
     if (p.theme) applyTheme(p.theme)
+    if (!p.activeViews && (p.primary !== undefined || p.split !== undefined || p.animate2dSplit !== undefined)) {
+      const next = { ...get(), ...p }
+      p = { ...p, activeViews: next.primary === 'animate2d'
+        ? (next.animate2dSplit ? ['camera', 'editor', 'animate2d'] : ['animate2d'])
+        : next.split ? ['camera', 'editor'] : [next.primary] }
+    }
     set(p)
     const {
+      activeViews,
       split,
       primary,
       animate2dSplit,
@@ -234,6 +242,7 @@ export const useView = create<ViewState>((set, get) => ({
       localStorage.setItem(
         KEY,
         JSON.stringify({
+          activeViews,
           split,
           primary,
           animate2dSplit,
@@ -254,7 +263,9 @@ export const useView = create<ViewState>((set, get) => ({
   },
   requestFocus(kind, id) {
     const s = get()
-    if (!s.split && s.primary === 'camera') s.set({ primary: 'editor' })
+    if (s.activeViews?.length) {
+      if (!s.activeViews.includes('editor')) s.set({ activeViews: [...s.activeViews, 'editor'] })
+    } else if (!s.split && s.primary === 'camera') s.set({ primary: 'editor' })
     set({ focus: { kind, id, n: (s.focus?.n ?? 0) + 1 } })
   }
 }))

@@ -396,6 +396,7 @@ export const FX_TOOLS = [
     name: 'set_view', cat: 'timeline',
     doc: L("Change the app's viewer for the user: camera view, 3D view, 2.5D topview, Adobe Animate 2D & 3D camera stage, or split; frame a shot.", 'Đổi khung xem của app: camera, 3D, sơ đồ 2.5D, bàn dựng khung camera 2D & 3D (Adobe Animate) hoặc chia đôi; đóng khung một shot.'),
     shape: (d) => ({
+      active_views: z.array(z.enum(['camera', 'editor', 'animate2d', 'topview'])).min(1).max(4).optional().describe(d('Independent active viewer tags; overrides mode.', 'Các tag khung xem bật độc lập; ưu tiên hơn mode.')),
       mode: z.enum(['camera', '3d', 'topview', 'animate2d', '2d_3d', '2d_only', 'split']).optional(),
       focus: z.string().optional().describe(d('"all", "selection" or a shot id.', '"all", "selection" hoặc id shot.')),
       camera_only: z.boolean().optional().describe(d('3D view previews only what the camera loads.', 'View 3D chỉ hiển thị những gì camera nạp.')),
@@ -427,6 +428,9 @@ export const FX_TOOLS = [
       'Cấu hình quy trình tạo video cho dự án từ mẫu có sẵn (`preset_id`), từ chuỗi/đối tượng JSON (`workflow`), hoặc cập nhật preset/trạng thái bật tắt của một khối chức năng.'
     ),
     shape: (d) => ({
+      logic_id: z.string().optional().describe(d('Add and auto-connect a timeline logic catalog item, then apply only that node.', 'Thêm logic từ catalog, tự nối dây và chỉ áp dụng node vừa thêm.')),
+      layer_id: z.string().optional().describe(d('Target layer for timeline logic.', 'Layer đích của logic timeline.')),
+      shot_id: z.string().optional().describe(d('Target shot for timeline logic; all for the project.', 'Cảnh đích của logic timeline; all là toàn dự án.')),
       preset_id: z.string().optional().describe(d('Built-in workflow template ID (e.g. "cinematic_parallax_intro", "character_action_physics", "cave_virtual_light_explore", "story_dialogue_lipsync", "arch3d_flythrough").', 'ID mẫu workflow có sẵn (VD: "cinematic_parallax_intro", "character_action_physics", "cave_virtual_light_explore", "story_dialogue_lipsync", "arch3d_flythrough").')),
       workflow: z.string().optional().describe(d('JSON string of a WorkflowGraph object.', 'Chuỗi JSON của đối tượng WorkflowGraph.')),
       node_id: z.string().optional().describe(d('Target node ID (or node type) to update.', 'ID khối node (hoặc loại node) cần cập nhật.')),

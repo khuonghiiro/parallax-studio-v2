@@ -1,3 +1,4 @@
+import { computeTaggedLayout, selectedViews } from './viewer/taggedLayout'
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { flyToShot } from '../actions'
@@ -13,7 +14,6 @@ import { usePerformance } from '../store/performance'
 import {
   CLEAR,
   EDITOR_KINDS,
-  fitRect,
   inRect,
   toDevice,
   worldBox,
@@ -44,16 +44,13 @@ export function Viewer() {
   const [fps, setFps] = useState(0)
   const [stats, setStats] = useState<ResidencyStats | null>(null)
   const [rects, setRects] = useState<Layout>({ dpr: 1, cam: null, ed: null, stage2d: null })
-  const [narrowViewer, setNarrowViewer] = useState(false)
   const comp = useEditor((s) => s.project.comp)
   const playing = useEditor((s) => s.playing)
   const view = useView()
 
   edCam.setKind(view.editorKind)
   const focusShotId = useFocusShotId()
-  const effectiveSplit = view.split && !narrowViewer
-  const isTopView = view.primary === 'topview' && !effectiveSplit
-  const isAnimate2DOnly = view.primary === 'animate2d' && (!view.animate2dSplit || narrowViewer)
+  const hasWebGLPane = Boolean(rects.cam || rects.ed)
 
   const { updateLabels } = useViewerLabels(labelsRef)
   const { localXY, ndcIn, capture, startLayerDrag, startShotDrag, startCameraDrag } = useViewerDrag({
@@ -277,59 +274,20 @@ export function Viewer() {
       c.style.height = `${H}px`
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
       rendererRef.current?.setSize(W * dpr, H * dpr)
-      const aspect = comp.width / comp.height
-      let cam: Layout['cam'] = null
-      let ed: Layout['ed'] = null
-      let stage2d: Layout['stage2d'] = null
-      const isNarrow = W < 620
-      setNarrowViewer(isNarrow)
-      const canSplit = view.split && !isNarrow
-      const topHudH = H < 260 ? 32 : 38
-      const splitPad = W < 540 || H < 260 ? 6 : 16
-      const singlePad = W < 540 || H < 260 ? 8 : 20
-
-      if (view.primary === 'animate2d') {
-        if (view.animate2dSplit && !isNarrow) {
-          const col1W = Math.max(240, Math.floor(W * 0.40))
-          const availH = Math.max(20, H - topHudH)
-          const row1H = Math.max(10, Math.floor(availH * 0.48))
-          const row2Y = topHudH + row1H + 1
-          cam = fitRect({ x: 0, y: topHudH, w: col1W, h: row1H }, aspect, 8)
-          ed = { x: 0, y: row2Y, w: col1W, h: Math.max(10, H - row2Y) }
-          stage2d = {
-            x: col1W + 1,
-            y: 0,
-            w: Math.max(10, W - col1W - 1),
-            h: H
-          }
-        } else {
-          stage2d = {
-            x: 0,
-            y: 0,
-            w: Math.max(10, W),
-            h: H
-          }
-        }
-      } else if (canSplit) {
-        const half = Math.floor(W / 2)
-        cam = fitRect({ x: 0, y: topHudH, w: Math.max(10, half - 1), h: Math.max(10, H - topHudH) }, aspect, splitPad)
-        ed = { x: half + 1, y: 0, w: Math.max(10, W - half - 1), h: H }
-      } else if (view.primary === 'camera') {
-        cam = fitRect({ x: 0, y: topHudH, w: Math.max(10, W), h: Math.max(10, H - topHudH) }, aspect, singlePad)
-      } else if (view.primary === 'editor') {
-        ed = { x: 0, y: 0, w: Math.max(10, W), h: H }
-      }
-      const L: Layout = { dpr, cam, ed, stage2d }
+      const toolbarHeight = (wrap.querySelector('.viewer-tools')?.getBoundingClientRect().height ?? 26) + 16
+      const L = computeTaggedLayout(W, H, comp.width / comp.height, selectedViews(view), dpr, toolbarHeight)
       layoutRef.current = L
       setRects(L)
       requestRender()
     }
     const ro = new ResizeObserver(fit)
     ro.observe(wrap)
+    const toolbar = wrap.querySelector('.viewer-tools')
+    if (toolbar) ro.observe(toolbar)
     fit()
     return () => ro.disconnect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [comp.width, comp.height, view.split, view.primary, view.animate2dSplit])
+  }, [comp.width, comp.height, view.split, view.primary, view.animate2dSplit, view.activeViews])
 
   // F = frame selection in the 3D view.
   useEffect(() => {
@@ -563,37 +521,27 @@ export function Viewer() {
         onWheel={onWheel}
         onDoubleClick={onDoubleClick}
         onContextMenu={(e) => e.preventDefault()}
-        style={{ display: isTopView || isAnimate2DOnly ? 'none' : 'block' }}
+        style={{ display: hasWebGLPane ? 'block' : 'none' }}
       />
-      {!isTopView && !isAnimate2DOnly && (
+      {hasWebGLPane && (
         <LayerGizmo controller={gizmoRef} />
       )}
-      {!isTopView && !isAnimate2DOnly && (
+      {hasWebGLPane && (
         <div className="view-labels" ref={labelsRef} onPointerDown={onLabelPointerDown} onDoubleClick={onLabelDoubleClick} />
       )}
 
-      {isTopView && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 5, background: 'var(--bg-1)' }}>
+      {rects.depth && (
+        <div className="viewer-depth-pane" data-mcp-region="viewer_depth"
+          style={{ position: 'absolute', left: rects.depth.x, top: rects.depth.y,
+            width: rects.depth.w, height: rects.depth.h, zIndex: 5, background: 'var(--bg-1)' }}>
           <TopView shotId={focusShotId} isExpanded={true} />
         </div>
       )}
-
-      {view.primary === 'animate2d' && rects.stage2d && (
-        <div
-          className="anim2d-pane-host"
-          style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 8,
-            pointerEvents: 'none'
-          }}
-        >
-          <AnimateCameraStage
-            splitLeftWidth={view.animate2dSplit && !narrowViewer && rects.cam ? (rects.stage2d?.x ?? 0) : 0}
-          />
+      {rects.stage2d && (
+        <div className="anim2d-pane-host" data-mcp-region="viewer_stage2d"
+          style={{ position: 'absolute', left: rects.stage2d.x, top: rects.stage2d.y,
+            width: rects.stage2d.w, height: rects.stage2d.h, zIndex: 8 }}>
+          <AnimateCameraStage />
         </div>
       )}
 

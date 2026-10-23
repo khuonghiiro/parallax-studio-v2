@@ -179,3 +179,12 @@ Workflow node configuration: `workflow_node_camera_preview` chụp preview camer
 - Workflow node dialog: Đầu vào → Thông số → Đầu ra; xử lý riêng theo dây layer, rule không chạy chồng preset. MCP `get_workflow.node_io` phản ánh cổng và phạm vi, `list_workflow_presets.logic_nodes[].operations` cung cấp thông số thao tác. Vùng chụp: `workflow_node_config`, `workflow_node_input`, `workflow_node_operation`, `workflow_node_connections`, `workflow_node_output`, `workflow_node_camera_preview`, `workflow_node_settings`. Xem [logic node và dialog](./docs/workflow-node-semantics.md).
 
 - Node dialog: một màn hình chỉnh liên tục, luôn hiện thao tác và scope; dây nối/ghi chú nằm trong mục thu gọn. Preview copy-on-write, hỗ trợ tắt Tự cập nhật rồi Xem thử theo yêu cầu. Vùng chụp thêm: `workflow_node_scope_picker`, `workflow_node_edit_context`, `workflow_node_advanced`, `workflow_node_preview_controls`, `workflow_node_preset_picker`, `workflow_node_rule_picker`.
+
+
+### Timeline logic & independent viewer tags
+
+- Timeline: chọn layer/cảnh → **+ Thêm logic** → tìm thao tác → chỉnh thông số và Áp dụng. Logic dùng chung graph với Workflow; node và kết nối được tạo tự động, chỉnh sửa có Undo/Redo. Các node đã tạo trong Workflow cũng hiện theo phạm vi layer/cảnh trên timeline.
+- Bật độc lập các tag Camera, 3D, Cam 2D, Độ sâu 2.5D; giữ ít nhất một khung. Một tag chiếm toàn vùng; hai tag chia đôi (Cam 2D + Độ sâu chia trên/dưới); ba tag chia hai cột; bốn tag chia lưới 2×2, Độ sâu dưới Cam 2D. Khung hẹp xếp dọc để giữ đủ tag. Lựa chọn lưu trong view preferences.
+- MCP `set_view(active_views: ["camera", "editor", "animate2d", "topview"])`; các giá trị `mode` cũ vẫn tương thích.
+- MCP `set_workflow(logic_id, layer_id?, shot_id?)` thêm logic từ `list_workflow_presets.logic_nodes`, tự nối nguồn và chỉ áp dụng node mới trong một bước Undo. Chỉnh node bằng `set_workflow(node_id, node_params, apply_node: true)`.
+- Vùng chụp: `timeline_logic`, `timeline_logic_picker`, `viewer_stage2d`, `viewer_stage2d_tools`, `viewer_depth`; dùng `active` cho hộp cấu hình đang mở.

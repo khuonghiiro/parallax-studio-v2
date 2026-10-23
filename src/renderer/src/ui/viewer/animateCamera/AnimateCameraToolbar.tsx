@@ -1,17 +1,11 @@
 import { memo } from 'react'
 import { useEditor } from '../../../store/editor'
-import { useView } from '../../../store/view'
 import {
-  IconCamera,
-  IconCameraStage,
-  IconCube,
   IconFocus,
-  IconLayout2D3D,
   IconPause,
   IconPlay,
   IconPlus,
   IconRoute,
-  IconSingle
 } from '../../icons'
 import type { StageToolMode } from './AnimateCameraViewfinder'
 import type { CameraLineStyle } from './animateCameraEdgePaths'
@@ -19,7 +13,6 @@ import type { ProjectedLayer2D, ShotStageBox } from './animateCameraMath'
 import type { CameraWaypointItem } from './animateCameraRouteLogic'
 
 interface AnimateCameraToolbarProps {
-  animate2dSplit: boolean
   toolMode: StageToolMode
   lineStyle: CameraLineStyle
   activeFrame: CameraWaypointItem | undefined
@@ -30,7 +23,6 @@ interface AnimateCameraToolbarProps {
   showAllFrames: boolean
   showGrid: boolean
   inspectorTab: string
-  onSetAnimate2dSplit: (split: boolean) => void
   onSetToolMode: (mode: StageToolMode) => void
   onSetLineStyle: (style: CameraLineStyle) => void
   onSpawnNextFrame: (mode: 'pan' | 'zoom-in' | 'zoom-out' | 'shot') => void
@@ -45,7 +37,6 @@ interface AnimateCameraToolbarProps {
 }
 
 export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
-  animate2dSplit,
   toolMode,
   lineStyle,
   activeFrame,
@@ -56,7 +47,6 @@ export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
   showAllFrames,
   showGrid,
   inspectorTab,
-  onSetAnimate2dSplit,
   onSetToolMode,
   onSetLineStyle,
   onSpawnNextFrame,
@@ -70,73 +60,8 @@ export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
   onFitStage
 }: AnimateCameraToolbarProps) {
   return (
-    <div className="anim2d-toolbar single-row">
+    <div className="anim2d-toolbar single-row" data-mcp-region="viewer_stage2d_tools">
       <div className="anim2d-toolbar-left">
-        {/* 0. Chuyển đổi góc nhìn nhanh tận dụng trọn vẹn khoảng trống trên đầu Cột 1 */}
-        <div className="viewer-mode-seg" title="Chuyển đổi góc nhìn Viewport">
-          <button
-            id="view-camera"
-            type="button"
-            className="seg-btn"
-            title="Góc nhìn Camera (kết quả render)"
-            onClick={() => useView.getState().set({ split: false, primary: 'camera' })}
-          >
-            <IconCamera width={12} height={12} /> Camera
-          </button>
-          <button
-            id="view-3d"
-            type="button"
-            className="seg-btn"
-            title="Không gian 3D: xem các layer xếp chồng, các cảnh và đường bay camera"
-            onClick={() => useView.getState().set({ split: false, primary: 'editor' })}
-          >
-            <IconCube width={12} height={12} /> 3D
-          </button>
-          <button
-            id="view-topview"
-            type="button"
-            className="seg-btn"
-            title="Sơ đồ độ sâu 2.5D: nhìn từ trên xuống để dàn dựng bố cục cảnh nhanh chóng"
-            onClick={() => useView.getState().set({ split: false, primary: 'topview' })}
-          >
-            <IconRoute width={12} height={12} /> 2.5D
-          </button>
-          <button
-            id="view-animate2d"
-            type="button"
-            className="seg-btn active"
-            title="Đang ở Bàn dựng Cam 2D"
-          >
-            <IconCameraStage width={12} height={12} /> Cam 2D
-          </button>
-        </div>
-
-        <span className="viewer-tool-sep" />
-
-        {/* 1. Bố cục 2D+3D / Chỉ 2D */}
-        <div className="viewer-mode-seg" title="Bố cục hiển thị">
-          <button
-            id="view-animate2d-split"
-            type="button"
-            className={`seg-btn${animate2dSplit ? ' active' : ''}`}
-            title="2D &amp; 3D: Cột trái Camera/3D · Cột phải Bàn dựng 2D"
-            onClick={() => onSetAnimate2dSplit(true)}
-          >
-            <IconLayout2D3D width={12} height={12} /> 2D+3D
-          </button>
-          <button
-            id="view-animate2d-single"
-            type="button"
-            className={`seg-btn${!animate2dSplit ? ' active' : ''}`}
-            title="Chỉ hiện Bàn dựng 2D toàn màn hình"
-            onClick={() => onSetAnimate2dSplit(false)}
-          >
-            <IconSingle width={12} height={12} /> 2D
-          </button>
-        </div>
-
-        <span className="viewer-tool-sep" />
-
         {/* 2. Chế độ công cụ thao tác */}
         <div className="viewer-mode-seg" title="Chế độ thao tác chuột trên Khung Camera">
           <button
