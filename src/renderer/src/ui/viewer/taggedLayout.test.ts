@@ -21,7 +21,7 @@ describe('independent viewport tags', () => {
       expect(panes).toHaveLength(views.length)
       for (const [i, a] of panes.entries()) {
         expect(a.x).toBeGreaterThanOrEqual(0)
-        expect(a.y).toBeGreaterThanOrEqual(42)
+        expect(a.y).toBeGreaterThanOrEqual(34)
         expect(a.x + a.w).toBeLessThanOrEqual(width)
         expect(a.y + a.h).toBeLessThanOrEqual(700)
         for (const b of panes.slice(i + 1)) expect(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y).toBe(true)

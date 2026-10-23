@@ -1,3 +1,4 @@
+import '../styles/workspaceCompact.css'
 import { computeTaggedLayout, selectedViews } from './viewer/taggedLayout'
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
@@ -274,7 +275,7 @@ export function Viewer() {
       c.style.height = `${H}px`
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
       rendererRef.current?.setSize(W * dpr, H * dpr)
-      const toolbarHeight = (wrap.querySelector('.viewer-tools')?.getBoundingClientRect().height ?? 26) + 16
+      const toolbarHeight = (wrap.querySelector('.viewer-tools')?.getBoundingClientRect().height ?? 32) + 2
       const L = computeTaggedLayout(W, H, comp.width / comp.height, selectedViews(view), dpr, toolbarHeight)
       layoutRef.current = L
       setRects(L)

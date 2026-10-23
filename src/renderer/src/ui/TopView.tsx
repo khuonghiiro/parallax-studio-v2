@@ -277,10 +277,20 @@ export function TopView({
   }
 
   return (
+    <div className="depth-panel">
+      {isExpanded && <div className="depth-toolbar" data-mcp-region="viewer_depth_tools">
+        <span className="depth-toolbar-title">Độ sâu <small>{isSide ? 'Z ↔ · Y ↕' : 'X ↔ · Z ↕'}</small></span>
+        <div className="depth-view-pills" role="group" aria-label="Hướng nhìn sơ đồ độ sâu">
+          <button type="button" aria-pressed={!isSide} className={!isSide ? 'active' : ''}
+            onClick={() => useView.getState().set({ topViewMode: 'top' })} title="Nhìn từ trên · Trái/phải X, độ sâu Z">Trên</button>
+          <button type="button" aria-pressed={isSide} className={isSide ? 'active' : ''}
+            onClick={() => useView.getState().set({ topViewMode: 'side' })} title="Nhìn từ bên · Độ sâu Z, cao/thấp Y">Bên</button>
+        </div>
+      </div>}
     <div
       className={`topview topview-canvas-wrap${isDragOver ? ' drag-over' : ''}`}
       ref={wrapRef}
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'hidden' }}
+      style={{ position: 'relative', width: '100%', flex: 1, minHeight: 0, overflow: 'hidden' }}
       tabIndex={0}
       onKeyDown={handleKeyDown}
       onPointerDown={() => selectLayer(null)}
@@ -293,30 +303,6 @@ export function TopView({
       }}
       onDrop={handleDrop}
     >
-      {/* Expanded View Switcher (When in full Viewport) */}
-      {isExpanded && (
-        <div className="topview-expanded-switcher">
-          <div className="seg">
-            <button
-              type="button"
-              className={`btn xs${viewMode === 'top' ? ' active' : ''}`}
-              onClick={() => useView.getState().set({ topViewMode: 'top' })}
-              title="Nhìn từ trên đỉnh (Top View X-Z): Căn vị trí trái - phải và độ sâu xa - gần"
-            >
-              ⬇️ Top (X-Z)
-            </button>
-            <button
-              type="button"
-              className={`btn xs${viewMode === 'side' ? ' active' : ''}`}
-              onClick={() => useView.getState().set({ topViewMode: 'side' })}
-              title="Nhìn từ cạnh hông (Side View Z-Y): Căn độ cao nâng - hạ và độ dốc sàn đất"
-            >
-              ➡️ Side (Z-Y)
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* HUD Info Badges */}
       {(dragMode !== 'none' || hudText) && (
         <div className="tv-hud-badge">
@@ -402,6 +388,7 @@ export function TopView({
           />
         )}
       </svg>
+    </div>
     </div>
   )
 }

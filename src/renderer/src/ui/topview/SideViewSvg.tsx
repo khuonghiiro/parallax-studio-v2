@@ -61,9 +61,11 @@ export function SideViewSvg({
       <line x1={sideZ(0)} x2={sideZ(0)} y1={0} y2={size.h} stroke="var(--line-soft)" strokeDasharray="2 4" />
 
       {/* Spatial Zone Labels (Top of screen) */}
-      <text className="tv-zone-label" x={sideZ(-150)} y={18}>Tiền cảnh</text>
-      <text className="tv-zone-label" x={sideZ(350)} y={18}>Trung cảnh</text>
-      <text className="tv-zone-label" x={sideZ(1100)} y={18}>Hậu cảnh</text>
+      {sideZ(350) - sideZ(-150) >= 70 && <>
+        <text className="tv-zone-label" x={sideZ(-150)} y={18}>Tiền cảnh</text>
+        <text className="tv-zone-label" x={sideZ(350)} y={18}>Trung cảnh</text>
+        <text className="tv-zone-label" x={sideZ(1100)} y={18}>Hậu cảnh</text>
+      </>}
 
       {/* Reference Zero Labels */}
       <text className="tv-zero-label" x={12} y={sideY(0) - 4}>Y = 0 (Chân trời)</text>
@@ -146,7 +148,6 @@ export function SideViewSvg({
               className={`tv-label${isSel ? ' selected' : ''}`}
               x={sideZ(l.position[2]) + 4}
               y={sideY(l.position[1] + halfH) - 4}
-              fill={isSel ? '#ffffff' : '#cbd5e1'}
             >
               {l.layer.name}
             </text>

@@ -2,14 +2,14 @@ import type { Layer } from '@shared/types'
 import { shotAtTime } from '../../animation/cameraPath'
 import type { CameraProp, LayerProp, ShotProp } from '../../store/editor'
 
-export const NAME_W = 268
+export const NAME_W = 344
 export const PAD = 10
 
 export const LAYER_PROPS: { prop: LayerProp; label: string }[] = [
   { prop: 'position', label: 'Vị trí' },
   { prop: 'rotation', label: 'Xoay' },
-  { prop: 'scale', label: 'Scale' },
-  { prop: 'opacity', label: 'Opacity' }
+  { prop: 'scale', label: 'Tỉ lệ' },
+  { prop: 'opacity', label: 'Độ mờ' }
 ]
 
 export const CAMERA_PROPS: { prop: CameraProp; label: string }[] = [

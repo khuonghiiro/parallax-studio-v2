@@ -149,7 +149,7 @@
 }
 
 .tv-layer:hover .tv-label {
-  fill: #ffffff;
+  fill: var(--accent);
   font-weight: 600;
 }
 

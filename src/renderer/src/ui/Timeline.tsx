@@ -67,7 +67,7 @@ export function Timeline() {
     if (!el) return
     const update = () => {
       const sw = el.offsetWidth - el.clientWidth
-      const nw = el.clientWidth < 560 ? 184 : el.clientWidth < 860 ? 220 : NAME_W
+      const nw = el.clientWidth < 560 ? 244 : el.clientWidth < 860 ? 300 : NAME_W
       setScrollbarW(sw)
       setNameW(nw)
       setTrackW(Math.max(100, el.clientWidth - nw))

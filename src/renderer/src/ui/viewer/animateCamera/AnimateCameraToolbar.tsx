@@ -2,6 +2,9 @@ import { memo } from 'react'
 import { useEditor } from '../../../store/editor'
 import {
   IconFocus,
+  IconAim,
+  IconAxisMove,
+  IconAxisRotate,
   IconPause,
   IconPlay,
   IconPlus,
@@ -71,7 +74,7 @@ export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
             onClick={() => onSetToolMode('pan-scale')}
             title="Lia (Pan) &amp; Co dãn Khung Camera (Zoom/Roll)"
           >
-            ✢ Khung
+            <IconAxisMove width={14} height={14} />
           </button>
           <button
             id="anim2d-mode-orbit"
@@ -80,7 +83,7 @@ export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
             onClick={() => onSetToolMode('orbit-3d')}
             title="Xoay góc nghiêng 3D (Yaw/Pitch)"
           >
-            ↻ 3D
+            <IconAxisRotate width={14} height={14} />
           </button>
           <button
             id="anim2d-mode-aim"
@@ -89,7 +92,7 @@ export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
             onClick={() => onSetToolMode('aim-target')}
             title="Bấm trực tiếp vào Layer để ngắm và lấy nét"
           >
-            🎯 Ngắm
+            <IconAim width={14} height={14} />
           </button>
         </div>
 
@@ -105,7 +108,7 @@ export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
               onClick={() => onSpawnNextFrame('pan')}
               title="Tạo thêm Mốc Camera tiếp theo"
             >
-              <IconPlus width={11} height={11} /> Mốc
+              <IconPlus width={14} height={14} />
             </button>
           </div>
         )}
@@ -169,7 +172,7 @@ export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
               onClick={() => onSetLineStyle('smoothstep')}
               title="Đường nối vuông góc bo tròn"
             >
-              ╭╯ Vuông
+              ╭╯
             </button>
             <button
               id="anim2d-line-bezier"
@@ -178,7 +181,7 @@ export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
               onClick={() => onSetLineStyle('bezier')}
               title="Đường nối vòng cung mượt"
             >
-              ⌒ Cung
+              ⌒
             </button>
           </div>
         )}

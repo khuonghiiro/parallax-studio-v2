@@ -11,7 +11,7 @@ export function selectedViews(view: Pick<ViewState, 'activeViews' | 'primary' | 
 }
 
 /** Two balanced columns; drafting and depth always share a column when both are active. */
-export function computeTaggedLayout(w: number, h: number, aspect: number, views: PrimaryView[], dpr = 1, toolbarHeight = 42): Layout {
+export function computeTaggedLayout(w: number, h: number, aspect: number, views: PrimaryView[], dpr = 1, toolbarHeight = 34): Layout {
   const result: Layout = { dpr, cam: null, ed: null, stage2d: null, depth: null }
   const active = VIEW_ORDER.filter((id) => views.includes(id))
   if (!active.length) active.push('camera')
@@ -21,7 +21,7 @@ export function computeTaggedLayout(w: number, h: number, aspect: number, views:
     : left.length && right.length ? [left, right] : [active]
   // At narrow widths stack the panes instead of silently hiding enabled tags.
   const groups = w < 620 ? [active] : columns
-  const top = Math.min(Math.max(42, toolbarHeight), Math.max(0, h - 32))
+  const top = Math.min(Math.max(34, toolbarHeight), Math.max(0, h - 32))
   groups.forEach((group, col) => group.forEach((id, row) => {
     const area: Rect = { x: col * w / groups.length, y: top + row * (h - top) / group.length,
       w: Math.max(1, w / groups.length - 1), h: Math.max(1, (h - top) / group.length - 1) }

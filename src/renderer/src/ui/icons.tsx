@@ -245,6 +245,11 @@ export const IconPlane = (p: P) => (
     <path d="M22 2 15 22l-4-9-9-4z" />
   </svg>
 )
+export const IconAim = (p: P) => (
+  <svg {...base(p)}><circle cx="12" cy="12" r="7" /><circle cx="12" cy="12" r="2" />
+    <path d="M12 2v3m0 14v3M2 12h3m14 0h3" /></svg>
+)
+
 export const IconFocus = (p: P) => (
   <svg {...base(p)}>
     <path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" />

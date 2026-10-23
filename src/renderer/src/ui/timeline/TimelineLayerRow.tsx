@@ -1,3 +1,4 @@
+import { TimelinePropertyControls } from './TimelinePropertyControls'
 import { TimelineEffectRows } from './TimelineEffectRows'
 import { listLayerEffects } from '../../animation/motionEffects'
 import { useEffectSelection } from '../../store/effectSelection'
@@ -324,7 +325,7 @@ function TimelineLayerRowComponent({
                   : undefined
             }}
           >
-            <button className="mini" onClick={(e) => (e.stopPropagation(), onToggleOpen())}>
+            <button className="mini" aria-expanded={isOpen} title="Thu gọn / mở thuộc tính layer" data-expand-layer={layer.id} onClick={(e) => (e.stopPropagation(), onToggleOpen())}>
               <IconCaret className={`caret${isOpen ? ' open' : ''}`} />
             </button>
             {layerIndex !== undefined && (
@@ -579,7 +580,6 @@ function TimelineLayerRowComponent({
                 <span className="gripper" />
               </div>
               <span className="tl-bar-label">
-                <span className="bar-title">{clusterRole === 'child' ? getCleanLayerSubName(layer, clusterName) : layer.name}</span>
                 <span className="bar-span">{(layer.outPoint - layer.inPoint).toFixed(1)}s</span>
               </span>
               <div
@@ -630,18 +630,18 @@ function TimelineLayerRowComponent({
         }
       />
       {isOpen && <TimelineEffectRows layer={layer} x={x} trackWidth={trackWidth} />}
-      {isOpen &&
-        LAYER_PROPS.map((p) => (
+      {isOpen && <div className="tl-layer-properties" data-mcp-region="timeline_properties">
+        {LAYER_PROPS.map((p) => (
           <TimelineRow
             key={p.prop}
             sub
             selected={isSelected}
             trackWidth={trackWidth}
             onTrackPointerDown={onTrackPointerDown}
-            name={<div className={`tl-name sub${nested ? ' nested' : ''}`}>{p.label}</div>}
+            name={<TimelinePropertyControls layer={layer} prop={p.prop} label={p.label} />}
             track={renderLayerTrackKeys(layer.transform[p.prop] as Animatable<AnimValue>, p)}
           />
-        ))}
+        ))}</div>}
       {isOpen && (() => {
         const glowConfigs = getAllGlowConfigs(layer)
         if (glowConfigs.length === 0) return null

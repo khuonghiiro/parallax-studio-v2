@@ -289,3 +289,6 @@ Workflow node configuration: `workflow_node_camera_preview` chụp preview camer
 - MCP `set_view(active_views: ["camera", "editor", "animate2d", "topview"])`; các giá trị `mode` cũ vẫn tương thích.
 - MCP `set_workflow(logic_id, layer_id?, shot_id?)` thêm logic từ `list_workflow_presets.logic_nodes`, tự nối nguồn và chỉ áp dụng node mới trong một bước Undo. Chỉnh node bằng `set_workflow(node_id, node_params, apply_node: true)`.
 - Vùng chụp: `timeline_logic`, `timeline_logic_picker`, `viewer_stage2d`, `viewer_stage2d_tools`, `viewer_depth`; dùng `active` cho hộp cấu hình đang mở.
+
+- Timeline mở rộng layer: chỉnh trực tiếp Vị trí XYZ, Xoay XYZ, Tỉ lệ XY (khóa tỉ lệ) và Độ mờ %. Kéo số để scrub (Shift ×10, Alt ×0.1), nhập số và Enter; đồng hồ bật/tắt animation, nút kim cương thêm/xóa keyframe, mũi tên nhảy keyframe. Dùng chung `AnimRow` với Inspector; MCP tương ứng `update_layer`, `set_keyframe` và các công cụ keyframe hiện có. Layer khóa không nhận chỉnh sửa.
+- Thanh công cụ Cam 2D dùng icon một hàng; sơ đồ Độ sâu tách thanh hướng nhìn Trên/Bên khỏi canvas, màu hover theo theme. Region bổ sung: `viewer_depth_tools`, `timeline_properties`. Tên layer/cảnh chỉ hiện ở cây bên trái và tooltip, không lặp trên thanh thời gian.

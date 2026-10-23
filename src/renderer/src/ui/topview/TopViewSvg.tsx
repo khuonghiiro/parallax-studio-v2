@@ -55,9 +55,9 @@ export function TopViewSvg({
       })}
 
       {/* Spatial Zone Labels */}
-      <text className="tv-zone-label" x={12} y={sz(-150)}>Tiền cảnh (Foreground)</text>
-      <text className="tv-zone-label" x={12} y={sz(350)}>Trung cảnh (Midground)</text>
-      <text className="tv-zone-label" x={12} y={sz(1100)}>Hậu cảnh (Background)</text>
+      <text className="tv-zone-label" x={12} y={sz(-150)}>Tiền cảnh</text>
+      <text className="tv-zone-label" x={12} y={sz(350)}>Trung cảnh</text>
+      <text className="tv-zone-label" x={12} y={sz(1100)}>Hậu cảnh</text>
 
       {/* Focus Zero Plane (Z = 0) */}
       <line x1={0} x2={size.w} y1={sz(0)} y2={sz(0)} stroke="var(--line)" strokeDasharray="3 4" />
@@ -134,7 +134,6 @@ export function TopViewSvg({
               className={`tv-label${isSel ? ' selected' : ''}`}
               x={sx(l.position[0] - half) + 4}
               y={y - 4}
-              fill={isSel ? '#ffffff' : '#cbd5e1'}
             >
               {l.layer.name}
             </text>

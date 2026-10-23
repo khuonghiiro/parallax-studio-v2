@@ -37,6 +37,8 @@ const region = (name: string, ...classes: string[]): string[] => [`[data-mcp-reg
 
 export const UI_REGION_SELECTORS: Record<string, string[]> = {
   viewer_stage2d_tools: ['.anim2d-toolbar'],
+  viewer_depth_tools: ['.depth-toolbar'],
+  timeline_properties: ['.tl-layer-properties'],
   viewer_depth: ['.viewer-depth-pane'],
   viewer_stage2d: ['.anim2d-pane-host'],
   timeline_logic: ['.tl-logic-strip'],

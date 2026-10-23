@@ -1,0 +1,29 @@
+.tl-property-controls { position: relative; width: 100%; min-width: 0; margin: 0; padding: 0 6px 0 14px; border: 0; box-sizing: border-box; }
+.tl-property-controls .row { display: grid; grid-template-columns: 16px 44px minmax(0, 1fr); gap: 4px; margin: 0; padding: 0; min-height: 24px; width: 100%; }
+.tl-property-controls .row-label { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+.tl-property-controls .fields { display: flex; flex-wrap: nowrap; gap: 3px; min-width: 0; align-items: center; }
+.tl-property-controls .num { flex: 1; min-width: 0; width: 0; height: 21px; background: var(--bg-1); border: 1px solid var(--line-soft); border-radius: 3px; }
+.tl-property-controls .num input { min-width: 0; width: 100%; padding: 0 2px; font-size: 10px; color: var(--text); }
+.tl-property-controls .num .axis { width: 9px; min-width: 9px; font-size: 8px; }
+.tl-property-controls .stopwatch { width: 16px; height: 18px; padding: 0; }
+.tl-property-controls .row-label .stopwatch { margin-left: 0 !important; width: 12px; }
+.tl-property-controls .keynav { flex: none; display: flex; gap: 0; }
+.tl-property-controls .keynav button { width: 14px; height: 20px; padding: 0; font-size: 9px; }
+.tl-property-controls:disabled { opacity: 0.45; }
+.tl-property-lock { position: absolute; inset: 0; cursor: not-allowed; }
+.timeline .tl-row { height: 28px; }
+.timeline .tl-row.sub { height: 26px; }
+.timeline .tl-name { gap: 4px; padding-right: 6px; font-size: 11px; }
+.timeline .tl-name.nested { padding-left: 18px; }
+.timeline .tl-name.nested::before, .timeline .tl-name.nested::after { left: 10px; }
+.timeline .tl-name .tl-color-swatch { display: none; }
+.timeline .tl-name .ico { width: 16px; height: 16px; border-radius: 3px; box-shadow: none; }
+.timeline .tl-index-col { width: 20px; min-width: 20px; font-size: 9px; opacity: 0.75; }
+.timeline .tl-name .mini { width: 18px; height: 18px; flex: none; }
+.timeline .tl-name .label > span { display: flex !important; min-width: 0; }
+.timeline .tl-name .label > span > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.timeline .tl-name .depth { background: transparent; border-color: transparent; font-size: 9px; min-width: 26px; }
+.timeline .tl-name .row-actions { display: none; }
+.timeline .tl-row:hover .row-actions, .timeline .tl-row:focus-within .row-actions { display: flex; }
+.timeline .tl-name.group { font-weight: 600; background: var(--bg-2); height: 100%; }
+.timeline .tl-layer-properties { border-left: 2px solid var(--line-focus); }
