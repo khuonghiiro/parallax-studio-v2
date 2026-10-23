@@ -55,3 +55,11 @@
 .tl-layer-properties .tl-key.selected { background: var(--text); border-color: var(--bg-0); box-shadow: 0 0 0 2px var(--accent); }
 .tl-layer-properties .tl-key.range-start { background: var(--accent-cyan); border-color: var(--accent-cyan); }
 .tl-layer-properties .tl-key.range-end { background: var(--key); border-color: var(--key); }
+.tl-property-controls { display: flex; align-items: center; gap: 5px; }
+.tl-range-values { flex: 1; }
+.tl-compact-keys.tl-range-controls { position: relative; left: auto; z-index: 30; display: flex; width: auto; padding: 0; margin: 0; border: 0; gap: 1px; background: transparent; flex: none; }
+.tl-compact-keys.tl-range-controls button { min-height: 21px; height: 21px; min-width: 15px; padding: 0 3px; font-size: 11px; }
+.tl-compact-keys .active { color: var(--accent); }
+.tl-compact-keys .menu-pop { z-index: 50000; }
+.tl-compact-keys .menu { position: fixed; top: var(--motion-menu-top); left: var(--motion-menu-left); z-index: 50000; min-width: 230px; }
+.tl-compact-keys .menu .menu-item { height: auto; min-height: 28px; width: 100%; text-align: left; }

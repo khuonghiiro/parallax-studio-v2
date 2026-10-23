@@ -1,3 +1,4 @@
+import { TimelineRangeControls } from './TimelineRangeControls'
 import type { Layer } from '@shared/types'
 import { useEditor, type LayerProp } from '../../store/editor'
 import { AnimRow } from '../controls'
@@ -17,7 +18,7 @@ export function TimelinePropertyControls({ layer, prop, label }: { layer: Layer;
   const isActive = selected === layer.id && activeProp === prop
   return <fieldset className={`tl-property-controls${isActive ? ' active' : ''}`} disabled={layer.locked}
     data-layer-property={prop} aria-label={`${layer.name} · ${label}`}
-    title="Bấm để chọn thuộc tính. Thanh Chuyển động phía trên dùng để thêm mốc và chọn cách di chuyển."
+    title="Bấm để chọn thuộc tính. K thêm mốc; sửa số trực tiếp. Nút ⋯ cạnh mốc chọn kiểu chuyển động."
     tabIndex={layer.locked ? -1 : 0}
     onFocusCapture={() => { useEditor.getState().setPlaying(false); focusTimelineProperty({ kind: 'layer', layerId: layer.id, prop }) }}
     onPointerDown={(event) => {
@@ -33,6 +34,8 @@ export function TimelinePropertyControls({ layer, prop, label }: { layer: Layer;
       min={prop === 'opacity' ? 0 : undefined} max={prop === 'opacity' ? 100 : undefined}
       linkable={prop === 'scale'} timelineEditing />
     </fieldset>
+    <TimelineRangeControls animation={animation} refp={{ kind: 'layer', layerId: layer.id, prop }} />
     {layer.locked && <span className="tl-property-lock" title="Mở khóa layer để chỉnh thuộc tính" />}
   </fieldset>
 }
+

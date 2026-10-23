@@ -1,5 +1,5 @@
 import { TimelinePropertyControls } from './TimelinePropertyControls'
-import { TimelineKeyEditor } from './TimelineRangeControls'
+
 import { focusTimelineProperty } from './timelineKeyEditing'
 import { TimelineLayerKeys, TimelineLayerSummary } from './TimelineLayerKeys'
 import { TimelineEffectRows } from './TimelineEffectRows'
@@ -457,7 +457,7 @@ function TimelineLayerRowComponent({
       />
       {isOpen && <TimelineEffectRows layer={layer} x={x} trackWidth={trackWidth} />}
       {isOpen && <div className="tl-layer-properties" data-mcp-region="timeline_properties">
-        {isSelected && <TimelineKeyEditor layer={layer} />}
+
         {LAYER_PROPS.map((p) => (
           <TimelineRow
             key={p.prop}
@@ -552,3 +552,4 @@ function TimelineLayerRowComponent({
 }
 
 export const TimelineLayerRow = React.memo(TimelineLayerRowComponent)
+
