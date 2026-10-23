@@ -49,7 +49,8 @@ const EASES: Record<EaseName, (x: number) => number> = {
   easeOut: cubicBezier(0, 0, 0.58, 1),
   easeInOut: cubicBezier(0.42, 0, 0.58, 1),
   easeInOutStrong: cubicBezier(0.83, 0, 0.17, 1),
-  hold: (x) => (x >= 1 ? 1 : 0)
+  hold: (x) => (x >= 1 ? 1 : 0),
+  pulse: (x) => x <= 0 ? 0 : x >= 1 ? 1 : (1 - Math.cos(5 * Math.PI * x)) / 2
 }
 
 export const EASE_LABELS: Record<EaseName, string> = {
@@ -58,7 +59,8 @@ export const EASE_LABELS: Record<EaseName, string> = {
   easeOut: 'Ease Out',
   easeInOut: 'Easy Ease',
   easeInOutStrong: 'Strong Ease',
-  hold: 'Hold'
+  hold: 'Hold · Nhảy ở cuối',
+  pulse: 'Nhịp đập · 3 lần tới đích'
 }
 
 export function ease(name: EaseName, x: number): number {

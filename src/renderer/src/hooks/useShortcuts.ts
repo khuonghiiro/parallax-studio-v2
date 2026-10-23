@@ -14,6 +14,7 @@ import {
 } from '../actions'
 import { useEditor } from '../store/editor'
 import { useView } from '../store/view'
+import { handleTimelineKeyShortcut } from '../ui/timeline/timelineKeyEditing'
 
 function isTyping(e: KeyboardEvent): boolean {
   const el = e.target as HTMLElement | null
@@ -55,6 +56,7 @@ export function useShortcuts(onExport: () => void): void {
 
       // Block background scene/timeline shortcuts while any modal or workshop is open
       if (isModalOpen() || isTyping(e)) return
+      if (handleTimelineKeyShortcut(e)) return
 
       const st = useEditor.getState()
       const ctrl = e.ctrlKey || e.metaKey

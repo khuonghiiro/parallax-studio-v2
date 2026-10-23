@@ -139,6 +139,7 @@ export const systemCommands: Record<string, Handler> = {
       if (boundary === 'start' || boundary === 'end') {
         const k = (boundary === 'start' ? startTimelineRange : endTimelineRange)(a, t, frameTolerance(proj()))
         k.value = value
+        if (has(p, 'ease')) k.ease = e
         keyId = k.id
       } else keyId = addKeyframe(a as Animatable<AnimValue>, t, value, e, frameTolerance(proj())).id
     })

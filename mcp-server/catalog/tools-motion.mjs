@@ -122,7 +122,7 @@ export const FX_TOOLS = [
       time: z.number().optional().describe(d('Seconds; default current time.', 'Giây; mặc định thời điểm hiện tại.')),
       value: z.union([z.number(), vec3]),
       boundary: z.enum(['start', 'end']).optional().describe(d('Timeline interval boundary; start preserves the preceding pose, end must follow start.', 'Biên đoạn timeline; start giữ trạng thái trước đó, end phải sau start.')),
-      ease: ease.optional().describe(d('Easing of the segment that starts at this key. hold = jump cut.', 'Easing của đoạn bắt đầu từ key này. hold = cắt nhảy.'))
+      ease: ease.optional().describe(d('Outgoing interpolation, including boundary:start. linear = constant speed; easeInOut = smooth; hold = keep start until the next key then jump; pulse = three arrivals at the destination, ending there (not audio-synced).', 'Nội suy đi ra, kể cả boundary:start. linear = đều; easeInOut = mượt; hold = giữ đầu đến mốc sau rồi nhảy; pulse = ba lần tới đích, kết thúc tại đích (không đồng bộ âm thanh).'))
     }),
     example: '{"target":"layer","id":"layer-1","property":"position","time":2,"value":[0,0,300],"ease":"easeInOut"}'
   },

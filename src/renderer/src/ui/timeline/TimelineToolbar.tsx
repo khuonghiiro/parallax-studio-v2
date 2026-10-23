@@ -19,7 +19,6 @@ import {
   IconZoomOut
 } from '../icons'
 import {
-  addKeyframeForSelectedLayer,
   setSelectedLayerInPoint,
   setSelectedLayerOutPoint,
   splitSelectedLayer
@@ -29,6 +28,7 @@ import { deleteSelectedAudioTrack, deleteSelectedLayer, duplicateSelectedLayer }
 import { useEditor } from '../../store/editor'
 import { ensureProjectWorkflow, resolveConnectedWorkflowNodes } from '../../project/workflowEngine'
 import { TimelineModeTabs } from '../workflow/TimelineModeTabs'
+import { activeTimelineRef, addTimelineKey } from './timelineKeyEditing'
 
 export interface TimelineToolbarProps {
   time?: number
@@ -183,12 +183,12 @@ export function TimelineToolbar({
         <button
           type="button"
           className="btn ghost sm tl-action-btn tl-btn-key"
-          title="Thêm Keyframe vị trí tại Playhead ( Phím K )"
+          title="Thêm mốc cho thuộc tính đang chọn tại đầu phát (K); mặc định là Vị trí"
           disabled={!hasSelectedLayer}
-          onClick={() => addKeyframeForSelectedLayer()}
+          onClick={() => { const ref = activeTimelineRef(); if (ref) addTimelineKey(ref) }}
         >
           <IconKeyframe width={12} height={12} />
-          <span>Thêm Key</span>
+          <span>Thêm mốc</span>
         </button>
 
         <FxPresetMenu time={time} hasSelectedLayer={hasSelectedLayer} />

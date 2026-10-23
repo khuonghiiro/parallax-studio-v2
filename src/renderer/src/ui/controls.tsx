@@ -4,7 +4,7 @@ import type { AnimValue, Vec3 } from '@shared/types'
 import { evaluate, keyAt, removeKeyframe, addKeyframe, setValueAt, toggleAnimated } from '../animation/keyframes'
 import { frameTolerance, getAnimatable, getDraftAnimatable, propRefKey, useEditor, type PropRef } from '../store/editor'
 import { IconStopwatch } from './icons'
-import { preserveTimelinePast } from '../animation/timelineRange'
+import { setTimelineValueAt } from '../animation/timelineRange'
 
 // ------------------------------------------------------------------ number
 
@@ -232,8 +232,7 @@ export function AnimRow({
     update((d) => {
       const da = getDraftAnimatable(d, refp)
       if (da) {
-        if (timelineEditing) preserveTimelinePast(da, time, tol)
-        if (timelineEditing && !keyAt(da, time, tol)) addKeyframe(da, time, v, 'hold', tol)
+        if (timelineEditing) setTimelineValueAt(da, time, v, tol)
         else setValueAt(da, time, v as never, tol)
       }
     }, `${refKey}-${mergeKey}`)

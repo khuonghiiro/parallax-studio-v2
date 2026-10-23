@@ -1,9 +1,38 @@
 import { describe, it, expect } from 'vitest'
 import { anim, evaluate, setValueAt } from './keyframes'
-import { startTimelineRange, endTimelineRange, timelineRangeAt, preserveTimelinePast } from './timelineRange'
+import { startTimelineRange, endTimelineRange, timelineRangeAt, preserveTimelinePast, setTimelineValueAt, timelineSegmentAt } from './timelineRange'
 import { addKeyframe } from './keyframes'
 
 describe('timeline interval editing', () => {
+  it('keeps hold boundaries identifiable and jumps exactly at the end', () => {
+    const a = anim(0)
+    const start = startTimelineRange(a, 2, .01)
+    start.value = 20
+    start.ease = 'hold'
+    const end = endTimelineRange(a, 6, .01)
+    end.value = 100
+    expect(timelineRangeAt(a, 4)).toEqual({ start, end })
+    expect(evaluate(a, 5.99)).toBe(20)
+    expect(evaluate(a, 6)).toBe(100)
+    expect(evaluate(a, 9)).toBe(100)
+    expect(timelineSegmentAt(a, 6)).toEqual({ start, end })
+  })
+  it.each(['linear', 'easeInOut', 'hold'] as const)('inherits %s when editing between keys', ease => {
+    const a = anim(0)
+    addKeyframe(a, 0, 0, ease)
+    addKeyframe(a, 4, 100, 'hold')
+    setTimelineValueAt(a, 2, 40, .01)
+    expect(a.keyframes[1].ease).toBe(ease)
+    expect(evaluate(a, 3)).toBeCloseTo(ease === 'hold' ? 40 : 70)
+  })
+  it('pulses three times within the segment and settles at the authored destination', () => {
+    const a = anim(0)
+    addKeyframe(a, 2, 0, 'pulse')
+    addKeyframe(a, 7, 100, 'hold')
+    expect([2, 3, 4, 5, 6, 7, 8].map(t => Math.round(evaluate(a, t))))
+      .toEqual([0, 100, 0, 100, 0, 100, 100])
+    expect(evaluate(a, 2.5)).toBeCloseTo(50)
+  })
   it('protects past values when revisiting an old single key', () => {
     const a = anim(1)
     addKeyframe(a, 3, .6)

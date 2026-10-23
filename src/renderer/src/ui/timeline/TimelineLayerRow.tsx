@@ -1,11 +1,14 @@
 import { TimelinePropertyControls } from './TimelinePropertyControls'
+import { TimelineKeyEditor } from './TimelineRangeControls'
+import { focusTimelineProperty } from './timelineKeyEditing'
+import { TimelineLayerKeys, TimelineLayerSummary } from './TimelineLayerKeys'
 import { TimelineEffectRows } from './TimelineEffectRows'
 import { listLayerEffects } from '../../animation/motionEffects'
 import { useEffectSelection } from '../../store/effectSelection'
 import React, { useEffect, useMemo, useState } from 'react'
 import type { Animatable, AnimValue, Layer } from '@shared/types'
 import { evaluate } from '../../animation/keyframes'
-import { timelineRangeAt } from '../../animation/timelineRange'
+
 import { deleteSelectedLayer, duplicateSelectedLayer, importBuiltInAsset, moveLayer, replaceLayerAsset } from '../../actions'
 import { assetStore } from '../../project/assets'
 import { useEditor, type PropRef } from '../../store/editor'
@@ -105,16 +108,11 @@ function TimelineLayerRowComponent({
   onTrackPointerDown,
   onBarContextMenu
 }: TimelineLayerRowProps) {
-  const anims = useMemo(
-    () => LAYER_PROPS.map((p) => layer.transform[p.prop] as Animatable<AnimValue>),
-    [layer.transform]
-  )
   const zDepth = useMemo(() => {
     const p = layer.transform.position
     return Math.round(Array.isArray(p.value) ? (p.value[2] ?? 0) : evaluate(p, 0)[2])
   }, [layer.transform.position])
   const color = TYPE_COLORS[layer.type]
-  const selectedKey = useEditor((s) => s.selectedKey)
   const setTime = useEditor((s) => s.setTime)
   const [isDragOver, setIsDragOver] = useState(false)
 
@@ -131,184 +129,6 @@ function TimelineLayerRowComponent({
       window.removeEventListener('pointerup', handleDragEnd)
     }
   }, [isDragOver])
-
-  // Specialized keyframe renderer for layer properties: identifies effect keyframes & draws Adobe Animate tween lines
-  const renderLayerTrackKeys = (a: Animatable<AnimValue>, p: (typeof LAYER_PROPS)[number]) => {
-    const ref: PropRef = { kind: 'layer', layerId: layer.id, prop: p.prop }
-    const ks = a.keyframes
-    if (ks.length === 0) return null
-
-    let lastPx = -9999
-    const visibleKeys = ks.filter((k) => {
-      if (selectedKey?.keyId === k.id) return true
-      const fx = layer.appliedEffects?.find((e) => e.keyframeIds?.includes(k.id))
-      if (fx) return true
-      const px = x(k.t)
-      if (trackWidth && (px < -20 || px > trackWidth + 20)) return false
-      if (px - lastPx >= 6) {
-        lastPx = px
-        return true
-      }
-      return false
-    })
-
-    return (
-      <>
-        {visibleKeys.map((k, idx) => {
-          const next = visibleKeys[idx + 1]
-          if (!next) return null
-          const x0 = x(k.t)
-          const x1 = x(next.t)
-          if (x1 - x0 < 8) return null
-          return (
-            <div
-              key={`tween-${k.id}`}
-              className={`tl-tween-line${k.ease === 'hold' ? ' hold' : ''}`}
-              style={{ left: x0, width: x1 - x0 }}
-            />
-          )
-        })}
-        {visibleKeys.map((k) => {
-          const fx = layer.appliedEffects?.find((e) => e.keyframeIds?.includes(k.id))
-          const isSelectedKey = selectedKey?.keyId === k.id
-
-          if (fx) {
-            const isOff = !fx.enabled
-            const fxColor = getFxColor(fx.presetId)
-            return (
-              <div
-                key={k.id}
-                className={`tl-key tl-key-fx${isOff ? ' disabled' : ''}${isSelectedKey ? ' selected' : ''}${k.ease === 'hold' ? ' hold' : ''}`}
-                style={{
-                  left: x(k.t),
-                  ['--fx-color' as string]: isOff ? 'var(--text-faint)' : fxColor
-                }}
-                title={`${fx.name} Keyframe @ ${k.t.toFixed(2)}s ${isOff ? '[ĐÃ TẮT]' : ''} · Kéo để dời mốc, double-click để nhảy tới`}
-                onPointerDown={(e) => (startKeyDrag ? startKeyDrag(e, ref, k.id) : undefined)}
-                onDoubleClick={() => setTime(k.t)}
-              >
-                <span className="tl-key-fx-icon">
-                  {renderFxIcon(fx.presetId, 12, isOff ? 'var(--text-faint)' : fxColor)}
-                </span>
-              </div>
-            )
-          }
-
-          return (
-            <div
-              key={k.id}
-              className={`tl-key ${timelineRangeAt(a, k.t).start?.id === k.id ? 'range-start' : 'range-end'}${k.ease === 'hold' ? ' hold' : ''}${isSelectedKey ? ' selected' : ''}`}
-              style={{ left: x(k.t) }}
-              title={`${k.ease === 'hold' ? 'Cuối / Giữ' : 'Đầu'} · ${p.label}: ${k.t.toFixed(2)}s · Bấm để sửa, kéo để dời mốc`}
-              onPointerDown={(e) => {
-                useEditor.getState().setPlaying(false)
-                setTime(k.t)
-                useEditor.getState().selectKey({ ref, keyId: k.id })
-                startKeyDrag?.(e, ref, k.id)
-              }}
-              onDoubleClick={() => setTime(k.t)}
-            />
-          )
-        })}
-      </>
-    )
-  }
-
-  // Specialized summary keyframe renderer on main layer bar: combines nested effects & draws tween spans
-  const summaryElements = useMemo(() => {
-    const keyMap = new Map<number, { keyIds: string[]; fxList: NonNullable<typeof layer.appliedEffects> }>()
-
-    for (const a of anims) {
-      for (const k of a.keyframes) {
-        const roundedT = Math.round(k.t * 1000) / 1000
-        let item = keyMap.get(roundedT)
-        if (!item) {
-          item = { keyIds: [], fxList: [] }
-          keyMap.set(roundedT, item)
-        }
-        item.keyIds.push(k.id)
-        if (layer.appliedEffects) {
-          for (const fx of layer.appliedEffects) {
-            if (fx.keyframeIds?.includes(k.id) && !item.fxList.some((f) => f.id === fx.id)) {
-              item.fxList.push(fx)
-            }
-          }
-        }
-      }
-    }
-
-    const entries = Array.from(keyMap.entries()).sort((a, b) => a[0] - b[0])
-    let lastPx = -9999
-    const visibleEntries = entries.filter(([t, { fxList }]) => {
-      if (fxList && fxList.length > 0) return true
-      const px = x(t)
-      if (px - lastPx >= 6) {
-        lastPx = px
-        return true
-      }
-      return false
-    })
-
-    return (
-      <>
-        {visibleEntries.map(([t], idx) => {
-          const next = visibleEntries[idx + 1]
-          if (!next) return null
-          const x0 = x(t)
-          const x1 = x(next[0])
-          if (x1 - x0 < 8) return null
-          return (
-            <div
-              key={`sum-tween-${t}`}
-              className="tl-tween-line summary-tween"
-              style={{ left: x0, width: x1 - x0 }}
-            />
-          )
-        })}
-        {visibleEntries.map(([t, { fxList }]) => {
-          if (fxList && fxList.length > 0) {
-            const primaryFx = fxList[0]
-            const isOff = !primaryFx.enabled
-            const fxColor = getFxColor(primaryFx.presetId)
-            const allNames = fxList.map((f) => f.name).join(' + ')
-
-            return (
-              <div
-                key={`summary-fx-${t}`}
-                className={`tl-key summary tl-key-fx${isOff ? ' disabled' : ''}`}
-                style={{
-                  left: x(t),
-                  ['--fx-color' as string]: isOff ? 'var(--text-faint)' : fxColor
-                }}
-                title={`Hiệu ứng: [${allNames}] @ ${t.toFixed(2)}s ${isOff ? '[ĐÃ TẮT]' : ''} · Click để nhảy tới`}
-                onPointerDown={(e) => {
-                  e.stopPropagation()
-                  setTime(t)
-                }}
-              >
-                <span className="tl-key-fx-icon">
-                  {renderFxIcon(primaryFx.presetId, 11, isOff ? 'var(--text-faint)' : fxColor)}
-                </span>
-              </div>
-            )
-          }
-
-          return (
-            <div
-              key={`summary-${t}`}
-              className="tl-key summary"
-              style={{ left: x(t) }}
-              title={`${layer.name} @ ${t.toFixed(2)}s`}
-              onPointerDown={(e) => {
-                e.stopPropagation()
-                setTime(t)
-              }}
-            />
-          )
-        })}
-      </>
-    )
-  }, [anims, layer.appliedEffects, layer.name, x, setTime])
 
   return (
     <div>
@@ -596,7 +416,7 @@ function TimelineLayerRowComponent({
                 <span className="gripper" />
               </div>
             </div>
-            {summaryElements}
+            <TimelineLayerSummary layer={layer} x={x} />
             <TimelineGlowKeys
               layer={layer}
               x={x}
@@ -637,15 +457,20 @@ function TimelineLayerRowComponent({
       />
       {isOpen && <TimelineEffectRows layer={layer} x={x} trackWidth={trackWidth} />}
       {isOpen && <div className="tl-layer-properties" data-mcp-region="timeline_properties">
+        {isSelected && <TimelineKeyEditor layer={layer} />}
         {LAYER_PROPS.map((p) => (
           <TimelineRow
             key={p.prop}
             sub
             selected={isSelected}
             trackWidth={trackWidth}
-            onTrackPointerDown={onTrackPointerDown}
+            onTrackPointerDown={(event) => {
+              focusTimelineProperty({ kind: 'layer', layerId: layer.id, prop: p.prop })
+              useEditor.getState().selectKey(null)
+              onTrackPointerDown?.(event)
+            }}
             name={<TimelinePropertyControls layer={layer} prop={p.prop} label={p.label} />}
-            track={renderLayerTrackKeys(layer.transform[p.prop] as Animatable<AnimValue>, p)}
+            track={<TimelineLayerKeys layer={layer} animation={layer.transform[p.prop] as Animatable<AnimValue>} property={p} x={x} trackWidth={trackWidth} startKeyDrag={startKeyDrag} />}
           />
         ))}</div>}
       {isOpen && (() => {

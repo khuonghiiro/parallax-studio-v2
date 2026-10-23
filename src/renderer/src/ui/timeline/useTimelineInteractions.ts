@@ -23,6 +23,7 @@ import {
 } from './timelineActions'
 import { openFxPresetMenu } from './FxPresetMenu'
 import { PAD } from './timelineTypes'
+import { focusTimelineProperty, handleTimelineKeyShortcut } from './timelineKeyEditing'
 
 interface UseTimelineInteractionsParams {
   project: Project
@@ -63,6 +64,9 @@ export function useTimelineInteractions({
   // Global Timeline Keyboard Shortcuts: [ (In), ] (Out), Ctrl+Shift+D or S (Split), K (Keyframe), +/- (Zoom)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || useView.getState().dialog || useView.getState().assemblyModalModel ||
+        document.querySelector('.modal-backdrop, .la-dialog-backdrop, .a3d-backdrop, [data-mcp-dialog]')) return
+      if (handleTimelineKeyShortcut(e)) return
       const target = e.target as HTMLElement
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
         return
@@ -252,6 +256,8 @@ export function useTimelineInteractions({
     (e: React.PointerEvent, ref: PropRef, keyId: string): void => {
       e.stopPropagation()
       const st = useEditor.getState()
+      if (ref.kind === 'layer' && st.project.layers.find(l => l.id === ref.layerId)?.locked) return
+      focusTimelineProperty(ref)
       st.selectKey({ ref, keyId })
       if (ref.kind === 'layer') st.selectLayer(ref.layerId)
       if (ref.kind === 'shot') st.selectShot(ref.shotId)
@@ -260,6 +266,8 @@ export function useTimelineInteractions({
       const a = getAnimatable(st.project, ref)
       const k = a?.keyframes.find((kk) => kk.id === keyId)
       if (!k) return
+      st.setPlaying(false)
+      st.setTime(k.t)
       const startT = k.t
       const startX = e.clientX
       const key = `keydrag-${nanoid(6)}`
@@ -276,6 +284,7 @@ export function useTimelineInteractions({
             da.keyframes.sort((p, q) => p.t - q.t)
           }
         }, key)
+        useEditor.getState().setTime(nt)
       }
       const up = (): void => {
         el.removeEventListener('pointermove', move)

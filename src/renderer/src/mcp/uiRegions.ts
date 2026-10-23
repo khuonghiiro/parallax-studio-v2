@@ -40,6 +40,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   viewer_route: ['#anim2d-filmstrip', '.filmstrip-collapsed-toggle'],
   viewer_depth_tools: ['.depth-toolbar'],
   timeline_properties: ['.tl-layer-properties'],
+  timeline_key_controls: ['.tl-range-controls'],
   viewer_depth: ['.viewer-depth-pane'],
   viewer_stage2d: ['.anim2d-pane-host'],
   timeline_logic: ['.tl-logic-strip'],

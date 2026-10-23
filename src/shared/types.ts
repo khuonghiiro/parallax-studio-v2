@@ -13,7 +13,7 @@
 
 export type Vec3 = [number, number, number]
 
-export type EaseName = 'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'easeInOutStrong' | 'hold'
+export type EaseName = 'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'easeInOutStrong' | 'hold' | 'pulse'
 
 export interface Keyframe<T> {
   id: string
@@ -22,6 +22,8 @@ export interface Keyframe<T> {
   value: T
   /** Easing applied to the segment that STARTS at this keyframe. */
   ease: EaseName
+  /** Authored interval role, independent of outgoing interpolation. */
+  timelineBoundary?: 'start' | 'end'
 }
 
 export interface Animatable<T> {
