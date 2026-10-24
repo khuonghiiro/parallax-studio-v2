@@ -19,7 +19,7 @@ import { applyFxPresetToSelectedLayer, deleteLayerEffect, toggleLayerEffect, typ
 import { assetStore } from '../../project/assets'
 import * as factory from '../../project/factory'
 import { createDefaultLayerPhysics, triggerLayerPhysicsInteraction } from '../../engine/layerPhysics'
-import { createDefaultDepthPortal, createDefaultVirtualLight, VIRTUAL_LIGHT_PRESETS } from '../../engine/virtualLight'
+import { createDefaultDepthPortal, createDefaultVirtualLight, VIRTUAL_LIGHT_PRESETS, WIND_STRENGTH_VALUES } from '../../engine/virtualLight'
 import type { DepthPortalConfig, LayerVirtualLight, VirtualLightKind, WindStrengthPreset } from '@shared/types'
 import { ParamError, ed, proj, type Handler, type Params } from '../types'
 import { blendOf, bool, has, num, requireLayer, round, scale3, setAnim, shotIdParam, str, toPlain, vec3 } from '../params'
@@ -303,9 +303,15 @@ export const layerCommands: Record<string, Handler> = {
           if (rawVLight.coneAngleDeg === undefined) next.coneAngleDeg = preset.coneAngleDeg
           if (rawVLight.flickerSpeed === undefined) next.flickerSpeed = preset.flickerSpeed
           if (rawVLight.windSensitivity === undefined) next.windSensitivity = preset.windSensitivity
+          if (rawVLight.beamAngleDeg === undefined) next.beamAngleDeg = preset.beamAngleDeg
+          if (rawVLight.windPreset === undefined) next.windPreset = preset.windPreset
+          if (rawVLight.ambientDim === undefined) next.ambientDim = preset.ambientDim
+          if (rawVLight.softness === undefined) next.softness = preset.softness
+          next.windStrength = WIND_STRENGTH_VALUES[next.windPreset ?? 'gentle']
         }
         if (rawVLight.windPreset) {
           next.windPreset = rawVLight.windPreset as WindStrengthPreset
+          if (rawVLight.windStrength === undefined) next.windStrength = WIND_STRENGTH_VALUES[next.windPreset]
         }
         l.virtualLight = next
       }

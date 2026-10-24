@@ -296,6 +296,10 @@ export interface DepthPortalConfig {
   shadowTint?: string
   /** Độ lùi chiều sâu Z giả lập khi đi sâu vào tâm cửa hang (px, mặc định 120) */
   depthPullZ?: number
+  /** Hình dáng vòm cửa hang: 'arch' (vòm hang đáy phẳng tự nhiên), 'ellipse' (elip), 'circle' (tròn) */
+  archShape?: 'arch' | 'ellipse' | 'circle'
+  /** Độ mềm viền chuyển tiếp từ mép đá vào bóng tối lòng hang (0.1 .. 1.0, mặc định 0.55) */
+  feather?: number
 }
 
 export type VirtualLightKind =
@@ -341,6 +345,10 @@ export interface LayerVirtualLight {
   flickerSpeed?: number
   /** Khoảng cách chiều sâu Z tối đa mà ánh sáng chiếu tới các layer lân cận (px, mặc định 280) */
   zReach?: number
+  /** Độ dìm tối môi trường xung quanh ngoài vùng sáng để tạo tương phản sáng-tối vật lý (0 .. 0.85, mặc định 0.25) */
+  ambientDim?: number
+  /** Độ mềm viền chùm sáng / vùng bán dạ (0.1 .. 1.0, mặc định 0.5) */
+  softness?: number
 }
 
 export interface PhysicsImpactPulse {

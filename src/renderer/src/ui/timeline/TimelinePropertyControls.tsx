@@ -11,7 +11,8 @@ const PROP_ICONS: Record<LayerProp, ReactNode> = {
   position: <IconPropPosition width={12} height={12} />,
   rotation: <IconPropRotation width={12} height={12} />,
   scale: <IconPropScale width={12} height={12} />,
-  opacity: <IconPropOpacity width={12} height={12} />
+  opacity: <IconPropOpacity width={12} height={12} />,
+  anchor: <IconPropPosition width={12} height={12} />
 }
 
 /** Same authored values, animation rules and Undo gestures as the Inspector. */

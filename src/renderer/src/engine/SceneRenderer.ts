@@ -13,6 +13,7 @@ import {
   EDITOR_MIN_LEVEL,
   LAYER_COMPOSE_FRAG,
   LOOKAHEAD,
+  syncLayerCaveAndLightUniforms,
   TYPE_COLORS,
   UNIT_PLANE,
   type EditorRenderOptions,
@@ -23,7 +24,7 @@ import {
 import { buildParticles, buildPlaneNode, disposeNode, type LayerNode } from './layerNodes'
 import { TexturePool } from './TexturePool'
 import { evaluateLayerGlow } from './layerGlow'
-import { collectEvaluatedVirtualLights, evaluateVirtualLightAtTime } from './virtualLight'
+
 
 export type { Rect, RenderOptions, EditorRenderOptions, ResidencyStats }
 export { applyEvaluatedCamera }
@@ -415,92 +416,8 @@ export class SceneRenderer {
         }
 
         // Bóng tối cửa hang & Ánh sáng ảo 2.5D chiếu lên layer
-        u.shadeDarkness.value = el.caveDarkness ?? 0
-        if (el.shadowTintRgb) {
-          u.shadeTint.value.setRGB(el.shadowTintRgb[0], el.shadowTintRgb[1], el.shadowTintRgb[2])
-        } else {
-          u.shadeTint.value.set('#060812')
-        }
-        u.lightBoost.value = el.lightIllumination ?? 0
-        if (el.lightTintRgb) {
-          u.lightTint.value.setRGB(el.lightTintRgb[0], el.lightTintRgb[1], el.lightTintRgb[2])
-        }
-
-        const portal = el.layer.physics?.depthPortal
-        if (portal?.enabled) {
-          u.portalOn.value = 1
-          const radUV = Array.isArray(portal.radiusUV)
-            ? (portal.radiusUV[0] + portal.radiusUV[1]) * 0.5
-            : (portal.radiusUV ?? 0.35)
-          u.portalParams.value.set(
-            portal.centerUV?.[0] ?? 0.5,
-            portal.centerUV?.[1] ?? 0.45,
-            radUV
-          )
-          u.portalDarkness.value = portal.darkness ?? 0.82
-          if (portal.shadowTint) u.shadeTint.value.set(portal.shadowTint)
-        } else {
-          u.portalOn.value = 0
-          u.portalDarkness.value = 0
-        }
-
-        const evVLight = evaluateVirtualLightAtTime(el.layer, ev.t, el.position, [node.planeW, node.planeH], el.scale)
-        if (evVLight) {
-          u.vlightOn.value = 1
-          const origU = el.layer.virtualLight?.originUV?.[0] ?? 0.5
-          const origV = el.layer.virtualLight?.originUV?.[1] ?? 0.5
-          const shiftU = evVLight.windOffset[0] / Math.max(32, node.planeW * Math.abs(el.scale[0]))
-          const shiftV = evVLight.windOffset[1] / Math.max(32, node.planeH * Math.abs(el.scale[1]))
-          u.vlightUv.value.set(
-            Math.max(0.02, Math.min(0.98, origU + shiftU)),
-            Math.max(0.02, Math.min(0.98, origV + shiftV))
-          )
-          u.vlightColor.value.set(evVLight.color)
-          u.vlightParams.value.set(
-            evVLight.effectiveIntensity,
-            evVLight.effectiveRadius / Math.max(0.25, Math.abs(el.scale[0])),
-            evVLight.coneCos
-          )
-          u.vlightBeam.value.set(evVLight.beamDir[0], evVLight.beamDir[1])
-        } else {
-          const shotLights = collectEvaluatedVirtualLights(ev.layers, el.layer.shotId ?? null, ev.t)
-          let bestLight: ReturnType<typeof evaluateVirtualLightAtTime> = null
-          let bestScore = 0
-          for (const sl of shotLights) {
-            if (sl.sourceLayerId === el.layer.id) continue
-            const dz = Math.abs(el.position[2] - sl.position[2])
-            if (dz > sl.zReach) continue
-            const zAtten = 1 - Math.pow(dz / Math.max(1, sl.zReach), 1.6)
-            const score = sl.effectiveIntensity * zAtten
-            if (score > bestScore) {
-              bestScore = score
-              bestLight = sl
-            }
-          }
-          if (bestLight && bestScore > 0.04) {
-            const refD = Math.max(100, ev.camera.refDistance ?? 1484)
-            const perspRatio = Math.max(80, refD + el.position[2]) / Math.max(80, refD + bestLight.position[2])
-            const projLightX = bestLight.position[0] * perspRatio
-            const projLightY = bestLight.position[1] * perspRatio
-            const projRadius = bestLight.effectiveRadius * perspRatio
-            const worldW = Math.max(32, node.planeW * Math.abs(el.scale[0]))
-            const worldH = Math.max(32, node.planeH * Math.abs(el.scale[1]))
-            const relU = 0.5 + (projLightX - el.position[0]) / worldW
-            const relV = 0.5 + (projLightY - el.position[1]) / worldH
-            u.vlightOn.value = 2
-            u.vlightUv.value.set(relU, relV)
-            u.vlightColor.value.set(bestLight.color)
-            u.vlightParams.value.set(
-              bestScore * 0.85,
-              projRadius / Math.max(0.25, Math.abs(el.scale[0])),
-              bestLight.coneCos
-            )
-            u.vlightBeam.value.set(bestLight.beamDir[0], bestLight.beamDir[1])
-          } else {
-            u.vlightOn.value = 0
-          }
-        }
-        if (!el.layer.model3d && (evVLight || activeGlow)) {
+        const hasSelfVLight = syncLayerCaveAndLightUniforms(u, el, node.planeW, node.planeH, ev)
+        if (!el.layer.model3d && (hasSelfVLight || activeGlow)) {
           mat.depthWrite = false
         }
       } else {

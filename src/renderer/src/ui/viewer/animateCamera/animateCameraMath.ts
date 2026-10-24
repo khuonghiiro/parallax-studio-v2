@@ -4,7 +4,11 @@ import { addKeyframe, anim, evaluate, setValueAt } from '../../../animation/keyf
 import { referenceDistance, smoothNoise } from '../../../animation/math'
 import { type EvaluatedScene } from '../../../engine/evaluateScene'
 import { evaluateLayerGlow } from '../../../engine/layerGlow'
-import { collectEvaluatedVirtualLights, evaluateVirtualLightAtTime } from '../../../engine/virtualLight'
+import {
+  collectEvaluatedVirtualLights,
+  evaluateVirtualLightAtTime,
+  resolveReceivedVirtualLightForLayer
+} from '../../../engine/virtualLight'
 import { frameTolerance } from '../../../store/editor'
 import { getWaypointTimingMeta } from './animateCameraActionModes'
 
@@ -52,6 +56,8 @@ export interface ProjectedLayer2D {
     coneAngleDeg: number
     beamAngleDeg: number
     isReceived?: boolean
+    ambientDim?: number
+    softness?: number
   }
   portal?: {
     centerU: number
@@ -60,6 +66,8 @@ export interface ProjectedLayer2D {
     ryV: number
     darkness: number
     shadowTint: string
+    archShape?: 'arch' | 'ellipse' | 'circle'
+    feather?: number
   }
   caveDarkness?: number
   shadowTintRgb?: [number, number, number]
@@ -102,7 +110,7 @@ export function getLayer2DFilterStyle(layer: ProjectedLayer2D, scalePx = 1): str
     brightness *= 1 + Math.min(0.45, layer.lightBoost * 0.25)
   }
   if (layer.vlight && !layer.vlight.isReceived && layer.vlight.intensity > 0.01) {
-    brightness *= 1 + Math.min(0.42, layer.vlight.intensity * 0.24)
+    brightness *= Math.max(0.82, 1 - (layer.vlight.ambientDim ?? 0.24) * 0.35 + Math.min(0.18, layer.vlight.intensity * 0.08))
   }
   if (Math.abs(brightness - 1) > 0.02) {
     filters.push(`brightness(${brightness.toFixed(2)})`)
@@ -353,46 +361,29 @@ export function projectShotLayers2D(
         originV: Math.max(0.05, Math.min(0.95, origV + shiftV)),
         coneAngleDeg: coneDeg,
         beamAngleDeg: beamDeg,
-        isReceived: false
+        isReceived: false,
+        ambientDim: evVLight.ambientDim,
+        softness: evVLight.softness
       }
+
+
     } else if (shotLights.length > 0) {
-      let bestLight: (typeof shotLights)[number] | null = null
-      let bestScore = 0
-      for (const sl of shotLights) {
-        if (sl.sourceLayerId === el.layer.id) continue
-        const dz = Math.abs(el.position[2] - sl.position[2])
-        if (dz > sl.zReach) continue
-        const zAtten = 1 - Math.pow(dz / Math.max(1, sl.zReach), 1.6)
-        const score = sl.effectiveIntensity * zAtten
-        if (score > bestScore) {
-          bestScore = score
-          bestLight = sl
-        }
-      }
-      if (bestLight && bestScore > 0.04) {
-        const perspRatio = Math.max(80, refD + el.position[2]) / Math.max(80, refD + bestLight.position[2])
-        const projLightX = bestLight.position[0] * perspRatio
-        const projLightY = bestLight.position[1] * perspRatio
-        const projRadius = bestLight.effectiveRadius * perspRatio
-        const relU = 0.5 + (projLightX - el.position[0]) / worldW
-        const relV = 0.5 + (projLightY - el.position[1]) / worldH
-        if (relU > -0.8 && relU < 1.8 && relV > -0.8 && relV < 1.8) {
-          const beamDeg = (Math.atan2(bestLight.beamDir[1], bestLight.beamDir[0]) * 180) / Math.PI
-          const coneDeg =
-            bestLight.coneCos <= -0.98
-              ? 360
-              : Math.round(((Math.acos(Math.max(-1, Math.min(1, bestLight.coneCos))) * 180) / Math.PI) * 2)
-          base.vlight = {
-            kind: bestLight.kind,
-            color: bestLight.color,
-            intensity: bestScore * 0.85,
-            radiusRatio: Math.max(0.25, Math.min(2.2, projRadius / Math.max(64, Math.max(worldW, worldH)))),
-            originU: relU,
-            originV: relV,
-            coneAngleDeg: coneDeg,
-            beamAngleDeg: beamDeg,
-            isReceived: true
-          }
+      const received = resolveReceivedVirtualLightForLayer(el.layer.id, el.position, worldW, worldH, el.rotation[2] || 0, shotLights)
+      if (received && received.relU > -0.8 && received.relU < 1.8 && received.relV > -0.8 && received.relV < 1.8) {
+        const beamDeg = (Math.atan2(received.localBeamDir[1], received.localBeamDir[0]) * 180) / Math.PI
+        const coneDeg = received.light.coneCos <= -0.98 ? 360 : Math.round(((Math.acos(Math.max(-1, Math.min(1, received.light.coneCos))) * 180) / Math.PI) * 2)
+        base.vlight = {
+          kind: received.light.kind,
+          color: received.light.color,
+          intensity: received.effectiveIntensity,
+          radiusRatio: Math.max(0.25, Math.min(2.2, received.projectedRadiusPx / Math.max(64, Math.max(worldW, worldH)))),
+          originU: received.relU,
+          originV: received.relV,
+          coneAngleDeg: coneDeg,
+          beamAngleDeg: beamDeg,
+          isReceived: true,
+          ambientDim: received.light.ambientDim,
+          softness: received.light.softness
         }
       }
     }
@@ -407,7 +398,9 @@ export function projectShotLayers2D(
         rxU,
         ryV,
         darkness: portal.darkness ?? 0.82,
-        shadowTint: portal.shadowTint ?? '#060812'
+        shadowTint: portal.shadowTint ?? '#060812',
+        archShape: portal.archShape ?? 'arch',
+        feather: portal.feather ?? 0.55
       }
     }
 

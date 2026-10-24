@@ -1,7 +1,12 @@
 import * as THREE from 'three'
 import type { BlendMode, Layer } from '@shared/types'
 import { LAYER_FRAG } from './shaders'
-import type { EvaluatedCamera } from './evaluateScene'
+import type { EvaluatedCamera, EvaluatedLayer, EvaluatedScene } from './evaluateScene'
+import {
+  collectEvaluatedVirtualLights,
+  evaluateVirtualLightAtTime,
+  resolveReceivedVirtualLightForLayer
+} from './virtualLight'
 
 /** Device-pixel rectangle, top-left origin. */
 export interface Rect {
@@ -159,4 +164,110 @@ export function canvasAlpha(canvas: HTMLCanvasElement): AlphaMask {
   const data = new Uint8ClampedArray(w * h)
   for (let i = 0; i < w * h; i++) data[i] = src[i * 4 + 3]
   return { w, h, data }
+}
+
+
+/** Đồng bộ các uniform Cổng Độ Sâu Hang Động & Ánh Sáng Ảo 2.5D cho mỗi layer plane. */
+export function syncLayerCaveAndLightUniforms(
+  u: Record<string, THREE.IUniform>,
+  el: EvaluatedLayer,
+  planeW: number,
+  planeH: number,
+  ev: EvaluatedScene
+): boolean {
+  u.shadeDarkness.value = el.caveDarkness ?? 0
+  if (el.shadowTintRgb) {
+    u.shadeTint.value.setRGB(el.shadowTintRgb[0], el.shadowTintRgb[1], el.shadowTintRgb[2])
+  } else {
+    u.shadeTint.value.set('#060812')
+  }
+  u.lightBoost.value = el.lightIllumination ?? 0
+  if (el.lightTintRgb) {
+    u.lightTint.value.setRGB(el.lightTintRgb[0], el.lightTintRgb[1], el.lightTintRgb[2])
+  }
+
+  const portal = el.layer.physics?.depthPortal
+  if (portal?.enabled) {
+    u.portalOn.value = 1
+    const rxUV = Array.isArray(portal.radiusUV) ? portal.radiusUV[0] : (portal.radiusUV ?? 0.35)
+    const ryUV = Array.isArray(portal.radiusUV) ? portal.radiusUV[1] : (portal.radiusUV ?? 0.35)
+    u.portalParams.value.set(
+      portal.centerUV?.[0] ?? 0.5,
+      portal.centerUV?.[1] ?? 0.45,
+      Math.max(0.05, rxUV),
+      Math.max(0.05, ryUV)
+    )
+    if (u.portalShape) {
+      u.portalShape.value.set(
+        (portal.archShape ?? 'arch') === 'arch' ? 1 : 0,
+        portal.feather ?? 0.55
+      )
+    }
+    u.portalDarkness.value = portal.darkness ?? 0.82
+    if (portal.shadowTint) u.shadeTint.value.set(portal.shadowTint)
+  } else {
+    u.portalOn.value = 0
+    u.portalDarkness.value = 0
+  }
+
+  const worldW = Math.max(32, planeW * Math.abs(el.scale[0]))
+  const worldH = Math.max(32, planeH * Math.abs(el.scale[1]))
+  const evVLight = evaluateVirtualLightAtTime(el.layer, ev.t, el.position, [planeW, planeH], el.scale)
+
+  if (evVLight) {
+    u.vlightOn.value = 1
+    const origU = el.layer.virtualLight?.originUV?.[0] ?? 0.5
+    const origV = el.layer.virtualLight?.originUV?.[1] ?? 0.5
+    const rotRad = ((-el.rotation[2] || 0) * Math.PI) / 180
+    const cosR = Math.cos(rotRad)
+    const sinR = Math.sin(rotRad)
+    const localWindX = evVLight.windOffset[0] * cosR - evVLight.windOffset[1] * sinR
+    const localWindY = evVLight.windOffset[0] * sinR + evVLight.windOffset[1] * cosR
+    const shiftU = localWindX / worldW
+    const shiftV = localWindY / worldH
+    u.vlightUv.value.set(
+      Math.max(0.02, Math.min(0.98, origU + shiftU)),
+      Math.max(0.02, Math.min(0.98, origV + shiftV))
+    )
+    u.vlightColor.value.set(evVLight.color)
+    u.vlightParams.value.set(
+      evVLight.effectiveIntensity,
+      evVLight.effectiveRadius / Math.max(0.25, Math.abs(el.scale[0])),
+      evVLight.coneCos
+    )
+    const localBeamX = evVLight.beamDir[0] * cosR - evVLight.beamDir[1] * sinR
+    const localBeamY = evVLight.beamDir[0] * sinR + evVLight.beamDir[1] * cosR
+    u.vlightBeam.value.set(localBeamX, localBeamY)
+    if (u.vlightExtra) {
+      u.vlightExtra.value.set(evVLight.ambientDim, evVLight.softness, 0)
+    }
+    return true
+  }
+
+  const shotLights = collectEvaluatedVirtualLights(ev.layers, el.layer.shotId ?? null, ev.t)
+  const received = resolveReceivedVirtualLightForLayer(
+    el.layer.id,
+    el.position,
+    worldW,
+    worldH,
+    el.rotation[2] || 0,
+    shotLights
+  )
+  if (received) {
+    u.vlightOn.value = 2
+    u.vlightUv.value.set(received.relU, received.relV)
+    u.vlightColor.value.set(received.light.color)
+    u.vlightParams.value.set(
+      received.effectiveIntensity,
+      received.projectedRadiusPx / Math.max(0.25, Math.abs(el.scale[0])),
+      received.light.coneCos
+    )
+    u.vlightBeam.value.set(received.localBeamDir[0], received.localBeamDir[1])
+    if (u.vlightExtra) {
+      u.vlightExtra.value.set(received.light.ambientDim, received.light.softness, received.zDistRatio)
+    }
+  } else {
+    u.vlightOn.value = 0
+  }
+  return false
 }

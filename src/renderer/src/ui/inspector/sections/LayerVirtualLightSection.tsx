@@ -6,29 +6,42 @@ import type {
   VirtualLightKind,
   WindStrengthPreset
 } from '@shared/types'
-import { ColorInput, NumberInput, Row, Select, Switch } from '../../controls'
+import { ColorInput, NumberInput, Row, Switch } from '../../controls'
 import type { Setter } from '../types'
 import {
+  CAVE_PORTAL_PRESETS,
   createDefaultDepthPortal,
   createDefaultVirtualLight,
-  VIRTUAL_LIGHT_PRESETS
+  VIRTUAL_LIGHT_PRESETS,
+  WIND_STRENGTH_VALUES
 } from '../../../engine/virtualLight'
 import { createDefaultLayerPhysics } from '../../../engine/layerPhysics'
+import { assetStore } from '../../../project/assets'
+import { VirtualLightInteractivePad } from './VirtualLightInteractivePad'
 
-const LIGHT_KIND_OPTIONS: { value: VirtualLightKind; label: string }[] = [
-  { value: 'candle', label: '🕯️ Ánh nến (Phản ứng theo gió thổi yếu / mạnh)' },
-  { value: 'flashlight', label: '🔦 Đèn pin (Chùm tia nón định hướng)' },
-  { value: 'bulb', label: '💡 Bóng đèn dây tóc / Neon (Toả tròn ổn định)' },
-  { value: 'campfire', label: '🔥 Lửa trại / Đuốc (Bập bùng & tạt lửa theo gió)' },
-  { value: 'cave_crystal', label: '🔮 Tinh thể hang động (Phát quang nhịp thở trong động)' },
-  { value: 'magic_orb', label: '✨ Cầu phép thuật (Lơ lửng phát sáng huyền ảo)' }
+const LIGHT_KIND_CARDS: { value: VirtualLightKind; icon: string; name: string; sub: string }[] = [
+  { value: 'candle', icon: '🕯️', name: 'Ánh nến', sub: 'Nghiêng theo gió' },
+  { value: 'flashlight', icon: '🔦', name: 'Đèn pin', sub: 'Chùm tia nón' },
+  { value: 'bulb', icon: '💡', name: 'Bóng đèn', sub: 'Toả tròn 360°' },
+  { value: 'campfire', icon: '🔥', name: 'Lửa trại', sub: 'Bập bùng ấm' },
+  { value: 'cave_crystal', icon: '🔮', name: 'Tinh thể', sub: 'Phát quang động' },
+  { value: 'magic_orb', icon: '✨', name: 'Phép thuật', sub: 'Cầu sáng dịu' }
 ]
 
-const WIND_PRESET_OPTIONS: { value: WindStrengthPreset; label: string }[] = [
-  { value: 'none', label: '🍃 Đứng gió (Ngọn nến thở êm dịu)' },
-  { value: 'gentle', label: '🌬️ Gió thổi nhẹ (Ngọn lửa nghiêng & lắc mềm)' },
-  { value: 'strong', label: '💨 Gió thổi mạnh (Chập chờn suýt tắt & tạt lửa)' },
-  { value: 'storm', label: '🌪️ Gió bão giật (Chớp tắt dữ dội & bùng lửa)' }
+const WIND_PILLS: { value: WindStrengthPreset; label: string; title: string }[] = [
+  { value: 'none', label: '🍃 Lặng', title: 'Đứng gió: ngọn nến thở êm dịu tại chỗ' },
+  { value: 'gentle', label: '🌬️ Nhẹ', title: 'Gió thổi nhẹ: ngọn lửa nghiêng & lắc mềm mại' },
+  { value: 'strong', label: '💨 Mạnh', title: 'Gió thổi mạnh: lửa tạt ngang & chập chờn rõ' },
+  { value: 'storm', label: '🌪️ Bão', title: 'Gió bão giật: chớp tắt dữ dội & bùng lửa' }
+]
+
+const LIGHT_COLOR_SWATCHES = [
+  { color: '#ff9d3b', title: 'Vàng cam ánh nến (2200K)' },
+  { color: '#ffe6a3', title: 'Vàng ấm bóng đèn (3200K)' },
+  { color: '#e8f4ff', title: 'Trắng lạnh đèn pin LED (6000K)' },
+  { color: '#ff7828', title: 'Cam đỏ lửa trại / đuốc' },
+  { color: '#38bdf8', title: 'Lam ngọc tinh thể hang động' },
+  { color: '#c084fc', title: 'Tím huyền ảo phép thuật' }
 ]
 
 export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Setter }) {
@@ -38,6 +51,9 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
   const portal: DepthPortalConfig = layer.physics?.depthPortal ?? createDefaultDepthPortal()
   const isPortalEnabled = Boolean(layer.physics?.depthPortal?.enabled)
 
+  const runtimeAsset = layer.type === 'image' ? assetStore.get(layer.props.assetId) : undefined
+  const thumbUrl = runtimeAsset?.thumbUrl || runtimeAsset?.url || null
+
   const patchLight = (patch: Partial<LayerVirtualLight>, mergeKey = 'virtual-light'): void => {
     set((l) => {
       const base = l.virtualLight ?? createDefaultVirtualLight('candle')
@@ -45,14 +61,22 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
       if (patch.kind && patch.kind !== base.kind) {
         const p = VIRTUAL_LIGHT_PRESETS[patch.kind]
         if (p) {
-          next.color = p.color
-          next.intensity = p.intensity
-          next.radius = p.radius
-          next.zReach = p.zReach
-          next.coneAngleDeg = p.coneAngleDeg
-          next.flickerSpeed = p.flickerSpeed
-          next.windSensitivity = p.windSensitivity
+          if (patch.color === undefined) next.color = p.color
+          if (patch.intensity === undefined) next.intensity = p.intensity
+          if (patch.radius === undefined) next.radius = p.radius
+          if (patch.zReach === undefined) next.zReach = p.zReach
+          if (patch.coneAngleDeg === undefined) next.coneAngleDeg = p.coneAngleDeg
+          if (patch.beamAngleDeg === undefined) next.beamAngleDeg = p.beamAngleDeg
+          if (patch.flickerSpeed === undefined) next.flickerSpeed = p.flickerSpeed
+          if (patch.windSensitivity === undefined) next.windSensitivity = p.windSensitivity
+          if (patch.windPreset === undefined) next.windPreset = p.windPreset
+          next.windStrength = WIND_STRENGTH_VALUES[next.windPreset ?? 'gentle']
+          if (patch.ambientDim === undefined) next.ambientDim = p.ambientDim
+          if (patch.softness === undefined) next.softness = p.softness
         }
+      }
+      if (patch.windPreset && patch.windStrength === undefined) {
+        next.windStrength = WIND_STRENGTH_VALUES[patch.windPreset]
       }
       l.virtualLight = next
     }, mergeKey)
@@ -70,16 +94,32 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
   }
 
   const isFlame = vlight.kind === 'candle' || vlight.kind === 'campfire'
-  const isCone = vlight.kind === 'flashlight' || (vlight.coneAngleDeg ?? 360) < 350
+  const coneDeg = vlight.coneAngleDeg ?? 360
+  const isCone = vlight.kind === 'flashlight' || coneDeg < 350
+  const activeConeWhenDirected = coneDeg < 350 ? coneDeg : vlight.kind === 'flashlight' ? 48 : 65
 
   return (
     <div className="section layer-virtual-light-section" data-mcp-region="inspector_virtual_light">
+      {/* Khung Kéo Thả Trực Quan 2.5D (dùng chung cho Đèn & Cửa Hang khi bật 1 trong 2) */}
+      {(isPortalEnabled || isLightEnabled) && (
+        <VirtualLightInteractivePad
+          imageUrl={thumbUrl}
+          layerName={layer.name}
+          vlight={vlight}
+          isLightEnabled={isLightEnabled}
+          portal={portal}
+          isPortalEnabled={isPortalEnabled}
+          onPatchLight={patchLight}
+          onPatchPortal={patchPortal}
+        />
+      )}
+
       {/* 1. Cổng Chiều Sâu Hang Động (Cave Depth Portal) */}
       <div
         className="section-title"
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}
       >
-        <span>🕳️ Lối Vào Hang Động & Độ Sâu 2.5D</span>
+        <span>🕳️ Lối Vào Hang Động &amp; Độ Sâu 2.5D</span>
         <Switch
           id="layer-depth-portal-enabled"
           on={isPortalEnabled}
@@ -100,21 +140,145 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
           }}
         >
           <span>
-            Đánh dấu vùng cửa hang/hốc sâu trên ảnh nền: nhân vật đi vào vùng này sẽ tự động nhỏ dần theo độ sâu và bị bóng tối hang động che phủ (trừ khi có Ánh sáng ảo chiếu sáng).
+            Đánh dấu vòm cửa hang/cổng sâu: tự tạo bóng tối lòng hang và thu nhỏ nhân vật theo luật phối cảnh 2.5D khi bước vào (tự sáng rõ khi có Ánh sáng ảo chiếu tới).
           </span>
-          <div>
-            <button
-              type="button"
-              className="btn sm ghost"
-              onClick={() => patchPortal({ enabled: true })}
-            >
-              🕳️ Bật Cổng Độ Sâu Hang Động
-            </button>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {Object.values(CAVE_PORTAL_PRESETS).map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                className="btn sm ghost"
+                title={preset.description}
+                onClick={() => patchPortal({ enabled: true, ...preset.config })}
+              >
+                {preset.badge}
+              </button>
+            ))}
           </div>
         </div>
       ) : (
-        <div style={{ marginBottom: 12 }}>
-          <Row label="Tâm hang UV" title="Toạ độ tâm lối vào hang động trên ảnh (U: trái->phải, V: đáy->đỉnh)">
+        <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <Row label="Mẫu cửa hang" title="Chọn nhanh cấu hình vòm hang đá, cổng di tích, hốc vực tối hoặc động băng">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4, width: '100%' }}>
+              {Object.values(CAVE_PORTAL_PRESETS).map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  title={preset.description}
+                  className="btn sm ghost"
+                  style={{ padding: '2px 3px', fontSize: 9.5, justifyContent: 'center' }}
+                  onClick={() => patchPortal({ ...preset.config })}
+                >
+                  {preset.badge}
+                </button>
+              ))}
+            </div>
+          </Row>
+
+          <Row label="Dáng vòm" title="Hình dáng hình học của lối vào hang động">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, width: '100%' }}>
+              {[
+                { id: 'arch' as const, label: '🏛️ Vòm hang' },
+                { id: 'ellipse' as const, label: '⬭ Elip' },
+                { id: 'circle' as const, label: '◯ Tròn' }
+              ].map((sh) => (
+                <button
+                  key={sh.id}
+                  type="button"
+                  className={`btn sm ${(portal.archShape ?? 'arch') === sh.id ? 'primary' : 'ghost'}`}
+                  style={{ padding: '2px 4px', fontSize: 10, justifyContent: 'center' }}
+                  onClick={() =>
+                    patchPortal({
+                      archShape: sh.id,
+                      radiusUV:
+                        sh.id === 'circle'
+                          ? [
+                              Array.isArray(portal.radiusUV) ? portal.radiusUV[0] : 0.34,
+                              Array.isArray(portal.radiusUV) ? portal.radiusUV[0] : 0.34
+                            ]
+                          : portal.radiusUV
+                    })
+                  }
+                >
+                  {sh.label}
+                </button>
+              ))}
+            </div>
+          </Row>
+
+          <Row label="Độ tối hang" title="Mức bóng tối bao phủ lòng hang (0 = không tối, 0.85 = hang tối sâu)">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+              <input
+                type="range"
+                min={0}
+                max={0.98}
+                step={0.02}
+                value={portal.darkness}
+                onChange={(e) => patchPortal({ darkness: Number(e.target.value) }, 'portal-darkness')}
+                style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
+              />
+              <div style={{ width: 64, flexShrink: 0 }}>
+                <NumberInput
+                  axis="dk"
+                  value={portal.darkness}
+                  step={0.05}
+                  precision={2}
+                  min={0}
+                  max={0.98}
+                  onChange={(v, k) => patchPortal({ darkness: v }, k)}
+                />
+              </div>
+            </div>
+          </Row>
+
+          <Row label="Thu nhỏ sâu" title="Tỷ lệ thu nhỏ của nhân vật khi đi sâu vào tâm hang (0.35 = nhỏ bằng 35% kích thước ban đầu)">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+              <input
+                type="range"
+                min={0.15}
+                max={0.95}
+                step={0.02}
+                value={portal.minScale}
+                onChange={(e) => patchPortal({ minScale: Number(e.target.value) }, 'portal-scale')}
+                style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
+              />
+              <div style={{ width: 64, flexShrink: 0 }}>
+                <NumberInput
+                  axis="sc"
+                  value={portal.minScale}
+                  step={0.05}
+                  precision={2}
+                  min={0.1}
+                  max={0.95}
+                  onChange={(v, k) => patchPortal({ minScale: v }, k)}
+                />
+              </div>
+            </div>
+          </Row>
+
+          <Row label="Viền / Hút Z" title="Độ chuyển mượt ở mép cửa hang (Feather) và độ hút sâu theo trục Z (px)">
+            <NumberInput
+              axis="mềm"
+              value={portal.feather ?? 0.55}
+              step={0.05}
+              precision={2}
+              min={0.1}
+              max={1}
+              onChange={(v, k) => patchPortal({ feather: v }, k)}
+            />
+            <NumberInput
+              axis="z-"
+              value={portal.depthPullZ ?? 140}
+              step={10}
+              precision={0}
+              min={0}
+              max={600}
+              suffix="px"
+              onChange={(v, k) => patchPortal({ depthPullZ: v }, k)}
+            />
+          </Row>
+
+          <Row label="Tâm / Cỡ UV" title="Tâm cửa hang (U,V) và bán kính ngang/dọc (Rx,Ry) — có thể kéo trực tiếp trên khung phía trên">
             <NumberInput
               axis="u"
               value={portal.centerUV[0]}
@@ -133,72 +297,67 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
               max={0.95}
               onChange={(v, k) => patchPortal({ centerUV: [portal.centerUV[0], v] }, k)}
             />
-          </Row>
-
-          <Row label="Bán kính UV" title="Độ rộng ngang (Rx) và cao (Ry) của vùng cửa hang trên ảnh">
             <NumberInput
               axis="rx"
-              value={Array.isArray(portal.radiusUV) ? portal.radiusUV[0] : (portal.radiusUV ?? 0.35)}
+              value={Array.isArray(portal.radiusUV) ? portal.radiusUV[0] : (portal.radiusUV ?? 0.34)}
               step={0.02}
               precision={2}
               min={0.05}
               max={0.8}
               onChange={(v, k) => {
-                const ry = Array.isArray(portal.radiusUV) ? portal.radiusUV[1] : (portal.radiusUV ?? 0.35)
+                const ry = Array.isArray(portal.radiusUV) ? portal.radiusUV[1] : (portal.radiusUV ?? 0.36)
                 patchPortal({ radiusUV: [v, ry] }, k)
               }}
             />
             <NumberInput
               axis="ry"
-              value={Array.isArray(portal.radiusUV) ? portal.radiusUV[1] : (portal.radiusUV ?? 0.35)}
+              value={Array.isArray(portal.radiusUV) ? portal.radiusUV[1] : (portal.radiusUV ?? 0.36)}
               step={0.02}
               precision={2}
               min={0.05}
               max={0.8}
               onChange={(v, k) => {
-                const rx = Array.isArray(portal.radiusUV) ? portal.radiusUV[0] : (portal.radiusUV ?? 0.35)
+                const rx = Array.isArray(portal.radiusUV) ? portal.radiusUV[0] : (portal.radiusUV ?? 0.34)
                 patchPortal({ radiusUV: [rx, v] }, k)
               }}
             />
           </Row>
 
-          <Row label="Thu nhỏ / Tối" title="Tỷ lệ thu nhỏ tối đa khi đi sâu vào tâm hang (Min Scale) và độ tối che phủ (Darkness)">
-            <NumberInput
-              axis="sc"
-              value={portal.minScale}
-              step={0.05}
-              precision={2}
-              min={0.1}
-              max={0.95}
-              onChange={(v, k) => patchPortal({ minScale: v }, k)}
-            />
-            <NumberInput
-              axis="dk"
-              value={portal.darkness}
-              step={0.05}
-              precision={2}
-              min={0}
-              max={0.98}
-              onChange={(v, k) => patchPortal({ darkness: v }, k)}
-            />
-          </Row>
-
-          <Row label="Lùi Z / Màu" title="Độ lùi sâu Z (px) khi bước vào hang và màu bóng tối trong hang">
-            <NumberInput
-              axis="z+"
-              value={portal.depthPullZ ?? 90}
-              step={10}
-              precision={0}
-              min={0}
-              max={500}
-              suffix="px"
-              onChange={(v, k) => patchPortal({ depthPullZ: v }, k)}
-            />
-            <ColorInput
-              value={portal.shadowTint ?? '#070913'}
-              onChange={(val, k) => patchPortal({ shadowTint: val }, k)}
-              title="Màu bóng tối trong lòng hang"
-            />
+          <Row label="Màu tối hang" title="Màu bóng tối sâu bên trong lòng hang động">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%' }}>
+              <ColorInput
+                compact
+                value={portal.shadowTint ?? '#070913'}
+                onChange={(val, k) => patchPortal({ shadowTint: val }, k)}
+                title="Màu bóng tối trong lòng hang"
+              />
+              <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
+                {[
+                  { c: '#060812', t: 'Đen đêm sâu' },
+                  { c: '#08182b', t: 'Lam động băng' },
+                  { c: '#1a0f0a', t: 'Nâu hang đất' },
+                  { c: '#140924', t: 'Tím vực thẳm' }
+                ].map((sw) => (
+                  <button
+                    key={sw.c}
+                    type="button"
+                    title={sw.t}
+                    onClick={() => patchPortal({ shadowTint: sw.c })}
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: 4,
+                      background: sw.c,
+                      border:
+                        (portal.shadowTint ?? '#070913').toLowerCase() === sw.c
+                          ? '2px solid var(--accent-cyan)'
+                          : '1px solid var(--line)',
+                      cursor: 'pointer'
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
           </Row>
         </div>
       )}
@@ -235,59 +394,89 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
           }}
         >
           <span>
-            Biến layer thành nguồn sáng ảo 2.5D (Ánh nến phản ứng gió yếu/mạnh, Đèn pin chùm tia, Bóng đèn, Tinh thể chiếu sáng nhân vật đi sâu trong hang động).
+            Nguồn sáng vật lý 2.5D suy giảm tự nhiên 1/r², nổi khối vân bề mặt và giữ trong trẻo vùng nền rỗng. Chọn nhanh loại đèn:
           </span>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            <button
-              type="button"
-              className="btn sm ghost"
-              onClick={() => patchLight({ enabled: true, kind: 'candle', windPreset: 'gentle' })}
-            >
-              🕯️ Ánh nến (Gió)
-            </button>
-            <button
-              type="button"
-              className="btn sm ghost"
-              onClick={() => patchLight({ enabled: true, kind: 'flashlight' })}
-            >
-              🔦 Đèn pin
-            </button>
-            <button
-              type="button"
-              className="btn sm ghost"
-              onClick={() => patchLight({ enabled: true, kind: 'bulb' })}
-            >
-              💡 Bóng đèn
-            </button>
-            <button
-              type="button"
-              className="btn sm ghost"
-              onClick={() => patchLight({ enabled: true, kind: 'cave_crystal' })}
-            >
-              🔮 Tinh thể động
-            </button>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+            {LIGHT_KIND_CARDS.map((card) => (
+              <button
+                key={card.value}
+                type="button"
+                className="btn sm ghost"
+                style={{ justifyContent: 'flex-start', padding: '4px 6px', fontSize: 10.5 }}
+                onClick={() => patchLight({ enabled: true, kind: card.value })}
+              >
+                {card.icon} {card.name}
+              </button>
+            ))}
           </div>
         </div>
       ) : (
-        <>
-          <Row label="Loại sáng" title={VIRTUAL_LIGHT_PRESETS[vlight.kind]?.description}>
-            <Select
-              id="layer-virtual-light-kind"
-              value={vlight.kind}
-              options={LIGHT_KIND_OPTIONS}
-              onChange={(val) => patchLight({ kind: val as VirtualLightKind })}
-            />
-          </Row>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {/* 1-Click Visual Preset Grid (replaces truncated combobox) */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 4,
+              marginBottom: 2
+            }}
+          >
+            {LIGHT_KIND_CARDS.map((card) => {
+              const active = vlight.kind === card.value
+              return (
+                <button
+                  key={card.value}
+                  type="button"
+                  title={VIRTUAL_LIGHT_PRESETS[card.value]?.description}
+                  onClick={() => patchLight({ kind: card.value })}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    padding: '4px 6px',
+                    borderRadius: 5,
+                    border: active ? '1px solid var(--accent)' : '1px solid var(--line-soft)',
+                    background: active ? 'var(--bg-3)' : 'var(--bg-1)',
+                    color: 'var(--text)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    boxShadow: active ? 'inset 0 0 0 1px var(--accent)' : 'none'
+                  }}
+                >
+                  <span style={{ fontSize: 10.5, fontWeight: 600 }}>
+                    {card.icon} {card.name}
+                  </span>
+                  <span style={{ fontSize: 9, color: 'var(--text-dim)' }}>{card.sub}</span>
+                </button>
+              )
+            })}
+          </div>
 
           {isFlame && (
             <>
-              <Row label="Gió thổi lửa" title="Cường độ gió tác động lên ngọn nến / lửa trại (nghiêng ngọn lửa & chập chờn)">
-                <Select
-                  id="layer-virtual-light-wind"
-                  value={vlight.windPreset ?? 'gentle'}
-                  options={WIND_PRESET_OPTIONS}
-                  onChange={(val) => patchLight({ windPreset: val as WindStrengthPreset })}
-                />
+              <Row label="Gió thổi lửa" title="Cường độ gió tác động trực tiếp làm nghiêng ngọn lửa và chập chờn ánh sáng">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4, width: '100%' }}>
+                  {WIND_PILLS.map((w) => {
+                    const active = (vlight.windPreset ?? 'gentle') === w.value
+                    return (
+                      <button
+                        key={w.value}
+                        type="button"
+                        title={w.title}
+                        className={`btn sm ${active ? 'primary' : 'ghost'}`}
+                        style={{ padding: '2px 3px', fontSize: 9.5, justifyContent: 'center' }}
+                        onClick={() =>
+                          patchLight({
+                            windPreset: w.value,
+                            windStrength: WIND_STRENGTH_VALUES[w.value]
+                          })
+                        }
+                      >
+                        {w.label}
+                      </button>
+                    )
+                  })}
+                </div>
               </Row>
               <Row label="Hướng / Nhịp" title="Góc gió thổi (0° = thổi sang phải, 180° = thổi sang trái) và tốc độ bập bùng">
                 <NumberInput
@@ -302,10 +491,10 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
                 />
                 <NumberInput
                   axis="hz"
-                  value={vlight.flickerSpeed ?? 1.8}
-                  step={0.2}
+                  value={vlight.flickerSpeed ?? 1.2}
+                  step={0.1}
                   precision={1}
-                  min={0.2}
+                  min={0}
                   max={6.0}
                   onChange={(v, k) => patchLight({ flickerSpeed: v }, k)}
                 />
@@ -313,8 +502,8 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
             </>
           )}
 
-          <Row label="Hướng chiếu" title="Chọn nhanh toả tròn 360° hoặc định hướng chùm sáng chiếu theo hướng cụ thể">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 3, width: '100%' }}>
+          <Row label="Hướng chiếu" title="Chọn toả tròn 360° hoặc định hướng chùm sáng (giữ nguyên độ mở chóp hiện tại)">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, width: '100%' }}>
               {[
                 {
                   label: '☀️ 360°',
@@ -326,28 +515,28 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
                 {
                   label: '→ Phải',
                   title: 'Chiếu sang phải (0°)',
-                  cone: 75,
+                  cone: activeConeWhenDirected,
                   beam: 0,
                   active: isCone && (vlight.beamAngleDeg ?? 0) > -22 && (vlight.beamAngleDeg ?? 0) <= 22
                 },
                 {
                   label: '↗ Chéo',
                   title: 'Chiếu chéo lên phải (35°)',
-                  cone: 75,
+                  cone: activeConeWhenDirected,
                   beam: 35,
                   active: isCone && (vlight.beamAngleDeg ?? 0) > 22 && (vlight.beamAngleDeg ?? 0) <= 65
                 },
                 {
                   label: '↑ Lên',
                   title: 'Chiếu thẳng lên trên (90°)',
-                  cone: 85,
+                  cone: activeConeWhenDirected,
                   beam: 90,
                   active: isCone && (vlight.beamAngleDeg ?? 0) > 65 && (vlight.beamAngleDeg ?? 0) <= 135
                 },
                 {
                   label: '← Trái',
                   title: 'Chiếu sang trái (180°)',
-                  cone: 75,
+                  cone: activeConeWhenDirected,
                   beam: 180,
                   active:
                     isCone &&
@@ -356,7 +545,7 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
                 {
                   label: '↓ Xuống',
                   title: 'Chiếu xuống dưới (-90°)',
-                  cone: 85,
+                  cone: activeConeWhenDirected,
                   beam: -90,
                   active: isCone && (vlight.beamAngleDeg ?? 0) > -135 && (vlight.beamAngleDeg ?? 0) <= -22
                 }
@@ -380,7 +569,7 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
             </div>
           </Row>
 
-          <Row label="Góc / Mở chóp" title="Góc hướng chiếu sáng (∠: 0°=phải, 90°=lên, 180°=trái, -90°=xuống) và độ mở chóp nón ánh sáng (Δ: 15°..360°)">
+          <Row label="Góc / Mở chóp" title="Góc hướng tia sáng (∠: -180°..180°) và độ mở chóp nón ánh sáng (Δ: 15°..360°)">
             <NumberInput
               axis="∠"
               value={vlight.beamAngleDeg ?? 0}
@@ -393,7 +582,7 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
                 patchLight(
                   {
                     beamAngleDeg: v,
-                    coneAngleDeg: (vlight.coneAngleDeg ?? 360) >= 350 ? 85 : vlight.coneAngleDeg
+                    coneAngleDeg: coneDeg >= 350 ? 60 : coneDeg
                   },
                   k
                 )
@@ -401,7 +590,7 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
             />
             <NumberInput
               axis="Δ"
-              value={vlight.coneAngleDeg ?? 360}
+              value={coneDeg}
               step={5}
               precision={0}
               min={15}
@@ -411,19 +600,19 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
             />
           </Row>
 
-          <Row label="Cường độ sáng" title="Kéo thanh trượt hoặc nhập số để chỉnh độ mạnh yếu của ánh sáng (0.05 = dịu mờ, 0.85 = tự nhiên, 1.5+ = rực sáng)">
+          <Row label="Cường độ sáng" title="Độ mạnh của nguồn sáng theo chuẩn Filmic (không gây cháy trắng xoá chi tiết ảnh)">
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
               <input
                 id="layer-virtual-light-intensity-slider"
                 type="range"
                 min={0.05}
-                max={3.0}
+                max={2.5}
                 step={0.05}
-                value={Math.min(3.0, Math.max(0.05, vlight.intensity))}
+                value={Math.min(2.5, Math.max(0.05, vlight.intensity))}
                 onChange={(e) => patchLight({ intensity: Number(e.target.value) }, 'virtual-light-intensity')}
                 style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
               />
-              <div style={{ width: 68, flexShrink: 0 }}>
+              <div style={{ width: 64, flexShrink: 0 }}>
                 <NumberInput
                   axis="I"
                   value={vlight.intensity}
@@ -437,35 +626,32 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
             </div>
           </Row>
 
-          <Row label="Màu ánh sáng" title="Màu sắc nguồn sáng và các nút chọn nhanh mức cường độ sáng">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%', flexWrap: 'nowrap' }}>
-              <ColorInput
-                compact
-                value={vlight.color}
-                onChange={(val, k) => patchLight({ color: val }, k)}
-                title="Chọn màu nguồn sáng ảo"
+          <Row label="Tương phản tối" title="Làm dịu vùng tối ngoài tầm đèn (Ambient Dim) để quầng sáng nổi bật tự nhiên mà không cần tăng chói">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+              <input
+                type="range"
+                min={0}
+                max={0.85}
+                step={0.02}
+                value={vlight.ambientDim ?? 0.24}
+                onChange={(e) => patchLight({ ambientDim: Number(e.target.value) }, 'virtual-light-dim')}
+                style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
               />
-              <div style={{ display: 'flex', gap: 3, marginLeft: 'auto', flexShrink: 0 }}>
-                {[
-                  { label: 'Dịu 0.4', val: 0.4 },
-                  { label: 'Vừa 0.85', val: 0.85 },
-                  { label: 'Rực 1.4', val: 1.4 }
-                ].map((preset) => (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    className={`btn sm ${Math.abs(vlight.intensity - preset.val) < 0.06 ? 'primary' : 'ghost'}`}
-                    style={{ padding: '2px 5px', fontSize: 10 }}
-                    onClick={() => patchLight({ intensity: preset.val })}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
+              <div style={{ width: 64, flexShrink: 0 }}>
+                <NumberInput
+                  axis="dim"
+                  value={vlight.ambientDim ?? 0.24}
+                  step={0.05}
+                  precision={2}
+                  min={0}
+                  max={0.85}
+                  onChange={(v, k) => patchLight({ ambientDim: v }, k)}
+                />
               </div>
             </div>
           </Row>
 
-          <Row label="Bán kính / Z" title="Bán kính chiếu sáng XY (px) và độ lan toả theo chiều sâu Z (px)">
+          <Row label="Bán kính / Z" title="Bán kính chiếu sáng XY (px) và tầm lan toả sang các layer lân cận theo chiều sâu Z (px)">
             <NumberInput
               axis="r"
               value={vlight.radius}
@@ -478,8 +664,8 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
             />
             <NumberInput
               axis="z±"
-              value={vlight.zReach ?? 350}
-              step={10}
+              value={vlight.zReach ?? 320}
+              step={15}
               precision={0}
               min={20}
               max={900}
@@ -488,27 +674,50 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
             />
           </Row>
 
-          <Row label="Tâm sáng UV" title="Vị trí tâm phát sáng trên Mesh layer (U: 0..1 ngang, V: 0..1 dọc)">
-            <NumberInput
-              axis="u"
-              value={vlight.originUV?.[0] ?? 0.5}
-              step={0.05}
-              precision={2}
-              min={0}
-              max={1}
-              onChange={(v, k) => patchLight({ originUV: [v, vlight.originUV?.[1] ?? 0.5] }, k)}
-            />
-            <NumberInput
-              axis="v"
-              value={vlight.originUV?.[1] ?? 0.5}
-              step={0.05}
-              precision={2}
-              min={0}
-              max={1}
-              onChange={(v, k) => patchLight({ originUV: [vlight.originUV?.[0] ?? 0.5, v] }, k)}
-            />
+          <Row label="Màu &amp; Viền" title="Màu nhiệt độ nguồn sáng và độ mềm viền bán dạ (Softness)">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%' }}>
+              <ColorInput
+                compact
+                value={vlight.color}
+                onChange={(val, k) => patchLight({ color: val }, k)}
+                title="Chọn màu nguồn sáng ảo"
+              />
+              <div style={{ display: 'flex', gap: 3 }}>
+                {LIGHT_COLOR_SWATCHES.map((sw) => (
+                  <button
+                    key={sw.color}
+                    type="button"
+                    title={sw.title}
+                    onClick={() => patchLight({ color: sw.color })}
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: '50%',
+                      background: sw.color,
+                      border:
+                        vlight.color.toLowerCase() === sw.color
+                          ? '2px solid var(--text)'
+                          : '1px solid var(--line)',
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                  />
+                ))}
+              </div>
+              <div style={{ width: 64, marginLeft: 'auto', flexShrink: 0 }}>
+                <NumberInput
+                  axis="mềm"
+                  value={vlight.softness ?? 0.5}
+                  step={0.05}
+                  precision={2}
+                  min={0.1}
+                  max={1}
+                  onChange={(v, k) => patchLight({ softness: v }, k)}
+                />
+              </div>
+            </div>
           </Row>
-        </>
+        </div>
       )}
     </div>
   )

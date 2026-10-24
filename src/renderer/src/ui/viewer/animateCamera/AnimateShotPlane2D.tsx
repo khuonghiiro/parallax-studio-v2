@@ -22,52 +22,55 @@ export function Layer2DLightOverlay({
   const uPct = layer.vlight ? Math.round(layer.vlight.originU * 100) : 50
   const vPct = layer.vlight ? Math.round((1 - layer.vlight.originV) * 100) : 50
   const intensity = layer.vlight?.intensity ?? 0
-  const intensityReach = Math.max(0.5, Math.min(1.6, 0.58 + Math.pow(intensity, 0.72) * 0.42))
+  const intensityReach = Math.max(0.5, Math.min(1.5, 0.62 + Math.pow(intensity, 0.68) * 0.36))
 
   const isReceived = Boolean(layer.vlight?.isReceived)
-  const surfOpacity = Math.max(0.28, Math.min(0.95, Math.pow(intensity, 0.78) * (isReceived ? 0.82 : 0.72)))
-  const haloOpacity = Math.max(0.32, Math.min(0.95, Math.pow(intensity, 0.75) * 0.82))
+  const surfOpacity = Math.max(0.2, Math.min(0.74, Math.pow(intensity, 0.72) * (isReceived ? 0.6 : 0.54)))
+  const haloOpacity = Math.max(0.1, Math.min(0.32, Math.pow(intensity, 0.68) * 0.24))
 
   const haloDiamPct = layer.vlight
-    ? Math.max(96, Math.min(220, Math.round(layer.vlight.radiusRatio * 135 * intensityReach)))
-    : 125
+    ? Math.max(84, Math.min(195, Math.round(layer.vlight.radiusRatio * 122 * intensityReach)))
+    : 115
   const surfRadPct = layer.vlight
-    ? Math.max(30, Math.min(98, Math.round(layer.vlight.radiusRatio * 74 * intensityReach)))
-    : 58
+    ? Math.max(28, Math.min(95, Math.round(layer.vlight.radiusRatio * 70 * intensityReach)))
+    : 56
 
   const coneDeg = layer.vlight?.coneAngleDeg ?? 360
   const beamDeg = layer.vlight?.beamAngleDeg ?? 0
   const isCone = coneDeg < 350
-  const spreadRatio = Math.max(0.22, Math.min(0.96, coneDeg / 180))
-  const plumeRyPct = Math.max(14, Math.min(45, Math.round(43 * spreadRatio)))
+  const halfCone = Math.max(8, Math.min(170, Math.round(coneDeg * 0.5)))
+  const penumbra = Math.max(6, Math.round(halfCone * 0.38))
+  const startConeDeg = 90 - halfCone - penumbra
+  const spreadRatio = Math.max(0.24, Math.min(0.96, coneDeg / 160))
+  const plumeRyPct = Math.max(18, Math.min(48, Math.round(46 * spreadRatio)))
 
   const pUPct = layer.portal ? Math.round(layer.portal.centerU * 100) : 50
   const pVPct = layer.portal ? Math.round((1 - layer.portal.centerV) * 100) : 55
-  const pRxPct = layer.portal ? Math.max(15, Math.min(85, Math.round(layer.portal.rxU * 100))) : 35
-  const pRyPct = layer.portal ? Math.max(15, Math.min(85, Math.round(layer.portal.ryV * 100))) : 35
+  const pRxPct = layer.portal ? Math.max(12, Math.min(85, Math.round(layer.portal.rxU * 100))) : 35
+  const pRyPct = layer.portal ? Math.max(12, Math.min(85, Math.round(layer.portal.ryV * 100))) : 35
   const portalRescue = layer.portal
-    ? Math.min(layer.portal.darkness, ((layer.lightBoost ?? 0) + intensity * 0.65) * 0.78)
+    ? Math.min(layer.portal.darkness * 0.9, ((layer.lightBoost ?? 0) * 0.35 + intensity * 0.55) * 0.68)
     : 0
   const effectivePortalDarkness = layer.portal
     ? Math.max(0, layer.portal.darkness - portalRescue)
     : 0
 
   const color = layer.vlight?.color ?? '#ff9d3b'
-  // Phân bố Gaussian + Smoothstep đa tầng: tâm trắng ấm đậm đặc (0..14%), sáng rõ vùng giữa (30..50%) và tan mượt về 0 trước khi chạm biên (100%)
-  const omniHaloBg = `radial-gradient(50% 50% at 50% 50%, #ffffff 0%, #fffbe8 14%, ${color}f2 30%, ${color}a8 50%, ${color}42 70%, ${color}0d 86%, transparent 100%)`
-  const conePlumeBg = `radial-gradient(74% ${plumeRyPct}% at 22% 50%, #ffffff 0%, #fffbe8 14%, ${color}f5 30%, ${color}ad 50%, ${color}45 70%, ${color}0d 88%, transparent 100%)`
-  const conePlumeMask = 'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.32) 11%, #000 22%, #000 100%)'
-  const surfDiamPct = Math.max(72, Math.min(230, surfRadPct * 2))
+  // Phân bố nghịch đảo bình phương vật lý: lõi sáng nhỏ sắc nét ở đầu đèn/tim nến, màu ánh sáng trong trẻo không làm đục trắng bề mặt
+  const omniHaloBg = `radial-gradient(50% 50% at 50% 50%, #fffdf5 0%, ${color}cc 7%, ${color}78 24%, ${color}30 50%, ${color}0c 76%, transparent 100%)`
+  const conePlumeBg = `radial-gradient(92% ${plumeRyPct}% at 6% 50%, #fffdf5 0%, ${color}dc 6%, ${color}88 22%, ${color}3b 48%, ${color}10 74%, transparent 100%)`
+  const conePlumeMask = `conic-gradient(from ${startConeDeg}deg at 6% 50%, transparent 0deg, #000 ${penumbra}deg, #000 ${coneDeg + penumbra}deg, transparent ${coneDeg + penumbra * 2}deg)`
+  const surfDiamPct = Math.max(68, Math.min(215, surfRadPct * 2))
 
   const plumeBoxStyle: React.CSSProperties = {
     position: 'absolute',
     left: `${uPct}%`,
     top: `${vPct}%`,
-    width: `${isCone ? Math.round(haloDiamPct * 1.28) : haloDiamPct}%`,
-    height: `${isCone ? Math.round(haloDiamPct * 1.28) : haloDiamPct}%`,
-    transformOrigin: isCone ? '22% 50%' : '50% 50%',
+    width: `${isCone ? Math.round(haloDiamPct * 1.18) : haloDiamPct}%`,
+    height: `${isCone ? Math.round(haloDiamPct * 1.18) : haloDiamPct}%`,
+    transformOrigin: isCone ? '6% 50%' : '50% 50%',
     transform: isCone
-      ? `translate(-22%, -50%) rotate(${-beamDeg}deg)`
+      ? `translate(-6%, -50%) rotate(${-beamDeg}deg)`
       : 'translate(-50%, -50%)',
     borderRadius: isCone ? undefined : '50%',
     pointerEvents: 'none',
@@ -78,7 +81,7 @@ export function Layer2DLightOverlay({
 
   return (
     <>
-      {/* Quầng sáng khí quyển đặt phía sau tấm ảnh (zIndex: 0) để tâm sáng rực từ trong ra ngoài mà không làm đục chi tiết gốc */}
+      {/* Tia khí quyển mỏng phía sau tấm ảnh (zIndex: 0) */}
       {hasVLight && layer.vlight && !isReceived && (
         <div
           style={{
@@ -96,7 +99,7 @@ export function Layer2DLightOverlay({
             position: 'absolute',
             inset: 0,
             pointerEvents: 'none',
-            background: `radial-gradient(${pRxPct}% ${pRyPct}% at ${pUPct}% ${pVPct}%, ${layer.portal.shadowTint} 0%, ${layer.portal.shadowTint}e6 28%, ${layer.portal.shadowTint}80 56%, ${layer.portal.shadowTint}1f 80%, transparent 100%)`,
+            background: `radial-gradient(${pRxPct}% ${pRyPct}% at ${pUPct}% ${pVPct}%, ${layer.portal.shadowTint} 0%, ${layer.portal.shadowTint}e6 30%, ${layer.portal.shadowTint}85 58%, ${layer.portal.shadowTint}1f 82%, transparent 100%)`,
             WebkitMaskImage: imgUrl ? `url("${imgUrl}")` : undefined,
             maskImage: imgUrl ? `url("${imgUrl}")` : undefined,
             WebkitMaskSize: imgUrl ? '100% 100%' : undefined,
@@ -129,8 +132,8 @@ export function Layer2DLightOverlay({
           <div
             style={{
               ...plumeBoxStyle,
-              width: `${isCone ? Math.round(surfDiamPct * 1.25) : surfDiamPct}%`,
-              height: `${isCone ? Math.round(surfDiamPct * 1.25) : surfDiamPct}%`
+              width: `${isCone ? Math.round(surfDiamPct * 1.18) : surfDiamPct}%`,
+              height: `${isCone ? Math.round(surfDiamPct * 1.18) : surfDiamPct}%`
             }}
           />
         </div>

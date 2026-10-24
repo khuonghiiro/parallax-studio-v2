@@ -419,7 +419,7 @@ export function evaluateLayerPhysicsTransform(
   const cfg = layer.physics
   if (!cfg || !cfg.enabled || cfg.material === 'none') {
     return {
-      positionDelta: [0, 0, portal.zDelta],
+      positionDelta: [portal.xDelta, portal.yDelta, portal.zDelta],
       rotationDelta: [0, 0, 0],
       scaleMultiplier: [portal.scaleMultiplier, portal.scaleMultiplier, 1],
       activeImpactCount: 0,
@@ -439,8 +439,8 @@ export function evaluateLayerPhysicsTransform(
   const mass = Math.max(0.1, cfg.mass ?? preset.mass)
   const size = nominalSize ?? layerNominalSize(layer)
 
-  let dx = 0
-  let dy = 0
+  let dx = portal.xDelta
+  let dy = portal.yDelta
   let dz = portal.zDelta
   let rotZ = 0
   const rotX = 0

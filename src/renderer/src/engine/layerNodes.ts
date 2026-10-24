@@ -51,13 +51,15 @@ export function makeLayerMaterial(): THREE.ShaderMaterial {
       lightBoost: { value: 0 },
       lightTint: { value: new THREE.Color('#ffe8b5') },
       portalOn: { value: 0 },
-      portalParams: { value: new THREE.Vector3(0.5, 0.45, 0.35) },
+      portalParams: { value: new THREE.Vector4(0.5, 0.45, 0.35, 0.35) },
+      portalShape: { value: new THREE.Vector2(1, 0.55) },
       portalDarkness: { value: 0 },
       vlightOn: { value: 0 },
       vlightUv: { value: new THREE.Vector2(0.5, 0.5) },
       vlightColor: { value: new THREE.Color('#ff9d3b') },
       vlightParams: { value: new THREE.Vector3(0, 300, -1) },
       vlightBeam: { value: new THREE.Vector2(1, 0) },
+      vlightExtra: { value: new THREE.Vector3(0.24, 0.5, 0) },
       ...sharedUniforms()
     }
   })

@@ -20,10 +20,13 @@ import {
   SUB_MESH_REGION_PRESETS
 } from '../../engine/layerPhysics'
 import {
+  CAVE_PORTAL_PRESETS,
   createDefaultDepthPortal,
   createDefaultVirtualLight,
-  VIRTUAL_LIGHT_PRESETS
+  VIRTUAL_LIGHT_PRESETS,
+  WIND_STRENGTH_VALUES
 } from '../../engine/virtualLight'
+import { VirtualLightInteractivePad } from '../inspector/sections/VirtualLightInteractivePad'
 
 const MATERIAL_OPTIONS: { value: LayerPhysicsMaterial; label: string }[] = [
   { value: 'ground_terrain', label: '⛰️ Mặt đất / Địa hình (Đỡ trọng lực cùng Z)' },
@@ -142,9 +145,17 @@ export function WorkshopPhysicsLightSection({
         next.radius = p.radius
         next.zReach = p.zReach
         next.coneAngleDeg = p.coneAngleDeg
+        next.beamAngleDeg = p.beamAngleDeg
         next.flickerSpeed = p.flickerSpeed
         next.windSensitivity = p.windSensitivity
+        next.windPreset = p.windPreset
+        next.windStrength = WIND_STRENGTH_VALUES[p.windPreset]
+        next.ambientDim = p.ambientDim
+        next.softness = p.softness
       }
+    }
+    if (patch.windPreset && patch.windStrength === undefined) {
+      next.windStrength = WIND_STRENGTH_VALUES[patch.windPreset]
     }
     onUpdateLayer(layer.id, { virtualLight: next })
   }
@@ -357,6 +368,20 @@ export function WorkshopPhysicsLightSection({
         </div>
       )}
 
+      {/* Khung Kéo Thả Trực Quan 2.5D khi bật Cửa Hang hoặc Ánh Sáng Ảo */}
+      {(isPortalOn || isLightOn) && (
+        <VirtualLightInteractivePad
+          imageUrl={layer.imageUrl}
+          layerName={layer.name}
+          vlight={vlight}
+          isLightEnabled={isLightOn}
+          portal={portal}
+          isPortalEnabled={isPortalOn}
+          onPatchLight={patchLight}
+          onPatchPortal={patchPortal}
+        />
+      )}
+
       {/* 2. Cổng Chiều Sâu Hang Động (Cave Depth Portal) */}
       <div className="lw-prop-head" style={{ paddingTop: 6, borderTop: '1px solid var(--line-soft)' }}>
         <span className="lw-prop-title">🕳️ Cửa Hang Động (Thu nhỏ &amp; Bóng tối)</span>
@@ -364,53 +389,64 @@ export function WorkshopPhysicsLightSection({
       </div>
 
       {isPortalOn && (
-        <div className="lw-prop-grid" style={{ marginBottom: 8 }}>
-          <label className="lw-field" title="Tâm cửa hang trên ảnh (U, V từ 0..1)">
-            <span className="lw-field-label">Tâm hang (U / V)</span>
-            <div style={{ display: 'flex', gap: 4 }}>
-              <input
-                className="lw-input"
-                type="number"
-                step={0.05}
-                min={0.05}
-                max={0.95}
-                value={portal.centerUV[0]}
-                onChange={(e) => patchPortal({ centerUV: [Number(e.target.value), portal.centerUV[1]] })}
-              />
-              <input
-                className="lw-input"
-                type="number"
-                step={0.05}
-                min={0.05}
-                max={0.95}
-                value={portal.centerUV[1]}
-                onChange={(e) => patchPortal({ centerUV: [portal.centerUV[0], Number(e.target.value)] })}
-              />
-            </div>
-          </label>
-          <label className="lw-field" title="Tỷ lệ thu nhỏ tối đa & Độ tối bóng hang che phủ">
-            <span className="lw-field-label">Thu nhỏ / Độ tối</span>
-            <div style={{ display: 'flex', gap: 4 }}>
-              <input
-                className="lw-input"
-                type="number"
-                step={0.05}
-                min={0.1}
-                max={0.95}
-                value={portal.minScale}
-                onChange={(e) => patchPortal({ minScale: Number(e.target.value) })}
-              />
-              <input
-                className="lw-input"
-                type="number"
-                step={0.05}
-                min={0}
-                max={0.98}
-                value={portal.darkness}
-                onChange={(e) => patchPortal({ darkness: Number(e.target.value) })}
-              />
-            </div>
-          </label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 8 }}>
+          <div className="lw-chip-row">
+            {Object.values(CAVE_PORTAL_PRESETS).map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                className="lw-chip"
+                title={preset.description}
+                onClick={() => patchPortal({ ...preset.config })}
+              >
+                {preset.badge}
+              </button>
+            ))}
+          </div>
+          <div className="lw-prop-grid">
+            <label className="lw-field" title="Tỷ lệ thu nhỏ tối đa & Độ tối bóng hang che phủ">
+              <span className="lw-field-label">Thu nhỏ / Độ tối</span>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <input
+                  className="lw-input"
+                  type="number"
+                  step={0.05}
+                  min={0.1}
+                  max={0.95}
+                  value={portal.minScale}
+                  onChange={(e) => patchPortal({ minScale: Number(e.target.value) })}
+                />
+                <input
+                  className="lw-input"
+                  type="number"
+                  step={0.05}
+                  min={0}
+                  max={0.98}
+                  value={portal.darkness}
+                  onChange={(e) => patchPortal({ darkness: Number(e.target.value) })}
+                />
+              </div>
+            </label>
+            <label className="lw-field" title="Độ hút sâu Z (px) và màu bóng tối trong hang">
+              <span className="lw-field-label">Hút Z / Màu tối</span>
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                <input
+                  className="lw-input"
+                  type="number"
+                  step={10}
+                  min={0}
+                  max={500}
+                  value={portal.depthPullZ ?? 140}
+                  onChange={(e) => patchPortal({ depthPullZ: Number(e.target.value) })}
+                />
+                <ColorInput
+                  compact
+                  value={portal.shadowTint ?? '#070913'}
+                  onChange={(val) => patchPortal({ shadowTint: val })}
+                />
+              </div>
+            </label>
+          </div>
         </div>
       )}
 
@@ -438,34 +474,39 @@ export function WorkshopPhysicsLightSection({
                 size="sm"
                 value={vlight.windPreset ?? 'gentle'}
                 options={WIND_OPTIONS}
-                onChange={(v) => patchLight({ windPreset: v as WindStrengthPreset })}
+                onChange={(v) =>
+                  patchLight({
+                    windPreset: v as WindStrengthPreset,
+                    windStrength: WIND_STRENGTH_VALUES[v as WindStrengthPreset]
+                  })
+                }
               />
             </div>
           </div>
 
           <div className="lw-field">
             <span className="lw-field-label">
-              Cường độ sáng ({vlight.intensity.toFixed(2)})
+              Cường độ sáng ({vlight.intensity.toFixed(2)}) • Dịu tối ({(vlight.ambientDim ?? 0.24).toFixed(2)})
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <input
                 type="range"
                 min={0.05}
-                max={3.0}
+                max={2.5}
                 step={0.05}
-                value={Math.min(3.0, Math.max(0.05, vlight.intensity))}
+                value={Math.min(2.5, Math.max(0.05, vlight.intensity))}
                 onChange={(e) => patchLight({ intensity: Number(e.target.value) })}
                 style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
               />
               <input
-                className="lw-input"
-                type="number"
+                type="range"
+                min={0}
+                max={0.85}
                 step={0.05}
-                min={0.05}
-                max={3.0}
-                value={vlight.intensity}
-                onChange={(e) => patchLight({ intensity: Number(e.target.value) })}
-                style={{ width: 64 }}
+                value={vlight.ambientDim ?? 0.24}
+                onChange={(e) => patchLight({ ambientDim: Number(e.target.value) })}
+                title="Độ dịu nền tối (Ambient Dim)"
+                style={{ width: 68, accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
               />
             </div>
           </div>
@@ -473,13 +514,11 @@ export function WorkshopPhysicsLightSection({
           <div className="lw-prop-grid">
             <div className="lw-field">
               <span className="lw-field-label">Màu ánh sáng</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <ColorInput
-                  value={vlight.color}
-                  onChange={(val) => patchLight({ color: val })}
-                  title="Màu nguồn sáng ảo"
-                />
-              </div>
+              <ColorInput
+                value={vlight.color}
+                onChange={(val) => patchLight({ color: val })}
+                title="Màu nguồn sáng ảo"
+              />
             </div>
             <label className="lw-field">
               <span className="lw-field-label">Bán kính sáng (px)</span>
@@ -508,7 +547,7 @@ export function WorkshopPhysicsLightSection({
                 onChange={(e) =>
                   patchLight({
                     beamAngleDeg: Number(e.target.value),
-                    coneAngleDeg: (vlight.coneAngleDeg ?? 360) >= 350 ? 85 : vlight.coneAngleDeg
+                    coneAngleDeg: (vlight.coneAngleDeg ?? 360) >= 350 ? 60 : vlight.coneAngleDeg
                   })
                 }
               />

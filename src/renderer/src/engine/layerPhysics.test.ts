@@ -3,6 +3,11 @@ import { createProject, createShot, createSolidLayer } from '../project/factory'
 import { addKeyframe } from '../animation/keyframes'
 import { evaluateScene } from './evaluateScene'
 import {
+  createDefaultVirtualLight,
+  evaluateVirtualLightAtTime,
+  resolveReceivedVirtualLightForLayer
+} from './virtualLight'
+import {
   computeLayerColliderAtTime,
   createDefaultLayerPhysics,
   deformVerticesByPhysics,
@@ -326,6 +331,44 @@ describe('layerPhysics — 2.5D Material Physics, Gravity & Combat Impact Simula
     expect(evalHero.lightIllumination).toBeGreaterThan(0.4)
     expect(evalCandle.vlightEnabled).toBe(true)
     expect(Math.abs(evalCandle.vlightOffsetUV?.[0] ?? 0)).toBeGreaterThan(0.01) // Strong wind leans the candle flame
+  })
+
+  it('reacts to windPreset changes and projects cross-layer 2.5D virtual lights accurately in 3D space', () => {
+    const project = createProject({ width: 1920, height: 1080, duration: 10 })
+    const shot = createShot('Cảnh Đèn & Gió', [0, 0, 0], 0)
+    project.shots.push(shot)
+
+    const candle = createSolidLayer(project.comp)
+    candle.shotId = shot.id
+    candle.props.width = 200
+    candle.props.height = 200
+    candle.transform.position.value = [300, 120, 0]
+    candle.virtualLight = createDefaultVirtualLight('candle')
+    candle.virtualLight.windPreset = 'none'
+    const calmEval = evaluateVirtualLightAtTime(candle, 1.25)
+
+    candle.virtualLight.windPreset = 'storm'
+    const stormEval = evaluateVirtualLightAtTime(candle, 1.25)
+    expect(Math.abs(stormEval!.windOffset[0])).toBeGreaterThan(Math.abs(calmEval!.windOffset[0]) + 5)
+
+    const wall = createSolidLayer(project.comp)
+    wall.shotId = shot.id
+    wall.props.width = 1000
+    wall.props.height = 800
+    wall.transform.position.value = [100, 20, -60]
+    project.layers.push(candle, wall)
+
+    const received = resolveReceivedVirtualLightForLayer(
+      wall.id,
+      [100, 20, -60],
+      1000,
+      800,
+      0,
+      [calmEval!]
+    )
+    expect(received).not.toBeNull()
+    expect(received!.relU).toBeCloseTo(0.7, 1)
+    expect(received!.relV).toBeCloseTo(0.625, 1)
   })
 })
 

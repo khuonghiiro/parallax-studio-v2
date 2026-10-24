@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import type { Project } from '@shared/types'
 import { evaluate } from '../animation/keyframes'
 import { referenceDistance } from '../animation/math'
-import { evaluateCamera, type EvaluatedScene } from './evaluateScene'
+import { evaluateCamera, type EvaluatedLayer, type EvaluatedScene } from './evaluateScene'
 import { DEG, depthToThree } from './spatial'
 
 export interface ScreenLabel {
@@ -43,6 +43,122 @@ const PLANE_CORNERS: [number, number][] = [
 ]
 const CAMERA_COLOR = new THREE.Color('#3dd6f5')
 const PATH_COLOR = new THREE.Color('#ffc24b')
+
+/** Vẽ Gizmo 3D cho Nguồn sáng ảo 2.5D (kèm tia Z-Reach) và Phễu Chiều Sâu Hang Động (Cave Depth Portal). */
+function appendLayerLightAndPortalGizmos(
+  el: EvaluatedLayer,
+  matrix: THREE.Matrix4,
+  lp: number[],
+  lc: number[],
+  tmp: THREE.Vector3
+): void {
+  const pushSeg = (a: number[], b: number[], r: number, g: number, bl: number): void => {
+    lp.push(a[0], a[1], a[2], b[0], b[1], b[2])
+    lc.push(r, g, bl, r, g, bl)
+  }
+
+  // 1. Gizmo 3D cho Nguồn sáng ảo 2.5D
+  const vl = el.layer.virtualLight
+  if (vl?.enabled && vl.kind !== 'none' && (vl.intensity ?? 0) > 0.01) {
+    const lCol = new THREE.Color(vl.color || '#ff9d3b')
+    const offU = el.vlightOffsetUV?.[0] ?? 0
+    const offV = el.vlightOffsetUV?.[1] ?? 0
+    const u0 = Math.max(-0.48, Math.min(0.48, (vl.originUV?.[0] ?? 0.5) - 0.5 + offU))
+    const v0 = Math.max(-0.48, Math.min(0.48, (vl.originUV?.[1] ?? 0.5) - 0.5 + offV))
+    const worldW = Math.max(64, el.size[0] * Math.abs(el.scale[0]))
+    const worldH = Math.max(64, el.size[1] * Math.abs(el.scale[1]))
+    const rNormX = Math.min(1.35, Math.max(0.14, (vl.radius || 320) / worldW)) * 0.5
+    const rNormY = Math.min(1.35, Math.max(0.14, (vl.radius || 320) / worldH)) * 0.5
+    const coneDeg = vl.coneAngleDeg ?? 360
+    const beamRad = ((vl.beamAngleDeg ?? 0) * Math.PI) / 180
+    const origPt = tmp.set(u0, v0, 0.01).applyMatrix4(matrix).toArray()
+
+    // Tâm đèn hình thoi nhỏ + trục lan tỏa độ sâu Z (±zReach)
+    const dSz = 0.028
+    const dLeft = tmp.set(u0 - dSz, v0, 0.01).applyMatrix4(matrix).toArray()
+    const dRight = tmp.set(u0 + dSz, v0, 0.01).applyMatrix4(matrix).toArray()
+    const dTop = tmp.set(u0, v0 + dSz, 0.01).applyMatrix4(matrix).toArray()
+    const dBot = tmp.set(u0, v0 - dSz, 0.01).applyMatrix4(matrix).toArray()
+    pushSeg(dLeft, dRight, 1, 0.96, 0.82)
+    pushSeg(dBot, dTop, 1, 0.96, 0.82)
+
+    const zReach = Math.max(40, vl.zReach ?? 280)
+    const zFront = tmp.set(u0, v0, zReach).applyMatrix4(matrix).toArray()
+    const zBack = tmp.set(u0, v0, -zReach).applyMatrix4(matrix).toArray()
+    pushSeg(zFront, zBack, lCol.r * 0.75, lCol.g * 0.75, lCol.b * 0.75)
+
+    if (coneDeg < 350) {
+      const halfRad = (Math.max(12, coneDeg) * 0.5 * Math.PI) / 180
+      const startA = beamRad - halfRad
+      const endA = beamRad + halfRad
+      const segs = 14
+      const rStart = tmp.set(u0 + Math.cos(startA) * rNormX, v0 + Math.sin(startA) * rNormY, 0.01).applyMatrix4(matrix).toArray()
+      const rEnd = tmp.set(u0 + Math.cos(endA) * rNormX, v0 + Math.sin(endA) * rNormY, 0.01).applyMatrix4(matrix).toArray()
+      pushSeg(origPt, rStart, lCol.r, lCol.g, lCol.b)
+      pushSeg(origPt, rEnd, lCol.r, lCol.g, lCol.b)
+      for (let s = 0; s < segs; s++) {
+        const a0 = startA + ((endA - startA) * s) / segs
+        const a1 = startA + ((endA - startA) * (s + 1)) / segs
+        const p0 = tmp.set(u0 + Math.cos(a0) * rNormX, v0 + Math.sin(a0) * rNormY, 0.01).applyMatrix4(matrix).toArray()
+        const p1 = tmp.set(u0 + Math.cos(a1) * rNormX, v0 + Math.sin(a1) * rNormY, 0.01).applyMatrix4(matrix).toArray()
+        pushSeg(p0, p1, lCol.r, lCol.g, lCol.b)
+      }
+      const tip = tmp.set(u0 + Math.cos(beamRad) * rNormX * 1.08, v0 + Math.sin(beamRad) * rNormY * 1.08, 0.01).applyMatrix4(matrix).toArray()
+      pushSeg(origPt, tip, 1, 0.96, 0.8)
+    } else {
+      const segs = 20
+      for (let s = 0; s < segs; s++) {
+        const a0 = (s / segs) * Math.PI * 2
+        const a1 = ((s + 1) / segs) * Math.PI * 2
+        const p0 = tmp.set(u0 + Math.cos(a0) * rNormX, v0 + Math.sin(a0) * rNormY, 0.01).applyMatrix4(matrix).toArray()
+        const p1 = tmp.set(u0 + Math.cos(a1) * rNormX, v0 + Math.sin(a1) * rNormY, 0.01).applyMatrix4(matrix).toArray()
+        pushSeg(p0, p1, lCol.r, lCol.g, lCol.b)
+      }
+    }
+  }
+
+  // 2. Gizmo 3D cho Lối Vào Hang Động & Phễu Độ Sâu 2.5D (Cave Depth Portal)
+  const portal = el.layer.physics?.depthPortal
+  if (portal?.enabled) {
+    const cu = (portal.centerUV?.[0] ?? 0.5) - 0.5
+    const cv = (portal.centerUV?.[1] ?? 0.45) - 0.5
+    const rx = Array.isArray(portal.radiusUV) ? portal.radiusUV[0] : (portal.radiusUV ?? 0.35)
+    const ry = Array.isArray(portal.radiusUV) ? portal.radiusUV[1] : (portal.radiusUV ?? 0.35)
+    const minSc = Math.max(0.15, Math.min(0.92, portal.minScale ?? 0.38))
+    const pullZ = -Math.max(40, portal.depthPullZ ?? 120)
+    const segs = 16
+    const isArch = (portal.archShape ?? 'arch') === 'arch'
+
+    for (let s = 0; s < segs; s++) {
+      const a0 = (s / segs) * Math.PI * 2
+      const a1 = ((s + 1) / segs) * Math.PI * 2
+      const sin0 = Math.sin(a0)
+      const sin1 = Math.sin(a1)
+      const arch0 = isArch ? 1 - Math.max(-0.5, Math.min(0.5, sin0)) * 0.14 : 1
+      const arch1 = isArch ? 1 - Math.max(-0.5, Math.min(0.5, sin1)) * 0.14 : 1
+      const x0 = cu + Math.cos(a0) * rx * arch0
+      const y0 = cv + sin0 * ry
+      const x1 = cu + Math.cos(a1) * rx * arch1
+      const y1 = cv + sin1 * ry
+
+      const f0 = tmp.set(x0, y0, 0.01).applyMatrix4(matrix).toArray()
+      const f1 = tmp.set(x1, y1, 0.01).applyMatrix4(matrix).toArray()
+      pushSeg(f0, f1, 0.22, 0.74, 0.97)
+
+      const bx0 = cu + (x0 - cu) * minSc
+      const by0 = cv + (y0 - cv) * minSc
+      const bx1 = cu + (x1 - cu) * minSc
+      const by1 = cv + (y1 - cv) * minSc
+      const b0 = tmp.set(bx0, by0, pullZ).applyMatrix4(matrix).toArray()
+      const b1 = tmp.set(bx1, by1, pullZ).applyMatrix4(matrix).toArray()
+      pushSeg(b0, b1, 0.51, 0.55, 0.97)
+
+      if (s % 4 === 0) {
+        pushSeg(f0, b0, 0.36, 0.65, 0.97)
+      }
+    }
+  }
+}
 
 /**
  * Gizmos for the After-Effects-style 3D view: layer outlines, shot frustum boxes, the active
@@ -89,7 +205,7 @@ export class EditorHelpers {
     const tmp = new THREE.Vector3()
     const col = new THREE.Color()
 
-    // ---- layer outlines
+    // ---- layer outlines & 2.5D light/cave gizmos
     const lp: number[] = []
     const lc: number[] = []
     const selLayer = opts.selectedId ? ev.layers.find((l) => l.layer.id === opts.selectedId) : undefined
@@ -109,49 +225,7 @@ export class EditorHelpers {
         lp.push(...pts[i], ...pts[(i + 1) % 4])
         lc.push(col.r, col.g, col.b, col.r, col.g, col.b)
       }
-      // Draw 3D virtual light radius ring or directional cone gizmo on layers with active virtualLight
-      const vl = el.layer.virtualLight
-      if (vl?.enabled && vl.kind !== 'none' && (vl.intensity ?? 0) > 0.01) {
-        const lCol = new THREE.Color(vl.color || '#ff9d3b')
-        const u0 = (vl.originUV?.[0] ?? 0.5) - 0.5
-        const v0 = (vl.originUV?.[1] ?? 0.5) - 0.5
-        const rNormX = Math.min(1.4, Math.max(0.18, (vl.radius || 320) / Math.max(64, el.size[0] * Math.abs(el.scale[0])))) * 0.5
-        const rNormY = Math.min(1.4, Math.max(0.18, (vl.radius || 320) / Math.max(64, el.size[1] * Math.abs(el.scale[1])))) * 0.5
-        const coneDeg = vl.coneAngleDeg ?? 360
-        const beamRad = ((vl.beamAngleDeg ?? 0) * Math.PI) / 180
-        const origPt = tmp.set(u0, v0, 0.01).applyMatrix4(info.matrix).toArray()
-        if (coneDeg < 350) {
-          const halfRad = (Math.max(12, coneDeg) * 0.5 * Math.PI) / 180
-          const startA = beamRad - halfRad
-          const endA = beamRad + halfRad
-          const segs = 12
-          const rStart = tmp.set(u0 + Math.cos(startA) * rNormX, v0 + Math.sin(startA) * rNormY, 0.01).applyMatrix4(info.matrix).toArray()
-          const rEnd = tmp.set(u0 + Math.cos(endA) * rNormX, v0 + Math.sin(endA) * rNormY, 0.01).applyMatrix4(info.matrix).toArray()
-          lp.push(...origPt, ...rStart, ...origPt, ...rEnd)
-          lc.push(lCol.r, lCol.g, lCol.b, lCol.r, lCol.g, lCol.b, lCol.r, lCol.g, lCol.b, lCol.r, lCol.g, lCol.b)
-          for (let s = 0; s < segs; s++) {
-            const a0 = startA + ((endA - startA) * s) / segs
-            const a1 = startA + ((endA - startA) * (s + 1)) / segs
-            const p0 = tmp.set(u0 + Math.cos(a0) * rNormX, v0 + Math.sin(a0) * rNormY, 0.01).applyMatrix4(info.matrix).toArray()
-            const p1 = tmp.set(u0 + Math.cos(a1) * rNormX, v0 + Math.sin(a1) * rNormY, 0.01).applyMatrix4(info.matrix).toArray()
-            lp.push(...p0, ...p1)
-            lc.push(lCol.r, lCol.g, lCol.b, lCol.r, lCol.g, lCol.b)
-          }
-          const tip = tmp.set(u0 + Math.cos(beamRad) * rNormX * 1.08, v0 + Math.sin(beamRad) * rNormY * 1.08, 0.01).applyMatrix4(info.matrix).toArray()
-          lp.push(...origPt, ...tip)
-          lc.push(1, 0.96, 0.8, 1, 0.96, 0.8)
-        } else {
-          const segs = 16
-          for (let s = 0; s < segs; s++) {
-            const a0 = (s / segs) * Math.PI * 2
-            const a1 = ((s + 1) / segs) * Math.PI * 2
-            const p0 = tmp.set(u0 + Math.cos(a0) * rNormX, v0 + Math.sin(a0) * rNormY, 0.01).applyMatrix4(info.matrix).toArray()
-            const p1 = tmp.set(u0 + Math.cos(a1) * rNormX, v0 + Math.sin(a1) * rNormY, 0.01).applyMatrix4(info.matrix).toArray()
-            lp.push(...p0, ...p1)
-            lc.push(lCol.r, lCol.g, lCol.b, lCol.r, lCol.g, lCol.b)
-          }
-        }
-      }
+      appendLayerLightAndPortalGizmos(el, info.matrix, lp, lc, tmp)
     }
     EditorHelpers.setGeometry(this.layerLines, lp, lc)
 
@@ -176,7 +250,6 @@ export class EditorHelpers {
       const fb = !frontBox.isEmpty() ? frontBox : b
       const bb = !backBox.isEmpty() ? backBox : b
 
-      // Trong Three.js world space: b.max.z là mặt tiền cảnh (gần camera), b.min.z là mặt hậu cảnh (xa camera)
       const corners = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
         const isFront = Boolean(i & 4)
         const ref = isFront ? fb : bb
