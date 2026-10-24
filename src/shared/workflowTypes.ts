@@ -9,7 +9,6 @@
  *   (thông qua MCP) hiểu rõ luồng xử lý, ngữ cảnh đầu vào/đầu ra và tự động thực thi
  *   đúng kịch bản mà không cần phơi bày hàng trăm tham số rời rạc.
  */
-
 export type WorkflowPortKind =
   | 'scene_ctx'
   | 'actors_rig'
@@ -19,7 +18,6 @@ export type WorkflowPortKind =
   | 'audio_mix'
   | 'layers_tree'
   | 'transform_link'
-
 export type WorkflowNodeType =
   | 'scene_shot'
   | 'layer_assembly'
@@ -29,7 +27,6 @@ export type WorkflowNodeType =
   | 'audio_lipsync'
   | 'look_output'
   | 'layer_transform'
-
 export type WorkflowAgentRole =
   | 'SceneLayoutAgent'
   | 'AssemblyRigAgent'
@@ -39,7 +36,6 @@ export type WorkflowAgentRole =
   | 'AudioLipSyncAgent'
   | 'ColorGradingRenderAgent'
   | 'LayerTransformAgent'
-
 export type WorkflowTargetKind =
   | 'composite_25d'
   | 'model_3d'
@@ -50,7 +46,6 @@ export type WorkflowTargetKind =
   | 'audio_track'
   | 'camera_3d'
   | 'look_post'
-
 export interface WorkflowBoundTarget {
   /** ID của Layer, Composite instanceId, Model3D instanceId, Shot hoặc AudioTrack */
   id: string
@@ -69,7 +64,6 @@ export interface WorkflowBoundTarget {
   /** True nếu do người dùng chủ động tích chọn thủ công */
   isExplicit?: boolean
 }
-
 export interface WorkflowSubPartItem {
   id: string
   label: string
@@ -86,7 +80,6 @@ export interface WorkflowSubPartItem {
   description: string
   active: boolean
 }
-
 export type WorkflowCustomActionKind =
   | 'wind'
   | 'drift'
@@ -102,7 +95,6 @@ export type WorkflowCustomActionKind =
   | 'virtual_light_flashlight'
   | 'rim_glow'
   | 'mesh_elastic' | 'depth_portal' | 'billboard_y'
-
 export interface WorkflowCustomActionRule {
   id: string
   label: string
@@ -113,7 +105,6 @@ export interface WorkflowCustomActionRule {
   amount?: number
   enabled: boolean
 }
-
 export interface WorkflowNodeParams {
   /** Cường độ tổng thể của khâu xử lý (0.1 .. 2.5, mặc định 1.0) */
   intensity?: number
@@ -178,8 +169,31 @@ export interface WorkflowNodeParams {
   assemblyKind?: 'composite' | 'model3d'
   /** Tổng số lượng layer/mặt con thuộc cụm lắp ráp */
   childLayerCount?: number
+  /** [Workflow V2] Mốc thời gian bắt đầu (giây) của Node trên đường kẻ thời gian */
+  timeStart?: number
+  /** [Workflow V2] Mốc thời gian kết thúc (giây) của Node trên đường kẻ thời gian */
+  timeEnd?: number
+  /** [Workflow V2] Phân loại Node Group Layer ('group_3d' | 'group_25d' | 'group_env') */
+  groupKind?: 'group_3d' | 'group_25d' | 'group_env'
+  /** [Workflow V2] Trạng thái thu gọn nhánh con của Group hoặc Layer */
+  collapsedGroup?: boolean
+  /** [Workflow V2] Phân loại Node Logic gắn vào Layer ('action' | 'light' | 'cave' | 'fx' | 'audio' | 'camera') */
+  logicCategory?: 'action' | 'light' | 'cave' | 'fx' | 'audio' | 'camera'
+  /** [Workflow V2] Mã kiểu hành động của Node Hành động */
+  actionPreset?: string
+  /** [Workflow V2] Chế độ chiếu sáng của Node Ánh sáng */
+  lightMode?: 'rim' | 'point' | 'spot' | 'candle' | 'glow' | 'cave_crystal'
+  /** [Workflow V2] Mã màu HEX của Node Ánh sáng */
+  lightColor?: string
+  /** [Workflow V2] Hình dáng vòm cửa hang của Node Hang động */
+  caveArchShape?: 'arch' | 'ellipse' | 'circle'
+  /** [Workflow V2] Độ tối lòng hang (0..1) của Node Hang động */
+  caveDarkness?: number
+  /** [Workflow V2] Tỉ lệ thu nhỏ phối cảnh khi đi vào hang (0.15..0.9) */
+  caveMinScale?: number
+  /** [Workflow V2] Loại hiệu ứng của Node Hiệu ứng */
+  fxKind?: 'wind_physics' | 'bloom' | 'blur' | 'chromatic' | 'vignette' | 'particles'
 }
-
 export interface WorkflowNode {
   id: string
   type: WorkflowNodeType
@@ -195,7 +209,6 @@ export interface WorkflowNode {
   /** Tham số tinh chỉnh gọn nhẹ (không bắt buộc) */
   params?: WorkflowNodeParams
 }
-
 export interface WorkflowEdge {
   id: string
   fromNode: string
@@ -203,7 +216,6 @@ export interface WorkflowEdge {
   toNode: string
   toPort: WorkflowPortKind
 }
-
 export interface WorkflowGraph {
   version: 1
   id: string
@@ -215,7 +227,6 @@ export interface WorkflowGraph {
   targetShotId?: string
   lastAppliedAt?: string
 }
-
 export interface WorkflowAiAgentStep {
   step: number
   nodeId: string
@@ -235,7 +246,6 @@ export interface WorkflowAiAgentStep {
   recommendedMcpTools: string[]
   mcpActionHint: Record<string, unknown>
 }
-
 export interface WorkflowAiBlueprint {
   workflowId: string
   workflowName: string
@@ -248,7 +258,6 @@ export interface WorkflowAiBlueprint {
   executionOrder: string[]
   agents: WorkflowAiAgentStep[]
 }
-
 export interface WorkflowExecutionStageResult {
   nodeId: string
   nodeType: WorkflowNodeType
@@ -258,7 +267,6 @@ export interface WorkflowExecutionStageResult {
   appliedSummary: string
   affectedCount: number
 }
-
 export interface WorkflowExecutionReport {
   ok: boolean
   workflowId: string

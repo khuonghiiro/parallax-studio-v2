@@ -1,259 +1,997 @@
-/* ==========================================================================
-   Parallax Studio - Modern ComfyUI & n8n Workflow Node UX Styles
-   Adhering to Dual-Theme (Dark & Light), Unified Geometry & Code-Modularization
-   ========================================================================== */
-
-/* ------------------------------------------------------------------ n8n-Style Floating Quick Action Toolbar */
-
-.wf-node-floating-toolbar {
-  position: absolute;
-  top: -27px;
-  right: 0;
+/* ============================================================================
+ * WORKFLOW STUDIO V2 — HIERARCHICAL TIME-DRIVEN SCENE TREE
+ * (Đường kẻ mốc thời gian + Cảnh Root + Group Layer + Node Layer + Node Logic)
+ * Hỗ trợ đầy đủ cả Dark Theme & Light Theme theo chuẩn Design Tokens
+ * ============================================================================ */
+.wf-v2-studio {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-1);
+  color: var(--text);
+  overflow: hidden;
+}
+/* 1. THANH CÔNG CỤ ĐỈNH (TOP TOOLBAR) */
+.wf-v2-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  overflow: visible;
+}
+.wf-v2-status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 2px 3px;
+  height: 24px;
+  padding: 0 8px;
   border-radius: var(--radius-sm);
-  background: var(--bg-1);
-  border: 1px solid color-mix(in srgb, var(--wf-node-color, var(--accent)) 55%, var(--line));
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32);
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(3px);
-  transition: opacity 0.14s ease, transform 0.14s ease;
-  z-index: 45;
+  font-size: 11px;
+  font-weight: 700;
+  color: #10b981;
+  background: color-mix(in srgb, #10b981 14%, var(--bg-3));
+  border: 1px solid color-mix(in srgb, #10b981 36%, var(--line));
+  white-space: nowrap;
+  flex-shrink: 0;
 }
-
-.wf-node-card:hover .wf-node-floating-toolbar,
-.wf-node-card.selected .wf-node-floating-toolbar {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
+.wf-v2-shot-switcher {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 4px;
 }
-
-.wf-float-act-btn {
-  height: 19px;
-  padding: 0 6px;
-  border-radius: 3px;
-  border: 1px solid transparent;
-  background: var(--bg-2);
+.wf-v2-shot-label {
+  font-size: 11px;
+  font-weight: 700;
   color: var(--text-dim);
-  font-family: var(--font-ui);
-  font-size: 9px;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
   white-space: nowrap;
-  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  margin-right: 2px;
 }
-
-.wf-float-act-btn:hover {
-  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
-  color: #ffffff;
-  border-color: var(--accent);
-}
-
-.wf-float-act-btn.accent {
-  background: color-mix(in srgb, var(--wf-node-color, var(--accent-cyan)) 18%, var(--bg-2));
-  color: var(--text);
-  border-color: color-mix(in srgb, var(--wf-node-color, var(--accent-cyan)) 48%, var(--line));
-}
-
-.wf-float-act-btn.accent:hover {
-  background: color-mix(in srgb, var(--wf-node-color, var(--accent-cyan)) 78%, #0f172a);
-  color: #ffffff;
-  border-color: var(--wf-node-color, var(--accent-cyan));
-}
-
-.wf-float-act-btn.danger:hover {
-  background: color-mix(in srgb, var(--danger) 82%, #0f172a);
-  color: #ffffff;
-  border-color: var(--danger);
-}
-
-/* ------------------------------------------------------------------ n8n-Style Right-Edge [+] Quick-Add Handle */
-
-.wf-n8n-plus-btn {
-  position: absolute;
-  right: -28px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: inline-flex;
-  align-items: center;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  z-index: 30;
-  opacity: 0.72;
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-
-.wf-node-card:hover .wf-n8n-plus-btn,
-.wf-node-card.selected .wf-n8n-plus-btn,
-.wf-n8n-plus-btn:hover {
-  opacity: 1;
-}
-
-.wf-n8n-plus-stem {
-  width: 8px;
-  height: 2px;
-  background: color-mix(in srgb, var(--wf-node-color, var(--accent-cyan)) 75%, var(--line));
-}
-
-.wf-n8n-plus-circle {
-  width: 20px;
-  height: 20px;
+.wf-v2-shot-btn {
+  height: 24px;
+  padding: 0 8px;
   border-radius: var(--radius-sm);
-  border: 1.5px solid color-mix(in srgb, var(--wf-node-color, var(--accent-cyan)) 75%, var(--line));
-  background: var(--bg-1);
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
-  transition: background 0.14s ease, color 0.14s ease, transform 0.14s ease, box-shadow 0.14s ease;
-}
-
-.wf-n8n-plus-btn:hover .wf-n8n-plus-circle {
-  background: color-mix(in srgb, var(--wf-node-color, var(--accent-cyan)) 78%, #0f172a);
-  color: #ffffff;
-  border-color: var(--wf-node-color, var(--accent-cyan));
-  transform: scale(1.12);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--wf-node-color, var(--accent-cyan)) 65%, transparent);
-}
-
-/* ------------------------------------------------------------------ Compact Layer Row & ComfyUI Inline Scrubbers */
-
-.wf-layer-drop-zone.compact {
-  min-height: 40px;
-  padding: 3px 5px;
-  gap: 6px;
-}
-
-.wf-layer-drop-zone.compact .wf-layer-thumb-wrap {
-  width: 34px;
-  height: 34px;
-}
-
-.wf-layer-quick-btns {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.wf-layer-replace-btn.active {
-  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
-  color: #ffffff;
-  border-color: var(--accent);
-}
-
-.wf-comfy-scrubber-box {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 3px 6px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-2);
   border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 145px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
-.wf-comfy-scrubber-row {
+.wf-v2-shot-btn:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
+}
+.wf-v2-shot-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+.wf-v2-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.wf-v2-toolbar-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--line);
+  margin: 0 2px;
+}
+.wf-v2-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 25px;
+  padding: 0 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+}
+.wf-v2-tool-btn:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-3));
+}
+.wf-v2-tool-btn.spawn-action {
+  border-color: color-mix(in srgb, #10b981 45%, var(--line));
+  color: color-mix(in srgb, #10b981 80%, var(--text));
+}
+.wf-v2-tool-btn.spawn-action:hover {
+  background: color-mix(in srgb, #10b981 78%, #0f172a);
+  color: #ffffff;
+}
+.wf-v2-tool-btn.spawn-light {
+  border-color: color-mix(in srgb, #f59e0b 45%, var(--line));
+  color: color-mix(in srgb, #f59e0b 80%, var(--text));
+}
+.wf-v2-tool-btn.spawn-light:hover {
+  background: color-mix(in srgb, #f59e0b 78%, #0f172a);
+  color: #ffffff;
+}
+.wf-v2-tool-btn.spawn-fx {
+  border-color: color-mix(in srgb, #a855f7 45%, var(--line));
+  color: color-mix(in srgb, #a855f7 80%, var(--text));
+}
+.wf-v2-tool-btn.spawn-fx:hover {
+  background: color-mix(in srgb, #a855f7 78%, #0f172a);
+  color: #ffffff;
+}
+.wf-v2-tool-btn.primary-apply {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+.wf-v2-tool-btn.primary-apply:hover {
+  filter: brightness(1.08);
+}
+/* 2. BỐ CỤC THÂN CHÍNH & SIDEBAR BÊN TRÁI */
+.wf-v2-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.wf-v2-sidebar {
+  width: 224px;
+  background: var(--bg-2);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: width 0.15s ease;
+}
+.wf-v2-sidebar.collapsed {
+  width: 34px;
+}
+.wf-v2-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 30px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--line);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--text-dim);
+}
+.wf-v2-collapse-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text);
+  font-size: 10px;
+  cursor: pointer;
+}
+.wf-v2-sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.wf-v2-sec-title {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-dim);
+  margin-bottom: 5px;
+  letter-spacing: 0.03em;
+}
+.wf-v2-add-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.wf-v2-add-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.wf-v2-add-card:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
+}
+.wf-v2-add-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.wf-v2-add-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.wf-v2-add-info strong {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+}
+.wf-v2-add-info small {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wf-v2-tree-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.wf-v2-tree-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 18px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
 }
-
-.wf-comfy-scrubber-lbl {
-  font-size: 8.5px;
-  font-weight: 700;
-  color: var(--depth-c, var(--accent-cyan));
-  min-width: 48px;
-  flex-shrink: 0;
-  white-space: nowrap;
+.wf-v2-tree-item.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-3));
 }
-
-.wf-comfy-scrubber-lbl.axis-x { color: #f87171; }
-.wf-comfy-scrubber-lbl.axis-y { color: #4ade80; }
-.wf-comfy-scrubber-lbl.axis-rot { color: #fbbf24; }
-
-.wf-comfy-scrubber-row .wf-transform-slider-input {
+.wf-v2-tree-name {
   flex: 1;
   min-width: 0;
-  height: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
-.wf-comfy-scrubber-val {
-  font-family: var(--mono);
-  font-size: 8.5px;
-  font-weight: 700;
-  color: var(--text);
+.wf-v2-tree-count {
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
   background: var(--bg-1);
-  border: 1px solid var(--line-soft);
-  border-radius: 3px;
-  padding: 0 4px;
-  min-width: 36px;
-  text-align: right;
-  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
 }
-
-.wf-comfy-extra-axes {
+/* 3. ĐƯỜNG KẺ MỐC THỜI GIAN (MASTER TIME RULER) */
+.wf-v2-canvas-shell {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2.5px;
-  padding-top: 3px;
-  border-top: 1px dashed var(--line-soft);
+  position: relative;
+  overflow: hidden;
 }
-
-/* ------------------------------------------------------------------ 1-Click Attach & Scene Unpack CTA Buttons */
-
-.wf-main-attach-cta-btn,
-.wf-scene-unpack-inline-btn {
-  width: 100%;
+.wf-v2-ruler-bar {
+  display: flex;
+  align-items: stretch;
+  height: 32px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  user-select: none;
+  z-index: 30;
+}
+.wf-v2-ruler-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 230px;
+  padding: 0 8px;
+  border-right: 1px solid var(--line);
+  background: var(--bg-2);
+  flex-shrink: 0;
+}
+.wf-v2-play-btn {
   height: 22px;
   padding: 0 8px;
   border-radius: var(--radius-sm);
-  border: 1px dashed color-mix(in srgb, var(--wf-node-color, var(--accent-cyan)) 55%, var(--line));
-  background: color-mix(in srgb, var(--wf-node-color, var(--accent-cyan)) 10%, var(--bg-2));
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.wf-v2-play-btn.playing {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #0f172a;
+}
+.wf-v2-zero-btn {
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
   color: var(--text);
-  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.wf-v2-time-readout {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.wf-v2-time-cur {
+  color: var(--accent-cyan, #38bdf8);
+}
+.wf-v2-time-sep,
+.wf-v2-time-max {
+  color: var(--text-dim);
+}
+.wf-v2-active-badge {
+  margin-left: auto;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  font-size: 9.5px;
+  font-weight: 700;
+  background: color-mix(in srgb, #10b981 16%, var(--bg-3));
+  color: #10b981;
+  white-space: nowrap;
+}
+.wf-v2-ruler-track {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  margin: 0 12px;
+  cursor: ew-resize;
+  overflow: visible;
+}
+.wf-v2-ruler-shot {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-left: 1px dashed var(--line);
+  border-right: 1px dashed var(--line);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  pointer-events: none;
+}
+.wf-v2-ruler-shot-tag {
+  position: absolute;
+  top: 1px;
+  left: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-faint);
+}
+.wf-v2-ruler-tick {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  background: var(--line);
+  pointer-events: none;
+}
+.wf-v2-ruler-tick.major {
+  height: 11px;
+  background: var(--text-faint);
+}
+.wf-v2-ruler-tick.minor {
+  height: 5px;
+}
+.wf-v2-ruler-tick-label {
+  position: absolute;
+  bottom: 11px;
+  transform: translateX(-50%);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.wf-v2-ruler-tick-label.edge-left {
+  transform: translateX(0);
+}
+.wf-v2-ruler-tick-label.edge-right {
+  transform: translateX(-100%);
+}
+/* Thanh khoảng mốc của Node đang chọn trên Thước đo */
+.wf-v2-ruler-node-span {
+  position: absolute;
+  top: 4px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 75%, #0f172a);
+  border: 1px solid #38bdf8;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  z-index: 4;
+  padding: 0 8px;
+}
+.wf-v2-ruler-span-text {
+  font-size: 9.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+.wf-v2-ruler-span-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  background: #38bdf8;
+  cursor: ew-resize;
+}
+.wf-v2-ruler-span-handle.left {
+  left: 0;
+  border-radius: 3px 0 0 3px;
+}
+.wf-v2-ruler-span-handle.right {
+  right: 0;
+  border-radius: 0 3px 3px 0;
+}
+/* Kim thời gian (Playhead) trên thước đo & chạy dọc xuống canvas */
+.wf-v2-ruler-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #f43f5e;
+  z-index: 8;
+  pointer-events: none;
+}
+.wf-v2-ruler-playhead-cap {
+  position: absolute;
+  top: 1px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #f43f5e;
+  color: #ffffff;
+  font-size: 9.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.wf-v2-vertical-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  background: color-mix(in srgb, #f43f5e 55%, transparent);
+  pointer-events: none;
+  z-index: 5;
+}
+/* 4. KHUNG VẼ CÂY PHÂN CẤP 4 CỘT */
+.wf-v2-viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background-color: var(--bg-0);
+  background-image: radial-gradient(var(--line) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.wf-v2-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2200px;
+  height: 1800px;
+}
+.wf-v2-col-banner {
+  position: absolute;
+  top: 8px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg-2) 90%, transparent);
+  border: 1px dashed var(--line);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+/* 5. SỢI DÂY KẾT NỐI TRÁI -> PHẢI & NHÃN MỐC THỜI GIAN */
+.wf-v2-edges-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.wf-v2-edge-bg {
+  fill: none;
+  stroke-width: 5px;
+  opacity: 0.16;
+}
+.wf-v2-edge-fg {
+  fill: none;
+  stroke-width: 2.2px;
+  opacity: 0.72;
+}
+.wf-v2-edge-fg.flowing {
+  stroke-width: 2.8px;
+  opacity: 1;
+  stroke-dasharray: 7 4;
+  animation: wfV2FlowDash 0.8s linear infinite;
+}
+@keyframes wfV2FlowDash {
+  from {
+    stroke-dashoffset: 22;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.wf-v2-edge-dragging {
+  fill: none;
+  stroke: var(--accent-cyan, #38bdf8);
+  stroke-width: 2.5px;
+  stroke-dasharray: 5 4;
+}
+.wf-v2-edge-time-badge {
+  pointer-events: all;
+  cursor: pointer;
+}
+.wf-v2-edge-pill-rect {
+  fill: var(--bg-2);
+  stroke-width: 1.2px;
+}
+.wf-v2-edge-pill-text {
+  font-size: 9.5px;
+  font-weight: 700;
+  fill: var(--text);
+}
+/* 6. THẺ NODE 4 TẦNG (ROOT / GROUP / LAYER / LOGIC) */
+.wf-v2-card {
+  position: absolute;
+  width: 276px;
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-2);
+  border: 1.5px solid color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 42%, var(--line));
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+  color: var(--text);
+  user-select: none;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  z-index: 10;
+}
+.wf-v2-card:hover {
+  border-color: var(--wf-v2-accent, var(--accent));
+}
+.wf-v2-card.selected {
+  border-color: var(--wf-v2-accent, var(--accent));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 35%, transparent),
+    0 8px 22px rgba(0, 0, 0, 0.32);
+  z-index: 15;
+}
+.wf-v2-card.active-at-time {
+  border-color: var(--wf-v2-accent, var(--accent));
+}
+.wf-v2-card.disabled {
+  opacity: 0.52;
+}
+/* Cổng kết nối Trái / Phải */
+.wf-v2-socket {
+  position: absolute;
+  top: 28px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-1);
+  border: 2px solid var(--wf-v2-accent, var(--accent));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: crosshair;
+  z-index: 20;
+  transition: transform 0.12s ease;
+}
+.wf-v2-socket:hover {
+  transform: scale(1.22);
+}
+.wf-v2-socket.in {
+  left: -10px;
+}
+.wf-v2-socket.out {
+  right: -10px;
+}
+.wf-v2-socket-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--wf-v2-accent, var(--accent));
+}
+/* Header Thẻ Node */
+.wf-v2-card-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border-bottom: 1px solid var(--line-soft);
+  background: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 12%, var(--bg-3));
+  border-radius: 5px 5px 0 0;
+  cursor: grab;
+}
+.wf-v2-card-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.wf-v2-card-titles {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.wf-v2-card-badge {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--wf-v2-accent, var(--accent));
+}
+.wf-v2-card-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wf-v2-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.wf-v2-icon-btn {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.wf-v2-icon-btn.on {
+  color: #10b981;
+  border-color: color-mix(in srgb, #10b981 40%, var(--line));
+}
+.wf-v2-icon-btn.danger:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+}
+/* Body Thẻ Node */
+.wf-v2-card-body {
+  padding: 7px 9px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wf-v2-root-summary,
+.wf-v2-group-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.wf-v2-summary-chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.wf-v2-chip {
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-3);
+  border: 1px solid var(--line-soft);
+  font-size: 10px;
+  font-weight: 600;
+}
+.wf-v2-rebuild-btn {
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wf-v2-group-count {
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+/* Nội dung Node Layer */
+.wf-v2-layer-content {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.wf-v2-layer-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.wf-v2-layer-thumb {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.wf-v2-layer-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.wf-v2-layer-z-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.wf-v2-layer-z-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.wf-v2-layer-z-head strong {
+  color: var(--text);
+  font-family: var(--font-mono, monospace);
+}
+.wf-v2-slider {
+  width: 100%;
+  height: 5px;
+  accent-color: var(--wf-v2-accent, var(--accent));
+  cursor: pointer;
+}
+.wf-v2-layer-spawn-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+}
+.wf-v2-spawn-chip {
+  height: 20px;
+  padding: 0 2px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text);
   font-size: 9px;
   font-weight: 700;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
-.wf-scene-unpack-inline-btn {
-  border-style: solid;
-  background: color-mix(in srgb, var(--accent) 16%, var(--bg-2));
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
-}
-
-.wf-main-attach-cta-btn:hover,
-.wf-scene-unpack-inline-btn:hover {
-  border-style: solid;
-  background: color-mix(in srgb, var(--wf-node-color, var(--accent)) 78%, #0f172a);
+.wf-v2-spawn-chip:hover {
+  background: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 78%, #0f172a);
   color: #ffffff;
-  border-color: var(--wf-node-color, var(--accent));
+  border-color: var(--wf-v2-accent, var(--accent));
 }
-
-.wf-node-binding-box.compact {
+/* Nội dung Node Logic (Hành động / Ánh sáng / Hiệu ứng / Âm thanh / Camera) */
+.wf-v2-logic-box {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.wf-v2-pill-grid {
+  display: flex;
+  flex-wrap: wrap;
   gap: 3px;
-  padding: 3px 5px;
 }
-
-.wf-node-binding-box.compact .wf-node-thumb-container.is-scene {
-  height: 68px;
+.wf-v2-opt-pill {
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text);
+  font-size: 9.5px;
+  font-weight: 600;
+  cursor: pointer;
 }
-
+.wf-v2-opt-pill:hover {
+  border-color: var(--wf-v2-accent, var(--accent));
+}
+.wf-v2-opt-pill.active {
+  background: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 80%, #0f172a);
+  border-color: var(--wf-v2-accent, var(--accent));
+  color: #ffffff;
+  font-weight: 700;
+}
+.wf-v2-param-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.wf-v2-param-row strong {
+  color: var(--text);
+  min-width: 32px;
+  text-align: right;
+}
+.wf-v2-swatch-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.wf-v2-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.wf-v2-swatch.active {
+  transform: scale(1.2);
+  border-color: #ffffff;
+  box-shadow: 0 0 0 1.5px var(--text);
+}
+/* 7. THANH KHOẢNG MỐC THỜI GIAN TRÊN MỖI NODE (WorkflowTimeRangeBar) */
+.wf-v2-timebar {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+}
+.wf-v2-timebar.is-active-time {
+  border-color: color-mix(in srgb, var(--wf-time-c, var(--accent)) 60%, var(--line));
+}
+.wf-v2-timebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 9.5px;
+}
+.wf-v2-timebar-label {
+  font-weight: 700;
+  color: var(--text-dim);
+}
+.wf-v2-timebar-values {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-mono, monospace);
+}
+.wf-v2-time-pill {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--bg-3);
+  border: 1px solid var(--line-soft);
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+}
+.wf-v2-time-dur {
+  color: var(--text-dim);
+}
+.wf-v2-timebar-track {
+  position: relative;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.wf-v2-timebar-ticks {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: space-evenly;
+  pointer-events: none;
+}
+.wf-v2-timebar-ticks span {
+  width: 1px;
+  height: 100%;
+  background: var(--line-soft);
+}
+.wf-v2-timebar-fill {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--wf-time-c, var(--accent)) 72%, #0f172a);
+  cursor: grab;
+}
+.wf-v2-timebar-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: var(--wf-time-c, var(--accent));
+  cursor: ew-resize;
+}
+.wf-v2-timebar-handle.left {
+  left: 0;
+}
+.wf-v2-timebar-handle.right {
+  right: 0;
+}
+.wf-v2-timebar-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #f43f5e;
+  pointer-events: none;
+}
+/* Menu thả dây ra khoảng trống */
+.wf-v2-quick-spawn-menu {
+  position: fixed;
+  width: 220px;
+  padding: 6px;
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-2);
+  border: 1px solid var(--accent);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 50000;
+}
+.wf-v2-quick-spawn-title {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-dim);
+  padding: 2px 4px;
+}
+.wf-v2-quick-spawn-menu button {
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.wf-v2-quick-spawn-menu button:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
