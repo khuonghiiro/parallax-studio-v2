@@ -5,7 +5,7 @@ import { EASE_LABELS } from '../../animation/easing'
 import { timelineRangeAt } from '../../animation/timelineRange'
 import { useEditor, type PropRef } from '../../store/editor'
 import { jumpTimelineKey } from './timelineKeyEditing'
-import { openMotionPopup } from './timelineMotionModel'
+import { isSilentHoldGuard, openMotionPopup } from './timelineMotionModel'
 import { LAYER_PROPS } from './timelineTypes'
 import { getFxColor, renderFxIcon } from './fxIcons'
 
@@ -25,9 +25,16 @@ function LayerKey({ layer, animation, property, x, startKeyDrag, frame, selected
   const fx = layer.appliedEffects?.find(effect => effect.keyframeIds?.includes(frame.id))
   const off = fx && !fx.enabled
   const color = fx ? getFxColor(fx.presetId) : undefined
-  const boundary = timelineRangeAt(animation, frame.t).start?.id === frame.id ? 'range-start' : 'range-end'
-  const title = `${fx?.name ?? property.label} · ${frame.t.toFixed(2)}s · ${EASE_LABELS[frame.ease]} · Bấm để sửa, kéo để dời · K thêm mốc · Alt+←/→ đổi mốc`
-  return <div className={`tl-key ${fx ? 'tl-key-fx' : boundary}${off ? ' disabled' : ''}${selected ? ' selected' : ''}${frame.ease === 'hold' ? ' hold' : ''}`}
+  const isGuard = isSilentHoldGuard(animation, frame)
+  const boundary = isGuard
+    ? 'silent-guard'
+    : timelineRangeAt(animation, frame.t).start?.id === frame.id
+      ? 'range-start'
+      : 'range-end'
+  const title = isGuard
+    ? `${property.label} · Giữ giá trị gốc trước mốc bắt đầu (${frame.t.toFixed(2)}s)`
+    : `${fx?.name ?? property.label} · ${frame.t.toFixed(2)}s · ${EASE_LABELS[frame.ease]} · Bấm để sửa, kéo để dời · K thêm mốc · Alt+←/→ đổi mốc`
+  return <div className={`tl-key ${fx ? 'tl-key-fx' : boundary}${off ? ' disabled' : ''}${selected ? ' selected' : ''}${frame.ease === 'hold' && !isGuard ? ' hold' : ''}`}
     style={{ left: x(frame.t), ['--fx-color' as string]: off ? 'var(--text-faint)' : color }}
     title={title} role="button" aria-label={title} tabIndex={layer.locked ? -1 : 0}
     onContextMenu={event => {
@@ -70,7 +77,10 @@ export function TimelineLayerKeys(props: Props) {
     {visible.map((key, index) => {
       const next = visible[index + 1]
       const width = next ? x(next.t) - x(key.t) : 0
-      return width >= 8 ? <div key={`line-${key.id}`} className={`tl-tween-line${key.ease === 'hold' ? ' hold' : ''}`}
+      const isGapBetweenRanges =
+        isSilentHoldGuard(animation, key) ||
+        (key.timelineBoundary === 'end' && key.ease === 'hold' && next?.timelineBoundary === 'start')
+      return width >= 8 && !isGapBetweenRanges ? <div key={`line-${key.id}`} className={`tl-tween-line${key.ease === 'hold' ? ' hold' : ''}`}
         style={{ left: x(key.t), width }} /> : null
     })}
     {visible.map(frame => <LayerKey key={frame.id} {...props} frame={frame} selected={selectedKey?.keyId === frame.id} />)}

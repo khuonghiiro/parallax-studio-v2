@@ -250,11 +250,32 @@ export const IconAim = (p: P) => (
     <path d="M12 2v3m0 14v3M2 12h3m14 0h3" /></svg>
 )
 
-export const IconMotionSmooth = (p: P) => <svg {...base(p)}><circle cx="12" cy="12" r="8" /></svg>
-export const IconMotionLinear = (p: P) => <svg {...base(p)}><path d="M12 3 22 21H2Z" /></svg>
-export const IconMotionHold = (p: P) => <svg {...base(p)}><rect x="4" y="4" width="16" height="16" rx="1" /></svg>
-export const IconMotionPulse = (p: P) => <svg {...base(p)}><path d="m12 2 3 7 7 1-5 5 1 7-6-4-6 4 1-7-5-5 7-1Z" /></svg>
-export const IconMotionBlink = (p: P) => <svg {...base(p)}><path d="m14 2-10 12h7l-1 8 10-13h-7Z" /></svg>
+export {
+  IconPropPosition,
+  IconPropRotation,
+  IconPropScale,
+  IconPropOpacity,
+  IconKeyframeDiamond,
+  IconMotionSmooth,
+  IconMotionLinear,
+  IconMotionHold,
+  IconMotionPulse,
+  IconMotionBlink,
+  IconMotionTuning,
+  IconKeyframe,
+  IconTrimLeft,
+  IconTrimRight,
+  IconZoomIn,
+  IconZoomOut,
+  IconFitWidth,
+  IconFxBlink,
+  IconFxFadeOut,
+  IconFxFadeIn,
+  IconFxBreathe,
+  IconFxShake,
+  IconFxPopIn,
+  IconFxPulse
+} from './timelineIcons'
 
 export const IconFocus = (p: P) => (
   <svg {...base(p)}>
@@ -370,108 +391,6 @@ export const IconScissors = (p: P) => (
     <circle cx="6" cy="6" r="3" />
     <circle cx="6" cy="18" r="3" />
     <path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12" />
-  </svg>
-)
-
-export const IconKeyframe = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M12 2L2 12l10 10 10-10L12 2z" />
-  </svg>
-)
-
-export const IconTrimLeft = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M4 4v16M8 12h12M14 6l-6 6 6 6" />
-  </svg>
-)
-
-export const IconTrimRight = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M20 4v16M16 12H4M10 6l6 6-6 6" />
-  </svg>
-)
-
-export const IconZoomIn = (p: P) => (
-  <svg {...base(p)}>
-    <circle cx="11" cy="11" r="7" />
-    <path d="m21 21-4.35-4.35M11 8v6M8 11h6" />
-  </svg>
-)
-
-export const IconZoomOut = (p: P) => (
-  <svg {...base(p)}>
-    <circle cx="11" cy="11" r="7" />
-    <path d="m21 21-4.35-4.35M8 11h6" />
-  </svg>
-)
-
-export const IconFitWidth = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M4 6v12M20 6v12M8 12h8M11 9l-3 3 3 3M13 9l3 3-3 3" />
-  </svg>
-)
-
-/* ================================================================
-   Specialized Animation & FX Icons
-   ================================================================ */
-
-/** Chớp tắt (Blink / Strobe) - Tia chớp đặc ruột sáng bừng */
-export const IconFxBlink = (p: P) => (
-  <svg {...base({ strokeWidth: 2, ...p })}>
-    <path d="M13 2L3 14h8l-1 8 11-12h-8l1-8z" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-  </svg>
-)
-
-/** Mờ dần (Fade Out) - nét liền chuyển sang nét đứt giảm dần */
-export const IconFxFadeOut = (p: P) => (
-  <svg {...base({ strokeWidth: 2.2, ...p })}>
-    <path d="M4 12a8 8 0 0 1 8-8" />
-    <path d="M4 12a8 8 0 0 0 8 8" />
-    <path d="M12 4a8 8 0 0 1 8 8" strokeDasharray="2 2.5" />
-    <path d="M12 20a8 8 0 0 0 8-8" strokeDasharray="2 2.5" />
-    <path d="M10 12h6M13 9l3 3-3 3" />
-  </svg>
-)
-
-/** Hiện dần (Fade In) - mờ chuyển sang rõ nét */
-export const IconFxFadeIn = (p: P) => (
-  <svg {...base({ strokeWidth: 2.2, ...p })}>
-    <path d="M4 12a8 8 0 0 1 8-8" strokeDasharray="2 2.5" />
-    <path d="M4 12a8 8 0 0 0 8 8" strokeDasharray="2 2.5" />
-    <path d="M12 4a8 8 0 0 1 8 8" />
-    <path d="M12 20a8 8 0 0 0 8-8" />
-    <path d="M8 12h6M11 9l3 3-3 3" />
-  </svg>
-)
-
-/** Nhịp thở huyền ảo (Breathe) - sóng sin điều hòa mượt nét đậm */
-export const IconFxBreathe = (p: P) => (
-  <svg {...base({ strokeWidth: 2.6, ...p })}>
-    <path d="M2 12c3-6 5-6 8 0s5 6 8 0 3-3 4-3" />
-  </svg>
-)
-
-/** Rung chấn (Shake) - rung giật đối xứng có sóng chấn động */
-export const IconFxShake = (p: P) => (
-  <svg {...base({ strokeWidth: 2.2, ...p })}>
-    <rect x="7" y="5" width="10" height="14" rx="2" fill="currentColor" fillOpacity="0.25" />
-    <path d="M3 8v8M21 8v8M1 10v4M23 10v4" strokeWidth="2.4" />
-  </svg>
-)
-
-/** Nảy xuất hiện đàn hồi (Pop In) - bung nở từ tâm */
-export const IconFxPopIn = (p: P) => (
-  <svg {...base({ strokeWidth: 2.2, ...p })}>
-    <circle cx="12" cy="12" r="3.5" fill="currentColor" />
-    <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6.34 6.34l2.5 2.5M15.16 15.16l2.5 2.5M6.34 17.66l2.5-2.5M15.16 8.84l2.5-2.5" />
-  </svg>
-)
-
-/** Nhịp đập co giãn (Pulse Scale) - co giãn theo tỷ lệ */
-export const IconFxPulse = (p: P) => (
-  <svg {...base({ strokeWidth: 2.2, ...p })}>
-    <path d="M15 3h6v6M9 21H3v-6M21 3l-6 6M3 21l6-6" />
-    <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="currentColor" />
   </svg>
 )
 

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { EaseName } from '@shared/types'
-import { addKeyframe, evaluate, keyAt } from '../../animation/keyframes'
+import { addKeyframe, evaluate, keyAt, removeKeyframe } from '../../animation/keyframes'
 import { endTimelineRange, startTimelineRange, timelineSegmentAt } from '../../animation/timelineRange'
 import { frameTolerance, getAnimatable, getDraftAnimatable, propRefKey, useEditor, type PropRef } from '../../store/editor'
 import { toast } from '../../actions'
@@ -65,8 +65,11 @@ export function addTimelineKey(ref: PropRef, boundary?: 'start' | 'end') {
       }
       else {
         const previous = a.keyframes.filter(k => k.t < time).at(-1)
-        const key = addKeyframe(a, time, evaluate(a, time), previous?.ease ?? 'easeInOut', tolerance)
-        if (previous?.easeOptions) key.easeOptions = { ...previous.easeOptions }
+        const isSilentGuard = previous && previous.t === 0 && !previous.timelineBoundary && previous.ease === 'hold'
+        const inheritedEase = isSilentGuard ? 'easeInOut' : (previous?.ease ?? 'easeInOut')
+        const key = addKeyframe(a, time, evaluate(a, time), inheritedEase, tolerance)
+        if (isSilentGuard) key.timelineBoundary = 'start'
+        else if (previous?.easeOptions) key.easeOptions = { ...previous.easeOptions }
         id = key.id
       }
     })
@@ -74,6 +77,44 @@ export function addTimelineKey(ref: PropRef, boundary?: 'start' | 'end') {
   } catch (error) {
     toast(error instanceof Error ? error.message : 'Không thể tạo mốc tại thời điểm này')
   }
+}
+
+export function removeTimelineKeyAt(ref: PropRef, time = useEditor.getState().time): boolean {
+  if (!canEdit(ref)) return false
+  const editor = useEditor.getState()
+  const tolerance = frameTolerance(editor.project)
+  const anim = getAnimatable(editor.project, ref)
+  const existing = anim ? keyAt(anim, time, tolerance) : undefined
+  if (!existing) return false
+  focusTimelineProperty(ref)
+  editor.setPlaying(false)
+  editor.update(draft => {
+    const a = getDraftAnimatable(draft, ref)!
+    removeKeyframe(a, existing.id)
+    if (
+      a.keyframes.length === 1 &&
+      a.keyframes[0].t === 0 &&
+      !a.keyframes[0].timelineBoundary &&
+      a.keyframes[0].ease === 'hold'
+    ) {
+      a.keyframes = []
+    }
+  })
+  if (editor.selectedKey?.keyId === existing.id) editor.selectKey(null)
+  return true
+}
+
+export function toggleTimelineKey(ref: PropRef) {
+  if (!canEdit(ref)) return
+  const editor = useEditor.getState()
+  const tolerance = frameTolerance(editor.project)
+  const anim = getAnimatable(editor.project, ref)
+  const existing = anim ? keyAt(anim, editor.time, tolerance) : undefined
+  if (existing) {
+    removeTimelineKeyAt(ref, editor.time)
+    return
+  }
+  addTimelineKey(ref)
 }
 
 export function setTimelineEase(ref: PropRef, ease: EaseName) {

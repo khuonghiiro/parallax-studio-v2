@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid'
 import type { AnimValue, Vec3 } from '@shared/types'
 import { evaluate, keyAt, removeKeyframe, addKeyframe, setValueAt, toggleAnimated } from '../animation/keyframes'
 import { frameTolerance, getAnimatable, getDraftAnimatable, propRefKey, useEditor, type PropRef } from '../store/editor'
-import { IconStopwatch } from './icons'
+import { IconLink, IconStopwatch, IconUnlink } from './icons'
 import { setTimelineValueAt } from '../animation/timelineRange'
 
 // ------------------------------------------------------------------ number
@@ -138,6 +138,7 @@ export function NumberInput({
     <label
       className={`num${animated ? ' animated' : ''}${scrubbing ? ' scrubbing' : ''}`}
       onPointerDown={startScrub}
+      onClick={(e) => e.preventDefault()}
       title="Kéo ngang để đổi giá trị (Shift: x10, Alt: x0.1) · Click để nhập số"
     >
       {axis && (
@@ -185,6 +186,7 @@ type DisplayKind = 'vec3' | 'vec2' | 'number'
 
 interface AnimRowProps {
   label: string
+  icon?: ReactNode
   refp: PropRef
   kind: DisplayKind
   step?: number
@@ -202,6 +204,7 @@ interface AnimRowProps {
 
 export function AnimRow({
   label,
+  icon,
   refp,
   kind,
   step = 1,
@@ -219,6 +222,7 @@ export function AnimRow({
   const update = useEditor((s) => s.update)
   const setTime = useEditor((s) => s.setTime)
   const [linked, setLinked] = useState(true)
+  const sliderKeyRef = useRef(`slider-${nanoid(6)}`)
   const a = getAnimatable(project, refp)
   if (!a) return null
 
@@ -265,6 +269,12 @@ export function AnimRow({
 
   const axes = ['x', 'y', 'z']
   const fieldCount = kind === 'vec3' ? 3 : kind === 'vec2' ? 2 : 1
+  const hasRangeSlider =
+    fieldCount === 1 && min !== undefined && max !== undefined && Number.isFinite(min) && Number.isFinite(max)
+  const scalarDisplay = fieldCount === 1 ? (val as number) * displayScale : 0
+  const sliderPct = hasRangeSlider
+    ? Math.max(0, Math.min(100, ((scalarDisplay - min) / Math.max(1e-6, max - min)) * 100))
+    : 0
 
   return (
     <div className="row">
@@ -282,31 +292,68 @@ export function AnimRow({
         <IconStopwatch />
       </button>
       <span className="row-label" title={label}>
-        {label}
+        {icon && <span className="row-label-icon" aria-hidden="true">{icon}</span>}
+        <span className="row-label-text">{label}</span>
         {linkable && (
           <button
-            className="stopwatch"
-            style={{ display: 'inline-grid', marginLeft: 2, verticalAlign: 'middle', color: linked ? 'var(--accent)' : undefined }}
-            title="Khoá tỉ lệ"
-            onClick={() => setLinked((l) => !l)}
+            type="button"
+            className={`stopwatch tl-scale-link-btn${linked ? ' on' : ''}`}
+            title={linked ? 'Đang khóa đồng bộ tỉ lệ X/Y (bấm để tách rời)' : 'Đang tách rời tỉ lệ X/Y (bấm để khóa đồng bộ)'}
+            onClick={(e) => {
+              e.stopPropagation()
+              setLinked((l) => !l)
+            }}
           >
-            {linked ? '∞' : '·'}
+            {linked ? <IconLink width={11} height={11} /> : <IconUnlink width={11} height={11} />}
           </button>
         )}
       </span>
       <div className="fields">
         {fieldCount === 1 ? (
-          <NumberInput
-            value={(val as number) * displayScale}
-            onChange={(v, k) => write(v / displayScale, k)}
-            step={step}
-            precision={precision}
-            min={min}
-            max={max}
-            animated={animated}
-            suffix={suffix}
-            axis="•"
-          />
+          hasRangeSlider ? (
+            <div className={`tl-opacity-slider-group${animated ? ' animated' : ''}`}>
+              <input
+                type="range"
+                className="tl-opacity-slider"
+                min={min}
+                max={max}
+                step={step}
+                value={Math.min(max, Math.max(min, Number(scalarDisplay.toFixed(precision))))}
+                style={{ '--slider-pct': `${sliderPct}%` } as React.CSSProperties}
+                title={`Kéo thanh trượt để chỉnh ${label} (${min}${suffix ?? ''} – ${max}${suffix ?? ''})`}
+                onPointerDown={(e) => {
+                  e.stopPropagation()
+                  sliderKeyRef.current = `slider-${nanoid(6)}`
+                }}
+                onChange={(e) => {
+                  const next = parseFloat(e.target.value)
+                  if (!Number.isNaN(next)) write(next / displayScale, sliderKeyRef.current)
+                }}
+              />
+              <NumberInput
+                value={scalarDisplay}
+                onChange={(v, k) => write(v / displayScale, k)}
+                step={step}
+                precision={precision}
+                min={min}
+                max={max}
+                animated={animated}
+                suffix={suffix}
+              />
+            </div>
+          ) : (
+            <NumberInput
+              value={scalarDisplay}
+              onChange={(v, k) => write(v / displayScale, k)}
+              step={step}
+              precision={precision}
+              min={min}
+              max={max}
+              animated={animated}
+              suffix={suffix}
+              axis="•"
+            />
+          )
         ) : (
           Array.from({ length: fieldCount }, (_, i) => (
             <NumberInput
@@ -317,6 +364,7 @@ export function AnimRow({
               step={step}
               precision={precision}
               animated={animated}
+              suffix={suffix}
             />
           ))
         )}

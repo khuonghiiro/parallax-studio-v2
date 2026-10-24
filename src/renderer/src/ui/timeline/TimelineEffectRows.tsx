@@ -7,6 +7,7 @@ import { useEditor } from '../../store/editor'
 import { TimelineRow } from './TimelineRow'
 import { startEffectDrag } from './effectDrag'
 import { toggleLayerEffect, deleteLayerEffect } from './timelineEffects'
+import { getFxColor, renderFxIcon } from './fxIcons'
 import { IconTrash } from '../icons'
 import '../../styles/timelineEffects.css'
 
@@ -36,9 +37,15 @@ function EffectRow({ layer, effect, x, trackWidth }: {
     if (remove) deleteLayerEffect(l, effect.id)
     else toggleLayerEffect(l, effect.id, !effect.enabled)
   })
+  const fxColor = getFxColor(effect.presetId)
   return <TimelineRow sub selected={selected} trackWidth={trackWidth} className={`timeline-effect-row${effect.enabled ? '' : ' is-disabled'}`}
     name={<div className="timeline-effect-name">
-      <button className="timeline-effect-select" onClick={select} aria-pressed={selected} title={`Chỉnh ${effect.name}`}>ƒx · {effect.name}</button>
+      <button className="timeline-effect-select" onClick={select} aria-pressed={selected} title={`Chỉnh ${effect.name}`}>
+        <span className="timeline-effect-icon" style={{ color: effect.enabled ? fxColor : 'var(--text-faint)' }} aria-hidden="true">
+          {renderFxIcon(effect.presetId, 12, effect.enabled ? fxColor : 'var(--text-faint)')}
+        </span>
+        <span className="timeline-effect-title">ƒx · {effect.name}</span>
+      </button>
       <button className={`switch${effect.enabled ? ' on' : ''}`} aria-label={`Bật/tắt ${effect.name}`} aria-pressed={effect.enabled}
         disabled={layer.locked} onClick={() => update(false)} />
       <button className="mini" aria-label={`Xóa ${effect.name}`} disabled={layer.locked} onClick={() => update(true)}><IconTrash width={11} /></button>

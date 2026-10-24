@@ -416,12 +416,14 @@ function TimelineLayerRowComponent({
               </div>
             </div>
             <TimelineLayerSummary layer={layer} x={x} />
-            <TimelineGlowKeys
-              layer={layer}
-              x={x}
-              trackWidth={trackWidth}
-              isSubRow={false}
-            />
+            {!isOpen && (
+              <TimelineGlowKeys
+                layer={layer}
+                x={x}
+                trackWidth={trackWidth}
+                isSubRow={false}
+              />
+            )}
 
             {/* Visual Effect Badges on Layer Bar */}
             {listLayerEffects(layer).filter((fx) => fx.category !== 'glow').map((fx) => {
@@ -462,13 +464,15 @@ function TimelineLayerRowComponent({
             startKeyDrag={startKeyDrag} onTrackPointerDown={onTrackPointerDown} />
         ))}</div>}
       {isOpen && (() => {
-        const glowConfigs = getAllGlowConfigs(layer)
+        const glowConfigs = getAllGlowConfigs(layer).filter((g) => g.id === 'standalone')
         if (glowConfigs.length === 0) return null
         const isMultiple = glowConfigs.length > 1
         const activeCount = glowConfigs.filter((g) => g.glow.enabled).length
         const isAllOff = activeCount === 0
         const primaryGlow = glowConfigs[glowConfigs.length - 1].glow
-        const glowColor = isAllOff ? 'var(--text-faint)' : (primaryGlow.color || 'var(--accent-cyan)')
+        const rawColor = primaryGlow.color || 'var(--accent-cyan)'
+        const isLightColor = /^#(fff|ffffff|fefefe|f8fafc|f1f5f9)$/i.test(rawColor.trim())
+        const glowColor = isAllOff ? 'var(--text-faint)' : (isLightColor ? 'var(--accent)' : rawColor)
         return (
           <TimelineRow
             sub
@@ -479,11 +483,11 @@ function TimelineLayerRowComponent({
               <div
                 className={`tl-name sub${nested ? ' nested' : ''}`}
                 style={{
-                  color: glowColor,
+                  color: isAllOff ? 'var(--text-faint)' : 'var(--text)',
                   fontWeight: 600,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 5,
+                  gap: 6,
                   cursor: 'pointer',
                   opacity: isAllOff ? 0.6 : 1
                 }}
@@ -498,10 +502,11 @@ function TimelineLayerRowComponent({
               >
                 <span
                   style={{
-                    width: 7,
-                    height: 7,
+                    width: 8,
+                    height: 8,
                     borderRadius: '50%',
-                    background: glowColor,
+                    background: isAllOff ? 'var(--text-faint)' : rawColor,
+                    border: '1px solid var(--line-focus)',
                     boxShadow: isAllOff ? 'none' : `0 0 6px ${glowColor}`,
                     flexShrink: 0
                   }}
@@ -509,7 +514,7 @@ function TimelineLayerRowComponent({
                 <span style={{ textDecoration: isAllOff ? 'line-through' : 'none' }}>
                   {isMultiple ? `Viền Neon (${glowConfigs.length})` : 'Viền Neon'}
                 </span>
-                <span style={{ fontSize: 9, opacity: 0.8, fontWeight: 'normal' }}>
+                <span style={{ fontSize: 9, color: 'var(--text-dim)', fontWeight: 500 }}>
                   ({isAllOff
                     ? 'Đã tắt'
                     : isMultiple

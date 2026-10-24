@@ -1,11 +1,140 @@
-.timeline-effect-row { background: var(--bg-1); }
-.timeline-effect-name { display: flex; align-items: center; gap: 5px; width: 100%; min-width: 0; padding: 0 8px 0 22px; }
-.timeline-effect-select { flex: 1; min-width: 0; border: 0; background: none; color: var(--text-dim); text-align: left; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
-.timeline-effect-clip { position: absolute; top: 4px; bottom: 4px; display: flex; align-items: center; border: 1px solid var(--accent-cyan); background: var(--bg-3); color: var(--text); border-radius: 3px; cursor: grab; user-select: none; touch-action: none; box-sizing: border-box; }
-.timeline-effect-clip.selected { border-color: var(--key); }
-.timeline-effect-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; margin: 0 10px; pointer-events: none; }
-.timeline-effect-trim { position: absolute; width: 7px; top: 0; bottom: 0; background: var(--line-focus); cursor: ew-resize; touch-action: none; }
-.timeline-effect-trim.start { left: 0; }
-.timeline-effect-trim.end { right: 0; }
-.timeline-effect-row.is-disabled .timeline-effect-clip { border-color: var(--text-faint); border-style: dashed; color: var(--text-dim); background: var(--bg-1); }
-.timeline-effect-clip:focus-visible, .timeline-effect-name button:focus-visible { outline: 1px solid var(--line-focus); outline-offset: 2px; }
+.timeline-effect-row {
+  background: var(--bg-1);
+}
+
+.timeline-effect-name {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  padding: 0 8px 0 34px;
+  position: relative;
+}
+
+.timeline-effect-name::before {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  width: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.timeline-effect-select {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-weight: 500;
+  text-align: left;
+  font-size: 10.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.timeline-effect-select:hover {
+  color: var(--accent);
+}
+
+.timeline-effect-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  flex-shrink: 0;
+}
+
+.timeline-effect-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline-effect-row.is-disabled .timeline-effect-select {
+  color: var(--text-faint);
+  text-decoration: line-through;
+}
+
+.timeline-effect-clip {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 16%, var(--bg-2));
+  color: var(--text);
+  border-radius: 3px;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  box-sizing: border-box;
+}
+
+[data-theme='light'] .timeline-effect-clip,
+.app.light .timeline-effect-clip {
+  background: rgba(2, 132, 199, 0.14);
+  border-color: #0284c7;
+  color: #0f172a;
+}
+
+.timeline-effect-clip.selected {
+  border-color: var(--key);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--key) 40%, transparent);
+}
+
+.timeline-effect-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9.5px;
+  font-weight: 600;
+  margin: 0 10px;
+  pointer-events: none;
+}
+
+.timeline-effect-trim {
+  position: absolute;
+  width: 6px;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--accent-cyan) 45%, transparent);
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.timeline-effect-trim:hover {
+  background: var(--accent-cyan);
+}
+
+.timeline-effect-trim.start {
+  left: 0;
+}
+
+.timeline-effect-trim.end {
+  right: 0;
+}
+
+.timeline-effect-row.is-disabled .timeline-effect-clip {
+  border-color: var(--text-faint);
+  border-style: dashed;
+  color: var(--text-dim);
+  background: var(--bg-1);
+}
+
+.timeline-effect-clip:focus-visible,
+.timeline-effect-name button:focus-visible {
+  outline: 1px solid var(--line-focus);
+  outline-offset: 2px;
+}

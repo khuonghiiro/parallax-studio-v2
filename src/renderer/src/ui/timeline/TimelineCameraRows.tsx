@@ -251,6 +251,7 @@ export const TimelineCameraRows = memo(function TimelineCameraRows({
                     {s ? (
                       <>
                         <span className="tl-shot-seg-idx">#{shotIdx + 1}</span>
+                        {segW > 60 && <span className="tl-shot-seg-name">{s.name}</span>}
                       </>
                     ) : (
                       segW > 28 && <span className="tl-shot-seg-trans">⇄ Lia</span>

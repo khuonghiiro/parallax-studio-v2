@@ -48,10 +48,12 @@ function GlowStripItem({ instance, layer, x, trackWidth, isSubRow }: GlowStripIt
   const startT = glow.startTime !== undefined ? glow.startTime : layer.inPoint
   const dur = glow.duration || 0
   const endT = dur > 0 ? Math.min(layer.outPoint, startT + dur) : layer.outPoint
-  const color = isGlowOff ? 'var(--text-faint)' : (glow.color || '#3dd6f5')
+  const rawColor = glow.color || '#3dd6f5'
+  const safeColor = /^#(fff|ffffff|fefefe|f8fafc|f1f5f9)$/i.test(rawColor.trim()) ? 'var(--accent)' : rawColor
+  const color = isGlowOff ? 'var(--text-faint)' : safeColor
   const effectName = name || 'Viền Neon'
 
-  const midKeys = calculateMidKeys(glow, startT, dur)
+  const midKeys = isSubRow ? calculateMidKeys(glow, startT, dur) : []
 
   const handleKeyDrag = (e: React.PointerEvent, mode: 'start' | 'end' | 'strip') => {
     e.stopPropagation()
