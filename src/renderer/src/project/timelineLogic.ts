@@ -1,20 +1,457 @@
 import { current, isDraft } from 'immer'
-import type { Project, WorkflowGraph, WorkflowNode } from '@shared/types'
-import { ensureProjectWorkflow, connectWorkflowPort, applyWorkflowToProject } from './workflowEngine'
-import { spawnLogicNodeIntoWorkflow } from './workflowLogicNodes'
+import type { Layer, Project, WorkflowGraph, WorkflowNode } from '@shared/types'
+import {
+  ensureProjectWorkflow,
+  connectWorkflowPort,
+  applyWorkflowToProject,
+  resolveConnectedWorkflowNodes,
+  resolveNodeTargetBinding
+} from './workflowEngine'
+import {
+  spawnLogicNodeIntoWorkflow,
+  WORKFLOW_LOGIC_NODE_CATALOG,
+  type WorkflowLogicNodeCategory,
+  type WorkflowLogicNodeCatalogItem
+} from './workflowLogicNodes'
 import { WORKFLOW_NODE_SPECS } from './workflowCatalog'
 import { getWorkflowNodePorts } from './workflowNodePorts'
 import { validateWorkflowConnection } from './workflowConnectionRules'
 
-function contextNode(id: string, type: WorkflowNode['type'], title: string, shotId: string, layerIds?: string[]): WorkflowNode {
-  const spec = WORKFLOW_NODE_SPECS[type]
-  return { id, type, title, enabled: true, preset: spec.presets[0].id, aiAgentRole: spec.aiAgentRole,
-    aiDirective: '', position: { x: 80, y: type === 'scene_shot' ? 40 : 360 },
-    params: { shotId, targetMode: layerIds ? 'custom' : 'auto', targetLayerIds: layerIds } }
+export interface TimelineLogicCategoryMeta {
+  id: WorkflowLogicNodeCategory
+  label: string
+  shortLabel: string
+  icon: string
+  accent: string
+  defaultLogicId: string
 }
 
-function wireSource(graph: WorkflowGraph, source: WorkflowNode, node: WorkflowNode): WorkflowGraph | null {
-  const from = getWorkflowNodePorts(source), to = getWorkflowNodePorts(node)
+/**
+ * Bảng cấu hình danh mục Logic chuẩn trên Timeline.
+ * Khi mở rộng thêm danh mục hoặc hành vi mới trong tương lai, chỉ cần khai báo tại đây
+ * để tự động đồng bộ màu sắc, biểu tượng, bộ lọc và nút gắn nhanh trên toàn bộ Timeline.
+ */
+export const TIMELINE_LOGIC_CATEGORY_META: Record<
+  WorkflowLogicNodeCategory,
+  TimelineLogicCategoryMeta
+> = {
+  motion: {
+    id: 'motion',
+    label: 'Chuyển động 2.5D',
+    shortLabel: 'Chuyển động',
+    icon: '🍃',
+    accent: '#10b981',
+    defaultLogicId: 'logic-motion-breathe'
+  },
+  light_fx: {
+    id: 'light_fx',
+    label: 'Ánh sáng & Hào quang',
+    shortLabel: 'Ánh sáng',
+    icon: '💡',
+    accent: '#f59e0b',
+    defaultLogicId: 'logic-fx-candle'
+  },
+  physics: {
+    id: 'physics',
+    label: 'Vật lý 2.5D',
+    shortLabel: 'Vật lý',
+    icon: '🪂',
+    accent: '#06b6d4',
+    defaultLogicId: 'logic-physics-wind'
+  },
+  camera: {
+    id: 'camera',
+    label: 'Lộ trình Camera',
+    shortLabel: 'Camera',
+    icon: '🎥',
+    accent: '#3b82f6',
+    defaultLogicId: 'logic-cam-fly'
+  },
+  audio: {
+    id: 'audio',
+    label: 'Âm thanh & Thoại',
+    shortLabel: 'Âm thanh',
+    icon: '🎙️',
+    accent: '#a855f7',
+    defaultLogicId: 'logic-audio-lipsync'
+  },
+  scene: {
+    id: 'scene',
+    label: 'Cảnh & Không gian Z',
+    shortLabel: 'Không gian Z',
+    icon: '🎬',
+    accent: '#ec4899',
+    defaultLogicId: 'logic-scene-parallax'
+  },
+  assembly: {
+    id: 'assembly',
+    label: 'Layer & Thực thể',
+    shortLabel: 'Thực thể',
+    icon: '🧩',
+    accent: '#14b8a6',
+    defaultLogicId: 'logic-assembly-billboard'
+  },
+  look: {
+    id: 'look',
+    label: 'Màu sắc & Xuất',
+    shortLabel: 'Màu & Xuất',
+    icon: '🌅',
+    accent: '#f97316',
+    defaultLogicId: 'logic-look-warm'
+  }
+}
+
+export const TIMELINE_LOGIC_CATEGORY_LIST: TimelineLogicCategoryMeta[] = [
+  TIMELINE_LOGIC_CATEGORY_META.motion,
+  TIMELINE_LOGIC_CATEGORY_META.light_fx,
+  TIMELINE_LOGIC_CATEGORY_META.physics,
+  TIMELINE_LOGIC_CATEGORY_META.camera,
+  TIMELINE_LOGIC_CATEGORY_META.audio,
+  TIMELINE_LOGIC_CATEGORY_META.scene,
+  TIMELINE_LOGIC_CATEGORY_META.assembly,
+  TIMELINE_LOGIC_CATEGORY_META.look
+]
+
+export interface TimelineLogicNodeEntry {
+  node: WorkflowNode
+  catalogItem?: WorkflowLogicNodeCatalogItem
+  category: WorkflowLogicNodeCategory
+  categoryMeta: TimelineLogicCategoryMeta
+  connected: boolean
+  enabled: boolean
+  icon: string
+  shortTitle: string
+}
+
+export interface LayerTimelineLogicBadge {
+  id: string
+  kind: 'workflow_node' | 'capability'
+  category: WorkflowLogicNodeCategory
+  icon: string
+  label: string
+  tooltip: string
+  accent: string
+  enabled: boolean
+  nodeId?: string
+  inspectorSection?: 'virtualLight' | 'physics' | 'motion' | 'glow' | 'layer'
+}
+
+export interface LayerCapabilityPlugin {
+  id: string
+  category: WorkflowLogicNodeCategory
+  inspect: (layer: Layer) => Omit<LayerTimelineLogicBadge, 'id' | 'kind' | 'category'> | null
+}
+
+/**
+ * Hệ thống Plugin kiểm tra năng lực 2.5D của Layer.
+ * Khi thêm tính năng/logic mới vào Layer trong tương lai, chỉ cần đăng ký 1 plugin tại đây
+ * để thanh Layer Bar trên Timeline tự động hiển thị huy hiệu tương tác.
+ */
+export const LAYER_CAPABILITY_PLUGINS: LayerCapabilityPlugin[] = [
+  {
+    id: 'cap-virtual-light',
+    category: 'light_fx',
+    inspect: (layer) => {
+      const vl = layer.virtualLight
+      if (!vl || !vl.enabled) return null
+      const isBeam = vl.kind === 'flashlight'
+      return {
+        icon: isBeam ? '🔦' : '🕯️',
+        label: isBeam ? 'Chùm sáng 2.5D' : 'Đèn 2.5D',
+        tooltip: `Ánh sáng ảo 2.5D (${vl.kind}) · Độ sáng ${(vl.intensity ?? 1).toFixed(1)} — Click để chỉnh`,
+        accent: vl.color || '#f59e0b',
+        enabled: true,
+        inspectorSection: 'virtualLight'
+      }
+    }
+  },
+  {
+    id: 'cap-cave-portal',
+    category: 'scene',
+    inspect: (layer) => {
+      const portal = layer.physics?.depthPortal
+      if (!portal || !portal.enabled) return null
+      return {
+        icon: '🕳️',
+        label: 'Hang 2.5D',
+        tooltip: `Lối vào hang động & Độ sâu 2.5D (Độ tối ${Math.round((portal.darkness ?? 0.7) * 100)}%) — Click để chỉnh`,
+        accent: '#ec4899',
+        enabled: true,
+        inspectorSection: 'physics'
+      }
+    }
+  },
+  {
+    id: 'cap-physics',
+    category: 'physics',
+    inspect: (layer) => {
+      const phys = layer.physics
+      if (!phys || !phys.enabled) return null
+      return {
+        icon: '🪂',
+        label: 'Vật lý 2.5D',
+        tooltip: `Vật lý chất liệu 2.5D (${phys.material || 'chuẩn'}) — Click để chỉnh`,
+        accent: '#06b6d4',
+        enabled: true,
+        inspectorSection: 'physics'
+      }
+    }
+  },
+  {
+    id: 'cap-procedural-motion',
+    category: 'motion',
+    inspect: (layer) => {
+      const m = layer.motion
+      if (!m || !m.type || m.type === 'none' || m.enabled === false) return null
+      const names: Record<string, string> = {
+        drift: 'Trôi Drift',
+        sway: 'Đung đưa',
+        wind: 'Gió lay',
+        float: 'Nhịp thở',
+        pulse: 'Nhịp đập',
+        wiggle: 'Rung nhẹ'
+      }
+      return {
+        icon: '〰️',
+        label: names[m.type] ?? `Motion (${m.type})`,
+        tooltip: `Chuyển động tự động: ${names[m.type] ?? m.type} — Click để chỉnh`,
+        accent: '#10b981',
+        enabled: true,
+        inspectorSection: 'motion'
+      }
+    }
+  },
+  {
+    id: 'cap-glow',
+    category: 'light_fx',
+    inspect: (layer) => {
+      if (!layer.glow || !layer.glow.enabled) return null
+      return {
+        icon: '✨',
+        label: 'Viền Neon',
+        tooltip: `Phát sáng viền Alpha (${layer.glow.animated || 'tĩnh'}) — Click để chỉnh`,
+        accent: layer.glow.color || '#38bdf8',
+        enabled: true,
+        inspectorSection: 'glow'
+      }
+    }
+  },
+  {
+    id: 'cap-particles',
+    category: 'light_fx',
+    inspect: (layer) => {
+      if (layer.type !== 'particles') return null
+      return {
+        icon: '🪄',
+        label: 'Hạt 3D',
+        tooltip: `Hệ thống hạt không gian 3D (${layer.props?.count ?? 0} hạt) — Click để chỉnh`,
+        accent: '#f59e0b',
+        enabled: true,
+        inspectorSection: 'layer'
+      }
+    }
+  },
+  {
+    id: 'cap-billboard',
+    category: 'assembly',
+    inspect: (layer) => {
+      if (layer.autoOrient !== 'camera-y') return null
+      return {
+        icon: '🧭',
+        label: 'Neo Chân Y',
+        tooltip: 'Tự xoay thẳng đứng hướng về Camera (Billboard Y) — Click để chỉnh',
+        accent: '#14b8a6',
+        enabled: true,
+        inspectorSection: 'layer'
+      }
+    }
+  }
+]
+
+function inferNodeCategory(
+  node: WorkflowNode,
+  catalogItem?: WorkflowLogicNodeCatalogItem
+): WorkflowLogicNodeCategory {
+  if (catalogItem) return catalogItem.category
+  switch (node.type) {
+    case 'camera_director':
+      return 'camera'
+    case 'audio_lipsync':
+      return 'audio'
+    case 'motion_choreography':
+      return 'motion'
+    case 'physics_fx':
+      return node.preset?.includes('candle') || node.preset?.includes('flashlight')
+        ? 'light_fx'
+        : 'physics'
+    case 'scene_shot':
+      return 'scene'
+    case 'layer_assembly':
+      return 'assembly'
+    case 'look_output':
+    default:
+      return 'look'
+  }
+}
+
+function stripLeadingIcon(title: string, fallbackIcon: string): { icon: string; cleanTitle: string } {
+  const trimmed = title.trim()
+  const parts = trimmed.split(/\s+/)
+  if (parts.length > 1 && /^[^\w\p{L}]{1,4}$/u.test(parts[0])) {
+    return { icon: parts[0], cleanTitle: parts.slice(1).join(' ') }
+  }
+  return { icon: fallbackIcon, cleanTitle: trimmed }
+}
+
+/**
+ * Liệt kê các Node Logic trên Workflow đang áp dụng cho Layer hoặc Phân cảnh hiện tại.
+ */
+export function listTimelineLogicNodes(
+  project: Project,
+  workflow: WorkflowGraph,
+  layer?: Layer,
+  shotId?: string
+): TimelineLogicNodeEntry[] {
+  const activeIds = new Set(resolveConnectedWorkflowNodes(workflow).activeNodes.map((n) => n.id))
+  const resolvedShotId = layer?.shotId || shotId || 'all'
+  const matched = workflow.nodes.filter((node) => {
+    if (!node.params?.logicId) return false
+    if (layer) return resolveNodeTargetBinding(node, project, workflow).matchesLayer(layer)
+    return resolvedShotId === 'all' || node.params.shotId === 'all' || node.params.shotId === resolvedShotId
+  })
+
+  return matched.map((node) => {
+    const catalogItem = node.params?.logicId
+      ? WORKFLOW_LOGIC_NODE_CATALOG.find((item) => item.id === node.params?.logicId)
+      : undefined
+    const category = inferNodeCategory(node, catalogItem)
+    const categoryMeta = TIMELINE_LOGIC_CATEGORY_META[category]
+    const parsed = stripLeadingIcon(
+      catalogItem?.shortLabel || node.title,
+      catalogItem?.icon || categoryMeta.icon
+    )
+    return {
+      node,
+      catalogItem,
+      category,
+      categoryMeta,
+      connected: activeIds.has(node.id),
+      enabled: node.enabled !== false,
+      icon: catalogItem?.icon || parsed.icon,
+      shortTitle: catalogItem?.shortLabel || parsed.cleanTitle
+    }
+  })
+}
+
+/**
+ * Trích xuất danh sách huy hiệu Logic & Năng lực 2.5D hiển thị trực tiếp trên thanh Layer Bar của Timeline.
+ */
+export function getLayerTimelineLogicBadges(
+  layer: Layer,
+  project: Project,
+  workflow: WorkflowGraph
+): LayerTimelineLogicBadge[] {
+  const badges: LayerTimelineLogicBadge[] = []
+
+  // 1. Huy hiệu từ các Node Logic trong Workflow áp dụng cho Layer này
+  const matchedNodes = workflow.nodes.filter((node) => {
+    if (!node.params?.logicId) return false
+    return resolveNodeTargetBinding(node, project, workflow).matchesLayer(layer)
+  })
+
+  for (const node of matchedNodes) {
+    const catalogItem = node.params?.logicId
+      ? WORKFLOW_LOGIC_NODE_CATALOG.find((item) => item.id === node.params?.logicId)
+      : undefined
+    const category = inferNodeCategory(node, catalogItem)
+    const meta = TIMELINE_LOGIC_CATEGORY_META[category]
+    const parsed = stripLeadingIcon(catalogItem?.shortLabel || node.title, meta.icon)
+    badges.push({
+      id: `wf-${node.id}`,
+      kind: 'workflow_node',
+      category,
+      icon: catalogItem?.icon || parsed.icon,
+      label: catalogItem?.shortLabel || parsed.cleanTitle,
+      tooltip: `Node Logic: ${node.title} ${node.enabled ? '' : '[Đã tắt]'} — Click để cấu hình`,
+      accent: meta.accent,
+      enabled: node.enabled !== false,
+      nodeId: node.id
+    })
+  }
+
+  // 2. Huy hiệu từ các Capability Plugins của Layer (Đèn 2.5D, Hang 2.5D, Vật lý, Motion...)
+  for (const plugin of LAYER_CAPABILITY_PLUGINS) {
+    const inspected = plugin.inspect(layer)
+    if (inspected) {
+      badges.push({
+        id: `${plugin.id}-${layer.id}`,
+        kind: 'capability',
+        category: plugin.category,
+        ...inspected
+      })
+    }
+  }
+
+  return badges
+}
+
+/**
+ * Bật / tắt nhanh một Node Logic ngay từ thanh Timeline và đồng bộ vào cảnh.
+ */
+export function toggleTimelineLogicNode(project: Project, nodeId: string): boolean {
+  const baseWf = ensureProjectWorkflow(isDraft(project) ? current(project) : project)
+  const target = baseWf.nodes.find((n) => n.id === nodeId)
+  if (!target) return false
+  const nextEnabled = !target.enabled
+  const nextGraph: WorkflowGraph = {
+    ...structuredClone(baseWf),
+    nodes: baseWf.nodes.map((n) => (n.id === nodeId ? { ...n, enabled: nextEnabled } : { ...n }))
+  }
+  applyWorkflowToProject(project, nextGraph)
+  return nextEnabled
+}
+
+/**
+ * Xoá một Node Logic khỏi luồng xử lý ngay từ thanh Timeline.
+ */
+export function removeTimelineLogicNode(project: Project, nodeId: string): void {
+  const baseWf = ensureProjectWorkflow(isDraft(project) ? current(project) : project)
+  const nextGraph: WorkflowGraph = {
+    ...structuredClone(baseWf),
+    nodes: baseWf.nodes.filter((n) => n.id !== nodeId),
+    edges: baseWf.edges.filter((e) => e.fromNode !== nodeId && e.toNode !== nodeId)
+  }
+  applyWorkflowToProject(project, nextGraph)
+}
+
+function contextNode(
+  id: string,
+  type: WorkflowNode['type'],
+  title: string,
+  shotId: string,
+  layerIds?: string[]
+): WorkflowNode {
+  const spec = WORKFLOW_NODE_SPECS[type]
+  return {
+    id,
+    type,
+    title,
+    enabled: true,
+    preset: spec.presets[0].id,
+    aiAgentRole: spec.aiAgentRole,
+    aiDirective: '',
+    position: { x: 80, y: type === 'scene_shot' ? 40 : 360 },
+    params: { shotId, targetMode: layerIds ? 'custom' : 'auto', targetLayerIds: layerIds }
+  }
+}
+
+function wireSource(
+  graph: WorkflowGraph,
+  source: WorkflowNode,
+  node: WorkflowNode
+): WorkflowGraph | null {
+  const from = getWorkflowNodePorts(source)
+  const to = getWorkflowNodePorts(node)
   for (const port of from.outputs) {
     if (to.inputs.includes(port) && validateWorkflowConnection(source, port, node, port).valid) {
       return connectWorkflowPort(graph, source.id, port, node.id, port)
@@ -24,12 +461,19 @@ function wireSource(graph: WorkflowGraph, source: WorkflowNode, node: WorkflowNo
 }
 
 /** Shared entry point for timeline and MCP. Only the new processor is executed. */
-export function addTimelineLogic(project: Project, logicId: string, layerId?: string, targetShotId?: string): string {
+export function addTimelineLogic(
+  project: Project,
+  logicId: string,
+  layerId?: string,
+  targetShotId?: string
+): string {
   const layer = layerId ? project.layers.find((item) => item.id === layerId) : undefined
   if (layerId && !layer) throw new Error('Layer không còn tồn tại.')
   if (layer?.locked) throw new Error('Mở khóa layer trước khi thêm logic.')
   const shotId = layer?.shotId || targetShotId || 'all'
-  if (shotId !== 'all' && !project.shots.some((item) => item.id === shotId)) throw new Error('Cảnh không còn tồn tại.')
+  if (shotId !== 'all' && !project.shots.some((item) => item.id === shotId)) {
+    throw new Error('Cảnh không còn tồn tại.')
+  }
   let graph = structuredClone(ensureProjectWorkflow(isDraft(project) ? current(project) : project))
   const column = Math.max(0, ...graph.nodes.map((item) => item.position.x)) + 360
   const result = spawnLogicNodeIntoWorkflow(graph, logicId, shotId, { autoConnect: false })
@@ -38,26 +482,44 @@ export function addTimelineLogic(project: Project, logicId: string, layerId?: st
   node.position = { x: column + 360, y: 360 }
   if (layer) node.params = { ...node.params, targetMode: 'custom', targetLayerIds: [layer.id] }
   if (node.type === 'scene_shot') {
-    const ids = layer ? [layer.id] : project.layers.filter((item) => shotId === 'all' || item.shotId === shotId).map((item) => item.id)
+    const ids = layer
+      ? [layer.id]
+      : project.layers
+          .filter((item) => shotId === 'all' || item.shotId === shotId)
+          .map((item) => item.id)
     const output = contextNode(`tl-output-${node.id}`, 'layer_assembly', 'Layer của cảnh', shotId, ids)
     output.position = { x: node.position.x, y: node.position.y + 340 }
     graph.nodes.push(output)
     graph = connectWorkflowPort(graph, node.id, 'layers_tree', output.id, 'layers_tree')
   } else {
-    let source = graph.nodes.find((item) => item.type === 'scene_shot' && item.enabled && item.params?.shotId === shotId)
+    let source = graph.nodes.find(
+      (item) => item.type === 'scene_shot' && item.enabled && item.params?.shotId === shotId
+    )
     if (!source) {
-      source = contextNode(`tl-scene-${shotId}`, 'scene_shot', project.shots.find((item) => item.id === shotId)?.name ?? 'Toàn dự án', shotId)
-      // Keep a disabled existing context untouched; create a fresh source instead.
+      source = contextNode(
+        `tl-scene-${shotId}`,
+        'scene_shot',
+        project.shots.find((item) => item.id === shotId)?.name ?? 'Toàn dự án',
+        shotId
+      )
       if (graph.nodes.some((item) => item.id === source!.id)) source.id += `-${node.id}`
       source.position = { x: column, y: 40 }
       graph.nodes.push(source)
     }
     let connected: WorkflowGraph | null = null
     if (layer && getWorkflowNodePorts(node).inputs.includes('actors_rig')) {
-      let entity = graph.nodes.find((item) => item.type === 'layer_assembly' && !item.params?.logicId
-        && item.enabled && item.params?.targetLayerIds?.length === 1 && item.params.targetLayerIds[0] === layer.id)
+      let entity = graph.nodes.find(
+        (item) =>
+          item.type === 'layer_assembly' &&
+          !item.params?.logicId &&
+          item.enabled &&
+          item.params?.targetLayerIds?.length === 1 &&
+          item.params.targetLayerIds[0] === layer.id
+      )
       if (!entity) {
-        entity = contextNode(`tl-layer-${layer.id}-${node.id}`, 'layer_assembly', layer.name, shotId, [layer.id])
+        entity = contextNode(`tl-layer-${layer.id}-${node.id}`, 'layer_assembly', layer.name, shotId, [
+          layer.id
+        ])
         entity.position = { x: column, y: 360 }
         graph.nodes.push(entity)
       }
@@ -65,7 +527,9 @@ export function addTimelineLogic(project: Project, logicId: string, layerId?: st
       connected = wireSource(graph, entity, node)
     }
     graph = connected ?? wireSource(graph, source, node) ?? graph
-    if (!graph.edges.some((edge) => edge.toNode === node.id)) throw new Error('Logic này chưa có cổng nguồn tương thích.')
+    if (!graph.edges.some((edge) => edge.toNode === node.id)) {
+      throw new Error('Logic này chưa có cổng nguồn tương thích.')
+    }
   }
   applyWorkflowToProject(project, graph, { onlyNodeIds: new Set([node.id]) })
   return node.id

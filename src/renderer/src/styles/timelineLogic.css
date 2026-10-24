@@ -1,24 +1,838 @@
-.tl-logic-strip { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--bg-1); border-bottom: 1px solid var(--line); min-width: 0; flex-shrink: 0; color: var(--text); font-size: 11px; }
-.tl-logic-target { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-dim); }
-.tl-logic-items { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; }
-.tl-logic-chip { border: 1px solid var(--line); border-radius: 14px; background: var(--bg-2); color: var(--text-dim); padding: 5px 10px; white-space: nowrap; cursor: pointer; }
-.tl-logic-chip.active { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg-1)); }
-.tl-logic-empty { color: var(--text-faint); white-space: nowrap; }
-.tl-logic-backdrop { position: fixed; inset: 0; z-index: 50000; display: grid; place-items: center; background: color-mix(in srgb, var(--bg-0) 65%, transparent); backdrop-filter: blur(4px); }
-.tl-logic-picker { width: min(720px, 90vw); max-height: 80vh; display: flex; flex-direction: column; gap: 14px; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg-1); color: var(--text); box-shadow: 0 16px 60px var(--bg-0); }
-.tl-logic-picker header { display: flex; justify-content: space-between; align-items: flex-start; }
-.tl-logic-picker header strong { font-size: 18px; }
-.tl-logic-picker p { color: var(--text-dim); margin: 6px 0 0; }
-.tl-logic-picker input { padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg-0); color: var(--text); }
-.tl-logic-catalog { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; overflow-y: auto; min-height: 0; }
-.tl-logic-catalog button { text-align: left; display: flex; flex-direction: column; gap: 7px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg-2); color: var(--text); cursor: pointer; }
-.tl-logic-catalog small { color: var(--accent); }
-.tl-logic-catalog span { color: var(--text-dim); line-height: 1.5; font-size: 11px; }
-.tl-logic-catalog button:hover, .tl-logic-chip:hover { border-color: var(--accent); background: var(--bg-3); }
-.tl-logic-picker :focus-visible, .tl-logic-strip :focus-visible { outline: 2px solid var(--line-focus); outline-offset: 2px; }
-.viewer-depth-pane, .anim2d-pane-host { border: 1px solid var(--line-soft); box-sizing: border-box; }
-.viewer-view-tags .seg-btn:disabled { opacity: 1; cursor: default; }
-.viewer > .viewer-tools { height: auto; min-height: 26px; flex-wrap: wrap; left: 8px; right: auto; max-width: calc(100% - 16px); }
-.viewer > .viewer-hud { top: auto; bottom: 8px; }
-.anim2d-toolbar.single-row { overflow: visible; flex-wrap: wrap; height: auto; min-height: 34px; }
-.anim2d-toolbar-left, .anim2d-toolbar-right { flex-wrap: wrap; flex-shrink: 1; }
+/* ==========================================================================
+   Parallax Studio - Timeline Logic Strip, Categorized Logic Picker & Track Badges
+   Dual-Theme (Dark & Light) Pro Studio Design
+   ========================================================================== */
+
+.tl-logic-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 10px;
+  background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 100%);
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+  flex-shrink: 0;
+  color: var(--text);
+  font-size: 11px;
+}
+
+[data-theme='light'] .tl-logic-strip,
+.app.light .tl-logic-strip,
+:root[data-theme='light'] .tl-logic-strip {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom-color: #cbd5e1;
+}
+
+/* Target Scope Pill */
+.tl-logic-target-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px 0 4px;
+  border-radius: 5px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  max-width: 200px;
+  flex-shrink: 0;
+}
+
+[data-theme='light'] .tl-logic-target-pill,
+.app.light .tl-logic-target-pill {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+.tl-logic-scope-tag {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  color: #ffffff;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.tl-logic-scope-tag.scope-layer {
+  background: #0284c7;
+}
+
+.tl-logic-scope-tag.scope-shot {
+  background: #7c3aed;
+}
+
+.tl-logic-scope-tag.scope-project {
+  background: #475569;
+}
+
+.tl-logic-target {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 10.5px;
+}
+
+/* Primary Add Logic Button */
+.tl-logic-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-2));
+  color: var(--accent-cyan);
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.12s, border-color 0.12s, transform 0.1s;
+}
+
+[data-theme='light'] .tl-logic-add-btn,
+.app.light .tl-logic-add-btn {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+.tl-logic-add-btn:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.tl-logic-add-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tl-logic-add-plus {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* Quick Category Pills */
+.tl-logic-quick-cats {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.tl-logic-cat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--logic-accent, var(--line)) 32%, var(--line-soft));
+  background: color-mix(in srgb, var(--logic-accent, var(--bg-2)) 10%, var(--bg-2));
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+[data-theme='light'] .tl-logic-cat-pill,
+.app.light .tl-logic-cat-pill {
+  background: color-mix(in srgb, var(--logic-accent, #3b82f6) 8%, #ffffff);
+  border-color: color-mix(in srgb, var(--logic-accent, #3b82f6) 35%, #cbd5e1);
+  color: #334155;
+}
+
+.tl-logic-cat-pill:hover:not(:disabled) {
+  border-color: var(--logic-accent, var(--accent));
+  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 22%, var(--bg-2));
+  color: var(--text);
+}
+
+[data-theme='light'] .tl-logic-cat-pill:hover:not(:disabled),
+.app.light .tl-logic-cat-pill:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--logic-accent, #3b82f6) 16%, #ffffff);
+  color: #0f172a;
+}
+
+.tl-logic-cat-pill:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tl-logic-cat-pill .cat-ico {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.tl-logic-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--line);
+  flex-shrink: 0;
+}
+
+/* Active Logic Chips Stream */
+.tl-logic-items {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tl-logic-items::-webkit-scrollbar {
+  display: none;
+}
+
+.tl-logic-chip-wrap {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--logic-accent, var(--line)) 45%, var(--line));
+  background: color-mix(in srgb, var(--logic-accent, var(--bg-2)) 12%, var(--bg-2));
+  padding-right: 3px;
+  flex-shrink: 0;
+  transition: border-color 0.12s, background 0.12s, box-shadow 0.12s;
+}
+
+[data-theme='light'] .tl-logic-chip-wrap,
+.app.light .tl-logic-chip-wrap {
+  background: color-mix(in srgb, var(--logic-accent, #3b82f6) 10%, #ffffff);
+  border-color: color-mix(in srgb, var(--logic-accent, #3b82f6) 45%, #cbd5e1);
+}
+
+.tl-logic-chip-wrap.active {
+  border-color: var(--logic-accent, var(--accent));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--logic-accent, var(--accent)) 22%, transparent);
+}
+
+.tl-logic-chip-wrap.is-disabled {
+  opacity: 0.55;
+  border-style: dashed;
+}
+
+.tl-logic-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  padding: 0 7px 0 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tl-logic-chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  flex-shrink: 0;
+}
+
+.tl-logic-chip-dot.on {
+  background: #10b981;
+  box-shadow: 0 0 5px #10b981;
+}
+
+.tl-logic-chip-dot.warn {
+  background: #f59e0b;
+}
+
+.tl-logic-chip-dot.off {
+  background: var(--text-faint);
+}
+
+.tl-logic-chip-ico {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.tl-logic-chip-action {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.tl-logic-chip-action:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+
+.tl-logic-chip-action.remove:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.tl-logic-empty {
+  color: var(--text-faint);
+  font-size: 10.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tl-logic-empty strong {
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+/* Right-side Workflow Studio Jump Button */
+.tl-logic-wf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+
+[data-theme='light'] .tl-logic-wf-btn,
+.app.light .tl-logic-wf-btn {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+.tl-logic-wf-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+  background: var(--bg-3);
+}
+
+.tl-logic-wf-count {
+  padding: 0 5px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-1));
+  color: var(--accent-cyan);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 700;
+}
+
+[data-theme='light'] .tl-logic-wf-count,
+.app.light .tl-logic-wf-count {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+/* ==========================================================================
+   Categorized Logic Picker Modal (.tl-logic-picker)
+   ========================================================================== */
+
+.tl-logic-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100005;
+  display: grid;
+  place-items: center;
+  background: rgba(2, 6, 23, 0.62);
+  backdrop-filter: blur(5px);
+}
+
+.tl-logic-picker {
+  width: min(820px, 92vw);
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px;
+  border: 1px solid var(--line-focus);
+  border-radius: 12px;
+  background: var(--bg-1);
+  color: var(--text);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+}
+
+[data-theme='light'] .tl-logic-picker,
+.app.light .tl-logic-picker {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.22);
+}
+
+.tl-logic-picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.tl-logic-picker-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tl-logic-picker-header strong {
+  font-size: 16px;
+  color: var(--text);
+}
+
+.tl-logic-picker-target-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-2));
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--accent-cyan);
+}
+
+[data-theme='light'] .tl-logic-picker-target-badge,
+.app.light .tl-logic-picker-target-badge {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.tl-logic-picker-header p {
+  color: var(--text-dim);
+  margin: 4px 0 0;
+  font-size: 11.5px;
+}
+
+.tl-logic-picker-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tl-logic-search-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--bg-0);
+  color: var(--text);
+  font-size: 12px;
+  box-sizing: border-box;
+}
+
+[data-theme='light'] .tl-logic-search-input,
+.app.light .tl-logic-search-input {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.tl-logic-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* Segmented Category Filter Tabs */
+.tl-logic-cat-tabs {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.tl-logic-cat-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 6px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+[data-theme='light'] .tl-logic-cat-tab,
+.app.light .tl-logic-cat-tab {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.tl-logic-cat-tab:hover {
+  border-color: var(--logic-accent, var(--accent));
+  color: var(--text);
+}
+
+.tl-logic-cat-tab.active {
+  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 22%, var(--bg-2));
+  border-color: var(--logic-accent, var(--accent));
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--logic-accent, var(--accent)) 35%, transparent);
+}
+
+[data-theme='light'] .tl-logic-cat-tab.active,
+.app.light .tl-logic-cat-tab.active {
+  background: color-mix(in srgb, var(--logic-accent, #2563eb) 15%, #ffffff);
+  border-color: var(--logic-accent, #2563eb);
+  color: #0f172a;
+}
+
+.tl-logic-cat-tab .cnt {
+  font-size: 9.5px;
+  font-family: var(--mono);
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text-dim);
+}
+
+[data-theme='light'] .tl-logic-cat-tab .cnt,
+.app.light .tl-logic-cat-tab .cnt {
+  background: rgba(15, 23, 42, 0.08);
+  color: #334155;
+}
+
+.tl-logic-error-banner {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  font-size: 11.5px;
+}
+
+/* Catalog Grid & Cards */
+.tl-logic-catalog {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
+  gap: 10px;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 2px;
+}
+
+.tl-logic-card {
+  position: relative;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-top: 2.5px solid var(--logic-accent, var(--accent));
+  border-radius: 8px;
+  background: var(--bg-2);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s, background 0.12s, box-shadow 0.12s;
+}
+
+[data-theme='light'] .tl-logic-card,
+.app.light .tl-logic-card {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  border-top: 2.5px solid var(--logic-accent, #2563eb);
+  color: #0f172a;
+}
+
+.tl-logic-card:hover {
+  border-color: var(--logic-accent, var(--accent));
+  background: var(--bg-3);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme='light'] .tl-logic-card:hover,
+.app.light .tl-logic-card:hover {
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+}
+
+.tl-logic-card-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.tl-logic-card-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 18%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--logic-accent, var(--accent)) 35%, transparent);
+}
+
+.tl-logic-card-cat {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--logic-accent, var(--accent));
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tl-logic-card-cta {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 18%, transparent);
+  color: var(--logic-accent, var(--accent));
+  opacity: 0.75;
+  transition: opacity 0.12s, background 0.12s, color 0.12s;
+}
+
+.tl-logic-card:hover .tl-logic-card-cta {
+  opacity: 1;
+  background: var(--logic-accent, var(--accent));
+  color: #ffffff;
+}
+
+.tl-logic-card-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.tl-logic-card-desc {
+  color: var(--text-dim);
+  line-height: 1.45;
+  font-size: 10.5px;
+}
+
+.tl-logic-picker :focus-visible,
+.tl-logic-strip :focus-visible {
+  outline: 2px solid var(--line-focus);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Inline Logic & Capability Badges on Layer Track Bars (.tl-bar)
+   ========================================================================== */
+
+.tl-bar-label-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tl-bar-logic-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.tl-bar-logic-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 16px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid color-mix(in srgb, var(--badge-accent, #38bdf8) 75%, rgba(255, 255, 255, 0.25));
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 0.1s, background 0.12s, border-color 0.12s;
+}
+
+[data-theme='light'] .tl-bar-logic-pill,
+.app.light .tl-bar-logic-pill {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: color-mix(in srgb, var(--badge-accent, #2563eb) 75%, #94a3b8);
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+.tl-bar-logic-pill:hover {
+  transform: scale(1.04);
+  background: var(--badge-accent, var(--accent));
+  border-color: #ffffff;
+  color: #ffffff;
+}
+
+.tl-bar-logic-pill.is-off {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
+.tl-bar-logic-pill .b-ico {
+  font-size: 9.5px;
+}
+
+.tl-bar-add-logic-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(15, 23, 42, 0.78);
+  color: #38bdf8;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 0.12s, background 0.12s, color 0.12s, border-color 0.12s;
+  flex-shrink: 0;
+}
+
+[data-theme='light'] .tl-bar-add-logic-btn,
+.app.light .tl-bar-add-logic-btn {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+.tl-row:hover .tl-bar-add-logic-btn,
+.tl-bar.is-selected .tl-bar-add-logic-btn,
+.tl-bar-add-logic-btn:focus-visible {
+  opacity: 1;
+}
+
+.tl-bar-add-logic-btn:hover {
+  background: var(--accent);
+  border-color: #ffffff;
+  color: #ffffff;
+}
+
+/* Shot Group Track Ribbon */
+.tl-group-track-ribbon {
+  position: absolute;
+  inset: 3px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 0 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--c, var(--accent)) 14%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--c, var(--accent)) 45%, transparent);
+  pointer-events: none;
+}
+
+.tl-playhead-cap-badge {
+  left: 16px;
+}
+
+.tl-group-ribbon-label {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.01em;
+}
+
+.tl-group-add-logic-btn {
+  height: 17px;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--c, var(--accent)) 60%, var(--line));
+  background: var(--bg-1);
+  color: var(--text);
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: 0.75;
+  transition: opacity 0.12s, background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.tl-row.group:hover .tl-group-add-logic-btn,
+.tl-row.group.selected .tl-group-add-logic-btn {
+  opacity: 1;
+}
+
+.tl-group-add-logic-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   Viewer / Stage2D Shared Layout Rules
+   ========================================================================== */
+.viewer-depth-pane,
+.anim2d-pane-host {
+  border: 1px solid var(--line-soft);
+  box-sizing: border-box;
+}
+.viewer-view-tags .seg-btn:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.viewer > .viewer-tools {
+  height: auto;
+  min-height: 26px;
+  flex-wrap: wrap;
+  left: 8px;
+  right: auto;
+  max-width: calc(100% - 16px);
+}
+.viewer > .viewer-hud {
+  top: auto;
+  bottom: 8px;
+}
+.anim2d-toolbar.single-row {
+  overflow: visible;
+  flex-wrap: wrap;
+  height: auto;
+  min-height: 34px;
+}
+.anim2d-toolbar-left,
+.anim2d-toolbar-right {
+  flex-wrap: wrap;
+  flex-shrink: 1;
+}

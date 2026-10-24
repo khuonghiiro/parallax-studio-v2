@@ -584,7 +584,35 @@ export function Timeline() {
                           </span>
                         </div>
                       }
-                      track={shot ? summaryKeys(shotAnims) : null}
+                      track={
+                        shot ? (
+                          <>
+                            <div className="tl-group-track-ribbon">
+                              <span className="tl-group-ribbon-label">
+                                🎬 {shot.name} · {g.layers.length} lớp 2.5D
+                              </span>
+                              <button
+                                type="button"
+                                className="tl-group-add-logic-btn"
+                                title={`Thêm Logic cho toàn bộ "${shot.name}"`}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  selectShot(shot.id)
+                                  window.dispatchEvent(
+                                    new CustomEvent('pxs:open-timeline-logic-picker', {
+                                      detail: { category: 'all' }
+                                    })
+                                  )
+                                }}
+                              >
+                                + Logic cảnh
+                              </button>
+                            </div>
+                            {summaryKeys(shotAnims)}
+                          </>
+                        ) : null
+                      }
                     />
                   )}
                   {shot &&

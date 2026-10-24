@@ -34,6 +34,8 @@ import { isMouthLayer } from '../../project/lipSync'
 import { getCleanLayerSubName } from './timelineClusters'
 import { IconLipSync, IconVoiceDialogue } from '../icons'
 import type { AudioTrackItem } from '@shared/types'
+import { ensureProjectWorkflow } from '../../project/workflowEngine'
+import { getLayerTimelineLogicBadges } from '../../project/timelineLogic'
 
 function renderLayerTypeIcon(type: Layer['type']) {
   switch (type) {
@@ -113,6 +115,12 @@ function TimelineLayerRowComponent({
   }, [layer.transform.position])
   const color = TYPE_COLORS[layer.type]
   const setTime = useEditor((s) => s.setTime)
+  const workflow = useEditor((s) => s.project.workflow)
+  const logicBadges = useMemo(() => {
+    const proj = useEditor.getState().project
+    const wf = ensureProjectWorkflow(proj)
+    return getLayerTimelineLogicBadges(layer, proj, wf)
+  }, [layer, workflow])
   const [isDragOver, setIsDragOver] = useState(false)
 
   // Clear dashed drop indicator whenever drag ends, drops anywhere or mouse is released
@@ -405,7 +413,57 @@ function TimelineLayerRowComponent({
                 <span className="gripper" />
               </div>
               <span className="tl-bar-label">
-                <span className="bar-span">{(layer.outPoint - layer.inPoint).toFixed(1)}s</span>
+                <span className="tl-bar-label-left">
+                  <span className="bar-span">{(layer.outPoint - layer.inPoint).toFixed(1)}s</span>
+                  {logicBadges.length > 0 && (
+                    <span className="tl-bar-logic-badges">
+                      {logicBadges.slice(0, 4).map((b) => (
+                        <button
+                          key={b.id}
+                          type="button"
+                          className={`tl-bar-logic-pill${b.enabled ? '' : ' is-off'}`}
+                          style={{ ['--badge-accent' as string]: b.accent }}
+                          title={b.tooltip}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onSelect()
+                            if (b.kind === 'workflow_node' && b.nodeId) {
+                              window.dispatchEvent(
+                                new CustomEvent('pxs:open-timeline-logic-node', {
+                                  detail: { nodeId: b.nodeId }
+                                })
+                              )
+                            } else {
+                              useEditor.getState().setInspectorTab('layer')
+                            }
+                          }}
+                        >
+                          <span className="b-ico">{b.icon}</span>
+                          <span className="b-txt">{b.label}</span>
+                        </button>
+                      ))}
+                    </span>
+                  )}
+                </span>
+                {!layer.locked && (
+                  <button
+                    type="button"
+                    className="tl-bar-add-logic-btn"
+                    title={`Thêm Logic 2.5D cho "${layer.name}"`}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      window.dispatchEvent(
+                        new CustomEvent('pxs:open-timeline-logic-picker', {
+                          detail: { layerId: layer.id }
+                        })
+                      )
+                    }}
+                  >
+                    + Logic
+                  </button>
+                )}
               </span>
               <div
                 className="handle r"
