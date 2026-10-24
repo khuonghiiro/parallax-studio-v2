@@ -282,30 +282,6 @@ export function BuiltInAssetGrid({
                   <div className="builtin-asset-actions">
                     <button
                       type="button"
-                      className="btn sm icon danger"
-                      title="Xoá tài nguyên (kiểm tra an toàn nếu đang được dùng)"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setDeleteTarget(item)
-                      }}
-                    >
-                      <IconTrash width={12} height={12} />
-                    </button>
-
-                    <button
-                      type="button"
-                      className="btn sm icon"
-                      title="Xem chi tiết và vị trí sử dụng tệp này"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setDetailTarget(item)
-                      }}
-                    >
-                      <IconInfo width={12} height={12} />
-                    </button>
-
-                    <button
-                      type="button"
                       className="btn sm icon primary"
                       style={{
                         background: 'var(--accent)',
@@ -326,7 +302,31 @@ export function BuiltInAssetGrid({
                         else onImportItem?.(item, true)
                       }}
                     >
-                      {actionIcon || <IconPlus />}
+                      {actionIcon || <IconPlus width={12} height={12} />}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn sm icon"
+                      title="Xem chi tiết và vị trí sử dụng tệp này"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDetailTarget(item)
+                      }}
+                    >
+                      <IconInfo width={12} height={12} />
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn sm icon danger"
+                      title="Xoá tài nguyên (kiểm tra an toàn nếu đang được dùng)"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteTarget(item)
+                      }}
+                    >
+                      <IconTrash width={12} height={12} />
                     </button>
                   </div>
                 </div>

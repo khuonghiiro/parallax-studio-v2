@@ -109,18 +109,28 @@ export function ProjectAssetList() {
 
               <span className="asset-name">{a.name}</span>
 
-              <div className="add-hint" style={{ display: 'flex', gap: 3 }}>
-                <button
-                  type="button"
-                  className="btn sm icon danger"
-                  title="Xoá asset khỏi dự án (kiểm tra cảnh báo nếu đang được dùng)"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setDeleteTarget(a)
-                  }}
-                >
-                  <IconTrash width={12} height={12} />
-                </button>
+              <div className="add-hint">
+                {isAudio ? (
+                  <button
+                    type="button"
+                    className="btn sm icon primary"
+                    style={{ background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)' }}
+                    title="Thêm vào mốc thời gian hiện tại (tại vị trí kim phát)"
+                    onClick={() => addAudioTrackFromAsset(a.id, useEditor.getState().time)}
+                  >
+                    <IconPlus width={12} height={12} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn sm icon primary"
+                    style={{ background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)' }}
+                    title="Thêm thành layer vào cảnh"
+                    onClick={() => addLayerFromAsset(a.id)}
+                  >
+                    <IconPlus width={12} height={12} />
+                  </button>
+                )}
 
                 <button
                   type="button"
@@ -134,27 +144,17 @@ export function ProjectAssetList() {
                   <IconInfo width={12} height={12} />
                 </button>
 
-                {isAudio ? (
-                  <button
-                    type="button"
-                    className="btn sm icon primary"
-                    style={{ background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)' }}
-                    title="Thêm vào mốc thời gian hiện tại (tại vị trí kim phát)"
-                    onClick={() => addAudioTrackFromAsset(a.id, useEditor.getState().time)}
-                  >
-                    <IconPlus />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn sm icon primary"
-                    style={{ background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)' }}
-                    title="Thêm thành layer vào cảnh"
-                    onClick={() => addLayerFromAsset(a.id)}
-                  >
-                    <IconPlus />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="btn sm icon danger"
+                  title="Xoá asset khỏi dự án (kiểm tra cảnh báo nếu đang được dùng)"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setDeleteTarget(a)
+                  }}
+                >
+                  <IconTrash width={12} height={12} />
+                </button>
               </div>
             </div>
           )
