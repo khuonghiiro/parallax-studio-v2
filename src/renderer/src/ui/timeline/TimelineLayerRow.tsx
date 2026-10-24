@@ -1,7 +1,6 @@
-import { TimelinePropertyControls } from './TimelinePropertyControls'
+import { TimelinePropertyRow } from './TimelinePropertyRow'
 
-import { focusTimelineProperty } from './timelineKeyEditing'
-import { TimelineLayerKeys, TimelineLayerSummary } from './TimelineLayerKeys'
+import { TimelineLayerSummary } from './TimelineLayerKeys'
 import { TimelineEffectRows } from './TimelineEffectRows'
 import { listLayerEffects } from '../../animation/motionEffects'
 import { useEffectSelection } from '../../store/effectSelection'
@@ -459,19 +458,8 @@ function TimelineLayerRowComponent({
       {isOpen && <div className="tl-layer-properties" data-mcp-region="timeline_properties">
 
         {LAYER_PROPS.map((p) => (
-          <TimelineRow
-            key={p.prop}
-            sub
-            selected={isSelected}
-            trackWidth={trackWidth}
-            onTrackPointerDown={(event) => {
-              focusTimelineProperty({ kind: 'layer', layerId: layer.id, prop: p.prop })
-              useEditor.getState().selectKey(null)
-              onTrackPointerDown?.(event)
-            }}
-            name={<TimelinePropertyControls layer={layer} prop={p.prop} label={p.label} />}
-            track={<TimelineLayerKeys layer={layer} animation={layer.transform[p.prop] as Animatable<AnimValue>} property={p} x={x} trackWidth={trackWidth} startKeyDrag={startKeyDrag} />}
-          />
+          <TimelinePropertyRow key={p.prop} layer={layer} property={p} x={x} trackWidth={trackWidth}
+            startKeyDrag={startKeyDrag} onTrackPointerDown={onTrackPointerDown} />
         ))}</div>}
       {isOpen && (() => {
         const glowConfigs = getAllGlowConfigs(layer)

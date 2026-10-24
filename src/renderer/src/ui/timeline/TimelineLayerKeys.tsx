@@ -29,6 +29,10 @@ function LayerKey({ layer, animation, property, x, startKeyDrag, frame, selected
   return <div className={`tl-key ${fx ? 'tl-key-fx' : boundary}${off ? ' disabled' : ''}${selected ? ' selected' : ''}${frame.ease === 'hold' ? ' hold' : ''}`}
     style={{ left: x(frame.t), ['--fx-color' as string]: off ? 'var(--text-faint)' : color }}
     title={title} role="button" aria-label={title} tabIndex={layer.locked ? -1 : 0}
+    onClick={event => {
+      event.stopPropagation()
+      if (!layer.locked && event.detail === 0) jumpTimelineKey(ref, frame.id, frame.t)
+    }}
     onPointerDown={event => {
       event.stopPropagation()
       if (layer.locked) return

@@ -2,16 +2,28 @@ import { create } from 'zustand'
 import type { EaseName } from '@shared/types'
 import { addKeyframe, evaluate, keyAt } from '../../animation/keyframes'
 import { endTimelineRange, startTimelineRange, timelineSegmentAt } from '../../animation/timelineRange'
-import { frameTolerance, getAnimatable, getDraftAnimatable, useEditor, type PropRef } from '../../store/editor'
+import { frameTolerance, getAnimatable, getDraftAnimatable, propRefKey, useEditor, type PropRef } from '../../store/editor'
 import { toast } from '../../actions'
 
 export const useTimelineProperty = create<{ ref: PropRef | null }>(() => ({ ref: null }))
+
+export function sameTimelineRef(a: PropRef | null | undefined, b: PropRef | null | undefined) {
+  return !!a && !!b && propRefKey(a) === propRefKey(b)
+}
+
+export function useActiveTimelineProperty(ref: PropRef) {
+  const active = useTimelineProperty(s => s.ref)
+  const selectedKey = useEditor(s => s.selectedKey?.ref)
+  const layerId = useEditor(s => s.selectedLayerId)
+  return ref.kind === 'layer' && layerId === ref.layerId &&
+    sameTimelineRef(selectedKey ?? active, ref)
+}
 
 export function focusTimelineProperty(ref: PropRef) {
   const editor = useEditor.getState()
   if (ref.kind === 'layer' && editor.selectedLayerId !== ref.layerId) editor.selectLayer(ref.layerId)
   const selected = editor.selectedKey?.ref
-  if (selected && JSON.stringify(selected) !== JSON.stringify(ref)) editor.selectKey(null)
+  if (selected && !sameTimelineRef(selected, ref)) editor.selectKey(null)
   useTimelineProperty.setState({ ref })
 }
 
@@ -99,7 +111,14 @@ export function handleTimelineKeyShortcut(event: KeyboardEvent): boolean {
   const ref = activeTimelineRef()
   if (!ref) return false
   const key = event.key.toLowerCase()
-  if (key === 'k') addTimelineKey(ref, event.altKey ? 'end' : event.shiftKey ? 'start' : undefined)
+  if (!event.altKey && !event.shiftKey && (key === 'arrowup' || key === 'arrowdown') &&
+    target?.closest?.('.tl-property-controls') && ref.kind === 'layer') {
+    const props = ['position', 'rotation', 'scale', 'opacity'] as const
+    const index = props.indexOf(ref.prop as typeof props[number])
+    const prop = props[Math.max(0, Math.min(props.length - 1, index + (key === 'arrowup' ? -1 : 1)))]
+    focusTimelineProperty({ ...ref, prop })
+    target.closest('.tl-layer-properties')?.querySelector<HTMLElement>(`[data-layer-property="${prop}"]`)?.focus()
+  } else if (key === 'k') addTimelineKey(ref, event.altKey ? 'end' : event.shiftKey ? 'start' : undefined)
   else if (event.altKey && (key === 'arrowleft' || key === 'arrowright')) {
     navigateTimelineKey(ref, key === 'arrowleft' ? -1 : 1)
   } else return false

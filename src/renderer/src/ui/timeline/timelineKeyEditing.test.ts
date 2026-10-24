@@ -1,9 +1,30 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createProject, createSolidLayer } from '../../project/factory'
 import { useEditor, type PropRef } from '../../store/editor'
-import { addTimelineKey, focusTimelineProperty, handleTimelineKeyShortcut, navigateTimelineKey, setTimelineEase, useTimelineProperty } from './timelineKeyEditing'
+import { activeTimelineRef, addTimelineKey, focusTimelineProperty, handleTimelineKeyShortcut, navigateTimelineKey, setTimelineEase, useTimelineProperty } from './timelineKeyEditing'
 
 let ref: PropRef
+it('selects a new property without changing the playhead or project', () => {
+  addTimelineKey(ref)
+  useEditor.getState().setTime(2)
+  const project = useEditor.getState().project
+  const rotation = { ...ref, prop: 'rotation' } as PropRef
+  focusTimelineProperty(rotation)
+  expect(activeTimelineRef()).toEqual(rotation)
+  expect(useEditor.getState().selectedKey).toBeNull()
+  expect(useEditor.getState().time).toBe(2)
+  expect(useEditor.getState().project).toBe(project)
+})
+
+it('moves property focus with arrows without editing values or seeking', () => {
+  const project = useEditor.getState().project
+  const target = { matches: () => false, closest: (selector: string) => selector === '.tl-property-controls' ? {} : null } as unknown as HTMLElement
+  expect(handleTimelineKeyShortcut(key('ArrowDown', { target }))).toBe(true)
+  expect(activeTimelineRef()?.prop).toBe('rotation')
+  expect(handleTimelineKeyShortcut(key('ArrowUp', { target }))).toBe(true)
+  expect(activeTimelineRef()?.prop).toBe('position')
+  expect(useEditor.getState().project).toBe(project)
+})
 beforeEach(() => {
   const project = createProject()
   const layer = createSolidLayer(project.comp)

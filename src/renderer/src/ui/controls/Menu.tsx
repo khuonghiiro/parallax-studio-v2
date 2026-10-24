@@ -2,10 +2,12 @@ import {
   useEffect,
   useRef,
   useState,
+  useCallback,
   type CSSProperties,
   type ReactNode
 } from 'react'
 import { IconChevronDown } from '../icons'
+import { MenuPortal } from './MenuPortal'
 
 export interface MenuProps {
   label: string
@@ -18,6 +20,8 @@ export interface MenuProps {
   align?: 'left' | 'right'
   title?: string
   style?: CSSProperties
+  portal?: boolean
+  popupClassName?: string
 }
 
 /**
@@ -35,16 +39,20 @@ export function Menu({
   disabled = false,
   align = 'left',
   title,
-  style
+  style,
+  portal = false,
+  popupClassName = ''
 }: MenuProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const popupRef = useRef<HTMLDivElement>(null)
+  const close = useCallback(() => setOpen(false), [])
 
   useEffect(() => {
     if (!open) return
 
     const handlePointerDown = (e: PointerEvent): void => {
-      if (!ref.current?.contains(e.target as Node)) {
+      if (!ref.current?.contains(e.target as Node) && !popupRef.current?.contains(e.target as Node)) {
         setOpen(false)
       }
     }
@@ -79,7 +87,8 @@ export function Menu({
         {label}
         <IconChevronDown style={{ width: 12, height: 12, opacity: 0.6 }} />
       </button>
-      {open && (
+      {open && portal && <MenuPortal anchor={ref} popup={popupRef} className={popupClassName} close={close}>{children}</MenuPortal>}
+      {open && !portal && (
         <div
           className={`menu${align === 'right' ? ' right' : ''}`}
           onClick={() => setOpen(false)}

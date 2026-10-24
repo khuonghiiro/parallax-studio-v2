@@ -15,22 +15,24 @@ export function TimelineRangeControls({ animation, refp }: { animation: Animatab
   const tolerance = frameTolerance(useEditor.getState().project)
   const current = keyAt(animation, time, tolerance)
   const segment = timelineSegmentAt(animation, time)
-  return <div className="tl-compact-keys tl-range-controls" data-mcp-region="timeline_key_controls" onPointerDownCapture={event => {
-      const rect = event.currentTarget.getBoundingClientRect()
-      event.currentTarget.style.setProperty('--motion-menu-top', `${Math.max(8, Math.min(rect.bottom, window.innerHeight - 220))}px`)
-      event.currentTarget.style.setProperty('--motion-menu-left', `${Math.max(8, rect.right - 240)}px`)
-    }}>
+  return <div className="tl-compact-keys tl-range-controls" data-mcp-region="timeline_key_controls">
     <button title="Mốc trước (Alt+←)" disabled={!animation.keyframes.some(k => k.t < time - tolerance)}
       onClick={() => navigateTimelineKey(refp, -1)}>‹</button>
-    <button className={current ? 'active' : ''} title={current ? 'Đang ở mốc; sửa số trực tiếp. Delete xóa mốc đã chọn.' : 'Thêm mốc tại đầu phát (K)'}
+    <button aria-pressed={!!current} className={`tl-key-diamond${current ? ' active' : ''}`} title={current ? `Mốc tại ${current.t.toFixed(2)}s · Bấm chọn để sửa, không xóa` : `Thêm mốc tại ${time.toFixed(2)}s (K)`}
       onClick={() => addTimelineKey(refp)}>{current ? '◆' : '◇'}</button>
     <button title="Mốc sau (Alt+→)" disabled={!animation.keyframes.some(k => k.t > time + tolerance)}
       onClick={() => navigateTimelineKey(refp, 1)}>›</button>
-    {current && <Menu id={`motion-${refp.kind === 'layer' ? refp.layerId : refp.kind}-${refp.prop}`} label="⋯" title="Chọn kiểu chuyển động của đoạn này">
-      <div className="menu-label">Chuyển động {segment.start?.t.toFixed(2)}s → {segment.end?.t.toFixed(2) ?? 'mốc sau'}s</div>
-      {modes.map(mode => <button key={mode.value} className="menu-item"
+    <Menu portal popupClassName="tl-property-menu-popup" id={`motion-${refp.kind === 'layer' ? refp.layerId : refp.kind}-${refp.prop}`} label="⋯" title="Mốc đầu/cuối và kiểu chuyển động">
+      <div className="tl-key-menu" data-mcp-region="timeline_key_menu">
+      <div className="menu-label">Tại đầu phát {time.toFixed(2)}s</div>
+      <button className="menu-item" onClick={() => addTimelineKey(refp, 'start')}>◆ Đặt đầu đoạn <kbd>Shift K</kbd></button>
+      <button className="menu-item" disabled={!animation.keyframes.some(k => k.t < time - tolerance)}
+        onClick={() => addTimelineKey(refp, 'end')}>◆ Đặt cuối đoạn <kbd>Alt K</kbd></button>
+      <div className="menu-label">{segment.start ? `Chuyển động ${segment.start.t.toFixed(2)}s → ${segment.end ? `${segment.end.t.toFixed(2)}s` : 'mốc sau'}` : 'Đặt mốc để chọn kiểu chuyển động'}</div>
+      {modes.map(mode => <button key={mode.value} className="menu-item" disabled={!current} aria-pressed={segment.start?.ease === mode.value}
         onClick={() => setTimelineEase(refp, mode.value)}>{segment.start?.ease === mode.value ? '✓ ' : ''}{mode.label}</button>)}
-    </Menu>}
+      </div>
+    </Menu>
   </div>
 }
 
