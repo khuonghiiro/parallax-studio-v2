@@ -41,8 +41,11 @@
   --key: #f59e0b;
   /* AE Diamond Keyframe Gold */
   --key-glow: rgba(245, 158, 11, 0.4);
+  --warn: #f59e0b;
+  /* Warning / Building Amber */
   --danger: #ef4444;
   /* AE Red */
+  --err: #ef4444;
   --ok: #22c55e;
   /* Online / OK Green */
 
@@ -59,10 +62,11 @@
   --axis-y: #2ed573;
   --axis-z: #7195ff;
 
-  /* Geometry & Shadows */
-  --radius: 4px;
-  /* Sharp, pro rectangular aesthetic */
-  --radius-sm: 3px;
+  /* Geometry & Shadows (Unified Control Radii) */
+  --radius-sm: 4px;
+  --radius: 5px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
   --radius-pill: 9999px;
   --shadow: 0 12px 36px rgba(0, 0, 0, 0.65);
   --shadow-popup: 0 16px 48px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08);
@@ -78,7 +82,9 @@
   /* Contrast-on-colour, modal backdrop & transparency checkerboard */
   --on-accent: #ffffff;
   --on-key: #1a1204;
+  --on-warn: #1a1204;
   --on-cyan: #04121c;
+  --on-danger: #ffffff;
   --backdrop: rgba(0, 0, 0, 0.78);
   --checker-a: #1c1c22;
   --checker-b: #141418;
@@ -89,6 +95,8 @@
 
   /* Fonts */
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --sans: var(--font);
+  --font-ui: var(--font);
   --mono: 'JetBrains Mono', 'Fira Code', ui-monospace, Menlo, Monaco, Consolas, monospace;
 
   /* Dimensions */
@@ -138,8 +146,11 @@
   --key: #d97706;
   /* Rich amber/gold for keyframes */
   --key-glow: rgba(217, 119, 6, 0.25);
+  --warn: #d97706;
+  /* Warning / Building Amber */
   --danger: #dc2626;
   /* Vivid Red */
+  --err: #dc2626;
   --ok: #16a34a;
   /* Forest Green */
 
@@ -156,7 +167,12 @@
   --axis-y: #16a34a;
   --axis-z: #2563eb;
 
-  /* Geometry & Shadows */
+  /* Geometry & Shadows (Unified Control Radii) */
+  --radius-sm: 4px;
+  --radius: 5px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-pill: 9999px;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   --shadow-popup: 0 10px 30px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.08);
 
@@ -171,7 +187,9 @@
   /* Contrast-on-colour, modal backdrop & transparency checkerboard */
   --on-accent: #ffffff;
   --on-key: #ffffff;
+  --on-warn: #ffffff;
   --on-cyan: #ffffff;
+  --on-danger: #ffffff;
   --backdrop: rgba(30, 36, 48, 0.45);
   --checker-a: #f3f5f8;
   --checker-b: #e2e6ec;

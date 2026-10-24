@@ -25,7 +25,7 @@
   flex-shrink: 0;
   height: 22px;
   padding: 0 8px;
-  border-radius: 11px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--bg-3);
   color: var(--text-dim);
@@ -40,7 +40,7 @@
 .fi-add-btn:hover {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--bg-0);
+  color: var(--on-accent);
 }
 
 /* Field groups */
@@ -90,10 +90,11 @@
   justify-content: center;
   width: 16px;
   height: 16px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 9px;
   font-weight: 700;
-  color: var(--bg-0);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .fi-axis-dot.axis-x { background: var(--axis-x); }
@@ -136,7 +137,7 @@
   min-width: 0;
   height: 24px;
   padding: 0 4px;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line-soft);
   background: var(--bg-3);
   color: var(--text-dim);
@@ -159,5 +160,5 @@
 .fi-chip:active {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--bg-0);
+  color: var(--on-accent);
 }

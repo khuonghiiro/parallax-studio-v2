@@ -58,7 +58,7 @@
   align-items: center;
   gap: 2px;
   padding: 3px 5px;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   background: var(--bg-1);
   border: 1px solid var(--line);
   box-shadow: 0 4px 14px color-mix(in srgb, var(--bg-0) 55%, transparent);
@@ -72,7 +72,7 @@
   height: 24px;
   padding: 0 8px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-dim);
   font-size: 11px;
@@ -83,8 +83,8 @@
   transition: background 0.15s, color 0.15s;
 }
 .lw-anim-chip:hover { background: var(--bg-3); color: var(--text); }
-.lw-anim-chip.active { background: var(--accent); color: var(--bg-0); }
-.lw-anim-chip.recording { background: var(--key); color: var(--bg-0); }
+.lw-anim-chip.active { background: var(--accent); color: var(--on-accent); }
+.lw-anim-chip.recording { background: var(--key); color: var(--on-key); }
 .lw-anim-chip.lw-anim-chip-confirm {
   background: color-mix(in srgb, var(--accent) 16%, var(--bg-2));
   color: var(--accent);
@@ -93,11 +93,11 @@
 }
 .lw-anim-chip.lw-anim-chip-confirm:hover {
   background: var(--accent);
-  color: var(--bg-0);
+  color: var(--on-accent);
 }
 .lw-anim-chip.lw-anim-chip-confirm.pending {
   background: var(--key);
-  color: var(--bg-0);
+  color: var(--on-key);
   border-color: var(--key);
   box-shadow: 0 0 10px color-mix(in srgb, var(--key) 55%, transparent);
 }
@@ -117,7 +117,7 @@
   gap: 5px;
   padding: 7px 8px;
   margin: 6px 0;
-  border-radius: 7px;
+  border-radius: var(--radius);
   background: color-mix(in srgb, var(--bg-2) 85%, transparent);
   border: 1px solid var(--line-soft);
 }
@@ -137,11 +137,11 @@
 }
 .lw-confirm-step-btn:hover {
   background: var(--accent);
-  color: var(--bg-0);
+  color: var(--on-accent);
 }
 .lw-confirm-step-btn.pending {
   background: var(--key);
-  color: var(--bg-0);
+  color: var(--on-key);
   border-color: var(--key);
   box-shadow: 0 0 10px color-mix(in srgb, var(--key) 50%, transparent);
 }
@@ -157,7 +157,7 @@
   display: inline-flex;
   align-items: center;
   border: 1px solid var(--line);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--bg-1);
 }
@@ -180,7 +180,7 @@
 }
 .lw-step-dur-pill.active {
   background: var(--accent);
-  color: var(--bg-0);
+  color: var(--on-accent);
 }
 .lw-step-record-hints {
   display: flex;
@@ -219,7 +219,7 @@
   align-items: center;
   gap: 2px;
   padding: 1px 3px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--bg-2) 75%, transparent);
   border: 1px solid var(--line-soft);
   margin-left: 2px;
@@ -229,7 +229,7 @@
   padding: 0 7px;
   font-size: 10px;
   font-weight: 600;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   color: var(--text-dim);
 }
 .lw-anim-chip.style-sub:hover {
@@ -245,7 +245,7 @@
 .lw-anim-chip-status {
   max-width: 520px;
   padding: 2px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: var(--bg-1);
   border: 1px solid var(--line-soft);
   color: var(--text);
@@ -272,7 +272,7 @@
 .lw-assist-seg {
   display: inline-flex;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .lw-assist-seg button {
@@ -283,8 +283,12 @@
   padding: 3px 9px;
   cursor: pointer;
 }
+.lw-assist-seg button:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
 .lw-assist-seg button + button { border-left: 1px solid var(--line); }
-.lw-assist-seg button.active { background: var(--accent); color: var(--bg-0); }
+.lw-assist-seg button.active { background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .lw-assist-slider {
   display: grid;
   grid-template-columns: 92px 1fr 46px;

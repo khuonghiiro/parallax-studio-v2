@@ -255,9 +255,9 @@
   font-size: 8.5px;
   font-weight: 700;
   padding: 0 5px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   white-space: nowrap;
 }
 
@@ -265,56 +265,25 @@
   font-size: 8.5px;
   font-weight: 600;
   padding: 1px 5px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.wp-type-badge.start {
-  background: color-mix(in srgb, var(--accent-cyan) 16%, transparent);
-  color: var(--accent-cyan);
-}
-
-.wp-type-badge.pan {
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
-  color: var(--accent-cyan);
-}
-
-.wp-type-badge.zoom-in {
-  background: color-mix(in srgb, var(--key) 20%, transparent);
-  color: var(--key);
-}
-
-.wp-type-badge.zoom-out {
-  background: rgba(34, 197, 94, 0.16);
-  color: #4ade80;
-}
-
-.wp-type-badge.hold {
-  background: var(--bg-3);
-  color: var(--text-dim);
-}
-
+.wp-type-badge.start { background: color-mix(in srgb, var(--accent-cyan) 16%, transparent); color: var(--accent-cyan); }
+.wp-type-badge.pan { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent-cyan); }
+.wp-type-badge.zoom-in { background: color-mix(in srgb, var(--key) 20%, transparent); color: var(--key); }
+.wp-type-badge.zoom-out { background: rgba(34, 197, 94, 0.16); color: #4ade80; }
+.wp-type-badge.hold { background: var(--bg-3); color: var(--text-dim); }
 .wp-type-badge.orbit,
 .wp-type-badge.crane,
-.wp-type-badge.sweep {
-  background: color-mix(in srgb, var(--accent-cyan) 20%, transparent);
-  color: var(--accent-cyan);
-}
-
+.wp-type-badge.sweep { background: color-mix(in srgb, var(--accent-cyan) 20%, transparent); color: var(--accent-cyan); }
 .wp-type-badge.hero,
-.wp-type-badge.dutch {
-  background: color-mix(in srgb, var(--key) 22%, transparent);
-  color: var(--key);
-}
-
+.wp-type-badge.dutch { background: color-mix(in srgb, var(--key) 22%, transparent); color: var(--key); }
 .wp-type-badge.aerial,
 .wp-type-badge.whip,
-.wp-type-badge.cut {
-  background: color-mix(in srgb, var(--accent) 26%, transparent);
-  color: var(--text);
-}
+.wp-type-badge.cut { background: color-mix(in srgb, var(--accent) 26%, transparent); color: var(--text); }
 
 .wp-card-inline-btns {
   display: inline-flex;
@@ -663,7 +632,7 @@
 .mini-chip-btn {
   height: 18px;
   padding: 0 5px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--bg-2);
   color: var(--text-dim);
@@ -675,7 +644,7 @@
 .mini-chip-btn:hover {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .target-selects-grid {

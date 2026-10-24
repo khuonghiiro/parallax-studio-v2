@@ -146,7 +146,7 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
     })
   }, [waypoints, stageLayout, project, ev, stageSampleTime])
 
-  const lastSyncedShotRef = useRef<string | null>(null)
+  const lastSyncedShotRef = useRef<string | null>(selectedShotId)
   useEffect(() => {
     if (playing || !selectedShotId) {
       lastSyncedShotRef.current = selectedShotId
@@ -206,7 +206,7 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
       }
       const spanW = Math.max(project.comp.width, maxX - minX)
       const spanH = Math.max(project.comp.height, maxY - minY)
-      const availW = Math.max(120, vw - 64)
+      const availW = Math.max(120, vw - 116)
       const availH = Math.max(120, vh - 165)
       const nextZoom = Math.max(0.04, Math.min(0.85, Math.min(availW / spanW, availH / spanH)))
       const cx = (minX + maxX) / 2

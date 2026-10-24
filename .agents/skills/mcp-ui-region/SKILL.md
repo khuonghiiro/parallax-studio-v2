@@ -99,7 +99,10 @@ pnpm pxs call set_ui_dialog '{"theme":"light"}'
 pnpm pxs review --view app --region active --out D:\_tmp\active-light.png
 ```
 
-Xem ảnh bằng `view_file`, kiểm tra: không cắt chữ/tiêu đề/ô nhập, không chồng lấn control, popup không bị cắt cụt, tương phản rõ trên Dark và Light.
+Xem ảnh bằng `view_file`, kiểm tra:
+- **Tương phản Hover / Active / Selected (Dark & Light):** chữ luôn sắc nét, không dùng `color: var(--bg-0)` trên nền `--accent`/`--key` (dùng `var(--on-accent)`/`var(--on-key)`), không đặt chữ `#ffffff` trực tiếp lên màu nhấn sáng (`--logic-accent`, `--badge-accent`, `--item-c`) mà phải làm đậm nền bằng `color-mix(in srgb, var(--logic-accent, var(--accent)) 78%, #0f172a)`.
+- **Đồng bộ hình học & bo góc Control (`border-radius`):** các button, chip, segmented control, badge đếm số và mốc lộ trình trong cùng thanh/cụm dùng bo góc chữ nhật thống nhất (`var(--radius-sm)` `4px` / `var(--radius)` `5px` / `var(--radius-md)` `6px`), không trộn lẫn nút vuông (`0–2px`), nút bo góc và viên thuốc tròn (`999px`) cạnh nhau.
+- **Chống khuất UI & cắt chữ (Anti-Clipping):** không cắt chữ/tiêu đề/ô nhập, không đẩy khuất cụm nút bên phải thanh công cụ (`.deploy-ops` / `⚡ Áp dụng`), không cắt nửa trái nhãn tại `t = 0.0s`, không chồng lấn control (như `.anim2d-rot-stem` và `.anim2d-shot-header`), popup không bị cắt cụt.
 
 ### 6. Cập nhật tài liệu
 

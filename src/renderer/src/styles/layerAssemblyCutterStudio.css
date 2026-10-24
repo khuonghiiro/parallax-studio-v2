@@ -973,7 +973,7 @@
 }
 .cutter-shadow-mode-btn.active.only {
   background: var(--key);
-  color: var(--bg-0);
+  color: var(--on-key);
   font-weight: 700;
 }
 .cutter-shadow-tuning-section {

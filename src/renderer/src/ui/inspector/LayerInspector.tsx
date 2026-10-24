@@ -27,6 +27,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
   const id = layer.id
 
   const currentRot = evaluate(layer.transform.rotation, time)
+  const currentAnchor = layer.transform.anchor ? evaluate(layer.transform.anchor, time) : ([0, 0, 0] as Vec3)
 
   const setOrientation = (type: 'vertical' | 'ground' | 'tilted' | 'ceiling') => {
     set((l) => {
@@ -84,7 +85,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
             onChange={(val) => set((l) => void (l.blendMode = val as BlendMode))}
           />
         </Row>
-        <Row label="Layer cha (Parent)" title="Kế thừa vị trí/xoay/scale theo layer cha (After Effects Parent & Link)">
+        <Row label="Layer cha" title="Layer cha (Parent) — Kế thừa vị trí/xoay/scale theo layer cha (After Effects Parent & Link)">
           <Select
             id="layer-parent"
             value={layer.parentId ?? ''}
@@ -116,7 +117,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
           <NumberInput value={layer.inPoint} step={0.05} precision={2} min={0} max={duration} onChange={(v, k) => set((l) => void (l.inPoint = Math.min(v, l.outPoint)), k)} />
           <NumberInput value={layer.outPoint} step={0.05} precision={2} min={0} max={duration} onChange={(v, k) => set((l) => void (l.outPoint = Math.max(v, l.inPoint)), k)} />
         </Row>
-        <Row label="Fade In / Out (s)" title="Thời gian mờ dần khi xuất hiện và biến mất (giây)">
+        <Row label="Fade In / Out" title="Thời gian mờ dần khi xuất hiện và biến mất (giây)">
           <NumberInput
             axis="in"
             value={layer.fadeIn ?? 0}
@@ -147,7 +148,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
         <Row label="Tâm neo" title="Đặt nhanh điểm neo xoay & co giãn (After Effects Anchor Point)">
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, width: '100%', minWidth: 0 }}>
             <button
-              className="btn sm ghost"
+              className={`btn sm ${Math.abs(currentAnchor[0]) < 0.05 && Math.abs(currentAnchor[1]) < 0.05 ? 'primary' : ''}`}
               style={{ flex: '1 1 36px', padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
               onClick={() => set((l) => { l.transform.anchor = anim<Vec3>([0, 0, 0]) })}
               title="Tâm ở chính giữa [0, 0]"
@@ -155,7 +156,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
               Tâm
             </button>
             <button
-              className="btn sm ghost"
+              className={`btn sm ${Math.abs(currentAnchor[0]) < 0.05 && Math.abs(currentAnchor[1] - -0.5) < 0.05 ? 'primary' : ''}`}
               style={{ flex: '1 1 36px', padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
               onClick={() => set((l) => { l.transform.anchor = anim<Vec3>([0, -0.5, 0]) })}
               title="Tâm ở chân cây / nhân vật (Đáy) để gió đung đưa từ gốc"
@@ -163,7 +164,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
               Chân
             </button>
             <button
-              className="btn sm ghost"
+              className={`btn sm ${Math.abs(currentAnchor[0]) < 0.05 && Math.abs(currentAnchor[1] - 0.5) < 0.05 ? 'primary' : ''}`}
               style={{ flex: '1 1 36px', padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
               onClick={() => set((l) => { l.transform.anchor = anim<Vec3>([0, 0.5, 0]) })}
               title="Tâm ở đỉnh trên"
@@ -171,7 +172,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
               Đỉnh
             </button>
             <button
-              className="btn sm ghost"
+              className={`btn sm ${Math.abs(currentAnchor[0] - -0.5) < 0.05 && Math.abs(currentAnchor[1]) < 0.05 ? 'primary' : ''}`}
               style={{ flex: '1 1 36px', padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
               onClick={() => set((l) => { l.transform.anchor = anim<Vec3>([-0.5, 0, 0]) })}
               title="Tâm ở mép trái"
@@ -179,7 +180,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
               Trái
             </button>
             <button
-              className="btn sm ghost"
+              className={`btn sm ${Math.abs(currentAnchor[0] - 0.5) < 0.05 && Math.abs(currentAnchor[1]) < 0.05 ? 'primary' : ''}`}
               style={{ flex: '1 1 36px', padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
               onClick={() => set((l) => { l.transform.anchor = anim<Vec3>([0.5, 0, 0]) })}
               title="Tâm ở mép phải"
@@ -192,7 +193,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
         <Row label="Dáng 3D" title="Đặt nhanh dáng layer: Đứng thẳng (2.5D), Mặt đất/Sàn ngang (-90°), Nghiêng dốc (-75°), hoặc Trần nhà (90°)">
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, width: '100%', minWidth: 0 }}>
             <button
-              className={`btn sm ${Math.abs(currentRot[0]) < 1 && Math.abs(currentRot[1]) < 1 && Math.abs(currentRot[2]) < 1 ? 'primary' : 'ghost'}`}
+              className={`btn sm ${Math.abs(currentRot[0]) < 1 && Math.abs(currentRot[1]) < 1 && Math.abs(currentRot[2]) < 1 ? 'primary' : ''}`}
               style={{ flex: '1 1 42px', padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
               onClick={() => setOrientation('vertical')}
               title="Đứng thẳng đối diện camera (mặc định 2.5D)"
@@ -200,7 +201,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
               Đứng
             </button>
             <button
-              className={`btn sm ${Math.abs(currentRot[0] - -90) < 1 ? 'primary' : 'ghost'}`}
+              className={`btn sm ${Math.abs(currentRot[0] - -90) < 1 ? 'primary' : ''}`}
               style={{ flex: '1 1 48px', padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
               onClick={() => setOrientation('ground')}
               title="Nằm ngang làm mặt đất / sàn (xoay X -90°)"
@@ -208,7 +209,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
               Mặt đất
             </button>
             <button
-              className={`btn sm ${Math.abs(currentRot[0] - -75) < 1 ? 'primary' : 'ghost'}`}
+              className={`btn sm ${Math.abs(currentRot[0] - -75) < 1 ? 'primary' : ''}`}
               style={{ flex: '1 1 48px', padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
               onClick={() => setOrientation('tilted')}
               title="Nghiêng 75° tạo độ dốc xa dần vào chiều sâu"
@@ -216,7 +217,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
               Nghiêng
             </button>
             <button
-              className={`btn sm ${Math.abs(currentRot[0] - 90) < 1 ? 'primary' : 'ghost'}`}
+              className={`btn sm ${Math.abs(currentRot[0] - 90) < 1 ? 'primary' : ''}`}
               style={{ flex: '1 1 42px', padding: '2px 0', fontSize: '10.5px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
               onClick={() => setOrientation('ceiling')}
               title="Nằm ngang trên cao làm trần nhà (xoay X 90°)"

@@ -56,7 +56,11 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
   - Văn bản: `var(--text)` (chính), `var(--text-dim)` (phụ), `var(--text-faint)` (mờ).
   - Đường viền: `var(--line)`, `var(--line-soft)`, `var(--line-focus)`.
   - Màu nhấn đặc trưng: `var(--accent)` (Royal Blue), `var(--accent-cyan)` (Electric Cyan), `var(--key)` (Gold).
-- **Quy tắc tương phản:** Tuyệt đối không hardcode mã màu cố định như `#ffffff`, `#000000`, `#141414` vào thuộc tính `color`, `background` hay `fill` của SVG mà không có selector phân định theme. Khi bổ sung UI mới, phải kiểm tra độ tương phản rõ nét trên cả hai theme.
+- **Quy tắc tương phản khi Hover / Active / Selected (BẮT BUỘC):**
+  - Tuyệt đối không hardcode mã màu cố định như `#ffffff`, `#000000`, `#141414` vào thuộc tính `color`, `background` hay `fill` của SVG mà không có selector phân định theme hoặc nền đậm tương ứng.
+  - **Cấm dùng `color: var(--bg-0)` trên nền `--accent` / `--key`:** Trong Light Theme, `--bg-0` là xám sáng (`#f5f6f8`), làm chữ trên nền vàng `--key` bị mù màu. Bắt buộc dùng `color: var(--on-accent)` (`#ffffff`) trên nền `--accent` và `color: var(--on-key)` (`#0f172a`) trên nền `--key`.
+  - **Cấm đặt chữ `#ffffff` trực tiếp lên nền màu nhấn động sáng (`--logic-accent`, `--badge-accent`, `--item-c` như vàng cam `#f59e0b` hoặc cyan `#38bdf8`) khi `:hover` / `.active`:** Bắt buộc làm đậm nền bằng `background: color-mix(in srgb, var(--logic-accent, var(--accent)) 78%, #0f172a); color: #ffffff;` để chữ trắng luôn nổi bật sắc nét trên cả 2 theme.
+  - Các nút `.btn.ghost` / `.tl-action-btn` trên thanh công cụ phải có viền nhẹ `border-color: var(--line-soft)` và nền `:hover` pha `color-mix(in srgb, var(--accent) 10%, var(--bg-3))` để người dùng nhận diện rõ vùng bấm ở cả 2 theme.
 
 ### 2.4. Giao Thức Điều Khiển AI Qua MCP & CLI Controller (`pnpm pxs`)
 - **Máy chủ MCP nội bộ:** Ứng dụng cung cấp MCP Server tại `mcp-server/index.mjs` kết nối qua TCP `127.0.0.1:9877` với hơn 50 công cụ chuyên biệt để AI thao tác trực tiếp (xem chi tiết tại `mcp-server/README.md`).
@@ -120,6 +124,10 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
 - **Quy Chuẩn Kéo Thả 4 Hướng Tự Do & Lưu Cache Co Giãn Khung Làm Việc (`localStorage`):**
   - Mọi phần tử kéo thả trên canvas (Node, Waypoint) phải hỗ trợ kéo tự do đủ 4 hướng (`Left / Right / Top / Bottom`), không kẹp cứng `Math.max(8, ...)` sát mép trái/trên và không tự động reset vị trí khi người dùng kéo node sang trái hoặc lên trên. Kéo dây nối giữa các node phải hỗ trợ thả linh hoạt vào bất kỳ vị trí nào trên thân thẻ Node đích (magnetic card drop).
   - Mọi thanh kéo co giãn chiều cao khu vực làm việc (như `.splitter` của Timeline / Workflow dock) **BẮT BUỘC** lưu và khôi phục chiều cao qua `localStorage` (`pxs:timeline-dock-height`).
+- **Quy Chuẩn Đồng Bộ Bo Góc Control & Chống Khuất UI/Text (Unified Control Geometry & Anti-Clipping Standard - BẮT BUỘC):**
+  - **Đồng bộ bo góc (`border-radius`), cấm trộn lẫn nút vuông / tròn / viên thuốc trong cùng cụm:** Mọi button, chip thao tác, segmented control, badge đếm số trên tab (`.tab-count`, `.asset-subtab-badge`, `.tl-mode-tab-badge`), và mốc lộ trình (`.tl-cam-wp-node`, `.anim2d-callout-bubble`) trong cùng thanh công cụ hoặc cùng khu vực **BẮT BUỘC** dùng các token chữ nhật bo góc thống nhất (`var(--radius-sm)` `4px`, `var(--radius)` `5px`, `var(--radius-md)` `6px`). Tuyệt đối không trộn lẫn nút vuông (`0–2px`), nút bo góc (`4–6px`) và viên thuốc tròn (`999px`) cạnh nhau; phân biệt trạng thái đặc biệt (như mốc đầu cảnh `🚩#1`) bằng màu viền (`var(--key)`), biểu tượng cờ và nền nhấn thay vì đổi hình dáng.
+  - **Chống khuất nút bên phải thanh công cụ (Flex Toolbar Anti-Overflow):** Trên các thanh công cụ ngang (như `WorkflowStudioToolbar`, `TimelineToolbar`), cụm trạng thái ở giữa phải đặt `flex: 1 1 auto; min-width: 0; overflow: hidden;` và cụm CTA chính bên phải cùng (`.deploy-ops`, `⚡ Áp dụng`) phải đặt `flex-shrink: 0; margin-left: auto;` (không chèn `<div style={{ flex: 1 }} />` thừa làm hẹp cụm giữa hoặc đẩy nút `⚡ Áp dụng` tràn khỏi màn hình).
+  - **Chống cắt chữ/mốc tại biên `t = 0.0s` và mép Viewport:** Nhãn thời gian playhead (`.tl-playhead-cap-badge`) và mốc camera đầu tiên (`.tl-cam-wp-node:first-of-type`) tại `0.0s` không được dùng `translateX(-50%)` làm mất nửa trái chữ; phải căn lề trong (`left: 4px; transform: none;` hoặc `transform: translate(2px, -50%)`). Nhãn nổi trên khung nhìn 3D/2D (`.v-label`, `.anim2d-callout-bubble`) phải kẹp toạ độ (clamp) cách mép khung nhìn tối thiểu `28px–30px`; tiêu đề cảnh `.anim2d-shot-header` phải chừa góc phải (`max-width: calc(100% - 20px)`) để không đè lên núm xoay `.anim2d-rot-stem`.
 
 
 ### 2.7. Quy Chuẩn Tính Duy Nhất Của Biểu Tượng (Icon Uniqueness & Semantic Differentiation Standard - BẮT BUỘC)

@@ -15,8 +15,8 @@
 .anim2d-filmstrip {
   display: flex;
   flex-direction: column;
-  width: 172px;
-  min-width: 172px;
+  width: 184px;
+  min-width: 184px;
   background: var(--bg-1);
   border-left: 1px solid var(--line);
   z-index: 22;
@@ -25,8 +25,8 @@
 }
 
 .anim2d-filmstrip.compact-only {
-  width: 154px;
-  min-width: 154px;
+  width: 168px;
+  min-width: 168px;
 }
 
 .anim2d-filmstrip-head {
@@ -158,11 +158,12 @@
 .film-card-top {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2.5px;
   font-family: var(--mono);
   font-size: 9px;
   line-height: 15px;
   min-width: 0;
+  overflow: hidden;
   white-space: nowrap;
 }
 
@@ -175,7 +176,7 @@
   color: var(--accent-cyan);
   background: color-mix(in srgb, var(--accent) 22%, var(--bg-1));
   padding: 0 4px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -190,16 +191,20 @@
   display: inline-flex;
   align-items: center;
   height: 15px;
-  font-size: 8px;
+  font-size: 7.5px;
   font-family: var(--sans);
   font-weight: 700;
-  padding: 0 4px;
-  border-radius: 3px;
+  padding: 0 3.5px;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--key) 20%, transparent);
   color: var(--key);
   border: 1px solid color-mix(in srgb, var(--key) 45%, transparent);
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.film-card-first-tag ~ .film-card-dur {
+  display: none;
 }
 
 .anim2d-film-card.active .film-card-num {
@@ -487,7 +492,7 @@
 
 .aim-layer-chip:hover {
   background: var(--key) !important;
-  color: #111827 !important;
+  color: var(--on-key) !important;
   border-color: var(--key) !important;
 }
 
@@ -537,7 +542,7 @@
   align-items: center;
   gap: 5px;
   padding: 1px 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: var(--hud-bg);
   border: 1px solid var(--accent-cyan);
   color: var(--text);
@@ -552,7 +557,7 @@
 .anim2d-orbit-gizmo .orbit-reset-mini {
   height: 15px;
   padding: 0 5px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--accent);
   color: var(--on-accent);
@@ -588,7 +593,7 @@
   gap: 3px;
   height: 18px;
   padding: 0 5px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--hud-bg);
   backdrop-filter: blur(6px);
   border: 1px solid var(--key);
@@ -613,14 +618,14 @@
 .anim2d-layer-pin.shot-aim-switch {
   height: 22px;
   padding: 0 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 9.5px;
 }
 
 .anim2d-layer-pin:hover {
   transform: scale(1.04);
   background: var(--key);
-  color: #111827;
+  color: var(--on-key);
 }
 
 .filmstrip-collapsed-toggle { position: absolute; top: 6px; right: 6px; z-index: 22; padding: 5px 9px; border: 1px solid var(--line-focus); border-radius: 4px; background: var(--bg-1); color: var(--accent); font-size: 11px; cursor: pointer; }

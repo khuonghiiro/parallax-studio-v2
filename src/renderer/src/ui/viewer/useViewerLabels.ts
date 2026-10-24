@@ -41,7 +41,9 @@ export function useViewerLabels(labelsRef: React.RefObject<HTMLDivElement | null
           labelEls.set(key, el)
         }
         if (el.textContent !== l.text) el.textContent = l.text
-        el.style.transform = `translate(${x}px, ${y}px)`
+        const clampedX = Math.max(ed.x + 48, Math.min(ed.x + ed.w - 48, x))
+        const clampedY = Math.max(ed.y + 30, Math.min(ed.y + ed.h - 8, y))
+        el.style.transform = `translate(${clampedX}px, ${clampedY}px)`
         el.style.setProperty('--c', l.color)
         el.classList.toggle('selected', l.kind === 'shot' && l.id === selectedShotId)
       }

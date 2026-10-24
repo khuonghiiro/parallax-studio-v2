@@ -8,7 +8,7 @@ Trước mọi thay đổi, đọc và tuân thủ 100%:
 
 Tóm tắt không được vi phạm:
 - File ≤ 1000 dòng (tách module từ 500–600 dòng), hàm ≤ 80 dòng; tách `engine/` (Three.js) – `ui/` (React) – `styles/` (CSS) – `mcp-server/`.
-- CSS chỉ dùng design token trong `variables.css`; kiểm tra cả Dark và Light theme.
+- CSS chỉ dùng design token trong `variables.css`; kiểm tra cả Dark và Light theme. Cấm dùng `color: var(--bg-0)` trên nền `--accent`/`--key` (dùng `var(--on-accent)`/`var(--on-key)`); nền `:hover`/`.active` có chữ trắng trên màu nhấn động phải làm đậm bằng `color-mix(in srgb, var(--logic-accent, var(--accent)) 78%, #0f172a)`. Đồng bộ bo góc control (`var(--radius-sm)` `4px` / `var(--radius)` `5px`), cấm trộn lẫn nút vuông, nút bo góc và viên thuốc tròn (`999px`) trong cùng cụm; chống tràn/cắt chữ trên thanh công cụ, tại `t = 0.0s` và sát mép viewport.
 - MCP parity: mọi logic mới phải có renderer command + test, tool song ngữ trong `mcp-server/catalog/tools-*.mjs`, cập nhật `guide.json`, chạy `pnpm mcp:schemas`, cập nhật README.
 - Kiểm tra `npm run typecheck` + `npx vitest run` trước khi commit.
 - Cấm dùng `<select>` native và OS popups (gây treo/lỗi Electron); bắt buộc dùng component 60fps trong `ui/controls/` (`<Menu>`, `<Select>` portal z-index 50000); toolbar chứa menu phải giữ `overflow: visible; z-index: 5000`.

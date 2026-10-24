@@ -150,7 +150,9 @@
 }
 .v-label.shot:hover,
 .v-label.shot.selected {
-  background: color-mix(in srgb, var(--c, var(--accent)) 70%, var(--bg-1));
+  background: color-mix(in srgb, var(--c, var(--accent)) 78%, #0f172a);
+  color: #ffffff;
+  border-color: color-mix(in srgb, var(--c, var(--accent)) 85%, #ffffff);
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--c, var(--accent)) 60%, transparent),
     0 4px 16px rgba(0, 0, 0, 0.4);
@@ -370,7 +372,7 @@
   min-width: 22px;
   padding: 0 4px;
   border: 1px solid transparent;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-dim);
   cursor: pointer;

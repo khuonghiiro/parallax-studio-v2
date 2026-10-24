@@ -52,7 +52,7 @@
   padding: 0 5px;
   height: 15px;
   line-height: 15px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: var(--bg-3);
   color: var(--text-dim);
   border: 1px solid var(--line-soft);
@@ -176,8 +176,9 @@
   border-radius: var(--radius-sm);
   font-size: 10px;
   color: var(--text-dim);
-  min-width: 0;
-  max-width: 480px;
+  flex: 1 1 90px;
+  min-width: 72px;
+  max-width: 100%;
   overflow: hidden;
 }
 .wf-pipeline-flow-pill.playing {
@@ -203,8 +204,13 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
+  flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.wf-flow-steps::-webkit-scrollbar {
+  display: none;
 }
 .wf-flow-arrow {
   font-size: 9px;
@@ -780,7 +786,7 @@
 .wf-target-select-pill {
   height: 20px;
   padding: 0 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--bg-1);
   color: var(--text-dim);
@@ -912,6 +918,15 @@
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-sm);
   flex-shrink: 0;
+}
+.wf-toolbar-cluster.flow-ops {
+  flex: 1 1 160px;
+  min-width: 0;
+  overflow: hidden;
+}
+.wf-toolbar-cluster.deploy-ops {
+  flex-shrink: 0;
+  margin-left: auto;
 }
 .wf-toolbar-sep {
   width: 1px;

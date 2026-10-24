@@ -227,14 +227,14 @@
 
 .anim2d-shot-header {
   position: absolute;
-  top: -28px;
+  top: -26px;
   left: -2px;
-  max-width: calc(100% + 8px);
+  max-width: calc(100% - 20px);
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  height: 22px;
-  padding: 0 6px;
+  gap: 3px;
+  height: 20px;
+  padding: 0 5px;
   background: var(--hud-bg);
   border: 1px solid color-mix(in srgb, var(--shot-color, var(--accent)) 60%, var(--line));
   border-radius: var(--radius-sm);
@@ -252,12 +252,13 @@
 }
 
 .anim2d-shot-card:hover .anim2d-shot-header {
-  max-width: 100%;
+  max-width: 240px;
   z-index: 48;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
 }
 
 .anim2d-shot-grip {
+  display: none;
   font-size: 10px;
   color: var(--text-faint);
   line-height: 1;
@@ -265,19 +266,20 @@
   transition: color 0.12s ease;
 }
 
-.anim2d-shot-header:hover .anim2d-shot-grip {
+.anim2d-shot-card:hover .anim2d-shot-grip {
+  display: inline-block;
   color: var(--accent-cyan);
 }
 
 .anim2d-shot-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
 .anim2d-shot-title {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--text);
   overflow: hidden;
@@ -286,10 +288,15 @@
 }
 
 .anim2d-shot-meta {
-  font-size: 9.5px;
+  display: none;
+  font-size: 9px;
   color: var(--text-dim);
   font-family: var(--mono);
   flex-shrink: 0;
+}
+
+.anim2d-shot-card:hover .anim2d-shot-meta {
+  display: inline-block;
 }
 
 .anim2d-shot-btn,
@@ -421,7 +428,7 @@
 
 .anim2d-ghost-frame.hovered .anim2d-ghost-tag {
   background: var(--key);
-  color: #111;
+  color: var(--on-key);
 }
 
 /* External Camera Callout Bubbles (#1, #2, #3...) positioned OUTSIDE the shot frame */
@@ -443,8 +450,8 @@
 
 .anim2d-callout-bubble .bubble-circle {
   width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  height: 30px;
+  border-radius: var(--radius-md);
   background: var(--bg-2);
   border: 2px solid var(--accent-cyan);
   color: var(--text);
@@ -459,9 +466,9 @@
   border-color: var(--key);
 }
 
-/* Mốc Camera Lộ Trình Đầu Tiên Của Cảnh (Hình Vuông Bo Góc & Viền Vàng/Cam Nổi Bật) */
+/* Mốc Camera Lộ Trình Đầu Tiên Của Cảnh (Bo Góc Đồng Bộ & Viền Vàng/Cam Nổi Bật) */
 .anim2d-callout-bubble.first-of-shot .bubble-circle {
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   border-color: var(--key);
   background: color-mix(in srgb, var(--key) 14%, var(--bg-2));
   box-shadow:
@@ -478,7 +485,7 @@
 
 .anim2d-callout-bubble.first-of-shot:hover .bubble-circle,
 .anim2d-callout-bubble.first-of-shot.hovered .bubble-circle {
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   border-color: var(--key);
   box-shadow:
     0 0 0 2px var(--key),
@@ -495,7 +502,7 @@
 }
 
 .anim2d-callout-bubble.first-of-shot.active .bubble-circle {
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   background: var(--accent);
   border-color: #ffffff;
   box-shadow:
@@ -540,7 +547,7 @@
   align-items: center;
   gap: 3px;
   padding: 1px 5px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--bg-2);
   border: 1px solid var(--line);
   font-size: 8.5px;
@@ -654,9 +661,10 @@
 /* Top Camera Rotation Handle (Roll / Dutch Angle) */
 .anim2d-rot-stem {
   position: absolute;
-  top: -26px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: -22px;
+  right: 0px;
+  left: auto;
+  transform: none;
   width: 18px;
   height: 22px;
   display: flex;
@@ -781,7 +789,7 @@
 .anim2d-cam-quick-btns button {
   height: 16px;
   padding: 0 5px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--bg-1);
   color: var(--text);

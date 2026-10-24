@@ -173,9 +173,9 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       for (const n of list) {
         const cardH = estimateNodeCardHeight(n)
         minX = Math.min(minX, n.position.x - 16)
-        minY = Math.min(minY, n.position.y - 10)
+        minY = Math.min(minY, n.position.y - 22)
         maxX = Math.max(maxX, n.position.x + NODE_W + 16)
-        maxY = Math.max(maxY, n.position.y + cardH + 14)
+        maxY = Math.max(maxY, n.position.y + cardH + 20)
       }
 
       const leftDockW = 40
@@ -184,7 +184,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       const graphH = Math.max(200, maxY - minY)
       const fitZ = Math.min(
         1.0,
-        Math.max(MIN_ZOOM, Math.min(availW / graphW, (vh - 14) / graphH))
+        Math.max(0.38, Math.min(availW / graphW, (vh - 12) / graphH))
       )
       const nx = Math.round(leftDockW + (availW - graphW * fitZ) / 2 - minX * fitZ)
       const ny = Math.round((vh - graphH * fitZ) / 2 - minY * fitZ)

@@ -201,7 +201,7 @@
   display: inline-flex;
   align-items: center;
   height: 22px;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   border: 1px solid color-mix(in srgb, var(--logic-accent, var(--line)) 45%, var(--line));
   background: color-mix(in srgb, var(--logic-accent, var(--bg-2)) 12%, var(--bg-2));
   padding-right: 3px;
@@ -209,10 +209,21 @@
   transition: border-color 0.12s, background 0.12s, box-shadow 0.12s;
 }
 
+.tl-logic-chip-wrap:hover {
+  border-color: var(--logic-accent, var(--accent));
+  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 22%, var(--bg-2));
+}
+
 [data-theme='light'] .tl-logic-chip-wrap,
 .app.light .tl-logic-chip-wrap {
   background: color-mix(in srgb, var(--logic-accent, #3b82f6) 10%, #ffffff);
   border-color: color-mix(in srgb, var(--logic-accent, #3b82f6) 45%, #cbd5e1);
+}
+
+[data-theme='light'] .tl-logic-chip-wrap:hover,
+.app.light .tl-logic-chip-wrap:hover {
+  background: color-mix(in srgb, var(--logic-accent, #3b82f6) 18%, #ffffff);
+  border-color: var(--logic-accent, var(--accent));
 }
 
 .tl-logic-chip-wrap.active {
@@ -624,7 +635,7 @@
 
 .tl-logic-card:hover .tl-logic-card-cta {
   opacity: 1;
-  background: var(--logic-accent, var(--accent));
+  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 78%, #0f172a);
   color: #ffffff;
 }
 
@@ -674,7 +685,7 @@
   gap: 3px;
   height: 16px;
   padding: 0 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: rgba(15, 23, 42, 0.82);
   border: 1px solid color-mix(in srgb, var(--badge-accent, #38bdf8) 75%, rgba(255, 255, 255, 0.25));
   color: #ffffff;
@@ -698,7 +709,7 @@
 
 .tl-bar-logic-pill:hover {
   transform: scale(1.04);
-  background: var(--badge-accent, var(--accent));
+  background: color-mix(in srgb, var(--badge-accent, var(--accent)) 78%, #0f172a);
   border-color: #ffffff;
   color: #ffffff;
 }
@@ -717,7 +728,7 @@
   align-items: center;
   height: 16px;
   padding: 0 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   border: 1px solid rgba(255, 255, 255, 0.35);
   background: rgba(15, 23, 42, 0.78);
   color: #38bdf8;
@@ -765,7 +776,9 @@
 }
 
 .tl-playhead-cap-badge {
-  left: 16px;
+  left: 4px;
+  top: 1px;
+  transform: none;
 }
 
 .tl-group-ribbon-label {
@@ -778,7 +791,7 @@
 .tl-group-add-logic-btn {
   height: 17px;
   padding: 0 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   border: 1px solid color-mix(in srgb, var(--c, var(--accent)) 60%, var(--line));
   background: var(--bg-1);
   color: var(--text);

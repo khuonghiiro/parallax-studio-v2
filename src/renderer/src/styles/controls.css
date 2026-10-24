@@ -31,11 +31,12 @@
 }
 .btn:hover {
   background: var(--bg-3);
-  border-color: var(--line);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
   color: var(--text);
 }
 .btn:active {
   background: var(--bg-4);
+  color: var(--text);
 }
 .btn:disabled {
   opacity: 0.35;
@@ -44,10 +45,16 @@
 .btn.ghost {
   background: transparent;
   border-color: transparent;
+  color: var(--text-dim);
 }
 .btn.ghost:hover {
   background: var(--bg-3);
-  border-color: transparent;
+  border-color: var(--line-soft);
+  color: var(--text);
+}
+.btn.ghost:active {
+  background: var(--bg-4);
+  color: var(--text);
 }
 .btn.icon {
   width: 26px;
@@ -63,24 +70,36 @@
   padding: 0;
 }
 .btn.primary {
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   background: var(--accent-grad);
-  color: #fff;
+  color: var(--on-accent);
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(38, 128, 235, 0.4);
+  box-shadow: 0 2px 8px rgba(38, 128, 235, 0.35);
 }
 .btn.primary:hover {
-  filter: brightness(1.1);
-  box-shadow: 0 4px 14px rgba(38, 128, 235, 0.6);
+  filter: brightness(1.08);
+  color: var(--on-accent);
+  box-shadow: 0 4px 14px rgba(38, 128, 235, 0.5);
+}
+.btn.primary:active {
+  filter: brightness(0.96);
+  color: var(--on-accent);
 }
 .btn.active {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 22%, var(--bg-2));
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-2));
+  color: var(--text);
+  font-weight: 600;
+}
+.btn.active:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 28%, var(--bg-2));
   color: var(--text);
 }
 .btn.danger:hover {
   color: var(--danger);
-  border-color: rgba(239, 68, 68, 0.4);
+  background: color-mix(in srgb, var(--danger) 12%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
 }
 .btn svg {
   width: 14px;

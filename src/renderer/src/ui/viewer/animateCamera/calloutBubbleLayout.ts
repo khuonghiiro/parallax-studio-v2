@@ -28,10 +28,10 @@ interface ScreenRect {
   bottom: number
 }
 
-const BUBBLE_HALF_W = 43
-const BUBBLE_HALF_H = 28
-const MIN_SPACING_X = 92
-const MIN_SPACING_Y = 62
+const BUBBLE_HALF_W = 30
+const BUBBLE_HALF_H = 26
+const MIN_SPACING_X = 64
+const MIN_SPACING_Y = 58
 const HEADER_HEIGHT_PX = 36
 
 function rectsOverlap(a: ScreenRect, b: ScreenRect): boolean {

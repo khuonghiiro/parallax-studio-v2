@@ -494,7 +494,7 @@
   font-size: 9px;
   font-weight: 700;
   padding: 1px 5px;
-  border-radius: 99px;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--accent-cyan) 16%, var(--bg-2));
   border: 1px solid color-mix(in srgb, var(--accent-cyan) 40%, var(--line));
   color: var(--accent-cyan);
@@ -564,7 +564,7 @@
   min-width: 20px;
   height: 18px;
   padding: 0 4px;
-  border-radius: 99px;
+  border-radius: var(--radius-sm);
   background: var(--bg-1);
   border: 1.5px solid var(--wp-color, var(--accent-cyan));
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
@@ -577,11 +577,19 @@
   transition: transform 0.1s ease, box-shadow 0.12s ease, background 0.12s ease;
 }
 
+.tl-cam-wp-node:first-of-type {
+  transform: translate(2px, -50%);
+}
+
 .tl-cam-wp-node:hover {
-  transform: translate(-50%, -50%) scale(1.18);
+  transform: translate(-50%, -50%) scale(1.12);
   border-color: var(--accent-cyan);
   box-shadow: 0 0 10px color-mix(in srgb, var(--accent-cyan) 65%, transparent);
   z-index: 12;
+}
+
+.tl-cam-wp-node:first-of-type:hover {
+  transform: translate(2px, -50%) scale(1.08);
 }
 
 .tl-cam-wp-node:active {

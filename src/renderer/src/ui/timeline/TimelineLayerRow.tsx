@@ -119,7 +119,9 @@ function TimelineLayerRowComponent({
   const logicBadges = useMemo(() => {
     const proj = useEditor.getState().project
     const wf = ensureProjectWorkflow(proj)
-    return getLayerTimelineLogicBadges(layer, proj, wf)
+    const raw = getLayerTimelineLogicBadges(layer, proj, wf)
+    const wfCats = new Set(raw.filter((b) => b.kind === 'workflow_node').map((b) => b.category))
+    return raw.filter((b) => b.kind !== 'capability' || !wfCats.has(b.category))
   }, [layer, workflow])
   const [isDragOver, setIsDragOver] = useState(false)
 

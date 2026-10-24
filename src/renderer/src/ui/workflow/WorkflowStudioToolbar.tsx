@@ -10,6 +10,7 @@ import { IconPause, IconPlay, IconSparkles } from '../icons'
 import { IconWfAutoWire, IconWfJsonCode } from './workflowIcons'
 import { TimelineModeTabs } from './TimelineModeTabs'
 import { WorkflowAddNodeMenu } from './WorkflowAddNodeMenu'
+import '../../styles/workflow.css'
 
 export interface WorkflowStudioToolbarProps {
   project: Project
@@ -261,7 +262,7 @@ export const WorkflowStudioToolbar: React.FC<WorkflowStudioToolbarProps> = ({
                 const isNodeSel = selectedNode?.id === n.id
                 return (
                   <React.Fragment key={n.id}>
-                    {idx > 0 && <span className="wf-flow-arrow">➔</span>}
+                    {idx > 0 && activeNodes.length <= 3 && <span className="wf-flow-arrow">➔</span>}
                     <button
                       type="button"
                       className={`wf-flow-step-chip${isStepPulse ? ' pulsing' : ''}${
@@ -278,7 +279,9 @@ export const WorkflowStudioToolbar: React.FC<WorkflowStudioToolbarProps> = ({
                       }}
                       title={`Bước #${idx + 1}: ${spec?.title} — Bấm để xem, bấm đúp hoặc chuột phải để cấu hình`}
                     >
-                      #{idx + 1} {spec?.shortTitle ?? n.title}
+                      {activeNodes.length <= 3
+                        ? `#${idx + 1} ${spec?.shortTitle ?? n.title}`
+                        : `#${idx + 1}`}
                     </button>
                   </React.Fragment>
                 )
@@ -301,8 +304,6 @@ export const WorkflowStudioToolbar: React.FC<WorkflowStudioToolbarProps> = ({
           )}
         </div>
       </div>
-
-      <div style={{ flex: 1 }} />
 
       {/* Nhóm 4: Cấu hình JSON & Áp dụng thực thi (Deploy) */}
       <div className="wf-toolbar-cluster deploy-ops">

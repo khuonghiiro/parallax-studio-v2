@@ -56,39 +56,43 @@
   white-space: nowrap;
   flex-shrink: 0;
   color: var(--text-dim);
+  background: var(--bg-2);
   cursor: pointer;
-  border: 1px solid transparent;
+  border: 1px solid var(--line-soft);
 }
 .tl-action-btn:hover:not(:disabled) {
   color: var(--text);
   background: var(--bg-3);
-  border-color: var(--line-soft);
+  border-color: var(--line);
 }
 .tl-action-btn:disabled {
-  opacity: 0.35;
+  opacity: 0.38;
   cursor: not-allowed;
 }
 .tl-action-btn.tl-btn-split:hover:not(:disabled) {
   color: var(--accent-cyan);
-  border-color: rgba(61, 214, 245, 0.3);
+  background: color-mix(in srgb, var(--accent-cyan) 14%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--accent-cyan) 45%, var(--line));
 }
 .tl-action-btn.tl-btn-key {
   color: var(--key);
+  border-color: color-mix(in srgb, var(--key) 30%, var(--line-soft));
 }
 .tl-action-btn.tl-btn-key:hover:not(:disabled) {
   color: var(--key);
-  background: color-mix(in srgb, var(--key) 15%, transparent);
-  border-color: color-mix(in srgb, var(--key) 35%, transparent);
+  background: color-mix(in srgb, var(--key) 16%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--key) 50%, var(--line));
 }
 
 .tl-action-btn.tl-btn-fx {
   color: var(--accent-cyan);
+  border-color: color-mix(in srgb, var(--accent-cyan) 30%, var(--line-soft));
 }
 .tl-action-btn.tl-btn-fx:hover:not(:disabled),
 .tl-action-btn.tl-btn-fx.active {
   color: var(--accent-cyan);
-  background: rgba(61, 214, 245, 0.12);
-  border-color: rgba(61, 214, 245, 0.3);
+  background: color-mix(in srgb, var(--accent-cyan) 16%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--accent-cyan) 50%, var(--line));
 }
 
 /* Animation FX Presets Popover */
@@ -340,14 +344,15 @@
   justify-content: center;
   gap: 6px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background 0.15s ease, transform 0.05s ease;
 }
 .tl-fx-apply-btn:hover {
-  background: color-mix(in srgb, var(--accent) 85%, #fff);
+  background: var(--accent-hover);
+  color: var(--on-accent);
 }
 .tl-fx-apply-btn:active {
   transform: scale(0.99);

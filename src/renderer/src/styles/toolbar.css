@@ -94,16 +94,16 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 24px;
+  height: 26px;
   padding: 0 9px;
-  margin-right: 6px;
-  border-radius: var(--radius-pill);
+  margin-right: 4px;
+  border-radius: var(--radius-sm);
   font-size: 10.5px;
   font-weight: 600;
   color: var(--text-dim);
   background: var(--bg-2);
   border: 1px solid var(--line);
-  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s;
   user-select: none;
 }
 .mcp-chip small {
@@ -185,6 +185,7 @@
   cursor: pointer;
   background: var(--bg-3);
   border-color: var(--accent);
+  color: var(--text);
 }
 
 @keyframes mcp-pulse {
@@ -214,12 +215,13 @@
 .tb-btn-save:hover {
   background: var(--bg-3);
   border-color: var(--accent);
-  color: #ffffff;
+  color: var(--text);
   box-shadow: 0 0 8px rgba(38, 128, 235, 0.25);
 }
 
 .tb-btn-save:active {
   background: var(--bg-4);
+  color: var(--text);
   transform: translateY(1px);
 }
 
@@ -247,29 +249,6 @@
 
 .tb-btn-icon:active {
   background: var(--bg-4);
+  color: var(--text);
   transform: translateY(1px);
-}
-
-[data-theme='light'] .tb-btn-save {
-  background: #ffffff;
-  border-color: #cbd5e1;
-  color: #1e293b;
-}
-
-[data-theme='light'] .tb-btn-save:hover {
-  background: #f1f5f9;
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-[data-theme='light'] .tb-btn-icon {
-  background: #ffffff;
-  border-color: #cbd5e1;
-  color: #475569;
-}
-
-[data-theme='light'] .tb-btn-icon:hover {
-  background: #f1f5f9;
-  border-color: var(--accent);
-  color: #0f172a;
 }
