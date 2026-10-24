@@ -208,14 +208,6 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
 
   return (
     <header className="toolbar">
-      <div className="brand">
-        <div className="brand-logo" />
-        <div className="brand-text">
-          Parallax Studio
-          <small>2.5D motion</small>
-        </div>
-      </div>
-
       <Menu id="menu-file" label="Tệp" icon={<IconFile />}>
         <button className="menu-item" onClick={newProject}>
           <IconFile width={15} /> Dự án mới <span className="hint">Ctrl+N</span>

@@ -210,7 +210,7 @@ export function MusicItemCard({
 
           <div className="music-badges-row">
             {item.category && (
-              <span className={`music-badge-category ${item.category}`}>
+              <span className={`music-badge-category cat-${item.category} ${item.category}`}>
                 {item.category === 'music'
                   ? 'Nhạc'
                   : item.category === 'ambient'

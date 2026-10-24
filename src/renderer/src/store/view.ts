@@ -92,9 +92,10 @@ function closeLayerAssemblyOverlay(): void {
   }
 }
 
-function applyTheme(theme: Theme): void {
+export function applyTheme(theme: Theme): void {
   if (typeof document !== 'undefined' && document.documentElement) {
     document.documentElement.setAttribute('data-theme', theme)
+    document.body?.setAttribute('data-theme', theme)
     if (document.documentElement.classList) {
       if (theme === 'light') {
         document.documentElement.classList.add('theme-light')

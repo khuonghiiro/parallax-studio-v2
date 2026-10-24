@@ -1,5 +1,5 @@
 /* ==========================================================================
-   3D Model Library Tab Styles (Inside Left Asset Panel)
+   3D Model & Layer Assembly Library Tab Styles (Inside Left Asset Panel)
    Dual-Theme Compliant adhering to code-modularization standard
    ========================================================================== */
 
@@ -42,36 +42,58 @@
 
 .model-3d-badge {
   background: var(--accent);
-  color: var(--on-accent);
+  color: #ffffff;
   font-size: 8.5px;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 1px 4px;
+  letter-spacing: 0.3px;
+  padding: 1.5px 5px;
   border-radius: 3px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
   line-height: 1.2;
   width: fit-content;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.model-3d-badge.has-motion {
+  background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+  color: #ffffff;
+  border-color: rgba(125, 211, 252, 0.45);
+}
+
+.model-3d-badge.no-motion {
+  background: rgba(30, 41, 59, 0.88);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+[data-theme='light'] .model-3d-badge.no-motion,
+.app.light .model-3d-badge.no-motion {
+  background: rgba(241, 245, 249, 0.94);
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .model-3d-faces-badge {
-  background: rgba(15, 23, 42, 0.85);
-  color: #f1f5f9;
+  background: rgba(15, 23, 42, 0.88);
+  color: #e2e8f0;
   font-size: 8px;
   font-weight: 600;
-  padding: 1px 4px;
+  padding: 1px 4.5px;
   border-radius: 3px;
   backdrop-filter: blur(4px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
   line-height: 1.2;
   width: fit-content;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.16);
 }
 
-[data-theme='light'] .model-3d-faces-badge {
-  background: rgba(255, 255, 255, 0.9);
+[data-theme='light'] .model-3d-faces-badge,
+.app.light .model-3d-faces-badge {
+  background: rgba(255, 255, 255, 0.94);
   color: #0f172a;
-  border: 1px solid var(--line-soft);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .model-3d-header {
@@ -115,12 +137,13 @@
   gap: 4px;
   position: relative;
   min-width: 0;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
 }
 
 .model-3d-card:hover {
   border-color: var(--line-focus);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transform: translateY(-1px);
 }
 
 .model-3d-card-thumb {
@@ -153,131 +176,103 @@
   font-size: 11px;
 }
 
-/* Actions in top-right of card / thumbnail: Xếp dọc với màu riêng biệt */
+/* Actions in top-right of card / thumbnail: Mặc định ẩn để lộ trọn vẹn preview, chỉ hiện khi hover */
 .model-3d-card-actions-top {
   position: absolute;
-  top: 3px;
-  right: 3px;
+  top: 4px;
+  right: 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2.5px;
-  z-index: 5;
+  gap: 3px;
+  z-index: 6;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(5px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.model-3d-card:hover .model-3d-card-actions-top,
+.model-3d-card:focus-within .model-3d-card-actions-top {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
 }
 
 .icon-action-btn {
-  width: 19px;
-  height: 19px;
+  width: 21px;
+  height: 21px;
   border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
-              background 0.15s ease,
-              color 0.15s ease,
-              border-color 0.15s ease,
-              box-shadow 0.15s ease;
-  backdrop-filter: blur(8px);
+  transition: transform 0.14s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.14s ease,
+              color 0.14s ease,
+              border-color 0.14s ease,
+              box-shadow 0.14s ease,
+              filter 0.14s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
   padding: 0;
 }
 
 .icon-action-btn:hover {
-  transform: scale(1.15);
+  transform: scale(1.12);
   z-index: 2;
+  filter: brightness(1.1);
 }
 
-/* 1. Nút Thêm (+) - Xanh dương AE Royal Blue */
+/* 1. Nút Thêm (+) - Xanh dương nổi bật sắc nét trên cả Dark & Light */
 .icon-action-btn.add-btn {
-  background: rgba(38, 128, 235, 0.22);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.45);
+  background: #2563eb;
+  color: #ffffff;
+  border: 1px solid rgba(147, 197, 253, 0.7);
 }
 .icon-action-btn.add-btn:hover {
-  background: var(--accent);
-  color: #ffffff;
-  border-color: var(--accent);
-  box-shadow: 0 0 8px rgba(38, 128, 235, 0.7);
-}
-
-/* 2. Nút Sửa (✎) - Vàng hổ phách AE Gold */
-.icon-action-btn.edit-btn {
-  background: rgba(245, 158, 11, 0.2);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.45);
-}
-.icon-action-btn.edit-btn:hover {
-  background: var(--key);
-  color: var(--on-key);
-  border-color: var(--key);
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.7);
-}
-
-/* 3. Nút Nhân bản (❐) - Tím Violet */
-.icon-action-btn.duplicate-btn {
-  background: rgba(168, 85, 247, 0.2);
-  color: #c084fc;
-  border: 1px solid rgba(168, 85, 247, 0.45);
-}
-.icon-action-btn.duplicate-btn:hover {
-  background: #9333ea;
-  color: #ffffff;
-  border-color: #9333ea;
-  box-shadow: 0 0 8px rgba(168, 85, 247, 0.7);
-}
-
-/* 4. Nút Xóa (🗑) - Đỏ tươi Danger */
-.icon-action-btn.delete-btn {
-  background: rgba(239, 68, 68, 0.2);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.45);
-}
-.icon-action-btn.delete-btn:hover {
-  background: var(--danger);
-  color: #ffffff;
-  border-color: var(--danger);
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);
-}
-
-/* Hỗ trợ Light Theme tương phản cao */
-[data-theme='light'] .icon-action-btn.add-btn {
-  background: rgba(37, 99, 235, 0.12);
-  color: #1d4ed8;
-  border-color: rgba(37, 99, 235, 0.35);
-}
-[data-theme='light'] .icon-action-btn.add-btn:hover {
   background: #1d4ed8;
   color: #ffffff;
+  border-color: #ffffff;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.75);
 }
 
-[data-theme='light'] .icon-action-btn.edit-btn {
-  background: rgba(217, 119, 6, 0.12);
-  color: #b45309;
-  border-color: rgba(217, 119, 6, 0.35);
-}
-[data-theme='light'] .icon-action-btn.edit-btn:hover {
+/* 2. Nút Sửa (✎) - Vàng hổ phách rực rỡ */
+.icon-action-btn.edit-btn {
   background: #d97706;
   color: #ffffff;
+  border: 1px solid rgba(253, 224, 71, 0.7);
 }
-
-[data-theme='light'] .icon-action-btn.duplicate-btn {
-  background: rgba(147, 51, 234, 0.12);
-  color: #7e22ce;
-  border-color: rgba(147, 51, 234, 0.35);
-}
-[data-theme='light'] .icon-action-btn.duplicate-btn:hover {
-  background: #7e22ce;
+.icon-action-btn.edit-btn:hover {
+  background: #b45309;
   color: #ffffff;
+  border-color: #ffffff;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.75);
 }
 
-[data-theme='light'] .icon-action-btn.delete-btn {
-  background: rgba(220, 38, 38, 0.12);
-  color: #b91c1c;
-  border-color: rgba(220, 38, 38, 0.35);
+/* 3. Nút Nhân bản (❐) - Tím Violet sắc nét */
+.icon-action-btn.duplicate-btn {
+  background: #7c3aed;
+  color: #ffffff;
+  border: 1px solid rgba(216, 180, 254, 0.7);
 }
-[data-theme='light'] .icon-action-btn.delete-btn:hover {
+.icon-action-btn.duplicate-btn:hover {
+  background: #6d28d9;
+  color: #ffffff;
+  border-color: #ffffff;
+  box-shadow: 0 0 10px rgba(192, 132, 252, 0.75);
+}
+
+/* 4. Nút Xóa (🗑) - Đỏ tươi Danger rõ nét */
+.icon-action-btn.delete-btn {
   background: #dc2626;
   color: #ffffff;
+  border: 1px solid rgba(252, 165, 165, 0.7);
+}
+.icon-action-btn.delete-btn:hover {
+  background: #b91c1c;
+  color: #ffffff;
+  border-color: #ffffff;
+  box-shadow: 0 0 10px rgba(248, 113, 113, 0.75);
 }
 
 .model-3d-card-body {
@@ -308,9 +303,6 @@
   font-size: 8.5px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--accent-cyan);
-  background: var(--bg-4);
-  padding: 0.5px 4px;
-  border-radius: 3px;
-  white-space: nowrap;
+  color: var(--accent-2);
+  font-weight: 600;
 }

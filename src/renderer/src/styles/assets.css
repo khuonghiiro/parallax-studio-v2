@@ -166,17 +166,10 @@
   min-width: 16px;
   text-align: center;
   border-radius: 9px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-3);
   color: var(--text);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--line);
   line-height: 1.2;
-}
-
-[data-theme='light'] .asset-subtab-badge,
-.app.light .asset-subtab-badge {
-  background: #e2e8f0;
-  color: #0f172a;
-  border: 1px solid #cbd5e1;
 }
 
 /* Badge của tab Active: Nổi bật rực rỡ với màu Accent và số màu trắng */
@@ -185,15 +178,7 @@
   color: #ffffff !important;
   border: 1px solid rgba(255, 255, 255, 0.3) !important;
   font-weight: 700;
-  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.4);
-}
-
-[data-theme='light'] .asset-subtab-btn.active .asset-subtab-badge,
-.app.light .asset-subtab-btn.active .asset-subtab-badge {
-  background: #0284c7 !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  box-shadow: 0 1px 4px rgba(2, 132, 199, 0.4);
+  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.35);
 }
 
 /* ------------------------------------------------------------------ Two-column Body */

@@ -76,7 +76,7 @@ export function Model3DCategoryBar({
                 onClick={() => onSelectCategory(cat.id)}
                 aria-label={cat.title}
               >
-                {renderCategoryIcon(cat.icon || cat.id, 16, 16, cat.id)}
+                {renderCategoryIcon(cat.id === 'all' ? 'grid-3d' : cat.icon || cat.id, 16, 16, cat.id)}
               </button>
             </div>
           )

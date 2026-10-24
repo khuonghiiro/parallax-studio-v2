@@ -243,10 +243,6 @@ function LayerCardItem({
             className={`model-3d-badge ${motionCount > 0 ? 'has-motion' : 'no-motion'}`}
             title={motionTooltip}
             style={{
-              background: motionCount > 0 ? 'var(--accent)' : 'var(--bg-3)',
-              color: motionCount > 0 ? '#ffffff' : 'var(--text-faint)',
-              border: motionCount > 0 ? '1px solid transparent' : '1px solid var(--line-soft)',
-              fontWeight: motionCount > 0 ? 600 : 500,
               display: 'inline-flex',
               alignItems: 'center',
               gap: '3px'

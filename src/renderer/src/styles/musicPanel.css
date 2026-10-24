@@ -171,14 +171,14 @@
   flex-direction: column;
   flex-shrink: 0 !important; /* Tuyệt đối không để flexbox co ép chiều cao cắt cụt sóng âm */
   flex-grow: 0;
-  background: #24252a;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
   border-radius: 6px;
   padding: 8px 9px;
   gap: 6px;
   transition: all 0.15s ease;
   position: relative;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
   box-sizing: border-box;
   width: 100%;
   overflow: hidden;
@@ -186,61 +186,28 @@
 
 /* Dải màu nhận diện nguồn bài nhạc mép trái */
 .music-card-item-v2.source-project {
-  border-left: 3px solid #f59e0b;
+  border-left: 3px solid var(--key);
 }
 
 .music-card-item-v2.source-builtin {
-  border-left: 3px solid #0284c7;
+  border-left: 3px solid var(--accent-cyan);
 }
 
 .music-card-item-v2:hover {
-  background: #2a2c33;
-  border-color: rgba(255, 255, 255, 0.22);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  background: color-mix(in srgb, var(--bg-3) 75%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
 }
 
 .music-card-item-v2.playing {
-  border-color: #38bdf8;
-  border-left-color: #38bdf8;
-  background: #252834;
-  box-shadow: 0 0 0 1px #38bdf8, 0 4px 14px rgba(56, 189, 248, 0.25);
+  border-color: var(--accent-cyan);
+  border-left-color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-2));
+  box-shadow: 0 0 0 1px var(--accent-cyan), 0 4px 14px rgba(56, 189, 248, 0.2);
 }
 
 .music-card-item-v2.expanded {
-  border-color: rgba(255, 255, 255, 0.25);
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35);
-}
-
-/* Light Theme Card Overrides */
-[data-theme='light'] .music-card-item-v2 {
-  background: #ffffff;
-  border: 1px solid #cbd2dc;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-}
-
-[data-theme='light'] .music-card-item-v2.source-project {
-  border-left: 3px solid #d97706;
-}
-
-[data-theme='light'] .music-card-item-v2.source-builtin {
-  border-left: 3px solid #0284c7;
-}
-
-[data-theme='light'] .music-card-item-v2:hover {
-  background: #f8fafc;
-  border-color: #94a3b8;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-}
-
-[data-theme='light'] .music-card-item-v2.playing {
-  background: #f0f9ff;
-  border-color: #0284c7;
-  border-left-color: #0284c7;
-  box-shadow: 0 0 0 1.5px #0284c7, 0 4px 12px rgba(2, 132, 199, 0.18);
-}
-
-[data-theme='light'] .music-card-item-v2.expanded {
-  border-color: #94a3b8;
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
 }
 
 /* Top Row: Play button + Title/Badges + Actions */
@@ -305,16 +272,12 @@
 .music-title-text {
   font-size: 11.5px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: default;
   line-height: 1.25;
-}
-
-[data-theme='light'] .music-title-text {
-  color: #0f172a;
 }
 
 .music-rename-btn {
@@ -514,21 +477,15 @@
 .music-waveform-box {
   width: 100%;
   height: 32px;
-  background: #141519;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-0);
+  border: 1px solid var(--line);
   border-radius: 4px;
   position: relative;
   overflow: hidden;
   cursor: pointer;
   user-select: none;
   transition: all 0.15s ease;
-  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.3);
-}
-
-[data-theme='light'] .music-waveform-box {
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .music-waveform-box:hover {
@@ -536,13 +493,8 @@
 }
 
 .music-waveform-box.playing {
-  border-color: #38bdf8;
-  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.3), 0 0 8px rgba(56, 189, 248, 0.25);
-}
-
-[data-theme='light'] .music-waveform-box.playing {
-  border-color: #0284c7;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06), 0 0 6px rgba(2, 132, 199, 0.2);
+  border-color: var(--accent-cyan);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15), 0 0 8px color-mix(in srgb, var(--accent-cyan) 28%, transparent);
 }
 
 .music-waveform-canvas {

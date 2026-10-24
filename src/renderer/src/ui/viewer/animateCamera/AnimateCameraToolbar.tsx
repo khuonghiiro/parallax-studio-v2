@@ -1,14 +1,21 @@
 import { memo } from 'react'
 import { useEditor } from '../../../store/editor'
 import {
-  IconFocus,
   IconAim,
-  IconAxisMove,
-  IconAxisRotate,
+  IconCamOrbitTilt,
+  IconCamPanZoom2D,
+  IconFitStage2D,
+  IconLineBezier,
+  IconLineSmoothstep,
+  IconOrbitCenter0,
+  IconOrbitLeft25,
+  IconOrbitRight25,
   IconPause,
   IconPlay,
   IconPlus,
-  IconRoute,
+  IconResetBubbles,
+  IconRouteInspector,
+  IconRuleOfThirds
 } from '../../icons'
 import type { StageToolMode } from './AnimateCameraViewfinder'
 import type { CameraLineStyle } from './animateCameraEdgePaths'
@@ -47,26 +54,23 @@ export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
   activeShotLayers,
   hasMovedBubbles,
   playing,
-  showAllFrames,
   showGrid,
   inspectorTab,
   onSetToolMode,
   onSetLineStyle,
   onSpawnNextFrame,
-  onAddHold,
   onQuickAnglePreset,
   onAimAtLayer,
   onResetAllBubbles,
   onTogglePlaying,
-  onToggleShowAllFrames,
   onToggleShowGrid,
   onFitStage
 }: AnimateCameraToolbarProps) {
   return (
     <div className="anim2d-toolbar single-row" data-mcp-region="viewer_stage2d_tools">
       <div className="anim2d-toolbar-left">
-        {/* 2. Chế độ công cụ thao tác */}
-        <div className="viewer-mode-seg" title="Chế độ thao tác chuột trên Khung Camera">
+        {/* 1. Chế độ công cụ thao tác trên Khung Camera */}
+        <div className="viewer-mode-seg" title="Chế độ thao tác chuột trên Khung Camera 2D">
           <button
             id="anim2d-mode-pan"
             type="button"
@@ -74,16 +78,16 @@ export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
             onClick={() => onSetToolMode('pan-scale')}
             title="Lia (Pan) &amp; Co dãn Khung Camera (Zoom/Roll)"
           >
-            <IconAxisMove width={14} height={14} />
+            <IconCamPanZoom2D width={14} height={14} />
           </button>
           <button
             id="anim2d-mode-orbit"
             type="button"
             className={`seg-btn${toolMode === 'orbit-3d' ? ' active' : ''}`}
             onClick={() => onSetToolMode('orbit-3d')}
-            title="Xoay góc nghiêng 3D (Yaw/Pitch)"
+            title="Xoay góc nghiêng Camera 3D (Yaw/Pitch)"
           >
-            <IconAxisRotate width={14} height={14} />
+            <IconCamOrbitTilt width={14} height={14} />
           </button>
           <button
             id="anim2d-mode-aim"
@@ -98,13 +102,13 @@ export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
 
         <span className="viewer-tool-sep" />
 
-        {/* 3. Phím tắt thêm nhanh theo chế độ */}
+        {/* 2. Phím tắt thêm nhanh theo chế độ */}
         {toolMode === 'pan-scale' && (
           <div className="anim2d-actions-group">
             <button
               id="anim2d-add-pan"
               type="button"
-              className="btn xs primary"
+              className="btn xs icon primary"
               onClick={() => onSpawnNextFrame('pan')}
               title="Tạo thêm Mốc Camera tiếp theo"
             >
@@ -115,32 +119,32 @@ export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
 
         {toolMode === 'orbit-3d' && activeFrame && (
           <div className="anim2d-actions-group">
-            <span className="anim2d-mode-pill orbit">
-              Y:{Math.round(activeFrame.yaw)}° P:{Math.round(activeFrame.pitch)}°
+            <span className="anim2d-mode-pill orbit" title="Góc xoay ngang (Yaw) và dọc (Pitch) hiện tại">
+              {Math.round(activeFrame.yaw)}°/{Math.round(activeFrame.pitch)}°
             </span>
             <button
               type="button"
-              className="btn xs"
+              className="btn xs icon"
               onClick={() => onQuickAnglePreset(0, 0, 0, 'Thẳng 0°')}
-              title="Đặt lại thẳng 0°"
+              title="Đặt lại góc nhìn thẳng chính diện 0°"
             >
-              0°
+              <IconOrbitCenter0 width={13} height={13} />
             </button>
             <button
               type="button"
-              className="btn xs"
+              className="btn xs icon"
               onClick={() => onQuickAnglePreset(-25, activeFrame.pitch, activeFrame.roll, 'Trái -25°')}
-              title="Liếc Trái -25°"
+              title="Liếc góc nghiêng Trái -25°"
             >
-              ⟲ -25°
+              <IconOrbitLeft25 width={13} height={13} />
             </button>
             <button
               type="button"
-              className="btn xs"
+              className="btn xs icon"
               onClick={() => onQuickAnglePreset(25, activeFrame.pitch, activeFrame.roll, 'Phải +25°')}
-              title="Liếc Phải +25°"
+              title="Liếc góc nghiêng Phải +25°"
             >
-              ⟳ +25°
+              <IconOrbitRight25 width={13} height={13} />
             </button>
           </div>
         )}
@@ -164,24 +168,24 @@ export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
 
       <div className="anim2d-toolbar-right">
         {toolMode === 'pan-scale' && (
-          <div className="viewer-mode-seg" title="Kiểu đường nối lộ trình">
+          <div className="viewer-mode-seg" title="Kiểu đường nối lộ trình Camera">
             <button
               id="anim2d-line-smoothstep"
               type="button"
               className={`seg-btn${lineStyle === 'smoothstep' ? ' active' : ''}`}
               onClick={() => onSetLineStyle('smoothstep')}
-              title="Đường nối vuông góc bo tròn"
+              title="Đường nối vuông góc bo tròn (Smoothstep)"
             >
-              ╭╯
+              <IconLineSmoothstep width={14} height={14} />
             </button>
             <button
               id="anim2d-line-bezier"
               type="button"
               className={`seg-btn${lineStyle === 'bezier' ? ' active' : ''}`}
               onClick={() => onSetLineStyle('bezier')}
-              title="Đường nối vòng cung mượt"
+              title="Đường nối vòng cung mượt (Bezier)"
             >
-              ⌒
+              <IconLineBezier width={14} height={14} />
             </button>
           </div>
         )}
@@ -190,11 +194,11 @@ export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
           <button
             id="anim2d-reset-bubbles"
             type="button"
-            className="btn xs"
+            className="btn xs icon"
             onClick={onResetAllBubbles}
-            title="Đặt lại vị trí bóng tròn"
+            title="Đặt lại vị trí bóng tròn chú thích về mặc định"
           >
-            ↺ Bóng
+            <IconResetBubbles width={13} height={13} />
           </button>
         )}
 
@@ -211,18 +215,18 @@ export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
           type="button"
           className={`btn xs icon${showGrid ? ' active' : ''}`}
           onClick={onToggleShowGrid}
-          title="Lưới bố cục 1/3 (Rule of Thirds)"
+          title="Bật/tắt Lưới bố cục 1/3 (Rule of Thirds)"
         >
-          ⊞
+          <IconRuleOfThirds width={13} height={13} />
         </button>
 
         <button
           type="button"
           className="btn xs icon"
           onClick={onFitStage}
-          title="Căn vừa toàn bộ cảnh vào màn hình"
+          title="Căn vừa toàn bộ cảnh vào màn hình (Fit Stage)"
         >
-          <IconFocus width={13} height={13} />
+          <IconFitStage2D width={13} height={13} />
         </button>
 
         <button
@@ -232,7 +236,7 @@ export const AnimateCameraToolbar = memo(function AnimateCameraToolbar({
           onClick={() => useEditor.getState().setInspectorTab('route')}
           title="Mở Bảng Chi tiết Lộ trình Camera (Inspector)"
         >
-          <IconRoute width={13} height={13} />
+          <IconRouteInspector width={13} height={13} />
         </button>
       </div>
     </div>

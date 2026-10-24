@@ -7,6 +7,7 @@ import { IconGlobe, IconInfo, IconLock, IconMusic, IconPause, IconPlay, IconPlus
 import { useAudioPreview } from './audioPreviewManager'
 import { AssetDetailModal } from './AssetDetailModal'
 import { AssetDeleteConfirmModal } from './AssetDeleteConfirmModal'
+import { AudioCardPreview } from './AudioCardPreview'
 
 export function isAssetPublicScope(a: AssetMeta): boolean {
   if (a.assetPath) return true
@@ -94,19 +95,14 @@ export function ProjectAssetList() {
               </div>
 
               {isAudio ? (
-                <div className="audio-card-inner">
-                  <button
-                    type="button"
-                    className={`btn sm icon audio-preview-btn${isPlaying ? ' active' : ''}`}
-                    title={isPlaying ? 'Dừng nghe thử' : 'Nghe thử âm thanh này'}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      toggleProjectAsset(a.id)
-                    }}
-                  >
-                    {isPlaying ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
-                  </button>
-                </div>
+                <AudioCardPreview
+                  name={a.name}
+                  isPlaying={isPlaying}
+                  onTogglePlay={(e) => {
+                    e.stopPropagation()
+                    toggleProjectAsset(a.id)
+                  }}
+                />
               ) : (
                 rt?.thumbUrl && <img src={rt.thumbUrl} alt={a.name} draggable={false} />
               )}

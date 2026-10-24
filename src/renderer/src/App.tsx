@@ -4,7 +4,7 @@ import { usePlayback } from './hooks/usePlayback'
 import { useShortcuts } from './hooks/useShortcuts'
 import { initMcp } from './mcp/commands'
 import { useEditor } from './store/editor'
-import { useView } from './store/view'
+import { applyTheme, useView } from './store/view'
 import { CameraPathDialog } from './ui/CameraPathDialog'
 import { CameraSketchDialog } from './ui/CameraSketchDialog'
 import { ExportDialog } from './ui/ExportDialog'
@@ -120,6 +120,9 @@ export default function App() {
   }, [dragOver])
 
   const theme = useView((s) => s.theme)
+  useEffect(() => {
+    applyTheme(theme)
+  }, [theme])
   const aiActive = useView((s) => s.aiActive)
   const aiLocked = useView((s) => s.aiLocked)
   const storeMobileTab = useView((s) => s.mobileTab)

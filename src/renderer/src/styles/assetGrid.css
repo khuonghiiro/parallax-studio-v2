@@ -74,19 +74,13 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
 }
 
+/* ------------------------------------------------------------------ Audio Studio Preview Artwork */
 .builtin-asset-card.audio,
 .asset.audio {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-1, #141b24);
-}
-
-[data-theme='light'] .builtin-asset-card.audio,
-[data-theme='light'] .asset.audio,
-.app.light .builtin-asset-card.audio,
-.app.light .asset.audio {
-  background: #f1f5f9;
+  background: #141926;
 }
 
 .audio-card-inner {
@@ -95,6 +89,152 @@
   place-items: center;
   width: 100%;
   height: 100%;
+  overflow: hidden;
+  --audio-bar-color: #38bdf8;
+  --audio-bar-glow: rgba(56, 189, 248, 0.35);
+  --audio-ring-color: rgba(56, 189, 248, 0.2);
+  background: radial-gradient(circle at 50% 42%, rgba(56, 189, 248, 0.22) 0%, rgba(30, 27, 75, 0.85) 55%, #0f172a 100%);
+}
+
+.audio-card-inner.tone-music {
+  --audio-bar-color: #60a5fa;
+  --audio-bar-glow: rgba(96, 165, 250, 0.4);
+  --audio-ring-color: rgba(129, 140, 248, 0.24);
+  background: radial-gradient(circle at 50% 42%, rgba(99, 102, 241, 0.32) 0%, rgba(30, 41, 89, 0.9) 55%, #0f172a 100%);
+}
+
+.audio-card-inner.tone-ambient {
+  --audio-bar-color: #2dd4bf;
+  --audio-bar-glow: rgba(45, 212, 191, 0.4);
+  --audio-ring-color: rgba(45, 212, 191, 0.22);
+  background: radial-gradient(circle at 50% 42%, rgba(20, 184, 166, 0.28) 0%, rgba(15, 52, 67, 0.9) 55%, #0c1922 100%);
+}
+
+.audio-card-inner.tone-sfx {
+  --audio-bar-color: #fbbf24;
+  --audio-bar-glow: rgba(251, 191, 36, 0.4);
+  --audio-ring-color: rgba(245, 158, 11, 0.24);
+  background: radial-gradient(circle at 50% 42%, rgba(245, 158, 11, 0.28) 0%, rgba(69, 26, 3, 0.88) 55%, #181115 100%);
+}
+
+.audio-card-inner.tone-voice {
+  --audio-bar-color: #e879f9;
+  --audio-bar-glow: rgba(232, 121, 249, 0.4);
+  --audio-ring-color: rgba(217, 70, 239, 0.24);
+  background: radial-gradient(circle at 50% 42%, rgba(217, 70, 239, 0.28) 0%, rgba(59, 7, 100, 0.88) 55%, #160f24 100%);
+}
+
+/* Light Mode Audio Artwork Palettes */
+[data-theme='light'] .audio-card-inner.tone-music,
+.app.light .audio-card-inner.tone-music {
+  --audio-bar-color: #2563eb;
+  --audio-bar-glow: rgba(37, 99, 235, 0.25);
+  --audio-ring-color: rgba(79, 70, 229, 0.2);
+  background: radial-gradient(circle at 50% 42%, #dbeafe 0%, #e0e7ff 58%, #cbd5e1 100%);
+}
+
+[data-theme='light'] .audio-card-inner.tone-ambient,
+.app.light .audio-card-inner.tone-ambient {
+  --audio-bar-color: #0d9488;
+  --audio-bar-glow: rgba(13, 148, 136, 0.25);
+  --audio-ring-color: rgba(13, 148, 136, 0.2);
+  background: radial-gradient(circle at 50% 42%, #ccfbf1 0%, #d1fae5 58%, #cbd5e1 100%);
+}
+
+[data-theme='light'] .audio-card-inner.tone-sfx,
+.app.light .audio-card-inner.tone-sfx {
+  --audio-bar-color: #d97706;
+  --audio-bar-glow: rgba(217, 119, 6, 0.25);
+  --audio-ring-color: rgba(217, 119, 6, 0.2);
+  background: radial-gradient(circle at 50% 42%, #fef3c7 0%, #ffedd5 58%, #cbd5e1 100%);
+}
+
+[data-theme='light'] .audio-card-inner.tone-voice,
+.app.light .audio-card-inner.tone-voice {
+  --audio-bar-color: #9333ea;
+  --audio-bar-glow: rgba(147, 51, 234, 0.25);
+  --audio-ring-color: rgba(147, 51, 234, 0.2);
+  background: radial-gradient(circle at 50% 42%, #f3e8ff 0%, #fce7f3 58%, #cbd5e1 100%);
+}
+
+.audio-card-backdrop-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.audio-svg-baseline {
+  stroke: var(--audio-ring-color);
+  stroke-width: 1;
+}
+
+.audio-svg-gridline {
+  stroke: var(--audio-ring-color);
+  stroke-width: 0.6;
+  stroke-dasharray: 2 3;
+  opacity: 0.65;
+}
+
+.audio-svg-ring {
+  fill: none;
+  stroke: var(--audio-ring-color);
+  stroke-width: 1;
+}
+
+.audio-svg-ring.outer {
+  stroke-dasharray: 3 3;
+}
+
+.audio-svg-sine {
+  fill: none;
+  stroke: var(--audio-bar-color);
+  stroke-width: 1.2;
+  opacity: 0.28;
+}
+
+.audio-svg-bar {
+  fill: var(--audio-bar-color);
+  opacity: 0.78;
+  transform-origin: center 46px;
+  transition: opacity 0.15s ease, transform 0.2s ease;
+}
+
+.builtin-asset-card:hover .audio-svg-bar,
+.asset:hover .audio-svg-bar {
+  opacity: 0.95;
+}
+
+.audio-card-inner.is-playing .audio-svg-bar {
+  opacity: 1;
+  animation: audio-eq-bounce 0.75s ease-in-out infinite alternate;
+}
+
+@keyframes audio-eq-bounce {
+  0% {
+    transform: scaleY(0.65);
+  }
+  100% {
+    transform: scaleY(1.18);
+  }
+}
+
+.audio-card-motif-icon {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  color: var(--audio-bar-color);
+  opacity: 0.75;
+  pointer-events: none;
+  z-index: 2;
+  transition: opacity 0.15s ease;
+}
+
+.builtin-asset-card:hover .audio-card-motif-icon,
+.asset:hover .audio-card-motif-icon {
+  opacity: 0;
 }
 
 .audio-badge,
@@ -102,38 +242,57 @@
   display: none;
 }
 
+/* Nút Play chỉ hiện khi hover vào card hoặc khi đang phát để nhường chỗ cho hình preview sóng âm */
 .audio-preview-btn {
-  background: rgba(15, 23, 42, 0.82);
+  position: relative;
+  z-index: 3;
+  background: rgba(15, 23, 42, 0.88);
   color: #ffffff;
   border-radius: 50%;
   width: 28px;
   height: 28px;
   padding: 0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition: transform 0.15s, background-color 0.15s, box-shadow 0.15s;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.88);
+  transition: opacity 0.15s ease, transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.builtin-asset-card:hover .audio-preview-btn,
+.builtin-asset-card:focus-within .audio-preview-btn,
+.asset:hover .audio-preview-btn,
+.asset:focus-within .audio-preview-btn,
+.audio-preview-btn.active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
 }
 
 [data-theme='light'] .audio-preview-btn,
 .app.light .audio-preview-btn {
-  background: rgba(30, 41, 59, 0.88);
+  background: #1e293b;
   color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.35);
+  border-color: #ffffff;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.3);
 }
 
 .audio-preview-btn:hover {
   transform: scale(1.12);
   background: var(--accent) !important;
   color: #ffffff !important;
+  border-color: #ffffff !important;
 }
 
 .audio-preview-btn.active {
   background: var(--accent) !important;
   color: #ffffff !important;
-  box-shadow: 0 0 12px rgba(37, 99, 235, 0.7) !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.75) !important;
   animation: pulse-audio 1.4s infinite;
 }
 
@@ -174,13 +333,14 @@
 .builtin-asset-name {
   position: absolute;
   inset: auto 0 0 0;
-  padding: 12px 6px 4px;
+  padding: 14px 6px 4px;
   font-size: 9.5px;
+  font-weight: 600;
   color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.85) 70%);
+  background: linear-gradient(transparent, rgba(9, 13, 22, 0.9) 72%);
   pointer-events: none;
   z-index: 2;
 }
@@ -192,12 +352,60 @@
   display: flex;
   gap: 3px;
   opacity: 0;
-  transition: opacity 0.12s ease;
-  z-index: 3;
+  pointer-events: none;
+  transform: translateY(-2px);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+  z-index: 4;
 }
 
-.builtin-asset-card:hover .builtin-asset-actions {
+.builtin-asset-card:hover .builtin-asset-actions,
+.builtin-asset-card:focus-within .builtin-asset-actions {
   opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+/* Nút hành động trên card tài nguyên: nổi bật, tương phản cao trên cả nền tối và sáng */
+.builtin-asset-actions .btn.sm.icon,
+.asset .add-hint .btn.sm.icon {
+  background: rgba(15, 23, 42, 0.88);
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+.builtin-asset-actions .btn.sm.icon:hover,
+.asset .add-hint .btn.sm.icon:hover {
+  background: #334155;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.builtin-asset-actions .btn.sm.icon.danger,
+.asset .add-hint .btn.sm.icon.danger {
+  background: rgba(185, 28, 28, 0.9);
+  color: #ffffff;
+  border-color: rgba(252, 165, 165, 0.45);
+}
+
+.builtin-asset-actions .btn.sm.icon.danger:hover,
+.asset .add-hint .btn.sm.icon.danger:hover {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+.builtin-asset-actions .btn.sm.icon.primary,
+.asset .add-hint .btn.sm.icon.primary {
+  background: var(--accent) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.builtin-asset-actions .btn.sm.icon.primary:hover,
+.asset .add-hint .btn.sm.icon.primary:hover {
+  filter: brightness(1.12);
+  border-color: #ffffff !important;
 }
 
 /* ------------------------------------------------------------------ Empty & Status */
@@ -226,4 +434,3 @@
   align-items: center;
   justify-content: space-between;
 }
-

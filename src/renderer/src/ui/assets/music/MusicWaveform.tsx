@@ -80,9 +80,9 @@ export function MusicWaveform({
       const isPlayed = x <= progressX
 
       if (isPlayed) {
-        ctx.fillStyle = isLight ? '#0369a1' : '#38bdf8'
+        ctx.fillStyle = isLight ? '#0284c7' : '#38bdf8'
       } else {
-        ctx.fillStyle = isLight ? 'rgba(15, 23, 42, 0.28)' : 'rgba(255, 255, 255, 0.32)'
+        ctx.fillStyle = isLight ? 'rgba(37, 99, 235, 0.36)' : 'rgba(125, 211, 252, 0.44)'
       }
 
       ctx.beginPath()

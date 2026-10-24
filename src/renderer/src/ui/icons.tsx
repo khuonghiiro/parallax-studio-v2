@@ -870,4 +870,7 @@ export const IconFaceSwap = (p: P) => (
   </svg>
 )
 
+export * from './viewerIcons'
+
+
 

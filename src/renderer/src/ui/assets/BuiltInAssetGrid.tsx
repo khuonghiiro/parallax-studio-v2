@@ -21,6 +21,7 @@ import {
 } from './publicAssetStorage'
 import { AssetDetailModal } from './AssetDetailModal'
 import { AssetDeleteConfirmModal } from './AssetDeleteConfirmModal'
+import { AudioCardPreview } from './AudioCardPreview'
 
 interface BuiltInAssetGridProps {
   categories: BuiltInAssetCategory[]
@@ -210,7 +211,7 @@ export function BuiltInAssetGrid({
               return (
                 <div
                   key={item.id}
-                  className={`builtin-asset-card${isAudio ? ' audio' : ''}`}
+                  className={`builtin-asset-card${isAudio ? ' audio' : ''}${playingId === item.id ? ' playing-audio' : ''}`}
                   style={{ cursor: onSelectItem ? 'pointer' : undefined }}
                   title={
                     onSelectItem
@@ -233,19 +234,15 @@ export function BuiltInAssetGrid({
                   }}
                 >
                   {isAudio ? (
-                    <div className="audio-card-inner">
-                      <button
-                        type="button"
-                        className={`btn sm icon audio-preview-btn${playingId === item.id ? ' active' : ''}`}
-                        title={playingId === item.id ? 'Dừng nghe thử' : 'Nghe thử âm thanh này'}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          toggleBuiltInAsset(item)
-                        }}
-                      >
-                        {playingId === item.id ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
-                      </button>
-                    </div>
+                    <AudioCardPreview
+                      name={item.name}
+                      categoryHint={item.fileName}
+                      isPlaying={playingId === item.id}
+                      onTogglePlay={(e) => {
+                        e.stopPropagation()
+                        toggleBuiltInAsset(item)
+                      }}
+                    />
                   ) : item.previewUrl ? (
                     <img src={item.previewUrl} alt={item.name} draggable={false} loading="lazy" />
                   ) : (
