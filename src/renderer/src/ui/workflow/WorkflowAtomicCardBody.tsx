@@ -223,79 +223,81 @@ export const WorkflowMainNodeEnrichedBar: React.FC<WorkflowMainNodeEnrichedBarPr
 
   return (
     <div className="wf-main-enriched-section" onClick={(e) => e.stopPropagation()}>
-      <div className="wf-main-enriched-header">
-        <span className="wf-main-enriched-title">
-          ⚡ Logic kết hợp ({attachedAtomics.length})
-        </span>
-        {onOpenQuickAttach && (
+      {attachedAtomics.length > 0 ? (
+        <>
+          <div className="wf-main-enriched-header">
+            <span className="wf-main-enriched-title">
+              ⚡ Đang gắn ({attachedAtomics.length})
+            </span>
+            {onOpenQuickAttach && (
+              <button
+                type="button"
+                className="wf-main-attach-btn"
+                title="Gắn thêm hiệu ứng / chuyển động mới vào khối này"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onOpenQuickAttach(e, mainNode)
+                }}
+              >
+                + Thêm
+              </button>
+            )}
+          </div>
+          <div className="wf-main-enriched-pills">
+            {attachedAtomics.map((item) => (
+              <div
+                key={item.node.id}
+                className={`wf-main-enriched-pill${item.enabled ? ' on' : ' off'}`}
+                style={{ ['--eff-c' as string]: item.color }}
+                title={`${item.logicItem?.title ?? item.shortLabel} (${item.intensityPct}%)\n• Bấm tên để chọn node\n• Bấm chấm tròn để Bật/Tắt\n• Bấm ✕ để tháo khỏi Node Chính`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSelectNode(item.node.id)
+                }}
+              >
+                <button
+                  type="button"
+                  className={`wf-eff-toggle-dot${item.enabled ? ' on' : ''}`}
+                  title={item.enabled ? 'Đang BẬT — Bấm để tạm tắt chức năng này' : 'Đang TẮT — Bấm để bật lại'}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onToggleNode(item.node.id)
+                  }}
+                />
+                <span className="wf-eff-icon">{item.icon}</span>
+                <span className="wf-eff-label">{item.shortLabel}</span>
+                <span className="wf-eff-pct">{item.intensityPct}%</span>
+                {onDisconnectEdge && (
+                  <button
+                    type="button"
+                    className="wf-eff-unlink-btn"
+                    title={`Tháo "${item.shortLabel}" khỏi Node Chính này`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDisconnectEdge(item.edgeId)
+                    }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        onOpenQuickAttach && (
           <button
             type="button"
-            className="wf-main-attach-btn"
-            title="Gắn thêm Node chức năng đơn lẻ vào Node Chính này để làm phong phú hành vi"
+            className="wf-main-attach-cta-btn"
             onClick={(e) => {
               e.stopPropagation()
               onOpenQuickAttach(e, mainNode)
             }}
+            title="Bấm 1 click để gắn nhanh Chuyển động, Gió, Hạt, Ánh sáng hoặc Nhép môi vào khối này"
           >
-            + Gắn chức năng
+            <span>➕ Gắn chuyển động / hiệu ứng…</span>
           </button>
-        )}
-      </div>
-
-      {attachedAtomics.length > 0 ? (
-        <div className="wf-main-enriched-pills">
-          {attachedAtomics.map((item) => (
-            <div
-              key={item.node.id}
-              className={`wf-main-enriched-pill${item.enabled ? ' on' : ' off'}`}
-              style={{ ['--eff-c' as string]: item.color }}
-              title={`${item.logicItem?.title ?? item.shortLabel} (${item.intensityPct}%)\n• Bấm tên để chọn node\n• Bấm chấm tròn để Bật/Tắt\n• Bấm ✕ để tháo khỏi Node Chính`}
-              onClick={(e) => {
-                e.stopPropagation()
-                onSelectNode(item.node.id)
-              }}
-            >
-              <button
-                type="button"
-                className={`wf-eff-toggle-dot${item.enabled ? ' on' : ''}`}
-                title={item.enabled ? 'Đang BẬT — Bấm để tạm tắt chức năng này' : 'Đang TẮT — Bấm để bật lại'}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onToggleNode(item.node.id)
-                }}
-              />
-              <span className="wf-eff-icon">{item.icon}</span>
-              <span className="wf-eff-label">{item.shortLabel}</span>
-              <span className="wf-eff-pct">{item.intensityPct}%</span>
-              {onDisconnectEdge && (
-                <button
-                  type="button"
-                  className="wf-eff-unlink-btn"
-                  title={`Tháo "${item.shortLabel}" khỏi Node Chính này`}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onDisconnectEdge(item.edgeId)
-                  }}
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div
-          className="wf-main-enriched-empty"
-          onClick={(e) => {
-            if (onOpenQuickAttach) {
-              e.stopPropagation()
-              onOpenQuickAttach(e, mainNode)
-            }
-          }}
-          title="Bấm [+ Gắn chức năng] hoặc kéo nhiều Node chức năng đơn lẻ nối vào đây để kết hợp logic"
-        >
-          <span>Chưa gắn node đơn năng — Bấm <strong>+ Gắn chức năng</strong> để kết hợp</span>
-        </div>
+        )
       )}
     </div>
   )

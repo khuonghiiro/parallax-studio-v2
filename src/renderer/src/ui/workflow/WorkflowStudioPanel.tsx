@@ -396,10 +396,27 @@ export const WorkflowStudioPanel: React.FC = () => {
   const handleAutoLayout = useCallback(() => {
     const consolidated = consolidateCompositeWorkflowNodes(workflow, project)
     const baseWf = consolidated.workflow
-    const newPositions = solveSpaciousWorkflowLayout(baseWf.nodes, baseWf.edges, project)
+    const hasUnpackedLayers = baseWf.nodes.some(
+      (n) => n.type === 'layer_assembly' && n.id.startsWith('wf-layer-')
+    )
+    const { activeNodes: activeList } = resolveConnectedWorkflowNodes(baseWf)
+    const activeSet = new Set(activeList.map((n) => n.id))
+    const LEGACY_ORPHAN_IDS = new Set([
+      'wf-motion_choreography',
+      'wf-physics_fx',
+      'wf-audio_lipsync',
+      'wf-look_output'
+    ])
+    const cleanedNodes = hasUnpackedLayers
+      ? baseWf.nodes.filter((n) => !LEGACY_ORPHAN_IDS.has(n.id) || activeSet.has(n.id))
+      : baseWf.nodes
+    const keptIds = new Set(cleanedNodes.map((n) => n.id))
+    const cleanedEdges = baseWf.edges.filter((e) => keptIds.has(e.fromNode) && keptIds.has(e.toNode))
+    const newPositions = solveSpaciousWorkflowLayout(cleanedNodes, cleanedEdges, project)
     const next: WorkflowGraph = {
       ...baseWf,
-      nodes: baseWf.nodes.map((n) => ({
+      edges: cleanedEdges,
+      nodes: cleanedNodes.map((n) => ({
         ...n,
         position: newPositions[n.id] ? { ...newPositions[n.id] } : n.position
       }))
@@ -593,10 +610,24 @@ export const WorkflowStudioPanel: React.FC = () => {
 
   const handleSpawnSceneLayers = useCallback(() => {
     const { workflow: nextWf, sceneNode, childNodes } = spawnSceneWithChildLayers(project, workflow, currentShotScope)
-    const newPositions = solveSpaciousWorkflowLayout(nextWf.nodes, nextWf.edges, project)
+    const { activeNodes: activeList } = resolveConnectedWorkflowNodes(nextWf)
+    const activeSet = new Set(activeList.map((n) => n.id))
+    const LEGACY_ORPHAN_IDS = new Set([
+      'wf-motion_choreography',
+      'wf-physics_fx',
+      'wf-audio_lipsync',
+      'wf-look_output'
+    ])
+    const cleanedNodes = nextWf.nodes.filter(
+      (n) => !LEGACY_ORPHAN_IDS.has(n.id) || activeSet.has(n.id)
+    )
+    const keptIds = new Set(cleanedNodes.map((n) => n.id))
+    const cleanedEdges = nextWf.edges.filter((e) => keptIds.has(e.fromNode) && keptIds.has(e.toNode))
+    const newPositions = solveSpaciousWorkflowLayout(cleanedNodes, cleanedEdges, project)
     const laidOutWf: WorkflowGraph = {
       ...nextWf,
-      nodes: nextWf.nodes.map((n) => ({
+      edges: cleanedEdges,
+      nodes: cleanedNodes.map((n) => ({
         ...n,
         position: newPositions[n.id] ? { ...newPositions[n.id] } : n.position
       }))
@@ -605,7 +636,7 @@ export const WorkflowStudioPanel: React.FC = () => {
     setSelectedNodeId(sceneNode.id)
     window.dispatchEvent(new CustomEvent('pxs:wf-fit-view'))
     showToast(
-      `🎬 Đã bung Cảnh "${sceneNode.title}" (${childNodes.length} layer) — Không trùng lặp, sơ đồ thoáng đẹp!`
+      `🎬 Đã bung Cảnh "${sceneNode.title}" (${childNodes.length} layer) — Lưới 2.5D gọn đẹp, thông mạch 100%!`
     )
   }, [project, workflow, currentShotScope, commitWorkflow, showToast])
 
@@ -893,6 +924,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           showToast={showToast}
           onSpawnAndConnectLogicNode={handleSpawnAndConnectLogicNode}
           onSpecialAction={handleSpecialAction}
+          onSpawnSceneLayers={handleSpawnSceneLayers}
         />
 
         {sideMode === 'json' && (

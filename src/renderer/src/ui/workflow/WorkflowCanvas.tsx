@@ -1,23 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Project, WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowNodeParams, WorkflowPortKind } from '@shared/types'
-import {
-  WORKFLOW_NODE_SPECS,
-  WORKFLOW_PORT_SPECS
-} from '../../project/workflowCatalog'
+import { WORKFLOW_NODE_SPECS, WORKFLOW_PORT_SPECS } from '../../project/workflowCatalog'
 import { WorkflowNodeCard } from './WorkflowNodeCard'
 import { WorkflowCanvasHUD } from './WorkflowCanvasHUD'
 import { WorkflowQuickConnectMenu } from './WorkflowQuickConnectMenu'
 import { useWorkflowAssetDrop } from './useWorkflowAssetDrop'
 import {
-  NODE_W,
-  buildBezierPath,
-  buildSmartEdgeGeometry,
-  estimateNodeCardHeight,
-  resolveNodeCollisionPush,
-  getBestMatchingInputPort,
-  getBestMatchingOutputPort,
-  getInputSocketCoords,
-  getOutputSocketCoords
+  NODE_W, buildBezierPath, buildSmartEdgeGeometry, estimateNodeCardHeight,
+  resolveNodeCollisionPush, getBestMatchingInputPort, getBestMatchingOutputPort,
+  getInputSocketCoords, getOutputSocketCoords
 } from './workflowLayoutAndFlow'
 import { findMagneticTarget, type MagneticTargetResult } from './workflowMagneticSnap'
 
@@ -66,33 +57,15 @@ export interface WorkflowCanvasProps {
     }
   ) => void
   onOpenNodeConfig?: (node: WorkflowNode) => void
+  onSpawnSceneLayers?: () => void
 }
 
 export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
-  workflow,
-  project,
-  playing = false,
-  time = 0,
-  currentShotScope,
-  activeNodeIds,
-  executionStepMap,
-  selectedNodeId,
-  onSelectNode,
-  onMoveNodes,
-  onAutoLayout,
-  onToggleNode,
-  onDeleteNode,
-  onChangeNodePreset,
-  onUpdateNodeParams,
-  onConnectPorts,
-  onDisconnectEdge,
-  onPreviewNode,
-  onDropLogicNode,
-  commitWorkflow,
-  showToast,
-  onSpawnAndConnectLogicNode,
-  onSpecialAction,
-  onOpenNodeConfig
+  workflow, project, playing = false, time = 0, currentShotScope,
+  activeNodeIds, executionStepMap, selectedNodeId, onSelectNode, onMoveNodes,
+  onAutoLayout, onToggleNode, onDeleteNode, onChangeNodePreset, onUpdateNodeParams,
+  onConnectPorts, onDisconnectEdge, onPreviewNode, onDropLogicNode, commitWorkflow,
+  showToast, onSpawnAndConnectLogicNode, onSpecialAction, onOpenNodeConfig, onSpawnSceneLayers
 }) => {
   const viewportRef = useRef<HTMLDivElement>(null)
   const [zoom, setZoom] = useState<number>(1)
@@ -104,6 +77,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 
   const [isPanning, setIsPanning] = useState(false)
   const [clusterMoveMode, setClusterMoveMode] = useState(false)
+  const [showSubNodes, setShowSubNodes] = useState(false)
   const [dragPositions, setDragPositions] = useState<Record<string, { x: number; y: number }> | null>(null)
   const [quickConnectState, setQuickConnectState] = useState<{
     clientX: number
@@ -139,7 +113,19 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     )
   }, [workflow.nodes, dragPositions])
 
-  const nodeById = useMemo(() => new Map(effectiveNodes.map((n) => [n.id, n])), [effectiveNodes])
+  // Gộp gọn các thẻ phụ (Tọa độ Transform & Mảnh con lắp ráp) vào ngay trong thẻ Layer chính mặc định
+  const visibleNodes = useMemo(() => {
+    if (showSubNodes) return effectiveNodes
+    const hasMainLayerNodes = effectiveNodes.some(
+      (n) => n.type === 'layer_assembly' && !n.params?.logicId && !n.params?.assemblyRootNodeId
+    )
+    if (!hasMainLayerNodes) return effectiveNodes
+    return effectiveNodes.filter(
+      (n) => n.type !== 'layer_transform' && !n.params?.assemblyRootNodeId
+    )
+  }, [effectiveNodes, showSubNodes])
+
+  const nodeById = useMemo(() => new Map(visibleNodes.map((n) => [n.id, n])), [visibleNodes])
 
   // Phím tắt Alt + L tự động sắp xếp gọn gàng toàn bộ sơ đồ
   useEffect(() => {
@@ -157,11 +143,11 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     return () => window.removeEventListener('keydown', handleKey)
   }, [onAutoLayout])
 
-  /** Tự động tính toán Zoom & Pan để toàn bộ cụm khối nằm gọn giữa khung nhìn (chừa mép trái 38px cho thanh Icon dọc) */
+  /** Tự động tính toán Zoom & Pan để toàn bộ cụm khối hiển thị nằm gọn giữa khung nhìn (0% cắt cụt đầu/đáy) */
   const fitClusterToView = useCallback(
     (customNodes?: WorkflowNode[]) => {
       const el = viewportRef.current
-      const list = customNodes ?? workflow.nodes
+      const list = customNodes ?? visibleNodes
       if (!el || list.length === 0) return
       const vw = el.clientWidth || 1200
       const vh = el.clientHeight || 280
@@ -172,19 +158,20 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       let maxY = -Infinity
       for (const n of list) {
         const cardH = estimateNodeCardHeight(n)
-        minX = Math.min(minX, n.position.x - 16)
-        minY = Math.min(minY, n.position.y - 22)
-        maxX = Math.max(maxX, n.position.x + NODE_W + 16)
-        maxY = Math.max(maxY, n.position.y + cardH + 20)
+        minX = Math.min(minX, n.position.x - 18)
+        minY = Math.min(minY, n.position.y - 24)
+        maxX = Math.max(maxX, n.position.x + NODE_W + 28)
+        maxY = Math.max(maxY, n.position.y + cardH + 24)
       }
 
       const leftDockW = 40
-      const availW = Math.max(320, vw - leftDockW - 20)
-      const graphW = Math.max(400, maxX - minX)
-      const graphH = Math.max(200, maxY - minY)
+      const availW = Math.max(320, vw - leftDockW - 18)
+      const availH = Math.max(160, vh - 16)
+      const graphW = Math.max(360, maxX - minX)
+      const graphH = Math.max(180, maxY - minY)
       const fitZ = Math.min(
         1.0,
-        Math.max(0.38, Math.min(availW / graphW, (vh - 12) / graphH))
+        Math.max(0.24, Math.min(availW / graphW, availH / graphH))
       )
       const nx = Math.round(leftDockW + (availW - graphW * fitZ) / 2 - minX * fitZ)
       const ny = Math.round((vh - graphH * fitZ) / 2 - minY * fitZ)
@@ -194,7 +181,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       setZoom(roundedZ)
       setPan({ x: nx, y: ny })
     },
-    [workflow.nodes]
+    [visibleNodes]
   )
 
   const prevCountRef = useRef(workflow.nodes.length)
@@ -690,7 +677,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         edge.fromPort,
         toNode,
         edge.toPort,
-        effectiveNodes
+        visibleNodes
       )
       const isActive =
         fromNode.enabled &&
@@ -711,7 +698,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       })
     }
     return out
-  }, [workflow.edges, effectiveNodes, nodeById, activeNodeIds])
+  }, [workflow.edges, visibleNodes, nodeById, activeNodeIds])
 
   const cardHandlersRef = useRef({ startNodeDrag, startConnecting, handleInputSocketClick, handleOutputSocketClick, handleClearPendingWire })
   cardHandlersRef.current = { startNodeDrag, startConnecting, handleInputSocketClick, handleOutputSocketClick, handleClearPendingWire }
@@ -882,7 +869,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
           </svg>
 
           {/* Các Khối Chức Năng (Functional Nodes) */}
-          {effectiveNodes.map((node) => (
+          {visibleNodes.map((node) => (
             <WorkflowNodeCard
               key={node.id}
               node={node}
@@ -911,6 +898,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
               onClearPendingWire={cardHandlers.clear}
               onOpenConfig={onOpenNodeConfig}
               onOpenQuickAttach={handleOpenQuickAttach}
+              onSpawnSceneLayers={onSpawnSceneLayers}
               commitWorkflow={commitWorkflow}
               showToast={showToast}
             />
@@ -922,8 +910,13 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       {/* Thanh Công Cụ Dọc Dạng Icon (Vertical Icon HUD Dock ở mép trái Canvas) */}
       <WorkflowCanvasHUD
         clusterMoveMode={clusterMoveMode}
+        showSubNodes={showSubNodes}
         zoom={zoom}
         onToggleClusterMove={() => setClusterMoveMode((v) => !v)}
+        onToggleSubNodes={() => {
+          setShowSubNodes((v) => !v)
+          setTimeout(() => fitClusterToView(), 40)
+        }}
         onAutoLayout={() => {
           onAutoLayout()
           setTimeout(() => fitClusterToView(), 50)

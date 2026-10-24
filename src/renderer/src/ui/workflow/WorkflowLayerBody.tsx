@@ -35,10 +35,17 @@ export const WorkflowLayerBody: React.FC<WorkflowLayerBodyProps> = React.memo(({
   onSelectNode,
   onToggleNode,
   onDisconnectEdge,
-  onOpenQuickAttach
+  onOpenQuickAttach,
+  onUpdateNodeParams
 }) => {
   const [isDragOver, setIsDragOver] = useState(false)
+  const [showTransformAxes, setShowTransformAxes] = useState(false)
   const selectedLayerId = useEditor((s) => s.selectedLayerId)
+
+  const targetLayerIds = useMemo(
+    () => (node.params?.targetLayerIds?.length ? node.params.targetLayerIds : [boundLayer.id]),
+    [node.params?.targetLayerIds, boundLayer.id]
+  )
 
   const isAssembly = useMemo(() => {
     return Boolean(
@@ -81,39 +88,70 @@ export const WorkflowLayerBody: React.FC<WorkflowLayerBodyProps> = React.memo(({
     [assemblyKind, boundLayer.model3d, boundLayer.composite]
   )
 
+  const posX = Math.round(boundLayer.transform.position.value[0] ?? 0)
+  const posY = Math.round(boundLayer.transform.position.value[1] ?? 0)
   const zVal = Math.round(boundLayer.transform.position.value[2] ?? 0)
+  const rotZ = Math.round(boundLayer.transform.rotation.value[2] ?? 0)
+
+  const handleAxisScrub = useCallback(
+    (axis: 'x' | 'y' | 'z' | 'rot', value: number) => {
+      const baseOldVal = axis === 'x' ? posX : axis === 'y' ? posY : axis === 'z' ? zVal : rotZ
+      const delta = value - baseOldVal
+      useEditor.getState().update((draft) => {
+        for (const tid of targetLayerIds) {
+          const l = draft.layers.find((item) => item.id === tid)
+          if (!l || l.locked || (l.parentId && targetLayerIds.includes(l.parentId))) continue
+          if (targetLayerIds.length === 1) {
+            if (axis === 'x') l.transform.position.value[0] = value
+            else if (axis === 'y') l.transform.position.value[1] = value
+            else if (axis === 'z') l.transform.position.value[2] = value
+            else if (axis === 'rot') l.transform.rotation.value[2] = value
+          } else {
+            if (axis === 'x') l.transform.position.value[0] = Math.round((l.transform.position.value[0] ?? 0) + delta)
+            else if (axis === 'y') l.transform.position.value[1] = Math.round((l.transform.position.value[1] ?? 0) + delta)
+            else if (axis === 'z') l.transform.position.value[2] = Math.round((l.transform.position.value[2] ?? 0) + delta)
+            else if (axis === 'rot') l.transform.rotation.value[2] = Math.round((l.transform.rotation.value[2] ?? 0) + delta)
+          }
+        }
+      }, `wf-inline-axis-${boundLayer.id}-${axis}`)
+
+      const patch: Partial<WorkflowNodeParams> = {}
+      if (axis === 'x') patch.transformX = value
+      else if (axis === 'y') patch.transformY = value
+      else if (axis === 'z') patch.transformZ = value
+      else if (axis === 'rot') patch.transformRotation = value
+      onUpdateNodeParams?.(node.id, patch)
+    },
+    [posX, posY, zVal, rotZ, targetLayerIds, boundLayer.id, node.id, onUpdateNodeParams]
+  )
 
   // Phân tầng độ sâu 2.5D với màu sắc tương phản cao theo chuẩn Dual-Theme
   const zInfo = useMemo(() => {
     if (zVal > 2000) {
-      return { label: '🌌 Bầu trời (Hậu cảnh xa)', color: '#c084fc', icon: '🌌' }
+      return { label: 'Bầu trời', color: '#c084fc', icon: '🌌' }
     }
     if (zVal > 1000) {
-      return { label: '🏔️ Núi xa (Hậu cảnh)', color: '#60a5fa', icon: '🏔️' }
+      return { label: 'Núi xa', color: '#60a5fa', icon: '🏔️' }
     }
     if (zVal > 200) {
-      return { label: '🌲 Trung cảnh (Môi trường)', color: '#2dd4bf', icon: '🌲' }
+      return { label: 'Trung cảnh', color: '#2dd4bf', icon: '🌲' }
     }
     if (zVal >= 0) {
-      return { label: '🎯 Tiêu điểm (Chủ thể)', color: '#34d399', icon: '🎯' }
+      return { label: 'Tiêu điểm', color: '#34d399', icon: '🎯' }
     }
-    return { label: '🔍 Tiền cảnh (Cận máy)', color: '#fbbf24', icon: '🔍' }
+    return { label: 'Tiền cảnh', color: '#fbbf24', icon: '🔍' }
   }, [zVal])
 
   // Xếp hạng thứ tự Z-index của layer này trong cảnh (từ xa tới gần)
-  const { rankIndex, totalLayers, zPercent } = useMemo(() => {
+  const { rankIndex, totalLayers } = useMemo(() => {
     if (!project || project.layers.length === 0) {
-      return { rankIndex: 0, totalLayers: 1, zPercent: 50 }
+      return { rankIndex: 0, totalLayers: 1 }
     }
     const allZ = project.layers
       .map((l) => Math.round(l.transform.position.value[2] ?? 0))
       .sort((a, b) => b - a)
     const rank = Math.max(0, allZ.indexOf(zVal))
-    const max = allZ[0]
-    const min = allZ[allZ.length - 1]
-    const span = Math.max(1, max - min)
-    const pct = Math.max(0, Math.min(100, Math.round(((zVal - min) / span) * 100)))
-    return { rankIndex: rank, totalLayers: allZ.length, zPercent: pct }
+    return { rankIndex: rank, totalLayers: allZ.length }
   }, [project, zVal])
 
   const assetId = boundLayer.type === 'image' ? boundLayer.props.assetId : undefined
@@ -201,39 +239,9 @@ export const WorkflowLayerBody: React.FC<WorkflowLayerBodyProps> = React.memo(({
 
   return (
     <div className="wf-layer-card-body" onClick={(e) => e.stopPropagation()}>
-      {/* 1. Dải ruy băng Chiều sâu Z & Thước đo Tầng bậc thang (2.5D Depth Ribbon & Ladder) */}
+      {/* 1. Hàng Nhận Diện Layer Gọn Chuẩn ComfyUI (Thumbnail + Tầng Z + Nút Đổi Ảnh / Mở Tọa Độ) */}
       <div
-        className="wf-layer-z-ribbon"
-        style={{ ['--depth-c' as string]: zInfo.color }}
-        title={`${zInfo.label}\nTầng #${rankIndex + 1}/${totalLayers} · Độ sâu: Z = ${zVal}px (Giá trị càng lớn thì layer càng nằm xa camera)`}
-      >
-        <div className="wf-layer-z-top-row">
-          <span className="wf-layer-z-tag">
-            <span>{zInfo.icon}</span>
-            <span>{zInfo.label}</span>
-          </span>
-          <span className="wf-layer-z-rank-pill" title={`Tầng chiều sâu #${rankIndex + 1} trên ${totalLayers} layer trong cảnh`}>
-            #{rankIndex + 1}/{totalLayers}
-          </span>
-          <span className="wf-layer-z-val">Z:{zVal > 0 ? `+${zVal}` : zVal}</span>
-        </div>
-        <div className="wf-layer-z-meter-bar" title={`Vị trí trong không gian 2.5D: ${zPercent}% (Xa: 100%, Gần: 0%)`}>
-          <div className="wf-layer-z-meter-track">
-            <div
-              className="wf-layer-z-meter-pin"
-              style={{ left: `${zPercent}%`, background: zInfo.color }}
-            />
-          </div>
-          <div className="wf-layer-z-meter-labels">
-            <span>Gần (-300)</span>
-            <span>Xa (+3600)</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Khung Thả Tài Nguyên (Asset Drop Target & Preview) */}
-      <div
-        className={`wf-layer-drop-zone${isDragOver ? ' drag-over' : ''}`}
+        className={`wf-layer-drop-zone compact${isDragOver ? ' drag-over' : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -257,19 +265,111 @@ export const WorkflowLayerBody: React.FC<WorkflowLayerBodyProps> = React.memo(({
         </div>
 
         <div className="wf-layer-info-col">
-          <span className="wf-layer-name-line">{boundLayer.name}</span>
+          <div className="wf-layer-z-top-row">
+            <span className="wf-layer-z-tag" style={{ ['--depth-c' as string]: zInfo.color }}>
+              <span>{zInfo.icon}</span>
+              <span>{zInfo.label}</span>
+            </span>
+            <span
+              className="wf-layer-z-rank-pill"
+              style={{ ['--depth-c' as string]: zInfo.color }}
+              title={`Tầng chiều sâu #${rankIndex + 1} trên ${totalLayers} layer trong cảnh`}
+            >
+              #{rankIndex + 1}/{totalLayers}
+            </span>
+          </div>
           <span className="wf-layer-drop-hint">
-            {isDragOver ? '📥 Thả ảnh vào đây để đổi!' : 'Thả ảnh từ Kho tài nguyên vào đây'}
+            {isDragOver ? '📥 Thả ảnh để đổi ngay!' : 'Kéo thả ảnh vào đây để thay thế'}
           </span>
+        </div>
+
+        <div className="wf-layer-quick-btns">
           <button
             type="button"
             className="wf-layer-replace-btn"
             onClick={handlePickFile}
-            title="Mở hộp thoại chọn tệp ảnh từ máy tính để đổi layer này"
+            title="Chọn tệp ảnh từ máy tính để đổi layer này"
           >
-            📂 Đổi ảnh…
+            📂 Đổi
+          </button>
+          <button
+            type="button"
+            className={`wf-layer-replace-btn${showTransformAxes ? ' active' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation()
+              setShowTransformAxes((v) => !v)
+            }}
+            title="Mở nhanh thanh trượt chỉnh tọa độ Ngang X / Dọc Y / Xoay ngay trên thẻ Layer"
+          >
+            📐 X/Y {showTransformAxes ? '▴' : '▾'}
           </button>
         </div>
+      </div>
+
+      {/* 2. Thanh trượt Chiều sâu Z trực tiếp kiểu ComfyUI (+ Mở rộng X / Y / Xoay 60fps) */}
+      <div className="wf-comfy-scrubber-box" style={{ ['--depth-c' as string]: zInfo.color }}>
+        <div className="wf-comfy-scrubber-row">
+          <span className="wf-comfy-scrubber-lbl" title="Kéo để đẩy Layer ra xa hoặc kéo lại gần Camera 3D (60fps)">
+            Độ sâu Z
+          </span>
+          <input
+            type="range"
+            className="wf-transform-slider-input axis-z"
+            min={-600}
+            max={3600}
+            step={10}
+            value={zVal}
+            onChange={(e) => handleAxisScrub('z', parseFloat(e.target.value))}
+            title={`Độ sâu Z = ${zVal}px (Càng lớn càng xa Camera)`}
+          />
+          <span className="wf-comfy-scrubber-val">
+            {zVal > 0 ? `+${zVal}` : zVal}
+          </span>
+        </div>
+
+        {showTransformAxes && (
+          <div className="wf-comfy-extra-axes">
+            <div className="wf-comfy-scrubber-row">
+              <span className="wf-comfy-scrubber-lbl axis-x">↔ Ngang X</span>
+              <input
+                type="range"
+                className="wf-transform-slider-input axis-x"
+                min={-1920}
+                max={1920}
+                step={2}
+                value={posX}
+                onChange={(e) => handleAxisScrub('x', parseFloat(e.target.value))}
+              />
+              <span className="wf-comfy-scrubber-val">{posX}</span>
+            </div>
+            <div className="wf-comfy-scrubber-row">
+              <span className="wf-comfy-scrubber-lbl axis-y">↕ Dọc Y</span>
+              <input
+                type="range"
+                className="wf-transform-slider-input axis-y"
+                min={-1080}
+                max={1080}
+                step={2}
+                value={posY}
+                onChange={(e) => handleAxisScrub('y', parseFloat(e.target.value))}
+              />
+              <span className="wf-comfy-scrubber-val">{posY}</span>
+            </div>
+            <div className="wf-comfy-scrubber-row">
+              <span className="wf-comfy-scrubber-lbl axis-rot">↻ Xoay °</span>
+              <input
+                type="range"
+                className="wf-transform-slider-input axis-rot"
+                min={-180}
+                max={180}
+                step={1}
+                value={rotZ}
+                onChange={(e) => handleAxisScrub('rot', parseFloat(e.target.value))}
+              />
+              <span className="wf-comfy-scrubber-val">{rotZ}°</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 2b. Cụm Lắp Ráp 3D hoặc Layer 2.5D (Assembly Sub-Parts Chips & Workshop Launcher) */}
@@ -293,10 +393,9 @@ export const WorkflowLayerBody: React.FC<WorkflowLayerBodyProps> = React.memo(({
             </button>
           </div>
 
-          {/* Danh sách các mảnh / layer con trong cụm */}
           {assemblyLayers.length > 0 && (
             <div className="wf-assembly-parts-list">
-              {assemblyLayers.map((partLayer) => {
+              {assemblyLayers.slice(0, 6).map((partLayer) => {
                 const cleanPartName = partLayer.name
                   .replace(/^\[.*?\]\s*/, '')
                   .replace(/^.*[\\/]/, '')
@@ -314,6 +413,9 @@ export const WorkflowLayerBody: React.FC<WorkflowLayerBodyProps> = React.memo(({
                   </button>
                 )
               })}
+              {assemblyLayers.length > 6 && (
+                <span className="wf-assembly-part-chip">+{assemblyLayers.length - 6}</span>
+              )}
             </div>
           )}
         </div>

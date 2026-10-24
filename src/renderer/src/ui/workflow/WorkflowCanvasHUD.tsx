@@ -2,8 +2,10 @@ import React from 'react'
 
 export interface WorkflowCanvasHUDProps {
   clusterMoveMode: boolean
+  showSubNodes?: boolean
   zoom: number
   onToggleClusterMove: () => void
+  onToggleSubNodes?: () => void
   onAutoLayout: () => void
   onFitView: () => void
   onZoomByStep: (delta: number) => void
@@ -16,8 +18,10 @@ export interface WorkflowCanvasHUDProps {
  */
 export const WorkflowCanvasHUD: React.FC<WorkflowCanvasHUDProps> = ({
   clusterMoveMode,
+  showSubNodes = false,
   zoom,
   onToggleClusterMove,
+  onToggleSubNodes,
   onAutoLayout,
   onFitView,
   onZoomByStep,
@@ -29,7 +33,7 @@ export const WorkflowCanvasHUD: React.FC<WorkflowCanvasHUDProps> = ({
         id="wf-btn-cluster-drag"
         type="button"
         className={`wf-hud-btn icon${clusterMoveMode ? ' active' : ''}`}
-        title={`Kéo cả cụm 7 khối: ${clusterMoveMode ? 'ĐANG BẬT' : 'ĐANG TẮT'} (Hoặc giữ phím Shift khi kéo khối)`}
+        title={`Kéo cả cụm: ${clusterMoveMode ? 'ĐANG BẬT' : 'ĐANG TẮT'} (Hoặc giữ phím Shift khi kéo khối)`}
         aria-label="Kéo cả cụm"
         onClick={(e) => {
           e.stopPropagation()
@@ -43,6 +47,30 @@ export const WorkflowCanvasHUD: React.FC<WorkflowCanvasHUDProps> = ({
           <path d="M10 6.5h4M6.5 10l3.5 4M17.5 10l-3.5 4" />
         </svg>
       </button>
+
+      {onToggleSubNodes && (
+        <button
+          id="wf-btn-toggle-subnodes"
+          type="button"
+          className={`wf-hud-btn icon${showSubNodes ? ' active' : ''}`}
+          title={
+            showSubNodes
+              ? 'Đang HIỆN rời thẻ Tọa độ & Mảnh con — Bấm để gộp gọn vào thẻ Layer chính'
+              : 'Đang GỘP GỌN thẻ Tọa độ & Mảnh con trong thẻ Layer — Bấm nếu muốn bung rời trên sơ đồ'
+          }
+          aria-label="Gộp/Bung thẻ phụ"
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggleSubNodes()
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="4" width="18" height="6" rx="1.5" />
+            <rect x="6" y="14" width="12" height="6" rx="1.5" strokeDasharray="2 2" />
+            <path d="M12 10v4" />
+          </svg>
+        </button>
+      )}
 
       <button
         id="wf-btn-autolayout"

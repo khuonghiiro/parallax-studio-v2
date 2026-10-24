@@ -95,6 +95,7 @@ export interface WorkflowNodeCardProps {
   onClearPendingWire: () => void
   onOpenConfig?: (node: WorkflowNode) => void
   onOpenQuickAttach?: (e: React.MouseEvent, mainNode: WorkflowNode) => void
+  onSpawnSceneLayers?: () => void
   commitWorkflow?: (
     wf: WorkflowGraph,
     mergeKey?: string,
@@ -131,6 +132,7 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
   onClearPendingWire,
   onOpenConfig,
   onOpenQuickAttach,
+  onSpawnSceneLayers,
   commitWorkflow,
   showToast
 }) => {
@@ -200,19 +202,19 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
   )
 
   const verticalInPort = React.useMemo(
-    () => inputs.find((p) => p === 'layers_tree' || p === 'transform_link') ?? null,
+    () => inputs.find((p) => p === 'transform_link') ?? null,
     [inputs]
   )
   const verticalOutPort = React.useMemo(
-    () => outputs.find((p) => p === 'layers_tree' || p === 'transform_link') ?? null,
-    [outputs]
+    () => null as WorkflowPortKind | null,
+    []
   )
   const sideInputs = React.useMemo(
-    () => inputs.filter((p) => p !== 'layers_tree' && p !== 'transform_link'),
+    () => inputs.filter((p) => p !== 'transform_link'),
     [inputs]
   )
   const sideOutputs = React.useMemo(
-    () => outputs.filter((p) => p !== 'layers_tree' && p !== 'transform_link'),
+    () => outputs.filter((p) => p !== 'transform_link'),
     [outputs]
   )
   const socketRowCount = Math.max(sideInputs.length, sideOutputs.length)
@@ -395,7 +397,88 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
         </div>
       )}
 
-      {/* 1. Thanh tiêu đề Khối (Nắm kéo tự do 4 hướng) */}
+      {/* Thanh Công Cụ Nổi Kiểu n8n (Floating Quick Actions khi Hover hoặc Chọn khối) */}
+      {node.type !== 'layer_transform' && (
+        <div
+          className="wf-node-floating-toolbar"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {onPreviewNode && (
+            <button
+              type="button"
+              className="wf-float-act-btn"
+              title="Chạy thử hiệu ứng khối này trên Cảnh 3D"
+              onClick={(e) => {
+                e.stopPropagation()
+                onSelectNode(node.id)
+                onPreviewNode(node)
+              }}
+            >
+              ▶ Thử
+            </button>
+          )}
+          {onOpenQuickAttach && isMainWorkflowNode(node) && (
+            <button
+              type="button"
+              className="wf-float-act-btn accent"
+              title="Gắn nhanh Chuyển động / Hiệu ứng / Âm thanh vào khối này (Kiểu n8n)"
+              onClick={(e) => {
+                e.stopPropagation()
+                onOpenQuickAttach(e, node)
+              }}
+            >
+              + Hiệu ứng
+            </button>
+          )}
+          {onOpenConfig && (
+            <button
+              type="button"
+              className="wf-float-act-btn"
+              title="Mở bảng Cấu hình chi tiết của khối (Hoặc bấm đúp)"
+              onClick={(e) => {
+                e.stopPropagation()
+                onSelectNode(node.id)
+                onOpenConfig(node)
+              }}
+            >
+              ⚙ Cấu hình
+            </button>
+          )}
+          {onDeleteNode && (
+            <button
+              type="button"
+              className="wf-float-act-btn danger"
+              title={`Xóa "${cardTitle}" khỏi sơ đồ`}
+              onClick={(e) => {
+                e.stopPropagation()
+                onDeleteNode(node.id)
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Nút [+] Mép Phải Kiểu n8n (1-Click Quick-Add & Auto-Wire) */}
+      {onOpenQuickAttach && isMainWorkflowNode(node) && (
+        <button
+          type="button"
+          className="wf-n8n-plus-btn"
+          title={`Bấm [+] để gắn nhanh chức năng vào "${cardTitle}" và tự động nối dây (Chuẩn n8n)`}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation()
+            onOpenQuickAttach(e, node)
+          }}
+        >
+          <span className="wf-n8n-plus-stem" />
+          <span className="wf-n8n-plus-circle">+</span>
+        </button>
+      )}
+
+      {/* 1. Thanh tiêu đề Khối Gọn Thoáng (Nắm kéo tự do 4 hướng) */}
       {node.type === 'layer_transform' ? (
         <div className="wf-node-header companion" style={{ ['--wf-node-color' as string]: '#0284c7' }}>
           <span className="wf-node-icon" style={{ background: '#0284c7' }}>🎯</span>
@@ -442,44 +525,15 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
           </span>
           <span
             className="wf-node-title"
-            title={`${cardTitle} — Nắm kéo để di chuyển tự do Trái / Phải / Lên / Xuống (Chuột phải hoặc bấm đúp để cấu hình)`}
+            title={`${cardTitle} (${cardCategoryBadge}) — Nắm kéo để di chuyển tự do 4 hướng (Bấm đúp để cấu hình)`}
           >
             {cardTitle}
-            <span className="wf-node-sub-tag">{cardCategoryBadge}</span>
             {parentLayer && (
               <span className="wf-node-sub-tag parent-link" title={`Layer con bám theo Cha: "${parentLayer.name}" (Parent & Link)`}>
                 ↳ {parentLayer.name}
               </span>
             )}
           </span>
-          {onOpenConfig && (
-            <button
-              type="button"
-              className="wf-node-gear-btn"
-              title="Cấu hình khối (Chuột phải hoặc bấm đúp)"
-              onClick={(e) => {
-                e.stopPropagation()
-                onSelectNode(node.id)
-                onOpenConfig(node)
-              }}
-            >
-              ⚙
-            </button>
-          )}
-          {onPreviewNode && (
-            <button
-              type="button"
-              className="wf-node-eye-btn"
-              title="Áp dụng & Xem thử hiệu ứng khối này trên Cảnh 3D"
-              onClick={(e) => {
-                e.stopPropagation()
-                onSelectNode(node.id)
-                onPreviewNode(node)
-              }}
-            >
-              👁
-            </button>
-          )}
           <span
             className={`wf-node-status-pill${isConnected ? ' on' : ' disconnected'}${telemetry.isStageHighlight ? ' running' : ''}`}
             title={
@@ -509,19 +563,6 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
           >
             {node.enabled ? 'ON' : 'OFF'}
           </button>
-          {onDeleteNode && (
-            <button
-              type="button"
-              className="wf-node-del-btn"
-              title={`Xóa "${cardTitle}" khỏi sơ đồ`}
-              onClick={(e) => {
-                e.stopPropagation()
-                onDeleteNode(node.id)
-              }}
-            >
-              ✕
-            </button>
-          )}
         </div>
       )}
 
@@ -714,6 +755,22 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
               mode="card"
               runtimeTelemetry={telemetry}
             />
+
+            {node.type === 'scene_shot' &&
+              onSpawnSceneLayers &&
+              !workflow.nodes.some((n) => n.id.startsWith('wf-layer-')) && (
+              <button
+                type="button"
+                className="wf-scene-unpack-inline-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSpawnSceneLayers()
+                }}
+                title="Bung tất cả Layer của Phân cảnh này thành lưới thẻ 2.5D gọn đẹp để thao tác trực tiếp"
+              >
+                <span>🎬 Bung các Layer của Cảnh</span>
+              </button>
+            )}
 
             {isMainWorkflowNode(node) && (
               <WorkflowMainNodeEnrichedBar

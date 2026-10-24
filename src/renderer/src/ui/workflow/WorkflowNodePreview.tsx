@@ -445,7 +445,7 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = React.mem
 
   if (mode === 'card') {
     return (
-      <div className="wf-node-binding-box">
+      <div className="wf-node-binding-box compact">
         {/* Khung Thumbnail Hiển Thị Ảnh Thực Tế Của Layer / Cảnh Xếp Chồng */}
         <div className={`wf-node-thumb-container${sceneStack ? ' is-scene' : ''}`}>
           {sceneStack ? (
@@ -455,7 +455,7 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = React.mem
                 className="wf-node-thumb-badge is-scene"
                 title={`Cảnh: ${sceneStack.shotName} (${sceneStack.aspectRatioLabel} · ${sceneStack.visibleCount}/${sceneStack.totalCount} layer hiển thị)`}
               >
-                🎬 {sceneStack.shotName} · {sceneStack.aspectRatioLabel} ({sceneStack.visibleCount}/{sceneStack.totalCount})
+                🎬 {sceneStack.shotName} · {sceneStack.aspectRatioLabel} ({sceneStack.visibleCount}/{sceneStack.totalCount} lớp)
               </span>
             </>
           ) : thumbInfo.thumbUrl ? (
@@ -488,86 +488,26 @@ export const WorkflowNodePreview: React.FC<WorkflowNodePreviewProps> = React.mem
           )}
         </div>
 
-        {/* Dòng 1: Layer tác động + Bộ phận 2.5D */}
-        <div
-          className="wf-binding-row"
-          title={`Layer / Thực thể tác động (${binding.mode === 'custom' ? 'Chỉ định' : 'Tự động'}):\n${targetsTooltip}\n\nBộ phận 2.5D:\n${partsTooltip}`}
-        >
-          <span className="wf-binding-label">
-            {node.type === 'scene_shot'
-              ? '🎬 Cảnh:'
-              : binding.mode === 'custom'
-                ? '🎯 Layer:'
-                : '🔄 Layer:'}
-          </span>
-          <div className="wf-binding-chips">
-            {sceneStack ? (
-              <span className="wf-target-chip primary kind-shot">
-                <span className="wf-chip-ic">🎬</span>
-                <span className="wf-chip-txt">{sceneStack.shotName}</span>
-                <span className="wf-chip-meta">
-                  {sceneStack.visibleCount}/{sceneStack.totalCount}L
-                </span>
-              </span>
-            ) : (
-              <>
-                {visibleTargets.map((t) => (
-                  <span key={t.id} className={`wf-target-chip primary kind-${t.kind}`}>
-                    <span className="wf-chip-ic">{getTargetKindIcon(t.kind)}</span>
-                    <span className="wf-chip-txt">{t.name}</span>
-                    {t.subLayerCount ? (
-                      <span className="wf-chip-meta">{t.subLayerCount}L</span>
-                    ) : typeof t.zDepth === 'number' ? (
-                      <span className="wf-chip-meta">Z:{t.zDepth}</span>
-                    ) : null}
-                  </span>
-                ))}
-                {extraTargetsCount > 0 && (
-                  <span className="wf-target-chip more">+{extraTargetsCount}</span>
-                )}
-              </>
-            )}
-            {binding.activeParts.length > 0 && (
-              <span className="wf-part-chip" title={partsTooltip}>
-                <span className="wf-chip-ic">{binding.activeParts[0].icon}</span>
-                <span className="wf-chip-txt">{binding.activeParts.length}p</span>
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Dòng 2: Cấu hình chuyển động / Thông số xử lý cụ thể */}
+        {/* Dòng tóm tắt gọn gàng duy nhất (Thông số xử lý + tiến độ khi đang phát) */}
         <div
           className="wf-binding-row wf-config-summary-row"
-          title={`Cấu hình xử lý & thông số chuyển động:\n${configSummary}`}
+          title={`Cấu hình xử lý & thông số:\n${configSummary}\n${targetsTooltip}\n${partsTooltip}`}
         >
-          <span className="wf-binding-label">⚙️ Xử lý:</span>
+          <span className={`wf-runtime-dot state-${runtimeTelemetry?.state ?? 'ready'}`} />
           <span className="wf-config-summary-text">{configSummary}</span>
           {customRuleCount > 0 && (
             <span className="wf-custom-rule-badge" title={`Đã gắn thêm ${customRuleCount} lệnh chuyển động / tính năng riêng`}>
-              +{customRuleCount} lệnh
+              +{customRuleCount}
             </span>
           )}
         </div>
 
-        {/* Dòng 3: Lộ trình & Trạng thái Luồng Xử lý Thời gian thực */}
-        {runtimeTelemetry && (
-          <div
-            className={`wf-node-runtime-bar state-${runtimeTelemetry.state}${runtimeTelemetry.isStageHighlight ? ' stage-pulse' : ''}`}
-            title={`${runtimeTelemetry.routeText}\n${runtimeTelemetry.liveSummary}`}
-          >
-            <div className="wf-runtime-content">
-              <span className={`wf-runtime-dot state-${runtimeTelemetry.state}`} />
-              <span className="wf-runtime-text">{runtimeTelemetry.liveSummary}</span>
-            </div>
-            {runtimeTelemetry.state === 'running' && (
-              <div className="wf-runtime-progress-track">
-                <div
-                  className="wf-runtime-progress-fill"
-                  style={{ width: `${runtimeTelemetry.progressPct}%`, background: color }}
-                />
-              </div>
-            )}
+        {runtimeTelemetry && runtimeTelemetry.state === 'running' && (
+          <div className="wf-runtime-progress-track">
+            <div
+              className="wf-runtime-progress-fill"
+              style={{ width: `${runtimeTelemetry.progressPct}%`, background: color }}
+            />
           </div>
         )}
       </div>
