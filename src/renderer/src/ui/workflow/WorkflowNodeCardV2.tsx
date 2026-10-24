@@ -312,8 +312,15 @@ export const WorkflowNodeCardV2: React.FC<WorkflowNodeCardV2Props> = ({
         {isGroup && (
           <div className="wf-v2-group-summary">
             <span className="wf-v2-group-count">
-              Đang gom <strong>{node.params?.childLayerCount ?? childCount}</strong> Layer cùng phân nhóm
+              Gom <strong>{node.params?.childLayerCount ?? childCount}</strong> Layer
             </span>
+            <button
+              type="button"
+              className={`wf-v2-rebuild-btn ${collapsed ? 'collapsed' : ''}`}
+              onClick={() => onUpdateParams(node.id, { collapsedGroup: !collapsed })}
+            >
+              {collapsed ? `▸ Mở (${childCount})` : '▾ Thu gọn'}
+            </button>
           </div>
         )}
         {/* 3. NỘI DUNG NODE LAYER (Thumbnail + Thanh trượt Z + Dải nút gắn Logic 1-Click) */}
@@ -385,8 +392,8 @@ export const WorkflowNodeCardV2: React.FC<WorkflowNodeCardV2Props> = ({
         {/* 4. NỘI DUNG CÁC NODE LOGIC CỦA LAYER (HÀNH ĐỘNG / ÁNH SÁNG / HANG ĐỘNG / HIỆU ỨNG / ÂM THANH / CAMERA) */}
         {isLogic && logicCat === 'action' && (
           <div className="wf-v2-logic-box">
-            <div className="wf-v2-pill-grid">
-              {WORKFLOW_V2_ACTION_OPTIONS.slice(0, 6).map((opt) => {
+            <div className="wf-v2-pill-grid single-row">
+              {WORKFLOW_V2_ACTION_OPTIONS.slice(0, 4).map((opt) => {
                 const active = (node.params?.actionPreset ?? 'float') === opt.id
                 return (
                   <button
@@ -401,7 +408,7 @@ export const WorkflowNodeCardV2: React.FC<WorkflowNodeCardV2Props> = ({
                       )
                     }
                   >
-                    {opt.label}
+                    {opt.label.replace(/\s*\/.*$/, '')}
                   </button>
                 )
               })}
@@ -425,9 +432,11 @@ export const WorkflowNodeCardV2: React.FC<WorkflowNodeCardV2Props> = ({
         )}
         {isLogic && logicCat === 'cave' && (
           <div className="wf-v2-logic-box">
-            <div className="wf-v2-pill-grid">
+            <div className="wf-v2-pill-grid single-row">
               {WORKFLOW_V2_CAVE_OPTIONS.map((opt) => {
                 const active = (node.params?.caveArchShape ?? 'arch') === opt.id
+                const shortLabel =
+                  opt.id === 'arch' ? 'Vòm hang' : opt.id === 'ellipse' ? 'Hầm Elip' : 'Cổng xoáy'
                 return (
                   <button
                     key={opt.id}
@@ -441,13 +450,13 @@ export const WorkflowNodeCardV2: React.FC<WorkflowNodeCardV2Props> = ({
                       )
                     }
                   >
-                    {opt.label}
+                    {shortLabel}
                   </button>
                 )
               })}
             </div>
             <div className="wf-v2-param-row">
-              <span>Độ tối hang</span>
+              <span>Độ tối</span>
               <input
                 type="range"
                 className="wf-v2-slider"
@@ -468,8 +477,8 @@ export const WorkflowNodeCardV2: React.FC<WorkflowNodeCardV2Props> = ({
         )}
         {isLogic && logicCat === 'light' && (
           <div className="wf-v2-logic-box">
-            <div className="wf-v2-pill-grid">
-              {WORKFLOW_V2_LIGHT_OPTIONS.map((opt) => {
+            <div className="wf-v2-pill-grid single-row">
+              {WORKFLOW_V2_LIGHT_OPTIONS.slice(0, 4).map((opt) => {
                 const active = (node.params?.lightMode ?? 'rim') === opt.id
                 return (
                   <button
@@ -518,9 +527,17 @@ export const WorkflowNodeCardV2: React.FC<WorkflowNodeCardV2Props> = ({
         )}
         {isLogic && logicCat === 'fx' && (
           <div className="wf-v2-logic-box">
-            <div className="wf-v2-pill-grid">
-              {WORKFLOW_V2_FX_OPTIONS.map((opt) => {
+            <div className="wf-v2-pill-grid single-row">
+              {WORKFLOW_V2_FX_OPTIONS.slice(0, 4).map((opt) => {
                 const active = (node.params?.fxKind ?? 'wind_physics') === opt.id
+                const shortFx =
+                  opt.id === 'wind_physics'
+                    ? 'Đàn hồi'
+                    : opt.id === 'bloom'
+                      ? 'Bloom'
+                      : opt.id === 'blur'
+                        ? 'Làm mờ'
+                        : 'RGB'
                 return (
                   <button
                     key={opt.id}
@@ -534,7 +551,7 @@ export const WorkflowNodeCardV2: React.FC<WorkflowNodeCardV2Props> = ({
                       )
                     }
                   >
-                    {opt.label.replace(/\s*\(.*\)/, '')}
+                    {shortFx}
                   </button>
                 )
               })}

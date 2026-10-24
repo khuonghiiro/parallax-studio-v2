@@ -140,9 +140,7 @@
   color: var(--on-accent);
   border-color: var(--accent);
 }
-.wf-v2-tool-btn.primary-apply:hover {
-  filter: brightness(1.08);
-}
+.wf-v2-tool-btn.primary-apply:hover {  }
 /* 2. BỐ CỤC THÂN CHÍNH & SIDEBAR BÊN TRÁI */
 .wf-v2-body {
   display: flex;
@@ -159,9 +157,7 @@
   flex-shrink: 0;
   transition: width 0.15s ease;
 }
-.wf-v2-sidebar.collapsed {
-  width: 34px;
-}
+.wf-v2-sidebar.collapsed {  }
 .wf-v2-sidebar-head {
   display: flex;
   align-items: center;
@@ -200,15 +196,15 @@
   letter-spacing: 0.03em;
 }
 .wf-v2-add-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 5px;
 }
 .wf-v2-add-card {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
+  gap: 6px;
+  padding: 5px 6px;
   border-radius: var(--radius);
   border: 1px solid var(--line-soft);
   background: var(--bg-3);
@@ -217,6 +213,7 @@
   cursor: pointer;
   transition: all 0.12s ease;
 }
+.wf-v2-add-card.span-full {  }
 .wf-v2-add-card:hover {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
@@ -307,14 +304,19 @@
   flex-shrink: 0;
 }
 .wf-v2-play-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   height: 22px;
-  padding: 0 8px;
+  padding: 0 7px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--accent);
   background: var(--accent);
   color: var(--on-accent);
   font-size: 10.5px;
   font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
 }
 .wf-v2-play-btn.playing {
@@ -341,13 +343,9 @@
   font-size: 10.5px;
   font-weight: 700;
 }
-.wf-v2-time-cur {
-  color: var(--accent-cyan, #38bdf8);
-}
+.wf-v2-time-cur {  }
 .wf-v2-time-sep,
-.wf-v2-time-max {
-  color: var(--text-dim);
-}
+.wf-v2-time-max {  }
 .wf-v2-active-badge {
   margin-left: auto;
   padding: 1px 5px;
@@ -394,9 +392,7 @@
   height: 11px;
   background: var(--text-faint);
 }
-.wf-v2-ruler-tick.minor {
-  height: 5px;
-}
+.wf-v2-ruler-tick.minor {  }
 .wf-v2-ruler-tick-label {
   position: absolute;
   bottom: 11px;
@@ -406,12 +402,8 @@
   color: var(--text-dim);
   white-space: nowrap;
 }
-.wf-v2-ruler-tick-label.edge-left {
-  transform: translateX(0);
-}
-.wf-v2-ruler-tick-label.edge-right {
-  transform: translateX(-100%);
-}
+.wf-v2-ruler-tick-label.edge-left {  }
+.wf-v2-ruler-tick-label.edge-right {  }
 /* Thanh khoảng mốc của Node đang chọn trên Thước đo */
 .wf-v2-ruler-node-span {
   position: absolute;
@@ -581,21 +573,15 @@
   transition: border-color 0.12s ease, box-shadow 0.12s ease;
   z-index: 10;
 }
-.wf-v2-card:hover {
-  border-color: var(--wf-v2-accent, var(--accent));
-}
+.wf-v2-card:hover {  }
 .wf-v2-card.selected {
   border-color: var(--wf-v2-accent, var(--accent));
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 35%, transparent),
     0 8px 22px rgba(0, 0, 0, 0.32);
   z-index: 15;
 }
-.wf-v2-card.active-at-time {
-  border-color: var(--wf-v2-accent, var(--accent));
-}
-.wf-v2-card.disabled {
-  opacity: 0.52;
-}
+.wf-v2-card.active-at-time {  }
+.wf-v2-card.disabled {  }
 /* Cổng kết nối Trái / Phải */
 .wf-v2-socket {
   position: absolute;
@@ -612,15 +598,9 @@
   z-index: 20;
   transition: transform 0.12s ease;
 }
-.wf-v2-socket:hover {
-  transform: scale(1.22);
-}
-.wf-v2-socket.in {
-  left: -10px;
-}
-.wf-v2-socket.out {
-  right: -10px;
-}
+.wf-v2-socket:hover {  }
+.wf-v2-socket.in {  }
+.wf-v2-socket.out {  }
 .wf-v2-socket-dot {
   width: 6px;
   height: 6px;
@@ -631,15 +611,15 @@
 .wf-v2-card-header {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 9px;
+  gap: 6px;
+  padding: 4px 8px;
   border-bottom: 1px solid var(--line-soft);
   background: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 12%, var(--bg-3));
   border-radius: 5px 5px 0 0;
   cursor: grab;
 }
 .wf-v2-card-icon {
-  font-size: 15px;
+  font-size: 14px;
   flex-shrink: 0;
 }
 .wf-v2-card-titles {
@@ -649,13 +629,13 @@
   flex: 1;
 }
 .wf-v2-card-badge {
-  font-size: 8.5px;
+  font-size: 8px;
   font-weight: 800;
   letter-spacing: 0.05em;
   color: var(--wf-v2-accent, var(--accent));
 }
 .wf-v2-card-title {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;
@@ -669,14 +649,14 @@
   flex-shrink: 0;
 }
 .wf-v2-icon-btn {
-  min-width: 20px;
-  height: 20px;
+  min-width: 19px;
+  height: 19px;
   padding: 0 4px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line-soft);
   background: var(--bg-2);
   color: var(--text);
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -691,10 +671,10 @@
 }
 /* Body Thẻ Node */
 .wf-v2-card-body {
-  padding: 7px 9px 8px;
+  padding: 5px 8px 6px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 .wf-v2-root-summary,
 .wf-v2-group-summary {
@@ -817,20 +797,22 @@
   flex-wrap: wrap;
   gap: 3px;
 }
+.wf-v2-pill-grid.single-row {  }
 .wf-v2-opt-pill {
-  height: 20px;
-  padding: 0 6px;
+  height: 19px;
+  padding: 0 5px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line-soft);
   background: var(--bg-3);
   color: var(--text);
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 600;
+  white-space: nowrap;
+  flex: 1 1 auto;
+  text-align: center;
   cursor: pointer;
 }
-.wf-v2-opt-pill:hover {
-  border-color: var(--wf-v2-accent, var(--accent));
-}
+.wf-v2-opt-pill:hover {  }
 .wf-v2-opt-pill.active {
   background: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 80%, #0f172a);
   border-color: var(--wf-v2-accent, var(--accent));
@@ -870,34 +852,27 @@
 /* 7. THANH KHOẢNG MỐC THỜI GIAN TRÊN MỖI NODE (WorkflowTimeRangeBar) */
 .wf-v2-timebar {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 4px 6px;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 5px;
+  height: 20px;
   border-radius: var(--radius-sm);
   background: var(--bg-1);
   border: 1px solid var(--line-soft);
 }
-.wf-v2-timebar.is-active-time {
-  border-color: color-mix(in srgb, var(--wf-time-c, var(--accent)) 60%, var(--line));
-}
-.wf-v2-timebar-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 9.5px;
-}
-.wf-v2-timebar-label {
-  font-weight: 700;
-  color: var(--text-dim);
-}
+.wf-v2-timebar.is-active-time {  }
 .wf-v2-timebar-values {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .wf-v2-time-pill {
-  padding: 0 4px;
+  padding: 0 3px;
   border-radius: 3px;
   background: var(--bg-3);
   border: 1px solid var(--line-soft);
@@ -905,12 +880,12 @@
   font-weight: 700;
   cursor: pointer;
 }
-.wf-v2-time-dur {
-  color: var(--text-dim);
-}
+.wf-v2-time-sep {  }
 .wf-v2-timebar-track {
   position: relative;
-  height: 12px;
+  flex: 1;
+  min-width: 60px;
+  height: 11px;
   border-radius: 3px;
   background: var(--bg-3);
   border: 1px solid var(--line);
@@ -944,12 +919,8 @@
   background: var(--wf-time-c, var(--accent));
   cursor: ew-resize;
 }
-.wf-v2-timebar-handle.left {
-  left: 0;
-}
-.wf-v2-timebar-handle.right {
-  right: 0;
-}
+.wf-v2-timebar-handle.left {  }
+.wf-v2-timebar-handle.right {  }
 .wf-v2-timebar-playhead {
   position: absolute;
   top: 0;

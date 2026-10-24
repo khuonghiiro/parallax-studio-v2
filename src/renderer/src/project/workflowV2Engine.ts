@@ -11,10 +11,10 @@ import type {
 } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
 export const WF_V2_COL_X = {
-  ROOT: 36,
-  GROUP: 348,
-  LAYER: 668,
-  LOGIC: 1008
+  ROOT: 28,
+  GROUP: 356,
+  LAYER: 696,
+  LOGIC: 1044
 } as const
 export const WF_V2_NODE_W = 280
 export type WorkflowV2LogicCategory = 'action' | 'light' | 'cave' | 'fx' | 'audio' | 'camera'
@@ -249,7 +249,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
         .sort((a, b) => getLayerZ(b.layer) - getLayerZ(a.layer))
     }
   ]
-  const activeGroups = groupDefs.filter((g, idx) => g.items.length > 0 || idx < 2)
+  const activeGroups = groupDefs.filter((g) => g.items.length > 0 || g.kind === 'group_25d')
   for (const grp of activeGroups) {
     const groupMemberIds = grp.items.flatMap((it) => it.memberIds)
     const grpStart =
@@ -272,6 +272,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
       params: {
         shotId: activeShot?.id,
         groupKind: grp.kind,
+        collapsedGroup: scopedLayers.length > 4 && grp.kind === 'group_env',
         isAssemblyRoot: true,
         childLayerCount: grp.items.length,
         targetMode: 'custom',
@@ -329,14 +330,24 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
       })
       // 4. TẦNG 3: CÁC NODE LOGIC CỦA LAYER (HÀNH ĐỘNG, ÁNH SÁNG, HANG ĐỘNG, HIỆU ỨNG, ÂM THANH)
       const lowerName = displayTitle.toLowerCase()
+      const hasExplicitCave = Boolean(
+        l.physics?.depthPortal?.enabled || l.physics?.colliderZone === 'cave_portal'
+      )
+      const isCaveOrPortalLayer =
+        hasExplicitCave ||
+        lowerName.includes('hang') ||
+        lowerName.includes('cổng') ||
+        lowerName.includes('di tích') ||
+        lowerName.includes('hầm')
       // 4a. Node Hành động (Motion / Action)
       const hasExplicitMotion = Boolean(l.motion && l.motion.type !== 'none' && l.motion.enabled !== false)
       const shouldCreateAction =
         hasExplicitMotion ||
-        Boolean(l.composite || l.model3d) ||
-        lowerName.includes('dây leo') ||
-        lowerName.includes('đảo') ||
-        (grp.kind === 'group_25d' && layerIdx === 0)
+        (!isCaveOrPortalLayer &&
+          (Boolean(l.composite || l.model3d) ||
+            lowerName.includes('dây leo') ||
+            lowerName.includes('đảo') ||
+            (grp.kind === 'group_25d' && layerIdx === 0)))
       if (shouldCreateAction) {
         const motionType: LayerMotionType =
           l.motion && l.motion.type !== 'none'
@@ -387,15 +398,6 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
         })
       }
       // 4b. Node Hang động / Vùng độ sâu (Cave Depth Portal)
-      const hasExplicitCave = Boolean(
-        l.physics?.depthPortal?.enabled || l.physics?.colliderZone === 'cave_portal'
-      )
-      const isCaveOrPortalLayer =
-        hasExplicitCave ||
-        lowerName.includes('hang') ||
-        lowerName.includes('cổng') ||
-        lowerName.includes('di tích') ||
-        lowerName.includes('hầm')
       if (isCaveOrPortalLayer) {
         const caveNodeId = `v2-cave-${l.id}`
         const archShape = l.physics?.depthPortal?.archShape ?? 'arch'
@@ -591,16 +593,17 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
     edges
   }
 }
-/** Chiều cao chuẩn của từng loại thẻ trong Workflow V2 */
+/** Chiều cao chuẩn gọn gàng của từng loại thẻ trong Workflow V2 */
 export function estimateV2NodeHeight(node: WorkflowNode): number {
-  if (node.type === 'scene_shot') return 148
-  if (node.params?.groupKind) return 118
-  if (node.type === 'layer_assembly') return 146
-  return 132
+  if (node.type === 'scene_shot') return 90
+  if (node.params?.groupKind) return 86
+  if (node.type === 'layer_assembly') return 120
+  return 112
 }
+
 /**
  * Thuật toán xếp cây 4 cột (Root -> Group -> Layer -> Logic) phẳng tuyệt đối,
- * căn giữa cha theo trung điểm dọc của các con để sợi dây nối không bao giờ cắt chéo nhau.
+ * canh hàng đỉnh (Top-Aligned) cho cả 4 cột để nhìn vào thấy ngay Cảnh Root -> Group -> Layer -> Logic!
  */
 export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[]): WorkflowNode[] {
   const cloned = nodes.map((n) => ({ ...n, position: { ...n.position } }))
@@ -617,68 +620,54 @@ export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[
   }
   const rootNode = cloned.find((n) => n.type === 'scene_shot')
   const groupNodes = cloned.filter((n) => Boolean(n.params?.groupKind))
-  const GAP_Y = 22
-  const GROUP_GAP_Y = 34
-  let cursorY = 48
+  const GAP_Y = 14
+  const GROUP_GAP_Y = 18
+  let layerCursorY = 38
+  let groupColBottomY = 38
   for (const grp of groupNodes) {
     const layerChildren = (childrenMap.get(grp.id) ?? []).filter((c) => c.type === 'layer_assembly')
+    const grpH = estimateV2NodeHeight(grp)
     if (grp.params?.collapsedGroup || layerChildren.length === 0) {
-      grp.position = { x: WF_V2_COL_X.GROUP, y: cursorY }
-      cursorY += estimateV2NodeHeight(grp) + GROUP_GAP_Y
+      grp.position = { x: WF_V2_COL_X.GROUP, y: groupColBottomY }
+      layerChildren.forEach((ln, idx) => {
+        ln.position = { x: WF_V2_COL_X.LAYER, y: groupColBottomY + idx * 128 }
+        const lKids = (childrenMap.get(ln.id) ?? []).filter(
+          (c) => c.type !== 'layer_assembly' && c.type !== 'scene_shot'
+        )
+        lKids.forEach((lk, kIdx) => {
+          lk.position = { x: WF_V2_COL_X.LOGIC + kIdx * 304, y: ln.position.y }
+        })
+      })
+      groupColBottomY += grpH + 16
       continue
     }
-    const groupTopY = cursorY
+    const groupStartY = Math.max(layerCursorY, groupColBottomY)
+    layerCursorY = groupStartY
+    grp.position = { x: WF_V2_COL_X.GROUP, y: groupStartY }
+    groupColBottomY = groupStartY + grpH + 16
     for (const layerNode of layerChildren) {
       const logicChildren = (childrenMap.get(layerNode.id) ?? []).filter(
         (c) => c.type !== 'layer_assembly' && c.type !== 'scene_shot'
       )
       const layerH = estimateV2NodeHeight(layerNode)
-      if (layerNode.params?.collapsedGroup || logicChildren.length === 0) {
-        layerNode.position = { x: WF_V2_COL_X.LAYER, y: cursorY }
-        cursorY += layerH + GAP_Y
-      } else {
-        let logicY = cursorY
-        for (const logicNode of logicChildren) {
-          const lh = estimateV2NodeHeight(logicNode)
-          logicNode.position = { x: WF_V2_COL_X.LOGIC, y: logicY }
-          logicY += lh + 14
+      layerNode.position = { x: WF_V2_COL_X.LAYER, y: layerCursorY }
+      logicChildren.forEach((logicNode, idx) => {
+        logicNode.position = {
+          x: WF_V2_COL_X.LOGIC + idx * 304,
+          y: layerCursorY
         }
-        const totalLogicSpan = logicY - 14 - cursorY
-        const branchSpan = Math.max(layerH, totalLogicSpan)
-        layerNode.position = {
-          x: WF_V2_COL_X.LAYER,
-          y: Math.round(cursorY + (branchSpan - layerH) / 2)
-        }
-        if (logicChildren.length === 1) {
-          logicChildren[0].position.y = layerNode.position.y + 6
-        }
-        cursorY += branchSpan + GAP_Y
-      }
+      })
+      layerCursorY += layerH + GAP_Y
     }
-    const firstLayerY = layerChildren[0].position.y
-    const lastLayer = layerChildren[layerChildren.length - 1]
-    const lastLayerBottom = lastLayer.position.y + estimateV2NodeHeight(lastLayer)
-    const grpH = estimateV2NodeHeight(grp)
-    grp.position = {
-      x: WF_V2_COL_X.GROUP,
-      y: Math.max(groupTopY, Math.round((firstLayerY + lastLayerBottom - grpH) / 2))
-    }
-    cursorY += GROUP_GAP_Y - GAP_Y
+    layerCursorY += GROUP_GAP_Y - GAP_Y
   }
   if (rootNode) {
-    if (groupNodes.length > 0) {
-      const firstGrpY = groupNodes[0].position.y
-      const lastGrp = groupNodes[groupNodes.length - 1]
-      const midY = Math.round((firstGrpY + lastGrp.position.y) / 2)
-      rootNode.position = { x: WF_V2_COL_X.ROOT, y: Math.max(48, midY - 90) }
-    } else {
-      rootNode.position = { x: WF_V2_COL_X.ROOT, y: 80 }
-    }
+    rootNode.position = { x: WF_V2_COL_X.ROOT, y: 38 }
     const camNodes = cloned.filter((n) => n.type === 'camera_director')
     camNodes.forEach((cam, idx) => {
       cam.position = {
         x: WF_V2_COL_X.ROOT,
-        y: rootNode.position.y + estimateV2NodeHeight(rootNode) + 28 + idx * 148
+        y: rootNode.position.y + estimateV2NodeHeight(rootNode) + 16 + idx * 116
       }
     })
   }

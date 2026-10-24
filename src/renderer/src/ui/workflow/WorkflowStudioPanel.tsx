@@ -144,7 +144,7 @@ export const WorkflowStudioPanel: React.FC = () => {
     (nodeId: string, patch: Partial<WorkflowNodeParams>, nextTitle?: string) => {
       useEditor.getState().update((draft) => {
         const wf = draft.workflow ?? workflow
-        const nextNodes = wf.nodes.map((n) => {
+        const rawNodes = wf.nodes.map((n) => {
           if (n.id !== nodeId) return n
           return {
             ...n,
@@ -152,12 +152,45 @@ export const WorkflowStudioPanel: React.FC = () => {
             params: { ...(n.params ?? {}), ...patch }
           }
         })
+        const nextNodes =
+          patch.collapsedGroup !== undefined
+            ? layoutWorkflowV2Tree(rawNodes, wf.edges)
+            : rawNodes
         draft.workflow = { ...wf, nodes: nextNodes }
         const updatedNode = nextNodes.find((n) => n.id === nodeId)
         if (updatedNode) {
           syncWorkflowV2NodeToProject(draft as Project, updatedNode, patch)
         }
       }, `wf-v2-param-${nodeId}`)
+      if (patch.collapsedGroup !== undefined) {
+        window.setTimeout(() => window.dispatchEvent(new CustomEvent('pxs:wf-fit-view')), 35)
+      }
+    },
+    [workflow]
+  )
+
+  /** Chọn một Group Layer ở Sidebar bên trái -> Bung nhánh Group đó ra rõ nét để dễ thao tác */
+  const handleFocusGroupNode = useCallback(
+    (groupNodeId: string) => {
+      setSelectedNodeId(groupNodeId)
+      useEditor.getState().update((draft) => {
+        const wf = draft.workflow ?? workflow
+        const totalLayers = wf.nodes.filter(
+          (n) => n.type === 'layer_assembly' && !n.params?.groupKind
+        ).length
+        const rawNodes = wf.nodes.map((n) => {
+          if (!n.params?.groupKind) return n
+          if (n.id === groupNodeId) {
+            return { ...n, params: { ...n.params, collapsedGroup: false } }
+          }
+          if (totalLayers > 4) {
+            return { ...n, params: { ...n.params, collapsedGroup: true } }
+          }
+          return n
+        })
+        draft.workflow = { ...wf, nodes: layoutWorkflowV2Tree(rawNodes, wf.edges) }
+      }, 'wf-v2-focus-group')
+      window.setTimeout(() => window.dispatchEvent(new CustomEvent('pxs:wf-fit-view')), 35)
     },
     [workflow]
   )
@@ -424,7 +457,27 @@ export const WorkflowStudioPanel: React.FC = () => {
           {!paletteCollapsed && (
             <div className="wf-v2-sidebar-content">
               <div className="wf-v2-sidebar-sec">
-                <div className="wf-v2-sec-title">1. GẮN NODE LOGIC CHO LAYER</div>
+                <div className="wf-v2-sec-title">1. NHÓM LAYER TRONG CẢNH ({groupNodes.length})</div>
+                <div className="wf-v2-tree-list">
+                  {groupNodes.map((g) => (
+                    <div
+                      key={g.id}
+                      className={`wf-v2-tree-item ${selectedNodeId === g.id ? 'active' : ''}`}
+                      onClick={() => handleFocusGroupNode(g.id)}
+                      title="Nhấn để bung nhánh Group này ra rõ nét trên sơ đồ"
+                    >
+                      <span>{g.params?.groupKind === 'group_3d' ? '🧊' : g.params?.groupKind === 'group_env' ? '🌍' : '🗂️'}</span>
+                      <span className="wf-v2-tree-name">{g.title.replace(/^Group\s+/i, '')}</span>
+                      <span className="wf-v2-tree-count">
+                        {g.params?.collapsedGroup ? `▸${g.params?.childLayerCount ?? 0}` : `▾${g.params?.childLayerCount ?? 0}`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="wf-v2-sidebar-sec">
+                <div className="wf-v2-sec-title">2. GẮN NODE LOGIC CHO LAYER</div>
                 <div className="wf-v2-add-grid">
                   <button
                     type="button"
@@ -433,8 +486,8 @@ export const WorkflowStudioPanel: React.FC = () => {
                   >
                     <span className="wf-v2-add-icon">🏃</span>
                     <div className="wf-v2-add-info">
-                      <strong>Node Hành động</strong>
-                      <small>Bay, đung đưa, thở, trượt + mốc thời gian</small>
+                      <strong>Hành động</strong>
+                      <small>Bay, đung đưa</small>
                     </div>
                   </button>
                   <button
@@ -444,8 +497,8 @@ export const WorkflowStudioPanel: React.FC = () => {
                   >
                     <span className="wf-v2-add-icon">💡</span>
                     <div className="wf-v2-add-info">
-                      <strong>Node Ánh sáng</strong>
-                      <small>Đèn viền, đèn nến, đèn pin + mốc thời gian</small>
+                      <strong>Ánh sáng</strong>
+                      <small>Đèn viền, nến</small>
                     </div>
                   </button>
                   <button
@@ -455,8 +508,8 @@ export const WorkflowStudioPanel: React.FC = () => {
                   >
                     <span className="wf-v2-add-icon">🕳️</span>
                     <div className="wf-v2-add-info">
-                      <strong>Node Hang động</strong>
-                      <small>Vòm hang độ sâu, bóng tối + mốc thời gian</small>
+                      <strong>Hang động</strong>
+                      <small>Vòm độ sâu</small>
                     </div>
                   </button>
                   <button
@@ -466,37 +519,21 @@ export const WorkflowStudioPanel: React.FC = () => {
                   >
                     <span className="wf-v2-add-icon">✨</span>
                     <div className="wf-v2-add-info">
-                      <strong>Node Hiệu ứng</strong>
-                      <small>Gió đàn hồi, Bloom, Blur, RGB + mốc thời gian</small>
+                      <strong>Hiệu ứng</strong>
+                      <small>Đàn hồi, Bloom</small>
                     </div>
                   </button>
                   <button
                     type="button"
-                    className="wf-v2-add-card audio"
+                    className="wf-v2-add-card audio span-full"
                     onClick={() => handleQuickSpawnForSelectedLayer('audio')}
                   >
                     <span className="wf-v2-add-icon">🔊</span>
                     <div className="wf-v2-add-info">
-                      <strong>Node Âm thanh</strong>
-                      <small>Thoại nhân vật, Lip-Sync + mốc thời gian</small>
+                      <strong>Node Âm thanh / Thoại Lip-Sync</strong>
+                      <small>Gắn thoại & mốc thời gian phát âm thanh</small>
                     </div>
                   </button>
-                </div>
-              </div>
-              <div className="wf-v2-sidebar-sec">
-                <div className="wf-v2-sec-title">2. NHÓM LAYER TRONG CẢNH ({groupNodes.length})</div>
-                <div className="wf-v2-tree-list">
-                  {groupNodes.map((g) => (
-                    <div
-                      key={g.id}
-                      className={`wf-v2-tree-item ${selectedNodeId === g.id ? 'active' : ''}`}
-                      onClick={() => setSelectedNodeId(g.id)}
-                    >
-                      <span>{g.params?.groupKind === 'group_3d' ? '🧊' : g.params?.groupKind === 'group_env' ? '🌍' : '🗂️'}</span>
-                      <span className="wf-v2-tree-name">{g.title}</span>
-                      <span className="wf-v2-tree-count">{g.params?.childLayerCount ?? 0}</span>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>

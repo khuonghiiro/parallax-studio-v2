@@ -1,6 +1,6 @@
 import React, { useMemo, useRef } from 'react'
 import type { Project, Shot, WorkflowNode } from '@shared/types'
-import { getShotTimeRange } from '../../project/workflowV2Engine'
+
 export interface WorkflowTimeRulerV2Props {
   project: Project
   currentTime: number
@@ -13,16 +13,15 @@ export interface WorkflowTimeRulerV2Props {
   onTogglePlay: () => void
   onUpdateNodeTimeRange?: (nodeId: string, nextStart: number, nextEnd: number) => void
 }
+
 /**
  * Đường kẻ mốc thời gian (Master Time Ruler) nằm trên đỉnh khung vẽ Workflow V2.
  * Cho phép kéo kim thời gian (Playhead) thời gian thực 60fps và kéo trực tiếp khoảng mốc [tStart - tEnd] của Node đang chọn.
  */
 export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
-  project,
   currentTime,
   duration,
   playing,
-  shots,
   selectedNode,
   activeAtTimeCount,
   onSetTime,
@@ -31,6 +30,7 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
 }) => {
   const rulerRef = useRef<HTMLDivElement>(null)
   const safeDuration = Math.max(1, duration || 5)
+
   const ticks = useMemo(() => {
     const step = safeDuration <= 6 ? 0.5 : safeDuration <= 15 ? 1 : 2
     const list: { t: number; major: boolean }[] = []
@@ -42,7 +42,9 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
     }
     return list
   }, [safeDuration])
+
   const playheadPct = Math.max(0, Math.min(100, (currentTime / safeDuration) * 100))
+
   const handleRulerPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = rulerRef.current
     if (!el) return
@@ -53,6 +55,7 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
       onSetTime(Number((ratio * safeDuration).toFixed(2)))
     }
     updateFromClientX(e.clientX)
+
     const onMove = (ev: PointerEvent) => updateFromClientX(ev.clientX)
     const onUp = () => {
       window.removeEventListener('pointermove', onMove)
@@ -61,10 +64,12 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
   }
+
   const selStart = selectedNode?.params?.timeStart ?? 0
   const selEnd = selectedNode?.params?.timeEnd ?? safeDuration
   const selLeftPct = Math.max(0, Math.min(100, (selStart / safeDuration) * 100))
-  const selWidthPct = Math.max(2, Math.min(100 - selLeftPct, ((selEnd - selStart) / safeDuration) * 100))
+  const selWidthPct = Math.max(3, Math.min(100 - selLeftPct, ((selEnd - selStart) / safeDuration) * 100))
+
   const startSelectedRangeDrag = (
     e: React.PointerEvent,
     mode: 'start' | 'end' | 'move'
@@ -80,6 +85,7 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
     const initS = selStart
     const initE = selEnd
     const span = initE - initS
+
     const onMove = (ev: PointerEvent) => {
       const dt = ((ev.clientX - initX) / w) * safeDuration
       if (mode === 'start') {
@@ -100,6 +106,7 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
         onUpdateNodeTimeRange(selectedNode.id, Number(nextS.toFixed(2)), Number(nextE.toFixed(2)))
       }
     }
+
     const onUp = () => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
@@ -107,6 +114,7 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
   }
+
   return (
     <div className="wf-v2-ruler-bar">
       {/* Cụm điều khiển phát & hiển thị mốc giây bên trái */}
@@ -128,14 +136,15 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
           ⏮ 0s
         </button>
         <div className="wf-v2-time-readout" title="Mốc thời gian hiện tại / Tổng thời lượng">
-          <span className="wf-v2-time-cur">{currentTime.toFixed(2)}s</span>
+          <span className="wf-v2-time-cur">{currentTime.toFixed(1)}s</span>
           <span className="wf-v2-time-sep">/</span>
           <span className="wf-v2-time-max">{safeDuration.toFixed(1)}s</span>
         </div>
         <span className="wf-v2-active-badge" title="Số lượng Node đang hoạt động tại mốc thời gian hiện tại">
-          ⚡ {activeAtTimeCount} chạy
+          ⚡ {activeAtTimeCount}
         </span>
       </div>
+
       {/* Đường kẻ thước đo mốc thời gian */}
       <div
         ref={rulerRef}
@@ -143,23 +152,6 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
         onPointerDown={handleRulerPointerDown}
         title="Nhấp hoặc kéo để di chuyển đường kẻ mốc thời gian"
       >
-        {/* Phân vùng các Cảnh (Shots) */}
-        {shots.map((s, idx) => {
-          const range = getShotTimeRange(project, s)
-          const left = (range.start / safeDuration) * 100
-          const width = ((range.end - range.start) / safeDuration) * 100
-          return (
-            <div
-              key={s.id}
-              className="wf-v2-ruler-shot"
-              style={{ left: `${left}%`, width: `${width}%` }}
-            >
-              <span className="wf-v2-ruler-shot-tag">
-                🎬 #{idx + 1} {s.name}
-              </span>
-            </div>
-          )
-        })}
         {/* Vạch chia giây trên thước đo */}
         {ticks.map((tk) => {
           const pct = (tk.t / safeDuration) * 100
@@ -181,13 +173,14 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
             </div>
           )
         })}
+
         {/* Khoảng mốc thời gian của Node đang chọn trên thước đo */}
         {selectedNode && (
           <div
             className="wf-v2-ruler-node-span"
             style={{ left: `${selLeftPct}%`, width: `${selWidthPct}%` }}
             onPointerDown={(e) => startSelectedRangeDrag(e, 'move')}
-            title={`Khoảng mốc của "${selectedNode.title}": ${selStart.toFixed(2)}s → ${selEnd.toFixed(2)}s (Kéo để dịch chuyển)`}
+            title={`Khoảng mốc của "${selectedNode.title}": ${selStart.toFixed(2)}s → ${selEnd.toFixed(2)}s (Kéo 2 đầu mút ◀ ▶ để chỉnh khoảng mốc)`}
           >
             <div
               className="wf-v2-ruler-span-handle left"
@@ -195,7 +188,7 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
               title={`Kéo chỉnh mốc bắt đầu (${selStart.toFixed(2)}s)`}
             />
             <span className="wf-v2-ruler-span-text">
-              {selectedNode.title}: {selStart.toFixed(1)}s–{selEnd.toFixed(1)}s
+              ⏱ {selectedNode.title}: {selStart.toFixed(1)}s → {selEnd.toFixed(1)}s
             </span>
             <div
               className="wf-v2-ruler-span-handle right"
@@ -204,6 +197,7 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
             />
           </div>
         )}
+
         {/* Đầu kim đường kẻ mốc thời gian (Playhead Cap) */}
         <div
           className="wf-v2-ruler-playhead"
