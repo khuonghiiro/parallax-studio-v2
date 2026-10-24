@@ -18,7 +18,7 @@ export const pick = (pair, lang) => (lang === 'vi' ? pair.vi : pair.en)
 export const describer = (lang) => (en, vi) => (lang === 'vi' ? vi : en)
 
 export const vec3 = z.tuple([z.number(), z.number(), z.number()])
-export const ease = z.enum(['linear', 'easeIn', 'easeOut', 'easeInOut', 'easeInOutStrong', 'hold', 'pulse'])
+export const ease = z.enum(['linear', 'easeIn', 'easeOut', 'easeInOut', 'easeInOutStrong', 'hold', 'pulse', 'blink'])
 export const blend = z.enum(['normal', 'add', 'screen', 'multiply'])
 
 export const shotId = (d) =>

@@ -55,7 +55,7 @@ export function scale3(p: Params, k: string): Vec3 | undefined {
   return vec3(p, k)
 }
 
-export const EASES: EaseName[] = ['linear', 'easeIn', 'easeOut', 'easeInOut', 'easeInOutStrong', 'hold', 'pulse']
+export const EASES: EaseName[] = ['linear', 'easeIn', 'easeOut', 'easeInOut', 'easeInOutStrong', 'hold', 'pulse', 'blink']
 export function easeOf(p: Params, k = 'ease'): EaseName {
   const e = str(p, k) ?? 'easeInOut'
   if (!EASES.includes(e as EaseName)) throw new ParamError(`"${k}" must be one of ${EASES.join(', ')}`)

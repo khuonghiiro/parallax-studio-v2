@@ -1,4 +1,5 @@
 import { TimelineLogic } from './timeline/TimelineLogic'
+import { TimelineMotionPopup } from './timeline/TimelineMotionPopup'
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Animatable, AnimValue, AudioTrackItem, Layer, Shot } from '@shared/types'
 import { useEditor, type PropRef } from '../store/editor'
@@ -420,6 +421,7 @@ export function Timeline() {
       />
 
       <TimelineLogic />
+      <TimelineMotionPopup />
       <div className="tl-body" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
         {/* Header: After Effects / Adobe Animate Layer Column Header & Time Ruler Viewport */}
         <div className="tl-header-row">

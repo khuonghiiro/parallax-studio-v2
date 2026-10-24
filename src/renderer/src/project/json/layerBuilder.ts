@@ -1,3 +1,4 @@
+import { parseEaseOptions } from '../../animation/easeOptions'
 import type { AssetMeta, Composition, Layer, Project, Shot, Vec3 } from '@shared/types'
 import { addKeyframe, anim } from '../../animation/keyframes'
 import { referenceDistance } from '../../animation/math'
@@ -336,22 +337,22 @@ export function applyCommonLayerProps(layer: Layer, spec: DeclarativeLayerSpec, 
   if (spec.keyframes) {
     if (spec.keyframes.opacity) {
       for (const kf of spec.keyframes.opacity) {
-        addKeyframe(layer.transform.opacity, kf.t, kf.value, kf.ease ?? 'easeOut')
+        addKeyframe(layer.transform.opacity, kf.t, kf.value, kf.ease ?? 'easeOut').easeOptions = kf.easeOptions ? parseEaseOptions(kf.easeOptions) : undefined
       }
     }
     if (spec.keyframes.position) {
       for (const kf of spec.keyframes.position) {
-        addKeyframe(layer.transform.position, kf.t, kf.value, kf.ease ?? 'easeOut')
+        addKeyframe(layer.transform.position, kf.t, kf.value, kf.ease ?? 'easeOut').easeOptions = kf.easeOptions ? parseEaseOptions(kf.easeOptions) : undefined
       }
     }
     if (spec.keyframes.rotation) {
       for (const kf of spec.keyframes.rotation) {
-        addKeyframe(layer.transform.rotation, kf.t, kf.value, kf.ease ?? 'easeOut')
+        addKeyframe(layer.transform.rotation, kf.t, kf.value, kf.ease ?? 'easeOut').easeOptions = kf.easeOptions ? parseEaseOptions(kf.easeOptions) : undefined
       }
     }
     if (spec.keyframes.scale) {
       for (const kf of spec.keyframes.scale) {
-        addKeyframe(layer.transform.scale, kf.t, kf.value, kf.ease ?? 'easeOut')
+        addKeyframe(layer.transform.scale, kf.t, kf.value, kf.ease ?? 'easeOut').easeOptions = kf.easeOptions ? parseEaseOptions(kf.easeOptions) : undefined
       }
     }
     if (spec.keyframes.anchor) {
@@ -359,7 +360,7 @@ export function applyCommonLayerProps(layer: Layer, spec: DeclarativeLayerSpec, 
         layer.transform.anchor = { value: [0, 0, 0], keyframes: [] }
       }
       for (const kf of spec.keyframes.anchor) {
-        addKeyframe(layer.transform.anchor, kf.t, kf.value, kf.ease ?? 'easeOut')
+        addKeyframe(layer.transform.anchor, kf.t, kf.value, kf.ease ?? 'easeOut').easeOptions = kf.easeOptions ? parseEaseOptions(kf.easeOptions) : undefined
       }
     }
   }

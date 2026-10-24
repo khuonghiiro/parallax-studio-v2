@@ -1,4 +1,5 @@
 import { VIEW_ORDER, selectedViews } from '../../ui/viewer/taggedLayout'
+import { parseEaseOptions } from '../../animation/easeOptions'
 import { startTimelineRange, endTimelineRange } from '../../animation/timelineRange'
 import * as THREE from 'three'
 import type { Animatable, AnimValue, Project, Vec3 } from '@shared/types'
@@ -132,6 +133,7 @@ export const systemCommands: Record<string, Handler> = {
     const t = num(p, 'time') ?? ed().time
     const value = valueFor(ref, p)
     const e = easeOf(p)
+    const easeOptions = has(p, 'ease_options') ? parseEaseOptions(p.ease_options) : undefined
     let keyId = ''
     ed().update((d) => {
       const a = getDraftAnimatable(d, ref)!
@@ -142,6 +144,7 @@ export const systemCommands: Record<string, Handler> = {
         if (has(p, 'ease')) k.ease = e
         keyId = k.id
       } else keyId = addKeyframe(a as Animatable<AnimValue>, t, value, e, frameTolerance(proj())).id
+      if (easeOptions) a.keyframes.find(k => k.id === keyId)!.easeOptions = easeOptions
     })
     return { key_id: keyId, time: t, value }
   },

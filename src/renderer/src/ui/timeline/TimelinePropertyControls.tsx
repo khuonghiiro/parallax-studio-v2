@@ -15,7 +15,7 @@ export function TimelinePropertyControls({ layer, prop, label }: { layer: Layer;
   return <fieldset className={`tl-property-controls${isActive ? ' active' : ''}`} disabled={layer.locked}
     data-layer-property={prop} aria-label={`${layer.name} · ${label}`}
     aria-current={isActive ? 'true' : undefined}
-    title="Bấm để chọn thuộc tính. K thêm mốc; sửa số trực tiếp. Nút ⋯ cạnh mốc chọn kiểu chuyển động."
+    title="Bấm để chọn dòng. ◆ đặt mốc; các hình bên cạnh chọn chuyển động. Chuột phải hoặc ⋯ để cấu hình chi tiết."
     tabIndex={layer.locked ? -1 : 0}
     onClick={event => { event.stopPropagation(); focusTimelineProperty(refp) }}
     onFocusCapture={() => { useEditor.getState().setPlaying(false); focusTimelineProperty({ kind: 'layer', layerId: layer.id, prop }) }}

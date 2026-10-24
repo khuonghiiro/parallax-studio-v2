@@ -1,4 +1,4 @@
-import type { EaseName } from '@shared/types'
+import type { EaseName, EaseOptions } from '@shared/types'
 
 /** Solve a CSS-style cubic-bezier(x1, y1, x2, y2) for y given x in [0, 1]. */
 export function cubicBezier(x1: number, y1: number, x2: number, y2: number): (x: number) => number {
@@ -50,7 +50,8 @@ const EASES: Record<EaseName, (x: number) => number> = {
   easeInOut: cubicBezier(0.42, 0, 0.58, 1),
   easeInOutStrong: cubicBezier(0.83, 0, 0.17, 1),
   hold: (x) => (x >= 1 ? 1 : 0),
-  pulse: (x) => x <= 0 ? 0 : x >= 1 ? 1 : (1 - Math.cos(5 * Math.PI * x)) / 2
+  pulse: (x) => x <= 0 ? 0 : x >= 1 ? 1 : (1 - Math.cos(5 * Math.PI * x)) / 2,
+  blink: (x) => x <= 0 ? 0 : x >= 1 ? 1 : ((x * 3) % 1 < .5 ? 0 : 1)
 }
 
 export const EASE_LABELS: Record<EaseName, string> = {
@@ -60,9 +61,22 @@ export const EASE_LABELS: Record<EaseName, string> = {
   easeInOut: 'Easy Ease',
   easeInOutStrong: 'Strong Ease',
   hold: 'Hold · Nhảy ở cuối',
-  pulse: 'Nhịp đập · 3 lần tới đích'
+  pulse: 'Nhịp đập',
+  blink: 'Nhấp nháy'
 }
 
-export function ease(name: EaseName, x: number): number {
+export function ease(name: EaseName, x: number, options?: EaseOptions): number {
+  if (x <= 0) return 0
+  if (x >= 1) return 1
+  if (options) {
+    const cycles = Math.max(1, Math.min(30, Math.round(options.cycles ?? 3)))
+    if (name === 'pulse') return (1 - Math.cos((cycles * 2 - 1) * Math.PI * x)) / 2
+    if (name === 'blink') return (x * cycles) % 1 < Math.max(.05, Math.min(.95, options.duty ?? .5)) ? 0 : 1
+    if (name === 'hold') return x < Math.max(.01, Math.min(1, options.holdUntil ?? 1)) ? 0 : 1
+    if (['easeIn', 'easeOut', 'easeInOut', 'easeInOutStrong'].includes(name)) {
+      const strength = Math.max(0, Math.min(1, options.strength ?? 1))
+      return x + ((EASES[name] ?? EASES.linear)(x) - x) * strength
+    }
+  }
   return (EASES[name] ?? EASES.linear)(x)
 }

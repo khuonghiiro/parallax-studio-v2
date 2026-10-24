@@ -37,7 +37,7 @@ export function evaluate<T extends AnimValue>(a: Animatable<T>, rawT: number): T
   const k1 = ks[hi]
   const span = k1.t - k0.t
   const u = span <= 0 ? 1 : (t - k0.t) / span
-  return lerpValue(k0.value, k1.value, ease(k0.ease, u))
+  return lerpValue(k0.value, k1.value, ease(k0.ease, u, k0.easeOptions))
 }
 
 function sortKeys<T>(a: Animatable<T>): void {

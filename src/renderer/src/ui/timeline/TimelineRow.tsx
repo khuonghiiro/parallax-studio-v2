@@ -11,6 +11,7 @@ export interface TimelineRowProps {
   trackWidth?: number
   onTrackPointerDown?: (e: React.PointerEvent) => void
   onTrackContextMenu?: (e: React.MouseEvent) => void
+  onContextMenu?: (e: React.MouseEvent) => void
 }
 
 export function TimelineRow({
@@ -22,12 +23,14 @@ export function TimelineRow({
   className,
   trackWidth,
   onTrackPointerDown,
-  onTrackContextMenu
+  onTrackContextMenu,
+  onContextMenu
 }: TimelineRowProps) {
   return (
     <div
       className={`tl-row${sub ? ' sub' : ''}${selected ? ' selected' : ''}${className ? ' ' + className : ''}`}
       onPointerDown={onClick}
+      onContextMenu={onContextMenu}
     >
       <div
         className="tl-row-name-col"

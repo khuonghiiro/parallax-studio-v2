@@ -1,4 +1,4 @@
-import type { AppliedLayerEffect, AssetMeta, AutoOrientMode, Composition, EaseName, Layer, LayerMotion, LayerPhysicsConfig, LayerVirtualLightConfig, LookSettings, Vec3 } from '@shared/types'
+import type { AppliedLayerEffect, AssetMeta, AutoOrientMode, Composition, EaseName, EaseOptions, Layer, LayerMotion, LayerPhysicsConfig, LayerVirtualLightConfig, LookSettings, Vec3 } from '@shared/types'
 import type { TransitionType } from '../../animation/cameraPath'
 import type { ParticlePreset } from '../../animation/presets'
 import type { AssetTable } from './assetTable'
@@ -7,6 +7,7 @@ export interface DeclarativeKeyframe<T = unknown> {
   t: number
   value: T
   ease?: EaseName
+  easeOptions?: EaseOptions
 }
 
 export interface DeclarativeLayerSpec {

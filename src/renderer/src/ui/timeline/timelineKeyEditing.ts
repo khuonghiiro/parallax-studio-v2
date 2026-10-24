@@ -58,13 +58,16 @@ export function addTimelineKey(ref: PropRef, boundary?: 'start' | 'end') {
         const last = a.keyframes.at(-1)!
         if (last.timelineBoundary === 'end') {
           last.ease = a.keyframes.at(-2)?.ease ?? 'easeInOut'
+          last.easeOptions = a.keyframes.at(-2)?.easeOptions
           last.timelineBoundary = 'start'
         }
         id = endTimelineRange(a, time, tolerance).id
       }
       else {
         const previous = a.keyframes.filter(k => k.t < time).at(-1)
-        id = addKeyframe(a, time, evaluate(a, time), previous?.ease ?? 'easeInOut', tolerance).id
+        const key = addKeyframe(a, time, evaluate(a, time), previous?.ease ?? 'easeInOut', tolerance)
+        if (previous?.easeOptions) key.easeOptions = { ...previous.easeOptions }
+        id = key.id
       }
     })
     if (id) jumpTimelineKey(ref, id, time)

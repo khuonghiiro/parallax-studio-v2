@@ -250,6 +250,12 @@ export const IconAim = (p: P) => (
     <path d="M12 2v3m0 14v3M2 12h3m14 0h3" /></svg>
 )
 
+export const IconMotionSmooth = (p: P) => <svg {...base(p)}><circle cx="12" cy="12" r="8" /></svg>
+export const IconMotionLinear = (p: P) => <svg {...base(p)}><path d="M12 3 22 21H2Z" /></svg>
+export const IconMotionHold = (p: P) => <svg {...base(p)}><rect x="4" y="4" width="16" height="16" rx="1" /></svg>
+export const IconMotionPulse = (p: P) => <svg {...base(p)}><path d="m12 2 3 7 7 1-5 5 1 7-6-4-6 4 1-7-5-5 7-1Z" /></svg>
+export const IconMotionBlink = (p: P) => <svg {...base(p)}><path d="m14 2-10 12h7l-1 8 10-13h-7Z" /></svg>
+
 export const IconFocus = (p: P) => (
   <svg {...base(p)}>
     <path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" />

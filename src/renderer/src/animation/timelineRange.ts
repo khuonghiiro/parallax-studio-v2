@@ -63,7 +63,8 @@ export function setTimelineValueAt(a: Animatable<AnimValue>, time: number, value
     return
   }
   const previous = a.keyframes.filter(k => k.t < time).at(-1)
-  addKeyframe(a, time, value, previous?.ease ?? 'easeInOut', tolerance)
+  const key = addKeyframe(a, time, value, previous?.ease ?? 'easeInOut', tolerance)
+  if (previous?.easeOptions) key.easeOptions = { ...previous.easeOptions }
 }
 
 /** Legacy single keys must not recolor the whole past when revisited. */

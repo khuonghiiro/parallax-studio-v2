@@ -5,6 +5,7 @@ import { EASE_LABELS } from '../../animation/easing'
 import { timelineRangeAt } from '../../animation/timelineRange'
 import { useEditor, type PropRef } from '../../store/editor'
 import { jumpTimelineKey } from './timelineKeyEditing'
+import { openMotionPopup } from './timelineMotionModel'
 import { LAYER_PROPS } from './timelineTypes'
 import { getFxColor, renderFxIcon } from './fxIcons'
 
@@ -29,13 +30,18 @@ function LayerKey({ layer, animation, property, x, startKeyDrag, frame, selected
   return <div className={`tl-key ${fx ? 'tl-key-fx' : boundary}${off ? ' disabled' : ''}${selected ? ' selected' : ''}${frame.ease === 'hold' ? ' hold' : ''}`}
     style={{ left: x(frame.t), ['--fx-color' as string]: off ? 'var(--text-faint)' : color }}
     title={title} role="button" aria-label={title} tabIndex={layer.locked ? -1 : 0}
+    onContextMenu={event => {
+      event.preventDefault(); event.stopPropagation()
+      jumpTimelineKey(ref, frame.id, frame.t)
+      openMotionPopup(ref, event, frame.t)
+    }}
     onClick={event => {
       event.stopPropagation()
       if (!layer.locked && event.detail === 0) jumpTimelineKey(ref, frame.id, frame.t)
     }}
     onPointerDown={event => {
       event.stopPropagation()
-      if (layer.locked) return
+      if (layer.locked || event.button !== 0) return
       jumpTimelineKey(ref, frame.id, frame.t)
       startKeyDrag?.(event, ref, frame.id)
     }}

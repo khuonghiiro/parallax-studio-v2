@@ -54,3 +54,11 @@
 .tl-key-menu .menu-label { white-space: nowrap; }
 .tl-property-menu-popup button:disabled { opacity: .4; cursor: default; }
 .tl-property-menu-popup button[aria-pressed='true'] { color: var(--accent); background: var(--bg-3); }
+/* Compact, indented children with distinct quick-motion symbols. */
+.tl-property-controls { padding-left: 50px; grid-template-columns: minmax(0, 1fr) 116px; gap: 3px; }
+.tl-property-controls::before { content: ''; position: absolute; left: 35px; top: 50%; width: 9px; border-top: 1px solid var(--line); }
+.tl-property-controls .row { grid-template-columns: 38px minmax(0, 1fr); gap: 2px; }
+.tl-property-controls .num { height: 19px; }
+.tl-property-controls .num input { font-size: 9px; padding: 0 1px; }
+.tl-compact-keys { grid-template-columns: 20px repeat(5, 16px) 16px; gap: 0; width: 116px; }
+.tl-compact-keys .tl-motion-quick[aria-pressed='true'] { color: var(--accent); background: var(--bg-3); }

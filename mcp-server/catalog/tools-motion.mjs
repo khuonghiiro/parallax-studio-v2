@@ -121,6 +121,12 @@ export const FX_TOOLS = [
       ...keyTarget(d),
       time: z.number().optional().describe(d('Seconds; default current time.', 'Giây; mặc định thời điểm hiện tại.')),
       value: z.union([z.number(), vec3]),
+      ease_options: z.object({
+        cycles: z.number().int().min(1).max(30).optional().describe(d('Pulse or blink count per segment.', 'Số nhịp đập hoặc nháy trong đoạn.')),
+        strength: z.number().min(0).max(1).optional().describe(d('Smooth easing strength, 0–1.', 'Độ mượt, 0–1.')),
+        holdUntil: z.number().min(.01).max(1).optional().describe(d('Fraction of segment held before jumping.', 'Tỉ lệ đoạn giữ nguyên trước khi nhảy.')),
+        duty: z.number().min(.05).max(.95).optional().describe(d('Fraction of each blink spent at the start value.', 'Tỉ lệ mỗi nhịp nháy ở giá trị đầu.'))
+      }).optional().describe(d('Outgoing segment parameters, persisted with this key.', 'Thông số đoạn đi ra, lưu cùng mốc này.')),
       boundary: z.enum(['start', 'end']).optional().describe(d('Timeline interval boundary; start preserves the preceding pose, end must follow start.', 'Biên đoạn timeline; start giữ trạng thái trước đó, end phải sau start.')),
       ease: ease.optional().describe(d('Outgoing interpolation, including boundary:start. linear = constant speed; easeInOut = smooth; hold = keep start until the next key then jump; pulse = three arrivals at the destination, ending there (not audio-synced).', 'Nội suy đi ra, kể cả boundary:start. linear = đều; easeInOut = mượt; hold = giữ đầu đến mốc sau rồi nhảy; pulse = ba lần tới đích, kết thúc tại đích (không đồng bộ âm thanh).'))
     }),

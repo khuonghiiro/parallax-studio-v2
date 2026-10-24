@@ -61,7 +61,7 @@ export function cameraSummary(project: Project, t: number) {
     keyframes: Object.fromEntries(
       (['position', 'target', 'fov', 'focusDistance', 'aperture', 'fade'] as CameraProp[]).map((k) => [
         k,
-        c[k].keyframes.map((kf) => ({ t: round(kf.t, 3), value: kf.value, ease: kf.ease }))
+        c[k].keyframes.map((kf) => ({ t: round(kf.t, 3), value: kf.value, ease: kf.ease, ease_options: kf.easeOptions }))
       ])
     )
   }
