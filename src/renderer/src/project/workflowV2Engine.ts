@@ -11,12 +11,12 @@ import type {
 } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
 export const WF_V2_COL_X = {
-  ROOT: 28,
-  GROUP: 356,
-  LAYER: 696,
-  LOGIC: 1044
+  ROOT: 40,
+  GROUP: 432,
+  LAYER: 824,
+  LOGIC: 1216
 } as const
-export const WF_V2_NODE_W = 280
+export const WF_V2_NODE_W = 236
 export type WorkflowV2LogicCategory = 'action' | 'light' | 'cave' | 'fx' | 'audio' | 'camera'
 export interface WorkflowV2ActionOption {
   id: string
@@ -593,17 +593,18 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
     edges
   }
 }
-/** Chiều cao chuẩn gọn gàng của từng loại thẻ trong Workflow V2 */
+/** Chiều cao chuẩn gọn gàng của từng loại thẻ trong Workflow V2 (Chuẩn n8n / React Flow) */
 export function estimateV2NodeHeight(node: WorkflowNode): number {
-  if (node.type === 'scene_shot') return 90
-  if (node.params?.groupKind) return 86
-  if (node.type === 'layer_assembly') return 120
-  return 112
+  if (node.type === 'scene_shot') return 68
+  if (node.params?.groupKind) return 66
+  if (node.type === 'layer_assembly') return 68
+  return 68
 }
-
 /**
- * Thuật toán xếp cây 4 cột (Root -> Group -> Layer -> Logic) phẳng tuyệt đối,
- * canh hàng đỉnh (Top-Aligned) cho cả 4 cột để nhìn vào thấy ngay Cảnh Root -> Group -> Layer -> Logic!
+ * Thuật toán xếp cây 4 cột (Root -> Group -> Layer -> Logic) chuẩn ELK / Dagre / React Flow:
+ * - Khoảng cách ngang giữa các cột rộng 156px để đường dây kết nối uốn lượn thoáng đãng, không đè nhau.
+ * - Khoảng cách dọc giữa các thẻ 36px để các thẻ tách biệt rõ ràng.
+ * - Cân bằng vị trí cha - con để dây nối rẽ quạt đối xứng tự nhiên.
  */
 export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[]): WorkflowNode[] {
   const cloned = nodes.map((n) => ({ ...n, position: { ...n.position } }))
@@ -620,31 +621,30 @@ export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[
   }
   const rootNode = cloned.find((n) => n.type === 'scene_shot')
   const groupNodes = cloned.filter((n) => Boolean(n.params?.groupKind))
-  const GAP_Y = 14
-  const GROUP_GAP_Y = 18
-  let layerCursorY = 38
-  let groupColBottomY = 38
+  const GAP_Y = 34
+  const GROUP_GAP_Y = 46
+  let layerCursorY = 44
+  let groupColBottomY = 44
   for (const grp of groupNodes) {
     const layerChildren = (childrenMap.get(grp.id) ?? []).filter((c) => c.type === 'layer_assembly')
     const grpH = estimateV2NodeHeight(grp)
     if (grp.params?.collapsedGroup || layerChildren.length === 0) {
-      grp.position = { x: WF_V2_COL_X.GROUP, y: groupColBottomY }
+      const yPos = groupColBottomY
+      grp.position = { x: WF_V2_COL_X.GROUP, y: yPos }
       layerChildren.forEach((ln, idx) => {
-        ln.position = { x: WF_V2_COL_X.LAYER, y: groupColBottomY + idx * 128 }
+        ln.position = { x: WF_V2_COL_X.LAYER, y: yPos + idx * 102 }
         const lKids = (childrenMap.get(ln.id) ?? []).filter(
           (c) => c.type !== 'layer_assembly' && c.type !== 'scene_shot'
         )
         lKids.forEach((lk, kIdx) => {
-          lk.position = { x: WF_V2_COL_X.LOGIC + kIdx * 304, y: ln.position.y }
+          lk.position = { x: WF_V2_COL_X.LOGIC + kIdx * 340, y: ln.position.y }
         })
       })
-      groupColBottomY += grpH + 16
+      groupColBottomY = yPos + grpH + 34
       continue
     }
     const groupStartY = Math.max(layerCursorY, groupColBottomY)
     layerCursorY = groupStartY
-    grp.position = { x: WF_V2_COL_X.GROUP, y: groupStartY }
-    groupColBottomY = groupStartY + grpH + 16
     for (const layerNode of layerChildren) {
       const logicChildren = (childrenMap.get(layerNode.id) ?? []).filter(
         (c) => c.type !== 'layer_assembly' && c.type !== 'scene_shot'
@@ -653,21 +653,29 @@ export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[
       layerNode.position = { x: WF_V2_COL_X.LAYER, y: layerCursorY }
       logicChildren.forEach((logicNode, idx) => {
         logicNode.position = {
-          x: WF_V2_COL_X.LOGIC + idx * 304,
+          x: WF_V2_COL_X.LOGIC + idx * 340,
           y: layerCursorY
         }
       })
       layerCursorY += layerH + GAP_Y
     }
+    const firstLayerY = layerChildren[0].position.y
+    const anchorIdx = Math.min(layerChildren.length - 1, 2)
+    const anchorLayer = layerChildren[anchorIdx]
+    const anchorBottom = anchorLayer.position.y + estimateV2NodeHeight(anchorLayer)
+    const centeredY = Math.max(groupStartY, Math.round((firstLayerY + anchorBottom - grpH) / 2))
+    grp.position = { x: WF_V2_COL_X.GROUP, y: centeredY }
+    groupColBottomY = centeredY + grpH + 34
     layerCursorY += GROUP_GAP_Y - GAP_Y
   }
   if (rootNode) {
-    rootNode.position = { x: WF_V2_COL_X.ROOT, y: 38 }
+    const firstGrpY = groupNodes[0]?.position.y ?? 44
+    rootNode.position = { x: WF_V2_COL_X.ROOT, y: firstGrpY }
     const camNodes = cloned.filter((n) => n.type === 'camera_director')
     camNodes.forEach((cam, idx) => {
       cam.position = {
         x: WF_V2_COL_X.ROOT,
-        y: rootNode.position.y + estimateV2NodeHeight(rootNode) + 16 + idx * 116
+        y: rootNode.position.y + estimateV2NodeHeight(rootNode) + 34 + idx * 102
       }
     })
   }

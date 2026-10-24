@@ -1,8 +1,3 @@
-/* ============================================================================
- * WORKFLOW STUDIO V2 — HIERARCHICAL TIME-DRIVEN SCENE TREE
- * (Đường kẻ mốc thời gian + Cảnh Root + Group Layer + Node Layer + Node Logic)
- * Hỗ trợ đầy đủ cả Dark Theme & Light Theme theo chuẩn Design Tokens
- * ============================================================================ */
 .wf-v2-studio {
   display: flex;
   flex-direction: column;
@@ -12,7 +7,6 @@
   color: var(--text);
   overflow: hidden;
 }
-/* 1. THANH CÔNG CỤ ĐỈNH (TOP TOOLBAR) */
 .wf-v2-toolbar {
   display: flex;
   align-items: center;
@@ -140,8 +134,7 @@
   color: var(--on-accent);
   border-color: var(--accent);
 }
-.wf-v2-tool-btn.primary-apply:hover {  }
-/* 2. BỐ CỤC THÂN CHÍNH & SIDEBAR BÊN TRÁI */
+.wf-v2-tool-btn.primary-apply:hover { filter: brightness(1.08); }
 .wf-v2-body {
   display: flex;
   flex: 1;
@@ -157,7 +150,7 @@
   flex-shrink: 0;
   transition: width 0.15s ease;
 }
-.wf-v2-sidebar.collapsed {  }
+.wf-v2-sidebar.collapsed { width: 34px; }
 .wf-v2-sidebar-head {
   display: flex;
   align-items: center;
@@ -213,7 +206,7 @@
   cursor: pointer;
   transition: all 0.12s ease;
 }
-.wf-v2-add-card.span-full {  }
+.wf-v2-add-card.span-full { grid-column: 1 / -1; }
 .wf-v2-add-card:hover {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
@@ -274,7 +267,6 @@
   font-size: 10px;
   font-weight: 700;
 }
-/* 3. ĐƯỜNG KẺ MỐC THỜI GIAN (MASTER TIME RULER) */
 .wf-v2-canvas-shell {
   flex: 1;
   min-width: 0;
@@ -343,9 +335,9 @@
   font-size: 10.5px;
   font-weight: 700;
 }
-.wf-v2-time-cur {  }
+.wf-v2-time-cur { color: var(--accent-cyan, #38bdf8); }
 .wf-v2-time-sep,
-.wf-v2-time-max {  }
+.wf-v2-time-max { color: var(--text-dim); }
 .wf-v2-active-badge {
   margin-left: auto;
   padding: 1px 5px;
@@ -364,23 +356,6 @@
   cursor: ew-resize;
   overflow: visible;
 }
-.wf-v2-ruler-shot {
-  position: absolute;
-  top: 2px;
-  bottom: 2px;
-  border-left: 1px dashed var(--line);
-  border-right: 1px dashed var(--line);
-  background: color-mix(in srgb, var(--accent) 5%, transparent);
-  pointer-events: none;
-}
-.wf-v2-ruler-shot-tag {
-  position: absolute;
-  top: 1px;
-  left: 5px;
-  font-size: 9px;
-  font-weight: 700;
-  color: var(--text-faint);
-}
 .wf-v2-ruler-tick {
   position: absolute;
   bottom: 0;
@@ -392,7 +367,7 @@
   height: 11px;
   background: var(--text-faint);
 }
-.wf-v2-ruler-tick.minor {  }
+.wf-v2-ruler-tick.minor { height: 5px; }
 .wf-v2-ruler-tick-label {
   position: absolute;
   bottom: 11px;
@@ -402,9 +377,8 @@
   color: var(--text-dim);
   white-space: nowrap;
 }
-.wf-v2-ruler-tick-label.edge-left {  }
-.wf-v2-ruler-tick-label.edge-right {  }
-/* Thanh khoảng mốc của Node đang chọn trên Thước đo */
+.wf-v2-ruler-tick-label.edge-left { transform: translateX(0); }
+.wf-v2-ruler-tick-label.edge-right { transform: translateX(-100%); }
 .wf-v2-ruler-node-span {
   position: absolute;
   top: 4px;
@@ -444,7 +418,6 @@
   right: 0;
   border-radius: 0 3px 3px 0;
 }
-/* Kim thời gian (Playhead) trên thước đo & chạy dọc xuống canvas */
 .wf-v2-ruler-playhead {
   position: absolute;
   top: 0;
@@ -476,40 +449,38 @@
   pointer-events: none;
   z-index: 5;
 }
-/* 4. KHUNG VẼ CÂY PHÂN CẤP 4 CỘT */
 .wf-v2-viewport {
   position: relative;
   flex: 1;
   min-height: 0;
   overflow: hidden;
   background-color: var(--bg-0);
-  background-image: radial-gradient(var(--line) 1px, transparent 1px);
-  background-size: 20px 20px;
+  background-image: radial-gradient(var(--line) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
 }
 .wf-v2-world {
   position: absolute;
   top: 0;
   left: 0;
-  width: 2200px;
+  width: 2400px;
   height: 1800px;
 }
 .wf-v2-col-banner {
   position: absolute;
-  top: 8px;
-  height: 26px;
+  top: 6px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--bg-2) 90%, transparent);
-  border: 1px dashed var(--line);
-  font-size: 10.5px;
+  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
+  border: 1px solid var(--line);
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.04em;
   color: var(--text-dim);
   pointer-events: none;
 }
-/* 5. SỢI DÂY KẾT NỐI TRÁI -> PHẢI & NHÃN MỐC THỜI GIAN */
 .wf-v2-edges-svg {
   position: absolute;
   top: 0;
@@ -517,77 +488,88 @@
   overflow: visible;
   pointer-events: none;
 }
+.wf-v2-edge-group {
+  pointer-events: stroke;
+  cursor: pointer;
+  transition: opacity 0.16s ease;
+}
 .wf-v2-edge-bg {
   fill: none;
-  stroke-width: 5px;
-  opacity: 0.16;
+  stroke-width: 6px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.14;
 }
 .wf-v2-edge-fg {
   fill: none;
-  stroke-width: 2.2px;
-  opacity: 0.72;
+  stroke-width: 2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.78;
 }
+.wf-v2-edge-group.highlighted .wf-v2-edge-fg {
+  stroke-width: 2.5px;
+  opacity: 0.96;
+}
+.wf-v2-edge-group.highlighted .wf-v2-edge-bg { opacity: 0.24; }
+.wf-v2-edge-group.dimmed { opacity: 0.22; }
 .wf-v2-edge-fg.flowing {
-  stroke-width: 2.8px;
-  opacity: 1;
-  stroke-dasharray: 7 4;
-  animation: wfV2FlowDash 0.8s linear infinite;
+  stroke-dasharray: 8 5;
+  animation: wfV2FlowDash 0.9s linear infinite;
 }
 @keyframes wfV2FlowDash {
-  from {
-    stroke-dashoffset: 22;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
+  from { stroke-dashoffset: 26; }
+  to { stroke-dashoffset: 0; }
 }
 .wf-v2-edge-dragging {
   fill: none;
   stroke: var(--accent-cyan, #38bdf8);
   stroke-width: 2.5px;
-  stroke-dasharray: 5 4;
+  stroke-dasharray: 6 4;
 }
-.wf-v2-edge-time-badge {
-  pointer-events: all;
-  cursor: pointer;
-}
-.wf-v2-edge-pill-rect {
-  fill: var(--bg-2);
-  stroke-width: 1.2px;
-}
-.wf-v2-edge-pill-text {
-  font-size: 9.5px;
-  font-weight: 700;
-  fill: var(--text);
-}
-/* 6. THẺ NODE 4 TẦNG (ROOT / GROUP / LAYER / LOGIC) */
 .wf-v2-card {
   position: absolute;
-  width: 276px;
-  border-radius: var(--radius-md, 6px);
+  width: 236px;
+  border-radius: 8px;
   background: var(--bg-2);
-  border: 1.5px solid color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 42%, var(--line));
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+  border: 1.5px solid color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 45%, var(--line));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
   color: var(--text);
   user-select: none;
-  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  transition: border-color 0.14s ease, box-shadow 0.14s ease, opacity 0.14s ease;
   z-index: 10;
 }
-.wf-v2-card:hover {  }
+.wf-v2-card-accent-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 7px 0 0 7px;
+  background: var(--wf-v2-accent, var(--accent));
+}
+.wf-v2-card:hover {
+  border-color: var(--wf-v2-accent, var(--accent));
+  z-index: 25;
+}
 .wf-v2-card.selected {
   border-color: var(--wf-v2-accent, var(--accent));
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 35%, transparent),
-    0 8px 22px rgba(0, 0, 0, 0.32);
-  z-index: 15;
+  box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 38%, transparent),
+    0 8px 24px rgba(0, 0, 0, 0.34);
+  z-index: 60;
 }
-.wf-v2-card.active-at-time {  }
-.wf-v2-card.disabled {  }
-/* Cổng kết nối Trái / Phải */
+.wf-v2-card.connected-highlight {
+  border-color: var(--wf-v2-accent, var(--accent));
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 28%, transparent);
+  z-index: 20;
+}
+.wf-v2-card.dimmed { opacity: 0.42; }
+.wf-v2-card.disabled { opacity: 0.48; }
 .wf-v2-socket {
   position: absolute;
-  top: 28px;
-  width: 18px;
-  height: 18px;
+  top: 24px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: var(--bg-1);
   border: 2px solid var(--wf-v2-accent, var(--accent));
@@ -595,32 +577,42 @@
   align-items: center;
   justify-content: center;
   cursor: crosshair;
-  z-index: 20;
+  z-index: 30;
   transition: transform 0.12s ease;
 }
-.wf-v2-socket:hover {  }
-.wf-v2-socket.in {  }
-.wf-v2-socket.out {  }
+.wf-v2-socket:hover { transform: scale(1.25); }
+.wf-v2-socket.in { left: -9px; }
+.wf-v2-socket.out { right: -9px; }
 .wf-v2-socket-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: var(--wf-v2-accent, var(--accent));
 }
-/* Header Thẻ Node */
 .wf-v2-card-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  border-bottom: 1px solid var(--line-soft);
-  background: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 12%, var(--bg-3));
-  border-radius: 5px 5px 0 0;
+  gap: 7px;
+  padding: 5px 8px 4px 10px;
   cursor: grab;
 }
 .wf-v2-card-icon {
-  font-size: 14px;
+  font-size: 16px;
   flex-shrink: 0;
+}
+.wf-v2-mini-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.wf-v2-mini-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .wf-v2-card-titles {
   display: flex;
@@ -628,11 +620,26 @@
   min-width: 0;
   flex: 1;
 }
+.wf-v2-card-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
 .wf-v2-card-badge {
   font-size: 8px;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   color: var(--wf-v2-accent, var(--accent));
+  white-space: nowrap;
+}
+.wf-v2-card-sub {
+  font-size: 8.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .wf-v2-card-title {
   font-size: 11px;
@@ -648,13 +655,43 @@
   gap: 3px;
   flex-shrink: 0;
 }
+.wf-v2-collapse-pill {
+  height: 19px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--wf-v2-accent, var(--accent));
+  background: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 78%, #0f172a);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wf-v2-add-logic-btn {
+  width: 19px;
+  height: 19px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--wf-v2-accent, var(--accent));
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.wf-v2-add-logic-btn:hover {
+  background: var(--wf-v2-accent, var(--accent));
+  color: #ffffff;
+}
 .wf-v2-icon-btn {
   min-width: 19px;
   height: 19px;
   padding: 0 4px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line-soft);
-  background: var(--bg-2);
+  background: var(--bg-3);
   color: var(--text);
   font-size: 9.5px;
   font-weight: 700;
@@ -669,95 +706,43 @@
   border-color: #ef4444;
   color: #ffffff;
 }
-/* Body Thẻ Node */
-.wf-v2-card-body {
-  padding: 5px 8px 6px;
+.wf-v2-card-footer { padding: 0 7px 5px 10px; }
+.wf-v2-card-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 264px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  background: var(--bg-2);
+  border: 1.5px solid var(--wf-v2-accent, var(--accent));
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.42);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  z-index: 90;
 }
-.wf-v2-root-summary,
-.wf-v2-group-summary {
+.wf-v2-pop-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-}
-.wf-v2-summary-chips {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-.wf-v2-chip {
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-3);
-  border: 1px solid var(--line-soft);
   font-size: 10px;
-  font-weight: 600;
+  color: var(--text-dim);
 }
 .wf-v2-rebuild-btn {
-  height: 22px;
+  height: 21px;
   padding: 0 7px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--accent);
   background: color-mix(in srgb, var(--accent) 78%, #0f172a);
   color: #ffffff;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
 }
-.wf-v2-group-count {
-  font-size: 10.5px;
-  color: var(--text-dim);
-}
-/* Nội dung Node Layer */
-.wf-v2-layer-content {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.wf-v2-layer-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.wf-v2-layer-thumb {
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-1);
-  border: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-.wf-v2-layer-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.wf-v2-layer-z-box {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.wf-v2-layer-z-head {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  color: var(--text-dim);
-}
-.wf-v2-layer-z-head strong {
-  color: var(--text);
-  font-family: var(--font-mono, monospace);
-}
 .wf-v2-slider {
-  width: 100%;
+  flex: 1;
   height: 5px;
   accent-color: var(--wf-v2-accent, var(--accent));
   cursor: pointer;
@@ -768,7 +753,7 @@
   gap: 3px;
 }
 .wf-v2-spawn-chip {
-  height: 20px;
+  height: 21px;
   padding: 0 2px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line-soft);
@@ -786,20 +771,14 @@
   color: #ffffff;
   border-color: var(--wf-v2-accent, var(--accent));
 }
-/* Nội dung Node Logic (Hành động / Ánh sáng / Hiệu ứng / Âm thanh / Camera) */
-.wf-v2-logic-box {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
 .wf-v2-pill-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 3px;
 }
-.wf-v2-pill-grid.single-row {  }
+.wf-v2-pill-grid.single-row { flex-wrap: nowrap; }
 .wf-v2-opt-pill {
-  height: 19px;
+  height: 20px;
   padding: 0 5px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line-soft);
@@ -812,7 +791,7 @@
   text-align: center;
   cursor: pointer;
 }
-.wf-v2-opt-pill:hover {  }
+.wf-v2-opt-pill:hover { border-color: var(--wf-v2-accent, var(--accent)); }
 .wf-v2-opt-pill.active {
   background: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 80%, #0f172a);
   border-color: var(--wf-v2-accent, var(--accent));
@@ -830,6 +809,7 @@
   color: var(--text);
   min-width: 32px;
   text-align: right;
+  font-family: var(--font-mono, monospace);
 }
 .wf-v2-swatch-row {
   display: flex;
@@ -849,25 +829,24 @@
   border-color: #ffffff;
   box-shadow: 0 0 0 1.5px var(--text);
 }
-/* 7. THANH KHOẢNG MỐC THỜI GIAN TRÊN MỖI NODE (WorkflowTimeRangeBar) */
 .wf-v2-timebar {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 6px;
-  padding: 2px 5px;
-  height: 20px;
+  gap: 5px;
+  padding: 1px 4px;
+  height: 18px;
   border-radius: var(--radius-sm);
   background: var(--bg-1);
   border: 1px solid var(--line-soft);
 }
-.wf-v2-timebar.is-active-time {  }
+.wf-v2-timebar.is-active-time { border-color: color-mix(in srgb, var(--wf-time-c, var(--accent)) 55%, var(--line)); }
 .wf-v2-timebar-values {
   display: inline-flex;
   align-items: center;
   gap: 2px;
   font-family: var(--font-mono, monospace);
-  font-size: 9px;
+  font-size: 8.5px;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -880,12 +859,12 @@
   font-weight: 700;
   cursor: pointer;
 }
-.wf-v2-time-sep {  }
+.wf-v2-time-sep { color: var(--text-dim); }
 .wf-v2-timebar-track {
   position: relative;
   flex: 1;
-  min-width: 60px;
-  height: 11px;
+  min-width: 50px;
+  height: 9px;
   border-radius: 3px;
   background: var(--bg-3);
   border: 1px solid var(--line);
@@ -915,12 +894,12 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 6px;
+  width: 5px;
   background: var(--wf-time-c, var(--accent));
   cursor: ew-resize;
 }
-.wf-v2-timebar-handle.left {  }
-.wf-v2-timebar-handle.right {  }
+.wf-v2-timebar-handle.left { left: 0; }
+.wf-v2-timebar-handle.right { right: 0; }
 .wf-v2-timebar-playhead {
   position: absolute;
   top: 0;
@@ -929,7 +908,6 @@
   background: #f43f5e;
   pointer-events: none;
 }
-/* Menu thả dây ra khoảng trống */
 .wf-v2-quick-spawn-menu {
   position: fixed;
   width: 220px;
@@ -966,3 +944,4 @@
   color: var(--on-accent);
   border-color: var(--accent);
 }
+
