@@ -3,6 +3,7 @@ import { createProject, createShot, createSolidLayer } from '../project/factory'
 import { addKeyframe } from '../animation/keyframes'
 import { evaluateScene } from './evaluateScene'
 import {
+  computeUnified25DLightAtOffset,
   createDefaultVirtualLight,
   evaluateVirtualLightAtTime,
   resolveReceivedVirtualLightForLayer
@@ -369,6 +370,15 @@ describe('layerPhysics — 2.5D Material Physics, Gravity & Combat Impact Simula
     expect(received).not.toBeNull()
     expect(received!.relU).toBeCloseTo(0.7, 1)
     expect(received!.relV).toBeCloseTo(0.625, 1)
+
+    const coneCos = Math.cos((54 * 0.5 * Math.PI) / 180)
+    const lowLight = computeUnified25DLightAtOffset(0, -180, 620, 0.25, coneCos, [0, -1], 0.65, 0)
+    const highLight = computeUnified25DLightAtOffset(0, -180, 620, 1.8, coneCos, [0, -1], 0.65, 0)
+    expect(highLight.localLightHalo).toBeGreaterThan(lowLight.localLightHalo * 3)
+
+    const narrowCurve = computeUnified25DLightAtOffset(120, -240, 620, 1.4, coneCos, [0, -1], 0.5, -0.6)
+    const domeCurve = computeUnified25DLightAtOffset(120, -240, 620, 1.4, coneCos, [0, -1], 0.5, 0.85)
+    expect(domeCurve.coneAtten).toBeGreaterThan(narrowCurve.coneAtten)
   })
 })
 

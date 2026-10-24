@@ -146,6 +146,7 @@ export function WorkshopPhysicsLightSection({
         next.zReach = p.zReach
         next.coneAngleDeg = p.coneAngleDeg
         next.beamAngleDeg = p.beamAngleDeg
+        next.beamCurvature = p.beamCurvature
         next.flickerSpeed = p.flickerSpeed
         next.windSensitivity = p.windSensitivity
         next.windPreset = p.windPreset
@@ -562,6 +563,18 @@ export function WorkshopPhysicsLightSection({
                 max={360}
                 value={vlight.coneAngleDeg ?? 360}
                 onChange={(e) => patchLight({ coneAngleDeg: Number(e.target.value) })}
+              />
+            </label>
+            <label className="lw-field" title="Độ cong khung sáng (-0.8 = chụm tia hẹp, 0 = nón thẳng, +0.8 = vòm parabol)">
+              <span className="lw-field-label">Độ cong tia ⌒</span>
+              <input
+                className="lw-input"
+                type="number"
+                step={0.1}
+                min={-0.8}
+                max={1.0}
+                value={vlight.beamCurvature ?? 0}
+                onChange={(e) => patchLight({ beamCurvature: Number(e.target.value) })}
               />
             </label>
           </div>

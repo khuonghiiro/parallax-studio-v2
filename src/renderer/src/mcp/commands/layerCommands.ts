@@ -304,6 +304,7 @@ export const layerCommands: Record<string, Handler> = {
           if (rawVLight.flickerSpeed === undefined) next.flickerSpeed = preset.flickerSpeed
           if (rawVLight.windSensitivity === undefined) next.windSensitivity = preset.windSensitivity
           if (rawVLight.beamAngleDeg === undefined) next.beamAngleDeg = preset.beamAngleDeg
+          if (rawVLight.beamCurvature === undefined) next.beamCurvature = preset.beamCurvature
           if (rawVLight.windPreset === undefined) next.windPreset = preset.windPreset
           if (rawVLight.ambientDim === undefined) next.ambientDim = preset.ambientDim
           if (rawVLight.softness === undefined) next.softness = preset.softness

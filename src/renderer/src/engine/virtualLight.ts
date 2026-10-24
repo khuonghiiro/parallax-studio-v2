@@ -27,6 +27,7 @@ export interface VirtualLightPreset {
   zReach: number
   ambientDim: number
   softness: number
+  beamCurvature: number
 }
 
 export const VIRTUAL_LIGHT_PRESETS: Record<VirtualLightKind, VirtualLightPreset> = {
@@ -42,9 +43,10 @@ export const VIRTUAL_LIGHT_PRESETS: Record<VirtualLightKind, VirtualLightPreset>
     beamAngleDeg: 0,
     windPreset: 'none',
     flickerSpeed: 0,
-    zReach: 200,
+    zReach: 1200,
     ambientDim: 0,
-    softness: 0.5
+    softness: 0.5,
+    beamCurvature: 0.25
   },
   candle: {
     kind: 'candle',
@@ -53,50 +55,53 @@ export const VIRTUAL_LIGHT_PRESETS: Record<VirtualLightKind, VirtualLightPreset>
     description:
       'Ánh sáng vàng cam ấm áp; đứng êm khi lặng gió, chao nghiêng mượt khi gió nhẹ và lập lòe bạt ngang dữ dội khi gió mạnh.',
     color: '#ff9d3b',
-    intensity: 0.92,
-    radius: 380,
+    intensity: 1.0,
+    radius: 460,
     coneAngleDeg: 360,
     beamAngleDeg: 0,
     windPreset: 'gentle',
     windSensitivity: 1.0,
     flickerSpeed: 1.2,
-    zReach: 280,
+    zReach: 1500,
     ambientDim: 0.24,
-    softness: 0.55
+    softness: 0.55,
+    beamCurvature: 0.35
   },
   flashlight: {
     kind: 'flashlight',
-    label: '🔦 Đèn pin / Đèn pha (Chùm sáng hình nón)',
+    label: '🔦 Đèn pin / Đèn đường (Chùm sáng định hướng)',
     badge: '🔦 Đèn pin',
     description:
-      'Chùm tia sáng định hướng hình nón sắc nét tuân theo suy giảm vật lý 1/r²; xoay hướng ngắm để soi sáng hang động tối hoặc vật thể trong đêm.',
-    color: '#e8f4ff',
-    intensity: 1.1,
-    radius: 680,
-    coneAngleDeg: 48,
-    beamAngleDeg: 0,
+      'Chùm tia sáng định hướng xuyên qua các layer xếp chồng; tùy chỉnh độ dài, góc hướng, độ mở và độ cong khung sáng.',
+    color: '#ffe6a3',
+    intensity: 1.15,
+    radius: 760,
+    coneAngleDeg: 52,
+    beamAngleDeg: -90,
     windPreset: 'none',
     flickerSpeed: 0.15,
-    zReach: 380,
-    ambientDim: 0.34,
-    softness: 0.35
+    zReach: 1800,
+    ambientDim: 0.28,
+    softness: 0.42,
+    beamCurvature: 0.25
   },
   bulb: {
     kind: 'bulb',
-    label: '💡 Bóng đèn điện / Đèn đường (Tỏa tròn)',
+    label: '💡 Bóng đèn điện / Cột đèn (Tỏa tròn)',
     badge: '💡 Bóng đèn',
     description:
-      'Nguồn sáng điện tỏa đều 360° với vùng bán dạ mềm mại, có thể giữ ổn định hoặc bật nhấp nháy điện áp nhẹ.',
+      'Nguồn sáng điện tỏa đều 360° hoặc chao đèn vòm cong chiếu xuống các layer bên dưới.',
     color: '#ffe6a3',
-    intensity: 0.95,
-    radius: 500,
+    intensity: 1.0,
+    radius: 560,
     coneAngleDeg: 360,
-    beamAngleDeg: 0,
+    beamAngleDeg: -90,
     windPreset: 'none',
     flickerSpeed: 0.25,
-    zReach: 320,
-    ambientDim: 0.18,
-    softness: 0.6
+    zReach: 1600,
+    ambientDim: 0.2,
+    softness: 0.6,
+    beamCurvature: 0.45
   },
   campfire: {
     kind: 'campfire',
@@ -105,16 +110,17 @@ export const VIRTUAL_LIGHT_PRESETS: Record<VirtualLightKind, VirtualLightPreset>
     description:
       'Quầng lửa rộng cam đỏ rực rỡ, dao động bập bùng tự nhiên và bạt theo chiều gió.',
     color: '#ff7828',
-    intensity: 1.08,
-    radius: 560,
+    intensity: 1.12,
+    radius: 620,
     coneAngleDeg: 360,
     beamAngleDeg: 90,
     windPreset: 'gentle',
     windSensitivity: 1.0,
     flickerSpeed: 1.5,
-    zReach: 350,
+    zReach: 1600,
     ambientDim: 0.28,
-    softness: 0.52
+    softness: 0.52,
+    beamCurvature: 0.4
   },
   cave_crystal: {
     kind: 'cave_crystal',
@@ -123,15 +129,16 @@ export const VIRTUAL_LIGHT_PRESETS: Record<VirtualLightKind, VirtualLightPreset>
     description:
       'Ánh sáng lam ngọc phát quang từ sâu trong lòng hang, giúp chiếu sáng nổi khối nhân vật khi đi vào vùng tối cửa hang.',
     color: '#38bdf8',
-    intensity: 0.98,
-    radius: 440,
+    intensity: 1.05,
+    radius: 500,
     coneAngleDeg: 360,
     beamAngleDeg: 0,
     windPreset: 'none',
     flickerSpeed: 0.65,
-    zReach: 320,
+    zReach: 1500,
     ambientDim: 0.26,
-    softness: 0.5
+    softness: 0.5,
+    beamCurvature: 0.35
   },
   magic_orb: {
     kind: 'magic_orb',
@@ -139,15 +146,16 @@ export const VIRTUAL_LIGHT_PRESETS: Record<VirtualLightKind, VirtualLightPreset>
     badge: '✨ Phép thuật',
     description: 'Quầng sáng tím hồng huyền bí trôi nhẹ và lan tỏa ánh sáng mềm.',
     color: '#c084fc',
-    intensity: 0.92,
-    radius: 360,
+    intensity: 0.98,
+    radius: 420,
     coneAngleDeg: 360,
     beamAngleDeg: 0,
     windPreset: 'none',
     flickerSpeed: 0.9,
-    zReach: 280,
+    zReach: 1400,
     ambientDim: 0.22,
-    softness: 0.55
+    softness: 0.55,
+    beamCurvature: 0.4
   }
 }
 
@@ -253,7 +261,8 @@ export function createDefaultVirtualLight(
     flickerSpeed: preset.flickerSpeed,
     zReach: preset.zReach,
     ambientDim: preset.ambientDim,
-    softness: preset.softness
+    softness: preset.softness,
+    beamCurvature: preset.beamCurvature
   }
 }
 
@@ -294,6 +303,8 @@ export interface EvaluatedVirtualLight {
   ambientDim: number
   /** Độ mềm vùng bán dạ (0.1..1.0) */
   softness: number
+  /** Độ cong khung sáng (-0.8..1.0) */
+  beamCurvature: number
 }
 
 export function hexToRgb01(hex: string): [number, number, number] {
@@ -307,6 +318,99 @@ export function hexToRgb01(hex: string): [number, number, number] {
   const num = parseInt(clean.slice(0, 6), 16)
   if (!Number.isFinite(num)) return [1, 0.85, 0.6]
   return [((num >> 16) & 255) / 255, ((num >> 8) & 255) / 255, (num & 255) / 255]
+}
+
+/**
+ * Hàm toán học đồng nhất 100% với GLSL `LAYER_FRAG` (`shaders.ts`) để tính toán
+ * cường độ chùm sáng tại độ lệch pixel `(dxPx, dyPx)` so với tâm nguồn sáng.
+ * Dùng chung cho cả `<canvas>` trong Khung Chỉnh 2.5D và Cam 2D để đảm bảo hiển thị đồng bộ tuyệt đối với Camera 3D.
+ */
+export function computeUnified25DLightAtOffset(
+  dxPx: number,
+  dyPx: number,
+  radPx: number,
+  intensity: number,
+  coneCos: number,
+  beamDir: [number, number],
+  softness: number,
+  beamCurvature = 0.25,
+  zDistRatio = 0
+): { localLightHalo: number; wickCore: number; coneAtten: number } {
+  const safeRad = Math.max(36, radPx)
+  const dist2D = Math.hypot(dxPx, dyPx)
+  const rNorm = dist2D / safeRad
+  if (rNorm >= 1.05 || intensity <= 0.005) {
+    return { localLightHalo: 0, wickCore: 0, coneAtten: 0 }
+  }
+
+  const zStandoff = safeRad * (0.2 + Math.max(0, Math.min(1, zDistRatio)) * 0.42)
+  const lightSoft = Math.max(0.1, Math.min(1.0, softness))
+  const curv = Math.max(-0.8, Math.min(1.0, beamCurvature))
+
+  let coneAtten = 1.0
+  if (coneCos > -0.98) {
+    const bLen = Math.hypot(beamDir[0], beamDir[1])
+    const bx = bLen > 0.001 ? beamDir[0] / bLen : 1
+    const by = bLen > 0.001 ? beamDir[1] / bLen : 0
+    const px = -by
+    const py = bx
+
+    const alongPx = dxPx * bx + dyPx * by
+    const perpPx = Math.abs(dxPx * px + dyPx * py)
+
+    const halfAngle = Math.acos(Math.max(-0.995, Math.min(0.995, coneCos)))
+    const tanHalf = Math.min(2.4, Math.max(0.18, Math.tan(halfAngle * 0.92)))
+    const nozzlePx = Math.max(10, Math.min(26, safeRad * 0.04))
+
+    // Độ cong khung sáng (beamCurvature):
+    // curv > 0: khung sáng phình vòm bầu parabol ngay từ đầu đèn; curv < 0: chụm tiêu điểm
+    const alongNorm = Math.max(0, Math.min(1.2, (alongPx + nozzlePx) / safeRad))
+    const curveExp = Math.max(0.42, Math.min(1.65, 1.0 - curv * 0.52))
+    const curvedEnvelopeWidth =
+      nozzlePx * 0.85 + safeRad * tanHalf * Math.pow(alongNorm, curveExp) * (1.0 + curv * 0.18)
+
+    const widthRatio = perpPx / Math.max(8, curvedEnvelopeWidth)
+    const edgeFeather = Math.max(0.22, 0.32 + lightSoft * 0.55)
+    const innerEdge = Math.max(0.05, 1.0 - edgeFeather * 0.75)
+    const outerEdge = 1.0 + edgeFeather * 0.45
+    const tEdge = Math.max(0, Math.min(1, (widthRatio - innerEdge) / Math.max(0.05, outerEdge - innerEdge)))
+    const envMask = 1.0 - tEdge * tEdge * (3 - 2 * tEdge)
+
+    // Độ cong vòm mũi đèn (front cap curvature)
+    const capCurve = 1.0 - (0.35 + curv * 0.35) * Math.min(1.0, widthRatio * widthRatio * 0.45)
+    const effR = alongNorm / Math.max(0.45, capCurve)
+    const capFade = effR > 1.0 ? Math.max(0, 1.0 - (effR - 1.0) * 3.5) : 1.0
+
+    const tBack = Math.max(
+      0,
+      Math.min(1, (alongPx + nozzlePx * 1.1) / Math.max(8, nozzlePx * 2.1))
+    )
+    const backGate = tBack * tBack * (3 - 2 * tBack)
+    const centerBoost = 0.72 + 0.28 * Math.exp(-1.6 * widthRatio * widthRatio)
+    coneAtten = envMask * centerBoost * backGate * capFade
+  } else if (Math.hypot(beamDir[0], beamDir[1]) > 0.01) {
+    const bLen = Math.hypot(beamDir[0], beamDir[1])
+    const windBias = Math.max(
+      -0.3,
+      Math.min(0.45, (dxPx * (beamDir[0] / bLen) + dyPx * (beamDir[1] / bLen)) / Math.max(32, safeRad))
+    )
+    coneAtten = 1.0 + windBias * 0.22
+  }
+
+  const falloffK = 3.2 - (lightSoft - 0.1) * 1.55
+  const r3D = Math.hypot(rNorm, zStandoff / safeRad)
+  const z0Norm = zStandoff / safeRad
+  const invSq = (1.0 + z0Norm * z0Norm * falloffK) / (1.0 + falloffK * r3D * r3D)
+  const tWin = Math.max(0, Math.min(1, rNorm / 1.05))
+  const win = 1.0 - tWin * tWin * (3 - 2 * tWin)
+  const radialAtten = invSq * win * win
+  const localLightHalo = radialAtten * coneAtten * intensity
+
+  const coreRadPx = Math.max(7, Math.min(20, safeRad * 0.036))
+  const wickCore =
+    Math.exp((-2.4 * (dist2D * dist2D)) / (coreRadPx * coreRadPx)) * Math.min(1.0, intensity * 0.85)
+
+  return { localLightHalo, wickCore, coneAtten }
 }
 
 /**
@@ -348,9 +452,18 @@ export function evaluateVirtualLightAtTime(
   const baseIntensity = Math.max(0.05, vl.intensity ?? preset.intensity)
   const baseRadius = Math.max(40, vl.radius ?? preset.radius)
   const speed = Math.max(0, vl.flickerSpeed ?? preset.flickerSpeed)
-  const zReach = Math.max(30, vl.zReach ?? preset.zReach)
+  const rawZReach = vl.zReach ?? preset.zReach
+  // Tự động mở rộng tầm lan tỏa Z cho các giá trị mặc định cũ (280..380) để ánh sáng truyền qua mọi layer xếp chồng trong cùng Shot
+  const zReach =
+    rawZReach === 280 || rawZReach === 320 || rawZReach === 350 || rawZReach === 380
+      ? 1500
+      : Math.max(30, rawZReach)
   const ambientDim = Math.max(0, Math.min(0.85, vl.ambientDim ?? preset.ambientDim ?? 0.24))
-  const softness = Math.max(0.1, Math.min(1.0, vl.softness ?? preset.softness ?? 0.5))
+  const softness = Math.max(0.1, Math.min(1.0, vl.softness ?? preset.softness ?? 0.45))
+  const beamCurvature = Math.max(
+    -0.8,
+    Math.min(1.0, vl.beamCurvature ?? preset.beamCurvature ?? 0.25)
+  )
 
   let effectiveIntensity = baseIntensity
   let effectiveRadius = baseRadius
@@ -403,7 +516,7 @@ export function evaluateVirtualLightAtTime(
       effectiveBeamDeg = vl.windDirectionDeg ?? 0
     }
   } else if (vl.kind === 'flashlight') {
-    effectiveConeDeg = Math.max(12, Math.min(160, vl.coneAngleDeg ?? 48))
+    effectiveConeDeg = Math.max(12, Math.min(180, vl.coneAngleDeg ?? 52))
     if (speed > 0.5) {
       const hum = Math.sin(t * speed * 14) * 0.03
       effectiveIntensity = baseIntensity * (1 + hum)
@@ -438,7 +551,8 @@ export function evaluateVirtualLightAtTime(
     zReach,
     windOffset: [windOffsetX, windOffsetY],
     ambientDim,
-    softness
+    softness,
+    beamCurvature
   }
 }
 
@@ -498,9 +612,9 @@ export interface ReceivedLayerLightProjection {
 }
 
 /**
- * Tìm nguồn sáng ảo lân cận trong cùng Shot chiếu mạnh nhất lên `targetLayer`
- * dựa trên khoảng cách không gian 3D thực (X, Y, Z), vùng giao cắt khung hình chữ nhật của layer,
- * và góc chùm tia hình nón (nếu là Đèn pin / Spotlight).
+ * Tìm nguồn sáng ảo trong cùng Shot chiếu lên `targetLayer` với phép chiếu phối cảnh 2.5D chuẩn:
+ * - Đồng bộ hệ số `autoScale` theo khoảng cách tham chiếu Camera (`refD = 1483.64`) để chùm tia từ
+ *   một layer nhỏ (ví dụ Cột điện / Đèn pin) truyền thẳng hàng tuyệt đối sang mọi layer nền/đất xếp chồng bên dưới.
  */
 export function resolveReceivedVirtualLightForLayer(
   targetLayerId: string,
@@ -508,7 +622,8 @@ export function resolveReceivedVirtualLightForLayer(
   targetWorldW: number,
   targetWorldH: number,
   targetRotZDeg: number,
-  shotLights: ReadonlyArray<EvaluatedVirtualLight>
+  shotLights: ReadonlyArray<EvaluatedVirtualLight>,
+  refDistance = 1483.6378
 ): ReceivedLayerLightProjection | null {
   if (shotLights.length === 0) return null
 
@@ -517,6 +632,7 @@ export function resolveReceivedVirtualLightForLayer(
   const sinR = Math.sin(rotRad)
   const halfW = Math.max(16, targetWorldW * 0.5)
   const halfH = Math.max(16, targetWorldH * 0.5)
+  const refD = Math.max(200, refDistance)
 
   let best: ReceivedLayerLightProjection | null = null
   let bestScore = 0
@@ -527,39 +643,29 @@ export function resolveReceivedVirtualLightForLayer(
     if (dz > sl.zReach) continue
 
     const zRatio = dz / Math.max(1, sl.zReach)
-    const zAtten = Math.pow(1 - zRatio * zRatio, 1.45)
-    const sliceRadius = sl.effectiveRadius * Math.sqrt(Math.max(0.18, 1 - zRatio * zRatio * 0.75))
+    const zAtten = Math.max(0.22, Math.pow(1 - zRatio * zRatio, 0.9))
 
-    const dxWorld = sl.position[0] - targetPos[0]
-    const dyWorld = sl.position[1] - targetPos[1]
+    // Phép chiếu phối cảnh 2.5D từ mặt phẳng Z của đèn sang mặt phẳng Z của targetLayer
+    const perspRatio = Math.max(150, refD + targetPos[2]) / Math.max(150, refD + sl.position[2])
+    const projLightX = sl.position[0] * perspRatio
+    const projLightY = sl.position[1] * perspRatio
+    const sliceRadius =
+      sl.effectiveRadius * perspRatio * Math.sqrt(Math.max(0.35, 1 - zRatio * zRatio * 0.5))
+
+    const dxWorld = projLightX - targetPos[0]
+    const dyWorld = projLightY - targetPos[1]
     const localLx = dxWorld * cosR - dyWorld * sinR
     const localLy = dxWorld * sinR + dyWorld * cosR
 
-    // Khoảng cách ngắn nhất từ tâm đèn tới hình chữ nhật của targetLayer
+    // Khoảng cách ngắn nhất từ tâm đèn đã chiếu tới hình chữ nhật của targetLayer
     const nearX = Math.max(-halfW, Math.min(halfW, localLx))
     const nearY = Math.max(-halfH, Math.min(halfH, localLy))
     const distToBox = Math.hypot(localLx - nearX, localLy - nearY)
-    if (distToBox > sliceRadius * 1.05) continue
+    if (distToBox > sliceRadius * 1.15) continue
 
-    const xyAtten = Math.pow(Math.max(0, 1 - distToBox / Math.max(1, sliceRadius * 1.1)), 1.2)
-
-    // Nếu là nguồn sáng định hướng (Đèn pin), kiểm tra xem tia sáng có hướng về phía layer không
-    let coneFactor = 1.0
-    if (sl.coneCos > -0.98) {
-      const toBoxX = nearX - localLx
-      const toBoxY = nearY - localLy
-      const toBoxLen = Math.hypot(toBoxX, toBoxY)
-      const localBeamX = sl.beamDir[0] * cosR - sl.beamDir[1] * sinR
-      const localBeamY = sl.beamDir[0] * sinR + sl.beamDir[1] * cosR
-      if (toBoxLen > 8) {
-        const cosToBox = (toBoxX * localBeamX + toBoxY * localBeamY) / toBoxLen
-        if (cosToBox < sl.coneCos - 0.35) continue
-        coneFactor = Math.max(0.25, Math.min(1, (cosToBox - (sl.coneCos - 0.35)) / Math.max(0.1, 1 - sl.coneCos + 0.35)))
-      }
-    }
-
-    const score = sl.effectiveIntensity * zAtten * xyAtten * coneFactor
-    if (score > bestScore && score > 0.03) {
+    const xyAtten = Math.pow(Math.max(0.15, 1 - distToBox / Math.max(1, sliceRadius * 1.2)), 1.0)
+    const score = sl.effectiveIntensity * zAtten * xyAtten
+    if (score > bestScore && score > 0.02) {
       bestScore = score
       const localBeamX = sl.beamDir[0] * cosR - sl.beamDir[1] * sinR
       const localBeamY = sl.beamDir[0] * sinR + sl.beamDir[1] * cosR
@@ -579,33 +685,18 @@ export function resolveReceivedVirtualLightForLayer(
 }
 
 export interface CavePortalInfluence {
-  /** Mức độ đi sâu vào lòng hang (0 = ngoài cửa hang, 1 = tâm sâu nhất của hang) */
   penetration: number
-  /** Hệ số thu nhỏ nhân vật khi đi vào cửa hang (1.0 -> minScale) */
   scaleMultiplier: number
-  /** Độ hút ngang về tâm lối đi trong hang theo phối cảnh */
   xDelta: number
-  /** Độ hạ chân theo sàn hang để nhân vật không bị lơ lửng khi thu nhỏ */
   yDelta: number
-  /** Độ lùi Z khi tiến vào lòng hang */
   zDelta: number
-  /** Độ tối bóng đêm hang động sau khi đã trừ phần được Nguồn sáng ảo chiếu sáng (0..1) */
   effectiveDarkness: number
-  /** Độ tối thô của hang động trước khi có đèn chiếu (0..1) */
   rawCaveDarkness: number
-  /** Cường độ ánh sáng ảo chiếu lên nhân vật (0..2) */
   lightIllumination: number
-  /** Màu ánh sáng ảo chiếu lên nhân vật [r, g, b] */
   lightTintRgb: [number, number, number]
-  /** Màu bóng tối của hang [r, g, b] */
   shadowTintRgb: [number, number, number]
 }
 
-/**
- * Tính toán độ chiếu sáng vật lý của một `EvaluatedVirtualLight` lên một điểm 3D `[px, py, pz]`:
- * - Áp dụng suy giảm nghịch đảo bình phương mềm (Inverse-Square + Smooth Window) theo cả bán kính XY và độ sâu Z.
- * - Với nguồn sáng hình nón (Đèn pin), tính toán vùng lõi sáng và vùng bán dạ (penumbra) mượt mà.
- */
 export function computeLightContributionAtPoint(
   light: EvaluatedVirtualLight,
   px: number,
@@ -617,42 +708,23 @@ export function computeLightContributionAtPoint(
 
   const dx = px - light.position[0]
   const dy = py - light.position[1]
-  const dist2D = Math.hypot(dx, dy)
-  if (dist2D > light.effectiveRadius) return 0
+  const zRatio = dz / Math.max(1, light.zReach)
+  const zAtten = Math.max(0.2, Math.pow(1 - zRatio * zRatio, 0.95))
 
-  const zNorm = dz / Math.max(1, light.zReach)
-  const rNorm = dist2D / Math.max(1, light.effectiveRadius)
-
-  const zAtten = Math.pow(1 - zNorm * zNorm, 1.45)
-  const invSq = 1 / (1 + 2.1 * rNorm * rNorm)
-  const windowAtten = Math.pow(1 - rNorm, 1.25)
-  const radialAtten = invSq * windowAtten * 1.28
-
-  let coneAtten = 1.0
-  if (light.coneCos > -0.98 && dist2D > 4) {
-    const along = dx * light.beamDir[0] + dy * light.beamDir[1]
-    const perp = Math.abs(-dx * light.beamDir[1] + dy * light.beamDir[0])
-    const nozzleOffset = Math.max(10, light.effectiveRadius * 0.035)
-    if (along < -nozzleOffset * 0.7) return 0
-    const cosAng = (along + nozzleOffset) / Math.hypot(along + nozzleOffset, perp)
-    if (cosAng < light.coneCos) return 0
-    const penumbraSpan = Math.max(0.04, (1 - light.coneCos) * (0.28 + light.softness * 0.35))
-    const rawCone = Math.min(1, (cosAng - light.coneCos) / penumbraSpan)
-    coneAtten = rawCone * rawCone * (3 - 2 * rawCone)
-  }
-
-  return light.effectiveIntensity * radialAtten * zAtten * coneAtten
+  const evalBeam = computeUnified25DLightAtOffset(
+    dx,
+    dy,
+    light.effectiveRadius,
+    light.effectiveIntensity,
+    light.coneCos,
+    light.beamDir,
+    light.softness,
+    light.beamCurvature,
+    zRatio
+  )
+  return evalBeam.localLightHalo * zAtten
 }
 
-/**
- * Đánh giá hiệu ứng Vùng Độ Sâu / Lối Vào Hang Động (`depthPortal`) và Ánh Sáng Ảo (`virtualLight`)
- * tác động lên `targetLayer` tại thời điểm `t`:
- * - Khi nhân vật đi vào vùng cửa hang trên layer nền/cổng đá:
- *   1. Nhân vật tự động thu nhỏ dần theo phối cảnh (`scaleMultiplier` -> `minScale`), hạ sàn (`yDelta`) và lùi sâu vào Z (`zDelta`).
- *   2. Bóng tối hang động che phủ dần nhân vật (`rawCaveDarkness`).
- *   3. Nếu trong hang động (hoặc trên người nhân vật) có Nguồn sáng ảo (Ánh nến, Đèn pin, Tinh thể),
- *      ánh sáng đó sẽ chiếu sáng phần nhân vật đang ở trong hang, đẩy lùi bóng tối (`effectiveDarkness` giảm)!
- */
 export function evaluateCaveDepthPortalForLayer(
   project: Project,
   targetLayer: Layer,
@@ -662,7 +734,6 @@ export function evaluateCaveDepthPortalForLayer(
   const shotId = targetLayer.shotId ?? null
   const lights = collectActiveVirtualLights(project, shotId, t)
 
-  // Bản thân layer mang cửa hang không tự thu nhỏ chính nó
   if (targetLayer.physics?.depthPortal?.enabled) {
     let caveAmbientLight = 0
     let accR = 0
@@ -732,7 +803,6 @@ export function evaluateCaveDepthPortalForLayer(
     const dxNorm = (pos[0] - portalX) / rxPx
     const dyNorm = (pos[1] - portalY) / ryPx
     const shape = portal.archShape ?? 'arch'
-    // Hình vòm hang tự nhiên: phần đáy cửa hang mở rộng nhẹ để đón bước chân nhân vật
     const archFactor = shape === 'arch' ? 1 - Math.max(-0.5, Math.min(0.5, dyNorm)) * 0.14 : 1
     const normDist = Math.hypot(dxNorm / Math.max(0.7, archFactor), dyNorm)
 

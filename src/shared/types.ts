@@ -349,6 +349,8 @@ export interface LayerVirtualLight {
   ambientDim?: number
   /** Độ mềm viền chùm sáng / vùng bán dạ (0.1 .. 1.0, mặc định 0.5) */
   softness?: number
+  /** Độ cong khung sáng (-0.8 = chụm tiêu điểm, 0 = nón thẳng, +1.0 = vòm bầu parabol rộng, mặc định 0.25) */
+  beamCurvature?: number
 }
 
 export interface PhysicsImpactPulse {

@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import type { BlendMode, Layer } from '@shared/types'
-import { LAYER_FRAG } from './shaders'
+import { LAYER_FRAG, LAYER_VERT, VOLUMETRIC_LIGHT_FRAG } from './shaders'
 import type { EvaluatedCamera, EvaluatedLayer, EvaluatedScene } from './evaluateScene'
 import {
   collectEvaluatedVirtualLights,
@@ -166,7 +166,6 @@ export function canvasAlpha(canvas: HTMLCanvasElement): AlphaMask {
   return { w, h, data }
 }
 
-
 /** Đồng bộ các uniform Cổng Độ Sâu Hang Động & Ánh Sáng Ảo 2.5D cho mỗi layer plane. */
 export function syncLayerCaveAndLightUniforms(
   u: Record<string, THREE.IUniform>,
@@ -226,8 +225,8 @@ export function syncLayerCaveAndLightUniforms(
     const shiftU = localWindX / worldW
     const shiftV = localWindY / worldH
     u.vlightUv.value.set(
-      Math.max(0.02, Math.min(0.98, origU + shiftU)),
-      Math.max(0.02, Math.min(0.98, origV + shiftV))
+      Math.max(-0.5, Math.min(1.5, origU + shiftU)),
+      Math.max(-0.5, Math.min(1.5, origV + shiftV))
     )
     u.vlightColor.value.set(evVLight.color)
     u.vlightParams.value.set(
@@ -239,7 +238,7 @@ export function syncLayerCaveAndLightUniforms(
     const localBeamY = evVLight.beamDir[0] * sinR + evVLight.beamDir[1] * cosR
     u.vlightBeam.value.set(localBeamX, localBeamY)
     if (u.vlightExtra) {
-      u.vlightExtra.value.set(evVLight.ambientDim, evVLight.softness, 0)
+      u.vlightExtra.value.set(evVLight.ambientDim, evVLight.softness, evVLight.beamCurvature)
     }
     return true
   }
@@ -251,7 +250,8 @@ export function syncLayerCaveAndLightUniforms(
     worldW,
     worldH,
     el.rotation[2] || 0,
-    shotLights
+    shotLights,
+    ev.camera.refDistance ?? 1483.6378
   )
   if (received) {
     u.vlightOn.value = 2
@@ -264,10 +264,108 @@ export function syncLayerCaveAndLightUniforms(
     )
     u.vlightBeam.value.set(received.localBeamDir[0], received.localBeamDir[1])
     if (u.vlightExtra) {
-      u.vlightExtra.value.set(received.light.ambientDim, received.light.softness, received.zDistRatio)
+      u.vlightExtra.value.set(
+        received.light.ambientDim,
+        received.light.softness,
+        received.light.beamCurvature
+      )
     }
   } else {
     u.vlightOn.value = 0
   }
   return false
+}
+
+function makeVolumetricLightMaterial(): THREE.ShaderMaterial {
+  const mat = new THREE.ShaderMaterial({
+    vertexShader: LAYER_VERT,
+    fragmentShader: VOLUMETRIC_LIGHT_FRAG,
+    transparent: true,
+    depthWrite: false,
+    depthTest: true,
+    depthFunc: THREE.LessEqualDepth,
+    side: THREE.DoubleSide,
+    blending: THREE.CustomBlending,
+    blendEquation: THREE.AddEquation,
+    blendSrc: THREE.OneFactor,
+    blendDst: THREE.OneMinusSrcColorFactor,
+    uniforms: {
+      uvRepeat: { value: new THREE.Vector2(1, 1) },
+      uvOffset: { value: new THREE.Vector2(0, 0) },
+      vlightColor: { value: new THREE.Color('#ffe6a3') },
+      vlightParams: { value: new THREE.Vector3(1, 500, -1) },
+      vlightBeam: { value: new THREE.Vector2(1, 0) },
+      vlightExtra: { value: new THREE.Vector3(0.25, 0.45, 0.25) },
+      quadSpanPx: { value: 1200 }
+    }
+  })
+  return mat
+}
+
+const _beamLocalMat = new THREE.Matrix4()
+const _beamScaleMat = new THREE.Matrix4()
+
+/**
+ * Tạo và cập nhật các mặt phẳng luồng sáng khí quyển (Volumetric Light Beams) độc lập hoàn toàn với kích thước layer nguồn:
+ * Khi gắn đèn pin vào một layer nhỏ (như Cột điện), luồng sáng vẫn vươn dài đủ bán kính `effectiveRadius`
+ * xuyên qua không gian cảnh và truyền xuống mọi layer bên dưới.
+ */
+export function syncShotVolumetricLightBeams(
+  scene: THREE.Scene,
+  beamMeshes: Map<string, THREE.Mesh>,
+  ev: EvaluatedScene,
+  baseRenderOrder: number
+): void {
+  const activeIds = new Set<string>()
+  const refD = Math.max(200, ev.camera.refDistance ?? 1483.6378)
+  let orderOffset = 0
+
+  for (const el of ev.layers) {
+    if (!el.active || !el.layer.visible) continue
+    if (!el.layer.virtualLight?.enabled || el.layer.virtualLight.kind === 'none') continue
+    const evLight = evaluateVirtualLightAtTime(el.layer, ev.t, el.position, el.size, el.scale)
+    if (!evLight || evLight.effectiveIntensity <= 0.01) continue
+
+    activeIds.add(el.layer.id)
+    let mesh = beamMeshes.get(el.layer.id)
+    if (!mesh) {
+      mesh = new THREE.Mesh(UNIT_PLANE, makeVolumetricLightMaterial())
+      mesh.matrixAutoUpdate = false
+      mesh.frustumCulled = false
+      scene.add(mesh)
+      beamMeshes.set(el.layer.id, mesh)
+    }
+
+    const perspK = el.layer.autoScale ? Math.max(0.2, (refD + evLight.position[2]) / refD) : 1
+    const worldRad = evLight.effectiveRadius * perspK
+    const spanPx = evLight.effectiveRadius * 2.25
+    const spanWorld = worldRad * 2.25
+
+    _beamLocalMat.makeTranslation(evLight.position[0], evLight.position[1], -(evLight.position[2] - 0.5))
+    _beamScaleMat.makeScale(spanWorld, spanWorld, 1)
+    _beamLocalMat.multiply(_beamScaleMat)
+
+    if (el.shot) {
+      mesh.matrix.multiplyMatrices(el.shot.matrix, _beamLocalMat)
+    } else {
+      mesh.matrix.copy(_beamLocalMat)
+    }
+    mesh.updateMatrixWorld(true)
+    mesh.visible = true
+    mesh.renderOrder = baseRenderOrder + orderOffset++
+
+    const mat = mesh.material as THREE.ShaderMaterial
+    const u = mat.uniforms
+    u.vlightColor.value.set(evLight.color)
+    u.vlightParams.value.set(evLight.effectiveIntensity, evLight.effectiveRadius, evLight.coneCos)
+    u.vlightBeam.value.set(evLight.beamDir[0], evLight.beamDir[1])
+    u.vlightExtra.value.set(evLight.ambientDim, evLight.softness, evLight.beamCurvature)
+    u.quadSpanPx.value = spanPx
+  }
+
+  for (const [id, mesh] of beamMeshes) {
+    if (!activeIds.has(id)) {
+      mesh.visible = false
+    }
+  }
 }

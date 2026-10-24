@@ -29,20 +29,21 @@ export function Layer2DLightOverlay({
   const haloOpacity = Math.max(0.1, Math.min(0.32, Math.pow(intensity, 0.68) * 0.24))
 
   const haloDiamPct = layer.vlight
-    ? Math.max(84, Math.min(195, Math.round(layer.vlight.radiusRatio * 122 * intensityReach)))
+    ? Math.max(84, Math.min(380, Math.round(layer.vlight.radiusRatio * 128 * intensityReach)))
     : 115
   const surfRadPct = layer.vlight
-    ? Math.max(28, Math.min(95, Math.round(layer.vlight.radiusRatio * 70 * intensityReach)))
+    ? Math.max(28, Math.min(180, Math.round(layer.vlight.radiusRatio * 74 * intensityReach)))
     : 56
 
   const coneDeg = layer.vlight?.coneAngleDeg ?? 360
   const beamDeg = layer.vlight?.beamAngleDeg ?? 0
+  const beamCurv = layer.vlight?.beamCurvature ?? 0
   const isCone = coneDeg < 350
-  const halfCone = Math.max(8, Math.min(170, Math.round(coneDeg * 0.5)))
+  const halfCone = Math.max(8, Math.min(170, Math.round(coneDeg * (0.5 + beamCurv * 0.14))))
   const penumbra = Math.max(6, Math.round(halfCone * 0.38))
   const startConeDeg = 90 - halfCone - penumbra
-  const spreadRatio = Math.max(0.24, Math.min(0.96, coneDeg / 160))
-  const plumeRyPct = Math.max(18, Math.min(48, Math.round(46 * spreadRatio)))
+  const spreadRatio = Math.max(0.2, Math.min(0.98, (coneDeg / 160) * (1 + beamCurv * 0.25)))
+  const plumeRyPct = Math.max(16, Math.min(54, Math.round(46 * spreadRatio)))
 
   const pUPct = layer.portal ? Math.round(layer.portal.centerU * 100) : 50
   const pVPct = layer.portal ? Math.round((1 - layer.portal.centerV) * 100) : 55

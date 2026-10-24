@@ -67,10 +67,11 @@ function appendLayerLightAndPortalGizmos(
     const v0 = Math.max(-0.48, Math.min(0.48, (vl.originUV?.[1] ?? 0.5) - 0.5 + offV))
     const worldW = Math.max(64, el.size[0] * Math.abs(el.scale[0]))
     const worldH = Math.max(64, el.size[1] * Math.abs(el.scale[1]))
-    const rNormX = Math.min(1.35, Math.max(0.14, (vl.radius || 320) / worldW)) * 0.5
-    const rNormY = Math.min(1.35, Math.max(0.14, (vl.radius || 320) / worldH)) * 0.5
+    const rNormX = Math.min(4.5, Math.max(0.14, (vl.radius || 320) / worldW)) * 0.5
+    const rNormY = Math.min(4.5, Math.max(0.14, (vl.radius || 320) / worldH)) * 0.5
     const coneDeg = vl.coneAngleDeg ?? 360
     const beamRad = ((vl.beamAngleDeg ?? 0) * Math.PI) / 180
+    const beamCurv = Math.max(-0.8, Math.min(1.0, vl.beamCurvature ?? 0))
     const origPt = tmp.set(u0, v0, 0.01).applyMatrix4(matrix).toArray()
 
     // Tâm đèn hình thoi nhỏ + trục lan tỏa độ sâu Z (±zReach)
@@ -82,7 +83,7 @@ function appendLayerLightAndPortalGizmos(
     pushSeg(dLeft, dRight, 1, 0.96, 0.82)
     pushSeg(dBot, dTop, 1, 0.96, 0.82)
 
-    const zReach = Math.max(40, vl.zReach ?? 280)
+    const zReach = Math.max(40, vl.zReach ?? 1500)
     const zFront = tmp.set(u0, v0, zReach).applyMatrix4(matrix).toArray()
     const zBack = tmp.set(u0, v0, -zReach).applyMatrix4(matrix).toArray()
     pushSeg(zFront, zBack, lCol.r * 0.75, lCol.g * 0.75, lCol.b * 0.75)
@@ -91,11 +92,22 @@ function appendLayerLightAndPortalGizmos(
       const halfRad = (Math.max(12, coneDeg) * 0.5 * Math.PI) / 180
       const startA = beamRad - halfRad
       const endA = beamRad + halfRad
+      const edgeSegs = 8
+      for (const side of [-1, 1]) {
+        let prevPt = origPt
+        for (let i = 1; i <= edgeSegs; i++) {
+          const f = i / edgeSegs
+          const bowF = Math.max(0.18, Math.pow(f, Math.max(0.35, 1 - beamCurv * 0.6)))
+          const a = beamRad + side * halfRad * (bowF / Math.max(0.08, f))
+          const nextPt = tmp
+            .set(u0 + Math.cos(a) * rNormX * f, v0 + Math.sin(a) * rNormY * f, 0.01)
+            .applyMatrix4(matrix)
+            .toArray()
+          pushSeg(prevPt, nextPt, lCol.r, lCol.g, lCol.b)
+          prevPt = nextPt
+        }
+      }
       const segs = 14
-      const rStart = tmp.set(u0 + Math.cos(startA) * rNormX, v0 + Math.sin(startA) * rNormY, 0.01).applyMatrix4(matrix).toArray()
-      const rEnd = tmp.set(u0 + Math.cos(endA) * rNormX, v0 + Math.sin(endA) * rNormY, 0.01).applyMatrix4(matrix).toArray()
-      pushSeg(origPt, rStart, lCol.r, lCol.g, lCol.b)
-      pushSeg(origPt, rEnd, lCol.r, lCol.g, lCol.b)
       for (let s = 0; s < segs; s++) {
         const a0 = startA + ((endA - startA) * s) / segs
         const a1 = startA + ((endA - startA) * (s + 1)) / segs

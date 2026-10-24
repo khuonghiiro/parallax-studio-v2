@@ -14,6 +14,7 @@ import {
   LAYER_COMPOSE_FRAG,
   LOOKAHEAD,
   syncLayerCaveAndLightUniforms,
+  syncShotVolumetricLightBeams,
   TYPE_COLORS,
   UNIT_PLANE,
   type EditorRenderOptions,
@@ -61,6 +62,7 @@ export class SceneRenderer {
   private copyMat: THREE.ShaderMaterial
   private postQuad: THREE.Mesh
   private nodes = new Map<string, LayerNode>()
+  private lightBeams = new Map<string, THREE.Mesh>()
   private outline: THREE.LineSegments
   private raycaster = new THREE.Raycaster()
   private lastScene: EvaluatedScene | null = null
@@ -461,6 +463,7 @@ export class SceneRenderer {
       return b.index - a.index
     })
     ordering.forEach((o, i) => (o.node.object.renderOrder = i))
+    syncShotVolumetricLightBeams(this.scene, this.lightBeams, ev, ordering.length)
 
     if (!mode.editor) {
       this.lastStats = {
@@ -735,6 +738,11 @@ export class SceneRenderer {
     this.pool.disposed = true
     for (const node of this.nodes.values()) disposeNode(node, this.scene, (k) => this.pool.dropTexture(k))
     this.nodes.clear()
+    for (const mesh of this.lightBeams.values()) {
+      this.scene.remove(mesh)
+      ;(mesh.material as THREE.Material).dispose()
+    }
+    this.lightBeams.clear()
     this.pool.dropAllTextures()
     this.helpers?.dispose()
     this.rt.dispose()

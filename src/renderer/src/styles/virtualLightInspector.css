@@ -1,0 +1,446 @@
+/* ==========================================================================
+   Virtual Light 2.5D & Cave Depth Portal Inspector Styles (Dual-Theme: Dark & Light)
+   Strictly uses CSS variables from variables.css for 100% contrast compliance.
+   ========================================================================== */
+
+.vl-inspector-root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text);
+}
+
+/* Sticky 2.5D Pad Dock — stays visible while adjusting Light or Cave below */
+.vl-sticky-dock {
+  position: sticky;
+  top: 0;
+  z-index: 35;
+  background: var(--bg-1);
+  padding-top: 2px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+}
+
+[data-theme='light'] .vl-sticky-dock {
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+}
+
+/* Segmented Sub-Tab Bar (Ánh Sáng Ảo | Cửa Hang 2.5D | Hiện Cả Hai) */
+.vl-subtab-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 3px;
+  margin-top: 6px;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+
+.vl-subtab-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  white-space: nowrap;
+}
+
+.vl-subtab-btn:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.vl-subtab-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent-hover);
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(20, 115, 230, 0.3);
+}
+
+/* Interactive 2.5D Pad Card */
+.vl-pad-card {
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  overflow: hidden;
+}
+
+.vl-pad-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  background: var(--bg-3);
+  border-bottom: 1px solid var(--line);
+  font-size: 10.5px;
+  color: var(--text);
+}
+
+.vl-pad-title {
+  font-weight: 700;
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.vl-pad-badges {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.vl-badge-light {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--key);
+  color: var(--on-key);
+}
+
+.vl-badge-cave {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.vl-pad-stage {
+  position: relative;
+  width: 100%;
+  height: 146px;
+  cursor: crosshair;
+  user-select: none;
+  touch-action: none;
+  overflow: hidden;
+  background-color: #0b0d13;
+  background-image:
+    linear-gradient(45deg, #131722 25%, transparent 25%),
+    linear-gradient(-45deg, #131722 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #131722 75%),
+    linear-gradient(-45deg, transparent 75%, #131722 75%);
+  background-size: 14px 14px;
+  background-position: 0 0, 0 7px, 7px -7px, -7px 0;
+}
+
+.vl-pad-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.vl-pad-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Draggable Handles on 2.5D Pad */
+.vl-handle {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  z-index: 6;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.vl-handle:hover,
+.vl-handle.dragging {
+  transform: translate(-50%, -50%) scale(1.16);
+}
+
+.vl-handle-light {
+  width: 22px;
+  height: 22px;
+  background: #f59e0b;
+  color: #111827;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.75);
+  cursor: grab;
+}
+
+.vl-handle-aim {
+  width: 19px;
+  height: 19px;
+  background: #ffffff;
+  color: #0f172a;
+  border: 2px solid #f59e0b;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.75);
+  cursor: grab;
+  font-size: 9px;
+}
+
+.vl-handle-curve {
+  width: 17px;
+  height: 17px;
+  background: #fde047;
+  color: #0f172a;
+  border: 2px solid #1e293b;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.75);
+  cursor: ew-resize;
+  font-size: 9px;
+}
+
+.vl-handle-cave {
+  width: 21px;
+  height: 21px;
+  background: #0ea5e9;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.75);
+  cursor: grab;
+}
+
+.vl-handle-cave-size {
+  width: 17px;
+  height: 17px;
+  background: #1e293b;
+  color: #e0f2fe;
+  border: 1.5px solid #38bdf8;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.75);
+  cursor: nwse-resize;
+  font-size: 9px;
+}
+
+.vl-pad-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 5px 8px;
+  background: var(--bg-3);
+  border-top: 1px solid var(--line);
+  font-size: 9.5px;
+  color: var(--text);
+}
+
+.vl-pad-stat {
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.vl-pad-hint {
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+/* Section Card Containers */
+.vl-section-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9px;
+  border-radius: 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+
+.vl-subcard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+
+.vl-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.vl-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.vl-subtitle {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.vl-value-badge {
+  font-size: 10px;
+  font-family: var(--mono);
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--bg-3);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+/* Preset Kind Grid (Nến, Đuốc, Đèn lồng, Đèn pha, Đèn pin, Đom đóm...) */
+.vl-kind-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.vl-kind-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 5px 3px;
+  min-height: 40px;
+  border-radius: 6px;
+  background: var(--bg-1);
+  color: var(--text);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.vl-kind-card:hover {
+  background: var(--bg-3);
+  border-color: var(--text-dim);
+}
+
+.vl-kind-card.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent-hover);
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(20, 115, 230, 0.28);
+}
+
+.vl-kind-icon {
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+.vl-kind-label {
+  font-size: 9.5px;
+  line-height: 1.15;
+  text-align: center;
+  color: inherit;
+}
+
+/* High-Contrast Pill Buttons (Direction, Curvature, Cave Presets, Arch Shape) */
+.vl-pill-grid {
+  display: grid;
+  gap: 4px;
+}
+
+.vl-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--bg-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  white-space: nowrap;
+}
+
+.vl-pill-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--text-dim);
+}
+
+.vl-pill-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent-hover);
+  font-weight: 700;
+}
+
+.vl-pill-btn.active-amber {
+  background: var(--key);
+  color: var(--on-key);
+  border-color: var(--key);
+  font-weight: 700;
+}
+
+/* Color Swatches with Dual-Theme Double Ring so dark & light colors never blend into background */
+.vl-swatch-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.vl-swatch-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  padding: 0;
+  cursor: pointer;
+  border: 2px solid var(--line);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.32);
+  transition: transform 0.1s ease, border-color 0.1s ease, box-shadow 0.1s ease;
+}
+
+[data-theme='light'] .vl-swatch-btn {
+  border-color: #94a3b8;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+}
+
+.vl-swatch-btn:hover {
+  transform: scale(1.08);
+  border-color: var(--text);
+}
+
+.vl-swatch-btn.active {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1.5px var(--bg-1),
+    0 0 0 3.5px var(--accent),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
+.vl-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+}

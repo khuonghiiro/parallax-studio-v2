@@ -58,6 +58,7 @@ export interface ProjectedLayer2D {
     isReceived?: boolean
     ambientDim?: number
     softness?: number
+    beamCurvature?: number
   }
   portal?: {
     centerU: number
@@ -356,34 +357,36 @@ export function projectShotLayers2D(
         kind: evVLight.kind,
         color: evVLight.color,
         intensity: evVLight.effectiveIntensity,
-        radiusRatio: Math.max(0.25, Math.min(2.2, evVLight.effectiveRadius / Math.max(48, Math.max(worldW, worldH)))),
+        radiusRatio: Math.max(0.25, Math.min(4.2, evVLight.effectiveRadius / Math.max(48, Math.max(worldW, worldH)))),
         originU: Math.max(0.05, Math.min(0.95, origU + shiftU)),
         originV: Math.max(0.05, Math.min(0.95, origV + shiftV)),
         coneAngleDeg: coneDeg,
         beamAngleDeg: beamDeg,
         isReceived: false,
         ambientDim: evVLight.ambientDim,
-        softness: evVLight.softness
+        softness: evVLight.softness,
+        beamCurvature: evVLight.beamCurvature
       }
 
 
     } else if (shotLights.length > 0) {
-      const received = resolveReceivedVirtualLightForLayer(el.layer.id, el.position, worldW, worldH, el.rotation[2] || 0, shotLights)
-      if (received && received.relU > -0.8 && received.relU < 1.8 && received.relV > -0.8 && received.relV < 1.8) {
+      const received = resolveReceivedVirtualLightForLayer(el.layer.id, el.position, worldW, worldH, el.rotation[2] || 0, shotLights, refD)
+      if (received && received.relU > -2.5 && received.relU < 3.5 && received.relV > -2.5 && received.relV < 3.5) {
         const beamDeg = (Math.atan2(received.localBeamDir[1], received.localBeamDir[0]) * 180) / Math.PI
         const coneDeg = received.light.coneCos <= -0.98 ? 360 : Math.round(((Math.acos(Math.max(-1, Math.min(1, received.light.coneCos))) * 180) / Math.PI) * 2)
         base.vlight = {
           kind: received.light.kind,
           color: received.light.color,
           intensity: received.effectiveIntensity,
-          radiusRatio: Math.max(0.25, Math.min(2.2, received.projectedRadiusPx / Math.max(64, Math.max(worldW, worldH)))),
+          radiusRatio: Math.max(0.25, Math.min(4.2, received.projectedRadiusPx / Math.max(64, Math.max(worldW, worldH)))),
           originU: received.relU,
           originV: received.relV,
           coneAngleDeg: coneDeg,
           beamAngleDeg: beamDeg,
           isReceived: true,
           ambientDim: received.light.ambientDim,
-          softness: received.light.softness
+          softness: received.light.softness,
+          beamCurvature: received.light.beamCurvature
         }
       }
     }
