@@ -379,7 +379,7 @@ export function getLayerTimelineLogicBadges(
     })
   }
 
-  // 2. Huy hiệu từ các Capability Plugins của Layer (Đèn 2.5D, Hang 2.5D, Vật lý, Motion...)
+  // 2. Huy hiệu từ các Capability Plugins của Layer
   for (const plugin of LAYER_CAPABILITY_PLUGINS) {
     const inspected = plugin.inspect(layer)
     if (inspected) {
@@ -523,8 +523,24 @@ export function addTimelineLogic(
         entity.position = { x: column, y: 360 }
         graph.nodes.push(entity)
       }
+      const peerCount = graph.edges.filter(
+        (e) => e.fromNode === entity!.id && e.fromPort !== 'transform_link' && e.fromPort !== 'layers_tree'
+      ).length
+      node.position = {
+        x: entity.position.x + 290,
+        y: Math.max(40, entity.position.y - 30 + peerCount * 195)
+      }
       graph = connectWorkflowPort(graph, source.id, 'layers_tree', entity.id, 'layers_tree')
       connected = wireSource(graph, entity, node)
+    }
+    if (!connected) {
+      const peerCount = graph.edges.filter(
+        (e) => e.fromNode === source!.id && e.fromPort !== 'layers_tree'
+      ).length
+      node.position = {
+        x: source.position.x + 310,
+        y: Math.max(40, source.position.y + peerCount * 195)
+      }
     }
     graph = connected ?? wireSource(graph, source, node) ?? graph
     if (!graph.edges.some((edge) => edge.toNode === node.id)) {

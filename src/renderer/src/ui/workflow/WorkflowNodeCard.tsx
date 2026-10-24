@@ -17,6 +17,10 @@ import { WorkflowNodePreview } from './WorkflowNodePreview'
 import { WorkflowTransformBody } from './WorkflowTransformBody'
 import { WorkflowLayerBody } from './WorkflowLayerBody'
 import {
+  WorkflowAtomicNodeBody,
+  WorkflowMainNodeEnrichedBar
+} from './WorkflowAtomicCardBody'
+import {
   NODE_W,
   SOCKET_PAD_TOP,
   SOCKET_ROW_H,
@@ -26,6 +30,12 @@ import {
   getBestMatchingOutputPort
 } from './workflowLayoutAndFlow'
 import { validateWorkflowConnection } from '../../project/workflowConnectionRules'
+import { getWorkflowNodePorts } from '../../project/workflowNodePorts'
+import {
+  connectAtomicNodeToMainNode,
+  isMainWorkflowNode,
+  switchAtomicNodeFunction
+} from '../../project/workflowNodeComposition'
 
 export interface WorkflowNodeCardProps {
   node: WorkflowNode
@@ -81,8 +91,17 @@ export interface WorkflowNodeCardProps {
     toNode: string,
     toPort: WorkflowPortKind
   ) => void
+  onDisconnectEdge?: (edgeId: string) => void
   onClearPendingWire: () => void
   onOpenConfig?: (node: WorkflowNode) => void
+  onOpenQuickAttach?: (e: React.MouseEvent, mainNode: WorkflowNode) => void
+  commitWorkflow?: (
+    wf: WorkflowGraph,
+    mergeKey?: string,
+    syncScene?: boolean,
+    selectIds?: Set<string>
+  ) => void
+  showToast?: (msg: string) => void
 }
 
 export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
@@ -108,8 +127,12 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
   onInputSocketClick,
   onOutputSocketClick,
   onConnectPorts,
+  onDisconnectEdge,
   onClearPendingWire,
-  onOpenConfig
+  onOpenConfig,
+  onOpenQuickAttach,
+  commitWorkflow,
+  showToast
 }) => {
   const logicItem = React.useMemo(() => {
     if (!node.params?.logicId) return null
@@ -136,19 +159,45 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
 
   const spec = WORKFLOW_NODE_SPECS[node.type]
 
-  const inputs = React.useMemo(() => {
+  const { inputs, outputs } = React.useMemo(() => {
     if (boundLayer) {
-      return ['layers_tree', 'motion_stream', 'vfx_stage', 'audio_mix'] as WorkflowPortKind[]
+      return {
+        inputs: ['layers_tree', 'motion_stream', 'vfx_stage', 'audio_mix'] as WorkflowPortKind[],
+        outputs: ['transform_link', 'actors_rig'] as WorkflowPortKind[]
+      }
     }
-    return spec?.inputs ?? []
-  }, [boundLayer, spec])
+    return getWorkflowNodePorts(node)
+  }, [boundLayer, node])
 
-  const outputs = React.useMemo(() => {
-    if (boundLayer) {
-      return ['transform_link', 'actors_rig'] as WorkflowPortKind[]
-    }
-    return spec?.outputs ?? []
-  }, [boundLayer, spec])
+  const handleSwitchAtomicFunction = React.useCallback(
+    (nodeId: string, newLogicId: string) => {
+      if (!commitWorkflow) return
+      const next = switchAtomicNodeFunction(workflow, nodeId, newLogicId)
+      commitWorkflow(next, `wf-switch-fn-${nodeId}`, true, new Set([nodeId]))
+      const newItem = WORKFLOW_LOGIC_NODE_CATALOG.find((x) => x.id === newLogicId)
+      if (newItem) {
+        showToast?.(`⚡ Đã đổi chức năng khối sang "${newItem.icon} ${newItem.title}"!`)
+      }
+    },
+    [commitWorkflow, workflow, showToast]
+  )
+
+  const handleConnectToMainNode = React.useCallback(
+    (atomicNodeId: string, mainNodeId: string) => {
+      if (!commitWorkflow) return
+      const next = connectAtomicNodeToMainNode(workflow, atomicNodeId, mainNodeId)
+      if (next.edges.length > workflow.edges.length) {
+        commitWorkflow(next, undefined, true)
+        const mainNode = workflow.nodes.find((n) => n.id === mainNodeId)
+        showToast?.(
+          `🔗 Đã gắn chức năng "${logicItem?.title ?? node.title}" vào Node Chính "${mainNode?.title ?? mainNodeId}"!`
+        )
+      } else {
+        showToast?.('⚠️ Không tìm thấy cổng tương thích để gắn trực tiếp')
+      }
+    },
+    [commitWorkflow, workflow, logicItem?.title, node.title, showToast]
+  )
 
   const verticalInPort = React.useMemo(
     () => inputs.find((p) => p === 'layers_tree' || p === 'transform_link') ?? null,
@@ -615,34 +664,23 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
             workflow={workflow}
             boundLayer={boundLayer}
             onSelectNode={onSelectNode}
+            onToggleNode={onToggleNode}
+            onDisconnectEdge={onDisconnectEdge}
+            onOpenQuickAttach={onOpenQuickAttach}
             onUpdateNodeParams={onUpdateNodeParams}
           />
         ) : logicItem ? (
-          <div className="wf-node-logic-body">
-            <div className="wf-node-inline-slider">
-              <div className="wf-node-inline-slider-label">
-                <span>Cường độ / Tốc độ:</span>
-                <strong>{Math.round((node.params?.intensity ?? 1.0) * 100)}%</strong>
-              </div>
-              <input
-                type="range"
-                className="wf-range sm"
-                min={0.2}
-                max={2.0}
-                step={0.05}
-                value={node.params?.intensity ?? 1.0}
-                onChange={(e) => {
-                  e.stopPropagation()
-                  onUpdateNodeParams?.(node.id, { intensity: parseFloat(e.target.value) })
-                }}
-                onClick={(e) => e.stopPropagation()}
-                title="Kéo trượt để tăng giảm cường độ / tốc độ tác động của logic này"
-              />
-            </div>
-            <div className="wf-node-logic-desc" title={logicItem.description}>
-              {logicItem.description}
-            </div>
-          </div>
+          <WorkflowAtomicNodeBody
+            node={node}
+            logicItem={logicItem}
+            workflow={workflow}
+            project={project}
+            onSelectNode={onSelectNode}
+            onUpdateNodeParams={onUpdateNodeParams}
+            onSwitchAtomicFunction={commitWorkflow ? handleSwitchAtomicFunction : undefined}
+            onConnectToMainNode={commitWorkflow ? handleConnectToMainNode : undefined}
+            onDisconnectEdge={onDisconnectEdge}
+          />
         ) : (
           <>
             <div
@@ -676,6 +714,17 @@ export const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = React.memo(({
               mode="card"
               runtimeTelemetry={telemetry}
             />
+
+            {isMainWorkflowNode(node) && (
+              <WorkflowMainNodeEnrichedBar
+                mainNode={node}
+                workflow={workflow}
+                onSelectNode={onSelectNode}
+                onToggleNode={onToggleNode}
+                onDisconnectEdge={onDisconnectEdge}
+                onOpenQuickAttach={onOpenQuickAttach}
+              />
+            )}
           </>
         )}
       </div>

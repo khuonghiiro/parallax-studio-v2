@@ -27,10 +27,10 @@ export function estimateNodeCardHeight(node: WorkflowNode): number {
   const rows = Math.max(spec?.inputs.length ?? 1, spec?.outputs.length ?? 1, 1)
   const isLogic = Boolean(node.params?.logicId)
   if (isLogic) {
-    return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 85
+    return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 205
   }
   if (node.type === 'scene_shot') {
-    return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 204
+    return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 275
   }
   if (node.type === 'layer_transform') {
     const isGroup = (node.params?.targetLayerIds?.length ?? 0) > 1 || Boolean(node.params?.isAssemblyRoot)
@@ -39,9 +39,9 @@ export function estimateNodeCardHeight(node: WorkflowNode): number {
   if (node.type === 'layer_assembly' || Boolean(node.params?.targetLayerIds?.length)) {
     const isAssembly = Boolean(node.params?.isAssemblyRoot || (node.params?.targetLayerIds?.length ?? 0) > 1)
     const extraH = isAssembly ? 80 : 0
-    return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 205 + extraH
+    return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 245 + extraH
   }
-  return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 150
+  return HEADER_H + SOCKET_PAD_TOP * 2 + Math.min(rows, 3) * SOCKET_ROW_H + 215
 }
 
 /** Tọa độ tâm chính xác tuyệt đối của chân cắm Port Đầu Ra (nằm đúng trên tâm vòng tròn pin) */
@@ -96,7 +96,7 @@ export function getBestMatchingInputPort(
   targetNode: WorkflowNode,
   sourceNode?: WorkflowNode
 ): WorkflowPortKind | null {
-  const spec = WORKFLOW_NODE_SPECS[targetNode.type]
+  const spec = getWorkflowNodePorts(targetNode)
   if (!spec || spec.inputs.length === 0) return null
 
   // 1. Phân loại cổng dọc đặc biệt (Vertical Hierarchical Ports)
@@ -143,7 +143,7 @@ export function getBestMatchingOutputPort(
   sourceNode: WorkflowNode,
   targetNode?: WorkflowNode
 ): WorkflowPortKind | null {
-  const spec = WORKFLOW_NODE_SPECS[sourceNode.type]
+  const spec = getWorkflowNodePorts(sourceNode)
   if (!spec || spec.outputs.length === 0) return null
 
   // 1. Phân loại cổng dọc đặc biệt
@@ -736,10 +736,10 @@ export function solveSpaciousWorkflowLayout(
   if (!nodes || nodes.length === 0) return {}
   if (nodes.some((node) => node.params?.assemblyRootNodeId) || nodes.filter((node) => node.type === 'scene_shot').length > 1) return layoutWorkflowTree(nodes, _edges, estimateNodeCardHeight)
 
-  const sceneNodes = nodes.filter((n) => n.type === 'scene_shot')
-  const layerNodes = nodes.filter((n) => n.type === 'layer_assembly')
+  const sceneNodes = nodes.filter((n) => n.type === 'scene_shot' && !n.params?.logicId)
+  const layerNodes = nodes.filter((n) => n.type === 'layer_assembly' && !n.params?.logicId)
   const transformNodes = nodes.filter((n) => n.type === 'layer_transform')
-  const camNodes = nodes.filter((n) => n.type === 'camera_director')
+  const camNodes = nodes.filter((n) => n.type === 'camera_director' && !n.params?.logicId)
 
   // Bố cục phân cấp Thông minh (Smart Hierarchical Z-Depth Layout):
   // Nếu có phân cảnh và các Layer con, bố trí theo cấu trúc 2 tầng gọn gàng:
@@ -772,10 +772,10 @@ export function solveSpaciousWorkflowLayout(
     const layersCenterX = layersStartX + layersTotalW / 2
     const CAM_GAP = 54
 
-    // 1. Căn giữa cặp khối Cảnh gốc & Camera 3D trên cao (Y=40), đối xứng hoàn mỹ phía trên cụm Layer con
+    // 1. Căn giữa cặp khối Cảnh gốc & Camera 3D trên cao (Y=20), đối xứng hoàn mỹ phía trên cụm Layer con
     const sceneNode = sceneNodes[0]
     const sceneX = Math.max(layersStartX, Math.round(layersCenterX - NODE_W - CAM_GAP / 2))
-    const sceneY = 40
+    const sceneY = 20
     newPositions[sceneNode.id] = { x: sceneX, y: sceneY }
 
     // Các scene nodes khác (nếu có nhiều cảnh) - xếp sang trái hàng 1 để không đè lên layer bên dưới
@@ -792,13 +792,13 @@ export function solveSpaciousWorkflowLayout(
       })
     }
 
-    // 2. Định vị các Layer con ở tầng dưới kèm dốc chiều sâu Z trực quan
+    // 2. Định vị các Layer con ở tầng dưới kèm dốc chiều sâu Z trực quan (hành lang 60px dưới đáy Node Cảnh)
     sortedLayers.forEach((node, idx) => {
       const layerZ = project?.layers.find((l) => node.params?.targetLayerIds?.includes(l.id))?.transform?.position?.value[2] ?? 0
       const normZ = (layerZ - zMin) / zSpan
       const childX = layersStartX + idx * (NODE_W + COL_GAP)
-      // Dốc chiều sâu Z rõ nét: Layer ở xa (normZ = 1) ở cao hơn tại Y=340, Layer ở gần (normZ = 0) ở thấp hơn tại Y=500
-      const childY = 340 + Math.round((1 - normZ) * 160)
+      // Dốc chiều sâu Z vừa vặn khung nhìn: Layer ở xa (normZ = 1) tại Y=390, Layer ở gần (normZ = 0) tại Y=450
+      const childY = 390 + Math.round((1 - normZ) * 60)
       newPositions[node.id] = { x: childX, y: childY }
 
       // Tìm companion transform node của layer này
@@ -809,10 +809,9 @@ export function solveSpaciousWorkflowLayout(
           t.id.endsWith(node.id.replace('wf-layer-', ''))
       )
       if (companionTrans) {
-        // Khoảng cách 54px thoáng mắt giữa Layer và Transform Plate, tạo khoảng trống rõ ràng
         newPositions[companionTrans.id] = {
           x: childX,
-          y: childY + estimateNodeCardHeight(node) + 54
+          y: childY + estimateNodeCardHeight(node) + 36
         }
       }
     })
@@ -847,26 +846,29 @@ export function solveSpaciousWorkflowLayout(
     )
 
     const col1X = nextColX
-    const col2X = nextColX + NODE_W + COL_GAP
+    const hasCol1 = Boolean(motionNode || physicsNode)
+    const col2X = hasCol1 ? nextColX + NODE_W + COL_GAP : nextColX
+    const hasCol2 = Boolean(audioNode || lookNode)
+    const startExtraCol = (hasCol1 ? 1 : 0) + (hasCol2 ? 1 : 0)
 
     const row0MaxH = Math.max(
       motionNode ? estimateNodeCardHeight(motionNode) : 0,
       audioNode ? estimateNodeCardHeight(audioNode) : 0,
       280
     )
-    const row1Y = Math.max(420, 60 + row0MaxH + 54)
+    const row1Y = Math.max(360, 20 + row0MaxH + 36)
 
-    if (motionNode) newPositions[motionNode.id] = { x: col1X, y: 60 }
+    if (motionNode) newPositions[motionNode.id] = { x: col1X, y: 20 }
     if (physicsNode) newPositions[physicsNode.id] = { x: col1X, y: row1Y }
-    if (audioNode) newPositions[audioNode.id] = { x: col2X, y: 60 }
+    if (audioNode) newPositions[audioNode.id] = { x: col2X, y: 20 }
     if (lookNode) newPositions[lookNode.id] = { x: col2X, y: row1Y }
 
     otherDownstream.forEach((n, idx) => {
-      const extraCol = Math.floor(idx / 2) + 2
+      const extraCol = startExtraCol + Math.floor(idx / 2)
       const row = idx % 2
       newPositions[n.id] = {
         x: nextColX + extraCol * (NODE_W + COL_GAP),
-        y: row === 0 ? 60 : row1Y
+        y: row === 0 ? 20 : row1Y
       }
     })
 

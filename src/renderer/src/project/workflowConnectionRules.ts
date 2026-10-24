@@ -73,9 +73,12 @@ export function validateWorkflowConnection(
         isParentChildLink: !toNode.params?.assemblyRootNodeId
       }
     }
-    return {
-      valid: false,
-      reason: 'Không thể nối trực tiếp giữa hai Layer qua cổng ngang. Hãy kéo từ cổng ra của Layer Cha vào cổng đỉnh [🌲 Tầng Layer] của Layer Con nếu muốn tạo quan hệ Cha - Con (Parent & Link).'
+    const isAtomicModifier = Boolean(fromNode.params?.logicId) !== Boolean(toNode.params?.logicId)
+    if (!isAtomicModifier) {
+      return {
+        valid: false,
+        reason: 'Không thể nối trực tiếp giữa hai Layer qua cổng ngang. Hãy kéo từ cổng ra của Layer Cha vào cổng đỉnh [🌲 Tầng Layer] của Layer Con nếu muốn tạo quan hệ Cha - Con (Parent & Link).'
+      }
     }
   }
 
@@ -116,6 +119,7 @@ export function validateWorkflowConnection(
       }
     }
     const validTargets: WorkflowNodeType[] = [
+      'scene_shot',
       'layer_assembly',
       'camera_director',
       'motion_choreography',

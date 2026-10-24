@@ -386,9 +386,9 @@ export function spawnSceneWithChildLayers(
       toPort: 'layers_tree'
     })
 
-    // 4. Tạo companion node layer_transform mặc định kết nối sẵn dưới đáy mỗi node layer (khoảng cách 54px thoáng mắt)
-    const childEstimatedHeight = 24 + 6 + 18 + 205 + (isAssemblyRoot ? 80 : 0)
-    const transY = childY + childEstimatedHeight + 54
+    // 4. Tạo companion node layer_transform mặc định kết nối sẵn dưới đáy mỗi node layer (khoảng cách 60px thoáng mắt)
+    const childEstimatedHeight = 24 + 6 + 18 + 235 + (isAssemblyRoot ? 80 : 0)
+    const transY = childY + childEstimatedHeight + 60
     const transTitle = isComp
       ? `🎯 Tọa độ: ${meta.title.replace('🧩 Cụm Lắp Ráp 2.5D: ', '').replace('🧩 Layer 2.5D: ', '')}`
       : isModel3d

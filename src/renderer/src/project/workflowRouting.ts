@@ -1,41 +1,68 @@
 import type { WorkflowGraph, WorkflowNode } from '@shared/types'
 import { validateWorkflowConnection } from './workflowConnectionRules'
 
-export function isWorkflowEntity(node: WorkflowNode): boolean {
-  return node.type === 'layer_assembly' && !node.params?.logicId && !!node.params?.targetLayerIds?.length
+export interface WorkflowRouting { layerIds: string[]; shotIds: string[]; hasLayerRoute: boolean }
+
+export function isWorkflowEntity(node: WorkflowNode): node is WorkflowNode & { params: { targetLayerIds: string[] } } {
+  return node.type === 'layer_assembly' && Boolean(node.params?.targetLayerIds?.length) && !node.params?.logicId
 }
 
-/** Only real, enabled wires carry scope. Effect return wires are destinations, not upstream data. */
-export function getWorkflowRouting(node: WorkflowNode, graph: WorkflowGraph) {
-  const nodes = new Map(graph.nodes.map((item) => [item.id, item]))
-  const edges = graph.edges.filter((edge) => {
-    const from = nodes.get(edge.fromNode), to = nodes.get(edge.toNode)
-    return from && to && (from.enabled || from.id === node.id) && (to.enabled || to.id === node.id)
-      && validateWorkflowConnection(from, edge.fromPort, to, edge.toPort).valid
+const unique = (items: string[]) => [...new Set(items.filter((item) => item && item !== 'all'))]
+const scopeOf = (node: WorkflowNode) => unique([node.params?.shotId ?? ''])
+const direct = (node: WorkflowNode, workflow: WorkflowGraph, dir: 'in' | 'out') =>
+  workflow.edges.flatMap((edge) => {
+    if ((dir === 'in' ? edge.toNode : edge.fromNode) !== node.id) return []
+    const other = workflow.nodes.find((item) => item.id === (dir === 'in' ? edge.fromNode : edge.toNode) && item.enabled)
+    const from = dir === 'in' ? other : node, to = dir === 'in' ? node : other
+    return other && from && to && validateWorkflowConnection(from, edge.fromPort, to, edge.toPort).valid ? [other] : []
   })
-  const layerIds = new Set<string>()
-  const shotIds = new Set<string>()
-  const visited = new Set<string>()
-  const visit = (current: WorkflowNode) => {
-    if (visited.has(current.id)) return
-    visited.add(current.id)
-    if (current.params?.shotId && current.params.shotId !== 'all') shotIds.add(current.params.shotId)
+
+function findDownstreamEntities(node: WorkflowNode, workflow: WorkflowGraph): (WorkflowNode & { params: { targetLayerIds: string[] } })[] {
+  const visited = new Set<string>([node.id])
+  const queue = direct(node, workflow, 'out')
+  const entities: (WorkflowNode & { params: { targetLayerIds: string[] } })[] = []
+  while (queue.length) {
+    const cur = queue.shift()!
+    if (visited.has(cur.id)) continue
+    visited.add(cur.id)
+    if (isWorkflowEntity(cur)) {
+      entities.push(cur)
+    } else if (cur.type !== 'scene_shot' && cur.type !== 'look_output') {
+      queue.push(...direct(cur, workflow, 'out'))
+    }
+  }
+  return entities
+}
+
+export function getWorkflowRouting(node: WorkflowNode, workflow: WorkflowGraph): WorkflowRouting {
+  if (isWorkflowEntity(node)) return { layerIds: [...node.params.targetLayerIds], shotIds: scopeOf(node), hasLayerRoute: true }
+  const seen = new Set([node.id])
+  const queue = direct(node, workflow, 'in')
+  const layers: string[] = []
+  const shots = scopeOf(node)
+  let hasLayerRoute = Boolean(node.params?.requireLayerConnection)
+  while (queue.length) {
+    const current = queue.shift()!
+    if (seen.has(current.id)) continue
+    seen.add(current.id)
+    shots.push(...scopeOf(current))
     if (isWorkflowEntity(current)) {
-      current.params!.targetLayerIds!.forEach((id) => layerIds.add(id))
-      return
+      hasLayerRoute = true
+      layers.push(...current.params.targetLayerIds)
+      continue
     }
-    for (const edge of edges.filter((item) => item.toNode === current.id)) {
-      visit(nodes.get(edge.fromNode)!)
+    if (current.type === 'scene_shot') continue
+    for (const source of direct(current, workflow, 'in')) if (!seen.has(source.id)) queue.push(source)
+  }
+  if (!layers.length) {
+    const outLayers = findDownstreamEntities(node, workflow)
+    if (outLayers.length) {
+      return {
+        layerIds: unique(outLayers.flatMap((item) => item.params.targetLayerIds)),
+        shotIds: unique([...shots, ...outLayers.flatMap(scopeOf)]),
+        hasLayerRoute: true
+      }
     }
   }
-  // Entity output (actors_rig) and logic output -> entity both define an explicit target set.
-  for (const edge of edges.filter((item) => item.fromNode === node.id)) {
-    const target = nodes.get(edge.toNode)!
-    if (isWorkflowEntity(target) && edge.toPort !== 'layers_tree') visit(target)
-  }
-  for (const edge of edges.filter((item) => item.toNode === node.id)) visit(nodes.get(edge.fromNode)!)
-  const hasLayerRoute = !!node.params?.requireLayerConnection || graph.edges.some((edge) =>
-    (edge.fromNode === node.id && nodes.get(edge.toNode) && isWorkflowEntity(nodes.get(edge.toNode)!)) ||
-    (edge.toNode === node.id && nodes.get(edge.fromNode) && isWorkflowEntity(nodes.get(edge.fromNode)!)))
-  return { layerIds: [...layerIds], shotIds: [...shotIds], hasLayerRoute }
+  return { layerIds: unique(layers), shotIds: unique(shots), hasLayerRoute }
 }

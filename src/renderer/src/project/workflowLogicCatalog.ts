@@ -344,6 +344,31 @@ export const WORKFLOW_LOGIC_NODE_CATALOG: WorkflowLogicNodeCatalogItem[] = [
     ]
   },
   {
+    id: 'logic-fx-cave-portal',
+    category: 'light_fx',
+    categoryLabel: 'Ánh sáng & Hào quang',
+    nodeType: 'physics_fx',
+    icon: '🕳️',
+    title: 'Cửa Hang & Độ Sâu 2.5D',
+    shortLabel: 'Cửa Hang 2.5D',
+    preset: 'cave_portal_flashlight',
+    targetParts: ['cave_depth_portal'],
+    spawnParticles: false,
+    description: 'Tạo vùng cửa hang UV tự động thu nhỏ tỷ lệ và phủ bóng tối khi thực thể đi sâu vào.',
+    buildRules: () => [
+      {
+        id: `rule-portal-${Date.now().toString(36)}`,
+        label: 'Cửa hang & Độ sâu UV (Depth Portal)',
+        targetId: 'all',
+        targetName: 'Layer cửa hang / hậu cảnh',
+        actionKind: 'depth_portal',
+        speed: 1.0,
+        amount: 1.0,
+        enabled: true
+      }
+    ]
+  },
+  {
     id: 'logic-fx-particles',
     category: 'light_fx',
     categoryLabel: 'Ánh sáng & Hào quang',
@@ -454,6 +479,102 @@ export const WORKFLOW_LOGIC_NODE_CATALOG: WorkflowLogicNodeCatalogItem[] = [
       }
     ]
   },
+  {
+    id: 'logic-motion-cross',
+    category: 'motion',
+    categoryLabel: 'Chuyển động 2.5D',
+    nodeType: 'motion_choreography',
+    icon: '🏃',
+    title: 'Di Chuyển Ngang Khung Hình',
+    shortLabel: 'Đi Ngang Cảnh',
+    preset: 'character_walk_depth',
+    targetParts: ['legs_stride', 'torso_breathe'],
+    description: 'Di chuyển thực thể băng ngang qua phân cảnh kết hợp nhịp bước tự nhiên.',
+    buildRules: () => [
+      {
+        id: `rule-cross-${Date.now().toString(36)}`,
+        label: 'Di chuyển ngang khung hình (Cross Screen)',
+        targetId: 'all',
+        targetName: 'Nhân vật / Thực thể',
+        actionKind: 'cross_screen',
+        speed: 1.0,
+        amount: 1.0,
+        enabled: true
+      }
+    ]
+  },
+  {
+    id: 'logic-motion-emerge',
+    category: 'motion',
+    categoryLabel: 'Chuyển động 2.5D',
+    nodeType: 'motion_choreography',
+    icon: '🦅',
+    title: 'Lao Từ Xa Tới Cận Cảnh Z',
+    shortLabel: 'Lao Tới Z',
+    preset: 'dynamic_action_arc',
+    targetParts: ['legs_stride', 'arms_gesture'],
+    description: 'Di chuyển từ tầng Z sâu tiến ra tiền cảnh tạo hiệu ứng thị sai mạnh.',
+    buildRules: () => [
+      {
+        id: `rule-emerge-${Date.now().toString(36)}`,
+        label: 'Lao từ xa tới cận cảnh (Emerge Depth)',
+        targetId: 'all',
+        targetName: 'Thực thể chủ đạo',
+        actionKind: 'emerge_from_depth',
+        speed: 1.1,
+        amount: 1.0,
+        enabled: true
+      }
+    ]
+  },
+  {
+    id: 'logic-motion-pulse',
+    category: 'motion',
+    categoryLabel: 'Chuyển động 2.5D',
+    nodeType: 'motion_choreography',
+    icon: '💓',
+    title: 'Nhịp Đập Co Giãn Pulse',
+    shortLabel: 'Nhịp Đập Pulse',
+    preset: 'organic_wind_breathe',
+    targetParts: ['torso_breathe'],
+    description: 'Co giãn nhẹ theo nhịp tim hoặc luồng năng lượng phát sáng của vật thể.',
+    buildRules: () => [
+      {
+        id: `rule-pulse-${Date.now().toString(36)}`,
+        label: 'Nhịp đập co giãn (Pulse)',
+        targetId: 'all',
+        targetName: 'Thực thể trong cảnh',
+        actionKind: 'pulse',
+        speed: 1.1,
+        amount: 0.85,
+        enabled: true
+      }
+    ]
+  },
+  {
+    id: 'logic-motion-spin',
+    category: 'motion',
+    categoryLabel: 'Chuyển động 2.5D',
+    nodeType: 'motion_choreography',
+    icon: '🔄',
+    title: 'Xoay Vòng Quanh Tâm Spin',
+    shortLabel: 'Xoay Quanh Tâm',
+    preset: 'organic_wind_breathe',
+    targetParts: ['torso_breathe'],
+    description: 'Xoay đều quanh tâm (phù hợp bánh xe, vòng phép thuật, mặt trời, cối xay).',
+    buildRules: () => [
+      {
+        id: `rule-spin-${Date.now().toString(36)}`,
+        label: 'Xoay quanh tâm (Spin)',
+        targetId: 'all',
+        targetName: 'Thực thể xoay',
+        actionKind: 'spin',
+        speed: 25,
+        amount: 1.0,
+        enabled: true
+      }
+    ]
+  },
 
   // ------------------------------------------------------------------ 6. CẢNH & KHÔNG GIAN Z
   {
@@ -531,7 +652,19 @@ export const WORKFLOW_LOGIC_NODE_CATALOG: WorkflowLogicNodeCatalogItem[] = [
     shortLabel: 'Neo Chân & Y',
     preset: 'character_and_foliage_rig',
     targetParts: ['root_anchor', 'limb_joint_fk'],
-    description: 'Đặt điểm neo ở chân [0, -0.5, 0], tự hướng thẳng đứng theo Camera khi xoay góc nhìn.'
+    description: 'Đặt điểm neo ở chân [0, -0.5, 0], tự hướng thẳng đứng theo Camera khi xoay góc nhìn.',
+    buildRules: () => [
+      {
+        id: `rule-billboard-${Date.now().toString(36)}`,
+        label: 'Neo chân & Tự hướng Camera (Billboard Y)',
+        targetId: 'all',
+        targetName: 'Layer được kết nối',
+        actionKind: 'billboard_y',
+        speed: 1.0,
+        amount: 1.0,
+        enabled: true
+      }
+    ]
   },
   {
     id: 'logic-assembly-parts',

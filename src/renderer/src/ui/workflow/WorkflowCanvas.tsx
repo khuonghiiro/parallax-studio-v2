@@ -647,6 +647,27 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     setSnappedTarget(null)
   }, [])
 
+  const handleOpenQuickAttach = useCallback((e: React.MouseEvent, mainNode: WorkflowNode) => {
+    const isForwardSource = mainNode.type === 'scene_shot' || mainNode.type === 'layer_assembly'
+    const sourcePort: WorkflowPortKind =
+      mainNode.type === 'scene_shot'
+        ? 'scene_ctx'
+        : mainNode.type === 'layer_assembly'
+          ? 'actors_rig'
+          : mainNode.type === 'camera_director'
+            ? 'camera_cut'
+            : 'vfx_stage'
+    setQuickConnectState({
+      clientX: e.clientX,
+      clientY: e.clientY,
+      worldX: Math.round(mainNode.position.x + (isForwardSource ? NODE_W + 48 : -NODE_W - 48)),
+      worldY: Math.round(mainNode.position.y),
+      sourceNode: mainNode,
+      sourcePort,
+      isOutput: isForwardSource
+    })
+  }, [])
+
   const renderedEdges = useMemo(() => {
     const out: {
       edge: WorkflowEdge
@@ -886,8 +907,12 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
               onInputSocketClick={cardHandlers.input}
               onOutputSocketClick={cardHandlers.output}
               onConnectPorts={onConnectPorts}
+              onDisconnectEdge={onDisconnectEdge}
               onClearPendingWire={cardHandlers.clear}
               onOpenConfig={onOpenNodeConfig}
+              onOpenQuickAttach={handleOpenQuickAttach}
+              commitWorkflow={commitWorkflow}
+              showToast={showToast}
             />
           ))}
         </div>

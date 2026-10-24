@@ -334,6 +334,7 @@ export function applyWorkflowToProject(
     }
   }
 
+  const composedMotionLayers = new WeakSet<Layer>()
   for (const node of activeNodes) {
     if (opts?.onlyNodeIds && !opts.onlyNodeIds.has(node.id)) continue
     const intensity = Math.max(0.2, Math.min(2.5, node.params?.intensity ?? 1.0))
@@ -351,7 +352,7 @@ export function applyWorkflowToProject(
     if (node.params?.logicId && node.params.customRules?.length) {
       const operation = { ...node, params: { ...node.params, customRules: node.params.customRules.map((rule) =>
         ({ ...rule, amount: (rule.amount ?? 1) * intensity })) } }
-      const affected = applyCustomNodeRulesToProject(project, operation, binding.matchesLayer)
+      const affected = applyCustomNodeRulesToProject(project, operation, binding.matchesLayer, composedMotionLayers)
       executedStages.push({ nodeId: node.id, nodeType: node.type, title: node.title,
         aiAgentRole: node.aiAgentRole, preset: node.preset,
         appliedSummary: `${node.title} · ${affected} đối tượng theo kết nối.`, affectedCount: affected })
@@ -750,7 +751,7 @@ export function applyWorkflowToProject(
     }
 
     // Áp dụng các quy tắc Chuyển động / Tính năng tùy chỉnh (customRules) gắn trên khối này
-    applyCustomNodeRulesToProject(project, node, binding.matchesLayer)
+    applyCustomNodeRulesToProject(project, node, binding.matchesLayer, composedMotionLayers)
   }
 
   // Tự động reset DOF và Rung lắc nếu không còn node camera nào hoạt động

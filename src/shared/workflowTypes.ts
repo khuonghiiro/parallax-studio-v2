@@ -101,7 +101,7 @@ export type WorkflowCustomActionKind =
   | 'virtual_light_candle'
   | 'virtual_light_flashlight'
   | 'rim_glow'
-  | 'mesh_elastic'
+  | 'mesh_elastic' | 'depth_portal' | 'billboard_y'
 
 export interface WorkflowCustomActionRule {
   id: string

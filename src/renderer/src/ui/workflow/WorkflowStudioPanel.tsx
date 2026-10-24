@@ -42,6 +42,7 @@ import {
 } from '../../project/workflowSceneHierarchy'
 import { applyRuleMutationToProjectLayer } from '../../project/workflowStageEffects'
 import { spawnLogicNodeIntoWorkflow } from '../../project/workflowLogicNodes'
+import { getWorkflowNodePorts } from '../../project/workflowNodePorts'
 import { WorkflowCanvas } from './WorkflowCanvas'
 import { WorkflowNodePalette } from './WorkflowNodePalette'
 import { WorkflowSidePanel, type WorkflowInspectorSubTab } from './WorkflowSidePanel'
@@ -659,12 +660,11 @@ export const WorkflowStudioPanel: React.FC = () => {
       const positionedNode = { ...spawnedNode, position: resolved }
 
       // Tìm chân cắm tương thích giữa sourceNode và spawnedNode
-      const nodeSpec = WORKFLOW_NODE_SPECS[spawnedNode.type]
+      const nodePorts = getWorkflowNodePorts(spawnedNode)
       let edgeToAdd: WorkflowEdge | null = null
 
       if (isSourceOutput) {
-        const candidateInputs = nodeSpec?.inputs ?? []
-        const matchedInPort = candidateInputs.find(
+        const matchedInPort = nodePorts.inputs.find(
           (p) => validateWorkflowConnection(sourceNode, sourcePort, positionedNode, p).valid
         )
         if (matchedInPort) {
@@ -677,8 +677,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           }
         }
       } else {
-        const candidateOutputs = nodeSpec?.outputs ?? []
-        const matchedOutPort = candidateOutputs.find(
+        const matchedOutPort = nodePorts.outputs.find(
           (p) => validateWorkflowConnection(positionedNode, p, sourceNode, sourcePort).valid
         )
         if (matchedOutPort) {

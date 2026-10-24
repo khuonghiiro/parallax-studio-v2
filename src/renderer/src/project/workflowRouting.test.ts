@@ -5,6 +5,11 @@ import { spawnLogicNodeIntoWorkflow } from './workflowLogicNodes'
 import { resolveNodeTargetBinding } from './workflowTargets'
 import { evaluateNodeDraft } from './workflowNodeDraft'
 import { executeAudioLipSyncStage } from './workflowEntitySync'
+import {
+  connectAtomicNodeToMainNode,
+  getConnectedAtomicNodesForMainNode,
+  switchAtomicNodeFunction
+} from './workflowNodeComposition'
 import type { WorkflowGraph, WorkflowNode } from '@shared/types'
 
 function fixture(logicId = 'logic-physics-wind') {
@@ -131,5 +136,51 @@ describe('workflow operations receive their wired targets', () => {
     expect(resolveNodeTargetBinding(operation, project, detached).boundTargets).toEqual([])
     const preview = evaluateNodeDraft(project, detached, detached.nodes.find((item) => item.id === entity.id)!, entity)
     expect(preview.layers.every((layer) => !layer.motion?.enabled)).toBe(true)
+  })
+
+  it('composes multiple single-function atomic nodes onto 1 Main Layer Node and supports in-place switching', () => {
+    const { project, workflow: baseWf, entity, layers } = fixture('logic-physics-wind')
+    let wf = baseWf
+    const shotId = project.shots[0].id
+
+    // Spawn and connect multiple distinct single-function atomic nodes to the same Main Layer Node
+    const breathe = spawnLogicNodeIntoWorkflow(wf, 'logic-motion-breathe', shotId, { autoConnect: false })
+    wf = connectAtomicNodeToMainNode(breathe.workflow, breathe.spawnedNode.id, entity.id)
+
+    const candle = spawnLogicNodeIntoWorkflow(wf, 'logic-fx-candle', shotId, { autoConnect: false })
+    wf = connectAtomicNodeToMainNode(candle.workflow, candle.spawnedNode.id, entity.id)
+
+    const glow = spawnLogicNodeIntoWorkflow(wf, 'logic-fx-rimglow', shotId, { autoConnect: false })
+    wf = connectAtomicNodeToMainNode(glow.workflow, glow.spawnedNode.id, entity.id)
+
+    const elastic = spawnLogicNodeIntoWorkflow(wf, 'logic-physics-elastic', shotId, { autoConnect: false })
+    wf = connectAtomicNodeToMainNode(elastic.workflow, elastic.spawnedNode.id, entity.id)
+
+    const cave = spawnLogicNodeIntoWorkflow(wf, 'logic-fx-cave-portal', shotId, { autoConnect: false })
+    wf = connectAtomicNodeToMainNode(cave.workflow, cave.spawnedNode.id, entity.id)
+
+    expect(getConnectedAtomicNodesForMainNode(entity, wf)).toHaveLength(6)
+
+    applyWorkflowToProject(project, wf)
+    const targetLayer = layers[0]
+    // Motion amplitude combines both wind (X=10, Y=4, Z=3) and breathe (X=4, Y=6, Z=13)
+    expect(targetLayer.motion?.enabled).toBe(true)
+    expect(targetLayer.motion?.amplitude?.[0]).toBeGreaterThanOrEqual(10)
+    expect(targetLayer.motion?.amplitude?.[1]).toBeGreaterThanOrEqual(6)
+    expect(targetLayer.motion?.amplitude?.[2]).toBeGreaterThanOrEqual(12)
+    // Virtual Light + Rim Glow + Elastic Mesh + Depth Portal all active simultaneously!
+    expect(targetLayer.virtualLight?.enabled).toBe(true)
+    expect(targetLayer.virtualLight?.kind).toBe('candle')
+    expect(targetLayer.glow?.enabled).toBe(true)
+    expect(targetLayer.physics?.enabled).toBe(true)
+    expect(targetLayer.physics?.depthPortal?.enabled).toBe(true)
+    expect(layers[1].virtualLight?.enabled).not.toBe(true)
+
+    // Switch candle -> flashlight in-place
+    wf = switchAtomicNodeFunction(wf, candle.spawnedNode.id, 'logic-fx-flashlight')
+    applyWorkflowToProject(project, wf)
+    expect(targetLayer.virtualLight?.kind).toBe('flashlight')
+    expect(targetLayer.glow?.enabled).toBe(true)
+    expect(targetLayer.physics?.depthPortal?.enabled).toBe(true)
   })
 })

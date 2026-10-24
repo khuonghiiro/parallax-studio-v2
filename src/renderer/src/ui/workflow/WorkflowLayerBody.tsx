@@ -2,12 +2,12 @@ import React, { useCallback, useMemo, useState } from 'react'
 import type { Layer, Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { importBuiltInAsset, replaceLayerAsset, toast } from '../../actions'
 import { assetStore } from '../../project/assets'
-import { WORKFLOW_LOGIC_NODE_CATALOG } from '../../project/workflowLogicCatalog'
 import { useEditor } from '../../store/editor'
 import { useView } from '../../store/view'
 import { getStoredModels3D } from '../assets/models3d/models3dStorage'
 import { requestOpenLayerAssembly } from '../layerAssembly/layerAssemblyBridge'
 import { resolveLayerAssetThumbUrl } from './WorkflowNodePreview'
+import { WorkflowMainNodeEnrichedBar } from './WorkflowAtomicCardBody'
 
 export interface WorkflowLayerBodyProps {
   node: WorkflowNode
@@ -15,6 +15,9 @@ export interface WorkflowLayerBodyProps {
   workflow: WorkflowGraph
   boundLayer: Layer
   onSelectNode: (nodeId: string) => void
+  onToggleNode: (nodeId: string) => void
+  onDisconnectEdge?: (edgeId: string) => void
+  onOpenQuickAttach?: (e: React.MouseEvent, mainNode: WorkflowNode) => void
   onUpdateNodeParams?: (nodeId: string, patch: Partial<WorkflowNodeParams>) => void
 }
 
@@ -22,14 +25,17 @@ export interface WorkflowLayerBodyProps {
  * Thân thẻ Node Layer 2.5D trong Workflow.
  * Hiển thị huy hiệu độ sâu Z-index trực quan theo tầng bậc thang,
  * Khung thả tài nguyên ảnh (Drag-and-Drop) từ Kho tài nguyên để đổi asset ngay lập tức,
- * và hiển thị huy hiệu các hiệu ứng Logic đang được kết nối vào Layer này.
+ * và hiển thị khay các Node Chức Năng Đơn Lẻ đang kết nối làm giàu cho Layer này.
  */
 export const WorkflowLayerBody: React.FC<WorkflowLayerBodyProps> = React.memo(({
   node,
   project,
   workflow,
   boundLayer,
-  onSelectNode
+  onSelectNode,
+  onToggleNode,
+  onDisconnectEdge,
+  onOpenQuickAttach
 }) => {
   const [isDragOver, setIsDragOver] = useState(false)
   const selectedLayerId = useEditor((s) => s.selectedLayerId)
@@ -115,35 +121,6 @@ export const WorkflowLayerBody: React.FC<WorkflowLayerBodyProps> = React.memo(({
     if (!project || !assetId) return undefined
     return resolveLayerAssetThumbUrl(assetId, project)
   }, [project, assetId])
-
-  // Quét các Node Hiệu ứng đang kết nối vào Layer này qua các cổng bên phải (vfx_stage, motion_stream, actors_rig, v.v.)
-  const connectedEffects = useMemo(() => {
-    const list: { id: string; icon: string; title: string; color: string }[] = []
-    const edges = workflow.edges.filter(
-      (e) =>
-        (e.fromNode === node.id || e.toNode === node.id) &&
-        e.fromPort !== 'layers_tree' &&
-        e.toPort !== 'layers_tree' &&
-        e.fromPort !== 'transform_link' &&
-        e.toPort !== 'transform_link'
-    )
-
-    for (const e of edges) {
-      const otherId = e.fromNode === node.id ? e.toNode : e.fromNode
-      const otherNode = workflow.nodes.find((n) => n.id === otherId)
-      if (!otherNode || otherNode.type === 'scene_shot' || otherNode.type === 'layer_transform') {
-        continue
-      }
-      const logic = WORKFLOW_LOGIC_NODE_CATALOG.find((x) => x.id === otherNode.params?.logicId)
-      list.push({
-        id: otherNode.id,
-        icon: logic?.icon ?? ((otherNode.type as string) === 'physics_cloth' ? '🪂' : (otherNode.type as string) === 'light_fx' ? '💡' : '🍃'),
-        title: logic?.shortLabel ?? otherNode.title,
-        color: logic ? '#38bdf8' : '#8b5cf6'
-      })
-    }
-    return list
-  }, [workflow.edges, workflow.nodes, node.id])
 
   // Xử lý kéo thả tài nguyên vào trực tiếp thẻ Layer Node
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -342,27 +319,15 @@ export const WorkflowLayerBody: React.FC<WorkflowLayerBodyProps> = React.memo(({
         </div>
       )}
 
-      {/* 3. Dải Huy hiệu Hiệu ứng Kết nối (Active Effect Badges) */}
-      <div className="wf-layer-effects-row">
-        <span className="wf-layer-effects-label">Hiệu ứng:</span>
-        {connectedEffects.length > 0 ? (
-          connectedEffects.map((eff) => (
-            <span
-              key={eff.id}
-              className="wf-layer-effect-pill"
-              style={{ ['--eff-c' as string]: eff.color }}
-              title={`Đang kích hoạt: ${eff.title} trên Layer này`}
-              onClick={() => onSelectNode(eff.id)}
-            >
-              <span className="wf-eff-dot" />
-              <span>{eff.icon}</span>
-              <span>{eff.title}</span>
-            </span>
-          ))
-        ) : (
-          <span className="wf-layer-effects-none">Nối thêm node hiệu ứng từ cổng bên phải</span>
-        )}
-      </div>
+      {/* 3. Khay Các Node Chức Năng Đơn Lẻ Đang Kết Hợp Làm Giàu Cho Layer Này */}
+      <WorkflowMainNodeEnrichedBar
+        mainNode={node}
+        workflow={workflow}
+        onSelectNode={onSelectNode}
+        onToggleNode={onToggleNode}
+        onDisconnectEdge={onDisconnectEdge}
+        onOpenQuickAttach={onOpenQuickAttach}
+      />
     </div>
   )
 })

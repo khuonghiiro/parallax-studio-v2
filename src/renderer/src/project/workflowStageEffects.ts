@@ -162,6 +162,26 @@ export const WORKFLOW_CUSTOM_ACTION_CATALOG: CustomActionCatalogItem[] = [
     defaultSpeed: 1.2,
     defaultAmount: 1.15,
     description: 'Bật biến dạng lò xo đàn hồi trên lưới ảnh 2.5D khi di chuyển hoặc va chạm.'
+  },
+  {
+    kind: 'depth_portal',
+    label: 'Cửa hang & Độ sâu 2.5D (Depth Portal)',
+    shortLabel: 'Cửa hang 2.5D',
+    icon: '🕳️',
+    nodeTypes: ['physics_fx'],
+    defaultSpeed: 1.0,
+    defaultAmount: 1.0,
+    description: 'Tạo vùng cửa hang UV tự động thu nhỏ tỷ lệ và phủ bóng tối theo độ sâu.'
+  },
+  {
+    kind: 'billboard_y',
+    label: 'Neo chân & Tự hướng Camera (Billboard Y)',
+    shortLabel: 'Neo chân & Y',
+    icon: '🧍',
+    nodeTypes: ['layer_assembly'],
+    defaultSpeed: 1.0,
+    defaultAmount: 1.0,
+    description: 'Đặt tâm neo ở chân [0, -0.5, 0] và tự hướng thẳng đứng theo góc nhìn Camera.'
   }
 ]
 
@@ -177,7 +197,8 @@ export function getCustomActionSpec(
 export function applyCustomNodeRulesToProject(
   project: Project,
   node: WorkflowNode,
-  matchesNodeBinding: (layer: Layer) => boolean
+  matchesNodeBinding: (layer: Layer) => boolean,
+  composedMotionLayers?: WeakSet<Layer>
 ): number {
   const rules = (node.params?.customRules ?? []).filter(
     (r) => r.enabled && !r.id.startsWith('inspector-')
@@ -210,17 +231,20 @@ export function applyCustomNodeRulesToProject(
       rule.actionKind === 'spin'
     ) {
       for (const l of targetLayers) {
+        const prevMotion = composedMotionLayers?.has(l) && l.motion?.enabled ? l.motion : null
+        let nextMotion: NonNullable<Layer['motion']>
         if (rule.actionKind === 'drift') {
-          l.motion = {
+          nextMotion = {
             enabled: true,
             type: 'drift',
             speed: Math.round(speed > 3 ? speed : 18 * speed),
             direction: 'right',
             loopMode: 'ping-pong',
+            amplitude: [Math.round(18 * amount), 0, 0],
             amount: Number(Math.min(1, 0.85 * amount).toFixed(2))
           }
         } else if (rule.actionKind === 'wind') {
-          l.motion = {
+          nextMotion = {
             enabled: true,
             type: 'wind',
             speed: Number((0.85 * speed).toFixed(2)),
@@ -228,7 +252,7 @@ export function applyCustomNodeRulesToProject(
             amount: Number(Math.min(1, 0.9 * amount).toFixed(2))
           }
         } else if (rule.actionKind === 'sway') {
-          l.motion = {
+          nextMotion = {
             enabled: true,
             type: 'sway',
             speed: Number((0.8 * speed).toFixed(2)),
@@ -236,7 +260,7 @@ export function applyCustomNodeRulesToProject(
             amount: Number(Math.min(1, 0.85 * amount).toFixed(2))
           }
         } else if (rule.actionKind === 'pulse') {
-          l.motion = {
+          nextMotion = {
             enabled: true,
             type: 'pulse',
             speed: Number((1.1 * speed).toFixed(2)),
@@ -244,21 +268,37 @@ export function applyCustomNodeRulesToProject(
             amount: Number(Math.min(1, 0.8 * amount).toFixed(2))
           }
         } else if (rule.actionKind === 'spin') {
-          l.motion = {
+          nextMotion = {
             enabled: true,
             type: 'spin',
             speed: Math.round(speed > 3 ? speed : 25 * speed),
             amount: Number(Math.min(1, amount).toFixed(2))
           }
         } else {
-          l.motion = {
+          nextMotion = {
             enabled: true,
             type: 'float',
             speed: Number((0.75 * speed).toFixed(2)),
-            amplitude: [3, Math.round(7 * amount), 0],
+            amplitude: [4, Math.round(7 * amount), Math.round(15 * amount)],
             amount: Number(Math.min(1, 0.8 * amount).toFixed(2))
           }
         }
+
+        if (prevMotion && prevMotion.amplitude && nextMotion.amplitude) {
+          l.motion = {
+            ...prevMotion,
+            ...nextMotion,
+            amplitude: [
+              Math.max(prevMotion.amplitude[0] ?? 0, nextMotion.amplitude[0] ?? 0),
+              Math.max(prevMotion.amplitude[1] ?? 0, nextMotion.amplitude[1] ?? 0),
+              Math.max(prevMotion.amplitude[2] ?? 0, nextMotion.amplitude[2] ?? 0)
+            ],
+            amount: Number(Math.min(1, Math.max(prevMotion.amount ?? 0.8, nextMotion.amount ?? 0.8)).toFixed(2))
+          }
+        } else {
+          l.motion = nextMotion
+        }
+        composedMotionLayers?.add(l)
         affected++
       }
     } else if (
@@ -337,13 +377,37 @@ export function applyCustomNodeRulesToProject(
     } else if (rule.actionKind === 'mesh_elastic') {
       for (const l of targetLayers) {
         l.physics = {
+          ...(l.physics ?? {}),
           enabled: true,
-          material: 'foliage_bush',
-          role: 'prop_target',
+          material: l.physics?.material ?? 'foliage_bush',
+          role: l.physics?.role ?? 'prop_target',
           stiffness: Number((1.2 * speed).toFixed(2)),
           damping: 0.25,
           bounciness: Number((1.15 * amount).toFixed(2))
         }
+        affected++
+      }
+    } else if (rule.actionKind === 'depth_portal') {
+      for (const l of targetLayers) {
+        l.physics = {
+          ...(l.physics ?? { enabled: true, material: 'stone_wall' }),
+          enabled: true,
+          depthPortal: {
+            enabled: true,
+            centerUV: l.physics?.depthPortal?.centerUV ?? [0.5, 0.45],
+            radiusUV: l.physics?.depthPortal?.radiusUV ?? [0.35, 0.35],
+            minScale: l.physics?.depthPortal?.minScale ?? 0.4,
+            darkness: Math.min(0.95, Math.max(0.2, Number((0.82 * amount).toFixed(2)))),
+            shadowTint: l.physics?.depthPortal?.shadowTint ?? '#060814',
+            depthPullZ: Math.round(140 * amount)
+          }
+        }
+        affected++
+      }
+    } else if (rule.actionKind === 'billboard_y') {
+      for (const l of targetLayers) {
+        l.autoOrient = 'camera-y'
+        if (l.transform.anchor) l.transform.anchor.value = [0, -0.5, 0]
         affected++
       }
     }
@@ -759,7 +823,17 @@ export function applyRuleMutationToProjectLayer(
     } else if (rule.actionKind === 'rim_glow') {
       if (l.glow) l.glow.enabled = enabled
     } else if (rule.actionKind === 'mesh_elastic') {
-      if (l.physics) l.physics.enabled = enabled
+      if (l.physics) {
+        if (!enabled && l.physics.depthPortal?.enabled) {
+          l.physics.bounciness = 0
+        } else {
+          l.physics.enabled = enabled
+        }
+      }
+    } else if (rule.actionKind === 'depth_portal') {
+      if (l.physics?.depthPortal) l.physics.depthPortal.enabled = enabled
+    } else if (rule.actionKind === 'billboard_y') {
+      if (!enabled && l.autoOrient === 'camera-y') l.autoOrient = 'none'
     }
   }
 }

@@ -54,18 +54,25 @@ export function executeCameraDirectorStage(
 ): WorkflowExecutionStageResult {
   const logicId = node.params?.logicId ?? ''
 
-  // 1. Tìm Layer được nối dây trực tiếp vào Node Camera này (nếu có)
+  // 1. Tìm Layer được nối dây trực tiếp hoặc qua cụm Camera kết nối vào Node Camera này (nếu có)
   let targetLayer: Layer | undefined
   if (workflow) {
-    const edges = workflow.edges.filter(
-      (e) => (e.fromNode === node.id || e.toNode === node.id)
-    )
-    for (const e of edges) {
-      const otherId = e.fromNode === node.id ? e.toNode : e.fromNode
-      const otherNode = workflow.nodes.find((n) => n.id === otherId)
-      if (otherNode?.type === 'layer_assembly' && otherNode.params?.targetLayerIds?.length) {
-        targetLayer = project.layers.find((l) => otherNode.params!.targetLayerIds!.includes(l.id))
-        if (targetLayer) break
+    const visitedCamIds = new Set<string>([node.id])
+    const camQueue = [node.id]
+    while (camQueue.length > 0 && !targetLayer) {
+      const curId = camQueue.shift()!
+      const edges = workflow.edges.filter((e) => e.fromNode === curId || e.toNode === curId)
+      for (const e of edges) {
+        const otherId = e.fromNode === curId ? e.toNode : e.fromNode
+        const otherNode = workflow.nodes.find((n) => n.id === otherId)
+        if (!otherNode || !otherNode.enabled) continue
+        if (otherNode.type === 'layer_assembly' && otherNode.params?.targetLayerIds?.length) {
+          targetLayer = project.layers.find((l) => otherNode.params!.targetLayerIds!.includes(l.id))
+          if (targetLayer) break
+        } else if (otherNode.type === 'camera_director' && !visitedCamIds.has(otherNode.id)) {
+          visitedCamIds.add(otherNode.id)
+          camQueue.push(otherNode.id)
+        }
       }
     }
   }
@@ -143,6 +150,30 @@ export function executeCameraDirectorStage(
   // KHỐI CHUYÊN BIỆT C: LỘ TRÌNH ĐƯỜNG BAY CAMERA (Trajectory & Presets)
   // (Dolly In, Orbit 3D, Pan Lia Máy, Fly Xuyên Cảnh)
   // -------------------------------------------------------------------------
+  const hasAtomicTrajectory =
+    !logicId &&
+    activeNodes.some(
+      (n) =>
+        n.id !== node.id &&
+        n.type === 'camera_director' &&
+        ['logic-cam-fly', 'logic-cam-dolly', 'logic-cam-orbit', 'logic-cam-pan'].includes(n.params?.logicId ?? '')
+    )
+  if (hasAtomicTrajectory) {
+    if (targetLayer) {
+      const layerPos = targetLayer.transform.position.value
+      project.camera.target.value = [layerPos[0], layerPos[1], layerPos[2]]
+    }
+    return {
+      nodeId: node.id,
+      nodeType: node.type,
+      title: node.title,
+      aiAgentRole: node.aiAgentRole,
+      preset: node.preset,
+      appliedSummary: `Trạm Camera Chính kết hợp lộ trình từ Node chức năng đơn lẻ.`,
+      affectedCount: 1
+    }
+  }
+
   const cameraShots = connectedShotIds.length > 0
     ? project.shots.filter((s) => connectedShotIds.includes(s.id))
     : project.shots

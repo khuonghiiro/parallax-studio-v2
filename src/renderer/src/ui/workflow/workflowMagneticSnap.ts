@@ -1,5 +1,5 @@
 import type { WorkflowNode, WorkflowPortKind } from '@shared/types'
-import { WORKFLOW_NODE_SPECS } from '../../project/workflowCatalog'
+import { getWorkflowNodePorts } from '../../project/workflowNodePorts'
 import { validateWorkflowConnection } from '../../project/workflowConnectionRules'
 import {
   NODE_W,
@@ -49,7 +49,7 @@ export function findMagneticTarget(
   // 1. Kiểm tra khoảng cách tới tất cả các chân cắm phù hợp của các khối khác
   for (const n of effectiveNodes) {
     if (n.id === sourceNodeId) continue
-    const spec = WORKFLOW_NODE_SPECS[n.type]
+    const spec = getWorkflowNodePorts(n)
     if (!spec) continue
 
     const targetPorts = isSourceOutput ? spec.inputs : spec.outputs
@@ -92,7 +92,7 @@ export function findMagneticTarget(
   // 2. Thả dây vào BẤT KỲ ĐÂU trên thẻ Khối đích (Whole Card Drop Hitbox)
   for (const n of effectiveNodes) {
     if (n.id === sourceNodeId) continue
-    const spec = WORKFLOW_NODE_SPECS[n.type]
+    const spec = getWorkflowNodePorts(n)
     if (!spec) continue
     const cardH = estimateNodeCardHeight(n)
     if (
