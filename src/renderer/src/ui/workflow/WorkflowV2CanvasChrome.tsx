@@ -60,6 +60,12 @@ export const WorkflowV2EdgeLayer: React.FC<{
         const d = buildEdgePath(from, to, kind, wireStyle, lane)
         const color = KIND_COLOR[kind] ?? resolveV2NodeTheme(to).accent
         const disconnectable = (kind === 'logic' || kind === 'data') && !to.params?.isCameraWaypoint
+        const isWaypointStep = Boolean(to.params?.isCameraWaypoint) && Math.abs(from.position.x - to.position.x) < 40
+        const stepBadgeText = isWaypointStep
+          ? from.params?.isCameraWaypoint
+            ? `▼ Bước ${(from.params.waypointLocalIndex ?? 0) + 1} → ${(to.params?.waypointLocalIndex ?? 0) + 1}`
+            : `▼ Mở đầu #${to.params?.waypointLabel ?? 1}`
+          : null
         return (
           <g
             key={edge.id}
@@ -74,11 +80,33 @@ export const WorkflowV2EdgeLayer: React.FC<{
             }}
           >
             <title>
-              {kind === 'camera' ? `Camera chuyển cảnh: ${from.title} → ${to.title}` : disconnectable ? 'Nhấp đúp để gỡ dây nối' : 'Dây cấu trúc cảnh'}
+              {kind === 'camera'
+                ? `Camera chuyển cảnh: ${from.title} → ${to.title}`
+                : isWaypointStep
+                  ? `Lộ trình quay: ${from.title} → ${to.title}`
+                  : disconnectable
+                    ? 'Nhấp đúp để gỡ dây nối'
+                    : 'Dây cấu trúc cảnh'}
             </title>
             <path d={d} className="wf-v2-edge-hit" />
             <path d={d} className="wf-v2-edge-fg" style={{ stroke: color }} markerEnd="url(#wf-v2-arrow)" />
             {running && <path d={d} className="wf-v2-edge-flow" style={{ stroke: color }} />}
+            {stepBadgeText && (
+              <g transform={`translate(${Math.round(from.position.x + 118)} ${Math.round((from.position.y + 64 + to.position.y) / 2)})`}>
+                <rect
+                  className="wf-v2-step-label-bg"
+                  x={-38}
+                  y={-8}
+                  width={76}
+                  height={16}
+                  rx={4}
+                  style={{ stroke: color }}
+                />
+                <text className="wf-v2-step-label" x={0} y={3} style={{ fill: color }}>
+                  {stepBadgeText}
+                </text>
+              </g>
+            )}
             {label && kind === 'camera' && (
               <g transform={`translate(${6} ${(from.position.y + to.position.y) / 2 + WF_V2_PORT_Y})`}>
                 <rect className="wf-v2-chain-label-bg" x={-2} y={-9} width={56} height={18} rx={4} />

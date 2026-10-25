@@ -3,6 +3,7 @@ import type { Project, Shot, WorkflowGraph, WorkflowNode, WorkflowNodeParams } f
 import { getLayerDisplayName } from '../../project/workflowV2Engine'
 import { IconTrash } from '../icons'
 import { WorkflowTimeRangeBar } from './WorkflowTimeRangeBar'
+import { WorkflowV2DirectStagePreview } from './WorkflowV2DirectStagePreview'
 import { WorkflowV2JsonPanel } from './WorkflowV2JsonPanel'
 import { WorkflowV2NodeParams } from './WorkflowV2NodeParams'
 import { isDeletableV2Node, summarizeV2Node } from './WorkflowNodeCardV2'
@@ -102,9 +103,19 @@ function linkedLayerNames(node: WorkflowNode, project: Project): string[] {
   return Array.from(new Set(names))
 }
 
+const DIRECT_STAGE_KEY = 'pxs:wf-v2-direct-stage-open'
+
 /** Bảng thuộc tính của Node đang chọn + Chế độ JSON Cảnh & Main trong Workflow V2 */
 export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) => {
   const { node, project, workflow, currentTime, jsonMode, onSetJsonMode } = props
+  const [directStageOpen, setDirectStageOpen] = useState(() => localStorage.getItem(DIRECT_STAGE_KEY) !== '0')
+  const toggleDirectStage = (): void => {
+    setDirectStageOpen((prev) => {
+      const next = !prev
+      localStorage.setItem(DIRECT_STAGE_KEY, next ? '1' : '0')
+      return next
+    })
+  }
 
   const modeTabs = (
     <div className="wf-v2-insp-tabs" role="tablist" aria-label="Chế độ bảng bên phải">
@@ -173,6 +184,14 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
           <strong title={node.title}>{cleanV2NodeTitle(node.title)}</strong>
           <small>{summarizeV2Node(node, childCount)}</small>
         </div>
+        <button
+          type="button"
+          className={`wf-v2-insp-bbox-toggle${directStageOpen ? ' active' : ''}`}
+          title={directStageOpen ? 'Đang bật khung chỉnh BBox 2D trực tiếp — nhấn để ẩn' : 'Bật khung chỉnh BBox 2D trực tiếp như trên Camera 2D'}
+          onClick={toggleDirectStage}
+        >
+          🎯 BBox
+        </button>
         {level !== 'root' && (
           <button
             type="button"
@@ -193,6 +212,18 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
       </header>
 
       <div className="wf-v2-insp-body">
+        <WorkflowV2DirectStagePreview
+          node={node}
+          project={project}
+          workflow={workflow}
+          currentTime={currentTime}
+          open={directStageOpen}
+          onToggleOpen={toggleDirectStage}
+          onUpdateParams={props.onUpdateParams}
+          onSelectNode={props.onSelectNode}
+          onScrubTime={props.onScrubTime}
+        />
+
         <section className="wf-v2-insp-sec">
           <div className="wf-v2-insp-sec-title">
             Khoảng thời gian
@@ -234,18 +265,21 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
               {workflow.nodes
                 .filter((n) => n.type === 'camera_director' && Boolean(n.params?.isCameraWaypoint) && n.params?.shotId === node.params?.shotId)
                 .sort((a, b) => (a.params?.waypointLocalIndex ?? 0) - (b.params?.waypointLocalIndex ?? 0))
-                .map((wp) => (
-                  <button
-                    key={wp.id}
-                    type="button"
-                    className="wf-v2-spawn-chip"
-                    style={{ ['--wf-v2-accent' as string]: '#06b6d4' }}
-                    title={`${wp.title} (${(wp.params?.timeStart ?? 0).toFixed(1)}s – ${(wp.params?.timeEnd ?? 0).toFixed(1)}s)`}
-                    onClick={() => props.onSelectNode?.(wp.id)}
-                  >
-                    🎯 {cleanV2NodeTitle(wp.title)}
-                  </button>
-                ))}
+                .map((wp) => {
+                  const wpTheme = resolveV2NodeTheme(wp)
+                  return (
+                    <button
+                      key={wp.id}
+                      type="button"
+                      className="wf-v2-spawn-chip"
+                      style={{ ['--wf-v2-accent' as string]: wpTheme.accent }}
+                      title={`${wp.title} (${(wp.params?.timeStart ?? 0).toFixed(1)}s – ${(wp.params?.timeEnd ?? 0).toFixed(1)}s)`}
+                      onClick={() => props.onSelectNode?.(wp.id)}
+                    >
+                      {wpTheme.icon} {cleanV2NodeTitle(wp.title)}
+                    </button>
+                  )
+                })}
             </div>
             <button type="button" className="wf-v2-ghost-btn" onClick={() => update({ collapsedGroup: !node.params?.collapsedGroup })}>
               {node.params?.collapsedGroup ? 'Mở rộng các cảnh con trên sơ đồ' : 'Thu gọn các cảnh con trên sơ đồ'}

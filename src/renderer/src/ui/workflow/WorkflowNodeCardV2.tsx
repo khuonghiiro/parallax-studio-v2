@@ -71,9 +71,9 @@ export function summarizeV2Node(node: WorkflowNode, childCount: number): string 
       return `Cường độ ${pct(p.intensity, 1)}`
     case 'camera':
       if (p.isCameraWaypoint) {
-        return `Zoom ${p.camZoomPct ?? 100}%${p.camYaw || p.camPitch || p.camRoll ? ' · Góc 3D' : ''}`
+        return `Zoom ${p.camZoomPct ?? 100}%${p.camYaw || p.camPitch || p.camRoll ? ' · 3D' : ''}`
       }
-      return `${p.childLayerCount ?? childCount} cảnh con · ${p.enableDof ? 'DOF bật' : 'DOF tắt'}`
+      return `${p.childLayerCount ?? childCount} cảnh con${p.enableDof ? ' · DOF' : ''}`
     default:
       return `Âm lượng ${pct(p.intensity, 1)}${p.autoLipSync ? ' · nhép môi' : ''}`
   }
@@ -184,8 +184,16 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
         )}
         <div className="wf-v2-card-titles">
           <div className="wf-v2-card-meta-row">
-            <span className="wf-v2-card-badge">{theme.badge}</span>
-            <span className="wf-v2-card-sub">{summarizeV2Node(node, childCount)}</span>
+            <span className="wf-v2-card-badge">
+              {node.params?.isCameraWaypoint && isActiveAtCurrentTime && node.enabled
+                ? `BƯỚC ${(node.params.waypointLocalIndex ?? 0) + 1}`
+                : theme.badge}
+            </span>
+            {node.params?.isCameraWaypoint && isActiveAtCurrentTime && node.enabled ? (
+              <span className="wf-v2-cam-live-pill">ĐANG QUAY</span>
+            ) : (
+              <span className="wf-v2-card-sub">{summarizeV2Node(node, childCount)}</span>
+            )}
           </div>
           <span className="wf-v2-card-title" title={node.title}>{cleanV2NodeTitle(node.title)}</span>
         </div>

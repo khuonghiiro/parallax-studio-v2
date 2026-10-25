@@ -25,9 +25,12 @@ const LOGIC_THEMES: Record<string, WorkflowV2NodeTheme> = {
   cave: { badge: 'HANG ĐỘNG', icon: '🕳️', accent: '#14b8a6', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
   fx: { badge: 'HIỆU ỨNG', icon: '✨', accent: '#a855f7', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
   audio: { badge: 'ÂM THANH', icon: '🔊', accent: '#ec4899', portIn: 'layers_tree', portOut: 'audio_mix', levelClass: 'level-logic' },
-  camera: { badge: 'CAMERA 3D', icon: '🎥', accent: '#22d3ee', portIn: 'scene_ctx', portOut: 'camera_cut', levelClass: 'level-logic' },
+  camera: { badge: 'CAMERA 3D', icon: '🎥', accent: '#0284c7', portIn: 'scene_ctx', portOut: 'camera_cut', levelClass: 'level-logic is-cam-parent' },
   action: { badge: 'HÀNH ĐỘNG', icon: '🏃', accent: '#10b981', portIn: 'layers_tree', portOut: 'motion_stream', levelClass: 'level-logic' }
 }
+
+const STEP_CIRCLES = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩']
+const CAM_STEP_ACCENTS = ['#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4', '#f97316']
 
 const GROUP_THEMES: Record<string, WorkflowV2NodeTheme> = {
   group_3d: { badge: 'GROUP 3D', icon: '🧊', accent: '#06b6d4', portIn: 'scene_ctx', portOut: 'layers_tree', levelClass: 'level-group' },
@@ -71,14 +74,17 @@ export function resolveV2NodeTheme(node: WorkflowNode): WorkflowV2NodeTheme {
     }
   }
   if (node.params?.isCameraWaypoint) {
-    const wpLbl = node.params.waypointLabel ? `#${node.params.waypointLabel}` : ''
+    const localIdx = Math.max(0, node.params.waypointLocalIndex ?? 0)
+    const stepNo = localIdx + 1
+    const accent = CAM_STEP_ACCENTS[localIdx % CAM_STEP_ACCENTS.length]
+    const circle = STEP_CIRCLES[localIdx] ?? `${stepNo}`
     return {
-      badge: node.params.isSubWaypoint ? `CẢNH PHỤ ${wpLbl}`.trim() : `CẢNH CON ${wpLbl}`.trim(),
-      icon: node.params.isSubWaypoint ? '↳' : '🎯',
-      accent: node.params.isSubWaypoint ? '#38bdf8' : '#06b6d4',
+      badge: node.params.isSubWaypoint ? `BƯỚC ${stepNo} · NHÁNH PHỤ` : `CẢNH CON · BƯỚC ${stepNo}`,
+      icon: node.params.isSubWaypoint ? `↳${circle}` : circle,
+      accent,
       portIn: 'camera_cut',
       portOut: 'camera_cut',
-      levelClass: 'level-logic is-cam-waypoint'
+      levelClass: `level-logic is-cam-waypoint wp-step-${(localIdx % 6) + 1}`
     }
   }
   return LOGIC_THEMES[resolveV2LogicCategory(node)] ?? LOGIC_THEMES.action

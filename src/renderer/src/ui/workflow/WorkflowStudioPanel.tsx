@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useEditor } from '../../store/editor'
+import { useView } from '../../store/view'
 import { computeShotRoute, v2RootId } from '../../project/workflowV2Engine'
 import { resolveWorkflowV2 } from '../../project/workflowV2Rebuild'
 import { WorkflowCanvasV2 } from './WorkflowCanvasV2'
@@ -57,10 +58,63 @@ export const WorkflowStudioPanel: React.FC = () => {
   )
   const activeShotId = useActiveShotId()
 
-  const selectNode = useCallback((id: string | null) => {
-    setSelectedNodeId(id)
-    if (id) window.dispatchEvent(new CustomEvent('pxs:wf-focus-node', { detail: { nodeId: id } }))
-  }, [])
+  const activateNode = useCallback(
+    (id: string | null, panWorkflowCanvas = false) => {
+      setSelectedNodeId(id)
+      if (!id) return
+      if (panWorkflowCanvas) {
+        window.dispatchEvent(new CustomEvent('pxs:wf-focus-node', { detail: { nodeId: id } }))
+      }
+      const st = useEditor.getState()
+      const node = workflow.nodes.find((n) => n.id === id)
+      if (!node) return
+      const level = resolveV2NodeLevel(node)
+      const repLayerId = node.params?.targetLayerIds?.[0] ?? null
+      const shotId =
+        node.params?.shotId ??
+        (repLayerId ? st.project.layers.find((l) => l.id === repLayerId)?.shotId : null) ??
+        null
+
+      if (shotId) setFocusedShotId(shotId)
+
+      if (node.type === 'camera_director' && node.params?.isCameraWaypoint) {
+        if (st.playing) st.setPlaying(false)
+        if (shotId) st.selectShot(shotId)
+        if (typeof node.params?.timeStart === 'number') st.setTime(node.params.timeStart)
+        if (shotId) useView.getState().requestFocus('shot', shotId)
+        return
+      }
+
+      if ((level === 'layer' || (level === 'logic' && node.type !== 'camera_director')) && repLayerId) {
+        st.selectLayer(repLayerId)
+        const shotRange = shotId ? route.ranges.get(shotId) : undefined
+        const tStart = node.params?.timeStart ?? shotRange?.start ?? 0
+        const tEnd = node.params?.timeEnd ?? shotRange?.end ?? st.project.comp.duration
+        const effStart = shotRange ? Math.max(tStart, shotRange.start) : tStart
+        const effEnd = shotRange ? Math.min(tEnd, shotRange.end) : tEnd
+        if (!st.playing && (st.time < effStart - 0.02 || st.time > effEnd + 0.02)) {
+          st.setTime(effStart <= effEnd ? effStart : (shotRange?.start ?? tStart))
+        }
+        useView.getState().requestFocus('layer', repLayerId)
+        return
+      }
+
+      if (shotId) {
+        st.selectShot(shotId)
+        const shotRange = route.ranges.get(shotId)
+        if (!st.playing && shotRange && (st.time < shotRange.start - 0.02 || st.time > shotRange.end + 0.02)) {
+          st.setTime(shotRange.start)
+        }
+        useView.getState().requestFocus('shot', shotId)
+      }
+    },
+    [workflow.nodes, route.ranges]
+  )
+
+  const selectNode = useCallback(
+    (id: string | null) => activateNode(id, true),
+    [activateNode]
+  )
 
   useEffect(() => {
     const onSelect = (e: Event): void => {
@@ -71,11 +125,15 @@ export const WorkflowStudioPanel: React.FC = () => {
     return () => window.removeEventListener('pxs:select-workflow-v2-node', onSelect)
   }, [selectNode])
 
-  // Chọn Layer ở Timeline / Viewport → chọn Node Layer tương ứng; chọn Cảnh ở bảng Cảnh → đi tới cụm cảnh đó
+  // Chọn Layer ở Timeline / Viewport → chọn Node Layer tương ứng (trừ khi Node hiện tại đã gắn với Layer đó)
   useEffect(() => {
     if (!selectedLayerId) return
-    const node = workflow.nodes.find((n) => resolveV2NodeLevel(n) === 'layer' && n.params?.targetLayerIds?.includes(selectedLayerId))
-    if (node) setSelectedNodeId(node.id)
+    setSelectedNodeId((prevId) => {
+      const prevNode = prevId ? workflow.nodes.find((n) => n.id === prevId) : undefined
+      if (prevNode?.params?.targetLayerIds?.includes(selectedLayerId)) return prevId
+      const node = workflow.nodes.find((n) => resolveV2NodeLevel(n) === 'layer' && n.params?.targetLayerIds?.includes(selectedLayerId))
+      return node ? node.id : prevId
+    })
   }, [selectedLayerId, workflow.nodes])
   useEffect(() => {
     if (!selectedShotId) return
@@ -162,7 +220,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           follow={follow}
           onToggleFollow={toggle(FOLLOW_KEY, setFollow, '1', '0')}
           selectedNodeId={selectedNodeId}
-          onSelectNode={setSelectedNodeId}
+          onSelectNode={(id) => activateNode(id, false)}
           onSetTime={setTime}
           onTogglePlay={() => setPlaying(!playing)}
           onMoveNodes={actions.moveNodes}

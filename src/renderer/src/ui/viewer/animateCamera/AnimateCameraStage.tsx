@@ -52,9 +52,11 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
   const time = useEditor((s) => s.time)
   const playing = useEditor((s) => s.playing)
   const selectedShotId = useEditor((s) => s.selectedShotId)
+  const selectedLayerId = useEditor((s) => s.selectedLayerId)
   const setTime = useEditor((s) => s.setTime)
   const setPlaying = useEditor((s) => s.setPlaying)
   const selectShot = useEditor((s) => s.selectShot)
+  const selectLayer = useEditor((s) => s.selectLayer)
   const update = useEditor((s) => s.update)
   const inspectorTab = useEditor((s) => s.inspectorTab)
   const theme = useView((s) => s.theme)
@@ -183,6 +185,93 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
       toast(`🎥 Đã tạo mốc lộ trình mới cho "${box.name}" tại ${(spawnedTime as number).toFixed(1)}s`)
     }
   }, [selectedShotId, playing, stageLayout, waypoints, activeFrame?.shotId, setTime, update])
+
+  // Khi chọn một Layer (từ Workflow V2, Timeline hoặc Inspector), tự động căn khung Camera 2D đến Layer đó
+  const lastSyncedLayerRef = useRef<string | null>(selectedLayerId)
+  useEffect(() => {
+    if (playing || !selectedLayerId) {
+      lastSyncedLayerRef.current = selectedLayerId
+      return
+    }
+    if (lastSyncedLayerRef.current === selectedLayerId) return
+    lastSyncedLayerRef.current = selectedLayerId
+
+    const layer = project.layers.find((l) => l.id === selectedLayerId)
+    if (!layer) return
+    const box = (layer.shotId ? stageLayout.find((b) => b.shotId === layer.shotId) : null) ?? stageLayout[0]
+    if (!box) return
+    const proj = (layersByShot.get(box.shotId) ?? []).find((p) => p.id === selectedLayerId)
+    const curZoom = zoomRef.current
+    const targetStageX = box.stageX + (proj?.offsetX ?? 0)
+    const targetStageY = box.stageY + (proj?.offsetY ?? 0)
+    const nextPan = {
+      x: Math.round(-targetStageX * curZoom),
+      y: Math.round(-targetStageY * curZoom - 14)
+    }
+    panRef.current = nextPan
+    setPan(nextPan)
+  }, [selectedLayerId, playing, project.layers, stageLayout, layersByShot])
+
+  const handleStartLayerBBoxDrag = useCallback(
+    (
+      e: React.PointerEvent,
+      _box: ShotStageBox,
+      projLayer: ProjectedLayer2D,
+      mode: 'move' | 'nw' | 'ne' | 'sw' | 'se'
+    ): void => {
+      setPlaying(false)
+      selectLayer(projLayer.id)
+      const layerObj = useEditor.getState().project.layers.find((l) => l.id === projLayer.id)
+      if (!layerObj) return
+      const startX = e.clientX
+      const startY = e.clientY
+      const origPos = [...(layerObj.transform.position.value ?? [0, 0, 0])]
+      const origScale = [...(layerObj.transform.scale.value ?? [1, 1, 1])]
+      const safeZoom = Math.max(0.04, zoomRef.current)
+      const refD = 1483.64
+      const pFactor = refD / Math.max(80, refD + (origPos[2] ?? 0))
+
+      const onMove = (pev: PointerEvent): void => {
+        const dxStage = (pev.clientX - startX) / safeZoom
+        const dyStage = (pev.clientY - startY) / safeZoom
+        update((d) => {
+          const dl = d.layers.find((l) => l.id === projLayer.id)
+          if (!dl) return
+          if (mode === 'move') {
+            const nx = Math.round(origPos[0] + dxStage / pFactor)
+            const ny = Math.round(origPos[1] - dyStage / pFactor)
+            dl.transform.position.value = [nx, ny, origPos[2] ?? 0]
+            const wfNode = d.workflow?.nodes.find((n) => n.id === `v2-layer-${dl.id}`)
+            if (wfNode?.params) {
+              wfNode.params.transformX = nx
+              wfNode.params.transformY = ny
+            }
+          } else {
+            const signX = mode === 'ne' || mode === 'se' ? 1 : -1
+            const signY = mode === 'sw' || mode === 'se' ? 1 : -1
+            const deltaW = dxStage * signX * 2
+            const deltaH = dyStage * signY * 2
+            const ratioW = Math.max(0.1, Math.min(8, (projLayer.width + deltaW) / Math.max(12, projLayer.width)))
+            const ratioH = Math.max(0.1, Math.min(8, (projLayer.height + deltaH) / Math.max(12, projLayer.height)))
+            const ratio = Number(((ratioW + ratioH) / 2).toFixed(3))
+            dl.transform.scale.value = [
+              Number((origScale[0] * ratio).toFixed(3)),
+              Number((origScale[1] * ratio).toFixed(3)),
+              origScale[2] ?? 1
+            ]
+          }
+        }, `anim2d-layer-bbox-${projLayer.id}`)
+      }
+
+      const onUp = (): void => {
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+      }
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+    },
+    [setPlaying, selectLayer, update]
+  )
 
   // Fit all 2D shot planes and external callout bubbles into the stage viewport
   const fitStage = useCallback(
@@ -692,6 +781,7 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
                 look={project.look}
                 isSelectedShot={selectedShotId === box.shotId}
                 isActiveCameraShot={activeFrame?.shotId === box.shotId}
+                selectedLayerId={selectedLayerId}
                 aimMode={toolMode === 'aim-target'}
                 zoom={zoom}
                 screenLeft={topLeft.x}
@@ -702,6 +792,7 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
                 onAddFrameAtShot={(targetBox) => spawnNextCameraFrame('shot', targetBox)}
                 onAimAtLayer={handleAimAtLayer}
                 onDoubleClickSpot={handleDoubleClickSpot}
+                onStartLayerBBoxDrag={handleStartLayerBBoxDrag}
               />
             )
           })}

@@ -172,7 +172,9 @@ export function Viewer() {
     r.onInvalidate = () => requestRender()
     const unsubStore = useEditor.subscribe((s, prev) => {
       if (s.epoch !== prev.epoch) needsFrame.current = true
-      if (s.selectedShotId !== prev.selectedShotId && s.selectedShotId) {
+      if (s.selectedLayerId !== prev.selectedLayerId && s.selectedLayerId) {
+        applyFocus('layer', s.selectedLayerId)
+      } else if (s.selectedShotId !== prev.selectedShotId && s.selectedShotId) {
         applyFocus('shot', s.selectedShotId)
       }
       if (
@@ -356,7 +358,22 @@ export function Viewer() {
         return
       }
     }
-    if (kind === 'layer') box = ev.layers.find((l) => l.layer.id === id)?.bounds.clone() ?? null
+    if (kind === 'layer' && id) {
+      const targetLayer = s.project.layers.find((l) => l.id === id)
+      const compInstId = targetLayer?.composite?.instanceId
+      const modInstId = targetLayer?.model3d?.instanceId
+      const unionBox = new THREE.Box3()
+      for (const el of ev.layers) {
+        if (
+          el.layer.id === id ||
+          (compInstId && el.layer.composite?.instanceId === compInstId) ||
+          (modInstId && el.layer.model3d?.instanceId === modInstId)
+        ) {
+          if (!el.bounds.isEmpty()) unionBox.union(el.bounds)
+        }
+      }
+      box = unionBox.isEmpty() ? null : unionBox
+    }
     if (!box || box.isEmpty()) box = worldBox(ev)
     pendingFocus.current = box
     edCam.touched = true

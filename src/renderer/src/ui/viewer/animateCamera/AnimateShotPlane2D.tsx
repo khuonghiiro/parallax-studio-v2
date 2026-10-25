@@ -150,6 +150,7 @@ interface AnimateShotPlane2DProps {
   look?: LookSettings
   isSelectedShot: boolean
   isActiveCameraShot: boolean
+  selectedLayerId?: string | null
   aimMode: boolean
   zoom: number
   screenLeft: number
@@ -160,6 +161,12 @@ interface AnimateShotPlane2DProps {
   onAddFrameAtShot: (box: ShotStageBox) => void
   onAimAtLayer: (box: ShotStageBox, layer: ProjectedLayer2D) => void
   onDoubleClickSpot: (stageX: number, stageY: number) => void
+  onStartLayerBBoxDrag?: (
+    e: React.PointerEvent,
+    box: ShotStageBox,
+    layer: ProjectedLayer2D,
+    mode: 'move' | 'nw' | 'ne' | 'sw' | 'se'
+  ) => void
 }
 
 export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
@@ -169,6 +176,7 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
   look,
   isSelectedShot,
   isActiveCameraShot,
+  selectedLayerId,
   aimMode,
   zoom,
   screenLeft,
@@ -178,7 +186,8 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
   onAimCurrentAtShot,
   onAddFrameAtShot,
   onAimAtLayer,
-  onDoubleClickSpot
+  onDoubleClickSpot,
+  onStartLayerBBoxDrag
 }: AnimateShotPlane2DProps) {
   const screenW = Math.max(8, box.width * zoom)
   const screenH = Math.max(6, box.height * zoom)
@@ -366,6 +375,88 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
 
           return null
         })}
+
+        {/* Khung BBox tương tác trực tiếp của Layer đang được chọn trên Camera 2D */}
+        {selectedLayerId &&
+          (() => {
+            const selLayer = layers.find((l) => l.id === selectedLayerId)
+            if (!selLayer) return null
+            const lw = Math.max(16, selLayer.width * zoom)
+            const lh = Math.max(16, selLayer.height * zoom)
+            const lx = screenW / 2 + selLayer.offsetX * zoom - lw / 2
+            const ly = screenH / 2 + selLayer.offsetY * zoom - lh / 2
+            const handlePositions: { key: 'nw' | 'ne' | 'sw' | 'se'; left: string; top: string; cursor: string }[] = [
+              { key: 'nw', left: '-4px', top: '-4px', cursor: 'nwse-resize' },
+              { key: 'ne', left: 'calc(100% - 4px)', top: '-4px', cursor: 'nesw-resize' },
+              { key: 'sw', left: '-4px', top: 'calc(100% - 4px)', cursor: 'nesw-resize' },
+              { key: 'se', left: 'calc(100% - 4px)', top: 'calc(100% - 4px)', cursor: 'nwse-resize' }
+            ]
+            return (
+              <div
+                className="anim2d-selected-layer-bbox"
+                style={{
+                  position: 'absolute',
+                  left: lx,
+                  top: ly,
+                  width: lw,
+                  height: lh,
+                  border: '2px solid #38bdf8',
+                  boxShadow: '0 0 0 1px rgba(15, 23, 42, 0.7), 0 0 14px rgba(56, 189, 248, 0.45)',
+                  borderRadius: 3,
+                  zIndex: 18,
+                  cursor: onStartLayerBBoxDrag ? 'move' : 'default',
+                  pointerEvents: 'auto'
+                }}
+                title={`Kéo để dời vị trí "${selLayer.name}" · Kéo góc để phóng to/thu nhỏ`}
+                onPointerDown={(e) => {
+                  if (e.button !== 0 || !onStartLayerBBoxDrag) return
+                  e.stopPropagation()
+                  onStartLayerBBoxDrag(e, box, selLayer, 'move')
+                }}
+              >
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: -20,
+                    padding: '1px 6px',
+                    borderRadius: 4,
+                    background: 'color-mix(in srgb, #0284c7 82%, #0f172a)',
+                    color: '#ffffff',
+                    fontSize: 9.5,
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'none',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.4)'
+                  }}
+                >
+                  🎯 {selLayer.name} · Z {Math.round(selLayer.zDepth)}
+                </span>
+                {onStartLayerBBoxDrag &&
+                  handlePositions.map((h) => (
+                    <span
+                      key={h.key}
+                      onPointerDown={(e) => {
+                        if (e.button !== 0) return
+                        e.stopPropagation()
+                        onStartLayerBBoxDrag(e, box, selLayer, h.key)
+                      }}
+                      style={{
+                        position: 'absolute',
+                        left: h.left,
+                        top: h.top,
+                        width: 8,
+                        height: 8,
+                        borderRadius: 2,
+                        background: '#ffffff',
+                        border: '1.5px solid #0284c7',
+                        cursor: h.cursor
+                      }}
+                    />
+                  ))}
+              </div>
+            )
+          })()}
 
         {/* Khi bật chế độ 🎯 Ngắm Layer: hiển thị lưới chọn nhanh Layer 2 cột gọn gàng không đè chữ */}
         {aimMode && layers.length > 0 && (

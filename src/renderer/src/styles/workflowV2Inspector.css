@@ -344,3 +344,242 @@
   background: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 14%, var(--bg-3));
   border-color: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 45%, transparent);
 }
+
+/* ------------------------------------------------------------------ Khung BBox 2D tương tác trực tiếp (trên Khoảng thời gian) */
+
+.wf-v2-insp-bbox-toggle {
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.wf-v2-insp-bbox-toggle:hover {
+  color: var(--text);
+  border-color: var(--line-focus);
+}
+.wf-v2-insp-bbox-toggle.active {
+  background: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 78%, #0f172a);
+  border-color: var(--wf-v2-accent, var(--accent));
+  color: #ffffff;
+}
+
+.wf-v2-direct-stage-sec {
+  padding-top: 6px;
+  padding-bottom: 8px;
+}
+.wf-v2-direct-stage-bar {
+  display: flex;
+  align-items: center;
+}
+.wf-v2-direct-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+  color: var(--text);
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+.wf-v2-direct-toggle-btn:hover {
+  border-color: var(--line-focus);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-1));
+}
+.wf-v2-direct-toggle-btn.active {
+  border-color: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 55%, var(--line));
+}
+.wf-v2-direct-toggle-btn small {
+  margin-left: auto;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-3);
+  color: var(--text-dim);
+  font-size: 9px;
+  font-weight: 600;
+}
+.wf-v2-direct-toggle-btn.active small {
+  background: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 78%, #0f172a);
+  color: #ffffff;
+}
+
+.wf-v2-direct-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 5px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+}
+.wf-v2-direct-canvas {
+  position: relative;
+  border-radius: var(--radius-sm);
+  background:
+    radial-gradient(circle, var(--line-soft) 1px, transparent 1px) 0 0 / 12px 12px,
+    var(--bg-0);
+  border: 1px solid var(--line-soft);
+  overflow: hidden;
+  user-select: none;
+  touch-action: none;
+}
+.wf-v2-direct-shot-plane {
+  position: absolute;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 45%, var(--line));
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32);
+}
+.wf-v2-direct-layer {
+  position: absolute;
+  isolation: isolate;
+  cursor: pointer;
+}
+.wf-v2-direct-layer:hover {
+  outline: 1px dashed color-mix(in srgb, var(--accent-cyan) 75%, #ffffff);
+}
+.wf-v2-direct-cam-svg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+}
+.wf-v2-direct-cam-bbox {
+  position: absolute;
+  border: 1.5px dashed var(--cam-step-c, #10b981);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--cam-step-c, #10b981) 8%, transparent);
+  z-index: 8;
+  cursor: pointer;
+}
+.wf-v2-direct-cam-bbox.active {
+  border: 2px solid var(--cam-step-c, #10b981);
+  background: color-mix(in srgb, var(--cam-step-c, #10b981) 12%, transparent);
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.65), 0 0 12px color-mix(in srgb, var(--cam-step-c, #10b981) 45%, transparent);
+  z-index: 12;
+  cursor: move;
+}
+.wf-v2-direct-cam-tag {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--cam-step-c, #10b981) 82%, #0f172a);
+  color: #ffffff;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.wf-v2-direct-layer-bbox {
+  position: absolute;
+  border: 2px solid var(--wf-v2-accent, #38bdf8);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--wf-v2-accent, #38bdf8) 10%, transparent);
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.65), 0 0 12px color-mix(in srgb, var(--wf-v2-accent, #38bdf8) 45%, transparent);
+  z-index: 14;
+  cursor: move;
+}
+.wf-v2-direct-bbox-tag {
+  position: absolute;
+  left: 0;
+  top: -17px;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--wf-v2-accent, #0284c7) 82%, #0f172a);
+  color: #ffffff;
+  font-size: 8.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.wf-v2-direct-bbox-crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1.5px solid #ffffff;
+  background: var(--wf-v2-accent, #38bdf8);
+  pointer-events: none;
+}
+.wf-v2-bbox-handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: #ffffff;
+  border: 1.5px solid #0f172a;
+  z-index: 2;
+}
+.wf-v2-bbox-handle.nw { left: -4px; top: -4px; cursor: nwse-resize; }
+.wf-v2-bbox-handle.ne { right: -4px; top: -4px; cursor: nesw-resize; }
+.wf-v2-bbox-handle.sw { left: -4px; bottom: -4px; cursor: nesw-resize; }
+.wf-v2-bbox-handle.se { right: -4px; bottom: -4px; cursor: nwse-resize; }
+
+.wf-v2-direct-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.wf-v2-direct-coords {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wf-v2-direct-coords b {
+  color: var(--text);
+  font-weight: 700;
+}
+.wf-v2-direct-actions {
+  display: flex;
+  gap: 4px;
+}
+.wf-v2-direct-btn {
+  flex: 1;
+  min-width: 0;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text);
+  font-size: 9.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.wf-v2-direct-btn:hover {
+  border-color: var(--line-focus);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
+}
+.wf-v2-direct-btn.accent {
+  background: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 78%, #0f172a);
+  border-color: var(--wf-v2-accent, var(--accent));
+  color: #ffffff;
+}
