@@ -12,8 +12,7 @@ import { useEditor } from '../../store/editor'
 import { useView } from '../../store/view'
 import {
   WORKFLOW_NODE_SPECS,
-  WORKFLOW_PORT_SPECS,
-  WORKFLOW_TEMPLATES
+  WORKFLOW_PORT_SPECS
 } from '../../project/workflowCatalog'
 import {
   WORKFLOW_LOGIC_NODE_CATALOG,
@@ -29,6 +28,12 @@ import {
   listProjectBindableTargets,
   validateAndNormalizeWorkflowJson
 } from '../../project/workflowEngine'
+import {
+  layoutWorkflowV2Tree,
+  recomputeSharedLogicTargets,
+  syncWorkflowV2NodeToProject,
+  validateWorkflowV2Connection
+} from '../../project/workflowV2Engine'
 import { bool, has, num, str } from '../params'
 import { ParamError, type Handler } from '../types'
 
@@ -84,9 +89,13 @@ export const workflowCommands: Record<string, Handler> = {
     return {
       timeline_tab: useView.getState().timelineTab,
       workflow,
-      node_io: workflow.nodes.map((node) => ({ node_id: node.id, enabled: node.enabled,
+      node_io: workflow.nodes.map((node) => ({
+        node_id: node.id,
+        enabled: node.enabled,
         executable: blueprint.agents.some((agent) => agent.nodeId === node.id),
-        ...getWorkflowNodePorts(node), routing: getWorkflowRouting(node, workflow) })),
+        ...getWorkflowNodePorts(node),
+        routing: getWorkflowRouting(node, workflow)
+      })),
       bindable_targets: bindableTargets,
       bindableTargets,
       ai_blueprint: blueprint,
@@ -97,7 +106,9 @@ export const workflowCommands: Record<string, Handler> = {
   set_workflow: (p) => {
     if (has(p, 'logic_id')) {
       let nodeId = ''
-      ed().update((draft) => { nodeId = addTimelineLogic(draft, str(p, 'logic_id', true)!, str(p, 'layer_id'), str(p, 'shot_id')) })
+      ed().update((draft) => {
+        nodeId = addTimelineLogic(draft, str(p, 'logic_id', true)!, str(p, 'layer_id'), str(p, 'shot_id'))
+      })
       return { ok: true, node_id: nodeId, workflow: ensureProjectWorkflow(proj()) }
     }
     const tab = str(p, 'tab')
@@ -188,7 +199,10 @@ export const workflowCommands: Record<string, Handler> = {
     if (editedNode && p.node_params !== undefined) {
       const params = typeof p.node_params === 'string' ? JSON.parse(p.node_params) : p.node_params
       if (!params || typeof params !== 'object' || Array.isArray(params)) throw new ParamError('node_params must be a JSON object')
-      editedNode.params = patchNodeDraft(editedNode, params).params
+      editedNode.params = {
+        ...patchNodeDraft(editedNode, params).params,
+        ...(params as Record<string, unknown>)
+      }
     }
     if (bool(p, 'apply_node') && (!editedNode || !previousNode)) throw new ParamError('apply_node requires node_id')
 
@@ -198,9 +212,19 @@ export const workflowCommands: Record<string, Handler> = {
 
     if (bool(p, 'apply_node') && editedNode && previousNode) {
       const next = evaluateNodeDraft(proj(), current, editedNode, previousNode)
-      ed().update((d) => { Object.assign(d, next) })
+      ed().update((d) => {
+        Object.assign(d, next)
+        if (current.presetId === 'v2_scene_hierarchy' && editedNode) {
+          syncWorkflowV2NodeToProject(d as Project, editedNode)
+        }
+      })
     } else {
-      ed().update((d) => { d.workflow = current }, 'mcp-set-workflow')
+      ed().update((d) => {
+        d.workflow = current
+        if (current.presetId === 'v2_scene_hierarchy' && editedNode) {
+          syncWorkflowV2NodeToProject(d as Project, editedNode)
+        }
+      }, 'mcp-set-workflow')
     }
 
     const updated = ensureProjectWorkflow(proj())
@@ -237,10 +261,40 @@ export const workflowCommands: Record<string, Handler> = {
       if (!fromSrc || !toDst) {
         throw new ParamError(`Invalid from_node "${fromNode}" or to_node "${toNode}"`)
       }
-      const defaultPort = WORKFLOW_NODE_SPECS[fromSrc.type]?.outputs[0] ?? 'scene_ctx'
-      const fromPort = (str(p, 'from_port') || str(p, 'port') || defaultPort) as WorkflowPortKind
-      const toPort = (str(p, 'to_port') || str(p, 'port') || fromPort) as WorkflowPortKind
-      next = connectWorkflowPort(next, fromSrc.id, fromPort, toDst.id, toPort)
+      if (next.presetId === 'v2_scene_hierarchy') {
+        const check = validateWorkflowV2Connection(next, fromSrc.id, toDst.id)
+        if (!check.valid) {
+          throw new ParamError(check.reason ?? 'Invalid Workflow V2 connection')
+        }
+        const defaultPort = WORKFLOW_NODE_SPECS[fromSrc.type]?.outputs[0] ?? 'layers_tree'
+        const fromPort = (str(p, 'from_port') || str(p, 'port') || defaultPort) as WorkflowPortKind
+        const toPort = (str(p, 'to_port') || str(p, 'port') || fromPort) as WorkflowPortKind
+        const isDstLayerOrGroup = toDst.type === 'layer_assembly' || toDst.type === 'camera_director'
+        const baseEdges = isDstLayerOrGroup
+          ? next.edges.filter((e) => e.toNode !== toDst.id)
+          : next.edges
+        const nextEdges = [
+          ...baseEdges,
+          {
+            id: `e-${fromSrc.id}-${toDst.id}`,
+            fromNode: fromSrc.id,
+            fromPort,
+            toNode: toDst.id,
+            toPort
+          }
+        ]
+        const synced = recomputeSharedLogicTargets(next.nodes, nextEdges)
+        next = {
+          ...next,
+          nodes: layoutWorkflowV2Tree(synced, nextEdges),
+          edges: nextEdges
+        }
+      } else {
+        const defaultPort = WORKFLOW_NODE_SPECS[fromSrc.type]?.outputs[0] ?? 'scene_ctx'
+        const fromPort = (str(p, 'from_port') || str(p, 'port') || defaultPort) as WorkflowPortKind
+        const toPort = (str(p, 'to_port') || str(p, 'port') || fromPort) as WorkflowPortKind
+        next = connectWorkflowPort(next, fromSrc.id, fromPort, toDst.id, toPort)
+      }
     } else if (action === 'disconnect') {
       const fromQ = str(p, 'from_node')
       const toQ = str(p, 'to_node')
@@ -251,13 +305,29 @@ export const workflowCommands: Record<string, Handler> = {
         toNode: toQ ? (resolveNode(toQ)?.id ?? toQ) : undefined,
         toPort: str(p, 'to_port') ?? str(p, 'port') ?? undefined
       })
+      if (next.presetId === 'v2_scene_hierarchy') {
+        next.nodes = recomputeSharedLogicTargets(next.nodes, next.edges)
+      }
     } else {
       throw new ParamError(`Unknown action "${action}". Expected connect, disconnect, auto_wire, or clear.`)
     }
 
     ed().update((d) => {
       d.workflow = next
-      applyWorkflowToProject(d as Project, next)
+      if (next.presetId === 'v2_scene_hierarchy') {
+        for (const n of next.nodes) {
+          if (n.params?.logicCategory !== 'collision') {
+            syncWorkflowV2NodeToProject(d as Project, n)
+          }
+        }
+        for (const n of next.nodes) {
+          if (n.params?.logicCategory === 'collision') {
+            syncWorkflowV2NodeToProject(d as Project, n)
+          }
+        }
+      } else {
+        applyWorkflowToProject(d as Project, next)
+      }
     }, 'mcp-wf-ports')
 
     const blueprint = compileWorkflowBlueprint(next, proj())
@@ -292,6 +362,18 @@ export const workflowCommands: Record<string, Handler> = {
     let report = applyWorkflowToProject(structuredClone(proj()), targetWorkflow)
     ed().update((d) => {
       report = applyWorkflowToProject(d as Project, targetWorkflow)
+      if (targetWorkflow.presetId === 'v2_scene_hierarchy') {
+        for (const n of targetWorkflow.nodes) {
+          if (n.params?.logicCategory !== 'collision') {
+            syncWorkflowV2NodeToProject(d as Project, n)
+          }
+        }
+        for (const n of targetWorkflow.nodes) {
+          if (n.params?.logicCategory === 'collision') {
+            syncWorkflowV2NodeToProject(d as Project, n)
+          }
+        }
+      }
     }, `Áp dụng Workflow: ${targetWorkflow.name}`)
 
     return {

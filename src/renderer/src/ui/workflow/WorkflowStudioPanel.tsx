@@ -12,9 +12,12 @@ import {
   attachLogicNodeToLayerV2,
   buildWorkflowV2SceneTree,
   layoutWorkflowV2Tree,
-  syncWorkflowV2NodeToProject
+  recomputeSharedLogicTargets,
+  syncWorkflowV2NodeToProject,
+  validateWorkflowV2Connection
 } from '../../project/workflowV2Engine'
 import { WorkflowCanvasV2 } from './WorkflowCanvasV2'
+
 export const WorkflowStudioPanel: React.FC = () => {
   const project = useEditor((s) => s.project)
   const selectedShotId = useEditor((s) => s.selectedShotId)
@@ -27,12 +30,13 @@ export const WorkflowStudioPanel: React.FC = () => {
   const showToast = useToast((s) => s.show)
   const [shotScope, setShotScope] = useState<string>(() => selectedShotId || project.shots[0]?.id || '__all__')
   const [paletteCollapsed, setPaletteCollapsed] = useState(false)
+
   useEffect(() => {
     if (selectedShotId && project.shots.some((s) => s.id === selectedShotId)) {
       setShotScope(selectedShotId)
     }
   }, [selectedShotId, project.shots])
-  // Khởi tạo hoặc lấy Cây Workflow V2 chuẩn 4 tầng (Cảnh Root -> Group Layer -> Node Layer -> Node Logic)
+
   const workflow: WorkflowGraph = useMemo(() => {
     if (
       project.workflow &&
@@ -43,17 +47,23 @@ export const WorkflowStudioPanel: React.FC = () => {
     }
     return buildWorkflowV2SceneTree(project, shotScope)
   }, [project, shotScope])
-  // Tự động lưu cây V2 vào project khi mở lần đầu hoặc khi đổi sang chế độ V2
+
   useEffect(() => {
     if (!project.workflow || project.workflow.presetId !== 'v2_scene_hierarchy') {
       const nextWf = buildWorkflowV2SceneTree(useEditor.getState().project, shotScope)
       useEditor.getState().update((draft) => {
         draft.workflow = nextWf
+        for (const n of nextWf.nodes) {
+          if (n.params?.logicCategory === 'material' || n.params?.logicCategory === 'collision') {
+            syncWorkflowV2NodeToProject(draft as Project, n)
+          }
+        }
       }, 'wf-v2-init')
     }
   }, [project.workflow?.presetId, shotScope])
+
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(() => workflow.nodes[0]?.id ?? null)
-  // Khi click chọn Layer trên Viewport/Timeline, tự động chọn đúng Node Layer trên Workflow V2
+
   useEffect(() => {
     if (!selectedLayerId) return
     const layerNode = workflow.nodes.find(
@@ -66,26 +76,38 @@ export const WorkflowStudioPanel: React.FC = () => {
       setSelectedNodeId(layerNode.id)
     }
   }, [selectedLayerId, workflow.nodes])
+
   const commitWorkflow = useCallback((nextWf: WorkflowGraph, mergeKey = 'wf-v2-edit') => {
     useEditor.getState().update((draft) => {
       draft.workflow = nextWf
     }, mergeKey)
   }, [])
+
   /** Đồng bộ / Bung lại toàn bộ Cây Cảnh 4 tầng từ dữ liệu thật của Project */
   const handleRebuildSceneTree = useCallback(() => {
     const freshTree = buildWorkflowV2SceneTree(useEditor.getState().project, shotScope)
-    commitWorkflow(freshTree, 'wf-v2-rebuild')
+    useEditor.getState().update((draft) => {
+      draft.workflow = freshTree
+      for (const n of freshTree.nodes) {
+        if (n.params?.logicCategory === 'material' || n.params?.logicCategory === 'collision') {
+          syncWorkflowV2NodeToProject(draft as Project, n)
+        }
+      }
+    }, 'wf-v2-rebuild')
     setSelectedNodeId('v2-root-scene')
     window.dispatchEvent(new CustomEvent('pxs:wf-fit-view'))
-    showToast('🎬 Đã bung Cây Cảnh V2 (Cảnh Root ➔ Group Layer ➔ Layer ➔ Node Logic)')
-  }, [shotScope, commitWorkflow, showToast])
+    showToast('🎬 Đã bung Cây Cảnh V2 (Cảnh Root ➔ Group Layer ➔ Layer ➔ Node Logic / Va chạm)')
+  }, [shotScope, showToast])
+
   /** Sắp xếp lại cây phân cấp chuẩn 4 cột */
   const handleAutoLayout = useCallback(() => {
-    const nextNodes = layoutWorkflowV2Tree(workflow.nodes, workflow.edges)
+    const synced = recomputeSharedLogicTargets(workflow.nodes, workflow.edges)
+    const nextNodes = layoutWorkflowV2Tree(synced, workflow.edges)
     commitWorkflow({ ...workflow, nodes: nextNodes }, 'wf-v2-layout')
     window.dispatchEvent(new CustomEvent('pxs:wf-fit-view'))
     showToast('✨ Đã căn chỉnh cây phân cấp 4 cột gọn gàng')
   }, [workflow, commitWorkflow, showToast])
+
   /** Di chuyển thẻ Node tự do */
   const handleMoveNodes = useCallback(
     (positions: Record<string, { x: number; y: number }>) => {
@@ -96,6 +118,7 @@ export const WorkflowStudioPanel: React.FC = () => {
     },
     [workflow, commitWorkflow]
   )
+
   /** Bật / Tắt một Node và đồng bộ xuống Project */
   const handleToggleNodeEnable = useCallback(
     (nodeId: string) => {
@@ -113,32 +136,44 @@ export const WorkflowStudioPanel: React.FC = () => {
     },
     [workflow]
   )
+
   /** Xoá một Node (và các nhánh con nếu là Group/Layer) */
   const handleDeleteNode = useCallback(
     (nodeId: string) => {
       if (nodeId === 'v2-root-scene') return
+      const targetNode = workflow.nodes.find((n) => n.id === nodeId)
       const toRemove = new Set<string>([nodeId])
-      let added = true
-      while (added) {
-        added = false
-        for (const e of workflow.edges) {
-          if (toRemove.has(e.fromNode) && !toRemove.has(e.toNode)) {
-            toRemove.add(e.toNode)
-            added = true
+      if (targetNode?.type === 'layer_assembly') {
+        let added = true
+        while (added) {
+          added = false
+          for (const e of workflow.edges) {
+            if (toRemove.has(e.fromNode) && !toRemove.has(e.toNode)) {
+              // Chỉ xoá kéo theo Logic Node nếu không còn Layer nào khác dùng chung nó
+              const otherParentEdges = workflow.edges.filter(
+                (oe) => oe.toNode === e.toNode && !toRemove.has(oe.fromNode)
+              )
+              if (otherParentEdges.length === 0) {
+                toRemove.add(e.toNode)
+                added = true
+              }
+            }
           }
         }
       }
       const remainEdges = workflow.edges.filter(
         (e) => !toRemove.has(e.fromNode) && !toRemove.has(e.toNode)
       )
-      const remainNodes = layoutWorkflowV2Tree(
+      const syncedRemain = recomputeSharedLogicTargets(
         workflow.nodes.filter((n) => !toRemove.has(n.id)),
         remainEdges
       )
+      const remainNodes = layoutWorkflowV2Tree(syncedRemain, remainEdges)
       commitWorkflow({ ...workflow, nodes: remainNodes, edges: remainEdges }, 'wf-v2-delete')
     },
     [workflow, commitWorkflow]
   )
+
   /** Cập nhật tham số hoặc Khoảng mốc thời gian [timeStart, timeEnd] của Node và đồng bộ tức thì xuống Project */
   const handleUpdateNodeParams = useCallback(
     (nodeId: string, patch: Partial<WorkflowNodeParams>, nextTitle?: string) => {
@@ -160,6 +195,14 @@ export const WorkflowStudioPanel: React.FC = () => {
         const updatedNode = nextNodes.find((n) => n.id === nodeId)
         if (updatedNode) {
           syncWorkflowV2NodeToProject(draft as Project, updatedNode, patch)
+          // Nếu vừa đổi Nhãn Vật liệu, tự động cập nhật lại các Node Va chạm có liên kết với Layer này
+          if (updatedNode.params?.logicCategory === 'material') {
+            for (const cn of nextNodes) {
+              if (cn.params?.logicCategory === 'collision') {
+                syncWorkflowV2NodeToProject(draft as Project, cn)
+              }
+            }
+          }
         }
       }, `wf-v2-param-${nodeId}`)
       if (patch.collapsedGroup !== undefined) {
@@ -169,7 +212,7 @@ export const WorkflowStudioPanel: React.FC = () => {
     [workflow]
   )
 
-  /** Chọn một Group Layer ở Sidebar bên trái -> Bung nhánh Group đó ra rõ nét để dễ thao tác */
+  /** Chọn một Group Layer ở Sidebar bên trái -> Bung nhánh Group đó ra rõ nét */
   const handleFocusGroupNode = useCallback(
     (groupNodeId: string) => {
       setSelectedNodeId(groupNodeId)
@@ -194,36 +237,51 @@ export const WorkflowStudioPanel: React.FC = () => {
     },
     [workflow]
   )
-  /** Gắn thêm một Node Logic (Hành động, Ánh sáng, Hang động, Hiệu ứng, Âm thanh) vào một Node Layer */
+
+  /** Gắn thêm hoặc tái sử dụng một Node Logic vào một Node Layer (có kiểm tra chống trùng logic) */
   const handleAttachLogicToLayer = useCallback(
-    (layerNodeId: string, category: 'action' | 'light' | 'cave' | 'fx' | 'audio') => {
-      const { workflow: nextWf, createdNodeId } = attachLogicNodeToLayerV2(
+    (
+      layerNodeId: string,
+      category: 'action' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio'
+    ) => {
+      const { workflow: nextWf, createdNodeId, reusedExisting, message } = attachLogicNodeToLayerV2(
         workflow,
         layerNodeId,
         category
       )
+      if (!createdNodeId) {
+        if (message) showToast(message)
+        return
+      }
       useEditor.getState().update((draft) => {
         draft.workflow = nextWf
-        const created = nextWf.nodes.find((n) => n.id === createdNodeId)
-        if (created) {
-          syncWorkflowV2NodeToProject(draft as Project, created)
+        const targetNode = nextWf.nodes.find((n) => n.id === createdNodeId)
+        if (targetNode) {
+          syncWorkflowV2NodeToProject(draft as Project, targetNode)
         }
       }, 'wf-v2-attach-logic')
       setSelectedNodeId(createdNodeId)
+      if (reusedExisting && message) {
+        showToast(`ℹ️ ${message}`)
+        return
+      }
       const labelMap = {
         action: '🏃 Node Hành động',
+        material: '🏷️ Node Nhãn Vật liệu',
+        collision: '💥 Node Va chạm Vật lý (2 Layer)',
         light: '💡 Node Ánh sáng',
         cave: '🕳️ Node Hang động',
         fx: '✨ Node Hiệu ứng',
         audio: '🔊 Node Âm thanh'
       }
-      showToast(`Đã gắn ${labelMap[category]} — kéo thanh mốc thời gian để chỉnh khoảng chạy!`)
+      showToast(`Đã gắn ${labelMap[category]} — chọn thẻ để chỉnh chi tiết & khoảng mốc thời gian!`)
     },
     [workflow, showToast]
   )
-  /** Gắn nhanh Node Logic vào Layer đang chọn (hoặc Layer đầu tiên nếu đang chọn Root/Group) */
+
+  /** Gắn nhanh Node Logic vào Layer đang chọn */
   const handleQuickSpawnForSelectedLayer = useCallback(
-    (category: 'action' | 'light' | 'cave' | 'fx' | 'audio') => {
+    (category: 'action' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio') => {
       const selNode = workflow.nodes.find((n) => n.id === selectedNodeId)
       let targetLayerNodeId: string | undefined
       if (selNode?.type === 'layer_assembly' && !selNode.params?.groupKind) {
@@ -243,17 +301,31 @@ export const WorkflowStudioPanel: React.FC = () => {
     },
     [workflow.nodes, selectedNodeId, handleAttachLogicToLayer, showToast]
   )
-  /** Kết nối dây giữa 2 Node và tự động đồng bộ khoảng mốc thời gian + targetLayerIds */
+
+  /**
+   * Kết nối dây giữa 2 Node:
+   * - Kiểm tra nghiêm ngặt điều kiện hợp lệ & chống trùng logic bằng validateWorkflowV2Connection
+   * - Cho phép tái sử dụng Node Logic (nhiều Layer kết nối chung vào 1 Node Logic hoặc 2 Layer kết nối vào 1 Node Va chạm)
+   */
   const handleConnectNodes = useCallback(
     (fromNode: string, fromPort: WorkflowPortKind, toNode: string, toPort: WorkflowPortKind) => {
-      if (fromNode === toNode) return
-      const exists = workflow.edges.some((e) => e.fromNode === fromNode && e.toNode === toNode)
-      if (exists) return
+      const check = validateWorkflowV2Connection(workflow, fromNode, toNode)
+      if (!check.valid) {
+        showToast(`⚠️ ${check.reason ?? 'Kết nối không hợp lệ!'}`)
+        return
+      }
       const src = workflow.nodes.find((n) => n.id === fromNode)
       const dst = workflow.nodes.find((n) => n.id === toNode)
       if (!src || !dst) return
+
+      const isDstLayerOrGroup = dst.type === 'layer_assembly' || dst.type === 'camera_director'
+      // Nếu đích là Node Layer/Group thì thay thế cạnh cha cũ; nếu đích là Node Logic thì giữ nguyên các Layer đã nối để TÁI SỬ DỤNG NODE!
+      const baseEdges = isDstLayerOrGroup
+        ? workflow.edges.filter((e) => e.toNode !== toNode)
+        : workflow.edges
+
       const nextEdges = [
-        ...workflow.edges.filter((e) => e.toNode !== toNode),
+        ...baseEdges,
         {
           id: `e-${fromNode}-${toNode}`,
           fromNode,
@@ -262,48 +334,62 @@ export const WorkflowStudioPanel: React.FC = () => {
           toPort
         }
       ]
-      const nextNodes = workflow.nodes.map((n) => {
-        if (n.id !== toNode) return n
-        return {
-          ...n,
-          params: {
-            ...(n.params ?? {}),
-            hierarchyParentNodeId: fromNode,
-            targetLayerIds: src.params?.targetLayerIds ?? n.params?.targetLayerIds,
-            timeStart: n.params?.timeStart ?? src.params?.timeStart ?? 0,
-            timeEnd: n.params?.timeEnd ?? src.params?.timeEnd ?? project.comp.duration
-          }
-        }
-      })
-      commitWorkflow(
-        {
+      const syncedNodes = recomputeSharedLogicTargets(workflow.nodes, nextEdges)
+      const laidOutNodes = layoutWorkflowV2Tree(syncedNodes, nextEdges)
+
+      useEditor.getState().update((draft) => {
+        draft.workflow = {
           ...workflow,
-          nodes: layoutWorkflowV2Tree(nextNodes, nextEdges),
+          nodes: laidOutNodes,
           edges: nextEdges
-        },
-        'wf-v2-connect'
-      )
-      showToast(`🔗 Đã kết nối "${src.title}" ➔ "${dst.title}"`)
+        }
+        const updatedDst = laidOutNodes.find((n) => n.id === toNode)
+        if (updatedDst) {
+          syncWorkflowV2NodeToProject(draft as Project, updatedDst)
+        }
+      }, 'wf-v2-connect')
+
+      const sharedCount =
+        laidOutNodes.find((n) => n.id === toNode)?.params?.sharedLayerNodeIds?.length ?? 1
+      if (!isDstLayerOrGroup && sharedCount > 1) {
+        showToast(
+          `🔗 Đã nối "${src.title}" vào "${dst.title}" (Đang tái sử dụng chung cho ${sharedCount} Layer!)`
+        )
+      } else {
+        showToast(`🔗 Đã kết nối "${src.title}" ➔ "${dst.title}"`)
+      }
     },
-    [workflow, project.comp.duration, commitWorkflow, showToast]
+    [workflow, showToast]
   )
+
   const handleDisconnectEdge = useCallback(
     (edgeId: string) => {
       const nextEdges = workflow.edges.filter((e) => e.id !== edgeId)
-      commitWorkflow({ ...workflow, edges: nextEdges }, 'wf-v2-disconnect')
+      const syncedNodes = recomputeSharedLogicTargets(workflow.nodes, nextEdges)
+      commitWorkflow({ ...workflow, nodes: syncedNodes, edges: nextEdges }, 'wf-v2-disconnect')
     },
     [workflow, commitWorkflow]
   )
+
   /** Áp dụng toàn bộ thông số và khoảng mốc thời gian trên Cây Workflow V2 vào Cảnh thực tế */
   const handleApplyAllToScene = useCallback(() => {
     useEditor.getState().update((draft) => {
       const wf = draft.workflow ?? workflow
+      // Ưu tiên áp dụng Node Nhãn Vật liệu trước để Node Va chạm đọc đúng chất liệu biến dạng
       for (const n of wf.nodes) {
-        syncWorkflowV2NodeToProject(draft as Project, n)
+        if (n.params?.logicCategory !== 'collision') {
+          syncWorkflowV2NodeToProject(draft as Project, n)
+        }
+      }
+      for (const n of wf.nodes) {
+        if (n.params?.logicCategory === 'collision') {
+          syncWorkflowV2NodeToProject(draft as Project, n)
+        }
       }
     }, 'wf-v2-apply-all')
-    showToast('⚡ Đã áp dụng toàn bộ Cây Workflow & Khoảng mốc thời gian vào Cảnh 3D!')
+    showToast('⚡ Đã áp dụng toàn bộ Cây Workflow, Nhãn Vật liệu & Va chạm Vật lý vào Cảnh 3D!')
   }, [workflow, showToast])
+
   const handleSwitchShotScope = (nextScope: string) => {
     setShotScope(nextScope)
     if (nextScope !== '__all__') {
@@ -313,6 +399,7 @@ export const WorkflowStudioPanel: React.FC = () => {
     commitWorkflow(rebuilt, 'wf-v2-switch-shot')
     window.setTimeout(() => window.dispatchEvent(new CustomEvent('pxs:wf-fit-view')), 40)
   }
+
   const groupNodes = useMemo(
     () => workflow.nodes.filter((n) => Boolean(n.params?.groupKind)),
     [workflow.nodes]
@@ -328,11 +415,11 @@ export const WorkflowStudioPanel: React.FC = () => {
       ),
     [workflow.nodes]
   )
+
   return (
     <div className="wf-studio-panel wf-v2-studio" data-mcp-region="timeline_workflow">
       {/* THANH CÔNG CỤ ĐỈNH WORKFLOW V2 */}
       <div className="wf-toolbar wf-v2-toolbar" data-mcp-region="workflow_toolbar">
-        {/* Cụm chuyển đổi Timeline / Workflow */}
         <div className="tl-mode-tabs" data-mcp-region="timeline_tabs">
           <button
             type="button"
@@ -351,10 +438,11 @@ export const WorkflowStudioPanel: React.FC = () => {
             <span className="tl-mode-tab-badge">{workflow.nodes.length}</span>
           </button>
         </div>
+
         <span className="wf-v2-status-pill">
           ✓ Cây thông mạch ({groupNodes.length} Group · {layerNodes.length} Layer · {logicNodes.length} Logic)
         </span>
-        {/* Chọn Cảnh Root */}
+
         <div className="wf-v2-shot-switcher">
           <span className="wf-v2-shot-label">Cảnh Root:</span>
           <button
@@ -376,7 +464,7 @@ export const WorkflowStudioPanel: React.FC = () => {
             </button>
           ))}
         </div>
-        {/* Các nút thao tác nhanh trên thanh công cụ */}
+
         <div className="wf-v2-toolbar-actions">
           <button
             type="button"
@@ -406,6 +494,22 @@ export const WorkflowStudioPanel: React.FC = () => {
           <button
             type="button"
             className="wf-v2-tool-btn spawn-light"
+            onClick={() => handleQuickSpawnForSelectedLayer('material')}
+            title="Gắn Node Nhãn Vật liệu (Cao su, Gỗ, Đá, Lá...) để định hình biến dạng khi va chạm"
+          >
+            +🏷️ Vật liệu
+          </button>
+          <button
+            type="button"
+            className="wf-v2-tool-btn spawn-fx"
+            onClick={() => handleQuickSpawnForSelectedLayer('collision')}
+            title="Gắn Node Va chạm Vật lý kết nối 2 Layer (tự động tạo chuyển động lao tới, biến dạng & bật nảy)"
+          >
+            +💥 Va chạm
+          </button>
+          <button
+            type="button"
+            className="wf-v2-tool-btn spawn-light"
             onClick={() => handleQuickSpawnForSelectedLayer('light')}
             title="Gắn thêm Node Ánh sáng vào Layer đang chọn"
           >
@@ -413,30 +517,15 @@ export const WorkflowStudioPanel: React.FC = () => {
           </button>
           <button
             type="button"
-            className="wf-v2-tool-btn spawn-fx"
-            onClick={() => handleQuickSpawnForSelectedLayer('cave')}
-            title="Gắn thêm Node Hang động / Vùng độ sâu vào Layer đang chọn"
-          >
-            +🕳️ Hang động
-          </button>
-          <button
-            type="button"
-            className="wf-v2-tool-btn spawn-fx"
-            onClick={() => handleQuickSpawnForSelectedLayer('fx')}
-            title="Gắn thêm Node Hiệu ứng vào Layer đang chọn"
-          >
-            +✨ Hiệu ứng
-          </button>
-          <button
-            type="button"
             className="wf-v2-tool-btn primary-apply"
             onClick={handleApplyAllToScene}
-            title="Áp dụng toàn bộ logic và khoảng mốc thời gian vào Cảnh"
+            title="Áp dụng toàn bộ logic, vật liệu, va chạm và khoảng mốc thời gian vào Cảnh"
           >
             ⚡ Áp dụng
           </button>
         </div>
       </div>
+
       {/* THÂN CHÍNH: CỘT THƯ VIỆN BÊN TRÁI + KHUNG VẼ CÂY THỜI GIAN BÊN PHẢI */}
       <div className="wf-v2-body">
         <aside
@@ -493,6 +582,28 @@ export const WorkflowStudioPanel: React.FC = () => {
                   <button
                     type="button"
                     className="wf-v2-add-card light"
+                    onClick={() => handleQuickSpawnForSelectedLayer('material')}
+                  >
+                    <span className="wf-v2-add-icon">🏷️</span>
+                    <div className="wf-v2-add-info">
+                      <strong>Nhãn Vật liệu</strong>
+                      <small>Cao su, Gỗ, Đá</small>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className="wf-v2-add-card fx"
+                    onClick={() => handleQuickSpawnForSelectedLayer('collision')}
+                  >
+                    <span className="wf-v2-add-icon">💥</span>
+                    <div className="wf-v2-add-info">
+                      <strong>Va chạm Vật lý</strong>
+                      <small>Nối 2 Layer va đập</small>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className="wf-v2-add-card light"
                     onClick={() => handleQuickSpawnForSelectedLayer('light')}
                   >
                     <span className="wf-v2-add-icon">💡</span>
@@ -523,23 +634,12 @@ export const WorkflowStudioPanel: React.FC = () => {
                       <small>Đàn hồi, Bloom</small>
                     </div>
                   </button>
-                  <button
-                    type="button"
-                    className="wf-v2-add-card audio span-full"
-                    onClick={() => handleQuickSpawnForSelectedLayer('audio')}
-                  >
-                    <span className="wf-v2-add-icon">🔊</span>
-                    <div className="wf-v2-add-info">
-                      <strong>Node Âm thanh / Thoại Lip-Sync</strong>
-                      <small>Gắn thoại & mốc thời gian phát âm thanh</small>
-                    </div>
-                  </button>
                 </div>
               </div>
             </div>
           )}
         </aside>
-        {/* KHUNG VẼ CÂY PHÂN CẤP + ĐƯỜNG KẺ MỐC THỜI GIAN */}
+
         <WorkflowCanvasV2
           workflow={workflow}
           project={project}

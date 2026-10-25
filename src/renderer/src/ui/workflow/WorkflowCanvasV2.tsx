@@ -27,7 +27,10 @@ export interface WorkflowCanvasV2Props {
   onToggleNodeEnable: (nodeId: string) => void
   onDeleteNode: (nodeId: string) => void
   onUpdateNodeParams: (nodeId: string, patch: Partial<WorkflowNodeParams>, nextTitle?: string) => void
-  onAttachLogicToLayer: (layerNodeId: string, category: 'action' | 'light' | 'cave' | 'fx' | 'audio') => void
+  onAttachLogicToLayer: (
+    layerNodeId: string,
+    category: 'action' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio'
+  ) => void
   onConnectNodes: (fromNode: string, fromPort: WorkflowPortKind, toNode: string, toPort: WorkflowPortKind) => void
   onDisconnectEdge: (edgeId: string) => void
   onAutoLayout: () => void
@@ -428,30 +431,33 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = ({
     const onUp = (ev: PointerEvent) => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
-      if (
+      const dropW = clientToWorld(ev.clientX, ev.clientY)
+      const hitTarget = visibleNodes.find(
+        (n) =>
+          n.id !== nodeId &&
+          dropW.x >= n.position.x - 16 &&
+          dropW.x <= n.position.x + WF_V2_NODE_W + 16 &&
+          dropW.y >= n.position.y - 12 &&
+          dropW.y <= n.position.y + estimateV2NodeHeight(n) + 12
+      )
+      if (hitTarget) {
+        const tTheme = resolveV2NodeTheme(hitTarget)
+        if (isOutput) {
+          onConnectNodes(nodeId, port, hitTarget.id, tTheme.portIn)
+        } else {
+          onConnectNodes(hitTarget.id, tTheme.portOut, nodeId, port)
+        }
+      } else if (
         isOutput &&
         srcNode.type === 'layer_assembly' &&
-        !srcNode.params?.groupKind
+        !srcNode.params?.groupKind &&
+        Math.hypot(dropW.x - sx, dropW.y - sy) > 36
       ) {
-        const dropW = clientToWorld(ev.clientX, ev.clientY)
-        const hitTarget = visibleNodes.find(
-          (n) =>
-            n.id !== nodeId &&
-            dropW.x >= n.position.x - 16 &&
-            dropW.x <= n.position.x + WF_V2_NODE_W + 16 &&
-            dropW.y >= n.position.y - 12 &&
-            dropW.y <= n.position.y + estimateV2NodeHeight(n) + 12
-        )
-        if (hitTarget) {
-          const tTheme = resolveV2NodeTheme(hitTarget)
-          onConnectNodes(nodeId, port, hitTarget.id, tTheme.portIn)
-        } else if (Math.hypot(dropW.x - sx, dropW.y - sy) > 36) {
-          setSpawnMenu({
-            layerNodeId: nodeId,
-            clientX: ev.clientX,
-            clientY: ev.clientY
-          })
-        }
+        setSpawnMenu({
+          layerNodeId: nodeId,
+          clientX: ev.clientX,
+          clientY: ev.clientY
+        })
       }
       setWireDrag(null)
     }
@@ -619,7 +625,8 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = ({
                 const y1 = fromN.position.y + 33
                 const x2 = toN.position.x - 2
                 const y2 = toN.position.y + 33
-                const channelX = Math.round(x1 + (x2 - x1) * 0.46)
+                const routeMeta = edgeRoutingMeta.get(edge.id)
+                const channelX = Math.round(x1 + (x2 - x1) * (routeMeta?.channelRatio ?? 0.48))
                 const dx = Math.max(58, Math.abs(x2 - x1) * 0.46)
                 pathD =
                   wireStyle === 'smoothstep'
@@ -725,6 +732,24 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = ({
               }}
             >
               🏃 + Node Hành động (Chuyển động)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onAttachLogicToLayer(spawnMenu.layerNodeId, 'material')
+                setSpawnMenu(null)
+              }}
+            >
+              🏷️ + Node Nhãn Vật liệu (Định hình biến dạng)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onAttachLogicToLayer(spawnMenu.layerNodeId, 'collision')
+                setSpawnMenu(null)
+              }}
+            >
+              💥 + Node Va chạm Vật lý (Kết nối 2 Layer)
             </button>
             <button
               type="button"

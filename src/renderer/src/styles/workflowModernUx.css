@@ -711,7 +711,7 @@
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  width: 264px;
+  width: 288px;
   padding: 7px 8px;
   border-radius: 7px;
   background: var(--bg-2);
@@ -729,17 +729,52 @@
   font-size: 10px;
   color: var(--text-dim);
 }
-.wf-v2-rebuild-btn {
-  height: 21px;
-  padding: 0 7px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--accent);
-  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
-  color: #ffffff;
+.wf-v2-deform-hint {
   font-size: 9.5px;
+  line-height: 1.35;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  color: var(--text-dim);
+}
+.wf-v2-deform-hint strong { color: var(--text); }
+.wf-v2-collision-pair-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+}
+.wf-v2-pair-tag {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 2px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-3);
+  border: 1px solid var(--line-soft);
+  color: var(--text);
+  font-size: 9.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wf-v2-pair-vs { font-size: 11px; flex-shrink: 0; }
+.wf-v2-swap-pair-btn {
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--wf-v2-accent, var(--accent));
+  background: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 78%, #0f172a);
+  color: #ffffff;
+  font-size: 9px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .wf-v2-slider {
   flex: 1;
@@ -749,7 +784,7 @@
 }
 .wf-v2-layer-spawn-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 3px;
 }
 .wf-v2-spawn-chip {
@@ -777,6 +812,10 @@
   gap: 3px;
 }
 .wf-v2-pill-grid.single-row { flex-wrap: nowrap; }
+.wf-v2-pill-grid.cols-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
 .wf-v2-opt-pill {
   height: 20px;
   padding: 0 5px;

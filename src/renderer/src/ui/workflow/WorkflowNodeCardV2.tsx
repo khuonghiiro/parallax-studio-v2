@@ -4,8 +4,11 @@ import {
   WORKFLOW_V2_ACTION_OPTIONS,
   WORKFLOW_V2_CAMERA_OPTIONS,
   WORKFLOW_V2_CAVE_OPTIONS,
+  WORKFLOW_V2_COLLISION_OPTIONS,
   WORKFLOW_V2_FX_OPTIONS,
   WORKFLOW_V2_LIGHT_OPTIONS,
+  WORKFLOW_V2_MATERIAL_OPTIONS,
+  getLayerDisplayName,
   getLayerZ
 } from '../../project/workflowV2Engine'
 import { WorkflowTimeRangeBar } from './WorkflowTimeRangeBar'
@@ -27,7 +30,10 @@ export interface WorkflowNodeCardV2Props {
   onToggleEnable: (nodeId: string) => void
   onDeleteNode?: (nodeId: string) => void
   onUpdateParams: (nodeId: string, patch: Partial<WorkflowNodeParams>, nextTitle?: string) => void
-  onAttachLogicToLayer: (layerNodeId: string, category: 'action' | 'light' | 'cave' | 'fx' | 'audio') => void
+  onAttachLogicToLayer: (
+    layerNodeId: string,
+    category: 'action' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio'
+  ) => void
   onStartWireDrag: (e: React.PointerEvent, nodeId: string, port: WorkflowPortKind, isOutput: boolean) => void
   onCompleteWireDrop: (nodeId: string, port: WorkflowPortKind, isInput: boolean) => void
   onScrubTime: (t: number) => void
@@ -95,6 +101,26 @@ export function resolveV2NodeTheme(node: WorkflowNode): {
     }
   }
   const cat = node.params?.logicCategory
+  if (cat === 'material') {
+    return {
+      badge: 'NHÃN VẬT LIỆU',
+      icon: '🏷️',
+      accent: '#f97316',
+      portIn: 'layers_tree',
+      portOut: 'vfx_stage',
+      levelClass: 'level-logic'
+    }
+  }
+  if (cat === 'collision') {
+    return {
+      badge: 'VA CHẠM VẬT LÝ',
+      icon: '💥',
+      accent: '#f43f5e',
+      portIn: 'layers_tree',
+      portOut: 'vfx_stage',
+      levelClass: 'level-logic'
+    }
+  }
   if (cat === 'light') {
     return {
       badge: 'ÁNH SÁNG',
@@ -194,6 +220,7 @@ export const WorkflowNodeCardV2: React.FC<WorkflowNodeCardV2Props> = ({
   const timeStart = node.params?.timeStart ?? 0
   const timeEnd = node.params?.timeEnd ?? maxDuration
   const collapsed = Boolean(node.params?.collapsedGroup)
+  const sharedLayerCount = node.params?.sharedLayerNodeIds?.length ?? 1
 
   const primaryLayerId = node.params?.targetLayerIds?.[0]
   const boundLayer =
@@ -205,14 +232,42 @@ export const WorkflowNodeCardV2: React.FC<WorkflowNodeCardV2Props> = ({
   const thumbSrc = boundAsset?.dataUrl || boundAsset?.path
   const zVal = Math.round(node.params?.transformZ ?? (boundLayer ? getLayerZ(boundLayer) : 0))
 
-  // Tóm tắt ngắn gọn 1 dòng cho từng loại thẻ (chuẩn n8n / React Flow)
+  // Đối với Node Va chạm: tìm tên Chủ thể A & Mục tiêu B
+  const strikerLayer =
+    logicCat === 'collision'
+      ? project?.layers.find((l) => l.id === (node.params?.strikerLayerId ?? node.params?.targetLayerIds?.[0]))
+      : undefined
+  const colliderLayer =
+    logicCat === 'collision'
+      ? project?.layers.find(
+          (l) =>
+            l.id ===
+            (node.params?.targetColliderLayerId ??
+              node.params?.targetLayerIds?.find((id) => id !== strikerLayer?.id))
+        )
+      : undefined
+  const strikerName = strikerLayer ? getLayerDisplayName(strikerLayer) : 'Layer A'
+  const colliderName = colliderLayer ? getLayerDisplayName(colliderLayer) : 'Chờ nối Layer B'
+
   const summaryLabel = (() => {
     if (isRoot) return `${childCount} nhánh · Parallax 2.5D`
     if (isGroup) return `${node.params?.childLayerCount ?? childCount} Layer trong nhóm`
     if (isLayer) return `Z: ${zVal >= 0 ? `+${zVal}` : zVal}`
+    if (logicCat === 'material') {
+      const opt =
+        WORKFLOW_V2_MATERIAL_OPTIONS.find((m) => m.id === (node.params?.materialTag ?? 'jelly_slime')) ??
+        WORKFLOW_V2_MATERIAL_OPTIONS[0]
+      return `${opt.shortLabel}${sharedLayerCount > 1 ? ` · 🔗${sharedLayerCount}L` : ''}`
+    }
+    if (logicCat === 'collision') {
+      const opt =
+        WORKFLOW_V2_COLLISION_OPTIONS.find((c) => c.id === (node.params?.collisionMode ?? 'elastic_bounce')) ??
+        WORKFLOW_V2_COLLISION_OPTIONS[0]
+      return `${opt.shortLabel} · ${sharedLayerCount}L`
+    }
     if (logicCat === 'action') {
       const opt = WORKFLOW_V2_ACTION_OPTIONS.find((o) => o.id === (node.params?.actionPreset ?? 'float'))
-      return `${opt?.label ?? 'Bay lơ lửng'} · ${Math.round((node.params?.intensity ?? 0.65) * 100)}%`
+      return `${opt?.label ?? 'Bay lơ lửng'}${sharedLayerCount > 1 ? ` · 🔗${sharedLayerCount}L` : ` · ${Math.round((node.params?.intensity ?? 0.65) * 100)}%`}`
     }
     if (logicCat === 'cave') {
       const opt = WORKFLOW_V2_CAVE_OPTIONS.find((o) => o.id === (node.params?.caveArchShape ?? 'arch'))
@@ -232,6 +287,13 @@ export const WorkflowNodeCardV2: React.FC<WorkflowNodeCardV2Props> = ({
     }
     return `Âm lượng ${Math.round((node.params?.intensity ?? 1.0) * 100)}%`
   })()
+
+  const activeMatOpt =
+    WORKFLOW_V2_MATERIAL_OPTIONS.find((m) => m.id === (node.params?.materialTag ?? 'jelly_slime')) ??
+    WORKFLOW_V2_MATERIAL_OPTIONS[0]
+  const activeColOpt =
+    WORKFLOW_V2_COLLISION_OPTIONS.find((c) => c.id === (node.params?.collisionMode ?? 'elastic_bounce')) ??
+    WORKFLOW_V2_COLLISION_OPTIONS[0]
 
   return (
     <div
@@ -262,14 +324,12 @@ export const WorkflowNodeCardV2: React.FC<WorkflowNodeCardV2Props> = ({
         onStartDragNode(e, node)
       }}
     >
-      {/* Dải màu định danh bên trái chuẩn n8n / XYFlow */}
       <div className="wf-v2-card-accent-bar" />
 
-      {/* CỔNG ĐẦU VÀO BÊN TRÁI (Trừ Root Cảnh) */}
       {!isRoot && (
         <div
           className="wf-v2-socket in"
-          title="Cổng nhận kết nối từ nhánh cha"
+          title="Cổng nhận kết nối (Có thể nối nhiều Layer vào chung 1 Node Logic hoặc 2 Layer vào 1 Node Va chạm)"
           onPointerDown={(e) => {
             e.stopPropagation()
             onStartWireDrag(e, node.id, theme.portIn, false)
@@ -283,7 +343,6 @@ export const WorkflowNodeCardV2: React.FC<WorkflowNodeCardV2Props> = ({
         </div>
       )}
 
-      {/* CỔNG ĐẦU RA BÊN PHẢI */}
       <div
         className="wf-v2-socket out"
         title="Kéo dây từ cổng này sang phải để kết nối hoặc tạo Node Logic mới"
@@ -314,7 +373,7 @@ export const WorkflowNodeCardV2: React.FC<WorkflowNodeCardV2Props> = ({
             <span className="wf-v2-card-sub">{summaryLabel}</span>
           </div>
           <span className="wf-v2-card-title" title={node.title}>
-            {node.title.replace(/^(Hành động|Ánh sáng|Hang động|Hiệu ứng|Âm thanh|Cảnh):\s*/i, '')}
+            {node.title.replace(/^(Hành động|Vật liệu|Va chạm|Ánh sáng|Hang động|Hiệu ứng|Âm thanh|Cảnh):\s*/i, '')}
           </span>
         </div>
         <div className="wf-v2-card-actions" onPointerDown={(e) => e.stopPropagation()}>
@@ -342,7 +401,7 @@ export const WorkflowNodeCardV2: React.FC<WorkflowNodeCardV2Props> = ({
             <button
               type="button"
               className="wf-v2-add-logic-btn"
-              title="Gắn nhanh Node Logic cho Layer này (hoặc chọn thẻ để mở bảng gắn)"
+              title="Gắn nhanh Node Logic cho Layer này"
               onClick={() => onSelect(node.id)}
             >
               ＋
@@ -385,13 +444,12 @@ export const WorkflowNodeCardV2: React.FC<WorkflowNodeCardV2Props> = ({
         />
       </div>
 
-      {/* KHAY TINH CHỈNH NHANH NỔI LÊN KHI CHỌN THẺ (FLOATING POPOVER — KHÔNG LÀM ĐẨY LỆCH CÂY) */}
+      {/* KHAY TINH CHỈNH ĐA TÍNH NĂNG NỔI LÊN KHI CHỌN THẺ (FLOATING POPOVER) */}
       {selected && !isGroup && !isRoot && (
         <div
           className="wf-v2-card-popover"
           onPointerDown={(e) => e.stopPropagation()}
         >
-
           {isLayer && (
             <>
               <div className="wf-v2-param-row">
@@ -419,6 +477,20 @@ export const WorkflowNodeCardV2: React.FC<WorkflowNodeCardV2Props> = ({
                 </button>
                 <button
                   type="button"
+                  className="wf-v2-spawn-chip material"
+                  onClick={() => onAttachLogicToLayer(node.id, 'material')}
+                >
+                  +🏷️ Vật liệu
+                </button>
+                <button
+                  type="button"
+                  className="wf-v2-spawn-chip collision"
+                  onClick={() => onAttachLogicToLayer(node.id, 'collision')}
+                >
+                  +💥 Va chạm
+                </button>
+                <button
+                  type="button"
                   className="wf-v2-spawn-chip light"
                   onClick={() => onAttachLogicToLayer(node.id, 'light')}
                 >
@@ -442,10 +514,175 @@ export const WorkflowNodeCardV2: React.FC<WorkflowNodeCardV2Props> = ({
             </>
           )}
 
+          {isLogic && logicCat === 'material' && (
+            <>
+              <div className="wf-v2-pill-grid cols-3">
+                {WORKFLOW_V2_MATERIAL_OPTIONS.slice(0, 6).map((opt) => {
+                  const active = (node.params?.materialTag ?? 'jelly_slime') === opt.id
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className={`wf-v2-opt-pill ${active ? 'active' : ''}`}
+                      onClick={() =>
+                        onUpdateParams(
+                          node.id,
+                          {
+                            materialTag: opt.id,
+                            materialStiffness: opt.defaultStiffness,
+                            materialBounciness: opt.defaultBounciness,
+                            materialGravity: opt.defaultGravity
+                          },
+                          `Vật liệu: ${opt.label}`
+                        )
+                      }
+                    >
+                      {opt.shortLabel}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="wf-v2-deform-hint">
+                💥 <strong>Khi va chạm:</strong> {activeMatOpt.deformDesc}
+                {sharedLayerCount > 1 ? ` (🔗 Đang áp dụng chung cho ${sharedLayerCount} Layer)` : ''}
+              </div>
+              <div className="wf-v2-param-row">
+                <span>Độ cứng</span>
+                <input
+                  type="range"
+                  className="wf-v2-slider"
+                  min={0.1}
+                  max={1.0}
+                  step={0.05}
+                  value={node.params?.materialStiffness ?? activeMatOpt.defaultStiffness}
+                  onChange={(e) =>
+                    onUpdateParams(node.id, { materialStiffness: Number(e.target.value) })
+                  }
+                />
+                <strong>{Math.round((node.params?.materialStiffness ?? activeMatOpt.defaultStiffness) * 100)}%</strong>
+              </div>
+              <div className="wf-v2-param-row">
+                <span>Độ nảy biến dạng</span>
+                <input
+                  type="range"
+                  className="wf-v2-slider"
+                  min={0.0}
+                  max={1.5}
+                  step={0.05}
+                  value={node.params?.materialBounciness ?? activeMatOpt.defaultBounciness}
+                  onChange={(e) =>
+                    onUpdateParams(node.id, { materialBounciness: Number(e.target.value) })
+                  }
+                />
+                <strong>{Math.round((node.params?.materialBounciness ?? activeMatOpt.defaultBounciness) * 100)}%</strong>
+              </div>
+            </>
+          )}
+
+          {isLogic && logicCat === 'collision' && (
+            <>
+              <div className="wf-v2-collision-pair-bar">
+                <span className="wf-v2-pair-tag striker" title="Chủ thể A (Lao tới va đập)">
+                  🅰️ {strikerName}
+                </span>
+                <span className="wf-v2-pair-vs">💥</span>
+                <span className="wf-v2-pair-tag target" title="Mục tiêu B (Chịu lực & Biến dạng theo Nhãn Vật liệu)">
+                  🅱️ {colliderName}
+                </span>
+                {strikerLayer && colliderLayer && (
+                  <button
+                    type="button"
+                    className="wf-v2-swap-pair-btn"
+                    title="Đổi vai trò Chủ thể A và Mục tiêu B"
+                    onClick={() =>
+                      onUpdateParams(node.id, {
+                        strikerLayerId: colliderLayer.id,
+                        targetColliderLayerId: strikerLayer.id
+                      })
+                    }
+                  >
+                    ⇄ Đổi A/B
+                  </button>
+                )}
+              </div>
+              <div className="wf-v2-pill-grid cols-3">
+                {WORKFLOW_V2_COLLISION_OPTIONS.map((opt) => {
+                  const active = (node.params?.collisionMode ?? 'elastic_bounce') === opt.id
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className={`wf-v2-opt-pill ${active ? 'active' : ''}`}
+                      onClick={() =>
+                        onUpdateParams(
+                          node.id,
+                          {
+                            collisionMode: opt.id,
+                            collisionForce: opt.defaultForce,
+                            deformIntensity: opt.defaultDeform
+                          },
+                          `Va chạm: ${opt.label}`
+                        )
+                      }
+                    >
+                      {opt.shortLabel}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="wf-v2-deform-hint">
+                ⚡ {activeColOpt.description}
+              </div>
+              <div className="wf-v2-param-row">
+                <span>Lực va đập</span>
+                <input
+                  type="range"
+                  className="wf-v2-slider"
+                  min={0.2}
+                  max={2.0}
+                  step={0.05}
+                  value={node.params?.collisionForce ?? activeColOpt.defaultForce}
+                  onChange={(e) =>
+                    onUpdateParams(node.id, { collisionForce: Number(e.target.value) })
+                  }
+                />
+                <strong>{Math.round((node.params?.collisionForce ?? activeColOpt.defaultForce) * 100)}%</strong>
+              </div>
+              <div className="wf-v2-param-row">
+                <span>Biến dạng Mesh</span>
+                <input
+                  type="range"
+                  className="wf-v2-slider"
+                  min={0.1}
+                  max={1.5}
+                  step={0.05}
+                  value={node.params?.deformIntensity ?? activeColOpt.defaultDeform}
+                  onChange={(e) => {
+                    onUpdateParams(node.id, { deformIntensity: Number(e.target.value) })
+                    onScrubTime(Number(((timeStart + timeEnd) * 0.5).toFixed(2)))
+                  }}
+                />
+                <button
+                  type="button"
+                  className="wf-v2-swap-pair-btn"
+                  title="Tua ngay tới khoảnh khắc va chạm để xem biến dạng trực tiếp trên Viewport"
+                  onClick={() => {
+                    onUpdateParams(node.id, {
+                      collisionForce: node.params?.collisionForce ?? activeColOpt.defaultForce
+                    })
+                    onScrubTime(Number(((timeStart + timeEnd) * 0.5).toFixed(2)))
+                  }}
+                >
+                  👁️ Xem va chạm ({((timeStart + timeEnd) * 0.5).toFixed(1)}s)
+                </button>
+              </div>
+            </>
+          )}
+
           {isLogic && logicCat === 'action' && (
             <>
               <div className="wf-v2-pill-grid single-row">
-                {WORKFLOW_V2_ACTION_OPTIONS.slice(0, 4).map((opt) => {
+                {WORKFLOW_V2_ACTION_OPTIONS.slice(0, 5).map((opt) => {
                   const active = (node.params?.actionPreset ?? 'float') === opt.id
                   return (
                     <button

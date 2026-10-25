@@ -177,10 +177,51 @@ export interface WorkflowNodeParams {
   groupKind?: 'group_3d' | 'group_25d' | 'group_env'
   /** [Workflow V2] Trạng thái thu gọn nhánh con của Group hoặc Layer */
   collapsedGroup?: boolean
-  /** [Workflow V2] Phân loại Node Logic gắn vào Layer ('action' | 'light' | 'cave' | 'fx' | 'audio' | 'camera') */
-  logicCategory?: 'action' | 'light' | 'cave' | 'fx' | 'audio' | 'camera'
+  /** [Workflow V2] Phân loại Node Logic gắn vào Layer ('action' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio' | 'camera') */
+  logicCategory?:
+    | 'action'
+    | 'material'
+    | 'collision'
+    | 'light'
+    | 'cave'
+    | 'fx'
+    | 'audio'
+    | 'camera'
+  /** [Workflow V2] Danh sách các ID Node Layer đang cùng liên kết/tái sử dụng Node Logic này */
+  sharedLayerNodeIds?: string[]
   /** [Workflow V2] Mã kiểu hành động của Node Hành động */
   actionPreset?: string
+  /** [Workflow V2] Nhãn chất liệu vật lý của Node Vật liệu ('jelly_slime' | 'wood_tree' | 'foliage_bush' | 'stone_wall' | 'metal_armor' | 'cloth_rope' | 'flesh_body' | 'ground_terrain') */
+  materialTag?:
+    | 'jelly_slime'
+    | 'wood_tree'
+    | 'foliage_bush'
+    | 'stone_wall'
+    | 'metal_armor'
+    | 'cloth_rope'
+    | 'flesh_body'
+    | 'ground_terrain'
+  /** [Workflow V2] Độ cứng đàn hồi của chất liệu (0.2 .. 2.5) */
+  materialStiffness?: number
+  /** [Workflow V2] Hệ số nảy / biên độ biến dạng chất liệu (0.1 .. 2.5) */
+  materialBounciness?: number
+  /** [Workflow V2] Hệ số trọng lực rơi của chất liệu (0 .. 1.5) */
+  materialGravity?: number
+  /** [Workflow V2] Dạng tương tác vật lý của Node Va chạm ('elastic_bounce' | 'heavy_punch' | 'jelly_crush' | 'wall_vault' | 'projectile_stick') */
+  collisionMode?:
+    | 'elastic_bounce'
+    | 'heavy_punch'
+    | 'jelly_crush'
+    | 'wall_vault'
+    | 'projectile_stick'
+  /** [Workflow V2] Lực xung va chạm (0.2 .. 2.5) */
+  collisionForce?: number
+  /** [Workflow V2] Cường độ biến dạng lưới Mesh khi va chạm (0.2 .. 2.5) */
+  deformIntensity?: number
+  /** [Workflow V2] ID Layer đóng vai trò chủ thể lao vào / gây va chạm (A) */
+  strikerLayerId?: string
+  /** [Workflow V2] ID Layer đóng vai trò mục tiêu nhận va chạm / biến dạng (B) */
+  targetColliderLayerId?: string
   /** [Workflow V2] Chế độ chiếu sáng của Node Ánh sáng */
   lightMode?: 'rim' | 'point' | 'spot' | 'candle' | 'glow' | 'cave_crystal'
   /** [Workflow V2] Mã màu HEX của Node Ánh sáng */

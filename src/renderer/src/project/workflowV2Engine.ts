@@ -1,23 +1,54 @@
 import type {
   Layer,
   LayerMotionType,
+  LayerPhysicsMaterial,
   Project,
   Shot,
   VirtualLightKind,
+  WorkflowCollisionMode,
   WorkflowEdge,
   WorkflowGraph,
   WorkflowNode,
   WorkflowNodeParams
 } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
+import {
+  WORKFLOW_V2_COLLISION_OPTIONS,
+  WORKFLOW_V2_MATERIAL_OPTIONS,
+  applyCollisionNodeToProject,
+  applyMaterialNodeToProject,
+  recomputeSharedLogicTargets,
+  validateWorkflowV2Connection
+} from './workflowV2PhysicsAndValidation'
+
+export {
+  WORKFLOW_V2_COLLISION_OPTIONS,
+  WORKFLOW_V2_MATERIAL_OPTIONS,
+  applyCollisionNodeToProject,
+  applyMaterialNodeToProject,
+  recomputeSharedLogicTargets,
+  validateWorkflowV2Connection
+}
+
 export const WF_V2_COL_X = {
   ROOT: 40,
   GROUP: 432,
   LAYER: 824,
   LOGIC: 1216
 } as const
+
 export const WF_V2_NODE_W = 236
-export type WorkflowV2LogicCategory = 'action' | 'light' | 'cave' | 'fx' | 'audio' | 'camera'
+
+export type WorkflowV2LogicCategory =
+  | 'action'
+  | 'material'
+  | 'collision'
+  | 'light'
+  | 'cave'
+  | 'fx'
+  | 'audio'
+  | 'camera'
+
 export interface WorkflowV2ActionOption {
   id: string
   label: string
@@ -25,6 +56,7 @@ export interface WorkflowV2ActionOption {
   defaultSpeed: number
   defaultAmount: number
 }
+
 export const WORKFLOW_V2_ACTION_OPTIONS: WorkflowV2ActionOption[] = [
   { id: 'float', label: 'Bay lơ lửng', motionType: 'float', defaultSpeed: 1.0, defaultAmount: 0.65 },
   { id: 'sway', label: 'Đung đưa gió', motionType: 'sway', defaultSpeed: 1.1, defaultAmount: 0.6 },
@@ -34,6 +66,7 @@ export const WORKFLOW_V2_ACTION_OPTIONS: WorkflowV2ActionOption[] = [
   { id: 'wiggle', label: 'Rung tự nhiên', motionType: 'wiggle', defaultSpeed: 1.5, defaultAmount: 0.5 },
   { id: 'spin', label: 'Xoay vòng', motionType: 'spin', defaultSpeed: 0.8, defaultAmount: 0.6 }
 ]
+
 export interface WorkflowV2LightOption {
   id: 'rim' | 'point' | 'spot' | 'candle' | 'glow' | 'cave_crystal'
   label: string
@@ -41,6 +74,7 @@ export interface WorkflowV2LightOption {
   defaultColor: string
   defaultIntensity: number
 }
+
 export const WORKFLOW_V2_LIGHT_OPTIONS: WorkflowV2LightOption[] = [
   { id: 'rim', label: 'Đèn viền (Rim)', virtualKind: 'bulb', defaultColor: '#38bdf8', defaultIntensity: 1.3 },
   { id: 'point', label: 'Đèn điểm (Bulb)', virtualKind: 'bulb', defaultColor: '#fbbf24', defaultIntensity: 1.4 },
@@ -49,22 +83,26 @@ export const WORKFLOW_V2_LIGHT_OPTIONS: WorkflowV2LightOption[] = [
   { id: 'cave_crystal', label: 'Tinh thể Hang động', virtualKind: 'cave_crystal', defaultColor: '#22d3ee', defaultIntensity: 1.5 },
   { id: 'glow', label: 'Hào quang (Glow)', virtualKind: 'magic_orb', defaultColor: '#34d399', defaultIntensity: 1.2 }
 ]
+
 export interface WorkflowV2CaveOption {
   id: 'arch' | 'ellipse' | 'circle'
   label: string
   defaultDarkness: number
   defaultMinScale: number
 }
+
 export const WORKFLOW_V2_CAVE_OPTIONS: WorkflowV2CaveOption[] = [
   { id: 'arch', label: 'Vòm hang đá tự nhiên', defaultDarkness: 0.82, defaultMinScale: 0.38 },
   { id: 'ellipse', label: 'Cửa hầm Elip sâu', defaultDarkness: 0.86, defaultMinScale: 0.34 },
   { id: 'circle', label: 'Cổng xoáy chiều sâu', defaultDarkness: 0.78, defaultMinScale: 0.42 }
 ]
+
 export interface WorkflowV2FxOption {
   id: 'wind_physics' | 'bloom' | 'blur' | 'chromatic' | 'vignette' | 'particles'
   label: string
   defaultIntensity: number
 }
+
 export const WORKFLOW_V2_FX_OPTIONS: WorkflowV2FxOption[] = [
   { id: 'wind_physics', label: 'Vật lý Đàn hồi Mesh', defaultIntensity: 1.0 },
   { id: 'bloom', label: 'Phát sáng (Bloom)', defaultIntensity: 0.85 },
@@ -73,55 +111,82 @@ export const WORKFLOW_V2_FX_OPTIONS: WorkflowV2FxOption[] = [
   { id: 'vignette', label: 'Tối góc điện ảnh', defaultIntensity: 0.7 },
   { id: 'particles', label: 'Hạt đom đóm / Sương', defaultIntensity: 1.1 }
 ]
+
 export interface WorkflowV2CameraOption {
   id: string
   label: string
 }
+
 export const WORKFLOW_V2_CAMERA_OPTIONS: WorkflowV2CameraOption[] = [
   { id: 'dollyIn', label: 'Đẩy cận (Dolly In)' },
   { id: 'fly', label: 'Bay xuyên cảnh 3D' },
   { id: 'orbitRight', label: 'Xoay quỹ đạo' },
   { id: 'truckRight', label: 'Lia máy ngang' }
 ]
+
 export function getLayerZ(layer: Layer): number {
   const pos = layer.transform?.position?.value
   return Array.isArray(pos) && Number.isFinite(pos[2]) ? Math.round(pos[2]) : 0
 }
+
 export function getLayerX(layer: Layer): number {
   const pos = layer.transform?.position?.value
   return Array.isArray(pos) && Number.isFinite(pos[0]) ? Math.round(pos[0]) : 0
 }
+
 export function getLayerY(layer: Layer): number {
   const pos = layer.transform?.position?.value
   return Array.isArray(pos) && Number.isFinite(pos[1]) ? Math.round(pos[1]) : 0
 }
+
 export function getLayerDisplayName(layer: Layer): string {
   return layer.composite?.compositeName || layer.model3d?.modelName || layer.name || 'Layer'
 }
+
 /** Tính khoảng mốc thời gian [start, end] của một Shot dựa trên các Layer thuộc Shot đó */
 export function getShotTimeRange(project: Project, shot?: Shot): { start: number; end: number } {
   const compDur = Math.max(1, Number((project.comp.duration || 5).toFixed(2)))
   if (!shot) return { start: 0, end: compDur }
   const shotLayers = project.layers.filter((l) => l.shotId === shot.id)
   if (shotLayers.length === 0) return { start: 0, end: compDur }
-  const minIn = Math.max(0, Math.min(...shotLayers.map((l) => Number.isFinite(l.inPoint) ? l.inPoint : 0)))
-  const maxOut = Math.min(compDur, Math.max(...shotLayers.map((l) => Number.isFinite(l.outPoint) ? l.outPoint : compDur)))
+  const minIn = Math.max(0, Math.min(...shotLayers.map((l) => (Number.isFinite(l.inPoint) ? l.inPoint : 0))))
+  const maxOut = Math.min(compDur, Math.max(...shotLayers.map((l) => (Number.isFinite(l.outPoint) ? l.outPoint : compDur))))
   return {
     start: Number(minIn.toFixed(2)),
     end: Number(Math.max(minIn + 0.5, maxOut).toFixed(2))
   }
 }
+
 /** Phân loại một Layer vào đúng Group Layer ('group_3d' | 'group_25d' | 'group_env') */
 export function classifyLayerGroupKind(layer: Layer): 'group_3d' | 'group_25d' | 'group_env' {
-  if (layer.model3d || layer.composite) {
-    return 'group_3d'
-  }
+  if (layer.model3d || layer.composite) return 'group_3d'
   const z = getLayerZ(layer)
-  if (layer.type === 'particles' || layer.type === 'solid' || z >= 2500) {
-    return 'group_env'
-  }
+  if (layer.type === 'particles' || layer.type === 'solid' || z >= 2500) return 'group_env'
   return 'group_25d'
 }
+
+/** Suy luận nhãn vật liệu vật lý phù hợp cho một Layer dựa trên cấu hình vật lý sẵn có hoặc tên Layer */
+function inferLayerMaterialTag(layer: Layer, displayTitle: string): LayerPhysicsMaterial | null {
+  if (layer.physics?.material) return layer.physics.material
+  const lower = displayTitle.toLowerCase()
+  if (lower.includes('dây leo') || lower.includes('lá') || lower.includes('bụi') || lower.includes('cỏ')) {
+    return 'foliage_bush'
+  }
+  if (lower.includes('cây') || lower.includes('gỗ') || lower.includes('thân')) {
+    return 'wood_tree'
+  }
+  if (lower.includes('đá') || lower.includes('di tích') || lower.includes('tường') || lower.includes('đảo')) {
+    return 'stone_wall'
+  }
+  if (lower.includes('slime') || lower.includes('thạch') || lower.includes('nấm')) {
+    return 'jelly_slime'
+  }
+  if (layer.composite || layer.model3d) {
+    return 'flesh_body'
+  }
+  return null
+}
+
 /** Gom các layer mảnh con của cùng một Composite/Model3D thành đại diện duy nhất để cây gọn sạch */
 function collectRepresentativeLayers(layers: Layer[]): {
   layer: Layer
@@ -148,12 +213,10 @@ function collectRepresentativeLayers(layers: Layer[]): {
   }
   return out
 }
+
 /**
- * Xây dựng Cây Workflow V2 chuẩn 4 tầng từ dữ liệu thật của Project:
- * Tầng 0 (Root): Cảnh (Scene Root) + Đạo diễn Camera
- * Tầng 1 (Group): Group Layer 3D & Lắp ráp | Group Layer 2.5D | Group Không gian & Bầu trời
- * Tầng 2 (Layer): Các Node Layer thuộc từng Group
- * Tầng 3 (Logic): Node Hành động, Node Ánh sáng, Node Hang động, Node Hiệu ứng, Node Âm thanh
+ * Xây dựng Cây Workflow V2 chuẩn 4 tầng từ dữ liệu thật của Project,
+ * hỗ trợ tái sử dụng Node Logic dùng chung (Shared Logic Nodes), Node Nhãn Vật liệu và Node Va chạm 2 Layer:
  */
 export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): WorkflowGraph {
   const activeShot: Shot | undefined =
@@ -169,7 +232,8 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
   const audioTracks = getProjectAudioTracks(project)
   const nodes: WorkflowNode[] = []
   const edges: WorkflowEdge[] = []
-  // 1. TẦNG 0: ROOT CẢNH TỔNG HỢP
+
+  // 1. TẦNG 0: ROOT CẢNH TỔNG HỢP + ĐẠO DIỄN CAMERA
   const rootId = 'v2-root-scene'
   const sceneTitle = activeShot ? `Cảnh: ${activeShot.name}` : `Dự án (${project.shots.length} cảnh)`
   nodes.push({
@@ -189,7 +253,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
       autoArrangeZ: true
     }
   })
-  // Node Đạo diễn Camera 3D gắn trực tiếp dưới Root Cảnh
+
   const camNodeId = 'v2-logic-camera'
   nodes.push({
     id: camNodeId,
@@ -219,7 +283,8 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
     toNode: camNodeId,
     toPort: 'scene_ctx'
   })
-  // 2. TẦNG 1: PHÂN NHÓM GROUP LAYER (2.5D / 3D / MÔI TRƯỜNG)
+
+  // 2. TẦNG 1: PHÂN NHÓM GROUP LAYER
   const groupDefs: {
     id: string
     kind: 'group_3d' | 'group_25d' | 'group_env'
@@ -249,7 +314,9 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
         .sort((a, b) => getLayerZ(b.layer) - getLayerZ(a.layer))
     }
   ]
+
   const activeGroups = groupDefs.filter((g) => g.items.length > 0 || g.kind === 'group_25d')
+
   for (const grp of activeGroups) {
     const groupMemberIds = grp.items.flatMap((it) => it.memberIds)
     const grpStart =
@@ -260,6 +327,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
       grp.items.length > 0
         ? Math.min(shotEnd, Math.max(...grp.items.map((it) => Number((it.layer.outPoint ?? shotEnd).toFixed(2)))))
         : shotEnd
+
     nodes.push({
       id: grp.id,
       type: 'layer_assembly',
@@ -289,14 +357,22 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
       toNode: grp.id,
       toPort: 'scene_ctx'
     })
+
+    // Bộ nhớ tái sử dụng Node Logic dùng chung trong cùng Group (Shared Node Reuse)
+    const sharedActionNodes = new Map<string, WorkflowNode>()
+    const sharedMaterialNodes = new Map<LayerPhysicsMaterial, WorkflowNode>()
+    const createdLayerNodeIds: string[] = []
+
     // 3. TẦNG 2: CÁC NODE LAYER THUỘC GROUP
     grp.items.forEach((item, layerIdx) => {
       const l = item.layer
       const layerNodeId = `v2-layer-${l.id}`
+      createdLayerNodeIds.push(layerNodeId)
       const lStart = Number(Math.max(shotStart, Number.isFinite(l.inPoint) ? l.inPoint : shotStart).toFixed(2))
       const lEnd = Number(Math.min(shotEnd, Number.isFinite(l.outPoint) ? l.outPoint : shotEnd).toFixed(2))
       const displayTitle = getLayerDisplayName(l)
       const zVal = getLayerZ(l)
+
       nodes.push({
         id: layerNodeId,
         type: 'layer_assembly',
@@ -328,7 +404,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
         toNode: layerNodeId,
         toPort: 'layers_tree'
       })
-      // 4. TẦNG 3: CÁC NODE LOGIC CỦA LAYER (HÀNH ĐỘNG, ÁNH SÁNG, HANG ĐỘNG, HIỆU ỨNG, ÂM THANH)
+
       const lowerName = displayTitle.toLowerCase()
       const hasExplicitCave = Boolean(
         l.physics?.depthPortal?.enabled || l.physics?.colliderZone === 'cave_portal'
@@ -339,7 +415,8 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
         lowerName.includes('cổng') ||
         lowerName.includes('di tích') ||
         lowerName.includes('hầm')
-      // 4a. Node Hành động (Motion / Action)
+
+      // 4a. Node Hành động (Motion / Action) — Tự động tái sử dụng nếu cùng preset trong Group
       const hasExplicitMotion = Boolean(l.motion && l.motion.type !== 'none' && l.motion.enabled !== false)
       const shouldCreateAction =
         hasExplicitMotion ||
@@ -348,6 +425,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
             lowerName.includes('dây leo') ||
             lowerName.includes('đảo') ||
             (grp.kind === 'group_25d' && layerIdx === 0)))
+
       if (shouldCreateAction) {
         const motionType: LayerMotionType =
           l.motion && l.motion.type !== 'none'
@@ -359,45 +437,114 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
                 : 'pulse'
         const actOpt =
           WORKFLOW_V2_ACTION_OPTIONS.find((o) => o.motionType === motionType) ?? WORKFLOW_V2_ACTION_OPTIONS[0]
-        const mStart = Number((l.motion?.startTime ?? lStart).toFixed(2))
-        const mEnd = Number(
-          (l.motion?.duration && l.motion.duration > 0
-            ? Math.min(shotEnd, mStart + l.motion.duration)
-            : lEnd
-          ).toFixed(2)
-        )
-        const actionNodeId = `v2-action-${l.id}`
-        nodes.push({
-          id: actionNodeId,
-          type: 'motion_choreography',
-          title: `Hành động: ${actOpt.label}`,
-          enabled: true,
-          position: { x: WF_V2_COL_X.LOGIC, y: 100 },
-          preset: 'organic_wind_breathe',
-          aiAgentRole: 'MotionChoreographyAgent',
-          aiDirective: `Thực thi hành động "${actOpt.label}" cho "${displayTitle}" trong [${mStart}s – ${mEnd}s].`,
-          params: {
-            shotId: activeShot?.id,
-            logicCategory: 'action',
-            actionPreset: actOpt.id,
-            targetMode: 'custom',
-            targetLayerIds: item.memberIds,
-            requireLayerConnection: true,
-            intensity: Number((l.motion?.amount ?? actOpt.defaultAmount).toFixed(2)),
-            timeStart: mStart,
-            timeEnd: mEnd,
-            hierarchyParentNodeId: layerNodeId
+        const existingSharedAction = sharedActionNodes.get(actOpt.id)
+        if (existingSharedAction) {
+          edges.push({
+            id: `e-${layerNodeId}-${existingSharedAction.id}`,
+            fromNode: layerNodeId,
+            fromPort: 'layers_tree',
+            toNode: existingSharedAction.id,
+            toPort: 'layers_tree'
+          })
+        } else {
+          const mStart = Number((l.motion?.startTime ?? lStart).toFixed(2))
+          const mEnd = Number(
+            (l.motion?.duration && l.motion.duration > 0
+              ? Math.min(shotEnd, mStart + l.motion.duration)
+              : lEnd
+            ).toFixed(2)
+          )
+          const actionNodeId = `v2-action-${l.id}`
+          const actionNode: WorkflowNode = {
+            id: actionNodeId,
+            type: 'motion_choreography',
+            title: `Hành động: ${actOpt.label}`,
+            enabled: true,
+            position: { x: WF_V2_COL_X.LOGIC, y: 100 },
+            preset: 'organic_wind_breathe',
+            aiAgentRole: 'MotionChoreographyAgent',
+            aiDirective: `Thực thi hành động "${actOpt.label}" cho "${displayTitle}" trong [${mStart}s – ${mEnd}s].`,
+            params: {
+              shotId: activeShot?.id,
+              logicCategory: 'action',
+              actionPreset: actOpt.id,
+              targetMode: 'custom',
+              targetLayerIds: [...item.memberIds],
+              sharedLayerNodeIds: [layerNodeId],
+              requireLayerConnection: true,
+              intensity: Number((l.motion?.amount ?? actOpt.defaultAmount).toFixed(2)),
+              timeStart: mStart,
+              timeEnd: mEnd,
+              hierarchyParentNodeId: layerNodeId
+            }
           }
-        })
-        edges.push({
-          id: `e-${layerNodeId}-${actionNodeId}`,
-          fromNode: layerNodeId,
-          fromPort: 'layers_tree',
-          toNode: actionNodeId,
-          toPort: 'layers_tree'
-        })
+          nodes.push(actionNode)
+          sharedActionNodes.set(actOpt.id, actionNode)
+          edges.push({
+            id: `e-${layerNodeId}-${actionNodeId}`,
+            fromNode: layerNodeId,
+            fromPort: 'layers_tree',
+            toNode: actionNodeId,
+            toPort: 'layers_tree'
+          })
+        }
       }
-      // 4b. Node Hang động / Vùng độ sâu (Cave Depth Portal)
+
+      // 4b. Node Nhãn Vật liệu (Material Tag) — Gắn nhãn chất liệu để định hình biến dạng khi va chạm
+      const matTag = inferLayerMaterialTag(l, displayTitle)
+      if (matTag && grp.kind !== 'group_env') {
+        const existingMatNode = sharedMaterialNodes.get(matTag)
+        if (existingMatNode) {
+          edges.push({
+            id: `e-${layerNodeId}-${existingMatNode.id}`,
+            fromNode: layerNodeId,
+            fromPort: 'layers_tree',
+            toNode: existingMatNode.id,
+            toPort: 'layers_tree'
+          })
+        } else {
+          const matOpt =
+            WORKFLOW_V2_MATERIAL_OPTIONS.find((m) => m.id === matTag) ?? WORKFLOW_V2_MATERIAL_OPTIONS[0]
+          const matNodeId = `v2-material-${l.id}`
+          const matNode: WorkflowNode = {
+            id: matNodeId,
+            type: 'physics_fx',
+            title: `Vật liệu: ${matOpt.label}`,
+            enabled: true,
+            position: { x: WF_V2_COL_X.LOGIC, y: 130 },
+            preset: 'rim_glow_particles',
+            aiAgentRole: 'PhysicsLightFxAgent',
+            aiDirective: `Gắn nhãn vật liệu "${matOpt.label}" (${matOpt.deformDesc}) cho "${displayTitle}".`,
+            params: {
+              shotId: activeShot?.id,
+              logicCategory: 'material',
+              materialTag: matOpt.id,
+              materialStiffness: l.physics?.stiffness ?? matOpt.defaultStiffness,
+              materialBounciness: l.physics?.bounciness ?? matOpt.defaultBounciness,
+              materialGravity: l.physics?.gravity ?? matOpt.defaultGravity,
+              targetMode: 'custom',
+              targetLayerIds: [...item.memberIds],
+              sharedLayerNodeIds: [layerNodeId],
+              requireLayerConnection: true,
+              intensity: l.physics?.bounciness ?? matOpt.defaultBounciness,
+              timeStart: lStart,
+              timeEnd: lEnd,
+              hierarchyParentNodeId: layerNodeId
+            }
+          }
+          nodes.push(matNode)
+          sharedMaterialNodes.set(matTag, matNode)
+          edges.push({
+            id: `e-${layerNodeId}-${matNodeId}`,
+            fromNode: layerNodeId,
+            fromPort: 'layers_tree',
+            toNode: matNodeId,
+            toPort: 'layers_tree'
+          })
+        }
+      }
+
+      // 4c. Node Hang động / Vùng độ sâu (Cave Depth Portal)
       if (isCaveOrPortalLayer) {
         const caveNodeId = `v2-cave-${l.id}`
         const archShape = l.physics?.depthPortal?.archShape ?? 'arch'
@@ -408,7 +555,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
           type: 'physics_fx',
           title: `Hang động: ${caveOpt.label}`,
           enabled: true,
-          position: { x: WF_V2_COL_X.LOGIC, y: 140 },
+          position: { x: WF_V2_COL_X.LOGIC, y: 160 },
           preset: 'rim_glow_particles',
           aiAgentRole: 'PhysicsLightFxAgent',
           aiDirective: `Vùng độ sâu / Cửa hang "${caveOpt.label}" trên "${displayTitle}" [${lStart}s – ${lEnd}s].`,
@@ -420,6 +567,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
             caveMinScale: l.physics?.depthPortal?.minScale ?? caveOpt.defaultMinScale,
             targetMode: 'custom',
             targetLayerIds: item.memberIds,
+            sharedLayerNodeIds: [layerNodeId],
             requireLayerConnection: true,
             intensity: l.physics?.depthPortal?.darkness ?? caveOpt.defaultDarkness,
             timeStart: lStart,
@@ -435,7 +583,8 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
           toPort: 'layers_tree'
         })
       }
-      // 4c. Node Ánh sáng (Light Node)
+
+      // 4d. Node Ánh sáng (Light Node)
       const hasExplicitLight = Boolean(l.virtualLight?.enabled || l.glow?.enabled)
       const isGlowingEntity =
         hasExplicitLight ||
@@ -463,7 +612,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
           type: 'physics_fx',
           title: `Ánh sáng: ${lightOpt.label}`,
           enabled: true,
-          position: { x: WF_V2_COL_X.LOGIC, y: 180 },
+          position: { x: WF_V2_COL_X.LOGIC, y: 190 },
           preset: 'rim_glow_particles',
           aiAgentRole: 'PhysicsLightFxAgent',
           aiDirective: `Chiếu sáng "${lightOpt.label}" cho "${displayTitle}" từ ${lStart}s đến ${lEnd}s.`,
@@ -474,6 +623,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
             lightColor: l.virtualLight?.color || l.glow?.color || lightOpt.defaultColor,
             targetMode: 'custom',
             targetLayerIds: item.memberIds,
+            sharedLayerNodeIds: [layerNodeId],
             requireLayerConnection: true,
             intensity: l.virtualLight?.intensity ?? lightOpt.defaultIntensity,
             timeStart: lStart,
@@ -489,51 +639,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
           toPort: 'layers_tree'
         })
       }
-      // 4d. Node Hiệu ứng & Vật lý (FX Node)
-      const hasExplicitFx = Boolean(
-        l.physics?.enabled ||
-          (l.appliedEffects && l.appliedEffects.some((ef) => ef.enabled)) ||
-          l.type === 'particles'
-      )
-      if (hasExplicitFx) {
-        const fxNodeId = `v2-fx-${l.id}`
-        const fxKind: WorkflowV2FxOption['id'] =
-          l.type === 'particles'
-            ? 'particles'
-            : l.physics?.enabled
-              ? 'wind_physics'
-              : 'bloom'
-        const fxOpt = WORKFLOW_V2_FX_OPTIONS.find((o) => o.id === fxKind) ?? WORKFLOW_V2_FX_OPTIONS[0]
-        nodes.push({
-          id: fxNodeId,
-          type: 'physics_fx',
-          title: `Hiệu ứng: ${fxOpt.label}`,
-          enabled: true,
-          position: { x: WF_V2_COL_X.LOGIC, y: 220 },
-          preset: 'rim_glow_particles',
-          aiAgentRole: 'PhysicsLightFxAgent',
-          aiDirective: `Áp dụng hiệu ứng "${fxOpt.label}" cho "${displayTitle}" trong [${lStart}s – ${lEnd}s].`,
-          params: {
-            shotId: activeShot?.id,
-            logicCategory: 'fx',
-            fxKind: fxOpt.id,
-            targetMode: 'custom',
-            targetLayerIds: item.memberIds,
-            requireLayerConnection: true,
-            intensity: fxOpt.defaultIntensity,
-            timeStart: lStart,
-            timeEnd: lEnd,
-            hierarchyParentNodeId: layerNodeId
-          }
-        })
-        edges.push({
-          id: `e-${layerNodeId}-${fxNodeId}`,
-          fromNode: layerNodeId,
-          fromPort: 'layers_tree',
-          toNode: fxNodeId,
-          toPort: 'layers_tree'
-        })
-      }
+
       // 4e. Node Âm thanh / Thoại (Audio Node)
       const attachedTrack = audioTracks.find(
         (tr) =>
@@ -553,7 +659,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
           type: 'audio_lipsync',
           title: `Âm thanh: ${attachedTrack.name || displayTitle}`,
           enabled: !attachedTrack.muted,
-          position: { x: WF_V2_COL_X.LOGIC, y: 260 },
+          position: { x: WF_V2_COL_X.LOGIC, y: 240 },
           preset: 'auto_dialogue_lipsync',
           aiAgentRole: 'AudioLipSyncAgent',
           aiDirective: `Phát âm thanh cho "${displayTitle}" từ ${aStart}s đến ${aEnd}s.`,
@@ -562,6 +668,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
             logicCategory: 'audio',
             targetMode: 'custom',
             targetLayerIds: item.memberIds,
+            sharedLayerNodeIds: [layerNodeId],
             requireLayerConnection: true,
             intensity: attachedTrack.volume ?? 1.0,
             autoLipSync: Boolean(attachedTrack.lipSyncEnabled),
@@ -579,32 +686,88 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
         })
       }
     })
+
+    // 4f. Nếu Group 2.5D hoặc 3D có từ 2 Layer trở lên, tạo sẵn 1 Node Va chạm Vật lý liên kết 2 Layer đầu tiên
+    if (grp.kind === 'group_25d' && grp.items.length >= 2) {
+      const itemA = grp.items[0]
+      const itemB = grp.items[1]
+      const layerNodeA = createdLayerNodeIds[0]
+      const layerNodeB = createdLayerNodeIds[1]
+      const colOpt = WORKFLOW_V2_COLLISION_OPTIONS[0]
+      const colNodeId = `v2-collision-${grp.id}`
+      const colStart = Number(Math.max(shotStart, (shotStart + (shotEnd - shotStart) * 0.2).toFixed(2) as unknown as number).toFixed(2))
+      const colEnd = Number(Math.min(shotEnd, (shotStart + (shotEnd - shotStart) * 0.85).toFixed(2) as unknown as number).toFixed(2))
+      nodes.push({
+        id: colNodeId,
+        type: 'physics_fx',
+        title: `Va chạm: ${colOpt.label}`,
+        enabled: true,
+        position: { x: WF_V2_COL_X.LOGIC, y: 220 },
+        preset: 'rim_glow_particles',
+        aiAgentRole: 'PhysicsLightFxAgent',
+        aiDirective: `Va chạm vật lý "${colOpt.label}" giữa "${getLayerDisplayName(itemA.layer)}" và "${getLayerDisplayName(itemB.layer)}".`,
+        params: {
+          shotId: activeShot?.id,
+          logicCategory: 'collision',
+          collisionMode: colOpt.id,
+          collisionForce: colOpt.defaultForce,
+          deformIntensity: colOpt.defaultDeform,
+          strikerLayerId: itemA.layer.id,
+          targetColliderLayerId: itemB.layer.id,
+          targetMode: 'custom',
+          targetLayerIds: [...itemA.memberIds, ...itemB.memberIds],
+          sharedLayerNodeIds: [layerNodeA, layerNodeB],
+          requireLayerConnection: true,
+          intensity: colOpt.defaultForce,
+          timeStart: colStart,
+          timeEnd: colEnd,
+          hierarchyParentNodeId: layerNodeA
+        }
+      })
+      edges.push(
+        {
+          id: `e-${layerNodeA}-${colNodeId}`,
+          fromNode: layerNodeA,
+          fromPort: 'layers_tree',
+          toNode: colNodeId,
+          toPort: 'layers_tree'
+        },
+        {
+          id: `e-${layerNodeB}-${colNodeId}`,
+          fromNode: layerNodeB,
+          fromPort: 'layers_tree',
+          toNode: colNodeId,
+          toPort: 'layers_tree'
+        }
+      )
+    }
   }
-  const laidOutNodes = layoutWorkflowV2Tree(nodes, edges)
+
+  const syncedNodes = recomputeSharedLogicTargets(nodes, edges)
+  const laidOutNodes = layoutWorkflowV2Tree(syncedNodes, edges)
   return {
     version: 1,
     id: `wf-v2-${activeShot?.id ?? 'project'}`,
     name: `Workflow V2 — ${sceneTitle}`,
     presetId: 'v2_scene_hierarchy',
     description:
-      'Sơ đồ cây phân cấp thời gian: Cảnh Root ➔ Group Layer (2.5D/3D) ➔ Node Layer ➔ Node Hành động / Ánh sáng / Hang động / Hiệu ứng',
+      'Sơ đồ cây phân cấp thời gian: Cảnh Root ➔ Group Layer ➔ Node Layer ➔ Node Logic (Hành động / Vật liệu / Va chạm / Ánh sáng)',
     targetShotId: activeShot?.id,
     nodes: laidOutNodes,
     edges
   }
 }
-/** Chiều cao chuẩn gọn gàng của từng loại thẻ trong Workflow V2 (Chuẩn n8n / React Flow) */
+
+/** Chiều cao chuẩn gọn gàng của từng loại thẻ trong Workflow V2 */
 export function estimateV2NodeHeight(node: WorkflowNode): number {
   if (node.type === 'scene_shot') return 68
   if (node.params?.groupKind) return 66
-  if (node.type === 'layer_assembly') return 68
   return 68
 }
+
 /**
- * Thuật toán xếp cây 4 cột (Root -> Group -> Layer -> Logic) chuẩn ELK / Dagre / React Flow:
- * - Khoảng cách ngang giữa các cột rộng 156px để đường dây kết nối uốn lượn thoáng đãng, không đè nhau.
- * - Khoảng cách dọc giữa các thẻ 36px để các thẻ tách biệt rõ ràng.
- * - Cân bằng vị trí cha - con để dây nối rẽ quạt đối xứng tự nhiên.
+ * Thuật toán xếp cây 4 cột (Root -> Group -> Layer -> Logic) chuẩn ELK / Dagre / React Flow,
+ * hỗ trợ Node Logic dùng chung (nhiều Layer kết nối vào 1 Node Logic hoặc 1 Node Va chạm) không bao giờ đè nhau.
  */
 export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[]): WorkflowNode[] {
   const cloned = nodes.map((n) => ({ ...n, position: { ...n.position } }))
@@ -619,12 +782,14 @@ export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[
       childrenMap.set(e.fromNode, list)
     }
   }
+
   const rootNode = cloned.find((n) => n.type === 'scene_shot')
   const groupNodes = cloned.filter((n) => Boolean(n.params?.groupKind))
   const GAP_Y = 34
   const GROUP_GAP_Y = 46
   let layerCursorY = 44
   let groupColBottomY = 44
+
   for (const grp of groupNodes) {
     const layerChildren = (childrenMap.get(grp.id) ?? []).filter((c) => c.type === 'layer_assembly')
     const grpH = estimateV2NodeHeight(grp)
@@ -633,12 +798,6 @@ export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[
       grp.position = { x: WF_V2_COL_X.GROUP, y: yPos }
       layerChildren.forEach((ln, idx) => {
         ln.position = { x: WF_V2_COL_X.LAYER, y: yPos + idx * 102 }
-        const lKids = (childrenMap.get(ln.id) ?? []).filter(
-          (c) => c.type !== 'layer_assembly' && c.type !== 'scene_shot'
-        )
-        lKids.forEach((lk, kIdx) => {
-          lk.position = { x: WF_V2_COL_X.LOGIC + kIdx * 340, y: ln.position.y }
-        })
       })
       groupColBottomY = yPos + grpH + 34
       continue
@@ -646,18 +805,24 @@ export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[
     const groupStartY = Math.max(layerCursorY, groupColBottomY)
     layerCursorY = groupStartY
     for (const layerNode of layerChildren) {
-      const logicChildren = (childrenMap.get(layerNode.id) ?? []).filter(
-        (c) => c.type !== 'layer_assembly' && c.type !== 'scene_shot'
-      )
       const layerH = estimateV2NodeHeight(layerNode)
-      layerNode.position = { x: WF_V2_COL_X.LAYER, y: layerCursorY }
-      logicChildren.forEach((logicNode, idx) => {
-        logicNode.position = {
-          x: WF_V2_COL_X.LOGIC + idx * 340,
-          y: layerCursorY
-        }
-      })
-      layerCursorY += layerH + GAP_Y
+      // Đếm số Node Logic gắn với Layer này để dành đủ khoảng trống dọc cho Cột 4 không bị chồng lấn
+      const attachedLogics = edges
+        .filter((e) => e.fromNode === layerNode.id)
+        .map((e) => byId.get(e.toNode))
+        .filter(
+          (c): c is WorkflowNode =>
+            Boolean(c && c.type !== 'layer_assembly' && c.type !== 'scene_shot')
+        )
+      const slotSpan =
+        attachedLogics.length > 1
+          ? attachedLogics.length * 68 + (attachedLogics.length - 1) * 18
+          : layerH
+      layerNode.position = {
+        x: WF_V2_COL_X.LAYER,
+        y: layerCursorY + Math.round((slotSpan - layerH) / 2)
+      }
+      layerCursorY += slotSpan + GAP_Y
     }
     const firstLayerY = layerChildren[0].position.y
     const anchorIdx = Math.min(layerChildren.length - 1, 2)
@@ -668,6 +833,51 @@ export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[
     groupColBottomY = centeredY + grpH + 34
     layerCursorY += GROUP_GAP_Y - GAP_Y
   }
+
+  // Xếp vị trí Cột 4 (Các Node Logic) thẳng hàng tại WF_V2_COL_X.LOGIC để dây nối luôn đi trong kênh 156px, không bao giờ cắt ngang qua thẻ khác
+  const logicNodes = cloned.filter(
+    (n) => n.type !== 'scene_shot' && n.type !== 'camera_director' && n.type !== 'layer_assembly'
+  )
+  const desiredYMap = new Map<string, number>()
+  const byParentSig = new Map<string, WorkflowNode[]>()
+  for (const ln of logicNodes) {
+    const parentLayers = edges
+      .filter((e) => e.toNode === ln.id)
+      .map((e) => byId.get(e.fromNode))
+      .filter((p): p is WorkflowNode => Boolean(p && p.type === 'layer_assembly' && !p.params?.groupKind))
+    const avgY =
+      parentLayers.length > 0
+        ? Math.round(parentLayers.reduce((s, p) => s + p.position.y, 0) / parentLayers.length)
+        : ln.position.y || 100
+    desiredYMap.set(ln.id, avgY)
+    const sig = parentLayers.map((p) => p.id).sort().join('|') || ln.id
+    const list = byParentSig.get(sig) ?? []
+    list.push(ln)
+    byParentSig.set(sig, list)
+  }
+
+  // Căn giữa cụm Logic của cùng 1 Layer quanh Y của Layer đó
+  for (const [, siblingLogics] of byParentSig.entries()) {
+    if (siblingLogics.length <= 1) continue
+    const center = desiredYMap.get(siblingLogics[0].id) ?? 100
+    const totalSpan = siblingLogics.length * 68 + (siblingLogics.length - 1) * 16
+    const startY = Math.max(40, Math.round(center + 34 - totalSpan / 2))
+    siblingLogics.forEach((ln, idx) => {
+      desiredYMap.set(ln.id, startY + idx * (68 + 16))
+    })
+  }
+
+  const sortedLogics = [...logicNodes].sort(
+    (a, b) => (desiredYMap.get(a.id) ?? 0) - (desiredYMap.get(b.id) ?? 0)
+  )
+  let logicCursorY = 40
+  for (const ln of sortedLogics) {
+    const wantY = desiredYMap.get(ln.id) ?? logicCursorY
+    const finalY = Math.max(logicCursorY, wantY)
+    ln.position = { x: WF_V2_COL_X.LOGIC, y: finalY }
+    logicCursorY = finalY + estimateV2NodeHeight(ln) + 18
+  }
+
   if (rootNode) {
     const firstGrpY = groupNodes[0]?.position.y ?? 44
     rootNode.position = { x: WF_V2_COL_X.ROOT, y: firstGrpY }
@@ -681,23 +891,76 @@ export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[
   }
   return cloned
 }
+
 /**
- * Gắn thêm một Node Logic mới (Hành động, Ánh sáng, Hang động, Hiệu ứng, Âm thanh) vào một Node Layer
+ * Gắn thêm hoặc tái sử dụng một Node Logic (Hành động, Vật liệu, Va chạm, Ánh sáng, Hang động, Hiệu ứng, Âm thanh)
+ * vào một Node Layer, có kiểm tra chống trùng lặp logic trên cùng 1 Layer.
  */
 export function attachLogicNodeToLayerV2(
   workflow: WorkflowGraph,
   layerNodeId: string,
-  category: 'action' | 'light' | 'cave' | 'fx' | 'audio'
-): { workflow: WorkflowGraph; createdNodeId: string } {
+  category: 'action' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio'
+): { workflow: WorkflowGraph; createdNodeId: string; reusedExisting?: boolean; message?: string } {
   const layerNode = workflow.nodes.find((n) => n.id === layerNodeId)
-  const targetLayerIds = layerNode?.params?.targetLayerIds ?? []
-  const tStart = layerNode?.params?.timeStart ?? 0
-  const tEnd = layerNode?.params?.timeEnd ?? 5
-  const shotId = layerNode?.params?.shotId ?? workflow.targetShotId
-  const layerName = layerNode?.title ?? 'Layer'
+  if (!layerNode) {
+    return { workflow, createdNodeId: '', message: 'Không tìm thấy Node Layer mục tiêu.' }
+  }
+  const layerName = layerNode.title ?? 'Layer'
+
+  // 1. KIỂM TRA CHỐNG TRÙNG LOGIC TRÊN CÙNG 1 LAYER
+  const existingSameCategoryNode = workflow.edges
+    .filter((e) => e.fromNode === layerNodeId)
+    .map((e) => workflow.nodes.find((n) => n.id === e.toNode))
+    .find((n) => n && n.params?.logicCategory === category)
+
+  if (existingSameCategoryNode) {
+    return {
+      workflow,
+      createdNodeId: existingSameCategoryNode.id,
+      reusedExisting: true,
+      message: `Layer "${layerName}" đã có sẵn "${existingSameCategoryNode.title}". Đã chọn trực tiếp Node này để tránh trùng logic!`
+    }
+  }
+
+  // 2. NẾU LÀ NODE VA CHẠM: Ưu tiên ghép đôi vào một Node Va chạm đang chờ Layer thứ 2
+  if (category === 'collision') {
+    const openCollisionNode = workflow.nodes.find(
+      (n) =>
+        n.params?.logicCategory === 'collision' &&
+        (n.params?.sharedLayerNodeIds?.length ?? 0) < 2 &&
+        !workflow.edges.some((e) => e.fromNode === layerNodeId && e.toNode === n.id)
+    )
+    if (openCollisionNode) {
+      const nextEdges: WorkflowEdge[] = [
+        ...workflow.edges,
+        {
+          id: `e-${layerNodeId}-${openCollisionNode.id}`,
+          fromNode: layerNodeId,
+          fromPort: 'layers_tree',
+          toNode: openCollisionNode.id,
+          toPort: 'layers_tree'
+        }
+      ]
+      const synced = recomputeSharedLogicTargets(workflow.nodes, nextEdges)
+      const laidOut = layoutWorkflowV2Tree(synced, nextEdges)
+      return {
+        workflow: { ...workflow, nodes: laidOut, edges: nextEdges },
+        createdNodeId: openCollisionNode.id,
+        reusedExisting: true,
+        message: `Đã ghép "${layerName}" làm đối tượng va chạm thứ 2 vào "${openCollisionNode.title}"!`
+      }
+    }
+  }
+
+  const targetLayerIds = layerNode.params?.targetLayerIds ?? []
+  const tStart = layerNode.params?.timeStart ?? 0
+  const tEnd = layerNode.params?.timeEnd ?? 5
+  const shotId = layerNode.params?.shotId ?? workflow.targetShotId
   const suffix = `${Date.now().toString(36).slice(-4)}`
   const createdNodeId = `v2-${category}-${suffix}`
   let newNode: WorkflowNode
+  const extraEdges: WorkflowEdge[] = []
+
   if (category === 'action') {
     const opt = WORKFLOW_V2_ACTION_OPTIONS[0]
     newNode = {
@@ -705,7 +968,7 @@ export function attachLogicNodeToLayerV2(
       type: 'motion_choreography',
       title: `Hành động: ${opt.label}`,
       enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: (layerNode?.position.y ?? 120) + 10 },
+      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
       preset: 'organic_wind_breathe',
       aiAgentRole: 'MotionChoreographyAgent',
       aiDirective: `Thực thi hành động "${opt.label}" cho "${layerName}" từ ${tStart}s đến ${tEnd}s.`,
@@ -715,12 +978,91 @@ export function attachLogicNodeToLayerV2(
         actionPreset: opt.id,
         targetMode: 'custom',
         targetLayerIds,
+        sharedLayerNodeIds: [layerNodeId],
         requireLayerConnection: true,
         intensity: opt.defaultAmount,
         timeStart: tStart,
         timeEnd: tEnd,
         hierarchyParentNodeId: layerNodeId
       }
+    }
+  } else if (category === 'material') {
+    const opt = WORKFLOW_V2_MATERIAL_OPTIONS[0]
+    newNode = {
+      id: createdNodeId,
+      type: 'physics_fx',
+      title: `Vật liệu: ${opt.label}`,
+      enabled: true,
+      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
+      preset: 'rim_glow_particles',
+      aiAgentRole: 'PhysicsLightFxAgent',
+      aiDirective: `Gắn nhãn vật liệu "${opt.label}" (${opt.deformDesc}) cho "${layerName}".`,
+      params: {
+        shotId,
+        logicCategory: 'material',
+        materialTag: opt.id,
+        materialStiffness: opt.defaultStiffness,
+        materialBounciness: opt.defaultBounciness,
+        materialGravity: opt.defaultGravity,
+        targetMode: 'custom',
+        targetLayerIds,
+        sharedLayerNodeIds: [layerNodeId],
+        requireLayerConnection: true,
+        intensity: opt.defaultBounciness,
+        timeStart: tStart,
+        timeEnd: tEnd,
+        hierarchyParentNodeId: layerNodeId
+      }
+    }
+  } else if (category === 'collision') {
+    const opt = WORKFLOW_V2_COLLISION_OPTIONS[0]
+    // Tìm Layer thứ 2 trong cùng Group (hoặc trong cảnh) để tự động nối cặp va chạm 2 Layer
+    const partnerLayerNode = workflow.nodes.find(
+      (n) =>
+        n.type === 'layer_assembly' &&
+        !n.params?.groupKind &&
+        n.id !== layerNodeId &&
+        n.params?.hierarchyParentNodeId === layerNode.params?.hierarchyParentNodeId
+    ) ??
+      workflow.nodes.find(
+        (n) => n.type === 'layer_assembly' && !n.params?.groupKind && n.id !== layerNodeId
+      )
+    const partnerLayerIds = partnerLayerNode?.params?.targetLayerIds ?? []
+    newNode = {
+      id: createdNodeId,
+      type: 'physics_fx',
+      title: `Va chạm: ${opt.label}`,
+      enabled: true,
+      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
+      preset: 'rim_glow_particles',
+      aiAgentRole: 'PhysicsLightFxAgent',
+      aiDirective: `Mô phỏng va chạm vật lý "${opt.label}" từ ${tStart}s đến ${tEnd}s.`,
+      params: {
+        shotId,
+        logicCategory: 'collision',
+        collisionMode: opt.id,
+        collisionForce: opt.defaultForce,
+        deformIntensity: opt.defaultDeform,
+        strikerLayerId: targetLayerIds[0],
+        targetColliderLayerId: partnerLayerIds[0],
+        targetMode: 'custom',
+        targetLayerIds: [...targetLayerIds, ...partnerLayerIds],
+        sharedLayerNodeIds: partnerLayerNode ? [layerNodeId, partnerLayerNode.id] : [layerNodeId],
+        requireLayerConnection: true,
+        intensity: opt.defaultForce,
+        timeStart: tStart,
+        timeEnd: tEnd,
+        hierarchyParentNodeId: layerNodeId
+      }
+    }
+    if (partnerLayerNode) {
+      extraEdges.push({
+        id: `e-${partnerLayerNode.id}-${createdNodeId}`,
+        fromNode: partnerLayerNode.id,
+        fromPort: 'layers_tree',
+        toNode: createdNodeId,
+        toPort: 'layers_tree'
+      })
     }
   } else if (category === 'light') {
     const opt = WORKFLOW_V2_LIGHT_OPTIONS[0]
@@ -729,7 +1071,7 @@ export function attachLogicNodeToLayerV2(
       type: 'physics_fx',
       title: `Ánh sáng: ${opt.label}`,
       enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: (layerNode?.position.y ?? 120) + 20 },
+      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
       preset: 'rim_glow_particles',
       aiAgentRole: 'PhysicsLightFxAgent',
       aiDirective: `Chiếu sáng "${opt.label}" cho "${layerName}" từ ${tStart}s đến ${tEnd}s.`,
@@ -740,6 +1082,7 @@ export function attachLogicNodeToLayerV2(
         lightColor: opt.defaultColor,
         targetMode: 'custom',
         targetLayerIds,
+        sharedLayerNodeIds: [layerNodeId],
         requireLayerConnection: true,
         intensity: opt.defaultIntensity,
         timeStart: tStart,
@@ -754,7 +1097,7 @@ export function attachLogicNodeToLayerV2(
       type: 'physics_fx',
       title: `Hang động: ${opt.label}`,
       enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: (layerNode?.position.y ?? 120) + 25 },
+      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
       preset: 'rim_glow_particles',
       aiAgentRole: 'PhysicsLightFxAgent',
       aiDirective: `Tạo vùng độ sâu cửa hang "${opt.label}" trên "${layerName}" từ ${tStart}s đến ${tEnd}s.`,
@@ -766,6 +1109,7 @@ export function attachLogicNodeToLayerV2(
         caveMinScale: opt.defaultMinScale,
         targetMode: 'custom',
         targetLayerIds,
+        sharedLayerNodeIds: [layerNodeId],
         requireLayerConnection: true,
         intensity: opt.defaultDarkness,
         timeStart: tStart,
@@ -780,7 +1124,7 @@ export function attachLogicNodeToLayerV2(
       type: 'physics_fx',
       title: `Hiệu ứng: ${opt.label}`,
       enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: (layerNode?.position.y ?? 120) + 30 },
+      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
       preset: 'rim_glow_particles',
       aiAgentRole: 'PhysicsLightFxAgent',
       aiDirective: `Áp dụng hiệu ứng "${opt.label}" cho "${layerName}" từ ${tStart}s đến ${tEnd}s.`,
@@ -790,6 +1134,7 @@ export function attachLogicNodeToLayerV2(
         fxKind: opt.id,
         targetMode: 'custom',
         targetLayerIds,
+        sharedLayerNodeIds: [layerNodeId],
         requireLayerConnection: true,
         intensity: opt.defaultIntensity,
         timeStart: tStart,
@@ -803,7 +1148,7 @@ export function attachLogicNodeToLayerV2(
       type: 'audio_lipsync',
       title: `Âm thanh: ${layerName}`,
       enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: (layerNode?.position.y ?? 120) + 40 },
+      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
       preset: 'auto_dialogue_lipsync',
       aiAgentRole: 'AudioLipSyncAgent',
       aiDirective: `Phát âm thanh / nhép môi cho "${layerName}" từ ${tStart}s đến ${tEnd}s.`,
@@ -812,6 +1157,7 @@ export function attachLogicNodeToLayerV2(
         logicCategory: 'audio',
         targetMode: 'custom',
         targetLayerIds,
+        sharedLayerNodeIds: [layerNodeId],
         requireLayerConnection: true,
         intensity: 1.0,
         autoLipSync: true,
@@ -821,6 +1167,7 @@ export function attachLogicNodeToLayerV2(
       }
     }
   }
+
   const nextEdges: WorkflowEdge[] = [
     ...workflow.edges,
     {
@@ -829,9 +1176,11 @@ export function attachLogicNodeToLayerV2(
       fromPort: 'layers_tree',
       toNode: createdNodeId,
       toPort: 'layers_tree'
-    }
+    },
+    ...extraEdges
   ]
-  const nextNodes = layoutWorkflowV2Tree([...workflow.nodes, newNode], nextEdges)
+  const syncedNodes = recomputeSharedLogicTargets([...workflow.nodes, newNode], nextEdges)
+  const nextNodes = layoutWorkflowV2Tree(syncedNodes, nextEdges)
   return {
     workflow: {
       ...workflow,
@@ -841,9 +1190,10 @@ export function attachLogicNodeToLayerV2(
     createdNodeId
   }
 }
+
 /**
- * Đồng bộ trực tiếp thay đổi trên một Node V2 (khoảng mốc thời gian, Z, hành động, ánh sáng, hang động, hiệu ứng, camera)
- * xuống dữ liệu Project thực tế để Viewport 3D và Timeline phản hồi tức thì.
+ * Đồng bộ trực tiếp thay đổi trên một Node V2 xuống dữ liệu Project thực tế
+ * (bao gồm Node Nhãn Vật liệu và Node Va chạm Vật lý 2 Layer).
  */
 export function syncWorkflowV2NodeToProject(
   project: Project,
@@ -851,9 +1201,11 @@ export function syncWorkflowV2NodeToProject(
   patch?: Partial<WorkflowNodeParams>
 ): void {
   const params: WorkflowNodeParams = { ...(node.params ?? {}), ...(patch ?? {}) }
+  const mergedNode: WorkflowNode = { ...node, params }
   const targetIds = new Set(params.targetLayerIds ?? [])
   const tStart = params.timeStart
   const tEnd = params.timeEnd
+
   // 1. Node Layer hoặc Group Layer
   if (node.type === 'layer_assembly') {
     for (const l of project.layers) {
@@ -871,7 +1223,20 @@ export function syncWorkflowV2NodeToProject(
     }
     return
   }
-  // 2. Node Hành động (Motion / Action)
+
+  // 2. Node Nhãn Vật liệu (Material Tag)
+  if (params.logicCategory === 'material') {
+    applyMaterialNodeToProject(project, mergedNode)
+    return
+  }
+
+  // 3. Node Va chạm Vật lý (2-Layer Collision Physics)
+  if (params.logicCategory === 'collision') {
+    applyCollisionNodeToProject(project, project.workflow, mergedNode)
+    return
+  }
+
+  // 4. Node Hành động (Motion / Action)
   if (node.type === 'motion_choreography' || params.logicCategory === 'action') {
     const actOpt =
       WORKFLOW_V2_ACTION_OPTIONS.find((o) => o.id === params.actionPreset) ?? WORKFLOW_V2_ACTION_OPTIONS[0]
@@ -894,7 +1259,8 @@ export function syncWorkflowV2NodeToProject(
     }
     return
   }
-  // 3. Node Hang động / Vùng độ sâu (Cave Depth Portal)
+
+  // 5. Node Hang động / Vùng độ sâu (Cave Depth Portal)
   if (params.logicCategory === 'cave') {
     const archShape = params.caveArchShape ?? 'arch'
     const darkness = Math.max(0.1, Math.min(1.0, params.caveDarkness ?? params.intensity ?? 0.82))
@@ -920,7 +1286,8 @@ export function syncWorkflowV2NodeToProject(
     }
     return
   }
-  // 4. Node Ánh sáng (Light)
+
+  // 6. Node Ánh sáng (Light)
   if (params.logicCategory === 'light') {
     const color = params.lightColor || '#38bdf8'
     const intensity = params.intensity ?? 1.3
@@ -953,7 +1320,8 @@ export function syncWorkflowV2NodeToProject(
     }
     return
   }
-  // 5. Node Hiệu ứng & Vật lý (FX)
+
+  // 7. Node Hiệu ứng & Vật lý (FX)
   if (params.logicCategory === 'fx') {
     const fxKind = params.fxKind || 'wind_physics'
     const intensity = params.intensity ?? 1.0
@@ -963,7 +1331,7 @@ export function syncWorkflowV2NodeToProject(
         l.physics = {
           ...(l.physics ?? { material: 'foliage_bush' }),
           enabled: node.enabled,
-          material: 'foliage_bush',
+          material: l.physics?.material ?? 'foliage_bush',
           stiffness: 0.8 * intensity,
           damping: 0.35,
           bounciness: 0.9 * intensity
@@ -983,7 +1351,8 @@ export function syncWorkflowV2NodeToProject(
     }
     return
   }
-  // 6. Node Camera 3D
+
+  // 8. Node Camera 3D
   if (node.type === 'camera_director' || params.logicCategory === 'camera') {
     if (project.camera && typeof params.enableDof === 'boolean') {
       project.camera.dofEnabled = params.enableDof
