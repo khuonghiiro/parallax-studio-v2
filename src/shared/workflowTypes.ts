@@ -177,9 +177,10 @@ export interface WorkflowNodeParams {
   groupKind?: 'group_3d' | 'group_25d' | 'group_env'
   /** [Workflow V2] Trạng thái thu gọn nhánh con của Group hoặc Layer */
   collapsedGroup?: boolean
-  /** [Workflow V2] Phân loại Node Logic gắn vào Layer ('action' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio' | 'camera') */
+  /** [Workflow V2] Phân loại Node Logic gắn vào Layer ('action' | 'anim_fx' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio' | 'camera') */
   logicCategory?:
     | 'action'
+    | 'anim_fx'
     | 'material'
     | 'collision'
     | 'light'
@@ -191,6 +192,20 @@ export interface WorkflowNodeParams {
   sharedLayerNodeIds?: string[]
   /** [Workflow V2] Mã kiểu hành động của Node Hành động */
   actionPreset?: string
+  /** [Workflow V2] Mã mẫu Hiệu ứng Hoạt ảnh ('popIn' | 'shake' | 'pulse' | 'fadeIn' | 'fadeOut' | 'blink' | 'breathe' | 'neonBreathe' | 'neonBlink' | 'neonFlicker' | 'neonSolid') */
+  animFxPreset?: string
+  /** [Workflow V2] Số nhịp / số lần lặp của Hiệu ứng Hoạt ảnh (ví dụ: 5 lần rung, 2 lần nảy, 4 lần chớp) */
+  animFxCount?: number
+  /** [Workflow V2] Màu sắc của Hiệu ứng Hoạt ảnh (ví dụ: màu viền Neon) */
+  animFxColor?: string
+  /** [Workflow V2] Vị trí viền của Hiệu ứng Hoạt ảnh Neon ('outer' | 'inner' | 'both') */
+  animFxSide?: 'outer' | 'inner' | 'both'
+  /** [Workflow V2] Độ dày viền Neon (px) */
+  animFxThickness?: number
+  /** [Workflow V2] Tốc độ chu kỳ (Hz) của Hiệu ứng Hoạt ảnh */
+  animFxSpeed?: number
+  /** [Workflow V2] Độ sáng tối thiểu ở đáy chu kỳ (0..0.8) */
+  animFxMinIntensity?: number
   /** [Workflow V2] Nhãn chất liệu vật lý của Node Vật liệu ('jelly_slime' | 'wood_tree' | 'foliage_bush' | 'stone_wall' | 'metal_armor' | 'cloth_rope' | 'flesh_body' | 'ground_terrain') */
   materialTag?:
     | 'jelly_slime'

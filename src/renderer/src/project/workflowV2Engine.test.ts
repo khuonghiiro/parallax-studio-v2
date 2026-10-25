@@ -134,6 +134,32 @@ describe('Workflow V2 — MỘT LOGIC CHUNG với Timeline / Inspector', () => {
     expect(proj.audioTracks![0].targetId).toBeUndefined()
     expect(proj.workflow!.nodes.some((n) => n.params?.logicCategory === 'audio')).toBe(false)
   })
+
+  it('hoạt ảnh FX (anim_fx) gắn vào Layer sinh appliedEffects + keyframe, đồng bộ 2 chiều và gỡ sạch khi xoá Node', () => {
+    let { proj, vine } = sampleProject()
+    proj = synced(proj)
+    const attached = attachLogicNodeToLayerV2(proj.workflow!, v2LayerNodeId(vine.id), 'anim_fx', 'v2:anim_fx:shake')
+    expect(attached.createdNodeId).toBe(`v2-anim_fx-${vine.id}`)
+    proj = synced(produce(proj, (d) => {
+      d.workflow = attached.workflow
+      const n = d.workflow.nodes.find((x) => x.id === attached.createdNodeId)!
+      syncWorkflowV2NodeToProject(d as Project, n, { animFxCount: 6, intensity: 24, timeStart: 1, timeEnd: 2 })
+    }))
+    const vineLayer = proj.layers.find((l) => l.id === vine.id)!
+    expect(vineLayer.appliedEffects?.some((f) => f.presetId === 'shake' && f.count === 6)).toBe(true)
+    expect(vineLayer.transform.position.keyframes.length).toBeGreaterThan(2)
+
+    const animNode = proj.workflow!.nodes.find((n) => n.id === attached.createdNodeId)!
+    expect(animNode.params?.animFxPreset).toBe('shake')
+    expect(animNode.params?.animFxCount).toBe(6)
+
+    proj = synced(produce(proj, (d) => {
+      detachWorkflowV2NodeFromProject(d as Project, animNode)
+      d.workflow = { ...(d.workflow as WorkflowGraph), nodes: d.workflow!.nodes.filter((n) => n.id !== animNode.id) }
+    }))
+    expect(proj.layers.find((l) => l.id === vine.id)!.appliedEffects?.filter((f) => f.category !== 'motion') ?? []).toHaveLength(0)
+    expect(proj.workflow!.nodes.some((n) => n.id === animNode.id)).toBe(false)
+  })
 })
 
 describe('Workflow V2 — kết nối chuẩn logic', () => {

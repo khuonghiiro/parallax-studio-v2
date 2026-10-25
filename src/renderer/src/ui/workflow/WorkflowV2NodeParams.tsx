@@ -1,18 +1,18 @@
 import React from 'react'
 import type { Project, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import {
-  WORKFLOW_V2_ACTION_OPTIONS,
   WORKFLOW_V2_CAMERA_OPTIONS,
-  WORKFLOW_V2_CAVE_OPTIONS,
   WORKFLOW_V2_COLLISION_OPTIONS,
-  WORKFLOW_V2_FX_OPTIONS,
-  WORKFLOW_V2_LIGHT_OPTIONS,
   WORKFLOW_V2_MATERIAL_OPTIONS,
   getLayerDisplayName
 } from '../../project/workflowV2Engine'
+import {
+  WorkflowV2ActionParams,
+  WorkflowV2AnimFxParams,
+  WorkflowV2FxParams
+} from './WorkflowV2AnimAndFxParams'
+import { WorkflowV2CaveParams, WorkflowV2LightParams } from './WorkflowV2LightAndCaveParams'
 import { resolveV2LogicCategory } from './workflowV2Theme'
-
-const LIGHT_SWATCHES = ['#38bdf8', '#fbbf24', '#f97316', '#a855f7', '#34d399', '#f43f5e', '#ffffff']
 
 type UpdateFn = (patch: Partial<WorkflowNodeParams>, nextTitle?: string) => void
 
@@ -109,6 +109,7 @@ function MaterialParams({ node, onUpdate }: WorkflowV2NodeParamsProps): React.Re
       {/* Dải phải phủ trọn giá trị preset (Đá 2.1, Kim loại 2.2 độ cứng; Thạch 1.55 độ nảy) */}
       <ParamSlider label="Độ cứng" min={0.1} max={2.5} step={0.05} value={p.materialStiffness ?? opt.defaultStiffness} onChange={(v) => onUpdate({ materialStiffness: v })} />
       <ParamSlider label="Độ nảy" min={0} max={2} step={0.05} value={p.materialBounciness ?? opt.defaultBounciness} onChange={(v) => onUpdate({ materialBounciness: v })} />
+      <ParamSlider label="Trọng lực" min={0} max={1.5} step={0.05} value={p.materialGravity ?? opt.defaultGravity} onChange={(v) => onUpdate({ materialGravity: v })} />
     </>
   )
 }
@@ -152,76 +153,6 @@ function CollisionParams({ node, project, onUpdate, onScrubTime }: WorkflowV2Nod
       <button type="button" className="wf-v2-ghost-btn" onClick={() => onScrubTime(tHit)}>
         Tua tới khoảnh khắc va chạm ({tHit.toFixed(2)}s)
       </button>
-    </>
-  )
-}
-
-function ActionParams({ node, onUpdate }: WorkflowV2NodeParamsProps): React.ReactElement {
-  const p = node.params ?? {}
-  return (
-    <>
-      <OptionPills
-        cols={4}
-        options={WORKFLOW_V2_ACTION_OPTIONS.map((o) => ({ id: o.id, label: shortLabel(o.label) }))}
-        value={p.actionPreset ?? 'float'}
-        onPick={(id) => onUpdate({ actionPreset: id }, `Hành động: ${WORKFLOW_V2_ACTION_OPTIONS.find((o) => o.id === id)!.label}`)}
-      />
-      <ParamSlider label="Biên độ" min={0.1} max={1.8} step={0.05} value={p.intensity ?? 0.65} onChange={(v) => onUpdate({ intensity: v })} />
-    </>
-  )
-}
-
-function CaveParams({ node, onUpdate }: WorkflowV2NodeParamsProps): React.ReactElement {
-  const p = node.params ?? {}
-  return (
-    <>
-      <OptionPills
-        options={WORKFLOW_V2_CAVE_OPTIONS.map((o) => ({ id: o.id, label: o.label }))}
-        value={p.caveArchShape ?? 'arch'}
-        onPick={(id) => onUpdate({ caveArchShape: id }, `Hang động: ${WORKFLOW_V2_CAVE_OPTIONS.find((o) => o.id === id)!.label}`)}
-      />
-      <ParamSlider label="Độ tối" min={0.2} max={1} step={0.05} value={p.caveDarkness ?? p.intensity ?? 0.82} onChange={(v) => onUpdate({ caveDarkness: v, intensity: v })} />
-    </>
-  )
-}
-
-function LightParams({ node, onUpdate }: WorkflowV2NodeParamsProps): React.ReactElement {
-  const p = node.params ?? {}
-  const color = p.lightColor ?? '#38bdf8'
-  return (
-    <>
-      <OptionPills
-        options={WORKFLOW_V2_LIGHT_OPTIONS.map((o) => ({ id: o.id, label: shortLabel(o.label) }))}
-        value={p.lightMode ?? 'rim'}
-        onPick={(id) => onUpdate({ lightMode: id }, `Ánh sáng: ${WORKFLOW_V2_LIGHT_OPTIONS.find((o) => o.id === id)!.label}`)}
-      />
-      <div className="wf-v2-swatch-row" role="group" aria-label="Màu ánh sáng">
-        {LIGHT_SWATCHES.map((hex) => (
-          <button
-            key={hex}
-            type="button"
-            className={`wf-v2-swatch${color.toLowerCase() === hex ? ' active' : ''}`}
-            style={{ background: hex }}
-            title={hex}
-            onClick={() => onUpdate({ lightColor: hex })}
-          />
-        ))}
-      </div>
-      <ParamSlider label="Cường độ" min={0.2} max={2.5} step={0.1} value={p.intensity ?? 1.3} onChange={(v) => onUpdate({ intensity: v })} />
-    </>
-  )
-}
-
-function FxParams({ node, onUpdate }: WorkflowV2NodeParamsProps): React.ReactElement {
-  const p = node.params ?? {}
-  return (
-    <>
-      <OptionPills
-        options={WORKFLOW_V2_FX_OPTIONS.map((o) => ({ id: o.id, label: shortLabel(o.label) }))}
-        value={p.fxKind ?? 'wind_physics'}
-        onPick={(id) => onUpdate({ fxKind: id }, `Hiệu ứng: ${WORKFLOW_V2_FX_OPTIONS.find((o) => o.id === id)!.label}`)}
-      />
-      <ParamSlider label="Cường độ" min={0.1} max={2} step={0.1} value={p.intensity ?? 1} onChange={(v) => onUpdate({ intensity: v })} />
     </>
   )
 }
@@ -368,27 +299,50 @@ function CameraParams(props: WorkflowV2NodeParamsProps): React.ReactElement {
 }
 
 function LayerParams({ node, onUpdate }: WorkflowV2NodeParamsProps): React.ReactElement {
+  const x = Math.round(node.params?.transformX ?? 0)
+  const y = Math.round(node.params?.transformY ?? 0)
   const z = Math.round(node.params?.transformZ ?? 0)
   return (
-    <ParamSlider
-      label="Độ sâu Z"
-      min={-600}
-      max={3600}
-      step={10}
-      value={z}
-      format={(v) => (v >= 0 ? `+${Math.round(v)}` : `${Math.round(v)}`)}
-      onChange={(v) => onUpdate({ transformZ: v })}
-    />
+    <>
+      <ParamSlider
+        label="Tọa độ X"
+        min={-1600}
+        max={1600}
+        step={10}
+        value={x}
+        format={(v) => `${Math.round(v)}px`}
+        onChange={(v) => onUpdate({ transformX: v })}
+      />
+      <ParamSlider
+        label="Tọa độ Y"
+        min={-1200}
+        max={1200}
+        step={10}
+        value={y}
+        format={(v) => `${Math.round(v)}px`}
+        onChange={(v) => onUpdate({ transformY: v })}
+      />
+      <ParamSlider
+        label="Độ sâu Z"
+        min={-600}
+        max={3600}
+        step={10}
+        value={z}
+        format={(v) => (v >= 0 ? `+${Math.round(v)}` : `${Math.round(v)}`)}
+        onChange={(v) => onUpdate({ transformZ: v })}
+      />
+    </>
   )
 }
 
 const LOGIC_EDITORS: Record<string, React.FC<WorkflowV2NodeParamsProps>> = {
   material: MaterialParams,
   collision: CollisionParams,
-  action: ActionParams,
-  cave: CaveParams,
-  light: LightParams,
-  fx: FxParams,
+  action: WorkflowV2ActionParams,
+  anim_fx: WorkflowV2AnimFxParams,
+  cave: WorkflowV2CaveParams,
+  light: WorkflowV2LightParams,
+  fx: WorkflowV2FxParams,
   audio: AudioParams,
   camera: CameraParams
 }

@@ -63,6 +63,11 @@ export function summarizeV2Node(node: WorkflowNode, childCount: number): string 
     }
     case 'action':
       return `Biên độ ${pct(p.intensity, 0.65)}${sharedTag}`
+    case 'anim_fx': {
+      const cnt = p.animFxCount ? `${p.animFxCount} nhịp · ` : ''
+      const dur = Math.max(0.1, Number(((p.timeEnd ?? 1) - (p.timeStart ?? 0)).toFixed(1)))
+      return `${cnt}${dur}s${sharedTag}`
+    }
     case 'cave':
       return `Độ tối ${pct(p.caveDarkness, 0.82)}`
     case 'light':

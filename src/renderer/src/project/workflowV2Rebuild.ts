@@ -1,5 +1,6 @@
 import type { Project, WorkflowGraph, WorkflowNode } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
+import { deleteLayerEffect } from '../ui/timeline/timelineEffects'
 import { removeCameraWaypoint } from '../ui/viewer/animateCamera/animateCameraRouteLogic'
 import { syncWorkflowV2NodeToProject } from './workflowV2Mutations'
 import { getNodeLogicCategory } from './workflowV2PhysicsAndValidation'
@@ -49,6 +50,13 @@ export function detachWorkflowV2NodeFromProject(project: Project, node: Workflow
   const layers = project.layers.filter((l) => targets.has(l.id))
   if (cat === 'action') {
     for (const l of layers) l.motion = { enabled: false, type: 'none', speed: 1, amount: 0 }
+    return
+  }
+  if (cat === 'anim_fx') {
+    for (const l of layers) {
+      const fxIds = (l.appliedEffects ?? []).filter((f) => f.category !== 'motion').map((f) => f.id)
+      for (const fxId of fxIds) deleteLayerEffect(l, fxId)
+    }
     return
   }
   if (cat === 'audio') {

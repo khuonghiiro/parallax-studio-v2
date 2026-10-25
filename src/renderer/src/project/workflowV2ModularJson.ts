@@ -208,6 +208,7 @@ function inferPresetId(node: WorkflowNode, cat: WorkflowV2SpawnCategory): string
   const p = node.params ?? {}
   const opt =
     cat === 'action' ? p.actionPreset
+    : cat === 'anim_fx' ? p.animFxPreset
     : cat === 'material' ? p.materialTag
     : cat === 'collision' ? p.collisionMode
     : cat === 'light' ? p.lightMode
@@ -221,6 +222,16 @@ function inferPresetId(node: WorkflowNode, cat: WorkflowV2SpawnCategory): string
 function extractCleanLogicParams(node: WorkflowNode, cat: WorkflowV2SpawnCategory): Record<string, unknown> {
   const p = node.params ?? {}
   if (cat === 'action') return { actionPreset: p.actionPreset ?? 'sway', intensity: p.intensity ?? 0.6 }
+  if (cat === 'anim_fx') {
+    return {
+      animFxPreset: p.animFxPreset ?? 'popIn',
+      ...(p.animFxCount !== undefined ? { animFxCount: p.animFxCount } : {}),
+      ...(p.intensity !== undefined ? { intensity: p.intensity } : {}),
+      ...(p.animFxColor ? { animFxColor: p.animFxColor } : {}),
+      ...(p.animFxSide ? { animFxSide: p.animFxSide } : {}),
+      ...(p.animFxThickness !== undefined ? { animFxThickness: p.animFxThickness } : {})
+    }
+  }
   if (cat === 'material') {
     return {
       materialTag: p.materialTag ?? 'wood_plank',

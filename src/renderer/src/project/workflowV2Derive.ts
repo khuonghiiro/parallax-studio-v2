@@ -1,19 +1,24 @@
 import type { AudioTrackItem, Layer, Project, WorkflowEdge, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
-import { WORKFLOW_V2_ACTION_OPTIONS, WORKFLOW_V2_CAVE_OPTIONS, WORKFLOW_V2_LIGHT_OPTIONS } from './workflowV2Options'
+import {
+  WORKFLOW_V2_ACTION_OPTIONS,
+  WORKFLOW_V2_ANIM_FX_OPTIONS,
+  WORKFLOW_V2_CAVE_OPTIONS,
+  WORKFLOW_V2_LIGHT_OPTIONS
+} from './workflowV2Options'
 import { WF_V2_COL_X } from './workflowV2Layout'
 import { resolveLayerNodeTimeRange } from './workflowV2Scope'
 
 /**
  * MỘT LOGIC CHUNG cho Timeline và Workflow:
- * dữ liệu thật trên Layer (chuyển động, ánh sáng, hang động, âm thanh gắn layer) là nguồn sự thật;
+ * dữ liệu thật trên Layer (chuyển động, hoạt ảnh FX, ánh sáng, hang động, âm thanh gắn layer) là nguồn sự thật;
  * mỗi hiệu ứng đang có trên Layer luôn được thể hiện bằng đúng 1 Node Logic trong cây và ngược lại.
  * - Hiệu ứng có trên Layer mà chưa có Node → tự tạo Node (thêm từ Inspector / Timeline / MCP đều hiện ra Workflow).
  * - Node có mà hiệu ứng không còn trên Layer → Node chuyển sang trạng thái tắt (không mất cấu hình).
  * - Thông số đổi ở Inspector / Timeline → cập nhật ngược vào Node.
  * Vật liệu / Va chạm / Hiệu ứng / Camera là logic do Node sở hữu (chỉ tạo qua Node) nên không suy diễn ngược.
  */
-export type DerivedCategory = 'action' | 'light' | 'cave' | 'audio'
+export type DerivedCategory = 'action' | 'anim_fx' | 'light' | 'cave' | 'audio'
 
 interface Derived {
   present: boolean
@@ -36,6 +41,34 @@ function deriveAction(layer: Layer, compDur: number): Derived {
     enabled: present && m?.enabled !== false,
     params: { actionPreset: opt?.id ?? m?.type, intensity: m?.amount ?? opt?.defaultAmount, timeStart: r2(start), timeEnd: r2(end) },
     title: `Hành động: ${opt?.label ?? m?.type ?? 'Chuyển động'}`
+  }
+}
+
+function deriveAnimFx(layer: Layer, compDur: number): Derived {
+  const fxList = (layer.appliedEffects ?? []).filter((f) => f.category !== 'motion')
+  const primary = fxList[fxList.length - 1]
+  const present = Boolean(primary)
+  const opt = WORKFLOW_V2_ANIM_FX_OPTIONS.find((o) => o.id === primary?.presetId) ?? WORKFLOW_V2_ANIM_FX_OPTIONS[0]
+  const range = resolveLayerNodeTimeRange(layer, compDur)
+  const start = typeof primary?.startTime === 'number' ? primary.startTime : range.start
+  const end = primary?.duration && primary.duration > 0 ? start + primary.duration : range.end
+  const extraCount = fxList.length > 1 ? ` (+${fxList.length - 1})` : ''
+  return {
+    present,
+    enabled: present && fxList.some((f) => f.enabled !== false),
+    params: {
+      animFxPreset: opt.id,
+      animFxCount: primary?.count ?? opt.defaultCount,
+      intensity: primary?.intensity ?? opt.defaultIntensity,
+      animFxColor: primary?.glow?.color ?? opt.defaultColor,
+      animFxThickness: primary?.glow?.thickness,
+      animFxSide: primary?.glow?.side,
+      animFxSpeed: primary?.glow?.speed,
+      animFxMinIntensity: primary?.glow?.minIntensity,
+      timeStart: r2(start),
+      timeEnd: r2(end)
+    },
+    title: `Hoạt ảnh FX: ${opt.label}${extraCount}`
   }
 }
 
@@ -111,6 +144,7 @@ function mergeDerivedParams(current: WorkflowNodeParams, derived: Partial<Workfl
 
 const NODE_META: Record<DerivedCategory, Pick<WorkflowNode, 'type' | 'preset' | 'aiAgentRole'>> = {
   action: { type: 'motion_choreography', preset: 'organic_wind_breathe', aiAgentRole: 'MotionChoreographyAgent' },
+  anim_fx: { type: 'motion_choreography', preset: 'organic_wind_breathe', aiAgentRole: 'MotionChoreographyAgent' },
   light: { type: 'physics_fx', preset: 'rim_glow_particles', aiAgentRole: 'PhysicsLightFxAgent' },
   cave: { type: 'physics_fx', preset: 'rim_glow_particles', aiAgentRole: 'PhysicsLightFxAgent' },
   audio: { type: 'audio_lipsync', preset: 'auto_dialogue_lipsync', aiAgentRole: 'AudioLipSyncAgent' }
@@ -164,14 +198,17 @@ export function deriveLogicFromLayers(
     if (!layer) continue
     const memberIds = layerNode.params?.targetLayerIds ?? [layer.id]
     const attached = edges.filter((e) => e.fromNode === layerNode.id).map((e) => replaced.get(e.toNode) ?? byId.get(e.toNode)).filter((n): n is WorkflowNode => Boolean(n))
-    const fxGlow = attached.some((n) => n.params?.logicCategory === 'fx' && n.params?.fxKind !== 'wind_physics' && n.enabled)
-    for (const cat of ['action', 'light', 'cave', 'audio'] as DerivedCategory[]) {
+    const fxGlow =
+      attached.some((n) => n.params?.logicCategory === 'fx' && n.params?.fxKind !== 'wind_physics' && n.enabled) ||
+      (layer.appliedEffects ?? []).some((f) => f.category === 'glow' && f.enabled !== false)
+    for (const cat of ['action', 'anim_fx', 'light', 'cave', 'audio'] as DerivedCategory[]) {
       const current = attached.find((n) => n.params?.logicCategory === cat)
       const d =
         cat === 'action' ? deriveAction(layer, compDur)
-          : cat === 'light' ? deriveLight(layer, compDur, fxGlow, current)
-            : cat === 'cave' ? deriveCave(layer, compDur)
-              : deriveAudio(findLayerAudioTrack(project, layer, memberIds), layer, compDur)
+          : cat === 'anim_fx' ? deriveAnimFx(layer, compDur)
+            : cat === 'light' ? deriveLight(layer, compDur, fxGlow, current)
+              : cat === 'cave' ? deriveCave(layer, compDur)
+                : deriveAudio(findLayerAudioTrack(project, layer, memberIds), layer, compDur)
       if (!current) {
         if (!d.present) continue
         let id = `v2-${cat}-${layer.id}`

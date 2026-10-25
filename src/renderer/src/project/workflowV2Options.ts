@@ -6,6 +6,7 @@ import type { Layer, LayerMotionType, VirtualLightKind } from '@shared/types'
  */
 export type WorkflowV2LogicCategory =
   | 'action'
+  | 'anim_fx'
   | 'material'
   | 'collision'
   | 'light'
@@ -13,6 +14,43 @@ export type WorkflowV2LogicCategory =
   | 'fx'
   | 'audio'
   | 'camera'
+
+export interface WorkflowV2AnimFxOption {
+  id:
+    | 'popIn'
+    | 'shake'
+    | 'pulse'
+    | 'fadeIn'
+    | 'fadeOut'
+    | 'blink'
+    | 'breathe'
+    | 'neonBreathe'
+    | 'neonBlink'
+    | 'neonFlicker'
+    | 'neonSolid'
+  label: string
+  shortLabel: string
+  badge: string
+  fxCategory: 'transform' | 'opacity' | 'glow'
+  defaultDuration: number
+  defaultIntensity: number
+  defaultCount?: number
+  defaultColor?: string
+}
+
+export const WORKFLOW_V2_ANIM_FX_OPTIONS: WorkflowV2AnimFxOption[] = [
+  { id: 'popIn', label: 'Nảy xuất hiện (Pop In)', shortLabel: '🔍 Nảy Pop In', badge: '🔍', fxCategory: 'transform', defaultDuration: 0.5, defaultIntensity: 1.2, defaultCount: 2 },
+  { id: 'shake', label: 'Rung chấn (Shake)', shortLabel: '📳 Rung chấn', badge: '📳', fxCategory: 'transform', defaultDuration: 0.45, defaultIntensity: 18, defaultCount: 5 },
+  { id: 'pulse', label: 'Nhịp đập (Pulse Scale)', shortLabel: '💥 Nhịp đập', badge: '💥', fxCategory: 'transform', defaultDuration: 0.4, defaultIntensity: 1.25, defaultCount: 2 },
+  { id: 'fadeIn', label: 'Hiện dần (Fade In)', shortLabel: '🌕 Hiện dần', badge: '🌕', fxCategory: 'opacity', defaultDuration: 1.0, defaultIntensity: 1.0 },
+  { id: 'fadeOut', label: 'Mờ dần (Fade Out)', shortLabel: '🌓 Mờ dần', badge: '🌓', fxCategory: 'opacity', defaultDuration: 1.0, defaultIntensity: 1.0 },
+  { id: 'blink', label: 'Nhấp nháy (Blink)', shortLabel: '⚡ Nhấp nháy', badge: '⚡', fxCategory: 'opacity', defaultDuration: 1.0, defaultIntensity: 1.0, defaultCount: 4 },
+  { id: 'breathe', label: 'Thở mờ ảo (Breathe)', shortLabel: '💓 Thở mờ ảo', badge: '💓', fxCategory: 'opacity', defaultDuration: 1.2, defaultIntensity: 0.8 },
+  { id: 'neonBreathe', label: 'Viền Neon Thở (Breathe)', shortLabel: '✨ Neon Thở', badge: '✨', fxCategory: 'glow', defaultDuration: 1.5, defaultIntensity: 1.5, defaultColor: '#3dd6f5' },
+  { id: 'neonBlink', label: 'Viền Neon Nhấp nháy (Blink)', shortLabel: '🚨 Neon Chớp', badge: '🚨', fxCategory: 'glow', defaultDuration: 1.0, defaultIntensity: 1.6, defaultCount: 4, defaultColor: '#f59e0b' },
+  { id: 'neonFlicker', label: 'Viền Neon Chập chờn (Flicker)', shortLabel: '💡 Neon Chập chờn', badge: '💡', fxCategory: 'glow', defaultDuration: 1.2, defaultIntensity: 1.8, defaultColor: '#ec4899' },
+  { id: 'neonSolid', label: 'Viền Neon Tĩnh (Solid Glow)', shortLabel: '🔮 Neon Tĩnh', badge: '🔮', fxCategory: 'glow', defaultDuration: 1.0, defaultIntensity: 1.3, defaultColor: '#3dd6f5' }
+]
 
 export interface WorkflowV2ActionOption {
   id: string

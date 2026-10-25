@@ -1,13 +1,14 @@
 import type { WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import {
   WORKFLOW_V2_ACTION_OPTIONS,
+  WORKFLOW_V2_ANIM_FX_OPTIONS,
   WORKFLOW_V2_CAVE_OPTIONS,
   WORKFLOW_V2_FX_OPTIONS,
   WORKFLOW_V2_LIGHT_OPTIONS
 } from './workflowV2Options'
 import { WORKFLOW_V2_COLLISION_OPTIONS, WORKFLOW_V2_MATERIAL_OPTIONS } from './workflowV2PhysicsAndValidation'
 
-export type WorkflowV2SpawnCategory = 'action' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio'
+export type WorkflowV2SpawnCategory = 'action' | 'anim_fx' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio'
 
 /** Nhóm logic gắn vào Layer — dùng chung cho Timeline (kho logic) và Workflow (cột trái, menu thả dây, MCP) */
 export const WORKFLOW_V2_LOGIC_CATEGORIES: {
@@ -18,6 +19,7 @@ export const WORKFLOW_V2_LOGIC_CATEGORIES: {
   accent: string
 }[] = [
   { id: 'action', icon: '🏃', label: 'Hành động', hint: 'Bay, đung đưa, xoay', accent: '#10b981' },
+  { id: 'anim_fx', icon: '🎞️', label: 'Hoạt ảnh FX', hint: 'Nảy, rung, mờ dần, neon', accent: '#6366f1' },
   { id: 'material', icon: '🏷️', label: 'Vật liệu', hint: 'Cao su, gỗ, đá, lá', accent: '#f97316' },
   { id: 'collision', icon: '💥', label: 'Va chạm', hint: 'Nối 2 Layer va đập', accent: '#f43f5e' },
   { id: 'light', icon: '💡', label: 'Ánh sáng', hint: 'Đèn viền, nến, glow', accent: '#f59e0b' },
@@ -37,6 +39,7 @@ export interface WorkflowV2LogicPreset {
 
 const prefix: Record<WorkflowV2SpawnCategory, string> = {
   action: 'Hành động',
+  anim_fx: 'Hoạt ảnh',
   material: 'Vật liệu',
   collision: 'Va chạm',
   light: 'Ánh sáng',
@@ -52,6 +55,14 @@ function preset(category: WorkflowV2SpawnCategory, optionId: string, label: stri
 /** Toàn bộ mẫu logic (mỗi tuỳ chọn của từng nhóm) */
 export const WORKFLOW_V2_LOGIC_PRESETS: WorkflowV2LogicPreset[] = [
   ...WORKFLOW_V2_ACTION_OPTIONS.map((o) => preset('action', o.id, o.label, { actionPreset: o.id, intensity: o.defaultAmount })),
+  ...WORKFLOW_V2_ANIM_FX_OPTIONS.map((o) =>
+    preset('anim_fx', o.id, o.label, {
+      animFxPreset: o.id,
+      intensity: o.defaultIntensity,
+      animFxCount: o.defaultCount,
+      animFxColor: o.defaultColor
+    })
+  ),
   ...WORKFLOW_V2_MATERIAL_OPTIONS.map((o) =>
     preset('material', o.id, o.label, {
       materialTag: o.id,

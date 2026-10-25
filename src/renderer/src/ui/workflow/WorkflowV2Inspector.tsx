@@ -5,6 +5,7 @@ import { IconTrash } from '../icons'
 import { WorkflowTimeRangeBar } from './WorkflowTimeRangeBar'
 import { WorkflowV2DirectStagePreview } from './WorkflowV2DirectStagePreview'
 import { WorkflowV2JsonPanel } from './WorkflowV2JsonPanel'
+import { WorkflowV2Logic25DPreview } from './WorkflowV2Logic25DPreview'
 import { WorkflowV2NodeParams } from './WorkflowV2NodeParams'
 import { isDeletableV2Node, summarizeV2Node } from './WorkflowNodeCardV2'
 import {
@@ -104,11 +105,26 @@ function linkedLayerNames(node: WorkflowNode, project: Project): string[] {
 }
 
 const DIRECT_STAGE_KEY = 'pxs:wf-v2-direct-stage-open'
+const LOGIC_PAD_KEY = 'pxs:wf-v2-logic-pad-open'
+const INSPECTOR_WIDTH_KEY = 'pxs:wf-v2-inspector-width'
+const MIN_INSPECTOR_W = 280
+const MAX_INSPECTOR_W = 680
+const DEFAULT_INSPECTOR_W = 360
+
+function readCachedInspectorWidth(): number {
+  const raw = Number(localStorage.getItem(INSPECTOR_WIDTH_KEY))
+  if (Number.isFinite(raw) && raw >= MIN_INSPECTOR_W && raw <= MAX_INSPECTOR_W) return Math.round(raw)
+  return DEFAULT_INSPECTOR_W
+}
 
 /** Bảng thuộc tính của Node đang chọn + Chế độ JSON Cảnh & Main trong Workflow V2 */
 export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) => {
   const { node, project, workflow, currentTime, jsonMode, onSetJsonMode } = props
+  const [inspectorWidth, setInspectorWidth] = useState<number>(readCachedInspectorWidth)
+  const [resizingWidth, setResizingWidth] = useState(false)
   const [directStageOpen, setDirectStageOpen] = useState(() => localStorage.getItem(DIRECT_STAGE_KEY) !== '0')
+  const [logicPadOpen, setLogicPadOpen] = useState(() => localStorage.getItem(LOGIC_PAD_KEY) !== '0')
+
   const toggleDirectStage = (): void => {
     setDirectStageOpen((prev) => {
       const next = !prev
@@ -116,6 +132,47 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
       return next
     })
   }
+
+  const toggleLogicPad = (): void => {
+    setLogicPadOpen((prev) => {
+      const next = !prev
+      localStorage.setItem(LOGIC_PAD_KEY, next ? '1' : '0')
+      return next
+    })
+  }
+
+  const startResizeWidth = (e: React.PointerEvent): void => {
+    e.preventDefault()
+    e.stopPropagation()
+    const startX = e.clientX
+    const startW = inspectorWidth
+    setResizingWidth(true)
+
+    const onMove = (ev: PointerEvent): void => {
+      const delta = startX - ev.clientX
+      const nextW = Math.round(Math.max(MIN_INSPECTOR_W, Math.min(MAX_INSPECTOR_W, startW + delta)))
+      setInspectorWidth(nextW)
+      localStorage.setItem(INSPECTOR_WIDTH_KEY, String(nextW))
+    }
+    const onUp = (): void => {
+      setResizingWidth(false)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+
+  const resizerHandle = (
+    <div
+      className={`wf-v2-insp-resizer${resizingWidth ? ' dragging' : ''}`}
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Kéo co dãn độ rộng cột Thuộc tính Node"
+      title="Kéo trái/phải để co dãn độ rộng cột Thuộc tính Node (tự lưu cache)"
+      onPointerDown={startResizeWidth}
+    />
+  )
 
   const modeTabs = (
     <div className="wf-v2-insp-tabs" role="tablist" aria-label="Chế độ bảng bên phải">
@@ -142,7 +199,8 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
 
   if (jsonMode) {
     return (
-      <aside className="wf-v2-inspector json-open" data-mcp-region="workflow_inspector">
+      <aside className="wf-v2-inspector json-open" data-mcp-region="workflow_inspector" style={{ width: inspectorWidth }}>
+        {resizerHandle}
         {modeTabs}
         <WorkflowV2JsonPanel
           project={project}
@@ -158,7 +216,8 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
 
   if (!node) {
     return (
-      <aside className="wf-v2-inspector" data-mcp-region="workflow_inspector">
+      <aside className="wf-v2-inspector" data-mcp-region="workflow_inspector" style={{ width: inspectorWidth }}>
+        {resizerHandle}
         {modeTabs}
         <div className="wf-v2-insp-empty">Chọn một Node trên sơ đồ để xem thông số, hoặc chuyển sang tab <b>JSON Cảnh &amp; Main</b> để xem/sửa JSON độc lập từng cảnh.</div>
       </aside>
@@ -166,6 +225,8 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
   }
   const theme = resolveV2NodeTheme(node)
   const level = resolveV2NodeLevel(node)
+  const isLayerOrCamBboxNode = level === 'layer' || node.type === 'camera_director' || Boolean(node.params?.isCameraWaypoint)
+  const isLayerLogicNode = level === 'logic' && node.type !== 'camera_director' && !node.params?.isCameraWaypoint
   const duration = Math.max(1, project.comp.duration || 5)
   const tStart = node.params?.timeStart ?? 0
   const tEnd = node.params?.timeEnd ?? duration
@@ -175,7 +236,12 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
   const update = (patch: Partial<WorkflowNodeParams>, title?: string): void => props.onUpdateParams(node.id, patch, title)
 
   return (
-    <aside className="wf-v2-inspector" data-mcp-region="workflow_inspector" style={{ ['--wf-v2-accent' as string]: theme.accent }}>
+    <aside
+      className="wf-v2-inspector"
+      data-mcp-region="workflow_inspector"
+      style={{ width: inspectorWidth, ['--wf-v2-accent' as string]: theme.accent }}
+    >
+      {resizerHandle}
       {modeTabs}
       <header className="wf-v2-insp-head">
         <span className="wf-v2-insp-icon" aria-hidden="true">{theme.icon}</span>
@@ -184,14 +250,26 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
           <strong title={node.title}>{cleanV2NodeTitle(node.title)}</strong>
           <small>{summarizeV2Node(node, childCount)}</small>
         </div>
-        <button
-          type="button"
-          className={`wf-v2-insp-bbox-toggle${directStageOpen ? ' active' : ''}`}
-          title={directStageOpen ? 'Đang bật khung chỉnh BBox 2D trực tiếp — nhấn để ẩn' : 'Bật khung chỉnh BBox 2D trực tiếp như trên Camera 2D'}
-          onClick={toggleDirectStage}
-        >
-          🎯 BBox
-        </button>
+        {isLayerOrCamBboxNode && (
+          <button
+            type="button"
+            className={`wf-v2-insp-bbox-toggle${directStageOpen ? ' active' : ''}`}
+            title={directStageOpen ? 'Đang bật khung chỉnh BBox 2D trực tiếp — nhấn để ẩn' : 'Bật khung chỉnh BBox 2D trực tiếp như trên Camera 2D'}
+            onClick={toggleDirectStage}
+          >
+            🎯 BBox
+          </button>
+        )}
+        {isLayerLogicNode && (
+          <button
+            type="button"
+            className={`wf-v2-insp-bbox-toggle${logicPadOpen ? ' active' : ''}`}
+            title={logicPadOpen ? 'Đang bật Khung chỉnh 2.5D trực tiếp — nhấn để ẩn' : 'Bật Khung chỉnh 2.5D trực tiếp cho Node Logic này'}
+            onClick={toggleLogicPad}
+          >
+            🎛️ 2.5D
+          </button>
+        )}
         {level !== 'root' && (
           <button
             type="button"
@@ -212,17 +290,31 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
       </header>
 
       <div className="wf-v2-insp-body">
-        <WorkflowV2DirectStagePreview
-          node={node}
-          project={project}
-          workflow={workflow}
-          currentTime={currentTime}
-          open={directStageOpen}
-          onToggleOpen={toggleDirectStage}
-          onUpdateParams={props.onUpdateParams}
-          onSelectNode={props.onSelectNode}
-          onScrubTime={props.onScrubTime}
-        />
+        {isLayerOrCamBboxNode && (
+          <WorkflowV2DirectStagePreview
+            node={node}
+            project={project}
+            workflow={workflow}
+            currentTime={currentTime}
+            open={directStageOpen}
+            onToggleOpen={toggleDirectStage}
+            onUpdateParams={props.onUpdateParams}
+            onSelectNode={props.onSelectNode}
+            onScrubTime={props.onScrubTime}
+          />
+        )}
+
+        {isLayerLogicNode && (
+          <WorkflowV2Logic25DPreview
+            node={node}
+            project={project}
+            currentTime={currentTime}
+            open={logicPadOpen}
+            onToggleOpen={toggleLogicPad}
+            onUpdateParams={props.onUpdateParams}
+            onScrubTime={props.onScrubTime}
+          />
+        )}
 
         <section className="wf-v2-insp-sec">
           <div className="wf-v2-insp-sec-title">

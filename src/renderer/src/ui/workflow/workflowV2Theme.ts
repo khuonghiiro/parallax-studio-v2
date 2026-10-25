@@ -24,6 +24,7 @@ const LOGIC_THEMES: Record<string, WorkflowV2NodeTheme> = {
   light: { badge: 'ÁNH SÁNG', icon: '💡', accent: '#f59e0b', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
   cave: { badge: 'HANG ĐỘNG', icon: '🕳️', accent: '#14b8a6', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
   fx: { badge: 'HIỆU ỨNG', icon: '✨', accent: '#a855f7', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
+  anim_fx: { badge: 'HOẠT ẢNH FX', icon: '🎞️', accent: '#e11d48', portIn: 'layers_tree', portOut: 'motion_stream', levelClass: 'level-logic' },
   audio: { badge: 'ÂM THANH', icon: '🔊', accent: '#ec4899', portIn: 'layers_tree', portOut: 'audio_mix', levelClass: 'level-logic' },
   camera: { badge: 'CAMERA 3D', icon: '🎥', accent: '#0284c7', portIn: 'scene_ctx', portOut: 'camera_cut', levelClass: 'level-logic is-cam-parent' },
   action: { badge: 'HÀNH ĐỘNG', icon: '🏃', accent: '#10b981', portIn: 'layers_tree', portOut: 'motion_stream', levelClass: 'level-logic' }
@@ -92,5 +93,5 @@ export function resolveV2NodeTheme(node: WorkflowNode): WorkflowV2NodeTheme {
 
 /** Tiêu đề hiển thị gọn (bỏ tiền tố loại như "Hành động: ", "Cảnh: "...) */
 export function cleanV2NodeTitle(title: string): string {
-  return title.replace(/^(Hành động|Vật liệu|Va chạm|Ánh sáng|Hang động|Hiệu ứng|Âm thanh|Cảnh|Camera):\s*/i, '')
+  return title.replace(/^(Hành động|Hoạt ảnh FX|Vật liệu|Va chạm|Ánh sáng|Hang động|Hiệu ứng|Âm thanh|Cảnh|Camera):\s*/i, '')
 }

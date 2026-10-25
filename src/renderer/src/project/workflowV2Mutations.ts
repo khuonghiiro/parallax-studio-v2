@@ -1,5 +1,14 @@
-import type { LayerMotionType, Project, WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
+import type { GlowSide, Layer, LayerGlow, LayerMotionType, Project, WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
+import {
+  generateBlinkKeys,
+  generateBreatheKeys,
+  generateFadeKeys,
+  generatePopInKeys,
+  generatePulseKeys,
+  generateShakeKeys
+} from '../ui/timeline/fxKeyGenerators'
+import { deleteLayerEffect, toggleLayerEffect } from '../ui/timeline/timelineEffects'
 import { computeShotStageLayout, extractCameraFrames2D } from '../ui/viewer/animateCamera/animateCameraMath'
 import {
   applyWaypointActionMode,
@@ -10,6 +19,7 @@ import {
 } from '../ui/viewer/animateCamera/animateCameraRouteLogic'
 import {
   WORKFLOW_V2_ACTION_OPTIONS,
+  WORKFLOW_V2_ANIM_FX_OPTIONS,
   WORKFLOW_V2_LIGHT_OPTIONS
 } from './workflowV2Options'
 import {
@@ -27,6 +37,7 @@ import {
 
 const NODE_TYPE: Record<WorkflowV2SpawnCategory, WorkflowNode['type']> = {
   action: 'motion_choreography',
+  anim_fx: 'motion_choreography',
   audio: 'audio_lipsync',
   material: 'physics_fx',
   collision: 'physics_fx',
@@ -37,6 +48,7 @@ const NODE_TYPE: Record<WorkflowV2SpawnCategory, WorkflowNode['type']> = {
 
 const AGENT: Record<WorkflowV2SpawnCategory, WorkflowNode['aiAgentRole']> = {
   action: 'MotionChoreographyAgent',
+  anim_fx: 'MotionChoreographyAgent',
   audio: 'AudioLipSyncAgent',
   material: 'PhysicsLightFxAgent',
   collision: 'PhysicsLightFxAgent',
@@ -117,6 +129,16 @@ export function attachLogicNodeToLayerV2(
   }
   const layerId = layerNodeId.replace(/^v2-layer-/, '')
   const id = uniqueNodeId(workflow, `v2-${category}-${layerId}`)
+  const startSec = layerNode.params?.timeStart ?? 0
+  const layerEndSec = layerNode.params?.timeEnd ?? 5
+  const animDefaultDur =
+    category === 'anim_fx'
+      ? (WORKFLOW_V2_ANIM_FX_OPTIONS.find((o) => o.id === chosen.params.animFxPreset)?.defaultDuration ?? 0.6)
+      : undefined
+  const endSec =
+    animDefaultDur !== undefined
+      ? Number(Math.max(startSec + 0.2, Math.min(layerEndSec, startSec + animDefaultDur)).toFixed(2))
+      : layerEndSec
   const node: WorkflowNode = applyLogicPresetToNode(
     {
       id,
@@ -124,7 +146,7 @@ export function attachLogicNodeToLayerV2(
       title: chosen.title,
       enabled: true,
       position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
-      preset: category === 'action' ? 'organic_wind_breathe' : category === 'audio' ? 'auto_dialogue_lipsync' : 'rim_glow_particles',
+      preset: category === 'action' || category === 'anim_fx' ? 'organic_wind_breathe' : category === 'audio' ? 'auto_dialogue_lipsync' : 'rim_glow_particles',
       aiAgentRole: AGENT[category],
       aiDirective: `${chosen.title} cho "${layerNode.title}".`,
       params: {
@@ -134,8 +156,8 @@ export function attachLogicNodeToLayerV2(
         targetLayerIds: [...(layerNode.params?.targetLayerIds ?? [])],
         sharedLayerNodeIds: [layerNodeId],
         requireLayerConnection: true,
-        timeStart: layerNode.params?.timeStart ?? 0,
-        timeEnd: layerNode.params?.timeEnd ?? 5,
+        timeStart: startSec,
+        timeEnd: endSec,
         hierarchyParentNodeId: layerNodeId,
         ...(category === 'collision' ? { strikerLayerId: layerNode.params?.targetLayerIds?.[0] } : {})
       }
@@ -209,9 +231,118 @@ function syncLayerOrGroupNodeToProject(
   }
 }
 
+/** Đồng bộ Node Hoạt ảnh FX (`anim_fx`) xuống `layer.appliedEffects` (và keyframe / glow tương ứng) */
+function syncAnimFxNodeToProject(
+  project: Project,
+  node: WorkflowNode,
+  params: WorkflowNodeParams,
+  patch?: Partial<WorkflowNodeParams>
+): void {
+  const targetIds = new Set(params.targetLayerIds ?? [])
+  const presetId = params.animFxPreset ?? 'popIn'
+  const opt = WORKFLOW_V2_ANIM_FX_OPTIONS.find((o) => o.id === presetId) ?? WORKFLOW_V2_ANIM_FX_OPTIONS[0]
+  const tol = 1 / Math.max(1, (project.comp.fps || 30) * 2)
+
+  for (const l of project.layers) {
+    if (!targetIds.has(l.id)) continue
+    const nonMotionList = (l.appliedEffects ?? []).filter((f) => f.category !== 'motion')
+    if (!node.enabled) {
+      for (const fx of nonMotionList) {
+        if (fx.enabled) toggleLayerEffect(l, fx.id, false)
+      }
+      continue
+    }
+
+    const existingFx = nonMotionList[nonMotionList.length - 1]
+    if (existingFx && existingFx.presetId === presetId && !patch) {
+      if (!existingFx.enabled) toggleLayerEffect(l, existingFx.id, true)
+      continue
+    }
+
+    if (existingFx) {
+      deleteLayerEffect(l, existingFx.id)
+    }
+
+    const start = Math.max(0, params.timeStart ?? existingFx?.startTime ?? l.inPoint ?? 0)
+    const rawEnd = params.timeEnd ?? (start + opt.defaultDuration)
+    const duration = Math.max(0.1, Number((rawEnd - start).toFixed(2)))
+    const count = Math.max(1, Math.round(params.animFxCount ?? existingFx?.count ?? opt.defaultCount ?? 2))
+    const intensity = params.intensity ?? existingFx?.intensity ?? opt.defaultIntensity ?? 1.2
+    const color = params.animFxColor ?? existingFx?.glow?.color ?? opt.defaultColor ?? '#3dd6f5'
+    const side: GlowSide = params.animFxSide ?? existingFx?.glow?.side ?? 'outer'
+    const thickness = params.animFxThickness ?? existingFx?.glow?.thickness ?? 10
+    const speed = params.animFxSpeed ?? existingFx?.glow?.speed ?? (duration > 0 ? Math.max(0.5, count / duration) : 1.5)
+    const minIntensity = params.animFxMinIntensity ?? existingFx?.glow?.minIntensity ?? 0.15
+
+    let createdKeyIds: string[] = []
+    let targetProp: 'opacity' | 'position' | 'scale' | undefined
+
+    if (presetId === 'blink') {
+      targetProp = 'opacity'
+      createdKeyIds = generateBlinkKeys(l.transform.opacity, start, duration, count, 0.05, tol).map((k) => k.id)
+    } else if (presetId === 'fadeOut') {
+      targetProp = 'opacity'
+      createdKeyIds = generateFadeKeys(l.transform.opacity, start, duration, 'out', tol).map((k) => k.id)
+    } else if (presetId === 'fadeIn') {
+      targetProp = 'opacity'
+      createdKeyIds = generateFadeKeys(l.transform.opacity, start, duration, 'in', tol).map((k) => k.id)
+    } else if (presetId === 'breathe') {
+      targetProp = 'opacity'
+      createdKeyIds = generateBreatheKeys(l.transform.opacity, start, duration, 0.2, tol).map((k) => k.id)
+    } else if (presetId === 'shake') {
+      targetProp = 'position'
+      createdKeyIds = generateShakeKeys(l.transform.position, start, duration, intensity, count, tol).map((k) => k.id)
+    } else if (presetId === 'popIn') {
+      targetProp = 'scale'
+      createdKeyIds = generatePopInKeys(l.transform.scale, start, duration, count, intensity, tol).map((k) => k.id)
+    } else if (presetId === 'pulse') {
+      targetProp = 'scale'
+      createdKeyIds = generatePulseKeys(l.transform.scale, start, duration, count, intensity, tol).map((k) => k.id)
+    } else {
+      const animated: LayerGlow['animated'] =
+        presetId === 'neonBreathe'
+          ? 'breathe'
+          : presetId === 'neonBlink'
+            ? 'blink'
+            : presetId === 'neonFlicker'
+              ? 'flicker'
+              : 'none'
+      l.glow = {
+        enabled: true,
+        startTime: start,
+        duration,
+        side,
+        color,
+        thickness,
+        intensity,
+        animated,
+        speed,
+        minIntensity
+      }
+    }
+
+    if (!l.appliedEffects) l.appliedEffects = []
+    l.appliedEffects.push({
+      id: existingFx?.id ?? `fx-wf-${node.id}`,
+      presetId,
+      name: opt.label.replace(/^[^\w\p{L}]+\s*/u, ''),
+      badge: opt.badge,
+      category: opt.fxCategory,
+      startTime: start,
+      duration,
+      enabled: true,
+      targetProp,
+      keyframeIds: createdKeyIds,
+      glow: opt.fxCategory === 'glow' && l.glow ? { ...l.glow } : undefined,
+      count: opt.defaultCount !== undefined ? count : undefined,
+      intensity: opt.defaultIntensity !== undefined ? intensity : undefined
+    })
+  }
+}
+
 /**
  * Đồng bộ trực tiếp thay đổi trên một Node V2 xuống dữ liệu Project thực tế
- * (bao gồm Node Nhãn Vật liệu và Node Va chạm Vật lý 2 Layer).
+ * (bao gồm Node Nhãn Vật liệu, Va chạm Vật lý 2 Layer và Hoạt ảnh FX).
  */
 export function syncWorkflowV2NodeToProject(
   project: Project,
@@ -239,6 +370,12 @@ export function syncWorkflowV2NodeToProject(
   // 3. Node Va chạm Vật lý (2-Layer Collision Physics)
   if (params.logicCategory === 'collision') {
     applyCollisionNodeToProject(project, project.workflow, mergedNode)
+    return
+  }
+
+  // 3b. Node Hoạt ảnh FX (Animation FX: Pop In, Shake, Pulse, Blink, Fade, Neon...)
+  if (params.logicCategory === 'anim_fx') {
+    syncAnimFxNodeToProject(project, node, params, patch)
     return
   }
 
@@ -280,20 +417,22 @@ export function syncWorkflowV2NodeToProject(
     const minScale = params.caveMinScale ?? 0.38
     for (const l of project.layers) {
       if (!targetIds.has(l.id)) continue
+      const prevPortal = l.physics?.depthPortal
       l.physics = {
         ...(l.physics ?? { enabled: true, material: 'none' }),
         enabled: node.enabled,
         colliderZone: 'cave_portal',
         depthPortal: {
+          centerUV: prevPortal?.centerUV ?? [0.5, 0.45],
+          radiusUV: prevPortal?.radiusUV ?? [0.35, 0.35],
+          shadowTint: prevPortal?.shadowTint ?? '#060812',
+          depthPullZ: prevPortal?.depthPullZ ?? 140,
+          feather: prevPortal?.feather ?? 0.55,
+          ...(prevPortal ?? {}),
           enabled: node.enabled,
-          centerUV: [0.5, 0.45],
-          radiusUV: [0.35, 0.35],
           minScale,
           darkness,
-          shadowTint: '#060812',
-          depthPullZ: 140,
-          archShape,
-          feather: 0.55
+          archShape
         }
       }
     }
@@ -313,22 +452,25 @@ export function syncWorkflowV2NodeToProject(
       const endSec = tEnd ?? l.outPoint ?? project.comp.duration
       if (mode === 'glow' || mode === 'rim') {
         l.glow = {
+          ...(l.glow ?? {}),
           enabled: node.enabled,
           color,
           intensity: Math.min(3, intensity),
-          thickness: 12,
+          thickness: l.glow?.thickness ?? 12,
           startTime: startSec,
           duration: Math.max(0.1, Number((endSec - startSec).toFixed(2)))
         }
       }
+      const prevVl = l.virtualLight
       l.virtualLight = {
+        radius: prevVl?.radius ?? 460,
+        originUV: prevVl?.originUV ?? [0.5, 0.5],
+        zReach: prevVl?.zReach ?? 320,
+        ...(prevVl ?? {}),
         enabled: node.enabled,
         kind: lightOpt.virtualKind,
         color,
-        intensity,
-        radius: 460,
-        originUV: [0.5, 0.5],
-        zReach: 320
+        intensity
       }
     }
     return

@@ -284,7 +284,7 @@ function inferNodeCategory(
 ): WorkflowLogicNodeCategory {
   if (catalogItem) return catalogItem.category
   const v2Cat = node.params?.logicCategory
-  if (v2Cat === 'action') return 'motion'
+  if (v2Cat === 'action' || v2Cat === 'anim_fx') return 'motion'
   if (v2Cat === 'material' || v2Cat === 'collision') return 'physics'
   if (v2Cat === 'light' || v2Cat === 'fx') return 'light_fx'
   if (v2Cat === 'cave') return 'scene'
@@ -340,6 +340,13 @@ function getV2LogicDisplayMeta(node: WorkflowNode): { icon: string; shortTitle: 
       icon: '🏃',
       shortTitle: node.title.replace(/^Hành động:\s*/i, ''),
       accent: '#10b981'
+    }
+  }
+  if (v2Cat === 'anim_fx') {
+    return {
+      icon: '🎞️',
+      shortTitle: node.title.replace(/^Hoạt ảnh FX:\s*/i, ''),
+      accent: '#f59e0b'
     }
   }
   if (v2Cat === 'cave') {
