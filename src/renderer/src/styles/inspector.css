@@ -306,3 +306,109 @@
   color: var(--text-faint);
 }
 
+/* ------------------------------------------------------------------ Unified Full-Height Right Column & Split Mode */
+
+.right.is-split-column {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.right-top-split {
+  flex: 1 1 0;
+  min-height: 150px;
+}
+
+.right-bottom-split {
+  flex: 0 0 clamp(140px, var(--timeline-h, 320px), 68vh);
+  min-height: 140px;
+}
+
+.right-unified-body.is-node-or-json {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+.right-col-resizer {
+  left: -3px;
+  z-index: 60;
+}
+
+.tab-width-btn {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 26px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.tab-width-btn:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
+  border-color: var(--line-focus);
+}
+.tab-width-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ------------------------------------------------------------------ Bridge Card in Layer Tab -> Thuộc tính Node */
+
+.layer-node-bridge-sec {
+  background: color-mix(in srgb, var(--accent) 4%, var(--bg-1));
+}
+
+.layer-node-bridge-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.layer-node-bridge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--badge-accent, var(--accent)) 55%, var(--line));
+  background: color-mix(in srgb, var(--badge-accent, var(--accent)) 14%, var(--bg-2));
+  color: var(--text);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.layer-node-bridge-pill:hover {
+  background: color-mix(in srgb, var(--badge-accent, var(--accent)) 78%, #0f172a);
+  border-color: var(--badge-accent, var(--accent));
+  color: #ffffff;
+}
+.layer-node-bridge-pill.is-off {
+  opacity: 0.55;
+}
+
+.layer-node-bridge-btn {
+  width: 100%;
+  justify-content: center;
+  height: 28px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+

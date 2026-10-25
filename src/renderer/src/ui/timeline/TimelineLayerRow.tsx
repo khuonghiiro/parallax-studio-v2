@@ -430,14 +430,13 @@ function TimelineLayerRowComponent({
                           onClick={(e) => {
                             e.stopPropagation()
                             onSelect()
+                            useEditor.getState().setInspectorTab('node')
                             if (b.kind === 'workflow_node' && b.nodeId) {
                               window.dispatchEvent(
                                 new CustomEvent('pxs:open-timeline-logic-node', {
                                   detail: { nodeId: b.nodeId }
                                 })
                               )
-                            } else {
-                              useEditor.getState().setInspectorTab('layer')
                             }
                           }}
                         >
@@ -497,8 +496,10 @@ function TimelineLayerRowComponent({
                   title={`${fx.name} @ ${fx.startTime.toFixed(2)}s (${fx.duration ? `${fx.duration.toFixed(1)}s` : ''}) ${isOff ? '[ĐÃ TẮT]' : ''} - Click để nhảy tới`}
                   onPointerDown={(e) => {
                     e.stopPropagation()
+                    onSelect()
                     useEffectSelection.getState().select(layer.id, fx.id)
                     useEditor.getState().setTime(fx.startTime)
+                    useEditor.getState().setInspectorTab('node')
                   }}
                 >
                   <span
@@ -557,7 +558,8 @@ function TimelineLayerRowComponent({
                     : `Hiệu ứng viền Neon (${primaryGlow.animated || 'tĩnh'}) ${isAllOff ? '[ĐÃ TẮT]' : ''} - Click để chỉnh`
                 }
                 onClick={() => {
-                  useEditor.getState().setInspectorTab('layer')
+                  onSelect()
+                  useEditor.getState().setInspectorTab('node')
                 }}
               >
                 <span

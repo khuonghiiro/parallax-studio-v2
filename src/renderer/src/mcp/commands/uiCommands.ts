@@ -432,7 +432,7 @@ export const uiCommands: Record<string, Handler> = {
       }
     }
 
-    if (inspectorTab === 'scene' || inspectorTab === 'layer' || inspectorTab === 'camera') {
+    if (inspectorTab === 'scene' || inspectorTab === 'layer' || inspectorTab === 'camera' || inspectorTab === 'route' || inspectorTab === 'node' || inspectorTab === 'json') {
       const { useEditor } = await import('../../store/editor')
       useEditor.getState().setInspectorTab(inspectorTab)
       useView.setState({ mobileTab: 'right', tabletTab: 'right' })

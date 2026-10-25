@@ -263,31 +263,49 @@
 .wf-v2-inspector.json-open {
   width: 390px;
 }
+.wf-v2-inspector.is-embedded,
+.wf-v2-inspector.json-open.is-embedded {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  flex: 1 1 0;
+  border-left: none;
+}
 
 .wf-v2-insp-tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3px;
-  padding: 5px 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 6px;
   background: var(--bg-1);
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
+.wf-v2-insp-tabs.docked-bottom {
+  border-bottom: none;
+  border-top: 1px solid var(--line);
+  background: var(--bg-1);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.14);
+}
 .wf-v2-insp-tab {
+  flex: 1 1 0;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
-  height: 24px;
-  padding: 0 8px;
+  height: 26px;
+  padding: 0 7px;
   border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  background: transparent;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
   color: var(--text-dim);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .wf-v2-insp-tab code {
   font-family: var(--mono);
@@ -297,11 +315,176 @@
 .wf-v2-insp-tab:hover {
   color: var(--text);
   background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  border-color: var(--line-focus);
 }
 .wf-v2-insp-tab.active {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--on-accent);
+}
+
+.wf-v2-insp-expand-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent-cyan) 12%, var(--bg-2));
+  color: var(--text);
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+.wf-v2-insp-expand-btn:hover {
+  background: color-mix(in srgb, var(--accent-cyan) 78%, #0f172a);
+  border-color: var(--accent-cyan);
+  color: #ffffff;
+}
+.wf-v2-insp-expand-btn.active {
+  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+/* ------------------------------------------------------------------ Dải chuyển nhanh Node Layer & Logic + Bộ lọc chuyên sâu */
+
+.wf-v2-node-switcher {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px 8px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line-soft);
+  flex-shrink: 0;
+}
+.wf-v2-node-switcher-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.wf-v2-node-switch-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  max-width: 155px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wf-v2-node-switch-pill .pill-txt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wf-v2-node-switch-pill .pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  flex-shrink: 0;
+}
+.wf-v2-node-switch-pill .pill-dot.on {
+  background: #10b981;
+}
+.wf-v2-node-switch-pill:hover {
+  color: var(--text);
+  border-color: var(--line-focus);
+  background: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 14%, var(--bg-3));
+}
+.wf-v2-node-switch-pill.active {
+  background: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 78%, #0f172a);
+  border-color: var(--wf-v2-accent, var(--accent));
+  color: #ffffff;
+}
+.wf-v2-node-switch-pill.is-off {
+  opacity: 0.55;
+}
+.wf-v2-node-switch-add {
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: transparent;
+  color: var(--accent-cyan);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wf-v2-node-switch-add:hover,
+.wf-v2-node-switch-add.active {
+  background: var(--accent);
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.wf-v2-node-switch-spawn {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding-top: 2px;
+}
+
+.wf-v2-deep-logic-sec {
+  padding-top: 10px;
+}
+.wf-v2-deep-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 3px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+}
+.wf-v2-deep-filter-pill {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 23px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wf-v2-deep-filter-pill:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+}
+.wf-v2-deep-filter-pill.suggested:not(.active) {
+  border-color: color-mix(in srgb, var(--accent-cyan) 50%, var(--line));
+  color: var(--text);
+}
+.wf-v2-deep-filter-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.wf-v2-deep-logic-body {
+  display: flex;
+  flex-direction: column;
+  margin: 0 -10px;
 }
 
 .wf-v2-json-panel {

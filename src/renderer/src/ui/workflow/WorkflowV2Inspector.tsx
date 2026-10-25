@@ -5,6 +5,11 @@ import { IconTrash } from '../icons'
 import { WorkflowTimeRangeBar } from './WorkflowTimeRangeBar'
 import { WorkflowV2DirectStagePreview } from './WorkflowV2DirectStagePreview'
 import { WorkflowV2JsonPanel } from './WorkflowV2JsonPanel'
+import {
+  WorkflowV2DeepLayerLogic,
+  WorkflowV2NodeSwitcherBar,
+  resolveActiveLayerForInspector
+} from './WorkflowV2LayerLogicSection'
 import { WorkflowV2Logic25DPreview } from './WorkflowV2Logic25DPreview'
 import { WorkflowV2NodeParams } from './WorkflowV2NodeParams'
 import { isDeletableV2Node, summarizeV2Node } from './WorkflowNodeCardV2'
@@ -20,11 +25,17 @@ export interface WorkflowV2InspectorProps {
   workflow: WorkflowGraph
   project: Project
   node: WorkflowNode | null
+  selectedLayerId?: string | null
   currentTime: number
   shots: { shot: Shot; index: number }[]
   activeShotId: string | null
   focusedShotId: string | null
   jsonMode: boolean
+  /** Khi nhúng vào cột phải chung (Inspector), ẩn thanh tab trùng lặp và chiếm 100% bề rộng cột */
+  embedded?: boolean
+  hideModeTabs?: boolean
+  isColumnExpanded?: boolean
+  onToggleColumnExpanded?: () => void
   onSetJsonMode: (jsonMode: boolean) => void
   onSelectShotFocus: (shotId: string | null) => void
   onUpdateParams: (nodeId: string, patch: Partial<WorkflowNodeParams>, nextTitle?: string) => void
@@ -109,7 +120,7 @@ const LOGIC_PAD_KEY = 'pxs:wf-v2-logic-pad-open'
 const INSPECTOR_WIDTH_KEY = 'pxs:wf-v2-inspector-width'
 const MIN_INSPECTOR_W = 280
 const MAX_INSPECTOR_W = 680
-const DEFAULT_INSPECTOR_W = 360
+const DEFAULT_INSPECTOR_W = 380
 
 function readCachedInspectorWidth(): number {
   const raw = Number(localStorage.getItem(INSPECTOR_WIDTH_KEY))
@@ -117,13 +128,15 @@ function readCachedInspectorWidth(): number {
   return DEFAULT_INSPECTOR_W
 }
 
-/** Bảng thuộc tính của Node đang chọn + Chế độ JSON Cảnh & Main trong Workflow V2 */
+/** Bảng thuộc tính của Node đang chọn + Chế độ JSON Cảnh & Main trong Workflow V2 & Timeline */
 export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) => {
-  const { node, project, workflow, currentTime, jsonMode, onSetJsonMode } = props
+  const { node, project, workflow, currentTime, jsonMode, embedded, hideModeTabs, onSetJsonMode } = props
   const [inspectorWidth, setInspectorWidth] = useState<number>(readCachedInspectorWidth)
   const [resizingWidth, setResizingWidth] = useState(false)
   const [directStageOpen, setDirectStageOpen] = useState(() => localStorage.getItem(DIRECT_STAGE_KEY) !== '0')
   const [logicPadOpen, setLogicPadOpen] = useState(() => localStorage.getItem(LOGIC_PAD_KEY) !== '0')
+
+  const activeLayer = resolveActiveLayerForInspector(project, node, props.selectedLayerId ?? null)
 
   const toggleDirectStage = (): void => {
     setDirectStageOpen((prev) => {
@@ -163,7 +176,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
     window.addEventListener('pointerup', onUp)
   }
 
-  const resizerHandle = (
+  const resizerHandle = embedded ? null : (
     <div
       className={`wf-v2-insp-resizer${resizingWidth ? ' dragging' : ''}`}
       role="separator"
@@ -174,7 +187,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
     />
   )
 
-  const modeTabs = (
+  const modeTabs = hideModeTabs ? null : (
     <div className="wf-v2-insp-tabs" role="tablist" aria-label="Chế độ bảng bên phải">
       <button
         type="button"
@@ -192,14 +205,30 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
         className={`wf-v2-insp-tab${jsonMode ? ' active' : ''}`}
         onClick={() => onSetJsonMode(true)}
       >
-        <code>{'{ }'}</code> JSON Cảnh & Main
+        <code>{'{ }'}</code> JSON Cảnh &amp; Main
       </button>
+      {props.onToggleColumnExpanded && (
+        <button
+          type="button"
+          className={`wf-v2-insp-expand-btn${props.isColumnExpanded ? ' active' : ''}`}
+          title={
+            props.isColumnExpanded
+              ? 'Đang mở rộng toàn cột phải — nhấn để thu về chế độ chia đôi trên/dưới'
+              : 'Mở rộng chiếm trọn cột phải màn hình (4 tab trên giữ nguyên, 2 tab Node & JSON nằm dưới đáy)'
+          }
+          onClick={props.onToggleColumnExpanded}
+        >
+          {props.isColumnExpanded ? '⤡ Chia đôi' : '⤢ Mở rộng'}
+        </button>
+      )}
     </div>
   )
 
+  const wrapStyle = embedded ? undefined : { width: inspectorWidth }
+
   if (jsonMode) {
     return (
-      <aside className="wf-v2-inspector json-open" data-mcp-region="workflow_inspector" style={{ width: inspectorWidth }}>
+      <aside className={`wf-v2-inspector json-open${embedded ? ' is-embedded' : ''}`} data-mcp-region="workflow_inspector" style={wrapStyle}>
         {resizerHandle}
         {modeTabs}
         <WorkflowV2JsonPanel
@@ -216,13 +245,31 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
 
   if (!node) {
     return (
-      <aside className="wf-v2-inspector" data-mcp-region="workflow_inspector" style={{ width: inspectorWidth }}>
+      <aside className={`wf-v2-inspector${embedded ? ' is-embedded' : ''}`} data-mcp-region="workflow_inspector" style={wrapStyle}>
         {resizerHandle}
         {modeTabs}
-        <div className="wf-v2-insp-empty">Chọn một Node trên sơ đồ để xem thông số, hoặc chuyển sang tab <b>JSON Cảnh &amp; Main</b> để xem/sửa JSON độc lập từng cảnh.</div>
+        {activeLayer && props.onSelectNode && (
+          <WorkflowV2NodeSwitcherBar
+            workflow={workflow}
+            layer={activeLayer}
+            activeNode={null}
+            onSelectNode={props.onSelectNode}
+            onAttachLogic={props.onAttachLogic}
+          />
+        )}
+        <div className="wf-v2-insp-body">
+          {activeLayer ? (
+            <WorkflowV2DeepLayerLogic layer={activeLayer} activeNode={null} />
+          ) : (
+            <div className="wf-v2-insp-empty">
+              Chọn một Layer hoặc Node trên Timeline / Sơ đồ để cấu hình logic 2.5D, hoặc chuyển sang tab <b>JSON Cảnh &amp; Main</b> dưới đáy để xem/sửa JSON từng cảnh.
+            </div>
+          )}
+        </div>
       </aside>
     )
   }
+
   const theme = resolveV2NodeTheme(node)
   const level = resolveV2NodeLevel(node)
   const isLayerOrCamBboxNode = level === 'layer' || node.type === 'camera_director' || Boolean(node.params?.isCameraWaypoint)
@@ -237,9 +284,9 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
 
   return (
     <aside
-      className="wf-v2-inspector"
+      className={`wf-v2-inspector${embedded ? ' is-embedded' : ''}`}
       data-mcp-region="workflow_inspector"
-      style={{ width: inspectorWidth, ['--wf-v2-accent' as string]: theme.accent }}
+      style={{ ...wrapStyle, ['--wf-v2-accent' as string]: theme.accent }}
     >
       {resizerHandle}
       {modeTabs}
@@ -288,6 +335,16 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
           </button>
         )}
       </header>
+
+      {activeLayer && props.onSelectNode && (
+        <WorkflowV2NodeSwitcherBar
+          workflow={workflow}
+          layer={activeLayer}
+          activeNode={node}
+          onSelectNode={props.onSelectNode}
+          onAttachLogic={props.onAttachLogic}
+        />
+      )}
 
       <div className="wf-v2-insp-body">
         {isLayerOrCamBboxNode && (
@@ -409,6 +466,10 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
               ))}
             </div>
           </section>
+        )}
+
+        {activeLayer && (level === 'layer' || isLayerLogicNode) && (
+          <WorkflowV2DeepLayerLogic layer={activeLayer} activeNode={node} />
         )}
 
         {(level === 'root' || level === 'group') && (

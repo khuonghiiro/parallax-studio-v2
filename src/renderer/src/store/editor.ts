@@ -52,7 +52,9 @@ interface EditorState {
   selectedShotId: string | null
   selectedAudioTrackId: string | null
   selectedKey: KeySelection | null
-  inspectorTab: 'layer' | 'camera' | 'scene' | 'route'
+  selectedWorkflowNodeId: string | null
+  focusedWorkflowShotId: string | null
+  inspectorTab: 'layer' | 'camera' | 'scene' | 'route' | 'node' | 'json'
   past: Project[]
   future: Project[]
   lastMerge: { key: string; at: number } | null
@@ -75,6 +77,8 @@ interface EditorState {
   selectShot(id: string | null): void
   selectAudioTrack(id: string | null): void
   selectKey(k: KeySelection | null): void
+  setSelectedWorkflowNodeId(id: string | null): void
+  setFocusedWorkflowShotId(id: string | null): void
   setInspectorTab(tab: EditorState['inspectorTab']): void
   loadProject(p: Project, filePath: string | null): void
   markSaved(path: string): void
@@ -91,6 +95,8 @@ export const useEditor = create<EditorState>((set, get) => ({
   selectedShotId: null,
   selectedAudioTrackId: null,
   selectedKey: null,
+  selectedWorkflowNodeId: null,
+  focusedWorkflowShotId: null,
   inspectorTab: 'scene',
   past: [],
   future: [],
@@ -150,36 +156,56 @@ export const useEditor = create<EditorState>((set, get) => ({
   selectLayer(id) {
     set((s) => {
       const layer = id ? s.project.layers.find((l) => l.id === id) : undefined
+      const keepNodeOrJson = s.inspectorTab === 'node' || s.inspectorTab === 'json'
       return {
         selectedLayerId: id,
         selectedAudioTrackId: null,
         // Selecting a layer makes its shot the active shot (new layers go there).
         selectedShotId: layer ? layer.shotId : s.selectedShotId,
+        focusedWorkflowShotId: layer?.shotId ?? s.focusedWorkflowShotId,
         selectedKey: null,
-        inspectorTab: id ? 'layer' : s.inspectorTab === 'layer' && !s.selectedShotId ? 'scene' : s.inspectorTab
+        inspectorTab: keepNodeOrJson
+          ? s.inspectorTab
+          : id
+            ? 'layer'
+            : s.inspectorTab === 'layer' && !s.selectedShotId
+              ? 'scene'
+              : s.inspectorTab
       }
     })
   },
   selectShot(id) {
     set((s) => ({
       selectedShotId: id,
+      focusedWorkflowShotId: id,
       selectedLayerId: null,
       selectedAudioTrackId: null,
       selectedKey: null,
-      inspectorTab: s.inspectorTab === 'route' ? 'route' : id ? 'layer' : s.inspectorTab
+      inspectorTab:
+        s.inspectorTab === 'route' || s.inspectorTab === 'node' || s.inspectorTab === 'json'
+          ? s.inspectorTab
+          : id
+            ? 'layer'
+            : s.inspectorTab
     }))
   },
   selectAudioTrack(id) {
-    set({
+    set((s) => ({
       selectedAudioTrackId: id,
       selectedLayerId: null,
       selectedShotId: null,
       selectedKey: null,
-      inspectorTab: id ? 'layer' : 'scene'
-    })
+      inspectorTab: s.inspectorTab === 'node' || s.inspectorTab === 'json' ? s.inspectorTab : id ? 'layer' : 'scene'
+    }))
   },
   selectKey(k) {
     set({ selectedKey: k })
+  },
+  setSelectedWorkflowNodeId(id) {
+    set({ selectedWorkflowNodeId: id })
+  },
+  setFocusedWorkflowShotId(id) {
+    set({ focusedWorkflowShotId: id })
   },
   setInspectorTab(tab) {
     set({ inspectorTab: tab })
@@ -195,6 +221,8 @@ export const useEditor = create<EditorState>((set, get) => ({
       selectedShotId: null,
       selectedAudioTrackId: null,
       selectedKey: null,
+      selectedWorkflowNodeId: null,
+      focusedWorkflowShotId: null,
       past: [],
       future: [],
       lastMerge: null,

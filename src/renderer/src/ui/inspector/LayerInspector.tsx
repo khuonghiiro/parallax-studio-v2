@@ -1,6 +1,9 @@
+import { useMemo } from 'react'
 import type { AutoOrientMode, BlendMode, Layer, Vec3 } from '@shared/types'
 import { anim, evaluate, setValueAt } from '../../animation/keyframes'
 import { setLayerShot } from '../../actions'
+import { ensureProjectWorkflow } from '../../project/workflowEngine'
+import { getLayerTimelineLogicBadges } from '../../project/timelineLogic'
 import { frameTolerance, useEditor } from '../../store/editor'
 import { AnimRow, NumberInput, Row, Select, Switch, TextInput } from '../controls'
 import { useLayerUpdater } from './useLayerUpdater'
@@ -8,26 +11,31 @@ import { KeyEaseSection } from './KeyEaseSection'
 import { ImageSection } from './sections/ImageSection'
 import { TextSection } from './sections/TextSection'
 import { SolidSection } from './sections/SolidSection'
-import { GlowSection } from './sections/GlowSection'
-import { LayerEffectsSection } from './sections/LayerEffectsSection'
 import { ParticleSection } from './sections/ParticleSection'
 import { Model3DSection } from './sections/Model3DSection'
 import { LayerCompositeSection } from './sections/LayerCompositeSection'
-import { LayerPhysicsSection } from './sections/LayerPhysicsSection'
-import { LayerVirtualLightSection } from './sections/LayerVirtualLightSection'
 
 export function LayerInspector({ layer }: { layer: Layer }) {
   const set = useLayerUpdater(layer.id)
-  const duration = useEditor((s) => s.project.comp.duration)
-  const comp = useEditor((s) => s.project.comp)
+  const project = useEditor((s) => s.project)
+  const duration = project.comp.duration
+  const comp = project.comp
   const time = useEditor((s) => s.time)
   const tol = useEditor((s) => frameTolerance(s.project))
-  const shots = useEditor((s) => s.project.shots)
-  const allLayers = useEditor((s) => s.project.layers)
+  const shots = project.shots
+  const allLayers = project.layers
+  const setInspectorTab = useEditor((s) => s.setInspectorTab)
   const id = layer.id
 
   const currentRot = evaluate(layer.transform.rotation, time)
   const currentAnchor = layer.transform.anchor ? evaluate(layer.transform.anchor, time) : ([0, 0, 0] as Vec3)
+
+  const logicBadges = useMemo(() => {
+    const wf = ensureProjectWorkflow(project)
+    const raw = getLayerTimelineLogicBadges(layer, project, wf)
+    const wfCats = new Set(raw.filter((b) => b.kind === 'workflow_node').map((b) => b.category))
+    return raw.filter((b) => b.kind !== 'capability' || !wfCats.has(b.category))
+  }, [layer, project])
 
   const setOrientation = (type: 'vertical' | 'ground' | 'tilted' | 'ceiling') => {
     set((l) => {
@@ -139,8 +147,6 @@ export function LayerInspector({ layer }: { layer: Layer }) {
         </Row>
       </div>
 
-      <Model3DSection layer={layer} />
-
       <div className="section">
         <div className="section-title">Transform</div>
         <AnimRow label="Vị trí" refp={{ kind: 'layer', layerId: id, prop: 'position' }} kind="vec3" step={1} precision={0} />
@@ -236,19 +242,56 @@ export function LayerInspector({ layer }: { layer: Layer }) {
       {layer.composite && <LayerCompositeSection layer={layer} />}
       {layer.model3d && <Model3DSection layer={layer} />}
 
-      {layer.type !== 'particles' && <LayerPhysicsSection layer={layer} set={set} />}
-      {layer.type !== 'particles' && <LayerVirtualLightSection layer={layer} set={set} />}
-
-      <LayerEffectsSection layer={layer} set={set} />
-
-      {layer.type !== 'particles' && <GlowSection layer={layer} set={set} />}
-
       <KeyEaseSection match={(r) => r.kind === 'layer' && r.layerId === id} />
 
       {layer.type === 'image' && <ImageSection layer={layer} set={set} />}
       {layer.type === 'text' && <TextSection props={layer.props} set={set} />}
       {layer.type === 'solid' && <SolidSection props={layer.props} set={set} />}
       {layer.type === 'particles' && <ParticleSection props={layer.props} set={set} />}
+
+      <div className="section layer-node-bridge-sec">
+        <div className="section-title">
+          <span>Logic 2.5D &amp; Thuộc tính Node</span>
+          <span className="spacer" />
+          <span className="tab-count">{logicBadges.length}</span>
+        </div>
+        {logicBadges.length > 0 ? (
+          <div className="layer-node-bridge-badges">
+            {logicBadges.map((b) => (
+              <button
+                key={b.id}
+                type="button"
+                className={`layer-node-bridge-pill${b.enabled ? '' : ' is-off'}`}
+                style={{ ['--badge-accent' as string]: b.accent }}
+                title={`${b.tooltip} — Click để chỉnh trong Thuộc tính Node`}
+                onClick={() => {
+                  setInspectorTab('node')
+                  if (b.nodeId) {
+                    window.dispatchEvent(
+                      new CustomEvent('pxs:select-workflow-v2-node', { detail: { nodeId: b.nodeId, openInspector: true } })
+                    )
+                  }
+                }}
+              >
+                <span>{b.icon}</span>
+                <span>{b.label}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="hint-text" style={{ margin: '0 0 6px' }}>
+            Chuyển động, Viền Neon, Ánh sáng 2.5D, Vật lý &amp; Cửa hang đã được tách sang tab <b>Thuộc tính Node</b> để bảng Layer gọn nhẹ, dễ thao tác.
+          </p>
+        )}
+        <button
+          type="button"
+          className="btn primary sm layer-node-bridge-btn"
+          title="Mở bảng Thuộc tính Node (Chuyển động, Ánh sáng 2.5D, Vật lý, Cửa hang, BBox 2D)"
+          onClick={() => setInspectorTab('node')}
+        >
+          🎛️ Mở Thuộc tính Node &amp; Logic 2.5D
+        </button>
+      </div>
     </>
   )
 }

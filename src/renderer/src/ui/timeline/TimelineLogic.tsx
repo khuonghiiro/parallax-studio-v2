@@ -64,12 +64,13 @@ export function TimelineLogic() {
   const openOrFocusLogicNode = (nodeId: string) => {
     const target = workflow.nodes.find((n) => n.id === nodeId)
     if (nodeId.startsWith('v2-') || Boolean(target?.params?.logicCategory)) {
-      useView.getState().setTimelineTab('workflow')
+      useEditor.getState().setInspectorTab('node')
+      useEditor.getState().setSelectedWorkflowNodeId(nodeId)
       window.setTimeout(() => {
         window.dispatchEvent(
-          new CustomEvent('pxs:select-workflow-v2-node', { detail: { nodeId } })
+          new CustomEvent('pxs:select-workflow-v2-node', { detail: { nodeId, openInspector: true } })
         )
-      }, 30)
+      }, 20)
       return
     }
     setEditingNodeId(nodeId)
@@ -88,12 +89,13 @@ export function TimelineLogic() {
       const detail = (e as CustomEvent<{ nodeId?: string }>).detail
       if (detail?.nodeId) {
         if (detail.nodeId.startsWith('v2-')) {
-          useView.getState().setTimelineTab('workflow')
+          useEditor.getState().setInspectorTab('node')
+          useEditor.getState().setSelectedWorkflowNodeId(detail.nodeId)
           window.setTimeout(() => {
             window.dispatchEvent(
-              new CustomEvent('pxs:select-workflow-v2-node', { detail: { nodeId: detail.nodeId } })
+              new CustomEvent('pxs:select-workflow-v2-node', { detail: { nodeId: detail.nodeId, openInspector: true } })
             )
-          }, 30)
+          }, 20)
         } else {
           setEditingNodeId(detail.nodeId)
         }
@@ -224,6 +226,15 @@ export function TimelineLogic() {
           </span>
         )}
       </div>
+
+      <button
+        type="button"
+        className="tl-logic-wf-btn"
+        title="Mở bảng Thuộc tính Node ở cột bên phải để cấu hình logic ngay trên Timeline"
+        onClick={() => useEditor.getState().setInspectorTab('node')}
+      >
+        <span>🎛️ Thuộc tính Node</span>
+      </button>
 
       <button
         type="button"

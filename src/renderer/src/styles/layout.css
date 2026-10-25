@@ -62,12 +62,12 @@ textarea:focus {
 .app {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) 5px clamp(120px, var(--timeline-h, 320px), 68vh);
-  grid-template-columns: clamp(220px, 22vw, 340px) minmax(0, 1fr) clamp(230px, 23vw, 350px);
+  grid-template-columns: clamp(220px, 22vw, 340px) minmax(0, 1fr) var(--right-col-w, clamp(320px, 27vw, 440px));
   grid-template-areas:
     'top top top'
     'left view right'
-    'split split split'
-    'time time time';
+    'split split right'
+    'time time right';
   width: 100vw;
   height: 100vh;
   background: var(--bg-0);
@@ -179,7 +179,7 @@ textarea:focus {
   overflow: hidden;
 }
 .right {
-  padding: 4px 4px 0 0;
+  position: relative; padding: 4px 4px 4px 0;
 }
 
 /* ==========================================================================

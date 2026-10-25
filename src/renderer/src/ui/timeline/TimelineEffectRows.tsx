@@ -25,7 +25,11 @@ function EffectRow({ layer, effect, x, trackWidth }: {
   const timing = preview ?? effect
   const selected = selection.layerId === layer.id && selection.effectId === effect.id
   const end = timing.duration > 0 ? timing.startTime + timing.duration : Math.max(layer.outPoint, timing.startTime)
-  const select = (): void => selection.select(layer.id, effect.id)
+  const select = (): void => {
+    selection.select(layer.id, effect.id)
+    useEditor.getState().selectLayer(layer.id)
+    useEditor.getState().setInspectorTab('node')
+  }
   const drag = (event: PointerEvent, mode: EffectDragMode): void => {
     select()
     cancelDrag.current?.()

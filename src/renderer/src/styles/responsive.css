@@ -146,7 +146,7 @@
    ========================================================================== */
 @media (max-width: 1366px) {
   .app {
-    grid-template-columns: clamp(220px, 21vw, 290px) minmax(0, 1fr) clamp(230px, 22vw, 300px);
+    grid-template-columns: clamp(220px, 21vw, 290px) minmax(0, 1fr) var(--right-col-w, clamp(300px, 26vw, 400px));
   }
 
   .toolbar {
