@@ -234,6 +234,8 @@ export interface WorkflowNodeParams {
   caveMinScale?: number
   /** [Workflow V2] Loại hiệu ứng của Node Hiệu ứng */
   fxKind?: 'wind_physics' | 'bloom' | 'blur' | 'chromatic' | 'vignette' | 'particles'
+  /** [Workflow V2] Node đã được người dùng kéo đặt tay — giữ nguyên vị trí khi tự xếp lại cây (nút "Sắp xếp" sẽ bỏ ghim) */
+  pinned?: boolean
 }
 export interface WorkflowNode {
   id: string

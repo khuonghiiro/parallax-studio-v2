@@ -1,8 +1,9 @@
 import React from 'react'
 import type { WorkflowEdge, WorkflowNode } from '@shared/types'
+import type { V2Cluster } from '../../project/workflowV2Engine'
 import { IconFit, IconZoomIn, IconZoomOut } from '../icons'
-import { buildEdgePath } from './workflowV2Edges'
-import { resolveV2NodeLevel, resolveV2NodeTheme } from './workflowV2Theme'
+import { WF_V2_PORT_Y, buildEdgePath, type V2EdgeKind } from './workflowV2Edges'
+import { resolveV2NodeTheme } from './workflowV2Theme'
 
 export interface WireDragState {
   nodeId: string
@@ -11,79 +12,139 @@ export interface WireDragState {
   startY: number
   curX: number
   curY: number
+  /** Node đích đang rê vào (đã kiểm tra hợp lệ) — dây "hút" vào cổng của Node này */
+  hoverNodeId?: string
+  hoverValid?: boolean
+  hoverReason?: string
 }
 
-/** Lớp SVG vẽ dây nối (smooth-step / bezier, mũi tên, làm nổi bật nhánh đang chọn) */
+export interface EdgeRenderItem {
+  edge: WorkflowEdge
+  from: WorkflowNode
+  to: WorkflowNode
+  kind: V2EdgeKind
+  lane: number
+  running: boolean
+  lit: boolean
+  label?: string
+}
+
+const KIND_COLOR: Record<V2EdgeKind, string | null> = {
+  hierarchy: 'var(--text-faint)',
+  camera: 'var(--accent-cyan)',
+  data: '#f97316',
+  logic: null
+}
+
+/** Lớp SVG vẽ dây nối: phân loại theo ý nghĩa, dây đang chạy có hiệu ứng dòng chảy theo hướng xử lý */
 export const WorkflowV2EdgeLayer: React.FC<{
-  edges: WorkflowEdge[]
-  nodeMap: Map<string, WorkflowNode>
+  items: EdgeRenderItem[]
   wireStyle: 'smoothstep' | 'bezier'
-  lineage: { edgeIds: Set<string>; active: boolean }
-  isLive: (node: WorkflowNode) => boolean
+  lineageActive: boolean
   wireDrag: WireDragState | null
+  nodeMap: Map<string, WorkflowNode>
   onSelectNode: (nodeId: string) => void
   onDisconnectEdge: (edgeId: string) => void
-}> = ({ edges, nodeMap, wireStyle, lineage, isLive, wireDrag, onSelectNode, onDisconnectEdge }) => (
-  <svg className="wf-v2-edges-svg" width={1} height={1}>
-    <defs>
-      <marker id="wf-v2-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-        <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="context-stroke" />
-      </marker>
-    </defs>
-    {edges.map((edge) => {
-      const from = nodeMap.get(edge.fromNode)
-      const to = nodeMap.get(edge.toNode)
-      if (!from || !to) return null
-      const d = buildEdgePath(from, to, wireStyle)
-      const lit = !lineage.active || lineage.edgeIds.has(edge.id)
-      const flowing = lineage.active && lit && isLive(from) && isLive(to)
-      const disconnectable = resolveV2NodeLevel(to) === 'logic'
-      return (
-        <g
-          key={edge.id}
-          className={`wf-v2-edge-group${lineage.active && lit ? ' highlighted' : ''}${lit ? '' : ' dimmed'}`}
-          onClick={(ev) => {
-            ev.stopPropagation()
-            onSelectNode(to.id)
-          }}
-          onDoubleClick={(ev) => {
-            ev.stopPropagation()
-            if (disconnectable) onDisconnectEdge(edge.id)
-          }}
-        >
-          <title>{disconnectable ? 'Nhấp đúp để gỡ dây nối' : 'Dây phân cấp'}</title>
-          <path d={d} className="wf-v2-edge-hit" />
-          <path
-            d={d}
-            className={`wf-v2-edge-fg${flowing ? ' flowing' : ''}`}
-            style={{ stroke: resolveV2NodeTheme(to).accent }}
-            markerEnd="url(#wf-v2-arrow)"
-          />
-        </g>
-      )
-    })}
-    {wireDrag && (
-      <path
-        className="wf-v2-edge-dragging"
-        d={`M ${wireDrag.startX} ${wireDrag.startY} C ${wireDrag.startX + (wireDrag.isOutput ? 60 : -60)} ${wireDrag.startY}, ${
-          wireDrag.curX + (wireDrag.isOutput ? -60 : 60)
-        } ${wireDrag.curY}, ${wireDrag.curX} ${wireDrag.curY}`}
-      />
-    )}
-  </svg>
+}> = ({ items, wireStyle, lineageActive, wireDrag, nodeMap, onSelectNode, onDisconnectEdge }) => {
+  const hover = wireDrag?.hoverNodeId && wireDrag.hoverValid ? nodeMap.get(wireDrag.hoverNodeId) : undefined
+  const endX = hover ? (wireDrag!.isOutput ? hover.position.x - 8 : hover.position.x + 242) : wireDrag?.curX ?? 0
+  const endY = hover ? hover.position.y + WF_V2_PORT_Y : wireDrag?.curY ?? 0
+  return (
+    <svg className="wf-v2-edges-svg" width={1} height={1}>
+      <defs>
+        <marker id="wf-v2-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="context-stroke" />
+        </marker>
+      </defs>
+      {items.map(({ edge, from, to, kind, lane, running, lit, label }) => {
+        const d = buildEdgePath(from, to, kind, wireStyle, lane)
+        const color = KIND_COLOR[kind] ?? resolveV2NodeTheme(to).accent
+        const disconnectable = kind === 'logic' || kind === 'data'
+        return (
+          <g
+            key={edge.id}
+            className={`wf-v2-edge-group kind-${kind}${running ? ' running' : ''}${lineageActive && lit ? ' highlighted' : ''}${lit ? '' : ' dimmed'}`}
+            onClick={(ev) => {
+              ev.stopPropagation()
+              onSelectNode(to.id)
+            }}
+            onDoubleClick={(ev) => {
+              ev.stopPropagation()
+              if (disconnectable) onDisconnectEdge(edge.id)
+            }}
+          >
+            <title>
+              {kind === 'camera' ? `Camera chuyển cảnh: ${from.title} → ${to.title}` : disconnectable ? 'Nhấp đúp để gỡ dây nối' : 'Dây cấu trúc cảnh'}
+            </title>
+            <path d={d} className="wf-v2-edge-hit" />
+            <path d={d} className="wf-v2-edge-fg" style={{ stroke: color }} markerEnd="url(#wf-v2-arrow)" />
+            {running && <path d={d} className="wf-v2-edge-flow" style={{ stroke: color }} />}
+            {label && kind === 'camera' && (
+              <g transform={`translate(${6} ${(from.position.y + to.position.y) / 2 + WF_V2_PORT_Y})`}>
+                <rect className="wf-v2-chain-label-bg" x={-2} y={-9} width={56} height={18} rx={4} />
+                <text className="wf-v2-chain-label" x={26} y={4}>{label}</text>
+              </g>
+            )}
+          </g>
+        )
+      })}
+      {wireDrag && (
+        <path
+          className={`wf-v2-edge-dragging${wireDrag.hoverNodeId ? (wireDrag.hoverValid ? ' valid' : ' invalid') : ''}`}
+          d={`M ${wireDrag.startX} ${wireDrag.startY} C ${wireDrag.startX + (wireDrag.isOutput ? 60 : -60)} ${wireDrag.startY}, ${endX + (wireDrag.isOutput ? -60 : 60)} ${endY}, ${endX} ${endY}`}
+        />
+      )}
+    </svg>
+  )
+}
+
+/** Khung nền của từng cụm cảnh (tiêu đề + khoảng thời gian), cụm đang quay được làm nổi bật */
+export const WorkflowV2ClusterFrames: React.FC<{
+  clusters: (V2Cluster & { title: string; range?: { start: number; end: number }; color?: string })[]
+  activeRootId: string | null
+  onFocus: (rootId: string) => void
+}> = ({ clusters, activeRootId, onFocus }) => (
+  <>
+    {clusters.map((c) => (
+      <div
+        key={c.rootId}
+        className={`wf-v2-cluster${c.rootId === activeRootId ? ' active' : ''}`}
+        style={{ left: c.bounds.x, top: c.bounds.y, width: c.bounds.w, height: c.bounds.h, ['--wf-cluster-c' as string]: c.color ?? 'var(--accent)' }}
+      >
+        <button type="button" className="wf-v2-cluster-head" onPointerDown={(e) => e.stopPropagation()} onClick={() => onFocus(c.rootId)}>
+          <span className="dot" />
+          <strong>{c.title}</strong>
+          {c.range && (
+            <span className="range">
+              {c.range.start.toFixed(1)}s – {c.range.end.toFixed(1)}s
+            </span>
+          )}
+          {c.rootId === activeRootId && <span className="live">ĐANG QUAY</span>}
+        </button>
+      </div>
+    ))}
+  </>
 )
 
-/** Cụm HUD dọc chỉ gồm icon ở góc khung vẽ (vừa khung, thu phóng, kiểu dây) */
+/** Cụm HUD dọc chỉ gồm icon ở góc khung vẽ */
 export const WorkflowV2CanvasHud: React.FC<{
   zoom: number
   wireStyle: 'smoothstep' | 'bezier'
-  onFit: () => void
+  follow: boolean
+  onFit: (all: boolean) => void
   onZoom: (factor: number) => void
   onToggleWireStyle: () => void
-}> = ({ zoom, wireStyle, onFit, onZoom, onToggleWireStyle }) => (
+  onToggleFollow: () => void
+}> = ({ zoom, wireStyle, follow, onFit, onZoom, onToggleWireStyle, onToggleFollow }) => (
   <div className="wf-canvas-hud vertical wf-v2-hud" data-mcp-region="workflow_canvas_hud" onPointerDown={(e) => e.stopPropagation()}>
-    <button type="button" className="wf-hud-btn" title="Vừa khung nhìn" onClick={onFit}>
+    <button type="button" className={`wf-hud-btn${follow ? ' active' : ''}`} title={follow ? 'Đang tự theo cảnh camera đang quay — nhấn để tắt' : 'Tự di chuyển tới cảnh camera đang quay'} onClick={onToggleFollow}>
+      ◎
+    </button>
+    <button type="button" className="wf-hud-btn" title="Vừa khung (F) — giữ chữ đọc được" onClick={() => onFit(false)}>
       <IconFit width={14} height={14} />
+    </button>
+    <button type="button" className="wf-hud-btn" title="Toàn cảnh — thấy toàn bộ không gian (Shift+F)" onClick={() => onFit(true)}>
+      ⤢
     </button>
     <button type="button" className="wf-hud-btn" title="Phóng to (Ctrl + lăn chuột)" onClick={() => onZoom(1.15)}>
       <IconZoomIn width={14} height={14} />
@@ -101,5 +162,16 @@ export const WorkflowV2CanvasHud: React.FC<{
     >
       {wireStyle === 'smoothstep' ? '⌐' : '∿'}
     </button>
+  </div>
+)
+
+/** Chú giải loại dây để người xem hiểu ngay luồng logic */
+export const WorkflowV2Legend: React.FC = () => (
+  <div className="wf-v2-legend" data-mcp-region="workflow_legend" onPointerDown={(e) => e.stopPropagation()}>
+    <span><i className="k-hierarchy" />Cấu trúc</span>
+    <span><i className="k-logic" />Logic Layer</span>
+    <span><i className="k-data" />Chất liệu → Va chạm</span>
+    <span><i className="k-camera" />Camera chuyển cảnh</span>
+    <span><i className="k-running" />Đang chạy</span>
   </div>
 )

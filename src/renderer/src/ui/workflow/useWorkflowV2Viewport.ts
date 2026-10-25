@@ -6,6 +6,8 @@ export const WF_V2_MIN_ZOOM = 0.3
 export const WF_V2_MAX_ZOOM = 1.6
 const FIT_PAD_X = 28
 const FIT_PAD_Y = 12
+/** Chừa lề phải cho cột HUD dọc để thẻ không bị che */
+const HUD_RESERVE = 52
 /** Không thu nhỏ quá mức này khi "vừa khung" để chữ trên thẻ luôn đọc được (phần dư cuộn dọc) */
 const FIT_MIN_READABLE = 0.62
 
@@ -13,10 +15,13 @@ export interface WorkflowV2Viewport {
   viewportRef: React.RefObject<HTMLDivElement | null>
   zoom: number
   pan: { x: number; y: number }
+  /** Kích thước khung nhìn (px màn hình) */
+  size: { w: number; h: number }
   setPan: (p: { x: number; y: number }) => void
   zoomBy: (factor: number, anchor?: { x: number; y: number }) => void
-  fitToView: () => void
+  fitToView: (all?: boolean) => void
   focusNode: (nodeId: string) => void
+  focusBounds: (b: { x: number; y: number; w: number; h: number }) => void
   clientToWorld: (clientX: number, clientY: number) => { x: number; y: number }
 }
 
@@ -31,7 +36,7 @@ function boundsOf(nodes: WorkflowNode[]): { minX: number; minY: number; maxX: nu
     maxX = Math.max(maxX, n.position.x + WF_V2_NODE_W)
     maxY = Math.max(maxY, n.position.y + WF_V2_NODE_H)
   }
-  return { minX: minX - 12, minY: minY - 40, maxX: maxX + 12, maxY: maxY + 12 }
+  return { minX: minX - 40, minY: Math.min(minY - 48, 0), maxX: maxX + 16, maxY: maxY + 16 }
 }
 
 /**
@@ -72,19 +77,24 @@ export function useWorkflowV2Viewport(visibleNodes: WorkflowNode[]): WorkflowV2V
     [apply]
   )
 
-  const fitToView = useCallback(() => {
+  /** Vừa khung: mặc định ưu tiên chữ đọc được (căn đỉnh, phần dư cuộn dọc); `all` = thu nhỏ để thấy toàn bộ không gian */
+  const fitToView = useCallback((all = false) => {
     const el = viewportRef.current
     const nodes = nodesRef.current
     if (!el || nodes.length === 0) return
     const b = boundsOf(nodes)
-    const availW = Math.max(240, el.clientWidth - FIT_PAD_X * 2)
+    const availW = Math.max(240, el.clientWidth - FIT_PAD_X * 2 - HUD_RESERVE)
     const availH = Math.max(120, el.clientHeight - FIT_PAD_Y * 2)
     const fitBoth = Math.min(availW / (b.maxX - b.minX), availH / (b.maxY - b.minY))
     const fitWidth = availW / (b.maxX - b.minX)
-    const z = Number(Math.min(1, Math.max(fitBoth, FIT_MIN_READABLE, fitWidth)).toFixed(2))
+    const z = all
+      ? Number(Math.max(WF_V2_MIN_ZOOM, Math.min(1, fitBoth)).toFixed(2))
+      : Number(Math.min(1, Math.max(fitBoth, FIT_MIN_READABLE, fitWidth)).toFixed(2))
     const graphW = (b.maxX - b.minX) * z
+    const graphH = (b.maxY - b.minY) * z
     const x = Math.round(FIT_PAD_X + Math.max(0, (availW - graphW) / 2) - b.minX * z)
-    apply(z, { x, y: Math.round(FIT_PAD_Y - b.minY * z) })
+    const y = Math.round(FIT_PAD_Y + (all ? Math.max(0, (availH - graphH) / 2) : 0) - b.minY * z)
+    apply(z, { x, y })
   }, [apply])
 
   const focusNode = useCallback(
@@ -104,6 +114,30 @@ export function useWorkflowV2Viewport(visibleNodes: WorkflowNode[]): WorkflowV2V
     },
     [apply]
   )
+
+  /** Đưa một vùng (khung cụm cảnh) vào tầm nhìn: căn đỉnh-trái, giữ mức zoom đọc được */
+  const focusBounds = useCallback(
+    (b: { x: number; y: number; w: number; h: number }) => {
+      const el = viewportRef.current
+      if (!el) return
+      const z = Number(Math.min(1, Math.max(FIT_MIN_READABLE, (el.clientWidth - FIT_PAD_X * 2 - HUD_RESERVE) / b.w)).toFixed(2))
+      const offsetX = Math.max(FIT_PAD_X, (el.clientWidth - HUD_RESERVE - b.w * z) / 2)
+      apply(z, { x: Math.round(offsetX - b.x * z), y: Math.round(FIT_PAD_Y - b.y * z) })
+    },
+    [apply]
+  )
+
+  // Kích thước khung nhìn (để chỉ render các thẻ nằm trong tầm nhìn)
+  const [size, setSize] = useState({ w: 1200, h: 300 })
+  useEffect(() => {
+    const el = viewportRef.current
+    if (!el) return
+    const update = (): void => setSize({ w: el.clientWidth, h: el.clientHeight })
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   useEffect(() => {
     const el = viewportRef.current
@@ -133,5 +167,5 @@ export function useWorkflowV2Viewport(visibleNodes: WorkflowNode[]): WorkflowV2V
     }
   }, [])
 
-  return { viewportRef, zoom, pan, setPan, zoomBy, fitToView, focusNode, clientToWorld }
+  return { viewportRef, zoom, pan, size, setPan, zoomBy, fitToView, focusNode, focusBounds, clientToWorld }
 }

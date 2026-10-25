@@ -1,23 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import type { Layer, Project } from '@shared/types'
 import { useEditor } from '../../store/editor'
 import { useView } from '../../store/view'
 import { toast } from '../../actions'
-import {
-  ensureProjectWorkflow,
-  compileWorkflowBlueprint,
-  WORKFLOW_LOGIC_NODE_CATALOG
-} from '../../project/workflowEngine'
-import type { WorkflowLogicNodeCategory } from '../../project/workflowLogicNodes'
-import {
-  addTimelineLogic,
-  listTimelineLogicNodes,
-  removeTimelineLogicNode,
-  TIMELINE_LOGIC_CATEGORY_LIST,
-  TIMELINE_LOGIC_CATEGORY_META,
-  toggleTimelineLogicNode
-} from '../../project/timelineLogic'
+import { ensureProjectWorkflow, compileWorkflowBlueprint } from '../../project/workflowEngine'
+import { listTimelineLogicNodes, removeTimelineLogicNode, toggleTimelineLogicNode } from '../../project/timelineLogic'
+import { WORKFLOW_V2_LOGIC_CATEGORIES } from '../../project/workflowV2LogicPresets'
+import { TimelineLogicPickerV2, toV2PickerCategory, type TimelinePickerCategory } from './TimelineLogicPickerV2'
 import { WorkflowNodeDraftDialog } from '../workflow/WorkflowNodeDraftDialog'
 import '../../styles/timelineLogic.css'
 
@@ -26,7 +14,7 @@ export function TimelineLogic() {
   const selectedLayerId = useEditor((s) => s.selectedLayerId)
   const selectedShotId = useEditor((s) => s.selectedShotId)
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [initialCategory, setInitialCategory] = useState<WorkflowLogicNodeCategory | 'all'>('all')
+  const [initialCategory, setInitialCategory] = useState<TimelinePickerCategory>('all')
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
 
   const workflow = useMemo(() => ensureProjectWorkflow(project), [project])
@@ -89,11 +77,11 @@ export function TimelineLogic() {
 
   useEffect(() => {
     const onOpenPicker = (e: Event) => {
-      const detail = (e as CustomEvent<{ layerId?: string; category?: WorkflowLogicNodeCategory | 'all' }>).detail
+      const detail = (e as CustomEvent<{ layerId?: string; category?: string }>).detail
       if (detail?.layerId) {
         useEditor.getState().selectLayer(detail.layerId)
       }
-      setInitialCategory(detail?.category ?? 'all')
+      setInitialCategory(toV2PickerCategory(detail?.category))
       setPickerOpen(true)
     }
     const onOpenNode = (e: Event) => {
@@ -119,7 +107,7 @@ export function TimelineLogic() {
     }
   }, [])
 
-  const openPickerWithCategory = (cat: WorkflowLogicNodeCategory | 'all') => {
+  const openPickerWithCategory = (cat: TimelinePickerCategory) => {
     if (layer?.locked) return
     setInitialCategory(cat)
     setPickerOpen(true)
@@ -147,7 +135,7 @@ export function TimelineLogic() {
       </button>
 
       <div className="tl-logic-quick-cats" role="group" aria-label="Nhóm logic nhanh">
-        {TIMELINE_LOGIC_CATEGORY_LIST.slice(0, 5).map((cat) => (
+        {WORKFLOW_V2_LOGIC_CATEGORIES.slice(0, 5).map((cat) => (
           <button
             key={cat.id}
             type="button"
@@ -158,7 +146,7 @@ export function TimelineLogic() {
             onClick={() => openPickerWithCategory(cat.id)}
           >
             <span className="cat-ico">{cat.icon}</span>
-            <span>{cat.shortLabel}</span>
+            <span>{cat.label}</span>
           </button>
         ))}
       </div>
@@ -248,9 +236,8 @@ export function TimelineLogic() {
       </button>
 
       {pickerOpen && (
-        <TimelineLogicPicker
+        <TimelineLogicPickerV2
           layer={layer}
-          shotId={shotId}
           targetName={targetName}
           scopeKind={scopeKind}
           initialCategory={initialCategory}
@@ -276,174 +263,5 @@ export function TimelineLogic() {
         />
       )}
     </div>
-  )
-}
-
-function TimelineLogicPicker({
-  layer,
-  shotId,
-  targetName,
-  scopeKind,
-  initialCategory,
-  onClose,
-  onAdded
-}: {
-  layer?: Layer
-  shotId: string
-  targetName: string
-  scopeKind: string
-  initialCategory: WorkflowLogicNodeCategory | 'all'
-  onClose: () => void
-  onAdded: (nodeId: string) => void
-}) {
-  const [query, setQuery] = useState('')
-  const [activeCategory, setActiveCategory] = useState<WorkflowLogicNodeCategory | 'all'>(
-    initialCategory
-  )
-  const [error, setError] = useState<string | null>(null)
-
-  const items = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    return WORKFLOW_LOGIC_NODE_CATALOG.filter((item) => {
-      if (activeCategory !== 'all' && item.category !== activeCategory) return false
-      if (!q) return true
-      return `${item.title} ${item.categoryLabel} ${item.description} ${item.shortLabel}`
-        .toLowerCase()
-        .includes(q)
-    })
-  }, [query, activeCategory])
-
-  return createPortal(
-    <div className="tl-logic-backdrop" onPointerDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <section
-        className="tl-logic-picker"
-        data-mcp-region="timeline_logic_picker"
-        data-mcp-dialog
-        role="dialog"
-        aria-modal="true"
-        aria-label="Thêm logic"
-        onPointerDown={(e) => e.stopPropagation()}
-        onKeyDown={(event) => {
-          event.stopPropagation()
-          if (event.key === 'Escape') onClose()
-          if (event.key === 'Tab') {
-            const controls = Array.from(
-              event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), input')
-            )
-            const first = controls[0]
-            const last = controls[controls.length - 1]
-            if (event.shiftKey && document.activeElement === first) {
-              event.preventDefault()
-              last?.focus()
-            } else if (!event.shiftKey && document.activeElement === last) {
-              event.preventDefault()
-              first?.focus()
-            }
-          }
-        }}
-      >
-        <header className="tl-logic-picker-header">
-          <div className="tl-logic-picker-title-wrap">
-            <div className="tl-logic-picker-heading-row">
-              <strong>Kho Logic & Hành Vi 2.5D</strong>
-              <span className="tl-logic-picker-target-badge">
-                {scopeKind}: {targetName}
-              </span>
-            </div>
-            <p>
-              Chọn một khối logic để tự động nối cổng vào <strong>{targetName}</strong> và kích hoạt ngay trên Timeline.
-            </p>
-          </div>
-          <button type="button" className="btn ghost" aria-label="Đóng" onClick={onClose}>
-            Đóng
-          </button>
-        </header>
-
-        <div className="tl-logic-picker-toolbar">
-          <input
-            type="search"
-            className="tl-logic-search-input"
-            aria-label="Tìm logic"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Tìm chuyển động, đèn nến, đèn pin, gió lay, camera, nhép môi..."
-            autoFocus
-          />
-          <div className="tl-logic-cat-tabs" role="tablist" aria-label="Lọc theo danh mục logic">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeCategory === 'all'}
-              className={`tl-logic-cat-tab${activeCategory === 'all' ? ' active' : ''}`}
-              onClick={() => setActiveCategory('all')}
-            >
-              <span>Tất cả</span>
-              <span className="cnt">{WORKFLOW_LOGIC_NODE_CATALOG.length}</span>
-            </button>
-            {TIMELINE_LOGIC_CATEGORY_LIST.map((cat) => {
-              const count = WORKFLOW_LOGIC_NODE_CATALOG.filter((x) => x.category === cat.id).length
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={activeCategory === cat.id}
-                  className={`tl-logic-cat-tab${activeCategory === cat.id ? ' active' : ''}`}
-                  style={{ ['--logic-accent' as string]: cat.accent }}
-                  onClick={() => setActiveCategory(cat.id)}
-                >
-                  <span>{cat.icon}</span>
-                  <span>{cat.shortLabel}</span>
-                  <span className="cnt">{count}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {error && (
-          <p className="tl-logic-error-banner" role="alert">
-            {error}
-          </p>
-        )}
-
-        <div className="tl-logic-catalog">
-          {items.map((item) => {
-            const meta = TIMELINE_LOGIC_CATEGORY_META[item.category]
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className="tl-logic-card"
-                data-add-logic={item.id}
-                style={{ ['--logic-accent' as string]: meta?.accent ?? '#3b82f6' }}
-                onClick={() => {
-                  try {
-                    let added = ''
-                    useEditor.getState().update((draft: Project) => {
-                      added = addTimelineLogic(draft, item.id, layer?.id, shotId)
-                    })
-                    onClose()
-                    onAdded(added)
-                  } catch (err: any) {
-                    setError(err?.message || 'Không thể thêm logic.')
-                  }
-                }}
-              >
-                <div className="tl-logic-card-top">
-                  <span className="tl-logic-card-icon">{item.icon}</span>
-                  <small className="tl-logic-card-cat">{item.categoryLabel}</small>
-                  <span className="tl-logic-card-cta">+ Gắn</span>
-                </div>
-                <strong className="tl-logic-card-title">{item.title}</strong>
-                <span className="tl-logic-card-desc">{item.description}</span>
-              </button>
-            )
-          })}
-          {!items.length && <p>Không có logic phù hợp. Thử từ khóa khác.</p>}
-        </div>
-      </section>
-    </div>,
-    document.body
   )
 }

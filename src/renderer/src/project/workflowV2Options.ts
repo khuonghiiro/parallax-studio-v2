@@ -1,0 +1,145 @@
+import type { Layer, LayerMotionType, VirtualLightKind } from '@shared/types'
+
+/**
+ * Danh mục tuỳ chọn & tiện ích đọc Layer dùng chung cho Workflow V2 (không phụ thuộc module khác
+ * để tránh vòng import giữa engine / đồng bộ / suy diễn logic).
+ */
+export type WorkflowV2LogicCategory =
+  | 'action'
+  | 'material'
+  | 'collision'
+  | 'light'
+  | 'cave'
+  | 'fx'
+  | 'audio'
+  | 'camera'
+
+export interface WorkflowV2ActionOption {
+  id: string
+  label: string
+  motionType: LayerMotionType
+  defaultSpeed: number
+  defaultAmount: number
+}
+
+export const WORKFLOW_V2_ACTION_OPTIONS: WorkflowV2ActionOption[] = [
+  { id: 'float', label: 'Bay lơ lửng', motionType: 'float', defaultSpeed: 1.0, defaultAmount: 0.65 },
+  { id: 'sway', label: 'Đung đưa gió', motionType: 'sway', defaultSpeed: 1.1, defaultAmount: 0.6 },
+  { id: 'wind', label: 'Gió thổi lá', motionType: 'wind', defaultSpeed: 1.2, defaultAmount: 0.7 },
+  { id: 'drift', label: 'Trượt ngang', motionType: 'drift', defaultSpeed: 1.0, defaultAmount: 0.75 },
+  { id: 'pulse', label: 'Nhịp thở / Pulse', motionType: 'pulse', defaultSpeed: 1.1, defaultAmount: 0.55 },
+  { id: 'wiggle', label: 'Rung tự nhiên', motionType: 'wiggle', defaultSpeed: 1.5, defaultAmount: 0.5 },
+  { id: 'spin', label: 'Xoay vòng', motionType: 'spin', defaultSpeed: 0.8, defaultAmount: 0.6 }
+]
+
+export interface WorkflowV2LightOption {
+  id: 'rim' | 'point' | 'spot' | 'candle' | 'glow' | 'cave_crystal'
+  label: string
+  virtualKind: VirtualLightKind
+  defaultColor: string
+  defaultIntensity: number
+}
+
+export const WORKFLOW_V2_LIGHT_OPTIONS: WorkflowV2LightOption[] = [
+  { id: 'rim', label: 'Đèn viền (Rim)', virtualKind: 'bulb', defaultColor: '#38bdf8', defaultIntensity: 1.3 },
+  { id: 'point', label: 'Đèn điểm (Bulb)', virtualKind: 'bulb', defaultColor: '#fbbf24', defaultIntensity: 1.4 },
+  { id: 'candle', label: 'Ngọn nến (Gió)', virtualKind: 'candle', defaultColor: '#f97316', defaultIntensity: 1.35 },
+  { id: 'spot', label: 'Đèn pin (Chùm nón)', virtualKind: 'flashlight', defaultColor: '#fef08a', defaultIntensity: 1.6 },
+  { id: 'cave_crystal', label: 'Tinh thể Hang động', virtualKind: 'cave_crystal', defaultColor: '#22d3ee', defaultIntensity: 1.5 },
+  { id: 'glow', label: 'Hào quang (Glow)', virtualKind: 'magic_orb', defaultColor: '#34d399', defaultIntensity: 1.2 }
+]
+
+export interface WorkflowV2CaveOption {
+  id: 'arch' | 'ellipse' | 'circle'
+  label: string
+  defaultDarkness: number
+  defaultMinScale: number
+}
+
+export const WORKFLOW_V2_CAVE_OPTIONS: WorkflowV2CaveOption[] = [
+  { id: 'arch', label: 'Vòm hang đá tự nhiên', defaultDarkness: 0.82, defaultMinScale: 0.38 },
+  { id: 'ellipse', label: 'Cửa hầm Elip sâu', defaultDarkness: 0.86, defaultMinScale: 0.34 },
+  { id: 'circle', label: 'Cổng xoáy chiều sâu', defaultDarkness: 0.78, defaultMinScale: 0.42 }
+]
+
+export interface WorkflowV2FxOption {
+  id: 'wind_physics' | 'bloom' | 'blur' | 'chromatic' | 'vignette' | 'particles'
+  label: string
+  defaultIntensity: number
+}
+
+export const WORKFLOW_V2_FX_OPTIONS: WorkflowV2FxOption[] = [
+  { id: 'wind_physics', label: 'Vật lý Đàn hồi Mesh', defaultIntensity: 1.0 },
+  { id: 'bloom', label: 'Phát sáng (Bloom)', defaultIntensity: 0.85 },
+  { id: 'blur', label: 'Làm mờ chiều sâu', defaultIntensity: 0.6 },
+  { id: 'chromatic', label: 'Tán sắc (RGB)', defaultIntensity: 0.5 },
+  { id: 'vignette', label: 'Tối góc điện ảnh', defaultIntensity: 0.7 },
+  { id: 'particles', label: 'Hạt đom đóm / Sương', defaultIntensity: 1.1 }
+]
+
+export interface WorkflowV2CameraOption {
+  id: string
+  label: string
+}
+
+export const WORKFLOW_V2_CAMERA_OPTIONS: WorkflowV2CameraOption[] = [
+  { id: 'dollyIn', label: 'Đẩy cận (Dolly In)' },
+  { id: 'fly', label: 'Bay xuyên cảnh 3D' },
+  { id: 'orbitRight', label: 'Xoay quỹ đạo' },
+  { id: 'truckRight', label: 'Lia máy ngang' }
+]
+
+export function getLayerZ(layer: Layer): number {
+  const pos = layer.transform?.position?.value
+  return Array.isArray(pos) && Number.isFinite(pos[2]) ? Math.round(pos[2]) : 0
+}
+
+export function getLayerX(layer: Layer): number {
+  const pos = layer.transform?.position?.value
+  return Array.isArray(pos) && Number.isFinite(pos[0]) ? Math.round(pos[0]) : 0
+}
+
+export function getLayerY(layer: Layer): number {
+  const pos = layer.transform?.position?.value
+  return Array.isArray(pos) && Number.isFinite(pos[1]) ? Math.round(pos[1]) : 0
+}
+
+export function getLayerDisplayName(layer: Layer): string {
+  return layer.composite?.compositeName || layer.model3d?.modelName || layer.name || 'Layer'
+}
+
+/** Phân loại một Layer vào đúng Group Layer ('group_3d' | 'group_25d' | 'group_env') */
+export function classifyLayerGroupKind(layer: Layer): 'group_3d' | 'group_25d' | 'group_env' {
+  if (layer.model3d || layer.composite) return 'group_3d'
+  const z = getLayerZ(layer)
+  if (layer.type === 'particles' || layer.type === 'solid' || z >= 2500) return 'group_env'
+  return 'group_25d'
+}
+
+
+/** Gom các layer mảnh con của cùng một Composite/Model3D thành đại diện duy nhất để cây gọn sạch */
+export function collectRepresentativeLayers(layers: Layer[]): {
+  layer: Layer
+  memberIds: string[]
+  isCluster: boolean
+}[] {
+  const seenInstances = new Map<string, { layer: Layer; memberIds: string[]; isCluster: boolean }>()
+  const out: { layer: Layer; memberIds: string[]; isCluster: boolean }[] = []
+  for (const l of layers) {
+    const instId = l.composite?.instanceId || l.model3d?.instanceId
+    if (instId) {
+      const existing = seenInstances.get(instId)
+      if (existing) {
+        existing.memberIds.push(l.id)
+        if (l.composite?.isRoot) existing.layer = l
+      } else {
+        const entry = { layer: l, memberIds: [l.id], isCluster: true }
+        seenInstances.set(instId, entry)
+        out.push(entry)
+      }
+    } else {
+      out.push({ layer: l, memberIds: [l.id], isCluster: false })
+    }
+  }
+  return out
+}

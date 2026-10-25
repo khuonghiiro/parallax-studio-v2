@@ -21,6 +21,10 @@ export interface WorkflowNodeCardV2Props {
   isConnectedToSelected?: boolean
   isDimmed?: boolean
   isActiveAtCurrentTime: boolean
+  /** Node đang chạy trong luồng của cảnh camera đang quay */
+  running?: boolean
+  /** Trạng thái khi đang kéo dây: Node đích hợp lệ / không hợp lệ / đang rê vào */
+  wireState?: 'valid' | 'invalid' | 'hover-valid' | 'hover-invalid'
   currentTime: number
   maxDuration: number
   childCount: number
@@ -54,6 +58,7 @@ export function summarizeV2Node(node: WorkflowNode, childCount: number): string 
     }
     case 'collision': {
       const opt = WORKFLOW_V2_COLLISION_OPTIONS.find((c) => c.id === p.collisionMode)
+      if (shared < 2) return '⚠ Chờ nối Layer B'
       return `${shared} layer · Lực ${pct(p.collisionForce, opt?.defaultForce ?? 1.2)}`
     }
     case 'action':
@@ -95,6 +100,8 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
   isConnectedToSelected,
   isDimmed,
   isActiveAtCurrentTime,
+  running,
+  wireState,
   currentTime,
   maxDuration,
   childCount,
@@ -138,7 +145,9 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
         isConnectedToSelected ? 'connected-highlight' : '',
         isDimmed ? 'dimmed' : '',
         node.enabled ? '' : 'disabled',
-        isActiveAtCurrentTime && node.enabled ? 'active-at-time' : ''
+        isActiveAtCurrentTime && node.enabled ? 'active-at-time' : '',
+        running ? 'running' : '',
+        wireState ? `wire-${wireState}` : ''
       ]
         .filter(Boolean)
         .join(' ')}

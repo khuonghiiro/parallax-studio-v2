@@ -1,330 +1,161 @@
-import type {
-  Layer,
-  Project,
-  Shot,
-  WorkflowEdge,
-  WorkflowGraph,
-  WorkflowNode,
-  WorkflowNodeParams
-} from '@shared/types'
+import type { LayerMotionType, Project, WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
+import { getProjectAudioTracks } from './audioTracks'
 import {
-  WF_V2_COL_X,
   WORKFLOW_V2_ACTION_OPTIONS,
-  WORKFLOW_V2_CAVE_OPTIONS,
-  WORKFLOW_V2_COLLISION_OPTIONS,
-  WORKFLOW_V2_FX_OPTIONS,
-  WORKFLOW_V2_LIGHT_OPTIONS,
-  WORKFLOW_V2_MATERIAL_OPTIONS,
+  WORKFLOW_V2_LIGHT_OPTIONS
+} from './workflowV2Options'
+import {
   applyCollisionNodeToProject,
   applyMaterialNodeToProject,
-  buildWorkflowV2SceneTree,
-  classifyLayerGroupKind,
-  collectRepresentativeLayers,
-  getLayerDisplayName,
-  getLayerX,
-  getLayerY,
-  getLayerZ,
-  getShotTimeRange,
-  layoutWorkflowV2Tree,
   recomputeSharedLogicTargets
-} from './workflowV2Engine'
+} from './workflowV2PhysicsAndValidation'
+import { WF_V2_COL_X, layoutWorkflowV2Tree } from './workflowV2Layout'
+import {
+  applyLogicPresetToNode,
+  defaultLogicPreset,
+  findLogicPreset,
+  type WorkflowV2SpawnCategory
+} from './workflowV2LogicPresets'
+
+const NODE_TYPE: Record<WorkflowV2SpawnCategory, WorkflowNode['type']> = {
+  action: 'motion_choreography',
+  audio: 'audio_lipsync',
+  material: 'physics_fx',
+  collision: 'physics_fx',
+  light: 'physics_fx',
+  cave: 'physics_fx',
+  fx: 'physics_fx'
+}
+
+const AGENT: Record<WorkflowV2SpawnCategory, WorkflowNode['aiAgentRole']> = {
+  action: 'MotionChoreographyAgent',
+  audio: 'AudioLipSyncAgent',
+  material: 'PhysicsLightFxAgent',
+  collision: 'PhysicsLightFxAgent',
+  light: 'PhysicsLightFxAgent',
+  cave: 'PhysicsLightFxAgent',
+  fx: 'PhysicsLightFxAgent'
+}
+
+function uniqueNodeId(workflow: WorkflowGraph, base: string): string {
+  let id = base
+  let i = 2
+  while (workflow.nodes.some((n) => n.id === id)) id = `${base}-${i++}`
+  return id
+}
+
+function withEdge(workflow: WorkflowGraph, nodes: WorkflowNode[], edge: WorkflowEdge): WorkflowGraph {
+  const edges = [...workflow.edges, edge]
+  return { ...workflow, nodes: layoutWorkflowV2Tree(recomputeSharedLogicTargets(nodes, edges), edges), edges }
+}
+
+const layerEdge = (layerNodeId: string, nodeId: string): WorkflowEdge => ({
+  id: `e-${layerNodeId}-${nodeId}`,
+  fromNode: layerNodeId,
+  fromPort: 'layers_tree',
+  toNode: nodeId,
+  toPort: 'layers_tree'
+})
 
 /**
- * Gắn thêm hoặc tái sử dụng một Node Logic (Hành động, Vật liệu, Va chạm, Ánh sáng, Hang động, Hiệu ứng, Âm thanh)
- * vào một Node Layer, có kiểm tra chống trùng lặp logic trên cùng 1 Layer.
+ * Gắn (hoặc tái sử dụng) một Node Logic vào một Node Layer theo mẫu logic chung `presetId`
+ * (dùng chung cho Timeline, Workflow và MCP):
+ * - Layer đã có logic cùng nhóm → tái sử dụng Node đó (và áp mẫu mới nếu có), không tạo trùng.
+ * - Va chạm: ưu tiên ghép làm Layer B vào Node Va chạm cùng cảnh đang chờ; nếu không, tạo Node mới chờ nối Layer B
+ *   (không tự đoán đối tượng va chạm).
+ * - Id Node xác định theo Layer (`v2-<nhóm>-<layerId>`) để Timeline và Workflow luôn trỏ cùng một Node.
  */
 export function attachLogicNodeToLayerV2(
   workflow: WorkflowGraph,
   layerNodeId: string,
-  category: 'action' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio'
+  category: WorkflowV2SpawnCategory,
+  presetId?: string
 ): { workflow: WorkflowGraph; createdNodeId: string; reusedExisting?: boolean; message?: string } {
   const layerNode = workflow.nodes.find((n) => n.id === layerNodeId)
-  if (!layerNode) {
+  if (!layerNode || layerNode.type !== 'layer_assembly' || layerNode.params?.groupKind) {
     return { workflow, createdNodeId: '', message: 'Không tìm thấy Node Layer mục tiêu.' }
   }
-  const layerName = layerNode.title ?? 'Layer'
-
-  // 1. KIỂM TRA CHỐNG TRÙNG LOGIC TRÊN CÙNG 1 LAYER
-  const existingSameCategoryNode = workflow.edges
+  const chosen = (presetId ? findLogicPreset(presetId) : undefined) ?? defaultLogicPreset(category)
+  const existing = workflow.edges
     .filter((e) => e.fromNode === layerNodeId)
     .map((e) => workflow.nodes.find((n) => n.id === e.toNode))
-    .find((n) => n && n.params?.logicCategory === category)
-
-  if (existingSameCategoryNode) {
+    .find((n) => n?.params?.logicCategory === category)
+  if (existing) {
+    const nodes = presetId ? workflow.nodes.map((n) => (n.id === existing.id ? applyLogicPresetToNode(n, chosen) : n)) : workflow.nodes
     return {
-      workflow,
-      createdNodeId: existingSameCategoryNode.id,
+      workflow: { ...workflow, nodes },
+      createdNodeId: existing.id,
       reusedExisting: true,
-      message: `Layer "${layerName}" đã có sẵn "${existingSameCategoryNode.title}". Đã chọn trực tiếp Node này để tránh trùng logic!`
+      message: presetId
+        ? `Layer "${layerNode.title}" đã có Node ${chosen.title.split(':')[0]} — đã chuyển Node đó sang "${chosen.label}".`
+        : `Layer "${layerNode.title}" đã có "${existing.title}" — chọn Node này để tránh trùng logic.`
     }
   }
-
-  // 2. NẾU LÀ NODE VA CHẠM: Ưu tiên ghép đôi vào một Node Va chạm đang chờ Layer thứ 2
   if (category === 'collision') {
-    const openCollisionNode = workflow.nodes.find(
+    const open = workflow.nodes.find(
       (n) =>
         n.params?.logicCategory === 'collision' &&
         (n.params?.sharedLayerNodeIds?.length ?? 0) < 2 &&
-        !workflow.edges.some((e) => e.fromNode === layerNodeId && e.toNode === n.id)
+        n.params?.shotId === layerNode.params?.shotId
     )
-    if (openCollisionNode) {
-      const nextEdges: WorkflowEdge[] = [
-        ...workflow.edges,
-        {
-          id: `e-${layerNodeId}-${openCollisionNode.id}`,
-          fromNode: layerNodeId,
-          fromPort: 'layers_tree',
-          toNode: openCollisionNode.id,
-          toPort: 'layers_tree'
-        }
-      ]
-      const synced = recomputeSharedLogicTargets(workflow.nodes, nextEdges)
-      const laidOut = layoutWorkflowV2Tree(synced, nextEdges)
+    if (open) {
       return {
-        workflow: { ...workflow, nodes: laidOut, edges: nextEdges },
-        createdNodeId: openCollisionNode.id,
+        workflow: withEdge(workflow, workflow.nodes, layerEdge(layerNodeId, open.id)),
+        createdNodeId: open.id,
         reusedExisting: true,
-        message: `Đã ghép "${layerName}" làm đối tượng va chạm thứ 2 vào "${openCollisionNode.title}"!`
+        message: `Đã ghép "${layerNode.title}" làm Layer B cho "${open.title}".`
       }
     }
   }
-
-  const targetLayerIds = layerNode.params?.targetLayerIds ?? []
-  const tStart = layerNode.params?.timeStart ?? 0
-  const tEnd = layerNode.params?.timeEnd ?? 5
-  const shotId = layerNode.params?.shotId ?? workflow.targetShotId
-  const suffix = `${Date.now().toString(36).slice(-4)}`
-  const createdNodeId = `v2-${category}-${suffix}`
-  let newNode: WorkflowNode
-  const extraEdges: WorkflowEdge[] = []
-
-  if (category === 'action') {
-    const opt = WORKFLOW_V2_ACTION_OPTIONS[0]
-    newNode = {
-      id: createdNodeId,
-      type: 'motion_choreography',
-      title: `Hành động: ${opt.label}`,
-      enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
-      preset: 'organic_wind_breathe',
-      aiAgentRole: 'MotionChoreographyAgent',
-      aiDirective: `Thực thi hành động "${opt.label}" cho "${layerName}" từ ${tStart}s đến ${tEnd}s.`,
-      params: {
-        shotId,
-        logicCategory: 'action',
-        actionPreset: opt.id,
-        targetMode: 'custom',
-        targetLayerIds,
-        sharedLayerNodeIds: [layerNodeId],
-        requireLayerConnection: true,
-        intensity: opt.defaultAmount,
-        timeStart: tStart,
-        timeEnd: tEnd,
-        hierarchyParentNodeId: layerNodeId
-      }
-    }
-  } else if (category === 'material') {
-    const opt = WORKFLOW_V2_MATERIAL_OPTIONS[0]
-    newNode = {
-      id: createdNodeId,
-      type: 'physics_fx',
-      title: `Vật liệu: ${opt.label}`,
-      enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
-      preset: 'rim_glow_particles',
-      aiAgentRole: 'PhysicsLightFxAgent',
-      aiDirective: `Gắn nhãn vật liệu "${opt.label}" (${opt.deformDesc}) cho "${layerName}".`,
-      params: {
-        shotId,
-        logicCategory: 'material',
-        materialTag: opt.id,
-        materialStiffness: opt.defaultStiffness,
-        materialBounciness: opt.defaultBounciness,
-        materialGravity: opt.defaultGravity,
-        targetMode: 'custom',
-        targetLayerIds,
-        sharedLayerNodeIds: [layerNodeId],
-        requireLayerConnection: true,
-        intensity: opt.defaultBounciness,
-        timeStart: tStart,
-        timeEnd: tEnd,
-        hierarchyParentNodeId: layerNodeId
-      }
-    }
-  } else if (category === 'collision') {
-    const opt = WORKFLOW_V2_COLLISION_OPTIONS[0]
-    const partnerLayerNode =
-      workflow.nodes.find(
-        (n) =>
-          n.type === 'layer_assembly' &&
-          !n.params?.groupKind &&
-          n.id !== layerNodeId &&
-          n.params?.hierarchyParentNodeId === layerNode.params?.hierarchyParentNodeId
-      ) ??
-      workflow.nodes.find(
-        (n) => n.type === 'layer_assembly' && !n.params?.groupKind && n.id !== layerNodeId
-      )
-    const partnerLayerIds = partnerLayerNode?.params?.targetLayerIds ?? []
-    newNode = {
-      id: createdNodeId,
-      type: 'physics_fx',
-      title: `Va chạm: ${opt.label}`,
-      enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
-      preset: 'rim_glow_particles',
-      aiAgentRole: 'PhysicsLightFxAgent',
-      aiDirective: `Mô phỏng va chạm vật lý "${opt.label}" từ ${tStart}s đến ${tEnd}s.`,
-      params: {
-        shotId,
-        logicCategory: 'collision',
-        collisionMode: opt.id,
-        collisionForce: opt.defaultForce,
-        deformIntensity: opt.defaultDeform,
-        strikerLayerId: targetLayerIds[0],
-        targetColliderLayerId: partnerLayerIds[0],
-        targetMode: 'custom',
-        targetLayerIds: [...targetLayerIds, ...partnerLayerIds],
-        sharedLayerNodeIds: partnerLayerNode ? [layerNodeId, partnerLayerNode.id] : [layerNodeId],
-        requireLayerConnection: true,
-        intensity: opt.defaultForce,
-        timeStart: tStart,
-        timeEnd: tEnd,
-        hierarchyParentNodeId: layerNodeId
-      }
-    }
-    if (partnerLayerNode) {
-      extraEdges.push({
-        id: `e-${partnerLayerNode.id}-${createdNodeId}`,
-        fromNode: partnerLayerNode.id,
-        fromPort: 'layers_tree',
-        toNode: createdNodeId,
-        toPort: 'layers_tree'
-      })
-    }
-  } else if (category === 'light') {
-    const opt = WORKFLOW_V2_LIGHT_OPTIONS[0]
-    newNode = {
-      id: createdNodeId,
-      type: 'physics_fx',
-      title: `Ánh sáng: ${opt.label}`,
-      enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
-      preset: 'rim_glow_particles',
-      aiAgentRole: 'PhysicsLightFxAgent',
-      aiDirective: `Chiếu sáng "${opt.label}" cho "${layerName}" từ ${tStart}s đến ${tEnd}s.`,
-      params: {
-        shotId,
-        logicCategory: 'light',
-        lightMode: opt.id,
-        lightColor: opt.defaultColor,
-        targetMode: 'custom',
-        targetLayerIds,
-        sharedLayerNodeIds: [layerNodeId],
-        requireLayerConnection: true,
-        intensity: opt.defaultIntensity,
-        timeStart: tStart,
-        timeEnd: tEnd,
-        hierarchyParentNodeId: layerNodeId
-      }
-    }
-  } else if (category === 'cave') {
-    const opt = WORKFLOW_V2_CAVE_OPTIONS[0]
-    newNode = {
-      id: createdNodeId,
-      type: 'physics_fx',
-      title: `Hang động: ${opt.label}`,
-      enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
-      preset: 'rim_glow_particles',
-      aiAgentRole: 'PhysicsLightFxAgent',
-      aiDirective: `Tạo vùng độ sâu cửa hang "${opt.label}" trên "${layerName}" từ ${tStart}s đến ${tEnd}s.`,
-      params: {
-        shotId,
-        logicCategory: 'cave',
-        caveArchShape: opt.id,
-        caveDarkness: opt.defaultDarkness,
-        caveMinScale: opt.defaultMinScale,
-        targetMode: 'custom',
-        targetLayerIds,
-        sharedLayerNodeIds: [layerNodeId],
-        requireLayerConnection: true,
-        intensity: opt.defaultDarkness,
-        timeStart: tStart,
-        timeEnd: tEnd,
-        hierarchyParentNodeId: layerNodeId
-      }
-    }
-  } else if (category === 'fx') {
-    const opt = WORKFLOW_V2_FX_OPTIONS[0]
-    newNode = {
-      id: createdNodeId,
-      type: 'physics_fx',
-      title: `Hiệu ứng: ${opt.label}`,
-      enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
-      preset: 'rim_glow_particles',
-      aiAgentRole: 'PhysicsLightFxAgent',
-      aiDirective: `Áp dụng hiệu ứng "${opt.label}" cho "${layerName}" từ ${tStart}s đến ${tEnd}s.`,
-      params: {
-        shotId,
-        logicCategory: 'fx',
-        fxKind: opt.id,
-        targetMode: 'custom',
-        targetLayerIds,
-        sharedLayerNodeIds: [layerNodeId],
-        requireLayerConnection: true,
-        intensity: opt.defaultIntensity,
-        timeStart: tStart,
-        timeEnd: tEnd,
-        hierarchyParentNodeId: layerNodeId
-      }
-    }
-  } else {
-    newNode = {
-      id: createdNodeId,
-      type: 'audio_lipsync',
-      title: `Âm thanh: ${layerName}`,
-      enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
-      preset: 'auto_dialogue_lipsync',
-      aiAgentRole: 'AudioLipSyncAgent',
-      aiDirective: `Phát âm thanh / nhép môi cho "${layerName}" từ ${tStart}s đến ${tEnd}s.`,
-      params: {
-        shotId,
-        logicCategory: 'audio',
-        targetMode: 'custom',
-        targetLayerIds,
-        sharedLayerNodeIds: [layerNodeId],
-        requireLayerConnection: true,
-        intensity: 1.0,
-        autoLipSync: true,
-        timeStart: tStart,
-        timeEnd: tEnd,
-        hierarchyParentNodeId: layerNodeId
-      }
-    }
-  }
-
-  const nextEdges: WorkflowEdge[] = [
-    ...workflow.edges,
+  const layerId = layerNodeId.replace(/^v2-layer-/, '')
+  const id = uniqueNodeId(workflow, `v2-${category}-${layerId}`)
+  const node: WorkflowNode = applyLogicPresetToNode(
     {
-      id: `e-${layerNodeId}-${createdNodeId}`,
-      fromNode: layerNodeId,
-      fromPort: 'layers_tree',
-      toNode: createdNodeId,
-      toPort: 'layers_tree'
+      id,
+      type: NODE_TYPE[category],
+      title: chosen.title,
+      enabled: true,
+      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
+      preset: category === 'action' ? 'organic_wind_breathe' : category === 'audio' ? 'auto_dialogue_lipsync' : 'rim_glow_particles',
+      aiAgentRole: AGENT[category],
+      aiDirective: `${chosen.title} cho "${layerNode.title}".`,
+      params: {
+        shotId: layerNode.params?.shotId,
+        logicCategory: category,
+        targetMode: 'custom',
+        targetLayerIds: [...(layerNode.params?.targetLayerIds ?? [])],
+        sharedLayerNodeIds: [layerNodeId],
+        requireLayerConnection: true,
+        timeStart: layerNode.params?.timeStart ?? 0,
+        timeEnd: layerNode.params?.timeEnd ?? 5,
+        hierarchyParentNodeId: layerNodeId,
+        ...(category === 'collision' ? { strikerLayerId: layerNode.params?.targetLayerIds?.[0] } : {})
+      }
     },
-    ...extraEdges
-  ]
-  const syncedNodes = recomputeSharedLogicTargets([...workflow.nodes, newNode], nextEdges)
-  const nextNodes = layoutWorkflowV2Tree(syncedNodes, nextEdges)
+    chosen
+  )
   return {
-    workflow: {
-      ...workflow,
-      nodes: nextNodes,
-      edges: nextEdges
-    },
-    createdNodeId
+    workflow: withEdge(workflow, [...workflow.nodes, node], layerEdge(layerNodeId, id)),
+    createdNodeId: id,
+    message: category === 'collision' ? 'Đã tạo Node Va chạm — nối thêm 1 Layer (Layer B) để va chạm có hiệu lực.' : undefined
+  }
+}
+
+/** Đồng bộ Node Âm thanh xuống các track đang gắn vào Layer đích (âm lượng, tắt tiếng, nhép môi, mốc bắt đầu) */
+function syncAudioNodeToProject(project: Project, node: WorkflowNode, params: WorkflowNodeParams, timeEdited: boolean): void {
+  const targets = new Set(params.targetLayerIds ?? [])
+  const instanceIds = new Set(
+    project.layers
+      .filter((l) => targets.has(l.id))
+      .flatMap((l) => [l.composite?.instanceId, l.model3d?.instanceId])
+      .filter((v): v is string => Boolean(v))
+  )
+  for (const tr of getProjectAudioTracks(project)) {
+    if (!tr.targetId || (!targets.has(tr.targetId) && !instanceIds.has(tr.targetId))) continue
+    tr.muted = !node.enabled
+    if (typeof params.intensity === 'number') tr.volume = Math.max(0, Math.min(2, params.intensity))
+    tr.lipSyncEnabled = Boolean(params.autoLipSync)
+    if (timeEdited && typeof params.timeStart === 'number') tr.offset = Math.max(0, params.timeStart)
   }
 }
 
@@ -403,27 +234,34 @@ export function syncWorkflowV2NodeToProject(
     return
   }
 
-  // 4. Node Hành động (Motion / Action)
+  // 4. Node Hành động (Motion / Action) — tắt Node chỉ tắt chuyển động, giữ kiểu để bật lại không mất cấu hình
   if (node.type === 'motion_choreography' || params.logicCategory === 'action') {
-    const actOpt =
-      WORKFLOW_V2_ACTION_OPTIONS.find((o) => o.id === params.actionPreset) ?? WORKFLOW_V2_ACTION_OPTIONS[0]
+    const actOpt = WORKFLOW_V2_ACTION_OPTIONS.find((o) => o.id === params.actionPreset)
     for (const l of project.layers) {
       if (!targetIds.has(l.id)) continue
+      const motionType = (actOpt?.motionType ?? (params.actionPreset as LayerMotionType | undefined) ?? l.motion?.type ?? 'float') as LayerMotionType
       if (!node.enabled) {
-        l.motion = { enabled: false, type: 'none', speed: 1, amount: 0 }
-      } else {
-        const startSec = tStart ?? l.inPoint ?? 0
-        const endSec = tEnd ?? l.outPoint ?? project.comp.duration
-        l.motion = {
-          enabled: true,
-          type: actOpt.motionType,
-          speed: actOpt.defaultSpeed,
-          amount: Math.max(0.1, Math.min(2.0, params.intensity ?? actOpt.defaultAmount)),
-          startTime: startSec,
-          duration: Math.max(0.1, Number((endSec - startSec).toFixed(2)))
-        }
+        l.motion = { ...(l.motion ?? { speed: 1, amount: 0 }), type: motionType, enabled: false }
+        continue
+      }
+      const startSec = tStart ?? l.inPoint ?? 0
+      const endSec = tEnd ?? l.outPoint ?? project.comp.duration
+      l.motion = {
+        ...(l.motion ?? {}),
+        enabled: true,
+        type: motionType,
+        speed: actOpt?.defaultSpeed ?? l.motion?.speed ?? 1,
+        amount: Math.max(0.1, Math.min(2.0, params.intensity ?? actOpt?.defaultAmount ?? 0.6)),
+        startTime: startSec,
+        duration: Math.max(0.1, Number((endSec - startSec).toFixed(2)))
       }
     }
+    return
+  }
+
+  // 4b. Node Âm thanh — ghi xuống track âm thanh đang gắn vào Layer
+  if (node.type === 'audio_lipsync' || params.logicCategory === 'audio') {
+    syncAudioNodeToProject(project, node, params, !patch || 'timeStart' in patch)
     return
   }
 
@@ -435,7 +273,7 @@ export function syncWorkflowV2NodeToProject(
     for (const l of project.layers) {
       if (!targetIds.has(l.id)) continue
       l.physics = {
-        ...(l.physics ?? { enabled: true, material: 'stone_wall' }),
+        ...(l.physics ?? { enabled: true, material: 'none' }),
         enabled: node.enabled,
         colliderZone: 'cave_portal',
         depthPortal: {
@@ -527,4 +365,3 @@ export function syncWorkflowV2NodeToProject(
   }
 }
 
-export { reconcileWorkflowV2WithProject } from './workflowV2Reconcile'

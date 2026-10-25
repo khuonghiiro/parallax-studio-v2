@@ -24,6 +24,8 @@ import {
   recomputeSharedLogicTargets,
   syncWorkflowV2NodeToProject
 } from './workflowV2Engine'
+import { resolveLogicPreset } from './workflowV2LogicPresets'
+import { detachWorkflowV2NodeFromProject } from './workflowV2Rebuild'
 
 export interface TimelineLogicCategoryMeta {
   id: WorkflowLogicNodeCategory
@@ -400,6 +402,8 @@ export function listTimelineLogicNodes(
     const isV2Logic = Boolean(node.params?.logicCategory)
     const isV1Logic = Boolean(node.params?.logicId)
     if (!isV2Logic && !isV1Logic) return false
+    // Camera mỗi cảnh là cấu trúc của cây (xem ở Workflow), không phải logic gắn Layer — đếm khớp với Workflow
+    if (node.params?.logicCategory === 'camera' && workflow.presetId === 'v2_scene_hierarchy') return false
     if (layer) {
       if (isV2Logic) {
         return Boolean(node.params?.targetLayerIds?.includes(layer.id))
@@ -534,7 +538,7 @@ export function removeTimelineLogicNode(project: Project, nodeId: string): void 
 
   if (baseWf.presetId === 'v2_scene_hierarchy') {
     if (target) {
-      syncWorkflowV2NodeToProject(project, { ...target, enabled: false })
+      detachWorkflowV2NodeFromProject(project, target)
     }
     const synced = recomputeSharedLogicTargets(remainNodes, remainEdges)
     const laidOut = layoutWorkflowV2Tree(synced, remainEdges)
@@ -606,41 +610,20 @@ export function addTimelineLogic(
   }
   let graph = structuredClone(ensureProjectWorkflow(isDraft(project) ? current(project) : project))
   if (graph.presetId === 'v2_scene_hierarchy') {
-    const targetLayerNode =
-      (layer
-        ? graph.nodes.find(
-            (n) =>
-              n.type === 'layer_assembly' &&
-              !n.params?.groupKind &&
-              n.params?.targetLayerIds?.includes(layer.id)
-          )
-        : undefined) ??
-      graph.nodes.find((n) => n.type === 'layer_assembly' && !n.params?.groupKind)
-    if (targetLayerNode) {
-      const catItem = WORKFLOW_LOGIC_NODE_CATALOG.find((x) => x.id === logicId)
-      const lowerId = logicId.toLowerCase()
-      const v2Cat: 'action' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio' =
-        lowerId.includes('collision') || lowerId.includes('punch') || lowerId.includes('bounce')
-          ? 'collision'
-          : lowerId.includes('material') || catItem?.category === 'physics'
-            ? 'material'
-            : lowerId.includes('cave') || catItem?.category === 'scene'
-              ? 'cave'
-              : catItem?.category === 'light_fx'
-                ? 'light'
-                : catItem?.category === 'audio'
-                  ? 'audio'
-                  : catItem?.category === 'motion'
-                    ? 'action'
-                    : 'fx'
-      const res = attachLogicNodeToLayerV2(graph, targetLayerNode.id, v2Cat)
-      project.workflow = res.workflow
-      const created = res.workflow.nodes.find((n) => n.id === res.createdNodeId)
-      if (created) {
-        syncWorkflowV2NodeToProject(project, created)
-      }
-      return res.createdNodeId
-    }
+    // MỘT LOGIC CHUNG: Timeline dùng đúng mẫu logic & hàm gắn Node của Workflow V2
+    const preset = resolveLogicPreset(logicId)
+    if (!preset) throw new Error('Logic này không gắn vào Layer trong Workflow V2 (camera / cảnh / màu được chỉnh ở Inspector).')
+    if (!layer) throw new Error('Chọn một Layer để gắn logic.')
+    const targetLayerNode = graph.nodes.find(
+      (n) => n.type === 'layer_assembly' && !n.params?.groupKind && n.params?.targetLayerIds?.includes(layer.id)
+    )
+    if (!targetLayerNode) throw new Error('Layer chưa có trong cây Workflow.')
+    const res = attachLogicNodeToLayerV2(graph, targetLayerNode.id, preset.category, preset.id)
+    if (!res.createdNodeId) throw new Error(res.message ?? 'Không thể gắn logic.')
+    project.workflow = res.workflow
+    const created = res.workflow.nodes.find((n) => n.id === res.createdNodeId)
+    if (created) syncWorkflowV2NodeToProject(project, created)
+    return res.createdNodeId
   }
   const column = Math.max(0, ...graph.nodes.map((item) => item.position.x)) + 360
   const result = spawnLogicNodeIntoWorkflow(graph, logicId, shotId, { autoConnect: false })

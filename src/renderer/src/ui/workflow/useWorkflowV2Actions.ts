@@ -4,6 +4,7 @@ import { useEditor } from '../../store/editor'
 import { useToast } from '../../actions'
 import {
   attachLogicNodeToLayerV2,
+  findFreeV2Spot,
   layoutWorkflowV2Tree,
   recomputeSharedLogicTargets,
   syncWorkflowV2NodeToProject,
@@ -14,7 +15,7 @@ import {
   applyWorkflowV2ToProject,
   detachWorkflowV2NodeFromProject,
   logicCategoryOf,
-  rebuildWorkflowV2PreservingLogic
+  relayoutWorkflowV2
 } from '../../project/workflowV2Rebuild'
 import { isDeletableV2Node } from './WorkflowNodeCardV2'
 import { WORKFLOW_V2_SPAWN_CATALOG, cleanV2NodeTitle, resolveV2NodeLevel, type WorkflowV2SpawnCategory } from './workflowV2Theme'
@@ -33,43 +34,34 @@ export function resolveV2SpawnTarget(workflow: WorkflowGraph, selectedNodeId: st
   return parent && resolveV2NodeLevel(parent) === 'layer' ? parent : undefined
 }
 
-export function useWorkflowV2Actions(
-  workflow: WorkflowGraph,
-  scope: string,
-  selectedNodeId: string | null,
-  setSelectedNodeId: (id: string | null) => void
-) {
+/** Mọi thao tác chỉnh cây Workflow V2 — đều ghi vào Project qua `update()` (có Undo) và đồng bộ xuống Layer thật */
+export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: string | null, setSelectedNodeId: (id: string | null) => void) {
   const showToast = useToast((s) => s.show)
 
-  const commit = useCallback((next: WorkflowGraph, mergeKey: string) => {
-    useEditor.getState().update((draft) => {
-      draft.workflow = next
-    }, mergeKey)
-  }, [])
+  const relayout = useCallback(
+    (resetPins: boolean) => {
+      useEditor.getState().update((draft) => {
+        draft.workflow = relayoutWorkflowV2(useEditor.getState().project, resetPins)
+      }, 'wf-v2-layout')
+      fitSoon()
+      showToast(resetPins ? 'Đã xếp lại toàn bộ không gian Workflow (bỏ ghim các thẻ kéo tay)' : 'Đã xếp lại cây')
+    },
+    [showToast]
+  )
 
-  const rebuild = useCallback(() => {
-    const { project } = useEditor.getState()
-    const next = rebuildWorkflowV2PreservingLogic(project, scope, project.workflow)
-    useEditor.getState().update((draft) => {
-      draft.workflow = next
-      applyWorkflowV2PhysicsNodes(draft as Project, next)
-    }, 'wf-v2-rebuild')
-    setSelectedNodeId('v2-root-scene')
-    fitSoon()
-    showToast('Đã đồng bộ cây Workflow với Cảnh & Layer hiện tại (giữ nguyên Node Logic đã cấu hình)')
-  }, [scope, setSelectedNodeId, showToast])
-
-  const autoLayout = useCallback(() => {
-    const synced = recomputeSharedLogicTargets(workflow.nodes, workflow.edges)
-    commit({ ...workflow, nodes: layoutWorkflowV2Tree(synced, workflow.edges) }, 'wf-v2-layout')
-    fitSoon()
-  }, [workflow, commit])
-
+  /** Kéo thả thẻ: ghim vị trí mới, tự né sang chỗ trống gần nhất để không bao giờ đè lên thẻ khác */
   const moveNodes = useCallback(
     (positions: Record<string, { x: number; y: number }>) => {
-      commit({ ...workflow, nodes: workflow.nodes.map((n) => (positions[n.id] ? { ...n, position: positions[n.id] } : n)) }, 'wf-v2-move')
+      let nodes = workflow.nodes
+      for (const [id, pos] of Object.entries(positions)) {
+        const spot = findFreeV2Spot(nodes, workflow.edges, id, pos)
+        nodes = nodes.map((n) => (n.id === id ? { ...n, position: spot, params: { ...n.params, pinned: true } } : n))
+      }
+      useEditor.getState().update((draft) => {
+        draft.workflow = { ...workflow, nodes }
+      }, 'wf-v2-move')
     },
-    [workflow, commit]
+    [workflow]
   )
 
   const toggleEnable = useCallback(
@@ -84,7 +76,7 @@ export function useWorkflowV2Actions(
     [workflow]
   )
 
-  /** Xoá Node Logic: gỡ dây, gỡ hiệu ứng khỏi Layer và xếp lại cây */
+  /** Xoá Node Logic: gỡ dây, gỡ hẳn hiệu ứng khỏi Layer (Timeline cũng mất chip tương ứng) */
   const deleteNode = useCallback(
     (nodeId: string) => {
       const target = workflow.nodes.find((n) => n.id === nodeId)
@@ -94,10 +86,9 @@ export function useWorkflowV2Actions(
       useEditor.getState().update((draft) => {
         detachWorkflowV2NodeFromProject(draft as Project, target)
         draft.workflow = { ...workflow, nodes: layoutWorkflowV2Tree(synced, edges), edges }
-        // Va chạm đọc chất liệu từ Node Vật liệu → xoá Vật liệu thì tính lại các Va chạm liên quan
         if (logicCategoryOf(target) === 'material') applyWorkflowV2PhysicsNodes(draft as Project, draft.workflow as WorkflowGraph)
       }, 'wf-v2-delete')
-      if (selectedNodeId === nodeId) setSelectedNodeId(target.params?.sharedLayerNodeIds?.[0] ?? 'v2-root-scene')
+      if (selectedNodeId === nodeId) setSelectedNodeId(target.params?.sharedLayerNodeIds?.[0] ?? null)
       showToast(`Đã xoá "${cleanV2NodeTitle(target.title)}" và gỡ hiệu ứng khỏi Layer`)
     },
     [workflow, selectedNodeId, setSelectedNodeId, showToast]
@@ -105,28 +96,25 @@ export function useWorkflowV2Actions(
 
   const updateParams = useCallback(
     (nodeId: string, patch: Partial<WorkflowNodeParams>, nextTitle?: string) => {
-      const relayout = patch.collapsedGroup !== undefined
+      const relayoutNeeded = patch.collapsedGroup !== undefined
       useEditor.getState().update((draft) => {
-        const raw = workflow.nodes.map((n) =>
-          n.id === nodeId ? { ...n, title: nextTitle ?? n.title, params: { ...(n.params ?? {}), ...patch } } : n
-        )
-        const nodes = relayout ? layoutWorkflowV2Tree(raw, workflow.edges) : raw
+        const raw = workflow.nodes.map((n) => (n.id === nodeId ? { ...n, title: nextTitle ?? n.title, params: { ...(n.params ?? {}), ...patch } } : n))
+        const nodes = relayoutNeeded ? layoutWorkflowV2Tree(raw, workflow.edges) : raw
         draft.workflow = { ...workflow, nodes }
         const updated = nodes.find((n) => n.id === nodeId)
-        if (!updated || relayout) return
+        if (!updated || relayoutNeeded) return
         syncWorkflowV2NodeToProject(draft as Project, updated, patch)
         if (updated.params?.logicCategory === 'material') {
           for (const n of nodes) if (n.params?.logicCategory === 'collision') syncWorkflowV2NodeToProject(draft as Project, n)
         }
       }, `wf-v2-param-${nodeId}`)
-      if (relayout) fitSoon(35)
     },
     [workflow]
   )
 
   const attachLogic = useCallback(
-    (layerNodeId: string, category: WorkflowV2SpawnCategory) => {
-      const res = attachLogicNodeToLayerV2(workflow, layerNodeId, category)
+    (layerNodeId: string, category: WorkflowV2SpawnCategory, presetId?: string) => {
+      const res = attachLogicNodeToLayerV2(workflow, layerNodeId, category, presetId)
       if (!res.createdNodeId) {
         if (res.message) showToast(res.message)
         return
@@ -139,7 +127,7 @@ export function useWorkflowV2Actions(
       setSelectedNodeId(res.createdNodeId)
       window.dispatchEvent(new CustomEvent('pxs:wf-focus-node', { detail: { nodeId: res.createdNodeId } }))
       const label = WORKFLOW_V2_SPAWN_CATALOG.find((c) => c.id === category)?.label ?? 'Logic'
-      showToast(res.reusedExisting && res.message ? res.message : `Đã gắn Node ${label} — chỉnh chi tiết ở bảng bên phải`)
+      showToast(res.message ?? `Đã gắn Node ${label} — chỉnh chi tiết ở bảng bên phải`)
     },
     [workflow, setSelectedNodeId, showToast]
   )
@@ -167,7 +155,7 @@ export function useWorkflowV2Actions(
     [workflow, showToast]
   )
 
-  /** Gỡ dây Layer → Logic: gỡ hiệu ứng khỏi Layer vừa tách, Node còn Layer khác thì áp dụng lại cho đúng tập mới */
+  /** Gỡ dây Layer → Logic: gỡ hiệu ứng khỏi Layer vừa tách; Node còn Layer khác thì áp dụng lại đúng tập mới */
   const disconnect = useCallback(
     (edgeId: string) => {
       const edge = workflow.edges.find((e) => e.id === edgeId)
@@ -197,5 +185,5 @@ export function useWorkflowV2Actions(
     showToast('Đã áp dụng toàn bộ cây Workflow vào cảnh')
   }, [workflow, showToast])
 
-  return { rebuild, autoLayout, moveNodes, toggleEnable, deleteNode, updateParams, attachLogic, connect, disconnect, applyAll }
+  return { relayout, moveNodes, toggleEnable, deleteNode, updateParams, attachLogic, connect, disconnect, applyAll }
 }

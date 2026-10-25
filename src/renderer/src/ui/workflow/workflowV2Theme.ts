@@ -1,6 +1,10 @@
 import type { WorkflowNode, WorkflowPortKind } from '@shared/types'
+import {
+  WORKFLOW_V2_LOGIC_CATEGORIES,
+  type WorkflowV2SpawnCategory
+} from '../../project/workflowV2LogicPresets'
 
-export type WorkflowV2SpawnCategory = 'action' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio'
+export type { WorkflowV2SpawnCategory }
 
 export interface WorkflowV2NodeTheme {
   badge: string
@@ -11,22 +15,8 @@ export interface WorkflowV2NodeTheme {
   levelClass: string
 }
 
-/** Danh mục Node Logic có thể gắn vào Layer — nguồn duy nhất cho Sidebar, Inspector và menu thả dây */
-export const WORKFLOW_V2_SPAWN_CATALOG: {
-  id: WorkflowV2SpawnCategory
-  icon: string
-  label: string
-  hint: string
-  accent: string
-}[] = [
-  { id: 'action', icon: '🏃', label: 'Hành động', hint: 'Bay, đung đưa, xoay', accent: '#10b981' },
-  { id: 'material', icon: '🏷️', label: 'Vật liệu', hint: 'Cao su, gỗ, đá, lá', accent: '#f97316' },
-  { id: 'collision', icon: '💥', label: 'Va chạm', hint: 'Nối 2 Layer va đập', accent: '#f43f5e' },
-  { id: 'light', icon: '💡', label: 'Ánh sáng', hint: 'Đèn viền, nến, glow', accent: '#f59e0b' },
-  { id: 'cave', icon: '🕳️', label: 'Hang động', hint: 'Vòm độ sâu', accent: '#14b8a6' },
-  { id: 'fx', icon: '✨', label: 'Hiệu ứng', hint: 'Đàn hồi, bloom, RGB', accent: '#a855f7' },
-  { id: 'audio', icon: '🔊', label: 'Âm thanh', hint: 'Thoại, nhép môi', accent: '#ec4899' }
-]
+/** Danh mục Node Logic gắn vào Layer — cùng nguồn với kho logic của Timeline (`workflowV2LogicPresets`) */
+export const WORKFLOW_V2_SPAWN_CATALOG = WORKFLOW_V2_LOGIC_CATEGORIES
 
 const LOGIC_THEMES: Record<string, WorkflowV2NodeTheme> = {
   material: { badge: 'VẬT LIỆU', icon: '🏷️', accent: '#f97316', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
@@ -66,7 +56,7 @@ export function resolveV2NodeLevel(node: WorkflowNode): WorkflowV2NodeLevel {
 export function resolveV2NodeTheme(node: WorkflowNode): WorkflowV2NodeTheme {
   const level = resolveV2NodeLevel(node)
   if (level === 'root') {
-    return { badge: 'ROOT CẢNH', icon: '🎬', accent: '#38bdf8', portIn: 'scene_ctx', portOut: 'scene_ctx', levelClass: 'level-root' }
+    return { badge: 'CẢNH', icon: '🎬', accent: '#38bdf8', portIn: 'scene_ctx', portOut: 'scene_ctx', levelClass: 'level-root' }
   }
   if (level === 'group') return GROUP_THEMES[node.params!.groupKind!] ?? GROUP_THEMES.group_25d
   if (level === 'layer') {

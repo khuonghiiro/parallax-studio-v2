@@ -18,8 +18,7 @@ import { buildTimelineClusters, type TimelineClusterGroup } from './timeline/tim
 import { TimelineCameraRows } from './timeline/TimelineCameraRows'
 import { useTimelineInteractions } from './timeline/useTimelineInteractions'
 import { WorkflowStudioPanel } from './workflow/WorkflowStudioPanel'
-import { isWorkflowV2Graph, normalizeWorkflowV2Scope } from '../project/workflowV2Engine'
-import { applyWorkflowV2PhysicsNodes, resolveWorkflowForScope } from '../project/workflowV2Rebuild'
+import { resolveWorkflowV2 } from '../project/workflowV2Rebuild'
 
 const TimelineRulerPlayhead = memo(function TimelineRulerPlayhead({
   x
@@ -49,16 +48,17 @@ export function Timeline() {
   const { setTime, setPlaying, setLoop, selectLayer, selectShot } = useEditor.getState()
   const { comp } = project
 
-  // Bung cây Workflow V2 lần đầu (dữ liệu dẫn xuất → không tạo bước Undo, tránh vòng lặp hoàn tác bị kẹt)
+  // MỘT LOGIC CHUNG: mỗi khi Project đổi (ở Timeline, Inspector, Viewport, MCP...), đồ thị Workflow được suy ra lại
+  // từ dữ liệu thật và ghi vào Project (dữ liệu dẫn xuất → không tạo bước Undo). Chạy ở cả 2 tab Timeline / Workflow.
   useEffect(() => {
-    if (isWorkflowV2Graph(project.workflow)) return
     const current = useEditor.getState().project
-    const nextWf = resolveWorkflowForScope(current, normalizeWorkflowV2Scope(current, selectedShotId))
-    useEditor.getState().patchDerived((draft) => {
-      draft.workflow = nextWf
-      applyWorkflowV2PhysicsNodes(draft, nextWf)
-    })
-  }, [project.workflow, selectedShotId])
+    const next = resolveWorkflowV2(current)
+    if (next !== current.workflow) {
+      useEditor.getState().patchDerived((draft) => {
+        draft.workflow = next
+      })
+    }
+  }, [project])
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())

@@ -231,6 +231,21 @@ export function validateWorkflowV2Connection(
     }
   }
 
+  // 0. Không gian nhiều cảnh: cấu trúc & va chạm chỉ nối trong cùng 1 cảnh; dây Camera chuyển cảnh do lộ trình camera quyết định
+  const sameShot = (src.params?.shotId ?? '') === (dst.params?.shotId ?? '')
+  if (src.type === 'camera_director' || (dstCat === 'camera' && !srcIsRoot)) {
+    return {
+      valid: false,
+      reason: '❌ Dây Camera chuyển cảnh đi theo lộ trình Camera — chỉnh thứ tự cảnh ở Lộ trình Camera, không nối tay.'
+    }
+  }
+  if ((srcIsRoot || srcIsGroup || dstCat === 'collision') && !sameShot && !(srcCat === 'material')) {
+    return {
+      valid: false,
+      reason: '❌ Hai Node thuộc 2 cảnh khác nhau — cấu trúc và va chạm chỉ nối được trong cùng một cảnh.'
+    }
+  }
+
   // 1. Nguồn là Root Cảnh -> chỉ nối tới Group Layer hoặc Camera 3D
   if (srcIsRoot) {
     if (dstIsGroup || dstCat === 'camera') {
@@ -367,8 +382,10 @@ export function recomputeSharedLogicTargets(
       ) {
         nextParams.strikerLayerId = firstLayerId
       }
-      if (
-        secondLayerId &&
+      if (!secondLayerId) {
+        // Va chạm chỉ có hiệu lực khi đủ 2 Layer — chưa có Layer B thì xoá vai trò B cũ (tránh trỏ tới Layer đã gỡ)
+        nextParams.targetColliderLayerId = undefined
+      } else if (
         (!nextParams.targetColliderLayerId ||
           !combinedTargetLayerIds.includes(nextParams.targetColliderLayerId) ||
           nextParams.targetColliderLayerId === nextParams.strikerLayerId)
@@ -472,14 +489,20 @@ export function applyCollisionNodeToProject(
   if (targetIds.length === 0) return
 
   const strikerId = node.params?.strikerLayerId ?? targetIds[0]
-  const targetId =
-    node.params?.targetColliderLayerId ??
-    targetIds.find((id) => id !== strikerId) ??
-    targetIds[0]
+  // Layer B chỉ do người dùng nối (recompute gán khi Node có đủ 2 Node Layer) — không tự đoán từ mảnh con của cùng cụm
+  const targetId = node.params?.targetColliderLayerId
 
   const strikerLayer = project.layers.find((l) => l.id === strikerId)
   const targetLayer = project.layers.find((l) => l.id === targetId)
-  if (!strikerLayer || !targetLayer) return
+  if (!strikerLayer || !targetLayer || strikerLayer.id === targetLayer.id) {
+    // Chưa đủ cặp Layer A/B → Node chưa có hiệu lực: gỡ sạch xung lực cũ (keyframe đã được gỡ ở trên)
+    for (const l of project.layers) {
+      if (l.physics?.impacts?.length) {
+        l.physics.impacts = l.physics.impacts.filter((imp) => imp.id !== pulseId && imp.id !== strikerPulseId)
+      }
+    }
+    return
+  }
 
   const mode: WorkflowV2CollisionMode = node.params?.collisionMode ?? 'elastic_bounce'
   const force = Math.max(0.2, Math.min(2.5, node.params?.collisionForce ?? 1.2))

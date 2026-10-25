@@ -9,9 +9,11 @@ import { resolveV2NodeLevel, resolveV2NodeTheme } from './workflowV2Theme'
 type Positions = Record<string, { x: number; y: number }>
 
 export interface CanvasInteractionHandlers {
-  onSelectNode: (nodeId: string) => void
+  onSelectNode: (nodeId: string | null) => void
   onMoveNodes: (positions: Positions) => void
   onConnectNodes: (fromNode: string, fromPort: WorkflowPortKind, toNode: string, toPort: WorkflowPortKind) => void
+  /** Kiểm tra kết nối hợp lệ theo luật logic (dùng để tô xanh / đỏ Node đích khi đang kéo dây) */
+  validate: (fromNode: string, toNode: string) => { valid: boolean; reason?: string }
 }
 
 /** Theo dõi kéo con trỏ toàn cửa sổ cho tới khi nhả chuột */
@@ -65,7 +67,7 @@ export function useWorkflowV2CanvasInteractions(
         vp.setPan({ x: initPan.x + ev.clientX - start.x, y: initPan.y + ev.clientY - start.y })
       },
       () => {
-        if (!moved) handlersRef.current.onSelectNode('v2-root-scene')
+        if (!moved) handlersRef.current.onSelectNode(null)
       }
     )
   }
@@ -104,7 +106,11 @@ export function useWorkflowV2CanvasInteractions(
       trackPointer(
         (ev) => {
           const p = vp.clientToWorld(ev.clientX, ev.clientY)
-          setWireDrag((prev) => (prev ? { ...prev, curX: p.x, curY: p.y } : null))
+          const hit = hitTest(p.x, p.y, nodeId)
+          const check = hit ? (isOutput ? handlersRef.current.validate(nodeId, hit.id) : handlersRef.current.validate(hit.id, nodeId)) : undefined
+          setWireDrag((prev) =>
+            prev ? { ...prev, curX: p.x, curY: p.y, hoverNodeId: hit?.id, hoverValid: check?.valid, hoverReason: check?.reason } : null
+          )
         },
         (ev) => {
           setWireDrag(null)

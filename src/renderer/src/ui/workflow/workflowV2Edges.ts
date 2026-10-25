@@ -1,36 +1,46 @@
 import type { WorkflowEdge, WorkflowNode } from '@shared/types'
-import { WF_V2_NODE_H, WF_V2_NODE_W } from '../../project/workflowV2Engine'
+import { WF_V2_CAMERA_LANE_X, WF_V2_NODE_H, WF_V2_NODE_W, isCameraChainEdge } from '../../project/workflowV2Engine'
 
 /** Điểm neo cổng: giữa mép trái/phải của thẻ, ngang dòng tiêu đề */
 export const WF_V2_PORT_Y = 22
 
 /**
- * Đường Smooth-Step bo góc chuẩn React Flow / n8n:
- * đi ngang từ cổng ra → rẽ dọc tại kênh `channelX` → rẽ ngang vào cổng đích.
+ * Loại dây để thể hiện logic bằng hình ảnh:
+ * - `hierarchy`: cấu trúc Cảnh → Camera / Nhóm → Layer (nét trung tính)
+ * - `logic`: Layer → Node Logic (màu theo loại logic)
+ * - `data`: Vật liệu → Va chạm (nét đứt — truyền chất liệu)
+ * - `camera`: Camera cảnh trước → Camera cảnh sau (làn chuyển cảnh bên trái)
  */
-export function buildSmoothStepWirePath(
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number,
-  channelX: number,
-  cornerRadius = 12
-): string {
-  const dy = y2 - y1
-  if (Math.abs(dy) <= 1 || x2 <= x1 + 16) return `M ${x1} ${y1} L ${x2} ${y2}`
-  const dirY = dy > 0 ? 1 : -1
-  const r = Math.max(
-    3,
-    Math.min(cornerRadius, Math.abs(channelX - x1) * 0.45, Math.abs(x2 - channelX) * 0.45, Math.abs(dy) * 0.45)
-  )
-  return [
-    `M ${x1} ${y1}`,
-    `L ${channelX - r} ${y1}`,
-    `Q ${channelX} ${y1} ${channelX} ${y1 + dirY * r}`,
-    `L ${channelX} ${y2 - dirY * r}`,
-    `Q ${channelX} ${y2} ${channelX + r} ${y2}`,
-    `L ${x2} ${y2}`
-  ].join(' ')
+export type V2EdgeKind = 'hierarchy' | 'logic' | 'data' | 'camera'
+
+export function classifyV2Edge(edge: WorkflowEdge, from: WorkflowNode, to: WorkflowNode): V2EdgeKind {
+  if (isCameraChainEdge(edge)) return 'camera'
+  if (from.params?.logicCategory === 'material' && to.params?.logicCategory === 'collision') return 'data'
+  const toIsLogic = to.type !== 'scene_shot' && to.type !== 'layer_assembly' && to.type !== 'camera_director'
+  return toIsLogic ? 'logic' : 'hierarchy'
+}
+
+function roundedOrthogonal(points: [number, number][], radius = 12): string {
+  let d = `M ${points[0][0]} ${points[0][1]}`
+  for (let i = 1; i < points.length - 1; i++) {
+    const [px, py] = points[i - 1]
+    const [cx, cy] = points[i]
+    const [nx, ny] = points[i + 1]
+    const r = Math.max(2, Math.min(radius, Math.hypot(cx - px, cy - py) / 2, Math.hypot(nx - cx, ny - cy) / 2))
+    const inX = cx - Math.sign(cx - px) * r
+    const inY = cy - Math.sign(cy - py) * r
+    const outX = cx + Math.sign(nx - cx) * r
+    const outY = cy + Math.sign(ny - cy) * r
+    d += ` L ${inX} ${inY} Q ${cx} ${cy} ${outX} ${outY}`
+  }
+  const last = points[points.length - 1]
+  return `${d} L ${last[0]} ${last[1]}`
+}
+
+/** Dây vuông bo góc chuẩn React Flow / n8n: ngang → dọc tại kênh `channelX` → ngang vào cổng đích */
+export function buildSmoothStepWirePath(x1: number, y1: number, x2: number, y2: number, channelX: number): string {
+  if (Math.abs(y2 - y1) <= 1 || x2 <= x1 + 16) return `M ${x1} ${y1} L ${x2} ${y2}`
+  return roundedOrthogonal([[x1, y1], [channelX, y1], [channelX, y2], [x2, y2]])
 }
 
 export function buildBezierWirePath(x1: number, y1: number, x2: number, y2: number): string {
@@ -38,8 +48,21 @@ export function buildBezierWirePath(x1: number, y1: number, x2: number, y2: numb
   return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`
 }
 
-/** Đường nối giữa 2 thẻ (cùng cột: nối dọc từ đáy lên đỉnh; khác cột: smooth-step / bezier) */
-export function buildEdgePath(from: WorkflowNode, to: WorkflowNode, style: 'smoothstep' | 'bezier'): string {
+/** Dây Camera chuyển cảnh: rời cổng trái Camera cảnh trước → chạy dọc làn bên trái → vào cổng trái Camera cảnh sau */
+export function buildCameraChainPath(from: WorkflowNode, to: WorkflowNode): string {
+  const x1 = from.position.x - 8
+  const y1 = from.position.y + WF_V2_PORT_Y
+  const x2 = to.position.x - 8
+  const y2 = to.position.y + WF_V2_PORT_Y
+  return roundedOrthogonal([[x1, y1], [WF_V2_CAMERA_LANE_X, y1], [WF_V2_CAMERA_LANE_X, y2], [x2, y2]], 14)
+}
+
+/**
+ * Đường nối giữa 2 thẻ. `lane` (0..n) tách nhẹ kênh dọc khi nhiều dây cùng đổ vào 1 Node dùng chung
+ * để các đoạn dọc không chồng khít lên nhau.
+ */
+export function buildEdgePath(from: WorkflowNode, to: WorkflowNode, kind: V2EdgeKind, style: 'smoothstep' | 'bezier', lane = 0): string {
+  if (kind === 'camera') return buildCameraChainPath(from, to)
   if (Math.abs(from.position.x - to.position.x) < 40) {
     const cx = Math.round(from.position.x + WF_V2_NODE_W / 2)
     const down = to.position.y > from.position.y
@@ -52,30 +75,29 @@ export function buildEdgePath(from: WorkflowNode, to: WorkflowNode, style: 'smoo
   const x2 = to.position.x - 8
   const y2 = to.position.y + WF_V2_PORT_Y
   if (style === 'bezier') return buildBezierWirePath(x1, y1, x2, y2)
-  return buildSmoothStepWirePath(x1, y1, x2, y2, Math.round(x1 + (x2 - x1) * 0.5))
+  const channel = Math.round(x1 + (x2 - x1) * 0.5 + lane * 10)
+  return buildSmoothStepWirePath(x1, y1, x2, y2, Math.max(x1 + 12, Math.min(x2 - 12, channel)))
 }
 
 /**
  * Dòng dõi của Node đang chọn: toàn bộ nhánh con phía dưới và chuỗi cha lên tới Root
- * (dùng để làm nổi bật nhánh liên quan, làm mờ phần còn lại).
+ * (không đi theo dây Camera chuyển cảnh để không làm sáng cả các cảnh khác).
  */
-export function computeV2Lineage(
-  selectedNodeId: string | null,
-  edges: WorkflowEdge[]
-): { nodeIds: Set<string>; edgeIds: Set<string>; active: boolean } {
+export function computeV2Lineage(selectedNodeId: string | null, edges: WorkflowEdge[], rootIds: Set<string>): { nodeIds: Set<string>; edgeIds: Set<string>; active: boolean } {
   const nodeIds = new Set<string>()
   const edgeIds = new Set<string>()
-  if (!selectedNodeId || selectedNodeId === 'v2-root-scene') return { nodeIds, edgeIds, active: false }
+  if (!selectedNodeId || rootIds.has(selectedNodeId)) return { nodeIds, edgeIds, active: false }
+  const tree = edges.filter((e) => !isCameraChainEdge(e))
   nodeIds.add(selectedNodeId)
-  const queue = [selectedNodeId]
-  while (queue.length) {
-    const cur = queue.shift()!
-    for (const e of edges) {
+  const down = [selectedNodeId]
+  while (down.length) {
+    const cur = down.shift()!
+    for (const e of tree) {
       if (e.fromNode !== cur) continue
       edgeIds.add(e.id)
       if (!nodeIds.has(e.toNode)) {
         nodeIds.add(e.toNode)
-        queue.push(e.toNode)
+        down.push(e.toNode)
       }
     }
   }
@@ -83,7 +105,7 @@ export function computeV2Lineage(
   const visited = new Set(up)
   while (up.length) {
     const cur = up.shift()!
-    for (const e of edges) {
+    for (const e of tree) {
       if (e.toNode !== cur || visited.has(e.fromNode)) continue
       visited.add(e.fromNode)
       nodeIds.add(e.fromNode)

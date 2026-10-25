@@ -1,297 +1,254 @@
 import { describe, expect, it } from 'vitest'
-import { evaluateLayerPhysicsTransform, deformVerticesByPhysics } from '../engine/layerPhysics'
+import { produce } from 'immer'
+import type { Project, WorkflowGraph } from '@shared/types'
+import { addKeyframe } from '../animation/keyframes'
 import { createImageLayer, createProject, createShot } from './factory'
+import { addTimelineLogic, getLayerTimelineLogicBadges, removeTimelineLogicNode } from './timelineLogic'
 import {
-  addTimelineLogic,
-  getLayerTimelineLogicBadges,
-  listTimelineLogicNodes,
-  removeTimelineLogicNode,
-  toggleTimelineLogicNode
-} from './timelineLogic'
-import { ensureProjectWorkflow, resolveConnectedWorkflowNodes } from './workflowEngine'
-import {
-  WF_V2_COL_X,
+  WF_V2_NODE_H,
+  WF_V2_NODE_W,
   attachLogicNodeToLayerV2,
-  buildWorkflowV2SceneTree,
-  recomputeSharedLogicTargets,
-  reconcileWorkflowV2WithProject,
+  findFreeV2Spot,
+  isCameraChainEdge,
+  resolveHiddenV2NodeIds,
+  syncWorkflowV2Graph,
   syncWorkflowV2NodeToProject,
+  v2CameraId,
+  v2LayerNodeId,
+  v2RootId,
   validateWorkflowV2Connection
 } from './workflowV2Engine'
+import { detachWorkflowV2NodeFromProject, relayoutWorkflowV2 } from './workflowV2Rebuild'
+import { isCollisionGeneratedKey } from './workflowV2CollisionKeys'
 
-describe('Workflow V2 Engine — Hierarchical Time-Driven Scene Tree, Validation, Reuse, Collision Physics & Timeline Sync', () => {
-  function createSampleSceneProject() {
-    const proj = createProject()
-    const shot = createShot('Thung Lũng Huyền Ẩn')
-    proj.shots.push(shot)
-    const sky = createImageLayer(
-      { id: 'a-sky', name: 'Bầu trời hoàng hôn', kind: 'image', mime: 'image/png', width: 1920, height: 1080 },
-      proj.comp,
-      3200,
-      shot.id
-    )
-    const cave = createImageLayer(
-      { id: 'a-cave', name: 'Cổng di tích hang động', kind: 'image', mime: 'image/png', width: 1200, height: 900 },
-      proj.comp,
-      450,
-      shot.id
-    )
-    const vine = createImageLayer(
-      { id: 'a-vine', name: 'Dây leo tiền cảnh', kind: 'image', mime: 'image/png', width: 800, height: 900 },
-      proj.comp,
-      180,
-      shot.id
-    )
-    const hero = createImageLayer(
-      { id: 'a-hero', name: 'Hiệp sĩ 2.5D', kind: 'image', mime: 'image/png', width: 512, height: 768 },
-      proj.comp,
-      120,
-      shot.id
-    )
-    hero.composite = {
-      instanceId: 'inst-hero',
-      compositeId: 'comp-hero',
-      compositeName: 'Hiệp sĩ 2.5D',
-      lockedGroup: true,
-      isRoot: true
+function sampleProject() {
+  const proj = createProject()
+  proj.comp.duration = 12
+  const shotA = createShot('Cảnh rừng')
+  const shotB = createShot('Cảnh hang')
+  proj.shots.push(shotA, shotB)
+  const mk = (id: string, name: string, z: number, shotId?: string) =>
+    createImageLayer({ id: `a-${id}`, name, kind: 'image', mime: 'image/png', width: 640, height: 480 }, proj.comp, z, shotId)
+  const vine = mk('vine', 'Dây leo', 180, shotA.id)
+  const rock = mk('rock', 'Tảng đá', 300, shotA.id)
+  const cave = mk('cave', 'Cửa hang', 400, shotB.id)
+  const fog = mk('fog', 'Sương chung', 200)
+  fog.shotId = null
+  vine.inPoint = 0
+  vine.outPoint = 12
+  rock.inPoint = 2
+  rock.outPoint = 9
+  proj.layers.push(vine, rock, cave, fog)
+  return { proj, shotA, shotB, vine, rock, cave, fog }
+}
+
+/** Giống hiệu ứng ghi của Timeline: đồng bộ đồ thị sau mỗi thay đổi Project */
+function synced(proj: Project): Project {
+  return produce(proj, (d) => {
+    d.workflow = syncWorkflowV2Graph(d as Project, d.workflow as WorkflowGraph | undefined)
+  })
+}
+
+describe('Workflow V2 — một không gian chung cho mọi cảnh', () => {
+  it('mỗi cảnh là một cụm Root → Camera / Nhóm → Layer, Camera các cảnh nối nhau bằng dây chuyển cảnh', () => {
+    const { proj, shotA, shotB, vine, cave, fog } = sampleProject()
+    const wf = syncWorkflowV2Graph(proj, undefined)
+    expect(wf.nodes.some((n) => n.id === v2RootId(shotA.id))).toBe(true)
+    expect(wf.nodes.some((n) => n.id === v2RootId(shotB.id))).toBe(true)
+    expect(wf.nodes.some((n) => n.id === v2RootId('shared'))).toBe(true)
+    const chain = wf.edges.filter(isCameraChainEdge)
+    expect(chain).toHaveLength(1)
+    expect([chain[0].fromNode, chain[0].toNode]).toEqual([v2CameraId(shotA.id), v2CameraId(shotB.id)])
+    expect(wf.nodes.find((n) => n.id === v2LayerNodeId(vine.id))?.params?.shotId).toBe(shotA.id)
+    expect(wf.nodes.find((n) => n.id === v2LayerNodeId(cave.id))?.params?.shotId).toBe(shotB.id)
+    expect(wf.nodes.find((n) => n.id === v2LayerNodeId(fog.id))?.params?.shotId).toBeUndefined()
+    expect(syncWorkflowV2Graph(proj, wf)).toBe(wf)
+  })
+
+  it('đồ thị chỉ phản ánh dữ liệu thật: không tự bịa Node logic từ tên Layer', () => {
+    const { proj } = sampleProject()
+    const wf = syncWorkflowV2Graph(proj, undefined)
+    expect(wf.nodes.filter((n) => n.params?.logicCategory && n.params.logicCategory !== 'camera')).toHaveLength(0)
+  })
+})
+
+describe('Workflow V2 — MỘT LOGIC CHUNG với Timeline / Inspector', () => {
+  it('chuyển động thêm ở Inspector hiện thành Node; sửa / tắt ở Inspector cập nhật Node; xoá Node gỡ chuyển động', () => {
+    let { proj, vine } = sampleProject()
+    proj = synced(proj)
+    proj = synced(produce(proj, (d) => {
+      d.layers.find((l) => l.id === vine.id)!.motion = { enabled: true, type: 'sway', speed: 1, amount: 0.8 }
+    }))
+    const node = proj.workflow!.nodes.find((n) => n.id === `v2-action-${vine.id}`)!
+    expect(node.params?.actionPreset).toBe('sway')
+    expect(node.params?.intensity).toBe(0.8)
+    expect(proj.workflow!.edges.some((e) => e.fromNode === v2LayerNodeId(vine.id) && e.toNode === node.id)).toBe(true)
+
+    proj = synced(produce(proj, (d) => {
+      d.layers.find((l) => l.id === vine.id)!.motion!.enabled = false
+    }))
+    expect(proj.workflow!.nodes.find((n) => n.id === node.id)!.enabled).toBe(false)
+
+    proj = synced(produce(proj, (d) => {
+      detachWorkflowV2NodeFromProject(d as Project, node)
+      d.workflow = { ...(d.workflow as WorkflowGraph), nodes: d.workflow!.nodes.filter((n) => n.id !== node.id) }
+    }))
+    expect(proj.layers.find((l) => l.id === vine.id)!.motion?.type).toBe('none')
+    expect(proj.workflow!.nodes.some((n) => n.id === node.id)).toBe(false)
+  })
+
+  it('Timeline gắn logic bằng mẫu chung (mã cũ được ánh xạ) và bắt buộc chọn Layer', () => {
+    let { proj, rock } = sampleProject()
+    proj = synced(proj)
+    let nodeId = ''
+    proj = synced(produce(proj, (d) => {
+      nodeId = addTimelineLogic(d as Project, 'logic-fx-candle', rock.id)
+    }))
+    const node = proj.workflow!.nodes.find((n) => n.id === nodeId)!
+    expect(node.params?.lightMode).toBe('candle')
+    expect(proj.layers.find((l) => l.id === rock.id)!.virtualLight?.kind).toBe('candle')
+    const badges = getLayerTimelineLogicBadges(proj.layers.find((l) => l.id === rock.id)!, proj, proj.workflow!)
+    expect(badges.some((b) => b.kind === 'workflow_node' && b.nodeId === nodeId)).toBe(true)
+    expect(() => produce(proj, (d) => void addTimelineLogic(d as Project, 'v2:action:float'))).toThrow()
+
+    proj = synced(produce(proj, (d) => removeTimelineLogicNode(d as Project, nodeId)))
+    expect(proj.workflow!.nodes.some((n) => n.id === nodeId)).toBe(false)
+    expect(proj.layers.find((l) => l.id === rock.id)!.virtualLight?.enabled).toBe(false)
+  })
+
+  it('âm thanh gắn Layer hiện thành Node; chỉnh Node ghi xuống track; xoá Node bỏ gắn track', () => {
+    let { proj, vine } = sampleProject()
+    proj.audioTracks = [{ id: 'tr1', assetId: 'au', offset: 1, volume: 1, duration: 3, targetId: vine.id, targetType: 'layer' as never }]
+    proj = synced(proj)
+    const node = proj.workflow!.nodes.find((n) => n.params?.logicCategory === 'audio')!
+    expect([node.params?.timeStart, node.params?.timeEnd]).toEqual([1, 4])
+    proj = produce(proj, (d) => syncWorkflowV2NodeToProject(d as Project, node, { intensity: 0.4 }))
+    expect(proj.audioTracks![0].volume).toBe(0.4)
+    proj = synced(produce(proj, (d) => {
+      detachWorkflowV2NodeFromProject(d as Project, node)
+      d.workflow = { ...(d.workflow as WorkflowGraph), nodes: d.workflow!.nodes.filter((n) => n.id !== node.id) }
+    }))
+    expect(proj.audioTracks![0].targetId).toBeUndefined()
+    expect(proj.workflow!.nodes.some((n) => n.params?.logicCategory === 'audio')).toBe(false)
+  })
+})
+
+describe('Workflow V2 — kết nối chuẩn logic', () => {
+  it('Va chạm chỉ có hiệu lực khi đủ Layer A và B; keyframe va chạm đồng bộ idempotent', () => {
+    let { proj, vine, rock } = sampleProject()
+    proj = synced(proj)
+    const res = attachLogicNodeToLayerV2(proj.workflow!, v2LayerNodeId(vine.id), 'collision')
+    let wf = res.workflow
+    let col = wf.nodes.find((n) => n.id === res.createdNodeId)!
+    expect(col.params?.sharedLayerNodeIds).toHaveLength(1)
+    proj = produce(proj, (d) => syncWorkflowV2NodeToProject(d as Project, col))
+    expect(proj.layers.every((l) => !l.physics?.impacts?.length)).toBe(true)
+
+    const pair = attachLogicNodeToLayerV2(wf, v2LayerNodeId(rock.id), 'collision')
+    expect(pair.createdNodeId).toBe(col.id)
+    wf = pair.workflow
+    col = wf.nodes.find((n) => n.id === col.id)!
+    expect(col.params?.targetColliderLayerId).toBe(rock.id)
+    proj = produce(proj, (d) => void addKeyframe(d.layers[0].transform.position, 0.5, [1, 2, 180], 'linear'))
+    for (const [s, e] of [[1, 3], [2, 5], [4, 8]]) {
+      proj = produce(proj, (d) => {
+        d.workflow = wf
+        syncWorkflowV2NodeToProject(d as Project, col, { timeStart: s, timeEnd: e })
+      })
     }
-    proj.layers.push(sky, cave, vine, hero)
-    return { proj, shot, sky, cave, vine, hero }
+    const vineKeys = proj.layers.find((l) => l.id === vine.id)!.transform.position.keyframes
+    expect(vineKeys.filter((k) => isCollisionGeneratedKey(k.id)).every((k) => k.t >= 4)).toBe(true)
+    expect(vineKeys.some((k) => k.t === 0.5)).toBe(true)
+    expect(proj.layers.find((l) => l.id === rock.id)!.physics?.impacts?.length).toBeGreaterThan(0)
+  })
+
+  it('Va chạm & Vật liệu được khôi phục từ dữ liệu vật lý thật khi cây bị dựng lại (không mất logic)', () => {
+    let { proj, vine, rock } = sampleProject()
+    proj = synced(proj)
+    let wf = attachLogicNodeToLayerV2(proj.workflow!, v2LayerNodeId(vine.id), 'collision').workflow
+    const paired = attachLogicNodeToLayerV2(wf, v2LayerNodeId(rock.id), 'collision')
+    wf = paired.workflow
+    const col = wf.nodes.find((n) => n.id === paired.createdNodeId)!
+    proj = produce(proj, (d) => {
+      d.workflow = wf
+      syncWorkflowV2NodeToProject(d as Project, col, { collisionMode: 'heavy_punch', collisionForce: 1.5, timeStart: 2, timeEnd: 6 })
+    })
+    const rebuilt = syncWorkflowV2Graph(proj, undefined)
+    const recovered = rebuilt.nodes.find((n) => n.id === col.id)!
+    expect(recovered.params?.collisionMode).toBe('heavy_punch')
+    expect(recovered.params?.strikerLayerId).toBe(vine.id)
+    expect(recovered.params?.targetColliderLayerId).toBe(rock.id)
+    expect(rebuilt.nodes.some((n) => n.params?.logicCategory === 'material' && n.params.targetLayerIds?.includes(rock.id))).toBe(true)
+    expect(syncWorkflowV2Graph(proj, rebuilt)).toBe(rebuilt)
+  })
+
+  it('chặn nối khác cảnh và chặn nối tay dây Camera chuyển cảnh', () => {
+    let { proj, shotA, vine, cave } = sampleProject()
+    proj = synced(proj)
+    const res = attachLogicNodeToLayerV2(proj.workflow!, v2LayerNodeId(vine.id), 'collision')
+    const cross = validateWorkflowV2Connection(res.workflow, v2LayerNodeId(cave.id), res.createdNodeId)
+    expect(cross.valid).toBe(false)
+    const cam = validateWorkflowV2Connection(res.workflow, v2RootId(shotA.id), v2CameraId('khac'))
+    expect(cam.valid).toBe(false)
+    expect(validateWorkflowV2Connection(res.workflow, v2LayerNodeId(vine.id), v2LayerNodeId(cave.id)).valid).toBe(false)
+  })
+
+  it('bật/tắt Nhóm chỉ ẩn/hiện Layer, không san phẳng inPoint/outPoint', () => {
+    let { proj, vine, rock } = sampleProject()
+    proj = synced(proj)
+    const group = proj.workflow!.nodes.find((n) => n.params?.groupKind && n.params.targetLayerIds?.includes(vine.id))!
+    proj = produce(proj, (d) => syncWorkflowV2NodeToProject(d as Project, { ...group, enabled: false }))
+    const v = proj.layers.find((l) => l.id === vine.id)!
+    const r = proj.layers.find((l) => l.id === rock.id)!
+    expect(v.visible).toBe(false)
+    expect([v.inPoint, v.outPoint, r.inPoint, r.outPoint]).toEqual([0, 12, 2, 9])
+  })
+})
+
+describe('Workflow V2 — bố cục không đè thẻ', () => {
+  const overlap = (a: { x: number; y: number }, b: { x: number; y: number }): boolean =>
+    a.x < b.x + WF_V2_NODE_W && b.x < a.x + WF_V2_NODE_W && a.y < b.y + WF_V2_NODE_H && b.y < a.y + WF_V2_NODE_H
+
+  function assertNoOverlap(wf: WorkflowGraph): void {
+    const hidden = resolveHiddenV2NodeIds(wf.nodes, wf.edges)
+    const visible = wf.nodes.filter((n) => !hidden.has(n.id))
+    for (let i = 0; i < visible.length; i++)
+      for (let j = i + 1; j < visible.length; j++)
+        expect(overlap(visible[i].position, visible[j].position), `${visible[i].id} ↔ ${visible[j].id}`).toBe(false)
   }
 
-  it('builds a 4-level hierarchy: Root Scene -> Group Layers -> Layer Nodes -> Logic Nodes with 100% connected execution order', () => {
-    const { proj, shot } = createSampleSceneProject()
-    const wf = buildWorkflowV2SceneTree(proj, shot.id)
-    expect(wf.presetId).toBe('v2_scene_hierarchy')
-
-    // Level 0: Root Scene + Camera
-    const root = wf.nodes.find((n) => n.id === 'v2-root-scene')
-    expect(root).toBeDefined()
-    expect(root?.position.x).toBe(WF_V2_COL_X.ROOT)
-
-    // Level 1: Group Layers connected from Root Scene
-    const groups = wf.nodes.filter((n) => Boolean(n.params?.groupKind))
-    expect(groups.length).toBeGreaterThanOrEqual(2)
-    for (const g of groups) {
-      expect(g.position.x).toBe(WF_V2_COL_X.GROUP)
-      expect(wf.edges.some((e) => e.fromNode === 'v2-root-scene' && e.toNode === g.id)).toBe(true)
+  it('mọi cụm cảnh trong cùng không gian không chồng lên nhau, kể cả sau khi gắn thêm logic', async () => {
+    const { buildDemoProject } = await import('./demo')
+    let proj = synced(await buildDemoProject())
+    assertNoOverlap(proj.workflow!)
+    const layerNode = proj.workflow!.nodes.find((n) => n.type === 'layer_assembly' && !n.params?.groupKind)!
+    for (const cat of ['action', 'light', 'cave', 'fx'] as const) {
+      const res = attachLogicNodeToLayerV2(proj.workflow!, layerNode.id, cat)
+      proj = synced(produce(proj, (d) => {
+        d.workflow = res.workflow
+        syncWorkflowV2NodeToProject(d as Project, res.workflow.nodes.find((n) => n.id === res.createdNodeId)!)
+      }))
     }
-
-    // Level 2: Layer Nodes connected from their Group Layer
-    const layerNodes = wf.nodes.filter((n) => n.type === 'layer_assembly' && !n.params?.groupKind)
-    expect(layerNodes.length).toBe(4)
-    for (const ln of layerNodes) {
-      expect(ln.position.x).toBe(WF_V2_COL_X.LAYER)
-      expect(wf.edges.some((e) => e.toNode === ln.id)).toBe(true)
-    }
-
-    // Level 3: Logic Nodes (Action, Material, Collision, Cave) connected from Layer Nodes
-    const caveLogic = wf.nodes.find((n) => n.params?.logicCategory === 'cave')
-    expect(caveLogic).toBeDefined()
-    expect(caveLogic?.position.x).toBe(WF_V2_COL_X.LOGIC)
-
-    // Verify resolveConnectedWorkflowNodes marks 100% of enabled V2 nodes as connected
-    const { activeNodes, disconnectedNodes } = resolveConnectedWorkflowNodes(wf)
-    expect(activeNodes.length).toBe(wf.nodes.length)
-    expect(disconnectedNodes.length).toBe(0)
+    assertNoOverlap(proj.workflow!)
+    expect(syncWorkflowV2Graph(proj, proj.workflow)).toBe(proj.workflow)
   })
 
-  it('enforces strict connection validation, prevents duplicate logic per layer, and supports multi-layer node reuse', () => {
-    const { proj, shot, cave, vine, hero } = createSampleSceneProject()
-    let wf = buildWorkflowV2SceneTree(proj, shot.id)
-    const caveNodeId = `v2-layer-${cave.id}`
-    const vineNodeId = `v2-layer-${vine.id}`
-    const heroNodeId = `v2-layer-${hero.id}`
-
-    // 1. Block invalid Layer -> Layer connection
-    const layerToLayer = validateWorkflowV2Connection(wf, vineNodeId, caveNodeId)
-    expect(layerToLayer.valid).toBe(false)
-    expect(layerToLayer.reason).toContain('Không nối trực tiếp 2 Node Layer')
-
-    // 2. Block invalid Root -> Logic connection
-    const anyLogic = wf.nodes.find((n) => n.params?.logicCategory === 'action')!
-    const rootToLogic = validateWorkflowV2Connection(wf, 'v2-root-scene', anyLogic.id)
-    expect(rootToLogic.valid).toBe(false)
-
-    // 3. Anti-duplicate logic per Layer: attaching a 2nd 'action' node to hero reuses existing node instead of duplicating
-    const firstAction = attachLogicNodeToLayerV2(wf, heroNodeId, 'action')
-    wf = firstAction.workflow
-    const duplicateTry = attachLogicNodeToLayerV2(wf, heroNodeId, 'action')
-    expect(duplicateTry.reusedExisting).toBe(true)
-    expect(duplicateTry.createdNodeId).toBe(firstAction.createdNodeId)
-
-    // 4. Node Reuse: allow a second Layer (caveNodeId) to connect into and share vine's Action Node
-    const vineActionEdge = wf.edges.find(
-      (e) =>
-        e.fromNode === vineNodeId &&
-        wf.nodes.find((n) => n.id === e.toNode)?.params?.logicCategory === 'action'
-    )!
-    const sharedActionNodeId = vineActionEdge.toNode
-    const reuseCheck = validateWorkflowV2Connection(wf, caveNodeId, sharedActionNodeId)
-    expect(reuseCheck.valid).toBe(true)
-
-    const nextEdges = [
-      ...wf.edges,
-      {
-        id: `e-${caveNodeId}-${sharedActionNodeId}`,
-        fromNode: caveNodeId,
-        fromPort: 'layers_tree' as const,
-        toNode: sharedActionNodeId,
-        toPort: 'layers_tree' as const
-      }
-    ]
-    const syncedNodes = recomputeSharedLogicTargets(wf.nodes, nextEdges)
-    const sharedNode = syncedNodes.find((n) => n.id === sharedActionNodeId)!
-    expect(sharedNode.params?.sharedLayerNodeIds).toEqual(expect.arrayContaining([vineNodeId, caveNodeId]))
-    expect(sharedNode.params?.targetLayerIds).toEqual(expect.arrayContaining([vine.id, cave.id]))
-  })
-
-  it('applies Material Tag nodes and 2-Layer Collision Physics with real-time vertex mesh deformation & clean disable', () => {
-    const { proj, shot, vine, cave } = createSampleSceneProject()
-    let wf = buildWorkflowV2SceneTree(proj, shot.id)
-    proj.workflow = wf
-
-    const vineNodeId = `v2-layer-${vine.id}`
-    const caveNodeId = `v2-layer-${cave.id}`
-
-    // 1. Tag vine as 'jelly_slime' (soft rubber/jelly that squashes 42%)
-    const matResA = attachLogicNodeToLayerV2(wf, vineNodeId, 'material')
-    wf = matResA.workflow
-    const matNodeA = wf.nodes.find((n) => n.id === matResA.createdNodeId)!
-    matNodeA.params = { ...matNodeA.params, materialTag: 'jelly_slime', materialStiffness: 0.55, materialBounciness: 1.55 }
-    syncWorkflowV2NodeToProject(proj, matNodeA)
-    expect(vine.physics?.enabled).toBe(true)
-    expect(vine.physics?.material).toBe('jelly_slime')
-    expect(vine.physics?.bounciness).toBe(1.55)
-
-    // 2. Tag cave as 'stone_wall' (rigid stone that vibrates slightly on impact)
-    const matResB = attachLogicNodeToLayerV2(wf, caveNodeId, 'material')
-    wf = matResB.workflow
-    const matNodeB = wf.nodes.find((n) => n.id === matResB.createdNodeId)!
-    matNodeB.params = { ...matNodeB.params, materialTag: 'stone_wall', materialStiffness: 2.1, materialBounciness: 0.35 }
-    syncWorkflowV2NodeToProject(proj, matNodeB)
-    expect(cave.physics?.enabled).toBe(true)
-    expect(cave.physics?.material).toBe('stone_wall')
-
-    // 3. Configure the 2-Layer Collision Node connecting vine (Striker A) and cave (Collider B)
-    const colRes = attachLogicNodeToLayerV2(wf, vineNodeId, 'collision')
-    wf = colRes.workflow
-    proj.workflow = wf
-    const colNode = wf.nodes.find((n) => n.id === colRes.createdNodeId)!
-    expect(colNode.params?.logicCategory).toBe('collision')
-    expect(colNode.params?.sharedLayerNodeIds?.length).toBeGreaterThanOrEqual(2)
-
-    syncWorkflowV2NodeToProject(proj, colNode, {
-      collisionMode: 'elastic_bounce',
-      collisionForce: 1.35,
-      deformIntensity: 1.25,
-      strikerLayerId: vine.id,
-      targetColliderLayerId: cave.id,
-      timeStart: 1.0,
-      timeEnd: 3.0
+  it('thẻ kéo tay được ghim, né chỗ trống và giữ nguyên khi tự xếp lại (trừ khi bỏ ghim)', () => {
+    let { proj, vine } = sampleProject()
+    proj = synced(proj)
+    const wf = proj.workflow!
+    const target = wf.nodes.find((n) => n.id === v2LayerNodeId(vine.id))!
+    const other = wf.nodes.find((n) => n.type === 'scene_shot')!
+    const spot = findFreeV2Spot(wf.nodes, wf.edges, target.id, other.position)
+    expect(overlap(spot, other.position)).toBe(false)
+    proj = produce(proj, (d) => {
+      d.workflow!.nodes.find((n) => n.id === target.id)!.position = { x: 2000, y: 40 }
+      d.workflow!.nodes.find((n) => n.id === target.id)!.params!.pinned = true
     })
-
-    // Verify real engine PhysicsImpactPulse and squash-and-stretch / rebound keyframes on both layers
-    expect(vine.physics?.impacts?.length).toBeGreaterThan(0)
-    expect(cave.physics?.impacts?.length).toBeGreaterThan(0)
-    expect(vine.transform.position.keyframes.length).toBeGreaterThanOrEqual(3)
-    expect(vine.transform.scale.keyframes.length).toBeGreaterThanOrEqual(3)
-    expect(cave.transform.scale.keyframes.length).toBeGreaterThanOrEqual(3)
-
-    // Soft jelly_slime (vine) should deform/squash more at impact than rigid stone_wall (cave)
-    const vineImpactScale = vine.transform.scale.keyframes[1].value
-    const caveImpactScale = cave.transform.scale.keyframes[1].value
-    const vineDeformDelta = Math.abs(vineImpactScale[0] - vine.transform.scale.keyframes[0].value[0])
-    const caveDeformDelta = Math.abs(caveImpactScale[0] - cave.transform.scale.keyframes[0].value[0])
-    expect(vineDeformDelta).toBeGreaterThan(caveDeformDelta)
-
-    // 4. Evaluate real-time 2.5D physics transform & WebGL vertex mesh deformation right after impact time (tHit = 1.9s)
-    const tEval = 1.98
-    const vinePhysEval = evaluateLayerPhysicsTransform(proj, vine, tEval)
-    const cavePhysEval = evaluateLayerPhysicsTransform(proj, cave, tEval)
-    expect(vinePhysEval.activeImpactCount).toBeGreaterThan(0)
-    expect(cavePhysEval.activeImpactCount).toBeGreaterThan(0)
-
-    const baseVerts = new Float32Array([
-      0, -100, 0,
-      0,    0, 0,
-      0,  100, 0
-    ])
-    const outVerts = new Float32Array(baseVerts)
-    deformVerticesByPhysics(outVerts, 200, 200, vine, proj, tEval)
-    const vertexChanged = Array.from(outVerts).some((v, idx) => Math.abs(v - baseVerts[idx]) > 0.01)
-    expect(vertexChanged).toBe(true)
-
-    // 5. Disabling the Collision Node cleanly removes impact pulses
-    syncWorkflowV2NodeToProject(proj, { ...colNode, enabled: false })
-    expect(vine.physics?.impacts?.length ?? 0).toBe(0)
-    expect(cave.physics?.impacts?.length ?? 0).toBe(0)
-  })
-
-  it('maintains full bidirectional synchronization between Timeline and Workflow V2', () => {
-    const { proj, shot, vine, hero } = createSampleSceneProject()
-    const wf = buildWorkflowV2SceneTree(proj, shot.id)
-    proj.workflow = wf
-    for (const n of wf.nodes) {
-      if (n.params?.logicCategory === 'material' || n.params?.logicCategory === 'collision') {
-        syncWorkflowV2NodeToProject(proj, n)
-      }
-    }
-
-    // 1. Workflow V2 -> Timeline: listTimelineLogicNodes & getLayerTimelineLogicBadges return V2 Logic Nodes
-    const allShotLogicEntries = listTimelineLogicNodes(proj, proj.workflow, undefined, shot.id)
-    expect(allShotLogicEntries.length).toBeGreaterThanOrEqual(5)
-    expect(allShotLogicEntries.every((e) => e.connected)).toBe(true)
-
-    const vineBadges = getLayerTimelineLogicBadges(vine, proj, proj.workflow)
-    const vineWfBadges = vineBadges.filter((b) => b.kind === 'workflow_node')
-    expect(vineWfBadges.length).toBeGreaterThanOrEqual(2) // Action + Material + Collision
-
-    // 2. Timeline -> Workflow V2: Editing layer inPoint, outPoint, visible, Z depth, or name on Timeline updates Workflow V2
-    vine.inPoint = 0.8
-    vine.outPoint = 4.2
-    vine.visible = false
-    vine.name = 'Dây leo cổ thụ mới'
-    vine.transform.position.value = [15, -20, 260]
-
-    const reconciledWf = ensureProjectWorkflow(proj)
-    const vineLayerNode = reconciledWf.nodes.find((n) => n.id === `v2-layer-${vine.id}`)!
-    expect(vineLayerNode.title).toBe('Dây leo cổ thụ mới')
-    expect(vineLayerNode.enabled).toBe(false)
-    expect(vineLayerNode.params?.timeStart).toBe(0.8)
-    expect(vineLayerNode.params?.timeEnd).toBe(4.2)
-    expect(vineLayerNode.params?.transformZ).toBe(260)
-
-    // 3. Timeline -> Workflow V2: Toggling and removing a V2 Logic Node from the Timeline strip
-    const colNode = reconciledWf.nodes.find((n) => n.params?.logicCategory === 'collision')!
-    proj.workflow = reconciledWf
-    const afterOff = toggleTimelineLogicNode(proj, colNode.id)
-    expect(afterOff).toBe(false)
-    expect(vine.physics?.impacts?.length ?? 0).toBe(0)
-
-    const afterOn = toggleTimelineLogicNode(proj, colNode.id)
-    expect(afterOn).toBe(true)
-    expect(vine.physics?.impacts?.length).toBeGreaterThan(0)
-
-    removeTimelineLogicNode(proj, colNode.id)
-    expect(proj.workflow.nodes.some((n) => n.id === colNode.id)).toBe(false)
-    expect(vine.physics?.impacts?.length ?? 0).toBe(0)
-
-    // 4. Timeline -> Workflow V2: Adding logic from Timeline picker attaches a V2 Logic Node to the layer
-    const addedLightId = addTimelineLogic(proj, 'logic-fx-candle', hero.id, shot.id)
-    expect(addedLightId.startsWith('v2-')).toBe(true)
-    expect(proj.workflow.nodes.some((n) => n.id === addedLightId)).toBe(true)
-    expect(hero.virtualLight?.enabled).toBe(true)
-
-    // 5. Timeline -> Workflow V2: Adding a new Layer on Timeline adds a new v2-layer-* node in Workflow V2
-    const extraLayer = createImageLayer(
-      { id: 'a-rock', name: 'Tảng đá chắn đường', kind: 'image', mime: 'image/png', width: 600, height: 400 },
-      proj.comp,
-      210,
-      shot.id
-    )
-    proj.layers.push(extraLayer)
-    const withExtraWf = reconcileWorkflowV2WithProject(proj, proj.workflow, shot.id)
-    expect(withExtraWf.nodes.some((n) => n.id === `v2-layer-${extraLayer.id}`)).toBe(true)
+    const kept = syncWorkflowV2Graph(proj, proj.workflow, { relayout: true })
+    expect(kept.nodes.find((n) => n.id === target.id)!.position).toEqual({ x: 2000, y: 40 })
+    assertNoOverlap(kept)
+    const reset = relayoutWorkflowV2({ ...proj, workflow: kept }, true)
+    expect(reset.nodes.find((n) => n.id === target.id)!.position.x).not.toBe(2000)
   })
 })

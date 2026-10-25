@@ -111,6 +111,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   workflow_inspector: region('workflow_inspector', '.wf-v2-inspector', '.wf-side-panel'),
   workflow_ruler: region('workflow_ruler', '.wf-v2-ruler-bar'),
   workflow_spawn_menu: region('workflow_spawn_menu', '.wf-v2-quick-spawn-menu'),
+  workflow_legend: region('workflow_legend', '.wf-v2-legend'),
   workflow_target_binder: region('workflow_target_binder', '.wf-tab-pane'),
   workflow_action_builder: region('workflow_action_builder', '.wf-action-builder-box'),
   workflow_preview: region('workflow_preview', '.wf-inspector-preview-box'),

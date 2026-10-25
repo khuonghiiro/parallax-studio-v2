@@ -1,14 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import type { Project } from '@shared/types'
 import { useEditor } from '../../store/editor'
-import {
-  getShotTimeRange,
-  isWorkflowV2Graph,
-  normalizeWorkflowV2Scope,
-  resolveWorkflowV2ActiveShot,
-  workflowV2ScopeOf
-} from '../../project/workflowV2Engine'
-import { applyWorkflowV2PhysicsNodes, resolveWorkflowForScope } from '../../project/workflowV2Rebuild'
+import { computeShotRoute, v2RootId } from '../../project/workflowV2Engine'
+import { resolveWorkflowV2 } from '../../project/workflowV2Rebuild'
 import { WorkflowCanvasV2 } from './WorkflowCanvasV2'
 import { WorkflowV2Inspector } from './WorkflowV2Inspector'
 import { WorkflowV2Sidebar } from './WorkflowV2Sidebar'
@@ -17,7 +10,30 @@ import { resolveV2SpawnTarget, useWorkflowV2Actions } from './useWorkflowV2Actio
 import { resolveV2NodeLevel } from './workflowV2Theme'
 
 const SIDEBAR_KEY = 'pxs:wf-v2-sidebar-collapsed'
+const FOLLOW_KEY = 'pxs:wf-v2-follow-shot'
 
+const focusCluster = (rootId: string): void => {
+  window.dispatchEvent(new CustomEvent('pxs:wf-focus-cluster', { detail: { rootId } }))
+}
+
+/** Cảnh camera đang quay tại mốc `t` theo lộ trình camera (cùng nguồn với dải "Cảnh đang quay" của Timeline) */
+function useActiveShotId(): string | null {
+  const project = useEditor((s) => s.project)
+  const time = useEditor((s) => s.time)
+  const route = useMemo(() => computeShotRoute(project), [project])
+  return useMemo(() => {
+    for (const shot of route.order) {
+      const r = route.ranges.get(shot.id)
+      if (r && time >= r.start - 1e-3 && time <= r.end + 1e-3) return shot.id
+    }
+    return null
+  }, [route, time])
+}
+
+/**
+ * Workflow Studio V2: MỘT không gian chung cho toàn dự án (mỗi cảnh là một cụm, nối nhau bằng dây Camera).
+ * Đồ thị được suy ra từ dữ liệu thật nên luôn khớp với Timeline; Timeline ghi lại đồ thị đã đồng bộ (không tạo bước Undo).
+ */
 export const WorkflowStudioPanel: React.FC = () => {
   const project = useEditor((s) => s.project)
   const selectedShotId = useEditor((s) => s.selectedShotId)
@@ -26,27 +42,15 @@ export const WorkflowStudioPanel: React.FC = () => {
   const currentTime = useEditor((s) => (Number.isFinite(s.time) ? s.time : 0))
   const setTime = useEditor((s) => s.setTime)
   const setPlaying = useEditor((s) => s.setPlaying)
-  const [shotScope, setShotScope] = useState<string>(() => normalizeWorkflowV2Scope(project, selectedShotId))
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem(SIDEBAR_KEY) === '1')
-  const scope = normalizeWorkflowV2Scope(project, shotScope)
+  const [follow, setFollow] = useState(() => localStorage.getItem(FOLLOW_KEY) !== '0')
+  const [focusedShotId, setFocusedShotId] = useState<string | null>(null)
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (selectedShotId && project.shots.some((s) => s.id === selectedShotId)) setShotScope(selectedShotId)
-  }, [selectedShotId, project.shots])
+  const workflow = useMemo(() => resolveWorkflowV2(project), [project])
+  const route = useMemo(() => computeShotRoute(project), [project])
+  const activeShotId = useActiveShotId()
 
-  const workflow = useMemo(() => resolveWorkflowForScope(project, scope), [project, scope])
-
-  // Ghi đồ thị dẫn xuất vào Project mà không tạo bước Undo (tránh vòng lặp hoàn tác bị kẹt)
-  useEffect(() => {
-    if (workflow === project.workflow) return
-    const needsPhysicsInit = !isWorkflowV2Graph(project.workflow) || workflowV2ScopeOf(project.workflow) !== scope
-    useEditor.getState().patchDerived((draft) => {
-      draft.workflow = workflow
-      if (needsPhysicsInit) applyWorkflowV2PhysicsNodes(draft as Project, workflow)
-    })
-  }, [workflow, project.workflow, scope])
-
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>('v2-root-scene')
   const selectNode = useCallback((id: string | null) => {
     setSelectedNodeId(id)
     if (id) window.dispatchEvent(new CustomEvent('pxs:wf-focus-node', { detail: { nodeId: id } }))
@@ -61,41 +65,50 @@ export const WorkflowStudioPanel: React.FC = () => {
     return () => window.removeEventListener('pxs:select-workflow-v2-node', onSelect)
   }, [selectNode])
 
-  // Chọn Layer ở Timeline / Viewport → chọn Node Layer tương ứng
+  // Chọn Layer ở Timeline / Viewport → chọn Node Layer tương ứng; chọn Cảnh ở bảng Cảnh → đi tới cụm cảnh đó
   useEffect(() => {
     if (!selectedLayerId) return
-    const layerNode = workflow.nodes.find(
-      (n) => resolveV2NodeLevel(n) === 'layer' && n.params?.targetLayerIds?.includes(selectedLayerId)
-    )
-    if (layerNode) setSelectedNodeId(layerNode.id)
+    const node = workflow.nodes.find((n) => resolveV2NodeLevel(n) === 'layer' && n.params?.targetLayerIds?.includes(selectedLayerId))
+    if (node) setSelectedNodeId(node.id)
   }, [selectedLayerId, workflow.nodes])
+  useEffect(() => {
+    if (!selectedShotId) return
+    setFocusedShotId(selectedShotId)
+    window.setTimeout(() => focusCluster(v2RootId(selectedShotId)), 60)
+  }, [selectedShotId])
+  useEffect(() => {
+    if (follow && activeShotId) setFocusedShotId(activeShotId)
+  }, [follow, activeShotId])
 
-  const actions = useWorkflowV2Actions(workflow, scope, selectedNodeId, setSelectedNodeId)
+  const actions = useWorkflowV2Actions(workflow, selectedNodeId, setSelectedNodeId)
   const selectedNode = workflow.nodes.find((n) => n.id === selectedNodeId) ?? null
   const spawnTarget = resolveV2SpawnTarget(workflow, selectedNodeId)
-  const scopeRange = useMemo(() => getShotTimeRange(project, resolveWorkflowV2ActiveShot(project, scope)), [project, scope])
-
-  const stats = useMemo(() => {
-    const levels = workflow.nodes.map(resolveV2NodeLevel)
-    return {
-      groups: levels.filter((l) => l === 'group').length,
-      layers: levels.filter((l) => l === 'layer').length,
+  const stats = useMemo(
+    () => ({
+      shots: project.shots.length,
+      layers: workflow.nodes.filter((n) => resolveV2NodeLevel(n) === 'layer').length,
       logic: workflow.nodes.filter((n) => resolveV2NodeLevel(n) === 'logic' && n.type !== 'camera_director').length
-    }
-  }, [workflow.nodes])
+    }),
+    [workflow.nodes, project.shots.length]
+  )
 
-  const handleSwitchScope = (next: string): void => {
-    setShotScope(next)
-    if (next !== '__all__') useEditor.getState().selectShot(next)
-    setSelectedNodeId('v2-root-scene')
+  const handleFocusShot = (shotId: string | null, rootId?: string): void => {
+    setFocusedShotId(shotId)
+    if (!shotId) {
+      window.dispatchEvent(new CustomEvent('pxs:wf-fit-view', { detail: { all: !rootId } }))
+      if (rootId) focusCluster(rootId)
+      return
+    }
+    const r = route.ranges.get(shotId)
+    if (r && !follow) setTime(r.start)
+    focusCluster(rootId ?? v2RootId(shotId))
   }
 
-  const toggleSidebar = (): void => {
-    setSidebarCollapsed((c) => {
-      localStorage.setItem(SIDEBAR_KEY, c ? '0' : '1')
+  const toggle = (key: string, setter: React.Dispatch<React.SetStateAction<boolean>>, on: string, off: string) => () =>
+    setter((c) => {
+      localStorage.setItem(key, c ? off : on)
       return !c
     })
-  }
 
   return (
     <div className="wf-studio-panel wf-v2-studio" data-mcp-region="timeline_workflow">
@@ -104,11 +117,11 @@ export const WorkflowStudioPanel: React.FC = () => {
         enabledNodeCount={workflow.nodes.filter((n) => n.enabled).length}
         totalNodeCount={workflow.nodes.length}
         stats={stats}
-        shots={project.shots}
-        scope={scope}
-        onSwitchScope={handleSwitchScope}
-        onRebuild={actions.rebuild}
-        onAutoLayout={actions.autoLayout}
+        shots={route.order.map((shot) => ({ shot, index: project.shots.findIndex((s) => s.id === shot.id) }))}
+        activeShotId={activeShotId}
+        focusedShotId={focusedShotId}
+        onFocusShot={(id) => handleFocusShot(id)}
+        onRelayout={() => actions.relayout(true)}
         onApplyAll={actions.applyAll}
       />
       <div className="wf-v2-body">
@@ -116,9 +129,14 @@ export const WorkflowStudioPanel: React.FC = () => {
           workflow={workflow}
           collapsed={sidebarCollapsed}
           selectedNodeId={selectedNodeId}
+          activeShotId={activeShotId}
           spawnTarget={spawnTarget}
-          onToggleCollapsed={toggleSidebar}
+          onToggleCollapsed={toggle(SIDEBAR_KEY, setSidebarCollapsed, '1', '0')}
           onSelectNode={selectNode}
+          onFocusShot={(shotId, rootId) => {
+            setSelectedNodeId(rootId)
+            handleFocusShot(shotId, rootId)
+          }}
           onToggleGroup={(id, collapsed) => actions.updateParams(id, { collapsedGroup: collapsed })}
           onSpawn={(cat) => spawnTarget && actions.attachLogic(spawnTarget.id, cat)}
         />
@@ -127,7 +145,9 @@ export const WorkflowStudioPanel: React.FC = () => {
           project={project}
           currentTime={currentTime}
           playing={playing}
-          scopeRange={scopeRange}
+          activeShotId={activeShotId}
+          follow={follow}
+          onToggleFollow={toggle(FOLLOW_KEY, setFollow, '1', '0')}
           selectedNodeId={selectedNodeId}
           onSelectNode={setSelectedNodeId}
           onSetTime={setTime}
@@ -149,6 +169,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           onToggleEnable={actions.toggleEnable}
           onDeleteNode={actions.deleteNode}
           onAttachLogic={actions.attachLogic}
+          onConnectLayer={(layerNodeId, logicNodeId) => actions.connect(layerNodeId, 'layers_tree', logicNodeId, 'layers_tree')}
           onScrubTime={setTime}
         />
       </div>

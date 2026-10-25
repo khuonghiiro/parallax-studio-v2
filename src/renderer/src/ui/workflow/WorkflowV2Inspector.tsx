@@ -22,7 +22,30 @@ export interface WorkflowV2InspectorProps {
   onToggleEnable: (nodeId: string) => void
   onDeleteNode: (nodeId: string) => void
   onAttachLogic: (layerNodeId: string, category: WorkflowV2SpawnCategory) => void
+  /** Nối thêm một Layer vào Node Logic (ví dụ chọn Layer B cho Node Va chạm) */
+  onConnectLayer: (layerNodeId: string, logicNodeId: string) => void
   onScrubTime: (t: number) => void
+}
+
+/** Chọn nhanh Layer B (cùng cảnh) cho Node Va chạm đang chờ — thay cho việc tự đoán đối tượng va chạm */
+const CollisionPartnerPicker: React.FC<{ workflow: WorkflowGraph; node: WorkflowNode; onPick: (layerNodeId: string) => void }> = ({ workflow, node, onPick }) => {
+  const linked = new Set(node.params?.sharedLayerNodeIds ?? [])
+  const candidates = workflow.nodes.filter(
+    (n) => n.type === 'layer_assembly' && !n.params?.groupKind && n.params?.shotId === node.params?.shotId && !linked.has(n.id)
+  )
+  if (candidates.length === 0) return <em className="wf-v2-hint">Cảnh này không còn Layer nào khác để làm Layer B.</em>
+  return (
+    <div className="wf-v2-partner">
+      <span className="wf-v2-hint">⚠ Chọn Layer B để va chạm có hiệu lực:</span>
+      <div className="wf-v2-chip-grid">
+        {candidates.slice(0, 10).map((c) => (
+          <button key={c.id} type="button" className="wf-v2-spawn-chip" onClick={() => onPick(c.id)} title={c.title}>
+            B · {cleanV2NodeTitle(c.title)}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 /** Ô nhập giây: gõ tự do, chỉ áp dụng khi Enter / rời ô, luôn kẹp trong [min, max] */
@@ -147,6 +170,9 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
             <div className="wf-v2-linked">
               {linked.length ? linked.map((name) => <span key={name}>{name}</span>) : <em>Chưa nối Layer nào — kéo dây từ một Layer vào Node này</em>}
             </div>
+            {node.params?.logicCategory === 'collision' && (node.params?.sharedLayerNodeIds?.length ?? 0) < 2 && (
+              <CollisionPartnerPicker workflow={workflow} node={node} onPick={(layerNodeId) => props.onConnectLayer(layerNodeId, node.id)} />
+            )}
           </section>
         )}
 
@@ -180,7 +206,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
           <section className="wf-v2-insp-sec">
             <p className="wf-v2-hint">
               {level === 'root'
-                ? 'Root tổng hợp phạm vi cảnh. Đổi phạm vi ở thanh công cụ; khoảng thời gian tự tính từ các Layer trong cảnh.'
+                ? 'Cảnh là một cụm trong không gian chung. Khoảng thời gian lấy theo lộ trình camera (giống dải "Cảnh đang quay" trên Timeline); dây Camera bên trái nối sang cảnh kế tiếp.'
                 : 'Bật/tắt nhóm sẽ ẩn/hiện mọi Layer con. Thu hẹp khoảng thời gian của nhóm sẽ cắt các Layer con vào trong khoảng đó.'}
             </p>
             {level === 'group' && (

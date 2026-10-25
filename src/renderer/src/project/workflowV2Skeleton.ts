@@ -1,0 +1,202 @@
+import type { Layer, Project, Shot, WorkflowEdge, WorkflowNode } from '@shared/types'
+import {
+  classifyLayerGroupKind,
+  collectRepresentativeLayers,
+  getLayerDisplayName,
+  getLayerX,
+  getLayerY,
+  getLayerZ
+} from './workflowV2Options'
+import { WF_V2_COL_X } from './workflowV2Layout'
+import {
+  V2_SHARED_CLUSTER,
+  computeShotRoute,
+  layerClusterKey,
+  resolveGroupTimeRange,
+  resolveLayerNodeTimeRange,
+  v2CameraId,
+  v2GroupId,
+  v2LayerNodeId,
+  v2RootId
+} from './workflowV2Scope'
+
+type GroupKind = 'group_3d' | 'group_25d' | 'group_env'
+type RepItem = ReturnType<typeof collectRepresentativeLayers>[number]
+
+const GROUP_TITLES: Record<GroupKind, string> = {
+  group_3d: 'Nhóm 3D & Lắp ráp',
+  group_25d: 'Nhóm Layer 2.5D',
+  group_env: 'Nhóm Không gian & Bầu trời'
+}
+
+export interface V2Skeleton {
+  nodes: WorkflowNode[]
+  edges: WorkflowEdge[]
+}
+
+interface ClusterCtx {
+  key: string
+  shot?: Shot
+  shotIndex: number
+  range: { start: number; end: number }
+  compDur: number
+}
+
+export function v2Edge(fromNode: string, toNode: string, port: WorkflowEdge['fromPort']): WorkflowEdge {
+  return { id: `e-${fromNode}-${toNode}`, fromNode, fromPort: port, toNode, toPort: port }
+}
+
+function rootNode(ctx: ClusterCtx, layerCount: number, project: Project): WorkflowNode {
+  const title = ctx.shot ? `#${ctx.shotIndex + 1} ${ctx.shot.name}` : project.shots.length ? 'Layer dùng chung' : 'Toàn dự án'
+  return {
+    id: v2RootId(ctx.key),
+    type: 'scene_shot',
+    title,
+    enabled: ctx.shot ? ctx.shot.visible !== false : true,
+    position: { x: WF_V2_COL_X.ROOT, y: 0 },
+    preset: 'deep_parallax_stage',
+    aiAgentRole: 'SceneLayoutAgent',
+    aiDirective: `Cảnh "${title}" [${ctx.range.start}s – ${ctx.range.end}s] điều phối Camera và các nhóm Layer.`,
+    params: { shotId: ctx.shot?.id, timeStart: ctx.range.start, timeEnd: ctx.range.end, childLayerCount: layerCount }
+  }
+}
+
+function cameraNode(ctx: ClusterCtx, project: Project): WorkflowNode {
+  const shot = ctx.shot!
+  return {
+    id: v2CameraId(shot.id),
+    type: 'camera_director',
+    title: `Camera · ${shot.name}`,
+    enabled: true,
+    position: { x: WF_V2_COL_X.ROOT, y: 0 },
+    preset: 'cinematic_fly_push',
+    aiAgentRole: 'CameraDirectorAgent',
+    aiDirective: `Camera quay cảnh "${shot.name}" trong [${ctx.range.start}s – ${ctx.range.end}s].`,
+    params: {
+      shotId: shot.id,
+      logicCategory: 'camera',
+      camPreset: 'dollyIn',
+      enableDof: Boolean(project.camera?.dofEnabled),
+      timeStart: ctx.range.start,
+      timeEnd: ctx.range.end,
+      hierarchyParentNodeId: v2RootId(ctx.key)
+    }
+  }
+}
+
+function groupNode(ctx: ClusterCtx, kind: GroupKind, items: RepItem[]): WorkflowNode {
+  const range = resolveGroupTimeRange(items.map((it) => it.layer), ctx.compDur, ctx.range)
+  return {
+    id: v2GroupId(kind, ctx.key),
+    type: 'layer_assembly',
+    title: GROUP_TITLES[kind],
+    enabled: items.some((it) => it.layer.visible !== false),
+    position: { x: WF_V2_COL_X.GROUP, y: 0 },
+    preset: 'character_prop_cluster',
+    aiAgentRole: 'AssemblyRigAgent',
+    aiDirective: `${GROUP_TITLES[kind]} gồm ${items.length} đối tượng.`,
+    params: {
+      shotId: ctx.shot?.id,
+      groupKind: kind,
+      isAssemblyRoot: true,
+      childLayerCount: items.length,
+      targetMode: 'custom',
+      targetLayerIds: items.flatMap((it) => it.memberIds),
+      timeStart: range.start,
+      timeEnd: range.end,
+      hierarchyParentNodeId: v2RootId(ctx.key)
+    }
+  }
+}
+
+export function layerNode(item: RepItem, groupId: string, compDur: number, shotId?: string): WorkflowNode {
+  const l: Layer = item.layer
+  const { start, end } = resolveLayerNodeTimeRange(l, compDur)
+  const title = getLayerDisplayName(l)
+  return {
+    id: v2LayerNodeId(l.id),
+    type: 'layer_assembly',
+    title,
+    enabled: l.visible !== false,
+    position: { x: WF_V2_COL_X.LAYER, y: 0 },
+    preset: 'character_prop_cluster',
+    aiAgentRole: 'AssemblyRigAgent',
+    aiDirective: `Layer "${title}" hoạt động từ ${start}s đến ${end}s.`,
+    params: {
+      shotId,
+      targetMode: 'custom',
+      targetLayerIds: item.memberIds,
+      requireLayerConnection: true,
+      assemblyKind: l.model3d ? 'model3d' : l.composite ? 'composite' : undefined,
+      childLayerCount: item.memberIds.length,
+      transformX: getLayerX(l),
+      transformY: getLayerY(l),
+      transformZ: getLayerZ(l),
+      timeStart: start,
+      timeEnd: end,
+      hierarchyParentNodeId: groupId
+    }
+  }
+}
+
+function groupItems(items: RepItem[]): [GroupKind, RepItem[]][] {
+  const by = (kind: GroupKind): RepItem[] => items.filter((it) => classifyLayerGroupKind(it.layer) === kind)
+  const list: [GroupKind, RepItem[]][] = [
+    ['group_3d', by('group_3d')],
+    ['group_25d', by('group_25d').sort((a, b) => getLayerZ(a.layer) - getLayerZ(b.layer))],
+    ['group_env', by('group_env').sort((a, b) => getLayerZ(b.layer) - getLayerZ(a.layer))]
+  ]
+  return list.filter(([, its]) => its.length > 0)
+}
+
+function buildCluster(project: Project, ctx: ClusterCtx, items: RepItem[], out: V2Skeleton): void {
+  const rootId = v2RootId(ctx.key)
+  out.nodes.push(rootNode(ctx, items.length, project))
+  if (ctx.shot) {
+    out.nodes.push(cameraNode(ctx, project))
+    out.edges.push(v2Edge(rootId, v2CameraId(ctx.shot.id), 'scene_ctx'))
+  }
+  for (const [kind, its] of groupItems(items)) {
+    const group = groupNode(ctx, kind, its)
+    out.nodes.push(group)
+    out.edges.push(v2Edge(rootId, group.id, 'scene_ctx'))
+    for (const it of its) {
+      out.nodes.push(layerNode(it, group.id, ctx.compDur, ctx.shot?.id))
+      out.edges.push(v2Edge(group.id, v2LayerNodeId(it.layer.id), 'layers_tree'))
+    }
+  }
+}
+
+/**
+ * Bộ khung cây suy ra 100% từ dữ liệu thật của Project: mỗi Cảnh (theo thứ tự camera đi qua) là một cụm
+ * Root → Camera / Nhóm → Layer; các Camera nối tiếp nhau bằng dây chuyển cảnh.
+ */
+export function buildV2Skeleton(project: Project): V2Skeleton {
+  const compDur = Math.max(1, project.comp.duration || 5)
+  const route = computeShotRoute(project)
+  const reps = collectRepresentativeLayers(project.layers)
+  const out: V2Skeleton = { nodes: [], edges: [] }
+  const sharedItems = reps.filter((it) => layerClusterKey(project, it.layer) === V2_SHARED_CLUSTER)
+  if (sharedItems.length > 0 || project.shots.length === 0) {
+    buildCluster(project, { key: V2_SHARED_CLUSTER, shotIndex: -1, range: { start: 0, end: compDur }, compDur }, sharedItems, out)
+  }
+  route.order.forEach((shot) => {
+    const ctx: ClusterCtx = {
+      key: shot.id,
+      shot,
+      shotIndex: project.shots.findIndex((s) => s.id === shot.id),
+      range: route.ranges.get(shot.id) ?? { start: 0, end: compDur },
+      compDur
+    }
+    buildCluster(project, ctx, reps.filter((it) => layerClusterKey(project, it.layer) === shot.id), out)
+  })
+  for (let i = 0; i + 1 < route.order.length; i++) {
+    const from = v2CameraId(route.order[i].id)
+    const to = v2CameraId(route.order[i + 1].id)
+    out.edges.push({ id: `e-camchain-${route.order[i].id}-${route.order[i + 1].id}`, fromNode: from, fromPort: 'camera_cut', toNode: to, toPort: 'camera_cut' })
+  }
+  return out
+}
+
+/** Dây nối Camera chuyển cảnh (chỉ hiển thị theo lộ trình camera, không nối tay) */
+export const isCameraChainEdge = (edge: WorkflowEdge): boolean => edge.id.startsWith('e-camchain-')
