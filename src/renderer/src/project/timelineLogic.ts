@@ -16,6 +16,14 @@ import {
 import { WORKFLOW_NODE_SPECS } from './workflowCatalog'
 import { getWorkflowNodePorts } from './workflowNodePorts'
 import { validateWorkflowConnection } from './workflowConnectionRules'
+import {
+  WORKFLOW_V2_COLLISION_OPTIONS,
+  WORKFLOW_V2_MATERIAL_OPTIONS,
+  attachLogicNodeToLayerV2,
+  layoutWorkflowV2Tree,
+  recomputeSharedLogicTargets,
+  syncWorkflowV2NodeToProject
+} from './workflowV2Engine'
 
 export interface TimelineLogicCategoryMeta {
   id: WorkflowLogicNodeCategory
@@ -273,6 +281,13 @@ function inferNodeCategory(
   catalogItem?: WorkflowLogicNodeCatalogItem
 ): WorkflowLogicNodeCategory {
   if (catalogItem) return catalogItem.category
+  const v2Cat = node.params?.logicCategory
+  if (v2Cat === 'action') return 'motion'
+  if (v2Cat === 'material' || v2Cat === 'collision') return 'physics'
+  if (v2Cat === 'light' || v2Cat === 'fx') return 'light_fx'
+  if (v2Cat === 'cave') return 'scene'
+  if (v2Cat === 'audio') return 'audio'
+  if (v2Cat === 'camera') return 'camera'
   switch (node.type) {
     case 'camera_director':
       return 'camera'
@@ -294,6 +309,72 @@ function inferNodeCategory(
   }
 }
 
+function getV2LogicDisplayMeta(node: WorkflowNode): { icon: string; shortTitle: string; accent: string } | null {
+  const v2Cat = node.params?.logicCategory
+  if (!v2Cat) return null
+  if (v2Cat === 'material') {
+    const matOpt = WORKFLOW_V2_MATERIAL_OPTIONS.find((m) => m.id === node.params?.materialTag)
+    const cleanMat = (matOpt?.shortLabel ?? node.title.replace(/^Vật liệu:\s*/i, '')).replace(
+      /^[^\w\p{L}]+\s*/u,
+      ''
+    )
+    return {
+      icon: '🏷️',
+      shortTitle: cleanMat,
+      accent: '#a855f7'
+    }
+  }
+  if (v2Cat === 'collision') {
+    const colOpt = WORKFLOW_V2_COLLISION_OPTIONS.find((c) => c.id === node.params?.collisionMode)
+    const count = Math.max(1, node.params?.sharedLayerNodeIds?.length ?? 1)
+    return {
+      icon: '💥',
+      shortTitle: `${(colOpt?.shortLabel ?? node.title).replace(/^Va chạm:\s*/i, '').replace(/^[^\w\p{L}]+\s*/u, '')} (${count}L)`,
+      accent: '#f43f5e'
+    }
+  }
+  if (v2Cat === 'action') {
+    return {
+      icon: '🏃',
+      shortTitle: node.title.replace(/^Hành động:\s*/i, ''),
+      accent: '#10b981'
+    }
+  }
+  if (v2Cat === 'cave') {
+    return {
+      icon: '🕳️',
+      shortTitle: node.title.replace(/^Hang động:\s*/i, ''),
+      accent: '#ec4899'
+    }
+  }
+  if (v2Cat === 'light') {
+    return {
+      icon: '💡',
+      shortTitle: node.title.replace(/^Ánh sáng:\s*/i, ''),
+      accent: '#f59e0b'
+    }
+  }
+  if (v2Cat === 'fx') {
+    return {
+      icon: '✨',
+      shortTitle: node.title.replace(/^Hiệu ứng:\s*/i, ''),
+      accent: '#06b6d4'
+    }
+  }
+  if (v2Cat === 'audio') {
+    return {
+      icon: '🔊',
+      shortTitle: node.title.replace(/^Âm thanh:\s*/i, ''),
+      accent: '#a855f7'
+    }
+  }
+  return {
+    icon: '🎥',
+    shortTitle: node.title,
+    accent: '#3b82f6'
+  }
+}
+
 function stripLeadingIcon(title: string, fallbackIcon: string): { icon: string; cleanTitle: string } {
   const trimmed = title.trim()
   const parts = trimmed.split(/\s+/)
@@ -304,7 +385,8 @@ function stripLeadingIcon(title: string, fallbackIcon: string): { icon: string; 
 }
 
 /**
- * Liệt kê các Node Logic trên Workflow đang áp dụng cho Layer hoặc Phân cảnh hiện tại.
+ * Liệt kê các Node Logic trên Workflow đang áp dụng cho Layer hoặc Phân cảnh hiện tại
+ * (hỗ trợ đồng bộ cả Workflow V1 và Cây phân cấp Workflow V2).
  */
 export function listTimelineLogicNodes(
   project: Project,
@@ -315,9 +397,21 @@ export function listTimelineLogicNodes(
   const activeIds = new Set(resolveConnectedWorkflowNodes(workflow).activeNodes.map((n) => n.id))
   const resolvedShotId = layer?.shotId || shotId || 'all'
   const matched = workflow.nodes.filter((node) => {
-    if (!node.params?.logicId) return false
-    if (layer) return resolveNodeTargetBinding(node, project, workflow).matchesLayer(layer)
-    return resolvedShotId === 'all' || node.params.shotId === 'all' || node.params.shotId === resolvedShotId
+    const isV2Logic = Boolean(node.params?.logicCategory)
+    const isV1Logic = Boolean(node.params?.logicId)
+    if (!isV2Logic && !isV1Logic) return false
+    if (layer) {
+      if (isV2Logic) {
+        return Boolean(node.params?.targetLayerIds?.includes(layer.id))
+      }
+      return resolveNodeTargetBinding(node, project, workflow).matchesLayer(layer)
+    }
+    return (
+      !node.params?.shotId ||
+      resolvedShotId === 'all' ||
+      node.params.shotId === 'all' ||
+      node.params.shotId === resolvedShotId
+    )
   })
 
   return matched.map((node) => {
@@ -325,10 +419,13 @@ export function listTimelineLogicNodes(
       ? WORKFLOW_LOGIC_NODE_CATALOG.find((item) => item.id === node.params?.logicId)
       : undefined
     const category = inferNodeCategory(node, catalogItem)
-    const categoryMeta = TIMELINE_LOGIC_CATEGORY_META[category]
+    const v2Meta = getV2LogicDisplayMeta(node)
+    const categoryMeta = v2Meta
+      ? { ...TIMELINE_LOGIC_CATEGORY_META[category], accent: v2Meta.accent }
+      : TIMELINE_LOGIC_CATEGORY_META[category]
     const parsed = stripLeadingIcon(
-      catalogItem?.shortLabel || node.title,
-      catalogItem?.icon || categoryMeta.icon
+      catalogItem?.shortLabel || v2Meta?.shortTitle || node.title,
+      catalogItem?.icon || v2Meta?.icon || categoryMeta.icon
     )
     return {
       node,
@@ -337,8 +434,8 @@ export function listTimelineLogicNodes(
       categoryMeta,
       connected: activeIds.has(node.id),
       enabled: node.enabled !== false,
-      icon: catalogItem?.icon || parsed.icon,
-      shortTitle: catalogItem?.shortLabel || parsed.cleanTitle
+      icon: catalogItem?.icon || v2Meta?.icon || parsed.icon,
+      shortTitle: catalogItem?.shortLabel || v2Meta?.shortTitle || parsed.cleanTitle
     }
   })
 }
@@ -353,8 +450,11 @@ export function getLayerTimelineLogicBadges(
 ): LayerTimelineLogicBadge[] {
   const badges: LayerTimelineLogicBadge[] = []
 
-  // 1. Huy hiệu từ các Node Logic trong Workflow áp dụng cho Layer này
+  // 1. Huy hiệu từ các Node Logic trong Workflow (V1 & V2) áp dụng cho Layer này
   const matchedNodes = workflow.nodes.filter((node) => {
+    if (node.params?.logicCategory) {
+      return Boolean(node.params?.targetLayerIds?.includes(layer.id))
+    }
     if (!node.params?.logicId) return false
     return resolveNodeTargetBinding(node, project, workflow).matchesLayer(layer)
   })
@@ -364,16 +464,20 @@ export function getLayerTimelineLogicBadges(
       ? WORKFLOW_LOGIC_NODE_CATALOG.find((item) => item.id === node.params?.logicId)
       : undefined
     const category = inferNodeCategory(node, catalogItem)
+    const v2Meta = getV2LogicDisplayMeta(node)
     const meta = TIMELINE_LOGIC_CATEGORY_META[category]
-    const parsed = stripLeadingIcon(catalogItem?.shortLabel || node.title, meta.icon)
+    const parsed = stripLeadingIcon(
+      catalogItem?.shortLabel || v2Meta?.shortTitle || node.title,
+      v2Meta?.icon || meta.icon
+    )
     badges.push({
       id: `wf-${node.id}`,
       kind: 'workflow_node',
       category,
-      icon: catalogItem?.icon || parsed.icon,
-      label: catalogItem?.shortLabel || parsed.cleanTitle,
+      icon: catalogItem?.icon || v2Meta?.icon || parsed.icon,
+      label: catalogItem?.shortLabel || v2Meta?.shortTitle || parsed.cleanTitle,
       tooltip: `Node Logic: ${node.title} ${node.enabled ? '' : '[Đã tắt]'} — Click để cấu hình`,
-      accent: meta.accent,
+      accent: v2Meta?.accent || meta.accent,
       enabled: node.enabled !== false,
       nodeId: node.id
     })
@@ -396,7 +500,7 @@ export function getLayerTimelineLogicBadges(
 }
 
 /**
- * Bật / tắt nhanh một Node Logic ngay từ thanh Timeline và đồng bộ vào cảnh.
+ * Bật / tắt nhanh một Node Logic ngay từ thanh Timeline và đồng bộ vào cảnh (hỗ trợ cả V1 và V2).
  */
 export function toggleTimelineLogicNode(project: Project, nodeId: string): boolean {
   const baseWf = ensureProjectWorkflow(isDraft(project) ? current(project) : project)
@@ -407,19 +511,45 @@ export function toggleTimelineLogicNode(project: Project, nodeId: string): boole
     ...structuredClone(baseWf),
     nodes: baseWf.nodes.map((n) => (n.id === nodeId ? { ...n, enabled: nextEnabled } : { ...n }))
   }
+  if (baseWf.presetId === 'v2_scene_hierarchy') {
+    project.workflow = nextGraph
+    const updatedNode = nextGraph.nodes.find((n) => n.id === nodeId)
+    if (updatedNode) {
+      syncWorkflowV2NodeToProject(project, updatedNode)
+    }
+    return nextEnabled
+  }
   applyWorkflowToProject(project, nextGraph)
   return nextEnabled
 }
 
 /**
- * Xoá một Node Logic khỏi luồng xử lý ngay từ thanh Timeline.
+ * Xoá một Node Logic khỏi luồng xử lý ngay từ thanh Timeline (hỗ trợ cả V1 và V2).
  */
 export function removeTimelineLogicNode(project: Project, nodeId: string): void {
   const baseWf = ensureProjectWorkflow(isDraft(project) ? current(project) : project)
+  const target = baseWf.nodes.find((n) => n.id === nodeId)
+  const remainEdges = baseWf.edges.filter((e) => e.fromNode !== nodeId && e.toNode !== nodeId)
+  const remainNodes = baseWf.nodes.filter((n) => n.id !== nodeId)
+
+  if (baseWf.presetId === 'v2_scene_hierarchy') {
+    if (target) {
+      syncWorkflowV2NodeToProject(project, { ...target, enabled: false })
+    }
+    const synced = recomputeSharedLogicTargets(remainNodes, remainEdges)
+    const laidOut = layoutWorkflowV2Tree(synced, remainEdges)
+    project.workflow = {
+      ...structuredClone(baseWf),
+      nodes: laidOut,
+      edges: remainEdges
+    }
+    return
+  }
+
   const nextGraph: WorkflowGraph = {
     ...structuredClone(baseWf),
-    nodes: baseWf.nodes.filter((n) => n.id !== nodeId),
-    edges: baseWf.edges.filter((e) => e.fromNode !== nodeId && e.toNode !== nodeId)
+    nodes: remainNodes,
+    edges: remainEdges
   }
   applyWorkflowToProject(project, nextGraph)
 }
@@ -475,6 +605,43 @@ export function addTimelineLogic(
     throw new Error('Cảnh không còn tồn tại.')
   }
   let graph = structuredClone(ensureProjectWorkflow(isDraft(project) ? current(project) : project))
+  if (graph.presetId === 'v2_scene_hierarchy') {
+    const targetLayerNode =
+      (layer
+        ? graph.nodes.find(
+            (n) =>
+              n.type === 'layer_assembly' &&
+              !n.params?.groupKind &&
+              n.params?.targetLayerIds?.includes(layer.id)
+          )
+        : undefined) ??
+      graph.nodes.find((n) => n.type === 'layer_assembly' && !n.params?.groupKind)
+    if (targetLayerNode) {
+      const catItem = WORKFLOW_LOGIC_NODE_CATALOG.find((x) => x.id === logicId)
+      const lowerId = logicId.toLowerCase()
+      const v2Cat: 'action' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio' =
+        lowerId.includes('collision') || lowerId.includes('punch') || lowerId.includes('bounce')
+          ? 'collision'
+          : lowerId.includes('material') || catItem?.category === 'physics'
+            ? 'material'
+            : lowerId.includes('cave') || catItem?.category === 'scene'
+              ? 'cave'
+              : catItem?.category === 'light_fx'
+                ? 'light'
+                : catItem?.category === 'audio'
+                  ? 'audio'
+                  : catItem?.category === 'motion'
+                    ? 'action'
+                    : 'fx'
+      const res = attachLogicNodeToLayerV2(graph, targetLayerNode.id, v2Cat)
+      project.workflow = res.workflow
+      const created = res.workflow.nodes.find((n) => n.id === res.createdNodeId)
+      if (created) {
+        syncWorkflowV2NodeToProject(project, created)
+      }
+      return res.createdNodeId
+    }
+  }
   const column = Math.max(0, ...graph.nodes.map((item) => item.position.x)) + 360
   const result = spawnLogicNodeIntoWorkflow(graph, logicId, shotId, { autoConnect: false })
   graph = result.workflow

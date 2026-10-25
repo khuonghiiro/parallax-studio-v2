@@ -5,11 +5,9 @@ import type {
   Project,
   Shot,
   VirtualLightKind,
-  WorkflowCollisionMode,
   WorkflowEdge,
   WorkflowGraph,
-  WorkflowNode,
-  WorkflowNodeParams
+  WorkflowNode
 } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
 import {
@@ -20,6 +18,11 @@ import {
   recomputeSharedLogicTargets,
   validateWorkflowV2Connection
 } from './workflowV2PhysicsAndValidation'
+import {
+  attachLogicNodeToLayerV2,
+  reconcileWorkflowV2WithProject,
+  syncWorkflowV2NodeToProject
+} from './workflowV2Mutations'
 
 export {
   WORKFLOW_V2_COLLISION_OPTIONS,
@@ -27,7 +30,10 @@ export {
   applyCollisionNodeToProject,
   applyMaterialNodeToProject,
   recomputeSharedLogicTargets,
-  validateWorkflowV2Connection
+  validateWorkflowV2Connection,
+  attachLogicNodeToLayerV2,
+  syncWorkflowV2NodeToProject,
+  reconcileWorkflowV2WithProject
 }
 
 export const WF_V2_COL_X = {
@@ -167,7 +173,7 @@ export function classifyLayerGroupKind(layer: Layer): 'group_3d' | 'group_25d' |
 
 /** Suy luận nhãn vật liệu vật lý phù hợp cho một Layer dựa trên cấu hình vật lý sẵn có hoặc tên Layer */
 function inferLayerMaterialTag(layer: Layer, displayTitle: string): LayerPhysicsMaterial | null {
-  if (layer.physics?.material) return layer.physics.material
+  if (layer.physics?.material && layer.physics.material !== 'none') return layer.physics.material
   const lower = displayTitle.toLowerCase()
   if (lower.includes('dây leo') || lower.includes('lá') || lower.includes('bụi') || lower.includes('cỏ')) {
     return 'foliage_bush'
@@ -188,7 +194,7 @@ function inferLayerMaterialTag(layer: Layer, displayTitle: string): LayerPhysics
 }
 
 /** Gom các layer mảnh con của cùng một Composite/Model3D thành đại diện duy nhất để cây gọn sạch */
-function collectRepresentativeLayers(layers: Layer[]): {
+export function collectRepresentativeLayers(layers: Layer[]): {
   layer: Layer
   memberIds: string[]
   isCluster: boolean
@@ -358,7 +364,6 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
       toPort: 'scene_ctx'
     })
 
-    // Bộ nhớ tái sử dụng Node Logic dùng chung trong cùng Group (Shared Node Reuse)
     const sharedActionNodes = new Map<string, WorkflowNode>()
     const sharedMaterialNodes = new Map<LayerPhysicsMaterial, WorkflowNode>()
     const createdLayerNodeIds: string[] = []
@@ -416,7 +421,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
         lowerName.includes('di tích') ||
         lowerName.includes('hầm')
 
-      // 4a. Node Hành động (Motion / Action) — Tự động tái sử dụng nếu cùng preset trong Group
+      // 4a. Node Hành động (Motion / Action)
       const hasExplicitMotion = Boolean(l.motion && l.motion.type !== 'none' && l.motion.enabled !== false)
       const shouldCreateAction =
         hasExplicitMotion ||
@@ -490,7 +495,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
         }
       }
 
-      // 4b. Node Nhãn Vật liệu (Material Tag) — Gắn nhãn chất liệu để định hình biến dạng khi va chạm
+      // 4b. Node Nhãn Vật liệu (Material Tag)
       const matTag = inferLayerMaterialTag(l, displayTitle)
       if (matTag && grp.kind !== 'group_env') {
         const existingMatNode = sharedMaterialNodes.get(matTag)
@@ -687,7 +692,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
       }
     })
 
-    // 4f. Nếu Group 2.5D hoặc 3D có từ 2 Layer trở lên, tạo sẵn 1 Node Va chạm Vật lý liên kết 2 Layer đầu tiên
+    // 4f. Nếu Group 2.5D có từ 2 Layer trở lên, tạo sẵn 1 Node Va chạm Vật lý liên kết 2 Layer đầu tiên
     if (grp.kind === 'group_25d' && grp.items.length >= 2) {
       const itemA = grp.items[0]
       const itemB = grp.items[1]
@@ -695,8 +700,12 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
       const layerNodeB = createdLayerNodeIds[1]
       const colOpt = WORKFLOW_V2_COLLISION_OPTIONS[0]
       const colNodeId = `v2-collision-${grp.id}`
-      const colStart = Number(Math.max(shotStart, (shotStart + (shotEnd - shotStart) * 0.2).toFixed(2) as unknown as number).toFixed(2))
-      const colEnd = Number(Math.min(shotEnd, (shotStart + (shotEnd - shotStart) * 0.85).toFixed(2) as unknown as number).toFixed(2))
+      const colStart = Number(
+        Math.max(shotStart, Number((shotStart + (shotEnd - shotStart) * 0.2).toFixed(2))).toFixed(2)
+      )
+      const colEnd = Number(
+        Math.min(shotEnd, Number((shotStart + (shotEnd - shotStart) * 0.85).toFixed(2))).toFixed(2)
+      )
       nodes.push({
         id: colNodeId,
         type: 'physics_fx',
@@ -806,7 +815,6 @@ export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[
     layerCursorY = groupStartY
     for (const layerNode of layerChildren) {
       const layerH = estimateV2NodeHeight(layerNode)
-      // Đếm số Node Logic gắn với Layer này để dành đủ khoảng trống dọc cho Cột 4 không bị chồng lấn
       const attachedLogics = edges
         .filter((e) => e.fromNode === layerNode.id)
         .map((e) => byId.get(e.toNode))
@@ -834,7 +842,7 @@ export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[
     layerCursorY += GROUP_GAP_Y - GAP_Y
   }
 
-  // Xếp vị trí Cột 4 (Các Node Logic) thẳng hàng tại WF_V2_COL_X.LOGIC để dây nối luôn đi trong kênh 156px, không bao giờ cắt ngang qua thẻ khác
+  // Xếp vị trí Cột 4 (Các Node Logic) thẳng hàng tại WF_V2_COL_X.LOGIC
   const logicNodes = cloned.filter(
     (n) => n.type !== 'scene_shot' && n.type !== 'camera_director' && n.type !== 'layer_assembly'
   )
@@ -856,7 +864,6 @@ export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[
     byParentSig.set(sig, list)
   }
 
-  // Căn giữa cụm Logic của cùng 1 Layer quanh Y của Layer đó
   for (const [, siblingLogics] of byParentSig.entries()) {
     if (siblingLogics.length <= 1) continue
     const center = desiredYMap.get(siblingLogics[0].id) ?? 100
@@ -890,472 +897,4 @@ export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[
     })
   }
   return cloned
-}
-
-/**
- * Gắn thêm hoặc tái sử dụng một Node Logic (Hành động, Vật liệu, Va chạm, Ánh sáng, Hang động, Hiệu ứng, Âm thanh)
- * vào một Node Layer, có kiểm tra chống trùng lặp logic trên cùng 1 Layer.
- */
-export function attachLogicNodeToLayerV2(
-  workflow: WorkflowGraph,
-  layerNodeId: string,
-  category: 'action' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio'
-): { workflow: WorkflowGraph; createdNodeId: string; reusedExisting?: boolean; message?: string } {
-  const layerNode = workflow.nodes.find((n) => n.id === layerNodeId)
-  if (!layerNode) {
-    return { workflow, createdNodeId: '', message: 'Không tìm thấy Node Layer mục tiêu.' }
-  }
-  const layerName = layerNode.title ?? 'Layer'
-
-  // 1. KIỂM TRA CHỐNG TRÙNG LOGIC TRÊN CÙNG 1 LAYER
-  const existingSameCategoryNode = workflow.edges
-    .filter((e) => e.fromNode === layerNodeId)
-    .map((e) => workflow.nodes.find((n) => n.id === e.toNode))
-    .find((n) => n && n.params?.logicCategory === category)
-
-  if (existingSameCategoryNode) {
-    return {
-      workflow,
-      createdNodeId: existingSameCategoryNode.id,
-      reusedExisting: true,
-      message: `Layer "${layerName}" đã có sẵn "${existingSameCategoryNode.title}". Đã chọn trực tiếp Node này để tránh trùng logic!`
-    }
-  }
-
-  // 2. NẾU LÀ NODE VA CHẠM: Ưu tiên ghép đôi vào một Node Va chạm đang chờ Layer thứ 2
-  if (category === 'collision') {
-    const openCollisionNode = workflow.nodes.find(
-      (n) =>
-        n.params?.logicCategory === 'collision' &&
-        (n.params?.sharedLayerNodeIds?.length ?? 0) < 2 &&
-        !workflow.edges.some((e) => e.fromNode === layerNodeId && e.toNode === n.id)
-    )
-    if (openCollisionNode) {
-      const nextEdges: WorkflowEdge[] = [
-        ...workflow.edges,
-        {
-          id: `e-${layerNodeId}-${openCollisionNode.id}`,
-          fromNode: layerNodeId,
-          fromPort: 'layers_tree',
-          toNode: openCollisionNode.id,
-          toPort: 'layers_tree'
-        }
-      ]
-      const synced = recomputeSharedLogicTargets(workflow.nodes, nextEdges)
-      const laidOut = layoutWorkflowV2Tree(synced, nextEdges)
-      return {
-        workflow: { ...workflow, nodes: laidOut, edges: nextEdges },
-        createdNodeId: openCollisionNode.id,
-        reusedExisting: true,
-        message: `Đã ghép "${layerName}" làm đối tượng va chạm thứ 2 vào "${openCollisionNode.title}"!`
-      }
-    }
-  }
-
-  const targetLayerIds = layerNode.params?.targetLayerIds ?? []
-  const tStart = layerNode.params?.timeStart ?? 0
-  const tEnd = layerNode.params?.timeEnd ?? 5
-  const shotId = layerNode.params?.shotId ?? workflow.targetShotId
-  const suffix = `${Date.now().toString(36).slice(-4)}`
-  const createdNodeId = `v2-${category}-${suffix}`
-  let newNode: WorkflowNode
-  const extraEdges: WorkflowEdge[] = []
-
-  if (category === 'action') {
-    const opt = WORKFLOW_V2_ACTION_OPTIONS[0]
-    newNode = {
-      id: createdNodeId,
-      type: 'motion_choreography',
-      title: `Hành động: ${opt.label}`,
-      enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
-      preset: 'organic_wind_breathe',
-      aiAgentRole: 'MotionChoreographyAgent',
-      aiDirective: `Thực thi hành động "${opt.label}" cho "${layerName}" từ ${tStart}s đến ${tEnd}s.`,
-      params: {
-        shotId,
-        logicCategory: 'action',
-        actionPreset: opt.id,
-        targetMode: 'custom',
-        targetLayerIds,
-        sharedLayerNodeIds: [layerNodeId],
-        requireLayerConnection: true,
-        intensity: opt.defaultAmount,
-        timeStart: tStart,
-        timeEnd: tEnd,
-        hierarchyParentNodeId: layerNodeId
-      }
-    }
-  } else if (category === 'material') {
-    const opt = WORKFLOW_V2_MATERIAL_OPTIONS[0]
-    newNode = {
-      id: createdNodeId,
-      type: 'physics_fx',
-      title: `Vật liệu: ${opt.label}`,
-      enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
-      preset: 'rim_glow_particles',
-      aiAgentRole: 'PhysicsLightFxAgent',
-      aiDirective: `Gắn nhãn vật liệu "${opt.label}" (${opt.deformDesc}) cho "${layerName}".`,
-      params: {
-        shotId,
-        logicCategory: 'material',
-        materialTag: opt.id,
-        materialStiffness: opt.defaultStiffness,
-        materialBounciness: opt.defaultBounciness,
-        materialGravity: opt.defaultGravity,
-        targetMode: 'custom',
-        targetLayerIds,
-        sharedLayerNodeIds: [layerNodeId],
-        requireLayerConnection: true,
-        intensity: opt.defaultBounciness,
-        timeStart: tStart,
-        timeEnd: tEnd,
-        hierarchyParentNodeId: layerNodeId
-      }
-    }
-  } else if (category === 'collision') {
-    const opt = WORKFLOW_V2_COLLISION_OPTIONS[0]
-    // Tìm Layer thứ 2 trong cùng Group (hoặc trong cảnh) để tự động nối cặp va chạm 2 Layer
-    const partnerLayerNode = workflow.nodes.find(
-      (n) =>
-        n.type === 'layer_assembly' &&
-        !n.params?.groupKind &&
-        n.id !== layerNodeId &&
-        n.params?.hierarchyParentNodeId === layerNode.params?.hierarchyParentNodeId
-    ) ??
-      workflow.nodes.find(
-        (n) => n.type === 'layer_assembly' && !n.params?.groupKind && n.id !== layerNodeId
-      )
-    const partnerLayerIds = partnerLayerNode?.params?.targetLayerIds ?? []
-    newNode = {
-      id: createdNodeId,
-      type: 'physics_fx',
-      title: `Va chạm: ${opt.label}`,
-      enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
-      preset: 'rim_glow_particles',
-      aiAgentRole: 'PhysicsLightFxAgent',
-      aiDirective: `Mô phỏng va chạm vật lý "${opt.label}" từ ${tStart}s đến ${tEnd}s.`,
-      params: {
-        shotId,
-        logicCategory: 'collision',
-        collisionMode: opt.id,
-        collisionForce: opt.defaultForce,
-        deformIntensity: opt.defaultDeform,
-        strikerLayerId: targetLayerIds[0],
-        targetColliderLayerId: partnerLayerIds[0],
-        targetMode: 'custom',
-        targetLayerIds: [...targetLayerIds, ...partnerLayerIds],
-        sharedLayerNodeIds: partnerLayerNode ? [layerNodeId, partnerLayerNode.id] : [layerNodeId],
-        requireLayerConnection: true,
-        intensity: opt.defaultForce,
-        timeStart: tStart,
-        timeEnd: tEnd,
-        hierarchyParentNodeId: layerNodeId
-      }
-    }
-    if (partnerLayerNode) {
-      extraEdges.push({
-        id: `e-${partnerLayerNode.id}-${createdNodeId}`,
-        fromNode: partnerLayerNode.id,
-        fromPort: 'layers_tree',
-        toNode: createdNodeId,
-        toPort: 'layers_tree'
-      })
-    }
-  } else if (category === 'light') {
-    const opt = WORKFLOW_V2_LIGHT_OPTIONS[0]
-    newNode = {
-      id: createdNodeId,
-      type: 'physics_fx',
-      title: `Ánh sáng: ${opt.label}`,
-      enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
-      preset: 'rim_glow_particles',
-      aiAgentRole: 'PhysicsLightFxAgent',
-      aiDirective: `Chiếu sáng "${opt.label}" cho "${layerName}" từ ${tStart}s đến ${tEnd}s.`,
-      params: {
-        shotId,
-        logicCategory: 'light',
-        lightMode: opt.id,
-        lightColor: opt.defaultColor,
-        targetMode: 'custom',
-        targetLayerIds,
-        sharedLayerNodeIds: [layerNodeId],
-        requireLayerConnection: true,
-        intensity: opt.defaultIntensity,
-        timeStart: tStart,
-        timeEnd: tEnd,
-        hierarchyParentNodeId: layerNodeId
-      }
-    }
-  } else if (category === 'cave') {
-    const opt = WORKFLOW_V2_CAVE_OPTIONS[0]
-    newNode = {
-      id: createdNodeId,
-      type: 'physics_fx',
-      title: `Hang động: ${opt.label}`,
-      enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
-      preset: 'rim_glow_particles',
-      aiAgentRole: 'PhysicsLightFxAgent',
-      aiDirective: `Tạo vùng độ sâu cửa hang "${opt.label}" trên "${layerName}" từ ${tStart}s đến ${tEnd}s.`,
-      params: {
-        shotId,
-        logicCategory: 'cave',
-        caveArchShape: opt.id,
-        caveDarkness: opt.defaultDarkness,
-        caveMinScale: opt.defaultMinScale,
-        targetMode: 'custom',
-        targetLayerIds,
-        sharedLayerNodeIds: [layerNodeId],
-        requireLayerConnection: true,
-        intensity: opt.defaultDarkness,
-        timeStart: tStart,
-        timeEnd: tEnd,
-        hierarchyParentNodeId: layerNodeId
-      }
-    }
-  } else if (category === 'fx') {
-    const opt = WORKFLOW_V2_FX_OPTIONS[0]
-    newNode = {
-      id: createdNodeId,
-      type: 'physics_fx',
-      title: `Hiệu ứng: ${opt.label}`,
-      enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
-      preset: 'rim_glow_particles',
-      aiAgentRole: 'PhysicsLightFxAgent',
-      aiDirective: `Áp dụng hiệu ứng "${opt.label}" cho "${layerName}" từ ${tStart}s đến ${tEnd}s.`,
-      params: {
-        shotId,
-        logicCategory: 'fx',
-        fxKind: opt.id,
-        targetMode: 'custom',
-        targetLayerIds,
-        sharedLayerNodeIds: [layerNodeId],
-        requireLayerConnection: true,
-        intensity: opt.defaultIntensity,
-        timeStart: tStart,
-        timeEnd: tEnd,
-        hierarchyParentNodeId: layerNodeId
-      }
-    }
-  } else {
-    newNode = {
-      id: createdNodeId,
-      type: 'audio_lipsync',
-      title: `Âm thanh: ${layerName}`,
-      enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
-      preset: 'auto_dialogue_lipsync',
-      aiAgentRole: 'AudioLipSyncAgent',
-      aiDirective: `Phát âm thanh / nhép môi cho "${layerName}" từ ${tStart}s đến ${tEnd}s.`,
-      params: {
-        shotId,
-        logicCategory: 'audio',
-        targetMode: 'custom',
-        targetLayerIds,
-        sharedLayerNodeIds: [layerNodeId],
-        requireLayerConnection: true,
-        intensity: 1.0,
-        autoLipSync: true,
-        timeStart: tStart,
-        timeEnd: tEnd,
-        hierarchyParentNodeId: layerNodeId
-      }
-    }
-  }
-
-  const nextEdges: WorkflowEdge[] = [
-    ...workflow.edges,
-    {
-      id: `e-${layerNodeId}-${createdNodeId}`,
-      fromNode: layerNodeId,
-      fromPort: 'layers_tree',
-      toNode: createdNodeId,
-      toPort: 'layers_tree'
-    },
-    ...extraEdges
-  ]
-  const syncedNodes = recomputeSharedLogicTargets([...workflow.nodes, newNode], nextEdges)
-  const nextNodes = layoutWorkflowV2Tree(syncedNodes, nextEdges)
-  return {
-    workflow: {
-      ...workflow,
-      nodes: nextNodes,
-      edges: nextEdges
-    },
-    createdNodeId
-  }
-}
-
-/**
- * Đồng bộ trực tiếp thay đổi trên một Node V2 xuống dữ liệu Project thực tế
- * (bao gồm Node Nhãn Vật liệu và Node Va chạm Vật lý 2 Layer).
- */
-export function syncWorkflowV2NodeToProject(
-  project: Project,
-  node: WorkflowNode,
-  patch?: Partial<WorkflowNodeParams>
-): void {
-  const params: WorkflowNodeParams = { ...(node.params ?? {}), ...(patch ?? {}) }
-  const mergedNode: WorkflowNode = { ...node, params }
-  const targetIds = new Set(params.targetLayerIds ?? [])
-  const tStart = params.timeStart
-  const tEnd = params.timeEnd
-
-  // 1. Node Layer hoặc Group Layer
-  if (node.type === 'layer_assembly') {
-    for (const l of project.layers) {
-      if (!targetIds.has(l.id)) continue
-      l.visible = node.enabled
-      if (typeof tStart === 'number' && Number.isFinite(tStart)) l.inPoint = Math.max(0, tStart)
-      if (typeof tEnd === 'number' && Number.isFinite(tEnd) && tEnd > (l.inPoint ?? 0)) l.outPoint = tEnd
-      if (!params.groupKind && l.transform?.position?.value) {
-        const curPos = l.transform.position.value
-        const nx = typeof params.transformX === 'number' ? params.transformX : curPos[0]
-        const ny = typeof params.transformY === 'number' ? params.transformY : curPos[1]
-        const nz = typeof params.transformZ === 'number' ? params.transformZ : curPos[2]
-        l.transform.position.value = [nx, ny, nz]
-      }
-    }
-    return
-  }
-
-  // 2. Node Nhãn Vật liệu (Material Tag)
-  if (params.logicCategory === 'material') {
-    applyMaterialNodeToProject(project, mergedNode)
-    return
-  }
-
-  // 3. Node Va chạm Vật lý (2-Layer Collision Physics)
-  if (params.logicCategory === 'collision') {
-    applyCollisionNodeToProject(project, project.workflow, mergedNode)
-    return
-  }
-
-  // 4. Node Hành động (Motion / Action)
-  if (node.type === 'motion_choreography' || params.logicCategory === 'action') {
-    const actOpt =
-      WORKFLOW_V2_ACTION_OPTIONS.find((o) => o.id === params.actionPreset) ?? WORKFLOW_V2_ACTION_OPTIONS[0]
-    for (const l of project.layers) {
-      if (!targetIds.has(l.id)) continue
-      if (!node.enabled) {
-        l.motion = { enabled: false, type: 'none', speed: 1, amount: 0 }
-      } else {
-        const startSec = tStart ?? l.inPoint ?? 0
-        const endSec = tEnd ?? l.outPoint ?? project.comp.duration
-        l.motion = {
-          enabled: true,
-          type: actOpt.motionType,
-          speed: actOpt.defaultSpeed,
-          amount: Math.max(0.1, Math.min(2.0, params.intensity ?? actOpt.defaultAmount)),
-          startTime: startSec,
-          duration: Math.max(0.1, Number((endSec - startSec).toFixed(2)))
-        }
-      }
-    }
-    return
-  }
-
-  // 5. Node Hang động / Vùng độ sâu (Cave Depth Portal)
-  if (params.logicCategory === 'cave') {
-    const archShape = params.caveArchShape ?? 'arch'
-    const darkness = Math.max(0.1, Math.min(1.0, params.caveDarkness ?? params.intensity ?? 0.82))
-    const minScale = params.caveMinScale ?? 0.38
-    for (const l of project.layers) {
-      if (!targetIds.has(l.id)) continue
-      l.physics = {
-        ...(l.physics ?? { enabled: true, material: 'stone_wall' }),
-        enabled: node.enabled,
-        colliderZone: 'cave_portal',
-        depthPortal: {
-          enabled: node.enabled,
-          centerUV: [0.5, 0.45],
-          radiusUV: [0.35, 0.35],
-          minScale,
-          darkness,
-          shadowTint: '#060812',
-          depthPullZ: 140,
-          archShape,
-          feather: 0.55
-        }
-      }
-    }
-    return
-  }
-
-  // 6. Node Ánh sáng (Light)
-  if (params.logicCategory === 'light') {
-    const color = params.lightColor || '#38bdf8'
-    const intensity = params.intensity ?? 1.3
-    const mode = params.lightMode || 'rim'
-    const lightOpt =
-      WORKFLOW_V2_LIGHT_OPTIONS.find((o) => o.id === mode) ?? WORKFLOW_V2_LIGHT_OPTIONS[0]
-    for (const l of project.layers) {
-      if (!targetIds.has(l.id)) continue
-      const startSec = tStart ?? l.inPoint ?? 0
-      const endSec = tEnd ?? l.outPoint ?? project.comp.duration
-      if (mode === 'glow' || mode === 'rim') {
-        l.glow = {
-          enabled: node.enabled,
-          color,
-          intensity: Math.min(3, intensity),
-          thickness: 12,
-          startTime: startSec,
-          duration: Math.max(0.1, Number((endSec - startSec).toFixed(2)))
-        }
-      }
-      l.virtualLight = {
-        enabled: node.enabled,
-        kind: lightOpt.virtualKind,
-        color,
-        intensity,
-        radius: 460,
-        originUV: [0.5, 0.5],
-        zReach: 320
-      }
-    }
-    return
-  }
-
-  // 7. Node Hiệu ứng & Vật lý (FX)
-  if (params.logicCategory === 'fx') {
-    const fxKind = params.fxKind || 'wind_physics'
-    const intensity = params.intensity ?? 1.0
-    for (const l of project.layers) {
-      if (!targetIds.has(l.id)) continue
-      if (fxKind === 'wind_physics') {
-        l.physics = {
-          ...(l.physics ?? { material: 'foliage_bush' }),
-          enabled: node.enabled,
-          material: l.physics?.material ?? 'foliage_bush',
-          stiffness: 0.8 * intensity,
-          damping: 0.35,
-          bounciness: 0.9 * intensity
-        }
-      } else {
-        const startSec = tStart ?? l.inPoint ?? 0
-        const endSec = tEnd ?? l.outPoint ?? project.comp.duration
-        l.glow = {
-          enabled: node.enabled,
-          color: fxKind === 'chromatic' ? '#a855f7' : '#38bdf8',
-          intensity: Math.min(3, intensity * 1.4),
-          thickness: 10,
-          startTime: startSec,
-          duration: Math.max(0.1, Number((endSec - startSec).toFixed(2)))
-        }
-      }
-    }
-    return
-  }
-
-  // 8. Node Camera 3D
-  if (node.type === 'camera_director' || params.logicCategory === 'camera') {
-    if (project.camera && typeof params.enableDof === 'boolean') {
-      project.camera.dofEnabled = params.enableDof
-    }
-  }
 }

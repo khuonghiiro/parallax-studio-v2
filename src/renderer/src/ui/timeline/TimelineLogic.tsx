@@ -44,6 +44,20 @@ export function TimelineLogic() {
 
   const editingNode = workflow.nodes.find((item) => item.id === editingNodeId) ?? null
 
+  const openOrFocusLogicNode = (nodeId: string) => {
+    const target = workflow.nodes.find((n) => n.id === nodeId)
+    if (nodeId.startsWith('v2-') || Boolean(target?.params?.logicCategory)) {
+      useView.getState().setTimelineTab('workflow')
+      window.setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent('pxs:select-workflow-v2-node', { detail: { nodeId } })
+        )
+      }, 30)
+      return
+    }
+    setEditingNodeId(nodeId)
+  }
+
   useEffect(() => {
     const onOpenPicker = (e: Event) => {
       const detail = (e as CustomEvent<{ layerId?: string; category?: WorkflowLogicNodeCategory | 'all' }>).detail
@@ -56,7 +70,16 @@ export function TimelineLogic() {
     const onOpenNode = (e: Event) => {
       const detail = (e as CustomEvent<{ nodeId?: string }>).detail
       if (detail?.nodeId) {
-        setEditingNodeId(detail.nodeId)
+        if (detail.nodeId.startsWith('v2-')) {
+          useView.getState().setTimelineTab('workflow')
+          window.setTimeout(() => {
+            window.dispatchEvent(
+              new CustomEvent('pxs:select-workflow-v2-node', { detail: { nodeId: detail.nodeId } })
+            )
+          }, 30)
+        } else {
+          setEditingNodeId(detail.nodeId)
+        }
       }
     }
     window.addEventListener('pxs:open-timeline-logic-picker', onOpenPicker)
@@ -132,7 +155,7 @@ export function TimelineLogic() {
                     ? 'Đang hoạt động thông mạch'
                     : 'Chưa nối nguồn'
               } — Click để mở bảng cấu hình`}
-              onClick={() => setEditingNodeId(entry.node.id)}
+              onClick={() => openOrFocusLogicNode(entry.node.id)}
             >
               <span
                 className={`tl-logic-chip-dot${
@@ -197,7 +220,7 @@ export function TimelineLogic() {
           scopeKind={scopeKind}
           initialCategory={initialCategory}
           onClose={() => setPickerOpen(false)}
-          onAdded={setEditingNodeId}
+          onAdded={openOrFocusLogicNode}
         />
       )}
 

@@ -18,6 +18,7 @@ import { buildTimelineClusters, type TimelineClusterGroup } from './timeline/tim
 import { TimelineCameraRows } from './timeline/TimelineCameraRows'
 import { useTimelineInteractions } from './timeline/useTimelineInteractions'
 import { WorkflowStudioPanel } from './workflow/WorkflowStudioPanel'
+import { buildWorkflowV2SceneTree, syncWorkflowV2NodeToProject } from '../project/workflowV2Engine'
 
 const TimelineRulerPlayhead = memo(function TimelineRulerPlayhead({
   x
@@ -46,6 +47,20 @@ export function Timeline() {
   const timelineTab = useView((s) => s.timelineTab)
   const { setTime, setPlaying, setLoop, selectLayer, selectShot } = useEditor.getState()
   const { comp } = project
+
+  useEffect(() => {
+    if (!project.workflow || project.workflow.presetId !== 'v2_scene_hierarchy') {
+      const nextWf = buildWorkflowV2SceneTree(useEditor.getState().project, selectedShotId || undefined)
+      useEditor.getState().update((draft) => {
+        draft.workflow = nextWf
+        for (const n of nextWf.nodes) {
+          if (n.params?.logicCategory === 'material' || n.params?.logicCategory === 'collision') {
+            syncWorkflowV2NodeToProject(draft, n)
+          }
+        }
+      }, 'tl-v2-init')
+    }
+  }, [project.workflow?.presetId, selectedShotId])
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())

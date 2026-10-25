@@ -47,6 +47,9 @@ function reachableNodes(workflow: WorkflowGraph, enabled: WorkflowNode[], edges:
 }
 
 function validEdges(workflow: WorkflowGraph, byId: Map<string, WorkflowNode>): WorkflowEdge[] {
+  if (workflow.presetId === 'v2_scene_hierarchy') {
+    return workflow.edges.filter((edge) => byId.has(edge.fromNode) && byId.has(edge.toNode))
+  }
   return workflow.edges.filter((edge) => {
     const from = byId.get(edge.fromNode), to = byId.get(edge.toNode)
     return Boolean(from && to && validateWorkflowConnection(from, edge.fromPort, to, edge.toPort).valid)

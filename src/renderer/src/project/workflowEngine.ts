@@ -61,6 +61,7 @@ import {
 import { validateWorkflowConnection } from './workflowConnectionRules'
 import { resolveConnectedWorkflowNodes } from './workflowExecutionOrder'
 import { getWorkflowRouting } from './workflowRouting'
+import { reconcileWorkflowV2WithProject } from './workflowV2Engine'
 export { resolveConnectedWorkflowNodes } from './workflowExecutionOrder'
 
 export {
@@ -88,6 +89,9 @@ export function getWorkflowFromTemplate(_presetId?: string): WorkflowGraph {
 }
 
 export function ensureProjectWorkflow(project: Project): WorkflowGraph {
+  if (project.workflow && project.workflow.presetId === 'v2_scene_hierarchy') {
+    return reconcileWorkflowV2WithProject(project, project.workflow)
+  }
   const raw =
     project.workflow && Array.isArray(project.workflow.nodes)
       ? isLegacyCrampedWorkflowLayout(project.workflow.nodes)

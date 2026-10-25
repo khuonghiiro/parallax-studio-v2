@@ -723,6 +723,11 @@
   font-size: 9.5px;
 }
 
+.tl-tween-line.summary-tween,
+.tl-key.summary {
+  top: 24px !important;
+}
+
 .tl-bar-add-logic-btn {
   display: inline-flex;
   align-items: center;

@@ -13,6 +13,7 @@ import {
   buildWorkflowV2SceneTree,
   layoutWorkflowV2Tree,
   recomputeSharedLogicTargets,
+  reconcileWorkflowV2WithProject,
   syncWorkflowV2NodeToProject,
   validateWorkflowV2Connection
 } from '../../project/workflowV2Engine'
@@ -43,7 +44,7 @@ export const WorkflowStudioPanel: React.FC = () => {
       project.workflow.presetId === 'v2_scene_hierarchy' &&
       project.workflow.nodes.some((n) => n.id === 'v2-root-scene')
     ) {
-      return project.workflow
+      return reconcileWorkflowV2WithProject(project, project.workflow, shotScope)
     }
     return buildWorkflowV2SceneTree(project, shotScope)
   }, [project, shotScope])
@@ -59,10 +60,25 @@ export const WorkflowStudioPanel: React.FC = () => {
           }
         }
       }, 'wf-v2-init')
+    } else if (workflow !== project.workflow) {
+      useEditor.getState().update((draft) => {
+        draft.workflow = workflow
+      }, 'wf-v2-reconcile')
     }
-  }, [project.workflow?.presetId, shotScope])
+  }, [project.workflow, workflow, shotScope])
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(() => workflow.nodes[0]?.id ?? null)
+
+  useEffect(() => {
+    const onSelectV2Node = (e: Event) => {
+      const detail = (e as CustomEvent<{ nodeId?: string }>).detail
+      if (detail?.nodeId) {
+        setSelectedNodeId(detail.nodeId)
+      }
+    }
+    window.addEventListener('pxs:select-workflow-v2-node', onSelectV2Node)
+    return () => window.removeEventListener('pxs:select-workflow-v2-node', onSelectV2Node)
+  }, [])
 
   useEffect(() => {
     if (!selectedLayerId) return

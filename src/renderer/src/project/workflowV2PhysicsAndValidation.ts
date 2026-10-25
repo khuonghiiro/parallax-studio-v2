@@ -453,7 +453,18 @@ export function applyCollisionNodeToProject(
   workflow: WorkflowGraph | undefined,
   node: WorkflowNode
 ): void {
-  if (!node.enabled) return
+  const pulseId = `wf-col-${node.id}`
+  const strikerPulseId = `wf-col-a-${node.id}`
+  if (!node.enabled) {
+    for (const l of project.layers) {
+      if (l.physics?.impacts?.length) {
+        l.physics.impacts = l.physics.impacts.filter(
+          (imp) => imp.id !== pulseId && imp.id !== strikerPulseId
+        )
+      }
+    }
+    return
+  }
   const targetIds = node.params?.targetLayerIds ?? []
   if (targetIds.length === 0) return
 
@@ -497,7 +508,6 @@ export function applyCollisionNodeToProject(
 
   // 1. Cấu hình Physics & Xung phản lực va chạm cho Chủ thể A
   const baseStrikerCfg = strikerLayer.physics ?? createDefaultLayerPhysics(strikerMat)
-  const strikerPulseId = `wf-col-a-${node.id}`
   const existingStrikerImpacts = (baseStrikerCfg.impacts ?? []).filter((imp) => imp.id !== strikerPulseId)
   const dirX = posB[0] >= posA[0] ? 1 : -1
   const strikerPulse: PhysicsImpactPulse = {
@@ -528,7 +538,6 @@ export function applyCollisionNodeToProject(
 
   // 2. Cấu hình Physics & Xung biến dạng Mesh cho Mục tiêu B
   const baseTargetCfg = targetLayer.physics ?? createDefaultLayerPhysics(effectiveTargetMat)
-  const pulseId = `wf-col-${node.id}`
   const existingImpacts = (baseTargetCfg.impacts ?? []).filter((imp) => imp.id !== pulseId)
   const impactVelocity: Vec3 =
     mode === 'jelly_crush'
