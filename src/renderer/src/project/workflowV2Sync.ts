@@ -18,17 +18,23 @@ const LEGACY_CAMERA_ID = 'v2-logic-camera'
 
 const isLogicNode = (n: WorkflowNode): boolean => {
   const cat = getNodeLogicCategory(n)
-  return Boolean(cat) && cat !== 'camera' && n.type !== 'camera_director'
+  return Boolean(cat) && cat !== 'camera' && cat !== 'cluster_lock' && n.type !== 'camera_director'
 }
 
-/** Chuyển trạng thái người dùng (vị trí, thu gọn, ghim, cấu hình camera) từ cây cũ sang bộ khung mới */
+/** Chuyển trạng thái người dùng (vị trí, thu gọn, ghim, cấu hình camera / cụm khoá) từ cây cũ sang bộ khung mới */
 function carryUserState(node: WorkflowNode, prev: WorkflowNode | undefined, legacyCamera: WorkflowNode | undefined): WorkflowNode {
   const isParentCam = node.type === 'camera_director' && !node.params?.isCameraWaypoint
+  const isClusterLock = node.params?.logicCategory === 'cluster_lock'
   const src = prev ?? (isParentCam ? legacyCamera : undefined)
   if (!src) return node
   const params = { ...node.params }
   if (src.params?.collapsedGroup !== undefined && (node.params?.groupKind || isParentCam)) {
     params.collapsedGroup = src.params.collapsedGroup
+  }
+  if (isClusterLock) {
+    if (src.params?.collapsedSubLayers !== undefined) params.collapsedSubLayers = src.params.collapsedSubLayers
+    if (src.params?.rigActionPreset !== undefined) params.rigActionPreset = src.params.rigActionPreset
+    if (src.params?.staggerPhase !== undefined) params.staggerPhase = src.params.staggerPhase
   }
   if (src.params?.pinned) params.pinned = true
   let enabled = node.enabled
@@ -40,7 +46,12 @@ function carryUserState(node: WorkflowNode, prev: WorkflowNode | undefined, lega
 }
 
 /** Node Logic của cây cũ được giữ lại (bỏ những Node mà toàn bộ Layer đích đã bị xoá khỏi dự án) */
-function preservedLogic(project: Project, prev: WorkflowGraph, layerNodeIds: Set<string>): { nodes: WorkflowNode[]; edges: WorkflowEdge[] } {
+function preservedLogic(
+  project: Project,
+  prev: WorkflowGraph,
+  layerNodeIds: Set<string>,
+  clusterLockIds: Set<string>
+): { nodes: WorkflowNode[]; edges: WorkflowEdge[] } {
   const layerIds = new Set(project.layers.map((l) => l.id))
   const nodes = prev.nodes.filter((n) => {
     if (!isLogicNode(n)) return false
@@ -48,12 +59,14 @@ function preservedLogic(project: Project, prev: WorkflowGraph, layerNodeIds: Set
     return targets.length === 0 || targets.some((id) => layerIds.has(id))
   })
   const ids = new Set(nodes.map((n) => n.id))
-  const edges = prev.edges.filter((e) => ids.has(e.toNode) && (layerNodeIds.has(e.fromNode) || ids.has(e.fromNode)))
+  const edges = prev.edges.filter(
+    (e) => ids.has(e.toNode) && (layerNodeIds.has(e.fromNode) || ids.has(e.fromNode) || clusterLockIds.has(e.fromNode))
+  )
   return { nodes, edges }
 }
 
 const signature = (nodes: WorkflowNode[], edges: WorkflowEdge[]): string =>
-  `${nodes.map((n) => `${n.id}:${n.params?.collapsedGroup ? 1 : 0}`).sort().join(',')}|${edges.map((e) => e.id).sort().join(',')}`
+  `${nodes.map((n) => `${n.id}:${n.params?.collapsedGroup ? 1 : 0}:${n.params?.collapsedSubLayers ? 1 : 0}`).sort().join(',')}|${edges.map((e) => e.id).sort().join(',')}`
 
 /**
  * Đồng bộ MỘT đồ thị Workflow V2 cho toàn dự án từ dữ liệu thật (Layer, Shot, Camera, Audio):
@@ -66,7 +79,8 @@ export function syncWorkflowV2Graph(project: Project, previous?: WorkflowGraph |
   const prevById = new Map((prev?.nodes ?? []).map((n) => [n.id, n]))
   const legacyCamera = prevById.get(LEGACY_CAMERA_ID)
   const layerNodeIds = new Set(skeleton.nodes.filter((n) => n.type === 'layer_assembly' && !n.params?.groupKind).map((n) => n.id))
-  const logic = prev ? preservedLogic(project, prev, layerNodeIds) : { nodes: [], edges: [] }
+  const clusterLockIds = new Set(skeleton.nodes.filter((n) => n.params?.logicCategory === 'cluster_lock').map((n) => n.id))
+  const logic = prev ? preservedLogic(project, prev, layerNodeIds, clusterLockIds) : { nodes: [], edges: [] }
 
   const derivedEffects = deriveLogicFromLayers(
     project,

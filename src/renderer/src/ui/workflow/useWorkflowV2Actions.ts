@@ -27,14 +27,14 @@ const fitSoon = (delay = 40): void => {
   window.setTimeout(() => window.dispatchEvent(new CustomEvent('pxs:wf-fit-view')), delay)
 }
 
-/** Layer đích để gắn Node Logic: Layer đang chọn, hoặc Layer chủ của Node Logic đang chọn */
+/** Layer hoặc Khoá Cụm đích để gắn Node Logic: Layer / Khoá Cụm đang chọn, hoặc chủ của Node Logic đang chọn */
 export function resolveV2SpawnTarget(workflow: WorkflowGraph, selectedNodeId: string | null): WorkflowNode | undefined {
   const sel = workflow.nodes.find((n) => n.id === selectedNodeId)
   if (!sel) return undefined
-  if (resolveV2NodeLevel(sel) === 'layer') return sel
+  if (resolveV2NodeLevel(sel) === 'layer' || sel.params?.logicCategory === 'cluster_lock') return sel
   const parentId = sel.params?.sharedLayerNodeIds?.[0] ?? sel.params?.hierarchyParentNodeId
   const parent = workflow.nodes.find((n) => n.id === parentId)
-  return parent && resolveV2NodeLevel(parent) === 'layer' ? parent : undefined
+  return parent && (resolveV2NodeLevel(parent) === 'layer' || parent.params?.logicCategory === 'cluster_lock') ? parent : undefined
 }
 
 /** Mọi thao tác chỉnh cây Workflow V2 — đều ghi vào Project qua `update()` (có Undo) và đồng bộ xuống Layer thật */
@@ -70,7 +70,14 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
   const toggleEnable = useCallback(
     (nodeId: string) => {
       useEditor.getState().update((draft) => {
-        const nodes = workflow.nodes.map((n) => (n.id === nodeId ? { ...n, enabled: !n.enabled } : n))
+        const nodes = workflow.nodes.map((n) => {
+          if (n.id !== nodeId) return n
+          const nextEnabled = !n.enabled
+          if (n.params?.logicCategory === 'cluster_lock') {
+            return { ...n, enabled: nextEnabled, params: { ...n.params, lockedGroup: nextEnabled } }
+          }
+          return { ...n, enabled: nextEnabled }
+        })
         draft.workflow = { ...workflow, nodes }
         const toggled = nodes.find((n) => n.id === nodeId)
         if (toggled) syncWorkflowV2NodeToProject(draft as Project, toggled)
@@ -109,9 +116,13 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
 
   const updateParams = useCallback(
     (nodeId: string, patch: Partial<WorkflowNodeParams>, nextTitle?: string) => {
-      const relayoutNeeded = patch.collapsedGroup !== undefined
+      const relayoutNeeded = patch.collapsedGroup !== undefined || patch.collapsedSubLayers !== undefined
       useEditor.getState().update((draft) => {
-        const raw = workflow.nodes.map((n) => (n.id === nodeId ? { ...n, title: nextTitle ?? n.title, params: { ...(n.params ?? {}), ...patch } } : n))
+        const raw = workflow.nodes.map((n) => {
+          if (n.id !== nodeId) return n
+          const nextEnabled = patch.lockedGroup !== undefined && n.params?.logicCategory === 'cluster_lock' ? patch.lockedGroup : n.enabled
+          return { ...n, enabled: nextEnabled, title: nextTitle ?? n.title, params: { ...(n.params ?? {}), ...patch } }
+        })
         const nodes = relayoutNeeded ? layoutWorkflowV2Tree(raw, workflow.edges) : raw
         draft.workflow = { ...workflow, nodes }
         const updated = nodes.find((n) => n.id === nodeId)

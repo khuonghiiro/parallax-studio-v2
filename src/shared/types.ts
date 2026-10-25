@@ -203,6 +203,7 @@ export interface LayerModel3DRef {
   basePosition: Vec3 // unscaled face offset from model origin [x, y, z]
   centerPosition?: Vec3 // position of the 3D model center in the shot
   baseSize?: [number, number]
+  lockedGroup?: boolean
   /** Deformable organic mesh definition */
   mesh?: ImageMeshDefinition
 }

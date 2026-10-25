@@ -325,4 +325,84 @@ describe('Workflow V2 — bố cục không đè thẻ', () => {
     const wpNodesAfterDelete = proj.workflow!.nodes.filter((n) => isCameraWaypointNode(n) && n.params?.shotId === shotA.id)
     expect(wpNodesAfterDelete.length).toBe(wpNodesInitial.length)
   })
+
+  it('bung đầy đủ các mảnh con của Cụm 2.5D & Layer 3D, nối vào Node Khoá Cụm, hỗ trợ chỉnh riêng mảnh hoặc chỉnh cả cụm + Rig Xương + Thay Biểu Cảm', () => {
+    let { proj, shotA } = sampleProject()
+    const instId = 'comp-anime-test'
+    const torso = createImageLayer({ id: 'a-torso', name: '[Nhân Vật Anime] Thân áo & cổ', kind: 'image', mime: 'image/png', width: 300, height: 400 }, proj.comp, 120, shotA.id)
+    torso.composite = {
+      instanceId: instId,
+      compositeId: 'tpl-anime-student-parts',
+      compositeName: 'Nhân Vật Anime',
+      isRoot: true,
+      lockedGroup: true,
+      rootOffset: [0, 0, 0],
+      sourceLayerId: 'torso'
+    }
+    const faceNormal = createImageLayer({ id: 'a-face1', name: '[Nhân Vật Anime] Biểu cảm 1: Bình thường', kind: 'image', mime: 'image/png', width: 200, height: 200 }, proj.comp, 118, shotA.id)
+    faceNormal.transform.position.value = [0, 140, 118]
+    faceNormal.composite = {
+      instanceId: instId,
+      compositeId: 'tpl-anime-student-parts',
+      compositeName: 'Nhân Vật Anime',
+      isRoot: false,
+      lockedGroup: true,
+      rootOffset: [0, 140, -2],
+      sourceLayerId: 'face-normal',
+      slot: 'face'
+    }
+    const faceHappy = createImageLayer({ id: 'a-face2', name: '[Nhân Vật Anime] Biểu cảm 2: Tươi cười', kind: 'image', mime: 'image/png', width: 200, height: 200 }, proj.comp, 118, shotA.id)
+    faceHappy.visible = false
+    faceHappy.transform.position.value = [0, 140, 118]
+    faceHappy.composite = {
+      instanceId: instId,
+      compositeId: 'tpl-anime-student-parts',
+      compositeName: 'Nhân Vật Anime',
+      isRoot: false,
+      lockedGroup: true,
+      rootOffset: [0, 140, -2],
+      sourceLayerId: 'face-happy',
+      slot: 'face'
+    }
+    proj.layers.push(torso, faceNormal, faceHappy)
+    proj = synced(proj)
+
+    // 1. Kiểm tra cả 3 mảnh con đều được bung ra thành Node Layer riêng và nối dây vào Node Khoá Cụm
+    const clusterLockNode = proj.workflow!.nodes.find((n) => n.id === `v2-cluster-${instId}`)!
+    expect(clusterLockNode).toBeDefined()
+    expect(clusterLockNode.params?.logicCategory).toBe('cluster_lock')
+    expect(clusterLockNode.params?.targetLayerIds).toEqual([torso.id, faceNormal.id, faceHappy.id])
+    for (const part of [torso, faceNormal, faceHappy]) {
+      const lNode = proj.workflow!.nodes.find((n) => n.id === v2LayerNodeId(part.id))!
+      expect(lNode).toBeDefined()
+      expect(lNode.params?.targetLayerIds).toEqual([part.id])
+      expect(proj.workflow!.edges.some((e) => e.fromNode === lNode.id && e.toNode === clusterLockNode.id)).toBe(true)
+    }
+
+    // 2. Chỉnh riêng 1 mảnh con (faceNormal) chỉ di chuyển mảnh đó và cập nhật rootOffset, không ảnh hưởng mảnh gốc torso
+    const faceNode = proj.workflow!.nodes.find((n) => n.id === v2LayerNodeId(faceNormal.id))!
+    proj = synced(produce(proj, (d) => {
+      syncWorkflowV2NodeToProject(d as Project, faceNode, { transformX: 25, transformY: 155 })
+    }))
+    expect(proj.layers.find((l) => l.id === torso.id)!.transform.position.value[0]).toBe(0)
+    expect(proj.layers.find((l) => l.id === faceNormal.id)!.transform.position.value[0]).toBe(25)
+    expect(proj.layers.find((l) => l.id === faceNormal.id)!.composite?.rootOffset?.[0]).toBe(25)
+
+    // 3. Chỉnh vị trí trên Node Khoá Cụm -> di chuyển đồng bộ toàn bộ cả cụm
+    proj = synced(produce(proj, (d) => {
+      syncWorkflowV2NodeToProject(d as Project, clusterLockNode, { transformX: 100, rigActionPreset: 'wave' })
+    }))
+    expect(proj.layers.find((l) => l.id === torso.id)!.transform.position.value[0]).toBe(100)
+
+    // 4. Gắn Node Thay Biểu Cảm (part_swap) vào Node Khoá Cụm -> bao phủ cả cụm và đổi biểu cảm sang Tươi cười
+    const swapRes = attachLogicNodeToLayerV2(proj.workflow!, clusterLockNode.id, 'part_swap', 'v2:part_swap:expr_happy')
+    expect(swapRes.createdNodeId).toBeTruthy()
+    proj = synced(produce(proj, (d) => {
+      d.workflow = swapRes.workflow
+      const created = d.workflow.nodes.find((n) => n.id === swapRes.createdNodeId)!
+      syncWorkflowV2NodeToProject(d as Project, created, { swapMode: 'expression', swapVariant: faceHappy.id })
+    }))
+    expect(proj.layers.find((l) => l.id === faceNormal.id)!.visible).toBe(false)
+    expect(proj.layers.find((l) => l.id === faceHappy.id)!.visible).toBe(true)
+  })
 })

@@ -19,6 +19,8 @@ export interface WorkflowV2NodeTheme {
 export const WORKFLOW_V2_SPAWN_CATALOG = WORKFLOW_V2_LOGIC_CATEGORIES
 
 const LOGIC_THEMES: Record<string, WorkflowV2NodeTheme> = {
+  cluster_lock: { badge: 'KHOÁ CỤM', icon: '🔒', accent: '#0ea5e9', portIn: 'layers_tree', portOut: 'layers_tree', levelClass: 'level-logic is-cluster-lock' },
+  part_swap: { badge: 'THAY BỘ PHẬN', icon: '🧩', accent: '#06b6d4', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
   material: { badge: 'VẬT LIỆU', icon: '🏷️', accent: '#f97316', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
   collision: { badge: 'VA CHẠM', icon: '💥', accent: '#f43f5e', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
   light: { badge: 'ÁNH SÁNG', icon: '💡', accent: '#f59e0b', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
@@ -42,6 +44,7 @@ const GROUP_THEMES: Record<string, WorkflowV2NodeTheme> = {
 /** Loại logic hiển thị của Node (suy ra từ type khi Node cũ chưa có `logicCategory`) */
 export function resolveV2LogicCategory(node: WorkflowNode): string {
   if (node.params?.logicCategory) return node.params.logicCategory
+  if (node.type === 'layer_transform') return 'cluster_lock'
   if (node.type === 'camera_director') return 'camera'
   if (node.type === 'audio_lipsync') return 'audio'
   if (node.type === 'physics_fx') return 'fx'
@@ -65,10 +68,20 @@ export function resolveV2NodeTheme(node: WorkflowNode): WorkflowV2NodeTheme {
   if (level === 'group') return GROUP_THEMES[node.params!.groupKind!] ?? GROUP_THEMES.group_25d
   if (level === 'layer') {
     const kind = node.params?.assemblyKind
+    const isRootPart = Boolean(node.params?.rootLayerId && node.params?.targetLayerIds?.[0] === node.params.rootLayerId)
     return {
-      badge: kind === 'model3d' ? 'LAYER 3D' : kind === 'composite' ? 'CỤM 2.5D' : 'LAYER 2.5D',
-      icon: kind === 'model3d' ? '🧊' : kind === 'composite' ? '🧩' : '🖼️',
-      accent: '#60a5fa',
+      badge:
+        kind === 'model3d'
+          ? isRootPart
+            ? '3D · GỐC NEO'
+            : 'MẶT 3D'
+          : kind === 'composite'
+            ? isRootPart
+              ? 'CỤM 2.5D · GỐC'
+              : 'MẢNH 2.5D'
+            : 'LAYER 2.5D',
+      icon: isRootPart ? '⚓' : kind === 'model3d' ? '🧊' : kind === 'composite' ? '🧩' : '🖼️',
+      accent: isRootPart ? '#38bdf8' : '#60a5fa',
       portIn: 'layers_tree',
       portOut: 'layers_tree',
       levelClass: 'level-layer'
@@ -88,10 +101,23 @@ export function resolveV2NodeTheme(node: WorkflowNode): WorkflowV2NodeTheme {
       levelClass: `level-logic is-cam-waypoint wp-step-${(localIdx % 6) + 1}`
     }
   }
-  return LOGIC_THEMES[resolveV2LogicCategory(node)] ?? LOGIC_THEMES.action
+  const cat = resolveV2LogicCategory(node)
+  if (cat === 'cluster_lock') {
+    const is3D = node.params?.assemblyKind === 'model3d'
+    const locked = node.enabled !== false && node.params?.lockedGroup !== false
+    return {
+      badge: is3D ? (locked ? 'KHOÁ KHỐI 3D' : 'KHỐI 3D MỞ') : locked ? 'KHOÁ CỤM 2.5D' : 'CỤM 2.5D MỞ',
+      icon: locked ? '🔒' : '🔓',
+      accent: locked ? '#0ea5e9' : '#64748b',
+      portIn: 'layers_tree',
+      portOut: 'layers_tree',
+      levelClass: 'level-logic is-cluster-lock'
+    }
+  }
+  return LOGIC_THEMES[cat] ?? LOGIC_THEMES.action
 }
 
 /** Tiêu đề hiển thị gọn (bỏ tiền tố loại như "Hành động: ", "Cảnh: "...) */
 export function cleanV2NodeTitle(title: string): string {
-  return title.replace(/^(Hành động|Hoạt ảnh FX|Vật liệu|Va chạm|Ánh sáng|Hang động|Hiệu ứng|Âm thanh|Cảnh|Camera):\s*/i, '')
+  return title.replace(/^(Hành động|Hoạt ảnh FX|Hoạt ảnh|Thay bộ phận|Khoá cụm|Khoá khối 3D|Vật liệu|Va chạm|Ánh sáng|Hang động|Hiệu ứng|Âm thanh|Cảnh|Camera):\s*/i, '')
 }

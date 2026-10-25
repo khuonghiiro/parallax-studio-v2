@@ -42,6 +42,7 @@ export interface ModularApplyResult {
 const NODE_TYPE: Record<WorkflowV2SpawnCategory, WorkflowNode['type']> = {
   action: 'motion_choreography',
   anim_fx: 'motion_choreography',
+  part_swap: 'layer_transform',
   audio: 'audio_lipsync',
   material: 'physics_fx',
   collision: 'physics_fx',
@@ -53,6 +54,7 @@ const NODE_TYPE: Record<WorkflowV2SpawnCategory, WorkflowNode['type']> = {
 const AGENT: Record<WorkflowV2SpawnCategory, WorkflowNode['aiAgentRole']> = {
   action: 'MotionChoreographyAgent',
   anim_fx: 'MotionChoreographyAgent',
+  part_swap: 'LayerTransformAgent',
   audio: 'AudioLipSyncAgent',
   material: 'PhysicsLightFxAgent',
   collision: 'PhysicsLightFxAgent',
@@ -67,7 +69,7 @@ function isVec3(v: unknown): v is Vec3 {
 
 function isClusterLogicNode(node: WorkflowNode, clusterKey: string): boolean {
   const cat = getNodeLogicCategory(node)
-  if (!cat || cat === 'camera' || node.type === 'camera_director') return false
+  if (!cat || cat === 'camera' || cat === 'cluster_lock' || node.type === 'camera_director') return false
   const shotId = node.params?.shotId
   return clusterKey === V2_SHARED_CLUSTER ? !shotId : shotId === clusterKey
 }

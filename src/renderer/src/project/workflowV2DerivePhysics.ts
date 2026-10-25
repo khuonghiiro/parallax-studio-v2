@@ -78,15 +78,86 @@ function deriveCollisions(project: Project, nodes: WorkflowNode[], edges: Workfl
 
 function deriveMaterials(project: Project, nodes: WorkflowNode[], edges: WorkflowEdge[], out: { added: WorkflowNode[]; edges: WorkflowEdge[]; replaced: Map<string, WorkflowNode> }): void {
   const byId = new Map(nodes.map((n) => [n.id, n]))
+  const layersById = new Map(project.layers.map((l) => [l.id, l]))
+  const clusterOwnedMaterial = new Set<string>()
+
+  // 1. Nếu >= 2 mảnh của cùng một Cụm 2.5D / Khối 3D có chung vật liệu (hoặc đã gắn Node Vật liệu lên Node Khoá Cụm),
+  //    gắn 1 Node Vật liệu chung vào Node Khoá Cụm thay vì lặp lại trên 13 mảnh.
+  for (const clusterNode of nodes) {
+    if (clusterNode.params?.logicCategory !== 'cluster_lock') continue
+    const instId = clusterNode.params?.instanceId
+    const memberIds = clusterNode.params?.targetLayerIds ?? []
+    const memberLayers = memberIds.map((id) => layersById.get(id)).filter((l): l is Layer => Boolean(l))
+    if (!instId || memberLayers.length === 0) continue
+
+    const attached = edges
+      .filter((e) => e.fromNode === clusterNode.id)
+      .map((e) => byId.get(e.toNode))
+      .filter((n): n is WorkflowNode => Boolean(n))
+    const windOwned = attached.some((n) => n.params?.logicCategory === 'fx' && n.params?.fxKind === 'wind_physics')
+    const current = attached.find((n) => n.params?.logicCategory === 'material')
+    const withMat = memberLayers.filter((ml) => ml.physics?.material && ml.physics.material !== 'none')
+    if (!current && (windOwned || withMat.length < 2)) continue
+
+    clusterOwnedMaterial.add(instId)
+    const refLayer = withMat[0] ?? memberLayers[0]
+    const tag = refLayer.physics?.material
+    const present = Boolean(tag && tag !== 'none') && !windOwned
+    const opt = WORKFLOW_V2_MATERIAL_OPTIONS.find((m) => m.id === tag)
+    if (!current) {
+      if (!present || !opt) continue
+      const id = `v2-material-${instId}`
+      if (byId.has(id) || out.added.some((n) => n.id === id)) continue
+      out.added.push({
+        id,
+        type: 'physics_fx',
+        title: `Vật liệu: ${opt.label}`,
+        enabled: refLayer.physics?.enabled !== false,
+        position: { x: WF_V2_COL_X.LOGIC, y: clusterNode.position.y },
+        preset: 'rim_glow_particles',
+        aiAgentRole: 'PhysicsLightFxAgent',
+        aiDirective: `Nhãn vật liệu "${opt.label}" của "${clusterNode.title}".`,
+        params: {
+          shotId: clusterNode.params?.shotId,
+          logicCategory: 'material',
+          instanceId: instId,
+          materialTag: opt.id,
+          materialStiffness: refLayer.physics?.stiffness ?? opt.defaultStiffness,
+          materialBounciness: refLayer.physics?.bounciness ?? opt.defaultBounciness,
+          materialGravity: refLayer.physics?.gravityScale ?? opt.defaultGravity,
+          targetMode: 'custom',
+          targetLayerIds: [...memberIds],
+          sharedLayerNodeIds: [clusterNode.id],
+          requireLayerConnection: true,
+          timeStart: clusterNode.params?.timeStart,
+          timeEnd: clusterNode.params?.timeEnd
+        }
+      })
+      out.edges.push(edge(clusterNode.id, id))
+      continue
+    }
+    const enabled = present && refLayer.physics?.enabled !== false
+    const nextTag = present && opt ? opt.id : current.params?.materialTag
+    if (enabled !== current.enabled || nextTag !== current.params?.materialTag) {
+      const title = present && opt ? `Vật liệu: ${opt.label}` : current.title
+      out.replaced.set(current.id, { ...current, enabled, title, params: { ...current.params, materialTag: nextTag } })
+    }
+  }
+
   for (const layer of project.layers) {
+    const instId = layer.composite?.instanceId || layer.model3d?.instanceId
     const layerNodeId = layerNodeIdOf(layer.id)
     const layerNode = byId.get(layerNodeId)
     if (!layerNode) continue
-    const attached = edges.filter((e) => e.fromNode === layerNodeId).map((e) => byId.get(e.toNode)).filter((n): n is WorkflowNode => Boolean(n))
+    const attached = edges
+      .filter((e) => e.fromNode === layerNodeId && byId.get(e.toNode)?.params?.logicCategory !== 'cluster_lock')
+      .map((e) => byId.get(e.toNode))
+      .filter((n): n is WorkflowNode => Boolean(n))
     const windOwned = attached.some((n) => n.params?.logicCategory === 'fx' && n.params?.fxKind === 'wind_physics')
     const tag = layer.physics?.material
     const present = Boolean(tag && tag !== 'none') && !windOwned
     const current = attached.find((n) => n.params?.logicCategory === 'material')
+    if (!current && instId && clusterOwnedMaterial.has(instId)) continue
     const opt = WORKFLOW_V2_MATERIAL_OPTIONS.find((m) => m.id === tag)
     if (!current) {
       if (!present || !opt) continue

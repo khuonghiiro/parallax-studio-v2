@@ -265,8 +265,9 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
 
   const theme = resolveV2NodeTheme(node)
   const level = resolveV2NodeLevel(node)
-  const isLayerOrCamBboxNode = level === 'layer' || node.type === 'camera_director' || Boolean(node.params?.isCameraWaypoint)
-  const isLayerLogicNode = level === 'logic' && node.type !== 'camera_director' && !node.params?.isCameraWaypoint
+  const isClusterLock = node.params?.logicCategory === 'cluster_lock'
+  const isLayerOrCamBboxNode = level === 'layer' || isClusterLock || node.type === 'camera_director' || Boolean(node.params?.isCameraWaypoint)
+  const isLayerLogicNode = level === 'logic' && !isClusterLock && node.type !== 'camera_director' && !node.params?.isCameraWaypoint
   const duration = Math.max(1, project.comp.duration || 5)
   const tStart = node.params?.timeStart ?? 0
   const tEnd = node.params?.timeEnd ?? duration

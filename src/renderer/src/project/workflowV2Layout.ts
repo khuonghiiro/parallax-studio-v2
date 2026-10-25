@@ -54,6 +54,17 @@ export function resolveHiddenV2NodeIds(nodes: WorkflowNode[], edges: WorkflowEdg
     parentsOf.set(e.toNode, list)
   }
   const hidden = new Set<string>()
+  // Nếu một Node Khoá Cụm đang bật thu gọn mảnh con (`collapsedSubLayers`), ẩn các Node Layer con phụ (chỉ giữ lại Node Gốc neo)
+  for (const n of nodes) {
+    if (n.params?.logicCategory !== 'cluster_lock' || !n.params.collapsedSubLayers) continue
+    const rootLayerNodeId = n.params.rootLayerId ? `v2-layer-${n.params.rootLayerId}` : undefined
+    for (const e of edges) {
+      if (e.toNode === n.id && e.fromNode !== rootLayerNodeId) {
+        const subLayer = byId.get(e.fromNode)
+        if (subLayer && isLayer(subLayer)) hidden.add(subLayer.id)
+      }
+    }
+  }
   let changed = true
   while (changed) {
     changed = false
@@ -84,15 +95,32 @@ function assignLogicOwners(layers: WorkflowNode[], edges: WorkflowEdge[], byId: 
   const taken = new Set<string>()
   for (const layer of layers) {
     if (hidden.has(layer.id)) continue
-    const list = childrenOf(layer.id, edges, byId, isLogic).filter((c) => !taken.has(c.id))
-    list.forEach((c) => taken.add(c.id))
+    const direct = childrenOf(layer.id, edges, byId, isLogic).filter((c) => !taken.has(c.id))
+    const list: WorkflowNode[] = []
+    for (const c of direct) {
+      taken.add(c.id)
+      list.push(c)
+      for (const downstream of childrenOf(c.id, edges, byId, isLogic)) {
+        if (!taken.has(downstream.id)) {
+          taken.add(downstream.id)
+          list.push(downstream)
+        }
+      }
+    }
     owned.set(layer.id, list)
   }
   return owned
 }
 
 /** Xếp 1 cụm cảnh bắt đầu tại `startY`, trả về đáy cụm */
-function layoutCluster(root: WorkflowNode, startY: number, edges: WorkflowEdge[], byId: Map<string, WorkflowNode>, owners: Map<string, WorkflowNode[]>): number {
+function layoutCluster(
+  root: WorkflowNode,
+  startY: number,
+  edges: WorkflowEdge[],
+  byId: Map<string, WorkflowNode>,
+  owners: Map<string, WorkflowNode[]>,
+  hidden: Set<string>
+): number {
   root.position = { x: WF_V2_COL_X.ROOT, y: startY }
   let bottom = startY + WF_V2_NODE_H
   let camCursorY = startY + WF_V2_NODE_H + LAYER_GAP
@@ -132,6 +160,10 @@ function layoutCluster(root: WorkflowNode, startY: number, edges: WorkflowEdge[]
       continue
     }
     for (const layer of layers) {
+      if (hidden.has(layer.id)) {
+        layer.position = { x: WF_V2_COL_X.LAYER, y: cursorY }
+        continue
+      }
       layer.position = { x: WF_V2_COL_X.LAYER, y: cursorY }
       const logics = owners.get(layer.id) ?? []
       logics.forEach((ln, idx) => (ln.position = { x: WF_V2_COL_X.LOGIC, y: cursorY + idx * (WF_V2_NODE_H + LOGIC_GAP) }))
@@ -159,7 +191,7 @@ export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[
   const owners = assignLogicOwners(orderedLayers, edges, byId, hidden)
   let cursorY = TOP_Y
   for (const root of roots) {
-    cursorY = layoutCluster(root, cursorY, edges, byId, owners) + CLUSTER_GAP + WF_V2_CLUSTER_HEADER
+    cursorY = layoutCluster(root, cursorY, edges, byId, owners, hidden) + CLUSTER_GAP + WF_V2_CLUSTER_HEADER
   }
   const ownedIds = new Set([...owners.values()].flat().map((n) => n.id))
   let orphanY = cursorY
@@ -249,7 +281,18 @@ export function computeV2Clusters(nodes: WorkflowNode[], edges: WorkflowEdge[], 
     }
   }
   for (const n of nodes) if (isLayer(n)) clusterOf.set(n.id, clusterOf.get(parentOf(n.id, isGroup)?.id ?? '') ?? '')
-  for (const n of nodes) if (isLogic(n)) clusterOf.set(n.id, clusterOf.get(parentOf(n.id, isLayer)?.id ?? '') ?? '')
+  for (const n of nodes) {
+    if (isLogic(n)) {
+      const parentLayer = parentOf(n.id, isLayer)
+      if (parentLayer) {
+        clusterOf.set(n.id, clusterOf.get(parentLayer.id) ?? '')
+      } else {
+        const parentLogic = parentOf(n.id, isLogic)
+        const fallback = n.params?.shotId ? rootByShot.get(n.params.shotId) ?? '' : rootByShot.values().next().value ?? ''
+        clusterOf.set(n.id, (parentLogic ? clusterOf.get(parentLogic.id) : undefined) ?? fallback)
+      }
+    }
+  }
   return nodes.filter(isRoot).map((root) => {
     const members = nodes.filter((n) => clusterOf.get(n.id) === root.id && !hidden.has(n.id))
     const xs = members.map((n) => n.position.x)

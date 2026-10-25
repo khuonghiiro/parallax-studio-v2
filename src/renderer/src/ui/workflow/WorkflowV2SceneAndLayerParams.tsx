@@ -4,9 +4,16 @@ import { flyToShot, updateAudioTrack } from '../../actions'
 import { evaluate, setValueAt } from '../../animation/keyframes'
 import { evaluateScene } from '../../engine/evaluateScene'
 import { getProjectAudioTracks } from '../../project/audioTracks'
-import { WORKFLOW_V2_MATERIAL_OPTIONS } from '../../project/workflowV2Engine'
+import {
+  WORKFLOW_V2_MATERIAL_OPTIONS,
+  getClusterMemberLayers,
+  getClusterPartShortName,
+  getClusterRootLayer,
+  setClusterRootLayer
+} from '../../project/workflowV2Engine'
 import { findLayer, findShot, frameTolerance, useEditor } from '../../store/editor'
 import { useView } from '../../store/view'
+import { AssetReplaceModal } from '../inspector/AssetReplaceModal'
 import { OptionPills, ParamSlider, type WorkflowV2NodeParamsProps } from './WorkflowV2NodeParams'
 
 const SHOT_COLOR_SWATCHES = [
@@ -187,9 +194,15 @@ export function WorkflowV2ShotParams({ node, project }: WorkflowV2NodeParamsProp
 export function WorkflowV2LayerParams({ node, project, onUpdate }: WorkflowV2NodeParamsProps): React.ReactElement {
   const editorUpdate = useEditor((s) => s.update)
   const time = useEditor((s) => s.time)
+  const [showReplaceAsset, setShowReplaceAsset] = React.useState(false)
   const tol = frameTolerance(project)
   const targetId = node.params?.targetLayerIds?.[0] ?? null
   const layer = findLayer(project, targetId)
+  const clusterInstId = layer?.composite?.instanceId ?? layer?.model3d?.instanceId
+  const clusterMembers = clusterInstId ? getClusterMemberLayers(project, clusterInstId, layer) : []
+  const clusterRoot = getClusterRootLayer(clusterMembers)
+  const isClusterRoot = Boolean(layer && clusterRoot?.id === layer.id)
+  const isClusterLocked = Boolean(layer?.composite?.lockedGroup ?? layer?.model3d?.lockedGroup)
   const ev = evaluateScene(project, time)
   const evLayer = layer ? ev.layers.find((l) => l.layer.id === layer.id) : undefined
 
@@ -247,7 +260,43 @@ export function WorkflowV2LayerParams({ node, project, onUpdate }: WorkflowV2Nod
 
   return (
     <>
-      <div className="wf-v2-insp-subhead">Tọa độ &amp; Chiều sâu 2.5D</div>
+      {layer && clusterMembers.length > 1 && (
+        <>
+          <div className="wf-v2-pair">
+            <span className="wf-v2-pair-tag" title="Mảnh con thuộc Cụm 2.5D / Khối 3D — chỉnh riêng mảnh này không làm hỏng các mảnh khác">
+              {isClusterLocked ? '🔒' : '🔓'} Cụm: {layer.composite?.compositeName || layer.model3d?.modelName || '2.5D'} ·{' '}
+              {isClusterRoot ? '⚓ Gốc neo' : `Mảnh: ${getClusterPartShortName(layer)}`}
+            </span>
+          </div>
+          <div className="wf-v2-pill-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+            {layer.composite && !isClusterRoot && (
+              <button
+                type="button"
+                className="wf-v2-opt-pill"
+                onClick={() =>
+                  editorUpdate((d) => {
+                    const members = getClusterMemberLayers(d, clusterInstId, layer)
+                    setClusterRootLayer(members, layer.id)
+                  })
+                }
+              >
+                ⚓ Đặt mảnh này làm Gốc neo
+              </button>
+            )}
+            {layer.type === 'image' && (
+              <button
+                type="button"
+                className="wf-v2-opt-pill"
+                onClick={() => setShowReplaceAsset(true)}
+              >
+                🖼 Đổi ảnh mảnh này…
+              </button>
+            )}
+          </div>
+        </>
+      )}
+
+      <div className="wf-v2-insp-subhead">Tọa độ &amp; Chiều sâu 2.5D (Riêng mảnh này)</div>
       <ParamSlider
         label="Tọa độ X"
         min={-1600}
@@ -389,6 +438,14 @@ export function WorkflowV2LayerParams({ node, project, onUpdate }: WorkflowV2Nod
               })
             }
           />
+          {showReplaceAsset && layer.type === 'image' && (
+            <AssetReplaceModal
+              layerId={layer.id}
+              currentAssetId={layer.props.assetId}
+              layerName={layer.name}
+              onClose={() => setShowReplaceAsset(false)}
+            />
+          )}
         </>
       )}
     </>

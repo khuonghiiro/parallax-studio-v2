@@ -4,7 +4,8 @@ import { createDefaultLayerPhysics } from '../../engine/layerPhysics'
 import {
   WORKFLOW_V2_ACTION_OPTIONS,
   WORKFLOW_V2_ANIM_FX_OPTIONS,
-  WORKFLOW_V2_FX_OPTIONS
+  WORKFLOW_V2_FX_OPTIONS,
+  WORKFLOW_V2_RIG_PRESET_OPTIONS
 } from '../../project/workflowV2Engine'
 import { useEditor } from '../../store/editor'
 import { ColorInput, NumberInput, Row } from '../controls'
@@ -300,6 +301,53 @@ export function WorkflowV2ActionParams(props: WorkflowV2NodeParamsProps): React.
 
   return (
     <div className="vl-section-card" style={{ marginTop: 2 }}>
+      {layer?.composite?.instanceId && (
+        <div className="vl-subcard" style={{ marginBottom: 6 }}>
+          <div className="vl-row-header" style={{ marginBottom: 4 }}>
+            <span className="vl-subtitle">🦴 Hành động Xương Nhân vật 2.5D (Rig Animation)</span>
+          </div>
+          <div className="vl-pill-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            {WORKFLOW_V2_RIG_PRESET_OPTIONS.map((ro) => {
+              const active = p.rigActionPreset === ro.id || p.actionPreset === `rig_${ro.id}`
+              return (
+                <button
+                  key={ro.id}
+                  type="button"
+                  className={`vl-pill-btn ${active ? 'active-amber' : ''}`}
+                  title={ro.description}
+                  onClick={() =>
+                    onUpdate(
+                      { actionPreset: `rig_${ro.id}`, rigActionPreset: ro.id, intensity: 1.0 },
+                      `Hành động 2.5D: ${ro.label.replace(/^[^\w\p{L}]+\s*/u, '')}`
+                    )
+                  }
+                >
+                  {ro.shortLabel}
+                </button>
+              )
+            })}
+            <button
+              type="button"
+              className={`vl-pill-btn ${!p.rigActionPreset || p.rigActionPreset === 'none' ? 'active-amber' : ''}`}
+              onClick={() => onUpdate({ rigActionPreset: 'none' })}
+            >
+              ⏹ Tắt Rig xương
+            </button>
+          </div>
+          <div style={{ marginTop: 5 }}>
+            <OptionPills
+              cols={2}
+              options={[
+                { id: 'stagger', label: '🌊 Lệch pha giữa các mảnh' },
+                { id: 'sync', label: '🔗 Đồng loạt cùng pha' }
+              ]}
+              value={p.staggerPhase ? 'stagger' : 'sync'}
+              onPick={(id) => onUpdate({ staggerPhase: id === 'stagger' })}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="vl-row-header">
         <span className="vl-title">🏃 Chuyển Động Tự Động 2.5D (Motion)</span>
       </div>
@@ -312,7 +360,7 @@ export function WorkflowV2ActionParams(props: WorkflowV2NodeParamsProps): React.
               key={o.id}
               type="button"
               className={`vl-pill-btn ${active ? 'active-amber' : ''}`}
-              onClick={() => onUpdate({ actionPreset: o.id, intensity: o.defaultAmount }, `Hành động: ${o.label}`)}
+              onClick={() => onUpdate({ actionPreset: o.id, rigActionPreset: 'none', intensity: o.defaultAmount }, `Hành động: ${o.label}`)}
             >
               {o.label.replace(/\s*\(.*\)/, '')}
             </button>

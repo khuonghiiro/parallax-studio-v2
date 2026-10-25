@@ -177,7 +177,7 @@ export interface WorkflowNodeParams {
   groupKind?: 'group_3d' | 'group_25d' | 'group_env'
   /** [Workflow V2] Trạng thái thu gọn nhánh con của Group hoặc Layer */
   collapsedGroup?: boolean
-  /** [Workflow V2] Phân loại Node Logic gắn vào Layer ('action' | 'anim_fx' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio' | 'camera') */
+  /** [Workflow V2] Phân loại Node Logic gắn vào Layer ('action' | 'anim_fx' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio' | 'camera' | 'cluster_lock' | 'part_swap') */
   logicCategory?:
     | 'action'
     | 'anim_fx'
@@ -188,6 +188,40 @@ export interface WorkflowNodeParams {
     | 'fx'
     | 'audio'
     | 'camera'
+    | 'cluster_lock'
+    | 'part_swap'
+  /** [Workflow V2] ID thực thể Cụm 2.5D (composite.instanceId) hoặc Mô hình 3D (model3d.instanceId) */
+  instanceId?: string
+  /** [Workflow V2] ID mẫu Cụm 2.5D gốc (composite.compositeId) */
+  compositeId?: string
+  /** [Workflow V2] ID mẫu Mô hình 3D gốc (model3d.modelId) */
+  modelId?: string
+  /** [Workflow V2] Trạng thái khoá cả cụm 2.5D / 3D (true = khoá đồng bộ cả cụm, false = mở khoá chỉnh lẻ từng layer con) */
+  lockedGroup?: boolean
+  /** [Workflow V2] ID của Layer đóng vai trò Gốc neo (isRoot) định vị cho cả cụm */
+  rootLayerId?: string
+  /** [Workflow V2] Thu gọn các layer con phụ của cụm trên sơ đồ (mặc định false = bung đầy đủ các layer con nối vào Node Khoá) */
+  collapsedSubLayers?: boolean
+  /** [Workflow V2] Khi gắn Node Logic vào 1 layer con của cụm đang khoá: true = chỉ tác động riêng mảnh con đó, false/undefined = tác động cả cụm đang khoá */
+  singleSubLayerOnly?: boolean
+  /** [Workflow V2] Mã hành động xương (Rig Animation Clip) áp cho Cụm Nhân vật 2.5D ('idle' | 'walk' | 'wave' | 'bow' | 'run' | 'jump' | 'action' | 'sway' | 'fall' | 'land' | 'none') */
+  rigActionPreset?: string
+  /** [Workflow V2] Bật lệch pha tự nhiên giữa các mảnh bộ phận trong cụm 2.5D khi chạy Motion */
+  staggerPhase?: boolean
+  /** [Workflow V2] Tỉ lệ phóng đại tổng thể của cả cụm 2.5D hoặc khối 3D (%) */
+  clusterScalePct?: number
+  /** [Workflow V2] Chế độ của Node Thay Bộ Phận / Layer Cụm ('expression' | 'accessory' | 'part_variant' | 'toggle_part' | 'replace_asset' | 'replace_layer' | 'replace_template' | 'replace_composite') */
+  swapMode?: 'expression' | 'accessory' | 'part_variant' | 'toggle_part' | 'replace_asset' | 'replace_layer' | 'replace_template' | 'replace_composite'
+  /** [Workflow V2] Khe bộ phận cần thay đổi (ví dụ: 'face', 'glasses', 'hair', 'torso'...) */
+  swapSlot?: string
+  /** [Workflow V2] Mã biến thể / biểu cảm được chọn (ví dụ: 'face-normal', 'face-happy'...) */
+  swapVariant?: string
+  /** [Workflow V2] ID của layer bộ phận con mục tiêu được bật/tắt hoặc thay ảnh */
+  swapTargetLayerId?: string
+  /** [Workflow V2] ID của asset ảnh mới dùng để thay cho layer bộ phận con */
+  swapAssetId?: string
+  /** [Workflow V2] ID mẫu template 2.5D dùng khi thay nguyên cụm */
+  swapTemplateId?: string
   /** [Workflow V2] Danh sách các ID Node Layer đang cùng liên kết/tái sử dụng Node Logic này */
   sharedLayerNodeIds?: string[]
   /** [Workflow V2] Mã kiểu hành động của Node Hành động */

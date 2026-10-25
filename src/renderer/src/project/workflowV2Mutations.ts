@@ -23,6 +23,17 @@ import {
   WORKFLOW_V2_LIGHT_OPTIONS
 } from './workflowV2Options'
 import {
+  bakeClusterRigPresetToScene,
+  clearClusterRigKeysFromScene,
+  getClusterMemberLayers,
+  getClusterRootLayer,
+  scaleClusterAroundRoot,
+  setClusterRootLayer,
+  syncPartSwapNodeToProject,
+  translateClusterToRootPos
+} from './workflowV2ClusterRigAndSwap'
+import type { ProceduralMotionPreset } from '../ui/layerAssembly/workshopRigPresets'
+import {
   applyCollisionNodeToProject,
   applyMaterialNodeToProject,
   recomputeSharedLogicTargets
@@ -38,6 +49,7 @@ import {
 const NODE_TYPE: Record<WorkflowV2SpawnCategory, WorkflowNode['type']> = {
   action: 'motion_choreography',
   anim_fx: 'motion_choreography',
+  part_swap: 'layer_transform',
   audio: 'audio_lipsync',
   material: 'physics_fx',
   collision: 'physics_fx',
@@ -49,6 +61,7 @@ const NODE_TYPE: Record<WorkflowV2SpawnCategory, WorkflowNode['type']> = {
 const AGENT: Record<WorkflowV2SpawnCategory, WorkflowNode['aiAgentRole']> = {
   action: 'MotionChoreographyAgent',
   anim_fx: 'MotionChoreographyAgent',
+  part_swap: 'LayerTransformAgent',
   audio: 'AudioLipSyncAgent',
   material: 'PhysicsLightFxAgent',
   collision: 'PhysicsLightFxAgent',
@@ -92,8 +105,9 @@ export function attachLogicNodeToLayerV2(
   presetId?: string
 ): { workflow: WorkflowGraph; createdNodeId: string; reusedExisting?: boolean; message?: string } {
   const layerNode = workflow.nodes.find((n) => n.id === layerNodeId)
-  if (!layerNode || layerNode.type !== 'layer_assembly' || layerNode.params?.groupKind) {
-    return { workflow, createdNodeId: '', message: 'Không tìm thấy Node Layer mục tiêu.' }
+  const isClusterLock = layerNode?.params?.logicCategory === 'cluster_lock'
+  if (!layerNode || ((!isClusterLock && layerNode.type !== 'layer_assembly') || layerNode.params?.groupKind)) {
+    return { workflow, createdNodeId: '', message: 'Không tìm thấy Node Layer hoặc Khoá Cụm mục tiêu.' }
   }
   const chosen = (presetId ? findLogicPreset(presetId) : undefined) ?? defaultLogicPreset(category)
   const existing = workflow.edges
@@ -107,8 +121,8 @@ export function attachLogicNodeToLayerV2(
       createdNodeId: existing.id,
       reusedExisting: true,
       message: presetId
-        ? `Layer "${layerNode.title}" đã có Node ${chosen.title.split(':')[0]} — đã chuyển Node đó sang "${chosen.label}".`
-        : `Layer "${layerNode.title}" đã có "${existing.title}" — chọn Node này để tránh trùng logic.`
+        ? `"${layerNode.title}" đã có Node ${chosen.title.split(':')[0]} — đã chuyển Node đó sang "${chosen.label}".`
+        : `"${layerNode.title}" đã có "${existing.title}" — chọn Node này để tránh trùng logic.`
     }
   }
   if (category === 'collision') {
@@ -127,8 +141,8 @@ export function attachLogicNodeToLayerV2(
       }
     }
   }
-  const layerId = layerNodeId.replace(/^v2-layer-/, '')
-  const id = uniqueNodeId(workflow, `v2-${category}-${layerId}`)
+  const suffix = layerNodeId.replace(/^v2-(layer|cluster)-/, '')
+  const id = uniqueNodeId(workflow, `v2-${category}-${suffix}`)
   const startSec = layerNode.params?.timeStart ?? 0
   const layerEndSec = layerNode.params?.timeEnd ?? 5
   const animDefaultDur =
@@ -159,6 +173,7 @@ export function attachLogicNodeToLayerV2(
         timeStart: startSec,
         timeEnd: endSec,
         hierarchyParentNodeId: layerNodeId,
+        ...(layerNode.params?.instanceId ? { instanceId: layerNode.params.instanceId } : {}),
         ...(category === 'collision' ? { strikerLayerId: layerNode.params?.targetLayerIds?.[0] } : {})
       }
     },
@@ -193,7 +208,7 @@ function syncAudioNodeToProject(project: Project, node: WorkflowNode, params: Wo
  * Đồng bộ Node Layer / Group xuống Layer thật:
  * - Bật/tắt Node = ẩn/hiện Layer.
  * - Node Layer: chỉ ghi inPoint/outPoint khi người dùng thực sự đổi khoảng mốc (hoặc áp dụng toàn bộ),
- *   và ghi toạ độ X/Y/Z.
+ *   và ghi toạ độ X/Y/Z. Nếu là mảnh con trong Cụm 2.5D thì cập nhật cả `composite.rootOffset` so với gốc neo.
  * - Node Group: TUYỆT ĐỐI không san phẳng khoảng thời gian của các Layer con; khi người dùng thu hẹp
  *   khoảng mốc của Group thì chỉ cắt các Layer con vào trong khoảng đó.
  */
@@ -227,6 +242,18 @@ function syncLayerOrGroupNodeToProject(
       const ny = typeof params.transformY === 'number' ? params.transformY : curPos[1]
       const nz = typeof params.transformZ === 'number' ? params.transformZ : curPos[2]
       l.transform.position.value = [nx, ny, nz]
+      if (l.composite?.instanceId && patch && ('transformX' in patch || 'transformY' in patch || 'transformZ' in patch)) {
+        const members = getClusterMemberLayers(project, l.composite.instanceId)
+        const root = getClusterRootLayer(members)
+        if (root && root.id !== l.id) {
+          const rp = root.transform.position?.value ?? [0, 0, 0]
+          l.composite.rootOffset = [
+            Number((nx - rp[0]).toFixed(2)),
+            Number((ny - rp[1]).toFixed(2)),
+            Number((nz - rp[2]).toFixed(2))
+          ]
+        }
+      }
     }
   }
 }
@@ -364,6 +391,49 @@ export function syncWorkflowV2NodeToProject(
     return
   }
 
+  // 1b. Node Khoá Cụm 2.5D / 3D (`cluster_lock`) — điều khiển khoá cụm, gốc neo, vị trí/tỉ lệ cả cụm và rig xương 2.5D
+  if (params.logicCategory === 'cluster_lock') {
+    const instId = params.instanceId
+    const members = instId ? getClusterMemberLayers(project, instId) : project.layers.filter((l) => targetIds.has(l.id))
+    const nextLocked = node.enabled && (params.lockedGroup ?? true)
+    const timeEdited = Boolean(patch && ('timeStart' in patch || 'timeEnd' in patch))
+    for (const m of members) {
+      if (m.composite) m.composite.lockedGroup = nextLocked
+      if (m.model3d) m.model3d.lockedGroup = nextLocked
+      if (timeEdited) {
+        if (typeof tStart === 'number' && Number.isFinite(tStart)) m.inPoint = Math.max(0, tStart)
+        if (typeof tEnd === 'number' && Number.isFinite(tEnd) && tEnd > (m.inPoint ?? 0)) m.outPoint = tEnd
+      }
+    }
+    if (patch?.rootLayerId) {
+      setClusterRootLayer(members, patch.rootLayerId)
+    }
+    if (patch && ('transformX' in patch || 'transformY' in patch || 'transformZ' in patch)) {
+      translateClusterToRootPos(members, { x: params.transformX, y: params.transformY, z: params.transformZ })
+    }
+    if (patch && 'clusterScalePct' in patch && typeof params.clusterScalePct === 'number') {
+      scaleClusterAroundRoot(members, params.clusterScalePct)
+    }
+    if (patch && 'rigActionPreset' in patch && instId) {
+      if (params.rigActionPreset && params.rigActionPreset !== 'none') {
+        bakeClusterRigPresetToScene(project, instId, params.rigActionPreset as ProceduralMotionPreset, {
+          timeStart: tStart,
+          timeEnd: tEnd,
+          intensity: params.intensity
+        })
+      } else {
+        clearClusterRigKeysFromScene(members)
+      }
+    }
+    return
+  }
+
+  // 1c. Node Thay Layer / Bộ phận Cụm (`part_swap`) — đổi biểu cảm, phụ kiện, thay ảnh mảnh hoặc thay mẫu cụm
+  if (params.logicCategory === 'part_swap') {
+    syncPartSwapNodeToProject(project, mergedNode, params)
+    return
+  }
+
   // 1. Node Layer hoặc Group Layer
   if (node.type === 'layer_assembly') {
     syncLayerOrGroupNodeToProject(project, node, params, patch)
@@ -388,9 +458,37 @@ export function syncWorkflowV2NodeToProject(
     return
   }
 
-  // 4. Node Hành động (Motion / Action) — tắt Node chỉ tắt chuyển động, giữ kiểu để bật lại không mất cấu hình
+  // 4. Node Hành động (Motion / Action) — hỗ trợ cả Rig Xương Nhân vật 2.5D và chuyển động lệch pha theo cụm
   if (node.type === 'motion_choreography' || params.logicCategory === 'action') {
+    const rigPreset =
+      params.rigActionPreset ||
+      (params.actionPreset?.startsWith('rig_') ? params.actionPreset.replace(/^rig_/, '') : undefined)
+    if (rigPreset) {
+      const compInstIds = Array.from(
+        new Set(
+          project.layers
+            .filter((l) => targetIds.has(l.id) && l.composite?.instanceId)
+            .map((l) => l.composite!.instanceId!)
+        )
+      )
+      for (const instId of compInstIds) {
+        const members = getClusterMemberLayers(project, instId)
+        if (!node.enabled || rigPreset === 'none') {
+          clearClusterRigKeysFromScene(members)
+        } else {
+          bakeClusterRigPresetToScene(project, instId, rigPreset as ProceduralMotionPreset, {
+            timeStart: tStart,
+            timeEnd: tEnd,
+            intensity: params.intensity
+          })
+        }
+      }
+      if (params.actionPreset?.startsWith('rig_')) {
+        return
+      }
+    }
     const actOpt = WORKFLOW_V2_ACTION_OPTIONS.find((o) => o.id === params.actionPreset)
+    let memberIdx = 0
     for (const l of project.layers) {
       if (!targetIds.has(l.id)) continue
       const motionType = (actOpt?.motionType ?? (params.actionPreset as LayerMotionType | undefined) ?? l.motion?.type ?? 'float') as LayerMotionType
@@ -406,9 +504,11 @@ export function syncWorkflowV2NodeToProject(
         type: motionType,
         speed: actOpt?.defaultSpeed ?? l.motion?.speed ?? 1,
         amount: Math.max(0.1, Math.min(2.0, params.intensity ?? actOpt?.defaultAmount ?? 0.6)),
+        phase: params.staggerPhase ? Number((memberIdx * 0.35).toFixed(2)) : (l.motion?.phase ?? 0),
         startTime: startSec,
         duration: Math.max(0.1, Number((endSec - startSec).toFixed(2)))
       }
+      memberIdx++
     }
     return
   }

@@ -2,14 +2,15 @@ import type { Project, WorkflowGraph, WorkflowNode } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
 import { deleteLayerEffect } from '../ui/timeline/timelineEffects'
 import { removeCameraWaypoint } from '../ui/viewer/animateCamera/animateCameraRouteLogic'
+import { clearClusterRigKeysFromScene, getClusterMemberLayers } from './workflowV2ClusterRigAndSwap'
 import { syncWorkflowV2NodeToProject } from './workflowV2Mutations'
 import { getNodeLogicCategory } from './workflowV2PhysicsAndValidation'
 import { syncWorkflowV2Graph } from './workflowV2Sync'
 
-/** Loại Node Logic gắn vào Layer (bỏ qua Root / Group / Layer / Camera) */
+/** Loại Node Logic gắn vào Layer (bỏ qua Root / Group / Layer / Camera / Khoá Cụm khung xương) */
 export function logicCategoryOf(node: WorkflowNode): string | undefined {
   const cat = getNodeLogicCategory(node)
-  return cat && cat !== 'camera' ? cat : undefined
+  return cat && cat !== 'camera' && cat !== 'cluster_lock' ? cat : undefined
 }
 
 /** Đồ thị Workflow V2 khớp dữ liệu Project hiện tại (giữ tham chiếu khi không đổi) — dùng chung cho Timeline & Workflow */
@@ -30,7 +31,7 @@ export function applyWorkflowV2PhysicsNodes(project: Project, workflow: Workflow
 
 /** Áp dụng toàn bộ Node Logic xuống Project theo đúng thứ tự phụ thuộc (Va chạm sau cùng vì đọc chất liệu) */
 export function applyWorkflowV2ToProject(project: Project, workflow: WorkflowGraph): void {
-  const logic = workflow.nodes.filter((n) => logicCategoryOf(n) || n.type === 'camera_director')
+  const logic = workflow.nodes.filter((n) => logicCategoryOf(n) || n.params?.logicCategory === 'cluster_lock' || n.type === 'camera_director')
   for (const n of logic) if (n.params?.logicCategory !== 'collision') syncWorkflowV2NodeToProject(project, n)
   for (const n of logic) if (n.params?.logicCategory === 'collision') syncWorkflowV2NodeToProject(project, n)
 }
@@ -50,6 +51,11 @@ export function detachWorkflowV2NodeFromProject(project: Project, node: Workflow
   const layers = project.layers.filter((l) => targets.has(l.id))
   if (cat === 'action') {
     for (const l of layers) l.motion = { enabled: false, type: 'none', speed: 1, amount: 0 }
+    const compInstIds = Array.from(new Set(layers.map((l) => l.composite?.instanceId).filter((v): v is string => Boolean(v))))
+    for (const instId of compInstIds) clearClusterRigKeysFromScene(getClusterMemberLayers(project, instId))
+    return
+  }
+  if (cat === 'part_swap') {
     return
   }
   if (cat === 'anim_fx') {

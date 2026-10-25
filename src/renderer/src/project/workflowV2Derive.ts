@@ -172,11 +172,17 @@ function createDerivedNode(id: string, cat: DerivedCategory, layerNode: Workflow
 }
 
 /** Track âm thanh đang gắn vào Layer (theo layer id hoặc instanceId của cụm composite / model 3D) */
-export function findLayerAudioTrack(project: Project, layer: Layer, memberIds: string[]): AudioTrackItem | undefined {
+export function findLayerAudioTrack(
+  project: Project,
+  layer: Layer,
+  memberIds: string[],
+  includeClusterInstance = true
+): AudioTrackItem | undefined {
   return getProjectAudioTracks(project).find(
     (tr) =>
       tr.targetId &&
-      (memberIds.includes(tr.targetId) || tr.targetId === layer.composite?.instanceId || tr.targetId === layer.model3d?.instanceId)
+      (memberIds.includes(tr.targetId) ||
+        (includeClusterInstance && (tr.targetId === layer.composite?.instanceId || tr.targetId === layer.model3d?.instanceId)))
   )
 }
 
@@ -192,23 +198,95 @@ export function deriveLogicFromLayers(
   const added: WorkflowNode[] = []
   const addedEdges: WorkflowEdge[] = []
   const layersById = new Map(project.layers.map((l) => [l.id, l]))
+
+  // 1. Đồng bộ các hiệu ứng cấp Cụm 2.5D / Khối 3D gắn trên Node Khoá Cụm (`cluster_lock`)
+  //    để khi áp motion / ánh sáng / âm thanh cho cả cụm 13 mảnh sẽ hiện đúng 1 Node Logic trên Cụm Khoá thay vì lặp 13 lần.
+  const clusterOwnedCats = new Set<string>()
+  for (const clusterNode of nodes) {
+    if (clusterNode.params?.logicCategory !== 'cluster_lock') continue
+    const instId = clusterNode.params?.instanceId
+    const memberIds = clusterNode.params?.targetLayerIds ?? []
+    const memberLayers = memberIds.map((id) => layersById.get(id)).filter((l): l is Layer => Boolean(l))
+    const rootLayer = (clusterNode.params?.rootLayerId ? layersById.get(clusterNode.params.rootLayerId) : undefined) ?? memberLayers[0]
+    if (!instId || !rootLayer) continue
+
+    const attachedToCluster = edges
+      .filter((e) => e.fromNode === clusterNode.id)
+      .map((e) => replaced.get(e.toNode) ?? byId.get(e.toNode))
+      .filter((n): n is WorkflowNode => Boolean(n))
+    const fxGlowCluster =
+      attachedToCluster.some((n) => n.params?.logicCategory === 'fx' && n.params?.fxKind !== 'wind_physics' && n.enabled) ||
+      memberLayers.some((l) => (l.appliedEffects ?? []).some((f) => f.category === 'glow' && f.enabled !== false))
+
+    for (const cat of ['action', 'anim_fx', 'light', 'cave', 'audio'] as DerivedCategory[]) {
+      const current = attachedToCluster.find((n) => n.params?.logicCategory === cat)
+      const presentMembers = memberLayers.filter((ml) => {
+        if (cat === 'action') return deriveAction(ml, compDur).present
+        if (cat === 'anim_fx') return deriveAnimFx(ml, compDur).present
+        if (cat === 'light') return deriveLight(ml, compDur, fxGlowCluster, current).present
+        if (cat === 'cave') return deriveCave(ml, compDur).present
+        return false
+      })
+      const clusterAudioTrack =
+        cat === 'audio'
+          ? getProjectAudioTracks(project).find((tr) => tr.targetId === instId || (tr.targetId && memberIds.includes(tr.targetId) && memberIds.length > 1 && tr.targetType === 'character'))
+          : undefined
+
+      const isClusterLevel = Boolean(current) || Boolean(clusterAudioTrack) || presentMembers.length >= 2
+      if (!isClusterLevel) continue
+
+      const refLayer = presentMembers[0] ?? rootLayer
+      const d =
+        cat === 'action'
+          ? deriveAction(refLayer, compDur)
+          : cat === 'anim_fx'
+            ? deriveAnimFx(refLayer, compDur)
+            : cat === 'light'
+              ? deriveLight(refLayer, compDur, fxGlowCluster, current)
+              : cat === 'cave'
+                ? deriveCave(refLayer, compDur)
+                : deriveAudio(clusterAudioTrack ?? findLayerAudioTrack(project, rootLayer, memberIds, true), rootLayer, compDur)
+
+      clusterOwnedCats.add(`${instId}:${cat}`)
+      if (!current) {
+        if (!d.present) continue
+        let id = `v2-${cat}-${instId}`
+        while (byId.has(id) || added.some((n) => n.id === id)) id += '-b'
+        added.push(createDerivedNode(id, cat, clusterNode, d))
+        addedEdges.push({ id: `e-${clusterNode.id}-${id}`, fromNode: clusterNode.id, fromPort: 'layers_tree', toNode: id, toPort: 'layers_tree' })
+        continue
+      }
+      const params = d.present ? mergeDerivedParams(current.params ?? {}, d.params) : current.params ?? {}
+      const enabled = d.present ? d.enabled : current.enabled
+      const title = d.present ? d.title : current.title
+      if (enabled !== current.enabled || title !== current.title || JSON.stringify(params) !== JSON.stringify(current.params ?? {})) {
+        replaced.set(current.id, { ...current, enabled, title, params })
+      }
+    }
+  }
+
   for (const layerNode of nodes) {
     if (layerNode.type !== 'layer_assembly' || layerNode.params?.groupKind) continue
     const layer = layersById.get(layerNode.id.replace(/^v2-layer-/, ''))
     if (!layer) continue
+    const instId = layer.composite?.instanceId || layer.model3d?.instanceId
     const memberIds = layerNode.params?.targetLayerIds ?? [layer.id]
-    const attached = edges.filter((e) => e.fromNode === layerNode.id).map((e) => replaced.get(e.toNode) ?? byId.get(e.toNode)).filter((n): n is WorkflowNode => Boolean(n))
+    const attached = edges
+      .filter((e) => e.fromNode === layerNode.id && byId.get(e.toNode)?.params?.logicCategory !== 'cluster_lock')
+      .map((e) => replaced.get(e.toNode) ?? byId.get(e.toNode))
+      .filter((n): n is WorkflowNode => Boolean(n))
     const fxGlow =
       attached.some((n) => n.params?.logicCategory === 'fx' && n.params?.fxKind !== 'wind_physics' && n.enabled) ||
       (layer.appliedEffects ?? []).some((f) => f.category === 'glow' && f.enabled !== false)
     for (const cat of ['action', 'anim_fx', 'light', 'cave', 'audio'] as DerivedCategory[]) {
       const current = attached.find((n) => n.params?.logicCategory === cat)
+      if (!current && instId && clusterOwnedCats.has(`${instId}:${cat}`)) continue
       const d =
         cat === 'action' ? deriveAction(layer, compDur)
           : cat === 'anim_fx' ? deriveAnimFx(layer, compDur)
             : cat === 'light' ? deriveLight(layer, compDur, fxGlow, current)
               : cat === 'cave' ? deriveCave(layer, compDur)
-                : deriveAudio(findLayerAudioTrack(project, layer, memberIds), layer, compDur)
+                : deriveAudio(findLayerAudioTrack(project, layer, memberIds, !instId), layer, compDur)
       if (!current) {
         if (!d.present) continue
         let id = `v2-${cat}-${layer.id}`

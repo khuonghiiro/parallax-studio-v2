@@ -10,6 +10,10 @@ import {
   WorkflowV2FxParams
 } from './WorkflowV2AnimAndFxParams'
 import { WorkflowV2CameraParams } from './WorkflowV2CameraParams'
+import {
+  WorkflowV2ClusterLockParams,
+  WorkflowV2PartSwapParams
+} from './WorkflowV2ClusterAndPartParams'
 import { WorkflowV2CaveParams, WorkflowV2LightParams } from './WorkflowV2LightAndCaveParams'
 import {
   WorkflowV2AudioParams,
@@ -126,6 +130,8 @@ function CollisionParams({ node, project, onUpdate, onScrubTime }: WorkflowV2Nod
 }
 
 const LOGIC_EDITORS: Record<string, React.FC<WorkflowV2NodeParamsProps>> = {
+  cluster_lock: WorkflowV2ClusterLockParams,
+  part_swap: WorkflowV2PartSwapParams,
   material: WorkflowV2MaterialParams,
   collision: CollisionParams,
   action: WorkflowV2ActionParams,
@@ -141,6 +147,8 @@ const LOGIC_EDITORS: Record<string, React.FC<WorkflowV2NodeParamsProps>> = {
 export const WorkflowV2NodeParams: React.FC<WorkflowV2NodeParamsProps> = (props) => {
   const { node } = props
   if (node.params?.groupKind) return null
+  if (node.params?.logicCategory === 'cluster_lock') return <WorkflowV2ClusterLockParams {...props} />
+  if (node.params?.logicCategory === 'part_swap') return <WorkflowV2PartSwapParams {...props} />
   if (node.type === 'scene_shot') return <WorkflowV2ShotParams {...props} />
   if (node.type === 'layer_assembly') return <WorkflowV2LayerParams {...props} />
   const Editor = LOGIC_EDITORS[resolveV2LogicCategory(node)]

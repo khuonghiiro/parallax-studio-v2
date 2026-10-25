@@ -143,7 +143,11 @@ export function getLayerY(layer: Layer): number {
 }
 
 export function getLayerDisplayName(layer: Layer): string {
-  return layer.composite?.compositeName || layer.model3d?.modelName || layer.name || 'Layer'
+  return layer.name || layer.composite?.compositeName || layer.model3d?.modelName || 'Layer'
+}
+
+export function getClusterDisplayName(layer: Layer): string {
+  return layer.composite?.compositeName || layer.model3d?.modelName || layer.name || 'Cụm lắp ráp'
 }
 
 /** Phân loại một Layer vào đúng Group Layer ('group_3d' | 'group_25d' | 'group_env') */
@@ -154,30 +158,63 @@ export function classifyLayerGroupKind(layer: Layer): 'group_3d' | 'group_25d' |
   return 'group_25d'
 }
 
+export interface LayerClusterInstanceInfo {
+  instanceId: string
+  kind: 'composite' | 'model3d'
+  name: string
+  rootLayer: Layer
+  memberLayers: Layer[]
+  memberIds: string[]
+  lockedGroup: boolean
+}
 
-/** Gom các layer mảnh con của cùng một Composite/Model3D thành đại diện duy nhất để cây gọn sạch */
+/** Thu thập danh sách các Cụm 2.5D (`composite.instanceId`) và Mô hình 3D (`model3d.instanceId`) từ tập Layer */
+export function collectClusterInstances(layers: Layer[]): LayerClusterInstanceInfo[] {
+  const map = new Map<string, LayerClusterInstanceInfo>()
+  for (const l of layers) {
+    const instId = l.composite?.instanceId || l.model3d?.instanceId
+    if (!instId) continue
+    const existing = map.get(instId)
+    if (existing) {
+      existing.memberLayers.push(l)
+      existing.memberIds.push(l.id)
+      if (l.composite?.isRoot) existing.rootLayer = l
+    } else {
+      const kind: 'composite' | 'model3d' = l.model3d ? 'model3d' : 'composite'
+      const name = getClusterDisplayName(l)
+      const lockedGroup = l.composite ? l.composite.lockedGroup !== false : l.model3d ? l.model3d.lockedGroup !== false : true
+      map.set(instId, {
+        instanceId: instId,
+        kind,
+        name,
+        rootLayer: l,
+        memberLayers: [l],
+        memberIds: [l.id],
+        lockedGroup
+      })
+    }
+  }
+  return Array.from(map.values())
+}
+
+/**
+ * Danh sách các phần tử Layer đưa lên sơ đồ Workflow V2:
+ * - Bung toàn bộ các Layer con của Cụm 2.5D (`composite`) và Mô hình 3D (`model3d`) để có thể chỉnh riêng từng layer con;
+ * - Các layer con thuộc cùng cụm sẽ được nối hội tụ vào `Node Khoá Cụm` (`v2-cluster-<instanceId>`).
+ */
 export function collectRepresentativeLayers(layers: Layer[]): {
   layer: Layer
   memberIds: string[]
   isCluster: boolean
+  instanceId?: string
 }[] {
-  const seenInstances = new Map<string, { layer: Layer; memberIds: string[]; isCluster: boolean }>()
-  const out: { layer: Layer; memberIds: string[]; isCluster: boolean }[] = []
-  for (const l of layers) {
+  return layers.map((l) => {
     const instId = l.composite?.instanceId || l.model3d?.instanceId
-    if (instId) {
-      const existing = seenInstances.get(instId)
-      if (existing) {
-        existing.memberIds.push(l.id)
-        if (l.composite?.isRoot) existing.layer = l
-      } else {
-        const entry = { layer: l, memberIds: [l.id], isCluster: true }
-        seenInstances.set(instId, entry)
-        out.push(entry)
-      }
-    } else {
-      out.push({ layer: l, memberIds: [l.id], isCluster: false })
+    return {
+      layer: l,
+      memberIds: [l.id],
+      isCluster: Boolean(instId),
+      instanceId: instId
     }
-  }
-  return out
+  })
 }

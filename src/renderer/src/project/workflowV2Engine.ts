@@ -41,6 +41,7 @@ export {
   extractShotCameraWaypoints,
   getShotTimeRange,
   isCameraWaypointNode,
+  isClusterLockNode,
   isParentCameraNode,
   isWorkflowV2Graph,
   layerClusterKey,
@@ -49,11 +50,13 @@ export {
   shotIdAtTime,
   v2CameraId,
   v2CameraWaypointId,
+  v2ClusterLockId,
   v2GroupId,
   v2LayerNodeId,
   v2RootId,
   type ShotCameraWaypointStep
 } from './workflowV2Scope'
+export * from './workflowV2ClusterRigAndSwap'
 export { isCameraChainEdge } from './workflowV2Skeleton'
 export { syncWorkflowV2Graph, type SyncWorkflowV2Options } from './workflowV2Sync'
 export {

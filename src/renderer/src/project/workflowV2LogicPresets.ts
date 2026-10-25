@@ -8,7 +8,16 @@ import {
 } from './workflowV2Options'
 import { WORKFLOW_V2_COLLISION_OPTIONS, WORKFLOW_V2_MATERIAL_OPTIONS } from './workflowV2PhysicsAndValidation'
 
-export type WorkflowV2SpawnCategory = 'action' | 'anim_fx' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio'
+export type WorkflowV2SpawnCategory =
+  | 'action'
+  | 'anim_fx'
+  | 'part_swap'
+  | 'material'
+  | 'collision'
+  | 'light'
+  | 'cave'
+  | 'fx'
+  | 'audio'
 
 /** Nhóm logic gắn vào Layer — dùng chung cho Timeline (kho logic) và Workflow (cột trái, menu thả dây, MCP) */
 export const WORKFLOW_V2_LOGIC_CATEGORIES: {
@@ -18,8 +27,9 @@ export const WORKFLOW_V2_LOGIC_CATEGORIES: {
   hint: string
   accent: string
 }[] = [
-  { id: 'action', icon: '🏃', label: 'Hành động', hint: 'Bay, đung đưa, xoay', accent: '#10b981' },
+  { id: 'action', icon: '🏃', label: 'Hành động', hint: 'Motion, xương 2.5D, đung đưa', accent: '#10b981' },
   { id: 'anim_fx', icon: '🎞️', label: 'Hoạt ảnh FX', hint: 'Nảy, rung, mờ dần, neon', accent: '#6366f1' },
+  { id: 'part_swap', icon: '🧩', label: 'Thay Layer / Cụm', hint: 'Đổi biểu cảm, thay mảnh / cụm 2.5D', accent: '#06b6d4' },
   { id: 'material', icon: '🏷️', label: 'Vật liệu', hint: 'Cao su, gỗ, đá, lá', accent: '#f97316' },
   { id: 'collision', icon: '💥', label: 'Va chạm', hint: 'Nối 2 Layer va đập', accent: '#f43f5e' },
   { id: 'light', icon: '💡', label: 'Ánh sáng', hint: 'Đèn viền, nến, glow', accent: '#f59e0b' },
@@ -40,6 +50,7 @@ export interface WorkflowV2LogicPreset {
 const prefix: Record<WorkflowV2SpawnCategory, string> = {
   action: 'Hành động',
   anim_fx: 'Hoạt ảnh',
+  part_swap: 'Thay bộ phận',
   material: 'Vật liệu',
   collision: 'Va chạm',
   light: 'Ánh sáng',
@@ -55,6 +66,11 @@ function preset(category: WorkflowV2SpawnCategory, optionId: string, label: stri
 /** Toàn bộ mẫu logic (mỗi tuỳ chọn của từng nhóm) */
 export const WORKFLOW_V2_LOGIC_PRESETS: WorkflowV2LogicPreset[] = [
   ...WORKFLOW_V2_ACTION_OPTIONS.map((o) => preset('action', o.id, o.label, { actionPreset: o.id, intensity: o.defaultAmount })),
+  preset('action', 'rig_idle', '🌬️ Xương 2.5D: Đứng thở (Idle)', { actionPreset: 'pulse', rigActionPreset: 'idle', intensity: 1 }),
+  preset('action', 'rig_walk', '🚶 Xương 2.5D: Bước đi (Walk)', { actionPreset: 'sway', rigActionPreset: 'walk', intensity: 1 }),
+  preset('action', 'rig_wave', '👋 Xương 2.5D: Vẫy tay chào (Wave)', { actionPreset: 'sway', rigActionPreset: 'wave', intensity: 1 }),
+  preset('action', 'rig_bow', '🙇 Xương 2.5D: Cúi chào (Bow)', { actionPreset: 'sway', rigActionPreset: 'bow', intensity: 1 }),
+  preset('action', 'rig_action', '⚔️ Xương 2.5D: Vung đòn (Action)', { actionPreset: 'sway', rigActionPreset: 'action', intensity: 1 }),
   ...WORKFLOW_V2_ANIM_FX_OPTIONS.map((o) =>
     preset('anim_fx', o.id, o.label, {
       animFxPreset: o.id,
@@ -63,6 +79,10 @@ export const WORKFLOW_V2_LOGIC_PRESETS: WorkflowV2LogicPreset[] = [
       animFxColor: o.defaultColor
     })
   ),
+  preset('part_swap', 'expression', '😊 Đổi biểu cảm / Biến thể mảnh', { swapMode: 'expression', intensity: 1 }),
+  preset('part_swap', 'toggle_part', '👓 Bật / Tắt phụ kiện cụm', { swapMode: 'toggle_part', intensity: 1 }),
+  preset('part_swap', 'replace_asset', '🖼 Thay ảnh mảnh / Layer', { swapMode: 'replace_asset', intensity: 1 }),
+  preset('part_swap', 'replace_template', '🔄 Thay nguyên cụm 2.5D', { swapMode: 'replace_template', intensity: 1 }),
   ...WORKFLOW_V2_MATERIAL_OPTIONS.map((o) =>
     preset('material', o.id, o.label, {
       materialTag: o.id,

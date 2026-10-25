@@ -209,6 +209,7 @@ function inferPresetId(node: WorkflowNode, cat: WorkflowV2SpawnCategory): string
   const opt =
     cat === 'action' ? p.actionPreset
     : cat === 'anim_fx' ? p.animFxPreset
+    : cat === 'part_swap' ? (p.swapMode === 'expression' && p.swapVariant === 'face-happy' ? 'expr_happy' : p.swapMode === 'expression' ? 'expr_normal' : p.swapMode === 'accessory' ? 'toggle_glasses' : p.swapMode === 'replace_composite' ? 'replace_composite' : 'replace_layer')
     : cat === 'material' ? p.materialTag
     : cat === 'collision' ? p.collisionMode
     : cat === 'light' ? p.lightMode
@@ -221,7 +222,17 @@ function inferPresetId(node: WorkflowNode, cat: WorkflowV2SpawnCategory): string
 
 function extractCleanLogicParams(node: WorkflowNode, cat: WorkflowV2SpawnCategory): Record<string, unknown> {
   const p = node.params ?? {}
-  if (cat === 'action') return { actionPreset: p.actionPreset ?? 'sway', intensity: p.intensity ?? 0.6 }
+  if (cat === 'action') return { actionPreset: p.actionPreset ?? 'sway', intensity: p.intensity ?? 0.6, ...(p.rigActionPreset ? { rigActionPreset: p.rigActionPreset } : {}), ...(p.staggerPhase ? { staggerPhase: p.staggerPhase } : {}) }
+  if (cat === 'part_swap') {
+    return {
+      swapMode: p.swapMode ?? 'expression',
+      ...(p.swapSlot ? { swapSlot: p.swapSlot } : {}),
+      ...(p.swapVariant ? { swapVariant: p.swapVariant } : {}),
+      ...(p.swapTargetLayerId ? { swapTargetLayerId: p.swapTargetLayerId } : {}),
+      ...(p.swapAssetId ? { swapAssetId: p.swapAssetId } : {}),
+      ...(p.swapTemplateId ? { swapTemplateId: p.swapTemplateId } : {})
+    }
+  }
   if (cat === 'anim_fx') {
     return {
       animFxPreset: p.animFxPreset ?? 'popIn',
@@ -277,7 +288,7 @@ export function buildMainWorkflowJson(project: Project, wfInput?: WorkflowGraph)
     const shotLayers = reps.filter((it) => layerClusterKey(project, it.layer) === shot.id)
     const logicNodes = wf.nodes.filter((n) => {
       const cat = getNodeLogicCategory(n)
-      return cat && cat !== 'camera' && n.type !== 'camera_director' && n.params?.shotId === shot.id
+      return cat && cat !== 'camera' && cat !== 'cluster_lock' && n.type !== 'camera_director' && n.params?.shotId === shot.id
     })
     return {
       shotId: shot.id,
@@ -409,7 +420,7 @@ export function buildShotWorkflowJson(project: Project, shotIdOrShared: string, 
   const layerNameById = new Map(layers.map((l) => [l.id, l.name]))
   const logicNodes = clusterNodes.filter((n) => {
     const cat = getNodeLogicCategory(n)
-    return Boolean(cat) && cat !== 'camera' && n.type !== 'camera_director'
+    return Boolean(cat) && cat !== 'camera' && cat !== 'cluster_lock' && n.type !== 'camera_director'
   })
 
   const logic: WorkflowShotLogicSpec[] = logicNodes.map((n) => {

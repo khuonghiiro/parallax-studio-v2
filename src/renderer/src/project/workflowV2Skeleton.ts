@@ -1,11 +1,13 @@
 import type { Layer, Project, Shot, WorkflowEdge, WorkflowNode } from '@shared/types'
 import {
   classifyLayerGroupKind,
+  collectClusterInstances,
   collectRepresentativeLayers,
   getLayerDisplayName,
   getLayerX,
   getLayerY,
-  getLayerZ
+  getLayerZ,
+  type LayerClusterInstanceInfo
 } from './workflowV2Options'
 import { WF_V2_COL_X } from './workflowV2Layout'
 import {
@@ -16,6 +18,7 @@ import {
   resolveGroupTimeRange,
   resolveLayerNodeTimeRange,
   v2CameraId,
+  v2ClusterLockId,
   v2GroupId,
   v2LayerNodeId,
   v2RootId,
@@ -156,6 +159,7 @@ export function layerNode(item: RepItem, groupId: string, compDur: number, shotI
   const l: Layer = item.layer
   const { start, end } = resolveLayerNodeTimeRange(l, compDur)
   const title = getLayerDisplayName(l)
+  const instId = l.composite?.instanceId || l.model3d?.instanceId
   return {
     id: v2LayerNodeId(l.id),
     type: 'layer_assembly',
@@ -171,6 +175,11 @@ export function layerNode(item: RepItem, groupId: string, compDur: number, shotI
       targetLayerIds: item.memberIds,
       requireLayerConnection: true,
       assemblyKind: l.model3d ? 'model3d' : l.composite ? 'composite' : undefined,
+      instanceId: instId,
+      compositeId: l.composite?.compositeId,
+      modelId: l.model3d?.modelId,
+      lockedGroup: l.composite ? l.composite.lockedGroup !== false : l.model3d ? l.model3d.lockedGroup !== false : undefined,
+      rootLayerId: l.composite?.isRoot ? l.id : undefined,
       childLayerCount: item.memberIds.length,
       transformX: getLayerX(l),
       transformY: getLayerY(l),
@@ -178,6 +187,45 @@ export function layerNode(item: RepItem, groupId: string, compDur: number, shotI
       timeStart: start,
       timeEnd: end,
       hierarchyParentNodeId: groupId
+    }
+  }
+}
+
+function clusterLockNode(inst: LayerClusterInstanceInfo, ctx: ClusterCtx): WorkflowNode {
+  const range = resolveGroupTimeRange(inst.memberLayers, ctx.compDur, ctx.range)
+  const root = inst.rootLayer
+  const scalePct = Math.round(Math.abs(root.transform?.scale?.value?.[0] ?? 1) * 100)
+  const prefix = inst.kind === 'model3d' ? 'Khoá khối 3D' : 'Khoá cụm'
+  return {
+    id: v2ClusterLockId(inst.instanceId),
+    type: 'layer_transform',
+    title: `${prefix}: ${inst.name}`,
+    enabled: inst.lockedGroup,
+    position: { x: WF_V2_COL_X.LOGIC, y: 0 },
+    preset: 'character_prop_cluster',
+    aiAgentRole: 'LayerTransformAgent',
+    aiDirective: `Node Khoá Cụm "${inst.name}" (${inst.memberIds.length} lớp, ${inst.lockedGroup ? 'Đang khoá cả cụm' : 'Đang mở khoá chỉnh lẻ'}).`,
+    params: {
+      shotId: ctx.shot?.id,
+      logicCategory: 'cluster_lock',
+      assemblyKind: inst.kind,
+      instanceId: inst.instanceId,
+      compositeId: root.composite?.compositeId,
+      modelId: root.model3d?.modelId,
+      lockedGroup: inst.lockedGroup,
+      rootLayerId: root.id,
+      childLayerCount: inst.memberIds.length,
+      targetMode: 'custom',
+      targetLayerIds: [...inst.memberIds],
+      sharedLayerNodeIds: inst.memberIds.map((id) => v2LayerNodeId(id)),
+      requireLayerConnection: true,
+      transformX: getLayerX(root),
+      transformY: getLayerY(root),
+      transformZ: getLayerZ(root),
+      clusterScalePct: scalePct,
+      timeStart: range.start,
+      timeEnd: range.end,
+      hierarchyParentNodeId: v2LayerNodeId(root.id)
     }
   }
 }
@@ -220,6 +268,16 @@ function buildCluster(
     for (const it of its) {
       out.nodes.push(layerNode(it, group.id, ctx.compDur, ctx.shot?.id))
       out.edges.push(v2Edge(group.id, v2LayerNodeId(it.layer.id), 'layers_tree'))
+    }
+    if (kind === 'group_3d') {
+      const clusterInstances = collectClusterInstances(its.map((it) => it.layer))
+      for (const inst of clusterInstances) {
+        const lockNode = clusterLockNode(inst, ctx)
+        out.nodes.push(lockNode)
+        for (const memberId of inst.memberIds) {
+          out.edges.push(v2Edge(v2LayerNodeId(memberId), lockNode.id, 'layers_tree'))
+        }
+      }
     }
   }
 }

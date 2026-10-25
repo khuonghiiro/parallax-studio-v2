@@ -56,7 +56,25 @@ export const WorkflowV2NodeSwitcherBar: React.FC<{
     [workflow.nodes, layer.id]
   )
 
+  const instId = layer.composite?.instanceId ?? layer.model3d?.instanceId
+  const clusterLockNode = useMemo(
+    () =>
+      instId
+        ? (workflow.nodes.find(
+            (n) => n.params?.logicCategory === 'cluster_lock' && n.params?.instanceId === instId
+          ) ?? null)
+        : null,
+    [workflow.nodes, instId]
+  )
+
   if (!layerNode) return null
+
+  const attachTargetNodeId =
+    activeNode?.params?.logicCategory === 'cluster_lock'
+      ? activeNode.id
+      : clusterLockNode && clusterLockNode.enabled && clusterLockNode.params?.lockedGroup !== false
+        ? clusterLockNode.id
+        : layerNode.id
 
   const isLayerSelected = activeNode?.id === layerNode.id
 
@@ -111,7 +129,7 @@ export const WorkflowV2NodeSwitcherBar: React.FC<{
               className="wf-v2-spawn-chip"
               style={{ ['--wf-v2-accent' as string]: item.accent }}
               onClick={() => {
-                onAttachLogic(layerNode.id, item.id)
+                onAttachLogic(attachTargetNodeId, item.id)
                 setQuickAddOpen(false)
               }}
             >

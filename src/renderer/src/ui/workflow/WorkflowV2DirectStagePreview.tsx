@@ -2,7 +2,16 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { evaluateScene } from '../../engine/evaluateScene'
 import { assetStore } from '../../project/assets'
-import { v2LayerNodeId } from '../../project/workflowV2Engine'
+import {
+  getClusterDisplayName,
+  getClusterMemberLayers,
+  getClusterPartShortName,
+  getClusterRootLayer,
+  scaleClusterAroundRoot,
+  translateClusterToRootPos,
+  v2ClusterLockId,
+  v2LayerNodeId
+} from '../../project/workflowV2Engine'
 import { useEditor } from '../../store/editor'
 import {
   computeShotStageLayout,
@@ -37,9 +46,10 @@ const STEP_CIRCLES = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '�
 const CAM_STEP_COLORS = ['#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4', '#f97316']
 
 /**
- * Khung chỉnh sửa BBox & vị trí trực tiếp kiểu Camera 2D ngay trong tab "Thuộc tính Node" (nằm trên mục Khoảng thời gian):
- * - Node Layer / Logic gắn Layer: kéo BBox để dời vị trí (X, Y), kéo 4 góc để đổi kích thước (Scale), hoặc bấm ngắm Camera vào BBox.
- * - Node Camera / Cảnh con (#1, #2...): hiển thị lộ trình ① → ② và kéo trực tiếp BBox khung ngắm Camera để lia máy (stageX, stageY) hoặc thu phóng (Zoom %).
+ * Khung chỉnh sửa BBox & vị trí trực tiếp kiểu Camera 2D ngay trong tab "Thuộc tính Node":
+ * - Node Khoá Cụm 2.5D / 3D (`cluster_lock`): BBox bao trọn toàn bộ các mảnh trong cụm, kéo/thu phóng cả cụm đồng bộ.
+ * - Node Layer con trong cụm: cho phép chọn chỉnh BBox riêng từng mảnh (cập nhật `rootOffset`) hoặc chuyển 1 chạm sang BBox cả cụm.
+ * - Node Camera / Cảnh con (#1, #2...): hiển thị lộ trình ① → ② và kéo trực tiếp BBox khung ngắm Camera.
  */
 export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreviewProps> = ({
   node,
@@ -58,6 +68,11 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
   const wrapRef = useRef<HTMLDivElement>(null)
   const [boxWidth, setBoxWidth] = useState(276)
   const [, setAssetTick] = useState(0)
+  const [scopeOverride, setScopeOverride] = useState<'cluster' | 'part' | null>(null)
+
+  useEffect(() => {
+    setScopeOverride(null)
+  }, [node.id])
 
   useEffect(() => assetStore.subscribe(() => setAssetTick((n) => n + 1)), [])
 
@@ -76,12 +91,36 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
   const theme = resolveV2NodeTheme(node)
   const isCamNode = node.type === 'camera_director'
   const isWaypointNode = Boolean(node.params?.isCameraWaypoint)
+  const isClusterLockNode = node.params?.logicCategory === 'cluster_lock'
   const repLayerId = node.params?.targetLayerIds?.[0] ?? null
   const activeLayerObj = repLayerId ? project.layers.find((l) => l.id === repLayerId) : undefined
+
+  const clusterInstId =
+    node.params?.instanceId ??
+    activeLayerObj?.composite?.instanceId ??
+    activeLayerObj?.model3d?.instanceId ??
+    null
+  const clusterMembers = useMemo(
+    () => (clusterInstId ? getClusterMemberLayers(project, clusterInstId, activeLayerObj) : []),
+    [project, clusterInstId, activeLayerObj]
+  )
+  const clusterMemberIds = useMemo(() => new Set(clusterMembers.map((m) => m.id)), [clusterMembers])
+  const clusterRootLayer = useMemo(() => getClusterRootLayer(clusterMembers), [clusterMembers])
+  const isClusterLocked = Boolean(
+    isClusterLockNode
+      ? node.enabled && node.params?.lockedGroup !== false
+      : activeLayerObj?.composite?.lockedGroup ?? activeLayerObj?.model3d?.lockedGroup
+  )
+
+  // Trên Node Khoá Cụm: luôn chỉnh BBox cả cụm. Trên Node mảnh con: mặc định chỉnh riêng mảnh đó (hoặc chuyển 1 chạm sang Cả cụm)
+  const useClusterBbox =
+    clusterMembers.length > 1 &&
+    (isClusterLockNode || scopeOverride === 'cluster' || (scopeOverride === null && level !== 'layer' && isClusterLocked))
 
   const effectiveShotId =
     node.params?.shotId ??
     activeLayerObj?.shotId ??
+    clusterRootLayer?.shotId ??
     project.shots[0]?.id ??
     null
 
@@ -122,14 +161,41 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
     })
   }, [project, ev, shotBox, stageLayout, activeWaypoint?.yaw, activeWaypoint?.pitch])
 
-  const selectedProjLayer = useMemo(
+  const clusterUnionProj = useMemo<ProjectedLayer2D | undefined>(() => {
+    if (clusterMembers.length <= 1) return undefined
+    const memberProjs = layers2D.filter((l) => clusterMemberIds.has(l.id))
+    if (memberProjs.length === 0) return undefined
+    let minX = Infinity
+    let maxX = -Infinity
+    let minY = Infinity
+    let maxY = -Infinity
+    for (const mp of memberProjs) {
+      minX = Math.min(minX, mp.offsetX - mp.width / 2)
+      maxX = Math.max(maxX, mp.offsetX + mp.width / 2)
+      minY = Math.min(minY, mp.offsetY - mp.height / 2)
+      maxY = Math.max(maxY, mp.offsetY + mp.height / 2)
+    }
+    const base = memberProjs.find((m) => m.id === clusterRootLayer?.id) ?? memberProjs[0]
+    const cName = clusterRootLayer ? getClusterDisplayName(clusterRootLayer) : base.name
+    return {
+      ...base,
+      name: `${cName} (${clusterMembers.length} mảnh)`,
+      offsetX: (minX + maxX) / 2,
+      offsetY: (minY + maxY) / 2,
+      width: Math.max(24, maxX - minX),
+      height: Math.max(24, maxY - minY)
+    }
+  }, [clusterMembers.length, layers2D, clusterMemberIds, clusterRootLayer])
+
+  const singleProjLayer = useMemo(
     () => (repLayerId ? layers2D.find((l) => l.id === repLayerId) : undefined),
     [layers2D, repLayerId]
   )
 
+  const selectedProjLayer = useClusterBbox ? (clusterUnionProj ?? singleProjLayer) : singleProjLayer
+
   const compW = Math.max(100, project.comp.width || 1920)
   const compH = Math.max(100, project.comp.height || 1080)
-  // Chừa viền 14% quanh khung cảnh để thấy rõ cả các BBox tràn nhẹ ra ngoài biên cảnh
   const padScale = 0.84
   const stageW = Math.max(160, boxWidth)
   const stageH = Math.max(104, Math.min(168, Math.round(stageW * (compH / compW))))
@@ -144,13 +210,17 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
       e.stopPropagation()
       e.preventDefault()
       setPlaying(false)
-      selectLayer(proj.id)
-      const layerObj = useEditor.getState().project.layers.find((l) => l.id === proj.id)
-      if (!layerObj) return
+      const st = useEditor.getState().project
+      const refLayer = useClusterBbox
+        ? (clusterRootLayer ?? st.layers.find((l) => l.id === proj.id))
+        : st.layers.find((l) => l.id === proj.id)
+      if (!refLayer) return
+      if (!isClusterLockNode) selectLayer(refLayer.id)
+
       const startX = e.clientX
       const startY = e.clientY
-      const origPos = [...(layerObj.transform.position.value ?? [0, 0, 0])]
-      const origScale = [...(layerObj.transform.scale.value ?? [1, 1, 1])]
+      const origPos = [...(refLayer.transform.position.value ?? [0, 0, 0])]
+      const origScale = [...(refLayer.transform.scale.value ?? [1, 1, 1])]
       const safeZoom = Math.max(0.02, zoom)
       const refD = 1483.64
       const pFactor = refD / Math.max(80, refD + (origPos[2] ?? 0))
@@ -159,12 +229,50 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
         const dxStage = (pev.clientX - startX) / safeZoom
         const dyStage = (pev.clientY - startY) / safeZoom
         update((d) => {
+          if (useClusterBbox && clusterInstId) {
+            const members = getClusterMemberLayers(d, clusterInstId)
+            if (members.length === 0) return
+            if (mode === 'move') {
+              const nx = Math.round(origPos[0] + dxStage / pFactor)
+              const ny = Math.round(origPos[1] - dyStage / pFactor)
+              translateClusterToRootPos(members, { x: nx, y: ny })
+              const cNode = d.workflow?.nodes.find((n) => n.id === v2ClusterLockId(clusterInstId))
+              if (cNode?.params) {
+                cNode.params.transformX = nx
+                cNode.params.transformY = ny
+              }
+            } else {
+              const signX = mode === 'ne' || mode === 'se' ? 1 : -1
+              const signY = mode === 'sw' || mode === 'se' ? 1 : -1
+              const deltaW = dxStage * signX * 2
+              const deltaH = dyStage * signY * 2
+              const ratioW = Math.max(0.15, Math.min(4, (proj.width + deltaW) / Math.max(12, proj.width)))
+              const ratioH = Math.max(0.15, Math.min(4, (proj.height + deltaH) / Math.max(12, proj.height)))
+              const ratio = (ratioW + ratioH) / 2
+              const nextPct = Math.round(Math.abs(origScale[0] || 1) * ratio * 100)
+              scaleClusterAroundRoot(members, nextPct)
+            }
+            return
+          }
+
           const dl = d.layers.find((l) => l.id === proj.id)
           if (!dl) return
           if (mode === 'move') {
             const nx = Math.round(origPos[0] + dxStage / pFactor)
             const ny = Math.round(origPos[1] - dyStage / pFactor)
             dl.transform.position.value = [nx, ny, origPos[2] ?? 0]
+            if (dl.composite?.instanceId) {
+              const members = getClusterMemberLayers(d, dl.composite.instanceId)
+              const root = getClusterRootLayer(members)
+              if (root && root.id !== dl.id) {
+                const rp = root.transform.position.value ?? [0, 0, 0]
+                dl.composite.rootOffset = [
+                  Math.round((nx - rp[0]) * 100) / 100,
+                  Math.round((ny - rp[1]) * 100) / 100,
+                  Math.round(((origPos[2] ?? 0) - rp[2]) * 100) / 100
+                ]
+              }
+            }
             const wfNode = d.workflow?.nodes.find((n) => n.id === v2LayerNodeId(dl.id))
             if (wfNode?.params) {
               wfNode.params.transformX = nx
@@ -184,7 +292,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
               origScale[2] ?? 1
             ]
           }
-        }, `wf-mini-layer-bbox-${proj.id}`)
+        }, `wf-mini-layer-bbox-${useClusterBbox ? clusterInstId : proj.id}`)
       }
 
       const onUp = (): void => {
@@ -194,7 +302,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
       window.addEventListener('pointermove', onMove)
       window.addEventListener('pointerup', onUp)
     },
-    [zoom, setPlaying, selectLayer, update]
+    [zoom, setPlaying, selectLayer, update, useClusterBbox, clusterRootLayer, isClusterLockNode, clusterInstId]
   )
 
   const startCameraWaypointDrag = useCallback(
@@ -247,11 +355,23 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
   )
 
   const handleCenterLayer = (): void => {
+    if (useClusterBbox && clusterInstId) {
+      update((d) => {
+        translateClusterToRootPos(getClusterMemberLayers(d, clusterInstId), { x: 0, y: 0 })
+      })
+      return
+    }
     if (!repLayerId) return
     onUpdateParams(node.id, { transformX: 0, transformY: 0 })
   }
 
   const handleResetLayerScale = (): void => {
+    if (useClusterBbox && clusterInstId) {
+      update((d) => {
+        scaleClusterAroundRoot(getClusterMemberLayers(d, clusterInstId), 72)
+      })
+      return
+    }
     if (!repLayerId) return
     update((d) => {
       const dl = d.layers.find((l) => l.id === repLayerId)
@@ -299,19 +419,35 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
     { key: 'se', cls: 'se' }
   ]
 
+  const coordRefLayer = useClusterBbox ? (clusterRootLayer ?? activeLayerObj) : activeLayerObj
+
   return (
     <section className="wf-v2-insp-sec wf-v2-direct-stage-sec">
-      <div className="wf-v2-direct-stage-bar">
+      <div className="wf-v2-direct-stage-bar" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <button
           type="button"
           className={`wf-v2-direct-toggle-btn${open ? ' active' : ''}`}
+          style={{ flex: 1 }}
           onClick={onToggleOpen}
           title={open ? 'Ẩn khung chỉnh sửa trực tiếp BBox 2D' : 'Hiện khung chỉnh sửa trực tiếp BBox 2D như trên Camera 2D'}
         >
           <span>{open ? '▾' : '▸'}</span>
-          <span>🎯 Khung BBox 2D trực tiếp</span>
+          <span>
+            🎯 {useClusterBbox ? `Khung BBox Cả Cụm (${clusterMembers.length} mảnh)` : 'Khung BBox 2D trực tiếp'}
+          </span>
           <small>{open ? 'Đang bật' : 'Đang tắt'}</small>
         </button>
+        {open && clusterMembers.length > 1 && !isClusterLockNode && (
+          <button
+            type="button"
+            className="wf-v2-direct-btn"
+            style={{ height: 22, padding: '0 7px', flexShrink: 0 }}
+            title="Chuyển nhanh chế độ kéo BBox giữa Riêng mảnh đang chọn và Toàn bộ Cụm"
+            onClick={() => setScopeOverride(useClusterBbox ? 'part' : 'cluster')}
+          >
+            {useClusterBbox ? '🔒 BBox Cụm' : `🎯 Riêng: ${activeLayerObj ? getClusterPartShortName(activeLayerObj) : 'Mảnh'}`}
+          </button>
+        )}
       </div>
 
       {open && shotBox && (
@@ -341,7 +477,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                 const lh = l.height * zoom
                 const lx = shotScreenW / 2 + l.offsetX * zoom - lw / 2
                 const ly = shotScreenH / 2 + l.offsetY * zoom - lh / 2
-                const isTarget = l.id === repLayerId
+                const isTarget = useClusterBbox ? clusterMemberIds.has(l.id) : l.id === repLayerId
                 const runtimeAsset = l.assetId ? assetStore.get(l.assetId) : undefined
                 const imgUrl = runtimeAsset?.url || runtimeAsset?.thumbUrl
                 return (
@@ -359,8 +495,8 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                     title={`Bấm để chọn "${l.name}" (Z ${Math.round(l.zDepth)})`}
                     onPointerDown={(e) => {
                       if (e.button !== 0) return
-                      if (isTarget) {
-                        startLayerDrag(e, l, 'move')
+                      if (isTarget && selectedProjLayer) {
+                        startLayerDrag(e, selectedProjLayer, 'move')
                         return
                       }
                       e.stopPropagation()
@@ -488,7 +624,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                 )
               })}
 
-            {/* Khung BBox tương tác trực tiếp của Layer đang chọn */}
+            {/* Khung BBox tương tác trực tiếp của Layer hoặc Toàn bộ Cụm */}
             {selectedProjLayer && (
               <div
                 className="wf-v2-direct-layer-bbox"
@@ -499,13 +635,18 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                   height: Math.max(18, selectedProjLayer.height * zoom),
                   ['--wf-v2-accent' as string]: theme.accent
                 }}
-                title={`Kéo để chỉnh vị trí BBox "${selectedProjLayer.name}" · Kéo 4 góc để đổi kích thước`}
+                title={
+                  useClusterBbox
+                    ? `Kéo để dời toàn bộ Cụm "${selectedProjLayer.name}" · Kéo 4 góc để phóng to/thu nhỏ cả cụm`
+                    : `Kéo để chỉnh vị trí riêng "${selectedProjLayer.name}" · Kéo 4 góc để đổi kích thước`
+                }
                 onPointerDown={(e) => {
                   if (e.button === 0) startLayerDrag(e, selectedProjLayer, 'move')
                 }}
               >
                 <span className="wf-v2-direct-bbox-tag">
-                  BBox · {selectedProjLayer.name}
+                  {useClusterBbox ? '🔒 BBox Cụm · ' : 'BBox · '}
+                  {selectedProjLayer.name}
                 </span>
                 <span className="wf-v2-direct-bbox-crosshair" />
                 {handles.map((h) => (
@@ -520,22 +661,22 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
           </div>
 
           {/* Thanh thông số toạ độ BBox & thao tác nhanh */}
-          {selectedProjLayer && activeLayerObj ? (
+          {selectedProjLayer && coordRefLayer ? (
             <div className="wf-v2-direct-footer">
               <span className="wf-v2-direct-coords">
-                X <b>{Math.round(activeLayerObj.transform.position.value?.[0] ?? 0)}</b> · Y{' '}
-                <b>{Math.round(activeLayerObj.transform.position.value?.[1] ?? 0)}</b> · Z{' '}
-                <b>{Math.round(activeLayerObj.transform.position.value?.[2] ?? 0)}</b> · Cỡ{' '}
-                <b>{Math.round((activeLayerObj.transform.scale.value?.[0] ?? 1) * 100)}%</b>
+                {useClusterBbox ? 'Cụm ' : ''}X <b>{Math.round(coordRefLayer.transform.position.value?.[0] ?? 0)}</b> · Y{' '}
+                <b>{Math.round(coordRefLayer.transform.position.value?.[1] ?? 0)}</b> · Z{' '}
+                <b>{Math.round(coordRefLayer.transform.position.value?.[2] ?? 0)}</b> · Cỡ{' '}
+                <b>{Math.round(Math.abs(coordRefLayer.transform.scale.value?.[0] ?? 1) * 100)}%</b>
               </span>
               <div className="wf-v2-direct-actions">
                 <button type="button" className="wf-v2-direct-btn" onClick={handleCenterLayer} title="Đặt vị trí BBox về chính giữa khung cảnh (X=0, Y=0)">
                   ⊡ Giữa khung
                 </button>
-                <button type="button" className="wf-v2-direct-btn" onClick={handleResetLayerScale} title="Đặt lại tỷ lệ BBox về 100%">
-                  ↺ 100%
+                <button type="button" className="wf-v2-direct-btn" onClick={handleResetLayerScale} title="Đặt lại tỷ lệ BBox chuẩn">
+                  ↺ Chuẩn cỡ
                 </button>
-                <button type="button" className="wf-v2-direct-btn accent" onClick={handleAimCameraAtLayer} title="Lia khung Camera đang chọn vào đúng BBox của Layer này">
+                <button type="button" className="wf-v2-direct-btn accent" onClick={handleAimCameraAtLayer} title="Lia khung Camera đang chọn vào đúng BBox này">
                   🎯 Ngắm Cam
                 </button>
               </div>

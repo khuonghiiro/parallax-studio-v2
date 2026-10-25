@@ -15,6 +15,11 @@ export const v2CameraWaypointId = (shotId: string, localIdx: number): string => 
 export const v2GroupId = (kind: 'group_3d' | 'group_25d' | 'group_env', clusterKey: string): string =>
   `v2-group-${kind.replace('group_', '')}-${clusterKey}`
 export const v2LayerNodeId = (layerId: string): string => `v2-layer-${layerId}`
+export const v2ClusterLockId = (instanceId: string): string => `v2-cluster-${instanceId}`
+
+export function isClusterLockNode(node?: { params?: { logicCategory?: string } } | null): boolean {
+  return Boolean(node && node.params?.logicCategory === 'cluster_lock')
+}
 
 export function isCameraWaypointNode(node?: { type?: string; params?: { isCameraWaypoint?: boolean } } | null): boolean {
   return Boolean(node && node.type === 'camera_director' && node.params?.isCameraWaypoint)

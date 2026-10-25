@@ -52,6 +52,16 @@ export function summarizeV2Node(node: WorkflowNode, childCount: number): string 
     return `Z ${z >= 0 ? `+${z}` : z}`
   }
   switch (resolveV2LogicCategory(node)) {
+    case 'cluster_lock': {
+      const locked = node.enabled !== false && p.lockedGroup !== false
+      return `${p.childLayerCount ?? shared} mảnh · ${locked ? 'Đang khoá' : 'Đang mở'}`
+    }
+    case 'part_swap': {
+      if (p.swapMode === 'toggle_part') return `Bật/Tắt mảnh${sharedTag}`
+      if (p.swapMode === 'replace_template') return `Đổi cụm 2.5D`
+      if (p.swapMode === 'replace_asset') return `Thay ảnh mảnh`
+      return `Đổi biểu cảm${sharedTag}`
+    }
     case 'material': {
       const opt = WORKFLOW_V2_MATERIAL_OPTIONS.find((m) => m.id === p.materialTag)
       return `Cứng ${pct(p.materialStiffness, opt?.defaultStiffness ?? 0.5)} · Nảy ${pct(p.materialBounciness, opt?.defaultBounciness ?? 0.5)}${sharedTag}`
@@ -62,6 +72,7 @@ export function summarizeV2Node(node: WorkflowNode, childCount: number): string 
       return `${shared} layer · Lực ${pct(p.collisionForce, opt?.defaultForce ?? 1.2)}`
     }
     case 'action':
+      if (p.rigActionPreset && p.rigActionPreset !== 'none') return `Xương: ${p.rigActionPreset}${sharedTag}`
       return `Biên độ ${pct(p.intensity, 0.65)}${sharedTag}`
     case 'anim_fx': {
       const cnt = p.animFxCount ? `${p.animFxCount} nhịp · ` : ''
@@ -87,12 +98,16 @@ export function summarizeV2Node(node: WorkflowNode, childCount: number): string 
 /** Node Logic gắn vào Layer và các mốc lộ trình quay phụ (> #1) được phép xoá khỏi cây */
 export function isDeletableV2Node(node: WorkflowNode): boolean {
   if (node.params?.isCameraWaypoint) return (node.params?.waypointIndex ?? 0) > 0
-  return resolveV2NodeLevel(node) === 'logic' && resolveV2LogicCategory(node) !== 'camera'
+  const cat = resolveV2LogicCategory(node)
+  return resolveV2NodeLevel(node) === 'logic' && cat !== 'camera' && cat !== 'cluster_lock'
 }
 
 function resolveThumb(node: WorkflowNode, project: Project): string | undefined {
-  if (resolveV2NodeLevel(node) !== 'layer') return undefined
-  const layer = project.layers.find((l) => l.id === node.params?.targetLayerIds?.[0])
+  const level = resolveV2NodeLevel(node)
+  const cat = resolveV2LogicCategory(node)
+  if (level !== 'layer' && cat !== 'cluster_lock') return undefined
+  const targetId = node.params?.rootLayerId ?? node.params?.targetLayerIds?.[0]
+  const layer = project.layers.find((l) => l.id === targetId) ?? project.layers.find((l) => node.params?.targetLayerIds?.includes(l.id))
   if (!layer || layer.type !== 'image') return undefined
   const asset = project.assets.find((a) => a.id === (layer.props as ImageProps).assetId)
   return asset?.dataUrl || asset?.path
@@ -124,9 +139,11 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
 }: WorkflowNodeCardV2Props) {
   const theme = resolveV2NodeTheme(node)
   const level = resolveV2NodeLevel(node)
+  const cat = resolveV2LogicCategory(node)
   const collapsed = Boolean(node.params?.collapsedGroup)
+  const collapsedSubs = Boolean(node.params?.collapsedSubLayers)
   const thumb = resolveThumb(node, project)
-  const hasOutput = level !== 'logic' || resolveV2LogicCategory(node) === 'material'
+  const hasOutput = level !== 'logic' || cat === 'material' || cat === 'cluster_lock'
 
   const socket = (kind: 'in' | 'out'): React.ReactElement => {
     const isOut = kind === 'out'
@@ -221,15 +238,37 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
               {collapsed ? `+${node.params?.childLayerCount ?? childCount}` : '−'}
             </button>
           )}
+          {cat === 'cluster_lock' && (
+            <button
+              type="button"
+              className={`wf-v2-icon-btn${collapsedSubs ? ' collapsed' : ''}`}
+              title={
+                collapsedSubs
+                  ? 'Bung toàn bộ các mảnh Layer con của cụm ra trên sơ đồ'
+                  : 'Thu gọn các mảnh phụ của cụm trên sơ đồ (chỉ giữ Gốc neo)'
+              }
+              onClick={() => onUpdateParams(node.id, { collapsedSubLayers: !collapsedSubs })}
+            >
+              {collapsedSubs ? `+${Math.max(0, (node.params?.childLayerCount ?? 1) - 1)}` : '−'}
+            </button>
+          )}
           {level !== 'root' && (
             <button
               type="button"
               className={`wf-v2-icon-btn ${node.enabled ? 'on' : 'off'}`}
-              title={node.enabled ? 'Đang bật — nhấn để tắt' : 'Đang tắt — nhấn để bật'}
+              title={
+                cat === 'cluster_lock'
+                  ? node.enabled
+                    ? 'Đang khoá cả cụm — nhấn để mở khoá cụm (chỉnh lẻ từng mảnh)'
+                    : 'Đang mở khoá cụm — nhấn để khoá cả cụm lại'
+                  : node.enabled
+                    ? 'Đang bật — nhấn để tắt'
+                    : 'Đang tắt — nhấn để bật'
+              }
               aria-label={node.enabled ? 'Tắt node' : 'Bật node'}
               onClick={() => onToggleEnable(node.id)}
             >
-              {node.enabled ? '●' : '○'}
+              {cat === 'cluster_lock' ? (node.enabled ? '🔒' : '🔓') : node.enabled ? '●' : '○'}
             </button>
           )}
           {isDeletableV2Node(node) && (

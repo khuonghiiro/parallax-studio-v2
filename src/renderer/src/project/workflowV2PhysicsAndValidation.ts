@@ -171,6 +171,8 @@ export const WORKFLOW_V2_COLLISION_OPTIONS: WorkflowV2CollisionOption[] = [
 ]
 
 export const LOGIC_CATEGORY_LABELS: Record<string, string> = {
+  cluster_lock: '🔒 Khoá & Điều phối Cụm',
+  part_swap: '🧩 Thay Layer / Bộ phận',
   action: '🏃 Hành động',
   anim_fx: '🎞️ Hoạt ảnh FX',
   material: '🏷️ Nhãn Vật liệu',
@@ -185,6 +187,7 @@ export const LOGIC_CATEGORY_LABELS: Record<string, string> = {
 export function getNodeLogicCategory(node: WorkflowNode): string | undefined {
   if (node.type === 'scene_shot' || node.type === 'layer_assembly') return undefined
   if (node.params?.logicCategory) return node.params.logicCategory
+  if (node.type === 'layer_transform') return 'cluster_lock'
   if (node.type === 'camera_director') return 'camera'
   if (node.type === 'audio_lipsync') return 'audio'
   if (node.type === 'physics_fx') return 'fx'
@@ -309,6 +312,29 @@ export function validateWorkflowV2Connection(
     return { valid: true }
   }
 
+  // 3b. Nguồn là Node Khoá Cụm (cluster_lock) -> cho phép nối tới các Node Logic để áp dụng cho toàn bộ cụm 2.5D / 3D
+  if (srcCat === 'cluster_lock') {
+    if (dstCat && dstCat !== 'camera' && dstCat !== 'cluster_lock') {
+      const existingOfCluster = workflow.edges
+        .filter((e) => e.fromNode === src.id)
+        .map((e) => workflow.nodes.find((n) => n.id === e.toNode))
+        .filter((n): n is WorkflowNode => Boolean(n))
+      const dup = existingOfCluster.find((n) => n.id !== dst.id && getNodeLogicCategory(n) === dstCat)
+      if (dup) {
+        const catLabel = LOGIC_CATEGORY_LABELS[dstCat] ?? dstCat
+        return {
+          valid: false,
+          reason: `⚠️ Cụm "${src.title}" đã gắn logic [${catLabel}] ("${dup.title}") rồi — không gắn trùng 2 Node cùng loại!`
+        }
+      }
+      return { valid: true }
+    }
+    return {
+      valid: false,
+      reason: '❌ Node Khoá Cụm chỉ được kết nối sang các Node Logic của Cụm/Layer (Hành động, Thay Bộ Phận, Hoạt ảnh FX, Ánh sáng, Vật liệu, Va chạm, Âm thanh).'
+    }
+  }
+
   // 4. Nguồn là Node Nhãn Vật liệu -> cho phép nối bổ trợ sang Node Va chạm Vật lý để truyền chất liệu biến dạng
   if (srcCat === 'material' && dstCat === 'collision') {
     return { valid: true }
@@ -321,20 +347,28 @@ export function validateWorkflowV2Connection(
 }
 
 /**
- * Tự động tổng hợp danh sách các Layer liên kết vào từng Node Logic (hỗ trợ Tái sử dụng Node cho nhiều Layer
- * và ghép cặp Chủ thể A / Mục tiêu B cho Node Va chạm Vật lý).
+ * Tự động tổng hợp danh sách các Layer liên kết vào từng Node Logic (hỗ trợ Tái sử dụng Node cho nhiều Layer,
+ * mở rộng toàn bộ các mảnh của Cụm đang khoá và ghép cặp Chủ thể A / Mục tiêu B cho Node Va chạm Vật lý).
  */
 export function recomputeSharedLogicTargets(
   nodes: WorkflowNode[],
   edges: WorkflowEdge[]
 ): WorkflowNode[] {
   const byId = new Map(nodes.map((n) => [n.id, n]))
+  const clusterByInst = new Map<string, WorkflowNode>()
+  for (const n of nodes) {
+    if (getNodeLogicCategory(n) === 'cluster_lock' && n.params?.instanceId) {
+      clusterByInst.set(n.params.instanceId, n)
+    }
+  }
+
   return nodes.map((node) => {
     const cat = getNodeLogicCategory(node)
-    if (!cat || cat === 'camera') return node
+    if (!cat || cat === 'camera' || cat === 'cluster_lock') return node
 
-    // Tìm tất cả các Node Layer nối trực tiếp (hoặc qua Node Vật liệu) vào Node Logic này
+    // Tìm tất cả các Node Layer hoặc Node Khoá Cụm nối trực tiếp (hoặc qua Node Vật liệu) vào Node Logic này
     const incomingLayerNodes: WorkflowNode[] = []
+    const incomingClusterNodes: WorkflowNode[] = []
     for (const e of edges) {
       if (e.toNode !== node.id) continue
       const fromN = byId.get(e.fromNode)
@@ -343,40 +377,67 @@ export function recomputeSharedLogicTargets(
         if (!incomingLayerNodes.some((ln) => ln.id === fromN.id)) {
           incomingLayerNodes.push(fromN)
         }
+      } else if (getNodeLogicCategory(fromN) === 'cluster_lock') {
+        if (!incomingClusterNodes.some((cn) => cn.id === fromN.id)) {
+          incomingClusterNodes.push(fromN)
+        }
       } else if (getNodeLogicCategory(fromN) === 'material') {
         for (const eMat of edges) {
           if (eMat.toNode !== fromN.id) continue
           const matLayer = byId.get(eMat.fromNode)
-          if (
-            matLayer &&
-            matLayer.type === 'layer_assembly' &&
-            !matLayer.params?.groupKind &&
-            !incomingLayerNodes.some((ln) => ln.id === matLayer.id)
-          ) {
-            incomingLayerNodes.push(matLayer)
+          if (!matLayer) continue
+          if (matLayer.type === 'layer_assembly' && !matLayer.params?.groupKind) {
+            if (!incomingLayerNodes.some((ln) => ln.id === matLayer.id)) incomingLayerNodes.push(matLayer)
+          } else if (getNodeLogicCategory(matLayer) === 'cluster_lock') {
+            if (!incomingClusterNodes.some((cn) => cn.id === matLayer.id)) incomingClusterNodes.push(matLayer)
           }
         }
       }
     }
 
-    if (incomingLayerNodes.length === 0) return node
+    if (incomingLayerNodes.length === 0 && incomingClusterNodes.length === 0) return node
 
-    const combinedTargetLayerIds = Array.from(
-      new Set(incomingLayerNodes.flatMap((ln) => ln.params?.targetLayerIds ?? []))
-    )
-    const sharedLayerNodeIds = incomingLayerNodes.map((ln) => ln.id)
+    // Nếu nối vào 1 Layer con thuộc Cụm đang khoá (lockedGroup !== false) và không bật chế độ chỉnh lẻ (`singleSubLayerOnly`),
+    // tự động lấy toàn bộ các mảnh của cụm đó để khung chỉnh 2.5D / BBox và hiệu ứng áp đồng bộ cho cả cụm đang khoá!
+    const expandedTargetIds: string[] = []
+    for (const cn of incomingClusterNodes) {
+      expandedTargetIds.push(...(cn.params?.targetLayerIds ?? []))
+    }
+    for (const ln of incomingLayerNodes) {
+      const instId = ln.params?.instanceId
+      const clusterNode = instId ? clusterByInst.get(instId) : undefined
+      const isClusterLocked =
+        clusterNode ? clusterNode.enabled !== false && clusterNode.params?.lockedGroup !== false : ln.params?.lockedGroup !== false
+      if (clusterNode && isClusterLocked && !node.params?.singleSubLayerOnly) {
+        expandedTargetIds.push(...(clusterNode.params?.targetLayerIds ?? ln.params?.targetLayerIds ?? []))
+      } else {
+        expandedTargetIds.push(...(ln.params?.targetLayerIds ?? []))
+      }
+    }
+
+    const combinedTargetLayerIds = Array.from(new Set(expandedTargetIds))
+    const sharedLayerNodeIds = [
+      ...incomingLayerNodes.map((ln) => ln.id),
+      ...incomingClusterNodes.map((cn) => cn.id)
+    ]
+    const primaryOwner = incomingLayerNodes[0] ?? incomingClusterNodes[0]
+    const primaryInstanceId =
+      incomingClusterNodes[0]?.params?.instanceId ?? incomingLayerNodes[0]?.params?.instanceId ?? node.params?.instanceId
 
     const nextParams = {
       ...(node.params ?? {}),
       targetMode: 'custom' as const,
       targetLayerIds: combinedTargetLayerIds,
       sharedLayerNodeIds,
-      hierarchyParentNodeId: incomingLayerNodes[0].id
+      ...(primaryInstanceId ? { instanceId: primaryInstanceId } : {}),
+      hierarchyParentNodeId: primaryOwner.id
     }
 
     if (cat === 'collision') {
-      const firstLayerId = incomingLayerNodes[0]?.params?.targetLayerIds?.[0]
-      const secondLayerId = incomingLayerNodes[1]?.params?.targetLayerIds?.[0]
+      const firstSource = incomingLayerNodes[0] ?? incomingClusterNodes[0]
+      const secondSource = incomingLayerNodes[1] ?? incomingClusterNodes[1] ?? (incomingLayerNodes[0] && incomingClusterNodes[0] ? incomingClusterNodes[0] : undefined)
+      const firstLayerId = firstSource?.params?.rootLayerId ?? firstSource?.params?.targetLayerIds?.[0]
+      const secondLayerId = secondSource?.params?.rootLayerId ?? secondSource?.params?.targetLayerIds?.[0]
       if (
         !nextParams.strikerLayerId ||
         !combinedTargetLayerIds.includes(nextParams.strikerLayerId)
