@@ -114,6 +114,9 @@ export function WorkshopSecondaryMotionCard({ rig, boneId, setComposite, onDone 
       <Slider label="Giảm chấn" value={s.damping} min={0} max={1} step={0.05} hint="Cao = ít nảy qua lại" onChange={(damping) => patch({ damping })} />
       <Slider label="Cường độ" value={s.strength} min={0} max={2} step={0.05} hint="Nhân độ lệch quán tính" onChange={(strength) => patch({ strength })} />
       <Slider label="Góc tối đa" value={s.maxAngle} min={5} max={120} step={1} unit="°" onChange={(maxAngle) => patch({ maxAngle })} />
+      <Slider label="Lực gió (Wind)" value={s.windSpeed ?? 0} min={-2} max={2} step={0.1} hint="Lực gió thổi ngang (Spine 4.2 Physics / SpringBone)" onChange={(windSpeed) => patch({ windSpeed })} />
+      <Slider label="Nhiễu gió" value={s.windTurbulence ?? 0.3} min={0} max={1} step={0.05} hint="Độ phập phồng tự nhiên của luồng gió" onChange={(windTurbulence) => patch({ windTurbulence })} />
+      <Slider label="Trọng lực" value={s.gravity ?? 0} min={-1} max={1} step={0.05} hint="Trọng lực kéo rủ xuống (+) hoặc bay lên (-)" onChange={(gravity) => patch({ gravity })} />
       <label className="lw-rig-check">
         <input type="checkbox" checked={s.includeRoot} onChange={(e) => patch({ includeRoot: e.target.checked })} />
         <span>Tính cả xương đang chọn</span>

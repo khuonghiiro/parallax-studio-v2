@@ -15,6 +15,7 @@ import { setAnimAssist, useAnimAssist } from './animAssistStore'
 import { toggleMotionSketchArmed, useMotionSketch } from './motionSketchStore'
 import { confirmPoseAndStep, setStepRecordState, useStepRecord } from './workshopStepRecord'
 import { WorkshopAnimToolsCard } from './WorkshopAnimToolsCard'
+import { WorkshopParallax25DCard } from './WorkshopParallax25DCard'
 import { AnimationKeyList, AnimationPoseActions } from './WorkshopAnimPoseParts'
 import type { LayerComposite } from './types'
 
@@ -151,6 +152,16 @@ export function WorkshopAnimationPanel({
         playback={playback}
         run={run}
         onConfirmStep={handleConfirmStep}
+      />
+      <WorkshopParallax25DCard
+        rig={rig}
+        time={time}
+        run={run}
+        onStartPlayback={() => {
+          playback.setTime(0)
+          playback.setIsPlaying(true)
+        }}
+        onPausePlayback={() => playback.setIsPlaying(false)}
       />
 
       {/* 3. Thanh chuyển 3 chế độ chuyên sâu trong Tab Animation */}

@@ -16,6 +16,20 @@ export type { BonePoseEntry } from './workshopAnimation'
 import { retargetAnimationClip } from './workshopRetarget'
 import { autoBindLayersToMixamoBones } from './workshopMixamoAutoRig'
 import { applyAnimTool, type AnimToolOp } from './workshopAnimTools'
+import {
+  autoSortLayersZDepth25D,
+  buildAnatomicalBonesFromLayers,
+  smartAutoBindCompositeLayers,
+  type SmartRigArchetype
+} from './workshopSmartRig25D'
+import {
+  applyLayerParallax25DOffset,
+  computeParallax25DPose,
+  createParallax25DClip,
+  generateParameterizedCycle25D,
+  type Parallax25DClipPreset,
+  type ParameterizedCycle25DConfig
+} from './workshopParallax25D'
 
 export type RigTemplateType = 'humanoid' | 'humanoid-full' | 'hand-detailed' | 'foot-detailed' | 'simple-chain'
 
@@ -112,6 +126,12 @@ export type RigAction = AnimationAction | AnimationBatch
   | { action: 'delete-all-clips' }
   | { action: 'duplicate-clip'; clipId: string }
   | { action: 'inherit-clip'; sourceClip: AnimationClip; sourceBones: LayerBone[]; clipName?: string }
+  | { action: 'smart-auto-rig-25d'; archetype?: SmartRigArchetype; bindMode?: 'auto' | 'rigid' | 'soft'; includeStarterClips?: boolean; sortZDepth?: boolean }
+  | { action: 'smart-auto-bind-25d'; bindMode?: 'auto' | 'rigid' | 'soft' }
+  | { action: 'auto-sort-z-25d' }
+  | { action: 'apply-parallax-25d-pose'; time: number; yawX: number; pitchY: number; intensity?: number; applyLayerTilt?: boolean }
+  | { action: 'add-parallax-25d-clip'; preset: Parallax25DClipPreset; intensity?: number }
+  | { action: 'add-parameterized-cycle-25d'; config: Partial<ParameterizedCycle25DConfig>; asNewClip?: boolean }
   | {
       action: 'apply-mixamo-rig-motion'
       bones: LayerBone[]
@@ -375,6 +395,62 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
   }
 
   if (action.action === 'anim-tool') applyAnimTool(rig, action.tool)
+
+  if (action.action === 'smart-auto-rig-25d') {
+    const built = buildAnatomicalBonesFromLayers({ ...composite, layers }, action.archetype ?? 'auto')
+    rig.bones = built.bones
+    if (action.sortZDepth) {
+      layers = autoSortLayersZDepth25D(layers)
+    }
+    layers = smartAutoBindCompositeLayers(layers, rig.bones, action.bindMode ?? 'auto')
+    if (action.includeStarterClips !== false && built.clips.length > 0) {
+      rig.clips = built.clips
+      rig.activeClipId = built.clips[0].id
+      rig.tracks = structuredClone(built.clips[0].tracks)
+      rig.duration = built.clips[0].duration
+      rig.loop = built.clips[0].loop
+    }
+  }
+  if (action.action === 'smart-auto-bind-25d') {
+    layers = smartAutoBindCompositeLayers(layers, rig.bones, action.bindMode ?? 'auto')
+  }
+  if (action.action === 'auto-sort-z-25d') {
+    layers = autoSortLayersZDepth25D(layers)
+  }
+  if (action.action === 'apply-parallax-25d-pose') {
+    const poses = computeParallax25DPose(rig.bones, action.yawX, action.pitchY, action.intensity ?? 1.0)
+    applyAnimationAction(rig, { action: 'set-pose', time: action.time, poses })
+    if (action.applyLayerTilt) {
+      layers = applyLayerParallax25DOffset(layers, action.yawX, action.pitchY, action.intensity ?? 1.0)
+    }
+  }
+  if (action.action === 'add-parallax-25d-clip') {
+    const clip = createParallax25DClip(action.preset, rig.bones, action.intensity ?? 1.0)
+    const existing = rig.clips ?? []
+    const isOnlyEmpty = existing.length === 1 && Object.keys(existing[0].tracks || {}).length === 0
+    rig.clips = isOnlyEmpty ? [clip] : [...existing, clip]
+    rig.activeClipId = clip.id
+    rig.tracks = structuredClone(clip.tracks)
+    rig.duration = clip.duration
+    rig.loop = clip.loop
+  }
+  if (action.action === 'add-parameterized-cycle-25d') {
+    const clip = generateParameterizedCycle25D(rig.bones, action.config)
+    const existing = rig.clips ?? []
+    const isOnlyEmpty = existing.length === 1 && Object.keys(existing[0].tracks || {}).length === 0
+    if (action.asNewClip === false && rig.activeClipId && existing.some((c) => c.id === rig.activeClipId)) {
+      rig.clips = existing.map((c) => (c.id === rig.activeClipId ? { ...clip, id: c.id } : c))
+      rig.tracks = structuredClone(clip.tracks)
+      rig.duration = clip.duration
+      rig.loop = clip.loop
+    } else {
+      rig.clips = isOnlyEmpty ? [clip] : [...existing, clip]
+      rig.activeClipId = clip.id
+      rig.tracks = structuredClone(clip.tracks)
+      rig.duration = clip.duration
+      rig.loop = clip.loop
+    }
+  }
 
   // --- Quản lý Clips Động Tác ---
   if (action.action === 'add-clip') {

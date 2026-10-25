@@ -11,6 +11,7 @@ import {
 } from './workshopPlantSpines'
 import { setPlantSpineEditorState, usePlantSpineEditor } from './plantSpineEditorStore'
 import { PlantSpineCard } from './PlantSpineCard'
+import { WorkshopLayerMotionHarmonyCard } from './WorkshopLayerMotionHarmonyCard'
 import { generateCustomPlantMotion, type PlantCustomPatternId, PLANT_CUSTOM_PATTERNS } from './plantMotionRecord'
 import '../../styles/layerWorkshopPlant.css'
 import '../../styles/layerWorkshopPlantMotion.css'
@@ -164,6 +165,12 @@ export function WorkshopPlantPanel({
           </ul>
         </div>
       )}
+
+      <WorkshopLayerMotionHarmonyCard
+        composite={composite}
+        selectedIds={selectedIds}
+        setComposite={setComposite}
+      />
 
       {/* Khối 1: Tạo Mới Chuyển Động Thực Vật (1-Click Wizard + Tuỳ chỉnh riêng) */}
       <div className="lw-plant-create-card">

@@ -42,6 +42,11 @@ export function computeLayerMotion(motion: LayerMotionSettings, time: number): C
     const smoothRock = Math.cos(cycle) + Math.cos(cycle * 2) * 0.1
     animRotateDeg = smoothRock * amplitude
     animTranslateX = Math.sin(cycle) * (amplitude * 0.35)
+  } else if (type === 'wave') {
+    animRotateDeg = (Math.sin(cycle) + Math.cos(cycle * 2) * 0.22) * amplitude
+    animTranslateX = Math.sin(cycle) * (amplitude * 0.45)
+    animTranslateY = Math.cos(cycle * 2) * (amplitude * 0.2)
+    animScaleX = 1 + Math.sin(cycle * 2) * (amplitude * 0.004)
   }
 
   return {

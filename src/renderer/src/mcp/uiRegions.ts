@@ -195,6 +195,9 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   layer_assembly_plant_panel: ['.lw-plant-panel'],
   layer_assembly_pose_tools: region('layer_assembly_pose_tools', '.lw-pose-tools'),
   layer_assembly_plant_graph: region('layer_assembly_plant_graph', '.lw-plant-motion-graph'),
+  layer_assembly_smart_rig_25d: region('layer_assembly_smart_rig_25d', '.lw-smart-rig-25d-card'),
+  layer_assembly_parallax_25d: region('layer_assembly_parallax_25d', '.lw-parallax-25d-card'),
+  layer_assembly_motion_harmony: region('layer_assembly_motion_harmony', '.lw-motion-harmony-card'),
 
   // 3. Audio Studio (Phòng thu Âm thanh)
   audio_studio: ['.audio-studio-modal', '.audio-studio-dialog'],
