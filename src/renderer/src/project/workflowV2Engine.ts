@@ -23,6 +23,15 @@ import {
   reconcileWorkflowV2WithProject,
   syncWorkflowV2NodeToProject
 } from './workflowV2Mutations'
+import { WF_V2_COL_X, layoutWorkflowV2Tree } from './workflowV2Layout'
+import {
+  getShotTimeRange,
+  resolveGroupTimeRange,
+  resolveLayerNodeTimeRange,
+  resolveWorkflowV2ActiveShot,
+  scopedWorkflowV2Layers,
+  workflowV2RootTitle
+} from './workflowV2Scope'
 
 export {
   WORKFLOW_V2_COLLISION_OPTIONS,
@@ -36,14 +45,26 @@ export {
   reconcileWorkflowV2WithProject
 }
 
-export const WF_V2_COL_X = {
-  ROOT: 40,
-  GROUP: 432,
-  LAYER: 824,
-  LOGIC: 1216
-} as const
-
-export const WF_V2_NODE_W = 236
+export {
+  WF_V2_COL_X,
+  WF_V2_NODE_H,
+  WF_V2_NODE_W,
+  estimateV2NodeHeight,
+  layoutWorkflowV2Tree,
+  resolveHiddenV2NodeIds
+} from './workflowV2Layout'
+export {
+  WORKFLOW_V2_ALL_SCOPE,
+  getShotTimeRange,
+  isWorkflowV2Graph,
+  normalizeWorkflowV2Scope,
+  resolveGroupTimeRange,
+  resolveLayerNodeTimeRange,
+  resolveWorkflowV2ActiveShot,
+  scopedWorkflowV2Layers,
+  workflowV2RootTitle,
+  workflowV2ScopeOf
+} from './workflowV2Scope'
 
 export type WorkflowV2LogicCategory =
   | 'action'
@@ -149,20 +170,6 @@ export function getLayerDisplayName(layer: Layer): string {
   return layer.composite?.compositeName || layer.model3d?.modelName || layer.name || 'Layer'
 }
 
-/** Tính khoảng mốc thời gian [start, end] của một Shot dựa trên các Layer thuộc Shot đó */
-export function getShotTimeRange(project: Project, shot?: Shot): { start: number; end: number } {
-  const compDur = Math.max(1, Number((project.comp.duration || 5).toFixed(2)))
-  if (!shot) return { start: 0, end: compDur }
-  const shotLayers = project.layers.filter((l) => l.shotId === shot.id)
-  if (shotLayers.length === 0) return { start: 0, end: compDur }
-  const minIn = Math.max(0, Math.min(...shotLayers.map((l) => (Number.isFinite(l.inPoint) ? l.inPoint : 0))))
-  const maxOut = Math.min(compDur, Math.max(...shotLayers.map((l) => (Number.isFinite(l.outPoint) ? l.outPoint : compDur))))
-  return {
-    start: Number(minIn.toFixed(2)),
-    end: Number(Math.max(minIn + 0.5, maxOut).toFixed(2))
-  }
-}
-
 /** Phân loại một Layer vào đúng Group Layer ('group_3d' | 'group_25d' | 'group_env') */
 export function classifyLayerGroupKind(layer: Layer): 'group_3d' | 'group_25d' | 'group_env' {
   if (layer.model3d || layer.composite) return 'group_3d'
@@ -220,20 +227,28 @@ export function collectRepresentativeLayers(layers: Layer[]): {
   return out
 }
 
+export interface BuildWorkflowV2Options {
+  /**
+   * Tự tạo sẵn 1 Node Va chạm mẫu giữa 2 Layer đầu tiên của Group 2.5D.
+   * Chỉ bật khi bung cây LẦN ĐẦU; khi dựng lại cây đã có, giữ nguyên lựa chọn của người dùng (không hồi sinh node đã xoá).
+   */
+  autoCollision?: boolean
+}
+
 /**
  * Xây dựng Cây Workflow V2 chuẩn 4 tầng từ dữ liệu thật của Project,
  * hỗ trợ tái sử dụng Node Logic dùng chung (Shared Logic Nodes), Node Nhãn Vật liệu và Node Va chạm 2 Layer:
  */
-export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): WorkflowGraph {
-  const activeShot: Shot | undefined =
-    shotScope && shotScope !== '__all__'
-      ? project.shots.find((s) => s.id === shotScope) ?? project.shots[0]
-      : project.shots[0]
+export function buildWorkflowV2SceneTree(
+  project: Project,
+  shotScope?: string,
+  options: BuildWorkflowV2Options = {}
+): WorkflowGraph {
+  const autoCollision = options.autoCollision ?? true
+  const activeShot: Shot | undefined = resolveWorkflowV2ActiveShot(project, shotScope)
+  const compDur = Math.max(1, project.comp.duration || 5)
   const { start: shotStart, end: shotEnd } = getShotTimeRange(project, activeShot)
-  const scopedLayers =
-    activeShot && shotScope !== '__all__'
-      ? project.layers.filter((l) => !l.shotId || l.shotId === activeShot.id)
-      : project.layers
+  const scopedLayers = scopedWorkflowV2Layers(project, activeShot)
   const repItems = collectRepresentativeLayers(scopedLayers)
   const audioTracks = getProjectAudioTracks(project)
   const nodes: WorkflowNode[] = []
@@ -241,7 +256,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
 
   // 1. TẦNG 0: ROOT CẢNH TỔNG HỢP + ĐẠO DIỄN CAMERA
   const rootId = 'v2-root-scene'
-  const sceneTitle = activeShot ? `Cảnh: ${activeShot.name}` : `Dự án (${project.shots.length} cảnh)`
+  const sceneTitle = workflowV2RootTitle(project, activeShot)
   nodes.push({
     id: rootId,
     type: 'scene_shot',
@@ -325,14 +340,11 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
 
   for (const grp of activeGroups) {
     const groupMemberIds = grp.items.flatMap((it) => it.memberIds)
-    const grpStart =
-      grp.items.length > 0
-        ? Math.max(shotStart, Math.min(...grp.items.map((it) => Number((it.layer.inPoint ?? shotStart).toFixed(2)))))
-        : shotStart
-    const grpEnd =
-      grp.items.length > 0
-        ? Math.min(shotEnd, Math.max(...grp.items.map((it) => Number((it.layer.outPoint ?? shotEnd).toFixed(2)))))
-        : shotEnd
+    const { start: grpStart, end: grpEnd } = resolveGroupTimeRange(
+      grp.items.map((it) => it.layer),
+      compDur,
+      { start: shotStart, end: shotEnd }
+    )
 
     nodes.push({
       id: grp.id,
@@ -373,8 +385,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
       const l = item.layer
       const layerNodeId = `v2-layer-${l.id}`
       createdLayerNodeIds.push(layerNodeId)
-      const lStart = Number(Math.max(shotStart, Number.isFinite(l.inPoint) ? l.inPoint : shotStart).toFixed(2))
-      const lEnd = Number(Math.min(shotEnd, Number.isFinite(l.outPoint) ? l.outPoint : shotEnd).toFixed(2))
+      const { start: lStart, end: lEnd } = resolveLayerNodeTimeRange(l, compDur)
       const displayTitle = getLayerDisplayName(l)
       const zVal = getLayerZ(l)
 
@@ -526,7 +537,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
               materialTag: matOpt.id,
               materialStiffness: l.physics?.stiffness ?? matOpt.defaultStiffness,
               materialBounciness: l.physics?.bounciness ?? matOpt.defaultBounciness,
-              materialGravity: l.physics?.gravity ?? matOpt.defaultGravity,
+              materialGravity: l.physics?.gravityScale ?? matOpt.defaultGravity,
               targetMode: 'custom',
               targetLayerIds: [...item.memberIds],
               sharedLayerNodeIds: [layerNodeId],
@@ -693,7 +704,7 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
     })
 
     // 4f. Nếu Group 2.5D có từ 2 Layer trở lên, tạo sẵn 1 Node Va chạm Vật lý liên kết 2 Layer đầu tiên
-    if (grp.kind === 'group_25d' && grp.items.length >= 2) {
+    if (autoCollision && grp.kind === 'group_25d' && grp.items.length >= 2) {
       const itemA = grp.items[0]
       const itemB = grp.items[1]
       const layerNodeA = createdLayerNodeIds[0]
@@ -765,136 +776,4 @@ export function buildWorkflowV2SceneTree(project: Project, shotScope?: string): 
     nodes: laidOutNodes,
     edges
   }
-}
-
-/** Chiều cao chuẩn gọn gàng của từng loại thẻ trong Workflow V2 */
-export function estimateV2NodeHeight(node: WorkflowNode): number {
-  if (node.type === 'scene_shot') return 68
-  if (node.params?.groupKind) return 66
-  return 68
-}
-
-/**
- * Thuật toán xếp cây 4 cột (Root -> Group -> Layer -> Logic) chuẩn ELK / Dagre / React Flow,
- * hỗ trợ Node Logic dùng chung (nhiều Layer kết nối vào 1 Node Logic hoặc 1 Node Va chạm) không bao giờ đè nhau.
- */
-export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[]): WorkflowNode[] {
-  const cloned = nodes.map((n) => ({ ...n, position: { ...n.position } }))
-  const byId = new Map(cloned.map((n) => [n.id, n]))
-  const childrenMap = new Map<string, WorkflowNode[]>()
-  for (const e of edges) {
-    const child = byId.get(e.toNode)
-    if (!child) continue
-    const list = childrenMap.get(e.fromNode) ?? []
-    if (!list.some((c) => c.id === child.id)) {
-      list.push(child)
-      childrenMap.set(e.fromNode, list)
-    }
-  }
-
-  const rootNode = cloned.find((n) => n.type === 'scene_shot')
-  const groupNodes = cloned.filter((n) => Boolean(n.params?.groupKind))
-  const GAP_Y = 34
-  const GROUP_GAP_Y = 46
-  let layerCursorY = 44
-  let groupColBottomY = 44
-
-  for (const grp of groupNodes) {
-    const layerChildren = (childrenMap.get(grp.id) ?? []).filter((c) => c.type === 'layer_assembly')
-    const grpH = estimateV2NodeHeight(grp)
-    if (grp.params?.collapsedGroup || layerChildren.length === 0) {
-      const yPos = groupColBottomY
-      grp.position = { x: WF_V2_COL_X.GROUP, y: yPos }
-      layerChildren.forEach((ln, idx) => {
-        ln.position = { x: WF_V2_COL_X.LAYER, y: yPos + idx * 102 }
-      })
-      groupColBottomY = yPos + grpH + 34
-      continue
-    }
-    const groupStartY = Math.max(layerCursorY, groupColBottomY)
-    layerCursorY = groupStartY
-    for (const layerNode of layerChildren) {
-      const layerH = estimateV2NodeHeight(layerNode)
-      const attachedLogics = edges
-        .filter((e) => e.fromNode === layerNode.id)
-        .map((e) => byId.get(e.toNode))
-        .filter(
-          (c): c is WorkflowNode =>
-            Boolean(c && c.type !== 'layer_assembly' && c.type !== 'scene_shot')
-        )
-      const slotSpan =
-        attachedLogics.length > 1
-          ? attachedLogics.length * 68 + (attachedLogics.length - 1) * 18
-          : layerH
-      layerNode.position = {
-        x: WF_V2_COL_X.LAYER,
-        y: layerCursorY + Math.round((slotSpan - layerH) / 2)
-      }
-      layerCursorY += slotSpan + GAP_Y
-    }
-    const firstLayerY = layerChildren[0].position.y
-    const anchorIdx = Math.min(layerChildren.length - 1, 2)
-    const anchorLayer = layerChildren[anchorIdx]
-    const anchorBottom = anchorLayer.position.y + estimateV2NodeHeight(anchorLayer)
-    const centeredY = Math.max(groupStartY, Math.round((firstLayerY + anchorBottom - grpH) / 2))
-    grp.position = { x: WF_V2_COL_X.GROUP, y: centeredY }
-    groupColBottomY = centeredY + grpH + 34
-    layerCursorY += GROUP_GAP_Y - GAP_Y
-  }
-
-  // Xếp vị trí Cột 4 (Các Node Logic) thẳng hàng tại WF_V2_COL_X.LOGIC
-  const logicNodes = cloned.filter(
-    (n) => n.type !== 'scene_shot' && n.type !== 'camera_director' && n.type !== 'layer_assembly'
-  )
-  const desiredYMap = new Map<string, number>()
-  const byParentSig = new Map<string, WorkflowNode[]>()
-  for (const ln of logicNodes) {
-    const parentLayers = edges
-      .filter((e) => e.toNode === ln.id)
-      .map((e) => byId.get(e.fromNode))
-      .filter((p): p is WorkflowNode => Boolean(p && p.type === 'layer_assembly' && !p.params?.groupKind))
-    const avgY =
-      parentLayers.length > 0
-        ? Math.round(parentLayers.reduce((s, p) => s + p.position.y, 0) / parentLayers.length)
-        : ln.position.y || 100
-    desiredYMap.set(ln.id, avgY)
-    const sig = parentLayers.map((p) => p.id).sort().join('|') || ln.id
-    const list = byParentSig.get(sig) ?? []
-    list.push(ln)
-    byParentSig.set(sig, list)
-  }
-
-  for (const [, siblingLogics] of byParentSig.entries()) {
-    if (siblingLogics.length <= 1) continue
-    const center = desiredYMap.get(siblingLogics[0].id) ?? 100
-    const totalSpan = siblingLogics.length * 68 + (siblingLogics.length - 1) * 16
-    const startY = Math.max(40, Math.round(center + 34 - totalSpan / 2))
-    siblingLogics.forEach((ln, idx) => {
-      desiredYMap.set(ln.id, startY + idx * (68 + 16))
-    })
-  }
-
-  const sortedLogics = [...logicNodes].sort(
-    (a, b) => (desiredYMap.get(a.id) ?? 0) - (desiredYMap.get(b.id) ?? 0)
-  )
-  let logicCursorY = 40
-  for (const ln of sortedLogics) {
-    const wantY = desiredYMap.get(ln.id) ?? logicCursorY
-    const finalY = Math.max(logicCursorY, wantY)
-    ln.position = { x: WF_V2_COL_X.LOGIC, y: finalY }
-    logicCursorY = finalY + estimateV2NodeHeight(ln) + 18
-  }
-
-  if (rootNode) {
-    const firstGrpY = groupNodes[0]?.position.y ?? 44
-    rootNode.position = { x: WF_V2_COL_X.ROOT, y: firstGrpY }
-    const camNodes = cloned.filter((n) => n.type === 'camera_director')
-    camNodes.forEach((cam, idx) => {
-      cam.position = {
-        x: WF_V2_COL_X.ROOT,
-        y: rootNode.position.y + estimateV2NodeHeight(rootNode) + 34 + idx * 102
-      }
-    })
-  }
-  return cloned
 }

@@ -1,0 +1,196 @@
+import React, { useEffect, useState } from 'react'
+import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
+import { getLayerDisplayName } from '../../project/workflowV2Engine'
+import { IconTrash } from '../icons'
+import { WorkflowTimeRangeBar } from './WorkflowTimeRangeBar'
+import { WorkflowV2NodeParams } from './WorkflowV2NodeParams'
+import { isDeletableV2Node, summarizeV2Node } from './WorkflowNodeCardV2'
+import {
+  WORKFLOW_V2_SPAWN_CATALOG,
+  cleanV2NodeTitle,
+  resolveV2NodeLevel,
+  resolveV2NodeTheme,
+  type WorkflowV2SpawnCategory
+} from './workflowV2Theme'
+
+export interface WorkflowV2InspectorProps {
+  workflow: WorkflowGraph
+  project: Project
+  node: WorkflowNode | null
+  currentTime: number
+  onUpdateParams: (nodeId: string, patch: Partial<WorkflowNodeParams>, nextTitle?: string) => void
+  onToggleEnable: (nodeId: string) => void
+  onDeleteNode: (nodeId: string) => void
+  onAttachLogic: (layerNodeId: string, category: WorkflowV2SpawnCategory) => void
+  onScrubTime: (t: number) => void
+}
+
+/** Ô nhập giây: gõ tự do, chỉ áp dụng khi Enter / rời ô, luôn kẹp trong [min, max] */
+const TimeField: React.FC<{ label: string; value: number; min: number; max: number; disabled?: boolean; onCommit: (v: number) => void }> = ({
+  label,
+  value,
+  min,
+  max,
+  disabled,
+  onCommit
+}) => {
+  const [draft, setDraft] = useState(value.toFixed(2))
+  useEffect(() => setDraft(value.toFixed(2)), [value])
+  const commit = (): void => {
+    const n = Number(draft.replace(',', '.'))
+    if (!Number.isFinite(n)) return setDraft(value.toFixed(2))
+    const clamped = Number(Math.max(min, Math.min(max, n)).toFixed(2))
+    setDraft(clamped.toFixed(2))
+    if (Math.abs(clamped - value) > 0.001) onCommit(clamped)
+  }
+  return (
+    <label className="wf-v2-time-field">
+      <span>{label}</span>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={draft}
+        disabled={disabled}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          e.stopPropagation()
+          if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+          if (e.key === 'Escape') setDraft(value.toFixed(2))
+        }}
+      />
+      <em>s</em>
+    </label>
+  )
+}
+
+function linkedLayerNames(node: WorkflowNode, project: Project): string[] {
+  const ids = node.params?.targetLayerIds ?? []
+  const names = project.layers.filter((l) => ids.includes(l.id) && (!l.composite || l.composite.isRoot)).map(getLayerDisplayName)
+  return Array.from(new Set(names))
+}
+
+/** Bảng thuộc tính của Node đang chọn trong Workflow V2 (thay cho popover nổi đè lên sơ đồ) */
+export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) => {
+  const { node, project, workflow, currentTime } = props
+  if (!node) {
+    return (
+      <aside className="wf-v2-inspector" data-mcp-region="workflow_inspector">
+        <div className="wf-v2-insp-empty">Chọn một Node trên sơ đồ để xem và chỉnh thông số.</div>
+      </aside>
+    )
+  }
+  const theme = resolveV2NodeTheme(node)
+  const level = resolveV2NodeLevel(node)
+  const duration = Math.max(1, project.comp.duration || 5)
+  const tStart = node.params?.timeStart ?? 0
+  const tEnd = node.params?.timeEnd ?? duration
+  const timeLocked = level === 'root'
+  const childCount = workflow.edges.filter((e) => e.fromNode === node.id).length
+  const linked = level === 'logic' ? linkedLayerNames(node, project) : []
+  const update = (patch: Partial<WorkflowNodeParams>, title?: string): void => props.onUpdateParams(node.id, patch, title)
+
+  return (
+    <aside className="wf-v2-inspector" data-mcp-region="workflow_inspector" style={{ ['--wf-v2-accent' as string]: theme.accent }}>
+      <header className="wf-v2-insp-head">
+        <span className="wf-v2-insp-icon" aria-hidden="true">{theme.icon}</span>
+        <div className="wf-v2-insp-titles">
+          <span className="wf-v2-insp-badge">{theme.badge}</span>
+          <strong title={node.title}>{cleanV2NodeTitle(node.title)}</strong>
+          <small>{summarizeV2Node(node, childCount)}</small>
+        </div>
+        {level !== 'root' && (
+          <button
+            type="button"
+            className={`wf-v2-insp-toggle${node.enabled ? ' on' : ''}`}
+            role="switch"
+            aria-checked={node.enabled}
+            title={node.enabled ? 'Đang bật — nhấn để tắt' : 'Đang tắt — nhấn để bật'}
+            onClick={() => props.onToggleEnable(node.id)}
+          >
+            <span />
+          </button>
+        )}
+        {isDeletableV2Node(node) && (
+          <button type="button" className="wf-v2-insp-del" title="Xoá Node (gỡ luôn hiệu ứng khỏi Layer)" aria-label="Xoá node" onClick={() => props.onDeleteNode(node.id)}>
+            <IconTrash width={13} height={13} />
+          </button>
+        )}
+      </header>
+
+      <div className="wf-v2-insp-body">
+        <section className="wf-v2-insp-sec">
+          <div className="wf-v2-insp-sec-title">
+            Khoảng thời gian
+            {timeLocked && <span className="wf-v2-insp-note">theo phạm vi cảnh</span>}
+          </div>
+          <div className="wf-v2-time-fields">
+            <TimeField label="Bắt đầu" value={tStart} min={0} max={tEnd - 0.1} disabled={timeLocked} onCommit={(v) => update({ timeStart: v })} />
+            <TimeField label="Kết thúc" value={tEnd} min={tStart + 0.1} max={duration} disabled={timeLocked} onCommit={(v) => update({ timeEnd: v })} />
+            <span className="wf-v2-time-dur">{(tEnd - tStart).toFixed(2)}s</span>
+          </div>
+          <WorkflowTimeRangeBar
+            timeStart={tStart}
+            timeEnd={tEnd}
+            maxTime={duration}
+            currentTime={currentTime}
+            accentColor={theme.accent}
+            readOnly={timeLocked}
+            onChangeRange={(s, e) => update({ timeStart: s, timeEnd: e })}
+            onScrubTime={props.onScrubTime}
+          />
+        </section>
+
+        {level === 'logic' && (
+          <section className="wf-v2-insp-sec">
+            <div className="wf-v2-insp-sec-title">Áp dụng cho</div>
+            <div className="wf-v2-linked">
+              {linked.length ? linked.map((name) => <span key={name}>{name}</span>) : <em>Chưa nối Layer nào — kéo dây từ một Layer vào Node này</em>}
+            </div>
+          </section>
+        )}
+
+        {level !== 'root' && level !== 'group' && (
+          <section className="wf-v2-insp-sec">
+            <div className="wf-v2-insp-sec-title">Thông số</div>
+            <WorkflowV2NodeParams node={node} project={project} onUpdate={update} onScrubTime={props.onScrubTime} />
+          </section>
+        )}
+
+        {level === 'layer' && (
+          <section className="wf-v2-insp-sec">
+            <div className="wf-v2-insp-sec-title">Gắn thêm logic</div>
+            <div className="wf-v2-chip-grid">
+              {WORKFLOW_V2_SPAWN_CATALOG.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className="wf-v2-spawn-chip"
+                  style={{ ['--wf-v2-accent' as string]: item.accent }}
+                  onClick={() => props.onAttachLogic(node.id, item.id)}
+                >
+                  <span aria-hidden="true">{item.icon}</span> {item.label}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {(level === 'root' || level === 'group') && (
+          <section className="wf-v2-insp-sec">
+            <p className="wf-v2-hint">
+              {level === 'root'
+                ? 'Root tổng hợp phạm vi cảnh. Đổi phạm vi ở thanh công cụ; khoảng thời gian tự tính từ các Layer trong cảnh.'
+                : 'Bật/tắt nhóm sẽ ẩn/hiện mọi Layer con. Thu hẹp khoảng thời gian của nhóm sẽ cắt các Layer con vào trong khoảng đó.'}
+            </p>
+            {level === 'group' && (
+              <button type="button" className="wf-v2-ghost-btn" onClick={() => update({ collapsedGroup: !node.params?.collapsedGroup })}>
+                {node.params?.collapsedGroup ? 'Mở rộng nhóm trên sơ đồ' : 'Thu gọn nhóm trên sơ đồ'}
+              </button>
+            )}
+          </section>
+        )}
+      </div>
+    </aside>
+  )
+}

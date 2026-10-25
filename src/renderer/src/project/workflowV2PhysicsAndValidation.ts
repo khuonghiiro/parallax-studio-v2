@@ -8,7 +8,8 @@ import type {
   WorkflowGraph,
   WorkflowNode
 } from '@shared/types'
-import { addKeyframe, evaluate } from '../animation/keyframes'
+import { evaluate } from '../animation/keyframes'
+import { stripCollisionGeneratedKeys, upsertCollisionKey } from './workflowV2CollisionKeys'
 import {
   MATERIAL_PHYSICS_PRESETS,
   createDefaultLayerPhysics
@@ -455,6 +456,8 @@ export function applyCollisionNodeToProject(
 ): void {
   const pulseId = `wf-col-${node.id}`
   const strikerPulseId = `wf-col-a-${node.id}`
+  // Gỡ sạch bộ keyframe cũ do chính Node này sinh ra trước khi tính lại (đồng bộ idempotent, không tích tụ keyframe rác)
+  stripCollisionGeneratedKeys(project, node.id)
   if (!node.enabled) {
     for (const l of project.layers) {
       if (l.physics?.impacts?.length) {
@@ -586,42 +589,52 @@ export function applyCollisionNodeToProject(
     const contactY = Math.round(posA[1] + (posB[1] - posA[1]) * 0.65)
 
     // Quỹ đạo của Chủ thể A (lao tới điểm chạm tHit -> phản ứng theo dạng va chạm tại tRecover)
-    addKeyframe(strikerLayer.transform.position, tStart, [...posA] as Vec3, 'easeIn')
-    addKeyframe(
+    upsertCollisionKey(strikerLayer.transform.position, tStart, [...posA] as Vec3, 'easeIn', node.id, 'k0')
+    upsertCollisionKey(
       strikerLayer.transform.position,
       tHit,
       [contactX, contactY, posA[2]],
-      'easeOut'
+      'easeOut',
+      node.id,
+      'k1'
     )
 
     if (mode === 'elastic_bounce') {
       const reboundDist = Math.round(140 * force * (0.6 + targetPreset.bounciness * 0.4))
-      addKeyframe(
+      upsertCollisionKey(
         strikerLayer.transform.position,
         tRecover,
         [contactX - dirX * reboundDist, posA[1] + 24, posA[2]],
-        'easeOut'
+        'easeOut',
+        node.id,
+        'k2'
       )
     } else if (mode === 'wall_vault') {
       const vaultPeakT = Number(((tHit + tRecover) * 0.5).toFixed(2))
-      addKeyframe(
+      upsertCollisionKey(
         strikerLayer.transform.position,
         vaultPeakT,
         [posB[0], posB[1] + Math.round(190 * force), posA[2]],
-        'easeOut'
+        'easeOut',
+        node.id,
+        'k3'
       )
-      addKeyframe(
+      upsertCollisionKey(
         strikerLayer.transform.position,
         tRecover,
         [posB[0] + dirX * 180, posA[1], posA[2]],
-        'easeIn'
+        'easeIn',
+        node.id,
+        'k4'
       )
     } else if (mode === 'heavy_punch') {
-      addKeyframe(
+      upsertCollisionKey(
         strikerLayer.transform.position,
         tRecover,
         [contactX - dirX * 45, contactY, posA[2]],
-        'easeOut'
+        'easeOut',
+        node.id,
+        'k5'
       )
     }
 
@@ -630,8 +643,8 @@ export function applyCollisionNodeToProject(
     const squashB = Math.min(0.48, Math.max(0.03, targetPreset.squashRatio * deform * 1.15))
     const tPeakDeform = Number(Math.min(tEnd, tHit + 0.08).toFixed(2))
 
-    addKeyframe(strikerLayer.transform.scale, tStart, [...startScaleA] as Vec3, 'linear')
-    addKeyframe(
+    upsertCollisionKey(strikerLayer.transform.scale, tStart, [...startScaleA] as Vec3, 'linear', node.id, 'k6')
+    upsertCollisionKey(
       strikerLayer.transform.scale,
       tPeakDeform,
       [
@@ -639,12 +652,14 @@ export function applyCollisionNodeToProject(
         Number((startScaleA[1] * (1 + squashA * 0.55)).toFixed(3)),
         startScaleA[2]
       ],
-      'easeOut'
+      'easeOut',
+      node.id,
+      'k7'
     )
-    addKeyframe(strikerLayer.transform.scale, tRecover, [...startScaleA] as Vec3, 'easeOut')
+    upsertCollisionKey(strikerLayer.transform.scale, tRecover, [...startScaleA] as Vec3, 'easeOut', node.id, 'k8')
 
-    addKeyframe(targetLayer.transform.scale, tStart, [...startScaleB] as Vec3, 'linear')
-    addKeyframe(
+    upsertCollisionKey(targetLayer.transform.scale, tStart, [...startScaleB] as Vec3, 'linear', node.id, 'k9')
+    upsertCollisionKey(
       targetLayer.transform.scale,
       tPeakDeform,
       [
@@ -652,19 +667,23 @@ export function applyCollisionNodeToProject(
         Number((startScaleB[1] * (1 - squashB * 0.78)).toFixed(3)),
         startScaleB[2]
       ],
-      'easeOut'
+      'easeOut',
+      node.id,
+      'k10'
     )
-    addKeyframe(targetLayer.transform.scale, tRecover, [...startScaleB] as Vec3, 'easeOut')
+    upsertCollisionKey(targetLayer.transform.scale, tRecover, [...startScaleB] as Vec3, 'easeOut', node.id, 'k11')
 
     // Nếu Mục tiêu B bị tông mạnh ('heavy_punch') và không phải tường đá cố định -> bị đẩy lùi nhẹ theo khối lượng
     if (mode === 'heavy_punch' && effectiveTargetMat !== 'stone_wall' && effectiveTargetMat !== 'ground_terrain') {
       const pushDist = Math.round((95 * force) / Math.max(0.6, Math.sqrt(targetPreset.mass)))
-      addKeyframe(targetLayer.transform.position, tHit, [...posB] as Vec3, 'easeOut')
-      addKeyframe(
+      upsertCollisionKey(targetLayer.transform.position, tHit, [...posB] as Vec3, 'easeOut', node.id, 'k12')
+      upsertCollisionKey(
         targetLayer.transform.position,
         tRecover,
         [posB[0] + dirX * pushDist, posB[1], posB[2]],
-        'easeOut'
+        'easeOut',
+        node.id,
+        'k13'
       )
     }
   }

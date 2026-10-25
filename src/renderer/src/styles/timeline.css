@@ -155,6 +155,12 @@
   white-space: nowrap;
 }
 
+/* Nhãn mốc cuối thước neo về bên trái vạch để không bị cắt ở mép phải */
+.tl-ruler .tick-label.end {
+  left: auto;
+  right: 4px;
+}
+
 .tl-ruler .tick-frame {
   font-size: 8.5px;
   font-weight: 500;

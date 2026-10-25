@@ -1,28 +1,38 @@
 import React, { useMemo, useRef } from 'react'
-import type { Project, Shot, WorkflowNode } from '@shared/types'
+import type { WorkflowNode } from '@shared/types'
+import { IconPause, IconPlay, IconSkipStart } from '../icons'
+import { dragTimeRange } from './WorkflowTimeRangeBar'
+import { cleanV2NodeTitle, resolveV2NodeTheme } from './workflowV2Theme'
 
 export interface WorkflowTimeRulerV2Props {
-  project: Project
   currentTime: number
   duration: number
   playing: boolean
-  shots: Shot[]
   selectedNode: WorkflowNode | null
+  /** Khoảng thời gian của phạm vi cảnh đang xem — vùng ngoài được làm mờ */
+  scopeRange: { start: number; end: number }
   activeAtTimeCount: number
   onSetTime: (t: number) => void
   onTogglePlay: () => void
   onUpdateNodeTimeRange?: (nodeId: string, nextStart: number, nextEnd: number) => void
 }
 
+/** Bước vạch chia sao cho mỗi nhãn cách nhau ≥ ~64px trên độ rộng thước điển hình */
+function pickTickStep(duration: number): number {
+  const steps = [0.25, 0.5, 1, 2, 5, 10, 15, 30, 60]
+  return steps.find((s) => duration / s <= 14) ?? 60
+}
+
 /**
- * Đường kẻ mốc thời gian (Master Time Ruler) nằm trên đỉnh khung vẽ Workflow V2.
- * Cho phép kéo kim thời gian (Playhead) thời gian thực 60fps và kéo trực tiếp khoảng mốc [tStart - tEnd] của Node đang chọn.
+ * Thước thời gian (Master Time Ruler) của Workflow V2, chia 2 làn tách bạch:
+ * làn trên là nhãn giây, làn dưới là khoảng mốc của Node đang chọn (kéo 2 đầu mút / kéo thân để dịch).
  */
 export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
   currentTime,
   duration,
   playing,
   selectedNode,
+  scopeRange,
   activeAtTimeCount,
   onSetTime,
   onTogglePlay,
@@ -30,34 +40,30 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
 }) => {
   const rulerRef = useRef<HTMLDivElement>(null)
   const safeDuration = Math.max(1, duration || 5)
+  const toPct = (t: number): number => Math.max(0, Math.min(100, (t / safeDuration) * 100))
 
   const ticks = useMemo(() => {
-    const step = safeDuration <= 6 ? 0.5 : safeDuration <= 15 ? 1 : 2
-    const list: { t: number; major: boolean }[] = []
+    const step = pickTickStep(safeDuration)
     const minor = step / 2
-    for (let t = 0; t <= safeDuration + 1e-4; t += minor) {
-      const rounded = Number(t.toFixed(2))
-      const isMajor = Math.abs(rounded / step - Math.round(rounded / step)) < 1e-3
-      list.push({ t: rounded, major: isMajor })
+    const list: { t: number; major: boolean }[] = []
+    for (let i = 0; i * minor <= safeDuration + 1e-4; i++) {
+      list.push({ t: Number((i * minor).toFixed(3)), major: i % 2 === 0 })
     }
     return list
   }, [safeDuration])
 
-  const playheadPct = Math.max(0, Math.min(100, (currentTime / safeDuration) * 100))
+  const timeFromClientX = (clientX: number): number => {
+    const rect = rulerRef.current!.getBoundingClientRect()
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / Math.max(1, rect.width)))
+    return Number((ratio * safeDuration).toFixed(2))
+  }
 
-  const handleRulerPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    const el = rulerRef.current
-    if (!el) return
+  const handleScrubDown = (e: React.PointerEvent<HTMLDivElement>): void => {
+    if (!rulerRef.current) return
     e.preventDefault()
-    const updateFromClientX = (clientX: number) => {
-      const rect = el.getBoundingClientRect()
-      const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / Math.max(1, rect.width)))
-      onSetTime(Number((ratio * safeDuration).toFixed(2)))
-    }
-    updateFromClientX(e.clientX)
-
-    const onMove = (ev: PointerEvent) => updateFromClientX(ev.clientX)
-    const onUp = () => {
+    onSetTime(timeFromClientX(e.clientX))
+    const onMove = (ev: PointerEvent): void => onSetTime(timeFromClientX(ev.clientX))
+    const onUp = (): void => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
     }
@@ -67,47 +73,21 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
 
   const selStart = selectedNode?.params?.timeStart ?? 0
   const selEnd = selectedNode?.params?.timeEnd ?? safeDuration
-  const selLeftPct = Math.max(0, Math.min(100, (selStart / safeDuration) * 100))
-  const selWidthPct = Math.max(3, Math.min(100 - selLeftPct, ((selEnd - selStart) / safeDuration) * 100))
+  const canEditSel = Boolean(selectedNode && onUpdateNodeTimeRange && selectedNode.type !== 'scene_shot')
 
-  const startSelectedRangeDrag = (
-    e: React.PointerEvent,
-    mode: 'start' | 'end' | 'move'
-  ) => {
-    if (!selectedNode || !onUpdateNodeTimeRange) return
+  const startSpanDrag = (e: React.PointerEvent, mode: 'start' | 'end' | 'move'): void => {
     e.stopPropagation()
     e.preventDefault()
-    const el = rulerRef.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    const w = Math.max(60, rect.width)
+    if (!selectedNode || !onUpdateNodeTimeRange || !canEditSel || !rulerRef.current) return
+    const w = Math.max(60, rulerRef.current.getBoundingClientRect().width)
     const initX = e.clientX
-    const initS = selStart
-    const initE = selEnd
-    const span = initE - initS
-
-    const onMove = (ev: PointerEvent) => {
+    const onMove = (ev: PointerEvent): void => {
       const dt = ((ev.clientX - initX) / w) * safeDuration
-      if (mode === 'start') {
-        const nextS = Number(Math.max(0, Math.min(initE - 0.1, initS + dt)).toFixed(2))
-        onUpdateNodeTimeRange(selectedNode.id, nextS, initE)
-        onSetTime(nextS)
-      } else if (mode === 'end') {
-        const nextE = Number(Math.max(initS + 0.1, Math.min(safeDuration, initE + dt)).toFixed(2))
-        onUpdateNodeTimeRange(selectedNode.id, initS, nextE)
-        onSetTime(nextE)
-      } else {
-        let nextS = Math.max(0, initS + dt)
-        let nextE = nextS + span
-        if (nextE > safeDuration) {
-          nextE = safeDuration
-          nextS = Math.max(0, safeDuration - span)
-        }
-        onUpdateNodeTimeRange(selectedNode.id, Number(nextS.toFixed(2)), Number(nextE.toFixed(2)))
-      }
+      const [s, en] = dragTimeRange(mode, selStart, selEnd, dt, 0, safeDuration)
+      onUpdateNodeTimeRange(selectedNode.id, s, en)
+      if (mode !== 'move') onSetTime(mode === 'start' ? s : en)
     }
-
-    const onUp = () => {
+    const onUp = (): void => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
     }
@@ -115,96 +95,64 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
     window.addEventListener('pointerup', onUp)
   }
 
+  const playPct = toPct(currentTime)
+  const capAlign = playPct < 4 ? 'align-left' : playPct > 96 ? 'align-right' : ''
+  const accent = selectedNode ? resolveV2NodeTheme(selectedNode).accent : 'var(--accent)'
+
   return (
-    <div className="wf-v2-ruler-bar">
-      {/* Cụm điều khiển phát & hiển thị mốc giây bên trái */}
+    <div className="wf-v2-ruler-bar" data-mcp-region="workflow_ruler">
       <div className="wf-v2-ruler-controls">
         <button
           type="button"
-          className={`wf-v2-play-btn ${playing ? 'playing' : ''}`}
+          className={`wf-v2-play-btn${playing ? ' playing' : ''}`}
           onClick={onTogglePlay}
-          title={playing ? 'Tạm dừng (Space)' : 'Phát theo đường kẻ mốc thời gian (Space)'}
+          title={playing ? 'Tạm dừng (Space)' : 'Phát (Space)'}
+          aria-label={playing ? 'Tạm dừng' : 'Phát'}
         >
-          {playing ? '⏸ Dừng' : '▶ Phát'}
+          {playing ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
         </button>
-        <button
-          type="button"
-          className="wf-v2-zero-btn"
-          onClick={() => onSetTime(0)}
-          title="Về mốc 0.0s"
-        >
-          ⏮ 0s
+        <button type="button" className="wf-v2-zero-btn" onClick={() => onSetTime(0)} title="Về đầu (Home)" aria-label="Về đầu">
+          <IconSkipStart width={12} height={12} />
         </button>
-        <div className="wf-v2-time-readout" title="Mốc thời gian hiện tại / Tổng thời lượng">
-          <span className="wf-v2-time-cur">{currentTime.toFixed(1)}s</span>
-          <span className="wf-v2-time-sep">/</span>
-          <span className="wf-v2-time-max">{safeDuration.toFixed(1)}s</span>
+        <div className="wf-v2-time-readout" title="Mốc hiện tại / Tổng thời lượng">
+          <span className="wf-v2-time-cur">{currentTime.toFixed(2)}s</span>
+          <span className="wf-v2-time-max">/ {safeDuration.toFixed(1)}s</span>
         </div>
-        <span className="wf-v2-active-badge" title="Số lượng Node đang hoạt động tại mốc thời gian hiện tại">
-          ⚡ {activeAtTimeCount}
+        <span className="wf-v2-active-badge" title="Số Node đang hoạt động tại mốc hiện tại">
+          {activeAtTimeCount} hoạt động
         </span>
       </div>
 
-      {/* Đường kẻ thước đo mốc thời gian */}
-      <div
-        ref={rulerRef}
-        className="wf-v2-ruler-track"
-        onPointerDown={handleRulerPointerDown}
-        title="Nhấp hoặc kéo để di chuyển đường kẻ mốc thời gian"
-      >
-        {/* Vạch chia giây trên thước đo */}
+      <div ref={rulerRef} className="wf-v2-ruler-track" onPointerDown={handleScrubDown} title="Nhấp hoặc kéo để tua">
+        <div className="wf-v2-ruler-scope-mask left" style={{ width: `${toPct(scopeRange.start)}%` }} />
+        <div className="wf-v2-ruler-scope-mask right" style={{ left: `${toPct(scopeRange.end)}%` }} />
         {ticks.map((tk) => {
-          const pct = (tk.t / safeDuration) * 100
+          const p = toPct(tk.t)
           return (
-            <div
-              key={tk.t}
-              className={`wf-v2-ruler-tick ${tk.major ? 'major' : 'minor'}`}
-              style={{ left: `${pct}%` }}
-            >
+            <div key={tk.t} className={`wf-v2-ruler-tick ${tk.major ? 'major' : 'minor'}`} style={{ left: `${p}%` }}>
               {tk.major && (
-                <span
-                  className={`wf-v2-ruler-tick-label ${
-                    tk.t === 0 ? 'edge-left' : pct > 95 ? 'edge-right' : ''
-                  }`}
-                >
-                  {tk.t.toFixed(1)}s
+                <span className={`wf-v2-ruler-tick-label${p < 2 ? ' edge-left' : p > 97 ? ' edge-right' : ''}`}>
+                  {Number.isInteger(tk.t) ? `${tk.t}s` : `${tk.t.toFixed(1)}s`}
                 </span>
               )}
             </div>
           )
         })}
 
-        {/* Khoảng mốc thời gian của Node đang chọn trên thước đo */}
         {selectedNode && (
           <div
-            className="wf-v2-ruler-node-span"
-            style={{ left: `${selLeftPct}%`, width: `${selWidthPct}%` }}
-            onPointerDown={(e) => startSelectedRangeDrag(e, 'move')}
-            title={`Khoảng mốc của "${selectedNode.title}": ${selStart.toFixed(2)}s → ${selEnd.toFixed(2)}s (Kéo 2 đầu mút ◀ ▶ để chỉnh khoảng mốc)`}
+            className={`wf-v2-ruler-node-span${canEditSel ? '' : ' read-only'}`}
+            style={{ left: `${toPct(selStart)}%`, width: `${Math.max(0.6, toPct(selEnd) - toPct(selStart))}%`, ['--wf-span-c' as string]: accent }}
+            onPointerDown={(e) => startSpanDrag(e, 'move')}
+            title={`${cleanV2NodeTitle(selectedNode.title)}: ${selStart.toFixed(2)}s → ${selEnd.toFixed(2)}s`}
           >
-            <div
-              className="wf-v2-ruler-span-handle left"
-              onPointerDown={(e) => startSelectedRangeDrag(e, 'start')}
-              title={`Kéo chỉnh mốc bắt đầu (${selStart.toFixed(2)}s)`}
-            />
-            <span className="wf-v2-ruler-span-text">
-              ⏱ {selectedNode.title}: {selStart.toFixed(1)}s → {selEnd.toFixed(1)}s
-            </span>
-            <div
-              className="wf-v2-ruler-span-handle right"
-              onPointerDown={(e) => startSelectedRangeDrag(e, 'end')}
-              title={`Kéo chỉnh mốc kết thúc (${selEnd.toFixed(2)}s)`}
-            />
+            {canEditSel && <div className="wf-v2-ruler-span-handle left" onPointerDown={(e) => startSpanDrag(e, 'start')} />}
+            {canEditSel && <div className="wf-v2-ruler-span-handle right" onPointerDown={(e) => startSpanDrag(e, 'end')} />}
           </div>
         )}
 
-        {/* Đầu kim đường kẻ mốc thời gian (Playhead Cap) */}
-        <div
-          className="wf-v2-ruler-playhead"
-          style={{ left: `${playheadPct}%` }}
-        >
-          <span className="wf-v2-ruler-playhead-cap">{currentTime.toFixed(1)}s</span>
-          <div className="wf-v2-ruler-playhead-stem" />
+        <div className="wf-v2-ruler-playhead" style={{ left: `${playPct}%` }}>
+          <span className={`wf-v2-ruler-playhead-cap ${capAlign}`}>{currentTime.toFixed(1)}s</span>
         </div>
       </div>
     </div>

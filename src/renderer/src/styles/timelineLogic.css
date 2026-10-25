@@ -197,6 +197,20 @@
   display: none;
 }
 
+/* Vệt mờ ở mép báo hiệu còn chip logic bị khuất (lăn chuột để cuộn ngang) */
+.tl-logic-items.fade-right {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
+.tl-logic-items.fade-left {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 28px);
+  mask-image: linear-gradient(to right, transparent, #000 28px);
+}
+.tl-logic-items.fade-left.fade-right {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+}
+
 .tl-logic-chip-wrap {
   display: inline-flex;
   align-items: center;

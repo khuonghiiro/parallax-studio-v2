@@ -329,6 +329,48 @@ export function attachLogicNodeToLayerV2(
 }
 
 /**
+ * Đồng bộ Node Layer / Group xuống Layer thật:
+ * - Bật/tắt Node = ẩn/hiện Layer.
+ * - Node Layer: chỉ ghi inPoint/outPoint khi người dùng thực sự đổi khoảng mốc (hoặc áp dụng toàn bộ),
+ *   và ghi toạ độ X/Y/Z.
+ * - Node Group: TUYỆT ĐỐI không san phẳng khoảng thời gian của các Layer con; khi người dùng thu hẹp
+ *   khoảng mốc của Group thì chỉ cắt các Layer con vào trong khoảng đó.
+ */
+function syncLayerOrGroupNodeToProject(
+  project: Project,
+  node: WorkflowNode,
+  params: WorkflowNodeParams,
+  patch?: Partial<WorkflowNodeParams>
+): void {
+  const targetIds = new Set(params.targetLayerIds ?? [])
+  const timeEdited = !patch || 'timeStart' in patch || 'timeEnd' in patch
+  const tStart = typeof params.timeStart === 'number' && Number.isFinite(params.timeStart) ? params.timeStart : undefined
+  const tEnd = typeof params.timeEnd === 'number' && Number.isFinite(params.timeEnd) ? params.timeEnd : undefined
+  const isGroup = Boolean(params.groupKind)
+  for (const l of project.layers) {
+    if (!targetIds.has(l.id)) continue
+    l.visible = node.enabled
+    if (isGroup) {
+      if (!patch || !timeEdited || tStart === undefined || tEnd === undefined) continue
+      const nextIn = Math.min(Math.max(l.inPoint ?? 0, tStart), tEnd - 0.1)
+      const nextOut = Math.max(Math.min(l.outPoint ?? tEnd, tEnd), nextIn + 0.1)
+      l.inPoint = Number(Math.max(0, nextIn).toFixed(2))
+      l.outPoint = Number(nextOut.toFixed(2))
+      continue
+    }
+    if (timeEdited && tStart !== undefined) l.inPoint = Math.max(0, tStart)
+    if (timeEdited && tEnd !== undefined && tEnd > (l.inPoint ?? 0)) l.outPoint = tEnd
+    if (l.transform?.position?.value) {
+      const curPos = l.transform.position.value
+      const nx = typeof params.transformX === 'number' ? params.transformX : curPos[0]
+      const ny = typeof params.transformY === 'number' ? params.transformY : curPos[1]
+      const nz = typeof params.transformZ === 'number' ? params.transformZ : curPos[2]
+      l.transform.position.value = [nx, ny, nz]
+    }
+  }
+}
+
+/**
  * Đồng bộ trực tiếp thay đổi trên một Node V2 xuống dữ liệu Project thực tế
  * (bao gồm Node Nhãn Vật liệu và Node Va chạm Vật lý 2 Layer).
  */
@@ -345,19 +387,7 @@ export function syncWorkflowV2NodeToProject(
 
   // 1. Node Layer hoặc Group Layer
   if (node.type === 'layer_assembly') {
-    for (const l of project.layers) {
-      if (!targetIds.has(l.id)) continue
-      l.visible = node.enabled
-      if (typeof tStart === 'number' && Number.isFinite(tStart)) l.inPoint = Math.max(0, tStart)
-      if (typeof tEnd === 'number' && Number.isFinite(tEnd) && tEnd > (l.inPoint ?? 0)) l.outPoint = tEnd
-      if (!params.groupKind && l.transform?.position?.value) {
-        const curPos = l.transform.position.value
-        const nx = typeof params.transformX === 'number' ? params.transformX : curPos[0]
-        const ny = typeof params.transformY === 'number' ? params.transformY : curPos[1]
-        const nz = typeof params.transformZ === 'number' ? params.transformZ : curPos[2]
-        l.transform.position.value = [nx, ny, nz]
-      }
-    }
+    syncLayerOrGroupNodeToProject(project, node, params, patch)
     return
   }
 
@@ -497,286 +527,4 @@ export function syncWorkflowV2NodeToProject(
   }
 }
 
-/**
- * Đồng bộ hai chiều từ dữ liệu Project (Timeline / Inspector) ngược lên đồ thị Workflow V2 hiện có:
- * - Khi người dùng kéo thanh Layer trên Timeline (đổi inPoint / outPoint), ẩn/hiện Layer, đổi tên Layer,
- *   đổi tọa độ Z/X/Y, hoặc thêm/xóa Layer trên Timeline, các Node Layer và Group trong Workflow V2 tự động cập nhật khớp 100%.
- * - Bảo toàn tất cả các Node Logic, Nhãn Vật liệu và Va chạm Vật lý mà người dùng đã cấu hình.
- */
-export function reconcileWorkflowV2WithProject(
-  project: Project,
-  workflow?: WorkflowGraph,
-  shotScope?: string
-): WorkflowGraph {
-  if (
-    !workflow ||
-    workflow.presetId !== 'v2_scene_hierarchy' ||
-    !workflow.nodes.some((n) => n.id === 'v2-root-scene')
-  ) {
-    return buildWorkflowV2SceneTree(project, shotScope)
-  }
-
-  const effectiveScope = shotScope ?? workflow.targetShotId
-  const activeShot: Shot | undefined =
-    effectiveScope && effectiveScope !== '__all__'
-      ? project.shots.find((s) => s.id === effectiveScope) ?? project.shots[0]
-      : project.shots[0]
-  const { start: shotStart, end: shotEnd } = getShotTimeRange(project, activeShot)
-  const scopedLayers: Layer[] =
-    activeShot && effectiveScope !== '__all__'
-      ? project.layers.filter((l) => !l.shotId || l.shotId === activeShot.id)
-      : project.layers
-  const repItems = collectRepresentativeLayers(scopedLayers)
-
-  const repByNodeId = new Map(repItems.map((it) => [`v2-layer-${it.layer.id}`, it]))
-  const existingLayerNodes = workflow.nodes.filter(
-    (n) => n.type === 'layer_assembly' && !n.params?.groupKind && n.id.startsWith('v2-layer-')
-  )
-  const existingLayerIds = new Set(existingLayerNodes.map((n) => n.id))
-  const hasAddedOrRemovedLayers =
-    existingLayerNodes.length !== repItems.length ||
-    repItems.some((it) => !existingLayerIds.has(`v2-layer-${it.layer.id}`))
-
-  let nodes = workflow.nodes
-  let edges = workflow.edges
-  let structureChanged = false
-
-  if (hasAddedOrRemovedLayers) {
-    structureChanged = true
-    // Xóa các v2-layer-* không còn tồn tại trong project.layers
-    const removedLayerNodeIds = new Set(
-      existingLayerNodes.filter((n) => !repByNodeId.has(n.id)).map((n) => n.id)
-    )
-    if (removedLayerNodeIds.size > 0) {
-      edges = edges.filter(
-        (e) => !removedLayerNodeIds.has(e.fromNode) && !removedLayerNodeIds.has(e.toNode)
-      )
-      nodes = nodes.filter((n) => {
-        if (removedLayerNodeIds.has(n.id)) return false
-        if (n.params?.logicCategory && n.params.logicCategory !== 'camera') {
-          const stillHasParent = edges.some((e) => e.toNode === n.id)
-          return stillHasParent
-        }
-        return true
-      })
-    }
-
-    // Thêm các v2-layer-* mới được tạo từ Timeline / Toolbar
-    for (const item of repItems) {
-      const layerNodeId = `v2-layer-${item.layer.id}`
-      if (existingLayerIds.has(layerNodeId)) continue
-      const l = item.layer
-      const grpKind = classifyLayerGroupKind(l)
-      const grpId =
-        grpKind === 'group_3d'
-          ? 'v2-group-3d'
-          : grpKind === 'group_env'
-            ? 'v2-group-env'
-            : 'v2-group-25d'
-
-      if (!nodes.some((n) => n.id === grpId)) {
-        const grpTitle =
-          grpKind === 'group_3d'
-            ? 'Group Layer 3D & Lắp Ráp'
-            : grpKind === 'group_env'
-              ? 'Group Không Gian & Bầu Trời'
-              : 'Group Layer 2.5D'
-        nodes = [
-          ...nodes,
-          {
-            id: grpId,
-            type: 'layer_assembly',
-            title: grpTitle,
-            enabled: true,
-            position: { x: WF_V2_COL_X.GROUP, y: 100 },
-            preset: 'character_prop_cluster',
-            aiAgentRole: 'AssemblyRigAgent',
-            aiDirective: grpTitle,
-            params: {
-              shotId: activeShot?.id,
-              groupKind: grpKind,
-              isAssemblyRoot: true,
-              childLayerCount: 1,
-              targetMode: 'custom',
-              targetLayerIds: item.memberIds,
-              timeStart: shotStart,
-              timeEnd: shotEnd,
-              hierarchyParentNodeId: 'v2-root-scene'
-            }
-          }
-        ]
-        edges = [
-          ...edges,
-          {
-            id: `e-v2-root-scene-${grpId}`,
-            fromNode: 'v2-root-scene',
-            fromPort: 'scene_ctx',
-            toNode: grpId,
-            toPort: 'scene_ctx'
-          }
-        ]
-      }
-
-      const lStart = Number(Math.max(0, Number.isFinite(l.inPoint) ? l.inPoint : shotStart).toFixed(2))
-      const lEnd = Number(Math.max(lStart + 0.1, Number.isFinite(l.outPoint) ? l.outPoint : shotEnd).toFixed(2))
-      const displayTitle = getLayerDisplayName(l)
-      nodes = [
-        ...nodes,
-        {
-          id: layerNodeId,
-          type: 'layer_assembly',
-          title: displayTitle,
-          enabled: l.visible !== false,
-          position: { x: WF_V2_COL_X.LAYER, y: 100 },
-          preset: 'character_prop_cluster',
-          aiAgentRole: 'AssemblyRigAgent',
-          aiDirective: `Layer "${displayTitle}" hoạt động từ ${lStart}s đến ${lEnd}s.`,
-          params: {
-            shotId: activeShot?.id,
-            targetMode: 'custom',
-            targetLayerIds: item.memberIds,
-            requireLayerConnection: true,
-            assemblyKind: l.model3d ? 'model3d' : l.composite ? 'composite' : undefined,
-            childLayerCount: item.memberIds.length,
-            transformX: getLayerX(l),
-            transformY: getLayerY(l),
-            transformZ: getLayerZ(l),
-            timeStart: lStart,
-            timeEnd: lEnd,
-            hierarchyParentNodeId: grpId
-          }
-        }
-      ]
-      edges = [
-        ...edges,
-        {
-          id: `e-${grpId}-${layerNodeId}`,
-          fromNode: grpId,
-          fromPort: 'layers_tree',
-          toNode: layerNodeId,
-          toPort: 'layers_tree'
-        }
-      ]
-    }
-  }
-
-  // Kiểm tra và cập nhật thông số [inPoint, outPoint, visible, name, X/Y/Z] từ project.layers lên các Node Layer
-  let propChanged = false
-  const prevLayerTimes = new Map<string, { start: number; end: number }>()
-
-  const updatedNodes = nodes.map((node) => {
-    if (node.type === 'layer_assembly' && !node.params?.groupKind && node.id.startsWith('v2-layer-')) {
-      const rep = repByNodeId.get(node.id)
-      if (!rep) return node
-      const l = rep.layer
-      const wantTitle = getLayerDisplayName(l)
-      const wantEnabled = l.visible !== false
-      const wantStart = Number(Math.max(0, Number.isFinite(l.inPoint) ? l.inPoint : 0).toFixed(2))
-      const wantEnd = Number(
-        Math.max(wantStart + 0.1, Number.isFinite(l.outPoint) ? l.outPoint : shotEnd).toFixed(2)
-      )
-      const wantX = getLayerX(l)
-      const wantY = getLayerY(l)
-      const wantZ = getLayerZ(l)
-      const curStart = node.params?.timeStart ?? 0
-      const curEnd = node.params?.timeEnd ?? shotEnd
-
-      if (
-        node.title !== wantTitle ||
-        node.enabled !== wantEnabled ||
-        Math.abs(curStart - wantStart) > 0.005 ||
-        Math.abs(curEnd - wantEnd) > 0.005 ||
-        node.params?.transformX !== wantX ||
-        node.params?.transformY !== wantY ||
-        node.params?.transformZ !== wantZ
-      ) {
-        propChanged = true
-        prevLayerTimes.set(node.id, { start: curStart, end: curEnd })
-        return {
-          ...node,
-          title: wantTitle,
-          enabled: wantEnabled,
-          params: {
-            ...node.params,
-            targetLayerIds: rep.memberIds,
-            childLayerCount: rep.memberIds.length,
-            timeStart: wantStart,
-            timeEnd: wantEnd,
-            transformX: wantX,
-            transformY: wantY,
-            transformZ: wantZ
-          }
-        }
-      }
-      return node
-    }
-
-    if (node.type === 'layer_assembly' && node.params?.groupKind) {
-      const grpItems = repItems.filter((it) => classifyLayerGroupKind(it.layer) === node.params?.groupKind)
-      const wantCount = grpItems.length
-      const wantMemberIds = grpItems.flatMap((it) => it.memberIds)
-      const wantStart =
-        grpItems.length > 0
-          ? Number(Math.min(...grpItems.map((it) => it.layer.inPoint ?? shotStart)).toFixed(2))
-          : shotStart
-      const wantEnd =
-        grpItems.length > 0
-          ? Number(Math.max(...grpItems.map((it) => it.layer.outPoint ?? shotEnd)).toFixed(2))
-          : shotEnd
-      if (
-        node.params?.childLayerCount !== wantCount ||
-        Math.abs((node.params?.timeStart ?? 0) - wantStart) > 0.005 ||
-        Math.abs((node.params?.timeEnd ?? 0) - wantEnd) > 0.005
-      ) {
-        propChanged = true
-        return {
-          ...node,
-          params: {
-            ...node.params,
-            childLayerCount: wantCount,
-            targetLayerIds: wantMemberIds,
-            timeStart: wantStart,
-            timeEnd: wantEnd
-          }
-        }
-      }
-    }
-    return node
-  })
-
-  if (!structureChanged && !propChanged) {
-    return workflow
-  }
-
-  // Nếu một Layer đổi khoảng thời gian trên Timeline, đồng bộ khoảng thời gian của các Node Logic đơn gắn riêng vào Layer đó
-  const finalNodes = updatedNodes.map((node) => {
-    const sharedIds = node.params?.sharedLayerNodeIds
-    if (sharedIds?.length === 1 && prevLayerTimes.has(sharedIds[0])) {
-      const prev = prevLayerTimes.get(sharedIds[0])!
-      const parentLayerNode = updatedNodes.find((n) => n.id === sharedIds[0])
-      if (
-        parentLayerNode &&
-        Math.abs((node.params?.timeStart ?? 0) - prev.start) < 0.05 &&
-        Math.abs((node.params?.timeEnd ?? 0) - prev.end) < 0.05
-      ) {
-        return {
-          ...node,
-          params: {
-            ...node.params,
-            timeStart: parentLayerNode.params?.timeStart,
-            timeEnd: parentLayerNode.params?.timeEnd
-          }
-        }
-      }
-    }
-    return node
-  })
-
-  const synced = recomputeSharedLogicTargets(finalNodes, edges)
-  const nextNodes = structureChanged ? layoutWorkflowV2Tree(synced, edges) : synced
-  return {
-    ...workflow,
-    nodes: nextNodes,
-    edges
-  }
-}
+export { reconcileWorkflowV2WithProject } from './workflowV2Reconcile'

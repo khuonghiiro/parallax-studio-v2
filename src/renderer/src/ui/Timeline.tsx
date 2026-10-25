@@ -18,7 +18,8 @@ import { buildTimelineClusters, type TimelineClusterGroup } from './timeline/tim
 import { TimelineCameraRows } from './timeline/TimelineCameraRows'
 import { useTimelineInteractions } from './timeline/useTimelineInteractions'
 import { WorkflowStudioPanel } from './workflow/WorkflowStudioPanel'
-import { buildWorkflowV2SceneTree, syncWorkflowV2NodeToProject } from '../project/workflowV2Engine'
+import { isWorkflowV2Graph, normalizeWorkflowV2Scope } from '../project/workflowV2Engine'
+import { applyWorkflowV2PhysicsNodes, resolveWorkflowForScope } from '../project/workflowV2Rebuild'
 
 const TimelineRulerPlayhead = memo(function TimelineRulerPlayhead({
   x
@@ -48,19 +49,16 @@ export function Timeline() {
   const { setTime, setPlaying, setLoop, selectLayer, selectShot } = useEditor.getState()
   const { comp } = project
 
+  // Bung cây Workflow V2 lần đầu (dữ liệu dẫn xuất → không tạo bước Undo, tránh vòng lặp hoàn tác bị kẹt)
   useEffect(() => {
-    if (!project.workflow || project.workflow.presetId !== 'v2_scene_hierarchy') {
-      const nextWf = buildWorkflowV2SceneTree(useEditor.getState().project, selectedShotId || undefined)
-      useEditor.getState().update((draft) => {
-        draft.workflow = nextWf
-        for (const n of nextWf.nodes) {
-          if (n.params?.logicCategory === 'material' || n.params?.logicCategory === 'collision') {
-            syncWorkflowV2NodeToProject(draft, n)
-          }
-        }
-      }, 'tl-v2-init')
-    }
-  }, [project.workflow?.presetId, selectedShotId])
+    if (isWorkflowV2Graph(project.workflow)) return
+    const current = useEditor.getState().project
+    const nextWf = resolveWorkflowForScope(current, normalizeWorkflowV2Scope(current, selectedShotId))
+    useEditor.getState().patchDerived((draft) => {
+      draft.workflow = nextWf
+      applyWorkflowV2PhysicsNodes(draft, nextWf)
+    })
+  }, [project.workflow, selectedShotId])
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
@@ -166,6 +164,12 @@ export function Timeline() {
     }
     return out
   }, [contentW, comp.duration])
+
+  /** Mốc chính liền trước tick thứ `i` (để ẩn nhãn cuối thước nếu sẽ đè lên nhãn trước đó) */
+  const prevMajorT = (i: number): number => {
+    for (let j = i - 1; j >= 0; j--) if (ticks[j].major) return ticks[j].t
+    return 0
+  }
 
   const selectedKey = useEditor((s) => s.selectedKey)
   const renderKeys = useCallback(
@@ -482,8 +486,8 @@ export function Timeline() {
                   className={`tick ${tk.major ? 'major' : ''}`}
                   style={{ left: x(tk.t), height: tk.major ? 10 : 5 }}
                 >
-                  {tk.major && (
-                    <span className="tick-label">
+                  {tk.major && (x(tk.t) <= contentW - 72 || i === 0 || x(tk.t) - x(prevMajorT(i)) >= 140) && (
+                    <span className={`tick-label${x(tk.t) > contentW - 72 ? ' end' : ''}`}>
                       <span className="tick-sec">
                         {tk.t % 1 === 0 ? `${tk.t}s` : `${tk.t.toFixed(1)}s`}
                       </span>

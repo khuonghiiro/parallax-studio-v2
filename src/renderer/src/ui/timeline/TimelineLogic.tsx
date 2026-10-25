@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { Layer, Project } from '@shared/types'
 import { useEditor } from '../../store/editor'
@@ -43,6 +43,35 @@ export function TimelineLogic() {
   )
 
   const editingNode = workflow.nodes.find((item) => item.id === editingNodeId) ?? null
+
+  // Dải chip logic: lăn chuột dọc để cuộn ngang, hiện vệt mờ ở mép khi còn chip bị khuất
+  const itemsRef = useRef<HTMLDivElement>(null)
+  const [overflow, setOverflow] = useState({ left: false, right: false })
+  const updateOverflow = useCallback(() => {
+    const el = itemsRef.current
+    if (!el) return
+    const left = el.scrollLeft > 2
+    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 2
+    setOverflow((prev) => (prev.left === left && prev.right === right ? prev : { left, right }))
+  }, [])
+  useEffect(() => {
+    const el = itemsRef.current
+    if (!el) return
+    updateOverflow()
+    const ro = new ResizeObserver(updateOverflow)
+    ro.observe(el)
+    const onWheel = (e: WheelEvent): void => {
+      if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
+      e.preventDefault()
+      el.scrollLeft += e.deltaY
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => {
+      ro.disconnect()
+      el.removeEventListener('wheel', onWheel)
+    }
+  }, [updateOverflow])
+  useEffect(updateOverflow, [entries, updateOverflow])
 
   const openOrFocusLogicNode = (nodeId: string) => {
     const target = workflow.nodes.find((n) => n.id === nodeId)
@@ -136,7 +165,13 @@ export function TimelineLogic() {
 
       <span className="tl-logic-divider" />
 
-      <div className="tl-logic-items" role="list" aria-label="Danh sách logic đang gắn">
+      <div
+        ref={itemsRef}
+        className={`tl-logic-items${overflow.left ? ' fade-left' : ''}${overflow.right ? ' fade-right' : ''}`}
+        role="list"
+        aria-label="Danh sách logic đang gắn"
+        onScroll={updateOverflow}
+      >
         {entries.map((entry) => (
           <div
             key={entry.node.id}

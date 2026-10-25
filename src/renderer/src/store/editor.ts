@@ -61,6 +61,11 @@ interface EditorState {
 
   /** Apply an undoable change. Changes sharing `mergeKey` within a short window collapse into one undo step. */
   update(fn: (draft: Draft<Project>) => void, mergeKey?: string): void
+  /**
+   * Đồng bộ dữ liệu dẫn xuất (ví dụ cây Workflow V2 khớp lại theo Layer) mà KHÔNG tạo bước Undo và KHÔNG xoá nhánh Redo,
+   * tránh vòng lặp "Undo bị kẹt" khi dữ liệu dẫn xuất tự tái tạo sau mỗi lần hoàn tác.
+   */
+  patchDerived(fn: (draft: Draft<Project>) => void): void
   undo(): void
   redo(): void
   setTime(t: number): void
@@ -105,6 +110,12 @@ export const useEditor = create<EditorState>((set, get) => ({
       dirty: true,
       lastMerge: mergeKey ? { key: mergeKey, at: now } : null
     })
+  },
+
+  patchDerived(fn) {
+    const { project } = get()
+    const next = produce(project, fn)
+    if (next !== project) set({ project: next })
   },
 
   undo() {
