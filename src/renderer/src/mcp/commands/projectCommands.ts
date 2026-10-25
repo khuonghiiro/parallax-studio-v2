@@ -5,7 +5,13 @@ import { isExporting, runExport } from '../../export/runExport'
 import { assetStore } from '../../project/assets'
 import * as factory from '../../project/factory'
 import { deserializeProject, serializeProject } from '../../project/serialize'
-import { exportProjectToJson, exportProjectToDeclarativeJson, importProjectFromJson } from '../../project/jsonFormat'
+import {
+  exportProjectToJson,
+  exportProjectToDeclarativeJson,
+  exportProjectToModularBundleJson,
+  importProjectFromJson
+} from '../../project/jsonFormat'
+import { buildMainWorkflowJson } from '../../project/workflowV2Engine'
 import { addAudioTrackToProject, getProjectAudioTracks, syncProjectAudio } from '../../project/audioTracks'
 import { ParamError, ed, proj, type Handler } from '../types'
 import { bool, has, num, str } from '../params'
@@ -16,6 +22,7 @@ export const projectCommands: Record<string, Handler> = {
     const project = proj()
     const t = ed().time
     const s = ed()
+    const mainWf = buildMainWorkflowJson(project)
     return {
       name: project.comp.name,
       composition: project.comp,
@@ -31,17 +38,21 @@ export const projectCommands: Record<string, Handler> = {
       camera: cameraSummary(project, t),
       look: project.look,
       audio: project.audio && { ...project.audio, name: assetStore.get(project.audio.assetId)?.meta.name },
-      audio_tracks: getProjectAudioTracks(project).map((t) => ({
-        id: t.id,
-        name: t.name,
-        assetId: t.assetId,
-        offset: t.offset,
-        volume: t.volume,
-        duration: t.duration ?? assetStore.get(t.assetId)?.meta.duration,
-        muted: !!t.muted,
-        loop: !!t.loop
+      audio_tracks: getProjectAudioTracks(project).map((tr) => ({
+        id: tr.id,
+        name: tr.name,
+        assetId: tr.assetId,
+        offset: tr.offset,
+        volume: tr.volume,
+        duration: tr.duration ?? assetStore.get(tr.assetId)?.meta.duration,
+        muted: !!tr.muted,
+        loop: !!tr.loop
       })),
       assets: project.assets.map((a) => ({ id: a.id, name: a.name, kind: a.kind, width: a.width, height: a.height, duration: a.duration })),
+      modular_json: {
+        main_file: 'main.json',
+        shot_files: mainWf.route.map((r) => ({ shot_id: r.shotId, name: r.name, file: r.file, time_range: [r.timeStart, r.timeEnd] }))
+      },
       workflow: project.workflow
         ? {
             id: project.workflow.id,
@@ -127,7 +138,9 @@ export const projectCommands: Record<string, Handler> = {
     const format = str(p, 'format')
     const pretty = bool(p, 'pretty') ?? true
     let json: string
-    if (format === 'declarative') {
+    if (format === 'modular') {
+      json = exportProjectToModularBundleJson(proj(), pretty)
+    } else if (format === 'declarative') {
       json = await exportProjectToDeclarativeJson(proj(), pretty)
     } else {
       json = await exportProjectToJson(proj(), pretty)
@@ -181,7 +194,6 @@ export const projectCommands: Record<string, Handler> = {
     }
     return { count: Object.keys(aliases).length, aliases }
   },
-
 
   undo: () => {
     ed().undo()

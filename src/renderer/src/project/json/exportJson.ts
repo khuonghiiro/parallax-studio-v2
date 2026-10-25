@@ -1,5 +1,6 @@
 import type { Project } from '@shared/types'
 import { assetStore } from '../assets'
+import { buildMainWorkflowJson, buildModularWorkflowBundle, buildShotWorkflowJson } from '../workflowV2ModularJson'
 import { uint8ArrayToBase64 } from './base64'
 
 function getAssetsRelativePath(a: { path?: string; assetPath?: string }): string | undefined {
@@ -45,7 +46,7 @@ export async function exportProjectToJson(project: Project, pretty = true): Prom
 }
 
 /**
- * Exports a single shot and its associated layers to JSON.
+ * Exports a single shot and its associated layers + standalone Workflow V2 JSON (`workflowShot`).
  */
 export async function exportShotToJson(project: Project, shotId: string, pretty = true): Promise<string> {
   const shot = project.shots.find((s) => s.id === shotId)
@@ -76,15 +77,26 @@ export async function exportShotToJson(project: Project, shotId: string, pretty 
       })
   )
 
+  const workflowShot = buildShotWorkflowJson(project, shotId)
+
   const payload = {
     type: 'parallax-shot',
     version: 2,
     shot,
     layers,
+    workflowShot,
     assets: assetsWithData
   }
 
   return JSON.stringify(payload, null, pretty ? 2 : undefined)
+}
+
+/**
+ * Xuất dự án theo kiến trúc Modular JSON (`main.json` + từng `shots/shot-N.json` độc lập).
+ */
+export function exportProjectToModularBundleJson(project: Project, pretty = true): string {
+  const bundle = buildModularWorkflowBundle(project)
+  return JSON.stringify(bundle, null, pretty ? 2 : undefined)
 }
 
 /**
@@ -100,7 +112,7 @@ export async function exportProjectToDeclarativeJson(project: Project, pretty = 
   // 1. Xây dựng AssetTable từ project.assets
   for (const a of project.assets) {
     const rel = getAssetsRelativePath(a)
-    let alias = (a.name || 'asset')
+    const alias = (a.name || 'asset')
       .replace(/\.[a-zA-Z0-9]+$/, '')
       .toLowerCase()
       .replace(/[^a-z0-9_-]/g, '_')
@@ -126,14 +138,20 @@ export async function exportProjectToDeclarativeJson(project: Project, pretty = 
     idToAlias.set(a.id, uniqueAlias)
   }
 
-  // 2. Chuyển đổi shots và layers sang Declarative format
+  // 2. Chuyển đổi shots và layers sang Declarative format kèm logic từng cảnh
   const shots = project.shots.map((sh) => {
     const shotLayers = project.layers.filter((l) => l.shotId === sh.id)
+    const shotWf = buildShotWorkflowJson(project, sh.id)
     return {
+      id: sh.id,
       name: sh.name,
+      file: shotWf.file,
       position: sh.position?.value ?? [0, 0, 0],
+      timeRange: [shotWf.shot.timeStart, shotWf.shot.timeEnd],
+      camera: shotWf.camera,
+      logic: shotWf.logic,
       layers: shotLayers.map((l) => {
-        const item: any = {
+        const item: Record<string, unknown> = {
           name: l.name,
           type: l.type,
           visible: l.visible,
@@ -162,6 +180,8 @@ export async function exportProjectToDeclarativeJson(project: Project, pretty = 
     }
   })
 
+  const mainWorkflow = buildMainWorkflowJson(project)
+
   const spec = {
     version: 2,
     name: project.comp.name,
@@ -173,6 +193,7 @@ export async function exportProjectToDeclarativeJson(project: Project, pretty = 
       background: project.comp.background
     },
     look: project.look,
+    mainWorkflow,
     ...(project.workflow ? { workflow: project.workflow } : {}),
     assets: assetTable,
     shots
@@ -180,4 +201,3 @@ export async function exportProjectToDeclarativeJson(project: Project, pretty = 
 
   return JSON.stringify(spec, null, pretty ? 2 : undefined)
 }
-

@@ -1,8 +1,9 @@
 import type { AssetMeta, Layer, Project, Shot } from '@shared/types'
 import { buildCameraPath, type PathStep } from '../../animation/cameraPath'
-import { referenceDistance } from '../../animation/math'
 import { assetStore } from '../assets'
 import { createProject, createShot, migrateProject, shotSpacing } from '../factory'
+import { applyModularWorkflowJson, applyShotWorkflowJson } from '../workflowV2ModularApply'
+import type { WorkflowShotJson } from '../workflowV2ModularJson'
 import { parseDataUrl } from './base64'
 import { loadAssetBytesFromDiskOrBuiltIn } from './assetLoader'
 import type { DeclarativeProjectSpec, DeclarativeShotSpec } from './schema'
@@ -11,9 +12,10 @@ import { isAssetTable, getAssetPathFromEntry, type AssetTable } from './assetTab
 
 /**
  * Universal JSON Importer:
- * Can parse BOTH:
+ * Can parse:
  * 1. Full Parallax Studio Project JSON (with embedded base64 dataUrl or local asset paths).
- * 2. High-level Declarative Scene Specification JSON (human-readable, easy to edit).
+ * 2. Modular Workflow Bundle / Main JSON (`parallax-workflow-bundle` / `parallax-workflow-main`).
+ * 3. High-level Declarative Scene Specification JSON (human-readable, easy to edit).
  */
 export async function importProjectFromJson(jsonString: string): Promise<Project> {
   let parsed: unknown
@@ -27,6 +29,17 @@ export async function importProjectFromJson(jsonString: string): Promise<Project
     throw new Error('JSON root must be an object')
   }
 
+  const rawObj = parsed as Record<string, unknown>
+  if (
+    rawObj.kind === 'parallax-workflow-bundle' ||
+    rawObj.kind === 'parallax-workflow-main' ||
+    rawObj.kind === 'parallax-workflow-shot'
+  ) {
+    const project = createProject({ name: typeof rawObj.name === 'string' ? rawObj.name : 'Parallax Journey' })
+    applyModularWorkflowJson(project, rawObj)
+    return structuredClone(project)
+  }
+
   const spec = parsed as DeclarativeProjectSpec
 
   // Case 1: Full raw Project v2 format
@@ -37,8 +50,8 @@ export async function importProjectFromJson(jsonString: string): Promise<Project
         if (a.dataUrl) {
           const { mime, data } = parseDataUrl(a.dataUrl)
           await assetStore.add(a.name, mime, data, a.kind, a)
-        } else if (a.path || (a as any).assetPath) {
-          const p = ((a as any).assetPath || a.path || '').replace(/^assets\//, '')
+        } else if (a.path || (a as { assetPath?: string }).assetPath) {
+          const p = ((a as { assetPath?: string }).assetPath || a.path || '').replace(/^assets\//, '')
           const file = await loadAssetBytesFromDiskOrBuiltIn(p)
           if (file) {
             const asset = await assetStore.add(a.name, file.mime || a.mime, file.data, a.kind, a)
@@ -56,7 +69,11 @@ export async function importProjectFromJson(jsonString: string): Promise<Project
 }
 
 /**
- * Imports a shot definition from JSON and attaches it to an existing project.
+ * Imports a shot definition from JSON and attaches/updates it on an existing project.
+ * Supports:
+ * - Standalone `parallax-workflow-shot` JSON (`shot-N.json`)
+ * - Raw `parallax-shot` payload (`{ shot, layers, workflowShot, assets }`)
+ * - `DeclarativeShotSpec`
  */
 export async function importShotFromJson(
   jsonString: string,
@@ -69,7 +86,23 @@ export async function importShotFromJson(
     throw new Error(`Invalid JSON: ${String(err)}`)
   }
 
-  const payload = parsed as { shot?: Shot; layers?: Layer[]; assets?: (AssetMeta & { dataUrl?: string })[] }
+  const rawObj = parsed as Record<string, unknown>
+  if (rawObj.kind === 'parallax-workflow-shot') {
+    const res = applyShotWorkflowJson(targetProject, rawObj as unknown as WorkflowShotJson)
+    const shot =
+      targetProject.shots.find((s) => s.id === res.targetShotId) ??
+      targetProject.shots[targetProject.shots.length - 1] ??
+      createShot('Cảnh 1', [0, 0, 0], 0)
+    const layers = targetProject.layers.filter((l) => l.shotId === shot.id)
+    return { shot, layers }
+  }
+
+  const payload = parsed as {
+    shot?: Shot
+    layers?: Layer[]
+    workflowShot?: WorkflowShotJson
+    assets?: (AssetMeta & { dataUrl?: string })[]
+  }
   if (payload.shot && Array.isArray(payload.layers)) {
     if (Array.isArray(payload.assets)) {
       for (const a of payload.assets) {
@@ -79,8 +112,8 @@ export async function importShotFromJson(
           if (!targetProject.assets.some((ex) => ex.id === a.id)) {
             targetProject.assets.push(a)
           }
-        } else if (a.path || (a as any).assetPath) {
-          const p = ((a as any).assetPath || a.path || '').replace(/^assets\//, '')
+        } else if (a.path || (a as { assetPath?: string }).assetPath) {
+          const p = ((a as { assetPath?: string }).assetPath || a.path || '').replace(/^assets\//, '')
           const file = await loadAssetBytesFromDiskOrBuiltIn(p)
           if (file) {
             const asset = await assetStore.add(a.name, file.mime || a.mime, file.data, a.kind, a)
@@ -94,16 +127,25 @@ export async function importShotFromJson(
       }
     }
     const shot = payload.shot
-    targetProject.shots.push(shot)
+    const existingShotIdx = targetProject.shots.findIndex((s) => s.id === shot.id)
+    if (existingShotIdx >= 0) {
+      targetProject.shots[existingShotIdx] = shot
+      targetProject.layers = targetProject.layers.filter((l) => l.shotId !== shot.id)
+    } else {
+      targetProject.shots.push(shot)
+    }
     for (const l of payload.layers) {
       l.shotId = shot.id
       targetProject.layers.push(l)
+    }
+    if (payload.workflowShot) {
+      applyShotWorkflowJson(targetProject, payload.workflowShot, shot.id)
     }
     return { shot, layers: payload.layers }
   }
 
   // If passed as a DeclarativeShotSpec
-  const shotSpec = parsed as DeclarativeShotSpec
+  const shotSpec = parsed as DeclarativeShotSpec & { logic?: WorkflowShotJson['logic'] }
   if (shotSpec.name) {
     const shotIndex = targetProject.shots.length
     const spacing = shotSpacing(targetProject.comp)
@@ -132,6 +174,35 @@ export async function importShotFromJson(
 
     const layers = await buildLayersForShot(shotSpec, shot, targetProject, shotAssetTable)
     targetProject.layers.push(...layers)
+    if (Array.isArray(shotSpec.logic) && shotSpec.logic.length > 0) {
+      applyShotWorkflowJson(
+        targetProject,
+        {
+          kind: 'parallax-workflow-shot',
+          version: 2,
+          file: `shots/shot-${shotIndex + 1}.json`,
+          mainFile: 'main.json',
+          shot: {
+            id: shot.id,
+            index: shotIndex + 1,
+            name: shot.name,
+            color: shot.color,
+            visible: true,
+            position: shot.position.value,
+            rotation: shot.rotation.value,
+            timeStart: 0,
+            timeEnd: targetProject.comp.duration
+          },
+          links: { prevShotId: null, prevShotFile: null, nextShotId: null, nextShotFile: null, cameraInEdgeId: null, cameraOutEdgeId: null },
+          camera: { nodeId: `v2-camera-${shot.id}`, enabled: true, preset: 'dollyIn', enableDof: false, timeStart: 0, timeEnd: targetProject.comp.duration },
+          groups: [],
+          layers: [],
+          logic: shotSpec.logic,
+          graph: { nodes: [], edges: [] }
+        },
+        shot.id
+      )
+    }
     return { shot, layers }
   }
 
@@ -193,8 +264,8 @@ export async function buildProjectFromDeclarativeSpec(spec: DeclarativeProjectSp
         const { mime, data } = parseDataUrl(a.dataUrl)
         await assetStore.add(a.name, mime, data, a.kind, a)
         project.assets.push(a)
-      } else if (a.path || (a as any).assetPath) {
-        const p = ((a as any).assetPath || a.path || '').replace(/^assets\//, '')
+      } else if (a.path || (a as { assetPath?: string }).assetPath) {
+        const p = ((a as { assetPath?: string }).assetPath || a.path || '').replace(/^assets\//, '')
         const file = await loadAssetBytesFromDiskOrBuiltIn(p)
         if (file) {
           const asset = await assetStore.add(a.name, file.mime || a.mime, file.data, a.kind, a)
@@ -208,13 +279,42 @@ export async function buildProjectFromDeclarativeSpec(spec: DeclarativeProjectSp
 
   const shotSpecs = spec.shots ?? []
   for (let i = 0; i < shotSpecs.length; i++) {
-    const sSpec = shotSpecs[i]
+    const sSpec = shotSpecs[i] as DeclarativeShotSpec & { logic?: WorkflowShotJson['logic'] }
     const pos = sSpec.position ?? [i * spacing, 0, 0]
     const shot = createShot(sSpec.name, pos, i)
     project.shots.push(shot)
 
     const layers = await buildLayersForShot(sSpec, shot, project, projectAssetTable)
     project.layers.push(...layers)
+    if (Array.isArray(sSpec.logic) && sSpec.logic.length > 0) {
+      applyShotWorkflowJson(
+        project,
+        {
+          kind: 'parallax-workflow-shot',
+          version: 2,
+          file: `shots/shot-${i + 1}.json`,
+          mainFile: 'main.json',
+          shot: {
+            id: shot.id,
+            index: i + 1,
+            name: shot.name,
+            color: shot.color,
+            visible: true,
+            position: shot.position.value,
+            rotation: shot.rotation.value,
+            timeStart: 0,
+            timeEnd: project.comp.duration
+          },
+          links: { prevShotId: null, prevShotFile: null, nextShotId: null, nextShotFile: null, cameraInEdgeId: null, cameraOutEdgeId: null },
+          camera: { nodeId: `v2-camera-${shot.id}`, enabled: true, preset: 'dollyIn', enableDof: false, timeStart: 0, timeEnd: project.comp.duration },
+          groups: [],
+          layers: [],
+          logic: sSpec.logic,
+          graph: { nodes: [], edges: [] }
+        },
+        shot.id
+      )
+    }
   }
 
   // Build camera tour if specified

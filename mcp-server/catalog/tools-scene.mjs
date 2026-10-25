@@ -230,7 +230,7 @@ export const SCENE_TOOLS = [
       'Xuất toàn bộ dự án hiện tại thành chuỗi JSON độc lập hoặc JSON mô tả cảnh khai báo với bảng nhãn tài nguyên (asset aliases).'
     ),
     shape: (d) => ({
-      format: z.enum(['raw', 'declarative']).optional().describe(d('JSON format: "raw" (full internal structure) or "declarative" (clean readable spec with asset aliases table, default "raw").', 'Định dạng JSON: "raw" (cấu trúc nội bộ đầy đủ) hoặc "declarative" (mô tả cảnh gọn gàng kèm bảng nhãn asset, mặc định "raw").')),
+      format: z.enum(['raw', 'declarative', 'modular']).optional().describe(d('JSON format: "raw" (full internal structure), "declarative" (clean spec with asset aliases), or "modular" (main.json + independent per-shot shots/shot-N.json bundle).', 'Định dạng JSON: "raw" (cấu trúc nội bộ), "declarative" (mô tả gọn kèm bảng nhãn asset), hoặc "modular" (tách độc lập main.json kết nối và từng shots/shot-N.json cho mỗi cảnh).')),
       pretty: z.boolean().optional().describe(d('Format JSON with indentation (default true).', 'Định dạng JSON có thụt dòng (mặc định true).'))
     }),
     example: '{"format":"declarative"}'
@@ -279,7 +279,10 @@ export const SCENE_TOOLS = [
   {
     name: 'export_shot_json', cat: 'project',
     doc: L('Export a single shot and its layers to JSON.', 'Xuất một shot và các layer của nó ra JSON.'),
-    shape: (d) => ({ shot: z.string().describe(d('Shot name or shot id.', 'Tên hoặc id của shot.')) })
+    shape: (d) => ({
+      shot: z.string().describe(d('Shot name or shot id.', 'Tên hoặc id của shot.')),
+      format: z.enum(['raw', 'workflow']).optional().describe(d('"workflow" exports the standalone per-shot Workflow V2 JSON (shots/shot-N.json); "raw" exports full shot + layers + workflowShot.', '"workflow" xuất JSON logic độc lập của cảnh (shots/shot-N.json); "raw" xuất đầy đủ shot + layers + workflowShot.'))
+    })
   },
   { name: 'undo', cat: 'project', doc: L('Undo the last edit.', 'Hoàn tác thao tác gần nhất.'), shape: () => ({}) },
   { name: 'redo', cat: 'project', doc: L('Redo.', 'Làm lại thao tác vừa hoàn tác.'), shape: () => ({}) },

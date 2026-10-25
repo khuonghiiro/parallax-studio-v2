@@ -17,7 +17,9 @@ export interface WorkflowV2ToolbarProps {
   shots: { shot: Shot; index: number }[]
   activeShotId: string | null
   focusedShotId: string | null
+  jsonMode?: boolean
   onFocusShot: (shotId: string | null) => void
+  onToggleJsonMode?: () => void
   onRelayout: () => void
   onApplyAll: () => void
 }
@@ -63,6 +65,18 @@ export const WorkflowV2Toolbar: React.FC<WorkflowV2ToolbarProps> = (props) => {
         <span className="wf-v2-stats" title="Số cảnh / layer / node logic trong toàn dự án">
           <b>{props.stats.shots}</b> cảnh · <b>{props.stats.layers}</b> layer · <b>{props.stats.logic}</b> logic
         </span>
+        {props.onToggleJsonMode && (
+          <button
+            type="button"
+            className={`btn ghost sm wf-v2-tool-btn wf-v2-json-toggle${props.jsonMode ? ' active' : ''}`}
+            aria-pressed={Boolean(props.jsonMode)}
+            onClick={props.onToggleJsonMode}
+            title="Mở bảng JSON độc lập (main.json kết nối + shot-N.json cho từng cảnh)"
+          >
+            <code className="wf-v2-json-glyph">{'{ }'}</code>
+            <span>JSON</span>
+          </button>
+        )}
         <button type="button" className="btn ghost sm wf-v2-tool-btn" onClick={props.onRelayout} title="Xếp lại toàn bộ không gian gọn gàng (bỏ ghim các thẻ đã kéo tay)">
           <IconTree width={13} height={13} />
           <span>Sắp xếp</span>

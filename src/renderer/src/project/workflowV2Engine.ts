@@ -47,6 +47,25 @@ export {
 } from './workflowV2Scope'
 export { isCameraChainEdge } from './workflowV2Skeleton'
 export { syncWorkflowV2Graph, type SyncWorkflowV2Options } from './workflowV2Sync'
+export {
+  buildMainWorkflowJson,
+  buildModularWorkflowBundle,
+  buildShotWorkflowJson,
+  shotJsonFileName,
+  type WorkflowMainConnection,
+  type WorkflowMainJson,
+  type WorkflowMainShotRef,
+  type WorkflowModularBundleJson,
+  type WorkflowShotJson,
+  type WorkflowShotLayerSpec,
+  type WorkflowShotLogicSpec
+} from './workflowV2ModularJson'
+export {
+  applyMainWorkflowJson,
+  applyModularWorkflowJson,
+  applyShotWorkflowJson,
+  type ModularApplyResult
+} from './workflowV2ModularApply'
 
 /** Dựng mới cây Workflow V2 cho toàn dự án từ dữ liệu thật (tham số phạm vi cũ được giữ để tương thích, không còn dùng) */
 export function buildWorkflowV2SceneTree(project: Project, _legacyScope?: string, _legacyOptions?: unknown): WorkflowGraph {

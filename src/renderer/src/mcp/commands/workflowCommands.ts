@@ -29,8 +29,13 @@ import {
   validateAndNormalizeWorkflowJson
 } from '../../project/workflowEngine'
 import {
+  applyModularWorkflowJson,
+  buildMainWorkflowJson,
+  buildModularWorkflowBundle,
+  buildShotWorkflowJson,
   layoutWorkflowV2Tree,
   recomputeSharedLogicTargets,
+  shotIdAtTime,
   syncWorkflowV2NodeToProject,
   validateWorkflowV2Connection
 } from '../../project/workflowV2Engine'
@@ -81,13 +86,22 @@ export const workflowCommands: Record<string, Handler> = {
     }
   },
 
-  get_workflow: () => {
+  get_workflow: (p) => {
     const project = proj()
     const workflow = ensureProjectWorkflow(project)
     const blueprint = compileWorkflowBlueprint(workflow, project)
     const bindableTargets = listProjectBindableTargets(project)
+    const bundle = buildModularWorkflowBundle(project, workflow)
+    const requestedShotId = str(p, 'shot_id')
+    const activeShotId = requestedShotId || shotIdAtTime(project, ed().time) || project.shots[0]?.id || null
+    const activeShotJson = activeShotId ? (bundle.shots[activeShotId] ?? buildShotWorkflowJson(project, activeShotId, workflow)) : null
     return {
       timeline_tab: useView.getState().timelineTab,
+      active_shot_id: activeShotId,
+      main_json: bundle.main,
+      shot_json: activeShotJson,
+      shot_jsons: bundle.shots,
+      modular_files: bundle.files,
       workflow,
       node_io: workflow.nodes.map((node) => ({
         node_id: node.id,
@@ -119,8 +133,46 @@ export const workflowCommands: Record<string, Handler> = {
       useView.getState().setTimelineTab('workflow')
     }
 
+    const modularRaw = p.main_json ?? p.shot_json ?? p.bundle_json
+    const rawJson = modularRaw ?? p.workflow_json ?? p.workflow ?? p.json
+    const isModularPayload = (() => {
+      if (modularRaw !== undefined) return true
+      if (!rawJson) return false
+      try {
+        const obj = typeof rawJson === 'string' ? JSON.parse(rawJson) : rawJson
+        return Boolean(
+          obj &&
+            typeof obj === 'object' &&
+            (obj.kind === 'parallax-workflow-main' ||
+              obj.kind === 'parallax-workflow-shot' ||
+              obj.kind === 'parallax-workflow-bundle' ||
+              (obj.shot && Array.isArray(obj.logic)) ||
+              (Array.isArray(obj.route) && Array.isArray(obj.connections)))
+        )
+      } catch {
+        return false
+      }
+    })()
+
+    if (isModularPayload && rawJson !== undefined) {
+      let applyRes: ReturnType<typeof applyModularWorkflowJson> | undefined
+      ed().update((d) => {
+        applyRes = applyModularWorkflowJson(d as Project, rawJson, str(p, 'shot_id'))
+      }, 'mcp-set-modular-workflow')
+      const updated = ensureProjectWorkflow(proj())
+      const blueprint = compileWorkflowBlueprint(updated, proj())
+      return {
+        ok: true,
+        modular_result: applyRes,
+        timeline_tab: useView.getState().timelineTab,
+        workflow: updated,
+        main_json: buildMainWorkflowJson(proj(), updated),
+        ai_blueprint: blueprint,
+        aiBlueprint: blueprint
+      }
+    }
+
     const presetId = str(p, 'preset_id') || (has(p, 'node_id') ? undefined : str(p, 'preset'))
-    const rawJson = p.workflow_json ?? p.workflow ?? p.json
     const nodeId = str(p, 'node_id')
     const autoWire = bool(p, 'auto_wire')
 
@@ -343,11 +395,24 @@ export const workflowCommands: Record<string, Handler> = {
 
   apply_workflow: (p) => {
     const presetId = str(p, 'preset_id') || str(p, 'preset')
-    const rawJson = p.workflow_json ?? p.workflow ?? p.json
+    const modularRaw = p.main_json ?? p.shot_json ?? p.bundle_json
+    const rawJson = modularRaw ?? p.workflow_json ?? p.workflow ?? p.json
     const switchTab = bool(p, 'open_workflow_tab') ?? bool(p, 'switch_to_tab')
 
     if (switchTab) {
       useView.getState().setTimelineTab('workflow')
+    }
+
+    if (modularRaw !== undefined) {
+      let applyRes: ReturnType<typeof applyModularWorkflowJson> | undefined
+      ed().update((d) => {
+        applyRes = applyModularWorkflowJson(d as Project, modularRaw, str(p, 'shot_id'))
+      }, 'Áp dụng Modular Workflow JSON')
+      return {
+        ok: true,
+        modular_result: applyRes,
+        workflow: ensureProjectWorkflow(proj())
+      }
     }
 
     let targetWorkflow: WorkflowGraph

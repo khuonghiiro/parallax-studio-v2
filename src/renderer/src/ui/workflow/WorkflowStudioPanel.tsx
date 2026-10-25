@@ -11,6 +11,7 @@ import { resolveV2NodeLevel } from './workflowV2Theme'
 
 const SIDEBAR_KEY = 'pxs:wf-v2-sidebar-collapsed'
 const FOLLOW_KEY = 'pxs:wf-v2-follow-shot'
+const JSON_MODE_KEY = 'pxs:wf-v2-json-mode'
 
 const focusCluster = (rootId: string): void => {
   window.dispatchEvent(new CustomEvent('pxs:wf-focus-cluster', { detail: { rootId } }))
@@ -44,11 +45,16 @@ export const WorkflowStudioPanel: React.FC = () => {
   const setPlaying = useEditor((s) => s.setPlaying)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem(SIDEBAR_KEY) === '1')
   const [follow, setFollow] = useState(() => localStorage.getItem(FOLLOW_KEY) !== '0')
+  const [jsonMode, setJsonMode] = useState(() => localStorage.getItem(JSON_MODE_KEY) === '1')
   const [focusedShotId, setFocusedShotId] = useState<string | null>(null)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
 
   const workflow = useMemo(() => resolveWorkflowV2(project), [project])
   const route = useMemo(() => computeShotRoute(project), [project])
+  const shotItems = useMemo(
+    () => route.order.map((shot) => ({ shot, index: project.shots.findIndex((s) => s.id === shot.id) })),
+    [route.order, project.shots]
+  )
   const activeShotId = useActiveShotId()
 
   const selectNode = useCallback((id: string | null) => {
@@ -110,6 +116,11 @@ export const WorkflowStudioPanel: React.FC = () => {
       return !c
     })
 
+  const handleSetJsonMode = (next: boolean): void => {
+    localStorage.setItem(JSON_MODE_KEY, next ? '1' : '0')
+    setJsonMode(next)
+  }
+
   return (
     <div className="wf-studio-panel wf-v2-studio" data-mcp-region="timeline_workflow">
       <WorkflowV2Toolbar
@@ -117,10 +128,12 @@ export const WorkflowStudioPanel: React.FC = () => {
         enabledNodeCount={workflow.nodes.filter((n) => n.enabled).length}
         totalNodeCount={workflow.nodes.length}
         stats={stats}
-        shots={route.order.map((shot) => ({ shot, index: project.shots.findIndex((s) => s.id === shot.id) }))}
+        shots={shotItems}
         activeShotId={activeShotId}
         focusedShotId={focusedShotId}
+        jsonMode={jsonMode}
         onFocusShot={(id) => handleFocusShot(id)}
+        onToggleJsonMode={toggle(JSON_MODE_KEY, setJsonMode, '1', '0')}
         onRelayout={() => actions.relayout(true)}
         onApplyAll={actions.applyAll}
       />
@@ -165,6 +178,12 @@ export const WorkflowStudioPanel: React.FC = () => {
           project={project}
           node={selectedNode}
           currentTime={currentTime}
+          shots={shotItems}
+          activeShotId={activeShotId}
+          focusedShotId={focusedShotId}
+          jsonMode={jsonMode}
+          onSetJsonMode={handleSetJsonMode}
+          onSelectShotFocus={(shotId) => handleFocusShot(shotId)}
           onUpdateParams={actions.updateParams}
           onToggleEnable={actions.toggleEnable}
           onDeleteNode={actions.deleteNode}

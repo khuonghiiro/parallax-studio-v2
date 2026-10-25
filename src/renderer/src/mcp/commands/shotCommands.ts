@@ -1,6 +1,7 @@
 import { nextShotPosition, SHOT_DIRECTIONS, type ShotDirection } from '../../actions'
 import * as factory from '../../project/factory'
 import { exportShotToJson, importShotFromJson } from '../../project/jsonFormat'
+import { buildShotWorkflowJson } from '../../project/workflowV2Engine'
 import { ParamError, ed, proj, type Handler } from '../types'
 import { bool, has, num, requireShot, setAnim, str, toPlain, vec3 } from '../params'
 import { layerSummary, shotSummary } from '../summaries'
@@ -10,7 +11,12 @@ export const shotCommands: Record<string, Handler> = {
     const project = proj()
     const s = requireShot(project, str(p, 'shot_id', true))
     const t = num(p, 'time') ?? ed().time
-    return { ...shotSummary(s, project, t), shot: toPlain(s), layers: project.layers.filter((l) => l.shotId === s.id).map((l) => layerSummary(l, t)) }
+    return {
+      ...shotSummary(s, project, t),
+      shot: toPlain(s),
+      layers: project.layers.filter((l) => l.shotId === s.id).map((l) => layerSummary(l, t)),
+      workflow_shot: buildShotWorkflowJson(project, s.id)
+    }
   },
 
   add_shot: (p) => {
@@ -75,12 +81,17 @@ export const shotCommands: Record<string, Handler> = {
     }
     const res = await importShotFromJson(jsonStr, proj())
     ed().update(() => {}) // trigger render
-    return { shot: res.shot.name, layers: res.layers.length }
+    return { shot: res.shot.name, layers: res.layers.length, shot_id: res.shot.id }
   },
 
   export_shot_json: async (p) => {
     const s = requireShot(proj(), str(p, 'shot'))
+    const format = str(p, 'format')
+    const workflowShot = buildShotWorkflowJson(proj(), s.id)
+    if (format === 'workflow') {
+      return { shot: s.name, shot_id: s.id, file: workflowShot.file, json: JSON.stringify(workflowShot, null, 2), workflow_shot: workflowShot }
+    }
     const json = await exportShotToJson(proj(), s.id, true)
-    return { shot: s.name, json }
+    return { shot: s.name, shot_id: s.id, file: workflowShot.file, json, workflow_shot: workflowShot }
   }
 }

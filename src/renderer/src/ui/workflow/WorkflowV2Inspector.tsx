@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
+import type { Project, Shot, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { getLayerDisplayName } from '../../project/workflowV2Engine'
 import { IconTrash } from '../icons'
 import { WorkflowTimeRangeBar } from './WorkflowTimeRangeBar'
+import { WorkflowV2JsonPanel } from './WorkflowV2JsonPanel'
 import { WorkflowV2NodeParams } from './WorkflowV2NodeParams'
 import { isDeletableV2Node, summarizeV2Node } from './WorkflowNodeCardV2'
 import {
@@ -18,6 +19,12 @@ export interface WorkflowV2InspectorProps {
   project: Project
   node: WorkflowNode | null
   currentTime: number
+  shots: { shot: Shot; index: number }[]
+  activeShotId: string | null
+  focusedShotId: string | null
+  jsonMode: boolean
+  onSetJsonMode: (jsonMode: boolean) => void
+  onSelectShotFocus: (shotId: string | null) => void
   onUpdateParams: (nodeId: string, patch: Partial<WorkflowNodeParams>, nextTitle?: string) => void
   onToggleEnable: (nodeId: string) => void
   onDeleteNode: (nodeId: string) => void
@@ -93,13 +100,54 @@ function linkedLayerNames(node: WorkflowNode, project: Project): string[] {
   return Array.from(new Set(names))
 }
 
-/** Bảng thuộc tính của Node đang chọn trong Workflow V2 (thay cho popover nổi đè lên sơ đồ) */
+/** Bảng thuộc tính của Node đang chọn + Chế độ JSON Cảnh & Main trong Workflow V2 */
 export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) => {
-  const { node, project, workflow, currentTime } = props
+  const { node, project, workflow, currentTime, jsonMode, onSetJsonMode } = props
+
+  const modeTabs = (
+    <div className="wf-v2-insp-tabs" role="tablist" aria-label="Chế độ bảng bên phải">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={!jsonMode}
+        className={`wf-v2-insp-tab${!jsonMode ? ' active' : ''}`}
+        onClick={() => onSetJsonMode(false)}
+      >
+        Thuộc tính Node
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={jsonMode}
+        className={`wf-v2-insp-tab${jsonMode ? ' active' : ''}`}
+        onClick={() => onSetJsonMode(true)}
+      >
+        <code>{'{ }'}</code> JSON Cảnh & Main
+      </button>
+    </div>
+  )
+
+  if (jsonMode) {
+    return (
+      <aside className="wf-v2-inspector json-open" data-mcp-region="workflow_inspector">
+        {modeTabs}
+        <WorkflowV2JsonPanel
+          project={project}
+          workflow={workflow}
+          shots={props.shots}
+          activeShotId={props.activeShotId}
+          focusedShotId={props.focusedShotId}
+          onSelectShotFocus={props.onSelectShotFocus}
+        />
+      </aside>
+    )
+  }
+
   if (!node) {
     return (
       <aside className="wf-v2-inspector" data-mcp-region="workflow_inspector">
-        <div className="wf-v2-insp-empty">Chọn một Node trên sơ đồ để xem và chỉnh thông số.</div>
+        {modeTabs}
+        <div className="wf-v2-insp-empty">Chọn một Node trên sơ đồ để xem thông số, hoặc chuyển sang tab <b>JSON Cảnh &amp; Main</b> để xem/sửa JSON độc lập từng cảnh.</div>
       </aside>
     )
   }
@@ -115,6 +163,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
 
   return (
     <aside className="wf-v2-inspector" data-mcp-region="workflow_inspector" style={{ ['--wf-v2-accent' as string]: theme.accent }}>
+      {modeTabs}
       <header className="wf-v2-insp-head">
         <span className="wf-v2-insp-icon" aria-hidden="true">{theme.icon}</span>
         <div className="wf-v2-insp-titles">
