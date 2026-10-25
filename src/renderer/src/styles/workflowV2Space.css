@@ -440,51 +440,16 @@
   padding-top: 2px;
 }
 
-.wf-v2-deep-logic-sec {
-  padding-top: 10px;
+.wf-v2-insp-pinned-preview {
+  flex-shrink: 0;
+  padding: 2px 10px 6px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line-soft);
 }
-.wf-v2-deep-filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  padding: 3px;
-  border-radius: var(--radius);
-  border: 1px solid var(--line-soft);
-  background: var(--bg-1);
-}
-.wf-v2-deep-filter-pill {
-  flex: 1 1 auto;
-  min-width: 0;
-  height: 23px;
-  padding: 0 6px;
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text-dim);
-  font-size: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.wf-v2-deep-filter-pill:hover {
-  color: var(--text);
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
-}
-.wf-v2-deep-filter-pill.suggested:not(.active) {
-  border-color: color-mix(in srgb, var(--accent-cyan) 50%, var(--line));
-  color: var(--text);
-}
-.wf-v2-deep-filter-pill.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
-}
-.wf-v2-deep-logic-body {
-  display: flex;
-  flex-direction: column;
-  margin: 0 -10px;
+.wf-v2-insp-pinned-preview .wf-v2-insp-sec {
+  padding-top: 4px;
+  padding-bottom: 2px;
+  border-bottom: none;
 }
 
 .wf-v2-json-panel {

@@ -6,7 +6,6 @@ import { WorkflowTimeRangeBar } from './WorkflowTimeRangeBar'
 import { WorkflowV2DirectStagePreview } from './WorkflowV2DirectStagePreview'
 import { WorkflowV2JsonPanel } from './WorkflowV2JsonPanel'
 import {
-  WorkflowV2DeepLayerLogic,
   WorkflowV2NodeSwitcherBar,
   resolveActiveLayerForInspector
 } from './WorkflowV2LayerLogicSection'
@@ -257,14 +256,8 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
             onAttachLogic={props.onAttachLogic}
           />
         )}
-        <div className="wf-v2-insp-body">
-          {activeLayer ? (
-            <WorkflowV2DeepLayerLogic layer={activeLayer} activeNode={null} />
-          ) : (
-            <div className="wf-v2-insp-empty">
-              Chọn một Layer hoặc Node trên Timeline / Sơ đồ để cấu hình logic 2.5D, hoặc chuyển sang tab <b>JSON Cảnh &amp; Main</b> dưới đáy để xem/sửa JSON từng cảnh.
-            </div>
-          )}
+        <div className="wf-v2-insp-empty">
+          Chọn một Layer hoặc Node trên Timeline / Sơ đồ để xem đúng thông số logic của Node đó, hoặc chuyển sang tab <b>JSON Cảnh</b> để xem/sửa JSON từng cảnh.
         </div>
       </aside>
     )
@@ -301,7 +294,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
           <button
             type="button"
             className={`wf-v2-insp-bbox-toggle${directStageOpen ? ' active' : ''}`}
-            title={directStageOpen ? 'Đang bật khung chỉnh BBox 2D trực tiếp — nhấn để ẩn' : 'Bật khung chỉnh BBox 2D trực tiếp như trên Camera 2D'}
+            title={directStageOpen ? 'Đang bật khung chỉnh BBox 2D cố định — nhấn để ẩn' : 'Bật khung chỉnh BBox 2D cố định trên đầu bảng'}
             onClick={toggleDirectStage}
           >
             🎯 BBox
@@ -311,7 +304,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
           <button
             type="button"
             className={`wf-v2-insp-bbox-toggle${logicPadOpen ? ' active' : ''}`}
-            title={logicPadOpen ? 'Đang bật Khung chỉnh 2.5D trực tiếp — nhấn để ẩn' : 'Bật Khung chỉnh 2.5D trực tiếp cho Node Logic này'}
+            title={logicPadOpen ? 'Đang bật Khung chỉnh 2.5D cố định — nhấn để ẩn' : 'Bật Khung chỉnh 2.5D cố định trên đầu bảng cho Node Logic này'}
             onClick={toggleLogicPad}
           >
             🎛️ 2.5D
@@ -346,33 +339,38 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
         />
       )}
 
+      {/* Vùng ghim cố định (không cuộn theo danh sách thông số bên dưới) cho Khung BBox 2D & Khung chỉnh 2.5D */}
+      {(isLayerOrCamBboxNode || isLayerLogicNode) && (
+        <div className="wf-v2-insp-pinned-preview">
+          {isLayerOrCamBboxNode && (
+            <WorkflowV2DirectStagePreview
+              node={node}
+              project={project}
+              workflow={workflow}
+              currentTime={currentTime}
+              open={directStageOpen}
+              onToggleOpen={toggleDirectStage}
+              onUpdateParams={props.onUpdateParams}
+              onSelectNode={props.onSelectNode}
+              onScrubTime={props.onScrubTime}
+            />
+          )}
+
+          {isLayerLogicNode && (
+            <WorkflowV2Logic25DPreview
+              node={node}
+              project={project}
+              currentTime={currentTime}
+              open={logicPadOpen}
+              onToggleOpen={toggleLogicPad}
+              onUpdateParams={props.onUpdateParams}
+              onScrubTime={props.onScrubTime}
+            />
+          )}
+        </div>
+      )}
+
       <div className="wf-v2-insp-body">
-        {isLayerOrCamBboxNode && (
-          <WorkflowV2DirectStagePreview
-            node={node}
-            project={project}
-            workflow={workflow}
-            currentTime={currentTime}
-            open={directStageOpen}
-            onToggleOpen={toggleDirectStage}
-            onUpdateParams={props.onUpdateParams}
-            onSelectNode={props.onSelectNode}
-            onScrubTime={props.onScrubTime}
-          />
-        )}
-
-        {isLayerLogicNode && (
-          <WorkflowV2Logic25DPreview
-            node={node}
-            project={project}
-            currentTime={currentTime}
-            open={logicPadOpen}
-            onToggleOpen={toggleLogicPad}
-            onUpdateParams={props.onUpdateParams}
-            onScrubTime={props.onScrubTime}
-          />
-        )}
-
         <section className="wf-v2-insp-sec">
           <div className="wf-v2-insp-sec-title">
             Khoảng thời gian
@@ -466,10 +464,6 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
               ))}
             </div>
           </section>
-        )}
-
-        {activeLayer && (level === 'layer' || isLayerLogicNode) && (
-          <WorkflowV2DeepLayerLogic layer={activeLayer} activeNode={node} />
         )}
 
         {(level === 'root' || level === 'group') && (

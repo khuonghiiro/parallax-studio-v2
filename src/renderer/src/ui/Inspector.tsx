@@ -17,17 +17,22 @@ export { SceneInspector } from './inspector/SceneInspector'
 export { AudioTrackInspector } from './inspector/AudioTrackInspector'
 export { CameraRouteInspector } from './inspector/CameraRouteInspector'
 
+type TopTabId = 'layer' | 'camera' | 'route' | 'scene'
+
 const COL_EXPANDED_KEY = 'pxs:right-col-expanded'
 const COL_WIDTH_KEY = 'pxs:wf-v2-inspector-width'
 const MIN_COL_W = 280
 const MAX_COL_W = 680
 const DEFAULT_EXPANDED_W = 420
-const WIDE_PRESET_W = 480
 
 function readInitialColWidth(): number {
   const raw = Number(localStorage.getItem(COL_WIDTH_KEY))
   if (Number.isFinite(raw) && raw >= MIN_COL_W && raw <= MAX_COL_W) return Math.round(raw)
   return DEFAULT_EXPANDED_W
+}
+
+function isTopTab(tab: string): tab is TopTabId {
+  return tab === 'layer' || tab === 'camera' || tab === 'route' || tab === 'scene'
 }
 
 export function Inspector() {
@@ -45,9 +50,15 @@ export function Inspector() {
   const [isColumnExpanded, setIsColumnExpanded] = useState<boolean>(
     () => localStorage.getItem(COL_EXPANDED_KEY) !== '0'
   )
+  const [lastTopTab, setLastTopTab] = useState<TopTabId>('layer')
   const [splitBottomMode, setSplitBottomMode] = useState<'node' | 'json'>('node')
   const [colWidth, setColWidth] = useState<number>(readInitialColWidth)
   const [resizingWidth, setResizingWidth] = useState(false)
+
+  useEffect(() => {
+    if (isTopTab(tab)) setLastTopTab(tab)
+    else if (tab === 'node' || tab === 'json') setSplitBottomMode(tab)
+  }, [tab])
 
   // Đồng bộ biến CSS `--right-col-w` lên `.app` để mở rộng cột phải toàn màn hình
   useEffect(() => {
@@ -84,39 +95,93 @@ export function Inspector() {
     window.addEventListener('pointerup', onUp)
   }
 
-  const handleToggleColumnExpanded = (): void => {
-    setIsColumnExpanded((prev) => {
-      const next = !prev
-      localStorage.setItem(COL_EXPANDED_KEY, next ? '1' : '0')
-      if (next) {
-        // Khi bấm Expand từ khung dưới lên toàn cột: chuyển sang tab Node/JSON đang mở và nới rộng cột cho dễ thao tác
-        if (tab !== 'node' && tab !== 'json') {
-          setTab(splitBottomMode)
-        }
-        if (colWidth < DEFAULT_EXPANDED_W) {
-          updateColWidth(DEFAULT_EXPANDED_W)
-        }
-      } else {
-        // Khi thu về chế độ chia đôi: giữ nhớ mode dưới và trả phần trên về tab Layer
-        if (tab === 'node' || tab === 'json') {
-          setSplitBottomMode(tab)
-          setTab('layer')
-        }
-      }
-      return next
-    })
+  const isTopGroupExpanded = isColumnExpanded && isTopTab(tab)
+  const isBottomGroupExpanded = isColumnExpanded && (tab === 'node' || tab === 'json')
+
+  const handleToggleTopGroupExpand = (): void => {
+    if (isTopGroupExpanded) {
+      localStorage.setItem(COL_EXPANDED_KEY, '0')
+      setIsColumnExpanded(false)
+    } else {
+      localStorage.setItem(COL_EXPANDED_KEY, '1')
+      setIsColumnExpanded(true)
+      if (!isTopTab(tab)) setTab(lastTopTab)
+      if (colWidth < DEFAULT_EXPANDED_W) updateColWidth(DEFAULT_EXPANDED_W)
+    }
   }
 
-  const handleToggleWideWidth = (): void => {
-    updateColWidth(colWidth >= WIDE_PRESET_W - 10 ? 370 : WIDE_PRESET_W)
+  const handleToggleBottomGroupExpand = (): void => {
+    if (isBottomGroupExpanded) {
+      localStorage.setItem(COL_EXPANDED_KEY, '0')
+      setIsColumnExpanded(false)
+      setSplitBottomMode(tab === 'json' ? 'json' : 'node')
+      setTab(lastTopTab)
+    } else {
+      localStorage.setItem(COL_EXPANDED_KEY, '1')
+      setIsColumnExpanded(true)
+      setTab(splitBottomMode)
+      if (colWidth < DEFAULT_EXPANDED_W) updateColWidth(DEFAULT_EXPANDED_W)
+    }
   }
 
   const tabTitle = audioTrack ? 'Âm thanh' : !layer && shot ? 'Cảnh này' : 'Layer'
-  const topTabInSplit = tab === 'node' || tab === 'json' ? 'layer' : tab
+  const topTabInSplit: TopTabId = isTopTab(tab) ? tab : lastTopTab
   const effectiveBottomMode: 'node' | 'json' =
     tab === 'json' ? 'json' : tab === 'node' ? 'node' : splitBottomMode
 
-  const renderTopTabBody = (activeTopTab: 'layer' | 'camera' | 'route' | 'scene') => (
+  const renderTopTabBar = () => {
+    const activeTop = isColumnExpanded ? (isTopTab(tab) ? tab : null) : topTabInSplit
+    return (
+      <div className="tabs" data-mcp-region="inspector_tabs">
+        <button
+          id="tab-layer"
+          className={`tab${activeTop === 'layer' ? ' active' : ''}`}
+          onClick={() => setTab('layer')}
+        >
+          {tabTitle}
+        </button>
+        <button
+          id="tab-camera"
+          className={`tab${activeTop === 'camera' ? ' active' : ''}`}
+          onClick={() => setTab('camera')}
+        >
+          Camera
+        </button>
+        <button
+          id="tab-route"
+          className={`tab${activeTop === 'route' ? ' active' : ''}`}
+          onClick={() => setTab('route')}
+          title="Lộ trình di chuyển và thu phóng Camera 2D (Adobe Animate)"
+        >
+          Lộ trình
+        </button>
+        <button
+          id="tab-scene"
+          className={`tab${activeTop === 'scene' ? ' active' : ''}`}
+          onClick={() => setTab('scene')}
+        >
+          Dự án
+        </button>
+        <button
+          id="btn-expand-top-tabs"
+          type="button"
+          className={`wf-v2-insp-expand-btn${isTopGroupExpanded ? ' active' : ''}`}
+          aria-pressed={isTopGroupExpanded}
+          title={
+            isTopGroupExpanded
+              ? 'Đang mở rộng cụm 4 tab chiếm hết cột phải — nhấn để thu về chế độ chia đôi trên/dưới'
+              : 'Mở rộng cụm 4 tab (Layer · Camera · Lộ trình · Dự án) chiếm hết cột phải màn hình'
+          }
+          onClick={handleToggleTopGroupExpand}
+        >
+          <span className="exp-ico">{isTopGroupExpanded ? '⤡' : '⤢'}</span>
+          <span>{isTopGroupExpanded ? 'Thu gọn' : 'Mở rộng'}</span>
+        </button>
+      </div>
+    )
+  }
+
+  const renderTopTabBody = (activeTopTab: TopTabId) => (
     <>
       {activeTopTab === 'layer' &&
         (audioTrack ? (
@@ -151,8 +216,8 @@ export function Inspector() {
       activeShotId={wfCtrl.activeShotId}
       focusedShotId={wfCtrl.focusedShotId}
       jsonMode={isJson}
-      isColumnExpanded={isColumnExpanded}
-      onToggleColumnExpanded={handleToggleColumnExpanded}
+      isColumnExpanded={isBottomGroupExpanded}
+      onToggleColumnExpanded={handleToggleBottomGroupExpand}
       onSetJsonMode={(nextJson) => {
         setSplitBottomMode(nextJson ? 'json' : 'node')
         if (isColumnExpanded) setTab(nextJson ? 'json' : 'node')
@@ -186,7 +251,7 @@ export function Inspector() {
           role="tab"
           aria-selected={isNodeActive}
           className={`wf-v2-insp-tab${isNodeActive ? ' active' : ''}`}
-          title="Cấu hình BBox 2D, X/Y/Z, thời lượng và các logic 2.5D (Vật lý, Ánh sáng, Chuyển động, Cửa hang) cho cả Timeline & Workflow"
+          title="Cấu hình đúng logic riêng của Node đang chọn (BBox 2D / 2.5D cố định trên đầu + thông số riêng của Node đó)"
           onClick={() => {
             setSplitBottomMode('node')
             if (isColumnExpanded) setTab('node')
@@ -212,17 +277,17 @@ export function Inspector() {
         <button
           id="btn-expand-right-column"
           type="button"
-          className={`wf-v2-insp-expand-btn${isColumnExpanded ? ' active' : ''}`}
-          aria-pressed={isColumnExpanded}
+          className={`wf-v2-insp-expand-btn${isBottomGroupExpanded ? ' active' : ''}`}
+          aria-pressed={isBottomGroupExpanded}
           title={
-            isColumnExpanded
-              ? 'Đang mở rộng chiếm hết cột phải (4 tab ở trên, 2 tab Node & JSON ở đáy màn hình) — nhấn để chia đôi trên/dưới'
-              : 'Mở rộng chiếm hết 1 cột bên phải màn hình (4 tab trên giữ nguyên, 2 tab Thuộc tính Node & JSON Cảnh nằm dưới đáy màn hình)'
+            isBottomGroupExpanded
+              ? 'Đang mở rộng Thuộc tính Node & JSON Cảnh chiếm hết cột phải — nhấn để thu về chế độ chia đôi trên/dưới'
+              : 'Mở rộng Thuộc tính Node & JSON Cảnh chiếm hết cột phải màn hình (4 tab trên giữ nguyên, 2 tab này nằm dưới đáy màn hình)'
           }
-          onClick={handleToggleColumnExpanded}
+          onClick={handleToggleBottomGroupExpand}
         >
-          <span className="exp-ico">{isColumnExpanded ? '⤡' : '⤢'}</span>
-          <span>{isColumnExpanded ? 'Thu gọn' : 'Mở rộng'}</span>
+          <span className="exp-ico">{isBottomGroupExpanded ? '⤡' : '⤢'}</span>
+          <span>{isBottomGroupExpanded ? 'Thu gọn' : 'Mở rộng'}</span>
         </button>
       </div>
     )
@@ -244,40 +309,13 @@ export function Inspector() {
 
       {isColumnExpanded ? (
         <section className="panel right-unified-panel" style={{ flex: 1 }}>
-          <div className="tabs" data-mcp-region="inspector_tabs">
-            <button id="tab-layer" className={`tab${tab === 'layer' ? ' active' : ''}`} onClick={() => setTab('layer')}>
-              {tabTitle}
-            </button>
-            <button id="tab-camera" className={`tab${tab === 'camera' ? ' active' : ''}`} onClick={() => setTab('camera')}>
-              Camera
-            </button>
-            <button
-              id="tab-route"
-              className={`tab${tab === 'route' ? ' active' : ''}`}
-              onClick={() => setTab('route')}
-              title="Lộ trình di chuyển và thu phóng Camera 2D (Adobe Animate)"
-            >
-              Lộ trình
-            </button>
-            <button id="tab-scene" className={`tab${tab === 'scene' ? ' active' : ''}`} onClick={() => setTab('scene')}>
-              Dự án
-            </button>
-            <button
-              type="button"
-              className={`tab-width-btn${colWidth >= WIDE_PRESET_W - 10 ? ' active' : ''}`}
-              title={`Mở rộng nhanh bề ngang cột phải (${colWidth}px) — hoặc kéo mép trái cột để chỉnh tự do`}
-              onClick={handleToggleWideWidth}
-            >
-              ⇔
-            </button>
-          </div>
+          {renderTopTabBar()}
 
           <div
             className={`panel-body right-unified-body${tab === 'node' || tab === 'json' ? ' is-node-or-json' : ''}`}
             data-mcp-region="inspector_body"
           >
-            {(tab === 'layer' || tab === 'camera' || tab === 'route' || tab === 'scene') &&
-              renderTopTabBody(tab)}
+            {isTopTab(tab) && renderTopTabBody(tab)}
             {(tab === 'node' || tab === 'json') && renderWorkflowInspector(tab === 'json')}
           </div>
 
@@ -286,45 +324,7 @@ export function Inspector() {
       ) : (
         <>
           <section className="panel right-top-split" style={{ flex: 1 }}>
-            <div className="tabs" data-mcp-region="inspector_tabs">
-              <button
-                id="tab-layer"
-                className={`tab${topTabInSplit === 'layer' ? ' active' : ''}`}
-                onClick={() => setTab('layer')}
-              >
-                {tabTitle}
-              </button>
-              <button
-                id="tab-camera"
-                className={`tab${topTabInSplit === 'camera' ? ' active' : ''}`}
-                onClick={() => setTab('camera')}
-              >
-                Camera
-              </button>
-              <button
-                id="tab-route"
-                className={`tab${topTabInSplit === 'route' ? ' active' : ''}`}
-                onClick={() => setTab('route')}
-                title="Lộ trình di chuyển và thu phóng Camera 2D (Adobe Animate)"
-              >
-                Lộ trình
-              </button>
-              <button
-                id="tab-scene"
-                className={`tab${topTabInSplit === 'scene' ? ' active' : ''}`}
-                onClick={() => setTab('scene')}
-              >
-                Dự án
-              </button>
-              <button
-                type="button"
-                className={`tab-width-btn${colWidth >= WIDE_PRESET_W - 10 ? ' active' : ''}`}
-                title={`Mở rộng nhanh bề ngang cột phải (${colWidth}px)`}
-                onClick={handleToggleWideWidth}
-              >
-                ⇔
-              </button>
-            </div>
+            {renderTopTabBar()}
             <div className="panel-body" data-mcp-region="inspector_body">
               {renderTopTabBody(topTabInSplit)}
             </div>
