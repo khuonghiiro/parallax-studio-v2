@@ -105,9 +105,9 @@ export function WorkshopWorkspace({ state, playback, view, tab, onSelectTab, bon
   }, [toggleBones, toggleMesh, tab, handleConfirmStep])
 
   const normalizedRig = state.composite.rig ? ensureRigClips(state.composite.rig).rig : undefined
-  // Bù thời gian khi thanh phát lặp lại để xương thực vật chuyển động liên tục, không giật về 0
+  // Bù thời gian khi thanh phát lặp lại để xương motion chuyển động liên tục, không giật về 0
   const plantOffset = usePlantClockOffset(playback.time, playback.isPlaying, normalizedRig?.duration ?? 4)
-  // Gió trực tiếp ở tab Thực vật: cây tự đung đưa khi vẽ/chỉnh mà không cần bấm phát
+  // Gió trực tiếp ở tab Motion: cây tự đung đưa khi vẽ/chỉnh mà không cần bấm phát
   const plantEditor = usePlantSpineEditor()
   const hasSpines = (state.composite.plantSpines?.length ?? 0) > 0
   const liveEnabled = tab === 'plant' && plantEditor.live && hasSpines && !playback.isPlaying

@@ -74,11 +74,15 @@ export const LAYER_ASSEMBLY_TOOLS = [
         .describe(d('Category of the composite.', 'Danh mục của chi tiết.')),
       description: z.string().optional().describe(d('Short description of the composite.', 'Mô tả ngắn về chi tiết.')),
       rig: z.object({
-        bones: z.array(z.object({ id: z.string(), name: z.string(), parentId: z.string().optional(),
-          x: z.number(), y: z.number(), length: z.number(), angle: z.number() })),
+        bones: z.array(z.object({
+          id: z.string(), name: z.string(), parentId: z.string().optional(),
+          x: z.number(), y: z.number(), length: z.number(), angle: z.number()
+        })),
         duration: z.number().min(0.1).max(120), loop: z.boolean(),
-        tracks: z.record(z.array(z.object({ time: z.number(), x: z.number(), y: z.number(), rotation: z.number(),
-          scaleX: z.number().optional(), scaleY: z.number().optional(), easing: z.enum(['smooth', 'linear', 'hold']) })))
+        tracks: z.record(z.array(z.object({
+          time: z.number(), x: z.number(), y: z.number(), rotation: z.number(),
+          scaleX: z.number().optional(), scaleY: z.number().optional(), easing: z.enum(['smooth', 'linear', 'hold'])
+        })))
       }).optional().describe(d('Complete skeleton and animation tracks to save with the cutout layers.', 'Toàn bộ khung xương và các track hoạt ảnh cần lưu cùng các mảnh layer.')),
       width: z.number().optional().describe(d('Reference bounding width in pixels.', 'Chiều rộng khung tham chiếu (pixel).')),
       height: z.number().optional().describe(d('Reference bounding height in pixels.', 'Chiều cao khung tham chiếu (pixel).')),
@@ -352,9 +356,9 @@ export const LAYER_ASSEMBLY_TOOLS = [
       'Chuyển đổi giữa 4 tab cột phải (layers, bones, animation, plant) và chọn xương kích hoạt trong xưởng.'
     ),
     shape: (d) => ({
-      tab: z.enum(['layers', 'bones', 'animation', 'plant']).optional().describe(d('Active right panel tab ("plant" = draw plant spines for wind sway).', 'Tab cột phải cần mở ("plant" = vẽ xương thực vật đung đưa theo gió).')),
+      tab: z.enum(['layers', 'bones', 'animation', 'plant']).optional().describe(d('Active right panel tab ("plant" = draw plant spines for wind sway).', 'Tab cột phải cần mở ("plant" = vẽ xương motion đung đưa theo gió).')),
       bone_id: z.string().optional().describe(d('Optional bone ID to select.', 'ID xương cần chọn.')),
-      spine_id: z.string().optional().describe(d('Optional plant spine ID to select.', 'ID xương thực vật cần chọn.')),
+      spine_id: z.string().optional().describe(d('Optional plant spine ID to select.', 'ID xương motion cần chọn.')),
       plant_grab_mode: z.enum(['record', 'learn']).optional().describe(d('Plant grab circle behavior: "record" = records custom hand-drawn sway · "learn" = infers procedural wind amplitude/lean/period.', 'Hành vi vòng tròn ở ngọn: "record" = ghi chuyển động vẽ tay · "learn" = học biên độ/độ nghiêng/nhịp gió tự động.')),
       plant_record_end: z.enum(['loop', 'spring']).optional().describe(d('Release behavior after grabbing: "loop" = seamless loop · "spring" = damped spring back to rest.', 'Khi thả tay: "loop" = lặp đúng cử chỉ · "spring" = nảy tắt dần về nghỉ.')),
       plant_path_record: z.boolean().optional().describe(d('Toggle "Record Tip Path" (key R): dragging anywhere on the canvas draws the tip path and records motion.', 'Bật/tắt "Vẽ quỹ đạo ngọn" (phím R): kéo chuột bất kỳ đâu trên khung để vẽ đường đi ngọn.')),
@@ -373,7 +377,7 @@ export const LAYER_ASSEMBLY_TOOLS = [
     cat: 'layer_assembly',
     doc: L(
       'Manage plant spines in the open 2.5D Layer Assembly workshop: a hand-drawn curve from ROOT to TIP that makes bound plant layers (grass, trees, branches, flowers, seaweed) bend and sway in the wind. Actions: list, add, update, delete, clear, phase (stagger/sync phase offsets so a field of plants never sways in unison), copy_motion (reuse one spine motion on others). Besides procedural wind, a spine can carry a RECORDED hand-drawn motion (tip angle over time, loops seamlessly): pass motion_keys directly, or motion_samples to simulate grabbing the tip (smoothed, idle-trimmed, loop-closed; motion_end spring = springs back after release). Supports undo (Ctrl+Z) and is exported with the composite into the scene/video.',
-      'Quản lý Xương thực vật trong Xưởng Lắp Ráp Layer 2.5D đang mở: đường cong vẽ từ GỐC lên NGỌN giúp các layer cây cỏ (cỏ, cây, cành, hoa, rong biển) gắn vào uốn cong đung đưa theo gió. Hành động: list, add, update, delete, clear, phase (so le/đồng bộ lệch pha để cả bụi cây không lắc đồng loạt), copy_motion (dùng lại nhịp một xương cho xương khác). Ngoài gió tự động, xương có thể mang CHUYỂN ĐỘNG VẼ TAY đã ghi (góc ngọn theo thời gian, lặp liền mạch): truyền thẳng motion_keys, hoặc motion_samples để mô phỏng nắm ngọn kéo (tự làm mượt, cắt đoạn chờ, khép vòng; motion_end spring = nảy về khi thả). Hỗ trợ hoàn tác (Ctrl+Z) và được mang theo khi thêm cụm vào cảnh/xuất video.'
+      'Quản lý Xương motion trong Xưởng Lắp Ráp Layer 2.5D đang mở: đường cong vẽ từ GỐC lên NGỌN giúp các layer cây cỏ (cỏ, cây, cành, hoa, rong biển) gắn vào uốn cong đung đưa theo gió. Hành động: list, add, update, delete, clear, phase (so le/đồng bộ lệch pha để cả bụi cây không lắc đồng loạt), copy_motion (dùng lại nhịp một xương cho xương khác). Ngoài gió tự động, xương có thể mang CHUYỂN ĐỘNG VẼ TAY đã ghi (góc ngọn theo thời gian, lặp liền mạch): truyền thẳng motion_keys, hoặc motion_samples để mô phỏng nắm ngọn kéo (tự làm mượt, cắt đoạn chờ, khép vòng; motion_end spring = nảy về khi thả). Hỗ trợ hoàn tác (Ctrl+Z) và được mang theo khi thêm cụm vào cảnh/xuất video.'
     ),
     shape: (d) => ({
       action: z.enum(['list', 'add', 'update', 'delete', 'clear', 'phase', 'copy_motion']).describe(d('Operation to perform. "phase" staggers (mode stagger) or syncs (mode sync) the phase offsets of all spines; "copy_motion" copies the motion / wind params of spine_id to other spines (target_spine_ids, default all) with optional stagger seconds.', 'Thao tác cần thực hiện. "phase" so le (mode stagger) hoặc đồng bộ (mode sync) độ lệch pha mọi xương; "copy_motion" sao chép nhịp / thông số gió của spine_id sang xương khác (target_spine_ids, mặc định tất cả) kèm lệch pha stagger giây.')),

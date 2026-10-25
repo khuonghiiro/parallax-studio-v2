@@ -270,8 +270,8 @@ export function LayerAssemblyViewport({
     const container = containerRef.current
     const ro = container
       ? new ResizeObserver(() => {
-          handleFitView(false)
-        })
+        handleFitView(false)
+      })
       : null
     if (container && ro) ro.observe(container)
 
@@ -311,7 +311,7 @@ export function LayerAssemblyViewport({
       dragStartRef.current.mouseY = e.clientY
       dragStartRef.current.initPanX = pan.x
       dragStartRef.current.initPanY = pan.y
-      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+        ; (e.target as HTMLElement).setPointerCapture(e.pointerId)
       return
     }
 
@@ -372,21 +372,21 @@ export function LayerAssemblyViewport({
     if (isPanning) {
       setIsPanning(false)
       try {
-        ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
-      } catch {}
+        ; (e.target as HTMLElement).releasePointerCapture(e.pointerId)
+      } catch { }
     }
     if (handleDragRef.current) {
       handleDragRef.current = null
       setIsDraggingHandle(false)
       try {
-        ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
-      } catch {}
+        ; (e.target as HTMLElement).releasePointerCapture(e.pointerId)
+      } catch { }
     }
     if (isDraggingLayer) {
       setIsDraggingLayer(false)
       try {
-        ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
-      } catch {}
+        ; (e.target as HTMLElement).releasePointerCapture(e.pointerId)
+      } catch { }
     }
   }
 
@@ -411,7 +411,7 @@ export function LayerAssemblyViewport({
       baseWidth: baseW,
       baseHeight: baseH
     }
-    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+      ; (e.target as HTMLElement).setPointerCapture(e.pointerId)
   }
 
   const handleStartDragLayer = (e: React.PointerEvent, layer: AssembledLayerItem) => {
@@ -451,7 +451,7 @@ export function LayerAssemblyViewport({
       initPanX: pan.x,
       initPanY: pan.y
     }
-    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+      ; (e.target as HTMLElement).setPointerCapture(e.pointerId)
   }
 
   const is2DOnly = view === '2d'
@@ -466,7 +466,7 @@ export function LayerAssemblyViewport({
     const target = e.currentTarget
     try {
       target.setPointerCapture(e.pointerId)
-    } catch {}
+    } catch { }
 
     const onPointerMove = (moveEvent: PointerEvent) => {
       const deltaY = startY - moveEvent.clientY
@@ -479,7 +479,7 @@ export function LayerAssemblyViewport({
         if (target.hasPointerCapture(upEvent.pointerId)) {
           target.releasePointerCapture(upEvent.pointerId)
         }
-      } catch {}
+      } catch { }
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('pointerup', onPointerUp)
     }
@@ -495,7 +495,7 @@ export function LayerAssemblyViewport({
     const target = e.currentTarget
     try {
       target.setPointerCapture(e.pointerId)
-    } catch {}
+    } catch { }
 
     const onPointerMove = (moveEvent: PointerEvent) => {
       const deltaX = moveEvent.clientX - startX
@@ -508,7 +508,7 @@ export function LayerAssemblyViewport({
         if (target.hasPointerCapture(upEvent.pointerId)) {
           target.releasePointerCapture(upEvent.pointerId)
         }
-      } catch {}
+      } catch { }
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('pointerup', onPointerUp)
     }
@@ -593,335 +593,335 @@ export function LayerAssemblyViewport({
           height: isEraserActive && !is2DOnly ? undefined : '100%',
           background: 'var(--bg-0)',
           overflow: 'hidden',
-        cursor: isPanning
-          ? 'grab'
-          : isDraggingHandle
-          ? 'crosshair'
-          : 'default',
-        userSelect: 'none'
-      }}
-      onPointerDown={handlePointerDownViewport}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={brush.cancelStroke}
-      onLostPointerCapture={brush.cancelStroke}
-      onPointerLeave={() => brush.setCursorPos(null)}
-      onDragOver={(e) => {
-        e.preventDefault()
-        e.dataTransfer.dropEffect = 'copy'
-      }}
-      onDrop={(e) => {
-        e.preventDefault()
-        const container = containerRef.current
-        if (!container) return
-        const rect = container.getBoundingClientRect()
-        const mouseX = e.clientX - rect.left - rect.width / 2 - pan.x
-        const mouseY = e.clientY - rect.top - rect.height / 2 - pan.y
-        const dropX = Math.round(mouseX / zoom)
-        const dropY = Math.round(mouseY / zoom)
+          cursor: isPanning
+            ? 'grab'
+            : isDraggingHandle
+              ? 'crosshair'
+              : 'default',
+          userSelect: 'none'
+        }}
+        onPointerDown={handlePointerDownViewport}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={brush.cancelStroke}
+        onLostPointerCapture={brush.cancelStroke}
+        onPointerLeave={() => brush.setCursorPos(null)}
+        onDragOver={(e) => {
+          e.preventDefault()
+          e.dataTransfer.dropEffect = 'copy'
+        }}
+        onDrop={(e) => {
+          e.preventDefault()
+          const container = containerRef.current
+          if (!container) return
+          const rect = container.getBoundingClientRect()
+          const mouseX = e.clientX - rect.left - rect.width / 2 - pan.x
+          const mouseY = e.clientY - rect.top - rect.height / 2 - pan.y
+          const dropX = Math.round(mouseX / zoom)
+          const dropY = Math.round(mouseY / zoom)
 
-        try {
-          const raw = e.dataTransfer.getData('application/json')
-          if (!raw) return
-          const data = JSON.parse(raw)
-          if (data.type === 'asset' && onAddLayerFromAsset) {
-            onAddLayerFromAsset(data.name, data.path, data.url, { x: dropX, y: dropY })
-          } else if (data.type === 'composite' && onAppendPresetLayers && data.composite?.layers) {
-            onAppendPresetLayers(data.composite.layers, { x: dropX, y: dropY })
-          } else if (data.type === 'layer' && data.layer) {
-            onUpdateLayer(data.layer.id, { x: dropX, y: dropY })
+          try {
+            const raw = e.dataTransfer.getData('application/json')
+            if (!raw) return
+            const data = JSON.parse(raw)
+            if (data.type === 'asset' && onAddLayerFromAsset) {
+              onAddLayerFromAsset(data.name, data.path, data.url, { x: dropX, y: dropY })
+            } else if (data.type === 'composite' && onAppendPresetLayers && data.composite?.layers) {
+              onAppendPresetLayers(data.composite.layers, { x: dropX, y: dropY })
+            } else if (data.type === 'layer' && data.layer) {
+              onUpdateLayer(data.layer.id, { x: dropX, y: dropY })
+            }
+          } catch (err) {
+            console.warn('[LayerAssemblyViewport] Failed to parse drop data:', err)
           }
-        } catch (err) {
-          console.warn('[LayerAssemblyViewport] Failed to parse drop data:', err)
-        }
-      }}
-      onWheel={(e) => {
-        e.preventDefault()
-        const factor = e.deltaY < 0 ? 1.12 : 0.88
-        setZoom((z) => Math.max(0.15, Math.min(4.0, z * factor)))
-      }}
-    >
-      {/* 2.5D Checkerboard Canvas Box */}
-      <div
-        style={{
-          position: 'absolute',
-          left: '50%',
-          top: '50%',
-          width: `${composite.width}px`,
-          height: `${composite.height}px`,
-          transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-          transformOrigin: 'center center',
-          background: atmosphere.background,
-          transition: 'background 0.35s ease',
-          backgroundImage: atmosphere.isDarkScene
-            ? 'linear-gradient(45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%), linear-gradient(-45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.04) 75%), linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.04) 75%)'
-            : 'linear-gradient(45deg, rgba(0, 0, 0, 0.04) 25%, transparent 25%), linear-gradient(-45deg, rgba(0, 0, 0, 0.04) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(0, 0, 0, 0.04) 75%), linear-gradient(-45deg, transparent 75%, rgba(0, 0, 0, 0.04) 75%)',
-          backgroundSize: '16px 16px',
-          backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px',
-          border: '2px solid var(--accent)',
-          boxShadow: '0 12px 48px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--line-focus)',
-          overflow: clipToCamera ? 'hidden' : 'visible',
-          perspective: show3DPerspective && brush.activeTool !== 'eraser' ? '1400px' : 'none',
-          perspectiveOrigin: '50% 50%',
-          transformStyle: 'preserve-3d'
+        }}
+        onWheel={(e) => {
+          e.preventDefault()
+          const factor = e.deltaY < 0 ? 1.12 : 0.88
+          setZoom((z) => Math.max(0.15, Math.min(4.0, z * factor)))
         }}
       >
-        {/* Canvas Center Reference Crosshairs */}
+        {/* 2.5D Checkerboard Canvas Box */}
         <div
           style={{
             position: 'absolute',
             left: '50%',
-            top: 0,
-            bottom: 0,
-            width: '1px',
-            background: 'color-mix(in srgb, var(--line-soft) 50%, transparent)',
-            pointerEvents: 'none'
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
             top: '50%',
-            left: 0,
-            right: 0,
-            height: '1px',
-            background: 'color-mix(in srgb, var(--line-soft) 50%, transparent)',
-            pointerEvents: 'none'
+            width: `${composite.width}px`,
+            height: `${composite.height}px`,
+            transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transformOrigin: 'center center',
+            background: atmosphere.background,
+            transition: 'background 0.35s ease',
+            backgroundImage: atmosphere.isDarkScene
+              ? 'linear-gradient(45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%), linear-gradient(-45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.04) 75%), linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.04) 75%)'
+              : 'linear-gradient(45deg, rgba(0, 0, 0, 0.04) 25%, transparent 25%), linear-gradient(-45deg, rgba(0, 0, 0, 0.04) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(0, 0, 0, 0.04) 75%), linear-gradient(-45deg, transparent 75%, rgba(0, 0, 0, 0.04) 75%)',
+            backgroundSize: '16px 16px',
+            backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px',
+            border: '2px solid var(--accent)',
+            boxShadow: '0 12px 48px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--line-focus)',
+            overflow: clipToCamera ? 'hidden' : 'visible',
+            perspective: show3DPerspective && brush.activeTool !== 'eraser' ? '1400px' : 'none',
+            perspectiveOrigin: '50% 50%',
+            transformStyle: 'preserve-3d'
           }}
-        />
-
-        {/* Stacked Layers */}
-        {sortedLayers.map((layer) => {
-          if (layer.hidden) return null
-          const isSelected = selectedIds ? selectedIds.includes(layer.id) : layer.id === selectedLayerId
-
-          return (
-            <AssembledLayerItemView
-              key={layer.id}
-              layer={layer}
-              isSelected={isSelected}
-              showBbox={showBbox}
-              zoom={zoom}
-              time={time}
-              maxZ={maxZ}
-              lighting={composite.lighting}
-              assetTable={composite.assets}
-              show3DPerspective={show3DPerspective && brush.activeTool !== 'eraser'}
-              showMesh={showMesh}
-              onPointerDown={(e) => handleStartDragLayer(e, layer)}
-              onStartDragHandle={handleStartDragHandle}
-            />
-          )
-        })}
-
-        {/* Onion skin + quỹ đạo ngọn xương (tab Animation), nằm ngay dưới lớp xương */}
-        {tab === 'animation' && boneOverlay && isBonesVisible && (
-          <RigGhostOverlay rig={boneOverlay.composite.rig} width={composite.width} height={composite.height} time={boneOverlay.time} boneId={boneOverlay.boneId} />
-        )}
-
-        {/* Khung xương Blender/Moho SVG Overlay - Hiển thị NỔI TRÊN CÙNG các lớp để thao tác kéo xoay trực tiếp 60fps */}
-        {boneOverlay && isBonesVisible && <WorkshopBoneOverlay {...boneOverlay} />}
-
-        {/* Xương thực vật: hiển thị đường uốn & vẽ tay xương mới khi ở tab Thực vật */}
-        {plantOverlay && <PlantSpineOverlay {...plantOverlay} />}
-
-        {/* Lớp Vẽ động tác (tab Animation): bật bút (D) rồi nhấn gần xương và vẽ đường đi của ngọn xương */}
-        {tab === 'animation' && sketchOverlay && <MotionSketchOverlay {...sketchOverlay} />}
-
-        {composite.layers.length === 0 && (
+        >
+          {/* Canvas Center Reference Crosshairs */}
           <div
             style={{
               position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--text-dim)',
-              fontSize: '12px',
-              gap: '8px'
+              left: '50%',
+              top: 0,
+              bottom: 0,
+              width: '1px',
+              background: 'color-mix(in srgb, var(--line-soft) 50%, transparent)',
+              pointerEvents: 'none'
             }}
-          >
-            <IconLayers width={36} height={36} style={{ opacity: 0.4 }} />
-            <span>Kéo thả hoặc chọn ảnh từ thư viện bên trái để bắt đầu xếp chồng</span>
-          </div>
-        )}
-      </div>
+          />
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: 0,
+              right: 0,
+              height: '1px',
+              background: 'color-mix(in srgb, var(--line-soft) 50%, transparent)',
+              pointerEvents: 'none'
+            }}
+          />
 
-      {/* Bóng tròn chọn nhanh Layer nằm ngoài khung caro (kèm dây nối Cung tròn / Vuông bo giống Cam 2D) */}
-      {brush.activeTool !== 'eraser' && (
-        <LayerAssemblyCalloutOverlay
-          layers={composite.layers}
-          selectedLayerId={selectedLayerId}
-          selectedIds={selectedIds}
-          canvasWidth={composite.width || 600}
-          canvasHeight={composite.height || 600}
-          zoom={zoom}
-          panX={pan.x}
-          panY={pan.y}
-          containerRef={containerRef}
-          onSelectLayer={onSelectLayer}
-          showHud={tab !== 'animation' && tab !== 'plant'}
-          safeLeft={54}
-          safeRight={14}
-          safeTop={42}
-          safeBottom={54}
-        />
-      )}
+          {/* Stacked Layers */}
+          {sortedLayers.map((layer) => {
+            if (layer.hidden) return null
+            const isSelected = selectedIds ? selectedIds.includes(layer.id) : layer.id === selectedLayerId
 
-      {/* Tab dọc công cụ 2D & Cọ tẩy xử lý */}
-      <LayerAssembly2DToolbar
-        activeTool={brush.activeTool}
-        onChangeTool={handleToolChange}
-        brushSettings={brush.brushSettings}
-        onChangeBrushSettings={brush.setBrushSettings}
-        onResetLayerImage={brush.resetLayerImage}
-        hasSelectedLayer={!!selectedLayer}
-        hasModifiedImage={!!selectedLayer?.imageUrl}
-        zoom={zoom}
-        onResetZoom={() => {
-          setZoom(1.0)
-          setPan({ x: 0, y: 0 })
-        }}
-        onFitView={() => handleFitView(true)}
-        show3DPerspective={show3DPerspective}
-        onToggle3DPerspective={() =>
-          setShow3DPerspective((v) => {
-            const next = !v
-            saveLayerWorkshopViewPrefs({ show3DPerspective2D: next })
-            return next
-          })
-        }
-        clipToCamera={clipToCamera}
-        onToggleClipToCamera={() =>
-          setClipToCamera((v) => {
-            const next = !v
-            saveLayerWorkshopViewPrefs({ clipToCamera2D: next })
-            return next
-          })
-        }
-        showBbox={showBbox}
-        onToggleShowBbox={() =>
-          setShowBbox((v) => {
-            const next = !v
-            saveLayerWorkshopViewPrefs({ showBbox2D: next })
-            return next
-          })
-        }
-        hasBones={!!composite.rig?.bones?.length}
-        showBones={isBonesVisible}
-        onToggleShowBones={onToggleShowBones}
-        showMesh={showMesh}
-        onToggleShowMesh={onToggleShowMesh}
-        lighting={composite.lighting}
-        onChangeLighting={onChangeComposite ? handleUpdateLighting : undefined}
-        atmosphereLabel={atmosphere.label}
-        atmosphereIcon={atmosphere.icon}
-      />
+            return (
+              <AssembledLayerItemView
+                key={layer.id}
+                layer={layer}
+                isSelected={isSelected}
+                showBbox={showBbox}
+                zoom={zoom}
+                time={time}
+                maxZ={maxZ}
+                lighting={composite.lighting}
+                assetTable={composite.assets}
+                show3DPerspective={show3DPerspective && brush.activeTool !== 'eraser'}
+                showMesh={showMesh}
+                onPointerDown={(e) => handleStartDragLayer(e, layer)}
+                onStartDragHandle={handleStartDragHandle}
+              />
+            )
+          })}
 
-      {/* Thanh công cụ hoạt họa nổi: Xác nhận vị trí (Enter), Bút vẽ động tác, IK, Onion skin, Quỹ đạo */}
-      {tab === 'animation' && sketchOverlay && brush.activeTool !== 'eraser' && (
-        <AnimAssistChips
-          onConfirmStep={() => {
-            sketchOverlay.stopPlayback?.()
-            let nextTime = sketchOverlay.time
-            sketchOverlay.setComposite((c) => {
-              const res = confirmPoseAndStep(c, sketchOverlay.time)
-              nextTime = res.nextTime
-              return res.composite
-            })
-            sketchOverlay.seek?.(nextTime)
-          }}
-        />
-      )}
-      {tab === 'plant' && plantOverlay && brush.activeTool !== 'eraser' && <PlantMotionChips />}
+          {/* Onion skin + quỹ đạo ngọn xương (tab Animation), nằm ngay dưới lớp xương */}
+          {tab === 'animation' && boneOverlay && isBonesVisible && (
+            <RigGhostOverlay rig={boneOverlay.composite.rig} width={composite.width} height={composite.height} time={boneOverlay.time} boneId={boneOverlay.boneId} />
+          )}
 
-      {/* Floating 2D Hint */}
-      {brush.activeTool !== 'eraser' && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '12px',
-            left: '14px',
-            right: '14px',
-            maxWidth: 'calc(100% - 28px)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            fontSize: '10px',
-            color: 'var(--text-dim)',
-            background: 'var(--bg-1)',
-            backdropFilter: 'blur(6px)',
-            padding: '2px 8px',
-            borderRadius: '4px',
-            pointerEvents: 'none',
-            zIndex: 30
-          }}
-        >
-          {tab === 'animation'
-            ? '🎭 Hoạt ảnh: Chuột trái chỉnh xương → nhấn Enter ⏎ xác nhận vị trí · Giữ Shift + Chuột trái: ghi động tác Realtime · D: bút vẽ · Space: phát thử'
-            : tab === 'bones'
-              ? '🦴 Khung xương: Kéo khớp đầu/đuôi để chỉnh độ dài & góc · Kéo thân để dời vị trí · Delete: xóa xương'
-              : tab === 'plant'
-                ? '🌿 Thực vật: Kéo từ GỐC lên NGỌN để vẽ xương · Nắm vòng tròn ở ngọn kéo theo nhịp để GHI chuyển động · R: vẽ quỹ đạo ngọn · Kéo chấm để sửa dáng'
-                : 'Kéo layer / Mũi tên: dời 2D · +/-: độ sâu Z · Alt / chuột giữa: dời khung · Cuộn: zoom'}
-        </div>
-      )}
+          {/* Khung xương Blender/Moho SVG Overlay - Hiển thị NỔI TRÊN CÙNG các lớp để thao tác kéo xoay trực tiếp 60fps */}
+          {boneOverlay && isBonesVisible && <WorkshopBoneOverlay {...boneOverlay} />}
 
-      {/* Floating Bottom Transport Bar */}
-      {!hideTransport && (
-        <LayerAssemblyTransportBar
-          isPlaying={isPlaying}
-          onTogglePlay={onTogglePlay}
-          time={time}
-          onSeekTime={onSeekTime}
-          onResetView={() => handleFitView(true)}
-          zoomPercent={Math.round(zoom * 100)}
-        />
-      )}
-    </div>
+          {/* Xương motion: hiển thị đường uốn & vẽ tay xương mới khi ở tab Motion */}
+          {plantOverlay && <PlantSpineOverlay {...plantOverlay} />}
 
-    {/* Hàng 2: Splitter & Giao diện Tẩy Layer (Chỉ áp dụng khi chế độ 2D & 3D / không phải is2DOnly) */}
-    {isEraserActive && !is2DOnly && (
-      <>
-        <div
-          className="layer-eraser-splitter"
-          onPointerDown={handleRowSplitterPointerDown}
-          title="Kéo chuột để chỉnh độ cao vùng tẩy"
-        />
-        <div
-          className="layer-eraser-bottom-pane"
-          style={{ height: `${eraserHeight}px`, flexShrink: 0, minHeight: 0 }}
-        >
-          {selectedLayer ? (
-            <EraserIsolatedCanvas
-              layer={selectedLayer}
-              is2DOnly={false}
-              imagePreviewUrl={isolatedPreviewUrl}
-              brushSettings={brush.brushSettings}
-              cursorPos={brush.cursorPos}
-              onPointerDown={brush.handleIsolatedPointerDown}
-              onPointerMove={brush.handleIsolatedPointerMove}
-              onPointerUp={brush.handleEraserPointerUp}
-              onCancel={brush.cancelStroke}
-              onCursorLeave={() => brush.setCursorPos(null)}
-              onChangeBrushSettings={brush.setBrushSettings}
-              onResetLayerImage={brush.resetLayerImage}
-              onClose={() => brush.setActiveTool('select')}
-              isErasing={brush.isErasing}
-            />
-          ) : (
-            <div className="layer-eraser-empty">
-              <span>Bấm chọn một layer ở ảnh tổng thể phía trên để tẩy pixel</span>
-              <button type="button" onClick={() => brush.setActiveTool('select')}>
-                Thoát chế độ tẩy
-              </button>
+          {/* Lớp Vẽ động tác (tab Animation): bật bút (D) rồi nhấn gần xương và vẽ đường đi của ngọn xương */}
+          {tab === 'animation' && sketchOverlay && <MotionSketchOverlay {...sketchOverlay} />}
+
+          {composite.layers.length === 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-dim)',
+                fontSize: '12px',
+                gap: '8px'
+              }}
+            >
+              <IconLayers width={36} height={36} style={{ opacity: 0.4 }} />
+              <span>Kéo thả hoặc chọn ảnh từ thư viện bên trái để bắt đầu xếp chồng</span>
             </div>
           )}
         </div>
-      </>
-    )}
-  </div>
+
+        {/* Bóng tròn chọn nhanh Layer nằm ngoài khung caro (kèm dây nối Cung tròn / Vuông bo giống Cam 2D) */}
+        {brush.activeTool !== 'eraser' && (
+          <LayerAssemblyCalloutOverlay
+            layers={composite.layers}
+            selectedLayerId={selectedLayerId}
+            selectedIds={selectedIds}
+            canvasWidth={composite.width || 600}
+            canvasHeight={composite.height || 600}
+            zoom={zoom}
+            panX={pan.x}
+            panY={pan.y}
+            containerRef={containerRef}
+            onSelectLayer={onSelectLayer}
+            showHud={tab !== 'animation' && tab !== 'plant'}
+            safeLeft={54}
+            safeRight={14}
+            safeTop={42}
+            safeBottom={54}
+          />
+        )}
+
+        {/* Tab dọc công cụ 2D & Cọ tẩy xử lý */}
+        <LayerAssembly2DToolbar
+          activeTool={brush.activeTool}
+          onChangeTool={handleToolChange}
+          brushSettings={brush.brushSettings}
+          onChangeBrushSettings={brush.setBrushSettings}
+          onResetLayerImage={brush.resetLayerImage}
+          hasSelectedLayer={!!selectedLayer}
+          hasModifiedImage={!!selectedLayer?.imageUrl}
+          zoom={zoom}
+          onResetZoom={() => {
+            setZoom(1.0)
+            setPan({ x: 0, y: 0 })
+          }}
+          onFitView={() => handleFitView(true)}
+          show3DPerspective={show3DPerspective}
+          onToggle3DPerspective={() =>
+            setShow3DPerspective((v) => {
+              const next = !v
+              saveLayerWorkshopViewPrefs({ show3DPerspective2D: next })
+              return next
+            })
+          }
+          clipToCamera={clipToCamera}
+          onToggleClipToCamera={() =>
+            setClipToCamera((v) => {
+              const next = !v
+              saveLayerWorkshopViewPrefs({ clipToCamera2D: next })
+              return next
+            })
+          }
+          showBbox={showBbox}
+          onToggleShowBbox={() =>
+            setShowBbox((v) => {
+              const next = !v
+              saveLayerWorkshopViewPrefs({ showBbox2D: next })
+              return next
+            })
+          }
+          hasBones={!!composite.rig?.bones?.length}
+          showBones={isBonesVisible}
+          onToggleShowBones={onToggleShowBones}
+          showMesh={showMesh}
+          onToggleShowMesh={onToggleShowMesh}
+          lighting={composite.lighting}
+          onChangeLighting={onChangeComposite ? handleUpdateLighting : undefined}
+          atmosphereLabel={atmosphere.label}
+          atmosphereIcon={atmosphere.icon}
+        />
+
+        {/* Thanh công cụ hoạt họa nổi: Xác nhận vị trí (Enter), Bút vẽ động tác, IK, Onion skin, Quỹ đạo */}
+        {tab === 'animation' && sketchOverlay && brush.activeTool !== 'eraser' && (
+          <AnimAssistChips
+            onConfirmStep={() => {
+              sketchOverlay.stopPlayback?.()
+              let nextTime = sketchOverlay.time
+              sketchOverlay.setComposite((c) => {
+                const res = confirmPoseAndStep(c, sketchOverlay.time)
+                nextTime = res.nextTime
+                return res.composite
+              })
+              sketchOverlay.seek?.(nextTime)
+            }}
+          />
+        )}
+        {tab === 'plant' && plantOverlay && brush.activeTool !== 'eraser' && <PlantMotionChips />}
+
+        {/* Floating 2D Hint */}
+        {brush.activeTool !== 'eraser' && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '12px',
+              left: '14px',
+              right: '14px',
+              maxWidth: 'calc(100% - 28px)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              fontSize: '10px',
+              color: 'var(--text-dim)',
+              background: 'var(--bg-1)',
+              backdropFilter: 'blur(6px)',
+              padding: '2px 8px',
+              borderRadius: '4px',
+              pointerEvents: 'none',
+              zIndex: 30
+            }}
+          >
+            {tab === 'animation'
+              ? '🎭 Hoạt ảnh: Chuột trái chỉnh xương → nhấn Enter ⏎ xác nhận vị trí · Giữ Shift + Chuột trái: ghi động tác Realtime · D: bút vẽ · Space: phát thử'
+              : tab === 'bones'
+                ? '🦴 Khung xương: Kéo khớp đầu/đuôi để chỉnh độ dài & góc · Kéo thân để dời vị trí · Delete: xóa xương'
+                : tab === 'plant'
+                  ? '🌿 Motion: Kéo từ GỐC lên NGỌN để vẽ xương · Nắm vòng tròn ở ngọn kéo theo nhịp để GHI chuyển động · R: vẽ quỹ đạo ngọn · Kéo chấm để sửa dáng'
+                  : 'Kéo layer / Mũi tên: dời 2D · +/-: độ sâu Z · Alt / chuột giữa: dời khung · Cuộn: zoom'}
+          </div>
+        )}
+
+        {/* Floating Bottom Transport Bar */}
+        {!hideTransport && (
+          <LayerAssemblyTransportBar
+            isPlaying={isPlaying}
+            onTogglePlay={onTogglePlay}
+            time={time}
+            onSeekTime={onSeekTime}
+            onResetView={() => handleFitView(true)}
+            zoomPercent={Math.round(zoom * 100)}
+          />
+        )}
+      </div>
+
+      {/* Hàng 2: Splitter & Giao diện Tẩy Layer (Chỉ áp dụng khi chế độ 2D & 3D / không phải is2DOnly) */}
+      {isEraserActive && !is2DOnly && (
+        <>
+          <div
+            className="layer-eraser-splitter"
+            onPointerDown={handleRowSplitterPointerDown}
+            title="Kéo chuột để chỉnh độ cao vùng tẩy"
+          />
+          <div
+            className="layer-eraser-bottom-pane"
+            style={{ height: `${eraserHeight}px`, flexShrink: 0, minHeight: 0 }}
+          >
+            {selectedLayer ? (
+              <EraserIsolatedCanvas
+                layer={selectedLayer}
+                is2DOnly={false}
+                imagePreviewUrl={isolatedPreviewUrl}
+                brushSettings={brush.brushSettings}
+                cursorPos={brush.cursorPos}
+                onPointerDown={brush.handleIsolatedPointerDown}
+                onPointerMove={brush.handleIsolatedPointerMove}
+                onPointerUp={brush.handleEraserPointerUp}
+                onCancel={brush.cancelStroke}
+                onCursorLeave={() => brush.setCursorPos(null)}
+                onChangeBrushSettings={brush.setBrushSettings}
+                onResetLayerImage={brush.resetLayerImage}
+                onClose={() => brush.setActiveTool('select')}
+                isErasing={brush.isErasing}
+              />
+            ) : (
+              <div className="layer-eraser-empty">
+                <span>Bấm chọn một layer ở ảnh tổng thể phía trên để tẩy pixel</span>
+                <button type="button" onClick={() => brush.setActiveTool('select')}>
+                  Thoát chế độ tẩy
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
   )
 }
 

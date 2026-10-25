@@ -98,7 +98,7 @@ export const UI_TEXT_SYNONYMS: Record<string, string[]> = {
   // Xưởng & Tab
   'tạo xương': ['bones', 'khung xương', 'xương'],
   'animation': ['hoạt ảnh', 'chuyển động', 'diễn hoạt'],
-  'thực vật': ['plant', 'cây cối', 'uốn thân cây', 'khớp uốn'],
+  'motion': ['plant', 'cây cối', 'uốn thân cây', 'khớp uốn'],
   'xếp lớp': ['layers', 'danh sách layer', 'lớp'],
   'tạo lắp ráp': ['mở xưởng', 'xưởng lắp ráp', 'tạo mới lắp ráp'],
   'workflow': ['quy trình', 'tab workflow', 'luồng tạo video', 'sơ đồ workflow'],

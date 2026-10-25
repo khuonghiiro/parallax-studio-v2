@@ -1,7 +1,7 @@
 import type { PlantSpine, PlantSpinePoint } from '@shared/plantSpine'
 
 /**
- * Thao tác trực tiếp trên Xương thực vật (tab "Thực vật"): sửa điểm, dời cả xương,
+ * Thao tác trực tiếp trên Xương motion (tab "Motion"): sửa điểm, dời cả xương,
  * và "dạy" cây đung đưa bằng cách nắm ngọn kéo qua lại (học biên độ / độ nghiêng / tốc độ).
  * Toàn bộ là hàm thuần để dùng chung cho overlay 2D và unit test.
  */

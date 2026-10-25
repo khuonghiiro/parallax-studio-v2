@@ -10,7 +10,7 @@ const motion = (): PlantSpineMotion => ({
   duration: 2
 })
 
-describe('chỉnh đồ thị nhịp thực vật', () => {
+describe('chỉnh đồ thị nhịp motion', () => {
   it('thêm mốc giữ nguyên dáng đường cong, xoá mốc giữ tối thiểu 2', () => {
     const m = motion()
     const res = insertPlantKey(m, 0.25)

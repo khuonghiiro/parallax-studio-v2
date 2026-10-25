@@ -368,7 +368,7 @@ export function spinesForLayer(spines: PlantSpine[] | undefined, layerId: string
 }
 
 /**
- * Uốn lưới đỉnh của một layer theo các xương thực vật.
+ * Uốn lưới đỉnh của một layer theo các xương motion.
  * positions: toạ độ cục bộ Y-up (giống mesh 3D / canvas skin); binding: vị trí layer trong composite.
  */
 export function deformPlantSpines(

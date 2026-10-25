@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 
 /**
- * Bộ dựng mesh dùng chung cho Bố cục 2D: một WebGL context duy nhất vẽ mesh đã uốn (xương thực vật / skin)
+ * Bộ dựng mesh dùng chung cho Bố cục 2D: một WebGL context duy nhất vẽ mesh đã uốn (xương motion / skin)
  * rồi chép kết quả sang canvas 2D của từng layer. Nhanh hơn hàng trăm lần so với cắt-vẽ từng tam giác
  * bằng Canvas 2D (mỗi tam giác phải rasterize lại cả bức ảnh).
  */
@@ -90,7 +90,7 @@ export function renderMeshToCanvas(
     gl.renderer.setSize(gl.width, gl.height, false)
   }
   const position = geometry.getAttribute('position') as THREE.BufferAttribute
-  ;(position.array as Float32Array).set(positions)
+    ; (position.array as Float32Array).set(positions)
   position.needsUpdate = true
   gl.mesh.geometry = geometry
   const tex = textureFor(image)

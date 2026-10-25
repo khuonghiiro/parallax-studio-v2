@@ -95,7 +95,7 @@ function MotionSlider({
   )
 }
 
-/** Mục "Chuyển động tùy chỉnh & Quỹ đạo" của xương thực vật: tạo mới bằng bộ tạo nhịp hoặc vẽ tay. */
+/** Mục "Chuyển động tùy chỉnh & Quỹ đạo" của xương motion: tạo mới bằng bộ tạo nhịp hoặc vẽ tay. */
 export function PlantMotionSection({
   spine,
   patch,
@@ -357,7 +357,7 @@ export function PlantMotionSection({
               <button
                 type="button"
                 className="btn sm"
-                title="Sao chép nhịp này sang mọi xương thực vật khác, mỗi xương lệch pha thêm 0.35s để cả bụi cây chuyển động tự nhiên"
+                title="Sao chép nhịp này sang mọi xương motion khác, mỗi xương lệch pha thêm 0.35s để cả bụi cây chuyển động tự nhiên"
                 onClick={() => onApplyToOthers(0.35)}
               >
                 🌿 Áp cho xương khác
@@ -378,7 +378,7 @@ const isTyping = (t: EventTarget | null) => {
   )
 }
 
-/** Thanh nổi trên Bố cục 2D (tab Thực vật): chế độ tay nắm, vẽ quỹ đạo ngọn (R), kiểu kết thúc, bóng layer (L). */
+/** Thanh nổi trên Bố cục 2D (tab Motion): chế độ tay nắm, vẽ quỹ đạo ngọn (R), kiểu kết thúc, bóng layer (L). */
 export function PlantMotionChips() {
   const editor = usePlantSpineEditor()
   const callouts = useLayerAssemblyCalloutPrefs()
@@ -421,7 +421,7 @@ export function PlantMotionChips() {
     : ''
   return (
     <div className="lw-anim-chips lw-plant-motion-chips">
-      <div className="lw-anim-chips-row" role="toolbar" aria-label="Công cụ chuyển động thực vật">
+      <div className="lw-anim-chips-row" role="toolbar" aria-label="Công cụ chuyển động motion">
         {chip(
           editor.pathRecord,
           editor.pathRecord ? '● Đang vẽ' : '● Quỹ đạo',

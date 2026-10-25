@@ -133,7 +133,7 @@ export function resamplePlantSpinePoints(points: PlantSpinePoint[], targetSpacin
 }
 
 /**
- * Đặt chính xác số lượng khớp uốn cho xương thực vật (tối thiểu 2 điểm, tối đa 32 điểm).
+ * Đặt chính xác số lượng khớp uốn cho xương motion (tối thiểu 2 điểm, tối đa 32 điểm).
  * Dù tăng hay giảm số điểm, hàm sẽ phân bố lại các khớp cách đều nhau dọc theo đường cong hiện tại,
  * bảo toàn vị trí gốc và ngọn cũng như dáng uốn cong tổng thể của thân cây.
  */
@@ -262,7 +262,7 @@ export function buildAutoPlantSpinePoints(
 
 export function validatePlantSpine(spine: PlantSpine, composite: LayerComposite): void {
   if (!Array.isArray(spine.points) || spine.points.length < 2) {
-    throw new Error('Xương thực vật cần ít nhất 2 điểm (vẽ từ gốc lên ngọn)')
+    throw new Error('Xương motion cần ít nhất 2 điểm (vẽ từ gốc lên ngọn)')
   }
   if (spine.points.some((p) => !Number.isFinite(p.x) || !Number.isFinite(p.y))) {
     throw new Error('Toạ độ điểm xương không hợp lệ')
@@ -270,7 +270,7 @@ export function validatePlantSpine(spine: PlantSpine, composite: LayerComposite)
   if (strokeLength(spine.points) < 8) throw new Error('Đường xương quá ngắn, hãy vẽ dài hơn')
   const known = new Set(composite.layers.map((l) => l.id))
   if (!spine.layerIds.length || spine.layerIds.some((id) => !known.has(id))) {
-    throw new Error('Xương thực vật phải gắn vào ít nhất 1 layer có trong cụm')
+    throw new Error('Xương motion phải gắn vào ít nhất 1 layer có trong cụm')
   }
   for (const key of ['amplitude', 'speed', 'stiffness', 'flexibility', 'turbulence'] as const) {
     if (!Number.isFinite(spine[key])) throw new Error(`Thông số ${key} không hợp lệ`)
@@ -297,9 +297,9 @@ function applyPhase(spines: PlantSpine[], mode: 'stagger' | 'sync', spread = 1.2
 
 function copyMotion(spines: PlantSpine[], id: string, targetIds?: string[], stagger = 0): PlantSpine[] {
   const source = spines.find((s) => s.id === id)
-  if (!source) throw new Error(`Không tìm thấy xương thực vật "${id}"`)
+  if (!source) throw new Error(`Không tìm thấy xương motion "${id}"`)
   const targets = spines.filter((s) => s.id !== id && (!targetIds?.length || targetIds.includes(s.id)))
-  if (!targets.length) throw new Error('Cần ít nhất 1 xương thực vật khác để áp nhịp')
+  if (!targets.length) throw new Error('Cần ít nhất 1 xương motion khác để áp nhịp')
   const wind = Object.fromEntries(WIND_KEYS.map((k) => [k, source[k]]))
   return spines.map((s) => {
     const order = targets.findIndex((t) => t.id === s.id)
@@ -315,7 +315,7 @@ export function applyPlantSpineAction(composite: LayerComposite, action: PlantSp
   if (action.action === 'phase') return { ...composite, plantSpines: applyPhase(spines, action.mode, action.spread) }
   if (action.action === 'copy-motion') return { ...composite, plantSpines: copyMotion(spines, action.id, action.targetIds, action.stagger) }
   if (action.action === 'delete') {
-    if (!spines.some((s) => s.id === action.id)) throw new Error(`Không tìm thấy xương thực vật "${action.id}"`)
+    if (!spines.some((s) => s.id === action.id)) throw new Error(`Không tìm thấy xương motion "${action.id}"`)
     return { ...composite, plantSpines: spines.filter((s) => s.id !== action.id) }
   }
   if (action.action === 'add') {
@@ -328,7 +328,7 @@ export function applyPlantSpineAction(composite: LayerComposite, action: PlantSp
     }
   }
   const current = spines.find((s) => s.id === action.id)
-  if (!current) throw new Error(`Không tìm thấy xương thực vật "${action.id}"`)
+  if (!current) throw new Error(`Không tìm thấy xương motion "${action.id}"`)
   const next = { ...current, ...action.patch, id: current.id }
   validatePlantSpine(next, composite)
   const added = next.layerIds.filter((id) => !current.layerIds.includes(id))

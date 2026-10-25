@@ -1,7 +1,7 @@
 import type { PlantSpine } from '@shared/plantSpine'
 
 /**
- * Xương thực vật dựng sẵn cho 3 mẫu thiên nhiên (thay cho chuyển động sway/rocking cũ).
+ * Xương motion dựng sẵn cho 3 mẫu thiên nhiên (thay cho chuyển động sway/rocking cũ).
  * layerIds dùng ID slot của mẫu; mẫu template tự đổi sang `layer-<slot>` khi tạo composite.
  */
 type NatureKey = 'tree' | 'rock' | 'bonsai'

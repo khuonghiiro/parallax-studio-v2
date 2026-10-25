@@ -79,7 +79,7 @@ export function cleanDuplicateComposites(list: LayerComposite[]): LayerComposite
 const PLANT_MIGRATION_KEY = 'pxs.layerComposites.plantMigration'
 const PLANT_MIGRATION_VERSION = 'v1_plant_spines_replace_legacy_motion'
 
-/** Mẫu thiên nhiên dựng sẵn đã lưu: bỏ chuyển động sway/rocking cũ, thêm xương thực vật (chạy 1 lần). */
+/** Mẫu thiên nhiên dựng sẵn đã lưu: bỏ chuyển động sway/rocking cũ, thêm xương motion (chạy 1 lần). */
 export function migrateNaturePlantMotion(list: LayerComposite[]): LayerComposite[] {
   return list.map((c) => {
     const key = BUILTIN_NATURE_SPINE_KEYS[c.id]
@@ -88,8 +88,8 @@ export function migrateNaturePlantMotion(list: LayerComposite[]): LayerComposite
     const spines = c.plantSpines?.length
       ? c.plantSpines
       : natureSpines(key)
-          .map((s) => ({ ...s, layerIds: s.layerIds.filter((id) => known.has(id)) }))
-          .filter((s) => s.layerIds.length > 0)
+        .map((s) => ({ ...s, layerIds: s.layerIds.filter((id) => known.has(id)) }))
+        .filter((s) => s.layerIds.length > 0)
     return {
       ...c,
       layers: c.layers.map((l) => (l.motion?.type && l.motion.type !== 'none' ? { ...l, motion: { ...l.motion, type: 'none' } } : l)),

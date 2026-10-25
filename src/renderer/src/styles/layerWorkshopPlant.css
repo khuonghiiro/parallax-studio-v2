@@ -1,4 +1,4 @@
-/* Xương thực vật — tab "Thực vật" trong Xưởng lắp ráp layer (dùng design tokens cho cả 2 theme) */
+/* Xương motion — tab "Motion" trong Xưởng lắp ráp layer (dùng design tokens cho cả 2 theme) */
 
 .lw-plant-overlay,
 .lw-plant-panel {
@@ -67,8 +67,13 @@
   vector-effect: non-scaling-stroke;
 }
 
-.lw-plant-spine.selected .lw-plant-root { stroke: var(--key); }
-.lw-plant-spine.selected .lw-plant-tip { fill: var(--key); }
+.lw-plant-spine.selected .lw-plant-root {
+  stroke: var(--key);
+}
+
+.lw-plant-spine.selected .lw-plant-tip {
+  fill: var(--key);
+}
 
 .lw-plant-label {
   font-size: 11px;

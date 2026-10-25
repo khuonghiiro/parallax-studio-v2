@@ -8,7 +8,7 @@
   height: 100%;
   overflow: visible;
   pointer-events: none;
-  /* Nổi trên cả lớp xương (5000) và xương thực vật (5100) để nét vẽ không bị layer 3D che */
+  /* Nổi trên cả lớp xương (5000) và xương motion (5100) để nét vẽ không bị layer 3D che */
   z-index: 5200;
   transform: translateZ(220px);
   user-select: none;

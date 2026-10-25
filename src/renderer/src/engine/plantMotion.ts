@@ -1,7 +1,7 @@
 import type { PlantMotionKey, PlantSpineMotion } from '@shared/plantSpine'
 
 /**
- * Phát lại chuyển động vẽ tay của xương thực vật: nội suy Catmull-Rom tuần hoàn trên các mốc góc-ngọn.
+ * Phát lại chuyển động vẽ tay của xương motion: nội suy Catmull-Rom tuần hoàn trên các mốc góc-ngọn.
  * Dùng chung cho xem trước trong xưởng, render khung hình và xuất video (qua plantBendAngle).
  */
 

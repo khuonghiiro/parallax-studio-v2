@@ -3,7 +3,7 @@ import { PLANT_MOTION_LIMITS, samplePlantMotion, samplePlantMotionStretch } from
 import { reducePlantKeys } from './plantMotionRecord'
 
 /**
- * Chỉnh sửa đồ thị nhịp thực vật như Graph Editor (After Effects / Spine): thêm, xoá, kéo mốc theo cả thời gian
+ * Chỉnh sửa đồ thị nhịp motion như Graph Editor (After Effects / Spine): thêm, xoá, kéo mốc theo cả thời gian
  * lẫn góc, làm gọn mốc dày (bản ghi tay), làm mượt và cân đối trái – phải cho chu kỳ lắc đều.
  */
 export const PLANT_KEY_GAP = 0.02

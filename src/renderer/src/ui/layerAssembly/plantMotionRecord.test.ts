@@ -108,7 +108,7 @@ describe('resolvePlantGrab', () => {
 })
 
 describe('generateCustomPlantMotion', () => {
-  it('sinh chuyển động thực vật hợp lệ cho cả 5 kiểu nhịp tuỳ chỉnh', () => {
+  it('sinh chuyển động motion hợp lệ cho cả 5 kiểu nhịp tuỳ chỉnh', () => {
     for (const p of PLANT_CUSTOM_PATTERNS) {
       const m = generateCustomPlantMotion({
         pattern: p.id,

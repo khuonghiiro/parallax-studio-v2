@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 /**
- * Đồng hồ liên tục cho Xương thực vật: thanh phát lặp lại (vd 4s) sẽ nhảy thời gian về 0,
+ * Đồng hồ liên tục cho Xương motion: thanh phát lặp lại (vd 4s) sẽ nhảy thời gian về 0,
  * làm cây giật về tư thế khác. Hook trả về phần bù (giây) cộng dồn mỗi lần lặp để chuyển động không bị đứt.
  * Khi người dùng tự tua (đang dừng), phần bù về 0 để thanh thời gian khớp đúng tư thế.
  */
@@ -18,7 +18,7 @@ export function usePlantClockOffset(time: number, isPlaying: boolean, duration: 
 }
 
 /**
- * Đồng hồ "gió trực tiếp" cho tab Thực vật: cây tự đung đưa ngay khi vẽ/chỉnh mà không cần bấm phát.
+ * Đồng hồ "gió trực tiếp" cho tab Motion: cây tự đung đưa ngay khi vẽ/chỉnh mà không cần bấm phát.
  * enabled = false → về 0 (trả cây về đúng thời gian timeline); running = false → đứng hình tại chỗ (khi đang kéo tay nắm).
  */
 export function usePlantLiveClock(enabled: boolean, running: boolean): number {

@@ -28,7 +28,7 @@ export function WorkshopRightPanel({ state, playback, tab, setTab, boneId, selec
   }
   return <aside className="lw-right-column" style={{ width: `${width}px`, minWidth: '250px' }}>
     <div className="lw-right-tabs" role="tablist" aria-label="Công cụ lắp ráp">
-      {([['layers', 'Layer'], ['bones', 'Tạo xương'], ['animation', 'Animation'], ['plant', 'Thực vật']] as const).map(([id, title]) =>
+      {([['layers', 'Layer'], ['bones', 'Tạo xương'], ['animation', 'Animation'], ['plant', 'Motion']] as const).map(([id, title]) =>
         <button key={id} role="tab" id={`lw-tab-${id}`} aria-controls={`lw-panel-${id}`} aria-selected={tab === id}
           onClick={() => { setTab(id); setError(''); playback.setIsPlaying(false); playback.setTime(0) }}>{title}</button>)}
     </div>
@@ -36,16 +36,16 @@ export function WorkshopRightPanel({ state, playback, tab, setTab, boneId, selec
     <div className="lw-right-content" role="tabpanel" id={`lw-panel-${tab}`} aria-labelledby={`lw-tab-${tab}`}>
       {tab === 'layers' ? children
         : tab === 'bones' ? <WorkshopRigPanel {...props} />
-        : tab === 'plant' ? (
-          <WorkshopPlantPanel
-            composite={state.composite}
-            setComposite={state.setComposite}
-            selectedIds={state.selection}
-            isPlaying={playback.isPlaying}
-            onTogglePlay={playback.toggle}
-          />
-        )
-        : <WorkshopAnimationPanel {...props} playback={playback} setComposite={state.setComposite} />}
+          : tab === 'plant' ? (
+            <WorkshopPlantPanel
+              composite={state.composite}
+              setComposite={state.setComposite}
+              selectedIds={state.selection}
+              isPlaying={playback.isPlaying}
+              onTogglePlay={playback.toggle}
+            />
+          )
+            : <WorkshopAnimationPanel {...props} playback={playback} setComposite={state.setComposite} />}
     </div>
   </aside>
 }

@@ -4,7 +4,10 @@
   "sections": [
     {
       "id": "overview",
-      "title": { "en": "Overview", "vi": "Tổng quan" },
+      "title": {
+        "en": "Overview",
+        "vi": "Tổng quan"
+      },
       "lines": {
         "en": [
           "Parallax Studio is a 2.5D motion tool: image/text/solid/particle layers are placed in 3D depth and filmed by an animated camera, then exported to MP4.",
@@ -22,7 +25,10 @@
     },
     {
       "id": "coordinates",
-      "title": { "en": "Coordinates", "vi": "Hệ tọa độ" },
+      "title": {
+        "en": "Coordinates",
+        "vi": "Hệ tọa độ"
+      },
       "lines": {
         "en": [
           "World units = composition pixels. x → right, y → up, z → DEPTH (positive = farther from the viewer, like After Effects).",
@@ -42,7 +48,10 @@
     },
     {
       "id": "workflow",
-      "title": { "en": "Scene workflow", "vi": "Quy trình dựng cảnh" },
+      "title": {
+        "en": "Scene workflow",
+        "vi": "Quy trình dựng cảnh"
+      },
       "lines": {
         "en": [
           "1. get_project_info → composition size, shots and layers.",
@@ -66,7 +75,10 @@
     },
     {
       "id": "assembly",
-      "title": { "en": "Modular 3D assembly", "vi": "Lắp ráp 3D dạng mô-đun" },
+      "title": {
+        "en": "Modular 3D assembly",
+        "vi": "Lắp ráp 3D dạng mô-đun"
+      },
       "lines": {
         "en": [
           "Build buildings in parts: a SHELL (walls + roof only) plus separate DECOR parts. Separate parts look more realistic and can be reused.",
@@ -96,7 +108,10 @@
     },
     {
       "id": "tips",
-      "title": { "en": "Tips", "vi": "Mẹo" },
+      "title": {
+        "en": "Tips",
+        "vi": "Mẹo"
+      },
       "lines": {
         "en": [
           "The camera only loads/renders what it sees, so many shots are cheap.",
@@ -116,7 +131,10 @@
     },
     {
       "id": "layer_assembly",
-      "title": { "en": "2.5D Layer Assembly", "vi": "Xưởng lắp ráp layer 2.5D" },
+      "title": {
+        "en": "2.5D Layer Assembly",
+        "vi": "Xưởng lắp ráp layer 2.5D"
+      },
       "lines": {
         "en": [
           "The 2.5D Layer Assembly workshop creates multi-layer stacked composite props (e.g. bonsai trees, bushes, hanging lanterns) with depth offsets and gentle wind motion physics.",
@@ -137,24 +155,60 @@
           "Căn chỉnh, giãn độ sâu và tạo chuyển động hàng loạt với layer_assembly_action và select_layer_assembly_layers; chỉnh sửa với hoàn tác layer_assembly_history.",
           "Gắn layer bằng layer_assembly_rig; bind với binding_mode=soft để uốn mesh alpha theo nhánh xương đã chọn (tóc, đuôi, chi), hoặc rigid cho mảnh rời; tạo animation bằng keyframe hoặc chuyển động mẫu.",
           "Tra cứu các mẫu khung nhân vật và con vật bằng list_layer_assembly_templates, lấy prompt tạo ảnh AI với get_layer_assembly_template, và nạp vào xưởng bằng apply_layer_assembly_template.",
-          "Vẽ động tác nhanh: layer_assembly_motion_sketch {bone_id, points:[[x,y,t],...]} biến đường đi của ngọn xương thành chuỗi keyframe mượt (mode rotate/move, chain_length 2-4 = chuỗi IK, timing live/hand/even, loop_back); layer_assembly_plant_spine vẽ xương thực vật gốc→ngọn để cây cỏ uốn theo gió.",
-          "Hoạt hoạ chuyên nghiệp: layer_assembly_ik_pose {bone_id, target:[x,y], chain_length} tạo dáng tay chân bằng cách kéo ngọn; layer_assembly_secondary_motion {bone_id, preset: hair|tail|cloth|antenna} nướng vật lý trễ nhịp/nảy cho nhánh xương sau động tác chính; xương thực vật nhận chuyển động vẽ tay đã ghi (motion_samples hoặc motion_keys, motion_end loop|spring) thay cho gió tự động; layer_assembly_pose_tools {op: breakdown|close_loop|overlap|retime|reverse|shift_time|next_key|prev_key} cho nhịp pose-to-pose (dáng trung gian, vòng lặp liền mạch, lệch pha follow-through); layer_assembly_plant_spine action phase / copy_motion so le hoặc dùng lại nhịp cây; layer_assembly_parts quản lý nhóm bộ phận do người dùng đặt tên (thả ảnh mới đúng vào neo nhóm) và bộ biến thể nhiều lớp (một biến thể = nhiều layer)."
+          "Vẽ động tác nhanh: layer_assembly_motion_sketch {bone_id, points:[[x,y,t],...]} biến đường đi của ngọn xương thành chuỗi keyframe mượt (mode rotate/move, chain_length 2-4 = chuỗi IK, timing live/hand/even, loop_back); layer_assembly_plant_spine vẽ xương motion gốc→ngọn để cây cỏ uốn theo gió.",
+          "Hoạt hoạ chuyên nghiệp: layer_assembly_ik_pose {bone_id, target:[x,y], chain_length} tạo dáng tay chân bằng cách kéo ngọn; layer_assembly_secondary_motion {bone_id, preset: hair|tail|cloth|antenna} nướng vật lý trễ nhịp/nảy cho nhánh xương sau động tác chính; xương motion nhận chuyển động vẽ tay đã ghi (motion_samples hoặc motion_keys, motion_end loop|spring) thay cho gió tự động; layer_assembly_pose_tools {op: breakdown|close_loop|overlap|retime|reverse|shift_time|next_key|prev_key} cho nhịp pose-to-pose (dáng trung gian, vòng lặp liền mạch, lệch pha follow-through); layer_assembly_plant_spine action phase / copy_motion so le hoặc dùng lại nhịp cây; layer_assembly_parts quản lý nhóm bộ phận do người dùng đặt tên (thả ảnh mới đúng vào neo nhóm) và bộ biến thể nhiều lớp (một biến thể = nhiều layer)."
         ]
       }
     }
   ],
   "categories": {
-    "inspect": { "en": "Inspect", "vi": "Tra cứu" },
-    "project": { "en": "Project", "vi": "Dự án" },
-    "shots": { "en": "Shots", "vi": "Phân cảnh" },
-    "layers": { "en": "Layers", "vi": "Layer" },
-    "fx": { "en": "Effects (FX)", "vi": "Hiệu ứng (FX)" },
-    "keyframes": { "en": "Keyframes", "vi": "Keyframe" },
-    "camera": { "en": "Camera", "vi": "Camera" },
-    "look_audio": { "en": "Look & audio", "vi": "Màu sắc & âm thanh" },
-    "timeline": { "en": "Timeline & view", "vi": "Timeline & khung xem" },
-    "export": { "en": "Export & scripting", "vi": "Xuất & script" },
-    "assembly": { "en": "3D assembly workshop", "vi": "Xưởng lắp ráp 3D" },
-    "layer_assembly": { "en": "2.5D layer assembly", "vi": "Xưởng lắp ráp layer 2.5D" }
+    "inspect": {
+      "en": "Inspect",
+      "vi": "Tra cứu"
+    },
+    "project": {
+      "en": "Project",
+      "vi": "Dự án"
+    },
+    "shots": {
+      "en": "Shots",
+      "vi": "Phân cảnh"
+    },
+    "layers": {
+      "en": "Layers",
+      "vi": "Layer"
+    },
+    "fx": {
+      "en": "Effects (FX)",
+      "vi": "Hiệu ứng (FX)"
+    },
+    "keyframes": {
+      "en": "Keyframes",
+      "vi": "Keyframe"
+    },
+    "camera": {
+      "en": "Camera",
+      "vi": "Camera"
+    },
+    "look_audio": {
+      "en": "Look & audio",
+      "vi": "Màu sắc & âm thanh"
+    },
+    "timeline": {
+      "en": "Timeline & view",
+      "vi": "Timeline & khung xem"
+    },
+    "export": {
+      "en": "Export & scripting",
+      "vi": "Xuất & script"
+    },
+    "assembly": {
+      "en": "3D assembly workshop",
+      "vi": "Xưởng lắp ráp 3D"
+    },
+    "layer_assembly": {
+      "en": "2.5D layer assembly",
+      "vi": "Xưởng lắp ráp layer 2.5D"
+    }
   }
 }

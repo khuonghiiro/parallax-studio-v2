@@ -6,12 +6,12 @@ import type { PlantRecordEnd } from './plantMotionRecord'
 /** record = nắm ngọn kéo để GHI chuyển động vẽ tay · learn = học thông số gió (biên độ / nghiêng / nhịp). */
 export type PlantGrabMode = 'record' | 'learn'
 
-/** Trạng thái giao diện tab "Thực vật": dùng chung giữa bảng điều khiển bên phải, lớp vẽ 2D và workspace. */
+/** Trạng thái giao diện tab "Motion": dùng chung giữa bảng điều khiển bên phải, lớp vẽ 2D và workspace. */
 export interface PlantSpineEditorState {
   preset: PlantSpinePresetId
   target: PlantSpineTarget
   selectedSpineId: string | null
-  /** Xem gió trực tiếp: cây tự đung đưa ngay trong tab Thực vật dù chưa bấm phát. */
+  /** Xem gió trực tiếp: cây tự đung đưa ngay trong tab Motion dù chưa bấm phát. */
   live: boolean
   /** Đang nắm ngọn kéo: cây uốn tĩnh theo tay (ghi đè tạm thời). elapsed = giây đã ghi khi đang ghi chuyển động. */
   grab: { spineId: string; angle: number; stretch?: number; elapsed?: number; recording?: boolean } | null

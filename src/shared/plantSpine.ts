@@ -1,5 +1,5 @@
 /**
- * Xương thực vật (Plant Spine): một đường cong vẽ tay từ GỐC lên NGỌN trên bố cục 2D.
+ * Xương motion (Plant Spine): một đường cong vẽ tay từ GỐC lên NGỌN trên bố cục 2D.
  * Các layer gắn vào sẽ uốn cong mềm mại theo đường này như thân cây / cành / cỏ đung đưa trong gió.
  * Toạ độ điểm dùng hệ toạ độ cụm layer (composite): X sang phải, Y hướng xuống, gốc ở tâm khung.
  */
@@ -47,7 +47,7 @@ export interface PlantMotionKey {
 }
 
 /**
- * Chuyển động vẽ tay của xương thực vật: đường cong góc-ngọn theo thời gian, lặp liền mạch theo chu kỳ duration.
+ * Chuyển động vẽ tay của xương motion: đường cong góc-ngọn theo thời gian, lặp liền mạch theo chu kỳ duration.
  * Gốc đứng yên; độ uốn phân bố dọc thân theo stiffness; ngọn trễ nhịp theo lag (đánh roi tự nhiên).
  */
 export interface PlantSpineMotion {

@@ -94,7 +94,7 @@ describe('plantSpine engine', () => {
       indices.push(base, base + 1, base + 2, base + 1, base + 3, base + 2)
     }
     const pos = new Float32Array(verts)
-    // Chỉ vẽ xương thực vật dọc theo đường kẻ 1 (x = -60, từ y_comp = 50 lên -50)
+    // Chỉ vẽ xương motion dọc theo đường kẻ 1 (x = -60, từ y_comp = 50 lên -50)
     const line1Spine = spine({
       id: 'line-1',
       points: [{ x: -60, y: 50 }, { x: -60, y: 0 }, { x: -60, y: -50 }],

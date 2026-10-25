@@ -30,7 +30,7 @@ export interface PlantSpineOverlayProps {
   setComposite: (update: (prev: LayerComposite) => LayerComposite, key?: string) => void
   selectedIds: string[]
   time: number
-  /** Đang ở tab Thực vật: vẽ xương mới, chọn & sửa xương bằng tay nắm. */
+  /** Đang ở tab Motion: vẽ xương mới, chọn & sửa xương bằng tay nắm. */
   drawing: boolean
   beginGesture?: () => void
   endGesture?: () => void
@@ -46,7 +46,7 @@ type Drag =
 const GRAB_LIMIT = PLANT_AMPLITUDE_MAX + PLANT_LEAN_MAX
 const RECORD_LIMIT = 85
 
-/** Lớp SVG trên Bố cục 2D: hiển thị xương thực vật, vẽ tay xương mới và chỉnh trực tiếp bằng tay nắm. */
+/** Lớp SVG trên Bố cục 2D: hiển thị xương motion, vẽ tay xương mới và chỉnh trực tiếp bằng tay nắm. */
 export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
   const { composite, setComposite, time, drawing } = props
   const svgRef = useRef<SVGSVGElement>(null)
@@ -306,7 +306,7 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
       ref={svgRef}
       className={`lw-plant-overlay${drawing ? ' drawing' : ''}${drawing && editor.pathRecord && selected ? ' path-record' : ''}`}
       viewBox={`${-composite.width / 2} ${-composite.height / 2} ${composite.width} ${composite.height}`}
-      aria-label="Xương thực vật trên Bố cục 2D"
+      aria-label="Xương motion trên Bố cục 2D"
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={finish}

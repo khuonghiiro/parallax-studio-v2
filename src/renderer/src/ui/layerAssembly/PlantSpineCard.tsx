@@ -137,7 +137,7 @@ function CardHead({ spine, index, patch, run }: { spine: PlantSpine; index: numb
   return (
     <div className="lw-plant-card-head">
       <span className="lw-plant-index-badge">#{index + 1}</span>
-      <input className="lw-plant-name" value={spine.name} onChange={(e) => patch({ name: e.target.value }, `plant:${spine.id}:name`)} aria-label="Tên xương thực vật" />
+      <input className="lw-plant-name" value={spine.name} onChange={(e) => patch({ name: e.target.value }, `plant:${spine.id}:name`)} aria-label="Tên xương motion" />
       <label className="lw-plant-toggle" title="Bật/tắt chuyển động của xương này">
         <input type="checkbox" checked={spine.enabled !== false} onChange={(e) => patch({ enabled: e.target.checked })} />
         <span>Bật</span>
@@ -150,7 +150,7 @@ function CardHead({ spine, index, patch, run }: { spine: PlantSpine; index: numb
   )
 }
 
-/** Thẻ một xương thực vật: tên, bật/tắt, khớp uốn, tab Gió & Độ uốn / Nhịp & Quỹ đạo riêng. */
+/** Thẻ một xương motion: tên, bật/tắt, khớp uốn, tab Gió & Độ uốn / Nhịp & Quỹ đạo riêng. */
 export function PlantSpineCard({ spine, index, composite, selected, run }: {
   spine: PlantSpine
   index: number

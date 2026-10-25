@@ -62,7 +62,7 @@ function useGraphEditing(motion: PlantSpineMotion, onChange: (m: PlantSpineMotio
 }
 
 /**
- * Biểu đồ nhịp thực vật (Graph Editor thu gọn): trục ngang = thời gian 1 chu kỳ, trục dọc = góc ngọn.
+ * Biểu đồ nhịp motion (Graph Editor thu gọn): trục ngang = thời gian 1 chu kỳ, trục dọc = góc ngọn.
  *  - Kéo chấm theo 2 chiều (Shift = bắt tròn 1° / 0.05s) · Nhấp đúp vùng trống = thêm mốc · Chuột phải = xoá mốc.
  *  - Chọn mốc rồi dùng phím ↑↓ (góc) ←→ (thời gian), Delete / − để xoá. Đường nét đứt = độ nhún dọc thân.
  */

@@ -7,7 +7,7 @@ import { grabbedSpine, plantGrabHandle } from './plantSpineEdit'
 export const toPlantPath = (pts: PlantSpinePoint[]) =>
   pts.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
 
-/** Một xương thực vật: đường nghỉ (nét đứt) + đường đang uốn + gốc / ngọn. */
+/** Một xương motion: đường nghỉ (nét đứt) + đường đang uốn + gốc / ngọn. */
 export function PlantSpineShape({ spine, time, selected, grabAngle, grabStretch }: {
   spine: PlantSpine
   time: number

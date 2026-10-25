@@ -25,11 +25,11 @@ interface PanelProps {
 
 const TARGETS: Array<[PlantSpineTarget, string, string]> = [
   ['selected', '🎯 Layer đang chọn', 'Gắn vào các layer đang chọn ở tab Layer'],
-  ['all', '🌳 Toàn bộ cây', 'Gắn vào mọi layer trong cụm thực vật'],
+  ['all', '🌳 Toàn bộ cây', 'Gắn vào mọi layer trong cụm motion'],
   ['auto', '✏️ Tự nhận khi vẽ', 'Khi kéo chuột vẽ xương trên khung 2D, tự gắn vào layer mà nét vẽ đi qua']
 ]
 
-/** Tab "Thực vật": tạo mới chuyển động cây cỏ nhanh hoặc vẽ xương cong + chỉnh nhịp đung đưa. */
+/** Tab "Motion": tạo mới chuyển động cây cỏ nhanh hoặc vẽ xương cong + chỉnh nhịp đung đưa. */
 export function WorkshopPlantPanel({
   composite,
   setComposite,
@@ -60,7 +60,7 @@ export function WorkshopPlantPanel({
 
   const handleQuickCreateSpine = () => {
     if (composite.layers.length === 0) {
-      setError('Cần có ít nhất 1 layer trong cụm để tạo chuyển động thực vật.')
+      setError('Cần có ít nhất 1 layer trong cụm để tạo chuyển động motion.')
       return
     }
     const targetIds = resolveSpineLayerIds(
@@ -168,7 +168,7 @@ export function WorkshopPlantPanel({
       {/* Khối 1: Tạo Mới Chuyển Động Thực Vật (1-Click Wizard + Tuỳ chỉnh riêng) */}
       <div className="lw-plant-create-card">
         <div className="lw-plant-create-head">
-          <span className="lw-plant-create-title">➕ Tạo mới Chuyển động Thực vật</span>
+          <span className="lw-plant-create-title">➕ Tạo mới Chuyển động Motion</span>
           <span className="lw-plant-create-sub">Tự tạo hoặc vẽ</span>
         </div>
 
@@ -347,7 +347,7 @@ export function WorkshopPlantPanel({
       {/* Khối 2: Danh sách các Xương & Chuyển động đã tạo */}
       <div className="lw-plant-list-header">
         <span className="lw-plant-section-label">
-          🌿 Danh sách chuyển động thực vật ({spines.length})
+          🌿 Danh sách chuyển động motion ({spines.length})
         </span>
         {spines.length > 0 && (
           <span className="lw-plant-list-tools">
@@ -373,7 +373,7 @@ export function WorkshopPlantPanel({
       <div className="lw-plant-list">
         {spines.length === 0 && (
           <div className="lw-plant-empty">
-            Chưa có chuyển động thực vật nào. Bấm <strong>&ldquo;⚡ + Tạo mới chuyển động ngay&rdquo;</strong> ở trên hoặc kéo vẽ trên Bố cục 2D.
+            Chưa có chuyển động motion nào. Bấm <strong>&ldquo;⚡ + Tạo mới chuyển động ngay&rdquo;</strong> ở trên hoặc kéo vẽ trên Bố cục 2D.
           </div>
         )}
         {spines.map((s, idx) => (

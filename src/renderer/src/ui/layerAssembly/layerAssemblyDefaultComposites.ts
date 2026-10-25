@@ -545,7 +545,7 @@ const RAW_BUILTIN_COMPOSITES: LayerComposite[] = [
   }
 ]
 
-/** Mẫu thiên nhiên dùng Xương thực vật dựng sẵn thay cho chuyển động sway/rocking cũ. */
+/** Mẫu thiên nhiên dùng Xương motion dựng sẵn thay cho chuyển động sway/rocking cũ. */
 export const BUILTIN_COMPOSITES: LayerComposite[] = RAW_BUILTIN_COMPOSITES.map((c) => {
   const key = BUILTIN_NATURE_SPINE_KEYS[c.id]
   return key ? { ...c, plantSpines: natureSpines(key) } : c
