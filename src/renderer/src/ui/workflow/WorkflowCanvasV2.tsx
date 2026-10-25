@@ -125,7 +125,12 @@ function buildEdgeItems(
     const lane = sources.length > 1 ? sources.indexOf(from) - (sources.length - 1) / 2 : 0
     const fromEnd = from.params?.timeEnd ?? 0
     const toStart = to.params?.timeStart ?? 0
-    const isRunning = kind === 'camera' ? t >= fromEnd - 0.6 && t <= toStart + 0.8 : running.has(from.id) && running.has(to.id)
+    const isRunning =
+      kind === 'camera'
+        ? t >= fromEnd - 0.6 && t <= toStart + 0.8
+        : to.params?.isCameraWaypoint
+          ? running.has(to.id)
+          : running.has(from.id) && running.has(to.id)
     items.push({
       edge,
       from,

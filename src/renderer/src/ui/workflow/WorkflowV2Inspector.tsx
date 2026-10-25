@@ -29,6 +29,8 @@ export interface WorkflowV2InspectorProps {
   onToggleEnable: (nodeId: string) => void
   onDeleteNode: (nodeId: string) => void
   onAttachLogic: (layerNodeId: string, category: WorkflowV2SpawnCategory) => void
+  onSpawnCameraWaypoint?: (shotId: string, mode: 'pan' | 'zoom-in' | 'zoom-out' | 'hold', fromWaypointTime?: number) => void
+  onSelectNode?: (nodeId: string) => void
   /** Nối thêm một Layer vào Node Logic (ví dụ chọn Layer B cho Node Va chạm) */
   onConnectLayer: (layerNodeId: string, logicNodeId: string) => void
   onScrubTime: (t: number) => void
@@ -213,7 +215,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
           />
         </section>
 
-        {level === 'logic' && (
+        {level === 'logic' && node.type !== 'camera_director' && (
           <section className="wf-v2-insp-sec">
             <div className="wf-v2-insp-sec-title">Áp dụng cho</div>
             <div className="wf-v2-linked">
@@ -225,10 +227,42 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
           </section>
         )}
 
+        {node.type === 'camera_director' && !node.params?.isCameraWaypoint && (
+          <section className="wf-v2-insp-sec">
+            <div className="wf-v2-insp-sec-title">Các cảnh con trong lộ trình quay</div>
+            <div className="wf-v2-chip-grid">
+              {workflow.nodes
+                .filter((n) => n.type === 'camera_director' && Boolean(n.params?.isCameraWaypoint) && n.params?.shotId === node.params?.shotId)
+                .sort((a, b) => (a.params?.waypointLocalIndex ?? 0) - (b.params?.waypointLocalIndex ?? 0))
+                .map((wp) => (
+                  <button
+                    key={wp.id}
+                    type="button"
+                    className="wf-v2-spawn-chip"
+                    style={{ ['--wf-v2-accent' as string]: '#06b6d4' }}
+                    title={`${wp.title} (${(wp.params?.timeStart ?? 0).toFixed(1)}s – ${(wp.params?.timeEnd ?? 0).toFixed(1)}s)`}
+                    onClick={() => props.onSelectNode?.(wp.id)}
+                  >
+                    🎯 {cleanV2NodeTitle(wp.title)}
+                  </button>
+                ))}
+            </div>
+            <button type="button" className="wf-v2-ghost-btn" onClick={() => update({ collapsedGroup: !node.params?.collapsedGroup })}>
+              {node.params?.collapsedGroup ? 'Mở rộng các cảnh con trên sơ đồ' : 'Thu gọn các cảnh con trên sơ đồ'}
+            </button>
+          </section>
+        )}
+
         {level !== 'root' && level !== 'group' && (
           <section className="wf-v2-insp-sec">
             <div className="wf-v2-insp-sec-title">Thông số</div>
-            <WorkflowV2NodeParams node={node} project={project} onUpdate={update} onScrubTime={props.onScrubTime} />
+            <WorkflowV2NodeParams
+              node={node}
+              project={project}
+              onUpdate={update}
+              onScrubTime={props.onScrubTime}
+              onSpawnCameraWaypoint={props.onSpawnCameraWaypoint}
+            />
           </section>
         )}
 

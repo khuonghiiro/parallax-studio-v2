@@ -1,17 +1,134 @@
 import type { Layer, Project, Shot, WorkflowGraph } from '@shared/types'
 import { shotAtTime } from '../animation/cameraPath'
+import { computeShotStageLayout, extractCameraFrames2D } from '../ui/viewer/animateCamera/animateCameraMath'
+import { enrichCameraWaypoints, type CameraWaypointItem } from '../ui/viewer/animateCamera/animateCameraRouteLogic'
 
 /**
  * Không gian chung của Workflow V2: MỘT đồ thị cho toàn dự án, mỗi Cảnh là một cụm
- * (Root → Camera / Group → Layer → Logic). Các cụm nối nhau qua dây Camera theo đúng thứ tự camera đi qua.
+ * (Root → Camera → Cảnh con lộ trình quay / Group → Layer → Logic). Các cụm nối nhau qua dây Camera theo đúng thứ tự camera đi qua.
  */
 export const V2_SHARED_CLUSTER = 'shared'
 
 export const v2RootId = (clusterKey: string): string => `v2-root-${clusterKey}`
 export const v2CameraId = (shotId: string): string => `v2-camera-${shotId}`
+export const v2CameraWaypointId = (shotId: string, localIdx: number): string => `v2-cam-wp-${shotId}-${localIdx}`
 export const v2GroupId = (kind: 'group_3d' | 'group_25d' | 'group_env', clusterKey: string): string =>
   `v2-group-${kind.replace('group_', '')}-${clusterKey}`
 export const v2LayerNodeId = (layerId: string): string => `v2-layer-${layerId}`
+
+export function isCameraWaypointNode(node?: { type?: string; params?: { isCameraWaypoint?: boolean } } | null): boolean {
+  return Boolean(node && node.type === 'camera_director' && node.params?.isCameraWaypoint)
+}
+
+export function isParentCameraNode(node?: { type?: string; params?: { isCameraWaypoint?: boolean } } | null): boolean {
+  return Boolean(node && node.type === 'camera_director' && !node.params?.isCameraWaypoint)
+}
+
+export interface ShotCameraWaypointStep {
+  nodeId: string
+  shotId: string
+  globalIndex: number
+  localIndex: number
+  displayLabel: string
+  isSubWaypoint: boolean
+  isFirstOfShot: boolean
+  actionMode: string
+  tagLabel: string
+  angleSummary: string
+  zoomPct: number
+  stageX: number
+  stageY: number
+  scale: number
+  yaw: number
+  pitch: number
+  roll: number
+  ease: string
+  timeStart: number
+  timeEnd: number
+  stepDuration: number
+}
+
+/**
+ * Trích xuất danh sách các mốc lộ trình quay / cảnh con thuộc từng Cảnh (`shotId`)
+ * từ dữ liệu thật `project.camera` (dùng chung bộ giải mã `extractCameraFrames2D` + `enrichCameraWaypoints` với Timeline).
+ */
+export function extractShotCameraWaypoints(project: Project): Map<string, ShotCameraWaypointStep[]> {
+  const compDur = Math.max(1, Number((project.comp.duration || 5).toFixed(2)))
+  const route = computeShotRoute(project)
+  const layout = computeShotStageLayout(project, 0)
+  const allWps: CameraWaypointItem[] = enrichCameraWaypoints(extractCameraFrames2D(project, layout))
+  const byShot = new Map<string, ShotCameraWaypointStep[]>()
+
+  for (let i = 0; i < allWps.length; i++) {
+    const wp = allWps[i]
+    const shotId = wp.shotId ?? project.shots[0]?.id
+    if (!shotId) continue
+    const next = allWps[i + 1]
+    const timeStart = Number(Math.max(0, wp.time).toFixed(2))
+    const rawEnd = next ? next.time : Math.min(compDur, Math.max(wp.time + 0.4, wp.endTime))
+    const timeEnd = Number(Math.max(timeStart + 0.1, rawEnd).toFixed(2))
+    const list = byShot.get(shotId) ?? []
+    const localIndex = list.length
+    list.push({
+      nodeId: v2CameraWaypointId(shotId, localIndex),
+      shotId,
+      globalIndex: wp.index,
+      localIndex,
+      displayLabel: wp.displayLabel,
+      isSubWaypoint: wp.isSubWaypoint,
+      isFirstOfShot: wp.isFirstOfShot || localIndex === 0,
+      actionMode: wp.actionMode,
+      tagLabel: wp.tagLabel,
+      angleSummary: wp.angleSummary,
+      zoomPct: wp.zoomPct,
+      stageX: wp.stageX,
+      stageY: wp.stageY,
+      scale: wp.scale,
+      yaw: wp.yaw,
+      pitch: wp.pitch,
+      roll: wp.roll,
+      ease: wp.ease,
+      timeStart,
+      timeEnd,
+      stepDuration: Number(Math.max(0.1, timeEnd - timeStart).toFixed(2))
+    })
+    byShot.set(shotId, list)
+  }
+
+  // Bảo đảm mỗi Cảnh luôn có ít nhất 1 node con lộ trình quay (kể cả khi cảnh mới tạo chưa gắn keyframe riêng)
+  project.shots.forEach((shot, idx) => {
+    if ((byShot.get(shot.id)?.length ?? 0) > 0) return
+    const range = route.ranges.get(shot.id) ?? getShotTimeRange(project, shot)
+    const box = layout.find((b) => b.shotId === shot.id) ?? layout[0]
+    byShot.set(shot.id, [
+      {
+        nodeId: v2CameraWaypointId(shot.id, 0),
+        shotId: shot.id,
+        globalIndex: allWps.length + idx,
+        localIndex: 0,
+        displayLabel: `${idx + 1}`,
+        isSubWaypoint: false,
+        isFirstOfShot: true,
+        actionMode: 'establishing',
+        tagLabel: 'Mở đầu 100%',
+        angleSummary: 'Thẳng 0°',
+        zoomPct: 100,
+        stageX: box?.stageX ?? 0,
+        stageY: box?.stageY ?? 0,
+        scale: 1,
+        yaw: 0,
+        pitch: 0,
+        roll: 0,
+        ease: 'easeInOut',
+        timeStart: range.start,
+        timeEnd: range.end,
+        stepDuration: Number(Math.max(0.1, range.end - range.start).toFixed(2))
+      }
+    ])
+  })
+
+  return byShot
+}
 
 export function isWorkflowV2Graph(workflow?: WorkflowGraph | null): workflow is WorkflowGraph {
   return Boolean(

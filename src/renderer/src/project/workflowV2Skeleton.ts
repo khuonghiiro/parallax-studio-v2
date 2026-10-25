@@ -11,13 +11,15 @@ import { WF_V2_COL_X } from './workflowV2Layout'
 import {
   V2_SHARED_CLUSTER,
   computeShotRoute,
+  extractShotCameraWaypoints,
   layerClusterKey,
   resolveGroupTimeRange,
   resolveLayerNodeTimeRange,
   v2CameraId,
   v2GroupId,
   v2LayerNodeId,
-  v2RootId
+  v2RootId,
+  type ShotCameraWaypointStep
 } from './workflowV2Scope'
 
 type GroupKind = 'group_3d' | 'group_25d' | 'group_env'
@@ -61,8 +63,10 @@ function rootNode(ctx: ClusterCtx, layerCount: number, project: Project): Workfl
   }
 }
 
-function cameraNode(ctx: ClusterCtx, project: Project): WorkflowNode {
+function cameraNode(ctx: ClusterCtx, project: Project, waypoints: ShotCameraWaypointStep[]): WorkflowNode {
   const shot = ctx.shot!
+  const tStart = waypoints.length ? Math.min(ctx.range.start, waypoints[0].timeStart) : ctx.range.start
+  const tEnd = waypoints.length ? Math.max(ctx.range.end, waypoints[waypoints.length - 1].timeEnd) : ctx.range.end
   return {
     id: v2CameraId(shot.id),
     type: 'camera_director',
@@ -71,15 +75,54 @@ function cameraNode(ctx: ClusterCtx, project: Project): WorkflowNode {
     position: { x: WF_V2_COL_X.ROOT, y: 0 },
     preset: 'cinematic_fly_push',
     aiAgentRole: 'CameraDirectorAgent',
-    aiDirective: `Camera quay cảnh "${shot.name}" trong [${ctx.range.start}s – ${ctx.range.end}s].`,
+    aiDirective: `Camera quay cảnh "${shot.name}" gồm ${waypoints.length} mốc lộ trình trong [${tStart}s – ${tEnd}s].`,
     params: {
       shotId: shot.id,
       logicCategory: 'camera',
       camPreset: 'dollyIn',
       enableDof: Boolean(project.camera?.dofEnabled),
-      timeStart: ctx.range.start,
-      timeEnd: ctx.range.end,
+      childLayerCount: waypoints.length,
+      timeStart: tStart,
+      timeEnd: tEnd,
       hierarchyParentNodeId: v2RootId(ctx.key)
+    }
+  }
+}
+
+function cameraWaypointNode(step: ShotCameraWaypointStep, shot: Shot): WorkflowNode {
+  const title = `#${step.displayLabel} · ${step.tagLabel}`
+  return {
+    id: step.nodeId,
+    type: 'camera_director',
+    title,
+    enabled: true,
+    position: { x: WF_V2_COL_X.ROOT, y: 0 },
+    preset: 'cinematic_fly_push',
+    aiAgentRole: 'CameraDirectorAgent',
+    aiDirective: `Cảnh con #${step.displayLabel} (${step.tagLabel}, Zoom ${step.zoomPct}%) thuộc "${shot.name}" [${step.timeStart}s – ${step.timeEnd}s].`,
+    params: {
+      shotId: shot.id,
+      logicCategory: 'camera',
+      isCameraWaypoint: true,
+      waypointIndex: step.globalIndex,
+      waypointLocalIndex: step.localIndex,
+      waypointLabel: step.displayLabel,
+      isSubWaypoint: step.isSubWaypoint,
+      isFirstOfShot: step.isFirstOfShot,
+      camActionMode: step.actionMode,
+      camTagLabel: step.tagLabel,
+      camZoomPct: step.zoomPct,
+      camStageX: step.stageX,
+      camStageY: step.stageY,
+      camScale: step.scale,
+      camYaw: step.yaw,
+      camPitch: step.pitch,
+      camRoll: step.roll,
+      camEase: step.ease,
+      camStepDuration: step.stepDuration,
+      timeStart: step.timeStart,
+      timeEnd: step.timeEnd,
+      hierarchyParentNodeId: v2CameraId(shot.id)
     }
   }
 }
@@ -149,12 +192,26 @@ function groupItems(items: RepItem[]): [GroupKind, RepItem[]][] {
   return list.filter(([, its]) => its.length > 0)
 }
 
-function buildCluster(project: Project, ctx: ClusterCtx, items: RepItem[], out: V2Skeleton): void {
+function buildCluster(
+  project: Project,
+  ctx: ClusterCtx,
+  items: RepItem[],
+  waypointsByShot: Map<string, ShotCameraWaypointStep[]>,
+  out: V2Skeleton
+): void {
   const rootId = v2RootId(ctx.key)
   out.nodes.push(rootNode(ctx, items.length, project))
   if (ctx.shot) {
-    out.nodes.push(cameraNode(ctx, project))
-    out.edges.push(v2Edge(rootId, v2CameraId(ctx.shot.id), 'scene_ctx'))
+    const camId = v2CameraId(ctx.shot.id)
+    const steps = waypointsByShot.get(ctx.shot.id) ?? []
+    out.nodes.push(cameraNode(ctx, project, steps))
+    out.edges.push(v2Edge(rootId, camId, 'scene_ctx'))
+    let prevCamNodeId = camId
+    for (const step of steps) {
+      out.nodes.push(cameraWaypointNode(step, ctx.shot))
+      out.edges.push(v2Edge(prevCamNodeId, step.nodeId, 'camera_cut'))
+      prevCamNodeId = step.nodeId
+    }
   }
   for (const [kind, its] of groupItems(items)) {
     const group = groupNode(ctx, kind, its)
@@ -169,16 +226,17 @@ function buildCluster(project: Project, ctx: ClusterCtx, items: RepItem[], out: 
 
 /**
  * Bộ khung cây suy ra 100% từ dữ liệu thật của Project: mỗi Cảnh (theo thứ tự camera đi qua) là một cụm
- * Root → Camera / Nhóm → Layer; các Camera nối tiếp nhau bằng dây chuyển cảnh.
+ * Root → Camera → Các cảnh con lộ trình quay / Nhóm → Layer; các Camera nối tiếp nhau bằng dây chuyển cảnh.
  */
 export function buildV2Skeleton(project: Project): V2Skeleton {
   const compDur = Math.max(1, project.comp.duration || 5)
   const route = computeShotRoute(project)
+  const waypointsByShot = extractShotCameraWaypoints(project)
   const reps = collectRepresentativeLayers(project.layers)
   const out: V2Skeleton = { nodes: [], edges: [] }
   const sharedItems = reps.filter((it) => layerClusterKey(project, it.layer) === V2_SHARED_CLUSTER)
   if (sharedItems.length > 0 || project.shots.length === 0) {
-    buildCluster(project, { key: V2_SHARED_CLUSTER, shotIndex: -1, range: { start: 0, end: compDur }, compDur }, sharedItems, out)
+    buildCluster(project, { key: V2_SHARED_CLUSTER, shotIndex: -1, range: { start: 0, end: compDur }, compDur }, sharedItems, waypointsByShot, out)
   }
   route.order.forEach((shot) => {
     const ctx: ClusterCtx = {
@@ -188,7 +246,7 @@ export function buildV2Skeleton(project: Project): V2Skeleton {
       range: route.ranges.get(shot.id) ?? { start: 0, end: compDur },
       compDur
     }
-    buildCluster(project, ctx, reps.filter((it) => layerClusterKey(project, it.layer) === shot.id), out)
+    buildCluster(project, ctx, reps.filter((it) => layerClusterKey(project, it.layer) === shot.id), waypointsByShot, out)
   })
   for (let i = 0; i + 1 < route.order.length; i++) {
     const from = v2CameraId(route.order[i].id)

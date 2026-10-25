@@ -21,6 +21,7 @@ export interface WorkflowV2NodeParamsProps {
   project: Project
   onUpdate: UpdateFn
   onScrubTime: (t: number) => void
+  onSpawnCameraWaypoint?: (shotId: string, mode: 'pan' | 'zoom-in' | 'zoom-out' | 'hold', fromWaypointTime?: number) => void
 }
 
 const pct = (v: number): string => `${Math.round(v * 100)}%`
@@ -243,8 +244,93 @@ function AudioParams({ node, onUpdate }: WorkflowV2NodeParamsProps): React.React
   )
 }
 
-function CameraParams({ node, onUpdate }: WorkflowV2NodeParamsProps): React.ReactElement {
+const CAM_WAYPOINT_MODES = [
+  { id: 'establishing', label: '🏛 Chuẩn 100%' },
+  { id: 'push-in', label: '🔍+ Đẩy cận' },
+  { id: 'pull-out', label: '🔍- Kéo rộng' },
+  { id: 'pan', label: '↔ Lia ngang' },
+  { id: 'hold', label: '⏸ Dừng ngắm' },
+  { id: 'orbit-right', label: '↻ Quỹ đạo 3D' }
+] as const
+
+const CAM_SPAWN_BUTTONS: { mode: 'zoom-in' | 'zoom-out' | 'pan' | 'hold'; label: string }[] = [
+  { mode: 'zoom-in', label: '+ Đẩy cận' },
+  { mode: 'zoom-out', label: '+ Kéo rộng' },
+  { mode: 'pan', label: '+ Lia ngang' },
+  { mode: 'hold', label: '+ Dừng ngắm' }
+]
+
+function CameraWaypointParams({ node, onUpdate, onScrubTime, onSpawnCameraWaypoint }: WorkflowV2NodeParamsProps): React.ReactElement {
   const p = node.params ?? {}
+  const tStart = p.timeStart ?? 0
+  const stepDur = p.camStepDuration ?? Math.max(0.4, Number(((p.timeEnd ?? tStart + 2) - tStart).toFixed(2)))
+  return (
+    <>
+      <OptionPills
+        cols={2}
+        options={[...CAM_WAYPOINT_MODES]}
+        value={(p.camActionMode as (typeof CAM_WAYPOINT_MODES)[number]['id']) ?? 'pan'}
+        onPick={(id) => onUpdate({ camActionMode: id })}
+      />
+      <ParamSlider
+        label="Zoom khung"
+        min={40}
+        max={240}
+        step={5}
+        value={p.camZoomPct ?? 100}
+        format={(v) => `${Math.round(v)}%`}
+        onChange={(v) => onUpdate({ camZoomPct: v })}
+      />
+      <ParamSlider
+        label="Thời lượng"
+        min={0.4}
+        max={8}
+        step={0.2}
+        value={stepDur}
+        format={(v) => `${v.toFixed(1)}s`}
+        onChange={(v) => onUpdate({ camStepDuration: v })}
+      />
+      <ParamSlider
+        label="Góc ngang"
+        min={-60}
+        max={60}
+        step={2}
+        value={p.camYaw ?? 0}
+        format={(v) => `${v > 0 ? `+${Math.round(v)}` : Math.round(v)}°`}
+        onChange={(v) => onUpdate({ camYaw: v })}
+      />
+      <ParamSlider
+        label="Góc ngẩng"
+        min={-45}
+        max={45}
+        step={2}
+        value={p.camPitch ?? 0}
+        format={(v) => `${v > 0 ? `+${Math.round(v)}` : Math.round(v)}°`}
+        onChange={(v) => onUpdate({ camPitch: v })}
+      />
+      <div className="wf-v2-pill-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+        <button type="button" className="wf-v2-ghost-btn" onClick={() => onScrubTime(tStart)}>
+          ▶ Xem tại {tStart.toFixed(1)}s
+        </button>
+        {p.shotId && onSpawnCameraWaypoint && (
+          <button
+            type="button"
+            className="wf-v2-ghost-btn"
+            title="Chèn thêm một cảnh phụ ngay sau mốc này trong cùng cảnh"
+            onClick={() => onSpawnCameraWaypoint(p.shotId!, 'zoom-in', tStart)}
+          >
+            + Chèn cảnh phụ
+          </button>
+        )}
+      </div>
+    </>
+  )
+}
+
+function CameraParams(props: WorkflowV2NodeParamsProps): React.ReactElement {
+  const { node, onUpdate, onSpawnCameraWaypoint } = props
+  const p = node.params ?? {}
+  if (p.isCameraWaypoint) return <CameraWaypointParams {...props} />
   return (
     <>
       <OptionPills
@@ -262,6 +348,21 @@ function CameraParams({ node, onUpdate }: WorkflowV2NodeParamsProps): React.Reac
         value={p.enableDof ? 'on' : 'off'}
         onPick={(id) => onUpdate({ enableDof: id === 'on' })}
       />
+      {p.shotId && onSpawnCameraWaypoint && (
+        <div className="wf-v2-pill-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+          {CAM_SPAWN_BUTTONS.map((btn) => (
+            <button
+              key={btn.mode}
+              type="button"
+              className="wf-v2-opt-pill"
+              title={`Thêm cảnh con (${btn.label}) vào lộ trình quay của cảnh này`}
+              onClick={() => onSpawnCameraWaypoint(p.shotId!, btn.mode)}
+            >
+              {btn.label}
+            </button>
+          ))}
+        </div>
+      )}
     </>
   )
 }

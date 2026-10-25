@@ -10,10 +10,13 @@ import {
   attachLogicNodeToLayerV2,
   findFreeV2Spot,
   isCameraChainEdge,
+  isCameraWaypointNode,
   resolveHiddenV2NodeIds,
+  spawnWorkflowV2CameraWaypoint,
   syncWorkflowV2Graph,
   syncWorkflowV2NodeToProject,
   v2CameraId,
+  v2CameraWaypointId,
   v2LayerNodeId,
   v2RootId,
   validateWorkflowV2Connection
@@ -250,5 +253,50 @@ describe('Workflow V2 — bố cục không đè thẻ', () => {
     assertNoOverlap(kept)
     const reset = relayoutWorkflowV2({ ...proj, workflow: kept }, true)
     expect(reset.nodes.find((n) => n.id === target.id)!.position.x).not.toBe(2000)
+  })
+
+  it('mỗi Node Camera cảnh sinh các Node con lộ trình quay (#1, #2, #2.1...), đồng bộ 2 chiều với project.camera và hỗ trợ thu gọn', () => {
+    let { proj, shotA } = sampleProject()
+    proj = synced(proj)
+    const camNodeA = proj.workflow!.nodes.find((n) => n.id === v2CameraId(shotA.id))!
+    const wpNodesInitial = proj.workflow!.nodes.filter((n) => isCameraWaypointNode(n) && n.params?.shotId === shotA.id)
+    expect(wpNodesInitial.length).toBeGreaterThanOrEqual(1)
+    expect(camNodeA.params?.childLayerCount).toBe(wpNodesInitial.length)
+    expect(wpNodesInitial[0].id).toBe(v2CameraWaypointId(shotA.id, 0))
+    expect(proj.workflow!.edges.some((e) => e.fromNode === camNodeA.id && e.toNode === wpNodesInitial[0].id)).toBe(true)
+
+    // Thêm 1 cảnh con / mốc lộ trình quay Đẩy cận cho Cảnh A
+    proj = synced(produce(proj, (d) => {
+      spawnWorkflowV2CameraWaypoint(d as Project, shotA.id, 'zoom-in')
+    }))
+    const wpNodesAfterSpawn = proj.workflow!.nodes.filter((n) => isCameraWaypointNode(n) && n.params?.shotId === shotA.id)
+    expect(wpNodesAfterSpawn.length).toBe(wpNodesInitial.length + 1)
+    const secondWp = wpNodesAfterSpawn[1]!
+    expect(proj.workflow!.edges.some((e) => e.fromNode === wpNodesAfterSpawn[0].id && e.toNode === secondWp.id)).toBe(true)
+    assertNoOverlap(proj.workflow!)
+
+    // Chỉnh thông số zoom & góc xoay trên Node con lộ trình quay -> đồng bộ xuống project.camera
+    proj = synced(produce(proj, (d) => {
+      syncWorkflowV2NodeToProject(d as Project, secondWp, { camZoomPct: 160, camYaw: 14 })
+    }))
+    const updatedWp = proj.workflow!.nodes.find((n) => n.id === secondWp.id)!
+    expect(updatedWp.params?.camZoomPct).toBeCloseTo(160, -1)
+    expect(updatedWp.params?.camYaw).toBeCloseTo(14, 0)
+
+    // Thu gọn Node Camera cha -> ẩn toàn bộ các Node con lộ trình quay của cảnh đó
+    const collapsedWf = produce(proj.workflow!, (d) => {
+      d.nodes.find((n) => n.id === camNodeA.id)!.params!.collapsedGroup = true
+    })
+    const hidden = resolveHiddenV2NodeIds(collapsedWf.nodes, collapsedWf.edges)
+    for (const wp of wpNodesAfterSpawn) {
+      expect(hidden.has(wp.id)).toBe(true)
+    }
+
+    // Xoá Node con lộ trình quay vừa thêm -> gỡ keyframe khỏi project.camera
+    proj = synced(produce(proj, (d) => {
+      detachWorkflowV2NodeFromProject(d as Project, updatedWp)
+    }))
+    const wpNodesAfterDelete = proj.workflow!.nodes.filter((n) => isCameraWaypointNode(n) && n.params?.shotId === shotA.id)
+    expect(wpNodesAfterDelete.length).toBe(wpNodesInitial.length)
   })
 })

@@ -33,18 +33,22 @@ const isRoot = (n: WorkflowNode): boolean => n.type === 'scene_shot'
 const isGroup = (n: WorkflowNode): boolean => Boolean(n.params?.groupKind)
 const isLayer = (n: WorkflowNode): boolean => n.type === 'layer_assembly' && !n.params?.groupKind
 const isCamera = (n: WorkflowNode): boolean => n.type === 'camera_director'
+const isParentCamera = (n: WorkflowNode): boolean => n.type === 'camera_director' && !n.params?.isCameraWaypoint
+const isCameraWaypoint = (n: WorkflowNode): boolean => n.type === 'camera_director' && Boolean(n.params?.isCameraWaypoint)
 const isLogic = (n: WorkflowNode): boolean => !isRoot(n) && !isCamera(n) && n.type !== 'layer_assembly'
 
 /**
- * Tập Node bị ẩn khi thu gọn Nhóm: Layer con của Nhóm đang thu gọn bị ẩn;
- * Node Logic chỉ bị ẩn khi TẤT CẢ Layer cha đều bị ẩn (Node dùng chung vẫn hiện nếu còn 1 cha hiển thị).
+ * Tập Node bị ẩn khi thu gọn Nhóm hoặc Camera:
+ * - Layer con của Nhóm đang thu gọn bị ẩn; các cảnh con lộ trình quay của Camera đang thu gọn bị ẩn.
+ * - Node Logic chỉ bị ẩn khi TẤT CẢ Layer cha đều bị ẩn (Node dùng chung vẫn hiện nếu còn 1 cha hiển thị).
  */
 export function resolveHiddenV2NodeIds(nodes: WorkflowNode[], edges: WorkflowEdge[]): Set<string> {
   const byId = new Map(nodes.map((n) => [n.id, n]))
   const parentsOf = new Map<string, WorkflowNode[]>()
   for (const e of edges) {
+    if (e.id.startsWith('e-camchain-')) continue
     const from = byId.get(e.fromNode)
-    if (!from || !byId.has(e.toNode) || isCamera(from)) continue
+    if (!from || !byId.has(e.toNode)) continue
     const list = parentsOf.get(e.toNode) ?? []
     if (!list.includes(from)) list.push(from)
     parentsOf.set(e.toNode, list)
@@ -91,10 +95,33 @@ function assignLogicOwners(layers: WorkflowNode[], edges: WorkflowEdge[], byId: 
 function layoutCluster(root: WorkflowNode, startY: number, edges: WorkflowEdge[], byId: Map<string, WorkflowNode>, owners: Map<string, WorkflowNode[]>): number {
   root.position = { x: WF_V2_COL_X.ROOT, y: startY }
   let bottom = startY + WF_V2_NODE_H
-  childrenOf(root.id, edges, byId, isCamera).forEach((cam, idx) => {
-    cam.position = { x: WF_V2_COL_X.ROOT, y: startY + (idx + 1) * (WF_V2_NODE_H + LAYER_GAP) }
+  let camCursorY = startY + WF_V2_NODE_H + LAYER_GAP
+  for (const cam of childrenOf(root.id, edges, byId, isParentCamera)) {
+    cam.position = { x: WF_V2_COL_X.ROOT, y: camCursorY }
     bottom = Math.max(bottom, cam.position.y + WF_V2_NODE_H)
-  })
+    camCursorY += WF_V2_NODE_H + LAYER_GAP
+
+    // Xếp chuỗi các node con lộ trình quay / cảnh con ngay bên dưới Node Camera của cảnh đó
+    const waypoints: WorkflowNode[] = []
+    let curId = cam.id
+    const visited = new Set<string>([cam.id])
+    while (true) {
+      const next = childrenOf(curId, edges, byId, isCameraWaypoint).find((w) => !visited.has(w.id))
+      if (!next) break
+      visited.add(next.id)
+      waypoints.push(next)
+      curId = next.id
+    }
+    if (cam.params?.collapsedGroup) {
+      waypoints.forEach((wp) => (wp.position = { ...cam.position }))
+      continue
+    }
+    for (const wp of waypoints) {
+      wp.position = { x: WF_V2_COL_X.ROOT, y: camCursorY }
+      bottom = Math.max(bottom, wp.position.y + WF_V2_NODE_H)
+      camCursorY += WF_V2_NODE_H + LAYER_GAP
+    }
+  }
   let cursorY = startY
   for (const grp of childrenOf(root.id, edges, byId, isGroup)) {
     const layers = childrenOf(grp.id, edges, byId, isLayer)
@@ -207,8 +234,20 @@ export function computeV2Clusters(nodes: WorkflowNode[], edges: WorkflowEdge[], 
       .map((e) => byId.get(e.fromNode))
       .filter((n): n is WorkflowNode => Boolean(n && pick(n)))
       .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))[0]
-  for (const n of nodes) if (isRoot(n)) clusterOf.set(n.id, n.id)
-  for (const n of nodes) if (isCamera(n) || isGroup(n)) clusterOf.set(n.id, parentOf(n.id, isRoot)?.id ?? '')
+  const rootByShot = new Map<string, string>()
+  for (const n of nodes) {
+    if (isRoot(n)) {
+      clusterOf.set(n.id, n.id)
+      if (n.params?.shotId) rootByShot.set(n.params.shotId, n.id)
+    }
+  }
+  for (const n of nodes) if (isParentCamera(n) || isGroup(n)) clusterOf.set(n.id, parentOf(n.id, isRoot)?.id ?? (n.params?.shotId ? rootByShot.get(n.params.shotId) ?? '' : ''))
+  for (const n of nodes) {
+    if (isCameraWaypoint(n)) {
+      const parentCluster = clusterOf.get(n.params?.hierarchyParentNodeId ?? '') ?? (n.params?.shotId ? rootByShot.get(n.params.shotId) : '') ?? ''
+      clusterOf.set(n.id, parentCluster)
+    }
+  }
   for (const n of nodes) if (isLayer(n)) clusterOf.set(n.id, clusterOf.get(parentOf(n.id, isGroup)?.id ?? '') ?? '')
   for (const n of nodes) if (isLogic(n)) clusterOf.set(n.id, clusterOf.get(parentOf(n.id, isLayer)?.id ?? '') ?? '')
   return nodes.filter(isRoot).map((root) => {

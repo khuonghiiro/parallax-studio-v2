@@ -59,7 +59,7 @@ export const WorkflowV2EdgeLayer: React.FC<{
       {items.map(({ edge, from, to, kind, lane, running, lit, label }) => {
         const d = buildEdgePath(from, to, kind, wireStyle, lane)
         const color = KIND_COLOR[kind] ?? resolveV2NodeTheme(to).accent
-        const disconnectable = kind === 'logic' || kind === 'data'
+        const disconnectable = (kind === 'logic' || kind === 'data') && !to.params?.isCameraWaypoint
         return (
           <g
             key={edge.id}

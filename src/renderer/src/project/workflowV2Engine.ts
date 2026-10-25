@@ -15,7 +15,11 @@ export {
   recomputeSharedLogicTargets,
   validateWorkflowV2Connection
 } from './workflowV2PhysicsAndValidation'
-export { attachLogicNodeToLayerV2, syncWorkflowV2NodeToProject } from './workflowV2Mutations'
+export {
+  attachLogicNodeToLayerV2,
+  spawnWorkflowV2CameraWaypoint,
+  syncWorkflowV2NodeToProject
+} from './workflowV2Mutations'
 export {
   WF_V2_CAMERA_LANE_X,
   WF_V2_CLUSTER_HEADER,
@@ -34,16 +38,21 @@ export {
 export {
   V2_SHARED_CLUSTER,
   computeShotRoute,
+  extractShotCameraWaypoints,
   getShotTimeRange,
+  isCameraWaypointNode,
+  isParentCameraNode,
   isWorkflowV2Graph,
   layerClusterKey,
   resolveGroupTimeRange,
   resolveLayerNodeTimeRange,
   shotIdAtTime,
   v2CameraId,
+  v2CameraWaypointId,
   v2GroupId,
   v2LayerNodeId,
-  v2RootId
+  v2RootId,
+  type ShotCameraWaypointStep
 } from './workflowV2Scope'
 export { isCameraChainEdge } from './workflowV2Skeleton'
 export { syncWorkflowV2Graph, type SyncWorkflowV2Options } from './workflowV2Sync'
@@ -56,6 +65,7 @@ export {
   type WorkflowMainJson,
   type WorkflowMainShotRef,
   type WorkflowModularBundleJson,
+  type WorkflowShotCameraWaypointSpec,
   type WorkflowShotJson,
   type WorkflowShotLayerSpec,
   type WorkflowShotLogicSpec

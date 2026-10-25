@@ -70,14 +70,18 @@ export function summarizeV2Node(node: WorkflowNode, childCount: number): string 
     case 'fx':
       return `Cường độ ${pct(p.intensity, 1)}`
     case 'camera':
-      return p.enableDof ? 'DOF bật' : 'DOF tắt'
+      if (p.isCameraWaypoint) {
+        return `Zoom ${p.camZoomPct ?? 100}%${p.camYaw || p.camPitch || p.camRoll ? ' · Góc 3D' : ''}`
+      }
+      return `${p.childLayerCount ?? childCount} cảnh con · ${p.enableDof ? 'DOF bật' : 'DOF tắt'}`
     default:
       return `Âm lượng ${pct(p.intensity, 1)}${p.autoLipSync ? ' · nhép môi' : ''}`
   }
 }
 
-/** Node Logic gắn vào Layer (trừ Camera) là loại duy nhất được xoá khỏi cây */
+/** Node Logic gắn vào Layer và các mốc lộ trình quay phụ (> #1) được phép xoá khỏi cây */
 export function isDeletableV2Node(node: WorkflowNode): boolean {
+  if (node.params?.isCameraWaypoint) return (node.params?.waypointIndex ?? 0) > 0
   return resolveV2NodeLevel(node) === 'logic' && resolveV2LogicCategory(node) !== 'camera'
 }
 
@@ -186,11 +190,19 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
           <span className="wf-v2-card-title" title={node.title}>{cleanV2NodeTitle(node.title)}</span>
         </div>
         <div className="wf-v2-card-actions" onPointerDown={(e) => e.stopPropagation()}>
-          {level === 'group' && (
+          {(level === 'group' || (node.type === 'camera_director' && !node.params?.isCameraWaypoint)) && (
             <button
               type="button"
               className={`wf-v2-icon-btn${collapsed ? ' collapsed' : ''}`}
-              title={collapsed ? 'Mở rộng các Layer trong nhóm' : 'Thu gọn nhóm'}
+              title={
+                node.type === 'camera_director'
+                  ? collapsed
+                    ? 'Mở rộng các cảnh con lộ trình quay'
+                    : 'Thu gọn các cảnh con lộ trình quay'
+                  : collapsed
+                    ? 'Mở rộng các Layer trong nhóm'
+                    : 'Thu gọn nhóm'
+              }
               onClick={() => onUpdateParams(node.id, { collapsedGroup: !collapsed })}
             >
               {collapsed ? `+${node.params?.childLayerCount ?? childCount}` : '−'}

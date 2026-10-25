@@ -34,13 +34,22 @@ function buildOutline(workflow: WorkflowGraph): OutlineCluster[] {
       .filter((n): n is WorkflowNode => Boolean(n && pick(n)))
   return workflow.nodes
     .filter((n) => n.type === 'scene_shot')
-    .map((root) => ({
-      root,
-      groups: kids(root.id, (n) => Boolean(n.params?.groupKind)).map((group) => ({
+    .map((root) => {
+      const camBranches = kids(root.id, (n) => n.type === 'camera_director' && !n.params?.isCameraWaypoint).map((cam) => {
+        const waypoints = workflow.nodes
+          .filter((n) => n.type === 'camera_director' && Boolean(n.params?.isCameraWaypoint) && n.params?.shotId === root.params?.shotId)
+          .sort((a, b) => (a.params?.waypointLocalIndex ?? 0) - (b.params?.waypointLocalIndex ?? 0))
+        return { group: { ...cam, title: 'Lộ trình Camera' }, layers: waypoints }
+      })
+      const layerBranches = kids(root.id, (n) => Boolean(n.params?.groupKind)).map((group) => ({
         group,
         layers: kids(group.id, (n) => n.type === 'layer_assembly' && !n.params?.groupKind)
       }))
-    }))
+      return {
+        root,
+        groups: [...camBranches, ...layerBranches]
+      }
+    })
 }
 
 const GroupRows: React.FC<{

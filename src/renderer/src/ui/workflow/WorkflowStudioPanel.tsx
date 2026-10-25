@@ -188,6 +188,8 @@ export const WorkflowStudioPanel: React.FC = () => {
           onToggleEnable={actions.toggleEnable}
           onDeleteNode={actions.deleteNode}
           onAttachLogic={actions.attachLogic}
+          onSpawnCameraWaypoint={actions.spawnCameraWaypoint}
+          onSelectNode={selectNode}
           onConnectLayer={(layerNodeId, logicNodeId) => actions.connect(layerNodeId, 'layers_tree', logicNodeId, 'layers_tree')}
           onScrubTime={setTime}
         />

@@ -236,6 +236,40 @@ export interface WorkflowNodeParams {
   fxKind?: 'wind_physics' | 'bloom' | 'blur' | 'chromatic' | 'vignette' | 'particles'
   /** [Workflow V2] Node đã được người dùng kéo đặt tay — giữ nguyên vị trí khi tự xếp lại cây (nút "Sắp xếp" sẽ bỏ ghim) */
   pinned?: boolean
+  /** [Workflow V2] Đánh dấu Node con lộ trình quay / cảnh con thuộc Node Camera của một Cảnh */
+  isCameraWaypoint?: boolean
+  /** [Workflow V2] Chỉ số toàn cục (0-based) của mốc lộ trình quay trên đường đi Camera */
+  waypointIndex?: number
+  /** [Workflow V2] Chỉ số cục bộ (0-based) của mốc lộ trình quay bên trong Cảnh hiện tại */
+  waypointLocalIndex?: number
+  /** [Workflow V2] Nhãn hiển thị thứ tự mốc quay (ví dụ: '1', '2', '2.1', '3') */
+  waypointLabel?: string
+  /** [Workflow V2] True nếu đây là cảnh phụ / mốc nhánh bổ sung (ví dụ: #2.1, #2.2) */
+  isSubWaypoint?: boolean
+  /** [Workflow V2] True nếu đây là mốc mở đầu của Cảnh */
+  isFirstOfShot?: boolean
+  /** [Workflow V2] Chế độ động tác quay phim của mốc (ví dụ: 'pan', 'push-in', 'pull-out', 'hold'...) */
+  camActionMode?: string
+  /** [Workflow V2] Nhãn mô tả động tác quay (ví dụ: 'Mở đầu 100%', 'Đẩy cận 172%') */
+  camTagLabel?: string
+  /** [Workflow V2] Độ phóng đại khung ngắm tại mốc (%) */
+  camZoomPct?: number
+  /** [Workflow V2] Tọa độ tâm X trên mặt phẳng Stage 2D */
+  camStageX?: number
+  /** [Workflow V2] Tọa độ tâm Y trên mặt phẳng Stage 2D */
+  camStageY?: number
+  /** [Workflow V2] Tỉ lệ khung ngắm Camera (1.0 = 100%, < 1 = đẩy cận, > 1 = kéo rộng) */
+  camScale?: number
+  /** [Workflow V2] Góc xoay ngang 3D Yaw (độ) */
+  camYaw?: number
+  /** [Workflow V2] Góc ngẩng/cúi 3D Pitch (độ) */
+  camPitch?: number
+  /** [Workflow V2] Góc nghiêng máy Roll / Dutch angle (độ) */
+  camRoll?: number
+  /** [Workflow V2] Đường cong gia tốc nội suy giữa các mốc ('easeInOut' | 'linear' | 'hold'...) */
+  camEase?: string
+  /** [Workflow V2] Thời lượng riêng của bước quay xuất phát từ mốc này (giây) */
+  camStepDuration?: number
 }
 export interface WorkflowNode {
   id: string

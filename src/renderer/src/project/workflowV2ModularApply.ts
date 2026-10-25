@@ -22,6 +22,7 @@ import {
 } from './workflowV2Rebuild'
 import {
   V2_SHARED_CLUSTER,
+  isCameraWaypointNode,
   layerClusterKey,
   v2CameraId,
   v2LayerNodeId,
@@ -344,6 +345,37 @@ export function applyShotWorkflowJson(
             enableDof: typeof shotDoc.camera.enableDof === 'boolean' ? shotDoc.camera.enableDof : n.params?.enableDof,
             timeStart: typeof shotDoc.camera.timeStart === 'number' ? shotDoc.camera.timeStart : n.params?.timeStart,
             timeEnd: typeof shotDoc.camera.timeEnd === 'number' ? shotDoc.camera.timeEnd : n.params?.timeEnd
+          }
+        }
+      }
+      if (shot && isCameraWaypointNode(n) && n.params?.shotId === shot.id && Array.isArray(shotDoc.camera?.waypoints)) {
+        const wSpec =
+          shotDoc.camera.waypoints.find((w) => w.nodeId === n.id) ??
+          shotDoc.camera.waypoints.find((w) => w.index === (n.params?.waypointLocalIndex ?? 0) + 1)
+        if (wSpec) {
+          const zoomPct = typeof wSpec.zoomPct === 'number' && wSpec.zoomPct > 5 ? wSpec.zoomPct : n.params?.camZoomPct
+          const nextScale =
+            typeof wSpec.scale === 'number' && wSpec.scale !== n.params?.camScale
+              ? wSpec.scale
+              : zoomPct
+                ? Number((100 / zoomPct).toFixed(3))
+                : n.params?.camScale
+          return {
+            ...n,
+            params: {
+              ...n.params,
+              camActionMode: (wSpec.actionMode as never) ?? n.params?.camActionMode,
+              camZoomPct: zoomPct,
+              camScale: nextScale,
+              camStageX: typeof wSpec.stageX === 'number' ? wSpec.stageX : n.params?.camStageX,
+              camStageY: typeof wSpec.stageY === 'number' ? wSpec.stageY : n.params?.camStageY,
+              camYaw: typeof wSpec.yaw === 'number' ? wSpec.yaw : n.params?.camYaw,
+              camPitch: typeof wSpec.pitch === 'number' ? wSpec.pitch : n.params?.camPitch,
+              camRoll: typeof wSpec.roll === 'number' ? wSpec.roll : n.params?.camRoll,
+              camStepDuration: typeof wSpec.stepDuration === 'number' ? wSpec.stepDuration : n.params?.camStepDuration,
+              timeStart: typeof wSpec.timeStart === 'number' ? wSpec.timeStart : n.params?.timeStart,
+              timeEnd: typeof wSpec.timeEnd === 'number' ? wSpec.timeEnd : n.params?.timeEnd
+            }
           }
         }
       }

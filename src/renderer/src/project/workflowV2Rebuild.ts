@@ -1,5 +1,6 @@
 import type { Project, WorkflowGraph, WorkflowNode } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
+import { removeCameraWaypoint } from '../ui/viewer/animateCamera/animateCameraRouteLogic'
 import { syncWorkflowV2NodeToProject } from './workflowV2Mutations'
 import { getNodeLogicCategory } from './workflowV2PhysicsAndValidation'
 import { syncWorkflowV2Graph } from './workflowV2Sync'
@@ -38,6 +39,10 @@ export function applyWorkflowV2ToProject(project: Project, workflow: WorkflowGra
  * Sau khi gỡ, dữ liệu Layer không còn hiệu ứng nên Node không bị suy diễn hồi sinh ở Timeline / Workflow.
  */
 export function detachWorkflowV2NodeFromProject(project: Project, node: WorkflowNode): void {
+  if (node.type === 'camera_director' && node.params?.isCameraWaypoint) {
+    removeCameraWaypoint(project, node.params.timeStart ?? 0)
+    return
+  }
   const cat = logicCategoryOf(node)
   if (!cat) return
   const targets = new Set(node.params?.targetLayerIds ?? [])

@@ -23,13 +23,16 @@ const isLogicNode = (n: WorkflowNode): boolean => {
 
 /** Chuyển trạng thái người dùng (vị trí, thu gọn, ghim, cấu hình camera) từ cây cũ sang bộ khung mới */
 function carryUserState(node: WorkflowNode, prev: WorkflowNode | undefined, legacyCamera: WorkflowNode | undefined): WorkflowNode {
-  const src = prev ?? (node.type === 'camera_director' ? legacyCamera : undefined)
+  const isParentCam = node.type === 'camera_director' && !node.params?.isCameraWaypoint
+  const src = prev ?? (isParentCam ? legacyCamera : undefined)
   if (!src) return node
   const params = { ...node.params }
-  if (src.params?.collapsedGroup !== undefined && node.params?.groupKind) params.collapsedGroup = src.params.collapsedGroup
+  if (src.params?.collapsedGroup !== undefined && (node.params?.groupKind || isParentCam)) {
+    params.collapsedGroup = src.params.collapsedGroup
+  }
   if (src.params?.pinned) params.pinned = true
   let enabled = node.enabled
-  if (node.type === 'camera_director') {
+  if (isParentCam) {
     for (const key of CAMERA_KEEP) if (src.params?.[key] !== undefined) (params as Record<string, unknown>)[key] = src.params[key]
     enabled = src.enabled
   }
@@ -50,7 +53,7 @@ function preservedLogic(project: Project, prev: WorkflowGraph, layerNodeIds: Set
 }
 
 const signature = (nodes: WorkflowNode[], edges: WorkflowEdge[]): string =>
-  `${nodes.map((n) => n.id).sort().join(',')}|${edges.map((e) => e.id).sort().join(',')}`
+  `${nodes.map((n) => `${n.id}:${n.params?.collapsedGroup ? 1 : 0}`).sort().join(',')}|${edges.map((e) => e.id).sort().join(',')}`
 
 /**
  * Đồng bộ MỘT đồ thị Workflow V2 cho toàn dự án từ dữ liệu thật (Layer, Shot, Camera, Audio):

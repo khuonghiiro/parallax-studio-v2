@@ -92,6 +92,8 @@ describe('Workflow V2 Modular JSON (main.json + shots/shot-N.json)', () => {
     expect(s1Json.links.nextShotId).toBe(shot2.id)
     expect(s1Json.links.nextShotFile).toBe('shots/shot-2.json')
     expect(s1Json.layers.map((l) => l.name)).toEqual(['Hiệp Sĩ', 'Cây Cổ Thụ'])
+    expect(s1Json.camera.waypoints?.length).toBeGreaterThanOrEqual(1)
+    expect(s1Json.camera.waypoints?.[0].nodeId).toBe(`v2-cam-wp-${shot1.id}-0`)
     expect(s1Json.logic).toHaveLength(1)
     expect(s1Json.logic[0]).toMatchObject({
       category: 'action',
@@ -119,6 +121,10 @@ describe('Workflow V2 Modular JSON (main.json + shots/shot-N.json)', () => {
     s1Json.shot.name = 'Cảnh 1 — Bình Minh'
     s1Json.layers[0].timeStart = 0.5
     s1Json.layers[0].timeEnd = 4.2
+    if (s1Json.camera.waypoints?.[0]) {
+      s1Json.camera.waypoints[0].zoomPct = 150
+      s1Json.camera.waypoints[0].yaw = 10
+    }
     s1Json.logic = [
       {
         id: 'v2-material-tree',
@@ -145,6 +151,9 @@ describe('Workflow V2 Modular JSON (main.json + shots/shot-N.json)', () => {
     // Logic vật liệu mới đã áp vào Cây Cổ Thụ (l2)
     expect(l2.physics?.enabled).toBe(true)
     expect(l2.physics?.material).toBe('wood_plank')
+    const s1After = buildShotWorkflowJson(project, shot1.id)
+    expect(s1After.camera.waypoints?.[0].zoomPct).toBeCloseTo(150, -1)
+    expect(s1After.camera.waypoints?.[0].yaw).toBeCloseTo(10, 0)
 
     // Cảnh 2 hoàn toàn không bị ảnh hưởng
     expect(project.shots[1].name).toBe('Cảnh 2 — Hang Đá')

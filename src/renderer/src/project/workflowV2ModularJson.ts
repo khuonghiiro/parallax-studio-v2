@@ -16,12 +16,33 @@ import { resolveWorkflowV2 } from './workflowV2Rebuild'
 import {
   V2_SHARED_CLUSTER,
   computeShotRoute,
+  extractShotCameraWaypoints,
   layerClusterKey,
   resolveLayerNodeTimeRange,
   v2CameraId,
   v2LayerNodeId,
   v2RootId
 } from './workflowV2Scope'
+
+export interface WorkflowShotCameraWaypointSpec {
+  nodeId: string
+  index: number
+  label: string
+  isSubWaypoint: boolean
+  actionMode: string
+  tagLabel: string
+  timeStart: number
+  timeEnd: number
+  stepDuration: number
+  zoomPct: number
+  stageX: number
+  stageY: number
+  scale: number
+  yaw: number
+  pitch: number
+  roll: number
+  ease: string
+}
 
 export interface WorkflowMainShotRef {
   shotId: string
@@ -34,6 +55,7 @@ export interface WorkflowMainShotRef {
   timeStart: number
   timeEnd: number
   cameraPreset: string
+  waypointCount?: number
   layerCount: number
   logicCount: number
 }
@@ -132,6 +154,7 @@ export interface WorkflowShotJson {
     enableDof: boolean
     timeStart: number
     timeEnd: number
+    waypoints?: WorkflowShotCameraWaypointSpec[]
   }
   groups: {
     id: string
@@ -232,6 +255,7 @@ function isClusterNode(node: WorkflowNode, clusterKey: string): boolean {
 export function buildMainWorkflowJson(project: Project, wfInput?: WorkflowGraph): WorkflowMainJson {
   const wf = wfInput ?? resolveWorkflowV2(project)
   const route = computeShotRoute(project)
+  const waypointsByShot = extractShotCameraWaypoints(project)
   const reps = collectRepresentativeLayers(project.layers)
   const { aliases } = buildCompactAssetAliases(project)
   const compDur = Math.max(1, Number((project.comp.duration || 5).toFixed(2)))
@@ -255,6 +279,7 @@ export function buildMainWorkflowJson(project: Project, wfInput?: WorkflowGraph)
       timeStart: range.start,
       timeEnd: range.end,
       cameraPreset: String(camNode?.params?.camPreset ?? 'dollyIn'),
+      waypointCount: waypointsByShot.get(shot.id)?.length ?? 1,
       layerCount: shotLayers.length,
       logicCount: logicNodes.length
     }
@@ -326,6 +351,27 @@ export function buildShotWorkflowJson(project: Project, shotIdOrShared: string, 
   const clusterEdges = wf.edges.filter((e) => nodeIdSet.has(e.fromNode) && nodeIdSet.has(e.toNode))
 
   const camNode = shot ? wf.nodes.find((n) => n.id === v2CameraId(shot.id)) : undefined
+  const shotWaypoints: WorkflowShotCameraWaypointSpec[] = shot
+    ? (extractShotCameraWaypoints(project).get(shot.id) ?? []).map((w) => ({
+        nodeId: w.nodeId,
+        index: w.localIndex + 1,
+        label: w.displayLabel,
+        isSubWaypoint: w.isSubWaypoint,
+        actionMode: w.actionMode,
+        tagLabel: w.tagLabel,
+        timeStart: w.timeStart,
+        timeEnd: w.timeEnd,
+        stepDuration: w.stepDuration,
+        zoomPct: w.zoomPct,
+        stageX: w.stageX,
+        stageY: w.stageY,
+        scale: w.scale,
+        yaw: w.yaw,
+        pitch: w.pitch,
+        roll: w.roll,
+        ease: w.ease
+      }))
+    : []
   const groupNodes = clusterNodes.filter((n) => n.type === 'layer_assembly' && Boolean(n.params?.groupKind))
   const shotReps = reps.filter((it) => layerClusterKey(project, it.layer) === clusterKey)
 
@@ -409,7 +455,8 @@ export function buildShotWorkflowJson(project: Project, shotIdOrShared: string, 
       preset: String(camNode?.params?.camPreset ?? 'dollyIn'),
       enableDof: Boolean(camNode?.params?.enableDof ?? project.camera?.dofEnabled),
       timeStart: Number((camNode?.params?.timeStart ?? range.start).toFixed(2)),
-      timeEnd: Number((camNode?.params?.timeEnd ?? range.end).toFixed(2))
+      timeEnd: Number((camNode?.params?.timeEnd ?? range.end).toFixed(2)),
+      waypoints: shotWaypoints
     },
     groups: groupNodes.map((g) => ({
       id: g.id,

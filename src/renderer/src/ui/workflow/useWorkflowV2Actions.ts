@@ -7,7 +7,10 @@ import {
   findFreeV2Spot,
   layoutWorkflowV2Tree,
   recomputeSharedLogicTargets,
+  spawnWorkflowV2CameraWaypoint,
+  syncWorkflowV2Graph,
   syncWorkflowV2NodeToProject,
+  v2CameraId,
   validateWorkflowV2Connection
 } from '../../project/workflowV2Engine'
 import {
@@ -76,11 +79,21 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
     [workflow]
   )
 
-  /** Xoá Node Logic: gỡ dây, gỡ hẳn hiệu ứng khỏi Layer (Timeline cũng mất chip tương ứng) */
+  /** Xoá Node Logic hoặc mốc lộ trình quay phụ: gỡ dây, gỡ hẳn khỏi Layer / lộ trình Camera */
   const deleteNode = useCallback(
     (nodeId: string) => {
       const target = workflow.nodes.find((n) => n.id === nodeId)
       if (!target || !isDeletableV2Node(target)) return
+      if (target.params?.isCameraWaypoint) {
+        const parentCamId = target.params?.shotId ? v2CameraId(target.params.shotId) : null
+        useEditor.getState().update((draft) => {
+          detachWorkflowV2NodeFromProject(draft as Project, target)
+          draft.workflow = syncWorkflowV2Graph(draft as Project, draft.workflow as WorkflowGraph, { relayout: true })
+        }, 'wf-v2-delete-cam-wp')
+        if (selectedNodeId === nodeId) setSelectedNodeId(parentCamId)
+        showToast(`Đã xoá mốc lộ trình quay "${cleanV2NodeTitle(target.title)}"`)
+        return
+      }
       const edges = workflow.edges.filter((e) => e.fromNode !== nodeId && e.toNode !== nodeId)
       const synced = recomputeSharedLogicTargets(workflow.nodes.filter((n) => n.id !== nodeId), edges)
       useEditor.getState().update((draft) => {
@@ -104,12 +117,45 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
         const updated = nodes.find((n) => n.id === nodeId)
         if (!updated || relayoutNeeded) return
         syncWorkflowV2NodeToProject(draft as Project, updated, patch)
+        if (updated.params?.isCameraWaypoint) {
+          draft.workflow = syncWorkflowV2Graph(draft as Project, draft.workflow as WorkflowGraph)
+          return
+        }
         if (updated.params?.logicCategory === 'material') {
           for (const n of nodes) if (n.params?.logicCategory === 'collision') syncWorkflowV2NodeToProject(draft as Project, n)
         }
       }, `wf-v2-param-${nodeId}`)
     },
     [workflow]
+  )
+
+  const spawnCameraWaypoint = useCallback(
+    (shotId: string, mode: 'pan' | 'zoom-in' | 'zoom-out' | 'hold' = 'zoom-in', fromWaypointTime?: number) => {
+      let spawnedNodeId: string | null = null
+      let spawnedLabel = ''
+      let spawnedShotName = ''
+      useEditor.getState().update((draft) => {
+        const res = spawnWorkflowV2CameraWaypoint(draft as Project, shotId, mode, fromWaypointTime)
+        const nextWf = syncWorkflowV2Graph(draft as Project, draft.workflow as WorkflowGraph, { relayout: true })
+        draft.workflow = nextWf
+        if (res) {
+          spawnedLabel = res.displayLabel
+          spawnedShotName = res.shotName
+          const match = nextWf.nodes.find(
+            (n) => n.params?.isCameraWaypoint && n.params?.shotId === shotId && Math.abs((n.params?.timeStart ?? -1) - res.nextTime) <= 0.08
+          )
+          spawnedNodeId = match?.id ?? null
+        }
+      }, 'wf-v2-spawn-cam-wp')
+      if (spawnedNodeId) {
+        setSelectedNodeId(spawnedNodeId)
+        window.dispatchEvent(new CustomEvent('pxs:wf-focus-node', { detail: { nodeId: spawnedNodeId } }))
+      }
+      if (spawnedLabel) {
+        showToast(`Đã thêm cảnh con #${spawnedLabel} vào lộ trình quay của "${spawnedShotName}"`)
+      }
+    },
+    [setSelectedNodeId, showToast]
   )
 
   const attachLogic = useCallback(
@@ -185,5 +231,5 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
     showToast('Đã áp dụng toàn bộ cây Workflow vào cảnh')
   }, [workflow, showToast])
 
-  return { relayout, moveNodes, toggleEnable, deleteNode, updateParams, attachLogic, connect, disconnect, applyAll }
+  return { relayout, moveNodes, toggleEnable, deleteNode, updateParams, attachLogic, spawnCameraWaypoint, connect, disconnect, applyAll }
 }

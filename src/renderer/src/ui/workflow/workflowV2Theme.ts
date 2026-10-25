@@ -70,6 +70,17 @@ export function resolveV2NodeTheme(node: WorkflowNode): WorkflowV2NodeTheme {
       levelClass: 'level-layer'
     }
   }
+  if (node.params?.isCameraWaypoint) {
+    const wpLbl = node.params.waypointLabel ? `#${node.params.waypointLabel}` : ''
+    return {
+      badge: node.params.isSubWaypoint ? `CẢNH PHỤ ${wpLbl}`.trim() : `CẢNH CON ${wpLbl}`.trim(),
+      icon: node.params.isSubWaypoint ? '↳' : '🎯',
+      accent: node.params.isSubWaypoint ? '#38bdf8' : '#06b6d4',
+      portIn: 'camera_cut',
+      portOut: 'camera_cut',
+      levelClass: 'level-logic is-cam-waypoint'
+    }
+  }
   return LOGIC_THEMES[resolveV2LogicCategory(node)] ?? LOGIC_THEMES.action
 }
 
