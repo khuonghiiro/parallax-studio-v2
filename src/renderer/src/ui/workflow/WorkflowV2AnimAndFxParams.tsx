@@ -341,35 +341,44 @@ export function WorkflowV2ActionParams(props: WorkflowV2NodeParamsProps): React.
         <Row label="Biên X / Y" title="Biên độ dịch chuyển ngang (X px) và dọc (Y px)">
           <NumberInput
             axis="x"
-            value={motion.xAmount ?? 16}
+            value={motion.amplitude?.[0] ?? 16}
             step={2}
             precision={0}
             min={0}
             max={240}
             suffix="px"
-            onChange={(v, k) => patchMotion({ xAmount: v }, k)}
+            onChange={(v, k) => {
+              const cur = motion.amplitude ?? ([16, 14, 0] as const)
+              patchMotion({ amplitude: [v, cur[1], cur[2]] }, k)
+            }}
           />
           <NumberInput
             axis="y"
-            value={motion.yAmount ?? 14}
+            value={motion.amplitude?.[1] ?? 14}
             step={2}
             precision={0}
             min={0}
             max={240}
             suffix="px"
-            onChange={(v, k) => patchMotion({ yAmount: v }, k)}
+            onChange={(v, k) => {
+              const cur = motion.amplitude ?? ([16, 14, 0] as const)
+              patchMotion({ amplitude: [cur[0], v, cur[2]] }, k)
+            }}
           />
         </Row>
         <Row label="Nghiêng / Vào-Ra" title="Góc lắc nghiêng (°) và thời gian hòa trộn vào/ra mượt (giây)">
           <NumberInput
             axis="∠"
-            value={motion.tiltDeg ?? 4}
+            value={motion.amplitude?.[2] ?? 4}
             step={1}
             precision={0}
             min={0}
             max={45}
             suffix="°"
-            onChange={(v, k) => patchMotion({ tiltDeg: v }, k)}
+            onChange={(v, k) => {
+              const cur = motion.amplitude ?? ([16, 14, 4] as const)
+              patchMotion({ amplitude: [cur[0], cur[1], v] }, k)
+            }}
           />
           <NumberInput
             axis="in"
@@ -470,17 +479,17 @@ export function WorkflowV2FxParams(props: WorkflowV2NodeParamsProps): React.Reac
               }, 'wf-fx-bounce')
             }
           />
-          <Row label="Neo cạnh lưới" title="Cạnh giữ cố định khi lưới 2.5D uốn theo gió/lực">
+          <Row label="Vùng neo lưới" title="Vùng giữ cố định khi lưới 2.5D uốn theo gió/lực">
             <OptionPills
               cols={4}
               options={[
-                { id: 'bottom', label: '↓ Neo Đáy' },
-                { id: 'top', label: '↑ Neo Đỉnh' },
-                { id: 'left', label: '← Neo Trái' },
-                { id: 'none', label: 'Tự do' }
+                { id: 'foot_bottom', label: '↓ Neo Đáy' },
+                { id: 'top_surface', label: '↑ Neo Đỉnh' },
+                { id: 'trunk_center', label: '← Thân' },
+                { id: 'full', label: 'Tự do' }
               ]}
-              value={phys.subMeshRegion?.fixedEdge ?? 'bottom'}
-              onPick={(edge) =>
+              value={phys.colliderZone ?? 'foot_bottom'}
+              onPick={(zone) =>
                 useEditor.getState().update((d) => {
                   const l = d.layers.find((x) => x.id === layer?.id)
                   if (!l) return
@@ -488,11 +497,7 @@ export function WorkflowV2FxParams(props: WorkflowV2NodeParamsProps): React.Reac
                   l.physics = {
                     ...base,
                     enabled: true,
-                    subMeshRegion: {
-                      ...(base.subMeshRegion ?? { enabled: true, uvRect: [0.1, 0.1, 0.9, 0.9], feather: 0.25 }),
-                      enabled: true,
-                      fixedEdge: edge as 'none' | 'bottom' | 'top' | 'left' | 'right'
-                    }
+                    colliderZone: zone
                   }
                 })
               }

@@ -659,3 +659,31 @@
   gap: 4px;
   flex-shrink: 0;
 }
+
+.wf-v2-insp-collapse-btn {
+  padding: 0 6px;
+}
+
+.wf-v2-insp-subhead {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-cyan);
+  padding-top: 6px;
+  margin-top: 2px;
+  border-top: 1px dashed var(--line-soft);
+}
+.wf-v2-insp-sec > .wf-v2-insp-subhead:first-of-type {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: none;
+}
+
+.wf-v2-cam-rig-embed {
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-0);
+}
+

@@ -678,7 +678,7 @@ export function WorkflowV2CaveParams(props: WorkflowV2NodeParamsProps): React.Re
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
           <ColorInput
             compact
-            value={portal.shadowTint}
+            value={portal.shadowTint ?? '#060812'}
             onChange={(val, k) => patchPortal({ shadowTint: val }, k)}
             title="Chọn màu bóng tối lòng hang"
           />
@@ -688,7 +688,7 @@ export function WorkflowV2CaveParams(props: WorkflowV2NodeParamsProps): React.Re
                 key={sw.color}
                 type="button"
                 title={sw.title}
-                className={`vl-swatch-btn ${portal.shadowTint.toLowerCase() === sw.color ? 'active' : ''}`}
+                className={`vl-swatch-btn ${(portal.shadowTint ?? '#060812').toLowerCase() === sw.color ? 'active' : ''}`}
                 style={{ background: sw.color }}
                 onClick={() => patchPortal({ shadowTint: sw.color })}
               />

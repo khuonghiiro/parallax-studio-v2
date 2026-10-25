@@ -271,8 +271,8 @@ export function applyShotWorkflowJson(
         if (layer.id === rep.layer.id) {
           if (typeof lSpec.name === 'string' && lSpec.name.trim()) {
             const nextName = lSpec.name.trim()
-            if (layer.model3d) layer.model3d.instanceName = nextName
-            else if (layer.composite) layer.composite.instanceName = nextName
+            if (layer.model3d) layer.model3d.modelName = nextName
+            else if (layer.composite) layer.composite.compositeName = nextName
             else layer.name = nextName
           }
           if (isVec3(lSpec.position)) layer.transform.position.value = [...lSpec.position]

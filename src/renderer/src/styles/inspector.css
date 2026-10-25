@@ -411,4 +411,107 @@
   text-overflow: ellipsis;
 }
 
+/* ------------------------------------------------------------------ Collapsed Right Vertical Rail (Thanh dọc sát mép phải màn hình) */
+
+.right.is-collapsed-rail {
+  width: 38px;
+  min-width: 38px;
+  max-width: 38px;
+  background: var(--bg-1);
+  border-left: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.right-collapsed-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+  padding: 6px 3px;
+  box-sizing: border-box;
+  gap: 8px;
+  background: var(--bg-1);
+}
+
+.right-rail-show-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 30px;
+  padding: 6px 2px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-2));
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.right-rail-show-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.right-rail-show-btn .rail-arrow {
+  font-size: 13px;
+  line-height: 1;
+}
+.right-rail-show-btn .rail-show-text {
+  font-size: 9.5px;
+  line-height: 1.1;
+}
+
+.right-rail-group,
+.right-rail-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+}
+
+.right-rail-bottom {
+  margin-top: auto;
+  padding-top: 6px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.right-rail-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  padding: 8px 2px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 600;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.right-rail-pill:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
+}
+.right-rail-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.right-rail-pill.bottom-pill {
+  border-color: color-mix(in srgb, var(--accent-cyan) 35%, var(--line));
+}
+
+
 

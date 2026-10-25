@@ -434,7 +434,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
           </section>
         )}
 
-        {level !== 'root' && level !== 'group' && (
+        {level !== 'group' && (
           <section className="wf-v2-insp-sec">
             <div className="wf-v2-insp-sec-title">Thông số</div>
             <WorkflowV2NodeParams

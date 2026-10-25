@@ -163,7 +163,6 @@ export function useWorkflowV2SelectionSync(ctrl: ReturnType<typeof useWorkflowV2
     workflow,
     selectedLayerId,
     selectedShotId,
-    selectedNodeId,
     activateNode,
     setSelectedNodeId,
     setFocusedShotId
@@ -183,13 +182,14 @@ export function useWorkflowV2SelectionSync(ctrl: ReturnType<typeof useWorkflowV2
   // Chọn Layer ở Timeline / Viewport → chọn Node Layer tương ứng (trừ khi Node hiện tại đã gắn với Layer đó)
   useEffect(() => {
     if (!selectedLayerId) return
-    const prevNode = selectedNodeId ? workflow.nodes.find((n) => n.id === selectedNodeId) : undefined
+    const curNodeId = useEditor.getState().selectedWorkflowNodeId
+    const prevNode = curNodeId ? workflow.nodes.find((n) => n.id === curNodeId) : undefined
     if (prevNode?.params?.targetLayerIds?.includes(selectedLayerId)) return
     const node = workflow.nodes.find(
       (n) => resolveV2NodeLevel(n) === 'layer' && n.params?.targetLayerIds?.includes(selectedLayerId)
     )
     if (node) setSelectedNodeId(node.id)
-  }, [selectedLayerId, selectedNodeId, workflow.nodes, setSelectedNodeId])
+  }, [selectedLayerId, workflow.nodes, setSelectedNodeId])
 
   // Chọn Cảnh ở Timeline / Shots panel → đồng bộ focusedShotId và chọn Root Cảnh nếu chưa chọn Layer
   useEffect(() => {
@@ -197,10 +197,11 @@ export function useWorkflowV2SelectionSync(ctrl: ReturnType<typeof useWorkflowV2
     setFocusedShotId(selectedShotId)
     window.setTimeout(() => focusWorkflowCluster(v2RootId(selectedShotId)), 60)
     if (!selectedLayerId) {
-      const prevNode = selectedNodeId ? workflow.nodes.find((n) => n.id === selectedNodeId) : undefined
+      const curNodeId = useEditor.getState().selectedWorkflowNodeId
+      const prevNode = curNodeId ? workflow.nodes.find((n) => n.id === curNodeId) : undefined
       if (prevNode?.params?.shotId === selectedShotId) return
       const rootNode = workflow.nodes.find((n) => n.id === v2RootId(selectedShotId))
       if (rootNode) setSelectedNodeId(rootNode.id)
     }
-  }, [selectedShotId, selectedLayerId, selectedNodeId, workflow.nodes, setFocusedShotId, setSelectedNodeId])
+  }, [selectedShotId, selectedLayerId, workflow.nodes, setFocusedShotId, setSelectedNodeId])
 }

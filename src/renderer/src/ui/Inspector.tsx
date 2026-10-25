@@ -20,10 +20,12 @@ export { CameraRouteInspector } from './inspector/CameraRouteInspector'
 type TopTabId = 'layer' | 'camera' | 'route' | 'scene'
 
 const COL_EXPANDED_KEY = 'pxs:right-col-expanded'
+const COL_COLLAPSED_KEY = 'pxs:right-col-collapsed'
 const COL_WIDTH_KEY = 'pxs:wf-v2-inspector-width'
 const MIN_COL_W = 280
 const MAX_COL_W = 680
 const DEFAULT_EXPANDED_W = 420
+const COLLAPSED_RAIL_W = 38
 
 function readInitialColWidth(): number {
   const raw = Number(localStorage.getItem(COL_WIDTH_KEY))
@@ -50,6 +52,10 @@ export function Inspector() {
   const [isColumnExpanded, setIsColumnExpanded] = useState<boolean>(
     () => localStorage.getItem(COL_EXPANDED_KEY) !== '0'
   )
+  // Trạng thái ẩn/hiện cột phải thành thanh dọc sát mép phải màn hình
+  const [isRightCollapsed, setIsRightCollapsed] = useState<boolean>(
+    () => localStorage.getItem(COL_COLLAPSED_KEY) === '1'
+  )
   const [lastTopTab, setLastTopTab] = useState<TopTabId>('layer')
   const [splitBottomMode, setSplitBottomMode] = useState<'node' | 'json'>('node')
   const [colWidth, setColWidth] = useState<number>(readInitialColWidth)
@@ -60,14 +66,20 @@ export function Inspector() {
     else if (tab === 'node' || tab === 'json') setSplitBottomMode(tab)
   }, [tab])
 
-  // Đồng bộ biến CSS `--right-col-w` lên `.app` để mở rộng cột phải toàn màn hình
+  // Đồng bộ biến CSS `--right-col-w` lên `.app` (khi ẩn chỉ chiếm 38px thanh dọc sát phải để mở rộng Timeline/Workflow)
   useEffect(() => {
-    document.documentElement.style.setProperty('--right-col-w', `${colWidth}px`)
-  }, [colWidth])
+    const effectiveW = isRightCollapsed ? COLLAPSED_RAIL_W : colWidth
+    document.documentElement.style.setProperty('--right-col-w', `${effectiveW}px`)
+  }, [colWidth, isRightCollapsed])
 
   // Bộ điều khiển chung cho Thuộc tính Node & JSON Cảnh & Main (dùng chung cho cả Timeline và Workflow)
   const wfCtrl = useWorkflowV2Controller()
   useWorkflowV2SelectionSync(wfCtrl)
+
+  const handleSetRightCollapsed = (next: boolean): void => {
+    localStorage.setItem(COL_COLLAPSED_KEY, next ? '1' : '0')
+    setIsRightCollapsed(next)
+  }
 
   const updateColWidth = (nextW: number): void => {
     const clamped = Math.round(Math.max(MIN_COL_W, Math.min(MAX_COL_W, nextW)))
@@ -76,6 +88,7 @@ export function Inspector() {
   }
 
   const startResizeWidth = (e: React.PointerEvent): void => {
+    if (isRightCollapsed) return
     e.preventDefault()
     e.stopPropagation()
     const startX = e.clientX
@@ -289,7 +302,113 @@ export function Inspector() {
           <span className="exp-ico">{isBottomGroupExpanded ? '⤡' : '⤢'}</span>
           <span>{isBottomGroupExpanded ? 'Thu gọn' : 'Mở rộng'}</span>
         </button>
+        <button
+          id="btn-toggle-right-column"
+          type="button"
+          className="wf-v2-insp-expand-btn wf-v2-insp-collapse-btn"
+          aria-pressed={isRightCollapsed}
+          title="Ẩn cột phải thành thanh dọc sát mép phải màn hình để mở rộng chiều ngang cho Timeline & Workflow"
+          onClick={() => handleSetRightCollapsed(true)}
+        >
+          <span className="exp-ico">»</span>
+          <span>Ẩn</span>
+        </button>
       </div>
+    )
+  }
+
+  if (isRightCollapsed) {
+    return (
+      <aside className="right is-collapsed-rail" data-mcp-region="inspector">
+        <div className="right-collapsed-rail" data-mcp-region="inspector_tabs">
+          <button
+            id="btn-show-right-column"
+            type="button"
+            className="right-rail-show-btn"
+            title="Hiện lại cột phải (Layer · Camera · Lộ trình · Dự án · Thuộc tính Node · JSON Cảnh) như cũ"
+            onClick={() => handleSetRightCollapsed(false)}
+          >
+            <span className="rail-arrow">«</span>
+            <span className="rail-show-text">Hiện</span>
+          </button>
+
+          <div className="right-rail-group" role="tablist" aria-label="4 tab trên">
+            <button
+              type="button"
+              className={`right-rail-pill${tab === 'layer' ? ' active' : ''}`}
+              title={`Mở tab ${tabTitle}`}
+              onClick={() => {
+                setTab('layer')
+                handleSetRightCollapsed(false)
+              }}
+            >
+              <span>{tabTitle}</span>
+            </button>
+            <button
+              type="button"
+              className={`right-rail-pill${tab === 'camera' ? ' active' : ''}`}
+              title="Mở tab Camera"
+              onClick={() => {
+                setTab('camera')
+                handleSetRightCollapsed(false)
+              }}
+            >
+              <span>Camera</span>
+            </button>
+            <button
+              type="button"
+              className={`right-rail-pill${tab === 'route' ? ' active' : ''}`}
+              title="Mở tab Lộ trình"
+              onClick={() => {
+                setTab('route')
+                handleSetRightCollapsed(false)
+              }}
+            >
+              <span>Lộ trình</span>
+            </button>
+            <button
+              type="button"
+              className={`right-rail-pill${tab === 'scene' ? ' active' : ''}`}
+              title="Mở tab Dự án"
+              onClick={() => {
+                setTab('scene')
+                handleSetRightCollapsed(false)
+              }}
+            >
+              <span>Dự án</span>
+            </button>
+          </div>
+
+          <div className="right-rail-bottom" data-mcp-region="inspector_body">
+            <button
+              id="rail-tab-node-props"
+              type="button"
+              className={`right-rail-pill bottom-pill${tab === 'node' ? ' active' : ''}`}
+              title="Hiện lại Thuộc tính Node"
+              onClick={() => {
+                setSplitBottomMode('node')
+                if (isColumnExpanded) setTab('node')
+                handleSetRightCollapsed(false)
+              }}
+            >
+              <span>🎛️ Thuộc tính Node</span>
+            </button>
+            <button
+              id="rail-tab-shot-json"
+              type="button"
+              className={`right-rail-pill bottom-pill${tab === 'json' ? ' active' : ''}`}
+              title="Hiện lại JSON Cảnh"
+              onClick={() => {
+                setSplitBottomMode('json')
+                if (isColumnExpanded) setTab('json')
+                handleSetRightCollapsed(false)
+              }}
+            >
+              <span>{'{ }'} JSON Cảnh</span>
+            </button>
+          </div>
+        </div>
+      </aside>
     )
   }
 

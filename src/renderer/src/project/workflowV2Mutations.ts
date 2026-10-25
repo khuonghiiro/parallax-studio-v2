@@ -355,6 +355,15 @@ export function syncWorkflowV2NodeToProject(
   const tStart = params.timeStart
   const tEnd = params.timeEnd
 
+  // 0. Node Cảnh (Scene Shot Root)
+  if (node.type === 'scene_shot' && params.shotId) {
+    const shot = project.shots.find((s) => s.id === params.shotId)
+    if (shot) {
+      shot.visible = node.enabled
+    }
+    return
+  }
+
   // 1. Node Layer hoặc Group Layer
   if (node.type === 'layer_assembly') {
     syncLayerOrGroupNodeToProject(project, node, params, patch)
@@ -513,8 +522,10 @@ export function syncWorkflowV2NodeToProject(
       syncCameraWaypointNodeToProject(project, node, params, patch)
       return
     }
-    if (project.camera && typeof params.enableDof === 'boolean') {
-      project.camera.dofEnabled = params.enableDof
+    if (project.camera) {
+      if (typeof params.enableDof === 'boolean') project.camera.dofEnabled = params.enableDof
+      if (typeof params.camShakeAmount === 'number') project.camera.shakeAmount = params.camShakeAmount
+      if (typeof params.camShakeSpeed === 'number') project.camera.shakeSpeed = params.camShakeSpeed
     }
   }
 }

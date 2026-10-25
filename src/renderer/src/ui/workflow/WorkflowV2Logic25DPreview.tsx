@@ -137,7 +137,10 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
     }, mergeKey)
   }
 
-  const subRect = layer.physics?.subMeshRegion?.uvRect ?? [0.12, 0.12, 0.88, 0.88]
+  const mr = layer.physics?.meshRegion
+  const subRect: [number, number, number, number] = mr
+    ? [mr.minU, mr.minV, mr.maxU, mr.maxV]
+    : [0.12, 0.12, 0.88, 0.88]
   const centerU = clamp((subRect[0] + subRect[2]) * 0.5, 0.1, 0.9)
   const centerV = clamp((subRect[1] + subRect[3]) * 0.5, 0.1, 0.9)
   const spanU = clamp(subRect[2] - subRect[0], 0.2, 0.95)
@@ -158,20 +161,20 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
       const v = clamp((clientY - rect.top) / rect.height, 0.12, 0.88)
       const halfU = spanU * 0.5
       const halfV = spanV * 0.5
-      const nextRect: [number, number, number, number] = [
-        Number(clamp(u - halfU, 0.02, 0.92).toFixed(2)),
-        Number(clamp(v - halfV, 0.02, 0.92).toFixed(2)),
-        Number(clamp(u + halfU, 0.08, 0.98).toFixed(2)),
-        Number(clamp(v + halfV, 0.08, 0.98).toFixed(2))
-      ]
+      const minU = Number(clamp(u - halfU, 0.02, 0.92).toFixed(2))
+      const minV = Number(clamp(v - halfV, 0.02, 0.92).toFixed(2))
+      const maxU = Number(clamp(u + halfU, 0.08, 0.98).toFixed(2))
+      const maxV = Number(clamp(v + halfV, 0.08, 0.98).toFixed(2))
       useEditor.getState().update((d) => {
         const l = d.layers.find((x) => x.id === layer.id)
         if (!l) return
         if (!l.physics) l.physics = createDefaultLayerPhysics('foliage_bush')
-        l.physics.subMeshRegion = {
-          ...(l.physics.subMeshRegion ?? { enabled: true, feather: 0.25, fixedEdge: 'bottom' }),
-          enabled: true,
-          uvRect: nextRect
+        l.physics.meshRegion = {
+          ...(l.physics.meshRegion ?? {}),
+          minU,
+          minV,
+          maxU,
+          maxV
         }
       }, 'wf-v2-logic-uv')
     }
