@@ -76,7 +76,7 @@ export const SCENE_TOOLS = [
         'inspector', 'inspector_tabs', 'inspector_body', 'inspector_composite', 'inspector_physics', 'inspector_virtual_light', 'composite_swap', 'effect_stack', 'effect_editor', 'timeline_effects', 'fx_presets', 'motion', 'motion_preview', 'motion_parameters', 'motion_timing',
         'timeline', 'timeline_toolbar', 'timeline_tabs', 'timeline_ruler', 'timeline_tracks',
         'timeline_workflow', 'workflow_toolbar', 'workflow_palette', 'workflow_canvas', 'workflow_canvas_hud', 'workflow_quick_connect', 'workflow_inspector', 'workflow_ruler', 'workflow_spawn_menu', 'workflow_legend', 'workflow_target_binder', 'workflow_action_builder', 'workflow_preview', 'workflow_json_panel', 'workflow_node_config', 'workflow_node_input', 'workflow_node_output', 'workflow_node_connections', 'workflow_node_operation', 'workflow_node_scope_picker', 'workflow_node_edit_context', 'workflow_node_advanced', 'workflow_node_preview_controls', 'workflow_node_preset_picker', 'workflow_node_rule_picker', 'workflow_node_camera_preview', 'workflow_node_settings',
-        'toolbar', 'studio_menu', 'mcp_chip', 'responsive_dock',
+        'toolbar', 'studio_menu', 'mcp_chip', 'remote_chip', 'responsive_dock',
         'dialog',
         'assembly_3d', 'assembly_sidebar', 'assembly_viewport', 'assembly_inspector', 'assembly_header', 'assembly_footer', 'assembly_hud',
         'layer_assembly', 'layer_assembly_sidebar', 'layer_assembly_workspace', 'layer_assembly_inspector', 'layer_assembly_tools', 'layer_assembly_header',
@@ -94,6 +94,7 @@ export const SCENE_TOOLS = [
         'camera_sketch', 'camera_sketch_canvas', 'camera_sketch_sidebar', 'camera_sketch_waypoints',
         'camera_path', 'camera_path_presets', 'camera_path_steps',
         'mcp_dialog', 'mcp_status', 'mcp_config', 'mcp_guide',
+        'remote_dialog', 'remote_qr_card', 'remote_touchpad_card',
         'ai_hud', 'window'
       ]).optional().describe(d('Predefined UI region to capture. Use "active" to capture the TOPMOST open dialog automatically (e.g. Studio Mixamo opened inside the Layer Workshop) instead of the whole window; "dialog" also picks the topmost dialog. Sub-regions (e.g. layer_assembly_mixamo_stage, layer_assembly_parts, audio_studio_waveform) crop a single control to save tokens. Any element with data-mcp-region="<name>" is matched automatically.', 'Vùng UI định sẵn cần chụp. Dùng "active" để tự chụp đúng dialog đang mở TRÊN CÙNG (VD Studio Mixamo mở bên trong Xưởng Layer) thay vì cả cửa sổ; "dialog" cũng chọn dialog trên cùng. Vùng con (VD layer_assembly_mixamo_stage, layer_assembly_parts, audio_studio_waveform) chỉ cắt đúng một control để tiết kiệm token. Mọi phần tử có data-mcp-region="<tên>" đều tự khớp.')),
       selector: z.string().optional().describe(d('CSS selector of a specific element to capture (e.g. ".music-panel-layout", "#music-tab-add-btn"). Falls back to whole window if not found.', 'CSS selector của phần tử cụ thể cần chụp. Tự động chụp toàn bộ app nếu không tìm thấy selector.')),
@@ -116,12 +117,12 @@ export const SCENE_TOOLS = [
   {
     name: 'set_ui_dialog', cat: 'inspect',
     doc: L(
-      'Open, switch, or close any UI dialog/workshop (Camera Path, Camera Sketch, Audio Studio, Performance, Export, MCP, 3D Assembly, 2.5D Layer Assembly), switch sidebar/inspector/timeline tabs, or toggle dark/light theme.',
-      'Mở, chuyển đổi hoặc đóng bất kỳ hộp thoại/xưởng UI nào (Lộ trình Camera, Vẽ đường bay, Phòng thu Âm thanh, Hiệu năng, Xuất MP4, MCP, Xưởng 3D, Xưởng 2.5D), chuyển tab trái/phải/timeline-workflow hoặc đổi giao diện Tối/Sáng.'
+      'Open, switch, or close any UI dialog/workshop (Camera Path, Camera Sketch, Audio Studio, Performance, Export, MCP, Mobile QR Remote, 3D Assembly, 2.5D Layer Assembly), switch sidebar/inspector/timeline tabs, or toggle dark/light theme.',
+      'Mở, chuyển đổi hoặc đóng bất kỳ hộp thoại/xưởng UI nào (Lộ trình Camera, Vẽ đường bay, Phòng thu Âm thanh, Hiệu năng, Xuất MP4, MCP, Điều khiển QR Điện thoại, Xưởng 3D, Xưởng 2.5D), chuyển tab trái/phải/timeline-workflow hoặc đổi giao diện Tối/Sáng.'
     ),
     shape: (d) => ({
       dialog: z.enum([
-        'none', 'path', 'sketch', 'performance', 'mcp', 'audio', 'export', 'assembly_3d', 'layer_assembly', 'layer_assembly_create'
+        'none', 'path', 'sketch', 'performance', 'mcp', 'remote', 'audio', 'export', 'assembly_3d', 'layer_assembly', 'layer_assembly_create'
       ]).optional().describe(d('Dialog or workshop to open, or "none" to close all modals.', 'Hộp thoại hoặc xưởng cần mở, hoặc "none" để đóng tất cả hộp thoại.')),
       audio_mode: z.enum(['waveform', 'levels', 'mixer']).optional().describe(d('Audio Studio tab mode when opening or switching Audio Studio.', 'Chế độ tab Phòng thu âm thanh khi mở hoặc chuyển tab (waveform, levels, mixer).')),
       track_id: z.string().optional().describe(d('Audio track ID to select in Audio Studio.', 'ID track âm thanh cần chọn trong Phòng thu.')),
@@ -133,7 +134,52 @@ export const SCENE_TOOLS = [
       mobile_tab: z.enum(['timeline', 'left', 'right']).optional().describe(d('Switch active workspace dock tab on Tablet/Phone.', 'Chuyển tab vùng làm việc đang mở trên Máy tính bảng/Điện thoại.')),
       theme: z.enum(['dark', 'light']).optional().describe(d('Switch UI theme ("dark" or "light").', 'Đổi giao diện Sáng ("light") hoặc Tối ("dark").'))
     }),
-    example: '{"dialog":"path"}'
+    example: '{"dialog":"remote"}'
+  },
+  {
+    name: 'get_remote_state', cat: 'inspect',
+    doc: L(
+      'Get compact real-time state snapshot used by the Wi-Fi QR Mobile Remote Controller (composition, playhead time, shots, active shot layers with evaluated 3D transforms, and 3D camera state).',
+      'Lấy bản chụp trạng thái thời gian thực gọn nhẹ dùng cho bộ điều khiển Điện thoại qua Wi-Fi QR Code (composition, thời gian playhead, danh sách cảnh, các layer kèm toạ độ 3D và trạng thái Camera 3D).'
+    ),
+    shape: () => ({}),
+    example: '{}'
+  },
+  {
+    name: 'remote_control_action', cat: 'camera',
+    doc: L(
+      'Execute a real-time mobile remote touch/slider action: play/pause, timeline seek, undo/redo, shot selection/fly-to, 3D camera touchpad nudge (pan X/Y, dolly X/Z, spherical orbit 3D) or slider transform, and 2.5D layer touchpad nudge (X/Y/Z, 3D tilt RX/RY/RZ, scale, opacity) or keyframe.',
+      'Thực thi thao tác cảm ứng/thanh trượt từ điện thoại: phát/dừng, tua timeline, undo/redo, chọn/bay tới cảnh, vuốt touchpad Camera 3D (pan X/Y, đẩy sâu dolly X/Z, xoay cầu orbit 3D) hoặc trượt Z/FOV, và vuốt touchpad Layer 2.5D (dời X/Y/Z, nghiêng 3D RX/RY/RZ, tỉ lệ scale, độ mờ) hoặc đặt keyframe.'
+    ),
+    shape: (d) => ({
+      action: z.enum([
+        'toggle_play', 'play', 'pause', 'seek', 'undo', 'redo',
+        'select_shot', 'select_layer', 'toggle_layer_visible', 'toggle_layer_lock',
+        'nudge_camera', 'set_camera_transform', 'reset_camera',
+        'nudge_layer', 'set_layer_transform', 'reset_layer_transform', 'keyframe'
+      ]).describe(d('Remote control action type.', 'Loại thao tác điều khiển từ xa.')),
+      mode: z.enum(['pan', 'dolly', 'orbit']).optional().describe(d('Camera touchpad mode when action="nudge_camera".', 'Chế độ touchpad camera khi action="nudge_camera".')),
+      shot_id: z.string().optional().describe(d('Target shot ID for select_shot.', 'ID cảnh cần chọn.')),
+      fly: z.boolean().optional().describe(d('Fly camera to the shot when selecting it.', 'Cho camera bay tới cảnh khi chọn.')),
+      layer_id: z.string().optional().describe(d('Target layer ID (defaults to currently selected layer).', 'ID layer mục tiêu (mặc định là layer đang chọn).')),
+      dx: z.number().optional().describe(d('Delta X movement or yaw angle.', 'Độ dời trục X hoặc góc xoay ngang.')),
+      dy: z.number().optional().describe(d('Delta Y movement or pitch angle.', 'Độ dời trục Y hoặc góc ngẩng dọc.')),
+      dz: z.number().optional().describe(d('Delta Z depth movement.', 'Độ dời trục sâu Z.')),
+      drx: z.number().optional().describe(d('Delta rotation X in degrees.', 'Độ xoay trục X (độ).')),
+      dry: z.number().optional().describe(d('Delta rotation Y in degrees.', 'Độ xoay trục Y (độ).')),
+      drz: z.number().optional().describe(d('Delta rotation Z in degrees.', 'Độ xoay trục Z (độ).')),
+      ds: z.number().optional().describe(d('Uniform scale delta.', 'Độ thay đổi tỉ lệ đồng nhất.')),
+      dfov: z.number().optional().describe(d('Camera FOV delta in degrees.', 'Độ thay đổi góc ống kính FOV (độ).')),
+      z: z.number().optional().describe(d('Explicit Z depth coordinate.', 'Toạ độ độ sâu Z cụ thể.')),
+      fov: z.number().optional().describe(d('Explicit Camera FOV in degrees.', 'Góc FOV cụ thể của Camera (độ).')),
+      scale: z.union([z.number(), vec3]).optional().describe(d('Explicit layer scale.', 'Tỉ lệ kích thước layer cụ thể.')),
+      opacity: z.number().min(0).max(1).optional().describe(d('Explicit layer opacity (0..1).', 'Độ mờ đục của layer (0..1).')),
+      time: z.number().optional().describe(d('Target time in seconds.', 'Thời điểm mục tiêu (giây).')),
+      delta_time: z.number().optional().describe(d('Relative time step in seconds.', 'Bước nhảy thời gian tương đối (giây).')),
+      target_kind: z.enum(['camera', 'layer']).optional().describe(d('Whether keyframe action targets camera or layer.', 'Đặt keyframe cho camera hay layer.')),
+      keyframe: z.boolean().optional().describe(d('Force creating a keyframe at current time.', 'Bắt buộc ghi keyframe tại thời điểm hiện tại.'))
+    }),
+    example: '{"action":"nudge_camera","mode":"pan","dx":25,"dy":-10}'
   },
   {
     name: 'set_ai_lock', cat: 'inspect',

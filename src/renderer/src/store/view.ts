@@ -10,7 +10,7 @@ export type LeftTab = 'shots' | 'assets' | 'topview'
 export type TimelineMainTab = 'timeline' | 'workflow'
 export type MobileWorkspaceTab = 'timeline' | 'left' | 'right'
 export type TabletSideTab = 'left' | 'right'
-export type DialogKind = 'path' | 'sketch' | 'performance' | 'mcp' | 'audio' | 'export' | null
+export type DialogKind = 'path' | 'sketch' | 'performance' | 'mcp' | 'remote' | 'audio' | 'export' | null
 
 interface ViewPrefs {
   activeViews?: PrimaryView[]

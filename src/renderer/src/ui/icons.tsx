@@ -874,3 +874,25 @@ export * from './viewerIcons'
 
 
 
+
+/** Mã QR Code kết nối điều khiển qua mạng Wi-Fi */
+export const IconQrCode = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+    <rect x="5.5" y="5.5" width="2" height="2" fill="currentColor" stroke="none" />
+    <rect x="16.5" y="5.5" width="2" height="2" fill="currentColor" stroke="none" />
+    <rect x="5.5" y="16.5" width="2" height="2" fill="currentColor" stroke="none" />
+    <path d="M14 14h3v3h-3zM18 18h3v3h-3zM14 19h2M19 14v2" />
+  </svg>
+)
+
+/** Điện thoại điều khiển từ xa (Mobile Remote Controller) */
+export const IconSmartphone = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="6" y="2" width="12" height="20" rx="2.5" />
+    <line x1="10" y1="5" x2="14" y2="5" />
+    <circle cx="12" cy="18.5" r="1" fill="currentColor" stroke="none" />
+  </svg>
+)
