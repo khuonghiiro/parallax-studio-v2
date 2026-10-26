@@ -332,8 +332,8 @@ export function renderMobileRemoteHtml(token: string): string {
       </div>
 
       <div class="slider-row">
-        <div class="slider-label"><span>Độ sâu Camera (Trục Z)</span><b id="lbl-cam-z">1200</b></div>
-        <input type="range" id="rng-cam-z" min="-600" max="2600" step="5" value="1200"
+        <div class="slider-label"><span>Độ sâu Camera (Trục Z)</span><b id="lbl-cam-z">-1500</b></div>
+        <input type="range" id="rng-cam-z" min="-3000" max="3000" step="5" value="-1500"
           oninput="onCamZInput(this.value)" />
       </div>
 

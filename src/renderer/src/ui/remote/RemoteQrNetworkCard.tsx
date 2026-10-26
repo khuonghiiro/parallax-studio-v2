@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { RemoteServerStatus } from '@shared/ipc'
 import { IconCheck, IconCopy, IconRefresh, IconSmartphone } from '../icons'
 import { buildQrSvgPath, encodeQrMatrix } from './qrCodeSvg'
@@ -10,15 +10,26 @@ interface RemoteQrNetworkCardProps {
   notice: string | null
 }
 
+function findBestWifiIpIndex(ips: string[]): number {
+  const idx = ips.findIndex(
+    (ip) => !ip.startsWith('192.168.56.') && !ip.endsWith('.1') && ip !== '127.0.0.1'
+  )
+  return idx >= 0 ? idx : 0
+}
+
 export function RemoteQrNetworkCard({
   status,
   onToggleServer,
   onRegenerateToken,
   notice
 }: RemoteQrNetworkCardProps) {
-  const [selectedIpIdx, setSelectedIpIdx] = useState(0)
+  const [selectedIpIdx, setSelectedIpIdx] = useState(() => findBestWifiIpIndex(status.ips))
   const [customIp, setCustomIp] = useState('')
   const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    setSelectedIpIdx(findBestWifiIpIndex(status.ips))
+  }, [status.ips.join(',')])
 
   const activeUrl = useMemo(() => {
     const trimmed = customIp.trim()

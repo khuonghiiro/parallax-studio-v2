@@ -605,8 +605,8 @@ export function MobileRemoteDialog() {
                   </div>
                   <input
                     type="range"
-                    min={-800}
-                    max={2600}
+                    min={-3000}
+                    max={3000}
                     step={5}
                     value={Math.round(camZ)}
                     onChange={(e) => execRemoteAction({ action: 'set_camera_transform', z: Number(e.target.value) })}

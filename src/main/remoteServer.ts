@@ -16,13 +16,15 @@ const VIRTUAL_IFACE_PATTERN = /vethernet|wsl|docker|vmware|virtualbox|vbox|hyper
  */
 export function detectLanIpv4Addresses(): string[] {
   const nets = networkInterfaces()
+  const wifiPreferred: string[] = []
   const primary: string[] = []
   const secondary: string[] = []
 
   for (const [name, list] of Object.entries(nets)) {
     if (!list) continue
     const isVirtual = VIRTUAL_IFACE_PATTERN.test(name)
-    const isWifiOrEth = /wi-?fi|wlan|wireless|ethernet|en\d|eth\d/i.test(name)
+    const isWifi = /wi-?fi|wlan|wireless/i.test(name)
+    const isEth = /ethernet|en\d|eth\d/i.test(name)
 
     for (const info of list) {
       const fam = String(info.family)
@@ -30,7 +32,10 @@ export function detectLanIpv4Addresses(): string[] {
       const addr = info.address
       if (!addr || addr.startsWith('169.254.')) continue
 
-      if (!isVirtual && (isWifiOrEth || addr.startsWith('192.168.') || addr.startsWith('10.'))) {
+      const isHostOnlyGateway = addr.startsWith('192.168.56.') || addr.endsWith('.1')
+      if (!isVirtual && isWifi && !isHostOnlyGateway) {
+        wifiPreferred.push(addr)
+      } else if (!isVirtual && !isHostOnlyGateway && (isEth || addr.startsWith('192.168.') || addr.startsWith('10.'))) {
         primary.push(addr)
       } else {
         secondary.push(addr)
@@ -38,7 +43,7 @@ export function detectLanIpv4Addresses(): string[] {
     }
   }
 
-  const all = Array.from(new Set([...primary, ...secondary]))
+  const all = Array.from(new Set([...wifiPreferred, ...primary, ...secondary]))
   return all.length > 0 ? all : ['127.0.0.1']
 }
 

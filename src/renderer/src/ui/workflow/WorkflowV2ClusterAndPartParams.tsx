@@ -550,7 +550,7 @@ export function WorkflowV2PartSwapParams({
   const mode = p.swapMode ?? (expressions.length > 0 ? 'expression' : 'replace_layer')
   const targetPart =
     members.find((m) => m.id === p.swapTargetLayerId) ??
-    accessories[0] && members.find((m) => m.id === accessories[0].layerId) ??
+    (accessories[0] ? members.find((m) => m.id === accessories[0].layerId) : undefined) ??
     members[0]
   const replaceModalLayer = replacingLayerId ? members.find((m) => m.id === replacingLayerId) : null
 
