@@ -1,10 +1,13 @@
 import { ipcMain, type BrowserWindow } from 'electron'
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'http'
+import { createServer as createHttpServer, type IncomingMessage, type Server as HttpServer, type ServerResponse } from 'http'
+import { createServer as createHttpsServer, type Server as HttpsServer } from 'https'
+import { createConnection, createServer as createNetServer, type Server as NetServer, type Socket } from 'net'
 import { networkInterfaces } from 'os'
 import { randomBytes } from 'crypto'
 import type { RemoteServerStatus } from '@shared/ipc'
 import type { McpBridge } from './mcpBridge'
 import { renderMobileRemoteHtml } from './remoteWebUi'
+import { generateSelfSignedCert } from './selfSignedCert'
 
 const DEFAULT_REMOTE_PORT = 9878
 const DEVICE_TTL_MS = 15_000
@@ -48,7 +51,9 @@ export function detectLanIpv4Addresses(): string[] {
 }
 
 export class RemoteControlServer {
-  private server: Server | null = null
+  private netServer: NetServer | null = null
+  private httpServer: HttpServer | null = null
+  private httpsServer: HttpsServer | null = null
   private port = Number(process.env.PARALLAX_REMOTE_PORT) || DEFAULT_REMOTE_PORT
   private listening = false
   private token = randomBytes(4).toString('hex')
@@ -72,8 +77,12 @@ export class RemoteControlServer {
   }
 
   stop(): void {
-    this.server?.close()
-    this.server = null
+    this.netServer?.close()
+    this.httpServer?.close()
+    this.httpsServer?.close()
+    this.netServer = null
+    this.httpServer = null
+    this.httpsServer = null
     this.listening = false
     this.activeClients.clear()
     this.broadcast()
@@ -97,14 +106,14 @@ export class RemoteControlServer {
     this.pruneClients()
     const ips = detectLanIpv4Addresses()
     const primaryIp = ips[0] ?? '127.0.0.1'
-    const urls = ips.map((ip) => `http://${ip}:${this.port}/?t=${this.token}`)
+    const urls = ips.map((ip) => `https://${ip}:${this.port}/?t=${this.token}`)
     return {
       listening: this.listening,
       port: this.port,
       ips,
       primaryIp,
       token: this.token,
-      url: urls[0] ?? `http://127.0.0.1:${this.port}/?t=${this.token}`,
+      url: urls[0] ?? `https://127.0.0.1:${this.port}/?t=${this.token}`,
       urls,
       connectedDevices: this.activeClients.size,
       lastActiveAt: this.lastActiveAt,
@@ -143,11 +152,52 @@ export class RemoteControlServer {
     }
   }
 
+  /**
+   * Lắng nghe đồng thời cả giao thức HTTP và HTTPS (TLS tự ký) trên cùng 1 cổng TCP (Polyglot Multiplexer).
+   * Nhờ đó điện thoại bật chế độ "HTTPS-Only" trên trình duyệt hoặc phần mềm quét QR đều kết nối được.
+   */
   private listen(port: number, attempt: number): void {
-    const srv = createServer((req, res) => {
+    const handler = (req: IncomingMessage, res: ServerResponse): void => {
       void this.handleHttp(req, res)
+    }
+
+    const httpSrv = createHttpServer(handler)
+    let httpsSrv: HttpsServer | null = null
+    try {
+      const ips = detectLanIpv4Addresses()
+      const { key, cert } = generateSelfSignedCert(ips)
+      httpsSrv = createHttpsServer({ key, cert }, handler)
+      httpsSrv.listen(0, '127.0.0.1')
+    } catch {
+      httpsSrv = null
+    }
+
+    const netSrv = createNetServer((socket: Socket) => {
+      socket.once('data', (chunk: Buffer) => {
+        socket.pause()
+        const httpsAddr = httpsSrv?.address()
+        const httpsPort = typeof httpsAddr === 'object' && httpsAddr ? httpsAddr.port : 0
+        // Byte đầu tiên 0x16 (22) là bản tin TLS Handshake (ClientHello -> HTTPS)
+        if (chunk[0] === 0x16 && httpsPort > 0) {
+          const tlsConn = createConnection({ host: '127.0.0.1', port: httpsPort }, () => {
+            tlsConn.write(chunk)
+            socket.pipe(tlsConn).pipe(socket)
+            socket.resume()
+          })
+          tlsConn.on('error', () => socket.destroy())
+          socket.on('error', () => tlsConn.destroy())
+        } else {
+          socket.unshift(chunk)
+          httpSrv.emit('connection', socket)
+          socket.resume()
+        }
+      })
+      socket.on('error', () => {
+        /* ignore abrupt client socket close */
+      })
     })
-    srv.once('error', (err: NodeJS.ErrnoException) => {
+
+    netSrv.once('error', (err: NodeJS.ErrnoException) => {
       if (err.code === 'EADDRINUSE' && attempt < 8) {
         this.listen(port + 1, attempt + 1)
         return
@@ -156,8 +206,11 @@ export class RemoteControlServer {
       this.listening = false
       this.broadcast()
     })
-    srv.listen(port, '0.0.0.0', () => {
-      this.server = srv
+
+    netSrv.listen(port, '0.0.0.0', () => {
+      this.netServer = netSrv
+      this.httpServer = httpSrv
+      this.httpsServer = httpsSrv
       this.port = port
       this.listening = true
       this.error = undefined
@@ -181,6 +234,7 @@ export class RemoteControlServer {
     res.writeHead(status, {
       'Content-Type': 'application/json; charset=utf-8',
       'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Private-Network': 'true',
       'Access-Control-Allow-Headers': 'Content-Type, X-Remote-Token',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Cache-Control': 'no-store'
@@ -234,24 +288,26 @@ export class RemoteControlServer {
       return
     }
 
-    if (!this.checkAuth(req, urlObj)) {
-      res.writeHead(401, { 'Content-Type': 'text/html; charset=utf-8' })
-      res.end(
-        `<!doctype html><html><body style="background:#0b0e14;color:#f1f5f9;font-family:sans-serif;padding:32px;text-align:center">` +
-          `<h3>⚠️ Mã phiên QR đã hết hạn hoặc không hợp lệ</h3>` +
-          `<p style="color:#94a3b8">Vui lòng quét lại mã QR mới nhất trên màn hình Parallax Studio.</p></body></html>`
-      )
-      return
-    }
-
     if (pathname === '/' || pathname === '/index.html') {
       this.markClient(req, 'connected')
       const html = renderMobileRemoteHtml(this.token)
       res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Private-Network': 'true',
         'Cache-Control': 'no-store'
       })
       res.end(html)
+      return
+    }
+
+    if (!this.checkAuth(req, urlObj)) {
+      res.writeHead(401, { 'Content-Type': 'text/html; charset=utf-8' })
+      res.end(
+        `<!doctype html><html><body style="background:#0b0e14;color:#f1f5f9;font-family:sans-serif;padding:32px;text-align:center">` +
+          `<h3>⚠️ Mã phiên QR đã hết hạn hoặc không hợp lệ</h3>` +
+          `<p style="color:#94a3b8">Vui lòng tải lại trang hoặc quét lại mã QR mới nhất trên màn hình Parallax Studio.</p></body></html>`
+      )
       return
     }
 
@@ -265,8 +321,8 @@ export class RemoteControlServer {
 
       if (pathname === '/api/action' && req.method === 'POST') {
         const body = await this.readJsonBody(req)
-        const actName = typeof body.action === 'string' ? body.action : 'action'
-        this.markClient(req, actName)
+        const actionName = typeof body.action === 'string' ? body.action : 'action'
+        this.markClient(req, actionName)
         const state = await this.mcpBridge.executeCommand('remote_control_action', body)
         this.sendJson(res, 200, { ok: true, state })
         return
@@ -274,17 +330,26 @@ export class RemoteControlServer {
 
       if (pathname === '/api/preview' && req.method === 'GET') {
         this.markClient(req)
-        const shot = await this.mcpBridge.executeCommand('get_viewport_screenshot', {
-          width: 560,
-          format: 'jpeg'
+        const shot = (await this.mcpBridge.executeCommand('get_viewport_screenshot', {
+          view: 'camera',
+          width: 480,
+          format: 'jpeg',
+          quality: 0.72
+        })) as { mime?: string; data?: string }
+        this.sendJson(res, 200, {
+          ok: true,
+          mime: shot?.mime || 'image/jpeg',
+          data: shot?.data || ''
         })
-        this.sendJson(res, 200, { ok: true, ...(typeof shot === 'object' && shot ? shot : {}) })
         return
       }
 
       this.sendJson(res, 404, { ok: false, error: 'Not found' })
     } catch (err) {
-      this.sendJson(res, 500, { ok: false, error: err instanceof Error ? err.message : String(err) })
+      this.sendJson(res, 500, {
+        ok: false,
+        error: err instanceof Error ? err.message : String(err)
+      })
     }
   }
 }

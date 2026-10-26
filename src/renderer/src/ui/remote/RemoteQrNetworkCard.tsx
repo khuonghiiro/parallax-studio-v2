@@ -24,6 +24,7 @@ export function RemoteQrNetworkCard({
   notice
 }: RemoteQrNetworkCardProps) {
   const [selectedIpIdx, setSelectedIpIdx] = useState(() => findBestWifiIpIndex(status.ips))
+  const [protocol, setProtocol] = useState<'https' | 'http'>('https')
   const [customIp, setCustomIp] = useState('')
   const [copied, setCopied] = useState(false)
 
@@ -31,14 +32,15 @@ export function RemoteQrNetworkCard({
     setSelectedIpIdx(findBestWifiIpIndex(status.ips))
   }, [status.ips.join(',')])
 
-  const activeUrl = useMemo(() => {
+  const selectedHost = useMemo(() => {
     const trimmed = customIp.trim()
-    if (trimmed) {
-      return `http://${trimmed}:${status.port}/?t=${status.token}`
-    }
-    const candidate = status.urls[selectedIpIdx] ?? status.url
-    return candidate || `http://127.0.0.1:${status.port}/?t=${status.token}`
-  }, [customIp, selectedIpIdx, status])
+    if (trimmed) return trimmed
+    return status.ips[selectedIpIdx] ?? status.primaryIp ?? '127.0.0.1'
+  }, [customIp, selectedIpIdx, status.ips, status.primaryIp])
+
+  const activeUrl = useMemo(() => {
+    return `${protocol}://${selectedHost}:${status.port}/?t=${status.token}`
+  }, [protocol, selectedHost, status.port, status.token])
 
   const qrSvg = useMemo(() => {
     const matrix = encodeQrMatrix(activeUrl)
@@ -110,6 +112,52 @@ export function RemoteQrNetworkCard({
         </span>
       </div>
 
+      {/* Protocol Segmented Switch (HTTPS vs HTTP) */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 4,
+          padding: 3,
+          background: 'var(--bg-2)',
+          border: '1px solid var(--line-soft)',
+          borderRadius: 'var(--radius)'
+        }}
+      >
+        <button
+          type="button"
+          className="btn sm ghost"
+          onClick={() => setProtocol('https')}
+          style={{
+            fontSize: '11px',
+            fontWeight: 600,
+            padding: '5px 8px',
+            borderRadius: 'var(--radius-sm)',
+            background: protocol === 'https' ? 'var(--accent)' : 'transparent',
+            color: protocol === 'https' ? 'var(--on-accent)' : 'var(--text-dim)',
+            borderColor: protocol === 'https' ? 'var(--accent)' : 'transparent'
+          }}
+        >
+          🔒 HTTPS (Vượt HTTPS-Only)
+        </button>
+        <button
+          type="button"
+          className="btn sm ghost"
+          onClick={() => setProtocol('http')}
+          style={{
+            fontSize: '11px',
+            fontWeight: 600,
+            padding: '5px 8px',
+            borderRadius: 'var(--radius-sm)',
+            background: protocol === 'http' ? 'var(--accent)' : 'transparent',
+            color: protocol === 'http' ? 'var(--on-accent)' : 'var(--text-dim)',
+            borderColor: protocol === 'http' ? 'var(--accent)' : 'transparent'
+          }}
+        >
+          🌐 HTTP Thường (Zalo / iOS)
+        </button>
+      </div>
+
       {/* QR SVG Box */}
       <div
         style={{
@@ -117,7 +165,7 @@ export function RemoteQrNetworkCard({
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '12px 10px',
+          padding: '10px',
           background: 'var(--bg-1)',
           border: '1px solid var(--line-soft)',
           borderRadius: 'var(--radius)'
@@ -130,8 +178,8 @@ export function RemoteQrNetworkCard({
             borderRadius: 'var(--radius)',
             border: '2px solid var(--accent-cyan)',
             boxShadow: '0 4px 16px rgba(0,0,0,0.22)',
-            width: 184,
-            height: 184,
+            width: 180,
+            height: 180,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -139,8 +187,8 @@ export function RemoteQrNetworkCard({
         >
           <svg
             viewBox={`0 0 ${qrSvg.viewBoxSize} ${qrSvg.viewBoxSize}`}
-            width="164"
-            height="164"
+            width="160"
+            height="160"
             shapeRendering="crispEdges"
             aria-label="Mã QR kết nối điều khiển qua Wi-Fi"
           >
@@ -148,8 +196,33 @@ export function RemoteQrNetworkCard({
             <path d={qrSvg.pathData} fill="#0f172a" />
           </svg>
         </div>
-        <div style={{ marginTop: 8, fontSize: '11px', color: 'var(--text-dim)', textAlign: 'center' }}>
-          Đưa Camera điện thoại (iOS / Android) hoặc Zalo vào mã QR để mở bộ điều khiển
+        <div
+          style={{
+            marginTop: 8,
+            fontSize: '11px',
+            lineHeight: 1.45,
+            color: 'var(--text-dim)',
+            textAlign: 'left',
+            background: 'var(--bg-2)',
+            padding: '7px 9px',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--line-soft)',
+            width: '100%'
+          }}
+        >
+          {protocol === 'https' ? (
+            <>
+              <strong style={{ color: 'var(--accent-cyan)' }}>Mẹo vượt chặn HTTPS-Only:</strong> Khi quét mã{' '}
+              <code>https://</code> và trình duyệt báo chứng chỉ mạng nội bộ, bấm{' '}
+              <strong style={{ color: 'var(--text)' }}>Nâng cao (Advanced) → Tiếp tục truy cập {selectedHost}</strong>.
+            </>
+          ) : (
+            <>
+              <strong style={{ color: 'var(--accent-cyan)' }}>Chế độ HTTP Thường:</strong> Quét bằng{' '}
+              <strong style={{ color: 'var(--text)' }}>Zalo / Camera iPhone</strong> (hoặc tắt mục{' '}
+              <em>HTTPS-Only</em> trong Cài đặt app quét QR) để vào thẳng không hỏi chứng chỉ.
+            </>
+          )}
         </div>
       </div>
 
