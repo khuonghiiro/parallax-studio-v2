@@ -69,7 +69,7 @@ export interface ViewState extends ViewPrefs {
   openAudioDialog(mode?: 'levels' | 'waveform' | 'mixer'): void
   openAssemblyWorkshop(model: Model3D): void
   closeAssemblyWorkshop(): void
-  /** Frame something in the 3D view (switches to it if hidden). */
+  /** Frame something without changing the user-selected visible views. */
   requestFocus(kind: FocusRequest['kind'], id?: string): void
 }
 
@@ -264,9 +264,6 @@ export const useView = create<ViewState>((set, get) => ({
   },
   requestFocus(kind, id) {
     const s = get()
-    if (s.activeViews?.length) {
-      if (!s.activeViews.includes('editor')) s.set({ activeViews: [...s.activeViews, 'editor'] })
-    } else if (!s.split && s.primary === 'camera') s.set({ primary: 'editor' })
     set({ focus: { kind, id, n: (s.focus?.n ?? 0) + 1 } })
   }
 }))

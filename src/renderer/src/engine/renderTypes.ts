@@ -276,7 +276,7 @@ export function syncLayerCaveAndLightUniforms(
   return false
 }
 
-function makeVolumetricLightMaterial(): THREE.ShaderMaterial {
+export function makeVolumetricLightMaterial(): THREE.ShaderMaterial {
   const mat = new THREE.ShaderMaterial({
     vertexShader: LAYER_VERT,
     fragmentShader: VOLUMETRIC_LIGHT_FRAG,

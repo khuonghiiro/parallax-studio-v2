@@ -405,7 +405,7 @@ export const FX_TOOLS = [
     shape: (d) => ({
       active_views: z.array(z.enum(['camera', 'editor', 'animate2d', 'topview'])).min(1).max(4).optional().describe(d('Independent active viewer tags; overrides mode.', 'Các tag khung xem bật độc lập; ưu tiên hơn mode.')),
       mode: z.enum(['camera', '3d', 'topview', 'animate2d', '2d_3d', '2d_only', 'split']).optional(),
-      focus: z.string().optional().describe(d('"all", "selection" or a shot id.', '"all", "selection" hoặc id shot.')),
+      focus: z.string().optional().describe(d('"all", "selection" or a shot id; preserves active viewer tags.', '"all", "selection" hoặc id shot; giữ nguyên các khung xem đang bật.')),
       camera_only: z.boolean().optional().describe(d('3D view previews only what the camera loads.', 'View 3D chỉ hiển thị những gì camera nạp.')),
       show_path: z.boolean().optional()
     })

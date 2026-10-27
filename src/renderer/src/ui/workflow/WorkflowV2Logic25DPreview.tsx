@@ -555,6 +555,7 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
         <div className="wf-v2-logic-pad-wrap">
           {cat === 'light' || cat === 'cave' ? (
             <VirtualLightInteractivePad
+              sourceLayer={clusterRoot ?? layer}
               imageUrl={lightPadThumbUrl}
               layerName={displayTargetTitle}
               layerSize={lightPadLayerSize}

@@ -135,6 +135,7 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
       {/* 1. Sticky 2.5D Pad Dock + Segmented Sub-Tab Bar (luôn ghim trên cùng, không bị cuộn trôi) */}
       <div className="vl-sticky-dock">
         <VirtualLightInteractivePad
+          sourceLayer={layer}
           imageUrl={thumbUrl}
           layerName={layer.name}
           layerSize={layerSize}

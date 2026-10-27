@@ -1,8 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import type { DepthPortalConfig, LayerVirtualLight } from '@shared/types'
-import { renderVirtualLightPadFrame } from './virtualLightPadGpu'
+import type { DepthPortalConfig, Layer, LayerVirtualLight } from '@shared/types'
+import { createDefaultVirtualLight } from '../../../engine/virtualLight'
+import { useEditor } from '../../../store/editor'
+import { disposeVirtualLightPad, renderVirtualLightPadFrame } from './virtualLightPadGpu'
 
 interface VirtualLightInteractivePadProps {
+  sourceLayer?: Layer
   imageUrl?: string | null
   layerName?: string
   layerSize?: [number, number]
@@ -73,15 +76,18 @@ export function computePadFittedBox(
 
 export function VirtualLightInteractivePad({
   imageUrl,
+  sourceLayer,
   layerName,
   layerSize,
-  vlight,
+  vlight: rawLight,
   isLightEnabled,
   portal,
   isPortalEnabled,
   onPatchLight,
   onPatchPortal
 }: VirtualLightInteractivePadProps) {
+  const vlight = useMemo(() => ({ ...createDefaultVirtualLight(rawLight.kind), ...rawLight }), [rawLight])
+  const time = useEditor((s) => s.time)
   const padRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [activePrimary, setActivePrimary] = useState<'light' | 'portal'>(
@@ -114,8 +120,8 @@ export function VirtualLightInteractivePad({
         ? 'light'
         : 'portal'
 
-  const worldW = Math.max(120, layerSize?.[0] ?? naturalSize?.[0] ?? 960)
-  const worldH = Math.max(120, layerSize?.[1] ?? naturalSize?.[1] ?? 540)
+  const worldW = Math.max(1, layerSize?.[0] ?? naturalSize?.[0] ?? 960)
+  const worldH = Math.max(1, layerSize?.[1] ?? naturalSize?.[1] ?? 540)
   const refSpanPx = Math.max(240, Math.hypot(worldW, worldH) * 0.72)
 
   const box = useMemo(
@@ -172,68 +178,20 @@ export function VirtualLightInteractivePad({
   const curveU = lightU + Math.cos(curveAngleRad) * sideDistUV
   const curveV = lightV + Math.sin(curveAngleRad) * sideDistUV
 
-  // Synchronized 1:1 GPU WebGL Shader Canvas Renderer (with 2D fallback)
   useEffect(() => {
-    let animId: number | null = null
+    const canvas = canvasRef.current
+    return () => { if (canvas) disposeVirtualLightPad(canvas) }
+  }, [])
+
+  useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-
-    animId = requestAnimationFrame(() => {
-      renderVirtualLightPadFrame(canvas, {
-        vlight,
-        isLightEnabled,
-        portal,
-        isPortalEnabled,
-        lightU,
-        lightV,
-        coneDeg,
-        beamRad,
-        beamCurvature,
-        radiusPx,
-        portalU,
-        portalV,
-        portalRx,
-        portalRy,
-        archShape,
-        box,
-        worldW,
-        worldH
-      })
-    })
-
-    return () => {
-      if (animId !== null) cancelAnimationFrame(animId)
-    }
-  }, [
-    isLightEnabled,
-    isPortalEnabled,
-    vlight.color,
-    vlight.intensity,
-    vlight.radius,
-    vlight.coneAngleDeg,
-    vlight.beamAngleDeg,
-    vlight.beamCurvature,
-    vlight.softness,
-    vlight.ambientDim,
-    lightU,
-    lightV,
-    portal.darkness,
-    portal.feather,
-    portal.shadowTint,
-    portalU,
-    portalV,
-    portalRx,
-    portalRy,
-    archShape,
-    refSpanPx,
-    coneDeg,
-    beamRad,
-    beamCurvature,
-    radiusPx,
-    box,
-    worldW,
-    worldH
-  ])
+    const id = requestAnimationFrame(() => renderVirtualLightPadFrame(canvas, {
+      imageUrl, sourceLayer, time, vlight: rawLight, isLightEnabled, portal, isPortalEnabled,
+      box, worldW, worldH
+    }))
+    return () => cancelAnimationFrame(id)
+  }, [imageUrl, sourceLayer, time, rawLight, isLightEnabled, portal, isPortalEnabled, box, worldW, worldH])
 
   const applyPointerAt = (clientX: number, clientY: number, target: DragTarget): void => {
     const el = padRef.current
@@ -395,7 +353,7 @@ export function VirtualLightInteractivePad({
         : '50% / 50%'
 
   return (
-    <div className="vl-pad-card">
+    <div className="vl-pad-card" data-mcp-region="virtual_light_pad">
       {/* Header Bar */}
       <div className="vl-pad-header">
         <span className="vl-pad-title">

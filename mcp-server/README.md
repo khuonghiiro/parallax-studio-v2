@@ -477,3 +477,18 @@ Timeline keyframe: chọn thuộc tính hoặc mốc trên track; `K` thêm/ch�
 Timeline: mỗi thuộc tính có một hàng cố định gồm tên, giá trị và điều hướng mốc. Chọn dòng chỉ đổi thuộc tính active, không đổi đầu phát; ↑/↓ chuyển dòng, K đặt mốc, Alt+←/→ chuyển mốc. Menu ⋯ chứa đầu/cuối đoạn và kiểu nội suy, chụp riêng qua `timeline_key_menu`. Màu chọn thuộc tính tách khỏi layer và mốc đang chọn; thao tác dữ liệu tiếp tục dùng `set_keyframe` (tham số `ease`) qua MCP.
 
 Timeline motion popup: chuột phải vào dòng thuộc tính hoặc mốc mở `timeline_motion_popup` (alias cũ `timeline_key_menu`). Các nút nhanh ○ mượt, △ đều, □ giữ, ★ nhịp đập, ⚡ nhấp nháy có hình riêng; ◆ chỉ dùng cho mốc. Popup cho chọn hướng/độ mượt, số nhịp 1–30, thời điểm nhảy 1–100%, tỉ lệ nháy 5–95%, có đường xem trước và Áp dụng/Undo. Thông số lưu tại `Keyframe.easeOptions`; MCP `set_keyframe` nhận `ease_options` (`cycles`, `strength`, `holdUntil`, `duty`) và `ease: blink`. Thông số thuộc đoạn đi ra từ mốc đầu; popup ở mốc cuối chỉnh đoạn đi vào. Nhấp nháy nội suy giữa hai giá trị đã đặt, không tự thay đổi giá trị đầu/cuối hoặc đồng bộ âm thanh.
+
+
+### Đồng bộ khung ánh sáng 2.5D và lựa chọn khung xem
+Khung chỉnh ánh sáng dùng cùng vật liệu bề mặt, chùm sáng và bộ đánh giá đèn theo playhead với Camera; không tự tăng bán kính hoặc phủ thêm quầng sáng riêng. Khung này hiển thị layer/cụm đang chỉnh trên nền trong suốt, không thay thế toàn bộ phối cảnh và hậu kỳ của Camera.
+Focus layer/cảnh từ Timeline, Workflow hoặc MCP `set_view` giữ nguyên các khung xem đã bật/tắt. Muốn đổi khung xem, dùng các nút trên Viewer hoặc `active_views`/`mode` của `set_view`.
+Vùng chụp riêng: `virtual_light_pad`.
+
+```powershell
+pnpm pxs call set_view --focus selection
+pnpm pxs review --view app --region virtual_light_pad --out D:\_tmp\light-pad.png
+```
+```cmd
+pnpm pxs call set_view --focus selection
+pnpm pxs review --view app --region virtual_light_pad --out D:\_tmp\light-pad.png
+```
