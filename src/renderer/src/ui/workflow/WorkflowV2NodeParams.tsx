@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import {
   WORKFLOW_V2_COLLISION_OPTIONS,
@@ -59,12 +59,58 @@ export const ParamSlider: React.FC<{
   onChange: (v: number) => void
   layout?: 'grid' | 'stacked'
 }> = ({ label, value, min, max, step, format = pct, onChange, layout = 'grid' }) => {
+  const [localVal, setLocalVal] = useState(value)
+  const isDraggingRef = useRef(false)
+  const rafRef = useRef<number | null>(null)
+  const pendingValRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!isDraggingRef.current) {
+      setLocalVal(value)
+    }
+  }, [value])
+
+  const flush = () => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+    }
+    if (pendingValRef.current !== null) {
+      onChange(pendingValRef.current)
+      pendingValRef.current = null
+    }
+  }
+
+  const handleInput = (val: number) => {
+    setLocalVal(val)
+    pendingValRef.current = val
+    if (rafRef.current === null) {
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null
+        if (pendingValRef.current !== null) {
+          onChange(pendingValRef.current)
+        }
+      })
+    }
+  }
+
+  const handlePointerDown = () => {
+    isDraggingRef.current = true
+  }
+
+  const handlePointerUp = () => {
+    isDraggingRef.current = false
+    flush()
+  }
+
+  const currentDisplayVal = isDraggingRef.current ? localVal : value
+
   if (layout === 'stacked') {
     return (
       <label className="wf-v2-param-row stacked">
         <div className="wf-v2-param-head">
           <span className="wf-v2-param-label">{label}</span>
-          <strong>{format(value)}</strong>
+          <strong>{format(currentDisplayVal)}</strong>
         </div>
         <input
           type="range"
@@ -72,8 +118,10 @@ export const ParamSlider: React.FC<{
           min={min}
           max={max}
           step={step}
-          value={Math.max(min, Math.min(max, value))}
-          onChange={(e) => onChange(Number(e.target.value))}
+          value={Math.max(min, Math.min(max, localVal))}
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          onChange={(e) => handleInput(Number(e.target.value))}
         />
       </label>
     )
@@ -87,10 +135,12 @@ export const ParamSlider: React.FC<{
         min={min}
         max={max}
         step={step}
-        value={Math.max(min, Math.min(max, value))}
-        onChange={(e) => onChange(Number(e.target.value))}
+        value={Math.max(min, Math.min(max, localVal))}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onChange={(e) => handleInput(Number(e.target.value))}
       />
-      <strong>{format(value)}</strong>
+      <strong>{format(currentDisplayVal)}</strong>
     </label>
   )
 }

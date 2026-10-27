@@ -144,6 +144,22 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
   }, [clusterMembers, layer, project])
   const trimmedMap = useAlphaTrimmedUrls(rawMemberUrls)
 
+  const clusterFingerprint = useMemo(() => {
+    if (!showFullCluster || clusterMembers.length <= 1) return ''
+    return clusterMembers
+      .map((m) => {
+        const l = project.layers.find((x) => x.id === m.id)
+        if (!l) return m.id
+        const p = evaluate(l.transform.position, previewTime)
+        const s = evaluate(l.transform.scale, previewTime)
+        const r = evaluate(l.transform.rotation, previewTime)
+        const op = evaluate(l.transform.opacity, previewTime)
+        const assetId = (l.props as ImageProps)?.assetId ?? ''
+        return `${l.id}:${p[0]},${p[1]},${p[2]}:${s[0]},${s[1]}:${r}:${op}:${assetId}`
+      })
+      .join('|')
+  }, [showFullCluster, clusterMembers, project.layers, previewTime])
+
   // Tính bố cục lắp ghép toàn bộ các mảnh con hiển thị trong Cụm 2.5D / 3D
   const assembledCluster = useMemo<{
     parts: AssembledPartBox[]
@@ -236,7 +252,7 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
     }))
 
     return { parts, unionW: Math.round(unionW), unionH: Math.round(unionH) }
-  }, [showFullCluster, clusterMembers, project, previewTime, trimmedMap])
+  }, [showFullCluster, clusterMembers, clusterFingerprint, previewTime, trimmedMap])
 
   // Ghép ảnh tổng hợp cả cụm trên offscreen canvas cho VirtualLightInteractivePad (Light / Cave)
   useEffect(() => {
@@ -312,6 +328,14 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
     showFullCluster && assembledCluster
       ? [assembledCluster.unionW, assembledCluster.unionH]
       : [singleTrim ? singleTrim.trimW : singleW, singleTrim ? singleTrim.trimH : singleH]
+
+  // Cho công cụ Ánh sáng ảo và Cửa hang 2.5D: BẮT BUỘC dùng ảnh gốc chưa cắt lề (rawSingleThumbUrl)
+  // và kích thước gốc [singleW, singleH] để UV [0..1] x [0..1] khớp 1:1 tuyệt đối với Three.js PlaneGeometry!
+  const lightPadThumbUrl = showFullCluster && clusterDataUrl ? clusterDataUrl : rawSingleThumbUrl
+  const lightPadLayerSize: [number, number] =
+    showFullCluster && assembledCluster
+      ? [assembledCluster.unionW, assembledCluster.unionH]
+      : [singleW, singleH]
 
   const displayTargetTitle = showFullCluster && clusterRoot
     ? `${getClusterDisplayName(clusterRoot)} (${clusterMembers.length} mảnh)`
@@ -485,9 +509,9 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
         <div className="wf-v2-logic-pad-wrap">
           {cat === 'light' || cat === 'cave' ? (
             <VirtualLightInteractivePad
-              imageUrl={thumbUrl}
+              imageUrl={lightPadThumbUrl}
               layerName={displayTargetTitle}
-              layerSize={layerSize}
+              layerSize={lightPadLayerSize}
               vlight={vlight}
               isLightEnabled={isLightEnabled}
               portal={portal}

@@ -66,6 +66,9 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
   const targetIds = node.params?.targetLayerIds ?? (layer ? [layer.id] : [])
   const vlight: LayerVirtualLight = layer?.virtualLight ?? createDefaultVirtualLight('candle')
 
+  const pendingPatchRef = React.useRef<{ patch: Partial<LayerVirtualLight>; mergeKey: string } | null>(null)
+  const patchRafRef = React.useRef<number | null>(null)
+
   const patchLight = (patch: Partial<LayerVirtualLight>, mergeKey = 'wf-v2-light'): void => {
     let resolvedColor = patch.color
     let resolvedIntensity = patch.intensity
@@ -129,6 +132,33 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
     }
   }
 
+  const patchLightThrottled = (patch: Partial<LayerVirtualLight>, mergeKey = 'wf-v2-light'): void => {
+    pendingPatchRef.current = {
+      patch: { ...(pendingPatchRef.current?.patch ?? {}), ...patch },
+      mergeKey
+    }
+    if (patchRafRef.current === null) {
+      patchRafRef.current = requestAnimationFrame(() => {
+        patchRafRef.current = null
+        if (pendingPatchRef.current) {
+          patchLight(pendingPatchRef.current.patch, pendingPatchRef.current.mergeKey)
+          pendingPatchRef.current = null
+        }
+      })
+    }
+  }
+
+  const flushPatchLight = (): void => {
+    if (patchRafRef.current !== null) {
+      cancelAnimationFrame(patchRafRef.current)
+      patchRafRef.current = null
+    }
+    if (pendingPatchRef.current) {
+      patchLight(pendingPatchRef.current.patch, pendingPatchRef.current.mergeKey)
+      pendingPatchRef.current = null
+    }
+  }
+
   const isFlame = vlight.kind === 'candle' || vlight.kind === 'campfire'
   const coneDeg = vlight.coneAngleDeg ?? 360
   const isCone = vlight.kind === 'flashlight' || coneDeg < 350
@@ -172,7 +202,8 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
               max={2.6}
               step={0.05}
               value={Math.min(2.6, Math.max(0.05, vlight.intensity))}
-              onChange={(e) => patchLight({ intensity: Number(e.target.value) }, 'wf-light-intensity')}
+              onChange={(e) => patchLightThrottled({ intensity: Number(e.target.value) }, 'wf-light-intensity')}
+              onPointerUp={flushPatchLight}
               style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
             />
             <div style={{ width: 64, flexShrink: 0 }}>
@@ -197,7 +228,8 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
               max={0.85}
               step={0.02}
               value={vlight.ambientDim ?? 0.24}
-              onChange={(e) => patchLight({ ambientDim: Number(e.target.value) }, 'wf-light-dim')}
+              onChange={(e) => patchLightThrottled({ ambientDim: Number(e.target.value) }, 'wf-light-dim')}
+              onPointerUp={flushPatchLight}
               style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
             />
             <div style={{ width: 64, flexShrink: 0 }}>
@@ -287,7 +319,8 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
               max={2200}
               step={15}
               value={Math.min(2200, Math.max(80, vlight.radius))}
-              onChange={(e) => patchLight({ radius: Number(e.target.value) }, 'wf-light-radius')}
+              onChange={(e) => patchLightThrottled({ radius: Number(e.target.value) }, 'wf-light-radius')}
+              onPointerUp={flushPatchLight}
               style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
             />
             <div style={{ width: 70, flexShrink: 0 }}>
@@ -314,11 +347,12 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
               step={2}
               value={vlight.beamAngleDeg ?? -90}
               onChange={(e) =>
-                patchLight(
+                patchLightThrottled(
                   { beamAngleDeg: Number(e.target.value), coneAngleDeg: coneDeg >= 350 ? 64 : coneDeg },
                   'wf-light-beam'
                 )
               }
+              onPointerUp={flushPatchLight}
               style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
             />
             <div style={{ width: 64, flexShrink: 0 }}>
@@ -346,7 +380,8 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
               max={360}
               step={5}
               value={coneDeg}
-              onChange={(e) => patchLight({ coneAngleDeg: Number(e.target.value) }, 'wf-light-cone')}
+              onChange={(e) => patchLightThrottled({ coneAngleDeg: Number(e.target.value) }, 'wf-light-cone')}
+              onPointerUp={flushPatchLight}
               style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
             />
             <div style={{ width: 64, flexShrink: 0 }}>
@@ -373,11 +408,12 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
               step={0.05}
               value={beamCurvature}
               onChange={(e) =>
-                patchLight(
+                patchLightThrottled(
                   { beamCurvature: Number(e.target.value), coneAngleDeg: coneDeg >= 350 ? 68 : coneDeg },
                   'wf-light-curv'
                 )
               }
+              onPointerUp={flushPatchLight}
               style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
             />
             <div style={{ width: 64, flexShrink: 0 }}>
@@ -420,7 +456,8 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
               max={2500}
               step={50}
               value={Math.min(2500, Math.max(150, zReachVal))}
-              onChange={(e) => patchLight({ zReach: Number(e.target.value) }, 'wf-light-zreach')}
+              onChange={(e) => patchLightThrottled({ zReach: Number(e.target.value) }, 'wf-light-zreach')}
+              onPointerUp={flushPatchLight}
               style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
             />
             <div style={{ width: 70, flexShrink: 0 }}>
@@ -527,6 +564,9 @@ export function WorkflowV2CaveParams(props: WorkflowV2NodeParamsProps): React.Re
   const targetIds = node.params?.targetLayerIds ?? (layer ? [layer.id] : [])
   const portal: DepthPortalConfig = layer?.physics?.depthPortal ?? createDefaultDepthPortal()
 
+  const pendingPortalRef = React.useRef<{ patch: Partial<DepthPortalConfig>; mergeKey: string } | null>(null)
+  const portalRafRef = React.useRef<number | null>(null)
+
   const patchPortal = (patch: Partial<DepthPortalConfig>, mergeKey = 'wf-v2-cave'): void => {
     useEditor.getState().update((d) => {
       const idSet = new Set(targetIds)
@@ -558,6 +598,33 @@ export function WorkflowV2CaveParams(props: WorkflowV2NodeParamsProps): React.Re
         ...(patch.darkness !== undefined ? { caveDarkness: patch.darkness, intensity: patch.darkness } : {}),
         ...(patch.minScale !== undefined ? { caveMinScale: patch.minScale } : {})
       })
+    }
+  }
+
+  const patchPortalThrottled = (patch: Partial<DepthPortalConfig>, mergeKey = 'wf-v2-cave'): void => {
+    pendingPortalRef.current = {
+      patch: { ...(pendingPortalRef.current?.patch ?? {}), ...patch },
+      mergeKey
+    }
+    if (portalRafRef.current === null) {
+      portalRafRef.current = requestAnimationFrame(() => {
+        portalRafRef.current = null
+        if (pendingPortalRef.current) {
+          patchPortal(pendingPortalRef.current.patch, pendingPortalRef.current.mergeKey)
+          pendingPortalRef.current = null
+        }
+      })
+    }
+  }
+
+  const flushPatchPortal = (): void => {
+    if (portalRafRef.current !== null) {
+      cancelAnimationFrame(portalRafRef.current)
+      portalRafRef.current = null
+    }
+    if (pendingPortalRef.current) {
+      patchPortal(pendingPortalRef.current.patch, pendingPortalRef.current.mergeKey)
+      pendingPortalRef.current = null
     }
   }
 
@@ -610,7 +677,8 @@ export function WorkflowV2CaveParams(props: WorkflowV2NodeParamsProps): React.Re
             max={0.98}
             step={0.02}
             value={portal.darkness}
-            onChange={(e) => patchPortal({ darkness: Number(e.target.value) }, 'wf-portal-darkness')}
+            onChange={(e) => patchPortalThrottled({ darkness: Number(e.target.value) }, 'wf-portal-darkness')}
+            onPointerUp={flushPatchPortal}
             style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
           />
           <div style={{ width: 64, flexShrink: 0 }}>
@@ -635,7 +703,8 @@ export function WorkflowV2CaveParams(props: WorkflowV2NodeParamsProps): React.Re
             max={0.95}
             step={0.02}
             value={portal.minScale}
-            onChange={(e) => patchPortal({ minScale: Number(e.target.value) }, 'wf-portal-scale')}
+            onChange={(e) => patchPortalThrottled({ minScale: Number(e.target.value) }, 'wf-portal-scale')}
+            onPointerUp={flushPatchPortal}
             style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
           />
           <div style={{ width: 64, flexShrink: 0 }}>
